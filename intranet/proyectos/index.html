@@ -243,6 +243,14 @@ let PROYECTOS_FICHA = {};
 // solución que Contratos resolvió el 27-ago para su propio desplegable de
 // resort — unión, no sustitución.
 let CATALOGO_RESORTS = [];
+// sales_manager/project_manager asignables a este proyecto (11-sep-2026,
+// encargo del owner: poder asignarlos también DESDE el proyecto, no solo
+// desde /usuarios/ marcando sus proyectos uno a uno). Misma columna
+// `usuarios.proyectos` de siempre — esto es la otra punta del mismo lápiz,
+// no una relación nueva. Solo se ve y se toca si eres admin: la RLS de
+// `usuarios` ya lo exige, esto es para no ofrecer un control que al guardar
+// solo va a fallar.
+let MANAGERS = [];
 const nombreEstado = e => (ESTADOS.find(x => x[0] === e) || [e, e])[1];
 const nombreTipo   = t => (TIPOS.find(x => x[0] === t) || [t, t])[1];
 const fmtNum = n => n == null ? '' : n.toLocaleString('es-ES',{ minimumFractionDigits:n%1?2:0, maximumFractionDigits:2 });
@@ -270,6 +278,11 @@ try{ PROY_URL = new URLSearchParams(location.search).get('proyecto') || ''; }cat
 // estricto que el es_admin() (admin+super_admin) que ya usa el resto de la
 // suite — se guarda aparte, no se reutiliza CAN_EDIT_TEXT ni nada existente.
 let ES_SUPER_ADMIN = false;
+// Asignar managers desde aquí escribe en `usuarios`, así que exige lo mismo
+// que /usuarios/: admin (o super_admin) Y la herramienta «usuarios» — un
+// admin sin ella la RLS se la rechaza igual, esto es para no ofrecer el
+// control a quien va a ver un error al guardar.
+let PUEDE_USUARIOS = false;
 /* Escribir `modelos_villa` exige `es_admin()` en la base (rol admin o
    super_admin). Se guarda aparte de ES_SUPER_ADMIN para no ofrecerle a un
    agente unas casillas que la policy le va a rechazar al guardar: la interfaz
@@ -324,7 +337,7 @@ const valorDe = (u, campo) => {
 /* ---------- carga ---------- */
 async function cargar(){
   CARGANDO = true; FALLO = null; pintar();
-  const [u, c, m, cat, p, t, dp] = await Promise.all([
+  const [u, c, m, cat, p, t, dp, mgrs] = await Promise.all([
     // `unidades_estado` es la vista que añade el contrato vinculado y lo
     // facturado (calculado, no guardado: guardarlo sería una tercera copia
     // que se queda vieja en cuanto se anule una factura).
@@ -341,6 +354,11 @@ async function cargar(){
     // mas y evita que la carpeta se pinte dos veces (una sin la linea y otra
     // con ella), que es como se ven los saltos.
     SB.from('documentos_proyecto').select('proyecto').limit(2000),
+    // Sin permiso (no admin) esto vuelve vacío por RLS, no un error — la
+    // sección de managers de la ficha simplemente no se pinta para esa
+    // persona, igual que ya pasa con «Qué se puede construir aquí».
+    SB.from('usuarios').select('user_id, email, nombre, rol, proyectos, activo')
+      .in('rol', ['sales_manager', 'project_manager']).order('nombre'),
   ]);
   CARGANDO = false;
   if(u.error){ FALLO = u.error.message; pintar(); return; }
@@ -371,6 +389,7 @@ async function cargar(){
     PROYECTOS_FICHA = Object.fromEntries(p.data.map(x => [x.nombre, x]));
   }
   if(!t.error && t.data && t.data.length) TIPOS = t.data.map(x => [x.clave, x.etiqueta]);
+  MANAGERS = mgrs.error ? [] : (mgrs.data || []);
   // Unión defensiva: si una unidad quedó con un proyecto que ya no está en el
   // catálogo (borrado por error, o dato antiguo), sigue apareciendo en el
   // filtro — no desaparece de la vista, solo no se puede elegir para una
@@ -704,6 +723,22 @@ function editarProyecto(nombre){
           </label>`; }).join('')
         : '<p class="sui-nota">El catálogo de modelos está vacío o no tienes permiso para leerlo.</p>'}
         ${ES_ADMIN ? '' : '<p class="sui-nota">Solo un administrador puede cambiar esta lista.</p>'}
+      </div>
+
+      <div class="sui-bloque" style="margin-top:18px">
+        <h3>Sales manager / Project manager de este proyecto</h3>
+        <p class="sui-nota">A quien marques aquí le llegará por correo el aviso cuando cambie de estado un
+          contrato, una solicitud de pago o una unidad de este proyecto, y podrá LEER (nunca editar) todo lo
+          que hagan aquí los agentes — es la misma casilla «Proyectos» de su ficha en <code>/usuarios/</code>,
+          marcada desde aquí en vez de una por una desde allí.</p>
+        ${!PUEDE_USUARIOS ? '<p class="sui-nota">Solo un administrador con la herramienta «usuarios» puede asignar managers.</p>'
+          : !MANAGERS.length ? '<p class="sui-nota">Todavía no hay ningún sales manager ni project manager dado de alta. Se crean desde <code>/usuarios/</code>.</p>'
+          : MANAGERS.map(m => `<label class="mini" style="display:flex;gap:8px;align-items:baseline;padding:4px 0">
+              <input type="checkbox" data-manager="${esc(m.user_id)}"
+                     ${(m.proyectos || []).includes(ficha.id) ? 'checked' : ''} ${m.activo ? '' : 'disabled'}>
+              <span>${esc(m.nombre || m.email)}
+                <span class="flojo"> · ${m.rol === 'sales_manager' ? 'Sales manager' : 'Project manager'}${m.activo ? '' : ' · desactivado'}</span></span>
+            </label>`).join('')}
       </div>`,
     pie: `<button class="sui-btn primario" id="btnGuardarFicha">Guardar</button>
           <button class="sui-btn" id="btnRenombrarProy">Renombrar…</button>
@@ -734,6 +769,30 @@ function editarProyecto(nombre){
       if(!r.ok){ btn.disabled = false; toast('La ficha sí, los modelos no: ' + r.error); return; }
       if(r.rechazadas.length)
         toast('No se han retirado ' + r.rechazadas.map(x => x.modelo).join(', ') + ': hay parcelas que los usan');
+    }
+    /* Managers: se guarda SOLO a quien cambió de estado (marcado/desmarcado),
+       nunca reescribiendo `proyectos` entero — un manager puede tener otros
+       proyectos asignados desde /usuarios/ y esto no puede pisárselos. Un
+       fallo puntual (p.ej. RLS por si acaso) se avisa por persona, no aborta
+       el resto: la ficha y los modelos ya se guardaron. */
+    if(PUEDE_USUARIOS && MANAGERS.length){
+      const proyectoId = (data[0] && data[0].id) || ficha.id || null;
+      if(proyectoId){
+        const marcadosMgr = new Set([...document.querySelectorAll('[data-manager]')].filter(c => c.checked).map(c => c.dataset.manager));
+        const fallosMgr = [];
+        for(const m of MANAGERS){
+          const teniaAntes = (m.proyectos || []).includes(proyectoId);
+          const marcadoAhora = marcadosMgr.has(m.user_id);
+          if(teniaAntes === marcadoAhora) continue;
+          const nuevos = marcadoAhora
+            ? [...(m.proyectos || []), proyectoId]
+            : (m.proyectos || []).filter(id => id !== proyectoId);
+          const { error: eMgr } = await SB.from('usuarios').update({ proyectos: nuevos }).eq('user_id', m.user_id);
+          if(eMgr) fallosMgr.push(m.nombre || m.email);
+          else m.proyectos = nuevos;   // MANAGERS en memoria queda al día sin recargar
+        }
+        if(fallosMgr.length) toast('No se pudo actualizar el proyecto de: ' + fallosMgr.join(', '));
+      }
     }
     btn.disabled = false;
     toast('Guardado');
@@ -1425,6 +1484,7 @@ window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   SB = sb;
   ES_SUPER_ADMIN = !!(ficha && ficha.rol === 'super_admin');
   ES_ADMIN = !!(ficha && (ficha.rol === 'admin' || ficha.rol === 'super_admin'));
+  PUEDE_USUARIOS = ES_SUPER_ADMIN || !!(ficha && ficha.rol === 'admin' && (ficha.herramientas || []).includes('usuarios'));
   try{
     const t = await fetch('../../contracts/tokens.json?v=' + Date.now()).then(r => r.json());
     const campo = (t.sections || []).flatMap(s => s.fields).find(f => f[0] === 'resort');
