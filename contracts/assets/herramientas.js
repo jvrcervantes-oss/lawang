@@ -36,9 +36,8 @@ const LW_HERRAMIENTAS = [
     estado:d => d.leadsNuevos == null ? null
       : [d.leadsNuevos ? d.leadsNuevos + (d.leadsNuevos === 1 ? ' sin contactar' : ' sin contactar') : 'Todos contestados',
          d.leadsNuevos > 0] },
-  /* `ranking` (11-sep-2026) — mismo tratamiento que tenía 'closers' (Agenda de
-     cierre, retirada el 11-sep: el owner la dio de baja, ya no existe como
-     herramienta): vive DENTRO del CRM (pestaña «Closers») y por eso lleva
+  /* `ranking` (11-sep-2026) — mismo tratamiento que 'closers', su vecina de abajo:
+     vive DENTRO del CRM (pestaña «Closers») y por eso lleva
      `soloPermiso`, pero necesita existir como permiso propio en
      /intranet/usuarios/. No cuelga de 'leads' porque lo que abre es cuánto
      factura y cuánto cobra cada comercial, y con ocho de ellos eso no son
@@ -160,6 +159,19 @@ const LW_HERRAMIENTAS = [
     estado:d => d.unidades == null ? null
       : d.unidades === 0 ? ['Sin inventario cargado', true]
       : [d.unidades + ' unidades · ' + d.unidadesLibres + ' disponibles', false] },
+  /* Nueva 11-sep-2026 (encargo del owner: traer /v4/proyectos a la version
+     actual sin retirar la de siempre — "mantener los 2 enlaces desde el
+     menu"). Va PEGADA a Proyectos porque son la misma base de datos vista de
+     dos formas: tabla ancha editable de toda la vida vs. tarjetas por
+     proyecto + cajon de cuentas de la v4. Mismo `herr:'unidades'` que su
+     hermana, mismo motivo que Modelos de arriba: una clave nueva exige
+     redesplegar la edge admin-usuarios (LAW-70 sigue pendiente) y dejaria a
+     los usuarios nuevos sin la herramienta en silencio. Sin `estado`: son las
+     mismas cifras que ya cuenta la ficha de Proyectos, repetir el aviso ahi
+     seria ruido, no informacion nueva. */
+  { grupo:'Base de datos', nombre:'Proyectos (nueva vista)', icon:'ph-squares-four', href:'/intranet/v4/proyectos/', herr:'unidades',
+    para:'La misma base de parcelas y villas, en tarjetas por proyecto con el estado de cuentas. En pruebas junto a Proyectos.',
+    claves:'proyectos v4 tarjetas nueva vista cuentas beta prueba' },
   /* Nueva 7-sep-2026 (encargo del owner: dar de alta los tipos de vivienda igual
      que se dan de alta las parcelas). Va JUSTO detras de Proyectos porque es su
      otra mitad: alli esta el terreno, aqui la casa que se levanta encima, y el

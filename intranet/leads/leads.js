@@ -33,6 +33,7 @@ let ABIERTAS = new Set(), ABIERTO = null, SEL_B = null;
 let CARGADO = { panel: false, automatismos: false, setter: false, agenda: false };
 let FICHA = null;
 let CONVERSACIONES = [], CITAS = [], EDITANDO_CITA = null;
+let CHAT_ABIERTO = null;   // teléfono del hilo abierto en Setter IA, o null
 
 /* Las seis columnas. El orden es el del embudo y no se reordena: la posición
    de una tarjeta ES la información. */
@@ -95,6 +96,46 @@ function enlaceSeguro(url){
     return ['https:', 'mailto:', 'tel:'].includes(u.protocol) ? u.href : null;
   } catch(e){ return null; }
 }
+
+/* ==========================================================================
+   LA URL ES EL ESTADO
+   --------------------------------------------------------------------------
+   Antes la pestaña vivía solo en memoria: estabas en Setter IA y la barra de
+   direcciones seguía diciendo `/intranet/leads/`. Eso rompe tres cosas que la
+   gente da por hechas — recargar te devolvía al principio, «atrás» te sacaba de
+   la herramienta entera, y no se podía pasar un enlace a un compañero diciendo
+   «mira esta conversación».
+
+   Ahora manda el hash y nadie más: pulsar una pestaña NO pinta, solo cambia la
+   URL; es `hashchange` quien pinta. Con una sola dirección de flujo no hay forma
+   de que la vista y la barra se desincronicen.
+
+     #pipeline · #setter · #agenda …      una vista
+     #setter/62881037978255               una vista y un hilo abierto
+
+   El `?v=` que usa el hub (`herramientas.js`) se sigue aceptando y se traduce a
+   hash al entrar, para no tener que tocar los enlaces del hub.
+   ========================================================================== */
+const VISTAS_OCULTABLES = { agenda: '#tabAgenda', closers: '#tabClosers' };
+
+function vistaPermitida(v){
+  if(!document.querySelector('#v-' + v)) return false;
+  const tab = VISTAS_OCULTABLES[v];
+  return !tab || !document.querySelector(tab).hidden;
+}
+
+function aplicarRuta(){
+  const crudo = decodeURIComponent(location.hash.replace(/^#/, ''));
+  const [vPedida, phone] = crudo.split('/');
+  const v = vistaPermitida(vPedida) ? vPedida : 'hoy';
+  if(v !== VISTA) ir(v);
+  // El hilo solo existe dentro de Setter IA; en cualquier otra vista se cierra.
+  if(v !== 'setter'){ if(CHAT_ABIERTO) cerrarChat(); return; }
+  if(phone && phone !== CHAT_ABIERTO) verConversacion(phone);
+  else if(!phone && CHAT_ABIERTO) cerrarChat();
+}
+
+window.addEventListener('hashchange', aplicarRuta);
 
 /* ---------- navegación entre vistas ---------- */
 function ir(v){
@@ -1262,6 +1303,10 @@ async function cargarSetter(){
       : 'No se pudo leer el bot: ' + esc(err.message);
   }
   pintarSetter();
+  /* Si se entró por un enlace directo (`#setter/62…`), el hilo se abrió ANTES de que
+     llegara este listado, así que su cabecera se pintó sin nombre ni estado de IA —
+     solo con el teléfono. Ahora que hay datos, se repinta. */
+  if(CHAT_ABIERTO) verConversacion(CHAT_ABIERTO);
 }
 
 const iniciales = nombre => (nombre || '').trim().split(/\s+/).slice(0, 2).map(p => p[0] || '').join('').toUpperCase() || '?';
@@ -1278,29 +1323,117 @@ function kpisSetter(){
       <p class="cifra oro">${pausadas}</p><p class="pie">las lleva una persona</p></div>`;
 }
 
+/* Hora corta para la lista: hoy → "14:32", esta semana → "mar", más viejo → "3 sep".
+   WhatsApp hace exactamente esto y por un motivo práctico: la fecha completa en cada
+   fila no cabe sin empujar al nombre, que es lo que de verdad se busca al escanear. */
+function horaCorta(ts){
+  if(!ts) return '';
+  const d = new Date(ts), ahora = new Date();
+  const dias = Math.floor((ahora.setHours(0,0,0,0) - new Date(ts).setHours(0,0,0,0)) / 86400000);
+  if(dias === 0) return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  if(dias === 1) return 'ayer';
+  if(dias < 7)   return d.toLocaleDateString('es-ES', { weekday: 'short' });
+  return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+}
+
 function pintarSetter(){
   kpisSetter();
   const filas = CONVERSACIONES.slice().sort((a, b) => (b.lastInboundAt || 0) - (a.lastInboundAt || 0));
   $('#tSetter').innerHTML = filas.length ? filas.map(l => `
-    <article class="conversacion${l.paused ? '' : ' activa'}" data-phone="${esc(l.phone)}">
+    <button type="button" class="wa-fila" data-phone="${esc(l.phone)}"
+            aria-current="${String(l.phone === CHAT_ABIERTO)}">
       <div class="avatar">${esc(iniciales(l.name))}</div>
       <div class="cuerpo">
-        <div class="quien">${esc(l.name || 'sin nombre')}</div>
-        <div class="sub">${esc(l.phone || '')} · ${l.lastInboundAt ? esc(fechaHora(new Date(l.lastInboundAt).toISOString())) : 'sin actividad'}</div>
+        <div class="arriba">
+          <span class="quien">${esc(l.name || l.phone || 'sin nombre')}</span>
+          <span class="hora">${esc(horaCorta(l.lastInboundAt))}</span>
+        </div>
+        <div class="abajo">
+          <span class="punto ${l.paused ? 'pausa' : 'ia'}" title="${l.paused ? 'En pausa — la lleva una persona' : 'IA activa'}"></span>
+          <span class="previo">${esc(l.lastMessage || 'Sin mensajes todavía')}</span>
+        </div>
       </div>
-      ${l.paused
+    </button>`).join('') : '<p class="vacio">Sin conversaciones todavía.</p>';
+  $('#tSetter').querySelectorAll('.wa-fila').forEach(c =>
+    c.onclick = () => irAConversacion(c.dataset.phone));
+}
+
+/* Abrir un hilo cambia la URL, y es la URL la que abre el hilo (ver aplicarRuta).
+   Así el enlace de una conversación se puede pegar en un chat del equipo y el
+   botón «atrás» del navegador hace lo que se espera. */
+function irAConversacion(phone){
+  location.hash = '#setter/' + encodeURIComponent(phone);
+}
+
+function cerrarChat(){
+  CHAT_ABIERTO = null;
+  $('#wa').dataset.abierto = '0';
+  const c = $('#waChat');
+  c.dataset.vacio = '1';
+  c.innerHTML = `<div class="wa-nada"><i class="ph ph-chats-circle"></i>
+    <p>Elige una conversación</p>
+    <span>Los mensajes del bot con cada lead, tal y como los ve el cliente.</span></div>`;
+  $('#tSetter').querySelectorAll('.wa-fila').forEach(f => f.setAttribute('aria-current', 'false'));
+}
+
+async function verConversacion(phone){
+  CHAT_ABIERTO = phone;
+  const lead = CONVERSACIONES.find(x => x.phone === phone) || { phone };
+  $('#wa').dataset.abierto = '1';
+  $('#tSetter').querySelectorAll('.wa-fila').forEach(f =>
+    f.setAttribute('aria-current', String(f.dataset.phone === phone)));
+
+  const c = $('#waChat');
+  c.dataset.vacio = '0';
+  c.innerHTML = `
+    <div class="wa-cab">
+      <button type="button" class="wa-volver" id="waVolver" aria-label="Volver a la lista"><i class="ph ph-arrow-left"></i></button>
+      <div class="avatar">${esc(iniciales(lead.name))}</div>
+      <div class="cuerpo">
+        <div class="quien">${esc(lead.name || 'sin nombre')}</div>
+        <div class="sub">+${esc(phone)}</div>
+      </div>
+      ${lead.paused
         ? '<span class="chip gris"><i class="ph ph-pause"></i> Pausada</span>'
         : '<span class="chip verde"><i class="ph ph-robot"></i> IA activa</span>'}
-      <div class="acciones">
-        <button class="btn mini" data-pausar="${esc(l.phone)}" data-a="${l.paused ? '0' : '1'}">
-          ${l.paused ? 'Reanudar IA' : 'Pausar IA'}</button>
-      </div>
-    </article>`).join('') : '<p class="vacio">Sin conversaciones todavía.</p>';
-  $('#tSetter').querySelectorAll('[data-pausar]').forEach(b => b.onclick = ev => {
-    ev.stopPropagation();
+      <button class="btn mini" data-pausar="${esc(phone)}" data-a="${lead.paused ? '0' : '1'}">
+        ${lead.paused ? 'Reanudar IA' : 'Pausar IA'}</button>
+    </div>
+    <div class="wa-hilo" id="hiloConv"><p class="vacio">Cargando…</p></div>`;
+  $('#waVolver').onclick = () => { location.hash = '#setter'; };
+  c.querySelector('[data-pausar]').onclick = ev => {
+    const b = ev.currentTarget;
     pausarLead(b.dataset.pausar, b.dataset.a === '1');
-  });
-  $('#tSetter').querySelectorAll('.conversacion').forEach(c => c.onclick = () => verConversacion(c.dataset.phone));
+  };
+
+  try {
+    const historia = await llamarBot('conversacion', { phone });
+    if(CHAT_ABIERTO !== phone) return;   // se cambió de conversación mientras cargaba
+    pintarHilo(historia || []);
+  } catch(err){
+    if(CHAT_ABIERTO !== phone) return;
+    $('#hiloConv').innerHTML = '<p class="vacio">No se pudo leer la conversación.</p>';
+  }
+}
+
+function pintarHilo(historia){
+  const hilo = $('#hiloConv');
+  if(!historia.length){ hilo.innerHTML = '<p class="vacio">Sin mensajes.</p>'; return; }
+  let ultimoDia = '';
+  hilo.innerHTML = historia.map(m => {
+    const d = m.ts ? new Date(m.ts) : null;
+    const dia = d ? d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+    const separador = dia && dia !== ultimoDia ? `<div class="wa-dia">${esc(dia)}</div>` : '';
+    if(dia) ultimoDia = dia;
+    const entra = m.role === 'user';
+    const humana = !entra && m.by === 'human';
+    return separador + `<div class="wa-b ${entra ? 'entra' : 'sale'}${humana ? ' humana' : ''}">
+      ${humana ? '<span class="firma">Respuesta del equipo</span>' : ''}
+      <div class="txt">${esc(m.content || '')}</div>
+      <span class="meta">${d ? esc(d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })) : ''}</span>
+    </div>`;
+  }).join('');
+  hilo.scrollTop = hilo.scrollHeight;   // se abre por el final, como cualquier chat
 }
 
 async function pausarLead(phone, paused){
@@ -1309,6 +1442,9 @@ async function pausarLead(phone, paused){
     const l = CONVERSACIONES.find(x => x.phone === phone);
     if(l) l.paused = paused;
     pintarSetter();
+    /* La cabecera del hilo abierto lleva su propio chip y su propio botón: sin esto
+       seguiría diciendo «IA activa» junto a una conversación que acabas de pausar. */
+    if(CHAT_ABIERTO === phone) verConversacion(phone);
     toast(paused ? 'IA pausada para ese lead.' : 'IA reanudada para ese lead.');
   } catch(err){ toast('No se pudo cambiar el estado: ' + err.message); }
 }
@@ -1440,7 +1576,10 @@ async function borrarCita(id){
    ========================================================================== */
 $('#nav').addEventListener('click', e => {
   const b = e.target.closest('[data-v]'); if(!b) return;
-  ir(b.dataset.v);
+  // Solo se mueve la URL. Pintar es cosa de aplicarRuta(), vía hashchange.
+  const destino = '#' + b.dataset.v;
+  if(location.hash === destino) aplicarRuta();   // mismo hash: hashchange no dispara
+  else location.hash = destino;
 });
 $('#canales').addEventListener('click', e => {
   const b = e.target.closest('[data-c]'); if(!b) return;
@@ -1492,10 +1631,13 @@ window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   SB = sb; YO = session && session.user; FICHA = ficha;
   const puedeClosers = !ficha || ficha.rol === 'super_admin' || (ficha.herramientas || []).includes('closers');
   $('#tabAgenda').hidden = !puedeClosers;
-  /* El ranking va detrás de su permiso propio `ranking`, más los admin: es la única pestaña
-     de esta herramienta que enseña dinero de OTRAS personas. Ver la nota de herramientas.js
-     sobre por qué no cuelga de `leads`. */
-  const puedeRanking = !!ficha && (ficha.rol === 'super_admin' || ficha.rol === 'admin' ||
+  /* SOLO POR CASILLA, no por rol (decisión del owner, 11-sep-2026). La primera versión de
+     esta línea dejaba pasar a cualquier `admin` por serlo, y eso metía en la tabla de
+     comisiones a los cuatro admins sin que nadie lo hubiera decidido — entre ellos la
+     operadora de marketing, que no tiene por qué ver cuánto factura cada comercial. Al
+     revés, los sales managers (que sí gestionan ventas) se quedaban fuera.
+     El super_admin sigue pasando porque pasa por todo, igual que en el resto de la suite. */
+  const puedeRanking = !!ficha && (ficha.rol === 'super_admin' ||
     (ficha.herramientas || []).includes('ranking'));
   $('#tabClosers').hidden = !puedeRanking;
   await cargar();
@@ -1504,7 +1646,12 @@ window.LW_AUTH.then(async ({ sb, session, ficha }) => {
      lo que `crm_agenda()` devuelve es exactamente lo mismo filtrado por fecha. */
   actualizarCuentaHoy();
   if(VISTA === 'hoy') cargarHoy();
-  // Entrada directa a una pestaña desde el hub (`?v=agenda`, herramientas.js).
+  /* Entrada directa desde el hub (`?v=agenda`, herramientas.js): se traduce a hash y se
+     limpia de la barra, para que a partir de ahí exista UNA sola forma de decir dónde
+     estás. `replaceState` en vez de asignar location.search: así no recarga la página. */
   const vInicial = new URLSearchParams(location.search).get('v');
-  if(vInicial && document.querySelector('#v-' + vInicial) && (vInicial !== 'agenda' || puedeClosers)) ir(vInicial);
+  if(vInicial && vistaPermitida(vInicial) && !location.hash){
+    history.replaceState(null, '', location.pathname + '#' + vInicial);
+  }
+  aplicarRuta();
 });

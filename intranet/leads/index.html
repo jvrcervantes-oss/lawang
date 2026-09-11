@@ -61,12 +61,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/lawang.css?v=c4880e28">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<script src="/contracts/assets/herramientas.js?v=5ecbbce4"></script>
+<script src="/contracts/assets/herramientas.js?v=8243d7c6"></script>
 <script src="/contracts/assets/topbar.js?v=655d4b8e" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js?v=d126c94d" data-herramienta="leads"></script>
 <script src="/contracts/assets/suite.js?v=a916961a"></script>
-<link rel="stylesheet" href="/intranet/leads/leads.css?v=5">
+<link rel="stylesheet" href="/intranet/leads/leads.css?v=6">
 <style>
   *{ box-sizing:border-box; } html,body{ margin:0; }
   body{ font-family:'Inter',ui-sans-serif,system-ui,sans-serif; background:#F8FAFC; color:#0F172A; }
@@ -216,7 +216,20 @@
         </div>
         <button type="button" class="btn" id="btnRefrescarSetter"><i class="ph ph-arrows-clockwise"></i>Refrescar</button>
       </header>
-      <div id="tSetter" class="conversaciones"></div>
+      <!-- Dos paneles, como WhatsApp Web: la lista manda a la izquierda y el hilo se abre a
+           la derecha sin tapar nada. Antes el hilo vivía en un cajón sobre un velo, y eso
+           obligaba a cerrar para volver a la lista: leer diez conversaciones eran veinte
+           clics. En móvil los dos paneles se apilan y solo se ve uno (ver leads.css). -->
+      <div class="wa" id="wa">
+        <div class="wa-lista" id="tSetter"></div>
+        <div class="wa-chat" id="waChat" data-vacio="1">
+          <div class="wa-nada">
+            <i class="ph ph-chats-circle"></i>
+            <p>Elige una conversación</p>
+            <span>Los mensajes del bot con cada lead, tal y como los ve el cliente.</span>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -291,6 +304,6 @@
 
 <script src="/contracts/assets/dialogo.js?v=8197f360"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
-<script src="/intranet/leads/leads.js?v=11"></script>
+<script src="/intranet/leads/leads.js?v=12"></script>
 </body>
 </html>

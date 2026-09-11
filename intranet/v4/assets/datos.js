@@ -689,10 +689,22 @@
            bajo para todo el que no sea super admin. Está avisado en la cabecera
            de este fichero y aun así caí en ello al escribir esta pantalla. */
         q(sb.rpc('facturas_equipo').select('proyecto_nombre,tipo,total,moneda,anulada'), 'facturas'),
-        q(sb.from('documentos_proyecto').select('id,proyecto,categoria,titulo,descripcion,url,carpeta,visible_portal,confidencial,creado_en'), 'documentación')
+        q(sb.from('documentos_proyecto').select('id,proyecto,categoria,titulo,descripcion,url,carpeta,visible_portal,confidencial,creado_en'), 'documentación'),
+        /* Managers de cada proyecto (11-sep-2026, encargo del owner: sincronizar
+           v4 con lo nuevo de Proyectos). Sin permiso esto vuelve vacío por RLS
+           ("el equipo se ve entre sí" ya deja leer la fila; quien no es admin
+           simplemente no tiene el botón de asignar, en editores.js), nunca un
+           error — igual que ya hace el resto de esta pantalla con documentación. */
+        q(sb.from('usuarios').select('user_id,email,nombre,rol,proyectos_supervisados,activo')
+            .in('rol', ['sales_manager', 'project_manager']).order('nombre'), 'managers'),
+        // Email→nombre del equipo, para enseñar «Agente» en vez del email crudo
+        // en la lista de unidades del cajón (mismo dato que ya resuelve /proyectos/).
+        q(sb.from('usuarios').select('email,nombre'), 'equipo')
       ]).then(function (r) {
-        var ps = r[0], us = r[1] || [], fs = r[2] || [], ds = r[3] || [];
+        var ps = r[0], us = r[1] || [], fs = r[2] || [], ds = r[3] || [], mgrs = r[4] || [], eq = r[5] || [];
         if (!ps) return;
+        var equipoNombre = {};
+        eq.forEach(function (e) { if (e.email) equipoNombre[e.email] = e.nombre || e.email; });
 
         /* --- agregados, SOLO EUR --- */
         var EUR = function (u) { return (u.moneda || 'EUR') === 'EUR' && u.moneda; };
@@ -799,7 +811,8 @@
         var elegido = ps.filter(function (p) { return p.nombre === pedido; })[0] ||
                       ps.slice().sort(function (a, b) { return (porP[b.nombre] || { t: 0 }).t - (porP[a.nombre] || { t: 0 }).t; })[0];
         if (elegido) {
-          window.LW_V4 = window.LW_V4 || {}; window.LW_V4.proyecto = elegido;
+          window.LW_V4 = window.LW_V4 || {};
+          window.LW_V4.proyecto = elegido; window.LW_V4.managers = mgrs; window.LW_V4.equipoNombre = equipoNombre;
           var d = porP[elegido.nombre] || { t: 0, cartera: 0 }, cob = cobP[elegido.nombre] || 0;
           pon('d-cartera', fmt(d.cartera, 'EUR'));
           pon('d-cobrado', fmt(cob, 'EUR'));
@@ -810,6 +823,22 @@
           pon('d-master', elegido.parcela_master || 'sin registrar');
           pon('d-sup', elegido.parcela_master_m2 ? elegido.parcela_master_m2 + ' m² (' + d.t + ' parcelas)' : d.t + ' parcelas');
           pon('d-docs', (docP[elegido.nombre] || 0) + ' documentos');
+
+          /* Managers de este proyecto (11-sep-2026) — quién es el encargado,
+             pintado como chips de solo lectura; asignar/desasignar es un
+             escritura y vive en editores.js, con su propio gate de permiso. */
+          var cajaM = document.getElementById('d-managers');
+          if (cajaM) {
+            var supervisan = mgrs.filter(function (m) { return (m.proyectos_supervisados || []).indexOf(elegido.id) !== -1; });
+            cajaM.innerHTML = supervisan.length
+              ? supervisan.map(function (m) {
+                  return '<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;' +
+                    'background:#efeee8;border:1px solid #E4DCCB;font:600 11px sans-serif;color:#1b1c19' + (m.activo ? '' : ';opacity:.55') + '">' +
+                    esc(m.nombre || m.email) + '<span style="font-weight:500;color:#75786e">· ' +
+                    (m.rol === 'sales_manager' ? 'Sales manager' : 'Project manager') + (m.activo ? '' : ' · desactivado') + '</span></span>';
+                }).join('')
+              : '<span style="font:500 13px sans-serif;color:#75786e">Sin encargado asignado.</span>';
+          }
 
           /* Documentacion FUSIONADA aqui (decision owner 8-sep): la boveda son
              hoy 6 FAQ y 10 enlaces, todos con proyecto — una pestana propia no
@@ -853,7 +882,7 @@
           /* La lista de unidades del cajón, con datos reales del proyecto
              elegido. `unidades_estado` es la vista que ya trae el contrato y el
              comprador vinculados — no se vuelve a cruzar aquí a mano. */
-          q(sb.from('unidades_estado').select('codigo,modelo,estado,precio,contrato_numero,comprador_nombre')
+          q(sb.from('unidades_estado').select('codigo,modelo,estado,precio,contrato_numero,comprador_nombre,contrato_creado_por')
               .eq('proyecto', elegido.nombre).order('codigo').limit(60), 'unidades de ' + elegido.nombre)
             .then(function (uu) {
               var caja = document.getElementById('d-unidades');
@@ -878,6 +907,10 @@
                 // reparto por unidad que la base no respalda.
                 pon('u-cobrado', u.contrato_numero || 'sin contrato', f);
                 pon('u-nota', (u.estado || '—').toUpperCase(), f);
+                // Agente que creó el contrato (11-sep-2026, encargo del owner: ver
+                // de un vistazo qué agente hizo el contrato de cada unidad). Sin
+                // ficha en `usuarios` (cuentas legacy) se enseña el email a secas.
+                pon('u-agente', u.contrato_creado_por ? (equipoNombre[u.contrato_creado_por] || u.contrato_creado_por) : '—', f);
                 caja.appendChild(f);
               });
             });
