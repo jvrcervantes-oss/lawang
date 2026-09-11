@@ -363,6 +363,14 @@
       { es: 'Una previsión operativa de primer año para los dos modelos con histórico en fases contiguas, bajo dos escenarios (ocupación media / óptima). Es una previsión, no una garantía — el resultado real depende del operador de alquiler, de las condiciones de mercado y del contrato de gestión vigente.',
         id: 'Proyeksi operasional tahun pertama untuk dua model yang punya rekam jejak di fase sebelah, dalam dua skenario (okupansi rata-rata / optimal). Ini proyeksi, bukan jaminan — hasil sebenarnya bergantung pada operator sewa, kondisi pasar, dan perjanjian pengelolaan yang berlaku.' },
 
+    /* Cabecera de cada tarjeta de forecast */
+    'Construction:': { es: 'Construcción:', id: 'Konstruksi:' },
+    'Total investment (ROI base):': { es: 'Inversión total (base del ROI):', id: 'Total investasi (basis ROI):' },
+
+    /* Sellos del plano: van en MAYUSCULAS y la busqueda distingue mayusculas */
+    'RESERVED': { es: 'RESERVADA', id: 'DIPESAN' },
+    'SOLD': { es: 'VENDIDA', id: 'TERJUAL' },
+
     /* — selector — */
     'Contract in EUR. Other currencies are indicative, converted at a fixed rate of':
       { es: 'El contrato va en EUR. Las demás divisas son orientativas, a un tipo fijo de',

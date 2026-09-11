@@ -87,7 +87,7 @@
   .lw-fade-in { animation: lwFadeIn .35s ease both; }
   @keyframes lwFadeIn { from { opacity:0; transform:translateY(4px);} to { opacity:1; transform:none;} }
 </style>
-<script src="i18n.js"></script>
+<script src="i18n.js?v=20260911090656"></script>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script>
   tailwind.config = {
@@ -307,53 +307,13 @@
 <section class="w-full px-6 md:px-margin-desktop py-14 bg-[#E9E3D6]" id="rendimientos">
 <div class="lw-wide flex flex-col gap-8">
   <div class="flex flex-col gap-2 lw-prose">
-    <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal">Year-1 Rental Forecast — Dune &amp; Dream</h2>
-    <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">A first-year operating forecast for the two models with a track record on neighbouring phases, under two scenarios (Average / Optimal occupancy). This is a forecast, not a guarantee — actual results depend on the rental operator, market conditions and property management agreement in force.</p>
+    <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal">Year-1 Rental Forecast — Dali, Dune &amp; Dream</h2>
+    <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">A first-year operating forecast under two scenarios (Average / Optimal occupancy). This is a forecast, not a guarantee — actual results depend on the rental operator, market conditions and property management agreement in force.</p>
   </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
-    <div class="bg-surface-container-lowest rounded-2xl shadow-md border border-[#D8D2C5] overflow-hidden">
-      <div class="p-5 bg-[#E4DFD5] border-b border-[#D8D2C5]">
-        <span class="font-headline-sm text-xl font-bold text-deep-lagoon">Dune · 1 bedroom</span>
-        <div class="text-xs text-[#44483f] font-body-sm mt-1">Investment (construction): <b><span data-eur="68000">€68,000</span></b></div>
-      </div>
-      <table class="w-full text-sm">
-        <thead><tr class="text-[11px] uppercase tracking-wide text-[#5F6257] font-label-md"><th class="text-left font-medium px-5 pt-4 pb-2"></th><th class="text-right font-medium px-5 pt-4 pb-2">Average</th><th class="text-right font-medium px-5 pt-4 pb-2">Optimal</th></tr></thead>
-        <tbody class="[&_td]:px-5 [&_td]:py-2 [&_tr]:border-t [&_tr]:border-[#EFEAE0]">
-          <tr><td>ADR</td><td class="text-right lw-money"><span data-eur="81">€81</span></td><td class="text-right lw-money"><span data-eur="94">€94</span></td></tr>
-          <tr><td>Occupancy</td><td class="text-right lw-money">59%</td><td class="text-right lw-money">66%</td></tr>
-          <tr><td>Gross villa income</td><td class="text-right lw-money"><span data-eur="19521">€19,521</span></td><td class="text-right lw-money"><span data-eur="22654">€22,654</span></td></tr>
-          <tr><td>Management fee (20%)</td><td class="text-right lw-money"><span data-eur="-3904">−€3,904</span></td><td class="text-right lw-money"><span data-eur="-4531">−€4,531</span></td></tr>
-          <tr><td>Maintenance (5%)</td><td class="text-right lw-money"><span data-eur="-976">−€976</span></td><td class="text-right lw-money"><span data-eur="-1133">−€1,133</span></td></tr>
-          <tr><td>Rental tax (10%)</td><td class="text-right lw-money"><span data-eur="-1952">−€1,952</span></td><td class="text-right lw-money"><span data-eur="-2265">−€2,265</span></td></tr>
-          <tr class="font-semibold text-deep-lagoon border-t-2 border-[#D8D2C5]"><td>Net income</td><td class="text-right lw-money"><span data-eur="12689">€12,689</span></td><td class="text-right lw-money"><span data-eur="14725">€14,725</span></td></tr>
-          <tr class="font-bold text-territorial-green text-base"><td>ROI</td><td class="text-right lw-money">13.4%</td><td class="text-right lw-money">15.5%</td></tr>
-        </tbody>
-      </table>
-    </div>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="forecast-grid"><!-- filled by JS --></div>
 
-    <div class="bg-surface-container-lowest rounded-2xl shadow-md border-2 border-territorial-green overflow-hidden relative">
-      <span class="absolute top-3 right-3 z-10 bg-territorial-green text-white text-[10px] font-label-md font-bold px-3 py-0.5 rounded-full tracking-wider uppercase">Most requested</span>
-      <div class="p-5 bg-[#E4DFD5] border-b border-[#D8D2C5]">
-        <span class="font-headline-sm text-xl font-bold text-deep-lagoon">Dream · 2 bedrooms</span>
-        <div class="text-xs text-[#44483f] font-body-sm mt-1">Investment (construction): <b><span data-eur="101000">€101,000</span></b></div>
-      </div>
-      <table class="w-full text-sm">
-        <thead><tr class="text-[11px] uppercase tracking-wide text-[#5F6257] font-label-md"><th class="text-left font-medium px-5 pt-4 pb-2"></th><th class="text-right font-medium px-5 pt-4 pb-2">Average</th><th class="text-right font-medium px-5 pt-4 pb-2">Optimal</th></tr></thead>
-        <tbody class="[&_td]:px-5 [&_td]:py-2 [&_tr]:border-t [&_tr]:border-[#EFEAE0]">
-          <tr><td>ADR</td><td class="text-right lw-money"><span data-eur="115">€115</span></td><td class="text-right lw-money"><span data-eur="132">€132</span></td></tr>
-          <tr><td>Occupancy</td><td class="text-right lw-money">48%</td><td class="text-right lw-money">54%</td></tr>
-          <tr><td>Gross villa income</td><td class="text-right lw-money"><span data-eur="22655">€22,655</span></td><td class="text-right lw-money"><span data-eur="26004">€26,004</span></td></tr>
-          <tr><td>Management fee (20%)</td><td class="text-right lw-money"><span data-eur="-4531">−€4,531</span></td><td class="text-right lw-money"><span data-eur="-5201">−€5,201</span></td></tr>
-          <tr><td>Maintenance (5%)</td><td class="text-right lw-money"><span data-eur="-1133">−€1,133</span></td><td class="text-right lw-money"><span data-eur="-1300">−€1,300</span></td></tr>
-          <tr><td>Rental tax (10%)</td><td class="text-right lw-money"><span data-eur="-2266">−€2,266</span></td><td class="text-right lw-money"><span data-eur="-2600">−€2,600</span></td></tr>
-          <tr class="font-semibold text-deep-lagoon border-t-2 border-[#D8D2C5]"><td>Net income</td><td class="text-right lw-money"><span data-eur="14726">€14,726</span></td><td class="text-right lw-money"><span data-eur="16903">€16,903</span></td></tr>
-          <tr class="font-bold text-territorial-green text-base"><td>ROI</td><td class="text-right lw-money">11.8%</td><td class="text-right lw-money">13.5%</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-  <p id="forecast-nota" class="font-body-sm text-xs text-[#5F6257] lw-prose">Figures shown are a Year-1 operating forecast provided by Lawang, not a guaranteed or historical return. Dali does not have an operating forecast yet — ask our team for the latest figures. Management fee, maintenance and rental tax percentages are those of the current rental-management agreement and may change.</p>
+  <p id="forecast-nota" class="font-body-sm text-xs text-[#5F6257] lw-prose">Figures shown are a Year-1 operating forecast provided by Lawang, not a guaranteed or historical return. ROI is calculated on the total investment (construction plus land) stated on each card; the land figure depends on the plot chosen. Management fee, maintenance and rental tax percentages are those of the current rental-management agreement and may change.</p>
 </div>
 </section>
 
@@ -661,6 +621,65 @@
     mg.appendChild(card);
   });
 
+
+
+  // ── previsión de alquiler, Año 1 ──────────────────────────────────────────
+  // Se genera desde datos y NO a mano: un solo camino de calculo para los tres
+  // modelos, y los importes se convierten solos al cambiar de divisa.
+  //
+  // ⚠️ Cada escenario usa SU propia ocupacion (decision del owner, 11-sep-2026).
+  // Hasta esa fecha la columna "Average" de Dune y Dream calculaba el bruto con
+  // la ocupacion OPTIMA (19.521 = 81 x 365 x 0,66, no x 0,59), lo que inflaba
+  // el escenario conservador ~12%. Corregido: Dune 13,4%->11,9% y Dream
+  // 11,8%->10,5% en Average. Las columnas Optimal no cambian.
+  //
+  // `base` es la inversion TOTAL (construccion + suelo) sobre la que se calcula
+  // el ROI, no solo la construccion. Dune y Dream son las cifras del owner;
+  // Dali (79.250) sale de su construccion (48.000) mas una parcela de 250 m2 al
+  // precio de referencia del propio inventario (125 €/m2).
+  var GASTOS = [
+    ['Management fee (20%)', 0.20],
+    ['Maintenance (5%)',     0.05],
+    ['Rental tax (10%)',     0.10]
+  ];
+  var FORECAST = [
+    { nombre:'Dali · 1 bedroom',   constr:48000,  base:79250,  adr:[40,60],   occ:[0.59,0.66] },
+    { nombre:'Dune · 1 bedroom',   constr:68000,  base:95000,  adr:[81,94],   occ:[0.59,0.66] },
+    { nombre:'Dream · 2 bedrooms', constr:101000, base:125000, adr:[115,132], occ:[0.48,0.54], featured:true }
+  ];
+
+  function eur(v){ return '<span data-eur="'+Math.round(v)+'">'+(window.lwMoney?lwMoney(v):'€'+Math.round(v).toLocaleString('en-GB'))+'</span>'; }
+
+  var fg = document.getElementById('forecast-grid');
+  if(fg) FORECAST.forEach(function(m){
+    var bruto = [0,1].map(function(i){ return m.adr[i]*365*m.occ[i]; });
+    var neto  = bruto.map(function(g){ return g*(1-0.20-0.05-0.10); });
+    var filas = '';
+    filas += '<tr><td>ADR</td><td class="text-right lw-money">'+eur(m.adr[0])+'</td><td class="text-right lw-money">'+eur(m.adr[1])+'</td></tr>';
+    filas += '<tr><td>Occupancy</td><td class="text-right lw-money">'+Math.round(m.occ[0]*100)+'%</td><td class="text-right lw-money">'+Math.round(m.occ[1]*100)+'%</td></tr>';
+    filas += '<tr><td>Gross villa income</td><td class="text-right lw-money">'+eur(bruto[0])+'</td><td class="text-right lw-money">'+eur(bruto[1])+'</td></tr>';
+    GASTOS.forEach(function(g){
+      filas += '<tr><td>'+g[0]+'</td><td class="text-right lw-money">'+eur(-bruto[0]*g[1])+'</td><td class="text-right lw-money">'+eur(-bruto[1]*g[1])+'</td></tr>';
+    });
+    filas += '<tr class="font-semibold text-deep-lagoon border-t-2 border-[#D8D2C5]"><td>Net income</td><td class="text-right lw-money">'+eur(neto[0])+'</td><td class="text-right lw-money">'+eur(neto[1])+'</td></tr>';
+    filas += '<tr class="font-bold text-territorial-green text-base"><td>ROI</td><td class="text-right lw-money">'+(neto[0]/m.base*100).toFixed(1)+'%</td><td class="text-right lw-money">'+(neto[1]/m.base*100).toFixed(1)+'%</td></tr>';
+
+    var card = document.createElement('div');
+    card.className = 'bg-surface-container-lowest rounded-2xl shadow-md overflow-hidden relative border' + (m.featured ? '-2 border-territorial-green' : ' border-[#D8D2C5]');
+    card.innerHTML =
+      (m.featured ? '<span class="absolute top-3 right-3 z-10 bg-territorial-green text-white text-[10px] font-label-md font-bold px-3 py-0.5 rounded-full tracking-wider uppercase">Most requested</span>' : '') +
+      '<div class="p-5 bg-[#E4DFD5] border-b border-[#D8D2C5]">' +
+        '<span class="font-headline-sm text-xl font-bold text-deep-lagoon">'+esc(m.nombre)+'</span>' +
+        '<div class="text-xs text-[#44483f] font-body-sm mt-1">Construction: <b>'+eur(m.constr)+'</b></div>' +
+        '<div class="text-xs text-[#5F6257] font-body-sm">Total investment (ROI base): '+eur(m.base)+'</div>' +
+      '</div>' +
+      '<table class="w-full text-sm"><thead><tr class="text-[11px] uppercase tracking-wide text-[#5F6257] font-label-md">' +
+        '<th class="text-left font-medium px-5 pt-4 pb-2"></th><th class="text-right font-medium px-5 pt-4 pb-2">Average</th>' +
+        '<th class="text-right font-medium px-5 pt-4 pb-2">Optimal</th></tr></thead>' +
+        '<tbody class="[&_td]:px-5 [&_td]:py-2 [&_tr]:border-t [&_tr]:border-[#EFEAE0]">'+filas+'</tbody></table>';
+    fg.appendChild(card);
+  });
+  if(window.lwDeck) lwDeck.traduce(document.getElementById('rendimientos'));
 
   // ── masterplan interactivo ────────────────────────────────────────────────
   // Rectangulos en % sobre 12-masterplan.jpg (1690x2200). Medidos sobre la
