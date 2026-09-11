@@ -70,6 +70,9 @@
   .casc{ font-size:12.5px; color:var(--texto-2,#5D6A63); }
   .casc b{ color:var(--texto,#22282A); font-weight:500; }
   .mini{ font-size:12.5px; color:var(--texto-2,#5D6A63); margin:4px 0 0; }
+  /* Aviso en rojo dentro de una ficha (desfase de la inversión base). El mismo
+     valor que ya usa Documentación: no se inventa un segundo rojo de aviso. */
+  .conf{ color:#9E2F26; font-weight:600; }
   .rejilla-mod{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:12px; }
   .tarjeta{ border:1px solid var(--linea,#DED6C4); border-radius:12px; padding:14px 16px;
             background:var(--sup-1,#FBF7EE); cursor:pointer; text-align:left; font:inherit; }
@@ -172,6 +175,13 @@ const lineas = id => (document.getElementById(id).value || '')
    demasiada facilidad como salto DE VERDAD y parte la plantilla en dos. */
 const SALTO = String.fromCharCode(10);
 const eur  = (v, m) => v == null ? '—' : lwFormatoImporte(Number(v)) + ' ' + (m || 'EUR');
+/* Importe SIN moneda, para los avisos de desfase de la previsión del deck.
+   Mismo motor que `eur` a propósito: `lwFormatoImporte` (dinero.js) es la única
+   forma de escribir un importe en la suite. Faltaba, y el bloque de previsión la
+   llamaba cinco veces: la ficha de cualquier modelo reventaba al abrirse con un
+   ReferenceError. No lo caza `node --check` —la sintaxis era válida— sino leer
+   qué identificadores da por supuestos el código nuevo. */
+const fmt  = v => v == null ? '—' : lwFormatoImporte(Number(v));
 
 /* ---------- carga ---------- */
 async function cargar(){
