@@ -56,16 +56,20 @@ const corsFor = (req: Request) => {
 // 'operaciones' porque esta edge estaba sin poder redesplegarse. Ésta no lo hace: abre
 // datos de contacto de un centenar de personas y eso tiene que poder darse cuenta a
 // cuenta.
-// 'closers' (agenda de cierre / Fathom) se dio de alta el 10-sep y se retiró
-// el 11-sep-2026 (owner: la herramienta ya no existe) — quitada de aquí y de
-// LW_HERRAMIENTAS. Las fichas que ya la tuvieran marcada la conservan sin
-// efecto (nadie nuevo puede pedirla).
+// 'closers' (agenda de cierre): alta el 10-sep, retirada el 11-sep por un
+// malentendido y REPUESTA el mismo dia. El owner habia pedido quitar el ATAJO
+// del menu lateral, no dar de baja la herramienta: «necesitamos que exista una
+// agenda para los closers en el CRM sin duda, pero no es un acceso directo
+// desde el menu como estaba». Retirarla entera dejo la pestana «Agenda» viva
+// dentro del CRM pero imposible de conceder: solo la veia un super_admin. En
+// LW_HERRAMIENTAS lleva `soloPermiso`, que es como se dicen las dos cosas a la
+// vez (casilla si, entrada de menu no).
 // 'ranking' (11-sep-2026) es permiso PROPIO y no cuelga de 'leads' a propósito, por el
 // mismo criterio que separó 'closers' en su día: lo que abre es cuánto factura y cuánto
 // cobra cada comercial, y con ocho de ellos eso no son estadísticas, son cifras de contrato
 // (el ticket medio por el número devuelve el importe exacto). El día que se le dé el CRM a
 // un comercial no se le puede regalar de paso la tabla de comisiones de sus compañeros.
-const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte', 'leads', 'ranking'];
+const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte', 'leads', 'closers', 'ranking'];
 // 10-sep-2026: sales_manager/project_manager (encargados de proyecto: ven,
 // crean y corrigen contratos/facturas de cualquier agente en los proyectos
 // que supervisan — `usuarios.proyectos_supervisados`, distinta de `proyectos`)

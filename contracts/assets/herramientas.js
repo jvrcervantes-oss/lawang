@@ -49,6 +49,18 @@ const LW_HERRAMIENTAS = [
     soloPermiso:true,
     para:'Cuánto firma y cuánto cobra cada comercial, y a quién se atribuye cada venta.',
     claves:'ranking closers comerciales comisiones rendimiento estadisticas atribucion ventas' },
+  /* `closers` REPUESTO el 11-sep-2026 por el owner, y conviene dejar claro el malentendido
+     para que no se repita: cuando dijo «quita Agenda de cierre del menú» quería quitar el
+     ATAJO del menú lateral, no dar de baja la herramienta — «necesitamos que exista una
+     agenda para los closers en el CRM sin duda, pero no es un acceso directo desde el menú
+     como estaba». Se retiró entera por error, y eso dejó la pestaña «Agenda» viva dentro
+     del CRM pero imposible de conceder a nadie: solo la veía un super_admin.
+     `soloPermiso` es justo la forma de decir las dos cosas a la vez — existe como casilla
+     en /intranet/usuarios/, y NO aparece como entrada del menú. */
+  { grupo:'Seguimiento', nombre:'Agenda de cierre', icon:'ph-video-camera', href:'/intranet/leads/?v=agenda', herr:'closers',
+    soloPermiso:true,
+    para:'La agenda de llamadas de venta del closer, dentro del CRM.',
+    claves:'closers agenda citas llamadas venta cierre meet' },
   { grupo:'Seguimiento', nombre:'Operaciones', icon:'ph-chart-line-up', href:'/intranet/operaciones/', herr:'operaciones',
     para:'Cómo va cada venta: estado de cuenta, documentos, firmas y vencimientos.',
     claves:'ventas seguimiento estado cuenta',
