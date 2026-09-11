@@ -35,7 +35,7 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
-<script src="/contracts/assets/i18n.js?v=df440881"></script>
+<script src="/contracts/assets/i18n.js?v=41527d1c"></script>
 <script src="/contracts/assets/herramientas.js?v=cce2c8c2"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -386,7 +386,7 @@ function pintarEmpresas(){
   const emps = empresasFinancieras(RAW, FACTURAS);
   const nombre = k => (typeof SOCIEDADES !== 'undefined' && SOCIEDADES[k] && SOCIEDADES[k].razon) || k;
   $('#empresas').innerHTML = emps.length < 2 ? '' :
-    '<span class="sui-eje">Empresa</span>' +
+    '<span class="sui-eje">' + lwT('Empresa') + '</span>' +
     `<button type="button" class="sui-chip ${EMPRESA==='todas'?'on':''}" data-empresa="todas">${lwT('Todas')}</button>` +
     emps.map(e => `<button type="button" class="sui-chip ${e===EMPRESA?'on':''}" data-empresa="${escAttr(e)}">${esc(nombre(e))}</button>`).join('');
 }
@@ -401,7 +401,7 @@ $('#empresas').addEventListener('click', e => {
 function pintarMonedas(){
   const monedas = Object.keys(MODELO).sort((a,b)=>MODELO[b].cartera - MODELO[a].cartera);
   $('#monedas').innerHTML = monedas.length < 2 ? '' :
-    '<span class="sui-eje">Moneda</span>' +
+    '<span class="sui-eje">' + lwT('Moneda') + '</span>' +
     monedas.map(mm => `<button type="button" class="sui-chip ${mm===MONEDA?'on':''}" data-moneda="${esc(mm)}">${esc(mm)}
       <span class="n">${esc(dinero(MODELO[mm].cartera, ''))}</span></button>`).join('');
 }
@@ -590,12 +590,12 @@ function pintarFiltros(m){
      misma cifra que cambia. */
   const f = m.fuera || { sinFirmar:0 };
   const conmutador = f.sinFirmar || SIN_FIRMAR
-    ? '<span class="sui-eje" style="margin-left:14px">Alcance</span>'
+    ? '<span class="sui-eje" style="margin-left:14px">' + lwT('Alcance') + '</span>'
       + '<button type="button" class="sui-chip ' + (SIN_FIRMAR ? 'on' : '') + '" id="chipSinFirmar" '
       + 'title="' + escAttr(lwT('Mientras se da de alta el histórico, «sin firmar» significa «aún no marcado», no «aún no acordado»')) + '">'
       + lwT('Incluir sin firmar') + (f.sinFirmar ? ' <span class="n">' + f.sinFirmar + '</span>' : '') + '</button>'
     : '';
-  $('#filtros').innerHTML = '<span class="sui-eje">Estado</span>' +
+  $('#filtros').innerHTML = '<span class="sui-eje">' + lwT('Estado') + '</span>' +
     FILTROS.map(([k, l, fn]) => {
       const n = m.filas.filter(fn).length;
       return `<button type="button" class="sui-chip ${k===FILTRO?'on':''} ${n?'':'vacio'}" data-filtro="${k}">${l}<span class="n">${n}</span></button>`;
@@ -637,7 +637,7 @@ function pintarTabla(m){
       <td>${f.fecha ? esc(fechaCorta(f.fecha)) : '<span class="flojo">' + lwT('sin fecha') + '</span>'}
         ${editable ? `<button type="button" class="lapiz" data-editar="${esc(f.id)}" data-fecha="${esc(f.fecha||'')}"
            aria-label="${lwT('Cambiar la fecha de este vencimiento')}"><i class="ph ph-pencil-simple"></i></button>` : ''}
-        ${f.ajustado ? '<span class="flojo" title="' + escAttr(lwT('Fecha ajustada a mano')) + '">·aj</span>' : ''}</td>
+        ${f.ajustado ? '<span class="flojo" title="' + escAttr(lwT('Fecha ajustada a mano')) + '">' + lwT('·aj') + '</span>' : ''}</td>
       <td><a href="/contracts/?contrato=${esc(f.contrato.id)}">${esc(f.contrato.numero || lwT('sin nº'))}</a>
         <span class="flojo">${esc(lwTipoContrato(f.contrato.tipo))}</span></td>
       <td>${esc(f.contrato.comprador_nombre || lwT('sin nombre'))}</td>
@@ -699,7 +699,7 @@ function pintarProyectos(m){
         <td>${esc(n)}${v.firmados === 0 ? ' <span class="sui-tag gris">' + lwT('sin firmar') + '</span>' : ''}</td>
         <td class="num">${esc(dinero(v.precio, MONEDA))}</td>
         <td class="num">${esc(dinero(v.cobrado, MONEDA))}</td>
-        <td class="num"><b>${v.pendiente > 0.005 ? esc(dinero(v.pendiente, MONEDA)) : '<span class="flojo">Cobrado</span>'}</b></td>
+        <td class="num"><b>${v.pendiente > 0.005 ? esc(dinero(v.pendiente, MONEDA)) : '<span class="flojo">' + lwT('Cobrado') + '</span>'}</b></td>
       </tr>`).join('')}</tbody></table></details></td></tr>`;
   };
   $('#tproy').innerHTML = filas.map(([p, d]) => `<tr>

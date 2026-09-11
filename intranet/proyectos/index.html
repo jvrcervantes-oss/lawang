@@ -23,6 +23,9 @@
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <!-- tabla, cajón lateral, densidad y estados: compartido con el resto de la suite -->
+<!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
+     `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
+<script src="/contracts/assets/i18n.js?v=41527d1c"></script>
 <script src="/contracts/assets/herramientas.js?v=cce2c8c2"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -132,7 +135,7 @@
 <body>
   <header class="lw-topbar" data-titulo="Proyectos">
     <div class="lw-spacer"></div>
-    <button type="button" class="lw-btn" id="btnCsv">Importar CSV</button>
+    <button type="button" class="lw-btn" id="btnCsv" data-lwt="Importar CSV">Importar CSV</button>
     <input type="file" id="fileCsv" accept=".csv,text/csv" hidden>
     <!-- Dos acciones que crean: la principal es la FRECUENTE. Se dan de alta
          unidades a diario y proyectos tres veces al año. -->
@@ -145,12 +148,12 @@
   <div class="sui-stage">
     <div class="sui-centro">
       <div class="sui-filtros">
-        <input class="sui-buscar" id="q" placeholder="Buscar código, proyecto o modelo…">
-        <select class="sui-sel" id="fProyecto"><option value="">Todos los proyectos</option></select>
+        <input class="sui-buscar" id="q" data-lwt-ph placeholder="Buscar código, proyecto o modelo…">
+        <select class="sui-sel" id="fProyecto"><option value="" data-lwt="Todos los proyectos">Todos los proyectos</option></select>
         <div class="sui-dens" id="vista">
-          <button type="button" data-vista="tabla">Tabla</button>
-          <button type="button" data-vista="rejilla">Rejilla</button>
-          <button type="button" data-vista="carpetas">Carpetas</button>
+          <button type="button" data-vista="tabla" data-lwt="Tabla">Tabla</button>
+          <button type="button" data-vista="rejilla" data-lwt="Rejilla">Rejilla</button>
+          <button type="button" data-vista="carpetas" data-lwt="Carpetas">Carpetas</button>
         </div>
       </div>
       <div class="sui-filtros" id="filtros"></div>
@@ -167,18 +170,18 @@
       <div class="sui-tabla-caja" id="caja-tabla">
         <table class="sui-tabla" id="tabla">
           <thead><tr>
-            <th data-orden="codigo">Código</th>
-            <th data-orden="proyecto">Proyecto</th>
-            <th data-orden="fase_masterplan">Fase</th>
-            <th data-orden="zona_masterplan">Zona</th>
-            <th data-orden="modelo">Modelo</th>
+            <th data-orden="codigo" data-lwt="Código">Código</th>
+            <th data-orden="proyecto" data-lwt="Proyecto">Proyecto</th>
+            <th data-orden="fase_masterplan" data-lwt="Fase">Fase</th>
+            <th data-orden="zona_masterplan" data-lwt="Zona">Zona</th>
+            <th data-orden="modelo" data-lwt="Modelo">Modelo</th>
             <th class="num" data-orden="superficie_m2">m²</th>
-            <th class="num" data-orden="precio_suelo">Suelo</th>
-            <th class="num" data-orden="precio_construccion">Construcción</th>
-            <th class="num" data-orden="precio">Total</th>
-            <th data-orden="contrato_numero">Contrato</th>
-            <th data-orden="contrato_creado_por">Agente</th>
-            <th data-orden="estado">Estado</th>
+            <th class="num" data-orden="precio_suelo" data-lwt="Suelo">Suelo</th>
+            <th class="num" data-orden="precio_construccion" data-lwt="Construcción">Construcción</th>
+            <th class="num" data-orden="precio" data-lwt="Total">Total</th>
+            <th data-orden="contrato_numero" data-lwt="Contrato">Contrato</th>
+            <th data-orden="contrato_creado_por" data-lwt="Agente">Agente</th>
+            <th data-orden="estado" data-lwt="Estado">Estado</th>
           </tr></thead>
           <tbody id="filas"></tbody>
         </table>
@@ -193,12 +196,12 @@
        contrato, no un CSV. -->
   <div class="ov" id="ovCsv">
     <div class="ov-caja">
-      <h2>Importar unidades desde CSV</h2>
+      <h2 data-lwt="Importar unidades desde CSV">Importar unidades desde CSV</h2>
       <p class="sub">Se compara con lo que ya hay antes de escribir nada. Las columnas <code>estado</code> y <code>contrato_id</code> nunca se importan: los lleva el contrato.</p>
-      <div id="csvCuerpo"><p class="sub">Cargando…</p></div>
+      <div id="csvCuerpo"><p class="sub" data-lwt="Cargando…">Cargando…</p></div>
       <div class="ov-pie">
-        <button type="button" class="sui-btn primario" id="btnCsvConfirmar" disabled>Confirmar importación</button>
-        <button type="button" class="sui-btn" id="btnCsvCancelar">Cancelar</button>
+        <button type="button" class="sui-btn primario" id="btnCsvConfirmar" disabled data-lwt="Confirmar importación">Confirmar importación</button>
+        <button type="button" class="sui-btn" id="btnCsvCancelar" data-lwt="Cancelar">Cancelar</button>
       </div>
     </div>
   </div>
@@ -222,6 +225,7 @@
    consultable y no haga falta abrir el PDF del cliente.
    ========================================================================== */
 const $ = s => document.querySelector(s);
+lwIdiomaAplicar();   // traduce la HTML de arriba; en espanol no toca el DOM
 
 const ESTADOS = [
   ['disponible','Disponible'], ['reservada','Reservada'], ['bloqueada','Bloqueada'],
@@ -422,7 +426,7 @@ async function cargar(){
   // filtro — no desaparece de la vista, solo no se puede elegir para una
   // unidad nueva salvo que se dé de alta.
   const proyectosFiltro = [...new Set([...PROYECTOS, ...UNIDADES.map(x => x.proyecto)].filter(Boolean))].sort(ordenProyectos());
-  $('#fProyecto').innerHTML = '<option value="">Todos los proyectos</option>' +
+  $('#fProyecto').innerHTML = '<option value="">' + lwT('Todos los proyectos') + '</option>' +
     proyectosFiltro.map(p => `<option value="${esc(p)}" ${p===PROY?'selected':''}>${esc(p)}</option>`).join('');
   pintar();
 }
@@ -554,7 +558,7 @@ function pintarRejilla(){
     const filtrando = FILTRO || PROY || $('#q').value.trim();
     caja.innerHTML = ancho(`<div class="sui-nada">
       <b>${filtrando ? 'Ninguna unidad coincide' : 'Todavía no hay unidades'}</b>
-      ${filtrando ? 'Prueba a quitar algún filtro.' : 'Créala con «+ Nueva unidad», o cárgalas de la tabla de precios del proyecto.'}
+      ${lwT(filtrando ? 'Prueba a quitar algún filtro.' : 'Créala con «+ Nueva unidad», o cárgalas de la tabla de precios del proyecto.')}
     </div>`);
     return;
   }
@@ -565,13 +569,13 @@ function pintarRejilla(){
         <span class="clave">${esc(u.codigo)}</span>
         <span class="sui-tag e-${esc(u.estado)}">${esc(nombreEstado(u.estado))}</span>
       </span>
-      <span class="sub">${esc(u.proyecto || 'sin proyecto')}${
-        u.modelo ? ' · ' + esc(u.modelo) : (modelosDe(u.proyecto).length ? ' · sin modelo' : '')}</span>
+      <span class="sub">${esc(u.proyecto || lwT('sin proyecto'))}${
+        u.modelo ? ' · ' + esc(u.modelo) : (modelosDe(u.proyecto).length ? ' · ' + lwT('sin modelo') : '')}</span>
       <span class="cifra">${eur(u.precio, u.moneda)}</span>
       <span class="pie">
         ${u.superficie_m2 != null ? '<span>' + esc(fmtNum(Number(u.superficie_m2))) + ' m²</span>' : ''}
         ${u.fase_masterplan ? '<span>Fase ' + esc(u.fase_masterplan) +
-            (u.zona_masterplan ? ' · Zona ' + esc(u.zona_masterplan) : '') + '</span>' : ''}
+            (u.zona_masterplan ? ' · ' + lwT('Zona') + ' ' + esc(u.zona_masterplan) : '') + '</span>' : ''}
         ${u.contrato_numero ? '<span>' + esc(u.contrato_numero) +
             (u.pct_cobrado != null ? ' · ' + u.pct_cobrado + '%' : '') + '</span>' : ''}
         ${u.contrato_creado_por ? '<span>' + esc(nombreAgente(u.contrato_creado_por)) + '</span>' : ''}
@@ -616,7 +620,7 @@ function pintarCarpetas(){
   }
   const nombres = [...new Set([...PROYECTOS, ...UNIDADES.map(u => u.proyecto)].filter(Boolean))].sort(ordenProyectos());
   if(!nombres.length){
-    caja.innerHTML = `<div style="grid-column:1/-1"><div class="sui-nada"><b>Todavía no hay proyectos</b>Da de alta uno con «+ Nuevo proyecto», arriba.</div></div>`;
+    caja.innerHTML = `<div style="grid-column:1/-1"><div class="sui-nada"><b>${lwT('Todavía no hay proyectos')}</b>${lwT('Da de alta uno con «+ Nuevo proyecto», arriba.')}</div></div>`;
     return;
   }
   const eur = (v, m) => v == null ? '—' : esc(fmtMoneda(Number(v), m || 'EUR'));
@@ -642,7 +646,7 @@ function pintarCarpetas(){
     const docs = DOCS_POR_PROYECTO == null ? '' :
       `<a class="docs-proy" href="/intranet/documentacion/?proyecto=${encodeURIComponent(nom)}"
           title="Ver la documentación de ${esc(nom)}">${
-        nDocs ? '📄 ' + nDocs + (nDocs === 1 ? ' documento' : ' documentos') : '📄 sin documentación'}</a>`;
+        nDocs ? '📄 ' + lwT(nDocs === 1 ? '%n documento' : '%n documentos', { n: nDocs }) : '📄 ' + lwT('sin documentación')}</a>`;
     return `<div class="sui-ficha carpeta" data-proy="${esc(nom)}" style="cursor:pointer">
       <span class="n">📁 ${esc(nom)} <button type="button" data-editproy="${esc(nom)}" title="Editar nombre" style="font-size:13px;border:none;background:none;cursor:pointer;padding:0 2px;vertical-align:middle">✏️</button>${btnBorrar}</span>
       <span class="sub">${us.length} ${us.length===1?'unidad':'unidades'} · ${libres} disponibles${us.length?' · ' + esc(carteraTxt):''}</span>
@@ -685,17 +689,17 @@ async function renombrarProyecto(nombreActual){
     fac.count ? `${fac.count} factura(s)` : '', doc.count ? `${doc.count} documento(s)` : '',
     mod.count ? `${mod.count} modelo(s) de villa` : '',
   ].filter(Boolean).join(', ');
-  const aviso = radio ? `Se actualizará en: ${radio}.\n\n` : 'No hay nada vinculado a este nombre todavía.\n\n';
+  const aviso = radio ? lwT('Se actualizará en: %r.', { r: radio }) + '\n\n' : lwT('No hay nada vinculado a este nombre todavía.') + '\n\n';
   const ok = await lwConfirmar({
     titulo: `Renombrar «${nombreActual}» a «${nuevo}»`,
     cuerpo: (aviso ? `<p>${aviso}</p>` : '')
-      + '<p>Si este proyecto aparece en <b>contracts/tokens.json</b> (proyecto_nombre, parcelaPorProyecto, resortPorProyecto), ese archivo <b>no se actualiza solo</b> y hay que tocarlo a mano.</p>',
-    confirmar: 'Renombrar',
+      + '<p>' + lwT('Si este proyecto aparece en') + '<b>contracts/tokens.json</b> (proyecto_nombre, parcelaPorProyecto, resortPorProyecto), ese archivo <b>' + lwT('no se actualiza solo') + '</b>' + lwT('y hay que tocarlo a mano.') + '</p>',
+    confirmar: lwT('Renombrar'),
   });
   if(!ok) return;
   const { error } = await SB.rpc('renombrar_proyecto', { p_antiguo: nombreActual, p_nuevo: nuevo });
-  if(error){ toast('No se pudo renombrar: ' + error.message); return; }
-  toast('Proyecto renombrado');
+  if(error){ toast(lwT('No se pudo renombrar:') + error.message); return; }
+  toast(lwT('Proyecto renombrado'));
   if(PROY === nombreActual) PROY = nuevo;
   suiCerrarCajon();
   cargar();
@@ -728,23 +732,22 @@ function editarProyecto(nombre){
           .forEach(u => usados.set(u.modelo, (usados.get(u.modelo) || 0) + 1));
   suiAbrirCajon({
     titulo: esc(nombre),
-    sub: 'Ficha del proyecto',
+    sub: lwT('Ficha del proyecto'),
     cuerpo: `
-      <div class="campo"><label for="fp-resort">Resort</label>
-        <input id="fp-resort" list="fp-resort-lista" value="${esc(ficha.resort||'')}" placeholder="Ej. Balian Hills">
+      <div class="campo"><label for="fp-resort">${lwT('Resort')}</label>
+        <input id="fp-resort" list="fp-resort-lista" value="${esc(ficha.resort||'')}" placeholder="${lwT('Ej. Balian Hills')}">
         <datalist id="fp-resort-lista">${resorts.map(r => `<option value="${esc(r)}">`).join('')}</datalist>
       </div>
       <div class="dos">
-        <div class="campo"><label for="fp-master">Parcela máster (código)</label>
-          <input id="fp-master" value="${esc(ficha.parcela_master||'')}" placeholder="Ej. W5"></div>
-        <div class="campo"><label for="fp-master-m2">Superficie bruta (m²)</label>
+        <div class="campo"><label for="fp-master">${lwT('Parcela máster (código)')}</label>
+          <input id="fp-master" value="${esc(ficha.parcela_master||'')}" placeholder="${lwT('Ej. W5')}"></div>
+        <div class="campo"><label for="fp-master-m2">${lwT('Superficie bruta (m²)')}</label>
           <input id="fp-master-m2" inputmode="decimal" value="${ficha.parcela_master_m2!=null?esc(fmtNum(Number(ficha.parcela_master_m2))):''}"></div>
       </div>
-      <p class="sui-nota">Para cambiar el <b>nombre</b> del proyecto usa «Renombrar…» abajo — es otra operación,
-        porque esa sí se propaga a unidades, contratos, facturas… y estos tres campos no.</p>
+      <p class="sui-nota">${lwT('Para cambiar el')} <b>nombre</b> ${lwT('del proyecto usa «Renombrar…» abajo — es otra operación, porque esa sí se propaga a unidades, contratos, facturas… y estos tres campos no.')}</p>
 
       <div class="sui-bloque" style="margin-top:18px">
-        <h3>Qué se puede construir aquí</h3>
+        <h3>${lwT('Qué se puede construir aquí')}</h3>
         <p class="sui-nota">Lo que se marque es lo único que se podrá elegir al dar de alta una parcela
           de este proyecto, y lo único que ofrecerá la Tipología de sus contratos de Construcción.
           Sin nada marcado se ofrece el catálogo entero.</p>
@@ -755,32 +758,31 @@ function editarProyecto(nombre){
             <input type="checkbox" data-modelo="${esc(c.id)}" ${decl ? 'checked' : ''}
                    ${(!ES_ADMIN || (enUso && decl)) ? 'disabled' : ''}>
             <span>${esc(c.nombre)}${c.precio_construccion != null
-                ? ' <span class="flojo">· ' + esc(fmtNum(Number(c.precio_construccion))) + ' ' + esc(c.moneda||'EUR') + ' de catálogo</span>' : ''}
-              ${enUso ? '<span class="flojo"> · lo usan ' + usados.get(c.nombre) + ' parcela(s), no se puede retirar</span>' : ''}</span>
+                ? ' <span class="flojo">· ' + esc(fmtNum(Number(c.precio_construccion))) + ' ' + esc(c.moneda||'EUR') + ' ' + lwT('de catálogo') + '</span>' : ''}
+              ${enUso ? '<span class="flojo"> · ' + lwT(usados.get(c.nombre) === 1 ? 'lo usa %n parcela, no se puede retirar' : 'lo usan %n parcelas, no se puede retirar', { n: usados.get(c.nombre) }) + '</span>' : ''}</span>
           </label>`; }).join('')
-        : '<p class="sui-nota">El catálogo de modelos está vacío o no tienes permiso para leerlo.</p>'}
-        ${ES_ADMIN ? '' : '<p class="sui-nota">Solo un administrador puede cambiar esta lista.</p>'}
+        : '<p class="sui-nota">' + lwT('El catálogo de modelos está vacío o no tienes permiso para leerlo.') + '</p>'}
+        ${ES_ADMIN ? '' : '<p class="sui-nota">' + lwT('Solo un administrador puede cambiar esta lista.') + '</p>'}
       </div>
 
       <div class="sui-bloque" style="margin-top:18px">
-        <h3>Sales manager / Project manager de este proyecto</h3>
-        <p class="sui-nota">A quien marques aquí es el <b>encargado</b> de este proyecto: le llegará el aviso
+        <h3>${lwT('Sales manager / Project manager de este proyecto')}</h3>
+        <p class="sui-nota">${lwT('A quien marques aquí es el')} <b>encargado</b> de este proyecto: le llegará el aviso
           por correo cuando cambie de estado un contrato, una solicitud de pago o una unidad, y podrá ver Y
           corregir todo lo que hagan aquí los agentes — no solo leer. Esto es distinto de la casilla
-          «Proyectos» de su ficha en <code>/usuarios/</code>, que es en qué proyectos puede crear contratos
-          él mismo: un encargado de este proyecto no tiene por qué vender aquí, y viceversa.</p>
-        ${!PUEDE_USUARIOS ? '<p class="sui-nota">Solo un administrador con la herramienta «usuarios» puede asignar managers.</p>'
-          : !MANAGERS.length ? '<p class="sui-nota">Todavía no hay ningún sales manager ni project manager dado de alta. Se crean desde <code>/usuarios/</code>.</p>'
+          «Proyectos» de su ficha en <code>/usuarios/</code>${lwT(', que es en qué proyectos puede crear contratos él mismo: un encargado de este proyecto no tiene por qué vender aquí, y viceversa.')}</p>
+        ${!PUEDE_USUARIOS ? '<p class="sui-nota">' + lwT('Solo un administrador con la herramienta «usuarios» puede asignar managers.') + '</p>'
+          : !MANAGERS.length ? '<p class="sui-nota">' + lwT('Todavía no hay ningún sales manager ni project manager dado de alta. Se crean desde') + '<code>/usuarios/</code>.</p>'
           : MANAGERS.map(m => `<label class="mini" style="display:flex;gap:8px;align-items:baseline;padding:4px 0">
               <input type="checkbox" data-manager="${esc(m.user_id)}"
                      ${(m.proyectos_supervisados || []).includes(ficha.id) ? 'checked' : ''} ${m.activo ? '' : 'disabled'}>
               <span>${esc(m.nombre || m.email)}
-                <span class="flojo"> · ${m.rol === 'sales_manager' ? 'Sales manager' : 'Project manager'}${m.activo ? '' : ' · desactivado'}</span></span>
+                <span class="flojo"> · ${lwT(m.rol === 'sales_manager' ? 'Sales manager' : 'Project manager')}${m.activo ? '' : ' · ' + lwT('desactivado')}</span></span>
             </label>`).join('')}
       </div>`,
-    pie: `<button class="sui-btn primario" id="btnGuardarFicha">Guardar</button>
-          <button class="sui-btn" id="btnRenombrarProy">Renombrar…</button>
-          <button class="sui-btn" id="btnCerrarFicha">Cerrar</button>`,
+    pie: `<button class="sui-btn primario" id="btnGuardarFicha">${lwT('Guardar')}</button>
+          <button class="sui-btn" id="btnRenombrarProy">${lwT('Renombrar…')}</button>
+          <button class="sui-btn" id="btnCerrarFicha">${lwT('Cerrar')}</button>`,
   });
   $('#btnRenombrarProy').addEventListener('click', () => renombrarProyecto(nombre));
   $('#btnCerrarFicha').addEventListener('click', suiCerrarCajon);
@@ -792,8 +794,8 @@ function editarProyecto(nombre){
     };
     const btn = $('#btnGuardarFicha'); btn.disabled = true;
     const { data, error } = await SB.from('proyectos').update(fila).eq('nombre', nombre).select('id');
-    if(error){ btn.disabled = false; toast('No se pudo guardar: ' + error.message); return; }
-    if(!data || !data.length){ btn.disabled = false; toast('No tienes permiso para editar la ficha del proyecto (solo admin).'); return; }
+    if(error){ btn.disabled = false; toast(lwT('No se pudo guardar:') + error.message); return; }
+    if(!data || !data.length){ btn.disabled = false; toast(lwT('No tienes permiso para editar la ficha del proyecto (solo admin).')); return; }
     /* La selección de modelos va en el MISMO botón: para quien la usa es una
        sola ficha. Se escribe después de la ficha y solo si el usuario es admin
        (la policy de `modelos_villa` exige es_admin, igual que la de `proyectos`). */
@@ -804,9 +806,9 @@ function editarProyecto(nombre){
         catalogo: CATALOGO, villas: MODELOS, enUso: new Set(usados.keys()),
         proyecto_id: (data[0] && data[0].id) || ficha.id || null,
       });
-      if(!r.ok){ btn.disabled = false; toast('La ficha sí, los modelos no: ' + r.error); return; }
+      if(!r.ok){ btn.disabled = false; toast(lwT('La ficha sí, los modelos no:') + r.error); return; }
       if(r.rechazadas.length)
-        toast('No se han retirado ' + r.rechazadas.map(x => x.modelo).join(', ') + ': hay parcelas que los usan');
+        toast(lwT('No se han retirado') + r.rechazadas.map(x => x.modelo).join(', ') + ': hay parcelas que los usan');
     }
     /* Managers: se guarda SOLO a quien cambió de estado (marcado/desmarcado),
        vía RPC atómico (`usuario_supervisa_proyecto`, 11-sep-2026) — hallazgo de
@@ -834,11 +836,11 @@ function editarProyecto(nombre){
             ? [...(m.proyectos_supervisados || []), proyectoId]
             : (m.proyectos_supervisados || []).filter(id => id !== proyectoId);   // solo para que la ficha no recargada quede al día
         }
-        if(fallosMgr.length) toast('No se pudo actualizar el proyecto de: ' + fallosMgr.join(', '));
+        if(fallosMgr.length) toast(lwT('No se pudo actualizar el proyecto de:') + fallosMgr.join(', '));
       }
     }
     btn.disabled = false;
-    toast('Guardado');
+    toast(lwT('Guardado'));
     suiCerrarCajon();
     cargar();
   });
@@ -862,16 +864,16 @@ async function borrarProyecto(nombre){
     .filter(Boolean).join(', ');
   const aviso = impreso ? `Sigue impreso en: ${impreso} (no se toca, son documentos ya emitidos).\n\n` : '';
   const ok = await lwConfirmar({
-    titulo: `Borrar el proyecto «${nombre}» del catálogo`,
+    titulo: lwT('Borrar el proyecto «%p» del catálogo', { p: nombre }),
     cuerpo: (aviso ? `<p>${aviso}</p>` : '')
-      + '<p>Solo se puede si no tiene unidades, modelos de villa ni documentos subidos. Si tiene algo, el sistema lo rechaza y dice qué queda por vaciar.</p>',
-    confirmar: 'Borrar el proyecto',
+      + '<p>' + lwT('Solo se puede si no tiene unidades, modelos de villa ni documentos subidos. Si tiene algo, el sistema lo rechaza y dice qué queda por vaciar.') + '</p>',
+    confirmar: lwT('Borrar el proyecto'),
     tono: 'peligro',
   });
   if(!ok) return;
   const { error } = await SB.rpc('borrar_proyecto', { p_nombre: nombre });
-  if(error){ toast('No se pudo borrar: ' + error.message); return; }
-  toast('Proyecto borrado');
+  if(error){ toast(lwT('No se pudo borrar:') + error.message); return; }
+  toast(lwT('Proyecto borrado'));
   if(PROY === nombre) PROY = '';
   cargar();
 }
@@ -882,7 +884,7 @@ function pintarFiltros(){
   const base = UNIDADES.filter(u => !PROY || u.proyecto === PROY);
   const n = e => base.filter(u => !e || u.estado === e).length;
   $('#filtros').innerHTML =
-    `<button class="sui-chip ${FILTRO===''?'on':''}" data-f="">Todas<span class="n">${n('')}</span></button>` +
+    `<button class="sui-chip ${FILTRO===''?'on':''}" data-f="">${lwT('Todas')}<span class="n">${n('')}</span></button>` +
     ESTADOS.map(([v,l]) => `<button class="sui-chip ${FILTRO===v?'on':''} ${n(v)?'':'vacio'}" data-f="${v}">${l}<span class="n">${n(v)}</span></button>`).join('');
 }
 
@@ -922,7 +924,7 @@ function pintarTabla(){
     const filtrando = FILTRO || PROY || $('#q').value.trim();
     cuerpo.innerHTML = `<tr><td colspan="9"><div class="sui-nada">
       <b>${filtrando ? 'Ninguna unidad coincide' : 'Todavía no hay unidades'}</b>
-      ${filtrando ? 'Prueba a quitar algún filtro.' : 'Créala con «+ Nueva unidad», o cárgalas de la tabla de precios del proyecto.'}
+      ${lwT(filtrando ? 'Prueba a quitar algún filtro.' : 'Créala con «+ Nueva unidad», o cárgalas de la tabla de precios del proyecto.')}
     </div></td></tr>`;
     $('#resumen').innerHTML = ''; return;
   }
@@ -934,7 +936,7 @@ function pintarTabla(){
       <td>${u.fase_masterplan ? esc(u.fase_masterplan) : '<span class="flojo">—</span>'}</td>
       <td>${u.zona_masterplan ? esc(u.zona_masterplan) : '<span class="flojo">—</span>'}</td>
       <td>${u.modelo ? esc(u.modelo)
-            : '<span class="flojo">' + (modelosDe(u.proyecto).length ? 'sin decidir' : esc(nombreTipo(u.tipo))) + '</span>'}</td>
+            : '<span class="flojo">' + (modelosDe(u.proyecto).length ? lwT('sin decidir') : esc(nombreTipo(u.tipo))) + '</span>'}</td>
       <td class="num">${u.superficie_m2 == null ? '<span class="flojo">—</span>' : esc(fmtNum(Number(u.superficie_m2)))}</td>
       <td class="num">${eur(u.precio_suelo, u.moneda)}</td>
       <td class="num">${eur(u.precio_construccion, u.moneda)}</td>
@@ -969,9 +971,9 @@ function pintarTabla(){
   const sinModelo = vis.filter(u => !u.modelo).length;
   $('#resumen').innerHTML =
     `<span>${vis.length} ${vis.length===1?'unidad':'unidades'} · <b>${libres}</b> disponibles</span>
-     <span>Suelo <b>${texto('precio_suelo')}</b></span>
-     <span>Construcción <b>${texto('precio_construccion')}</b></span>
-     <span>Cartera <b>${texto('precio')}</b>${
+     <span>${lwT('Suelo')} <b>${texto('precio_suelo')}</b></span>
+     <span>${lwT('Construcción')} <b>${texto('precio_construccion')}</b></span>
+     <span>${lwT('Cartera')} <b>${texto('precio')}</b>${
        sinModelo ? ` <span class="flojo">(${sinModelo} sin modelo, sin total)</span>` : ''}</span>`;
 }
 
@@ -996,15 +998,15 @@ function abrirUnidad(id){
 
   const desglose = (u.precio_suelo != null || u.precio_construccion != null) ? `
     <div class="sui-bloque">
-      <h3>Desglose de precio</h3>
+      <h3>${lwT('Desglose de precio')}</h3>
       <dl class="sui-dl" style="margin:0">
-        <dt>Suelo</dt><dd>${u.precio_suelo != null ? esc(fmtMoneda(Number(u.precio_suelo), u.moneda||'EUR')) : '—'}</dd>
-        <dt>Construcción</dt><dd>${u.precio_construccion != null ? esc(fmtMoneda(Number(u.precio_construccion), u.moneda||'EUR')) : '—'}</dd>
+        <dt>${lwT('Suelo')}</dt><dd>${u.precio_suelo != null ? esc(fmtMoneda(Number(u.precio_suelo), u.moneda||'EUR')) : '—'}</dd>
+        <dt>${lwT('Construcción')}</dt><dd>${u.precio_construccion != null ? esc(fmtMoneda(Number(u.precio_construccion), u.moneda||'EUR')) : '—'}</dd>
       </dl>
-      <div class="sui-total"><span>Total</span><span>${u.precio != null ? esc(fmtMoneda(Number(u.precio), u.moneda||'EUR')) : '—'}</span></div>
+      <div class="sui-total"><span>${lwT('Total')}</span><span>${u.precio != null ? esc(fmtMoneda(Number(u.precio), u.moneda||'EUR')) : '—'}</span></div>
       ${(u.precio != null && u.precio_suelo != null && u.precio_construccion != null
          && Math.abs(Number(u.precio) - Number(u.precio_suelo) - Number(u.precio_construccion)) > 0.5)
-        ? '<p class="aviso">El total no cuadra con suelo + construcción. Revisa cuál de los tres es el bueno.</p>' : ''}
+        ? '<p class="aviso">' + lwT('El total no cuadra con suelo + construcción. Revisa cuál de los tres es el bueno.') + '</p>' : ''}
     </div>` : '';
 
   /* Lo que el contrato ha traído a esta unidad. Es de solo lectura a propósito:
@@ -1013,11 +1015,11 @@ function abrirUnidad(id){
      coincidieran no habría forma de saber cuál manda. */
   const operacion = (!nueva && u.contrato_numero) ? `
     <div class="sui-bloque">
-      <h3>Operación</h3>
+      <h3>${lwT('Operación')}</h3>
       <dl class="sui-dl" style="margin:0">
-        <dt>Contrato</dt><dd><a class="enl" href="/intranet/operaciones/?contrato=${encodeURIComponent(u.contrato_id)}">${esc(u.contrato_numero)}</a>${u.contrato_firmado ? ' · firmado' : ' · sin firmar'}</dd>
-        ${u.comprador_nombre ? `<dt>Comprador</dt><dd>${esc(u.comprador_nombre)}</dd>` : ''}
-        ${u.contrato_creado_por ? `<dt>Agente</dt><dd>${esc(nombreAgente(u.contrato_creado_por))}</dd>` : ''}
+        <dt>${lwT('Contrato')}</dt><dd><a class="enl" href="/intranet/operaciones/?contrato=${encodeURIComponent(u.contrato_id)}">${esc(u.contrato_numero)}</a>${u.contrato_firmado ? ' · firmado' : ' · sin firmar'}</dd>
+        ${u.comprador_nombre ? `<dt>${lwT('Comprador')}</dt><dd>${esc(u.comprador_nombre)}</dd>` : ''}
+        ${u.contrato_creado_por ? `<dt>${lwT('Agente')}</dt><dd>${esc(nombreAgente(u.contrato_creado_por))}</dd>` : ''}
         <!-- «de esta unidad» no es un adorno (19-ago-2026): con un contrato de
              varias parcelas, esta cifra es LA PARTE de esta unidad, no el
              total cobrado del contrato. Sin decirlo, quien lo lee suma dos
@@ -1026,57 +1028,55 @@ function abrirUnidad(id){
              propósito: este comentario vive DENTRO de una plantilla de texto y
              un backtick la cierra antes de tiempo). El total de la operación
              está en Operaciones, a un clic de aquí. -->
-        <dt>Cobrado de esta unidad</dt><dd>${esc(fmtMoneda(Number(u.facturado||0), u.moneda||'EUR'))}${
+        <dt>${lwT('Cobrado de esta unidad')}</dt><dd>${esc(fmtMoneda(Number(u.facturado||0), u.moneda||'EUR'))}${
           u.pct_cobrado != null ? ' · ' + u.pct_cobrado + '%' : ''}${
-          ' <span class="flojo">(su parte del contrato)</span>'}</dd>
+          ' <span class="flojo">' + lwT('(su parte del contrato)') + '</span>'}</dd>
       </dl>
       ${u.pct_cobrado != null ? `<div class="barra"><i style="width:${Math.min(100, u.pct_cobrado)}%"></i></div>` : ''}
-      <p class="sui-nota">El estado lo lleva el contrato y el dinero, no una persona: una Carta de Reserva
-        deja la parcela <b>reservada</b> (firmarla no la mueve); un Bloqueo de Parcela firmado la deja
-        <b>bloqueada</b>; el primer recibí real la pasa a <b>vendida</b>, y el 100% cobrado a <b>cobrada</b>.
-        Si se le quita la parcela al contrato o se borra, vuelve a disponible sola.</p>
+      <p class="sui-nota">${lwT('El estado lo lleva el contrato y el dinero, no una persona: una Carta de Reserva deja la parcela')} <b>reservada</b> ${lwT('(firmarla no la mueve); un Bloqueo de Parcela firmado la deja')}
+        <b>bloqueada</b>${lwT('; el primer recibí real la pasa a')} <b>vendida</b>${lwT(', y el 100% cobrado a')} <b>cobrada</b>${lwT('. Si se le quita la parcela al contrato o se borra, vuelve a disponible sola.')}</p>
     </div>` : '';
 
   suiAbrirCajon({
-    titulo: nueva ? 'Nueva unidad' : esc(u.codigo),
-    sub: nueva ? 'El código es el mismo texto que imprime el contrato.'
-               : esc(u.proyecto || 'sin proyecto') + ' · ' + esc(nombreEstado(u.estado)),
+    titulo: nueva ? lwT('Nueva unidad') : esc(u.codigo),
+    sub: nueva ? lwT('El código es el mismo texto que imprime el contrato.')
+               : esc(u.proyecto || lwT('sin proyecto')) + ' · ' + esc(nombreEstado(u.estado)),
     cuerpo: operacion + desglose + `
-      <div class="campo"><label for="f-codigo">Código</label>
-        <input id="f-codigo" value="${esc(u.codigo||'')}" placeholder="Ej. A12"></div>
-      <p class="sui-nota" style="margin-top:-6px">Debe coincidir con el que se escribe en el contrato: es lo que permite cruzarlos.</p>
+      <div class="campo"><label for="f-codigo">${lwT('Código')}</label>
+        <input id="f-codigo" value="${esc(u.codigo||'')}" placeholder="${lwT('Ej. A12')}"></div>
+      <p class="sui-nota" style="margin-top:-6px">${lwT('Debe coincidir con el que se escribe en el contrato: es lo que permite cruzarlos.')}</p>
       <div class="dos">
-        <div class="campo"><label for="f-proyecto">Proyecto</label>
+        <div class="campo"><label for="f-proyecto">${lwT('Proyecto')}</label>
           <select class="sui-sel" id="f-proyecto">
-            <option value="">— elegir —</option>
+            <option value="">${lwT('— elegir —')}</option>
             ${[...new Set([...PROYECTOS, u.proyecto].filter(Boolean))].sort(ordenProyectos()).map(p =>
               `<option value="${esc(p)}" ${u.proyecto===p?'selected':''}>${esc(p)}</option>`).join('')}
-            ${ES_ADMIN ? '<option value="__nuevo__">+ Nuevo proyecto…</option>' : ''}
+            ${ES_ADMIN ? '<option value="__nuevo__">' + lwT('+ Nuevo proyecto…') + '</option>' : ''}
           </select>
           <div class="nuevo-cat" id="nuevoProyectoBox" hidden>
-            <input id="f-proyecto-nuevo" placeholder="Nombre del proyecto">
-            <button type="button" class="sui-btn" id="btnAltaProyecto">Añadir</button>
+            <input id="f-proyecto-nuevo" placeholder="${lwT('Nombre del proyecto')}">
+            <button type="button" class="sui-btn" id="btnAltaProyecto">${lwT('Añadir')}</button>
           </div>
         </div>
-        <div class="campo"><label for="f-tipo">Tipo</label>
+        <div class="campo"><label for="f-tipo">${lwT('Tipo')}</label>
           <select class="sui-sel" id="f-tipo">
             ${TIPOS.map(([v,l])=>`<option value="${v}" ${u.tipo===v?'selected':''}>${l}</option>`).join('')}
-            <option value="__nuevo__">+ Nuevo tipo…</option>
+            <option value="__nuevo__">${lwT('+ Nuevo tipo…')}</option>
           </select>
           <div class="nuevo-cat" id="nuevoTipoBox" hidden>
-            <input id="f-tipo-nuevo" placeholder="Nombre del tipo">
-            <button type="button" class="sui-btn" id="btnAltaTipo">Añadir</button>
+            <input id="f-tipo-nuevo" placeholder="${lwT('Nombre del tipo')}">
+            <button type="button" class="sui-btn" id="btnAltaTipo">${lwT('Añadir')}</button>
           </div>
         </div>
       </div>
       <div class="dos">
-        <div class="campo"><label for="f-modelo">Modelo de villa</label>
+        <div class="campo"><label for="f-modelo">${lwT('Modelo de villa')}</label>
           ${(() => { const r = modelosDeProy(u.proyecto); return !r.lista.length
             /* Catalogo vacio de verdad (o sin permiso para leerlo): el texto
                libre es el ultimo recurso, no el camino normal. */
-            ? `<input id="f-modelo" value="${esc(u.modelo||'')}" placeholder="Dune, Dream…">`
+            ? `<input id="f-modelo" value="${esc(u.modelo||'')}" placeholder="${lwT('Dune, Dream…')}">`
             : `<select class="sui-sel" id="f-modelo">
-                 <option value="">— sin decidir —</option>
+                 <option value="">${lwT('— sin decidir —')}</option>
                  ${r.lista.map(m => `<option value="${esc(m.modelo)}" ${u.modelo===m.modelo?'selected':''}>${
                      esc(m.modelo)}${m.precio_construccion != null ? ' · ' + fmtNum(Number(m.precio_construccion)) + ' ' + (m.moneda||'EUR') : ''}</option>`).join('')}
                  ${u.modelo && !r.lista.some(m => m.modelo === u.modelo)
@@ -1087,26 +1087,25 @@ function abrirUnidad(id){
                   INPUT DE TEXTO — y por ahí entraban los modelos inventados que
                   luego no casan con nada. Ahora se ofrece el catálogo entero y se
                   dice que es el catálogo, con el camino para acotarlo. */
-               : `<p class="sui-nota">Este proyecto no tiene modelos declarados, así que se ofrece el catálogo entero.
-                    Para acotarlo, «Qué se puede construir aquí» en la ficha del proyecto.</p>`); })()}
+               : `<p class="sui-nota">${lwT('Este proyecto no tiene modelos declarados, así que se ofrece el catálogo entero. Para acotarlo, «Qué se puede construir aquí» en la ficha del proyecto.')}</p>`); })()}
         </div>
-        <div class="campo"><label for="f-sup">Superficie (m²)</label><input id="f-sup" inputmode="decimal" value="${esc(u.superficie_m2||'')}"></div>
+        <div class="campo"><label for="f-sup">${lwT('Superficie (m²)')}</label><input id="f-sup" inputmode="decimal" value="${esc(u.superficie_m2||'')}"></div>
       </div>
       ${u.proyecto === 'Sumba Hills' ? `
       <div class="dos">
-        <div class="campo"><label for="f-fase">Fase (masterplan)</label><input id="f-fase" value="${esc(u.fase_masterplan||'')}" placeholder="I, II…"></div>
-        <div class="campo"><label for="f-zona">Zona</label><input id="f-zona" value="${esc(u.zona_masterplan||'')}" placeholder="1, 2, 3…"></div>
+        <div class="campo"><label for="f-fase">${lwT('Fase (masterplan)')}</label><input id="f-fase" value="${esc(u.fase_masterplan||'')}" placeholder="I, II…"></div>
+        <div class="campo"><label for="f-zona">${lwT('Zona')}</label><input id="f-zona" value="${esc(u.zona_masterplan||'')}" placeholder="1, 2, 3…"></div>
       </div>` : ''}
       <div id="escenarios"></div>
       <div class="dos">
-        <div class="campo"><label for="f-m2precio">Precio por m²</label><input id="f-m2precio" inputmode="decimal"
+        <div class="campo"><label for="f-m2precio">${lwT('Precio por m²')}</label><input id="f-m2precio" inputmode="decimal"
           value="${u.precio_suelo!=null && u.superficie_m2 ? esc(fmtNum(Number(u.precio_suelo)/Number(u.superficie_m2))) : ''}"
-          placeholder="Con la superficie, calcula el suelo solo"></div>
-        <div class="campo"><label for="f-suelo">Precio de suelo</label><input id="f-suelo" inputmode="decimal" value="${u.precio_suelo!=null?esc(fmtNum(Number(u.precio_suelo))):''}"></div>
+          placeholder="${lwT('Con la superficie, calcula el suelo solo')}"></div>
+        <div class="campo"><label for="f-suelo">${lwT('Precio de suelo')}</label><input id="f-suelo" inputmode="decimal" value="${u.precio_suelo!=null?esc(fmtNum(Number(u.precio_suelo))):''}"></div>
       </div>
       <div class="dos">
-        <div class="campo"><label for="f-obra">Precio de construcción</label><input id="f-obra" inputmode="decimal" value="${u.precio_construccion!=null?esc(fmtNum(Number(u.precio_construccion))):''}"></div>
-        <div class="campo"><label for="f-precio">Precio total</label>
+        <div class="campo"><label for="f-obra">${lwT('Precio de construcción')}</label><input id="f-obra" inputmode="decimal" value="${u.precio_construccion!=null?esc(fmtNum(Number(u.precio_construccion))):''}"></div>
+        <div class="campo"><label for="f-precio">${lwT('Precio total')}</label>
           <input id="f-precio" value="${u.precio!=null?esc(fmtNum(Number(u.precio))):'—'}" readonly
                  style="background:var(--sup-2);color:var(--texto-2);cursor:not-allowed"></div>
       </div>
@@ -1114,30 +1113,29 @@ function abrirUnidad(id){
         escribir un valor distinto (28-ago-2026): un CSV trajo un total descuadrado con sus propias
         columnas de suelo/construcción en 143 parcelas, y así no puede volver a pasar.</p>
       <div class="dos">
-        <div class="campo"><label for="f-moneda">Moneda</label><select class="sui-sel" id="f-moneda">${['EUR','USD','AUD','IDR'].map(x=>`<option ${u.moneda===x?'selected':''}>${x}</option>`).join('')}</select></div>
+        <div class="campo"><label for="f-moneda">${lwT('Moneda')}</label><select class="sui-sel" id="f-moneda">${['EUR','USD','AUD','IDR'].map(x=>`<option ${u.moneda===x?'selected':''}>${x}</option>`).join('')}</select></div>
       </div>
       ${u.contrato_id ? `
-        <div class="campo"><label>Estado</label>
+        <div class="campo"><label>${lwT('Estado')}</label>
           <input value="${esc(nombreEstado(u.estado))} · lo lleva el contrato" readonly
                  style="background:var(--sup-2);color:var(--texto-2);cursor:not-allowed"></div>
-        <div class="campo"><label>Contrato asociado</label>
+        <div class="campo"><label>${lwT('Contrato asociado')}</label>
           <input value="${esc(u.contrato_numero || 'vinculado')}" readonly
                  style="background:var(--sup-2);color:var(--texto-2);cursor:not-allowed"></div>
-        <p class="aviso">Esta parcela está vinculada a un contrato, así que su estado y su contrato
-          <b>no se tocan desde aquí</b>: los lleva el contrato. Para soltarla, quítale la parcela al
-          contrato o bórralo, y volverá a estar disponible sola.</p>`
+        <p class="aviso">${lwT('Esta parcela está vinculada a un contrato, así que su estado y su contrato')}
+          <b>${lwT('no se tocan desde aquí')}</b>${lwT(': los lleva el contrato. Para soltarla, quítale la parcela al contrato o bórralo, y volverá a estar disponible sola.')}</p>`
       : `
-        <div class="campo"><label for="f-estado">Estado</label>
+        <div class="campo"><label for="f-estado">${lwT('Estado')}</label>
           <select class="sui-sel" id="f-estado">${ESTADOS.map(([v,l])=>`<option value="${v}" ${u.estado===v?'selected':''}>${l}</option>`).join('')}</select></div>
-        <div class="campo"><label for="f-contrato">Contrato asociado</label>
-          <select class="sui-sel" id="f-contrato"><option value="">— sin contrato —</option>
-            ${CONTRATOS.map(c=>`<option value="${esc(c.id)}" ${u.contrato_id===c.id?'selected':''}>${esc(c.numero||'sin nº')} — ${esc(c.comprador_nombre||'sin nombre')}</option>`).join('')}
+        <div class="campo"><label for="f-contrato">${lwT('Contrato asociado')}</label>
+          <select class="sui-sel" id="f-contrato"><option value="">${lwT('— sin contrato —')}</option>
+            ${CONTRATOS.map(c=>`<option value="${esc(c.id)}" ${u.contrato_id===c.id?'selected':''}>${esc(c.numero||lwT('sin nº'))} — ${esc(c.comprador_nombre||lwT('sin nombre'))}</option>`).join('')}
           </select></div>
         <div id="avisoEstado"></div>`}
-      <div class="campo"><label for="f-notas">Notas</label><textarea id="f-notas">${esc(u.notas||'')}</textarea></div>`,
-    pie: `<button class="sui-btn primario" id="btnGuardar">${nueva ? 'Crear unidad' : 'Guardar cambios'}</button>
-          ${(!nueva && ES_SUPER_ADMIN) ? '<button class="sui-btn peligro" id="btnBorrarUnidad">Borrar</button>' : ''}
-          <button class="sui-btn" id="btnCerrar">Cerrar</button>`,
+      <div class="campo"><label for="f-notas">${lwT('Notas')}</label><textarea id="f-notas">${esc(u.notas||'')}</textarea></div>`,
+    pie: `<button class="sui-btn primario" id="btnGuardar">${lwT(nueva ? 'Crear unidad' : 'Guardar cambios')}</button>
+          ${(!nueva && ES_SUPER_ADMIN) ? '<button class="sui-btn peligro" id="btnBorrarUnidad">' + lwT('Borrar') + '</button>' : ''}
+          <button class="sui-btn" id="btnCerrar">${lwT('Cerrar')}</button>`,
     onCerrar: () => { SEL = null; pintar(); },
   });
 
@@ -1149,14 +1147,14 @@ function abrirUnidad(id){
     sel.addEventListener('change', () => { box.hidden = sel.value !== '__nuevo__'; if(!box.hidden) input.focus(); });
     const confirmar = async () => {
       const nombre = input.value.trim();
-      if(!nombre){ toast('Escribe un nombre'); return; }
+      if(!nombre){ toast(lwT('Escribe un nombre')); return; }
       btn.disabled = true;
       const r = await altaFn(nombre);
       btn.disabled = false;
       if(!r.ok){ toast(r.error); return; }
       refrescarSelect(sel, r);
       box.hidden = true; input.value = '';
-      toast('Añadido');
+      toast(lwT('Añadido'));
     };
     btn.addEventListener('click', confirmar);
     input.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); confirmar(); } });
@@ -1224,7 +1222,7 @@ function abrirUnidad(id){
         $('#f-precio').value = '';
         $('#f-precio')._auto = 0;
         pintarEscenarios(u);
-        toast('Sin modelo: la construcción y el total quedan sin fijar');
+        toast(lwT('Sin modelo: la construcción y el total quedan sin fijar'));
         return;
       }
       const p = precioModelo(u.proyecto, selModelo.value);
@@ -1234,7 +1232,7 @@ function abrirUnidad(id){
       $('#f-precio').value = fmtNum(s + p);
       $('#f-precio')._auto = s + p;
       pintarEscenarios(u);
-      toast('Precio recalculado para ' + selModelo.value);
+      toast(lwT('Precio recalculado para') + selModelo.value);
     });
   }
   $('#btnGuardar').addEventListener('click', () => guardar(nueva ? null : u.id));
@@ -1250,16 +1248,16 @@ function abrirUnidad(id){
    colgando, y deja rastro en `unidades_borradas` antes de borrar. */
 async function borrarUnidad(u){
   const ok = await lwConfirmar({
-    titulo: `Borrar la parcela «${u.codigo || 'sin código'}»`,
-    cuerpo: '<p>Solo se puede si no tiene un contrato ni fotos de obra colgando. Si tiene algo, el sistema lo rechaza y dice qué queda por soltar.</p>'
-          + '<p>No se puede deshacer desde aquí.</p>',
-    confirmar: 'Borrar la parcela',
+    titulo: lwT('Borrar la parcela «%c»', { c: u.codigo || lwT('sin código') }),
+    cuerpo: '<p>' + lwT('Solo se puede si no tiene un contrato ni fotos de obra colgando. Si tiene algo, el sistema lo rechaza y dice qué queda por soltar.') + '</p>'
+          + '<p>' + lwT('No se puede deshacer desde aquí.') + '</p>',
+    confirmar: lwT('Borrar la parcela'),
     tono: 'peligro',
   });
   if(!ok) return;
   const { error } = await SB.rpc('borrar_unidad', { p_id: u.id });
-  if(error){ toast('No se pudo borrar: ' + error.message); return; }
-  toast('Parcela borrada');
+  if(error){ toast(lwT('No se pudo borrar:') + error.message); return; }
+  toast(lwT('Parcela borrada'));
   suiCerrarCajon();
   SEL = null;
   cargar();
@@ -1285,20 +1283,20 @@ function pintarEscenarios(u){
   const m = (($('#f-moneda') || {}).value) || u.moneda || 'EUR';
   const m2 = $('#f-sup') ? parseImporte($('#f-sup').value) : Number(u.superficie_m2 || 0);
   caja.innerHTML = `<div class="sui-bloque">
-    <h3>Precio según el modelo</h3>
+    <h3>${lwT('Precio según el modelo')}</h3>
     ${ms.map(x => {
       const c = x.precio_construccion != null ? Number(x.precio_construccion) : null;
       return `<div class="sui-total" style="border:none;margin:0;padding:3px 0;font-weight:400">
-        <span>${esc(x.modelo)}${elegido === x.modelo ? ' <b>· elegido</b>' : ''}${
-          x.heredado ? ' <span class="flojo">· del catálogo</span>' : ''}</span>
-        <span>${c == null ? '<span class="flojo">sin precio</span>' : '<b>' + esc(fmtMoneda(suelo + c, m)) + '</b>'}</span>
+        <span>${esc(x.modelo)}${elegido === x.modelo ? ' <b>' + lwT('· elegido') + '</b>' : ''}${
+          x.heredado ? ' <span class="flojo">' + lwT('· del catálogo') + '</span>' : ''}</span>
+        <span>${c == null ? '<span class="flojo">' + lwT('sin precio') + '</span>' : '<b>' + esc(fmtMoneda(suelo + c, m)) + '</b>'}</span>
       </div>`;
     }).join('')}
     <p class="sui-nota">${elegido
       ? 'Suelo ' + esc(fmtMoneda(suelo, m)) + (m2 ? ' · ' + fmtNum(m2) + ' m²' : '') +
-        '. Lo que cambia entre modelos es la construcción; el suelo es de la parcela.'
-      : '<b>Sin modelo decidido</b>: esta parcela no tiene total. Arriba están las dos posibilidades; ' +
-        'el suelo (' + esc(fmtMoneda(suelo, m)) + ') es lo único fijo.'}</p>
+        '. ' + lwT('Lo que cambia entre modelos es la construcción; el suelo es de la parcela.')
+      : '<b>' + lwT('Sin modelo decidido') + '</b>: esta parcela no tiene total. Arriba están las dos posibilidades; ' +
+        lwT('el suelo (%s) es lo único fijo.', { s: esc(fmtMoneda(suelo, m)) })}</p>
   </div>`;
 }
 
@@ -1310,18 +1308,18 @@ function avisoEstado(){
   const otras = UNIDADES.filter(u => u.contrato_id && u.contrato_id === cid && u.id !== SEL);
   const msgs = [];
   if((est === 'vendida' || est === 'reservada') && !cid)
-    msgs.push('Marcada como ' + nombreEstado(est).toLowerCase() + ' pero sin contrato asociado: no se podrá saber de quién es.');
+    msgs.push(lwT('Marcada como %e pero sin contrato asociado: no se podrá saber de quién es.', { e: nombreEstado(est).toLowerCase() }));
   if(otras.length)
-    msgs.push('Ese contrato ya está asociado a ' + otras.map(o=>o.codigo).join(', ') + '. Si no es una operación de varias unidades, revísalo.');
+    msgs.push(lwT('Ese contrato ya está asociado a %u. Si no es una operación de varias unidades, revísalo.', { u: otras.map(o=>o.codigo).join(', ') }));
   $('#avisoEstado').innerHTML = msgs.length ? `<p class="aviso">${msgs.map(esc).join('<br>')}</p>` : '';
 }
 
 async function guardar(id){
   const codigo = $('#f-codigo').value.trim();
-  if(!codigo){ toast('El código no puede quedar vacío'); return; }
+  if(!codigo){ toast(lwT('El código no puede quedar vacío')); return; }
   const proyecto = $('#f-proyecto').value.trim();
-  if(!proyecto || proyecto === '__nuevo__'){ toast('Elige un proyecto (o da uno de alta con «+ Nuevo proyecto…»)'); return; }
-  if($('#f-tipo').value === '__nuevo__'){ toast('Da de alta el tipo nuevo antes de guardar'); return; }
+  if(!proyecto || proyecto === '__nuevo__'){ toast(lwT('Elige un proyecto (o da uno de alta con «+ Nuevo proyecto…»)')); return; }
+  if($('#f-tipo').value === '__nuevo__'){ toast(lwT('Da de alta el tipo nuevo antes de guardar')); return; }
   const num = el => { const v = parseImporte($(el).value); return v || null; };
   const fila = {
     codigo, proyecto,
@@ -1355,17 +1353,17 @@ async function guardar(id){
     const { data, error } = await q;
     if(error) throw error;
     // La RLS no da error al denegar: devuelve cero filas.
-    if(!data || !data.length) throw new Error('no tienes permiso para guardar unidades');
-    toast(id ? 'Guardado' : 'Unidad creada');
+    if(!data || !data.length) throw new Error(lwT('no tienes permiso para guardar unidades'));
+    toast(lwT(id ? 'Guardado' : 'Unidad creada'));
     suiCerrarCajon();
     await cargar();
   }catch(e){
     // El código es único POR PROYECTO: decirlo con esas palabras evita el
     // "duplicate key value violates unique constraint" que no significa nada.
     const m = /unidades_proyecto_codigo_key|duplicate key/.test(e.message || '')
-      ? 'Ya hay una unidad con ese código en ese proyecto.'
+      ? lwT('Ya hay una unidad con ese código en ese proyecto.')
       : (e.message || e);
-    toast('No se pudo guardar: ' + m);
+    toast(lwT('No se pudo guardar:') + m);
   }
   b.disabled = false;
 }
@@ -1408,7 +1406,7 @@ async function abrirImportCsv(file){
     cuerpo.innerHTML = `<p class="aviso">El fichero pesa ${(file.size/1024/1024).toFixed(1)} MB — el máximo son 5 MB. Pártelo en varios.</p>`;
     return;
   }
-  cuerpo.innerHTML = '<p class="sub">Leyendo…</p>';
+  cuerpo.innerHTML = '<p class="sub">' + lwT('Leyendo…') + '</p>';
   /* El ANÁLISIS lo hace la pieza compartida; esta pantalla solo lo pinta.
      `parseImporte` se le pasa a propósito: es la de `dinero.js`, la única forma
      de leer un importe en la suite, y así la pieza no impone orden de carga. */
@@ -1426,34 +1424,34 @@ async function abrirImportCsv(file){
 
   cuerpo.innerHTML = `
     <div class="csv-resumen">
-      <span><b>${analizadas.length}</b> filas leídas</span>
+      <span><b>${analizadas.length}</b> ${lwT('filas leídas')}</span>
       <span><b>${altas}</b> altas nuevas</span>
-      <span><b>${actualiza}</b> actualizan una unidad existente</span>
-      ${conError ? `<span class="csv-tabla th err" style="color:#9E2F26"><b>${conError}</b> con error, no se importan</span>` : ''}
+      <span><b>${actualiza}</b> ${lwT('actualizan una unidad existente')}</span>
+      ${conError ? `<span class="csv-tabla th err" style="color:#9E2F26"><b>${conError}</b> ${lwT('con error, no se importan')}</span>` : ''}
     </div>
     ${ignoradas.length ? `<p class="csv-ignoradas">Columnas del CSV ignoradas (no se trackean hoy): ${ignoradas.map(esc).join(', ')}</p>` : ''}
     <div style="max-height:340px;overflow:auto">
       <table class="csv-tabla">
-        <thead><tr><th>Fila</th><th>Código</th><th>Proyecto</th><th>Tipo</th><th>Precio</th><th>Estado</th></tr></thead>
+        <thead><tr><th>${lwT('Fila')}</th><th>${lwT('Código')}</th><th>${lwT('Proyecto')}</th><th>${lwT('Tipo')}</th><th>${lwT('Precio')}</th><th>${lwT('Estado')}</th></tr></thead>
         <tbody>${analizadas.map(f => `
           <tr class="${f.errores.length ? 'fila-err' : ''}">
             <td>${f.fila}</td><td>${esc(f.codigo||'—')}</td><td>${esc(f.proyecto||'—')}</td>
             <td>${esc(f.tipo||'—')}</td>
             <td>${f.precio!=null ? esc(fmtNum(f.precio)) + ' ' + esc(f.moneda) : '—'}</td>
             <td>${f.errores.length ? '<span class="err">' + esc(f.errores.join('; ')) + '</span>'
-                 : (f.esAlta ? 'Alta nueva' : 'Actualiza')}</td>
+                 : lwT(f.esAlta ? 'Alta nueva' : 'Actualiza')}</td>
           </tr>`).join('')}
         </tbody>
       </table>
     </div>`;
   $('#btnCsvConfirmar').disabled = !CSV_FILAS_VALIDAS.length;
   $('#btnCsvConfirmar').textContent = CSV_FILAS_VALIDAS.length
-    ? `Confirmar importación (${CSV_FILAS_VALIDAS.length})` : 'Nada que importar';
+    ? lwT('Confirmar importación (%n)', { n: CSV_FILAS_VALIDAS.length }) : lwT('Nada que importar');
 }
 
 $('#btnCsvConfirmar').addEventListener('click', async () => {
   if(!CSV_FILAS_VALIDAS.length) return;
-  const btn = $('#btnCsvConfirmar'); btn.disabled = true; btn.textContent = 'Importando…';
+  const btn = $('#btnCsvConfirmar'); btn.disabled = true; btn.textContent = lwT('Importando…');
   /* El allowlist vive en `assets/proyectos_csv.js` (`lwCsvLotesParaGuardar`)
      desde el 26-ago-2026: la v3 necesita exactamente el mismo, y un allowlist
      duplicado es un allowlist que un día se relaja en una de las dos copias.
@@ -1472,7 +1470,7 @@ $('#btnCsvConfirmar').addEventListener('click', async () => {
          uno y lo ya escrito está escrito. Y se recarga igual, para que la
          pantalla enseñe lo que de verdad hay en la base. */
       toast(`Importadas ${escritas} de ${total} — el resto no: ${error.message}`);
-      btn.disabled = false; btn.textContent = 'Reintentar';
+      btn.disabled = false; btn.textContent = lwT('Reintentar');
       await cargar();
       return;
     }
@@ -1513,11 +1511,11 @@ try{
    herramienta. altaProyecto() ya existía (la usa ese desplegable); esto solo
    le pone una puerta de entrada propia, sin crear ninguna unidad de por medio. */
 $('#btnNuevoProyecto').addEventListener('click', async () => {
-  const nombre = (prompt('Nombre del proyecto nuevo:') || '').trim();
+  const nombre = (prompt(lwT('Nombre del proyecto nuevo:')) || '').trim();
   if(!nombre) return;
   const r = await altaProyecto(nombre);
   if(!r.ok){ toast(r.error); return; }
-  toast('Proyecto creado: ' + r.nombre);
+  toast(lwT('Proyecto creado:') + r.nombre);
   pintar();
 });
 

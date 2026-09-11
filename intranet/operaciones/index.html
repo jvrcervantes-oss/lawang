@@ -22,6 +22,9 @@
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
+     `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
+<script src="/contracts/assets/i18n.js?v=41527d1c"></script>
 <script src="/contracts/assets/herramientas.js?v=cce2c8c2"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="/contracts/assets/visor.js?v=c8d2b946" defer></script>
@@ -306,13 +309,13 @@
   <div class="topbar lw-topbar" data-titulo="Operaciones">
     <span class="lw-sep"></span>
     <div class="tabs">
-      <button class="tab on" data-tab="ops">Operaciones</button>
-      <button class="tab" data-tab="venc">Vencimientos</button>
+      <button class="tab on" data-tab="ops" data-lwt="Operaciones">Operaciones</button>
+      <button class="tab" data-tab="venc" data-lwt="Vencimientos">Vencimientos</button>
     </div>
     <div class="lw-spacer"></div>
     <span class="lw-who" id="who"></span>
     <button type="button" class="lw-btn" id="btnRecargar">↻ Recargar</button>
-    <button type="button" class="lw-btn" id="btnLogout">Salir</button>
+    <button type="button" class="lw-btn" id="btnLogout" data-lwt="Salir">Salir</button>
   </div>
 
   <div class="sui-stage" id="stage">
@@ -320,14 +323,14 @@
       <div class="centro">
         <div class="cab">
           <div class="fila">
-            <input class="sui-buscar" id="q" placeholder="Buscar comprador, proyecto, operador o nº…">
-            <select class="f-sel" id="fProyecto"><option value="">Todos los proyectos</option></select>
+            <input class="sui-buscar" id="q" data-lwt-ph placeholder="Buscar comprador, proyecto, operador o nº…">
+            <select class="f-sel" id="fProyecto"><option value="" data-lwt="Todos los proyectos">Todos los proyectos</option></select>
             <!-- Tablero ↔ Tabla (6-ago-2026). La revisión de diseño pidió el
                  tablero porque la tabla plana deja de servir pasadas ~100 filas;
                  la tabla se queda como estaba, que es lo que el handoff dice. -->
             <div class="sui-dens" id="vista">
-              <button type="button" data-vista="tabla">Tabla</button>
-              <button type="button" data-vista="tablero">Embudo</button>
+              <button type="button" data-vista="tabla" data-lwt="Tabla">Tabla</button>
+              <button type="button" data-vista="tablero" data-lwt="Embudo">Embudo</button>
             </div>
           </div>
           <div class="filtros" id="filtros"></div>
@@ -338,16 +341,16 @@
         <div class="sui-tabla-caja" id="caja-tabla">
           <table class="sui-tabla" id="tabla">
             <thead><tr>
-              <th>Nº</th><th>Comprador</th><th>Proyecto</th><th>Operador</th>
-              <th class="num">Precio</th><th class="num">Cobrado</th><th class="num">Pendiente</th>
-              <th>Situación</th>
+              <th>Nº</th><th data-lwt="Comprador">Comprador</th><th data-lwt="Proyecto">Proyecto</th><th data-lwt="Operador">Operador</th>
+              <th class="num" data-lwt="Precio">Precio</th><th class="num" data-lwt="Cobrado">Cobrado</th><th class="num" data-lwt="Pendiente">Pendiente</th>
+              <th data-lwt="Situación">Situación</th>
             </tr></thead>
-            <tbody id="listaOps"><tr><td colspan="8">Cargando…</td></tr></tbody>
+            <tbody id="listaOps"><tr><td colspan="8" data-lwt="Cargando…">Cargando…</td></tr></tbody>
           </table>
         </div>
       </div>
     </div>
-    <div class="venc panel" id="panelVenc">Cargando…</div>
+    <div class="venc panel" id="panelVenc" data-lwt="Cargando…">Cargando…</div>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -377,9 +380,10 @@
    siendo una segunda forma de crear documentos, con sus propias reglas.
    ============================================================ */
 const $  = s => document.querySelector(s);
+lwIdiomaAplicar();   // traduce la HTML de arriba; en espanol no toca el DOM
 
 const HOY = new Date(); HOY.setHours(0,0,0,0);
-const fFecha = f => f ? new Date(f + (String(f).length===10 ? 'T00:00:00' : '')).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+const fFecha = f => f ? new Date(f + (String(f).length===10 ? 'T00:00:00' : '')).toLocaleDateString(lwLocale(),{day:'2-digit',month:'short',year:'numeric'}) : '—';
 const dias = f => f ? Math.round((new Date(f) - HOY) / 86400000) : null;
 
 let SB = null, OPS = [], SEL = null, POR_CLIENTE = {}, EQUIPO = {}, ES_ADMIN = false;
@@ -389,7 +393,8 @@ const operador = o => EQUIPO[o.creado_por] || o.creado_por || '—';
 
 /* Las claves de kyc_status son las del CHECK de `clients` (inglés, de cuando se
    creó la tabla). Aquí solo se traducen para mostrar. */
-const KYC_ES = { pending:'Pendiente', submitted:'En revisión', verified:'Aprobado', rejected:'Rechazado' };
+/* Rotulo de cada estado KYC; la clave es la de la base. */
+const KYC_ES = { pending:lwT('Pendiente'), submitted:lwT('En revisión'), verified:lwT('Aprobado'), rejected:lwT('Rechazado') };
 /* Los nombres de los tipos salen de assets/vocabulario.js. Los tenia copiados
    aqui y habian divergido de los de Contratos: 'reserva_parcela' se llamaba
    "Bloqueo de Parcela" en esta pantalla y "Parcela" en la otra, y a esta copia
@@ -430,9 +435,10 @@ async function cargar(){
       centro.insertBefore(d, centro.firstChild);
       return d;
     })();
-    caja.textContent = 'Esta vista no lo está sumando todo: hay más de '
-      + r.recortes.map(n => r.topes[n] + ' ' + n).join(' y más de ')
-      + ', y solo se han leído los más recientes. Los totales de abajo son parciales.';
+    /* Frase entera con hueco: en ingles el orden no es el mismo, y partirla
+       en tres trozos concatenados la deja sin traducir a medias. */
+    caja.textContent = lwT('Esta vista no lo está sumando todo: hay más de %l, y solo se han leído los más recientes. Los totales de abajo son parciales.',
+      { l: r.recortes.map(n => r.topes[n] + ' ' + lwT(n)).join(' ' + lwT('y más de') + ' ') });
   }
 }
 
@@ -452,7 +458,7 @@ async function cargarHitos(id){
   const { data, error } = await SB.rpc('contratos_equipo').select('hitos:datos->hitos').eq('id', id).single();
   if(error){
     // Que no se hayan podido leer NO es lo mismo que «no tiene hitos»: se dice.
-    toast('No se pudieron cargar los hitos de pago: ' + error.message);
+    toast(lwT('No se pudieron cargar los hitos de pago:') + error.message);
     return null;
   }
   HITOS_DE[id] = Array.isArray(data && data.hitos) ? data.hitos : [];
@@ -473,13 +479,13 @@ async function cargarHitos(id){
    filtro vacío se atenúa en vez de esconderse (que no esté no es lo mismo que
    no exista). Se combinan con el buscador y con el proyecto. */
 const FILTROS = [
-  ['',            'Todas',            () => true],
-  ['sin_firmar',  'Sin firmar',       o => !o.bloqueado],
-  ['firmado',     'Firmadas',         o => !!o.bloqueado],
-  ['debe',        'Con pendiente',    o => { const c = cuenta(o); return c.pendiente != null && c.pendiente > 0; }],
-  ['firma_viva',  'Firma enviada',    o => o.firmas.some(f => f.estado === 'pendiente')],
-  ['sin_factura', 'Sin facturar',     o => !o.facturas.some(f => !f.anulada && f.tipo !== 'proforma')],
-  ['falta_ficha', 'Falta ficha',      o => fichasQueFaltan(o) > 0],
+  ['',            lwT('Todas'),            () => true],
+  ['sin_firmar',  lwT('Sin firmar'),       o => !o.bloqueado],
+  ['firmado',     lwT('Firmadas'),         o => !!o.bloqueado],
+  ['debe',        lwT('Con pendiente'),    o => { const c = cuenta(o); return c.pendiente != null && c.pendiente > 0; }],
+  ['firma_viva',  lwT('Firma enviada'),    o => o.firmas.some(f => f.estado === 'pendiente')],
+  ['sin_factura', lwT('Sin facturar'),     o => !o.facturas.some(f => !f.anulada && f.tipo !== 'proforma')],
+  ['falta_ficha', lwT('Falta ficha'),      o => fichasQueFaltan(o) > 0],
 ];
 let FILTRO = '', PROYECTO = '';
 const pasaFiltro = o => (FILTROS.find(f => f[0] === FILTRO) || FILTROS[0])[2](o);
@@ -513,7 +519,7 @@ function pintarFiltros(){
   const sel = $('#fProyecto');
   const proyectos = [...new Set(raiz.map(o => o.proyecto_nombre).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
   const previo = sel.value;
-  sel.innerHTML = '<option value="">Todos los proyectos</option>'
+  sel.innerHTML = '<option value="">' + lwT('Todos los proyectos') + '</option>'
     + proyectos.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
   sel.value = proyectos.includes(previo) ? previo : '';
   PROYECTO = sel.value;
@@ -584,20 +590,20 @@ function pintarLista(){
     const c = cuenta(o);
     const eur = n => n == null ? '<span class="nota">—</span>' : esc(fmtMoneda(n, c.moneda));
     const b = [];
-    if(o.bloqueado) b.push('<span class="tag ok">Firmado</span>');
-    else b.push('<span class="tag espera">Sin firmar</span>');
-    if(o.firmas.some(x => x.estado === 'pendiente')) b.push('<span class="tag info">Firma enviada</span>');
+    if(o.bloqueado) b.push('<span class="tag ok">' + lwT('Firmado') + '</span>');
+    else b.push('<span class="tag espera">' + lwT('Sin firmar') + '</span>');
+    if(o.firmas.some(x => x.estado === 'pendiente')) b.push('<span class="tag info">' + lwT('Firma enviada') + '</span>');
     if(o.hijos.length) b.push('<span class="tag info">+' + o.hijos.length + '</span>');
     // el alta de comprador es automática pero se cae en silencio en 3 casos:
     // se avisa en la LISTA para no tener que entrar operación por operación
-    if(fichasQueFaltan(o)) b.push('<span class="tag alerta">Falta ficha</span>');
+    if(fichasQueFaltan(o)) b.push('<span class="tag alerta">' + lwT('Falta ficha') + '</span>');
     return `<tr data-id="${esc(o.id)}" class="${SEL===o.id?'sel':''}">
-      <td class="n">${esc(o.numero || 'sin nº')}</td>
+      <td class="n">${esc(o.numero || lwT('sin nº'))}</td>
       <td class="c" title="${esc(resumenCompradores(o).titulo)}">${esc(resumenCompradores(o).texto)}${
         resumenCompradores(o).extra ? ' <span class="mas-c">' + esc(resumenCompradores(o).extra) + '</span>' : ''}</td>
       <td class="p">${esc(o.proyecto_nombre || '—')}</td>
       <td class="p" title="${esc(o.creado_por || 'sin autor registrado')}">${esc(operador(o))}</td>
-      <td class="num">${c.precio ? eur(c.precio) : '<span class="nota">sin fijar</span>'}</td>
+      <td class="num">${c.precio ? eur(c.precio) : '<span class="nota">' + lwT('sin fijar') + '</span>'}</td>
       <td class="num">${eur(c.facturado)}</td>
       <td class="num">${c.pendiente != null && c.pendiente > 0 ? '<b>' + eur(c.pendiente) + '</b>' : eur(c.pendiente)}</td>
       <td><div class="badges">${b.join('')}</div></td>
@@ -606,7 +612,7 @@ function pintarLista(){
     // decir POR QUÉ no hay nada: con filtros puestos, "ninguna coincide" deja
     // al operador pensando que no existe el dato cuando solo está filtrado
     : `<tr><td colspan="8"><p class="nota">Ninguna operación coincide.
-        ${(FILTRO || PROYECTO || q) ? '<a class="enl" href="#" id="limpiaFiltros">Quitar los filtros</a>' : ''}</p></td></tr>`;
+        ${(FILTRO || PROYECTO || q) ? '<a class="enl" href="#" id="limpiaFiltros">' + lwT('Quitar los filtros') + '</a>' : ''}</p></td></tr>`;
 
   // Totales de lo que se está viendo, no de todo: con un filtro puesto, la suma
   // de la cartera entera no dice nada de lo que tienes delante.
@@ -617,9 +623,9 @@ function pintarLista(){
   const m = (vis[0] && cuenta(vis[0]).moneda) || 'EUR';
   $('#resumen').innerHTML = !vis.length ? '' :
     `<span>${vis.length} ${vis.length===1?'operación':'operaciones'}</span>
-     <span>Precio <b>${esc(fmtMoneda(tot.precio, m))}</b></span>
-     <span>Cobrado <b>${esc(fmtMoneda(tot.cobrado, m))}</b></span>
-     <span>Pendiente <b>${esc(fmtMoneda(tot.pendiente, m))}</b></span>`;
+     <span>${lwT('Precio')} <b>${esc(fmtMoneda(tot.precio, m))}</b></span>
+     <span>${lwT('Cobrado')} <b>${esc(fmtMoneda(tot.cobrado, m))}</b></span>
+     <span>${lwT('Pendiente')} <b>${esc(fmtMoneda(tot.pendiente, m))}</b></span>`;
 }
 
 /* ---------- TABLERO (Kanban por etapa) ----------
@@ -656,7 +662,7 @@ function pintarTablero(){
         <span class="col-suma">${ops.length ? ops.length + ' · ' + esc(fmtMoneda(suma, m)) : '0'}</span>
       </header>
       <div class="col-cuerpo">${ops.length ? ops.map(o => tarjetaOp(o, k)).join('')
-        : '<p class="col-vacia">Nada aquí</p>'}</div>
+        : '<p class="col-vacia">' + lwT('Nada aquí') + '</p>'}</div>
     </section>`;
   }).join('');
 }
@@ -665,20 +671,20 @@ function tarjetaOp(o, k){
   const c = cuenta(o);
   const eur = n => n == null ? '—' : esc(fmtMoneda(n, c.moneda));
   const avisos = [];
-  if(fichasQueFaltan(o)) avisos.push('<span class="tag alerta">Falta ficha</span>');
+  if(fichasQueFaltan(o)) avisos.push('<span class="tag alerta">' + lwT('Falta ficha') + '</span>');
   if(o.hijos.length) avisos.push('<span class="tag info">+' + o.hijos.length + '</span>');
   // La cifra grande de la tarjeta es la que importa EN ESA columna: lo pendiente
   // donde se persigue el cobro, el precio donde todavía no hay nada cobrado.
   const cifra = k === 'cobro_pend'
-    ? (c.pendiente != null && c.pendiente > 0 ? eur(c.pendiente) : '<span class="nota">sin fijar</span>')
-    : (c.precio ? eur(c.precio) : '<span class="nota">sin fijar</span>');
+    ? (c.pendiente != null && c.pendiente > 0 ? eur(c.pendiente) : '<span class="nota">' + lwT('sin fijar') + '</span>')
+    : (c.precio ? eur(c.precio) : '<span class="nota">' + lwT('sin fijar') + '</span>');
   const rotulo = k === 'cobro_pend' ? 'pendiente' : 'precio';
   // Progreso de cobro (mockup 4a): solo tiene sentido en la columna donde se
   // persigue el cobro, y solo si hay precio fijado sobre el que medir un %.
   const cobro = (k === 'cobro_pend' && c.precio)
     ? `<div class="tarj-cobro"><i style="width:${Math.min(100, Math.round(c.facturado / c.precio * 100))}%"></i></div>` : '';
   return `<button type="button" class="tarj ${SEL===o.id?'sel':''}" data-id="${esc(o.id)}" style="--etapa:${ETAPA_COLOR[k]}">
-    <span class="tarj-cab"><span class="n">${esc(o.numero || 'sin nº')}</span>${avisos.join('')}</span>
+    <span class="tarj-cab"><span class="n">${esc(o.numero || lwT('sin nº'))}</span>${avisos.join('')}</span>
     <span class="tarj-c" title="${esc(resumenCompradores(o).titulo)}">${esc(resumenCompradores(o).texto)}${
       resumenCompradores(o).extra ? ' <span class="mas-c">' + esc(resumenCompradores(o).extra) + '</span>' : ''}</span>
     <span class="tarj-p">${esc(o.proyecto_nombre || '—')}${o.creado_por ? ' · ' + esc(operador(o)) : ''}</span>
@@ -701,31 +707,33 @@ function pintarDetalle(){
   const cargandoHitos = !HITOS_DE[op.id];
 
   const filasHitos = cargandoHitos
-    ? '<tr><td colspan="3" class="nota">Cargando los hitos de pago…</td></tr>'
+    ? '<tr><td colspan="3" class="nota">' + lwT('Cargando los hitos de pago…') + '</td></tr>'
     : c.hitos.length ? c.hitos.map(h => {
     const imp = importeHito(h, c.precio, c.moneda);
     return `<tr>
       <td>${esc(textoHito(h))}${h.timing ? ' <span class="nota">· ' + esc(h.timing) + '</span>' : ''}</td>
       <td class="num">${h.pct ? esc(h.pct) + '%' : '—'}</td>
-      <td class="num">${imp.n == null ? '<span class="falta">sin importe</span>'
+      <td class="num">${imp.n == null ? '<span class="falta">' + lwT('sin importe') + '</span>'
                        : fmt(imp.n) + (imp.exacto ? '' : ' <span class="nota">(calculado)</span>')}</td>
     </tr>`;
-  }).join('') : '<tr><td colspan="3" class="nota">El contrato no fijó hitos de pago.</td></tr>';
+  }).join('') : '<tr><td colspan="3" class="nota">' + lwT('El contrato no fijó hitos de pago.') + '</td></tr>';
 
   /* TODOS los documentos de la operación en UNA tabla: contratos (con su PDF
      firmado, si lo hay) y lo emitido en Facturas. Antes vivían en dos secciones
      separadas y el PDF firmado —el documento que más se busca— estaba escondido
      en un párrafo de texto al final de la ficha. */
-  const TIPO_DOC = { factura:'Factura', proforma:'Proforma', recibi:'Recibí' };
+  /* Rotulo visible de cada tipo de documento. La clave (factura/proforma/
+     recibi) es la de la base y no se traduce nunca. */
+  const TIPO_DOC = { factura:lwT('Factura'), proforma:lwT('Proforma'), recibi:lwT('Recibí') };
   const docsOperacion = [];
   (op.padre ? [op.padre, ...op.padre.hijos] : [op, ...op.hijos]).forEach(ct => {
     docsOperacion.push({
-      clase:'contrato', numero: ct.numero || 'sin nº', tipo: TIPO_ES[ct.tipo] || ct.tipo || 'Contrato',
+      clase:'contrato', numero: ct.numero || lwT('sin nº'), tipo: TIPO_ES[ct.tipo] || ct.tipo || lwT('Contrato'),
       fecha: ct.fecha_firma, importe: parseImporte(ct.precio_total), moneda: ct.moneda || c.moneda,
       firmado: !!ct.bloqueado, pdf: ct.pdf_firmado_path || null, opId: ct.id,
     });
     (ct.facturas || []).forEach(f => docsOperacion.push({
-      clase:'factura', numero: f.numero || 'borrador', tipo: TIPO_DOC[f.tipo] || f.tipo || 'Documento',
+      clase:'factura', numero: f.numero || lwT('borrador'), tipo: TIPO_DOC[f.tipo] || f.tipo || lwT('Documento'),
       fecha: f.fecha_emision, importe: parseImporte(f.total), moneda: f.moneda || c.moneda,
       anulada: f.anulada, proforma: f.tipo === 'proforma', id: f.id,
     }));
@@ -741,19 +749,19 @@ function pintarDetalle(){
     // Solo administración factura desde este panel; el resto sigue viendo la
     // operación igual.
     const facturar = (ES_ADMIN && d.clase === 'contrato')
-      ? ` · <a class="enl" href="/intranet/facturas/?contrato=${encodeURIComponent(d.opId)}&amp;tipo=proforma">Proforma</a>
-          · <a class="enl" href="/intranet/facturas/?contrato=${encodeURIComponent(d.opId)}&amp;tipo=recibi">Recibí</a>` : '';
+      ? ` · <a class="enl" href="/intranet/facturas/?contrato=${encodeURIComponent(d.opId)}&amp;tipo=proforma">${lwT('Proforma')}</a>
+          · <a class="enl" href="/intranet/facturas/?contrato=${encodeURIComponent(d.opId)}&amp;tipo=recibi">${lwT('Recibí')}</a>` : '';
     const accion = (d.clase === 'contrato'
-      ? (d.pdf ? `<a class="enl fuerte" href="#" data-pdf="${esc(d.pdf)}">Ver PDF firmado</a>`
-               : `<a class="enl" href="/contracts/?contrato=${encodeURIComponent(d.opId)}">Abrir en Contratos</a>`)
-      : `<a class="enl fuerte" href="/intranet/facturas/?id=${encodeURIComponent(d.id)}" data-doc="1">Ver documento</a>`) + facturar;
+      ? (d.pdf ? `<a class="enl fuerte" href="#" data-pdf="${esc(d.pdf)}">${lwT('Ver PDF firmado')}</a>`
+               : `<a class="enl" href="/contracts/?contrato=${encodeURIComponent(d.opId)}">${lwT('Abrir en Contratos')}</a>`)
+      : `<a class="enl fuerte" href="/intranet/facturas/?id=${encodeURIComponent(d.id)}" data-doc="1">${lwT('Ver documento')}</a>`) + facturar;
     const estado = d.clase === 'contrato'
-      ? (d.firmado ? '<span class="tag ok">Firmado</span>' : '<span class="tag espera">Sin firmar</span>')
-      : (d.anulada ? '<span class="tag alerta">Anulada</span>'
-                   : (d.proforma ? '<span class="tag espera">No suma</span>' : '<span class="tag ok">Emitida</span>'));
+      ? (d.firmado ? '<span class="tag ok">' + lwT('Firmado') + '</span>' : '<span class="tag espera">' + lwT('Sin firmar') + '</span>')
+      : (d.anulada ? '<span class="tag alerta">' + lwT('Anulada') + '</span>'
+                   : (d.proforma ? '<span class="tag espera">' + lwT('No suma') + '</span>' : '<span class="tag ok">' + lwT('Emitida') + '</span>'));
     return `<tr>
       <td><b>${esc(d.numero)}</b><div class="nota">${esc(d.tipo)}</div></td>
-      <td>${d.clase === 'contrato' ? '<span class="tag info">Contrato</span>' : '<span class="tag">Facturación</span>'}</td>
+      <td>${d.clase === 'contrato' ? '<span class="tag info">' + lwT('Contrato') + '</span>' : '<span class="tag">' + lwT('Facturación') + '</span>'}</td>
       <td>${fFecha(d.fecha)}</td>
       <td class="num">${d.importe ? esc(fmtMoneda(d.importe, d.moneda)) : '—'}</td>
       <td>${estado}</td>
@@ -770,7 +778,7 @@ function pintarDetalle(){
 
   const filasFirmas = op.firmas.length ? op.firmas.map(s => {
     const d = dias(s.expira_en);
-    let est = '<span class="tag espera">Pendiente</span>';
+    let est = '<span class="tag espera">' + lwT('Pendiente') + '</span>';
     if(s.estado === 'firmado') est = '<span class="tag ok">Firmado ' + fFecha(s.firmado_en) + '</span>';
     // 🔴 `anulado` NO es `pendiente`, y aquí caía en el «Pendiente» de por
     // defecto: los 15 enlaces anulados de producción se pintaban como enlaces
@@ -779,12 +787,12 @@ function pintarDetalle(){
     // (un solo enlace vivo por firmante: al generar uno nuevo se anula el
     // anterior, y el índice `contrato_firmas_un_pendiente_por_rol` lo impone).
     // No se ocultan: son el rastro que demuestra que solo hubo uno vivo.
-    else if(s.estado === 'anulado') est = '<span class="tag">Anulado</span>';
-    else if(d != null && d < 0) est = '<span class="tag alerta">Caducado</span>';
+    else if(s.estado === 'anulado') est = '<span class="tag">' + lwT('Anulado') + '</span>';
+    else if(d != null && d < 0) est = '<span class="tag alerta">' + lwT('Caducado') + '</span>';
     else if(d != null && d <= 5) est = '<span class="tag alerta">Caduca en ' + d + ' d</span>';
     return `<tr><td>${esc(s.firmante_nombre || '—')}<div class="nota">${esc(s.firmante_email || '')}</div></td>
       <td>${esc(s.firmante_rol || '—')}</td><td>${fFecha(s.creado_en)}</td><td>${est}</td></tr>`;
-  }).join('') : '<tr><td colspan="4" class="nota">No se ha enviado a firma remota.</td></tr>';
+  }).join('') : '<tr><td colspan="4" class="nota">' + lwT('No se ha enviado a firma remota.') + '</td></tr>';
 
   /* El nombre viene de la ficha real si existe; si no, del texto del contrato.
      Con la ficha se puede además decir cómo va su KYC, que es lo que el nombre
@@ -792,13 +800,15 @@ function pintarDetalle(){
   const fichas = op.compradores || [];
   /* Documentación KYC. El nombre del comprador va en cada fila porque en un
      contrato a dos nombres hay que saber de quién falta el pasaporte. */
-  const DOC_ES = { passport:'Pasaporte', npwp:'NPWP', visa:'Visado',
-    proof_of_funds:'Justificante de fondos', proof_of_address:'Justificante de domicilio',
-    signed_contract:'Contrato firmado', other:'Otro' };
+  /* Rotulo de cada tipo de documento KYC. Las claves son las de la base
+     (`passport`, `npwp`…) y se quedan como estan. */
+  const DOC_ES = { passport:lwT('Pasaporte'), npwp:'NPWP', visa:lwT('Visado'),
+    proof_of_funds:lwT('Justificante de fondos'), proof_of_address:lwT('Justificante de domicilio'),
+    signed_contract:lwT('Contrato firmado'), other:lwT('Otro') };
   const nombreDe = id => (fichas.find(v => v.clients.id === id) || {clients:{}}).clients.full_name || '—';
   const filasDocs = (op.docs || []).length ? op.docs.map(d => {
     const dd = dias(d.caduca_el);
-    let cad = '<span class="tag espera">sin fecha</span>';
+    let cad = '<span class="tag espera">' + lwT('sin fecha') + '</span>';
     if(d.caduca_el) cad = dd < 0 ? `<span class="tag alerta">caducado hace ${-dd} d</span>`
                        : dd <= 60 ? `<span class="tag espera">${fFecha(d.caduca_el)}</span>`
                        : `<span class="tag ok">${fFecha(d.caduca_el)}</span>`;
@@ -809,12 +819,13 @@ function pintarDetalle(){
       <td>${cad}</td></tr>`;
   }).join('')
     : `<tr><td colspan="4" class="nota">${fichas.length
-        ? 'Ningún documento subido todavía para ' + (fichas.length > 1 ? 'estos compradores' : 'este comprador') + '.'
-        : 'Sin ficha de comprador enlazada no hay documentación que mostrar.'}</td></tr>`;
+        ? lwT(fichas.length > 1 ? 'Ningún documento subido todavía para estos compradores.'
+                                : 'Ningún documento subido todavía para este comprador.')
+        : lwT('Sin ficha de comprador enlazada no hay documentación que mostrar.')}</td></tr>`;
 
 
   const titulo = fichas.length ? fichas.map(v => v.clients.full_name).filter(Boolean).join(' · ')
-                              : (op.comprador_nombre || 'Sin comprador');
+                              : (op.comprador_nombre || lwT('Sin comprador'));
 
   /* La misma venta en varios documentos (reserva/PPJB + obra): se enseñan
      juntos y se salta entre ellos sin volver al listado. Cada contrato conserva
@@ -823,18 +834,18 @@ function pintarDetalle(){
   const cadena = op.padre ? [op.padre, ...op.padre.hijos] : (op.hijos.length ? [op, ...op.hijos] : null);
   const bloqueCadena = cadena ? `
     <section>
-      <h3>Contratos de la operación</h3>
-      <table><thead><tr><th>Nº</th><th>Tipo</th><th class="num">Precio</th><th class="num">Cobrado</th><th>Estado</th></tr></thead><tbody>
+      <h3>${lwT('Contratos de la operación')}</h3>
+      <table><thead><tr><th>Nº</th><th>${lwT('Tipo')}</th><th class="num">${lwT('Precio')}</th><th class="num">${lwT('Cobrado')}</th><th>${lwT('Estado')}</th></tr></thead><tbody>
       ${cadena.map(x => {
         const cx = cuenta(x);
         return `<tr>
           <td>${x.id === op.id
-            ? '<b>' + esc(x.numero || 'sin nº') + '</b> <span class="nota">(abierta)</span>'
-            : `<a class="enl" href="?contrato=${encodeURIComponent(x.id)}" data-op="${esc(x.id)}">${esc(x.numero || 'sin nº')}</a>`}</td>
+            ? '<b>' + esc(x.numero || lwT('sin nº')) + '</b> <span class="nota">' + lwT('(abierta)') + '</span>'
+            : `<a class="enl" href="?contrato=${encodeURIComponent(x.id)}" data-op="${esc(x.id)}">${esc(x.numero || lwT('sin nº'))}</a>`}</td>
           <td>${esc(TIPO_ES[x.tipo] || x.tipo || '—')}</td>
           <td class="num">${cx.precio ? esc(fmtMoneda(cx.precio, cx.moneda)) : '—'}</td>
           <td class="num">${esc(fmtMoneda(cx.facturado, cx.moneda))}</td>
-          <td>${x.bloqueado ? '<span class="tag ok">Firmado</span>' : '<span class="tag espera">Sin firmar</span>'}</td>
+          <td>${x.bloqueado ? '<span class="tag ok">' + lwT('Firmado') + '</span>' : '<span class="tag espera">' + lwT('Sin firmar') + '</span>'}</td>
         </tr>`;
       }).join('')}
       </tbody></table>
@@ -846,7 +857,7 @@ function pintarDetalle(){
   const bloqueFichas = fichas.length ? `
     <section>
       <h3>Comprador${fichas.length > 1 ? 'es' : ''}</h3>
-      <table><thead><tr><th>Nombre</th><th>Rol</th><th>Contacto</th><th>KYC</th><th>Sus otros contratos</th></tr></thead><tbody>
+      <table><thead><tr><th>${lwT('Nombre')}</th><th>${lwT('Rol')}</th><th>${lwT('Contacto')}</th><th>KYC</th><th>${lwT('Sus otros contratos')}</th></tr></thead><tbody>
       ${fichas.map(v => {
         const c = v.clients;
         const ok = c.kyc_status === 'verified';
@@ -860,28 +871,28 @@ function pintarDetalle(){
           .map(cid => OPS.find(o => o.id === cid))
           .filter(Boolean);
         return `<tr>
-          <td><a class="enl" href="/intranet/compradores/?id=${encodeURIComponent(c.id)}">${esc(c.full_name || 'Sin nombre')}</a>
-              <div class="nota">${esc(c.passport_number || 'sin pasaporte')}</div></td>
-          <td>${esc(String(v.rol).replace('adquiriente_','Adquiriente '))}</td>
+          <td><a class="enl" href="/intranet/compradores/?id=${encodeURIComponent(c.id)}">${esc(c.full_name || lwT('Sin nombre'))}</a>
+              <div class="nota">${esc(c.passport_number || lwT('sin pasaporte'))}</div></td>
+          <td>${esc(String(v.rol).replace('adquiriente_', lwT('Adquiriente') + ' '))}</td>
           <td>${esc(c.email || c.phone || '—')}</td>
           <td><span class="tag ${ok ? 'ok' : (c.kyc_status === 'rejected' ? 'alerta' : 'espera')}">${esc(KYC_ES[c.kyc_status] || c.kyc_status || 'pendiente')}</span></td>
           <td>${otros.length
-            ? otros.map(o => `<a class="enl" href="/intranet/operaciones/?contrato=${encodeURIComponent(o.id)}" title="${esc(o.proyecto_nombre || '')}">${esc(o.numero || 'sin nº')}</a>`).join(' · ')
+            ? otros.map(o => `<a class="enl" href="/intranet/operaciones/?contrato=${encodeURIComponent(o.id)}" title="${esc(o.proyecto_nombre || '')}">${esc(o.numero || lwT('sin nº'))}</a>`).join(' · ')
             : '<span class="nota">—</span>'}</td>
         </tr>`;
       }).join('')}
       </tbody></table>
-      <p class="nota">Pulsa un nombre para abrir su ficha y su documentación.</p>
+      <p class="nota">${lwT('Pulsa un nombre para abrir su ficha y su documentación.')}</p>
       ${faltanFichas ? `<p class="nota falta"><b>Faltan ${faltanFichas} ficha${faltanFichas>1?'s':''} de comprador.</b>
         El contrato nombra a ${enElContrato} y solo ${(op.compradores||[]).length} tiene${(op.compradores||[]).length===1?'':'n'} ficha.
         Suele ser porque a esa persona le falta pasaporte y email (sin uno de los dos no se crea ficha, para no duplicarla).
         Se corrige rellenando ese dato en Contratos y volviendo a guardar.</p>` : ''}
     </section>` : `
     <section>
-      <h3>Comprador</h3>
+      <h3>${lwT('Comprador')}</h3>
       <p class="nota${enElContrato ? ' falta' : ''}">Este contrato todavía no tiene ficha de comprador enlazada: el nombre
         vive solo como texto dentro del contrato. Se crea sola al volver a guardarlo en Contratos
-        ${enElContrato ? ' — siempre que el comprador tenga pasaporte o email.' : '.'}</p>
+        ${enElContrato ? ' — ' + lwT('siempre que el comprador tenga pasaporte o email.') : '.'}</p>
     </section>`;
 
   /* El detalle va en el CAJÓN lateral — norma de la suite desde el 31-jul: se lee
@@ -907,54 +918,53 @@ function pintarDetalle(){
         if(cg.grupo.length <= 1) return '';
         const suman = cg.grupo.filter(x => !lwEsPreliminar(x.tipo));
         const fuera = cg.grupo.filter(x =>  lwEsPreliminar(x.tipo));
-        const lista = a => a.map(x => esc(x.numero || 'sin nº')).join(' + ');
+        const lista = a => a.map(x => esc(x.numero || lwT('sin nº'))).join(' + ');
         return `<p class="nota">Precio: suma ${lista(suman.length ? suman : cg.grupo)}.${
-          fuera.length ? ' No cuenta ' + lista(fuera) + ' — una Carta de Reserva declara el mismo importe que luego reparten el Bloqueo y la Construcción.' : ''
+          fuera.length ? ' ' + lwT('No cuenta %l — una Carta de Reserva declara el mismo importe que luego reparten el Bloqueo y la Construcción.', { l: lista(fuera) }) : ''
         } El cobrado sí incluye lo pagado en ${lista(cg.grupo)}. Detalle de cada uno en «Contratos de la operación», más arriba.</p>`;
       })()}
       <div class="cifras">
-        <div class="cifra"><div class="k">Precio pactado</div>
-          <div class="v ${cg.precio ? '' : 'gris'}">${cg.precio ? fmt(cg.precio) : 'sin fijar'}</div></div>
-        <div class="cifra"><div class="k">Cobrado</div><div class="v">${fmt(cg.facturado)}</div></div>
-        <div class="cifra"><div class="k">Pendiente</div>
-          <div class="v ${cg.pendiente == null ? 'gris' : ''}">${cg.pendiente == null ? 'no calculable' : fmt(cg.pendiente)}</div></div>
+        <div class="cifra"><div class="k">${lwT('Precio pactado')}</div>
+          <div class="v ${cg.precio ? '' : 'gris'}">${cg.precio ? fmt(cg.precio) : lwT('sin fijar')}</div></div>
+        <div class="cifra"><div class="k">${lwT('Cobrado')}</div><div class="v">${fmt(cg.facturado)}</div></div>
+        <div class="cifra"><div class="k">${lwT('Pendiente')}</div>
+          <div class="v ${cg.pendiente == null ? 'gris' : ''}">${cg.pendiente == null ? lwT('no calculable') : fmt(cg.pendiente)}</div></div>
       </div>
-      ${cg.precio ? '' : '<p class="nota falta">Sin precio total en el contrato no se puede calcular el pendiente ni convertir los hitos en %. Se rellena en Contratos.</p>'}
+      ${cg.precio ? '' : '<p class="nota falta">' + lwT('Sin precio total en el contrato no se puede calcular el pendiente ni convertir los hitos en %. Se rellena en Contratos.') + '</p>'}
       <table style="margin-top:14px">
-        <thead><tr><th>Hito de pago</th><th class="num">%</th><th class="num">Importe</th></tr></thead>
+        <thead><tr><th>${lwT('Hito de pago')}</th><th class="num">%</th><th class="num">${lwT('Importe')}</th></tr></thead>
         <tbody>${filasHitos}</tbody>
       </table>
-      <p class="nota">Solo el recibí cuenta como cobrado — una factura o una proforma son lo que se debe, no lo pagado.</p>
+      <p class="nota">${lwT('Solo el recibí cuenta como cobrado — una factura o una proforma son lo que se debe, no lo pagado.')}</p>
     </section>
 
     <section>
-      <h3>Documentos de la operación</h3>
-      <table><thead><tr><th>Nº</th><th>Clase</th><th>Fecha</th><th class="num">Importe</th><th>Estado</th><th>Ver</th></tr></thead>
+      <h3>${lwT('Documentos de la operación')}</h3>
+      <table><thead><tr><th>Nº</th><th>${lwT('Clase')}</th><th>${lwT('Fecha')}</th><th class="num">${lwT('Importe')}</th><th>${lwT('Estado')}</th><th>${lwT('Ver')}</th></tr></thead>
         <tbody>${filasDocumentos}</tbody></table>
-      <p class="nota">Contratos y facturación de esta venta, juntos.
+      <p class="nota">${lwT('Contratos y facturación de esta venta, juntos.')}
         <a class="enl" href="/intranet/facturas/">Emitir uno nuevo →</a></p>
     </section>
 
     <section>
-      <h3>Firmas</h3>
-      <table><thead><tr><th>Firmante</th><th>Rol</th><th>Enviado</th><th>Estado</th></tr></thead>
+      <h3>${lwT('Firmas')}</h3>
+      <table><thead><tr><th>${lwT('Firmante')}</th><th>${lwT('Rol')}</th><th>${lwT('Enviado')}</th><th>${lwT('Estado')}</th></tr></thead>
         <tbody>${filasFirmas}</tbody></table>
     </section>
 
     <section>
-      <h3>Documentación del comprador</h3>
-      <table><thead><tr><th>Documento</th><th>De</th><th>Subido</th><th>Caduca</th></tr></thead>
+      <h3>${lwT('Documentación del comprador')}</h3>
+      <table><thead><tr><th>${lwT('Documento')}</th><th>${lwT('De')}</th><th>${lwT('Subido')}</th><th>${lwT('Caduca')}</th></tr></thead>
         <tbody>${filasDocs}</tbody></table>
-      <p class="nota">El pasaporte y el KYC son de la <b>persona</b>, no de una venta: salen en todas
-        sus operaciones. Se suben desde <a class="enl" href="/intranet/compradores/">Compradores</a>.</p>
+      <p class="nota">${lwT('El pasaporte y el KYC son de la')} <b>persona</b>${lwT(', no de una venta: salen en todas sus operaciones. Se suben desde')} <a class="enl" href="/intranet/compradores/">${lwT('Compradores')}</a>.</p>
     </section>`;
   suiAbrirCajon({
     titulo: esc(titulo),
-    sub: esc(op.proyecto_nombre || 'Sin proyecto') + ' · ' + esc(op.numero || 'sin nº')
-         + (op.bloqueado ? ' · firmado y bloqueado' : ' · sin firmar')
+    sub: esc(op.proyecto_nombre || lwT('Sin proyecto')) + ' · ' + esc(op.numero || lwT('sin nº'))
+         + ' · ' + lwT(op.bloqueado ? 'firmado y bloqueado' : 'sin firmar')
          + (op.fecha_firma ? ' · ' + fFecha(op.fecha_firma) : ''),
     cuerpo: cuerpoFicha,
-    pie: `<button class="sui-btn peligro" id="btnBorrarOp">Borrar operación</button>`,
+    pie: `<button class="sui-btn peligro" id="btnBorrarOp">${lwT('Borrar operación')}</button>`,
     onCerrar: () => { SEL = null; pintar(); },
   });
   $('#btnBorrarOp').onclick = () => borrarOperacion(op);
@@ -975,18 +985,19 @@ async function borrarOperacion(op){
   const firmasVivas   = op.firmas.filter(f => f.estado === 'pendiente').length;
   const detalle = [
     n > 1 ? n + ' contratos (' + [op.numero, ...op.hijos.map(h => h.numero)].join(', ') + ')'
-          : 'el contrato ' + (op.numero || 'sin nº'),
-    firmasVivas ? firmasVivas + ' enlace(s) de firma quedarán ANULADOS' : null,
-    facturasVivas ? facturasVivas + ' factura(s) quedarán ANULADAS (no se borran: la serie no puede tener huecos)' : null,
-    'La parcela vinculada vuelve a estar disponible.',
+          : lwT('el contrato %n', { n: op.numero || lwT('sin nº') }),
+    firmasVivas ? lwT(firmasVivas === 1 ? '%n enlace de firma quedará ANULADO' : '%n enlaces de firma quedarán ANULADOS', { n: firmasVivas }) : null,
+    facturasVivas ? lwT(facturasVivas === 1 ? '%n factura quedará ANULADA (no se borra: la serie no puede tener huecos)'
+                                            : '%n facturas quedarán ANULADAS (no se borran: la serie no puede tener huecos)', { n: facturasVivas }) : null,
+    lwT('La parcela vinculada vuelve a estar disponible.'),
   ].filter(Boolean);
   const ok = await lwConfirmar({
-    titulo: 'Borrar la operación de ' + (op.comprador_nombre || 'sin comprador'),
+    titulo: lwT('Borrar la operación de %c', { c: op.comprador_nombre || lwT('sin comprador') }),
     cuerpo: '<p>Se borra ' + detalle[0] + '.</p>'
           + (detalle.length > 1 ? '<ul style="margin:0 0 10px;padding-left:18px">'
               + detalle.slice(1).map(x => '<li>' + x + '</li>').join('') + '</ul>' : '')
-          + '<p>No hay papelera.</p>',
-    confirmar: 'Borrar la operación',
+          + '<p>' + lwT('No hay papelera.') + '</p>',
+    confirmar: lwT('Borrar la operación'),
     tono: 'peligro',
   });
   if(!ok) return;
@@ -1022,7 +1033,7 @@ async function borrarOperacion(op){
     suiCerrarCajon();
     SEL = null;
     await cargar();
-    toast('Operación borrada · ' + (data.contratos_borrados||0) + ' contrato(s), '
+    toast(lwT('Operación borrada ·') + (data.contratos_borrados||0) + ' contrato(s), '
       + (data.facturas_anuladas||0) + ' factura(s) anulada(s)');
   }catch(e){
     // El mensaje de la función ya viene escrito para leerse (dice qué contrato
@@ -1063,29 +1074,28 @@ function pintarVencimientos(){
 
   $('#panelVenc').innerHTML = `
     <section>
-      <h3>Cobros — documentos con vencimiento</h3>
-      <table><thead><tr><th>Nº</th><th>Comprador</th><th>Vence</th><th class="num">Pendiente</th><th>Aviso</th></tr></thead>
+      <h3>${lwT('Cobros — documentos con vencimiento')}</h3>
+      <table><thead><tr><th>Nº</th><th>${lwT('Comprador')}</th><th>${lwT('Vence')}</th><th class="num">${lwT('Pendiente')}</th><th>${lwT('Aviso')}</th></tr></thead>
       <tbody>${fact.length ? fact.map(f => `<tr>
         <td>${esc(f.numero || '—')}</td>
         <td>${esc(f.op.comprador_nombre || f.cliente_nombre || '—')}<div class="nota">${esc(f.op.numero || '')}</div></td>
         <td>${fFecha(f.venc)}</td>
         <td class="num">${esc(fmtMoneda(f.pendiente, f.moneda || 'EUR'))}</td>
         <td>${tagDias(f.d)}</td></tr>`).join('')
-        : '<tr><td colspan="5" class="nota">Ninguna factura con vencimiento tiene algo pendiente de cobrar.</td></tr>'}</tbody></table>
-      <p class="nota">Solo salen las que llevan vencimiento Y todavía tienen algo pendiente; es un campo
-        opcional en Facturas, y una factura ya saldada por recibí no reclama nada.</p>
+        : '<tr><td colspan="5" class="nota">' + lwT('Ninguna factura con vencimiento tiene algo pendiente de cobrar.') + '</td></tr>'}</tbody></table>
+      <p class="nota">${lwT('Solo salen las que llevan vencimiento Y todavía tienen algo pendiente; es un campo opcional en Facturas, y una factura ya saldada por recibí no reclama nada.')}</p>
     </section>
 
     <section>
-      <h3>Firmas — enlaces pendientes</h3>
-      <table><thead><tr><th>Firmante</th><th>Contrato</th><th>Caduca</th><th>Aviso</th></tr></thead>
+      <h3>${lwT('Firmas — enlaces pendientes')}</h3>
+      <table><thead><tr><th>${lwT('Firmante')}</th><th>${lwT('Contrato')}</th><th>${lwT('Caduca')}</th><th>${lwT('Aviso')}</th></tr></thead>
       <tbody>${firmas.length ? firmas.map(s => `<tr>
         <td>${esc(s.firmante_nombre || '—')}<div class="nota">${esc(s.firmante_email || '')}</div></td>
         <td>${esc(s.op.numero || '—')}<div class="nota">${esc(s.op.comprador_nombre || '')}</div></td>
         <td>${fFecha(s.expira_en)}</td>
         <td>${tagDias(s.d)}</td></tr>`).join('')
-        : '<tr><td colspan="4" class="nota">No hay enlaces de firma pendientes.</td></tr>'}</tbody></table>
-      <p class="nota">Un enlace caducado no se recupera: se genera otro desde Contratos.</p>
+        : '<tr><td colspan="4" class="nota">' + lwT('No hay enlaces de firma pendientes.') + '</td></tr>'}</tbody></table>
+      <p class="nota">${lwT('Un enlace caducado no se recupera: se genera otro desde Contratos.')}</p>
     </section>`;
 }
 
@@ -1116,8 +1126,8 @@ document.getElementById('suiCajon').addEventListener('click', async e => {
   if(pdf){
     e.preventDefault();
     const { data, error } = await SB.storage.from('contratos-firmados').createSignedUrl(pdf.dataset.pdf, 3600);
-    if(error || !data){ toast('No se pudo abrir el PDF: ' + (error && error.message || 'sin URL')); return; }
-    LW_VISOR.abrir(data.signedUrl, 'PDF firmado');
+    if(error || !data){ toast(lwT('No se pudo abrir el PDF:') + (error && error.message || 'sin URL')); return; }
+    LW_VISOR.abrir(data.signedUrl, lwT('PDF firmado'));
   }
 });
 /* Tarjeta del tablero -> lo mismo que una fila de la tabla: selecciona y abre la
@@ -1171,13 +1181,13 @@ async function arrancar(recarga){
       const par = new URLSearchParams(location.search);
       const pedido = par.get('contrato');
       if(pedido && OPS.some(o => o.id === pedido)){ SEL = pedido; }
-      else if(pedido) toast('Ese contrato ya no existe');
+      else if(pedido) toast(lwT('Ese contrato ya no existe'));
       const filtroPedido = par.get('filtro');
       if(filtroPedido && FILTROS.some(f => f[0] === filtroPedido)) FILTRO = filtroPedido;
     }
     pintarFiltros(); pintar(); pintarDetalle();
     if($('#panelVenc').classList.contains('on')) pintarVencimientos();
-    if(recarga) toast('Datos actualizados');
+    if(recarga) toast(lwT('Datos actualizados'));
   }catch(err){
     $('#listaOps').innerHTML = '<p class="nota falta" style="padding:18px">No se pudieron cargar: ' + esc(err.message || err) + '</p>';
   }

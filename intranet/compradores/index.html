@@ -18,6 +18,9 @@
      salieron los desplegables con cuatro aspectos. -->
 <link rel="stylesheet" href="/contracts/assets/lawang.css?v=c4880e28">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
+     `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
+<script src="/contracts/assets/i18n.js?v=41527d1c"></script>
 <script src="/contracts/assets/herramientas.js?v=cce2c8c2"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="/contracts/assets/visor.js?v=c8d2b946" defer></script>
@@ -153,17 +156,17 @@
   <div class="sui-stage">
     <div class="sui-centro">
       <div class="sui-filtros">
-        <input class="sui-buscar" id="q" placeholder="Buscar nombre, email o pasaporte…">
+        <input class="sui-buscar" id="q" data-lwt-ph placeholder="Buscar nombre, email o pasaporte…">
       </div>
       <div class="sui-tabla-caja" id="caja-tabla">
         <table class="sui-tabla" id="tabla">
           <thead><tr>
-            <th data-orden="full_name">Comprador</th>
-            <th data-orden="email">Contacto</th>
-            <th data-orden="nationality">Nacionalidad</th>
-            <th data-orden="passport_number">Pasaporte</th>
+            <th data-orden="full_name" data-lwt="Comprador">Comprador</th>
+            <th data-orden="email" data-lwt="Contacto">Contacto</th>
+            <th data-orden="nationality" data-lwt="Nacionalidad">Nacionalidad</th>
+            <th data-orden="passport_number" data-lwt="Pasaporte">Pasaporte</th>
             <th data-orden="kyc_status">KYC</th>
-            <th class="num">Docs.</th>
+            <th class="num" data-lwt="Docs.">Docs.</th>
           </tr></thead>
           <tbody id="listaC"></tbody>
         </table>
@@ -204,9 +207,10 @@
    y hasta ahora no había dónde anotarlo, así que nadie se enteraba.
    ============================================================ */
 const $ = s => document.querySelector(s);
+lwIdiomaAplicar();   // traduce la HTML de arriba; en espanol no toca el DOM
 
 const HOY = new Date(); HOY.setHours(0,0,0,0);
-const fFecha = f => f ? new Date(String(f).slice(0,10)+'T00:00:00').toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+const fFecha = f => f ? new Date(String(f).slice(0,10)+'T00:00:00').toLocaleDateString(lwLocale(),{day:'2-digit',month:'short',year:'numeric'}) : '—';
 const dias = f => f ? Math.round((new Date(String(f).slice(0,10)+'T00:00:00') - HOY)/86400000) : null;
 
 /* ⚠️ Las CLAVES son las que acepta el CHECK de la tabla (en inglés, de cuando
@@ -218,10 +222,12 @@ const dias = f => f ? Math.round((new Date(String(f).slice(0,10)+'T00:00:00') - 
    países a mano en dos sitios (mismo motivo que ya sacó las cuentas bancarias
    a entities.js). */
 
-const KYC = [['pending','Pendiente'],['submitted','En revisión'],['verified','Aprobado'],['rejected','Rechazado']];
-const DOCS = [['passport','Pasaporte'],['npwp','NPWP'],['visa','Visado'],
-              ['proof_of_funds','Justificante de fondos'],['proof_of_address','Justificante de domicilio'],
-              ['signed_contract','Contrato firmado'],['other','Otro']];
+/* Clave de la base a la izquierda (no se traduce NUNCA: es lo que se guarda y
+   lo que compara la RLS), rotulo visible a la derecha. */
+const KYC = [['pending',lwT('Pendiente')],['submitted',lwT('En revisión')],['verified',lwT('Aprobado')],['rejected',lwT('Rechazado')]];
+const DOCS = [['passport',lwT('Pasaporte')],['npwp','NPWP'],['visa',lwT('Visado')],
+              ['proof_of_funds',lwT('Justificante de fondos')],['proof_of_address',lwT('Justificante de domicilio')],
+              ['signed_contract',lwT('Contrato firmado')],['other',lwT('Otro')]];
 const etiqueta = (lista,v) => (lista.find(x=>x[0]===v)||[v,v||'—'])[1];
 
 const ORDEN = { campo:'full_name', dir:'asc' };
@@ -280,10 +286,10 @@ async function cargar(){
   COBRADO = {}; (cb.error ? [] : (cb.data || [])).forEach(x => { COBRADO[x.contrato_id] = Number(x.cobrado) || 0; });
   ACCESOS = a.error ? [] : (a.data || []);
   FACTURAS = f.error ? [] : (f.data || []);
-  if(d.error) toast('No se pudieron leer los documentos: ' + d.error.message);
-  if(f.error) toast('No se pudieron leer las facturas: ' + f.error.message);
-  if(a.error) toast('No se pudieron leer los accesos al portal: ' + a.error.message);
-  if(cb.error) toast('No se pudo calcular lo cobrado: ' + cb.error.message);
+  if(d.error) toast(lwT('No se pudieron leer los documentos:') + d.error.message);
+  if(f.error) toast(lwT('No se pudieron leer las facturas:') + f.error.message);
+  if(a.error) toast(lwT('No se pudieron leer los accesos al portal:') + a.error.message);
+  if(cb.error) toast(lwT('No se pudo calcular lo cobrado:') + cb.error.message);
 }
 
 /* ── CUÁNTO LLEVA PAGADO, PROYECTO A PROYECTO ──────────────────────────────
@@ -366,7 +372,7 @@ async function cargarCuotasReserva(ids){
   if(error){
     // No poder leerla NO es «no tiene»: se dice, en vez de enseñar un importe
     // en blanco que se leería como «no debe nada».
-    toast('No se pudo leer la cuota de reserva: ' + error.message);
+    toast(lwT('No se pudo leer la cuota de reserva:') + error.message);
     return false;
   }
   (data || []).forEach(c => { CUOTA_RESERVA[c.id] = c.precio_reserva || null; });
@@ -393,7 +399,7 @@ async function cargarCorreosComprador(clientId, contratoIds, facturaIds){
     .or(partes.join(','))
     .order('enviado_en', { ascending:false });
   if(error){
-    toast('No se pudo leer el registro de envíos: ' + error.message);
+    toast(lwT('No se pudo leer el registro de envíos:') + error.message);
     CORREOS_COMPRADOR[clientId] = [];   // ver la nota de cargarCuotasReserva: no es "sin correos", es "no se sabe"; pero sin esto el bloque se queda pidiendo para siempre
     return false;
   }
@@ -425,7 +431,7 @@ async function cargarSoporte(clientId){
     SB.from('hilo_soporte').select('estado,actualizado_en').eq('client_id', clientId),
   ]);
   if(error || e2){
-    toast('No se pudo leer Soporte: ' + (error || e2).message);
+    toast(lwT('No se pudo leer Soporte:') + (error || e2).message);
     return false;   // no se cachea el fallo: la próxima vez que se abra la ficha, reintenta
   }
   const ultimo = (msgs || [])[0];
@@ -476,7 +482,7 @@ function pintarLista(){
     const n = DOCUMENTOS.filter(x => x.client_id === c.id).length;
     return `<tr data-id="${esc(c.id)}" class="${SEL===c.id?'sel':''}">
       <td class="clave">${esc(c.full_name || 'Sin nombre')}${
-        c.tipo === 'empresa' ? ' <span class="sui-tag">Empresa</span>' : ''}</td>
+        c.tipo === 'empresa' ? ' <span class="sui-tag">' + lwT('Empresa') + '</span>' : ''}</td>
       <td>${esc(c.email || '—')}${c.phone ? ' <span class="flojo">· ' + esc(c.phone) + '</span>' : ''}</td>
       <td>${esc(c.nationality || '—')}</td>
       <td>${esc(c.passport_number || '—')}</td>
@@ -533,7 +539,7 @@ function pintarFicha(){
 
   const filas = docs.length ? docs.map(d => {
     const dd = dias(d.caduca_el);
-    let cad = '<span class="tag neutro">sin caducidad</span>';
+    let cad = '<span class="tag neutro">' + lwT('sin caducidad') + '</span>';
     if(d.caduca_el) cad = dd < 0 ? `<span class="tag mal">caducado hace ${-dd} d</span>`
                        : dd <= 60 ? `<span class="tag espera">${fFecha(d.caduca_el)}</span>`
                        : `<span class="tag ok">${fFecha(d.caduca_el)}</span>`;
@@ -541,30 +547,29 @@ function pintarFicha(){
       <td>${esc(etiqueta(DOCS,d.doc_type))}</td>
       <td>${fFecha(d.uploaded_at)}</td>
       <td>${cad}</td>
-      <td><button class="btn" data-ver="${esc(d.storage_path||'')}" ${d.storage_path?'':'disabled'}>Abrir</button>${
-        ES_ADMIN ? `<button class="btn borrar" data-borrar-doc="${esc(d.id)}" title="Retirar este documento">Borrar</button>` : ''}</td>
+      <td><button class="btn" data-ver="${esc(d.storage_path||'')}" ${d.storage_path?'':'disabled'}>${lwT('Abrir')}</button>${
+        ES_ADMIN ? `<button class="btn borrar" data-borrar-doc="${esc(d.id)}" title="Retirar este documento">${lwT('Borrar')}</button>` : ''}</td>
     </tr>`;
-  }).join('') : `<tr><td colspan="4" class="nota">Sin documentos todavía.</td></tr>`;
+  }).join('') : `<tr><td colspan="4" class="nota">${lwT('Sin documentos todavía.')}</td></tr>`;
 
   /* La ficha va en el CAJÓN lateral — norma de la suite desde el 31-jul: se lee
      y se edita sin perder de vista la lista de la que sale. */
   const cuerpoFicha = `
 
     <fieldset id="fsIdentidad">
-      <legend>Identidad</legend>
-      ${soloLectura ? '<p class="nota">Solo un administrador puede editar estos datos. Puedes consultarlos y gestionar la documentación de más abajo.</p>' : ''}
-      <label for="f-tipo">Tipo de comprador</label>
+      <legend>${lwT('Identidad')}</legend>
+      ${soloLectura ? '<p class="nota">' + lwT('Solo un administrador puede editar estos datos. Puedes consultarlos y gestionar la documentación de más abajo.') + '</p>' : ''}
+      <label for="f-tipo">${lwT('Tipo de comprador')}</label>
       <select class="sui-sel" id="f-tipo" ${dis}>
-        <option value="persona" ${(c.tipo||'persona')==='persona'?'selected':''}>Persona física</option>
-        <option value="empresa" ${c.tipo==='empresa'?'selected':''}>Empresa</option>
+        <option value="persona" ${(c.tipo||'persona')==='persona'?'selected':''}>${lwT('Persona física')}</option>
+        <option value="empresa" ${c.tipo==='empresa'?'selected':''}>${lwT('Empresa')}</option>
       </select>
       <p class="nota" id="notaTipo"></p>
-      <label for="f-nombre" id="lab-nombre">Nombre completo</label><input id="f-nombre" ${dis} style="text-transform:uppercase" value="${esc(c.full_name||'')}">
+      <label for="f-nombre" id="lab-nombre">${lwT('Nombre completo')}</label><input id="f-nombre" ${dis} style="text-transform:uppercase" value="${esc(c.full_name||'')}">
       <div class="sui-row">
-        <div><label for="f-email">Email</label><input id="f-email" type="email" ${dis} value="${esc(c.email||'')}">
-          <p class="nota">Este correo es solo de contacto — cambiarlo NO cambia con qué email entra al portal.
-          Eso se gestiona aparte, en «Portal del comprador» más abajo.</p></div>
-        <div><label>Teléfono</label>
+        <div><label for="f-email">${lwT('Email')}</label><input id="f-email" type="email" ${dis} value="${esc(c.email||'')}">
+          <p class="nota">${lwT('Este correo es solo de contacto — cambiarlo NO cambia con qué email entra al portal. Eso se gestiona aparte, en «Portal del comprador» más abajo.')}</p></div>
+        <div><label>${lwT('Teléfono')}</label>
           <div style="display:flex;gap:6px">
             <!-- Sin <datalist>: lo abre lwPicker (ver el final de pintarFicha).
                  Y 86px: el prefijo mas largo del mundo es «+998», o sea 4
@@ -576,61 +581,61 @@ function pintarFicha(){
         </div>
       </div>
       <div class="sui-row">
-        <div><label for="f-nac" id="lab-nac">Nacionalidad</label>
+        <div><label for="f-nac" id="lab-nac">${lwT('Nacionalidad')}</label>
           <input id="f-nac" ${dis} value="${esc(c.nationality||'')}">
         </div>
-        <div><label for="f-pas" id="lab-pas">Pasaporte / NPWP</label><input id="f-pas" ${dis} value="${esc(c.passport_number||'')}"></div>
+        <div><label for="f-pas" id="lab-pas">${lwT('Pasaporte / NPWP')}</label><input id="f-pas" ${dis} value="${esc(c.passport_number||'')}"></div>
       </div>
       <!-- Domicilio: hasta hoy no estaba en la ficha aunque la columna existía y
            el contrato la imprime. Una empresa sin domicilio social no se puede
            redactar, así que entra ahora para las dos (19-ago-2026). -->
-      <label for="f-dom" id="lab-dom">Domicilio</label><input id="f-dom" ${dis} value="${esc(c.address||'')}">
+      <label for="f-dom" id="lab-dom">${lwT('Domicilio')}</label><input id="f-dom" ${dis} value="${esc(c.address||'')}">
       <!-- ── solo empresa ──────────────────────────────────────────────────
            Sin NIB ni NPWP en las etiquetas: el comprador puede ser una S.L.
            española, una LLC americana o una PT PMA indonesia, y el documento
            tiene que servir para las tres (encargo del owner, 19-ago-2026). -->
       <div class="sui-row solo-empresa">
-        <div><label for="f-forma">Forma jurídica</label>
+        <div><label for="f-forma">${lwT('Forma jurídica')}</label>
           <input id="f-forma" ${dis} list="dl-formas" value="${esc(c.forma_juridica||'')}" placeholder="S.L., LLC, PT PMA, GmbH…"></div>
-        <div><label for="f-registro">Nº de registro mercantil</label>
+        <div><label for="f-registro">${lwT('Nº de registro mercantil')}</label>
           <input id="f-registro" ${dis} value="${esc(c.registro_num||'')}" placeholder="NIB/OSS, registro mercantil…"></div>
       </div>
       <div class="sui-row solo-empresa">
-        <div><label for="f-rep">Representante legal</label><input id="f-rep" ${dis} value="${esc(c.rep_nombre||'')}"></div>
-        <div><label for="f-rep-cargo">Cargo del representante</label>
+        <div><label for="f-rep">${lwT('Representante legal')}</label><input id="f-rep" ${dis} value="${esc(c.rep_nombre||'')}"></div>
+        <div><label for="f-rep-cargo">${lwT('Cargo del representante')}</label>
           <input id="f-rep-cargo" ${dis} value="${esc(c.rep_cargo||'')}" placeholder="Administrador, Director…"></div>
       </div>
       <div class="sui-row">
-        <div class="solo-persona"><label for="f-nac-fecha">Fecha de nacimiento</label><input id="f-nac-fecha" type="date" ${dis} value="${esc(c.date_of_birth||'')}"></div>
-        <div><label for="f-kyc">Estado KYC</label><select class="sui-sel" id="f-kyc" ${dis}>${KYC.map(([v,l])=>`<option value="${v}" ${(c.kyc_status||'pending')===v?'selected':''}>${l}</option>`).join('')}</select></div>
+        <div class="solo-persona"><label for="f-nac-fecha">${lwT('Fecha de nacimiento')}</label><input id="f-nac-fecha" type="date" ${dis} value="${esc(c.date_of_birth||'')}"></div>
+        <div><label for="f-kyc">${lwT('Estado KYC')}</label><select class="sui-sel" id="f-kyc" ${dis}>${KYC.map(([v,l])=>`<option value="${v}" ${(c.kyc_status||'pending')===v?'selected':''}>${l}</option>`).join('')}</select></div>
       </div>
-      <label for="f-notas">Notas</label><textarea id="f-notas" ${dis}>${esc(c.notes||'')}</textarea>
+      <label for="f-notas">${lwT('Notas')}</label><textarea id="f-notas" ${dis}>${esc(c.notes||'')}</textarea>
     </fieldset>
 
-    ${nuevo ? '<p class="nota">Los documentos se suben después de crear la ficha.</p>' : `
+    ${nuevo ? '<p class="nota">' + lwT('Los documentos se suben después de crear la ficha.') + '</p>' : `
     <fieldset>
-      <legend>Contratos firmados</legend>
+      <legend>${lwT('Contratos firmados')}</legend>
       ${(() => {
         const suyos = VINCULOS.filter(v => v.client_id === c.id && v.contratos);
-        if(!suyos.length) return '<p class="nota">Ninguno enlazado todavía. El enlace se crea solo al guardar un contrato con su pasaporte o su email.</p>';
-        return `<table><thead><tr><th>Contrato</th><th>Proyecto</th><th>Rol</th><th>Estado</th></tr></thead><tbody>
+        if(!suyos.length) return '<p class="nota">' + lwT('Ninguno enlazado todavía. El enlace se crea solo al guardar un contrato con su pasaporte o su email.') + '</p>';
+        return `<table><thead><tr><th>${lwT('Contrato')}</th><th>${lwT('Proyecto')}</th><th>${lwT('Rol')}</th><th>${lwT('Estado')}</th></tr></thead><tbody>
           ${suyos.map(v => `<tr>
             <td><a href="/intranet/operaciones/?contrato=${encodeURIComponent(v.contratos.id)}" style="color:var(--dl)">${esc(v.contratos.numero || 'sin nº')}</a>
                 <div class="nota">${esc(lwTipoContrato(v.contratos.tipo))}</div></td>
             <td>${esc(v.contratos.proyecto_nombre || '—')}</td>
             <td>${esc(String(v.rol).replace('adquiriente_','Adquiriente '))}</td>
-            <td>${v.contratos.bloqueado ? '<span class="tag ok">Firmado</span>' : '<span class="tag espera">Sin firmar</span>'}</td>
+            <td>${v.contratos.bloqueado ? '<span class="tag ok">' + lwT('Firmado') + '</span>' : '<span class="tag espera">' + lwT('Sin firmar') + '</span>'}</td>
           </tr>`).join('')}
         </tbody></table>
-        <p class="nota">Pulsa un número de contrato para ver su operación completa.</p>`;
+        <p class="nota">${lwT('Pulsa un número de contrato para ver su operación completa.')}</p>`;
       })()}
     </fieldset>`}
     ${nuevo ? '' : `
     <fieldset>
-      <legend>Estado de cuentas</legend>
+      <legend>${lwT('Estado de cuentas')}</legend>
       ${(() => {
         const suyos = VINCULOS.filter(v => v.client_id === c.id && v.contratos).map(v => v.contratos);
-        if(!suyos.length) return '<p class="nota">Sin contrato enlazado todavía.</p>';
+        if(!suyos.length) return '<p class="nota">' + lwT('Sin contrato enlazado todavía.') + '</p>';
         const monedas = [...new Set(suyos.map(x => x.moneda || 'EUR'))];
         // Monedas distintas: no hay UNA cifra, pero sí hay una barra por
         // proyecto — cada grupo se resuelve en su propia moneda. Antes esto
@@ -673,16 +678,16 @@ function pintarFicha(){
         return `<p class="nota">Suma ${suyos.length === 1 ? 'su único proyecto' : 'los ' + suyos.length + ' proyectos'} de esta persona (${suyos.map(x=>esc(x.numero||'sin nº')).join(', ')})${sumables.length !== suyos.length && !soloReserva ? ' — el precio solo cuenta los que no son Carta de Reserva' : ''}${soloReserva ? ' — solo tiene Carta(s) de Reserva, sin contrato firmado todavía: el importe es la cuota de reserva, no el precio final de la villa' : ''}.</p>
         <div class="sui-row" style="grid-template-columns:1fr 1fr 1fr">
           <div><label>${etiquetaPrecio}</label><p style="margin:0;font-size:19px;font-weight:600">${fmt(precio)}</p></div>
-          <div><label>Cobrado</label><p style="margin:0;font-size:19px;font-weight:600;color:#3F5230">${fmt(cobrado)}</p></div>
-          <div><label>Pendiente</label><p style="margin:0;font-size:19px;font-weight:600${pendiente>0?';color:#9E2F26':''}">${fmt(pendiente)}</p></div>
+          <div><label>${lwT('Cobrado')}</label><p style="margin:0;font-size:19px;font-weight:600;color:#3F5230">${fmt(cobrado)}</p></div>
+          <div><label>${lwT('Pendiente')}</label><p style="margin:0;font-size:19px;font-weight:600${pendiente>0?';color:#9E2F26':''}">${fmt(pendiente)}</p></div>
         </div>
-        <p class="nota">Solo cuenta como cobrado el recibí — una factura o proforma es lo que se debe, no lo pagado.</p>
-        ${suyos.length > 1 || (suyos[0] && suyos[0].proyecto_nombre) ? '<h4 class="pp-titulo">Avance de pago por proyecto</h4>' + pagosPorProyecto(suyos) : ''}`;
+        <p class="nota">${lwT('Solo cuenta como cobrado el recibí — una factura o proforma es lo que se debe, no lo pagado.')}</p>
+        ${suyos.length > 1 || (suyos[0] && suyos[0].proyecto_nombre) ? '<h4 class="pp-titulo">' + lwT('Avance de pago por proyecto') + '</h4>' + pagosPorProyecto(suyos) : ''}`;
       })()}
     </fieldset>`}
     ${nuevo ? '' : `
     <fieldset>
-      <legend>Facturas</legend>
+      <legend>${lwT('Facturas')}</legend>
       ${(() => {
         const TIPO_DOC = { factura:'Factura', proforma:'Proforma', recibi:'Recibí' };
         /* El tipo, como etiqueta de color. El color no se elige aquí: sale de
@@ -694,8 +699,8 @@ function pintarFicha(){
         const suyosIds = new Set(VINCULOS.filter(v => v.client_id === c.id && v.contratos).map(v => v.contratos.id));
         const suyas = FACTURAS.filter(x => suyosIds.has(x.contrato_id))
           .sort((a,b) => String(b.fecha_emision||'').localeCompare(String(a.fecha_emision||'')));
-        if(!suyosIds.size) return '<p class="nota">Sin contrato enlazado todavía, no hay a qué factura atarla.</p>';
-        if(!suyas.length) return '<p class="nota">Ninguna factura emitida todavía en sus contratos.</p>';
+        if(!suyosIds.size) return '<p class="nota">' + lwT('Sin contrato enlazado todavía, no hay a qué factura atarla.') + '</p>';
+        if(!suyas.length) return '<p class="nota">' + lwT('Ninguna factura emitida todavía en sus contratos.') + '</p>';
         /* 🔴 LAS ANULADAS SE APARTAN, NO SE ESCONDEN (27-ago-2026)
            Owner: «yo aislaría las anuladas ya que no aportan nada». Y en la
            lectura del día a día no aportan: anular es decir que ese importe no
@@ -715,7 +720,7 @@ function pintarFicha(){
            enseña con el número de contrato delante, que es lo que ata el
            documento a la operación. */
         const unidad = x => [x.contrato_numero, x.proyecto_nombre].filter(Boolean).join(' · ') || '—';
-        const tabla = (filas) => `<table><thead><tr><th>Nº</th><th>Tipo</th><th>Contrato · unidad</th><th>Fecha</th><th class="num">Importe</th></tr></thead><tbody>
+        const tabla = (filas) => `<table><thead><tr><th>Nº</th><th>${lwT('Tipo')}</th><th>${lwT('Contrato · unidad')}</th><th>${lwT('Fecha')}</th><th class="num">${lwT('Importe')}</th></tr></thead><tbody>
           ${filas.map(x => `<tr${x.anulada ? ' class="anulada"' : ''}>
             <td><a href="/intranet/facturas/?id=${encodeURIComponent(x.id)}" style="color:var(--dl)">${esc(x.numero || 'borrador')}</a></td>
             <td>${etiquetaTipo(x)}</td>
@@ -724,24 +729,24 @@ function pintarFicha(){
             <td class="num">${x.total != null ? esc(lwFormatoImporte(Number(x.total), x.moneda)) : '—'}</td>
           </tr>`).join('')}
         </tbody></table>`;
-        return (vivas.length ? tabla(vivas) : '<p class="nota">Ninguna vigente: todas sus facturas están anuladas.</p>')
+        return (vivas.length ? tabla(vivas) : '<p class="nota">' + lwT('Ninguna vigente: todas sus facturas están anuladas.') + '</p>')
           + (nulas.length ? `<details class="anuladas"><summary>${nulas.length} anulada${nulas.length===1?'':'s'} · no cuentan</summary>${tabla(nulas)}</details>` : '');
       })()}
     </fieldset>`}
     ${nuevo ? '' : `
     <fieldset>
-      <legend>Registro de envíos</legend>
+      <legend>${lwT('Registro de envíos')}</legend>
       ${(() => {
         const filas = CORREOS_COMPRADOR[c.id];
-        if(filas === undefined) return '<p class="nota">Cargando…</p>';
-        if(!filas.length) return '<p class="nota">Sin correos registrados para sus contratos y facturas. El registro existe desde el 18-ago-2026: los envíos anteriores no dejaron rastro.</p>';
+        if(filas === undefined) return '<p class="nota">' + lwT('Cargando…') + '</p>';
+        if(!filas.length) return '<p class="nota">' + lwT('Sin correos registrados para sus contratos y facturas. El registro existe desde el 18-ago-2026: los envíos anteriores no dejaron rastro.') + '</p>';
         const REG_VIA = { manual:'Email manual', enlace_firma:'Enlace de firma', firma:'Circuito de firma',
                           proforma:'Proforma', factura:'Factura', factura_auto:'Factura automática' };
         const doc = x => x.contrato_id
           ? (VINCULOS.find(v => v.contratos && v.contratos.id === x.contrato_id) || {}).contratos
           : null;
         const fac = x => x.factura_id ? FACTURAS.find(f => f.id === x.factura_id) : null;
-        return `<table><thead><tr><th>Cuándo</th><th>Documento</th><th>Para</th><th>Vía</th><th>Quién</th></tr></thead><tbody>
+        return `<table><thead><tr><th>${lwT('Cuándo')}</th><th>${lwT('Documento')}</th><th>${lwT('Para')}</th><th>${lwT('Vía')}</th><th>${lwT('Quién')}</th></tr></thead><tbody>
           ${filas.map(x => {
             const c2 = doc(x), f2 = fac(x);
             const etq = f2 ? (f2.numero || 'factura') : (c2 ? (c2.numero || 'contrato') : '—');
@@ -758,38 +763,38 @@ function pintarFicha(){
     </fieldset>`}
     ${nuevo ? '' : `
     <fieldset>
-      <legend>Portal del comprador</legend>
+      <legend>${lwT('Portal del comprador')}</legend>
       ${(() => {
         const suyos = ACCESOS.filter(x => x.client_id === c.id);
         const activos = suyos.filter(x => x.activo);
         /* Si entró o no es la única forma de saber si el correo llegó: un enlace
            que nadie abre es indistinguible de uno que no se envió. */
         const rastro = a => !a.accesos
-          ? '<span class="tag espera">sin estrenar</span>'
+          ? '<span class="tag espera">' + lwT('sin estrenar') + '</span>'
           : `<span class="tag ok">${a.accesos} ${a.accesos === 1 ? 'entrada' : 'entradas'}</span>` +
             (a.ultimo_acceso ? ` <span class="nota" style="display:inline">última: ${fFecha(a.ultimo_acceso)}</span>` : '');
         const estado = activos.length
-          ? `<p class="nota">Acceso activo para <b>${activos.map(x=>esc(x.email)).join('</b>, <b>')}</b>. Ve sus contratos, pagos, facturas y obra en /portal/.</p>
+          ? `<p class="nota">${lwT('Acceso activo para')} <b>${activos.map(x=>esc(x.email)).join('</b>, <b>')}</b>${lwT('. Ve sus contratos, pagos, facturas y obra en /portal/.')}</p>
              <p class="nota">${activos.map(rastro).join(' · ')}</p>`
           : suyos.length
-            ? '<p class="nota">Acceso <b>revocado</b>. Se puede volver a invitar desde aquí — mientras haya una fila revocada, la entrada automática NO se la devuelve.</p>'
+            ? '<p class="nota">' + lwT('Acceso') + '<b>revocado</b>' + lwT('. Se puede volver a invitar desde aquí — mientras haya una fila revocada, la entrada automática NO se la devuelve.') + '</p>'
             /* Desde el 8-sep el acceso ya no hace falta concederlo: si la ficha
                tiene correo y algún contrato, el comprador entra solo en /portal/
                escribiendo ese correo. Decir «aún no tiene acceso» sería falso y
                llevaría a mandar invitaciones que nadie necesita. */
             : (c.email && VINCULOS.some(v => v.client_id === c.id)
-                ? '<p class="nota">Entra <b>solo</b>: con ' + esc(c.email) + ' y sus contratos, el portal le abre la puerta sin que nadie le invite — salvo que ese correo sea de alguien del equipo (una cuenta no puede ser de los dos mundos) o se le haya revocado el acceso. El botón de abajo sirve para <b>mandarle el enlace ahora</b> o para darle acceso <b>con otro correo</b>.</p>'
-                : '<p class="nota">Sin acceso todavía. La entrada automática pide <b>correo en la ficha</b> y <b>al menos un contrato</b>' + (c.email ? ' — le falta el contrato.' : ' — le falta el correo.') + ' Invitando desde aquí se le da igualmente.</p>');
+                ? '<p class="nota">' + lwT('Entra') + '<b>solo</b>: con ' + esc(c.email) + ' y sus contratos, el portal le abre la puerta sin que nadie le invite — salvo que ese correo sea de alguien del equipo (una cuenta no puede ser de los dos mundos) o se le haya revocado el acceso. El botón de abajo sirve para <b>' + lwT('mandarle el enlace ahora') + '</b>' + lwT('o para darle acceso') + '<b>' + lwT('con otro correo') + '</b>.</p>'
+                : '<p class="nota">' + lwT('Sin acceso todavía. La entrada automática pide') + '<b>' + lwT('correo en la ficha') + '</b> y <b>' + lwT('al menos un contrato') + '</b>' + (c.email ? ' — le falta el contrato.' : ' — le falta el correo.') + ' Invitando desde aquí se le da igualmente.</p>');
         const esAdminYo = YO && (YO.rol === 'super_admin' || YO.rol === 'admin');
-        if(!esAdminYo) return estado + '<p class="nota">Invitar o revocar lo hace un administrador.</p>';
+        if(!esAdminYo) return estado + '<p class="nota">' + lwT('Invitar o revocar lo hace un administrador.') + '</p>';
         return estado + `
         <div class="sui-row">
-          <div><label for="p-email">Email de acceso</label><input id="p-email" type="email" value="${esc((activos[0] && activos[0].email) || c.email || '')}"></div>
+          <div><label for="p-email">${lwT('Email de acceso')}</label><input id="p-email" type="email" value="${esc((activos[0] && activos[0].email) || c.email || '')}"></div>
         </div>
         <div class="acciones" style="margin-top:10px">
-          <button class="btn primary" id="btnPortalInv">${activos.length ? 'Reenviar enlace' : 'Invitar al portal'}</button>
-          ${activos.length ? '<button class="btn" id="btnPortalPass">Ponerle contraseña</button>' : ''}
-          ${activos.length ? '<button class="btn" id="btnPortalRev">Revocar acceso</button>' : ''}
+          <button class="btn primary" id="btnPortalInv">${lwT(activos.length ? 'Reenviar enlace' : 'Invitar al portal')}</button>
+          ${activos.length ? '<button class="btn" id="btnPortalPass">' + lwT('Ponerle contraseña') + '</button>' : ''}
+          ${activos.length ? '<button class="btn" id="btnPortalRev">' + lwT('Revocar acceso') + '</button>' : ''}
         </div>
         <p class="nota">La invitación vincula ESTA ficha a ese email y le envía un enlace de entrada.
         Para una familia que comparte correo, invita el mismo email desde cada ficha: verá todo lo de
@@ -799,36 +804,36 @@ function pintarFicha(){
     </fieldset>
     ${nuevo ? '' : `
     <fieldset>
-      <legend>Soporte</legend>
+      <legend>${lwT('Soporte')}</legend>
       ${(() => {
         const h = HILO_COMPRADOR[c.id];
-        if(h === undefined) return '<p class="nota">Cargando…</p>';
-        if(!h) return '<p class="nota">Sin mensajes desde el área de clientes.</p>';
+        if(h === undefined) return '<p class="nota">' + lwT('Cargando…') + '</p>';
+        if(!h) return '<p class="nota">' + lwT('Sin mensajes desde el área de clientes.') + '</p>';
         return `
         <p class="nota" style="margin:0 0 8px">
-          <span class="sui-tag ${h.abiertos ? 'espera' : 'ok'}">${h.abiertos ? h.abiertos + ' abierto' + (h.abiertos > 1 ? 's' : '') : 'Todo resuelto'}</span>
+          <span class="sui-tag ${h.abiertos ? 'espera' : 'ok'}">${h.abiertos ? lwT(h.abiertos === 1 ? '%n abierto' : '%n abiertos', { n: h.abiertos }) : lwT('Todo resuelto')}</span>
           <span style="margin-left:8px">${h.total} ticket${h.total === 1 ? '' : 's'} en total · Último mensaje: ${fFecha(h.actualizado_en)}</span>
         </p>
-        <p class="nota" style="margin:0 0 10px">${esc(h.ultimo_de === 'equipo' ? 'Tú: ' : '')}${esc(h.ultimo_texto)}</p>
+        <p class="nota" style="margin:0 0 10px">${esc(h.ultimo_de === 'equipo' ? lwT('Tú: ') : '')}${esc(h.ultimo_texto)}</p>
         <button class="btn primary" id="btnVerSoporte">Ver tickets →</button>`;
       })()}
     </fieldset>`}
     <fieldset>
-      <legend>Documentación</legend>
+      <legend>${lwT('Documentación')}</legend>
       <table>
-        <thead><tr><th>Documento</th><th>Subido</th><th>Caduca</th><th></th></tr></thead>
+        <thead><tr><th>${lwT('Documento')}</th><th>${lwT('Subido')}</th><th>${lwT('Caduca')}</th><th></th></tr></thead>
         <tbody>${filas}</tbody>
       </table>
       <div class="subir">
         <div class="sui-row">
-          <div><label for="d-tipo">Tipo</label><select class="sui-sel" id="d-tipo">${DOCS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select></div>
-          <div><label for="d-caduca">Caduca el (opcional)</label><input id="d-caduca" type="date"></div>
+          <div><label for="d-tipo">${lwT('Tipo')}</label><select class="sui-sel" id="d-tipo">${DOCS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select></div>
+          <div><label for="d-caduca">${lwT('Caduca el (opcional)')}</label><input id="d-caduca" type="date"></div>
         </div>
-        <label for="d-file">Fichero</label><input id="d-file" type="file" accept="application/pdf,image/*">
+        <label for="d-file">${lwT('Fichero')}</label><input id="d-file" type="file" accept="application/pdf,image/*">
         <div class="acciones" style="margin-top:10px">
-          <button class="btn primary" id="btnSubir">Subir documento</button>
+          <button class="btn primary" id="btnSubir">${lwT('Subir documento')}</button>
         </div>
-        <p class="nota">Van a un bucket privado. Al abrirlos se genera un enlace temporal de 5 minutos, no una URL fija.</p>
+        <p class="nota">${lwT('Van a un bucket privado. Al abrirlos se genera un enlace temporal de 5 minutos, no una URL fija.')}</p>
       </div>
     </fieldset>`}`;
 
@@ -841,11 +846,11 @@ function pintarFicha(){
     // y un botón deshabilitado invita a preguntar por qué en vez de explicarlo
     // solo (mismo criterio que ya usa facturas/index.html con "Borrar").
     pie: soloLectura
-      ? '<button class="sui-btn" id="btnCerrar">Cerrar</button>'
+      ? '<button class="sui-btn" id="btnCerrar">' + lwT('Cerrar') + '</button>'
       : cerrada
-        ? `<button class="sui-btn primario" id="btnEditar">Editar datos</button>
-           <button class="sui-btn" id="btnNuevoContrato">Crear contrato</button>
-           <button class="sui-btn" id="btnCerrar">Cerrar</button>` +
+        ? `<button class="sui-btn primario" id="btnEditar">${lwT('Editar datos')}</button>
+           <button class="sui-btn" id="btnNuevoContrato">${lwT('Crear contrato')}</button>
+           <button class="sui-btn" id="btnCerrar">${lwT('Cerrar')}</button>` +
           /* Borrar, SOLO super_admin y SOLO en la ficha cerrada (18-ago-2026,
              encargo del owner: hay duplicados). En la cerrada y no en edición a
              propósito: borrar es una decisión de consulta, no un gesto entre
@@ -853,9 +858,9 @@ function pintarFicha(){
              (es_super_admin() + bloqueos por contrato/portal); este botón solo
              evita ofrecer lo que fallaría — la regla de guard.js de siempre. */
           (YO && YO.rol === 'super_admin'
-            ? `<button class="sui-btn peligro" id="btnBorrarComprador" style="margin-left:auto">Borrar comprador</button>` : '')
-        : `<button class="sui-btn primario" id="btnGuardar">Crear comprador</button>
-           <button class="sui-btn" id="btnCerrar">Cerrar</button>`,
+            ? `<button class="sui-btn peligro" id="btnBorrarComprador" style="margin-left:auto">${lwT('Borrar comprador')}</button>` : '')
+        : `<button class="sui-btn primario" id="btnGuardar">${lwT('Crear comprador')}</button>
+           <button class="sui-btn" id="btnCerrar">${lwT('Cerrar')}</button>`,
     onCerrar: () => { SEL = null; pintarLista(); },
   });
 
@@ -864,7 +869,7 @@ function pintarFicha(){
      195 paises detras de algo que no parecia desplegable — y en movil el
      desplegable de un <datalist> no se puede ni estilar ni ensanchar. */
   lwPicker($('#f-tel-pre'), PREFIJOS.map(([cod, pais]) => ({ valor:cod, texto:cod, nota:pais })),
-           { titulo:'Prefijo del país' });
+           { titulo:lwT('Prefijo del país') });
   lwPicker($('#f-nac'), NACIONALIDADES, { titulo:'Nacionalidad' });
 
   /* PERSONA o EMPRESA — 19-ago-2026, encargo del owner ─────────────────────
@@ -875,11 +880,11 @@ function pintarFicha(){
      en toda la suite, y un NIF en una columna aparte se quedaría fuera de esa
      comparación. Lo que cambia son las ETIQUETAS y qué campos se enseñan. */
   const ETIQUETAS = {
-    persona: { nombre:'Nombre completo', nac:'Nacionalidad', pas:'Pasaporte / identificación fiscal', dom:'Domicilio',
+    persona: { nombre:lwT('Nombre completo'), nac:lwT('Nacionalidad'), pas:lwT('Pasaporte / identificación fiscal'), dom:lwT('Domicilio'),
                nota:'' },
-    empresa: { nombre:'Razón social', nac:'País de constitución', pas:'Identificación fiscal (NIF, NPWP, EIN…)',
-               dom:'Domicilio social',
-               nota:'Una empresa y su dueño pueden compartir correo: son dos fichas distintas y las dos son válidas.' },
+    empresa: { nombre:lwT('Razón social'), nac:lwT('País de constitución'), pas:lwT('Identificación fiscal (NIF, NPWP, EIN…)'),
+               dom:lwT('Domicilio social'),
+               nota:lwT('Una empresa y su dueño pueden compartir correo: son dos fichas distintas y las dos son válidas.') },
   };
   function pintarSegunTipo(){
     const sel = $('#f-tipo'); if(!sel) return;
@@ -902,12 +907,12 @@ function pintarFicha(){
   if(be) be.addEventListener('click', () => {
     $('#fsIdentidad').querySelectorAll('input,select,textarea').forEach(el => { el.disabled = false; });
     const pie = be.parentElement;
-    pie.innerHTML = '<button class="sui-btn primario" id="btnGuardar">Guardar cambios</button>' +
-                    '<button class="sui-btn" id="btnCancelarEd">Cancelar</button>';
+    pie.innerHTML = '<button class="sui-btn primario" id="btnGuardar">' + lwT('Guardar cambios') + '</button>' +
+                    '<button class="sui-btn" id="btnCancelarEd">' + lwT('Cancelar') + '</button>';
     pie.querySelector('#btnGuardar').addEventListener('click', () => guardar(c.id));
     pie.querySelector('#btnCancelarEd').addEventListener('click', pintarFicha);
     const primero = $('#f-nombre'); if(primero) primero.focus();
-    toast('Puedes editar los datos de la ficha');
+    toast(lwT('Puedes editar los datos de la ficha'));
   });
 
   /* JERARQUIA DEL PIE. «Editar datos» es la accion de esta pantalla y «Cerrar»
@@ -965,25 +970,25 @@ async function borrarDocumento(id, btn){
   const nombre = etiqueta(DOCS, d.doc_type) || 'documento';
   if(!await lwConfirmar({
     titulo: 'Retirar ' + nombre,
-    cuerpo: '<p>Se retira <b>' + esc(nombre) + '</b>' + (d.uploaded_at ? ' (subido el ' + esc(fFecha(d.uploaded_at)) + ')' : '')
-          + ' de la ficha, y su fichero del archivo privado.</p>'
-          + '<p>No hay papelera: si el documento sigue haciendo falta habrá que volver a subirlo.</p>',
-    confirmar: 'Retirar el documento', cancelar: 'Dejarlo' })) return;
+    cuerpo: '<p>' + lwT('Se retira') + '<b>' + esc(nombre) + '</b>' + (d.uploaded_at ? ' (subido el ' + esc(fFecha(d.uploaded_at)) + ')' : '')
+          + ' ' + lwT('de la ficha, y su fichero del archivo privado.') + '</p>'
+          + '<p>' + lwT('No hay papelera: si el documento sigue haciendo falta habrá que volver a subirlo.') + '</p>',
+    confirmar: lwT('Retirar el documento'), cancelar: lwT('Dejarlo') })) return;
 
-  if(btn){ btn.disabled = true; btn.textContent = 'Retirando…'; }
+  if(btn){ btn.disabled = true; btn.textContent = lwT('Retirando…'); }
   const { error, count } = await SB.from('documents').delete({ count:'exact' }).eq('id', id);
   if(error || !count){
     if(btn){ btn.disabled = false; btn.textContent = 'Borrar'; }
     /* Cero filas sin error es la RLS diciendo que no, no un documento que ya no
        estaba: si no estuviera, tampoco lo enseñaría esta tabla. Se distingue,
        porque «no se ha borrado» y «no tienes permiso» se arreglan distinto. */
-    toast(error ? 'No se pudo retirar: ' + error.message
-                : 'No se ha retirado: tu usuario no tiene permiso para borrar documentos.');
+    toast(error ? lwT('No se pudo retirar: ') + error.message
+                : lwT('No se ha retirado: tu usuario no tiene permiso para borrar documentos.'));
     return;
   }
   if(d.storage_path){
     const { error: eSt } = await SB.storage.from('kyc').remove([d.storage_path]);
-    if(eSt) toast('Documento retirado de la ficha, pero su fichero sigue en el archivo (' + d.storage_path + '): ' + eSt.message);
+    if(eSt) toast(lwT('Documento retirado de la ficha, pero su fichero sigue en el archivo (') + d.storage_path + '): ' + eSt.message);
   }
   toast(nombre + ' retirado');
   /* Se recarga y se repinta la ficha ABIERTA, no se cierra el cajón: retirar un
@@ -1004,22 +1009,22 @@ async function borrarDocumento(id, btn){
 async function borrarComprador(c){
   const misDocs = DOCUMENTOS.filter(d => d.client_id === c.id);
   const ok = await lwConfirmar({
-    titulo: 'Borrar la ficha de ' + (c.full_name || 'este comprador'),
+    titulo: lwT('Borrar la ficha de %c', { c: c.full_name || lwT('este comprador') }),
     cuerpo: '<p>Se borra la ficha' + (misDocs.length
-        ? ' y sus <b>' + misDocs.length + ' documento(s) KYC</b> del archivo privado' : '') + '.</p>'
+        ? ' ' + lwT('y sus') + ' <b>' + lwT(misDocs.length === 1 ? '%n documento KYC' : '%n documentos KYC', { n: misDocs.length }) + '</b> ' + lwT('del archivo privado') : '') + '.</p>'
       + '<p>Si estuviera vinculada a un contrato o tuviera acceso al portal, el sistema lo impide '
-      + 'y te dice cuál — esta acción es para <b>duplicados sueltos</b>.</p>'
-      + '<p>No hay papelera.</p>',
-    confirmar: 'Borrar la ficha',
+      + lwT('y te dice cuál — esta acción es para') + ' <b>' + lwT('duplicados sueltos') + '</b>.</p>'
+      + '<p>' + lwT('No hay papelera.') + '</p>',
+    confirmar: lwT('Borrar la ficha'),
     tono: 'peligro',
   });
   if(!ok) return;
 
-  const btn = $('#btnBorrarComprador'); if(btn){ btn.disabled = true; btn.textContent = 'Borrando…'; }
+  const btn = $('#btnBorrarComprador'); if(btn){ btn.disabled = true; btn.textContent = lwT('Borrando…'); }
   const { data, error } = await SB.rpc('borrar_comprador', { p_client_id: c.id });
   if(error){
     toast(error.message);
-    if(btn){ btn.disabled = false; btn.textContent = 'Borrar comprador'; }
+    if(btn){ btn.disabled = false; btn.textContent = lwT('Borrar comprador'); }
     return;
   }
   // los ficheros del bucket, con la sesion del super_admin. Si fallara, la ficha
@@ -1027,9 +1032,9 @@ async function borrarComprador(c){
   const rutas = (data && data.rutas_kyc) || [];
   if(rutas.length){
     const { error: eSt } = await SB.storage.from('kyc').remove(rutas);
-    if(eSt) toast('Ficha borrada, pero ' + rutas.length + ' fichero(s) KYC no se pudieron quitar del bucket: ' + eSt.message);
+    if(eSt) toast(lwT('Ficha borrada, pero') + rutas.length + ' fichero(s) KYC no se pudieron quitar del bucket: ' + eSt.message);
   }
-  toast('Ficha de ' + ((data && data.nombre) || 'comprador') + ' borrada'
+  toast(lwT('Ficha de') + ((data && data.nombre) || 'comprador') + ' borrada'
     + (rutas.length ? ' · ' + rutas.length + ' documento(s) retirados' : ''));
   SEL = null;
   suiCerrarCajon();
@@ -1046,7 +1051,7 @@ async function guardar(id){
      normalizar aquí basta para que todo lo que lo lea (contratos, facturas,
      el portal) lo vea ya en mayúsculas. */
   const nombre = $('#f-nombre').value.trim().toUpperCase();
-  if(nombre.length < 2){ toast('Falta el nombre'); return; }
+  if(nombre.length < 2){ toast(lwT('Falta el nombre')); return; }
   const telNum = $('#f-tel-num').value.trim();
   const esEmpresa = $('#f-tipo') && $('#f-tipo').value === 'empresa';
   const fila = {
@@ -1068,7 +1073,7 @@ async function guardar(id){
     kyc_status:$('#f-kyc').value,
     notes:$('#f-notas').value.trim() || null,
   };
-  const btn=$('#btnGuardar'); btn.disabled=true; btn.textContent='Guardando…';
+  const btn=$('#btnGuardar'); btn.disabled=true; btn.textContent=lwT('Guardando…');
   try{
     const q = id ? SB.from('clients').update(fila).eq('id',id).select().single()
                  : SB.from('clients').insert(fila).select().single();
@@ -1076,7 +1081,7 @@ async function guardar(id){
     if(error) throw error;
     await cargar(); SEL = data.id;
     pintarLista(); pintarFicha();
-    toast(id ? 'Ficha actualizada' : 'Comprador creado');
+    toast(lwT(id ? 'Ficha actualizada' : 'Comprador creado'));
   }catch(err){
     /* `clients.email` es UNIQUE y una familia comparte correo: el 409 de
        Postgres llegaba crudo («duplicate key value violates unique constraint»)
@@ -1090,18 +1095,18 @@ async function guardar(id){
     const m = /duplicate key|clients_email_key|clients_email_tipo_key/.test(err.message || '')
       ? 'Ya hay otra ficha DEL MISMO TIPO con ese correo. Desde el 19-ago una persona y su empresa sí pueden compartirlo, pero dos personas (o dos empresas) no: si es una familia que comparte buzón, deja el correo en una sola y a las demás identifícalas por su pasaporte.'
       : /PGRST116/.test(err.code || '')
-      ? 'Tu sesión ha caducado a mitad de guardar. Recarga la página, entra de nuevo y repite el cambio — no se ha guardado.'
+      ? lwT('Tu sesión ha caducado a mitad de guardar. Recarga la página, entra de nuevo y repite el cambio — no se ha guardado.')
       : 'No se pudo guardar: ' + (err.message || err);
     toast(m);
-    btn.disabled=false; btn.textContent = id ? 'Guardar cambios' : 'Crear comprador';
+    btn.disabled=false; btn.textContent = lwT(id ? 'Guardar cambios' : 'Crear comprador');
   }
 }
 
 async function subir(clientId){
   const f = $('#d-file').files[0];
-  if(!f){ toast('Elige un fichero'); return; }
-  if(f.size > 20*1024*1024){ toast('El fichero supera los 20 MB'); return; }
-  const btn=$('#btnSubir'); btn.disabled=true; btn.textContent='Subiendo…';
+  if(!f){ toast(lwT('Elige un fichero')); return; }
+  if(f.size > 20*1024*1024){ toast(lwT('El fichero supera los 20 MB')); return; }
+  const btn=$('#btnSubir'); btn.disabled=true; btn.textContent=lwT('Subiendo…');
   // ruta por comprador: agrupa y evita que dos ficheros con el mismo nombre choquen
   const limpio = f.name.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w.-]/g,'_');
   const path = `${clientId}/${Date.now()}_${limpio}`;
@@ -1117,10 +1122,10 @@ async function subir(clientId){
     });
     if(ins.error) throw ins.error;   // el fichero ya subió; reintentar no duplica la fila
     await cargar(); pintarLista(); pintarFicha();
-    toast('Documento subido');
+    toast(lwT('Documento subido'));
   }catch(err){
-    toast('No se pudo subir: ' + (err.message||err));
-    btn.disabled=false; btn.textContent='Subir documento';
+    toast(lwT('No se pudo subir:') + (err.message||err));
+    btn.disabled=false; btn.textContent=lwT('Subir documento');
   }
 }
 
@@ -1135,15 +1140,15 @@ async function subir(clientId){
    correo del super_admin). */
 const MOTIVOS_PORTAL = {
   ese_email_es_del_equipo:
-    'Ese correo ya es de un usuario del equipo. Una misma cuenta no puede ser del equipo y del portal a la vez. ' +
-    'Para probar el portal, usa otro correo (con Gmail vale tucorreo+portal@gmail.com: llega al mismo buzón y cuenta como distinto).',
-  email_invalido:  'Ese correo no tiene una forma válida.',
-  sin_fichas:      'No se ha podido saber a qué ficha dar acceso. Recarga la página e inténtalo otra vez.',
-  no_autorizado:   'Hace falta ser administrador para invitar o revocar accesos.',
+    lwT('Ese correo ya es de un usuario del equipo. Una misma cuenta no puede ser del equipo y del portal a la vez.') + ' ' +
+    lwT('Para probar el portal, usa otro correo (con Gmail vale tucorreo+portal@gmail.com: llega al mismo buzón y cuenta como distinto).'),
+  email_invalido:  lwT('Ese correo no tiene una forma válida.'),
+  sin_fichas:      lwT('No se ha podido saber a qué ficha dar acceso. Recarga la página e inténtalo otra vez.'),
+  no_autorizado:   lwT('Hace falta ser administrador para invitar o revocar accesos.'),
   sin_sesion:      'Tu sesión ha caducado. Vuelve a entrar.',
   sesion_invalida: 'Tu sesión ha caducado. Vuelve a entrar.',
-  password_corta:  'La contraseña necesita 10 caracteres o más.',
-  no_es_cuenta_de_portal: 'Ese email no tiene acceso al portal todavía — invítalo primero.',
+  password_corta:  lwT('La contraseña necesita 10 caracteres o más.'),
+  no_es_cuenta_de_portal: lwT('Ese email no tiene acceso al portal todavía — invítalo primero.'),
 };
 const motivoPortal = e => MOTIVOS_PORTAL[e] || e;
 
@@ -1159,18 +1164,18 @@ async function llamaPortal(body){
 
 async function invitarPortal(c){
   const email = ($('#p-email').value || '').trim().toLowerCase();
-  if(!email){ toast('Falta el email de acceso'); return; }
+  if(!email){ toast(lwT('Falta el email de acceso')); return; }
   const ok = await lwConfirmar({
-    titulo: 'Invitar a ' + email + ' al portal',
-    cuerpo: '<p>Se le envía un <b>correo de acceso</b> y podrá ver en el portal todo lo de esta ficha: contratos, pagos, facturas y obra.</p>',
-    confirmar: 'Enviar la invitación',
+    titulo: lwT('Invitar a %e al portal', { e: email }),
+    cuerpo: '<p>' + lwT('Se le envía un') + '<b>' + lwT('correo de acceso') + '</b>' + lwT('y podrá ver en el portal todo lo de esta ficha: contratos, pagos, facturas y obra.') + '</p>',
+    confirmar: lwT('Enviar la invitación'),
   });
   if(!ok) return;
   const b = $('#btnPortalInv'); b.disabled = true;
   const r = await llamaPortal({ accion:'invitar', email, client_ids:[c.id] });
   b.disabled = false;
   if(r.error){ toast(motivoPortal(r.error)); return; }
-  toast(r.aviso ? 'Acceso creado, pero el correo no salió: reenvía en un rato' : 'Invitación enviada');
+  toast(lwT(r.aviso ? 'Acceso creado, pero el correo no salió: reenvía en un rato' : 'Invitación enviada'));
   await cargar(); pintarLista(); pintarFicha();
 }
 
@@ -1178,14 +1183,15 @@ async function passwordPortal(c){
   const suyos = ACCESOS.filter(x => x.client_id === c.id && x.activo);
   if(!suyos.length) return;
   const email = ($('#p-email').value || '').trim().toLowerCase() || suyos[0].email;
-  const p = prompt('Nueva contraseña para ' + email + ' (mínimo 10 caracteres).\nApúntala: no se puede volver a consultar, solo cambiar por otra.');
+  const p = prompt(lwT('Nueva contraseña para %s (mínimo 10 caracteres).', { s: email })
+                 + '\n' + lwT('Apúntala: no se puede volver a consultar, solo cambiar por otra.'));
   if(p === null) return;
-  if(p.length < 10){ toast('Mínimo 10 caracteres'); return; }
+  if(p.length < 10){ toast(lwT('Mínimo 10 caracteres')); return; }
   const b = $('#btnPortalPass'); b.disabled = true;
   const r = await llamaPortal({ accion:'password', email, password:p });
   b.disabled = false;
   if(r.error){ toast(motivoPortal(r.error)); return; }
-  toast('Contraseña puesta. Pásasela tú: no queda guardada en ningún sitio consultable.');
+  toast(lwT('Contraseña puesta. Pásasela tú: no queda guardada en ningún sitio consultable.'));
 }
 
 async function revocarPortal(c){
@@ -1193,9 +1199,9 @@ async function revocarPortal(c){
   if(!suyos.length) return;
   const email = suyos[0].email;
   const ok = await lwConfirmar({
-    titulo: 'Revocar el acceso de ' + email,
-    cuerpo: '<p>Dejará de ver <b>todas</b> las fichas vinculadas a ese email, no solo ésta.</p>',
-    confirmar: 'Revocar el acceso',
+    titulo: lwT('Revocar el acceso de %e', { e: email }),
+    cuerpo: '<p>' + lwT('Dejará de ver') + '<b>todas</b>' + lwT('las fichas vinculadas a ese email, no solo ésta.') + '</p>',
+    confirmar: lwT('Revocar el acceso'),
     tono: 'peligro',
   });
   if(!ok) return;
@@ -1203,17 +1209,17 @@ async function revocarPortal(c){
   const r = await llamaPortal({ accion:'revocar', email });
   b.disabled = false;
   if(r.error){ toast(motivoPortal(r.error)); return; }
-  toast('Acceso revocado');
+  toast(lwT('Acceso revocado'));
   await cargar(); pintarLista(); pintarFicha();
 }
 
 async function abrir(path){
   if(!path) return;
   const { data, error } = await SB.storage.from('kyc').createSignedUrl(path, 300);
-  if(error || !data){ toast('No se pudo generar el enlace'); return; }
+  if(error || !data){ toast(lwT('No se pudo generar el enlace')); return; }
   // visor compartido de la suite: el documento se consulta en un pop-up sin
   // salir de la ficha (regla 29-jul: nunca pestaña nueva para consultar)
-  LW_VISOR.abrir(data.signedUrl, 'Documento del comprador');
+  LW_VISOR.abrir(data.signedUrl, lwT('Documento del comprador'));
 }
 
 $('#listaC').addEventListener('click', e => {
@@ -1252,7 +1258,7 @@ window.LW_AUTH.then(async ({ sb, session, ficha }) => {
       SEL = 'nuevo';
       pintarLista(); pintarFicha();
     }else{
-      if(pedido) toast('Ese comprador ya no existe');
+      if(pedido) toast(lwT('Ese comprador ya no existe'));
       pintarLista();
     }
   }
