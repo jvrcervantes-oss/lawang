@@ -259,6 +259,20 @@
 .conversacion .acciones, .cita .acciones { display: flex; align-items: center; gap: 6px;
   flex: 0 0 auto; flex-wrap: wrap; justify-content: flex-end; }
 
+/* ---- Dueño del lead ------------------------------------------------------ */
+/* Deliberadamente discreto: en un tablero donde casi todo tiene dueño, marcarlos todos
+   sería marcar nada. Lo que SÍ destaca son las dos excepciones — el que no tiene dueño
+   (botón, porque hay algo que hacer) y el que lo tiene desactivado (rojo, porque está
+   huérfano aunque la columna diga que no). */
+.tarjeta .duenio { display: flex; align-items: center; gap: 5px;
+  font: 500 11.5px/1.3 var(--text); color: var(--mist); }
+.tarjeta .duenio.yo { color: var(--primary); font-weight: 600; }
+.tarjeta .duenio.malo { color: var(--danger); font-weight: 600; }
+.tarjeta .reclamar { align-self: flex-start; font-size: 11.5px; padding: 5px 9px;
+  border-style: dashed; color: var(--mist); }
+.tarjeta .reclamar:hover { border-style: solid; border-color: var(--primary);
+  color: var(--primary); background: var(--primary-soft); }
+
 /* ---- Próximo paso -------------------------------------------------------- */
 /* En la tarjeta: una línea, y solo si existe. Un hueco vacío repetido 107 veces es ruido,
    no información. Rojo únicamente cuando ya venció — si todo grita, nada grita. */

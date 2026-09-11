@@ -66,7 +66,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js?v=d126c94d" data-herramienta="leads"></script>
 <script src="/contracts/assets/suite.js?v=a916961a"></script>
-<link rel="stylesheet" href="/intranet/leads/leads.css?v=4">
+<link rel="stylesheet" href="/intranet/leads/leads.css?v=5">
 <style>
   *{ box-sizing:border-box; } html,body{ margin:0; }
   body{ font-family:'Inter',ui-sans-serif,system-ui,sans-serif; background:#F8FAFC; color:#0F172A; }
@@ -126,6 +126,14 @@
     <div class="aviso rojo" id="avisoTipos" hidden></div>
     <div class="filtros">
       <input type="search" id="q" placeholder="Buscar por nombre, email o teléfono…" autocomplete="off">
+      <!-- «Sin dueño» tiene filtro propio y no es un capricho: hoy son 104 de 107, y son
+           justo los que cualquiera puede coger sin pedirle permiso a nadie. Es la bandeja
+           de entrada real del equipo. -->
+      <div class="seg" id="filtroDueno">
+        <button data-d="todos"  aria-pressed="true">Todos</button>
+        <button data-d="mios"   aria-pressed="false">Mis leads</button>
+        <button data-d="libres" aria-pressed="false">Sin dueño</button>
+      </div>
       <div class="seg" id="canales"></div>
     </div>
     <div class="tablero" id="tablero"><p class="vacio">Cargando…</p></div>
@@ -239,6 +247,6 @@
 
 <script src="/contracts/assets/dialogo.js?v=8197f360"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
-<script src="/intranet/leads/leads.js?v=7"></script>
+<script src="/intranet/leads/leads.js?v=9"></script>
 </body>
 </html>

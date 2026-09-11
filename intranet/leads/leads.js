@@ -214,10 +214,20 @@ async function cargar(){
 /* ==========================================================================
    VISTA 1 — PIPELINE
    ========================================================================== */
+/* Quién soy, para «mis leads». Sale de la sesión, no de un campo editable. */
+const yoSoy = () => (YO && YO.email ? YO.email.toLowerCase() : '');
+const esMio = l => !!l.dueno && l.dueno.toLowerCase() === yoSoy();
+
+/* Tres filtros de propiedad, no dos. «Sin dueño» merece el suyo porque es la bandeja de
+   entrada de verdad: hoy son 104 de 107, y son los que cualquiera puede coger. */
+let FILTRO_DUENO = 'todos';
+
 function visibles(){
   const q = BUSCA.trim().toLowerCase();
   return LEADS.filter(l => {
     if(CANAL && l.source !== CANAL) return false;
+    if(FILTRO_DUENO === 'mios' && !esMio(l)) return false;
+    if(FILTRO_DUENO === 'libres' && l.dueno) return false;
     if(!q) return true;
     return (l.name || '').toLowerCase().includes(q);
   });
@@ -290,6 +300,21 @@ const cuandoTexto = n => n === null ? ''
   : n < -1 ? Math.abs(n) + ' días de retraso'
   : n === -1 ? 'ayer' : n === 0 ? 'hoy' : n === 1 ? 'mañana' : 'en ' + n + ' días';
 
+/* La línea del dueño en la tarjeta. Tres estados y cada uno dice una cosa distinta:
+   · sin dueño  → botón «Es mío»: el 97% de las tarjetas hoy, y es la acción que se espera.
+   · mío        → nada llamativo, solo el nombre en verde. Si todas las mías gritaran, el
+                  tablero entero sería ruido.
+   · de otro    → su nombre, gris. Y si esa persona está desactivada, en rojo: ese lead
+                  está huérfano de hecho aunque la columna diga lo contrario, y alguien
+                  tiene que reasignarlo (hallazgo de Datos: el dueño muere con el usuario). */
+function duenoHTML(l){
+  if(!l.dueno) return `<button class="btn mini reclamar" data-mio="${esc(l.id)}"><i class="ph ph-hand-grabbing"></i>Es mío</button>`;
+  const nombre = l.dueno_nombre || l.dueno;
+  if(l.dueno_activo === false)
+    return `<div class="duenio malo"><i class="ph ph-warning-circle"></i>${esc(nombre)} · cuenta desactivada</div>`;
+  return `<div class="duenio${esMio(l) ? ' yo' : ''}"><i class="ph ph-user"></i>${esc(nombre)}</div>`;
+}
+
 function tarjetaHTML(l){
   const d = dias(l.estado_desde), viejo = d !== null && d >= DIAS_VIEJO;
   /* La sugerencia por email es SUPLENTE desde el 11-sep: si hay vínculo explícito, la base
@@ -321,6 +346,7 @@ function tarjetaHTML(l){
       ${presu ? `<span class="chip oro">${esc([].concat(presu)[0])}</span>` : ''}
       ${l.contrato_numero ? `<span class="chip verde"><i class="ph ph-file-text"></i>${esc(l.contrato_numero)}</span>` : ''}
     </div>` : ''}
+    ${duenoHTML(l)}
     ${sug}</article>`;
 }
 
@@ -348,6 +374,10 @@ function cablearTablero(){
     const l = LEADS.find(x => x.id === b.dataset.sug);
     if(l) mover(l, l.sugerencia);
   });
+  t.querySelectorAll('[data-mio]').forEach(b => b.onclick = ev => {
+    ev.stopPropagation();   // sin esto, reclamar abriría además la ficha
+    asignar(LEADS.find(x => x.id === b.dataset.mio), yoSoy());
+  });
   t.querySelectorAll('.tarjeta').forEach(c => {
     c.onclick = () => abrirFicha(LEADS.find(x => x.id === c.dataset.id));
     c.ondragstart = ev => { ev.dataTransfer.setData('text/plain', c.dataset.id); c.classList.add('arrastrando'); };
@@ -365,6 +395,48 @@ function cablearTablero(){
 }
 
 /* ---------- mover una tarjeta ---------- */
+/* ---------- cambiar de dueño ----------
+   Un solo camino para las tres cosas (reclamar, ceder, soltar): la base ya distingue los
+   tres casos y devuelve un error distinto en cada uno, así que la pantalla no repite esa
+   lógica — solo enseña lo que diga la base. Duplicarla aquí sería tener la regla en dos
+   sitios, y es la familia de fallo que este repo ya tiene documentada de sobra.
+   `p_previo` es el dueño que esta pantalla tenía pintado: si alguien lo cambió entre medias
+   llega un 409 y se recarga en vez de pisarlo. */
+async function asignar(lead, email){
+  if(!lead) return;
+  const previo = lead.dueno || null;
+  try {
+    const { data, error } = await SB.rpc('crm_lead_asignar', {
+      p_lead: lead.id, p_email: email || null, p_previo: previo,
+    });
+    if(error){
+      if(String(error.code) === '409' || /ya no esta como lo tenias/i.test(error.message || '')){
+        toast('Ese lead ha cambiado de manos mientras mirabas. Recargo.');
+        return cargar();
+      }
+      throw error;
+    }
+    const fila = (data || [])[0] || {};
+    lead.dueno = fila.responsable || null;
+    lead.responsable = fila.responsable || null;
+    /* El nombre lo resuelve la base en la siguiente vuelta, pero dejar el correo mientras
+       tanto hace que la tarjeta recién reclamada se vea distinta de las demás. Se rellena
+       con lo que ya sabemos —mi propia ficha, o el equipo si se llegó a cargar— y si no
+       hay nada, el correo, que al menos siempre es cierto. */
+    lead.dueno_nombre = !fila.responsable ? null
+      : (fila.responsable.toLowerCase() === yoSoy() && FICHA && FICHA.nombre) ? FICHA.nombre
+      : ((EQUIPO || []).find(u => u.email.toLowerCase() === fila.responsable.toLowerCase()) || {}).nombre
+        || fila.responsable;
+    lead.dueno_activo = fila.responsable ? true : null;
+    toast(!fila.responsable ? 'Lead devuelto al montón.'
+      : (fila.responsable.toLowerCase() === yoSoy() ? 'Ya es tuyo.' : 'Asignado a ' + fila.responsable));
+    pintarPipeline(); pintarBandeja();
+    if(ABIERTO && ABIERTO.id === lead.id) abrirFicha(lead);
+  } catch(err){
+    toast('No se pudo cambiar el dueño: ' + (err.message || err));
+  }
+}
+
 async function mover(lead, estado){
   const previo = { estado: lead.estado, desde: lead.estado_desde };
   lead.estado = estado;                       // optimista: la tarjeta se mueve ya
@@ -430,6 +502,9 @@ function abrirFicha(l){
       </div>
       ${extras ? `<p class="lb">Qué contestó en el formulario</p>${extras}` : ''}
 
+      <p class="lb">Quién lo lleva</p>
+      <div id="duenoFicha"></div>
+
       <p class="lb">Próximo paso</p>
       <div id="proximoPaso"></div>
 
@@ -455,10 +530,93 @@ function abrirFicha(l){
   c.querySelector('#guardarNota').onclick = () => guardarNota(l);
   const vc = c.querySelector('#verContacto');
   if(vc) vc.onclick = () => verContacto(l);
+  pintarDuenoFicha(l);
   pintarProximoPaso(l);
   pintarHaciaContrato(l);
   pintarHilo(l);
   if(c.querySelector('#fathom')) pintarFathom(l);
+}
+
+/* ---------- quién lleva el lead ----------
+   Lo que se puede hacer aquí depende de las MISMAS tres ramas que aplica la base, pero la
+   pantalla no las reimplementa: solo decide qué botones tiene sentido enseñar. Si alguien
+   se salta la interfaz, la base sigue diciendo que no — por eso el desplegable de reasignar
+   solo se pinta a un admin, y aun así la función lo revalida.
+   El desplegable se llena de `usuarios`, filtrado a quien puede ver el CRM: asignar un lead
+   a alguien que no lo ve es apagarlo en silencio. */
+async function pintarDuenoFicha(l){
+  const caja = document.querySelector('#duenoFicha'); if(!caja) return;
+  const soyAdmin = !!FICHA && (FICHA.rol === 'super_admin' || FICHA.rol === 'admin');
+  const mio = esMio(l);
+
+  if(!l.dueno){
+    caja.innerHTML = `<p style="font-size:13px;color:var(--mist);margin:0 0 10px">
+        Nadie lo lleva todavía. Si lo coges, tus tareas y tu «mis leads» lo incluyen.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn pri" id="dfMio"><i class="ph ph-hand-grabbing"></i>Es mío</button>
+        ${soyAdmin ? '<button class="btn" id="dfOtro">Asignar a otra persona</button>' : ''}
+      </div>`;
+  } else {
+    const nombre = l.dueno_nombre || l.dueno;
+    caja.innerHTML = `
+      <div class="dato"><span>Lo lleva</span><b>${esc(nombre)}${mio ? ' (tú)' : ''}</b></div>
+      ${l.dueno_activo === false ? `<div class="aviso rojo" style="margin:10px 0 0">
+        <b>Esa cuenta está desactivada.</b> Este lead está huérfano de hecho: conviene
+        reasignarlo a alguien que lo trabaje.</div>` : ''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:11px">
+        ${mio ? '<button class="btn" id="dfSoltar">Soltarlo</button>' : ''}
+        ${(mio || soyAdmin) ? '<button class="btn" id="dfOtro">Pasárselo a otra persona</button>' : ''}
+        ${(!mio && !soyAdmin) ? `<p style="font-size:12.5px;color:var(--mist);margin:0">
+          Lo lleva otra persona. Para cambiarlo, habla con un administrador.</p>` : ''}
+      </div>`;
+  }
+
+  const bMio = caja.querySelector('#dfMio');
+  if(bMio) bMio.onclick = () => asignar(l, yoSoy());
+  const bSoltar = caja.querySelector('#dfSoltar');
+  if(bSoltar) bSoltar.onclick = () => asignar(l, null);
+  const bOtro = caja.querySelector('#dfOtro');
+  if(bOtro) bOtro.onclick = () => formularioAsignar(l);
+}
+
+/* La lista de a quién se puede asignar se pide una vez por sesión: son 24 filas y no
+   cambian mientras alguien mira un tablero. */
+let EQUIPO = null;
+async function cargarEquipo(){
+  if(EQUIPO) return EQUIPO;
+  const { data, error } = await SB.from('usuarios')
+    .select('email, nombre, rol, activo, herramientas').eq('activo', true);
+  EQUIPO = error ? [] : (data || []).filter(u =>
+    u.rol === 'super_admin' || (u.herramientas || []).includes('leads'));
+  return EQUIPO;
+}
+
+async function formularioAsignar(l){
+  const caja = document.querySelector('#duenoFicha'); if(!caja) return;
+  caja.innerHTML = '<p class="vacio">Cargando el equipo…</p>';
+  const equipo = await cargarEquipo();
+  if(!equipo.length){
+    caja.innerHTML = `<div class="aviso oro" style="margin:0">
+      <b>No hay nadie más con acceso al CRM.</b> Un administrador tiene que marcar la
+      casilla «Leads» en <a href="/intranet/usuarios/" target="_blank" rel="noopener">Usuarios</a>
+      antes de poder repartir leads.</div>
+      <div style="margin-top:10px"><button class="btn" id="dfVolver">Volver</button></div>`;
+    caja.querySelector('#dfVolver').onclick = () => pintarDuenoFicha(l);
+    return;
+  }
+  caja.innerHTML = `
+    <div class="campo"><label for="dfQuien">Pasárselo a</label>
+      <select class="sui-sel" id="dfQuien">
+        ${equipo.map(u => `<option value="${esc(u.email)}"${
+          l.dueno && u.email.toLowerCase() === l.dueno.toLowerCase() ? ' selected' : ''
+        }>${esc(u.nombre || u.email)}</option>`).join('')}
+      </select></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn pri" id="dfGuardar"><i class="ph ph-check"></i>Asignar</button>
+      <button class="btn" id="dfCancelar">Cancelar</button>
+    </div>`;
+  caja.querySelector('#dfCancelar').onclick = () => pintarDuenoFicha(l);
+  caja.querySelector('#dfGuardar').onclick = () => asignar(l, caja.querySelector('#dfQuien').value);
 }
 
 /* ---------- próximo paso ----------
@@ -1152,6 +1310,13 @@ $('#filtroBandeja').addEventListener('click', e => {
   $('#filtroBandeja').querySelectorAll('button').forEach(x =>
     x.setAttribute('aria-pressed', String(x === b)));
   pintarBandeja();
+});
+$('#filtroDueno').addEventListener('click', e => {
+  const b = e.target.closest('[data-d]'); if(!b) return;
+  FILTRO_DUENO = b.dataset.d;
+  $('#filtroDueno').querySelectorAll('button').forEach(x =>
+    x.setAttribute('aria-pressed', String(x === b)));
+  pintarPipeline();
 });
 $('#filtroHoy').addEventListener('click', e => {
   const b = e.target.closest('[data-mias]'); if(!b) return;
