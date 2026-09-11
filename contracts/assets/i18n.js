@@ -1992,6 +1992,82 @@
     'Abre Facturas con este contrato ya elegido': 'Opens Invoices with this contract already selected',
     'El contrato siempre incluye Bahasa Indonesia': 'The contract always includes Bahasa Indonesia',
 
+
+    /* ---------- Creatividades y el constructor de dossiers ----------
+       «Creatividad» en publicidad no es «creativity»: es una PIEZA, un
+       creative. Los nombres de fuente (Jost, Cormorant) y los formatos de
+       Meta (Feed 4:5, Story 9:16) no se traducen: son nombres propios. */
+    'Creatividades de redes': 'Social creatives',
+    'Dossiers': 'Brochures',
+    'Todo lo que se produce para presentar un proyecto o venderlo: dossiers de producto y piezas de pauta para redes.':
+      'Everything produced to present a project or sell it: product brochures and paid-social creatives.',
+    'Documento de producto en A4 apaisado: portada, planos, especificaciones y galería, listo para exportar a PDF.':
+      'Product document in A4 landscape: cover, floor plans, specifications and gallery, ready to export to PDF.',
+    'Piezas para Instagram y Facebook con la revisión de legibilidad incorporada: contraste, tamaño mínimo y zona segura.':
+      'Assets for Instagram and Facebook with the legibility check built in: contrast, minimum size and safe zone.',
+    /* piezas de redes */
+    'Formato y foto': 'Format and photo',
+    'Story 9:16': 'Story 9:16',
+    'Feed 4:5': 'Feed 4:5',
+    'Imagen de fondo': 'Background image',
+    'Textos': 'Text',
+    'Titular — lo que pongas entre *asteriscos* sale en beige':
+      'Headline — anything you put between *asterisks* comes out in beige',
+    'Subtítulo': 'Subhead',
+    'Cifra': 'Figure',
+    'Lugar (burbuja)': 'Location (bubble)',
+    'Botón': 'Button',
+    'Dominio': 'Domain',
+    'El precio va vacío a propósito: no hay precio propio cerrado y la landing tampoco lo publica. Escríbelo solo si el dato está confirmado.':
+      'The price is left empty on purpose: there is no agreed price of its own and the landing page does not publish one either. Only write it in if the figure is confirmed.',
+    'Arrastra el bloque de texto o el de contacto en la pieza para colocarlos. Los velos se recalculan solos: no son un degradado fijo, se dimensionan con el texto que tienen que sostener.':
+      'Drag the text block or the contact block on the creative to place them. The scrims recalculate themselves: they are not a fixed gradient, they are sized to the text they have to carry.',
+    'Revisión de legibilidad': 'Legibility check',
+    'Sube una imagen para medir el contraste real.': 'Upload an image to measure the real contrast.',
+    'se solapan': 'overlap',
+    'sin subir': 'not uploaded',
+    'Descargar PNG': 'Download PNG',
+    'Sale a 1080 px de ancho, el tamaño que pide Meta, con el grano de marca aplicado.':
+      'It comes out 1080 px wide, the size Meta asks for, with the brand grain applied.',
+    'Descargada a ': 'Downloaded at ',
+    /* constructor de dossiers */
+    'Páginas': 'Pages',
+    'Página ▾': 'Page ▾',
+    'Añadir página': 'Add page',
+    '+ Añadir página': '+ Add page',
+    'Página añadida: ': 'Page added: ',
+    'Añade antes una página': 'Add a page first',
+    'Fila ': 'Row ',
+    'Cargar': 'Load',
+    'Ese archivo no es un dossier válido': 'That file is not a valid brochure',
+    'Exportar': 'Export',
+    'Exportar PDF': 'Export PDF',
+    'Exportar a PDF': 'Export to PDF',
+    'Guardar como PDF': 'Save as PDF',
+    'Abrir diálogo de impresión': 'Open the print dialog',
+    'Se abre el diálogo de impresión del navegador. Con estos tres ajustes el PDF sale idéntico a lo que ves:':
+      'The browser’s print dialog opens. With these three settings the PDF comes out identical to what you see:',
+    'No se pudo exportar: ': 'Could not export: ',
+    'Elemento de plantilla': 'Template element',
+    '— libéralo para poder moverlo': '— release it to be able to move it',
+    'Liberado ✓ ya se mueve, gira, redimensiona y borra':
+      'Released ✓ it now moves, rotates, resizes and deletes',
+    'Ese hueco está vacío: ponle una imagen antes de liberarla':
+      'That slot is empty: put an image in it before releasing it',
+    'Ese texto está vacío: escríbelo antes de liberarlo':
+      'That text is empty: write it before releasing it',
+    'Imagen': 'Image',
+    'Fondo': 'Background',
+    'Color': 'Colour',
+    'Relleno': 'Fill',
+    'Rellenar': 'Fill',
+    'Ajustar': 'Fit',
+    'Encaje': 'Fitting',
+    'Opacidad': 'Opacity',
+    'Giro': 'Rotation',
+    'Interl.': 'Leading',
+    'Track': 'Tracking',
+
   };
 
   window.LW_EN = EN;

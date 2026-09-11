@@ -18,6 +18,10 @@
      salieron los desplegables con cuatro aspectos. -->
 <link rel="stylesheet" href="/contracts/assets/lawang.css?v=c4880e28">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
+     `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
+<script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
+<script src="/contracts/assets/i18n.js?v=3e40c3e0"></script>
 <script src="/contracts/assets/herramientas.js?v=cce2c8c2"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -104,22 +108,22 @@
     <div class="sui-centro">
       <div class="sui-lede">
         <div>
-          <h1>Creatividades</h1>
-          <p>Todo lo que se produce para presentar un proyecto o venderlo: dossiers de producto y piezas de pauta para redes.</p>
+          <h1 data-lwt="Creatividades">Creatividades</h1>
+          <p data-lwt="Todo lo que se produce para presentar un proyecto o venderlo: dossiers de producto y piezas de pauta para redes.">Todo lo que se produce para presentar un proyecto o venderlo: dossiers de producto y piezas de pauta para redes.</p>
         </div>
       </div>
 
       <div class="destinos">
         <a class="destino" href="/intranet/dossier/builder.html">
           <i class="ph ph-book-open ic" aria-hidden="true"></i>
-          <h2>Dossiers</h2>
-          <p>Documento de producto en A4 apaisado: portada, planos, especificaciones y galería, listo para exportar a PDF.</p>
+          <h2 data-lwt="Dossiers">Dossiers</h2>
+          <p data-lwt="Documento de producto en A4 apaisado: portada, planos, especificaciones y galería, listo para exportar a PDF.">Documento de producto en A4 apaisado: portada, planos, especificaciones y galería, listo para exportar a PDF.</p>
           <span class="ir">Abrir el constructor <i class="ph ph-arrow-right" aria-hidden="true"></i></span>
         </a>
         <a class="destino" href="/intranet/creatividades/redes/">
           <i class="ph ph-image-square ic" aria-hidden="true"></i>
-          <h2>Creatividades de redes</h2>
-          <p>Piezas para Instagram y Facebook con la revisión de legibilidad incorporada: contraste, tamaño mínimo y zona segura.</p>
+          <h2 data-lwt="Creatividades de redes">Creatividades de redes</h2>
+          <p data-lwt="Piezas para Instagram y Facebook con la revisión de legibilidad incorporada: contraste, tamaño mínimo y zona segura.">Piezas para Instagram y Facebook con la revisión de legibilidad incorporada: contraste, tamaño mínimo y zona segura.</p>
           <span class="ir">Abrir el generador <i class="ph ph-arrow-right" aria-hidden="true"></i></span>
         </a>
       </div>
@@ -129,5 +133,10 @@
   <div class="toast" id="toast"></div>
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
+<script>
+/* Esta pagina es solo marcado: no tiene codigo propio. Lo unico que
+   necesita del idioma es que alguien aplique el diccionario a su HTML. */
+lwIdiomaAplicar();
+</script>
 </body>
 </html>

@@ -2,6 +2,11 @@
    hay agentes de habla inglesa y hace falta poder cambiar el idioma al
    entrar, que se aplique a las nueve herramientas.
 
+   ESTE FICHERO SOLO LEE Y GUARDA LA ELECCIÓN. Quien traduce es `i18n.js`
+   (11-sep-2026), que carga justo detrás de éste y trae el diccionario de toda
+   la suite y `lwT()`. Hasta esa fecha el interruptor estaba puesto en trece
+   herramientas y traducía UNA: el resto lo cargaba y seguía en español.
+
    Aparte de guard.js a propósito (revisión previa, hallazgo Seguridad):
    guard.js es la puerta fail-closed de sesión de las nueve herramientas, el
    fichero con menos margen de error del repo, y esto no tiene relación con

@@ -22,7 +22,10 @@
      no le mueve lo que tenia. -->
 <!-- ninguna herramienta interna sin sesion: ver assets/guard.js -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
+<!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
+     `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
+<script src="/contracts/assets/i18n.js?v=3e40c3e0"></script>
+<script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
 <script src="/contracts/assets/guard.js?v=d126c94d" data-herramienta="dossier"></script>
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
 <script src="/contracts/assets/herramientas.js?v=cce2c8c2"></script>
@@ -303,7 +306,7 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
      acción final, Exportar PDF. -->
 <div id="topbar" class="lw-topbar" data-titulo="Dossier">
   <span class="lw-sep"></span>
-  <input id="ptitle" class="lw-input" value="Dossier" spellcheck="false" title="Nombre del dossier (también nombra el PDF)">
+  <input id="ptitle" class="lw-input" value="Dossier" spellcheck="false" data-lwt-title title="Nombre del dossier (también nombra el PDF)">
 
   <details class="lw-menu">
     <summary class="lw-btn">Insertar ▾</summary>
@@ -315,7 +318,7 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
   </details>
 
   <details class="lw-menu">
-    <summary class="lw-btn">Página ▾</summary>
+    <summary class="lw-btn" data-lwt="Página ▾">Página ▾</summary>
     <div class="lw-menu-list left">
       <label style="display:flex;align-items:center;gap:8px;padding:6px 12px;font-size:12.5px">Tamaño
         <select id="sizesel" class="lw-select" onchange="pickSize(this.value)"></select></label>
@@ -330,60 +333,60 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
   <details class="lw-menu">
     <summary class="lw-btn">Archivo ▾</summary>
     <div class="lw-menu-list left">
-      <button class="lw-btn" onclick="loadJSON()">Cargar</button>
-      <button class="lw-btn" onclick="saveJSON()">Guardar</button>
+      <button class="lw-btn" onclick="loadJSON()" data-lwt="Cargar">Cargar</button>
+      <button class="lw-btn" onclick="saveJSON()" data-lwt="Guardar">Guardar</button>
     </div>
   </details>
 
   <div class="lw-spacer"></div>
-  <button class="lw-btn primary" onclick="exportPDF()">Exportar PDF</button>
+  <button class="lw-btn primary" onclick="exportPDF()" data-lwt="Exportar PDF">Exportar PDF</button>
 </div>
 
 <!-- barra contextual del elemento libre seleccionado -->
 <div id="seltools">
   <span data-for="tpl">
-    <b class="tplname">Elemento de plantilla</b>
-    <button class="sbtn wide" onclick="unpinTpl()" title="Sacarlo de la maqueta: se mueve y redimensiona como cualquier elemento">✥ Liberar</button>
-    <span class="tplhint">— libéralo para poder moverlo</span>
+    <b class="tplname" data-lwt="Elemento de plantilla">Elemento de plantilla</b>
+    <button class="sbtn wide" onclick="unpinTpl()" data-lwt-title title="Sacarlo de la maqueta: se mueve y redimensiona como cualquier elemento">✥ Liberar</button>
+    <span class="tplhint" data-lwt="— libéralo para poder moverlo">— libéralo para poder moverlo</span>
   </span>
   <span data-for="text">
-    <select class="sui-sel" id="st_font"><option value="sans">Jost</option><option value="serif">Cormorant</option></select>
-    <input type="number" id="st_size" min="6" max="300" step="1" title="Tamaño (px)">
+    <select class="sui-sel" id="st_font"><option value="sans" data-lwt="Jost">Jost</option><option value="serif" data-lwt="Cormorant">Cormorant</option></select>
+    <input type="number" id="st_size" min="6" max="300" step="1" data-lwt-title title="Tamaño (px)">
     <select class="sui-sel" id="st_weight"><option>300</option><option>400</option><option>500</option><option>600</option><option>700</option></select>
-    <button class="sbtn" id="st_italic" title="Cursiva"><i>I</i></button>
-    <button class="sbtn" id="st_upper" title="MAYÚSCULAS">AA</button>
+    <button class="sbtn" id="st_italic" data-lwt-title title="Cursiva"><i>I</i></button>
+    <button class="sbtn" id="st_upper" data-lwt-title title="MAYÚSCULAS">AA</button>
     <button class="sbtn" data-al="left">⟸</button><button class="sbtn" data-al="center">≡</button><button class="sbtn" data-al="right">⟹</button>
-    <label>Color</label><input type="color" id="st_color">
+    <label data-lwt="Color">Color</label><input type="color" id="st_color">
     <span id="swatches"></span>
-    <label>Track</label><input type="number" id="st_ls" min="-2" max="30" step=".5" title="Espaciado entre letras (px)">
-    <label>Interl.</label><input type="number" id="st_lh" min=".7" max="3" step=".1" title="Interlineado">
+    <label data-lwt="Track">Track</label><input type="number" id="st_ls" min="-2" max="30" step=".5" data-lwt-title title="Espaciado entre letras (px)">
+    <label data-lwt="Interl.">Interl.</label><input type="number" id="st_lh" min=".7" max="3" step=".1" data-lwt-title title="Interlineado">
   </span>
-  <span data-for="rect"><label>Relleno</label><input type="color" id="st_fill"></span>
-  <span data-for="img"><label>Encaje</label>
-    <select class="sui-sel" id="st_fit" title="Rellenar recorta · Ajustar muestra la imagen entera">
-      <option value="cover">Rellenar</option><option value="contain">Ajustar</option></select>
+  <span data-for="rect"><label data-lwt="Relleno">Relleno</label><input type="color" id="st_fill"></span>
+  <span data-for="img"><label data-lwt="Encaje">Encaje</label>
+    <select class="sui-sel" id="st_fit" data-lwt-title title="Rellenar recorta · Ajustar muestra la imagen entera">
+      <option value="cover" data-lwt="Rellenar">Rellenar</option><option value="contain" data-lwt="Ajustar">Ajustar</option></select>
   </span>
-  <span data-for="imgrect"><label>Opacidad</label><input type="number" id="st_op" min="5" max="100" step="5"></span>
+  <span data-for="imgrect"><label data-lwt="Opacidad">Opacidad</label><input type="number" id="st_op" min="5" max="100" step="5"></span>
   <span data-for="free">
-    <label>Giro</label><input type="number" id="st_rot" min="-180" max="180" step="1" title="Rotación (grados)">
-    <button class="sbtn" onclick="layerSel(1)" title="Traer al frente">⬆</button>
-    <button class="sbtn" onclick="layerSel(-1)" title="Enviar atrás">⬇</button>
-    <button class="sbtn" onclick="dupSel()" title="Duplicar">⧉</button>
-    <button class="sbtn" onclick="delSel()" title="Eliminar (Supr)">🗑</button>
+    <label data-lwt="Giro">Giro</label><input type="number" id="st_rot" min="-180" max="180" step="1" data-lwt-title title="Rotación (grados)">
+    <button class="sbtn" onclick="layerSel(1)" data-lwt-title title="Traer al frente">⬆</button>
+    <button class="sbtn" onclick="layerSel(-1)" data-lwt-title title="Enviar atrás">⬇</button>
+    <button class="sbtn" onclick="dupSel()" data-lwt-title title="Duplicar">⧉</button>
+    <button class="sbtn" onclick="delSel()" data-lwt-title title="Eliminar (Supr)">🗑</button>
   </span>
 </div>
 
 <div id="sidebar">
-  <h3>Páginas</h3>
+  <h3 data-lwt="Páginas">Páginas</h3>
   <div id="plist"></div>
-  <button id="addpage" onclick="openModal()">+ Añadir página</button>
+  <button id="addpage" onclick="openModal()" data-lwt="+ Añadir página">+ Añadir página</button>
 </div>
 
 <div id="stage"><div id="pages"></div></div>
 
 <div id="modal" onclick="if(event.target===this)closeModal()">
   <div class="box">
-    <h2>Añadir página</h2>
+    <h2 data-lwt="Añadir página">Añadir página</h2>
     <p>Elige un punto de partida. Nada queda fijo: los textos se editan con clic, las imágenes se cambian en su hueco, y cualquier elemento de la maqueta —incluido el logo— se saca de ella con <b>✥ Liberar</b> para moverlo, girarlo y redimensionarlo a mano. Encima puedes añadir textos, imágenes y bloques libres. La «Blanca» es lienzo puro.</p>
     <div id="typegrid"></div>
     <div id="libs"></div>
@@ -392,17 +395,17 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 
 <div id="pmodal" onclick="if(event.target===this)closePrint()">
   <div class="box">
-    <h2>Exportar a PDF</h2>
-    <p>Se abre el diálogo de impresión del navegador. Con estos tres ajustes el PDF sale idéntico a lo que ves:</p>
+    <h2 data-lwt="Exportar a PDF">Exportar a PDF</h2>
+    <p data-lwt="Se abre el diálogo de impresión del navegador. Con estos tres ajustes el PDF sale idéntico a lo que ves:">Se abre el diálogo de impresión del navegador. Con estos tres ajustes el PDF sale idéntico a lo que ves:</p>
     <ol>
-      <li>Destino → <em>Guardar como PDF</em></li>
-      <li>Márgenes → <em>Ninguno</em></li>
+      <li>Destino → <em data-lwt="Guardar como PDF">Guardar como PDF</em></li>
+      <li>Márgenes → <em data-lwt="Ninguno">Ninguno</em></li>
       <li>Gráficos de fondo → <em>activado</em> (dentro de «Más ajustes»)</li>
     </ol>
     <label class="ck"><input type="checkbox" id="pnoask"> No volver a mostrar este aviso</label>
     <div class="pact">
-      <button class="mbtn" onclick="closePrint()">Cancelar</button>
-      <button class="mbtn primary" onclick="doPrint()">Abrir diálogo de impresión</button>
+      <button class="mbtn" onclick="closePrint()" data-lwt="Cancelar">Cancelar</button>
+      <button class="mbtn primary" onclick="doPrint()" data-lwt="Abrir diálogo de impresión">Abrir diálogo de impresión</button>
     </div>
   </div>
 </div>
@@ -424,6 +427,7 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
    al tamaño elegido. Las imágenes se re-encodean a JPEG máx 2200px.
    ================================================================= */
 
+lwIdiomaAplicar();   // traduce la HTML de arriba; en espanol no toca el DOM
 const LOGO_LIGHT='/contracts/assets/brand/lawang-logo-v3.png';
 const MM=96/25.4; /* px por mm a 96dpi */
 const BRAND_SW=['#F5F0E6','#2E3437','#485B37','#104C4F','#42210B','#8F9B7A','#FFFFFF'];
@@ -612,7 +616,7 @@ function render(){
   state.pages.forEach((p,idx)=>{
     const wrap=document.createElement('div');wrap.className='sheetwrap';wrap.id='wrap_'+p.id;
     const label=document.createElement('div');label.className='plabel';
-    label.innerHTML=`<span>${idx+1} · ${TYPES[p.type].name}</span><span class="bgl">Fondo</span>`;
+    label.innerHTML=`<span>${idx+1} · ${TYPES[p.type].name}</span><span class="bgl">${lwT('Fondo')}</span>`;
     const bgIn=document.createElement('input');bgIn.type='color';
     bgIn.value=p.bg||PAGE_BG_DEFAULT[p.type]||'#F5F0E6';
     bgIn.oninput=()=>{p.bg=bgIn.value;page.style.background=p.bg;persist();};
@@ -719,7 +723,7 @@ function rowTools(p,i){
     b('＋','Añadir fila debajo',()=>p.rows.splice(i+1,0,{ref:'',desc:'',k:''})),
     b('▤','Estilo: normal → sección → resaltada → separador → barra',()=>{
       const r=p.rows[i];r.k=ROW_K[(ROW_K.indexOf(r.k||'')+1)%ROW_K.length];
-      toast('Fila '+(i+1)+': '+ROW_K_NOM[r.k]);}),
+      toast(lwT('Fila ')+(i+1)+': '+ROW_K_NOM[r.k]);}),
     b('↑','Subir',()=>{if(i>0)[p.rows[i-1],p.rows[i]]=[p.rows[i],p.rows[i-1]];}),
     b('↓','Bajar',()=>{if(i<p.rows.length-1)[p.rows[i+1],p.rows[i]]=[p.rows[i],p.rows[i+1]];}),
     b('✕','Eliminar fila',()=>p.rows.splice(i,1)));
@@ -815,7 +819,7 @@ function freeDefaults(kind){
 }
 function addFree(kind){
   const p=state.pages.find(x=>x.id===curPage)||state.pages[0];
-  if(!p){toast('Añade antes una página');return;}
+  if(!p){toast(lwT('Añade antes una página'));return;}
   const make=f=>{f.id='f'+(uid++);p.free.push(f);render();persist();selectById(p.id,f.id);
     document.getElementById('wrap_'+p.id).scrollIntoView({behavior:'smooth',block:'nearest'});};
   if(kind==='img'){
@@ -904,8 +908,8 @@ function selectTpl(p,node){
 function unpinTpl(p,node){
   if(!p){if(!tplSel)return;p=tplSel.p;node=tplSel.node;}
   const isImg=node.dataset.i!=null, key=isImg?node.dataset.i:node.dataset.e;
-  if(isImg&&!p.img[key]){toast('Ese hueco está vacío: ponle una imagen antes de liberarla');return;}
-  if(!isImg&&!node.innerHTML.trim()){toast('Ese texto está vacío: escríbelo antes de liberarlo');return;}
+  if(isImg&&!p.img[key]){toast(lwT('Ese hueco está vacío: ponle una imagen antes de liberarla'));return;}
+  if(!isImg&&!node.innerHTML.trim()){toast(lwT('Ese texto está vacío: escríbelo antes de liberarlo'));return;}
 
   // medir con el zoom del editor a 1: si no, el tamaño de fuente heredado sale escalado
   const root=document.documentElement, z0=root.style.getPropertyValue('--zoom');
@@ -938,7 +942,7 @@ function unpinTpl(p,node){
   }
   p.free.push(f);tplSel=null;
   render();persist();selectById(p.id,f.id);
-  toast('Liberado ✓ ya se mueve, gira, redimensiona y borra');
+  toast(lwT('Liberado ✓ ya se mueve, gira, redimensiona y borra'));
 }
 
 /* ---------- barra contextual ---------- */
@@ -1154,7 +1158,7 @@ $jsonfile.onchange=()=>{
     state=migrate(s);uid=maxUid(state);curPage=null;
     document.getElementById('ptitle').value=state.title||'Dossier';
     syncSizeSel();applySize();render();persist();toast('Dossier cargado ✓');
-  }).catch(()=>toast('Ese archivo no es un dossier válido'));
+  }).catch(()=>toast(lwT('Ese archivo no es un dossier válido')));
 };
 document.getElementById('ptitle').addEventListener('input',persist);
 
@@ -1251,7 +1255,7 @@ async function cargarBibliotecas(){
           p.free=(p.free||[]).map(f=>({...f, id:'f'+(uid++)}));
           p.rows=p.rows||[];
           insertarPagina(p);
-          toast('Página añadida: '+item.nombre);
+          toast(lwT('Página añadida: ')+item.nombre);
         };
         grid.appendChild(b);
       });
