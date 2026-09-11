@@ -25,7 +25,9 @@ const $ = s => document.querySelector(s);
 
 let SB = null, YO = null;
 let LEADS = [], ETAPAS = [], CAMPANAS = [], SERIE = [], ACCIONES = [];
-let VISTA = 'pipeline';
+/* Arranca en «Hoy» (11-sep-2026, owner). La pregunta con la que se abre esta pantalla
+   por la mañana no es «cómo va el embudo», es «a quién llamo». */
+let VISTA = 'hoy';
 let CANAL = '', BUSCA = '', FILTRO_B = 'todos';
 let ABIERTAS = new Set(), ABIERTO = null, SEL_B = null;
 let CARGADO = { panel: false, automatismos: false, setter: false, agenda: false };
@@ -1339,6 +1341,7 @@ window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   /* La cuenta de «Hoy» se calcula del listado que ya está cargado, sin una llamada más:
      lo que `crm_agenda()` devuelve es exactamente lo mismo filtrado por fecha. */
   actualizarCuentaHoy();
+  if(VISTA === 'hoy') cargarHoy();
   // Entrada directa a una pestaña desde el hub (`?v=agenda`, herramientas.js).
   const vInicial = new URLSearchParams(location.search).get('v');
   if(vInicial && document.querySelector('#v-' + vInicial) && (vInicial !== 'agenda' || puedeClosers)) ir(vInicial);

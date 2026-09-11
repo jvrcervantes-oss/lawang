@@ -87,8 +87,8 @@
          la pregunta con la que se abre esta pantalla por la mañana es otra: a quién hay
          que llamar. Poner el embudo delante de la lista de trabajo es ordenar la
          herramienta por cómo está construida y no por cómo se usa. -->
-    <button role="tab" data-v="hoy" aria-selected="false"><i class="ph ph-flag"></i>Hoy <span class="cuenta" id="c-hoy">—</span></button>
-    <button role="tab" data-v="pipeline"    aria-selected="true"><i class="ph ph-kanban"></i>Pipeline <span class="cuenta" id="c-pipeline">—</span></button>
+    <button role="tab" data-v="hoy" aria-selected="true"><i class="ph ph-flag"></i>Hoy <span class="cuenta" id="c-hoy">—</span></button>
+    <button role="tab" data-v="pipeline"    aria-selected="false"><i class="ph ph-kanban"></i>Pipeline <span class="cuenta" id="c-pipeline">—</span></button>
     <button role="tab" data-v="bandeja"     aria-selected="false"><i class="ph ph-chats-circle"></i>Bandeja</button>
     <button role="tab" data-v="panel"       aria-selected="false"><i class="ph ph-chart-line-up"></i>Campañas</button>
     <button role="tab" data-v="automatismos" aria-selected="false"><i class="ph ph-flow-arrow"></i>Automatismos</button>
@@ -105,7 +105,7 @@
   </nav>
 
   <!-- ========================= HOY ========================= -->
-  <section class="crm-vista" id="v-hoy" hidden>
+  <section class="crm-vista" id="v-hoy">
     <div class="kpis" id="kpis-hoy"></div>
     <div class="filtros">
       <div class="seg" id="filtroHoy">
@@ -121,7 +121,7 @@
   </section>
 
   <!-- ===================== PIPELINE ===================== -->
-  <section class="crm-vista" id="v-pipeline">
+  <section class="crm-vista" id="v-pipeline" hidden>
     <div class="kpis" id="kpis-pipeline"></div>
     <div class="aviso rojo" id="avisoTipos" hidden></div>
     <div class="filtros">
@@ -247,6 +247,6 @@
 
 <script src="/contracts/assets/dialogo.js?v=8197f360"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
-<script src="/intranet/leads/leads.js?v=9"></script>
+<script src="/intranet/leads/leads.js?v=10"></script>
 </body>
 </html>
