@@ -171,7 +171,6 @@
 
     /* ---------- herramientas.js: grupos del menú y del hub ---------- */
     'Seguimiento': 'Pipeline',
-    'Documentación~grupo': 'Documents',
     'Administración': 'Administration',
     'Base de datos': 'Database',
     'Equipo': 'Team',
@@ -745,6 +744,142 @@
     'No se pudieron leer los vencimientos:': 'Could not load the payments:',
     'No se pudo calcular lo cobrado:': 'Could not calculate what has been collected:',
     'No se pudo guardar la fecha:': 'Could not save the date:',
+
+    /* ---------- El hub (`/intranet/`) y el catálogo (`herramientas.js`) ----------
+       `nombre`, `para` y `grupo` del catálogo siguen escritos en español: ese
+       fichero es la FUENTE. Lo que se traduce es el rótulo al pintarlo, aquí
+       y en el menú lateral de `topbar.js`. Las palabras de búsqueda (`claves`)
+       no están en este diccionario: se AMPLIARON con el inglés en el propio
+       catálogo, porque el buscador mira una sola cadena y tiene que encontrar
+       lo mismo se escriba «facturas» o «invoices». */
+    'Intranet': 'Intranet',
+    'Herramientas': 'Tools',
+    'Buenos días': 'Good morning',
+    'Buenas tardes': 'Good afternoon',
+    'Buenas noches': 'Good evening',
+    'Esto es lo que necesita tu atención.': 'Here is what needs your attention.',
+    'Esto es lo que necesita tu atención hoy,': 'Here is what needs your attention today,',
+    'Acceso restringido: cada herramienta exige esta misma sesión.':
+      'Restricted access: every tool requires this same session.',
+    'Ninguna herramienta coincide con «%q».': 'No tool matches “%q”.',
+    'No tienes acceso a «%h».': 'You do not have access to “%h”.',
+    'Pídeselo a un administrador: en tu ficha se activa herramienta por herramienta.':
+      'Ask an administrator for it: it is enabled tool by tool on your account.',
+    'Tu cuenta está desactivada. Habla con un administrador.':
+      'Your account is deactivated. Talk to an administrator.',
+    'Correo': 'Email',
+    'Contraseña': 'Password',
+    'Entrar': 'Log in',
+    'Salir': 'Log out',
+    'Credenciales incorrectas': 'Wrong email or password',
+    'Entra por el área de clientes →': 'Go to the client area →',
+    /* cifras del hub */
+    'Firmas esperando': 'Signatures waiting',
+    'pendientes de que el comprador firme': 'waiting on the buyer to sign',
+    'ninguna pendiente': 'none pending',
+    '%n aún editables': '%n still editable',
+    'Facturas emitidas': 'Invoices issued',
+    'Unidades libres': 'Units available',
+    'de %n en inventario': 'of %n in inventory',
+    'con fase abierta': 'with an open stage',
+    'sin unidades en obra': 'no units under construction',
+    'la base no contestó': 'the database did not answer',
+    '%n herramienta sin cifra: la base no contestó y no se inventa un cero.':
+      '%n tool with no figure: the database did not answer, and a zero is not invented.',
+    '%n herramientas sin cifra: la base no contestó y no se inventa un cero.':
+      '%n tools with no figure: the database did not answer, and a zero is not invented.',
+    'Cifras al día de %h.': 'Figures as of %h.',
+    /* últimas operaciones */
+    'Operaciones recientes': 'Recent activity',
+    'Editable': 'Editable',
+    'Recibí': 'Receipt',
+    'Proforma': 'Proforma',
+    'Anulada': 'Voided',
+    'Emitida': 'Issued',
+    /* riel de avisos */
+    'Firmas que necesitan atención': 'Signatures needing attention',
+    'Cadena parada': 'Chain stalled',
+    'Sin email': 'No email',
+    'Enlace caducado': 'Link expired',
+    'Sin documento': 'No document',
+    'aviso más': 'more alert',
+    'avisos más': 'more alerts',
+    'Una cadena parada deja el contrato editable después de firmado. Ábrelo en Contratos y genera el enlace que falta.':
+      'A stalled chain leaves the contract editable after signing. Open it in Contracts and generate the missing link.',
+    'las firmas pendientes': 'the pending signatures',
+    'los vencimientos': 'the payment schedule',
+    'Próximos vencimientos': 'Upcoming payments',
+    'Nada a la vista': 'Nothing on the horizon',
+    'No se ha podido comprobar': 'Could not be checked',
+    'Esto NO quiere decir que no haya nada: quiere decir que no se ha mirado.':
+      'This does NOT mean there is nothing: it means nothing was checked.',
+    'Recarga la página; si sigue igual, avisa a desarrollo.':
+      'Reload the page; if it persists, tell development.',
+    /* cifras de cada tarjeta del catálogo */
+    '%n sin contactar': '%n not contacted',
+    'Todos contestados': 'Everyone answered',
+    '%n firma esperando': '%n signature waiting',
+    '%n firmas esperando': '%n signatures waiting',
+    'Sin firmas pendientes': 'No signatures pending',
+    '%n ticket abierto': '%n open ticket',
+    '%n tickets abiertos': '%n open tickets',
+    'Sin tickets abiertos': 'No open tickets',
+    '%n sin fecha que vigilar': '%n with no date to watch',
+    'Calendario al día': 'Schedule up to date',
+    '%g guardados · %e editables': '%g saved · %e editable',
+    'Sin documentos todavía': 'No documents yet',
+    '%d documentos · %p proyectos': '%d documents · %p projects',
+    '%n emitidas': '%n issued',
+    '%n anuladas': '%n voided',
+    '%n emitidos': '%n issued',
+    '%n por resolver o pagar': '%n to decide or pay',
+    'Sin solicitudes en vuelo': 'No requests in flight',
+    'Sin inventario cargado': 'No inventory loaded',
+    '%u unidades · %l disponibles': '%u units · %l available',
+    '%n sin precio de catalogo': '%n with no catalogue price',
+    '%m modelos · %p en la web': '%m models · %p live',
+    'Sin unidades en obra': 'No units under construction',
+    '%n en obra': '%n under construction',
+    '%n fichas': '%n records',
+    '%n con acceso': '%n with access',
+    '%n desactivados': '%n deactivated',
+    /* descripciones del catálogo (`para`) */
+    'Los leads que entran por Meta y por la web: en qué punto está cada uno y quién lo lleva.':
+      'The leads coming in from Meta and from the website: where each one stands and who owns it.',
+    'Cuánto firma y cuánto cobra cada comercial, y a quién se atribuye cada venta.':
+      'How much each rep signs and earns, and who each sale is credited to.',
+    'Que closers atienden cada campana, su tope de leads sin contactar y el reparto automatico.':
+      'Which closers handle each campaign, their cap on uncontacted leads, and automatic routing.',
+    'La agenda de llamadas de venta del closer, dentro del CRM.':
+      'The closer’s sales-call calendar, inside the CRM.',
+    'Cómo va cada venta: estado de cuenta, documentos, firmas y vencimientos.':
+      'How each sale is going: statement of account, documents, signatures and payments.',
+    'Los tickets de los compradores desde su área de clientes, en una bandeja.':
+      'Buyer tickets from their client area, in one inbox.',
+    'Qué dinero debe entrar, cuándo, y cuál se está retrasando: la caja de la empresa por fechas.':
+      'What money is due, when, and what is running late: the company’s cash by date.',
+    'Reservas, PPJB, construcción y anexos.': 'Reservations, PPJB, construction and annexes.',
+    'Dossiers de producto y piezas de pauta para Instagram y Facebook, con la revisión de legibilidad incorporada.':
+      'Product brochures and paid-social assets for Instagram and Facebook, with the legibility check built in.',
+    'Precios, planos y material de cada proyecto, en el almacén privado.':
+      'Pricing, floor plans and material for each project, in the private store.',
+    'Facturas, proformas y recibís, cada tipo con su serie.':
+      'Invoices, proformas and receipts, each type with its own series.',
+    'Justificantes de pago y señales.': 'Proof of payment and deposits.',
+    'Pagos que piden los comerciales — comisiones y acordados: quién pide qué, y en qué quedó cada uno.':
+      'Payments the reps request — commissions and agreed payments: who asked for what, and how each one ended.',
+    'Inventario de parcelas y villas con su estado de venta, por proyecto.':
+      'Inventory of plots and villas with their sales status, by project.',
+    'La misma base de parcelas y villas, en tarjetas por proyecto con el estado de cuentas. En pruebas junto a Proyectos.':
+      'The same plot and villa data, as cards per project with the account status. Under test alongside Projects.',
+    'Que se puede construir: habitaciones, metros, precio, techos, extras y planos de cada tipo de vivienda.':
+      'What can be built: rooms, square metres, price, roof types, add-ons and floor plans for each house model.',
+    'Fase, fecha de entrega y fotos de cada unidad — lo que ve el comprador en su portal.':
+      'Stage, handover date and photos for each unit — what the buyer sees in their portal.',
+    'Ficha del comprador y documentación KYC, con caducidades.':
+      'Buyer record and KYC documents, with expiry dates.',
+    'Quién entra, con qué rol y qué herramientas ve cada uno.':
+      'Who logs in, with what role, and which tools each of them sees.',
   };
 
   window.LW_EN = EN;

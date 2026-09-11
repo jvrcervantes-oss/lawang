@@ -16,6 +16,13 @@
    el menú lateral no pinta estados — pero vive aquí para que el catálogo sea
    uno y no uno-y-medio.
 */
+/* Puente al diccionario compartido (`assets/i18n.js`, 11-sep-2026). Nombre
+   propio, como el `tbT` de topbar.js y por lo mismo: `function lwT(){}` a nivel
+   de fichero en un script clasico pisaria el `window.lwT` de i18n.js. Y
+   defensivo, porque herramientas.js lo cargan las quince paginas y no todas
+   traen i18n.js todavia: donde falte, el catalogo sale en espanol. */
+function hT(s, h) { return window.lwT ? window.lwT(s, h) : s; }
+
 const LW_HERRAMIENTAS = [
   /* Nueva 9-sep-2026 (encargo del owner: un CRM propio para los leads de Meta,
      que hasta hoy solo se veían desde el panel de AxisWorks). Va la PRIMERA de
@@ -29,12 +36,12 @@ const LW_HERRAMIENTAS = [
      edge está activa, así que ese motivo ya no vale. */
   { grupo:'Seguimiento', nombre:'CRM', icon:'ph-user-focus', href:'/intranet/leads/', herr:'leads',
     para:'Los leads que entran por Meta y por la web: en qué punto está cada uno y quién lo lleva.',
-    claves:'leads crm meta ads formulario campañas contactos pipeline embudo kanban prospectos interesados',
+    claves:'leads crm meta ads formulario campañas contactos pipeline embudo kanban prospectos interesados leads crm inbox contacts funnel board prospects enquiries',
     /* La cifra del hub es "sin contactar" y no "leads totales": el total no
        pide nada a nadie, y lo que hay que mirar cada mañana es a cuánta gente
        se ha dejado sin contestar. */
     estado:d => d.leadsNuevos == null ? null
-      : [d.leadsNuevos ? d.leadsNuevos + (d.leadsNuevos === 1 ? ' sin contactar' : ' sin contactar') : 'Todos contestados',
+      : [d.leadsNuevos ? hT('%n sin contactar', { n: d.leadsNuevos }) : hT('Todos contestados'),
          d.leadsNuevos > 0] },
   /* `ranking` (11-sep-2026) — mismo tratamiento que 'closers', su vecina de abajo:
      vive DENTRO del CRM (pestaña «Closers») y por eso lleva
@@ -47,7 +54,7 @@ const LW_HERRAMIENTAS = [
   { grupo:'Seguimiento', nombre:'Ranking de closers', icon:'ph-trophy', href:'/intranet/leads/?v=closers', herr:'ranking',
     soloPermiso:true,
     para:'Cuánto firma y cuánto cobra cada comercial, y a quién se atribuye cada venta.',
-    claves:'ranking closers comerciales comisiones rendimiento estadisticas atribucion ventas' },
+    claves:'ranking closers comerciales comisiones rendimiento estadisticas atribucion ventas leaderboard closers reps commissions performance stats attribution sales' },
   /* `closers` REPUESTO el 11-sep-2026 por el owner, y conviene dejar claro el malentendido
      para que no se repita: cuando dijo «quita Agenda de cierre del menú» quería quitar el
      ATAJO del menú lateral, no dar de baja la herramienta — «necesitamos que exista una
@@ -67,16 +74,16 @@ const LW_HERRAMIENTAS = [
   { grupo:'Seguimiento', nombre:'Reparto de leads', icon:'ph-shuffle', href:'/intranet/leads/?v=closers', herr:'reparto',
     soloPermiso:true,
     para:'Que closers atienden cada campana, su tope de leads sin contactar y el reparto automatico.',
-    claves:'reparto asignacion automatica leads campanas origenes tope closers ronda cuota' },
+    claves:'reparto asignacion automatica leads campanas origenes tope closers ronda cuota routing assignment automatic campaigns sources cap round robin quota' },
   { grupo:'Seguimiento', nombre:'Agenda de cierre', icon:'ph-video-camera', href:'/intranet/leads/?v=agenda', herr:'closers',
     soloPermiso:true,
     para:'La agenda de llamadas de venta del closer, dentro del CRM.',
-    claves:'closers agenda citas llamadas venta cierre meet' },
+    claves:'closers agenda citas llamadas venta cierre meet closers calendar appointments calls sales closing meet' },
   { grupo:'Seguimiento', nombre:'Operaciones', icon:'ph-chart-line-up', href:'/intranet/operaciones/', herr:'operaciones',
     para:'Cómo va cada venta: estado de cuenta, documentos, firmas y vencimientos.',
-    claves:'ventas seguimiento estado cuenta',
+    claves:'ventas seguimiento estado cuenta sales deals pipeline statement account tracking',
     estado:d => d.firmasPendientes == null ? null
-      : [d.firmasPendientes ? d.firmasPendientes + (d.firmasPendientes === 1 ? ' firma esperando' : ' firmas esperando') : 'Sin firmas pendientes',
+      : [d.firmasPendientes ? hT(d.firmasPendientes === 1 ? '%n firma esperando' : '%n firmas esperando', { n: d.firmasPendientes }) : hT('Sin firmas pendientes'),
          d.firmasPendientes > 0] },
   /* PERMISO PROPIO desde el 18-ago-2026 (2ª vuelta). Nació compartiendo
      `herr:'operaciones'` por una razón que ya no existe: una clave nueva hay que
@@ -97,13 +104,13 @@ const LW_HERRAMIENTAS = [
      TICKETS por comprador — con su propia bandeja en las dos versiones. */
   { grupo:'Seguimiento', nombre:'Soporte', icon:'ph-headset', href:'/intranet/soporte/', herr:'soporte',
     para:'Los tickets de los compradores desde su área de clientes, en una bandeja.',
-    claves:'soporte mensajes tickets chat compradores atencion consultas',
+    claves:'soporte mensajes tickets chat compradores atencion consultas support messages tickets chat buyers enquiries inbox',
     estado:d => d.hilosAbiertos == null ? null
-      : [d.hilosAbiertos ? d.hilosAbiertos + (d.hilosAbiertos === 1 ? ' ticket abierto' : ' tickets abiertos') : 'Sin tickets abiertos',
+      : [d.hilosAbiertos ? hT(d.hilosAbiertos === 1 ? '%n ticket abierto' : '%n tickets abiertos', { n: d.hilosAbiertos }) : hT('Sin tickets abiertos'),
          d.hilosAbiertos > 0] },
   { grupo:'Seguimiento', nombre:'Vencimientos', icon:'ph-calendar-check', href:'/intranet/vencimientos/', herr:'vencimientos',
     para:'Qué dinero debe entrar, cuándo, y cuál se está retrasando: la caja de la empresa por fechas.',
-    claves:'vencimientos pagos hitos caja cashflow finanzas dinero calendario vencido dashboard',
+    claves:'vencimientos pagos hitos caja cashflow finanzas dinero calendario vencido dashboard payments due milestones cash finance money schedule overdue',
     /* La cifra del hub es "sin fecha" y NO "vencidos", a propósito: saber si un
        vencimiento pasado sigue debiéndose exige la cascada de cobros (la calcula
        la propia herramienta), y un conteo crudo de fechas pasadas contaría
@@ -112,14 +119,14 @@ const LW_HERRAMIENTAS = [
        count, y es además lo primero que hay que dejar a cero para que el
        dashboard vigile de verdad. */
     estado:d => d.vencSinFecha == null ? null
-      : [d.vencSinFecha ? d.vencSinFecha + ' sin fecha que vigilar' : 'Calendario al día',
+      : [d.vencSinFecha ? hT('%n sin fecha que vigilar', { n: d.vencSinFecha }) : hT('Calendario al día'),
          d.vencSinFecha > 0] },
 
   { grupo:'Documentación', nombre:'Contratos', icon:'ph-file-text', href:'/contracts/', herr:'contratos',
     para:'Reservas, PPJB, construcción y anexos.',
-    claves:'contratos ppjb reserva construccion anexos',
+    claves:'contratos ppjb reserva construccion anexos contracts reservation construction annexes deeds',
     estado:d => d.contratos == null ? null
-      : [d.contratos + ' guardados · ' + d.contratosEditables + ' editables', false] },
+      : [hT('%g guardados · %e editables', { g: d.contratos, e: d.contratosEditables }), false] },
   // Dossier y Creatividades, unificadas en UNA tarjeta (7-ago-2026): antes
   // eran dos entradas sueltas para dos herramientas de producción de
   // contenido que casi siempre se usan seguidas. `herr` como ARRAY = ve la
@@ -128,23 +135,23 @@ const LW_HERRAMIENTAS = [
   // sigue exigiendo SU permiso propio para entrar de verdad.
   { grupo:'Documentación', nombre:'Creatividades', icon:'ph-image-square', href:'/intranet/creatividades/', herr:['dossier','creatividades'],
     para:'Dossiers de producto y piezas de pauta para Instagram y Facebook, con la revisión de legibilidad incorporada.',
-    claves:'creatividades dossier anuncios pauta instagram facebook meta ads imagen story feed pdf maqueta producto' },   // sin `estado`: ninguna de las dos vive en la base de datos
+    claves:'creatividades dossier anuncios pauta instagram facebook meta ads imagen story feed pdf maqueta producto creative assets brochure ads artwork image story feed mockup product' },   // sin `estado`: ninguna de las dos vive en la base de datos
   { grupo:'Documentación', nombre:'Documentación', icon:'ph-folders', href:'/intranet/documentacion/', herr:'documentacion',
     para:'Precios, planos y material de cada proyecto, en el almacén privado.',
-    claves:'documentacion documentos precios planos parcelas material proyecto archivo',
+    claves:'documentacion documentos precios planos parcelas material proyecto archivo documents files pricing floor plans plots material project archive',
     estado:d => d.documentos == null ? null
-      : d.documentos === 0 ? ['Sin documentos todavía', true]
-      : [d.documentos + ' documentos · ' + d.proyectosConDocs + ' proyectos', false] },
+      : d.documentos === 0 ? [hT('Sin documentos todavía'), true]
+      : [hT('%d documentos · %p proyectos', { d: d.documentos, p: d.proyectosConDocs }), false] },
 
   { grupo:'Administración', nombre:'Facturas', icon:'ph-receipt', href:'/intranet/facturas/', herr:'facturas',
     para:'Facturas, proformas y recibís, cada tipo con su serie.',
-    claves:'facturas proforma serie inv cobro impuesto',
+    claves:'facturas proforma serie inv cobro impuesto invoices proforma series billing tax vat',
     estado:d => d.facturas == null ? null
-      : [d.facturas + ' emitidas' + (d.facturasAnuladas ? ' · ' + d.facturasAnuladas + ' anuladas' : ''), false] },
+      : [hT('%n emitidas', { n: d.facturas }) + (d.facturasAnuladas ? ' · ' + hT('%n anuladas', { n: d.facturasAnuladas }) : ''), false] },
   { grupo:'Administración', nombre:'Recibos', icon:'ph-hand-coins', href:'/intranet/facturas/?tipo=recibi', herr:'facturas',
     para:'Justificantes de pago y señales.',
-    claves:'recibi recibos justificante señal pago',
-    estado:d => d.recibis == null ? null : [d.recibis + ' emitidos', false] },
+    claves:'recibi recibos justificante señal pago receipts proof of payment deposit',
+    estado:d => d.recibis == null ? null : [hT('%n emitidos', { n: d.recibis }), false] },
   /* Nueva 9-sep-2026 (owner: «un apartado donde los comerciales nos puedan
      crear solicitudes de pago» — y su corrección del mismo día: «las ponen los
      agentes para pedirle a Lawang que les pague ciertos importes como pueden
@@ -160,17 +167,17 @@ const LW_HERRAMIENTAS = [
      admin) y hereda la RLS: el admin las cuenta todas, cada agente las suyas. */
   { grupo:'Administración', nombre:'Solicitudes', icon:'ph-coins', href:'/intranet/solicitudes/', herr:'operaciones',
     para:'Pagos que piden los comerciales — comisiones y acordados: quién pide qué, y en qué quedó cada uno.',
-    claves:'solicitudes pago pagos comisiones comerciales agentes pedir comision',
+    claves:'solicitudes pago pagos comisiones comerciales agentes pedir comision payment requests commissions agents reps payout',
     estado:d => d.solicitudesVivas == null ? null
-      : [d.solicitudesVivas ? d.solicitudesVivas + (d.solicitudesVivas === 1 ? ' por resolver o pagar' : ' por resolver o pagar') : 'Sin solicitudes en vuelo',
+      : [d.solicitudesVivas ? hT('%n por resolver o pagar', { n: d.solicitudesVivas }) : hT('Sin solicitudes en vuelo'),
          d.solicitudesVivas > 0] },
 
   { grupo:'Base de datos', nombre:'Proyectos', icon:'ph-buildings', href:'/intranet/proyectos/', herr:'unidades',
     para:'Inventario de parcelas y villas con su estado de venta, por proyecto.',
-    claves:'proyectos unidades parcelas villas inventario disponible carpetas',
+    claves:'proyectos unidades parcelas villas inventario disponible carpetas projects units plots villas inventory available folders',
     estado:d => d.unidades == null ? null
-      : d.unidades === 0 ? ['Sin inventario cargado', true]
-      : [d.unidades + ' unidades · ' + d.unidadesLibres + ' disponibles', false] },
+      : d.unidades === 0 ? [hT('Sin inventario cargado'), true]
+      : [hT('%u unidades · %l disponibles', { u: d.unidades, l: d.unidadesLibres }), false] },
   /* Nueva 11-sep-2026 (encargo del owner: traer /v4/proyectos a la version
      actual sin retirar la de siempre — "mantener los 2 enlaces desde el
      menu"). Va PEGADA a Proyectos porque son la misma base de datos vista de
@@ -183,7 +190,7 @@ const LW_HERRAMIENTAS = [
      seria ruido, no informacion nueva. */
   { grupo:'Base de datos', nombre:'Proyectos (nueva vista)', icon:'ph-squares-four', href:'/intranet/v4/proyectos/', herr:'unidades',
     para:'La misma base de parcelas y villas, en tarjetas por proyecto con el estado de cuentas. En pruebas junto a Proyectos.',
-    claves:'proyectos v4 tarjetas nueva vista cuentas beta prueba' },
+    claves:'proyectos v4 tarjetas nueva vista cuentas beta prueba projects cards new view accounts' },
   /* Nueva 7-sep-2026 (encargo del owner: dar de alta los tipos de vivienda igual
      que se dan de alta las parcelas). Va JUSTO detras de Proyectos porque es su
      otra mitad: alli esta el terreno, aqui la casa que se levanta encima, y el
@@ -196,28 +203,28 @@ const LW_HERRAMIENTAS = [
      en el, asi que el criterio de acceso tampoco abre ningun hueco. */
   { grupo:'Base de datos', nombre:'Modelos', icon:'ph-house-line', href:'/intranet/modelos/', herr:'unidades',
     para:'Que se puede construir: habitaciones, metros, precio, techos, extras y planos de cada tipo de vivienda.',
-    claves:'modelos tipologias villas tipos vivienda specs precio techos extras planos catalogo dormitorios metros',
+    claves:'modelos tipologias villas tipos vivienda specs precio techos extras planos catalogo dormitorios metros house models types specs price roofs add-ons floor plans catalogue bedrooms sqm',
     /* El estado dice lo que hay que ARREGLAR, no cuantas filas hay: un modelo
        sin precio de catalogo es el que hace que un proyecto herede un hueco. */
     estado:d => d.modelos == null ? null
-      : d.modelosSinPrecio ? [d.modelosSinPrecio + ' sin precio de catalogo', true]
-      : [d.modelos + ' modelos · ' + d.modelosPublicados + ' en la web', false] },
+      : d.modelosSinPrecio ? [hT('%n sin precio de catalogo', { n: d.modelosSinPrecio }), true]
+      : [hT('%m modelos · %p en la web', { m: d.modelos, p: d.modelosPublicados }), false] },
   { grupo:'Base de datos', nombre:'Obra', icon:'ph-crane-tower', href:'/intranet/obra/', herr:'obra',
     para:'Fase, fecha de entrega y fotos de cada unidad — lo que ve el comprador en su portal.',
-    claves:'obra construccion fases fotos avance portal entrega',
+    claves:'obra construccion fases fotos avance portal entrega construction site stages photos progress handover',
     estado:d => d.obraActivas == null ? null
-      : d.obraActivas === 0 ? ['Sin unidades en obra', true]
-      : [d.obraActivas + ' en obra', false] },
+      : d.obraActivas === 0 ? [hT('Sin unidades en obra'), true]
+      : [hT('%n en obra', { n: d.obraActivas }), false] },
   { grupo:'Base de datos', nombre:'Compradores', icon:'ph-identification-card', href:'/intranet/compradores/', herr:'compradores',
     para:'Ficha del comprador y documentación KYC, con caducidades.',
-    claves:'compradores kyc pasaporte fichas clientes caducidad',
-    estado:d => d.compradores == null ? null : [d.compradores + ' fichas', false] },
+    claves:'compradores kyc pasaporte fichas clientes caducidad buyers kyc passport records clients expiry',
+    estado:d => d.compradores == null ? null : [hT('%n fichas', { n: d.compradores }), false] },
 
   { grupo:'Equipo', nombre:'Usuarios', icon:'ph-users-three', href:'/intranet/usuarios/', herr:'usuarios', soloAdmin:true,
     para:'Quién entra, con qué rol y qué herramientas ve cada uno.',
-    claves:'usuarios permisos roles equipo acceso',
+    claves:'usuarios permisos roles equipo acceso users permissions roles team access',
     estado:d => d.usuarios == null ? null
-      : [d.usuarios + ' con acceso' + (d.usuariosInactivos ? ' · ' + d.usuariosInactivos + ' desactivados' : ''), false] },
+      : [hT('%n con acceso', { n: d.usuarios }) + (d.usuariosInactivos ? ' · ' + hT('%n desactivados', { n: d.usuariosInactivos }) : ''), false] },
 ];
 
 /* Quién ve qué. `soloAdmin` es la puerta dura; si no, basta con tener la

@@ -39,6 +39,9 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
+<!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
+     `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
+<script src="/contracts/assets/i18n.js?v=df440881"></script>
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <style>
@@ -328,19 +331,19 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
   <div class="lw-login" id="loginGate" hidden>
     <div class="caja">
       <div class="marca">
-        <div class="word" aria-hidden="true">Lawang</div>
-        <h1>Intranet</h1>
+        <div class="word" aria-hidden="true" data-lwt="Lawang">Lawang</div>
+        <h1 data-lwt="Intranet">Intranet</h1>
       </div>
       <div class="aviso" id="loginAviso" hidden></div>
       <form id="fLogin">
-        <label for="loginEmail">Correo</label>
+        <label for="loginEmail" data-lwt="Correo">Correo</label>
         <input type="email" id="loginEmail" autocomplete="username" placeholder="nombre@lawangproperties.com" required>
-        <label for="loginPass">Contraseña</label>
+        <label for="loginPass" data-lwt="Contraseña">Contraseña</label>
         <input type="password" id="loginPass" autocomplete="current-password" placeholder="••••••••" required>
-        <button type="submit" id="loginBtn">Entrar</button>
+        <button type="submit" id="loginBtn" data-lwt="Entrar">Entrar</button>
         <div class="err" id="loginErr" role="alert" aria-live="polite"></div>
       </form>
-      <p class="pie">¿Eres cliente? <a href="/portal/">Entra por el área de clientes →</a></p>
+      <p class="pie">¿Eres cliente? <a href="/portal/" data-lwt="Entra por el área de clientes →">Entra por el área de clientes →</a></p>
     </div>
   </div>
 
@@ -368,7 +371,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
       <span class="quien lw-who" id="who"></span>
       <span class="rol" id="rol" hidden></span>
     </div>
-    <button type="button" class="lw-btn" id="out">Salir</button>
+    <button type="button" class="lw-btn" id="out" data-lwt="Salir">Salir</button>
   </header>
 
   <main id="mainApp" hidden>
@@ -377,8 +380,8 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
          nombre de la ficha; las dos acciones son atajos reales a crear. -->
     <div class="lede">
       <div>
-        <h1 id="saludo">Buenos días</h1>
-        <p id="saludoSub">Esto es lo que necesita tu atención.</p>
+        <h1 id="saludo" data-lwt="Buenos días">Buenos días</h1>
+        <p id="saludoSub" data-lwt="Esto es lo que necesita tu atención.">Esto es lo que necesita tu atención.</p>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <!-- Sin `style=` inline: eran los unicos `.lw-btn` de la suite con la
@@ -400,7 +403,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
     </div>
     <div class="lede" style="margin-top:4px">
       <div>
-        <h1 style="font-size:16px">Herramientas</h1>
+        <h1 style="font-size:16px" data-lwt="Herramientas">Herramientas</h1>
       </div>
       <!-- Buscador retirado el 15-ago-2026 (owner). Filtraba una lista de diez
            entradas que cabe entera en pantalla, y desde el menu lateral estan
@@ -411,7 +414,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
   </main>
 
   <footer id="footApp" hidden><div>
-    <span>Acceso restringido: cada herramienta exige esta misma sesión.</span>
+    <span data-lwt="Acceso restringido: cada herramienta exige esta misma sesión.">Acceso restringido: cada herramienta exige esta misma sesión.</span>
     <span id="pie-datos"></span>
   </div></footer>
 
@@ -424,7 +427,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
      pre-commit; el valor de aqui es solo el punto de partida. -->
 <script src="/contracts/assets/dinero.js?v=ced29282"></script>
 <script src="/intranet/facturas/totales.js"></script>
-<script src="/contracts/assets/herramientas.js?v=a5ee097e"></script>
+<script src="/contracts/assets/herramientas.js?v=cce2c8c2"></script>
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
 <script>
@@ -442,6 +445,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
 const HERRAMIENTAS = LW_HERRAMIENTAS;
 
 const $ = s => document.querySelector(s);
+lwIdiomaAplicar();   // traduce la HTML de arriba; en espanol no toca el DOM
 
 let FICHA = null, CIFRAS = null, VISIBLES = [], CURSOR = 0;
 
@@ -459,12 +463,13 @@ const permitida = t => lwPermitida(t, FICHA);   // la regla vive en assets/herra
    la página en blanco por un timeout de red. */
 function pintar(filtro){
   const q = (filtro || '').trim().toLowerCase();
-  const casa = t => lwBusca(t.nombre + ' ' + t.para + ' ' + t.claves, q);
+  const casa = t => lwBusca(t.nombre + ' ' + t.para + ' ' + t.claves
+                          + ' ' + lwT(t.nombre) + ' ' + lwT(t.para), q);
   const lista = HERRAMIENTAS.filter(permitida).filter(casa);
   VISIBLES = lista;
 
   if(!lista.length){
-    $('#grupos').innerHTML = '<div class="filas"><p class="sin-nada">Ninguna herramienta coincide con «' + esc(filtro) + '».</p></div>';
+    $('#grupos').innerHTML = '<div class="filas"><p class="sin-nada">' + lwT('Ninguna herramienta coincide con «%q».', { q: esc(filtro) }) + '</p></div>';
     return;
   }
   const grupos = [];
@@ -474,7 +479,7 @@ function pintar(filtro){
   });
   $('#grupos').innerHTML = grupos.map(g => `
     <section class="grupo">
-      <h2>${esc(g.titulo)}</h2>
+      <h2>${esc(lwT(g.titulo))}</h2>
       <div class="filas">${g.tools.map(fila).join('')}</div>
     </section>`).join('');
   marcar(0);
@@ -496,7 +501,7 @@ function fila(t){
      no es una entrada, es un parpadeo. */
   return `<a class="fila${PRIMERA ? ' entra' : ''}" href="${esc(t.href)}" data-i="${i}" style="--i:${i}">
     <i class="ph ${esc(t.icon)}" aria-hidden="true"></i>
-    <span><span class="nombre">${esc(t.nombre)}</span><span class="para">${esc(t.para)}</span></span>
+    <span><span class="nombre">${esc(lwT(t.nombre))}</span><span class="para">${esc(lwT(t.para))}</span></span>
     <span class="estado">${derecha}<i class="ph ph-arrow-right flecha" aria-hidden="true"></i></span>
   </a>`;
 }
@@ -639,19 +644,19 @@ function pintarKpis(d, ficha){
     /* `tono` colorea el pie por SIGNIFICADO, como el mockup: ámbar lo que espera,
        rojo lo que urge, verde lo que va bien, gris lo neutro. En la 1ª pasada todos
        los pies eran grises y la tarjeta no decía si el número era bueno o malo. */
-    { rot:'Firmas esperando', v:d.firmasPendientes, href:'/intranet/operaciones/?filtro=firma_viva', herr:'operaciones',
-      pie:n => n ? 'pendientes de que el comprador firme' : 'ninguna pendiente',
+    { rot:lwT('Firmas esperando'), v:d.firmasPendientes, href:'/intranet/operaciones/?filtro=firma_viva', herr:'operaciones',
+      pie:n => lwT(n ? 'pendientes de que el comprador firme' : 'ninguna pendiente'),
       tono:n => n ? 'mal' : 'bien', urge:n => n > 0 },
     { rot:'Contratos', v:d.contratos, href:'/contracts/', herr:'contratos',
-      pie:() => d.contratosEditables == null ? '' : d.contratosEditables + ' aún editables',
+      pie:() => d.contratosEditables == null ? '' : lwT('%n aún editables', { n: d.contratosEditables }),
       tono:() => d.contratosEditables ? 'espera' : '' },
-    { rot:'Facturas emitidas', v:d.facturas, href:'/intranet/facturas/', herr:'facturas',
+    { rot:lwT('Facturas emitidas'), v:d.facturas, href:'/intranet/facturas/', herr:'facturas',
       pie:() => d.facturasAnuladas ? d.facturasAnuladas + ' anuladas' : 'ninguna anulada',
       tono:() => d.facturasAnuladas ? 'espera' : 'bien' },
-    { rot:'Unidades libres', v:d.unidadesLibres, href:'/intranet/proyectos/', herr:'unidades',
-      pie:() => d.unidades == null ? '' : 'de ' + d.unidades + ' en inventario' },
+    { rot:lwT('Unidades libres'), v:d.unidadesLibres, href:'/intranet/proyectos/', herr:'unidades',
+      pie:() => d.unidades == null ? '' : lwT('de %n en inventario', { n: d.unidades }) },
     { rot:'En obra', v:d.obraActivas, href:'/intranet/obra/', herr:'obra',
-      pie:n => n ? 'con fase abierta' : 'sin unidades en obra',
+      pie:n => lwT(n ? 'con fase abierta' : 'sin unidades en obra'),
       tono:n => n ? 'bien' : '' },
   ];
   // Solo las herramientas que esta persona puede abrir: una tarjeta que lleva a
@@ -670,7 +675,7 @@ function pintarKpis(d, ficha){
     return `<a class="${cls}" href="${t.href}" style="--i:${i}">
       <span class="rot">${esc(t.rot)}</span>
       <span class="lw-cifra">${mudo ? '—' : t.v}</span>
-      <span class="pie ${tono}">${mudo ? 'la base no contestó' : esc(t.pie(t.v) || '')}</span>
+      <span class="pie ${tono}">${mudo ? lwT('la base no contestó') : esc(t.pie(t.v) || '')}</span>
     </a>`;
   }).join('');
   $('#kpis').hidden = false;
@@ -700,21 +705,21 @@ async function ultimasOperaciones(sb){
   ]);
   const filas = [
     ...(c.data || []).map(r => ({ fecha:r.created_at, num:r.numero, quien:r.comprador_nombre,
-        que:'Contrato', href:'/contracts/?contrato=' + r.id, estado:r.bloqueado ? ['Firmado','ok'] : ['Editable','gris'] })),
+        que:lwT('Contrato'), href:'/contracts/?contrato=' + r.id, estado:r.bloqueado ? [lwT('Firmado'),'ok'] : [lwT('Editable'),'gris'] })),
     ...(f.data || []).map(r => ({ fecha:r.created_at, num:r.numero, quien:r.cliente_nombre,
-        que:r.tipo === 'recibi' ? 'Recibí' : r.tipo === 'proforma' ? 'Proforma' : 'Factura',
+        que:lwT(r.tipo === 'recibi' ? 'Recibí' : r.tipo === 'proforma' ? 'Proforma' : 'Factura'),
         href:'/intranet/facturas/?id=' + r.id, importe:r.total, moneda:r.moneda,
-        estado:r.anulada ? ['Anulada','alerta'] : ['Emitida','info'] })),
+        estado:r.anulada ? [lwT('Anulada'),'alerta'] : [lwT('Emitida'),'info'] })),
   ].filter(r => r.fecha).sort((a,b) => b.fecha.localeCompare(a.fecha)).slice(0, 8);
   if(!filas.length) return;
-  const dia = s => new Date(s).toLocaleDateString('es-ES', { day:'2-digit', month:'short' });
+  const dia = s => new Date(s).toLocaleDateString(lwLocale(), { day:'2-digit', month:'short' });
   $('#reciente').innerHTML =
-    `<div class="sui-tabla-caja lw-fade"><div class="panelCab">Operaciones recientes</div>
+    `<div class="sui-tabla-caja lw-fade"><div class="panelCab">${lwT('Operaciones recientes')}</div>
       <table class="sui-tabla"><tbody>` +
       filas.map(r => `<tr data-ir="${esc(r.href)}">
         <td class="clave">${esc(r.num || '—')}</td>
         <td>${esc(r.que)}</td>
-        <td>${esc(r.quien || 'sin nombre')}</td>
+        <td>${esc(r.quien || lwT('sin nombre'))}</td>
         <td class="num flojo">${r.importe != null ? esc(lwFormatoImporte(r.importe, r.moneda)) : ''}</td>
         <td><span class="sui-tag ${r.estado[1]}">${esc(r.estado[0])}</span></td>
         <td class="flojo">${esc(dia(r.fecha))}</td>
@@ -770,34 +775,34 @@ async function pintarRail(sb, ficha){
     const avisos   = (anom || []).filter(a => a.severidad !== 'critica');
     if(criticas.length || avisos.length){
       const fila = a => `<div class="railFila ${a.severidad === 'critica' ? 'tarde' : ''}">
-        <span><b>${esc(a.contrato || 'sin nº')}</b> · ${esc(a.comprador || 'sin comprador')}${
+        <span><b>${esc(a.contrato || lwT('sin nº'))}</b> · ${esc(a.comprador || lwT('sin comprador'))}${
           a.desde ? ' · ' + (dias(a.desde) <= -1 ? 'hace ' + (-dias(a.desde)) + ' días' : 'hoy') : ''}</span>
         <span class="v ${a.severidad === 'critica' ? 'mal' : 'espera'}">${
-          a.tipo === 'cadena_parada' ? 'Cadena parada'
-          : a.tipo === 'firmante_sin_email' ? 'Sin email'
-          : a.tipo === 'enlace_caducado' ? 'Enlace caducado'
-          : a.tipo === 'cerrado_sin_documento' ? 'Sin documento' : esc(a.tipo)}</span></div>`;
+          a.tipo === 'cadena_parada' ? lwT('Cadena parada')
+          : a.tipo === 'firmante_sin_email' ? lwT('Sin email')
+          : a.tipo === 'enlace_caducado' ? lwT('Enlace caducado')
+          : a.tipo === 'cerrado_sin_documento' ? lwT('Sin documento') : esc(a.tipo)}</span></div>`;
       /* Las CRÍTICAS van siempre enteras y sin recortar: son las que dejan un
          contrato firmado a medias y editable. Los AVISOS se pliegan detrás de una
          línea (15-ago-2026, owner: el cuadro empujaba demasiado abajo las
          herramientas). No es lo mismo esconder una alarma que esconder un
          recordatorio, y por eso solo se pliega lo segundo. */
       cajas.push('<div class="railCaja lw-fade" style="--i:' + cajas.length + '">'
-        + '<div class="t">Firmas que necesitan atención</div>'
+        + '<div class="t">' + lwT('Firmas que necesitan atención') + '</div>'
         + criticas.map(fila).join('')
         + (avisos.length
             ? '<details class="railMas"><summary>' + avisos.length
-              + (avisos.length === 1 ? ' aviso más' : ' avisos más') + '</summary>'
+              + ' ' + lwT(avisos.length === 1 ? 'aviso más' : 'avisos más') + '</summary>'
               + avisos.map(fila).join('') + '</details>'
             : '')
         + (criticas.length
             ? '<div class="railFila"><span style="font-size:11.5px;color:var(--texto-2,#4A5052)">'
-              + 'Una cadena parada deja el contrato editable después de firmado. Ábrelo en Contratos y genera el enlace que falta.'
+              + lwT('Una cadena parada deja el contrato editable después de firmado. Ábrelo en Contratos y genera el enlace que falta.')
               + '</span></div>'
             : '')
         + '</div>');
     }
-  }catch(e){ fallos.push('las firmas pendientes'); console.warn('auditoria de firmas:', e && e.message); }
+  }catch(e){ fallos.push(lwT('las firmas pendientes')); console.warn('auditoria de firmas:', e && e.message); }
 
   try{
     // Por `_equipo()` (7-ago), no `.from()` directo — mismo motivo que
@@ -824,7 +829,7 @@ async function pintarRail(sb, ficha){
     const filas = [
       ...(fir.data || []).map(r => ({ d:dias(r.expira_en),
         txt:'Firma ' + (r.firmante_nombre||'').split(' ')[0] + (numeroDe[r.contrato_id] ? ' · ' + numeroDe[r.contrato_id] : ''),
-        val:'Pendiente', clase:'espera' })),
+        val:lwT('Pendiente'), clase:'espera' })),
       /* Solo lo que de verdad se debe — 19-ago-2026, encargo del owner: «estamos
          subiendo facturas antiguas y pone vencida hace 300 y pico días».
          El panel cogía CUALQUIER documento con fecha de vencimiento pasada y los
@@ -843,12 +848,12 @@ async function pintarRail(sb, ficha){
           txt:r.numero, val:lwFormatoImporte(r.total, r.moneda||'EUR') })),
     ].sort((a,b) => a.d - b.d).slice(0, 6);
     if(filas.length){
-      cajas.push('<div class="railCaja lw-fade" style="--i:' + cajas.length + '"><div class="t">Próximos vencimientos</div>' +
+      cajas.push('<div class="railCaja lw-fade" style="--i:' + cajas.length + '"><div class="t">' + lwT('Próximos vencimientos') + '</div>' +
         filas.map(r => `<div class="railFila ${r.d < 0 ? 'tarde' : ''}">
           <span>${esc(r.txt)} · ${r.d < 0 ? 'vencida hace ' + (-r.d) + ' días' : r.d === 0 ? 'hoy' : 'en ' + r.d + ' días'}</span>
           <span class="v ${r.clase||''}">${esc(r.val)}</span></div>`).join('') + '</div>');
     }
-  }catch(e){ fallos.push('los vencimientos'); console.warn('vencimientos:', e && e.message); }
+  }catch(e){ fallos.push(lwT('los vencimientos')); console.warn('vencimientos:', e && e.message); }
   /* «Rendimiento del equipo · admin» retirado el 15-ago-2026 (owner): se hara
      algo especifico de agentes. Comparar a la gente por importe facturado en el
      panel de entrada de todos no es lo mismo que un panel de rendimiento, y a
@@ -857,14 +862,14 @@ async function pintarRail(sb, ficha){
      debajo de tres cajas, no se ve, y no verlo es el fallo entero. */
   if(fallos.length){
     cajas.unshift('<div class="railCaja lw-fade" style="--i:0;border-color:#C8791F">'
-      + '<div class="t">No se ha podido comprobar</div>'
+      + '<div class="t">' + lwT('No se ha podido comprobar') + '</div>'
       + '<div class="railFila"><span>' + esc(fallos.join(' ni ')) + '.</span></div>'
       + '<div class="railFila"><span style="font-size:11.5px;color:var(--texto-2,#4A5052)">'
-      + 'Esto NO quiere decir que no haya nada: quiere decir que no se ha mirado. '
-      + 'Recarga la página; si sigue igual, avisa a desarrollo.</span></div></div>');
+      + lwT('Esto NO quiere decir que no haya nada: quiere decir que no se ha mirado.') + ' '
+      + lwT('Recarga la página; si sigue igual, avisa a desarrollo.') + '</span></div></div>');
   }
   $('#rail').innerHTML = cajas.join('')
-    || '<div class="railCaja lw-fade"><div class="t">Próximos vencimientos</div><div class="railFila"><span>Nada a la vista</span></div></div>';
+    || '<div class="railCaja lw-fade"><div class="t">' + lwT('Próximos vencimientos') + '</div><div class="railFila"><span>' + lwT('Nada a la vista') + '</span></div></div>';
 }
 
 /* ── arranque ──────────────────────────────────────────────────────── */
@@ -898,7 +903,7 @@ function mostrarLogin(){
   if(new URLSearchParams(location.search).get('desactivado')){
     const av = document.getElementById('loginAviso');
     av.hidden = false;
-    av.textContent = 'Tu cuenta está desactivada. Habla con un administrador.';
+    av.textContent = lwT('Tu cuenta está desactivada. Habla con un administrador.');
   }
 }
 
@@ -923,11 +928,11 @@ sb.auth.getSession().then(async ({ data:{ session } }) => {
      nombre sale de la ficha; sin ficha, del email, sin inventar nada. */
   {
     const h = new Date().getHours();
-    const saludo = h < 12 ? 'Buenos días' : h < 20 ? 'Buenas tardes' : 'Buenas noches';
+    const saludo = h < 12 ? lwT('Buenos días') : h < 20 ? lwT('Buenas tardes') : lwT('Buenas noches');
     const nombre = (ficha && ficha.nombre) ? ficha.nombre.split(' ')[0] : '';
     $('#saludo').textContent = saludo + (nombre ? ', ' + nombre : '');
-    $('#saludoSub').textContent = 'Esto es lo que necesita tu atención hoy, '
-      + new Date().toLocaleDateString('es-ES', { day:'numeric', month:'long' }) + '.';
+    $('#saludoSub').textContent = lwT('Esto es lo que necesita tu atención hoy,') + ' '
+      + new Date().toLocaleDateString(lwLocale(), { day:'numeric', month:'long' }) + '.';
   }
   $('#who').textContent = (ficha && ficha.nombre) || session.user.email;
   $('#who').title = session.user.email;
@@ -939,7 +944,7 @@ sb.auth.getSession().then(async ({ data:{ session } }) => {
   }
 
   const sin = new URLSearchParams(location.search).get('sin_permiso');
-  if(sin) $('#avisos').innerHTML = '<p class="aviso">No tienes acceso a «' + esc(sin) + '». Pídeselo a un administrador: en tu ficha se activa herramienta por herramienta.</p>';
+  if(sin) $('#avisos').innerHTML = '<p class="aviso">' + lwT('No tienes acceso a «%h».', { h: esc(sin) }) + ' ' + lwT('Pídeselo a un administrador: en tu ficha se activa herramienta por herramienta.') + '</p>';
 
   /* Este hub NO carga guard.js -- tiene su propio control de sesion-- asi que no
      existe `window.LW_AUTH`, que es de donde cuelga todo lo de topbar.js. Sin
@@ -963,8 +968,9 @@ sb.auth.getSession().then(async ({ data:{ session } }) => {
   pintarRail(sb, ficha).catch(e => console.warn('carril:', e && e.message));
   const mudas = HERRAMIENTAS.filter(permitida).filter(t => t.estado && t.estado(CIFRAS) === null).length;
   $('#pie-datos').textContent = mudas
-    ? mudas + ' herramienta(s) sin cifra: la base no contestó y no se inventa un cero.'
-    : 'Cifras al día de ' + new Date().toLocaleString('es-ES', { hour:'2-digit', minute:'2-digit' }) + '.';
+    ? lwT(mudas === 1 ? '%n herramienta sin cifra: la base no contestó y no se inventa un cero.'
+                      : '%n herramientas sin cifra: la base no contestó y no se inventa un cero.', { n: mudas })
+    : lwT('Cifras al día de %h.', { h: new Date().toLocaleString(lwLocale(), { hour:'2-digit', minute:'2-digit' }) });
 });
 
 $('#out').onclick = async () => {
@@ -983,7 +989,7 @@ document.getElementById('fLogin').addEventListener('submit', async (e) => {
   });
   if(!error){ location.href = siguiente(); }
   else{
-    err.textContent = error.message === 'Invalid login credentials' ? 'Credenciales incorrectas' : error.message;
+    err.textContent = error.message === 'Invalid login credentials' ? lwT('Credenciales incorrectas') : error.message;
     btn.disabled = false;
   }
 });
