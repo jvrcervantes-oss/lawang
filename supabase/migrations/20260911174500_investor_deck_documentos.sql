@@ -13,11 +13,12 @@
    Colgar de cualquiera de los dos un data room ANONIMO seria publicar a internet algo que
    la intranet describe como interno o como restringido a clientes con contrato.
 
-   Y hay un motivo mas concreto: esta misma tabla guarda, con `categoria='faq'`, las
-   preguntas de due diligence que un inversor real mando sobre Palm Field ("Se presenta como
-   freehold. Que derecho adquirira exactamente...", "Hemos visto referencias a una posible
-   tributacion del 0%..."). Son notas internas del equipo. Un filtro generico las habria
-   sacado a la pagina publica.
+   Y hay un motivo mas concreto: esta misma tabla guarda, con `categoria='faq'`, notas
+   internas del equipo -- entre ellas la correspondencia de due diligence de compradores
+   potenciales sobre este proyecto. No se reproduce aqui ni una linea de ese contenido a
+   proposito (este repo es PUBLICO: el fichero responde 200 en raw.githubusercontent). Un
+   filtro generico las habria sacado a la pagina publica; por eso el RPC las excluye por
+   partida doble, por `confidencial` y por `categoria`.
 
    Asi que opt-in explicito, el mismo patron que ya usa `unidades.publicado_investor_deck`
    (migracion 20260910025145) y que la revision previa de Seguridad respaldo hoy para los
@@ -42,7 +43,7 @@ alter table public.documentos_proyecto
   add column if not exists publicado_investor_deck boolean not null default false;
 
 comment on column public.documentos_proyecto.publicado_investor_deck is
-  'Opt-in explicito: si este documento se ofrece para descarga en el data room PUBLICO de inversores (sin login). Default false a proposito -- nada se publica solo. NO se reutiliza `confidencial` ni `visible_portal`: ninguno de los dos significa publico. `visible_portal` es para compradores CON CONTRATO en esa promocion (lo dice la propia pantalla de Documentacion), y esta tabla guarda ademas filas internas -- las preguntas de due diligence que mando un inversor -- que no pueden salir jamas.';
+  'Opt-in explicito: si este documento se ofrece para descarga en el data room PUBLICO de inversores (sin login). Default false a proposito -- nada se publica solo. NO se reutiliza `confidencial` ni `visible_portal`: ninguno de los dos significa publico. `visible_portal` es para compradores CON CONTRATO en esa promocion (lo dice la propia pantalla de Documentacion), y esta tabla guarda ademas filas internas (categoria=''faq'') que no pueden salir jamas.';
 
 create or replace function public.investor_deck_documentos(p_proyecto text)
 returns table(titulo text, descripcion text, url text, categoria text)

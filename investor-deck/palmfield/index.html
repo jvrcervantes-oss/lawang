@@ -87,7 +87,7 @@
   .lw-fade-in { animation: lwFadeIn .35s ease both; }
   @keyframes lwFadeIn { from { opacity:0; transform:translateY(4px);} to { opacity:1; transform:none;} }
 </style>
-<script src="i18n.js?v=20260911165458"></script>
+<script src="i18n.js?v=20260911170254"></script>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script>
   tailwind.config = {
@@ -470,6 +470,7 @@
     </div>
     <div class="flex flex-wrap items-center gap-6 text-on-surface-variant font-body-sm text-xs text-center md:text-left">
       <span>This page does not replace legal or financial advice. Nothing here is an offer to sell securities or a solicitation of investment.</span>
+      <a class="text-deep-lagoon underline whitespace-nowrap" href="/legal" target="_blank" rel="noopener">Privacy &amp; Terms</a>
     </div>
   </div>
 </footer>
@@ -490,6 +491,12 @@
         <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-domicilio">Address</label><input id="f-domicilio" class="w-full px-3 py-2 border border-[#BEB3A5] rounded"></div>
       </div>
       <label class="flex gap-2 text-xs items-start my-4"><input type="checkbox" id="f-consent" class="mt-0.5"> I have read and agree to the reservation terms and Lawang's privacy policy, and consent to my data being processed to manage this reservation.</label>
+      <!-- El texto de arriba citaba "Lawang's privacy policy" sin enlazarla a ninguna
+           parte. Un consentimiento que remite a un documento que el usuario no puede
+           abrir no es informado (RGPD art. 7/13, UU PDP). Va aparte y no dentro de la
+           frase porque el i18n casa por texto ingles completo: un <a> dentro la
+           partiria en trozos que ya no traducirian. -->
+      <p class="text-xs -mt-2 mb-4"><a class="text-deep-lagoon underline" href="/legal" target="_blank" rel="noopener">Read Lawang&rsquo;s Privacy &amp; Terms</a></p>
       <div class="flex gap-3 justify-end mt-2">
         <button class="border border-[#BEB3A5] px-4 py-2 rounded" id="btn-cancel" type="button">Cancel</button>
         <button class="bg-deep-lagoon text-white px-4 py-2 rounded font-semibold" id="btn-send-code" type="button">Send verification code</button>

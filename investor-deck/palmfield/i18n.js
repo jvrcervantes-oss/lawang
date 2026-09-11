@@ -91,6 +91,8 @@
     'FAQ': { es: 'Preguntas', id: 'FAQ' },
     /* El CTA de cabecera dejo de pedir el dossier por formulario (11-sep): ahora
        o descarga el documento que el proyecto tenga publicado, o no sale. */
+    'Read Lawang’s Privacy & Terms': { es: 'Leer la política de privacidad y el aviso legal de Lawang', id: 'Baca Kebijakan Privasi & Ketentuan Lawang' },
+    'Privacy & Terms': { es: 'Privacidad y aviso legal', id: 'Privasi & Ketentuan' },
     'Download dossier': { es: 'Descargar dosier', id: 'Unduh dosir' },
     'Questions? WhatsApp': { es: '¿Dudas? WhatsApp', id: 'Ada pertanyaan? WhatsApp' },
     'Ask about Palm Field on WhatsApp': { es: 'Preguntar por Palm Field por WhatsApp', id: 'Tanya tentang Palm Field lewat WhatsApp' },
