@@ -29,9 +29,18 @@ function lw_modelo_imgs($id, $root = null) {
     }
     $f = array_values($porStem);
     sort($f, SORT_NATURAL);
+    // ?v=<mtime>: el CDN de Hostinger cachea las imagenes 7 dias POR NOMBRE, asi que
+    // sobrescribir un render con el mismo fichero seguia sirviendo el viejo (paso el
+    // 11-sep-2026 al sustituir el juego de Dali por el del dossier: la portada seguia
+    // siendo la foto que el cliente decia que ya no existia). Se versiona por fecha de
+    // modificacion y no con una lista a mano de ficheros: el fallo de la lista es que
+    // siempre se cae justo en el que falta ([[reference_lista_a_mano_es_el_bug]]).
+    // pathinfo() sigue devolviendo el nombre limpio con el query detras, asi que las
+    // busquedas por nombre de fichero no se rompen.
     $urls = [];
     foreach ($f as $p) {
-        $urls[] = '/assets/img/buildings/' . $id . '/web/' . basename($p);
+        $v = @filemtime($p);
+        $urls[] = '/assets/img/buildings/' . $id . '/web/' . basename($p) . ($v ? '?v=' . $v : '');
     }
     return $urls;
 }
