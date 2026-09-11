@@ -193,7 +193,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
         <span class="chip__ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg></span>
         <span>
           <span class="chip__lb">Starting Turnkey</span>
-          <span class="chip__vl" data-eur="<?= (int) $DALI['desde_eur'] ?>"><?= lw_e(lw_aud_fmt($DALI['desde_eur'])) ?></span>
+          <span class="chip__vl" data-eur-fijo="<?= (int) $DALI['desde_eur'] ?>"><?= lw_e(lw_aud_fmt($DALI['desde_eur'])) ?></span>
         </span>
       </div>
       <div class="chip">
@@ -272,7 +272,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
                 <span class="op__sp"><?= lw_e($v['specs']) ?></span>
               </span>
               <span class="op__pr" data-eur="<?= (int) $v['desde_eur'] ?>">
-                <b data-eur="<?= (int) $v['desde_eur'] ?>"><?= lw_e(lw_aud_fmt($v['desde_eur'])) ?></b>
+                <b><?= lw_e(lw_aud_fmt($v['desde_eur'])) ?></b>
                 <i><?= lw_e(lw_precio_fmt($v['desde_eur'])) ?></i>
               </span>
             </label>
@@ -316,7 +316,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
               <input type="radio" name="lw-vista" value="<?= lw_e($k) ?>"<?= $k === 'cliff' ? ' checked' : '' ?>>
               <span><span class="op__nb"><?= lw_e($vw['label']) ?></span></span>
               <span class="op__pr" data-eur-m2="<?= (int) $vw['rate'] ?>">
-                <b data-eur="<?= (int) $vw['rate'] ?>" data-eur-m2><?= lw_e(lw_aud_fmt($vw['rate'])) ?>/m²</b>
+                <b><?= lw_e(lw_aud_fmt($vw['rate'])) ?>/m²</b>
                 <i><?= lw_e(lw_precio_fmt($vw['rate'])) ?>/m²</i>
               </span>
             </label>
@@ -525,7 +525,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 <!-- Barra inferior en móvil, del diseño -->
 <div class="movil">
   <span class="movil__pr">
-    <b id="lw-movil-pr" data-eur="<?= (int) $DALI['desde_eur'] ?>"><?= lw_e(lw_aud_fmt($DALI['desde_eur'])) ?></b>
+    <b id="lw-movil-pr" data-eur-fijo="<?= (int) $DALI['desde_eur'] ?>"><?= lw_e(lw_aud_fmt($DALI['desde_eur'])) ?></b>
     <span>100% Freehold Bali</span>
   </span>
   <a class="btn btn--wa" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer" aria-label="Chat on WhatsApp">
@@ -782,12 +782,16 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
     window.lwReflejaDivisa = refleja;
   }());
 
-  // Los importes que pintó PHP llevan su valor en euros en `data-eur`: al cambiar de
-  // divisa se repintan desde ahí, nunca reconvirtiendo el texto ya formateado.
+  // Importes SUELTOS que pintó PHP (el precio del hero y el de la barra móvil): llevan su
+  // valor en euros en `data-eur-fijo` y se repintan desde ahí al cambiar de divisa.
+  // ⚠️ Atributo propio a propósito: `data-eur` ya lo usa el configurador con otra
+  // estructura —un <b> y un <i> dentro de cada .op__pr, que repinta recalcular()— y
+  // escribir textContent sobre esos nodos les borraba los hijos (TypeError en la
+  // siguiente pasada de recalcular, cazado en producción el 11-sep).
   function repintaPrecios() {
-    Array.prototype.forEach.call(document.querySelectorAll('[data-eur]'), function (el) {
-      var v = parseFloat(el.getAttribute('data-eur'));
-      if (!isNaN(v)) el.textContent = divFmt(v, S.div) + (el.hasAttribute('data-eur-m2') ? '/m²' : '');
+    Array.prototype.forEach.call(document.querySelectorAll('[data-eur-fijo]'), function (el) {
+      var v = parseFloat(el.getAttribute('data-eur-fijo'));
+      if (!isNaN(v)) el.textContent = divFmt(v, S.div);
     });
   }
 
