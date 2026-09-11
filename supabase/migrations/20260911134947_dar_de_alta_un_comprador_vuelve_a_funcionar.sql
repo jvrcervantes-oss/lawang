@@ -76,7 +76,10 @@ $$;
 -- QUEDA ABIERTO, y NO se toca aqui porque es decision del owner:
 --   · 52 de las 171 fichas (28-jul a 3-sep) tienen `propietario` vacio de antes de este
 --     trigger. Hoy solo las ve direccion. Rellenarlas es un UPDATE masivo sobre datos reales
---     de cliente -> LAW-179.
+--     de cliente -> LAW-180.
 --   · La politica de UPDATE de `clients` sigue siendo solo `es_admin()`: las mismas 18
 --     personas pueden ahora CREAR una ficha pero no CORREGIRLA. Puede ser intencionado (KYC),
---     asi que no se ensancha por iniciativa propia -> LAW-180.
+--     asi que no se ensancha por iniciativa propia -> LAW-181.
+--   · La policy de INSERT es `es_agente()` a secas, sin `puede('compradores')`: 3 usuarios
+--     activos sin la herramienta podrian insertar igual. Es ANTERIOR a este cambio, salio al
+--     revisarlo -> LAW-182.
