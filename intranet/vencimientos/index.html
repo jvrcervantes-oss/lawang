@@ -331,12 +331,12 @@ window.LW_AUTH.then(async ({ sb, ficha }) => {
     sb.from('contrato_vencimientos').select('id,contrato_id,orden,descripcion,pct,monto,fecha,ajustado,nota,factura_id,no_facturar').limit(3000),
     sb.rpc('facturas_equipo').select('numero,tipo,sociedad,cliente_nombre,total,moneda,anulada,created_at,venc:datos->fields->>fecha_vencimiento').limit(1000),
   ]);
-  if(c.error){ toast(lwT('No se pudieron leer los contratos:') + c.error.message); return; }
-  if(v.error){ toast(lwT('No se pudieron leer los vencimientos:') + v.error.message); return; }
+  if(c.error){ toast(lwT('No se pudieron leer los contratos: ') + c.error.message); return; }
+  if(v.error){ toast(lwT('No se pudieron leer los vencimientos: ') + v.error.message); return; }
 
   const cobradoPorId = {};
   (cb.error ? [] : (cb.data || [])).forEach(x => { cobradoPorId[x.contrato_id] = Number(x.cobrado) || 0; });
-  if(cb.error) toast(lwT('No se pudo calcular lo cobrado:') + cb.error.message);
+  if(cb.error) toast(lwT('No se pudo calcular lo cobrado: ') + cb.error.message);
 
   FACTURAS = (f.error ? [] : (f.data || [])).filter(x => !x.anulada && x.venc && x.tipo !== 'recibi');
 
@@ -430,7 +430,7 @@ function pintarAvisos(m){
     if(f.preliminares) trozos.push(lwT(f.preliminares === 1 ? '%n Carta de Reserva' : '%n Cartas de Reserva', { n: f.preliminares }));
     const top = Object.entries(f.proyectos).sort((a,b) => b[1]-a[1]).slice(0,3)
       .map(([p,n]) => esc(p) + ' (' + n + ')').join(', ');
-    partes.push('<b>' + lwT('Fuera de este panel:') + ' ' + trozos.join(' ' + lwT('y') + ' ') + '</b>'
+    partes.push('<b>' + lwT('Fuera de este panel:') + ' ' + trozos.join(' ' + lwT(' y ') + ' ') + '</b>'
       + (f.importe ? ' — ' + esc(dinero(f.importe, '')) + ' ' + lwT('de precio') : '')
       + (top ? '. ' + lwT('Sobre todo en %s', { s: top }) : '')
       + '. ' + lwT('Aquí solo entran contratos firmados que no sean preliminares'));
@@ -664,7 +664,7 @@ $('#tbody').addEventListener('click', async e => {
     if(nueva === (previa || null)){ pintarTabla(MODELO[MONEDA]); return; }
     const { error } = await window._SB.from('contrato_vencimientos')
       .update({ fecha: nueva, ajustado: true }).eq('id', vid);
-    if(error){ toast(lwT('No se pudo guardar la fecha:') + error.message); pintarTabla(MODELO[MONEDA]); return; }
+    if(error){ toast(lwT('No se pudo guardar la fecha: ') + error.message); pintarTabla(MODELO[MONEDA]); return; }
     // se toca la ENTRADA cruda y se recalcula con la misma función probada en
     // node — no una versión "rápida" del modelo que divergiría de la testada
     const cru = RAW.vencimientos.find(x => x.id === vid);

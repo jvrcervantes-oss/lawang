@@ -865,7 +865,7 @@ async function pintarRail(sb, ficha){
       + '<div class="t">' + lwT('No se ha podido comprobar') + '</div>'
       + '<div class="railFila"><span>' + esc(fallos.join(' ni ')) + '.</span></div>'
       + '<div class="railFila"><span style="font-size:11.5px;color:var(--texto-2,#4A5052)">'
-      + lwT('Esto NO quiere decir que no haya nada: quiere decir que no se ha mirado.') + ' '
+      + lwT('Esto NO quiere decir que no haya nada: quiere decir que no se ha mirado. ') + ' '
       + lwT('Recarga la página; si sigue igual, avisa a desarrollo.') + '</span></div></div>');
   }
   $('#rail').innerHTML = cajas.join('')
@@ -931,7 +931,7 @@ sb.auth.getSession().then(async ({ data:{ session } }) => {
     const saludo = h < 12 ? lwT('Buenos días') : h < 20 ? lwT('Buenas tardes') : lwT('Buenas noches');
     const nombre = (ficha && ficha.nombre) ? ficha.nombre.split(' ')[0] : '';
     $('#saludo').textContent = saludo + (nombre ? ', ' + nombre : '');
-    $('#saludoSub').textContent = lwT('Esto es lo que necesita tu atención hoy,') + ' '
+    $('#saludoSub').textContent = lwT('Esto es lo que necesita tu atención hoy, ') + ' '
       + new Date().toLocaleDateString(lwLocale(), { day:'numeric', month:'long' }) + '.';
   }
   $('#who').textContent = (ficha && ficha.nombre) || session.user.email;

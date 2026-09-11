@@ -434,7 +434,7 @@ async function guardar(){
   if(!$('#fActivo').disabled) cambios.activo = $('#fActivo').value === '1';
   const { error } = await SB.from('usuarios').update(cambios).eq('user_id', SEL);
   btn.disabled = false; btn.textContent = lwT('Guardar cambios');
-  if(error){ toast(lwT('No se pudo guardar:') + error.message); return; }
+  if(error){ toast(lwT('No se pudo guardar: ') + error.message); return; }
   toast(lwT('Permisos actualizados'));
   await cargar(); pintarFicha();
 }
@@ -537,8 +537,8 @@ async function crear(){
     tipos_contrato: [...document.querySelectorAll('.tipos input:checked')].map(i => i.value),
   });
   btn.disabled = false; btn.textContent = lwT('Crear usuario');
-  if(!d.ok){ toast(lwT('No se pudo crear:') + (d.error || '')); return; }
-  toast(lwT('Usuario creado:') + email);
+  if(!d.ok){ toast(lwT('No se pudo crear: ') + (d.error || '')); return; }
+  toast(lwT('Usuario creado: ') + email);
   await cargar();
   SEL = d.user_id; pintarLista(); pintarFicha();
 }

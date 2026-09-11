@@ -30,6 +30,9 @@
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
 <link rel="stylesheet" href="documento.css?v=20260731">
+<!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
+     `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
+<script src="/contracts/assets/i18n.js?v=41527d1c"></script>
 <script src="/contracts/assets/herramientas.js?v=cce2c8c2"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -667,9 +670,9 @@
            `firma-submit` sigue emitiendo y enviando la proforma del total, y
            73 de las 116 vivas se crearon en esos dos días. Lo que se rompió fue
            solo poder emitir una a mano desde aquí. -->
-      <option value="factura">Factura</option>
-      <option value="proforma">Factura proforma</option>
-      <option value="recibi">Recibí</option>
+      <option value="factura" data-lwt="Factura">Factura</option>
+      <option value="proforma" data-lwt="Factura proforma">Factura proforma</option>
+      <option value="recibi" data-lwt="Recibí">Recibí</option>
     </select>
     <div class="lw-spacer"></div>
     <!-- Se alternan según la pantalla (ver `pantalla()`): en el listado se ofrece
@@ -683,13 +686,13 @@
          otro. Es un movimiento entre pantallas, igual que «← Listado», y ese
          vive arriba en las once herramientas. Con el estilo de la barra
          (`lw-btn`), no con el de las acciones del documento. -->
-    <button type="button" class="lw-btn" id="btnNueva" hidden>Nuevo documento</button>
+    <button type="button" class="lw-btn" id="btnNueva" hidden data-lwt="Nuevo documento">Nuevo documento</button>
     <!-- ACCION PRINCIPAL: ultima de la barra. La convencion, con su porque,
          esta en assets/topbar.css junto a `.lw-btn.primary`. -->
     <!-- El rotulo sigue al tipo que filtra el listado, que es el que se va a
          crear al pulsar: decia solo «+ Nueva» y no decia nueva QUE — y el
          selector de tipo esta oculto en esta pantalla, asi que no lo aclaraba. -->
-    <button type="button" class="lw-btn primary" id="btnNuevaDoc"><i class="ph ph-plus"></i><span id="btnNuevaDocTxt">Nueva factura</span></button>
+    <button type="button" class="lw-btn primary" id="btnNuevaDoc"><i class="ph ph-plus"></i><span id="btnNuevaDocTxt" data-lwt="Nueva factura">Nueva factura</span></button>
   </header>
 
   <!-- ═══ LISTADO — la pantalla de entrada desde el 6-ago-2026 ═══════════════
@@ -704,23 +707,23 @@
   <div class="sui-stage" id="pantallaListado" hidden>
     <div class="sui-centro">
       <div class="sui-filtros">
-        <input class="sui-buscar" id="lq" placeholder="Buscar nº, cliente, proyecto o contrato…">
+        <input class="sui-buscar" id="lq" data-lwt-ph placeholder="Buscar nº, cliente, proyecto o contrato…">
         <div class="sui-dens" id="lAnuladas">
-          <button type="button" data-anul="no">Vigentes</button>
-          <button type="button" data-anul="si">Con anuladas</button>
+          <button type="button" data-anul="no" data-lwt="Vigentes">Vigentes</button>
+          <button type="button" data-anul="si" data-lwt="Con anuladas">Con anuladas</button>
         </div>
         <!-- Misma pieza y mismo sitio que el conmutador de vista de Proyectos:
              dos herramientas con el mismo control en dos formas distintas es la
              divergencia de siempre con otro disfraz. -->
         <div class="sui-dens" id="lVista">
-          <button type="button" data-lv="lista">Lista</button>
-          <button type="button" data-lv="contrato">Por contrato</button>
+          <button type="button" data-lv="lista" data-lwt="Lista">Lista</button>
+          <button type="button" data-lv="contrato" data-lwt="Por contrato">Por contrato</button>
         </div>
       </div>
       <div class="sui-filtros" id="lTipos"></div>
       <div class="sui-resumen" id="lResumen"></div>
       <div class="sui-tabla-caja">
-        <div class="list" id="listBody">Cargando…</div>
+        <div class="list" id="listBody" data-lwt="Cargando…">Cargando…</div>
       </div>
     </div>
   </div>
@@ -735,8 +738,8 @@
                cuenta y cliente de la operación (ver cargarContrato), así que pedirlo
                antes que "Emisor"/"Cliente" es también el orden en que se rellenan solos. -->
           <fieldset>
-            <legend>Documento</legend>
-            <label for="btnContrato">Contrato</label>
+            <legend data-lwt="Documento">Documento</legend>
+            <label for="btnContrato" data-lwt="Contrato">Contrato</label>
             <!-- BUSCADOR, no desplegable — 24-ago-2026, encargo del owner («el
                  desplegable ya es demasiado grande»). Y no era solo incómodo:
                  el `<select class="sui-sel">` cargaba los 60 contratos más recientes, y hay 112.
@@ -745,7 +748,7 @@
                  sin que nada lo dijera. Se elige con `lwElegir` (dialogo.js), el
                  control de la suite para listas largas, que trae el buscador
                  dentro y funciona igual en el móvil. -->
-            <button type="button" class="campo-elegir" id="btnContrato">— elige un contrato —</button>
+            <button type="button" class="campo-elegir" id="btnContrato" data-lwt="— elige un contrato —">— elige un contrato —</button>
             <!-- MONEDA Y Nº PEGADOS AL CONTRATO (27-ago-2026, encargo del owner).
                  Estaban debajo del bloque de hitos, así que para ver en qué
                  moneda se emite había que pasar por encima de la decisión de
@@ -756,7 +759,7 @@
                  documento, lo sitúan en el tiempo, y mezcladas aquí hacían de
                  este bloque un cajón de sastre. -->
             <div class="row2">
-              <div><label for="fa-moneda">Moneda</label>
+              <div><label for="fa-moneda" data-lwt="Moneda">Moneda</label>
                 <select class="sui-sel" id="fa-moneda" name="moneda">
                   <option>EUR</option><option>USD</option><option>AUD</option><option>IDR</option>
                 </select></div>
@@ -767,9 +770,9 @@
                    que la serie fiscal no tenga huecos. Sigue siendo `<input>`
                    —`collect()` lo lee por `[name]` y el documento guardado lo
                    necesita— pero se ve como lo que es: un dato, no un hueco. -->
-              <div><label for="fa-numero_visible">Nº de documento</label>
+              <div><label for="fa-numero_visible" data-lwt="Nº de documento">Nº de documento</label>
                 <input id="fa-numero_visible" name="numero_visible" readonly tabindex="-1"
-                       class="dato-fijo" placeholder="Lo asigna la base al guardar"></div>
+                       class="dato-fijo" data-lwt-ph placeholder="Lo asigna la base al guardar"></div>
             </div>
             <!-- 🔴 «CONTRATO DE REFERENCIA» ERA UN ESPEJO, NO UN CAMPO
                  (27-ago-2026, owner: «¿no es redundante?». Lo es, y hay número:
@@ -795,20 +798,20 @@
           </fieldset>
 
           <fieldset>
-            <legend>Fechas</legend>
+            <legend data-lwt="Fechas">Fechas</legend>
             <div class="row2">
-              <div><label for="fa-fecha_emision">Fecha de emisión</label><input id="fa-fecha_emision" type="date" name="fecha_emision"></div>
-              <div><label for="fa-fecha_vencimiento">Vencimiento (opcional)</label><input id="fa-fecha_vencimiento" type="date" name="fecha_vencimiento"></div>
+              <div><label for="fa-fecha_emision" data-lwt="Fecha de emisión">Fecha de emisión</label><input id="fa-fecha_emision" type="date" name="fecha_emision"></div>
+              <div><label for="fa-fecha_vencimiento" data-lwt="Vencimiento (opcional)">Vencimiento (opcional)</label><input id="fa-fecha_vencimiento" type="date" name="fecha_vencimiento"></div>
             </div>
           </fieldset>
 
           <fieldset data-plegable="emisor">
-            <legend>Emisor</legend>
-            <label for="selSociedad">Sociedad que factura</label>
+            <legend data-lwt="Emisor">Emisor</legend>
+            <label for="selSociedad" data-lwt="Sociedad que factura">Sociedad que factura</label>
             <select class="sui-sel" name="sociedad" id="selSociedad"></select>
-            <label for="selCuenta">Cuenta donde se cobra</label>
+            <label for="selCuenta" data-lwt="Cuenta donde se cobra">Cuenta donde se cobra</label>
             <select class="sui-sel" name="cuenta" id="selCuenta"></select>
-            <p class="hint">Sin cuenta, el documento no imprime datos bancarios.</p>
+            <p class="hint" data-lwt="Sin cuenta, el documento no imprime datos bancarios.">Sin cuenta, el documento no imprime datos bancarios.</p>
             <!-- "Otros": cuenta que no está en entities.js. Se teclea aquí y sale
                  impresa igual que una registrada, pero NO se da de alta: una
                  cuenta que se va a usar más de una vez va a entities.js, que es
@@ -816,37 +819,37 @@
                  del mismo número y nadie sabría cuál es la buena. -->
             <div id="cuentaOtros" hidden>
               <div class="row2">
-                <div><label for="fa-banco_titular">Titular · Holder</label><input id="fa-banco_titular" name="banco_titular"></div>
-                <div><label for="fa-banco_nombre">Banco · Bank</label><input id="fa-banco_nombre" name="banco_nombre"></div>
+                <div><label for="fa-banco_titular" data-lwt="Titular · Holder">Titular · Holder</label><input id="fa-banco_titular" name="banco_titular"></div>
+                <div><label for="fa-banco_nombre" data-lwt="Banco · Bank">Banco · Bank</label><input id="fa-banco_nombre" name="banco_nombre"></div>
               </div>
               <div class="row2">
-                <div><label for="fa-banco_cuenta">Cuenta · Account</label><input id="fa-banco_cuenta" name="banco_cuenta"></div>
-                <div><label for="fa-banco_codigo">Swift / Routing</label><input id="fa-banco_codigo" name="banco_codigo"></div>
+                <div><label for="fa-banco_cuenta" data-lwt="Cuenta · Account">Cuenta · Account</label><input id="fa-banco_cuenta" name="banco_cuenta"></div>
+                <div><label for="fa-banco_codigo" data-lwt="Swift / Routing">Swift / Routing</label><input id="fa-banco_codigo" name="banco_codigo"></div>
               </div>
-              <label for="fa-banco_direccion">Dirección del banco · Address</label>
+              <label for="fa-banco_direccion" data-lwt="Dirección del banco · Address">Dirección del banco · Address</label>
               <input id="fa-banco_direccion" name="banco_direccion">
-              <label for="fa-banco_extra">Nota · Note (opcional)</label>
+              <label for="fa-banco_extra" data-lwt="Nota · Note (opcional)">Nota · Note (opcional)</label>
               <input id="fa-banco_extra" name="banco_extra">
-              <p class="hint">Si esta cuenta se va a repetir, pídenos darla de alta en la lista.</p>
+              <p class="hint" data-lwt="Si esta cuenta se va a repetir, pídenos darla de alta en la lista.">Si esta cuenta se va a repetir, pídenos darla de alta en la lista.</p>
             </div>
           </fieldset>
 
           <fieldset data-plegable="cliente">
-            <legend>Cliente</legend>
-            <label for="fa-cliente_nombre">Nombre o razón social</label>
+            <legend data-lwt="Cliente">Cliente</legend>
+            <label for="fa-cliente_nombre" data-lwt="Nombre o razón social">Nombre o razón social</label>
             <input id="fa-cliente_nombre" name="cliente_nombre">
-            <label for="fa-cliente_documento">Pasaporte / NPWP / NIF</label>
+            <label for="fa-cliente_documento" data-lwt="Pasaporte / NPWP / NIF">Pasaporte / NPWP / NIF</label>
             <input id="fa-cliente_documento" name="cliente_documento">
-            <label for="fa-cliente_email">Email</label>
+            <label for="fa-cliente_email" data-lwt="Email">Email</label>
             <input id="fa-cliente_email" type="email" name="cliente_email">
-            <label for="fa-proyecto_nombre">Proyecto / unidad</label>
-            <input id="fa-proyecto_nombre" name="proyecto_nombre" placeholder="Ej. Palm Field — Cabana 2BR S2">
+            <label for="fa-proyecto_nombre" data-lwt="Proyecto / unidad">Proyecto / unidad</label>
+            <input id="fa-proyecto_nombre" name="proyecto_nombre" data-lwt-ph placeholder="Ej. Palm Field — Cabana 2BR S2">
           </fieldset>
 
           <fieldset id="fsConceptos">
-            <legend>Conceptos</legend>
+            <legend data-lwt="Conceptos">Conceptos</legend>
             <div id="lineas"></div>
-            <button type="button" class="addbtn" id="btnAddLinea">+ Añadir concepto</button>
+            <button type="button" class="addbtn" id="btnAddLinea" data-lwt="+ Añadir concepto">+ Añadir concepto</button>
           </fieldset>
 
           <!-- Solo para recibí (11-ago, reforma del modelo de facturación): un
@@ -863,12 +866,12 @@
                  Lo que SÍ hay que poder seguir haciendo es cobrar DOS facturas
                  con un mismo ingreso — pasa poco, así que se queda como enlace
                  discreto y no como el primer control de la sección. -->
-            <legend>Lo que se ha cobrado</legend>
+            <legend data-lwt="Lo que se ha cobrado">Lo que se ha cobrado</legend>
             <div id="aplicaciones"></div>
-            <button type="button" class="btn" id="btnOtraFactura">+ Añadir otra factura</button>
+            <button type="button" class="btn" id="btnOtraFactura" data-lwt="+ Añadir otra factura">+ Añadir otra factura</button>
             <p class="hint" id="aplicAmbito"></p>
             <p class="hint" id="aplicSuma"></p>
-            <label for="fJustificante">Justificante de pago (obligatorio)</label>
+            <label for="fJustificante" data-lwt="Justificante de pago (obligatorio)">Justificante de pago (obligatorio)</label>
             <input type="file" id="fJustificante" multiple accept="image/jpeg,image/png,image/webp,application/pdf">
             <p class="hint">Se puede adjuntar más de uno (hasta 8): un pago real llega a veces en el resguardo <i>y</i> la captura del banco, o en dos transferencias parciales. 10 MB por fichero.</p>
             <div id="justifEstado" class="justif-lista"></div>
@@ -883,15 +886,15 @@
           <details class="plegable" id="dtImpuesto">
             <summary>Impuesto <span class="opc">opcional</span></summary>
             <div class="row2">
-              <div><label for="fa-imp_etiqueta">Etiqueta</label><input id="fa-imp_etiqueta" name="imp_etiqueta" placeholder="Ej. PPN"></div>
-              <div><label for="fa-imp_pct">Porcentaje</label><input id="fa-imp_pct" name="imp_pct" inputmode="decimal" placeholder="Ej. 11"></div>
+              <div><label for="fa-imp_etiqueta" data-lwt="Etiqueta">Etiqueta</label><input id="fa-imp_etiqueta" name="imp_etiqueta" data-lwt-ph placeholder="Ej. PPN"></div>
+              <div><label for="fa-imp_pct" data-lwt="Porcentaje">Porcentaje</label><input id="fa-imp_pct" name="imp_pct" inputmode="decimal" data-lwt-ph placeholder="Ej. 11"></div>
             </div>
-            <p class="hint">En blanco, el documento no lleva impuesto.</p>
+            <p class="hint" data-lwt="En blanco, el documento no lleva impuesto.">En blanco, el documento no lleva impuesto.</p>
           </details>
 
           <details class="plegable" id="dtNotas">
             <summary>Notas <span class="opc">opcional</span></summary>
-            <textarea name="notas" placeholder="Condiciones de pago, referencia de transferencia…"></textarea>
+            <textarea name="notas" data-lwt-ph placeholder="Condiciones de pago, referencia de transferencia…"></textarea>
           </details>
         </form>
       </div>
@@ -899,16 +902,16 @@
 
     <div class="pane-preview">
       <div class="pv-bar">
-        <b>Vista previa</b>
+        <b data-lwt="Vista previa">Vista previa</b>
         <!-- Solo en móvil (`.pv-close` es `display:none` por encima de 900px):
              la previa es ahí una capa a pantalla completa y hay que poder
              salir. §7 — entra por abajo y se va por abajo. -->
-        <button type="button" class="btn pv-close" id="btnCerrarPrev">Cerrar</button>
+        <button type="button" class="btn pv-close" id="btnCerrarPrev" data-lwt="Cerrar">Cerrar</button>
         <div class="spacer"></div>
-        <button class="btn primary" id="btnSave">Guardar en base de datos</button>
-        <button class="btn" id="btnPrint">Descargar PDF</button>
-        <button class="btn" id="btnMail">Enviar por email</button>
-        <button class="btn" id="btnRecibiDeFactura">Crear recibí</button>
+        <button class="btn primary" id="btnSave" data-lwt="Guardar en base de datos">Guardar en base de datos</button>
+        <button class="btn" id="btnPrint" data-lwt="Descargar PDF">Descargar PDF</button>
+        <button class="btn" id="btnMail" data-lwt="Enviar por email">Enviar por email</button>
+        <button class="btn" id="btnRecibiDeFactura" data-lwt="Crear recibí">Crear recibí</button>
         <button class="btn ghost" id="btnRegistro" style="display:none"
                 title="A qué correos se ha enviado este documento">📨 Registro</button>
       </div>
@@ -926,8 +929,8 @@
   <div class="overlay" id="ovMail">
     <div class="modal">
       <header>
-        <h2>Enviar por email</h2><div class="spacer"></div>
-        <button class="btn" id="btnCloseMail">Cerrar</button>
+        <h2 data-lwt="Enviar por email">Enviar por email</h2><div class="spacer"></div>
+        <button class="btn" id="btnCloseMail" data-lwt="Cerrar">Cerrar</button>
       </header>
       <div class="list">
         <p class="hint" id="mailAviso" style="margin-top:0"></p>
@@ -935,8 +938,8 @@
         <label>Asunto<input type="text" id="mailSubject"></label>
         <label>Mensaje<textarea id="mailMsg" rows="7"></textarea></label>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
-          <button class="btn primary" id="mailSend">Enviar</button>
-          <button class="btn" id="mailCancel">Cancelar</button>
+          <button class="btn primary" id="mailSend" data-lwt="Enviar">Enviar</button>
+          <button class="btn" id="mailCancel" data-lwt="Cancelar">Cancelar</button>
         </div>
       </div>
     </div>
@@ -950,10 +953,10 @@
   <div class="cp-overlay" id="regOverlay">
     <div class="cp-modal" style="width:min(820px,100%)">
       <div class="cp-head">
-        <b>Registro de envíos</b>
-        <button type="button" class="tb-link" id="regClose">Cerrar</button>
+        <b data-lwt="Registro de envíos">Registro de envíos</b>
+        <button type="button" class="tb-link" id="regClose" data-lwt="Cerrar">Cerrar</button>
       </div>
-      <div class="em-body" id="regBody"><p class="em-note">Cargando…</p></div>
+      <div class="em-body" id="regBody"><p class="em-note" data-lwt="Cargando…">Cargando…</p></div>
     </div>
   </div>
 
@@ -971,6 +974,7 @@
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
 <script>
 const $  = s => document.querySelector(s);
+lwIdiomaAplicar();   // traduce la HTML de arriba; en espanol no toca el DOM
 
 /* ---------- sesión (mismos agentes que Contratos) ---------- */
 /* El cliente lo crea guard.js y lo publica en `LW_SB` (4-ago-2026). Un solo
@@ -1015,7 +1019,7 @@ sb.auth.getSession().then(async ({data:{session}}) => {
      Si falla se dice en voz alta: una factura emitida sin datos bancarios es una
      factura que el cliente no puede pagar. */
   try { await cargarCuentasBancarias(sb); pintarSelectCuentas(); }
-  catch(e){ toast('No se han podido cargar las cuentas de cobro: ' + (e.message || e) + ' — recarga antes de emitir'); }
+  catch(e){ toast(lwT('No se han podido cargar las cuentas de cobro: ') + (e.message || e) + ' — recarga antes de emitir'); }
   document.body.hidden = false;
   const contratosListos = cargarContratos();   // la promesa se espera en el deep-link ?contrato= (auditoría 19-ago)
   // deep-link ?id=<factura>: abre ese documento guardado directamente — lo usa
@@ -1061,7 +1065,7 @@ sb.auth.getSession().then(async ({data:{session}}) => {
       .eq('id', pedido).maybeSingle()
       .then(({ data, error }) => {
         if(error || !data){
-          toast('No se encontró ese documento');
+          toast(lwT('No se encontró ese documento'));
           if(!document.body.classList.contains('modo-vista')) pantalla('listado', '');
           return;
         }
@@ -1139,11 +1143,11 @@ $('#selSociedad').innerHTML = Object.entries(SOCIEDADES)
 // cuenta que sí existía.
 function pintarSelectCuentas(){
   const valor = $('#selCuenta').value;   // no perder la elección si se repinta
-  $('#selCuenta').innerHTML = '<option value="">— sin datos bancarios —</option>' +
+  $('#selCuenta').innerHTML = '<option value="">' + lwT('— sin datos bancarios —') + '</option>' +
     Object.entries(CUENTAS_BANCARIAS).map(([k,c]) => [k, c.label])
       .sort((a,b) => a[1].localeCompare(b[1],'es'))
       .map(([k,label]) => `<option value="${k}">${esc(label)}</option>`).join('')
-    + '<option value="otros">Otros — escribir la cuenta a mano</option>';
+    + '<option value="otros">' + lwT('Otros — escribir la cuenta a mano') + '</option>';
   if(valor) $('#selCuenta').value = valor;
 }
 pintarSelectCuentas();
@@ -1165,8 +1169,8 @@ montarPlegables();
 function pintarLineas(){
   $('#lineas').innerHTML = LINEAS.map((l,i) => `
     <div class="linea">
-      <div><label>Descripción</label><input data-l="${i}" data-k="descripcion" value="${esc(l.descripcion)}"></div>
-      <div><label>Importe</label><input data-l="${i}" data-k="importe" inputmode="decimal" data-money value="${esc(l.importe)}"></div>
+      <div><label>${lwT('Descripción')}</label><input data-l="${i}" data-k="descripcion" value="${esc(l.descripcion)}"></div>
+      <div><label>${lwT('Importe')}</label><input data-l="${i}" data-k="importe" inputmode="decimal" data-money value="${esc(l.importe)}"></div>
       <button type="button" class="xbtn" data-del="${i}" title="Quitar">×</button>
     </div>`).join('');
   marcarHitosUsados();
@@ -1294,8 +1298,8 @@ async function cargarFacturasAbiertas(){
     sb.rpc('facturas_pendiente_equipo'),
     CONTRATO_ID ? sb.rpc('contratos_del_mismo_comprador', { p_contrato_id: CONTRATO_ID }) : Promise.resolve({ data:[] }),
   ]);
-  if(f.error || p.error){ toast('No se pudieron cargar las facturas abiertas: ' + ((f.error||p.error).message)); return; }
-  if(m.error){ toast('No se pudo comprobar de quién son las facturas: ' + m.error.message); FACTURAS_ABIERTAS = []; pintarSelectFacturaAplicar(); return; }
+  if(f.error || p.error){ toast(lwT('No se pudieron cargar las facturas abiertas: ') + ((f.error||p.error).message)); return; }
+  if(m.error){ toast(lwT('No se pudo comprobar de quién son las facturas: ') + m.error.message); FACTURAS_ABIERTAS = []; pintarSelectFacturaAplicar(); return; }
   const pend = {}; p.data.forEach(x => { pend[x.factura_id] = Number(x.pendiente) || 0; });
   // setof uuid llega como array de escalares; se acepta también [{...}] por si
   // PostgREST lo envuelve, antes que quedarse sin ninguna factura sin decir por qué
@@ -1337,7 +1341,7 @@ async function refrescarAplicablesDelRecibi(){
   const fuera = APLICACIONES.filter(a => !validas.has(a.factura_id));
   if(fuera.length){
     APLICACIONES = APLICACIONES.filter(a => validas.has(a.factura_id));
-    toast('Quitad' + (fuera.length===1?'a ':'as ') + fuera.length + ' factura' + (fuera.length===1?'':'s') +
+    toast(lwT('Quitad') + (fuera.length===1?'a ':'as ') + fuera.length + ' factura' + (fuera.length===1?'':'s') +
           ' que no son de este comprador: ' + fuera.map(a => a.numero).join(', '));
     pintarAplicaciones(); sincronizarLineasDesdeAplicaciones();
   }
@@ -1389,7 +1393,7 @@ async function aplicarFacturaAlRecibi(f){
   pintarAplicaciones(); pintarSelectFacturaAplicar(); sincronizarLineasDesdeAplicaciones();
   pintarContratoElegido();   // el campo de arriba enseña la factura, no el contrato
   render();
-  toast('Factura ' + f.numero + ' — escribe cuánto se ha cobrado');
+  toast(lwT('Factura ') + f.numero + ' — escribe cuánto se ha cobrado');
 }
 
 /* Elegir la factura que cobra este recibí. Deriva de ella todo lo demás: no se
@@ -1447,13 +1451,13 @@ function pintarAplicaciones(){
   $('#aplicaciones').innerHTML = APLICACIONES.map((a,i) => `
     <div class="linea">
       <div><label>${esc(a.numero)}</label><input value="${esc(a.numero)}" disabled></div>
-      <div><label>Importe cobrado</label>
+      <div><label>${lwT('Importe cobrado')}</label>
         <input data-a="${i}" inputmode="decimal" data-money value="${esc(a.importe)}"
                placeholder="¿cuánto ha entrado?" autocomplete="off"></div>
       <button type="button" class="xbtn" data-adel="${i}" title="Quitar">×</button>
       <p class="hint" style="grid-column:1/-1;margin:2px 0 0">Pendiente de ${esc(a.numero)}:
         <button type="button" class="link-pendiente" data-todo="${i}">${esc(fmtMoneda(a.pendiente, moneda0))}</button>
-        — pulsa para cobrarlo entero.</p>
+        ${lwT('— pulsa para cobrarlo entero.')}</p>
     </div>`).join('');
   actualizarSumaAplicaciones();
 }
@@ -1504,7 +1508,7 @@ function sincronizarLineasDesdeAplicaciones(){
 async function verJustificante(path){
   if(!path) return;
   const { data, error } = await sb.storage.from('justificantes').createSignedUrl(path, 300);
-  if(error || !data){ toast('No se pudo abrir el justificante: ' + ((error && error.message) || '')); return; }
+  if(error || !data){ toast(lwT('No se pudo abrir el justificante: ') + ((error && error.message) || '')); return; }
   window.open(data.signedUrl, '_blank', 'noopener');
 }
 /* Cuántos justificantes tiene un documento del listado, y cuáles. La lista
@@ -1526,8 +1530,8 @@ function pintarEstadoJustificante(){
      ahí se dice eso mismo en vez de inventarse uno. */
   caja.innerHTML = JUSTIFICANTES.map((j, i) => `<div class="justif-fila">
       <span class="justif-n">${esc(j.nombre || 'Justificante adjunto')}</span>
-      <button type="button" class="lnk" data-ver="${i}">Ver</button>
-      <button type="button" class="lnk quitar" data-quitar="${i}">Quitar</button>
+      <button type="button" class="lnk" data-ver="${i}">${lwT('Ver')}</button>
+      <button type="button" class="lnk quitar" data-quitar="${i}">${lwT('Quitar')}</button>
     </div>`).join('');
   caja.querySelectorAll('[data-ver]').forEach(b =>
     b.addEventListener('click', () => verJustificante(JUSTIFICANTES[+b.dataset.ver].path)));
@@ -1553,7 +1557,7 @@ $('#fJustificante').addEventListener('change', async () => {
   $('#fJustificante').value = '';   // se vacía YA: los ficheros ya están en `elegidos`
   if(!elegidos.length) return;
   if(JUSTIFICANTES.length + elegidos.length > 8){
-    toast('Un recibí admite hasta 8 justificantes (ya lleva ' + JUSTIFICANTES.length + ')');
+    toast(lwT('Un recibí admite hasta 8 justificantes (ya lleva ') + JUSTIFICANTES.length + ')');
     return;
   }
   const caja = $('#justifEstado');
@@ -1572,7 +1576,7 @@ $('#fJustificante').addEventListener('change', async () => {
       if(up.error) throw up.error;
       JUSTIFICANTES.push({ path, nombre: f.name, subido_en: new Date().toISOString() });
     }catch(err){
-      toast('No se pudo subir ' + f.name + ': ' + (err.message || err));
+      toast(lwT('No se pudo subir ') + f.name + ': ' + (err.message || err));
     }
     const aviso = caja && caja.querySelector('[data-subiendo="' + i + '"]');
     if(aviso) aviso.remove();
@@ -1864,8 +1868,8 @@ $('#ovMail').onclick = e => { if(e.target === $('#ovMail')) cerrarMail(); };
 
 $('#mailSend').onclick = async () => {
   const to = $('#mailTo').value.trim();
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)){ toast('Email de destinatario no válido'); return; }
-  if(!(SAVED && SAVED.numero)){ toast('Guarda el documento antes de enviarlo'); return; }
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)){ toast(lwT('Email de destinatario no válido')); return; }
+  if(!(SAVED && SAVED.numero)){ toast(lwT('Guarda el documento antes de enviarlo')); return; }
   const btn = $('#mailSend');
   btn.disabled = true; btn.textContent = 'Enviando…';
   try{
@@ -1897,10 +1901,10 @@ $('#mailSend').onclick = async () => {
       const marca = await sb.from('facturas').update({ enviada:true, fecha_envio: new Date().toISOString() }).eq('id', SAVED.id);
       if(marca.error) console.error('factura', SAVED.numero, 'enviada pero SIN marcar enviada=true:', marca.error.message);
       LDOCS = null;   // que el listado enseñe el estado «enviada» al volver
-      toast('Enviado a ' + to); cerrarMail();
+      toast(lwT('Enviado a ') + to); cerrarMail();
     }
     else toast(res.error || 'No se pudo enviar');
-  }catch(err){ toast('Error: ' + (err.message || err)); }
+  }catch(err){ toast(lwT('Error: ') + (err.message || err)); }
   btn.disabled = false; btn.textContent = 'Enviar';
 };
 
@@ -1961,10 +1965,10 @@ async function cargarContratos(){
   if(error || !data){
     // Un catálogo vacío se lee igual que «no hay contratos». No es lo mismo.
     CONTRATOS = [];
-    toast('No se pudo cargar la lista de contratos: ' + ((error && error.message) || ''));
+    toast(lwT('No se pudo cargar la lista de contratos: ') + ((error && error.message) || ''));
     return;
   }
-  if(data.length > TOPE) toast('Hay más de ' + TOPE + ' contratos: el buscador enseña los ' + TOPE + ' más recientes');
+  if(data.length > TOPE) toast(lwT('Hay más de ') + TOPE + ' contratos: el buscador enseña los ' + TOPE + ' más recientes');
   CONTRATOS = data.filter(c => c.numero).slice(0, TOPE);
   pintarContratoElegido();
 
@@ -2051,7 +2055,7 @@ async function traerContrato(id){
   CONTRATO_ID = id;
   CLIENTE_DEL_CONTRATO = null;
   const caja = $('#delContrato');
-  caja.innerHTML = '<div class="t">Cargando contrato…</div>';
+  caja.innerHTML = '<div class="t">' + lwT('Cargando contrato…') + '</div>';
   $('#delVinculado').innerHTML = '';
   // `campos:datos->fields` pide solo esa rama del jsonb. Si la sintaxis de
   // PostgREST fallara, se cae al jsonb entero antes que dejar al agente sin datos.
@@ -2180,19 +2184,19 @@ async function pintarOpcionesContrato(){
     ${(!paraRecibi && (precio || hitos.length)) ? `<p class="pregunta">${
         esProforma ? 'Esta proforma declara el total del proyecto' : '¿Qué cobras en este documento?'}</p>` : ''}
     ${(precio && esProforma) ? `<button type="button" class="hito-todo" id="hitoTodo">
-        <span class="q">Total del proyecto</span>
+        <span class="q">${lwT('Total del proyecto')}</span>
         <span class="n">${esc(fmtMoneda(precio, moneda))}</span>
-        <span class="p">Lo que se le comunica al cliente. Informativo: no factura ni vence</span>
+        <span class="p">${lwT('Lo que se le comunica al cliente. Informativo: no factura ni vence')}</span>
       </button>` : ''}
     ${(hitos.length && !paraRecibi && !esProforma) ? `<div class="hitos">${hitos.map((h,i) =>
         `<button type="button" class="hito" data-h="${i}">${h.pct ? '<b>' + esc(String(h.pct)) + '%</b> · ' : ''}${esc(h.texto || 'Hito ' + (i+1))}${h.monto ? ' · ' + esc(fmtMoneda(h.monto, moneda)) : ''}</button>`
       ).join('')}</div>
-      <p class="arrastrado">Se factura el hito que se haya alcanzado.</p>` : ''}
-    ${(precio && !paraRecibi && !esProforma) ? `<details class="excepcion"><summary>El proyecto se factura de una vez</summary>
+      <p class="arrastrado">${lwT('Se factura el hito que se haya alcanzado.')}</p>` : ''}
+    ${(precio && !paraRecibi && !esProforma) ? `<details class="excepcion"><summary>${lwT('El proyecto se factura de una vez')}</summary>
       <button type="button" class="hito-todo" id="hitoTodo">
-        <span class="q">Todo el contrato</span>
+        <span class="q">${lwT('Todo el contrato')}</span>
         <span class="n">${esc(fmtMoneda(precio, moneda))}</span>
-        <span class="p">Una sola factura por el importe completo, sin hitos</span>
+        <span class="p">${lwT('Una sola factura por el importe completo, sin hitos')}</span>
       </button></details>` : ''}`;
 
   /* ── «TODO EL CONTRATO» (26-ago-2026) ───────────────────────────────────────
@@ -2217,8 +2221,8 @@ async function pintarOpcionesContrato(){
       const conCosas = LINEAS.some(l => (l.descripcion || '').trim() || (l.importe || '').trim());
       if(conCosas && !await lwConfirmar({
         titulo: 'Sustituir los conceptos',
-        cuerpo: '<p>El documento ya tiene conceptos. Poner <b>todo el contrato</b> los reemplaza por una sola línea con el importe completo.</p>'
-              + '<p>Se hace así a propósito: dejar los dos cobraría el total <b>y</b> el hito, y el documento saldría creíble.</p>',
+        cuerpo: '<p>' + lwT('El documento ya tiene conceptos. Poner') + '<b>' + lwT('todo el contrato') + '</b>' + lwT('los reemplaza por una sola línea con el importe completo.') + '</p>'
+              + '<p>' + lwT('Se hace así a propósito: dejar los dos cobraría el total') + '<b>y</b>' + lwT('el hito, y el documento saldría creíble.') + '</p>',
         confirmar: 'Sustituir por el total', cancelar: 'Dejarlo como está' })) return;
       LINEAS = [{ descripcion: DESC_TOTAL, importe: String(precio).replace('.', ',') }];
       pintarLineas(); render();
@@ -2244,14 +2248,14 @@ async function pintarOpcionesContrato(){
     const g = docs.length ? lwAgrupaPorContrato(docs)[0] : null;
     if(caj && g){
       const pct = g.unaMoneda && g.totalFacturado ? ' · ' + g.pct.toFixed(0) + ' %' : '';
-      caj.innerHTML = '<p class="arrastrado">De este contrato hay <b>'
+      caj.innerHTML = '<p class="arrastrado">' + lwT('De este contrato hay') + '<b>'
         + esc(lwSumaTexto(g.cobrado)) + '</b> cobrado'
         + (g.totalFacturado ? ' sobre ' + esc(lwSumaTexto(g.facturado)) + ' facturado' + pct : '')
         + '.</p>';
     } else if(caj){
       /* Sin documentos cargados no se dice «0 cobrado»: no saber y no haber
          cobrado nada son cosas distintas, y una de las dos es una mentira. */
-      caj.innerHTML = '<p class="arrastrado">Abre el listado una vez para ver aquí cuánto lleva cobrado este contrato.</p>';
+      caj.innerHTML = '<p class="arrastrado">' + lwT('Abre el listado una vez para ver aquí cuánto lleva cobrado este contrato.') + '</p>';
     }
   }
 
@@ -2341,7 +2345,7 @@ function soltarPrecargaAlCambiarTipo(){
   PRECARGA_HUELLA = null;
   LINEAS = [{ descripcion:'', importe:'' }];
   pintarLineas();
-  toast('Conceptos vaciados: el total del proyecto es de la proforma, no de una factura');
+  toast(lwT('Conceptos vaciados: el total del proyecto es de la proforma, no de una factura'));
 }
 
 function precargarConceptos(){
@@ -2365,7 +2369,7 @@ function precargarConceptos(){
       setTimeout(() => { PRECARGA_HUELLA = JSON.stringify(LINEAS); }, 60);
       /* El clic ya pinta y avisa; aquí solo se dice que ha sido automático,
          que es la diferencia entre «lo he puesto yo» y «lo has pedido tú». */
-      setTimeout(() => toast('Proforma precargada con el total del proyecto'), 350);
+      setTimeout(() => toast(lwT('Proforma precargada con el total del proyecto')), 350);
     }
   }
 }
@@ -2415,9 +2419,9 @@ async function pintarVinculados(idPrincipal, padreId, sociedadPrincipal, monedaP
     return compatible
       ? `<div class="vinc" role="status">
            <div class="vinc-t">Este contrato va encadenado con ${esc(c.numero)}</div>
-           <p>La venta está en dos contratos: <b>${esc(etiqueta)}</b> es el otro. Puedes cobrar los dos en este mismo documento.</p>
+           <p>${lwT('La venta está en dos contratos:')} <b>${esc(etiqueta)}</b> ${lwT('es el otro. Puedes cobrar los dos en este mismo documento.')}</p>
            ${sumable ? `<button type="button" class="hito-todo doble" data-unidad="${esc(c.id)}">
-               <span class="q">Toda la unidad · los dos contratos</span>
+               <span class="q">${lwT('Toda la unidad · los dos contratos')}</span>
                <span class="n">${esc(fmtMoneda(totalUnidad, monedaPrincipal))}</span>
                <span class="p">${esc(fmtMoneda(PRECIO_PRINCIPAL, monedaPrincipal))} de este + ${esc(fmtMoneda(precioC, monedaPrincipal))} de ${esc(c.numero)}</span>
              </button>` : ''}
@@ -2425,7 +2429,7 @@ async function pintarVinculados(idPrincipal, padreId, sociedadPrincipal, monedaP
          </div>`
       : `<div class="vinc malo" role="status">
            <div class="vinc-t">${esc(c.numero)} (${esc(etiqueta)}) va encadenado con este</div>
-           <p>Pero lo emite <b>otra sociedad</b>, así que no se puede combinar en la misma factura: sería una sociedad cobrando el ingreso de otra.</p>
+           <p>${lwT('Pero lo emite')} <b>otra sociedad</b>${lwT(', así que no se puede combinar en la misma factura: sería una sociedad cobrando el ingreso de otra.')}</p>
          </div>`;
   }).join('');
   cont.querySelectorAll('[data-vinc]').forEach(b => {
@@ -2453,15 +2457,15 @@ async function pintarVinculados(idPrincipal, padreId, sociedadPrincipal, monedaP
       const conCosas = LINEAS.some(l => (l.descripcion || '').trim() || (l.importe || '').trim());
       if(conCosas && !await lwConfirmar({
         titulo: 'Facturar la unidad completa',
-        cuerpo: '<p>Sustituye los conceptos por <b>dos líneas</b>: el precio total de cada uno de los dos contratos.</p>'
-              + '<p>Dos líneas y no una a propósito: son dos relaciones jurídicas con el mismo comprador, y fundirlas borra a qué contrato corresponde cada euro.</p>',
+        cuerpo: '<p>' + lwT('Sustituye los conceptos por') + '<b>' + lwT('dos líneas') + '</b>' + lwT(': el precio total de cada uno de los dos contratos.') + '</p>'
+              + '<p>' + lwT('Dos líneas y no una a propósito: son dos relaciones jurídicas con el mismo comprador, y fundirlas borra a qué contrato corresponde cada euro.') + '</p>',
         confirmar: 'Sustituir por los dos', cancelar: 'Dejarlo como está' })) return;
       LINEAS = [
         { descripcion: DESC_UNIDAD, importe: String(PRECIO_PRINCIPAL).replace('.', ',') },
         { descripcion: descOtro,    importe: String(precioC).replace('.', ',') },
       ];
       pintarLineas(); render();
-      toast('Factura por la unidad completa: ' + fmtMoneda(total, monedaPrincipal));
+      toast(lwT('Factura por la unidad completa: ') + fmtMoneda(total, monedaPrincipal));
     };
   });
 
@@ -2477,7 +2481,7 @@ function traerVinculado(c, moneda){
     const monto = parseImporte(h.monto) || (pct && precio ? redondear(precio * pct / 100, moneda) : 0);
     return { texto: h.es || h.en || '', pct, monto, timing: h.timing || '' };
   }).filter(h => h.texto || h.monto);
-  if(!hitos.length){ toast('Ese contrato no tiene hitos de pago que traer'); return; }
+  if(!hitos.length){ toast(lwT('Ese contrato no tiene hitos de pago que traer')); return; }
 
   const caja = document.createElement('div');
   caja.className = 'hitos';
@@ -2533,24 +2537,24 @@ function payload(){
 }
 $('#btnSave').onclick = async () => {
   const d = collect();
-  if(!d.cliente_nombre){ toast('Falta el nombre del cliente'); return; }
+  if(!d.cliente_nombre){ toast(lwT('Falta el nombre del cliente')); return; }
   // 11-ago (reforma del modelo de facturación) + 12-ago (se suma proforma,
   // petición del cliente): los tres tipos exigen contrato — sin eso no hay a
   // qué balance atribuir el dinero. Un balance de cliente real salió mal
   // justo por documentos sin este dato claro. Con los tres tipos posibles
   // cubiertos, ya no hace falta mirar cuál es — cualquier documento lo exige.
   if(!CONTRATO_ID){
-    toast('Elige el contrato al que corresponde este documento'); return;
+    toast(lwT('Elige el contrato al que corresponde este documento')); return;
   }
   if(d.tipo === 'recibi'){
-    if(!APLICACIONES.length){ toast('Elige al menos una factura que salde este recibí'); return; }
-    if(!JUSTIFICANTES.length){ toast('Adjunta el justificante de pago'); return; }
+    if(!APLICACIONES.length){ toast(lwT('Elige al menos una factura que salde este recibí')); return; }
+    if(!JUSTIFICANTES.length){ toast(lwT('Adjunta el justificante de pago')); return; }
     for(const a of APLICACIONES){
       const imp = parseImporte(a.importe);
-      if(!imp || imp <= 0){ toast('Falta el importe aplicado a ' + a.numero); return; }
+      if(!imp || imp <= 0){ toast(lwT('Falta el importe aplicado a ') + a.numero); return; }
       if(imp > a.pendiente + 0.01){ toast(a.numero + ' solo tiene ' + fmtMoneda(a.pendiente, d.moneda) + ' pendiente'); return; }
     }
-  } else if(!calcTotales(d.lineas, d.moneda, null).subtotal){ toast('El documento no tiene importe'); return; }
+  } else if(!calcTotales(d.lineas, d.moneda, null).subtotal){ toast(lwT('El documento no tiene importe')); return; }
   const btn = $('#btnSave'); btn.disabled = true; btn.textContent = 'Guardando…';
   try{
     let data;
@@ -2576,8 +2580,8 @@ $('#btnSave').onclick = async () => {
     SAVED = { id:data.id, numero:data.numero };
     $('[name="numero_visible"]').value = data.numero;
     LDOCS = null;   // el listado queda viejo: al volver se recarga y el documento nuevo aparece (auditoría 19-ago)
-    toast('Guardada como ' + data.numero);
-  }catch(err){ toast('No se pudo guardar: ' + (err.message || err)); }
+    toast(lwT('Guardada como ') + data.numero);
+  }catch(err){ toast(lwT('No se pudo guardar: ') + (err.message || err)); }
   btn.disabled = false; render();
 };
 
@@ -2604,7 +2608,7 @@ function nuevoDocumento(tipo){
 $('#btnNueva').onclick = async () => {
   if(SAVED && !await lwConfirmar({
     titulo: 'Empezar un documento nuevo',
-    cuerpo: '<p>El documento que tienes abierto ya está guardado, así que no se pierde. Se limpia el formulario para empezar otro.</p>',
+    cuerpo: '<p>' + lwT('El documento que tienes abierto ya está guardado, así que no se pierde. Se limpia el formulario para empezar otro.') + '</p>',
     confirmar: 'Empezar uno nuevo',
   })) return;
   nuevoDocumento($('#selTipo').value);   // desde la vista previa se conserva el tipo que hubiera
@@ -2615,12 +2619,12 @@ $('#btnNueva').onclick = async () => {
    conoce de sobra. Mismo camino que el buscador de elegirFacturaDelRecibi(),
    solo que la factura no hay que elegirla: reusa aplicarFacturaAlRecibi(). */
 async function crearRecibiDesdeFactura(){
-  if(!(SAVED && SAVED.id)){ toast('Guarda la factura antes de crear un recibí desde ella'); return; }
+  if(!(SAVED && SAVED.id)){ toast(lwT('Guarda la factura antes de crear un recibí desde ella')); return; }
   const origenId = SAVED.id, origenNumero = SAVED.numero;
   const origenMoneda = ($('[name="moneda"]').value || 'EUR');
   if(!await lwConfirmar({
     titulo: 'Crear un recibí de ' + (origenNumero || 'esta factura'),
-    cuerpo: '<p>Esta factura ya está guardada, así que no se pierde. Se abre un recibí nuevo enganchado a ella.</p>',
+    cuerpo: '<p>' + lwT('Esta factura ya está guardada, así que no se pierde. Se abre un recibí nuevo enganchado a ella.') + '</p>',
     confirmar: 'Crear recibí',
   })) return;
   nuevoDocumento('recibi');
@@ -2628,7 +2632,7 @@ async function crearRecibiDesdeFactura(){
   await cargarFacturasAbiertas();
   const f = FACTURAS_ABIERTAS.find(x => x.id === origenId);
   if(!f){
-    toast('Esa factura ya no tiene saldo pendiente, o está anulada — no hay nada que cobrar en un recibí.');
+    toast(lwT('Esa factura ya no tiene saldo pendiente, o está anulada — no hay nada que cobrar en un recibí.'));
     return;
   }
   await aplicarFacturaAlRecibi(f);
@@ -2647,9 +2651,9 @@ const REG_VIA = { manual:'Email manual', enlace_firma:'Enlace de firma', firma:'
 const regFecha = iso => iso ? new Date(iso).toLocaleString('es-ES',
   { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
 async function abrirRegistro(){
-  if(!(SAVED && SAVED.id)){ toast('Guarda el documento para ver su registro'); return; }
+  if(!(SAVED && SAVED.id)){ toast(lwT('Guarda el documento para ver su registro')); return; }
   $('#regOverlay').classList.add('open');
-  const cont = $('#regBody'); cont.innerHTML = '<p class="em-note">Cargando…</p>';
+  const cont = $('#regBody'); cont.innerHTML = '<p class="em-note">' + lwT('Cargando…') + '</p>';
   const { data, error } = await sb.from('correos_enviados')
     .select('para,asunto,via,enviado_por,enviado_en')
     .eq('factura_id', SAVED.id).order('enviado_en', { ascending:false }).limit(200);
@@ -2661,9 +2665,9 @@ async function abrirRegistro(){
     + '<td>' + esc(m.enviado_por || 'Automático') + '</td>'
     + '<td>' + esc(m.asunto) + '</td></tr>';
   cont.innerHTML = (data||[]).length
-    ? '<div class="reg-envoltura"><table class="reg-tabla"><thead><tr><th>Cuándo</th><th>Para</th><th>Vía</th><th>Quién</th><th>Asunto</th></tr></thead><tbody>'
+    ? '<div class="reg-envoltura"><table class="reg-tabla"><thead><tr><th>' + lwT('Cuándo') + '</th><th>' + lwT('Para') + '</th><th>' + lwT('Vía') + '</th><th>' + lwT('Quién') + '</th><th>' + lwT('Asunto') + '</th></tr></thead><tbody>'
       + data.map(filaMail).join('') + '</tbody></table></div>'
-    : '<p class="em-note">Sin correos registrados para este documento.</p>';
+    : '<p class="em-note">' + lwT('Sin correos registrados para este documento.') + '</p>';
 }
 $('#btnRegistro').addEventListener('click', abrirRegistro);
 $('#regClose').addEventListener('click', ()=> $('#regOverlay').classList.remove('open'));
@@ -2870,8 +2874,8 @@ function pintarPorContrato(box, data, filaDoc){
        una cifra agregada. Cada fila lleva la suya. */
     if(c.sinContrato) return `<details class="ctr" data-ctr="${esc(c.clave)}" data-alerta="sinfactura"${CTR_ABIERTOS.has(c.clave) ? ' open' : ''}>
       <summary>
-        <span><span class="cnom"><span class="sui-tag alerta" title="Un cobro aplicado aquí no se atribuye a ninguna operación (LAW-38)">Sin contrato</span></span>
-          <span class="csub">${c.docs.length} ${c.docs.length === 1 ? 'documento' : 'documentos'}${c.variosClientes ? ' de varios clientes' : (c.cliente ? ' \u00b7 ' + esc(c.cliente) : '')} <span class="sep">·</span> no son un contrato: no se suman entre s\u00ed</span></span>
+        <span><span class="cnom"><span class="sui-tag alerta" title="Un cobro aplicado aquí no se atribuye a ninguna operación (LAW-38)">${lwT('Sin contrato')}</span></span>
+          <span class="csub">${c.docs.length} ${c.docs.length === 1 ? 'documento' : 'documentos'}${c.variosClientes ? ' de varios clientes' : (c.cliente ? ' \u00b7 ' + esc(c.cliente) : '')} <span class="sep">·</span> ${lwT('no son un contrato: no se suman entre s\\u00ed')}</span></span>
         <span class="cplata"></span>
       </summary>
       <table class="docs"><tbody>${c.docs.map(filaDoc).join('')}</tbody></table>
@@ -2880,9 +2884,9 @@ function pintarPorContrato(box, data, filaDoc){
     const marca = c.cobradoSinFactura ? 'sinfactura'
                 : c.soloProforma ? 'proforma'
                 : (c.sinRecibi ? 'sinrecibi' : '');
-    const aviso = c.cobradoSinFactura ? '<span class="sui-tag alerta" title="Hay cobro registrado pero ninguna factura que lo respalde">Cobrado sin factura</span>'
-                : c.soloProforma ? '<span class="sui-tag gris" title="Proforma emitida con el total del proyecto. Aún no se ha facturado ningún hito — es lo normal justo tras firmar; deja de serlo cuando el primer hito ya se alcanzó">Sin hitos facturados</span>'
-                : c.sinRecibi   ? '<span class="sui-tag alerta" title="Facturado y sin un solo recibí: nada cobrado">Sin recibí</span>'
+    const aviso = c.cobradoSinFactura ? '<span class="sui-tag alerta" title="Hay cobro registrado pero ninguna factura que lo respalde">' + lwT('Cobrado sin factura') + '</span>'
+                : c.soloProforma ? '<span class="sui-tag gris" title="Proforma emitida con el total del proyecto. Aún no se ha facturado ningún hito — es lo normal justo tras firmar; deja de serlo cuando el primer hito ya se alcanzó">' + lwT('Sin hitos facturados') + '</span>'
+                : c.sinRecibi   ? '<span class="sui-tag alerta" title="Facturado y sin un solo recibí: nada cobrado">' + lwT('Sin recibí') + '</span>'
                 : '';
     const cifra = c.totalFacturado ? lwSumaTexto(c.facturado)
                 : c.cobradoSinFactura ? lwSumaTexto(c.cobrado)
@@ -2936,7 +2940,7 @@ function pintarListado(){
   const nProf = data.filter(f => f.tipo === 'proforma' && !f.anulada).length;
   const sumas = LTIPO
     ? sumaTipoTxt(LTIPO)
-    : `Facturado <b>${sumaTipoTxt('factura')}</b> · Cobrado <b>${sumaTipoTxt('recibi')}</b>`
+    : `Facturado <b>${sumaTipoTxt('factura')}</b> ${lwT('· Cobrado')} <b>${sumaTipoTxt('recibi')}</b>`
       + (nProf ? ` <span class="sui-tag gris" title="Una proforma es informativa: anuncia el total del proyecto, no factura nada">${nProf} proforma${nProf===1?'':'s'}, no suman</span>` : '');
   /* Lo mismo pero de UN tipo, para el resumen por contrato. Por moneda desde el
      primer día: la suite ya tiene facturas en una divisa y unidades en otra, y
@@ -2964,8 +2968,8 @@ function pintarListado(){
         const sp = gc.filter(c => c.soloProforma).length, sr = gc.filter(c => c.sinRecibi).length;
         const sf = gc.filter(c => c.cobradoSinFactura).length;
         return `<span>${g.length} ${g.length===1?'contrato':'contratos'}</span>
-                <span>Facturado <b>${sumasTipo('factura')}</b></span>
-                <span>Cobrado <b>${sumasTipo('recibi')}</b></span>`
+                <span>${lwT('Facturado')} <b>${sumasTipo('factura')}</b></span>
+                <span>${lwT('Cobrado')} <b>${sumasTipo('recibi')}</b></span>`
              + (sp ? `<span><span class="sui-tag gris" title="Con proforma del total emitida y ningún hito facturado todavía">${sp} sin hitos facturados</span></span>` : '')
              + (sr ? `<span><span class="sui-tag alerta">${sr} sin recibí</span></span>` : '')
              + (sf ? `<span><span class="sui-tag alerta">${sf} cobrado sin factura</span></span>` : '');
@@ -2992,7 +2996,7 @@ function pintarListado(){
      y eso es un defecto aparte —LAW-103—; aquí no se añade un octavo. */
   const fFecha = d => { if(!d) return '—';
     const x = new Date(d + 'T00:00:00');
-    return isNaN(x) ? '—' : x.toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}); };
+    return isNaN(x) ? '—' : x.toLocaleDateString(lwLocale(),{day:'2-digit',month:'short',year:'numeric'}); };
 
   function filaDoc(f){
     const sinContrato = !f.contrato_id;
@@ -3000,16 +3004,16 @@ function pintarListado(){
        atribuir a nadie (LAW-38), y aplicarles un cobro los hace desaparecer de
        las cuentas. Se ve en la lista, no al descubrirlo. */
     const ctr = sinContrato
-      ? '<span class="sui-tag alerta" title="Sin contrato: un cobro aplicado aquí no se atribuye a ninguna operación (LAW-38)">Sin contrato</span>'
+      ? '<span class="sui-tag alerta" title="Sin contrato: un cobro aplicado aquí no se atribuye a ninguna operación (LAW-38)">' + lwT('Sin contrato') + '</span>'
       : esc(f.contrato_numero || '—');
     /* Un recibí SIN justificante es lo único accionable que la lista puede
        decir de un documento por sí solo: 16 de los 70 lo están. Lo que no dice
        —ni puede— es si una factura está cobrada: eso depende de los recibís de
        su contrato y se responde en la vista por contrato, por importe. */
-    const estado = f.anulada ? '<span class="sui-tag alerta">Anulada</span>'
-      : (f.tipo === 'recibi' && !nJustif(f)) ? '<span class="sui-tag alerta" title="Un recibí sin justificante de pago adjunto">Sin justificante</span>'
-      : f.enviada ? '<span class="sui-tag ok">Enviada</span>'
-      : '<span class="sui-tag gris">Emitida</span>';
+    const estado = f.anulada ? '<span class="sui-tag alerta">' + lwT('Anulada') + '</span>'
+      : (f.tipo === 'recibi' && !nJustif(f)) ? '<span class="sui-tag alerta" title="Un recibí sin justificante de pago adjunto">' + lwT('Sin justificante') + '</span>'
+      : f.enviada ? '<span class="sui-tag ok">' + lwT('Enviada') + '</span>'
+      : '<span class="sui-tag gris">' + lwT('Emitida') + '</span>';
     return `<tr data-id="${f.id}" class="t-${esc(f.tipo || 'factura')} ${f.anulada ? 'anulada' : ''}">
       <td class="doc">
         <span class="n1">${esc(f.numero || '—')}</span>
@@ -3027,7 +3031,7 @@ function pintarListado(){
           ? `<button class="sui-tag alerta" data-diverge="${f.id}" title="Dice algo distinto de la ficha del cliente">Ficha ≠</button>` : ''}
         ${f.tipo === 'recibi' && nJustif(f)
           ? `<button class="btn" data-justif="${f.id}" title="Ver ${nJustif(f) === 1 ? 'el justificante de pago adjunto' : 'los ' + nJustif(f) + ' justificantes de pago adjuntos'}">📎${nJustif(f) > 1 ? ' ' + nJustif(f) : ''}</button>` : ''}
-        ${f.anulada ? '' : `<button class="btn secundaria" data-anular="${f.id}">Anular</button>`}
+        ${f.anulada ? '' : `<button class="btn secundaria" data-anular="${f.id}">${lwT('Anular')}</button>`}
         ${ES_ADMIN ? `<button class="btn borrar secundaria" data-borrar="${f.id}" title="Borrar factura">✕</button>` : ''}</td>
     </tr>`;
   }
@@ -3043,7 +3047,7 @@ function pintarListado(){
       sb, ficha:MI_FICHA, tabla:'facturas', filaId:f.id, actual:f.creado_por,
       editable:!f.anulada,
       motivoNoEditable:'Documento anulado: la base de datos no admite cambios sobre él.',
-      onCambio:(nuevo) => toast('Autor reasignado a ' + nuevo) });
+      onCambio:(nuevo) => toast(lwT('Autor reasignado a ') + nuevo) });
   });
   box.onclick = async e => {
     /* «Ficha ≠»: qué dice el documento y qué dice la ficha (19-ago-2026). El
@@ -3056,7 +3060,7 @@ function pintarListado(){
       const d = DIVERGEN.get(dv.dataset.diverge);
       if(d) await lwConfirmar({ titulo: 'La ficha del cliente dice otra cosa',
         cuerpo: lwTextoDivergencia(d)
-              + (d.congelado ? '' : '<p>Ábrelo para traer los datos de la ficha.</p>'),
+              + (d.congelado ? '' : '<p>' + lwT('Ábrelo para traer los datos de la ficha.') + '</p>'),
         confirmar: 'Entendido', cancelar: false });
       return;
     }
@@ -3080,16 +3084,16 @@ function pintarListado(){
     if(an){
       e.stopPropagation();
       if(!await lwConfirmar({ titulo:'Anular la factura ' + ((data.find(x=>x.id===an.dataset.anular)||{}).numero || ''),
-        cuerpo:'<p>El número <b>no se reutiliza</b> y ya no se podrá editar.</p>'
-             + '<p>La factura se queda en el registro marcada como anulada, así que el rastro no se pierde.</p>',
+        cuerpo:'<p>' + lwT('El número') + '<b>' + lwT('no se reutiliza') + '</b>' + lwT('y ya no se podrá editar.') + '</p>'
+             + '<p>' + lwT('La factura se queda en el registro marcada como anulada, así que el rastro no se pierde.') + '</p>',
         confirmar:'Anular la factura', tono:'peligro' })) return;
       const { data: fue, error } = await sb.from('facturas').update({ anulada:true }).eq('id', an.dataset.anular).select('id');
       // mismo patrón que el borrar de aquí abajo (auditoría 19-ago): la RLS no
       // da error al denegar, devuelve CERO filas — sin mirarlas, esto decía
       // «Factura anulada» y la factura seguía viva
-      if(error) toast('No se pudo anular: ' + error.message);
-      else if(!fue || !fue.length) toast('No se pudo anular: no es tuya o ya está anulada');
-      else toast('Factura anulada');
+      if(error) toast(lwT('No se pudo anular: ') + error.message);
+      else if(!fue || !fue.length) toast(lwT('No se pudo anular: no es tuya o ya está anulada'));
+      else toast(lwT('Factura anulada'));
       recargarListado(); return;
     }
     /* Borrar está reservado a administradores (petición del owner, 31-jul) y NO
@@ -3101,15 +3105,15 @@ function pintarListado(){
       e.stopPropagation();
       const f = data.find(x => x.id === bo.dataset.borrar) || {};
       if(!await lwConfirmar({ titulo:'Borrar la factura ' + (f.numero || ''),
-        cuerpo:'<p>Lo normal es <b>anularla</b>: así queda el rastro y la serie no pierde un número.</p>'
-             + '<p>Borrarla deja un <b>hueco en la numeración</b> que habrá que explicarle a un contable. No hay papelera.</p>',
+        cuerpo:'<p>' + lwT('Lo normal es') + '<b>anularla</b>' + lwT(': así queda el rastro y la serie no pierde un número.') + '</p>'
+             + '<p>' + lwT('Borrarla deja un') + '<b>' + lwT('hueco en la numeración') + '</b>' + lwT('que habrá que explicarle a un contable. No hay papelera.') + '</p>',
         confirmar:'Borrar de todos modos', cancelar:'Mejor anularla', tono:'peligro' })) return;
       const { data: fue, error } = await sb.from('facturas').delete().eq('id', bo.dataset.borrar).select('id');
       // La RLS no da error al denegar: devuelve cero filas. Sin comprobarlo, la
       // herramienta diría "borrada" y la factura seguiría ahí.
-      if(error) toast('No se pudo borrar: ' + error.message);
-      else if(!fue || !fue.length) toast('No tienes permiso para borrar facturas');
-      else { toast('Factura borrada'); if(SAVED && SAVED.id === bo.dataset.borrar) SAVED = null; }
+      if(error) toast(lwT('No se pudo borrar: ') + error.message);
+      else if(!fue || !fue.length) toast(lwT('No tienes permiso para borrar facturas'));
+      else { toast(lwT('Factura borrada')); if(SAVED && SAVED.id === bo.dataset.borrar) SAVED = null; }
       recargarListado(); return;
     }
     const row = e.target.closest('[data-id]'); if(!row) return;
@@ -3222,7 +3226,7 @@ async function abrir(f){
      viene con `?id=&vista=1` y reescribirla perdería el `vista`. */
   if(!document.body.classList.contains('modo-vista'))
     pantalla('documento', 'id=' + encodeURIComponent(f.id));
-  if(f.anulada) toast('Factura anulada: se abre como borrador nuevo');
+  if(f.anulada) toast(lwT('Factura anulada: se abre como borrador nuevo'));
 
   /* ¿Este documento contradice a la ficha de su cliente? — 19-ago-2026.
      Se pregunta al ABRIRLO, que es el momento en que alguien lo va a tocar, y

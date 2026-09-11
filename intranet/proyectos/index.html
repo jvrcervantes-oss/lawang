@@ -211,6 +211,10 @@
      mismo nombre revientan la pagina entera. -->
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
+<!-- Fotos publicas del investor deck. Compartida con la otra herramienta que
+     las gestiona (Regla 0 de la suite): nace en contracts/assets/, no dentro de
+     una pantalla. Depende de suite-comun (esc/toast) y dialogo (lwConfirmar). -->
+<script src="/contracts/assets/deck_fotos.js?v=442fb967"></script>
 <script>
 /* ============================================================================
    Unidades — inventario y precios por parcela
@@ -698,7 +702,7 @@ async function renombrarProyecto(nombreActual){
   });
   if(!ok) return;
   const { error } = await SB.rpc('renombrar_proyecto', { p_antiguo: nombreActual, p_nuevo: nuevo });
-  if(error){ toast(lwT('No se pudo renombrar:') + error.message); return; }
+  if(error){ toast(lwT('No se pudo renombrar: ') + error.message); return; }
   toast(lwT('Proyecto renombrado'));
   if(PROY === nombreActual) PROY = nuevo;
   suiCerrarCajon();
@@ -781,8 +785,24 @@ function editarProyecto(nombre){
             </label>`).join('')}
       </div>`,
     pie: `<button class="sui-btn primario" id="btnGuardarFicha">${lwT('Guardar')}</button>
+          <button class="sui-btn" id="btnFotosDeck">${lwT('Fotos del deck…')}</button>
           <button class="sui-btn" id="btnRenombrarProy">${lwT('Renombrar…')}</button>
           <button class="sui-btn" id="btnCerrarFicha">${lwT('Cerrar')}</button>`,
+  });
+  /* FOTOS DEL INVESTOR DECK (11-sep-2026) — en su propio cajón y no dentro de
+     esta ficha, por una razón de comportamiento y no de sitio: los campos de
+     arriba se guardan al pulsar «Guardar» y una foto se publica AL SUBIRLA.
+     Mezclar las dos cosas bajo un mismo botón es prometer que se puede cancelar
+     algo que ya está publicado. Mismo patrón que «Renombrar…», que también es
+     otra operación. La pieza vive en `contracts/assets/deck_fotos.js` porque la
+     comparte con Modelos (Regla 0 de la suite). */
+  $('#btnFotosDeck').addEventListener('click', () => {
+    if(!window.lwDeckFotos){ toast(lwT('No se ha cargado el gestor de fotos del deck.')); return; }
+    if(!ficha.id){ toast(lwT('Este proyecto no tiene ficha en la tabla `proyectos`; no se le pueden colgar fotos.')); return; }
+    lwDeckFotos.abrir({
+      SB, ambito:'proyecto', proyectoId: ficha.id, esAdmin: ES_ADMIN,
+      titulo: lwT('Fotos públicas del deck'), sub: nombre,
+    });
   });
   $('#btnRenombrarProy').addEventListener('click', () => renombrarProyecto(nombre));
   $('#btnCerrarFicha').addEventListener('click', suiCerrarCajon);
@@ -794,7 +814,7 @@ function editarProyecto(nombre){
     };
     const btn = $('#btnGuardarFicha'); btn.disabled = true;
     const { data, error } = await SB.from('proyectos').update(fila).eq('nombre', nombre).select('id');
-    if(error){ btn.disabled = false; toast(lwT('No se pudo guardar:') + error.message); return; }
+    if(error){ btn.disabled = false; toast(lwT('No se pudo guardar: ') + error.message); return; }
     if(!data || !data.length){ btn.disabled = false; toast(lwT('No tienes permiso para editar la ficha del proyecto (solo admin).')); return; }
     /* La selección de modelos va en el MISMO botón: para quien la usa es una
        sola ficha. Se escribe después de la ficha y solo si el usuario es admin
@@ -806,9 +826,9 @@ function editarProyecto(nombre){
         catalogo: CATALOGO, villas: MODELOS, enUso: new Set(usados.keys()),
         proyecto_id: (data[0] && data[0].id) || ficha.id || null,
       });
-      if(!r.ok){ btn.disabled = false; toast(lwT('La ficha sí, los modelos no:') + r.error); return; }
+      if(!r.ok){ btn.disabled = false; toast(lwT('La ficha sí, los modelos no: ') + r.error); return; }
       if(r.rechazadas.length)
-        toast(lwT('No se han retirado') + r.rechazadas.map(x => x.modelo).join(', ') + ': hay parcelas que los usan');
+        toast(lwT('No se han retirado ') + r.rechazadas.map(x => x.modelo).join(', ') + ': hay parcelas que los usan');
     }
     /* Managers: se guarda SOLO a quien cambió de estado (marcado/desmarcado),
        vía RPC atómico (`usuario_supervisa_proyecto`, 11-sep-2026) — hallazgo de
@@ -836,7 +856,7 @@ function editarProyecto(nombre){
             ? [...(m.proyectos_supervisados || []), proyectoId]
             : (m.proyectos_supervisados || []).filter(id => id !== proyectoId);   // solo para que la ficha no recargada quede al día
         }
-        if(fallosMgr.length) toast(lwT('No se pudo actualizar el proyecto de:') + fallosMgr.join(', '));
+        if(fallosMgr.length) toast(lwT('No se pudo actualizar el proyecto de: ') + fallosMgr.join(', '));
       }
     }
     btn.disabled = false;
@@ -872,7 +892,7 @@ async function borrarProyecto(nombre){
   });
   if(!ok) return;
   const { error } = await SB.rpc('borrar_proyecto', { p_nombre: nombre });
-  if(error){ toast(lwT('No se pudo borrar:') + error.message); return; }
+  if(error){ toast(lwT('No se pudo borrar: ') + error.message); return; }
   toast(lwT('Proyecto borrado'));
   if(PROY === nombre) PROY = '';
   cargar();
@@ -971,7 +991,7 @@ function pintarTabla(){
   const sinModelo = vis.filter(u => !u.modelo).length;
   $('#resumen').innerHTML =
     `<span>${vis.length} ${vis.length===1?'unidad':'unidades'} · <b>${libres}</b> disponibles</span>
-     <span>${lwT('Suelo')} <b>${texto('precio_suelo')}</b></span>
+     <span>${lwT('Suelo ')} <b>${texto('precio_suelo')}</b></span>
      <span>${lwT('Construcción')} <b>${texto('precio_construccion')}</b></span>
      <span>${lwT('Cartera')} <b>${texto('precio')}</b>${
        sinModelo ? ` <span class="flojo">(${sinModelo} sin modelo, sin total)</span>` : ''}</span>`;
@@ -1000,7 +1020,7 @@ function abrirUnidad(id){
     <div class="sui-bloque">
       <h3>${lwT('Desglose de precio')}</h3>
       <dl class="sui-dl" style="margin:0">
-        <dt>${lwT('Suelo')}</dt><dd>${u.precio_suelo != null ? esc(fmtMoneda(Number(u.precio_suelo), u.moneda||'EUR')) : '—'}</dd>
+        <dt>${lwT('Suelo ')}</dt><dd>${u.precio_suelo != null ? esc(fmtMoneda(Number(u.precio_suelo), u.moneda||'EUR')) : '—'}</dd>
         <dt>${lwT('Construcción')}</dt><dd>${u.precio_construccion != null ? esc(fmtMoneda(Number(u.precio_construccion), u.moneda||'EUR')) : '—'}</dd>
       </dl>
       <div class="sui-total"><span>${lwT('Total')}</span><span>${u.precio != null ? esc(fmtMoneda(Number(u.precio), u.moneda||'EUR')) : '—'}</span></div>
@@ -1232,7 +1252,7 @@ function abrirUnidad(id){
       $('#f-precio').value = fmtNum(s + p);
       $('#f-precio')._auto = s + p;
       pintarEscenarios(u);
-      toast(lwT('Precio recalculado para') + selModelo.value);
+      toast(lwT('Precio recalculado para ') + selModelo.value);
     });
   }
   $('#btnGuardar').addEventListener('click', () => guardar(nueva ? null : u.id));
@@ -1256,7 +1276,7 @@ async function borrarUnidad(u){
   });
   if(!ok) return;
   const { error } = await SB.rpc('borrar_unidad', { p_id: u.id });
-  if(error){ toast(lwT('No se pudo borrar:') + error.message); return; }
+  if(error){ toast(lwT('No se pudo borrar: ') + error.message); return; }
   toast(lwT('Parcela borrada'));
   suiCerrarCajon();
   SEL = null;
@@ -1363,7 +1383,7 @@ async function guardar(id){
     const m = /unidades_proyecto_codigo_key|duplicate key/.test(e.message || '')
       ? lwT('Ya hay una unidad con ese código en ese proyecto.')
       : (e.message || e);
-    toast(lwT('No se pudo guardar:') + m);
+    toast(lwT('No se pudo guardar: ') + m);
   }
   b.disabled = false;
 }
@@ -1515,7 +1535,7 @@ $('#btnNuevoProyecto').addEventListener('click', async () => {
   if(!nombre) return;
   const r = await altaProyecto(nombre);
   if(!r.ok){ toast(r.error); return; }
-  toast(lwT('Proyecto creado:') + r.nombre);
+  toast(lwT('Proyecto creado: ') + r.nombre);
   pintar();
 });
 

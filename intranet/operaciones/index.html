@@ -438,7 +438,7 @@ async function cargar(){
     /* Frase entera con hueco: en ingles el orden no es el mismo, y partirla
        en tres trozos concatenados la deja sin traducir a medias. */
     caja.textContent = lwT('Esta vista no lo está sumando todo: hay más de %l, y solo se han leído los más recientes. Los totales de abajo son parciales.',
-      { l: r.recortes.map(n => r.topes[n] + ' ' + lwT(n)).join(' ' + lwT('y más de') + ' ') });
+      { l: r.recortes.map(n => r.topes[n] + ' ' + lwT(n)).join(' ' + lwT(' y más de ') + ' ') });
   }
 }
 
@@ -458,7 +458,7 @@ async function cargarHitos(id){
   const { data, error } = await SB.rpc('contratos_equipo').select('hitos:datos->hitos').eq('id', id).single();
   if(error){
     // Que no se hayan podido leer NO es lo mismo que «no tiene hitos»: se dice.
-    toast(lwT('No se pudieron cargar los hitos de pago:') + error.message);
+    toast(lwT('No se pudieron cargar los hitos de pago: ') + error.message);
     return null;
   }
   HITOS_DE[id] = Array.isArray(data && data.hitos) ? data.hitos : [];
@@ -873,7 +873,7 @@ function pintarDetalle(){
         return `<tr>
           <td><a class="enl" href="/intranet/compradores/?id=${encodeURIComponent(c.id)}">${esc(c.full_name || lwT('Sin nombre'))}</a>
               <div class="nota">${esc(c.passport_number || lwT('sin pasaporte'))}</div></td>
-          <td>${esc(String(v.rol).replace('adquiriente_', lwT('Adquiriente') + ' '))}</td>
+          <td>${esc(String(v.rol).replace('adquiriente_', lwT('Adquiriente ') + ' '))}</td>
           <td>${esc(c.email || c.phone || '—')}</td>
           <td><span class="tag ${ok ? 'ok' : (c.kyc_status === 'rejected' ? 'alerta' : 'espera')}">${esc(KYC_ES[c.kyc_status] || c.kyc_status || 'pendiente')}</span></td>
           <td>${otros.length
@@ -1033,7 +1033,7 @@ async function borrarOperacion(op){
     suiCerrarCajon();
     SEL = null;
     await cargar();
-    toast(lwT('Operación borrada ·') + (data.contratos_borrados||0) + ' contrato(s), '
+    toast(lwT('Operación borrada · ') + (data.contratos_borrados||0) + ' contrato(s), '
       + (data.facturas_anuladas||0) + ' factura(s) anulada(s)');
   }catch(e){
     // El mensaje de la función ya viene escrito para leerse (dice qué contrato
@@ -1126,7 +1126,7 @@ document.getElementById('suiCajon').addEventListener('click', async e => {
   if(pdf){
     e.preventDefault();
     const { data, error } = await SB.storage.from('contratos-firmados').createSignedUrl(pdf.dataset.pdf, 3600);
-    if(error || !data){ toast(lwT('No se pudo abrir el PDF:') + (error && error.message || 'sin URL')); return; }
+    if(error || !data){ toast(lwT('No se pudo abrir el PDF: ') + (error && error.message || 'sin URL')); return; }
     LW_VISOR.abrir(data.signedUrl, lwT('PDF firmado'));
   }
 });

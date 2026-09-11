@@ -119,6 +119,10 @@
      y dos declaraciones del mismo nombre revientan la página entera. -->
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
+<!-- Fotos publicas del investor deck. Compartida con la otra herramienta que
+     las gestiona (Regla 0 de la suite): nace en contracts/assets/, no dentro de
+     una pantalla. Depende de suite-comun (esc/toast) y dialogo (lwConfirmar). -->
+<script src="/contracts/assets/deck_fotos.js?v=442fb967"></script>
 <!-- vocabulario.js: aqui solo por lwBusca/lwBuscaEn — el buscador sin tildes (8-sep-2026) -->
 <script src="/contracts/assets/vocabulario.js?v=ce3ef96e"></script>
 <script>
@@ -623,7 +627,7 @@ async function subirDoc(m, file, tipo){
   const path = m.id + '/' + crypto.randomUUID() + ext;
   toast(lwT('Subiendo…'));
   const up = await SB.storage.from('modelos').upload(path, file, { contentType:file.type || undefined });
-  if(up.error){ toast(lwT('No se ha subido:') + up.error.message); return; }
+  if(up.error){ toast(lwT('No se ha subido: ') + up.error.message); return; }
   const r = await SB.from('modelo_documentos').insert({
     modelo_id:m.id, nombre:file.name, path, tipo:(tipo || 'otro'),
     tamano_bytes:file.size, subido_por:(YO && YO.id) || null });
@@ -631,7 +635,7 @@ async function subirDoc(m, file, tipo){
     /* Si la fila no entra, el fichero que acaba de subir se queda huérfano en el
        bucket. Se retira: un objeto sin fila no lo ve nadie y no lo borra nadie. */
     await SB.storage.from('modelos').remove([path]);
-    toast(lwT('No se ha guardado la ficha del documento:') + r.error.message);
+    toast(lwT('No se ha guardado la ficha del documento: ') + r.error.message);
     return;
   }
   await cargar();
@@ -643,7 +647,7 @@ async function subirDoc(m, file, tipo){
 async function descargar(docId){
   const d = DOCS.find(x => x.id === docId); if(!d) return;
   const r = await SB.storage.from('modelos').createSignedUrl(d.path, 120);
-  if(r.error || !r.data){ toast(lwT('No se ha podido abrir:') + ((r.error && r.error.message) || lwT('sin enlace'))); return; }
+  if(r.error || !r.data){ toast(lwT('No se ha podido abrir: ') + ((r.error && r.error.message) || lwT('sin enlace'))); return; }
   window.open(r.data.signedUrl, '_blank', 'noopener');
 }
 

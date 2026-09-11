@@ -286,10 +286,10 @@ async function cargar(){
   COBRADO = {}; (cb.error ? [] : (cb.data || [])).forEach(x => { COBRADO[x.contrato_id] = Number(x.cobrado) || 0; });
   ACCESOS = a.error ? [] : (a.data || []);
   FACTURAS = f.error ? [] : (f.data || []);
-  if(d.error) toast(lwT('No se pudieron leer los documentos:') + d.error.message);
-  if(f.error) toast(lwT('No se pudieron leer las facturas:') + f.error.message);
-  if(a.error) toast(lwT('No se pudieron leer los accesos al portal:') + a.error.message);
-  if(cb.error) toast(lwT('No se pudo calcular lo cobrado:') + cb.error.message);
+  if(d.error) toast(lwT('No se pudieron leer los documentos: ') + d.error.message);
+  if(f.error) toast(lwT('No se pudieron leer las facturas: ') + f.error.message);
+  if(a.error) toast(lwT('No se pudieron leer los accesos al portal: ') + a.error.message);
+  if(cb.error) toast(lwT('No se pudo calcular lo cobrado: ') + cb.error.message);
 }
 
 /* ── CUÁNTO LLEVA PAGADO, PROYECTO A PROYECTO ──────────────────────────────
@@ -372,7 +372,7 @@ async function cargarCuotasReserva(ids){
   if(error){
     // No poder leerla NO es «no tiene»: se dice, en vez de enseñar un importe
     // en blanco que se leería como «no debe nada».
-    toast(lwT('No se pudo leer la cuota de reserva:') + error.message);
+    toast(lwT('No se pudo leer la cuota de reserva: ') + error.message);
     return false;
   }
   (data || []).forEach(c => { CUOTA_RESERVA[c.id] = c.precio_reserva || null; });
@@ -399,7 +399,7 @@ async function cargarCorreosComprador(clientId, contratoIds, facturaIds){
     .or(partes.join(','))
     .order('enviado_en', { ascending:false });
   if(error){
-    toast(lwT('No se pudo leer el registro de envíos:') + error.message);
+    toast(lwT('No se pudo leer el registro de envíos: ') + error.message);
     CORREOS_COMPRADOR[clientId] = [];   // ver la nota de cargarCuotasReserva: no es "sin correos", es "no se sabe"; pero sin esto el bloque se queda pidiendo para siempre
     return false;
   }
@@ -431,7 +431,7 @@ async function cargarSoporte(clientId){
     SB.from('hilo_soporte').select('estado,actualizado_en').eq('client_id', clientId),
   ]);
   if(error || e2){
-    toast(lwT('No se pudo leer Soporte:') + (error || e2).message);
+    toast(lwT('No se pudo leer Soporte: ') + (error || e2).message);
     return false;   // no se cachea el fallo: la próxima vez que se abra la ficha, reintenta
   }
   const ultimo = (msgs || [])[0];
@@ -1032,9 +1032,9 @@ async function borrarComprador(c){
   const rutas = (data && data.rutas_kyc) || [];
   if(rutas.length){
     const { error: eSt } = await SB.storage.from('kyc').remove(rutas);
-    if(eSt) toast(lwT('Ficha borrada, pero') + rutas.length + ' fichero(s) KYC no se pudieron quitar del bucket: ' + eSt.message);
+    if(eSt) toast(lwT('Ficha borrada, pero ') + rutas.length + ' fichero(s) KYC no se pudieron quitar del bucket: ' + eSt.message);
   }
-  toast(lwT('Ficha de') + ((data && data.nombre) || 'comprador') + ' borrada'
+  toast(lwT('Ficha de ') + ((data && data.nombre) || 'comprador') + ' borrada'
     + (rutas.length ? ' · ' + rutas.length + ' documento(s) retirados' : ''));
   SEL = null;
   suiCerrarCajon();
@@ -1124,7 +1124,7 @@ async function subir(clientId){
     await cargar(); pintarLista(); pintarFicha();
     toast(lwT('Documento subido'));
   }catch(err){
-    toast(lwT('No se pudo subir:') + (err.message||err));
+    toast(lwT('No se pudo subir: ') + (err.message||err));
     btn.disabled=false; btn.textContent=lwT('Subir documento');
   }
 }
@@ -1140,7 +1140,7 @@ async function subir(clientId){
    correo del super_admin). */
 const MOTIVOS_PORTAL = {
   ese_email_es_del_equipo:
-    lwT('Ese correo ya es de un usuario del equipo. Una misma cuenta no puede ser del equipo y del portal a la vez.') + ' ' +
+    lwT('Ese correo ya es de un usuario del equipo. Una misma cuenta no puede ser del equipo y del portal a la vez. ') + ' ' +
     lwT('Para probar el portal, usa otro correo (con Gmail vale tucorreo+portal@gmail.com: llega al mismo buzón y cuenta como distinto).'),
   email_invalido:  lwT('Ese correo no tiene una forma válida.'),
   sin_fichas:      lwT('No se ha podido saber a qué ficha dar acceso. Recarga la página e inténtalo otra vez.'),

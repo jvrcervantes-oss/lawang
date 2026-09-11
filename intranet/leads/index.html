@@ -61,6 +61,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/lawang.css?v=c4880e28">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
+     `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
+<script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
+<script src="/contracts/assets/i18n.js?v=41527d1c"></script>
 <script src="/contracts/assets/herramientas.js?v=cce2c8c2"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -110,14 +114,14 @@
          la revisión previa de esta mañana: "no fusionar los 2 CRMs, son datos
          sin join hoy". Setter IA va detrás de 'leads' (ya lo tiene cualquiera
          que abre esta página); Agenda va detrás de 'closers', permiso propio. -->
-    <span class="crm-nav-sep" aria-hidden="true">· WhatsApp Bot</span>
+    <span class="crm-nav-sep" aria-hidden="true" data-lwt="· WhatsApp Bot">· WhatsApp Bot</span>
     <button role="tab" data-v="setter" aria-selected="false"><i class="ph ph-robot"></i>Setter IA</button>
     <button role="tab" data-v="agenda" aria-selected="false" id="tabAgenda" hidden><i class="ph ph-video-camera"></i>Agenda</button>
     <!-- Separador propio: esto no es seguimiento de leads, es rendimiento de personas, y
          va detrás del permiso `ranking`, no de `leads`. Con ocho comerciales, el ticket
          medio por el número devuelve el importe exacto de cada contrato — no es una tabla
          de estadísticas, son cifras de negocio de cada compañero. -->
-    <span class="crm-nav-sep" aria-hidden="true">· Dirección</span>
+    <span class="crm-nav-sep" aria-hidden="true" data-lwt="· Dirección">· Dirección</span>
     <button role="tab" data-v="closers" aria-selected="false" id="tabClosers" hidden><i class="ph ph-trophy"></i>Closers</button>
   </nav>
 
@@ -126,13 +130,13 @@
     <div class="kpis" id="kpis-hoy"></div>
     <div class="filtros">
       <div class="seg" id="filtroHoy">
-        <button data-mias="0" aria-pressed="true">Todo el equipo</button>
-        <button data-mias="1" aria-pressed="false">Solo mías</button>
+        <button data-mias="0" aria-pressed="true" data-lwt="Todo el equipo">Todo el equipo</button>
+        <button data-mias="1" aria-pressed="false" data-lwt="Solo mías">Solo mías</button>
       </div>
     </div>
     <div class="caja">
-      <header><div><h2>Lo que toca hoy</h2>
-        <p>Vencidas y de hoy. El próximo paso de cada lead se pone desde su ficha.</p></div></header>
+      <header><div><h2 data-lwt="Lo que toca hoy">Lo que toca hoy</h2>
+        <p data-lwt="Vencidas y de hoy. El próximo paso de cada lead se pone desde su ficha.">Vencidas y de hoy. El próximo paso de cada lead se pone desde su ficha.</p></div></header>
       <div id="listaHoy" class="citas"></div>
     </div>
   </section>
@@ -142,27 +146,27 @@
     <div class="kpis" id="kpis-pipeline"></div>
     <div class="aviso rojo" id="avisoTipos" hidden></div>
     <div class="filtros">
-      <input type="search" id="q" placeholder="Buscar por nombre, email o teléfono…" autocomplete="off">
+      <input type="search" id="q" data-lwt-ph placeholder="Buscar por nombre, email o teléfono…" autocomplete="off">
       <!-- «Sin dueño» tiene filtro propio y no es un capricho: hoy son 104 de 107, y son
            justo los que cualquiera puede coger sin pedirle permiso a nadie. Es la bandeja
            de entrada real del equipo. -->
       <div class="seg" id="filtroDueno">
-        <button data-d="todos"  aria-pressed="true">Todos</button>
-        <button data-d="mios"   aria-pressed="false">Mis leads</button>
-        <button data-d="libres" aria-pressed="false">Sin dueño</button>
+        <button data-d="todos"  aria-pressed="true" data-lwt="Todos">Todos</button>
+        <button data-d="mios"   aria-pressed="false" data-lwt="Mis leads">Mis leads</button>
+        <button data-d="libres" aria-pressed="false" data-lwt="Sin dueño">Sin dueño</button>
       </div>
       <div class="seg" id="canales"></div>
     </div>
-    <div class="tablero" id="tablero"><p class="vacio">Cargando…</p></div>
+    <div class="tablero" id="tablero"><p class="vacio" data-lwt="Cargando…">Cargando…</p></div>
   </section>
 
   <!-- ===================== BANDEJA ====================== -->
   <section class="crm-vista" id="v-bandeja" hidden>
     <div class="filtros">
-      <input type="search" id="qb" placeholder="Buscar en la bandeja…" autocomplete="off">
+      <input type="search" id="qb" data-lwt-ph placeholder="Buscar en la bandeja…" autocomplete="off">
       <div class="seg" id="filtroBandeja">
-        <button data-fb="todos"    aria-pressed="true">Todos</button>
-        <button data-fb="sintocar" aria-pressed="false">Sin tocar</button>
+        <button data-fb="todos"    aria-pressed="true" data-lwt="Todos">Todos</button>
+        <button data-fb="sintocar" aria-pressed="false" data-lwt="Sin tocar">Sin tocar</button>
         <button data-fb="parados"  aria-pressed="false">Parados +14d</button>
       </div>
     </div>
@@ -176,8 +180,8 @@
     <div class="caja" style="margin-bottom:16px">
       <header>
         <div>
-          <h2>Leads y gasto, semana a semana</h2>
-          <p>Leads recibidos frente a lo invertido en Meta. El gasto lo trae el vigilante cada 4 h.</p>
+          <h2 data-lwt="Leads y gasto, semana a semana">Leads y gasto, semana a semana</h2>
+          <p data-lwt="Leads recibidos frente a lo invertido en Meta. El gasto lo trae el vigilante cada 4 h.">Leads recibidos frente a lo invertido en Meta. El gasto lo trae el vigilante cada 4 h.</p>
         </div>
       </header>
       <div id="grafica" style="padding:16px"></div>
@@ -185,7 +189,7 @@
     <div class="caja">
       <header>
         <div>
-          <h2>Rendimiento por campaña</h2>
+          <h2 data-lwt="Rendimiento por campaña">Rendimiento por campaña</h2>
           <p id="subCampanas">—</p>
         </div>
       </header>
@@ -198,19 +202,19 @@
     <div class="kpis" id="kpis-auto"></div>
     <div class="aviso gris">
       Estos automatismos los ejecuta AxisWorks sobre las campañas de Lawang, cada 4 horas.
-      Aquí se ven <b>en solo lectura</b>: qué vigila cada regla y qué ha hecho de verdad.
+      Aquí se ven <b data-lwt="en solo lectura">en solo lectura</b>: qué vigila cada regla y qué ha hecho de verdad.
       Para cambiar un umbral o un tope de gasto, habla con el estudio.
     </div>
     <div class="caja" style="margin-bottom:16px">
-      <header><div><h2>El flujo</h2><p>De un formulario de Meta a una tarjeta en el pipeline.</p></div></header>
+      <header><div><h2 data-lwt="El flujo">El flujo</h2><p data-lwt="De un formulario de Meta a una tarjeta en el pipeline.">De un formulario de Meta a una tarjeta en el pipeline.</p></div></header>
       <div id="flujo" style="padding:18px 16px"></div>
     </div>
     <div class="caja" style="margin-bottom:16px">
-      <header><div><h2>Reglas activas</h2><p id="subReglas">—</p></div></header>
+      <header><div><h2 data-lwt="Reglas activas">Reglas activas</h2><p id="subReglas">—</p></div></header>
       <div id="reglas" style="padding:14px 16px"></div>
     </div>
     <div class="caja">
-      <header><div><h2>Lo que han hecho</h2><p id="subAcciones">—</p></div></header>
+      <header><div><h2 data-lwt="Lo que han hecho">Lo que han hecho</h2><p id="subAcciones">—</p></div></header>
       <div class="tabla-scroll"><table class="tabla" id="tAcciones"></table></div>
     </div>
   </section>
@@ -222,8 +226,8 @@
     <div class="caja">
       <header>
         <div>
-          <h2>Conversaciones del bot</h2>
-          <p id="subSetter">El bot de WhatsApp de Lawang, en vivo. Pausar detiene la IA para ese lead: a partir de ahí responde una persona.</p>
+          <h2 data-lwt="Conversaciones del bot">Conversaciones del bot</h2>
+          <p id="subSetter" data-lwt="El bot de WhatsApp de Lawang, en vivo. Pausar detiene la IA para ese lead: a partir de ahí responde una persona.">El bot de WhatsApp de Lawang, en vivo. Pausar detiene la IA para ese lead: a partir de ahí responde una persona.</p>
         </div>
         <button type="button" class="btn" id="btnRefrescarSetter"><i class="ph ph-arrows-clockwise"></i>Refrescar</button>
       </header>
@@ -236,8 +240,8 @@
         <div class="wa-chat" id="waChat" data-vacio="1">
           <div class="wa-nada">
             <i class="ph ph-chats-circle"></i>
-            <p>Elige una conversación</p>
-            <span>Los mensajes del bot con cada lead, tal y como los ve el cliente.</span>
+            <p data-lwt="Elige una conversación">Elige una conversación</p>
+            <span data-lwt="Los mensajes del bot con cada lead, tal y como los ve el cliente.">Los mensajes del bot con cada lead, tal y como los ve el cliente.</span>
           </div>
         </div>
         <!-- Tercera columna: la ficha del lead, con lo que el BOT sabe de él (Redis,
@@ -253,28 +257,28 @@
   <!-- ======================= AGENDA DE CIERRE =========================== -->
   <section class="crm-vista" id="v-agenda" hidden>
     <div class="kpis" id="kpis-agenda"></div>
-    <div class="aviso gris" id="avisoAgendaMeet" hidden>
+    <div class="aviso gris" id="avisoAgendaMeet" hidden data-lwt="El enlace de Google Meet se genera solo en cuanto el estudio active el acceso de Google Workspace. Hasta entonces, la cita se agenda igual — el closer comparte su propio enlace con el lead.">
       El enlace de Google Meet se genera solo en cuanto el estudio active el acceso de Google Workspace. Hasta entonces, la cita se agenda igual — el closer comparte su propio enlace con el lead.
     </div>
     <div class="caja" style="margin-bottom:16px">
-      <header><div><h2>Nueva cita</h2><p>Agenda la llamada de venta de un lead con su closer.</p></div></header>
+      <header><div><h2 data-lwt="Nueva cita">Nueva cita</h2><p data-lwt="Agenda la llamada de venta de un lead con su closer.">Agenda la llamada de venta de un lead con su closer.</p></div></header>
       <div style="padding:16px">
         <input type="hidden" id="agCitaId">
         <div class="fila-campos">
-          <div class="campo"><label for="agTelefono">Teléfono del lead</label><input type="tel" id="agTelefono" placeholder="+34600000000"></div>
-          <div class="campo"><label for="agNombre">Nombre</label><input type="text" id="agNombre" placeholder="Nombre del lead"></div>
-          <div class="campo"><label for="agCuando">Fecha y hora</label><input type="datetime-local" id="agCuando"></div>
-          <div class="campo"><label for="agCloser">Closer</label><input type="email" id="agCloser" placeholder="vacío = tú mismo"></div>
+          <div class="campo"><label for="agTelefono" data-lwt="Teléfono del lead">Teléfono del lead</label><input type="tel" id="agTelefono" placeholder="+34600000000"></div>
+          <div class="campo"><label for="agNombre" data-lwt="Nombre">Nombre</label><input type="text" id="agNombre" data-lwt-ph placeholder="Nombre del lead"></div>
+          <div class="campo"><label for="agCuando" data-lwt="Fecha y hora">Fecha y hora</label><input type="datetime-local" id="agCuando"></div>
+          <div class="campo"><label for="agCloser" data-lwt="Closer">Closer</label><input type="email" id="agCloser" data-lwt-ph placeholder="vacío = tú mismo"></div>
         </div>
-        <div class="campo"><label for="agNotas">Notas</label><input type="text" id="agNotas" placeholder="Contexto para quien atienda la llamada"></div>
+        <div class="campo"><label for="agNotas" data-lwt="Notas">Notas</label><input type="text" id="agNotas" data-lwt-ph placeholder="Contexto para quien atienda la llamada"></div>
         <div style="display:flex;gap:8px">
           <button type="button" class="btn pri" id="btnAgendarGuardar"><i class="ph ph-calendar-plus"></i>Agendar</button>
-          <button type="button" class="btn" id="btnAgendarCancelar" hidden>Cancelar edición</button>
+          <button type="button" class="btn" id="btnAgendarCancelar" hidden data-lwt="Cancelar edición">Cancelar edición</button>
         </div>
       </div>
     </div>
     <div class="caja">
-      <header><div><h2>Próximas llamadas</h2><p id="subAgenda">—</p></div></header>
+      <header><div><h2 data-lwt="Próximas llamadas">Próximas llamadas</h2><p id="subAgenda">—</p></div></header>
       <div id="tAgenda" class="citas"></div>
     </div>
   </section>
@@ -288,15 +292,15 @@
     <div class="caja" style="margin-bottom:16px">
       <header>
         <div>
-          <h2>Quién vende</h2>
+          <h2 data-lwt="Quién vende">Quién vende</h2>
           <p id="subRanking">—</p>
         </div>
         <!-- Las cadenas no tienen regla de negocio fijada todavía: una construcción colgando
              de su reserva puede ser dinero nuevo o el mismo negocio contado dos veces. En vez
              de elegir por el owner, se le deja verlo de las dos maneras. -->
         <div class="seg" id="filtroCadenas">
-          <button data-raices="0" aria-pressed="true">Todo lo firmado</button>
-          <button data-raices="1" aria-pressed="false">Solo contratos raíz</button>
+          <button data-raices="0" aria-pressed="true" data-lwt="Todo lo firmado">Todo lo firmado</button>
+          <button data-raices="1" aria-pressed="false" data-lwt="Solo contratos raíz">Solo contratos raíz</button>
         </div>
       </header>
       <div class="tabla-scroll"><table class="tabla" id="tRanking"></table></div>
@@ -312,7 +316,7 @@
     <div class="caja" id="cajaReparto" style="margin-bottom:16px">
       <header>
         <div>
-          <h2>Quién atiende cada campaña</h2>
+          <h2 data-lwt="Quién atiende cada campaña">Quién atiende cada campaña</h2>
           <p id="subReparto">—</p>
         </div>
       </header>
@@ -322,12 +326,12 @@
     <div class="caja" id="cajaAtribuir">
       <header>
         <div>
-          <h2>A quién se atribuye cada venta</h2>
+          <h2 data-lwt="A quién se atribuye cada venta">A quién se atribuye cada venta</h2>
           <p id="subAtribuir">—</p>
         </div>
         <div class="seg" id="filtroAtribuir">
-          <button data-pend="1" aria-pressed="true">Sin atribuir</button>
-          <button data-pend="0" aria-pressed="false">Todas</button>
+          <button data-pend="1" aria-pressed="true" data-lwt="Sin atribuir">Sin atribuir</button>
+          <button data-pend="0" aria-pressed="false" data-lwt="Todas">Todas</button>
         </div>
       </header>
       <div class="tabla-scroll"><table class="tabla" id="tAtribuir"></table></div>
