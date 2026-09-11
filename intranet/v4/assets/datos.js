@@ -780,8 +780,11 @@
         }
         pon('d-pendiente2', fmt(d.cartera - cob, 'EUR'));
         pon('d-presu', '—');
-        var h2 = hojaConTexto(/Master Plan/i);
-        if (h2) h2.textContent = elegido.nombre + ' · Master Plan & Cuentas';
+        // Anclado por data-lw, no por texto (11-sep-2026): hojaConTexto()
+        // excluye a propósito cualquier cosa dentro de un <aside>, y el título
+        // del cajón vive en uno — por eso se quedaba fijo en "Horizon S1" al
+        // abrir cualquier otro proyecto.
+        pon('d-titulo', elegido.nombre + ' · Master Plan & Cuentas');
 
         /* La lista de unidades del cajón, con datos reales del proyecto
            elegido. `unidades_estado` es la vista que ya trae el contrato y el

@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="es" style=""><head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d126c94d" data-herramienta="unidades"></script>
-<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=f84d8753" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1" defer></script><script src="/contracts/assets/proyectos_csv.js?v=e610515a" defer></script><script src="../assets/datos.js?v=9dda7551" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=f84d8753" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1" defer></script><script src="/contracts/assets/proyectos_csv.js?v=e610515a" defer></script><script src="../assets/datos.js?v=f6da0c80" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=4afc04b7" defer></script>
 <link href="../assets/shell.css?v=4ce80056" rel="stylesheet">
@@ -366,15 +366,17 @@
      Stitch lo dejó en su estado "abierto" de fábrica, así que la página cargaba
      mostrando el cajón (con el contenido de muestra "Horizon…") antes de que
      nadie hiciera clic en nada. Se abre solo con "Ver detalle & cuentas". -->
-<aside class="sui-cajon fixed top-0 right-0 h-full w-full max-w-[500px] bg-surface-container-lowest border-l border-warm-border z-50 shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out translate-x-full" id="cajon-detalle"
+<aside class="sui-cajon fixed top-0 right-0 h-full w-full max-w-[70%] bg-surface-container-lowest border-l border-warm-border z-50 shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out translate-x-full" id="cajon-detalle"
 <!-- Cabecera del Cajón -->
 <div class="px-6 py-5 bg-surface-container-low border-b border-warm-border flex items-start justify-between">
 <div class="flex flex-col gap-1 pr-4">
 <span class="text-[11px] font-semibold text-soft-canopy uppercase tracking-widest">EXPEDIENTE FINANCIERO Y TERRITORIAL</span>
-<h2 class="font-headline-sm text-[26px] text-deep-lagoon font-bold leading-tight">
-          Horizon S1 — Master Plan &amp; Cuentas
+<!-- data-lw, no anclaje por texto: hojaConTexto() excluye a propósito todo lo
+     que esté dentro de un <aside> (evita pisar la sidebar), y este título VIVE
+     dentro de uno — por eso se quedaba siempre en "Horizon S1" (11-sep-2026). -->
+<h2 class="font-headline-sm text-[26px] text-deep-lagoon font-bold leading-tight" data-lw="d-titulo">
+          —
         </h2>
-<span class="text-xs text-outline font-medium">Lote 01 al 10</span>
 </div>
 <button class="w-8 h-8 rounded-full flex items-center justify-center text-outline hover:text-volcanic-ash hover:bg-surface-container transition-colors shrink-0" onclick="document.getElementById('cajon-detalle').classList.add('translate-x-full'); document.getElementById('cajon-backdrop').classList.add('hidden');" title="Cerrar panel" type="button">
 <span class="material-symbols-outlined text-[20px]">close</span>
