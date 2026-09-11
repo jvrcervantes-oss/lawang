@@ -1542,11 +1542,11 @@ async function verConversacion(phone){
         <div class="sub">+${esc(phone)}</div>
       </div>
       ${lead.optOut
-        ? '<span class="chip rojo"><i class="ph ph-prohibit"></i>' + lwT('Baja (STOP)') + '</span>'
+        ? '<span class="chip rojo"><i class="ph ph-prohibit"></i> ' + lwT('Baja (STOP)') + '</span>'
         : lead.gated
-          ? '<span class="chip oro"><i class="ph ph-flask"></i>' + lwT('Frenada (testing)') + '</span>'
+          ? '<span class="chip oro"><i class="ph ph-flask"></i> ' + lwT('Frenada (testing)') + '</span>'
           : lead.paused
-            ? '<span class="chip gris"><i class="ph ph-pause"></i>' + lwT('Pausada') + '</span>'
+            ? '<span class="chip gris"><i class="ph ph-pause"></i> ' + lwT('Pausada') + '</span>'
             : '<span class="chip verde"><i class="ph ph-robot"></i> IA activa</span>'}
       <button class="btn mini" data-pausar="${esc(phone)}" data-a="${lead.paused ? '0' : '1'}">
         ${lead.paused ? 'Reanudar IA' : 'Pausar IA'}</button>

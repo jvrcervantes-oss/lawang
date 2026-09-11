@@ -32,6 +32,9 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
+<!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
+     `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
+<script src="/contracts/assets/i18n.js?v=05322a13"></script>
 <script src="/contracts/assets/herramientas.js?v=cce2c8c2"></script>
 <script src="assets/topbar.js?v=c1bc6349" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -118,8 +121,8 @@
        declara con una clase que la NOMBRA en vez de deducirla de la página. -->
   <div class="topbar lw-topbar lw-topbar-flujo" data-titulo="Contratos">
     <span class="lw-sep"></span>
-    <select id="tplPick" class="lw-select" aria-label="Tipo de contrato"></select>
-    <span class="lang-hint" title="El contrato siempre incluye Bahasa Indonesia">Bahasa + </span>
+    <select id="tplPick" class="lw-select" data-lwt-aria aria-label="Tipo de contrato"></select>
+    <span class="lang-hint" data-lwt-title title="El contrato siempre incluye Bahasa Indonesia">Bahasa + </span>
     <div class="lang-toggle" id="langToggle"></div>
     <div class="lw-spacer"></div>
     <button type="button" class="lw-btn" id="btnContracts">← Listado</button>
@@ -164,7 +167,7 @@
            apareciendo y desapareciendo solos (updateSaveButton). Si algún día
            vuelve a quedarse estrecha, el menú está en el historial. -->
       <div class="pv-bar">
-        <b id="pvTitle">Vista previa</b>
+        <b id="pvTitle" data-lwt="Vista previa">Vista previa</b>
         <span id="lockBadge" style="display:none;font-size:12px;color:var(--be,#a3342b);align-items:center;gap:6px;font-weight:600">🔒 Bloqueado</span>
         <!-- Enviado a firma (18-ago-2026): hasta hoy este estado era INVISIBLE
              —el formulario de un contrato con un enlace vivo se veía igual que
@@ -173,39 +176,39 @@
              aplicarEstadoFirma(). -->
         <span id="firmaBadge" style="display:none;font-size:12px;color:#0E6B70;align-items:center;gap:6px;font-weight:600">✍︎ Enviado a firma</span>
         <!-- 1. el documento en sí -->
-        <div class="pv-grupo" role="group" aria-label="Documento">
-          <span class="g">Documento</span>
-          <button class="btn ghost" id="btnEdit" title="Editar el texto fijo del contrato">✎ Editar texto</button>
-          <button class="btn ghost" id="btnDesign" title="Color de portada, logo y marca de agua" style="display:none">🎨 Diseño</button>
-          <button class="btn ghost" id="btnEditReset" title="Restaurar texto original de la plantilla" style="display:none">↺ Original</button>
-          <button class="btn ghost" id="btnDerivar" title="Genera otro contrato reutilizando estos datos">⎘ Copiar datos</button>
+        <div class="pv-grupo" role="group" data-lwt-aria aria-label="Documento">
+          <span class="g" data-lwt="Documento">Documento</span>
+          <button class="btn ghost" id="btnEdit" data-lwt-title title="Editar el texto fijo del contrato">✎ Editar texto</button>
+          <button class="btn ghost" id="btnDesign" data-lwt-title title="Color de portada, logo y marca de agua" style="display:none">🎨 Diseño</button>
+          <button class="btn ghost" id="btnEditReset" data-lwt-title title="Restaurar texto original de la plantilla" style="display:none">↺ Original</button>
+          <button class="btn ghost" id="btnDerivar" data-lwt-title title="Genera otro contrato reutilizando estos datos">⎘ Copiar datos</button>
         </div>
         <!-- 2. guardar: ni flujo de firma ni papel, es la base de datos -->
-        <div class="pv-grupo" role="group" aria-label="Base de datos">
-          <button class="btn primary" id="btnSave" style="display:none" title="Guarda el contrato en la base de datos">Guardar</button>
+        <div class="pv-grupo" role="group" data-lwt-aria aria-label="Base de datos">
+          <button class="btn primary" id="btnSave" style="display:none" data-lwt-title title="Guarda el contrato en la base de datos">Guardar</button>
         </div>
         <!-- 3. firma remota: el comprador firma desde un enlace y el PDF firmado
              entra solo (Edge Function firma-submit). Sin pasos a mano. -->
-        <div class="pv-grupo" role="group" aria-label="Firma automática">
-          <span class="g">Firma automática</span>
-          <button class="btn ghost" id="btnEnviarFirma" style="display:none" title="Enlace para que el comprador firme a distancia">✍︎ Enviar a firma</button>
+        <div class="pv-grupo" role="group" data-lwt-aria aria-label="Firma automática">
+          <span class="g" data-lwt="Firma automática">Firma automática</span>
+          <button class="btn ghost" id="btnEnviarFirma" style="display:none" data-lwt-title title="Enlace para que el comprador firme a distancia">✍︎ Enviar a firma</button>
           <button class="btn ghost" id="btnEditarFirmado" style="display:none"
-                  title="Anula el enlace y las firmas ya dadas, y desbloquea el formulario para editar">✎ Editar (anula la firma)</button>
-          <button class="btn ghost" id="btnDownloadSigned" style="display:none" title="Descargar el PDF ya firmado">PDF firmado ↓</button>
+                  data-lwt-title title="Anula el enlace y las firmas ya dadas, y desbloquea el formulario para editar">✎ Editar (anula la firma)</button>
+          <button class="btn ghost" id="btnDownloadSigned" style="display:none" data-lwt-title title="Descargar el PDF ya firmado">PDF firmado ↓</button>
           <!-- LAW-71 (19-ago-2026): un contrato firmado era un camino sin vuelta
                para todo el mundo. El super admin puede devolverlo a editable, y
                la base deja escrito quién y cuándo (evento «desbloqueado»). -->
           <button class="btn ghost" id="btnDesbloquear" style="display:none"
-                  title="Solo super admin: devuelve el contrato a editable. Queda registrado">🔓 Desbloquear</button>
+                  data-lwt-title title="Solo super admin: devuelve el contrato a editable. Queda registrado">🔓 Desbloquear</button>
         </div>
         <!-- 4. el camino a mano: te llevas el PDF, lo mandas tú, y cuando vuelve
              firmado lo subes tú. Mismo destino que el grupo anterior, pero cada
              paso lo das tú. -->
-        <div class="pv-grupo" role="group" aria-label="PDF a mano">
+        <div class="pv-grupo" role="group" data-lwt-aria aria-label="PDF a mano">
           <span class="g">A mano</span>
-          <button class="btn ghost" id="btnPdf">Descargar PDF</button>
+          <button class="btn ghost" id="btnPdf" data-lwt="Descargar PDF">Descargar PDF</button>
           <button class="btn ghost" id="btnEmail">✉ Email</button>
-          <button class="btn ghost" id="btnLockUpload" style="display:none" title="Sube el PDF firmado y bloquea el contrato">🔒 Subir firmado</button>
+          <button class="btn ghost" id="btnLockUpload" style="display:none" data-lwt-title title="Sube el PDF firmado y bloquea el contrato">🔒 Subir firmado</button>
         </div>
         <!-- 5. Facturarlo. Hasta el 15-ago-2026 NO habia ningun camino desde un
              contrato guardado hasta Facturas: el agente que acababa de guardar un
@@ -213,23 +216,23 @@
              contrato otra vez en un desplegable. Facturas ya aceptaba `?contrato=`
              (lo usa Operaciones desde el 11-ago), asi que solo faltaba el enlace.
              Solo con el contrato guardado: sin id que pasar no lleva a ningun sitio. -->
-        <div class="pv-grupo" role="group" aria-label="Facturar">
-          <span class="g">Cobro</span>
+        <div class="pv-grupo" role="group" data-lwt-aria aria-label="Facturar">
+          <span class="g" data-lwt="Cobro">Cobro</span>
           <a class="btn ghost" id="btnFacturar" style="display:none" target="_blank" rel="noopener"
-             title="Abre Facturas con este contrato ya elegido">💶 Facturar</a>
+             data-lwt-title title="Abre Facturas con este contrato ya elegido">💶 Facturar</a>
         </div>
         <!-- 6. El rastro (18-ago-2026, tras CR00025: un contrato "enviado" a un
              email con typo y ningún sitio donde mirar a dónde había salido).
              Enlaces de firma del contrato + log de correos_enviados. -->
-        <div class="pv-grupo" role="group" aria-label="Registro de envíos">
-          <span class="g">Rastro</span>
+        <div class="pv-grupo" role="group" data-lwt-aria aria-label="Registro de envíos">
+          <span class="g" data-lwt="Rastro">Rastro</span>
           <button class="btn ghost" id="btnRegistro" style="display:none"
-                  title="Enlaces de firma de este contrato y a qué correos se ha enviado">📨 Registro</button>
+                  data-lwt-title title="Enlaces de firma de este contrato y a qué correos se ha enviado">📨 Registro</button>
         </div>
         <input type="file" id="lockFileInput" accept="application/pdf" style="display:none">
-        <button class="btn ghost pv-close" id="btnClose">Cerrar</button>
+        <button class="btn ghost pv-close" id="btnClose" data-lwt="Cerrar">Cerrar</button>
       </div>
-      <div class="pv-scroll"><iframe id="pvFrame" title="Vista previa del contrato"></iframe></div>
+      <div class="pv-scroll"><iframe id="pvFrame" data-lwt-title title="Vista previa del contrato"></iframe></div>
     </div>
   </div>
 
@@ -241,14 +244,14 @@
   <div class="cp-overlay" id="cpOverlay">
     <div class="cp-modal">
       <div class="cp-head">
-        <b>Contratos guardados</b>
-        <button type="button" class="tb-link" id="cpClose">Cerrar</button>
+        <b data-lwt="Contratos guardados">Contratos guardados</b>
+        <button type="button" class="tb-link" id="cpClose" data-lwt="Cerrar">Cerrar</button>
       </div>
-      <input type="search" class="sui-buscar" id="cpSearch" placeholder="Buscar por número, comprador, proyecto o autor…">
+      <input type="search" class="sui-buscar" id="cpSearch" data-lwt-ph placeholder="Buscar por número, comprador, proyecto o autor…">
       <div class="cp-filtros" id="cpFiltrosTipo"></div>
       <div class="cp-filtros" id="cpFiltrosEstado"></div>
       <div class="cp-cols">
-        <span>Nº</span><span>Tipo</span><span>Comprador</span><span>Proyecto</span><span>Precio</span><span>Fecha</span><span>Creado por</span>
+        <span>Nº</span><span data-lwt="Tipo">Tipo</span><span data-lwt="Comprador">Comprador</span><span data-lwt="Proyecto">Proyecto</span><span data-lwt="Precio">Precio</span><span data-lwt="Fecha">Fecha</span><span data-lwt="Creado por">Creado por</span>
       </div>
       <div class="cp-list" id="cpList"></div>
     </div>
@@ -260,18 +263,18 @@
   <div class="cp-overlay" id="fmOverlay">
     <div class="cp-modal" style="width:min(640px,100%)">
       <div class="cp-head">
-        <b>Enviar a firma</b>
-        <button type="button" class="tb-link" id="fmClose">Cerrar</button>
+        <b data-lwt="Enviar a firma">Enviar a firma</b>
+        <button type="button" class="tb-link" id="fmClose" data-lwt="Cerrar">Cerrar</button>
       </div>
       <div class="em-body">
-        <p class="em-note">El comprador firma desde el enlace. El PDF firmado entra solo y bloquea el contrato.</p>
+        <p class="em-note" data-lwt="El comprador firma desde el enlace. El PDF firmado entra solo y bloquea el contrato.">El comprador firma desde el enlace. El PDF firmado entra solo y bloquea el contrato.</p>
         <p id="fmQuien" style="display:none;margin:0 0 8px;font-weight:600;color:var(--dl,#104C4F)"></p>
-        <label>Nombre del comprador<input type="text" id="fmName" placeholder="Nombre y apellidos"></label>
+        <label>Nombre del comprador<input type="text" id="fmName" data-lwt-ph placeholder="Nombre y apellidos"></label>
         <!-- El email dejó de ser opcional (28-jul): sin él no se puede mandar el
              enlace desde aquí, y además queda en el registro de firma como parte
              de la trazabilidad de quién firmó. -->
         <label>Email del comprador<input type="email" id="fmEmail" placeholder="cliente@email.com" required></label>
-        <button class="btn primary" id="fmGen" style="margin-top:6px">Generar enlace de firma</button>
+        <button class="btn primary" id="fmGen" style="margin-top:6px" data-lwt="Generar enlace de firma">Generar enlace de firma</button>
         <div id="fmResult" style="display:none;margin-top:14px">
           <label>Enlace de firma<input type="text" id="fmLink" readonly onclick="this.select()"></label>
           <!-- Editable: el mensaje se genera con un texto por defecto, pero cada
@@ -279,12 +282,12 @@
                el momento del clic, no el texto original. -->
           <label>Mensaje<textarea id="fmMsg" rows="5"></textarea></label>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-            <button class="btn ghost" id="fmCopy" type="button">Copiar enlace</button>
+            <button class="btn ghost" id="fmCopy" type="button" data-lwt="Copiar enlace">Copiar enlace</button>
             <!-- Era un <a href="mailto:">: en un equipo sin cliente de correo de
                  escritorio el clic no hacía nada. Ahora envía por el servidor. -->
-            <button class="btn ghost" id="fmMail" type="button">Enviar por email</button>
+            <button class="btn ghost" id="fmMail" type="button" data-lwt="Enviar por email">Enviar por email</button>
           </div>
-          <p class="em-note" style="margin-top:10px">Caduca en 30 días.</p>
+          <p class="em-note" style="margin-top:10px" data-lwt="Caduca en 30 días.">Caduca en 30 días.</p>
         </div>
       </div>
     </div>
@@ -296,13 +299,13 @@
   <div class="cp-overlay" id="dvOverlay">
     <div class="cp-modal" style="width:min(460px,100%)">
       <div class="cp-head">
-        <b>Nuevo contrato con estos datos</b>
-        <button type="button" class="tb-link" id="dvClose">Cerrar</button>
+        <b data-lwt="Nuevo contrato con estos datos">Nuevo contrato con estos datos</b>
+        <button type="button" class="tb-link" id="dvClose" data-lwt="Cerrar">Cerrar</button>
       </div>
       <div class="em-body">
         <p class="em-note">Se copian comprador, proyecto, unidad e importes. No se copian el número, la fecha de firma ni las firmas. El calendario de pagos solo viaja entre contratos del mismo tipo, y con los vencimientos recalculados desde hoy — cada tipo arranca con su plan pactado.</p>
         <label>Contrato a generar<select class="sui-sel" id="dvTpl"></select></label>
-        <button class="btn primary" id="dvGo" style="margin-top:6px">Generar</button>
+        <button class="btn primary" id="dvGo" style="margin-top:6px" data-lwt="Generar">Generar</button>
       </div>
     </div>
   </div>
@@ -314,21 +317,21 @@
   <div class="cp-overlay" id="emOverlay">
     <div class="cp-modal" style="width:min(640px,100%)">
       <div class="cp-head">
-        <b>Enviar por email</b>
-        <button type="button" class="tb-link" id="emClose">Cerrar</button>
+        <b data-lwt="Enviar por email">Enviar por email</b>
+        <button type="button" class="tb-link" id="emClose" data-lwt="Cerrar">Cerrar</button>
       </div>
       <div class="em-body">
-        <p class="em-note">Se envía la vista previa tal cual.</p>
+        <p class="em-note" data-lwt="Se envía la vista previa tal cual.">Se envía la vista previa tal cual.</p>
         <p class="em-note" id="emAviso"></p>
         <label>Destinatario<input type="email" id="emTo" placeholder="cliente@email.com" required></label>
         <div class="em-emails-chips" id="emChips" hidden></div>
         <label>Asunto<input type="text" id="emSubject"></label>
         <label>Mensaje<textarea id="emMessage" rows="5"></textarea></label>
         <details class="em-manual">
-          <summary class="tb-link">O adjúntalo tú mismo (opcional)</summary>
+          <summary class="tb-link" data-lwt="O adjúntalo tú mismo (opcional)">O adjúntalo tú mismo (opcional)</summary>
           <label>PDF del contrato<input type="file" id="emFile" accept="application/pdf"></label>
         </details>
-        <button type="button" class="btn primary" id="emSend" style="width:100%">Enviar</button>
+        <button type="button" class="btn primary" id="emSend" style="width:100%" data-lwt="Enviar">Enviar</button>
       </div>
     </div>
   </div>
@@ -340,10 +343,10 @@
   <div class="cp-overlay" id="regOverlay">
     <div class="cp-modal" style="width:min(820px,100%)">
       <div class="cp-head">
-        <b>Registro de envíos</b>
-        <button type="button" class="tb-link" id="regClose">Cerrar</button>
+        <b data-lwt="Registro de envíos">Registro de envíos</b>
+        <button type="button" class="tb-link" id="regClose" data-lwt="Cerrar">Cerrar</button>
       </div>
-      <div class="em-body" id="regBody"><p class="em-note">Cargando…</p></div>
+      <div class="em-body" id="regBody"><p class="em-note" data-lwt="Cargando…">Cargando…</p></div>
     </div>
   </div>
 
@@ -773,7 +776,7 @@ async function cubrirConEstePoder(poderId, poderNumero){
     const ids = [String(f.adq1_pasaporte||'').trim().toLowerCase(),
                  String(f.adq1_email||'').trim().toLowerCase()].filter(Boolean);
     if(!ids.length){
-      toast('El poder se guarda, pero sin pasaporte ni email del otorgante no se puede saber qué contratos cubre');
+      toast(lwT('El poder se guarda, pero sin pasaporte ni email del otorgante no se puede saber qué contratos cubre'));
       return;
     }
     /* ⚠️ ESTA SÍ ABRE EL JSONB, Y SE QUEDA ASÍ A PROPÓSITO (24-ago-2026).
@@ -962,6 +965,7 @@ function sizeClass(key){
 }
 
 const $ = s => document.querySelector(s);
+lwIdiomaAplicar();   // traduce la HTML de arriba; en espanol no toca el DOM
 function L(o){ return (o && (o[LANG] || o.es)) || (typeof o==='string'?o:''); }
 function humanize(k){ return k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()); }
 /* Copia local de `toast()` — y NO se puede sustituir por `suite-comun.js`, que es
@@ -1120,7 +1124,7 @@ function wireCompradorPanel(){
        19-ago: y si no hay ficha detrás, NO se copian los datos. El guard va
        antes del Object.assign a propósito: al revés dejaba la fila poblada a
        mano con toda la pinta de haber sido elegida de una ficha. */
-    if(!(fila && fila.id)){ toast('Ese resultado no tiene ficha: elige un cliente registrado'); return; }
+    if(!(fila && fila.id)){ toast(lwT('Ese resultado no tiene ficha: elige un cliente registrado')); return; }
     Object.assign(row, datos);
     row.client_id = fila.id;
     row.tipo = fila.tipo || 'persona';   // para su distintivo; un adquiriente II+ también puede ser una sociedad
@@ -1414,7 +1418,7 @@ function wireClienteBuscador(){
     // campos sin enlazar dejaba exactamente lo que esta pantalla ya no admite:
     // un comprador con datos puestos y sin dueño.
     if(fila && fila.id) enlazarFicha(fila);
-    else toast('Ese resultado no tiene ficha: elige un cliente registrado');
+    else toast(lwT('Ese resultado no tiene ficha: elige un cliente registrado'));
   });
 }
 function wireClienteBuscadorEn(input, res, onPick){
@@ -1476,6 +1480,12 @@ function emailsConocidos(){
 /* Los adquirientes extra llevan los MISMOS campos que el Adquiriente I: nombre,
    nacionalidad, pasaporte/CIF, domicilio, teléfono y email (el régimen de tenencia
    es un dato compartido de la operación, no por comprador). f = campos ya escapados. */
+/* lwT:no-tocar — DESDE AQUI Y HASTA `lwT:fin` ES TEXTO DEL DOCUMENTO.
+   Estas frases se IMPRIMEN en el contrato, y su idioma lo decide `LANG`
+   (el idioma de ESE contrato, guardado con el, ES/EN/ID), no la
+   preferencia de interfaz de quien lo emite. Si pasaran por `lwT` un
+   agente que trabaja en ingles imprimiria contratos en ingles sin
+   pedirlo. El marcador lo respeta `auto_t.py`. */
 const COMPRADOR_FRASE = {
   ppjb_reserva: {
     es:(n,f)=>`<b>ADQUIRIENTE ${n}:</b> Identificado con nombre y apellidos <span class="f">${f.nom}</span>, de nacionalidad <span class="f">${f.nac}</span>, pasaporte <span class="f">${f.pas}</span>, con domicilio en <span class="f">${f.dom}</span>, teléfono <span class="f">${f.tel}</span> y email <span class="f">${f.email}</span>.`,
@@ -1505,6 +1515,7 @@ const COMPRADOR_FRASE = {
     id:(n,f)=>`<b>PEMBELI ${n}:</b> <span class="f">${f.nom}</span>, berkewarganegaraan <span class="f">${f.nac}</span>, pemegang paspor no. <span class="f">${f.pas}</span>, beralamat di <span class="f">${f.dom}</span>, telepon <span class="f">${f.tel}</span> dan email <span class="f">${f.email}</span>, juga bertindak atas nama sendiri bersama Pihak Kedua.`,
   },
 };
+/* lwT:fin */
 function compradorFields(c){ return { nom:esc(c.nombre||''), nac:esc(c.nacionalidad||''), pas:esc(c.pasaporte||''),
   dom:esc(c.domicilio||''), tel:esc(c.telefono||''), email:esc(c.email||'') }; }
 function compradorTieneDatos(c){ return !!(c.nombre||c.nacionalidad||c.pasaporte||c.domicilio||c.telefono||c.email); }
@@ -1724,7 +1735,7 @@ function enterEdit(){
   d.addEventListener('input', captureEdit, true);
   const b=$('#btnEdit'); b.textContent='✓ Hecho'; b.classList.add('editing');
   $('#btnEditReset').style.display='inline-flex';
-  toast('Edición ON · reescribe el texto libre; lo resaltado en dorado son campos del formulario y no se toca aquí');
+  toast(lwT('Edición ON · reescribe el texto libre; lo resaltado en dorado son campos del formulario y no se toca aquí'));
 }
 /* Al editar en pantalla, un borrado al principio o al final del párrafo hace que
    Chromium FUSIONE el bloque vecino dentro del que se está editando. Como las dos
@@ -1793,19 +1804,19 @@ function captureEdit(e){
    contrato, no en cada render: render() corre con cada tecla. */
 function avisaHuerfanos(){
   if(!HUERFANOS.length) return;
-  toast('OJO: '+HUERFANOS.length+' edición(es) de texto guardadas en este contrato ya no encajan con la plantilla actual y NO se han aplicado — revisa el documento');
+  toast(lwT('OJO: ')+HUERFANOS.length+' edición(es) de texto guardadas en este contrato ya no encajan con la plantilla actual y NO se han aplicado — revisa el documento');
 }
 function exitEdit(){ EDITING=false; editBtnIdle(); render(); }
 function toggleEdit(){ EDITING ? exitEdit() : enterEdit(); }
 async function resetOverrides(){
   const ok = await lwConfirmar({
     titulo: 'Restaurar el texto original de la plantilla',
-    cuerpo: '<p>Se pierden <b>tus ediciones de texto</b> en esta plantilla. Los campos rellenos y las cláusulas no se tocan.</p>',
+    cuerpo: '<p>' + lwT('Se pierden') + ' <b>' + lwT('tus ediciones de texto') + '</b> ' + lwT('en esta plantilla. Los campos rellenos y las cláusulas no se tocan.') + '</p>',
     confirmar: 'Restaurar el texto',
     tono: 'peligro',
   });
   if(!ok) return;
-  limpiarOverrides(CURRENT.slug); EDITING=false; editBtnIdle(); render(); toast('Texto original restaurado');
+  limpiarOverrides(CURRENT.slug); EDITING=false; editBtnIdle(); render(); toast(lwT('Texto original restaurado'));
 }
 
 /* ============================================================
@@ -1901,7 +1912,7 @@ function fieldHTML(f){
     return `<div class="field" data-key="${key}">
       <label>${label}</label>
       <div class="sigpad-wrap" id="pad-${key}"><canvas role="img" aria-label="${escAttr(label)} — firma a mano alzada"></canvas><div class="ph">✍︎</div></div>
-      <div class="sig-actions"><button type="button" class="link-btn" data-clear="${key}">Borrar</button></div>
+      <div class="sig-actions"><button type="button" class="link-btn" data-clear="${key}">${lwT('Borrar')}</button></div>
     </div>`;
   }
   if(type==='select'){
@@ -2719,7 +2730,7 @@ function saltarACampo(key){
   // falta para que el salto tenga algo visible a lo que hacer scroll
   if(fab && getComputedStyle(fab).display!=='none' && pane && !pane.classList.contains('open')) pane.classList.add('open');
   const el = d.querySelector(`[data-campo="${key}"]`);
-  if(!el){ toast('Ese campo está vacío en este contrato — no hay nada que imprima todavía'); return; }
+  if(!el){ toast(lwT('Ese campo está vacío en este contrato — no hay nada que imprima todavía')); return; }
   el.scrollIntoView({behavior:'smooth', block:'center'});
   const prevOutline=el.style.outline, prevOffset=el.style.outlineOffset;
   el.style.outline='2px solid #C9A227'; el.style.outlineOffset='2px';
@@ -3174,7 +3185,7 @@ async function downloadPdf(){
      El botón ya sale apagado (updateSaveButton); esto es el segundo cerrojo,
      por si alguien llega aquí por otro camino. */
   if(!SAVED_CONTRACT || !SAVED_CONTRACT.numero){
-    toast('Guarda primero: sin guardar no hay número, y el PDF saldría idéntico a uno emitido sin existir en la base.');
+    toast(lwT('Guarda primero: sin guardar no hay número, y el PDF saldría idéntico a uno emitido sin existir en la base.'));
     return;
   }
   printPreview();
@@ -3260,7 +3271,7 @@ async function cargarEstadoFirma(){
     // resetea el candado). No se finge un estado: se AVISA — el trigger de la
     // base sigue rechazando el guardado si de verdad hay firmas vivas.
     console.error('estado de firma:', error.message);
-    toast('No se pudo comprobar si este contrato está enviado a firma');
+    toast(lwT('No se pudo comprobar si este contrato está enviado a firma'));
     return;
   }
   // el filtro de estados va aquí y no en la consulta: son cuatro filas por
@@ -3329,7 +3340,7 @@ async function avisaAnulacion(filas, numero){
 async function anularFirmasYEditar(){
   if(!sb || !SAVED_CONTRACT) return;
   await cargarEstadoFirma();
-  if(EN_FIRMA.vivas + EN_FIRMA.firmadas === 0){ toast('Este contrato ya no tiene firmas vivas'); return; }
+  if(EN_FIRMA.vivas + EN_FIRMA.firmadas === 0){ toast(lwT('Este contrato ya no tiene firmas vivas')); return; }
 
   const quien = f => (f.firmante_nombre || 'sin nombre').split(' ').slice(0,2).join(' ');
   const firmadas = EN_FIRMA.filas.filter(f => f.estado === 'firmado');
@@ -3346,17 +3357,17 @@ async function anularFirmasYEditar(){
             + 'texto anterior. Habrá que pedirle que firme otra vez.</p>'
           : '')
       + (vivas.length
-          ? '<p>Hay <b>' + vivas.length + ' enlace(s) de firma sin usar</b> (' + vivas.map(quien).map(escAttr).join(', ')
+          ? '<p>' + lwT('Hay') + ' <b>' + vivas.length + ' enlace(s) de firma sin usar</b> (' + vivas.map(quien).map(escAttr).join(', ')
             + '). Se anulan también, así que el enlace que ya tengan dejará de funcionar y habrá que mandarles uno nuevo.</p>'
           : '')
-      + '<p>La copia de lo que se firmó se conserva como prueba. No se borra nada.</p>'
+      + '<p>' + lwT('La copia de lo que se firmó se conserva como prueba. No se borra nada.') + '</p>'
       + (nDest
           ? '<p style="margin-top:12px"><label style="display:flex;gap:8px;align-items:flex-start;font-size:13px">'
             + '<input type="checkbox" id="anulAviso" checked style="margin-top:3px">'
             + '<span>Avisar por email a ' + nDest + (nDest === 1 ? ' firmante' : ' firmantes')
             + ' de que su enlace ha dejado de valer.<br>'
-            + '<span style="opacity:.7">Desmárcalo si todavía no habían recibido el enlace.</span></span></label></p>'
-          : '<p style="opacity:.7;font-size:13px">Ningún firmante tiene email en el contrato: no se puede avisar a nadie.</p>'),
+            + '<span style="opacity:.7">' + lwT('Desmárcalo si todavía no habían recibido el enlace.') + '</span></span></label></p>'
+          : '<p style="opacity:.7;font-size:13px">' + lwT('Ningún firmante tiene email en el contrato: no se puede avisar a nadie.') + '</p>'),
     confirmar: firmadas.length ? 'Anular ' + firmadas.length + ' firma(s) y editar' : 'Anular el envío y editar',
     cancelar: 'Dejarlo como está',
     tono: 'peligro',
@@ -3369,16 +3380,16 @@ async function anularFirmasYEditar(){
   const filasAnuladas = EN_FIRMA.filas.slice();
   const { error: eAnu } = await sb.from('contrato_firmas').update({ estado:'anulado' })
     .eq('contrato_id', SAVED_CONTRACT.id).in('estado', ['pendiente','firmado']);
-  if(eAnu){ toast('No se pudieron anular las firmas: ' + eAnu.message); return; }
+  if(eAnu){ toast(lwT('No se pudieron anular las firmas: ') + eAnu.message); return; }
 
   await cargarEstadoFirma();   // relee: el formulario se abre solo si de verdad no quedan
   updateSaveButton();          // devuelve Guardar y «Editar texto», que el candado escondía
-  toast('Firmas anuladas · ya puedes editar');
+  toast(lwT('Firmas anuladas · ya puedes editar'));
 
   if(avisar && nDest){
     const { bien, fallos } = await avisaAnulacion(filasAnuladas, SAVED_CONTRACT.numero || '');
-    if(fallos.length) toast('Aviso enviado a ' + bien + ', falló con: ' + fallos.join(', '));
-    else if(bien)     toast('Avisado' + (bien > 1 ? 's ' + bien + ' firmantes' : ' el firmante') + ' por email');
+    if(fallos.length) toast(lwT('Aviso enviado a ') + bien + ', falló con: ' + fallos.join(', '));
+    else if(bien)     toast(lwT('Avisado') + (bien > 1 ? 's ' + bien + ' firmantes' : ' el firmante') + ' por email');
   }
 }
 $('#btnEditarFirmado').addEventListener('click', anularFirmasYEditar);
@@ -3393,9 +3404,9 @@ $('#btnDesbloquear').addEventListener('click', async ()=>{
   if(!SAVED_CONTRACT || !sb) return;
   const ok = await lwConfirmar({
     titulo: 'Desbloquear ' + SAVED_CONTRACT.numero,
-    cuerpo: '<p>Este contrato está <b>firmado y cerrado</b>. Desbloquearlo lo devuelve a editable, '
+    cuerpo: '<p>' + lwT('Este contrato está') + ' <b>' + lwT('firmado y cerrado') + '</b>. Desbloquearlo lo devuelve a editable, '
       + 'y a partir de ahí el documento puede dejar de coincidir con lo que el comprador firmó.</p>'
-      + '<p>Queda registrado en el historial del contrato: <b>quién</b> lo desbloqueó y <b>cuándo</b>. '
+      + '<p>' + lwT('Queda registrado en el historial del contrato:') + ' <b>' + lwT('quién') + '</b> ' + lwT('lo desbloqueó y') + ' <b>' + lwT('cuándo') + '</b>. '
       + 'Lo ves en «Registro».</p>',
     confirmar: 'Desbloquear',
     cancelar: 'Dejarlo firmado',
@@ -3403,10 +3414,10 @@ $('#btnDesbloquear').addEventListener('click', async ()=>{
   if(!ok) return;
   const { error } = await sb.from('contratos').update({ bloqueado:false })
     .eq('id', SAVED_CONTRACT.id).select('id').single();
-  if(error){ toast('No se pudo desbloquear: ' + error.message); return; }
+  if(error){ toast(lwT('No se pudo desbloquear: ') + error.message); return; }
   LOCKED = false; LOCKED_PDF_PATH = null;
   updateSaveButton(); render();
-  toast('Contrato desbloqueado y registrado');
+  toast(lwT('Contrato desbloqueado y registrado'));
 });
 
 /* El PDF firmado es EL documento: la firma la inyecta `firma-submit` en el
@@ -3424,7 +3435,7 @@ async function signedPdfUrl(){
 }
 async function abrirPdfFirmado(){
   const url = await signedPdfUrl();
-  if(!url){ toast('No se pudo generar el enlace de descarga'); return; }
+  if(!url){ toast(lwT('No se pudo generar el enlace de descarga')); return; }
   window.open(url, '_blank');
 }
 let CAN_EDIT_TEXT = false;                    // rol admin (ver init()) — independiente del bloqueo
@@ -3533,8 +3544,8 @@ function updateSaveButton(){
 }
 
 async function subirPdfFirmado(file){
-  if(!sb || !SAVED_CONTRACT){ toast('Guarda el contrato antes de subir el firmado'); return; }
-  if(file.type!=='application/pdf'){ toast('El archivo debe ser un PDF'); return; }
+  if(!sb || !SAVED_CONTRACT){ toast(lwT('Guarda el contrato antes de subir el firmado')); return; }
+  if(file.type!=='application/pdf'){ toast(lwT('El archivo debe ser un PDF')); return; }
   const btn=$('#btnLockUpload'); btn.disabled=true; btn.textContent='Subiendo…';
   let cerrado = false;
   try{
@@ -3557,16 +3568,16 @@ async function subirPdfFirmado(file){
     if(!updErr){
       const barr = await sb.from('contrato_firmas').update({ estado:'anulado' })
         .eq('contrato_id', SAVED_CONTRACT.id).in('estado', ['pendiente','en_proceso']).select('id');
-      if(barr.error) toast('Cerrado, pero no se pudieron anular los enlaces de firma vivos: ' + barr.error.message);
-      else if((barr.data||[]).length) toast('Enlace(s) de firma pendientes anulados al cerrar');
+      if(barr.error) toast(lwT('Cerrado, pero no se pudieron anular los enlaces de firma vivos: ') + barr.error.message);
+      else if((barr.data||[]).length) toast(lwT('Enlace(s) de firma pendientes anulados al cerrar'));
       await cargarEstadoFirma();
     }
     if(updErr) throw updErr;   // si esto falla, el PDF ya subió pero el contrato sigue editable — se puede reintentar sin duplicar (upsert)
     LOCKED = true; LOCKED_PDF_PATH = path;
-    toast('Contrato bloqueado · PDF firmado guardado');
+    toast(lwT('Contrato bloqueado · PDF firmado guardado'));
     updateSaveButton();
     cerrado = true;
-  }catch(err){ toast('No se pudo bloquear: ' + (err.message || err)); }
+  }catch(err){ toast(lwT('No se pudo bloquear: ') + (err.message || err)); }
   btn.disabled=false; btn.textContent='🔒 Subir firmado';
   /* FUERA del try, y no es cosmética: el contrato ya está bloqueado y su PDF
      guardado cuando se llega aquí. Dentro, cualquier fallo del diálogo (que
@@ -3582,10 +3593,10 @@ async function subirPdfFirmado(file){
   try{
     if(await lwConfirmar({
       titulo: 'Mandarles su copia',
-      cuerpo: '<p>El contrato ya está cerrado. ¿Se les manda ahora la copia del PDF firmado a los compradores?</p>'
-            + '<p class="em-note">Se puede hacer luego desde «Registro» → Copias del contrato firmado.</p>',
+      cuerpo: '<p>' + lwT('El contrato ya está cerrado. ¿Se les manda ahora la copia del PDF firmado a los compradores?') + '</p>'
+            + '<p class="em-note">' + lwT('Se puede hacer luego desde «Registro» → Copias del contrato firmado.') + '</p>',
       confirmar: 'Ver a quién se manda', cancelar: 'Ahora no' })) abrirRegistro();
-  }catch(err){ toast('Contrato cerrado. No se pudo abrir el aviso de copias: ' + (err.message || err)); }
+  }catch(err){ toast(lwT('Contrato cerrado. No se pudo abrir el aviso de copias: ') + (err.message || err)); }
 }
 $('#btnLockUpload').addEventListener('click', ()=> $('#lockFileInput').click());
 $('#lockFileInput').addEventListener('change', e=>{
@@ -3726,13 +3737,13 @@ async function crearProformaAutomatica(contratoId, numero, payload){
     if(error) throw error;
   }catch(e){
     console.error('proforma automática no creada para', numero, ':', e.message || e);
-    toast('Contrato guardado, pero la proforma automática no se pudo crear: ' + (e.message || e));
+    toast(lwT('Contrato guardado, pero la proforma automática no se pudo crear: ') + (e.message || e));
   }
 }
 
 async function guardarContrato(){
-  if(!sb){ toast('Supabase no disponible'); return; }
-  if(LOCKED){ toast('Contrato bloqueado, no se puede guardar'); return; }   // el botón ya se oculta; la RLS también lo bloquearía
+  if(!sb){ toast(lwT('Supabase no disponible')); return; }
+  if(LOCKED){ toast(lwT('Contrato bloqueado, no se puede guardar')); return; }   // el botón ya se oculta; la RLS también lo bloquearía
   const tipo = CONTRACT_TIPO[CURRENT.slug];
   if(!tipo) return;
   /* El Poder Notarial no existe suelto (14-ago, petición del owner): acompaña a
@@ -3740,7 +3751,7 @@ async function guardarContrato(){
      el aviso visual porque sin guardar no hay número ni "Enviar a firma", así
      que este es el único portillo por el que puede salir un poder huérfano. */
   if(CURRENT.slug === 'poa_notario' && !String((collect().poa_hs_vinculado)||'').trim()){
-    toast('Elige el contrato al que acompaña este Poder Notarial antes de guardarlo');
+    toast(lwT('Elige el contrato al que acompaña este Poder Notarial antes de guardarlo'));
     const el = document.querySelector('[name="poa_hs_vinculado"]');
     if(el){ el.focus(); el.scrollIntoView({behavior:'smooth', block:'center'}); }
     return;
@@ -3752,7 +3763,7 @@ async function guardarContrato(){
      ya la asigna sola y este freno no dispara. */
   if(tipo === 'construccion' && UNIDADES_RESERVA_VINCULADA
      && UNIDADES_RESERVA_VINCULADA.lista.length > 1 && !UNIDAD_ID_CONSTRUCCION){
-    toast('Elige a qué parcela pertenece esta Construcción antes de guardarla');
+    toast(lwT('Elige a qué parcela pertenece esta Construcción antes de guardarla'));
     const el = document.getElementById('selUnidadConstruccion');
     if(el){ el.focus(); el.scrollIntoView({behavior:'smooth', block:'center'}); }
     return;
@@ -3773,7 +3784,7 @@ async function guardarContrato(){
   if(!esNuevo && sb){
     await cargarEstadoFirma();
     if(EN_FIRMA.vivas + EN_FIRMA.firmadas > 0){
-      toast('Este contrato está enviado a firma: pulsa «Editar (anula la firma)» para poder guardarlo');
+      toast(lwT('Este contrato está enviado a firma: pulsa «Editar (anula la firma)» para poder guardarlo'));
       return;
     }
   }
@@ -3801,12 +3812,12 @@ async function guardarContrato(){
        existe porque una errata al teclear creaba clientes duplicados. */
     const salida = await lwConfirmar({
       titulo: 'Este comprador todavía no tiene ficha',
-      cuerpo: '<p>El comprador de un contrato sale de su ficha de <b>Compradores</b>, '
+      cuerpo: '<p>' + lwT('El comprador de un contrato sale de su ficha de') + ' <b>' + lwT('Compradores') + '</b>, '
         + 'para que una errata al teclear no cree un cliente duplicado ni un email al que no llega nada.</p>'
-        + '<p>Si ya está registrado, <b>búscalo</b> en el bloque del comprador. Si es la primera vez, '
-        + 'se da de alta en <a href="/intranet/compradores/?nuevo=1" target="_blank" rel="noopener">Compradores</a> '
+        + '<p>' + lwT('Si ya está registrado,') + ' <b>' + lwT('búscalo') + '</b> en el bloque del comprador. Si es la primera vez, '
+        + 'se da de alta en <a href="/intranet/compradores/?nuevo=1" target="_blank" rel="noopener">' + lwT('Compradores') + '</a> '
         + 'y después se busca aquí — el alta no se hace desde el contrato.</p>'
-        + (ES_SUPER ? '<p><b>Como super admin</b> puedes guardarlo igualmente. El contrato quedará sin '
+        + (ES_SUPER ? '<p><b>' + lwT('Como super admin') + '</b> puedes guardarlo igualmente. El contrato quedará sin '
                     + 'comprador enlazado y eso se anota en su historial.</p>' : ''),
       confirmar: ES_SUPER ? 'Guardar sin ficha (queda registrado)' : 'Entendido',
       cancelar: ES_SUPER ? 'Volver y buscarlo' : false,
@@ -3827,10 +3838,10 @@ async function guardarContrato(){
     await lwConfirmar({
       titulo: extrasSinFicha.length === 1 ? 'Un adquiriente adicional no tiene ficha'
                                           : extrasSinFicha.length + ' adquirientes adicionales no tienen ficha',
-      cuerpo: '<p>Estos compradores están escritos a mano y no salen de ninguna ficha:</p><ul>'
+      cuerpo: '<p>' + lwT('Estos compradores están escritos a mano y no salen de ninguna ficha:') + '</p><ul>'
         + extrasSinFicha.map(c => '<li><b>' + esc(String(c.nombre).trim()) + '</b></li>').join('')
         + '</ul><p>Búscalos en su bloque si ya están registrados, o dales de alta en '
-        + '<a href="/intranet/compradores/?nuevo=1" target="_blank" rel="noopener">Compradores</a> y después búscalos aquí. '
+        + '<a href="/intranet/compradores/?nuevo=1" target="_blank" rel="noopener">' + lwT('Compradores') + '</a> y después búscalos aquí. '
         + 'Si alguno sobra, quítalo con «Quitar».</p>',
       confirmar: 'Entendido',
       cancelar: false,
@@ -3860,7 +3871,7 @@ async function guardarContrato(){
       SALTO_FICHA = false;
       const { error: eSalto } = await sb.rpc('registrar_salto_de_freno',
         { p_contrato: data.id, p_evento: 'comprador_sin_ficha' });
-      if(eSalto) toast('Guardado, pero no se pudo registrar el salto: ' + eSalto.message);
+      if(eSalto) toast(lwT('Guardado, pero no se pudo registrar el salto: ') + eSalto.message);
     }
     /* SELLAR EL ORIGEN — 11-sep-2026. Si este contrato nació de un lead del CRM, se deja
        constancia explícita en `lead_contrato`. Hasta hoy el CRM adivinaba el vínculo
@@ -3877,7 +3888,7 @@ async function guardarContrato(){
       const { error: eSello } = await sb.rpc('crm_lead_contrato_sellar',
         { p_lead: leadDeEste, p_contrato: data.id });
       if(eSello){
-        toast('Guardado, pero no se pudo enlazar con su lead: ' + eSello.message);
+        toast(lwT('Guardado, pero no se pudo enlazar con su lead: ') + eSello.message);
       } else {
         LEAD_ID = null;   // ya sellado: que un segundo guardado no lo intente otra vez
       }
@@ -3957,7 +3968,7 @@ function compradoresDelFormulario(){
 async function informarCompradores(contratoId){
   const { lista, fuera } = compradoresDelFormulario();
   const sobran = fuera ? ' · ' + fuera + ' adquiriente(s) por encima del IX se quedan sin ficha' : '';
-  if(!sb || !contratoId || !lista.length){ if(fuera) toast('Aviso:' + sobran.slice(3)); return; }
+  if(!sb || !contratoId || !lista.length){ if(fuera) toast(lwT('Aviso:') + sobran.slice(3)); return; }
 
   // sin pasaporte ni email no hay ficha, y es correcto: un "cliente" sin
   // identificador se duplica en cuanto alguien escriba el nombre distinto. Lo
@@ -3982,10 +3993,10 @@ async function informarCompradores(contratoId){
   if(desviados.length){
     await lwConfirmar({
       titulo: 'El contrato quedó enlazado a otro comprador',
-      cuerpo: '<p>Está guardado con <b>' + esc(desviados.map(p => String(p.nombre||'').trim() || p.rol).join(', '))
-        + '</b>, pero el enlace que hay en la base apunta a otra ficha.</p>'
+      cuerpo: '<p>' + lwT('Está guardado con') + ' <b>' + esc(desviados.map(p => String(p.nombre||'').trim() || p.rol).join(', '))
+        + '</b>' + lwT(', pero el enlace que hay en la base apunta a otra ficha.') + '</p>'
         + '<p>Es lo que pasa si el enlace no se pudo actualizar al cambiar de comprador. '
-        + '<b>Avisa al estudio</b> antes de seguir: hasta arreglarlo, este contrato le sale al cliente equivocado '
+        + '<b>' + lwT('Avisa al estudio') + '</b> antes de seguir: hasta arreglarlo, este contrato le sale al cliente equivocado '
         + 'en su ficha y en las herramientas que cruzan personas y operaciones.</p>',
       confirmar: 'Entendido',
       cancelar: false,
@@ -4002,7 +4013,7 @@ async function informarCompradores(contratoId){
       cuerpo: '<p>El contrato está guardado. Lo que no ha quedado enlazado es su ficha de comprador: '
         + '<b>' + esc(faltan.map(p => String(p.nombre||'').trim() || p.rol).join(', ')) + '</b>.</p>'
         + '<p>Sin ese enlace, el comprador no verá este contrato en su ficha y las herramientas que '
-        + 'cruzan personas y operaciones no lo cuentan. <b>Avisa al estudio</b>: no es algo que puedas '
+        + 'cruzan personas y operaciones no lo cuentan. <b>' + lwT('Avisa al estudio') + '</b>: no es algo que puedas '
         + 'arreglar tú desde aquí.</p>'
         + (sinId ? '<p class="cli-sub">' + esc(sinId.replace(' · ', '')) + '</p>' : ''),
       confirmar: 'Entendido',
@@ -4097,7 +4108,7 @@ function pintarCpFiltros(){
   if(CP_TIPO && dentro.some(x => x.t === CP_TIPO)) CP_MAS_ABIERTO = true;
   const chip = x => `<button class="cp-f ${CP_TIPO===x.t?'on':''} ${x.n?'':'vacio'}" data-t="${x.t}">${cpTipoLabel(x.t)} ${x.n}</button>`;
   $('#cpFiltrosTipo').innerHTML =
-    `<span class="sui-eje">Tipo</span>` +
+    `<span class="sui-eje">${lwT('Tipo')}</span>` +
     `<button class="cp-f ${CP_TIPO===''?'on':''}" data-t="">Todos ${CP_ROWS.length}</button>` +
     arriba.map(chip).join('') +
     (dentro.length
@@ -4105,7 +4116,7 @@ function pintarCpFiltros(){
            CP_MAS_ABIERTO ? 'Menos ▴' : 'Más ' + dentro.length + ' ▾'}</button>`
         + (CP_MAS_ABIERTO ? dentro.map(chip).join('') : '')
       : '');
-  $('#cpFiltrosEstado').innerHTML = `<span class="sui-eje">Estado</span>` + CP_ESTADOS.map(([k,l,prueba]) => {
+  $('#cpFiltrosEstado').innerHTML = `<span class="sui-eje">${lwT('Estado')}</span>` + CP_ESTADOS.map(([k,l,prueba]) => {
     const n = CP_ROWS.filter(prueba).length;
     return `<button class="cp-f ${CP_ESTADO===k?'on':''} ${n?'':'vacio'}" data-e="${k}">${l} ${n}</button>`;
   }).join('');
@@ -4184,7 +4195,7 @@ function montarAutoria(rows){
     LW_AUTORIA.montar(slot, { sb, ficha:MI_FICHA, tabla:'contratos', filaId:r.id,
       actual:r.creado_por, editable:!r.bloqueado,
       motivoNoEditable:'Contrato bloqueado: el PDF firmado ya está subido y la base de datos no admite cambios sobre él.',
-      onCambio:(nuevo) => { r.creado_por = nuevo; aplicarCpFiltros(); toast('Autor reasignado a ' + autorVisible(nuevo)); } });
+      onCambio:(nuevo) => { r.creado_por = nuevo; aplicarCpFiltros(); toast(lwT('Autor reasignado a ') + autorVisible(nuevo)); } });
   });
 }
 /* ---------- borrar un contrato (31-jul-2026) ----------
@@ -4204,9 +4215,9 @@ async function borrarContrato(id){
   const r = (CP_ROWS || []).find(x => x.id === id) || {};
   const ok = await lwConfirmar({
     titulo: 'Borrar el contrato ' + (r.numero || 'sin nº'),
-    cuerpo: '<p>Se van con él <b>sus firmas y sus compradores enlazados</b>.</p>'
-          + '<p>Las facturas y las unidades <b>no</b> se borran: se quedan sin el vínculo.</p>'
-          + '<p>No hay papelera.</p>',
+    cuerpo: '<p>' + lwT('Se van con él') + ' <b>' + lwT('sus firmas y sus compradores enlazados') + '</b>.</p>'
+          + '<p>' + lwT('Las facturas y las unidades') + ' <b>no</b> ' + lwT('se borran: se quedan sin el vínculo.') + '</p>'
+          + '<p>' + lwT('No hay papelera.') + '</p>',
     confirmar: 'Borrar ' + (r.numero || 'el contrato'),
     tono: 'peligro',
   });
@@ -4218,9 +4229,9 @@ async function borrarContrato(id){
     // la app diría "borrado" y el contrato seguiría en la lista al recargar.
     if(!data || !data.length) throw new Error('no tienes permiso para borrar este contrato');
     if(SAVED_CONTRACT && SAVED_CONTRACT.id === id){ SAVED_CONTRACT = null; updateSaveButton(); }
-    toast('Contrato ' + (r.numero || '') + ' borrado');
+    toast(lwT('Contrato ') + (r.numero || '') + ' borrado');
     await openContractsPanel();
-  }catch(e){ toast('No se pudo borrar: ' + (e.message || e)); }
+  }catch(e){ toast(lwT('No se pudo borrar: ') + (e.message || e)); }
 }
 
 // el buscador se combina con los chips (no los pisa): ver aplicarCpFiltros
@@ -4318,7 +4329,7 @@ function populateForm(fields){
     }
     if(k.startsWith('firma')) drawToPad(k, v);
   });
-  if(avisos.length) toast('Fecha guardada en formato antiguo en: ' + avisos.join(', ') + ' — revísalas a mano (marcadas en el formulario)');
+  if(avisos.length) toast(lwT('Fecha guardada en formato antiguo en: ') + avisos.join(', ') + ' — revísalas a mano (marcadas en el formulario)');
   // Teléfono (prefijo+número, 12-ago): el bucle de arriba ya dejó el valor
   // guardado en el input oculto — los dos campos visibles (fieldHTML no
   // conoce el valor guardado, solo el default de plantilla) se rellenan
@@ -4352,9 +4363,9 @@ async function openSavedContract(id){
      quitan, porque en esas dos ramas nadie más lo va a hacer. */
   const stage = $('.stage'); if(stage) stage.classList.add('cargando');
   const { data, error } = await sb.from('contratos').select('*').eq('id', id).single();
-  if(error || !data){ if(stage) stage.classList.remove('cargando'); toast('No se pudo abrir el contrato'); return; }
+  if(error || !data){ if(stage) stage.classList.remove('cargando'); toast(lwT('No se pudo abrir el contrato')); return; }
   const slug = TIPO_SLUG[data.tipo];
-  if(!slug){ if(stage) stage.classList.remove('cargando'); toast('Tipo de contrato desconocido'); return; }
+  if(!slug){ if(stage) stage.classList.remove('cargando'); toast(lwT('Tipo de contrato desconocido')); return; }
   // antes de loadTemplate: deriveSections() monta el desplegable ahí dentro
   PROYECTO_ABIERTO = String((data.datos && data.datos.fields && data.datos.fields.proyecto_nombre)
                             || data.proyecto_nombre || '').trim();
@@ -4502,7 +4513,7 @@ async function openSavedContract(id){
   // enlace vivo o una firma recogida, el formulario entra en solo lectura
   await cargarEstadoFirma();
   if(stage) stage.classList.remove('cargando');   // ya está todo pintado, incluido el candado si toca
-  toast('Contrato ' + data.numero + ' cargado' + (LOCKED ? ' · bloqueado (firmado)' : ''));
+  toast(lwT('Contrato ') + data.numero + ' cargado' + (LOCKED ? ' · bloqueado (firmado)' : ''));
   avisaHuerfanos();   // render() acaba de recalcular HUERFANOS con la plantilla de hoy
   avisaFichaDistinta(data.id);
 }
@@ -4727,7 +4738,7 @@ async function derivarContrato(slug){
   if(hitos) HITOS = hitos;   // mismo tipo: su calendario, con fechas de hoy. Distinto: el plan del tipo destino, que loadTemplate ya puso.
   refreshHitos(); updateSaveButton(); editBtnIdle(); render();
   $('#dvOverlay').classList.remove('open');
-  toast('Contrato nuevo con los datos de ' + origen + ' · sin número hasta que lo guardes');
+  toast(lwT('Contrato nuevo con los datos de ') + origen + ' · sin número hasta que lo guardes');
 }
 $('#btnDerivar').addEventListener('click', abrirDerivar);
 $('#dvClose').addEventListener('click', ()=> $('#dvOverlay').classList.remove('open'));
@@ -4780,15 +4791,15 @@ $('#btnEmail').addEventListener('click', openEmailModal);
 $('#emClose').addEventListener('click', ()=> $('#emOverlay').classList.remove('open'));
 
 async function enviarEmail(){
-  if(!SAVED_CONTRACT){ toast('Guarda el contrato antes de enviarlo'); return; }
+  if(!SAVED_CONTRACT){ toast(lwT('Guarda el contrato antes de enviarlo')); return; }
   const to=$('#emTo').value.trim();
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)){ toast('Email de destinatario no válido'); return; }
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)){ toast(lwT('Email de destinatario no válido')); return; }
   const file=$('#emFile').files[0];
-  if(file && file.type!=='application/pdf'){ toast('El archivo debe ser un PDF'); return; }
+  if(file && file.type!=='application/pdf'){ toast(lwT('El archivo debe ser un PDF')); return; }
   // 100MB por petición explícita — ojo: la mayoría de servidores de correo (Gmail
   // incluido) rechazan adjuntos por encima de ~25MB pase lo que pase aquí; este
   // límite solo evita que el navegador intente subir algo absurdo.
-  if(file && file.size > 100*1024*1024){ toast('El PDF supera los 100MB'); return; }
+  if(file && file.size > 100*1024*1024){ toast(lwT('El PDF supera los 100MB')); return; }
   const btn=$('#emSend'); btn.disabled=true; btn.textContent='Enviando…';
   try{
     // se manda siempre el HTML de la vista previa; si además se adjuntó un PDF
@@ -4806,9 +4817,9 @@ async function enviarEmail(){
       headers:{ 'content-type':'application/json', authorization:'Bearer ' + (token || '') },
       body: JSON.stringify(payload) });
     const d = await r.json().catch(()=>({ ok:false, error:'Respuesta inválida del servidor' }));
-    if(d.ok){ toast('Email enviado a ' + to); $('#emOverlay').classList.remove('open'); }
+    if(d.ok){ toast(lwT('Email enviado a ') + to); $('#emOverlay').classList.remove('open'); }
     else{ toast(d.error || 'No se pudo enviar'); }
-  }catch(err){ toast('Error: ' + (err.message || err)); }
+  }catch(err){ toast(lwT('Error: ') + (err.message || err)); }
   btn.disabled=false; btn.textContent='Enviar';
 }
 $('#emSend').addEventListener('click', enviarEmail);
@@ -4867,9 +4878,9 @@ function firmantesDelContrato(){
 let FIRMA_NEXT = null;   // a quién le toca firmar: {rol, orden, total, firmados, nombre, email}
 
 async function openFirmaModal(){
-  if(!SAVED_CONTRACT){ toast('Guarda el contrato antes de enviarlo a firma'); return; }
+  if(!SAVED_CONTRACT){ toast(lwT('Guarda el contrato antes de enviarlo a firma')); return; }
   const lista = firmantesDelContrato();
-  if(!lista.length){ toast('El contrato no tiene ningún firmante con nombre'); return; }
+  if(!lista.length){ toast(lwT('El contrato no tiene ningún firmante con nombre')); return; }
   /* CADENA ROTA ANTES DE EMPEZAR — 15-ago-2026.
      Si un firmante POSTERIOR no tiene email, la cadena se para en seco el día
      que firme el anterior: `firma-submit` no puede generarle su enlace, lo deja
@@ -4890,9 +4901,9 @@ async function openFirmaModal(){
         : 'Hay ' + sinEmail.length + ' firmantes sin email',
       cuerpo: '<p>' + sinEmail.map(f => '<b>' + escAttr(f.nombre || f.etiqueta) + '</b> (' + escAttr(f.etiqueta) + ')').join(', ')
             + ' no tiene' + (sinEmail.length > 1 ? 'n' : '') + ' email en el contrato.</p>'
-            + '<p>En cuanto firme el anterior, <b>la cadena se parará ahí</b>: el sistema no podrá enviar el siguiente enlace, '
+            + '<p>' + lwT('En cuanto firme el anterior,') + ' <b>' + lwT('la cadena se parará ahí') + '</b>: el sistema no podrá enviar el siguiente enlace, '
             + 'y el contrato se quedará firmado a medias y todavía editable.</p>'
-            + '<p>Ponle el email en «Adquirientes adicionales» y vuelve a intentarlo.</p>',
+            + '<p>' + lwT('Ponle el email en «Adquirientes adicionales» y vuelve a intentarlo.') + '</p>',
       confirmar: 'Volver y poner el email',
       cancelar: false,
     });
@@ -4901,10 +4912,10 @@ async function openFirmaModal(){
   // quién ha firmado ya — el modal solo ofrece AL SIGUIENTE, nunca a elegir
   const { data: filas, error } = await sb.from('contrato_firmas')
     .select('firmante_rol').eq('contrato_id', SAVED_CONTRACT.id).eq('estado','firmado');
-  if(error){ toast('No se pudo comprobar el estado de las firmas: '+error.message); return; }
+  if(error){ toast(lwT('No se pudo comprobar el estado de las firmas: ')+error.message); return; }
   const hechos = new Set((filas||[]).map(f=>f.firmante_rol));
   const idx = lista.findIndex(s=>!hechos.has(s.rol));
-  if(idx<0){ toast('Todos los firmantes de este contrato han firmado ya'); return; }
+  if(idx<0){ toast(lwT('Todos los firmantes de este contrato han firmado ya')); return; }
   FIRMA_NEXT = { ...lista[idx], orden: idx+1, total: lista.length, firmados: hechos.size };
   $('#fmName').value = FIRMA_NEXT.nombre;
   $('#fmEmail').value = FIRMA_NEXT.email;
@@ -4949,35 +4960,35 @@ $('#fmGen').addEventListener('click', async ()=>{
     await lwConfirmar({
       titulo: 'Este documento no se firma a distancia',
       cuerpo: '<p><b>' + escAttr(L(CURRENT.name) || 'Este documento') + '</b> no lleva '
-            + 'espacio de firma electrónica: está hecho para firmarse <b>en papel</b>, y en el caso del Poder '
+            + 'espacio de firma electrónica: está hecho para firmarse <b>' + lwT('en papel') + '</b>, y en el caso del Poder '
             + 'Notarial, ante notario.</p>'
             + '<p>No es un fallo del enlace ni de este contrato. Si se generase, el comprador podría abrirlo y '
             + 'leerlo, pero al firmar daría error siempre — no hay dónde estampar la firma.</p>'
-            + '<p>Descarga el PDF y hazlo llegar por el canal que corresponda.</p>',
+            + '<p>' + lwT('Descarga el PDF y hazlo llegar por el canal que corresponda.') + '</p>',
       confirmar: 'Entendido',
       cancelar: false,
     });
     return;
   }
   const nombre=$('#fmName').value.trim();
-  if(nombre.length<2){ toast('Pon el nombre del comprador'); return; }
+  if(nombre.length<2){ toast(lwT('Pon el nombre del comprador')); return; }
   const email=$('#fmEmail').value.trim();
   // obligatorio desde el 28-jul: sin email no hay envío desde aquí, y el registro
   // de firma se queda sin el dato con el que se identifica al firmante.
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ toast('Pon un email válido del comprador'); return; }
-  if(!FIRMA_NEXT){ toast('Reabre el modal de firma'); return; }
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ toast(lwT('Pon un email válido del comprador')); return; }
+  if(!FIRMA_NEXT){ toast(lwT('Reabre el modal de firma')); return; }
   /* El snapshot que se sube es el documento que el comprador firma, y se genera
      UNA vez (firmados===0). Si el anexo automático todavía se está convirtiendo,
      saldría a firma un contrato cuyos Art. 2 y 3 invocan Apéndices que no van
      dentro. Bloquea mientras carga; si la tipología no trajo pack, avisa y deja
      decidir (Dream/Dune/Trinity/Temple se suben a mano y eso es legítimo). */
-  if(AUTO_CARGA){ toast('Espera: se está preparando el anexo de '+AUTO_CARGA); return; }
+  if(AUTO_CARGA){ toast(lwT('Espera: se está preparando el anexo de ')+AUTO_CARGA); return; }
   const tipSel = (document.querySelector('[name="tipologia_construccion"]')||{}).value;
   if(tipSel && !ANNEXES.some(a=>a.on && a.pages && a.pages.length)){
     const ok = await lwConfirmar({
       titulo: 'Este contrato va sin ningún anexo',
-      cuerpo: '<p>Es de tipología <b>' + escAttr(tipSel) + '</b> y no lleva anexos adjuntos.</p>'
-            + '<p>Los Artículos 2 y 3 remiten a los Apéndices (planos y especificaciones), así que el comprador firmaría un contrato que se refiere a documentos que no están.</p>',
+      cuerpo: '<p>' + lwT('Es de tipología') + ' <b>' + escAttr(tipSel) + '</b> ' + lwT('y no lleva anexos adjuntos.') + '</p>'
+            + '<p>' + lwT('Los Artículos 2 y 3 remiten a los Apéndices (planos y especificaciones), así que el comprador firmaría un contrato que se refiere a documentos que no están.') + '</p>',
       confirmar: 'Generar el enlace igualmente',
       cancelar: 'Volver y adjuntar',
     });
@@ -5041,12 +5052,12 @@ $('#fmGen').addEventListener('click', async ()=>{
     // aquí el comprador puede firmar en cualquier momento, así que editar sin
     // anular sería la carrera que este semibloqueo existe para cerrar
     await cargarEstadoFirma();
-    toast('Enlace de firma generado');
-  }catch(err){ toast('No se pudo generar: '+(err.message||err)); }
+    toast(lwT('Enlace de firma generado'));
+  }catch(err){ toast(lwT('No se pudo generar: ')+(err.message||err)); }
   btn.disabled=false; btn.textContent='Generar enlace de firma';
 });
 $('#fmCopy').addEventListener('click', ()=>{ const i=$('#fmLink'); i.select();
-  (navigator.clipboard?navigator.clipboard.writeText(i.value):Promise.reject()).then(()=>toast('Enlace copiado'),()=>toast('Selecciona y copia a mano')); });
+  (navigator.clipboard?navigator.clipboard.writeText(i.value):Promise.reject()).then(()=>toast(lwT('Enlace copiado')),()=>toast(lwT('Selecciona y copia a mano'))); });
 
 /* Envío del enlace de firma por correo, por el mismo api/send_email.php que el
    resto de la app pero con `attach:false`: va SOLO el enlace, sin PDF. Adjuntar
@@ -5059,13 +5070,13 @@ let FIRMA_ENVIO = null;
    sí solo: el comprador recibiría un correo amable sin forma de firmar. */
 function firmaMensaje(){
   const msg = $('#fmMsg').value.trim();
-  if(!msg){ toast('El mensaje está vacío'); return null; }
-  if(FIRMA_ENVIO && msg.indexOf(FIRMA_ENVIO.link) === -1){ toast('El mensaje ya no incluye el enlace de firma'); return null; }
+  if(!msg){ toast(lwT('El mensaje está vacío')); return null; }
+  if(FIRMA_ENVIO && msg.indexOf(FIRMA_ENVIO.link) === -1){ toast(lwT('El mensaje ya no incluye el enlace de firma')); return null; }
   return msg;
 }
 
 $('#fmMail').addEventListener('click', async ()=>{
-  if(!FIRMA_ENVIO){ toast('Genera primero el enlace'); return; }
+  if(!FIRMA_ENVIO){ toast(lwT('Genera primero el enlace')); return; }
   const msg = firmaMensaje(); if(!msg) return;
   const btn=$('#fmMail'); btn.disabled=true; btn.textContent='Enviando…';
   try{
@@ -5074,7 +5085,7 @@ $('#fmMail').addEventListener('click', async ()=>{
                              message:msg, attach:false }) });
     const d = await r.json().catch(()=>({ ok:false, error:'Respuesta inválida del servidor' }));
     if(d.ok){
-      toast('Enlace enviado a ' + FIRMA_ENVIO.to);
+      toast(lwT('Enlace enviado a ') + FIRMA_ENVIO.to);
       // registro de envíos: este es el ÚNICO correo de la suite que sale del
       // navegador directo a send_email.php (los demás pasan por una Edge que
       // ya registra), así que la fila la inserta el propio navegador. El correo
@@ -5088,7 +5099,7 @@ $('#fmMail').addEventListener('click', async ()=>{
       }
     }
     else toast(d.error || 'No se pudo enviar');
-  }catch(err){ toast('Error: ' + (err.message || err)); }
+  }catch(err){ toast(lwT('Error: ') + (err.message || err)); }
   btn.disabled=false; btn.textContent='Enviar por email';
 });
 
@@ -5132,9 +5143,9 @@ function regEstadoFirma(f){
   return [f.estado || '—', ''];
 }
 async function abrirRegistro(){
-  if(!SAVED_CONTRACT){ toast('Guarda el contrato para ver su registro'); return; }
+  if(!SAVED_CONTRACT){ toast(lwT('Guarda el contrato para ver su registro')); return; }
   $('#regOverlay').classList.add('open');
-  const cont = $('#regBody'); cont.innerHTML = '<p class="em-note">Cargando…</p>';
+  const cont = $('#regBody'); cont.innerHTML = '<p class="em-note">' + lwT('Cargando…') + '</p>';
   const [fmas, mails, evts] = await Promise.all([
     sb.rpc('contrato_firmas_equipo').eq('contrato_id', SAVED_CONTRACT.id).order('creado_en', { ascending:false }),
     sb.from('correos_enviados').select('para,asunto,via,enviado_por,enviado_en')
@@ -5164,23 +5175,23 @@ async function abrirRegistro(){
     + '<td>' + esc(m.asunto) + '</td></tr>';
   cont.innerHTML =
       copiasHTML(fmas.data, mails.data, fmas.error, mails.error)
-    + '<p class="reg-tit">Enlaces de firma</p>'
+    + '<p class="reg-tit">' + lwT('Enlaces de firma') + '</p>'
     + ((fmas.data||[]).length
-        ? '<div class="reg-envoltura"><table class="reg-tabla"><thead><tr><th>Firmante</th><th>Email</th><th>Estado</th><th>Creado</th><th>Expira / Firmado</th></tr></thead><tbody>'
+        ? '<div class="reg-envoltura"><table class="reg-tabla"><thead><tr><th>' + lwT('Firmante') + '</th><th>' + lwT('Email') + '</th><th>' + lwT('Estado') + '</th><th>' + lwT('Creado') + '</th><th>' + lwT('Expira / Firmado') + '</th></tr></thead><tbody>'
           + fmas.data.map(filaFirma).join('') + '</tbody></table></div>'
           // de un enlace solo se guarda su huella sha-256 (nunca el enlace):
           // no se puede volver a enseñar — reenviar = mandarlo otra vez desde
           // "Enviar a firma", que reutiliza el token vivo mientras no caduque
-          + (hayActivo ? '<p class="em-note">El enlace activo no se puede mostrar aquí (solo se guarda su huella, no el enlace). Para reenviarlo: «✍︎ Enviar a firma» → Enviar por email.</p>' : '')
-        : '<p class="em-note">Este contrato no se ha enviado a firma electrónica.</p>')
-    + '<p class="reg-tit">Correos enviados</p>'
+          + (hayActivo ? '<p class="em-note">' + lwT('El enlace activo no se puede mostrar aquí (solo se guarda su huella, no el enlace). Para reenviarlo: «✍︎ Enviar a firma» → Enviar por email.') + '</p>' : '')
+        : '<p class="em-note">' + lwT('Este contrato no se ha enviado a firma electrónica.') + '</p>')
+    + '<p class="reg-tit">' + lwT('Correos enviados') + '</p>'
     + ((mails.data||[]).length
-        ? '<div class="reg-envoltura"><table class="reg-tabla"><thead><tr><th>Cuándo</th><th>Para</th><th>Vía</th><th>Quién</th><th>Asunto</th></tr></thead><tbody>'
+        ? '<div class="reg-envoltura"><table class="reg-tabla"><thead><tr><th>' + lwT('Cuándo') + '</th><th>' + lwT('Para') + '</th><th>' + lwT('Vía') + '</th><th>' + lwT('Quién') + '</th><th>' + lwT('Asunto') + '</th></tr></thead><tbody>'
           + mails.data.map(filaMail).join('') + '</tbody></table></div>'
-        : '<p class="em-note">Sin correos registrados. El registro existe desde el 18-ago-2026: los envíos anteriores no dejaron rastro.</p>')
-    + '<p class="reg-tit">Historial del contrato</p>'
+        : '<p class="em-note">' + lwT('Sin correos registrados. El registro existe desde el 18-ago-2026: los envíos anteriores no dejaron rastro.') + '</p>')
+    + '<p class="reg-tit">' + lwT('Historial del contrato') + '</p>'
     + ((evts.data||[]).length
-        ? '<div class="reg-envoltura"><table class="reg-tabla"><thead><tr><th>Cuándo</th><th>Qué</th><th>Quién</th><th>Detalle</th></tr></thead><tbody>'
+        ? '<div class="reg-envoltura"><table class="reg-tabla"><thead><tr><th>' + lwT('Cuándo') + '</th><th>' + lwT('Qué') + '</th><th>' + lwT('Quién') + '</th><th>' + lwT('Detalle') + '</th></tr></thead><tbody>'
           + evts.data.map(e => {
               const [txt, cls] = REG_EVT[e.evento] || [e.evento, ''];
               return '<tr><td style="white-space:nowrap">' + regFecha(e.creado_en) + '</td>'
@@ -5190,7 +5201,7 @@ async function abrirRegistro(){
             }).join('') + '</tbody></table></div>'
           // las ediciones se apuntan desde el 18-ago-2026; lo anterior a esa
           // fecha se reconstruyó de las fechas reales de creación y firma
-        : '<p class="em-note">Sin eventos registrados.</p>');
+        : '<p class="em-note">' + lwT('Sin eventos registrados.') + '</p>');
   copiasWire(fmas.data, mails.data);
 }
 
@@ -5281,7 +5292,7 @@ function copiasHTML(firmas, mails, errFirmas, errMails){
   /* Si la consulta no se pudo hacer, se dice — y no se enseña una tabla vacía
      que se lee igual que «no hay nada que enviar». */
   if(errFirmas || errMails)
-    return '<p class="reg-tit">Copias del contrato firmado</p>'
+    return '<p class="reg-tit">' + lwT('Copias del contrato firmado') + '</p>'
          + '<p class="em-note">No se ha podido comprobar quién tiene su copia (falló la consulta). '
          + 'No es que no se haya enviado: es que no se sabe.</p>';
   // Sin firma electronica (contrato cerrado a mano), los firmantes son los
@@ -5290,8 +5301,8 @@ function copiasHTML(firmas, mails, errFirmas, errMails){
   const papel = !firmasOk.length;
   const dest = papel ? copiaCompradoresDelContrato() : firmasOk;
   if(!dest.length)
-    return '<p class="reg-tit">Copias del contrato firmado</p>'
-         + '<p class="em-note">Este contrato no tiene ni firmas electrónicas ni compradores con datos, así que no hay a quién mandarle una copia.</p>';
+    return '<p class="reg-tit">' + lwT('Copias del contrato firmado') + '</p>'
+         + '<p class="em-note">' + lwT('Este contrato no tiene ni firmas electrónicas ni compradores con datos, así que no hay a quién mandarle una copia.') + '</p>';
   const enviados = new Map();
   (mails || []).filter(m => m.via === 'firma').forEach(m => {
     const k = String(m.para || '').toLowerCase();
@@ -5302,10 +5313,10 @@ function copiasHTML(firmas, mails, errFirmas, errMails){
   const filas = dest.map(d => {
     const m = d.email ? enviados.get(d.email.toLowerCase()) : null;
     let chip, cuando;
-    if(!d.email){ chip = '<span class="reg-chip malo">Sin dirección</span>'; cuando = '—'; }
-    else if(m){ chip = '<span class="reg-chip firmado">Enviada</span>'; cuando = regFecha(m.enviado_en); }
-    else if(anteriorAlRegistro){ chip = '<span class="reg-chip">Sin registro</span>'; cuando = '—'; }
-    else { chip = '<span class="reg-chip malo">No consta enviada</span>'; cuando = '—'; }
+    if(!d.email){ chip = '<span class="reg-chip malo">' + lwT('Sin dirección') + '</span>'; cuando = '—'; }
+    else if(m){ chip = '<span class="reg-chip firmado">' + lwT('Enviada') + '</span>'; cuando = regFecha(m.enviado_en); }
+    else if(anteriorAlRegistro){ chip = '<span class="reg-chip">' + lwT('Sin registro') + '</span>'; cuando = '—'; }
+    else { chip = '<span class="reg-chip malo">' + lwT('No consta enviada') + '</span>'; cuando = '—'; }
     return '<tr><td>' + esc(d.nombre || '—') + '<br><span class="em-note">' + esc(d.rol) + '</span></td>'
       + '<td>' + esc(d.email || 'no dejó email') + '</td>'
       + '<td>' + chip + '</td><td>' + cuando + '</td></tr>';
@@ -5314,13 +5325,13 @@ function copiasHTML(firmas, mails, errFirmas, errMails){
   const conEmail = dest.filter(d => d.email);
   const pendientes = conEmail.filter(d => !enviados.get(d.email.toLowerCase()));
   const sinEmail = dest.length - conEmail.length;
-  return '<p class="reg-tit">Copias del contrato firmado</p>'
-    + '<div class="reg-envoltura"><table class="reg-tabla"><thead><tr><th>Firmante</th><th>Email</th><th>Copia</th><th>Cuándo</th></tr></thead><tbody>'
+  return '<p class="reg-tit">' + lwT('Copias del contrato firmado') + '</p>'
+    + '<div class="reg-envoltura"><table class="reg-tabla"><thead><tr><th>' + lwT('Firmante') + '</th><th>' + lwT('Email') + '</th><th>' + lwT('Copia') + '</th><th>' + lwT('Cuándo') + '</th></tr></thead><tbody>'
     + filas + '</tbody></table></div>'
     + (papel
-        ? '<p class="em-note">Este contrato se cerró subiendo el PDF firmado a mano, no por firma electrónica: los destinatarios son los compradores del contrato, y nada se les ha mandado solo.</p>'
+        ? '<p class="em-note">' + lwT('Este contrato se cerró subiendo el PDF firmado a mano, no por firma electrónica: los destinatarios son los compradores del contrato, y nada se les ha mandado solo.') + '</p>'
         : anteriorAlRegistro
-        ? '<p class="em-note">Este contrato se firmó antes del 24-ago-2026, cuando el reparto automático todavía no dejaba registro. Lo más probable es que las copias salieran; aquí no se puede confirmar.</p>'
+        ? '<p class="em-note">' + lwT('Este contrato se firmó antes del 24-ago-2026, cuando el reparto automático todavía no dejaba registro. Lo más probable es que las copias salieran; aquí no se puede confirmar.') + '</p>'
         : '')
     + (sinEmail ? '<p class="em-note">' + sinEmail + ' firmante(s) sin dirección de correo: su copia hay que dársela por otra vía.</p>' : '')
     + (LOCKED_PDF_PATH
@@ -5329,7 +5340,7 @@ function copiasHTML(firmas, mails, errFirmas, errMails){
               ? '✉︎ Enviar copia a ' + pendientes.length + ' firmante(s)'
               : '✉︎ Reenviar copia a los ' + conEmail.length + ' firmante(s)')
           + '</button> <span class="em-note" id="copiasEstado"></span></p>'
-        : '<p class="em-note">No hay PDF firmado guardado en este contrato, así que no hay copia que mandar.</p>');
+        : '<p class="em-note">' + lwT('No hay PDF firmado guardado en este contrato, así que no hay copia que mandar.') + '</p>');
 }
 
 /* El documento a repartir: adjunto si cabe, enlace firmado de 30 días si no.
@@ -5400,7 +5411,7 @@ async function copiaEnviarA(d, doc){
      la consola: esta tabla se lee como «quién la tiene», así que una fila que
      falta se leería como una copia que no se envió, y alguien la mandaría dos
      veces al mismo cliente. */
-  if(eLog) toast('Enviada a ' + d.email + ', pero NO se pudo anotar en el registro: ' + eLog.message);
+  if(eLog) toast(lwT('Enviada a ') + d.email + ', pero NO se pudo anotar en el registro: ' + eLog.message);
 }
 
 /* El envío va detrás de una confirmación con nombres y direcciones a la vista:
@@ -5423,8 +5434,8 @@ async function enviarCopiasFirmado(destinos){
     }
   }catch(err){ fallos.push(String(err.message || err)); }
   if(est) est.textContent = '';
-  if(bien) toast('Copia enviada a ' + bien + ' firmante(s)');
-  if(fallos.length) toast('No salió a: ' + fallos.join(' · '));
+  if(bien) toast(lwT('Copia enviada a ') + bien + ' firmante(s)');
+  if(fallos.length) toast(lwT('No salió a: ') + fallos.join(' · '));
   await abrirRegistro();   // se repinta con las filas nuevas del registro
 }
 
@@ -5442,11 +5453,11 @@ function copiasWire(firmas, mails){
     if(!destinos.length) return;
     const ok = await lwConfirmar({
       titulo: 'Enviar el contrato firmado',
-      cuerpo: '<p>Se manda una copia del PDF firmado a:</p><ul>'
+      cuerpo: '<p>' + lwT('Se manda una copia del PDF firmado a:') + '</p><ul>'
         + destinos.map(d => '<li>' + esc(d.nombre || d.email) + ' — <b>' + esc(d.email) + '</b></li>').join('')
         + '</ul>' + (pend.length ? ''
-            : viejo ? '<p>Este contrato se firmó antes de que se registraran estos envíos: lo más probable es que ya recibieran su copia, así que esto es un <b>reenvío</b>.</p>'
-                    : '<p>Todos constan como ya avisados: esto es un <b>reenvío</b>.</p>'),
+            : viejo ? '<p>' + lwT('Este contrato se firmó antes de que se registraran estos envíos: lo más probable es que ya recibieran su copia, así que esto es un') + ' <b>' + lwT('reenvío') + '</b>.</p>'
+                    : '<p>' + lwT('Todos constan como ya avisados: esto es un') + ' <b>' + lwT('reenvío') + '</b>.</p>'),
       confirmar: 'Enviar ' + destinos.length + ' copia(s)' });
     if(ok) enviarCopiasFirmado(destinos);
   });
@@ -5465,7 +5476,7 @@ $('#regClose').addEventListener('click', ()=> $('#regOverlay').classList.remove(
 
 /* ---------- init ---------- */
 async function init(){
-  if(!sb){ toast('Supabase no disponible'); return; }
+  if(!sb){ toast(lwT('Supabase no disponible')); return; }
   const { data:{ session } } = await sb.auth.getSession();
   if(!session){ location.href='/intranet/?next='+encodeURIComponent(location.pathname+location.search); return; }
   // permiso por herramienta (ver public.usuarios): sin ficha se entra igual
@@ -5497,7 +5508,7 @@ async function init(){
      que el rebote por herramienta evita tres líneas más arriba, y por el mismo
      motivo. */
   if(MI_FICHA && MI_FICHA.rol === 'agente' && !plantillasOfrecidas().some(t => CONTRACT_TIPO[t.slug])){
-    toast('No tienes ningún tipo de contrato asignado. Pídeselo a un administrador antes de empezar.');
+    toast(lwT('No tienes ningún tipo de contrato asignado. Pídeselo a un administrador antes de empezar.'));
   }
   MI_EMAIL = session.user.email || '';   // lo usa el filtro "Míos" del panel de guardados
   // El rol sale de la ficha que se acaba de leer tres líneas arriba: no hace
@@ -5527,20 +5538,20 @@ async function init(){
      Si falla se avisa y se sigue: el contrato se puede redactar, pero el bloque
      de datos bancarios saldría vacío y hay que saberlo antes de imprimir. */
   try{ await cargarCuentasBancarias(sb); }
-  catch(e){ toast('No se han podido cargar las cuentas de cobro: ' + (e.message || e) + ' — recarga antes de imprimir'); }
+  catch(e){ toast(lwT('No se han podido cargar las cuentas de cobro: ') + (e.message || e) + ' — recarga antes de imprimir'); }
   // Mismo motivo y mismo patrón que las cuentas: NIK/dirección de los
   // apoderados de Hak Sewa salieron de tokens.json (público) a una tabla con
   // RLS (12-ago). Si falla, el nombre sigue eligiéndose (viene de
   // tokens.json) pero edad/ocupación/dirección/NIK no se autorrellenan.
   try{ await cargarApoderadosHakSewa(sb); }
-  catch(e){ toast('No se han podido cargar los datos del apoderado: ' + (e.message || e)); }
+  catch(e){ toast(lwT('No se han podido cargar los datos del apoderado: ') + (e.message || e)); }
   // Mismo motivo y mismo patrón, 24-ago-2026: NIK/pasaporte de los
   // representantes societarios salieron de entities.js (público) a
   // `firmantes_cred` con RLS. Si falla, applyPromotor() se degrada solo
   // (entidades_pago.js) — el nombre del representante se imprime igual, solo
   // el bloque de credencial personal queda en blanco.
   try{ await cargarFirmantesCred(sb); }
-  catch(e){ toast('No se han podido cargar las credenciales del firmante: ' + (e.message || e) + ' — revisa antes de imprimir'); }
+  catch(e){ toast(lwT('No se han podido cargar las credenciales del firmante: ') + (e.message || e) + ' — revisa antes de imprimir'); }
 
   const bust='?v='+Date.now();  // plantillas/tokens/portada son ficheros pequeños que cambian con el deploy → nunca servir cacheados
   try{ COVER_HTML = await fetch('templates/_portada.html'+bust).then(r=>r.text()); }
@@ -5551,7 +5562,7 @@ async function init(){
      («deriveSections() filtra por plantilla») y lo unico que veia quien lo abria
      era una pagina en blanco, sin ninguna pista de por que. 21-ago-2026. */
   try{ TOKENS = await fetch('tokens.json'+bust).then(r=>r.json()); }
-  catch(e){ toast('No se han podido cargar los campos del formulario (' + (e.message || e)
+  catch(e){ toast(lwT('No se han podido cargar los campos del formulario (') + (e.message || e)
                   + '). Recarga la pagina: si guardas ahora, el contrato saldria vacio.'); }
   // mapa marcador → tipo (para dimensionar el hueco de cada campo)
   ((TOKENS && TOKENS.sections) || []).forEach(s=> s.fields.forEach(f=> FIELDTYPE[f[0]] = f[2] || 'text'));
@@ -5597,8 +5608,8 @@ async function init(){
     const idCliente = par.get('cliente');
     if(idCliente && sb){
       const { data: fc } = await sb.from('clients').select('*').eq('id', idCliente).maybeSingle();
-      if(fc){ enlazarFicha(fc); toast('Contrato nuevo para ' + (fc.full_name || 'el cliente elegido')); }
-      else toast('Esa ficha de cliente ya no existe: empieza el contrato buscándolo');
+      if(fc){ enlazarFicha(fc); toast(lwT('Contrato nuevo para ') + (fc.full_name || 'el cliente elegido')); }
+      else toast(lwT('Esa ficha de cliente ya no existe: empieza el contrato buscándolo'));
     }
     /* `?lead=` — entrada desde el CRM de leads (11-sep-2026). Va DESPUÉS de resetBorrador,
        que es quien lo pone a null: al revés se borraría justo después de asignarlo.

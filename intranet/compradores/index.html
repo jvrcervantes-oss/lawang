@@ -20,7 +20,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=5c1e63dc"></script>
+<script src="/contracts/assets/i18n.js?v=05322a13"></script>
 <script src="/contracts/assets/herramientas.js?v=cce2c8c2"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="/contracts/assets/visor.js?v=c8d2b946" defer></script>
@@ -777,14 +777,14 @@ function pintarFicha(){
           ? `<p class="nota">${lwT('Acceso activo para')} <b>${activos.map(x=>esc(x.email)).join('</b>, <b>')}</b>${lwT('. Ve sus contratos, pagos, facturas y obra en /portal/.')}</p>
              <p class="nota">${activos.map(rastro).join(' · ')}</p>`
           : suyos.length
-            ? '<p class="nota">' + lwT('Acceso') + '<b>revocado</b>' + lwT('. Se puede volver a invitar desde aquí — mientras haya una fila revocada, la entrada automática NO se la devuelve.') + '</p>'
+            ? '<p class="nota">' + lwT('Acceso') + ' <b>revocado</b>' + lwT('. Se puede volver a invitar desde aquí — mientras haya una fila revocada, la entrada automática NO se la devuelve.') + '</p>'
             /* Desde el 8-sep el acceso ya no hace falta concederlo: si la ficha
                tiene correo y algún contrato, el comprador entra solo en /portal/
                escribiendo ese correo. Decir «aún no tiene acceso» sería falso y
                llevaría a mandar invitaciones que nadie necesita. */
             : (c.email && VINCULOS.some(v => v.client_id === c.id)
-                ? '<p class="nota">' + lwT('Entra') + '<b>solo</b>: con ' + esc(c.email) + ' y sus contratos, el portal le abre la puerta sin que nadie le invite — salvo que ese correo sea de alguien del equipo (una cuenta no puede ser de los dos mundos) o se le haya revocado el acceso. El botón de abajo sirve para <b>' + lwT('mandarle el enlace ahora') + '</b>' + lwT('o para darle acceso') + '<b>' + lwT('con otro correo') + '</b>.</p>'
-                : '<p class="nota">' + lwT('Sin acceso todavía. La entrada automática pide') + '<b>' + lwT('correo en la ficha') + '</b> y <b>' + lwT('al menos un contrato') + '</b>' + (c.email ? ' — le falta el contrato.' : ' — le falta el correo.') + ' Invitando desde aquí se le da igualmente.</p>');
+                ? '<p class="nota">' + lwT('Entra') + ' <b>solo</b>: con ' + esc(c.email) + ' y sus contratos, el portal le abre la puerta sin que nadie le invite — salvo que ese correo sea de alguien del equipo (una cuenta no puede ser de los dos mundos) o se le haya revocado el acceso. El botón de abajo sirve para <b>' + lwT('mandarle el enlace ahora') + '</b> ' + lwT('o para darle acceso') + ' <b>' + lwT('con otro correo') + '</b>.</p>'
+                : '<p class="nota">' + lwT('Sin acceso todavía. La entrada automática pide') + ' <b>' + lwT('correo en la ficha') + '</b> y <b>' + lwT('al menos un contrato') + '</b>' + (c.email ? ' — le falta el contrato.' : ' — le falta el correo.') + ' Invitando desde aquí se le da igualmente.</p>');
         const esAdminYo = YO && (YO.rol === 'super_admin' || YO.rol === 'admin');
         if(!esAdminYo) return estado + '<p class="nota">' + lwT('Invitar o revocar lo hace un administrador.') + '</p>';
         return estado + `
@@ -970,7 +970,7 @@ async function borrarDocumento(id, btn){
   const nombre = etiqueta(DOCS, d.doc_type) || 'documento';
   if(!await lwConfirmar({
     titulo: 'Retirar ' + nombre,
-    cuerpo: '<p>' + lwT('Se retira') + '<b>' + esc(nombre) + '</b>' + (d.uploaded_at ? ' (subido el ' + esc(fFecha(d.uploaded_at)) + ')' : '')
+    cuerpo: '<p>' + lwT('Se retira') + ' <b>' + esc(nombre) + '</b>' + (d.uploaded_at ? ' (subido el ' + esc(fFecha(d.uploaded_at)) + ')' : '')
           + ' ' + lwT('de la ficha, y su fichero del archivo privado.') + '</p>'
           + '<p>' + lwT('No hay papelera: si el documento sigue haciendo falta habrá que volver a subirlo.') + '</p>',
     confirmar: lwT('Retirar el documento'), cancelar: lwT('Dejarlo') })) return;
@@ -1167,7 +1167,7 @@ async function invitarPortal(c){
   if(!email){ toast(lwT('Falta el email de acceso')); return; }
   const ok = await lwConfirmar({
     titulo: lwT('Invitar a %e al portal', { e: email }),
-    cuerpo: '<p>' + lwT('Se le envía un') + '<b>' + lwT('correo de acceso') + '</b>' + lwT('y podrá ver en el portal todo lo de esta ficha: contratos, pagos, facturas y obra.') + '</p>',
+    cuerpo: '<p>' + lwT('Se le envía un') + ' <b>' + lwT('correo de acceso') + '</b> ' + lwT('y podrá ver en el portal todo lo de esta ficha: contratos, pagos, facturas y obra.') + '</p>',
     confirmar: lwT('Enviar la invitación'),
   });
   if(!ok) return;
@@ -1200,7 +1200,7 @@ async function revocarPortal(c){
   const email = suyos[0].email;
   const ok = await lwConfirmar({
     titulo: lwT('Revocar el acceso de %e', { e: email }),
-    cuerpo: '<p>' + lwT('Dejará de ver') + '<b>todas</b>' + lwT('las fichas vinculadas a ese email, no solo ésta.') + '</p>',
+    cuerpo: '<p>' + lwT('Dejará de ver') + ' <b>todas</b> ' + lwT('las fichas vinculadas a ese email, no solo ésta.') + '</p>',
     confirmar: lwT('Revocar el acceso'),
     tono: 'peligro',
   });

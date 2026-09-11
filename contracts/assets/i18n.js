@@ -1779,6 +1779,219 @@
     'Ya existe una ficha con ese correo:': 'A record with that email already exists:',
     'El lead': 'The lead',
 
+
+    'Acceso~puerta': 'Sign in',
+    'Soy del equipo': 'I am staff',
+    'Soy cliente': 'I am a client',
+
+
+    /* ---------- Contratos (el generador) ----------
+       ⚠️ SOLO LA INTERFAZ. El TEXTO DEL DOCUMENTO no está aquí ni puede
+       estarlo: su idioma lo decide `LANG` (ES/EN/ID guardado con cada
+       contrato), no la preferencia de quien lo emite. En `app.html` esa
+       frontera está marcada con `/* lwT:no-tocar *​/`. */
+    'Contratos guardados': 'Saved contracts',
+    'Buscar por número, comprador, proyecto o autor…': 'Search by number, buyer, project or author…',
+    'Creado': 'Created',
+    'Creado por': 'Created by',
+    'Detalle': 'Detail',
+    'Qué': 'What',
+    'quién': 'who',
+    'cuándo': 'when',
+    'Copia': 'Copy',
+    'Cobro': 'Billing',
+    'Rastro': 'Trail',
+    'Contrato ': 'Contract ',
+    'Tipo de contrato desconocido': 'Unknown contract type',
+    'Es de tipología': 'It is of type',
+    'No tienes ningún tipo de contrato asignado. Pídeselo a un administrador antes de empezar.':
+      'You have no contract type assigned. Ask an administrator for one before you start.',
+    'Plantilla no encontrada.': 'Template not found.',
+    'Supabase no disponible': 'Supabase unavailable',
+    'No se pudo abrir el contrato': 'Could not open the contract',
+    'Esa ficha de cliente ya no existe: empieza el contrato buscándolo':
+      'That client record no longer exists: start the contract by searching for them',
+    'Ese resultado no tiene ficha: elige un cliente registrado':
+      'That result has no record: choose a registered client',
+    'El comprador de un contrato sale de su ficha de': 'A contract’s buyer comes from their record in',
+    'búscalo': 'find them',
+    'Si ya está registrado,': 'If they are already registered,',
+    'Pon el nombre del comprador': 'Enter the buyer’s name',
+    'Pon un email válido del comprador': 'Enter a valid email for the buyer',
+    'Ponle el email en «Adquirientes adicionales» y vuelve a intentarlo.':
+      'Put their email under “Additional buyers” and try again.',
+    'Estos compradores están escritos a mano y no salen de ninguna ficha:':
+      'These buyers were typed by hand and come from no record:',
+    ', pero el enlace que hay en la base apunta a otra ficha.':
+      ', but the link in the database points to a different record.',
+    'Contrato nuevo para ': 'New contract for ',
+    'Contrato nuevo con los datos de ': 'New contract using the details of ',
+    'Nuevo contrato con estos datos': 'New contract with these details',
+    /* edición del texto de la plantilla */
+    'Edición ON · reescribe el texto libre; lo resaltado en dorado son campos del formulario y no se toca aquí':
+      'Editing ON · rewrite the free text; anything highlighted in gold is a form field and is not edited here',
+    'Texto original restaurado': 'Original text restored',
+    'Se pierden': 'You lose',
+    'tus ediciones de texto': 'your text edits',
+    'en esta plantilla. Los campos rellenos y las cláusulas no se tocan.':
+      'on this template. Filled-in fields and clauses are untouched.',
+    'OJO: ': 'CAREFUL: ',
+    'Ese campo está vacío en este contrato — no hay nada que imprima todavía':
+      'That field is empty on this contract — there is nothing it prints yet',
+    'Los Artículos 2 y 3 remiten a los Apéndices (planos y especificaciones), así que el comprador firmaría un contrato que se refiere a documentos que no están.':
+      'Articles 2 and 3 refer to the Appendices (plans and specifications), so the buyer would be signing a contract that points to documents that are not there.',
+    'y no lleva anexos adjuntos.': 'and carries no attached annexes.',
+    'Espera: se está preparando el anexo de ': 'Hold on: the annex is being prepared for ',
+    /* guardar */
+    'Contrato bloqueado, no se puede guardar': 'Contract locked, it cannot be saved',
+    'Este contrato está enviado a firma: pulsa «Editar (anula la firma)» para poder guardarlo':
+      'This contract has been sent for signing: click “Edit (voids the signature)” to be able to save it',
+    'Elige a qué parcela pertenece esta Construcción antes de guardarla':
+      'Choose which plot this Construction contract belongs to before saving it',
+    'Elige el contrato al que acompaña este Poder Notarial antes de guardarlo':
+      'Choose the contract this Power of Attorney goes with before saving it',
+    'El poder se guarda, pero sin pasaporte ni email del otorgante no se puede saber qué contratos cubre':
+      'The power of attorney is saved, but without the grantor’s passport or email there is no way to tell which contracts it covers',
+    'Contrato guardado, pero la proforma automática no se pudo crear: ':
+      'Contract saved, but the automatic proforma could not be created: ',
+    'Guardado, pero no se pudo enlazar con su lead: ': 'Saved, but it could not be linked to its lead: ',
+    'Guardado, pero no se pudo registrar el salto: ': 'Saved, but the override could not be logged: ',
+    'Las facturas y las unidades': 'The invoices and the units',
+    'se borran: se quedan sin el vínculo.': 'are not deleted: they are left without the link.',
+    'Se van con él': 'They go with it',
+    'sus firmas y sus compradores enlazados': 'its signatures and its linked buyers',
+    'Fecha guardada en formato antiguo en: ': 'Date stored in the old format in: ',
+    'No se han podido cargar los campos del formulario (': 'Could not load the form fields (',
+    'No se han podido cargar los datos del apoderado: ': 'Could not load the attorney-in-fact’s details: ',
+    'No se han podido cargar las credenciales del firmante: ': 'Could not load the signer’s credentials: ',
+    /* firma electrónica */
+    'Firma automática': 'Electronic signature',
+    'Enviar a firma': 'Send for signing',
+    'El comprador firma desde el enlace. El PDF firmado entra solo y bloquea el contrato.':
+      'The buyer signs from the link. The signed PDF comes in by itself and locks the contract.',
+    'Generar enlace de firma': 'Generate signing link',
+    'Genera primero el enlace': 'Generate the link first',
+    'Enlace de firma generado': 'Signing link generated',
+    'Enlaces de firma': 'Signing links',
+    'Enlace copiado': 'Link copied',
+    'Copiar enlace': 'Copy link',
+    'Caduca en 30 días.': 'Expires in 30 days.',
+    'Expira / Firmado': 'Expires / Signed',
+    'En cuanto firme el anterior,': 'As soon as the previous one signs,',
+    'la cadena se parará ahí': 'the chain will stop there',
+    'El contrato no tiene ningún firmante con nombre': 'The contract has no named signer',
+    'Guarda el contrato antes de enviarlo a firma': 'Save the contract before sending it for signing',
+    'Guarda el contrato antes de enviarlo': 'Save the contract before sending it',
+    'Guarda el contrato antes de subir el firmado': 'Save the contract before uploading the signed copy',
+    'Guarda el contrato para ver su registro': 'Save the contract to see its log',
+    'Guarda primero: sin guardar no hay número, y el PDF saldría idéntico a uno emitido sin existir en la base.':
+      'Save first: unsaved there is no number, and the PDF would look identical to one issued without existing in the database.',
+    'No se pudo generar: ': 'Could not generate: ',
+    'No se pudo generar el enlace de descarga': 'Could not generate the download link',
+    'No se pudo comprobar si este contrato está enviado a firma':
+      'Could not check whether this contract has been sent for signing',
+    'No se pudo comprobar el estado de las firmas: ': 'Could not check the status of the signatures: ',
+    'Este contrato ya no tiene firmas vivas': 'This contract no longer has live signatures',
+    'Hay': 'There are',
+    'La copia de lo que se firmó se conserva como prueba. No se borra nada.':
+      'The copy of what was signed is kept as evidence. Nothing is deleted.',
+    'Desmárcalo si todavía no habían recibido el enlace.': 'Untick it if they had not received the link yet.',
+    'Ningún firmante tiene email en el contrato: no se puede avisar a nadie.':
+      'No signer has an email on the contract: nobody can be notified.',
+    'No se pudieron anular las firmas: ': 'Could not void the signatures: ',
+    'Firmas anuladas · ya puedes editar': 'Signatures voided · you can edit now',
+    'Aviso enviado a ': 'Notice sent to ',
+    'Avisado': 'Notified',
+    'Aviso:': 'Notice:',
+    'Reabre el modal de firma': 'Reopen the signing dialog',
+    'Este contrato está': 'This contract is',
+    'firmado y cerrado': 'signed and closed',
+    'Queda registrado en el historial del contrato:': 'It is recorded in the contract’s history:',
+    'lo desbloqueó y': 'unlocked it and',
+    'Como super admin': 'As a super admin',
+    'No se pudo desbloquear: ': 'Could not unlock: ',
+    'Contrato desbloqueado y registrado': 'Contract unlocked and logged',
+    /* PDF firmado a mano */
+    'El archivo debe ser un PDF': 'The file must be a PDF',
+    'El PDF supera los 100MB': 'The PDF is over 100 MB',
+    'No se pudo bloquear: ': 'Could not lock: ',
+    'Contrato bloqueado · PDF firmado guardado': 'Contract locked · signed PDF saved',
+    'Cerrado, pero no se pudieron anular los enlaces de firma vivos: ':
+      'Closed, but the live signing links could not be voided: ',
+    'Enlace(s) de firma pendientes anulados al cerrar': 'Pending signing link(s) voided on closing',
+    'Contrato cerrado. No se pudo abrir el aviso de copias: ':
+      'Contract closed. The copies notice could not be opened: ',
+    /* copias del contrato firmado */
+    'Copias del contrato firmado': 'Copies of the signed contract',
+    'El contrato ya está cerrado. ¿Se les manda ahora la copia del PDF firmado a los compradores?':
+      'The contract is now closed. Should the signed PDF be sent to the buyers now?',
+    'Se manda una copia del PDF firmado a:': 'A copy of the signed PDF is sent to:',
+    'Copia enviada a ': 'Copy sent to ',
+    'No salió a: ': 'Did not go out to: ',
+    'Se puede hacer luego desde «Registro» → Copias del contrato firmado.':
+      'It can be done later from “Log” → Copies of the signed contract.',
+    'No hay PDF firmado guardado en este contrato, así que no hay copia que mandar.':
+      'There is no signed PDF stored on this contract, so there is no copy to send.',
+    'Este contrato no tiene ni firmas electrónicas ni compradores con datos, así que no hay a quién mandarle una copia.':
+      'This contract has neither electronic signatures nor buyers with details, so there is nobody to send a copy to.',
+    'Este contrato se cerró subiendo el PDF firmado a mano, no por firma electrónica: los destinatarios son los compradores del contrato, y nada se les ha mandado solo.':
+      'This contract was closed by uploading the signed PDF by hand, not by electronic signature: the recipients are the contract’s buyers, and nothing has been sent to them automatically.',
+    'Todos los firmantes de este contrato han firmado ya': 'Every signer on this contract has already signed',
+    'Todos constan como ya avisados: esto es un': 'All are on record as already notified: this is a',
+    'reenvío': 'resend',
+    'Este contrato se firmó antes de que se registraran estos envíos: lo más probable es que ya recibieran su copia, así que esto es un':
+      'This contract was signed before these sends were logged: they most likely already received their copy, so this is a',
+    'Este contrato se firmó antes del 24-ago-2026, cuando el reparto automático todavía no dejaba registro. Lo más probable es que las copias salieran; aquí no se puede confirmar.':
+      'This contract was signed before 24 Aug 2026, when automatic distribution left no log yet. The copies most likely went out; it cannot be confirmed here.',
+    /* registro de envíos */
+    'Registro de envíos': 'Send log',
+    'Enlaces de firma de este contrato y a qué correos se ha enviado':
+      'This contract’s signing links and which addresses they were sent to',
+    'Correos enviados': 'Emails sent',
+    'Sin registro': 'No log',
+    'No consta enviada': 'No record of it being sent',
+    'Enviada a ': 'Sent to ',
+    'Email enviado a ': 'Email sent to ',
+    'Enlace enviado a ': 'Link sent to ',
+    'Sin correos registrados. El registro existe desde el 18-ago-2026: los envíos anteriores no dejaron rastro.':
+      'No emails logged. The log exists since 18 Aug 2026: earlier sends left no trace.',
+    'Este contrato no se ha enviado a firma electrónica.': 'This contract has not been sent for electronic signing.',
+    'El enlace activo no se puede mostrar aquí (solo se guarda su huella, no el enlace). Para reenviarlo: «✍︎ Enviar a firma» → Enviar por email.':
+      'The live link cannot be shown here (only its fingerprint is stored, not the link). To resend it: “✍︎ Send for signing” → Send by email.',
+    'Selecciona y copia a mano': 'Select and copy by hand',
+    'Sin eventos registrados.': 'No events logged.',
+    'Historial del contrato': 'Contract history',
+    'Está guardado con': 'It is saved with',
+    'en papel': 'on paper',
+    'Sin dirección': 'No address',
+    'Avisa al estudio': 'Tell the studio',
+    /* envío por email */
+    'El mensaje está vacío': 'The message is empty',
+    'El mensaje ya no incluye el enlace de firma': 'The message no longer includes the signing link',
+    'Se envía la vista previa tal cual.': 'The preview is sent exactly as it looks.',
+    'O adjúntalo tú mismo (opcional)': 'Or attach it yourself (optional)',
+    'Descarga el PDF y hazlo llegar por el canal que corresponda.':
+      'Download the PDF and get it to them through whichever channel applies.',
+    'Generar': 'Generate',
+    /* barra de la vista previa */
+    'Vista previa del contrato': 'Contract preview',
+    'Editar el texto fijo del contrato': 'Edit the contract’s fixed text',
+    'Color de portada, logo y marca de agua': 'Cover colour, logo and watermark',
+    'Restaurar texto original de la plantilla': 'Restore the template’s original text',
+    'Genera otro contrato reutilizando estos datos': 'Generate another contract reusing these details',
+    'Guarda el contrato en la base de datos': 'Save the contract to the database',
+    'Enlace para que el comprador firme a distancia': 'Link for the buyer to sign remotely',
+    'Anula el enlace y las firmas ya dadas, y desbloquea el formulario para editar':
+      'Voids the link and any signatures given, and unlocks the form for editing',
+    'Descargar el PDF ya firmado': 'Download the signed PDF',
+    'Solo super admin: devuelve el contrato a editable. Queda registrado':
+      'Super admin only: returns the contract to editable. It is logged',
+    'PDF a mano': 'PDF by hand',
+    'Sube el PDF firmado y bloquea el contrato': 'Upload the signed PDF and lock the contract',
+    'Facturar': 'Invoice',
+    'Abre Facturas con este contrato ya elegido': 'Opens Invoices with this contract already selected',
+    'El contrato siempre incluye Bahasa Indonesia': 'The contract always includes Bahasa Indonesia',
+
   };
 
   window.LW_EN = EN;

@@ -32,7 +32,7 @@
 <link rel="stylesheet" href="documento.css?v=20260731">
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=5c1e63dc"></script>
+<script src="/contracts/assets/i18n.js?v=05322a13"></script>
 <script src="/contracts/assets/herramientas.js?v=cce2c8c2"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -2221,8 +2221,8 @@ async function pintarOpcionesContrato(){
       const conCosas = LINEAS.some(l => (l.descripcion || '').trim() || (l.importe || '').trim());
       if(conCosas && !await lwConfirmar({
         titulo: 'Sustituir los conceptos',
-        cuerpo: '<p>' + lwT('El documento ya tiene conceptos. Poner') + '<b>' + lwT('todo el contrato') + '</b>' + lwT('los reemplaza por una sola línea con el importe completo.') + '</p>'
-              + '<p>' + lwT('Se hace así a propósito: dejar los dos cobraría el total') + '<b>y</b>' + lwT('el hito, y el documento saldría creíble.') + '</p>',
+        cuerpo: '<p>' + lwT('El documento ya tiene conceptos. Poner') + ' <b>' + lwT('todo el contrato') + '</b> ' + lwT('los reemplaza por una sola línea con el importe completo.') + '</p>'
+              + '<p>' + lwT('Se hace así a propósito: dejar los dos cobraría el total') + ' <b>y</b> ' + lwT('el hito, y el documento saldría creíble.') + '</p>',
         confirmar: 'Sustituir por el total', cancelar: 'Dejarlo como está' })) return;
       LINEAS = [{ descripcion: DESC_TOTAL, importe: String(precio).replace('.', ',') }];
       pintarLineas(); render();
@@ -2248,7 +2248,7 @@ async function pintarOpcionesContrato(){
     const g = docs.length ? lwAgrupaPorContrato(docs)[0] : null;
     if(caj && g){
       const pct = g.unaMoneda && g.totalFacturado ? ' · ' + g.pct.toFixed(0) + ' %' : '';
-      caj.innerHTML = '<p class="arrastrado">' + lwT('De este contrato hay') + '<b>'
+      caj.innerHTML = '<p class="arrastrado">' + lwT('De este contrato hay') + ' <b>'
         + esc(lwSumaTexto(g.cobrado)) + '</b> cobrado'
         + (g.totalFacturado ? ' sobre ' + esc(lwSumaTexto(g.facturado)) + ' facturado' + pct : '')
         + '.</p>';
@@ -2457,7 +2457,7 @@ async function pintarVinculados(idPrincipal, padreId, sociedadPrincipal, monedaP
       const conCosas = LINEAS.some(l => (l.descripcion || '').trim() || (l.importe || '').trim());
       if(conCosas && !await lwConfirmar({
         titulo: 'Facturar la unidad completa',
-        cuerpo: '<p>' + lwT('Sustituye los conceptos por') + '<b>' + lwT('dos líneas') + '</b>' + lwT(': el precio total de cada uno de los dos contratos.') + '</p>'
+        cuerpo: '<p>' + lwT('Sustituye los conceptos por') + ' <b>' + lwT('dos líneas') + '</b>' + lwT(': el precio total de cada uno de los dos contratos.') + '</p>'
               + '<p>' + lwT('Dos líneas y no una a propósito: son dos relaciones jurídicas con el mismo comprador, y fundirlas borra a qué contrato corresponde cada euro.') + '</p>',
         confirmar: 'Sustituir por los dos', cancelar: 'Dejarlo como está' })) return;
       LINEAS = [
@@ -3084,7 +3084,7 @@ function pintarListado(){
     if(an){
       e.stopPropagation();
       if(!await lwConfirmar({ titulo:'Anular la factura ' + ((data.find(x=>x.id===an.dataset.anular)||{}).numero || ''),
-        cuerpo:'<p>' + lwT('El número') + '<b>' + lwT('no se reutiliza') + '</b>' + lwT('y ya no se podrá editar.') + '</p>'
+        cuerpo:'<p>' + lwT('El número') + ' <b>' + lwT('no se reutiliza') + '</b> ' + lwT('y ya no se podrá editar.') + '</p>'
              + '<p>' + lwT('La factura se queda en el registro marcada como anulada, así que el rastro no se pierde.') + '</p>',
         confirmar:'Anular la factura', tono:'peligro' })) return;
       const { data: fue, error } = await sb.from('facturas').update({ anulada:true }).eq('id', an.dataset.anular).select('id');
@@ -3105,8 +3105,8 @@ function pintarListado(){
       e.stopPropagation();
       const f = data.find(x => x.id === bo.dataset.borrar) || {};
       if(!await lwConfirmar({ titulo:'Borrar la factura ' + (f.numero || ''),
-        cuerpo:'<p>' + lwT('Lo normal es') + '<b>anularla</b>' + lwT(': así queda el rastro y la serie no pierde un número.') + '</p>'
-             + '<p>' + lwT('Borrarla deja un') + '<b>' + lwT('hueco en la numeración') + '</b>' + lwT('que habrá que explicarle a un contable. No hay papelera.') + '</p>',
+        cuerpo:'<p>' + lwT('Lo normal es') + ' <b>anularla</b>' + lwT(': así queda el rastro y la serie no pierde un número.') + '</p>'
+             + '<p>' + lwT('Borrarla deja un') + ' <b>' + lwT('hueco en la numeración') + '</b> ' + lwT('que habrá que explicarle a un contable. No hay papelera.') + '</p>',
         confirmar:'Borrar de todos modos', cancelar:'Mejor anularla', tono:'peligro' })) return;
       const { data: fue, error } = await sb.from('facturas').delete().eq('id', bo.dataset.borrar).select('id');
       // La RLS no da error al denegar: devuelve cero filas. Sin comprobarlo, la
