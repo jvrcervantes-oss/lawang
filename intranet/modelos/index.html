@@ -150,6 +150,7 @@
    día que haga falta; montarla hoy sería mantener un camino que nadie usa.
    ========================================================================== */
 let SB = null, YO = null, ADMIN = false;
+let FORECAST = [], FORECAST_P = [], SUELO = [];
 let MODELOS = [], TECHOS = [], EXTRAS = [], MODELO_EXTRAS = [], PRECIOS = [], DOCS = [], SIN_CAT = [], PROYECTOS = [];
 let SEL = null, CARGANDO = true, FALLO = null, EDITANDO = false;
 
@@ -175,7 +176,7 @@ const eur  = (v, m) => v == null ? '—' : lwFormatoImporte(Number(v)) + ' ' + (
 /* ---------- carga ---------- */
 async function cargar(){
   CARGANDO = true; FALLO = null; pintar();
-  const [mo, te, ex, me, pr, dc, sc, py] = await Promise.all([
+  const [mo, te, ex, me, pr, dc, sc, py, fc, fp, un] = await Promise.all([
     SB.from('modelos').select('*').order('orden', { ascending:true, nullsFirst:false }).order('nombre'),
     SB.from('modelo_techos').select('*').order('orden'),
     SB.from('extras').select('*').eq('activo', true).order('orden'),
@@ -187,6 +188,16 @@ async function cargar(){
     // nunca que está roto.
     SB.from('modelos_sin_catalogar').select('*'),
     SB.from('proyectos').select('id, nombre').eq('activo', true).order('nombre'),
+    // Previsión del investor deck. Vive en tablas propias y no en `modelos_villa`
+    // (que es el nivel 2 de la cascada de PRECIO y tiene moneda por fila): un ADR
+    // ahí heredaría la moneda por accidente el día que esto se copie a un
+    // proyecto en rupias. Ver la migración 20260911180000.
+    SB.from('deck_forecast').select('*'),
+    SB.from('deck_forecast_proyecto').select('*'),
+    // El suelo REAL del inventario, solo para poder avisar de que una inversión
+    // base se ha quedado vieja. Una copia que no sabe decir cuándo envejeció es
+    // deuda con fecha de explosión (`contexto/patrones_tecnicos.md`).
+    SB.from('unidades').select('id, proyecto, precio_suelo, superficie_m2').not('precio_suelo', 'is', null),
   ]);
   CARGANDO = false;
   if(mo.error){ FALLO = mo.error.message; pintar(); return; }
@@ -198,8 +209,23 @@ async function cargar(){
   DOCS    = dc.error ? [] : (dc.data || []);
   SIN_CAT = sc.error ? [] : (sc.data || []);
   PROYECTOS = py.error ? [] : (py.data || []);
+  FORECAST  = fc.error ? [] : (fc.data || []);
+  FORECAST_P = fp.error ? [] : (fp.data || []);
+  SUELO     = un.error ? [] : (un.data || []);
   pintar();
 }
+
+/* La parcela de REFERENCIA de un proyecto: la más barata de las que existen.
+   Es con lo que se contrasta la inversión base para saber si ha envejecido —
+   no para calcularla sola, porque puede ser un precio de paquete pactado. */
+function sueloRef(proyectoNombre){
+  const ps = SUELO.filter(u => u.proyecto === proyectoNombre);
+  if(!ps.length) return null;
+  return ps.reduce((a, u) => Number(u.precio_suelo) < Number(a.precio_suelo) ? u : a);
+}
+const forecastDe = modeloId => FORECAST.filter(f => f.modelo_id === modeloId);
+const forecastProy = proyectoId => FORECAST_P.find(f => f.proyecto_id === proyectoId) || null;
+const proyPorNombre = n => PROYECTOS.find(p => p.nombre === n) || null;
 
 const techosDe  = id => TECHOS.filter(t => t.modelo_id === id);
 const preciosDe = id => PRECIOS.filter(p => p.modelo_id === id);
@@ -302,7 +328,8 @@ function render(){
       ? `<button type="button" class="sui-btn primario" id="bGuardar">${lwT('Guardar')}</button>
          <button type="button" class="sui-btn" id="bCancelar">${lwT('Cancelar')}</button>`
       : (ADMIN
-          ? `<button type="button" class="sui-btn primario" id="bEditar">${lwT('Editar datos')}</button>`
+          ? `<button type="button" class="sui-btn primario" id="bEditar">${lwT('Editar datos')}</button>
+             <button type="button" class="sui-btn" id="bFotosDeck">${lwT('Fotos del deck…')}</button>`
           : `<span class="mini">${lwT('Los precios y las specs los edita un administrador. Tú sí puedes subir documentos.')}</span>`),
     onCerrar: () => { SEL = null; EDITANDO = false; }
   });
@@ -356,6 +383,34 @@ function cuerpoLectura(m){
       return `<div class="dato"><span>${esc(p.proyecto)}</span><b>${esc(eur(c.valor, c.moneda))}
         <span class="casc">${c.origen === 'catalogo' ? '· ' + lwT('heredado') : c.origen === 'proyecto' ? '· ' + lwT('propio') : ''}</span></b></div>`;
     }).join('') : '<p class="mini">' + lwT('Este modelo no está declarado en ningún proyecto todavía.') + '</p>'}
+  </div>
+
+  <div class="bloque">
+    <h3>${lwT('Previsión del investor deck')}</h3>
+    <p class="mini">${lwT('Lo que sale en «Year-1 Rental Forecast» del deck público de cada proyecto. Un modelo sin previsión publicada no aparece ahí — no se enseña media tarjeta.')}</p>
+    ${pr.length ? pr.map(x => {
+      const f = forecastDe(m.id).find(k => { const py = proyPorNombre(x.proyecto); return py && k.proyecto_id === py.id; });
+      const py = proyPorNombre(x.proyecto);
+      const cfg = py ? forecastProy(py.id) : null;
+      if(!f) return `<div class="dato"><span>${esc(x.proyecto)}</span>
+        <b><span class="casc">${lwT('sin previsión')}</span>
+        ${ADMIN ? `<button type="button" class="sui-btn" data-fc="${esc(x.proyecto)}">${lwT('Añadir…')}</button>` : ''}</b></div>`;
+      /* El aviso de que la cifra ha envejecido va AQUÍ, en el listado, y no
+         escondido dentro del formulario: nadie abre doce fichas a comprobar. */
+      const ref = sueloRef(x.proyecto);
+      const c = precioEn(m, x.proyecto);
+      const deberia = (ref && c.valor != null) ? Number(ref.precio_suelo) + Number(c.valor) : null;
+      const desfase = deberia != null ? Number(f.inversion_base) - deberia : null;
+      return `<div class="dato"><span>${esc(x.proyecto)}
+          <span class="casc">· ADR ${esc(fmt(f.adr_medio))}–${esc(fmt(f.adr_optimo))} €
+            · ${Math.round(f.ocupacion_media*100)}–${Math.round(f.ocupacion_optima*100)}%
+            · ${lwT('base')} ${esc(fmt(f.inversion_base))} €</span></span>
+        <b>${f.publicado && cfg && cfg.publicado ? lwT('publicada') : `<span class="conf">${lwT('sin publicar')}</span>`}
+        ${ADMIN ? `<button type="button" class="sui-btn" data-fc="${esc(x.proyecto)}">${lwT('Editar…')}</button>` : ''}</b></div>
+        ${desfase != null && Math.abs(desfase) >= 1 ? `<p class="mini conf">${lwT('Ojo: la base no cuadra con construcción + la parcela más barata del proyecto')}
+          (${esc(fmt(deberia))} €) — ${desfase > 0 ? '+' : ''}${esc(fmt(desfase))} €.
+          ${lwT('O es un precio de paquete pactado, o se ha quedado vieja.')}</p>` : ''}`;
+    }).join('') : `<p class="mini">${lwT('Este modelo no está declarado en ningún proyecto, así que no puede tener previsión.')}</p>`}
   </div>
 
   <div class="bloque">
@@ -491,6 +546,20 @@ function enganchar(m){
     if(f) f.onchange = () => subirDoc(m, f.files && f.files[0],
                                     (document.getElementById('tipoDoc') || {}).value);
     document.querySelectorAll('[data-desc]').forEach(b2 => b2.onclick = () => descargar(b2.dataset.desc));
+    /* FOTOS DEL DECK (11-sep-2026). Cajón aparte y no dentro de esta ficha: los
+       campos de aquí se guardan al pulsar «Guardar» y una foto se publica AL
+       SUBIRLA. Bajo el mismo botón, eso prometería poder cancelar algo que ya
+       está publicado. La pieza es compartida con Proyectos (Regla 0). */
+    const bf = document.getElementById('bFotosDeck');
+    if(bf) bf.onclick = () => {
+      if(!window.lwDeckFotos){ toast(lwT('No se ha cargado el gestor de fotos del deck.')); return; }
+      lwDeckFotos.abrir({
+        SB, ambito:'modelo', modeloId: m.id, esAdmin: ADMIN,
+        titulo: lwT('Fotos públicas del deck'),
+        sub: m.nombre + ' · ' + lwT('salen en todos los proyectos donde se construya'),
+      });
+    };
+    document.querySelectorAll('[data-fc]').forEach(b3 => b3.onclick = () => editarForecast(m, b3.dataset.fc));
     return;
   }
   const slug = document.getElementById('e-slug');
@@ -610,6 +679,141 @@ async function guardar(m){
 async function contarUnidades(modeloId){
   const r = await SB.from('unidades').select('id', { count:'exact', head:true }).eq('modelo_id', modeloId);
   return r.count || 0;
+}
+
+/* ---------- previsión del investor deck ----------
+   11-sep-2026. Los números del bloque «Year-1 Rental Forecast» del deck público.
+   Se editan desde aquí porque son del MODELO en un PROYECTO concreto — el ADR de
+   Dali en Palm Field no es el de Dali en Sumba Hills.
+
+   Dos avisos que no se pueden perder al tocar esto:
+   · Los tres porcentajes son del CONTRATO de gestión de alquiler, así que son
+     del proyecto y no del modelo: se editan aquí por comodidad, pero cambiarlos
+     mueve la tarjeta de TODOS los modelos de ese proyecto. La pantalla lo dice.
+   · La inversión base es EXPLÍCITA, no derivada. Puede ser un precio de paquete
+     pactado y por eso no se calcula sola — pero se contrasta con construcción +
+     la parcela más barata y se avisa del desfase, aquí y en el listado. */
+function editarForecast(m, proyectoNombre){
+  const py = proyPorNombre(proyectoNombre);
+  if(!py){ toast(lwT('Ese proyecto no está en la tabla `proyectos`.')); return; }
+  const f = forecastDe(m.id).find(k => k.proyecto_id === py.id) || null;
+  const cfg = forecastProy(py.id);
+  const ref = sueloRef(proyectoNombre);
+  const c = precioEn(m, proyectoNombre);
+  const sugerida = (ref && c.valor != null) ? Number(ref.precio_suelo) + Number(c.valor) : null;
+  const v = f || {};
+
+  suiAbrirCajon({
+    titulo: lwT('Previsión del deck'),
+    sub: m.nombre + ' · ' + proyectoNombre,
+    cuerpo: `
+      <div class="bloque">
+        <h3>${lwT('Este modelo, en este proyecto')}</h3>
+        <div class="dos">
+          <div class="campo"><label for="fc-adrm">${lwT('Precio medio/noche · escenario medio (€)')}</label>
+            <input id="fc-adrm" inputmode="decimal" value="${v.adr_medio ?? ''}"></div>
+          <div class="campo"><label for="fc-adro">${lwT('Precio medio/noche · óptimo (€)')}</label>
+            <input id="fc-adro" inputmode="decimal" value="${v.adr_optimo ?? ''}"></div>
+        </div>
+        <div class="dos">
+          <div class="campo"><label for="fc-occm">${lwT('Ocupación media (%)')}</label>
+            <input id="fc-occm" inputmode="decimal" value="${v.ocupacion_media != null ? Math.round(v.ocupacion_media*1000)/10 : ''}"></div>
+          <div class="campo"><label for="fc-occo">${lwT('Ocupación óptima (%)')}</label>
+            <input id="fc-occo" inputmode="decimal" value="${v.ocupacion_optima != null ? Math.round(v.ocupacion_optima*1000)/10 : ''}"></div>
+        </div>
+        <div class="campo"><label for="fc-base">${lwT('Inversión total, base del ROI (€)')}</label>
+          <input id="fc-base" inputmode="decimal" value="${v.inversion_base ?? ''}">
+          <p class="mini">${sugerida != null
+            ? lwT('Construcción + la parcela más barata de este proyecto sale') + ` <b>${esc(fmt(sugerida))} €</b>` +
+              ` (${esc(fmt(c.valor))} + ${esc(fmt(ref.precio_suelo))}). ` +
+              lwT('Si pones otra cifra tiene que ser porque es un paquete pactado; el deck afirma que el ROI se calcula sobre construcción más suelo y enseña el inventario real dos secciones más arriba.')
+            : lwT('No hay parcelas con precio en este proyecto, así que no se puede contrastar la cifra con nada.')}</p></div>
+        <label class="mini" style="display:flex;gap:8px;align-items:baseline">
+          <input type="checkbox" id="fc-dest" ${v.destacado ? 'checked' : ''}> ${lwT('Marcar como «El más solicitado» en el deck')}</label>
+        <label class="mini" style="display:flex;gap:8px;align-items:baseline">
+          <input type="checkbox" id="fc-pub" ${v.publicado ? 'checked' : ''}> <b>${lwT('Publicar en el deck público')}</b></label>
+        <p class="mini">${lwT('Sin esta casilla el modelo no sale en el forecast. Nace apagada a propósito: que un campo esté relleno no puede significar «publícalo».')}</p>
+      </div>
+
+      <div class="bloque">
+        <h3>${lwT('Gastos del proyecto')} · ${esc(proyectoNombre)}</h3>
+        <p class="sui-aviso" role="status">${lwT('Estos tres son del contrato de gestión de alquiler, no de este modelo: cambiarlos mueve la tarjeta de TODOS los modelos de')} <b>${esc(proyectoNombre)}</b>.</p>
+        <div class="dos">
+          <div class="campo"><label for="fc-gest">${lwT('Gestión (%)')}</label>
+            <input id="fc-gest" inputmode="decimal" value="${cfg ? Math.round(cfg.pct_gestion*1000)/10 : 20}"></div>
+          <div class="campo"><label for="fc-mant">${lwT('Mantenimiento (%)')}</label>
+            <input id="fc-mant" inputmode="decimal" value="${cfg ? Math.round(cfg.pct_mantenimiento*1000)/10 : 5}"></div>
+        </div>
+        <div class="dos">
+          <div class="campo"><label for="fc-imp">${lwT('Impuesto de alquiler (%)')}</label>
+            <input id="fc-imp" inputmode="decimal" value="${cfg ? Math.round(cfg.pct_impuesto*1000)/10 : 10}"></div>
+          <div class="campo"><label for="fc-contr">${lwT('Contrato de gestión que los fija')}</label>
+            <input id="fc-contr" value="${esc(cfg && cfg.contrato_vigente || '')}" placeholder="${lwT('Ej. CG-2026-01')}"></div>
+        </div>
+        <label class="mini" style="display:flex;gap:8px;align-items:baseline">
+          <input type="checkbox" id="fc-pubp" ${cfg && cfg.publicado ? 'checked' : ''}> <b>${lwT('Publicar el forecast de este proyecto')}</b></label>
+        <p class="mini">${lwT('Si se apaga, el deck de este proyecto se queda sin bloque de previsión entero: el neto y el ROI salen de restar estos tres.')}</p>
+      </div>`,
+    pie: `<button type="button" class="sui-btn primario" id="fc-guardar">${lwT('Guardar')}</button>
+          <button type="button" class="sui-btn" id="fc-cancelar">${lwT('Cancelar')}</button>`,
+    onCerrar: () => { if(SEL) render(); },
+  });
+
+  document.getElementById('fc-cancelar').onclick = () => { suiCerrarCajon(); if(SEL) render(); };
+  document.getElementById('fc-guardar').onclick = async () => {
+    const num = id => { const t = (document.getElementById(id).value || '').trim().replace(',', '.'); return t === '' ? null : Number(t); };
+    const pct = id => { const n = num(id); return n == null ? null : n / 100; };
+    const fila = {
+      proyecto_id: py.id, modelo_id: m.id,
+      adr_medio: num('fc-adrm'), adr_optimo: num('fc-adro'),
+      ocupacion_media: pct('fc-occm'), ocupacion_optima: pct('fc-occo'),
+      inversion_base: num('fc-base'),
+      unidad_referencia_id: ref ? ref.id : null,
+      destacado: document.getElementById('fc-dest').checked,
+      publicado: document.getElementById('fc-pub').checked,
+      actualizado_en: new Date().toISOString(),
+    };
+    /* Se comprueba aquí ADEMÁS de en la base. La base es lo único que de verdad
+       lo impide (CHECK de rango); esto existe para no ofrecer lo que va a fallar
+       al guardar, y para decir CUÁL de los motivos es en vez de «no puedes». */
+    for(const [k, etiqueta] of [['adr_medio', lwT('el precio medio/noche')], ['adr_optimo', lwT('el precio óptimo')],
+                                ['ocupacion_media', lwT('la ocupación media')], ['ocupacion_optima', lwT('la ocupación óptima')],
+                                ['inversion_base', lwT('la inversión base')]]){
+      if(fila[k] == null || !(fila[k] > 0)){ toast(lwT('Falta o no es válido: ') + etiqueta); return; }
+    }
+    if(fila.ocupacion_media > 1 || fila.ocupacion_optima > 1){ toast(lwT('La ocupación es un porcentaje: no puede pasar de 100.')); return; }
+
+    const cf = {
+      proyecto_id: py.id,
+      pct_gestion: pct('fc-gest'), pct_mantenimiento: pct('fc-mant'), pct_impuesto: pct('fc-imp'),
+      contrato_vigente: (document.getElementById('fc-contr').value || '').trim() || null,
+      publicado: document.getElementById('fc-pubp').checked,
+      actualizado_en: new Date().toISOString(),
+    };
+    for(const k of ['pct_gestion', 'pct_mantenimiento', 'pct_impuesto']){
+      if(cf[k] == null || cf[k] < 0 || cf[k] > 1){ toast(lwT('Los porcentajes van entre 0 y 100.')); return; }
+    }
+    if(cf.pct_gestion + cf.pct_mantenimiento + cf.pct_impuesto >= 1){
+      toast(lwT('Los tres porcentajes juntos se comen el ingreso entero: el neto saldría negativo.')); return;
+    }
+
+    const b = document.getElementById('fc-guardar'); b.disabled = true;
+    try{
+      const r1 = await SB.from('deck_forecast').upsert(fila, { onConflict: 'proyecto_id,modelo_id' }).select('id');
+      if(r1.error) throw r1.error;
+      if(!r1.data || !r1.data.length) throw new Error(lwT('No tienes permiso (solo administrador).'));
+      const r2 = await SB.from('deck_forecast_proyecto').upsert(cf, { onConflict: 'proyecto_id' }).select('proyecto_id');
+      if(r2.error) throw r2.error;
+      await cargar();
+      SEL = MODELOS.find(x => x.id === m.id) || null;
+      suiCerrarCajon();
+      if(SEL) render();
+      toast(lwT('Previsión guardada'));
+    }catch(e){
+      b.disabled = false;
+      toast(lwT('No se ha guardado: ') + (e.message || e));
+    }
+  };
 }
 
 /* ---------- documentos ----------
