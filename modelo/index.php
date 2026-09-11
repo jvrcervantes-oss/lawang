@@ -452,6 +452,10 @@ html:not([data-lang="es"]) .i-es{display:none !important}
   --lw-lang-menu-ink:#F5F0E6;
   --lw-lang-hover:rgba(255,255,255,.12);
 }
+/* Mismo orden que /dali y el investor deck: el selector antes que los botones. Lo inyecta
+   i18n-landing.js al final de .nav__right, asi que sin `order` cae detras del CTA. */
+.nav__right .lw-lang{order:1}
+.nav__right .btn{order:2}
 .nav__links{display:flex;align-items:center;gap:22px}
 .nav__links a{font-family:var(--head);font-size:12px;font-weight:500;
   color:rgba(255,255,255,.82);text-transform:uppercase;
