@@ -101,7 +101,6 @@
     /* — portada — */
     'Investor Deck · Due Diligence': { es: 'Dossier de inversión · Due diligence', id: 'Dosir Investor · Uji Tuntas' },
     'Balian Hills · Bali': { es: 'Balian Hills · Bali', id: 'Balian Hills · Bali' },
-    'Palm Field, by PT SAN DAL WOODS': { es: 'Palm Field, de PT SAN DAL WOODS', id: 'Palm Field, oleh PT SAN DAL WOODS' },
     'A land-plot development in the': { es: 'Una promoción de parcelas en el', id: 'Pengembangan kavling tanah di' },
     'Balian river valley.': { es: 'valle del río Balian.', id: 'lembah sungai Balian.' },
     'Held under': { es: 'En régimen de', id: 'Dipegang dalam skema' },
