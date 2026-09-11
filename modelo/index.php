@@ -305,7 +305,7 @@ $renderPanel = function () use ($nombre, $m, $techoIni, $estIni, $antes2027, $PI
                tiene aviso escrito de la subida. */ ?>
         <p>Not an offer or a reservation. Your final price depends on the specific plot and is confirmed in writing before you sign.</p>
       </div>
-      <div class="est__cta"><a class="btn btn--block" href="#agendar">Book a call for the real numbers</a></div>
+      <div class="est__cta"><a class="btn btn--block" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer">Ask us for the real numbers</a></div>
     </div>
 <?php };
 
@@ -464,8 +464,11 @@ html:not([data-lang="es"]) .i-es{display:none !important}
    de los 320px que el propio widget de Calendly pide como mínimo, y salía con scroll
    horizontal interno. 360px deja sitio real. */
 /* Una sola columna desde el 11-sep-2026: la ficha perdio su columna de calendario.
-   Se deja el max-width para que el texto no se estire a todo el ancho del wrap. */
-.grid{display:grid;grid-template-columns:minmax(0,1fr);gap:40px;align-items:start}
+   Se acota al ancho que el contenido YA tenia cuando habia lateral (wrap - 360 - 40)
+   y se centra: si se deja a 1fr, los parrafos se estiran a 1228px y los titulares con
+   max-width propio se quedan pegados a la izquierda. */
+.grid{display:grid;grid-template-columns:minmax(0,1fr);gap:40px;align-items:start;
+  max-width:830px;margin-inline:auto}
 
 /* ── Hero ─────────────────────────────────────────────────────────────────────── */
 /* La imagen es la prueba del producto en un vistazo: columna más ancha (.62/1.38),
@@ -909,7 +912,7 @@ label.picker__row{cursor:pointer}
 
 /* ── Reserva ──────────────────────────────────────────────────────────────────── */
 .reserva{text-align:center;padding-bottom:20px}
-.reserva h2{font-size:clamp(28px,4vw,44px);margin-top:.25em}
+.reserva h2{font-size:clamp(28px,4vw,44px);margin-top:.25em;margin-inline:auto}
 .reserva__desc{font-size:16px;color:var(--ink2);max-width:480px;margin:.85em auto 0}
 .reserva__card{border:1px solid var(--linea);border-radius:10px;padding:40px 30px;
   background:var(--panel);max-width:620px;margin:32px auto 0}
@@ -994,7 +997,7 @@ label.picker__row{cursor:pointer}
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.5c.1-.2.2-.3.3-.5 0-.2 0-.4-.1-.5l-1-2.2c-.2-.5-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1.1 2.8 1.2 3c.2.2 2.1 3.2 5.1 4.4 1.9.7 2.5.8 3.4.7.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.6-.3zM12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2z"/></svg>
         <span>WhatsApp</span>
       </a>
-      <a class="btn" href="#agendar"><?= lw_i18n('Agendar llamada', 'Book a call') ?></a>
+      <a class="btn" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer"><?= lw_i18n('Escríbenos', 'Talk to us') ?></a>
     </div>
   </div>
 </header>
@@ -1014,7 +1017,7 @@ label.picker__row{cursor:pointer}
       <p class="hero__precio"><i>From</i> <span id="lw-hero-price"><?= lw_e($precioTxt) ?></span></p>
       <p class="hero__sub" id="lw-hero-sub"><?= lw_e($m['sub_en']) ?></p>
       <div class="hero__ctas">
-        <a class="btn" href="#agendar">Book a call</a>
+        <a class="btn" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer">Talk to us</a>
         <a class="btn btn--ghost" href="#galeria" id="lw-hero-gallery-link"<?= $sinRender ? ' hidden' : '' ?>>View gallery</a>
       </div>
     </div>
