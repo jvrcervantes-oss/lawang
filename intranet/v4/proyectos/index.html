@@ -1,10 +1,10 @@
 <!DOCTYPE html><html lang="es" style=""><head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d126c94d" data-herramienta="unidades"></script>
-<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=f84d8753" defer></script><script src="../assets/datos.js?v=169657d0" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=f84d8753" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1" defer></script><script src="../assets/datos.js?v=169657d0" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=4afc04b7" defer></script>
 <link href="../assets/shell.css?v=47ef41f3" rel="stylesheet">
-<script src="../assets/editores.js?v=9c835367" defer></script><script src="../assets/maqueta.js?v=5c4cc383" defer></script>
+<script src="../assets/editores.js?v=fad8cd1d" defer></script><script src="../assets/maqueta.js?v=5c4cc383" defer></script>
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>Inventario de Proyectos &amp; Suelo — Lawang Intranet</title>
@@ -419,6 +419,16 @@
 </div>
 </div>
 </section>
+<!-- 1b. SALES MANAGER / PROJECT MANAGER DE ESTE PROYECTO (11-sep-2026) —
+     lectura aquí; asignar/desasignar es una escritura y vive en el modal de
+     "Editar proyecto" (editores.js), gateada a admin + herramienta usuarios. -->
+<section class="space-y-3">
+<h4 class="text-xs font-bold uppercase tracking-wider text-outline flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-territorial-green">supervisor_account</span>
+          Encargado del proyecto
+        </h4>
+<div class="flex flex-wrap gap-2" id="d-managers">—</div>
+</section>
 <!-- 2. DESGLOSE DE UNIDADES Y COMPRADORES VINCULADOS -->
 <section class="space-y-3">
 <div class="flex items-center justify-between">
@@ -443,6 +453,11 @@
 <span class="flex items-center gap-1">
 <span class="material-symbols-outlined text-[14px]">check_circle</span><span data-lw="u-cobrado">—</span></span>
 <span class="text-outline font-body-sm text-[11px]" data-lw="u-nota">—</span>
+</div>
+<!-- Agente que creó el contrato (11-sep-2026) — mismo dato que ya enseña /proyectos/ -->
+<div class="flex items-center justify-between text-[11px] text-outline pt-0.5">
+<span class="font-medium">Agente:</span>
+<span class="font-body-sm" data-lw="u-agente">—</span>
 </div>
 </div>
 </div>

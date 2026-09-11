@@ -81,10 +81,15 @@
       } else if (c.tipo === 'textarea') {
         d.innerHTML = inner + '<textarea data-k="' + esc(c.k) + '" rows="4" style="' + estilo + ';resize:vertical">' + esc(c.valor) + '</textarea>';
       } else if (c.tipo === 'multicheck') {
+        // `o` es un string (valor = etiqueta, como ya usaba Usuarios) o un
+        // par [valor, etiqueta] — igual que ya admite 'select' — para cuando el
+        // valor que hay que guardar (un id) no es lo que se quiere leer (un
+        // nombre). Proyectos lo necesita para modelos y managers.
         d.innerHTML = inner + '<div data-k="' + esc(c.k) + '" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font:500 13px inherit;text-transform:none;letter-spacing:0;color:#2E3437">' +
           (c.opciones || []).map(function (o) {
-            return '<label style="display:flex;gap:7px;align-items:center"><input type="checkbox" value="' + esc(o) + '"' +
-              ((c.valor || []).indexOf(o) !== -1 ? ' checked' : '') + '>' + esc(o) + '</label>';
+            var vv = typeof o === 'string' ? [o, o] : o;
+            return '<label style="display:flex;gap:7px;align-items:center"><input type="checkbox" value="' + esc(vv[0]) + '"' +
+              ((c.valor || []).indexOf(vv[0]) !== -1 ? ' checked' : '') + '>' + esc(vv[1]) + '</label>';
           }).join('') + '</div>';
       } else {
         d.innerHTML = inner + '<input data-k="' + esc(c.k) + '" type="' + (c.tipo || 'text') + '" value="' + esc(c.valor == null ? '' : c.valor) + '"' +
@@ -218,45 +223,162 @@
 
     proyectos: function (aut) {
       var sb = aut.sb;
-      if (!puedeH(aut.ficha, 'documentacion')) return;   // sin la herramienta, sin botones: mismo gate que la policy
-      ['btn-enlace', 'btn-faq'].forEach(function (id) {
-        var b = document.getElementById(id); if (b) b.classList.remove('hidden');
-      });
-      var proyecto = function () { return window.LW_V4 && window.LW_V4.proyecto && window.LW_V4.proyecto.nombre; };
-      var be = document.getElementById('btn-enlace');
-      if (be) be.addEventListener('click', function (ev) {
-        ev.stopPropagation();
-        var p = proyecto(); if (!p) return toast('El proyecto aún no ha cargado.', '#8A6A34');
-        modal('Nuevo enlace · ' + p, [
-          { k: 'titulo', label: 'Título', req: 1 },
-          { k: 'url', label: 'URL', req: 1, ayuda: 'https://…' },
-          { k: 'categoria', label: 'Categoría', tipo: 'select', opciones: ['comercial', 'legal', 'tecnico', 'precios'], valor: 'comercial' },
-          { k: 'visible_portal', label: 'Visible para el comprador', tipo: 'check', ayuda: 'lo verán TODOS los compradores de ' + p + ' en su portal' },
-          { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check' }
-        ], 'Guardar enlace', function (v) {
-          if (!/^https?:\/\//.test(v.url)) return { error: { message: 'la URL tiene que empezar por http:// o https://' } };
-          if (v.visible_portal && !window.confirm('«' + v.titulo + '» quedará visible para TODOS los compradores de ' + p + ' en su portal. ¿Publicarlo?')) {
-            return { error: { message: 'publicación al portal cancelada — desmarca la casilla o confirma' } };
+      var ficha = aut.ficha;
+      var esAdminP = esAdmin(ficha);
+      var esSuper = !!(ficha && ficha.rol === 'super_admin');
+      // Mismo criterio que PUEDE_USUARIOS en /proyectos/: admin (o super_admin,
+      // que puedeH ya deja pasar siempre) CON la herramienta 'usuarios' — sin
+      // ella la RLS de `usuarios` rechaza igual, así que no se ofrece el control.
+      var puedeUsuarios = esAdminP && puedeH(ficha, 'usuarios');
+      var proyectoObj = function () { return window.LW_V4 && window.LW_V4.proyecto; };
+
+      // enlaces/FAQ exigen 'documentacion': gate LOCAL, ya no aborta toda la
+      // pantalla — editar/borrar proyecto son otro permiso y siguen abajo.
+      if (puedeH(ficha, 'documentacion')) {
+        ['btn-enlace', 'btn-faq'].forEach(function (id) {
+          var b = document.getElementById(id); if (b) b.classList.remove('hidden');
+        });
+        var proyecto = function () { var p = proyectoObj(); return p && p.nombre; };
+        var be = document.getElementById('btn-enlace');
+        if (be) be.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          var p = proyecto(); if (!p) return toast('El proyecto aún no ha cargado.', '#8A6A34');
+          modal('Nuevo enlace · ' + p, [
+            { k: 'titulo', label: 'Título', req: 1 },
+            { k: 'url', label: 'URL', req: 1, ayuda: 'https://…' },
+            { k: 'categoria', label: 'Categoría', tipo: 'select', opciones: ['comercial', 'legal', 'tecnico', 'precios'], valor: 'comercial' },
+            { k: 'visible_portal', label: 'Visible para el comprador', tipo: 'check', ayuda: 'lo verán TODOS los compradores de ' + p + ' en su portal' },
+            { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check' }
+          ], 'Guardar enlace', function (v) {
+            if (!/^https?:\/\//.test(v.url)) return { error: { message: 'la URL tiene que empezar por http:// o https://' } };
+            if (v.visible_portal && !window.confirm('«' + v.titulo + '» quedará visible para TODOS los compradores de ' + p + ' en su portal. ¿Publicarlo?')) {
+              return { error: { message: 'publicación al portal cancelada — desmarca la casilla o confirma' } };
+            }
+            return sb.from('documentos_proyecto').insert({
+              proyecto: p, titulo: v.titulo, url: v.url, categoria: v.categoria,
+              visible_portal: v.visible_portal, confidencial: v.confidencial
+            });
+          });
+        });
+        var bf = document.getElementById('btn-faq');
+        if (bf) bf.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          var p = proyecto(); if (!p) return toast('El proyecto aún no ha cargado.', '#8A6A34');
+          modal('Nueva pregunta frecuente · ' + p, [
+            { k: 'titulo', label: 'Pregunta', req: 1 },
+            { k: 'descripcion', label: 'Respuesta', tipo: 'textarea', req: 1 }
+          ], 'Guardar pregunta', function (v) {
+            // como las seis existentes: categoria faq, solo equipo
+            return sb.from('documentos_proyecto').insert({
+              proyecto: p, titulo: v.titulo, descripcion: v.descripcion,
+              categoria: 'faq', confidencial: true, visible_portal: false
+            });
+          });
+        });
+      }
+
+      /* Editar proyecto (11-sep-2026, sincronizando v4 con lo nuevo de
+         /proyectos/): ficha (resort/parcela máster), qué se puede construir
+         aquí y sales/project manager, en el MISMO modal — igual que la ficha
+         única del original. Tres escrituras independientes al guardar
+         (proyectos, modelos_villa, un RPC por manager que cambió); que falle
+         una no deshace las otras, mismo criterio que allí. */
+      ata(/^Editar proyecto$/i, function () {
+        var p = proyectoObj();
+        if (!p) return toast('El proyecto aún no ha cargado.', '#8A6A34');
+        Promise.all([
+          sb.from('modelos').select('id,nombre,precio_construccion,moneda').eq('activo', true),
+          sb.from('modelos_villa').select('id,proyecto,modelo,modelo_id').eq('proyecto', p.nombre),
+          sb.from('unidades').select('modelo').eq('proyecto', p.nombre),
+          puedeUsuarios
+            ? sb.from('usuarios').select('user_id,email,nombre,rol,proyectos_supervisados,activo')
+                .in('rol', ['sales_manager', 'project_manager']).order('nombre')
+            : Promise.resolve({ data: [] })
+        ]).then(function (rs) {
+          var catalogo = (rs[0] && rs[0].data) || [];
+          var villas = (rs[1] && rs[1].data) || [];
+          var unidadesModelo = (rs[2] && rs[2].data) || [];
+          var managers = (rs[3] && rs[3].data) || [];
+          var enUso = {};
+          unidadesModelo.forEach(function (u) { if (u.modelo) enUso[u.modelo] = (enUso[u.modelo] || 0) + 1; });
+          var declarados = villas.map(function (v) { return v.modelo_id; }).filter(Boolean);
+
+          var campos = [
+            { k: 'resort', label: 'Resort', valor: p.resort || '' },
+            { k: 'parcela_master', label: 'Parcela máster (código)', valor: p.parcela_master || '' },
+            { k: 'parcela_master_m2', label: 'Superficie bruta (m²)', tipo: 'number', valor: p.parcela_master_m2 == null ? '' : p.parcela_master_m2 }
+          ];
+          // Solo se ofrece a quien la policy va a dejar guardar (es_admin() en
+          // `modelos_villa`) — mismo criterio que ES_ADMIN en /proyectos/.
+          if (esAdminP && catalogo.length) {
+            campos.push({
+              k: 'modelos', tipo: 'multicheck',
+              label: 'Qué se puede construir aquí (sin nada marcado, el catálogo entero)',
+              opciones: catalogo.map(function (m) {
+                var v = villas.find(function (x) { return x.modelo_id === m.id; });
+                var usado = v && enUso[v.modelo];
+                return [m.id, m.nombre + (usado ? ' · en uso, no se retira' : '')];
+              }),
+              valor: declarados
+            });
           }
-          return sb.from('documentos_proyecto').insert({
-            proyecto: p, titulo: v.titulo, url: v.url, categoria: v.categoria,
-            visible_portal: v.visible_portal, confidencial: v.confidencial
+          if (puedeUsuarios && managers.length) {
+            campos.push({
+              k: 'managers', tipo: 'multicheck',
+              label: 'Sales manager / Project manager de este proyecto',
+              opciones: managers.map(function (m) {
+                return [m.user_id, (m.nombre || m.email) + ' · ' + (m.rol === 'sales_manager' ? 'Sales manager' : 'Project manager') + (m.activo ? '' : ' (desactivado)')];
+              }),
+              valor: managers.filter(function (m) { return (m.proyectos_supervisados || []).indexOf(p.id) !== -1; })
+                             .map(function (m) { return m.user_id; })
+            });
+          }
+
+          modal('Editar proyecto · ' + p.nombre, campos, 'Guardar', function (v) {
+            return sb.from('proyectos').update({
+              resort: (v.resort || '').trim() || null,
+              parcela_master: (v.parcela_master || '').trim() || null,
+              parcela_master_m2: v.parcela_master_m2 === '' ? null : Number(v.parcela_master_m2)
+            }).eq('id', p.id).select('id').then(function (r) {
+              if (r.error) return r;
+              var trabajos = [];
+              if (esAdminP && catalogo.length) {
+                trabajos.push(lwDeclaraModelosEnProyecto(sb, p.nombre, v.modelos || [], {
+                  catalogo: catalogo, villas: villas, enUso: new Set(Object.keys(enUso)), proyecto_id: p.id
+                }).then(function (rm) {
+                  if (!rm.ok) toast('La ficha sí, los modelos no: ' + rm.error, '#ba1a1a');
+                  else if (rm.rechazadas.length) toast('No se retiran ' + rm.rechazadas.map(function (x) { return x.modelo; }).join(', ') + ': hay parcelas que los usan', '#8A6A34');
+                }));
+              }
+              if (puedeUsuarios && managers.length) {
+                var marcados = v.managers || [];
+                managers.forEach(function (m) {
+                  var teniaAntes = (m.proyectos_supervisados || []).indexOf(p.id) !== -1;
+                  var marcadoAhora = marcados.indexOf(m.user_id) !== -1;
+                  if (teniaAntes === marcadoAhora) return;
+                  trabajos.push(sb.rpc('usuario_supervisa_proyecto', { p_user_id: m.user_id, p_proyecto_id: p.id, p_asignar: marcadoAhora })
+                    .then(function (rr) { if (rr.error) toast('No se pudo actualizar el proyecto de ' + (m.nombre || m.email) + ': ' + rr.error.message, '#ba1a1a'); }));
+                });
+              }
+              return Promise.all(trabajos).then(function () { return r; });
+            });
           });
         });
       });
-      var bf = document.getElementById('btn-faq');
-      if (bf) bf.addEventListener('click', function (ev) {
-        ev.stopPropagation();
-        var p = proyecto(); if (!p) return toast('El proyecto aún no ha cargado.', '#8A6A34');
-        modal('Nueva pregunta frecuente · ' + p, [
-          { k: 'titulo', label: 'Pregunta', req: 1 },
-          { k: 'descripcion', label: 'Respuesta', tipo: 'textarea', req: 1 }
-        ], 'Guardar pregunta', function (v) {
-          // como las seis existentes: categoria faq, solo equipo
-          return sb.from('documentos_proyecto').insert({
-            proyecto: p, titulo: v.titulo, descripcion: v.descripcion,
-            categoria: 'faq', confidencial: true, visible_portal: false
-          });
+
+      /* Borrar proyecto (11-sep-2026): botón ya solo super_admin lo ve
+         (title lo avisa desde Stitch); el gate real es el RPC —
+         es_super_admin() dentro de borrar_proyecto(), no esta UI. Rechaza el
+         borrado solo si quedan unidades, modelos o documentos colgando. */
+      ata(/^Borrar proyecto$/i, function () {
+        var p = proyectoObj();
+        if (!p) return toast('El proyecto aún no ha cargado.', '#8A6A34');
+        if (!esSuper) return toast('Borrar un proyecto es solo para super_admin.', '#8A6A34');
+        if (!window.confirm('Borrar el proyecto «' + p.nombre + '» del catálogo. Solo funciona si no le quedan unidades, modelos ni documentos colgando. ¿Seguro?')) return;
+        sb.rpc('borrar_proyecto', { p_nombre: p.nombre }).then(function (r) {
+          if (r.error) return toast('No se pudo borrar: ' + r.error.message, '#ba1a1a');
+          toast('Proyecto borrado');
+          setTimeout(function () { location.href = '/intranet/v4/proyectos/'; }, 1200);
         });
       });
     },
