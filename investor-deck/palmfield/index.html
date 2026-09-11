@@ -87,7 +87,7 @@
   .lw-fade-in { animation: lwFadeIn .35s ease both; }
   @keyframes lwFadeIn { from { opacity:0; transform:translateY(4px);} to { opacity:1; transform:none;} }
 </style>
-<script src="i18n.js?v=20260911170254"></script>
+<script src="i18n.js?v=20260911170721"></script>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script>
   tailwind.config = {
@@ -158,7 +158,7 @@
         <span class="material-symbols-outlined text-[17px]">download</span>
         <span class="hidden sm:inline">Download dossier</span><span class="sm:hidden">Dossier</span>
       </a>
-      <a class="inline-flex items-center gap-2 px-3.5 sm:px-5 py-2.5 rounded-full bg-[#25D366] text-[#0b3d25] font-label-md text-label-md hover:brightness-95 transition-all shadow-sm whitespace-nowrap" href="https://wa.me/6281138319862?text=Hello%20LAWANG%2C%20I%27m%20looking%20at%20the%20Palm%20Field%20investor%20deck%20and%20I%20have%20a%20few%20questions." target="_blank" rel="noopener" aria-label="Ask about Palm Field on WhatsApp">
+      <a id="cta-whatsapp" class="inline-flex items-center gap-2 px-3.5 sm:px-5 py-2.5 rounded-full bg-[#25D366] text-[#0b3d25] font-label-md text-label-md hover:brightness-95 transition-all shadow-sm whitespace-nowrap" href="https://wa.me/6281138319862?text=Hello%20LAWANG%2C%20I%27m%20looking%20at%20the%20Palm%20Field%20investor%20deck%20and%20I%20have%20a%20few%20questions." target="_blank" rel="noopener" aria-label="Ask about Palm Field on WhatsApp"><span class="hidden" data-wa-msg>Hello LAWANG, I’m looking at the Palm Field investor deck and I have a few questions.</span>
         <svg viewBox="0 0 24 24" class="w-[17px] h-[17px] shrink-0" fill="currentColor" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.22 3.08.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.04 21.5h-.01a9.5 9.5 0 0 1-4.84-1.33l-.35-.2-3.6.94.96-3.51-.23-.36a9.49 9.49 0 0 1-1.45-5.05c0-5.24 4.27-9.5 9.52-9.5a9.46 9.46 0 0 1 9.51 9.51c0 5.24-4.27 9.5-9.51 9.5zM20.52 3.49A11.78 11.78 0 0 0 12.04 0C5.46 0 .1 5.36.1 11.94c0 2.1.55 4.16 1.6 5.98L0 24l6.25-1.64a11.92 11.92 0 0 0 5.79 1.47h.01c6.58 0 11.94-5.36 11.94-11.94a11.86 11.86 0 0 0-3.47-8.4z"/></svg>
         <span class="hidden sm:inline">Questions? WhatsApp</span><span class="sm:hidden">WhatsApp</span>
       </a>
@@ -470,6 +470,7 @@
     </div>
     <div class="flex flex-wrap items-center gap-6 text-on-surface-variant font-body-sm text-xs text-center md:text-left">
       <span>This page does not replace legal or financial advice. Nothing here is an offer to sell securities or a solicitation of investment.</span>
+      <a class="text-deep-lagoon underline whitespace-nowrap" href="mailto:sales@lawangproperties.com?subject=Palm%20Field%20%E2%80%94%20investor%20enquiry">sales@lawangproperties.com</a>
       <a class="text-deep-lagoon underline whitespace-nowrap" href="/legal" target="_blank" rel="noopener">Privacy &amp; Terms</a>
     </div>
   </div>
@@ -994,6 +995,19 @@
     lwDeck.montaSelectores('#deck-selectores');
     lwDeck.traduce(document.body);
   }
+
+  // El mensaje prellenado de WhatsApp se arma DESPUES de traducir: el <span>
+  // oculto de dentro del enlace ya viene en el idioma del visitante, y de ahi
+  // sale el ?text=. Antes iba fijo en ingles aunque el deck se sirviera en ES o
+  // ID (hallazgo de Marketing en la consulta de deploy del 11-sep).
+  (function(){
+    var a = document.getElementById('cta-whatsapp');
+    if(!a) return;
+    var m = a.querySelector('[data-wa-msg]');
+    if(!m) return;
+    var txt = (m.textContent || '').trim();
+    if(txt) a.href = 'https://wa.me/6281138319862?text=' + encodeURIComponent(txt);
+  })();
   if(window.lwRepintaDinero) lwRepintaDinero();
 })();
 </script>
