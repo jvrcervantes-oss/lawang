@@ -176,7 +176,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <link href="https://assets.calendly.com/assets/external/widget.css" rel="stylesheet">
 <script src="https://assets.calendly.com/assets/external/widget.js" defer></script>
-<link rel="stylesheet" href="/assets/au-landing.css?v=20260911110421">
+<link rel="stylesheet" href="/assets/au-landing.css?v=20260911110543">
 </head>
 <body>
 

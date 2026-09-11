@@ -108,7 +108,17 @@ h3{font-size:20px;font-weight:700}
 .nav__links a{font-family:var(--body);font-size:13px;font-weight:600;color:rgba(255,255,255,.85);
   letter-spacing:.01em;white-space:nowrap}
 .nav__links a:hover{color:#fff}
-.nav__cta{display:flex;align-items:center;gap:10px}
+.nav__cta{display:flex;align-items:center;gap:10px;
+  /* Tema del selector (idioma y divisa) sobre la banda oscura. Sin esto,
+     `--lw-lang-ink` cae a currentColor, que aqui es la tinta del cuerpo (#22282A)
+     sobre #104C4F: el selector de idioma ya se veia casi negro sobre verde antes
+     de esta tarea. Mismos valores que el investor deck. */
+  --lw-lang-ink:rgba(255,255,255,.92);
+  --lw-lang-bg:#0c3c3f;
+  --lw-lang-line:rgba(255,255,255,.18);
+  --lw-lang-menu-ink:#F5F0E6;
+  --lw-lang-hover:rgba(255,255,255,.12);
+}
 /* Orden del grupo de acciones: idioma, divisa y al final el CTA. El selector de idioma lo
    INYECTA i18n-landing.js al final de .nav__cta, asi que sin `order` quedaria detras del
    boton de WhatsApp y el de divisa delante. Mismo orden que el investor deck. */

@@ -441,7 +441,17 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 /* Mismo tamano que en el deck y las landings (11-sep-2026): estaba a 18px. */
 .nav__brand{display:block;height:32px;width:auto}
 @media(max-width:720px){.nav__brand{height:24px}}
-.nav__right{display:flex;align-items:center;gap:14px}
+.nav__right{display:flex;align-items:center;gap:14px;
+  /* Tema del selector (idioma y divisa) sobre la banda oscura. Sin esto,
+     `--lw-lang-ink` cae a currentColor, que aqui es la tinta del cuerpo (#22282A)
+     sobre #104C4F: el selector de idioma ya se veia casi negro sobre verde antes
+     de esta tarea. Mismos valores que el investor deck. */
+  --lw-lang-ink:rgba(255,255,255,.92);
+  --lw-lang-bg:#0c3c3f;
+  --lw-lang-line:rgba(255,255,255,.18);
+  --lw-lang-menu-ink:#F5F0E6;
+  --lw-lang-hover:rgba(255,255,255,.12);
+}
 .nav__links{display:flex;align-items:center;gap:22px}
 .nav__links a{font-family:var(--head);font-size:12px;font-weight:500;
   color:rgba(255,255,255,.82);text-transform:uppercase;
