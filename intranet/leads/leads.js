@@ -109,6 +109,141 @@ function ir(v){
   if(v === 'hoy') cargarHoy();
   if(v === 'setter' && !CARGADO.setter) cargarSetter();
   if(v === 'agenda' && !CARGADO.agenda) cargarAgenda();
+  if(v === 'closers') cargarClosers();
+}
+
+/* ==========================================================================
+   VISTA 7 — CLOSERS (dirección)
+   --------------------------------------------------------------------------
+   POR QUÉ NO SALE DE `contratos.creado_por`, QUE ERA LO OBVIO. Esa columna es quién pulsó
+   «crear» en la intranet, no quién cerró: hay un caso probado donde la reserva la creó una
+   persona y su construcción —mismo comprador, mismo negocio— otra distinta. Un ranking así
+   mide quién usa más la herramienta. La atribución vive en su propia tabla y se rellena a
+   mano una vez sobre el histórico; a partir de ahí se sella al cerrar.
+
+   Y SE ENSEÑAN SIEMPRE LAS DOS CIFRAS, firmado y cobrado, porque no dicen lo mismo: de los
+   3,4 M firmados solo ha entrado un 4,7%, y el orden cambia según cuál se mire. El puesto
+   lo decide el COBRADO (decisión del owner): premiar la firma es premiar papel sin pagar.
+   ========================================================================== */
+let RANKING = [], ATRIBUIR = [], SOLO_RAICES = false, SOLO_PENDIENTES = true;
+
+async function cargarClosers(){
+  const [r, a] = await Promise.all([
+    SB.rpc('crm_ranking_closers', { p_solo_raices: SOLO_RAICES }),
+    SB.rpc('crm_contratos_para_atribuir', { p_solo_pendientes: SOLO_PENDIENTES }),
+  ]);
+  RANKING  = r.error ? [] : (r.data || []);
+  ATRIBUIR = a.error ? [] : (a.data || []);
+  await cargarEquipo();
+  pintarClosers();
+}
+
+function pintarClosers(){
+  const sinAtribuir = RANKING.find(x => x.closer_email === '(sin atribuir)');
+  const conNombre   = RANKING.filter(x => x.closer_email !== '(sin atribuir)');
+  const firmado = RANKING.reduce((s, x) => s + Number(x.firmado || 0), 0);
+  const cobrado = RANKING.reduce((s, x) => s + Number(x.cobrado || 0), 0);
+  const pct = firmado ? Math.round(cobrado / firmado * 1000) / 10 : 0;
+
+  $('#kpis-closers').innerHTML = `
+    <div class="kpi"><div class="rot">Firmado<i class="ph ph-file-text"></i></div>
+      <p class="cifra">${dinero(Math.round(firmado), 'EUR')}</p>
+      <p class="pie">${RANKING.reduce((s, x) => s + Number(x.contratos || 0), 0)} contratos</p></div>
+    <div class="kpi fuerte"><div class="rot">Cobrado<i class="ph ph-coins"></i></div>
+      <p class="cifra">${dinero(Math.round(cobrado), 'EUR')}</p>
+      <p class="pie">${pct}% de lo firmado ha entrado</p></div>
+    <div class="kpi"><div class="rot">Comerciales<i class="ph ph-users-three"></i></div>
+      <p class="cifra">${conNombre.length}</p>
+      <p class="pie">con al menos una venta atribuida</p></div>`;
+
+  /* El aviso no es decorativo: mientras queden ventas sin atribuir, el ranking está
+     incompleto y decir lo contrario sería mentir con una tabla bien maquetada. */
+  const av = $('#avisoAtribucion');
+  if(sinAtribuir && sinAtribuir.contratos > 0){
+    av.hidden = false;
+    av.innerHTML = `<b>El ranking todavía no está completo.</b> Hay
+      <b>${sinAtribuir.contratos} ventas sin atribuir</b> (${dinero(Math.round(sinAtribuir.firmado), 'EUR')}
+      firmados) que no cuentan para nadie. Se asignan abajo, en «A quién se atribuye cada venta».`;
+  } else av.hidden = true;
+
+  $('#subRanking').textContent = SOLO_RAICES
+    ? 'Contando solo el contrato raíz de cada cadena. El puesto lo decide el dinero cobrado.'
+    : 'Contando todo lo firmado, cadenas incluidas. El puesto lo decide el dinero cobrado.';
+
+  $('#tRanking').innerHTML = `
+    <thead><tr><th></th><th>Comercial</th><th class="num">Cobrado</th><th class="num">Firmado</th>
+      <th class="num">Ventas</th><th class="num">Ticket medio</th></tr></thead>
+    <tbody>${RANKING.length ? RANKING.map(x => {
+      const sin = x.closer_email === '(sin atribuir)';
+      const conv = Number(x.firmado) ? Math.round(Number(x.cobrado) / Number(x.firmado) * 100) : 0;
+      return `<tr${x.es_tuyo ? ' style="background:var(--primary-soft)"' : ''}>
+        <td class="num">${sin ? '—' : (x.puesto === 1 ? '<i class="ph ph-trophy" style="color:var(--gold)"></i> 1' : x.puesto)}</td>
+        <td><b>${esc(sin ? 'Sin atribuir' : (x.closer_nombre || x.closer_email))}</b>
+          ${x.es_tuyo ? '<span class="chip verde" style="margin-left:6px">tú</span>' : ''}
+          ${x.encadenados > 0 ? `<div style="font-size:11.5px;color:var(--mist)">${x.encadenados} de cadena</div>` : ''}</td>
+        <td class="num"><b>${dinero(Math.round(x.cobrado || 0), 'EUR')}</b>
+          <div style="font-size:11.5px;color:var(--mist)">${conv}% de lo suyo</div></td>
+        <td class="num">${dinero(Math.round(x.firmado || 0), 'EUR')}</td>
+        <td class="num">${x.contratos}</td>
+        <td class="num">${dinero(Math.round(x.ticket_medio || 0), 'EUR')}</td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="6"><p class="vacio">Todavía no hay ninguna venta atribuida.</p></td></tr>'}</tbody>`;
+
+  pintarAtribuir();
+}
+
+function pintarAtribuir(){
+  $('#subAtribuir').textContent = SOLO_PENDIENTES
+    ? ATRIBUIR.length + (ATRIBUIR.length === 1 ? ' venta sin atribuir' : ' ventas sin atribuir')
+    : ATRIBUIR.length + ' ventas firmadas en total';
+
+  $('#tAtribuir').innerHTML = `
+    <thead><tr><th>Contrato</th><th>Comprador</th><th class="num">Importe</th>
+      <th class="num">Cobrado</th><th>Quién lo cerró</th></tr></thead>
+    <tbody>${ATRIBUIR.length ? ATRIBUIR.map(c => `
+      <tr>
+        <td><b>${esc(c.numero || '')}</b>
+          <div style="font-size:11.5px;color:var(--mist)">${esc(c.proyecto || '')}${
+            c.es_hijo ? ' · <span class="chip gris">de cadena</span>' : ''}</div></td>
+        <td>${esc(c.comprador || 'sin nombre')}</td>
+        <td class="num">${dinero(Math.round(c.precio_total || 0), c.moneda || 'EUR')}</td>
+        <td class="num">${Number(c.cobrado) ? dinero(Math.round(c.cobrado), c.moneda || 'EUR') : '—'}</td>
+        <td>
+          <select class="sui-sel" data-atrib="${esc(c.contrato_id)}" data-previo="${esc(c.closer_email || '')}">
+            <option value="">— sin atribuir —</option>
+            ${(EQUIPO_TODO || []).map(u => `<option value="${esc(u.email)}"${
+              c.closer_email && u.email.toLowerCase() === c.closer_email.toLowerCase() ? ' selected' : ''
+            }>${esc(u.nombre || u.email)}</option>`).join('')}
+          </select>
+          ${c.creado_por && !c.closer_email
+            ? `<div style="font-size:11px;color:var(--mist);margin-top:3px">lo creó ${esc(c.creado_por)}</div>` : ''}
+        </td>
+      </tr>`).join('') : '<tr><td colspan="5"><p class="vacio">Todas las ventas están atribuidas.</p></td></tr>'}</tbody>`;
+
+  $('#tAtribuir').querySelectorAll('[data-atrib]').forEach(s => s.onchange = () => atribuir(s));
+}
+
+async function atribuir(sel){
+  sel.disabled = true;
+  const { error } = await SB.rpc('crm_contrato_closer_set', {
+    p_contrato: sel.dataset.atrib,
+    p_email: sel.value || null,
+    p_previo: sel.dataset.previo || null,
+  });
+  sel.disabled = false;
+  if(error){
+    if(String(error.code) === '409' || /ya no es la que tenias/i.test(error.message || '')){
+      toast('Otra persona ha cambiado esa atribución. Recargo.');
+      return cargarClosers();
+    }
+    toast('No se pudo guardar: ' + error.message);
+    return cargarClosers();
+  }
+  sel.dataset.previo = sel.value || '';
+  /* Se recarga entero y no solo la fila: cambiar una atribución mueve el ranking de arriba,
+     y dejar la tabla de puestos desfasada mientras se rellena el histórico es justo lo que
+     haría desconfiar de la cifra. */
+  cargarClosers();
 }
 
 /* ==========================================================================
@@ -583,12 +718,19 @@ async function pintarDuenoFicha(l){
 
 /* La lista de a quién se puede asignar se pide una vez por sesión: son 24 filas y no
    cambian mientras alguien mira un tablero. */
-let EQUIPO = null;
+let EQUIPO = null, EQUIPO_TODO = null;
 async function cargarEquipo(){
   if(EQUIPO) return EQUIPO;
   const { data, error } = await SB.from('usuarios')
     .select('email, nombre, rol, activo, herramientas').eq('activo', true);
-  EQUIPO = error ? [] : (data || []).filter(u =>
+  /* Dos listas distintas a propósito, y conviene no confundirlas:
+     · EQUIPO      — a quién se le puede DAR un lead. Tiene que poder verlo, o el lead se
+                     apaga en silencio en manos de quien no abre el CRM.
+     · EQUIPO_TODO — a quién se le puede ATRIBUIR una venta ya cerrada. Aquí no hace falta
+                     que vea el CRM: se está registrando un hecho del pasado, y varias de
+                     las ventas del histórico las cerró gente que hoy ni entra aquí. */
+  EQUIPO_TODO = error ? [] : (data || []);
+  EQUIPO = EQUIPO_TODO.filter(u =>
     u.rol === 'super_admin' || (u.herramientas || []).includes('leads'));
   return EQUIPO;
 }
@@ -1313,6 +1455,20 @@ $('#filtroBandeja').addEventListener('click', e => {
     x.setAttribute('aria-pressed', String(x === b)));
   pintarBandeja();
 });
+$('#filtroCadenas').addEventListener('click', e => {
+  const b = e.target.closest('[data-raices]'); if(!b) return;
+  SOLO_RAICES = b.dataset.raices === '1';
+  $('#filtroCadenas').querySelectorAll('button').forEach(x =>
+    x.setAttribute('aria-pressed', String(x === b)));
+  cargarClosers();
+});
+$('#filtroAtribuir').addEventListener('click', e => {
+  const b = e.target.closest('[data-pend]'); if(!b) return;
+  SOLO_PENDIENTES = b.dataset.pend === '1';
+  $('#filtroAtribuir').querySelectorAll('button').forEach(x =>
+    x.setAttribute('aria-pressed', String(x === b)));
+  cargarClosers();
+});
 $('#filtroDueno').addEventListener('click', e => {
   const b = e.target.closest('[data-d]'); if(!b) return;
   FILTRO_DUENO = b.dataset.d;
@@ -1336,6 +1492,12 @@ window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   SB = sb; YO = session && session.user; FICHA = ficha;
   const puedeClosers = !ficha || ficha.rol === 'super_admin' || (ficha.herramientas || []).includes('closers');
   $('#tabAgenda').hidden = !puedeClosers;
+  /* El ranking va detrás de su permiso propio `ranking`, más los admin: es la única pestaña
+     de esta herramienta que enseña dinero de OTRAS personas. Ver la nota de herramientas.js
+     sobre por qué no cuelga de `leads`. */
+  const puedeRanking = !!ficha && (ficha.rol === 'super_admin' || ficha.rol === 'admin' ||
+    (ficha.herramientas || []).includes('ranking'));
+  $('#tabClosers').hidden = !puedeRanking;
   await cargar();
   $('#c-pipeline').textContent = LEADS.length;
   /* La cuenta de «Hoy» se calcula del listado que ya está cargado, sin una llamada más:
