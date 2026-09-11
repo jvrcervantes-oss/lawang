@@ -112,6 +112,17 @@ h3{font-size:20px;font-weight:700}
 /* Orden del grupo de acciones: idioma, divisa y al final el CTA. El selector de idioma lo
    INYECTA i18n-landing.js al final de .nav__cta, asi que sin `order` quedaria detras del
    boton de WhatsApp y el de divisa delante. Mismo orden que el investor deck. */
+/* Envoltorio del selector de divisa. NO puede llamarse .lw-lang: esa clase es la guarda
+   de idempotencia de montaSelector() en idioma-web.js — un .lw-lang dentro de .nav__cta le
+   hace creer que el selector de idioma ya esta montado y se sale sin montarlo NI inyectar
+   sus estilos (pasó el 11-sep: desaparecio el selector de idioma y el menu de divisas se
+   quedo siempre desplegado, 162px de barra). Los hijos SI reutilizan .lw-lang__* para salir
+   identicos al del deck; esas clases no disparan la guarda.
+   El display:none es red de seguridad: si la hoja inyectada no llegara, el menu seguiria
+   cerrado en vez de verse desplegado. */
+.lw-cur{position:relative;display:inline-flex;flex:none}
+.lw-cur .lw-lang__menu{display:none}
+.lw-cur .lw-lang__menu.is-open{display:block}
 .nav__cta .lw-lang{order:1}
 .nav__cta #lw-div-sel{order:2}
 .nav__cta .btn{order:3}
