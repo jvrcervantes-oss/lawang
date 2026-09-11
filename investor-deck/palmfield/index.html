@@ -163,62 +163,114 @@
 <div class="flex flex-col w-full">
 
 <!-- SECCIÓN 1: HERO -->
-<section class="w-full px-6 md:px-margin-desktop pt-8 pb-12 relative overflow-hidden" id="vision">
-<div class="lw-wide flex flex-col gap-9">
+<!-- Dos columnas desde lg: a la izquierda el proyecto, a la derecha la due diligence ENTERA
+     (hechos verificados + las 7 preguntas). La columna derecha scrollea SOLA (min-h-0 +
+     overflow-y-auto dentro de una caja con max-h) para que quien abre el deck tenga la
+     documentación delante sin mover la página — que es lo que hace un inversor en los
+     primeros veinte segundos. La FAQ vive AQUÍ y en ningún otro sitio: dos copias derivan,
+     y este texto es el que pasó la consulta legal del 9-sep-2026. -->
+<section class="w-full px-6 md:px-margin-desktop pt-6 pb-10 relative overflow-hidden" id="vision">
+<div class="lw-wide flex flex-col gap-6">
 
-  <!-- Titular primero: es un deck de due diligence, la portada la abre el dato, no la foto. -->
-  <div class="flex flex-col gap-4">
-    <div class="flex flex-wrap items-center gap-3">
-      <span class="px-3 py-1 rounded-full bg-[#E4DFD5] text-[#2E3437] border border-[#D8D2C5] font-label-md text-body-sm tracking-wider uppercase font-semibold">Investor Deck · Due Diligence</span>
-      <span class="text-[#5F6257] text-xs hidden sm:inline">•</span>
-      <span class="font-body-sm text-body-sm text-territorial-green font-semibold">Balian Hills · Bali</span>
-      <span class="text-[#5F6257] text-xs hidden sm:inline">•</span>
-      <span class="font-body-sm text-body-sm text-[#44483f]">Palm Field, by PT SAN DAL WOODS</span>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+
+    <!-- Izquierda: el sitio -->
+    <div class="flex flex-col gap-4">
+    <div class="flex flex-col gap-3">
+      <div class="flex flex-wrap items-center gap-3">
+        <span class="px-3 py-1 rounded-full bg-[#E4DFD5] text-[#2E3437] border border-[#D8D2C5] font-label-md text-body-sm tracking-wider uppercase font-semibold">Investor Deck · Due Diligence</span>
+        <span class="text-[#5F6257] text-xs hidden sm:inline">•</span>
+        <span class="font-body-sm text-body-sm text-territorial-green font-semibold">Balian Hills · Bali</span>
+        <span class="text-[#5F6257] text-xs hidden sm:inline">•</span>
+        <span class="font-body-sm text-body-sm text-[#44483f]">Palm Field, by PT SAN DAL WOODS</span>
+      </div>
+      <h1 class="font-headline-lg text-[32px] md:text-[42px] leading-[1.06] text-deep-lagoon tracking-tight font-normal">
+        A land-plot development in the <span class="italic font-light text-territorial-green">Balian river valley.</span>
+      </h1>
+      <p class="font-body-md text-body-md text-[#44483f] lw-prose leading-relaxed">
+        Held under <b>Hak Sewa</b> with a notarial escrow account — not a security or investment product. Real documentation, live plot inventory and a Year-1 forecast, for your own due diligence.
+      </p>
     </div>
-    <h1 class="font-headline-lg text-[46px] md:text-[76px] leading-[1.04] text-deep-lagoon tracking-tight font-normal max-w-5xl">
-      A land-plot development in the <span class="italic font-light text-territorial-green">Balian river valley.</span>
-    </h1>
-    <p class="font-headline-md text-headline-sm text-[#44483f] font-light lw-prose leading-relaxed">
-      Held under <b>Hak Sewa</b> with a notarial escrow account — not a security or investment product. Real documentation, live plot inventory and a Year-1 forecast, for your own due diligence.
-    </p>
+
+      <figure class="m-0 relative rounded-2xl overflow-hidden shadow-lg">
+        <img src="assets/gallery/08-resort-night.jpg" alt="Palm Field villas stepped down the Balian river valley at dusk" class="w-full h-[32vh] min-h-[220px] lg:h-[34vh] lg:max-h-[330px] object-cover" fetchpriority="high">
+        <div class="absolute inset-x-0 top-0 p-4 md:p-5 flex justify-between items-start gap-2 pointer-events-none">
+          <span class="bg-surface/95 backdrop-blur-md px-3.5 py-1 rounded-full text-deep-lagoon font-label-md text-body-sm shadow-sm border border-[#D8D2C5]">Palm Field · Balian Hills</span>
+          <span class="bg-territorial-green text-white px-3 py-1 rounded-full text-[11px] font-label-md uppercase tracking-wider font-semibold">Hak Sewa · Notarial Escrow</span>
+        </div>
+        <figcaption class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent text-stone-sand font-body-sm text-xs px-5 pt-10 pb-4">
+          Delivered villas on a neighbouring phase, Balian river valley, southwest Bali.
+        </figcaption>
+      </figure>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div class="bg-surface-container-lowest p-4 rounded-xl flex flex-col gap-0.5 shadow-sm border border-[#D8D2C5]"><div class="flex items-center gap-2 text-territorial-green"><span class="material-symbols-outlined text-[18px]">landscape</span><span class="font-body-sm text-[11px] font-semibold tracking-wider uppercase text-[#44483f]">Land Managed</span></div><span class="font-kpi-number text-[26px] leading-tight text-deep-lagoon">500.000+</span><span class="font-body-sm text-xs text-[#44483f]">m² under segregable title management</span></div>
+        <div class="bg-surface-container-lowest p-4 rounded-xl flex flex-col gap-0.5 shadow-sm border border-[#D8D2C5]"><div class="flex items-center gap-2 text-territorial-green"><span class="material-symbols-outlined text-[18px]">history_edu</span><span class="font-body-sm text-[11px] font-semibold tracking-wider uppercase text-[#44483f]">Track Record</span></div><span class="font-kpi-number text-[26px] leading-tight text-deep-lagoon">6+ Years</span><span class="font-body-sm text-xs text-[#44483f]">Continuous operation in Indonesia</span></div>
+        <div class="bg-surface-container-lowest p-4 rounded-xl flex flex-col gap-0.5 shadow-sm border border-[#D8D2C5]"><div class="flex items-center gap-2 text-territorial-green"><span class="material-symbols-outlined text-[18px]">shield_person</span><span class="font-body-sm text-[11px] font-semibold tracking-wider uppercase text-[#44483f]">Investors</span></div><span class="font-kpi-number text-[26px] leading-tight text-deep-lagoon">100+</span><span class="font-body-sm text-xs text-[#44483f]">International owners across the portfolio</span></div>
+        <div class="bg-surface-container-lowest p-4 rounded-xl flex flex-col gap-0.5 shadow-sm border border-[#D8D2C5]"><div class="flex items-center gap-2 text-territorial-green"><span class="material-symbols-outlined text-[18px]">verified</span><span class="font-body-sm text-[11px] font-semibold tracking-wider uppercase text-[#44483f]">Permits</span></div><span class="font-kpi-number text-[26px] leading-tight text-deep-lagoon">100%</span><span class="font-body-sm text-xs text-[#44483f]">PBG &amp; SLF occupancy certification in order</span></div>
+      </div>
+    </div>
+
+    <!-- Derecha: la due diligence, sin scrollear la página -->
+    <aside id="faq" class="flex flex-col rounded-2xl border border-[#D8D2C5] bg-surface-container-lowest shadow-lg overflow-hidden lg:max-h-[calc(100vh-112px)]">
+      <div class="shrink-0 px-5 py-3.5 bg-[#E4DFD5] border-b border-[#D8D2C5] flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <h2 class="font-headline-sm text-xl text-deep-lagoon font-semibold m-0">Documentation &amp; FAQ</h2>
+        <span class="font-body-sm text-xs text-[#5F6257]">Everything you need to start your due diligence, on this screen.</span>
+      </div>
+
+      <div class="min-h-0 overflow-y-auto px-5 py-4 flex flex-col gap-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="flex flex-col gap-1 bg-surface-container-low/60 border border-[#D8D2C5] rounded-xl px-4 py-3"><div class="flex items-center gap-2 text-deep-lagoon"><span class="material-symbols-outlined text-[18px] text-territorial-green">shield_lock</span><span class="font-body-md text-body-sm font-bold">Payment security</span></div><span class="font-body-sm text-[11px] uppercase tracking-wider text-[#5F6257]">Notarial escrow (PPAT)</span><p class="font-body-sm text-xs text-[#44483f] leading-relaxed m-0">Reservation and stage payments held in an escrow account managed by the notary, released against agreed conditions.</p></div>
+          <div class="flex flex-col gap-1 bg-surface-container-low/60 border border-[#D8D2C5] rounded-xl px-4 py-3"><div class="flex items-center gap-2 text-deep-lagoon"><span class="material-symbols-outlined text-[18px] text-territorial-green">history_edu</span><span class="font-body-md text-body-sm font-bold">Term &amp; registration</span></div><span class="font-body-sm text-[11px] uppercase tracking-wider text-[#5F6257]">Hak Sewa, Indonesian law</span><p class="font-body-sm text-xs text-[#44483f] leading-relaxed m-0">Registered lease term (legal maximum 30 years per grant, renewable with a new term), transferable and heritable.</p></div>
+          <div class="flex flex-col gap-1 bg-surface-container-low/60 border border-[#D8D2C5] rounded-xl px-4 py-3"><div class="flex items-center gap-2 text-deep-lagoon"><span class="material-symbols-outlined text-[18px] text-territorial-green">approval</span><span class="font-body-md text-body-sm font-bold">Building permits (PBG / SLF)</span></div><span class="font-body-sm text-[11px] uppercase tracking-wider text-[#5F6257]">Government portal (SIMBG)</span><p class="font-body-sm text-xs text-[#44483f] leading-relaxed m-0">Approved ahead of construction, with occupancy certification (SLF) enabling legal short-term rental.</p></div>
+          <div class="flex flex-col gap-1 bg-surface-container-low/60 border border-[#D8D2C5] rounded-xl px-4 py-3"><div class="flex items-center gap-2 text-deep-lagoon"><span class="material-symbols-outlined text-[18px] text-territorial-green">map</span><span class="font-body-md text-body-sm font-bold">Land zoning (RDTR)</span></div><span class="font-body-sm text-[11px] uppercase tracking-wider text-[#5F6257]">Official urban classification</span><p class="font-body-sm text-xs text-[#44483f] leading-relaxed m-0">Zoned for tourism / residential use, legally enabled for short-stay rental income.</p></div>
+          <div class="flex flex-col gap-1 bg-surface-container-low/60 border border-[#D8D2C5] rounded-xl px-4 py-3"><div class="flex items-center gap-2 text-deep-lagoon"><span class="material-symbols-outlined text-[18px] text-territorial-green">gavel</span><span class="font-body-md text-body-sm font-bold">Official Notarial Signature (PPAT)</span></div><p class="font-body-sm text-xs text-[#44483f] leading-relaxed m-0">Each transfer is formalised before a state-appointed Land Deed Official (PPAT), with a Power of Attorney for the buyer's representative in Indonesia.</p></div>
+          <div class="flex flex-col gap-1 bg-surface-container-low/60 border border-[#D8D2C5] rounded-xl px-4 py-3"><div class="flex items-center gap-2 text-deep-lagoon"><span class="material-symbols-outlined text-[18px] text-territorial-green">handshake</span><span class="font-body-md text-body-sm font-bold">Direct, Documented Transaction</span></div><p class="font-body-sm text-xs text-[#44483f] leading-relaxed m-0">The lease is agreed directly between the landowner and the buyer — no nominee arrangement, no undisclosed intermediary holding title on your behalf.</p></div>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <h3 class="font-body-md text-[11px] uppercase tracking-wider text-[#5F6257] font-bold m-0">Frequently Asked Questions</h3>
+          <details class="group bg-surface-container-low/60 px-4 py-3 rounded-xl border border-[#D8D2C5] transition-all open:bg-surface-container-lowest" open>
+      <summary class="flex items-start gap-3 justify-between cursor-pointer list-none text-deep-lagoon font-body-md text-body-md font-semibold"><span>What tenure do I acquire?</span><span class="material-symbols-outlined text-[20px] shrink-0 text-territorial-green transition-transform group-open:rotate-180">expand_more</span></summary>
+      <div class="pt-3 font-body-sm text-body-sm text-[#44483f] leading-relaxed border-t border-[#D8D2C5] mt-3"><b>Hak Sewa</b> (long-term leasehold under Indonesian law) — the standard route for foreign investors on this project, not Hak Milik, which is reserved for Indonesian citizens. Exact terms are confirmed in the Plot Lock agreement that follows a reservation.</div>
+    </details>
+          <details class="group bg-surface-container-low/60 px-4 py-3 rounded-xl border border-[#D8D2C5] transition-all open:bg-surface-container-lowest">
+      <summary class="flex items-start gap-3 justify-between cursor-pointer list-none text-deep-lagoon font-body-md text-body-md font-semibold"><span>What does the reservation fee cover?</span><span class="material-symbols-outlined text-[20px] shrink-0 text-territorial-green transition-transform group-open:rotate-180">expand_more</span></summary>
+      <div class="pt-3 font-body-sm text-body-sm text-[#44483f] leading-relaxed border-t border-[#D8D2C5] mt-3">It reserves the selected plot, held in the notary's escrow account, for the validity period stated in the Letter of Reservation, while you complete due diligence. It is <b>not</b> the deed of sale and does not transfer any right over the land. If you withdraw, or the reservation lapses, the fee is refunded per the terms in the document you receive.</div>
+    </details>
+          <details class="group bg-surface-container-low/60 px-4 py-3 rounded-xl border border-[#D8D2C5] transition-all open:bg-surface-container-lowest">
+      <summary class="flex items-start gap-3 justify-between cursor-pointer list-none text-deep-lagoon font-body-md text-body-md font-semibold"><span>Are the prices shown final?</span><span class="material-symbols-outlined text-[20px] shrink-0 text-territorial-green transition-transform group-open:rotate-180">expand_more</span></summary>
+      <div class="pt-3 font-body-sm text-body-sm text-[#44483f] leading-relaxed border-t border-[#D8D2C5] mt-3">No — land and construction prices shown are reference prices per the current catalogue, confirmed in the Plot Lock / construction agreement. They are not a binding offer.</div>
+    </details>
+          <details class="group bg-surface-container-low/60 px-4 py-3 rounded-xl border border-[#D8D2C5] transition-all open:bg-surface-container-lowest">
+      <summary class="flex items-start gap-3 justify-between cursor-pointer list-none text-deep-lagoon font-body-md text-body-md font-semibold"><span>Is this an investment product?</span><span class="material-symbols-outlined text-[20px] shrink-0 text-territorial-green transition-transform group-open:rotate-180">expand_more</span></summary>
+      <div class="pt-3 font-body-sm text-body-sm text-[#44483f] leading-relaxed border-t border-[#D8D2C5] mt-3">No. This is the direct purchase of a real-estate asset (a land plot under Hak Sewa), not a security, fund, or tokenised instrument. Lawang separately operates a distinct project for tokenised real-estate exposure (LawangRWA) — Palm Field is not part of it.</div>
+    </details>
+          <details class="group bg-surface-container-low/60 px-4 py-3 rounded-xl border border-[#D8D2C5] transition-all open:bg-surface-container-lowest">
+      <summary class="flex items-start gap-3 justify-between cursor-pointer list-none text-deep-lagoon font-body-md text-body-md font-semibold"><span>How are construction-stage payments protected?</span><span class="material-symbols-outlined text-[20px] shrink-0 text-territorial-green transition-transform group-open:rotate-180">expand_more</span></summary>
+      <div class="pt-3 font-body-sm text-body-sm text-[#44483f] leading-relaxed border-t border-[#D8D2C5] mt-3">Construction payments are not made upfront in full — they are split into stages tied to verified progress on site (foundations, structure, enclosures, installations, finishes and handover), per your construction agreement.</div>
+    </details>
+          <details class="group bg-surface-container-low/60 px-4 py-3 rounded-xl border border-[#D8D2C5] transition-all open:bg-surface-container-lowest">
+      <summary class="flex items-start gap-3 justify-between cursor-pointer list-none text-deep-lagoon font-body-md text-body-md font-semibold"><span>Can I resell, transfer or leave the plot to my heirs?</span><span class="material-symbols-outlined text-[20px] shrink-0 text-territorial-green transition-transform group-open:rotate-180">expand_more</span></summary>
+      <div class="pt-3 font-body-sm text-body-sm text-[#44483f] leading-relaxed border-t border-[#D8D2C5] mt-3">Yes — Hak Sewa rights are transferable, sellable and heritable within the registered lease term, subject to the conditions of your specific Hak Sewa agreement. Our team can walk you through the process for your situation.</div>
+    </details>
+          <details class="group bg-surface-container-low/60 px-4 py-3 rounded-xl border border-[#D8D2C5] transition-all open:bg-surface-container-lowest">
+      <summary class="flex items-start gap-3 justify-between cursor-pointer list-none text-deep-lagoon font-body-md text-body-md font-semibold"><span>What happens after I reserve a plot?</span><span class="material-symbols-outlined text-[20px] shrink-0 text-territorial-green transition-transform group-open:rotate-180">expand_more</span></summary>
+      <div class="pt-3 font-body-sm text-body-sm text-[#44483f] leading-relaxed border-t border-[#D8D2C5] mt-3">You receive the Letter of Reservation by email with payment instructions for the reservation fee. Our team follows up to move the process to the next stage (Plot Lock / Hak Sewa deed) within the reservation's validity period.</div>
+    </details>
+        </div>
+
+        <div class="flex flex-wrap gap-2 pt-1 border-t border-[#D8D2C5]">
+          <span class="font-body-sm text-xs text-[#5F6257] w-full pt-2">The full detail, further down:</span>
+          <a class="px-3 py-1.5 rounded-full bg-[#E4DFD5] hover:bg-deep-lagoon hover:text-white text-deep-lagoon text-xs font-label-md font-semibold transition-all border border-[#D8D2C5]" href="#modelos">Villa Models</a>
+          <a class="px-3 py-1.5 rounded-full bg-[#E4DFD5] hover:bg-deep-lagoon hover:text-white text-deep-lagoon text-xs font-label-md font-semibold transition-all border border-[#D8D2C5]" href="#masterplan">Masterplan &amp; Plots</a>
+          <a class="px-3 py-1.5 rounded-full bg-[#E4DFD5] hover:bg-deep-lagoon hover:text-white text-deep-lagoon text-xs font-label-md font-semibold transition-all border border-[#D8D2C5]" href="#rendimientos">Financial Forecast</a>
+          <a class="px-3 py-1.5 rounded-full bg-[#E4DFD5] hover:bg-deep-lagoon hover:text-white text-deep-lagoon text-xs font-label-md font-semibold transition-all border border-[#D8D2C5]" href="#seguridad-notarial">Legal Security</a>
+        </div>
+      </div>
+    </aside>
+
   </div>
-
-  <!-- Imagen a sangre del contenedor ancho: el producto construido, no un plano recortado. -->
-  <figure class="m-0 relative rounded-2xl overflow-hidden shadow-lg">
-    <img src="assets/gallery/08-resort-night.jpg" alt="Palm Field villas stepped down the Balian river valley at dusk" class="w-full h-[46vh] min-h-[380px] md:h-[62vh] md:max-h-[680px] object-cover" fetchpriority="high">
-    <div class="absolute inset-x-0 top-0 p-5 md:p-7 flex justify-between items-start gap-2 pointer-events-none">
-      <span class="bg-surface/95 backdrop-blur-md px-4 py-1.5 rounded-full text-deep-lagoon font-label-md text-label-md shadow-sm border border-[#D8D2C5]">Palm Field · Balian Hills</span>
-      <span class="bg-territorial-green text-white px-3.5 py-1 rounded-full text-xs font-label-md uppercase tracking-wider font-semibold">Hak Sewa · Notarial Escrow</span>
-    </div>
-    <figcaption class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent text-stone-sand font-body-sm text-xs md:text-body-sm px-5 md:px-7 pt-12 pb-5">
-      Delivered villas on a neighbouring phase, Balian river valley, southwest Bali.
-    </figcaption>
-  </figure>
-
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-gutter pt-2">
-    <div class="bg-surface-container-lowest p-6 rounded-xl flex flex-col gap-1 shadow-sm border border-[#D8D2C5]">
-      <div class="flex items-center justify-between text-territorial-green mb-1"><span class="material-symbols-outlined">landscape</span><span class="font-body-sm text-xs font-semibold tracking-wider uppercase text-[#44483f]">Land Managed</span></div>
-      <span class="font-kpi-number text-kpi-number text-deep-lagoon">500.000+</span>
-      <span class="font-body-sm text-body-sm text-[#44483f]">m² under segregable title management</span>
-    </div>
-    <div class="bg-surface-container-lowest p-6 rounded-xl flex flex-col gap-1 shadow-sm border border-[#D8D2C5]">
-      <div class="flex items-center justify-between text-territorial-green mb-1"><span class="material-symbols-outlined">history_edu</span><span class="font-body-sm text-xs font-semibold tracking-wider uppercase text-[#44483f]">Track Record</span></div>
-      <span class="font-kpi-number text-kpi-number text-deep-lagoon">6+ Years</span>
-      <span class="font-body-sm text-body-sm text-[#44483f]">Continuous operation in Indonesia</span>
-    </div>
-    <div class="bg-surface-container-lowest p-6 rounded-xl flex flex-col gap-1 shadow-sm border border-[#D8D2C5]">
-      <div class="flex items-center justify-between text-territorial-green mb-1"><span class="material-symbols-outlined">shield_person</span><span class="font-body-sm text-xs font-semibold tracking-wider uppercase text-[#44483f]">Investors</span></div>
-      <span class="font-kpi-number text-kpi-number text-deep-lagoon">100+</span>
-      <span class="font-body-sm text-body-sm text-[#44483f]">International owners across the portfolio</span>
-    </div>
-    <div class="bg-surface-container-lowest p-6 rounded-xl flex flex-col gap-1 shadow-sm border border-[#D8D2C5]">
-      <div class="flex items-center justify-between text-territorial-green mb-1"><span class="material-symbols-outlined">verified</span><span class="font-body-sm text-xs font-semibold tracking-wider uppercase text-[#44483f]">Permits</span></div>
-      <span class="font-kpi-number text-kpi-number text-deep-lagoon">100%</span>
-      <span class="font-body-sm text-body-sm text-[#44483f]">PBG &amp; SLF occupancy certification in order</span>
-    </div>
-  </div>
-
-  
 </div>
 </section>
 
@@ -226,7 +278,7 @@
 <section class="w-full px-6 md:px-margin-desktop py-14 bg-[#E9E3D6]" id="modelos">
 <div class="lw-wide flex flex-col gap-8">
   <div class="flex flex-col gap-2 lw-prose">
-    <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal">The 3 Villa Typologies</h2>
+    <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal">Villa Typologies</h2>
     <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">Prices below are <b>construction only</b> — land price depends on the plot chosen in the masterplan.</p>
   </div>
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch" id="modelos-grid"><!-- filled by JS --></div>
@@ -363,45 +415,6 @@
       <div class="flex items-center gap-2 text-deep-lagoon font-headline-sm text-xl font-bold"><span class="material-symbols-outlined text-territorial-green">handshake</span><span>Direct, Documented Transaction</span></div>
       <p class="font-body-sm text-body-sm text-[#44483f] leading-relaxed">The lease is agreed directly between the landowner and the buyer — no nominee arrangement, no undisclosed intermediary holding title on your behalf.</p>
     </div>
-  </div>
-</div>
-</section>
-
-<!-- SECCIÓN 6: FAQ (reescrita) -->
-<section class="w-full px-6 md:px-margin-desktop py-14 bg-[#E9E3D6]" id="faq">
-<div class="max-w-4xl mx-auto flex flex-col gap-7">
-  <div class="flex flex-col gap-3">
-    <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal">Frequently Asked Questions</h2>
-  </div>
-  <div class="flex flex-col gap-4">
-    <details class="group bg-surface-container-lowest p-6 rounded-2xl border border-[#D8D2C5] shadow-sm transition-all open:shadow-md" open>
-      <summary class="flex items-center justify-between cursor-pointer list-none text-deep-lagoon font-headline-sm text-xl font-semibold"><span>What tenure do I acquire?</span><span class="material-symbols-outlined text-territorial-green transition-transform group-open:rotate-180">expand_more</span></summary>
-      <div class="pt-4 font-body-sm text-body-md text-[#44483f] leading-relaxed border-t border-[#D8D2C5] mt-4"><b>Hak Sewa</b> (long-term leasehold under Indonesian law) — the standard route for foreign investors on this project, not Hak Milik, which is reserved for Indonesian citizens. Exact terms are confirmed in the Plot Lock agreement that follows a reservation.</div>
-    </details>
-    <details class="group bg-surface-container-lowest p-6 rounded-2xl border border-[#D8D2C5] shadow-sm transition-all open:shadow-md">
-      <summary class="flex items-center justify-between cursor-pointer list-none text-deep-lagoon font-headline-sm text-xl font-semibold"><span>What does the reservation fee cover?</span><span class="material-symbols-outlined text-territorial-green transition-transform group-open:rotate-180">expand_more</span></summary>
-      <div class="pt-4 font-body-sm text-body-md text-[#44483f] leading-relaxed border-t border-[#D8D2C5] mt-4">It reserves the selected plot, held in the notary's escrow account, for the validity period stated in the Letter of Reservation, while you complete due diligence. It is <b>not</b> the deed of sale and does not transfer any right over the land. If you withdraw, or the reservation lapses, the fee is refunded per the terms in the document you receive.</div>
-    </details>
-    <details class="group bg-surface-container-lowest p-6 rounded-2xl border border-[#D8D2C5] shadow-sm transition-all open:shadow-md">
-      <summary class="flex items-center justify-between cursor-pointer list-none text-deep-lagoon font-headline-sm text-xl font-semibold"><span>Are the prices shown final?</span><span class="material-symbols-outlined text-territorial-green transition-transform group-open:rotate-180">expand_more</span></summary>
-      <div class="pt-4 font-body-sm text-body-md text-[#44483f] leading-relaxed border-t border-[#D8D2C5] mt-4">No — land and construction prices shown are reference prices per the current catalogue, confirmed in the Plot Lock / construction agreement. They are not a binding offer.</div>
-    </details>
-    <details class="group bg-surface-container-lowest p-6 rounded-2xl border border-[#D8D2C5] shadow-sm transition-all open:shadow-md">
-      <summary class="flex items-center justify-between cursor-pointer list-none text-deep-lagoon font-headline-sm text-xl font-semibold"><span>Is this an investment product?</span><span class="material-symbols-outlined text-territorial-green transition-transform group-open:rotate-180">expand_more</span></summary>
-      <div class="pt-4 font-body-sm text-body-md text-[#44483f] leading-relaxed border-t border-[#D8D2C5] mt-4">No. This is the direct purchase of a real-estate asset (a land plot under Hak Sewa), not a security, fund, or tokenised instrument. Lawang separately operates a distinct project for tokenised real-estate exposure (LawangRWA) — Palm Field is not part of it.</div>
-    </details>
-    <details class="group bg-surface-container-lowest p-6 rounded-2xl border border-[#D8D2C5] shadow-sm transition-all open:shadow-md">
-      <summary class="flex items-center justify-between cursor-pointer list-none text-deep-lagoon font-headline-sm text-xl font-semibold"><span>How are construction-stage payments protected?</span><span class="material-symbols-outlined text-territorial-green transition-transform group-open:rotate-180">expand_more</span></summary>
-      <div class="pt-4 font-body-sm text-body-md text-[#44483f] leading-relaxed border-t border-[#D8D2C5] mt-4">Construction payments are not made upfront in full — they are split into stages tied to verified progress on site (foundations, structure, enclosures, installations, finishes and handover), per your construction agreement.</div>
-    </details>
-    <details class="group bg-surface-container-lowest p-6 rounded-2xl border border-[#D8D2C5] shadow-sm transition-all open:shadow-md">
-      <summary class="flex items-center justify-between cursor-pointer list-none text-deep-lagoon font-headline-sm text-xl font-semibold"><span>Can I resell, transfer or leave the plot to my heirs?</span><span class="material-symbols-outlined text-territorial-green transition-transform group-open:rotate-180">expand_more</span></summary>
-      <div class="pt-4 font-body-sm text-body-md text-[#44483f] leading-relaxed border-t border-[#D8D2C5] mt-4">Yes — Hak Sewa rights are transferable, sellable and heritable within the registered lease term, subject to the conditions of your specific Hak Sewa agreement. Our team can walk you through the process for your situation.</div>
-    </details>
-    <details class="group bg-surface-container-lowest p-6 rounded-2xl border border-[#D8D2C5] shadow-sm transition-all open:shadow-md">
-      <summary class="flex items-center justify-between cursor-pointer list-none text-deep-lagoon font-headline-sm text-xl font-semibold"><span>What happens after I reserve a plot?</span><span class="material-symbols-outlined text-territorial-green transition-transform group-open:rotate-180">expand_more</span></summary>
-      <div class="pt-4 font-body-sm text-body-md text-[#44483f] leading-relaxed border-t border-[#D8D2C5] mt-4">You receive the Letter of Reservation by email with payment instructions for the reservation fee. Our team follows up to move the process to the next stage (Plot Lock / Hak Sewa deed) within the reservation's validity period.</div>
-    </details>
   </div>
 </div>
 </section>
@@ -578,43 +591,129 @@
     g.appendChild(fig);
   });
 
-  // ── catálogo de modelos asignados a Palm Field W5 (modelos_villa, Supabase) ─
-  // Solo Dali/Dune/Dream: son los 3 modelos que el proyecto tiene asignados en
-  // la intranet (tabla `modelos_villa`, proyecto_id de Palm Field W5). Trinity y
-  // Temple existen en el catálogo general pero NO están asignados a este
-  // proyecto — no se muestran aquí (10-sep-2026, corrección tras aviso del owner).
-  // Renders: se apunta a assets/img/buildings/<modelo>/web/*.webp — la carpeta web/ (1600px)
-  // es la ÚNICA versionada; los originales están gitignored y por eso la ruta anterior
-  // (../../assets/img/buildings/dali/dali.jpg) daba 404 en producción (10-sep-2026).
-  var MODELOS = [
-    { slug:'dali', nombre:'Dali', tag:'Type 01', img:'../../assets/img/buildings/dali/web/dali.webp', dorm:1, banos:1, m2:30, terraza:16, precio:48000 },
-    { slug:'dune', nombre:'Dune', tag:'Type 02', img:'../../assets/img/buildings/dune/web/dune.webp', dorm:1, banos:1, m2:47, terraza:29, precio:68000 },
-    { slug:'dream', nombre:'Dream', tag:'Type 03', img:'../../assets/img/buildings/dream/web/dream.webp', dorm:2, banos:2, m2:76, terraza:49, precio:101000, featured:true }
-  ];
+  // ── tipologías de villa: se leen de la intranet, no se escriben a mano ────
+  // Aquí había un array MODELOS clavado a mano con Dali/Dune/Dream y un comentario
+  // que juraba que Temple "NO está asignado a este proyecto". La intranet decía
+  // otra cosa: Palm Field W5 tiene CUATRO modelos asignados (`modelos_villa`), y de
+  // paso la terraza de Dali (16 → 17 m²) y la de Dune (29 → 30) llevaban tiempo
+  // mal. Es la familia de «el dato tiene un dueño»: si el dato tiene fuente, se lee
+  // de la fuente — una copia a mano solo espera a derivar.
+  //
+  // El RPC `investor_deck_modelos` devuelve solo proyectos con el opt-in
+  // `publicado_investor_deck` (hoy, solo este), nunca `notas`, y resuelve precio y
+  // moneda SIEMPRE en el mismo nivel de la cascada. Ver su migración.
+  //
+  // Renders: se piden solo si el slug es limpio, y si el fichero no está el propio
+  // `onerror` cambia la tarjeta al estado "Renders in progress" — el mismo que ya
+  // usa /modelo/<slug>. NI una lista de slugs a mano (que es justo el bug de los 404
+  // del 10-sep) NI la flag `renders_pendientes`, que hoy miente: Temple la tiene en
+  // false y no existe assets/img/buildings/temple/ en disco.
+  var SLUG_OK = /^[a-z0-9-]+$/;
+  var DESTACADO = 'dream';   // "Most requested" es decisión comercial, no dato de BD.
+
+  // Estado sin render: mismo dibujo y mismo texto que /modelo/ (Diseño, 2-sep).
+  // Nunca un gris muerto ni un icono de imagen rota.
+  var SIN_RENDER =
+    '<div class="w-full aspect-[4/3] relative overflow-hidden bg-[#E4DFD5] flex flex-col items-center justify-center gap-2 text-deep-lagoon/70">' +
+      '<svg viewBox="0 0 120 90" aria-hidden="true" class="w-20 h-auto">' +
+        '<path d="M10 48 L60 12 L110 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>' +
+        '<rect x="24" y="48" width="72" height="34" fill="none" stroke="currentColor" stroke-width="2.5"/>' +
+        '<path d="M48 82 V58 H72 V82" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>' +
+      '<p class="font-label-md text-label-md m-0">Renders in progress</p></div>';
+
+  function fotoModelo(slug, nombre){
+    if(!SLUG_OK.test(slug)) return SIN_RENDER;
+    var ruta = '../../assets/img/buildings/' + slug + '/web/' + slug + '.webp';
+    return '<div class="w-full aspect-[4/3] relative overflow-hidden bg-[#F0ECE1]" data-foto>' +
+      '<img src="' + ruta + '" alt="' + esc(nombre) + ' villa model" loading="lazy" ' +
+      'class="w-full h-full object-cover" data-render></div>';
+  }
+
+  // El precio solo entra en el conversor de divisa si de verdad viene en EUR:
+  // `data-eur` le dice al selector "esto son euros". Etiquetar como EUR un importe
+  // que la intranet guardó en otra moneda sería publicar una cifra falsa.
+  function precioModelo(precio, moneda){
+    if(precio == null) return '<span class="font-headline-sm text-xl font-bold text-deep-lagoon">Upon request</span>';
+    var n = Number(precio);
+    if(!isFinite(n)) return '<span class="font-headline-sm text-xl font-bold text-deep-lagoon">Upon request</span>';
+    if((moneda || 'EUR') === 'EUR'){
+      return '<span class="font-headline-sm text-xl font-bold text-deep-lagoon lw-money" data-eur="' + n + '">' + lwMoney(n) + '</span>';
+    }
+    return '<span class="font-headline-sm text-xl font-bold text-deep-lagoon">' +
+      esc(moneda) + ' ' + n.toLocaleString('en-GB') + '</span>';
+  }
+
+  function num(v){ var n = Number(v); return isFinite(n) ? n : '—'; }
+
   var mg = document.getElementById('modelos-grid');
-  MODELOS.forEach(function(m){
-    var card = document.createElement('div');
-    card.className = 'bg-surface-container-lowest rounded-2xl overflow-hidden flex flex-col justify-between shadow-md hover:-translate-y-1 transition-all border' + (m.featured ? ' border-2 border-territorial-green relative' : ' border-[#D8D2C5]');
-    // aspect-[4/3] en vez de h-44 fija: la imagen crece con la tarjeta al ensanchar el contenedor.
-    var imgHtml = '<div class="w-full aspect-[4/3] relative overflow-hidden bg-[#F0ECE1]">' +
-        '<img src="'+m.img+'" alt="'+esc(m.nombre)+' villa model" loading="lazy" class="w-full h-full object-cover">' +
-        '<span class="absolute top-3 left-3 bg-deep-lagoon text-white px-2.5 py-0.5 rounded-full text-xs font-label-md uppercase font-semibold">'+esc(m.tag)+'</span></div>';
-    card.innerHTML = (m.featured ? '<span class="absolute top-3 right-3 z-10 bg-territorial-green text-white text-[10px] font-label-md font-bold px-3 py-0.5 rounded-full tracking-wider uppercase">Most requested</span>' : '') +
-      imgHtml +
-      '<div class="flex flex-col gap-4 p-6">' +
-      '<h3 class="font-headline-sm text-2xl font-bold text-deep-lagoon">'+esc(m.nombre)+'</h3>' +
-      '<div class="grid grid-cols-2 gap-2 text-xs font-body-sm text-[#44483f] bg-surface-container-low p-3 rounded-lg border border-[#D8D2C5]">' +
-        '<div><strong>Built</strong><br>'+m.m2+' m²</div><div><strong>Terrace &amp; pool</strong><br>+'+m.terraza+' m²</div>' +
-        '<div><strong>Bedrooms</strong><br>'+m.dorm+'</div><div><strong>Bathrooms</strong><br>'+m.banos+'</div></div></div>' +
-      '<div class="px-6 pb-6 pt-5 border-t border-[#D8D2C5] flex flex-col gap-3">' +
-        '<div class="flex items-baseline justify-between"><span class="text-xs text-[#5F6257] font-body-sm uppercase">Construction from</span><span class="font-headline-sm text-xl font-bold text-deep-lagoon lw-money" data-eur="'+m.precio+'">'+lwMoney(m.precio)+'</span></div>' +
-        '<span class="text-[11px] text-[#5F6257]">+ land price, per plot chosen below</span>' +
-        '<a class="w-full py-2 rounded-full bg-[#E4DFD5] hover:bg-deep-lagoon hover:text-white text-deep-lagoon text-center text-xs font-label-md font-semibold transition-all border border-[#D8D2C5]" href="../../modelo/'+m.slug+'">View model &amp; floor plan</a>' +
-      '</div>';
-    mg.appendChild(card);
-  });
 
+  function pintaModelos(rows){
+    mg.innerHTML = '';
+    rows.forEach(function(m, i){
+      var slug = String(m.slug == null ? '' : m.slug);
+      var destacado = slug === DESTACADO;
+      var tag = 'Type ' + (i + 1 < 10 ? '0' : '') + (i + 1);
 
+      var card = document.createElement('div');
+      card.className = 'bg-surface-container-lowest rounded-2xl overflow-hidden flex flex-col justify-between shadow-md hover:-translate-y-1 transition-all border' +
+        (destacado ? ' border-2 border-territorial-green relative' : ' border-[#D8D2C5]');
+      card.innerHTML =
+        (destacado ? '<span class="absolute top-3 right-3 z-10 bg-territorial-green text-white text-[10px] font-label-md font-bold px-3 py-0.5 rounded-full tracking-wider uppercase">Most requested</span>' : '') +
+        fotoModelo(slug, m.nombre) +
+        '<span class="absolute top-3 left-3 bg-deep-lagoon text-white px-2.5 py-0.5 rounded-full text-xs font-label-md uppercase font-semibold" data-tag>' + esc(tag) + '</span>' +
+        '<div class="flex flex-col gap-4 p-6">' +
+          '<h3 class="font-headline-sm text-2xl font-bold text-deep-lagoon">' + esc(m.nombre) + '</h3>' +
+          '<div class="grid grid-cols-2 gap-2 text-xs font-body-sm text-[#44483f] bg-surface-container-low p-3 rounded-lg border border-[#D8D2C5]">' +
+            '<div><strong>Built</strong><br>' + num(m.villa_m2) + ' m²</div>' +
+            '<div><strong>Terrace &amp; pool</strong><br>+' + num(m.terraza_m2) + ' m²</div>' +
+            '<div><strong>Bedrooms</strong><br>' + num(m.dormitorios) + '</div>' +
+            '<div><strong>Bathrooms</strong><br>' + num(m.banos) + '</div></div></div>' +
+        '<div class="px-6 pb-6 pt-5 border-t border-[#D8D2C5] flex flex-col gap-3">' +
+          '<div class="flex items-baseline justify-between gap-3"><span class="text-xs text-[#5F6257] font-body-sm uppercase">Construction from</span>' + precioModelo(m.precio, m.moneda) + '</div>' +
+          '<span class="text-[11px] text-[#5F6257]">+ land price, per plot chosen below</span>' +
+          '<a class="w-full py-2 rounded-full bg-[#E4DFD5] hover:bg-deep-lagoon hover:text-white text-deep-lagoon text-center text-xs font-label-md font-semibold transition-all border border-[#D8D2C5]" href="../../modelo/' + encodeURIComponent(slug) + '">View model &amp; floor plan</a>' +
+        '</div>';
+
+      // La etiqueta "Type NN" va dentro del marco de la foto, exista render o no.
+      var marco = card.querySelector('[data-foto]') || card.firstElementChild;
+      var tagEl = card.querySelector('[data-tag]');
+      if(marco && tagEl && marco !== tagEl) marco.appendChild(tagEl);
+
+      // Si el render no está en disco, la tarjeta se cae sola al estado honesto.
+      var img = card.querySelector('[data-render]');
+      if(img){
+        img.addEventListener('error', function(){
+          var caja = img.parentNode;
+          if(!caja || !caja.parentNode) return;
+          var tmp = document.createElement('div');
+          tmp.innerHTML = SIN_RENDER;
+          var nuevo = tmp.firstChild;
+          if(tagEl) nuevo.appendChild(tagEl);
+          caja.parentNode.replaceChild(nuevo, caja);
+          if(window.lwDeck) lwDeck.traduce(nuevo);
+        });
+      }
+      mg.appendChild(card);
+    });
+    if(window.lwDeck) lwDeck.traduce(document.getElementById('modelos'));
+    if(window.lwRepintaDinero) lwRepintaDinero();
+  }
+
+  function modelosCaidos(){
+    mg.innerHTML = '<div class="col-span-full p-6 rounded-2xl border border-[#D8D2C5] bg-surface-container-lowest text-sm text-[#5F6257]">' +
+      'We could not load the villa models right now. Please contact ' +
+      '<a class="text-deep-lagoon underline" href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a>.</div>';
+    if(window.lwDeck) lwDeck.traduce(mg);
+  }
+
+  fetch(SB_URL + '/rest/v1/rpc/investor_deck_modelos', {
+    method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
+    body: JSON.stringify({ p_proyecto: PROYECTO })
+  }).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+    // Cero filas llega como 200 con []: sin este guardia la sección se queda vacía y
+    // parece intencionada. Un proyecto renombrado en la intranet da exactamente eso.
+    .then(function(rows){ if(!rows || !rows.length) throw new Error('vacio'); pintaModelos(rows); })
+    .catch(modelosCaidos);
 
   // ── previsión de alquiler, Año 1 ──────────────────────────────────────────
   // Se genera desde datos y NO a mano: un solo camino de calculo para los tres

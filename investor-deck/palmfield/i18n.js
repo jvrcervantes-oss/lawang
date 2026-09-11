@@ -121,13 +121,24 @@
     'PBG & SLF occupancy certification in order': { es: 'Certificación PBG y SLF de ocupación en regla', id: 'Sertifikasi PBG & SLF laik fungsi lengkap' },
 
     /* — catálogo — */
-    'The 3 Villa Typologies': { es: 'Las 3 tipologías de villa', id: '3 Tipologi Villa' },
+    /* Sin numero: la seccion la llena la intranet y el numero cambia sola
+       (hoy son 4, no 3 — el titular llevaba tiempo mintiendo). */
+    'Villa Typologies': { es: 'Tipologías de villa', id: 'Tipologi Villa' },
+    'Upon request': { es: 'Consultar', id: 'Atas permintaan' },
+    'Renders in progress': { es: 'Renders en camino', id: 'Render sedang dibuat' },
+    'We could not load the villa models right now. Please contact':
+      { es: 'Ahora mismo no hemos podido cargar los modelos de villa. Escríbenos a',
+        id: 'Saat ini kami tidak dapat memuat model villa. Silakan hubungi' },
+
+    /* — panel de due diligence del hero (11-sep-2026) — */
+    'Documentation & FAQ': { es: 'Documentación y preguntas', id: 'Dokumentasi & FAQ' },
+    'Everything you need to start your due diligence, on this screen.':
+      { es: 'Todo lo necesario para empezar tu due diligence, en esta pantalla.',
+        id: 'Semua yang Anda perlukan untuk memulai uji tuntas, dalam satu layar.' },
+    'The full detail, further down:': { es: 'El detalle completo, más abajo:', id: 'Detail lengkapnya, di bawah:' },
     'Prices below are': { es: 'Los precios de abajo son', id: 'Harga di bawah ini adalah' },
     'construction only': { es: 'solo de construcción', id: 'hanya konstruksi' },
     '— land price depends on the plot chosen in the masterplan.': { es: '— el precio del suelo depende de la parcela elegida en el masterplan.', id: '— harga tanah tergantung kavling yang dipilih di masterplan.' },
-    'Type 01': { es: 'Tipo 01', id: 'Tipe 01' },
-    'Type 02': { es: 'Tipo 02', id: 'Tipe 02' },
-    'Type 03': { es: 'Tipo 03', id: 'Tipe 03' },
     'Built': { es: 'Construido', id: 'Terbangun' },
     'Terrace & pool': { es: 'Terraza y piscina', id: 'Teras & kolam' },
     'Bedrooms': { es: 'Dormitorios', id: 'Kamar tidur' },
@@ -390,6 +401,10 @@
   /* Frases con una CIFRA dentro: se casan por patrón y el número se conserva
      tal cual ($1). Mismo criterio que assets/i18n-landing.js. */
   var PAT = [
+    /* 'Type 01', 'Type 02'... eran tres entradas a mano en D. La seccion la
+       llena ahora la intranet, asi que el cuarto modelo ya existia y el cuarto
+       'Tipo 04' no. Un patron cubre la clase entera y no hay que volver aqui. */
+    { re: /^Type (\d{2})$/, es: 'Tipo $1', id: 'Tipe $1' },
     { re: /^Formal plot lock with (\S+) in the notary's escrow account\.$/,
       es: 'Bloqueo formal de la parcela con $1 en la cuenta escrow del notario.',
       id: 'Penguncian resmi kavling dengan $1 di rekening escrow notaris.' },
