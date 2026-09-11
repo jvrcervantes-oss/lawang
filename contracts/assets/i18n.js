@@ -2068,6 +2068,80 @@
     'Interl.': 'Leading',
     'Track': 'Tracking',
 
+
+    /* ---------- Previsión y fotos del investor deck (11-sep-2026) ----------
+       Bloques nuevos de Modelos y Proyectos, escritos hoy por la otra sesión
+       del estudio y ya envueltos en `lwT`: aquí solo faltaba su traducción.
+       Vocabulario del deck público: forecast, ROI, ADR — se dejan como los
+       llama el propio deck, que sale en inglés. */
+    'Previsión del deck': 'Deck forecast',
+    'Previsión del investor deck': 'Investor deck forecast',
+    'Previsión guardada': 'Forecast saved',
+    'sin previsión': 'no forecast',
+    'publicada': 'published',
+    'Publicar en el deck público': 'Publish on the public deck',
+    'Publicar el forecast de este proyecto': 'Publish this project’s forecast',
+    'Sin esta casilla el modelo no sale en el forecast. Nace apagada a propósito: que un campo esté relleno no puede significar «publícalo».':
+      'Without this box the model does not appear in the forecast. It starts off on purpose: a filled-in field cannot mean “publish it”.',
+    'Si se apaga, el deck de este proyecto se queda sin bloque de previsión entero: el neto y el ROI salen de restar estos tres.':
+      'If it is off, this project’s deck loses the whole forecast block: the net and the ROI come from subtracting these three.',
+    'Lo que sale en «Year-1 Rental Forecast» del deck público de cada proyecto. Un modelo sin previsión publicada no aparece ahí — no se enseña media tarjeta.':
+      'What appears under “Year-1 Rental Forecast” on each project’s public deck. A model with no published forecast does not show up there — half a card is never shown.',
+    'Este modelo, en este proyecto': 'This model, in this project',
+    'Este modelo no está declarado en ningún proyecto, así que no puede tener previsión.':
+      'This model is not declared in any project, so it cannot have a forecast.',
+    'Precio medio/noche · escenario medio (€)': 'Average nightly rate · mid scenario (€)',
+    'Precio medio/noche · óptimo (€)': 'Average nightly rate · best case (€)',
+    'Ocupación media (%)': 'Average occupancy (%)',
+    'Ocupación óptima (%)': 'Best-case occupancy (%)',
+    'el precio medio/noche': 'the average nightly rate',
+    'el precio óptimo': 'the best-case rate',
+    'la ocupación media': 'the average occupancy',
+    'la ocupación óptima': 'the best-case occupancy',
+    'la inversión base': 'the base investment',
+    'Inversión total, base del ROI (€)': 'Total investment, the ROI base (€)',
+    'base': 'base',
+    'La ocupación es un porcentaje: no puede pasar de 100.':
+      'Occupancy is a percentage: it cannot go above 100.',
+    'Los porcentajes van entre 0 y 100.': 'Percentages go between 0 and 100.',
+    'Falta o no es válido: ': 'Missing or invalid: ',
+    'Gastos del proyecto': 'Project costs',
+    'Gestión (%)': 'Management (%)',
+    'Mantenimiento (%)': 'Maintenance (%)',
+    'Impuesto de alquiler (%)': 'Rental tax (%)',
+    'Contrato de gestión que los fija': 'Management contract that sets them',
+    'Ej. CG-2026-01': 'e.g. CG-2026-01',
+    'Estos tres son del contrato de gestión de alquiler, no de este modelo: cambiarlos mueve la tarjeta de TODOS los modelos de':
+      'These three come from the rental management contract, not from this model: changing them moves the card for EVERY model in',
+    'Los tres porcentajes juntos se comen el ingreso entero: el neto saldría negativo.':
+      'The three percentages together eat the whole income: the net would come out negative.',
+    'Ojo: la base no cuadra con construcción + la parcela más barata del proyecto':
+      'Careful: the base does not match construction + the cheapest plot in the project',
+    'Construcción + la parcela más barata de este proyecto sale':
+      'Construction + the cheapest plot in this project comes to',
+    'O es un precio de paquete pactado, o se ha quedado vieja.':
+      'Either it is an agreed package price, or it has gone stale.',
+    'Si pones otra cifra tiene que ser porque es un paquete pactado; el deck afirma que el ROI se calcula sobre construcción más suelo y enseña el inventario real dos secciones más arriba.':
+      'If you put a different figure it has to be because it is an agreed package; the deck states that the ROI is calculated on construction plus land, and it shows the real inventory two sections above.',
+    'No hay parcelas con precio en este proyecto, así que no se puede contrastar la cifra con nada.':
+      'There are no priced plots in this project, so the figure cannot be checked against anything.',
+    'Marcar como «El más solicitado» en el deck': 'Mark as “Most requested” on the deck',
+    /* fotos del deck */
+    'Fotos del deck…': 'Deck photos…',
+    'Fotos públicas del deck': 'Public deck photos',
+    'salen en todos los proyectos donde se construya': 'appear in every project where it is built',
+    'No se ha cargado el gestor de fotos del deck.': 'The deck photo manager has not loaded.',
+    'Este proyecto no está en la tabla `proyectos`; no se le pueden colgar fotos.':
+      'This project is not in the `proyectos` table; photos cannot be attached to it.',
+    'Ese proyecto no está en la tabla `proyectos`.': 'That project is not in the `proyectos` table.',
+    'No tienes permiso (solo administrador).': 'You do not have permission (administrators only).',
+    'Añadir…': 'Add…',
+    'Editar…': 'Edit…',
+
+
+    'Este proyecto no tiene ficha en la tabla `proyectos`; no se le pueden colgar fotos.':
+      'This project has no record in the `proyectos` table; photos cannot be attached to it.',
+
   };
 
   window.LW_EN = EN;
@@ -2096,6 +2170,23 @@
 
     if (window.LW_IDIOMA === 'en') {
       var v = Object.prototype.hasOwnProperty.call(EN, base) ? EN[base] : null;
+
+      /* Segunda oportunidad: la MISMA frase con blanco de sobra a los lados.
+         `'No se pudo guardar: '` lleva su espacio final porque detrás se le
+         concatena el mensaje de error, y esa frase es la misma que
+         `'No se pudo guardar:'`. Sin esto haría falta una entrada por cada
+         variante de espaciado — dos entradas para una frase, que es la clase
+         de duplicado que este diccionario existe para evitar. El blanco se
+         devuelve tal cual estaba, así que la concatenación sigue igual. */
+      if (v == null) {
+        var trozos = base.match(/^(\s*)([\s\S]*?)(\s*)$/);
+        var nucleo = trozos && trozos[2];
+        if (nucleo && nucleo !== base &&
+            Object.prototype.hasOwnProperty.call(EN, nucleo)) {
+          v = trozos[1] + EN[nucleo] + trozos[3];
+        }
+      }
+
       if (v == null) {
         if (window.LW_T_MISSES) window.LW_T_MISSES.add(base);
       } else {
