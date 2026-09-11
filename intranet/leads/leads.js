@@ -1400,7 +1400,13 @@ async function llamarBot(accion, extra){
     body: JSON.stringify(Object.assign({ accion }, extra || {})),
   });
   const cuerpo = await r.json().catch(() => ({}));
-  if(!r.ok) throw new Error(cuerpo.error || ('El bot respondió ' + r.status));
+  if(!r.ok){
+    // El codigo numerico de Meta viaja aparte del texto: sin el no se puede traducir
+    // el fallo a una frase con accion (ver ERRORES_META).
+    const e = new Error(cuerpo.error || ('El bot respondió ' + r.status));
+    e.code = cuerpo.code ?? null; e.detalle = cuerpo.detalle || '';
+    throw e;
+  }
   return cuerpo;
 }
 
@@ -1470,7 +1476,10 @@ function pintarSetter(){
           <span class="hora">${esc(horaCorta(l.lastInboundAt))}</span>
         </div>
         <div class="abajo">
-          <span class="punto ${l.paused ? 'pausa' : 'ia'}" title="${l.paused ? 'En pausa — la lleva una persona' : 'IA activa'}"></span>
+          <span class="punto ${l.optOut ? 'baja' : l.gated ? 'frenado' : l.paused ? 'pausa' : 'ia'}" title="${
+            l.optOut ? 'Pidió la baja (STOP)'
+            : l.gated ? 'Modo testing: el bot NO va a contestar a este lead'
+            : l.paused ? 'En pausa — la lleva una persona' : 'IA activa'}"></span>
           <span class="previo">${esc(l.lastMessage || 'Sin mensajes todavía')}</span>
         </div>
       </div>
@@ -1532,15 +1541,20 @@ async function verConversacion(phone){
         <div class="quien">${esc(lead.name || 'sin nombre')}</div>
         <div class="sub">+${esc(phone)}</div>
       </div>
-      ${lead.paused
-        ? '<span class="chip gris"><i class="ph ph-pause"></i> Pausada</span>'
-        : '<span class="chip verde"><i class="ph ph-robot"></i> IA activa</span>'}
+      ${lead.optOut
+        ? '<span class="chip rojo"><i class="ph ph-prohibit"></i> Baja (STOP)</span>'
+        : lead.gated
+          ? '<span class="chip oro"><i class="ph ph-flask"></i> Frenada (testing)</span>'
+          : lead.paused
+            ? '<span class="chip gris"><i class="ph ph-pause"></i> Pausada</span>'
+            : '<span class="chip verde"><i class="ph ph-robot"></i> IA activa</span>'}
       <button class="btn mini" data-pausar="${esc(phone)}" data-a="${lead.paused ? '0' : '1'}">
         ${lead.paused ? 'Reanudar IA' : 'Pausar IA'}</button>
       <button type="button" class="btn mini" id="waInfo" aria-pressed="${String(FICHA_ABIERTA)}"
               title="Mostrar u ocultar la ficha del lead"><i class="ph ph-info"></i></button>
     </div>
-    <div class="wa-hilo" id="hiloConv"><p class="vacio">Cargando…</p></div>`;
+    <div class="wa-hilo" id="hiloConv"><p class="vacio">Cargando…</p></div>
+    <div class="wa-pie" id="waPie"></div>`;
   $('#waVolver').onclick = () => { location.hash = '#setter'; };
   c.querySelector('[data-pausar]').onclick = ev => {
     const b = ev.currentTarget;
@@ -1553,6 +1567,7 @@ async function verConversacion(phone){
   };
   $('#wa').dataset.ficha = FICHA_ABIERTA ? '1' : '0';
   pintarFicha(lead);
+  pintarCaja(lead);
 
   try {
     const historia = await llamarBot('conversacion', { phone });
@@ -1562,6 +1577,159 @@ async function verConversacion(phone){
     if(CHAT_ABIERTO !== phone) return;
     $('#hiloConv').innerHTML = '<p class="vacio">No se pudo leer la conversación.</p>';
   }
+}
+
+/* ==========================================================================
+   CAJA DE ESCRIBIR DEL COMERCIAL
+   --------------------------------------------------------------------------
+   Solo aparece cuando el bot NO va a contestar a ese lead — pausado a mano, o
+   frenado por el modo testing. Si apareciera con la IA activa, dos voces
+   escribirían en el mismo chat y el cliente vería la conversación cruzada.
+
+   LA VENTANA DE 24 h LA DECIDE EL SERVIDOR. `ventanaAbierta`/`ventanaExpira`
+   vienen ya resueltos del bot; aquí NO se recalcula con el reloj del navegador,
+   porque uno desfasado daría por abierta una ventana cerrada y el mensaje
+   rebotaría con un error críptico. Lo de aquí es solo pintura.
+   ========================================================================== */
+const ERRORES_META = {
+  131047: 'Han pasado más de 24 h desde su último mensaje: ya solo se le puede escribir con una plantilla.',
+  131026: 'Ese número no tiene WhatsApp.',
+  131051: 'Tipo de mensaje no admitido.',
+  132000: 'La plantilla espera otro número de datos.',
+  132001: 'Esa plantilla no existe en este idioma.',
+  132012: 'Un dato de la plantilla tiene un formato que Meta no acepta.',
+  132015: 'Esa plantilla está pausada por Meta por baja calidad.',
+  132016: 'Esa plantilla está deshabilitada por Meta.',
+  131042: 'La cuenta de WhatsApp está restringida por facturación: no sale ningún mensaje.',
+  131031: 'La cuenta de WhatsApp está suspendida.',
+  190: 'El token de WhatsApp ha caducado. Avisa al estudio.',
+  80007: 'Demasiados mensajes seguidos. Espera un momento.',
+};
+/* Meta devuelve un blob JSON; un comercial ante `{"error":{"message":"(#131047)…"}}`
+   no sabe qué hacer. Se traduce a una frase con acción, y solo si no hay traducción
+   se enseña el original — nunca en vez de. */
+function explicaError(err){
+  const txt = String((err && err.message) || err || '');
+  const codigo = err && err.code;
+  if(codigo && ERRORES_META[codigo]) return ERRORES_META[codigo];
+  const m = /\(#(\d+)\)/.exec(txt);
+  if(m && ERRORES_META[m[1]]) return ERRORES_META[m[1]];
+  if(/opt_out/.test(txt)) return 'Este lead pidió la baja (STOP). No se le puede escribir.';
+  if(/lead_desconocido/.test(txt)) return 'Ese teléfono no es un lead de este bot.';
+  return 'No se pudo enviar: ' + txt.slice(0, 200);
+}
+
+const quedaPara = ts => {
+  const h = Math.floor((ts - Date.now()) / 3600000);
+  return h >= 1 ? `quedan ${h} h` : 'queda menos de 1 h';
+};
+
+function pintarCaja(lead){
+  const pie = $('#waPie');
+  if(!pie) return;
+  const botCalla = lead.paused || lead.gated;
+
+  if(lead.optOut){
+    pie.innerHTML = `<p class="wa-aviso rojo"><i class="ph ph-prohibit"></i>
+      Este lead pidió la baja (STOP). El sistema no le enviará nada más, ni bot ni persona.</p>`;
+    return;
+  }
+  if(!botCalla){
+    pie.innerHTML = `<p class="wa-aviso"><i class="ph ph-robot"></i>
+      La IA está atendiendo esta conversación. <b>Pausa la IA</b> arriba si quieres contestar tú.</p>`;
+    return;
+  }
+  if(lead.ventanaAbierta){
+    pie.innerHTML = `
+      <div class="wa-caja">
+        <textarea id="waTexto" rows="1" placeholder="Escribe tu respuesta…" maxlength="4000"></textarea>
+        <button type="button" class="btn pri" id="waEnviar"><i class="ph ph-paper-plane-tilt"></i>Enviar</button>
+      </div>
+      <p class="wa-nota">Ventana de WhatsApp abierta — ${esc(quedaPara(lead.ventanaExpira))} para escribir texto libre.</p>`;
+    const ta = $('#waTexto');
+    // Crece con el texto, como cualquier chat, pero con tope para no comerse el hilo.
+    ta.oninput = () => { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 140) + 'px'; };
+    ta.onkeydown = ev => {
+      if(ev.key === 'Enter' && !ev.shiftKey){ ev.preventDefault(); enviarTexto(lead.phone); }
+    };
+    $('#waEnviar').onclick = () => enviarTexto(lead.phone);
+    return;
+  }
+  // Ventana cerrada: el texto libre no se entrega. Se explica y se ofrece la única vía real.
+  pie.innerHTML = `
+    <p class="wa-aviso oro"><i class="ph ph-clock-countdown"></i>
+      ${lead.lastInboundAt
+        ? 'Han pasado más de 24 h desde su último mensaje.'
+        : 'Este lead nunca ha escrito al bot.'}
+      WhatsApp solo permite contactarle con una <b>plantilla aprobada</b>.</p>
+    <div class="wa-caja">
+      <select id="waPlantilla"><option value="">Cargando plantillas…</option></select>
+      <button type="button" class="btn pri" id="waEnviarP" disabled><i class="ph ph-paper-plane-tilt"></i>Enviar</button>
+    </div>
+    <div id="waParams"></div>`;
+  cargarPlantillas(lead);
+}
+
+let PLANTILLAS = null;
+async function cargarPlantillas(lead){
+  const sel = $('#waPlantilla');
+  try {
+    if(!PLANTILLAS) PLANTILLAS = await llamarBot('plantillas');
+  } catch(err){
+    sel.innerHTML = '<option value="">No se pudieron leer las plantillas</option>';
+    return;
+  }
+  if(!PLANTILLAS.length){
+    sel.innerHTML = '<option value="">No hay ninguna plantilla aprobada todavía</option>';
+    return;
+  }
+  /* La CATEGORÍA se enseña porque es dinero: una MARKETING se factura por mensaje.
+     Quien elige tiene que saber cuál está eligiendo. */
+  sel.innerHTML = '<option value="">Elige una plantilla…</option>' + PLANTILLAS.map((t, i) =>
+    `<option value="${i}">${esc(t.name)} · ${esc(t.language)} · ${esc(t.category)}</option>`).join('');
+  sel.onchange = () => {
+    const t = PLANTILLAS[sel.value];
+    const cont = $('#waParams');
+    $('#waEnviarP').disabled = !t;
+    if(!t){ cont.innerHTML = ''; return; }
+    /* Se piden los parámetros exactos ANTES de gastar el envío: mandar una plantilla con
+       el número de datos equivocado cuesta un 132000 y el intento ya está consumido. */
+    cont.innerHTML = `<p class="wa-previo">${esc(t.body)}</p>` +
+      Array.from({ length: t.vars }, (_, i) =>
+        `<input class="wa-param" data-i="${i}" placeholder="Dato ${i + 1}" maxlength="300">`).join('');
+  };
+  $('#waEnviarP').onclick = () => {
+    const t = PLANTILLAS[$('#waPlantilla').value];
+    if(!t) return;
+    const params = [...document.querySelectorAll('.wa-param')].map(i => i.value.trim());
+    if(params.some(p => !p)) return toast('Rellena todos los datos de la plantilla.');
+    enviarPlantilla(lead.phone, t, params);
+  };
+}
+
+async function enviarTexto(phone){
+  const ta = $('#waTexto'); const text = (ta.value || '').trim();
+  if(!text) return;
+  const btn = $('#waEnviar'); btn.disabled = true; ta.disabled = true;
+  try {
+    await llamarBot('enviar', { phone, text });
+    ta.value = '';
+    toast('Enviado.');
+    await cargarSetter();   // el envío pausa la IA: hay que releer estado, lista y ficha
+  } catch(err){
+    toast(explicaError(err));
+  } finally { btn.disabled = false; ta.disabled = false; }
+}
+
+async function enviarPlantilla(phone, t, params){
+  const btn = $('#waEnviarP'); btn.disabled = true;
+  try {
+    await llamarBot('enviar_plantilla', { phone, template: t.name, lang: t.language, params });
+    toast('Plantilla enviada.');
+    await cargarSetter();
+  } catch(err){
+    toast(explicaError(err));
+  } finally { btn.disabled = false; }
 }
 
 /* ---------- Ficha del lead, columna derecha del chat ----------

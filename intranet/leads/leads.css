@@ -315,8 +315,10 @@
 .wa-fila .previo { flex: 1 1 auto; min-width: 0; font: 400 12.5px/1.4 var(--text);
   color: var(--mist); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wa-fila .punto { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 9999px; }
-.wa-fila .punto.ia    { background: #25D366; }
-.wa-fila .punto.pausa { background: var(--gold); }
+.wa-fila .punto.ia      { background: #25D366; }
+.wa-fila .punto.pausa   { background: var(--gold); }
+.wa-fila .punto.frenado { background: var(--mist); }   /* modo testing: el bot no contesta */
+.wa-fila .punto.baja    { background: var(--danger); } /* pidió la baja (STOP) */
 /* Pausar sin abrir la conversación: estaba en la lista vieja y no se pierde.
    Aparece al pasar por encima o al tabular; en táctil (sin hover) está siempre. */
 .wa-fila .wa-acc { flex: 0 0 auto; opacity: 0; transition: opacity .12s;
@@ -350,6 +352,36 @@
 .wa-cab .sub { font: 400 12px/1.4 var(--text); color: var(--mist); margin-top: 1px; }
 .wa-volver { display: none; background: none; border: 0; cursor: pointer; padding: 4px;
   font-size: 20px; color: var(--mist); line-height: 1; }
+
+/* ---- Pie del chat: la caja de escribir del comercial ---------------------- */
+.wa-pie { flex: 0 0 auto; background: var(--wa-cabecera); border-top: 1px solid var(--line);
+  padding: 10px 14px; max-height: 45%; overflow-y: auto; }
+.wa-caja { display: flex; align-items: flex-end; gap: 8px; }
+.wa-caja textarea, .wa-caja select { flex: 1 1 auto; min-width: 0; font: 400 13.5px/1.45 var(--text);
+  border: 1px solid var(--line); border-radius: var(--r-box); padding: 9px 11px;
+  background: var(--panel); color: var(--slate); resize: none; max-height: 140px; }
+.wa-caja textarea:focus, .wa-caja select:focus { outline: 2px solid var(--primary-line); outline-offset: -1px; }
+.wa-caja .btn { flex: 0 0 auto; }
+.wa-nota { font: 400 11.5px/1.4 var(--text); color: var(--mist); margin: 6px 0 0; }
+/* El aviso ocupa el sitio de la caja cuando NO se puede escribir: nunca se enseña una
+   caja deshabilitada sin decir por qué — eso es lo que hace que la gente crea que está roto. */
+/* `display:block`, NO flex: el aviso lleva <b> dentro del texto y en un contenedor
+   flex cada trozo se vuelve un ítem independiente — «plantilla aprobada» se despegaba
+   de su frase y se iba sola al otro lado de la línea. El icono va inline y el texto
+   fluye como texto, que es lo que es. */
+.wa-aviso { display: block; margin: 0;
+  font: 400 12.5px/1.5 var(--text); color: var(--mist); }
+.wa-aviso i { font-size: 15px; vertical-align: -2px; margin-right: 6px; }
+.wa-aviso b { color: var(--slate); }
+.wa-aviso.oro  { color: var(--gold-ink); }
+.wa-aviso.rojo { color: var(--danger-ink); }
+/* Vista previa del cuerpo de la plantilla: se lee ANTES de mandarla. Una plantilla se
+   factura y no se puede retirar, así que enseñarla es más barato que explicarla. */
+.wa-previo { font: 400 12px/1.5 var(--text); color: var(--mist); background: var(--panel);
+  border: 1px dashed var(--line); border-radius: var(--r-ctrl); padding: 8px 10px;
+  margin: 8px 0 6px; white-space: pre-wrap; }
+.wa-param { display: block; width: 100%; font: 400 13px/1.4 var(--text); margin-top: 6px;
+  border: 1px solid var(--line); border-radius: var(--r-ctrl); padding: 7px 10px; }
 
 /* ---- Tercera columna: ficha del lead ------------------------------------- */
 .wa-ficha { display: none; min-height: 0; overflow-y: auto;
