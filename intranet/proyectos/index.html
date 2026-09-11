@@ -124,7 +124,7 @@
      compartido con contracts/app.html e intranet/modelos/. -->
 <script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1"></script>
 <script src="/contracts/assets/paginacion.js?v=2ac67b84"></script>
-<script src="/contracts/assets/vocabulario.js?v=f84d8753"></script>
+<script src="/contracts/assets/vocabulario.js?v=ce3ef96e"></script>
 <script src="/contracts/assets/operaciones-cuentas.js?v=47347e2a"></script>
 <script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
 <script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
@@ -333,6 +333,19 @@ const precioModelo = (proyecto, modelo) => {
   const m = modelosDe(proyecto).find(x => x.modelo === modelo);
   return m && m.precio_construccion != null ? Number(m.precio_construccion) : null;
 };
+/* Orden de la CARTERA: primero las W, luego las S, luego las G, y al final los
+   proyectos sin código de parcela máster (11-sep-2026, petición del owner).
+   El criterio vive entero en `lwOrdenProyectos` (contracts/assets/vocabulario.js),
+   compartido con /intranet/v4/proyectos/, que pide lo mismo: si mañana cambia el
+   orden, cambia en un sitio y no en dos que se van separando.
+   Aquí solo se le pasa el mapa nombre → ficha, porque esta pantalla ordena
+   arrays de NOMBRES y la `parcela_master` la tiene aparte en PROYECTOS_FICHA
+   (un proyecto puede llevar código sin enseñarlo en el nombre — «Bonian
+   Village» es la W8 y va con las W). Es una función y no una constante porque
+   PROYECTOS_FICHA se llena al cargar: congelarla antes ordenaría con el mapa
+   vacío. */
+const ordenProyectos = () => lwOrdenProyectos(PROYECTOS_FICHA);
+
 const ORDEN = { campo:'codigo', dir:'asc' };
 
 /* Qué valor ordena cada columna. Los importes salen como NÚMERO, no como el
@@ -408,7 +421,7 @@ async function cargar(){
   // catálogo (borrado por error, o dato antiguo), sigue apareciendo en el
   // filtro — no desaparece de la vista, solo no se puede elegir para una
   // unidad nueva salvo que se dé de alta.
-  const proyectosFiltro = [...new Set([...PROYECTOS, ...UNIDADES.map(x => x.proyecto)].filter(Boolean))].sort();
+  const proyectosFiltro = [...new Set([...PROYECTOS, ...UNIDADES.map(x => x.proyecto)].filter(Boolean))].sort(ordenProyectos());
   $('#fProyecto').innerHTML = '<option value="">Todos los proyectos</option>' +
     proyectosFiltro.map(p => `<option value="${esc(p)}" ${p===PROY?'selected':''}>${esc(p)}</option>`).join('');
   pintar();
@@ -437,7 +450,7 @@ async function altaProyecto(nombreCrudo){
       ? 'Ya existe un proyecto con ese nombre.' : error.message;
     return { ok:false, error: msg };
   }
-  PROYECTOS = [...new Set([...PROYECTOS, nombre])].sort();
+  PROYECTOS = [...new Set([...PROYECTOS, nombre])].sort(ordenProyectos());
   return { ok:true, nombre };
 }
 async function altaTipo(etiquetaCrudo){
@@ -601,7 +614,7 @@ function pintarCarpetas(){
     caja.innerHTML = `<div style="grid-column:1/-1"><div class="sui-error">No se pudo leer el inventario: ${esc(FALLO)}</div></div>`;
     return;
   }
-  const nombres = [...new Set([...PROYECTOS, ...UNIDADES.map(u => u.proyecto)].filter(Boolean))].sort();
+  const nombres = [...new Set([...PROYECTOS, ...UNIDADES.map(u => u.proyecto)].filter(Boolean))].sort(ordenProyectos());
   if(!nombres.length){
     caja.innerHTML = `<div style="grid-column:1/-1"><div class="sui-nada"><b>Todavía no hay proyectos</b>Da de alta uno con «+ Nuevo proyecto», arriba.</div></div>`;
     return;
@@ -1036,7 +1049,7 @@ function abrirUnidad(id){
         <div class="campo"><label for="f-proyecto">Proyecto</label>
           <select class="sui-sel" id="f-proyecto">
             <option value="">— elegir —</option>
-            ${[...new Set([...PROYECTOS, u.proyecto].filter(Boolean))].sort().map(p =>
+            ${[...new Set([...PROYECTOS, u.proyecto].filter(Boolean))].sort(ordenProyectos()).map(p =>
               `<option value="${esc(p)}" ${u.proyecto===p?'selected':''}>${esc(p)}</option>`).join('')}
             ${ES_ADMIN ? '<option value="__nuevo__">+ Nuevo proyecto…</option>' : ''}
           </select>

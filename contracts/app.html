@@ -59,7 +59,7 @@
      /facturas. `creado_por` no es un adorno: es con lo que la RLS decide quién
      puede editar su propio documento. -->
 <script src="assets/autoria.js?v=4e47fa06"></script>
-<script src="assets/vocabulario.js?v=f84d8753"></script>
+<script src="assets/vocabulario.js?v=ce3ef96e"></script>
 <script src="assets/dinero.js?v=ced29282"></script>
 <script src="assets/dialogo.js?v=8197f360"></script>
 <!-- Quien compra, normalizado. La MISMA lista que usa Facturas: el nombre de
@@ -1970,20 +1970,21 @@ function fieldHTML(f){
   // errata histórica, "Doble: ES/PE"...).
   const attrs = esDinero ? 'inputmode="decimal" data-money' : (type==='nacionalidad' ? 'list="dl-nacionalidades"' : '');
   /* CAMPOS FIJADOS POR EL ESTUDIO (8-sep-2026, owner: «fija la reserva se
-     mantiene en 10 días, sólo editable por super-admins»). El valor lo pone
+     mantiene en 10 días, sólo editable por super-admins»; 11-sep-2026: 15 días
+     y lo abren también admin y sales manager). El valor lo pone
      `projectDefaults`; esto solo impide teclear encima.
      🔴 SE PINTA BLOQUEADO SIEMPRE Y SE ABRE DESPUÉS, nunca al revés:
-     `buildForm()` corre ANTES de que se sepa el rol (`MI_ROL`/`ES_SUPER` se
-     asignan al terminar de leer la ficha), así que decidir aquí con `ES_SUPER`
-     dejaría el campo ABIERTO durante el primer render para todo el mundo. Lo
-     destapa `updateSaveButton()` cuando el rol ya se conoce — mismo mecanismo
-     que usa `repasaLegados()` con los campos de legado.
+     `buildForm()` corre ANTES de que se sepa el rol (`MI_ROL` se asigna al
+     terminar de leer la ficha), así que decidir aquí con el rol dejaría el
+     campo ABIERTO durante el primer render para todo el mundo. Lo destapa
+     `updateSaveButton()` cuando el rol ya se conoce — mismo mecanismo que usa
+     `repasaLegados()` con los campos de legado.
      `readonly` y no `disabled`: un `disabled` sigue leyéndose en `collect()`
      (busca por `name` y lee `.value`), pero no se puede seleccionar ni copiar,
      y este dato se copia a mano a menudo. */
-  const fijado = FIJOS_SUPER_ADMIN.includes(key);
+  const fijado = FIJOS_ESTUDIO.includes(key);
   const marca = fijado ? ' readonly data-fijo-super class="dato-fijo"' +
-    ' title="Lo fija el estudio: solo un super admin puede cambiarlo"' : '';
+    ' title="Lo fija el estudio: lo cambian dirección y los sales managers"' : '';
   return `<div class="field" data-key="${key}">${etiquetaHTML(key, label)}
     <input id="${fid(key)}" name="${key}" type="${t}" ${attrs}${marca} value="${def}" autocomplete="off"></div>`;
 }
@@ -1992,14 +1993,28 @@ function fieldHTML(f){
    en el formulario de los bloques <!--if:campo=valor--> de las plantillas. Si el
    campo que manda no está en esta plantilla, la regla no aplica: precio_reserva
    se sigue preguntando en la Carta, que no tiene forma de pago. */
-/* Campos que el estudio fija y solo un super admin puede tocar. Hoy uno:
-   el plazo de la reserva, que el owner fijó en 10 días el 8-sep-2026 para que
-   deje de negociarse contrato a contrato.
+/* Campos que el estudio fija y solo algunos roles pueden tocar. Hoy uno: el
+   plazo de la reserva, que el owner fijó en 10 días el 8-sep-2026 para que
+   dejara de negociarse contrato a contrato, y subió a 15 el 11-sep-2026
+   abriéndolo además a admin y a sales manager — quien negocia la reserva con
+   el comprador es el sales manager, y tener que pedirle cada prórroga a un
+   super admin convertía el candado en un cuello de botella.
+   El VALOR (15) lo pone `projectDefaults` en tokens.json; esto solo decide
+   quién puede teclear encima.
    ⚠️ Esto es un candado de PANTALLA, no de la base: `contratos.datos` es un
    jsonb que la app escribe entero, y la RLS no mira campo a campo. Quien abra
    la consola lo cambia. Vale para que no se cambie por descuido, no para
-   impedírselo a quien quiera saltárselo. */
-const FIJOS_SUPER_ADMIN = ['validez_dias'];
+   impedírselo a quien quiera saltárselo. Por el mismo motivo el mínimo de 15
+   días AVISA al guardar (ver `avisoValidezMinima`) en vez de bloquear: una
+   jaula dura aquí daría una falsa sensación de imposible. */
+const FIJOS_ESTUDIO = ['validez_dias'];
+/* Quién los abre. Sin ficha (cuentas anteriores al panel) NO entra, igual que
+   antes: el candado nació precisamente para que el plazo no se moviera solo. */
+const ROLES_FIJOS_ESTUDIO = ['super_admin', 'admin', 'sales_manager'];
+const puedeFijosEstudio = () => ROLES_FIJOS_ESTUDIO.includes(MI_ROL);
+/* Mínimo pactado por el estudio para la reserva (11-sep-2026). Va junto a lo
+   anterior para que nadie cambie el default sin ver el mínimo. */
+const VALIDEZ_DIAS_MINIMO = 15;
 const CAMPO_SI = { precio_reserva: ['modalidad_pago', 'reserva'] };
 function aplicarReglasCampos(){
   const form = $('#form'); if(!form) return;
@@ -2024,6 +2039,28 @@ function aplicarReglasCampos(){
       }else{
         cajaSoc.classList.remove('campo-aviso');
         const nota = cajaSoc.querySelector('.aviso-campo'); if(nota) nota.remove();
+      }
+    }
+  }
+  /* Mínimo de 15 días de la reserva (11-sep-2026, owner). AVISA, no bloquea:
+     el candado de `FIJOS_ESTUDIO` ya es de pantalla y no de base, así que
+     impedir el guardado aquí daría una falsa sensación de imposible mientras
+     la consola sigue abierta. Y hay motivos legítimos para bajarlo —una
+     reserva puente de días contados—: quien tiene el campo abierto es
+     precisamente quien puede decidirlo, y lo que necesita es verlo, no que le
+     cierren la puerta. Misma marca persistente que el aviso de sociedad
+     firmante: una nota bajo el campo, no un toast que se pierde. */
+  {
+    const elV = form.querySelector('[name="validez_dias"]');
+    if(elV){
+      const n = Number(String(elV.value).replace(',', '.'));
+      const cajaV = elV.closest('.field');
+      if(elV.value !== '' && Number.isFinite(n) && n < VALIDEZ_DIAS_MINIMO){
+        marcarCampoAviso(elV, 'El estándar del estudio son ' + VALIDEZ_DIAS_MINIMO +
+          ' días como mínimo. Con menos, dilo por escrito al comprador antes de firmar.');
+      }else if(cajaV){
+        cajaV.classList.remove('campo-aviso');
+        const nota = cajaV.querySelector('.aviso-campo'); if(nota) nota.remove();
       }
     }
   }
@@ -2584,7 +2621,16 @@ let SIGN_MODE=false;   // true solo al construir el snapshot para firma remota �
    El motor de plantillas solo sabe «imprime si este campo tiene valor»
    (`<!--opt:-->`), no sabe «si no, aquel otro». Así que la exclusión se decide
    aquí, con los datos delante, antes de tocar el HTML. */
-const SUSTITUYE_A = { validez_dias: 'validez_meses' };
+const SUSTITUYE_A = {
+  validez_dias: 'validez_meses',
+  /* 11-sep-2026, misma petición del owner y mismo motivo que la Carta: el
+     Bloqueo de Parcela pasa a contar el pago final en DÍAS. Hay 41 contratos
+     guardados —11 ya firmados— con `plazo_pago_final_meses` relleno (valores
+     de 0 a 4), así que reetiquetar el campo habría convertido «4 meses» en
+     «4 días» en documentos firmados. Nace al lado; el viejo se queda de
+     legado. */
+  plazo_pago_final_dias: 'plazo_pago_final_meses',
+};
 
 function buildDoc(){
   const data=collect();
@@ -3408,16 +3454,17 @@ function ocultarGruposVacios(){
 }
 
 function updateSaveButton(){
-  /* Abre los campos fijados si quien mira es super admin. Va aquí porque esta
-     función es la que ya corre cada vez que cambian el rol, la plantilla o el
-     bloqueo — ver la nota junto a FIJOS_SUPER_ADMIN. */
-  FIJOS_SUPER_ADMIN.forEach(k => {
+  /* Abre los campos fijados si el rol de quien mira los puede tocar. Va aquí
+     porque esta función es la que ya corre cada vez que cambian el rol, la
+     plantilla o el bloqueo — ver la nota junto a FIJOS_ESTUDIO. */
+  const abreFijos = puedeFijosEstudio();
+  FIJOS_ESTUDIO.forEach(k => {
     const el = document.querySelector('[data-fijo-super][name="' + k + '"]');
     if(!el) return;
-    el.readOnly = !ES_SUPER;
-    el.classList.toggle('dato-fijo', !ES_SUPER);
-    el.title = ES_SUPER ? 'Lo fija el estudio; puedes cambiarlo por ser super admin'
-                        : 'Lo fija el estudio: solo un super admin puede cambiarlo';
+    el.readOnly = !abreFijos;
+    el.classList.toggle('dato-fijo', !abreFijos);
+    el.title = abreFijos ? 'Lo fija el estudio en ' + VALIDEZ_DIAS_MINIMO + ' días; tu rol puede cambiarlo'
+                         : 'Lo fija el estudio: lo cambian dirección y los sales managers';
   });
   const btn=$('#btnSave'); if(!btn) return;
   const tipo = CONTRACT_TIPO[CURRENT.slug];

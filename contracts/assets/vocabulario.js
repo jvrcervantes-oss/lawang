@@ -121,3 +121,62 @@ function lwBuscaEn(campos, q){
   if(!aguja) return true;
   return (campos || []).some(v => lwNormaliza(v).includes(aguja));
 }
+
+/* ── ORDEN DE PROYECTOS: W, luego S, luego G, luego los que no llevan código ──
+   11-sep-2026, petición del owner para /intranet/proyectos/ y /intranet/v4/proyectos/.
+
+   El código de parcela máster (W5, S1, G2…) es como el owner tiene ordenada la
+   cartera en la cabeza y en el parcelario: alfabético puro mezclaba "Bebali G1"
+   entre dos W y dejaba los proyectos sin código repartidos por toda la lista.
+
+   DE DÓNDE SALE EL CÓDIGO, en este orden:
+     1. La columna `proyectos.parcela_master` — el dato con dueño. Hoy la llevan
+        6 de 29 filas, pero es la buena: "Bonian Village" no enseña código en su
+        nombre y sin embargo ES la W8, así que aparece entre las W. No es un
+        fallo de orden: es el dato real, que el nombre no cuenta.
+     2. Si está vacía, el código embebido en el propio nombre ("Palm Field W5",
+        "The Cliff - S8", "S3 - S4 Karana" — da igual dónde vaya).
+   Sin ninguno de los dos, el proyecto cae al último grupo, alfabético.
+
+   `\b([WSG])(\d{1,2})\b` pegado y en MAYÚSCULA, sin `/i` y sin espacio opcional:
+   todos los códigos reales se escriben así, y aflojarlo convertiría cualquier
+   "…s 2 dormitorios" o un nombre en minúscula en un código falso.
+
+   Dentro de cada grupo manda el NÚMERO, no el texto: como cadena, "W13" iría
+   antes que "W2". Empate (o sin código) se resuelve por nombre. */
+const LW_GRUPO_PARCELA = { W:0, S:1, G:2 };
+const LW_RE_PARCELA = /\b([WSG])(\d{1,2})\b/;
+
+/* Devuelve [grupo, número, nombre] — la clave por la que se ordena. Se expone
+   suelta además del comparador porque una pantalla puede querer agrupar o
+   pintar el código, no solo ordenar. */
+function lwClaveProyecto(nombre, parcelaMaster){
+  const m = LW_RE_PARCELA.exec(String(parcelaMaster || '')) ||
+            LW_RE_PARCELA.exec(String(nombre || ''));
+  const grupo = m ? LW_GRUPO_PARCELA[m[1]] : 3;
+  return [grupo, m ? Number(m[2]) : 0, lwNormaliza(nombre)];
+}
+
+/* Comparador para `.sort()`. Fábrica, no función suelta, porque las dos
+   pantallas ordenan cosas distintas:
+     · /intranet/proyectos/ ordena ARRAYS DE NOMBRES (strings) y tiene las
+       parcelas máster aparte → `lwOrdenProyectos(PROYECTOS_FICHA)`, mapa
+       nombre → ficha (o → código suelto; se aceptan ambos).
+     · /intranet/v4/proyectos/ ordena las FILAS de `proyectos`, que ya traen su
+       `parcela_master` dentro → `lwOrdenProyectos()` sin argumento.
+   Un solo comparador para las dos: si el criterio cambia, cambia en un sitio. */
+function lwOrdenProyectos(master){
+  const codigoDe = (x, nombre) => {
+    if(x && typeof x === 'object' && x.parcela_master != null) return x.parcela_master;
+    const m = master && master[nombre];
+    if(m == null) return '';
+    return (typeof m === 'object') ? (m.parcela_master || '') : m;
+  };
+  return (a, b) => {
+    const na = (a && typeof a === 'object') ? a.nombre : a;
+    const nb = (b && typeof b === 'object') ? b.nombre : b;
+    const ka = lwClaveProyecto(na, codigoDe(a, na));
+    const kb = lwClaveProyecto(nb, codigoDe(b, nb));
+    return (ka[0] - kb[0]) || (ka[1] - kb[1]) || (ka[2] < kb[2] ? -1 : ka[2] > kb[2] ? 1 : 0);
+  };
+}

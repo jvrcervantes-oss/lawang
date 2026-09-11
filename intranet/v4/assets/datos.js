@@ -979,6 +979,19 @@
       ]).then(function (r) {
         var ps = r[0], us = r[1] || [], fs = r[2] || [], ds = r[3] || [], mgrs = r[4] || [], eq = r[5] || [];
         if (!ps) return;
+        /* Orden de la CARTERA: primero las W, luego las S, luego las G, y al
+           final los proyectos sin codigo de parcela master (11-sep-2026,
+           peticion del owner; mismo cambio en /intranet/proyectos/). Se ordena
+           AQUI y no en el `.order('nombre')` de arriba porque Postgres ordenaria
+           el nombre como texto —"W13" antes que "W2"— y ademas el codigo puede
+           venir de la columna `parcela_master` y no del nombre ("Bonian
+           Village" es la W8). El criterio lo pone `lwOrdenProyectos`
+           (contracts/assets/vocabulario.js), compartido con la otra pantalla.
+           Sin argumento: aqui cada fila YA trae su `parcela_master` dentro.
+           Ordenar `PS` de una vez basta para la rejilla, el buscador, los chips
+           y la paginacion: todos salen de `proyectosFiltrados()`, que filtra
+           sobre PS sin reordenar. */
+        ps.sort(lwOrdenProyectos());
         PS = ps; MGRS = mgrs; DS_ACTUAL = ds;
         EQUIPO_NOMBRE = {};
         eq.forEach(function (e) { if (e.email) EQUIPO_NOMBRE[e.email] = e.nombre || e.email; });
