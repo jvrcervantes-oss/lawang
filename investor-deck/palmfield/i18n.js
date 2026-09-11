@@ -128,7 +128,8 @@
     'Type 01': { es: 'Tipo 01', id: 'Tipe 01' },
     'Type 02': { es: 'Tipo 02', id: 'Tipe 02' },
     'Type 03': { es: 'Tipo 03', id: 'Tipe 03' },
-    'Area': { es: 'Superficie', id: 'Luas' },
+    'Built': { es: 'Construido', id: 'Terbangun' },
+    'Terrace & pool': { es: 'Terraza y piscina', id: 'Teras & kolam' },
     'Bedrooms': { es: 'Dormitorios', id: 'Kamar tidur' },
     'Bathrooms': { es: 'Baños', id: 'Kamar mandi' },
     'Construction from': { es: 'Construcción desde', id: 'Konstruksi mulai' },
@@ -359,9 +360,9 @@
     'Formal plot lock with': { es: 'Bloqueo formal de la parcela con', id: 'Penguncian resmi kavling dengan' },
     "in the notary's escrow account.": { es: 'en la cuenta escrow del notario.', id: 'di rekening escrow notaris.' },
 
-    'A first-year operating forecast for the two models with a track record on neighbouring phases, under two scenarios (Average / Optimal occupancy). This is a forecast, not a guarantee — actual results depend on the rental operator, market conditions and property management agreement in force.':
-      { es: 'Una previsión operativa de primer año para los dos modelos con histórico en fases contiguas, bajo dos escenarios (ocupación media / óptima). Es una previsión, no una garantía — el resultado real depende del operador de alquiler, de las condiciones de mercado y del contrato de gestión vigente.',
-        id: 'Proyeksi operasional tahun pertama untuk dua model yang punya rekam jejak di fase sebelah, dalam dua skenario (okupansi rata-rata / optimal). Ini proyeksi, bukan jaminan — hasil sebenarnya bergantung pada operator sewa, kondisi pasar, dan perjanjian pengelolaan yang berlaku.' },
+    'A first-year operating forecast under two scenarios (Average / Optimal occupancy). This is a forecast, not a guarantee — actual results depend on the rental operator, market conditions and property management agreement in force.':
+      { es: 'Previsión operativa de primer año bajo dos escenarios (ocupación media / óptima). Es una previsión, no una garantía — el resultado real depende del operador de alquiler, de las condiciones de mercado y del contrato de gestión vigente.',
+        id: 'Proyeksi operasional tahun pertama dalam dua skenario (okupansi rata-rata / optimal). Ini proyeksi, bukan jaminan — hasil sebenarnya bergantung pada operator sewa, kondisi pasar, dan perjanjian pengelolaan yang berlaku.' },
 
     /* Cabecera de cada tarjeta de forecast */
     'Construction:': { es: 'Construcción:', id: 'Konstruksi:' },
@@ -370,6 +371,15 @@
     /* Sellos del plano: van en MAYUSCULAS y la busqueda distingue mayusculas */
     'RESERVED': { es: 'RESERVADA', id: 'DIPESAN' },
     'SOLD': { es: 'VENDIDA', id: 'TERJUAL' },
+
+    'We could not load live plot data right now. Please contact': { es: 'Ahora mismo no hemos podido cargar las parcelas en vivo. Escríbenos a', id: 'Saat ini kami tidak dapat memuat data kavling langsung. Silakan hubungi' },
+    'We could not reach the server. Please try again in a moment or email sales@lawangproperties.com directly.': { es: 'No hemos podido conectar con el servidor. Inténtalo de nuevo en un momento o escríbenos a sales@lawangproperties.com.', id: 'Kami tidak dapat menghubungi server. Coba lagi sebentar atau kirim email ke sales@lawangproperties.com.' },
+
+    /* Atributos: placeholder y alt. El alt lo lee un lector de pantalla y sale
+       cuando la imagen no carga, asi que tambien se traduce. */
+    'Timeframe, budget range, Bali vs Sumba…': { es: 'Plazos, presupuesto aproximado, Bali o Sumba…', id: 'Jangka waktu, kisaran anggaran, Bali atau Sumba…' },
+    'Palm Field villas stepped down the Balian river valley at dusk': { es: 'Villas de Palm Field escalonadas sobre el valle del río Balian al atardecer', id: 'Villa Palm Field bertingkat menuruni lembah sungai Balian saat senja' },
+    'Palm Field masterplan showing every plot code and surface area': { es: 'Masterplan de Palm Field con el código y la superficie de cada parcela', id: 'Masterplan Palm Field dengan kode dan luas setiap kavling' },
 
     /* — selector — */
     'Contract in EUR. Other currencies are indicative, converted at a fixed rate of':
@@ -392,15 +402,16 @@
     { re: /^Dali · 1 bedroom$/, es: 'Dali · 1 dormitorio', id: 'Dali · 1 kamar tidur' },
     { re: /^Year-1 Rental Forecast — (.+)$/,
       es: 'Previsión de alquiler Año 1 — $1', id: 'Proyeksi Sewa Tahun ke-1 — $1' },
-    { re: /^Reserve plot (\S+)$/, es: 'Reservar parcela $1', id: 'Pesan kavling $1' }
+    { re: /^Reserve plot (\S+)$/, es: 'Reservar parcela $1', id: 'Pesan kavling $1' },
+    { re: /^(\S+) villa model$/, es: 'Modelo de villa $1', id: 'Model villa $1' }
   ];
 
   /* Textos largos con <b>/<br> dentro: se traducen por innerHTML sobre el
      elemento entero, porque el walker de nodos de texto los vería partidos. */
   var HTML_BLOQUES = [
     { sel: '#forecast-nota',
-      es: 'Las cifras son una previsión operativa de Año 1 facilitada por Lawang, no una rentabilidad garantizada ni histórica. Los porcentajes de gestión, mantenimiento e impuesto de alquiler son los del contrato de gestión vigente y pueden cambiar.',
-      id: 'Angka-angka ini adalah proyeksi operasional Tahun ke-1 dari Lawang, bukan imbal hasil yang dijamin maupun historis. Persentase pengelolaan, pemeliharaan, dan pajak sewa mengikuti perjanjian pengelolaan yang berlaku dan dapat berubah.' }
+      es: 'Las cifras son una previsión operativa de Año 1 facilitada por Lawang, no una rentabilidad garantizada ni histórica. El ROI se calcula sobre la inversión total (construcción más suelo) que indica cada tarjeta; la parte de suelo depende de la parcela elegida. Los porcentajes de gestión, mantenimiento e impuesto de alquiler son los del contrato de gestión vigente y pueden cambiar.',
+      id: 'Angka-angka ini adalah proyeksi operasional Tahun ke-1 dari Lawang, bukan imbal hasil yang dijamin maupun historis. ROI dihitung atas total investasi (konstruksi ditambah tanah) yang tertera di setiap kartu; bagian tanah tergantung kavling yang dipilih. Persentase pengelolaan, pemeliharaan, dan pajak sewa mengikuti perjanjian pengelolaan yang berlaku dan dapat berubah.' }
   ];
 
   // Atributos visibles que también se traducen
@@ -493,6 +504,94 @@
   }
   window.lwRepintaDinero = repintaDinero;
 
+
+  /* ── Selector, con el aspecto del de la landing ───────────────────────────
+     Reutiliza las MISMAS clases y los mismos estilos que `montaSelector` de
+     `assets/idioma-web.js` (boton + desplegable `.lw-lang`), para que el deck
+     no tenga un control distinto al del resto de la web.
+     No se carga aquel modulo directamente porque traduce por claves
+     `data-i18n` y este deck casa por texto completo: cargarlo haria que dos
+     motores de idioma se pisaran (velo antidestello, data-i18n-listo y la
+     resolucion de LANG por duplicado). Se comparte la pieza visual y la clave
+     `lawang_lang`, no el motor. Si algun dia se unifican, el sitio natural es
+     ese fichero — mismas clases a proposito. */
+  function ponEstilos() {
+    if (document.getElementById('lw-lang-css')) return;
+    var st = document.createElement('style');
+    st.id = 'lw-lang-css';
+    st.textContent =
+      '.lw-lang{position:relative;display:inline-flex;flex:none}' +
+      '.lw-lang__btn{display:inline-flex;align-items:center;gap:6px;background:none;border:0;cursor:pointer;' +
+        'font-family:var(--lw-lang-font,inherit);font-size:var(--lw-lang-size,11px);font-weight:500;' +
+        'letter-spacing:.12em;text-transform:uppercase;color:var(--lw-lang-ink,currentColor);' +
+        'min-height:24px;padding:4px 6px;line-height:1;border-radius:999px}' +
+      '.lw-lang__btn:hover{opacity:.75}' +
+      '.lw-lang__btn:focus-visible{outline:2px solid var(--lw-lang-ink,currentColor);outline-offset:2px}' +
+      '.lw-lang__caret{font-size:.8em;opacity:.7}' +
+      '.lw-lang__menu{position:absolute;top:calc(100% + 8px);right:0;z-index:120;margin:0;padding:6px;' +
+        'list-style:none;min-width:150px;display:none;' +
+        'background:var(--lw-lang-bg,#1a160f);border:1px solid var(--lw-lang-line,rgba(255,255,255,.18));' +
+        'border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.34)}' +
+      '.lw-lang__menu.is-open{display:block}' +
+      '.lw-lang__menu li{display:flex;align-items:center;min-height:36px;padding:8px 12px;cursor:pointer;' +
+        'border-radius:7px;font-family:var(--lw-lang-font,inherit);font-size:13px;' +
+        'color:var(--lw-lang-menu-ink,#f5f0e6);white-space:nowrap}' +
+      '.lw-lang__menu li:hover{background:var(--lw-lang-hover,rgba(255,255,255,.1))}' +
+      '.lw-lang__menu li.is-on{font-weight:700}' +
+      '@media print{.lw-lang{display:none}}';
+    document.head.appendChild(st);
+  }
+
+  var NOMBRE_LANG = { en: 'English', es: 'Español', id: 'Bahasa' };
+  var NOMBRE_CUR = { EUR: 'EUR  €', USD: 'USD  $', AUD: 'AUD  A$', IDR: 'IDR  Rp' };
+
+  function monta(host, opciones, actual, etiqueta, corto, alElegir) {
+    var cont = typeof host === 'string' ? document.querySelector(host) : host;
+    if (!cont) return;
+    ponEstilos();
+    var wrap = document.createElement('div');
+    wrap.className = 'lw-lang';
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'lw-lang__btn';
+    btn.setAttribute('aria-haspopup', 'listbox');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.setAttribute('aria-label', etiqueta);
+    btn.innerHTML = '<span class="lw-lang__cur"></span><span class="lw-lang__caret" aria-hidden="true">▾</span>';
+    btn.querySelector('.lw-lang__cur').textContent = corto[actual];
+
+    var ul = document.createElement('ul');
+    ul.className = 'lw-lang__menu';
+    ul.setAttribute('role', 'listbox');
+    opciones.forEach(function (c) {
+      var li = document.createElement('li');
+      li.setAttribute('role', 'option');
+      li.setAttribute('data-val', c);
+      li.setAttribute('aria-selected', c === actual ? 'true' : 'false');
+      if (c === actual) li.className = 'is-on';
+      li.textContent = NOMBRE_LANG[c] || NOMBRE_CUR[c] || c;
+      ul.appendChild(li);
+    });
+
+    wrap.appendChild(btn); wrap.appendChild(ul); cont.appendChild(wrap);
+    function cierra() { ul.classList.remove('is-open'); btn.setAttribute('aria-expanded', 'false'); }
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      // solo un desplegable abierto a la vez
+      Array.prototype.forEach.call(document.querySelectorAll('.lw-lang__menu.is-open'), function (o) {
+        if (o !== ul) o.classList.remove('is-open');
+      });
+      var abierto = ul.classList.toggle('is-open');
+      btn.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+    });
+    ul.addEventListener('click', function (e) {
+      var li = e.target.closest ? e.target.closest('li[data-val]') : null;
+      if (li) alElegir(li.getAttribute('data-val'));
+    });
+    document.addEventListener('click', function (e) { if (!wrap.contains(e.target)) cierra(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cierra(); });
+  }
+
   /* ── Selector ─────────────────────────────────────────────────────────────
      Recargar la página al cambiar es deliberado: el catálogo, las parcelas y
      la galería los pinta el JS, y volver a pintarlos a mano dejaría estados a
@@ -506,6 +605,12 @@
 
   window.lwDeck = {
     lang: LANG, cur: CUR, idiomas: IDIOMAS, monedas: MONEDAS,
+    montaSelectores: function (host) {
+      var etiq = { en: 'Language', es: 'Idioma', id: 'Bahasa' }[LANG];
+      var etiqCur = { en: 'Currency', es: 'Moneda', id: 'Mata uang' }[LANG];
+      monta(host, IDIOMAS, LANG, etiq, { en: 'EN', es: 'ES', id: 'ID' }, function (v) { recarga(v, CUR); });
+      monta(host, MONEDAS, CUR, etiqCur, { EUR: 'EUR', USD: 'USD', AUD: 'AUD', IDR: 'IDR' }, function (v) { recarga(LANG, v); });
+    },
     traduce: function (raiz) { traduceArbol(raiz || document.body, LANG); },
     setLang: function (v) { if (valida(v, IDIOMAS)) recarga(v, CUR); },
     setCur: function (v) { if (valida(v, MONEDAS)) recarga(LANG, v); }

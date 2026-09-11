@@ -87,7 +87,7 @@
   .lw-fade-in { animation: lwFadeIn .35s ease both; }
   @keyframes lwFadeIn { from { opacity:0; transform:translateY(4px);} to { opacity:1; transform:none;} }
 </style>
-<script src="i18n.js?v=20260911090656"></script>
+<script src="i18n.js?v=20260911093519"></script>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script>
   tailwind.config = {
@@ -149,15 +149,8 @@
       <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-white/85 hover:text-deep-lagoon hover:bg-white transition-all" href="#faq">FAQ</a>
     </nav>
     <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-      <div class="flex items-center rounded-full bg-white/10 border border-white/15 overflow-hidden" data-no-i18n>
-        <select id="sel-lang" aria-label="Language" class="bg-transparent text-white/90 text-xs font-label-md px-2 py-1.5 outline-none cursor-pointer [&>option]:text-on-surface">
-          <option value="en">EN</option><option value="es">ES</option><option value="id">ID</option>
-        </select>
-        <span class="w-px h-4 bg-white/20"></span>
-        <select id="sel-cur" aria-label="Currency" class="bg-transparent text-white/90 text-xs font-label-md px-2 py-1.5 outline-none cursor-pointer [&>option]:text-on-surface">
-          <option value="EUR">EUR</option><option value="USD">USD</option><option value="AUD">AUD</option><option value="IDR">IDR</option>
-        </select>
-      </div>
+      <div class="flex items-center gap-1" id="deck-selectores" data-no-i18n
+           style="--lw-lang-ink:rgba(255,255,255,.92);--lw-lang-bg:#0c3c3f;--lw-lang-line:rgba(255,255,255,.18);--lw-lang-menu-ink:#F5F0E6;--lw-lang-hover:rgba(255,255,255,.12)"></div>
       <a class="hidden sm:inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-full bg-white text-deep-lagoon font-label-md text-label-md hover:bg-soft-canopy hover:text-white transition-all shadow-sm whitespace-nowrap" href="#adjudicacion">
         <span class="material-symbols-outlined text-[17px]">description</span>
         <span class="hidden sm:inline">Request Dossier</span><span class="sm:hidden">Dossier</span>
@@ -251,7 +244,7 @@
     <div class="flex items-center gap-4 bg-surface-container-low p-2.5 rounded-full border border-[#D8D2C5] text-xs font-label-md">
       <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-territorial-green"></span><span class="text-on-surface font-semibold">Available</span></div>
       <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500"></span><span class="text-on-surface font-semibold">Reserved</span></div>
-      <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#8A8474]"></span><span class="text-on-surface-variant">Sold / Blocked</span></div>
+      <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#B3261E]"></span><span class="text-on-surface-variant">Sold / Blocked</span></div>
     </div>
   </div>
 
@@ -266,14 +259,14 @@
         <div class="flex items-center gap-3 text-[11px] font-label-md">
           <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-territorial-green"></span>Available</span>
           <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>Reserved</span>
-          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#8A8474]"></span>Sold</span>
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#B3261E]"></span>Sold</span>
         </div>
       </div>
       <!-- Plano interactivo: las zonas se pintan por JS con el estado en vivo
            del MISMO RPC que alimenta la lista de al lado, para que no puedan
            contradecirse. Coordenadas en % sobre la imagen, asi escalan solas. -->
       <div class="relative w-full select-none" id="plan-wrap">
-        <img src="assets/gallery/12-masterplan.jpg" alt="Palm Field masterplan showing every plot code and surface area" loading="lazy" class="w-full rounded-xl border border-[#D8D2C5] bg-[#F0ECE1] object-contain block">
+        <img src="assets/gallery/24-masterplan-plots.webp" alt="Palm Field masterplan showing every plot code and surface area" loading="lazy" class="w-full rounded-xl border border-[#D8D2C5] bg-[#F0ECE1] object-contain block">
         <div class="absolute inset-0" id="plan-hotspots"></div>
       </div>
       <p class="font-body-sm text-xs text-[#5F6257]">Tap an available plot to reserve it. Status is live; surface areas are confirmed by survey at Plot Lock.</p>
@@ -594,9 +587,9 @@
   // es la ÚNICA versionada; los originales están gitignored y por eso la ruta anterior
   // (../../assets/img/buildings/dali/dali.jpg) daba 404 en producción (10-sep-2026).
   var MODELOS = [
-    { slug:'dali', nombre:'Dali', tag:'Type 01', img:'../../assets/img/buildings/dali/web/dali.webp', dorm:1, banos:1, m2:30, precio:48000 },
-    { slug:'dune', nombre:'Dune', tag:'Type 02', img:'../../assets/img/buildings/dune/web/dune.webp', dorm:1, banos:1, m2:47, precio:68000 },
-    { slug:'dream', nombre:'Dream', tag:'Type 03', img:'../../assets/img/buildings/dream/web/dream.webp', dorm:2, banos:2, m2:76, precio:101000, featured:true }
+    { slug:'dali', nombre:'Dali', tag:'Type 01', img:'../../assets/img/buildings/dali/web/dali.webp', dorm:1, banos:1, m2:30, terraza:16, precio:48000 },
+    { slug:'dune', nombre:'Dune', tag:'Type 02', img:'../../assets/img/buildings/dune/web/dune.webp', dorm:1, banos:1, m2:47, terraza:29, precio:68000 },
+    { slug:'dream', nombre:'Dream', tag:'Type 03', img:'../../assets/img/buildings/dream/web/dream.webp', dorm:2, banos:2, m2:76, terraza:49, precio:101000, featured:true }
   ];
   var mg = document.getElementById('modelos-grid');
   MODELOS.forEach(function(m){
@@ -610,9 +603,9 @@
       imgHtml +
       '<div class="flex flex-col gap-4 p-6">' +
       '<h3 class="font-headline-sm text-2xl font-bold text-deep-lagoon">'+esc(m.nombre)+'</h3>' +
-      '<div class="grid grid-cols-3 gap-2 text-xs font-body-sm text-[#44483f] bg-surface-container-low p-3 rounded-lg border border-[#D8D2C5]">' +
-        '<div><strong>Area</strong><br>~'+m.m2+' m²</div><div><strong>Bedrooms</strong><br>'+m.dorm+'</div>' +
-        '<div><strong>Bathrooms</strong><br>'+m.banos+'</div></div></div>' +
+      '<div class="grid grid-cols-2 gap-2 text-xs font-body-sm text-[#44483f] bg-surface-container-low p-3 rounded-lg border border-[#D8D2C5]">' +
+        '<div><strong>Built</strong><br>'+m.m2+' m²</div><div><strong>Terrace &amp; pool</strong><br>+'+m.terraza+' m²</div>' +
+        '<div><strong>Bedrooms</strong><br>'+m.dorm+'</div><div><strong>Bathrooms</strong><br>'+m.banos+'</div></div></div>' +
       '<div class="px-6 pb-6 pt-5 border-t border-[#D8D2C5] flex flex-col gap-3">' +
         '<div class="flex items-baseline justify-between"><span class="text-xs text-[#5F6257] font-body-sm uppercase">Construction from</span><span class="font-headline-sm text-xl font-bold text-deep-lagoon lw-money" data-eur="'+m.precio+'">'+lwMoney(m.precio)+'</span></div>' +
         '<span class="text-[11px] text-[#5F6257]">+ land price, per plot chosen below</span>' +
@@ -684,19 +677,21 @@
   // ── masterplan interactivo ────────────────────────────────────────────────
   // Rectangulos en % sobre 12-masterplan.jpg (1690x2200). Medidos sobre la
   // propia imagen; al ir en % no dependen del tamano al que se muestre.
+  // Rectangulos en % sobre 24-masterplan-plots.webp. NO estan medidos a ojo:
+  // salen de la posicion exacta de cada codigo en el PDF del dosier oficial
+  // (pagina 9), repartiendo cada calle por los puntos medios entre etiquetas.
   var ZONAS = {
-    A9:[3.1,7.0,19.0,8.0],   A8:[3.1,15.0,19.0,8.0],  A7:[3.1,23.0,19.0,8.0],
-    A6:[3.1,31.0,19.0,8.2],  A5:[3.1,39.2,19.0,7.8],  A4:[3.1,47.0,19.0,8.5],
-    A3:[3.1,55.5,19.0,8.5],  A2:[3.1,64.0,19.0,8.2],  A1:[3.1,72.2,19.0,8.8],
-    B8:[27.3,17.0,19.2,13.8],B6:[27.3,31.0,19.2,8.2], B5:[27.3,39.2,19.2,7.8],
-    B4:[27.3,47.0,19.2,8.5], B3:[27.3,55.5,19.2,8.5], B2:[27.3,64.0,19.2,8.2],
-    B1:[27.3,72.2,19.2,9.8],
-    B10:[47.5,18.2,17.6,12.6],B11:[47.5,31.0,17.6,8.2],B12:[47.5,39.2,17.6,7.8],
-    B13:[47.5,47.0,17.6,8.5],B14:[47.5,55.5,17.6,8.5],B15:[47.5,64.0,17.6,8.2],
-    B16:[47.5,72.2,17.6,8.2],B17:[48.5,80.5,16.6,7.5],
-    C8:[70.6,20.0,19.9,11.0],C7:[70.6,31.0,19.9,8.2], C6:[70.6,39.2,19.9,7.8],
-    C5:[70.6,47.0,19.9,8.5], C4:[70.6,55.5,19.9,8.5], C3:[70.6,64.0,19.9,8.2],
-    C2:[70.6,72.2,19.9,7.8], C1:[70.6,80.0,19.9,10.0]
+    A1:[2.0,5.3,21.1,7.9], A2:[2.0,13.2,21.1,7.9], A3:[2.0,21.1,21.1,7.9],
+    A4:[2.0,29.0,21.1,7.9], A5:[2.0,36.9,21.1,8.1], A6:[2.0,45.0,21.1,8.0],
+    A7:[2.0,53.0,21.1,7.9], A8:[2.0,60.9,21.1,8.0], A9:[2.0,68.9,21.1,7.8],
+    B1:[27.1,16.0,12.6,13.8], B2:[40.2,16.0,10.3,13.8], B3:[51.3,16.0,13.6,13.8],
+    B4:[27.1,29.9,19.6,7.1], B5:[27.1,36.9,19.6,8.1], B6:[27.1,45.0,19.6,8.0],
+    B7:[27.1,53.0,19.6,7.9], B8:[27.1,60.9,19.6,8.0], B9:[27.1,68.9,19.6,7.8],
+    B10:[48.2,29.9,16.6,7.1], B11:[48.2,36.9,16.6,8.1], B12:[48.2,45.0,16.6,8.0],
+    B13:[48.2,53.0,16.6,7.9], B14:[48.2,60.9,16.6,8.0], B15:[48.2,68.9,16.6,8.0],
+    B16:[48.2,76.9,16.6,8.3], C1:[70.9,21.1,21.1,8.2], C2:[70.9,29.3,21.1,7.9],
+    C3:[70.9,37.3,21.1,7.9], C4:[70.9,45.2,21.1,7.9], C5:[70.9,53.0,21.1,7.9],
+    C6:[70.9,60.9,21.1,8.0], C7:[70.9,68.9,21.1,9.5], C8:[70.9,78.4,21.1,10.5]
   };
 
   // El cartel que se estampa encima. 'reservada' NO se marca SOLD: la leyenda y
@@ -705,8 +700,8 @@
   var SELLO = {
     disponible:    null,
     reservada:     ['RESERVED', 'bg-amber-500/90'],
-    bloqueada:     ['SOLD',     'bg-[#6b675c]/90'],
-    no_disponible: ['SOLD',     'bg-[#6b675c]/90']
+    bloqueada:     ['SOLD',     'bg-[#B3261E]/95'],
+    no_disponible: ['SOLD',     'bg-[#B3261E]/95']
   };
 
   function pintaPlano(rows){
@@ -757,7 +752,7 @@
       rows.forEach(function(row){
         var puedeReservar = row.estado === 'disponible' && row.cuota_reserva != null && Number(row.cuota_reserva) > 0;
         var estadoLabel = { disponible:'Available', reservada:'Reserved', bloqueada:'Blocked', no_disponible:'Not available' }[row.estado] || row.estado;
-        var pillClass = row.estado === 'disponible' ? 'bg-territorial-green/15 text-territorial-green' : (row.estado === 'reservada' ? 'bg-amber-100 text-amber-800' : 'bg-[#E4DFD5] text-[#5F6257]');
+        var pillClass = row.estado === 'disponible' ? 'bg-territorial-green/15 text-territorial-green' : (row.estado === 'reservada' ? 'bg-amber-100 text-amber-800' : 'bg-[#FBE9E7] text-[#B3261E]');
         var row_ = document.createElement('div');
         row_.className = 'p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#E4DFD5]/30 transition-colors';
         var actionHtml;
@@ -896,10 +891,7 @@
   });
   // ── selector de idioma / divisa ───────────────────────────────────────────
   if(window.lwDeck){
-    var selL = document.getElementById('sel-lang');
-    var selC = document.getElementById('sel-cur');
-    if(selL){ selL.value = lwDeck.lang; selL.addEventListener('change', function(){ lwDeck.setLang(selL.value); }); }
-    if(selC){ selC.value = lwDeck.cur;  selC.addEventListener('change', function(){ lwDeck.setCur(selC.value); }); }
+    lwDeck.montaSelectores('#deck-selectores');
     lwDeck.traduce(document.body);
   }
   if(window.lwRepintaDinero) lwRepintaDinero();
