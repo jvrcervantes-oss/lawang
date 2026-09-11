@@ -66,7 +66,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js?v=d126c94d" data-herramienta="leads"></script>
 <script src="/contracts/assets/suite.js?v=a916961a"></script>
-<link rel="stylesheet" href="/intranet/leads/leads.css?v=3">
+<link rel="stylesheet" href="/intranet/leads/leads.css?v=4">
 <style>
   *{ box-sizing:border-box; } html,body{ margin:0; }
   body{ font-family:'Inter',ui-sans-serif,system-ui,sans-serif; background:#F8FAFC; color:#0F172A; }
@@ -83,6 +83,11 @@
   </header>
 
   <nav class="crm-nav" id="nav" role="tablist">
+    <!-- «Hoy» va la PRIMERA (11-sep-2026). El tablero dice en qué punto está cada lead;
+         la pregunta con la que se abre esta pantalla por la mañana es otra: a quién hay
+         que llamar. Poner el embudo delante de la lista de trabajo es ordenar la
+         herramienta por cómo está construida y no por cómo se usa. -->
+    <button role="tab" data-v="hoy" aria-selected="false"><i class="ph ph-flag"></i>Hoy <span class="cuenta" id="c-hoy">—</span></button>
     <button role="tab" data-v="pipeline"    aria-selected="true"><i class="ph ph-kanban"></i>Pipeline <span class="cuenta" id="c-pipeline">—</span></button>
     <button role="tab" data-v="bandeja"     aria-selected="false"><i class="ph ph-chats-circle"></i>Bandeja</button>
     <button role="tab" data-v="panel"       aria-selected="false"><i class="ph ph-chart-line-up"></i>Campañas</button>
@@ -98,6 +103,22 @@
     <button role="tab" data-v="setter" aria-selected="false"><i class="ph ph-robot"></i>Setter IA</button>
     <button role="tab" data-v="agenda" aria-selected="false" id="tabAgenda" hidden><i class="ph ph-video-camera"></i>Agenda</button>
   </nav>
+
+  <!-- ========================= HOY ========================= -->
+  <section class="crm-vista" id="v-hoy" hidden>
+    <div class="kpis" id="kpis-hoy"></div>
+    <div class="filtros">
+      <div class="seg" id="filtroHoy">
+        <button data-mias="0" aria-pressed="true">Todo el equipo</button>
+        <button data-mias="1" aria-pressed="false">Solo mías</button>
+      </div>
+    </div>
+    <div class="caja">
+      <header><div><h2>Lo que toca hoy</h2>
+        <p>Vencidas y de hoy. El próximo paso de cada lead se pone desde su ficha.</p></div></header>
+      <div id="listaHoy" class="citas"></div>
+    </div>
+  </section>
 
   <!-- ===================== PIPELINE ===================== -->
   <section class="crm-vista" id="v-pipeline">
@@ -218,6 +239,6 @@
 
 <script src="/contracts/assets/dialogo.js?v=8197f360"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
-<script src="/intranet/leads/leads.js?v=5"></script>
+<script src="/intranet/leads/leads.js?v=7"></script>
 </body>
 </html>

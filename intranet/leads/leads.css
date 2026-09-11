@@ -259,6 +259,30 @@
 .conversacion .acciones, .cita .acciones { display: flex; align-items: center; gap: 6px;
   flex: 0 0 auto; flex-wrap: wrap; justify-content: flex-end; }
 
+/* ---- Próximo paso -------------------------------------------------------- */
+/* En la tarjeta: una línea, y solo si existe. Un hueco vacío repetido 107 veces es ruido,
+   no información. Rojo únicamente cuando ya venció — si todo grita, nada grita. */
+.tarjeta .tarea { display: flex; align-items: baseline; gap: 6px; font: 500 11.5px/1.35 var(--text);
+  background: var(--primary-soft); color: var(--primary); border-radius: var(--r-ctrl);
+  padding: 6px 8px; }
+.tarjeta .tarea.urge { background: var(--danger-soft); color: var(--danger-ink); }
+.tarjeta .tarea .q { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tarjeta .tarea .c { flex: 0 0 auto; font-weight: 600; opacity: .85; }
+
+/* En la ficha: la misma idea con sitio para actuar. */
+.tarea-ficha { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap; background: var(--primary-soft); border: 1px solid var(--primary-line);
+  border-radius: var(--r-box); padding: 11px 13px; }
+.tarea-ficha.urge { background: var(--danger-soft); border-color: #F5B8B3; }
+.tarea-ficha .q { font: 600 14px/1.35 var(--sans); }
+.tarea-ficha .c { font: 500 12px/1.3 var(--text); color: var(--mist); margin-top: 3px; }
+.tarea-ficha.urge .c { color: var(--danger-ink); }
+
+/* La fila de «Hoy» reusa `.cita` (misma forma que la Agenda de cierre); solo cambia el
+   acento cuando va con retraso. */
+.cita.urge { border-left-color: var(--danger); }
+.cita.urge .cuando { color: var(--danger); }
+
 /* ---- Tabla --------------------------------------------------------------- */
 .tabla { width: 100%; border-collapse: collapse; }
 .tabla th { font: 600 11px/1 var(--text); letter-spacing: .04em; text-transform: uppercase;

@@ -104,8 +104,89 @@ function ir(v){
   if(v === 'panel' && !CARGADO.panel) cargarPanel();
   if(v === 'automatismos' && !CARGADO.automatismos) cargarAutomatismos();
   if(v === 'bandeja') pintarBandeja();
+  if(v === 'hoy') cargarHoy();
   if(v === 'setter' && !CARGADO.setter) cargarSetter();
   if(v === 'agenda' && !CARGADO.agenda) cargarAgenda();
+}
+
+/* ==========================================================================
+   VISTA 0 — HOY (lo que toca hacer)
+   --------------------------------------------------------------------------
+   Es la primera pestaña a propósito: el tablero dice en qué punto está cada lead, pero
+   la pregunta con la que un comercial abre el panel por la mañana es otra — "¿a quién
+   tengo que llamar hoy?". Sin esto, la disciplina de seguimiento vive en su cabeza.
+   Vencidas y de hoy, nunca el futuro: una lista que incluye "la semana que viene" deja de
+   ser una lista de trabajo y se vuelve un calendario que nadie mira.
+   Quién decide el día es la BASE (`crm_agenda`, en hora de Bali), no el navegador de quien
+   mira: el estudio abre esto desde España y vería el día cambiado.
+   ========================================================================== */
+let HOY = [], SOLO_MIAS = false;
+
+/* La cuenta de la pestaña se recalcula desde LEADS, que es la lista que ya está en memoria
+   y la que se actualiza al poner o cerrar una tarea. Se llama desde los CUATRO sitios que
+   cambian una tarea (guardar y cerrar desde la ficha, cerrar desde «Hoy», y la carga
+   inicial): si se dejara solo en el arranque, la pestaña diría 2 mientras la pantalla
+   enseña 3, que es exactamente lo que pasaba antes de esta línea. */
+function actualizarCuentaHoy(){
+  const n = LEADS.filter(l => l.accion_cuando && diasHasta(l.accion_cuando) <= 0).length;
+  $('#c-hoy').textContent = n;
+}
+
+async function cargarHoy(){
+  const caja = $('#listaHoy');
+  caja.innerHTML = '<p class="vacio">Cargando…</p>';
+  const { data, error } = await SB.rpc('crm_agenda', { p_solo_mias: SOLO_MIAS });
+  if(error){ caja.innerHTML = '<p class="vacio">No se pudo leer la agenda: ' + esc(error.message) + '</p>'; return; }
+  HOY = data || [];
+  pintarHoy();
+}
+
+function pintarHoy(){
+  const vencidas = HOY.filter(a => a.dias_de_retraso > 0).length;
+  $('#kpis-hoy').innerHTML = `
+    <div class="kpi fuerte"><div class="rot">Para hoy<i class="ph ph-flag"></i></div>
+      <p class="cifra">${HOY.length}</p><p class="pie">${SOLO_MIAS ? 'tuyas' : 'de todo el equipo'}</p></div>
+    <div class="kpi"><div class="rot">Con retraso<i class="ph ph-warning-circle"></i></div>
+      <p class="cifra oro">${vencidas}</p><p class="pie">deberían estar hechas</p></div>`;
+
+  const caja = $('#listaHoy');
+  if(!HOY.length){
+    caja.innerHTML = `<p class="vacio">Nada pendiente para hoy.${
+      SOLO_MIAS ? ' Prueba a mirar las de todo el equipo.' : ' El próximo paso se pone desde la ficha de cada lead.'}</p>`;
+    return;
+  }
+  caja.innerHTML = HOY.map(a => `
+    <article class="cita${a.dias_de_retraso > 0 ? ' urge' : ''}" data-lead="${esc(a.lead_id)}">
+      <div class="avatar">${esc(iniciales(a.nombre))}</div>
+      <div class="cuerpo">
+        <div class="cuando">${a.dias_de_retraso > 0
+          ? esc(a.dias_de_retraso + (a.dias_de_retraso === 1 ? ' día de retraso' : ' días de retraso'))
+          : 'Hoy'}</div>
+        <div class="quien">${esc(a.nombre || 'sin nombre')}</div>
+        <div class="sub">${esc(a.que)} · ${esc(canal(a.source))}${
+          SOLO_MIAS ? '' : ' · ' + esc(a.responsable || '')}</div>
+      </div>
+      <div class="acciones">
+        <button class="btn mini" data-abrir="${esc(a.lead_id)}">Abrir ficha</button>
+        <button class="btn mini pri" data-hecho="${esc(a.accion_id)}"><i class="ph ph-check"></i>Hecho</button>
+      </div>
+    </article>`).join('');
+
+  caja.querySelectorAll('[data-abrir]').forEach(b => b.onclick = ev => {
+    ev.stopPropagation();
+    abrirFicha(LEADS.find(x => x.id === b.dataset.abrir));
+  });
+  caja.querySelectorAll('[data-hecho]').forEach(b => b.onclick = async ev => {
+    ev.stopPropagation();
+    b.disabled = true;
+    const { error } = await SB.rpc('crm_lead_accion_completar', { p_accion: b.dataset.hecho });
+    if(error){ toast('No se pudo cerrar: ' + error.message); b.disabled = false; return; }
+    const fila = HOY.find(a => a.accion_id === b.dataset.hecho);
+    const lead = fila && LEADS.find(x => x.id === fila.lead_id);
+    if(lead){ lead.accion_id = lead.accion_que = lead.accion_cuando = lead.accion_responsable = null; }
+    HOY = HOY.filter(a => a.accion_id !== b.dataset.hecho);
+    pintarHoy(); pintarPipeline(); actualizarCuentaHoy();
+  });
 }
 
 /* ==========================================================================
@@ -191,22 +272,55 @@ function barraCanales(){
       + `<span class="n">${v ? LEADS.filter(l => l.source === v).length : LEADS.length}</span></button>`).join('');
 }
 
+/* Cuántos días faltan (o sobran) para una fecha, contados en el día de Bali — el mismo
+   criterio que usa `crm_agenda()` en la base. Si el navegador de quien mira está en otro
+   huso (el estudio, en España), restar por hora local diría "mañana" a algo que en la
+   oficina ya es hoy. */
+const HOY_BALI = () => {
+  const f = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Makassar', year:'numeric', month:'2-digit', day:'2-digit' });
+  return f.format(new Date());   // YYYY-MM-DD
+};
+const diasHasta = iso => {
+  if(!iso) return null;
+  const a = new Date(iso + 'T00:00:00Z'), b = new Date(HOY_BALI() + 'T00:00:00Z');
+  return isNaN(a) ? null : Math.round((a - b) / 864e5);
+};
+/* Cómo se lee una fecha de tarea: lo que importa es si corre prisa, no la fecha exacta. */
+const cuandoTexto = n => n === null ? ''
+  : n < -1 ? Math.abs(n) + ' días de retraso'
+  : n === -1 ? 'ayer' : n === 0 ? 'hoy' : n === 1 ? 'mañana' : 'en ' + n + ' días';
+
 function tarjetaHTML(l){
   const d = dias(l.estado_desde), viejo = d !== null && d >= DIAS_VIEJO;
+  /* La sugerencia por email es SUPLENTE desde el 11-sep: si hay vínculo explícito, la base
+     ya no la manda. Aquí solo se pinta lo que llegue. */
   const sug = l.sugerencia && l.sugerencia !== l.estado
     ? `<button class="sug" data-sug="${esc(l.id)}"><i class="ph ph-signature"></i> Firmó `
       + `${esc(COLS.find(c => c[0] === l.sugerencia)?.[1] || l.sugerencia)}`
       + `${l.sugerencia_contrato ? ' · ' + esc(l.sugerencia_contrato) : ''} — mover ahí</button>`
     : '';
   const presu = l.respuestas && (l.respuestas.budget_range || l.respuestas.budget);
+  /* El próximo paso es lo primero que mira un comercial: va arriba del todo y en rojo si
+     ya venció. Un lead sin tarea no pinta nada — un hueco vacío en 107 tarjetas es ruido. */
+  const n = diasHasta(l.accion_cuando);
+  const tarea = l.accion_que
+    ? `<div class="tarea${n !== null && n <= 0 ? ' urge' : ''}">
+         <i class="ph ${n !== null && n < 0 ? 'ph-warning-circle' : 'ph-flag'}"></i>
+         <span class="q">${esc(l.accion_que)}</span>
+         <span class="c">${esc(cuandoTexto(n))}</span></div>`
+    : '';
   return `<article class="tarjeta${sug ? ' alto' : ''}" draggable="true" data-id="${esc(l.id)}">
     <div class="fila1"><div class="quien">${esc(l.name || 'sin nombre')}</div></div>
+    ${tarea}
     <div class="meta">
       <span class="chip meta">${esc(canal(l.source))}</span>
       <span class="${viejo ? 'viejo' : ''}">${esc(edad(d))}</span>
       ${l.notas ? `<span><i class="ph ph-note"></i> ${l.notas}</span>` : ''}
     </div>
-    ${presu ? `<div class="meta"><span class="chip oro">${esc([].concat(presu)[0])}</span></div>` : ''}
+    ${presu || l.contrato_numero ? `<div class="meta">
+      ${presu ? `<span class="chip oro">${esc([].concat(presu)[0])}</span>` : ''}
+      ${l.contrato_numero ? `<span class="chip verde"><i class="ph ph-file-text"></i>${esc(l.contrato_numero)}</span>` : ''}
+    </div>` : ''}
     ${sug}</article>`;
 }
 
@@ -315,6 +429,13 @@ function abrirFicha(l){
           ? '<button class="btn pri" id="verContacto"><i class="ph ph-eye"></i>Ver contacto</button>' : ''}
       </div>
       ${extras ? `<p class="lb">Qué contestó en el formulario</p>${extras}` : ''}
+
+      <p class="lb">Próximo paso</p>
+      <div id="proximoPaso"></div>
+
+      <p class="lb">Venta</p>
+      <div id="haciaContrato"></div>
+
       <p class="lb">Estado</p>
       <div class="acciones" id="estados" style="display:flex;gap:6px;flex-wrap:wrap">
         ${COLS.map(([k, n]) => `<button class="btn mini" data-e="${k}"
@@ -334,8 +455,172 @@ function abrirFicha(l){
   c.querySelector('#guardarNota').onclick = () => guardarNota(l);
   const vc = c.querySelector('#verContacto');
   if(vc) vc.onclick = () => verContacto(l);
+  pintarProximoPaso(l);
+  pintarHaciaContrato(l);
   pintarHilo(l);
   if(c.querySelector('#fathom')) pintarFathom(l);
+}
+
+/* ---------- próximo paso ----------
+   Una sola tarea viva por lead: la base lo impone con un índice parcial, así que aquí no
+   hay lista ni "añadir otra" — o hay una y se cambia, o no hay y se pone. Esa restricción
+   es deliberada: una cola de tareas por lead se convierte en un cementerio en dos semanas,
+   y lo que un comercial necesita saber es cuál es el SIGUIENTE paso, uno solo. */
+function pintarProximoPaso(l){
+  const caja = document.querySelector('#proximoPaso'); if(!caja) return;
+  const n = diasHasta(l.accion_cuando);
+  caja.innerHTML = l.accion_que
+    ? `<div class="tarea-ficha${n !== null && n <= 0 ? ' urge' : ''}">
+         <div>
+           <div class="q">${esc(l.accion_que)}</div>
+           <div class="c">${esc(cuandoTexto(n))}${l.accion_responsable ? ' · ' + esc(l.accion_responsable) : ''}</div>
+         </div>
+         <div style="display:flex;gap:6px;flex-wrap:wrap">
+           <button class="btn mini" id="ppHecho"><i class="ph ph-check"></i>Hecho</button>
+           <button class="btn mini" id="ppCambiar">Cambiar</button>
+         </div>
+       </div>`
+    : `<button class="btn" id="ppPoner"><i class="ph ph-flag"></i>Poner próximo paso</button>`;
+
+  const hecho = caja.querySelector('#ppHecho');
+  if(hecho) hecho.onclick = async () => {
+    hecho.disabled = true;
+    const { error } = await SB.rpc('crm_lead_accion_completar', { p_accion: l.accion_id });
+    if(error){ toast('No se pudo cerrar: ' + error.message); hecho.disabled = false; return; }
+    l.accion_id = l.accion_que = l.accion_cuando = l.accion_responsable = null;
+    toast('Hecho. Pon el siguiente paso cuando lo tengas.');
+    pintarProximoPaso(l); pintarHilo(l); pintarPipeline(); pintarBandeja(); actualizarCuentaHoy();
+  };
+  const abrir = caja.querySelector('#ppPoner') || caja.querySelector('#ppCambiar');
+  if(abrir) abrir.onclick = () => formularioProximoPaso(l);
+}
+
+function formularioProximoPaso(l){
+  const caja = document.querySelector('#proximoPaso'); if(!caja) return;
+  /* Sugerencias de un clic: escribir "Llamar" a mano 107 veces es justo lo que hace que una
+     herramienta de seguimiento se abandone. No son una lista cerrada — el campo es libre. */
+  const RAPIDAS = ['Llamar', 'Mandar dossier', 'Mandar precios', 'Confirmar visita', 'Hacer seguimiento'];
+  const hoy = HOY_BALI();
+  caja.innerHTML = `
+    <div class="campo"><label for="ppQue">Qué hay que hacer</label>
+      <input type="text" id="ppQue" maxlength="280" value="${esc(l.accion_que || '')}" placeholder="Llamar para confirmar presupuesto"></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:-6px 0 12px">
+      ${RAPIDAS.map(t => `<button class="btn mini" data-rap="${esc(t)}">${esc(t)}</button>`).join('')}
+    </div>
+    <div class="campo"><label for="ppCuando">Cuándo</label>
+      <input type="date" id="ppCuando" value="${esc(l.accion_cuando || hoy)}" min="2026-01-01"></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:-6px 0 12px">
+      <button class="btn mini" data-dia="0">Hoy</button>
+      <button class="btn mini" data-dia="1">Mañana</button>
+      <button class="btn mini" data-dia="3">En 3 días</button>
+      <button class="btn mini" data-dia="7">En una semana</button>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn pri" id="ppGuardar"><i class="ph ph-check"></i>Guardar</button>
+      <button class="btn" id="ppCancelar">Cancelar</button>
+    </div>`;
+  caja.querySelectorAll('[data-rap]').forEach(b => b.onclick = () => {
+    caja.querySelector('#ppQue').value = b.dataset.rap;
+    caja.querySelector('#ppQue').focus();
+  });
+  caja.querySelectorAll('[data-dia]').forEach(b => b.onclick = () => {
+    const d = new Date(hoy + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() + Number(b.dataset.dia));
+    caja.querySelector('#ppCuando').value = d.toISOString().slice(0, 10);
+  });
+  caja.querySelector('#ppCancelar').onclick = () => pintarProximoPaso(l);
+  caja.querySelector('#ppGuardar').onclick = async () => {
+    const que = caja.querySelector('#ppQue').value.trim();
+    const cuando = caja.querySelector('#ppCuando').value;
+    if(!que){ toast('Escribe qué hay que hacer.'); return; }
+    if(!cuando){ toast('Falta la fecha.'); return; }
+    const { data, error } = await SB.rpc('crm_lead_accion_poner', {
+      p_lead: l.id, p_que: que, p_cuando: cuando,
+    });
+    if(error){ toast('No se pudo guardar: ' + error.message); return; }
+    const fila = (data || [])[0];
+    if(fila){
+      l.accion_id = fila.id; l.accion_que = fila.que;
+      l.accion_cuando = fila.cuando; l.accion_responsable = fila.responsable;
+    }
+    toast('Próximo paso guardado.');
+    pintarProximoPaso(l); pintarHilo(l); pintarPipeline(); pintarBandeja(); actualizarCuentaHoy();
+  };
+  caja.querySelector('#ppQue').focus();
+}
+
+/* ---------- del lead al contrato ----------
+   POR QUÉ HAY UN PASO DE CONFIRMACIÓN Y NO UN BOTÓN DIRECTO (decisión del owner, 11-sep-2026).
+   `contracts/app.html` no deja guardar un contrato cuyo comprador no tenga ficha en
+   `clients` — es un muro del 18-ago puesto porque teclear a mano creaba clientes duplicados
+   (RP00043: 165.800 € con un email metido en el campo del nombre). Y la ficha la crea un
+   trigger DESPUÉS de guardar el contrato, así que sin resolverla antes el comercial
+   rellenaría un contrato que no puede guardar.
+   Aquí no teclea nadie: los datos son los que la propia persona escribió en el formulario.
+   Lo que aporta el diálogo es lo que el muro protege de verdad — ver, antes de crear, si
+   ese correo ya tiene ficha o si hay otras tarjetas de la misma persona (hoy 7 de 107). */
+function pintarHaciaContrato(l){
+  const caja = document.querySelector('#haciaContrato'); if(!caja) return;
+  if(l.contrato_numero){
+    caja.innerHTML = `<div class="dato"><span>Contrato</span><b>${esc(l.contrato_numero)}</b></div>
+      <div style="margin-top:9px"><a class="btn" href="/contracts/app.html?contrato=${encodeURIComponent(l.contrato_id)}">
+        <i class="ph ph-arrow-square-out"></i>Abrir el contrato</a></div>
+      <p style="font-size:12.5px;color:var(--mist);margin:9px 0 0">
+        Este lead está enlazado a su contrato de verdad, no por parecido de correo.</p>`;
+    return;
+  }
+  caja.innerHTML = `<button class="btn pri" id="haciaContratoBtn"><i class="ph ph-file-plus"></i>Crear contrato para este lead</button>
+    <p style="font-size:12.5px;color:var(--mist);margin:9px 0 0">
+      Se abre su ficha de comprador (con los datos que dejó él) y de ahí el contrato.</p>`;
+  caja.querySelector('#haciaContratoBtn').onclick = () => dialogoHaciaContrato(l);
+}
+
+async function dialogoHaciaContrato(l){
+  const caja = document.querySelector('#haciaContrato'); if(!caja) return;
+  caja.innerHTML = '<p class="vacio">Comprobando…</p>';
+  const { data, error } = await SB.rpc('crm_lead_para_contrato', { p_lead: l.id });
+  if(error){ caja.innerHTML = '<p class="vacio">No se pudo comprobar: ' + esc(error.message) + '</p>'; return; }
+  const d = (data || [])[0];
+  if(!d){ caja.innerHTML = '<p class="vacio">No se pudo leer el lead.</p>'; return; }
+
+  const avisos = [];
+  if(d.ficha_existente) avisos.push(
+    `<div class="aviso gris" style="margin:0 0 10px"><b>Ya existe una ficha con ese correo:</b> ${esc(d.ficha_existente_nombre || '')}.
+     Se usará esa, no se crea otra.</div>`);
+  if(d.otros_leads_igual > 0) avisos.push(
+    `<div class="aviso oro" style="margin:0 0 10px"><b>Ojo:</b> hay ${d.otros_leads_igual}
+     ${d.otros_leads_igual === 1 ? 'tarjeta más' : 'tarjetas más'} con este mismo correo.
+     Puede que sea la misma persona duplicada.</div>`);
+  if(!d.email) avisos.push(
+    `<div class="aviso rojo" style="margin:0 0 10px"><b>Este lead no dejó email.</b>
+     Una ficha de comprador necesita un identificador, así que hay que darla de alta a mano
+     en <a href="/intranet/compradores/?nuevo=1" target="_blank" rel="noopener">Compradores</a>.</div>`);
+
+  caja.innerHTML = avisos.join('') + `
+    <div class="dato"><span>Nombre</span><b>${esc(d.nombre || 'sin nombre')}</b></div>
+    <div class="dato"><span>Email</span><b>${esc(d.email || 'no dejó')}</b></div>
+    <div class="dato"><span>Teléfono</span><b>${esc(d.whatsapp || 'no dejó')}</b></div>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+      ${d.email ? `<button class="btn pri" id="hcSeguir"><i class="ph ph-arrow-right"></i>${
+        d.ficha_existente ? 'Usar esa ficha y abrir el contrato' : 'Crear ficha y abrir el contrato'}</button>` : ''}
+      <button class="btn" id="hcCancelar">Cancelar</button>
+    </div>`;
+  caja.querySelector('#hcCancelar').onclick = () => pintarHaciaContrato(l);
+  const seguir = caja.querySelector('#hcSeguir');
+  if(seguir) seguir.onclick = async () => {
+    seguir.disabled = true;
+    const { data: f, error: e2 } = await SB.rpc('crm_lead_ficha_crear', { p_lead: l.id });
+    if(e2){ toast('No se pudo abrir la ficha: ' + e2.message); seguir.disabled = false; return; }
+    const ficha = (f || [])[0];
+    if(!ficha || !ficha.client_id){ toast('No se pudo abrir la ficha.'); seguir.disabled = false; return; }
+    /* `?cliente=` es el camino que ya existía y está probado (entrada desde Compradores);
+       `?lead=` se suma solo para que el contrato se selle contra este lead al guardarlo.
+       Ni el nombre ni el correo viajan en la URL: se piden al servidor desde el editor.
+       Con la sesión caducada, app.html reenvía `location.search` ENTERO a la página de
+       login — si aquí fuera el contacto, acabaría en el historial y en los logs. */
+    location.href = '/contracts/app.html?cliente=' + encodeURIComponent(ficha.client_id)
+      + '&lead=' + encodeURIComponent(l.id);
+  };
 }
 
 /* El owner todavía no tiene cuenta de Fathom.ai (10-sep-2026): esto siempre
@@ -868,6 +1153,13 @@ $('#filtroBandeja').addEventListener('click', e => {
     x.setAttribute('aria-pressed', String(x === b)));
   pintarBandeja();
 });
+$('#filtroHoy').addEventListener('click', e => {
+  const b = e.target.closest('[data-mias]'); if(!b) return;
+  SOLO_MIAS = b.dataset.mias === '1';
+  $('#filtroHoy').querySelectorAll('button').forEach(x =>
+    x.setAttribute('aria-pressed', String(x === b)));
+  cargarHoy();
+});
 $('#btnRefrescar').addEventListener('click', cargar);
 $('#btnRefrescarSetter').addEventListener('click', cargarSetter);
 $('#btnAgendarGuardar').addEventListener('click', guardarCita);
@@ -879,6 +1171,9 @@ window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   $('#tabAgenda').hidden = !puedeClosers;
   await cargar();
   $('#c-pipeline').textContent = LEADS.length;
+  /* La cuenta de «Hoy» se calcula del listado que ya está cargado, sin una llamada más:
+     lo que `crm_agenda()` devuelve es exactamente lo mismo filtrado por fecha. */
+  actualizarCuentaHoy();
   // Entrada directa a una pestaña desde el hub (`?v=agenda`, herramientas.js).
   const vInicial = new URLSearchParams(location.search).get('v');
   if(vInicial && document.querySelector('#v-' + vInicial) && (vInicial !== 'agenda' || puedeClosers)) ir(vInicial);

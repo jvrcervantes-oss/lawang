@@ -642,6 +642,13 @@ const TIPO_PREFIX = { reserva_parcela:'RP', construccion:'CC', contrato_general:
    estaba vivo en Operaciones con otros tres tipos. Copiarlo es lo que lo repite. */
 const TIPO_LABEL = LW_TIPO_CONTRATO;
 let SAVED_CONTRACT = null;   // {id, numero} una vez guardado — null = borrador sin guardar
+/* De qué lead del CRM viene este contrato, si viene de uno (entrada `?lead=`, 11-sep-2026).
+   Solo el id: ni el nombre ni el correo viajan por la URL — con la sesión caducada, `init()`
+   reenvía `location.search` ENTERO a la página de login, y ahí el contacto de una persona
+   real acabaría en el historial del navegador y en los logs del servidor. Los datos los pide
+   el CRM al servidor por `crm_lead_*`, que además dejan rastro de quién los consultó.
+   Se limpia en resetBorrador(): ver la nota de allí. */
+let LEAD_ID = null;
 let CP_ROWS = [];            // caché de filas del panel "Contratos guardados"
 
 /* Contratos a los que una Construcción puede vincularse: el campo
@@ -1608,6 +1615,14 @@ function resetBorrador(slug){
      {pct:'25',monto:'',timing:'',es:'',en:'',id:''},{pct:'25',monto:'',timing:'',es:'',en:'',id:''}])
     .map(h=>({...h, fecha: h.fecha || fechaVencimiento(new Date(), h)}));
   ADQ1_CLIENT = null; CAMPOS_HEREDADOS = {}; UNIDADES_RESERVA_VINCULADA = null; UNIDAD_ID_CONSTRUCCION = null;
+  /* LEAD_ID se limpia AQUÍ, con ADQ1_CLIENT y por el mismo motivo (11-sep-2026). Si se
+     quedara fuera de esta lista sobreviviría a «+ Nuevo contrato» y sellaría el lead del
+     contrato anterior en el siguiente — un vínculo falso, que es peor que no tener vínculo.
+     Es la misma familia de fallo que ya se corrigió aquí cuatro veces (COMPRADORES, ANNEXES,
+     HITOS, AUTO_UNIDAD). El precio de ponerlo aquí: cambiar de plantilla también lo borra,
+     igual que borra la ficha del comprador — y por eso la entrada por `?lead=` lo asigna
+     DESPUÉS de llamar a resetBorrador, nunca antes. */
+  LEAD_ID = null;
   // sin contrato no hay firmas: se suelta el candado de «enviado a firma»
   EN_FIRMA = { vivas:0, firmadas:0, filas:[] }; aplicarEstadoFirma();
   limpiarOverrides(slug);
@@ -3800,6 +3815,26 @@ async function guardarContrato(){
         { p_contrato: data.id, p_evento: 'comprador_sin_ficha' });
       if(eSalto) toast('Guardado, pero no se pudo registrar el salto: ' + eSalto.message);
     }
+    /* SELLAR EL ORIGEN — 11-sep-2026. Si este contrato nació de un lead del CRM, se deja
+       constancia explícita en `lead_contrato`. Hasta hoy el CRM adivinaba el vínculo
+       cruzando el email del lead con los identificadores del contrato, y eso falla en los
+       dos sentidos: quien firma con otro correo (caso PT PMA, LAW-133) no se enlaza nunca,
+       y varios leads duplicados se enlazan todos al mismo contrato.
+       El sello lo pone la BASE (`crm_lead_contrato_sellar` revalida `puede('leads')` y firma
+       con la identidad de la sesión): aquí solo se dice de qué lead venimos.
+       Si falla NO se traga el error — un vínculo que se cree puesto y no lo está es peor que
+       uno que se sabe que falta. Y no se reintenta en bucle: se dice y se sigue, porque el
+       contrato SÍ se guardó y eso es lo que no puede perderse. */
+    if(LEAD_ID){
+      const leadDeEste = LEAD_ID;
+      const { error: eSello } = await sb.rpc('crm_lead_contrato_sellar',
+        { p_lead: leadDeEste, p_contrato: data.id });
+      if(eSello){
+        toast('Guardado, pero no se pudo enlazar con su lead: ' + eSello.message);
+      } else {
+        LEAD_ID = null;   // ya sellado: que un segundo guardado no lo intente otra vez
+      }
+    }
     informarCompradores(data.id);   // el alta ya la hizo el disparador: esto solo la cuenta
     if(esNuevo) crearProformaAutomatica(data.id, data.numero, payload);
     if(tipo === 'poa') cubrirConEstePoder(data.id, data.numero);
@@ -5498,7 +5533,7 @@ async function init(){
   if(pedido){
     pantallaC('editor');
     await openSavedContract(pedido);
-  } else if(par.has('nuevo') || par.has('cliente')){
+  } else if(par.has('nuevo') || par.has('cliente') || par.has('lead')){
     // recargar esta URL directamente (F5, o entrar por ella a pelo) es una
     // ejecución nueva del script, pero COMPRADORES/ANNEXES/CLAUSES se leen de
     // localStorage al declararse (arriba del todo) — sin este reset, el mismo
@@ -5518,6 +5553,12 @@ async function init(){
       if(fc){ enlazarFicha(fc); toast('Contrato nuevo para ' + (fc.full_name || 'el cliente elegido')); }
       else toast('Esa ficha de cliente ya no existe: empieza el contrato buscándolo');
     }
+    /* `?lead=` — entrada desde el CRM de leads (11-sep-2026). Va DESPUÉS de resetBorrador,
+       que es quien lo pone a null: al revés se borraría justo después de asignarlo.
+       No abre el contrato por sí solo: viene siempre acompañado de `?cliente=`, porque el
+       CRM resuelve antes la ficha del comprador (sin ella este editor no deja guardar).
+       Si alguien llega aquí con `?lead=` a pelo, esto solo apunta el origen. */
+    LEAD_ID = par.get('lead') || null;
     pantallaC('editor');
   } else {
     pantallaC('listado');
