@@ -30,7 +30,11 @@ function importeHito(h, precio, moneda){
   if(p && precio) return { n:redondear(precio * p / 100, moneda), exacto:false };
   return { n:null, exacto:false };
 }
-const textoHito = h => h.es || h.en || h.id || 'Hito sin nombre';
+/* Puente al diccionario compartido (`i18n.js`, 11-sep-2026), defensivo —
+   ver topbar.js. */
+function ocT(s) { return window.lwT ? window.lwT(s) : s; }
+
+const textoHito = h => h.es || h.en || h.id || ocT('Hito sin nombre');
 
 /* Compradores nombrados en el contrato vs fichas realmente creadas. El alta es
    automática al guardar, pero se cae sin ruido si la persona no tiene pasaporte
@@ -54,7 +58,7 @@ function compradoresNombrados(o){
    entera para el ratón. */
 function resumenCompradores(o){
   const s = String(o.comprador_nombre || '').trim();
-  if(!s) return { texto:'Sin comprador', extra:'', titulo:'' };
+  if(!s) return { texto:ocT('Sin comprador'), extra:'', titulo:'' };
   const partes = s.split(' · ').filter(x => x.trim());
   return {
     texto: partes[0],
@@ -127,10 +131,10 @@ function cuentaGrupo(op){
    sabe cuánto falta, y afirmar que está cobrado cuando no se sabe es el único
    error de los dos que cuesta dinero. La tarjeta lo dice: «sin fijar». */
 const ETAPAS = [
-  ['sin_firmar', 'Sin firmar',      'espera'],
-  ['firma_viva', 'Firma enviada',   'info'],
-  ['cobro_pend', 'Cobro pendiente', 'alerta'],
-  ['cobro_ok',   'Cobro completo',  'ok'],
+  ['sin_firmar', ocT('Sin firmar'),      'espera'],
+  ['firma_viva', ocT('Firma enviada'),   'info'],
+  ['cobro_pend', ocT('Cobro pendiente'), 'alerta'],
+  ['cobro_ok',   ocT('Cobro completo'),  'ok'],
 ];
 /* Color de cada etapa en la cabecera de columna, la barra de progreso y la
    leyenda (mockup 4a) — DISTINTO del `.tag` de dentro de la tarjeta a
@@ -265,7 +269,7 @@ async function lwOperacionesCargar(SB, avisar){
   // pendiente real por factura (ver la nota junto a la consulta, más arriba):
   // se ata a cada factura aquí para que pintarVencimientos() lo lea de f.pendiente
   // sin tener que buscarlo en un mapa aparte.
-  if(pe.error) avisar('No se pudo calcular lo pendiente por factura: ' + pe.error.message);
+  if(pe.error) avisar(ocT('No se pudo calcular lo pendiente por factura: ') + pe.error.message);
   const PENDIENTE = {};
   (pe.error ? [] : (pe.data || [])).forEach(x => { PENDIENTE[x.factura_id] = Number(x.pendiente) || 0; });
   facturas.forEach(x => { x.pendiente = x.id in PENDIENTE ? PENDIENTE[x.id] : parseImporte(x.total); });
@@ -280,9 +284,9 @@ async function lwOperacionesCargar(SB, avisar){
     if(!v.clients) return;
     (POR_CLIENTE[v.clients.id] = POR_CLIENTE[v.clients.id] || []).push(v.contrato_id);
   });
-  if(f.error) avisar('No se pudieron leer las facturas: ' + f.error.message);
-  if(s.error) avisar('No se pudieron leer las firmas: ' + s.error.message);
-  if(cb.error) avisar('No se pudo calcular lo cobrado: ' + cb.error.message);
+  if(f.error) avisar(ocT('No se pudieron leer las facturas: ') + f.error.message);
+  if(s.error) avisar(ocT('No se pudieron leer las firmas: ') + s.error.message);
+  if(cb.error) avisar(ocT('No se pudo calcular lo cobrado: ') + cb.error.message);
 
   /* Y si algo se recortó, se DICE. No con un toast, que se va en cuatro segundos:
      con una marca fija en la pantalla, porque mientras el tope siga alcanzado los

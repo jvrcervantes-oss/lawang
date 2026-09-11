@@ -36,6 +36,11 @@
 /* Nombre visible de cada tipo de contrato. La clave es el valor real de
    `contratos.tipo`. En español porque es el idioma de trabajo de la suite; la
    versión inglesa la resuelve idioma.js donde haga falta, no este fichero. */
+/* Puente al diccionario compartido (`i18n.js`, 11-sep-2026). Nombre propio
+   para no pisar `window.lwT` desde un script clasico, y defensivo: donde
+   falte i18n.js, en espanol. Mismo patron que `tbT` en topbar.js. */
+function vocT(s) { return window.lwT ? window.lwT(s) : s; }
+
 const LW_TIPO_CONTRATO = {
   carta_reserva:          'Carta de Reserva',
   carta_reserva_ampliada: 'Carta de Reserva ampliada',
@@ -58,7 +63,10 @@ const LW_TIPO_CONTRATO = {
 /* Cae a la clave si el tipo es nuevo y nadie lo añadió aquí. Enseñar
    `ppjb_bonian_c2` es feo, pero mentir con el nombre de otro documento es peor:
    el fallback nunca adivina. */
-const lwTipoContrato = t => LW_TIPO_CONTRATO[t] || t || '—';
+/* El rotulo pasa por el diccionario; la CLAVE (`ppjb_bonian_c2`) no, que es
+   lo que guarda la base. Y el fallback sigue sin adivinar: si el tipo es
+   nuevo sale su clave cruda, fea pero cierta. */
+const lwTipoContrato = t => (LW_TIPO_CONTRATO[t] ? vocT(LW_TIPO_CONTRATO[t]) : t) || '—';
 
 /* ---------------------------------------------------------------------------
    Qué contratos NO suman precio

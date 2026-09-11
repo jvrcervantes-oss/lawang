@@ -2142,6 +2142,40 @@
     'Este proyecto no tiene ficha en la tabla `proyectos`; no se le pueden colgar fotos.':
       'This project has no record in the `proyectos` table; photos cannot be attached to it.',
 
+
+    /* ---------- Tipos de contrato (`vocabulario.js`) ----------
+       Los nombres ingleses NO se inventan aquí: son los que el propio
+       generador ya imprime en la portada de cada documento
+       (`CONTRACT_TIPO[...].name.en` en `contracts/app.html`). Dos juegos de
+       nombres para el mismo contrato —uno en la lista y otro en el papel— es
+       exactamente el fallo que `vocabulario.js` existe para no repetir:
+       «Bloqueo de Parcela» ya se llamó de dos formas distintas una vez. */
+    'Carta de Reserva': 'Reservation Letter',
+    'Carta de Reserva ampliada': 'Extended Reservation Letter',
+    'Carta de Reserva (Hak Sewa)': 'Reservation Letter (Hak Sewa)',
+    'Carta de Reserva Condicionada (PT PMA)': 'Conditional Reservation Letter (PT PMA)',
+    'Carta de Reserva (Investor Deck)': 'Reservation Letter (Investor Deck)',
+    'Bloqueo de Parcela': 'Plot Hold',
+    'Construcción': 'Construction',
+    'Contrato General': 'General Agreement',
+    'Oferta Comercial': 'Commercial Offer',
+    'Acuerdo Comercial': 'Commercial Agreement',
+    'Protocolo Operativo': 'Operational Protocol',
+    'PPJB Bonian Beach': 'PPJB Bonian Beach',
+    'PPJB Bonian Beach · Parcela C2': 'PPJB Bonian Beach · Plot C2',
+    'Hak Sewa - Notario': 'Hak Sewa - Notario',
+    'Poder Notarial': 'Power of Attorney',
+    'Construcción · CC00014 Timon': 'Construction · CC00014 Timon',
+    'Adenda a contrato': 'Contract addendum',
+
+    /* ---------- suite.js · visor.js · operaciones-cuentas.js ---------- */
+    'Cerrar (Esc)': 'Close (Esc)',
+    'Hito sin nombre': 'Unnamed milestone',
+    'Cobro pendiente': 'Payment pending',
+    'Cobro completo': 'Fully collected',
+    'No se pudo calcular lo pendiente por factura: ': 'Could not calculate what is outstanding per invoice: ',
+    'No se pudieron leer las firmas: ': 'Could not read the signatures: ',
+
   };
 
   window.LW_EN = EN;

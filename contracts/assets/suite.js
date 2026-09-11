@@ -27,7 +27,7 @@ function suiAbrirCajon({ titulo, sub, cuerpo, pie, onCerrar }){
          <h2>${titulo || ''}</h2>
          ${sub ? `<p class="sub">${sub}</p>` : ''}
        </div>
-       <button type="button" class="sui-cajon-x" id="suiCajonX" aria-label="Cerrar" title="Cerrar (Esc)">✕</button>
+       <button type="button" class="sui-cajon-x" id="suiCajonX" data-lwt-aria aria-label="Cerrar" data-lwt-title title="Cerrar (Esc)">✕</button>
      </div>
      <div class="sui-cajon-cuerpo">${cuerpo || ''}</div>
      ${pie ? `<div class="sui-cajon-pie">${pie}</div>` : ''}`;

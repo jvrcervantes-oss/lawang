@@ -42,9 +42,9 @@
     var abrir = document.createElement('a'); abrir.id = 'lwvAbrir'; abrir.className = 'lwv-abrir';
     abrir.target = '_blank'; abrir.rel = 'noopener'; abrir.textContent = 'Abrir completo →';
     var cerrar = document.createElement('button'); cerrar.type = 'button';
-    cerrar.className = 'lwv-close'; cerrar.textContent = 'Cerrar';
+    cerrar.className = 'lwv-close'; cerrar.textContent = window.lwT ? window.lwT('Cerrar') : 'Cerrar';
     var frame = document.createElement('iframe'); frame.id = 'lwvFrame';
-    frame.className = 'lwv-frame'; frame.title = 'Documento';
+    frame.className = 'lwv-frame'; frame.title = window.lwT ? window.lwT('Documento') : 'Documento';
     head.appendChild(tit); head.appendChild(abrir); head.appendChild(cerrar);
     modal.appendChild(head); modal.appendChild(frame);
     ov.appendChild(modal);
@@ -60,7 +60,7 @@
   window.LW_VISOR = {
     abrir: function(url, titulo, urlCompleta){
       asegurar();
-      document.getElementById('lwvTitle').textContent = titulo || 'Documento';
+      document.getElementById('lwvTitle').textContent = titulo || (window.lwT ? window.lwT('Documento') : 'Documento');
       document.getElementById('lwvAbrir').href = urlCompleta || url;
       document.getElementById('lwvFrame').src = url;
       document.getElementById('lwvOverlay').classList.add('open');
