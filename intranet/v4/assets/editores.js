@@ -41,35 +41,98 @@
     return (f.herramientas || []).indexOf(h) !== -1;
   }
 
-  /* ---------- modal canonico del editor ---------- */
+  /* ---------- editor canonico de la v4: ventana o CAJON LATERAL ----------
+
+     Una sola funcion con dos cajas (14-sep-2026, encargo del owner: «que la
+     edicion no sea un pop-up sino un desplegable desde el lateral donde la
+     informacion quede mejor detallada»). El recorrido de campos, la recogida de
+     valores, la validacion y el tratamiento del error de RLS son los mismos en
+     los dos modos — lo unico que cambia es el marco. Dos funciones habrian sido
+     dos sitios donde arreglar el proximo fallo.
+
+     `opts.lateral` ancla el panel a la derecha, a dos columnas, con hueco para
+     un bloque de solo lectura arriba (`opts.encabezado`) y un subtitulo
+     (`opts.sub`). Sin `opts`, la ventana centrada de siempre: los demas
+     editores de la v4 no notan este cambio.
+
+     El z-index va por encima del cajon de proyecto de /v4/proyectos/ (z-50):
+     el editor se abre ENCIMA de el, no en su lugar, para no perder de vista el
+     proyecto del que cuelga la parcela. */
   var FUENTE = "font-family:'Neue Kabel','Jost',sans-serif";
-  function cierraModal() { var m = document.getElementById('lw-editor'); if (m) m.remove(); }
-  function modal(titulo, campos, textoBoton, onGuardar) {
+  function cierraModal() {
+    var m = document.getElementById('lw-editor');
+    if (!m) return;
+    var panel = m.querySelector('[data-e="form"]');
+    // Si entro deslizando, sale deslizando; si no, se quita y ya.
+    if (panel && panel.getAttribute('data-lateral')) {
+      panel.style.transform = 'translateX(100%)';
+      m.querySelector('[data-e="fondo"]').style.opacity = '0';
+      setTimeout(function () { if (m.parentNode) m.remove(); }, 260);
+    } else m.remove();
+  }
+  function modal(titulo, campos, textoBoton, onGuardar, opts) {
+    opts = opts || {};
+    var lateral = !!opts.lateral;
     cierraModal();
     var w = document.createElement('div');
     w.id = 'lw-editor';
+    var cajaForm = lateral
+      ? 'pointer-events:auto;position:fixed;top:0;right:0;height:100%;width:min(620px,96vw);background:#fff;border-left:1px solid #c5c8bc;box-shadow:-24px 0 48px -12px rgba(0,0,0,.25);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .26s ease-in-out;'
+      : 'pointer-events:auto;background:#fff;border:1px solid #c5c8bc;border-radius:14px;box-shadow:0 24px 48px -12px rgba(0,0,0,.25);width:min(520px,92vw);max-height:88vh;overflow:auto;padding:26px 28px;';
+    var cajaMarco = lateral
+      ? 'position:fixed;inset:0;z-index:10001;pointer-events:none'
+      : 'position:fixed;inset:0;display:grid;place-items:center;z-index:10001;pointer-events:none';
+    var cajaCabecera = lateral
+      ? 'display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:22px 26px 16px;border-bottom:1px solid #E4DCCB;flex-shrink:0'
+      : 'display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:16px';
+    var cajaCuerpo = lateral ? 'flex:1;overflow:auto;padding:20px 26px;min-height:0' : '';
+    var cajaCampos = lateral
+      ? 'display:grid;grid-template-columns:1fr 1fr;gap:14px'
+      : 'display:grid;gap:14px';
+    var cajaPie = lateral
+      ? 'display:flex;justify-content:flex-end;gap:10px;padding:16px 26px;border-top:1px solid #E4DCCB;background:#f5f4ee;flex-shrink:0'
+      : 'display:flex;justify-content:flex-end;gap:10px;margin-top:20px';
     w.innerHTML =
-      '<div data-e="fondo" style="position:fixed;inset:0;background:rgba(27,28,25,.45);backdrop-filter:blur(2px);z-index:10000"></div>' +
-      '<div role="dialog" aria-modal="true" style="position:fixed;inset:0;display:grid;place-items:center;z-index:10001;pointer-events:none">' +
-      '<form data-e="form" style="pointer-events:auto;background:#fff;border:1px solid #c5c8bc;border-radius:14px;box-shadow:0 24px 48px -12px rgba(0,0,0,.25);width:min(520px,92vw);max-height:88vh;overflow:auto;padding:26px 28px;' + FUENTE + '">' +
-      '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:16px">' +
+      '<div data-e="fondo" style="position:fixed;inset:0;background:rgba(27,28,25,.45);backdrop-filter:blur(2px);z-index:10000;transition:opacity .26s ease-in-out' + (lateral ? ';opacity:0' : '') + '"></div>' +
+      '<div role="dialog" aria-modal="true" style="' + cajaMarco + '">' +
+      '<form data-e="form"' + (lateral ? ' data-lateral="1"' : '') + ' style="' + cajaForm + FUENTE + '">' +
+      '<div style="' + cajaCabecera + '">' +
+      '<div style="min-width:0">' +
       '<h3 style="margin:0;font:600 22px \'Neue Kabel\',sans-serif;color:#104C4F">' + esc(titulo) + '</h3>' +
-      '<button type="button" data-e="cerrar" style="border:0;background:none;font-size:20px;cursor:pointer;color:#75786e">×</button></div>' +
-      '<div data-e="campos" style="display:grid;gap:14px"></div>' +
+      (opts.sub ? '<p style="margin:4px 0 0;font:500 12.5px inherit;color:#75786e">' + esc(opts.sub) + '</p>' : '') +
+      '</div>' +
+      '<button type="button" data-e="cerrar" style="border:0;background:none;font-size:20px;cursor:pointer;color:#75786e;line-height:1">×</button></div>' +
+      (lateral ? '<div style="' + cajaCuerpo + '">' : '') +
+      (opts.encabezado || '') +
+      '<div data-e="campos" style="' + cajaCampos + '"></div>' +
       '<p data-e="error" style="display:none;margin:14px 0 0;padding:10px 12px;border-radius:8px;background:#ffdad6;color:#93000a;font-size:13px"></p>' +
-      '<div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px">' +
+      (lateral ? '</div>' : '') +
+      '<div style="' + cajaPie + '">' +
       '<button type="button" data-e="cancelar" style="padding:10px 18px;border-radius:999px;border:1px solid #8A8474;background:none;color:#2E3437;font:600 14px inherit;cursor:pointer">Cancelar</button>' +
       '<button type="submit" data-e="guardar" style="padding:10px 20px;border-radius:999px;border:0;background:#104C4F;color:#fff;font:600 14px inherit;cursor:pointer;letter-spacing:.04em">' + esc(textoBoton || 'Guardar') + '</button>' +
       '</div></form></div>';
     document.body.appendChild(w);
+    if (lateral) {
+      // Dos fotogramas: con uno solo el navegador colapsa el estado inicial y
+      // el panel aparece de golpe en vez de deslizarse.
+      var panelN = w.querySelector('[data-e="form"]'), fondoN = w.querySelector('[data-e="fondo"]');
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { panelN.style.transform = 'translateX(0)'; fondoN.style.opacity = '1'; });
+      });
+    }
     var cont = w.querySelector('[data-e="campos"]');
     var estilo = 'width:100%;padding:9px 12px;border:1px solid #8A8474;border-radius:8px;font:500 14px inherit;color:#2E3437;background:#fff;box-sizing:border-box';
     campos.forEach(function (c) {
       var d = document.createElement('label');
       d.style.cssText = 'display:grid;gap:5px;font:600 11px inherit;letter-spacing:.12em;text-transform:uppercase;color:#75786e';
+      // En lateral la rejilla es de dos columnas: por defecto un campo ocupa la
+      // fila entera y `medio:1` lo deja a media. En ventana no hay columnas que
+      // repartir, asi que la marca se ignora sola.
+      if (lateral) d.style.gridColumn = c.medio ? 'span 1' : '1 / -1';
       var inner = esc(c.label) + (c.req ? ' *' : '');
       if (c.tipo === 'check') {
         d.style.cssText = 'display:flex;gap:9px;align-items:flex-start;font:500 13px inherit;color:#2E3437;text-transform:none;letter-spacing:0';
+        if (lateral) d.style.gridColumn = '1 / -1';   // cssText de arriba lo borro
         d.innerHTML = '<input type="checkbox" data-k="' + esc(c.k) + '"' + (c.valor ? ' checked' : '') + ' style="margin-top:2px">' +
           '<span>' + esc(c.label) + (c.ayuda ? '<br><small style="color:#8A6A34">' + esc(c.ayuda) + '</small>' : '') + '</span>';
       } else if (c.tipo === 'select') {
@@ -85,6 +148,7 @@
            la lleva el contrato, el total lo calcula la base — en vez de dejar
            un campo bloqueado sin explicación, que solo parece un fallo. */
         d.style.cssText = 'display:block;font:400 12px/1.5 inherit;text-transform:none;letter-spacing:0;color:#8A6A34;background:#FBF3E4;border-radius:8px;padding:9px 11px;margin:-4px 0 0';
+        if (lateral) d.style.gridColumn = '1 / -1';   // cssText de arriba lo borro
         d.innerHTML = esc(c.label);
       } else if (c.tipo === 'lectura') {
         // Espejo de solo lectura: se ve el valor y se entiende que no se toca
@@ -603,13 +667,21 @@
           var estados = Object.keys(estadosMapa).map(function (k) { return [k, estadosMapa[k]]; });
           var etiq = (window.LW_V4 && window.LW_V4.estadoEtiqueta) || function (e) { return e || '—'; };
           var n0 = function (x) { return x == null ? '' : x; };
+          /* Ningun importe de la suite se imprime con toLocaleString: `dinero.js`
+             es la unica forma de leer Y de escribir un importe (decimales por
+             moneda — las rupias no llevan). El respaldo solo actua si la pagina
+             no lo cargo, y se nota a proposito. */
+          var fmtM = function (x, m) {
+            return (typeof lwFormatoImporte === 'function')
+              ? lwFormatoImporte(x, m || 'EUR') : String(x) + ' ' + (m || 'EUR');
+          };
           var totalDerivado = (Number(u.precio_suelo) || 0) + (Number(u.precio_construccion) || 0);
 
           var campos = [
             { k: 'codigo', label: 'Código', req: 1, valor: n0(u.codigo),
               ayuda: 'Debe coincidir con el que se escribe en el contrato: es lo que permite cruzarlos.' },
-            { k: 'proyecto', label: 'Proyecto', tipo: 'select', req: 1, opciones: proyectos, valor: u.proyecto },
-            { k: 'tipo', label: 'Tipo', tipo: 'select', opciones: tipos.length ? tipos : [['parcela', 'Parcela']], valor: u.tipo }
+            { k: 'proyecto', label: 'Proyecto', tipo: 'select', req: 1, medio: 1, opciones: proyectos, valor: u.proyecto },
+            { k: 'tipo', label: 'Tipo', tipo: 'select', medio: 1, opciones: tipos.length ? tipos : [['parcela', 'Parcela']], valor: u.tipo }
           ];
           /* Modelo de villa: el catalogo real, nunca texto libre si hay catalogo
              — por ahi entraban los modelos inventados que luego no casan con
@@ -627,30 +699,30 @@
           } else {
             campos.push({ k: 'modelo', label: 'Modelo de villa', valor: n0(u.modelo), ayuda: 'Dune, Dream…' });
           }
-          campos.push({ k: 'superficie_m2', label: 'Superficie (m²)', tipo: 'number', valor: n0(u.superficie_m2) });
+          campos.push({ k: 'superficie_m2', label: 'Superficie (m²)', tipo: 'number', medio: 1, valor: n0(u.superficie_m2) });
           if (u.proyecto === 'Sumba Hills') {
-            campos.push({ k: 'fase_masterplan', label: 'Fase (masterplan)', valor: n0(u.fase_masterplan), ayuda: 'I, II…' });
-            campos.push({ k: 'zona_masterplan', label: 'Zona', valor: n0(u.zona_masterplan), ayuda: '1, 2, 3…' });
+            campos.push({ k: 'fase_masterplan', label: 'Fase (masterplan)', medio: 1, valor: n0(u.fase_masterplan), ayuda: 'I, II…' });
+            campos.push({ k: 'zona_masterplan', label: 'Zona', medio: 1, valor: n0(u.zona_masterplan), ayuda: '1, 2, 3…' });
           }
           campos.push(
-            { k: 'precio_m2', label: 'Precio por m²', tipo: 'number',
+            { k: 'precio_m2', label: 'Precio por m²', tipo: 'number', medio: 1,
               valor: (u.precio_suelo != null && Number(u.superficie_m2)) ? Math.round(Number(u.precio_suelo) / Number(u.superficie_m2) * 100) / 100 : '',
               ayuda: 'Con la superficie, rellena el suelo solo. No se guarda: lo que se guarda es el suelo.' },
-            { k: 'precio_suelo', label: 'Precio de suelo', tipo: 'number', valor: n0(u.precio_suelo) },
-            { k: 'precio_construccion', label: 'Precio de construcción', tipo: 'number', valor: n0(u.precio_construccion) },
-            { tipo: 'lectura', label: 'Precio total', valor: totalDerivado ? totalDerivado + ' ' + (u.moneda || 'EUR') : '—' },
+            { k: 'precio_suelo', label: 'Precio de suelo', tipo: 'number', medio: 1, valor: n0(u.precio_suelo) },
+            { k: 'precio_construccion', label: 'Precio de construcción', tipo: 'number', medio: 1, valor: n0(u.precio_construccion) },
+            { tipo: 'lectura', label: 'Precio total', medio: 1, valor: totalDerivado ? fmtM(totalDerivado, u.moneda) : '—' },
             { tipo: 'nota', label: 'El total es siempre suelo + construcción y lo calcula la base — ya no se puede escribir un valor distinto (28-ago-2026): un CSV trajo 143 parcelas con el total descuadrado de sus propias columnas.' },
-            { k: 'moneda', label: 'Moneda', tipo: 'select', opciones: ['EUR', 'USD', 'AUD', 'IDR'], valor: u.moneda || 'EUR' }
+            { k: 'moneda', label: 'Moneda', tipo: 'select', medio: 1, opciones: ['EUR', 'USD', 'AUD', 'IDR'], valor: u.moneda || 'EUR' }
           );
           if (vinculada) {
             campos.push(
-              { tipo: 'lectura', label: 'Estado', valor: etiq(u.estado) + ' · lo lleva el contrato' },
-              { tipo: 'lectura', label: 'Contrato asociado', valor: u.contrato_numero || 'vinculado' },
+              { tipo: 'lectura', label: 'Estado', medio: 1, valor: etiq(u.estado) + ' · lo lleva el contrato' },
+              { tipo: 'lectura', label: 'Contrato asociado', medio: 1, valor: u.contrato_numero || 'vinculado' },
               { tipo: 'nota', label: 'Esta parcela está vinculada a un contrato, así que su estado y su contrato no se tocan desde aquí: los lleva el contrato y el dinero. Una Carta de Reserva la deja reservada; un Bloqueo de Parcela firmado, bloqueada; el primer recibí real la pasa a vendida, y el 100% cobrado a cobrada. Para soltarla, quítale la parcela al contrato o bórralo, y volverá a disponible sola.' }
             );
           } else {
             campos.push(
-              { k: 'estado', label: 'Estado', tipo: 'select', opciones: estados, valor: u.estado || 'disponible' },
+              { k: 'estado', label: 'Estado', tipo: 'select', medio: 1, opciones: estados, valor: u.estado || 'disponible' },
               { k: 'contrato_id', label: 'Contrato asociado', tipo: 'select', valor: '',
                 opciones: [['', '— sin contrato —']].concat(contratos.map(function (c) {
                   return [c.id, (c.numero || 'sin nº') + ' — ' + (c.comprador_nombre || 'sin nombre')];
@@ -659,7 +731,55 @@
           }
           campos.push({ k: 'notas', label: 'Notas', tipo: 'textarea', valor: n0(u.notas) });
 
-          modal((u.codigo || 'Unidad') + ' · ' + (u.proyecto || 'sin proyecto'), campos, 'Guardar cambios', function (v) {
+          /* El bloque de SOLO LECTURA que corona el panel. Es de solo lectura a
+             proposito, igual que en la herramienta viva: el vinculo con el
+             contrato lo pone el contrato al guardarse (trigger), no una persona
+             desde aqui — si se pudiera cambiar en los dos sitios, en cuanto no
+             coincidieran no habria forma de saber cual manda.
+
+             «Cobrado de esta unidad» NO es el total cobrado del contrato: con un
+             contrato de varias parcelas es LA PARTE de esta, ya partida por la
+             base (unidad_parte_cobrada_split). Decirlo en el sitio evita que se
+             sume dos veces el mismo dinero, que es un fallo que ya paso. */
+          var cob = (Number(u.cobrado_suelo) || 0) + (Number(u.cobrado_obra) || 0);
+          var pct = totalDerivado ? Math.min(100, Math.round(cob / totalDerivado * 100)) : null;
+          var fila = function (dt, dd) {
+            return '<div style="display:flex;justify-content:space-between;gap:14px;padding:5px 0;border-bottom:1px solid #efeee8">' +
+              '<span style="font:600 11px inherit;letter-spacing:.1em;text-transform:uppercase;color:#75786e">' + esc(dt) + '</span>' +
+              '<span style="font:600 13px inherit;color:#2E3437;text-align:right">' + dd + '</span></div>';
+          };
+          var bloque = function (titulo, dentro) {
+            return '<section style="margin:0 0 18px;padding:14px 16px;background:#f5f4ee;border:1px solid #E4DCCB;border-radius:10px">' +
+              '<h4 style="margin:0 0 8px;font:600 11px inherit;letter-spacing:.12em;text-transform:uppercase;color:#104C4F">' + esc(titulo) + '</h4>' +
+              dentro + '</section>';
+          };
+          var encabezado = '';
+          if (vinculada) {
+            var dentroOp = fila('Contrato', esc(u.contrato_numero || 'vinculado') +
+                  ' <span style="color:#75786e;font-weight:500">· ' + (u.contrato_firmado ? 'firmado' : 'sin firmar') + '</span>') +
+              (u.comprador_nombre ? fila('Comprador', esc(u.comprador_nombre)) : '') +
+              (u.contrato_creado_por ? fila('Agente', esc(u.contrato_creado_por)) : '') +
+              fila('Cobrado de esta parcela', esc(fmtM(cob, u.moneda)) +
+                  (pct != null ? ' <span style="color:#75786e;font-weight:500">· ' + pct + '%</span>' : '') +
+                  '<br><span style="font:500 11px inherit;color:#8A8474">su parte del contrato, no el total</span>');
+            if (pct != null) {
+              dentroOp += '<div style="margin-top:10px;height:6px;border-radius:999px;background:#e4e2dd;overflow:hidden">' +
+                '<div style="height:100%;width:' + pct + '%;background:#3F5230"></div></div>';
+            }
+            encabezado += bloque('Operación', dentroOp);
+          }
+          if (u.precio_suelo != null || u.precio_construccion != null) {
+            var descuadra = (u.precio_guardado != null && totalDerivado &&
+                             Math.abs(Number(u.precio_guardado) - totalDerivado) > 0.5);
+            encabezado += bloque('Desglose de precio',
+              fila('Suelo', esc(u.precio_suelo != null ? fmtM(u.precio_suelo, u.moneda) : '—')) +
+              fila('Construcción', esc(u.precio_construccion != null ? fmtM(u.precio_construccion, u.moneda) : '—')) +
+              fila('Total', '<b>' + esc(fmtM(totalDerivado, u.moneda)) + '</b>') +
+              (descuadra ? '<p style="margin:8px 0 0;font:500 12px inherit;color:#8A6A34">El total guardado (' +
+                 esc(fmtM(u.precio_guardado, u.moneda)) + ') no cuadra con suelo + construcción. Manda la suma.</p>' : ''));
+          }
+
+          modal((u.codigo || 'Unidad'), campos, 'Guardar cambios', function (v) {
             var num = function (x) { var n = parseFloat(x); return isNaN(n) ? null : n; };
             var txt = function (x) { return (x || '').trim() || null; };
             var fila = {
@@ -684,6 +804,10 @@
               }
               return r;
             });
+          }, {
+            lateral: true,
+            sub: (u.proyecto || 'sin proyecto') + ' · ' + etiq(u.estado),
+            encabezado: encabezado
           });
 
           /* Precio por m² -> precio de suelo, como en la herramienta viva. Va
