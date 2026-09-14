@@ -110,13 +110,20 @@ $PF_TARIFA = lw_parcela_tarifa_m2('riverfront');
 // Tamaños de parcela DISPONIBLES ahora mismo: en vivo de Supabase (vivo.php), vía
 // `parcelas_tamanos_disponibles()`. Solo alimenta la lista que se ENSEÑA — nunca el
 // precio, ver LW_PF_TAMANO_MIN_PRECIO más abajo.
+//
+// null y [] NO son lo mismo (lo dice el propio docblock de vivo.php) y hay que tratarlos
+// distinto: null es "no se pudo leer nada, ni red ni caché" (arranque en frío) -> cae al
+// respaldo fijo; [] es "se leyó bien y hoy no queda NINGÚN tamaño disponible" -> un estado
+// real que NO se puede disfrazar con el respaldo, o la página anunciaría tamaños vendidos
+// a tráfico de pago (hallazgo de Desarrollo en la consulta de deploy, 14-sep).
 $PF_TAMANOS_VIVO = lw_pf_tamanos_disponibles();
-// Respaldo si la red falla en frío (sin caché en disco todavía): último mínimo
-// verificado a mano contra Supabase el 14-sep-2026. Nunca vacío — min() sobre un
-// array vacío es un ValueError fatal en PHP 8, y esto está en el camino crítico de
-// una landing de tráfico de pago (hallazgo de Datos en la revisión previa).
+// Respaldo SOLO para null (arranque en frío sin red, sin caché en disco todavía): último
+// mínimo verificado a mano contra Supabase el 14-sep-2026. Nunca vacío — min() sobre un
+// array vacío es un ValueError fatal en PHP 8, y esto está en el camino crítico de una
+// landing de tráfico de pago (hallazgo de Datos en la revisión previa).
 $PF_TAMANOS_RESPALDO = [250, 255, 295, 310];
-$PF_TAMANOS_MOSTRAR = ($PF_TAMANOS_VIVO !== null && $PF_TAMANOS_VIVO) ? $PF_TAMANOS_VIVO : $PF_TAMANOS_RESPALDO;
+$PF_TAMANOS_AGOTADO  = $PF_TAMANOS_VIVO !== null && !$PF_TAMANOS_VIVO;
+$PF_TAMANOS_MOSTRAR  = $PF_TAMANOS_VIVO !== null ? $PF_TAMANOS_VIVO : $PF_TAMANOS_RESPALDO;
 
 // El precio de portada (hero, meta/og, tabla comparativa, value del pixel de Meta Ads)
 // NO sigue a la disponibilidad en vivo: se ancla a la parcela más pequeña tal como se
@@ -543,10 +550,14 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
           </div>
           <div class="res__fila">
             <span><span class="res__lb">Freehold plot</span>
-                  <span class="res__sub"><?= lw_e(lw_precio_fmt($PF_TARIFA)) ?>/m² · sized on the call —
+                  <span class="res__sub"><?= lw_e(lw_precio_fmt($PF_TARIFA)) ?>/m² · sized on the call
                     <?php /* Tamaños en vivo (vivo.php), nunca el conteo de cuantas quedan —
-                             decision del owner de no publicar escasez en trafico de pago. */ ?>
-                    <?= lw_e(implode(' · ', $PF_TAMANOS_MOSTRAR)) ?> m² available now</span></span>
+                             decision del owner de no publicar escasez en trafico de pago.
+                             $PF_TAMANOS_AGOTADO (0 disponibles de verdad, no un fallo de
+                             lectura) NO se disfraza con el respaldo estatico. */ ?>
+                    <?= $PF_TAMANOS_AGOTADO
+                        ? '— this phase fully allocated, next phase on the call'
+                        : '— ' . lw_e(implode(' · ', $PF_TAMANOS_MOSTRAR)) . ' m² available now' ?></span></span>
             <span class="res__vl">Separate</span>
           </div>
         </div>
