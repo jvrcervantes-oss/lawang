@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="es"><head><title>CRM de Leads &amp; Pipeline — Lawang Intranet</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d6d6608e" data-herramienta="leads"></script>
-<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=d569c692" defer></script><script src="../assets/datos.js?v=5b584eaa" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=d569c692" defer></script><script src="../assets/datos.js?v=9cf3ec34" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=4abf6531" defer></script>
 <link href="../assets/shell.css?v=4ce80056" rel="stylesheet">
@@ -82,12 +82,11 @@
 <span class="material-symbols-outlined text-[20px] text-outline absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">search</span>
 <input class="w-full pl-10 pr-4 py-2.5 rounded-full bg-surface-container-low border border-control-border/40 font-body-md text-body-md text-on-surface placeholder:text-outline focus:border-primary-container focus:ring-0" placeholder="Buscar por nombre…" type="search"/>
 </div>
-<div class="flex flex-wrap items-center gap-2">
-<button class="px-4 py-2 rounded-full bg-primary-container text-on-primary font-label-md text-[13px] font-medium shrink-0 flex items-center gap-1.5 transition-colors" type="button"><span>Todos los canales</span><span class="text-on-primary/70" data-lw="c-todos">—</span></button>
-<button class="px-4 py-2 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container font-label-md text-[13px] font-medium shrink-0 flex items-center gap-1.5 transition-colors" type="button"><span class="w-2 h-2 rounded-full bg-deep-lagoon"></span><span>Meta</span><span class="text-outline" data-lw="c-meta">—</span></button>
-<button class="px-4 py-2 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container font-label-md text-[13px] font-medium shrink-0 flex items-center gap-1.5 transition-colors" type="button"><span class="w-2 h-2 rounded-full bg-territorial-green"></span><span>Web</span><span class="text-outline" data-lw="c-web">—</span></button>
-<button class="px-4 py-2 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container font-label-md text-[13px] font-medium shrink-0 flex items-center gap-1.5 transition-colors" type="button"><span class="w-2 h-2 rounded-full bg-error"></span><span>Parados +14 d</span><span class="text-outline" data-lw="c-parados">—</span></button>
-</div>
+<!-- Los chips por canal NO se escriben aqui: se siembran de los `source`
+     que hay de verdad. Escritos a mano eran dos («Meta», «Web») y los dos
+     marcaban 0 al lado de 119 leads — los canales reales son cinco y se
+     llaman de otra forma. Una lista a mano dentro de la pantalla ES el bug. -->
+<div class="flex flex-wrap items-center gap-2" id="lw-chips"></div>
 </div>
 
 <!-- Kanban: las seis etapas de COLS (leads.js). Los contadores y la primera

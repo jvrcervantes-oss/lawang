@@ -1874,14 +1874,34 @@
       pon2('k-conversion', conv);
       pon2('k-conversion-pie', ls.length ? 'llegan a firmar' : 'sin leads que medir');
 
-      /* Los chips por canal se siembran de los `source` que HAY, no de una lista
-         escrita a mano: un canal nuevo apareceria con 0 en una lista fija. */
+      /* Los chips por canal se siembran de los `source` que HAY. La primera
+         version los escribio a mano —«Meta» y «Web»— y los dos salieron a 0 al
+         lado de 119 leads: los canales reales son `meta-sumbahills`,
+         `sumba-hills-qr`, `meta-lawang-bali`… Una lista de valores escrita a
+         mano dentro de la pantalla ES el bug, no la causa del bug, y el
+         sintoma es justo este: cero donde hay datos, sin que nada proteste. */
       var porCanal = {};
-      ls.forEach(function (l) { var s = l.source || 'sin origen'; porCanal[s] = (porCanal[s] || 0) + 1; });
-      pon2('c-todos', String(ls.length));
-      pon2('c-meta', String(porCanal.meta || porCanal.facebook || 0));
-      pon2('c-web', String(porCanal.web || 0));
-      pon2('c-parados', String(ls.filter(function (l) { return diasDesde(l.estado_desde) >= DIAS_VIEJO; }).length));
+      ls.forEach(function (l) { var k = l.source || 'sin origen'; porCanal[k] = (porCanal[k] || 0) + 1; });
+      var canales = Object.keys(porCanal).sort(function (a, b) { return porCanal[b] - porCanal[a]; });
+      var TONOS = ['bg-deep-lagoon', 'bg-territorial-green', 'bg-burnt-earth', 'bg-secondary', 'bg-stone-sand'];
+      var parados = ls.filter(function (l) { return diasDesde(l.estado_desde) >= DIAS_VIEJO; }).length;
+
+      var chips = document.getElementById('lw-chips');
+      if (chips) {
+        var CLS_ON = 'px-4 py-2 rounded-full bg-primary-container text-on-primary font-label-md text-[13px] font-medium shrink-0 flex items-center gap-1.5 transition-colors';
+        var CLS_OFF = 'px-4 py-2 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container font-label-md text-[13px] font-medium shrink-0 flex items-center gap-1.5 transition-colors';
+        var html = '<button type="button" class="' + CLS_ON + '"><span>Todos los canales</span>' +
+                   '<span class="text-on-primary/70">' + ls.length + '</span></button>';
+        canales.forEach(function (k, i) {
+          html += '<button type="button" class="' + CLS_OFF + '">' +
+                  '<span class="w-2 h-2 rounded-full ' + TONOS[i % TONOS.length] + '"></span>' +
+                  '<span>' + esc(k) + '</span><span class="text-outline">' + porCanal[k] + '</span></button>';
+        });
+        html += '<button type="button" class="' + CLS_OFF + '">' +
+                '<span class="w-2 h-2 rounded-full bg-error"></span>' +
+                '<span>Parados +' + DIAS_VIEJO + ' d</span><span class="text-outline">' + parados + '</span></button>';
+        chips.innerHTML = html;
+      }
 
       COLS.forEach(function (c) {
         pon2('col-' + c, String(porCol[c].length));
