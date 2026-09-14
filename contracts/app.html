@@ -2168,12 +2168,47 @@ function aplicarReglasCampos(){
    dicho que se vende la parcela «W5», que es el terreno entero del proyecto.
    Verificado antes de corregir: 0 contratos guardados con ese error. */
 let AUTO_MASTER = '';
+/* 🔴 14-sep-2026, RP00164: EL AGENTE NO SE DESPISTO, LA PANTALLA LE OFRECIA
+   UN SOLO HUECO Y ERA EL EQUIVOCADO. Sin proyecto elegido, pintarSelectorParcela()
+   esconde `parcela_codigo` detras de un input oculto («Elige antes el proyecto»),
+   mientras `parcela_master` sigue ahi al lado como texto libre y editable. El
+   unico sitio donde se podia teclear un codigo de parcela era el malo, y asi se
+   firmo un contrato de 54.204 EUR cuyo PDF dice «parcela master C3» y deja en
+   blanco la parcela que se cede.
+   Dos cambios, y ninguno inventa nada: `parcela_master` es un dato DEL PROYECTO
+   (`proyectos.parcela_master`), no del contrato, asi que sin proyecto no hay nada
+   que escribir ahi; y el «escrito a mano es intocable para siempre» pasa a AVISAR
+   cuando lo tecleado no es el master del proyecto elegido, en vez de rendirse en
+   silencio. El guardarrail de verdad esta en la base
+   (contracts/sql/exige_parcela_al_guardar.sql): esto solo evita llegar hasta el. */
 function syncParcelaMaster(){
   const sel   = document.querySelector('[name="proyecto_nombre"]');
   const campo = document.querySelector('[name="parcela_master"]');
   if(!sel || !campo) return;
   const actual = campo.value.trim();
-  if(actual && actual !== AUTO_MASTER){ AUTO_MASTER = ''; return; }   // escrito a mano: intocable
+
+  // Sin proyecto elegido no se teclea aqui: es el terreno entero del proyecto,
+  // y no se sabe cual es hasta que hay proyecto.
+  if(!sel.value){
+    campo.readOnly = true;
+    campo.placeholder = 'Elige antes el proyecto';
+    return;
+  }
+  campo.readOnly = false;
+  campo.placeholder = '';
+
+  if(actual && actual !== AUTO_MASTER){
+    AUTO_MASTER = '';
+    // Antes esto era `return` a secas. Si lo escrito a mano no es el master del
+    // proyecto, se dice — normalmente significa que ahi va un codigo de parcela.
+    const esperado = ((PROYECTOS_DB || []).find(p => p.nombre === sel.value) || {}).parcela_master || '';
+    if(esperado && actual !== esperado){
+      marcarCampoAviso(campo, 'La parcela master de ' + sel.value + ' es "' + esperado +
+        '", y aqui pone "' + actual + '". Si "' + actual + '" es la parcela que se vende, va en el campo ' +
+        '"Parcela", no en este: este es el terreno entero del proyecto.');
+    }
+    return;
+  }
   /* Primero la tabla, tokens.json de respaldo. La lista a mano de tokens.json
      esta escrita con los nombres VIEJOS de los proyectos («Palm Field», «Mejan»)
      y la tabla dice «Palm Field W5», «Mejan Village S7»: desde que el
