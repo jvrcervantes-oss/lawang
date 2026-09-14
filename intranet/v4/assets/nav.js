@@ -36,7 +36,7 @@
        (owner, 14-sep). Ruta ABSOLUTA, no relativa a ROOT: lo que hay en
        v4/leads/ es solo una redireccion para los enlaces viejos. */
     ['CRM', '/intranet/leads/'],
-    ['Solicitudes', 'solicitudes/'],
+    ['Comisiones', 'comisiones/'],
     ['Cuentas', 'cuentas/']
   ];
 
@@ -50,22 +50,22 @@
   }
 
   /* Herramientas que NO existen en el diseno de Stitch: nacieron despues de la
-     descarga (Modelos el 7-sep; CRM, Solicitudes y Cuentas ya estaban vivas en
-     /intranet/ y la maqueta se habia quedado atras). Sus items de menu se
-     INYECTAN aqui en vez de anadirlos a mano en las 22 sidebars: la cascara
-     esta duplicada por ser maqueta, pero la navegacion no — una lista copiada
-     en dos sitios ES el bug, y con 22 copias la siguiente herramienta se
-     olvidaria en alguna.
+     descarga (Modelos el 7-sep; CRM, Solicitudes/Comisiones y Cuentas ya
+     estaban vivas en /intranet/ y la maqueta se habia quedado atras). Sus
+     items de menu se INYECTAN aqui en vez de anadirlos a mano en las 22
+     sidebars: la cascara esta duplicada por ser maqueta, pero la navegacion
+     no — una lista copiada en dos sitios ES el bug, y con 22 copias la
+     siguiente herramienta se olvidaria en alguna.
      El orden y el grupo salen de `contracts/assets/herramientas.js`, que es la
      fuente unica del catalogo vivo: cada uno se cuelga detras de su vecino de
-     alli (CRM abre Seguimiento -> tras Home; Solicitudes cierra Administracion
-     -> tras Recibos; Cuentas es de Equipo -> tras Usuarios, que es el ultimo
-     del menu de la maqueta). */
+     alli (CRM abre Seguimiento -> tras Home; Comisiones (antes «Solicitudes»,
+     renombrada 14-sep) cierra Administracion -> tras Recibos; Cuentas es de
+     Equipo -> tras Usuarios, que es el ultimo del menu de la maqueta). */
   var INJERTOS = [
-    { path: 'leads',       tras: 'home',     icono: 'person_search',  texto: 'CRM',
+    { path: 'leads',      tras: 'home',     icono: 'person_search',  texto: 'CRM',
       href: '/intranet/leads/' },   // vista propia: sale de la v4
-    { path: 'solicitudes', tras: 'recibos',  icono: 'request_quote',  texto: 'Solicitudes' },
-    { path: 'cuentas',     tras: 'usuarios', icono: 'account_balance', texto: 'Cuentas' }
+    { path: 'comisiones', tras: 'recibos',  icono: 'request_quote',  texto: 'Comisiones' },
+    { path: 'cuentas',    tras: 'usuarios', icono: 'account_balance', texto: 'Cuentas' }
   ];
 
   /* Documentacion se fusiono dentro de Proyectos (owner, 8-sep): la pestana

@@ -1928,70 +1928,226 @@
      muerto que el siguiente lee como si contara algo. Recuperable en git
      (commit baa6291) si la v4 llega a absorber el CRM algun dia. */
 
-  /* ---------- Solicitudes de pago ---------- */
-  REG.solicitudes = function (sb) {
-    var RESUELTAS = ['pagada', 'rechazada', 'anulada'];
-    var ETIQUETA = { pendiente: 'Pendiente', aprobada: 'Aprobada', rechazada: 'Rechazada', anulada: 'Anulada', pagada: 'Pagada' };
+  /* ---------- Comisiones (antes «Solicitudes de pago», renombrada 14-sep-2026) ----------
+     Dos pestañas, dos tablas, dos orígenes de datos — nunca se mezclan en una lista, o el
+     lector no podría distinguir lo que Lawang paga de lo que el equipo se reparte entre sí:
+      · «A Lawang» = `solicitudes_pago`, igual que antes — con una marca visual para las
+        que nacieron solas (`origen='comision_automatica'`, el alta automática de una
+        comisión de nivel manager) frente a las que escribió un agente a mano.
+      · «Reparto de equipo» = `comisiones_devengadas` con `nivel='closer'`. La RLS ya filtra
+        qué fila ve cada sesión (closer: la suya; manager: las de su equipo; admin: todas) —
+        aquí solo se pinta y se decide si tiene sentido ENSEÑAR el botón «Marcar pagada»: el
+        gate real es la policy de UPDATE (`_equipo_de_condicion_comision` + `equipo_miembros`
+        activo), esto solo lo refleja. `equipos_venta` y `equipo_miembros` son de lectura
+        abierta (`qual=true`) a propósito: sin eso un manager no podría saber qué closers son
+        «su equipo» para decidir si pintar el botón. */
+  var RESUELTAS = ['pagada', 'rechazada', 'anulada'];
+  var ETIQUETA = { pendiente: 'Pendiente', aprobada: 'Aprobada', rechazada: 'Rechazada', anulada: 'Anulada', pagada: 'Pagada' };
+  var ETIQUETA_EQ = { pendiente: 'Pendiente', pagada: 'Pagada', en_disputa: 'En disputa' };
+  var TAGCLASE_EQ = { pendiente: 'bg-error-container/60 text-error', pagada: 'bg-primary-container/30 text-territorial-green', en_disputa: 'bg-burnt-earth/15 text-burnt-earth' };
+
+  function miembroActivo(em, hoyISO) { return em.desde <= hoyISO && (!em.hasta || em.hasta >= hoyISO); }
+
+  REG.comisiones = function (sb) {
     var tabla = document.getElementById('lw-filas');
     var caja = tabla ? tabla.closest('section') : null;
+    var tablaEq = document.getElementById('lw-filas-equipo');
+    var cajaEq = tablaEq ? tablaEq.closest('section') : null;
 
     Promise.all([
-      q(sb.from('solicitudes_pago').select('numero,concepto,importe,moneda,estado,creado_en,creado_por,contrato_id,pagado_en').order('creado_en', { ascending: false }), 'solicitudes de pago', caja),
+      q(sb.from('solicitudes_pago').select('numero,concepto,importe,moneda,estado,creado_en,creado_por,contrato_id,pagado_en,origen').order('creado_en', { ascending: false }), 'solicitudes de pago', caja),
       q(sb.from('contratos').select('id,numero,tipo,proyecto_nombre'), 'contratos'),
       /* Si la RLS de `usuarios` solo deja leer la propia ficha, el mapa se queda
          corto y el fallback pinta «—»: no es un fallo, es lo que esa sesion ve. */
-      q(sb.from('usuarios').select('user_id,nombre,email'), 'usuarios')
+      q(sb.from('usuarios').select('user_id,nombre,email'), 'usuarios'),
+      q(sb.from('comisiones_devengadas').select('id,contrato_raiz_id,beneficiario_email,nivel,importe,moneda,estado,disparado_en,pagado_por,pagado_en').eq('nivel', 'closer').order('disparado_en', { ascending: false }), 'reparto de equipo', cajaEq),
+      q(sb.from('equipos_venta').select('id,nombre,manager_email,activo'), 'equipos de venta'),
+      q(sb.from('equipo_miembros').select('equipo_id,closer_email,desde,hasta'), 'miembros de equipo')
     ]).then(function (r) {
-      var ss = r[0]; if (!ss) return;
-      var ct = {}; (r[1] || []).forEach(function (c) { ct[c.id] = c; });
-      var us = {}; (r[2] || []).forEach(function (u) { us[u.user_id] = u; });
+      var ss = r[0], contratosRows = r[1] || [], usuariosRows = r[2] || [], cd = r[3], eqs = r[4] || [], miembros = r[5] || [];
+      var ct = {}; contratosRows.forEach(function (c) { ct[c.id] = c; });
+      var us = {}; usuariosRows.forEach(function (u) { us[u.user_id] = u; });
+      var porEmail = {}; usuariosRows.forEach(function (u) { if (u.email) porEmail[u.email.toLowerCase()] = u; });
 
-      var pend = ss.filter(function (x) { return x.estado === 'pendiente'; });
-      var aprob = ss.filter(function (x) { return x.estado === 'aprobada'; });
-      /* Suma por moneda y NUNCA entre monedas: 500 EUR + 500 USD no son «1.000
-         nada» (regla del modelo de venta, `contexto/patrones_tecnicos.md`). */
-      var porMoneda = {};
-      aprob.forEach(function (x) { var m = x.moneda || 'EUR'; porMoneda[m] = (porMoneda[m] || 0) + (Number(x.importe) || 0); });
-      var sumas = Object.keys(porMoneda).sort().map(function (m) { return fmt(porMoneda[m], m); }).join(' · ');
-      var pagadasMes = ss.filter(function (x) { return x.estado === 'pagada' && x.pagado_en && new Date(x.pagado_en) >= mesIni; });
-      var tarde = ss.filter(function (x) {
-        return (x.estado === 'pendiente' || x.estado === 'aprobada') && diasDesde(x.creado_en) >= 14;
-      });
+      if (ss) pintaLawang(ss);
+      if (cd) pintaEquipo(cd, eqs, miembros);
 
-      pon2('k-pendientes', String(pend.length));
-      pon2('k-pendientes-pie', pend.length ? 'la mas vieja lleva ' + diasDesde(pend[pend.length - 1].creado_en) + ' dias' : 'nada esperando');
-      pon2('k-aprobadas', String(aprob.length));
-      pon2('k-aprobadas-pie', aprob.length ? sumas : 'nada aprobado sin pagar');
-      pon2('k-pagadas', String(pagadasMes.length));
-      pon2('k-pagadas-pie', 'desde el 1 de mes');
-      pon2('k-tarde', String(tarde.length));
-      pon2('k-tarde-pie', tarde.length ? 'pendientes o aprobadas sin cerrar' : 'nada atascado');
+      function pintaLawang(ss) {
+        var pend = ss.filter(function (x) { return x.estado === 'pendiente'; });
+        var aprob = ss.filter(function (x) { return x.estado === 'aprobada'; });
+        /* Suma por moneda y NUNCA entre monedas: 500 EUR + 500 USD no son «1.000
+           nada» (regla del modelo de venta, `contexto/patrones_tecnicos.md`). */
+        var porMoneda = {};
+        aprob.forEach(function (x) { var m = x.moneda || 'EUR'; porMoneda[m] = (porMoneda[m] || 0) + (Number(x.importe) || 0); });
+        var sumas = Object.keys(porMoneda).sort().map(function (m) { return fmt(porMoneda[m], m); }).join(' · ');
+        var pagadasMes = ss.filter(function (x) { return x.estado === 'pagada' && x.pagado_en && new Date(x.pagado_en) >= mesIni; });
+        var tarde = ss.filter(function (x) {
+          return (x.estado === 'pendiente' || x.estado === 'aprobada') && diasDesde(x.creado_en) >= 14;
+        });
 
-      pon2('c-todas', String(ss.length));
-      pon2('c-pendiente', String(pend.length));
-      pon2('c-aprobada', String(aprob.length));
-      pon2('c-resueltas', String(ss.filter(function (x) { return RESUELTAS.indexOf(x.estado) >= 0; }).length));
+        pon2('k-pendientes', String(pend.length));
+        pon2('k-pendientes-pie', pend.length ? 'la mas vieja lleva ' + diasDesde(pend[pend.length - 1].creado_en) + ' dias' : 'nada esperando');
+        pon2('k-aprobadas', String(aprob.length));
+        pon2('k-aprobadas-pie', aprob.length ? sumas : 'nada aprobado sin pagar');
+        pon2('k-pagadas', String(pagadasMes.length));
+        pon2('k-pagadas-pie', 'desde el 1 de mes');
+        pon2('k-tarde', String(tarde.length));
+        pon2('k-tarde-pie', tarde.length ? 'pendientes o aprobadas sin cerrar' : 'nada atascado');
 
-      var t = tabla && tabla.closest('table');
-      if (!t) return;
-      var pl = plantillaFilas(t); if (!pl) return;
-      if (!ss.length) {
-        pl.tbody.innerHTML = '<tr><td colspan="7" style="padding:18px;text-align:center;font:400 13px \'Neue Kabel\',sans-serif;color:#8A8474">Ninguna solicitud registrada.</td></tr>';
-        return;
+        pon2('c-todas', String(ss.length));
+        pon2('c-pendiente', String(pend.length));
+        pon2('c-aprobada', String(aprob.length));
+        pon2('c-resueltas', String(ss.filter(function (x) { return RESUELTAS.indexOf(x.estado) >= 0; }).length));
+
+        if (!tabla) return;
+        if (!ss.length) {
+          tabla.innerHTML = '<tr><td colspan="8" style="padding:18px;text-align:center;font:400 13px \'Neue Kabel\',sans-serif;color:#8A8474">Ninguna solicitud registrada.</td></tr>';
+          return;
+        }
+        tabla.innerHTML = ss.slice(0, 25).map(function (x) {
+          var c = ct[x.contrato_id]; var u = us[x.creado_por];
+          /* Marca visual: solo las nacidas solas de una comisión de manager llevan
+             el badge — el resto (`origen='manual'`) es lo que ya se veía antes. */
+          var origenHtml = x.origen === 'comision_automatica'
+            ? '<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;background:#104C4F;color:#fff;font:600 10.5px \'Neue Kabel\',sans-serif;text-transform:uppercase;letter-spacing:.04em"><span class="material-symbols-outlined" style="font-size:13px;line-height:1">bolt</span>Automática</span>'
+            : '<span style="font:500 11px \'Neue Kabel\',sans-serif;color:#8A8474">Manual</span>';
+          return '<tr class="border-b border-outline-variant/30">' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface"><b>SP-' + esc(x.numero) + '</b></td>' +
+            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(u ? (u.nombre || u.email) : '—') + '</td>' +
+            '<td class="px-5 py-4">' + origenHtml + '</td>' +
+            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(x.concepto || '—') + '</td>' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(fmt(x.importe, x.moneda || 'EUR')) + '</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(c ? [c.numero, tipoC(c.tipo), c.proyecto_nombre].filter(Boolean).join(' · ') : '—') + '</td>' +
+            '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-surface-container-high font-label-md text-[11px] uppercase tracking-wider">' + esc(ETIQUETA[x.estado] || x.estado) + '</span></td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline text-right">' + diasDesde(x.creado_en) + ' d</td>' +
+            '</tr>';
+        }).join('');
       }
-      ss.slice(0, 25).forEach(function (x) {
-        var c = ct[x.contrato_id];
-        var u = us[x.creado_por];
-        fila(pl, [
-          'SP-' + x.numero,
-          u ? (u.nombre || u.email) : '—',
-          x.concepto || '—',
-          fmt(x.importe, x.moneda || 'EUR'),
-          c ? [c.numero, tipoC(c.tipo), c.proyecto_nombre].filter(Boolean).join(' · ') : '—',
-          ETIQUETA[x.estado] || x.estado,
-          diasDesde(x.creado_en) + ' d'
-        ]);
-      });
+
+      function pintaEquipo(cd, eqs, miembros) {
+        var hoyISO = new Date().toISOString().slice(0, 10);
+        var miEmail = ((window.LW_V4 && window.LW_V4.miEmail) || '').toLowerCase();
+        var esAdminSesion = !!(window.LW_V4 && window.LW_V4.esAdmin);
+
+        var miEquipoIds = eqs.filter(function (e) { return (e.manager_email || '').toLowerCase() === miEmail; }).map(function (e) { return e.id; });
+        var misCloserEmails = {};
+        miembros.forEach(function (em) {
+          if (miEquipoIds.indexOf(em.equipo_id) !== -1 && miembroActivo(em, hoyISO)) misCloserEmails[(em.closer_email || '').toLowerCase()] = true;
+        });
+        // equipo ACTUAL de cada closer (columna «Equipo» + filtro): membresía activa hoy.
+        var eqPorId = {}; eqs.forEach(function (e) { eqPorId[e.id] = e; });
+        var equipoDe = {};
+        miembros.forEach(function (em) {
+          if (!miembroActivo(em, hoyISO)) return;
+          var e = eqPorId[em.equipo_id]; if (!e) return;
+          equipoDe[(em.closer_email || '').toLowerCase()] = e.nombre;
+        });
+
+        var pend = cd.filter(function (x) { return x.estado === 'pendiente'; }).length;
+        var pag = cd.filter(function (x) { return x.estado === 'pagada'; }).length;
+        var disp = cd.filter(function (x) { return x.estado === 'en_disputa'; }).length;
+        pon2('ceq-todos', String(cd.length));
+        pon2('ceq-pendiente', String(pend));
+        pon2('ceq-pagada', String(pag));
+        pon2('ceq-en_disputa', String(disp));
+
+        // selector de equipos: solo los que de verdad aparecen en este reparto
+        var selEq = document.getElementById('lw-eq-equipo');
+        if (selEq && selEq.options.length <= 1) {
+          var nombres = {};
+          cd.forEach(function (x) { var n = equipoDe[(x.beneficiario_email || '').toLowerCase()]; if (n) nombres[n] = true; });
+          Object.keys(nombres).sort().forEach(function (n) {
+            var o = document.createElement('option'); o.value = n; o.textContent = n; selEq.appendChild(o);
+          });
+        }
+
+        if (!tablaEq) return;
+        if (!cd.length) {
+          tablaEq.innerHTML = '<tr><td colspan="7" style="padding:18px;text-align:center;font:400 13px \'Neue Kabel\',sans-serif;color:#8A8474">Nada que repartir todavía — aquí aparecerá cada comisión de closer en cuanto se devengue una.</td></tr>';
+          return;
+        }
+        /* El registro va por ID, nunca por nombre (esc() no basta contra comillas
+           dentro de un `onclick` de string): `marcarComisionPagada` solo recibe el
+           id y busca la etiqueta aquí. */
+        window.LW_V4 = window.LW_V4 || {};
+        window.LW_V4.comisionesPorId = {};
+        tablaEq.innerHTML = cd.slice(0, 150).map(function (x) {
+          var email = x.beneficiario_email || '';
+          var u = porEmail[email.toLowerCase()];
+          var etiqueta = u ? (u.nombre || email) : email;
+          var c = ct[x.contrato_raiz_id];
+          var equipoNombre = equipoDe[email.toLowerCase()] || '—';
+          window.LW_V4.comisionesPorId[x.id] = { etiqueta: etiqueta };
+          var puedeMarcar = x.estado === 'pendiente' && (esAdminSesion || misCloserEmails[email.toLowerCase()]);
+          var accion = puedeMarcar
+            ? '<button type="button" data-eq-pagar="' + esc(x.id) + '" style="padding:7px 16px;border-radius:999px;border:0;background:#104C4F;color:#fff;font:600 12px \'Neue Kabel\',sans-serif;cursor:pointer">Marcar pagada</button>'
+            : '<span style="font:500 12px \'Neue Kabel\',sans-serif;color:#8A8474">—</span>';
+          return '<tr class="border-b border-outline-variant/30" data-eq-estado="' + esc(x.estado) + '" data-eq-equipo="' + esc(equipoNombre) + '">' +
+            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(etiqueta) + '</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(equipoNombre) + '</td>' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(fmt(x.importe, x.moneda || 'EUR')) + '</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(c ? [c.numero, tipoC(c.tipo), c.proyecto_nombre].filter(Boolean).join(' · ') : '—') + '</td>' +
+            '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' + (TAGCLASE_EQ[x.estado] || 'bg-surface-container-high') + '">' + esc(ETIQUETA_EQ[x.estado] || x.estado) + '</span></td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + fFecha(x.disparado_en) + '</td>' +
+            '<td class="px-5 py-4 text-right">' + accion + '</td>' +
+            '</tr>';
+        }).join('');
+
+        cablearFiltrosEquipo();
+      }
+
+      /* ---------- filtro de la pestaña «Reparto de equipo» ----------
+         Puramente cliente: las filas ya están todas pintadas (la RLS ya decidió
+         cuáles llegan), esto solo enseña/oculta. Se cablea una vez por carga de
+         página — no hay repintado de esta tabla salvo recarga completa. */
+      function cablearFiltrosEquipo() {
+        var buscar = document.getElementById('lw-eq-buscar');
+        var selEq = document.getElementById('lw-eq-equipo');
+        var chips = document.querySelectorAll('.lw-eq-chip');
+        if (!tablaEq || tablaEq.getAttribute('data-filtros-listos')) return;
+        tablaEq.setAttribute('data-filtros-listos', '1');
+        var filtroEstado = 'todos';
+        function aplica() {
+          var q = (buscar && buscar.value || '').toLowerCase();
+          var eq = selEq ? selEq.value : '';
+          tablaEq.querySelectorAll('tr[data-eq-estado]').forEach(function (tr) {
+            var okEstado = filtroEstado === 'todos' || tr.getAttribute('data-eq-estado') === filtroEstado;
+            var okEquipo = !eq || tr.getAttribute('data-eq-equipo') === eq;
+            var okTexto = !q || tr.textContent.toLowerCase().indexOf(q) !== -1;
+            tr.style.display = (okEstado && okEquipo && okTexto) ? '' : 'none';
+          });
+        }
+        if (buscar) buscar.addEventListener('input', aplica);
+        if (selEq) selEq.addEventListener('change', aplica);
+        chips.forEach(function (b) {
+          b.addEventListener('click', function (ev) {
+            ev.stopPropagation();   // si no, maqueta.js la ve pasar y avisa «sin cablear»
+            filtroEstado = b.getAttribute('data-eq-f') || 'todos';
+            chips.forEach(function (h) {
+              var on = h === b;
+              h.classList.toggle('bg-primary-container', on);
+              h.classList.toggle('text-on-primary', on);
+              h.classList.toggle('bg-surface-container-low', !on);
+              h.classList.toggle('text-on-surface-variant', !on);
+            });
+            aplica();
+          });
+        });
+        // clic en «Marcar pagada»: delega en editores.js (ED.comisiones), que es
+        // quien tiene la sesión/policy para escribir. Aquí solo se localiza el id.
+        tablaEq.addEventListener('click', function (ev) {
+          var b = ev.target.closest && ev.target.closest('[data-eq-pagar]');
+          if (!b) return;
+          ev.preventDefault(); ev.stopPropagation();
+          var id = b.getAttribute('data-eq-pagar');
+          var info = (window.LW_V4 && window.LW_V4.comisionesPorId && window.LW_V4.comisionesPorId[id]) || {};
+          if (window.LW_V4 && typeof window.LW_V4.marcarComisionPagada === 'function') {
+            window.LW_V4.marcarComisionPagada(id, info.etiqueta || '');
+          } else {
+            toast('El editor de comisiones aún no ha cargado — prueba de nuevo en un segundo.');
+          }
+        });
+      }
     });
   };
 
@@ -2115,6 +2271,12 @@
       var rol = (aut.ficha && aut.ficha.rol) || '—';
       document.querySelectorAll('[data-lw-user]').forEach(function (e) { e.textContent = quien; });
       document.querySelectorAll('[data-lw-rol]').forEach(function (e) { e.textContent = rol; });
+      /* Identidad de la sesión, para pantallas que deciden algo por email/rol
+         (hoy: «Reparto de equipo» — es el manager del equipo, o admin). Se
+         guarda aquí y no dentro de cada REG[seg], que solo recibe `sb`. */
+      window.LW_V4 = window.LW_V4 || {};
+      window.LW_V4.miEmail = (aut.session && aut.session.user && aut.session.user.email) || '';
+      window.LW_V4.esAdmin = rol === 'admin' || rol === 'super_admin';
 
       /* La cabecera de Home traia «3 de Septiembre de 2026» escrito a mano: la
          fecha de la captura de Stitch. Una fecha congelada no envejece con un

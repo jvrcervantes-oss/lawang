@@ -410,6 +410,31 @@
       });
     },
 
+    /* Comisiones (antes «Solicitudes», renombrada 14-sep-2026). La pestaña «A
+       Lawang» sigue siendo solo lectura — su escritura real vive en
+       /intranet/solicitudes/, con la máquina de estados en la base. Lo único
+       nativo de aquí es «Marcar pagada» en «Reparto de equipo»: un UPDATE
+       directo sobre `comisiones_devengadas`, con la policy (manager del
+       equipo, o admin) como único gate — esta pantalla solo la refleja
+       (datos.js decide si enseñar el botón; la policy decide si el UPDATE
+       cuaja). */
+    comisiones: function (aut) {
+      var sb = aut.sb;
+      var miEmail = (aut.session && aut.session.user && aut.session.user.email) || '';
+      window.LW_V4 = window.LW_V4 || {};
+      window.LW_V4.marcarComisionPagada = function (id, etiqueta) {
+        modal('Marcar pagada — ' + (etiqueta || 'closer'), [
+          { tipo: 'nota', label: 'Confirmas que ya se le ha pagado a ' + (etiqueta || 'este closer') +
+            ' POR TU CUENTA, como manager del equipo — Lawang no interviene en este pago ni lo tramita. ' +
+            'Quedará registrado como pagado, con tu email y la fecha de hoy.' }
+        ], 'Confirmar: pagada', function () {
+          return sb.from('comisiones_devengadas').update({
+            estado: 'pagada', pagado_por: miEmail, pagado_en: new Date().toISOString()
+          }).eq('id', id);
+        });
+      };
+    },
+
     proyectos: function (aut) {
       var sb = aut.sb;
       var ficha = aut.ficha;
