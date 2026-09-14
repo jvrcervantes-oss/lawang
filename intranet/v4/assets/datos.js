@@ -1830,6 +1830,242 @@
     }
   };
 
+
+  /* ══════════════ las tres que la maqueta no tenia (14-sep-2026) ══════════════
+     CRM, Solicitudes y Cuentas ya estaban vivas en /intranet/ y la v4 se habia
+     quedado atras. Sus pantallas se construyeron con la cascara de `modelos/` y
+     sus anclas son `data-lw` propias — no hace falta el rastreo por TEXTO que
+     usan las pantallas heredadas de Stitch. Siguen las mismas reglas de la
+     cabecera de este fichero: solo lectura, importes por `lwFormatoImporte`,
+     fallo ruidoso, y el marcado no trae ni un dato real (este repo es publico:
+     lo real entra aqui, en tiempo de ejecucion y detras de guard.js). */
+
+  function diasDesde(x) { return x ? Math.floor((Date.now() - new Date(x).getTime()) / 86400000) : null; }
+
+  /* ---------- CRM de leads ---------- */
+  REG.leads = function (sb) {
+    var DIAS_VIEJO = 14;                       // el mismo umbral que leads.js
+    var COLS = ['nuevo', 'contactado', 'visita', 'reserva', 'contrato', 'perdido'];
+    var kanban = document.getElementById('lw-kanban');
+
+    q(sb.rpc('crm_leads'), 'leads del CRM', kanban).then(function (ls) {
+      if (!ls) return;
+      var porCol = {};
+      COLS.forEach(function (c) { porCol[c] = []; });
+      ls.forEach(function (l) { (porCol[l.estado] || porCol.nuevo).push(l); });
+
+      var sin = porCol.nuevo.length;
+      var parados = porCol.nuevo.filter(function (l) { return diasDesde(l.estado_desde) >= DIAS_VIEJO; }).length;
+      var cerrados = porCol.reserva.length + porCol.contrato.length;
+      /* Un decimal, como el CRM vivo. Sin leads no es 0%: es que no hay con que
+         calcularlo, y una conversion del 0% dice algo que no ha pasado. */
+      var conv = ls.length ? (Math.round(cerrados / ls.length * 1000) / 10) + '%' : '—';
+
+      pon2('k-leads', String(ls.length));
+      pon2('k-leads-pie', 'todos los canales');
+      pon2('k-sincontactar', String(sin));
+      pon2('k-sincontactar-pie', parados + ' llevan mas de ' + DIAS_VIEJO + ' dias parados');
+      pon2('k-cerrados', String(cerrados));
+      pon2('k-cerrados-pie', 'de ' + ls.length + ' leads');
+      pon2('k-conversion', conv);
+      pon2('k-conversion-pie', ls.length ? 'llegan a firmar' : 'sin leads que medir');
+
+      /* Los chips por canal se siembran de los `source` que HAY, no de una lista
+         escrita a mano: un canal nuevo apareceria con 0 en una lista fija. */
+      var porCanal = {};
+      ls.forEach(function (l) { var s = l.source || 'sin origen'; porCanal[s] = (porCanal[s] || 0) + 1; });
+      pon2('c-todos', String(ls.length));
+      pon2('c-meta', String(porCanal.meta || porCanal.facebook || 0));
+      pon2('c-web', String(porCanal.web || 0));
+      pon2('c-parados', String(ls.filter(function (l) { return diasDesde(l.estado_desde) >= DIAS_VIEJO; }).length));
+
+      COLS.forEach(function (c) {
+        pon2('col-' + c, String(porCol[c].length));
+        var caja = document.querySelector('[data-col-cards="' + c + '"]');
+        if (!caja) return;
+        if (!porCol[c].length) {
+          caja.innerHTML = '<p style="font:400 12px \'Neue Kabel\',sans-serif;color:#8A8474;margin:0">Ninguno aqui.</p>';
+          return;
+        }
+        caja.innerHTML = porCol[c].slice(0, 4).map(function (l) {
+          var d = diasDesde(l.estado_desde);
+          var viejo = d !== null && d >= DIAS_VIEJO;
+          return '<div style="padding:9px 11px;background:#fbf9f4;border:1px solid ' +
+            (viejo ? '#ba1a1a' : '#e4e2dd') + ';border-radius:9px;font-family:\'Neue Kabel\',sans-serif">' +
+            '<div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' +
+            esc(l.name || 'sin nombre') + '</div>' +
+            '<div style="font-size:11px;color:' + (viejo ? '#93000a' : '#8A8474') + '">' +
+            esc(l.source || 'sin origen') + (d === null ? '' : ' · ' + d + ' d') + '</div></div>';
+        }).join('') + (porCol[c].length > 4
+          ? '<p style="font:600 11px \'Neue Kabel\',sans-serif;color:#8A8474;margin:2px 0 0">y ' +
+            (porCol[c].length - 4) + ' mas</p>' : '');
+      });
+    });
+
+    var cajaCamp = document.getElementById('lw-campanas');
+    q(sb.rpc('crm_campanas'), 'campanas del CRM', cajaCamp).then(function (cs) {
+      if (!cs || !cajaCamp) return;
+      if (!cs.length) { cajaCamp.innerHTML = '<p style="font:400 13px \'Neue Kabel\',sans-serif;color:#44483f;margin:0">Ninguna campana registrada.</p>'; return; }
+      cajaCamp.innerHTML = cs.slice(0, 8).map(function (c) {
+        var cpl = Number(c.leads) ? fmt(Math.round(Number(c.gasto || 0) / Number(c.leads)), c.moneda || 'EUR') : '—';
+        return itemPanel(esc(c.nombre || c.cliente || '—'),
+                         esc(fmt(c.gasto, c.moneda || 'EUR')) + ' · ' + esc(cpl) + '/lead',
+                         (c.leads == null ? '—' : c.leads) + ' leads');
+      }).join('');
+    });
+
+    var cajaCl = document.getElementById('lw-closers');
+    q(sb.rpc('crm_ranking_closers', { p_solo_raices: true }), 'ranking de closers', cajaCl).then(function (rs) {
+      if (!rs || !cajaCl) return;
+      if (!rs.length) { cajaCl.innerHTML = '<p style="font:400 13px \'Neue Kabel\',sans-serif;color:#44483f;margin:0">Nadie tiene ventas atribuidas todavia.</p>'; return; }
+      cajaCl.innerHTML = rs.slice(0, 8).map(function (r) {
+        return itemPanel(esc(r.closer_email || '—'),
+                         (r.contratos || 0) + ' contratos · firmado ' + esc(fmt(r.firmado, 'EUR')),
+                         esc(fmt(r.cobrado, 'EUR')));
+      }).join('');
+    });
+  };
+
+  /* ---------- Solicitudes de pago ---------- */
+  REG.solicitudes = function (sb) {
+    var RESUELTAS = ['pagada', 'rechazada', 'anulada'];
+    var ETIQUETA = { pendiente: 'Pendiente', aprobada: 'Aprobada', rechazada: 'Rechazada', anulada: 'Anulada', pagada: 'Pagada' };
+    var tabla = document.getElementById('lw-filas');
+    var caja = tabla ? tabla.closest('section') : null;
+
+    Promise.all([
+      q(sb.from('solicitudes_pago').select('numero,concepto,importe,moneda,estado,creado_en,creado_por,contrato_id,pagado_en').order('creado_en', { ascending: false }), 'solicitudes de pago', caja),
+      q(sb.from('contratos').select('id,numero,tipo,proyecto_nombre'), 'contratos'),
+      /* Si la RLS de `usuarios` solo deja leer la propia ficha, el mapa se queda
+         corto y el fallback pinta «—»: no es un fallo, es lo que esa sesion ve. */
+      q(sb.from('usuarios').select('user_id,nombre,email'), 'usuarios')
+    ]).then(function (r) {
+      var ss = r[0]; if (!ss) return;
+      var ct = {}; (r[1] || []).forEach(function (c) { ct[c.id] = c; });
+      var us = {}; (r[2] || []).forEach(function (u) { us[u.user_id] = u; });
+
+      var pend = ss.filter(function (x) { return x.estado === 'pendiente'; });
+      var aprob = ss.filter(function (x) { return x.estado === 'aprobada'; });
+      /* Suma por moneda y NUNCA entre monedas: 500 EUR + 500 USD no son «1.000
+         nada» (regla del modelo de venta, `contexto/patrones_tecnicos.md`). */
+      var porMoneda = {};
+      aprob.forEach(function (x) { var m = x.moneda || 'EUR'; porMoneda[m] = (porMoneda[m] || 0) + (Number(x.importe) || 0); });
+      var sumas = Object.keys(porMoneda).sort().map(function (m) { return fmt(porMoneda[m], m); }).join(' · ');
+      var pagadasMes = ss.filter(function (x) { return x.estado === 'pagada' && x.pagado_en && new Date(x.pagado_en) >= mesIni; });
+      var tarde = ss.filter(function (x) {
+        return (x.estado === 'pendiente' || x.estado === 'aprobada') && diasDesde(x.creado_en) >= 14;
+      });
+
+      pon2('k-pendientes', String(pend.length));
+      pon2('k-pendientes-pie', pend.length ? 'la mas vieja lleva ' + diasDesde(pend[pend.length - 1].creado_en) + ' dias' : 'nada esperando');
+      pon2('k-aprobadas', String(aprob.length));
+      pon2('k-aprobadas-pie', aprob.length ? sumas : 'nada aprobado sin pagar');
+      pon2('k-pagadas', String(pagadasMes.length));
+      pon2('k-pagadas-pie', 'desde el 1 de mes');
+      pon2('k-tarde', String(tarde.length));
+      pon2('k-tarde-pie', tarde.length ? 'pendientes o aprobadas sin cerrar' : 'nada atascado');
+
+      pon2('c-todas', String(ss.length));
+      pon2('c-pendiente', String(pend.length));
+      pon2('c-aprobada', String(aprob.length));
+      pon2('c-resueltas', String(ss.filter(function (x) { return RESUELTAS.indexOf(x.estado) >= 0; }).length));
+
+      var t = tabla && tabla.closest('table');
+      if (!t) return;
+      var pl = plantillaFilas(t); if (!pl) return;
+      if (!ss.length) {
+        pl.tbody.innerHTML = '<tr><td colspan="7" style="padding:18px;text-align:center;font:400 13px \'Neue Kabel\',sans-serif;color:#8A8474">Ninguna solicitud registrada.</td></tr>';
+        return;
+      }
+      ss.slice(0, 25).forEach(function (x) {
+        var c = ct[x.contrato_id];
+        var u = us[x.creado_por];
+        fila(pl, [
+          'SP-' + x.numero,
+          u ? (u.nombre || u.email) : '—',
+          x.concepto || '—',
+          fmt(x.importe, x.moneda || 'EUR'),
+          c ? [c.numero, tipoC(c.tipo), c.proyecto_nombre].filter(Boolean).join(' · ') : '—',
+          ETIQUETA[x.estado] || x.estado,
+          diasDesde(x.creado_en) + ' d'
+        ]);
+      });
+    });
+  };
+
+  /* ---------- Cuentas de cobro y su reparto ---------- */
+  REG.cuentas = function (sb) {
+    var tbody = document.getElementById('lw-reparto');
+    var cajaRep = tbody ? tbody.closest('section') : null;
+    var cajaCu = document.getElementById('lw-cuentas');
+
+    Promise.all([
+      /* `es_escrow` es una COLUMNA, no el prefijo `notario_` de la clave: la
+         convencion de nombre valia mientras las cuentas nacian por SQL. */
+      q(sb.from('cuentas_bancarias').select('clave,label,titular,banco,activa,es_escrow,orden').order('orden'), 'cuentas bancarias', cajaCu),
+      q(sb.from('plantillas_pago').select('slug,nombre,orden').order('orden'), 'plantillas de pago', cajaRep),
+      q(sb.from('plantilla_cuentas').select('slug,clave,es_default'), 'reparto por contrato'),
+      q(sb.from('proyecto_cuentas').select('proyecto_id,slug,clave,es_default'), 'reparto por proyecto')
+    ]).then(function (r) {
+      var cus = r[0], pls = r[1], rep = r[2], repProy = r[3];
+      if (!cus || !pls || !rep) return;
+
+      var porClave = {};
+      cus.forEach(function (c) { porClave[c.clave] = c; });
+      var activas = cus.filter(function (c) { return c.activa; });
+      var escrow = cus.filter(function (c) { return c.es_escrow; });
+
+      var porSlug = {};
+      rep.forEach(function (x) { (porSlug[x.slug] = porSlug[x.slug] || []).push(x); });
+      var huerfanas = pls.filter(function (p) { return !(porSlug[p.slug] || []).length; });
+
+      pon2('k-activas', String(activas.length));
+      pon2('k-total', String(cus.length));
+      pon2('k-activas-pie', (cus.length - activas.length) + ' dadas de baja');
+      pon2('k-plantillas', String(pls.length));
+      pon2('k-plantillas-pie', (repProy || []).length + ' excepciones por proyecto');
+      pon2('k-huerfanas', String(huerfanas.length));
+      /* Una plantilla sin cuentas marcadas lo dice en voz alta: un desplegable
+         vacio sin explicacion acaba en una cuenta escrita a mano. */
+      pon2('k-huerfanas-pie', huerfanas.length
+        ? huerfanas.slice(0, 3).map(function (p) { return p.nombre; }).join(' · ')
+        : 'todas ofrecen alguna cuenta');
+      pon2('k-escrow', String(escrow.length));
+      pon2('k-escrow-pie', escrow.length ? 'declaradas por columna, no por nombre' : 'ninguna marcada');
+
+      var t = tbody && tbody.closest('table');
+      if (t) {
+        var pl = plantillaFilas(t);
+        if (pl) {
+          if (!pls.length) {
+            pl.tbody.innerHTML = '<tr><td colspan="3" style="padding:18px;text-align:center;font:400 13px \'Neue Kabel\',sans-serif;color:#8A8474">Ningun documento de pago registrado.</td></tr>';
+          } else {
+            pls.forEach(function (p) {
+              var filas = porSlug[p.slug] || [];
+              var etiqueta = function (x) { var c = porClave[x.clave]; return c ? (c.label || c.clave) : x.clave; };
+              var def = filas.filter(function (x) { return x.es_default; })[0];
+              fila(pl, [
+                p.nombre || p.slug,
+                filas.length ? filas.map(etiqueta).join(' · ') : 'sin cuenta marcada',
+                def ? etiqueta(def) : '—'
+              ]);
+            });
+          }
+        }
+      }
+
+      if (cajaCu) {
+        cajaCu.innerHTML = cus.length
+          ? cus.map(function (c) {
+              return itemPanel(esc(c.label || c.clave) + (c.es_escrow ? ' · escrow' : ''),
+                               esc([c.banco, c.titular].filter(Boolean).join(' — ') || '—'),
+                               c.activa ? 'activa' : 'de baja');
+            }).join('')
+          : '<p style="font:400 13px \'Neue Kabel\',sans-serif;color:#44483f;margin:0">Ninguna cuenta dada de alta.</p>';
+      }
+    });
+  };
+
   /* Las 3 pantallas moviles comparten datos con sus hermanas de escritorio:
      misma tabla, mismos handlers. El registro va por ultimo segmento de ruta,
      asi que "contratos.html" (movil) apunta al mismo handler que "contratos".
@@ -1877,6 +2113,14 @@
       var rol = (aut.ficha && aut.ficha.rol) || '—';
       document.querySelectorAll('[data-lw-user]').forEach(function (e) { e.textContent = quien; });
       document.querySelectorAll('[data-lw-rol]').forEach(function (e) { e.textContent = rol; });
+
+      /* La cabecera de Home traia «3 de Septiembre de 2026» escrito a mano: la
+         fecha de la captura de Stitch. Una fecha congelada no envejece con un
+         aviso, envejece en silencio — y en una consola operativa lo que dice es
+         que lo de debajo es de ese dia. Se pinta la de hoy, aqui y no en el HTML,
+         que es donde ya se pintan el usuario y el rol. */
+      var hoy = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+      document.querySelectorAll('[data-lw-hoy]').forEach(function (e) { e.textContent = hoy; });
 
       /* La campana marcaba «18» en las 18 pantallas: un numero de Stitch. Aqui se
          cuentan los HECHOS reales de `notificaciones` posteriores al ultimo visto.

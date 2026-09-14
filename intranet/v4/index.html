@@ -44,6 +44,7 @@ tailwind.config = {
   </div>
   <nav class="flex flex-col gap-1 text-sm">
     <a href="home/" class="flex items-center gap-3 rounded px-3 py-2 bg-territorial-green text-raw-linen"><span class="material-symbols-outlined text-[18px]">dashboard</span>Home</a>
+    <a href="leads/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">person_search</span>CRM</a>
     <a href="operaciones/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">sync_alt</span>Operaciones</a>
     <a href="soporte/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">support_agent</span>Soporte</a>
     <a href="vencimientos/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">event_upcoming</span>Vencimientos</a>
@@ -52,11 +53,13 @@ tailwind.config = {
     <a href="proyectos/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">folder</span>Documentación</a>
     <a href="facturas/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">receipt_long</span>Facturas</a>
     <a href="recibos/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">payments</span>Recibos</a>
+    <a href="solicitudes/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">request_quote</span>Solicitudes</a>
     <a href="proyectos/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">apartment</span>Proyectos</a>
     <a href="modelos/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">villa</span>Modelos</a>
     <a href="obra/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">engineering</span>Obra</a>
     <a href="compradores/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">badge</span>Compradores</a>
     <a href="usuarios/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">manage_accounts</span>Usuarios</a>
+    <a href="cuentas/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">account_balance</span>Cuentas</a>
   </nav>
   <div class="mt-auto pt-8 border-t border-outline-variant/70">
     <p class="font-ui text-[10px] uppercase tracking-[0.2em] text-control-border">Maqueta v4 · datos ficticios</p>
@@ -82,6 +85,7 @@ tailwind.config = {
     <h2 class="font-ui text-[11px] uppercase tracking-[0.2em] text-control-border border-b border-outline-variant pb-2 mb-5">Gestión</h2>
     <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
       <a href="proyectos/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">apartment</span><p class="font-display text-xl font-semibold mt-2">Proyectos</p><p class="text-sm text-volcanic-ash/70 mt-1">Inventario de proyectos &amp; suelo</p></a>
+      <a href="leads/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">person_search</span><p class="font-display text-xl font-semibold mt-2">CRM</p><p class="text-sm text-volcanic-ash/70 mt-1">Leads de Meta y web &middot; pipeline y closers</p></a>
       <a href="modelos/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">villa</span><p class="font-display text-xl font-semibold mt-2">Modelos</p><p class="text-sm text-volcanic-ash/70 mt-1">Catálogo de vivienda &amp; ficha técnica</p></a>
       <a href="proyectos/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">account_tree</span><p class="font-display text-xl font-semibold mt-2">Proyectos &middot; Inventario &amp; Cuentas</p><p class="text-sm text-volcanic-ash/70 mt-1">Cartera, parcelas por desarrollo y estado de cuentas</p></a>
       <a href="compradores/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">badge</span><p class="font-display text-xl font-semibold mt-2">Compradores</p><p class="text-sm text-volcanic-ash/70 mt-1">Directorio de compradores &amp; inversores</p></a>
@@ -104,6 +108,8 @@ tailwind.config = {
       <a href="facturas/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">receipt_long</span><p class="font-display text-xl font-semibold mt-2">Facturas</p><p class="text-sm text-volcanic-ash/70 mt-1">Facturación &amp; proformas</p></a>
       <a href="recibos/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">payments</span><p class="font-display text-xl font-semibold mt-2">Recibos</p><p class="text-sm text-volcanic-ash/70 mt-1">Recibos &amp; justificantes de cobro</p></a>
       <a href="vencimientos/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">event_upcoming</span><p class="font-display text-xl font-semibold mt-2">Vencimientos</p><p class="text-sm text-volcanic-ash/70 mt-1">Vencimientos &amp; tesorería</p></a>
+      <a href="solicitudes/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">request_quote</span><p class="font-display text-xl font-semibold mt-2">Solicitudes</p><p class="text-sm text-volcanic-ash/70 mt-1">Lo que el equipo pide cobrar, y su estado</p></a>
+      <a href="cuentas/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">account_balance</span><p class="font-display text-xl font-semibold mt-2">Cuentas de cobro</p><p class="text-sm text-volcanic-ash/70 mt-1">A d&oacute;nde transfiere el comprador, documento a documento</p></a>
     </div>
   </section>
 

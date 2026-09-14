@@ -29,7 +29,12 @@
     ['Modelos', 'modelos/'],
     ['Obra', 'obra/'],
     ['Compradores', 'compradores/'],
-    ['Usuarios', 'usuarios/']
+    ['Usuarios', 'usuarios/'],
+    /* Las tres que Stitch no dibujo nunca: nacieron despues de la descarga.
+       Se enlazan aqui igual que las demas y se INJERTAN abajo (INJERTOS). */
+    ['CRM', 'leads/'],
+    ['Solicitudes', 'solicitudes/'],
+    ['Cuentas', 'cuentas/']
   ];
 
   function normaliza(t) { return (t || '').replace(/\s+/g, ' ').trim(); }
@@ -41,38 +46,57 @@
     a.classList.add('bg-primary-container', 'text-on-primary', 'font-bold');
   }
 
-  /* Modelos no existe en el diseno de Stitch: la herramienta nacio el 7-sep-2026,
-     despues de la descarga, y su pantalla la construyo el estudio con los tokens
-     del sistema. El item de menu se INYECTA aqui en vez de anadirlo a mano en las
-     19 sidebars: la cascara esta duplicada por ser maqueta, pero la navegacion no
-     — una lista copiada en dos sitios ES el bug, y con 19 copias la siguiente
-     herramienta se olvidaria en alguna. Se cuelga detras de Proyectos, que es
-     donde va en la suite viva (herramientas.js). */
+  /* Herramientas que NO existen en el diseno de Stitch: nacieron despues de la
+     descarga (Modelos el 7-sep; CRM, Solicitudes y Cuentas ya estaban vivas en
+     /intranet/ y la maqueta se habia quedado atras). Sus items de menu se
+     INYECTAN aqui en vez de anadirlos a mano en las 22 sidebars: la cascara
+     esta duplicada por ser maqueta, pero la navegacion no — una lista copiada
+     en dos sitios ES el bug, y con 22 copias la siguiente herramienta se
+     olvidaria en alguna.
+     El orden y el grupo salen de `contracts/assets/herramientas.js`, que es la
+     fuente unica del catalogo vivo: cada uno se cuelga detras de su vecino de
+     alli (CRM abre Seguimiento -> tras Home; Solicitudes cierra Administracion
+     -> tras Recibos; Cuentas es de Equipo -> tras Usuarios, que es el ultimo
+     del menu de la maqueta). */
+  var INJERTOS = [
+    { path: 'leads',       tras: 'home',     icono: 'person_search',  texto: 'CRM' },
+    { path: 'solicitudes', tras: 'recibos',  icono: 'request_quote',  texto: 'Solicitudes' },
+    { path: 'cuentas',     tras: 'usuarios', icono: 'account_balance', texto: 'Cuentas' }
+  ];
+
   /* Documentacion se fusiono dentro de Proyectos (owner, 8-sep): la pestana
      desaparece de la v4. Se oculta desde aqui — un solo fichero — en vez de
-     editar 19 sidebars; el fichero de la pantalla queda como redireccion. */
+     editar 22 sidebars; el fichero de la pantalla queda como redireccion. */
   function retiraDocumentacion(aside) {
     var a = aside.querySelector('[data-path="documentacion"]');
     if (a) a.style.display = 'none';
   }
 
-  function injertaModelos(aside) {
-    if (aside.querySelector('[data-path="modelos"]')) return;
-    var ancla = aside.querySelector('[data-path="proyectos"]');
-    if (!ancla) return;                       // sin Proyectos no hay donde colgarlo
+  /* Un solo injertador para los cuatro casos. Clona el enlace vecino para
+     heredar sus clases exactas: escribirlas a mano seria la misma lista de
+     Tailwind copiada, y divergiria al primer retoque de la cascara. */
+  function injerta(aside, spec) {
+    if (aside.querySelector('[data-path="' + spec.path + '"]')) return;
+    var ancla = aside.querySelector('[data-path="' + spec.tras + '"]');
+    if (!ancla) return;                       // sin el vecino no hay donde colgarlo
     var a = ancla.cloneNode(true);            // clon: hereda las clases exactas
-    a.setAttribute('data-path', 'modelos');
+    a.setAttribute('data-path', spec.path);
     a.removeAttribute('aria-current');
     var spans = a.querySelectorAll('span');
     if (spans.length < 2) return;
-    spans[0].textContent = 'villa';           // ligadura de material-symbols
-    spans[1].textContent = 'Modelos';
+    spans[0].textContent = spec.icono;        // ligadura de material-symbols
+    spans[1].textContent = spec.texto;
     ancla.insertAdjacentElement('afterend', a);
+  }
+
+  function injertaNuevas(aside) {
+    injerta(aside, { path: 'modelos', tras: 'proyectos', icono: 'villa', texto: 'Modelos' });
+    INJERTOS.forEach(function (spec) { injerta(aside, spec); });
   }
 
   function recablea() {
     var aqui = location.pathname;
-    document.querySelectorAll('aside').forEach(injertaModelos);
+    document.querySelectorAll('aside').forEach(injertaNuevas);
     document.querySelectorAll('aside').forEach(retiraDocumentacion);
     document.querySelectorAll('aside a[href="#"], nav a[href="#"]').forEach(function (a) {
       // 1º por data-path (cáscara canónica); 2º por texto (páginas sin él)
