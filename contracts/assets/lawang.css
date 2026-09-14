@@ -2042,7 +2042,7 @@ input.lw-elegible:disabled{ cursor:default; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   app.css   sha256:1ccebf509acf
+   app.css   sha256:be4bf7a22156
    ───────────────────────────────────────────────────────────────────── */
 /* Estilos propios del Generador de Contratos — sacados de app.html el 17-ago-2026.
    ============================================================================
@@ -2667,6 +2667,59 @@ input.lw-elegible:disabled{ cursor:default; }
     .cp-cols{ display:none; }
     .cp-row{ grid-template-columns:1fr; gap:2px; }
     .cp-row span::before{ content:attr(data-l) ": "; color:var(--muted); }
+  }
+
+  /* ── EL REGISTRO EN PANTALLA ESTRECHA — 14-sep-2026 ──────────────────────
+     Corrección del mismo día, y el fallo era mío: al ensanchar las celdas di
+     por bueno el móvil porque «la tabla hace scroll dentro de su caja». Eso no
+     es legible. A 390px se veían DOS de las cinco columnas —fecha y un correo
+     cortado— con 411px escondidos detrás de una barra de scroll de 4px que ni
+     se ve (`scrollbar-width:thin` en toda la suite), y cada fila arrastraba un
+     hueco vertical enorme porque su altura la fijaba el asunto envuelto que
+     estaba fuera de pantalla. Y lo había EMPEORADO: con el aire nuevo y la vía
+     sin partir, la tabla pasó de pedir 475px a pedir 715.
+
+     Una tabla de cinco columnas no cabe en un móvil y no hay CSS que lo
+     arregle: lo que se hace es dejar de pintarla como tabla. Cada fila pasa a
+     ser una tarjeta y cada dato lleva delante el nombre de su columna, que es
+     EXACTAMENTE el mecanismo que ya usa el listado de contratos aquí arriba
+     (`.cp-row span::before` con `data-l`). Se copia ese, no se inventa otro.
+
+     EL CORTE ESTÁ MEDIDO, no elegido: con el banco de pruebas, el scroll
+     horizontal de la tabla de correos aparece cuando la ventana baja de 815px
+     (a 820 el contenido cabe justo; a 800 ya sobresalen 11px). 840 deja el
+     margen de la barra de scroll del sistema y del zoom del navegador. No se
+     hereda el 640 de `.cp-row` ni el 760 de `.sui-row` a propósito: los dos
+     dejarían un tramo de anchos con scroll escondido, que es el fallo. */
+  @media screen and (max-width:840px){
+    /* La caja ya no recorta nada, así que no necesita scroll propio. */
+    .reg-envoltura{ overflow-x:visible; }
+    /* Los rótulos de columna se van: los lleva cada dato. */
+    .reg-tabla thead{ display:none; }
+    .reg-tabla, .reg-tabla tbody, .reg-tabla tr, .reg-tabla td{ display:block; width:auto; }
+    .reg-tabla tr{ padding:10px 12px; border-bottom:1px solid var(--linea,#E4DCCB); }
+    .reg-tabla tbody tr:last-child{ border-bottom:none; }
+    /* El filete ya lo pone la tarjeta; entre datos sobra. */
+    /* LA ETIQUETA VA POSICIONADA, NO EN UNA REJILLA — y no es preferencia: con
+       `display:grid` en la celda, el nombre del firmante («ANA BELÉN…<br><span
+       class="em-note">adquiriente 1</span>») son TRES cosas sueltas para el
+       grid —un texto, un salto y un span—, así que el rol se iba a la columna
+       de la etiqueta y se leía como si fuera otro rótulo. Un nodo de texto
+       suelto no se puede colocar con CSS: no hay selector que lo alcance. Con
+       la etiqueta fuera del flujo y sangría a la izquierda, el contenido de la
+       celda se comporta como el texto que es, `<br>` incluido.
+
+       `overflow-wrap` y `min-width:0`: sin ellos un correo largo
+       (`jcervantes@lawangproperties.com`) es UNA palabra que no se puede partir,
+       así que estiraba la columna y devolvía los 7px de scroll horizontal que
+       esto viene a quitar. Solo aquí: en escritorio hay sitio y partir un correo
+       por la mitad se lee peor. */
+    .reg-tabla td{ padding:2px 0; border-bottom:none; min-width:0; overflow-wrap:anywhere; }
+    /* `[data-l]` y no `td` a secas: una celda sin etiqueta no debe reservar la
+       sangría ni pintar un rótulo vacío. */
+    .reg-tabla td[data-l]{ position:relative; padding-left:104px; min-height:1.5em; }
+    .reg-tabla td[data-l]::before{ content:attr(data-l); position:absolute; left:0; top:0;
+      width:96px; color:var(--texto-2,#4A5052); font-size:11.5px; line-height:1.5; }
   }
 
 /* ── multi-parcela (18-ago-2026): chips de lo elegido + añadidor ─────────────

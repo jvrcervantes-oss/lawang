@@ -17,7 +17,7 @@
      uno, para que ninguna herramienta pueda cargar media suite: antes
      Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
      salieron los desplegables con cuatro aspectos. -->
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=8c0dbd02">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=0a4aa7eb">
 <!-- Iconos Phosphor: los usa el menu lateral de topbar.js (15-ago-2026). Ya
      los cargaban intranet/, compradores/ y creatividades/; se igualan las demas
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
@@ -2663,12 +2663,14 @@ async function abrirRegistro(){
     .select('para,asunto,via,enviado_por,enviado_en')
     .eq('factura_id', SAVED.id).order('enviado_en', { ascending:false }).limit(200);
   if(error){ cont.innerHTML = '<p class="em-note">No se pudo cargar el registro: ' + esc(error.message) + '</p>'; return; }
+  /* `data-l`: el rótulo que se pinta delante del dato en pantalla estrecha, donde
+     la cabecera de la tabla desaparece — ver la media query de `.reg-tabla`. */
   const filaMail = m =>
-    '<tr><td style="white-space:nowrap">' + regFecha(m.enviado_en) + '</td>'
-    + '<td>' + esc(m.para) + '</td>'
-    + '<td class="reg-via">' + esc(lwViaCorreo(m.via)) + '</td>'
-    + '<td>' + esc(m.enviado_por || 'Automático') + '</td>'
-    + '<td>' + esc(m.asunto) + '</td></tr>';
+    '<tr><td data-l="' + esc(lwT('Cuándo')) + '" style="white-space:nowrap">' + regFecha(m.enviado_en) + '</td>'
+    + '<td data-l="' + esc(lwT('Para')) + '">' + esc(m.para) + '</td>'
+    + '<td data-l="' + esc(lwT('Vía')) + '" class="reg-via">' + esc(lwViaCorreo(m.via)) + '</td>'
+    + '<td data-l="' + esc(lwT('Quién')) + '">' + esc(m.enviado_por || 'Automático') + '</td>'
+    + '<td data-l="' + esc(lwT('Asunto')) + '">' + esc(m.asunto) + '</td></tr>';
   cont.innerHTML = (data||[]).length
     ? '<div class="reg-envoltura"><table class="reg-tabla"><thead><tr><th>' + lwT('Cuándo') + '</th><th>' + lwT('Para') + '</th><th>' + lwT('Vía') + '</th><th>' + lwT('Quién') + '</th><th>' + lwT('Asunto') + '</th></tr></thead><tbody>'
       + data.map(filaMail).join('') + '</tbody></table></div>'

@@ -20,7 +20,7 @@
      uno, para que ninguna herramienta pueda cargar media suite: antes
      Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
      salieron los desplegables con cuatro aspectos. -->
-<link rel="stylesheet" href="assets/lawang.css?v=8c0dbd02">
+<link rel="stylesheet" href="assets/lawang.css?v=0a4aa7eb">
 <!-- Iconos Phosphor: los usa el menu lateral de topbar.js (15-ago-2026). Ya
      los cargaban intranet/, compradores/ y creatividades/; se igualan las demas
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
@@ -5290,19 +5290,19 @@ async function abrirRegistro(){
   const hayActivo = (fmas.data||[]).some(f => regEstadoFirma(f)[1] === 'activo');
   const filaFirma = f => {
     const [txt, cls] = regEstadoFirma(f);
-    return '<tr><td>' + esc(f.firmante_nombre || '—')
+    return '<tr><td data-l="' + esc(lwT('Firmante')) + '">' + esc(f.firmante_nombre || '—')
       + '<br><span class="em-note">' + esc(String(f.firmante_rol||'').replace(/_/g,' ')) + '</span></td>'
-      + '<td>' + esc(f.firmante_email || '—') + '</td>'
-      + '<td><span class="reg-chip ' + cls + '">' + esc(txt) + '</span></td>'
-      + '<td>' + regFecha(f.creado_en) + '</td>'
-      + '<td>' + (f.estado === 'firmado' ? regFecha(f.firmado_en) : regFecha(f.expira_en)) + '</td></tr>';
+      + '<td data-l="' + esc(lwT('Email')) + '">' + esc(f.firmante_email || '—') + '</td>'
+      + '<td data-l="' + esc(lwT('Estado')) + '"><span class="reg-chip ' + cls + '">' + esc(txt) + '</span></td>'
+      + '<td data-l="' + esc(lwT('Creado')) + '">' + regFecha(f.creado_en) + '</td>'
+      + '<td data-l="' + esc(lwT('Expira / Firmado')) + '">' + (f.estado === 'firmado' ? regFecha(f.firmado_en) : regFecha(f.expira_en)) + '</td></tr>';
   };
   const filaMail = m =>
-    '<tr><td style="white-space:nowrap">' + regFecha(m.enviado_en) + '</td>'
-    + '<td>' + esc(m.para) + '</td>'
-    + '<td class="reg-via">' + esc(lwViaCorreo(m.via)) + '</td>'
-    + '<td>' + esc(m.enviado_por || 'Automático') + '</td>'
-    + '<td>' + esc(m.asunto) + '</td></tr>';
+    '<tr><td data-l="' + esc(lwT('Cuándo')) + '" style="white-space:nowrap">' + regFecha(m.enviado_en) + '</td>'
+    + '<td data-l="' + esc(lwT('Para')) + '">' + esc(m.para) + '</td>'
+    + '<td data-l="' + esc(lwT('Vía')) + '" class="reg-via">' + esc(lwViaCorreo(m.via)) + '</td>'
+    + '<td data-l="' + esc(lwT('Quién')) + '">' + esc(m.enviado_por || 'Automático') + '</td>'
+    + '<td data-l="' + esc(lwT('Asunto')) + '">' + esc(m.asunto) + '</td></tr>';
   cont.innerHTML =
       copiasHTML(fmas.data, mails.data, fmas.error, mails.error)
     + '<p class="reg-tit">' + lwT('Enlaces de firma') + '</p>'
@@ -5324,10 +5324,10 @@ async function abrirRegistro(){
         ? '<div class="reg-envoltura"><table class="reg-tabla"><thead><tr><th>' + lwT('Cuándo') + '</th><th>' + lwT('Qué') + '</th><th>' + lwT('Quién') + '</th><th>' + lwT('Detalle') + '</th></tr></thead><tbody>'
           + evts.data.map(e => {
               const [txt, cls] = REG_EVT[e.evento] || [e.evento, ''];
-              return '<tr><td style="white-space:nowrap">' + regFecha(e.creado_en) + '</td>'
-                + '<td><span class="reg-chip ' + cls + '">' + esc(txt) + '</span></td>'
-                + '<td>' + esc(e.quien || 'Sistema') + '</td>'
-                + '<td>' + regDetalleEvt(e.detalle) + '</td></tr>';
+              return '<tr><td data-l="' + esc(lwT('Cuándo')) + '" style="white-space:nowrap">' + regFecha(e.creado_en) + '</td>'
+                + '<td data-l="' + esc(lwT('Qué')) + '"><span class="reg-chip ' + cls + '">' + esc(txt) + '</span></td>'
+                + '<td data-l="' + esc(lwT('Quién')) + '">' + esc(e.quien || 'Sistema') + '</td>'
+                + '<td data-l="' + esc(lwT('Detalle')) + '">' + regDetalleEvt(e.detalle) + '</td></tr>';
             }).join('') + '</tbody></table></div>'
           // las ediciones se apuntan desde el 18-ago-2026; lo anterior a esa
           // fecha se reconstruyó de las fechas reales de creación y firma
@@ -5447,9 +5447,13 @@ function copiasHTML(firmas, mails, errFirmas, errMails){
     else if(m){ chip = '<span class="reg-chip firmado">' + lwT('Enviada') + '</span>'; cuando = regFecha(m.enviado_en); }
     else if(anteriorAlRegistro){ chip = '<span class="reg-chip">' + lwT('Sin registro') + '</span>'; cuando = '—'; }
     else { chip = '<span class="reg-chip malo">' + lwT('No consta enviada') + '</span>'; cuando = '—'; }
-    return '<tr><td>' + esc(d.nombre || '—') + '<br><span class="em-note">' + esc(d.rol) + '</span></td>'
-      + '<td>' + esc(d.email || 'no dejó email') + '</td>'
-      + '<td>' + chip + '</td><td>' + cuando + '</td></tr>';
+    /* `data-l` = el rótulo de la columna, que en pantalla estrecha se pinta
+       DELANTE del dato (ver la media query de `.reg-tabla` en app.css): ahí la
+       cabecera desaparece y cada fila se lee como una tarjeta. */
+    return '<tr><td data-l="' + esc(lwT('Firmante')) + '">' + esc(d.nombre || '—') + '<br><span class="em-note">' + esc(d.rol) + '</span></td>'
+      + '<td data-l="' + esc(lwT('Email')) + '">' + esc(d.email || 'no dejó email') + '</td>'
+      + '<td data-l="' + esc(lwT('Estado')) + '">' + chip + '</td>'
+      + '<td data-l="' + esc(lwT('Enviada')) + '">' + cuando + '</td></tr>';
   }).join('');
 
   const conEmail = dest.filter(d => d.email);
