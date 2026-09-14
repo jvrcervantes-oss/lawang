@@ -33,6 +33,16 @@
 <link rel="stylesheet" href="/intranet/facturas/documento.css?v=20260731">
 <script src="/contracts/assets/entities.js?v=57769ef0"></script>
 <script src="/contracts/assets/dinero.js?v=ced29282"></script>
+<!-- `vocabulario.js` trae `lwEsPreliminar`: QUÉ contratos no suman precio. Se
+     carga el fichero compartido y no se copia la lista aquí a propósito — esa
+     lista ya se copió dos veces (compradores/ el 12-ago, operaciones/ el
+     14-ago-2026) y las dos veces divergió y enseñó el doble de lo que el cliente
+     debe. `resumen.js` es la aplicación de esa regla a esta pantalla, fuera del
+     HTML para que `resumen.test.js` pueda probarla en node con los importes
+     reales de producción. `?v=` a mano porque `tools/sella_assets.py` solo sella
+     lo que vive en `contracts/assets/`. -->
+<script src="/contracts/assets/vocabulario.js?v=20260914"></script>
+<script src="/portal/resumen.js?v=20260914"></script>
 <script src="/intranet/facturas/totales.js"></script>
 <script src="/intranet/facturas/documento.js?v=20260731"></script>
 <style>
@@ -143,6 +153,10 @@
   .campo-lbl svg{ width:13px; height:13px; color:var(--sc); flex:none; }
   .kpi .val{ font-family:'Instrument Sans',sans-serif; font-size:26px; font-weight:700; color:var(--va); }
   .kpi .val.ok{ color:var(--ok); }
+  /* El pie de las tres cifras: qué contratos suman y cuáles no. Va justo debajo
+     y en gris, no como aviso: es una aclaración, no un problema. El margen
+     negativo lo pega al bloque de KPI, que trae 28px propios de separación. */
+  .kpi-nota{ font-size:12.5px; line-height:1.5; color:#8a8570; margin:-20px 0 26px; }
 
   .grid2col{ display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:16px; margin-bottom:28px; }
   @media (max-width:760px){ .grid2col{ grid-template-columns:1fr; } }
@@ -176,6 +190,11 @@
   .barra{ height:7px; border-radius:4px; background:#E7E1D2; overflow:hidden; margin:16px 0 6px; }
   .barra i{ display:block; height:100%; background:var(--ok); }
   .barra-leg{ display:flex; justify-content:space-between; font-size:12px; color:#6b6c66; margin-bottom:16px; }
+  /* Ocupa el hueco de la barra de avance en una Carta ya relevada por sus
+     contratos definitivos: mismo sitio, misma altura aproximada, pero dice con
+     palabras lo que la barra diría mal. */
+  .op-nota{ font-size:12.5px; line-height:1.5; color:#6b6c66; background:rgba(138,132,116,.07);
+            border-left:2px solid rgba(138,132,116,.35); padding:9px 12px; margin:16px 0 4px; }
 
   table.docs{ width:100%; border-collapse:collapse; margin-top:6px; }
   table.docs th{ text-align:left; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#8a8570;
@@ -418,6 +437,10 @@
          tit_documentos:'Documentos', tit_soporte:'Soporte', tit_perfil:'Mi perfil',
          hola:'Hola', saludo_sub:'Estado de tu operación con Lawang Estate',
          r_inversion:'Tu inversión', r_pagado:'Pagado', r_pendiente:'Pendiente',
+         r_cuota:'Cuota de reserva', cuota_reserva:'Cuota de reserva',
+         nota_solo_reserva:'De momento solo tienes Carta(s) de Reserva, sin contrato definitivo firmado: el importe de arriba es la cuota de reserva, no el precio final de tu unidad.',
+         nota_sin_carta:'La inversión suma tus contratos definitivos. No cuenta tu Carta de Reserva, que declara ese mismo importe antes de repartirse entre el Bloqueo de Parcela y la Construcción:',
+         nota_carta_sustituida:'Esta Carta de Reserva ya está recogida en tus contratos definitivos: su importe y su calendario son los de ellos, no un pago aparte. El documento se queda aquí por si lo necesitas.',
          proximo_pago:'Próximo pago', sin_proximo:'No tienes pagos pendientes ahora mismo.',
          ver_plan:'Ver plan de pagos', novedades:'Últimas novedades',
          acc_documentos:'Documentos', acc_documentos_sub:'Dossier, planos y KYC',
@@ -473,6 +496,10 @@
          tit_documentos:'Documents', tit_soporte:'Support', tit_perfil:'My profile',
          hola:'Hello', saludo_sub:'Status of your operation with Lawang Estate',
          r_inversion:'Your investment', r_pagado:'Paid', r_pendiente:'Outstanding',
+         r_cuota:'Reservation fee', cuota_reserva:'Reservation fee',
+         nota_solo_reserva:'For now you only hold Reservation Letter(s), with no definitive contract signed yet: the figure above is the reservation fee, not the final price of your unit.',
+         nota_sin_carta:'Your investment adds up your definitive contracts. It does not count your Reservation Letter, which states that same amount before it is split between the Plot Block and the Construction contract:',
+         nota_carta_sustituida:'This Reservation Letter is already covered by your definitive contracts: its amount and its schedule are theirs, not a separate payment. The document stays here in case you need it.',
          proximo_pago:'Next payment', sin_proximo:'You have no pending payments right now.',
          ver_plan:'View payment plan', novedades:'Latest updates',
          acc_documentos:'Documents', acc_documentos_sub:'Brochure, plans and KYC',
@@ -871,15 +898,22 @@
   function pintaInicio(c){
     var d = DATOS;
     var nombrePila = (d.nombre || '').trim().split(/\s+/)[0] || '';
-    var tot = 0, cob = 0;
-    (d.contratos||[]).forEach(function(x){
-      var p = (x.precio != null) ? Number(x.precio) : num(x.precio_txt);
-      if (!isNaN(p)) tot += p; cob += Number(x.cobrado) || 0;
-    });
-    var mon = ((d.contratos||[])[0] || {}).moneda || 'EUR';
+    /* Las cuentas viven en `resumen.js` (probado en `resumen.test.js`), no aquí.
+       Hasta el 14-sep-2026 esta función sumaba TODOS los contratos y la Carta de
+       Reserva contaba aparte, así que el cliente veía el doble: 327.065 € donde
+       debe 163.565 €. Una Carta declara el mismo importe que luego reparten el
+       Bloqueo de Parcela y la Construcción que la sustituyen — la regla es la
+       misma que ve el agente en /intranet/compradores/, y tiene que serlo: si el
+       cliente llama y las dos pantallas dicen cifras distintas, el problema es
+       peor que el original. */
+    var res = resumenPortal(d.contratos || []);
+    var tot = res.total, cob = res.cobrado, mon = res.moneda;
 
     var proximo = null;
-    (d.contratos||[]).forEach(function(x){
+    // Solo los contratos que SÍ cuentan: el calendario de una Carta sustituida
+    // son los mismos hitos que ya trae su Bloqueo, y reclamarlo aquí pediría dos
+    // veces el mismo pago.
+    res.base.forEach(function(x){
       if (proximo) return;
       var precio = (x.precio != null) ? Number(x.precio) : num(x.precio_txt);
       var hs = estadosHitos(x.hitos, Number(x.cobrado)||0, precio);
@@ -900,11 +934,23 @@
     c.innerHTML =
       '<div class="titulo-sec"><h2>' + esc(t('hola')) + (nombrePila ? ', ' + esc(nombrePila) : '') + '</h2>' +
         '<p>' + esc(t('saludo_sub')) + '</p></div>' +
-      (tot > 0 ? '<div class="kpis">' +
-        '<div class="tarjeta kpi"><div class="lbl">' + esc(t('r_inversion')) + '</div><div class="val">' + esc(dinero(tot,mon)) + '</div></div>' +
+      (tot != null && tot > 0 ? '<div class="kpis">' +
+        '<div class="tarjeta kpi"><div class="lbl">' + esc(t(res.soloReserva ? 'r_cuota' : 'r_inversion')) + '</div><div class="val">' + esc(dinero(tot,mon)) + '</div></div>' +
         '<div class="tarjeta kpi"><div class="lbl">' + esc(t('r_pagado')) + '</div><div class="val ok">' + esc(dinero(cob,mon)) + '</div></div>' +
-        '<div class="tarjeta kpi"><div class="lbl">' + esc(t('r_pendiente')) + '</div><div class="val">' + esc(dinero(Math.max(0,tot-cob),mon)) + '</div></div>' +
-      '</div>' : '') +
+        '<div class="tarjeta kpi"><div class="lbl">' + esc(t('r_pendiente')) + '</div><div class="val">' + esc(dinero(res.pendiente,mon)) + '</div></div>' +
+      '</div>' +
+      /* El rótulo tiene que nombrar lo que de verdad suma. Una cifra que no
+         cuadra con su propio rótulo es una cifra en la que se deja de confiar
+         (la lección de /intranet/operaciones/, 14-ago-2026) — y aquí quien
+         desconfía es el cliente, que además tiene el número de cada contrato
+         delante en la pestaña «Contratos». */
+      (res.soloReserva
+        ? '<p class="kpi-nota">' + esc(t('nota_solo_reserva')) + '</p>'
+        : (res.excluidos.length
+            ? '<p class="kpi-nota">' + esc(t('nota_sin_carta') + ' ' +
+                res.excluidos.map(function(x){ return x.numero || '—'; }).join(', ') + '.') + '</p>'
+            : ''))
+      : '') +
       '<div class="grid2col">' +
         '<div class="tarjeta"><div class="rot-bloque">' + esc(t('proximo_pago')) + '</div>' +
           (proximo ?
@@ -938,8 +984,12 @@
     c.innerHTML = d.contratos.map(function(x){
       var precio = (x.precio != null) ? Number(x.precio) : num(x.precio_txt);
       var cobrado = Number(x.cobrado) || 0;
-      var pct = (precio > 0) ? Math.min(100, Math.round(cobrado/precio*100)) : null;
-      var hs = estadosHitos(x.hitos, cobrado, precio);
+      var cuota = cuotaReserva(x);
+      var esPrelim = (typeof lwEsPreliminar === 'function') && lwEsPreliminar(x.tipo);
+      // Contra qué se mide el avance: `baseAvance` en resumen.js, probado.
+      var base = baseAvance(x);
+      var pct = (base > 0) ? Math.min(100, Math.round(cobrado/base*100)) : null;
+      var hs = estadosHitos(x.hitos, cobrado, base);
       // "Pendiente de firma" en naranja (1-sep-2026, pedido del cliente: "es
       // algo grave, dale urgencia") — antes compartía el mismo gris neutro
       // que cualquier otro estado sin marcar, y no destacaba entre el resto
@@ -947,18 +997,36 @@
       var tagBg = x.firmado ? 'rgba(63,82,48,.12)' : 'rgba(184,99,29,.14)';
       var tagColor = x.firmado ? 'var(--ok)' : '#B8631D';
       var fp = firmaPend[x.id];
+      /* Una Carta de Reserva ya relevada por su Bloqueo y su Construcción sigue
+         viéndose entera —es un documento suyo, firmado, con su PDF— pero su
+         barra de avance mentiría: ese importe no es un cargo aparte, lo reparten
+         los contratos definitivos. Se cambia la barra por una frase que lo dice
+         (14-sep-2026: hasta hoy el mismo dinero salía reclamado en tres
+         tarjetas). */
+      var sustituido = estaSustituido(x, d.contratos);
       return '<div class="op"><div class="op-cab">' +
         '<div class="info"><h3><b>' + esc(x.numero) + '</b><span class="sub">' + esc(x.proyecto||'') +
           (x.parcela ? ' · ' + esc(t('unidad')) + ' ' + esc(x.parcela) : '') + '</span>' +
           '<span class="tag" style="background:' + tagBg + ';color:' + tagColor + '">' + esc(x.firmado?t('firmado'):t('pendiente_firma')) + '</span></h3>' +
           '<div class="op-datos">' +
             '<div class="d"><div class="lbl">' + esc(t('precio')) + '</div><div class="val">' + (precio ? esc(dinero(precio,x.moneda)) : esc(x.precio_txt||'—')) + '</div></div>' +
+            /* En una Carta todavía sin contrato definitivo, lo exigible hoy es la
+               CUOTA, no el precio de la villa (5 días hábiles desde la firma, con
+               retención si el reservante desiste). Se enseña al lado del precio
+               para que la cifra del resumen de Inicio se pueda cuadrar con este
+               documento en vez de parecer que falta dinero. */
+            (!sustituido && esPrelim && cuota != null && cuota !== precio
+              ? '<div class="d"><div class="lbl">' + esc(t('cuota_reserva')) + '</div><div class="val">' + esc(dinero(cuota,x.moneda)) + '</div></div>' : '') +
             '<div class="d"><div class="lbl">' + esc(t('cobrado')) + '</div><div class="val">' + esc(dinero(cobrado,x.moneda)) + '</div></div>' +
           '</div></div></div>' +
-        (precio > 0 ? '<div class="barra"><i style="width:' + pct + '%"></i></div>' +
-          '<div class="barra-leg"><span>' + pct + '% ' + esc(t('de')) + ' ' + esc(dinero(precio,x.moneda)) + '</span>' +
-          '<span>' + esc(dinero(Math.max(0,precio-cobrado),x.moneda)) + ' ' + esc(t('pendiente')).toLowerCase() + '</span></div>' : '') +
-        (hs.length ? '<table class="docs"><thead><tr><th>' + esc(t('concepto')) + '</th><th>' + esc(t('cuando')) + '</th>' +
+        (sustituido
+          ? '<p class="op-nota">' + esc(t('nota_carta_sustituida')) + '</p>'
+          : (base > 0 ? '<div class="barra"><i style="width:' + pct + '%"></i></div>' +
+          '<div class="barra-leg"><span>' + pct + '% ' + esc(t('de')) + ' ' + esc(dinero(base,x.moneda)) + '</span>' +
+          '<span>' + esc(dinero(Math.max(0,base-cobrado),x.moneda)) + ' ' + esc(t('pendiente')).toLowerCase() + '</span></div>' : '')) +
+        // Los hitos de una Carta sustituida son los mismos que ya trae su Bloqueo:
+        // enseñarlos aquí reclamaría dos veces el mismo calendario de pagos.
+        (hs.length && !sustituido ? '<table class="docs"><thead><tr><th>' + esc(t('concepto')) + '</th><th>' + esc(t('cuando')) + '</th>' +
           '<th class="num">' + esc(t('importe')) + '</th><th>' + esc(t('estado')) + '</th></tr></thead><tbody>' +
           hs.map(function(y){
             var descr = y.hito[LANG] || y.hito.es || y.hito.en || '';
