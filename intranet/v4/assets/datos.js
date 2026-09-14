@@ -1852,7 +1852,11 @@
       if (!ls) return;
       var porCol = {};
       COLS.forEach(function (c) { porCol[c] = []; });
-      ls.forEach(function (l) { (porCol[l.estado] || porCol.nuevo).push(l); });
+      var otros = 0;
+      ls.forEach(function (l) {
+        var e = l.estado || 'nuevo';          // sin estado = nuevo, como leads.js
+        if (porCol[e]) porCol[e].push(l); else otros++;
+      });
 
       var sin = porCol.nuevo.length;
       var parados = porCol.nuevo.filter(function (l) { return diasDesde(l.estado_desde) >= DIAS_VIEJO; }).length;
@@ -1862,7 +1866,7 @@
       var conv = ls.length ? (Math.round(cerrados / ls.length * 1000) / 10) + '%' : '—';
 
       pon2('k-leads', String(ls.length));
-      pon2('k-leads-pie', 'todos los canales');
+      pon2('k-leads-pie', otros ? 'todos los canales · ' + otros + ' en un estado que esta pantalla no dibuja' : 'todos los canales');
       pon2('k-sincontactar', String(sin));
       pon2('k-sincontactar-pie', parados + ' llevan mas de ' + DIAS_VIEJO + ' dias parados');
       pon2('k-cerrados', String(cerrados));
@@ -1919,7 +1923,7 @@
       if (!rs || !cajaCl) return;
       if (!rs.length) { cajaCl.innerHTML = '<p style="font:400 13px \'Neue Kabel\',sans-serif;color:#44483f;margin:0">Nadie tiene ventas atribuidas todavia.</p>'; return; }
       cajaCl.innerHTML = rs.slice(0, 8).map(function (r) {
-        return itemPanel(esc(r.closer_email || '—'),
+        return itemPanel(esc(r.closer_nombre || r.closer_email || '—'),
                          (r.contratos || 0) + ' contratos · firmado ' + esc(fmt(r.firmado, 'EUR')),
                          esc(fmt(r.cobrado, 'EUR')));
       }).join('');
