@@ -546,10 +546,20 @@
   // fija. Ahora las dos galerias salen de `deck_fotos` (RPC investor_deck_fotos)
   // y el equipo las gestiona desde la ficha del proyecto en la intranet.
   //
-  // SEMILLA: mientras no haya ni una foto subida se siguen viendo las del repo.
-  // No son "dos fuentes": es el suelo del que se levanta esto, y se retira solo —
-  // en cuanto la intranet tiene una foto, el array deja de mirarse. Cuando el
-  // owner confirme que ya las subio, ESTE BLOQUE SE BORRA (queda en git).
+  // 14-sep-2026, hallazgo del owner: `investor_deck_fotos` trae en la misma lista
+  // las fotos DEL PROYECTO (ambito=proyecto, sitio real) y las de CADA MODELO que
+  // el proyecto usa (ambito=modelo, renders de villa) — el RPC las mezcla a
+  // proposito para el deck en conjunto, pero el hero/galeria del SITIO no debe
+  // fabricarse solo con renders de Dali y Dune. Aqui se separan: `proyecto` (sin
+  // `modelo_slug`) alimenta hero+galeria; lo de cada modelo se guarda en
+  // `porModelo[slug]` y lo usa `fotoModelo()` en la tarjeta de esa villa, mas
+  // abajo — cada foto vive donde hace referencia al modelo, no al sitio.
+  //
+  // SEMILLA: mientras no haya ni una foto DE PROYECTO subida se siguen viendo las
+  // del repo. No son "dos fuentes": es el suelo del que se levanta esto, y se
+  // retira solo — en cuanto la intranet tiene una foto de proyecto, el array deja
+  // de mirarse. Cuando el owner confirme que ya las subio, ESTE BLOQUE SE BORRA
+  // (queda en git).
   var SEMILLA = [
     ['10-plot-aerial.jpg','Plot — aerial view'],
     ['09-the-plot.jpg','The plot'],
@@ -706,24 +716,31 @@
     }));
   }
 
-  fetch(SB_URL + '/rest/v1/rpc/investor_deck_fotos', {
+  // Resuelve siempre (nunca rechaza): un fallo aqui no puede tumbar el bloque de
+  // modelos, que espera este mismo resultado para saber la foto de cada villa.
+  var fotosListo = fetch(SB_URL + '/rest/v1/rpc/investor_deck_fotos', {
     method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
     body: JSON.stringify({ p_proyecto: PROYECTO })
   }).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
     .then(function(rows){
-      if(!rows || !rows.length){ fotosDeSemilla(); return; }
-      var fotos = rows.map(function(r){
-        return { uso:r.uso, tipo:r.tipo, src: BUCKET + r.path, pie: lwTxt(r.pie) };
+      var porModelo = {};
+      var proyecto = [];
+      (rows || []).forEach(function(r){
+        var f = { uso:r.uso, tipo:r.tipo, src: BUCKET + r.path, pie: lwTxt(r.pie) };
+        if(r.modelo_slug){ (porModelo[r.modelo_slug] = porModelo[r.modelo_slug] || []).push(f); }
+        else { proyecto.push(f); }
       });
-      var hero = fotos.filter(function(f){ return f.uso === 'hero'; });
-      var gal  = fotos.filter(function(f){ return f.uso === 'galeria'; });
+      if(!proyecto.length){ fotosDeSemilla(); return porModelo; }
+      var hero = proyecto.filter(function(f){ return f.uso === 'hero'; });
+      var gal  = proyecto.filter(function(f){ return f.uso === 'galeria'; });
       // Sin ninguna marcada como hero, la portada tira de las de galeria en vez de
       // quedarse en blanco: un hueco vacio en lo primero que se ve es peor que una
       // foto que alguien no llego a clasificar.
       pintaHero(hero.length ? hero : gal.slice(0, 6));
       pintaGaleria(gal.length ? gal : hero);
+      return porModelo;
     })
-    .catch(fotosDeSemilla);
+    .catch(function(){ fotosDeSemilla(); return {}; });
 
   // ── documentacion del proyecto: sale de la intranet, o no sale ─────────────
   // El owner decidio (11-sep) que lo descargable del deck es la documentacion
@@ -907,11 +924,16 @@
         '<path d="M48 82 V58 H72 V82" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>' +
       '<p class="font-label-md text-label-md m-0">Renders in progress</p></div>';
 
-  function fotoModelo(slug, nombre){
+  // `fotosModelo`: las de ESE modelo desde `deck_fotos` (ambito=modelo), la razon
+  // de ser de este cambio (14-sep, hallazgo del owner) — es lo que sube el equipo
+  // desde Intranet → Modelos → <modelo> → «Fotos del deck…». Si aun no hay
+  // ninguna, cae al render fijo del repo, como siempre.
+  function fotoModelo(slug, nombre, fotosModelo){
     if(!SLUG_OK.test(slug)) return SIN_RENDER;
-    var ruta = '../../assets/img/buildings/' + slug + '/web/' + slug + '.webp';
+    var propia = (fotosModelo && fotosModelo.length) ? fotosModelo[0].src : null;
+    var ruta = propia || ('../../assets/img/buildings/' + slug + '/web/' + slug + '.webp');
     return '<div class="w-full aspect-[4/3] relative overflow-hidden bg-[#F0ECE1]" data-foto>' +
-      '<img src="' + ruta + '" alt="' + esc(nombre) + ' villa model" loading="lazy" ' +
+      '<img src="' + esc(ruta) + '" alt="' + esc(nombre) + ' villa model" loading="lazy" ' +
       'class="w-full h-full object-cover" data-render></div>';
   }
 
@@ -933,7 +955,7 @@
 
   var mg = document.getElementById('modelos-grid');
 
-  function pintaModelos(rows){
+  function pintaModelos(rows, porModelo){
     mg.innerHTML = '';
     rows.forEach(function(m, i){
       var slug = String(m.slug == null ? '' : m.slug);
@@ -945,7 +967,7 @@
         (destacado ? ' border-2 border-territorial-green relative' : ' border-[#D8D2C5]');
       card.innerHTML =
         (destacado ? '<span class="absolute top-3 right-3 z-10 bg-territorial-green text-white text-[10px] font-label-md font-bold px-3 py-0.5 rounded-full tracking-wider uppercase">Most requested</span>' : '') +
-        fotoModelo(slug, m.nombre) +
+        fotoModelo(slug, m.nombre, porModelo[slug]) +
         '<span class="absolute top-3 left-3 bg-deep-lagoon text-white px-2.5 py-0.5 rounded-full text-xs font-label-md uppercase font-semibold" data-tag>' + esc(tag) + '</span>' +
         '<div class="flex flex-col gap-4 p-6">' +
           '<h3 class="font-headline-sm text-2xl font-bold text-deep-lagoon">' + esc(m.nombre) + '</h3>' +
@@ -998,7 +1020,13 @@
   }).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
     // Cero filas llega como 200 con []: sin este guardia la sección se queda vacía y
     // parece intencionada. Un proyecto renombrado en la intranet da exactamente eso.
-    .then(function(rows){ if(!rows || !rows.length) throw new Error('vacio'); pintaModelos(rows); })
+    .then(function(rows){
+      if(!rows || !rows.length) throw new Error('vacio');
+      // Espera a `fotosListo` (nunca rechaza) para saber la foto propia de cada
+      // modelo antes de pintar las tarjetas — si se pinta antes, siempre cae al
+      // render fijo del repo aunque la intranet ya tenga una foto mejor.
+      return fotosListo.then(function(porModelo){ pintaModelos(rows, porModelo || {}); });
+    })
     .catch(modelosCaidos);
 
   // ── previsión de alquiler, Año 1 ──────────────────────────────────────────
