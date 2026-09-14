@@ -17,7 +17,7 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que `lwT`
      exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=1923947e"></script>
+<script src="/contracts/assets/i18n.js?v=ae8ea664"></script>
 <script src="/contracts/assets/herramientas.js?v=c95fc709"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -251,6 +251,8 @@ async function cargar(){
   // podido mirarlo» se parecen mucho en pantalla y solo una es cierta.
   PLANTILLAS = pl.error ? null : (pl.data || []);
   REPARTO    = re.error ? null : (re.data || []);
+  USO = {};
+  if(!us.error) (us.data || []).forEach(r => { USO[r.clave] = { contratos: r.contratos, firmados: r.firmados }; });
   pintarLista();
   if(SEL) pintarFicha();
 }
@@ -441,6 +443,7 @@ function pintarFichaCuenta(){
       + '</div>'
       + '<p class="nota">' + lwT('ESCROW añade sola al contrato la fila «Naturaleza de la cuenta — depósito en garantía». Márcala solo donde el documento lo pacte de verdad.') + '<br>'
         + lwT('Desactivar una cuenta la retira de todos los desplegables. Los contratos ya emitidos con ella la conservan impresa; no se borra nunca.') + '</p>'
+      + avisoFirmados(c.clave)
       + (PUEDO_ESCRIBIR ? '<div class="acciones"><button class="btn primary" id="btnGuardar">' + lwT('Guardar cambios') + '</button></div>' : '')
     + '</div>'
 
@@ -454,6 +457,22 @@ function pintarFichaCuenta(){
       el.addEventListener('change', () => cambiarReparto(el, c.clave));
     });
   }
+}
+
+/* El aviso que la consulta de deploy del 14-sep echó en falta: qué hay ya emitido
+   con esta cuenta, con la cifra, justo debajo de los campos que se pueden
+   cambiar. La distinción que importa es firmados / no firmados: un contrato sin
+   firmar se corrige, uno firmado es un documento que alguien tiene en la mano. */
+function avisoFirmados(clave){
+  const u = USO[clave];
+  if(!u || !u.contratos) return '';
+  if(!u.firmados){
+    return '<p class="aviso">' + lwT('Esta cuenta está en %n contratos, ninguno firmado todavía.', { n: u.contratos }) + '</p>';
+  }
+  return '<p class="aviso mal">'
+    + lwT('Esta cuenta está en %n contratos, y %f ya FIRMADOS.', { n: u.contratos, f: u.firmados }) + ' '
+    + lwT('Si cambias el titular, el número o la casilla ESCROW, cambia lo que imprimen esos documentos cuando alguien los reabra. Para una cuenta distinta, crea una nueva en vez de reescribir esta.')
+    + '</p>';
 }
 
 function campo(id, etiqueta, valor, ro, ancho){

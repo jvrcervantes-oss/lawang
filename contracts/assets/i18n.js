@@ -2457,6 +2457,13 @@
     'Hacen falta al menos el titular y el número de cuenta: son lo que el comprador usa para transferir.':
       'At least the account holder and the account number are required: they are what the buyer uses to transfer.',
     'Ya existe una cuenta con la clave «%k».': 'An account with key «%k» already exists.',
+    /* el aviso de lo ya emitido con esta cuenta (hallazgo de la consulta de deploy) */
+    'Esta cuenta está en %n contratos, ninguno firmado todavía.':
+      'This account is used in %n contracts, none signed yet.',
+    'Esta cuenta está en %n contratos, y %f ya FIRMADOS.':
+      'This account is used in %n contracts, %f of them already SIGNED.',
+    'Si cambias el titular, el número o la casilla ESCROW, cambia lo que imprimen esos documentos cuando alguien los reabra. Para una cuenta distinta, crea una nueva en vez de reescribir esta.':
+      'If you change the holder, the number or the ESCROW tick, you change what those documents print when someone reopens them. For a different account, create a new one instead of rewriting this one.',
 
   };
 
