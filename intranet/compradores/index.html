@@ -533,7 +533,12 @@ function pintarFicha(){
   /* Los contratos preliminares de esta ficha necesitan su cuota. Se piden y se
      repinta cuando llegan; `CUOTA_RESERVA` recuerda lo pedido, así que la
      segunda vuelta no vuelve a entrar y no hay bucle. */
-  if(SEL && SEL !== 'nuevo'){
+  /* Una ficha del directorio no tiene nada de esto que pedir: sus contratos,
+     sus correos y su soporte los tapa la RLS y volverían vacíos. Cuatro
+     peticiones de red por cada vez que se abre, para nada. */
+  const delDirectorio = SEL && SEL !== 'nuevo' &&
+        !!(CLIENTES.find(x => x.id === SEL) || {})._directorio;
+  if(SEL && SEL !== 'nuevo' && !delDirectorio){
     const suyos = VINCULOS.filter(v => v.client_id === SEL && v.contratos).map(v => v.contratos);
     const prelim = suyos.filter(x => lwEsPreliminar(x.tipo)).map(x => x.id);
     if(prelim.length) cargarCuotasReserva(prelim).then(hubo => { if(hubo && SEL) pintarFicha(); });
@@ -671,7 +676,19 @@ function pintarFicha(){
       <label for="f-notas">${lwT('Notas')}</label><textarea id="f-notas" ${dis}>${esc(c.notes||'')}</textarea>
     </fieldset>
 
-    ${nuevo ? '<p class="nota">' + lwT('Los documentos se suben después de crear la ficha.') + '</p>' : `
+    ${nuevo ? '<p class="nota">' + lwT('Los documentos se suben después de crear la ficha.') + '</p>' :
+      /* ⚠️ NO PINTAR LOS BLOQUES VACÍOS EN UNA FICHA DEL DIRECTORIO. Todos
+         ellos (contratos, pagos, facturas, documentos, portal, soporte) se
+         construyen filtrando listas que la RLS ya dejó vacías, así que dirían
+         «Ninguno enlazado todavía» y «Sin documentos» de alguien que casi seguro
+         tiene contratos y documentos — solo que de otro agente. Es exactamente
+         la familia de LAW-186: un dato que cambia según quién mira sin decir que
+         está mirando media foto. Se sustituyen por una frase que dice la verdad. */
+      soloDirectorio ? `
+    <fieldset>
+      <legend>${lwT('Su actividad')}</legend>
+      <p class="nota">${lwT('Contratos, pagos, facturas, documentos y portal de esta persona NO se muestran aquí: son del compañero que lleva la ficha. Que no aparezcan no significa que no existan.')}</p>
+    </fieldset>` : `
     <fieldset>
       <legend>${lwT('Contratos firmados')}</legend>
       ${(() => {
