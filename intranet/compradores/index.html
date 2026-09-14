@@ -20,8 +20,8 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=5be771d2"></script>
-<script src="/contracts/assets/herramientas.js?v=cce2c8c2"></script>
+<script src="/contracts/assets/i18n.js?v=64b6f427"></script>
+<script src="/contracts/assets/herramientas.js?v=c95fc709"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="/contracts/assets/visor.js?v=28038adb" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -1092,8 +1092,20 @@ async function guardar(id){
        signOut de la misma sesión compartida) — la RLS deniega en silencio, sin
        lanzar un 401 claro, así que un «no se puede leer un único objeto JSON»
        crudo no dice nada útil de por qué. */
-    const m = /duplicate key|clients_email_key|clients_email_tipo_key/.test(err.message || '')
-      ? 'Ya hay otra ficha DEL MISMO TIPO con ese correo. Desde el 19-ago una persona y su empresa sí pueden compartirlo, pero dos personas (o dos empresas) no: si es una familia que comparte buzón, deja el correo en una sola y a las demás identifícalas por su pasaporte.'
+    /* ⚠️ 14-sep-2026: el `test` de arriba empezaba por `duplicate key`, así que
+       CUALQUIER choque de unicidad se explicaba como si fuera el correo —
+       incluido el del PASAPORTE, que es el que más salta. En las 24h previas
+       hubo 14 choques de `clients_pasaporte_uniq` y 3 de correo, y los 17 se
+       leyeron en pantalla como «ya hay otra ficha con ese correo»: el agente
+       borraba el correo, volvía a chocar y no entendía por qué. El orden
+       importa — lo específico ANTES del comodín. */
+    const msg = String(err.message || '');
+    const m = /clients_pasaporte_uniq/.test(msg)
+      ? lwT('Ese pasaporte / NPWP ya está en otra ficha (el correo no tiene nada que ver con este aviso). Desde el 11-sep cada uno ve solo los compradores que dio de alta, así que esa ficha puede existir y NO aparecerte en la lista: no crees una segunda: pide a un administrador que te la traspase o que la enlace a tu contrato.')
+      : /clients_email_tipo_key|clients_email_key/.test(msg)
+      ? lwT('Ya hay otra ficha DEL MISMO TIPO con ese correo. Una persona y su empresa sí pueden compartirlo, pero dos personas (o dos empresas) no. Ojo: esa otra ficha puede ser de un compañero y no aparecerte en la lista — si es la misma persona, pide que te la traspasen en vez de crearla otra vez; si es una familia que comparte buzón, deja el correo en una sola e identifica a las demás por su pasaporte.')
+      : /duplicate key/.test(msg)
+      ? lwT('Ese dato ya está en otra ficha: ') + msg
       : /PGRST116/.test(err.code || '')
       ? lwT('Tu sesión ha caducado a mitad de guardar. Recarga la página, entra de nuevo y repite el cambio — no se ha guardado.')
       : 'No se pudo guardar: ' + (err.message || err);

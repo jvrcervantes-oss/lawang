@@ -274,10 +274,10 @@ function pintarClosers(){
   $('#kpis-closers').innerHTML = `
     <div class="kpi"><div class="rot">${lwT('Firmado')}<i class="ph ph-file-text"></i></div>
       <p class="cifra">${dinero(Math.round(firmado), 'EUR')}</p>
-      <p class="pie">${RANKING.reduce((s, x) => s + Number(x.contratos || 0), 0)} contratos</p></div>
+      <p class="pie">${lwT('%n contratos', { n: RANKING.reduce((s, x) => s + Number(x.contratos || 0), 0) })}</p></div>
     <div class="kpi fuerte"><div class="rot">${lwT('Cobrado')}<i class="ph ph-coins"></i></div>
       <p class="cifra">${dinero(Math.round(cobrado), 'EUR')}</p>
-      <p class="pie">${pct}% de lo firmado ha entrado</p></div>
+      <p class="pie">${lwT('%p% de lo firmado ha entrado', { p: pct })}</p></div>
     <div class="kpi"><div class="rot">${lwT('Comerciales')}<i class="ph ph-users-three"></i></div>
       <p class="cifra">${conNombre.length}</p>
       <p class="pie">${lwT('con al menos una venta atribuida')}</p></div>`;
@@ -287,9 +287,10 @@ function pintarClosers(){
   const av = $('#avisoAtribucion');
   if(sinAtribuir && sinAtribuir.contratos > 0){
     av.hidden = false;
+    const importeSinAtribuir = dinero(Math.round(sinAtribuir.firmado), 'EUR');
     av.innerHTML = `<b>${lwT('El ranking todavía no está completo.')}</b> ${lwT('Hay')}
-      <b>${sinAtribuir.contratos} ventas sin atribuir</b> (${dinero(Math.round(sinAtribuir.firmado), 'EUR')}
-      firmados) que no cuentan para nadie. Se asignan abajo, en «A quién se atribuye cada venta».`;
+      <b>${lwT('%n ventas sin atribuir', { n: sinAtribuir.contratos })}</b>
+      ${lwT('(%s firmados) que no cuentan para nadie. Se asignan abajo, en «A quién se atribuye cada venta».', { s: importeSinAtribuir })}`;
   } else av.hidden = true;
 
   $('#subRanking').textContent = SOLO_RAICES
@@ -306,9 +307,9 @@ function pintarClosers(){
         <td class="num">${sin ? '—' : (x.puesto === 1 ? '<i class="ph ph-trophy" style="color:var(--gold)"></i> 1' : x.puesto)}</td>
         <td><b>${esc(sin ? lwT('Sin atribuir') : (x.closer_nombre || x.closer_email))}</b>
           ${x.es_tuyo ? '<span class="chip verde" style="margin-left:6px">' + lwT('tú') + '</span>' : ''}
-          ${x.encadenados > 0 ? `<div style="font-size:11.5px;color:var(--mist)">${x.encadenados} de cadena</div>` : ''}</td>
+          ${x.encadenados > 0 ? `<div style="font-size:11.5px;color:var(--mist)">${lwT('%n de cadena', { n: x.encadenados })}</div>` : ''}</td>
         <td class="num"><b>${dinero(Math.round(x.cobrado || 0), 'EUR')}</b>
-          <div style="font-size:11.5px;color:var(--mist)">${conv}% de lo suyo</div></td>
+          <div style="font-size:11.5px;color:var(--mist)">${lwT('%p% de lo suyo', { p: conv })}</div></td>
         <td class="num">${dinero(Math.round(x.firmado || 0), 'EUR')}</td>
         <td class="num">${x.contratos}</td>
         <td class="num">${dinero(Math.round(x.ticket_medio || 0), 'EUR')}</td>
@@ -331,7 +332,7 @@ function pintarAtribuir(){
         <td><b>${esc(c.numero || '')}</b>
           <div style="font-size:11.5px;color:var(--mist)">${esc(c.proyecto || '')}${
             c.es_hijo ? ' · <span class="chip gris">' + lwT('de cadena') + '</span>' : ''}</div></td>
-        <td>${esc(c.comprador || 'sin nombre')}</td>
+        <td>${c.comprador ? esc(c.comprador) : lwT('sin nombre')}</td>
         <td class="num">${dinero(Math.round(c.precio_total || 0), c.moneda || 'EUR')}</td>
         <td class="num">${Number(c.cobrado) ? dinero(Math.round(c.cobrado), c.moneda || 'EUR') : '—'}</td>
         <td>
@@ -342,7 +343,7 @@ function pintarAtribuir(){
             }>${esc(u.nombre || u.email)}</option>`).join('')}
           </select>
           ${c.creado_por && !c.closer_email
-            ? `<div style="font-size:11px;color:var(--mist);margin-top:3px">lo creó ${esc(c.creado_por)}</div>` : ''}
+            ? `<div style="font-size:11px;color:var(--mist);margin-top:3px">${lwT('lo creó %s', { s: esc(c.creado_por) })}</div>` : ''}
         </td>
       </tr>`).join('') : '<tr><td colspan="5"><p class="vacio">' + lwT('Todas las ventas están atribuidas.') + '</p></td></tr>'}</tbody>`;
 
@@ -399,7 +400,7 @@ async function cargarHoy(){
   const caja = $('#listaHoy');
   caja.innerHTML = '<p class="vacio">' + lwT('Cargando…') + '</p>';
   const { data, error } = await SB.rpc('crm_agenda', { p_solo_mias: SOLO_MIAS });
-  if(error){ caja.innerHTML = '<p class="vacio">No se pudo leer la agenda: ' + esc(error.message) + '</p>'; return; }
+  if(error){ caja.innerHTML = '<p class="vacio">' + lwT('No se pudo leer la agenda: ') + esc(error.message) + '</p>'; return; }
   HOY = data || [];
   pintarHoy();
 }
@@ -414,7 +415,7 @@ function pintarHoy(){
 
   const caja = $('#listaHoy');
   if(!HOY.length){
-    caja.innerHTML = `<p class="vacio">Nada pendiente para hoy.${
+    caja.innerHTML = `<p class="vacio">${lwT('Nada pendiente para hoy.')}${
       ' ' + lwT(SOLO_MIAS ? 'Prueba a mirar las de todo el equipo.' : 'El próximo paso se pone desde la ficha de cada lead.')}</p>`;
     return;
   }
@@ -470,7 +471,7 @@ async function pintarAlcance(){
   if(!cuantas){
     av.hidden = false;
     av.className = 'aviso oro';
-    av.innerHTML = '<b>' + lwT('Todavía no tienes ninguna campaña asignada.') + '</b> Por eso esta pantalla '
+    av.innerHTML = '<b>' + lwT('Todavía no tienes ninguna campaña asignada.') + '</b> ' + lwT('Por eso esta pantalla') + ' '
       + lwT('aparece vacía: verás los leads en cuanto dirección te asigne una. No es un fallo de la herramienta.');
     return;
   }
@@ -537,11 +538,11 @@ function kpisPipeline(){
     <div class="kpi"><div class="rot">${lwT('Leads')}<i class="ph ph-users"></i></div>
       <p class="cifra">${f.length}</p><p class="pie">${CANAL ? esc(canal(CANAL)) : lwT('todos los canales')}</p></div>
     <div class="kpi"><div class="rot">${lwT('Sin contactar')}<i class="ph ph-envelope-simple"></i></div>
-      <p class="cifra">${sin}</p><p class="pie">${parados} llevan más de ${DIAS_VIEJO} días parados</p></div>
+      <p class="cifra">${sin}</p><p class="pie">${lwT('%n llevan más de %d días parados', { n: parados, d: DIAS_VIEJO })}</p></div>
     <div class="kpi"><div class="rot">${lwT('Reserva o contrato')}<i class="ph ph-signature"></i></div>
-      <p class="cifra oro">${cerrados}</p><p class="pie">de ${f.length} leads</p></div>
+      <p class="cifra oro">${cerrados}</p><p class="pie">${lwT('de %n leads', { n: f.length })}</p></div>
     <div class="kpi fuerte"><div class="rot">${lwT('Conversión')}<i class="ph ph-trend-up"></i></div>
-      <p class="cifra">${conv}%</p><p class="pie">llegan a firmar</p></div>
+      <p class="cifra">${conv}%</p><p class="pie">${lwT('llegan a firmar')}</p></div>
     ${sug ? `<div class="kpi"><div class="rot">${lwT('Por confirmar')}<i class="ph ph-flag"></i></div>
       <p class="cifra oro">${sug}</p><p class="pie">${lwT('han firmado y siguen en otra columna')}</p></div>` : ''}`;
 }
@@ -563,7 +564,7 @@ function avisoTipos(){
   const av = $('#avisoTipos');
   if(!sin.length){ av.hidden = true; return; }
   av.hidden = false;
-  av.innerHTML = '<b>' + lwT('Hay tipos de contrato sin columna asignada.') + '</b> Quien firme uno de esos '
+  av.innerHTML = '<b>' + lwT('Hay tipos de contrato sin columna asignada.') + '</b> ' + lwT('Quien firme uno de esos') + ' '
     + lwT('no aparecerá sugerido en Reserva ni en Contrato: ') + ' ' + esc([...new Set(sin)].join(', '))
     + '. ' + lwT('Se arregla desde el estudio, añadiendo su fila en') + ' <code>contrato_tipo_etapa</code>.';
 }
@@ -593,7 +594,7 @@ const diasHasta = iso => {
 };
 /* Cómo se lee una fecha de tarea: lo que importa es si corre prisa, no la fecha exacta. */
 const cuandoTexto = n => n === null ? ''
-  : n < -1 ? Math.abs(n) + ' días de retraso'
+  : n < -1 ? lwT('%n días de retraso', { n: Math.abs(n) })
   : n === -1 ? lwT('ayer') : n === 0 ? lwT('hoy') : n === 1 ? lwT('mañana') : lwT('en %n días', { n });
 
 /* La línea del dueño en la tarjeta. Tres estados y cada uno dice una cosa distinta:
@@ -607,7 +608,7 @@ function duenoHTML(l){
   if(!l.dueno) return `<button class="btn mini reclamar" data-mio="${esc(l.id)}"><i class="ph ph-hand-grabbing"></i>${lwT('Es mío')}</button>`;
   const nombre = l.dueno_nombre || l.dueno;
   if(l.dueno_activo === false)
-    return `<div class="duenio malo"><i class="ph ph-warning-circle"></i>${esc(nombre)} · cuenta desactivada</div>`;
+    return `<div class="duenio malo"><i class="ph ph-warning-circle"></i>${esc(nombre)} · ${lwT('cuenta desactivada')}</div>`;
   return `<div class="duenio${esMio(l) ? ' yo' : ''}"><i class="ph ph-user"></i>${esc(nombre)}</div>`;
 }
 
@@ -616,9 +617,9 @@ function tarjetaHTML(l){
   /* La sugerencia por email es SUPLENTE desde el 11-sep: si hay vínculo explícito, la base
      ya no la manda. Aquí solo se pinta lo que llegue. */
   const sug = l.sugerencia && l.sugerencia !== l.estado
-    ? `<button class="sug" data-sug="${esc(l.id)}"><i class="ph ph-signature"></i> Firmó `
+    ? `<button class="sug" data-sug="${esc(l.id)}"><i class="ph ph-signature"></i> ${lwT('Firmó')} `
       + `${esc(COLS.find(c => c[0] === l.sugerencia)?.[1] || l.sugerencia)}`
-      + `${l.sugerencia_contrato ? ' · ' + esc(l.sugerencia_contrato) : ''} — mover ahí</button>`
+      + `${l.sugerencia_contrato ? ' · ' + esc(l.sugerencia_contrato) : ''} — ${lwT('mover ahí')}</button>`
     : '';
   const presu = l.respuestas && (l.respuestas.budget_range || l.respuestas.budget);
   /* El próximo paso es lo primero que mira un comercial: va arriba del todo y en rojo si
@@ -778,11 +779,11 @@ function abrirFicha(l){
   const c = document.createElement('aside'); c.className = 'cajon';
   c.innerHTML = `
     <header>
-      <button class="cerrar" aria-label="Cerrar">&times;</button>
-      <h2>${esc(l.name || 'sin nombre')}</h2>
+      <button class="cerrar" aria-label="${lwT('Cerrar')}">&times;</button>
+      <h2>${l.name ? esc(l.name) : lwT('sin nombre')}</h2>
       <div class="meta" style="margin-top:8px;display:flex;gap:7px;flex-wrap:wrap">
         <span class="chip meta">${esc(canal(l.source))}</span>
-        <span class="chip gris">Entró ${esc(fecha(l.created_at))}</span>
+        <span class="chip gris">${lwT('Entró %f', { f: esc(fecha(l.created_at)) })}</span>
         ${l.responsable ? `<span class="chip verde">${esc(l.responsable)}</span>` : ''}
       </div>
     </header>
@@ -814,7 +815,7 @@ function abrirFicha(l){
           >${n}</button>`).join('')}
       </div>
       <p class="lb">${lwT('Notas del equipo')}</p>
-      <textarea id="nota" placeholder="Qué ha pasado con este lead…"></textarea>
+      <textarea id="nota" placeholder="${lwT('Qué ha pasado con este lead…')}"></textarea>
       <div style="margin-top:8px"><button class="btn" id="guardarNota"><i class="ph ph-plus"></i>${lwT('Añadir nota')}</button></div>
       <div id="hilo" style="margin-top:16px"><p class="vacio">${lwT('Cargando actividad…')}</p></div>
       ${FICHA && (FICHA.rol === 'super_admin' || (FICHA.herramientas || []).includes('closers'))
@@ -855,7 +856,7 @@ async function pintarDuenoFicha(l){
   } else {
     const nombre = l.dueno_nombre || l.dueno;
     caja.innerHTML = `
-      <div class="dato"><span>Lo lleva</span><b>${esc(nombre)}${mio ? ' (tú)' : ''}</b></div>
+      <div class="dato"><span>${lwT('Lo lleva')}</span><b>${esc(nombre)}${mio ? ' (' + lwT('tú') + ')' : ''}</b></div>
       ${l.dueno_activo === false ? `<div class="aviso rojo" style="margin:10px 0 0">
         <b>${lwT('Esa cuenta está desactivada.')}</b> ${lwT('Este lead está huérfano de hecho: conviene reasignarlo a alguien que lo trabaje.')}</div>` : ''}
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:11px">
@@ -962,7 +963,7 @@ function formularioProximoPaso(l){
   const hoy = HOY_BALI();
   caja.innerHTML = `
     <div class="campo"><label for="ppQue">${lwT('Qué hay que hacer')}</label>
-      <input type="text" id="ppQue" maxlength="280" value="${esc(l.accion_que || '')}" placeholder="Llamar para confirmar presupuesto"></div>
+      <input type="text" id="ppQue" maxlength="280" value="${esc(l.accion_que || '')}" placeholder="${lwT('Llamar para confirmar presupuesto')}"></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin:-6px 0 12px">
       ${RAPIDAS.map(t => `<button class="btn mini" data-rap="${esc(t)}">${esc(t)}</button>`).join('')}
     </div>
@@ -1038,18 +1039,19 @@ async function dialogoHaciaContrato(l){
   const caja = document.querySelector('#haciaContrato'); if(!caja) return;
   caja.innerHTML = '<p class="vacio">' + lwT('Comprobando…') + '</p>';
   const { data, error } = await SB.rpc('crm_lead_para_contrato', { p_lead: l.id });
-  if(error){ caja.innerHTML = '<p class="vacio">No se pudo comprobar: ' + esc(error.message) + '</p>'; return; }
+  if(error){ caja.innerHTML = '<p class="vacio">' + lwT('No se pudo comprobar: ') + esc(error.message) + '</p>'; return; }
   const d = (data || [])[0];
   if(!d){ caja.innerHTML = '<p class="vacio">' + lwT('No se pudo leer el lead.') + '</p>'; return; }
 
   const avisos = [];
   if(d.ficha_existente) avisos.push(
     `<div class="aviso gris" style="margin:0 0 10px"><b>${lwT('Ya existe una ficha con ese correo:')}</b> ${esc(d.ficha_existente_nombre || '')}.
-     Se usará esa, no se crea otra.</div>`);
+     ${lwT('Se usará esa, no se crea otra.')}</div>`);
   if(d.otros_leads_igual > 0) avisos.push(
-    `<div class="aviso oro" style="margin:0 0 10px"><b>${lwT('Ojo:')}</b> hay ${d.otros_leads_igual}
-     ${d.otros_leads_igual === 1 ? 'tarjeta más' : 'tarjetas más'} con este mismo correo.
-     Puede que sea la misma persona duplicada.</div>`);
+    `<div class="aviso oro" style="margin:0 0 10px"><b>${lwT('Ojo:')}</b>
+     ${lwT(d.otros_leads_igual === 1 ? 'hay %n tarjeta más con este mismo correo.'
+                                     : 'hay %n tarjetas más con este mismo correo.', { n: d.otros_leads_igual })}
+     ${lwT('Puede que sea la misma persona duplicada.')}</div>`);
   if(!d.email) avisos.push(
     `<div class="aviso rojo" style="margin:0 0 10px"><b>${lwT('Este lead no dejó email.')}</b>
      ${lwT('Una ficha de comprador necesita un identificador, así que hay que darla de alta a mano en')} <a href="/intranet/compradores/?nuevo=1" target="_blank" rel="noopener">${lwT('Compradores')}</a>.</div>`);
@@ -1132,8 +1134,12 @@ async function pintarHilo(l){
   caja.innerHTML = '<div class="hilo">' + (data || []).slice().reverse().map(ev => {
     const ico = { alta:'ph-download-simple', estado:'ph-arrow-right', nota:'ph-note' }[ev.tipo] || 'ph-circle';
     let texto;
-    if(ev.tipo === 'alta')   texto = 'Entró por <b>' + esc(canal(ev.texto)) + '</b>';
-    else if(ev.tipo === 'estado') texto = 'Pasó de <b>' + esc(nombreCol(ev.extra)) + '</b> a <b>' + esc(nombreCol(ev.texto)) + '</b>';
+    if(ev.tipo === 'alta')   texto = lwT('Entró por') + ' <b>' + esc(canal(ev.texto)) + '</b>';
+    else if(ev.tipo === 'estado'){
+      const origen = '<b>' + esc(nombreCol(ev.extra)) + '</b>';
+      const destino = '<b>' + esc(nombreCol(ev.texto)) + '</b>';
+      texto = lwT('Pasó de %a a %b', { a: origen, b: destino });
+    }
     else                     texto = esc(ev.texto);
     return `<div class="ev ${ev.tipo}"><div class="ico"><i class="ph ${ico}"></i></div>
       <div><div class="qué">${texto}</div>
@@ -1217,13 +1223,13 @@ function pintarPanel(){
 
   $('#kpis-panel').innerHTML = `
     <div class="kpi"><div class="rot">${lwT('Leads recibidos')}<i class="ph ph-users"></i></div>
-      <p class="cifra">${totalLeads}</p><p class="pie">${leads7} en los últimos 7 días</p></div>
+      <p class="cifra">${totalLeads}</p><p class="pie">${lwT('%n en los últimos 7 días', { n: leads7 })}</p></div>
     <div class="kpi"><div class="rot">${lwT('Coste por lead')}<i class="ph ph-tag"></i></div>
       <p class="cifra oro">${cpl == null ? '—' : dinero(Math.round(cpl), mon)}</p>
-      <p class="pie">${hayGasto ? 'de las campañas medidas' : 'sin datos de gasto todavía'}</p></div>
+      <p class="pie">${lwT(hayGasto ? 'de las campañas medidas' : 'sin datos de gasto todavía')}</p></div>
     <div class="kpi"><div class="rot">${lwT('Invertido')}<i class="ph ph-currency-circle-dollar"></i></div>
       <p class="cifra">${hayGasto ? dinero(gasto, mon) : '—'}</p>
-      <p class="pie">${hayGasto ? CAMPANAS.length + ' campañas' : 'pendiente de la primera vuelta'}</p></div>
+      <p class="pie">${hayGasto ? lwT('%n campañas', { n: CAMPANAS.length }) : lwT('pendiente de la primera vuelta')}</p></div>
     <div class="kpi fuerte"><div class="rot">${lwT('Firmas')}<i class="ph ph-signature"></i></div>
       <p class="cifra">${LEADS.filter(l => l.sugerencia).length}</p>
       <p class="pie">${lwT('leads con contrato firmado')}</p></div>`;
@@ -1231,14 +1237,14 @@ function pintarPanel(){
   const av = $('#avisoPanel');
   if(!hayGasto){
     av.hidden = false;
-    av.innerHTML = '<b>' + lwT('Todavía no hay cifras de gasto.') + '</b> Las trae el vigilante de AxisWorks en su '
-      + 'próxima vuelta (cada 4 horas). Los leads de abajo sí son reales y están completos.';
+    av.innerHTML = '<b>' + lwT('Todavía no hay cifras de gasto.') + '</b> '
+      + lwT('Las trae el vigilante de AxisWorks en su próxima vuelta (cada 4 horas). Los leads de abajo sí son reales y están completos.');
   } else av.hidden = true;
 
   $('#grafica').innerHTML = grafica();
   $('#subCampanas').textContent = hayGasto
-    ? CAMPANAS.length + ' campañas con datos · última actualización ' + fecha(CAMPANAS[0].ultimo)
-    : 'Sin datos de campaña todavía.';
+    ? lwT('%n campañas con datos · última actualización %f', { n: CAMPANAS.length, f: fecha(CAMPANAS[0].ultimo) })
+    : lwT('Sin datos de campaña todavía.');
   $('#tCampanas').innerHTML = `
     <thead><tr><th>${lwT('Campaña')}</th><th class="num">${lwT('Invertido')}</th><th class="num">${lwT('Leads')}</th>
       <th class="num">${lwT('Coste/lead')}</th><th class="num">${lwT('Clics')}</th><th class="num">${lwT('7 días')}</th></tr></thead>
@@ -1283,16 +1289,16 @@ function grafica(){
       new Date(s.semana).toLocaleDateString(lwLocale(), { day: 'numeric', month: 'short' })}</text>`).join('');
 
   return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}"
-      role="img" aria-label="Leads y gasto por semana" style="min-width:520px">
+      role="img" aria-label="${lwT('Leads y gasto por semana')}" style="min-width:520px">
     <line x1="${P.l}" y1="${H - P.b}" x2="${W - P.r}" y2="${H - P.b}" stroke="#E2E8F0"/>
-    <text x="6" y="${P.t + 8}" font-size="10.5" fill="#064E3B">${maxL} leads</text>
-    ${conGasto ? `<text x="${W - P.r + 6}" y="${P.t + 8}" font-size="10.5" fill="#D97706">gasto</text>` : ''}
+    <text x="6" y="${P.t + 8}" font-size="10.5" fill="#064E3B">${lwT('%n leads', { n: maxL })}</text>
+    ${conGasto ? `<text x="${W - P.r + 6}" y="${P.t + 8}" font-size="10.5" fill="#D97706">${lwT('gasto')}</text>` : ''}
     ${barras}${linea}${marcas}${ejeX}
   </svg></div>
   <p style="font-size:12.5px;color:var(--mist);margin:8px 0 0">
-    <b style="color:#064E3B">■</b> leads por semana
-    ${conGasto ? ' · <b style="color:#D97706">—</b> invertido en Meta'
-      : ' · el gasto aparecerá cuando el vigilante haga su primera vuelta'}</p>`;
+    <b style="color:#064E3B">■</b> ${lwT('leads por semana')}
+    ${conGasto ? ' · <b style="color:#D97706">—</b> ' + lwT('invertido en Meta')
+      : ' · ' + lwT('el gasto aparecerá cuando el vigilante haga su primera vuelta')}</p>`;
 }
 
 /* ==========================================================================
@@ -1338,7 +1344,7 @@ function pintarAutomatismos(){
       <p class="cifra">${ACCIONES.length}</p><p class="pie">${lwT('las últimas que constan')}</p></div>
     <div class="kpi fuerte"><div class="rot">${lwT('Última actuación')}<i class="ph ph-clock"></i></div>
       <p class="cifra" style="font-size:20px">${ultima ? esc(fechaHora(ultima.cuando)) : '—'}</p>
-      <p class="pie">${ultima ? esc(ultima.campana) : 'sin registro'}</p></div>`;
+      <p class="pie">${ultima ? esc(ultima.campana) : lwT('sin registro')}</p></div>`;
 
   /* El flujo real, de izquierda a derecha. Cuatro pasos, y el último dice la
      verdad incómoda: mover la tarjeta lo hace una persona. */
@@ -1353,26 +1359,26 @@ function pintarAutomatismos(){
         border-radius:var(--r-box);padding:13px">
         <div style="display:flex;align-items:center;gap:8px;color:var(--primary)">
           <i class="ph ${p.ico}" style="font-size:18px"></i>
-          <b style="font-family:var(--sans);font-size:13.5px">${p.t}</b></div>
-        <p style="margin:6px 0 0;font-size:12px;color:var(--mist)">${p.s}</p>
+          <b style="font-family:var(--sans);font-size:13.5px">${lwT(p.t)}</b></div>
+        <p style="margin:6px 0 0;font-size:12px;color:var(--mist)">${lwT(p.s)}</p>
         ${i < pasos.length - 1 ? '' : ''}</div>`).join('')
     + '</div>';
 
-  $('#subReglas').textContent = 'Qué mira cada una y qué puede hacer.';
+  $('#subReglas').textContent = lwT('Qué mira cada una y qué puede hacer.');
   $('#reglas').innerHTML = REGLAS.map(r => `
     <div style="display:grid;grid-template-columns:34px 1fr;gap:12px;padding:12px 0;border-top:1px solid var(--line-soft)">
       <div style="width:34px;height:34px;border-radius:8px;background:var(--primary-soft);color:var(--primary);
         display:grid;place-items:center"><i class="ph ${r.ico}" style="font-size:17px"></i></div>
       <div><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <b style="font-family:var(--sans);font-size:14px">${r.n}</b>
-          <span class="chip gris">${r.cada}</span></div>
-        <p style="margin:5px 0 0;font-size:13px">${r.q}</p>
-        <p style="margin:3px 0 0;font-size:12.5px;color:var(--mist)">${r.hace}</p></div>
+          <b style="font-family:var(--sans);font-size:14px">${lwT(r.n)}</b>
+          <span class="chip gris">${lwT(r.cada)}</span></div>
+        <p style="margin:5px 0 0;font-size:13px">${lwT(r.q)}</p>
+        <p style="margin:3px 0 0;font-size:12.5px;color:var(--mist)">${lwT(r.hace)}</p></div>
     </div>`).join('');
 
   $('#subAcciones').textContent = ACCIONES.length
-    ? 'Las ' + ACCIONES.length + ' últimas actuaciones sobre las campañas de Lawang.'
-    : 'Todavía no consta ninguna actuación.';
+    ? lwT('Las %n últimas actuaciones sobre las campañas de Lawang.', { n: ACCIONES.length })
+    : lwT('Todavía no consta ninguna actuación.');
   $('#tAcciones').innerHTML = `
     <thead><tr><th>${lwT('Cuándo')}</th><th>${lwT('Campaña')}</th><th>${lwT('Qué hizo')}</th><th>${lwT('Por qué')}</th></tr></thead>
     <tbody>${ACCIONES.length ? ACCIONES.map(a => `<tr>
@@ -1403,7 +1409,7 @@ async function llamarBot(accion, extra){
   if(!r.ok){
     // El codigo numerico de Meta viaja aparte del texto: sin el no se puede traducir
     // el fallo a una frase con accion (ver ERRORES_META).
-    const e = new Error(cuerpo.error || ('El bot respondió ' + r.status));
+    const e = new Error(cuerpo.error || lwT('El bot respondió %s', { s: r.status }));
     e.code = cuerpo.code ?? null; e.detalle = cuerpo.detalle || '';
     throw e;
   }
@@ -1420,8 +1426,8 @@ async function cargarSetter(){
     CONVERSACIONES = [];
     av.hidden = false;
     av.innerHTML = err.message === 'lawang-bot-proxy no configurado (falta LAWANG_BOT_ADMIN_KEY)'
-      ? 'El puente con el bot todavía no está activado por el estudio.'
-      : 'No se pudo leer el bot: ' + esc(err.message);
+      ? lwT('El puente con el bot todavía no está activado por el estudio.')
+      : lwT('No se pudo leer el bot: ') + esc(err.message);
   }
   pintarSetter();
   /* Si se entró por un enlace directo (`#setter/62…`), el hilo se abrió ANTES de que
@@ -1438,8 +1444,8 @@ function kpisSetter(){
   $('#kpis-setter').innerHTML = `
     <div class="kpi"><div class="rot">${lwT('Conversaciones')}<i class="ph ph-chats-circle"></i></div>
       <p class="cifra">${CONVERSACIONES.length}</p><p class="pie">${lwT('con el bot de WhatsApp')}</p></div>
-    <div class="kpi fuerte"><div class="rot">IA activa<i class="ph ph-robot"></i></div>
-      <p class="cifra">${activas}</p><p class="pie">respondiendo sola ahora mismo</p></div>
+    <div class="kpi fuerte"><div class="rot">${lwT('IA activa')}<i class="ph ph-robot"></i></div>
+      <p class="cifra">${activas}</p><p class="pie">${lwT('respondiendo sola ahora mismo')}</p></div>
     <div class="kpi"><div class="rot">${lwT('En pausa')}<i class="ph ph-pause"></i></div>
       <p class="cifra oro">${pausadas}</p><p class="pie">${lwT('las lleva una persona')}</p></div>`;
 }
@@ -1535,7 +1541,7 @@ async function verConversacion(phone){
   c.dataset.vacio = '0';
   c.innerHTML = `
     <div class="wa-cab">
-      <button type="button" class="wa-volver" id="waVolver" aria-label="Volver a la lista"><i class="ph ph-arrow-left"></i></button>
+      <button type="button" class="wa-volver" id="waVolver" aria-label="${lwT('Volver a la lista')}"><i class="ph ph-arrow-left"></i></button>
       <div class="avatar">${esc(iniciales(lead.name))}</div>
       <div class="cuerpo">
         <div class="quien">${esc(lead.name || 'sin nombre')}</div>
@@ -1551,7 +1557,7 @@ async function verConversacion(phone){
       <button class="btn mini" data-pausar="${esc(phone)}" data-a="${lead.paused ? '0' : '1'}">
         ${lead.paused ? 'Reanudar IA' : 'Pausar IA'}</button>
       <button type="button" class="btn mini" id="waInfo" aria-pressed="${String(FICHA_ABIERTA)}"
-              title="Mostrar u ocultar la ficha del lead"><i class="ph ph-info"></i></button>
+              title="${lwT('Mostrar u ocultar la ficha del lead')}"><i class="ph ph-info"></i></button>
     </div>
     <div class="wa-hilo" id="hiloConv"><p class="vacio">${lwT('Cargando…')}</p></div>
     <div class="wa-pie" id="waPie"></div>`;
@@ -1611,17 +1617,17 @@ const ERRORES_META = {
 function explicaError(err){
   const txt = String((err && err.message) || err || '');
   const codigo = err && err.code;
-  if(codigo && ERRORES_META[codigo]) return ERRORES_META[codigo];
+  if(codigo && ERRORES_META[codigo]) return lwT(ERRORES_META[codigo]);
   const m = /\(#(\d+)\)/.exec(txt);
-  if(m && ERRORES_META[m[1]]) return ERRORES_META[m[1]];
-  if(/opt_out/.test(txt)) return 'Este lead pidió la baja (STOP). No se le puede escribir.';
-  if(/lead_desconocido/.test(txt)) return 'Ese teléfono no es un lead de este bot.';
-  return 'No se pudo enviar: ' + txt.slice(0, 200);
+  if(m && ERRORES_META[m[1]]) return lwT(ERRORES_META[m[1]]);
+  if(/opt_out/.test(txt)) return lwT('Este lead pidió la baja (STOP). No se le puede escribir.');
+  if(/lead_desconocido/.test(txt)) return lwT('Ese teléfono no es un lead de este bot.');
+  return lwT('No se pudo enviar: ') + txt.slice(0, 200);
 }
 
 const quedaPara = ts => {
   const h = Math.floor((ts - Date.now()) / 3600000);
-  return h >= 1 ? `quedan ${h} h` : 'queda menos de 1 h';
+  return h >= 1 ? lwT('quedan %n h', { n: h }) : lwT('queda menos de 1 h');
 };
 
 function pintarCaja(lead){
@@ -1642,10 +1648,10 @@ function pintarCaja(lead){
   if(lead.ventanaAbierta){
     pie.innerHTML = `
       <div class="wa-caja">
-        <textarea id="waTexto" rows="1" placeholder="Escribe tu respuesta…" maxlength="4000"></textarea>
+        <textarea id="waTexto" rows="1" placeholder="${lwT('Escribe tu respuesta…')}" maxlength="4000"></textarea>
         <button type="button" class="btn pri" id="waEnviar"><i class="ph ph-paper-plane-tilt"></i>${lwT('Enviar')}</button>
       </div>
-      <p class="wa-nota">Ventana de WhatsApp abierta — ${esc(quedaPara(lead.ventanaExpira))} para escribir texto libre.</p>`;
+      <p class="wa-nota">${lwT('Ventana de WhatsApp abierta —')} ${esc(quedaPara(lead.ventanaExpira))} ${lwT('para escribir texto libre.')}</p>`;
     const ta = $('#waTexto');
     // Crece con el texto, como cualquier chat, pero con tope para no comerse el hilo.
     ta.oninput = () => { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 140) + 'px'; };
@@ -1658,10 +1664,10 @@ function pintarCaja(lead){
   // Ventana cerrada: el texto libre no se entrega. Se explica y se ofrece la única vía real.
   pie.innerHTML = `
     <p class="wa-aviso oro"><i class="ph ph-clock-countdown"></i>
-      ${lead.lastInboundAt
+      ${lwT(lead.lastInboundAt
         ? 'Han pasado más de 24 h desde su último mensaje.'
-        : 'Este lead nunca ha escrito al bot.'}
-      WhatsApp solo permite contactarle con una <b>plantilla aprobada</b>.</p>
+        : 'Este lead nunca ha escrito al bot.')}
+      ${lwT('WhatsApp solo permite contactarle con una')} <b>${lwT('plantilla aprobada')}</b>.</p>
     <div class="wa-caja">
       <select id="waPlantilla"><option value="">${lwT('Cargando plantillas…')}</option></select>
       <button type="button" class="btn pri" id="waEnviarP" disabled><i class="ph ph-paper-plane-tilt"></i>${lwT('Enviar')}</button>
@@ -1696,7 +1702,7 @@ async function cargarPlantillas(lead){
        el número de datos equivocado cuesta un 132000 y el intento ya está consumido. */
     cont.innerHTML = `<p class="wa-previo">${esc(t.body)}</p>` +
       Array.from({ length: t.vars }, (_, i) =>
-        `<input class="wa-param" data-i="${i}" placeholder="Dato ${i + 1}" maxlength="300">`).join('');
+        `<input class="wa-param" data-i="${i}" placeholder="${lwT('Dato %n', { n: i + 1 })}" maxlength="300">`).join('');
   };
   $('#waEnviarP').onclick = () => {
     const t = PLANTILLAS[$('#waPlantilla').value];
@@ -1739,15 +1745,15 @@ async function enviarPlantilla(phone, t, params){
    dato y no dice nada. */
 /* Rotulo de cada intencion; las claves son las que escribe el bot. */
 const INTENCION = { exploring: lwT('Explorando'), interested: lwT('Interesado'), booking: lwT('Quiere reservar'), escalate: lwT('Escalado') };
-const ESTADO_COM = { won: 'Ganado', lost: 'Perdido', noshow: 'No se presentó' };
+const ESTADO_COM = { won: lwT('Ganado'), lost: lwT('Perdido'), noshow: lwT('No se presentó') };
 
 function pintarFicha(lead){
   const f = $('#waFicha');
   const filas = [
     [lwT('Intención'),   INTENCION[lead.intent] || lead.intent],
-    ['Estado',      ESTADO_COM[lead.status] || lead.status],
+    [lwT('Estado'), ESTADO_COM[lead.status] || lead.status],
     [lwT('País'),        lead.country],
-    ['Campaña',     lead.campaign],
+    [lwT('Campaña'), lead.campaign],
     /* travelDate lo extrae el bot de la conversación, así que puede venir en
        cualquier forma ("noviembre", "14/11"...). Se formatea SOLO si es una fecha
        de verdad; si no, se enseña tal cual — inventarle un formato sería perderla. */
@@ -1855,9 +1861,9 @@ function kpisAgenda(filas){
   const proxima = futuras[0];
   $('#kpis-agenda').innerHTML = `
     <div class="kpi"><div class="rot">${lwT('Citas agendadas')}<i class="ph ph-calendar"></i></div>
-      <p class="cifra">${filas.length}</p><p class="pie">${futuras.length} todavía por llegar</p></div>
+      <p class="cifra">${filas.length}</p><p class="pie">${lwT('%n todavía por llegar', { n: futuras.length })}</p></div>
     <div class="kpi"><div class="rot">${lwT('Con Meet listo')}<i class="ph ph-video-camera"></i></div>
-      <p class="cifra oro">${conMeet}</p><p class="pie">${filas.length - conMeet} sin enlace automático</p></div>
+      <p class="cifra oro">${conMeet}</p><p class="pie">${lwT('%n sin enlace automático', { n: filas.length - conMeet })}</p></div>
     <div class="kpi fuerte"><div class="rot">${lwT('Próxima llamada')}<i class="ph ph-clock"></i></div>
       <p class="cifra" style="font-size:19px">${proxima ? esc(fechaHora(proxima.when)) : '—'}</p>
       <p class="pie">${proxima ? esc(proxima.name || proxima.phone || lwT('sin nombre')) : lwT('nada agendado por delante')}</p></div>`;

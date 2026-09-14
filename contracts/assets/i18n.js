@@ -1050,6 +1050,11 @@
     'Ficha de': 'Record of',
     'Ficha actualizada': 'Record updated',
     'Comprador creado': 'Buyer created',
+    'Ese pasaporte / NPWP ya está en otra ficha (el correo no tiene nada que ver con este aviso). Desde el 11-sep cada uno ve solo los compradores que dio de alta, así que esa ficha puede existir y NO aparecerte en la lista: no crees una segunda: pide a un administrador que te la traspase o que la enlace a tu contrato.':
+      'That passport / NPWP is already on another record (this warning has nothing to do with the email). Since 11 Sep each person only sees the buyers they created, so that record may exist and NOT show up in your list: do not create a second one: ask an administrator to transfer it to you or to link it to your contract.',
+    'Ya hay otra ficha DEL MISMO TIPO con ese correo. Una persona y su empresa sí pueden compartirlo, pero dos personas (o dos empresas) no. Ojo: esa otra ficha puede ser de un compañero y no aparecerte en la lista — si es la misma persona, pide que te la traspasen en vez de crearla otra vez; si es una familia que comparte buzón, deja el correo en una sola e identifica a las demás por su pasaporte.':
+      'Another record OF THE SAME TYPE already uses that email. A person and their company may share one, but two people (or two companies) may not. Careful: that other record may belong to a colleague and not show up in your list — if it is the same person, ask for it to be transferred to you instead of creating it again; if it is a family sharing one mailbox, keep the email on a single record and identify the others by passport.',
+    'Ese dato ya está en otra ficha: ': 'That value is already on another record: ',
     'Crear comprador': 'Create buyer',
     'Guardando…': 'Saving…',
     'Subiendo…': 'Uploading…',
@@ -1771,7 +1776,7 @@
     'Ojo:': 'Careful:',
     'Comprobando…': 'Checking…',
     'Pidiendo…': 'Requesting…',
-    '· Dirección': '· Address',
+    '· Dirección': '· Leadership',
     '· WhatsApp Bot': '· WhatsApp Bot',
     'WhatsApp': 'WhatsApp',
 
@@ -1779,6 +1784,155 @@
     'Ya existe una ficha con ese correo:': 'A record with that email already exists:',
     'El lead': 'The lead',
 
+
+
+    /* Lo que faltaba del CRM de leads: pestañas, KPIs, la vista de
+       Automatismos entera, el chat del Setter y los errores de Meta
+       (14-sep-2026). */
+    'Refrescar': 'Refresh',
+    'Pipeline': 'Pipeline',
+    'Bandeja': 'Inbox',
+    'Campañas': 'Campaigns',
+    'Automatismos': 'Automations',
+    'Setter IA': 'AI Setter',
+    'Closers': 'Closers',
+    'Agendar': 'Schedule',
+    'Parados +14d': 'Stalled +14d',
+    'Estos automatismos los ejecuta AxisWorks sobre las campañas de Lawang, cada 4 horas.':
+      'AxisWorks runs these automations on Lawang\'s campaigns, every 4 hours.',
+    'Aquí se ven': 'Here you see them',
+    ': qué vigila cada regla y qué ha hecho de verdad.':
+      ': what each rule watches and what it has actually done.',
+    'Para cambiar un umbral o un tope de gasto, habla con el estudio.':
+      'To change a threshold or a spending cap, talk to the studio.',
+    '%n contratos': '%n contracts',
+    '%p% de lo firmado ha entrado': '%p% of what was signed has come in',
+    '(%s firmados) que no cuentan para nadie. Se asignan abajo, en «A quién se atribuye cada venta».':
+      '(%s signed) that count for nobody. They are assigned below, under “Who each sale is credited to”.',
+    '%n de cadena': '%n from chains',
+    '%p% de lo suyo': '%p% of their own',
+    'lo creó %s': 'created by %s',
+    'No se pudo leer la agenda: ': 'Could not read the schedule: ',
+    'Nada pendiente para hoy.': 'Nothing due today.',
+    'Por eso esta pantalla': 'That is why this screen',
+    '%n llevan más de %d días parados': '%n stalled for more than %d days',
+    'de %n leads': 'of %n leads',
+    'llegan a firmar': 'go on to sign',
+    'Quien firme uno de esos': 'Whoever signs one of those',
+    'cuenta desactivada': 'account deactivated',
+    'Firmó': 'Signed',
+    'mover ahí': 'move it there',
+    'Entró %f': 'Came in %f',
+    'Lo lleva': 'Handled by',
+    'Qué ha pasado con este lead…': 'What happened with this lead…',
+    'Llamar para confirmar presupuesto': 'Call to confirm budget',
+    'No se pudo comprobar: ': 'Could not check: ',
+    'Se usará esa, no se crea otra.': 'That one will be used, no new record is created.',
+    'hay %n tarjeta más con este mismo correo.': 'there is %n more card with this same email.',
+    'hay %n tarjetas más con este mismo correo.':
+      'there are %n more cards with this same email.',
+    'Puede que sea la misma persona duplicada.': 'It may be the same person, duplicated.',
+    'Entró por': 'Came in through',
+    'Pasó de %a a %b': 'Moved from %a to %b',
+    '%n en los últimos 7 días': '%n in the last 7 days',
+    'de las campañas medidas': 'across the measured campaigns',
+    'sin datos de gasto todavía': 'no spend data yet',
+    'pendiente de la primera vuelta': 'waiting for the first pass',
+    'Las trae el vigilante de AxisWorks en su próxima vuelta (cada 4 horas). Los leads de abajo sí son reales y están completos.':
+      'The AxisWorks watchdog brings them on its next pass (every 4 hours). The leads below are real and complete.',
+    '%n campañas con datos · última actualización %f':
+      '%n campaigns with data · last updated %f',
+    'Sin datos de campaña todavía.': 'No campaign data yet.',
+    'Leads y gasto por semana': 'Leads and spend by week',
+    'gasto': 'spend',
+    'leads por semana': 'leads per week',
+    'invertido en Meta': 'spent on Meta',
+    'el gasto aparecerá cuando el vigilante haga su primera vuelta':
+      'spend will appear once the watchdog makes its first pass',
+    'sin registro': 'no record',
+    'Qué mira cada una y qué puede hacer.': 'What each one watches and what it can do.',
+    'Las %n últimas actuaciones sobre las campañas de Lawang.':
+      'The last %n actions on Lawang\'s campaigns.',
+    'Todavía no consta ninguna actuación.': 'No action on record yet.',
+    'Recogida de leads': 'Lead collection',
+    'Baja a este CRM los leads de los formularios de Meta que estén en anuncios activos.':
+      'Pulls into this CRM the leads from Meta forms on active ads.',
+    'Escribe la ficha del lead. Nunca toca su estado ni sus notas.':
+      'Writes the lead record. It never touches its stage or its notes.',
+    'Freno por sequía': 'Dry-spell brake',
+    'Un conjunto de anuncios que lleva días sin traer un solo lead.':
+      'An ad set that has gone days without bringing in a single lead.',
+    'Lo pausa para no seguir gastando en algo que no convierte.':
+      'Pauses it so money stops going into something that is not converting.',
+    'Reparto del presupuesto': 'Budget split',
+    'Compara el coste por lead de cada conjunto dentro de su tope mensual.':
+      'Compares each ad set\'s cost per lead within its monthly cap.',
+    'Sube o baja el presupuesto diario, y reactiva lo que él mismo pausó cuando vuelve a caber.':
+      'Raises or lowers the daily budget, and switches back on what it paused itself once it fits again.',
+    'Tope de gasto': 'Spending cap',
+    'El gasto acumulado del mes contra el tope acordado.':
+      'The month\'s accumulated spend against the agreed cap.',
+    'Pausa la campaña al cruzarlo. Es la jaula: ninguna otra regla puede saltársela.':
+      'Pauses the campaign when it is crossed. It is the cage: no other rule can get past it.',
+    'Limpieza de público': 'Audience cleanup',
+    'máx. 1 cada 7 días': 'max. 1 every 7 days',
+    'Franjas de edad y género con clics y gasto suficientes y cero leads.':
+      'Age and gender brackets with enough clicks and spend and zero leads.',
+    'Las excluye del público. Reversible y anotado.':
+      'Excludes them from the audience. Reversible and logged.',
+    'Anuncio en Meta': 'Meta ad',
+    'Facebook e Instagram': 'Facebook and Instagram',
+    'Formulario instantáneo': 'Instant form',
+    'El lead deja sus datos': 'The lead leaves their details',
+    'Recogida automática': 'Automatic collection',
+    'Cada 4 h, sin tocar nada': 'Every 4 h, hands off',
+    'Entra en «Nuevo»': 'Lands in “New”',
+    'Y de ahí lo mueve una persona': 'And from there a person moves it',
+    'El bot respondió %s': 'The bot replied %s',
+    'El puente con el bot todavía no está activado por el estudio.':
+      'The bridge to the bot has not been switched on by the studio yet.',
+    'No se pudo leer el bot: ': 'Could not read the bot: ',
+    'IA activa': 'AI on',
+    'respondiendo sola ahora mismo': 'answering on their own right now',
+    'Volver a la lista': 'Back to the list',
+    'Mostrar u ocultar la ficha del lead': 'Show or hide the lead record',
+    'Escribe tu respuesta…': 'Write your reply…',
+    'Dato %n': 'Value %n',
+    'Han pasado más de 24 h desde su último mensaje: ya solo se le puede escribir con una plantilla.':
+      'More than 24 h have passed since their last message: only a template can be sent now.',
+    'Ese número no tiene WhatsApp.': 'That number is not on WhatsApp.',
+    'Tipo de mensaje no admitido.': 'Message type not supported.',
+    'La plantilla espera otro número de datos.':
+      'The template expects a different number of values.',
+    'Esa plantilla no existe en este idioma.': 'That template does not exist in this language.',
+    'Un dato de la plantilla tiene un formato que Meta no acepta.':
+      'One of the template values has a format Meta does not accept.',
+    'Esa plantilla está pausada por Meta por baja calidad.':
+      'That template is paused by Meta for low quality.',
+    'Esa plantilla está deshabilitada por Meta.': 'That template has been disabled by Meta.',
+    'La cuenta de WhatsApp está restringida por facturación: no sale ningún mensaje.':
+      'The WhatsApp account is restricted over billing: no message goes out.',
+    'La cuenta de WhatsApp está suspendida.': 'The WhatsApp account is suspended.',
+    'El token de WhatsApp ha caducado. Avisa al estudio.':
+      'The WhatsApp token has expired. Tell the studio.',
+    'Demasiados mensajes seguidos. Espera un momento.':
+      'Too many messages in a row. Wait a moment.',
+    'Este lead pidió la baja (STOP). No se le puede escribir.':
+      'This lead opted out (STOP). They cannot be written to.',
+    'Ese teléfono no es un lead de este bot.': 'That phone is not a lead of this bot.',
+    'quedan %n h': '%n h left',
+    'queda menos de 1 h': 'less than 1 h left',
+    'Ventana de WhatsApp abierta —': 'WhatsApp window open —',
+    'para escribir texto libre.': 'to write free text.',
+    'Han pasado más de 24 h desde su último mensaje.':
+      'More than 24 h have passed since their last message.',
+    'Este lead nunca ha escrito al bot.': 'This lead has never written to the bot.',
+    'WhatsApp solo permite contactarle con una': 'WhatsApp only allows contacting them with an',
+    'plantilla aprobada': 'approved template',
+    'Ganado': 'Won',
+    'No se presentó': 'No-show',
+    '%n todavía por llegar': '%n still to come',
+    '%n sin enlace automático': '%n with no automatic link',
 
     'Acceso~puerta': 'Sign in',
     'Soy del equipo': 'I am staff',
