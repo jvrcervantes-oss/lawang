@@ -98,40 +98,28 @@ contracts/assets/apoderados/
 # Supabase CLI: caché local, no se versiona
 supabase/.temp/
 
-# ── Las 20 fotos que pararon el deploy tres dias (14-sep-2026) ──────────────
-# El commit dbff891 (11-sep, «intranet en ingles 1/n») se llevo sin querer 20
-# fotos de villa que el cliente ya habia subido desde el admin. En el servidor
-# esas mismas rutas existen como ficheros SIN TRACKEAR, asi que desde ese dia
-# `git pull` abortaba con «untracked working tree files would be overwritten by
-# merge» y NADA del repo se desplegaba — ni de Lawang ni de la otra sesion.
-# Comprobado antes de sacarlas: las 20 son identicas byte a byte a las que sirve
-# produccion, y siguen en disco y en el historial de git. Quitarlas del indice
-# es lo que desatasca, porque el commit destino ya no intenta escribirlas.
+# ── Las fotos que sube el cliente desde el panel (14-sep-2026) ──────────────
+# `assets/img/properties/` tiene dos tipos de fichero, y se distinguen por el
+# NOMBRE: los assets del estudio llevan nombre legible (`aqua-1.jpg`,
+# `Palm Field.png`) y se versionan; lo que sube el cliente desde el admin llega
+# como `YYYYMMDD_<hash>` y vive SOLO en el servidor, que es su dueño.
 #
-# ⚠️ ESTO ES EL PARCHE, NO EL ARREGLO. `assets/img/properties/` tiene DOS dueños:
-# el panel de admin escribe ahi y el repo versiona ademas otras 171 imagenes
-# (50 MB). Mientras siga asi, la proxima foto que alguien commitee vuelve a
-# parar el deploy. La decision de quien manda esta abierta (LAW-195), y no es
-# gratis: `thecollection.php:1107` enlaza a `20260710_fcf0f11a4340.png` por
-# ruta fija, asi que si esa carpeta pasa a ser solo-del-servidor hay que
-# incluirla en el respaldo o esa foto no se puede reponer desde el repo.
-assets/img/properties/20260710_ba9bdc59069e.png
-assets/img/properties/20260710_fcf0f11a4340.png
-assets/img/properties/20260724_0ca3b531ecf83adf096e073aec1278c1.jpg
-assets/img/properties/20260724_20087199ff8201f037d9cd60cd98f908.jpg
-assets/img/properties/20260724_450a4a52bb8009f813e23307375a652a.jpg
-assets/img/properties/20260724_46e950ff61f2f655590dd1fe3bf992c4.jpg
-assets/img/properties/20260724_4a4a93368026548deae136602aa5f9e8.jpg
-assets/img/properties/20260724_58cc78f8db16dee3ac5f6c964fc9233d.jpg
-assets/img/properties/20260724_8c3923c2e5f9e5e946a2a47fd953736b.jpg
-assets/img/properties/20260724_8dae46f8da67b6dbabb5285f246b3f00.jpg
-assets/img/properties/20260724_9e7606e4388c2f809cae2dc6c0e51ec3.jpg
-assets/img/properties/20260724_a9442171983f2e60ef3f15fa88eac9b6.jpg
-assets/img/properties/20260724_b448dc1b0d86a0808b88bb0f91ca4f8d.jpg
-assets/img/properties/20260724_c725efed43ac31e5e465fcfec3b61cbd.jpg
-assets/img/properties/20260724_d71922942e944ba38b9e1989240328df.png
-assets/img/properties/20260724_ecbb31841af9a8ffa01647a01204c1ea.jpg
-assets/img/properties/20260724_f89f17eb72818157a15433bf87d771a7.jpg
-assets/img/properties/20260727_01b928d4ffad1123f979a7a781866c11.jpg
-assets/img/properties/20260727_15776f4ef2ff91e19f28b730ef00f94c.jpg
-assets/img/properties/20260727_b5c6ec94ac10aa29adba49e4ab78ef36.jpg
+# POR QUE EXISTE ESTA REGLA. El commit dbff891 (11-sep-2026, «intranet en
+# ingles 1/n») se llevo sin querer 20 de las del cliente. En el servidor esas
+# mismas rutas ya existian como ficheros SIN TRACKEAR, asi que `git pull`
+# empezo a abortar con «untracked working tree files would be overwritten by
+# merge» y **NADA del repo se desplego durante tres dias** — ni de una sesion
+# ni de la otra. El sintoma no apuntaba aqui: los webhooks seguian devolviendo
+# 200 y tres redeliveries dieron 202 sin mover nada; la causa solo constaba en
+# el log del deploy manual de hPanel. Se destrabo sacando esas 20 del indice.
+#
+# El patron va ANCLADO A LA CARPETA y no suelto: `\d{8}_` a secas tambien casa
+# con los ficheros de `supabase/migrations/`, y esos hay que versionarlos —
+# ignorarlos en silencio seria perder migraciones sin ningun sintoma.
+#
+# Lo respalda un guardrail, no la buena memoria: el pre-commit rechaza cualquier
+# fichero NUEVO que este ignorado (`git check-ignore` sobre lo que se anade), asi
+# que un `git add -f` se para en el momento de plantar la bomba. Decision del
+# owner del 14-sep: la copia de estas fotos la cubren los backups de Hostinger,
+# el estudio no mantiene un respaldo propio de ellas.
+assets/img/properties/[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_*

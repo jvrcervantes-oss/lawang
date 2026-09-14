@@ -21,6 +21,43 @@ if [ -n "$rama" ]; then
   echo "[pre-commit] rama activa: $rama"
 fi
 
+# ── Un fichero NUEVO que el .gitignore ignora no entra (14-sep-2026) ─────────
+# El commit dbff891 del 11-sep se llevo 20 fotos que el cliente ya habia subido
+# desde el panel de admin. En el servidor esas rutas existen como ficheros sin
+# trackear, asi que `git pull` empezo a abortar y NADA del repo se desplego
+# durante tres dias — ni de una sesion ni de la otra, y sin ningun sintoma que
+# apuntara aqui (los webhooks seguian devolviendo 200).
+#
+# La regla en prosa ya existia («imagenes del admin NUNCA en git»,
+# departamentos/deploy/prompt.md) y fallo igual. Esto es el peldano siguiente.
+#
+# Le pregunta a GIT, no a una regex propia: `check-ignore` usa el .gitignore, que
+# se queda como fuente unica. Una lista copiada aqui divergiria del gitignore y
+# seria el mismo bug que viene a cazar.
+#
+# Solo mira lo que se AÑADE (`--diff-filter=A`), no lo que se modifica: el repo
+# tiene 4 ficheros trackeados-e-ignorados de antes (`git ls-files -ci`), ajenos a
+# esto, y bloquear sus ediciones seria un falso positivo diario.
+# ⚠️ `--no-index` NO es opcional, y la primera version de este hook se escribio
+# sin el y NO BLOQUEO NADA: `git check-ignore` da por bueno cualquier fichero que
+# ya este en el indice, y en un pre-commit TODO lo que miras ya esta añadido.
+# Cazado probandolo con una foto de mentira antes de subirlo; el camino verde no
+# demostraba nada porque hoy no hay ninguna que bloquear.
+# Sin `-z`: una ruta por linea. Con `-z` la salida acaba en un byte nulo que
+# bash descarta imprimiendo un warning en CADA commit — ruido diario en un hook
+# que casi nunca tiene nada que decir. Aqui la ruta solo se IMPRIME, asi que el
+# escapado de `--name-only` no molesta, y un salto de linea dentro de un nombre
+# de fichero no existe en este repo.
+nuevos=$(git diff --cached --name-only --diff-filter=A | git check-ignore --no-index --stdin 2>/dev/null || true)
+if [ -n "$nuevos" ]; then
+  echo "[pre-commit] ⛔ Estos ficheros NUEVOS estan ignorados por .gitignore y no deben entrar:"
+  echo "$nuevos" | sed 's/^/[pre-commit]      /'
+  echo "[pre-commit]    Si son fotos que subio el cliente desde el panel, ya estan en el servidor:"
+  echo "[pre-commit]    versionarlas vuelve a DEJAR EL DEPLOY PARADO (asi estuvo tres dias, 11-sep-2026)."
+  echo "[pre-commit]    Sacalos del commit con: git restore --staged <fichero>"
+  exit 1
+fi
+
 # Auto cache-busting: si cambia cualquier JS/CSS de assets/, sube ?v= en las páginas
 # para que el CDN de Hostinger (hcdn, 7 días) sirva la versión fresca.
 #
