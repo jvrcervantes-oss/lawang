@@ -125,7 +125,7 @@
       '<form data-e="form" data-lateral="1" style="' + cajaForm + FUENTE + '">' +
       '<div style="' + cajaCabecera + '">' +
       '<div style="min-width:0">' +
-      (opts.sub ? '<p style="margin:0 0 5px;font:600 11px/1.3 inherit;letter-spacing:.12em;text-transform:uppercase;color:' + CAJ.hoja + '">' + esc(opts.sub) + '</p>' : '') +
+      (opts.sub ? '<p style="margin:0 0 5px;font-weight:600;font-size:11px;line-height:1.3;letter-spacing:.12em;text-transform:uppercase;color:' + CAJ.hoja + '">' + esc(opts.sub) + '</p>' : '') +
       "<h3 style=\"margin:0;font:700 25px/1.2 'Neue Kabel',sans-serif;letter-spacing:-.01em;color:" + CAJ.lago + "\">" + esc(titulo) + "</h3>" +
       '</div>' +
       '<button type="button" data-e="cerrar" style="border:0;background:none;font-size:20px;cursor:pointer;color:#75786e;line-height:1">×</button></div>' +
@@ -135,15 +135,15 @@
       /* Rojo solido y no el rosa palido de antes (14-sep-2026, misma peticion
          del owner): a 13px sobre #ffdad6 el aviso se confundia con una nota de
          ayuda. Va dentro del modal, que ya esta centrado. */
-      '<p data-e="error" role="alert" style="display:none;margin:14px 0 0;padding:12px 14px;border-radius:8px;background:#9E2F26;color:#fff;font:600 14px/1.4 inherit"></p>' +
+      '<p data-e="error" role="alert" style="display:none;margin:14px 0 0;padding:12px 14px;border-radius:8px;background:#9E2F26;color:#fff;font-weight:600;font-size:14px;line-height:1.4"></p>' +
       '</div>' +
       '<div style="' + cajaPie + '">' +
       /* Botones del cajon: rectangulos de radio 10, no pastillas, y el primario
          ocupa el ancho que sobra — igual que «Exportar cuentas del proyecto» en
          el cajon de /v4/proyectos/. Con el pie fijo, un boton ancho es ademas
          mas facil de acertar que una pastilla en la esquina. */
-      '<button type="button" data-e="cancelar" style="flex:0 0 auto;padding:11px 20px;border-radius:10px;border:1px solid ' + CAJ.borde + ';background:' + CAJ.papel + ';color:' + CAJ.tinta + ';font:600 14px inherit;cursor:pointer">Cancelar</button>' +
-      '<button type="submit" data-e="guardar" style="flex:1;padding:11px 20px;border-radius:10px;border:0;background:' + CAJ.lago + ';color:#fff;font:600 14px inherit;cursor:pointer;letter-spacing:.02em">' + esc(textoBoton || 'Guardar') + '</button>' +
+      '<button type="button" data-e="cancelar" style="flex:0 0 auto;padding:11px 20px;border-radius:10px;border:1px solid ' + CAJ.borde + ';background:' + CAJ.papel + ';color:' + CAJ.tinta + ';font-weight:600;font-size:14px;cursor:pointer">Cancelar</button>' +
+      '<button type="submit" data-e="guardar" style="flex:1;padding:11px 20px;border-radius:10px;border:0;background:' + CAJ.lago + ';color:#fff;font-weight:600;font-size:14px;cursor:pointer;letter-spacing:.02em">' + esc(textoBoton || 'Guardar') + '</button>' +
       '</div></form></div>';
     document.body.appendChild(w);
     if (lateral) {
@@ -161,13 +161,13 @@
        —el mismo que separa las filas del cajon— en vez del #8A8474 de control,
        que a este tamano y sobre crema se leia como una caja de texto de 2005. */
     var estilo = 'width:100%;padding:9px 12px;border:1px solid ' + CAJ.borde + ';border-radius:8px;' +
-      'font:500 14px inherit;color:' + CAJ.tinta + ';background:' + CAJ.papel + ';box-sizing:border-box';
+      'font-weight:500;font-size:14px;color:' + CAJ.tinta + ';background:' + CAJ.papel + ';box-sizing:border-box';
     /* Cada campo es una FILA DEL CAJON: tarjeta con su borde y su radio 12, y la
        etiqueta dentro. Antes la etiqueta era un rotulo en mayusculas con
        tracking de titular flotando encima de un campo suelto — mas fuerte que el
        dato que nombraba, y sin nada que los atara. */
     var tarjeta = 'display:grid;gap:6px;background:' + CAJ.banda + ';border:1px solid ' + CAJ.borde + ';' +
-      'border-radius:12px;padding:12px 14px;font:500 12px/1.35 inherit;color:' + CAJ.apagado + ';' +
+      'border-radius:12px;padding:12px 14px;font-weight:500;font-size:12px;line-height:1.35;color:' + CAJ.apagado + ';' +
       'text-transform:none;letter-spacing:0';
     campos.forEach(function (c) {
       var d = document.createElement('label');
@@ -180,7 +180,7 @@
       if (c.tipo === 'check') {
         d.style.cssText = 'display:flex;gap:10px;align-items:flex-start;background:' + CAJ.banda +
           ';border:1px solid ' + CAJ.borde + ';border-radius:12px;padding:12px 14px;' +
-          'font:500 13px inherit;color:' + CAJ.tinta + ';text-transform:none;letter-spacing:0';
+          'font-weight:500;font-size:13px;color:' + CAJ.tinta + ';text-transform:none;letter-spacing:0';
         if (lateral) d.style.gridColumn = '1 / -1';   // cssText de arriba lo borro
         d.innerHTML = '<input type="checkbox" data-k="' + esc(c.k) + '"' + (c.valor ? ' checked' : '') + ' style="margin-top:2px">' +
           '<span>' + esc(c.label) + (c.ayuda ? '<br><small style="color:#8A6A34">' + esc(c.ayuda) + '</small>' : '') + '</span>';
@@ -200,7 +200,7 @@
            formulario que no se rellena, y si se viste igual que un campo se lee
            como un campo bloqueado. El ambar la separa; el radio 12 la mantiene
            dentro del sistema. */
-        d.style.cssText = 'display:block;font:400 12.5px/1.5 inherit;text-transform:none;letter-spacing:0;' +
+        d.style.cssText = 'display:block;font-weight:400;font-size:12.5px;line-height:1.5;text-transform:none;letter-spacing:0;' +
           'color:#8A6A34;background:#FBF3E4;border:1px solid #EBDCB4;border-radius:12px;padding:11px 14px;margin:0';
         if (lateral) d.style.gridColumn = '1 / -1';   // cssText de arriba lo borro
         d.innerHTML = esc(c.label);
@@ -218,7 +218,7 @@
         // par [valor, etiqueta] — igual que ya admite 'select' — para cuando el
         // valor que hay que guardar (un id) no es lo que se quiere leer (un
         // nombre). Proyectos lo necesita para modelos y managers.
-        d.innerHTML = inner + '<div data-k="' + esc(c.k) + '" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font:500 13px inherit;text-transform:none;letter-spacing:0;color:#2E3437">' +
+        d.innerHTML = inner + '<div data-k="' + esc(c.k) + '" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-weight:500;font-size:13px;text-transform:none;letter-spacing:0;color:#2E3437">' +
           (c.opciones || []).map(function (o) {
             var vv = typeof o === 'string' ? [o, o] : o;
             return '<label style="display:flex;gap:7px;align-items:center"><input type="checkbox" value="' + esc(vv[0]) + '"' +
@@ -229,7 +229,7 @@
           (c.paso ? ' step="' + esc(c.paso) + '"' : '') + ' style="' + estilo + '">';
       }
       if (c.ayuda && c.tipo !== 'check') {
-        d.innerHTML += '<small style="font:400 12px inherit;text-transform:none;letter-spacing:0;color:#8A8474">' + esc(c.ayuda) + '</small>';
+        d.innerHTML += '<small style="font-weight:400;font-size:12px;text-transform:none;letter-spacing:0;color:#8A8474">' + esc(c.ayuda) + '</small>';
       }
       cont.appendChild(d);
     });
@@ -833,12 +833,12 @@
           var pct = totalDerivado ? Math.min(100, Math.round(cob / totalDerivado * 100)) : null;
           var fila = function (dt, dd) {
             return '<div style="display:flex;justify-content:space-between;gap:14px;padding:5px 0;border-bottom:1px solid #efeee8">' +
-              '<span style="font:600 11px inherit;letter-spacing:.1em;text-transform:uppercase;color:#75786e">' + esc(dt) + '</span>' +
-              '<span style="font:600 13px inherit;color:#2E3437;text-align:right">' + dd + '</span></div>';
+              '<span style="font-weight:600;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#75786e">' + esc(dt) + '</span>' +
+              '<span style="font-weight:600;font-size:13px;color:#2E3437;text-align:right">' + dd + '</span></div>';
           };
           var bloque = function (titulo, dentro) {
             return '<section style="margin:0 0 18px;padding:14px 16px;background:#f5f4ee;border:1px solid #E4DCCB;border-radius:10px">' +
-              '<h4 style="margin:0 0 8px;font:600 11px inherit;letter-spacing:.12em;text-transform:uppercase;color:#104C4F">' + esc(titulo) + '</h4>' +
+              '<h4 style="margin:0 0 8px;font-weight:600;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#104C4F">' + esc(titulo) + '</h4>' +
               dentro + '</section>';
           };
           var encabezado = '';
@@ -850,7 +850,7 @@
                  ((window.LW_V4 && window.LW_V4.equipoNombre) || {})[u.contrato_creado_por] || u.contrato_creado_por)) : '') +
               fila('Cobrado de esta parcela', esc(fmtM(cob, u.moneda)) +
                   (pct != null ? ' <span style="color:#75786e;font-weight:500">· ' + pct + '%</span>' : '') +
-                  '<br><span style="font:500 11px inherit;color:#8A8474">su parte del contrato, no el total</span>');
+                  '<br><span style="font-weight:500;font-size:11px;color:#8A8474">su parte del contrato, no el total</span>');
             if (pct != null) {
               dentroOp += '<div style="margin-top:10px;height:6px;border-radius:999px;background:#e4e2dd;overflow:hidden">' +
                 '<div style="height:100%;width:' + pct + '%;background:#3F5230"></div></div>';
@@ -864,7 +864,7 @@
               fila('Suelo', esc(u.precio_suelo != null ? fmtM(u.precio_suelo, u.moneda) : '—')) +
               fila('Construcción', esc(u.precio_construccion != null ? fmtM(u.precio_construccion, u.moneda) : '—')) +
               fila('Total', '<b>' + esc(fmtM(totalDerivado, u.moneda)) + '</b>') +
-              (descuadra ? '<p style="margin:8px 0 0;font:500 12px inherit;color:#8A6A34">El total guardado (' +
+              (descuadra ? '<p style="margin:8px 0 0;font-weight:500;font-size:12px;color:#8A6A34">El total guardado (' +
                  esc(fmtM(u.precio_guardado, u.moneda)) + ') no cuadra con suelo + construcción. Manda la suma.</p>' : ''));
           }
 
