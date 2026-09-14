@@ -213,7 +213,12 @@
           return;
         }
         cierraModal();
-        location.reload();
+        /* Recargar es lo correcto para un editor que acaba de escribir en la
+           base: la pantalla vuelve con el dato ya guardado y no hay que cablear
+           un repintado por cada formulario. Pero NO para quien no guarda nada —
+           los formularios de relleno de la maqueta—, que se quedarian recargando
+           la pagina por haber pulsado «Guardar» en algo que no guarda. */
+        if (!opts.sinRecarga) location.reload();
       }, function (e) {
         btn.disabled = false; btn.textContent = textoBoton || 'Guardar';
         muestraError('No se pudo guardar: ' + (e && e.message || e));
@@ -1127,4 +1132,18 @@
     });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arranca); else arranca();
+
+  /* LA VENTANA DE LA v4, Y YA NO HAY OTRA (14-sep-2026, encargo del owner).
+     `maqueta.js` tenia la suya —misma ventana con fondo, cabecera, campos y pie,
+     pero con radio 10 en vez de 14, botones rectos en vez de pastilla y sin saber
+     ensenar un error— y ya habian empezado a separarse. Se queda esta, que es la
+     que valida, sabe ensenar el fallo y tiene la variante lateral.
+
+     Se EXPORTA en vez de mudarse a un fichero aparte: mudarla es operar 1.080
+     lineas alrededor de los dieciseis formularios que el owner usa a diario, y el
+     beneficio seria el mismo. Si algun dia la usa una tercera pieza, entonces si
+     baja a `contracts/assets/` — que es donde deberia nacer lo que usan dos o mas.
+     `window.lw*` y no un `const`: un `const` de nivel superior no queda en
+     `window`, y esto tiene que alcanzarse desde OTRO fichero. */
+  window.lwVentana = modal;
 })();

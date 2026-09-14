@@ -42,41 +42,59 @@
      neutro y `toastMal` para los fallos, y estrenar un tercero aqui seria volver
      a empezar. */
 
-  function cerrarModal() { var m = document.getElementById('lw-modal'); if (m) m.remove(); }
+  /* ═══ LA VENTANA YA NO SE PINTA AQUI (14-sep-2026, encargo del owner) ═══
+     Este fichero tenia su propio modal: la MISMA ventana que la de editores.js
+     —fondo, cabecera, campos, pie— pero con radio 10 en vez de 14, botones
+     rectos en vez de pastilla y sin saber ensenar un error. Dos ventanas para el
+     mismo trabajo, ya separandose. Se queda la de editores.js, que valida y sabe
+     fallar, y aqui solo queda COMO SE RELLENA.
 
-  function modal(titulo, cuerpoHTML, accion, alGuardar) {
-    cerrarModal();
-    var w = document.createElement('div'); w.id = 'lw-modal';
-    w.innerHTML =
-      '<div class="lw-modal-fondo"></div>' +
-      '<div class="lw-modal-caja" role="dialog" aria-modal="true">' +
-        '<p class="lw-modal-titulo">' + titulo + '</p>' +
-        '<div class="lw-modal-cuerpo">' + cuerpoHTML + '</div>' +
-        '<div class="lw-modal-pie">' +
-          '<button type="button" class="lw-btn-sec" data-mq="cerrar">Cancelar</button>' +
-          '<button type="button" class="lw-btn-pri" data-mq="guardar">' + (accion || 'Guardar') + '</button>' +
-        '</div>' +
-        '<p class="lw-modal-nota">Maqueta — no se guarda ningún dato real.</p>' +
-      '</div>';
-    document.body.appendChild(w);
-    w.querySelector('.lw-modal-fondo').addEventListener('click', cerrarModal);
-    w.querySelector('[data-mq="cerrar"]').addEventListener('click', cerrarModal);
-    w.querySelector('[data-mq="guardar"]').addEventListener('click', function () {
-      cerrarModal(); (alGuardar || function () { toast('✓ Guardado (maqueta) — sin datos reales'); })();
-    });
-    var inp = w.querySelector('input, select, textarea'); if (inp) inp.focus();
+     `campos` es la declaracion que espera aquella ventana, no HTML: `{k, label,
+     tipo, ayuda, opciones}`. Lo que antes era una cadena con `<label>` dentro
+     ahora se dice en datos, que es lo que permitia unificarlas.
+
+     `sinRecarga` es lo unico que hubo que anadir a la pieza compartida: aquella
+     recarga la pagina al guardar —correcto para un editor que acaba de escribir
+     en la base— y estos formularios no guardan nada, asi que recargarian por
+     haber pulsado un boton que no hace nada.
+
+     Y `sub` dice en la propia ventana que no se guarda. Antes era una nota al
+     pie; ahora va bajo el titulo, que es donde se lee antes de teclear. */
+  var PROYECTOS = ['Horizon S1', 'Sumba Hills', 'Bonian Village', 'Palm Field', 'Aura Village'];
+
+  function ventana(titulo, campos, accion, alGuardar) {
+    /* Si la ventana compartida no esta en esta pantalla, no se inventa otra: se
+       dice en un aviso. Una segunda implementacion «por si acaso» es justo la
+       duplicacion que este cambio viene a quitar. */
+    if (typeof window.lwVentana !== 'function') {
+      toast('«' + titulo + '» — disponible en la fase de cableado');
+      return;
+    }
+    window.lwVentana(titulo, campos, accion || 'Guardar', function () {
+      (alGuardar || function () { toast('✓ Guardado (maqueta) — sin datos reales'); })();
+    }, { sinRecarga: true, sub: 'Maqueta — no se guarda ningun dato real.' });
   }
 
-  function campo(label, tipo, ph) {
-    return '<label class="lw-campo"><span>' + label + '</span>' +
-      (tipo === 'select'
-        ? '<select><option>Horizon S1</option><option>Sumba Hills</option><option>Bonian Village</option><option>Palm Field</option><option>Aura Village</option></select>'
-        : tipo === 'area' ? '<textarea rows="2" placeholder="' + (ph || '') + '"></textarea>'
-        : '<input type="' + tipo + '" placeholder="' + (ph || '') + '">') + '</label>';
-  }
-  var FORM_BASICO = campo('Referencia', 'text', 'p. ej. REF-2026-001') + campo('Proyecto', 'select') + campo('Notas', 'area', 'Opcional');
-  var FORM_DINERO = campo('Referencia', 'text', 'p. ej. INV-2026-120') + campo('Proyecto', 'select') + campo('Importe (€)', 'text', '25.000') + campo('Fecha', 'date');
-  var FORM_PERSONA = campo('Nombre completo', 'text', 'Nombre y apellidos') + campo('Email', 'email', 'nombre@ejemplo.com') + campo('Proyecto', 'select');
+  var FORM_BASICO = [
+    { k: 'ref', label: 'Referencia', ayuda: 'p. ej. REF-2026-001' },
+    { k: 'proyecto', label: 'Proyecto', tipo: 'select', opciones: PROYECTOS },
+    { k: 'notas', label: 'Notas', tipo: 'textarea' }
+  ];
+  var FORM_DINERO = [
+    { k: 'ref', label: 'Referencia', ayuda: 'p. ej. INV-2026-120' },
+    { k: 'proyecto', label: 'Proyecto', tipo: 'select', opciones: PROYECTOS },
+    { k: 'importe', label: 'Importe (EUR)', ayuda: 'p. ej. 25.000' },
+    { k: 'fecha', label: 'Fecha', tipo: 'date' }
+  ];
+  var FORM_PERSONA = [
+    { k: 'nombre', label: 'Nombre completo' },
+    { k: 'email', label: 'Email', tipo: 'email' },
+    { k: 'proyecto', label: 'Proyecto', tipo: 'select', opciones: PROYECTOS }
+  ];
+  /* Los dos que no eran formulario sino una frase: `nota` es el tipo que la
+     ventana compartida ya trae para eso. */
+  var NOTA_AUDITORIA = [{ tipo: 'nota', label: 'Esta accion quedara registrada en la auditoria de la herramienta.' }];
+  var NOTA_BORRADO = [{ tipo: 'nota', label: 'En la app real esto pide confirmacion y deja rastro.' }];
 
   /* ---------- tabla de rutas para CTAs de navegación ---------- */
   var aqui = location.pathname;
@@ -139,14 +157,14 @@
     if (/^(\+ )?(nuev[oa]|alta|emitir|registrar|invitar|subir|añadir|importar|crear)/i.test(tl)) {
       var f = /factur|recib|hito|importe|proforma/i.test(tl) ? FORM_DINERO
             : /comprador|miembro|usuario|invitar/i.test(tl) ? FORM_PERSONA : FORM_BASICO;
-      modal(t, f, 'Guardar'); return true;
+      ventana(t, f, 'Guardar'); return true;
     }
-    if (/^(editar|reasignar|actualizar|traer los conceptos|corregir)/i.test(tl)) { modal(t, FORM_BASICO, 'Aplicar'); return true; }
+    if (/^(editar|reasignar|actualizar|traer los conceptos|corregir)/i.test(tl)) { ventana(t, FORM_BASICO, 'Aplicar'); return true; }
     if (/^(firmar|verificar|conciliar|ejecutar|reactivar|aprobar|validar)/i.test(tl)) {
-      modal(t, '<p class="lw-modal-p">Esta acción quedará registrada en la auditoría de la herramienta.</p>', 'Confirmar'); return true;
+      ventana(t, NOTA_AUDITORIA, 'Confirmar'); return true;
     }
     if (/^(eliminar|borrar|anular)/i.test(tl) || (/(^| )delete( |$)/.test(ico) && !t)) {
-      modal(t || 'Eliminar', '<p class="lw-modal-p">¿Seguro? En la app real esto pide confirmación y deja rastro.</p>', 'Eliminar'); return true;
+      ventana(t || 'Eliminar', NOTA_BORRADO, 'Eliminar'); return true;
     }
     if (/contactar|plantillas de respuesta|revisión de marca|filtros?( avanzados)?$|^filtrar|^filtro/i.test(tl) || (/(^| )tune( |$)/.test(ico) && !t)) {
       toast('«' + (t || 'Filtros') + '» — disponible en la fase de cableado'); return true;
@@ -175,7 +193,7 @@
   document.addEventListener('click', function (ev) {
     var btn = ev.target.closest && ev.target.closest('button');
     if (btn) {
-      if (btn.closest('#lw-modal')) return;             // el modal gestiona los suyos
+      if (btn.closest('#lw-editor')) return;            // la ventana gestiona los suyos
       if (btn.hasAttribute('onclick')) return;          // comportamiento propio de Stitch
       if (btn.hasAttribute('data-real')) return;        // cableado por datos.js: no se toca
       // Sobre datos reales un chip que "se enciende" sin filtrar MIENTE: solo

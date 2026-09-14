@@ -73,28 +73,12 @@
   font-weight:600;font-size:15px;line-height:1.35;padding:18px 26px;text-align:center;
   box-shadow:0 22px 60px -18px rgba(158,47,38,.55),0 0 0 6px rgba(158,47,38,.13)}
 
-/* ---------- modal ---------- */
-#lw-modal{position:fixed;inset:0;z-index:var(--z-modal)}
-#lw-modal .lw-modal-fondo{position:absolute;inset:0;background:rgba(27,28,25,.45)}
-#lw-modal .lw-modal-caja{position:relative;margin:9vh auto 0;width:min(92vw,440px);background:#FBF9F4;
-  border:1px solid #c5c8bc;border-radius:10px;padding:22px 24px 16px;box-shadow:0 24px 60px rgba(27,28,25,.3)}
-#lw-modal .lw-modal-titulo{font:600 22px/1.25 'Neue Kabel',sans-serif;color:#314322;margin:0 0 14px}
-#lw-modal .lw-modal-p{font:400 14px/1.5 'Neue Kabel',sans-serif;color:#44483f;margin:4px 0 8px}
-#lw-modal .lw-campo{display:block;margin-bottom:12px}
-#lw-modal .lw-campo span{display:block;font:700 10px/1 'Neue Kabel',sans-serif;letter-spacing:.14em;
-  text-transform:uppercase;color:#8A8474;margin-bottom:5px}
-#lw-modal .lw-campo input,#lw-modal .lw-campo select,#lw-modal .lw-campo textarea{width:100%;
-  background:#fff;border:1px solid #c5c8bc;border-radius:6px;padding:8px 10px;
-  font:400 14px/1.4 'Neue Kabel',sans-serif;color:#1b1c19}
-#lw-modal .lw-campo input:focus,#lw-modal .lw-campo select:focus,#lw-modal .lw-campo textarea:focus{
-  outline:none;border-color:#485B37}
-#lw-modal .lw-modal-pie{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
-#lw-modal .lw-btn-pri{background:#485B37;color:#F5F0E6;border:0;border-radius:6px;padding:9px 18px;
-  font:600 12px/1 'Neue Kabel',sans-serif;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
-#lw-modal .lw-btn-pri:hover{background:#314322}
-#lw-modal .lw-btn-sec{background:transparent;color:#44483f;border:1px solid #c5c8bc;border-radius:6px;
-  padding:9px 16px;font:600 12px/1 'Neue Kabel',sans-serif;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
-#lw-modal .lw-modal-nota{font:400 11px/1.4 'Neue Kabel',sans-serif;color:#8A8474;margin:12px 0 0;text-align:center}
+/* ---------- modal: ya no vive aqui ----------
+   `#lw-modal` y sus `.lw-campo`/`.lw-btn-*` se retiran (14-sep-2026): la v4
+   tiene UNA sola ventana desde hoy, la de `editores.js`, que trae su estilo con
+   ella. Dejar estas reglas seria CSS que no casa con nada — justo lo que
+   `tools/css_muerto.py` persigue en cada commit. Recuperable en git si hiciera
+   falta volver. */
 
 /* ---------- plegado de sidebar en desktop (botón left_panel_close) ---------- */
 .lw-burger{display:none}

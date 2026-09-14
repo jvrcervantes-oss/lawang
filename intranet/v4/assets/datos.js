@@ -33,7 +33,7 @@
       if (el.children.length > 2) continue;
       // nunca anclar en la cáscara: la sidebar tiene "Vencimientos", "Recibos"…
       // y el primer intento le escribió el pie de un KPI al subtítulo del logo
-      if (el.closest('aside,nav,header,#lw-modal,#lw-maqueta')) continue;
+      if (el.closest('aside,nav,header,#lw-editor,#lw-cargando,#lw-maqueta')) continue;
       if (rx.test(el.textContent.replace(/\s+/g, ' ').trim()) && el.textContent.length < 90) return el;
     }
     return null;
