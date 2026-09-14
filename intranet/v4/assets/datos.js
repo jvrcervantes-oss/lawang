@@ -941,7 +941,9 @@
             UNIDADES_CAJON = {}; window.LW_V4.unidades = UNIDADES_CAJON;
             pon('d-uds-n', uu.length + (uu.length === 1 ? ' unidad' : ' unidades'));
             if (!uu.length) {
-              caja.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">' +
+              // grid-column entera: dentro de una rejilla, un aviso suelto se
+              // quedaria encogido en la primera columna como si fuera una tarjeta.
+              caja.innerHTML = '<p style="grid-column:1/-1;font:500 13px/1.5 sans-serif;color:#75786e;margin:0">' +
                 'Este proyecto no tiene unidades dadas de alta.</p>';
               return;
             }
