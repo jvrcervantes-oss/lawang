@@ -78,7 +78,15 @@ fi
 # hook escribia una marca de tiempo encima del hash y el gate bloqueaba el push
 # siguiente: dos guardrails peleandose. El ancla no era el bug — el bug era que
 # nadie ejecutaba el sellador solo. Se hace justo debajo.
-suite=$(git diff --cached --name-only | grep -E '^contracts/assets/.+\.(js|css)$' | grep -v '\.test\.js$' || true)
+# 🔴 14-sep-2026 — EL DISPARADOR SE QUEDO CORTO, NO EL SELLADOR. `sella_assets.py`
+# cubre `intranet/v4/assets/` desde el 8-sep (la v4 tiene su PROPIO assets/ con
+# datos.js y nav.js), pero este grep seguia mirando solo `contracts/assets/`: un
+# commit que tocaba UNICAMENTE la v4 pasaba sin sellar, las 22 paginas conservaban
+# el `?v=` viejo y el navegador servia el datos.js anterior. Es el mismo fallo de
+# siempre —la lista escrita a mano en dos sitios— con el sellador de un lado y su
+# disparador del otro. Si aparece un tercer `assets/`, va tambien aqui Y en ASSETS
+# de sella_assets.py: el dia que sean tres, el descubrimiento sube al script.
+suite=$(git diff --cached --name-only | grep -E '^(contracts|intranet/v4)/assets/.+\.(js|css)$' | grep -v '\.test\.js$' || true)
 if [ -n "$suite" ]; then
   raiz=$(git rev-parse --show-toplevel)
 
