@@ -136,7 +136,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/au-landing.css?v=20260911112010">
+<link rel="stylesheet" href="/assets/au-landing.css?v=20260914174048">
 </head>
 <body>
 
@@ -513,7 +513,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 <!-- Sin `defer`: la llama el script inline de abajo en el mismo pase de parseo, y un
      `defer` aqui la dejaria definida DESPUES de que el inline intente llamarla (los
      `defer` se ejecutan al final del parseo, los inline no). -->
-<script src="/assets/au-landing-cfg.js?v=20260914170000"></script>
+<script src="/assets/au-landing-cfg.js?v=20260914174048"></script>
 <script>
 (function () {
   'use strict';

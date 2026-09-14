@@ -209,6 +209,21 @@ h3{font-size:20px;font-weight:700}
   .mosaico figure:not(:first-child) .mos__sub{font-size:8px;letter-spacing:.05em;margin-top:3px}
 }
 
+/* ── Mosaico "renders pendientes" (14-sep-2026, /dali y /modelo/<id>) ───────────────
+   Trinity/Temple no tienen renders todavia y el owner decidio publicarlos igual
+   (lw_modelo_get, modelo/lib.php) — nunca un hueco gris ni un icono de imagen rota, el
+   mismo peso visual que el mosaico con fotos reales. Una sola figura a todo el ancho,
+   sin figcaption con overlay porque no hay imagen debajo que ensombrecer. */
+.mosaico--pend{grid-template-columns:minmax(0,1fr);grid-template-rows:none}
+.mosaico--pend figure{aspect-ratio:21/9;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:12px;text-align:center;background:var(--secondary);color:var(--bg);
+  padding:40px}
+.mosaico--pend svg{width:56px;height:auto;color:var(--canopy)}
+.mosaico--pend .mos__tt{font-size:22px;color:#fff}
+.mosaico--pend .mos__sub{color:rgba(245,240,230,.78);font-size:13px;max-width:40ch;
+  text-transform:none;letter-spacing:normal;font-family:var(--body)}
+@media(max-width:560px){.mosaico--pend figure{aspect-ratio:4/3;padding:28px}}
+
 /* ── Tarjeta de reserva ───────────────────────────────────────────────────────────── */
 .book{background:var(--card);border:2px solid rgba(16,76,79,.2);border-radius:18px;
   padding:20px;box-shadow:0 18px 44px rgba(16,76,79,.13);display:flex;flex-direction:column;gap:15px;
