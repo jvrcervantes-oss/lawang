@@ -44,6 +44,9 @@ function extrae(nombre, hasta) {
 const codigo =
   'const bankOptions = () => Object.entries(CUENTAS_BANCARIAS).map(([v,c])=>[v,c.label])' +
   "  .sort((a,b)=>a[1].localeCompare(b[1],'es'));\n" +
+  // `nivelCuentas` es quien resuelve la cascada; sin él las otras dos revientan
+  // con un ReferenceError que `node --check` NO caza (lección del 11-sep)
+  extrae('nivelCuentas', 'function bankOptionsFor') +
   extrae('bankOptionsFor', '/* La cuenta precargada') +
   extrae('bankDefaultFor', '/* ---------- sociedad firmante');
 
@@ -71,11 +74,28 @@ const PLANTILLA_CUENTAS = {
   ppjb_reserva:      { claves: [], porDefecto: '' },
 };
 
-const hecho = new Function('CUENTAS_BANCARIAS', 'PLANTILLA_CUENTAS',
-  codigo + '\n;return { bankOptionsFor, bankDefaultFor };')(CUENTAS_BANCARIAS, PLANTILLA_CUENTAS);
+/* La excepción por PROYECTO (14-sep-2026, segunda parte del encargo). Dos
+   proyectos, uno por cada nivel de la cascada:
+   · SOKA declara solo para `ppjb_parcela` — es el caso real sembrado desde los
+     datos (18 de 18 de sus Bloqueos cobran en el notario de la zona). Su
+     Construcción NO está declarada, así que hereda; si heredara mal, ofrecería
+     el escrow de un notario en un contrato de obra que no lo pacta. Ese es el
+     fallo que casi se cuela al sembrar, y por eso tiene test propio.
+   · PALM declara en el nivel `'*'`: una cuenta de empresa suya, válida en
+     cualquier tipo de contrato. Es el caso que describió el owner con Palm
+     Field. */
+const SOKA = 'proj-soka';
+const PALM = 'proj-palm';
+const PROYECTO_CUENTAS = {
+  [SOKA]: { ppjb_parcela: { claves: ['notario_sandy_sumba'], porDefecto: 'notario_sandy_sumba' } },
+  [PALM]: { '*':          { claves: ['land_balian_usd'],     porDefecto: 'land_balian_usd' } },
+};
+
+const hecho = new Function('CUENTAS_BANCARIAS', 'PLANTILLA_CUENTAS', 'PROYECTO_CUENTAS',
+  codigo + '\n;return { bankOptionsFor, bankDefaultFor };')(CUENTAS_BANCARIAS, PLANTILLA_CUENTAS, PROYECTO_CUENTAS);
 const { bankOptionsFor, bankDefaultFor } = hecho;
 
-const claves = (slug) => bankOptionsFor(slug).map((o) => o[0]).sort();
+const claves = (slug, proy) => bankOptionsFor(slug, proy).map((o) => o[0]).sort();
 
 /* ---- 1. filtra por lo que dice la tabla, exactamente ---- */
 assert.deepStrictEqual(claves('carta_reserva'), ['contractor_tepisungai'],
@@ -124,6 +144,63 @@ Object.keys(PLANTILLA_CUENTAS).forEach((slug) => {
   if (def) assert.ok(claves(slug).includes(def),
     slug + ': la cuenta precargada tiene que estar entre las ofrecidas');
 });
+
+/* ═══ LA CASCADA POR PROYECTO (14-sep-2026) ═══════════════════════════════════
+   Gana ENTERO el nivel más específico que tenga filas. No se fusionan niveles:
+   fusionar volvería a ofrecer justo lo que el proyecto acaba de excluir. */
+
+/* ---- 7. el proyecto manda sobre el tipo de contrato ---- */
+assert.deepStrictEqual(claves('ppjb_parcela', SOKA), ['notario_sandy_sumba'],
+  'en Soka, un Bloqueo de Parcela ofrece SOLO el notario de su zona');
+assert.ok(claves('ppjb_parcela').length > 1,
+  'sin proyecto, el mismo tipo sigue ofreciendo lo general — la excepción no se filtra a los demás');
+
+/* ---- 8. lo que el proyecto NO declara, lo HEREDA ----
+   El caso que casi se siembra mal: si el notario de Soka se hubiera declarado
+   en el nivel '*', la Construcción de Soka habría ofrecido solo ese escrow, y
+   un contrato de obra no pacta depósito en garantía. Verificado contra la base
+   antes de sembrar: los contratos de construcción de Soka cobran en la cuenta
+   de empresa, no en el notario. */
+assert.deepStrictEqual(claves('ppjb_construccion', SOKA), claves('ppjb_construccion'),
+  'Soka no declara nada para Construcción, así que hereda el reparto general TAL CUAL');
+assert.ok(!claves('ppjb_construccion', SOKA).includes('notario_sandy_sumba')
+       || claves('ppjb_construccion').includes('notario_sandy_sumba'),
+  'la excepción de un tipo NUNCA se cuela en otro tipo del mismo proyecto');
+
+/* ---- 9. el nivel '*' vale para cualquier tipo de ese proyecto ---- */
+assert.deepStrictEqual(claves('carta_reserva', PALM), ['land_balian_usd'],
+  'Palm Field declara su cuenta en el nivel «cualquier tipo» y manda sobre la Carta');
+assert.deepStrictEqual(claves('ppjb_construccion', PALM), ['land_balian_usd'],
+  'y sobre Construcción también: eso es lo que significa el nivel «*»');
+assert.deepStrictEqual(claves('carta_reserva'), ['contractor_tepisungai'],
+  'sin proyecto, la Carta sigue con lo suyo de siempre');
+
+/* ---- 10. un proyecto SIN nada declarado se comporta como antes de existir esto ---- */
+assert.deepStrictEqual(claves('carta_reserva', 'proj-que-no-declara-nada'), claves('carta_reserva'),
+  'un proyecto sin excepción hereda: el cambio no puede alterar a los 28 proyectos que nadie ha configurado');
+
+/* ---- 11. la precargada sale del MISMO nivel que ganó ----
+   Si un default de un nivel que NO manda se colara, apuntaría a una cuenta que
+   el propio desplegable no ofrece: un destino de pago imposible de elegir. */
+assert.strictEqual(bankDefaultFor('ppjb_parcela', SOKA), 'notario_sandy_sumba',
+  'Soka precarga su notario en el Bloqueo');
+assert.strictEqual(bankDefaultFor('ppjb_construccion', SOKA), '',
+  'y NO precarga nada en Construcción, donde hereda un nivel que no tiene precarga');
+assert.strictEqual(bankDefaultFor('carta_reserva', PALM), 'land_balian_usd',
+  'Palm precarga su cuenta de empresa');
+[[ 'ppjb_parcela', SOKA ], [ 'carta_reserva', PALM ], [ 'ppjb_construccion', PALM ],
+ [ 'carta_reserva', null ]].forEach(([slug, proy]) => {
+  const def = bankDefaultFor(slug, proy);
+  if (def) assert.ok(claves(slug, proy).includes(def),
+    slug + '/' + proy + ': la precargada tiene que estar entre las que se ofrecen');
+});
+
+/* ---- 12. y si el mapeo de proyectos no cargó, la cascada cae al nivel de tipo ----
+   No a «ninguna» y no a «todas»: al comportamiento de antes de esta función. */
+const sinProyectos = new Function('CUENTAS_BANCARIAS', 'PLANTILLA_CUENTAS', 'PROYECTO_CUENTAS',
+  codigo + '\n;return bankOptionsFor;')(CUENTAS_BANCARIAS, PLANTILLA_CUENTAS, {});
+assert.deepStrictEqual(sinProyectos('ppjb_parcela', SOKA).map((o) => o[0]).sort(), claves('ppjb_parcela'),
+  'sin el mapeo por proyecto se ofrece lo del tipo de contrato, que es como funcionaba esta mañana');
 
 /* ---- 6. las listas a mano no han vuelto ----
    Se miran sobre el código SIN COMENTARIOS, y es la diferencia entre un guardián

@@ -53,20 +53,49 @@ const bankOptions = () => Object.entries(CUENTAS_BANCARIAS).map(([v,c])=>[v,c.la
      ninguna. Es la misma carrera que ya obligó a que `bankOptions` fuera función
      y no constante, y ante la duda es mejor ofrecer de más —el agente elige— que
      dejarle un selector vacío. */
-function bankOptionsFor(slug){
+/* LA CASCADA (14-sep-2026, segunda parte del encargo: «si seleccionas Palm Field
+   puede ser esta otra»). Gana ENTERO el nivel más específico que tenga filas —
+   no se fusionan niveles, porque fusionar volvería a ofrecer justo lo que el
+   proyecto acaba de excluir:
+
+     1. (proyecto, tipo de contrato)   la excepción más fina
+     2. (proyecto, '*')                cuentas de empresa de ese proyecto, valgan
+                                       para el tipo que sea
+     3. plantilla_cuentas[tipo]        la regla general
+     4. TODAS las activas              solo si el mapeo no ha cargado
+
+   El 4 no es un nivel más de la cascada, es la degradación: «este proyecto no
+   dice nada» (hereda) y «no he podido cargarlo» (ofrece todas) son cosas
+   distintas y no pueden comportarse igual — un select vacío donde va el destino
+   de una transferencia acaba en una cuenta escrita a mano.
+
+   `resuelve()` devuelve el nivel ganador entero, para que las opciones y la
+   precargada salgan SIEMPRE del mismo: un default del nivel '*' colado mientras
+   manda el nivel de tipo apuntaría a una cuenta que el desplegable ni ofrece. */
+function nivelCuentas(slug, proyectoId){
+  const porProyecto = (typeof PROYECTO_CUENTAS !== 'undefined' && proyectoId)
+    ? PROYECTO_CUENTAS[proyectoId] : null;
+  if(porProyecto){
+    if(porProyecto[slug] && porProyecto[slug].claves.length) return porProyecto[slug];
+    if(porProyecto['*']  && porProyecto['*'].claves.length)  return porProyecto['*'];
+  }
+  const general = (typeof PLANTILLA_CUENTAS !== 'undefined') ? PLANTILLA_CUENTAS[slug] : null;
+  return general || null;   // null = no hay mapeo cargado (≠ mapeo que dice "ninguna")
+}
+function bankOptionsFor(slug, proyectoId){
   const opts = bankOptions();
-  const conf = (typeof PLANTILLA_CUENTAS !== 'undefined') ? PLANTILLA_CUENTAS[slug] : null;
+  const conf = nivelCuentas(slug, proyectoId);
   if(!conf) return opts;
   return opts.filter(o => conf.claves.includes(o[0]));
 }
-/* La cuenta precargada de una plantilla, o '' si no tiene ninguna marcada.
+/* La cuenta precargada, o '' si no hay ninguna marcada en el nivel que manda.
    Sustituye a `CUENTA_DEFAULT` de app.html. Que exista o no es decisión del
-   super admin por plantilla: la Carta de Reserva la lleva desde el 8-sep-2026
-   («precarga siempre Tepi Sun Gai (OCBC) y quita las demás») y las demás no,
-   porque ahí sí sigue valiendo la norma de este fichero — sin selección no se
-   imprime nada, nunca un destino de pago adivinado. */
-function bankDefaultFor(slug){
-  const conf = (typeof PLANTILLA_CUENTAS !== 'undefined') ? PLANTILLA_CUENTAS[slug] : null;
+   super admin: la Carta de Reserva la lleva desde el 8-sep-2026 («precarga
+   siempre Tepi Sun Gai (OCBC) y quita las demás») y las demás no, porque ahí
+   sigue valiendo la norma de este fichero — sin selección no se imprime nada,
+   nunca un destino de pago adivinado. */
+function bankDefaultFor(slug, proyectoId){
+  const conf = nivelCuentas(slug, proyectoId);
   return (conf && conf.porDefecto) || '';
 }
 /* ---------- sociedad firmante (Promotor/Constructor): desplegable por contrato ----------

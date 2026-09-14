@@ -2488,6 +2488,39 @@
     'NO se ha cambiado: no tienes permiso para editar cuentas de cobro.':
       'NOT changed: you do not have permission to edit payment accounts.',
     'sin respuesta': 'no response',
+    /* la excepción por PROYECTO — «hereda» es el estado normal, no uno a medias:
+       ojo al traducirlo, `inherits` (y no `default`) es lo que dice que ese
+       proyecto usa el reparto general porque nadie ha pedido otra cosa */
+    'Por proyecto': 'By project',
+    'Buscar proyecto…': 'Search project…',
+    'Elige un proyecto': 'Pick a project',
+    'Ningún proyecto con «%q».': 'No project matching «%q».',
+    'No se ha podido leer el catálogo de proyectos. Recarga la página.':
+      'The project catalogue could not be read. Reload the page.',
+    'Cualquier contrato de este proyecto': 'Any contract of this project',
+    'cualquier contrato': 'any contract',
+    'hereda': 'inherits',
+    'usa las cuentas de cada tipo de contrato': 'uses the accounts of each contract type',
+    'sin reglas propias — usa las cuentas de cada tipo de contrato':
+      'no rules of its own — uses the accounts of each contract type',
+    '%n reglas propias': '%n rules of its own',
+    '%n reglas propias · lo que no se marque aquí, se hereda':
+      '%n rules of its own · anything not ticked here is inherited',
+    '%n cuentas propias': '%n accounts of its own',
+    'Marcar una cuenta aquí RESTRINGE: ese tipo de contrato, en este proyecto, dejará de ofrecer las demás. Sin nada marcado hereda el reparto general, que es lo normal.':
+      'Ticking an account here RESTRICTS: that contract type, in this project, will stop offering the rest. With nothing ticked it inherits the general allocation, which is the normal case.',
+    'Sin reglas propias: este proyecto vuelve a heredar el reparto general':
+      'No rules of its own: this project goes back to inheriting the general allocation',
+    'Es una cuenta de escrow: aquí valdría para TODOS los contratos del proyecto, incluidos los que no pactan depósito en garantía.':
+      'This is an escrow account: here it would apply to ALL contracts of the project, including those that do not agree to funds held in escrow.',
+    '¿Una cuenta de escrow para TODOS los contratos?': 'An escrow account for ALL contracts?',
+    'Marcarla igualmente': 'Tick it anyway',
+    '«%c» es una cuenta de ESCROW y la estás marcando para CUALQUIER contrato de este proyecto. Sus contratos de obra y sus cartas de reserva pasarían a ofrecer solo esa cuenta, con una cláusula de depósito en garantía que no pactan.':
+      '«%c» is an ESCROW account and you are ticking it for ANY contract of this project. Its construction contracts and reservation letters would then offer only that account, with an escrow clause they do not agree to.',
+    'No se ha podido cargar la cuenta propia de cada proyecto: ':
+      'Could not load the account each project uses: ',
+    'Este proyecto no cobra en la cuenta que tenías elegida. Se ha dejado como estaba — cámbiala si corresponde.':
+      'This project does not collect into the account you had picked. It has been left as it was — change it if appropriate.',
 
   };
 

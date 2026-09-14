@@ -17,7 +17,7 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que `lwT`
      exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=208c1c36"></script>
+<script src="/contracts/assets/i18n.js?v=48894a85"></script>
 <script src="/contracts/assets/herramientas.js?v=c95fc709"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -274,8 +274,38 @@ async function cargar(){
 
 function pintarLista(){
   const q = (($('#qC') || {}).value || '').trim().toLowerCase();
-  if(MODO === 'cuenta') return pintarListaCuentas(q);
+  if(MODO === 'cuenta')   return pintarListaCuentas(q);
+  if(MODO === 'proyecto') return pintarListaProyectos(q);
   return pintarListaContratos(q);
+}
+
+function pintarListaProyectos(q){
+  if(PROYECTOS === null){
+    $('#listaC').innerHTML = '<p class="nota" style="padding:18px 20px">' + lwT('No se ha podido leer el catálogo de proyectos. Recarga la página.') + '</p>';
+    return;
+  }
+  const lista = !q ? PROYECTOS : PROYECTOS.filter(p => lwBuscaEn([p.nombre], q));
+  if(!lista.length){
+    $('#listaC').innerHTML = '<p class="nota" style="padding:18px 20px">' + lwT('Ningún proyecto con «%q».', { q: esc(q) }) + '</p>';
+    return;
+  }
+  $('#listaC').innerHTML = lista.map(p => {
+    const filas = (EXCEPCION || []).filter(r => r.proyecto_id === p.id);
+    // «hereda» no es un estado a medias: es lo normal y lo correcto para la
+    // mayoría. Se dice con esa palabra para que nadie crea que falta configurar
+    // 29 proyectos — las excepciones son la excepción.
+    const tags = filas.length
+      ? ['<span class="tag t-def">' + lwT('%n reglas propias', { n: filas.length }) + '</span>']
+      : ['<span class="tag">' + lwT('hereda') + '</span>'];
+    const tipos = [...new Set(filas.map(r => r.slug))];
+    return '<button class="c ' + (SEL === p.id ? 'sel' : '') + '" data-proy-sel="' + esc(p.id) + '">'
+      + '<div class="n">' + esc(p.nombre) + '</div>'
+      + '<div class="m">' + (filas.length
+          ? tipos.map(t => t === TODOS ? lwT('cualquier contrato') : nombreDe(t)).join(' · ')
+          : lwT('usa las cuentas de cada tipo de contrato')) + '</div>'
+      + '<div class="r">' + tags.join('') + '</div>'
+      + '</button>';
+  }).join('');
 }
 
 function pintarListaCuentas(q){
@@ -348,7 +378,123 @@ function notaAJson(n){
 
 function pintarFicha(){
   if(MODO === 'contrato') return pintarFichaContrato();
+  if(MODO === 'proyecto') return pintarFichaProyecto();
   return pintarFichaCuenta();
+}
+
+/* LA EXCEPCIÓN DE UN PROYECTO. Una sección por tipo de contrato que cobra, más
+   una primera sección «cualquier contrato» para la cuenta de empresa del
+   proyecto.
+
+   La regla que la pantalla tiene que dejar clarísima: **marcar algo aquí
+   RESTRINGE**. En cuanto un proyecto marca una sola cuenta en un tipo, ese tipo
+   deja de ofrecer las demás para ese proyecto. Sin nada marcado, hereda — que es
+   lo correcto para la mayoría y por eso es el estado de salida. */
+function pintarFichaProyecto(){
+  const p = (PROYECTOS || []).find(x => x.id === SEL);
+  if(!p){ $('#ficha').innerHTML = '<div class="vacio">' + lwT('Elige un proyecto') + '</div>'; return; }
+  if(EXCEPCION === null || PLANTILLAS === null){
+    $('#ficha').innerHTML = '<p class="aviso mal">' + lwT('No se ha podido leer el reparto. Recarga la página.') + '</p>';
+    return;
+  }
+  const ro = PUEDO_ESCRIBIR ? '' : ' disabled';
+  const mias = EXCEPCION.filter(r => r.proyecto_id === p.id);
+  const aviso = PUEDO_ESCRIBIR ? '' :
+    '<p class="aviso">' + lwT('Estás viendo el reparto, no puedes cambiarlo: solo un super admin edita cuentas de cobro. Es el dato que decide adónde transfiere el comprador.') + '</p>';
+
+  // «cualquier contrato» primero, y luego un bloque por tipo que cobra
+  const bloques = [{ slug: TODOS, nombre: lwT('Cualquier contrato de este proyecto') }]
+    .concat(PLANTILLAS.map(t => ({ slug: t.slug, nombre: t.nombre })));
+
+  const activas = CUENTAS.filter(c => c.activa);
+
+  $('#ficha').innerHTML = aviso
+    + '<h2 class="t">' + esc(p.nombre) + '</h2>'
+    + '<p class="sub">' + (mias.length
+        ? lwT('%n reglas propias · lo que no se marque aquí, se hereda', { n: mias.length })
+        : lwT('sin reglas propias — usa las cuentas de cada tipo de contrato')) + '</p>'
+    + '<p class="aviso">' + lwT('Marcar una cuenta aquí RESTRINGE: ese tipo de contrato, en este proyecto, dejará de ofrecer las demás. Sin nada marcado hereda el reparto general, que es lo normal.') + '</p>'
+    + bloques.map(b => {
+        const filas = mias.filter(r => r.slug === b.slug);
+        const def   = filas.find(r => r.es_default);
+        return '<div class="caja"><h3>' + esc(b.nombre) + '</h3>'
+          + '<p class="nota" style="margin:0 0 12px">' + (filas.length
+              ? lwT('%n cuentas propias', { n: filas.length }) + (def ? ' · ' + lwT('precargada: %c', { c: etiquetaDe(def.clave) }) : ' · ' + lwT('sin precargada'))
+              : lwT('hereda')) + '</p>'
+          + '<div class="opciones">'
+          + activas.map(c => {
+              const marcada = filas.some(r => r.clave === c.clave);
+              const esDef   = !!(def && def.clave === c.clave);
+              // Aviso donde de verdad muerde: una cuenta de escrow en el bloque
+              // «cualquier contrato» haría que la Carta de Reserva de este
+              // proyecto ofreciera solo un depósito en garantía que no pacta.
+              const peligro = (b.slug === TODOS && c.es_escrow);
+              return '<div class="op' + (marcada ? '' : ' apagada') + '">'
+                + '<input type="checkbox" data-pslug="' + esc(b.slug) + '" data-pclave="' + esc(c.clave) + '" data-que="ofrece"'
+                  + (marcada ? ' checked' : '') + ro + '>'
+                + '<span class="et"' + (peligro ? ' title="' + esc(lwT('Es una cuenta de escrow: aquí valdría para TODOS los contratos del proyecto, incluidos los que no pactan depósito en garantía.')) + '"' : '') + '>'
+                  + esc(c.label)
+                  + (c.es_escrow ? ' <span class="tag t-escrow">' + lwT('Escrow') + '</span>' : '')
+                  + (peligro ? ' ⚠️' : '') + '</span>'
+                + '<label class="rad"><input type="radio" name="pdef_' + esc(b.slug) + '" data-pslug="' + esc(b.slug) + '" data-pclave="' + esc(c.clave) + '" data-que="default"'
+                  + (esDef ? ' checked' : '') + (marcada && PUEDO_ESCRIBIR ? '' : ' disabled') + '>'
+                  + '<span>' + lwT('precargada') + '</span></label>'
+                + '</div>';
+            }).join('')
+          + '</div></div>';
+      }).join('');
+
+  if(PUEDO_ESCRIBIR){
+    $('#ficha').querySelectorAll('[data-pslug]').forEach(el => {
+      el.addEventListener('change', () => cambiarExcepcion(el, p.id));
+    });
+  }
+}
+
+async function cambiarExcepcion(el, proyectoId){
+  const slug  = el.dataset.pslug;
+  const clave = el.dataset.pclave;
+  if(el.dataset.que === 'ofrece'){
+    if(el.checked){
+      /* El aviso que la revisión previa marcó como CRÍTICO, aquí en el momento de
+         hacerlo: una cuenta de escrow en «cualquier contrato» dejaría la Carta de
+         Reserva de este proyecto ofreciendo SOLO un depósito en garantía que la
+         Carta no pacta. Verificado que el riesgo es real: en Soka Village W2 los
+         contratos de obra cobran en la cuenta de empresa, no en su notario. */
+      const c = CUENTAS.find(x => x.clave === clave);
+      if(slug === TODOS && c && c.es_escrow){
+        // `lwConfirmar` (dialogo.js) y no el `confirm()` del navegador: es el
+        // diálogo de la suite, arranca el foco en Cancelar y admite tono
+        // «peligro». La suite no usa el nativo en ninguna herramienta.
+        const sigo = await lwConfirmar({
+          titulo: lwT('¿Una cuenta de escrow para TODOS los contratos?'),
+          cuerpo: esc(lwT('«%c» es una cuenta de ESCROW y la estás marcando para CUALQUIER contrato de este proyecto. Sus contratos de obra y sus cartas de reserva pasarían a ofrecer solo esa cuenta, con una cláusula de depósito en garantía que no pactan.', { c: c.label })),
+          confirmar: lwT('Marcarla igualmente'), tono: 'peligro',
+        });
+        if(!sigo){ el.checked = false; return; }
+      }
+      const { error } = await SB.from('proyecto_cuentas').insert({ proyecto_id: proyectoId, slug: slug, clave: clave });
+      if(error){ toast(lwT('No se pudo añadir: ') + error.message); await cargar(); return; }
+      toast(lwT('%c ya se puede elegir aquí', { c: etiquetaDe(clave) }));
+    } else {
+      const { error } = await SB.from('proyecto_cuentas').delete()
+        .eq('proyecto_id', proyectoId).eq('slug', slug).eq('clave', clave);
+      if(error){ toast(lwT('No se pudo quitar: ') + error.message); await cargar(); return; }
+      const quedan = (EXCEPCION || []).filter(r => r.proyecto_id === proyectoId && r.slug === slug && r.clave !== clave).length;
+      // quedarse sin ninguna NO deja el contrato vacío: vuelve a heredar. Se dice,
+      // porque es lo contrario de lo que pasa en la vista por contrato.
+      toast(quedan ? lwT('%c ya no se ofrece aquí', { c: etiquetaDe(clave) })
+                   : lwT('Sin reglas propias: este proyecto vuelve a heredar el reparto general'));
+    }
+  } else {
+    const { data, error } = await SB.from('proyecto_cuentas')
+      .update({ es_default: true })
+      .eq('proyecto_id', proyectoId).eq('slug', slug).eq('clave', clave).select('clave');
+    if(error){ toast(lwT('No se pudo marcar como precargada: ') + error.message); await cargar(); return; }
+    if(!data || !data.length){ toast(lwT('NO se ha cambiado: no tienes permiso para editar cuentas de cobro.')); await cargar(); return; }
+    toast(lwT('Se precargará %c', { c: etiquetaDe(clave) }));
+  }
+  await cargar();
 }
 
 /* LA VISTA QUE PIDIÓ EL OWNER: se abre un contrato y se marcan sus cuentas.
@@ -777,8 +923,8 @@ $('#listaC').addEventListener('click', e => {
   // Dos atributos distintos y no uno solo: en «por contrato» el identificador es
   // un slug y en «por cuenta» una clave, y las dos son texto. Con un `data-id`
   // compartido, un fallo de modo elegiría el registro equivocado sin ruido.
-  const b = e.target.closest('[data-clave], [data-slug-sel]'); if(!b) return;
-  SEL = b.dataset.claveOp || b.dataset.clave || b.dataset.slugSel;
+  const b = e.target.closest('[data-clave], [data-slug-sel], [data-proy-sel]'); if(!b) return;
+  SEL = b.dataset.claveOp || b.dataset.clave || b.dataset.slugSel || b.dataset.proySel;
   pintarLista(); pintarFicha(); $('#stage').classList.add('abierta');
 });
 
@@ -788,14 +934,20 @@ function cambiarModo(nuevo){
   SEL = null;                       // el identificador no significa lo mismo en los dos modos
   $('#qC').value = '';
   $('#modoContrato').classList.toggle('on', nuevo === 'contrato');
+  $('#modoProyecto').classList.toggle('on', nuevo === 'proyecto');
   $('#modoCuenta').classList.toggle('on', nuevo === 'cuenta');
-  $('#qC').placeholder = nuevo === 'contrato' ? lwT('Buscar contrato…') : lwT('Buscar cuenta, banco, titular…');
+  $('#qC').placeholder = nuevo === 'contrato' ? lwT('Buscar contrato…')
+                       : nuevo === 'proyecto' ? lwT('Buscar proyecto…')
+                       : lwT('Buscar cuenta, banco, titular…');
   $('#stage').classList.remove('abierta');
   pintarLista();
   $('#ficha').innerHTML = '<div class="vacio">'
-    + (nuevo === 'contrato' ? lwT('Elige un contrato') : lwT('Elige una cuenta')) + '</div>';
+    + (nuevo === 'contrato' ? lwT('Elige un contrato')
+     : nuevo === 'proyecto' ? lwT('Elige un proyecto')
+     : lwT('Elige una cuenta')) + '</div>';
 }
 $('#modoContrato').addEventListener('click', () => cambiarModo('contrato'));
+$('#modoProyecto').addEventListener('click', () => cambiarModo('proyecto'));
 $('#modoCuenta').addEventListener('click',   () => cambiarModo('cuenta'));
 $('#btnNueva').addEventListener('click', nuevaCuenta);
 

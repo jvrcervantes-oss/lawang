@@ -113,6 +113,40 @@ function cargarPlantillaCuentas(sb){
   return PLANTILLA_CUENTAS_PROMESA;
 }
 
+/* ---------- Y LA EXCEPCIÓN POR PROYECTO (14-sep-2026) ----------
+   Encargo del owner el mismo día que lo de arriba: «en carta de reserva esta
+   cuenta bancaria pero si seleccionas Palm Field puede ser esta otra».
+
+   No es una matriz proyecto × tipo —232 casillas que nadie mantendría— sino una
+   EXCEPCIÓN sobre el reparto general: un proyecto declara solo en qué se sale de
+   la norma, y lo que no diga lo hereda.
+
+   `PROYECTO_CUENTAS` queda indexado por `proyecto_id` y, dentro, por slug de
+   plantilla, con `'*'` para «cualquier tipo de contrato de este proyecto»:
+     { <uuid>: { 'ppjb_parcela': {claves:[…], porDefecto:'…'},
+                 '*':            {claves:[…], porDefecto:'…'} } }
+   Quien resuelve la cascada es `bankOptionsFor` (entidades_pago.js); aquí solo
+   se carga. Lanza si falla, igual que sus dos hermanas y por lo mismo. */
+const PROYECTO_CUENTAS = {};
+let PROYECTO_CUENTAS_PROMESA = null;
+function cargarProyectoCuentas(sb){
+  if(PROYECTO_CUENTAS_PROMESA) return PROYECTO_CUENTAS_PROMESA;
+  PROYECTO_CUENTAS_PROMESA = (async () => {
+    const { data, error } = await sb.from('proyecto_cuentas')
+      .select('proyecto_id,slug,clave,es_default');
+    if(error){ PROYECTO_CUENTAS_PROMESA = null; throw error; }
+    Object.keys(PROYECTO_CUENTAS).forEach(k => delete PROYECTO_CUENTAS[k]);   // en su sitio, nunca reasignar
+    (data || []).forEach(r => {
+      const p = PROYECTO_CUENTAS[r.proyecto_id] || (PROYECTO_CUENTAS[r.proyecto_id] = {});
+      const e = p[r.slug] || (p[r.slug] = { claves: [], porDefecto: '' });
+      e.claves.push(r.clave);
+      if(r.es_default) e.porDefecto = r.clave;
+    });
+    return PROYECTO_CUENTAS;
+  })();
+  return PROYECTO_CUENTAS_PROMESA;
+}
+
 /* ---------- apoderados de la serie Hak Sewa — MISMO MOTIVO que las cuentas ----------
    El NIK (identificador nacional indonesio) y la dirección de un apoderado son
    datos personales de un PARTICULAR, no de una sociedad — a diferencia del
