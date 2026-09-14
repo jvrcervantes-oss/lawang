@@ -206,6 +206,11 @@
 
   function quitaVelo() {
     veloMuerto = true;                      // que una consulta tardia no lo reponga
+    /* La clase es lo que destapa el contenido (shell.css). Va ANTES del
+       retorno de abajo a proposito: hay caminos que destapan sin que haya
+       llegado a existir velo — una pantalla sin handler, o una sesion que no
+       resolvio— y en todos ellos el contenido tiene que aparecer igual. */
+    if (document.body) document.body.classList.add('lw-listo');
     var m = document.querySelector('main');
     if (m) m.removeAttribute('aria-busy');
     if (!veloEl) return;
@@ -2149,6 +2154,10 @@
      se sabe ya: `REG[seg]` es sincrono. Si luego resulta que no hay sesion,
      `arranca()` lo quita — y si algo se tuerce antes, lo quita el CSS. */
   if (REG[seg]) ponVelo();
+  /* Una pantalla de la v4 que cargue shell.css y NO tenga handler nace oculta
+     por la regla de arriba y nadie la destaparia hasta el rescate de los 12 s.
+     Aqui se sabe ya que no hay nada que esperar. */
+  else quitaVelo();
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arranca); else arranca();
 })();

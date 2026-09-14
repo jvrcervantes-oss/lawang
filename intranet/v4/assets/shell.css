@@ -68,6 +68,21 @@
    12 s pase lo que pase, porque el CSS no depende de que el JS siga vivo.
    Por eso el velo TAPA el contenido en vez de esconderlo con una clase en
    <body>: quitar una clase exige JS; apagar una capa, no. */
+/* EL CONTENIDO NACE OCULTO, Y LO OCULTA EL CSS — no el JS. Medido en
+   produccion (14-sep): el velo pintado desde `datos.js` no llegaba hasta los
+   545 ms, y a los 356 ms ya se veian los guiones. No es lento: es que un
+   script `defer` no corre hasta que termina el parseo, y para entonces la
+   pantalla ya esta pintada. Una hoja de estilo, en cambio, manda desde el
+   primer pintado. Asi que tapar es cosa del CSS y destapar es cosa del JS,
+   que es el unico que sabe cuando han vuelto las consultas.
+
+   `step-end` mantiene `hidden` los 12 s enteros y luego lo suelta de golpe:
+   es el mismo rescate que el velo, para que una pantalla no se quede en
+   blanco si el JS muere antes de poner la clase. `.lw-listo` lo cancela. */
+main{animation:lw-rescate 12s step-end forwards}
+@keyframes lw-rescate{from{visibility:hidden}to{visibility:visible}}
+body.lw-listo main{animation:none;visibility:visible}
+
 #lw-cargando{position:fixed;inset:0 0 0 288px;z-index:9000;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
   background:#F5F0E6;text-align:center;padding:24px;
