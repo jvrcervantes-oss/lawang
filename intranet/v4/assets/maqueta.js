@@ -72,7 +72,7 @@
     }
     window.lwVentana(titulo, campos, accion || 'Guardar', function () {
       (alGuardar || function () { toast('✓ Guardado (maqueta) — sin datos reales'); })();
-    }, { sinRecarga: true, sub: 'Maqueta — no se guarda ningun dato real.' });
+    }, { sinRecarga: true, sub: 'Maqueta — no se guarda ningún dato real.' });
   }
 
   var FORM_BASICO = [
