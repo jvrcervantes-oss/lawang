@@ -1,5 +1,5 @@
-<!DOCTYPE html><html lang="es"><head><title>Comisiones — Lawang Intranet</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d6d6608e" data-herramienta="operaciones"></script>
+<!DOCTYPE html><html lang="es"><head><title>Equipos de venta — Lawang Intranet</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d6d6608e"></script>
 <script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=310f2346" defer></script><script src="../assets/datos.js?v=90f80452" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=88560db6" defer></script>
@@ -10,205 +10,115 @@
 
 <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 bg-surface-container-lowest p-8 rounded-xl shadow-sm">
 <div class="flex flex-col gap-2 max-w-3xl">
-<h1 class="font-headline-lg text-headline-lg text-deep-lagoon tracking-tight">Comisiones</h1>
-<p class="font-body-md text-body-md text-on-surface-variant">Lo que el equipo pide que le pague Lawang, y cómo reparte cada manager la comisión dentro de su equipo. La máquina de estados vive en la base, no en la pantalla.</p>
+<h1 class="font-headline-lg text-headline-lg text-deep-lagoon tracking-tight">Equipos de venta</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Los equipos comerciales, su manager, y quién forma parte de cada uno — con la fecha desde la que un closer está dentro y, si ya no lo está, desde cuándo.</p>
 </div>
 <div class="flex flex-wrap items-center gap-3">
-<a class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-label-md transition-colors shadow-sm" href="/intranet/solicitudes/"><span class="material-symbols-outlined text-[18px]">open_in_new</span>Abrir la herramienta viva</a>
-<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md transition-colors shadow-sm" type="button"><span class="material-symbols-outlined text-[18px]">add</span>Nueva solicitud</button>
+<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md transition-colors shadow-sm" type="button"><span class="material-symbols-outlined text-[18px]">add</span>Nuevo equipo</button>
 </div>
 </div>
 
-<!-- Pestañas: «A Lawang» (solicitudes_pago) y «Reparto de equipo» (comisiones_devengadas
-     nivel=closer). Dos tablas, dos orígenes de datos — nunca se mezclan en una lista, o el
-     lector no podría distinguir lo que Lawang paga de lo que el equipo se reparte entre sí. -->
-<div class="flex items-center gap-1 bg-surface-container-lowest p-1.5 rounded-full shadow-sm w-fit" role="tablist">
-<button type="button" role="tab" aria-selected="true" class="lw-tab-btn px-5 py-2 rounded-full font-label-md text-label-md transition-colors bg-primary-container text-on-primary" data-lw-tab="lawang">A Lawang</button>
-<button type="button" role="tab" aria-selected="false" class="lw-tab-btn px-5 py-2 rounded-full font-label-md text-label-md transition-colors text-on-surface-variant hover:bg-surface-container" data-lw-tab="equipo">Reparto de equipo</button>
+<div class="rounded-xl border border-burnt-earth/30 bg-surface-alt px-5 py-4 flex items-start gap-3" role="status">
+<span class="material-symbols-outlined text-[20px] text-burnt-earth shrink-0">lock</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Pantalla de administración: crear equipos, dar de alta o de baja miembros exige rol <b class="text-on-surface">admin</b> o <b class="text-on-surface">super_admin</b>, y lo comprueba la base (policy <code>es_admin()</code>), no solo esta pantalla.</p>
 </div>
-
-<!-- ═══════════════ PESTAÑA: A LAWANG (solicitudes_pago) ═══════════════ -->
-<div data-lw-panel="lawang" class="flex flex-col gap-8">
 
 <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
 <div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col justify-between">
 <div class="flex items-start justify-between gap-3">
-<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold">Pendientes de resolver</span>
-<span class="w-10 h-10 rounded-xl bg-error-container/60 flex items-center justify-center text-error"><span class="material-symbols-outlined text-[18px]">pending_actions</span></span>
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold">Equipos activos</span>
+<span class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-territorial-green"><span class="material-symbols-outlined text-[18px]">groups</span></span>
 </div>
 <div class="mt-4 flex items-baseline gap-2">
-<span class="font-kpi-number text-kpi-number text-on-surface tracking-tight" data-lw="k-pendientes">—</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant">esperan decisión</span>
+<span class="font-kpi-number text-kpi-number text-on-surface tracking-tight" data-lw="k-equipos-activos">—</span>
 </div>
-<p class="mt-2 pt-2 border-t border-outline-variant/30 font-body-sm text-body-sm text-outline" data-lw="k-pendientes-pie">—</p>
+<p class="mt-2 pt-2 border-t border-outline-variant/30 font-body-sm text-body-sm text-outline" data-lw="k-equipos-pie">—</p>
 </div>
 <div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col justify-between">
 <div class="flex items-start justify-between gap-3">
-<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold">Aprobadas por pagar</span>
-<span class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-burnt-earth"><span class="material-symbols-outlined text-[18px]">account_balance_wallet</span></span>
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold">Closers activos</span>
+<span class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-deep-lagoon"><span class="material-symbols-outlined text-[18px]">badge</span></span>
 </div>
 <div class="mt-4 flex items-baseline gap-2">
-<span class="font-kpi-number text-kpi-number text-on-surface tracking-tight" data-lw="k-aprobadas">—</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant">con el visto bueno</span>
+<span class="font-kpi-number text-kpi-number text-on-surface tracking-tight" data-lw="k-miembros-activos">—</span>
 </div>
-<!-- Suma por moneda y NUNCA entre monedas: 500 EUR + 500 USD no son «1.000 nada». -->
-<p class="mt-2 pt-2 border-t border-outline-variant/30 font-body-sm text-body-sm text-outline" data-lw="k-aprobadas-pie">—</p>
+<p class="mt-2 pt-2 border-t border-outline-variant/30 font-body-sm text-body-sm text-outline" data-lw="k-miembros-pie">—</p>
 </div>
 <div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col justify-between">
 <div class="flex items-start justify-between gap-3">
-<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold">Pagadas este mes</span>
-<span class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-territorial-green"><span class="material-symbols-outlined text-[18px]">task_alt</span></span>
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold">Managers</span>
+<span class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-burnt-earth"><span class="material-symbols-outlined text-[18px]">supervisor_account</span></span>
 </div>
 <div class="mt-4 flex items-baseline gap-2">
-<span class="font-kpi-number text-kpi-number text-on-surface tracking-tight" data-lw="k-pagadas">—</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant">salidas del mes</span>
+<span class="font-kpi-number text-kpi-number text-on-surface tracking-tight" data-lw="k-managers">—</span>
 </div>
-<p class="mt-2 pt-2 border-t border-outline-variant/30 font-body-sm text-body-sm text-outline" data-lw="k-pagadas-pie">—</p>
+<p class="mt-2 pt-2 border-t border-outline-variant/30 font-body-sm text-body-sm text-outline" data-lw="k-managers-pie">—</p>
 </div>
 <div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col justify-between">
 <div class="flex items-start justify-between gap-3">
-<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold">Más de 14 días</span>
-<span class="w-10 h-10 rounded-xl bg-error-container/60 flex items-center justify-center text-error"><span class="material-symbols-outlined text-[18px]">hourglass_bottom</span></span>
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold">Sin closers activos</span>
+<span class="w-10 h-10 rounded-xl bg-error-container/60 flex items-center justify-center text-error"><span class="material-symbols-outlined text-[18px]">report</span></span>
 </div>
 <div class="mt-4 flex items-baseline gap-2">
-<span class="font-kpi-number text-kpi-number text-on-surface tracking-tight" data-lw="k-tarde">—</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant">sin cerrar</span>
+<span class="font-kpi-number text-kpi-number text-on-surface tracking-tight" data-lw="k-sin-miembros">—</span>
 </div>
-<p class="mt-2 pt-2 border-t border-outline-variant/30 font-body-sm text-body-sm text-outline" data-lw="k-tarde-pie">—</p>
+<p class="mt-2 pt-2 border-t border-outline-variant/30 font-body-sm text-body-sm text-outline" data-lw="k-sin-miembros-pie">—</p>
 </div>
 </section>
 
-<div class="bg-surface-container-lowest rounded-xl p-4 shadow-sm flex flex-col lg:flex-row lg:items-center gap-4">
-<div class="relative flex-1 min-w-0">
-<span class="material-symbols-outlined text-[20px] text-outline absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">search</span>
-<input class="w-full pl-10 pr-4 py-2.5 rounded-full bg-surface-container-low border border-control-border/40 font-body-md text-body-md text-on-surface placeholder:text-outline focus:border-primary-container focus:ring-0" placeholder="Buscar por número, concepto o venta…" type="search"/>
-</div>
-<div class="flex flex-wrap items-center gap-2">
-<button class="px-4 py-2 rounded-full bg-primary-container text-on-primary font-label-md text-[13px] font-medium shrink-0 flex items-center gap-1.5 transition-colors" type="button"><span>Todas</span><span class="text-on-primary/70" data-lw="c-todas">—</span></button>
-<button class="px-4 py-2 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container font-label-md text-[13px] font-medium shrink-0 flex items-center gap-1.5 transition-colors" type="button"><span class="w-2 h-2 rounded-full bg-error"></span><span>Pendientes</span><span class="text-outline" data-lw="c-pendiente">—</span></button>
-<button class="px-4 py-2 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container font-label-md text-[13px] font-medium shrink-0 flex items-center gap-1.5 transition-colors" type="button"><span class="w-2 h-2 rounded-full bg-burnt-earth"></span><span>Aprobadas</span><span class="text-outline" data-lw="c-aprobada">—</span></button>
-<button class="px-4 py-2 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container font-label-md text-[13px] font-medium shrink-0 flex items-center gap-1.5 transition-colors" type="button"><span class="w-2 h-2 rounded-full bg-stone-sand"></span><span>Resueltas</span><span class="text-outline" data-lw="c-resueltas">—</span></button>
-</div>
-</div>
-
 <section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+<div class="px-8 pt-8 pb-4 flex flex-col gap-1 border-b border-outline-variant/40">
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">Equipos</span>
+<h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight">Los equipos dados de alta</h2>
+</div>
 <div class="overflow-x-auto">
 <table class="w-full text-left border-collapse">
 <thead>
 <tr class="border-b border-outline-variant/60 bg-surface-container-low">
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Nº</th>
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Quién cobra</th>
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Origen</th>
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Concepto</th>
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Importe</th>
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Venta</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Equipo</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Manager</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Closers activos</th>
 <th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Estado</th>
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline text-right">Días</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline text-right">Acciones</th>
 </tr>
 </thead>
-<tbody id="lw-filas">
-<tr class="border-b border-outline-variant/30">
-<td class="px-5 py-4 font-label-md text-label-md text-on-surface" data-lw="f-numero">—</td>
-<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant" data-lw="f-quien">—</td>
-<td class="px-5 py-4"></td>
-<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant" data-lw="f-concepto">—</td>
-<td class="px-5 py-4 font-label-md text-label-md text-on-surface" data-lw="f-importe">—</td>
-<td class="px-5 py-4 font-body-sm text-body-sm text-outline" data-lw="f-venta">—</td>
-<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-surface-container-high font-label-md text-[11px] uppercase tracking-wider" data-lw="f-estado">—</span></td>
-<td class="px-5 py-4 font-body-sm text-body-sm text-outline text-right" data-lw="f-dias">—</td>
-</tr>
+<tbody id="lw-equipos-filas">
+<tr><td colspan="5" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Trayendo los equipos…</td></tr>
 </tbody>
 </table>
 </div>
 </section>
 
+<section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+<div class="px-8 pt-8 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-outline-variant/40">
+<div class="flex flex-col gap-1">
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">Miembros</span>
+<h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight">Quién está (o estuvo) en cada equipo</h2>
 </div>
-
-<!-- ═══════════════ PESTAÑA: REPARTO DE EQUIPO (comisiones_devengadas, nivel=closer) ═══════════════ -->
-<div data-lw-panel="equipo" class="flex flex-col gap-8" hidden>
-
-<!-- Aviso legal — SIEMPRE visible al abrir la pestaña, sin scroll ni acordeón: es la
-     primera pieza del panel, antes de cualquier filtro o tabla (encargo del owner). -->
-<div class="flex items-start gap-4 bg-surface-container-lowest border-l-4 border-deep-lagoon rounded-xl p-5 shadow-sm">
-<span class="material-symbols-outlined text-deep-lagoon text-[22px] mt-0.5">gavel</span>
-<div class="flex flex-col gap-1 max-w-4xl">
-<p class="font-label-md text-[11px] tracking-[0.16em] uppercase text-deep-lagoon font-bold">Antes de leer esta pestaña</p>
-<p class="font-body-md text-body-md text-on-surface-variant">Lo que ves aquí es un <b class="text-on-surface">acuerdo privado entre cada manager y su equipo</b>. <b class="text-on-surface">Lawang no gestiona ni retiene nada de este dinero</b>: la comisión que le corresponde al equipo ya salió de Lawang por la pestaña «A Lawang» — esto es solo el registro de cómo se reparte entre el manager y sus closers, y de qué queda marcado como pagado.</p>
-</div>
-</div>
-
-<div class="bg-surface-container-lowest rounded-xl p-4 shadow-sm flex flex-col lg:flex-row lg:items-center gap-4">
-<div class="relative flex-1 min-w-0">
-<span class="material-symbols-outlined text-[20px] text-outline absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">search</span>
-<input id="lw-eq-buscar" class="w-full pl-10 pr-4 py-2.5 rounded-full bg-surface-container-low border border-control-border/40 font-body-md text-body-md text-on-surface placeholder:text-outline focus:border-primary-container focus:ring-0" placeholder="Buscar por closer, equipo o venta…" type="search"/>
-</div>
-<select id="lw-eq-equipo" class="px-4 py-2.5 rounded-full bg-surface-container-low border border-control-border/40 font-label-md text-[13px] text-on-surface-variant">
+<select id="lw-mi-equipo" class="px-4 py-2.5 rounded-full bg-surface-container-low border border-control-border/40 font-label-md text-[13px] text-on-surface-variant">
 <option value="">Todos los equipos</option>
 </select>
-<div class="flex flex-wrap items-center gap-2">
-<button class="lw-eq-chip px-4 py-2 rounded-full bg-primary-container text-on-primary font-label-md text-[13px] font-medium shrink-0 flex items-center gap-1.5 transition-colors" type="button" data-eq-f="todos"><span>Todas</span><span class="text-on-primary/70" data-lw="ceq-todos">—</span></button>
-<button class="lw-eq-chip px-4 py-2 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container font-label-md text-[13px] font-medium shrink-0 flex items-center gap-1.5 transition-colors" type="button" data-eq-f="pendiente"><span class="w-2 h-2 rounded-full bg-error"></span><span>Pendientes</span><span class="text-outline" data-lw="ceq-pendiente">—</span></button>
-<button class="lw-eq-chip px-4 py-2 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container font-label-md text-[13px] font-medium shrink-0 flex items-center gap-1.5 transition-colors" type="button" data-eq-f="pagada"><span class="w-2 h-2 rounded-full bg-territorial-green"></span><span>Pagadas</span><span class="text-outline" data-lw="ceq-pagada">—</span></button>
-<button class="lw-eq-chip px-4 py-2 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container font-label-md text-[13px] font-medium shrink-0 flex items-center gap-1.5 transition-colors" type="button" data-eq-f="en_disputa"><span class="w-2 h-2 rounded-full bg-burnt-earth"></span><span>En disputa</span><span class="text-outline" data-lw="ceq-en_disputa">—</span></button>
 </div>
-</div>
-
-<section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
 <div class="overflow-x-auto">
 <table class="w-full text-left border-collapse">
 <thead>
 <tr class="border-b border-outline-variant/60 bg-surface-container-low">
 <th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Closer</th>
 <th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Equipo</th>
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Importe</th>
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Venta</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Desde</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Hasta</th>
 <th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Estado</th>
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Cuándo</th>
 <th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline text-right">Acción</th>
 </tr>
 </thead>
-<tbody id="lw-filas-equipo">
-<tr><td colspan="7" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Trayendo el reparto de equipo…</td></tr>
+<tbody id="lw-miembros-filas">
+<tr><td colspan="6" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Trayendo los miembros…</td></tr>
 </tbody>
 </table>
 </div>
 </section>
 
 </div>
-
-</div>
 </main></div>
-
-<!-- Conmutador de pestañas — pieza propia de esta pantalla (ningún otro tool de la v4
-     tiene hoy dos paneles alternos), así que vive aquí y no en maqueta.js/nav.js.
-     Solo enseña/oculta: los datos de cada panel los trae datos.js igual que siempre. -->
-<script>
-(function () {
-  'use strict';
-  var botones = document.querySelectorAll('[data-lw-tab]');
-  var paneles = document.querySelectorAll('[data-lw-panel]');
-  function activa(nombre) {
-    botones.forEach(function (b) {
-      var on = b.getAttribute('data-lw-tab') === nombre;
-      b.setAttribute('aria-selected', on ? 'true' : 'false');
-      b.classList.toggle('bg-primary-container', on);
-      b.classList.toggle('text-on-primary', on);
-      b.classList.toggle('text-on-surface-variant', !on);
-    });
-    paneles.forEach(function (p) {
-      p.hidden = p.getAttribute('data-lw-panel') !== nombre;
-    });
-  }
-  botones.forEach(function (b) {
-    b.addEventListener('click', function (ev) {
-      ev.stopPropagation();   // si no, maqueta.js la ve pasar y avisa «sin cablear»
-      activa(b.getAttribute('data-lw-tab'));
-    });
-  });
-  // ?tab=equipo abre directo en «Reparto de equipo» (enlace desde un aviso, por ejemplo)
-  var pedido = new URLSearchParams(location.search).get('tab');
-  if (pedido === 'equipo') activa('equipo');
-})();
-</script>
 
 </body></html>

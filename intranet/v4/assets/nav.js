@@ -68,6 +68,22 @@
     { path: 'cuentas',    tras: 'usuarios', icono: 'account_balance', texto: 'Cuentas' }
   ];
 
+  /* Injertos SOLO para admin/super_admin (14-sep-2026, encargo del owner:
+     "Equipos de venta" y "Condiciones" — administración de comisiones).
+     Van en un array aparte y no dentro de INJERTOS de arriba porque esos se
+     inyectan siempre, para cualquier sesión; estos dos exigen comprobar el rol
+     y eso solo se sabe tras `window.LW_AUTH` (guard.js), que resuelve DESPUES
+     de este primer pase sincrono. Mismo criterio de rol que `es_admin()` en la
+     base (`ficha.rol IN ('admin','super_admin')`) — es la puerta del menu, la
+     de verdad la pone la RLS de las cuatro tablas que tocan.
+     `tras:'cuentas'` porque 'cuentas' ya esta en el DOM cuando esto corre: lo
+     injerto INJERTOS de arriba ya paso en el primer pase sincrono, sea cual
+     sea el rol de la sesion. */
+  var INJERTOS_ADMIN = [
+    { path: 'equipos-venta', tras: 'cuentas',       icono: 'groups',  texto: 'Equipos de venta' },
+    { path: 'condiciones',   tras: 'equipos-venta',  icono: 'percent', texto: 'Condiciones' }
+  ];
+
   /* Documentacion se fusiono dentro de Proyectos (owner, 8-sep): la pestana
      desaparece de la v4. Se oculta desde aqui — un solo fichero — en vez de
      editar 22 sidebars; el fichero de la pantalla queda como redireccion. */
@@ -100,6 +116,34 @@
   function injertaNuevas(aside) {
     injerta(aside, { path: 'modelos', tras: 'proyectos', icono: 'villa', texto: 'Modelos' });
     INJERTOS.forEach(function (spec) { injerta(aside, spec); });
+  }
+
+  /* Rol de la sesion -> se enteran solo cuando `window.LW_AUTH` resuelve, que
+     en la practica ya ha pasado para cuando la pagina se hace visible (guard.js
+     quita `visibility:hidden` justo despues de resolver la promesa), asi que no
+     hay parpadeo: el usuario nunca llega a ver el menu sin estos dos items y
+     luego perderlos. */
+  function esAdminSesion(ficha) { return !!ficha && (ficha.rol === 'admin' || ficha.rol === 'super_admin'); }
+  function injertaAdmin(aside, ficha) {
+    if (!esAdminSesion(ficha)) return;
+    var aqui = location.pathname;
+    INJERTOS_ADMIN.forEach(function (spec) {
+      if (aside.querySelector('[data-path="' + spec.path + '"]')) return;
+      var ancla = aside.querySelector('[data-path="' + spec.tras + '"]');
+      if (!ancla) return;
+      var a = ancla.cloneNode(true);
+      a.setAttribute('data-path', spec.path);
+      a.removeAttribute('aria-current');
+      var spans = a.querySelectorAll('span');
+      if (spans.length < 2) return;
+      spans[0].textContent = spec.icono;
+      spans[1].textContent = spec.texto;
+      // href absoluto ya aqui: el pase generico de `a[href="#"]` de recablea()
+      // ya paso cuando esto corre, y no volvera a pasar por este elemento.
+      a.href = ROOT + spec.path + '/';
+      if (aqui.indexOf('/' + spec.path + '/') !== -1) marcaActiva(a);
+      ancla.insertAdjacentElement('afterend', a);
+    });
   }
 
   function recablea() {
@@ -155,4 +199,15 @@
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { recablea(); banner(); });
   } else { recablea(); banner(); }
+
+  /* Segundo pase, solo para los dos items de administracion: espera al rol de
+     la sesion (guard.js) y entonces injerta — o no injerta nada, que es la
+     forma en que "visible en el nav SOLO para admin/super_admin" se cumple. */
+  if (window.LW_AUTH && typeof window.LW_AUTH.then === 'function') {
+    window.LW_AUTH.then(function (aut) {
+      document.querySelectorAll('aside').forEach(function (aside) {
+        injertaAdmin(aside, aut && aut.ficha);
+      });
+    });
+  }
 })();

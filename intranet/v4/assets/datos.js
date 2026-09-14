@@ -24,6 +24,11 @@
   function fmt(n, m) { return (typeof lwFormatoImporte === 'function') ? lwFormatoImporte(n, m) : (n + ' ' + (m || '')); }
   function tipoC(t) { return (typeof lwTipoContrato !== 'undefined') ? lwTipoContrato(t) : t; }
   function fFecha(x) { if (!x) return '—'; var d = new Date(x); return isNaN(d) ? String(x).slice(0, 10) : d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }); }
+  // busca `valor` en una lista de pares [valor, etiqueta] (Equipos de venta / Condiciones)
+  function etiquetaDe(lista, valor) {
+    var f = (lista || []).filter(function (x) { return x[0] === valor; })[0];
+    return f ? f[1] : (valor || '—');
+  }
 
   /* ---- localizar por TEXTO en el marcado minificado de Stitch ---- */
   function hojaConTexto(rx, raiz) {
@@ -119,6 +124,25 @@
     console.error('[v4 datos] ' + donde + ' no cargó' + code, err);
     if (contenedor) contenedor.innerHTML = '<div style="padding:18px;font:500 13px \'Neue Kabel\',sans-serif;color:#93000a;background:#ffdad6;border-radius:8px">No se ha podido cargar «' + esc(donde) + '»' + code + ' — revisa sesión/permisos.</div>';
   }
+  /* Aviso de acceso para las dos pantallas de administración pura (Equipos de
+     venta, Condiciones). nav.js ya las oculta del menú para quien no es
+     admin/super_admin, así que llegar aquí exige teclear la URL a mano — pero
+     el candado real es la RLS (`es_admin()`), esto es solo no enseñar
+     controles que la base va a rechazar. Sustituye el contenido de `main` y
+     deja la cáscara (sidebar, topbar) intacta. */
+  function notaSoloAdmin() {
+    quitaVelo();
+    var main = document.querySelector('main');
+    if (!main) return;
+    main.innerHTML = '<div style="max-width:32rem;margin:6rem auto 0;background:#fff;border-radius:12px;' +
+      'padding:2rem;box-shadow:0 1px 3px rgba(0,0,0,.08);display:flex;flex-direction:column;align-items:center;' +
+      'gap:10px;text-align:center;font-family:\'Neue Kabel\',sans-serif">' +
+      '<span class="material-symbols-outlined" style="font-size:32px;color:#42210B">lock</span>' +
+      '<h1 style="margin:0;font-size:22px;font-weight:700;color:#104C4F">Solo administración</h1>' +
+      '<p style="margin:0;font-size:14px;color:#44483f">Esta pantalla es de administración (roles admin / super_admin) — tu sesión no tiene ese rol.</p>' +
+      '<a href="../home/" style="margin-top:6px;padding:10px 20px;border-radius:999px;background:#485b37;color:#fff;font-weight:600;font-size:13px;text-decoration:none">Volver al inicio</a></div>';
+  }
+
   function bandaNota(texto, color) {
     var d = document.createElement('div');
     d.style.cssText = 'position:sticky;top:0;z-index:60;background:' + (color || '#104C4F') + ';color:#F5F0E6;text-align:center;font:600 12px/1.4 "Neue Kabel",sans-serif;letter-spacing:.06em;padding:7px 12px';
@@ -2221,6 +2245,215 @@
             }).join('')
           : '<p style="font:400 13px \'Neue Kabel\',sans-serif;color:#44483f;margin:0">Ninguna cuenta dada de alta.</p>';
       }
+    });
+  };
+
+  /* ---------- Equipos de venta y Condiciones de comisión (14-sep-2026) ----------
+     Dos pantallas SOLO admin/super_admin: nav.js ya las esconde del menú para
+     cualquier otra sesión, y aquí se repite el gate (defensa en profundidad,
+     no el candado — ese es `es_admin()` en la RLS de las cuatro tablas,
+     verificado con sesión no-admin simulada). Las acciones de escritura viven
+     en editores.js (ED['equipos-venta'] / ED.condiciones, expuestas en
+     `window.LW_V4`); aquí solo se lee y se pinta. */
+  REG['equipos-venta'] = function (sb) {
+    if (!(window.LW_V4 && window.LW_V4.esAdmin)) { notaSoloAdmin(); return; }
+    var cuerpoEq = document.getElementById('lw-equipos-filas');
+    var cuerpoMi = document.getElementById('lw-miembros-filas');
+    var selEq = document.getElementById('lw-mi-equipo');
+    var hoy = new Date().toISOString().slice(0, 10);
+
+    Promise.all([
+      q(sb.from('equipos_venta').select('id,nombre,manager_email,activo,created_at').order('nombre'), 'equipos de venta', cuerpoEq),
+      q(sb.from('equipo_miembros').select('id,equipo_id,closer_email,desde,hasta').order('desde', { ascending: false }), 'miembros de equipo', cuerpoMi),
+      q(sb.from('usuarios').select('email,nombre'), 'usuarios')
+    ]).then(function (r) {
+      var equipos = r[0], miembros = r[1] || [], usuarios = r[2] || [];
+      if (!equipos) return;
+      var nombrePorEmail = {};
+      usuarios.forEach(function (u) { if (u.email) nombrePorEmail[u.email.toLowerCase()] = u.nombre || u.email; });
+      var nombreDe = function (email) { return email ? (nombrePorEmail[email.toLowerCase()] || email) : '—'; };
+      var estaActivo = function (m) { return !m.hasta || m.hasta >= hoy; };
+
+      var porEquipo = {};
+      miembros.forEach(function (m) { (porEquipo[m.equipo_id] = porEquipo[m.equipo_id] || []).push(m); });
+
+      var equiposActivos = equipos.filter(function (e) { return e.activo; });
+      var miembrosActivos = miembros.filter(estaActivo);
+      var managers = {}; equiposActivos.forEach(function (e) { if (e.manager_email) managers[e.manager_email.toLowerCase()] = 1; });
+      var sinMiembros = equiposActivos.filter(function (e) { return !(porEquipo[e.id] || []).some(estaActivo); });
+
+      pon2('k-equipos-activos', String(equiposActivos.length));
+      pon2('k-equipos-pie', (equipos.length - equiposActivos.length) + ' dados de baja');
+      pon2('k-miembros-activos', String(miembrosActivos.length));
+      pon2('k-miembros-pie', (miembros.length - miembrosActivos.length) + ' históricos de baja');
+      pon2('k-managers', String(Object.keys(managers).length));
+      pon2('k-managers-pie', 'al frente de un equipo activo');
+      pon2('k-sin-miembros', String(sinMiembros.length));
+      pon2('k-sin-miembros-pie', sinMiembros.length
+        ? sinMiembros.slice(0, 3).map(function (e) { return e.nombre; }).join(' · ')
+        : 'todos con closers activos');
+
+      if (selEq) {
+        var actual = selEq.value;
+        selEq.innerHTML = '<option value="">Todos los equipos</option>' +
+          equipos.map(function (e) { return '<option value="' + esc(e.id) + '">' + esc(e.nombre) + (e.activo ? '' : ' (de baja)') + '</option>'; }).join('');
+        selEq.value = actual;
+      }
+
+      if (cuerpoEq) {
+        cuerpoEq.innerHTML = equipos.length ? equipos.map(function (e) {
+          var activosDelEquipo = (porEquipo[e.id] || []).filter(estaActivo).length;
+          return '<tr class="border-b border-outline-variant/30">' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(e.nombre) + '</td>' +
+            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(nombreDe(e.manager_email)) + '</td>' +
+            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + activosDelEquipo + '</td>' +
+            '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' +
+              (e.activo ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-surface-container-high text-on-surface-variant') + '">' +
+              (e.activo ? 'Activo' : 'De baja') + '</span></td>' +
+            '<td class="px-5 py-4 text-right"><div class="flex justify-end gap-2">' +
+            '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" data-lw-miembro="' + esc(e.id) + '" data-lw-nombre="' + esc(e.nombre) + '">+ Miembro</button>' +
+            '<button type="button" class="px-3 py-1 rounded-full text-burnt-earth hover:bg-surface-container-high font-label-md text-[12px]" data-lw-toggle-equipo="' + esc(e.id) + '" data-lw-nombre="' + esc(e.nombre) + '" data-lw-activo="' + (e.activo ? '1' : '0') + '">' +
+            (e.activo ? 'Desactivar' : 'Reactivar') + '</button>' +
+            '</div></td></tr>';
+        }).join('') : '<tr><td colspan="5" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Ningún equipo dado de alta todavía.</td></tr>';
+      }
+
+      function pintaMiembros() {
+        if (!cuerpoMi) return;
+        var filtro = selEq ? selEq.value : '';
+        var lista = filtro ? miembros.filter(function (m) { return m.equipo_id === filtro; }) : miembros;
+        cuerpoMi.innerHTML = lista.length ? lista.map(function (m) {
+          var eq = equipos.filter(function (e) { return e.id === m.equipo_id; })[0];
+          var activo = estaActivo(m);
+          return '<tr class="border-b border-outline-variant/30">' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(nombreDe(m.closer_email)) + '</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(eq ? eq.nombre : '—') + '</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(fFecha(m.desde)) + '</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + (m.hasta ? esc(fFecha(m.hasta)) : '—') + '</td>' +
+            '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' +
+              (activo ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-surface-container-high text-on-surface-variant') + '">' +
+              (activo ? 'Activo' : 'De baja') + '</span></td>' +
+            '<td class="px-5 py-4 text-right">' + (activo
+              ? '<button type="button" class="px-3 py-1 rounded-full text-error hover:bg-error-container/40 font-label-md text-[12px]" data-lw-baja="' + esc(m.id) + '" data-lw-email="' + esc(m.closer_email) + '">Dar de baja</button>'
+              : '') + '</td></tr>';
+        }).join('') : '<tr><td colspan="6" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Sin miembros para este filtro.</td></tr>';
+      }
+      pintaMiembros();
+      if (selEq) selEq.addEventListener('change', pintaMiembros);
+
+      // acciones — delegadas, con stopPropagation para ganar a maqueta.js (Regla 0)
+      if (cuerpoEq) cuerpoEq.addEventListener('click', function (ev) {
+        var bM = ev.target.closest && ev.target.closest('[data-lw-miembro]');
+        if (bM) {
+          ev.preventDefault(); ev.stopPropagation();
+          if (window.LW_V4 && window.LW_V4.abreAnadirMiembro) window.LW_V4.abreAnadirMiembro(bM.getAttribute('data-lw-miembro'), bM.getAttribute('data-lw-nombre'));
+          else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
+          return;
+        }
+        var bT = ev.target.closest && ev.target.closest('[data-lw-toggle-equipo]');
+        if (bT) {
+          ev.preventDefault(); ev.stopPropagation();
+          if (window.LW_V4 && window.LW_V4.abreToggleEquipo) {
+            window.LW_V4.abreToggleEquipo(bT.getAttribute('data-lw-toggle-equipo'), bT.getAttribute('data-lw-nombre'), bT.getAttribute('data-lw-activo') === '1');
+          } else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
+        }
+      });
+      if (cuerpoMi) cuerpoMi.addEventListener('click', function (ev) {
+        var b = ev.target.closest && ev.target.closest('[data-lw-baja]');
+        if (!b) return;
+        ev.preventDefault(); ev.stopPropagation();
+        if (window.LW_V4 && window.LW_V4.abreDarBaja) window.LW_V4.abreDarBaja(b.getAttribute('data-lw-baja'), b.getAttribute('data-lw-email'));
+        else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
+      });
+    });
+  };
+
+  REG.condiciones = function (sb) {
+    if (!(window.LW_V4 && window.LW_V4.esAdmin)) { notaSoloAdmin(); return; }
+    // vocabulario compartido con editores.js (montaTramos, el select de la base
+    // de cálculo): una sola lista, aquí, leída por window.LW_V4 — Regla 0.
+    window.LW_V4.DISPARADORES = [
+      ['contrato_firmado', 'Al firmar el contrato'],
+      ['obra_firmada', 'Al firmar la obra'],
+      ['pct_cobrado_suelo', '% cobrado del suelo'],
+      ['pct_cobrado_obra', '% cobrado de la obra'],
+      ['pct_cobrado_total', '% cobrado del total']
+    ];
+    window.LW_V4.BASES_CALCULO = [
+      ['precio_total', 'Precio total'],
+      ['precio_suelo', 'Precio de suelo'],
+      ['precio_construccion', 'Precio de construcción'],
+      ['importe_fijo', 'Importe fijo']
+    ];
+
+    var cuerpo = document.getElementById('lw-condiciones-filas');
+    var selEquipo = document.getElementById('lw-co-equipo');
+    var selProyecto = document.getElementById('lw-co-proyecto');
+
+    Promise.all([
+      q(sb.from('condiciones_comision').select('id,equipo_id,proyecto_id,nivel,closer_email,pct_comision,base_calculo,importe_fijo,activo,created_at').order('created_at', { ascending: false }), 'condiciones de comisión', cuerpo),
+      q(sb.from('equipos_venta').select('id,nombre'), 'equipos de venta'),
+      q(sb.from('proyectos').select('id,nombre'), 'proyectos'),
+      q(sb.from('condicion_tramos').select('id,condicion_id,orden,disparador_tipo,umbral,pct_tramo').order('orden'), 'tramos de comisión'),
+      q(sb.from('usuarios').select('email,nombre'), 'usuarios')
+    ]).then(function (r) {
+      var conds = r[0], equipos = r[1] || [], proyectos = r[2] || [], tramos = r[3] || [], usuarios = r[4] || [];
+      if (!conds) return;
+      var equipoDe = {}; equipos.forEach(function (e) { equipoDe[e.id] = e.nombre; });
+      var proyectoDe = {}; proyectos.forEach(function (p) { proyectoDe[p.id] = p.nombre; });
+      var nombrePorEmail = {}; usuarios.forEach(function (u) { if (u.email) nombrePorEmail[u.email.toLowerCase()] = u.nombre || u.email; });
+      var tramosDe = {}; tramos.forEach(function (t) { (tramosDe[t.condicion_id] = tramosDe[t.condicion_id] || []).push(t); });
+
+      pon2('k-cond-activas', String(conds.filter(function (c) { return c.activo; }).length));
+      pon2('k-cond-total', String(conds.length));
+      pon2('k-cond-manager', String(conds.filter(function (c) { return c.nivel === 'manager'; }).length));
+      pon2('k-cond-closer', String(conds.filter(function (c) { return c.nivel === 'closer'; }).length));
+
+      if (selEquipo) selEquipo.innerHTML = '<option value="">Todos los equipos</option>' +
+        equipos.map(function (e) { return '<option value="' + esc(e.id) + '">' + esc(e.nombre) + '</option>'; }).join('');
+      if (selProyecto) selProyecto.innerHTML = '<option value="">Todos los proyectos</option>' +
+        proyectos.map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.nombre) + '</option>'; }).join('');
+
+      function pinta() {
+        if (!cuerpo) return;
+        var fe = selEquipo ? selEquipo.value : '', fp = selProyecto ? selProyecto.value : '';
+        var lista = conds.filter(function (c) { return (!fe || c.equipo_id === fe) && (!fp || c.proyecto_id === fp); });
+        cuerpo.innerHTML = lista.length ? lista.map(function (c) {
+          var t = (tramosDe[c.id] || []).slice().sort(function (a, b) { return a.orden - b.orden; });
+          var resumenTramos = t.length
+            ? t.map(function (x) { return x.pct_tramo + '% ' + etiquetaDe(window.LW_V4.DISPARADORES, x.disparador_tipo); }).join(' · ')
+            : '—';
+          var quien = c.nivel === 'closer'
+            ? (c.closer_email ? esc(nombrePorEmail[c.closer_email.toLowerCase()] || c.closer_email) + ' (override)' : 'todo el equipo · closer')
+            : 'manager';
+          var importeOBase = c.base_calculo === 'importe_fijo' ? fmt(c.importe_fijo, 'EUR') : (c.pct_comision + '%');
+          return '<tr class="border-b border-outline-variant/30">' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(equipoDe[c.equipo_id] || '—') + '</td>' +
+            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(proyectoDe[c.proyecto_id] || '—') + '</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + quien + '</td>' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(importeOBase) +
+              '<br><span class="text-outline text-[11px]">' + esc(etiquetaDe(window.LW_V4.BASES_CALCULO, c.base_calculo)) + '</span></td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline max-w-xs">' + esc(resumenTramos) + '</td>' +
+            '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' +
+              (c.activo ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-surface-container-high text-on-surface-variant') + '">' +
+              (c.activo ? 'Activa' : 'Inactiva') + '</span></td>' +
+            '<td class="px-5 py-4 text-right"><button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" ' +
+              'data-lw-toggle-cond="' + esc(c.id) + '" data-lw-etq="' + esc((equipoDe[c.equipo_id] || '') + ' · ' + (proyectoDe[c.proyecto_id] || '')) + '" data-lw-activo="' + (c.activo ? '1' : '0') + '">' +
+              (c.activo ? 'Desactivar' : 'Reactivar') + '</button></td></tr>';
+        }).join('') : '<tr><td colspan="7" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Ninguna condición para este filtro.</td></tr>';
+      }
+      pinta();
+      if (selEquipo) selEquipo.addEventListener('change', pinta);
+      if (selProyecto) selProyecto.addEventListener('change', pinta);
+
+      if (cuerpo) cuerpo.addEventListener('click', function (ev) {
+        var b = ev.target.closest && ev.target.closest('[data-lw-toggle-cond]');
+        if (!b) return;
+        ev.preventDefault(); ev.stopPropagation();
+        if (window.LW_V4 && window.LW_V4.abreToggleCondicion) {
+          window.LW_V4.abreToggleCondicion(b.getAttribute('data-lw-toggle-cond'), b.getAttribute('data-lw-etq'), b.getAttribute('data-lw-activo') === '1');
+        } else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
+      });
     });
   };
 

@@ -213,6 +213,19 @@
         d.innerHTML = inner + '<textarea data-k="' + esc(c.k) + '" rows="4" style="' + estilo + ';resize:vertical">' + esc(c.valor) + '</textarea>';
       } else if (c.tipo === 'file') {
         d.innerHTML = inner + '<input data-k="' + esc(c.k) + '" type="file" accept="' + esc(c.accept || '*/*') + '" style="' + estilo + ';padding:7px 10px">';
+      } else if (c.tipo === 'custom') {
+        /* Hueco para un widget propio que el formulario generico no sabe
+           dibujar — hoy solo los tramos de Condiciones de comision, una lista
+           de filas de alta/baja variable que no encaja en ningun `tipo` de
+           arriba. SIN `data-k`: el colector generico de mas abajo lo ignora a
+           proposito, y `c.render(d)` es quien deja preparado lo que haga
+           falta (normalmente una funcion que el propio `onGuardar` llama para
+           recoger el valor — ver `montaTramos()`). Nunca lleva `req`: el
+           chequeo generico de "falta «X»" mira `vals[c.k]`, que aqui nunca se
+           rellena, y marcaria el campo como vacio aunque este bien. */
+        d.style.cssText = 'display:block;background:none;border:0;padding:0;margin:0;text-transform:none;letter-spacing:0';
+        if (lateral) d.style.gridColumn = '1 / -1';
+        if (typeof c.render === 'function') c.render(d);
       } else if (c.tipo === 'multicheck') {
         // `o` es un string (valor = etiqueta, como ya usaba Usuarios) o un
         // par [valor, etiqueta] — igual que ya admite 'select' — para cuando el
@@ -353,6 +366,125 @@
       }
     }
     return null;
+  }
+
+  /* ---------- Tramos de pago (Condiciones de comisión, 14-sep-2026) ----------
+     Fila dinámica con añadir/quitar y suma en vivo. Por qué hace falta un
+     constructor propio y no el 'multicheck' o el 'select' de siempre: el
+     trigger `condicion_tramos_suma_100` de la base es DEFERRABLE INITIALLY
+     DEFERRED, pero cada request de PostgREST es su propia transacción — así
+     que un tramo insertado SOLO nunca puede sumar 100 salvo que sea el único,
+     y no hay forma de "ir añadiendo tramos" contra esta tabla: hay que
+     recogerlos TODOS en el formulario y escribirlos en un único INSERT
+     multi-fila. Esto es el cinturón (se valida aquí, antes de tocar la base,
+     con un error legible); el trigger es el tirante (si algo se escapa, la
+     base lo rechaza igual — verificado con sesión admin real, suma 90 vs
+     100, revisión previa Datos+Seguridad). */
+  var DISPARADORES_TRAMO_FALLBACK = [
+    ['contrato_firmado', 'Al firmar el contrato'],
+    ['obra_firmada', 'Al firmar la obra'],
+    ['pct_cobrado_suelo', '% cobrado del suelo'],
+    ['pct_cobrado_obra', '% cobrado de la obra'],
+    ['pct_cobrado_total', '% cobrado del total']
+  ];
+  var BASES_CALCULO_FALLBACK = [
+    ['precio_total', 'Precio total'],
+    ['precio_suelo', 'Precio de suelo'],
+    ['precio_construccion', 'Precio de construcción'],
+    ['importe_fijo', 'Importe fijo']
+  ];
+  function montaTramos(host) {
+    var opciones = (window.LW_V4 && window.LW_V4.DISPARADORES) || DISPARADORES_TRAMO_FALLBACK;
+    var filas = [];
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'display:grid;gap:8px';
+    var cab = document.createElement('div');
+    cab.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px';
+    var tituloCab = document.createElement('span');
+    tituloCab.textContent = 'Qué dispara cada pago, y qué % le toca';
+    tituloCab.style.cssText = 'font-weight:500;font-size:12px;color:' + CAJ.apagado;
+    var sumaBadge = document.createElement('span');
+    sumaBadge.style.cssText = 'font-weight:700;font-size:12.5px;white-space:nowrap';
+    cab.appendChild(tituloCab); cab.appendChild(sumaBadge);
+    wrap.appendChild(cab);
+    var lista = document.createElement('div');
+    lista.style.cssText = 'display:grid;gap:6px';
+    wrap.appendChild(lista);
+    var errLinea = document.createElement('p');
+    errLinea.style.cssText = 'margin:0;font-size:11.5px;color:' + CAJ.apagado;
+    errLinea.textContent = 'El umbral (%) solo aplica a los disparadores «% cobrado…».';
+    wrap.appendChild(errLinea);
+    var btnAdd = document.createElement('button');
+    btnAdd.type = 'button';
+    btnAdd.textContent = '+ Añadir tramo';
+    btnAdd.style.cssText = 'justify-self:start;padding:7px 12px;border-radius:8px;border:1px dashed ' +
+      CAJ.hoja + ';background:transparent;color:' + CAJ.lago + ';font-weight:600;font-size:12.5px;cursor:pointer';
+    wrap.appendChild(btnAdd);
+    host.appendChild(wrap);
+
+    function actualizaSuma() {
+      var s = filas.reduce(function (acc, f) { return acc + (Number(f.pct.value) || 0); }, 0);
+      var s2 = Math.round(s * 100) / 100;
+      var ok = Math.abs(s - 100) <= 0.01;
+      sumaBadge.textContent = 'Suma: ' + s2 + '%' + (ok ? ' ✓' : ' — deben sumar 100%');
+      sumaBadge.style.color = ok ? '#2E5B3E' : '#9E2F26';
+    }
+
+    function quitaFila(fila) {
+      if (filas.length <= 1) return;   // siempre queda al menos un tramo que rellenar
+      lista.removeChild(fila.el);
+      filas = filas.filter(function (f) { return f !== fila; });
+      actualizaSuma();
+    }
+
+    function nuevaFila() {
+      var el = document.createElement('div');
+      el.style.cssText = 'display:grid;grid-template-columns:1fr 92px 84px 22px;gap:6px;align-items:center';
+      var campoEstilo = 'padding:7px 8px;border:1px solid ' + CAJ.borde + ';border-radius:6px;font-size:12.5px;' +
+        'color:' + CAJ.tinta + ';background:' + CAJ.papel + ';box-sizing:border-box;width:100%';
+      var selDisp = document.createElement('select');
+      selDisp.style.cssText = campoEstilo;
+      opciones.forEach(function (o) {
+        var op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; selDisp.appendChild(op);
+      });
+      var inpUmbral = document.createElement('input');
+      inpUmbral.type = 'number'; inpUmbral.step = '0.01'; inpUmbral.min = '0'; inpUmbral.max = '100';
+      inpUmbral.placeholder = 'umbral %'; inpUmbral.style.cssText = campoEstilo;
+      var inpPct = document.createElement('input');
+      inpPct.type = 'number'; inpPct.step = '0.01'; inpPct.min = '0'; inpPct.max = '100';
+      inpPct.placeholder = '% tramo'; inpPct.style.cssText = campoEstilo;
+      var btnDel = document.createElement('button');
+      btnDel.type = 'button'; btnDel.textContent = '×'; btnDel.title = 'Quitar tramo';
+      btnDel.style.cssText = 'border:0;background:none;color:#9E2F26;font-size:19px;line-height:1;cursor:pointer';
+
+      var fila = { el: el, disp: selDisp, umbral: inpUmbral, pct: inpPct };
+
+      function actualizaUmbral() {
+        var necesita = /^pct_cobrado_/.test(selDisp.value);
+        inpUmbral.disabled = !necesita;
+        inpUmbral.style.visibility = necesita ? 'visible' : 'hidden';
+        if (!necesita) inpUmbral.value = '';
+      }
+      selDisp.addEventListener('change', actualizaUmbral);
+      actualizaUmbral();
+      inpPct.addEventListener('input', actualizaSuma);
+      btnDel.addEventListener('click', function () { quitaFila(fila); });
+
+      el.appendChild(selDisp); el.appendChild(inpUmbral); el.appendChild(inpPct); el.appendChild(btnDel);
+      lista.appendChild(el);
+      filas.push(fila);
+      actualizaSuma();
+    }
+
+    btnAdd.addEventListener('click', nuevaFila);
+    nuevaFila(); nuevaFila();   // arranca con dos: lo habitual es 2+ tramos
+
+    // getter que `onGuardar` llama para recoger el estado ACTUAL del formulario
+    return function () {
+      return filas.map(function (f) {
+        return { disparador_tipo: f.disp.value, umbral: f.umbral.value, pct_tramo: f.pct.value };
+      });
+    };
   }
 
   /* ---------- editores por pantalla ---------- */
@@ -1191,6 +1323,185 @@
           });
         });
       });
+    },
+
+    /* Equipos de venta y Condiciones (14-sep-2026, encargo del owner) — dos
+       pantallas de administración pura: alta de `equipos_venta`, gestión de
+       `equipo_miembros` (añadir/dar de baja con fecha) y de
+       `condiciones_comision` + sus `condicion_tramos`. Las CUATRO tablas
+       escriben solo con `es_admin()` en la base (RLS verificada con sesión no
+       admin simulada, DO+rollback — revisión previa Datos+Seguridad,
+       14-sep-2026): lo de aquí es UI, no el candado. */
+    'equipos-venta': function (aut) {
+      var sb = aut.sb, admin = esAdmin(aut.ficha);
+      window.LW_V4 = window.LW_V4 || {};
+      var soloAdmin = function () {
+        return aviso('Los equipos de venta los da de alta solo administración (policy es_admin) — tu sesión es de ' +
+          ((aut.ficha && aut.ficha.rol) || 'agente') + '.', '#8A6A34');
+      };
+
+      ata(/^\+? ?Nuevo equipo$/i, function () {
+        if (!admin) return soloAdmin();
+        modal('Nuevo equipo de venta', [
+          { k: 'nombre', label: 'Nombre del equipo', req: 1 },
+          { k: 'manager_email', label: 'Email del manager', req: 1, ayuda: 'la persona que gestiona el reparto del equipo' }
+        ], 'Crear equipo', function (v) {
+          return sb.from('equipos_venta').insert({
+            nombre: v.nombre.trim(), manager_email: v.manager_email.trim().toLowerCase()
+          });
+        });
+      });
+
+      window.LW_V4.abreAnadirMiembro = function (equipoId, equipoNombre) {
+        if (!admin) return soloAdmin();
+        modal('Añadir miembro — ' + (equipoNombre || ''), [
+          { k: 'closer_email', label: 'Email del closer', req: 1 },
+          { k: 'desde', label: 'Desde', tipo: 'date', req: 1, medio: 1, valor: new Date().toISOString().slice(0, 10) },
+          { k: 'hasta', label: 'Hasta (opcional)', tipo: 'date', medio: 1, ayuda: 'vacío = sigue activo' }
+        ], 'Añadir al equipo', function (v) {
+          if (v.hasta && v.hasta < v.desde) return { error: { message: '«Hasta» no puede ser anterior a «Desde».' } };
+          return sb.from('equipo_miembros').insert({
+            equipo_id: equipoId, closer_email: v.closer_email.trim().toLowerCase(),
+            desde: v.desde, hasta: v.hasta || null,
+            added_by: (aut.session && aut.session.user && aut.session.user.email) || null
+          });
+        });
+      };
+
+      window.LW_V4.abreDarBaja = function (miembroId, closerEmail) {
+        if (!admin) return soloAdmin();
+        modal('Dar de baja — ' + (closerEmail || ''), [
+          { k: 'hasta', label: 'Fecha de baja', tipo: 'date', req: 1, valor: new Date().toISOString().slice(0, 10) }
+        ], 'Dar de baja', function (v) {
+          return sb.from('equipo_miembros').update({ hasta: v.hasta }).eq('id', miembroId);
+        });
+      };
+
+      window.LW_V4.abreToggleEquipo = function (equipoId, nombre, activoActual) {
+        if (!admin) return soloAdmin();
+        var pasaA = !activoActual;
+        modal((pasaA ? 'Reactivar' : 'Desactivar') + ' equipo — ' + (nombre || ''), [
+          { tipo: 'nota', label: pasaA
+              ? 'El equipo vuelve a estar disponible para nuevas condiciones de comisión.'
+              : 'El equipo deja de ofrecerse para condiciones nuevas. Los miembros y el histórico de comisiones no se tocan.' }
+        ], pasaA ? 'Reactivar' : 'Desactivar', function () {
+          return sb.from('equipos_venta').update({ activo: pasaA }).eq('id', equipoId);
+        });
+      };
+    },
+
+    condiciones: function (aut) {
+      var sb = aut.sb, admin = esAdmin(aut.ficha);
+      window.LW_V4 = window.LW_V4 || {};
+      var soloAdmin = function () {
+        return aviso('Las condiciones de comisión las da de alta solo administración (policy es_admin) — tu sesión es de ' +
+          ((aut.ficha && aut.ficha.rol) || 'agente') + '.', '#8A6A34');
+      };
+
+      ata(/^\+? ?Nueva condici[oó]n$/i, function () {
+        if (!admin) return soloAdmin();
+        Promise.all([
+          sb.from('equipos_venta').select('id,nombre').eq('activo', true).order('nombre'),
+          sb.from('proyectos').select('id,nombre').eq('activo', true).order('nombre')
+        ]).then(function (r) {
+          var equipos = (r[0] && r[0].data) || [], proyectos = (r[1] && r[1].data) || [];
+          if (!equipos.length) return aviso('No hay equipos activos — crea uno primero en «Equipos de venta».', '#8A6A34');
+          if (!proyectos.length) return aviso('No hay proyectos activos.', '#8A6A34');
+          var getTramos = null;
+          modal('Nueva condición de comisión', [
+            { k: 'equipo_id', label: 'Equipo', tipo: 'select', req: 1, medio: 1,
+              opciones: equipos.map(function (e) { return [e.id, e.nombre]; }) },
+            { k: 'proyecto_id', label: 'Proyecto', tipo: 'select', req: 1, medio: 1,
+              opciones: proyectos.map(function (p) { return [p.id, p.nombre]; }) },
+            { k: 'nivel', label: 'Nivel', tipo: 'select', req: 1, medio: 1,
+              opciones: [['manager', 'Manager'], ['closer', 'Closer']] },
+            { k: 'closer_email', label: 'Override individual (email)', medio: 1,
+              ayuda: 'solo con nivel «Closer» — vacío aplica a todo el equipo' },
+            { k: 'pct_comision', label: '% de comisión', tipo: 'number', paso: '0.01', req: 1, medio: 1 },
+            { k: 'base_calculo', label: 'Base de cálculo', tipo: 'select', req: 1, medio: 1,
+              opciones: (window.LW_V4.BASES_CALCULO || BASES_CALCULO_FALLBACK) },
+            { k: 'importe_fijo', label: 'Importe fijo', tipo: 'number', paso: '0.01', medio: 1,
+              ayuda: 'solo si la base es «Importe fijo»' },
+            { k: 'tramos', label: 'Tramos de pago (deben sumar 100%)', tipo: 'custom',
+              render: function (d) { getTramos = montaTramos(d); } }
+          ], 'Crear condición', function (v) {
+            if (v.nivel === 'manager' && v.closer_email) {
+              return { error: { message: 'El override individual solo aplica con nivel «Closer».' } };
+            }
+            var tramos = getTramos ? getTramos() : [];
+            if (!tramos.length) return { error: { message: 'Añade al menos un tramo de pago.' } };
+            var suma = 0;
+            for (var i = 0; i < tramos.length; i++) {
+              var t = tramos[i], pct = Number(t.pct_tramo);
+              if (!t.disparador_tipo) return { error: { message: 'Falta el disparador del tramo ' + (i + 1) + '.' } };
+              if (!(pct > 0) || pct > 100) return { error: { message: 'El tramo ' + (i + 1) + ' necesita un % entre 0 y 100.' } };
+              if (/^pct_cobrado_/.test(t.disparador_tipo) && (t.umbral === '' || t.umbral == null)) {
+                return { error: { message: 'El tramo ' + (i + 1) + ' necesita un umbral (%) para ese disparador.' } };
+              }
+              suma += pct;
+            }
+            // MISMA regla que el trigger `condicion_tramos_suma_100` de la base —
+            // aquí ANTES de escribir nada, con un error legible y sin gastar un
+            // viaje de red; el trigger es el respaldo si esto se saltara.
+            if (Math.abs(suma - 100) > 0.01) {
+              return { error: { message: 'Los tramos suman ' + (Math.round(suma * 100) / 100) + '% — deben sumar exactamente 100% antes de guardar.' } };
+            }
+            if (v.base_calculo === 'importe_fijo' && !(Number(v.importe_fijo) > 0)) {
+              return { error: { message: 'La base «Importe fijo» exige un importe mayor que 0.' } };
+            }
+            if (v.base_calculo !== 'importe_fijo' && v.importe_fijo) {
+              return { error: { message: 'El importe fijo solo aplica cuando la base es «Importe fijo».' } };
+            }
+            // id generado aquí (no `.select().single()` tras el insert): evita un
+            // viaje de red extra y el matiz de que un INSERT sin `.select()` no
+            // aplica la policy de SELECT sobre la fila nueva. Sin fallback: la
+            // columna es `uuid`, y un id que no lo sea rompe el INSERT con un
+            // error de cast confuso en vez de uno claro — mejor decirlo aquí.
+            // `crypto.randomUUID` ya lo usa el resto de la v4 (proyectos/) sin
+            // comprobar `window.crypto` antes: mismo contrato de navegador.
+            if (!(window.crypto && crypto.randomUUID)) {
+              return { error: { message: 'Este navegador no soporta crypto.randomUUID() — actualiza el navegador para crear condiciones.' } };
+            }
+            var condId = crypto.randomUUID();
+            return sb.from('condiciones_comision').insert({
+              id: condId, equipo_id: v.equipo_id, proyecto_id: v.proyecto_id, nivel: v.nivel,
+              closer_email: v.nivel === 'closer' ? (v.closer_email ? v.closer_email.trim().toLowerCase() : null) : null,
+              pct_comision: Number(v.pct_comision), base_calculo: v.base_calculo,
+              importe_fijo: v.base_calculo === 'importe_fijo' ? Number(v.importe_fijo) : null
+            }).then(function (r) {
+              if (r.error) return r;
+              var filas = tramos.map(function (t, i) {
+                return {
+                  condicion_id: condId, orden: i + 1, disparador_tipo: t.disparador_tipo,
+                  umbral: /^pct_cobrado_/.test(t.disparador_tipo) ? Number(t.umbral) : null,
+                  pct_tramo: Number(t.pct_tramo)
+                };
+              });
+              return sb.from('condicion_tramos').insert(filas).then(function (r2) {
+                if (r2.error) {
+                  // condición huérfana sin tramos: se limpia sola — solo llega
+                  // hasta aquí quien ya es admin, así que el DELETE no tropieza
+                  // con una policy nueva.
+                  return sb.from('condiciones_comision').delete().eq('id', condId).then(function () { return r2; });
+                }
+                return r2;
+              });
+            });
+          });
+        });
+      });
+
+      window.LW_V4.abreToggleCondicion = function (condId, etiqueta, activoActual) {
+        if (!admin) return soloAdmin();
+        var pasaA = !activoActual;
+        modal((pasaA ? 'Reactivar' : 'Desactivar') + ' condición — ' + (etiqueta || ''), [
+          { tipo: 'nota', label: pasaA
+              ? 'Vuelve a aplicarse a las comisiones que se disparen desde ahora.'
+              : 'Deja de aplicarse a comisiones nuevas. Lo ya devengado no cambia.' }
+        ], pasaA ? 'Reactivar' : 'Desactivar', function () {
+          return sb.from('condiciones_comision').update({ activo: pasaA }).eq('id', condId);
+        });
+      };
     }
   };
 
