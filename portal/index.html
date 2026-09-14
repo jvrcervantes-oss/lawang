@@ -487,6 +487,17 @@
          doc_passport:'Pasaporte', doc_id:'Documento de identidad', doc_npwp:'NPWP', doc_kitas:'KITAS', caduca:'caduca el',
          sin_docs_t:'Aún no hay documentos compartidos', sin_docs:'Aquí aparecerán los planos, dossieres y documentos de tu promoción cuando los publiquemos, junto con lo que tú nos hayas entregado.',
          err_fichero:'No hemos podido abrir el documento. Inténtalo de nuevo en un momento.',
+         /* 14-sep-2026: estos tres sitios enseñaban el mensaje CRUDO de la base
+            («new row violates row-level security policy for…») a un COMPRADOR.
+            Venía de antes, pero el aviso de error pasó a salir centrado y en
+            rojo ese mismo día, así que de ser un recuadro gris que nadie leía
+            pasó a ser lo único que se ve en pantalla. Un mensaje interno en
+            mitad de la cara del cliente no le dice qué hacer y sí cuenta cómo
+            está montada la base por dentro. El crudo sigue yendo a la consola:
+            sin él, soporte no puede diagnosticar nada. */
+         err_mensaje:'No hemos podido enviar tu mensaje. Inténtalo de nuevo en un momento; si sigue sin salir, escríbenos por WhatsApp.',
+         err_ticket:'No hemos podido abrir tu consulta. Inténtalo de nuevo en un momento; si sigue sin salir, escríbenos por WhatsApp.',
+         err_prefs:'No hemos podido guardar tu preferencia de avisos. Vuelve a intentarlo en un momento.',
          categoria:'Categoría', enviar:'Enviar', cancelar:'Cancelar', abierto:'Abierto', resuelto:'Resuelto',
          responder:'Responder…', tu:'Tú', equipo:'Equipo Lawang',
          nuevo_ticket:'Nuevo ticket', elige_categoria:'Elige de qué trata…', mensaje:'Mensaje',
@@ -546,6 +557,9 @@
          doc_passport:'Passport', doc_id:'ID document', doc_npwp:'NPWP', doc_kitas:'KITAS', caduca:'expires',
          sin_docs_t:'No shared documents yet', sin_docs:'Plans, brochures and documents for your development will appear here once we publish them, along with anything you have given us.',
          err_fichero:'We could not open the document. Please try again in a moment.',
+         err_mensaje:'We could not send your message. Please try again in a moment; if it still fails, write to us on WhatsApp.',
+         err_ticket:'We could not open your enquiry. Please try again in a moment; if it still fails, write to us on WhatsApp.',
+         err_prefs:'We could not save your notification preference. Please try again in a moment.',
          categoria:'Category', enviar:'Send', cancelar:'Cancel', abierto:'Open', resuelto:'Resolved',
          responder:'Reply…', tu:'You', equipo:'Lawang team',
          nuevo_ticket:'New ticket', elige_categoria:'What is it about…', mensaje:'Message',
@@ -1229,7 +1243,7 @@
       var btn = e.target.querySelector('button[type="submit"]'); btn.disabled = true;
       sb.rpc('portal_enviar_mensaje', { p_hilo_id: x.id, p_texto: val }).then(function(r){
         btn.disabled = false;
-        if (r.error){ toastMal(r.error.message); return; }
+        if (r.error){ console.error('portal_enviar_mensaje', r.error); toastMal(t('err_mensaje')); return; }
         recargaSituacion(function(){
           var actual = (DATOS.tickets||[]).filter(function(t2){ return t2.id === x.id; })[0];
           if (actual) abreTicket(actual); else cierraDrawer();
@@ -1258,7 +1272,7 @@
       var btn = document.getElementById('btnAbrirTicket'); btn.disabled = true;
       sb.rpc('portal_abrir_ticket', { p_client_id: DATOS.client_id, p_categoria: cat, p_texto: texto }).then(function(r){
         btn.disabled = false;
-        if (r.error){ toastMal(r.error.message); return; }
+        if (r.error){ console.error('portal_abrir_ticket', r.error); toastMal(t('err_ticket')); return; }
         recargaSituacion(function(){ cierraDrawer(); render(); toast(t('ticket_abierto')); });
       });
     });
@@ -1319,7 +1333,7 @@
     prefs[cual] = !prefs[cual];
     pintaPerfil(document.getElementById('content'));
     sb.rpc('portal_set_prefs', { p_pref_email: prefs.pref_email, p_pref_sms: prefs.pref_sms }).then(function(r){
-      if (r.error) toastMal(r.error.message);
+      if (r.error){ console.error('portal_set_prefs', r.error); toastMal(t('err_prefs')); }
     });
   }
 

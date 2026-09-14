@@ -44,6 +44,10 @@
   .c-comercial{ background:#6A4B8A; } .c-tecnico{ background:#2E5F72; } .c-fotos{ background:#7A5C3A; }
   .c-otros{ background:#5A6062; } .c-faq{ background:#8A3A54; }
   .conf{ font-size:11px; color:#9E2F26; font-weight:600; }
+  /* El deck es PUBLICO y sin login: su distintivo no puede ser el mismo verde
+     que el del portal del comprador, que es acceso restringido con contrato.
+     Ambar = "esto sale a internet", se ve de un vistazo en la lista. */
+  .deck{ font-size:11px; color:#8C5E10; font-weight:600; }
 
 
   /* ── carpetas como TARJETA, no como chip (6-ago-2026) ──────────────────
@@ -287,6 +291,21 @@ const T = {
               en:'Only buyers <b>with a contract in that project</b> will see it, not everyone. It’s a separate decision from "confidential": that it can be shown inside the studio doesn’t mean it should go into a client’s portal. An uploaded file is served with a temporary link; a Drive link is opened by Drive, so <b>check it there before marking it</b>.' },
   notaDrivePermiso: { es:'<b>Comprueba en Drive con quién está compartido.</b> Aquí se guarda el enlace; el permiso para abrirlo lo pone Drive.',
                       en:'<b>Check in Drive who it’s shared with.</b> This only stores the link; the permission to open it is set in Drive.' },
+  ckDeck: { es:'Publicar en el dosier de inversores', en:'Publish in the investor deck' },
+  notaDeck: { es:'<b>PÚBLICO: lo ve cualquiera que abra el enlace del deck</b>, sin contraseña y sin contrato — un escalón por encima del portal. Un documento marcado <b>confidencial</b> no sale aunque se marque aquí: esa casilla manda siempre. El proyecto también tiene que estar abierto al dosier.',
+             en:'<b>PUBLIC: anyone who opens the deck link sees it</b>, with no password and no contract — one step above the portal. A document marked <b>confidential</b> will not appear even if this is ticked: that box always wins. The project must also be open to the deck.' },
+  deck: { es:'deck', en:'deck' },
+  dtDeck: { es:'Dosier de inversores', en:'Investor deck' },
+  enElDeck: { es:'PÚBLICO — lo ve cualquiera que abra el dosier de ', en:'PUBLIC — anyone who opens the deck of ' },
+  noSaleDeck: { es:'No sale en el dosier público', en:'Not in the public deck' },
+  deckBloqueadoConf: { es:'«Confidencial» manda: desmárcalo primero si de verdad va a salir al dosier público.',
+                       en:'"Confidential" wins: untick it first if this really is going out to the public deck.' },
+  deckConfirma: { es:'» quedará abrible por CUALQUIERA que entre al dosier público de ',
+                  en:'» will be openable by ANYONE who enters the public deck of ' },
+  deckConfirma2: { es:', sin contraseña y sin contrato.\n\nSi el enlace es de Drive, ábrelo antes en una ventana de incógnito: si no está compartido en abierto, el inversor se choca con una pantalla de permisos.\n\n¿Publicarlo?',
+                   en:', with no password and no contract.\n\nIf the link is on Drive, open it first in an incognito window: if it is not shared publicly, the investor hits a permissions screen.\n\nPublish it?' },
+  deckCancelado: { es:'publicación al dosier cancelada — desmarca la casilla o confirma',
+                   en:'publishing to the deck cancelled — untick the box or confirm' },
   guardarCambios: { es:'Guardar cambios', en:'Save changes' },
   guardarEnlace: { es:'Guardar enlace', en:'Save link' },
   cancelar: { es:'Cancelar', en:'Cancel' },
@@ -370,7 +389,7 @@ const FIRMADAS = new Map();
 async function cargar(){
   CARGANDO = true; FALLO = null; pintar();
   const { data, error } = await SB.from('documentos_proyecto')
-    .select('id, proyecto, carpeta, categoria, titulo, descripcion, path, url, mime, bytes, confidencial, visible_portal, creado_en, creado_por')
+    .select('id, proyecto, carpeta, categoria, titulo, descripcion, path, url, mime, bytes, confidencial, visible_portal, publicado_investor_deck, creado_en, creado_por')
     .order('proyecto').order('carpeta').order('titulo');
   CARGANDO = false;
   if(error){ FALLO = error.message; pintar(); return; }
@@ -510,7 +529,8 @@ function pintarTabla(){
       <td>${d.categoria==='faq' ? (d.descripcion ? '<span class="flojo">' + t('respondida') + '</span>' : '<span class="conf">' + t('sinResponder') + '</span>')
         : (d.url ? t('driveExterno') : '<span class="flojo">' + t('archivo') + mb(d.bytes) + '</span>')}</td>
       <td>${esc(fecha(d.creado_en))}${d.confidencial ? ' <span class="conf">' + t('confAbrev') + '</span>' : ''}${
-        d.visible_portal ? ' <span class="sui-tag ok">' + t('portal') + '</span>' : ''}</td>
+        d.visible_portal ? ' <span class="sui-tag ok">' + t('portal') + '</span>' : ''}${
+        d.publicado_investor_deck ? ' <span class="deck">' + t('deck') + '</span>' : ''}</td>
     </tr>`;
   }).join('');
 }
@@ -556,6 +576,9 @@ function abrirDoc(id){
         <dt>${t('dtPortal')}</dt><dd>${d.visible_portal
           ? '<span class="sui-tag ok">' + t('loVenCompradores') + esc(d.proyecto) + '</span>'
           : t('noSalePortal')}</dd>
+        <dt>${t('dtDeck')}</dt><dd>${d.publicado_investor_deck
+          ? '<span class="deck">' + t('enElDeck') + esc(d.proyecto) + '</span>'
+          : t('noSaleDeck')}</dd>
       </dl>
       ${d.descripcion ? `<p class="sui-nota">${esc(d.descripcion)}</p>` : ''}
       <p class="sui-nota">${enlace ? t('viveFuera') : t('archivoViejo')}</p>
@@ -623,6 +646,8 @@ function formDoc(d){
       <label class="ck"><input type="checkbox" id="sConf" ${v.confidencial === false ? '' : 'checked'}> ${t('ckConfidencial')}</label>
       <label class="ck"><input type="checkbox" id="sPortal" ${v.visible_portal ? 'checked' : ''}> ${t('ckPortal')}</label>
       <p class="sui-nota">${t('notaPortal')}</p>
+      <label class="ck"><input type="checkbox" id="sDeck" ${v.publicado_investor_deck ? 'checked' : ''}> ${t('ckDeck')}</label>
+      <p class="sui-nota">${t('notaDeck')}</p>
       <p class="sui-nota">${t('notaDrivePermiso')}</p>`,
     pie: `<button class="sui-btn primario" id="btnGuardar">${editando ? t('guardarCambios') : t('guardarEnlace')}</button>
           <button class="sui-btn" id="btnCancelar">${t('cancelar')}</button>`,
@@ -643,13 +668,27 @@ async function guardarDoc(d){
   if(campoUrl && !/^https?:\/\//i.test(url)){
     toastMal(t('enlaceHttp')); campoUrl.focus(); return;
   }
+  /* Dosier de inversores: la parada más dura del formulario, porque es la única
+     casilla que saca algo a INTERNET. La del portal avisa de compradores con
+     contrato; esta avisa de cualquiera con el enlace.
+     «Confidencial» manda sobre «publicado», igual que en el RPC del deck: la
+     regla vive en los dos sitios a propósito — una casilla del navegador no es
+     un permiso, y un permiso sin casilla es una trampa para quien rellena. */
+  const conf = $('#sConf').checked;
+  const deck = $('#sDeck').checked;
+  if(deck && conf){ toastMal(t('deckBloqueadoConf')); $('#sConf').focus(); return; }
+  if(deck && !(d && d.publicado_investor_deck) &&
+     !window.confirm('«' + titulo + t('deckConfirma') + $('#sProyecto').value + t('deckConfirma2'))){
+    toastMal(t('deckCancelado')); return;
+  }
   const b = $('#btnGuardar'); b.disabled = true;
   try{
     const fila = {
       proyecto: $('#sProyecto').value, carpeta: $('#sCarpeta').value.trim(),
       categoria: $('#sCategoria').value, titulo,
-      descripcion: $('#sDesc').value.trim() || null, confidencial: $('#sConf').checked,
+      descripcion: $('#sDesc').value.trim() || null, confidencial: conf,
       visible_portal: $('#sPortal').checked,
+      publicado_investor_deck: deck && !conf,
     };
     if(campoUrl) fila.url = url;   // un archivo subido conserva su `path` intacto
     const q = editando
