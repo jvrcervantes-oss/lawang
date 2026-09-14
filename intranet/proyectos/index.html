@@ -376,7 +376,12 @@ async function cargar(){
     // que se queda vieja en cuanto se anule una factura).
     SB.from('unidades_estado').select('*').order('proyecto').order('codigo'),
     SB.from('contratos').select('id, numero, comprador_nombre').order('created_at', { ascending:false }),
-    SB.from('modelos_villa').select('proyecto, modelo, modelo_id, precio_construccion, moneda').order('modelo'),
+    // `id` es obligatorio y no decorativo: `lwDeclaraModelosEnProyecto` lo usa
+    // para el `.delete().in('id', …)` al retirar un modelo. Sin él, cada fila
+    // llega con `id` undefined y el borrado manda "id=in.(undefined)" —
+    // Postgres lo rechaza con «invalid input syntax for type uuid: "undefined"»
+    // (14-sep-2026, hallazgo del owner).
+    SB.from('modelos_villa').select('id, proyecto, modelo, modelo_id, precio_construccion, moneda').order('modelo'),
     // El catalogo de modelos: el nivel del que hereda `modelos_villa` cuando su
     // precio esta en NULL. Va en la misma tanda para que la pantalla no pinte
     // primero sin precio y luego con el.
