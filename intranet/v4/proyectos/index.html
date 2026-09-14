@@ -1,10 +1,10 @@
 <!DOCTYPE html><html lang="es" style=""><head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d126c94d" data-herramienta="unidades"></script>
-<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=5ae6b121" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1" defer></script><script src="/contracts/assets/proyectos_csv.js?v=e610515a" defer></script><script src="../assets/datos.js?v=23d74a9e" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=d569c692" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1" defer></script><script src="/contracts/assets/proyectos_csv.js?v=e610515a" defer></script><script src="../assets/datos.js?v=30934bfb" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=4afc04b7" defer></script>
 <link href="../assets/shell.css?v=4ce80056" rel="stylesheet">
-<script src="../assets/editores.js?v=76792088" defer></script><script src="../assets/maqueta.js?v=5c4cc383" defer></script>
+<script src="../assets/editores.js?v=6342e206" defer></script><script src="../assets/maqueta.js?v=5c4cc383" defer></script>
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>Inventario de Proyectos &amp; Suelo — Lawang Intranet</title>
@@ -554,7 +554,17 @@
 <span class="font-headline-sm text-[20px] font-bold text-deep-lagoon tracking-tight leading-none" data-lw="u-codigo">—</span>
 <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-primary-fixed/60 text-primary shrink-0" data-lw="u-tipo">—</span>
 </div>
+<div class="flex items-center gap-1.5 shrink-0">
 <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide text-white shrink-0" data-lw="u-nota">—</span>
+<!-- Editar esta parcela (14-sep-2026, encargo del owner). El formulario lo
+     abre editores.js con la fila que ya está pintada; el permiso real es la
+     policy de `unidades` (es_agente + puede('unidades') + unidad_visible),
+     no este botón — la página entera ya exige la herramienta «unidades» en
+     guard.js, así que quien la ve puede intentarlo y la base decide. -->
+<button aria-label="Editar unidad" class="p-1 rounded-lg text-outline hover:text-deep-lagoon hover:bg-surface-container transition-colors shrink-0" data-lw-accion="editar-unidad" type="button">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+</div>
 </div>
 <div class="flex items-baseline justify-between text-xs gap-2">
 <span class="text-outline font-medium shrink-0">Comprador:</span>

@@ -32,7 +32,7 @@ function importeHito(h, precio, moneda){
 }
 /* Puente al diccionario compartido (`i18n.js`, 11-sep-2026), defensivo —
    ver topbar.js. */
-function ocT(s) { return window.lwT ? window.lwT(s) : s; }
+function ocT(s) { return (typeof window !== 'undefined' && window.lwT) ? window.lwT(s) : s; }
 
 const textoHito = h => h.es || h.en || h.id || ocT('Hito sin nombre');
 

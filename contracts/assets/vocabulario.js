@@ -39,7 +39,7 @@
 /* Puente al diccionario compartido (`i18n.js`, 11-sep-2026). Nombre propio
    para no pisar `window.lwT` desde un script clasico, y defensivo: donde
    falte i18n.js, en espanol. Mismo patron que `tbT` en topbar.js. */
-function vocT(s) { return window.lwT ? window.lwT(s) : s; }
+function vocT(s) { return (typeof window !== 'undefined' && window.lwT) ? window.lwT(s) : s; }
 
 const LW_TIPO_CONTRATO = {
   carta_reserva:          'Carta de Reserva',

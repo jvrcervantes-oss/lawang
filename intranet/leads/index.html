@@ -83,7 +83,7 @@
        versión más de un bloque del que ya hay demasiadas. -->
   <header class="lw-topbar" data-titulo="CRM de leads">
     <div class="lw-spacer"></div>
-    <button type="button" class="lw-btn" id="btnRefrescar"><i class="ph ph-arrows-clockwise"></i>Refrescar</button>
+    <button type="button" class="lw-btn" id="btnRefrescar"><i class="ph ph-arrows-clockwise"></i><span data-lwt>Refrescar</span></button>
   </header>
 
   <!-- El alcance, dicho en voz alta (11-sep-2026). Desde que la campaña define qué leads ve
@@ -97,16 +97,16 @@
          la pregunta con la que se abre esta pantalla por la mañana es otra: a quién hay
          que llamar. Poner el embudo delante de la lista de trabajo es ordenar la
          herramienta por cómo está construida y no por cómo se usa. -->
-    <button role="tab" data-v="hoy" aria-selected="true"><i class="ph ph-flag"></i>Hoy <span class="cuenta" id="c-hoy">—</span></button>
-    <button role="tab" data-v="pipeline"    aria-selected="false"><i class="ph ph-kanban"></i>Pipeline <span class="cuenta" id="c-pipeline">—</span></button>
-    <button role="tab" data-v="bandeja"     aria-selected="false"><i class="ph ph-chats-circle"></i>Bandeja</button>
+    <button role="tab" data-v="hoy" aria-selected="true"><i class="ph ph-flag"></i><span data-lwt>Hoy</span> <span class="cuenta" id="c-hoy">—</span></button>
+    <button role="tab" data-v="pipeline"    aria-selected="false"><i class="ph ph-kanban"></i><span data-lwt>Pipeline</span> <span class="cuenta" id="c-pipeline">—</span></button>
+    <button role="tab" data-v="bandeja"     aria-selected="false"><i class="ph ph-chats-circle"></i><span data-lwt>Bandeja</span></button>
     <!-- Campañas y Automatismos se esconden a quien no gestiona el CRM (owner, 11-sep-2026).
          No es informacion para un closer: una ensena el gasto en publicidad y el coste por
          lead, y la otra lo que hacen los automatismos del estudio sobre las campañas de
          Lawang. Un comercial abre esta herramienta para llamar a gente, no para auditar el
          presupuesto de marketing. Gestor del CRM = tiene `ranking` o `reparto`. -->
-    <button role="tab" data-v="panel" aria-selected="false" id="tabCampanas" hidden><i class="ph ph-chart-line-up"></i>Campañas</button>
-    <button role="tab" data-v="automatismos" aria-selected="false" id="tabAutomatismos" hidden><i class="ph ph-flow-arrow"></i>Automatismos</button>
+    <button role="tab" data-v="panel" aria-selected="false" id="tabCampanas" hidden><i class="ph ph-chart-line-up"></i><span data-lwt>Campañas</span></button>
+    <button role="tab" data-v="automatismos" aria-selected="false" id="tabAutomatismos" hidden><i class="ph ph-flow-arrow"></i><span data-lwt>Automatismos</span></button>
     <!-- Dos pestañas nuevas, 10-sep-2026 (owner: hay closers reales que llaman
          por Google Meet y quiere grabarlas con Fathom.ai). Separador visual
          propio ("· WhatsApp Bot") a propósito: son datos del bot (Redis, vía
@@ -115,14 +115,14 @@
          sin join hoy". Setter IA va detrás de 'leads' (ya lo tiene cualquiera
          que abre esta página); Agenda va detrás de 'closers', permiso propio. -->
     <span class="crm-nav-sep" aria-hidden="true" data-lwt="· WhatsApp Bot">· WhatsApp Bot</span>
-    <button role="tab" data-v="setter" aria-selected="false"><i class="ph ph-robot"></i>Setter IA</button>
-    <button role="tab" data-v="agenda" aria-selected="false" id="tabAgenda" hidden><i class="ph ph-video-camera"></i>Agenda</button>
+    <button role="tab" data-v="setter" aria-selected="false"><i class="ph ph-robot"></i><span data-lwt>Setter IA</span></button>
+    <button role="tab" data-v="agenda" aria-selected="false" id="tabAgenda" hidden><i class="ph ph-video-camera"></i><span data-lwt>Agenda</span></button>
     <!-- Separador propio: esto no es seguimiento de leads, es rendimiento de personas, y
          va detrás del permiso `ranking`, no de `leads`. Con ocho comerciales, el ticket
          medio por el número devuelve el importe exacto de cada contrato — no es una tabla
          de estadísticas, son cifras de negocio de cada compañero. -->
     <span class="crm-nav-sep" aria-hidden="true" data-lwt="· Dirección">· Dirección</span>
-    <button role="tab" data-v="closers" aria-selected="false" id="tabClosers" hidden><i class="ph ph-trophy"></i>Closers</button>
+    <button role="tab" data-v="closers" aria-selected="false" id="tabClosers" hidden><i class="ph ph-trophy"></i><span data-lwt>Closers</span></button>
   </nav>
 
   <!-- ========================= HOY ========================= -->
@@ -167,7 +167,7 @@
       <div class="seg" id="filtroBandeja">
         <button data-fb="todos"    aria-pressed="true" data-lwt="Todos">Todos</button>
         <button data-fb="sintocar" aria-pressed="false" data-lwt="Sin tocar">Sin tocar</button>
-        <button data-fb="parados"  aria-pressed="false">Parados +14d</button>
+        <button data-fb="parados"  aria-pressed="false" data-lwt="Parados +14d">Parados +14d</button>
       </div>
     </div>
     <div class="bandeja" id="bandeja"></div>
@@ -201,9 +201,9 @@
   <section class="crm-vista" id="v-automatismos" hidden>
     <div class="kpis" id="kpis-auto"></div>
     <div class="aviso gris">
-      Estos automatismos los ejecuta AxisWorks sobre las campañas de Lawang, cada 4 horas.
-      Aquí se ven <b data-lwt="en solo lectura">en solo lectura</b>: qué vigila cada regla y qué ha hecho de verdad.
-      Para cambiar un umbral o un tope de gasto, habla con el estudio.
+      <span data-lwt>Estos automatismos los ejecuta AxisWorks sobre las campañas de Lawang, cada 4 horas.</span>
+      <span data-lwt>Aquí se ven</span> <b data-lwt="en solo lectura">en solo lectura</b><span data-lwt>: qué vigila cada regla y qué ha hecho de verdad.</span>
+      <span data-lwt>Para cambiar un umbral o un tope de gasto, habla con el estudio.</span>
     </div>
     <div class="caja" style="margin-bottom:16px">
       <header><div><h2 data-lwt="El flujo">El flujo</h2><p data-lwt="De un formulario de Meta a una tarjeta en el pipeline.">De un formulario de Meta a una tarjeta en el pipeline.</p></div></header>
@@ -229,7 +229,7 @@
           <h2 data-lwt="Conversaciones del bot">Conversaciones del bot</h2>
           <p id="subSetter" data-lwt="El bot de WhatsApp de Lawang, en vivo. Pausar detiene la IA para ese lead: a partir de ahí responde una persona.">El bot de WhatsApp de Lawang, en vivo. Pausar detiene la IA para ese lead: a partir de ahí responde una persona.</p>
         </div>
-        <button type="button" class="btn" id="btnRefrescarSetter"><i class="ph ph-arrows-clockwise"></i>Refrescar</button>
+        <button type="button" class="btn" id="btnRefrescarSetter"><i class="ph ph-arrows-clockwise"></i><span data-lwt>Refrescar</span></button>
       </header>
       <!-- Dos paneles, como WhatsApp Web: la lista manda a la izquierda y el hilo se abre a
            la derecha sin tapar nada. Antes el hilo vivía en un cajón sobre un velo, y eso
@@ -272,7 +272,7 @@
         </div>
         <div class="campo"><label for="agNotas" data-lwt="Notas">Notas</label><input type="text" id="agNotas" data-lwt-ph placeholder="Contexto para quien atienda la llamada"></div>
         <div style="display:flex;gap:8px">
-          <button type="button" class="btn pri" id="btnAgendarGuardar"><i class="ph ph-calendar-plus"></i>Agendar</button>
+          <button type="button" class="btn pri" id="btnAgendarGuardar"><i class="ph ph-calendar-plus"></i><span data-lwt>Agendar</span></button>
           <button type="button" class="btn" id="btnAgendarCancelar" hidden data-lwt="Cancelar edición">Cancelar edición</button>
         </div>
       </div>
