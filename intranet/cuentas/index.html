@@ -17,7 +17,7 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que `lwT`
      exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=ae8ea664"></script>
+<script src="/contracts/assets/i18n.js?v=85b47cb0"></script>
 <script src="/contracts/assets/herramientas.js?v=c95fc709"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -643,9 +643,22 @@ async function guardarCuenta(clave){
     es_escrow: !!($('#f_escrow') || {}).checked,
     activa:    !!($('#f_activa') || {}).checked,
   };
-  // `clave` NO va en el update: va guardada dentro de cada contrato emitido.
-  const { error } = await SB.from('cuentas_bancarias').update(cambios).eq('clave', clave);
+  /* `clave` NO va en el update: va guardada dentro de cada contrato emitido.
+
+     `.select()` detrás NO es decoración: un UPDATE que la RLS deja en CERO filas
+     **no devuelve error**, simplemente no cambia nada. Sin esto, a quien no sea
+     super admin el panel le diría «Cuenta guardada» sin haber guardado — el peor
+     desenlace posible, porque se iría creyendo que la cuenta de cobro es otra.
+     Medido contra la base: como agente el update afecta 0 filas y no lanza; como
+     super admin afecta 1. Los botones ya están ocultos para quien no puede, así
+     que esto es el cinturón por si un día ese `hidden` se cae. */
+  const { data, error } = await SB.from('cuentas_bancarias')
+    .update(cambios).eq('clave', clave).select('clave');
   if(error){ toast(lwT('No se pudo guardar: ') + error.message); return; }
+  if(!data || !data.length){
+    toast(lwT('NO se ha guardado: no tienes permiso para editar cuentas de cobro. Recarga la página.'));
+    return;
+  }
   toast(lwT('Cuenta guardada'));
   await cargar();
 }
@@ -680,9 +693,11 @@ async function cambiarReparto(el, clave){
     // sola a la anterior. Por eso aquí no hay dos sentencias en orden — y por
     // eso la garantía es un trigger y no un índice único parcial, que no sirve
     // para `on conflict` (error 42P10).
-    const { error } = await SB.from('plantilla_cuentas')
-      .update({ es_default: true }).eq('slug', slug).eq('clave', clave);
+    const { data, error } = await SB.from('plantilla_cuentas')
+      .update({ es_default: true }).eq('slug', slug).eq('clave', clave).select('clave');
     if(error){ toast(lwT('No se pudo marcar como precargada: ') + error.message); await cargar(); return; }
+    // 0 filas y sin error = la RLS lo paro en silencio (ver la nota de guardarCuenta)
+    if(!data || !data.length){ toast(lwT('NO se ha cambiado: no tienes permiso para editar cuentas de cobro.')); await cargar(); return; }
     toast(lwT('Precargada en «%p»', { p: nombreDe(slug) }));
   }
   await cargar();
@@ -715,17 +730,22 @@ async function cambiarRepartoContrato(el, slug){
     }
   } else if(que === 'default'){
     // El trigger `un_solo_default_por_plantilla` desmarca sola a la anterior.
-    const { error } = await SB.from('plantilla_cuentas')
-      .update({ es_default: true }).eq('slug', slug).eq('clave', clave);
+    const { data, error } = await SB.from('plantilla_cuentas')
+      .update({ es_default: true }).eq('slug', slug).eq('clave', clave).select('clave');
     if(error){ toast(lwT('No se pudo marcar como precargada: ') + error.message); await cargar(); return; }
+    // 0 filas y sin error = la RLS lo paro en silencio (ver la nota de guardarCuenta)
+    if(!data || !data.length){ toast(lwT('NO se ha cambiado: no tienes permiso para editar cuentas de cobro.')); await cargar(); return; }
     toast(lwT('Se precargará %c', { c: etiquetaDe(clave) }));
   } else {
     // «ninguna precargada»: se desmarcan TODAS las de este contrato. No hay
     // trigger que lo haga —el trigger solo garantiza que no haya dos— así que
     // va explícito y acotado al contrato, nunca a la tabla entera.
-    const { error } = await SB.from('plantilla_cuentas')
-      .update({ es_default: false }).eq('slug', slug).eq('es_default', true);
+    const { data, error } = await SB.from('plantilla_cuentas')
+      .update({ es_default: false }).eq('slug', slug).eq('es_default', true).select('clave');
     if(error){ toast(lwT('No se pudo quitar la precarga: ') + error.message); await cargar(); return; }
+    // aqui 0 filas es AMBIGUO —puede que ya no hubiera ninguna precargada— asi que
+    // no se trata como fallo: el estado final se lee de la base en el `cargar()` de abajo
+    if(!data){ toast(lwT('No se pudo quitar la precarga: ') + lwT('sin respuesta')); await cargar(); return; }
     toast(lwT('Sin cuenta precargada — el agente la elegirá cada vez'));
   }
   await cargar();

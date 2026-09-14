@@ -2464,6 +2464,13 @@
       'This account is used in %n contracts, %f of them already SIGNED.',
     'Si cambias el titular, el número o la casilla ESCROW, cambia lo que imprimen esos documentos cuando alguien los reabra. Para una cuenta distinta, crea una nueva en vez de reescribir esta.':
       'If you change the holder, the number or the ESCROW tick, you change what those documents print when someone reopens them. For a different account, create a new one instead of rewriting this one.',
+    /* un UPDATE que la RLS deja en cero filas no da error: hay que decirlo, o el
+       panel anunciaria un guardado que no ha ocurrido */
+    'NO se ha guardado: no tienes permiso para editar cuentas de cobro. Recarga la página.':
+      'NOT saved: you do not have permission to edit payment accounts. Reload the page.',
+    'NO se ha cambiado: no tienes permiso para editar cuentas de cobro.':
+      'NOT changed: you do not have permission to edit payment accounts.',
+    'sin respuesta': 'no response',
 
   };
 
