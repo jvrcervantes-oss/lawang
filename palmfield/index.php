@@ -75,9 +75,31 @@
  * cambio con su fecha, «plot sized on the call», la fecha de la lista de parcelas, los pies
  * de foto que dicen si es render o foto real, y el vocabulario de LAW-122. Son las líneas
  * que evitan que la página mienta, no relleno.
+ *
+ * ── 14-sep-2026: conectada con la intranet (tamaños de parcela + foto hero) ───────────
+ * Encargo del owner: «conecta /palmfield con la intranet como en investor-deck/palmfield».
+ * Dos cosas, tras aclarar alcance con él y una revisión previa de Seguridad + Datos
+ * (CEO/flujos/revision_previa.md):
+ *   · **Tamaños de parcela disponibles**: ahora se leen en vivo de Supabase
+ *     (`vivo.php` → `parcelas_tamanos_disponibles()`, RPC nuevo, hermano de
+ *     `investor_deck_parcelas`). El array `$PF_PARCELAS` del 4-sep ya había divergido
+ *     (traía 330 y 355, ya no disponibles; le faltaba 295). Sigue SIN publicarse el
+ *     recuento de cuántas quedan — decisión del owner, no tocada.
+ *   · **Foto hero**: si la intranet tiene alguna foto del proyecto marcada `uso='hero'`
+ *     (Modelos/Proyectos → «Fotos del deck…», mismo mecanismo que investor-deck), sustituye
+ *     la primera imagen del mosaico. Hoy no hay ninguna marcada así — las 4 fotos que tiene
+ *     Palm Field en Supabase son renders de galería sin marcar — así que el mosaico sigue
+ *     mostrando las 3 imágenes curadas de siempre, la del solar real incluida.
+ * ⚠️ Lo que el owner explícitamente NO pidió y no se tocó: el precio de portada. Hallazgo
+ * de Datos en la revisión previa: `min($PF_PARCELAS)` alimentaba a la vez la lista que se
+ * enseña Y el precio (hero, meta/og, tabla comparativa, `value` del pixel de conversión de
+ * Meta Ads) — dejarlo en vivo habría hecho que el precio público se moviera solo cada vez
+ * que se vende una parcela, la zona gris del hard-stop de precio. El precio sigue anclado a
+ * `LW_PF_TAMANO_MIN_PRECIO`, una constante fija y fechada; solo un humano la mueve.
  */
 
 require __DIR__ . '/../modelo/datos.php';
+require __DIR__ . '/vivo.php';
 
 $CAT = lw_au_catalogo();
 
@@ -85,10 +107,23 @@ $CAT = lw_au_catalogo();
 // aplica el tramo general de 125 €/m². Sale de lib.php, no escrita aquí.
 $PF_TARIFA = lw_parcela_tarifa_m2('riverfront');
 
-// Tamaños realmente disponibles, leídos de Supabase el 4-sep-2026. Se listan con su fecha
-// porque son un dato vivo: al venderse una medida entera, esta lista se queda por detrás.
-const LW_PF_PARCELAS_FECHA = '4 Sep 2026';
-$PF_PARCELAS = [250, 255, 310, 330, 355];
+// Tamaños de parcela DISPONIBLES ahora mismo: en vivo de Supabase (vivo.php), vía
+// `parcelas_tamanos_disponibles()`. Solo alimenta la lista que se ENSEÑA — nunca el
+// precio, ver LW_PF_TAMANO_MIN_PRECIO más abajo.
+$PF_TAMANOS_VIVO = lw_pf_tamanos_disponibles();
+// Respaldo si la red falla en frío (sin caché en disco todavía): último mínimo
+// verificado a mano contra Supabase el 14-sep-2026. Nunca vacío — min() sobre un
+// array vacío es un ValueError fatal en PHP 8, y esto está en el camino crítico de
+// una landing de tráfico de pago (hallazgo de Datos en la revisión previa).
+$PF_TAMANOS_RESPALDO = [250, 255, 295, 310];
+$PF_TAMANOS_MOSTRAR = ($PF_TAMANOS_VIVO !== null && $PF_TAMANOS_VIVO) ? $PF_TAMANOS_VIVO : $PF_TAMANOS_RESPALDO;
+
+// El precio de portada (hero, meta/og, tabla comparativa, value del pixel de Meta Ads)
+// NO sigue a la disponibilidad en vivo: se ancla a la parcela más pequeña tal como se
+// revisó a mano contra Supabase. Moverlo es una decisión del owner (hard-stop de
+// precio), nunca un efecto colateral de leer esta lista.
+const LW_PF_TAMANO_MIN_PRECIO_FECHA = '14 Sep 2026';
+const LW_PF_TAMANO_MIN_PRECIO = 250;
 
 $PF_ENTREGA  = 'Q1 2027';
 $PF_ZONA     = 'Balian Hills, West Bali';
@@ -117,10 +152,16 @@ $IMG_3      = '/assets/img/properties/palm-field-3.jpg';
 $IMG_PLANO  = '/assets/img/properties/palm-field-4.jpg';
 $ogImg      = $IMG_AEREA;
 
+// Foto hero en vivo (vivo.php): sustituye la primera del mosaico SOLO si la intranet ya
+// tiene una marcada uso='hero' para el proyecto. Hoy no hay ninguna — las 4 fotos que
+// tiene Palm Field en Supabase son renders de galería sin marcar — así que $heroVivo
+// queda null y el mosaico sigue con las 3 imágenes curadas de siempre.
+$heroVivo = lw_pf_fotos_hero()[0] ?? null;
+
 // El más barato del catálogo, para el «desde» del hero: villa más pequeña + parcela más
 // pequeña. Se calcula, no se escribe.
 $desdeVilla = min(array_map(function ($v) { return $v['desde_eur']; }, $CAT));
-$desdeTotal = $desdeVilla + $PF_TARIFA * min($PF_PARCELAS);
+$desdeTotal = $desdeVilla + $PF_TARIFA * LW_PF_TAMANO_MIN_PRECIO;
 
 $calTz   = new DateTimeZone('Asia/Makassar');
 $calHoy  = new DateTimeImmutable('today', $calTz);
@@ -284,12 +325,21 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
                del solar no es «tu villa», es la explanación: mal rotulada engaña, bien
                rotulada es la prueba de que la infraestructura existe de verdad. */ ?>
       <figure>
+        <?php if ($heroVivo): ?>
+        <img src="<?= lw_e($heroVivo['src']) ?>" alt="Palm Field, Balian Hills, Bali" fetchpriority="high">
+        <figcaption>
+          <span class="mos__et"><?= $heroVivo['tipo'] === 'render' ? 'Masterplan · Render' : ($heroVivo['tipo'] === 'ia' ? 'AI-generated image' : 'Site photo') ?></span>
+          <span class="mos__tt">Palm Field, Balian Hills</span>
+          <?php if ($heroVivo['pie']): ?><span class="mos__sub"><?= lw_e($heroVivo['pie']) ?></span><?php endif; ?>
+        </figcaption>
+        <?php else: ?>
         <img src="<?= lw_e($IMG_AEREA) ?>" alt="Palm Field masterplan visualisation: villas laid out between the river and the rice terraces, Balian Hills, Bali" fetchpriority="high">
         <figcaption>
           <span class="mos__et">Masterplan · visualisation</span>
           <span class="mos__tt">Palm Field, Balian Hills</span>
           <span class="mos__sub">Private pool villas between the river and the rice terraces</span>
         </figcaption>
+        <?php endif; ?>
       </figure>
       <figure>
         <img src="<?= lw_e($IMG_2) ?>" alt="Palm Field site: terracing, retaining walls and drainage under construction" loading="lazy">
@@ -493,7 +543,10 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
           </div>
           <div class="res__fila">
             <span><span class="res__lb">Freehold plot</span>
-                  <span class="res__sub"><?= lw_e(lw_precio_fmt($PF_TARIFA)) ?>/m² · sized on the call</span></span>
+                  <span class="res__sub"><?= lw_e(lw_precio_fmt($PF_TARIFA)) ?>/m² · sized on the call —
+                    <?php /* Tamaños en vivo (vivo.php), nunca el conteo de cuantas quedan —
+                             decision del owner de no publicar escasez en trafico de pago. */ ?>
+                    <?= lw_e(implode(' · ', $PF_TAMANOS_MOSTRAR)) ?> m² available now</span></span>
             <span class="res__vl">Separate</span>
           </div>
         </div>
@@ -519,7 +572,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
   // disponible hoy. En /dali esta misma columna ponia solo el precio de la villa bajo el
   // rotulo "+ land included" — decia una cosa y sumaba otra. Aqui la cifra incluye de
   // verdad la parcela que el rotulo promete, y el rotulo dice de que tamaño es.
-  $pfMin = min($PF_PARCELAS);
+  $pfMin = LW_PF_TAMANO_MIN_PRECIO;
 ?>
 <section class="sec" id="benchmark">
   <div class="wrap">
@@ -599,7 +652,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
       <div class="tabla-pie">
         <span>Australian figures: CoreLogic capital city median dwelling, 2024/25. Palm Field
           includes the freehold plot (<?= (int) $pfMin ?> m², smallest available
-          <?= lw_e(LW_PF_PARCELAS_FECHA) ?>) plus the turnkey build, at
+          <?= lw_e(LW_PF_TAMANO_MIN_PRECIO_FECHA) ?>) plus the turnkey build, at
           <?= lw_e(number_format(LW_AUD_TASA, 2)) ?> AUD/EUR
           (<?= lw_e(LW_AUD_FECHA) ?>).</span>
         <a class="btn btn--lag" href="#book">Lock Strategy Slot</a>
