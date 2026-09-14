@@ -50,10 +50,13 @@
      los dos modos — lo unico que cambia es el marco. Dos funciones habrian sido
      dos sitios donde arreglar el proximo fallo.
 
-     `opts.lateral` ancla el panel a la derecha, a dos columnas, con hueco para
-     un bloque de solo lectura arriba (`opts.encabezado`) y un subtitulo
-     (`opts.sub`). Sin `opts`, la ventana centrada de siempre: los demas
-     editores de la v4 no notan este cambio.
+     ⚠️ NOTA VIEJA, corregida el 14-sep por la tarde: aqui ponia que `opts.lateral`
+     anclaba el panel a la derecha y que «sin opts» salia la ventana centrada de
+     siempre. Ya no hay ventana centrada — era la que el owner llamo fea y se
+     retiro. `opts.lateral` no hace nada y se conserva solo para que las llamadas
+     que ya lo pasaban sigan valiendo. Lo que si manda es `opts.encabezado` (un
+     bloque de solo lectura arriba) y `opts.sub`, que ahora es el CINTILLO de la
+     cabecera, no un subtitulo.
 
      El z-index va por encima del cajon de proyecto de /v4/proyectos/ (z-50):
      el editor se abre ENCIMA de el, no en su lugar, para no perder de vista el
@@ -70,49 +73,77 @@
       setTimeout(function () { if (m.parentNode) m.remove(); }, 260);
     } else m.remove();
   }
+  /* ═══ LA VENTANA ES UN CAJON, Y SOLO UN CAJON (14-sep-2026, encargo del owner)
+     «el pop-up de formulario es muy feo, quiero que sea el diseno de otro cajon».
+
+     Habia dos formas: una ventana centrada —la que se veia fea— y una variante
+     `lateral` que ya era un cajon pero con otra piel. Ahora hay una sola, y toma
+     el lenguaje del cajon de proyecto de /v4/proyectos/, que es el que el owner
+     senalo. De alli salen, MEDIDOS y no a ojo:
+       · velo `rgba(0,0,0,.3)` con desenfoque de 2 px (su `bg-black/30`)
+       · panel a la derecha, borde #E4DCCB y sombra larga, entrando en 300 ms
+       · cabecera con banda #f5f4ee: CINTILLO arriba y titulo grande debajo — al
+         reves que antes. El cajon pone el contexto primero y el nombre despues,
+         y se lee mejor: «de que hablamos» antes que «cual»
+       · las filas en tarjeta #f5f4ee con borde y radio 12
+       · pie fijo con banda, y el primario ocupando el ancho que sobra
+
+     LO QUE LA HACIA FEA, y que aqui no se repite: la etiqueta era un rotulo en
+     mayusculas con tracking de titular, mas grande y mas oscuro que el dato que
+     etiquetaba, flotando sobre un campo suelto. Ahora es pequena, en minusculas
+     y DENTRO de la tarjeta de su campo. */
+  var CAJ = {
+    borde: '#E4DCCB', banda: '#f5f4ee', papel: '#ffffff',
+    lago: '#104C4F', hoja: '#8F9B7A', apagado: '#75786e', tinta: '#2E3437'
+  };
+
   function modal(titulo, campos, textoBoton, onGuardar, opts) {
     opts = opts || {};
-    var lateral = !!opts.lateral;
+    /* `lateral` se conserva como opcion muerta: las llamadas que ya lo pasaban
+       siguen valiendo sin tocarlas, y ahora da igual porque TODAS son cajon. El
+       que sigue mandando es `medio:1` de cada campo, que decide si ocupa media
+       fila o la entera. */
+    var lateral = true;
     cierraModal();
     var w = document.createElement('div');
     w.id = 'lw-editor';
-    var cajaForm = lateral
-      ? 'pointer-events:auto;position:fixed;top:0;right:0;height:100%;width:min(620px,96vw);background:#fff;border-left:1px solid #c5c8bc;box-shadow:-24px 0 48px -12px rgba(0,0,0,.25);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .26s ease-in-out;'
-      : 'pointer-events:auto;background:#fff;border:1px solid #c5c8bc;border-radius:14px;box-shadow:0 24px 48px -12px rgba(0,0,0,.25);width:min(520px,92vw);max-height:88vh;overflow:auto;padding:26px 28px;';
-    var cajaMarco = lateral
-      ? 'position:fixed;inset:0;z-index:var(--z-modal,400);pointer-events:none'
-      : 'position:fixed;inset:0;display:grid;place-items:center;z-index:var(--z-modal,400);pointer-events:none';
-    var cajaCabecera = lateral
-      ? 'display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:22px 26px 16px;border-bottom:1px solid #E4DCCB;flex-shrink:0'
-      : 'display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:16px';
-    var cajaCuerpo = lateral ? 'flex:1;overflow:auto;padding:20px 26px;min-height:0' : '';
-    var cajaCampos = lateral
-      ? 'display:grid;grid-template-columns:1fr 1fr;gap:14px'
-      : 'display:grid;gap:14px';
-    var cajaPie = lateral
-      ? 'display:flex;justify-content:flex-end;gap:10px;padding:16px 26px;border-top:1px solid #E4DCCB;background:#f5f4ee;flex-shrink:0'
-      : 'display:flex;justify-content:flex-end;gap:10px;margin-top:20px';
+    var cajaForm = 'pointer-events:auto;position:fixed;top:0;right:0;height:100%;width:min(640px,96vw);' +
+      'background:' + CAJ.papel + ';border-left:1px solid ' + CAJ.borde + ';' +
+      'box-shadow:0 25px 50px -12px rgba(0,0,0,.25);display:flex;flex-direction:column;' +
+      'transform:translateX(100%);transition:transform .3s ease-in-out;';
+    var cajaMarco = 'position:fixed;inset:0;z-index:var(--z-modal,400);pointer-events:none';
+    var cajaCabecera = 'display:flex;justify-content:space-between;align-items:flex-start;gap:16px;' +
+      'padding:20px 24px;background:' + CAJ.banda + ';border-bottom:1px solid ' + CAJ.borde + ';flex-shrink:0';
+    var cajaCuerpo = 'flex:1;overflow:auto;padding:20px 24px;min-height:0';
+    var cajaCampos = 'display:grid;grid-template-columns:1fr 1fr;gap:12px';
+    var cajaPie = 'display:flex;align-items:center;gap:10px;padding:14px 24px;' +
+      'border-top:1px solid ' + CAJ.borde + ';background:' + CAJ.banda + ';flex-shrink:0';
+
     w.innerHTML =
-      '<div data-e="fondo" style="position:fixed;inset:0;background:rgba(27,28,25,.45);backdrop-filter:blur(2px);z-index:calc(var(--z-modal,400) - 1);transition:opacity .26s ease-in-out' + (lateral ? ';opacity:0' : '') + '"></div>' +
+      '<div data-e="fondo" style="position:fixed;inset:0;background:rgba(0,0,0,.3);backdrop-filter:blur(2px);z-index:calc(var(--z-modal,400) - 1);transition:opacity .3s ease-in-out;opacity:0"></div>' +
       '<div role="dialog" aria-modal="true" style="' + cajaMarco + '">' +
-      '<form data-e="form"' + (lateral ? ' data-lateral="1"' : '') + ' style="' + cajaForm + FUENTE + '">' +
+      '<form data-e="form" data-lateral="1" style="' + cajaForm + FUENTE + '">' +
       '<div style="' + cajaCabecera + '">' +
       '<div style="min-width:0">' +
-      '<h3 style="margin:0;font:600 22px \'Neue Kabel\',sans-serif;color:#104C4F">' + esc(titulo) + '</h3>' +
-      (opts.sub ? '<p style="margin:4px 0 0;font:500 12.5px inherit;color:#75786e">' + esc(opts.sub) + '</p>' : '') +
+      (opts.sub ? '<p style="margin:0 0 5px;font:600 11px/1.3 inherit;letter-spacing:.12em;text-transform:uppercase;color:' + CAJ.hoja + '">' + esc(opts.sub) + '</p>' : '') +
+      "<h3 style=\"margin:0;font:700 25px/1.2 'Neue Kabel',sans-serif;letter-spacing:-.01em;color:" + CAJ.lago + "\">" + esc(titulo) + "</h3>" +
       '</div>' +
       '<button type="button" data-e="cerrar" style="border:0;background:none;font-size:20px;cursor:pointer;color:#75786e;line-height:1">×</button></div>' +
-      (lateral ? '<div style="' + cajaCuerpo + '">' : '') +
+      '<div style="' + cajaCuerpo + '">' +
       (opts.encabezado || '') +
       '<div data-e="campos" style="' + cajaCampos + '"></div>' +
       /* Rojo solido y no el rosa palido de antes (14-sep-2026, misma peticion
          del owner): a 13px sobre #ffdad6 el aviso se confundia con una nota de
          ayuda. Va dentro del modal, que ya esta centrado. */
       '<p data-e="error" role="alert" style="display:none;margin:14px 0 0;padding:12px 14px;border-radius:8px;background:#9E2F26;color:#fff;font:600 14px/1.4 inherit"></p>' +
-      (lateral ? '</div>' : '') +
+      '</div>' +
       '<div style="' + cajaPie + '">' +
-      '<button type="button" data-e="cancelar" style="padding:10px 18px;border-radius:999px;border:1px solid #8A8474;background:none;color:#2E3437;font:600 14px inherit;cursor:pointer">Cancelar</button>' +
-      '<button type="submit" data-e="guardar" style="padding:10px 20px;border-radius:999px;border:0;background:#104C4F;color:#fff;font:600 14px inherit;cursor:pointer;letter-spacing:.04em">' + esc(textoBoton || 'Guardar') + '</button>' +
+      /* Botones del cajon: rectangulos de radio 10, no pastillas, y el primario
+         ocupa el ancho que sobra — igual que «Exportar cuentas del proyecto» en
+         el cajon de /v4/proyectos/. Con el pie fijo, un boton ancho es ademas
+         mas facil de acertar que una pastilla en la esquina. */
+      '<button type="button" data-e="cancelar" style="flex:0 0 auto;padding:11px 20px;border-radius:10px;border:1px solid ' + CAJ.borde + ';background:' + CAJ.papel + ';color:' + CAJ.tinta + ';font:600 14px inherit;cursor:pointer">Cancelar</button>' +
+      '<button type="submit" data-e="guardar" style="flex:1;padding:11px 20px;border-radius:10px;border:0;background:' + CAJ.lago + ';color:#fff;font:600 14px inherit;cursor:pointer;letter-spacing:.02em">' + esc(textoBoton || 'Guardar') + '</button>' +
       '</div></form></div>';
     document.body.appendChild(w);
     if (lateral) {
@@ -124,17 +155,32 @@
       });
     }
     var cont = w.querySelector('[data-e="campos"]');
-    var estilo = 'width:100%;padding:9px 12px;border:1px solid #8A8474;border-radius:8px;font:500 14px inherit;color:#2E3437;background:#fff;box-sizing:border-box';
+    /* El campo va sobre BLANCO dentro de su tarjeta, que es la que lleva el
+       #f5f4ee del cajon: sin ese contraste el campo se pierde dentro de la
+       tarjeta y no se ve donde hay que escribir. El borde baja a `warm-border`
+       —el mismo que separa las filas del cajon— en vez del #8A8474 de control,
+       que a este tamano y sobre crema se leia como una caja de texto de 2005. */
+    var estilo = 'width:100%;padding:9px 12px;border:1px solid ' + CAJ.borde + ';border-radius:8px;' +
+      'font:500 14px inherit;color:' + CAJ.tinta + ';background:' + CAJ.papel + ';box-sizing:border-box';
+    /* Cada campo es una FILA DEL CAJON: tarjeta con su borde y su radio 12, y la
+       etiqueta dentro. Antes la etiqueta era un rotulo en mayusculas con
+       tracking de titular flotando encima de un campo suelto — mas fuerte que el
+       dato que nombraba, y sin nada que los atara. */
+    var tarjeta = 'display:grid;gap:6px;background:' + CAJ.banda + ';border:1px solid ' + CAJ.borde + ';' +
+      'border-radius:12px;padding:12px 14px;font:500 12px/1.35 inherit;color:' + CAJ.apagado + ';' +
+      'text-transform:none;letter-spacing:0';
     campos.forEach(function (c) {
       var d = document.createElement('label');
-      d.style.cssText = 'display:grid;gap:5px;font:600 11px inherit;letter-spacing:.12em;text-transform:uppercase;color:#75786e';
+      d.style.cssText = tarjeta;
       // En lateral la rejilla es de dos columnas: por defecto un campo ocupa la
       // fila entera y `medio:1` lo deja a media. En ventana no hay columnas que
       // repartir, asi que la marca se ignora sola.
       if (lateral) d.style.gridColumn = c.medio ? 'span 1' : '1 / -1';
       var inner = esc(c.label) + (c.req ? ' *' : '');
       if (c.tipo === 'check') {
-        d.style.cssText = 'display:flex;gap:9px;align-items:flex-start;font:500 13px inherit;color:#2E3437;text-transform:none;letter-spacing:0';
+        d.style.cssText = 'display:flex;gap:10px;align-items:flex-start;background:' + CAJ.banda +
+          ';border:1px solid ' + CAJ.borde + ';border-radius:12px;padding:12px 14px;' +
+          'font:500 13px inherit;color:' + CAJ.tinta + ';text-transform:none;letter-spacing:0';
         if (lateral) d.style.gridColumn = '1 / -1';   // cssText de arriba lo borro
         d.innerHTML = '<input type="checkbox" data-k="' + esc(c.k) + '"' + (c.valor ? ' checked' : '') + ' style="margin-top:2px">' +
           '<span>' + esc(c.label) + (c.ayuda ? '<br><small style="color:#8A6A34">' + esc(c.ayuda) + '</small>' : '') + '</span>';
@@ -150,7 +196,12 @@
            el sitio lo que la herramienta viva dice ahí — la escalera de estados
            la lleva el contrato, el total lo calcula la base — en vez de dejar
            un campo bloqueado sin explicación, que solo parece un fallo. */
-        d.style.cssText = 'display:block;font:400 12px/1.5 inherit;text-transform:none;letter-spacing:0;color:#8A6A34;background:#FBF3E4;border-radius:8px;padding:9px 11px;margin:-4px 0 0';
+        /* La nota NO lleva el crema de las demas tarjetas: es lo unico del
+           formulario que no se rellena, y si se viste igual que un campo se lee
+           como un campo bloqueado. El ambar la separa; el radio 12 la mantiene
+           dentro del sistema. */
+        d.style.cssText = 'display:block;font:400 12.5px/1.5 inherit;text-transform:none;letter-spacing:0;' +
+          'color:#8A6A34;background:#FBF3E4;border:1px solid #EBDCB4;border-radius:12px;padding:11px 14px;margin:0';
         if (lateral) d.style.gridColumn = '1 / -1';   // cssText de arriba lo borro
         d.innerHTML = esc(c.label);
       } else if (c.tipo === 'lectura') {

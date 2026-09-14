@@ -94,7 +94,7 @@
  *     LAW-111 (nadie del equipo se entera de la reserva) SIGUE abierto: esto mejora
  *     el píxel, no añade CRM ni aviso al equipo.
  */
-require __DIR__ . '/lib.php';
+require __DIR__ . '/datos.php';
 $MODELOS = require __DIR__ . '/modelos.php';
 
 $m = lw_modelo_get(isset($_GET['m']) ? $_GET['m'] : '', $MODELOS);
@@ -134,180 +134,30 @@ $precioTxt = $precio !== null ? $precio : 'Upon request';
 // Escrito dos veces sería la misma cadena en PHP y en JS, divergiendo en cuanto se retoque.
 $TITULO_SUFIJO = ' · Turnkey villa in Bali — Lawang Tropical Properties';
 
-// Payload del configurador (2-sep, revisión previa Seguridad+Diseño): lista blanca
-// explícita, campo a campo — nunca el array $MODELOS/$mm crudo, que trae el par
-// now/y2027 sin resolver. Cada precio pasa por lw_techo_precio_activo()/lw_precio_fmt()
-// aquí, en servidor, antes de tocar json_encode; el JS solo pinta lo que ya llegó resuelto.
-$configuradorModelos = [];
-foreach ($MODELOS as $cmId => $cm) {
-    $cmImgs   = lw_modelo_imgs($cmId);
-    $cmSirap  = $cm['techos']['sirap'];
-    $cmBambu  = $cm['techos']['bambu'];
-    $configuradorModelos[$cmId] = [
-        'id'        => $cmId,
-        // Dali es el único modelo con alias raíz (`/dali`, 4-sep, campaña Meta Ads
-        // Australia — ver .htaccess regla 3c). El resto sigue solo en `/modelo/<id>`.
-        // Sin esto, cambiar de modelo en el configurador o recargar reescribía SIEMPRE
-        // la URL a /modelo/dali aunque se hubiera entrado por /dali (hallazgo del owner,
-        // probando el enlace de la campaña en vivo).
-        'path'      => $cmId === 'dali' ? 'dali' : 'modelo/' . $cmId,
-        'villa'     => 'Villa ' . $cm['nombre'],
-        'sub'       => $cm['sub_en'] ?? $cm['sub'] ?? '',
-        'sizeTxt'   => $cm['villa_m2'] . 'm² + ' . $cm['terraza_m2'] . 'm² terrace',
-        'layoutTxt' => (int) $cm['dormitorios'] . ' bed · ' . (int) $cm['banos'] . ' bath',
-        'precioTxt' => 'From ' . lw_precio_fmt(lw_modelo_precio_desde($cm)),
-        'precioValor' => lw_modelo_precio_desde($cm),
-        'thumb'     => $cmImgs[0] ?? null,
-        'sinRender' => empty($cmImgs),
-        // `precio` (numérico) es la ÚNICA fuente para la aritmética del panel; `precioTxt`
-        // solo para pintar. El JS jamás re-parsea "€48,000" para volver a obtener 48000:
-        // sería la misma copia con otra cara, y se rompe el día que cambie el formato
-        // (hallazgo de Desarrollo, revisión previa 3-sep). Los dos salen de la MISMA
-        // llamada a lw_techo_precio_activo(), así que no pueden discrepar.
-        'techos'    => [
-            'sirap' => [
-                'nombre'    => $cmSirap['nombre'],
-                'desc'      => $cmSirap['desc'] ?? '',
-                'precio'    => lw_techo_precio_activo($cmSirap),
-                'precioTxt' => lw_precio_fmt(lw_techo_precio_activo($cmSirap)),
-            ],
-            'bambu' => [
-                'nombre'    => $cmBambu['nombre'],
-                'desc'      => $cmBambu['desc'] ?? '',
-                'precio'    => lw_techo_precio_activo($cmBambu),
-                'precioTxt' => lw_precio_fmt(lw_techo_precio_activo($cmBambu)),
-            ],
+// ── Configurador villa → techo → extras (14-sep-2026) ────────────────────────────────
+// Copiado de /palmfield (encargo del owner: mismo diseño y estructura de la landing de
+// campaña para las fichas de modelo). Sustituye al bloque de cuatro secciones (The range,
+// Finishes, Island&view, Plot size&extras) Y al wizard de 5 pasos que solo tenía Dali: la
+// parcela SALE del configurador (125 €/m² sigue publicado como línea aparte, "sized on the
+// call") y entran los 7 extras reales por modelo que ni el bloque ni el wizard tenían
+// precio para (lw_extras_resueltos(), modelo/datos.php). Motor compartido con /dali en
+// assets/au-landing-cfg.js — misma pieza en dos páginas de producto, no una copia que
+// pueda divergir. `$CAT` ya resuelve precio activo (2026/2027), specs, techos y extras de
+// las 5 villas; es la misma llamada que usan /dali y /palmfield.
+$CAT = lw_au_catalogo();
+$cfgJs = ['divisas' => lw_divisas(), 'divFecha' => LW_DIV_FECHA, 'modelos' => []];
+foreach ($CAT as $cmId => $v) {
+    $cfgJs['modelos'][$cmId] = [
+        'villa'  => $v['villa'],
+        'specs'  => $v['specs'],
+        'thumb'  => $v['thumb'],
+        'techos' => [
+            'sirap' => ['nombre' => $v['techos']['sirap']['nombre'], 'eur' => $v['techos']['sirap']['eur']],
+            'bambu' => ['nombre' => $v['techos']['bambu']['nombre'], 'eur' => $v['techos']['bambu']['eur']],
         ],
+        'extras' => $v['extras'],
     ];
 }
-
-// Tarifa de parcela ORIENTATIVA. Hasta el 3-sep esto alimentaba una .precio__tabla propia
-// dentro de Finishes; se DISUELVE porque con el panel de presupuesto pasaba a ser la
-// TERCERA copia de las mismas cifras en la misma pantalla (tabla + filas del picker +
-// panel), y ya hubo que corregir beachfront 200→250 en dos sitios el 2-sep. Ahora la cifra
-// vive una sola vez como dato vivo (las filas del picker, con su data-rate renderizado por
-// PHP) y una sola vez como texto legible por rastreadores y motores generativos, aquí
-// abajo — que era la condición que puso Desarrollo para poder quitar la tabla: sin esto,
-// las tarifas dejaban de existir como texto en la página.
-$parcelaPlaya = lw_precio_fmt(lw_parcela_tarifa_m2('beachfront'));
-$parcelaOtras = lw_precio_fmt(lw_parcela_tarifa_m2('otras'));
-$resumenTarifas = 'Plot rates: beachfront ' . $parcelaPlaya . '/m², all other locations '
-    . $parcelaOtras . '/m². Indicative rates per m², not a quote for a specific plot.';
-
-// Opciones del configurador y estado inicial del panel, los dos desde la fuente única de
-// lib.php. El estado inicial se pinta EN SERVIDOR a propósito: sin JS (o con el JS aún sin
-// ejecutar) el panel enseña el precio real de la villa y una instrucción en la línea de
-// parcela, nunca huecos vacíos que se leen como página rota.
-$PICKER  = lw_picker_opciones();
-
-// ── Preselección: la opción MÁS BARATA de cada paso, marcada al entrar ────────────────
-// Pedido del owner (3-sep): "siempre deja marcada la primera opción, que debe ser la más
-// barata". No se escriben a mano: se DERIVAN ordenando por precio, así que el día que una
-// tarifa cambie el orden, la preselección se mueve sola en vez de quedarse mintiendo.
-// Consecuencia buscada: el formulario nunca arranca sin cifra, y la cifra de arranque es el
-// suelo real de la página — nunca una combinación cara presentada como punto de partida.
-$techosOrd = $m['techos'];
-uasort($techosOrd, function ($a, $b) { return lw_techo_precio_activo($a) <=> lw_techo_precio_activo($b); });
-$techoIni = array_key_first($techosOrd);
-
-// Los modelos también se ordenan por precio para el paso 1: hoy el catálogo ya está en
-// orden ascendente, pero por casualidad, no por invariante.
-$modelosOrd = $MODELOS;
-uasort($modelosOrd, function ($a, $b) { return lw_modelo_precio_desde($a) <=> lw_modelo_precio_desde($b); });
-
-// Isla y vista: la vista más barata de Bali. Bali y Sumba están al mismo tramo (125 €/m²),
-// así que "más barata" no las separa — manda Bali por ser el catálogo con vistas.
-$vistasOrd = $PICKER['view'];
-uasort($vistasOrd, function ($a, $b) { return $a['rate'] <=> $b['rate']; });
-$islaIni  = 'bali';
-$vistaIni = array_key_first($vistasOrd);
-$m2Ini    = min(LW_M2_PRESETS);
-
-$estIni  = lw_estimacion($m, $techoIni, $islaIni, $vistaIni, $m2Ini);
-
-// ── Formulario de un campo por pantalla — SOLO DALI (3-sep, decisión del owner) ──────
-// "Trabaja en el modelo Dali por ahora y no en todas, cuando tengamos todos los cambios
-// los replicamos a todos." Las otras cuatro villas mantienen el bloque de cuatro secciones
-// desplegado esta misma mañana, intacto. Replicar = borrar esta condición, no reescribir
-// nada: las dos ramas comparten estado, aritmética, payload y endpoint; lo único que cambia
-// es cómo se presentan los mismos controles.
-$wizard = ($m['id'] === 'dali');
-
-/**
- * El panel de presupuesto, en UNA sola definición.
- *
- * Lo pintan las dos ramas (el formulario de Dali y el bloque de secciones de las otras
- * cuatro). Duplicar este marcado sería duplicar el rotulado legal que costó una revisión
- * entera: la etiqueta del total que cambia de estado, el "no es una oferta", el PPN. La
- * segunda copia envejecería sola en cuanto Legal retocara una frase.
- */
-$renderPanel = function () use ($nombre, $m, $techoIni, $estIni, $antes2027, $PICKER, $vistaIni, $m2Ini) {
-    // Con la preselección del 3-sep el panel ya arranca COMPLETO, así que su estado inicial
-    // de servidor tiene que decir la verdad: línea de parcela con cifra y etiqueta de total
-    // "villa + parcela". Antes arrancaba sin parcela y esos dos textos eran fijos.
-    $tieneParcela = $estIni['parcela'] !== null;
-    $vistaLb = strtolower($PICKER['view'][$vistaIni]['label']);
-    ?>
-    <div class="est" id="lw-estimacion">
-      <div class="est__head">
-        <span class="est__tt">Your estimate</span>
-        <span class="est__flag">Indicative only — not a quote</span>
-      </div>
-
-      <div class="est__fila">
-        <span class="est__lb" id="lw-est-villa-lb">Villa — <?= lw_e($nombre . ', ' . $m['techos'][$techoIni]['nombre']) ?> roof
-          <?php /* 3-sep, capa 1 (Legal): "Starting figure for this roof, confirmed by the
-                 developer in writing" no distinguía si lo confirmado por escrito es la
-                 cifra que el visitante tiene DELANTE o el precio final antes de firmar. Era
-                 la única frase del panel que empujaba hacia "precio cerrado", y encima
-                 pegada al número. */ ?>
-          <i>Today's starting figure for this roof. Your final price is confirmed by the developer in writing before you sign. Indonesian VAT (PPN) included.</i></span>
-        <span class="est__vl" id="lw-est-villa">From <?= lw_e(lw_precio_fmt($estIni['villa'])) ?></span>
-      </div>
-
-      <div class="est__fila">
-        <span class="est__lb" id="lw-est-parcela-lb"><?= $tieneParcela
-            ? lw_e('Plot — ' . $vistaLb . ', ' . number_format($estIni['m2'], 0, '.', ',') . ' m² at ' . lw_precio_fmt($estIni['tarifa']) . '/m²')
-            : 'Plot' ?>
-          <i>Indicative rate per m². Not a quote for a specific plot.</i></span>
-        <span class="est__vl<?= $tieneParcela ? '' : ' is-pend' ?>" id="lw-est-parcela"><?= $tieneParcela
-            ? lw_e(lw_precio_fmt($estIni['parcela'])) : 'Choose an island and a size' ?></span>
-      </div>
-
-      <div class="est__fila">
-        <span class="est__lb" id="lw-est-extras-lb">Extras — none selected</span>
-        <span class="est__vl is-pend" id="lw-est-extras">Priced on the call</span>
-      </div>
-
-      <div class="est__fila">
-        <span class="est__lb">Notary, permits and transfer costs</span>
-        <span class="est__vl is-pend">Separate, in writing</span>
-      </div>
-
-      <!-- aria-live en el CONTENEDOR, no solo en el importe (Desarrollo, capa 1 de deploy):
-           la etiqueta es quien alterna entre "Villa only — plot not included yet" e
-           "Indicative starting figure, villa + plot", y con la región viva solo en la cifra
-           un lector de pantalla anunciaba el importe sin decir nunca si la parcela estaba
-           dentro. Toda la defensa del panel es esa etiqueta: dejarla muda la anula. -->
-      <div class="est__total" aria-live="polite">
-        <span class="est__lb" id="lw-est-total-lb"><?= $tieneParcela
-            ? 'Indicative starting figure, villa + plot' : 'Villa only — plot not included yet' ?></span>
-        <span class="est__vl" id="lw-est-total">from around <?= lw_e(lw_precio_fmt($estIni['total'])) ?></span>
-      </div>
-      <div class="est__pie">
-        <p id="lw-est-excluye">Excludes notary, permits and transfer costs.</p>
-        <?php /* Recortado a petición del owner (3-sep). Se conserva lo que hace trabajo
-               legal —no es oferta, no es reserva, el precio final depende de la parcela y
-               se confirma por escrito— y se van la frase que repetía el rótulo "Indicative
-               only" de la cabecera y la coletilla de vigencia de 2026, que el owner también
-               ha retirado del paso del techo. Ver la nota del final del turno: sin ninguna
-               mención a 2027, un lead que reserve en diciembre y sea atendido en enero no
-               tiene aviso escrito de la subida. */ ?>
-        <p>Not an offer or a reservation. Your final price depends on the specific plot and is confirmed in writing before you sign.</p>
-      </div>
-      <div class="est__cta"><a class="btn btn--block" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer">Ask us for the real numbers</a></div>
-    </div>
-<?php };
 
 $WA_NUM   = '6281138319862';
 $WA_LINK  = 'https://wa.me/' . $WA_NUM . '?text=' . rawurlencode("Hi, I'm interested in the " . $villa . ' from Lawang Tropical Properties.');
@@ -1005,18 +855,9 @@ label.picker__row{cursor:pointer}
     <a href="/" aria-label="Lawang Tropical Properties"><img class="nav__brand" src="/assets/img/lawang-logo-v3.webp" alt="Lawang Tropical Properties"></a>
     <div class="nav__right">
       <nav class="nav__links">
-        <!-- Etiquetas alineadas con los pasos del configurador (3-sep). "Finishes & price"
-             apuntaba a #acabados, que ahora es el paso 2 "Roof" — renumerar las secciones
-             sin tocar el menú lo deja mintiendo (hallazgo de Diseño). #lw-estimacion entra
-             en el menú porque es el desenlace del bloque: hasta hoy no había nada que
-             enlazar ahí. -->
-        <?php if ($wizard): ?>
-        <a href="#lw-wizard">Build your estimate</a>
-        <?php else: ?>
-        <a href="#modelos">The range</a>
-        <a href="#acabados">Roof</a>
-        <a href="#lw-estimacion">Your estimate</a>
-        <?php endif; ?>
+        <!-- Configurador villa → techo → extras, un solo tramo desde el 14-sep-2026 (ya
+             no hay rama de wizard). -->
+        <a href="#estimator"><?= lw_i18n('Tu presupuesto', 'Your estimate') ?></a>
         <a href="#ubicacion"><?= lw_i18n('Ubicación', 'Location') ?></a>
         <a href="#faq"><?= lw_i18n('Preguntas', 'FAQ') ?></a>
       </nav>

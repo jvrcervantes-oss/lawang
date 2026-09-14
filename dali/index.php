@@ -51,7 +51,6 @@ require __DIR__ . '/../modelo/datos.php';
 
 $CAT   = lw_au_catalogo();
 $DALI  = $CAT['dali'];
-$OPC   = lw_picker_opciones();
 
 // Renders por nombre de fichero. dali2 y dali3 son las DOS variantes de techo que el
 // dossier documenta (p3 «Traditional Elegance» = Sirap Ulin; p4 «Timeless Craftsmanship»
@@ -90,14 +89,13 @@ $ogImg    = $portada ?? '/assets/img/lugar/costa.webp';
 
 // Payload del configurador. Lista blanca campo a campo, con los precios YA resueltos en
 // servidor: el JS pinta, no calcula precios de catálogo (revisión previa Seguridad+Diseño,
-// 2-sep). Las tarifas de parcela salen de lw_picker_opciones(), fuente única.
+// 2-sep). Los extras (7, por modelo) salen de lw_au_catalogo() -> lw_extras_resueltos(),
+// misma fuente que /palmfield — copiado el 14-sep-2026 al adoptar su configurador aquí.
 $cfgJs = [
     'tasaAud'  => LW_AUD_TASA,
     'divisas'  => $DIVISAS,
     'divFecha' => LW_DIV_FECHA,
     'modelos'  => [],
-    'tarifas'  => ['sumba' => $OPC['island']['sumba']['rate']],
-    'extras'   => $OPC['extras'],
 ];
 foreach ($CAT as $id => $v) {
     $cfgJs['modelos'][$id] = [
@@ -108,9 +106,9 @@ foreach ($CAT as $id => $v) {
             'sirap' => ['nombre' => $v['techos']['sirap']['nombre'], 'eur' => $v['techos']['sirap']['eur']],
             'bambu' => ['nombre' => $v['techos']['bambu']['nombre'], 'eur' => $v['techos']['bambu']['eur']],
         ],
+        'extras' => $v['extras'],
     ];
 }
-foreach ($OPC['view'] as $k => $vw) { $cfgJs['tarifas'][$k] = $vw['rate']; }
 
 $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 ?><!DOCTYPE html>
@@ -148,7 +146,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
       <img class="nav__brand" src="/assets/img/lawang-logo-v3.webp" alt="Lawang Tropical Properties">
     </a>
     <nav class="nav__links">
-      <a href="#estimator">Instant Estimator</a>
+      <a href="#estimator">Your Estimate</a>
       <a href="#land-ready">Land Ready Infrastructure</a>
       <a href="#desk">Contact</a>
     </nav>
@@ -201,7 +199,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
         <span class="chip__ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg></span>
         <span>
           <span class="chip__lb">Starting Turnkey</span>
-          <span class="chip__vl" data-eur-fijo="<?= (int) $DALI['desde_eur'] ?>"><?= lw_e(lw_aud_fmt($DALI['desde_eur'])) ?></span>
+          <span class="chip__vl" data-eur-fijo="<?= (int) $DALI['desde_eur'] ?>"><?= lw_e(lw_precio_fmt($DALI['desde_eur'])) ?></span>
         </span>
       </div>
       <div class="chip">
@@ -245,32 +243,40 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 </section>
 </div>
 
-<!-- ═══ CONFIGURADOR ═══════════════════════════════════════════════════════════════ -->
+<!-- ═══ CONFIGURADOR: villa → techo → extras (14-sep-2026) ═══════════════════════════
+     Copiado de /palmfield (encargo del owner: mismo diseño y estructura que la landing
+     de campaña para las páginas de modelo). Sustituye al wizard de 5 pasos (villa, techo,
+     isla, vista, parcela): la parcela SALE del configurador — 125 €/m² sigue publicado en
+     el pie de página como línea aparte, "sized on the call" — y entran los 7 extras reales
+     por modelo (lw_extras_resueltos(), modelo/datos.php) que el wizard viejo no tenía
+     precio para. Motor compartido con /modelo/<id> en assets/au-landing-cfg.js: es la
+     misma pieza en dos páginas de producto, no una copia que pueda divergir. -->
 <section class="sec sec--surface" id="estimator">
   <div class="wrap">
     <div class="et">
-      <span class="pill pill--verde">5-Step</span>
-      <span class="mono" style="font-size:11px;color:var(--ink2)">Instant Accurate Baseline</span>
+      <span class="pill pill--verde">3-Step</span>
+      <span class="mono" style="font-size:11px;color:var(--ink2)">Pick an option and it moves on</span>
     </div>
     <div class="sec__hd">
-      <h2>Five questions, and you'll have an exact figure</h2>
-      <p class="sec__desc">Select your villa size, roof finish, and land plot. Prices shown in
-        the currency you pick, converted at fixed rates
-        (<?= lw_e(LW_DIV_FECHA) ?>) — the contract figure is the euro one.</p>
+      <h2>Three questions. Your figure.</h2>
+      <p class="sec__desc">Prices shown in the currency you pick, converted at fixed rates
+        (<?= lw_e(LW_DIV_FECHA) ?>) — the contract figure is the euro one. The plot is quoted
+        separately, sized on the call.</p>
     </div>
 
     <div class="cfg">
       <!-- Pasos -->
       <div class="cfg__card">
         <div class="cfg__hd">
-          <span class="cfg__paso" id="lw-paso-lb">Step 1 of 5</span>
+          <span class="cfg__paso" id="lw-paso-lb">Step 1 of 3</span>
         </div>
 
         <!-- Paso 1: villa -->
         <div class="cfg__step" data-paso="1">
           <p class="cfg__q">Which villa?</p>
           <p class="cfg__nota">Identical German-grade engineering, sukabumi pool and ironwood
-            decking standard across all models.</p>
+            decking standard across all models. The price shown is the villa with its cheaper
+            roof; you pick the roof next.</p>
           <div class="ops">
             <?php foreach ($CAT as $id => $v): ?>
             <label class="op">
@@ -285,15 +291,15 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
                 <span class="op__sp"><?= lw_e($v['specs']) ?></span>
               </span>
               <span class="op__pr" data-eur="<?= (int) $v['desde_eur'] ?>">
-                <b><?= lw_e(lw_aud_fmt($v['desde_eur'])) ?></b>
-                <i><?= lw_e(lw_precio_fmt($v['desde_eur'])) ?></i>
+                <b><?= lw_e(lw_precio_fmt($v['desde_eur'])) ?></b>
+                <i></i>
               </span>
             </label>
             <?php endforeach; ?>
           </div>
         </div>
 
-        <!-- Paso 2: techo -->
+        <!-- Paso 2: techo. Lo pinta el JS: el precio es el de la villa ya elegida. -->
         <div class="cfg__step" data-paso="2" hidden>
           <p class="cfg__q">Which roof?</p>
           <p class="cfg__nota">Two complete villa prices, not an add-on: the roof you choose is
@@ -301,60 +307,12 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
           <div class="ops" id="lw-techos"></div>
         </div>
 
-        <!-- Paso 3: isla -->
+        <!-- Paso 3: extras. Multiseleccion, asi que este NO avanza solo al hacer clic. -->
         <div class="cfg__step" data-paso="3" hidden>
-          <p class="cfg__q">Which island?</p>
-          <p class="cfg__nota">Land is quoted per square metre and depends on where it sits.</p>
-          <div class="ops">
-            <label class="op">
-              <input type="radio" name="lw-isla" value="bali" checked>
-              <span><span class="op__nb">Bali</span><span class="op__sp">Tabanan &amp; Uluwatu · choose your view next</span></span>
-              <span class="op__pr"><i>From <?= lw_e(lw_precio_fmt(lw_parcela_tarifa_m2('cliff'))) ?>/m²</i></span>
-            </label>
-            <label class="op">
-              <input type="radio" name="lw-isla" value="sumba">
-              <span><span class="op__nb">Sumba</span><span class="op__sp">Sumba Hills · subject to availability</span></span>
-              <span class="op__pr"><i><?= lw_e(lw_precio_fmt(lw_parcela_tarifa_m2('sumba'))) ?>/m²</i></span>
-            </label>
-          </div>
-        </div>
-
-        <!-- Paso 4: vista -->
-        <div class="cfg__step" data-paso="4" hidden>
-          <p class="cfg__q">Which view?</p>
-          <p class="cfg__nota">The land rate changes with the setting.</p>
-          <div class="ops">
-            <?php foreach ($OPC['view'] as $k => $vw): ?>
-            <label class="op">
-              <input type="radio" name="lw-vista" value="<?= lw_e($k) ?>"<?= $k === 'cliff' ? ' checked' : '' ?>>
-              <span><span class="op__nb"><?= lw_e($vw['label']) ?></span></span>
-              <span class="op__pr" data-eur-m2="<?= (int) $vw['rate'] ?>">
-                <b><?= lw_e(lw_aud_fmt($vw['rate'])) ?>/m²</b>
-                <i><?= lw_e(lw_precio_fmt($vw['rate'])) ?>/m²</i>
-              </span>
-            </label>
-            <?php endforeach; ?>
-          </div>
-        </div>
-
-        <!-- Paso 5: parcela -->
-        <div class="cfg__step" data-paso="5" hidden>
-          <p class="cfg__q">How much land?</p>
-          <p class="cfg__nota">Sizes taken from the plots actually available today.</p>
-          <div class="ops">
-            <?php foreach ([160, 250, 350, 500] as $sz): ?>
-            <label class="op">
-              <input type="radio" name="lw-m2" value="<?= $sz ?>"<?= $sz === 160 ? ' checked' : '' ?>>
-              <span><span class="op__nb"><?= $sz ?> m²</span></span>
-              <span class="op__pr"></span>
-            </label>
-            <?php endforeach; ?>
-          </div>
-          <div class="m2">
-            <label for="lw-m2-libre">Another size</label>
-            <input id="lw-m2-libre" type="number" min="150" max="1500" step="10" placeholder="m²">
-            <span class="op__sp">150–1,500 m². Larger plots are quoted on the call.</span>
-          </div>
+          <p class="cfg__q">Any extras?</p>
+          <p class="cfg__nota">Optional, and none of them is needed to move in. Tick as many as
+            you want — the figure on the right updates as you go.</p>
+          <div class="ops" id="lw-extras"></div>
         </div>
 
         <div class="cfg__nav">
@@ -375,18 +333,23 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
           </div>
           <div class="res__fila">
             <span><span class="res__lb" id="lw-r-villa">Villa Dali</span>
-                  <span class="res__sub" id="lw-r-techo">Sirap Ulin roof</span></span>
+                  <span class="res__sub" id="lw-r-villa-sub">Turnkey build</span></span>
             <span class="res__vl" id="lw-r-villa-pr">—</span>
           </div>
           <div class="res__fila">
-            <span><span class="res__lb" id="lw-r-tierra">Bali · Cliff</span>
-                  <span class="res__sub" id="lw-r-tierra-sub">Subdivided freehold · power &amp; water</span></span>
-            <span class="res__vl" id="lw-r-tierra-pr">—</span>
+            <span><span class="res__lb" id="lw-r-extras">Extras</span>
+                  <span class="res__sub" id="lw-r-extras-sub">None selected</span></span>
+            <span class="res__vl" id="lw-r-extras-pr">—</span>
           </div>
           <div class="res__fila">
-            <span><span class="res__lb">Civil Infra &amp; Approvals</span>
-                  <span class="res__sub">Roads, PLN connection, building licences</span></span>
+            <span><span class="res__lb">Roads &amp; approvals</span>
+                  <span class="res__sub">PBG / SLF licences, PLN connection</span></span>
             <span class="res__vl">Included</span>
+          </div>
+          <div class="res__fila">
+            <span><span class="res__lb">Freehold plot</span>
+                  <span class="res__sub"><?= lw_e(lw_precio_fmt(lw_parcela_tarifa_m2('riverfront'))) ?>/m² · sized on the call</span></span>
+            <span class="res__vl">Separate</span>
           </div>
         </div>
 
@@ -395,7 +358,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
           <span class="total__vl" id="lw-total">—</span>
           <span class="total__alt" id="lw-total-alt"></span>
           <p class="total__nota" id="lw-total-nota">Fixed-price written EPC contract. No
-            contractor escalation clauses. Notary, permits and transfer costs are quoted
+            contractor escalation clauses. Notary, permits, plot and transfer costs are quoted
             separately.</p>
           <a class="btn btn--terra btn--block total__cta" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer">
             Send this configuration on WhatsApp
@@ -538,7 +501,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 <!-- Barra inferior en móvil, del diseño -->
 <div class="movil">
   <span class="movil__pr">
-    <b id="lw-movil-pr" data-eur-fijo="<?= (int) $DALI['desde_eur'] ?>"><?= lw_e(lw_aud_fmt($DALI['desde_eur'])) ?></b>
+    <b id="lw-movil-pr" data-eur-fijo="<?= (int) $DALI['desde_eur'] ?>"><?= lw_e(lw_precio_fmt($DALI['desde_eur'])) ?></b>
     <span>100% Freehold Bali</span>
   </span>
   <a class="btn btn--wa" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer" aria-label="Chat on WhatsApp">
@@ -547,6 +510,10 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 </div>
 
 <script src="/assets/consent.js?v=20260908111654" defer></script>
+<!-- Sin `defer`: la llama el script inline de abajo en el mismo pase de parseo, y un
+     `defer` aqui la dejaria definida DESPUES de que el inline intente llamarla (los
+     `defer` se ejecutan al final del parseo, los inline no). -->
+<script src="/assets/au-landing-cfg.js?v=20260914170000"></script>
 <script>
 (function () {
   'use strict';
@@ -569,314 +536,23 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
   if (document.readyState === 'complete') trackVista();
   else window.addEventListener('load', trackVista);
 
-  // ── Estado ───────────────────────────────────────────────────────────────────────
-  // La divisa arranca en EUR: es la del contrato, y esta pagina ya no va dirigida solo
-  // al mercado australiano (11-sep-2026). Se recuerda la elección entre visitas.
-  var S = {villa: 'dali', techo: 'sirap', isla: 'bali', vista: 'cliff', m2: 160, div: 'EUR'};
-  try { var _g = localStorage.getItem('lw_deck_cur'); if (CFG.divisas[_g]) S.div = _g; } catch (e) {}
-  var PASOS = 5, paso = 1;
-
-  function eur(n) { return '€' + Number(n).toLocaleString('en-US'); }
-
-  // Conversión con la tabla de CFG.divisas, que viene de modelo/datos.php — la MISMA que
-  // resuelve los precios que PHP ya pintó. Redondeo a la decena (a la unidad de mil en
-  // rupias) para no fingir una precisión que un tipo fijo no da.
-  function divFmt(n, cod) {
-    var d = (CFG.divisas || {})[cod];
-    if (!d) return eur(n);
-    var v = Number(n) * d.tasa;
-    v = cod === 'IDR' ? Math.round(v / 1000) * 1000 : Math.round(v / 10) * 10;
-    return d.sim + v.toLocaleString('en-US');
-  }
-  // El importe se pinta en la divisa elegida y SIEMPRE con el euro debajo: el contrato se
-  // firma en euros, así que la divisa de cortesía nunca puede quedarse sola en pantalla.
-  function pinta(n) { return divFmt(n, S.div); }
-  // Debajo del importe se ensena SIEMPRE el euro, que es la moneda del contrato. Si ya
-  // se esta mostrando en euros no hay nada que anadir.
-  function alterna(n) { return S.div === 'EUR' ? '' : eur(n); }
-
-  function tarifa() {
-    if (S.isla === 'sumba') return CFG.tarifas.sumba;
-    return CFG.tarifas[S.vista] != null ? CFG.tarifas[S.vista] : null;
-  }
-  function precioVilla() {
-    var m = CFG.modelos[S.villa];
-    return m && m.techos[S.techo] ? m.techos[S.techo].eur : null;
-  }
-
-  // ── Pintado del resumen ──────────────────────────────────────────────────────────
-  function $(id) { return document.getElementById(id); }
-  function txt(id, s) { var e = $(id); if (e) e.textContent = s; }
-
-  function recalcular() {
-    var m = CFG.modelos[S.villa];
-    if (!m) return;
-    var pv = precioVilla(), tf = tarifa();
-    var parcela = (tf != null && S.m2) ? tf * S.m2 : null;
-    var total   = (pv != null && parcela != null) ? pv + parcela : null;
-
-    txt('lw-r-villa', m.villa);
-    txt('lw-r-techo', m.techos[S.techo].nombre + ' roof');
-    txt('lw-r-villa-pr', pv != null ? pinta(pv) : '—');
-
-    var donde = S.isla === 'sumba' ? 'Sumba'
-      : 'Bali · ' + S.vista.charAt(0).toUpperCase() + S.vista.slice(1);
-    txt('lw-r-tierra', donde + (S.m2 ? ' (' + S.m2 + ' m²)' : ''));
-    txt('lw-r-tierra-sub', tf != null
-      ? 'Subdivided freehold · ' + pinta(tf) + '/m²'
-      : 'Choose a view to price the land');
-    var tp = $('lw-r-tierra-pr');
-    if (tp) {
-      tp.textContent = parcela != null ? pinta(parcela) : 'Pending';
-      tp.classList.toggle('res__vl--pend', parcela == null);
-    }
-
-    txt('lw-total', total != null ? pinta(total) : '—');
-    var alt = total != null ? alterna(total) : '';
-    txt('lw-total-alt', alt ? '≈ ' + alt : '');
-    txt('lw-movil-pr', pv != null ? pinta(pv) : '—');
-
-    // El pie del total nombra lo que queda fuera. Si no, ver el total quieto con extras
-    // marcados se lee como que van incluidos.
-    var nota = 'Fixed-price written EPC contract. No contractor escalation clauses. ';
-    nota += total != null
-      ? 'Notary, permits and transfer costs are quoted separately.'
-      : 'Complete the five steps for the full figure.';
-    txt('lw-total-nota', nota);
-
-    // Los precios del paso 1 y del paso 4 se repintan en la divisa activa.
-    document.querySelectorAll('.op__pr[data-eur]').forEach(function (n) {
-      var v = Number(n.getAttribute('data-eur'));
-      n.querySelector('b').textContent = pinta(v);
-      n.querySelector('i').textContent = alterna(v);
-    });
-    document.querySelectorAll('.op__pr[data-eur-m2]').forEach(function (n) {
-      var v = Number(n.getAttribute('data-eur-m2'));
-      n.querySelector('b').textContent = pinta(v) + '/m²';
-      n.querySelector('i').textContent = alterna(v) + '/m²';
-    });
-
-    sincronizaURL();
-    actualizaWa();
-  }
-
-  // ── Paso 2 (techos): se repinta al cambiar de villa ──────────────────────────────
-  function pintaTechos() {
-    var m = CFG.modelos[S.villa], cont = $('lw-techos');
-    if (!m || !cont) return;
-    cont.innerHTML = '';
-    ['sirap', 'bambu'].forEach(function (k) {
-      var t = m.techos[k];
-      var l = document.createElement('label');
-      l.className = 'op';
-      var marcado = k === S.techo ? ' checked' : '';
-      l.innerHTML =
-        '<input type="radio" name="lw-techo" value="' + k + '"' + marcado + '>' +
-        '<span><span class="op__nb"></span></span>' +
-        '<span class="op__pr" data-eur="' + t.eur + '"><b></b><i></i></span>';
-      l.querySelector('.op__nb').textContent = t.nombre;
-      l.querySelector('b').textContent = pinta(t.eur);
-      l.querySelector('i').textContent = alterna(t.eur);
-      cont.appendChild(l);
-    });
-  }
-
-  // ── Navegación por pasos ─────────────────────────────────────────────────────────
-  function visible(n) {
-    // El paso 4 (vista) solo aplica a Bali: en Sumba la tarifa no depende de la vista.
-    if (n === 4 && S.isla === 'sumba') return false;
-    return true;
-  }
-  function muestraPaso(n) {
-    paso = n;
-    document.querySelectorAll('.cfg__step').forEach(function (s) {
-      s.hidden = Number(s.getAttribute('data-paso')) !== n;
-    });
-    txt('lw-paso-lb', 'Step ' + n + ' of ' + PASOS);
-    var a = $('lw-atras'); if (a) a.hidden = n === 1;
-    var sig = $('lw-siguiente');
-    if (sig) sig.firstChild.textContent = n === PASOS ? 'See full estimate ' : 'Next ';
-    var p = $('lw-puntos');
-    if (p) {
-      p.innerHTML = '';
-      for (var i = 1; i <= PASOS; i++) {
-        var d = document.createElement('span');
-        d.className = 'punto' + (i === n ? ' is-on' : '');
-        p.appendChild(d);
-      }
-    }
-  }
-  function avanza(dir) {
-    var n = paso;
-    do { n += dir; } while (n > 0 && n <= PASOS && !visible(n));
-    if (n < 1) n = 1;
-    if (n > PASOS) { // último paso: al resumen
-      document.querySelector('.res').scrollIntoView({behavior: 'smooth', block: 'center'});
-      return;
-    }
-    muestraPaso(n);
-  }
-  var sig = $('lw-siguiente'); if (sig) sig.addEventListener('click', function () { avanza(1); });
-  var atr = $('lw-atras');     if (atr) atr.addEventListener('click', function () { avanza(-1); });
-
-  // ── Entradas ─────────────────────────────────────────────────────────────────────
-  document.addEventListener('change', function (e) {
-    var t = e.target;
-    if (!t || t.type !== 'radio') return;
-    if (t.name === 'lw-villa') { S.villa = t.value; pintaTechos(); }
-    else if (t.name === 'lw-techo') S.techo = t.value;
-    else if (t.name === 'lw-isla')  S.isla  = t.value;
-    else if (t.name === 'lw-vista') S.vista = t.value;
-    else if (t.name === 'lw-m2') {
-      S.m2 = Number(t.value);
-      var lib = $('lw-m2-libre'); if (lib) lib.value = '';
-    } else return;
-    recalcular();
+  // ── Configurador villa → techo → extras: motor compartido con /modelo/<id>, ver
+  //    assets/au-landing-cfg.js. La divisa arranca en EUR (es la del contrato) y se
+  //    recuerda entre visitas en localStorage. ─────────────────────────────────────
+  window.lwAuCfgInit({
+    cfg: CFG,
+    waNum: WA_NUM,
+    urlBase: '/dali',
+    villaDefault: 'dali',
+    waIntro: "Hi, I'd like information about the "
   });
-
-  var libre = $('lw-m2-libre');
-  if (libre) libre.addEventListener('input', function () {
-    var v = parseInt(libre.value, 10);
-    if (!isNaN(v) && v >= 150 && v <= 1500) {
-      S.m2 = v;
-      document.querySelectorAll('input[name="lw-m2"]').forEach(function (r) { r.checked = false; });
-      recalcular();
-    }
-  });
-
-  // ── Selector de divisa del topbar ──────────────────────────────────────────────
-  // Se construye con las clases .lw-lang que idioma-web.js ya inyecta en esta página, así
-  // que sale idéntico al del investor deck sin una segunda hoja de estilos. La elección se
-  // guarda en `lw_deck_cur`, la MISMA clave que usa el deck: quien llega desde allí en
-  // dólares sigue en dólares. No se recarga la página: aquí todo se repinta en caliente.
-  (function () {
-    var host = document.getElementById('lw-div-sel');
-    if (!host) return;
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'lw-lang__btn';
-    btn.setAttribute('aria-haspopup', 'listbox');
-    btn.setAttribute('aria-expanded', 'false');
-    btn.setAttribute('aria-label', 'Currency');
-    btn.innerHTML = '<span class="lw-lang__cur"></span><span class="lw-lang__caret" aria-hidden="true">▾</span>';
-    var ul = document.createElement('ul');
-    ul.className = 'lw-lang__menu';
-    ul.setAttribute('role', 'listbox');
-    Object.keys(CFG.divisas).forEach(function (c) {
-      var li = document.createElement('li');
-      li.setAttribute('role', 'option');
-      li.setAttribute('data-div', c);
-      li.textContent = c + '  ' + CFG.divisas[c].sim.trim();
-      ul.appendChild(li);
-    });
-    host.appendChild(btn); host.appendChild(ul);
-
-    function refleja() {
-      btn.querySelector('.lw-lang__cur').textContent = S.div;
-      Array.prototype.forEach.call(ul.children, function (li) {
-        var on = li.getAttribute('data-div') === S.div;
-        li.classList.toggle('is-on', on);
-        li.setAttribute('aria-selected', on ? 'true' : 'false');
-      });
-    }
-    function cierra() { ul.classList.remove('is-open'); btn.setAttribute('aria-expanded', 'false'); }
-    btn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      var abierto = ul.classList.toggle('is-open');
-      btn.setAttribute('aria-expanded', abierto ? 'true' : 'false');
-    });
-    ul.addEventListener('click', function (e) {
-      var li = e.target.closest ? e.target.closest('li[data-div]') : null;
-      if (!li) return;
-      S.div = li.getAttribute('data-div');
-      try { localStorage.setItem('lw_deck_cur', S.div); } catch (err) {}
-      refleja(); cierra(); recalcular(); repintaPrecios();
-    });
-    document.addEventListener('click', function (e) { if (!host.contains(e.target)) cierra(); });
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cierra(); });
-    refleja();
-    window.lwReflejaDivisa = refleja;
-  }());
-
-  // Importes SUELTOS que pintó PHP (el precio del hero y el de la barra móvil): llevan su
-  // valor en euros en `data-eur-fijo` y se repintan desde ahí al cambiar de divisa.
-  // ⚠️ Atributo propio a propósito: `data-eur` ya lo usa el configurador con otra
-  // estructura —un <b> y un <i> dentro de cada .op__pr, que repinta recalcular()— y
-  // escribir textContent sobre esos nodos les borraba los hijos (TypeError en la
-  // siguiente pasada de recalcular, cazado en producción el 11-sep).
-  function repintaPrecios() {
-    Array.prototype.forEach.call(document.querySelectorAll('[data-eur-fijo]'), function (el) {
-      var v = parseFloat(el.getAttribute('data-eur-fijo'));
-      if (!isNaN(v)) el.textContent = divFmt(v, S.div);
-    });
-  }
-
-  // ── URL compartible ──────────────────────────────────────────────────────────────
-  // Se PARTE de la query que ya hay y solo se borran las claves propias: barrerla entera
-  // se llevaría `utm_*` y `fbclid`, que es de donde sale la atribución de la campaña.
-  function sincronizaURL() {
-    var p = new URLSearchParams(location.search);
-    ['villa', 'roof', 'island', 'view', 'plot', 'cur'].forEach(function (k) { p.delete(k); });
-    if (S.villa !== 'dali')  p.set('villa', S.villa);
-    if (S.techo !== 'sirap') p.set('roof', S.techo);
-    if (S.isla  !== 'bali')  p.set('island', S.isla);
-    if (S.vista !== 'cliff') p.set('view', S.vista);
-    if (S.m2    !== 160)     p.set('plot', String(S.m2));
-    if (S.div   !== 'EUR')   p.set('cur', S.div);
-    var q = p.toString();
-    history.replaceState(history.state, '', '/dali' + (q ? '?' + q : ''));
-  }
-  function aplicaQuery() {
-    var q = new URLSearchParams(location.search);
-    var v = q.get('villa'); if (v && CFG.modelos[v]) S.villa = v;
-    var r = q.get('roof');  if (r === 'sirap' || r === 'bambu') S.techo = r;
-    var i = q.get('island');if (i === 'bali' || i === 'sumba')  S.isla = i;
-    var w = q.get('view');  if (w && CFG.tarifas[w] != null)    S.vista = w;
-    var pl = parseInt(q.get('plot'), 10);
-    if (!isNaN(pl) && pl >= 150 && pl <= 1500) S.m2 = pl;
-    var c = q.get('cur');   if (c && CFG.divisas[c])            S.div = c;
-
-    var rb = document.querySelector('input[name="lw-villa"][value="' + S.villa + '"]');
-    if (rb) rb.checked = true;
-    var ri = document.querySelector('input[name="lw-isla"][value="' + S.isla + '"]');
-    if (ri) ri.checked = true;
-    var rv = document.querySelector('input[name="lw-vista"][value="' + S.vista + '"]');
-    if (rv) rv.checked = true;
-    var rm = document.querySelector('input[name="lw-m2"][value="' + S.m2 + '"]');
-    if (rm) rm.checked = true;
-    else if (libre) libre.value = S.m2;
-  }
-
-  // ── WhatsApp: el texto lleva la configuración vigente ────────────────────────────
-  // Se lee del estado en cada cambio, nunca de un valor capturado al cargar: si no, a
-  // ventas le llega "interested in the Villa Dali" con la configuración de otra villa.
-  function actualizaWa() {
-    var m = CFG.modelos[S.villa];
-    if (!m) return;
-    var t = "Hi, I'd like information about the " + m.villa + '.';
-    var pv = precioVilla(), tf = tarifa();
-    if (pv != null) t += ' ' + m.techos[S.techo].nombre + ' roof, ' + eur(pv) + '.';
-    if (tf != null && S.m2) t += ' Plot: ' + (S.isla === 'sumba' ? 'Sumba' : 'Bali/' + S.vista)
-      + ', ' + S.m2 + ' m².';
-    var href = 'https://wa.me/' + WA_NUM + '?text=' + encodeURIComponent(t);
-    document.querySelectorAll('a[href*="wa.me/"]').forEach(function (a) { a.href = href; });
-  }
-
-
 
   // ── Cookies ──────────────────────────────────────────────────────────────────────
-  var ck = $('lw-cookies');
+  var ck = document.getElementById('lw-cookies');
   if (ck) ck.addEventListener('click', function (ev) {
     ev.preventDefault();
     if (window.lwConsentReopen) window.lwConsentReopen();
   });
-
-  // ── Arranque ─────────────────────────────────────────────────────────────────────
-  aplicaQuery();
-  repintaPrecios();
-  pintaTechos();
-  muestraPaso(1);
-  recalcular();
 }());
 </script>
 </body>
