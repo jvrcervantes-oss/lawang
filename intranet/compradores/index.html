@@ -20,7 +20,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=85b47cb0"></script>
+<script src="/contracts/assets/i18n.js?v=208c1c36"></script>
 <script src="/contracts/assets/herramientas.js?v=c95fc709"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="/contracts/assets/visor.js?v=28038adb" defer></script>
@@ -236,6 +236,14 @@ let SB=null, CLIENTES=[], DOCUMENTOS=[], VINCULOS=[], ACCESOS=[], FACTURAS=[], C
    cual, y es lo único con lo que esta pantalla puede saber si una ficha es la
    que YO di de alta. `YO` (la ficha de `usuarios`) no trae el correo. */
 let MI_EMAIL = '';
+/* El equipo activo, para el desplegable del traspaso. Solo lo pide un admin:
+   es el único que puede traspasar, y a los demás sería un viaje de red por una
+   lista que nunca van a ver. */
+let EQUIPO = [];
+const nombreDe = email => {
+  const u = EQUIPO.find(x => String(x.email).toLowerCase() === String(email || '').toLowerCase());
+  return (u && u.nombre) || email || '';
+};
 /* Editar una ficha YA EXISTENTE es solo de admin/super_admin desde el
    7-ago-2026 (petición del owner); crear una nueva ("+ Nuevo comprador")
    sigue abierto a cualquier agente — es alta de datos, no lo que se pidió
@@ -314,6 +322,13 @@ async function cargar(){
   COBRADO = {}; (cb.error ? [] : (cb.data || [])).forEach(x => { COBRADO[x.contrato_id] = Number(x.cobrado) || 0; });
   ACCESOS = a.error ? [] : (a.data || []);
   FACTURAS = f.error ? [] : (f.data || []);
+  if(ES_ADMIN && !EQUIPO.length){
+    const { data: eq } = await SB.from('usuarios')
+      .select('email,nombre,rol,activo').eq('activo', true).order('nombre');
+    // Si falla, el desplegable del traspaso sale vacío y el bloque se queda en
+    // «la dio de alta X» — que es lo que de verdad importa ver.
+    EQUIPO = eq || [];
+  }
   if(d.error) toast(lwT('No se pudieron leer los documentos: ') + d.error.message);
   if(f.error) toast(lwT('No se pudieron leer las facturas: ') + f.error.message);
   if(a.error) toast(lwT('No se pudieron leer los accesos al portal: ') + a.error.message);
@@ -676,6 +691,32 @@ function pintarFicha(){
       <label for="f-notas">${lwT('Notas')}</label><textarea id="f-notas" ${dis}>${esc(c.notes||'')}</textarea>
     </fieldset>
 
+    ${nuevo ? '' : `
+    <fieldset>
+      <legend>${lwT('Responsable de la ficha')}</legend>
+      <p class="nota" style="margin-top:0">${
+        c.propietario
+          ? lwT('La dio de alta ') + '<b>' + esc(nombreDe(c.propietario)) + '</b>' + (mia ? lwT(' (tú)') : '')
+          : '<b>' + lwT('Nadie.') + '</b> ' + lwT('Es una de las fichas antiguas que se quedaron sin autor: hoy solo la puede editar un administrador.')}</p>
+      ${!ES_ADMIN ? '' : `
+        <!-- El traspaso es de admin y NO necesita RPC: la policy «admins
+             actualizan clientes» ya deja a un admin escribir el propietario, y
+             a un agente NO se lo deja ni por aquí ni por ningún otro camino (su
+             WITH CHECK exige que la fila siga siendo suya al terminar). Añadir
+             una función para esto habría sido una puerta más que auditar para
+             hacer lo que la RLS ya hace bien.
+             (Ojo: nada de acentos graves en este comentario — está dentro de
+             una plantilla de JS y cortarían la cadena.) -->
+        <div class="sui-row">
+          <div><label for="f-dueno">${lwT('Pasar la ficha a')}</label>
+            <select class="sui-sel" id="f-dueno">${
+              EQUIPO.map(u => `<option value="${esc(u.email)}" ${String(c.propietario||'').toLowerCase()===String(u.email).toLowerCase()?'selected':''}>${
+                esc(u.nombre || u.email)}</option>`).join('')}</select></div>
+          <div style="display:flex;align-items:flex-end"><button class="btn" id="btnTraspasar">${lwT('Traspasar')}</button></div>
+        </div>
+        <p class="nota">${lwT('Quien la reciba podrá abrirla y corregirla (mientras no cuelgue de un contrato firmado); los demás la seguirán viendo en el directorio, solo de consulta. Los contratos y las facturas NO se mueven: el traspaso es de la ficha, no del trabajo.')}</p>`}
+    </fieldset>`}
+
     ${nuevo ? '<p class="nota">' + lwT('Los documentos se suben después de crear la ficha.') + '</p>' :
       /* ⚠️ NO PINTAR LOS BLOQUES VACÍOS EN UNA FICHA DEL DIRECTORIO. Todos
          ellos (contratos, pagos, facturas, documentos, portal, soporte) se
@@ -979,6 +1020,7 @@ function pintarFicha(){
      ofrecer guardar. No se recarga nada — lo que hay en pantalla ya son los
      datos buenos. «Cancelar» vuelve a pintar la ficha, que es la forma mas
      corta y mas segura de descartar: los valores se releen de CLIENTES. */
+  const bt = $('#btnTraspasar'); if(bt) bt.addEventListener('click', () => traspasar(c));
   const be = $('#btnEditar');
   if(be) be.addEventListener('click', () => {
     $('#fsIdentidad').querySelectorAll('input,select,textarea').forEach(el => { el.disabled = false; });
@@ -1116,6 +1158,37 @@ async function borrarComprador(c){
   suiCerrarCajon();
   await cargar();
   pintarLista();
+}
+
+/* ── TRASPASAR LA FICHA ────────────────────────────────────────────────────
+   14-sep-2026. Con el directorio abierto, el agente ya VE al comprador que
+   otro dio de alta — pero no puede abrirlo ni corregirlo, así que el atasco se
+   movía un escalón: «pídele el traspaso» no servía de nada porque no había
+   ninguna pantalla para traspasar, solo SQL. Esto es esa pantalla. Sirve
+   también para las fichas antiguas sin autor, que hasta hoy no eran de nadie.
+   No mueve contratos ni facturas: esos cuelgan de quien los guardó. */
+const sinNombre = '—';
+async function traspasar(c){
+  const sel = $('#f-dueno'); if(!sel || !sel.value) return;
+  const nuevo = sel.value;
+  if(String(c.propietario||'').toLowerCase() === nuevo.toLowerCase()){
+    toast(lwT('Esa ficha ya es suya.')); return;
+  }
+  const ok = await lwConfirmar({
+    // El literal de respaldo va FUERA del lwT(): el extractor de claves recoge
+    // todos los literales de dentro de la llamada, y un «—» suelto se contaba
+    // como una frase a traducir.
+    titulo: lwT('Pasar la ficha de %n a %d', { n: c.full_name || sinNombre, d: nombreDe(nuevo) }),
+    cuerpo: '<p>' + lwT('Podrá abrirla y corregirla. Sus contratos y sus facturas no se mueven.') + '</p>',
+    confirmar: lwT('Traspasar'),
+  });
+  if(!ok) return;
+  const b = $('#btnTraspasar'); if(b) b.disabled = true;
+  const { error } = await SB.from('clients').update({ propietario: nuevo }).eq('id', c.id);
+  if(b) b.disabled = false;
+  if(error){ toast(lwT('No se pudo traspasar: ') + error.message); return; }
+  toast(lwT('Ficha traspasada a ') + nombreDe(nuevo));
+  await cargar(); pintarLista(); pintarFicha();
 }
 
 async function guardar(id){

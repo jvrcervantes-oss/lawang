@@ -17,7 +17,7 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que `lwT`
      exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=85b47cb0"></script>
+<script src="/contracts/assets/i18n.js?v=208c1c36"></script>
 <script src="/contracts/assets/herramientas.js?v=c95fc709"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -126,6 +126,7 @@
              fichas para reconstruir a mano una fila de la matriz. -->
         <div class="modos" role="tablist">
           <button class="modo on" id="modoContrato" role="tab" data-lwt="Por contrato">Por contrato</button>
+          <button class="modo"    id="modoProyecto" role="tab" data-lwt="Por proyecto">Por proyecto</button>
           <button class="modo"    id="modoCuenta"   role="tab" data-lwt="Por cuenta">Por cuenta</button>
         </div>
         <!-- el placeholder y el estado vacío arrancan en los del modo por
@@ -216,7 +217,15 @@ let USO = {};
    esta pantalla («¿en qué cuenta cobra este documento?»), y la que motivó el
    encargo. «Por cuenta» es la vista de mantenimiento — corregir un IBAN, dar de
    alta una cuenta nueva — y se busca cuando ya se sabe que se quiere. */
-let MODO = 'contrato';   // 'contrato' | 'cuenta'
+let MODO = 'contrato';   // 'contrato' | 'proyecto' | 'cuenta'
+/* La excepción por proyecto (14-sep, segunda parte del encargo del owner: «si
+   seleccionas Palm Field puede ser esta otra»). `EXCEPCION` son las filas de
+   `proyecto_cuentas`; su `slug` es un tipo de contrato, o `'*'` para «cualquier
+   tipo de este proyecto». Un proyecto que no aparezca hereda el reparto general:
+   la tabla guarda EXCEPCIONES, no una matriz de 8 tipos × 29 proyectos que
+   nadie mantendría al día. */
+let PROYECTOS = [], EXCEPCION = [];
+const TODOS = '*';   // el slug que significa «cualquier tipo de contrato»
 
 /* `orden` decide el sitio de la cuenta en el desplegable del contrato... o eso
    parecía: `bankOptions()` las ordena alfabéticamente por etiqueta, así que hoy
@@ -230,7 +239,7 @@ async function cargar(){
   // Ojo: aquí se piden TODAS las cuentas, activas y no. `cargarCuentasBancarias`
   // de entities.js filtra `activa = true` porque es para imprimir un contrato;
   // este panel es justo donde hay que ver —y poder reactivar— una desactivada.
-  const [cu, pl, re, us] = await Promise.all([
+  const [cu, pl, re, us, pr, pcu] = await Promise.all([
     SB.from('cuentas_bancarias')
       .select('clave,label,titular,banco,cuenta,codigo,direccion,extra,orden,activa,es_escrow,actualizado_en')
       .order('orden'),
@@ -240,6 +249,10 @@ async function cargar(){
     // en la base, así que a un admin normal le devuelve vacío y el aviso se
     // queda sin cifra — que es correcto: tampoco puede cambiar nada.
     SB.rpc('cuentas_uso'),
+    // La excepción por proyecto (14-sep): el catálogo de proyectos activos y las
+    // filas que ya declaran cuenta propia.
+    SB.from('proyectos').select('id,nombre').eq('activo', true).order('nombre'),
+    SB.from('proyecto_cuentas').select('proyecto_id,slug,clave,es_default'),
   ]);
   if(cu.error){
     $('#listaC').innerHTML = '<p class="nota" style="padding:18px">' + lwT('No se pudo cargar: ') + esc(cu.error.message) + '</p>';
@@ -253,6 +266,8 @@ async function cargar(){
   REPARTO    = re.error ? null : (re.data || []);
   USO = {};
   if(!us.error) (us.data || []).forEach(r => { USO[r.clave] = { contratos: r.contratos, firmados: r.firmados }; });
+  PROYECTOS = pr.error  ? null : (pr.data  || []);
+  EXCEPCION = pcu.error ? null : (pcu.data || []);
   pintarLista();
   if(SEL) pintarFicha();
 }

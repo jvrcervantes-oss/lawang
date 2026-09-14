@@ -87,7 +87,7 @@
   .lw-fade-in { animation: lwFadeIn .35s ease both; }
   @keyframes lwFadeIn { from { opacity:0; transform:translateY(4px);} to { opacity:1; transform:none;} }
 </style>
-<script src="i18n.js?v=20260911174255"></script>
+<script src="i18n.js?v=20260914_docs"></script>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script>
   tailwind.config = {
@@ -240,6 +240,20 @@
       </div>
 
       <div class="min-h-0 overflow-y-auto px-5 py-4 flex flex-col gap-5">
+        <!-- DOCUMENTOS DEL PROYECTO (14-sep-2026). Salen de la documentación adjunta al
+             proyecto en la intranet (/intranet/Documentacion/), no de aquí: es la misma
+             fuente única que ya alimenta fotos, modelos, parcelas y FAQ. Cada fila se
+             publica una a una con el opt-in `publicado_investor_deck`, y el RPC exige
+             además `confidencial = false` — ver migración 20260911174500.
+             Nace OCULTO a propósito: una sección "Documentos" vacía en un data room dice
+             que no hay nada que enseñar, que es peor que no tenerla. Lo enciende el JS.
+             Va DELANTE de las garantías de abajo porque esto son los papeles y aquello
+             son afirmaciones sobre ellos. -->
+        <div id="docs-bloque" class="hidden flex-col gap-2">
+          <h3 class="font-body-md text-[11px] uppercase tracking-wider text-[#5F6257] font-bold m-0">Project documents</h3>
+          <div id="docs-lista" class="flex flex-col gap-2"><!-- lo llena el JS --></div>
+        </div>
+
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div class="flex flex-col gap-1 bg-surface-container-low/60 border border-[#D8D2C5] rounded-xl px-4 py-3"><div class="flex items-center gap-2 text-deep-lagoon"><span class="material-symbols-outlined text-[18px] text-territorial-green">shield_lock</span><span class="font-body-md text-body-sm font-bold">Payment security</span></div><span class="font-body-sm text-[11px] uppercase tracking-wider text-[#5F6257]">Notarial escrow (PPAT)</span><p class="font-body-sm text-xs text-[#44483f] leading-relaxed m-0">Reservation and stage payments held in an escrow account managed by the notary, released against agreed conditions.</p></div>
           <div class="flex flex-col gap-1 bg-surface-container-low/60 border border-[#D8D2C5] rounded-xl px-4 py-3"><div class="flex items-center gap-2 text-deep-lagoon"><span class="material-symbols-outlined text-[18px] text-territorial-green">history_edu</span><span class="font-body-md text-body-sm font-bold">Term &amp; registration</span></div><span class="font-body-sm text-[11px] uppercase tracking-wider text-[#5F6257]">Hak Sewa, Indonesian law</span><p class="font-body-sm text-xs text-[#44483f] leading-relaxed m-0">Registered lease term (legal maximum 30 years per grant, renewable with a new term), transferable and heritable.</p></div>
@@ -712,34 +726,119 @@
     })
     .catch(fotosDeSemilla);
 
-  // ── dosier descargable: sale de la documentacion del proyecto, o no sale ────
-  // El owner decidio (11-sep) que el dosier del deck es el documento adjunto al
-  // proyecto en la intranet, y que si no hay ninguno publicado NO se enseñe nada.
-  // Por eso el boton nace oculto en el HTML: solo lo enciende esta respuesta.
+  // ── documentacion del proyecto: sale de la intranet, o no sale ─────────────
+  // El owner decidio (11-sep) que lo descargable del deck es la documentacion
+  // adjunta al proyecto en la intranet, y que si no hay nada publicado NO se
+  // enseñe nada. Por eso tanto el boton de cabecera como el bloque del panel de
+  // due diligence nacen ocultos en el HTML: solo los enciende esta respuesta.
   // No se cuelga de `confidencial` ni de `visible_portal` -- ninguno de los dos
   // significa "publico": el segundo es para compradores CON CONTRATO, lo dice la
   // propia pantalla de Documentacion. Lleva su opt-in explicito, como las parcelas.
+  //
+  // UNA SOLA LLAMADA para las dos cosas (14-sep): el boton de cabecera es un atajo
+  // al dosier comercial y la lista es el data room entero. Pedirlo dos veces habria
+  // sido la segunda copia que diverge en cuanto se toque una.
+
+  // Ligaduras de Material Symbols, no texto: i18n.js ya se las salta sola.
+  var DOC_ICONO = {
+    comercial:'description', legal:'gavel', tecnico:'architecture',
+    precios:'payments', portada:'image', otros:'draft'
+  };
+  // Etiqueta de la categoria. En ingles a proposito: SI pasa por i18n.js (es un
+  // valor cerrado que escribe el estudio), al reves que el titulo del documento,
+  // que lo teclea una persona en la intranet y va marcado data-no-i18n.
+  var DOC_ETIQUETA = {
+    comercial:'Commercial', legal:'Legal', tecnico:'Technical',
+    precios:'Plots & pricing', portada:'Image', otros:'Document'
+  };
+
+  // El `url` lo teclea una persona en la intranet y esto es una pagina publica sin
+  // login: un `javascript:` pegado ahi se ejecutaria al hacer clic. Solo http(s).
+  function urlSegura(u){
+    if(!u) return '';
+    try{
+      var p = new URL(String(u), location.href);
+      return (p.protocol === 'http:' || p.protocol === 'https:') ? p.href : '';
+    }catch(_){ return ''; }
+  }
+
+  function pintaDocs(docs){
+    var bloque = document.getElementById('docs-bloque');
+    var cont   = document.getElementById('docs-lista');
+    if(!bloque || !cont) return;
+    cont.innerHTML = '';
+    var pintados = 0;
+    docs.forEach(function(d){
+      var href = urlSegura(d.url);
+      if(!href) return;
+      var a = document.createElement('a');
+      a.href = href; a.target = '_blank'; a.rel = 'noopener';
+      a.className = 'group flex items-center gap-3 bg-surface-container-low/60 border border-[#D8D2C5] ' +
+                    'rounded-xl px-4 py-3 no-underline hover:border-territorial-green hover:bg-surface-container-lowest transition-all';
+      var ico = document.createElement('span');
+      ico.className = 'material-symbols-outlined text-[20px] shrink-0 text-territorial-green';
+      ico.textContent = DOC_ICONO[d.categoria] || DOC_ICONO.otros;
+      var texto = document.createElement('span');
+      texto.className = 'flex flex-col min-w-0 grow';
+      var tit = document.createElement('span');
+      // textContent y data-no-i18n: es un nombre propio escrito por el equipo. Traducirlo
+      // por coincidencia de palabras convertiria "ITR" o "SITE PLAN" en otra cosa.
+      tit.className = 'font-body-md text-body-sm font-bold text-deep-lagoon truncate';
+      tit.setAttribute('data-no-i18n', '');
+      tit.textContent = d.titulo || '';
+      texto.appendChild(tit);
+      var pie = DOC_ETIQUETA[d.categoria] || DOC_ETIQUETA.otros;
+      var sub = document.createElement('span');
+      sub.className = 'font-body-sm text-[11px] uppercase tracking-wider text-[#5F6257]';
+      sub.textContent = pie;
+      texto.appendChild(sub);
+      if(d.descripcion){
+        var des = document.createElement('span');
+        des.className = 'font-body-sm text-xs text-[#44483f] leading-relaxed';
+        des.setAttribute('data-no-i18n', '');
+        des.textContent = d.descripcion;
+        texto.appendChild(des);
+      }
+      var flecha = document.createElement('span');
+      flecha.className = 'material-symbols-outlined text-[18px] shrink-0 text-[#5F6257] group-hover:text-deep-lagoon transition-colors';
+      flecha.textContent = 'open_in_new';
+      a.appendChild(ico); a.appendChild(texto); a.appendChild(flecha);
+      cont.appendChild(a);
+      pintados++;
+    });
+    if(!pintados) return;                       // nada publicable: el bloque sigue oculto
+    bloque.classList.remove('hidden');
+    bloque.classList.add('flex');
+    if(window.lwDeck) lwDeck.traduce(bloque);
+  }
+
   fetch(SB_URL + '/rest/v1/rpc/investor_deck_documentos', {
     method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
     body: JSON.stringify({ p_proyecto: PROYECTO })
   }).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
     .then(function(docs){
-      if(!docs || !docs.length) return;              // sin documento publicado, sin boton
-      var d = docs[0];
-      if(!d.url) return;
+      if(!docs || !docs.length) return;          // sin nada publicado, ni boton ni bloque
+      pintaDocs(docs);
+      // El boton de cabecera dice "Download dossier", asi que solo puede apuntar al
+      // dosier. Antes cogia `docs[0]` y el RPC ordena por `creado_en desc`: en cuanto
+      // hay mas de un documento publicado, el boton pasa a bajar el ultimo que alguien
+      // subio -- un plano topografico bajo la promesa de un dosier. Se ata a la
+      // categoria, que es lo que de verdad significa "dosier".
+      var d = docs.filter(function(x){ return x.categoria === 'comercial' && urlSegura(x.url); })[0];
+      if(!d) return;
       var cta = document.getElementById('cta-dosier');
       if(!cta) return;
-      cta.href = d.url;
+      cta.href = urlSegura(d.url);
       cta.classList.remove('hidden');
       cta.classList.add('inline-flex');
       if(d.titulo) cta.setAttribute('title', d.titulo);
     })
-    .catch(function(){ /* MUDO A PROPOSITO: el estado de reposo del boton ya es 'oculto', asi
-         que un fallo aqui deja exactamente lo mismo que el caso normal de 'no hay dosier
-         publicado' -- que es lo que pasa hoy en todos los proyectos. No hay nada que
-         avisarle al inversor: no se le promete ninguna descarga que luego falle, y un
-         aviso de error sobre un boton que nunca vio solo seria ruido. Lo que si tiene
-         que verse en pantalla (modelos, parcelas) tiene su propio aviso. */ });
+    .catch(function(){ /* MUDO A PROPOSITO: el estado de reposo de las dos piezas ya es
+         'oculto', asi que un fallo aqui deja exactamente lo mismo que el caso normal de
+         'este proyecto no tiene nada publicado'. No hay nada que avisarle al inversor:
+         no se le promete ninguna descarga que luego falle, y un aviso de error sobre un
+         bloque que nunca vio solo seria ruido. Lo que si tiene que verse en pantalla
+         (modelos, parcelas) tiene su propio aviso. */ });
 
   // ── tipologías de villa: se leen de la intranet, no se escriben a mano ────
   // Aquí había un array MODELOS clavado a mano con Dali/Dune/Dream y un comentario

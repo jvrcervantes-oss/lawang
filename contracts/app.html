@@ -34,7 +34,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=85b47cb0"></script>
+<script src="/contracts/assets/i18n.js?v=208c1c36"></script>
 <script src="/contracts/assets/herramientas.js?v=c95fc709"></script>
 <script src="assets/topbar.js?v=c1bc6349" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -55,7 +55,7 @@
      /facturas (define CUENTAS_BANCARIAS y SOCIEDADES). -->
 <!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
      hasta que expire su TTL. Quitable pasado el 3-ago-2026. -->
-<script src="assets/entities.js?v=53683fe2"></script>
+<script src="assets/entities.js?v=80bcdeb1"></script>
 <script src="assets/geo.js?v=cc6b09b2"></script>
 <script src="assets/huella.js?v=b511ff5e"></script>
 <!-- reasignar el autor de un documento (solo super_admin) — compartido con
@@ -83,7 +83,7 @@
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
 <script src="assets/modelos_catalogo.js?v=4e4fdee1"></script>
 <script src="assets/hitos_fechas.js?v=f4fb5a15"></script>
-<script src="assets/entidades_pago.js?v=79cf05b7"></script>
+<script src="assets/entidades_pago.js?v=3041528f"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
      — igual que contract.css, que tambien es especifico de contratos. -->
@@ -1008,7 +1008,7 @@ function toast(msg){
    en la Carta de Reserva además es la única que se ofrece. */
 function pdef(key){
   if(key==='sociedad_firmante' && CURRENT && SOCIEDAD_DEFAULT[CURRENT.slug]) return SOCIEDAD_DEFAULT[CURRENT.slug];
-  if(key==='cuenta_bancaria' && CURRENT && bankDefaultFor(CURRENT.slug)) return bankDefaultFor(CURRENT.slug);
+  if(key==='cuenta_bancaria' && CURRENT && bankDefaultFor(CURRENT.slug, proyectoIdActual())) return bankDefaultFor(CURRENT.slug, proyectoIdActual());
   // Fecha de firma y fecha de tipo de cambio: el día en que se está haciendo
   // el contrato, no una fecha fija en tokens.json (cambia cada día). Mismo
   // mecanismo que el resto de projectDefaults — un contrato reabierto sin
@@ -2088,6 +2088,9 @@ function aplicarReglasCampos(){
   syncParcelaMaster();
   syncResort();
   syncSuperficieTotal();
+  // va DESPUÉS de los de proyecto: lee el proyecto ya elegido para resolver qué
+  // cuentas ofrece este contrato (cascada proyecto → tipo → general)
+  syncCuentasProyecto();
   syncBloqueoFichaProyecto();
   syncApoderadoHakSewa();
   syncPoaVinculado();
@@ -2165,6 +2168,81 @@ function syncParcelaMaster(){
    Proyectos). Sin ella, el número solo existía en la tabla de Proyectos y
    había que volver a teclearlo a mano en cada contrato — la misma
    duplicación que ya se corrigió para el código de parcela y el resort. */
+/* LA CUENTA DE COBRO DEPENDE TAMBIÉN DEL PROYECTO (14-sep-2026, encargo del
+   owner: «si seleccionas Palm Field puede ser esta otra»).
+
+   Por qué hace falta un sync y no basta con `bankOptionsFor` en buildForm: el
+   proyecto se elige DENTRO del formulario, después de pintarlo. Sin esto, el
+   desplegable de cuenta se quedaría con las opciones del tipo de contrato para
+   siempre y la excepción del proyecto no se aplicaría nunca.
+
+   Mismo patrón que `syncParcelaMaster` y sus hermanos, con dos cuidados propios
+   porque aquí lo que hay en juego es el destino de una transferencia:
+
+   · **Nunca se pisa una elección manual.** `AUTO_CUENTA` recuerda lo último que
+     puso el automatismo; si el valor actual no es eso, lo eligió una persona y
+     no se toca. Es el mismo centinela que usan los demás sync.
+   · **Una cuenta ya elegida que deja de ofrecerse NO se borra en silencio.** Se
+     conserva como opción huérfana (mismo mecanismo que `fieldHTML`, hallazgo
+     Legal del 11-ago) y se avisa. Borrarla dejaría el contrato sin destino de
+     pago sin que nadie se entere, que es exactamente el fallo que toda esta
+     familia de código existe para evitar. */
+/* El id del proyecto elegido ahora mismo en el formulario, o '' si no hay.
+   Se resuelve por NOMBRE contra `PROYECTOS_DB` porque el formulario guarda
+   `proyecto_nombre` (la columna `contratos.proyecto_id` la rellena el trigger al
+   guardar, así que mientras se redacta todavía no existe). Es el único sitio de
+   este fichero donde se hace esa traducción: los demás sync ya la hacen igual. */
+function proyectoIdActual(){
+  const proy = document.querySelector('[name="proyecto_nombre"]');
+  if(!proy || !proy.value) return '';
+  const fila = (PROYECTOS_DB || []).find(p => p.nombre === proy.value);
+  return (fila && fila.id) || '';
+}
+
+let AUTO_CUENTA = '';
+function syncCuentasProyecto(){
+  const sel = document.querySelector('[name="cuenta_bancaria"]');
+  if(!sel || !CURRENT) return;
+  const opts = bankOptionsFor(CURRENT.slug, proyectoIdActual());
+
+  // ¿cambia algo? Si las opciones son las mismas, no se repinta: repintar un
+  // select le quita el foco a quien lo tenga abierto.
+  const ahora = [...sel.options].map(o => o.value).filter(Boolean).join('|');
+  const nuevas = opts.map(o => o[0]).join('|');
+  const elegida = sel.value;
+  if(ahora === nuevas) {
+    // las opciones no cambian, pero la precarga del proyecto sí puede aplicar
+    aplicaPrecargaCuenta(sel, CURRENT.slug, proyectoIdActual());
+    return;
+  }
+
+  const sigueOfrecida = !elegida || opts.some(o => o[0] === elegida);
+  sel.innerHTML = '<option value=""></option>'
+    + opts.map(([v,l]) => `<option value="${escAttr(v)}">${esc(l)}</option>`).join('')
+    // la elegida que ya no está entre las vigentes se conserva, como en fieldHTML
+    + (sigueOfrecida ? '' : `<option value="${escAttr(elegida)}" selected>${esc(CUENTAS_BANCARIAS[elegida] ? CUENTAS_BANCARIAS[elegida].label : elegida)}</option>`);
+  if(sigueOfrecida) sel.value = elegida;
+
+  if(!sigueOfrecida){
+    toast(lwT('Este proyecto no cobra en la cuenta que tenías elegida. Se ha dejado como estaba — cámbiala si corresponde.'));
+  }
+  aplicaPrecargaCuenta(sel, CURRENT.slug, proyectoIdActual());
+  renderDebounced();
+}
+/* La precargada del nivel que manda. Solo actúa sobre un campo VACÍO o sobre lo
+   que puso el propio automatismo: si hay una cuenta elegida a mano, manda ella. */
+function aplicaPrecargaCuenta(sel, slug, proyectoId){
+  const def = bankDefaultFor(slug, proyectoId);
+  if(!def) return;
+  const actual = sel.value;
+  if(actual && actual !== AUTO_CUENTA) return;         // elección manual: intocable
+  if(actual === def) return;
+  if(![...sel.options].some(o => o.value === def)) return;   // no ofrecida: no se fuerza
+  sel.value = def;
+  AUTO_CUENTA = def;
+  renderDebounced();
+}
+
 let AUTO_SUPERFICIE_TOTAL = '';
 function syncSuperficieTotal(){
   const sel   = document.querySelector('[name="proyecto_nombre"]');
@@ -2986,7 +3064,7 @@ function deriveSections(){
     let ins = SECTIONS.findIndex(s=>s.id==='pagos');
     if(ins<0) ins = SECTIONS.findIndex(s=>s.tier==='gestion');
     ins = ins<0 ? SECTIONS.length : ins+1;
-    const opcionesBanco = bankOptionsFor(CURRENT.slug);
+    const opcionesBanco = bankOptionsFor(CURRENT.slug, proyectoIdActual());
     /* Desde el 14-sep-2026 QUÉ cuentas se ofrecen lo marca el super admin en
        /intranet/cuentas/, así que por primera vez este documento puede no tener
        ninguna. Se dice en voz alta y no se deja un desplegable vacío: un select
@@ -5561,6 +5639,12 @@ async function init(){
      el aviso dice por qué se ven de más. */
   try{ await cargarPlantillaCuentas(sb); }
   catch(e){ toast(lwT('No se ha podido cargar qué cuentas corresponden a cada plantilla: ') + (e.message || e) + ' — se ofrecen todas, comprueba la cuenta antes de imprimir'); }
+  /* Y la excepción por PROYECTO (14-sep-2026): un proyecto puede cobrar en una
+     cuenta distinta de la general de su tipo de contrato. Si esta falla, la
+     cascada se queda en el nivel de tipo — que es el comportamiento de antes de
+     hoy, no un vacío — y el aviso dice qué se está perdiendo. */
+  try{ await cargarProyectoCuentas(sb); }
+  catch(e){ toast(lwT('No se ha podido cargar la cuenta propia de cada proyecto: ') + (e.message || e) + ' — se ofrecen las del tipo de contrato, comprueba la cuenta antes de imprimir'); }
   // Mismo motivo y mismo patrón que las cuentas: NIK/dirección de los
   // apoderados de Hak Sewa salieron de tokens.json (público) a una tabla con
   // RLS (12-ago). Si falla, el nombre sigue eligiéndose (viene de

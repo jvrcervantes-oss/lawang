@@ -1058,6 +1058,23 @@
     /* Directorio de compradores + el autor corrige lo suyo (14-sep-2026). */
     'No se pudo leer el directorio de compradores: ': 'Could not read the buyer directory: ',
     'Su actividad': 'Their activity',
+    /* Traspaso de ficha de comprador (14-sep-2026). */
+    'Responsable de la ficha': 'Who owns this record',
+    'La dio de alta ': 'Created by ',
+    ' (tú)': ' (you)',
+    'Nadie.': 'Nobody.',
+    'Es una de las fichas antiguas que se quedaron sin autor: hoy solo la puede editar un administrador.':
+      'This is one of the older records left without an author: for now only an administrator can edit it.',
+    'Pasar la ficha a': 'Hand the record over to',
+    'Traspasar': 'Hand over',
+    'Quien la reciba podrá abrirla y corregirla (mientras no cuelgue de un contrato firmado); los demás la seguirán viendo en el directorio, solo de consulta. Los contratos y las facturas NO se mueven: el traspaso es de la ficha, no del trabajo.':
+      'Whoever receives it will be able to open and correct it (as long as it does not hang off a signed contract); everyone else will keep seeing it in the directory, read-only. Contracts and invoices do NOT move: what changes hands is the record, not the work.',
+    'Pasar la ficha de %n a %d': 'Hand the record of %n over to %d',
+    'Podrá abrirla y corregirla. Sus contratos y sus facturas no se mueven.':
+      'They will be able to open and correct it. Their contracts and invoices do not move.',
+    'Esa ficha ya es suya.': 'That record is already theirs.',
+    'No se pudo traspasar: ': 'Could not hand it over: ',
+    'Ficha traspasada a ': 'Record handed over to ',
     'Contratos, pagos, facturas, documentos y portal de esta persona NO se muestran aquí: son del compañero que lleva la ficha. Que no aparezcan no significa que no existan.':
       'This person’s contracts, payments, invoices, documents and portal are NOT shown here: they belong to the colleague who owns the record. Their absence does not mean they do not exist.',
     'de otro': 'someone else’s',

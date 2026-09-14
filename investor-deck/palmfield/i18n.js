@@ -263,6 +263,19 @@
       { es: 'El arrendamiento se pacta directamente entre el propietario del suelo y el comprador — sin figura de nominee, sin intermediario oculto que ostente el título en tu nombre.',
         id: 'Sewa disepakati langsung antara pemilik tanah dan pembeli — tanpa skema nominee, tanpa perantara tersembunyi yang memegang hak atas nama Anda.' },
 
+    /* — documentos del proyecto (14-sep-2026) —
+       Solo el rotulo de la seccion y las etiquetas de categoria, que son un valor
+       CERRADO que escribe el estudio. El titulo de cada documento sale de la base,
+       lo teclea una persona y va marcado data-no-i18n: "ITR" o "PKKPR" no se
+       traducen, son nombres propios de papeles oficiales indonesios. */
+    'Project documents': { es: 'Documentación del proyecto', id: 'Dokumen proyek' },
+    'Commercial': { es: 'Comercial', id: 'Komersial' },
+    'Legal': { es: 'Legal', id: 'Legal' },
+    'Technical': { es: 'Técnico', id: 'Teknis' },
+    'Plots & pricing': { es: 'Parcelas y precios', id: 'Kavling & harga' },
+    'Image': { es: 'Imagen', id: 'Gambar' },
+    'Document': { es: 'Documento', id: 'Dokumen' },
+
     /* — FAQ — */
     'Frequently Asked Questions': { es: 'Preguntas frecuentes', id: 'Pertanyaan yang Sering Diajukan' },
     /* Las 7 preguntas y sus respuestas YA NO SE TRADUCEN AQUI (11-sep-2026).
