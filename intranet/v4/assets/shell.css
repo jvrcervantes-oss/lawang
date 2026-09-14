@@ -38,12 +38,40 @@
    la escalera vive entera en este fichero o no es una escalera. */
 #cajon-backdrop,#cajon-detalle{z-index:var(--z-cajon)}
 
-/* ---------- toast ---------- */
-#lw-toast{position:fixed;left:50%;bottom:64px;transform:translateX(-50%);z-index:var(--z-aviso);display:none;
-  max-width:min(92vw,480px);background:#1B1C19;color:#F5F0E6;border:1px solid #C89B5C;border-radius:6px;
-  font:500 13px/1.45 'Neue Kabel',system-ui,sans-serif;padding:10px 16px;text-align:center;
-  box-shadow:0 8px 30px rgba(27,28,25,.25)}
-#lw-toast.ok{border-color:#485B37;background:#26311d;color:#e8f0dd}
+/* ---------- aviso: el de la suite, con la piel de la v4 ----------
+   La v4 tenia DOS toasts propios —uno aqui y otro dentro de editores.js— y la
+   suite viva ya tenia el suyo resuelto en `contracts/assets/suite-comun.js`
+   desde agosto, cargado por 29 paginas. Eran tres. Ahora la v4 usa aquel, y lo
+   unico que vive aqui es como se ve: la v4 no carga `suite.css`, asi que sin
+   esto el aviso saldria sin estilo.
+
+   Los nombres de nodo (`#toast`, `#toastMal`) y las clases (`show`/`on`) los
+   pone `suite-comun.js`: no se eligen aqui, se acatan. Las dos variables de
+   duracion tambien son suyas — las lee con getComputedStyle, y si faltan cae a
+   4.200 y 7.000 ms; se declaran igualmente para que el numero viva en un sitio.
+
+   El verde de «guardado» de la v4 no se reproduce: la suite tiene un aviso
+   neutro y `toastMal` para el fallo, y anadir un tercer estado aqui seria
+   estrenar justo lo que se acaba de unificar. */
+:root{ --t-toast:4200ms; --t-toast-mal:7000ms }
+
+#toast,#toastMal{position:fixed;z-index:var(--z-aviso);display:none;
+  font-family:'Neue Kabel',system-ui,sans-serif}
+#toast.show,#toast.on,#toastMal.show,#toastMal.on{display:block}
+
+/* Normal: tinta oscura con filo de oro, centrado abajo. */
+#toast{left:50%;bottom:64px;transform:translateX(-50%);
+  max-width:min(92vw,480px);background:#1B1C19;color:#F5F0E6;border:1px solid #C89B5C;
+  border-radius:6px;font-weight:500;font-size:13px;line-height:1.45;padding:10px 16px;
+  text-align:center;box-shadow:0 8px 30px rgba(27,28,25,.25)}
+
+/* Fallo: en el centro y en rojo, pedido del owner el 14-sep. Un fallo no puede
+   irse por abajo como una confirmacion — y con la cuenta atras corriendo,
+   desaparecia antes de entenderlo. */
+#toastMal{top:50%;left:50%;transform:translate(-50%,-50%);
+  max-width:min(88vw,560px);background:#9E2F26;color:#fff;border-radius:12px;
+  font-weight:600;font-size:15px;line-height:1.35;padding:18px 26px;text-align:center;
+  box-shadow:0 22px 60px -18px rgba(158,47,38,.55),0 0 0 6px rgba(158,47,38,.13)}
 
 /* ---------- modal ---------- */
 #lw-modal{position:fixed;inset:0;z-index:var(--z-modal)}

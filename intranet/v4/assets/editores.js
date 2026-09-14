@@ -235,19 +235,27 @@
 
      `role=alert` en el de error y `status` en el normal, por lo mismo que en
      `suite-comun.js`: un fallo debe cortar al lector de pantalla. */
-  function toast(msg, color) {
-    var mal = !!color;
-    var t = document.createElement('div');
-    t.style.cssText = mal
-      ? 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10002;background:#9E2F26;color:#fff;' +
-        'padding:18px 26px;border-radius:12px;font:600 15px/1.35 sans-serif;max-width:min(560px,88vw);' +
-        'box-shadow:0 22px 60px -18px rgba(158,47,38,.55),0 0 0 6px rgba(158,47,38,.13)'
-      : 'position:fixed;bottom:60px;left:50%;transform:translateX(-50%);z-index:10002;background:#104C4F;color:#fff;padding:10px 18px;border-radius:999px;font:600 13px sans-serif;max-width:80vw';
-    t.setAttribute('role', mal ? 'alert' : 'status');
-    t.setAttribute('aria-live', mal ? 'assertive' : 'polite');
-    t.textContent = msg;
-    document.body.appendChild(t);
-    setTimeout(function () { t.remove(); }, mal ? 7000 : 5200);
+  /* ADAPTADOR, ya no una segunda implementacion (14-sep-2026, encargo del owner).
+     Este fichero pintaba su propio aviso, y la suite viva YA tenia uno resuelto en
+     `contracts/assets/suite-comun.js` desde agosto: limpia el temporizador (el
+     fallo de dos avisos pisandose), se anuncia con aria-live y lee su duracion de
+     la misma variable que anima la barra. El de aqui no hacia nada de eso, y
+     ademas pedia `sans-serif` a secas — era el unico elemento de la suite que no
+     salia en la tipografia de marca.
+
+     ⚠️ POR QUE CAMBIA DE NOMBRE. `toast` y `toastMal` son `const` de nivel
+     superior en suite-comun.js, y un `const` de nivel superior NO queda en
+     `window`: solo se alcanza como identificador suelto. Una funcion `toast()`
+     aqui dentro lo TAPARIA y no habria forma de llamar a la de fuera. Por eso el
+     adaptador se llama `aviso` y las 43 llamadas se renombraron con el.
+
+     ⚠️ Y POR QUE HACE FALTA EL ADAPTADOR en vez de llamar directo: el segundo
+     argumento significa cosas distintas. Aqui marcaba ERROR; en la pieza
+     compartida es la DURACION en ms. Pasar un color donde va un numero daria un
+     `setTimeout` de NaN y el aviso se iria en el acto. La inversion se traduce
+     una sola vez, aqui. */
+  function aviso(msg, color) {
+    if (color) toastMal(msg); else toast(msg);
   }
 
   /* Descarga de CSV en el navegador (11-sep-2026, exportes de Proyectos).
@@ -296,7 +304,7 @@
 
     modelos: function (aut) {
       var sb = aut.sb, admin = esAdmin(aut.ficha);
-      var soloAdmin = function () { toast('La familia de modelos la escribe solo administración (policy es_admin) — tu sesión es de ' + ((aut.ficha && aut.ficha.rol) || 'agente') + '.', '#8A6A34'); };
+      var soloAdmin = function () { aviso('La familia de modelos la escribe solo administración (policy es_admin) — tu sesión es de ' + ((aut.ficha && aut.ficha.rol) || 'agente') + '.', '#8A6A34'); };
       ata(/^\+? ?Nuevo modelo$/i, function () {
         if (!admin) return soloAdmin();
         modal('Nuevo modelo', [
@@ -315,7 +323,7 @@
       ata(/^Editar datos$/i, function () {
         if (!admin) return soloAdmin();
         var m = window.LW_V4 && window.LW_V4.modelo;
-        if (!m) return toast('La ficha del modelo aún no ha cargado.', '#8A6A34');
+        if (!m) return aviso('La ficha del modelo aún no ha cargado.', '#8A6A34');
         modal('Editar «' + m.nombre + '»', [
           { k: 'dormitorios', label: 'Dormitorios', tipo: 'number', valor: m.dormitorios },
           { k: 'banos', label: 'Baños', tipo: 'number', valor: m.banos },
@@ -341,7 +349,7 @@
       ata(/^Añadir documento$/i, function () {
         // subir un fichero exige el bucket de almacenamiento: es el único paso
         // de esta pantalla que sigue en la herramienta viva, dicho en voz alta
-        toast('La subida de ficheros vive aún en /intranet/modelos/ (necesita el bucket). Todo lo demás de esta pantalla ya es nativo.', '#8A6A34');
+        aviso('La subida de ficheros vive aún en /intranet/modelos/ (necesita el bucket). Todo lo demás de esta pantalla ya es nativo.', '#8A6A34');
         setTimeout(function () { location.href = '/intranet/modelos/'; }, 1600);
       });
     },
@@ -367,7 +375,7 @@
         var be = document.getElementById('btn-enlace');
         if (be) be.addEventListener('click', function (ev) {
           ev.stopPropagation();
-          var p = proyecto(); if (!p) return toast('El proyecto aún no ha cargado.', '#8A6A34');
+          var p = proyecto(); if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
           modal('Nuevo enlace · ' + p, [
             { k: 'titulo', label: 'Título', req: 1 },
             { k: 'url', label: 'URL', req: 1, ayuda: 'https://…' },
@@ -401,7 +409,7 @@
         var bf = document.getElementById('btn-faq');
         if (bf) bf.addEventListener('click', function (ev) {
           ev.stopPropagation();
-          var p = proyecto(); if (!p) return toast('El proyecto aún no ha cargado.', '#8A6A34');
+          var p = proyecto(); if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
           modal('Nueva pregunta frecuente · ' + p, [
             { k: 'titulo', label: 'Pregunta', req: 1 },
             { k: 'descripcion', label: 'Respuesta', tipo: 'textarea', req: 1 }
@@ -423,7 +431,7 @@
          una no deshace las otras, mismo criterio que allí. */
       ata(/^Editar proyecto$/i, function () {
         var p = proyectoObj();
-        if (!p) return toast('El proyecto aún no ha cargado.', '#8A6A34');
+        if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
         Promise.all([
           sb.from('modelos').select('id,nombre,precio_construccion,moneda').eq('activo', true),
           sb.from('modelos_villa').select('id,proyecto,modelo,modelo_id').eq('proyecto', p.nombre),
@@ -498,8 +506,8 @@
                 trabajos.push(lwDeclaraModelosEnProyecto(sb, p.nombre, v.modelos || [], {
                   catalogo: catalogo, villas: villas, enUso: new Set(Object.keys(enUso)), proyecto_id: p.id
                 }).then(function (rm) {
-                  if (!rm.ok) toast('La ficha sí, los modelos no: ' + rm.error, '#ba1a1a');
-                  else if (rm.rechazadas.length) toast('No se retiran ' + rm.rechazadas.map(function (x) { return x.modelo; }).join(', ') + ': hay parcelas que los usan', '#8A6A34');
+                  if (!rm.ok) aviso('La ficha sí, los modelos no: ' + rm.error, '#ba1a1a');
+                  else if (rm.rechazadas.length) aviso('No se retiran ' + rm.rechazadas.map(function (x) { return x.modelo; }).join(', ') + ': hay parcelas que los usan', '#8A6A34');
                 }));
               }
               if (puedeUsuarios && managers.length) {
@@ -509,19 +517,19 @@
                   var marcadoAhora = marcados.indexOf(m.user_id) !== -1;
                   if (teniaAntes === marcadoAhora) return;
                   trabajos.push(sb.rpc('usuario_supervisa_proyecto', { p_user_id: m.user_id, p_proyecto_id: p.id, p_asignar: marcadoAhora })
-                    .then(function (rr) { if (rr.error) toast('No se pudo actualizar el proyecto de ' + (m.nombre || m.email) + ': ' + rr.error.message, '#ba1a1a'); }));
+                    .then(function (rr) { if (rr.error) aviso('No se pudo actualizar el proyecto de ' + (m.nombre || m.email) + ': ' + rr.error.message, '#ba1a1a'); }));
                 });
               }
               if (v.imagen) {
                 var file = v.imagen;
                 if (file.size > 8 * 1024 * 1024) {
-                  toast('La ficha sí, la foto no: pasa de 8 MB.', '#ba1a1a');
+                  aviso('La ficha sí, la foto no: pasa de 8 MB.', '#ba1a1a');
                 } else {
                   var ext = (file.name.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
                   var path = 'proyectos/' + p.id + '/' + crypto.randomUUID() + ext;
                   trabajos.push(
                     sb.storage.from('documentacion').upload(path, file, { contentType: file.type || undefined }).then(function (up) {
-                      if (up.error) { toast('La ficha sí, la foto no: ' + up.error.message, '#ba1a1a'); return; }
+                      if (up.error) { aviso('La ficha sí, la foto no: ' + up.error.message, '#ba1a1a'); return; }
                       return sb.from('documentos_proyecto').insert({
                         proyecto: p.nombre, categoria: 'portada', titulo: 'Portada',
                         path: path, mime: file.type || null, bytes: file.size, confidencial: true
@@ -530,7 +538,7 @@
                           // fichero huérfano en el bucket sin fila: se retira,
                           // igual que hace subirDoc() en /intranet/modelos/.
                           sb.storage.from('documentacion').remove([path]);
-                          toast('La ficha sí, la foto no: ' + ri.error.message, '#ba1a1a');
+                          aviso('La ficha sí, la foto no: ' + ri.error.message, '#ba1a1a');
                         }
                       });
                     })
@@ -549,12 +557,12 @@
          borrado solo si quedan unidades, modelos o documentos colgando. */
       ata(/^Borrar proyecto$/i, function () {
         var p = proyectoObj();
-        if (!p) return toast('El proyecto aún no ha cargado.', '#8A6A34');
-        if (!esSuper) return toast('Borrar un proyecto es solo para super_admin.', '#8A6A34');
+        if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
+        if (!esSuper) return aviso('Borrar un proyecto es solo para super_admin.', '#8A6A34');
         if (!window.confirm('Borrar el proyecto «' + p.nombre + '» del catálogo. Solo funciona si no le quedan unidades, modelos ni documentos colgando. ¿Seguro?')) return;
         sb.rpc('borrar_proyecto', { p_nombre: p.nombre }).then(function (r) {
-          if (r.error) return toast('No se pudo borrar: ' + r.error.message, '#ba1a1a');
-          toast('Proyecto borrado');
+          if (r.error) return aviso('No se pudo borrar: ' + r.error.message, '#ba1a1a');
+          aviso('Proyecto borrado');
           setTimeout(function () { location.href = '/intranet/v4/proyectos/'; }, 1200);
         });
       });
@@ -588,7 +596,7 @@
       var bNuevaU = document.getElementById('btn-nueva-unidad');
       if (bNuevaU) bNuevaU.addEventListener('click', function (ev) {
         ev.stopPropagation();
-        toast('Abriendo formulario…');
+        aviso('Abriendo formulario…');
         Promise.all([
           sb.from('proyectos').select('nombre').eq('activo', true).order('nombre'),
           sb.from('tipos_vivienda').select('clave,etiqueta').eq('activo', true).order('etiqueta')
@@ -596,11 +604,11 @@
           // Hallazgo de Desarrollo en la consulta de deploy: sin este chequeo,
           // un fallo de red o de RLS abría el modal en silencio con los
           // desplegables vacíos — el botón parecía "no hacer nada".
-          if (rs[0].error) return toast('No se pudo abrir: ' + rs[0].error.message, '#ba1a1a');
-          if (rs[1].error) return toast('No se pudo abrir: ' + rs[1].error.message, '#ba1a1a');
+          if (rs[0].error) return aviso('No se pudo abrir: ' + rs[0].error.message, '#ba1a1a');
+          if (rs[1].error) return aviso('No se pudo abrir: ' + rs[1].error.message, '#ba1a1a');
           var proyectos = ((rs[0] && rs[0].data) || []).map(function (p) { return p.nombre; });
           var tipos = ((rs[1] && rs[1].data) || []).map(function (t) { return [t.clave, t.etiqueta]; });
-          if (!proyectos.length) return toast('No hay ningún proyecto dado de alta todavía — crea uno con «+ Nuevo proyecto» primero.', '#8A6A34');
+          if (!proyectos.length) return aviso('No hay ningún proyecto dado de alta todavía — crea uno con «+ Nuevo proyecto» primero.', '#8A6A34');
           var actual = proyectoObj();
           modal('Nueva unidad', [
             { k: 'proyecto', label: 'Proyecto', tipo: 'select', req: 1, opciones: proyectos, valor: (actual && actual.nombre) || proyectos[0] },
@@ -625,7 +633,7 @@
             });
           });
         }, function (e) {
-          toast('No se pudo abrir: ' + (e && e.message || e), '#ba1a1a');
+          aviso('No se pudo abrir: ' + (e && e.message || e), '#ba1a1a');
         });
       });
 
@@ -658,7 +666,7 @@
          RPC borrar_unidad y no tiene sitio en una tarjeta de listado. */
       function editarUnidad(u) {
         var vinculada = !!u.contrato_id;
-        toast('Abriendo «' + (u.codigo || 'unidad') + '»…');
+        aviso('Abriendo «' + (u.codigo || 'unidad') + '»…');
         Promise.all([
           sb.from('proyectos').select('nombre').eq('activo', true).order('nombre'),
           sb.from('tipos_vivienda').select('clave,etiqueta').eq('activo', true).order('etiqueta'),
@@ -671,8 +679,8 @@
         ]).then(function (rs) {
           // Mismo chequeo que «+ Nueva unidad»: sin esto, un fallo de red o de
           // RLS abria el modal en silencio con los desplegables vacios.
-          if (rs[0].error) return toast('No se pudo abrir: ' + rs[0].error.message, '#ba1a1a');
-          if (rs[1].error) return toast('No se pudo abrir: ' + rs[1].error.message, '#ba1a1a');
+          if (rs[0].error) return aviso('No se pudo abrir: ' + rs[0].error.message, '#ba1a1a');
+          if (rs[1].error) return aviso('No se pudo abrir: ' + rs[1].error.message, '#ba1a1a');
           var proyectos = ((rs[0] && rs[0].data) || []).map(function (p) { return p.nombre; });
           if (u.proyecto && proyectos.indexOf(u.proyecto) === -1) proyectos.unshift(u.proyecto);
           var tipos = ((rs[1] && rs[1].data) || []).map(function (t) { return [t.clave, t.etiqueta]; });
@@ -852,7 +860,7 @@
             csup.addEventListener('input', recalcula);
           }
         }, function (e) {
-          toast('No se pudo abrir: ' + (e && e.message || e), '#ba1a1a');
+          aviso('No se pudo abrir: ' + (e && e.message || e), '#ba1a1a');
         });
       }
 
@@ -867,7 +875,7 @@
         if (!b) return;
         ev.preventDefault(); ev.stopPropagation();
         var u = ((window.LW_V4 && window.LW_V4.unidades) || {})[b.getAttribute('data-uid')];
-        if (!u) return toast('Esa parcela ya no esta en pantalla — vuelve a abrir el proyecto.', '#8A6A34');
+        if (!u) return aviso('Esa parcela ya no esta en pantalla — vuelve a abrir el proyecto.', '#8A6A34');
         editarUnidad(u);
       });
 
@@ -877,7 +885,7 @@
       var bExport = document.getElementById('btn-exportar');
       if (bExport) bExport.addEventListener('click', function (ev) {
         ev.stopPropagation();
-        toast('Preparando el CSV…');
+        aviso('Preparando el CSV…');
         Promise.all([
           sb.from('proyectos').select('nombre,resort').eq('activo', true).order('nombre'),
           sb.from('unidades').select('proyecto,estado,moneda,precio'),
@@ -888,7 +896,7 @@
           // con datos incompletos o a cero, sin avisar — y esto es un informe
           // financiero saliendo de la intranet.
           var fallo = rs[0].error || rs[1].error || rs[2].error;
-          if (fallo) return toast('No se pudo generar el CSV: ' + fallo.message, '#ba1a1a');
+          if (fallo) return aviso('No se pudo generar el CSV: ' + fallo.message, '#ba1a1a');
           var ps = (rs[0] && rs[0].data) || [], us = (rs[1] && rs[1].data) || [], fs = (rs[2] && rs[2].data) || [];
           var porP = {};
           us.forEach(function (u) {
@@ -911,7 +919,7 @@
             ['Proyecto', 'Resort', 'Unidades', 'Disponibles', 'Cartera EUR', 'Cobrado EUR', 'Pendiente EUR', 'Unidades fuera de EUR'],
             filas);
         }, function (e) {
-          toast('No se pudo generar el CSV: ' + (e && e.message || e), '#ba1a1a');
+          aviso('No se pudo generar el CSV: ' + (e && e.message || e), '#ba1a1a');
         });
       });
 
@@ -922,15 +930,15 @@
       if (bBalance) bBalance.addEventListener('click', function (ev) {
         ev.stopPropagation();
         var p = proyectoObj();
-        if (!p) return toast('El proyecto aún no ha cargado.', '#8A6A34');
-        toast('Preparando el CSV de ' + p.nombre + '…');
+        if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
+        aviso('Preparando el CSV de ' + p.nombre + '…');
         // `moneda` en su propia columna (hallazgo de Administración en la
         // consulta de deploy de este mismo cambio): un proyecto con unidades
         // en EUR e IDR a la vez (Riverfront) exportaba un "Precio" desnudo,
         // que Excel puede sumar como si fuera una sola divisa.
         sb.from('unidades_estado').select('codigo,modelo,estado,precio,moneda,contrato_numero,comprador_nombre')
           .eq('proyecto', p.nombre).order('codigo').then(function (r) {
-            if (r.error) return toast('No se pudo exportar: ' + r.error.message, '#ba1a1a');
+            if (r.error) return aviso('No se pudo exportar: ' + r.error.message, '#ba1a1a');
             var filas = (r.data || []).map(function (u) {
               return [u.codigo, u.modelo || '', u.estado || '', u.precio != null ? u.precio : '', u.moneda || '', u.contrato_numero || '', u.comprador_nombre || ''];
             });
@@ -956,7 +964,7 @@
       var bCsv = document.getElementById('btn-importar-csv');
       if (bCsv) bCsv.addEventListener('click', function (ev) {
         ev.stopPropagation();
-        toast('El importador de CSV vive en Proyectos (la vista de tabla) — abriendo…');
+        aviso('El importador de CSV vive en Proyectos (la vista de tabla) — abriendo…');
         setTimeout(function () { location.href = '/intranet/proyectos/'; }, 900);
       });
       var bTabla = document.getElementById('btn-vista-tabla');
@@ -968,7 +976,7 @@
     vencimientos: function (aut) {
       var sb = aut.sb;
       ata(/Registrar hito/i, function () {
-        if (!puedeH(aut.ficha, 'vencimientos')) return toast('Ajustar hitos exige la herramienta Vencimientos (policy puede(\'vencimientos\')).', '#8A6A34');
+        if (!puedeH(aut.ficha, 'vencimientos')) return aviso('Ajustar hitos exige la herramienta Vencimientos (policy puede(\'vencimientos\')).', '#8A6A34');
         /* Un hito NUEVO no se crea aqui a proposito: nacen del calendario del
            contrato (sincroniza_vencimientos) y la tabla no tiene policy de
            INSERT. Lo que si se hace aqui es AJUSTAR: fecha, importe y nota —
@@ -977,13 +985,13 @@
           sb.from('contrato_vencimientos').select('id,contrato_id,descripcion,pct,monto,fecha,nota').order('fecha', { ascending: true, nullsFirst: true }).limit(400),
           sb.rpc('contratos_equipo').select('id,numero')
         ]).then(function (rs) {
-          if (rs[0].error) return toast('No se pudieron leer los hitos: ' + rs[0].error.message, '#93000a');
+          if (rs[0].error) return aviso('No se pudieron leer los hitos: ' + rs[0].error.message, '#93000a');
           var vs = rs[0].data || [], cs = (rs[1].data || []);
           var num = {}; cs.forEach(function (c) { num[c.id] = c.numero; });
           var ops = vs.map(function (v) {
             return [v.id, (num[v.contrato_id] || '¿?') + ' · ' + (v.descripcion || 'hito') + ' · ' + (v.fecha || 'SIN FECHA')];
           });
-          if (!ops.length) return toast('No hay hitos que ajustar.', '#8A6A34');
+          if (!ops.length) return aviso('No hay hitos que ajustar.', '#8A6A34');
           modal('Ajustar un hito', [
             { k: 'id', label: 'Hito', tipo: 'select', opciones: ops, req: 1 },
             { k: 'fecha', label: 'Fecha', tipo: 'date' },
@@ -1006,12 +1014,12 @@
         var ta = document.querySelector('textarea');
         var hilo = window.LW_V4 && window.LW_V4.hilo;
         var quien = window.LW_V4 && window.LW_V4.hiloCliente;
-        if (!hilo) return toast('El hilo aún no ha cargado.', '#8A6A34');
+        if (!hilo) return aviso('El hilo aún no ha cargado.', '#8A6A34');
         var texto = ta ? ta.value.trim() : '';
-        if (!texto) return toast('Escribe la respuesta primero.', '#8A6A34');
+        if (!texto) return aviso('Escribe la respuesta primero.', '#8A6A34');
         if (!window.confirm('La respuesta se envía a ' + ((quien && quien.full_name) || 'el comprador') + ' y le llega TAMBIÉN por email real. ¿Enviar?')) return;
         sb.rpc('portal_enviar_mensaje', { p_hilo_id: hilo.id, p_texto: texto }).then(function (r) {
-          if (r.error) return toast('No se pudo enviar: ' + r.error.message, '#93000a');
+          if (r.error) return aviso('No se pudo enviar: ' + r.error.message, '#93000a');
           location.reload();
         });
       });
@@ -1020,9 +1028,9 @@
     obra: function (aut) {
       var sb = aut.sb;
       ata(/Registrar avance/i, function () {
-        if (!puedeH(aut.ficha, 'unidades')) return toast('El avance de obra exige la herramienta Unidades (policy puede(\'unidades\')).', '#8A6A34');
+        if (!puedeH(aut.ficha, 'unidades')) return aviso('El avance de obra exige la herramienta Unidades (policy puede(\'unidades\')).', '#8A6A34');
         sb.from('unidades_estado').select('id,codigo,proyecto,obra_fase').order('codigo').limit(500).then(function (r) {
-          if (r.error) return toast('No se pudieron leer las unidades: ' + r.error.message, '#93000a');
+          if (r.error) return aviso('No se pudieron leer las unidades: ' + r.error.message, '#93000a');
           var us = r.data || [];
           var ops = us.map(function (u) { return [u.id, u.codigo + ' · ' + (u.proyecto || '—') + (u.obra_fase ? ' · ' + u.obra_fase : '')]; });
           modal('Registrar avance técnico', [
@@ -1080,10 +1088,10 @@
       var sb = aut.sb;
       ata(/^Modificar rol$/i, function () {
         if (!(esAdmin(aut.ficha) && puedeH(aut.ficha, 'usuarios'))) {
-          return toast('Tocar roles exige administración con la herramienta Usuarios (la policy lo exige igual que este aviso).', '#8A6A34');
+          return aviso('Tocar roles exige administración con la herramienta Usuarios (la policy lo exige igual que este aviso).', '#8A6A34');
         }
         var u = window.LW_V4 && window.LW_V4.usuario;
-        if (!u) return toast('El perfil aún no ha cargado.', '#8A6A34');
+        if (!u) return aviso('El perfil aún no ha cargado.', '#8A6A34');
         // el catalogo de herramientas sale de las fichas reales, no de una lista a mano
         sb.from('usuarios').select('herramientas').then(function (r) {
           var todas = {};

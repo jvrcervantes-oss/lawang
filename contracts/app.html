@@ -62,7 +62,7 @@
      /facturas. `creado_por` no es un adorno: es con lo que la RLS decide quién
      puede editar su propio documento. -->
 <script src="assets/autoria.js?v=4e47fa06"></script>
-<script src="assets/vocabulario.js?v=c94d7dc5"></script>
+<script src="assets/vocabulario.js?v=fd814f9b"></script>
 <script src="assets/dinero.js?v=ced29282"></script>
 <script src="assets/dialogo.js?v=cefc9e4e"></script>
 <!-- Quien compra, normalizado. La MISMA lista que usa Facturas: el nombre de
@@ -5452,8 +5452,15 @@ function copiasHTML(firmas, mails, errFirmas, errMails){
        cabecera desaparece y cada fila se lee como una tarjeta. */
     return '<tr><td data-l="' + esc(lwT('Firmante')) + '">' + esc(d.nombre || '—') + '<br><span class="em-note">' + esc(d.rol) + '</span></td>'
       + '<td data-l="' + esc(lwT('Email')) + '">' + esc(d.email || 'no dejó email') + '</td>'
-      + '<td data-l="' + esc(lwT('Estado')) + '">' + chip + '</td>'
-      + '<td data-l="' + esc(lwT('Enviada')) + '">' + cuando + '</td></tr>';
+      /* «Copia» y «Cuándo», que son los rótulos de la cabecera de ESTA tabla
+         (las otras tres sí los replicaban). No es cosmético: en pantalla
+         estrecha la cabecera desaparece, así que un `data-l` distinto renombra
+         el asiento según el ancho — y aquí «Enviada: —» quedaba justo debajo
+         del chip «No consta enviada», o sea el rótulo afirmando lo que la fila
+         niega, en el cuadro que acredita quién tiene su copia. «Cuándo» es
+         neutro a propósito. */
+      + '<td data-l="' + esc(lwT('Copia')) + '">' + chip + '</td>'
+      + '<td data-l="' + esc(lwT('Cuándo')) + '">' + cuando + '</td></tr>';
   }).join('');
 
   const conEmail = dest.filter(d => d.email);

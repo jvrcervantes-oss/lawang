@@ -110,7 +110,14 @@ const lwEsPreliminar = t => LW_TIPOS_PRELIMINARES.includes(t);
 const LW_VIA_CORREO = {
   manual:          'Email manual',
   enlace_firma:    'Enlace de firma',
-  aviso_anulacion: 'Aviso de anulación',
+  /* «Enlace de firma anulado» y no «Aviso de anulación» a secas: lo que se
+     anula NO es el contrato. El correo (ver `mensajeAnulacion` en
+     contracts/app.html) dice que el documento se va a actualizar, que el enlace
+     deja de estar activo y —a quien ya había firmado— que su firma sobre la
+     versión anterior deja de valer. En un registro DE CONTRATOS, «anulación»
+     sin complemento se lee como que se anuló el documento, que es justo lo que
+     no ha pasado. */
+  aviso_anulacion: 'Enlace de firma anulado',
   firma:           'Circuito de firma',
   proforma:        'Proforma',
   factura:         'Factura',

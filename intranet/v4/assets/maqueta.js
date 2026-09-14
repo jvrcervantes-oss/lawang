@@ -31,16 +31,16 @@
   }
   function sinIcono(t) { return t; }
 
-  var toastT;
-  function toast(msg, ok) {
-    var d = document.getElementById('lw-toast');
-    if (!d) {
-      d = document.createElement('div'); d.id = 'lw-toast'; d.setAttribute('role', 'status');
-      document.body.appendChild(d);
-    }
-    d.textContent = msg; d.className = ok ? 'ok' : ''; d.style.display = 'block';
-    clearTimeout(toastT); toastT = setTimeout(function () { d.style.display = 'none'; }, 3200);
-  }
+  /* El toast local se retira (14-sep-2026): las llamadas de abajo resuelven al
+     `toast` compartido de `contracts/assets/suite-comun.js`, que es el que ya
+     limpia el temporizador y se anuncia con aria-live. Aqui no hace falta
+     adaptador —al reves que en editores.js— porque ninguna llamada de este
+     fichero usaba el segundo argumento para nada... salvo una, y esa se corrige
+     abajo: en la firma compartida el segundo argumento es la DURACION en ms, asi
+     que el `true` que marcaba «exito» habria dado un aviso de cero milisegundos.
+     El verde de «guardado» se pierde a proposito: la suite tiene un solo aviso
+     neutro y `toastMal` para los fallos, y estrenar un tercero aqui seria volver
+     a empezar. */
 
   function cerrarModal() { var m = document.getElementById('lw-modal'); if (m) m.remove(); }
 
@@ -62,7 +62,7 @@
     w.querySelector('.lw-modal-fondo').addEventListener('click', cerrarModal);
     w.querySelector('[data-mq="cerrar"]').addEventListener('click', cerrarModal);
     w.querySelector('[data-mq="guardar"]').addEventListener('click', function () {
-      cerrarModal(); (alGuardar || function () { toast('✓ Guardado (maqueta) — sin datos reales', true); })();
+      cerrarModal(); (alGuardar || function () { toast('✓ Guardado (maqueta) — sin datos reales'); })();
     });
     var inp = w.querySelector('input, select, textarea'); if (inp) inp.focus();
   }
