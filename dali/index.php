@@ -354,7 +354,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
         </div>
 
         <div class="total">
-          <span class="total__lb">Total Freehold Investment</span>
+          <span class="total__lb">Villa turnkey, your spec</span>
           <span class="total__vl" id="lw-total">—</span>
           <span class="total__alt" id="lw-total-alt"></span>
           <p class="total__nota" id="lw-total-nota">Fixed-price written EPC contract. No

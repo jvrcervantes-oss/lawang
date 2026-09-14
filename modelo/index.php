@@ -316,6 +316,13 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 .grid{display:grid;grid-template-columns:minmax(0,1fr);gap:40px;align-items:start;
   max-width:830px;margin-inline:auto}
 
+/* Guardrail de especificidad (hallazgo Desarrollo, consulta de deploy 14-sep-2026):
+   `.btn{display:inline-flex}` de au-landing.css es una regla de AUTOR y gana siempre
+   al `[hidden]` de la hoja del User-Agent, aunque empaten en especificidad — sin este
+   selector por id, "View gallery" se veía en los modelos sin renders (Trinity/Temple)
+   y apuntaba a una sección #galeria que ni se pinta. */
+#lw-hero-gallery-link[hidden]{display:none}
+
 /* ── Secciones ────────────────────────────────────────────────────────────────── */
 .sec{padding-block:clamp(40px,5vw,64px);border-top:1px solid var(--linea)}
 .sec:first-of-type{border-top:0}
@@ -651,7 +658,7 @@ html:not([data-lang="es"]) .i-es{display:none !important}
             <span class="res__vl">Separate</span>
           </div>
           <div class="res__fila">
-            <span><span class="res__lb">Freehold plot</span>
+            <span><span class="res__lb">The plot</span>
                   <span class="res__sub"><?= lw_e(lw_precio_fmt(lw_parcela_tarifa_m2('otras'))) ?>/m² · sized on the call</span></span>
             <span class="res__vl">Separate</span>
           </div>
@@ -911,8 +918,8 @@ html:not([data-lang="es"]) .i-es{display:none !important}
       <div>
         <img class="pie__brand" src="/assets/img/lawang-logo-v3.webp" alt="Lawang Tropical Properties">
         <p style="margin:0">PT Tepi Sun Gai · Registered Developer &amp; Property Advisory.
-          Developing verified freehold parcels and turnkey architectural villas across
-          Tabanan, Uluwatu and Sumba.</p>
+          Developing turnkey architectural villas on verified plots across Tabanan, Uluwatu
+          and Sumba.</p>
       </div>
       <div>
         <h4><?= lw_i18n('Contacto', 'Investor Desk') ?></h4>
