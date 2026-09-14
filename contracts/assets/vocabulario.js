@@ -91,6 +91,35 @@ const lwEsPreliminar = t => LW_TIPOS_PRELIMINARES.includes(t);
 
 
 /* ---------------------------------------------------------------------------
+   POR QUÉ SALIÓ ESE CORREO — el rótulo de `correos_enviados.via`
+   ---------------------------------------------------------------------------
+   14-sep-2026. Este diccionario estaba escrito A MANO en TRES sitios —el
+   Registro de envíos de Contratos, el de Facturas y el de la ficha de
+   Compradores— y a los tres les faltaba lo mismo: `aviso_anulacion`, que la
+   propia app escribe desde el 24-ago al anular un enlace de firma. Resultado:
+   19 filas reales enseñando la clave cruda de la base, con el guion bajo
+   incluido, entre filas que sí decían «Enlace de firma». Lo vio el owner en el
+   registro de CR00056.
+
+   Es LITERALMENTE el fallo que este fichero vino a arreglar con los tipos de
+   contrato (arriba): una lista a mano repetida no es una copia, es una lista que
+   diverge. Sube aquí por eso, y las tres pantallas pasan a leer de un sitio.
+
+   El fallback tampoco adivina, por lo mismo que `lwTipoContrato`: una vía nueva
+   sale con su clave cruda —fea pero cierta— hasta que alguien la nombre aquí. */
+const LW_VIA_CORREO = {
+  manual:          'Email manual',
+  enlace_firma:    'Enlace de firma',
+  aviso_anulacion: 'Aviso de anulación',
+  firma:           'Circuito de firma',
+  proforma:        'Proforma',
+  factura:         'Factura',
+  factura_auto:    'Factura automática',
+};
+const lwViaCorreo = v => (LW_VIA_CORREO[v] ? vocT(LW_VIA_CORREO[v]) : v) || '—';
+
+
+/* ---------------------------------------------------------------------------
    BUSCAR SIN QUE LAS TILDES ESTORBEN — 8-sep-2026, aviso del owner:
    «todos los buscadores de la suite no filtran si llevan tildes».
    ---------------------------------------------------------------------------
@@ -188,3 +217,47 @@ function lwOrdenProyectos(master){
     return (ka[0] - kb[0]) || (ka[1] - kb[1]) || (ka[2] < kb[2] ? -1 : ka[2] > kb[2] ? 1 : 0);
   };
 }
+
+/* ─── QUÉ TIPO DE CONTRATO ES CADA PLANTILLA, Y AL REVÉS (14-sep-2026) ───────
+   `CONTRACT_TIPO` (slug de plantilla → `contratos.tipo`) y su inverso
+   `TIPO_SLUG` vivían dentro de `contracts/app.html`. Se mudan aquí, que es
+   literalmente el fichero de «cómo se llaman las cosas» y donde ya vive su
+   hermano `LW_TIPO_CONTRATO` (tipo → nombre visible).
+
+   POR QUÉ SE MUDAN AHORA. Al poder ARCHIVAR un tipo de contrato desde
+   /intranet/cuentas/, ese panel necesita traducir entre las dos claves para
+   enseñar cuántos contratos tiene cada plantilla: la tabla `contratos` cuenta
+   por `tipo` y el catálogo de plantillas se indexa por `slug`, y NO son lo
+   mismo (`ppjb_parcela` es `reserva_parcela`, `poa_notario` es `poa`). La
+   alternativa era copiar el mapa en el panel o duplicarlo en una columna de la
+   base, y este repo ya tiene escrito lo que pasa con una lista a mano en dos
+   sitios: divergen. Dos consumidores, una fuente.
+
+   ⚠️ AL AÑADIR UN TIPO hay que tocar cuatro sitios y este es uno (ver la nota de
+   arriba): la app, `set_contrato_numero`, la restricción `contratos_tipo_check`
+   y este diccionario. Los tres primeros rompen ruidosamente; este, no.
+   ─────────────────────────────────────────────────────────────────────────── */
+const CONTRACT_TIPO = {
+  ppjb_parcela:'reserva_parcela', ppjb_construccion:'construccion', ppjb_reserva:'contrato_general',
+  commercial_offer:'commercial_offer', carta_reserva:'carta_reserva',
+  carta_reserva_ampliada:'carta_reserva_ampliada',
+  commercial_collaboration:'acuerdo_comercial', colaborador_operativo:'protocolo_operativo',
+  ppjb_bonian:'ppjb_bonian',   // serie PB · texto fijo, datos de la operacion por campos
+  // tipo PROPIO y no 'ppjb_bonian' (6-ago-2026): TIPO_SLUG es un mapa inverso
+  // tipo->slug, y compartir tipo con la serie PB le habria pisado la entrada —
+  // reabrir un PB guardado habria cargado la plantilla equivocada (o al reves).
+  ppjb_bonian_c2:'ppjb_bonian_c2',   // serie C2 · un solo ejemplar, texto fijo
+  hak_sewa_notario:'hak_sewa_notario',   // serie HS · arrendamiento Hak Sewa ante notario
+  // mismo motivo que ppjb_bonian_c2: tipo propio, no 'carta_reserva' ni
+  // 'carta_reserva_ampliada' — comparte tipo con cualquiera de las dos y se
+  // rompe la reapertura de la que sea.
+  carta_reserva_hak_sewa:'carta_reserva_hak_sewa',   // serie CH · due-diligence + BANI Denpasar
+  // mismo motivo que las otras tres cartas: tipo propio o se rompe la reapertura
+  carta_reserva_pma:'carta_reserva_pma',   // serie CP · due-diligence + HGB via PT PMA + multiparcela
+  poa_notario:'poa',   // serie PA · Poder Notarial (Surat Kuasa), exhibit del Hak Sewa
+  // estatutos_sw NO lleva número ni guardado — plantilla fija, sin campos editables.
+  cc00014_timon:'cc00014_timon',   // un solo ejemplar, texto fijo — mismo motivo que ppjb_bonian_c2
+  adenda:'adenda',   // serie AD · modifica un contrato ya firmado sin rehacerlo
+  carta_reserva_investor_deck:'carta_reserva_investor_deck',   // serie CD · autoservicio, data room público
+};
+const TIPO_SLUG = Object.fromEntries(Object.entries(CONTRACT_TIPO).map(([slug,tipo])=>[tipo,slug]));

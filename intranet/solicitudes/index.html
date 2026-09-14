@@ -37,12 +37,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=c4880e28">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=8c0dbd02">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=48894a85"></script>
+<script src="/contracts/assets/i18n.js?v=a16d0ab3"></script>
 <script src="/contracts/assets/herramientas.js?v=c95fc709"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -123,9 +123,9 @@
   <div class="toast" id="toast"></div>
 
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
-<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
+<script src="/contracts/assets/suite-comun.js?v=310f2346"></script>
 <!-- vocabulario.js: lwTipoContrato (nombre visible del tipo) + lwBuscaEn (buscador sin tildes) -->
-<script src="/contracts/assets/vocabulario.js?v=d569c692"></script>
+<script src="/contracts/assets/vocabulario.js?v=c94d7dc5"></script>
 <script>
 /* ============================================================================
    Solicitudes de pago — bandeja + alta
@@ -164,7 +164,7 @@ async function cargar(){
     // propia ficha, el mapa se queda corto y el fallback pinta «—»: no es un fallo.
     SB.from('usuarios').select('user_id,nombre,email'),
   ]);
-  if(s.error){ toast(lwT('No se pudieron leer las solicitudes: ') + s.error.message); return; }
+  if(s.error){ toastMal(lwT('No se pudieron leer las solicitudes: ') + s.error.message); return; }
   SOLICITUDES = s.data || [];
   CONTRATOS = {}; (k.error ? [] : (k.data || [])).forEach(x => { CONTRATOS[x.id] = x; });
   USUARIOS = {}; (u.error ? [] : (u.data || [])).forEach(x => { USUARIOS[x.user_id] = x; });
@@ -334,7 +334,7 @@ function abrir(id){
 async function resolver(x, estado, extra){
   const cambio = Object.assign({ estado }, extra || {});
   const { error } = await SB.from('solicitudes_pago').update(cambio).eq('id', x.id);
-  if(error){ toast(lwT('No se pudo: ') + error.message); return; }
+  if(error){ toastMal(lwT('No se pudo: ') + error.message); return; }
   await cargar();
   /* Frases ENTERAS por estado, no «Solicitud » + la etiqueta en minuscula: eso
      es cirugia de cadenas sobre una palabra ya traducida, y en ingles el orden
@@ -456,8 +456,8 @@ function formulario(existente){
   $('#btnGuardar').addEventListener('click', async () => {
     const concepto = $('#fConcepto').value.trim();
     const importe = lwParseImporte($('#fImporte').value);
-    if(!concepto){ toast(lwT('El concepto no puede quedar vacío')); return; }
-    if(!(importe > 0)){ toast(lwT('El importe no se entiende — escribe un número mayor que cero')); return; }
+    if(!concepto){ toastMal(lwT('El concepto no puede quedar vacío')); return; }
+    if(!(importe > 0)){ toastMal(lwT('El importe no se entiende — escribe un número mayor que cero')); return; }
     const fila = {
       contrato_id: elK.dataset.id || null,
       concepto, importe,
@@ -469,7 +469,7 @@ function formulario(existente){
     const { error } = existente
       ? await SB.from('solicitudes_pago').update(fila).eq('id', existente.id)
       : await SB.from('solicitudes_pago').insert(fila);
-    if(error){ toast(lwT('No se pudo guardar: ') + error.message); btn.disabled = false; return; }
+    if(error){ toastMal(lwT('No se pudo guardar: ') + error.message); btn.disabled = false; return; }
     await cargar();
     toast(lwT(existente ? 'Solicitud actualizada' : 'Solicitud creada — Administración ya tiene el aviso'));
     suiCerrarCajon();

@@ -16,7 +16,7 @@
      uno, para que ninguna herramienta pueda cargar media suite: antes
      Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
      salieron los desplegables con cuatro aspectos. -->
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=c4880e28">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=8c0dbd02">
 <script src="/contracts/assets/herramientas.js?v=c95fc709"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -27,7 +27,7 @@
 <script src="/contracts/assets/proyectos_csv.js?v=e610515a"></script>
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
 <script src="/intranet/facturas/totales.js"></script>
-<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
+<script src="/contracts/assets/suite-comun.js?v=310f2346"></script>
 <link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=18c17264">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
 <script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
@@ -398,7 +398,7 @@ const abreEnLaViva = destino => { location.href = destino; };
 /* ── importar CSV ─────────────────────────────────────────────────────────── */
 async function importarCsvUI(file){
   if(file.size > LW_CSV_MAX_BYTES){
-    toast('El fichero pesa ' + (file.size/1024/1024).toFixed(1) + ' MB — el máximo son 5 MB');
+    toastMal('El fichero pesa ' + (file.size/1024/1024).toFixed(1) + ' MB — el máximo son 5 MB');
     return;
   }
   const r = lwCsvAnaliza(await file.text(), {
@@ -406,7 +406,7 @@ async function importarCsvUI(file){
     existentes: new Set(UNI.map(u => u.proyecto + ' ' + u.codigo)),
     parseImporte: lwParseImporte,
   });
-  if(r.error){ toast(r.error); return; }
+  if(r.error){ toastMal(r.error); return; }
 
   /* El resumen ANTES de la tabla, y con los errores contados: lo que se decide
      aquí es «¿confirmo esto?», y eso se decide con cuatro números, no leyendo
@@ -468,7 +468,7 @@ async function importarCsvUI(file){
       if(error){
         /* Cuántas entraron, no solo que falló: los lotes van uno a uno y lo
            escrito está escrito. Se recarga igual para enseñar lo que hay. */
-        toast('Importadas ' + escritas + ' de ' + total + ' — el resto no: ' + error.message);
+        toastMal('Importadas ' + escritas + ' de ' + total + ' — el resto no: ' + error.message);
         ok.disabled = false; ok.textContent = 'Reintentar';
         await recargar();
         return;

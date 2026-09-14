@@ -2521,6 +2521,28 @@
       'Could not load the account each project uses: ',
     'Este proyecto no cobra en la cuenta que tenías elegida. Se ha dejado como estaba — cámbiala si corresponde.':
       'This project does not collect into the account you had picked. It has been left as it was — change it if appropriate.',
+    /* ARCHIVAR un tipo de contrato (14-sep-2026). «archived» y no «disabled»: no
+       se apaga nada, deja de ofrecerse al crear — lo emitido sigue funcionando */
+    'Uso y archivo': 'Use and archiving',
+    'archivado': 'archived',
+    '(archivado)': '(archived)',
+    'Archivado — no aparece al crear un contrato': 'Archived — does not show when creating a contract',
+    'sin usar': 'unused',
+    'sin usar todavía': 'not used yet',
+    'último %f': 'last %f',
+    '%n contratos · %f firmados': '%n contracts · %f signed',
+    'no lleva cuenta de cobro': 'no payment account',
+    'Este documento no lleva datos bancarios, así que no hay nada que repartir.':
+      'This document carries no bank details, so there is nothing to allocate.',
+    'Tiene contratos FIRMADOS. Archivarlo no los toca —se siguen abriendo, imprimiendo y firmando— solo deja de ofrecerse al crear uno nuevo.':
+      'It has SIGNED contracts. Archiving does not touch them — they still open, print and sign — it only stops being offered when creating a new one.',
+    'Archivar solo lo retira del desplegable de «Nuevo contrato». Lo ya emitido no cambia, y un contrato guardado de este tipo se abre igual (sale marcado como archivado).':
+      'Archiving only removes it from the «New contract» dropdown. Nothing already issued changes, and a saved contract of this type opens just the same (it shows as archived).',
+    '«%p» archivado: ya no aparece al crear un contrato':
+      '«%p» archived: it no longer shows when creating a contract',
+    '«%p» vuelve a estar disponible al crear un contrato':
+      '«%p» is available again when creating a contract',
+    'No se pudo cambiar: ': 'Could not change: ',
 
   };
 

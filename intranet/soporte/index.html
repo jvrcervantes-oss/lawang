@@ -21,12 +21,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <!-- UNA SOLA HOJA PARA TODA LA SUITE (27-ago-2026, encargo del owner). -->
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=c4880e28">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=8c0dbd02">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=48894a85"></script>
+<script src="/contracts/assets/i18n.js?v=a16d0ab3"></script>
 <script src="/contracts/assets/herramientas.js?v=c95fc709"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -87,9 +87,9 @@
   <div class="toast" id="toast"></div>
 
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
-<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
+<script src="/contracts/assets/suite-comun.js?v=310f2346"></script>
 <!-- vocabulario.js: aqui solo por lwBusca/lwBuscaEn — el buscador sin tildes (8-sep-2026) -->
-<script src="/contracts/assets/vocabulario.js?v=d569c692"></script>
+<script src="/contracts/assets/vocabulario.js?v=c94d7dc5"></script>
 <script>
 /* ============================================================================
    Soporte — bandeja de TICKETS (1-sep-2026: cada fila de hilo_soporte es un
@@ -120,7 +120,7 @@ async function cargar(){
     SB.from('hilo_soporte').select('id,client_id,categoria,estado,actualizado_en'),
     SB.from('clients').select('id,full_name,email'),
   ]);
-  if(h.error){ toast(lwT('No se pudieron leer los tickets: ') + h.error.message); return; }
+  if(h.error){ toastMal(lwT('No se pudieron leer los tickets: ') + h.error.message); return; }
   MENSAJES = m.error ? [] : (m.data || []);
   HILOS = h.data || [];
   CLIENTES = {};
@@ -214,7 +214,7 @@ async function responder(hid){
   const ta = $('#respTexto'); const texto = ta.value.trim(); if(!texto) return;
   const btn = $('#btnResponder'); btn.disabled = true;
   const { error } = await SB.rpc('portal_enviar_mensaje', { p_hilo_id: hid, p_texto: texto });
-  if(error){ toast(lwT('No se pudo enviar: ') + error.message); btn.disabled = false; return; }
+  if(error){ toastMal(lwT('No se pudo enviar: ') + error.message); btn.disabled = false; return; }
   await cargar();
   toast(lwT('Enviado'));
   abrir(hid);
@@ -223,7 +223,7 @@ async function responder(hid){
 async function toggleEstado(hid, actual){
   const nuevo = actual === 'abierto' ? 'resuelto' : 'abierto';
   const { error } = await SB.from('hilo_soporte').update({ estado: nuevo, actualizado_en: new Date().toISOString() }).eq('id', hid);
-  if(error){ toast(lwT('No se pudo cambiar el estado: ') + error.message); return; }
+  if(error){ toastMal(lwT('No se pudo cambiar el estado: ') + error.message); return; }
   await cargar();
   toast(lwT(nuevo === 'resuelto' ? 'Marcado como resuelto' : 'Reabierto'));
   abrir(hid);

@@ -16,7 +16,7 @@
      uno, para que ninguna herramienta pueda cargar media suite: antes
      Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
      salieron los desplegables con cuatro aspectos. -->
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=c4880e28">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=8c0dbd02">
 <!-- Iconos Phosphor: los usa el menu lateral de topbar.js (15-ago-2026). Ya
      los cargaban intranet/, compradores/ y creatividades/; se igualan las demas
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
@@ -25,7 +25,7 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=48894a85"></script>
+<script src="/contracts/assets/i18n.js?v=a16d0ab3"></script>
 <script src="/contracts/assets/herramientas.js?v=c95fc709"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -90,7 +90,7 @@
      tabla. Se añaden donde faltaban (12 de 15 páginas). -->
 <script src="/contracts/assets/dinero.js?v=ced29282"></script>
 <script src="/intranet/facturas/totales.js"></script>
-<script src="/contracts/assets/vocabulario.js?v=d569c692"></script>
+<script src="/contracts/assets/vocabulario.js?v=c94d7dc5"></script>
 <script src="/contracts/assets/operaciones-cuentas.js?v=395cfe0e"></script>
 <script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
 <script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
@@ -126,7 +126,7 @@
   <div class="toast" id="toast"></div>
 
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
-<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
+<script src="/contracts/assets/suite-comun.js?v=310f2346"></script>
 <script>
 /* ============================================================================
    Obra — fase, fecha de entrega y fotos por unidad
@@ -310,7 +310,7 @@ async function guardar(u){
     p_fecha: $('#o-fecha').value || null,
   });
   b.disabled = false;
-  if(error){ toast(lwT('No se pudo guardar: ') + error.message); return; }
+  if(error){ toastMal(lwT('No se pudo guardar: ') + error.message); return; }
   toast(lwT('Guardado'));
   suiCerrarCajon();
   await cargar();
@@ -350,7 +350,7 @@ async function subir(u, files){
       if(ins.error) throw ins.error;
       if(!ins.data || !ins.data.length) throw new Error(lwT('sin permiso para la herramienta Obra'));
       ok++;
-    }catch(e){ toast('«' + f.name + '»: ' + (e.message || e)); }
+    }catch(e){ toastMal('«' + f.name + '»: ' + (e.message || e)); }
   }
   caja.classList.remove('ocupado');
   if(ok) toast(lwT(ok === 1 ? '%n foto subida' : '%n fotos subidas', { n: ok }));
@@ -362,7 +362,7 @@ async function accionFoto(u, act, fid){
   const f = (FOTOS[u.id] || []).find(x => x.id === fid); if(!f) return;
   if(act === 'visible'){
     const { error } = await SB.from('obra_fotos').update({ visible: !f.visible }).eq('id', fid);
-    if(error){ toast(error.message); return; }
+    if(error){ toastMal(error.message); return; }
   }
   if(act === 'titulo'){
     /* `t` era el nombre de esta variable y ahora lo es del traductor: se
@@ -370,7 +370,7 @@ async function accionFoto(u, act, fid){
     const titulo = prompt(lwT('Título de la foto (lo ve el comprador):'), f.titulo || '');
     if(titulo === null) return;
     const { error } = await SB.from('obra_fotos').update({ titulo: titulo.trim() || null }).eq('id', fid);
-    if(error){ toast(error.message); return; }
+    if(error){ toastMal(error.message); return; }
   }
   if(act === 'borrar'){
     /* `lwConfirmar`, no `confirm()`: el nativo congela la extension de Chrome
@@ -383,7 +383,7 @@ async function accionFoto(u, act, fid){
     });
     if(!seguro) return;
     const { error } = await SB.from('obra_fotos').delete().eq('id', fid);
-    if(error){ toast(error.message); return; }
+    if(error){ toastMal(error.message); return; }
     await SB.storage.from('obra').remove([f.path]);   // si falla queda huérfano en el bucket, no en el portal
   }
   await cargar();

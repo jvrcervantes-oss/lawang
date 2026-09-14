@@ -17,7 +17,7 @@
      uno, para que ninguna herramienta pueda cargar media suite: antes
      Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
      salieron los desplegables con cuatro aspectos. -->
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=c4880e28">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=8c0dbd02">
 <!-- Iconos Phosphor: los usa el menu lateral de topbar.js (15-ago-2026). Ya
      los cargaban intranet/, compradores/ y creatividades/; se igualan las demas
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
@@ -32,7 +32,7 @@
 <link rel="stylesheet" href="documento.css?v=20260731">
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=48894a85"></script>
+<script src="/contracts/assets/i18n.js?v=a16d0ab3"></script>
 <script src="/contracts/assets/herramientas.js?v=c95fc709"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -53,7 +53,7 @@
      .htaccess pusiera no-cache en todo el js/css (el edge no revalida hasta que
      expire su TTL de 7 dias). Sin esto la factura de PT SAN DAL WOODS sigue
      saliendo con el logo de Lawang. Se puede quitar pasado el 3-ago-2026. -->
-<script src="/contracts/assets/entities.js?v=80bcdeb1"></script>
+<script src="/contracts/assets/entities.js?v=1f7bf26c"></script>
 <!-- aritmética de dinero (con test propio en totales.test.js) -->
 <!-- maquetacion del documento: la MISMA que arma la factura automatica del
      primer hito (contracts/edge/firma-submit se baja este fichero y lo ejecuta) -->
@@ -61,7 +61,7 @@
      porque Contratos necesita EXACTAMENTE la misma lista para nombrar la
      operación. Mientras estuvo aquí dentro, Facturas decía «A · B» y el
      contrato de al lado decía solo «A». El `?v=` lo sella el hook. -->
-<script src="/contracts/assets/compradores.js?v=9ea247e6"></script>
+<script src="/contracts/assets/compradores.js?v=7eb94ab0"></script>
 <!-- ¿el documento sigue diciendo lo que dice la ficha? La comparación vive en
      la vista `documentos_desactualizados`; esto solo la consulta (19-ago-2026). -->
 <script src="/contracts/assets/ficha_divergencia.js?v=70b9307d"></script>
@@ -642,7 +642,7 @@
      cálculo del pendiente revienta al primer `parseImporte`, y lo hace en
      tiempo de USO, no de carga — o sea sin avisar hasta que alguien abre la
      tabla. Se añaden donde faltaban (12 de 15 páginas). -->
-<script src="/contracts/assets/vocabulario.js?v=d569c692"></script>
+<script src="/contracts/assets/vocabulario.js?v=c94d7dc5"></script>
 <script src="/contracts/assets/operaciones-cuentas.js?v=395cfe0e"></script>
 <script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
 <script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
@@ -951,7 +951,12 @@
        .cp-overlay/.reg-* que ya trae lawang.css (paquete único de la suite,
        ver tools/empaqueta_css.py) — no hace falta CSS nuevo. -->
   <div class="cp-overlay" id="regOverlay">
-    <div class="cp-modal" style="width:min(820px,100%)">
+    <!-- 1040 y no 820 (14-sep-2026): el registro es una tabla de auditoría de
+         CINCO columnas, no un formulario. Heredaba el ancho del modal de email
+         y con él la columna «Asunto» se quedaba en 172px de 782, partida en
+         tres líneas — medido, no estimado. `min(...,100%)` sigue cuidando el
+         móvil, donde la tabla hace scroll lateral dentro de `.reg-envoltura`. -->
+    <div class="cp-modal" style="width:min(1040px,100%)">
       <div class="cp-head">
         <b data-lwt="Registro de envíos">Registro de envíos</b>
         <button type="button" class="tb-link" id="regClose" data-lwt="Cerrar">Cerrar</button>
@@ -971,7 +976,7 @@
 <script src="documento.js?v=20260731"></script>
 <script src="/contracts/assets/paginacion.js?v=2ac67b84"></script>
 <script src="/contracts/assets/facturas_contratos.js?v=7fb07bac"></script>
-<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
+<script src="/contracts/assets/suite-comun.js?v=310f2346"></script>
 <script>
 const $  = s => document.querySelector(s);
 lwIdiomaAplicar();   // traduce la HTML de arriba; en espanol no toca el DOM
@@ -1019,7 +1024,7 @@ sb.auth.getSession().then(async ({data:{session}}) => {
      Si falla se dice en voz alta: una factura emitida sin datos bancarios es una
      factura que el cliente no puede pagar. */
   try { await cargarCuentasBancarias(sb); pintarSelectCuentas(); }
-  catch(e){ toast(lwT('No se han podido cargar las cuentas de cobro: ') + (e.message || e) + ' — recarga antes de emitir'); }
+  catch(e){ toastMal(lwT('No se han podido cargar las cuentas de cobro: ') + (e.message || e) + ' — recarga antes de emitir'); }
   document.body.hidden = false;
   const contratosListos = cargarContratos();   // la promesa se espera en el deep-link ?contrato= (auditoría 19-ago)
   // deep-link ?id=<factura>: abre ese documento guardado directamente — lo usa
@@ -1065,7 +1070,7 @@ sb.auth.getSession().then(async ({data:{session}}) => {
       .eq('id', pedido).maybeSingle()
       .then(({ data, error }) => {
         if(error || !data){
-          toast(lwT('No se encontró ese documento'));
+          toastMal(lwT('No se encontró ese documento'));
           if(!document.body.classList.contains('modo-vista')) pantalla('listado', '');
           return;
         }
@@ -1298,8 +1303,8 @@ async function cargarFacturasAbiertas(){
     sb.rpc('facturas_pendiente_equipo'),
     CONTRATO_ID ? sb.rpc('contratos_del_mismo_comprador', { p_contrato_id: CONTRATO_ID }) : Promise.resolve({ data:[] }),
   ]);
-  if(f.error || p.error){ toast(lwT('No se pudieron cargar las facturas abiertas: ') + ((f.error||p.error).message)); return; }
-  if(m.error){ toast(lwT('No se pudo comprobar de quién son las facturas: ') + m.error.message); FACTURAS_ABIERTAS = []; pintarSelectFacturaAplicar(); return; }
+  if(f.error || p.error){ toastMal(lwT('No se pudieron cargar las facturas abiertas: ') + ((f.error||p.error).message)); return; }
+  if(m.error){ toastMal(lwT('No se pudo comprobar de quién son las facturas: ') + m.error.message); FACTURAS_ABIERTAS = []; pintarSelectFacturaAplicar(); return; }
   const pend = {}; p.data.forEach(x => { pend[x.factura_id] = Number(x.pendiente) || 0; });
   // setof uuid llega como array de escalares; se acepta también [{...}] por si
   // PostgREST lo envuelve, antes que quedarse sin ninguna factura sin decir por qué
@@ -1402,7 +1407,7 @@ async function elegirFacturaDelRecibi(){
   await cargarFacturasAbiertas();
   const libres = FACTURAS_ABIERTAS.filter(f => !APLICACIONES.some(a => a.factura_id === f.id));
   if(!libres.length){
-    toast(FACTURAS_ABIERTAS.length
+    toastMal(FACTURAS_ABIERTAS.length
       ? 'Todas las facturas pendientes ya están en este recibí.'
       : 'No hay ninguna factura pendiente de cobro.');
     return;
@@ -1508,7 +1513,7 @@ function sincronizarLineasDesdeAplicaciones(){
 async function verJustificante(path){
   if(!path) return;
   const { data, error } = await sb.storage.from('justificantes').createSignedUrl(path, 300);
-  if(error || !data){ toast(lwT('No se pudo abrir el justificante: ') + ((error && error.message) || '')); return; }
+  if(error || !data){ toastMal(lwT('No se pudo abrir el justificante: ') + ((error && error.message) || '')); return; }
   window.open(data.signedUrl, '_blank', 'noopener');
 }
 /* Cuántos justificantes tiene un documento del listado, y cuáles. La lista
@@ -1557,7 +1562,7 @@ $('#fJustificante').addEventListener('change', async () => {
   $('#fJustificante').value = '';   // se vacía YA: los ficheros ya están en `elegidos`
   if(!elegidos.length) return;
   if(JUSTIFICANTES.length + elegidos.length > 8){
-    toast(lwT('Un recibí admite hasta 8 justificantes (ya lleva ') + JUSTIFICANTES.length + ')');
+    toastMal(lwT('Un recibí admite hasta 8 justificantes (ya lleva ') + JUSTIFICANTES.length + ')');
     return;
   }
   const caja = $('#justifEstado');
@@ -1566,7 +1571,7 @@ $('#fJustificante').addEventListener('change', async () => {
      puestos y solo hay que repetir el que falló. Y el fallo se dice con su
      nombre — «no se pudo subir» a secas, con cuatro ficheros, no dice cuál. */
   for(const [i, f] of elegidos.entries()){
-    if(f.size > 10*1024*1024){ toast(f.name + ' supera los 10 MB: no se ha subido'); continue; }
+    if(f.size > 10*1024*1024){ toastMal(f.name + ' supera los 10 MB: no se ha subido'); continue; }
     const ext = (f.name.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
     const path = crypto.randomUUID() + ext;
     if(caja) caja.insertAdjacentHTML('beforeend',
@@ -1576,7 +1581,7 @@ $('#fJustificante').addEventListener('change', async () => {
       if(up.error) throw up.error;
       JUSTIFICANTES.push({ path, nombre: f.name, subido_en: new Date().toISOString() });
     }catch(err){
-      toast(lwT('No se pudo subir ') + f.name + ': ' + (err.message || err));
+      toastMal(lwT('No se pudo subir ') + f.name + ': ' + (err.message || err));
     }
     const aviso = caja && caja.querySelector('[data-subiendo="' + i + '"]');
     if(aviso) aviso.remove();
@@ -1868,8 +1873,8 @@ $('#ovMail').onclick = e => { if(e.target === $('#ovMail')) cerrarMail(); };
 
 $('#mailSend').onclick = async () => {
   const to = $('#mailTo').value.trim();
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)){ toast(lwT('Email de destinatario no válido')); return; }
-  if(!(SAVED && SAVED.numero)){ toast(lwT('Guarda el documento antes de enviarlo')); return; }
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)){ toastMal(lwT('Email de destinatario no válido')); return; }
+  if(!(SAVED && SAVED.numero)){ toastMal(lwT('Guarda el documento antes de enviarlo')); return; }
   const btn = $('#mailSend');
   btn.disabled = true; btn.textContent = 'Enviando…';
   try{
@@ -1903,8 +1908,8 @@ $('#mailSend').onclick = async () => {
       LDOCS = null;   // que el listado enseñe el estado «enviada» al volver
       toast(lwT('Enviado a ') + to); cerrarMail();
     }
-    else toast(res.error || 'No se pudo enviar');
-  }catch(err){ toast(lwT('Error: ') + (err.message || err)); }
+    else toastMal(res.error || 'No se pudo enviar');
+  }catch(err){ toastMal(lwT('Error: ') + (err.message || err)); }
   btn.disabled = false; btn.textContent = 'Enviar';
 };
 
@@ -1965,7 +1970,7 @@ async function cargarContratos(){
   if(error || !data){
     // Un catálogo vacío se lee igual que «no hay contratos». No es lo mismo.
     CONTRATOS = [];
-    toast(lwT('No se pudo cargar la lista de contratos: ') + ((error && error.message) || ''));
+    toastMal(lwT('No se pudo cargar la lista de contratos: ') + ((error && error.message) || ''));
     return;
   }
   if(data.length > TOPE) toast(lwT('Hay más de ') + TOPE + ' contratos: el buscador enseña los ' + TOPE + ' más recientes');
@@ -2481,7 +2486,7 @@ function traerVinculado(c, moneda){
     const monto = parseImporte(h.monto) || (pct && precio ? redondear(precio * pct / 100, moneda) : 0);
     return { texto: h.es || h.en || '', pct, monto, timing: h.timing || '' };
   }).filter(h => h.texto || h.monto);
-  if(!hitos.length){ toast(lwT('Ese contrato no tiene hitos de pago que traer')); return; }
+  if(!hitos.length){ toastMal(lwT('Ese contrato no tiene hitos de pago que traer')); return; }
 
   const caja = document.createElement('div');
   caja.className = 'hitos';
@@ -2537,24 +2542,24 @@ function payload(){
 }
 $('#btnSave').onclick = async () => {
   const d = collect();
-  if(!d.cliente_nombre){ toast(lwT('Falta el nombre del cliente')); return; }
+  if(!d.cliente_nombre){ toastMal(lwT('Falta el nombre del cliente')); return; }
   // 11-ago (reforma del modelo de facturación) + 12-ago (se suma proforma,
   // petición del cliente): los tres tipos exigen contrato — sin eso no hay a
   // qué balance atribuir el dinero. Un balance de cliente real salió mal
   // justo por documentos sin este dato claro. Con los tres tipos posibles
   // cubiertos, ya no hace falta mirar cuál es — cualquier documento lo exige.
   if(!CONTRATO_ID){
-    toast(lwT('Elige el contrato al que corresponde este documento')); return;
+    toastMal(lwT('Elige el contrato al que corresponde este documento')); return;
   }
   if(d.tipo === 'recibi'){
-    if(!APLICACIONES.length){ toast(lwT('Elige al menos una factura que salde este recibí')); return; }
-    if(!JUSTIFICANTES.length){ toast(lwT('Adjunta el justificante de pago')); return; }
+    if(!APLICACIONES.length){ toastMal(lwT('Elige al menos una factura que salde este recibí')); return; }
+    if(!JUSTIFICANTES.length){ toastMal(lwT('Adjunta el justificante de pago')); return; }
     for(const a of APLICACIONES){
       const imp = parseImporte(a.importe);
-      if(!imp || imp <= 0){ toast(lwT('Falta el importe aplicado a ') + a.numero); return; }
-      if(imp > a.pendiente + 0.01){ toast(a.numero + ' solo tiene ' + fmtMoneda(a.pendiente, d.moneda) + ' pendiente'); return; }
+      if(!imp || imp <= 0){ toastMal(lwT('Falta el importe aplicado a ') + a.numero); return; }
+      if(imp > a.pendiente + 0.01){ toastMal(a.numero + ' solo tiene ' + fmtMoneda(a.pendiente, d.moneda) + ' pendiente'); return; }
     }
-  } else if(!calcTotales(d.lineas, d.moneda, null).subtotal){ toast(lwT('El documento no tiene importe')); return; }
+  } else if(!calcTotales(d.lineas, d.moneda, null).subtotal){ toastMal(lwT('El documento no tiene importe')); return; }
   const btn = $('#btnSave'); btn.disabled = true; btn.textContent = 'Guardando…';
   try{
     let data;
@@ -2581,7 +2586,7 @@ $('#btnSave').onclick = async () => {
     $('[name="numero_visible"]').value = data.numero;
     LDOCS = null;   // el listado queda viejo: al volver se recarga y el documento nuevo aparece (auditoría 19-ago)
     toast(lwT('Guardada como ') + data.numero);
-  }catch(err){ toast(lwT('No se pudo guardar: ') + (err.message || err)); }
+  }catch(err){ toastMal(lwT('No se pudo guardar: ') + (err.message || err)); }
   btn.disabled = false; render();
 };
 
@@ -2619,7 +2624,7 @@ $('#btnNueva').onclick = async () => {
    conoce de sobra. Mismo camino que el buscador de elegirFacturaDelRecibi(),
    solo que la factura no hay que elegirla: reusa aplicarFacturaAlRecibi(). */
 async function crearRecibiDesdeFactura(){
-  if(!(SAVED && SAVED.id)){ toast(lwT('Guarda la factura antes de crear un recibí desde ella')); return; }
+  if(!(SAVED && SAVED.id)){ toastMal(lwT('Guarda la factura antes de crear un recibí desde ella')); return; }
   const origenId = SAVED.id, origenNumero = SAVED.numero;
   const origenMoneda = ($('[name="moneda"]').value || 'EUR');
   if(!await lwConfirmar({
@@ -2632,7 +2637,7 @@ async function crearRecibiDesdeFactura(){
   await cargarFacturasAbiertas();
   const f = FACTURAS_ABIERTAS.find(x => x.id === origenId);
   if(!f){
-    toast(lwT('Esa factura ya no tiene saldo pendiente, o está anulada — no hay nada que cobrar en un recibí.'));
+    toastMal(lwT('Esa factura ya no tiene saldo pendiente, o está anulada — no hay nada que cobrar en un recibí.'));
     return;
   }
   await aplicarFacturaAlRecibi(f);
@@ -2646,12 +2651,12 @@ $('#btnRecibiDeFactura').onclick = crearRecibiDesdeFactura;
    `factura_id` en vez de `contrato_id` — la tabla ya la escriben las mismas
    Edges de envío (send-contract-email deja `factura_id` cuando se manda desde
    aquí), así que no hace falta tocar nada del lado que escribe. */
-const REG_VIA = { manual:'Email manual', enlace_firma:'Enlace de firma', firma:'Circuito de firma',
-                  proforma:'Proforma', factura:'Factura', factura_auto:'Factura automática' };
+/* El rótulo de la vía: `lwViaCorreo` de assets/vocabulario.js — ver la nota de
+   LW_VIA_CORREO allí. Estaba a mano aquí y le faltaba `aviso_anulacion`. */
 const regFecha = iso => iso ? new Date(iso).toLocaleString('es-ES',
   { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
 async function abrirRegistro(){
-  if(!(SAVED && SAVED.id)){ toast(lwT('Guarda el documento para ver su registro')); return; }
+  if(!(SAVED && SAVED.id)){ toastMal(lwT('Guarda el documento para ver su registro')); return; }
   $('#regOverlay').classList.add('open');
   const cont = $('#regBody'); cont.innerHTML = '<p class="em-note">' + lwT('Cargando…') + '</p>';
   const { data, error } = await sb.from('correos_enviados')
@@ -2661,7 +2666,7 @@ async function abrirRegistro(){
   const filaMail = m =>
     '<tr><td style="white-space:nowrap">' + regFecha(m.enviado_en) + '</td>'
     + '<td>' + esc(m.para) + '</td>'
-    + '<td>' + esc(REG_VIA[m.via] || m.via) + '</td>'
+    + '<td class="reg-via">' + esc(lwViaCorreo(m.via)) + '</td>'
     + '<td>' + esc(m.enviado_por || 'Automático') + '</td>'
     + '<td>' + esc(m.asunto) + '</td></tr>';
   cont.innerHTML = (data||[]).length
@@ -3091,8 +3096,8 @@ function pintarListado(){
       // mismo patrón que el borrar de aquí abajo (auditoría 19-ago): la RLS no
       // da error al denegar, devuelve CERO filas — sin mirarlas, esto decía
       // «Factura anulada» y la factura seguía viva
-      if(error) toast(lwT('No se pudo anular: ') + error.message);
-      else if(!fue || !fue.length) toast(lwT('No se pudo anular: no es tuya o ya está anulada'));
+      if(error) toastMal(lwT('No se pudo anular: ') + error.message);
+      else if(!fue || !fue.length) toastMal(lwT('No se pudo anular: no es tuya o ya está anulada'));
       else toast(lwT('Factura anulada'));
       recargarListado(); return;
     }
@@ -3111,8 +3116,8 @@ function pintarListado(){
       const { data: fue, error } = await sb.from('facturas').delete().eq('id', bo.dataset.borrar).select('id');
       // La RLS no da error al denegar: devuelve cero filas. Sin comprobarlo, la
       // herramienta diría "borrada" y la factura seguiría ahí.
-      if(error) toast(lwT('No se pudo borrar: ') + error.message);
-      else if(!fue || !fue.length) toast(lwT('No tienes permiso para borrar facturas'));
+      if(error) toastMal(lwT('No se pudo borrar: ') + error.message);
+      else if(!fue || !fue.length) toastMal(lwT('No tienes permiso para borrar facturas'));
       else { toast(lwT('Factura borrada')); if(SAVED && SAVED.id === bo.dataset.borrar) SAVED = null; }
       recargarListado(); return;
     }

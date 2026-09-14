@@ -31,7 +31,7 @@
      emitió el equipo, no una reconstrucción parecida. `entities.js` trae los
      datos bancarios dentro de la propia factura. -->
 <link rel="stylesheet" href="/intranet/facturas/documento.css?v=20260731">
-<script src="/contracts/assets/entities.js?v=80bcdeb1"></script>
+<script src="/contracts/assets/entities.js?v=1f7bf26c"></script>
 <script src="/contracts/assets/dinero.js?v=ced29282"></script>
 <!-- `vocabulario.js` trae `lwEsPreliminar`: QUÉ contratos no suman precio. Se
      carga el fichero compartido y no se copia la lista aquí a propósito — esa
@@ -41,7 +41,7 @@
      HTML para que `resumen.test.js` pueda probarla en node con los importes
      reales de producción. `?v=` a mano porque `tools/sella_assets.py` solo sella
      lo que vive en `contracts/assets/`. -->
-<script src="/contracts/assets/vocabulario.js?v=d569c692"></script>
+<script src="/contracts/assets/vocabulario.js?v=c94d7dc5"></script>
 <script src="/portal/resumen.js?v=20260914"></script>
 <script src="/intranet/facturas/totales.js"></script>
 <script src="/intranet/facturas/documento.js?v=20260731"></script>
@@ -291,6 +291,16 @@
 
   .toast{ position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--va); color:#fff;
           padding:11px 20px; border-radius:999px; font-size:13px; z-index:200; opacity:0; transition:opacity .2s; pointer-events:none; }
+  /* El aviso de ERROR: centro y rojo (owner, 14-sep-2026). Escrito aqui y no
+     heredado de la suite porque el portal tiene sistema visual PROPIO (ver la
+     nota de cabecera). Mismo rojo #9E2F26 que la intranet: es el del estudio.
+     Radio 12 y no pastilla — estos textos son largos y una pastilla de tres
+     lineas se lee fatal. El aviso normal se enciende con `style.opacity`, asi
+     que aqui el transform tiene que estar en las DOS reglas. */
+  .toast.mal{ top:50%; bottom:auto; transform:translate(-50%,-50%); background:#9E2F26;
+              padding:18px 26px; border-radius:12px; font-size:15px; font-weight:600; line-height:1.35;
+              max-width:min(560px, calc(100vw - 32px)); z-index:220;
+              box-shadow:0 22px 60px -18px rgba(158,47,38,.55), 0 0 0 6px rgba(158,47,38,.13); }
 
   /* ── responsive: sidebar/topbar/contenido ────────────────────────────── */
   .sidebar{ position:sticky; top:0; height:100vh; width:236px; padding:26px 18px; }
@@ -417,6 +427,19 @@
     var el = document.getElementById('toast');
     el.textContent = msg; el.style.opacity = '1';
     clearTimeout(toast._t); toast._t = setTimeout(function(){ el.style.opacity = '0'; }, 3200);
+  }
+
+  /* Aviso de ERROR: centro, rojo y 7 s (owner, 14-sep-2026). Quien lee esto es
+     el COMPRADOR, no un agente: si un fallo suyo se disfraza de aviso gris al
+     pie, se marcha creyendo que ha subido el justificante o abierto el ticket.
+     Nodo propio para poder anunciarlo con `alert`, que interrumpe. */
+  function toastMal(msg){
+    var el = document.getElementById('toastMal');
+    if(!el){ el = document.createElement('div'); el.id = 'toastMal';
+             el.setAttribute('role','alert'); el.setAttribute('aria-live','assertive');
+             el.setAttribute('aria-atomic','true'); document.body.appendChild(el); }
+    el.className = 'toast mal'; el.textContent = msg; el.style.opacity = '1';
+    clearTimeout(toastMal._t); toastMal._t = setTimeout(function(){ el.style.opacity = '0'; }, 7000);
   }
 
   /* ── idioma ───────────────────────────────────────────────────────── */
@@ -1137,7 +1160,7 @@
   function abreFichero(bucket, path){
     if (!path) return;
     sb.storage.from(bucket).createSignedUrl(path, 600).then(function(r){
-      if (r.data && r.data.signedUrl) window.open(r.data.signedUrl, '_blank', 'noopener'); else toast(t('err_fichero'));
+      if (r.data && r.data.signedUrl) window.open(r.data.signedUrl, '_blank', 'noopener'); else toastMal(t('err_fichero'));
     });
   }
 
@@ -1206,7 +1229,7 @@
       var btn = e.target.querySelector('button[type="submit"]'); btn.disabled = true;
       sb.rpc('portal_enviar_mensaje', { p_hilo_id: x.id, p_texto: val }).then(function(r){
         btn.disabled = false;
-        if (r.error){ toast(r.error.message); return; }
+        if (r.error){ toastMal(r.error.message); return; }
         recargaSituacion(function(){
           var actual = (DATOS.tickets||[]).filter(function(t2){ return t2.id === x.id; })[0];
           if (actual) abreTicket(actual); else cierraDrawer();
@@ -1231,11 +1254,11 @@
     document.getElementById('btnAbrirTicket').addEventListener('click', function(){
       var cat = document.getElementById('nCategoria').value;
       var texto = document.getElementById('nTexto').value.trim();
-      if (!cat || !texto){ toast(t('completa_campos')); return; }
+      if (!cat || !texto){ toastMal(t('completa_campos')); return; }
       var btn = document.getElementById('btnAbrirTicket'); btn.disabled = true;
       sb.rpc('portal_abrir_ticket', { p_client_id: DATOS.client_id, p_categoria: cat, p_texto: texto }).then(function(r){
         btn.disabled = false;
-        if (r.error){ toast(r.error.message); return; }
+        if (r.error){ toastMal(r.error.message); return; }
         recargaSituacion(function(){ cierraDrawer(); render(); toast(t('ticket_abierto')); });
       });
     });
@@ -1296,7 +1319,7 @@
     prefs[cual] = !prefs[cual];
     pintaPerfil(document.getElementById('content'));
     sb.rpc('portal_set_prefs', { p_pref_email: prefs.pref_email, p_pref_sms: prefs.pref_sms }).then(function(r){
-      if (r.error) toast(r.error.message);
+      if (r.error) toastMal(r.error.message);
     });
   }
 
@@ -1354,7 +1377,7 @@
   function abreContrato(c){
     if (!c || !c.pdf) return;
     sb.storage.from('contratos-firmados').createSignedUrl(c.pdf, 600).then(function(r){
-      if (!r.data || !r.data.signedUrl){ toast(t('err_carga')); vasA('contratos', null, true); return; }
+      if (!r.data || !r.data.signedUrl){ toastMal(t('err_carga')); vasA('contratos', null, true); return; }
       abreDrawer(
         '<h3 style="margin:0 0 4px;font-size:15px;font-weight:600">' + esc(c.numero) + '</h3>' +
         '<div style="font-size:11.5px;color:#8a8570;margin-bottom:14px">' + esc((c.proyecto||'') + (c.parcela?' · '+t('unidad')+' '+c.parcela:'')) + '</div>' +

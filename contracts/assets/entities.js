@@ -85,13 +85,23 @@ function cargarCuentasBancarias(sb){
    aquí deja el selector vacío y acaba en un contrato sin destino de pago, que es
    exactamente el error que esta familia de ficheros existe para evitar. */
 const PLANTILLA_CUENTAS = {};   // { slug: { claves:[...], porDefecto:'clave'|'' } }
-const PLANTILLAS_PAGO = [];     // [{ slug, nombre, orden }] — catálogo, para el panel
+/* El catálogo entero de plantillas, para el panel y para el picker de «Nuevo
+   contrato»: [{ slug, nombre, orden, cobra, archivada }]. Se llama PAGO por
+   historia (nació con las 8 que cobran) y hoy trae las 20 — quien filtre por
+   `cobra` o por `archivada` lo hace donde lo necesita, no aquí: el cargador
+   NUNCA esconde una plantilla archivada, porque un contrato ya guardado de ese
+   tipo tiene que poder reabrirse. */
+const PLANTILLAS_PAGO = [];
 let PLANTILLA_CUENTAS_PROMESA = null;
 function cargarPlantillaCuentas(sb){
   if(PLANTILLA_CUENTAS_PROMESA) return PLANTILLA_CUENTAS_PROMESA;
   PLANTILLA_CUENTAS_PROMESA = (async () => {
     const [cat, map] = await Promise.all([
-      sb.from('plantillas_pago').select('slug,nombre,orden').order('orden'),
+      // `plantillas_contrato` (antes `plantillas_pago`): desde el 14-sep-2026 es el
+      // catálogo COMPLETO —las 20 plantillas— y no solo las 8 que cobran, porque
+      // de aquí sale también qué tipos están archivados. `cobra` distingue a las
+      // que pintan selector de cuenta; `archivada`, las que no se ofrecen al crear.
+      sb.from('plantillas_contrato').select('slug,nombre,orden,cobra,archivada').order('orden'),
       sb.from('plantilla_cuentas').select('slug,clave,es_default')
     ]);
     if(cat.error){ PLANTILLA_CUENTAS_PROMESA = null; throw cat.error; }
@@ -102,7 +112,15 @@ function cargarPlantillaCuentas(sb){
     PLANTILLAS_PAGO.length = 0;
     (cat.data || []).forEach(r => PLANTILLAS_PAGO.push(r));
     Object.keys(PLANTILLA_CUENTAS).forEach(k => delete PLANTILLA_CUENTAS[k]);
-    (cat.data || []).forEach(r => { PLANTILLA_CUENTAS[r.slug] = { claves: [], porDefecto: '' }; });
+    /* Solo las que COBRAN entran en el mapa, y el matiz importa: tener entrada
+       aquí significa «esta plantilla tiene un reparto definido», y una entrada
+       con la lista vacía significa «se desmarcaron todas» — que `bankOptionsFor`
+       respeta ofreciendo cero. Si se inicializaran las 20, las 12 que no cobran
+       pasarían de «sin reparto» (→ se ofrecen todas, la degradación segura) a
+       «reparto vacío» (→ ninguna), y eso cambiaría el significado de la lista
+       vacía, que es el caso que este código distingue con más cuidado. */
+    (cat.data || []).filter(r => r.cobra)
+      .forEach(r => { PLANTILLA_CUENTAS[r.slug] = { claves: [], porDefecto: '' }; });
     (map.data || []).forEach(r => {
       const e = PLANTILLA_CUENTAS[r.slug] || (PLANTILLA_CUENTAS[r.slug] = { claves: [], porDefecto: '' });
       e.claves.push(r.clave);

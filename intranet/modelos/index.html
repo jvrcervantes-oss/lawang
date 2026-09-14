@@ -34,12 +34,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&family=Instrument+Sans:wght@700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=c4880e28">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=8c0dbd02">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=48894a85"></script>
+<script src="/contracts/assets/i18n.js?v=a16d0ab3"></script>
 <script src="/contracts/assets/herramientas.js?v=c95fc709"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -121,13 +121,13 @@
 <!-- esc() y toast() ANTES del script de la página: son `const` de primer nivel
      y dos declaraciones del mismo nombre revientan la página entera. -->
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
-<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
+<script src="/contracts/assets/suite-comun.js?v=310f2346"></script>
 <!-- Fotos publicas del investor deck. Compartida con la otra herramienta que
      las gestiona (Regla 0 de la suite): nace en contracts/assets/, no dentro de
      una pantalla. Depende de suite-comun (esc/toast) y dialogo (lwConfirmar). -->
 <script src="/contracts/assets/deck_fotos.js?v=442fb967"></script>
 <!-- vocabulario.js: aqui solo por lwBusca/lwBuscaEn — el buscador sin tildes (8-sep-2026) -->
-<script src="/contracts/assets/vocabulario.js?v=d569c692"></script>
+<script src="/contracts/assets/vocabulario.js?v=c94d7dc5"></script>
 <script>
 /* ============================================================================
    Modelos — catálogo de tipos de vivienda
@@ -562,7 +562,7 @@ function enganchar(m){
        está publicado. La pieza es compartida con Proyectos (Regla 0). */
     const bf = document.getElementById('bFotosDeck');
     if(bf) bf.onclick = () => {
-      if(!window.lwDeckFotos){ toast(lwT('No se ha cargado el gestor de fotos del deck.')); return; }
+      if(!window.lwDeckFotos){ toastMal(lwT('No se ha cargado el gestor de fotos del deck.')); return; }
       lwDeckFotos.abrir({
         SB, ambito:'modelo', modeloId: m.id, esAdmin: ADMIN,
         titulo: lwT('Fotos públicas del deck'),
@@ -587,9 +587,9 @@ async function guardar(m){
   try{
     const nombre = (document.getElementById('e-nombre').value || '').trim();
     const slug   = (document.getElementById('e-slug').value || '').trim().toLowerCase();
-    if(!nombre){ toast(lwT('El nombre no puede quedar vacío')); btn.disabled = false; return; }
+    if(!nombre){ toastMal(lwT('El nombre no puede quedar vacío')); btn.disabled = false; return; }
     if(!/^[a-z0-9-]+$/.test(slug)){
-      toast(lwT('La dirección solo admite minúsculas, números y guiones')); btn.disabled = false; return; }
+      toastMal(lwT('La dirección solo admite minúsculas, números y guiones')); btn.disabled = false; return; }
 
     /* Renombrar propaga por ID a las unidades y a los precios por proyecto (lo
        hace el trigger `trg_modelo_renombrado`), así que se avisa de cuántas
@@ -679,7 +679,7 @@ async function guardar(m){
     /* Se dice CUÁL es el motivo, no solo «no se pudo». El caso frecuente es no
        ser admin: la policy rechaza y el mensaje crudo de PostgREST no lo explica. */
     const msg = (err && err.message) || 'error desconocido';
-    toast(/policy|permission|denied|row-level/i.test(msg)
+    toastMal(/policy|permission|denied|row-level/i.test(msg)
       ? lwT('No se ha guardado: cambiar precios y specs es de administrador.')
       : lwT('No se ha guardado: ') + msg);
     document.getElementById('bGuardar').disabled = false;
@@ -705,7 +705,7 @@ async function contarUnidades(modeloId){
      la parcela más barata y se avisa del desfase, aquí y en el listado. */
 function editarForecast(m, proyectoNombre){
   const py = proyPorNombre(proyectoNombre);
-  if(!py){ toast(lwT('Ese proyecto no está en la tabla `proyectos`.')); return; }
+  if(!py){ toastMal(lwT('Ese proyecto no está en la tabla `proyectos`.')); return; }
   const f = forecastDe(m.id).find(k => k.proyecto_id === py.id) || null;
   const cfg = forecastProy(py.id);
   const ref = sueloRef(proyectoNombre);
@@ -789,9 +789,9 @@ function editarForecast(m, proyectoNombre){
     for(const [k, etiqueta] of [['adr_medio', lwT('el precio medio/noche')], ['adr_optimo', lwT('el precio óptimo')],
                                 ['ocupacion_media', lwT('la ocupación media')], ['ocupacion_optima', lwT('la ocupación óptima')],
                                 ['inversion_base', lwT('la inversión base')]]){
-      if(fila[k] == null || !(fila[k] > 0)){ toast(lwT('Falta o no es válido: ') + etiqueta); return; }
+      if(fila[k] == null || !(fila[k] > 0)){ toastMal(lwT('Falta o no es válido: ') + etiqueta); return; }
     }
-    if(fila.ocupacion_media > 1 || fila.ocupacion_optima > 1){ toast(lwT('La ocupación es un porcentaje: no puede pasar de 100.')); return; }
+    if(fila.ocupacion_media > 1 || fila.ocupacion_optima > 1){ toastMal(lwT('La ocupación es un porcentaje: no puede pasar de 100.')); return; }
 
     const cf = {
       proyecto_id: py.id,
@@ -801,10 +801,10 @@ function editarForecast(m, proyectoNombre){
       actualizado_en: new Date().toISOString(),
     };
     for(const k of ['pct_gestion', 'pct_mantenimiento', 'pct_impuesto']){
-      if(cf[k] == null || cf[k] < 0 || cf[k] > 1){ toast(lwT('Los porcentajes van entre 0 y 100.')); return; }
+      if(cf[k] == null || cf[k] < 0 || cf[k] > 1){ toastMal(lwT('Los porcentajes van entre 0 y 100.')); return; }
     }
     if(cf.pct_gestion + cf.pct_mantenimiento + cf.pct_impuesto >= 1){
-      toast(lwT('Los tres porcentajes juntos se comen el ingreso entero: el neto saldría negativo.')); return;
+      toastMal(lwT('Los tres porcentajes juntos se comen el ingreso entero: el neto saldría negativo.')); return;
     }
 
     const b = document.getElementById('fc-guardar'); b.disabled = true;
@@ -821,7 +821,7 @@ function editarForecast(m, proyectoNombre){
       toast(lwT('Previsión guardada'));
     }catch(e){
       b.disabled = false;
-      toast(lwT('No se ha guardado: ') + (e.message || e));
+      toastMal(lwT('No se ha guardado: ') + (e.message || e));
     }
   };
 }
@@ -836,12 +836,12 @@ function editarForecast(m, proyectoNombre){
    nadie y todo seguia cayendo al PDF estatico del repo sin que se notara. */
 async function subirDoc(m, file, tipo){
   if(!file) return;
-  if(file.size > 52428800){ toast(lwT('El fichero pasa de 50 MB')); return; }
+  if(file.size > 52428800){ toastMal(lwT('El fichero pasa de 50 MB')); return; }
   const ext  = (file.name.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
   const path = m.id + '/' + crypto.randomUUID() + ext;
   toast(lwT('Subiendo…'));
   const up = await SB.storage.from('modelos').upload(path, file, { contentType:file.type || undefined });
-  if(up.error){ toast(lwT('No se ha subido: ') + up.error.message); return; }
+  if(up.error){ toastMal(lwT('No se ha subido: ') + up.error.message); return; }
   const r = await SB.from('modelo_documentos').insert({
     modelo_id:m.id, nombre:file.name, path, tipo:(tipo || 'otro'),
     tamano_bytes:file.size, subido_por:(YO && YO.id) || null });
@@ -849,7 +849,7 @@ async function subirDoc(m, file, tipo){
     /* Si la fila no entra, el fichero que acaba de subir se queda huérfano en el
        bucket. Se retira: un objeto sin fila no lo ve nadie y no lo borra nadie. */
     await SB.storage.from('modelos').remove([path]);
-    toast(lwT('No se ha guardado la ficha del documento: ') + r.error.message);
+    toastMal(lwT('No se ha guardado la ficha del documento: ') + r.error.message);
     return;
   }
   await cargar();
@@ -861,7 +861,7 @@ async function subirDoc(m, file, tipo){
 async function descargar(docId){
   const d = DOCS.find(x => x.id === docId); if(!d) return;
   const r = await SB.storage.from('modelos').createSignedUrl(d.path, 120);
-  if(r.error || !r.data){ toast(lwT('No se ha podido abrir: ') + ((r.error && r.error.message) || lwT('sin enlace'))); return; }
+  if(r.error || !r.data){ toastMal(lwT('No se ha podido abrir: ') + ((r.error && r.error.message) || lwT('sin enlace'))); return; }
   window.open(r.data.signedUrl, '_blank', 'noopener');
 }
 
@@ -923,16 +923,16 @@ async function crear(){
   const nombre = (document.getElementById('n-nombre').value || '').trim();
   const slug   = (document.getElementById('n-slug').value || '').trim().toLowerCase();
   const moneda = document.getElementById('n-moneda').value;
-  if(!nombre || !slug){ toast(lwT('Hacen falta el nombre y la dirección')); btn.disabled = false; return; }
-  if(!/^[a-z0-9-]+$/.test(slug)){ toast(lwT('La dirección solo admite minúsculas, números y guiones')); btn.disabled = false; return; }
-  if(MODELOS.some(m => m.slug === slug)){ toast(lwT('Ya hay un modelo en esa dirección')); btn.disabled = false; return; }
+  if(!nombre || !slug){ toastMal(lwT('Hacen falta el nombre y la dirección')); btn.disabled = false; return; }
+  if(!/^[a-z0-9-]+$/.test(slug)){ toastMal(lwT('La dirección solo admite minúsculas, números y guiones')); btn.disabled = false; return; }
+  if(MODELOS.some(m => m.slug === slug)){ toastMal(lwT('Ya hay un modelo en esa dirección')); btn.disabled = false; return; }
   const r = await SB.from('modelos')
     .insert({ nombre, slug, moneda, publicado:false, activo:true,
               orden:(MODELOS.reduce((a,m) => Math.max(a, m.orden || 0), 0) + 1) })
     .select().single();
   if(r.error){
     const msg = r.error.message || '';
-    toast(/policy|permission|denied|row-level/i.test(msg)
+    toastMal(/policy|permission|denied|row-level/i.test(msg)
       ? lwT('No se ha creado: dar de alta un modelo es de administrador.')
       : lwT('No se ha creado: ') + msg);
     btn.disabled = false; return;

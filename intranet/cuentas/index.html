@@ -12,12 +12,12 @@
 <!-- UNA SOLA HOJA PARA TODA LA SUITE: `lawang.css` la genera
      `tools/empaqueta_css.py` uniendo brand + topbar + suite + app en ese orden,
      que es la cascada y no el alfabeto. -->
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=c4880e28">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=8c0dbd02">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que `lwT`
      exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=48894a85"></script>
+<script src="/contracts/assets/i18n.js?v=a16d0ab3"></script>
 <script src="/contracts/assets/herramientas.js?v=c95fc709"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -143,13 +143,13 @@
 <!-- esc() y toast() compartidos. ANTES del script de la pagina: son `const` de
      primer nivel y dos declaraciones del mismo nombre revientan la pagina. -->
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
-<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
+<script src="/contracts/assets/suite-comun.js?v=310f2346"></script>
 <!-- `lwBuscaEn` (buscar sin tildes ni mayúsculas) vive en vocabulario.js, no en
      suite-comun.js. Aquí NO se carga `entities.js`: este panel consulta las
      cuentas por su cuenta porque necesita ver también las DESACTIVADAS, y
      `cargarCuentasBancarias` filtra `activa = true` — cargarlo solo añadiría un
      objeto global que esta pantalla no usa. -->
-<script src="/contracts/assets/vocabulario.js?v=d569c692"></script>
+<script src="/contracts/assets/vocabulario.js?v=c94d7dc5"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CUENTAS BANCARIAS — el panel del super admin. 14-sep-2026.
@@ -225,6 +225,12 @@ let MODO = 'contrato';   // 'contrato' | 'proyecto' | 'cuenta'
    la tabla guarda EXCEPCIONES, no una matriz de 8 tipos × 29 proyectos que
    nadie mantendría al día. */
 let PROYECTOS = [], EXCEPCION = [];
+/* Cuantos contratos tiene cada plantilla, indexado por SLUG. De la RPC
+   `plantillas_uso()` — solo recuentos. Es lo que convierte «archivar morralla»
+   en una decision con dato en vez de a ojo. `{}` si la RPC falla: entonces la
+   fila sale sin cifra, nunca con un «0 contratos» que invitaria a archivar algo
+   vivo. */
+let USO_TIPO = {};
 const TODOS = '*';   // el slug que significa «cualquier tipo de contrato»
 
 /* `orden` decide el sitio de la cuenta en el desplegable del contrato... o eso
@@ -239,11 +245,14 @@ async function cargar(){
   // Ojo: aquí se piden TODAS las cuentas, activas y no. `cargarCuentasBancarias`
   // de entities.js filtra `activa = true` porque es para imprimir un contrato;
   // este panel es justo donde hay que ver —y poder reactivar— una desactivada.
-  const [cu, pl, re, us, pr, pcu] = await Promise.all([
+  const [cu, pl, re, us, pr, pcu, pu] = await Promise.all([
     SB.from('cuentas_bancarias')
       .select('clave,label,titular,banco,cuenta,codigo,direccion,extra,orden,activa,es_escrow,actualizado_en')
       .order('orden'),
-    SB.from('plantillas_pago').select('slug,nombre,orden').order('orden'),
+    // el catalogo COMPLETO: las 20 plantillas, no solo las 8 que cobran. `cobra`
+    // decide si su ficha pinta el reparto de cuentas; `archivada`, si se ofrece
+    // al crear un contrato.
+    SB.from('plantillas_contrato').select('slug,nombre,orden,cobra,archivada').order('orden'),
     SB.from('plantilla_cuentas').select('slug,clave,es_default'),
     // Recuentos, sin ningún dato de comprador. La RPC está gateada a super admin
     // en la base, así que a un admin normal le devuelve vacío y el aviso se
@@ -253,6 +262,8 @@ async function cargar(){
     // filas que ya declaran cuenta propia.
     SB.from('proyectos').select('id,nombre').eq('activo', true).order('nombre'),
     SB.from('proyecto_cuentas').select('proyecto_id,slug,clave,es_default'),
+    // uso real por tipo de contrato, para archivar con la cifra delante
+    SB.rpc('plantillas_uso'),
   ]);
   if(cu.error){
     $('#listaC').innerHTML = '<p class="nota" style="padding:18px">' + lwT('No se pudo cargar: ') + esc(cu.error.message) + '</p>';
@@ -268,6 +279,15 @@ async function cargar(){
   if(!us.error) (us.data || []).forEach(r => { USO[r.clave] = { contratos: r.contratos, firmados: r.firmados }; });
   PROYECTOS = pr.error  ? null : (pr.data  || []);
   EXCEPCION = pcu.error ? null : (pcu.data || []);
+  /* Uso por TIPO de contrato. Se indexa por SLUG de plantilla usando `TIPO_SLUG`
+     (vocabulario.js), porque no son la misma clave: `ppjb_parcela` es el slug y
+     `reserva_parcela` el tipo. Ese mapa se mudo a vocabulario.js hoy justamente
+     para no copiarlo aqui. */
+  USO_TIPO = {};
+  if(!pu.error) (pu.data || []).forEach(r => {
+    const slug = (typeof TIPO_SLUG !== 'undefined' && TIPO_SLUG[r.tipo]) || r.tipo;
+    USO_TIPO[slug] = { contratos: r.contratos, firmados: r.firmados, ultimo: r.ultimo };
+  });
   pintarLista();
   if(SEL) pintarFicha();
 }
@@ -343,17 +363,26 @@ function pintarListaContratos(q){
   $('#listaC').innerHTML = lista.map(p => {
     const filas = (REPARTO || []).filter(r => r.slug === p.slug);
     const def = filas.find(r => r.es_default);
+    const uso = USO_TIPO[p.slug];
     const tags = [];
+    if(p.archivada) tags.push('<span class="tag t-off">' + lwT('archivado') + '</span>');
     // «no ofrece ninguna» se marca en rojo: es el único estado de esta pantalla
     // que rompe un contrato de verdad — el agente abre el documento y se
     // encuentra un desplegable vacío donde va el destino del dinero.
-    if(!filas.length) tags.push('<span class="tag t-off">' + lwT('sin cuentas') + '</span>');
-    else tags.push('<span class="tag">' + lwT('%n cuentas', { n: filas.length }) + '</span>');
+    // Solo se avisa en las que COBRAN: en las demás no hay desplegable que llenar.
+    if(p.cobra && !filas.length) tags.push('<span class="tag t-off">' + lwT('sin cuentas') + '</span>');
+    else if(p.cobra) tags.push('<span class="tag">' + lwT('%n cuentas', { n: filas.length }) + '</span>');
     if(def) tags.push('<span class="tag t-def">' + lwT('precargada') + '</span>');
+    // La cifra de uso es lo que decide si algo es morralla. «sin usar» va marcado
+    // porque es justo lo que se viene a buscar aquí.
+    tags.push(uso
+      ? '<span class="tag">' + lwT('%n contratos', { n: uso.contratos }) + '</span>'
+      : '<span class="tag t-off">' + lwT('sin usar') + '</span>');
     return '<button class="c ' + (SEL === p.slug ? 'sel' : '') + '" data-slug-sel="' + esc(p.slug) + '">'
-      + '<div class="n">' + esc(p.nombre) + '</div>'
-      + '<div class="m">' + (def ? lwT('cobra en %c', { c: etiquetaDe(def.clave) })
-                                 : lwT('el agente elige la cuenta')) + '</div>'
+      + '<div class="n"' + (p.archivada ? ' style="opacity:.55"' : '') + '>' + esc(p.nombre) + '</div>'
+      + '<div class="m">' + (!p.cobra ? lwT('no lleva cuenta de cobro')
+                             : def ? lwT('cobra en %c', { c: etiquetaDe(def.clave) })
+                                   : lwT('el agente elige la cuenta')) + '</div>'
       + '<div class="r">' + tags.join('') + '</div>'
       + '</button>';
   }).join('');
@@ -474,12 +503,12 @@ async function cambiarExcepcion(el, proyectoId){
         if(!sigo){ el.checked = false; return; }
       }
       const { error } = await SB.from('proyecto_cuentas').insert({ proyecto_id: proyectoId, slug: slug, clave: clave });
-      if(error){ toast(lwT('No se pudo añadir: ') + error.message); await cargar(); return; }
+      if(error){ toastMal(lwT('No se pudo añadir: ') + error.message); await cargar(); return; }
       toast(lwT('%c ya se puede elegir aquí', { c: etiquetaDe(clave) }));
     } else {
       const { error } = await SB.from('proyecto_cuentas').delete()
         .eq('proyecto_id', proyectoId).eq('slug', slug).eq('clave', clave);
-      if(error){ toast(lwT('No se pudo quitar: ') + error.message); await cargar(); return; }
+      if(error){ toastMal(lwT('No se pudo quitar: ') + error.message); await cargar(); return; }
       const quedan = (EXCEPCION || []).filter(r => r.proyecto_id === proyectoId && r.slug === slug && r.clave !== clave).length;
       // quedarse sin ninguna NO deja el contrato vacío: vuelve a heredar. Se dice,
       // porque es lo contrario de lo que pasa en la vista por contrato.
@@ -490,8 +519,8 @@ async function cambiarExcepcion(el, proyectoId){
     const { data, error } = await SB.from('proyecto_cuentas')
       .update({ es_default: true })
       .eq('proyecto_id', proyectoId).eq('slug', slug).eq('clave', clave).select('clave');
-    if(error){ toast(lwT('No se pudo marcar como precargada: ') + error.message); await cargar(); return; }
-    if(!data || !data.length){ toast(lwT('NO se ha cambiado: no tienes permiso para editar cuentas de cobro.')); await cargar(); return; }
+    if(error){ toastMal(lwT('No se pudo marcar como precargada: ') + error.message); await cargar(); return; }
+    if(!data || !data.length){ toastMal(lwT('NO se ha cambiado: no tienes permiso para editar cuentas de cobro.')); await cargar(); return; }
     toast(lwT('Se precargará %c', { c: etiquetaDe(clave) }));
   }
   await cargar();
@@ -514,8 +543,31 @@ function pintarFichaContrato(){
 
   const aviso = PUEDO_ESCRIBIR ? '' :
     '<p class="aviso">' + lwT('Estás viendo el reparto, no puedes cambiarlo: solo un super admin edita cuentas de cobro. Es el dato que decide adónde transfiere el comprador.') + '</p>';
-  const sinNinguna = filas.length ? '' :
+  // solo alarma donde hay desplegable que llenar: los 12 documentos que no cobran
+  // no tienen ninguno
+  const sinNinguna = (!p.cobra || filas.length) ? '' :
     '<p class="aviso mal">' + lwT('Este contrato no ofrece NINGUNA cuenta. Quien lo abra se encuentra el desplegable de destino de pago vacío — marca al menos una.') + '</p>';
+
+  /* ARCHIVAR — encargo del owner («lo que archive no debe salir en la lista de
+     crear contratos»). Con la cifra de uso al lado, que es lo que separa la
+     morralla de lo que solo se usa poco. Y diciendo lo que archivar NO hace:
+     nada de lo emitido cambia y los contratos guardados se siguen abriendo. */
+  const uso = USO_TIPO[p.slug];
+  const usoTexto = uso
+    ? lwT('%n contratos · %f firmados', { n: uso.contratos, f: uso.firmados })
+      + (uso.ultimo ? ' · ' + lwT('último %f', { f: new Date(uso.ultimo).toLocaleDateString(lwLocale()) }) : '')
+    : lwT('sin usar todavía');
+  const cajaArchivo = '<div class="caja"><h3>' + lwT('Uso y archivo') + '</h3>'
+    + '<p class="nota" style="margin:0 0 12px">' + usoTexto + '</p>'
+    + (uso && uso.firmados
+        ? '<p class="aviso">' + lwT('Tiene contratos FIRMADOS. Archivarlo no los toca —se siguen abriendo, imprimiendo y firmando— solo deja de ofrecerse al crear uno nuevo.') + '</p>'
+        : '')
+    + '<div class="acciones">'
+      + '<label class="op"><input type="checkbox" id="fArchivada"' + (p.archivada ? ' checked' : '') + ro + '>'
+      + '<span class="et">' + lwT('Archivado — no aparece al crear un contrato') + '</span></label>'
+    + '</div>'
+    + '<p class="nota">' + lwT('Archivar solo lo retira del desplegable de «Nuevo contrato». Lo ya emitido no cambia, y un contrato guardado de este tipo se abre igual (sale marcado como archivado).') + '</p>'
+    + '</div>';
 
   // Las desactivadas no se ofrecen para marcar: están fuera de todos los
   // desplegables por definición. Pero si alguna está marcada en este contrato
@@ -530,7 +582,12 @@ function pintarFichaContrato(){
       + (def ? ' · ' + lwT('precargada: %c', { c: etiquetaDe(def.clave) }) : ' · ' + lwT('sin precargada'))
       + '</p>'
 
-    + '<div class="caja"><h3>' + lwT('Qué cuentas puede elegir el agente en este contrato') + '</h3>'
+    + cajaArchivo
+    + (!p.cobra
+       ? '<div class="caja"><h3>' + lwT('Cuentas de cobro') + '</h3><p class="nota" style="margin:0">'
+         + lwT('Este documento no lleva datos bancarios, así que no hay nada que repartir.') + '</p></div>'
+       : '')
+    + (!p.cobra ? '' : '<div class="caja"><h3>' + lwT('Qué cuentas puede elegir el agente en este contrato') + '</h3>'
       + '<div class="opciones">'
       + candidatas.map(c => {
           const marcada = filas.some(r => r.clave === c.clave);
@@ -555,13 +612,34 @@ function pintarFichaContrato(){
         + lwT('«Precargada» viene ya elegida al abrir un contrato nuevo. Sin precargada, el desplegable arranca vacío y el agente tiene que elegir — que es lo correcto salvo que este documento cobre siempre en el mismo sitio.') + '<br>'
         + lwT('Un contrato YA GUARDADO conserva la cuenta con la que se hizo, aunque aquí la desmarques. No se reescribe nada de lo emitido.')
       + '</p>'
-    + '</div>';
+    + '</div>');
 
   if(PUEDO_ESCRIBIR){
     $('#ficha').querySelectorAll('[data-que]').forEach(el => {
       el.addEventListener('change', () => cambiarRepartoContrato(el, p.slug));
     });
+    const arch = $('#fArchivada');
+    if(arch) arch.addEventListener('change', () => archivarPlantilla(p, arch));
   }
+}
+
+/* Archivar / desarchivar. Es un FLAG y nunca un borrado: `plantilla_cuentas`
+   cuelga de esta tabla con ON DELETE CASCADE, asi que borrar una plantilla
+   archivada se llevaria por delante su reparto de cuentas sin decir una palabra
+   — y al desarchivarla volveria sin cuentas, que es el fallo silencioso caro. */
+async function archivarPlantilla(p, el){
+  const { data, error } = await SB.from('plantillas_contrato')
+    .update({ archivada: el.checked }).eq('slug', p.slug).select('slug');
+  if(error){ toast(lwT('No se pudo cambiar: ') + error.message); el.checked = !el.checked; return; }
+  // 0 filas sin error = la RLS lo paro en silencio (ver la nota de guardarCuenta)
+  if(!data || !data.length){
+    toast(lwT('NO se ha cambiado: no tienes permiso para editar cuentas de cobro.'));
+    el.checked = !el.checked; return;
+  }
+  toast(el.checked
+    ? lwT('«%p» archivado: ya no aparece al crear un contrato', { p: p.nombre })
+    : lwT('«%p» vuelve a estar disponible al crear un contrato', { p: p.nombre }));
+  await cargar();
 }
 
 function pintarFichaCuenta(){
@@ -746,14 +824,14 @@ async function crearCuenta(){
   // razonable por defecto. Se comprueban aquí para dar un mensaje que diga QUÉ
   // falta, en vez del error de Postgres.
   if(!/^[a-z0-9_]{3,}$/.test(clave)){
-    toast(lwT('La clave va en minúsculas, números y guión bajo, mínimo 3 caracteres. Sin espacios ni acentos.')); return;
+    toastMal(lwT('La clave va en minúsculas, números y guión bajo, mínimo 3 caracteres. Sin espacios ni acentos.')); return;
   }
   if(CUENTAS.some(c => c.clave === clave)){
-    toast(lwT('Ya existe una cuenta con la clave «%k».', { k: clave })); return;
+    toastMal(lwT('Ya existe una cuenta con la clave «%k».', { k: clave })); return;
   }
-  if(!label){ toast(lwT('La etiqueta no puede quedar vacía: es lo que se lee en el desplegable del contrato.')); return; }
+  if(!label){ toastMal(lwT('La etiqueta no puede quedar vacía: es lo que se lee en el desplegable del contrato.')); return; }
   if(!val('nTitular') || !val('nCuenta')){
-    toast(lwT('Hacen falta al menos el titular y el número de cuenta: son lo que el comprador usa para transferir.')); return;
+    toastMal(lwT('Hacen falta al menos el titular y el número de cuenta: son lo que el comprador usa para transferir.')); return;
   }
   const fila = {
     clave: clave, label: label,
@@ -774,7 +852,7 @@ async function crearCuenta(){
      más estrecho que INSERT, esto haría fallar el alta con un error que culpa a
      la escritura. */
   const { error } = await SB.from('cuentas_bancarias').insert(fila).select('clave').single();
-  if(error){ toast(lwT('No se pudo crear: ') + error.message); return; }
+  if(error){ toastMal(lwT('No se pudo crear: ') + error.message); return; }
   toast(lwT('Cuenta creada, desactivada. Comprueba los datos y actívala.'));
   await cargar();
   // se abre su ficha en la vista por cuenta: es donde se activa y se revisa
@@ -792,7 +870,7 @@ async function guardarCuenta(clave){
   // La etiqueta es lo ÚNICO por lo que el agente distingue una cuenta de otra en
   // el desplegable del contrato. Vacía, el select enseña una opción en blanco y
   // se elige a ciegas el destino de una transferencia.
-  if(!label){ toast(lwT('La etiqueta no puede quedar vacía: es lo que se lee en el desplegable del contrato.')); return; }
+  if(!label){ toastMal(lwT('La etiqueta no puede quedar vacía: es lo que se lee en el desplegable del contrato.')); return; }
   const cambios = {
     label:     label,
     titular:   val('titular').trim(),
@@ -815,9 +893,9 @@ async function guardarCuenta(clave){
      que esto es el cinturón por si un día ese `hidden` se cae. */
   const { data, error } = await SB.from('cuentas_bancarias')
     .update(cambios).eq('clave', clave).select('clave');
-  if(error){ toast(lwT('No se pudo guardar: ') + error.message); return; }
+  if(error){ toastMal(lwT('No se pudo guardar: ') + error.message); return; }
   if(!data || !data.length){
-    toast(lwT('NO se ha guardado: no tienes permiso para editar cuentas de cobro. Recarga la página.'));
+    toastMal(lwT('NO se ha guardado: no tienes permiso para editar cuentas de cobro. Recarga la página.'));
     return;
   }
   toast(lwT('Cuenta guardada'));
@@ -836,7 +914,7 @@ async function cambiarReparto(el, clave){
   if(que === 'ofrece'){
     if(el.checked){
       const { error } = await SB.from('plantilla_cuentas').insert({ slug: slug, clave: clave });
-      if(error){ toast(lwT('No se pudo añadir: ') + error.message); await cargar(); return; }
+      if(error){ toastMal(lwT('No se pudo añadir: ') + error.message); await cargar(); return; }
       toast(lwT('Añadida a «%p»', { p: nombreDe(slug) }));
     } else {
       // Quitar la que estaba precargada deja al contrato sin precarga, y eso es
@@ -845,7 +923,7 @@ async function cambiarReparto(el, clave){
       // efecto no está en la casilla que se acaba de tocar.
       const era = (REPARTO || []).some(r => r.slug === slug && r.clave === clave && r.es_default);
       const { error } = await SB.from('plantilla_cuentas').delete().eq('slug', slug).eq('clave', clave);
-      if(error){ toast(lwT('No se pudo quitar: ') + error.message); await cargar(); return; }
+      if(error){ toastMal(lwT('No se pudo quitar: ') + error.message); await cargar(); return; }
       toast(era ? lwT('Quitada de «%p» — ese contrato se queda SIN cuenta precargada', { p: nombreDe(slug) })
                 : lwT('Quitada de «%p»', { p: nombreDe(slug) }));
     }
@@ -856,9 +934,9 @@ async function cambiarReparto(el, clave){
     // para `on conflict` (error 42P10).
     const { data, error } = await SB.from('plantilla_cuentas')
       .update({ es_default: true }).eq('slug', slug).eq('clave', clave).select('clave');
-    if(error){ toast(lwT('No se pudo marcar como precargada: ') + error.message); await cargar(); return; }
+    if(error){ toastMal(lwT('No se pudo marcar como precargada: ') + error.message); await cargar(); return; }
     // 0 filas y sin error = la RLS lo paro en silencio (ver la nota de guardarCuenta)
-    if(!data || !data.length){ toast(lwT('NO se ha cambiado: no tienes permiso para editar cuentas de cobro.')); await cargar(); return; }
+    if(!data || !data.length){ toastMal(lwT('NO se ha cambiado: no tienes permiso para editar cuentas de cobro.')); await cargar(); return; }
     toast(lwT('Precargada en «%p»', { p: nombreDe(slug) }));
   }
   await cargar();
@@ -876,13 +954,13 @@ async function cambiarRepartoContrato(el, slug){
   if(que === 'ofrece'){
     if(el.checked){
       const { error } = await SB.from('plantilla_cuentas').insert({ slug: slug, clave: clave });
-      if(error){ toast(lwT('No se pudo añadir: ') + error.message); await cargar(); return; }
+      if(error){ toastMal(lwT('No se pudo añadir: ') + error.message); await cargar(); return; }
       toast(lwT('%c ya se puede elegir aquí', { c: etiquetaDe(clave) }));
     } else {
       const era = (REPARTO || []).some(r => r.slug === slug && r.clave === clave && r.es_default);
       const quedan = (REPARTO || []).filter(r => r.slug === slug && r.clave !== clave).length;
       const { error } = await SB.from('plantilla_cuentas').delete().eq('slug', slug).eq('clave', clave);
-      if(error){ toast(lwT('No se pudo quitar: ') + error.message); await cargar(); return; }
+      if(error){ toastMal(lwT('No se pudo quitar: ') + error.message); await cargar(); return; }
       // Los dos efectos colaterales se dicen, porque ninguno se ve en la casilla
       // que se acaba de tocar: quedarse sin precarga, y quedarse sin ninguna.
       toast(!quedan ? lwT('Quitada — este contrato ya NO ofrece ninguna cuenta')
@@ -893,9 +971,9 @@ async function cambiarRepartoContrato(el, slug){
     // El trigger `un_solo_default_por_plantilla` desmarca sola a la anterior.
     const { data, error } = await SB.from('plantilla_cuentas')
       .update({ es_default: true }).eq('slug', slug).eq('clave', clave).select('clave');
-    if(error){ toast(lwT('No se pudo marcar como precargada: ') + error.message); await cargar(); return; }
+    if(error){ toastMal(lwT('No se pudo marcar como precargada: ') + error.message); await cargar(); return; }
     // 0 filas y sin error = la RLS lo paro en silencio (ver la nota de guardarCuenta)
-    if(!data || !data.length){ toast(lwT('NO se ha cambiado: no tienes permiso para editar cuentas de cobro.')); await cargar(); return; }
+    if(!data || !data.length){ toastMal(lwT('NO se ha cambiado: no tienes permiso para editar cuentas de cobro.')); await cargar(); return; }
     toast(lwT('Se precargará %c', { c: etiquetaDe(clave) }));
   } else {
     // «ninguna precargada»: se desmarcan TODAS las de este contrato. No hay
@@ -903,10 +981,10 @@ async function cambiarRepartoContrato(el, slug){
     // va explícito y acotado al contrato, nunca a la tabla entera.
     const { data, error } = await SB.from('plantilla_cuentas')
       .update({ es_default: false }).eq('slug', slug).eq('es_default', true).select('clave');
-    if(error){ toast(lwT('No se pudo quitar la precarga: ') + error.message); await cargar(); return; }
+    if(error){ toastMal(lwT('No se pudo quitar la precarga: ') + error.message); await cargar(); return; }
     // aqui 0 filas es AMBIGUO —puede que ya no hubiera ninguna precargada— asi que
     // no se trata como fallo: el estado final se lee de la base en el `cargar()` de abajo
-    if(!data){ toast(lwT('No se pudo quitar la precarga: ') + lwT('sin respuesta')); await cargar(); return; }
+    if(!data){ toastMal(lwT('No se pudo quitar la precarga: ') + lwT('sin respuesta')); await cargar(); return; }
     toast(lwT('Sin cuenta precargada — el agente la elegirá cada vez'));
   }
   await cargar();

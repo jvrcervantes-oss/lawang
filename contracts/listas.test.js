@@ -82,8 +82,13 @@ function bloque(txt, arranque, quien) {
 const claves = s => [...s.matchAll(/(?:^|[{,\s])([a-z_][a-z0-9_]*)\s*:/gim)].map(m => m[1]);
 const valores = s => [...s.matchAll(/:\s*'([^']+)'/g)].map(m => m[1]);
 
-// 1 · app.html — qué tipos conoce la aplicación, y con qué serie
-const APP_TIPOS   = valores(bloque(APP, 'const CONTRACT_TIPO = {', 'app.html'));
+// 1 · qué tipos conoce la aplicación, y con qué serie.
+//     `CONTRACT_TIPO` se mudó de app.html a assets/vocabulario.js el 14-sep-2026
+//     (el panel de /intranet/cuentas/ necesita traducir slug↔tipo para enseñar el
+//     uso de cada plantilla, y copiarlo allí habría sido otra lista a mano).
+//     `TIPO_PREFIX` se queda en app.html: es la serie del NÚMERO de contrato, que
+//     solo asigna el generador.
+const APP_TIPOS   = valores(bloque(VOC, 'const CONTRACT_TIPO = {', 'assets/vocabulario.js'));
 const PREFIX_BLQ  = bloque(APP, 'const TIPO_PREFIX = {', 'app.html');
 const APP_PREFIJO = Object.fromEntries(
   [...PREFIX_BLQ.matchAll(/([a-z_][a-z0-9_]*)\s*:\s*'([A-Z0-9]{2})'/g)].map(m => [m[1], m[2]]));
@@ -111,7 +116,7 @@ const proformaDe = (txt, quien) => {
 
 /* ── Que los lectores han leído algo ─────────────────────────────────────
    Un test que compara dos listas vacías pasa siempre y no protege nada. */
-[['CONTRACT_TIPO', APP_TIPOS, 13], ['TIPO_PREFIX', Object.keys(APP_PREFIJO), 13],
+[['CONTRACT_TIPO (vocabulario.js)', APP_TIPOS, 13], ['TIPO_PREFIX', Object.keys(APP_PREFIJO), 13],
  ['LW_TIPO_CONTRATO', VOC_TIPOS, 13], ['tipos_de_contrato.sql', SQL_FILAS, 13],
  ['LW_HERRAMIENTAS.herr', CAT_PERMISOS, 11], ['HERRAMIENTAS (edge)', EDGE_HERR, 11],
 ].forEach(([nombre, lista, minimo]) => {
@@ -127,7 +132,7 @@ const proformaDe = (txt, quien) => {
 const SQL_TIPOS = SQL_FILAS.map(f => f.tipo);
 
 comprueba('los tipos de la app no son los que admite la base de datos',
-  APP_TIPOS, 'CONTRACT_TIPO (app.html)', SQL_TIPOS, 'tipos_de_contrato.sql');
+  APP_TIPOS, 'CONTRACT_TIPO (vocabulario.js)', SQL_TIPOS, 'tipos_de_contrato.sql');
 
 comprueba('hay un tipo sin nombre visible: el listado enseñaría la clave cruda',
   SQL_TIPOS, 'tipos_de_contrato.sql', VOC_TIPOS, 'LW_TIPO_CONTRATO (vocabulario.js)');

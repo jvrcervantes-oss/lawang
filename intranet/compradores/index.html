@@ -16,11 +16,11 @@
      uno, para que ninguna herramienta pueda cargar media suite: antes
      Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
      salieron los desplegables con cuatro aspectos. -->
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=c4880e28">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=8c0dbd02">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=48894a85"></script>
+<script src="/contracts/assets/i18n.js?v=a16d0ab3"></script>
 <script src="/contracts/assets/herramientas.js?v=c95fc709"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="/contracts/assets/visor.js?v=28038adb" defer></script>
@@ -192,9 +192,13 @@
 <script src="/contracts/assets/dinero.js?v=ced29282"></script>
 <script src="/intranet/facturas/totales.js"></script>
 <script src="/contracts/assets/paginacion.js?v=2ac67b84"></script>
-<script src="/contracts/assets/vocabulario.js?v=d569c692"></script>
+<script src="/contracts/assets/vocabulario.js?v=c94d7dc5"></script>
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
-<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
+<script src="/contracts/assets/suite-comun.js?v=310f2346"></script>
+<!-- Qué campos exige un alta NO se decide aquí: la lista vive en
+     `contracts/assets/compradores.js` porque la v4 crea `clients` por su cuenta
+     (editores.js) y dos listas a mano divergen — ver el comentario de allí. -->
+<script src="/contracts/assets/compradores.js?v=7eb94ab0"></script>
 <script>
 /* ============================================================
    COMPRADORES — ficha y documentación KYC.
@@ -315,7 +319,7 @@ async function cargar(){
     // Sin directorio (migración aún no aplicada, o RPC caída) la pantalla no se
     // queda en blanco: vuelve a ser lo de antes, solo lo tuyo. Y se dice.
     CLIENTES = mias;
-    if(dir && dir.error) toast(lwT('No se pudo leer el directorio de compradores: ') + dir.error.message);
+    if(dir && dir.error) toastMal(lwT('No se pudo leer el directorio de compradores: ') + dir.error.message);
   }
   DOCUMENTOS = d.error ? [] : (d.data || []);
   VINCULOS = v.error ? [] : (v.data || []);
@@ -329,10 +333,10 @@ async function cargar(){
     // «la dio de alta X» — que es lo que de verdad importa ver.
     EQUIPO = eq || [];
   }
-  if(d.error) toast(lwT('No se pudieron leer los documentos: ') + d.error.message);
-  if(f.error) toast(lwT('No se pudieron leer las facturas: ') + f.error.message);
-  if(a.error) toast(lwT('No se pudieron leer los accesos al portal: ') + a.error.message);
-  if(cb.error) toast(lwT('No se pudo calcular lo cobrado: ') + cb.error.message);
+  if(d.error) toastMal(lwT('No se pudieron leer los documentos: ') + d.error.message);
+  if(f.error) toastMal(lwT('No se pudieron leer las facturas: ') + f.error.message);
+  if(a.error) toastMal(lwT('No se pudieron leer los accesos al portal: ') + a.error.message);
+  if(cb.error) toastMal(lwT('No se pudo calcular lo cobrado: ') + cb.error.message);
 }
 
 /* ── CUÁNTO LLEVA PAGADO, PROYECTO A PROYECTO ──────────────────────────────
@@ -415,7 +419,7 @@ async function cargarCuotasReserva(ids){
   if(error){
     // No poder leerla NO es «no tiene»: se dice, en vez de enseñar un importe
     // en blanco que se leería como «no debe nada».
-    toast(lwT('No se pudo leer la cuota de reserva: ') + error.message);
+    toastMal(lwT('No se pudo leer la cuota de reserva: ') + error.message);
     return false;
   }
   (data || []).forEach(c => { CUOTA_RESERVA[c.id] = c.precio_reserva || null; });
@@ -442,7 +446,7 @@ async function cargarCorreosComprador(clientId, contratoIds, facturaIds){
     .or(partes.join(','))
     .order('enviado_en', { ascending:false });
   if(error){
-    toast(lwT('No se pudo leer el registro de envíos: ') + error.message);
+    toastMal(lwT('No se pudo leer el registro de envíos: ') + error.message);
     CORREOS_COMPRADOR[clientId] = [];   // ver la nota de cargarCuotasReserva: no es "sin correos", es "no se sabe"; pero sin esto el bloque se queda pidiendo para siempre
     return false;
   }
@@ -474,7 +478,7 @@ async function cargarSoporte(clientId){
     SB.from('hilo_soporte').select('estado,actualizado_en').eq('client_id', clientId),
   ]);
   if(error || e2){
-    toast(lwT('No se pudo leer Soporte: ') + (error || e2).message);
+    toastMal(lwT('No se pudo leer Soporte: ') + (error || e2).message);
     return false;   // no se cachea el fallo: la próxima vez que se abra la ficha, reintenta
   }
   const ultimo = (msgs || [])[0];
@@ -624,6 +628,11 @@ function pintarFicha(){
 
   /* La ficha va en el CAJÓN lateral — norma de la suite desde el 31-jul: se lee
      y se edita sin perder de vista la lista de la que sale. */
+  /* La estrella roja solo sale en una ficha NUEVA: al editar no se exige nada
+     (hay 200+ fichas antiguas sin nacionalidad ni pasaporte y marcarlas como
+     incompletas sería pedir un dato que quizá nadie tiene ya). */
+  const ob = nuevo ? ' <span class="sui-oblig" title="' + lwT('Obligatorio para crear la ficha') + '">*</span>' : '';
+
   const cuerpoFicha = `
 
     <fieldset id="fsIdentidad">
@@ -644,11 +653,11 @@ function pintarFicha(){
         <option value="empresa" ${c.tipo==='empresa'?'selected':''}>${lwT('Empresa')}</option>
       </select>
       <p class="nota" id="notaTipo"></p>
-      <label for="f-nombre" id="lab-nombre">${lwT('Nombre completo')}</label><input id="f-nombre" ${dis} style="text-transform:uppercase" value="${esc(c.full_name||'')}">
+      <label for="f-nombre" id="lab-nombre">${lwT('Nombre completo')}${ob}</label><input id="f-nombre" ${dis} style="text-transform:uppercase" value="${esc(c.full_name||'')}">
       <div class="sui-row">
-        <div><label for="f-email">${lwT('Email')}</label><input id="f-email" type="email" ${dis} value="${esc(c.email||'')}">
+        <div><label for="f-email">${lwT('Email')}${ob}</label><input id="f-email" type="email" ${dis} value="${esc(c.email||'')}">
           <p class="nota">${lwT('Este correo es solo de contacto — cambiarlo NO cambia con qué email entra al portal. Eso se gestiona aparte, en «Portal del comprador» más abajo.')}</p></div>
-        <div><label>${lwT('Teléfono')}</label>
+        <div><label>${lwT('Teléfono')}${ob}</label>
           <div style="display:flex;gap:6px">
             <!-- Sin <datalist>: lo abre lwPicker (ver el final de pintarFicha).
                  Y 86px: el prefijo mas largo del mundo es «+998», o sea 4
@@ -660,10 +669,10 @@ function pintarFicha(){
         </div>
       </div>
       <div class="sui-row">
-        <div><label for="f-nac" id="lab-nac">${lwT('Nacionalidad')}</label>
+        <div><label for="f-nac" id="lab-nac">${lwT('Nacionalidad')}${ob}</label>
           <input id="f-nac" ${dis} value="${esc(c.nationality||'')}">
         </div>
-        <div><label for="f-pas" id="lab-pas">${lwT('Pasaporte / NPWP')}</label><input id="f-pas" ${dis} value="${esc(c.passport_number||'')}"></div>
+        <div><label for="f-pas" id="lab-pas">${lwT('Pasaporte / NPWP')}${ob}</label><input id="f-pas" ${dis} value="${esc(c.passport_number||'')}"></div>
       </div>
       <!-- Domicilio: hasta hoy no estaba en la ficha aunque la columna existía y
            el contrato la imprime. Una empresa sin domicilio social no se puede
@@ -857,8 +866,7 @@ function pintarFicha(){
         const filas = CORREOS_COMPRADOR[c.id];
         if(filas === undefined) return '<p class="nota">' + lwT('Cargando…') + '</p>';
         if(!filas.length) return '<p class="nota">' + lwT('Sin correos registrados para sus contratos y facturas. El registro existe desde el 18-ago-2026: los envíos anteriores no dejaron rastro.') + '</p>';
-        const REG_VIA = { manual:'Email manual', enlace_firma:'Enlace de firma', firma:'Circuito de firma',
-                          proforma:'Proforma', factura:'Factura', factura_auto:'Factura automática' };
+        /* El rótulo de la vía: `lwViaCorreo` de vocabulario.js — ver LW_VIA_CORREO. */
         const doc = x => x.contrato_id
           ? (VINCULOS.find(v => v.contratos && v.contratos.id === x.contrato_id) || {}).contratos
           : null;
@@ -871,7 +879,7 @@ function pintarFicha(){
               <td>${fFecha(x.enviado_en)}</td>
               <td>${esc(etq)}</td>
               <td>${esc(x.para || '—')}</td>
-              <td>${esc(REG_VIA[x.via] || x.via || '—')}</td>
+              <td class="reg-via">${esc(lwViaCorreo(x.via))}</td>
               <td>${esc(x.enviado_por || 'Automático')}</td>
             </tr>`;
           }).join('')}
@@ -956,7 +964,7 @@ function pintarFicha(){
 
   suiAbrirCajon({
     titulo: nuevo ? 'Nuevo comprador' : esc(c.full_name || 'Sin nombre'),
-    sub: nuevo ? 'Los datos que aquí se guardan son los que exige el KYC.'
+    sub: nuevo ? 'Los campos con * son obligatorios: sin ellos la ficha no se crea.'
                : esc([c.nationality, c.passport_number].filter(Boolean).join(' · ') || 'sin identificación'),
     cuerpo: cuerpoFicha,
     // Sin botón de guardar en modo solo lectura: no hay nada que confirmar,
@@ -1100,13 +1108,13 @@ async function borrarDocumento(id, btn){
     /* Cero filas sin error es la RLS diciendo que no, no un documento que ya no
        estaba: si no estuviera, tampoco lo enseñaría esta tabla. Se distingue,
        porque «no se ha borrado» y «no tienes permiso» se arreglan distinto. */
-    toast(error ? lwT('No se pudo retirar: ') + error.message
+    toastMal(error ? lwT('No se pudo retirar: ') + error.message
                 : lwT('No se ha retirado: tu usuario no tiene permiso para borrar documentos.'));
     return;
   }
   if(d.storage_path){
     const { error: eSt } = await SB.storage.from('kyc').remove([d.storage_path]);
-    if(eSt) toast(lwT('Documento retirado de la ficha, pero su fichero sigue en el archivo (') + d.storage_path + '): ' + eSt.message);
+    if(eSt) toastMal(lwT('Documento retirado de la ficha, pero su fichero sigue en el archivo (') + d.storage_path + '): ' + eSt.message);
   }
   toast(nombre + ' retirado');
   /* Se recarga y se repinta la ficha ABIERTA, no se cierra el cajón: retirar un
@@ -1141,7 +1149,7 @@ async function borrarComprador(c){
   const btn = $('#btnBorrarComprador'); if(btn){ btn.disabled = true; btn.textContent = lwT('Borrando…'); }
   const { data, error } = await SB.rpc('borrar_comprador', { p_client_id: c.id });
   if(error){
-    toast(error.message);
+    toastMal(error.message);
     if(btn){ btn.disabled = false; btn.textContent = lwT('Borrar comprador'); }
     return;
   }
@@ -1150,7 +1158,7 @@ async function borrarComprador(c){
   const rutas = (data && data.rutas_kyc) || [];
   if(rutas.length){
     const { error: eSt } = await SB.storage.from('kyc').remove(rutas);
-    if(eSt) toast(lwT('Ficha borrada, pero ') + rutas.length + ' fichero(s) KYC no se pudieron quitar del bucket: ' + eSt.message);
+    if(eSt) toastMal(lwT('Ficha borrada, pero ') + rutas.length + ' fichero(s) KYC no se pudieron quitar del bucket: ' + eSt.message);
   }
   toast(lwT('Ficha de ') + ((data && data.nombre) || 'comprador') + ' borrada'
     + (rutas.length ? ' · ' + rutas.length + ' documento(s) retirados' : ''));
@@ -1172,7 +1180,7 @@ async function traspasar(c){
   const sel = $('#f-dueno'); if(!sel || !sel.value) return;
   const nuevo = sel.value;
   if(String(c.propietario||'').toLowerCase() === nuevo.toLowerCase()){
-    toast(lwT('Esa ficha ya es suya.')); return;
+    toastMal(lwT('Esa ficha ya es suya.')); return;
   }
   const ok = await lwConfirmar({
     // El literal de respaldo va FUERA del lwT(): el extractor de claves recoge
@@ -1186,9 +1194,36 @@ async function traspasar(c){
   const b = $('#btnTraspasar'); if(b) b.disabled = true;
   const { error } = await SB.from('clients').update({ propietario: nuevo }).eq('id', c.id);
   if(b) b.disabled = false;
-  if(error){ toast(lwT('No se pudo traspasar: ') + error.message); return; }
+  if(error){ toastMal(lwT('No se pudo traspasar: ') + error.message); return; }
   toast(lwT('Ficha traspasada a ') + nombreDe(nuevo));
   await cargar(); pintarLista(); pintarFicha();
+}
+
+/* Pinta en rojo los campos que faltan y lleva el foco al primero. La relación
+   etiqueta→input se lee del propio CAMPOS_ALTA_COMPRADOR compartido para que
+   añadir un campo obligatorio mañana no exija tocar también esta función. */
+const CAMPO_INPUT = { 'Nombre completo':'#f-nombre', 'Email':'#f-email',
+  'Prefijo del telefono':'#f-tel-pre', 'Telefono':'#f-tel-num',
+  'Nacionalidad':'#f-nac', 'Pasaporte / NPWP':'#f-pas' };
+function marcarFaltantes(faltan){
+  Object.values(CAMPO_INPUT).forEach(sel => {
+    const el = $(sel); if(el){ el.classList.remove('sui-falta'); el.removeAttribute('aria-invalid'); }
+  });
+  let primero = null;
+  faltan.forEach(f => {
+    // «Email (no parece una direccion valida)» apunta al mismo input que «Email»
+    const clave = f.replace(/ \(.*$/, '');
+    const sel = CAMPO_INPUT[clave];
+    const el = sel ? $(sel) : null;   // querySelector('') lanza: nunca se llama sin selector
+    if(!el) return;
+    el.classList.add('sui-falta');
+    el.setAttribute('aria-invalid', 'true');
+    if(!primero) primero = el;
+    el.addEventListener('input', () => {
+      el.classList.remove('sui-falta'); el.removeAttribute('aria-invalid');
+    }, { once:true });
+  });
+  if(primero) primero.focus();
 }
 
 async function guardar(id){
@@ -1200,14 +1235,50 @@ async function guardar(id){
      normalizar aquí basta para que todo lo que lo lea (contratos, facturas,
      el portal) lo vea ya en mayúsculas. */
   const nombre = $('#f-nombre').value.trim().toUpperCase();
-  if(nombre.length < 2){ toast(lwT('Falta el nombre')); return; }
+  if(nombre.length < 2){ toastMal(lwT('Falta el nombre')); return; }
   const telNum = $('#f-tel-num').value.trim();
+  const telPre = $('#f-tel-pre').value.trim();
   const esEmpresa = $('#f-tipo') && $('#f-tipo').value === 'empresa';
+
+  /* ── SIN ESTOS SEIS DATOS NO NACE UNA FICHA — 14-sep-2026, owner ──────────
+     «Exige los campos de nombre, email, prefijo + telefono, nacionalidad y
+     pasaporte. Sin eso no se puede crear un cliente».
+
+     Por qué son justo esos: son los que un contrato IMPRIME y los que el portal
+     necesita para que el comprador pueda entrar. Una ficha sin pasaporte no se
+     puede meter en un documento; una sin correo no puede recibirlo ni acceder a
+     su portal; una sin teléfono con prefijo no se puede llamar desde Bali. Hasta
+     hoy sólo se exigía el nombre, así que la ficha se creaba y el hueco aparecía
+     dos semanas después, al redactar el contrato — cuando el comprador ya no
+     está delante para preguntarle.
+
+     `!id` = sólo al CREAR. Editar una ficha antigua incompleta sigue siendo
+     posible: si no, corregir un teléfono en una de las 200+ fichas viejas sin
+     nacionalidad obligaría a inventarse el dato, que es justo lo que la norma
+     del estudio prohíbe.
+
+     La lista NO está escrita aquí: viene de `faltanDatosComprador()` en
+     assets/compradores.js, que es la misma que usa el editor de la v4. */
+  if(!id){
+    const faltan = faltanDatosComprador({
+      full_name: nombre, email: $('#f-email').value, prefijo: telPre, telefono: telNum,
+      nationality: $('#f-nac').value, passport_number: $('#f-pas').value
+    });
+    if(faltan.length){
+      toastMal(lwT('No se puede crear la ficha, falta: ') + faltan.join(', ') +
+               lwT('. Son los datos que el contrato imprime y con los que el comprador entra a su portal — si no los tienes todavía, pídeselos antes de darlo de alta.'));
+      /* Y se marca EN EL CAMPO, no sólo en el aviso: el aviso se va en siete
+         segundos y con seis campos en pantalla hay que poder volver a mirar
+         cuál era. El foco va al primero que falta. */
+      marcarFaltantes(faltan);
+      return;
+    }
+  }
   const fila = {
     tipo: esEmpresa ? 'empresa' : 'persona',
     full_name:nombre,
     email:$('#f-email').value.trim() || null,
-    phone: telNum ? ($('#f-tel-pre').value ? $('#f-tel-pre').value + ' ' + telNum : telNum) : null,
+    phone: telNum ? (telPre ? telPre + ' ' + telNum : telNum) : null,
     nationality:$('#f-nac').value.trim() || null,
     passport_number:$('#f-pas').value.trim() || null,
     address:$('#f-dom').value.trim() || null,
@@ -1268,15 +1339,15 @@ async function guardar(id){
       : /PGRST116/.test(err.code || '')
       ? lwT('Tu sesión ha caducado a mitad de guardar. Recarga la página, entra de nuevo y repite el cambio — no se ha guardado.')
       : 'No se pudo guardar: ' + (err.message || err);
-    toast(m);
+    toastMal(m);
     btn.disabled=false; btn.textContent = lwT(id ? 'Guardar cambios' : 'Crear comprador');
   }
 }
 
 async function subir(clientId){
   const f = $('#d-file').files[0];
-  if(!f){ toast(lwT('Elige un fichero')); return; }
-  if(f.size > 20*1024*1024){ toast(lwT('El fichero supera los 20 MB')); return; }
+  if(!f){ toastMal(lwT('Elige un fichero')); return; }
+  if(f.size > 20*1024*1024){ toastMal(lwT('El fichero supera los 20 MB')); return; }
   const btn=$('#btnSubir'); btn.disabled=true; btn.textContent=lwT('Subiendo…');
   // ruta por comprador: agrupa y evita que dos ficheros con el mismo nombre choquen
   const limpio = f.name.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w.-]/g,'_');
@@ -1295,7 +1366,7 @@ async function subir(clientId){
     await cargar(); pintarLista(); pintarFicha();
     toast(lwT('Documento subido'));
   }catch(err){
-    toast(lwT('No se pudo subir: ') + (err.message||err));
+    toastMal(lwT('No se pudo subir: ') + (err.message||err));
     btn.disabled=false; btn.textContent=lwT('Subir documento');
   }
 }
@@ -1335,7 +1406,7 @@ async function llamaPortal(body){
 
 async function invitarPortal(c){
   const email = ($('#p-email').value || '').trim().toLowerCase();
-  if(!email){ toast(lwT('Falta el email de acceso')); return; }
+  if(!email){ toastMal(lwT('Falta el email de acceso')); return; }
   const ok = await lwConfirmar({
     titulo: lwT('Invitar a %e al portal', { e: email }),
     cuerpo: '<p>' + lwT('Se le envía un') + ' <b>' + lwT('correo de acceso') + '</b> ' + lwT('y podrá ver en el portal todo lo de esta ficha: contratos, pagos, facturas y obra.') + '</p>',
@@ -1345,7 +1416,7 @@ async function invitarPortal(c){
   const b = $('#btnPortalInv'); b.disabled = true;
   const r = await llamaPortal({ accion:'invitar', email, client_ids:[c.id] });
   b.disabled = false;
-  if(r.error){ toast(motivoPortal(r.error)); return; }
+  if(r.error){ toastMal(motivoPortal(r.error)); return; }
   toast(lwT(r.aviso ? 'Acceso creado, pero el correo no salió: reenvía en un rato' : 'Invitación enviada'));
   await cargar(); pintarLista(); pintarFicha();
 }
@@ -1357,11 +1428,11 @@ async function passwordPortal(c){
   const p = prompt(lwT('Nueva contraseña para %s (mínimo 10 caracteres).', { s: email })
                  + '\n' + lwT('Apúntala: no se puede volver a consultar, solo cambiar por otra.'));
   if(p === null) return;
-  if(p.length < 10){ toast(lwT('Mínimo 10 caracteres')); return; }
+  if(p.length < 10){ toastMal(lwT('Mínimo 10 caracteres')); return; }
   const b = $('#btnPortalPass'); b.disabled = true;
   const r = await llamaPortal({ accion:'password', email, password:p });
   b.disabled = false;
-  if(r.error){ toast(motivoPortal(r.error)); return; }
+  if(r.error){ toastMal(motivoPortal(r.error)); return; }
   toast(lwT('Contraseña puesta. Pásasela tú: no queda guardada en ningún sitio consultable.'));
 }
 
@@ -1379,7 +1450,7 @@ async function revocarPortal(c){
   const b = $('#btnPortalRev'); b.disabled = true;
   const r = await llamaPortal({ accion:'revocar', email });
   b.disabled = false;
-  if(r.error){ toast(motivoPortal(r.error)); return; }
+  if(r.error){ toastMal(motivoPortal(r.error)); return; }
   toast(lwT('Acceso revocado'));
   await cargar(); pintarLista(); pintarFicha();
 }
@@ -1387,7 +1458,7 @@ async function revocarPortal(c){
 async function abrir(path){
   if(!path) return;
   const { data, error } = await SB.storage.from('kyc').createSignedUrl(path, 300);
-  if(error || !data){ toast(lwT('No se pudo generar el enlace')); return; }
+  if(error || !data){ toastMal(lwT('No se pudo generar el enlace')); return; }
   // visor compartido de la suite: el documento se consulta en un pop-up sin
   // salir de la ficha (regla 29-jul: nunca pestaña nueva para consultar)
   LW_VISOR.abrir(data.signedUrl, lwT('Documento del comprador'));
@@ -1432,7 +1503,7 @@ window.LW_AUTH.then(async ({ sb, session, ficha }) => {
       SEL = 'nuevo';
       pintarLista(); pintarFicha();
     }else{
-      if(pedido) toast(lwT('Ese comprador ya no existe'));
+      if(pedido) toastMal(lwT('Ese comprador ya no existe'));
       pintarLista();
     }
   }

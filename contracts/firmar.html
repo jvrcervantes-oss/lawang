@@ -43,6 +43,16 @@
   .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--va);color:#fff;
          padding:11px 18px;border-radius:10px;font-size:13.5px;opacity:0;transition:.2s;z-index:20;max-width:90vw}
   .toast.show{opacity:1}
+  /* El aviso de ERROR: centro y rojo (owner, 14-sep-2026). Aqui va escrito a
+     mano y no heredado de suite.css porque esta pagina es AUTOCONTENIDA a
+     proposito: la abre el comprador desde su correo y no carga la hoja de la
+     suite. Mismo rojo (#9E2F26) y misma idea que alli. Las tres clases ganan a
+     `.toast.show`, que fija el transform del pie. */
+  .toast.mal{top:50%;bottom:auto;transform:translate(-50%,-50%) scale(.94);background:#9E2F26;
+             padding:17px 24px;font-size:15px;font-weight:600;border-radius:12px;max-width:min(560px,90vw);
+             box-shadow:0 22px 60px -18px rgba(158,47,38,.55),0 0 0 6px rgba(158,47,38,.13)}
+  .toast.mal.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  @media (prefers-reduced-motion:reduce){ .toast.mal,.toast.mal.show{transform:translate(-50%,-50%)} }
   @media screen and (max-width:520px){ .doc-frame{height:54vh} }
 </style>
 </head>
@@ -108,6 +118,16 @@ function show(id){ for(const k of ['loading','error','signview','done']) $('#'+k
 function toast(m){ const t=$('#toast'); t.textContent=m;
   if(!t.getAttribute('role')){ t.setAttribute('role','status'); t.setAttribute('aria-live','polite'); t.setAttribute('aria-atomic','true'); }
   t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3200); }
+/* Firmar mal es lo mas caro que puede pasar en esta pagina: el comprador esta
+   delante de un documento real y si el aviso de fallo se le pasa, cree que ha
+   firmado. Por eso el error va al centro, en rojo y con `alert` — y dura 7 s,
+   no 3,2. */
+function toastMal(m){ let t=document.getElementById('toastMal');
+  if(!t){ t=document.createElement('div'); t.id='toastMal'; document.body.appendChild(t); }
+  t.className='toast mal'; t.textContent=m;
+  if(!t.getAttribute('role')){ t.setAttribute('role','alert'); t.setAttribute('aria-live','assertive'); t.setAttribute('aria-atomic','true'); }
+  void t.offsetWidth; t.classList.add('show');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),7000); }
 function fail(title,msg){ $('#errTitle').textContent=title; $('#errMsg').textContent=msg||''; show('error'); }
 
 async function callFn(name, body){
@@ -176,10 +196,10 @@ $('#signBtn').addEventListener('click', async ()=>{
     const { ok, d } = await callFn('firma-submit', { token:TOKEN, signature, typedName:$('#fName').value.trim() });
     if(ok && d.ok){ show('done'); return; }
     if(ERR[d.error]){ const e=ERR[d.error]; fail(e[0],e[1]); return; }
-    toast('No se pudo firmar. Inténtalo de nuevo. / Could not sign. Try again.');
+    toastMal('No se pudo firmar. Inténtalo de nuevo. / Could not sign. Try again.');
     btn.disabled=false; btn.textContent='Firmar y enviar / Sign & submit';
   }catch(err){
-    toast('Error de conexión. / Connection error.');
+    toastMal('Error de conexión. / Connection error.');
     btn.disabled=false; btn.textContent='Firmar y enviar / Sign & submit';
   }
 });
