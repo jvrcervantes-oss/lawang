@@ -105,7 +105,10 @@
       (lateral ? '<div style="' + cajaCuerpo + '">' : '') +
       (opts.encabezado || '') +
       '<div data-e="campos" style="' + cajaCampos + '"></div>' +
-      '<p data-e="error" style="display:none;margin:14px 0 0;padding:10px 12px;border-radius:8px;background:#ffdad6;color:#93000a;font-size:13px"></p>' +
+      /* Rojo solido y no el rosa palido de antes (14-sep-2026, misma peticion
+         del owner): a 13px sobre #ffdad6 el aviso se confundia con una nota de
+         ayuda. Va dentro del modal, que ya esta centrado. */
+      '<p data-e="error" role="alert" style="display:none;margin:14px 0 0;padding:12px 14px;border-radius:8px;background:#9E2F26;color:#fff;font:600 14px/1.4 inherit"></p>' +
       (lateral ? '</div>' : '') +
       '<div style="' + cajaPie + '">' +
       '<button type="button" data-e="cancelar" style="padding:10px 18px;border-radius:999px;border:1px solid #8A8474;background:none;color:#2E3437;font:600 14px inherit;cursor:pointer">Cancelar</button>' +
@@ -218,12 +221,33 @@
     });
   }
 
+  /* Owner, 14-sep-2026: «si da algun error el pop up ponlo en el centro y en
+     rojo, que destaque que ha habido algun problema».
+
+     El segundo argumento YA marcaba el problema: sin color es un aviso normal
+     («Abriendo formulario…»), y con color es un fallo — rojo (#ba1a1a, #93000a)
+     o ambar (#8A6A34, «no tienes ese permiso»). Asi que no hace falta ninguna
+     lista de frases: se usa la señal que ya estaba. Cualquier llamada CON color
+     sale ahora en el centro, en el rojo del estudio (#9E2F26, el mismo que la
+     intranet y el portal) y dura mas — el matiz ambar se pierde a proposito: al
+     usuario le da igual si no puede por permiso o porque fallo la consulta, lo
+     que necesita es enterarse de que no ha pasado.
+
+     `role=alert` en el de error y `status` en el normal, por lo mismo que en
+     `suite-comun.js`: un fallo debe cortar al lector de pantalla. */
   function toast(msg, color) {
+    var mal = !!color;
     var t = document.createElement('div');
-    t.style.cssText = 'position:fixed;bottom:60px;left:50%;transform:translateX(-50%);z-index:10002;background:' + (color || '#104C4F') + ';color:#fff;padding:10px 18px;border-radius:999px;font:600 13px sans-serif;max-width:80vw';
+    t.style.cssText = mal
+      ? 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10002;background:#9E2F26;color:#fff;' +
+        'padding:18px 26px;border-radius:12px;font:600 15px/1.35 sans-serif;max-width:min(560px,88vw);' +
+        'box-shadow:0 22px 60px -18px rgba(158,47,38,.55),0 0 0 6px rgba(158,47,38,.13)'
+      : 'position:fixed;bottom:60px;left:50%;transform:translateX(-50%);z-index:10002;background:#104C4F;color:#fff;padding:10px 18px;border-radius:999px;font:600 13px sans-serif;max-width:80vw';
+    t.setAttribute('role', mal ? 'alert' : 'status');
+    t.setAttribute('aria-live', mal ? 'assertive' : 'polite');
     t.textContent = msg;
     document.body.appendChild(t);
-    setTimeout(function () { t.remove(); }, 5200);
+    setTimeout(function () { t.remove(); }, mal ? 7000 : 5200);
   }
 
   /* Descarga de CSV en el navegador (11-sep-2026, exportes de Proyectos).
@@ -1016,19 +1040,37 @@
     compradores: function (aut) {
       var sb = aut.sb;
       ata(/Alta de comprador/i, function () {
+        /* Los SEIS datos que exige un alta (owner, 14-sep-2026) — y el telefono
+           partido en prefijo + numero, igual que en /intranet/compradores/, que
+           es lo que pidio. Cuales son NO se decide aqui: la lista vive en
+           `contracts/assets/compradores.js` (`faltanDatosComprador`), que esta
+           pantalla carga, porque si se escribiera tambien aqui las dos copias
+           divergirian y este editor seguiria dando de alta fichas a medias.
+           El `req: 1` de cada campo es lo que pinta el asterisco y da el aviso
+           en el sitio; el validador compartido es el que manda. */
         modal('Alta de comprador', [
           { k: 'full_name', label: 'Nombre completo / razón social', req: 1 },
-          { k: 'email', label: 'Email', tipo: 'email' },
-          { k: 'phone', label: 'Teléfono' },
-          { k: 'nationality', label: 'Nacionalidad', ayuda: 'código de dos letras: ES, SG, AU…' },
+          { k: 'email', label: 'Email', tipo: 'email', req: 1 },
+          { k: 'prefijo', label: 'Prefijo del teléfono', req: 1, medio: 1, ayuda: '+34, +62, +61…' },
+          { k: 'telefono', label: 'Teléfono', req: 1, medio: 1 },
+          { k: 'nationality', label: 'Nacionalidad', req: 1, ayuda: 'código de dos letras: ES, SG, AU…' },
+          { k: 'passport_number', label: 'Pasaporte / NPWP', req: 1, ayuda: 'Es lo que se imprime en el contrato.' },
           { k: 'tipo', label: 'Tipo', tipo: 'select', opciones: [['persona', 'Persona física'], ['empresa', 'Empresa']], valor: 'persona' }
         ], 'Dar de alta', function (v) {
+          if (typeof faltanDatosComprador === 'function') {
+            var faltan = faltanDatosComprador(v);
+            // Se devuelve con la forma de un error de Supabase: `modal()` ya
+            // sabe enseñar eso en su aviso rojo, sin tocar su flujo.
+            if (faltan.length) return { error: { message: 'faltan datos obligatorios — ' + faltan.join(', ') } };
+          }
           /* el alta la puede hacer cualquier agente; EDITAR una ficha ya creada
              es de administracion (policy es_admin) — asimetria deliberada de la
              suite (migracion 7-ago), que este editor respeta y no "arregla" */
           return sb.from('clients').insert({
-            full_name: v.full_name, email: v.email || null, phone: v.phone || null,
-            nationality: v.nationality || null, tipo: v.tipo
+            full_name: v.full_name, email: v.email || null,
+            phone: v.prefijo ? v.prefijo + ' ' + v.telefono : (v.telefono || null),
+            nationality: v.nationality || null, passport_number: v.passport_number || null,
+            tipo: v.tipo
           });
         });
       });

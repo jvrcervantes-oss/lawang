@@ -108,6 +108,12 @@ html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
      poder leerlo, y eso importa porque varios avisos de esta suite son la única
      confirmación de que algo se guardó. */
   --t-toast:4200ms;
+  /* El aviso de ERROR dura más que el de confirmación (14-sep-2026): sale en el
+     centro y en rojo precisamente porque hay que LEERLO, y varios de esos textos
+     explican qué hacer a continuación. Con 4,2 s se iban a medio leer. Misma
+     regla de fuente única que arriba: la lee la barra de cuenta atrás del aviso
+     y `toastMal()` en suite-comun.js. */
+  --t-toast-mal:7000ms;
 
   /* 6-ago-2026, 2ª pasada: los valores REALES del mockup 1a/2a, extraidos de sus
      `style=` inline (ver ESPEC_VISUAL.md). La 1ª pasada solo midio colores y se
@@ -731,6 +737,63 @@ a.lw-kpi.mando:hover{ border-color:#BEB3A5; }
 .toast::after{ content:''; position:absolute; left:0; bottom:0; height:3px;
   width:0; background:rgba(255,255,255,.5); }
 .toast.show::after, .toast.on::after{ animation:lwCountdown var(--t-toast,4200ms) linear both; }
+
+/* ── CAMPO OBLIGATORIO Y CAMPO QUE FALTA — 14-sep-2026 ────────────────────
+   Van en la capa compartida y no en el formulario de Compradores, que es donde
+   se estrenan: el aviso («falta el pasaporte») se va en siete segundos y el
+   formulario sigue ahí, así que hace falta una marca PERSISTENTE en el campo —
+   y eso lo va a necesitar cualquier pantalla de la suite que exija datos.
+
+   La estrella no se pinta con `content`: se escribe en el marcado, para que los
+   lectores de pantalla la anuncien (el contenido generado no siempre se lee) y
+   para que su `title` explique de qué es obligatoria. «*» a secas no lo dice. */
+.sui-oblig{ color:#9E2F26; font-weight:700; cursor:help; }
+.sui-falta{
+  border-color:#9E2F26 !important;
+  /* El halo, y no sólo el borde: 1px de rojo en un formulario de seis campos no
+     se ve de un vistazo, que es justo cuando hay que verlo. */
+  box-shadow:0 0 0 3px rgba(158,47,38,.15) !important;
+  background:rgba(158,47,38,.03);
+}
+
+/* ── AVISO DE ERROR (`toastMal`) — 14-sep-2026 ────────────────────────────
+   Owner, textual: «si da algún error el pop up ponlo en el centro y en rojo, que
+   destaque que ha habido algún problema». El aviso normal vive abajo del todo y
+   en gris porque NO debe interrumpir; éste tiene el trabajo contrario, así que
+   cambia las tres cosas que lo hacían pasar desapercibido: SITIO (el centro,
+   donde ya está mirando quien acaba de pulsar Guardar), COLOR (#9E2F26 — el rojo
+   con el que la suite ya pinta lo destructivo, no un rojo nuevo) y DURACIÓN.
+
+   ⚠️ Ojo con la especificidad al tocar esto: `.toast.show` fija
+   `transform:translateX(-50%) translateY(0)` y se comería el centrado vertical.
+   Por eso la variante define SUS DOS estados —reposo y `.show`— con tres clases,
+   que ganan a las dos de `.toast.show`. Si mañana se añade aquí un estado sin su
+   pareja `.mal.show`, el aviso se irá al pie en cuanto aparezca.
+
+   Entra con un escalón de tamaño y no deslizándose: aparece donde ya está el
+   ojo, no viene de fuera, y el cambio de escala es lo que delata que ha pasado
+   algo. Con `prefers-reduced-motion` se queda quieto. */
+.toast.mal{
+  top:50%; bottom:auto; left:50%;
+  transform:translate(-50%,-50%) scale(.94);
+  background:#9E2F26;
+  /* Más ancho que el aviso normal: estos textos explican el porqué y qué hacer,
+     y a 560px varios salían en seis líneas. */
+  max-width:min(620px, calc(100vw - 32px - env(safe-area-inset-left) - env(safe-area-inset-right)));
+  padding:18px 26px 21px;
+  font-size:15.5px;
+  /* Un halo rojo además de la sombra: despega el aviso del formulario que hay
+     justo debajo, que es blanco y está lleno de texto. */
+  box-shadow:0 22px 60px -18px rgba(158,47,38,.55), 0 0 0 6px rgba(158,47,38,.13);
+  /* Por encima del cajón lateral y de los velos de confirmación (z 80): el error
+     casi siempre se dispara con el cajón abierto. */
+  z-index:220;
+}
+.toast.mal.show, .toast.mal.on{ opacity:1; transform:translate(-50%,-50%) scale(1); }
+.toast.mal.show::after, .toast.mal.on::after{ animation-duration:var(--t-toast-mal,7000ms); }
+@media (prefers-reduced-motion: reduce){
+  .toast.mal, .toast.mal.show, .toast.mal.on{ transform:translate(-50%,-50%); }
+}
 
 /* ── CONFIRMAR EN SERIO (7a): modal para lo destructivo ───────────────────
    Sustituye a `window.confirm()` donde la accion no tiene vuelta (borrar una

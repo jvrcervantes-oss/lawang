@@ -42,13 +42,14 @@ const esc = v => String(v == null ? '' : v)
    Se lee en el PRIMER aviso y no al cargar el script: este fichero puede
    evaluarse antes de que la hoja de estilos haya aplicado, y ahí la variable
    saldría vacía y se quedaría en el fallback para toda la sesión. */
-let TOAST_MS = 0;
-function duracionToast(){
-  if (TOAST_MS) return TOAST_MS;
-  const v = getComputedStyle(document.documentElement).getPropertyValue('--t-toast').trim();
+const TOAST_MS = {};
+function duracionToast(variable, fallback){
+  const k = variable || '--t-toast';
+  if (TOAST_MS[k]) return TOAST_MS[k];
+  const v = getComputedStyle(document.documentElement).getPropertyValue(k).trim();
   const n = parseFloat(v);
-  TOAST_MS = !n ? 4200 : (v.endsWith('ms') ? n : n * 1000);   // acepta 4200ms y 4.2s
-  return TOAST_MS;
+  TOAST_MS[k] = !n ? (fallback || 4200) : (v.endsWith('ms') ? n : n * 1000);   // acepta 4200ms y 4.2s
+  return TOAST_MS[k];
 }
 
 /* EL AVISO SE ANUNCIA, NO SOLO SE PINTA — 17-ago-2026, auditoría de accesibilidad.
@@ -64,25 +65,27 @@ function duracionToast(){
    puede quedarse sin avisos por haber olvidado el `<div>`.
 
    `role="status"` + `aria-live="polite"` y no `alert`/`assertive`: un guardado
-   correcto no debe cortar lo que el lector esté leyendo. Los errores de verdad de
-   esta suite no van por aquí, van por `lwConfirmar()` y por los avisos de campo.
+   correcto no debe cortar lo que el lector esté leyendo. Los errores SÍ — desde el
+   14-sep-2026 van por `toastMal()`, que usa su propia región con `alert`.
    `aria-atomic` para que se lea el mensaje entero y no la parte que cambió. */
-function nodoToast() {
-  let t = document.querySelector('#toast');
+function nodoToast(id, clase, rol, live) {
+  let t = document.querySelector('#' + (id || 'toast'));
   if (!t) {
     t = document.createElement('div');
-    t.id = 'toast';
-    t.className = 'toast';
+    t.id = id || 'toast';
     document.body.appendChild(t);
   }
-  if (!t.getAttribute('role')) t.setAttribute('role', 'status');
-  if (!t.getAttribute('aria-live')) t.setAttribute('aria-live', 'polite');
+  /* Las clases se ponen SIEMPRE, no solo al crear el nodo: catorce herramientas
+     traen su `<div id="toast">` escrito a mano en el HTML, y al de error hay que
+     añadirle `mal` aunque el nodo ya existiera. */
+  (clase || 'toast').split(' ').forEach(c => { if (c) t.classList.add(c); });
+  if (!t.getAttribute('role')) t.setAttribute('role', rol || 'status');
+  if (!t.getAttribute('aria-live')) t.setAttribute('aria-live', live || 'polite');
   if (!t.getAttribute('aria-atomic')) t.setAttribute('aria-atomic', 'true');
   return t;
 }
 
-const toast = (m, ms) => {
-  const t = nodoToast();
+const pintarAviso = (t, m, ms) => {
   if (!t) return;
   t.textContent = m;
   /* Quitar las clases, forzar un reflujo y volver a ponerlas. Sin esto, un
@@ -95,8 +98,38 @@ const toast = (m, ms) => {
   void t.offsetWidth;
   t.classList.add('show', 'on');
   clearTimeout(t._h);
-  t._h = setTimeout(() => t.classList.remove('show', 'on'), ms || duracionToast());
+  t._h = setTimeout(() => t.classList.remove('show', 'on'), ms);
 };
+
+const toast = (m, ms) => pintarAviso(nodoToast(), m, ms || duracionToast());
+
+/* ── EL AVISO DE ERROR NO SE PARECE AL DE «guardado» — 14-sep-2026 ───────────
+   Owner, textual: «si da algun error el pop up ponlo en el centro y en rojo, que
+   destaque que ha habido algun problema. Eso aplicalo a todos los pop-up de
+   errores». Hasta hoy los cuatrocientos y pico avisos de la suite salian
+   EXACTAMENTE iguales: «Ficha actualizada» y «No se pudo guardar» compartian pie
+   de pantalla, gris y duracion. Un fallo se leia como una confirmacion — y con
+   la barra de cuenta atras corriendo, desaparecia antes de entenderlo.
+
+   Es una funcion APARTE y no un `toast(m, {error:true})` a proposito: el segundo
+   argumento de `toast()` YA es la duracion en ms y hay llamadas que la usan, asi
+   que meter un objeto ahi es una compatibilidad que se rompe sola. Y un nombre
+   propio se busca con grep para siempre, que es como se audita si un `catch`
+   nuevo se olvido de usarlo.
+
+   Nodo propio, no el mismo con otra clase: `role`/`aria-live` no se cambian en
+   caliente de forma fiable —el lector de pantalla ya tiene registrada la region
+   con el modo que tenia— y aqui el modo es el contrario. Un error SI debe cortar
+   lo que se este leyendo: `alert` + `assertive`. Esto DEROGA la nota de arriba
+   («los errores de verdad no van por aqui, van por lwConfirmar»): desde hoy si
+   pasan por aqui, y por eso necesitan su propia region.
+
+   Y dura mas (`--t-toast-mal`, 7 s): centrado y en rojo se ve, pero el texto de
+   estos avisos es largo —varios explican que hacer a continuacion— y 4,2 s no
+   dan para leerlo. */
+const toastMal = (m, ms) => pintarAviso(
+  nodoToast('toastMal', 'toast mal', 'alert', 'assertive'),
+  m, ms || duracionToast('--t-toast-mal', 7000));
 
 /* El vocabulario de negocio (nombres de los tipos de contrato, qué tipos NO
    suman precio) vive en assets/vocabulario.js, no aquí: contracts/app.html lo

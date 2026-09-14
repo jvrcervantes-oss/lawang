@@ -17,7 +17,7 @@
    pack se anexó de verdad), que no se pueden reconstruir de ninguna otra parte. */
 const sinPaginas = a => a.auto ? {...a, pages:[]} : a;
 function saveAnnexes(){ try{ localStorage.setItem('lawang_contract_annexes', JSON.stringify(ANNEXES.map(sinPaginas))); }
-  catch(_){ toast('Anexos demasiado grandes para guardar; se mantienen solo en esta sesión'); } }
+  catch(_){ toastMal('Anexos demasiado grandes para guardar; se mantienen solo en esta sesión'); } }
 function escAttr(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
 if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -140,7 +140,7 @@ async function bufferDelAnexo(tip){
     }catch(e){
       // Solo se avisa si HABÍA algo que traerse. Que un modelo no tenga plano en
       // Modelos es lo normal hoy (la tabla está vacía) y no es un fallo.
-      if(doc) toast('El plano de ' + tip + ' está en Modelos pero no se ha podido leer ('
+      if(doc) toastMal('El plano de ' + tip + ' está en Modelos pero no se ha podido leer ('
                     + ((e && e.message) || 'error') + '). Se usa el PDF de siempre.');
     }
   }
@@ -173,7 +173,7 @@ async function syncAutoAnnex(){
     // El PDF del servidor es mutable: si cambió desde que se guardó el contrato,
     // el anexo que se ve ya NO es el que se firmó. Se avisa, no se oculta.
     if(guardado && guardado.sha && guardado.sha !== sha)
-      toast('OJO: el pack de '+tip+' ha cambiado desde que se guardó este contrato');
+      toastMal('OJO: el pack de '+tip+' ha cambiado desde que se guardó este contrato');
     else toast('Anexo de '+tip+' adjuntado ('+pages.length+' pág.)');
   }catch(_){
     if(AUTO_ANX === tip) toast('Sin anexo automático para '+tip+' — súbelo a mano si lo necesitas');
@@ -220,7 +220,7 @@ function wireAnnexPanel(){
     const lbl=$('#anxUpLabel'); const t0=lbl.textContent; lbl.textContent='Procesando…';
     for(const f of files){
       try{ const pages=await fileToAnnexPages(f); ANNEXES.push({id:'ax'+(annexSeq++), title:f.name.replace(/\.[^.]+$/,''), pages, on:true}); }
-      catch(err){ toast('No se pudo procesar '+f.name); }
+      catch(err){ toastMal('No se pudo procesar '+f.name); }
     }
     lbl.textContent=t0; saveAnnexes(); rebuildAnnex(); render();
   });

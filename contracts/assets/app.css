@@ -546,11 +546,70 @@
      Los colores de los chips son los del set CVD-validado de la suite
      (vencimientos): teal #0E6B70 = vivo, verde marca = cerrado bien,
      rojo #9E2F26 = caducado/anulado. */
-  .reg-tit{ font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin:6px 0 0; }
-  .reg-envoltura{ overflow-x:auto; }
-  .reg-tabla{ width:100%; border-collapse:collapse; font-size:12.5px; }
-  .reg-tabla th{ text-align:left; font-size:10px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); padding:6px 8px; border-bottom:1px solid var(--line); white-space:nowrap; }
-  .reg-tabla td{ padding:7px 8px; border-bottom:1px solid var(--line); color:var(--va); vertical-align:top; }
+  /* ── DENSIDAD DEL REGISTRO — 14-sep-2026, encargo del owner: «el texto está
+     muy apelotonado y no se ven bien las filas». No se inventa un espaciado
+     nuevo: el registro se había quedado FUERA del estándar de tabla de la
+     suite y ahora usa sus mismos tokens (`--fila-y/--fila-x/--fila-fs`, o sea
+     11px/16px/13px, los 27 usos medidos del mockup 1a — ver
+     `contexto/lawang_espec_visual.md`). Tenía 7px/8px y 12,5px, valores que no
+     existen en ninguna otra tabla de la suite.
+
+     POR QUÉ ERA ILEGIBLE, que no es solo el padding: la columna «Asunto»
+     envuelve a dos líneas en casi todas las filas, y con 7px de aire el salto
+     de línea DENTRO de una fila medía lo mismo que el salto ENTRE filas. El ojo
+     no tenía forma de saber dónde acababa cada envío. De ahí los tres cambios:
+     aire de la casa, caja por tabla, y la fila entera resaltada al pasar por
+     encima.
+
+     NO lleva zebra a propósito: ninguna tabla de la suite la usa — su mecanismo
+     es filete de 1px + hover, y meter rayas aquí habría creado un cuarto
+     aspecto de tabla en la misma pantalla.
+
+     ⚠️ `.reg-tabla` la usan CUATRO tablas con columnas distintas (copias,
+     enlaces de firma, correos, historial) y en dos herramientas (Contratos y
+     Facturas). Nada de `nth-child` aquí: la 5ª columna es «Asunto» en una y
+     «Expira» o «Detalle» en las otras. Y la especificidad se deja como estaba
+     (`.reg-tabla td`, sin anteponer el envoltorio) porque
+     `suite-v3-herramientas.css` la sobreescribe con un selector de v3 que debe
+     seguir ganando.
+
+     EL AIRE HORIZONTAL SÍ SE APARTA DE `--fila-x` (12px en vez de 16), y va
+     medido: la tabla de correos tiene CINCO columnas dentro de un modal, así
+     que los 16px se cobran diez veces y dejaban la columna «Asunto» —la que hay
+     que leer— en 172px de 782, partida en tres líneas. Los 16px son el valor de
+     una tabla a ancho de página, no de una dentro de un cajón. El aire que se
+     pedía era el VERTICAL, y ése se queda en los 11px de la casa. */
+  /* El rótulo de sección ya no se disfraza de cabecera de columna: eran los dos
+     10px en mayúsculas apagadas, así que las cuatro secciones se leían como una
+     sola lista larga. Ahora es el peldaño de arriba — tinta, tamaño de texto. */
+  .reg-tit{ font-size:13px; font-weight:600; letter-spacing:0; text-transform:none;
+    color:var(--texto,#22282A); margin:20px 0 8px; }
+  .reg-tit:first-child{ margin-top:4px; }
+  /* La caja es lo que separa una tabla de la siguiente. Misma geometría que
+     `.sui-tabla-caja`: filete, radio 12 y la sombra de 1px de la suite. */
+  .reg-envoltura{ overflow-x:auto; border:1px solid var(--linea,#E4DCCB);
+    border-radius:var(--r-m,12px); background:var(--sup-1,#fff); box-shadow:var(--sombra-1); }
+  .reg-tabla{ width:100%; border-collapse:collapse; font-size:var(--fila-fs,13px); }
+  .reg-tabla th{ text-align:left; font-size:10.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--texto-2,#4A5052); background:var(--sup-2,#F7F3E9); padding:10px 12px;
+    border-bottom:1px solid var(--linea,#E4DCCB); white-space:nowrap; }
+  .reg-tabla td{ padding:var(--fila-y,11px) 12px; border-bottom:1px solid var(--linea,#E4DCCB);
+    color:var(--va); vertical-align:top; line-height:1.45; }
+  /* Sin `cursor:pointer` (estas filas no son clicables, al revés que las de
+     `.sui-tabla`) y sin `min-width`: el registro vive en un modal de 820px y
+     forzar 720 obligaría a hacer scroll lateral en escritorio. */
+  .reg-tabla tbody tr:hover{ background:var(--sup-hover,#EFEADE); }
+  /* «Aviso de anulación» partido en dos líneas convertía una fila de 42px en
+     una de 61 y volvía a romper el ritmo que arregla todo lo de arriba. Va por
+     CLASE y no por posición porque la vía es la 3ª columna en dos registros y
+     la 4ª en el de Compradores. */
+  .reg-tabla td.reg-via{ white-space:nowrap; }
+  .reg-tabla tbody tr:last-child td{ border-bottom:none; }
+  /* Cifras de ancho fijo en toda la tabla, como los importes de la suite: la
+     columna «Cuándo» casa en vertical y se recorre sin leerla entera. Va en la
+     tabla y no en una columna porque las cuatro tablas colocan la fecha en
+     sitios distintos, y en texto no tiene ningún efecto. */
+  .reg-tabla{ font-variant-numeric:tabular-nums; }
   .reg-chip{ display:inline-block; font-size:10.5px; font-weight:600; letter-spacing:.04em; padding:1px 8px; border-radius:999px; border:1px solid var(--line); color:var(--muted); white-space:nowrap; }
   .reg-chip.activo{ color:#0E6B70; border-color:#0E6B70; }
   .reg-chip.firmado{ color:var(--dl); border-color:var(--dl); }

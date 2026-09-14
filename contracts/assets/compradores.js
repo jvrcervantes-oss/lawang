@@ -36,6 +36,47 @@ function compradoresDeContrato(fields, extras){
   return lista;
 }
 
+/* ── QUE HACE FALTA PARA DAR DE ALTA UN COMPRADOR — 14-sep-2026 ─────────────
+   Owner: «exige los campos de nombre, email, prefijo + telefono, nacionalidad y
+   pasaporte. Sin eso no se puede crear un cliente».
+
+   Vive AQUI y no dentro del formulario porque hay DOS pantallas que crean
+   `clients`: `/intranet/compradores/` (el formulario vivo) y el editor nativo de
+   la v4 (`intranet/v4/assets/editores.js`), que va a sustituirla. Una lista de
+   campos obligatorios escrita a mano en los dos sitios es, literalmente, el
+   fallo que esta suite ya ha pagado tres veces: la copia diverge y la pantalla
+   que se olvido sigue dando de alta fichas a medias sin que se note.
+
+   Devuelve la lista de lo que FALTA, no un booleano: el aviso tiene que decir
+   que campos son, o el agente prueba a ciegas.
+
+   Solo se exige al CREAR, nunca al editar — decision explicita: hay mas de 200
+   fichas antiguas sin nacionalidad ni pasaporte, y exigirlo tambien al guardar
+   las dejaria imposibles de corregir en cualquier otra cosa. */
+const CAMPOS_ALTA_COMPRADOR = [
+  ['full_name',       'Nombre completo'],
+  ['email',           'Email'],
+  ['prefijo',         'Prefijo del telefono'],
+  ['telefono',        'Telefono'],
+  ['nationality',     'Nacionalidad'],
+  ['passport_number', 'Pasaporte / NPWP']
+];
+
+function faltanDatosComprador(d){
+  const v = d || {};
+  const faltan = CAMPOS_ALTA_COMPRADOR
+    .filter(([k]) => !trim(v[k]))
+    .map(([, etiqueta]) => etiqueta);
+  /* Un correo mal escrito no es un campo vacio, pero rompe lo mismo: es la llave
+     con la que el comprador entra al portal y a la que se le manda el contrato.
+     Comprobacion minima a proposito (algo@algo.algo) — validar RFC 5322 aqui
+     rechaza direcciones reales, y el que sea falso pero bien formado lo caza el
+     primer envio, no una expresion regular. */
+  if(trim(v.email) && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trim(v.email)))
+    faltan.push('Email (no parece una direccion valida)');
+  return faltan;
+}
+
 // La factura va a nombre de todos los que firman el contrato, no solo del primero.
 function nombresFactura(lista){ return (lista || []).map(c => c.nombre).join(' · '); }
 
@@ -55,4 +96,5 @@ function primerDato(lista, campo){
   return c ? c[campo] : '';
 }
 
-if(typeof module !== 'undefined') module.exports = { compradoresDeContrato, nombresFactura, documentosFactura, primerDato };
+if(typeof module !== 'undefined') module.exports = { compradoresDeContrato, nombresFactura, documentosFactura, primerDato,
+  CAMPOS_ALTA_COMPRADOR, faltanDatosComprador };

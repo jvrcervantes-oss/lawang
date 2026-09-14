@@ -1323,7 +1323,14 @@ async function guardar(id){
     const m = /clients_pasaporte_uniq/.test(msg)
       ? lwT('Ese pasaporte / NPWP ya está en otra ficha (el correo no tiene nada que ver con este aviso). Desde el 11-sep cada uno ve solo los compradores que dio de alta, así que esa ficha puede existir y NO aparecerte en la lista: no crees una segunda: pide a un administrador que te la traspase o que la enlace a tu contrato.')
       : /clients_email_tipo_key|clients_email_key/.test(msg)
-      ? lwT('Ya hay otra ficha DEL MISMO TIPO con ese correo. Una persona y su empresa sí pueden compartirlo, pero dos personas (o dos empresas) no. Ojo: esa otra ficha puede ser de un compañero y no aparecerte en la lista — si es la misma persona, pide que te la traspasen en vez de crearla otra vez; si es una familia que comparte buzón, deja el correo en una sola e identifica a las demás por su pasaporte.')
+      /* ⚠️ 14-sep-2026: este texto decía «si es una familia que comparte buzón,
+         deja el correo en una sola e identifica a las demás por su pasaporte».
+         Desde hoy el correo es OBLIGATORIO para crear, así que esa salida ya no
+         existe y mandaba a un callejón sin salida. La salida real es un correo
+         distinto por persona — que además es lo que el portal necesita: el
+         acceso de cada comprador va por su email, y dos personas con el mismo
+         entran a lo mismo. */
+      ? lwT('Ya hay otra ficha DEL MISMO TIPO con ese correo. Una persona y su empresa sí pueden compartirlo, pero dos personas (o dos empresas) no. Ojo: esa otra ficha puede ser de un compañero y no aparecerte en la lista — si es la misma persona, pide que te la traspasen en vez de crearla otra vez. Si es una familia que comparte buzón, cada uno necesita el suyo: el acceso al portal va por el correo, así que con uno compartido los dos entrarían a lo mismo.')
       : /duplicate key/.test(msg)
       ? lwT('Ese dato ya está en otra ficha: ') + msg
       /* PGRST116 = «0 filas tras el update». Son dos cosas muy distintas y

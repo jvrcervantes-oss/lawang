@@ -251,14 +251,14 @@ async function marcarCloser(source, email, incluir){
   /* El mensaje de la base se enseña tal cual: el más probable es «no puedes añadirte a ti
      mismo a un origen», que es una regla de negocio, no un fallo — y explicarla con otras
      palabras aquí sería tener la regla escrita en dos sitios. */
-  if(error){ toast(error.message); return; }
+  if(error){ toastMal(error.message); return; }
   cargarClosers();
 }
 
 async function guardarOrigen(source, activo, tope){
   const { error } = await SB.rpc('crm_reparto_origen_set',
     { p_source: source, p_activo: activo, p_tope: tope, p_dias: null });
-  if(error){ toast(lwT('No se pudo guardar: ') + error.message); return; }
+  if(error){ toastMal(lwT('No se pudo guardar: ') + error.message); return; }
   toast(lwT(activo === true ? 'Reparto automático encendido.'
       : activo === false ? 'Reparto automático apagado.' : 'Tope guardado.'));
   cargarClosers();
@@ -360,10 +360,10 @@ async function atribuir(sel){
   sel.disabled = false;
   if(error){
     if(String(error.code) === '409' || /ya no es la que tenias/i.test(error.message || '')){
-      toast(lwT('Otra persona ha cambiado esa atribución. Recargo.'));
+      toastMal(lwT('Otra persona ha cambiado esa atribución. Recargo.'));
       return cargarClosers();
     }
-    toast(lwT('No se pudo guardar: ') + error.message);
+    toastMal(lwT('No se pudo guardar: ') + error.message);
     return cargarClosers();
   }
   sel.dataset.previo = sel.value || '';
@@ -444,7 +444,7 @@ function pintarHoy(){
     ev.stopPropagation();
     b.disabled = true;
     const { error } = await SB.rpc('crm_lead_accion_completar', { p_accion: b.dataset.hecho });
-    if(error){ toast(lwT('No se pudo cerrar: ') + error.message); b.disabled = false; return; }
+    if(error){ toastMal(lwT('No se pudo cerrar: ') + error.message); b.disabled = false; return; }
     const fila = HOY.find(a => a.accion_id === b.dataset.hecho);
     const lead = fila && LEADS.find(x => x.id === fila.lead_id);
     if(lead){ lead.accion_id = lead.accion_que = lead.accion_cuando = lead.accion_responsable = null; }
@@ -500,7 +500,7 @@ async function cargar(){
     pintarBandeja();
     if(VISTA === 'panel') cargarPanel();
   } catch(err){
-    toast(lwT('No se pudieron leer los leads: ') + (err.message || err));
+    toastMal(lwT('No se pudieron leer los leads: ') + (err.message || err));
     $('#tablero').innerHTML = '<p class="vacio">' + lwT('No se pudo leer la lista. Recarga la página.') + '</p>';
   } finally { btn.disabled = false; }
 }
@@ -708,7 +708,7 @@ async function asignar(lead, email){
     });
     if(error){
       if(String(error.code) === '409' || /ya no esta como lo tenias/i.test(error.message || '')){
-        toast(lwT('Ese lead ha cambiado de manos mientras mirabas. Recargo.'));
+        toastMal(lwT('Ese lead ha cambiado de manos mientras mirabas. Recargo.'));
         return cargar();
       }
       throw error;
@@ -730,7 +730,7 @@ async function asignar(lead, email){
     pintarPipeline(); pintarBandeja();
     if(ABIERTO && ABIERTO.id === lead.id) abrirFicha(lead);
   } catch(err){
-    toast(lwT('No se pudo cambiar el dueño: ') + (err.message || err));
+    toastMal(lwT('No se pudo cambiar el dueño: ') + (err.message || err));
   }
 }
 
@@ -746,7 +746,7 @@ async function mover(lead, estado){
       /* PT409 llega como HTTP 409: alguien movió la tarjeta mientras se
          arrastraba. No se pisa: se recarga y se dice. */
       if(String(error.code) === '409' || /movido otra persona/i.test(error.message || '')){
-        toast(lwT('Esa tarjeta la ha movido otra persona. Recargo la lista.'));
+        toastMal(lwT('Esa tarjeta la ha movido otra persona. Recargo la lista.'));
         return cargar();
       }
       throw error;
@@ -758,7 +758,7 @@ async function mover(lead, estado){
   } catch(err){
     lead.estado = previo.estado; lead.estado_desde = previo.desde;
     pintarPipeline(); pintarBandeja();
-    toast(lwT('No se pudo guardar el cambio: ') + (err.message || err));
+    toastMal(lwT('No se pudo guardar el cambio: ') + (err.message || err));
   }
 }
 
@@ -946,7 +946,7 @@ function pintarProximoPaso(l){
   if(hecho) hecho.onclick = async () => {
     hecho.disabled = true;
     const { error } = await SB.rpc('crm_lead_accion_completar', { p_accion: l.accion_id });
-    if(error){ toast(lwT('No se pudo cerrar: ') + error.message); hecho.disabled = false; return; }
+    if(error){ toastMal(lwT('No se pudo cerrar: ') + error.message); hecho.disabled = false; return; }
     l.accion_id = l.accion_que = l.accion_cuando = l.accion_responsable = null;
     toast(lwT('Hecho. Pon el siguiente paso cuando lo tengas.'));
     pintarProximoPaso(l); pintarHilo(l); pintarPipeline(); pintarBandeja(); actualizarCuentaHoy();
@@ -992,12 +992,12 @@ function formularioProximoPaso(l){
   caja.querySelector('#ppGuardar').onclick = async () => {
     const que = caja.querySelector('#ppQue').value.trim();
     const cuando = caja.querySelector('#ppCuando').value;
-    if(!que){ toast(lwT('Escribe qué hay que hacer.')); return; }
-    if(!cuando){ toast(lwT('Falta la fecha.')); return; }
+    if(!que){ toastMal(lwT('Escribe qué hay que hacer.')); return; }
+    if(!cuando){ toastMal(lwT('Falta la fecha.')); return; }
     const { data, error } = await SB.rpc('crm_lead_accion_poner', {
       p_lead: l.id, p_que: que, p_cuando: cuando,
     });
-    if(error){ toast(lwT('No se pudo guardar: ') + error.message); return; }
+    if(error){ toastMal(lwT('No se pudo guardar: ') + error.message); return; }
     const fila = (data || [])[0];
     if(fila){
       l.accion_id = fila.id; l.accion_que = fila.que;
@@ -1070,9 +1070,9 @@ async function dialogoHaciaContrato(l){
   if(seguir) seguir.onclick = async () => {
     seguir.disabled = true;
     const { data: f, error: e2 } = await SB.rpc('crm_lead_ficha_crear', { p_lead: l.id });
-    if(e2){ toast(lwT('No se pudo abrir la ficha: ') + e2.message); seguir.disabled = false; return; }
+    if(e2){ toastMal(lwT('No se pudo abrir la ficha: ') + e2.message); seguir.disabled = false; return; }
     const ficha = (f || [])[0];
-    if(!ficha || !ficha.client_id){ toast(lwT('No se pudo abrir la ficha.')); seguir.disabled = false; return; }
+    if(!ficha || !ficha.client_id){ toastMal(lwT('No se pudo abrir la ficha.')); seguir.disabled = false; return; }
     /* `?cliente=` es el camino que ya existía y está probado (entrada desde Compradores);
        `?lead=` se suma solo para que el contrato se selle contra este lead al guardarlo.
        Ni el nombre ni el correo viajan en la URL: se piden al servidor desde el editor.
@@ -1152,7 +1152,7 @@ async function guardarNota(l){
   const ta = document.querySelector('#nota'); const texto = (ta.value || '').trim();
   if(!texto) return;
   const { error } = await SB.rpc('crm_lead_nota', { p_lead: l.id, p_texto: texto });
-  if(error){ toast(lwT('No se pudo guardar la nota: ') + error.message); return; }
+  if(error){ toastMal(lwT('No se pudo guardar la nota: ') + error.message); return; }
   ta.value = ''; l.notas = (l.notas || 0) + 1;
   pintarHilo(l); pintarPipeline(); pintarBandeja();
 }
@@ -1708,7 +1708,7 @@ async function cargarPlantillas(lead){
     const t = PLANTILLAS[$('#waPlantilla').value];
     if(!t) return;
     const params = [...document.querySelectorAll('.wa-param')].map(i => i.value.trim());
-    if(params.some(p => !p)) return toast(lwT('Rellena todos los datos de la plantilla.'));
+    if(params.some(p => !p)) return toastMal(lwT('Rellena todos los datos de la plantilla.'));
     enviarPlantilla(lead.phone, t, params);
   };
 }
@@ -1723,7 +1723,7 @@ async function enviarTexto(phone){
     toast(lwT('Enviado.'));
     await cargarSetter();   // el envío pausa la IA: hay que releer estado, lista y ficha
   } catch(err){
-    toast(explicaError(err));
+    toastMal(explicaError(err));
   } finally { btn.disabled = false; ta.disabled = false; }
 }
 
@@ -1734,7 +1734,7 @@ async function enviarPlantilla(phone, t, params){
     toast(lwT('Plantilla enviada.'));
     await cargarSetter();
   } catch(err){
-    toast(explicaError(err));
+    toastMal(explicaError(err));
   } finally { btn.disabled = false; }
 }
 
@@ -1836,7 +1836,7 @@ async function pausarLead(phone, paused){
        seguiría diciendo «IA activa» junto a una conversación que acabas de pausar. */
     if(CHAT_ABIERTO === phone) verConversacion(phone);
     toast(lwT(paused ? 'IA pausada para ese lead.' : 'IA reanudada para ese lead.'));
-  } catch(err){ toast(lwT('No se pudo cambiar el estado: ') + err.message); }
+  } catch(err){ toastMal(lwT('No se pudo cambiar el estado: ') + err.message); }
 }
 
 /* ==========================================================================
@@ -1850,7 +1850,7 @@ async function pausarLead(phone, paused){
 async function cargarAgenda(){
   CARGADO.agenda = true;
   try { CITAS = await llamarBot('citas_listar'); }
-  catch(err){ CITAS = []; toast(lwT('No se pudieron leer las citas: ') + err.message); }
+  catch(err){ CITAS = []; toastMal(lwT('No se pudieron leer las citas: ') + err.message); }
   pintarAgenda();
 }
 
@@ -1920,7 +1920,7 @@ function limpiarFormularioAgenda(){
 
 async function guardarCita(){
   const when = $('#agCuando').value;
-  if(!when){ toast(lwT('Falta la fecha y hora.')); return; }
+  if(!when){ toastMal(lwT('Falta la fecha y hora.')); return; }
   const payload = {
     id: EDITANDO_CITA || undefined,
     phone: $('#agTelefono').value.replace(/[^0-9]/g, ''),
@@ -1935,7 +1935,7 @@ async function guardarCita(){
     toast(lwT(EDITANDO_CITA ? 'Cita actualizada.' : 'Cita agendada.'));
     limpiarFormularioAgenda();
     cargarAgenda();
-  } catch(err){ toast(lwT('No se pudo guardar la cita: ') + err.message); }
+  } catch(err){ toastMal(lwT('No se pudo guardar la cita: ') + err.message); }
 }
 
 async function borrarCita(id){
@@ -1949,7 +1949,7 @@ async function borrarCita(id){
   });
   if(!seguro) return;
   try { await llamarBot('citas_borrar', { id }); toast(lwT('Cita borrada.')); cargarAgenda(); }
-  catch(err){ toast(lwT('No se pudo borrar: ') + err.message); }
+  catch(err){ toastMal(lwT('No se pudo borrar: ') + err.message); }
 }
 
 /* ==========================================================================
