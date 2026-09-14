@@ -184,6 +184,10 @@
 
   function ponVelo() {
     if (veloEl || veloMuerto) return;
+    /* Se llama antes que nada, asi que puede llegar sin <body> si algun dia
+       este fichero deja de ir con `defer`. Sin esto seria un throw que se
+       lleva por delante el cableado entero de la pantalla. */
+    if (!document.body) { document.addEventListener('DOMContentLoaded', ponVelo); return; }
     veloEl = document.createElement('div');
     veloEl.id = 'lw-cargando';
     veloEl.setAttribute('role', 'status');
@@ -2087,7 +2091,7 @@
   };
 
   function arranca() {
-    if (!window.LW_AUTH) { console.error('[v4 datos] sin guard: no se cablea nada'); return; }
+    if (!window.LW_AUTH) { console.error('[v4 datos] sin guard: no se cablea nada'); quitaVelo(); return; }
     window.LW_AUTH.then(function (aut) {
       document.body.setAttribute('data-datos', 'reales');
       var raiz = document.querySelector('script[src*="datos.js"]').src.replace(/assets\/datos\.js.*$/, '');
@@ -2130,10 +2134,6 @@
         });
       var fn = REG[seg];
       if (fn) {
-        /* El velo se pone SOLO si esta pantalla tiene de que cargar. En una sin
-           handler —la puerta de `entrar/`— no habria consulta que lo bajase y
-           se quedaria tapada hasta que la rescatase el CSS a los 12 s. */
-        ponVelo();
         try { fn(aut.sb); } catch (e) { fallo('pantalla ' + seg, e); quitaVelo(); }
         /* Si el handler no llego a lanzar ni una consulta, no hay nada que
            esperar: el contador nunca subira y nadie lo bajaria. */
@@ -2141,5 +2141,14 @@
       }
     });
   }
+  /* EL VELO SE PONE ANTES DE ESPERAR A NADIE. Estuvo dentro de `LW_AUTH.then`
+     y tardaba 652 ms en aparecer (medido en produccion, 14-sep): lo que
+     esperaba era que guard.js resolviese la sesion, y durante ese medio
+     segundo se veia justo la rejilla de guiones que el velo viene a tapar.
+     Aqui solo hace falta saber si esta pantalla tiene datos que traer, y eso
+     se sabe ya: `REG[seg]` es sincrono. Si luego resulta que no hay sesion,
+     `arranca()` lo quita — y si algo se tuerce antes, lo quita el CSS. */
+  if (REG[seg]) ponVelo();
+
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arranca); else arranca();
 })();
