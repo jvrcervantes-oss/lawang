@@ -698,13 +698,67 @@
       // para el enlace directo a /compradores/ de cada parcela (11-sep-2026).
       var COMPRADOR_ID_POR_CONTRATO = {};
       var MOLDE = null, MOLDE_ENLACE = null, MOLDE_FAQ = null, MOLDE_UNIDAD = null;
-      // Mismos colores que los chips «Unidades» de la cabecera de esta
-      // pantalla (data-chip-u): si esos chips cambian de color, este mapa
-      // también, o la pastilla del parcelario deja de coincidir con el filtro.
+      // Las unidades del proyecto abierto, por id, tal y como se pintaron.
+      // Es lo que lee el editor del parcelario (editores.js) para abrir el
+      // formulario ya relleno. Se vacía en cada repintado del cajón.
+      var UNIDADES_CAJON = {};
+      /* FUENTE ÚNICA del color y del nombre de cada estado de unidad
+         (14-sep-2026). Antes este mapa pintaba SOLO la pastilla del parcelario
+         y un comentario pedía «acuérdate de cambiar también los chips»: eso es
+         una lista a mano en dos sitios, que en esta suite siempre acaba
+         divergiendo. Ahora de aquí salen los tres sitios donde el estado se ve
+         — el punto del chip de filtro, la pastilla de la tarjeta y su filo
+         izquierdo — y no hay nada que sincronizar.
+
+         Los colores se separaron por TONO, no por luminosidad (encargo del
+         owner, 14-sep-2026: «marca más disponible / reservada / bloqueada para
+         verlo de un vistazo»). Los seis de antes eran verde-oliva, teal,
+         ciruela, teal oscuro, verde oscuro y gris: cuatro de ellos del mismo
+         par de tonos y todos a la misma luminosidad, así que a tamaño de
+         pastilla no se distinguían. Los tres estados que el equipo mira a
+         diario pasan a leerse como un semáforo — verde libre, ámbar retenida
+         blanda, rojo retenida dura — y los dos terminales (vendida, cobrada) se
+         quedan en la familia teal de marca, que es donde ya vivían.
+
+         Ámbar y rojo NO son inventados: son los colores «por significado» de la
+         especificación visual de la suite (contexto/lawang_espec_visual.md,
+         medidos del mockup 1a). */
       var ESTADO_COLOR = {
-        disponible: '#485B37', reservada: '#316669', bloqueada: '#563349',
-        vendida: '#104C4F', cobrada: '#314322', no_disponible: '#75786e'
+        disponible: '#485B37',     // verde territorial — libre, se puede vender
+        reservada: '#8C5E10',      // ámbar de la espec — retención blanda (Carta de Reserva)
+        bloqueada: '#9E2F26',      // rojo de la espec — retención dura (Bloqueo firmado)
+        vendida: '#104C4F',        // deep lagoon — terminal
+        cobrada: '#316669',        // secondary — terminal, cobrada al 100%
+        no_disponible: '#75786e'   // outline — fuera de comercialización
       };
+      // El nombre que se enseña. `estado` viene de la base con guión bajo
+      // (`no_disponible`) y la pastilla lo escribía en mayúsculas tal cual:
+      // «NO_DISPONIBLE». Mismo vocabulario que ESTADOS en la herramienta viva.
+      var ESTADO_ETIQUETA = {
+        disponible: 'Disponible', reservada: 'Reservada', bloqueada: 'Bloqueada',
+        vendida: 'Vendida', cobrada: 'Cobrada', no_disponible: 'No disponible'
+      };
+      function claveEstado(e) { return String(e || '').trim().toLowerCase().replace(/\s+/g, '_'); }
+      function colorEstado(e) { return ESTADO_COLOR[claveEstado(e)] || '#75786e'; }
+      function etiquetaEstado(e) { return ESTADO_ETIQUETA[claveEstado(e)] || (e || '—'); }
+
+      /* El punto de color de cada chip de filtro «Unidades». Se inyecta desde
+         aquí y no se escribe en la HTML a propósito: marcaChip() reescribe el
+         className entero del botón al cambiar de filtro — los hijos sobreviven,
+         una clase de color no — y además así el color sigue saliendo del mapa
+         de arriba y no de una segunda lista. */
+      function pintaPuntosChips() {
+        var cont = document.getElementById('chips-estado');
+        if (!cont) return;
+        cont.querySelectorAll('button[data-chip-u]').forEach(function (b) {
+          var clave = b.getAttribute('data-chip-u');
+          if (clave === 'todas' || b.querySelector('[data-lw-punto]')) return;
+          var punto = document.createElement('span');
+          punto.setAttribute('data-lw-punto', '1');
+          punto.style.cssText = 'width:8px;height:8px;border-radius:999px;flex:0 0 auto;background:' + colorEstado(clave);
+          b.insertBefore(punto, b.firstChild);
+        });
+      }
 
       function proyectosFiltrados() {
         return PS.filter(function (p) {
@@ -875,7 +929,7 @@
            elegido. `unidades_estado` es la vista que ya trae el contrato, el
            comprador y el cobrado partido en suelo/obra (unidad_parte_cobrada_split,
            11-sep-2026) — no se vuelve a cruzar ni repartir aquí a mano. */
-        q(sb.from('unidades_estado').select('codigo,modelo,estado,precio,precio_suelo,precio_construccion,contrato_id,contrato_numero,comprador_nombre,contrato_firmado,cobrado_suelo,cobrado_obra,obra_firmada,contrato_creado_por')
+        q(sb.from('unidades_estado').select('id,codigo,proyecto,tipo,modelo,estado,precio,precio_guardado,precio_suelo,precio_construccion,superficie_m2,moneda,notas,fase_masterplan,zona_masterplan,contrato_id,contrato_numero,comprador_nombre,contrato_firmado,cobrado_suelo,cobrado_obra,obra_firmada,contrato_creado_por')
             .eq('proyecto', elegido.nombre).order('codigo').limit(60), 'unidades de ' + elegido.nombre)
           .then(function (uu) {
             var caja = document.getElementById('d-unidades');
@@ -884,6 +938,7 @@
             if (!MOLDE_UNIDAD) return;
             var base = MOLDE_UNIDAD.cloneNode(true);
             caja.innerHTML = '';
+            UNIDADES_CAJON = {}; window.LW_V4.unidades = UNIDADES_CAJON;
             pon('d-uds-n', uu.length + (uu.length === 1 ? ' unidad' : ' unidades'));
             if (!uu.length) {
               caja.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">' +
@@ -910,13 +965,26 @@
               var f = base.cloneNode(true);
               pon('u-codigo', u.codigo, f);
               pon('u-tipo', u.modelo || '—', f);
-              // Estado destacado en pastilla de color (11-sep-2026, encargo del
-              // owner) — mismos colores que los chips «Unidades» de arriba.
+              /* Estado destacado (11-sep-2026) y reforzado el 14-sep-2026: la
+                 pastilla sola no bastaba para leer una columna de parcelas de un
+                 vistazo, así que el mismo color entra también por el filo
+                 izquierdo de la tarjeta — que es lo que se ve al recorrer la
+                 lista sin pararse a leer. Color y nombre salen de la fuente
+                 única de arriba, la misma que pinta el punto de los chips. */
+              var estadoColor = colorEstado(u.estado);
               var nota = f.querySelector('[data-lw="u-nota"]');
               if (nota) {
-                nota.textContent = (u.estado || '—').toUpperCase();
-                nota.style.background = ESTADO_COLOR[(u.estado || '').replace(/\s+/g, '_')] || '#75786e';
+                nota.textContent = etiquetaEstado(u.estado).toUpperCase();
+                nota.style.background = estadoColor;
               }
+              f.style.borderLeft = '4px solid ' + estadoColor;
+              /* La fila cruda se guarda para que el editor (editores.js) abra
+                 con lo que ya está en pantalla, sin una segunda consulta que
+                 podría traer otra cosa. `unidades_estado` ya trae las columnas
+                 que el formulario escribe. */
+              UNIDADES_CAJON[u.id] = u;
+              var bEd = f.querySelector('[data-lw-accion="editar-unidad"]');
+              if (bEd) { bEd.setAttribute('data-uid', u.id); bEd.title = 'Editar ' + (u.codigo || 'unidad'); }
               pon('u-total', u.precio != null ? fmt(u.precio, 'EUR') : '—', f);
               // Enlaces directos a la ficha del comprador y al contrato
               // (11-sep-2026, encargo del owner). Sin ficha/contrato detrás no
@@ -956,6 +1024,13 @@
         }
       }
       window.LW_V4 = window.LW_V4 || {}; window.LW_V4.abrirProyecto = abrirCajon;
+      /* Lo que el editor del parcelario necesita de esta pantalla, y nada
+         más: las unidades pintadas y el color/nombre de cada estado, para
+         que el formulario enseñe el MISMO código de color que la lista. */
+      window.LW_V4.unidades = UNIDADES_CAJON;
+      window.LW_V4.estadoColor = colorEstado;
+      window.LW_V4.estadoEtiqueta = etiquetaEstado;
+      window.LW_V4.estados = ESTADO_ETIQUETA;
 
       /* Rejilla + resumen + paginación de la página actual, sobre el filtro
          vigente. Nunca vuelve a pedir datos: PS/POR_P/COB_P ya están en
@@ -1089,6 +1164,7 @@
         var contP = document.getElementById('chips-proyecto');
         var contU = document.getElementById('chips-estado');
         var clasesP = chipClases(contP), clasesU = chipClases(contU);
+        pintaPuntosChips();
         if (contP) contP.querySelectorAll('[data-chip-p]').forEach(function (b) {
           b.addEventListener('click', function () {
             EST.chipP = b.getAttribute('data-chip-p'); EST.pag = 1;

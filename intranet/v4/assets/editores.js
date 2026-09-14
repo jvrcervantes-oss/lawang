@@ -78,6 +78,19 @@
             var vv = typeof o === 'string' ? [o, o] : o;
             return '<option value="' + esc(vv[0]) + '"' + (String(c.valor) === String(vv[0]) ? ' selected' : '') + '>' + esc(vv[1]) + '</option>';
           }).join('') + '</select>';
+      } else if (c.tipo === 'nota') {
+        /* Texto explicativo dentro del formulario. Sin `data-k`: no es un campo,
+           no se recoge y no viaja en el payload. Hace falta para poder decir en
+           el sitio lo que la herramienta viva dice ahí — la escalera de estados
+           la lleva el contrato, el total lo calcula la base — en vez de dejar
+           un campo bloqueado sin explicación, que solo parece un fallo. */
+        d.style.cssText = 'display:block;font:400 12px/1.5 inherit;text-transform:none;letter-spacing:0;color:#8A6A34;background:#FBF3E4;border-radius:8px;padding:9px 11px;margin:-4px 0 0';
+        d.innerHTML = esc(c.label);
+      } else if (c.tipo === 'lectura') {
+        // Espejo de solo lectura: se ve el valor y se entiende que no se toca
+        // aquí. Tampoco lleva `data-k`, por lo mismo que 'nota'.
+        d.innerHTML = inner + '<input value="' + esc(c.valor == null ? '' : c.valor) + '" readonly tabindex="-1" style="' +
+          estilo + ';background:#f5f4ee;color:#75786e;cursor:not-allowed">';
       } else if (c.tipo === 'textarea') {
         d.innerHTML = inner + '<textarea data-k="' + esc(c.k) + '" rows="4" style="' + estilo + ';resize:vertical">' + esc(c.valor) + '</textarea>';
       } else if (c.tipo === 'file') {
@@ -526,6 +539,187 @@
         }, function (e) {
           toast('No se pudo abrir: ' + (e && e.message || e), '#ba1a1a');
         });
+      });
+
+      /* EDITAR UNA PARCELA del parcelario del cajon (14-sep-2026, encargo del
+         owner: «necesito poder editar el parcelario»). Hasta hoy la lista de
+         unidades del cajon era de solo lectura: para corregir una superficie o
+         un precio habia que salir de la v4 e ir a la herramienta viva.
+
+         PARIDAD (Regla 0 bis de contexto/suite_lawang.md): este formulario
+         hereda los campos y, sobre todo, LAS REGLAS del cajon de unidad de
+         /intranet/proyectos/ — que es donde se aprendieron a base de fallos:
+           · `precio` NUNCA viaja: lo calcula el trigger trg_unidad_precio_suma
+             como suelo + construccion (28-ago-2026, un CSV dejo 143 parcelas
+             con el total descuadrado de sus propias partes). Se enseña de solo
+             lectura, que informa sin escribir.
+           · `estado` y `contrato_id` SOLO se mandan si la parcela no esta
+             vinculada a un contrato. Mandarlos siempre fue el fallo que, al
+             corregirle el precio a una parcela reservada, la desvinculaba y la
+             devolvia a «disponible»: esos dos campos tienen un dueño, y es el
+             contrato (trigger sincroniza_unidad_contrato).
+           · fase/zona de masterplan solo existen para Sumba Hills, y solo se
+             mandan si el campo se pinto.
+           · La RLS no da error al denegar: devuelve CERO filas. Por eso se pide
+             .select('id') y se trata el vacio como falta de permiso.
+
+         LO QUE NO HEREDA, dicho en voz alta como pide la Regla 0 bis: el alta
+         en linea de «+ Nuevo proyecto…» y «+ Nuevo tipo…» (se hacen desde la
+         herramienta viva o desde «+ Nueva unidad»), el bloque de escenarios de
+         precio, y el boton de Borrar unidad — que es de super admin, va por la
+         RPC borrar_unidad y no tiene sitio en una tarjeta de listado. */
+      function editarUnidad(u) {
+        var vinculada = !!u.contrato_id;
+        toast('Abriendo «' + (u.codigo || 'unidad') + '»…');
+        Promise.all([
+          sb.from('proyectos').select('nombre').eq('activo', true).order('nombre'),
+          sb.from('tipos_vivienda').select('clave,etiqueta').eq('activo', true).order('etiqueta'),
+          (typeof lwCargarCatalogoModelos === 'function')
+            ? lwCargarCatalogoModelos(sb) : Promise.resolve({ catalogo: [], villas: [] }),
+          // Los contratos solo hacen falta si la parcela esta libre: si ya tiene
+          // uno, el desplegable no se pinta y traerlos seria gasto por nada.
+          vinculada ? Promise.resolve({ data: [] })
+                    : sb.from('contratos').select('id,numero,comprador_nombre').order('created_at', { ascending: false })
+        ]).then(function (rs) {
+          // Mismo chequeo que «+ Nueva unidad»: sin esto, un fallo de red o de
+          // RLS abria el modal en silencio con los desplegables vacios.
+          if (rs[0].error) return toast('No se pudo abrir: ' + rs[0].error.message, '#ba1a1a');
+          if (rs[1].error) return toast('No se pudo abrir: ' + rs[1].error.message, '#ba1a1a');
+          var proyectos = ((rs[0] && rs[0].data) || []).map(function (p) { return p.nombre; });
+          if (u.proyecto && proyectos.indexOf(u.proyecto) === -1) proyectos.unshift(u.proyecto);
+          var tipos = ((rs[1] && rs[1].data) || []).map(function (t) { return [t.clave, t.etiqueta]; });
+          var tieneTipo = false;
+          for (var iT = 0; iT < tipos.length; iT++) { if (tipos[iT][0] === u.tipo) tieneTipo = true; }
+          if (u.tipo && !tieneTipo) tipos.unshift([u.tipo, u.tipo]);
+          var cat = rs[2] || { catalogo: [], villas: [] };
+          var mods = (typeof lwModelosDeProyecto === 'function')
+            ? lwModelosDeProyecto(u.proyecto, cat.villas, cat.catalogo) : { lista: [], declarados: false };
+          var contratos = ((rs[3] && rs[3].data) || []);
+
+          var estadosMapa = (window.LW_V4 && window.LW_V4.estados) || {
+            disponible: 'Disponible', reservada: 'Reservada', bloqueada: 'Bloqueada',
+            vendida: 'Vendida', cobrada: 'Cobrada', no_disponible: 'No disponible'
+          };
+          var estados = Object.keys(estadosMapa).map(function (k) { return [k, estadosMapa[k]]; });
+          var etiq = (window.LW_V4 && window.LW_V4.estadoEtiqueta) || function (e) { return e || '—'; };
+          var n0 = function (x) { return x == null ? '' : x; };
+          var totalDerivado = (Number(u.precio_suelo) || 0) + (Number(u.precio_construccion) || 0);
+
+          var campos = [
+            { k: 'codigo', label: 'Código', req: 1, valor: n0(u.codigo),
+              ayuda: 'Debe coincidir con el que se escribe en el contrato: es lo que permite cruzarlos.' },
+            { k: 'proyecto', label: 'Proyecto', tipo: 'select', req: 1, opciones: proyectos, valor: u.proyecto },
+            { k: 'tipo', label: 'Tipo', tipo: 'select', opciones: tipos.length ? tipos : [['parcela', 'Parcela']], valor: u.tipo }
+          ];
+          /* Modelo de villa: el catalogo real, nunca texto libre si hay catalogo
+             — por ahi entraban los modelos inventados que luego no casan con
+             nada (8-sep-2026). Si el proyecto no declara ninguno se ofrece el
+             catalogo entero y se dice que lo es. */
+          if (mods.lista.length) {
+            var opsM = [['', '— sin decidir —']].concat(mods.lista.map(function (m) {
+              return [m.modelo, m.modelo + (m.precio_construccion != null ? ' · ' + m.precio_construccion + ' ' + (m.moneda || 'EUR') : '')];
+            }));
+            var tieneModelo = false;
+            for (var iM = 0; iM < mods.lista.length; iM++) { if (mods.lista[iM].modelo === u.modelo) tieneModelo = true; }
+            if (u.modelo && !tieneModelo) opsM.push([u.modelo, u.modelo + ' · fuera del catálogo']);
+            campos.push({ k: 'modelo', label: 'Modelo de villa', tipo: 'select', opciones: opsM, valor: n0(u.modelo),
+              ayuda: mods.declarados ? '' : 'Este proyecto no tiene modelos declarados, así que se ofrece el catálogo entero.' });
+          } else {
+            campos.push({ k: 'modelo', label: 'Modelo de villa', valor: n0(u.modelo), ayuda: 'Dune, Dream…' });
+          }
+          campos.push({ k: 'superficie_m2', label: 'Superficie (m²)', tipo: 'number', valor: n0(u.superficie_m2) });
+          if (u.proyecto === 'Sumba Hills') {
+            campos.push({ k: 'fase_masterplan', label: 'Fase (masterplan)', valor: n0(u.fase_masterplan), ayuda: 'I, II…' });
+            campos.push({ k: 'zona_masterplan', label: 'Zona', valor: n0(u.zona_masterplan), ayuda: '1, 2, 3…' });
+          }
+          campos.push(
+            { k: 'precio_m2', label: 'Precio por m²', tipo: 'number',
+              valor: (u.precio_suelo != null && Number(u.superficie_m2)) ? Math.round(Number(u.precio_suelo) / Number(u.superficie_m2) * 100) / 100 : '',
+              ayuda: 'Con la superficie, rellena el suelo solo. No se guarda: lo que se guarda es el suelo.' },
+            { k: 'precio_suelo', label: 'Precio de suelo', tipo: 'number', valor: n0(u.precio_suelo) },
+            { k: 'precio_construccion', label: 'Precio de construcción', tipo: 'number', valor: n0(u.precio_construccion) },
+            { tipo: 'lectura', label: 'Precio total', valor: totalDerivado ? totalDerivado + ' ' + (u.moneda || 'EUR') : '—' },
+            { tipo: 'nota', label: 'El total es siempre suelo + construcción y lo calcula la base — ya no se puede escribir un valor distinto (28-ago-2026): un CSV trajo 143 parcelas con el total descuadrado de sus propias columnas.' },
+            { k: 'moneda', label: 'Moneda', tipo: 'select', opciones: ['EUR', 'USD', 'AUD', 'IDR'], valor: u.moneda || 'EUR' }
+          );
+          if (vinculada) {
+            campos.push(
+              { tipo: 'lectura', label: 'Estado', valor: etiq(u.estado) + ' · lo lleva el contrato' },
+              { tipo: 'lectura', label: 'Contrato asociado', valor: u.contrato_numero || 'vinculado' },
+              { tipo: 'nota', label: 'Esta parcela está vinculada a un contrato, así que su estado y su contrato no se tocan desde aquí: los lleva el contrato y el dinero. Una Carta de Reserva la deja reservada; un Bloqueo de Parcela firmado, bloqueada; el primer recibí real la pasa a vendida, y el 100% cobrado a cobrada. Para soltarla, quítale la parcela al contrato o bórralo, y volverá a disponible sola.' }
+            );
+          } else {
+            campos.push(
+              { k: 'estado', label: 'Estado', tipo: 'select', opciones: estados, valor: u.estado || 'disponible' },
+              { k: 'contrato_id', label: 'Contrato asociado', tipo: 'select', valor: '',
+                opciones: [['', '— sin contrato —']].concat(contratos.map(function (c) {
+                  return [c.id, (c.numero || 'sin nº') + ' — ' + (c.comprador_nombre || 'sin nombre')];
+                })) }
+            );
+          }
+          campos.push({ k: 'notas', label: 'Notas', tipo: 'textarea', valor: n0(u.notas) });
+
+          modal((u.codigo || 'Unidad') + ' · ' + (u.proyecto || 'sin proyecto'), campos, 'Guardar cambios', function (v) {
+            var num = function (x) { var n = parseFloat(x); return isNaN(n) ? null : n; };
+            var txt = function (x) { return (x || '').trim() || null; };
+            var fila = {
+              codigo: v.codigo.trim(), proyecto: v.proyecto, tipo: v.tipo,
+              modelo: txt(v.modelo), superficie_m2: num(v.superficie_m2),
+              precio_suelo: num(v.precio_suelo), precio_construccion: num(v.precio_construccion),
+              moneda: v.moneda, notas: txt(v.notas)
+              // `precio` no va aqui a proposito — ver la cabecera de esta funcion.
+            };
+            if ('fase_masterplan' in v) fila.fase_masterplan = txt(v.fase_masterplan);
+            if ('zona_masterplan' in v) fila.zona_masterplan = txt(v.zona_masterplan);
+            if (!vinculada) { fila.estado = v.estado; fila.contrato_id = v.contrato_id || null; }
+            return sb.from('unidades').update(fila).eq('id', u.id).select('id').then(function (r) {
+              if (r.error) {
+                // El codigo es unico POR PROYECTO: decirlo con esas palabras evita
+                // el "duplicate key value violates unique constraint".
+                return /unidades_proyecto_codigo_key|duplicate key/.test(r.error.message || '')
+                  ? { error: { message: 'ya hay una unidad con ese código en ese proyecto.' } } : r;
+              }
+              if (!r.data || !r.data.length) {
+                return { error: { message: 'tu usuario no puede guardar esta parcela. La policy de unidades pide la herramienta «unidades» y que el proyecto esté entre los tuyos.' } };
+              }
+              return r;
+            });
+          });
+
+          /* Precio por m² -> precio de suelo, como en la herramienta viva. Va
+             aqui y no dentro de modal() porque es la unica pantalla que lo
+             necesita: el modal canonico no tiene campos que se hablen entre si,
+             y abrirle esa puerta a todos por un caso es mas de lo que hace
+             falta. modal() ya ha pintado el DOM cuando se llega aqui. */
+          var cm2 = document.querySelector('#lw-editor [data-k="precio_m2"]');
+          var csup = document.querySelector('#lw-editor [data-k="superficie_m2"]');
+          var csuelo = document.querySelector('#lw-editor [data-k="precio_suelo"]');
+          if (cm2 && csup && csuelo) {
+            var recalcula = function () {
+              var m2 = parseFloat(cm2.value), sup = parseFloat(csup.value);
+              if (!isNaN(m2) && !isNaN(sup) && sup > 0) csuelo.value = Math.round(m2 * sup * 100) / 100;
+            };
+            cm2.addEventListener('input', recalcula);
+            csup.addEventListener('input', recalcula);
+          }
+        }, function (e) {
+          toast('No se pudo abrir: ' + (e && e.message || e), '#ba1a1a');
+        });
+      }
+
+      /* Delegado en el CONTENEDOR, que es estatico: datos.js reemplaza las
+         tarjetas enteras en cada repintado del cajon, asi que un listener por
+         tarjeta se perderia en cuanto se abre otro proyecto. stopPropagation
+         para que maqueta.js (que delega en document) no lo trate ademas como un
+         clic en la tarjeta. */
+      var cajaU = document.getElementById('d-unidades');
+      if (cajaU) cajaU.addEventListener('click', function (ev) {
+        var b = ev.target && ev.target.closest && ev.target.closest('[data-lw-accion="editar-unidad"]');
+        if (!b) return;
+        ev.preventDefault(); ev.stopPropagation();
+        var u = ((window.LW_V4 && window.LW_V4.unidades) || {})[b.getAttribute('data-uid')];
+        if (!u) return toast('Esa parcela ya no esta en pantalla — vuelve a abrir el proyecto.', '#8A6A34');
+        editarUnidad(u);
       });
 
       /* Exportar informe financiero (11-sep-2026): CSV de cartera/cobrado por
