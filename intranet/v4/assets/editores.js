@@ -80,8 +80,8 @@
       ? 'pointer-events:auto;position:fixed;top:0;right:0;height:100%;width:min(620px,96vw);background:#fff;border-left:1px solid #c5c8bc;box-shadow:-24px 0 48px -12px rgba(0,0,0,.25);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .26s ease-in-out;'
       : 'pointer-events:auto;background:#fff;border:1px solid #c5c8bc;border-radius:14px;box-shadow:0 24px 48px -12px rgba(0,0,0,.25);width:min(520px,92vw);max-height:88vh;overflow:auto;padding:26px 28px;';
     var cajaMarco = lateral
-      ? 'position:fixed;inset:0;z-index:10001;pointer-events:none'
-      : 'position:fixed;inset:0;display:grid;place-items:center;z-index:10001;pointer-events:none';
+      ? 'position:fixed;inset:0;z-index:var(--z-modal,400);pointer-events:none'
+      : 'position:fixed;inset:0;display:grid;place-items:center;z-index:var(--z-modal,400);pointer-events:none';
     var cajaCabecera = lateral
       ? 'display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:22px 26px 16px;border-bottom:1px solid #E4DCCB;flex-shrink:0'
       : 'display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:16px';
@@ -93,7 +93,7 @@
       ? 'display:flex;justify-content:flex-end;gap:10px;padding:16px 26px;border-top:1px solid #E4DCCB;background:#f5f4ee;flex-shrink:0'
       : 'display:flex;justify-content:flex-end;gap:10px;margin-top:20px';
     w.innerHTML =
-      '<div data-e="fondo" style="position:fixed;inset:0;background:rgba(27,28,25,.45);backdrop-filter:blur(2px);z-index:10000;transition:opacity .26s ease-in-out' + (lateral ? ';opacity:0' : '') + '"></div>' +
+      '<div data-e="fondo" style="position:fixed;inset:0;background:rgba(27,28,25,.45);backdrop-filter:blur(2px);z-index:calc(var(--z-modal,400) - 1);transition:opacity .26s ease-in-out' + (lateral ? ';opacity:0' : '') + '"></div>' +
       '<div role="dialog" aria-modal="true" style="' + cajaMarco + '">' +
       '<form data-e="form"' + (lateral ? ' data-lateral="1"' : '') + ' style="' + cajaForm + FUENTE + '">' +
       '<div style="' + cajaCabecera + '">' +

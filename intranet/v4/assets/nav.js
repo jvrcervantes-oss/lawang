@@ -143,7 +143,7 @@
     var d = document.createElement('div');
     d.id = 'lw-maqueta';
     d.setAttribute('role', 'note');
-    d.style.cssText = 'position:fixed;bottom:14px;right:14px;z-index:9999;' +
+    d.style.cssText = 'position:fixed;bottom:14px;right:14px;z-index:var(--z-banderin,300);' +
       'background:#070907;color:#F5F0E6;border:1px solid #C89B5C;border-radius:4px;' +
       'font:600 11px/1.4 Manrope,system-ui,sans-serif;letter-spacing:.08em;' +
       'padding:7px 12px;opacity:.92;text-transform:uppercase';
