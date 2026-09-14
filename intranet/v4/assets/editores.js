@@ -758,7 +758,8 @@
             var dentroOp = fila('Contrato', esc(u.contrato_numero || 'vinculado') +
                   ' <span style="color:#75786e;font-weight:500">· ' + (u.contrato_firmado ? 'firmado' : 'sin firmar') + '</span>') +
               (u.comprador_nombre ? fila('Comprador', esc(u.comprador_nombre)) : '') +
-              (u.contrato_creado_por ? fila('Agente', esc(u.contrato_creado_por)) : '') +
+              (u.contrato_creado_por ? fila('Agente', esc(
+                 ((window.LW_V4 && window.LW_V4.equipoNombre) || {})[u.contrato_creado_por] || u.contrato_creado_por)) : '') +
               fila('Cobrado de esta parcela', esc(fmtM(cob, u.moneda)) +
                   (pct != null ? ' <span style="color:#75786e;font-weight:500">· ' + pct + '%</span>' : '') +
                   '<br><span style="font:500 11px inherit;color:#8A8474">su parte del contrato, no el total</span>');

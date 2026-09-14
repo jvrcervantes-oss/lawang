@@ -1033,6 +1033,11 @@
       window.LW_V4.estadoColor = colorEstado;
       window.LW_V4.estadoEtiqueta = etiquetaEstado;
       window.LW_V4.estados = ESTADO_ETIQUETA;
+      // email -> nombre del equipo. Lo necesita el editor del parcelario para
+      // no ensenar el correo del agente justo al lado de la tarjeta que ya
+      // ensena su nombre. Cuenta legacy sin ficha: se queda el email, igual
+      // que hace la herramienta viva.
+      window.LW_V4.equipoNombre = EQUIPO_NOMBRE;
 
       /* Rejilla + resumen + paginación de la página actual, sobre el filtro
          vigente. Nunca vuelve a pedir datos: PS/POR_P/COB_P ya están en
