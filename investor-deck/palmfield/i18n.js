@@ -275,6 +275,8 @@
     'Plots & pricing': { es: 'Parcelas y precios', id: 'Kavling & harga' },
     'Image': { es: 'Imagen', id: 'Gambar' },
     'Document': { es: 'Documento', id: 'Dokumen' },
+    'View': { es: 'Ver', id: 'Lihat' },
+    'Download': { es: 'Descargar', id: 'Unduh' },
 
     /* — FAQ — */
     'Frequently Asked Questions': { es: 'Preguntas frecuentes', id: 'Pertanyaan yang Sering Diajukan' },

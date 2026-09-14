@@ -87,7 +87,7 @@
   .lw-fade-in { animation: lwFadeIn .35s ease both; }
   @keyframes lwFadeIn { from { opacity:0; transform:translateY(4px);} to { opacity:1; transform:none;} }
 </style>
-<script src="i18n.js?v=20260914_docs"></script>
+<script src="i18n.js?v=20260914_docs2"></script>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script>
   tailwind.config = {
@@ -251,18 +251,17 @@
              son afirmaciones sobre ellos. -->
         <div id="docs-bloque" class="hidden flex-col gap-2">
           <h3 class="font-body-md text-[11px] uppercase tracking-wider text-[#5F6257] font-bold m-0">Project documents</h3>
-          <div id="docs-lista" class="flex flex-col gap-2"><!-- lo llena el JS --></div>
+          <div id="docs-lista" class="grid grid-cols-1 sm:grid-cols-2 gap-3"><!-- lo llena el JS --></div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div class="flex flex-col gap-1 bg-surface-container-low/60 border border-[#D8D2C5] rounded-xl px-4 py-3"><div class="flex items-center gap-2 text-deep-lagoon"><span class="material-symbols-outlined text-[18px] text-territorial-green">shield_lock</span><span class="font-body-md text-body-sm font-bold">Payment security</span></div><span class="font-body-sm text-[11px] uppercase tracking-wider text-[#5F6257]">Notarial escrow (PPAT)</span><p class="font-body-sm text-xs text-[#44483f] leading-relaxed m-0">Reservation and stage payments held in an escrow account managed by the notary, released against agreed conditions.</p></div>
-          <div class="flex flex-col gap-1 bg-surface-container-low/60 border border-[#D8D2C5] rounded-xl px-4 py-3"><div class="flex items-center gap-2 text-deep-lagoon"><span class="material-symbols-outlined text-[18px] text-territorial-green">history_edu</span><span class="font-body-md text-body-sm font-bold">Term &amp; registration</span></div><span class="font-body-sm text-[11px] uppercase tracking-wider text-[#5F6257]">Hak Sewa, Indonesian law</span><p class="font-body-sm text-xs text-[#44483f] leading-relaxed m-0">Registered lease term (legal maximum 30 years per grant, renewable with a new term), transferable and heritable.</p></div>
-          <div class="flex flex-col gap-1 bg-surface-container-low/60 border border-[#D8D2C5] rounded-xl px-4 py-3"><div class="flex items-center gap-2 text-deep-lagoon"><span class="material-symbols-outlined text-[18px] text-territorial-green">approval</span><span class="font-body-md text-body-sm font-bold">Building permits (PBG / SLF)</span></div><span class="font-body-sm text-[11px] uppercase tracking-wider text-[#5F6257]">Government portal (SIMBG)</span><p class="font-body-sm text-xs text-[#44483f] leading-relaxed m-0">Approved ahead of construction, with occupancy certification (SLF) enabling legal short-term rental.</p></div>
-          <div class="flex flex-col gap-1 bg-surface-container-low/60 border border-[#D8D2C5] rounded-xl px-4 py-3"><div class="flex items-center gap-2 text-deep-lagoon"><span class="material-symbols-outlined text-[18px] text-territorial-green">map</span><span class="font-body-md text-body-sm font-bold">Land zoning (RDTR)</span></div><span class="font-body-sm text-[11px] uppercase tracking-wider text-[#5F6257]">Official urban classification</span><p class="font-body-sm text-xs text-[#44483f] leading-relaxed m-0">Zoned for tourism / residential use, legally enabled for short-stay rental income.</p></div>
-          <div class="flex flex-col gap-1 bg-surface-container-low/60 border border-[#D8D2C5] rounded-xl px-4 py-3"><div class="flex items-center gap-2 text-deep-lagoon"><span class="material-symbols-outlined text-[18px] text-territorial-green">gavel</span><span class="font-body-md text-body-sm font-bold">Official Notarial Signature (PPAT)</span></div><p class="font-body-sm text-xs text-[#44483f] leading-relaxed m-0">Each transfer is formalised before a state-appointed Land Deed Official (PPAT), with a Power of Attorney for the buyer's representative in Indonesia.</p></div>
-          <div class="flex flex-col gap-1 bg-surface-container-low/60 border border-[#D8D2C5] rounded-xl px-4 py-3"><div class="flex items-center gap-2 text-deep-lagoon"><span class="material-symbols-outlined text-[18px] text-territorial-green">handshake</span><span class="font-body-md text-body-sm font-bold">Direct, Documented Transaction</span></div><p class="font-body-sm text-xs text-[#44483f] leading-relaxed m-0">The lease is agreed directly between the landowner and the buyer — no nominee arrangement, no undisclosed intermediary holding title on your behalf.</p></div>
-        </div>
-
+        <!-- AQUI HABIA SEIS TARJETAS DE GARANTIAS (escrow, plazo, permisos, zonificacion,
+             firma notarial, transaccion directa). Retiradas el 14-sep-2026: estaban LETRA
+             POR LETRA en la seccion "Legal Security" (#seguridad-notarial), que ademas las
+             pone en contraste con el leasehold informal -- la version de aqui era la misma
+             afirmacion sin el contraste. No se ha suprimido ni una frase del deck: se ha
+             dejado de decir dos veces. El chip "Legal Security" de este mismo panel lleva
+             alli en un clic. El panel abre ahora con los papeles, que es lo que se venia
+             a buscar. -->
         <div class="flex flex-col gap-2">
           <h3 class="font-body-md text-[11px] uppercase tracking-wider text-[#5F6257] font-bold m-0">Frequently Asked Questions</h3>
           <!-- LAS PREGUNTAS YA NO VIVEN AQUI (11-sep-2026). Salen de `deck_faq` por
@@ -762,6 +761,36 @@
     }catch(_){ return ''; }
   }
 
+  // Los documentos viven en Drive, y un enlace /file/d/<id>/view ABRE el visor: no
+  // descarga. Para el inversor que quiere el PDF en su disco, Drive tiene su propia
+  // ruta de descarga directa (`uc?export=download`), que devuelve el fichero con su
+  // nombre real en Content-Disposition -- verificado el 14-sep sobre los tres.
+  // Si el enlace no es de Drive (manana puede ser un S3, un PDF del propio dominio),
+  // no se inventa una ruta de descarga: la tarjeta se queda solo con "View", que es
+  // lo unico que se puede prometer sin mentir.
+  function enlaceDescarga(href){
+    var m = /drive\.google\.com\/file\/d\/([^/?#]+)/.exec(href) ||
+            /drive\.google\.com\/open\?id=([^&#]+)/.exec(href);
+    return m ? 'https://drive.google.com/uc?export=download&id=' + m[1] : '';
+  }
+
+  // Boton pequeño de accion dentro de una tarjeta de documento.
+  function accionDoc(href, icono, etiqueta, primaria){
+    var a = document.createElement('a');
+    a.href = href; a.target = '_blank'; a.rel = 'noopener';
+    a.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full no-underline ' +
+      'font-label-md text-[12px] transition-all ' +
+      (primaria ? 'bg-deep-lagoon text-white hover:bg-territorial-green'
+                : 'border border-[#D8D2C5] text-deep-lagoon hover:border-territorial-green hover:bg-[#E4DFD5]/60');
+    var i = document.createElement('span');
+    i.className = 'material-symbols-outlined text-[16px]';
+    i.textContent = icono;
+    var t = document.createElement('span');
+    t.textContent = etiqueta;
+    a.appendChild(i); a.appendChild(t);
+    return a;
+  }
+
   function pintaDocs(docs){
     var bloque = document.getElementById('docs-bloque');
     var cont   = document.getElementById('docs-lista');
@@ -771,39 +800,47 @@
     docs.forEach(function(d){
       var href = urlSegura(d.url);
       if(!href) return;
-      var a = document.createElement('a');
-      a.href = href; a.target = '_blank'; a.rel = 'noopener';
-      a.className = 'group flex items-center gap-3 bg-surface-container-low/60 border border-[#D8D2C5] ' +
-                    'rounded-xl px-4 py-3 no-underline hover:border-territorial-green hover:bg-surface-container-lowest transition-all';
+      // La tarjeta ya NO es un enlace: lleva dos acciones distintas dentro, y un <a>
+      // con dos <a> dentro no es HTML valido -- ademas de dejar al inversor sin saber
+      // cual de las dos cosas pasa al hacer clic en el hueco entre botones.
+      var card = document.createElement('div');
+      card.className = 'flex flex-col gap-2 bg-surface-container-low/60 border border-[#D8D2C5] ' +
+                       'rounded-xl px-4 py-3 hover:border-territorial-green transition-colors';
+      var cab = document.createElement('div');
+      cab.className = 'flex items-start gap-2 text-deep-lagoon';
       var ico = document.createElement('span');
-      ico.className = 'material-symbols-outlined text-[20px] shrink-0 text-territorial-green';
+      ico.className = 'material-symbols-outlined text-[18px] shrink-0 text-territorial-green';
       ico.textContent = DOC_ICONO[d.categoria] || DOC_ICONO.otros;
-      var texto = document.createElement('span');
+      var texto = document.createElement('div');
       texto.className = 'flex flex-col min-w-0 grow';
       var tit = document.createElement('span');
       // textContent y data-no-i18n: es un nombre propio escrito por el equipo. Traducirlo
       // por coincidencia de palabras convertiria "ITR" o "SITE PLAN" en otra cosa.
-      tit.className = 'font-body-md text-body-sm font-bold text-deep-lagoon truncate';
+      // Sin `truncate`: a dos columnas el panel es estrecho y cortar el nombre de un
+      // documento oficial a mitad es peor que dejarlo envolver en dos lineas.
+      tit.className = 'font-body-md text-body-sm font-bold text-deep-lagoon break-words';
       tit.setAttribute('data-no-i18n', '');
       tit.textContent = d.titulo || '';
       texto.appendChild(tit);
-      var pie = DOC_ETIQUETA[d.categoria] || DOC_ETIQUETA.otros;
       var sub = document.createElement('span');
       sub.className = 'font-body-sm text-[11px] uppercase tracking-wider text-[#5F6257]';
-      sub.textContent = pie;
+      sub.textContent = DOC_ETIQUETA[d.categoria] || DOC_ETIQUETA.otros;
       texto.appendChild(sub);
       if(d.descripcion){
         var des = document.createElement('span');
-        des.className = 'font-body-sm text-xs text-[#44483f] leading-relaxed';
+        des.className = 'font-body-sm text-xs text-[#44483f] leading-relaxed mt-1';
         des.setAttribute('data-no-i18n', '');
         des.textContent = d.descripcion;
         texto.appendChild(des);
       }
-      var flecha = document.createElement('span');
-      flecha.className = 'material-symbols-outlined text-[18px] shrink-0 text-[#5F6257] group-hover:text-deep-lagoon transition-colors';
-      flecha.textContent = 'open_in_new';
-      a.appendChild(ico); a.appendChild(texto); a.appendChild(flecha);
-      cont.appendChild(a);
+      cab.appendChild(ico); cab.appendChild(texto);
+      var acciones = document.createElement('div');
+      acciones.className = 'flex flex-wrap items-center gap-2 mt-auto pt-1';
+      acciones.appendChild(accionDoc(href, 'visibility', 'View', true));
+      var bajar = enlaceDescarga(href);
+      if(bajar) acciones.appendChild(accionDoc(bajar, 'download', 'Download', false));
+      card.appendChild(cab); card.appendChild(acciones);
+      cont.appendChild(card);
       pintados++;
     });
     if(!pintados) return;                       // nada publicable: el bloque sigue oculto
