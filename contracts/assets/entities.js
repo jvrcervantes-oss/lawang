@@ -48,16 +48,69 @@ function cargarCuentasBancarias(sb){
   if(CUENTAS_PROMESA) return CUENTAS_PROMESA;
   CUENTAS_PROMESA = (async () => {
     const { data, error } = await sb.from('cuentas_bancarias')
-      .select('clave,label,titular,banco,cuenta,codigo,direccion,extra')
+      .select('clave,label,titular,banco,cuenta,codigo,direccion,extra,es_escrow')
       .eq('activa', true).order('orden');
     if(error){ CUENTAS_PROMESA = null; throw error; }
     (data || []).forEach(r => {
       CUENTAS_BANCARIAS[r.clave] = { label:r.label, titular:r.titular, banco:r.banco,
-        cuenta:r.cuenta, codigo:r.codigo, direccion:r.direccion, extra:r.extra };
+        cuenta:r.cuenta, codigo:r.codigo, direccion:r.direccion, extra:r.extra,
+        // `es_escrow` (14-sep-2026): lo dice la CUENTA, ya no su nombre. Antes
+        // `tablaCuentaHTML` decidía imprimir la declaración de depósito en
+        // garantía mirando si la clave empezaba por `notario_`. Esa convención
+        // se sostenía mientras las cuentas nacían escribiendo SQL a mano; desde
+        // que el super admin puede crearlas desde /intranet/cuentas/, no hay
+        // nada que la garantice — y el fallo sería mudo: una cláusula de escrow
+        // que no sale, o que sale en un contrato que no la pactó.
+        es_escrow: !!r.es_escrow };
     });
     return CUENTAS_BANCARIAS;
   })();
   return CUENTAS_PROMESA;
+}
+
+/* ---------- QUÉ CUENTAS SE OFRECEN EN CADA PLANTILLA (14-sep-2026) ----------
+   Esto vivía en cuatro listas escritas a mano en JavaScript: `BANCO_UNICO`,
+   `BANCOS_CONSTRUCCION` y `BANCOS_CC00014_TIMON` en `entidades_pago.js`, y
+   `CUENTA_DEFAULT` en `contracts/app.html`. Cambiar en qué cuenta cobra la
+   Carta de Reserva era una edición de código y un despliegue — y el owner lo
+   pidió al revés: «no son editables ni marcables lo que quiero que aparezca en
+   cada una».
+
+   Ahora manda `public.plantilla_cuentas`, que el super admin edita desde
+   /intranet/cuentas/. Lee cualquier sesión del equipo (el generador necesita el
+   mapeo para pintar su selector); escribe SOLO el super admin, por RLS.
+
+   Igual que `cargarCuentasBancarias`, y por el mismo motivo: si la consulta
+   falla LANZA y deja la promesa a null para poder reintentar. Un fallo callado
+   aquí deja el selector vacío y acaba en un contrato sin destino de pago, que es
+   exactamente el error que esta familia de ficheros existe para evitar. */
+const PLANTILLA_CUENTAS = {};   // { slug: { claves:[...], porDefecto:'clave'|'' } }
+const PLANTILLAS_PAGO = [];     // [{ slug, nombre, orden }] — catálogo, para el panel
+let PLANTILLA_CUENTAS_PROMESA = null;
+function cargarPlantillaCuentas(sb){
+  if(PLANTILLA_CUENTAS_PROMESA) return PLANTILLA_CUENTAS_PROMESA;
+  PLANTILLA_CUENTAS_PROMESA = (async () => {
+    const [cat, map] = await Promise.all([
+      sb.from('plantillas_pago').select('slug,nombre,orden').order('orden'),
+      sb.from('plantilla_cuentas').select('slug,clave,es_default')
+    ]);
+    if(cat.error){ PLANTILLA_CUENTAS_PROMESA = null; throw cat.error; }
+    if(map.error){ PLANTILLA_CUENTAS_PROMESA = null; throw map.error; }
+    // EN SU SITIO, nunca reasignando: mismo motivo que CUENTAS_BANCARIAS —
+    // quien ya tenga la referencia (las pruebas, la edge de firma) se quedaría
+    // leyendo un objeto vacío para siempre.
+    PLANTILLAS_PAGO.length = 0;
+    (cat.data || []).forEach(r => PLANTILLAS_PAGO.push(r));
+    Object.keys(PLANTILLA_CUENTAS).forEach(k => delete PLANTILLA_CUENTAS[k]);
+    (cat.data || []).forEach(r => { PLANTILLA_CUENTAS[r.slug] = { claves: [], porDefecto: '' }; });
+    (map.data || []).forEach(r => {
+      const e = PLANTILLA_CUENTAS[r.slug] || (PLANTILLA_CUENTAS[r.slug] = { claves: [], porDefecto: '' });
+      e.claves.push(r.clave);
+      if(r.es_default) e.porDefecto = r.clave;
+    });
+    return PLANTILLA_CUENTAS;
+  })();
+  return PLANTILLA_CUENTAS_PROMESA;
 }
 
 /* ---------- apoderados de la serie Hak Sewa — MISMO MOTIVO que las cuentas ----------

@@ -225,6 +225,21 @@ const LW_HERRAMIENTAS = [
     claves:'usuarios permisos roles equipo acceso users permissions roles team access',
     estado:d => d.usuarios == null ? null
       : [hT('%n con acceso', { n: d.usuarios }) + (d.usuariosInactivos ? ' · ' + hT('%n desactivados', { n: d.usuariosInactivos }) : ''), false] },
+
+  /* Nueva 14-sep-2026 (encargo del owner: «tenemos muchas cuentas bancarias y
+     no son editables ni marcables lo que quiero que aparezca en cada una»).
+     Va en «Equipo» junto a Usuarios porque es lo mismo que ella: una pantalla
+     de administración del sistema, no de trabajo diario con un expediente.
+     `soloAdmin` es la puerta del menú, pero la de verdad es la RLS: escribir
+     estas dos tablas exige `es_super_admin()` en la base. Un admin normal que
+     llegue por la URL puede MIRAR el reparto —le sirve para entender por qué un
+     contrato ofrece las cuentas que ofrece— y no puede cambiar nada. Es el dato
+     que decide adónde va el dinero de un comprador: ahí no hay delegación. */
+  { grupo:'Equipo', nombre:'Cuentas bancarias', icon:'ph-bank', href:'/intranet/cuentas/', herr:'cuentas', soloAdmin:true,
+    para:'Las cuentas de cobro y qué cuenta se ofrece en cada tipo de contrato.',
+    claves:'cuentas bancarias banco iban swift cobro pago escrow notario destino plantillas contratos bank accounts payment details escrow beneficiary',
+    estado:d => d.cuentas == null ? null
+      : [hT('%n cuentas', { n: d.cuentas }), false] },
 ];
 
 /* Quién ve qué. `soloAdmin` es la puerta dura; si no, basta con tener la

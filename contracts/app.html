@@ -34,8 +34,8 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=5be771d2"></script>
-<script src="/contracts/assets/herramientas.js?v=cce2c8c2"></script>
+<script src="/contracts/assets/i18n.js?v=3ce105d2"></script>
+<script src="/contracts/assets/herramientas.js?v=c95fc709"></script>
 <script src="assets/topbar.js?v=c1bc6349" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -83,7 +83,7 @@
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
 <script src="assets/modelos_catalogo.js?v=4e4fdee1"></script>
 <script src="assets/hitos_fechas.js?v=f4fb5a15"></script>
-<script src="assets/entidades_pago.js?v=23218ca8"></script>
+<script src="assets/entidades_pago.js?v=79cf05b7"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
      — igual que contract.css, que tambien es especifico de contratos. -->
@@ -994,18 +994,21 @@ function toast(msg){
 // porqué): Vencimientos atribuye cada contrato a su sociedad con la MISMA
 // regla, y dos copias de una regla de negocio divergen en silencio. Aquí se
 // usa como global — entities.js va cargado arriba, antes que este script.
-/* Cuenta de cobro precargada por plantilla (owner, 8-sep-2026). Mismo patrón
-   que SOCIEDAD_DEFAULT y por el mismo motivo: `projectDefaults` de tokens.json
-   es GLOBAL, así que poner ahí `cuenta_bancaria` la precargaría en TODAS las
-   plantillas con <!--datos-bancarios-->, y solo se pidió para la Carta.
-   ⚠️ Esto contradice a propósito la norma de entidades_pago.js («sin selección
-   no se imprime nada: nunca un valor por defecto adivinado en algo tan
-   sensible»). No es un descuido: en esta plantilla la cuenta ya no se adivina,
-   es la única que se ofrece, por orden expresa del owner. */
-const CUENTA_DEFAULT = { carta_reserva: 'contractor_tepisungai' };
+/* Cuenta de cobro precargada por plantilla (owner, 8-sep-2026).
+   Era `const CUENTA_DEFAULT = { carta_reserva: 'contractor_tepisungai' }`; desde
+   el 14-sep-2026 lo dice `bankDefaultFor()` (entidades_pago.js), que lo lee de
+   `public.plantilla_cuentas` — la fila marcada como precargada en
+   /intranet/cuentas/. Sigue sin poder vivir en `projectDefaults` de tokens.json,
+   que es GLOBAL y la habría precargado en TODAS las plantillas con
+   <!--datos-bancarios-->.
+   ⚠️ Que exista una precarga contradice a propósito la norma de
+   entidades_pago.js («sin selección no se imprime nada: nunca un valor por
+   defecto adivinado en algo tan sensible»). No es un descuido: donde el super
+   admin marca una precargada, la cuenta no se adivina — es la que él ha dicho, y
+   en la Carta de Reserva además es la única que se ofrece. */
 function pdef(key){
   if(key==='sociedad_firmante' && CURRENT && SOCIEDAD_DEFAULT[CURRENT.slug]) return SOCIEDAD_DEFAULT[CURRENT.slug];
-  if(key==='cuenta_bancaria' && CURRENT && CUENTA_DEFAULT[CURRENT.slug]) return CUENTA_DEFAULT[CURRENT.slug];
+  if(key==='cuenta_bancaria' && CURRENT && bankDefaultFor(CURRENT.slug)) return bankDefaultFor(CURRENT.slug);
   // Fecha de firma y fecha de tipo de cambio: el día en que se está haciendo
   // el contrato, no una fecha fija en tokens.json (cambia cada día). Mismo
   // mecanismo que el resto de projectDefaults — un contrato reabierto sin
@@ -2983,9 +2986,18 @@ function deriveSections(){
     let ins = SECTIONS.findIndex(s=>s.id==='pagos');
     if(ins<0) ins = SECTIONS.findIndex(s=>s.tier==='gestion');
     ins = ins<0 ? SECTIONS.length : ins+1;
+    const opcionesBanco = bankOptionsFor(CURRENT.slug);
+    /* Desde el 14-sep-2026 QUÉ cuentas se ofrecen lo marca el super admin en
+       /intranet/cuentas/, así que por primera vez este documento puede no tener
+       ninguna. Se dice en voz alta y no se deja un desplegable vacío: un select
+       sin opciones y sin explicación se lee como "esto está roto", y de ahí se
+       sale escribiendo una cuenta a mano — que es el fallo caro. */
+    if(!opcionesBanco.length){
+      toast(lwT('Esta plantilla no tiene ninguna cuenta de cobro habilitada. Un super admin las marca en Cuentas bancarias (Intranet).'));
+    }
     SECTIONS.splice(ins, 0, { id:'banco', tier:'por_proyecto',
       title:{es:'Cuenta bancaria',en:'Bank account',id:'Rekening bank'},
-      fields:[['cuenta_bancaria', {es:'Cuenta bancaria de destino',en:'Destination bank account',id:'Rekening bank tujuan'}, 'select', bankOptionsFor(CURRENT.slug)]] });
+      fields:[['cuenta_bancaria', {es:'Cuenta bancaria de destino',en:'Destination bank account',id:'Rekening bank tujuan'}, 'select', opcionesBanco]] });
   }
   // sociedad firmante (Promotor): va DENTRO de "Gestión del contrato" (sección 1,
   // petición del cliente) como un campo más, si la plantilla trae la identidad
@@ -5539,6 +5551,16 @@ async function init(){
      de datos bancarios saldría vacío y hay que saberlo antes de imprimir. */
   try{ await cargarCuentasBancarias(sb); }
   catch(e){ toast(lwT('No se han podido cargar las cuentas de cobro: ') + (e.message || e) + ' — recarga antes de imprimir'); }
+  /* QUÉ cuentas se ofrecen en cada plantilla y cuál viene precargada
+     (14-sep-2026): `public.plantilla_cuentas`, que el super admin marca en
+     /intranet/cuentas/. Hasta hoy eran cuatro listas escritas a mano en JS y
+     cambiarlas costaba un despliegue.
+     Va junto a las cuentas y ANTES de buildForm() por lo mismo: es él quien
+     pinta el select con bankOptionsFor(). Si falla, `bankOptionsFor` se degrada
+     a ofrecer TODAS las cuentas activas en vez de ninguna —el agente elige— y
+     el aviso dice por qué se ven de más. */
+  try{ await cargarPlantillaCuentas(sb); }
+  catch(e){ toast(lwT('No se ha podido cargar qué cuentas corresponden a cada plantilla: ') + (e.message || e) + ' — se ofrecen todas, comprueba la cuenta antes de imprimir'); }
   // Mismo motivo y mismo patrón que las cuentas: NIK/dirección de los
   // apoderados de Hak Sewa salieron de tokens.json (público) a una tabla con
   // RLS (12-ago). Si falla, el nombre sigue eligiéndose (viene de

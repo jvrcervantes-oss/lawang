@@ -73,7 +73,13 @@ const corsFor = (req: Request) => {
 // cobra cada comercial, y con ocho de ellos eso no son estadísticas, son cifras de contrato
 // (el ticket medio por el número devuelve el importe exacto). El día que se le dé el CRM a
 // un comercial no se le puede regalar de paso la tabla de comisiones de sus compañeros.
-const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte', 'leads', 'closers', 'ranking', 'reparto'];
+// 'cuentas' (14-sep-2026): el panel de cuentas de cobro y del reparto por tipo de
+// contrato (/intranet/cuentas/). La casilla se concede como cualquier otra, pero
+// aquí NO está toda la historia: ESCRIBIR esas tablas exige `es_super_admin()` en
+// la propia base, así que un admin con esta casilla marcada solo puede MIRAR el
+// reparto. Es deliberado — es el dato que decide adónde transfiere el comprador —
+// y se apunta aquí porque desde esta función parece un permiso normal.
+const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte', 'leads', 'closers', 'ranking', 'reparto', 'cuentas'];
 // 10-sep-2026: sales_manager/project_manager (encargados de proyecto: ven,
 // crean y corrigen contratos/facturas de cualquier agente en los proyectos
 // que supervisan — `usuarios.proyectos_supervisados`, distinta de `proyectos`)

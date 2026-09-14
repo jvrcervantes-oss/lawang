@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="/favicon.png">
+<title>Lawang · Cuentas bancarias</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- UNA SOLA HOJA PARA TODA LA SUITE: `lawang.css` la genera
+     `tools/empaqueta_css.py` uniendo brand + topbar + suite + app en ese orden,
+     que es la cascada y no el alfabeto. -->
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=c4880e28">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que `lwT`
+     exista cuando arranque el codigo propio de esta herramienta. -->
+<script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
+<script src="/contracts/assets/i18n.js?v=3ce105d2"></script>
+<script src="/contracts/assets/herramientas.js?v=c95fc709"></script>
+<script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="/contracts/assets/guard.js?v=d126c94d" data-herramienta="cuentas"></script>
+<style>
+  :root{ --line:#E4DCCB; --card:#FFFFFF; --rl2:#F1EBDD; --texto-2:#4A5052; --tbh:64px; }
+  *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }
+  body{ font-family:var(--font-body,'Jost',sans-serif); background:var(--rl2); color:#22282A; }
+
+  /* Mismo reparto 340 / resto que Usuarios: la lista a la izquierda y la ficha
+     a la derecha. 340px fijos, el valor del mockup 4d — no un rango. */
+  .stage{ display:grid; grid-template-columns:340px 1fr; height:calc(100% - var(--tbh)); }
+  @media screen and (max-width:900px){
+    .stage{ grid-template-columns:1fr; }
+    .ficha{ display:none; }
+    .stage.abierta .lista{ display:none; }
+    .stage.abierta .ficha{ display:block; }
+  }
+  .lista{ overflow:auto; border-right:1px solid var(--line); }
+  .cab{ position:sticky; top:0; background:var(--rl2); padding:14px 18px 10px; border-bottom:1px solid var(--line); z-index:2;
+        font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--texto-2); font-weight:600; }
+  #qC{ width:100%; margin-top:10px; }
+  .modos{ display:flex; gap:0; margin-top:9px; border:1px solid var(--line); border-radius:99px; overflow:hidden; background:#FFF; }
+  .modo{ flex:1; font:inherit; font-size:11px; letter-spacing:.08em; text-transform:uppercase; font-weight:600;
+         padding:7px 4px; border:0; background:none; color:var(--texto-2); cursor:pointer; }
+  .modo.on{ background:var(--brand-primary,#2E6B4F); color:#FBF7EE; }
+  .ficha{ overflow:auto; padding:26px 30px 60px; }
+  .vacio{ display:grid; place-items:center; height:100%; color:var(--texto-2); font-size:14px; }
+
+  .c{ display:block; width:100%; text-align:left; background:none; border:0; border-bottom:1px solid var(--line);
+      padding:13px 18px; cursor:pointer; font:inherit; color:inherit; }
+  .c:hover{ background:#FBF7EE; }
+  .c.sel{ background:var(--card); box-shadow:inset 3px 0 0 var(--brand-primary,#2E6B4F); }
+  .c .n{ font-size:14px; font-weight:500; }
+  .c .m{ font-size:12px; color:var(--texto-2); margin-top:2px; }
+  .c .r{ margin-top:6px; display:flex; gap:5px; flex-wrap:wrap; }
+
+  .tag{ font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; padding:2px 7px; border-radius:99px;
+        background:#EDE6D7; color:var(--texto-2); }
+  .tag.t-escrow{ background:#E4EEF5; color:#24536F; }
+  .tag.t-off{ background:#EFE0DE; color:#7A3A32; }
+  .tag.t-def{ background:#E2EFE3; color:#245C37; }
+
+  h2.t{ font-family:var(--font-display,'Cormorant Garamond',serif); font-size:27px; font-weight:500; margin:0 0 2px; }
+  .sub{ font-size:12.5px; color:var(--texto-2); margin:0 0 22px; }
+  .caja{ background:var(--card); border:1px solid var(--line); border-radius:3px; padding:20px 22px; margin-bottom:18px; }
+  .caja > h3{ font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--texto-2);
+              font-weight:600; margin:0 0 14px; }
+  .par{ display:grid; grid-template-columns:1fr 1fr; gap:12px 16px; }
+  @media screen and (max-width:700px){ .par{ grid-template-columns:1fr; } }
+  label.f{ display:block; font-size:12px; color:var(--texto-2); margin-bottom:4px; }
+  .f-full{ grid-column:1/-1; }
+  input[type=text], textarea, select{ width:100%; font:inherit; font-size:13.5px; padding:8px 10px;
+    border:1px solid var(--line); border-radius:3px; background:#FFF; color:inherit; }
+  textarea{ min-height:58px; resize:vertical; }
+  .nota{ font-size:12px; color:var(--texto-2); line-height:1.55; margin:10px 0 0; }
+  .acciones{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:16px; }
+
+  /* El reparto por plantilla. Una fila por plantilla; en cada una, la casilla
+     de "se ofrece" y el radio de "viene precargada". El radio va DESHABILITADO
+     mientras la casilla esté desmarcada: precargar una cuenta que no se ofrece
+     no significa nada, y dejar pulsarlo invita a creer que sí. */
+  .plantilla{ border-top:1px solid var(--line); padding:14px 0 4px; }
+  .plantilla:first-of-type{ border-top:0; padding-top:0; }
+  .plantilla > .pn{ font-size:13.5px; font-weight:500; margin-bottom:3px; }
+  .plantilla > .pm{ font-size:11.5px; color:var(--texto-2); margin-bottom:9px; }
+  .opciones{ display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:5px 18px; }
+  .op{ display:flex; align-items:center; gap:9px; font-size:13px; padding:3px 0; }
+  .op .et{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .op input[type=checkbox], .op input[type=radio]{ accent-color:var(--brand-primary,#2E6B4F); flex:none; }
+  .op .rad{ display:flex; align-items:center; gap:5px; font-size:11px; color:var(--texto-2); flex:none; }
+  .op input:disabled + span{ opacity:.4; }
+  .op.apagada .et{ color:var(--texto-2); }
+
+  .aviso{ background:#FBF3E4; border:1px solid #E6D3A9; border-radius:3px; padding:11px 14px;
+          font-size:12.5px; line-height:1.55; margin:0 0 16px; }
+  .aviso.mal{ background:#F7E9E6; border-color:#E2BDB5; }
+  .toast{ position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(14px); opacity:0;
+          background:#22282A; color:#FBF7EE; padding:11px 18px; border-radius:3px; font-size:13px;
+          pointer-events:none; transition:opacity .18s, transform .18s; max-width:min(560px,90vw); z-index:60; }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+  <header class="lw-topbar"></header>
+
+  <div class="stage" id="stage">
+    <div class="lista">
+      <div class="cab">
+        <!-- DOS ENTRADAS AL MISMO DATO, y las dos hacen falta (14-sep-2026).
+             El reparto es una matriz contratos × cuentas, y según qué se venga a
+             hacer se entra por una arista o por la otra:
+             · «en la Carta de Reserva quiero cambiar la cuenta» — el caso que
+               pidió el owner — es POR CONTRATO: se abre el contrato y se ve de
+               un vistazo qué ofrece hoy y qué podría ofrecer.
+             · «esta cuenta nueva, ¿dónde la meto?» es POR CUENTA.
+             Con una sola de las dos, la otra son cinco clics y abrir quince
+             fichas para reconstruir a mano una fila de la matriz. -->
+        <div class="modos" role="tablist">
+          <button class="modo on" id="modoContrato" role="tab" data-lwt="Por contrato">Por contrato</button>
+          <button class="modo"    id="modoCuenta"   role="tab" data-lwt="Por cuenta">Por cuenta</button>
+        </div>
+        <!-- el placeholder y el estado vacío arrancan en los del modo por
+             defecto («por contrato»); `cambiarModo` los cambia al conmutar -->
+        <input id="qC" class="sui-buscar" type="text" data-lwt-ph="Buscar contrato…" placeholder="Buscar contrato…">
+      </div>
+      <div id="listaC" data-lwt="Cargando…">Cargando…</div>
+    </div>
+    <div class="ficha" id="ficha"><div class="vacio" data-lwt="Elige un contrato">Elige un contrato</div></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<!-- esc() y toast() compartidos. ANTES del script de la pagina: son `const` de
+     primer nivel y dos declaraciones del mismo nombre revientan la pagina. -->
+<script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
+<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
+<!-- `lwBuscaEn` (buscar sin tildes ni mayúsculas) vive en vocabulario.js, no en
+     suite-comun.js. Aquí NO se carga `entities.js`: este panel consulta las
+     cuentas por su cuenta porque necesita ver también las DESACTIVADAS, y
+     `cargarCuentasBancarias` filtra `activa = true` — cargarlo solo añadiría un
+     objeto global que esta pantalla no usa. -->
+<script src="/contracts/assets/vocabulario.js?v=d569c692"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════════════════════
+   CUENTAS BANCARIAS — el panel del super admin. 14-sep-2026.
+   ═══════════════════════════════════════════════════════════════════════════
+   POR QUÉ EXISTE. Encargo del owner, textual: «tenemos muchas cuentas
+   bancarias y no son editables ni marcables lo que quiero que aparezca en cada
+   una, por ejemplo ahora en Carta de Reserva sólo aparece 1 (porque te lo dije
+   yo) y ahora necesito cambiarla».
+
+   Las quince cuentas ya vivían en `public.cuentas_bancarias` desde el 6-ago-2026
+   (salieron de `entities.js`, que se sirve sin login y además está en un repo
+   público de GitHub: unas coordenadas bancarias abiertas son la materia prima de
+   un fraude de transferencia, y un número de cuenta no se rota). Pero se
+   editaban por SQL, y QUÉ cuenta se ofrecía en cada contrato estaba escrito en
+   cuatro listas a mano de JavaScript. Cambiar de opinión costaba un despliegue.
+
+   QUÉ MANDA AHORA:
+     · `cuentas_bancarias`    — las cuentas. Alta, corrección y activar/desactivar.
+     · `plantillas_pago`      — qué documentos cobran (los que traen
+                                <!--datos-bancarios--> y pintan un selector).
+     · `plantilla_cuentas`    — el reparto: qué cuentas se ofrecen en cada uno y
+                                cuál viene precargada.
+
+   QUIÉN PUEDE. Leer, cualquiera del equipo con la herramienta: el generador de
+   contratos necesita el reparto para pintar su desplegable, y a un admin le sirve
+   para entender por qué un contrato ofrece lo que ofrece. ESCRIBIR, solo el super
+   admin, y no por cortesía de esta pantalla: las policies de las tres tablas
+   exigen `es_super_admin()`. Aquí se esconden los botones para no ofrecer lo que
+   va a rebotar; quien llegue por la API rebota igual. Es el dato que decide
+   adónde va el dinero de un comprador — ahí no hay delegación.
+
+   LO QUE ESTA PANTALLA NO TOCA, A PROPÓSITO:
+     · La `clave` de una cuenta, ni al crearla después de creada. Va guardada
+       dentro de cada contrato ya emitido (`datos.fields.cuenta_bancaria`):
+       renombrarla dejaría documentos firmados apuntando a una cuenta que no
+       existe. Es la misma razón por la que `tepi_sungai` no se renombra en
+       entities.js.
+     · Borrar una cuenta. Se DESACTIVA. No hay policy de DELETE en la base, y
+       además la clave ajena del reparto es ON DELETE RESTRICT.
+     · Los dos documentos del C2 de Bonian, que llevan DOS cuentas fijas en la
+       propia plantilla (`<!--cuenta:CLAVE-->`): el escrow del notario para el
+       hito 1 y la de empresa para los hitos 2 a 8. Eso lo pacta el texto del
+       contrato, no un desplegable, y por eso no aparecen aquí.
+     · Las facturas, que siguen ofreciendo TODAS las cuentas activas. Es
+       deliberado: si el contrato pactó cobrar en una cuenta concreta, su factura
+       tiene que poder decir esa misma.
+   ═══════════════════════════════════════════════════════════════════════════ */
+const $ = s => document.querySelector(s);
+lwIdiomaAplicar();   // traduce la HTML de arriba; en espanol no toca el DOM
+
+let SB = null, YO = null, PUEDO_ESCRIBIR = false;
+let CUENTAS = [], PLANTILLAS = [], REPARTO = [], SEL = null;
+/* Arranca en «Por contrato» a propósito: es la pregunta con la que se viene a
+   esta pantalla («¿en qué cuenta cobra este documento?»), y la que motivó el
+   encargo. «Por cuenta» es la vista de mantenimiento — corregir un IBAN, dar de
+   alta una cuenta nueva — y se busca cuando ya se sabe que se quiere. */
+let MODO = 'contrato';   // 'contrato' | 'cuenta'
+
+/* `orden` decide el sitio de la cuenta en el desplegable del contrato... o eso
+   parecía: `bankOptions()` las ordena alfabéticamente por etiqueta, así que hoy
+   `orden` solo gobierna el orden de esta lista. Se deja editable igual —es un
+   dato de la tabla y ocultarlo sería mentir sobre lo que hay— pero la ficha dice
+   para qué sirve de verdad, que es peor descubrirlo moviéndolo y no ver nada. */
+
+async function cargar(){
+  // Las tres a la vez: la ficha necesita las tres para pintarse entera, y tres
+  // consultas encadenadas se notan al abrir.
+  // Ojo: aquí se piden TODAS las cuentas, activas y no. `cargarCuentasBancarias`
+  // de entities.js filtra `activa = true` porque es para imprimir un contrato;
+  // este panel es justo donde hay que ver —y poder reactivar— una desactivada.
+  const [cu, pl, re] = await Promise.all([
+    SB.from('cuentas_bancarias')
+      .select('clave,label,titular,banco,cuenta,codigo,direccion,extra,orden,activa,es_escrow,actualizado_en')
+      .order('orden'),
+    SB.from('plantillas_pago').select('slug,nombre,orden').order('orden'),
+    SB.from('plantilla_cuentas').select('slug,clave,es_default'),
+  ]);
+  if(cu.error){
+    $('#listaC').innerHTML = '<p class="nota" style="padding:18px">' + lwT('No se pudo cargar: ') + esc(cu.error.message) + '</p>';
+    return;
+  }
+  CUENTAS = cu.data || [];
+  // Si el catálogo o el reparto no llegan, la ficha lo DICE en vez de pintar
+  // cero casillas: «esta cuenta no se ofrece en ningún contrato» y «no he
+  // podido mirarlo» se parecen mucho en pantalla y solo una es cierta.
+  PLANTILLAS = pl.error ? null : (pl.data || []);
+  REPARTO    = re.error ? null : (re.data || []);
+  pintarLista();
+  if(SEL) pintarFicha();
+}
+
+function pintarLista(){
+  const q = (($('#qC') || {}).value || '').trim().toLowerCase();
+  if(MODO === 'cuenta') return pintarListaCuentas(q);
+  return pintarListaContratos(q);
+}
+
+function pintarListaCuentas(q){
+  const lista = !q ? CUENTAS : CUENTAS.filter(c =>
+    lwBuscaEn([c.label, c.titular, c.banco, c.cuenta, c.codigo, c.clave], q));
+  if(!lista.length){
+    $('#listaC').innerHTML = '<p class="nota" style="padding:18px 20px">' + lwT('Ninguna cuenta con «%q».', { q: esc(q) }) + '</p>';
+    return;
+  }
+  $('#listaC').innerHTML = lista.map(c => {
+    const usos = REPARTO ? REPARTO.filter(r => r.clave === c.clave).length : null;
+    const tags = [];
+    if(c.es_escrow) tags.push('<span class="tag t-escrow">' + lwT('Escrow') + '</span>');
+    if(!c.activa)   tags.push('<span class="tag t-off">' + lwT('Desactivada') + '</span>');
+    tags.push('<span class="tag">' + (usos === null ? lwT('reparto no disponible')
+      : lwT('%n contratos', { n: usos })) + '</span>');
+    return '<button class="c ' + (SEL === c.clave ? 'sel' : '') + '" data-clave="' + esc(c.clave) + '">'
+      + '<div class="n">' + esc(c.label) + '</div>'
+      + '<div class="m">' + esc(c.banco || '—') + ' · ' + esc(c.cuenta || '—') + '</div>'
+      + '<div class="r">' + tags.join('') + '</div>'
+      + '</button>';
+  }).join('');
+}
+
+function pintarListaContratos(q){
+  if(PLANTILLAS === null){
+    $('#listaC').innerHTML = '<p class="nota" style="padding:18px 20px">' + lwT('No se ha podido leer el catálogo de contratos. Recarga la página.') + '</p>';
+    return;
+  }
+  const lista = !q ? PLANTILLAS : PLANTILLAS.filter(p => lwBuscaEn([p.nombre, p.slug], q));
+  if(!lista.length){
+    $('#listaC').innerHTML = '<p class="nota" style="padding:18px 20px">' + lwT('Ningún contrato con «%q».', { q: esc(q) }) + '</p>';
+    return;
+  }
+  $('#listaC').innerHTML = lista.map(p => {
+    const filas = (REPARTO || []).filter(r => r.slug === p.slug);
+    const def = filas.find(r => r.es_default);
+    const tags = [];
+    // «no ofrece ninguna» se marca en rojo: es el único estado de esta pantalla
+    // que rompe un contrato de verdad — el agente abre el documento y se
+    // encuentra un desplegable vacío donde va el destino del dinero.
+    if(!filas.length) tags.push('<span class="tag t-off">' + lwT('sin cuentas') + '</span>');
+    else tags.push('<span class="tag">' + lwT('%n cuentas', { n: filas.length }) + '</span>');
+    if(def) tags.push('<span class="tag t-def">' + lwT('precargada') + '</span>');
+    return '<button class="c ' + (SEL === p.slug ? 'sel' : '') + '" data-slug-sel="' + esc(p.slug) + '">'
+      + '<div class="n">' + esc(p.nombre) + '</div>'
+      + '<div class="m">' + (def ? lwT('cobra en %c', { c: etiquetaDe(def.clave) })
+                                 : lwT('el agente elige la cuenta')) + '</div>'
+      + '<div class="r">' + tags.join('') + '</div>'
+      + '</button>';
+  }).join('');
+}
+
+/* El campo `extra` de una cuenta es JSONB y puede ser dos cosas: un texto suelto
+   o {es,en,id}. No es capricho — la fila «Nota» se imprime en los tres idiomas
+   del contrato, y donde se guardó un texto plano salía en español aunque el
+   documento estuviera en inglés. Aquí se editan los tres huecos por separado en
+   vez de enseñar JSON crudo: quien administra cuentas no tiene por qué saber
+   escribir un objeto, y un JSON mal cerrado se guardaría como texto. */
+function notaDe(extra){
+  if(extra && typeof extra === 'object') return { es: extra.es || '', en: extra.en || '', id: extra.id || '' };
+  const t = (extra == null ? '' : String(extra));
+  return { es: t, en: '', id: '' };
+}
+function notaAJson(n){
+  if(!n.es && !n.en && !n.id) return '';          // sin nota: cadena vacía, la fila no se imprime
+  if(!n.en && !n.id) return n.es;                  // un solo idioma: texto plano, como estaba
+  return { es: n.es, en: n.en || n.es, id: n.id || n.es };
+}
+
+function pintarFicha(){
+  if(MODO === 'contrato') return pintarFichaContrato();
+  return pintarFichaCuenta();
+}
+
+/* LA VISTA QUE PIDIÓ EL OWNER: se abre un contrato y se marcan sus cuentas.
+   El radio de precargada lleva aquí una opción que en la otra vista no cabe —
+   «ninguna» — porque un radio no se desmarca solo, y quitar la precarga sin
+   quitar la cuenta es una cosa que hay que poder hacer. */
+function pintarFichaContrato(){
+  const p = (PLANTILLAS || []).find(x => x.slug === SEL);
+  if(!p){ $('#ficha').innerHTML = '<div class="vacio">' + lwT('Elige un contrato') + '</div>'; return; }
+  if(REPARTO === null){
+    $('#ficha').innerHTML = '<p class="aviso mal">' + lwT('No se ha podido leer el reparto. Recarga la página.') + '</p>';
+    return;
+  }
+  const filas  = REPARTO.filter(r => r.slug === p.slug);
+  const def    = filas.find(r => r.es_default);
+  const ro     = PUEDO_ESCRIBIR ? '' : ' disabled';
+
+  const aviso = PUEDO_ESCRIBIR ? '' :
+    '<p class="aviso">' + lwT('Estás viendo el reparto, no puedes cambiarlo: solo un super admin edita cuentas de cobro. Es el dato que decide adónde transfiere el comprador.') + '</p>';
+  const sinNinguna = filas.length ? '' :
+    '<p class="aviso mal">' + lwT('Este contrato no ofrece NINGUNA cuenta. Quien lo abra se encuentra el desplegable de destino de pago vacío — marca al menos una.') + '</p>';
+
+  // Las desactivadas no se ofrecen para marcar: están fuera de todos los
+  // desplegables por definición. Pero si alguna está marcada en este contrato
+  // (se desactivó después), se enseña y se dice, porque si no desaparece de la
+  // pantalla una fila que sí existe en la base.
+  const candidatas = CUENTAS.filter(c => c.activa || filas.some(r => r.clave === c.clave));
+
+  $('#ficha').innerHTML = aviso + sinNinguna
+    + '<h2 class="t">' + esc(p.nombre) + '</h2>'
+    + '<p class="sub">' + lwT('plantilla %k', { k: esc(p.slug) }) + ' · '
+      + (filas.length ? lwT('%n cuentas ofrecidas', { n: filas.length }) : lwT('sin cuentas'))
+      + (def ? ' · ' + lwT('precargada: %c', { c: etiquetaDe(def.clave) }) : ' · ' + lwT('sin precargada'))
+      + '</p>'
+
+    + '<div class="caja"><h3>' + lwT('Qué cuentas puede elegir el agente en este contrato') + '</h3>'
+      + '<div class="opciones">'
+      + candidatas.map(c => {
+          const marcada = filas.some(r => r.clave === c.clave);
+          const esDef   = !!(def && def.clave === c.clave);
+          const etiqueta = esc(c.label)
+            + (c.es_escrow ? ' <span class="tag t-escrow">' + lwT('Escrow') + '</span>' : '')
+            + (c.activa ? '' : ' <span class="tag t-off">' + lwT('Desactivada') + '</span>');
+          return '<div class="op' + (marcada ? '' : ' apagada') + '">'
+            + '<input type="checkbox" data-clave-op="' + esc(c.clave) + '" data-que="ofrece"' + (marcada ? ' checked' : '') + ro + '>'
+            + '<span class="et" title="' + esc(c.banco || '') + ' · ' + esc(c.cuenta || '') + '">' + etiqueta + '</span>'
+            + '<label class="rad"><input type="radio" name="def_contrato" data-clave-op="' + esc(c.clave) + '" data-que="default"'
+              + (esDef ? ' checked' : '') + (marcada && PUEDO_ESCRIBIR ? '' : ' disabled') + '>'
+              + '<span>' + lwT('precargada') + '</span></label>'
+            + '</div>';
+        }).join('')
+      + '</div>'
+      + '<div class="acciones">'
+        + '<label class="op"><input type="radio" name="def_contrato" data-que="sin_default"' + (def ? '' : ' checked') + ro + '>'
+          + '<span class="et">' + lwT('Ninguna precargada — el agente la elige cada vez') + '</span></label>'
+      + '</div>'
+      + '<p class="nota">'
+        + lwT('«Precargada» viene ya elegida al abrir un contrato nuevo. Sin precargada, el desplegable arranca vacío y el agente tiene que elegir — que es lo correcto salvo que este documento cobre siempre en el mismo sitio.') + '<br>'
+        + lwT('Un contrato YA GUARDADO conserva la cuenta con la que se hizo, aunque aquí la desmarques. No se reescribe nada de lo emitido.')
+      + '</p>'
+    + '</div>';
+
+  if(PUEDO_ESCRIBIR){
+    $('#ficha').querySelectorAll('[data-que]').forEach(el => {
+      el.addEventListener('change', () => cambiarRepartoContrato(el, p.slug));
+    });
+  }
+}
+
+function pintarFichaCuenta(){
+  const c = CUENTAS.find(x => x.clave === SEL);
+  if(!c){ $('#ficha').innerHTML = '<div class="vacio">' + lwT('Elige una cuenta') + '</div>'; return; }
+  const ro = PUEDO_ESCRIBIR ? '' : ' disabled';
+  const nota = notaDe(c.extra);
+
+  const aviso = PUEDO_ESCRIBIR ? '' :
+    '<p class="aviso">' + lwT('Estás viendo el reparto, no puedes cambiarlo: solo un super admin edita cuentas de cobro. Es el dato que decide adónde transfiere el comprador.') + '</p>';
+
+  $('#ficha').innerHTML = aviso
+    + '<h2 class="t">' + esc(c.label) + '</h2>'
+    + '<p class="sub">' + lwT('clave %k', { k: esc(c.clave) })
+      + (c.actualizado_en ? ' · ' + lwT('última edición %f', { f: new Date(c.actualizado_en).toLocaleDateString(lwLocale()) }) : '')
+      + '</p>'
+
+    + '<div class="caja"><h3>' + lwT('Datos de la cuenta') + '</h3>'
+      + '<div class="par">'
+        + campo('label',    lwT('Etiqueta (la que se ve en el desplegable)'), c.label, ro, true)
+        + campo('titular',  lwT('Titular'),  c.titular, ro)
+        + campo('banco',    lwT('Banco'),    c.banco,   ro)
+        + campo('cuenta',   lwT('Número de cuenta'), c.cuenta, ro)
+        + campo('codigo',   lwT('Código Swift / Routing'), c.codigo, ro)
+        + campo('direccion',lwT('Domicilio del banco'), c.direccion, ro, true)
+        + '<div class="f-full"><label class="f">' + lwT('Nota que se imprime en el contrato (opcional)') + '</label>'
+          + '<div class="par">'
+            + '<div><label class="f">ES</label><textarea id="nota_es"' + ro + '>' + esc(nota.es) + '</textarea></div>'
+            + '<div><label class="f">EN</label><textarea id="nota_en"' + ro + '>' + esc(nota.en) + '</textarea></div>'
+            + '<div class="f-full"><label class="f">ID</label><textarea id="nota_id"' + ro + '>' + esc(nota.id) + '</textarea></div>'
+          + '</div>'
+          + '<p class="nota">' + lwT('Si solo rellenas ES, se imprime ese texto en los tres idiomas. En cuanto pongas EN o ID, cada idioma imprime el suyo.') + '</p>'
+        + '</div>'
+      + '</div>'
+      + '<div class="acciones">'
+        + '<label class="op"><input type="checkbox" id="f_escrow"' + (c.es_escrow ? ' checked' : '') + ro + '><span class="et">'
+          + lwT('Es una cuenta ESCROW (depósito en garantía)') + '</span></label>'
+        + '<label class="op"><input type="checkbox" id="f_activa"' + (c.activa ? ' checked' : '') + ro + '><span class="et">'
+          + lwT('Activa') + '</span></label>'
+      + '</div>'
+      + '<p class="nota">' + lwT('ESCROW añade sola al contrato la fila «Naturaleza de la cuenta — depósito en garantía». Márcala solo donde el documento lo pacte de verdad.') + '<br>'
+        + lwT('Desactivar una cuenta la retira de todos los desplegables. Los contratos ya emitidos con ella la conservan impresa; no se borra nunca.') + '</p>'
+      + (PUEDO_ESCRIBIR ? '<div class="acciones"><button class="btn primary" id="btnGuardar">' + lwT('Guardar cambios') + '</button></div>' : '')
+    + '</div>'
+
+    + '<div class="caja"><h3>' + lwT('En qué contratos se ofrece esta cuenta') + '</h3>'
+      + repartoHTML(c) + '</div>';
+
+  if(PUEDO_ESCRIBIR){
+    const g = $('#btnGuardar');
+    if(g) g.addEventListener('click', () => guardarCuenta(c.clave));
+    $('#ficha').querySelectorAll('[data-slug]').forEach(el => {
+      el.addEventListener('change', () => cambiarReparto(el, c.clave));
+    });
+  }
+}
+
+function campo(id, etiqueta, valor, ro, ancho){
+  return '<div' + (ancho ? ' class="f-full"' : '') + '>'
+    + '<label class="f" for="f_' + id + '">' + etiqueta + '</label>'
+    + '<input type="text" id="f_' + id + '" value="' + esc(valor == null ? '' : String(valor)) + '"' + ro + '>'
+    + '</div>';
+}
+
+function repartoHTML(c){
+  if(PLANTILLAS === null || REPARTO === null){
+    return '<p class="aviso mal">' + lwT('No se ha podido leer el reparto por contrato. Recarga la página: lo que se ve arriba es correcto, esto no se sabe.') + '</p>';
+  }
+  if(!PLANTILLAS.length){
+    return '<p class="nota">' + lwT('No hay ningún tipo de contrato que cobre. Nada que repartir.') + '</p>';
+  }
+  const ro = PUEDO_ESCRIBIR ? '' : ' disabled';
+  return PLANTILLAS.map(p => {
+    const filas    = REPARTO.filter(r => r.slug === p.slug);
+    const marcada  = filas.some(r => r.clave === c.clave);
+    const esDef    = filas.some(r => r.clave === c.clave && r.es_default);
+    const otraDef  = filas.find(r => r.es_default && r.clave !== c.clave);
+    const cuantas  = filas.length;
+    // Cuántas cuentas ofrece HOY este contrato, dicho en la propia fila: es lo
+    // que contesta «¿puedo quitar esta sin dejarlo sin ninguna?» sin tener que
+    // abrir las otras catorce fichas.
+    const pista = cuantas === 0
+      ? lwT('ahora mismo no ofrece ninguna cuenta')
+      : (otraDef
+          ? lwT('%n cuentas · precargada: %c', { n: cuantas, c: etiquetaDe(otraDef.clave) })
+          : lwT('%n cuentas · sin precargada', { n: cuantas }));
+    return '<div class="plantilla">'
+      + '<div class="pn">' + esc(p.nombre) + '</div>'
+      + '<div class="pm">' + pista + '</div>'
+      + '<div class="opciones"><div class="op' + (marcada ? '' : ' apagada') + '">'
+        + '<input type="checkbox" data-slug="' + esc(p.slug) + '" data-que="ofrece"' + (marcada ? ' checked' : '') + ro + '>'
+        + '<span class="et">' + lwT('se ofrece en este contrato') + '</span>'
+        + '<label class="rad"><input type="radio" name="def_' + esc(p.slug) + '" data-slug="' + esc(p.slug) + '" data-que="default"'
+          + (esDef ? ' checked' : '') + (marcada && PUEDO_ESCRIBIR ? '' : ' disabled') + '>'
+          + '<span>' + lwT('precargada') + '</span></label>'
+      + '</div></div>'
+      + '</div>';
+  }).join('');
+}
+
+function etiquetaDe(clave){
+  const c = CUENTAS.find(x => x.clave === clave);
+  return esc(c ? c.label : clave);
+}
+
+/* ---------- escribir ---------- */
+
+async function guardarCuenta(clave){
+  const val = id => ($('#f_' + id) || {}).value || '';
+  const nota = { es: ($('#nota_es') || {}).value || '', en: ($('#nota_en') || {}).value || '', id: ($('#nota_id') || {}).value || '' };
+  const label = val('label').trim();
+  // La etiqueta es lo ÚNICO por lo que el agente distingue una cuenta de otra en
+  // el desplegable del contrato. Vacía, el select enseña una opción en blanco y
+  // se elige a ciegas el destino de una transferencia.
+  if(!label){ toast(lwT('La etiqueta no puede quedar vacía: es lo que se lee en el desplegable del contrato.')); return; }
+  const cambios = {
+    label:     label,
+    titular:   val('titular').trim(),
+    banco:     val('banco').trim(),
+    cuenta:    val('cuenta').trim(),
+    codigo:    val('codigo').trim(),
+    direccion: val('direccion').trim(),
+    extra:     notaAJson({ es: nota.es.trim(), en: nota.en.trim(), id: nota.id.trim() }),
+    es_escrow: !!($('#f_escrow') || {}).checked,
+    activa:    !!($('#f_activa') || {}).checked,
+  };
+  // `clave` NO va en el update: va guardada dentro de cada contrato emitido.
+  const { error } = await SB.from('cuentas_bancarias').update(cambios).eq('clave', clave);
+  if(error){ toast(lwT('No se pudo guardar: ') + error.message); return; }
+  toast(lwT('Cuenta guardada'));
+  await cargar();
+}
+
+/* El reparto se guarda al vuelo, casilla a casilla, y no con un botón «guardar»
+   al final: son decisiones sueltas e independientes, y un botón obligaría a
+   recordar qué se tocó para saber qué se está a punto de aplicar.
+   Cada cambio recarga, que es barato y deja la pantalla diciendo exactamente lo
+   que hay en la base — no lo que creemos haber escrito. */
+async function cambiarReparto(el, clave){
+  const slug = el.dataset.slug;
+  const que  = el.dataset.que;
+
+  if(que === 'ofrece'){
+    if(el.checked){
+      const { error } = await SB.from('plantilla_cuentas').insert({ slug: slug, clave: clave });
+      if(error){ toast(lwT('No se pudo añadir: ') + error.message); await cargar(); return; }
+      toast(lwT('Añadida a «%p»', { p: nombreDe(slug) }));
+    } else {
+      // Quitar la que estaba precargada deja al contrato sin precarga, y eso es
+      // lo correcto: precargar una cuenta que ya no se ofrece imprimiría un
+      // destino de pago que el propio desplegable no admite. Se avisa porque el
+      // efecto no está en la casilla que se acaba de tocar.
+      const era = (REPARTO || []).some(r => r.slug === slug && r.clave === clave && r.es_default);
+      const { error } = await SB.from('plantilla_cuentas').delete().eq('slug', slug).eq('clave', clave);
+      if(error){ toast(lwT('No se pudo quitar: ') + error.message); await cargar(); return; }
+      toast(era ? lwT('Quitada de «%p» — ese contrato se queda SIN cuenta precargada', { p: nombreDe(slug) })
+                : lwT('Quitada de «%p»', { p: nombreDe(slug) }));
+    }
+  } else {
+    // Marcar la precargada: el trigger `un_solo_default_por_plantilla` desmarca
+    // sola a la anterior. Por eso aquí no hay dos sentencias en orden — y por
+    // eso la garantía es un trigger y no un índice único parcial, que no sirve
+    // para `on conflict` (error 42P10).
+    const { error } = await SB.from('plantilla_cuentas')
+      .update({ es_default: true }).eq('slug', slug).eq('clave', clave);
+    if(error){ toast(lwT('No se pudo marcar como precargada: ') + error.message); await cargar(); return; }
+    toast(lwT('Precargada en «%p»', { p: nombreDe(slug) }));
+  }
+  await cargar();
+}
+
+/* La misma operación desde la vista por contrato. No comparte función con
+   `cambiarReparto` a propósito: aquí lo fijo es el contrato y lo que varía es la
+   cuenta —al revés— y además existe «ninguna precargada», que en la otra vista
+   no tiene dónde ponerse. Fundirlas pedía un parámetro de "sentido" que habría
+   que leer dos veces cada vez que se toque esto. */
+async function cambiarRepartoContrato(el, slug){
+  const clave = el.dataset.claveOp;
+  const que   = el.dataset.que;
+
+  if(que === 'ofrece'){
+    if(el.checked){
+      const { error } = await SB.from('plantilla_cuentas').insert({ slug: slug, clave: clave });
+      if(error){ toast(lwT('No se pudo añadir: ') + error.message); await cargar(); return; }
+      toast(lwT('%c ya se puede elegir aquí', { c: etiquetaDe(clave) }));
+    } else {
+      const era = (REPARTO || []).some(r => r.slug === slug && r.clave === clave && r.es_default);
+      const quedan = (REPARTO || []).filter(r => r.slug === slug && r.clave !== clave).length;
+      const { error } = await SB.from('plantilla_cuentas').delete().eq('slug', slug).eq('clave', clave);
+      if(error){ toast(lwT('No se pudo quitar: ') + error.message); await cargar(); return; }
+      // Los dos efectos colaterales se dicen, porque ninguno se ve en la casilla
+      // que se acaba de tocar: quedarse sin precarga, y quedarse sin ninguna.
+      toast(!quedan ? lwT('Quitada — este contrato ya NO ofrece ninguna cuenta')
+                    : era ? lwT('Quitada — este contrato se queda SIN cuenta precargada')
+                          : lwT('%c ya no se ofrece aquí', { c: etiquetaDe(clave) }));
+    }
+  } else if(que === 'default'){
+    // El trigger `un_solo_default_por_plantilla` desmarca sola a la anterior.
+    const { error } = await SB.from('plantilla_cuentas')
+      .update({ es_default: true }).eq('slug', slug).eq('clave', clave);
+    if(error){ toast(lwT('No se pudo marcar como precargada: ') + error.message); await cargar(); return; }
+    toast(lwT('Se precargará %c', { c: etiquetaDe(clave) }));
+  } else {
+    // «ninguna precargada»: se desmarcan TODAS las de este contrato. No hay
+    // trigger que lo haga —el trigger solo garantiza que no haya dos— así que
+    // va explícito y acotado al contrato, nunca a la tabla entera.
+    const { error } = await SB.from('plantilla_cuentas')
+      .update({ es_default: false }).eq('slug', slug).eq('es_default', true);
+    if(error){ toast(lwT('No se pudo quitar la precarga: ') + error.message); await cargar(); return; }
+    toast(lwT('Sin cuenta precargada — el agente la elegirá cada vez'));
+  }
+  await cargar();
+}
+
+function nombreDe(slug){
+  const p = (PLANTILLAS || []).find(x => x.slug === slug);
+  return p ? p.nombre : slug;
+}
+
+/* ---------- eventos ---------- */
+$('#qC').addEventListener('input', pintarLista);
+$('#listaC').addEventListener('click', e => {
+  // Dos atributos distintos y no uno solo: en «por contrato» el identificador es
+  // un slug y en «por cuenta» una clave, y las dos son texto. Con un `data-id`
+  // compartido, un fallo de modo elegiría el registro equivocado sin ruido.
+  const b = e.target.closest('[data-clave], [data-slug-sel]'); if(!b) return;
+  SEL = b.dataset.claveOp || b.dataset.clave || b.dataset.slugSel;
+  pintarLista(); pintarFicha(); $('#stage').classList.add('abierta');
+});
+
+function cambiarModo(nuevo){
+  if(MODO === nuevo) return;
+  MODO = nuevo;
+  SEL = null;                       // el identificador no significa lo mismo en los dos modos
+  $('#qC').value = '';
+  $('#modoContrato').classList.toggle('on', nuevo === 'contrato');
+  $('#modoCuenta').classList.toggle('on', nuevo === 'cuenta');
+  $('#qC').placeholder = nuevo === 'contrato' ? lwT('Buscar contrato…') : lwT('Buscar cuenta, banco, titular…');
+  $('#stage').classList.remove('abierta');
+  pintarLista();
+  $('#ficha').innerHTML = '<div class="vacio">'
+    + (nuevo === 'contrato' ? lwT('Elige un contrato') : lwT('Elige una cuenta')) + '</div>';
+}
+$('#modoContrato').addEventListener('click', () => cambiarModo('contrato'));
+$('#modoCuenta').addEventListener('click',   () => cambiarModo('cuenta'));
+
+LW_AUTH.then(async ({ sb, session, ficha }) => {
+  SB = sb;
+  /* La ficha se consulta AQUÍ si el guard no la trae. No es redundancia: el
+     29-jul un guard.js cacheado por el servidor (max-age 7 días) seguía siendo
+     la versión que no devolvía `ficha`, y el panel de usuarios le decía al
+     super_admin que no era administrador. Depender de que un asset compartido
+     esté fresco para decidir un permiso es frágil; preguntarlo cuesta una
+     consulta. */
+  YO = ficha || (await sb.from('usuarios').select('rol, herramientas, activo, nombre')
+                   .eq('user_id', session.user.id).maybeSingle()).data;
+
+  PUEDO_ESCRIBIR = !!YO && YO.rol === 'super_admin';
+
+  // Mirar sí puede cualquiera del equipo que tenga la herramienta: entender por
+  // qué un contrato ofrece las cuentas que ofrece es parte de usar la suite. Lo
+  // que no puede es cambiarlo, y eso lo impide la RLS, no esta pantalla.
+  if(!YO){
+    $('#stage').innerHTML = '<div class="vacio" style="grid-column:1/-1">'
+      + lwT('No se ha podido leer tu ficha de usuario. Recarga la página.') + '</div>';
+    return;
+  }
+  await cargar();
+});
+</script>
+</body>
+</html>

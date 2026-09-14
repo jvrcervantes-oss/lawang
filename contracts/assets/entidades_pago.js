@@ -25,42 +25,49 @@
    vacía para toda la sesión según qué ganara la carrera. */
 const bankOptions = () => Object.entries(CUENTAS_BANCARIAS).map(([v,c])=>[v,c.label])
   .sort((a,b)=>a[1].localeCompare(b[1],'es'));   // orden alfabético por etiqueta
-// Construcción usa SOLO la cuenta de Sandal Woods (Singapur). Las cuentas de
-// notario son de ESCROW: al elegir una, datosBancariosHTML imprime sola la
-// declaración "depósito en garantía", que solo tiene sentido donde el contrato
-// pacta escrow notarial (Reserva de Parcela). Ofrecerlas en los demás invita a
-// mandar el dinero al sitio equivocado con una cláusula que nadie pactó.
-// Construcción cobra por cuatro vías: la cuenta de Sandal Woods (Singapur), la de
-// SAN DAL WOODS en Danamon EUR (23-jul, disponible en todos los contratos) y, para
-// las operaciones de Sumba, el escrow del notario y la cuenta del constructor en
-// euros (añadidas 22-jul a petición del cliente).
-const BANCOS_CONSTRUCCION = ['sandalwoods_dbs_sg', 'sandalwoods_danamon_eur', 'notario_sandy_sumba', 'contractor_sumba_eur'];
-// cc00014_timon (10-sep-2026): mismo contrato de construcción de Timon, reabierto
-// para una segunda unidad (CC00088) — antes traía la cuenta de Sandal Woods
-// Danamon EUR fija en la plantilla (<!--cuenta:sandalwoods_danamon_eur-->), sin
-// selección posible. Empezó con las mismas 4 vías que 'ppjb_construccion', pero
-// el owner pidió también la de PT Tepi Sun Gai (OCBC) — la del Promotor, no la
-// de un constructor — así que lleva SU PROPIA lista y no la comparte con
-// 'ppjb_construccion': si se hubiera añadido a BANCOS_CONSTRUCCION, esa cuenta
-// se habría colado también en todos los demás contratos de construcción, que
-// nunca la pidieron.
-const BANCOS_CC00014_TIMON = [...BANCOS_CONSTRUCCION, 'contractor_tepisungai'];
-/* La Carta de Reserva cobra SIEMPRE en la misma cuenta (owner, 8-sep-2026:
-   «precarga siempre Tepi Sun Gai (OCBC) y quita las demás»). Se filtra aquí y
-   no en la sección del formulario porque este es el único interruptor por
-   plantilla que existe: con dos sitios decidiendo qué cuentas se ofrecen, el
-   día que se añada una cuenta habría que acordarse de los dos.
-   Un contrato YA GUARDADO con otra cuenta no la pierde: `fieldHTML` inyecta el
-   valor guardado como opción extra cuando no está entre las vigentes (ver la
-   nota de `huerfano`, hallazgo Legal del 11-ago-2026). */
-const BANCO_UNICO = { carta_reserva: 'contractor_tepisungai' };
+
+/* QUÉ CUENTAS SE OFRECEN EN ESTA PLANTILLA — lo decide la BASE, no este fichero
+   (14-sep-2026, encargo del owner).
+
+   Aquí vivían CUATRO listas escritas a mano: `BANCOS_CONSTRUCCION` (las cuatro
+   vías del contrato maestro), `BANCOS_CC00014_TIMON` (esas cuatro más la del
+   Promotor, solo para ese contrato), `BANCO_UNICO` (la Carta cobra siempre en
+   Tepi Sun Gai) y, en `app.html`, `CUENTA_DEFAULT`. Cada cuenta nueva del
+   cliente obligaba a decidir en código en cuáles entraba, y cambiar de opinión
+   —que es lo que pidió el owner— costaba un despliegue.
+
+   Ahora lo dice `public.plantilla_cuentas`, que el super admin marca en
+   /intranet/cuentas/. La lista sigue estando en un solo sitio, que era el motivo
+   por el que estas líneas se escribieron juntas aquí: lo que cambia es que ese
+   sitio ya no es código.
+
+   Tres comportamientos que se conservan a propósito:
+   · Una plantilla SIN filas en la tabla no ofrece nada, y quien la abra lo ve
+     dicho (ver `avisoSinCuentas` en app.html). Antes el caso no existía; ahora
+     puede pasar si alguien desmarca todo, y un desplegable vacío sin explicación
+     se interpreta como "se ha roto" y acaba en una cuenta escrita a mano.
+   · Un contrato YA GUARDADO con una cuenta que hoy no se ofrece NO la pierde:
+     `fieldHTML` la inyecta como opción extra (ver la nota de `huerfano`,
+     hallazgo Legal del 11-ago-2026).
+   · Si la tabla no ha cargado todavía, se devuelven TODAS las activas en vez de
+     ninguna. Es la misma carrera que ya obligó a que `bankOptions` fuera función
+     y no constante, y ante la duda es mejor ofrecer de más —el agente elige— que
+     dejarle un selector vacío. */
 function bankOptionsFor(slug){
   const opts = bankOptions();
-  if(BANCO_UNICO[slug]) return opts.filter(o=>o[0]===BANCO_UNICO[slug]);
-  if(slug==='cc00014_timon') return opts.filter(o=>BANCOS_CC00014_TIMON.includes(o[0]));
-  if(slug==='ppjb_construccion') return opts.filter(o=>BANCOS_CONSTRUCCION.includes(o[0]));
-  if(slug==='ppjb_parcela') return opts;
-  return opts.filter(o=>!o[0].startsWith('notario_'));
+  const conf = (typeof PLANTILLA_CUENTAS !== 'undefined') ? PLANTILLA_CUENTAS[slug] : null;
+  if(!conf) return opts;
+  return opts.filter(o => conf.claves.includes(o[0]));
+}
+/* La cuenta precargada de una plantilla, o '' si no tiene ninguna marcada.
+   Sustituye a `CUENTA_DEFAULT` de app.html. Que exista o no es decisión del
+   super admin por plantilla: la Carta de Reserva la lleva desde el 8-sep-2026
+   («precarga siempre Tepi Sun Gai (OCBC) y quita las demás») y las demás no,
+   porque ahí sí sigue valiendo la norma de este fichero — sin selección no se
+   imprime nada, nunca un destino de pago adivinado. */
+function bankDefaultFor(slug){
+  const conf = (typeof PLANTILLA_CUENTAS !== 'undefined') ? PLANTILLA_CUENTAS[slug] : null;
+  return (conf && conf.porDefecto) || '';
 }
 /* ---------- sociedad firmante (Promotor/Constructor): desplegable por contrato ----------
    Las plantillas tokenizadas traen la identidad como {{prom_razon}}, {{prom_marca}}
@@ -156,10 +163,18 @@ function tablaCuentaHTML(key, o){
     ? `<span data-lang="es">${esc(String(v.es||''))}</span><span data-lang="en">${esc(String(v.en||v.es||''))}</span><span data-lang="id">${esc(String(v.id||v.es||''))}</span>`
     : esc(String(v));
   const row=(esL,enL,idL,val)=> !val ? '' : `<tr><td><span data-lang="es">${esL}</span><span data-lang="en">${enL}</span><span data-lang="id">${idL}</span></td><td>${celda(val)}</td></tr>`;
-  // Cuentas de notario (clave notario_*) = depósito en garantía (ESCROW). Se añade
-  // una fila que lo declara. ponytail: título/valor por defecto — el cliente puede
-  // afinar el texto exacto aquí sin tocar nada más.
-  const esNotario = key.startsWith('notario_');
+  // Cuenta de ESCROW = depósito en garantía. Se añade una fila que lo declara.
+  // El título/valor por defecto está aquí: el cliente puede afinar el texto
+  // exacto sin tocar nada más.
+  //
+  // 14-sep-2026: lo dice `c.es_escrow`, una columna de la cuenta, y ya NO
+  // `key.startsWith('notario_')`. El prefijo funcionaba mientras las cuentas
+  // nacían escribiendo SQL a mano; desde que el super admin las crea desde
+  // /intranet/cuentas/ nada obliga a seguir esa convención de nombre, y el
+  // fallo habría sido mudo — la cláusula de garantía sin salir en un contrato
+  // que la pactó, o saliendo en uno que no. La casilla está en el panel, al
+  // lado del número de cuenta.
+  const esNotario = !!c.es_escrow;
   const filaNotario = (esNotario && o.escrow !== false)
     ? row('Naturaleza de la cuenta','Account type','Jenis rekening', {
         es:'Cuenta ESCROW de notario designado — depósito en garantía',

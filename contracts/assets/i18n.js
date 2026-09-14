@@ -2330,6 +2330,101 @@
     'No se pudo calcular lo pendiente por factura: ': 'Could not calculate what is outstanding per invoice: ',
     'No se pudieron leer las firmas: ': 'Could not read the signatures: ',
 
+    /* ---------- /intranet/cuentas/ · cuentas de cobro y su reparto (14-sep-2026) ----------
+       Ojo con el vocabulario bancario, que aquí no es decorativo: «titular» es
+       `account holder` y no `owner`; «precargada» se traduce por `preselected` y
+       no por `default`, porque en la pantalla significa "viene ya elegida al
+       abrir", no "la que se usa si nadie elige"; y ESCROW se queda igual en los
+       dos idiomas — es el término del propio contrato. */
+    'Cuentas de cobro': 'Payment accounts',
+    'Por contrato': 'By contract',
+    'Por cuenta': 'By account',
+    'Buscar contrato…': 'Search contract…',
+    'Buscar cuenta, banco, titular…': 'Search account, bank, holder…',
+    'Elige un contrato': 'Pick a contract',
+    'Elige una cuenta': 'Pick an account',
+    'Datos de la cuenta': 'Account details',
+    'Etiqueta (la que se ve en el desplegable)': 'Label (what shows in the dropdown)',
+    'Titular': 'Account holder',
+    'Banco': 'Bank',
+    'Número de cuenta': 'Account number',
+    'Código Swift / Routing': 'Swift / Routing code',
+    'Domicilio del banco': 'Bank address',
+    'Nota que se imprime en el contrato (opcional)': 'Note printed on the contract (optional)',
+    'Si solo rellenas ES, se imprime ese texto en los tres idiomas. En cuanto pongas EN o ID, cada idioma imprime el suyo.':
+      'If you only fill in ES, that text prints in all three languages. As soon as you add EN or ID, each language prints its own.',
+    'Es una cuenta ESCROW (depósito en garantía)': 'This is an ESCROW account (funds held in escrow)',
+    'Activa': 'Active',
+    'Escrow': 'Escrow',
+    'Desactivada': 'Disabled',
+    'ESCROW añade sola al contrato la fila «Naturaleza de la cuenta — depósito en garantía». Márcala solo donde el documento lo pacte de verdad.':
+      'ESCROW adds the row «Account type — funds held in escrow» to the contract on its own. Tick it only where the document actually agrees to escrow.',
+    'Desactivar una cuenta la retira de todos los desplegables. Los contratos ya emitidos con ella la conservan impresa; no se borra nunca.':
+      'Disabling an account removes it from every dropdown. Contracts already issued with it keep it printed; it is never deleted.',
+    'Cuenta guardada': 'Account saved',
+    'La etiqueta no puede quedar vacía: es lo que se lee en el desplegable del contrato.':
+      'The label cannot be empty: it is what you read in the contract dropdown.',
+    'En qué contratos se ofrece esta cuenta': 'Which contracts offer this account',
+    'Qué cuentas puede elegir el agente en este contrato': 'Which accounts the agent can pick in this contract',
+    'se ofrece en este contrato': 'offered in this contract',
+    'precargada': 'preselected',
+    'Precargada': 'Preselected',
+    'precargada: %c': 'preselected: %c',
+    'sin precargada': 'no preselection',
+    'sin cuentas': 'no accounts',
+    'cobra en %c': 'collects into %c',
+    'el agente elige la cuenta': 'the agent picks the account',
+    'plantilla %k': 'template %k',
+    'clave %k': 'key %k',
+    'última edición %f': 'last edited %f',
+    '%n cuentas': '%n accounts',
+    '%n contratos': '%n contracts',
+    '%n cuentas ofrecidas': '%n accounts offered',
+    '%n cuentas · precargada: %c': '%n accounts · preselected: %c',
+    '%n cuentas · sin precargada': '%n accounts · no preselection',
+    'ahora mismo no ofrece ninguna cuenta': 'right now it offers no account at all',
+    'reparto no disponible': 'allocation unavailable',
+    'Ninguna precargada — el agente la elige cada vez': 'No preselection — the agent picks it every time',
+    '«Precargada» viene ya elegida al abrir un contrato nuevo. Sin precargada, el desplegable arranca vacío y el agente tiene que elegir — que es lo correcto salvo que este documento cobre siempre en el mismo sitio.':
+      '«Preselected» comes already chosen when a new contract is opened. With no preselection the dropdown starts empty and the agent has to choose — which is the right thing unless this document always collects into the same place.',
+    'Un contrato YA GUARDADO conserva la cuenta con la que se hizo, aunque aquí la desmarques. No se reescribe nada de lo emitido.':
+      'A contract ALREADY SAVED keeps the account it was made with, even if you untick it here. Nothing already issued is rewritten.',
+    'Este contrato no ofrece NINGUNA cuenta. Quien lo abra se encuentra el desplegable de destino de pago vacío — marca al menos una.':
+      'This contract offers NO account at all. Whoever opens it finds the payment destination dropdown empty — tick at least one.',
+    'Estás viendo el reparto, no puedes cambiarlo: solo un super admin edita cuentas de cobro. Es el dato que decide adónde transfiere el comprador.':
+      'You are viewing the allocation, not changing it: only a super admin edits payment accounts. This is the data that decides where the buyer transfers to.',
+    'No hay ningún tipo de contrato que cobre. Nada que repartir.': 'There is no contract type that collects payment. Nothing to allocate.',
+    'No se ha podido leer el catálogo de contratos. Recarga la página.': 'The contract catalogue could not be read. Reload the page.',
+    'No se ha podido leer el reparto. Recarga la página.': 'The allocation could not be read. Reload the page.',
+    'No se ha podido leer el reparto por contrato. Recarga la página: lo que se ve arriba es correcto, esto no se sabe.':
+      'The per-contract allocation could not be read. Reload the page: what you see above is correct, this part is unknown.',
+    'No se ha podido leer tu ficha de usuario. Recarga la página.': 'Your user record could not be read. Reload the page.',
+    'Ninguna cuenta con «%q».': 'No account matching «%q».',
+    'Ningún contrato con «%q».': 'No contract matching «%q».',
+    'No se pudo añadir: ': 'Could not add: ',
+    'No se pudo quitar: ': 'Could not remove: ',
+    'No se pudo marcar como precargada: ': 'Could not set as preselected: ',
+    'No se pudo quitar la precarga: ': 'Could not clear the preselection: ',
+    'Añadida a «%p»': 'Added to «%p»',
+    'Quitada de «%p»': 'Removed from «%p»',
+    'Quitada de «%p» — ese contrato se queda SIN cuenta precargada':
+      'Removed from «%p» — that contract is left with NO preselected account',
+    'Precargada en «%p»': 'Preselected in «%p»',
+    '%c ya se puede elegir aquí': '%c can now be picked here',
+    '%c ya no se ofrece aquí': '%c is no longer offered here',
+    'Quitada — este contrato se queda SIN cuenta precargada':
+      'Removed — this contract is left with NO preselected account',
+    'Quitada — este contrato ya NO ofrece ninguna cuenta':
+      'Removed — this contract now offers NO account at all',
+    'Se precargará %c': '%c will be preselected',
+    'Sin cuenta precargada — el agente la elegirá cada vez':
+      'No preselected account — the agent will pick it every time',
+    /* el aviso del generador de contratos cuando una plantilla se queda sin cuentas */
+    'Esta plantilla no tiene ninguna cuenta de cobro habilitada. Un super admin las marca en Cuentas bancarias (Intranet).':
+      'This template has no payment account enabled. A super admin ticks them in Bank accounts (Intranet).',
+    'No se ha podido cargar qué cuentas corresponden a cada plantilla: ':
+      'Could not load which accounts belong to each template: ',
+
   };
 
   window.LW_EN = EN;

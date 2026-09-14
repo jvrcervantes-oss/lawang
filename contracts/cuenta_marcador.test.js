@@ -44,12 +44,25 @@ assert.ok(desde > 0, 'tablaCuentaHTML ya no está en app.html: este test quedó 
 const hasta = app.indexOf('\nfunction datosBancariosHTML', desde);
 assert.ok(hasta > desde, 'no se encuentra el final de tablaCuentaHTML');
 
+/* `es_escrow` es una COLUMNA de la cuenta desde el 14-sep-2026, y ya no se
+   deduce del prefijo `notario_` de la clave. El prefijo valía mientras las
+   cuentas nacían escribiendo SQL a mano; desde que el super admin las crea en
+   /intranet/cuentas/ nada obliga a seguir esa convención de nombre, y el fallo
+   habría sido mudo — la declaración de depósito en garantía sin salir en un
+   contrato que la pactó, o saliendo en uno que no.
+   Por eso `escrow_sin_prefijo` está en este fixture: es el caso que el código
+   viejo NO sabía ver, y es el que fija que ahora manda el dato y no el nombre. */
 const CUENTAS_BANCARIAS = {
   notario_prueba: { label: 'Notario de prueba', titular: 'Un Notario', banco: 'Banco N',
-    cuenta: '111122223333', codigo: 'NNNNIDJA', direccion: 'Calle N 1', extra: '' },
+    cuenta: '111122223333', codigo: 'NNNNIDJA', direccion: 'Calle N 1', extra: '',
+    es_escrow: true },
+  escrow_sin_prefijo: { label: 'Escrow que no se llama notario', titular: 'Otro Notario',
+    banco: 'Banco X', cuenta: '777788889999', codigo: 'XXXXIDJA', direccion: 'Calle X 3',
+    extra: '', es_escrow: true },
   empresa_prueba: { label: 'Empresa de prueba', titular: 'PT EMPRESA', banco: 'Banco E',
     cuenta: '444455556666', codigo: 'EEEEIDJA', direccion: 'Calle E 2',
-    extra: { es: 'Código de banco: 001', en: 'Bank code: 001', id: 'Kode bank: 001' } },
+    extra: { es: 'Código de banco: 001', en: 'Bank code: 001', id: 'Kode bank: 001' },
+    es_escrow: false },
 };
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -84,6 +97,18 @@ assert.strictEqual(pinta('<!--cuenta:no_existe-->'), '',
 const conTodo = tablaCuentaHTML('notario_prueba', {});
 assert.ok(conTodo.includes('<h2'), 'la cuenta ELEGIDA en el contrato sí lleva su cabecera');
 assert.ok(/ESCROW/i.test(conTodo), 'la cuenta ELEGIDA de un notario sí declara el escrow');
+
+/* ---- 5.bis. el escrow lo dice el DATO, no el nombre de la clave (14-sep-2026) ----
+   Las dos mitades importan y por eso van las dos: una cuenta de garantía que NO
+   se llama `notario_*` tiene que declarar el escrow igual, y una que no lo es no
+   puede declararlo por accidente. Ese segundo caso es el caro: mete en un
+   contrato una cláusula de depósito en garantía que nadie pactó. */
+const escrowRaro = tablaCuentaHTML('escrow_sin_prefijo', {});
+assert.ok(/ESCROW/i.test(escrowRaro),
+  'una cuenta con es_escrow=true declara el escrow aunque su clave no empiece por notario_');
+const noEscrow = tablaCuentaHTML('empresa_prueba', {});
+assert.ok(!/ESCROW/i.test(noEscrow),
+  'una cuenta con es_escrow=false NUNCA declara escrow: sería una cláusula que el contrato no pactó');
 
 /* ---- 6. las claves que usan las plantillas de verdad existen ---- */
 const entities = fs.readFileSync(path.join(AQUI, 'assets', 'entities.js'), 'utf8');
