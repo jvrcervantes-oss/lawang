@@ -1055,6 +1055,18 @@
     'Ya hay otra ficha DEL MISMO TIPO con ese correo. Una persona y su empresa sí pueden compartirlo, pero dos personas (o dos empresas) no. Ojo: esa otra ficha puede ser de un compañero y no aparecerte en la lista — si es la misma persona, pide que te la traspasen en vez de crearla otra vez; si es una familia que comparte buzón, deja el correo en una sola e identifica a las demás por su pasaporte.':
       'Another record OF THE SAME TYPE already uses that email. A person and their company may share one, but two people (or two companies) may not. Careful: that other record may belong to a colleague and not show up in your list — if it is the same person, ask for it to be transferred to you instead of creating it again; if it is a family sharing one mailbox, keep the email on a single record and identify the others by passport.',
     'Ese dato ya está en otra ficha: ': 'That value is already on another record: ',
+    /* Directorio de compradores + el autor corrige lo suyo (14-sep-2026). */
+    'No se pudo leer el directorio de compradores: ': 'Could not read the buyer directory: ',
+    'de otro': 'someone else’s',
+    'De otro compañero: solo consulta': 'A colleague’s record: read-only',
+    'Esta ficha la dio de alta ': 'This record was created by ',
+    'nadie (ficha antigua sin autor)': 'nobody (old record with no author)',
+    ', así que aquí solo ves quién es. No crees una segunda: para trabajar con ella pide que te la traspasen, o ponla en tu contrato por su pasaporte — el generador la encuentra igual.':
+      ', so here you only see who they are. Do not create a second one: to work with it ask for it to be transferred to you, or put it on your contract by passport — the generator finds it anyway.',
+    'Esta ficha cuelga de un contrato ya FIRMADO: su pasaporte y su domicilio están impresos dentro de ese documento, así que no se cambian desde aquí. Si hay un error real en el documento, es cosa de un administrador.':
+      'This record hangs off an already SIGNED contract: its passport and address are printed inside that document, so they are not changed from here. If there is a real error in the document, that is for an administrator.',
+    'No se ha guardado: la base no te deja editar esta ficha. Suele ser porque no la diste de alta tú, o porque ya cuelga de un contrato firmado. Habla con un administrador — recargar no lo arregla.':
+      'Not saved: the database will not let you edit this record. Usually because you did not create it, or because it already hangs off a signed contract. Talk to an administrator — reloading will not fix it.',
     'Crear comprador': 'Create buyer',
     'Guardando…': 'Saving…',
     'Subiendo…': 'Uploading…',
@@ -2424,6 +2436,24 @@
       'This template has no payment account enabled. A super admin ticks them in Bank accounts (Intranet).',
     'No se ha podido cargar qué cuentas corresponden a cada plantilla: ':
       'Could not load which accounts belong to each template: ',
+    /* alta de una cuenta nueva */
+    'Nueva cuenta': 'New account',
+    'Nueva cuenta de cobro': 'New payment account',
+    'Nace desactivada y sin ningún contrato asignado. Se comprueba el número y luego se activa.':
+      'It starts disabled and with no contract assigned. Check the number first, then enable it.',
+    'Clave interna (no se puede cambiar después)': 'Internal key (cannot be changed later)',
+    'Crear cuenta': 'Create account',
+    'Cuenta creada, desactivada. Comprueba los datos y actívala.':
+      'Account created, disabled. Check the details and enable it.',
+    'La clave va en minúsculas, números y guión bajo, mínimo 3 caracteres. Sin espacios ni acentos.':
+      'The key must be lowercase letters, numbers and underscores, at least 3 characters. No spaces or accents.',
+    'La clave va en minúsculas, sin espacios ni acentos (por ejemplo «notario_ayu_bali»). Queda dentro de cada contrato y cada factura que se emitan con esta cuenta, así que no se renombra nunca.':
+      'The key is lowercase, with no spaces or accents (for example «notario_ayu_bali»). It is stored inside every contract and every invoice issued with this account, so it is never renamed.',
+    'Titular, banco y número son lo que el comprador va a leer en su contrato. Cópialos del justificante del banco, no de memoria.':
+      'Holder, bank and number are what the buyer will read on their contract. Copy them from the bank statement, not from memory.',
+    'Hacen falta al menos el titular y el número de cuenta: son lo que el comprador usa para transferir.':
+      'At least the account holder and the account number are required: they are what the buyer uses to transfer.',
+    'Ya existe una cuenta con la clave «%k».': 'An account with key «%k» already exists.',
 
   };
 

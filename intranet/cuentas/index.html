@@ -17,11 +17,11 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que `lwT`
      exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=3ce105d2"></script>
+<script src="/contracts/assets/i18n.js?v=d5c0af68"></script>
 <script src="/contracts/assets/herramientas.js?v=c95fc709"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="/contracts/assets/guard.js?v=d126c94d" data-herramienta="cuentas"></script>
+<script src="/contracts/assets/guard.js?v=d6d6608e" data-herramienta="cuentas"></script>
 <style>
   :root{ --line:#E4DCCB; --card:#FFFFFF; --rl2:#F1EBDD; --texto-2:#4A5052; --tbh:64px; }
   *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }
@@ -102,7 +102,15 @@
 </style>
 </head>
 <body>
-  <header class="lw-topbar"></header>
+  <header class="lw-topbar" data-titulo="Cuentas bancarias">
+    <div class="lw-spacer"></div>
+    <!-- ACCION PRINCIPAL: ultima de la barra. La convencion, con su porque,
+         esta en assets/topbar.css junto a `.lw-btn.primary`.
+         Solo la ve el super admin: la RLS de `cuentas_bancarias` exige
+         es_super_admin() para el INSERT, asi que a cualquier otro este boton le
+         daria un error al guardar en vez de un no. -->
+    <button type="button" class="lw-btn primary" id="btnNueva" hidden><i class="ph ph-plus"></i>Nueva cuenta</button>
+  </header>
 
   <div class="stage" id="stage">
     <div class="lista">
@@ -481,6 +489,105 @@ function etiquetaDe(clave){
   return esc(c ? c.label : clave);
 }
 
+/* ---------- alta de una cuenta nueva ----------
+   Se pinta en la ficha, igual que el «Nuevo usuario» de /intranet/usuarios/.
+
+   LA `clave` SE PIDE AQUÍ Y NO SE PUEDE CAMBIAR DESPUÉS, y hay que decirlo en la
+   propia pantalla: es el identificador que se guarda dentro de cada contrato y
+   cada factura emitidos con esta cuenta (`datos.fields.cuenta_bancaria`).
+   Renombrarla más tarde dejaría documentos firmados apuntando a algo que no
+   existe — el mismo motivo por el que `tepi_sungai` no se renombra en
+   entities.js. Se valida su forma aquí porque un espacio o una mayúscula dentro
+   convierten la clave en algo que no se puede escribir en una URL ni comparar a
+   ojo entre dos pantallas.
+
+   Nace DESACTIVADA y sin ninguna plantilla marcada, a propósito: una cuenta
+   recién creada no puede aparecer en el desplegable de un contrato antes de que
+   alguien haya comprobado el número. Se activa y se reparte después, con los
+   datos delante. */
+function nuevaCuenta(){
+  SEL = null; pintarLista();
+  $('#stage').classList.add('abierta');
+  $('#ficha').innerHTML =
+      '<h2 class="t">' + lwT('Nueva cuenta de cobro') + '</h2>'
+    + '<p class="sub">' + lwT('Nace desactivada y sin ningún contrato asignado. Se comprueba el número y luego se activa.') + '</p>'
+    + '<div class="caja"><h3>' + lwT('Datos de la cuenta') + '</h3>'
+      + '<div class="par">'
+        + campo('nClave',    lwT('Clave interna (no se puede cambiar después)'), '', '', true)
+        + campo('nLabel',    lwT('Etiqueta (la que se ve en el desplegable)'), '', '', true)
+        + campo('nTitular',  lwT('Titular'), '', '')
+        + campo('nBanco',    lwT('Banco'), '', '')
+        + campo('nCuenta',   lwT('Número de cuenta'), '', '')
+        + campo('nCodigo',   lwT('Código Swift / Routing'), '', '')
+        + campo('nDireccion',lwT('Domicilio del banco'), '', '', true)
+      + '</div>'
+      + '<div class="acciones">'
+        + '<label class="op"><input type="checkbox" id="nEscrow"><span class="et">'
+          + lwT('Es una cuenta ESCROW (depósito en garantía)') + '</span></label>'
+      + '</div>'
+      + '<p class="nota">'
+        + lwT('La clave va en minúsculas, sin espacios ni acentos (por ejemplo «notario_ayu_bali»). Queda dentro de cada contrato y cada factura que se emitan con esta cuenta, así que no se renombra nunca.') + '<br>'
+        + lwT('Titular, banco y número son lo que el comprador va a leer en su contrato. Cópialos del justificante del banco, no de memoria.')
+      + '</p>'
+      + '<div class="acciones">'
+        + '<button class="btn primary" id="btnCrear">' + lwT('Crear cuenta') + '</button>'
+        + '<button class="btn" id="btnCancelarNueva">' + lwT('Cancelar') + '</button>'
+      + '</div>'
+    + '</div>';
+  $('#btnCrear').addEventListener('click', crearCuenta);
+  $('#btnCancelarNueva').addEventListener('click', () => {
+    $('#ficha').innerHTML = '<div class="vacio">'
+      + (MODO === 'contrato' ? lwT('Elige un contrato') : lwT('Elige una cuenta')) + '</div>';
+  });
+}
+
+async function crearCuenta(){
+  // `campo()` prefija los ids con `f_` (los comparte con la ficha de edición),
+  // así que aquí se leen con el mismo prefijo y no por el nombre a secas.
+  const val = id => (($('#f_' + id) || {}).value || '').trim();
+  const clave = val('nClave').toLowerCase();
+  const label = val('nLabel');
+  // Los tres campos que la tabla exige NOT NULL y que además no tienen un valor
+  // razonable por defecto. Se comprueban aquí para dar un mensaje que diga QUÉ
+  // falta, en vez del error de Postgres.
+  if(!/^[a-z0-9_]{3,}$/.test(clave)){
+    toast(lwT('La clave va en minúsculas, números y guión bajo, mínimo 3 caracteres. Sin espacios ni acentos.')); return;
+  }
+  if(CUENTAS.some(c => c.clave === clave)){
+    toast(lwT('Ya existe una cuenta con la clave «%k».', { k: clave })); return;
+  }
+  if(!label){ toast(lwT('La etiqueta no puede quedar vacía: es lo que se lee en el desplegable del contrato.')); return; }
+  if(!val('nTitular') || !val('nCuenta')){
+    toast(lwT('Hacen falta al menos el titular y el número de cuenta: son lo que el comprador usa para transferir.')); return;
+  }
+  const fila = {
+    clave: clave, label: label,
+    titular: val('nTitular'), banco: val('nBanco'), cuenta: val('nCuenta'),
+    codigo: val('nCodigo'), direccion: val('nDireccion'),
+    extra: '',
+    es_escrow: !!($('#nEscrow') || {}).checked,
+    // desactivada de salida: no entra en ningún desplegable hasta que alguien
+    // haya mirado el número con el justificante delante
+    activa: false,
+    // al final de la lista; `orden` gobierna esta pantalla, no el desplegable del
+    // contrato (que va alfabético por etiqueta)
+    orden: Math.max(0, ...CUENTAS.map(c => c.orden || 0)) + 10,
+  };
+  /* `.select()` detrás del insert a propósito, y conviene saber por qué no
+     muerde aquí: la policy de SELECT de `cuentas_bancarias` es para cualquier
+     sesión, así que leer la fila recién creada está permitido. Donde SELECT es
+     más estrecho que INSERT, esto haría fallar el alta con un error que culpa a
+     la escritura. */
+  const { error } = await SB.from('cuentas_bancarias').insert(fila).select('clave').single();
+  if(error){ toast(lwT('No se pudo crear: ') + error.message); return; }
+  toast(lwT('Cuenta creada, desactivada. Comprueba los datos y actívala.'));
+  await cargar();
+  // se abre su ficha en la vista por cuenta: es donde se activa y se revisa
+  MODO = 'cuenta';
+  $('#modoContrato').classList.remove('on'); $('#modoCuenta').classList.add('on');
+  SEL = clave; pintarLista(); pintarFicha();
+}
+
 /* ---------- escribir ---------- */
 
 async function guardarCuenta(clave){
@@ -621,6 +728,7 @@ function cambiarModo(nuevo){
 }
 $('#modoContrato').addEventListener('click', () => cambiarModo('contrato'));
 $('#modoCuenta').addEventListener('click',   () => cambiarModo('cuenta'));
+$('#btnNueva').addEventListener('click', nuevaCuenta);
 
 LW_AUTH.then(async ({ sb, session, ficha }) => {
   SB = sb;
@@ -634,6 +742,10 @@ LW_AUTH.then(async ({ sb, session, ficha }) => {
                    .eq('user_id', session.user.id).maybeSingle()).data;
 
   PUEDO_ESCRIBIR = !!YO && YO.rol === 'super_admin';
+  // El botón de alta sale del HTML con `hidden`: se enseña solo a quien puede
+  // usarlo. Un botón que existe y da error al guardar es peor que uno que no
+  // está, porque el error llega después de teclear los ocho campos.
+  $('#btnNueva').hidden = !PUEDO_ESCRIBIR;
 
   // Mirar sí puede cualquiera del equipo que tenga la herramienta: entender por
   // qué un contrato ofrece las cuentas que ofrece es parte de usar la suite. Lo
