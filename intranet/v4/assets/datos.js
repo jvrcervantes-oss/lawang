@@ -155,8 +155,76 @@
     })(j);
   }
 
+  /* ══════════════ velo de carga (14-sep-2026, encargo del owner) ══════════════
+     Cada pantalla de la v4 nace con todos sus numeros en «—» y los rellena este
+     fichero cuando vuelven las consultas. Ese segundo y medio de rejilla de
+     guiones NO se lee como «cargando»: se lee como «no hay datos», que es
+     justo lo contrario de lo que pasa. El velo tapa el contenido hasta que no
+     queda ninguna consulta en vuelo.
+
+     COMO SABE QUE HA TERMINADO. No preguntando a cada handler —son dieciocho y
+     habria que tocarlos todos, y el diecinueve naceria sin avisar— sino
+     contando las consultas en vuelo por el unico sitio por donde pasan todas.
+     `vig()` es ese sitio; `q()` y `cnt()` lo usan, y las cuatro llamadas que
+     tenian su propio `.then` se envuelven sin tocarles una coma.
+
+     LO QUE NO PUEDE PASAR, y como se evita cada cosa:
+     · Una consulta que FALLA no puede dejar el velo puesto — por eso `sale()`
+       es lo primero de las DOS ramas, la de exito y la de rechazo.
+     · Si el JS muere entre el velo y el destape, un `setTimeout` suyo moriria
+       con el y la pantalla quedaria tapada para siempre. Por eso el destape de
+       emergencia es CSS (`animation: lw-rendirse`, en shell.css): sobrevive a
+       un JS muerto porque no depende de el.
+     · Una pantalla SIN handler (la puerta de `entrar/`) no se tapa: el velo
+       solo se pone si `REG[seg]` existe.
+     · El contador puede tocar 0 entre dos tandas —una consulta que dispara
+       otra dentro de su `.then` baja el contador antes de que la siguiente lo
+       suba—, asi que el destape se confirma en el tick siguiente. */
+  var enVuelo = 0, veloEl = null, veloMuerto = false;
+
+  function ponVelo() {
+    if (veloEl || veloMuerto) return;
+    veloEl = document.createElement('div');
+    veloEl.id = 'lw-cargando';
+    veloEl.setAttribute('role', 'status');
+    veloEl.setAttribute('aria-live', 'polite');
+    veloEl.innerHTML =
+      '<p class="lw-c-marca">LAWANG</p>' +
+      '<div class="lw-c-frases">' +
+        '<p class="lw-c-dice">Trayendo los datos de la pantalla</p>' +
+        '<p class="lw-c-tarda">Sigue viniendo — la consulta esta tardando mas de lo normal</p>' +
+      '</div>' +
+      '<div class="lw-c-barra"><i></i></div>';
+    document.body.appendChild(veloEl);
+    var m = document.querySelector('main');
+    if (m) m.setAttribute('aria-busy', 'true');
+  }
+
+  function quitaVelo() {
+    veloMuerto = true;                      // que una consulta tardia no lo reponga
+    var m = document.querySelector('main');
+    if (m) m.removeAttribute('aria-busy');
+    if (!veloEl) return;
+    veloEl.classList.add('lw-c-fuera');     // 180 ms de fundido, y fuera
+    var el = veloEl; veloEl = null;
+    setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 260);
+  }
+
+  /* Cuenta una consulta. Devuelve la MISMA promesa: quien la llama sigue
+     encadenando su `.then` exactamente igual que antes. */
+  function vig(p) {
+    enVuelo++;
+    var baja = function () {
+      enVuelo--;
+      if (enVuelo > 0) return;
+      setTimeout(function () { if (enVuelo === 0) quitaVelo(); }, 80);
+    };
+    p.then(baja, baja);
+    return p;
+  }
+
   function q(p, nombre, cont) {
-    return p.then(function (r) {
+    return vig(p).then(function (r) {
       if (r.error) { fallo(nombre, r.error, cont); return null; }
       return r.data || [];
     }, function (e) { fallo(nombre, e, cont); return null; });
@@ -164,7 +232,10 @@
   function cnt(sb, tabla, mod, cols) {
     var qq = sb.from(tabla).select(cols || '*', { count: 'exact', head: true });
     if (mod) qq = mod(qq);
-    return qq.then(function (r) { return r.error ? (fallo('count ' + tabla, r.error), null) : (r.count || 0); });
+    /* La rama de rechazo no existia: un fallo de red aqui no daba `r.error`,
+       lanzaba — y sin ella el contador del velo no bajaria nunca. */
+    return vig(qq).then(function (r) { return r.error ? (fallo('count ' + tabla, r.error), null) : (r.count || 0); },
+                        function (e) { fallo('count ' + tabla, e); return null; });
   }
 
   var mesIni = new Date(); mesIni.setDate(1); mesIni.setHours(0, 0, 0, 0);
@@ -403,7 +474,7 @@
         q(sb.from('clients').select('id,full_name,email,phone,nationality,tipo,kyc_status,created_at').order('created_at', { ascending: false }).limit(500), 'compradores', t),
         q(sb.rpc('contratos_equipo').select('id,tipo,precio_total,moneda,bloqueado'), 'contratos'),
         q(sb.from('contrato_compradores').select('contrato_id,client_id'), 'vinculos'),
-        sb.rpc('contratos_cobrado_equipo').then(function (r) { return r.error ? (fallo('cobrado', r.error), null) : (r.data || []); }),
+        vig(sb.rpc('contratos_cobrado_equipo')).then(function (r) { return r.error ? (fallo('cobrado', r.error), null) : (r.data || []); }),
         q(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado').eq('estado', 'pendiente'), 'firmas'),
         q(sb.from('documentos_desactualizados').select('congelado,diferencias').limit(1000), 'ficha≠')
       ]).then(function (r) {
@@ -482,7 +553,7 @@
       var t = tablaPor([/OPERACI|CONTRATO/, /COMPRADOR/, /IMPORTE|ESTADO/]);
       Promise.all([
         q(sb.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,bloqueado,contrato_padre_id,created_at'), 'operaciones', t),
-        sb.rpc('contratos_cobrado_equipo').then(function (r) { return r.error ? (fallo('cobrado', r.error), null) : (r.data || []); }),
+        vig(sb.rpc('contratos_cobrado_equipo')).then(function (r) { return r.error ? (fallo('cobrado', r.error), null) : (r.data || []); }),
         q(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado').eq('estado', 'pendiente'), 'firmas pendientes')
       ]).then(function (r) {
         var cs = r[0], cob = r[1] || [], fi = r[2] || [];
@@ -582,7 +653,7 @@
       var hoy = new Date().toISOString().slice(0, 10);
       Promise.all([
         q(sb.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,bloqueado,contrato_padre_id,created_at').limit(1000), 'contratos'),
-        sb.rpc('contratos_cobrado_equipo').then(function (r) { if (r.error) { fallo('cobrado', r.error); return null; } return r.data || []; }),
+        vig(sb.rpc('contratos_cobrado_equipo')).then(function (r) { if (r.error) { fallo('cobrado', r.error); return null; } return r.data || []; }),
         q(sb.from('contrato_vencimientos').select('id,contrato_id,orden,descripcion,pct,monto,fecha,ajustado,nota,factura_id,no_facturar').limit(3000), 'vencimientos')
       ]).then(function (r) {
         var cs = r[0], cb = r[1], vs = r[2];
@@ -1227,7 +1298,7 @@
            este fichero — nunca `.from('contratos')` a pelo, por el mismo
            motivo que `facturas_equipo` de arriba: RLS por agente. */
         q(sb.rpc('contratos_equipo').select('id,tipo,precio_total,moneda,bloqueado,proyecto_nombre,contrato_padre_id'), 'contratos (familia)'),
-        sb.rpc('contratos_cobrado_equipo').then(function (r2) { return r2.error ? (fallo('cobrado por contrato', r2.error), []) : (r2.data || []); }),
+        vig(sb.rpc('contratos_cobrado_equipo')).then(function (r2) { return r2.error ? (fallo('cobrado por contrato', r2.error), []) : (r2.data || []); }),
         /* Foto de portada de cada proyecto (11-sep-2026): la más reciente de
            categoria='portada' por proyecto. Es documentos_proyecto + el bucket
            'documentacion' de siempre (Regla 0 — nunca una tabla/bucket nuevo
@@ -1842,113 +1913,11 @@
 
   function diasDesde(x) { return x ? Math.floor((Date.now() - new Date(x).getTime()) / 86400000) : null; }
 
-  /* ---------- CRM de leads ---------- */
-  REG.leads = function (sb) {
-    var DIAS_VIEJO = 14;                       // el mismo umbral que leads.js
-    var COLS = ['nuevo', 'contactado', 'visita', 'reserva', 'contrato', 'perdido'];
-    var kanban = document.getElementById('lw-kanban');
-
-    q(sb.rpc('crm_leads'), 'leads del CRM', kanban).then(function (ls) {
-      if (!ls) return;
-      var porCol = {};
-      COLS.forEach(function (c) { porCol[c] = []; });
-      var otros = 0;
-      ls.forEach(function (l) {
-        var e = l.estado || 'nuevo';          // sin estado = nuevo, como leads.js
-        if (porCol[e]) porCol[e].push(l); else otros++;
-      });
-
-      var sin = porCol.nuevo.length;
-      var parados = porCol.nuevo.filter(function (l) { return diasDesde(l.estado_desde) >= DIAS_VIEJO; }).length;
-      var cerrados = porCol.reserva.length + porCol.contrato.length;
-      /* Un decimal, como el CRM vivo. Sin leads no es 0%: es que no hay con que
-         calcularlo, y una conversion del 0% dice algo que no ha pasado. */
-      var conv = ls.length ? (Math.round(cerrados / ls.length * 1000) / 10) + '%' : '—';
-
-      pon2('k-leads', String(ls.length));
-      pon2('k-leads-pie', otros ? 'todos los canales · ' + otros + ' en un estado que esta pantalla no dibuja' : 'todos los canales');
-      pon2('k-sincontactar', String(sin));
-      pon2('k-sincontactar-pie', parados + ' llevan mas de ' + DIAS_VIEJO + ' dias parados');
-      pon2('k-cerrados', String(cerrados));
-      pon2('k-cerrados-pie', 'de ' + ls.length + ' leads');
-      pon2('k-conversion', conv);
-      pon2('k-conversion-pie', ls.length ? 'llegan a firmar' : 'sin leads que medir');
-
-      /* Los chips por canal se siembran de los `source` que HAY. La primera
-         version los escribio a mano —«Meta» y «Web»— y los dos salieron a 0 al
-         lado de 119 leads: los canales reales son `meta-sumbahills`,
-         `sumba-hills-qr`, `meta-lawang-bali`… Una lista de valores escrita a
-         mano dentro de la pantalla ES el bug, no la causa del bug, y el
-         sintoma es justo este: cero donde hay datos, sin que nada proteste. */
-      var porCanal = {};
-      ls.forEach(function (l) { var k = l.source || 'sin origen'; porCanal[k] = (porCanal[k] || 0) + 1; });
-      var canales = Object.keys(porCanal).sort(function (a, b) { return porCanal[b] - porCanal[a]; });
-      var TONOS = ['bg-deep-lagoon', 'bg-territorial-green', 'bg-burnt-earth', 'bg-secondary', 'bg-stone-sand'];
-      var parados = ls.filter(function (l) { return diasDesde(l.estado_desde) >= DIAS_VIEJO; }).length;
-
-      var chips = document.getElementById('lw-chips');
-      if (chips) {
-        var CLS_ON = 'px-4 py-2 rounded-full bg-primary-container text-on-primary font-label-md text-[13px] font-medium shrink-0 flex items-center gap-1.5 transition-colors';
-        var CLS_OFF = 'px-4 py-2 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container font-label-md text-[13px] font-medium shrink-0 flex items-center gap-1.5 transition-colors';
-        var html = '<button type="button" class="' + CLS_ON + '"><span>Todos los canales</span>' +
-                   '<span class="text-on-primary/70">' + ls.length + '</span></button>';
-        canales.forEach(function (k, i) {
-          html += '<button type="button" class="' + CLS_OFF + '">' +
-                  '<span class="w-2 h-2 rounded-full ' + TONOS[i % TONOS.length] + '"></span>' +
-                  '<span>' + esc(k) + '</span><span class="text-outline">' + porCanal[k] + '</span></button>';
-        });
-        html += '<button type="button" class="' + CLS_OFF + '">' +
-                '<span class="w-2 h-2 rounded-full bg-error"></span>' +
-                '<span>Parados +' + DIAS_VIEJO + ' d</span><span class="text-outline">' + parados + '</span></button>';
-        chips.innerHTML = html;
-      }
-
-      COLS.forEach(function (c) {
-        pon2('col-' + c, String(porCol[c].length));
-        var caja = document.querySelector('[data-col-cards="' + c + '"]');
-        if (!caja) return;
-        if (!porCol[c].length) {
-          caja.innerHTML = '<p style="font:400 12px \'Neue Kabel\',sans-serif;color:#8A8474;margin:0">Ninguno aqui.</p>';
-          return;
-        }
-        caja.innerHTML = porCol[c].slice(0, 4).map(function (l) {
-          var d = diasDesde(l.estado_desde);
-          var viejo = d !== null && d >= DIAS_VIEJO;
-          return '<div style="padding:9px 11px;background:#fbf9f4;border:1px solid ' +
-            (viejo ? '#ba1a1a' : '#e4e2dd') + ';border-radius:9px;font-family:\'Neue Kabel\',sans-serif">' +
-            '<div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' +
-            esc(l.name || 'sin nombre') + '</div>' +
-            '<div style="font-size:11px;color:' + (viejo ? '#93000a' : '#8A8474') + '">' +
-            esc(l.source || 'sin origen') + (d === null ? '' : ' · ' + d + ' d') + '</div></div>';
-        }).join('') + (porCol[c].length > 4
-          ? '<p style="font:600 11px \'Neue Kabel\',sans-serif;color:#8A8474;margin:2px 0 0">y ' +
-            (porCol[c].length - 4) + ' mas</p>' : '');
-      });
-    });
-
-    var cajaCamp = document.getElementById('lw-campanas');
-    q(sb.rpc('crm_campanas'), 'campanas del CRM', cajaCamp).then(function (cs) {
-      if (!cs || !cajaCamp) return;
-      if (!cs.length) { cajaCamp.innerHTML = '<p style="font:400 13px \'Neue Kabel\',sans-serif;color:#44483f;margin:0">Ninguna campana registrada.</p>'; return; }
-      cajaCamp.innerHTML = cs.slice(0, 8).map(function (c) {
-        var cpl = Number(c.leads) ? fmt(Math.round(Number(c.gasto || 0) / Number(c.leads)), c.moneda || 'EUR') : '—';
-        return itemPanel(esc(c.nombre || c.cliente || '—'),
-                         esc(fmt(c.gasto, c.moneda || 'EUR')) + ' · ' + esc(cpl) + '/lead',
-                         (c.leads == null ? '—' : c.leads) + ' leads');
-      }).join('');
-    });
-
-    var cajaCl = document.getElementById('lw-closers');
-    q(sb.rpc('crm_ranking_closers', { p_solo_raices: true }), 'ranking de closers', cajaCl).then(function (rs) {
-      if (!rs || !cajaCl) return;
-      if (!rs.length) { cajaCl.innerHTML = '<p style="font:400 13px \'Neue Kabel\',sans-serif;color:#44483f;margin:0">Nadie tiene ventas atribuidas todavia.</p>'; return; }
-      cajaCl.innerHTML = rs.slice(0, 8).map(function (r) {
-        return itemPanel(esc(r.closer_nombre || r.closer_email || '—'),
-                         (r.contratos || 0) + ' contratos · firmado ' + esc(fmt(r.firmado, 'EUR')),
-                         esc(fmt(r.cobrado, 'EUR')));
-      }).join('');
-    });
-  };
+  /* El CRM ya no tiene pantalla en la v4: conserva su vista propia en
+     /intranet/leads/ (owner, 14-sep-2026). Su handler vivio aqui unas horas
+     y se retira con la pantalla — un REG que nadie puede disparar es codigo
+     muerto que el siguiente lee como si contara algo. Recuperable en git
+     (commit baa6291) si la v4 llega a absorber el CRM algun dia. */
 
   /* ---------- Solicitudes de pago ---------- */
   REG.solicitudes = function (sb) {
@@ -2160,7 +2129,16 @@
           document.querySelectorAll('[data-lw="k-avisos"]').forEach(function (e) { e.textContent = v; });
         });
       var fn = REG[seg];
-      if (fn) { try { fn(aut.sb); } catch (e) { fallo('pantalla ' + seg, e); } }
+      if (fn) {
+        /* El velo se pone SOLO si esta pantalla tiene de que cargar. En una sin
+           handler —la puerta de `entrar/`— no habria consulta que lo bajase y
+           se quedaria tapada hasta que la rescatase el CSS a los 12 s. */
+        ponVelo();
+        try { fn(aut.sb); } catch (e) { fallo('pantalla ' + seg, e); quitaVelo(); }
+        /* Si el handler no llego a lanzar ni una consulta, no hay nada que
+           esperar: el contador nunca subira y nadie lo bajaria. */
+        setTimeout(function () { if (enVuelo === 0) quitaVelo(); }, 400);
+      }
     });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arranca); else arranca();

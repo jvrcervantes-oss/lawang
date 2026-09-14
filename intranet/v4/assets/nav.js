@@ -31,8 +31,11 @@
     ['Compradores', 'compradores/'],
     ['Usuarios', 'usuarios/'],
     /* Las tres que Stitch no dibujo nunca: nacieron despues de la descarga.
-       Se enlazan aqui igual que las demas y se INJERTAN abajo (INJERTOS). */
-    ['CRM', 'leads/'],
+       Se enlazan aqui igual que las demas y se INJERTAN abajo (INJERTOS).
+       CRM sale de la v4 a proposito: conserva su vista propia en /intranet/leads/
+       (owner, 14-sep). Ruta ABSOLUTA, no relativa a ROOT: lo que hay en
+       v4/leads/ es solo una redireccion para los enlaces viejos. */
+    ['CRM', '/intranet/leads/'],
     ['Solicitudes', 'solicitudes/'],
     ['Cuentas', 'cuentas/']
   ];
@@ -59,7 +62,8 @@
      -> tras Recibos; Cuentas es de Equipo -> tras Usuarios, que es el ultimo
      del menu de la maqueta). */
   var INJERTOS = [
-    { path: 'leads',       tras: 'home',     icono: 'person_search',  texto: 'CRM' },
+    { path: 'leads',       tras: 'home',     icono: 'person_search',  texto: 'CRM',
+      href: '/intranet/leads/' },   // vista propia: sale de la v4
     { path: 'solicitudes', tras: 'recibos',  icono: 'request_quote',  texto: 'Solicitudes' },
     { path: 'cuentas',     tras: 'usuarios', icono: 'account_balance', texto: 'Cuentas' }
   ];
@@ -86,6 +90,10 @@
     if (spans.length < 2) return;
     spans[0].textContent = spec.icono;        // ligadura de material-symbols
     spans[1].textContent = spec.texto;
+    /* Con href propio deja de ser href="#", y recablea() ya no lo mira: solo
+       recorre `a[href="#"]`. Es el enganche para una herramienta que vive
+       fuera de la v4, como el CRM. */
+    if (spec.href) a.href = spec.href;
     ancla.insertAdjacentElement('afterend', a);
   }
 
@@ -116,7 +124,7 @@
       }
       for (var i = 0; i < RUTAS.length; i++) {
         if (texto === RUTAS[i][0] || texto.slice(-RUTAS[i][0].length) === RUTAS[i][0]) {
-          a.href = ROOT + RUTAS[i][1];
+          a.href = RUTAS[i][1].charAt(0) === '/' ? RUTAS[i][1] : ROOT + RUTAS[i][1];
           if (RUTAS[i][1] && aqui.indexOf('/' + RUTAS[i][1]) !== -1) marcaActiva(a);
           return;
         }

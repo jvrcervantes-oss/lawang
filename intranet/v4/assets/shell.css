@@ -56,3 +56,58 @@
   /* tablas anchas: scroll propio, nunca de la página */
   table{display:block;overflow-x:auto;max-width:100%}
 }
+
+/* ---------- velo de carga (14-sep-2026) ----------
+   El PORQUE del mecanismo esta junto al codigo que lo levanta (`datos.js`,
+   seccion «velo de carga»). Aqui vive solo su aspecto — capa compartida, como
+   el modal y el toast: una pantalla de la suite no estrena estilo propio.
+
+   EL DESTAPE DE EMERGENCIA VIVE AQUI, Y ES A PROPOSITO. Si el JS muere entre
+   el velo y el destape, cualquier temporizador suyo moriria con el y la
+   pantalla quedaria tapada para siempre. `lw-rendirse` la destapa sola a los
+   12 s pase lo que pase, porque el CSS no depende de que el JS siga vivo.
+   Por eso el velo TAPA el contenido en vez de esconderlo con una clase en
+   <body>: quitar una clase exige JS; apagar una capa, no. */
+#lw-cargando{position:fixed;inset:0 0 0 288px;z-index:9000;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  background:#F5F0E6;text-align:center;padding:24px;
+  animation:lw-rendirse 12s step-end forwards}
+/* La sidebar sigue accesible mientras carga: si una pantalla se atasca, se
+   puede uno ir a otra sin esperar al rescate de los 12 s. */
+@media (max-width:1023px){ #lw-cargando{inset:0} }
+body.v4-nav-plegada #lw-cargando{left:0}
+
+#lw-cargando .lw-c-marca{margin:0;font:600 22px/1 'Neue Kabel',system-ui,sans-serif;
+  letter-spacing:.28em;color:#104C4F}
+#lw-cargando .lw-c-dice,#lw-cargando .lw-c-tarda{margin:0;
+  font:400 13px/1.5 'Neue Kabel',system-ui,sans-serif;color:#8A8474;max-width:36ch}
+/* Un velo mudo de ocho segundos se lee como «se ha colgado». A los 5 s la
+   frase cambia — y tambien en CSS, para que siga diciendo la verdad aunque el
+   JS ya no este para cambiarla. */
+/* Las dos frases ocupan LA MISMA celda y se cruzan con opacidad. La primera
+   version animaba `display`, que en un navegador viejo no se anima: alli la
+   segunda frase no habria aparecido nunca y nadie se habria enterado. La
+   opacidad se interpola en todos. */
+#lw-cargando .lw-c-frases{display:grid}
+#lw-cargando .lw-c-dice,#lw-cargando .lw-c-tarda{grid-area:1/1}
+#lw-cargando .lw-c-dice{animation:lw-calla .4s 5s forwards}
+#lw-cargando .lw-c-tarda{opacity:0;animation:lw-habla .4s 5s forwards}
+@keyframes lw-calla{to{opacity:0}}
+@keyframes lw-habla{to{opacity:1}}
+
+/* Barra indeterminada en vez de un carrete: el carrete generico es la marca de
+   plantilla que el estudio tiene prohibida, y ademas no dice nada que el texto
+   no diga ya. Sin sombra, un solo acento. */
+#lw-cargando .lw-c-barra{width:min(220px,60vw);height:2px;background:#e4e2dd;overflow:hidden}
+#lw-cargando .lw-c-barra i{display:block;width:40%;height:100%;background:#485B37;
+  animation:lw-vaiven 1.15s ease-in-out infinite}
+@keyframes lw-vaiven{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
+
+#lw-cargando.lw-c-fuera{opacity:0;transition:opacity .18s ease-out;pointer-events:none}
+@keyframes lw-rendirse{to{opacity:0;visibility:hidden;pointer-events:none}}
+
+/* Quien ha pedido menos movimiento no necesita el vaiven para saber que espera:
+   el texto ya lo dice. El velo sigue tapando igual. */
+@media (prefers-reduced-motion:reduce){
+  #lw-cargando .lw-c-barra i{animation:none;width:100%;opacity:.45}
+}
