@@ -1057,6 +1057,9 @@
     'Ese dato ya está en otra ficha: ': 'That value is already on another record: ',
     /* Directorio de compradores + el autor corrige lo suyo (14-sep-2026). */
     'No se pudo leer el directorio de compradores: ': 'Could not read the buyer directory: ',
+    'Su actividad': 'Their activity',
+    'Contratos, pagos, facturas, documentos y portal de esta persona NO se muestran aquí: son del compañero que lleva la ficha. Que no aparezcan no significa que no existan.':
+      'This person’s contracts, payments, invoices, documents and portal are NOT shown here: they belong to the colleague who owns the record. Their absence does not mean they do not exist.',
     'de otro': 'someone else’s',
     'De otro compañero: solo consulta': 'A colleague’s record: read-only',
     'Esta ficha la dio de alta ': 'This record was created by ',

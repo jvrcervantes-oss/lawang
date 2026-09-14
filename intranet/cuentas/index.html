@@ -17,7 +17,7 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que `lwT`
      exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=d5c0af68"></script>
+<script src="/contracts/assets/i18n.js?v=1923947e"></script>
 <script src="/contracts/assets/herramientas.js?v=c95fc709"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -201,6 +201,17 @@ lwIdiomaAplicar();   // traduce la HTML de arriba; en espanol no toca el DOM
 
 let SB = null, YO = null, PUEDO_ESCRIBIR = false;
 let CUENTAS = [], PLANTILLAS = [], REPARTO = [], SEL = null;
+/* Cuántos contratos usan cada cuenta, y cuántos de ellos están FIRMADOS.
+   Viene de la RPC `cuentas_uso()` y existe por un hallazgo de la consulta de
+   deploy del 14-sep (Legal + Administración): la casilla ESCROW decide si el
+   documento imprime la cláusula «depósito en garantía», y al hacerla editable
+   quedó a un clic — con 45 contratos firmados apuntando a cuentas afectadas.
+   No se bloquea el cambio (hay que poder corregir una errata sin crear una
+   cuenta duplicada), pero la pantalla lo dice CON LA CIFRA delante. Un aviso con
+   un número se lee; uno genérico se ignora a la segunda vez.
+   `{}` si la RPC falla: entonces el aviso se degrada al texto sin número, nunca
+   a un «0 firmados» tranquilizador que sería falso. */
+let USO = {};
 /* Arranca en «Por contrato» a propósito: es la pregunta con la que se viene a
    esta pantalla («¿en qué cuenta cobra este documento?»), y la que motivó el
    encargo. «Por cuenta» es la vista de mantenimiento — corregir un IBAN, dar de
@@ -219,12 +230,16 @@ async function cargar(){
   // Ojo: aquí se piden TODAS las cuentas, activas y no. `cargarCuentasBancarias`
   // de entities.js filtra `activa = true` porque es para imprimir un contrato;
   // este panel es justo donde hay que ver —y poder reactivar— una desactivada.
-  const [cu, pl, re] = await Promise.all([
+  const [cu, pl, re, us] = await Promise.all([
     SB.from('cuentas_bancarias')
       .select('clave,label,titular,banco,cuenta,codigo,direccion,extra,orden,activa,es_escrow,actualizado_en')
       .order('orden'),
     SB.from('plantillas_pago').select('slug,nombre,orden').order('orden'),
     SB.from('plantilla_cuentas').select('slug,clave,es_default'),
+    // Recuentos, sin ningún dato de comprador. La RPC está gateada a super admin
+    // en la base, así que a un admin normal le devuelve vacío y el aviso se
+    // queda sin cifra — que es correcto: tampoco puede cambiar nada.
+    SB.rpc('cuentas_uso'),
   ]);
   if(cu.error){
     $('#listaC').innerHTML = '<p class="nota" style="padding:18px">' + lwT('No se pudo cargar: ') + esc(cu.error.message) + '</p>';
