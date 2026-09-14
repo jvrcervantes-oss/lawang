@@ -115,13 +115,18 @@
         // `notif_visto_hasta` lo usa la campana de topbar.js para saber qué es
         // nuevo. Se pide aquí y no allí porque esta consulta ya se hace: pedirla
         // dos veces sería dos viajes para la misma fila.
-        /* Un comprador del portal (app_metadata.portal) NO es del equipo: a su
-           casa. Sin esto, la compatibilidad "sin ficha se permite" de abajo le
-           abriría las herramientas internas (vacías por RLS, pero abiertas). */
-        if ((sesion.user.app_metadata || {}).portal) {
-          location.replace('/portal/');
-          return;
-        }
+        /* ⚠️ 14-sep-2026 — EL CLAIM `portal` YA NO ECHA POR SI SOLO, Y EL ORDEN
+           ES LO IMPORTANTE. Hasta hoy esto miraba `app_metadata.portal` ANTES
+           de leer la ficha de `usuarios` y mandaba a /portal/ a cualquiera que
+           lo tuviera. Con la decision del owner de que una misma cuenta pueda
+           ser del equipo Y comprador (hay 8 personas del equipo con ficha de
+           comprador, 6 de ellas con contrato), poner el claim a un admin lo
+           habria echado de su propia intranet — un candado que se cierra por
+           dentro.
+           Manda la FICHA: si existe y esta activa, es del equipo y entra, tenga
+           el claim o no. El claim solo decide a donde va quien NO es del equipo,
+           y eso se decide abajo, ya con la ficha leida. La regla de fondo del
+           8-sep no se toca: sin ficha de equipo no se entra a /intranet/. */
         sb.from('usuarios').select('rol, herramientas, activo, nombre, notif_visto_hasta')
           .eq('user_id', sesion.user.id).maybeSingle()
           .then(function (f) {
@@ -131,7 +136,8 @@
                «los clientes no deben entrar nunca en /intranet/»).
                Hasta hoy aqui habia una compatibilidad heredada: «sin ficha se
                permite», pensada para las cuentas anteriores al panel de usuarios.
-               El claim `portal` de arriba tapaba el caso conocido, pero no el
+               El claim `portal` (que hasta el 14-sep se miraba ANTES de llegar
+               aqui, ver la nota de arriba) tapaba el caso conocido, pero no el
                peligroso: una cuenta de cliente a la que le FALTE ese claim no era
                del equipo y aun asi entraba — con las herramientas vacias por RLS,
                si, pero dentro. Un cliente no debe ver ni la cascara.
@@ -140,7 +146,15 @@
                y 19 el claim del portal — CERO huerfanas.
                Cierra hacia fuera a proposito: se cierra la sesion antes de mandar
                al login, para no dejar una sesion viva rebotando entre dos puertas. */
-            if (!ficha) { sb.auth.signOut().then(alLogin, alLogin); return; }
+            if (!ficha) {
+              /* Sin ficha de equipo. Si trae el claim del portal es un
+                 comprador: a su casa, con la sesion viva (cerrarla le obligaria
+                 a volver a pedir el enlace de entrada por nada). Sin el claim no
+                 es de ninguno de los dos mundos: fuera, y cerrando la sesion
+                 para no dejarla rebotando entre las dos puertas. */
+              if ((sesion.user.app_metadata || {}).portal) { location.replace('/portal/'); return; }
+              sb.auth.signOut().then(alLogin, alLogin); return;
+            }
             /* Solo el SUPER admin se salta la comprobación (18-ago-2026): un
                admin normal pasa por su lista de herramientas como cualquiera.
                Ver la nota de lwPermitida en assets/herramientas.js — y `puede()`

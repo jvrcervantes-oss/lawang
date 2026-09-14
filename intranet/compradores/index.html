@@ -20,13 +20,13 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=3ce105d2"></script>
+<script src="/contracts/assets/i18n.js?v=d5c0af68"></script>
 <script src="/contracts/assets/herramientas.js?v=c95fc709"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="/contracts/assets/visor.js?v=28038adb" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/guard.js?v=d126c94d" data-herramienta="compradores"></script>
+<script src="/contracts/assets/guard.js?v=d6d6608e" data-herramienta="compradores"></script>
 <script src="/contracts/assets/suite.js?v=3cf4a63a"></script>
 <script src="/contracts/assets/geo.js?v=cc6b09b2"></script>
 <style>
@@ -232,6 +232,10 @@ const etiqueta = (lista,v) => (lista.find(x=>x[0]===v)||[v,v||'—'])[1];
 
 const ORDEN = { campo:'full_name', dir:'asc' };
 let SB=null, CLIENTES=[], DOCUMENTOS=[], VINCULOS=[], ACCESOS=[], FACTURAS=[], COBRADO={}, YO=null, SEL=null;
+/* Quién soy, en minúsculas: `clients.propietario` guarda `auth.email()` tal
+   cual, y es lo único con lo que esta pantalla puede saber si una ficha es la
+   que YO di de alta. `YO` (la ficha de `usuarios`) no trae el correo. */
+let MI_EMAIL = '';
 /* Editar una ficha YA EXISTENTE es solo de admin/super_admin desde el
    7-ago-2026 (petición del owner); crear una nueva ("+ Nuevo comprador")
    sigue abierto a cualquier agente — es alta de datos, no lo que se pidió
@@ -243,7 +247,7 @@ let SB=null, CLIENTES=[], DOCUMENTOS=[], VINCULOS=[], ACCESOS=[], FACTURAS=[], C
 let ES_ADMIN = false;
 
 async function cargar(){
-  const [c, d, v, a, f, cb] = await Promise.all([
+  const [c, d, v, a, f, cb, dir] = await Promise.all([
     SB.from('clients').select('*').order('full_name'),
     SB.from('documents').select('*').order('uploaded_at',{ascending:false}),
     // qué contratos ha firmado cada persona. Si la migración aún no está,
@@ -278,9 +282,33 @@ async function cargar(){
     // mismo contrato_cobrado()/contratos_cobrado_equipo() que usa Operaciones,
     // una sola fuente para no reimplementar la fórmula (solo recibí cuenta).
     SB.rpc('contratos_cobrado_equipo'),
+    /* EL DIRECTORIO — 14-sep-2026, decisión del owner ────────────────────────
+       `clients` solo devuelve las fichas que TÚ diste de alta (RLS del 11-sep).
+       Con 179 fichas y 15 dueños, un agente veía entre 1 y 14: buscaba a un
+       comprador que ya existe, no lo encontraba, lo creaba otra vez y la base
+       se lo rechazaba contra una fila invisible. En las 24h del 13 al 14-sep
+       eso fueron 17 altas rechazadas en 18 minutos.
+       `compradores_directorio()` devuelve la IDENTIDAD de todas (sin `notes`).
+       Lo del negocio de cada uno —contratos, facturas, cobros— NO viaja aquí y
+       sigue filtrado por autor: `clients` no tiene ni una columna de dinero. */
+    SB.rpc('compradores_directorio'),
   ]);
   if(c.error) throw c.error;
-  CLIENTES = c.data || [];
+  const mias = c.data || [];
+  /* La ficha COMPLETA manda sobre la entrada del directorio: si es mía, uso la
+     fila de `clients` (trae `notes`, y es la que la RLS deja editar). Las demás
+     se marcan con `_directorio` — se ven, no se abren. */
+  if(dir && !dir.error && Array.isArray(dir.data)){
+    const mio = new Map(mias.map(x => [x.id, x]));
+    CLIENTES = dir.data
+      .map(x => mio.get(x.id) || Object.assign({}, x, { _directorio:true }))
+      .sort((x, y) => String(x.full_name||'').localeCompare(String(y.full_name||'')));
+  }else{
+    // Sin directorio (migración aún no aplicada, o RPC caída) la pantalla no se
+    // queda en blanco: vuelve a ser lo de antes, solo lo tuyo. Y se dice.
+    CLIENTES = mias;
+    if(dir && dir.error) toast(lwT('No se pudo leer el directorio de compradores: ') + dir.error.message);
+  }
   DOCUMENTOS = d.error ? [] : (d.data || []);
   VINCULOS = v.error ? [] : (v.data || []);
   COBRADO = {}; (cb.error ? [] : (cb.data || [])).forEach(x => { COBRADO[x.contrato_id] = Number(x.cobrado) || 0; });
@@ -482,7 +510,11 @@ function pintarLista(){
     const n = DOCUMENTOS.filter(x => x.client_id === c.id).length;
     return `<tr data-id="${esc(c.id)}" class="${SEL===c.id?'sel':''}">
       <td class="clave">${esc(c.full_name || 'Sin nombre')}${
-        c.tipo === 'empresa' ? ' <span class="sui-tag">' + lwT('Empresa') + '</span>' : ''}</td>
+        c.tipo === 'empresa' ? ' <span class="sui-tag">' + lwT('Empresa') + '</span>' : ''}${
+        /* La marca del directorio (14-sep): existe, pero no es tuya. Sin ella
+           el agente abre la ficha esperando trabajar con ella y se encuentra
+           una pantalla a medias sin saber por qué. */
+        c._directorio ? ' <span class="sui-tag" title="' + esc(lwT('De otro compañero: solo consulta')) + '">' + lwT('de otro') + '</span>' : ''}</td>
       <td>${esc(c.email || '—')}${c.phone ? ' <span class="flojo">· ' + esc(c.phone) + '</span>' : ''}</td>
       <td>${esc(c.nationality || '—')}</td>
       <td>${esc(c.passport_number || '—')}</td>
@@ -517,9 +549,27 @@ function pintarFicha(){
   const c = nuevo ? { kyc_status:'pending' } : CLIENTES.find(x => x.id === SEL);
   if(!c){ suiCerrarCajon(); return; }
   const docs = nuevo ? [] : DOCUMENTOS.filter(d => d.client_id === c.id);
-  // Crear una ficha nueva sigue abierto a cualquier agente; editar una que ya
-  // existe es solo admin/super_admin (7-ago-2026, ver nota junto a ES_ADMIN).
-  const soloLectura = !nuevo && !ES_ADMIN;
+  /* Del DIRECTORIO: existe, se ve quién es, no se abre. No es tuya ni la
+     supervisas, así que ni documentos, ni portal, ni contratos — esas listas
+     vienen vacías de todos modos porque su RLS no te las da. */
+  const soloDirectorio = !nuevo && !!c._directorio;
+  /* ¿La di de alta yo? Es lo que la policy de UPDATE del 14-sep pregunta
+     (`es_suyo(propietario)`). Sin `propietario` (20 fichas del backfill viejo)
+     NO es de nadie: `es_suyo(NULL)` es false salvo para admin, así que la
+     pantalla tampoco la abre — sería prometer un guardado que la base rechaza. */
+  const mia = !nuevo && !soloDirectorio && !!c.propietario &&
+              String(c.propietario).toLowerCase() === MI_EMAIL;
+  /* Un contrato ya FIRMADO congela la ficha: su pasaporte y su domicilio están
+     impresos dentro del documento que el comprador firmó. Aquí solo se ven los
+     contratos que la RLS deja ver, así que esto es una pista para la pantalla —
+     quien lo impide de verdad es `cliente_con_contrato_firmado()` en la base. */
+  const firmada = !nuevo && VINCULOS.some(v => v.client_id === c.id && v.contratos && v.contratos.bloqueado);
+  /* Crear una ficha nueva sigue abierto a cualquier agente. Editar una que ya
+     existe era solo admin/super_admin (7-ago-2026, ver nota junto a ES_ADMIN);
+     desde el 14-sep el AUTOR también corrige la suya mientras no esté firmada
+     — el agente que se equivocaba al teclear el correo al crearla no podía
+     arreglarlo, y el aviso que recibía («tu sesión ha caducado») era falso. */
+  const soloLectura = !nuevo && !ES_ADMIN && !(mia && !firmada);
   /* LA FICHA QUE YA EXISTE ABRE CERRADA — 16-ago-2026, a peticion del owner:
      «que haya que aprobar la edicion antes».
 
@@ -558,7 +608,16 @@ function pintarFicha(){
 
     <fieldset id="fsIdentidad">
       <legend>${lwT('Identidad')}</legend>
-      ${soloLectura ? '<p class="nota">' + lwT('Solo un administrador puede editar estos datos. Puedes consultarlos y gestionar la documentación de más abajo.') + '</p>' : ''}
+      ${!soloLectura ? '' :
+        /* Un «no puedes» sin el porqué manda a probar otra vez. Los tres
+           motivos son distintos y llevan a sitios distintos: pedir el traspaso,
+           hablar con un admin, o nada (la firma no se toca). */
+        soloDirectorio
+          ? '<p class="nota">' + lwT('Esta ficha la dio de alta ') + '<b>' + esc(c.propietario || lwT('nadie (ficha antigua sin autor)')) + '</b>' +
+            lwT(', así que aquí solo ves quién es. No crees una segunda: para trabajar con ella pide que te la traspasen, o ponla en tu contrato por su pasaporte — el generador la encuentra igual.') + '</p>'
+        : firmada
+          ? '<p class="nota">' + lwT('Esta ficha cuelga de un contrato ya FIRMADO: su pasaporte y su domicilio están impresos dentro de ese documento, así que no se cambian desde aquí. Si hay un error real en el documento, es cosa de un administrador.') + '</p>'
+        : '<p class="nota">' + lwT('Solo un administrador puede editar estos datos. Puedes consultarlos y gestionar la documentación de más abajo.') + '</p>'}
       <label for="f-tipo">${lwT('Tipo de comprador')}</label>
       <select class="sui-sel" id="f-tipo" ${dis}>
         <option value="persona" ${(c.tipo||'persona')==='persona'?'selected':''}>${lwT('Persona física')}</option>
@@ -824,7 +883,7 @@ function pintarFicha(){
         <thead><tr><th>${lwT('Documento')}</th><th>${lwT('Subido')}</th><th>${lwT('Caduca')}</th><th></th></tr></thead>
         <tbody>${filas}</tbody>
       </table>
-      <div class="subir">
+      ${soloDirectorio ? '' : `<div class="subir">
         <div class="sui-row">
           <div><label for="d-tipo">${lwT('Tipo')}</label><select class="sui-sel" id="d-tipo">${DOCS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select></div>
           <div><label for="d-caduca">${lwT('Caduca el (opcional)')}</label><input id="d-caduca" type="date"></div>
@@ -834,7 +893,7 @@ function pintarFicha(){
           <button class="btn primary" id="btnSubir">${lwT('Subir documento')}</button>
         </div>
         <p class="nota">${lwT('Van a un bucket privado. Al abrirlos se genera un enlace temporal de 5 minutos, no una URL fija.')}</p>
-      </div>
+      </div>`}
     </fieldset>`}`;
 
   suiAbrirCajon({
@@ -1106,6 +1165,16 @@ async function guardar(id){
       ? lwT('Ya hay otra ficha DEL MISMO TIPO con ese correo. Una persona y su empresa sí pueden compartirlo, pero dos personas (o dos empresas) no. Ojo: esa otra ficha puede ser de un compañero y no aparecerte en la lista — si es la misma persona, pide que te la traspasen en vez de crearla otra vez; si es una familia que comparte buzón, deja el correo en una sola e identifica a las demás por su pasaporte.')
       : /duplicate key/.test(msg)
       ? lwT('Ese dato ya está en otra ficha: ') + msg
+      /* PGRST116 = «0 filas tras el update». Son dos cosas muy distintas y
+         hasta el 14-sep las dos se contaban como la segunda:
+         · EDITANDO una ficha existente: la policy de UPDATE no te deja (no es
+           tuya, o cuelga de un contrato firmado) y la RLS no devuelve fila. Que
+           esto dijera «tu sesión ha caducado» mandaba a recargar y reintentar
+           un guardado que nunca iba a entrar.
+         · CREANDO: ahí sí, casi siempre la sesión murió a mitad (otra pestaña
+           de la suite hizo signOut de la sesión compartida). */
+      : /PGRST116/.test(err.code || '') && id
+      ? lwT('No se ha guardado: la base no te deja editar esta ficha. Suele ser porque no la diste de alta tú, o porque ya cuelga de un contrato firmado. Habla con un administrador — recargar no lo arregla.')
       : /PGRST116/.test(err.code || '')
       ? lwT('Tu sesión ha caducado a mitad de guardar. Recarga la página, entra de nuevo y repite el cambio — no se ha guardado.')
       : 'No se pudo guardar: ' + (err.message || err);
@@ -1251,6 +1320,9 @@ suiOrdenable(document.getElementById('tabla'), ORDEN, (c, campo) => c[campo], pi
 window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   SB = sb;
   YO = ficha;   // el rol decide si la ficha enseña los botones de invitar al portal
+  // El correo de la SESIÓN, que es el que `clients.propietario` guarda: la ficha
+  // de `usuarios` no lo trae, y sin él no se puede saber qué fichas son mías.
+  MI_EMAIL = String((session && session.user && session.user.email) || '').toLowerCase();
   ES_ADMIN = !!(ficha && ['super_admin','admin'].includes(ficha.rol));
   try{
     await cargar();
