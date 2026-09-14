@@ -1,0 +1,21 @@
+-- Corrección sobre 20260914100000_condiciones_comision_tramos.sql, misma
+-- sesión: la función de trigger valida_suma_tramos_comision() nació SECURITY
+-- DEFINER y ejecutable por `anon`/`authenticated` vía
+-- /rest/v1/rpc/valida_suma_tramos_comision (confirmado por get_advisors
+-- (security), categoría authenticated/anon_security_definer_function_executable).
+--
+-- Es la MISMA piedra documentada ya tres veces en el repo (`revoke execute ...
+-- from public` no basta — Supabase concede EXECUTE a `anon` y `authenticated`
+-- por separado; ver 20260729091818, 20260819135855, 20260821154831): hay que
+-- nombrar los dos roles explícitamente con `revoke all on function ...`.
+--
+-- Riesgo práctico bajo (PostgREST no expone una función que devuelve
+-- `trigger`, no puede construir la llamada), pero la norma es no depender de
+-- ese detalle. La función sigue funcionando igual como trigger: el mecanismo
+-- de disparo no necesita GRANT EXECUTE sobre el rol que hizo el INSERT/UPDATE/
+-- DELETE, solo lo necesita una llamada directa por RPC — que es justo lo que
+-- se cierra aquí.
+--
+-- destructivo-ok: solo revoca un privilegio de ejecución sobre una función
+-- creada en la migración anterior de esta misma sesión; no toca filas.
+revoke all on function public.valida_suma_tramos_comision() from public, anon, authenticated;
