@@ -201,12 +201,58 @@ async function compartidos() {
   return caja;
 }
 
-/* El contrato firmado, al estudio y a cada comprador con email. El estudio
-   siempre; los compradores, los que tengan dirección — a quien no la dio no se
-   le inventa una. */
+/* A QUIÉN SE LE MANDA EL FIRMADO — la unión de las DOS listas, no una de ellas.
+   14-sep-2026, tras encontrarlo en producción: CR00056 se firmó el 11-sep y la
+   copia salió SOLO al estudio. La compradora había recibido sus cuatro enlaces
+   de firma sin problema y firmó; lo que no tenía era `adq1_email` relleno en el
+   contrato — el operador tecleó su dirección al generar el enlace, que es donde
+   de verdad vive (`contrato_firmas.firmante_email`). El reparto miraba
+   únicamente los campos del contrato, así que la lista de compradores con email
+   salía vacía y no hubo a quien mandarle nada. Mismo caso en PA00006 (17-ago).
+
+   Es la familia de fallo de la Regla 0 de la suite: DOS listas escritas a mano
+   del mismo hecho («quién es el destinatario»), que divergen. Aquí no se elige
+   cuál manda —ninguna de las dos es completa por sí sola: el comprador que no
+   firma electrónicamente solo está en el contrato, y el firmante cuyo email se
+   tecleó al generar el enlace solo está en la firma— se UNEN y se deduplican
+   por dirección. Una dirección que recibió el enlace es, además, la única que
+   está PROBADA como válida: por ahí llegó el documento que acaba de firmar.
+
+   ⚠️ DUPLICADO a propósito de copiaFirmantes()/copiaCompradoresDelContrato() en
+   contracts/app.html (panel «Copias del contrato firmado»): esta función no
+   comparte runtime con esa página. Si cambia allí el criterio de quién recibe
+   copia, replicarlo aquí — y al revés. */
+const EMAIL_OK = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function destinosFirmado(
+  estudioEmail: string,
+  compradores: { nombre?: string; email?: string }[],
+  firmantes: { nombre?: string; email?: string }[],
+): { to: string; nombre?: string; estudio: boolean }[] {
+  const vistos = new Set<string>();
+  const out: { to: string; nombre?: string; estudio: boolean }[] = [];
+  const add = (email: unknown, nombre: unknown, estudio: boolean) => {
+    const em = String(email ?? '').trim();
+    if (!EMAIL_OK.test(em)) return;
+    const k = em.toLowerCase();
+    if (vistos.has(k)) return;
+    vistos.add(k);
+    out.push(estudio ? { to: em, estudio: true } : { to: em, nombre: String(nombre ?? '').trim(), estudio: false });
+  };
+  // El estudio primero y siempre: si su dirección coincidiera con la de un
+  // comprador, el dedup la deja como copia del estudio y no se manda dos veces.
+  add(estudioEmail, '', true);
+  (compradores ?? []).forEach((c) => add(c?.email, c?.nombre, false));
+  (firmantes ?? []).forEach((f) => add(f?.email, f?.nombre, false));
+  return out;
+}
+
+/* El contrato firmado, al estudio y a cada comprador o firmante con email. El
+   estudio siempre; los demás, los que tengan dirección — a quien no la dio no
+   se le inventa una. */
 async function repartirFirmado(o: {
   numero: string; pdf: Uint8Array; path: string; compradores: any[]; proyecto: string;
-  contratoId: string;
+  contratoId: string; firmantes?: any[];
 }) {
   /* ¿ADJUNTO O ENLACE? No basta con mirar el peso del PDF: hay que mirar el peso
      TOTAL de la tanda, porque el adjunto se manda una vez POR DESTINATARIO y
@@ -223,8 +269,13 @@ async function repartirFirmado(o: {
 
      Con el enlace la peticion pesa lo mismo con dos destinatarios que con seis.
      El enlace ya existia para PDFs grandes; lo unico que cambia es CUANDO se
-     usa. */
-  const tanda = o.pdf.length * Math.max(1, 1 + o.compradores.filter((c) => c.email).length);
+     usa.
+
+     Y POR ESO LA LISTA SE CALCULA AQUI ARRIBA, antes de decidir: si la lista
+     crece (ahora incluye a los firmantes) y la cuenta de la tanda no, vuelve el
+     mismo fallo que este comentario documenta, con mas destinatarios todavia. */
+  const destinos = destinosFirmado(ESTUDIO_EMAIL, o.compradores ?? [], o.firmantes ?? []);
+  const tanda = o.pdf.length * Math.max(1, destinos.length);
   const grande = o.pdf.length > MAX_ADJUNTO || tanda > MAX_TANDA;
   let enlace = '';
   if (grande) {
@@ -247,11 +298,15 @@ async function repartirFirmado(o: {
       '\n(El enlace caduca en 30 días. Si lo necesitas después, escríbenos.)'
     : '\n\nEl documento firmado va adjunto a este correo.';
 
+  /* Los nombres del aviso al estudio salen de las MISMAS dos listas que los
+     destinatarios: un contrato sin `adq1_nombre` dejaba la línea «Firmantes:»
+     vacía aunque la firma llevara nombre y apellidos. */
+  const nombresFirmantes = [...new Set(
+    [...(o.compradores ?? []), ...(o.firmantes ?? [])]
+      .map((c) => String(c?.nombre ?? '').trim()).filter(Boolean),
+  )].join(', ');
+
   const errores: string[] = [];
-  const destinos = [
-    { to: ESTUDIO_EMAIL, estudio: true },
-    ...o.compradores.filter((c) => c.email).map((c) => ({ to: c.email, nombre: c.nombre, estudio: false })),
-  ];
   for (const d of destinos) {
     const asunto = d.estudio
       ? 'Contrato firmado · ' + o.numero + (o.proyecto ? ' · ' + o.proyecto : '')
@@ -259,7 +314,7 @@ async function repartirFirmado(o: {
     const cuerpo = d.estudio
       ? 'Se ha completado la firma del contrato ' + o.numero + '.' +
         (o.proyecto ? '\nProyecto: ' + o.proyecto : '') +
-        '\nFirmantes: ' + o.compradores.map((c) => c.nombre).join(', ') +
+        '\nFirmantes: ' + (nombresFirmantes || '—') +
         '\n\nCopia para archivo.' +
         '\n\nVer en la intranet: ' + SITIO + '/intranet/operaciones/' + pie
       : 'Hola' + ((d as any).nombre ? ' ' + String((d as any).nombre).split(' ')[0] : '') + ',' +
@@ -597,8 +652,12 @@ Deno.serve(async (req) => {
     const adq1Nombre = String((ct as any).adq1 ?? '').trim();
     const adq1Email = String((ct as any).fields?.adq1_email ?? '').trim();
     const total = Math.max(1, (adq1Nombre ? 1 : 0) + extras.filter(conDatos).length);
+    /* `firmante_nombre, firmante_email` además del rol: no son para contar, son
+       para repartir. En una cadena, la dirección de los que firmaron ANTES puede
+       existir solo aquí (se tecleó al generar su enlace) y no en el contrato
+       — ver la nota de destinosFirmado(). */
     const { data: firmadas, error: cntErr } = await sb.from('contrato_firmas')
-      .select('firmante_rol')
+      .select('firmante_rol, firmante_nombre, firmante_email')
       .eq('contrato_id', claimed.contrato_id).eq('estado', 'firmado');
     if (cntErr) throw new Error('no se pudo contar las firmas: ' + cntErr.message);
     const yaFirmadas = firmadas?.length ?? 0;
@@ -777,8 +836,17 @@ Deno.serve(async (req) => {
       ...extras.filter(conDatos).map((c: any) => ({ nombre: String(c.nombre ?? '').trim(), email: String(c.email ?? '').trim() })),
     ].filter((c) => c.nombre);
 
+    /* Firmantes reales: los que ya habían firmado + el de ahora mismo (que
+       todavía no aparece en la lectura de `firmadas`, hecha antes de marcarla).
+       `destinosFirmado()` deduplica, así que un firmante que además esté en el
+       contrato con la misma dirección no recibe dos correos. */
+    const firmantes = [
+      ...(firmadas ?? []).map((f: any) => ({ nombre: f.firmante_nombre, email: f.firmante_email })),
+      { nombre: (claimed as any).firmante_nombre, email: (claimed as any).firmante_email },
+    ];
+
     try {
-      await repartirFirmado({ numero, pdf, path, compradores, contratoId: claimed.contrato_id,
+      await repartirFirmado({ numero, pdf, path, compradores, firmantes, contratoId: claimed.contrato_id,
                               proyecto: String((ct as any).proyecto_nombre ?? (ct as any).fields?.proyecto_nombre ?? '') });
     } catch (e) {
       const m = 'contrato ' + numero + ' firmado pero NO repartido por email: ' + (e as Error).message;
