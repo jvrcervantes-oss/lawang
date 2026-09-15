@@ -40,9 +40,15 @@ let CHAT_ABIERTO = null;   // teléfono del hilo abierto en Setter IA, o null
 let FICHA_ABIERTA = window.matchMedia('(min-width: 1100px)').matches;
 let PUEDE_CLOSERS = false;   // lo fija LW_AUTH al arrancar; gobierna el botón de agendar
 
-/* Las seis columnas. El orden es el del embudo y no se reordena: la posición
-   de una tarjeta ES la información. */
-const COLS = [
+/* Las columnas del tablero — 15-sep-2026: dejaron de ser fijas. Viven en
+   `lead_estados` (Supabase) y las carga `cargarEstados()` en cada `cargar()`.
+   `COLS`/`COLOR_COL` son las de SIEMPRE, y quedan como FALLBACK: si la tabla no
+   responde o llega vacía, el tablero sigue pintándose con esto (avisando, nunca
+   en silencio — ver `cargarEstados`), en vez de quedarse sin columnas. `nuevo`,
+   `reserva` y `contrato` están protegidas en la base (no se pueden borrar ni
+   cambiar de clave): de ellas dependen el alta de un lead nuevo, la sugerencia
+   automática y el KPI "Reserva o contrato". */
+let COLS = [
   ['nuevo',      lwT('Nuevo'),      lwT('Acaba de entrar, nadie lo ha tocado')],
   ['contactado', lwT('Contactado'), lwT('Se le ha escrito o llamado')],
   ['visita',     lwT('Visita'),     lwT('Ha visto el terreno o la villa')],
@@ -50,8 +56,18 @@ const COLS = [
   ['contrato',   lwT('Contrato'),   lwT('Contrato de compraventa firmado')],
   ['perdido',    lwT('Perdido'),    lwT('No sigue adelante')],
 ];
-const COLOR_COL = { nuevo:'#64748B', contactado:'#1D4ED8', visita:'#0F766E',
-                    reserva:'#D97706', contrato:'#064E3B', perdido:'#94A3B8' };
+let COLOR_COL = { nuevo:'#64748B', contactado:'#1D4ED8', visita:'#0F766E',
+                   reserva:'#D97706', contrato:'#064E3B', perdido:'#94A3B8' };
+/* Filas crudas de `lead_estados` (clave, titulo, descripcion, color, orden,
+   protegida): las necesita el editor de estructura, que COLS/COLOR_COL no
+   llevan. `null` mientras no ha llegado la primera respuesta de la base. */
+let ESTADOS = null;
+/* Nueve tonos ya usados en la suite, coherentes entre sí — nunca un color picker
+   libre (hallazgo de Diseño: rompería la ley de "un acento" del catálogo). El
+   mismo array vive en el CHECK de `lead_estados.color`; si un día se amplía aquí,
+   hay que ampliar también la migración. */
+const PALETA_ESTADOS = ['#64748B','#1D4ED8','#0F766E','#D97706','#064E3B','#94A3B8','#7C3AED','#0891B2','#B45309'];
+let PUEDE_ESTRUCTURA = false;   // lo fija LW_AUTH; solo super_admin edita el tablero
 
 /* Nombre legible de cada origen. La lista se queda corta a propósito con un
    canal nuevo: `canal()` devuelve la clave cruda, que es fea pero cierta. */
@@ -486,12 +502,43 @@ async function pintarAlcance(){
 /* ==========================================================================
    CARGA
    ========================================================================== */
+/* Lee `lead_estados` y sustituye COLS/COLOR_COL por lo que diga la base. Si falla
+   o llega vacía, NO se queda el tablero sin columnas (hallazgo de Seguridad): se
+   sigue con el fallback de siempre, pero avisando — y distinguiendo "no pude
+   preguntar" de "la tabla está vacía", que son averías distintas. Es solo de
+   RENDER: la validación real de a qué columna se puede mover un lead la hace
+   `crm_lead_mover` contra la tabla, en fresco, cada vez. */
+async function cargarEstados(){
+  const av = $('#avisoEstados');
+  try {
+    const { data, error } = await SB.from('lead_estados').select('*').order('orden');
+    if(error) throw error;
+    if(!data || !data.length){
+      ESTADOS = null;
+      av.hidden = false;
+      av.innerHTML = '<b>' + lwT('La configuración del tablero está vacía.') + '</b> '
+        + lwT('Se muestran las columnas de siempre mientras se resuelve.');
+      return;
+    }
+    ESTADOS = data;
+    COLS = data.map(e => [e.clave, e.titulo, e.descripcion || '']);
+    COLOR_COL = Object.fromEntries(data.map(e => [e.clave, e.color]));
+    av.hidden = true;
+  } catch(err){
+    ESTADOS = null;
+    av.hidden = false;
+    av.innerHTML = '<b>' + lwT('No se pudo leer la configuración del tablero.') + '</b> '
+      + lwT('Se muestran las columnas de siempre mientras se resuelve.') + ' ' + esc(err.message || '');
+  }
+}
+
 async function cargar(){
   const btn = $('#btnRefrescar'); btn.disabled = true;
   try {
-    const [l, e] = await Promise.all([
+    const [l, e, es] = await Promise.all([
       SB.rpc('crm_leads'),
       SB.from('contrato_tipo_etapa').select('tipo,etapa'),
+      cargarEstados(),
     ]);
     if(l.error) throw l.error;
     LEADS  = l.data || [];
@@ -654,7 +701,7 @@ function pintarPipeline(){
     const mias = filas.filter(l => (l.estado || 'nuevo') === k);
     const ver = ABIERTAS.has(k) ? mias : mias.slice(0, TOPE);
     return `<section class="lane" data-col="${k}">
-      <h3><span class="punto" style="background:${COLOR_COL[k]}"></span>${rotulo}<b>${mias.length}</b></h3>
+      <h3><span class="punto" style="background:${COLOR_COL[k]}"></span><span class="txt" title="${esc(rotulo)}">${esc(rotulo)}</span><b>${mias.length}</b></h3>
       <p class="sub">${esc(pie)}</p>
       <div class="pila">${ver.map(tarjetaHTML).join('') || '<p class="vacio">—</p>'}</div>
       ${mias.length > ver.length ? `<button class="mas" data-mas="${k}">Ver las ${mias.length}</button>` : ''}
@@ -760,6 +807,190 @@ async function mover(lead, estado){
     pintarPipeline(); pintarBandeja();
     toastMal(lwT('No se pudo guardar el cambio: ') + (err.message || err));
   }
+}
+
+/* ==========================================================================
+   EDITAR TABLERO — estructura del kanban (solo super_admin) — 15-sep-2026
+   --------------------------------------------------------------------------
+   Renombrar, crear y borrar columnas. La validación de verdad (permiso,
+   protegidas, migración atómica de leads) vive en las tres funciones de la
+   base (`crm_estado_crear/editar/borrar`); esto solo las llama y repinta.
+   Reusa el mismo cajón/velo que la ficha del lead (`cerrarFicha` cierra
+   cualquiera de los dos) para no montar un segundo sistema de diálogo.
+   ========================================================================== */
+/* Sin `.normalize('NFD')` + rango unicode de marcas diacríticas: ese regex se
+   escribe con caracteres de combinación que el propio pipeline de edición no
+   transporta bien carácter a carácter (se comprobó aquí mismo, 15-sep-2026).
+   Un mapa explícito de las pocas vocales acentuadas del español es tan correcto
+   para este caso —un título corto de columna— y no depende de eso. */
+const ACENTOS_CLAVE = { 'á':'a', 'é':'e', 'í':'i', 'ó':'o', 'ú':'u', 'ü':'u', 'ñ':'n' };
+function claveDesdeTitulo(t){
+  let base = String(t || '').toLowerCase().replace(/[áéíóúüñ]/g, ch => ACENTOS_CLAVE[ch] || ch)
+    .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 25) || 'columna';
+  if(!/^[a-z]/.test(base)) base = 'c_' + base;
+  const existentes = new Set((ESTADOS || []).map(e => e.clave));
+  let clave = base, n = 2;
+  while(existentes.has(clave)){ clave = (base + '_' + n).slice(0, 30); n++; }
+  return clave;
+}
+
+/* Cicla al siguiente color de la paleta que NO esté ya usado por otra columna
+   (hallazgo de Diseño: no repetir acento entre columnas visibles). Si ya no
+   queda ninguno libre —más columnas que tonos— se cicla la paleta entera. */
+function siguienteColorEstado(actual, propiaClave){
+  const usados = new Set((ESTADOS || []).filter(e => e.clave !== propiaClave).map(e => e.color));
+  const libres = PALETA_ESTADOS.filter(c => !usados.has(c));
+  const lista = libres.length ? libres : PALETA_ESTADOS;
+  const i = lista.indexOf(actual);
+  return lista[(i + 1 + lista.length) % lista.length] || lista[0];
+}
+
+function filaEstadoHTML(e){
+  return `<div class="fila-estado" data-clave="${esc(e.clave)}">
+    <button type="button" class="swatch" data-color="${e.color}" style="background:${e.color}"
+      title="${lwT('Cambiar color')}"></button>
+    <div class="campo" style="flex:1 1 auto;margin:0">
+      <input type="text" class="titulo" value="${esc(e.titulo)}" maxlength="24">
+      <span class="cuenta">${e.titulo.length}/24</span>
+    </div>
+    ${e.protegida
+      ? `<i class="ph ph-lock-simple" title="${lwT('Protegida: no se puede borrar ni cambiar su clave')}"></i>`
+      : `<button type="button" class="btn mini" data-borrar="${esc(e.clave)}"><i class="ph ph-trash"></i></button>`}
+    <button type="button" class="btn mini pri" data-guardar="${esc(e.clave)}">${lwT('Guardar')}</button>
+  </div>`;
+}
+
+function pintarEstructura(){
+  const cuerpo = $('#estructuraCuerpo');
+  if(!ESTADOS || !ESTADOS.length){
+    cuerpo.innerHTML = `<p class="vacio">${esc(lwT('No se puede editar mientras no se pueda leer la configuración del tablero. Recarga la página.'))}</p>`;
+    return;
+  }
+  const opcionesTras = ESTADOS.map(e => `<option value="${esc(e.clave)}">${esc(e.titulo)}</option>`).join('');
+  cuerpo.innerHTML = `
+    <p class="lb">${lwT('Columnas')}</p>
+    ${ESTADOS.map(filaEstadoHTML).join('')}
+    <p class="lb">${lwT('Añadir columna')}</p>
+    <div class="campo"><label for="nuevoTituloEstado">${lwT('Título')}</label>
+      <input type="text" id="nuevoTituloEstado" maxlength="24" placeholder="${lwT('p. ej. Negociando')}"></div>
+    <div class="campo"><label for="nuevoTrasEstado">${lwT('Insertar después de')}</label>
+      <select id="nuevoTrasEstado">${opcionesTras}</select></div>
+    <button type="button" class="swatch" id="nuevoColorEstado" data-color="${PALETA_ESTADOS[0]}"
+      style="background:${PALETA_ESTADOS[0]}" title="${lwT('Cambiar color')}"></button>
+    <button type="button" class="btn pri mini" id="btnCrearEstado" style="margin-top:10px">
+      <i class="ph ph-plus"></i>${lwT('Crear columna')}</button>`;
+}
+
+function abrirEstructura(){
+  if(!PUEDE_ESTRUCTURA) return;
+  cerrarFicha();
+  const velo = document.createElement('div'); velo.className = 'velo'; velo.onclick = cerrarFicha;
+  const c = document.createElement('aside'); c.className = 'cajon';
+  c.innerHTML = `
+    <header>
+      <button class="cerrar" aria-label="${lwT('Cerrar')}">&times;</button>
+      <h2>${lwT('Editar tablero')}</h2>
+      <p style="margin:6px 0 0;color:var(--mist);font-size:12.5px">
+        ${lwT('El título se puede cambiar siempre. Una columna con el candado no se puede borrar ni perder su función.')}</p>
+    </header>
+    <div class="cuerpo" id="estructuraCuerpo"></div>`;
+  document.body.appendChild(velo); document.body.appendChild(c);
+  c.querySelector('.cerrar').onclick = cerrarFicha;
+  pintarEstructura();
+
+  c.addEventListener('click', async ev => {
+    const sw = ev.target.closest('.swatch');
+    if(sw){
+      const fila = sw.closest('.fila-estado');
+      const clave = fila ? fila.dataset.clave : null;   // null en la de "nueva columna"
+      const siguiente = siguienteColorEstado(sw.dataset.color, clave);
+      sw.dataset.color = siguiente; sw.style.background = siguiente;
+      return;
+    }
+    const bGuardar = ev.target.closest('[data-guardar]');
+    if(bGuardar){ await guardarEstadoFila(bGuardar.dataset.guardar); return; }
+    const bBorrar = ev.target.closest('[data-borrar]');
+    if(bBorrar){ await borrarEstado(bBorrar.dataset.borrar); return; }
+    if(ev.target.id === 'btnCrearEstado'){ await crearEstadoDesdeForm(); return; }
+  });
+  c.addEventListener('input', ev => {
+    if(ev.target.matches('.fila-estado .titulo')){
+      const cuenta = ev.target.closest('.campo').querySelector('.cuenta');
+      if(cuenta) cuenta.textContent = ev.target.value.length + '/24';
+    }
+  });
+}
+
+async function guardarEstadoFila(clave){
+  const fila = document.querySelector(`.fila-estado[data-clave="${CSS.escape(clave)}"]`);
+  if(!fila) return;
+  const titulo = fila.querySelector('.titulo').value.trim();
+  if(!titulo){ toastMal(lwT('El título no puede quedar vacío.')); return; }
+  const color = fila.querySelector('.swatch').dataset.color;
+  const actual = (ESTADOS || []).find(e => e.clave === clave) || {};
+  try {
+    const { error } = await SB.rpc('crm_estado_editar', {
+      p_clave: clave, p_titulo: titulo, p_descripcion: actual.descripcion || '', p_color: color,
+    });
+    if(error) throw error;
+    toast(lwT('Columna actualizada.'));
+    await cargar();
+    abrirEstructura();
+  } catch(err){ toastMal(lwT('No se pudo guardar la columna: ') + (err.message || err)); }
+}
+
+async function crearEstadoDesdeForm(){
+  const tituloInput = $('#nuevoTituloEstado');
+  const titulo = (tituloInput.value || '').trim();
+  if(!titulo){ toastMal(lwT('Ponle un título a la columna nueva.')); return; }
+  const tras = $('#nuevoTrasEstado').value;
+  const color = $('#nuevoColorEstado').dataset.color;
+  try {
+    const { error } = await SB.rpc('crm_estado_crear', {
+      p_clave: claveDesdeTitulo(titulo), p_titulo: titulo, p_descripcion: '', p_color: color, p_tras: tras,
+    });
+    if(error) throw error;
+    toast(lwT('Columna creada.'));
+    await cargar();
+    abrirEstructura();
+  } catch(err){ toastMal(lwT('No se pudo crear la columna: ') + (err.message || err)); }
+}
+
+/* Borrar es lo único que puede afectar a leads reales de otras personas, así que
+   nunca un `confirm()` nativo y siempre con el número real delante (hallazgo de
+   Diseño): con leads dentro, el propio diálogo de peligro lleva el `<select>` de
+   destino embebido en su cuerpo — mismo patrón que ya usa el diálogo de anular
+   firmas (dialogo.js) para una casilla dentro del cuerpo. */
+async function borrarEstado(clave){
+  const fila = (ESTADOS || []).find(e => e.clave === clave);
+  if(!fila || fila.protegida) return;
+  const n = LEADS.filter(l => (l.estado || 'nuevo') === clave).length;
+  let destino = null;
+  if(n > 0){
+    const otras = ESTADOS.filter(e => e.clave !== clave);
+    const ok = await lwConfirmar({
+      titulo: lwT('Borrar la columna "%t"', { t: fila.titulo }),
+      cuerpo: `<p>${lwT('Hay %n lead(s) en esta columna. Elige a qué columna se mueven:', { n })}</p>
+        <select id="dlgDestinoEstado">${otras.map(e => `<option value="${esc(e.clave)}">${esc(e.titulo)}</option>`).join('')}</select>`,
+      confirmar: lwT('Mover y borrar'), tono: 'peligro',
+    });
+    if(!ok) return;
+    destino = (document.getElementById('dlgDestinoEstado') || {}).value || otras[0].clave;
+  } else {
+    const ok = await lwConfirmar({
+      titulo: lwT('Borrar la columna "%t"', { t: fila.titulo }),
+      cuerpo: lwT('No tiene ningún lead dentro. Esto no se puede deshacer.'),
+      confirmar: lwT('Borrar la columna'), tono: 'peligro',
+    });
+    if(!ok) return;
+  }
+  try {
+    const { error } = await SB.rpc('crm_estado_borrar', { p_clave: clave, p_destino: destino });
+    if(error) throw error;
+    toast(lwT('Columna borrada.'));
+    await cargar();
+    abrirEstructura();
+  } catch(err){ toastMal(lwT('No se pudo borrar la columna: ') + (err.message || err)); }
 }
 
 /* ==========================================================================
@@ -2004,6 +2235,7 @@ $('#filtroHoy').addEventListener('click', e => {
   cargarHoy();
 });
 $('#btnRefrescar').addEventListener('click', cargar);
+$('#btnEstructura').addEventListener('click', abrirEstructura);
 $('#btnRefrescarSetter').addEventListener('click', cargarSetter);
 $('#btnAgendarGuardar').addEventListener('click', guardarCita);
 $('#btnAgendarCancelar').addEventListener('click', limpiarFormularioAgenda);
@@ -2031,6 +2263,11 @@ window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   $('#tabClosers').hidden = !GESTOR_CRM;
   $('#tabCampanas').hidden = !GESTOR_CRM;
   $('#tabAutomatismos').hidden = !GESTOR_CRM;
+  /* Solo super_admin ve el botón. Es un candado de comodidad, no de seguridad —
+     el real lo pone `es_super_admin()` dentro de las tres funciones de la base;
+     esto solo evita ofrecer un control que el resto del equipo no puede usar. */
+  PUEDE_ESTRUCTURA = !!ficha && ficha.rol === 'super_admin';
+  $('#btnEstructura').hidden = !PUEDE_ESTRUCTURA;
   await pintarAlcance();
   await cargar();
   $('#c-pipeline').textContent = LEADS.length;
