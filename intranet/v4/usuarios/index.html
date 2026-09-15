@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="es" style=""><head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d6d6608e" data-herramienta="usuarios"></script>
-<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=310f2346" defer></script><script src="../assets/datos.js?v=83bab908" defer></script>
+<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=310f2346" defer></script><script src="../assets/datos.js?v=e5dc195b" defer></script>
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=c55b4142" defer></script>
 <link href="../assets/shell.css?v=4978e676" rel="stylesheet">
@@ -91,22 +91,29 @@
 <!-- Filtros por Departamento / Rol -->
 <section class="flex flex-wrap items-center gap-2">
 <button class="filter-btn active px-4 py-1.5 rounded-full bg-territorial-green text-on-primary font-label-md text-body-sm transition-colors shadow-sm" data-role="all" type="button">
-      Todos (16)
+      Todos (—)
     </button>
 <button class="filter-btn px-4 py-1.5 rounded-full bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-high font-label-md text-body-sm transition-colors shadow-sm" data-role="admin" type="button">
-      Super Admin (2)
+      Super Admin (—)
     </button>
+<!-- Antes decían "Gestión Legal & Notarial" / "Arquitectura & Obra" / "Comercial
+     & Ventas" / "Finanzas & Tesorería", como si fueran el departamento o la
+     función de la persona. Filtran por PERMISO de herramienta (contratos/
+     unidades/compradores/facturas), no por rol -- no hay esos roles en la base
+     (solo super_admin/admin/agente) -- así que un super_admin aparecía bajo los
+     cuatro a la vez. Hallazgo de Legal, 15-sep-2026: el rótulo tiene que decir
+     lo que de verdad filtra. -->
 <button class="filter-btn px-4 py-1.5 rounded-full bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-high font-label-md text-body-sm transition-colors shadow-sm" data-role="legal" type="button">
-      Gestión Legal &amp; Notarial (4)
+      Acceso a Contratos (—)
     </button>
 <button class="filter-btn px-4 py-1.5 rounded-full bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-high font-label-md text-body-sm transition-colors shadow-sm" data-role="obra" type="button">
-      Arquitectura &amp; Obra (4)
+      Acceso a Unidades (—)
     </button>
 <button class="filter-btn px-4 py-1.5 rounded-full bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-high font-label-md text-body-sm transition-colors shadow-sm" data-role="sales" type="button">
-      Comercial &amp; Ventas (4)
+      Acceso a Compradores (—)
     </button>
 <button class="filter-btn px-4 py-1.5 rounded-full bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-high font-label-md text-body-sm transition-colors shadow-sm" data-role="finance" type="button">
-      Finanzas &amp; Tesorería (2)
+      Acceso a Facturas (—)
     </button>
 </section>
 <!-- Contenedor Principal: Tabla de Usuarios (Izquierda) + Panel de Auditoría/Permisos (Derecha) -->

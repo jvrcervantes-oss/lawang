@@ -1924,25 +1924,39 @@
             tr.setAttribute('data-herr', ' ' + (u.herramientas || []).join(' ') + ' ');
           });
 
-          /* Los chips "Legal/Obra/Sales/Finance" son del diseño de Stitch y no
-             corresponden a ningún valor real de `usuarios.rol` (solo existen
-             super_admin/admin/agente, ver migración 20260729090521) — así que
-             se leen como el PERMISO de la herramienta equivalente
-             (`herramientas`), con el mismo mapeo que ya usa la matriz de abajo
-             (m1-m4: contratos/facturas/unidades/compradores). Es una lectura,
-             no un dato inventado: si el mapeo no es el que se quiso decir,
-             hay que corregir aquí, no en cada pantalla. */
+          /* Los chips "Legal/Obra/Sales/Finance" del diseño de Stitch se
+             renombraron el 15-sep (hallazgo de Legal): no corresponden a
+             ningún valor real de `usuarios.rol` (solo existen
+             super_admin/admin/agente, ver migración 20260729090521), así que
+             llamarlos por un departamento inducía a leer un PERMISO de
+             herramienta como si fuera la función de la persona. Ahora dicen
+             qué filtran de verdad — acceso a esa herramienta, mismo mapeo que
+             ya usa la matriz de abajo (m1-m4). "Super Admin" sí es un rol
+             real: filtra por igualdad exacta, no se mezcla con "admin". */
           var mapaRolChip = { legal: 'contratos', obra: 'unidades', sales: 'compradores', finance: 'facturas' };
+          function coincideChipUsuario(fila2, clave) {
+            if (clave === 'admin') return fila2.getAttribute('data-rol') === 'super_admin';
+            if (fila2.getAttribute('data-rol') === 'super_admin') return true;
+            var h = mapaRolChip[clave];
+            return !!h && fila2.getAttribute('data-herr').indexOf(' ' + h + ' ') !== -1;
+          }
           var chipsUsuarios = Array.prototype.slice.call(document.querySelectorAll('[data-role]'));
+          /* Hallazgo de Administración, 15-sep: el número entre paréntesis de
+             cada chip venía fijo del mockup de Stitch ("Todos (16)"…) y nunca
+             se refrescaba — un chip que ya filtra de verdad pero enseña un
+             recuento falso al lado es MÁS engañoso que uno que no filtraba
+             nada. Se recalcula aquí, sobre las filas ya pintadas. */
+          chipsUsuarios.forEach(function (btn) {
+            var clave = btn.getAttribute('data-role');
+            var n = clave === 'all' ? us.length : us.filter(function (u) {
+              return coincideChipUsuario({ getAttribute: function (k) { return k === 'data-rol' ? (u.rol || '') : (' ' + (u.herramientas || []).join(' ') + ' '); } }, clave);
+            }).length;
+            btn.textContent = btn.textContent.replace(/\(\s*[^)]*\s*\)\s*$/, '(' + n + ')');
+          });
           cablearChipsFiltro(chipsUsuarios, pl.tbody, 'tr[data-rol]',
             function (btn) { return btn.getAttribute('data-role'); },
             'all',
-            function (fila2, clave) {
-              if (clave === 'admin') return fila2.getAttribute('data-rol') === 'admin' || fila2.getAttribute('data-rol') === 'super_admin';
-              if (fila2.getAttribute('data-rol') === 'super_admin') return true;
-              var h = mapaRolChip[clave];
-              return !!h && fila2.getAttribute('data-herr').indexOf(' ' + h + ' ') !== -1;
-            },
+            coincideChipUsuario,
             function (btn, on) {
               btn.classList.toggle('bg-territorial-green', on);
               btn.classList.toggle('text-on-primary', on);
