@@ -1037,11 +1037,11 @@ function toastMal(msg){
 function pdef(key){
   if(key==='sociedad_firmante' && CURRENT && SOCIEDAD_DEFAULT[CURRENT.slug]) return SOCIEDAD_DEFAULT[CURRENT.slug];
   if(key==='cuenta_bancaria' && CURRENT && bankDefaultFor(CURRENT.slug, proyectoIdActual())) return bankDefaultFor(CURRENT.slug, proyectoIdActual());
-  // Fecha de firma y fecha de tipo de cambio: el día en que se está haciendo
-  // el contrato, no una fecha fija en tokens.json (cambia cada día). Mismo
-  // mecanismo que el resto de projectDefaults — un contrato reabierto sin
-  // este dato guardado también cae aquí, igual que ya pasa con moneda='EUR'.
-  if(key==='fecha_firma' || key==='fecha_tipo_cambio') return hoyLocalISO();   // local: toISOString daba AYER antes de las 2:00
+  // Fecha de firma: el día en que se está haciendo el contrato, no una fecha
+  // fija en tokens.json (cambia cada día). Mismo mecanismo que el resto de
+  // projectDefaults — un contrato reabierto sin este dato guardado también
+  // cae aquí, igual que ya pasa con moneda='EUR'.
+  if(key==='fecha_firma') return hoyLocalISO();   // local: toISOString daba AYER antes de las 2:00
   return (TOKENS && TOKENS.projectDefaults && TOKENS.projectDefaults[key]) || '';
 }
 
@@ -2115,7 +2115,6 @@ function aplicarReglasCampos(){
   syncAutoAnnex();
   syncParcelaMaster();
   syncResort();
-  syncSuperficieTotal();
   // va DESPUÉS de los de proyecto: lee el proyecto ya elegido para resolver qué
   // cuentas ofrece este contrato (cascada proyecto → tipo → general)
   syncCuentasProyecto();
@@ -2161,7 +2160,7 @@ function aplicarReglasCampos(){
    va a `parcela_master`, NO a `parcela_codigo`. Lo puse mal esta mañana y el
    contrato es explícito sobre qué es cada uno:
      · parcela_master  → «el PROMOTOR es titular de la parcela máster
-       {{parcela_master}} con una superficie de {{superficie_total}} m² brutos»
+       {{parcela_master}}»
      · parcela_codigo  → «ceder los derechos sobre la parcela nº
        {{parcela_codigo}}», o sea la SUBPARCELA que se vende (A1…C8)
    Con el autorrelleno en el campo equivocado, un contrato de Palm Field habría
@@ -2225,12 +2224,6 @@ function syncParcelaMaster(){
   renderDebounced();
 }
 
-/* Superficie bruta de la parcela máster (24-ago): mismo patrón que
-   syncParcelaMaster, sin respaldo en tokens.json porque este campo nunca
-   vivió ahí — nace directo en `proyectos.parcela_master_m2` (ficha de
-   Proyectos). Sin ella, el número solo existía en la tabla de Proyectos y
-   había que volver a teclearlo a mano en cada contrato — la misma
-   duplicación que ya se corrigió para el código de parcela y el resort. */
 /* LA CUENTA DE COBRO DEPENDE TAMBIÉN DEL PROYECTO (14-sep-2026, encargo del
    owner: «si seleccionas Palm Field puede ser esta otra»).
 
@@ -2306,21 +2299,6 @@ function aplicaPrecargaCuenta(sel, slug, proyectoId){
   renderDebounced();
 }
 
-let AUTO_SUPERFICIE_TOTAL = '';
-function syncSuperficieTotal(){
-  const sel   = document.querySelector('[name="proyecto_nombre"]');
-  const campo = document.querySelector('[name="superficie_total"]');
-  if(!sel || !campo) return;
-  const actual = campo.value.trim();
-  if(actual && actual !== AUTO_SUPERFICIE_TOTAL){ AUTO_SUPERFICIE_TOTAL = ''; return; }
-  const enBase = (PROYECTOS_DB || []).find(p => p.nombre === sel.value);
-  const m2 = (enBase && enBase.parcela_master_m2 != null) ? String(enBase.parcela_master_m2) : '';
-  if(m2 === actual) return;
-  campo.value = m2;
-  AUTO_SUPERFICIE_TOTAL = m2;
-  renderDebounced();
-}
-
 /* Resort del proyecto (7-ago): mismo patrón que syncParcelaMaster, sobre
    TOKENS.resortPorProyecto. Antes "Bonian Village by Balian Hills" era un
    único texto en proyecto_nombre; ahora son dos campos y este es el que
@@ -2339,11 +2317,11 @@ function syncResort(){
   renderDebounced();
 }
 
-/* Bloqueo de resort/parcela máster/superficie bruta (31-ago, petición del
+/* Bloqueo de resort/parcela máster (31-ago, petición del
    cliente): si el proyecto elegido YA tiene ese dato en su ficha (tabla
    `proyectos`, la pantalla Proyectos), Contratos deja de dejar tocarlo a
    mano — la ficha es la fuente única, y el escape "escrito a mano:
-   intocable" de syncParcelaMaster/syncResort/syncSuperficieTotal existía
+   intocable" de syncParcelaMaster/syncResort existía
    justo para lo contrario. Si la ficha está vacía para ese campo (proyecto
    sin dar de alta todavía en Proyectos), se queda editable como siempre:
    bloquear un hueco vacío no ayuda, solo impide rellenarlo la primera vez.
@@ -2351,7 +2329,7 @@ function syncResort(){
 function syncBloqueoFichaProyecto(){
   const sel = document.querySelector('[name="proyecto_nombre"]');
   const enBase = sel && (PROYECTOS_DB || []).find(p => p.nombre === sel.value);
-  [['resort', 'resort'], ['parcela_master', 'parcela_master'], ['superficie_total', 'parcela_master_m2']]
+  [['resort', 'resort'], ['parcela_master', 'parcela_master']]
     .forEach(([campo, claveFicha]) => {
       const el = document.querySelector(`[name="${campo}"]`);
       if(!el) return;

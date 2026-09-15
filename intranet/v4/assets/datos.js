@@ -864,6 +864,25 @@
         });
       }
 
+      /* LAW-186 (15-sep-2026): «Total Cartera Proyecto» sale de `unidades`, filtrado
+         por `unidad_visible()` — visible a TODO agente con el proyecto asignado.
+         «Total Cobrado»/firmado salen de contratos_equipo()/contratos_cobrado_equipo(),
+         que desde el 11-sep filtran por es_suyo()+es_manager_de() — solo lo propio.
+         Mismo proyecto, dos alcances distintos sin avisar en pantalla. Se decide NO
+         tocar la RLS (privacidad ya cerrada el 11-sep a propósito) y en su lugar
+         avisar cuándo el % no es el progreso real del proyecto: cuando quien mira no
+         es manager de ESE proyecto ni admin/super_admin. `p.id` viene de la carga de
+         `proyectos` (Promise.all de abajo); `MGRS` trae `proyectos_supervisados`. */
+      function esMiProyecto(p) {
+        if (window.LW_V4 && window.LW_V4.esAdmin) return true;
+        var email = ((window.LW_V4 && window.LW_V4.miEmail) || '').toLowerCase();
+        if (!email || !p) return false;
+        return MGRS.some(function (m) {
+          return (m.email || '').toLowerCase() === email &&
+                 (m.proyectos_supervisados || []).indexOf(p.id) !== -1;
+        });
+      }
+
       function proyectosFiltrados() {
         return PS.filter(function (p) {
           var d = POR_P[p.nombre] || { t: 0, disp: 0, porEstado: {} };
@@ -894,6 +913,17 @@
         pon('d-cobrado', fmt(cob, 'EUR'));
         pon('d-pendiente', fmt(d.cartera - cob, 'EUR'));
         pon('d-pct', d.cartera ? '(' + (Math.round(cob / d.cartera * 1000) / 10) + '%)' : '(—)');
+        // LAW-186: ver el porqué en el comentario de esMiProyecto() más arriba.
+        // `vePropio` se calcula SIEMPRE, no solo si existe la nota — si dependiera
+        // del `if` de abajo, un `notaAlcance` que no se encuentre (markup futuro
+        // sin el elemento) dejaría `vePropio` en `undefined`, que las líneas de
+        // abajo leerían como "no es tuyo" y pondrían "(tuyo)" hasta a un admin.
+        var vePropio = esMiProyecto(elegido);
+        var notaAlcance = document.querySelector('[data-lw="d-alcance-nota"]');
+        if (notaAlcance) {
+          notaAlcance.classList.toggle('hidden', vePropio);
+          if (!vePropio) notaAlcance.textContent = '«Total Cobrado» y la barra son solo TUS contratos en este proyecto — «Total Cartera Proyecto» es el inventario completo del equipo.';
+        }
         pon('d-master', elegido.parcela_master || 'sin registrar');
         pon('d-sup', elegido.parcela_master_m2 ? elegido.parcela_master_m2 + ' m² (' + d.t + ' parcelas)' : d.t + ' parcelas');
         pon('d-docs', (DOC_P[elegido.nombre] || 0) + ' documentos');
@@ -929,7 +959,7 @@
           var elFir = document.querySelector('[data-barra="' + clave + '-firmado"]');
           if (elCob) elCob.style.width = cobPct + '%';
           if (elFir) elFir.style.width = Math.max(0, firmPct - cobPct) + '%';
-          pon('d-' + clave + '-pct', cartera ? (Math.round(firmPct * 10) / 10) + '% firmado' : 'sin cartera registrada');
+          pon('d-' + clave + '-pct', cartera ? (Math.round(firmPct * 10) / 10) + '% firmado' + (vePropio ? '' : ' (tuyo)') : 'sin cartera registrada');
           pon('d-' + clave + '-cifras', cartera
             ? 'Cobrado ' + fmt(datos.cobrado, 'EUR') + ' · Firmado ' + fmt(datos.firmado, 'EUR') + ' · Total ' + fmt(cartera, 'EUR')
             : '—');
@@ -952,7 +982,7 @@
           var elFirS = document.querySelector('[data-barra="simple-firmado"]');
           if (elCobS) elCobS.style.width = cobPctS + '%';
           if (elFirS) elFirS.style.width = Math.max(0, firmPctS - cobPctS) + '%';
-          pon('d-pct2', 'Recaudado ' + (d.cartera ? (Math.round(cob / d.cartera * 1000) / 10) : 0) + '%');
+          pon('d-pct2', 'Recaudado ' + (d.cartera ? (Math.round(cob / d.cartera * 1000) / 10) : 0) + '%' + (vePropio ? '' : ' (tuyo)'));
           pon('d-objetivo', 'Cartera ' + fmt(d.cartera, 'EUR'));
         }
         var notaSin = document.getElementById('cajon-nota-sin-atribuir');
@@ -1176,7 +1206,10 @@
           pon('disp', d.disp + ' disp.', c);
           pon('cobrado', fmt(cob, 'EUR'), c);
           pon('total', '/ ' + fmt(d.cartera, 'EUR'), c);
-          pon('pct', d.cartera ? (Math.round(cob / d.cartera * 1000) / 10) + '% cobrado' : 'sin cartera', c);
+          // LAW-186: "tuyo" avisa de que cob es SOLO lo cobrado por quien mira,
+          // no lo del proyecto entero, cuando no es su manager ni admin — ver
+          // esMiProyecto() más arriba.
+          pon('pct', d.cartera ? (Math.round(cob / d.cartera * 1000) / 10) + '% cobrado' + (esMiProyecto(p) ? '' : ' (tuyo)') : 'sin cartera', c);
           pon('master', p.parcela_master || '—', c);
           // Dos colores en la misma barra (11-sep-2026): oscuro = cobrado,
           // claro = firmado (bloqueado=true) pero todavía sin cobrar. FIRM_P

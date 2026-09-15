@@ -747,13 +747,9 @@ function editarProyecto(nombre){
         <input id="fp-resort" list="fp-resort-lista" value="${esc(ficha.resort||'')}" placeholder="${lwT('Ej. Balian Hills')}">
         <datalist id="fp-resort-lista">${resorts.map(r => `<option value="${esc(r)}">`).join('')}</datalist>
       </div>
-      <div class="dos">
-        <div class="campo"><label for="fp-master">${lwT('Parcela máster (código)')}</label>
-          <input id="fp-master" value="${esc(ficha.parcela_master||'')}" placeholder="${lwT('Ej. W5')}"></div>
-        <div class="campo"><label for="fp-master-m2">${lwT('Superficie bruta (m²)')}</label>
-          <input id="fp-master-m2" inputmode="decimal" value="${ficha.parcela_master_m2!=null?esc(fmtNum(Number(ficha.parcela_master_m2))):''}"></div>
-      </div>
-      <p class="sui-nota">${lwT('Para cambiar el')} <b>nombre</b> ${lwT('del proyecto usa «Renombrar…» abajo — es otra operación, porque esa sí se propaga a unidades, contratos, facturas… y estos tres campos no.')}</p>
+      <div class="campo"><label for="fp-master">${lwT('Parcela máster (código)')}</label>
+        <input id="fp-master" value="${esc(ficha.parcela_master||'')}" placeholder="${lwT('Ej. W5')}"></div>
+      <p class="sui-nota">${lwT('Para cambiar el')} <b>nombre</b> ${lwT('del proyecto usa «Renombrar…» abajo — es otra operación, porque esa sí se propaga a unidades, contratos, facturas… y estos dos campos no.')}</p>
 
       <div class="sui-bloque" style="margin-top:18px">
         <h3>${lwT('Qué se puede construir aquí')}</h3>
@@ -815,7 +811,6 @@ function editarProyecto(nombre){
     const fila = {
       resort: $('#fp-resort').value.trim() || null,
       parcela_master: $('#fp-master').value.trim() || null,
-      parcela_master_m2: parseImporte($('#fp-master-m2').value) || null,
     };
     const btn = $('#btnGuardarFicha'); btn.disabled = true;
     const { data, error } = await SB.from('proyectos').update(fila).eq('nombre', nombre).select('id');

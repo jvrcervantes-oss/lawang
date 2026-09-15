@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="es" style=""><head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d6d6608e" data-herramienta="unidades"></script>
-<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=310f2346" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1" defer></script><script src="/contracts/assets/proyectos_csv.js?v=e610515a" defer></script><script src="../assets/datos.js?v=90f80452" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=310f2346" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1" defer></script><script src="/contracts/assets/proyectos_csv.js?v=e610515a" defer></script><script src="../assets/datos.js?v=2dbfd347" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=88560db6" defer></script>
 <link href="../assets/shell.css?v=4978e676" rel="stylesheet">
@@ -426,6 +426,13 @@
           </h4>
 
 </div>
+<!-- LAW-186 (15-sep-2026): «Total Cobrado» y la barra de firmado son SOLO los
+     contratos propios de quien mira (contratos_equipo()/contratos_cobrado_equipo()
+     filtran por es_suyo() desde el 11-sep, LAW-186), pero «Total Cartera Proyecto»
+     es el inventario COMPLETO del proyecto asignado (unidad_visible(), más amplio).
+     Sin este aviso el % parecía el progreso real del proyecto. Oculto por defecto;
+     datos.js lo enseña solo si quien mira no es manager de ESTE proyecto ni admin. -->
+<p class="hidden text-[11px] leading-snug text-[#8A6A34] bg-[#FBEFBE] rounded-lg px-2.5 py-1.5" data-lw="d-alcance-nota">—</p>
 <div class="bg-surface-container-low rounded-xl p-3.5 border border-warm-border space-y-2">
 <div class="flex items-baseline justify-between pb-1.5 border-b border-warm-border/60">
 <span class="text-xs text-on-surface-variant font-medium">Total Cartera Proyecto:</span>
