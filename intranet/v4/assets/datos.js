@@ -2101,6 +2101,7 @@
         pon2('cv-tel', c.phone || 'sin teléfono en ficha');
         pon2('cv-email', c.email || 'sin email en ficha');
         pon2('cv-cat', 'Categoría: ' + (el.categoria || 'general'));
+        pon2('h-toggle-estado', el.estado === 'abierto' ? 'Marcar resuelto' : 'Reabrir');
         var ta = document.querySelector('textarea');
         if (ta) ta.placeholder = 'Escribe la respuesta para ' + (c.full_name || 'el comprador') + '… (se envía desde la herramienta: cada mensaje manda un email real)';
         // «Ver perfil» → la ficha real; «WhatsApp» solo si hay teléfono (norma wa.me)

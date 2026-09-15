@@ -487,6 +487,171 @@
     };
   }
 
+  /* ---------- Fotos de obra (mismo bucket/optimizacion que /intranet/obra/) ----------
+     Sube, titula, oculta/muestra y borra fotos de una unidad — cada accion va
+     contra la base EN EL MOMENTO en que se pulsa, igual que el cajon de la
+     herramienta viva: no espera al «Guardar» del formulario, que solo guarda
+     fase/fecha. La optimizacion a 1600px/jpeg .82 y el bucket 'obra' son los
+     MISMOS que en intranet/obra/index.html (Regla 0) — dos recompresiones que
+     divergieran serian el bug de manana. */
+  function montaFotosObra(host, sb, unidadId) {
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'display:grid;gap:8px';
+    var etiqueta = document.createElement('div');
+    etiqueta.style.cssText = 'font-weight:500;font-size:12px;color:' + CAJ.apagado;
+    etiqueta.textContent = 'Fotos';
+    wrap.appendChild(etiqueta);
+    var grid = document.createElement('div');
+    grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px';
+    wrap.appendChild(grid);
+    var caja = document.createElement('div');
+    caja.textContent = '+ Subir fotos — se optimizan solas a tamaño web';
+    caja.style.cssText = 'padding:10px 12px;border:1px dashed ' + CAJ.hoja + ';border-radius:8px;color:' + CAJ.lago +
+      ';font-weight:600;font-size:12.5px;cursor:pointer;text-align:center';
+    var input = document.createElement('input');
+    input.type = 'file'; input.accept = 'image/*'; input.multiple = true; input.hidden = true;
+    wrap.appendChild(caja); wrap.appendChild(input);
+    host.appendChild(wrap);
+
+    var fotos = [];
+
+    function optimiza(file) {
+      return new Promise(function (res, rej) {
+        var img = new Image();
+        img.onload = function () {
+          var M = 1600, r = Math.min(1, M / Math.max(img.width, img.height));
+          var c = document.createElement('canvas');
+          c.width = Math.round(img.width * r); c.height = Math.round(img.height * r);
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          c.toBlob(function (b) { if (b) res(b); else rej(new Error('no se pudo convertir')); }, 'image/jpeg', .82);
+          URL.revokeObjectURL(img.src);
+        };
+        img.onerror = function () { rej(new Error('imagen ilegible')); };
+        img.src = URL.createObjectURL(file);
+      });
+    }
+
+    function repinta() {
+      grid.innerHTML = '';
+      fotos.forEach(function (f) {
+        var it = document.createElement('div');
+        it.style.cssText = 'display:grid;gap:4px;border:1px solid ' + CAJ.borde + ';border-radius:8px;padding:6px;' +
+          'background:' + CAJ.papel + (f.visible ? '' : ';opacity:.5');
+        var img = document.createElement('img');
+        img.style.cssText = 'width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;background:' + CAJ.banda;
+        it.appendChild(img);
+        sb.storage.from('obra').createSignedUrl(f.path, 1800).then(function (r) {
+          if (r.data && r.data.signedUrl) img.src = r.data.signedUrl;
+        });
+        var titu = document.createElement('div');
+        titu.textContent = f.titulo || 'Sin título';
+        titu.style.cssText = 'font-size:10.5px;font-weight:600;color:' + CAJ.tinta + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+        it.appendChild(titu);
+        var acts = document.createElement('div');
+        acts.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap';
+        [['Título', 'titulo'], [f.visible ? 'Ocultar' : 'Mostrar', 'visible'], ['Borrar', 'borrar']].forEach(function (par) {
+          var b = document.createElement('button');
+          b.type = 'button'; b.textContent = par[0];
+          b.style.cssText = 'padding:2px 6px;border-radius:6px;border:1px solid ' + CAJ.borde + ';background:' + CAJ.banda +
+            ';color:' + CAJ.tinta + ';font-size:10px;cursor:pointer';
+          b.addEventListener('click', function () { accion(f, par[1]); });
+          acts.appendChild(b);
+        });
+        it.appendChild(acts);
+        grid.appendChild(it);
+      });
+    }
+
+    function carga() {
+      return sb.from('obra_fotos').select('id,path,titulo,tomada_en,visible').eq('unidad_id', unidadId)
+        .order('tomada_en', { ascending: false }).then(function (r) {
+          fotos = r.data || [];
+          repinta();
+        });
+    }
+
+    function borra(f) {
+      sb.from('obra_fotos').delete().eq('id', f.id).then(function (r) {
+        if (r.error) return aviso(r.error.message, '#93000a');
+        sb.storage.from('obra').remove([f.path]);
+        carga();
+      });
+    }
+
+    function accion(f, act) {
+      if (act === 'visible') {
+        sb.from('obra_fotos').update({ visible: !f.visible }).eq('id', f.id).then(function (r) {
+          if (r.error) return aviso(r.error.message, '#93000a');
+          carga();
+        });
+      } else if (act === 'titulo') {
+        var t = window.prompt('Título de la foto (lo ve el comprador):', f.titulo || '');
+        if (t === null) return;
+        sb.from('obra_fotos').update({ titulo: t.trim() || null }).eq('id', f.id).then(function (r) {
+          if (r.error) return aviso(r.error.message, '#93000a');
+          carga();
+        });
+      } else if (act === 'borrar') {
+        var ir = (typeof lwConfirmar === 'function')
+          ? lwConfirmar({ titulo: 'Borrar esta foto', cuerpo: 'Se quita también del portal del comprador. Esto no se puede deshacer.', confirmar: 'Borrar', tono: 'peligro' })
+          : Promise.resolve(window.confirm('Borrar esta foto — se quita también del portal del comprador.'));
+        ir.then(function (seguro) { if (seguro) borra(f); });
+      }
+    }
+
+    caja.addEventListener('click', function () { input.click(); });
+    input.addEventListener('change', function () {
+      var files = Array.prototype.slice.call(input.files);
+      if (!files.length) return;
+      caja.textContent = 'Subiendo…';
+      var ok = 0, pend = files.length;
+      files.forEach(function (file) {
+        optimiza(file).then(function (blob) {
+          var nombre = Date.now() + '_' + file.name.replace(/[^a-z0-9._-]/gi, '_').replace(/\.[^.]+$/, '') + '.jpg';
+          var path = unidadId + '/' + nombre;
+          return sb.storage.from('obra').upload(path, blob, { contentType: 'image/jpeg' }).then(function (up) {
+            if (up.error) throw up.error;
+            return sb.from('obra_fotos').insert({ unidad_id: unidadId, path: path }).select('id');
+          });
+        }).then(function (ins) {
+          if (ins && ins.error) throw ins.error;
+          ok++;
+        }).catch(function (e) {
+          aviso('«' + file.name + '»: ' + (e && e.message || e), '#93000a');
+        }).then(function () {
+          pend--;
+          if (pend === 0) {
+            caja.textContent = '+ Subir fotos — se optimizan solas a tamaño web';
+            input.value = '';
+            if (ok) aviso(ok + (ok === 1 ? ' foto subida' : ' fotos subidas'));
+            carga();
+          }
+        });
+      });
+    });
+
+    carga();
+  }
+
+  /* Paso 2 de «Registrar avance técnico»: fase (del catálogo obra_fases, no
+     texto libre — antes se podia escribir cualquier cosa) + fecha, ya con el
+     valor ACTUAL de la unidad elegida, más su gestor de fotos. «Guardar» solo
+     escribe fase/fecha (por obra_actualizar, igual que antes); las fotos se
+     suben/borran en el momento, como en /intranet/obra/. */
+  function abreAvanceUnidad(sb, u, fases) {
+    if (!u) return;
+    modal('Registrar avance técnico', [
+      { k: '_ctx', tipo: 'lectura', label: 'Unidad', valor: u.codigo + ' · ' + (u.proyecto || '—') },
+      { k: 'fase', label: 'Fase actual', tipo: 'select', valor: u.obra_fase || '',
+        opciones: [['', '— sin empezar —']].concat(fases.map(function (f) { return [f.clave, f.orden + '. ' + f.es]; })) },
+      { k: 'fecha', label: 'Entrega estimada', tipo: 'date', valor: u.obra_fecha_entrega || '' },
+      { k: 'fotos', tipo: 'custom', render: function (d) { montaFotosObra(d, sb, u.id); } }
+    ], 'Guardar', function (v) {
+      // por la RPC de la suite, nunca UPDATE a pelo (revision previa, Datos)
+      return sb.rpc('obra_actualizar', { p_unidad: u.id, p_fase: v.fase || null, p_fecha: v.fecha || null });
+    });
+  }
+
   /* ---------- editores por pantalla ---------- */
   var ED = {
 
@@ -822,7 +987,9 @@
         aviso('Abriendo formulario…');
         Promise.all([
           sb.from('proyectos').select('nombre').eq('activo', true).order('nombre'),
-          sb.from('tipos_vivienda').select('clave,etiqueta').eq('activo', true).order('etiqueta')
+          sb.from('tipos_vivienda').select('clave,etiqueta').eq('activo', true).order('etiqueta'),
+          (typeof lwCargarCatalogoModelos === 'function')
+            ? lwCargarCatalogoModelos(sb) : Promise.resolve({ catalogo: [], villas: [] })
         ]).then(function (rs) {
           // Hallazgo de Desarrollo en la consulta de deploy: sin este chequeo,
           // un fallo de red o de RLS abría el modal en silencio con los
@@ -833,27 +1000,53 @@
           var tipos = ((rs[1] && rs[1].data) || []).map(function (t) { return [t.clave, t.etiqueta]; });
           if (!proyectos.length) return aviso('No hay ningún proyecto dado de alta todavía — crea uno con «+ Nuevo proyecto» primero.', '#8A6A34');
           var actual = proyectoObj();
-          modal('Nueva unidad', [
-            { k: 'proyecto', label: 'Proyecto', tipo: 'select', req: 1, opciones: proyectos, valor: (actual && actual.nombre) || proyectos[0] },
-            { k: 'codigo', label: 'Código', req: 1, ayuda: 'Debe coincidir con el que se escribe en el contrato: es lo que permite cruzarlos.' },
-            { k: 'tipo', label: 'Tipo', tipo: 'select', opciones: tipos.length ? tipos : [['parcela', 'Parcela']], valor: 'parcela' },
-            { k: 'superficie_m2', label: 'Superficie (m²)', tipo: 'number' },
-            { k: 'precio_suelo', label: 'Precio de suelo', tipo: 'number' },
-            { k: 'precio_construccion', label: 'Precio de construcción', tipo: 'number' },
-            { k: 'moneda', label: 'Moneda', tipo: 'select', opciones: ['EUR', 'IDR'], valor: 'EUR' },
+          var proyectoDefecto = (actual && actual.nombre) || proyectos[0];
+          var cat = rs[2] || { catalogo: [], villas: [] };
+          // igual que en editarUnidad(): el modelo sale del catálogo real del
+          // proyecto por defecto, nunca texto libre si hay catálogo (8-sep-2026)
+          var mods = (typeof lwModelosDeProyecto === 'function')
+            ? lwModelosDeProyecto(proyectoDefecto, cat.villas, cat.catalogo) : { lista: [], declarados: false };
+          var camposU = [
+            { k: 'proyecto', label: 'Proyecto', tipo: 'select', req: 1, medio: 1, opciones: proyectos, valor: proyectoDefecto },
+            { k: 'codigo', label: 'Código', req: 1, medio: 1, ayuda: 'Debe coincidir con el que se escribe en el contrato: es lo que permite cruzarlos.' },
+            { k: 'tipo', label: 'Tipo', tipo: 'select', medio: 1, opciones: tipos.length ? tipos : [['parcela', 'Parcela']], valor: 'parcela' }
+          ];
+          if (mods.lista.length) {
+            camposU.push({ k: 'modelo', label: 'Modelo de villa', tipo: 'select', medio: 1,
+              opciones: [['', '— sin decidir —']].concat(mods.lista.map(function (m) { return [m.modelo, m.modelo]; })),
+              ayuda: mods.declarados ? '' : 'Este proyecto no tiene modelos declarados, así que se ofrece el catálogo entero.' });
+          } else {
+            camposU.push({ k: 'modelo', label: 'Modelo de villa', medio: 1, ayuda: 'Dune, Dream… (opcional)' });
+          }
+          // fase/zona de masterplan solo existen para Sumba Hills — se ofrecen
+          // ya con el proyecto por defecto marcado; si al final se elige otro
+          // proyecto desde el desplegable, van vacías y no se mandan.
+          if (proyectoDefecto === 'Sumba Hills') {
+            camposU.push({ k: 'fase_masterplan', label: 'Fase (masterplan)', medio: 1, ayuda: 'I, II…' });
+            camposU.push({ k: 'zona_masterplan', label: 'Zona', medio: 1, ayuda: '1, 2, 3…' });
+          }
+          camposU.push(
+            { k: 'superficie_m2', label: 'Superficie (m²)', tipo: 'number', medio: 1 },
+            { k: 'precio_suelo', label: 'Precio de suelo', tipo: 'number', medio: 1 },
+            { k: 'precio_construccion', label: 'Precio de construcción', tipo: 'number', medio: 1 },
+            { k: 'moneda', label: 'Moneda', tipo: 'select', medio: 1, opciones: ['EUR', 'IDR'], valor: 'EUR' },
             { k: 'notas', label: 'Notas', tipo: 'textarea' }
-          ], 'Crear unidad', function (v) {
+          );
+          modal('Nueva unidad', camposU, 'Crear unidad', function (v) {
             // Campos `type:'number'` nativos: el valor ya llega en punto decimal
             // (p.ej. "1200.5"), nunca con el formato europeo de coma que usa
             // parseImporte() en /proyectos/ para sus inputs de texto libre —
             // aplicar esa transformación aquí le comería el punto y lo rompería.
             var num = function (s) { var n = parseFloat(s); return isNaN(n) ? null : n; };
-            return sb.from('unidades').insert({
+            var fila = {
               codigo: v.codigo.trim(), proyecto: v.proyecto,
-              tipo: v.tipo, superficie_m2: num(v.superficie_m2),
+              tipo: v.tipo, modelo: v.modelo ? v.modelo.trim() : null, superficie_m2: num(v.superficie_m2),
               precio_suelo: num(v.precio_suelo), precio_construccion: num(v.precio_construccion),
               moneda: v.moneda, notas: v.notas.trim() || null
-            });
+            };
+            if (v.fase_masterplan) fila.fase_masterplan = v.fase_masterplan.trim();
+            if (v.zona_masterplan) fila.zona_masterplan = v.zona_masterplan.trim();
+            return sb.from('unidades').insert(fila);
           });
         }, function (e) {
           aviso('No se pudo abrir: ' + (e && e.message || e), '#ba1a1a');
@@ -1202,8 +1395,11 @@
         if (!puedeH(aut.ficha, 'vencimientos')) return aviso('Ajustar hitos exige la herramienta Vencimientos (policy puede(\'vencimientos\')).', '#8A6A34');
         /* Un hito NUEVO no se crea aqui a proposito: nacen del calendario del
            contrato (sincroniza_vencimientos) y la tabla no tiene policy de
-           INSERT. Lo que si se hace aqui es AJUSTAR: fecha, importe y nota —
-           con ajustado=true, o el trigger regenera y se lo come. */
+           INSERT. Lo que si se hace aqui es AJUSTAR: fecha y nota — con
+           ajustado=true, o el trigger regenera y se lo come. El importe NO se
+           edita aqui a proposito: la herramienta viva tampoco lo deja tocar
+           por pantalla (decision deliberada, no un descuido — 15-sep-2026),
+           asi que v4 no abre una via que el equipo no queria que existiera. */
         Promise.all([
           sb.from('contrato_vencimientos').select('id,contrato_id,descripcion,pct,monto,fecha,nota').order('fecha', { ascending: true, nullsFirst: true }).limit(400),
           sb.rpc('contratos_equipo').select('id,numero')
@@ -1218,12 +1414,10 @@
           modal('Ajustar un hito', [
             { k: 'id', label: 'Hito', tipo: 'select', opciones: ops, req: 1 },
             { k: 'fecha', label: 'Fecha', tipo: 'date' },
-            { k: 'monto', label: 'Importe (vacío = manda el %)', ayuda: 'texto libre como en la herramienta: 15.000,00' },
             { k: 'nota', label: 'Nota', tipo: 'textarea' }
           ], 'Guardar ajuste', function (v) {
             var patch = { ajustado: true };
             if (v.fecha) patch.fecha = v.fecha;
-            if (v.monto !== '') patch.monto = v.monto;
             if (v.nota !== '') patch.nota = v.nota;
             return sb.from('contrato_vencimientos').update(patch).eq('id', v.id);
           });
@@ -1233,6 +1427,16 @@
 
     soporte: function (aut) {
       var sb = aut.sb;
+      // mismo UPDATE directo que toggleEstado() en /intranet/soporte/ — RLS ya lo deja
+      ata(/^(Marcar resuelto|Reabrir)$/i, function () {
+        var hilo = window.LW_V4 && window.LW_V4.hilo;
+        if (!hilo) return aviso('El hilo aún no ha cargado.', '#8A6A34');
+        var nuevo = hilo.estado === 'abierto' ? 'resuelto' : 'abierto';
+        sb.from('hilo_soporte').update({ estado: nuevo, actualizado_en: new Date().toISOString() }).eq('id', hilo.id).then(function (r) {
+          if (r.error) return aviso('No se pudo cambiar el estado: ' + r.error.message, '#93000a');
+          location.reload();
+        });
+      });
       ata(/^Enviar respuesta$/i, function () {
         var ta = document.querySelector('textarea');
         var hilo = window.LW_V4 && window.LW_V4.hilo;
@@ -1252,18 +1456,21 @@
       var sb = aut.sb;
       ata(/Registrar avance/i, function () {
         if (!puedeH(aut.ficha, 'unidades')) return aviso('El avance de obra exige la herramienta Unidades (policy puede(\'unidades\')).', '#8A6A34');
-        sb.from('unidades_estado').select('id,codigo,proyecto,obra_fase').order('codigo').limit(500).then(function (r) {
-          if (r.error) return aviso('No se pudieron leer las unidades: ' + r.error.message, '#93000a');
-          var us = r.data || [];
+        Promise.all([
+          sb.from('unidades_estado').select('id,codigo,proyecto,obra_fase,obra_fecha_entrega').order('codigo').limit(500),
+          sb.from('obra_fases').select('*').order('orden')
+        ]).then(function (rs) {
+          if (rs[0].error) return aviso('No se pudieron leer las unidades: ' + rs[0].error.message, '#93000a');
+          var us = rs[0].data || [], fases = rs[1].data || [];
           var ops = us.map(function (u) { return [u.id, u.codigo + ' · ' + (u.proyecto || '—') + (u.obra_fase ? ' · ' + u.obra_fase : '')]; });
+          // paso 1: elegir unidad — paso 2 (abajo) abre YA con su fase/fecha actuales y sus fotos,
+          // igual que clicar una fila en /intranet/obra/ (aquí no hay tabla clicable todavía)
           modal('Registrar avance técnico', [
-            { k: 'unidad', label: 'Unidad', tipo: 'select', opciones: ops, req: 1 },
-            { k: 'fase', label: 'Fase de obra', req: 1, ayuda: 'p. ej. «Estructura», «Cubierta», «Acabados»' },
-            { k: 'fecha', label: 'Fecha de entrega prevista', tipo: 'date' }
-          ], 'Registrar', function (v) {
-            // por la RPC de la suite, nunca UPDATE a pelo (revision previa, Datos)
-            return sb.rpc('obra_actualizar', { p_unidad: v.unidad, p_fase: v.fase, p_fecha: v.fecha || null });
-          });
+            { k: 'unidad', label: 'Unidad', tipo: 'select', opciones: ops, req: 1 }
+          ], 'Continuar', function (v) {
+            var u = us.filter(function (x) { return x.id === v.unidad; })[0];
+            setTimeout(function () { abreAvanceUnidad(sb, u, fases); }, 300);
+          }, { sinRecarga: true });
         });
       });
     },
