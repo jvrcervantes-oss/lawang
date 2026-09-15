@@ -1048,9 +1048,18 @@ function abrirUnidad(id){
              propósito: este comentario vive DENTRO de una plantilla de texto y
              un backtick la cierra antes de tiempo). El total de la operación
              está en Operaciones, a un clic de aquí. -->
-        <dt>${lwT('Cobrado de esta unidad')}</dt><dd>${esc(fmtMoneda(Number(u.facturado||0), u.moneda||'EUR'))}${
-          u.pct_cobrado != null ? ' · ' + u.pct_cobrado + '%' : ''}${
-          ' <span class="flojo">' + lwT('(su parte del contrato)') + '</span>'}</dd>
+        <!-- LAW-186 mitad B (15-sep-2026): facturado sale null (no 0) cuando el
+             contrato de esta unidad no es tuyo ni lo supervisas -- unidad_parte_cobrada_split()
+             ya no calcula nada para quien no tiene permiso. Un Number(null||0) habria
+             enseñado "0,00 EUR" como si de verdad no se hubiera cobrado nada, cuando lo
+             real es que no se puede saber. Mismo criterio que ya usaba pct_cobrado justo
+             al lado. Sin comillas invertidas en este comentario a proposito -- ver la
+             nota de arriba, mismo motivo. -->
+        ${u.facturado != null
+          ? `<dt>${lwT('Cobrado de esta unidad')}</dt><dd>${esc(fmtMoneda(Number(u.facturado), u.moneda||'EUR'))}${
+              u.pct_cobrado != null ? ' · ' + u.pct_cobrado + '%' : ''}${
+              ' <span class="flojo">' + lwT('(su parte del contrato)') + '</span>'}</dd>`
+          : `<dt>${lwT('Cobrado de esta unidad')}</dt><dd><span class="flojo">${lwT('no visible — el contrato no es tuyo')}</span></dd>`}
       </dl>
       ${u.pct_cobrado != null ? `<div class="barra"><i style="width:${Math.min(100, u.pct_cobrado)}%"></i></div>` : ''}
       <p class="sui-nota">${lwT('El estado lo lleva el contrato y el dinero, no una persona: una Carta de Reserva deja la parcela')} <b>reservada</b> ${lwT('(firmarla no la mueve); un Bloqueo de Parcela firmado la deja')}
