@@ -224,7 +224,7 @@
      script al pie de página, con `stopPropagation` para escapar de
      maqueta.js — verificado antes de tocar nada, ya filtran/muestran de
      verdad. Añadir un segundo wiring aquí sería la duplicación que la Regla
-     0 de la suite prohíbe.
+     0 de la suite prohíbe. */
 
   /* ══════════════ velo de carga (14-sep-2026, encargo del owner) ══════════════
      Cada pantalla de la v4 nace con todos sus numeros en «—» y los rellena este
