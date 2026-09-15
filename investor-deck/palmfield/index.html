@@ -1227,19 +1227,19 @@
     rows.forEach(function(row){
       var pts = ZONAS[row.codigo];
       if(!pts || pts.length < 3) return;
+      // Sin reserva de autoservicio (15-sep, aviso del owner): cada parcela
+      // disponible usa "Contact us" directo, igual que el resto de la suite.
       var libre = row.estado === 'disponible';
-      var puede = libre && row.cuota_reserva != null && Number(row.cuota_reserva) > 0;
-      var el = document.createElement(puede ? 'button' : 'div');
+      var el = document.createElement(libre ? 'a' : 'div');
       el.className = 'absolute inset-0 transition-all duration-200 ' +
         (libre ? 'hover:bg-territorial-green/35 cursor-pointer' : 'bg-black/45');
       el.style.clipPath = 'polygon(' + pts.map(function(p){ return p[0]+'% '+p[1]+'%'; }).join(',') + ')';
       var precio = row.precio != null ? ' · ' + fmtMoney(row.precio, row.moneda) : '';
       el.title = row.codigo + ' · ' + esc(row.superficie_m2) + ' m2' + precio + ' · ' +
         ({disponible:'Available',reservada:'Reserved',bloqueada:'Sold',no_disponible:'Sold'}[row.estado] || row.estado);
-      if(puede){
-        el.type = 'button';
-        el.setAttribute('aria-label', 'Reserve plot ' + row.codigo);
-        el.addEventListener('click', function(){ openModal(row.codigo); });
+      if(libre){
+        el.href = 'mailto:sales@lawangproperties.com?subject=' + encodeURIComponent('Palm Field ' + row.codigo);
+        el.setAttribute('aria-label', 'Contact us about plot ' + row.codigo);
       }
       wrap.appendChild(el);
       var sello = SELLO[row.estado];
@@ -1280,16 +1280,15 @@
       plotsCount.textContent = disponibles + ' of ' + rows.length + ' plots available';
       plotsWrap.innerHTML = '';
       rows.forEach(function(row){
-        var puedeReservar = row.estado === 'disponible' && row.cuota_reserva != null && Number(row.cuota_reserva) > 0;
+        // Sin reserva de autoservicio (15-sep, aviso del owner): "Contact us"
+        // para cualquier parcela disponible, nunca el boton "Reserve".
         var estadoLabel = { disponible:'Available', reservada:'Reserved', bloqueada:'Blocked', no_disponible:'Not available' }[row.estado] || row.estado;
         var pillClass = row.estado === 'disponible' ? 'bg-territorial-green/15 text-territorial-green' : (row.estado === 'reservada' ? 'bg-amber-100 text-amber-800' : 'bg-[#FBE9E7] text-[#B3261E]');
         var row_ = document.createElement('div');
         row_.className = 'p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#E4DFD5]/30 transition-colors';
         var actionHtml;
-        if(puedeReservar){
-          actionHtml = '<button class="reservar-btn px-3.5 py-1.5 rounded-full bg-deep-lagoon hover:bg-territorial-green text-white text-xs font-label-md font-semibold transition-colors" data-codigo="'+esc(row.codigo)+'">Reserve</button>';
-        } else if (row.estado === 'disponible') {
-          actionHtml = '<a class="px-3.5 py-1.5 rounded-full bg-[#E4DFD5] text-deep-lagoon text-xs font-label-md font-semibold" href="mailto:sales@lawangproperties.com?subject=Palm%20Field%20'+encodeURIComponent(row.codigo)+'">Contact us</a>';
+        if(row.estado === 'disponible'){
+          actionHtml = '<a class="px-3.5 py-1.5 rounded-full bg-deep-lagoon hover:bg-territorial-green text-white text-xs font-label-md font-semibold transition-colors" href="mailto:sales@lawangproperties.com?subject=Palm%20Field%20'+encodeURIComponent(row.codigo)+'">Contact us</a>';
         } else {
           actionHtml = '<span class="text-xs font-label-md text-[#5F6257] bg-[#F0ECE1] px-3 py-1.5 rounded-full">—</span>';
         }
@@ -1298,9 +1297,6 @@
           '<span class="text-xs text-[#44483f] font-body-sm">'+esc(row.superficie_m2)+' m² · Reference price '+fmtMoney(row.precio, row.moneda)+'</span></div>' +
           '<div>'+actionHtml+'</div>';
         plotsWrap.appendChild(row_);
-      });
-      Array.prototype.forEach.call(document.querySelectorAll('.reservar-btn'), function(btn){
-        btn.addEventListener('click', function(){ openModal(btn.getAttribute('data-codigo')); });
       });
       if(window.lwDeck){ lwDeck.traduce(document.getElementById('masterplan')); }
       if(window.lwRepintaDinero) lwRepintaDinero();
