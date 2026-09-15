@@ -979,7 +979,6 @@
         '<div class="px-6 pb-6 pt-5 border-t border-[#D8D2C5] flex flex-col gap-3">' +
           '<div class="flex items-baseline justify-between gap-3"><span class="text-xs text-[#5F6257] font-body-sm uppercase">Construction from</span>' + precioModelo(m.precio, m.moneda) + '</div>' +
           '<span class="text-[11px] text-[#5F6257]">+ land price, per plot chosen below</span>' +
-          '<a class="w-full py-2 rounded-full bg-[#E4DFD5] hover:bg-deep-lagoon hover:text-white text-deep-lagoon text-center text-xs font-label-md font-semibold transition-all border border-[#D8D2C5]" href="../../modelo/' + encodeURIComponent(slug) + '">View model &amp; floor plan</a>' +
         '</div>';
 
       // La etiqueta "Type NN" va dentro del marco de la foto, exista render o no.
@@ -1193,20 +1192,29 @@
   // Rectangulos en % sobre 12-masterplan.jpg (1690x2200). Medidos sobre la
   // propia imagen; al ir en % no dependen del tamano al que se muestre.
   // Rectangulos en % sobre 24-masterplan-plots.webp. NO estan medidos a ojo:
-  // salen de la posicion exacta de cada codigo en el PDF del dosier oficial
-  // (pagina 9), repartiendo cada calle por los puntos medios entre etiquetas.
+  // Recalibradas 15-sep-2026 (aviso del owner: no encajaban con la foto).
+  // Las de antes venian del PDF del dosier (pagina 9), un documento DISTINTO
+  // de esta imagen (24-masterplan-plots.webp) -- distinto recorte/escala, y
+  // el error se notaba sobre todo en las filas bajas de cada calle. Estas
+  // salen de medir la propia imagen: deteccion de las lineas blancas de
+  // separacion por columna (numpy sobre los pixeles, no a ojo) mas lectura
+  // visual de las esquinas irregulares (A1, B1/B2/B3, B9, B16, C1, C8, que
+  // no son rectangulos exactos y aqui se aproximan igual que antes). La
+  // rejilla vertical de las parcelas estandar es la MISMA en las tres
+  // calles (A/B/C): 15.0, 22.85, 30.72, 38.58, 46.45, 54.2, 62.23, 70.14,
+  // 77.98 -- confirmado que no es casualidad, es la fila real del terreno.
   var ZONAS = {
-    A1:[2.0,5.3,21.1,7.9], A2:[2.0,13.2,21.1,7.9], A3:[2.0,21.1,21.1,7.9],
-    A4:[2.0,29.0,21.1,7.9], A5:[2.0,36.9,21.1,8.1], A6:[2.0,45.0,21.1,8.0],
-    A7:[2.0,53.0,21.1,7.9], A8:[2.0,60.9,21.1,8.0], A9:[2.0,68.9,21.1,7.8],
-    B1:[27.1,16.0,12.6,13.8], B2:[40.2,16.0,10.3,13.8], B3:[51.3,16.0,13.6,13.8],
-    B4:[27.1,29.9,19.6,7.1], B5:[27.1,36.9,19.6,8.1], B6:[27.1,45.0,19.6,8.0],
-    B7:[27.1,53.0,19.6,7.9], B8:[27.1,60.9,19.6,8.0], B9:[27.1,68.9,19.6,7.8],
-    B10:[48.2,29.9,16.6,7.1], B11:[48.2,36.9,16.6,8.1], B12:[48.2,45.0,16.6,8.0],
-    B13:[48.2,53.0,16.6,7.9], B14:[48.2,60.9,16.6,8.0], B15:[48.2,68.9,16.6,8.0],
-    B16:[48.2,76.9,16.6,8.3], C1:[70.9,21.1,21.1,8.2], C2:[70.9,29.3,21.1,7.9],
-    C3:[70.9,37.3,21.1,7.9], C4:[70.9,45.2,21.1,7.9], C5:[70.9,53.0,21.1,7.9],
-    C6:[70.9,60.9,21.1,8.0], C7:[70.9,68.9,21.1,9.5], C8:[70.9,78.4,21.1,10.5]
+    A1:[2.0,0.0,24.7,15.0], A2:[2.0,15.0,24.7,7.8], A3:[2.0,22.8,24.7,7.9],
+    A4:[2.0,30.7,24.7,7.9], A5:[2.0,38.6,24.7,7.9], A6:[2.0,46.5,24.7,7.7],
+    A7:[2.0,54.2,24.7,8.0], A8:[2.0,62.2,24.7,7.9], A9:[2.0,70.1,24.7,7.9],
+    B1:[27.7,9.0,12.8,21.7], B2:[40.5,13.0,12.8,17.7], B3:[53.3,17.0,12.9,13.7],
+    B4:[27.7,30.7,19.0,7.9], B5:[27.7,38.6,19.0,7.9], B6:[27.7,46.5,19.0,7.7],
+    B7:[27.7,54.2,19.0,8.0], B8:[27.7,62.2,19.0,7.9], B9:[27.7,70.1,19.0,10.9],
+    B10:[46.8,30.7,19.2,7.9], B11:[46.8,38.6,19.2,7.9], B12:[46.8,46.5,19.2,7.7],
+    B13:[46.8,54.2,19.2,8.0], B14:[46.8,62.2,19.2,7.9], B15:[46.8,70.1,19.2,7.9],
+    B16:[46.8,78.0,19.2,10.0], C1:[71.3,21.1,20.5,9.6], C2:[71.3,30.7,20.5,7.9],
+    C3:[71.3,38.6,20.5,7.9], C4:[71.3,46.5,20.5,7.7], C5:[71.3,54.2,20.5,8.0],
+    C6:[71.3,62.2,20.5,7.9], C7:[71.3,70.1,20.5,7.9], C8:[71.3,78.0,20.5,14.0]
   };
 
   // El cartel que se estampa encima. 'reservada' NO se marca SOLD: la leyenda y
