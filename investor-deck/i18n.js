@@ -80,11 +80,9 @@
 
     /* — portada — */
     'Investor Deck · Due Diligence': { es: 'Dossier de inversión · Due diligence', id: 'Dosir Investor · Uji Tuntas' },
-    'Held under': { es: 'En régimen de', id: 'Dipegang dalam skema' },
-    'Hak Sewa': { es: 'Hak Sewa', id: 'Hak Sewa' },
-    'with a notarial escrow account — not a security or investment product. Real documentation, live plot inventory and a Year-1 forecast, for your own due diligence.':
-      { es: 'con cuenta escrow notarial — no es un valor ni un producto de inversión. Documentación real, inventario de parcelas en vivo y una previsión de Año 1, para tu propia due diligence.',
-        id: 'dengan rekening escrow notaris — bukan efek maupun produk investasi. Dokumentasi nyata, ketersediaan kavling secara langsung, dan proyeksi Tahun ke-1, untuk uji tuntas Anda sendiri.' },
+    'Not a security or investment product. Real documentation, live plot inventory and a Year-1 forecast, for your own due diligence — the land tenure structure for this specific project is confirmed by your Lawang contact.':
+      { es: 'No es un valor ni un producto de inversión. Documentación real, inventario de parcelas en vivo y una previsión de Año 1, para tu propia due diligence — tu contacto en Lawang te confirma la estructura de tenencia de este proyecto en concreto.',
+        id: 'Bukan efek maupun produk investasi. Dokumentasi nyata, ketersediaan kavling secara langsung, dan proyeksi Tahun ke-1, untuk uji tuntas Anda sendiri — struktur kepemilikan lahan untuk proyek ini dikonfirmasi oleh kontak Lawang Anda.' },
     'Fotografía en preparación': { es: 'Fotografía en preparación', id: 'Fotografía en preparación' },
     'Photography in preparation': { es: 'Fotografía en preparación', id: 'Foto sedang disiapkan' },
 

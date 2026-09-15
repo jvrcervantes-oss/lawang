@@ -127,7 +127,6 @@ if ($slug === '') { http_response_code(404); exit; }
       <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-white/85 hover:text-deep-lagoon hover:bg-white transition-all" href="#modelos">Villa Models</a>
       <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-white/85 hover:text-deep-lagoon hover:bg-white transition-all" href="#masterplan">Masterplan &amp; Plots</a>
       <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-white/85 hover:text-deep-lagoon hover:bg-white transition-all" href="#rendimientos">Financial Forecast</a>
-      <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-white/85 hover:text-deep-lagoon hover:bg-white transition-all" href="#seguridad-notarial">Legal Security</a>
       <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-white/85 hover:text-deep-lagoon hover:bg-white transition-all" href="#faq">FAQ</a>
     </nav>
     <div class="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -160,7 +159,7 @@ if ($slug === '') { http_response_code(404); exit; }
       </div>
       <h1 id="deck-titulo" class="font-headline-lg text-[32px] md:text-[42px] leading-[1.06] text-deep-lagoon tracking-tight font-normal"></h1>
       <p class="font-body-md text-body-md text-[#44483f] lw-prose leading-relaxed">
-        Held under <b>Hak Sewa</b> with a notarial escrow account — not a security or investment product. Real documentation, live plot inventory and a Year-1 forecast, for your own due diligence.
+        Not a security or investment product. Real documentation, live plot inventory and a Year-1 forecast, for your own due diligence — the land tenure structure for this specific project is confirmed by your Lawang contact.
       </p>
     </div>
 
@@ -199,7 +198,6 @@ if ($slug === '') { http_response_code(404); exit; }
           <a class="px-3 py-1.5 rounded-full bg-[#E4DFD5] hover:bg-deep-lagoon hover:text-white text-deep-lagoon text-xs font-label-md font-semibold transition-all border border-[#D8D2C5]" href="#modelos">Villa Models</a>
           <a class="px-3 py-1.5 rounded-full bg-[#E4DFD5] hover:bg-deep-lagoon hover:text-white text-deep-lagoon text-xs font-label-md font-semibold transition-all border border-[#D8D2C5]" href="#masterplan">Masterplan &amp; Plots</a>
           <a class="px-3 py-1.5 rounded-full bg-[#E4DFD5] hover:bg-deep-lagoon hover:text-white text-deep-lagoon text-xs font-label-md font-semibold transition-all border border-[#D8D2C5]" href="#rendimientos">Financial Forecast</a>
-          <a class="px-3 py-1.5 rounded-full bg-[#E4DFD5] hover:bg-deep-lagoon hover:text-white text-deep-lagoon text-xs font-label-md font-semibold transition-all border border-[#D8D2C5]" href="#seguridad-notarial">Legal Security</a>
         </div>
       </div>
     </aside>
@@ -279,62 +277,16 @@ if ($slug === '') { http_response_code(404); exit; }
 </div>
 </section>
 
-<!-- SECCIÓN 5: SEGURIDAD JURÍDICA — HAK SEWA + ESCROW -->
-<section class="w-full px-6 md:px-margin-desktop py-14 bg-surface border-y border-[#D8D2C5]" id="seguridad-notarial">
-<div class="lw-wide flex flex-col gap-8">
-  <div class="flex flex-col gap-2 lw-prose">
-    <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal">Hak Sewa With Notarial Escrow vs. Informal Leasehold</h2>
-    <p class="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">
-      Much of Bali's foreign-facing market runs on private, unregistered lease agreements with no escrow and no notarial oversight. This project is structured as <strong>Hak Sewa</strong> (long-term Indonesian lease tenure) directly between the landowner and the buyer, with funds held in a <strong>notarial escrow account</strong> until the agreed conditions are met — not Hak Milik, which Indonesian law reserves for Indonesian citizens.
-    </p>
-  </div>
-
-  <div class="w-full bg-surface-container-lowest rounded-2xl shadow-lg overflow-hidden border border-[#D8D2C5]">
-    <div class="grid grid-cols-1 md:grid-cols-12 bg-[#E4DFD5] text-deep-lagoon font-headline-sm text-body-lg p-6 border-b border-[#D8D2C5]">
-      <div class="md:col-span-4 font-bold text-deep-lagoon">Legal &amp; registry aspect</div>
-      <div class="md:col-span-4 font-bold text-territorial-green flex items-center gap-2"><span class="material-symbols-outlined text-[20px]">verified</span>Hak Sewa + escrow</div>
-      <div class="md:col-span-4 font-bold text-[#5F6257] flex items-center gap-2"><span class="material-symbols-outlined text-[20px]">warning</span>Common practice: informal lease</div>
-    </div>
-    <div class="divide-y divide-[#D8D2C5]">
-      <div class="grid grid-cols-1 md:grid-cols-12 p-6 hover:bg-[#E4DFD5]/30 transition-colors gap-3">
-        <div class="md:col-span-4 flex flex-col"><span class="font-body-md text-body-md font-bold text-deep-lagoon">Payment security</span><span class="font-body-sm text-xs text-[#5F6257]">Notarial escrow (PPAT)</span></div>
-        <div class="md:col-span-4 font-body-md text-body-md text-territorial-green font-medium">Reservation and stage payments held in an escrow account managed by the notary, released against agreed conditions.</div>
-        <div class="md:col-span-4 font-body-md text-body-md text-[#44483f]">Funds paid directly to a private landowner or intermediary, with no third-party custody.</div>
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-12 p-6 bg-[#E4DFD5]/30 hover:bg-[#E4DFD5]/60 transition-colors gap-3">
-        <div class="md:col-span-4 flex flex-col"><span class="font-body-md text-body-md font-bold text-deep-lagoon">Term &amp; registration</span><span class="font-body-sm text-xs text-[#5F6257]">Hak Sewa, Indonesian law</span></div>
-        <div class="md:col-span-4 font-body-md text-body-md text-territorial-green font-medium">Registered lease term (legal maximum 30 years per grant, renewable with a new term), transferable and heritable.</div>
-        <div class="md:col-span-4 font-body-md text-body-md text-[#44483f]">Unregistered private agreement with no guaranteed renewal and limited transferability.</div>
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-12 p-6 hover:bg-[#E4DFD5]/30 transition-colors gap-3">
-        <div class="md:col-span-4 flex flex-col"><span class="font-body-md text-body-md font-bold text-deep-lagoon">Building permits (PBG / SLF)</span><span class="font-body-sm text-xs text-[#5F6257]">Government portal (SIMBG)</span></div>
-        <div class="md:col-span-4 font-body-md text-body-md text-territorial-green font-medium">Approved ahead of construction, with occupancy certification (SLF) enabling legal short-term rental.</div>
-        <div class="md:col-span-4 font-body-md text-body-md text-[#44483f]">Frequently started without permits or with permits pending, exposed to government closure.</div>
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-12 p-6 bg-[#E4DFD5]/30 hover:bg-[#E4DFD5]/60 transition-colors gap-3">
-        <div class="md:col-span-4 flex flex-col"><span class="font-body-md text-body-md font-bold text-deep-lagoon">Land zoning (RDTR)</span><span class="font-body-sm text-xs text-[#5F6257]">Official urban classification</span></div>
-        <div class="md:col-span-4 font-body-md text-body-md text-territorial-green font-medium">Zoned for tourism / residential use, legally enabled for short-stay rental income.</div>
-        <div class="md:col-span-4 font-body-md text-body-md text-[#44483f]">Often sited on green or agricultural-protection land (LSD/LP2B), not legally buildable.</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
-    <div class="bg-[#E4DFD5]/70 p-6 rounded-xl flex flex-col gap-3 border border-[#D8D2C5]">
-      <div class="flex items-center gap-2 text-deep-lagoon font-headline-sm text-xl font-bold"><span class="material-symbols-outlined text-territorial-green">gavel</span><span>Official Notarial Signature (PPAT)</span></div>
-      <p class="font-body-sm text-body-sm text-[#44483f] leading-relaxed">Each transfer is formalised before a state-appointed Land Deed Official (PPAT), with a Power of Attorney for the buyer's representative in Indonesia.</p>
-    </div>
-    <div class="bg-[#E4DFD5]/70 p-6 rounded-xl flex flex-col gap-3 border border-[#D8D2C5]">
-      <div class="flex items-center gap-2 text-deep-lagoon font-headline-sm text-xl font-bold"><span class="material-symbols-outlined text-territorial-green">account_balance</span><span>Regulated Escrow Account</span></div>
-      <p class="font-body-sm text-body-sm text-[#44483f] leading-relaxed">Funds are held in an escrow account managed by the notary and released only against verified construction milestones.</p>
-    </div>
-    <div class="bg-[#E4DFD5]/70 p-6 rounded-xl flex flex-col gap-3 border border-[#D8D2C5]">
-      <div class="flex items-center gap-2 text-deep-lagoon font-headline-sm text-xl font-bold"><span class="material-symbols-outlined text-territorial-green">handshake</span><span>Direct, Documented Transaction</span></div>
-      <p class="font-body-sm text-body-sm text-[#44483f] leading-relaxed">The lease is agreed directly between the landowner and the buyer — no nominee arrangement, no undisclosed intermediary holding title on your behalf.</p>
-    </div>
-  </div>
-</div>
-</section>
+<!-- SECCIÓN 5: SEGURIDAD JURÍDICA — retirada 15-sep-2026 (hallazgo Legal en la
+     consulta de deploy capa 1): esta sección afirmaba Hak Sewa + escrow notarial
+     como un HECHO fijo para cualquier proyecto que use esta plantilla. Esa es la
+     estructura real de Palm Field (consulta legal 9-sep-2026), no algo que se
+     pueda asumir por plantilla para los otros 28 proyectos de la cartera — cada
+     uno necesita su propia verificación de tenencia antes de poder afirmar nada
+     aquí. No se sustituye por texto genérico: mientras no exista un campo de
+     tenencia por proyecto en deck_config_proyecto, esta sección se omite entera
+     en el deck genérico. Palm Field mantiene la suya intacta en
+     investor-deck/palmfield/index.html, fuera de este sistema. -->
 
 <!-- SECCIÓN 6: SITE & DELIVERED VILLAS -->
 <section class="w-full px-6 md:px-margin-desktop py-14 bg-surface border-t border-[#D8D2C5]" id="documentation">
@@ -879,7 +831,9 @@ if ($slug === '') { http_response_code(404); exit; }
           if(!d) return;
           var cta = document.getElementById('cta-dosier');
           if(!cta) return;
-          cta.href = d.url; cta.classList.remove('hidden'); cta.classList.add('inline-flex');
+          var ctaHref = urlSegura(d.url);
+          if(!ctaHref) return;
+          cta.href = ctaHref; cta.classList.remove('hidden'); cta.classList.add('inline-flex');
           if(d.titulo) cta.setAttribute('title', d.titulo);
         })
         .catch(function(){});
