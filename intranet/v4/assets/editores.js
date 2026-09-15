@@ -1516,28 +1516,98 @@
 
     usuarios: function (aut) {
       var sb = aut.sb;
+      // mismos 5 roles que /intranet/usuarios/ (ROLES) — antes solo llevaba
+      // agente/admin/super_admin y sales_manager/project_manager no aparecían.
+      var ETIQ_ROL = { agente: 'Agente', sales_manager: 'Sales manager', project_manager: 'Project manager', admin: 'Administrador', super_admin: 'Super admin' };
+      var ROLES_ED = ['agente', 'sales_manager', 'project_manager', 'admin'].concat(aut.ficha.rol === 'super_admin' ? ['super_admin'] : []);
+      var miEmail = ((aut.session && aut.session.user && aut.session.user.email) || '').toLowerCase();
+
       ata(/^Modificar rol$/i, function () {
         if (!(esAdmin(aut.ficha) && puedeH(aut.ficha, 'usuarios'))) {
           return aviso('Tocar roles exige administración con la herramienta Usuarios (la policy lo exige igual que este aviso).', '#8A6A34');
         }
         var u = window.LW_V4 && window.LW_V4.usuario;
         if (!u) return aviso('El perfil aún no ha cargado.', '#8A6A34');
+        var yoMismo = miEmail && (u.email || '').toLowerCase() === miEmail;
+        var soySuper = aut.ficha.rol === 'super_admin';
+        // un admin no toca a un super_admin, y nadie se quita a sí mismo el
+        // acceso por accidente desde esta pantalla — mismo candado que la
+        // herramienta viva (`bloqueado`/`yoMismo` de intranet/usuarios/)
+        if (u.rol === 'super_admin' && !soySuper) return aviso('Solo un super admin puede modificar la cuenta de otro super admin.', '#8A6A34');
         // el catalogo de herramientas sale de las fichas reales, no de una lista a mano
-        sb.from('usuarios').select('herramientas').then(function (r) {
+        Promise.all([
+          sb.from('usuarios').select('herramientas'),
+          sb.from('proyectos').select('id,nombre').eq('activo', true).order('nombre')
+        ]).then(function (rs) {
           var todas = {};
-          ((r.data) || []).forEach(function (x) { (x.herramientas || []).forEach(function (h) { todas[h] = 1; }); });
+          ((rs[0].data) || []).forEach(function (x) { (x.herramientas || []).forEach(function (h) { todas[h] = 1; }); });
           var ops = Object.keys(todas).sort();
-          modal('Permisos de ' + (u.nombre || u.email), [
-            { k: 'rol', label: 'Rol', tipo: 'select', opciones: ['agente', 'admin'].concat(aut.ficha.rol === 'super_admin' ? ['super_admin'] : []), valor: u.rol },
-            { k: 'activo', label: 'Activo', tipo: 'check', valor: u.activo },
-            { k: 'herramientas', label: 'Herramientas', tipo: 'multicheck', opciones: ops, valor: u.herramientas || [] }
-          ], 'Guardar permisos', function (v) {
+          var proyectos = (rs[1].data) || [];
+          var tiposCat = (typeof LW_TIPO_CONTRATO === 'object' && LW_TIPO_CONTRATO)
+            ? Object.keys(LW_TIPO_CONTRATO).map(function (k) { return [k, LW_TIPO_CONTRATO[k]]; }) : [];
+          var campos = [
+            { k: 'nombre', label: 'Nombre', medio: 1, valor: u.nombre || '' },
+            { k: 'rol', label: 'Rol', tipo: 'select', medio: 1, opciones: ROLES_ED.map(function (r) { return [r, ETIQ_ROL[r] || r]; }), valor: u.rol }
+          ];
+          if (yoMismo) {
+            campos.push({ tipo: 'nota', label: 'Es tu propia cuenta: para no dejarte fuera por accidente, el rol y el estado activo no se tocan desde aquí.' });
+          } else {
+            campos.push({ k: 'activo', label: 'Activo', tipo: 'check', valor: u.activo });
+          }
+          campos.push(
+            { k: 'herramientas', label: 'Herramientas', tipo: 'multicheck', opciones: ops, valor: u.herramientas || [] },
+            { k: 'proyectos', label: 'Proyectos en los que trabaja', tipo: 'multicheck',
+              opciones: proyectos.map(function (p) { return [p.id, p.nombre]; }), valor: u.proyectos || [],
+              ayuda: 'Limita en qué proyectos puede crear y editar contratos. Sin ninguno marcado, no puede crear en ninguno.' },
+            { k: 'tipos_contrato', label: 'Contratos que puede hacer', tipo: 'multicheck',
+              opciones: tiposCat, valor: u.tipos_contrato || [],
+              ayuda: 'Vacío = TODOS (al revés que Proyectos, arriba): no marcar nada aquí no bloquea, lo abre todo.' }
+          );
+          modal('Permisos de ' + (u.nombre || u.email), campos, 'Guardar permisos', function (v) {
+            var patch = {
+              nombre: v.nombre.trim() || null, herramientas: v.herramientas,
+              proyectos: v.proyectos, tipos_contrato: v.tipos_contrato
+            };
+            if (!yoMismo) { patch.rol = v.rol; patch.activo = v.activo; }
             /* la proteccion real vive en la policy (super_admin intocable salvo
                super_admin, es_admin AND puede) — si esto falla por RLS, ese ES
                el mensaje, no un fallo del editor */
-            return sb.from('usuarios').update({ rol: v.rol, activo: v.activo, herramientas: v.herramientas })
-              .eq('email', u.email);
+            return sb.from('usuarios').update(patch).eq('email', u.email);
           });
+        });
+      });
+
+      // mismo endpoint que cambiarPassword() en /intranet/usuarios/: la Edge
+      // Function admin-usuarios, nunca auth.admin desde el navegador (no hay
+      // service_role en cliente — revision previa Datos+Seguridad)
+      ata(/^Cambiar contraseña$/i, function () {
+        if (!(esAdmin(aut.ficha) && puedeH(aut.ficha, 'usuarios'))) {
+          return aviso('Cambiar contraseñas exige administración con la herramienta Usuarios.', '#8A6A34');
+        }
+        var u = window.LW_V4 && window.LW_V4.usuario;
+        if (!u) return aviso('El perfil aún no ha cargado.', '#8A6A34');
+        if (u.rol === 'super_admin' && aut.ficha.rol !== 'super_admin') {
+          return aviso('Solo un super admin puede modificar la cuenta de otro super admin.', '#8A6A34');
+        }
+        var p = window.prompt('Nueva contraseña para ' + u.email + ' (mínimo 10 caracteres).\nApúntala: no se puede volver a consultar.');
+        if (p === null) return;
+        if (p.length < 10) return aviso('Mínimo 10 caracteres.', '#8A6A34');
+        sb.auth.getSession().then(function (r) {
+          var token = r && r.data && r.data.session && r.data.session.access_token;
+          if (!token) return aviso('No se pudo: sesión no encontrada.', '#93000a');
+          fetch('https://vtulllundrfennhjddhc.supabase.co/functions/v1/admin-usuarios', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + token,
+              'apikey': 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg'
+            },
+            body: JSON.stringify({ accion: 'password', user_id: u.user_id, password: p })
+          }).then(function (resp) { return resp.json().catch(function () { return { error: 'respuesta ilegible del servidor' }; }); })
+            .then(function (d) {
+              if (d && d.ok) aviso('Contraseña cambiada');
+              else aviso('No se pudo: ' + ((d && d.error) || ''), '#93000a');
+            });
         });
       });
     },

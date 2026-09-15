@@ -1900,7 +1900,7 @@
          Las IPs y el 2FA del diseno no existen en la suite: fuera. */
       var t = tablaPor([/MIEMBRO|NOMBRE|USUARIO/, /ROL|ACCESO/]);
       Promise.all([
-        q(sb.from('usuarios').select('nombre,email,rol,activo,herramientas').order('nombre'), 'usuarios', t),
+        q(sb.from('usuarios').select('user_id,nombre,email,rol,activo,herramientas,proyectos,tipos_contrato').order('nombre'), 'usuarios', t),
         q(sb.from('notificaciones').select('titulo,detalle,creado_en').order('creado_en', { ascending: false }).limit(8), 'auditoría')
       ]).then(function (r) {
         var us = r[0], ns = r[1] || [];
