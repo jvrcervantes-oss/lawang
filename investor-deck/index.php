@@ -243,11 +243,12 @@ if ($slug === '') { http_response_code(404); exit; }
           <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#B3261E]"></span>Sold</span>
         </div>
       </div>
+      <div class="hidden gap-2 flex-wrap" id="plan-paginas"></div>
       <div class="relative w-full select-none" id="plan-wrap">
         <img id="masterplan-img" src="" alt="Masterplan showing every plot code and surface area" loading="lazy" class="w-full rounded-xl border border-[#D8D2C5] bg-[#F0ECE1] object-contain block">
         <div class="absolute inset-0" id="plan-hotspots"></div>
       </div>
-      <p class="font-body-sm text-xs text-[#5F6257]">Status is live; surface areas are confirmed by survey at Plot Lock.</p>
+      <p class="font-body-sm text-xs text-[#5F6257]">Status is live; surface areas shown are project/design measurements, confirmed by survey at Plot Lock — not the registered legal area.</p>
     </div>
 
     <div class="lg:col-span-5 flex flex-col gap-4 lg:sticky lg:top-24" id="masterplan-lista-col">
@@ -681,13 +682,26 @@ if ($slug === '') { http_response_code(404); exit; }
     if(window.lwDeck) lwDeck.traduce(cont);
   }
 
-  var ZONAS = null;   // solo se rellena si config.masterplan_activo (ver mas abajo)
+  // ZONAS: rellenado por pagina del manifiesto de masterplan (ver mas abajo).
+  // Cada entrada es un poligono real en % -- [[x1,y1],[x2,y2],...] -- nunca un
+  // rectangulo left/top/width/height: las parcelas irregulares (esquinas,
+  // ladera) necesitan el contorno real, y un rectangulo es solo un poligono
+  // de 4 puntos, asi que un unico formato cubre ambos casos sin rama aparte.
+  var ZONAS = null;
+  var ULTIMAS_FILAS = null;   // ultimas filas de investor_deck_parcelas, para repintar al cambiar de pagina sin refetch
+  var PAGINAS_MP = [];
+  var PAGINA_ACTUAL = 0;
   var SELLO = {
     disponible:    null,
     reservada:     ['RESERVED', 'bg-amber-500/90'],
     bloqueada:     ['SOLD',     'bg-[#B3261E]/95'],
     no_disponible: ['SOLD',     'bg-[#B3261E]/95']
   };
+
+  function centroide(pts){
+    var x=0,y=0; pts.forEach(function(p){ x+=p[0]; y+=p[1]; });
+    return [x/pts.length, y/pts.length];
+  }
 
   // Sin flujo de reserva de autoservicio (decision 2, 15-sep): cada parcela
   // disponible usa "Contact us" directo, nunca un modal ni un RPC de reserva.
@@ -696,27 +710,49 @@ if ($slug === '') { http_response_code(404); exit; }
     if(!wrap || !ZONAS) return;
     wrap.innerHTML = '';
     rows.forEach(function(row){
-      var z = ZONAS[row.codigo];
-      if(!z) return;
+      var pts = ZONAS[row.codigo];
+      if(!pts || pts.length < 3) return;   // sin poligono para este codigo en esta pagina -> sigue en la lista, sin marcador en el plano
       var libre = row.estado === 'disponible';
       var el = document.createElement(libre ? 'a' : 'div');
-      el.className = 'absolute flex items-center justify-center rounded-[3px] transition-all duration-200 ' +
-        (libre ? 'border-2 border-transparent hover:border-white hover:bg-territorial-green/30 cursor-pointer'
-               : 'bg-black/45 border border-white/20');
-      el.style.left = z[0]+'%'; el.style.top = z[1]+'%'; el.style.width = z[2]+'%'; el.style.height = z[3]+'%';
-      var sello = SELLO[row.estado];
-      if(sello) el.innerHTML = '<span class="'+sello[1]+' text-white font-label-md font-bold tracking-widest text-[9px] sm:text-[11px] px-2 py-0.5 rounded-sm shadow">'+sello[0]+'</span>';
+      el.className = 'absolute inset-0 transition-all duration-200 ' +
+        (libre ? 'hover:bg-territorial-green/35 cursor-pointer' : 'bg-black/45');
+      el.style.clipPath = 'polygon(' + pts.map(function(p){ return p[0]+'% '+p[1]+'%'; }).join(',') + ')';
       var precio = row.precio != null ? ' · ' + fmtMoney(row.precio, row.moneda) : '';
-      el.title = row.codigo + ' · ' + esc(row.superficie_m2) + ' m2' + precio + ' · ' +
+      el.title = row.codigo + ' · ' + esc(row.superficie_m2) + ' m2 (project measurement)' + precio + ' · ' +
         ({disponible:'Available',reservada:'Reserved',bloqueada:'Sold',no_disponible:'Sold'}[row.estado] || row.estado);
       if(libre){ el.href = 'mailto:sales@lawangproperties.com?subject=' + encodeURIComponent(PROYECTO + ' ' + row.codigo); el.setAttribute('aria-label', 'Contact us about plot ' + row.codigo); }
       wrap.appendChild(el);
+      var sello = SELLO[row.estado];
+      if(sello){
+        var c = centroide(pts);
+        var badge = document.createElement('span');
+        badge.className = 'absolute pointer-events-none ' + sello[1] + ' text-white font-label-md font-bold tracking-widest text-[8px] px-1.5 py-0.5 rounded-sm shadow';
+        badge.style.left = c[0]+'%'; badge.style.top = c[1]+'%'; badge.style.transform = 'translate(-50%,-50%)';
+        badge.textContent = sello[0];
+        wrap.appendChild(badge);
+      }
     });
+  }
+
+  // Cambia de pagina del masterplan (proyectos con mas de un plano/hoja).
+  // Vuelve a pintar con las mismas filas ya cargadas, sin refetch a Supabase.
+  function pintaPaginaMasterplan(i){
+    var pag = PAGINAS_MP[i];
+    if(!pag) return;
+    PAGINA_ACTUAL = i;
+    document.getElementById('masterplan-img').src = pag.imagen;
+    ZONAS = pag.zonas || null;
+    Array.prototype.forEach.call(document.querySelectorAll('.plan-pagina-btn'), function(b, idx){
+      b.className = 'plan-pagina-btn px-3 py-1 rounded-full text-xs font-label-md font-semibold transition-colors ' +
+        (idx === i ? 'bg-deep-lagoon text-white' : 'bg-[#E4DFD5] text-deep-lagoon hover:bg-[#D8D2C5]');
+    });
+    if(ULTIMAS_FILAS) pintaPlano(ULTIMAS_FILAS);
   }
 
   function pintaListaParcelas(rows){
     var plotsWrap = document.getElementById('plots-wrap');
     var plotsCount = document.getElementById('plots-count');
+    ULTIMAS_FILAS = rows;
     if(!rows || !rows.length){ plotsWrap.innerHTML = '<div class="p-6 text-sm text-[#5F6257]">No plots published yet.</div>'; plotsCount.textContent=''; return; }
     if(ZONAS) pintaPlano(rows);
     var disponibles = rows.filter(function(r){ return r.estado === 'disponible'; }).length;
@@ -786,18 +822,36 @@ if ($slug === '') { http_response_code(404); exit; }
         kg.classList.remove('hidden'); kg.classList.add('grid');
       }
 
-      // Masterplan interactivo: solo si esta activo Y hay imagen.
+      // Masterplan interactivo: solo si esta activo Y hay manifiesto.
+      // cfg.masterplan_imagen apunta a un JSON { paginas: [{imagen, etiqueta?, zonas}, ...] },
+      // medido a mano por proyecto (ver investor-deck/masterplan/<slug>.json) -- no derivable
+      // de plantilla (revision previa de Datos, 15-sep). Si el fetch falla o el
+      // formato no es el esperado, el deck sigue funcionando sin plano interactivo:
+      // la lista de la derecha (investor_deck_parcelas) no depende de esto.
       if(cfg.masterplan_activo && cfg.masterplan_imagen){
-        var img = document.getElementById('masterplan-img');
-        img.src = cfg.masterplan_imagen;
-        document.getElementById('masterplan-imagen-bloque').classList.remove('hidden');
-        document.getElementById('masterplan-imagen-bloque').classList.add('flex');
-        document.getElementById('masterplan-lista-col').className = 'lg:col-span-5 flex flex-col gap-4 lg:sticky lg:top-24';
-        // ZONAS de este proyecto en concreto: hoy no hay tabla de coordenadas
-        // por parcela (fuera de alcance de esta tanda, ver revision previa de
-        // Datos), asi que el plano se activa sin hotspots interactivos hasta
-        // que exista esa pieza -- la lista de la derecha sigue siendo 100% real.
-        ZONAS = null;
+        fetch(cfg.masterplan_imagen).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+          .then(function(manifest){
+            if(!manifest || !manifest.paginas || !manifest.paginas.length) throw new Error('manifiesto_vacio');
+            PAGINAS_MP = manifest.paginas;
+            document.getElementById('masterplan-imagen-bloque').classList.remove('hidden');
+            document.getElementById('masterplan-imagen-bloque').classList.add('flex');
+            document.getElementById('masterplan-lista-col').className = 'lg:col-span-5 flex flex-col gap-4 lg:sticky lg:top-24';
+            if(PAGINAS_MP.length > 1){
+              var tabs = document.getElementById('plan-paginas');
+              tabs.innerHTML = '';
+              PAGINAS_MP.forEach(function(pag, idx){
+                var b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'plan-pagina-btn px-3 py-1 rounded-full text-xs font-label-md font-semibold transition-colors';
+                b.textContent = pag.etiqueta || ('Plan ' + (idx + 1));
+                b.addEventListener('click', function(){ pintaPaginaMasterplan(idx); });
+                tabs.appendChild(b);
+              });
+              tabs.classList.remove('hidden'); tabs.classList.add('flex');
+            }
+            pintaPaginaMasterplan(0);
+          })
+          .catch(function(){ ZONAS = null; });
       }
 
       fotosListo = fetch(SB_URL + '/rest/v1/rpc/investor_deck_fotos', {
