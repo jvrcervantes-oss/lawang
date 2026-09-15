@@ -48,7 +48,7 @@ for fn, html in tpls.items():
 # marcadores que calcula el motor (no son campos de tokens) y campos que consume
 # el motor sin que aparezcan como {{marcador}} literal en la plantilla
 ENGINE_MARKERS = {"cov_t", "cov_t_id", "contrato_num", "firma_adquiriente"}
-ENGINE_CONSUMED = {"cuenta_bancaria", "tipo_cambio_idr", "fecha_tipo_cambio", "moneda"}
+ENGINE_CONSUMED = {"cuenta_bancaria", "tipo_cambio_idr", "moneda"}
 
 def sec(title): print("=" * 70); print(title)
 

@@ -674,7 +674,6 @@
           var campos = [
             { k: 'resort', label: 'Resort', valor: p.resort || '' },
             { k: 'parcela_master', label: 'Parcela máster (código)', valor: p.parcela_master || '' },
-            { k: 'parcela_master_m2', label: 'Superficie bruta (m²)', tipo: 'number', valor: p.parcela_master_m2 == null ? '' : p.parcela_master_m2 },
             // Foto de portada (11-sep-2026, encargo del owner): va al bucket
             // 'documentacion' que ya usan Enlaces/FAQ — nunca una columna
             // imagen_url en `proyectos` (Regla 0, "si el cliente lo puede dar
@@ -712,7 +711,6 @@
             return sb.from('proyectos').update({
               resort: (v.resort || '').trim() || null,
               parcela_master: (v.parcela_master || '').trim() || null,
-              parcela_master_m2: v.parcela_master_m2 === '' ? null : Number(v.parcela_master_m2)
             }).eq('id', p.id).select('id').then(function (r) {
               if (r.error) return r;
               // La RLS de `proyectos` exige es_admin() para UPDATE: un no-admin
