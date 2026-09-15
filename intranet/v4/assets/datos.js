@@ -2321,7 +2321,16 @@
             plCu.tbody.innerHTML = '<tr><td colspan="3" style="padding:18px;text-align:center;font:400 13px \'Neue Kabel\',sans-serif;color:#8A8474">Ninguna cuenta dada de alta.</td></tr>';
           } else {
             cus.forEach(function (c) {
-              var usos = rep.filter(function (x) { return x.clave === c.clave; }).length;
+              /* Ojo (hallazgo de Administración en la consulta de deploy,
+                 15-sep): "se ofrece en" tiene que sumar las DOS fuentes del
+                 reparto, no solo `rep` (plantilla_cuentas). Una cuenta atada
+                 SOLO por una excepción de `proyecto_cuentas` (por ejemplo un
+                 notario propio de un proyecto) seguía saliendo "ninguno"
+                 aunque estuviera en uso real — quien mirase esta tabla para
+                 decidir qué cuenta dar de baja podía desactivar una que un
+                 comprador de ese proyecto sigue viendo en su documento. */
+              var usos = rep.filter(function (x) { return x.clave === c.clave; }).length
+                + (repProy || []).filter(function (x) { return x.clave === c.clave; }).length;
               fila(plCu, [
                 c.label || c.clave,
                 usos ? (usos + (usos === 1 ? ' documento' : ' documentos')) : 'ninguno',
