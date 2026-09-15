@@ -572,6 +572,15 @@
       var ficha = aut.ficha;
       var esAdminP = esAdmin(ficha);
       var esSuper = !!(ficha && ficha.rol === 'super_admin');
+      /* Dar de alta un proyecto es de dirección (LAW-177, 11-sep-2026): la RLS
+         de INSERT en `proyectos` exige es_admin(). Se esconde el botón aquí, en
+         cuanto se sabe el rol y ANTES de que nadie pueda pulsarlo — mismo patrón
+         que /intranet/proyectos/ (LAW-179: esta pantalla se quedó sin el mismo
+         parche el 11-sep porque la otra sesión tenía v4 en vuelo). */
+      if (!esAdminP) {
+        var altaP = document.getElementById('btn-nuevo-proyecto');
+        if (altaP) altaP.hidden = true;
+      }
       // Mismo criterio que PUEDE_USUARIOS en /proyectos/: admin (o super_admin,
       // que puedeH ya deja pasar siempre) CON la herramienta 'usuarios' — sin
       // ella la RLS de `usuarios` rechaza igual, así que no se ofrece el control.
@@ -782,12 +791,15 @@
 
       /* Nuevo proyecto (11-sep-2026): mismo alcance que altaProyecto() en
          /proyectos/ — solo el nombre. Resort/parcela máster se añaden después
-         desde "Editar proyecto". Sin gate de rol: la RLS de INSERT en
-         `proyectos` exige es_agente()+puede('unidades'), el mismo permiso que
-         ya hace falta para ver esta página entera. */
+         desde "Editar proyecto". LAW-179 (14-sep, corregido): la RLS de INSERT
+         en `proyectos` exige es_admin() desde LAW-177 (11-sep) — este comentario
+         decía "sin gate de rol" y estaba desactualizado. El botón ya se esconde
+         arriba en cuanto se conoce el rol; este corte es el cinturón — llega
+         aquí solo si alguien dispara el click sin pasar por esa pintura. */
       var bNuevoP = document.getElementById('btn-nuevo-proyecto');
       if (bNuevoP) bNuevoP.addEventListener('click', function (ev) {
         ev.stopPropagation();
+        if (!esAdminP) return aviso('Dar de alta un proyecto es cosa de un administrador. Pídeselo a dirección.', '#8A6A34');
         modal('Nuevo proyecto', [
           { k: 'nombre', label: 'Nombre', req: 1, ayuda: 'Con cuidado: un "Palm Field" y un "Palm Field " con espacio conviven como dos proyectos distintos.' }
         ], 'Crear proyecto', function (v) {
