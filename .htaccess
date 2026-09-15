@@ -148,6 +148,17 @@ RedirectMatch 404 (?i)/test_[^/]+\.php$
   #     proyecto y no a un modelo de villa. Comparte piel (assets/au-landing.css) y datos
   #     (modelo/datos.php) con /dali; /dali se queda publicada y con su propio canonical.
   RewriteRule ^palmfield/?$ /palmfield/index.php [L,QSA]
+
+  # 3e) Investor Deck multi-proyecto (15-sep-2026): /investor-deck/<slug> sirve
+  #     investor-deck/index.php?slug=<slug> (mismo mecanismo que la 3 de arriba).
+  #     El guard `!-d` es a proposito: investor-deck/palmfield/ es una carpeta
+  #     FISICA real (el piloto, con su propio flujo de reserva de autoservicio,
+  #     fuera de este router) y tiene que seguir sirviendose ella misma via la
+  #     regla 2 de mas arriba, nunca pasar por index.php?slug=palmfield -- un
+  #     slug nuevo que algun dia se llame igual que una carpeta futura tendria
+  #     el mismo problema; esta guarda es la que lo evita en los dos sentidos.
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^investor-deck/([A-Za-z0-9-]+)/?$ /investor-deck/index.php?slug=$1 [L,QSA]
 </IfModule>
 
 # Cabeceras de seguridad. HSTS SIN includeSubDomains a proposito: hay subdominios

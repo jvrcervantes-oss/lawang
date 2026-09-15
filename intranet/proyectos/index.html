@@ -370,7 +370,7 @@ const valorDe = (u, campo) => {
 /* ---------- carga ---------- */
 async function cargar(){
   CARGANDO = true; FALLO = null; pintar();
-  const [u, c, m, cat, p, t, dp, mgrs, eq] = await Promise.all([
+  const [u, c, m, cat, p, t, dp, mgrs, eq, dc, da] = await Promise.all([
     // `unidades_estado` es la vista que añade el contrato vinculado y lo
     // facturado (calculado, no guardado: guardarlo sería una tercera copia
     // que se queda vieja en cuanto se anule una factura).
@@ -386,7 +386,7 @@ async function cargar(){
     // precio esta en NULL. Va en la misma tanda para que la pantalla no pinte
     // primero sin precio y luego con el.
     SB.from('modelos').select('id, nombre, precio_construccion, moneda').eq('activo', true),
-    SB.from('proyectos').select('id, nombre, resort, parcela_master').eq('activo', true).order('nombre'),
+    SB.from('proyectos').select('id, nombre, resort, parcela_master, slug').eq('activo', true).order('nombre'),
     SB.from('tipos_vivienda').select('clave, etiqueta').eq('activo', true).order('etiqueta'),
     // La documentacion de cada proyecto va en la misma tanda: es una consulta
     // mas y evita que la carpeta se pinte dos veces (una sin la linea y otra
@@ -398,6 +398,11 @@ async function cargar(){
     SB.from('usuarios').select('user_id, email, nombre, rol, proyectos_supervisados, activo')
       .in('rol', ['sales_manager', 'project_manager']).order('nombre'),
     SB.from('usuarios').select('email, nombre'),
+    // Investor Deck (15-sep-2026): config por proyecto y qué proyectos tienen
+    // el deck abierto de verdad (espejo de deck_proyecto_abierto, ver arriba).
+    // Sin permiso (no agente) vuelve vacío por RLS, igual que managers.
+    SB.from('deck_config_proyecto').select('proyecto_id, titulo, meta_desc, tipo_venta, modelo_destacado_id, masterplan_activo'),
+    SB.from('unidades').select('proyecto').eq('publicado_investor_deck', true),
   ]);
   CARGANDO = false;
   if(u.error){ FALLO = u.error.message; pintar(); return; }
@@ -430,6 +435,8 @@ async function cargar(){
   if(!t.error && t.data && t.data.length) TIPOS = t.data.map(x => [x.clave, x.etiqueta]);
   MANAGERS = mgrs.error ? [] : (mgrs.data || []);
   EQUIPO_NOMBRE = eq.error ? {} : Object.fromEntries((eq.data || []).map(x => [x.email, x.nombre]));
+  DECK_CONFIG = dc.error ? {} : Object.fromEntries((dc.data || []).map(x => [x.proyecto_id, x]));
+  DECK_ACTIVOS = new Set(da.error ? [] : (da.data || []).map(x => x.proyecto));
   // Unión defensiva: si una unidad quedó con un proyecto que ya no está en el
   // catálogo (borrado por error, o dato antiguo), sigue apareciendo en el
   // filtro — no desaparece de la vista, solo no se puede elegir para una
@@ -616,6 +623,16 @@ let VISTA_ANTES_CARPETAS = 'tabla';
    `proyecto_id`, no por el nombre — desde hoy es el vinculo de verdad. */
 let DOCS_POR_PROYECTO = null;   // lo rellena cargar(), en la misma tanda
 
+/* Investor Deck multi-proyecto (15-sep-2026). DECK_CONFIG por proyecto_id
+   (título/meta/modelo destacado/masterplan — tabla `deck_config_proyecto`,
+   RLS es_agente() para leer); DECK_ACTIVOS es el conjunto de nombres de
+   proyecto con AL MENOS una unidad publicado_investor_deck=true, calculado
+   aquí en vez de fiarse de una columna: `deck_proyecto_abierto()` en la base
+   usa exactamente esa misma regla y es la fuente única, esto es solo su
+   espejo de lectura para pintar el botón activar/desactivar sin otro RPC. */
+let DECK_CONFIG = {};
+let DECK_ACTIVOS = new Set();
+
 function pintarCarpetas(){
   const caja = $('#carpetas');
   if(CARGANDO){
@@ -787,6 +804,7 @@ function editarProyecto(nombre){
       </div>`,
     pie: `<button class="sui-btn primario" id="btnGuardarFicha">${lwT('Guardar')}</button>
           <button class="sui-btn" id="btnFotosDeck">${lwT('Fotos del deck…')}</button>
+          <button class="sui-btn" id="btnInvestorDeck">${lwT('Investor Deck…')}</button>
           <button class="sui-btn" id="btnRenombrarProy">${lwT('Renombrar…')}</button>
           <button class="sui-btn" id="btnCerrarFicha">${lwT('Cerrar')}</button>`,
   });
@@ -804,6 +822,10 @@ function editarProyecto(nombre){
       SB, ambito:'proyecto', proyectoId: ficha.id, esAdmin: ES_ADMIN,
       titulo: lwT('Fotos públicas del deck'), sub: nombre,
     });
+  });
+  $('#btnInvestorDeck').addEventListener('click', () => {
+    if(!ficha.id){ toastMal(lwT('Este proyecto no tiene ficha en la tabla `proyectos`; no se le puede activar el deck.')); return; }
+    abrirInvestorDeck(nombre, ficha.id);
   });
   $('#btnRenombrarProy').addEventListener('click', () => renombrarProyecto(nombre));
   $('#btnCerrarFicha').addEventListener('click', suiCerrarCajon);
@@ -861,6 +883,100 @@ function editarProyecto(nombre){
     }
     btn.disabled = false;
     toast(lwT('Guardado'));
+    suiCerrarCajon();
+    cargar();
+  });
+}
+
+/* Investor Deck multi-proyecto (15-sep-2026, revisión previa Seguridad+Datos+
+   Diseño + confirmación del owner). Cajón APARTE de la ficha de arriba, mismo
+   motivo que «Fotos del deck…»: guardar la config y activar/desactivar el
+   deck público son dos operaciones de riesgo distinto (una escribe una fila
+   privada, la otra publica el proyecto entero a `anon`), y mezclarlas bajo un
+   único «Guardar» prometería poder cancelar algo que ya salió a producción.
+
+   El botón «Activar» nace DESHABILITADO sin título guardado (decisión de
+   Diseño: nunca activar un deck vacío) — se guarda la config primero, se
+   activa después, nunca en el mismo clic. Todo pasa por RPC (nunca un UPDATE
+   directo a `unidades` desde aquí): `investor_deck_activar` es la única
+   puerta y dentro exige es_admin() ella misma, así que aunque alguien abra
+   esta UI sin permiso el peor caso es un error de RPC, no un dato publicado. */
+function abrirInvestorDeck(nombre, proyectoId){
+  const cfg = DECK_CONFIG[proyectoId] || {};
+  const ficha = PROYECTOS_FICHA[nombre] || {};
+  const modelosDelProyecto = MODELOS.filter(m => m.proyecto === nombre && m.modelo_id);
+  const activo = DECK_ACTIVOS.has(nombre);
+  suiAbrirCajon({
+    titulo: lwT('Investor Deck'),
+    sub: esc(nombre),
+    cuerpo: `
+      <p class="sui-nota">${lwT('Página pública de due diligence para inversores, sin login. Se sirve en')}
+        <code>/investor-deck/${esc(ficha.slug || '<slug>')}/</code>.
+        ${lwT('Esto NO afecta al piloto de Palm Field, que sigue viviendo aparte con su propia reserva de autoservicio.')}</p>
+      ${!ES_ADMIN ? '<p class="sui-nota">' + lwT('Solo un administrador puede editar o activar el Investor Deck.') + '</p>' : ''}
+      <div class="campo"><label for="id-slug">${lwT('Slug de la URL')}</label>
+        <input id="id-slug" value="${esc(ficha.slug || '')}" placeholder="${lwT('ej. sumba-hills')}" ${ES_ADMIN ? '' : 'disabled'}>
+        <p class="sui-nota">${lwT('Se escribe a mano, una sola vez. Cambiarlo después de activar el deck rompe cualquier enlace que ya se haya compartido.')}</p></div>
+      <div class="campo"><label for="id-titulo">${lwT('Título (inglés)')}</label>
+        <input id="id-titulo" value="${esc((cfg.titulo && cfg.titulo.en) || '')}" placeholder="${lwT('ej. Sumba Hills — Investor Deck')}" ${ES_ADMIN ? '' : 'disabled'}></div>
+      <div class="campo"><label for="id-meta">${lwT('Meta description (inglés)')}</label>
+        <input id="id-meta" value="${esc((cfg.meta_desc && cfg.meta_desc.en) || '')}" ${ES_ADMIN ? '' : 'disabled'}></div>
+      <div class="campo"><label for="id-destacado">${lwT('Modelo "Most requested" (opcional)')}</label>
+        <select id="id-destacado" ${ES_ADMIN ? '' : 'disabled'}>
+          <option value="">${lwT('— ninguno —')}</option>
+          ${modelosDelProyecto.map(m => `<option value="${esc(m.modelo_id)}" ${cfg.modelo_destacado_id === m.modelo_id ? 'selected' : ''}>${esc(m.modelo)}</option>`).join('')}
+        </select></div>
+      <p class="sui-nota">${lwT('KPIs de cabecera y plano interactivo de parcelas no se editan aquí todavía — sin ellos, esas secciones simplemente no aparecen en la página pública (nunca placeholders).')}</p>
+      <div class="sui-bloque" style="margin-top:18px">
+        <h3>${lwT('Estado')}</h3>
+        <p class="sui-nota" id="id-estado-txt">${activo
+          ? lwT('El deck está ACTIVO: todas las unidades de este proyecto son visibles en la página pública.')
+          : lwT('El deck está INACTIVO: nada de este proyecto es visible en la página pública.')}</p>
+      </div>`,
+    pie: `<button class="sui-btn primario" id="btnGuardarDeck" ${ES_ADMIN ? '' : 'disabled'}>${lwT('Guardar')}</button>
+          <button class="sui-btn ${activo ? '' : 'primario'}" id="btnActivarDeck" ${(ES_ADMIN && (activo || cfg.titulo)) ? '' : 'disabled'}
+            title="${(!activo && !cfg.titulo) ? esc(lwT('Guarda un título primero')) : ''}">
+            ${activo ? lwT('Desactivar deck') : lwT('Activar deck')}</button>
+          <button class="sui-btn" id="btnCerrarDeck">${lwT('Cerrar')}</button>`,
+  });
+  $('#btnCerrarDeck').addEventListener('click', suiCerrarCajon);
+  $('#btnGuardarDeck').addEventListener('click', async () => {
+    const slug = $('#id-slug').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+    const tituloEn = $('#id-titulo').value.trim();
+    const metaEn = $('#id-meta').value.trim();
+    if(!tituloEn || !metaEn){ toastMal(lwT('Título y meta description son obligatorios.')); return; }
+    const destacadoId = $('#id-destacado').value || null;
+    const btn = $('#btnGuardarDeck'); btn.disabled = true;
+    if(slug && slug !== (ficha.slug || '')){
+      const { error: eSlug } = await SB.from('proyectos').update({ slug }).eq('id', proyectoId);
+      if(eSlug){ btn.disabled = false; toastMal(lwT('No se pudo guardar el slug (¿ya lo usa otro proyecto?): ') + eSlug.message); return; }
+    }
+    const { error: eCfg } = await SB.from('deck_config_proyecto').upsert({
+      proyecto_id: proyectoId,
+      titulo: { en: tituloEn },
+      meta_desc: { en: metaEn },
+      modelo_destacado_id: destacadoId,
+    }, { onConflict: 'proyecto_id' });
+    btn.disabled = false;
+    if(eCfg){ toastMal(lwT('No se pudo guardar: ') + eCfg.message); return; }
+    toast(lwT('Guardado'));
+    suiCerrarCajon();
+    cargar();
+  });
+  $('#btnActivarDeck').addEventListener('click', async () => {
+    const nuevoEstado = !activo;
+    const ok = await lwConfirmar({
+      titulo: nuevoEstado ? lwT('Activar el Investor Deck') : lwT('Desactivar el Investor Deck'),
+      cuerpo: `<p>${nuevoEstado
+        ? lwT('Todas las unidades de %p pasarán a ser visibles, sin login, en /investor-deck/. Incluidas las vendidas y reservadas.', { p: nombre })
+        : lwT('%p deja de ser visible en el Investor Deck público.', { p: nombre })}</p>`,
+      confirmar: nuevoEstado ? lwT('Activar') : lwT('Desactivar'),
+    });
+    if(!ok) return;
+    const btn = $('#btnActivarDeck'); btn.disabled = true;
+    const { error } = await SB.rpc('investor_deck_activar', { p_proyecto: nombre, p_activo: nuevoEstado });
+    if(error){ btn.disabled = false; toastMal(lwT('No se pudo cambiar el estado: ') + error.message); return; }
+    toast(nuevoEstado ? lwT('Deck activado') : lwT('Deck desactivado'));
     suiCerrarCajon();
     cargar();
   });
