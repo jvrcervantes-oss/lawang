@@ -331,9 +331,10 @@
       </div>
       <!-- Plano interactivo: las zonas se pintan por JS con el estado en vivo
            del MISMO RPC que alimenta la lista de al lado, para que no puedan
-           contradecirse. Coordenadas en % sobre la imagen, asi escalan solas. -->
+           contradecirse. Poligonos reales en % (manifiesto
+           ../masterplan/palmfield.json), no rectangulos -- ver ZONAS mas abajo. -->
       <div class="relative w-full select-none" id="plan-wrap">
-        <img src="assets/gallery/24-masterplan-plots.webp" alt="Palm Field masterplan showing every plot code and surface area" loading="lazy" class="w-full rounded-xl border border-[#D8D2C5] bg-[#F0ECE1] object-contain block">
+        <img id="masterplan-img" src="" alt="Palm Field masterplan showing every plot code and surface area" loading="lazy" class="w-full rounded-xl border border-[#D8D2C5] bg-[#F0ECE1] object-contain block">
         <div class="absolute inset-0" id="plan-hotspots"></div>
       </div>
       <p class="font-body-sm text-xs text-[#5F6257]">Tap an available plot to reserve it. Status is live; surface areas are confirmed by survey at Plot Lock.</p>
@@ -1191,31 +1192,18 @@
   // ── masterplan interactivo ────────────────────────────────────────────────
   // Rectangulos en % sobre 12-masterplan.jpg (1690x2200). Medidos sobre la
   // propia imagen; al ir en % no dependen del tamano al que se muestre.
-  // Rectangulos en % sobre 24-masterplan-plots.webp. NO estan medidos a ojo:
-  // Recalibradas 15-sep-2026 (aviso del owner: no encajaban con la foto).
-  // Las de antes venian del PDF del dosier (pagina 9), un documento DISTINTO
-  // de esta imagen (24-masterplan-plots.webp) -- distinto recorte/escala, y
-  // el error se notaba sobre todo en las filas bajas de cada calle. Estas
-  // salen de medir la propia imagen: deteccion de las lineas blancas de
-  // separacion por columna (numpy sobre los pixeles, no a ojo) mas lectura
-  // visual de las esquinas irregulares (A1, B1/B2/B3, B9, B16, C1, C8, que
-  // no son rectangulos exactos y aqui se aproximan igual que antes). La
-  // rejilla vertical de las parcelas estandar es la MISMA en las tres
-  // calles (A/B/C): 15.0, 22.85, 30.72, 38.58, 46.45, 54.2, 62.23, 70.14,
-  // 77.98 -- confirmado que no es casualidad, es la fila real del terreno.
-  var ZONAS = {
-    A1:[2.0,0.0,24.7,15.0], A2:[2.0,15.0,24.7,7.8], A3:[2.0,22.8,24.7,7.9],
-    A4:[2.0,30.7,24.7,7.9], A5:[2.0,38.6,24.7,7.9], A6:[2.0,46.5,24.7,7.7],
-    A7:[2.0,54.2,24.7,8.0], A8:[2.0,62.2,24.7,7.9], A9:[2.0,70.1,24.7,7.9],
-    B1:[27.7,9.0,12.8,21.7], B2:[40.5,13.0,12.8,17.7], B3:[53.3,17.0,12.9,13.7],
-    B4:[27.7,30.7,19.0,7.9], B5:[27.7,38.6,19.0,7.9], B6:[27.7,46.5,19.0,7.7],
-    B7:[27.7,54.2,19.0,8.0], B8:[27.7,62.2,19.0,7.9], B9:[27.7,70.1,19.0,10.9],
-    B10:[46.8,30.7,19.2,7.9], B11:[46.8,38.6,19.2,7.9], B12:[46.8,46.5,19.2,7.7],
-    B13:[46.8,54.2,19.2,8.0], B14:[46.8,62.2,19.2,7.9], B15:[46.8,70.1,19.2,7.9],
-    B16:[46.8,78.0,19.2,10.0], C1:[71.3,21.1,20.5,9.6], C2:[71.3,30.7,20.5,7.9],
-    C3:[71.3,38.6,20.5,7.9], C4:[71.3,46.5,20.5,7.7], C5:[71.3,54.2,20.5,8.0],
-    C6:[71.3,62.2,20.5,7.9], C7:[71.3,70.1,20.5,7.9], C8:[71.3,78.0,20.5,14.0]
-  };
+  // Poligonos reales en % (nunca rectangulos): manifiesto en
+  // ../masterplan/palmfield.json, medido el 15-sep-2026 sobre la propia
+  // imagen (24-masterplan-plots.webp, ahora vive en ../masterplan/palmfield.webp,
+  // mismo sitio/convencion que el resto de manifiestos de masterplan de la
+  // suite). Watershed (skimage) sembrado en el centro de las 34 parcelas
+  // sobre la mascara de "lo blanco" de la imagen -- las lineas blancas SON el
+  // limite real de cada parcela (confirmado por el owner, 15-sep), asi que un
+  // poligono real encaja en las esquinas irregulares (A1, A9, B1, B9, B16,
+  // C1, C8) donde el rectangulo de antes solo aproximaba. Antes de esto:
+  // rectangulos medidos a mano, recalibrados el mismo dia por desalineacion
+  // frente al PDF original del dosier.
+  var ZONAS = null;
 
   // El cartel que se estampa encima. 'reservada' NO se marca SOLD: la leyenda y
   // la lista de al lado las distinguen, y decir SOLD de una reservada
@@ -1227,26 +1215,24 @@
     no_disponible: ['SOLD',     'bg-[#B3261E]/95']
   };
 
+  function centroide(pts){
+    var x=0,y=0; pts.forEach(function(p){ x+=p[0]; y+=p[1]; });
+    return [x/pts.length, y/pts.length];
+  }
+
   function pintaPlano(rows){
     var wrap = document.getElementById('plan-hotspots');
-    if(!wrap) return;
+    if(!wrap || !ZONAS) return;
     wrap.innerHTML = '';
     rows.forEach(function(row){
-      var z = ZONAS[row.codigo];
-      if(!z) return;
+      var pts = ZONAS[row.codigo];
+      if(!pts || pts.length < 3) return;
       var libre = row.estado === 'disponible';
       var puede = libre && row.cuota_reserva != null && Number(row.cuota_reserva) > 0;
       var el = document.createElement(puede ? 'button' : 'div');
-      el.className = 'absolute flex items-center justify-center rounded-[3px] transition-all duration-200 ' +
-        (libre ? 'border-2 border-transparent hover:border-white hover:bg-territorial-green/30 cursor-pointer'
-               : 'bg-black/45 border border-white/20');
-      el.style.left = z[0]+'%'; el.style.top = z[1]+'%';
-      el.style.width = z[2]+'%'; el.style.height = z[3]+'%';
-      var sello = SELLO[row.estado];
-      if(sello){
-        el.innerHTML = '<span class="'+sello[1]+' text-white font-label-md font-bold tracking-widest ' +
-          'text-[9px] sm:text-[11px] px-2 py-0.5 rounded-sm shadow">'+sello[0]+'</span>';
-      }
+      el.className = 'absolute inset-0 transition-all duration-200 ' +
+        (libre ? 'hover:bg-territorial-green/35 cursor-pointer' : 'bg-black/45');
+      el.style.clipPath = 'polygon(' + pts.map(function(p){ return p[0]+'% '+p[1]+'%'; }).join(',') + ')';
       var precio = row.precio != null ? ' · ' + fmtMoney(row.precio, row.moneda) : '';
       el.title = row.codigo + ' · ' + esc(row.superficie_m2) + ' m2' + precio + ' · ' +
         ({disponible:'Available',reservada:'Reserved',bloqueada:'Sold',no_disponible:'Sold'}[row.estado] || row.estado);
@@ -1256,8 +1242,28 @@
         el.addEventListener('click', function(){ openModal(row.codigo); });
       }
       wrap.appendChild(el);
+      var sello = SELLO[row.estado];
+      if(sello){
+        var c = centroide(pts);
+        var badge = document.createElement('span');
+        badge.className = 'absolute pointer-events-none ' + sello[1] + ' text-white font-label-md font-bold tracking-widest text-[9px] sm:text-[11px] px-2 py-0.5 rounded-sm shadow';
+        badge.style.left = c[0]+'%'; badge.style.top = c[1]+'%'; badge.style.transform = 'translate(-50%,-50%)';
+        badge.textContent = sello[0];
+        wrap.appendChild(badge);
+      }
     });
   }
+
+  var ULTIMAS_FILAS = null;
+  fetch('../masterplan/palmfield.json').then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+    .then(function(manifest){
+      var pag = manifest && manifest.paginas && manifest.paginas[0];
+      if(!pag) throw new Error('manifiesto_vacio');
+      document.getElementById('masterplan-img').src = pag.imagen;
+      ZONAS = pag.zonas || null;
+      if(ULTIMAS_FILAS) pintaPlano(ULTIMAS_FILAS);
+    })
+    .catch(function(){ ZONAS = null; });
 
   // ── masterplan / inventario en vivo ───────────────────────────────────────
   var plotsWrap = document.getElementById('plots-wrap');
@@ -1268,7 +1274,8 @@
   }).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
     .then(function(rows){
       if(!rows || !rows.length){ plotsWrap.innerHTML = '<div class="p-6 text-sm text-[#5F6257]">No plots published yet.</div>'; plotsCount.textContent=''; return; }
-      pintaPlano(rows);
+      ULTIMAS_FILAS = rows;
+      if(ZONAS) pintaPlano(rows);
       var disponibles = rows.filter(function(r){ return r.estado === 'disponible'; }).length;
       plotsCount.textContent = disponibles + ' of ' + rows.length + ' plots available';
       plotsWrap.innerHTML = '';
