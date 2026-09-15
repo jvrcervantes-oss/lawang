@@ -1042,6 +1042,18 @@ function pdef(key){
   // projectDefaults — un contrato reabierto sin este dato guardado también
   // cae aquí, igual que ya pasa con moneda='EUR'.
   if(key==='fecha_firma') return hoyLocalISO();   // local: toISOString daba AYER antes de las 2:00
+  /* Tipo de cambio precargado en 1 EUR = 20.000 IDR (15-sep-2026, petición del
+     owner), pero SOLO cuando la moneda del contrato es EUR: hallazgo de
+     Administración+Legal el mismo día — un default global habría precargado
+     20.000 también en un contrato en USD o AUD, y esa tasa se habría impreso
+     como "pactada por las Partes" sin que nadie la tecleara. El guardarraíl
+     de más abajo ("sin tipo de cambio no se imprime nada") sigue vigente para
+     cualquier otra moneda: el campo se queda vacío y hay que rellenarlo. */
+  if(key==='tipo_cambio_idr'){
+    const monEl = document.querySelector('[name="moneda"]');
+    const mon = (monEl && monEl.value) || (TOKENS && TOKENS.projectDefaults && TOKENS.projectDefaults.moneda) || '';
+    return mon === 'EUR' ? '20000' : '';
+  }
   return (TOKENS && TOKENS.projectDefaults && TOKENS.projectDefaults[key]) || '';
 }
 
