@@ -2212,6 +2212,9 @@
   REG.cuentas = function (sb) {
     var tbody = document.getElementById('lw-reparto');
     var cajaRep = tbody ? tbody.closest('section') : null;
+    var tbodyProy = document.getElementById('lw-reparto-proyecto');
+    var cajaProy = tbodyProy ? tbodyProy.closest('section') : null;
+    var tbodyCu = document.getElementById('lw-reparto-cuenta');
     var cajaCu = document.getElementById('lw-cuentas');
 
     Promise.all([
@@ -2220,9 +2223,13 @@
       q(sb.from('cuentas_bancarias').select('clave,label,titular,banco,activa,es_escrow,orden').order('orden'), 'cuentas bancarias', cajaCu),
       q(sb.from('plantillas_pago').select('slug,nombre,orden').order('orden'), 'plantillas de pago', cajaRep),
       q(sb.from('plantilla_cuentas').select('slug,clave,es_default'), 'reparto por contrato'),
-      q(sb.from('proyecto_cuentas').select('proyecto_id,slug,clave,es_default'), 'reparto por proyecto')
+      q(sb.from('proyecto_cuentas').select('proyecto_id,slug,clave,es_default'), 'reparto por proyecto', cajaProy),
+      /* Falta desde el 14-sep (14-sep añadió proyecto_cuentas pero nunca trajo
+         `proyectos`, así que «Por proyecto» no tenía con qué pintar filas —
+         era la mitad que faltaba de las tres pestañas). */
+      q(sb.from('proyectos').select('id,nombre').eq('activo', true).order('nombre'), 'proyectos', cajaProy)
     ]).then(function (r) {
-      var cus = r[0], pls = r[1], rep = r[2], repProy = r[3];
+      var cus = r[0], pls = r[1], rep = r[2], repProy = r[3], proys = r[4];
       if (!cus || !pls || !rep) return;
 
       var porClave = {};
@@ -2233,6 +2240,7 @@
       var porSlug = {};
       rep.forEach(function (x) { (porSlug[x.slug] = porSlug[x.slug] || []).push(x); });
       var huerfanas = pls.filter(function (p) { return !(porSlug[p.slug] || []).length; });
+      var etiqueta = function (x) { var c = porClave[x.clave]; return c ? (c.label || c.clave) : x.clave; };
 
       pon2('k-activas', String(activas.length));
       pon2('k-total', String(cus.length));
@@ -2248,6 +2256,7 @@
       pon2('k-escrow', String(escrow.length));
       pon2('k-escrow-pie', escrow.length ? 'declaradas por columna, no por nombre' : 'ninguna marcada');
 
+      // ---------- Por contrato ----------
       var t = tbody && tbody.closest('table');
       if (t) {
         var pl = plantillaFilas(t);
@@ -2257,12 +2266,66 @@
           } else {
             pls.forEach(function (p) {
               var filas = porSlug[p.slug] || [];
-              var etiqueta = function (x) { var c = porClave[x.clave]; return c ? (c.label || c.clave) : x.clave; };
               var def = filas.filter(function (x) { return x.es_default; })[0];
               fila(pl, [
                 p.nombre || p.slug,
                 filas.length ? filas.map(etiqueta).join(' · ') : 'sin cuenta marcada',
                 def ? etiqueta(def) : '—'
+              ]);
+            });
+          }
+        }
+      }
+
+      /* ---------- Por proyecto ----------
+         `slug === '*'` es el mismo TODOS de /intranet/cuentas/ (vocabulario.js
+         no lo exporta como constante, es un literal de esa pantalla): la
+         excepción vale para cualquier tipo de contrato del proyecto. «Hereda»
+         es el estado normal y sano, no una falta de configurar — con 1 sola
+         fila en `proyecto_cuentas` hoy, casi todos los proyectos van a decir
+         «hereda», y eso es correcto. */
+      var tProy = tbodyProy && tbodyProy.closest('table');
+      if (tProy) {
+        var plProy = plantillaFilas(tProy);
+        if (plProy) {
+          if (proys === null) {
+            plProy.tbody.innerHTML = '<tr><td colspan="3" style="padding:18px;text-align:center;font:400 13px \'Neue Kabel\',sans-serif;color:#93000a">No se pudo leer el catalogo de proyectos.</td></tr>';
+          } else if (!proys.length) {
+            plProy.tbody.innerHTML = '<tr><td colspan="3" style="padding:18px;text-align:center;font:400 13px \'Neue Kabel\',sans-serif;color:#8A8474">Ningun proyecto activo.</td></tr>';
+          } else {
+            var porProy = {};
+            (repProy || []).forEach(function (x) { (porProy[x.proyecto_id] = porProy[x.proyecto_id] || []).push(x); });
+            proys.forEach(function (p) {
+              var reglas = porProy[p.id] || [];
+              var tiposVistos = {}, tipos = [];
+              reglas.forEach(function (x) {
+                var t2 = x.slug === '*' ? 'cualquier contrato' : x.slug;
+                if (!tiposVistos[t2]) { tiposVistos[t2] = 1; tipos.push(t2); }
+              });
+              fila(plProy, [
+                p.nombre,
+                reglas.length ? tipos.join(' · ') : 'hereda el reparto general',
+                reglas.length ? String(reglas.length) : '—'
+              ]);
+            });
+          }
+        }
+      }
+
+      // ---------- Por cuenta ----------
+      var tCu = tbodyCu && tbodyCu.closest('table');
+      if (tCu) {
+        var plCu = plantillaFilas(tCu);
+        if (plCu) {
+          if (!cus.length) {
+            plCu.tbody.innerHTML = '<tr><td colspan="3" style="padding:18px;text-align:center;font:400 13px \'Neue Kabel\',sans-serif;color:#8A8474">Ninguna cuenta dada de alta.</td></tr>';
+          } else {
+            cus.forEach(function (c) {
+              var usos = rep.filter(function (x) { return x.clave === c.clave; }).length;
+              fila(plCu, [
+                c.label || c.clave,
+                usos ? (usos + (usos === 1 ? ' documento' : ' documentos')) : 'ninguno',
+                c.activa ? 'activa' : 'de baja'
               ]);
             });
           }

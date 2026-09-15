@@ -1512,6 +1512,67 @@
           return sb.from('condiciones_comision').update({ activo: pasaA }).eq('id', condId);
         });
       };
+    },
+
+    /* Cuentas de cobro (15-sep-2026, encargo del owner: "fixea Cuentas en v4,
+       tanto las tablas como la caja para darlas de alta"). Solo el ALTA vive
+       aquí: crear una fila en `cuentas_bancarias` (RLS "cuentas: solo super
+       admin crea", with_check es_super_admin() — verificado contra el
+       esquema real, no supuesto). El resto del editor de /intranet/cuentas/
+       —reparto por plantilla/proyecto con casillas, nota en tres idiomas,
+       activar/desactivar una cuenta ya creada— se queda en la herramienta
+       viva a propósito: es un master-detail de 1000+ líneas que no encaja en
+       la piel de tarjetas de la v4, y portarlo entero no es lo que se pidió.
+       El botón "Abrir la herramienta viva" sigue ahí para eso. */
+    cuentas: function (aut) {
+      var sb = aut.sb, superAdmin = !!(aut.ficha && aut.ficha.rol === 'super_admin');
+      var soloSuper = function () {
+        return aviso('Dar de alta una cuenta de cobro es solo para super_admin (policy es_super_admin) — tu sesión es de ' +
+          ((aut.ficha && aut.ficha.rol) || 'agente') + '.', '#8A6A34');
+      };
+
+      var btn = ata(/^\+? ?Nueva cuenta$/i, function () {
+        if (!superAdmin) return soloSuper();
+        // claves existentes + siguiente `orden`: hace falta antes de abrir el
+        // formulario para validar unicidad sin ir y volver a la base al guardar.
+        sb.from('cuentas_bancarias').select('clave,orden').then(function (r) {
+          var existentes = (r && r.data) || [];
+          var claves = {};
+          existentes.forEach(function (c) { claves[c.clave] = 1; });
+          var siguienteOrden = existentes.reduce(function (m, c) { return Math.max(m, c.orden || 0); }, 0) + 10;
+          modal('Nueva cuenta de cobro', [
+            { k: 'clave', label: 'Clave interna (no se puede cambiar después)', req: 1,
+              ayuda: 'minúsculas, números y guión bajo — por ejemplo «notario_ayu_bali». Queda dentro de cada contrato y factura que se emitan con esta cuenta, así que no se renombra nunca.' },
+            { k: 'label', label: 'Etiqueta (la que ve el agente en el desplegable)', req: 1 },
+            { k: 'titular', label: 'Titular', req: 1, medio: 1 },
+            { k: 'banco', label: 'Banco', medio: 1 },
+            { k: 'cuenta', label: 'Número de cuenta', req: 1, medio: 1 },
+            { k: 'codigo', label: 'Código Swift / Routing', medio: 1 },
+            { k: 'direccion', label: 'Domicilio del banco' },
+            { k: 'es_escrow', label: 'Es una cuenta ESCROW (depósito en garantía)', tipo: 'check' },
+            { tipo: 'nota', label: 'Nace desactivada y sin ningún contrato asignado: no puede aparecer en el desplegable de un contrato antes de que alguien compruebe el número. Se activa y se reparte después, desde «Abrir la herramienta viva».' }
+          ], 'Crear cuenta', function (v) {
+            var clave = v.clave.trim().toLowerCase();
+            if (!/^[a-z0-9_]{3,}$/.test(clave)) {
+              return { error: { message: 'La clave va en minúsculas, números y guión bajo, mínimo 3 caracteres. Sin espacios ni acentos.' } };
+            }
+            if (claves[clave]) return { error: { message: 'Ya existe una cuenta con la clave «' + clave + '».' } };
+            /* `.select().single()` detrás del insert a propósito, igual que en
+               /intranet/cuentas/: la policy de SELECT de cuentas_bancarias es
+               para cualquier sesión, así que no hay riesgo de que esto
+               confunda un insert bueno con uno rechazado por RLS. */
+            return sb.from('cuentas_bancarias').insert({
+              clave: clave, label: v.label.trim(),
+              titular: v.titular.trim(), banco: v.banco.trim(), cuenta: v.cuenta.trim(),
+              codigo: v.codigo.trim(), direccion: v.direccion.trim(), extra: '',
+              es_escrow: !!v.es_escrow, activa: false, orden: siguienteOrden
+            }).select('clave').single();
+          });
+        });
+      });
+      // `hidden` de salida en el HTML: solo se destapa para super_admin — un
+      // admin normal ni lo ve, aunque el click de todas formas lo rechazaría.
+      if (btn && superAdmin) btn.hidden = false;
     }
   };
 
