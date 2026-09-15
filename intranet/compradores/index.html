@@ -20,7 +20,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=a16d0ab3"></script>
+<script src="/contracts/assets/i18n.js?v=0f061df0"></script>
 <script src="/contracts/assets/herramientas.js?v=c95fc709"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="/contracts/assets/visor.js?v=28038adb" defer></script>
@@ -167,6 +167,7 @@
             <th data-orden="passport_number" data-lwt="Pasaporte">Pasaporte</th>
             <th data-orden="kyc_status">KYC</th>
             <th class="num" data-lwt="Docs.">Docs.</th>
+            <th data-lwt="Agente">Agente</th>
           </tr></thead>
           <tbody id="listaC"></tbody>
         </table>
@@ -326,11 +327,16 @@ async function cargar(){
   COBRADO = {}; (cb.error ? [] : (cb.data || [])).forEach(x => { COBRADO[x.contrato_id] = Number(x.cobrado) || 0; });
   ACCESOS = a.error ? [] : (a.data || []);
   FACTURAS = f.error ? [] : (f.data || []);
-  if(ES_ADMIN && !EQUIPO.length){
+  if(!EQUIPO.length){
+    /* Antes solo se pedía para admin (era solo para el desplegable del
+       traspaso). La columna «Agente» del listado (14-sep) lo necesita para
+       TODOS: la policy "el equipo se ve entre si" ya deja leer nombre/email
+       de cualquier compañero a cualquier agente, así que esto no abre nada
+       que la base no dejara — solo dejaba de pedirse. */
     const { data: eq } = await SB.from('usuarios')
       .select('email,nombre,rol,activo').eq('activo', true).order('nombre');
-    // Si falla, el desplegable del traspaso sale vacío y el bloque se queda en
-    // «la dio de alta X» — que es lo que de verdad importa ver.
+    // Si falla, el desplegable del traspaso sale vacío y la columna se queda
+    // en el email crudo — que es lo que de verdad importa ver.
     EQUIPO = eq || [];
   }
   if(d.error) toastMal(lwT('No se pudieron leer los documentos: ') + d.error.message);
@@ -540,9 +546,10 @@ function pintarLista(){
       <td><span class="sui-tag ${c.kyc_status==='verified'?'ok':(c.kyc_status==='rejected'?'alerta':'espera')}">${esc(etiqueta(KYC,c.kyc_status||'pending'))}</span>${
         a ? ` <span class="sui-tag ${a[0]==='mal'?'alerta':a[0]}">${esc(a[1])}</span>` : ''}</td>
       <td class="num ${n?'':'flojo'}">${n}</td>
+      <td>${esc(nombreDe(c.propietario) || '—')}</td>
     </tr>`;
   }).join('')
-  : `<tr><td colspan="6"><div class="sui-nada"><b>${CLIENTES.length ? 'Nadie coincide' : 'Todavía no hay compradores'}</b>${
+  : `<tr><td colspan="7"><div class="sui-nada"><b>${CLIENTES.length ? 'Nadie coincide' : 'Todavía no hay compradores'}</b>${
       CLIENTES.length ? 'Prueba con otra búsqueda.' : 'Créalo con «+ Nuevo comprador».'}</div></td></tr>`;
 }
 
@@ -678,6 +685,12 @@ function pintarFicha(){
            el contrato la imprime. Una empresa sin domicilio social no se puede
            redactar, así que entra ahora para las dos (19-ago-2026). -->
       <label for="f-dom" id="lab-dom">${lwT('Domicilio')}</label><input id="f-dom" ${dis} value="${esc(c.address||'')}">
+      <label for="f-idioma">${lwT('Idioma de comunicación')}</label>
+      <select class="sui-sel" id="f-idioma" ${dis}>
+        <option value="es" ${(c.idioma_comunicacion||'es')==='es'?'selected':''}>${lwT('Español')}</option>
+        <option value="en" ${c.idioma_comunicacion==='en'?'selected':''}>${lwT('English')}</option>
+        <option value="id" ${c.idioma_comunicacion==='id'?'selected':''}>${lwT('Bahasa Indonesia')}</option>
+      </select>
       <!-- ── solo empresa ──────────────────────────────────────────────────
            Sin NIB ni NPWP en las etiquetas: el comprador puede ser una S.L.
            española, una LLC americana o una PT PMA indonesia, y el documento
@@ -1282,6 +1295,7 @@ async function guardar(id){
     nationality:$('#f-nac').value.trim() || null,
     passport_number:$('#f-pas').value.trim() || null,
     address:$('#f-dom').value.trim() || null,
+    idioma_comunicacion: $('#f-idioma').value || 'es',
     // Los campos de empresa se VACÍAN al pasar a persona, no se dejan de lado:
     // si no, una ficha corregida seguiría arrastrando el CIF de cuando estaba
     // mal puesta como empresa, invisible en pantalla y visible en el contrato.
