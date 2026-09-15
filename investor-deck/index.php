@@ -387,10 +387,13 @@ if ($slug === '') { http_response_code(404); exit; }
 (function(){
   'use strict';
   var SB_URL = 'https://vtulllundrfennhjddhc.supabase.co';
-  var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0dWxsbHVuZHJmZW5uaGpkZGhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwMTgwNTcsImV4cCI6MjA5OTU5NDA1N30.K9nikTSO-7Z9civle2EzUhNp3kx8foljV06PRSWMZcs';
+  // Publishable key (no el anon JWT legacy que usa el piloto de Palm Field):
+  // mismo alcance publico, formato nuevo -- gate de deploy pide sb_publishable_
+  // para todo lo que se escriba a partir de ahora, sin tocar lo ya desplegado.
+  var SB_KEY = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';
   // Saneado en PHP (preg_replace [^A-Za-z0-9-]) y de nuevo aqui: defensa en
   // profundidad, aunque el .htaccess ya restringe el patron de la URL.
-  var SLUG = <?php echo json_encode($slug); ?>;
+  var SLUG = <?= json_encode($slug) ?>;
   var SLUG_OK = /^[a-z0-9-]+$/i;
   if(!SLUG_OK.test(SLUG)){ document.getElementById('deck-no-disponible').classList.remove('hidden'); return; }
 
