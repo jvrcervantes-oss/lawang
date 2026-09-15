@@ -573,10 +573,15 @@
     function borra(f) {
       sb.from('obra_fotos').delete().eq('id', f.id).then(function (r) {
         if (r.error) return aviso(r.error.message, '#93000a');
-        // si esto falla queda huérfano en el bucket, no en el portal — mismo
-        // tradeoff aceptado que accionFoto('borrar') en /intranet/obra/; el
-        // .catch es solo para que un fallo de red no quede mudo en consola
-        sb.storage.from('obra').remove([f.path]).catch(function (e) { console.error('[v4 obra] fallo al borrar del bucket:', e); });
+        // mismo tradeoff aceptado que accionFoto('borrar') en /intranet/obra/
+        sb.storage.from('obra').remove([f.path]).catch(function (e) {
+          /* MUDO A PROPOSITO: la fila ya se borró de obra_fotos (lo que decide
+             qué ve el portal); si esto falla el blob queda huérfano en un
+             bucket privado, sin efecto para nadie — solo se deja constancia
+             en consola para quien audite el bucket, no hace falta interrumpir
+             al agente por un archivo que ya dejó de mostrarse. */
+          console.error('[v4 obra] fallo al borrar del bucket:', e);
+        });
         carga();
       });
     }
