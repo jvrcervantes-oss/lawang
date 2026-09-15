@@ -37,7 +37,9 @@
        v4/leads/ es solo una redireccion para los enlaces viejos. */
     ['CRM', '/intranet/leads/'],
     ['Comisiones', 'comisiones/'],
-    ['Cuentas', 'cuentas/']
+    ['Cuentas', 'cuentas/'],
+    ['Equipos de venta', 'equipos-venta/'],
+    ['Condiciones', 'condiciones/']
   ];
 
   function normaliza(t) { return (t || '').replace(/\s+/g, ' ').trim(); }
@@ -50,38 +52,44 @@
   }
 
   /* Herramientas que NO existen en el diseno de Stitch: nacieron despues de la
-     descarga (Modelos el 7-sep; CRM, Solicitudes/Comisiones y Cuentas ya
-     estaban vivas en /intranet/ y la maqueta se habia quedado atras). Sus
-     items de menu se INYECTAN aqui en vez de anadirlos a mano en las 22
-     sidebars: la cascara esta duplicada por ser maqueta, pero la navegacion
-     no — una lista copiada en dos sitios ES el bug, y con 22 copias la
-     siguiente herramienta se olvidaria en alguna.
+     descarga (Modelos el 7-sep; CRM y Solicitudes/Comisiones ya estaban vivas
+     en /intranet/ y la maqueta se habia quedado atras). Sus items de menu se
+     INYECTAN aqui en vez de anadirlos a mano en las 22 sidebars: la cascara
+     esta duplicada por ser maqueta, pero la navegacion no — una lista copiada
+     en dos sitios ES el bug, y con 22 copias la siguiente herramienta se
+     olvidaria en alguna.
      El orden y el grupo salen de `contracts/assets/herramientas.js`, que es la
      fuente unica del catalogo vivo: cada uno se cuelga detras de su vecino de
      alli (CRM abre Seguimiento -> tras Home; Comisiones (antes «Solicitudes»,
-     renombrada 14-sep) cierra Administracion -> tras Recibos; Cuentas es de
-     Equipo -> tras Usuarios, que es el ultimo del menu de la maqueta). */
+     renombrada 14-sep) cierra Administracion -> tras Recibos). Cuentas ya NO
+     va aqui desde el 15-sep: se movio a la seccion "Panel de control", ver
+     mas abajo — visible siempre para cualquier sesion nunca fue correcto,
+     el propio catalogo la marca `soloAdmin:true`. */
   var INJERTOS = [
     { path: 'leads',      tras: 'home',     icono: 'person_search',  texto: 'CRM',
       href: '/intranet/leads/' },   // vista propia: sale de la v4
-    { path: 'comisiones', tras: 'recibos',  icono: 'request_quote',  texto: 'Comisiones' },
-    { path: 'cuentas',    tras: 'usuarios', icono: 'account_balance', texto: 'Cuentas' }
+    { path: 'comisiones', tras: 'recibos',  icono: 'request_quote',  texto: 'Comisiones' }
   ];
 
-  /* Injertos SOLO para admin/super_admin (14-sep-2026, encargo del owner:
-     "Equipos de venta" y "Condiciones" — administración de comisiones).
-     Van en un array aparte y no dentro de INJERTOS de arriba porque esos se
-     inyectan siempre, para cualquier sesión; estos dos exigen comprobar el rol
-     y eso solo se sabe tras `window.LW_AUTH` (guard.js), que resuelve DESPUES
-     de este primer pase sincrono. Mismo criterio de rol que `es_admin()` en la
-     base (`ficha.rol IN ('admin','super_admin')`) — es la puerta del menu, la
-     de verdad la pone la RLS de las cuatro tablas que tocan.
-     `tras:'cuentas'` porque 'cuentas' ya esta en el DOM cuando esto corre: lo
-     injerto INJERTOS de arriba ya paso en el primer pase sincrono, sea cual
-     sea el rol de la sesion. */
-  var INJERTOS_ADMIN = [
-    { path: 'equipos-venta', tras: 'cuentas',       icono: 'groups',  texto: 'Equipos de venta' },
-    { path: 'condiciones',   tras: 'equipos-venta',  icono: 'percent', texto: 'Condiciones' }
+  /* "Panel de control" (15-sep-2026, encargo del owner): seccion nueva del
+     menu, admin/super_admin solamente, para las herramientas de
+     configuracion de la intranet — Cuentas, Equipos de venta, Condiciones.
+     Usuarios se queda fuera y donde estaba a proposito: el owner la quiere
+     separada por ser la que mas se toca del grupo (altas, roles, meter
+     closers en un equipo de venta).
+     Stitch nunca dibujo esta seccion, asi que no hay cabecera+enlaces que
+     clonar de uno en uno como en INJERTOS de arriba: `injertaPanelControl`
+     construye el grupo entero (cabecera incluida) clonando el div de "Base
+     de Datos" (vacio) y su span de cabecera, y cuelga los tres enlaces
+     dentro. Mismo criterio de rol que `es_admin()` en la base
+     (`ficha.rol IN ('admin','super_admin')`) — es la puerta del menu, la de
+     verdad la pone la RLS de las tablas que tocan. Solo se sabe el rol de la
+     sesion tras `window.LW_AUTH` (guard.js), que resuelve DESPUES del primer
+     pase sincrono — por eso corre en un segundo pase, igual que antes. */
+  var PANEL_CONTROL = [
+    { path: 'cuentas',       icono: 'account_balance', texto: 'Cuentas' },
+    { path: 'equipos-venta', icono: 'groups',           texto: 'Equipos de venta' },
+    { path: 'condiciones',   icono: 'percent',          texto: 'Condiciones' }
   ];
 
   /* Documentacion se fusiono dentro de Proyectos (owner, 8-sep): la pestana
@@ -92,7 +100,7 @@
     if (a) a.style.display = 'none';
   }
 
-  /* Un solo injertador para los cuatro casos. Clona el enlace vecino para
+  /* Un solo injertador para los tres casos. Clona el enlace vecino para
      heredar sus clases exactas: escribirlas a mano seria la misma lista de
      Tailwind copiada, y divergiria al primer retoque de la cascara. */
   function injerta(aside, spec) {
@@ -124,26 +132,41 @@
      hay parpadeo: el usuario nunca llega a ver el menu sin estos dos items y
      luego perderlos. */
   function esAdminSesion(ficha) { return !!ficha && (ficha.rol === 'admin' || ficha.rol === 'super_admin'); }
-  function injertaAdmin(aside, ficha) {
+
+  /* Construye la seccion "Panel de control" entera (cabecera + 3 enlaces) y
+     la cuelga justo detras del grupo que contiene "Usuarios" ("Base de
+     Datos" en el diseno de Stitch) — mismo sitio donde vivian Cuentas/
+     Equipos de venta/Condiciones antes del 15-sep, solo que ahora con
+     cabecera propia en vez de ir sueltas dentro de ese grupo. */
+  function injertaPanelControl(aside, ficha) {
     if (!esAdminSesion(ficha)) return;
+    if (aside.querySelector('[data-seccion="panel-control"]')) return;
+    var ancla = aside.querySelector('[data-path="usuarios"]');
+    var grupo = ancla && ancla.parentElement;
+    var cabecera = grupo && grupo.querySelector('span');
+    if (!ancla || !grupo || !cabecera) return;   // sin plantilla no hay de donde clonar
+
     var aqui = location.pathname;
-    INJERTOS_ADMIN.forEach(function (spec) {
-      if (aside.querySelector('[data-path="' + spec.path + '"]')) return;
-      var ancla = aside.querySelector('[data-path="' + spec.tras + '"]');
-      if (!ancla) return;
-      var a = ancla.cloneNode(true);
+    var nuevoGrupo = grupo.cloneNode(false);      // mismo div vacio, mismas clases Tailwind
+    nuevoGrupo.setAttribute('data-seccion', 'panel-control');
+    var nuevaCabecera = cabecera.cloneNode(true);
+    nuevaCabecera.textContent = 'Panel de control';
+    nuevoGrupo.appendChild(nuevaCabecera);
+
+    PANEL_CONTROL.forEach(function (spec) {
+      var a = ancla.cloneNode(true);              // clon de "Usuarios": hereda las clases exactas
       a.setAttribute('data-path', spec.path);
       a.removeAttribute('aria-current');
       var spans = a.querySelectorAll('span');
       if (spans.length < 2) return;
       spans[0].textContent = spec.icono;
       spans[1].textContent = spec.texto;
-      // href absoluto ya aqui: el pase generico de `a[href="#"]` de recablea()
-      // ya paso cuando esto corre, y no volvera a pasar por este elemento.
       a.href = ROOT + spec.path + '/';
       if (aqui.indexOf('/' + spec.path + '/') !== -1) marcaActiva(a);
-      ancla.insertAdjacentElement('afterend', a);
+      nuevoGrupo.appendChild(a);
     });
+
+    grupo.insertAdjacentElement('afterend', nuevoGrupo);
   }
 
   function recablea() {
@@ -200,13 +223,14 @@
     document.addEventListener('DOMContentLoaded', function () { recablea(); banner(); });
   } else { recablea(); banner(); }
 
-  /* Segundo pase, solo para los dos items de administracion: espera al rol de
-     la sesion (guard.js) y entonces injerta — o no injerta nada, que es la
-     forma en que "visible en el nav SOLO para admin/super_admin" se cumple. */
+  /* Segundo pase, solo para "Panel de control": espera al rol de la sesion
+     (guard.js) y entonces injerta la seccion entera — o no injerta nada, que
+     es la forma en que "visible en el nav SOLO para admin/super_admin" se
+     cumple. */
   if (window.LW_AUTH && typeof window.LW_AUTH.then === 'function') {
     window.LW_AUTH.then(function (aut) {
       document.querySelectorAll('aside').forEach(function (aside) {
-        injertaAdmin(aside, aut && aut.ficha);
+        injertaPanelControl(aside, aut && aut.ficha);
       });
     });
   }

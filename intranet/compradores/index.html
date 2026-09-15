@@ -902,6 +902,8 @@ function pintarFicha(){
     ${nuevo ? '' : `
     <fieldset>
       <legend>${lwT('Portal del comprador')}</legend>
+      ${soloDirectorio ? '' : `<button type="button" class="btn" id="btnPreviewPortal" style="margin-bottom:10px">${lwT('Vista previa del portal')}</button>
+      <p class="nota">${lwT('Enseña lo mismo que ve el comprador en /portal/ (contratos, cobrado, facturas, documentos), leído con tu permiso de equipo. No abre una sesión suya.')}</p>`}
       ${(() => {
         const suyos = ACCESOS.filter(x => x.client_id === c.id);
         const activos = suyos.filter(x => x.activo);
@@ -1076,6 +1078,7 @@ function pintarFicha(){
   const bi = $('#btnPortalInv'); if(bi) bi.addEventListener('click', () => invitarPortal(c));
   const bp = $('#btnPortalPass'); if(bp) bp.addEventListener('click', () => passwordPortal(c));
   const br = $('#btnPortalRev'); if(br) br.addEventListener('click', () => revocarPortal(c));
+  const bpv = $('#btnPreviewPortal'); if(bpv) bpv.addEventListener('click', () => abrirPreviewPortal(c));
   document.getElementById('suiCajon').querySelectorAll('[data-ver]')
     .forEach(b => b.addEventListener('click', () => abrir(b.dataset.ver)));
   document.getElementById('suiCajon').querySelectorAll('[data-borrar-doc]')
