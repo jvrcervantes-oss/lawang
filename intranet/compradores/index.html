@@ -1395,6 +1395,52 @@ async function subir(clientId){
   }
 }
 
+/* ── vista previa del portal (15-sep-2026) ────────────────────────────
+   NO genera sesión: no hay Auth Admin API/service_role en este entorno
+   para crear un magic-link real de un comprador sin su contraseña
+   (verificado). Enseña la MISMA información que ve él en /portal/,
+   leída con el permiso de equipo que esta ficha ya tiene cargado —
+   contratos, cobrado, facturas, documentos — en un diálogo de solo
+   lectura. Los datos ya están en memoria (VINCULOS/FACTURAS/COBRADO/
+   DOCUMENTOS): no hace falta ninguna consulta nueva. */
+function abrirPreviewPortal(c){
+  const contratos = VINCULOS.filter(v => v.client_id === c.id && v.contratos).map(v => v.contratos);
+  const idsContratos = new Set(contratos.map(x => x.id));
+  const facturas = FACTURAS.filter(f => idsContratos.has(f.contrato_id))
+    .sort((a,b) => String(b.fecha_emision||'').localeCompare(String(a.fecha_emision||'')));
+  const docs = DOCUMENTOS.filter(d => d.client_id === c.id);
+  const filaContrato = x => `<tr>
+    <td>${esc(x.numero || lwT('borrador'))}</td>
+    <td>${esc(lwTipoContrato(x.tipo))}</td>
+    <td>${x.bloqueado ? lwT('Firmado') : lwT('Borrador')}</td>
+    <td class="num">${!lwEsPreliminar(x.tipo) && x.precio_total != null ? esc(lwFormatoImporte(Number(x.precio_total), x.moneda)) : '—'}</td>
+    <td class="num">${esc(lwFormatoImporte(COBRADO[x.id] || 0, x.moneda))}</td>
+  </tr>`;
+  const filaFactura = f => `<tr${f.anulada ? ' class="anulada"' : ''}>
+    <td>${esc(f.numero || lwT('borrador'))}</td>
+    <td>${fFecha(f.fecha_emision)}</td>
+    <td class="num">${f.total != null ? esc(lwFormatoImporte(Number(f.total), f.moneda)) : '—'}</td>
+    <td>${f.anulada ? lwT('Anulada') : '—'}</td>
+  </tr>`;
+  const filaDoc = d => `<tr><td>${esc(etiqueta(DOCS, d.doc_type))}</td><td>${fFecha(d.uploaded_at)}</td></tr>`;
+  const tabla = (cols, filas, vacio) => filas.length
+    ? `<table><thead><tr>${cols.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${filas.join('')}</tbody></table>`
+    : `<p class="nota">${vacio}</p>`;
+  const cuerpo = `
+    <p class="nota">${lwT('Esto es lo que este comprador ve ahora mismo en /portal/. No se ha abierto ninguna sesión suya: se lee con tu permiso de equipo.')}</p>
+    <h3 style="margin:16px 0 6px;font-size:15px">${lwT('Contratos')}</h3>
+    ${tabla([lwT('Nº'), lwT('Tipo'), lwT('Estado'), lwT('Precio'), lwT('Cobrado')], contratos.map(filaContrato), lwT('Sin contratos.'))}
+    <h3 style="margin:16px 0 6px;font-size:15px">${lwT('Facturas')}</h3>
+    ${tabla([lwT('Nº'), lwT('Fecha'), lwT('Importe'), lwT('Estado')], facturas.map(filaFactura), lwT('Sin facturas.'))}
+    <h3 style="margin:16px 0 6px;font-size:15px">${lwT('Documentos')}</h3>
+    ${tabla([lwT('Documento'), lwT('Subido')], docs.map(filaDoc), lwT('Sin documentos.'))}
+  `;
+  lwConfirmar({
+    titulo: lwT('Vista previa del portal') + ' — ' + (c.full_name || ''),
+    cuerpo, confirmar: lwT('Cerrar'), cancelar: false,
+  });
+}
+
 /* ── portal del comprador ─────────────────────────────────────────────
    La Edge Function `portal-invitar` es quien crea la cuenta y manda el
    correo: aquí solo se pide con la sesión del admin. El body nunca decide
