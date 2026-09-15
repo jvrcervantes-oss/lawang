@@ -179,6 +179,53 @@
     })(j);
   }
 
+  /* ══════════════ chips de filtro REALES (15-sep-2026) ══════════════
+     Mismo patrón que ya usaba en solitario el panel «Reparto de equipo» de
+     Comisiones (`cablearFiltrosEquipo`, más abajo): cada fila/tarjeta ya
+     pintada lleva un atributo con su categoría, y el chip solo
+     enseña/oculta por ese atributo — no repinta nada, así que no puede
+     perder un listener de fila. Se sube aquí porque el mismo hueco se
+     repetía en seis pantallas (Regla 0: una lista/patrón copiado en varios
+     sitios es la duplicación que se paga después).
+
+     Por qué NO se reutiliza `conmutaChip` de maqueta.js para el aspecto: esa
+     función se apaga a propósito en cuanto hay datos reales ("un chip que
+     se enciende sin filtrar miente"), así que el aspecto tiene que venir de
+     aquí también, junto al filtro de verdad — no se puede pedir prestada
+     media función y la otra media no.
+
+     `chips`: NodeList de botones. `claveDe(btn)`: cómo se saca la categoría
+     de CADA botón (varía: unos la llevan en un data-*, otros solo en su
+     span contador). `todas`: la clave que no filtra nada. `coincide(fila,
+     clave)`: si esa fila/tarjeta ya pintada entra en esa categoría — no es
+     una simple igualdad de atributo porque algunas categorías se solapan
+     (un modelo puede estar publicado Y sin render a la vez), así que cada
+     pantalla decide su propia comprobación. `alActivar` pinta el aspecto:
+     cada pantalla usa sus propias clases de Tailwind para "encendido" (no
+     hay una sola, y adivinarla por frecuencia de className —que es lo que
+     hace `conmutaChip`— falla en cuanto dos chips inactivos no comparten
+     clase exacta), así que aquí se recibe explícito, como ya hace
+     `cablearFiltrosEquipo` más abajo. */
+  function cablearChipsFiltro(chips, contenedorFilas, selectorFilas, claveDe, todas, coincide, alActivar) {
+    if (!chips.length) return;
+    chips.forEach(function (btn) {
+      btn.addEventListener('click', function (ev) {
+        ev.stopPropagation();   // si no, maqueta.js la ve pasar y avisa «sin cablear»
+        if (alActivar) chips.forEach(function (b) { alActivar(b, b === btn); });
+        var clave = claveDe(btn);
+        contenedorFilas.querySelectorAll(selectorFilas).forEach(function (fila) {
+          fila.style.display = (clave === todas || coincide(fila, clave)) ? '' : 'none';
+        });
+      });
+    });
+  }
+  /* Las pestañas por `data-lw-tab` (Comisiones: Lawang/Equipo propio; Cuentas:
+     por contrato/proyecto/cuenta) NO entran aquí: cada una lleva su propio
+     script al pie de página, con `stopPropagation` para escapar de
+     maqueta.js — verificado antes de tocar nada, ya filtran/muestran de
+     verdad. Añadir un segundo wiring aquí sería la duplicación que la Regla
+     0 de la suite prohíbe.
+
   /* ══════════════ velo de carga (14-sep-2026, encargo del owner) ══════════════
      Cada pantalla de la v4 nace con todos sus numeros en «—» y los rellena este
      fichero cuando vuelven las consultas. Ese segundo y medio de rejilla de
@@ -489,7 +536,28 @@
           rs.sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; }).slice(0, 120).forEach(function (f) {
             fila(pl, [f.numero, f.contrato_numero || '—', f.cliente_nombre || '—', '', fmt(f.total, f.moneda), '',
               fFecha(f.created_at), f.anulada ? 'ANULADA' : 'EMITIDA'], '/intranet/facturas/?id=' + f.id);
+            pl.tbody.lastElementChild.setAttribute('data-moneda', f.moneda || 'EUR');
           });
+
+          /* Chips de filtro: solo "Todos" y las dos divisas tienen un dato real
+             detrás (`moneda`). "Reservas", "Estructura & Hitos" y "Honorarios
+             notariales" son categorías del diseño de Stitch que no existen en
+             ningún campo del recibí (no hay `categoria` ni se puede derivar
+             del tipo de documento) — se dejan tal cual, sin fingir un filtro
+             que no filtra nada; caen en el aviso genérico de maqueta.js hasta
+             que se decida de dónde sale esa categoría. */
+          var chipsMoneda = Array.prototype.slice.call(document.querySelectorAll('#filter-container .filter-chip')).filter(function (b) {
+            var txt = b.textContent.replace(/\s+/g, ' ').trim();
+            if (/^Todos/i.test(txt)) { b.setAttribute('data-chip-clave', 'todos'); return true; }
+            if (/Divisa EUR/i.test(txt)) { b.setAttribute('data-chip-clave', 'EUR'); return true; }
+            if (/Divisa IDR/i.test(txt)) { b.setAttribute('data-chip-clave', 'IDR'); return true; }
+            return false;
+          });
+          cablearChipsFiltro(chipsMoneda, pl.tbody, 'tr[data-moneda]',
+            function (btn) { return btn.getAttribute('data-chip-clave'); },
+            'todos',
+            function (fila2, clave) { return fila2.getAttribute('data-moneda') === clave; },
+            null);   // el aspecto ya lo pinta el script propio de esta página (línea ~765)
         });
       // el botón de emitir abre el formulario REAL, no el cajón de la maqueta
       var b = hojaConTexto(/Emitir recib/i);
@@ -579,7 +647,33 @@
             c2.kyc_status === 'verified' ? 'KYC VERIFICADO' : 'KYC PENDIENTE',
             ''
           ], '/intranet/compradores/?id=' + c2.id);
+          var tr = pl.tbody.lastElementChild;
+          tr.setAttribute('data-tiene-contrato', d ? '1' : '0');
+          tr.setAttribute('data-en-firma', d && d.firma ? '1' : '0');
         });
+
+        var chipsCompradores = ['todos', 'contrato', 'firma', 'prospectos'].map(function (k) {
+          var sp = document.querySelector('[data-lw="cc-' + k + '"]'); var b = sp && sp.closest('button');
+          if (b) b.setAttribute('data-chip-clave', k);
+          return b;
+        }).filter(Boolean);
+        cablearChipsFiltro(chipsCompradores, pl.tbody, 'tr[data-tiene-contrato]',
+          function (btn) { return btn.getAttribute('data-chip-clave'); },
+          'todos',
+          function (fila2, clave) {
+            if (clave === 'contrato') return fila2.getAttribute('data-tiene-contrato') === '1';
+            if (clave === 'firma') return fila2.getAttribute('data-en-firma') === '1';
+            if (clave === 'prospectos') return fila2.getAttribute('data-tiene-contrato') === '0';
+            return true;
+          },
+          function (btn, on) {
+            btn.classList.toggle('bg-deep-lagoon', on);
+            btn.classList.toggle('text-on-primary', on);
+            btn.classList.toggle('font-semibold', on);
+            btn.classList.toggle('bg-surface-container-low', !on);
+            btn.classList.toggle('text-on-surface-variant', !on);
+            btn.classList.toggle('font-medium', !on);
+          });
       });
     },
     operaciones: function (sb) {
@@ -1630,10 +1724,33 @@
           pon('m-precio', m.precio_construccion != null ? fmt(m.precio_construccion, m.moneda) : '—', c);
           var n = porModelo[m.id] || 0;
           pon('m-unidades', n ? n + (n === 1 ? ' unidad' : ' unidades') : 'sin unidades', c);
+          /* Para los chips de filtro (Publicados/Sin ficha/Sin render): las tres
+             categorías se solapan (un modelo puede estar publicado Y sin
+             render a la vez), así que van en tres atributos, no en un único
+             "estado". */
+          c.setAttribute('data-publicados', m.publicado ? '1' : '0');
+          c.setAttribute('data-sinficha', sinFicha(m) ? '1' : '0');
+          c.setAttribute('data-sinrender', m.renders_pendientes ? '1' : '0');
           c.style.cursor = 'pointer';
           c.addEventListener('click', function () { location.search = '?modelo=' + encodeURIComponent(m.slug || m.nombre); });
           grid.appendChild(c);
         });
+
+        var chipsModelos = ['todos', 'publicados', 'sinficha', 'sinrender'].map(function (k) {
+          var sp = document.querySelector('[data-lw="c-' + k + '"]'); var b = sp && sp.closest('button');
+          if (b) b.setAttribute('data-chip-clave', k);
+          return b;
+        }).filter(Boolean);
+        cablearChipsFiltro(chipsModelos, grid, '[data-publicados]',
+          function (btn) { return btn.getAttribute('data-chip-clave'); },
+          'todos',
+          function (fila, clave) { return fila.getAttribute('data-' + clave) === '1'; },
+          function (btn, on) {
+            btn.classList.toggle('bg-primary-container', on);
+            btn.classList.toggle('text-on-primary', on);
+            btn.classList.toggle('bg-surface-container-low', !on);
+            btn.classList.toggle('text-on-surface-variant', !on);
+          });
 
         /* --- ficha: la de ?modelo= o la que mas unidades arrastra --- */
         var pedido = new URLSearchParams(location.search).get('modelo');
@@ -1802,7 +1919,38 @@
             fila(pl, [u.nombre || '—', u.email || '—', u.rol || '—', u.activo ? 'ACTIVO' : 'INACTIVO',
               (u.herramientas || []).length + ' herramientas', ''],
               '/intranet/v4/usuarios/?u=' + encodeURIComponent(u.email || ''));
+            var tr = pl.tbody.lastElementChild;
+            tr.setAttribute('data-rol', u.rol || '');
+            tr.setAttribute('data-herr', ' ' + (u.herramientas || []).join(' ') + ' ');
           });
+
+          /* Los chips "Legal/Obra/Sales/Finance" son del diseño de Stitch y no
+             corresponden a ningún valor real de `usuarios.rol` (solo existen
+             super_admin/admin/agente, ver migración 20260729090521) — así que
+             se leen como el PERMISO de la herramienta equivalente
+             (`herramientas`), con el mismo mapeo que ya usa la matriz de abajo
+             (m1-m4: contratos/facturas/unidades/compradores). Es una lectura,
+             no un dato inventado: si el mapeo no es el que se quiso decir,
+             hay que corregir aquí, no en cada pantalla. */
+          var mapaRolChip = { legal: 'contratos', obra: 'unidades', sales: 'compradores', finance: 'facturas' };
+          var chipsUsuarios = Array.prototype.slice.call(document.querySelectorAll('[data-role]'));
+          cablearChipsFiltro(chipsUsuarios, pl.tbody, 'tr[data-rol]',
+            function (btn) { return btn.getAttribute('data-role'); },
+            'all',
+            function (fila2, clave) {
+              if (clave === 'admin') return fila2.getAttribute('data-rol') === 'admin' || fila2.getAttribute('data-rol') === 'super_admin';
+              if (fila2.getAttribute('data-rol') === 'super_admin') return true;
+              var h = mapaRolChip[clave];
+              return !!h && fila2.getAttribute('data-herr').indexOf(' ' + h + ' ') !== -1;
+            },
+            function (btn, on) {
+              btn.classList.toggle('bg-territorial-green', on);
+              btn.classList.toggle('text-on-primary', on);
+              btn.classList.toggle('shadow-sm', on);
+              btn.classList.toggle('bg-surface-container-lowest', !on);
+              btn.classList.toggle('text-on-surface-variant', !on);
+              btn.classList.toggle('hover:bg-surface-container-high', !on);
+            });
         }
 
         /* perfil: ?u= o el primero. La matriz refleja usuarios.herramientas —
@@ -1897,10 +2045,33 @@
           pon3('t-cat', h.categoria || 'general');
           pon3('t-quien', u ? (u.de === 'equipo' ? 'Equipo' : 'Comprador') : '—');
           pon3('t-fecha', fFecha(h.actualizado_en));
+          f.setAttribute('data-estado-hilo', h.estado || '');
           f.style.cursor = 'pointer';
           f.addEventListener('click', function () { location.search = '?hilo=' + encodeURIComponent(h.id); });
           lista.appendChild(f);
         });
+
+        var chipsSoporte = ['todos', 'abiertos', 'espera'].map(function (k) {
+          var sp = document.querySelector('[data-lw="c-' + k + '"]'); var b = sp && sp.closest('button');
+          if (b) b.setAttribute('data-chip-clave', k);
+          return b;
+        }).filter(Boolean);
+        cablearChipsFiltro(chipsSoporte, lista, '[data-estado-hilo]',
+          function (btn) { return btn.getAttribute('data-chip-clave'); },
+          'todos',
+          function (fila, clave) {
+            var e = fila.getAttribute('data-estado-hilo') || '';
+            return clave === 'abiertos' ? e === 'abierto' : /espera/.test(e);
+          },
+          function (btn, on) {
+            btn.classList.toggle('bg-primary', on);
+            btn.classList.toggle('text-on-primary', on);
+            btn.classList.toggle('font-semibold', on);
+            btn.classList.toggle('bg-surface-container-low', !on);
+            btn.classList.toggle('text-on-surface-variant', !on);
+            btn.classList.toggle('hover:bg-surface-container-high', !on);
+            btn.classList.toggle('transition-colors', !on);
+          });
 
         /* --- el hilo elegido: ?hilo= o el mas reciente --- */
         var pedido = new URLSearchParams(location.search).get('hilo');
@@ -2068,7 +2239,7 @@
           var origenHtml = x.origen === 'comision_automatica'
             ? '<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;background:#104C4F;color:#fff;font:600 10.5px \'Neue Kabel\',sans-serif;text-transform:uppercase;letter-spacing:.04em"><span class="material-symbols-outlined" style="font-size:13px;line-height:1">bolt</span>Automática</span>'
             : '<span style="font:500 11px \'Neue Kabel\',sans-serif;color:#8A8474">Manual</span>';
-          return '<tr class="border-b border-outline-variant/30">' +
+          return '<tr class="border-b border-outline-variant/30" data-estado="' + esc(x.estado) + '">' +
             '<td class="px-5 py-4 font-label-md text-label-md text-on-surface"><b>SP-' + esc(x.numero) + '</b></td>' +
             '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(u ? (u.nombre || u.email) : '—') + '</td>' +
             '<td class="px-5 py-4">' + origenHtml + '</td>' +
@@ -2079,6 +2250,25 @@
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline text-right">' + diasDesde(x.creado_en) + ' d</td>' +
             '</tr>';
         }).join('');
+
+        var chipsComisiones = ['todas', 'pendiente', 'aprobada', 'resueltas'].map(function (k) {
+          var sp = document.querySelector('[data-lw="c-' + k + '"]'); var b = sp && sp.closest('button');
+          if (b) b.setAttribute('data-chip-clave', k);
+          return b;
+        }).filter(Boolean);
+        cablearChipsFiltro(chipsComisiones, tabla, 'tr[data-estado]',
+          function (btn) { return btn.getAttribute('data-chip-clave'); },
+          'todas',
+          function (fila, clave) {
+            return clave === 'resueltas' ? RESUELTAS.indexOf(fila.getAttribute('data-estado')) >= 0
+                                          : fila.getAttribute('data-estado') === clave;
+          },
+          function (btn, on) {
+            btn.classList.toggle('bg-primary-container', on);
+            btn.classList.toggle('text-on-primary', on);
+            btn.classList.toggle('bg-surface-container-low', !on);
+            btn.classList.toggle('text-on-surface-variant', !on);
+          });
       }
 
       function pintaEquipo(cd, eqs, miembros) {

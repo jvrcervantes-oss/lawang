@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="es"><head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d6d6608e" data-herramienta="compradores"></script>
-<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=310f2346" defer></script><script src="../assets/datos.js?v=5ea71bef" defer></script>
+<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=310f2346" defer></script><script src="../assets/datos.js?v=83bab908" defer></script>
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=c55b4142" defer></script>
 <link href="../assets/shell.css?v=4978e676" rel="stylesheet">
@@ -573,17 +573,9 @@
   function selectBuyer(buyerId) {
     console.log("Cargando ficha rápida del inversor:", buyerId);
   }
-
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.filter-btn').forEach(b => {
-        b.classList.remove('bg-deep-lagoon', 'text-on-primary', 'font-semibold');
-        b.classList.add('bg-surface-container-low', 'text-on-surface-variant', 'font-medium');
-      });
-      this.classList.remove('bg-surface-container-low', 'text-on-surface-variant', 'font-medium');
-      this.classList.add('bg-deep-lagoon', 'text-on-primary', 'font-semibold');
-    });
-  });
+  // El toggle visual + filtrado real de estos chips (.filter-btn / [data-lw="cc-*"])
+  // vive en assets/datos.js (REG.compradores), junto a los datos que filtran —
+  // aquí solo quedaba la mitad visual de Stitch, sin filtrar nada de verdad.
 </script></main></div>
 
 
