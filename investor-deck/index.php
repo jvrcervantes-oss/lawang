@@ -67,7 +67,7 @@ if ($slug === '') { http_response_code(404); exit; }
   .lw-fade-in { animation: lwFadeIn .35s ease both; }
   @keyframes lwFadeIn { from { opacity:0; transform:translateY(4px);} to { opacity:1; transform:none;} }
 </style>
-<script src="i18n.js?v=20260915"></script>
+<script src="/investor-deck/i18n.js?v=20260915"></script>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script>
   tailwind.config = {
@@ -108,7 +108,7 @@ if ($slug === '') { http_response_code(404); exit; }
 <!-- Estado "deck no disponible": nace visible, el JS lo apaga si hay config. -->
 <div id="deck-no-disponible" class="min-h-screen flex items-center justify-center px-6 text-center">
   <div class="max-w-md flex flex-col items-center gap-4">
-    <img src="../assets/img/lawang-logo-v3.webp" alt="Lawang" class="h-8 w-auto">
+    <img src="/assets/img/lawang-logo-v3.webp" alt="Lawang" class="h-8 w-auto">
     <p class="font-headline-sm text-xl text-deep-lagoon font-semibold">This project does not have its Investor Deck available yet.</p>
     <p class="font-body-sm text-body-sm text-on-surface-variant">Please contact our team for the latest documentation and availability.</p>
     <a class="mt-2 px-5 py-2.5 rounded-full bg-deep-lagoon text-white font-label-md text-label-md" href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a>
@@ -120,7 +120,7 @@ if ($slug === '') { http_response_code(404); exit; }
 <header class="fixed top-0 left-0 right-0 z-50 bg-deep-lagoon shadow-[0_2px_16px_rgba(0,0,0,0.18)]">
   <div class="h-[72px] w-full px-6 md:px-margin-desktop flex items-center justify-between gap-4">
     <a class="flex items-center min-w-0 shrink-0" href="#vision" aria-label="Lawang Properties">
-      <img src="../assets/img/lawang-logo-v3.webp" alt="Lawang" class="h-6 md:h-8 w-auto">
+      <img src="/assets/img/lawang-logo-v3.webp" alt="Lawang" class="h-6 md:h-8 w-auto">
     </a>
     <nav class="hidden xl:flex items-center gap-1 bg-white/10 p-1.5 rounded-full border border-white/15">
       <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-white/85 hover:text-deep-lagoon hover:bg-white transition-all" href="#vision">Project &amp; Photos</a>
