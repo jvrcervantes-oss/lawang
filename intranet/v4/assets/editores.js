@@ -573,7 +573,10 @@
     function borra(f) {
       sb.from('obra_fotos').delete().eq('id', f.id).then(function (r) {
         if (r.error) return aviso(r.error.message, '#93000a');
-        sb.storage.from('obra').remove([f.path]);
+        // si esto falla queda huérfano en el bucket, no en el portal — mismo
+        // tradeoff aceptado que accionFoto('borrar') en /intranet/obra/; el
+        // .catch es solo para que un fallo de red no quede mudo en consola
+        sb.storage.from('obra').remove([f.path]).catch(function (e) { console.error('[v4 obra] fallo al borrar del bucket:', e); });
         carga();
       });
     }
@@ -639,7 +642,7 @@
      escribe fase/fecha (por obra_actualizar, igual que antes); las fotos se
      suben/borran en el momento, como en /intranet/obra/. */
   function abreAvanceUnidad(sb, u, fases) {
-    if (!u) return;
+    if (!u) return aviso('Esa unidad ya no está en la lista — vuelve a intentarlo.', '#8A6A34');
     modal('Registrar avance técnico', [
       { k: '_ctx', tipo: 'lectura', label: 'Unidad', valor: u.codigo + ' · ' + (u.proyecto || '—') },
       { k: 'fase', label: 'Fase actual', tipo: 'select', valor: u.obra_fase || '',
@@ -1455,7 +1458,11 @@
     obra: function (aut) {
       var sb = aut.sb;
       ata(/Registrar avance/i, function () {
-        if (!puedeH(aut.ficha, 'unidades')) return aviso('El avance de obra exige la herramienta Unidades (policy puede(\'unidades\')).', '#8A6A34');
+        // hallazgo de Desarrollo (deploy 15-sep): el gate de la UI decía
+        // 'unidades', pero obra_actualizar y las policies de obra_fotos/bucket
+        // obra exigen puede('obra') — con el gate viejo, un agente con
+        // Unidades pero sin Obra veía el flujo entero y fallaba al guardar.
+        if (!puedeH(aut.ficha, 'obra')) return aviso('El avance de obra exige la herramienta Obra (policy puede(\'obra\')).', '#8A6A34');
         Promise.all([
           sb.from('unidades_estado').select('id,codigo,proyecto,obra_fase,obra_fecha_entrega').order('codigo').limit(500),
           sb.from('obra_fases').select('*').order('orden')
