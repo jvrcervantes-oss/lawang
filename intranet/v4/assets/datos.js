@@ -1648,7 +1648,7 @@
       var pon = function (k, v, raiz) { var e = $(k, raiz); if (e) e.textContent = v; };
 
       Promise.all([
-        q(sb.from('modelos').select('id,slug,nombre,dormitorios,banos,villa_m2,terraza_m2,descripcion,precio_construccion,moneda,publicado,activo,renders_pendientes,orden').order('orden', { ascending: true, nullsFirst: false }), 'modelos'),
+        q(sb.from('modelos').select('id,slug,nombre,dormitorios,banos,villa_m2,terraza_m2,descripcion,precio_construccion,moneda,publicado,activo,renders_pendientes,alcance,notas,orden').order('orden', { ascending: true, nullsFirst: false }), 'modelos'),
         q(sb.from('unidades').select('modelo_id,proyecto'), 'unidades por modelo'),
         q(sb.from('modelo_documentos').select('modelo_id,nombre,tipo,tamano_bytes,subido_en,visible_portal'), 'documentos de modelo')
       ]).then(function (r) {

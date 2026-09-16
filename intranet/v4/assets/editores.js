@@ -641,6 +641,115 @@
     carga();
   }
 
+  /* ---------- sub-tablas de «Editar datos» en Modelos ----------
+     Las tres viven en el MISMO «Guardar» que el resto de la ficha — a
+     diferencia de las fotos de obra, aquí no hay acción que se confirme sola:
+     se recogen con un getter (mismo patrón que montaTramos) y `onGuardar` las
+     escribe todas seguidas, igual que guardar() en /intranet/modelos/. */
+  function fila3(host) {
+    var f = document.createElement('div');
+    f.style.cssText = 'display:grid;grid-template-columns:1fr 100px 100px;gap:6px;align-items:center;margin-bottom:6px';
+    host.appendChild(f);
+    return f;
+  }
+  function numIn(placeholder) {
+    var i = document.createElement('input');
+    i.type = 'number'; i.step = '0.01'; if (placeholder) i.placeholder = placeholder;
+    i.style.cssText = 'width:100%;padding:6px 8px;border:1px solid ' + CAJ.borde + ';border-radius:6px;font-size:12.5px';
+    return i;
+  }
+  function montaTechosModelo(host, techos) {
+    if (!techos.length) {
+      var p = document.createElement('p');
+      p.style.cssText = 'margin:0;font-size:12px;color:' + CAJ.apagado;
+      p.textContent = 'Este modelo no tiene variantes de techo.';
+      host.appendChild(p);
+      return function () { return []; };
+    }
+    var cab = fila3(host);
+    ['', 'Ahora', 'Desde 2027'].forEach(function (t) {
+      var s = document.createElement('span'); s.textContent = t;
+      s.style.cssText = 'font-size:10.5px;font-weight:700;color:' + CAJ.apagado + ';text-transform:uppercase;letter-spacing:.06em';
+      cab.appendChild(s);
+    });
+    var filas = techos.map(function (t) {
+      var f = fila3(host);
+      var nom = document.createElement('span'); nom.textContent = t.nombre; nom.style.cssText = 'font-size:13px;font-weight:600;color:' + CAJ.tinta;
+      var ahora = numIn(); ahora.value = t.precio_ahora == null ? '' : t.precio_ahora;
+      var y27 = numIn(); y27.value = t.precio_2027 == null ? '' : t.precio_2027;
+      f.appendChild(nom); f.appendChild(ahora); f.appendChild(y27);
+      return { id: t.id, ahora: ahora, y27: y27 };
+    });
+    return function () {
+      return filas.map(function (f) {
+        return { id: f.id, precio_ahora: f.ahora.value === '' ? null : Number(f.ahora.value), precio_2027: f.y27.value === '' ? null : Number(f.y27.value) };
+      });
+    };
+  }
+  function montaExtrasModelo(host, extras, existentes) {
+    if (!extras.length) {
+      var p = document.createElement('p');
+      p.style.cssText = 'margin:0;font-size:12px;color:' + CAJ.apagado;
+      p.textContent = 'No hay extras dados de alta en el catálogo.';
+      host.appendChild(p);
+      return function () { return []; };
+    }
+    var filas = extras.map(function (e) {
+      var existente = existentes.filter(function (x) { return x.extra_id === e.id; })[0] || null;
+      var f = document.createElement('div');
+      f.style.cssText = 'display:grid;grid-template-columns:1fr 100px auto;gap:6px;align-items:center;margin-bottom:6px';
+      var nom = document.createElement('span'); nom.textContent = e.nombre; nom.style.cssText = 'font-size:13px;font-weight:600;color:' + CAJ.tinta;
+      var precio = numIn(); precio.value = (existente && existente.precio != null) ? existente.precio : '';
+      var lab = document.createElement('label');
+      lab.style.cssText = 'display:flex;align-items:center;gap:5px;font-size:11.5px;color:' + CAJ.apagado + ';white-space:nowrap';
+      var chk = document.createElement('input'); chk.type = 'checkbox';
+      chk.checked = !existente || existente.disponible !== false;   // sin fila = se ofrece, igual que en vivo
+      lab.appendChild(chk); lab.appendChild(document.createTextNode('se ofrece'));
+      f.appendChild(nom); f.appendChild(precio); f.appendChild(lab);
+      host.appendChild(f);
+      return { extraId: e.id, existenteId: existente ? existente.id : null, precio: precio, chk: chk };
+    });
+    return function () {
+      return filas.map(function (f) {
+        return { extraId: f.extraId, existenteId: f.existenteId, precio: f.precio.value === '' ? null : Number(f.precio.value), disponible: f.chk.checked };
+      });
+    };
+  }
+  function montaPreciosProyecto(host, filasExistentes, proyectosLibres, precioDeCatalogo) {
+    var lista = document.createElement('div');
+    host.appendChild(lista);
+    if (!filasExistentes.length) {
+      var p = document.createElement('p');
+      p.style.cssText = 'margin:0 0 6px;font-size:12px;color:' + CAJ.apagado;
+      p.textContent = 'Este modelo no está declarado en ningún proyecto.';
+      lista.appendChild(p);
+    }
+    var filas = filasExistentes.map(function (r) {
+      var f = document.createElement('div');
+      f.style.cssText = 'display:grid;grid-template-columns:1fr 120px;gap:6px;align-items:center;margin-bottom:6px';
+      var nom = document.createElement('span'); nom.textContent = r.proyecto; nom.style.cssText = 'font-size:13px;font-weight:600;color:' + CAJ.tinta;
+      var precio = numIn(precioDeCatalogo != null ? 'hereda ' + precioDeCatalogo : 'hereda —');
+      precio.value = r.precio_construccion == null ? '' : r.precio_construccion;
+      f.appendChild(nom); f.appendChild(precio);
+      lista.appendChild(f);
+      return { id: r.id, precio: precio };
+    });
+    var sel = document.createElement('select');
+    sel.style.cssText = 'width:100%;padding:7px 9px;border:1px solid ' + CAJ.borde + ';border-radius:8px;font-size:12.5px;margin-top:4px';
+    var opBlank = document.createElement('option'); opBlank.value = ''; opBlank.textContent = 'Añadir a un proyecto…';
+    sel.appendChild(opBlank);
+    proyectosLibres.forEach(function (nombre) {
+      var o = document.createElement('option'); o.value = nombre; o.textContent = nombre; sel.appendChild(o);
+    });
+    host.appendChild(sel);
+    return function () {
+      return {
+        filas: filas.map(function (f) { return { id: f.id, precio: f.precio.value === '' ? null : Number(f.precio.value) }; }),
+        nuevoProyecto: sel.value
+      };
+    };
+  }
+
   /* Paso 2 de «Registrar avance técnico»: fase (del catálogo obra_fases, no
      texto libre — antes se podia escribir cualquier cosa) + fecha, ya con el
      valor ACTUAL de la unidad elegida, más su gestor de fotos. «Guardar» solo
@@ -681,30 +790,140 @@
           });
         });
       });
+      /* «Editar datos» carga primero las CUATRO tablas hijas de la ficha
+         (techos, extras del catálogo + los del modelo, precio por proyecto y
+         los proyectos aún libres) y las monta como campos `custom` del MISMO
+         formulario — un solo «Guardar cambios» escribe la ficha y las tres
+         sub-tablas seguidas, igual que condiciones+tramos de arriba. Sin esto
+         el modal solo tocaba los 9 campos planos y las funciones montaX()
+         quedaban sin ningún sitio que las llamara. */
+      // Evita el doble-fetch de un doble-click mientras las 5 consultas de
+      // abajo siguen en vuelo — ata() no debounda y el click no da feedback.
+      var cargandoFichaModelo = false;
       ata(/^Editar datos$/i, function () {
         if (!admin) return soloAdmin();
+        if (cargandoFichaModelo) return;
         var m = window.LW_V4 && window.LW_V4.modelo;
         if (!m) return aviso('La ficha del modelo aún no ha cargado.', '#8A6A34');
-        modal('Editar «' + m.nombre + '»', [
-          { k: 'dormitorios', label: 'Dormitorios', tipo: 'number', valor: m.dormitorios },
-          { k: 'banos', label: 'Baños', tipo: 'number', valor: m.banos },
-          { k: 'villa_m2', label: 'Villa (m²)', tipo: 'number', paso: '0.01', valor: m.villa_m2 },
-          { k: 'terraza_m2', label: 'Terraza (m²)', tipo: 'number', paso: '0.01', valor: m.terraza_m2 },
-          { k: 'precio', label: 'Precio de construcción (' + (m.moneda || 'EUR') + ')', tipo: 'number', paso: '0.01', valor: m.precio_construccion },
-          { k: 'descripcion', label: 'Descripción (la publica la web)', tipo: 'textarea', valor: m.descripcion },
-          { k: 'publicado', label: 'Publicado en la web', tipo: 'check', valor: m.publicado, ayuda: 'al marcarlo, la web pública lo enseña con esta ficha y este precio' },
-          { k: 'renders_pendientes', label: 'Renders pendientes', tipo: 'check', valor: m.renders_pendientes },
-          { k: 'activo', label: 'Activo en el catálogo', tipo: 'check', valor: m.activo }
-        ], 'Guardar cambios', function (v) {
-          return sb.from('modelos').update({
-            dormitorios: v.dormitorios === '' ? null : Number(v.dormitorios),
-            banos: v.banos === '' ? null : Number(v.banos),
-            villa_m2: v.villa_m2 === '' ? null : Number(v.villa_m2),
-            terraza_m2: v.terraza_m2 === '' ? null : Number(v.terraza_m2),
-            precio_construccion: v.precio === '' ? null : Number(v.precio),
-            descripcion: v.descripcion || null,
-            publicado: v.publicado, renders_pendientes: v.renders_pendientes, activo: v.activo
-          }).eq('id', m.id);
+        cargandoFichaModelo = true;
+        Promise.all([
+          sb.from('modelo_techos').select('id,nombre,precio_ahora,precio_2027').eq('modelo_id', m.id).order('orden', { ascending: true, nullsFirst: false }),
+          sb.from('extras').select('id,nombre').eq('activo', true).order('orden', { ascending: true, nullsFirst: false }),
+          sb.from('modelo_extras').select('id,extra_id,precio,disponible').eq('modelo_id', m.id),
+          sb.from('modelos_villa').select('id,proyecto,precio_construccion').eq('modelo_id', m.id).order('proyecto'),
+          sb.from('proyectos').select('id,nombre').eq('activo', true).order('nombre')
+        ]).then(function (r) {
+          cargandoFichaModelo = false;
+          // Una lectura fallida NO se trata como «sin filas»: con las tablas
+          // vacías por error, proyectosLibres podría ofrecer un proyecto que
+          // YA tiene fila (el unique(proyecto,modelo) de modelos_villa lo
+          // rechazaría con un error crudo) y techos/extras se verían vacíos
+          // aunque sí tengan datos — mejor decir que no se pudo leer.
+          var falloLectura = r.filter(function (x) { return x && x.error; })[0];
+          if (falloLectura) {
+            return aviso('No se pudo abrir «Editar datos»: ' + falloLectura.error.message, '#93000a');
+          }
+          var techos = r[0].data || [];
+          var extras = r[1].data || [];
+          var extrasExistentes = r[2].data || [];
+          var villaFilas = r[3].data || [];
+          var proyectos = r[4].data || [];
+          var usados = {}; villaFilas.forEach(function (f) { usados[f.proyecto] = 1; });
+          var proyectosLibres = proyectos.filter(function (p) { return !usados[p.nombre]; }).map(function (p) { return p.nombre; });
+          var idPorProyecto = {}; proyectos.forEach(function (p) { idPorProyecto[p.nombre] = p.id; });
+
+          var subtitulo = function (d, texto) {
+            var t = document.createElement('p');
+            t.style.cssText = 'margin:0 0 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:' + CAJ.apagado;
+            t.textContent = texto;
+            d.appendChild(t);
+          };
+          var getTechos = null, getExtras = null, getPrecios = null;
+          var incluidoActual = (m.alcance && m.alcance.incluido) || [];
+          var noIncluidoActual = (m.alcance && m.alcance.no_incluido) || [];
+
+          modal('Editar «' + m.nombre + '»', [
+            { k: 'dormitorios', label: 'Dormitorios', tipo: 'number', valor: m.dormitorios },
+            { k: 'banos', label: 'Baños', tipo: 'number', valor: m.banos },
+            { k: 'villa_m2', label: 'Villa (m²)', tipo: 'number', paso: '0.01', valor: m.villa_m2 },
+            { k: 'terraza_m2', label: 'Terraza (m²)', tipo: 'number', paso: '0.01', valor: m.terraza_m2 },
+            { k: 'precio', label: 'Precio de construcción (' + (m.moneda || 'EUR') + ')', tipo: 'number', paso: '0.01', valor: m.precio_construccion },
+            { k: 'descripcion', label: 'Descripción (la publica la web)', tipo: 'textarea', valor: m.descripcion },
+            { k: 'publicado', label: 'Publicado en la web', tipo: 'check', valor: m.publicado, ayuda: 'al marcarlo, la web pública lo enseña con esta ficha y este precio' },
+            { k: 'renders_pendientes', label: 'Renders pendientes', tipo: 'check', valor: m.renders_pendientes },
+            { k: 'activo', label: 'Activo en el catálogo', tipo: 'check', valor: m.activo },
+            { k: 'notas', label: 'Notas internas', tipo: 'textarea', valor: m.notas, ayuda: 'nunca las ve la web' },
+            { k: 'alcance_incluido', label: 'La obra incluye (una línea por punto)', tipo: 'textarea', valor: incluidoActual.join('\n'),
+              ayuda: 'solo lo verificado en el anexo de obra de ESTE modelo — copiarlo de otro es inventarse un contrato' },
+            { k: 'alcance_no_incluido', label: 'La obra NO incluye (una línea por punto)', tipo: 'textarea', valor: noIncluidoActual.join('\n') },
+            { tipo: 'custom', render: function (d) { subtitulo(d, 'Techos — precio completo con esa variante'); getTechos = montaTechosModelo(d, techos); } },
+            { tipo: 'custom', render: function (d) { subtitulo(d, 'Extras del catálogo'); getExtras = montaExtrasModelo(d, extras, extrasExistentes); } },
+            { tipo: 'custom', render: function (d) { subtitulo(d, 'Precio de construcción por proyecto'); getPrecios = montaPreciosProyecto(d, villaFilas, proyectosLibres, m.precio_construccion); } }
+          ], 'Guardar cambios', function (v) {
+            var lineas = function (s) { return String(s || '').split('\n').map(function (x) { return x.trim(); }).filter(Boolean); };
+            var incluido = lineas(v.alcance_incluido), noIncluido = lineas(v.alcance_no_incluido);
+            var alcance = (incluido.length || noIncluido.length) ? { incluido: incluido, no_incluido: noIncluido } : null;
+            // Valores de ANTES de este guardado — si la ficha se actualiza pero
+            // alguna sub-tabla falla, se restauran para no dejar la ficha a
+            // medias mientras el aviso dice «no se pudo guardar» (mismo
+            // espíritu que «Nueva condición» borrando la fila huérfana cuando
+            // fallan sus tramos, más arriba en este mismo fichero).
+            var previo = {
+              dormitorios: m.dormitorios, banos: m.banos, villa_m2: m.villa_m2, terraza_m2: m.terraza_m2,
+              precio_construccion: m.precio_construccion, descripcion: m.descripcion, notas: m.notas,
+              alcance: m.alcance, publicado: m.publicado, renders_pendientes: m.renders_pendientes, activo: m.activo
+            };
+
+            return sb.from('modelos').update({
+              dormitorios: v.dormitorios === '' ? null : Number(v.dormitorios),
+              banos: v.banos === '' ? null : Number(v.banos),
+              villa_m2: v.villa_m2 === '' ? null : Number(v.villa_m2),
+              terraza_m2: v.terraza_m2 === '' ? null : Number(v.terraza_m2),
+              precio_construccion: v.precio === '' ? null : Number(v.precio),
+              descripcion: v.descripcion || null,
+              notas: v.notas || null,
+              alcance: alcance,
+              publicado: v.publicado, renders_pendientes: v.renders_pendientes, activo: v.activo
+            }).eq('id', m.id).then(function (r0) {
+              if (r0.error) return r0;
+              var tareas = [];
+              (getTechos ? getTechos() : []).forEach(function (t) {
+                tareas.push(sb.from('modelo_techos').update({ precio_ahora: t.precio_ahora, precio_2027: t.precio_2027 }).eq('id', t.id));
+              });
+              (getExtras ? getExtras() : []).forEach(function (e) {
+                if (e.existenteId) {
+                  tareas.push(sb.from('modelo_extras').update({ precio: e.precio, disponible: e.disponible }).eq('id', e.existenteId));
+                } else if (e.precio != null || !e.disponible) {
+                  // sin fila = «se ofrece, precio de catálogo» (montaExtrasModelo); solo se
+                  // crea fila cuando hay algo que decir que el default no cubre.
+                  tareas.push(sb.from('modelo_extras').insert({ modelo_id: m.id, extra_id: e.extraId, precio: e.precio, disponible: e.disponible }));
+                }
+              });
+              var precios = getPrecios ? getPrecios() : { filas: [], nuevoProyecto: '' };
+              precios.filas.forEach(function (f) {
+                tareas.push(sb.from('modelos_villa').update({ precio_construccion: f.precio }).eq('id', f.id));
+              });
+              if (precios.nuevoProyecto) {
+                // solo `modelo_id`: trg_espejo_modelo rellena el texto `modelo` espejo
+                // antes del INSERT (dispara en todo INSERT, la lista de columnas del
+                // trigger solo acota los UPDATE — verificado contra la migración).
+                tareas.push(sb.from('modelos_villa').insert({
+                  proyecto: precios.nuevoProyecto, proyecto_id: idPorProyecto[precios.nuevoProyecto] || null,
+                  modelo_id: m.id, precio_construccion: null, moneda: m.moneda || 'EUR'
+                }));
+              }
+              return Promise.all(tareas).then(function (rs) {
+                var conError = rs.filter(function (x) { return x && x.error; })[0];
+                if (!conError) return { error: null };
+                return sb.from('modelos').update(previo).eq('id', m.id).then(function () {
+                  return { error: conError.error };
+                });
+              });
+            });
+          });
+        }, function (e) {
+          cargandoFichaModelo = false;
+          aviso('No se pudo abrir «Editar datos»: ' + (e && e.message || e), '#93000a');
         });
       });
       ata(/^Añadir documento$/i, function () {
