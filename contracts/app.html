@@ -78,13 +78,13 @@
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
 <script src="assets/documento_diseno.js?v=38a41b3c"></script>
 <script src="assets/documento_anexos.js?v=241913ec"></script>
-<script src="assets/parcela_inventario.js?v=04194af1"></script>
+<script src="assets/parcela_inventario.js?v=85a872f7"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
 <script src="assets/modelos_catalogo.js?v=4e4fdee1"></script>
 <!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
 <script src="assets/techo_extras.js?v=4bbf6d24"></script>
-<script src="assets/hitos_fechas.js?v=f4fb5a15"></script>
+<script src="assets/hitos_fechas.js?v=ce36922b"></script>
 <script src="assets/entidades_pago.js?v=3041528f"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
@@ -2103,6 +2103,17 @@ const FIJOS_ESTUDIO = ['validez_dias'];
    antes: el candado nació precisamente para que el plazo no se moviera solo. */
 const ROLES_FIJOS_ESTUDIO = ['super_admin', 'admin', 'sales_manager'];
 const puedeFijosEstudio = () => ROLES_FIJOS_ESTUDIO.includes(MI_ROL);
+/* Calendario de pagos del Contrato de Construcción (16-sep-2026, cierre de
+   jornada): los 5 hitos de fábrica (tokens.json, hitosDefaults.
+   ppjb_construccion — `fijo:true`) traen concepto y % puestos por el
+   estudio, 25/25/25/20/5 para toda obra. Rol MÁS ESTRECHO que
+   ROLES_FIJOS_ESTUDIO A PROPÓSITO: sin sales_manager. El owner lo dijo con
+   esas dos palabras exactas — "permite a un administrador o super
+   administrador sí editar estos campos, borrar y añadir más" — igual que
+   cuando cerró precio_total a ese mismo par de roles. Un hito añadido a mano
+   (sin `fijo`) se queda abierto para cualquiera, como hasta hoy. */
+const ROLES_HITOS_FIJOS = ['super_admin', 'admin'];
+const puedeHitosFijos = () => ROLES_HITOS_FIJOS.includes(MI_ROL);
 /* Mínimo pactado por el estudio para la reserva (11-sep-2026). Va junto a lo
    anterior para que nadie cambie el default sin ver el mínimo. */
 const VALIDEZ_DIAS_MINIMO = 15;
@@ -2170,6 +2181,11 @@ function aplicarReglasCampos(){
   // aquí vía el wiring genérico de buildForm()) — hallazgo MEDIA de
   // Administración, consulta de deploy 16-sep.
   if(typeof syncMonedaTechoExtras === 'function') syncMonedaTechoExtras();
+  // Cantidad de los hitos "calculado" de Construcción (16-sep-2026): se
+  // recalcula en CADA pasada porque precio_total puede cambiar por varias
+  // vías (techo/extras, Reserva vinculada, tecleo directo) y todas pasan por
+  // aquí — mismo criterio que syncMonedaTechoExtras justo arriba.
+  if(typeof recalcularMontosHitos === 'function') recalcularMontosHitos();
   // va DESPUÉS de los de proyecto: lee el proyecto ya elegido para resolver qué
   // cuentas ofrece este contrato (cascada proyecto → tipo → general)
   syncCuentasProyecto();
@@ -2967,6 +2983,15 @@ function saltarACampo(key){
    queda arriba del todo. */
 const FORM_ORDER = ['gestion','comprador','sociedad','parcela','proyecto_construccion',
                     'pagos','dinero','banco','anexos'];
+/* Construcción intercambia 'pagos' y 'dinero' (16-sep-2026, cierre de jornada,
+   owner: "usamos el PRECIO TOTAL PROYECTO fijo ahora para calcular los
+   hitos") — Dinero y fechas (donde vive precio_total) tiene que verse ANTES
+   que el Calendario de pagos, no después. Un orden PROPIO y no un ajuste del
+   general: FORM_ORDER es "el MISMO para todos los contratos" a propósito, y
+   este intercambio es solo para Construcción — el resto se queda exactamente
+   como estaba. */
+const FORM_ORDER_CONSTRUCCION = FORM_ORDER.map(id =>
+  id==='pagos' ? 'dinero' : id==='dinero' ? 'pagos' : id);
 
 /* ---------- secciones del formulario = SOLO campos con impacto ----------
    Un campo se muestra únicamente si su marcador {{...}} aparece en la plantilla
@@ -3177,7 +3202,10 @@ function deriveSections(){
   // tabla de pagos dinámica: si la plantilla trae <!--hitos-->, sección especial
   // con lista añadir/quitar (el nº de hitos varía por contrato: 3, 4, 7…)
   if(templateHTML.includes('<!--hitos-->')){
-    // justo DESPUÉS de "Gestión del contrato" (va primera a propósito), no antes
+    // justo DESPUÉS de "Gestión del contrato" (va primera a propósito), no antes.
+    // ⚠️ Esta posición NO decide el orden final que se ve en pantalla — eso lo
+    // hace el `.sort()` por FORM_ORDER, más abajo — solo da un punto de partida
+    // razonable antes de esa pasada.
     let ins = SECTIONS.findIndex(s=>s.tier==='gestion');
     ins = ins<0 ? SECTIONS.length : ins+1;
     SECTIONS.splice(ins, 0, { id:'pagos', tier:'por_proyecto', special:'hitos',
@@ -3262,7 +3290,10 @@ function deriveSections(){
      correcto —muchos contratos, un poder—, lo que estaba mal era desde donde se
      rellenaba. */
   // orden pedido por el cliente, igual en todos los contratos (los no listados, al final)
-  const rank = id => { const i = FORM_ORDER.indexOf(id); return i<0 ? FORM_ORDER.length : i; };
+  // — salvo Construcción, que usa FORM_ORDER_CONSTRUCCION (ver su nota, junto a
+  // FORM_ORDER más arriba).
+  const ordenActivo = CONTRACT_TIPO[CURRENT.slug] === 'construccion' ? FORM_ORDER_CONSTRUCCION : FORM_ORDER;
+  const rank = id => { const i = ordenActivo.indexOf(id); return i<0 ? ordenActivo.length : i; };
   SECTIONS = SECTIONS.map((s,i)=>({s,i}))
     .sort((a,b)=> (rank(a.s.id)-rank(b.s.id)) || (a.i-b.i))
     .map(x=>x.s);
@@ -3729,6 +3760,20 @@ function updateSaveButton(){
     document.querySelectorAll('[data-fijo-techo]').forEach(el=>{
       el.readOnly = bloquear;
       el.classList.toggle('dato-fijo', bloquear);
+    });
+  }
+  // Hitos de fábrica del Contrato de Construcción (16-sep-2026): mismo
+  // mecanismo que FIJOS_ESTUDIO — hitosBodyHTML() (hitos_fechas.js) los pinta
+  // bloqueados y ocultos siempre, y esta función los abre/enseña cuando el
+  // rol ya se conoce (ROLES_HITOS_FIJOS, junto a FIJOS_ESTUDIO arriba).
+  {
+    const abreHitos = puedeHitosFijos();
+    document.querySelectorAll('[data-fijo-hito]').forEach(el=>{
+      el.readOnly = !abreHitos;
+      el.classList.toggle('dato-fijo', !abreHitos);
+    });
+    document.querySelectorAll('[data-hito-admin]').forEach(el=>{
+      el.style.display = abreHitos ? '' : 'none';
     });
   }
   const btn=$('#btnSave'); if(!btn) return;

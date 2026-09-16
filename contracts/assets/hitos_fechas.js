@@ -57,32 +57,125 @@ function fechaHitoImpresa(iso, lang){
   return `${m[3]}/${m[2]}/${m[1]}`;
 }
 
+/* HITOS DE FÁBRICA DEL CONTRATO DE CONSTRUCCIÓN — 16-sep-2026, cierre de
+   jornada (owner). Hasta hoy los 5 hitos (tokens.json, hitosDefaults.
+   ppjb_construccion) eran texto y % libres, iguales que en cualquier otro
+   contrato. Dos cosas cambian, cada una con su propia marca por hito (un
+   contrato guardado antes de este cambio no lleva ninguna de las dos y sigue
+   siendo 100% manual — "un documento guardado dice lo que decía"):
+   · `h.fijo` — SOLO los 5 de fábrica. % y concepto (ES/EN/ID) se pintan de
+     fábrica en solo lectura; los abre `updateSaveButton()` (app.html) si el
+     rol puede — mismo mecanismo que FIJOS_ESTUDIO, con un rol MÁS ESTRECHO
+     (ROLES_HITOS_FIJOS: sin sales_manager, el owner dijo "administrador o
+     super administrador"). Un hito añadido a mano no la lleva: su % y su
+     concepto se quedan libres para cualquiera, como siempre.
+   · `h.calculado` — los 5 de fábrica Y cualquier hito añadido a mano
+     mientras el contrato sea de Construcción (parcela_inventario.js,
+     `#hitoAdd`): el motivo del owner ("usamos el PRECIO TOTAL PROYECTO fijo
+     para calcular los hitos") es de la tabla entera, no solo de los cinco.
+     La Cantidad deja de teclearse — sale de PRECIO TOTAL PROYECTO × %
+     (recalcularMontosHitos, más abajo) — siempre en solo lectura, sin
+     excepción de rol: no hay "cifra a mano" que proteger cuando la cifra la
+     pone la aritmética.
+   Vencimiento no cambia para nadie: sigue siendo el desfase de fábrica
+   (vence_dias) convertido a fecha editable, "por ahora como está" (owner). */
 function hitosBodyHTML(){
-  const rows = HITOS.map((h,i)=>`
+  const esConstruccion = typeof CONTRACT_TIPO !== 'undefined' && CONTRACT_TIPO[CURRENT.slug] === 'construccion';
+  const rows = HITOS.map((h,i)=>{
+    const fijo = esConstruccion && !!h.fijo;
+    const calculado = esConstruccion && !!h.calculado;
+    // `readonly` de fábrica SIEMPRE al pintar (igual que FIJOS_ESTUDIO): el
+    // rol todavía no se conoce en el primer render; updateSaveButton() lo
+    // abre después si toca. `data-fijo-hito` es lo que esa función busca.
+    const lockPct = fijo ? ` readonly data-fijo-hito class="dato-fijo"` : '';
+    const lockTxt = fijo ? ` readonly data-fijo-hito class="dato-fijo"` : '';
+    // Cantidad calculada: sin excepción de rol, así que no necesita esperar
+    // a updateSaveButton() — se pinta bloqueada y se queda así siempre.
+    const lockMonto = calculado ? ` readonly class="dato-fijo" title="${escAttr(L({es:'Lo calcula el % sobre el precio total del proyecto. No se edita a mano.',en:'Calculated from the % of the total project price. Not editable by hand.',id:'Dihitung dari % harga total proyek. Tidak bisa diubah manual.'}))}"` : '';
+    // Columna del % más estrecha en Construcción (owner: "reduce el ancho de
+    // la columna") — un 25 no necesita el ancho de un importe.
+    const anchoPct = esConstruccion ? ' style="max-width:80px"' : '';
+    // Quitar un hito de fábrica, o añadir uno nuevo, reparte de nuevo el
+    // 100% oficial de la obra: en Construcción se pinta oculto de fábrica y
+    // updateSaveButton() lo revela solo a quien puede (mismo `data-hito-admin`
+    // en el botón de abajo).
+    const btnDel = esConstruccion
+      ? `<button type="button" class="link-btn" data-hdel="${i}" data-hito-admin style="display:none">${L({es:'Quitar',en:'Remove',id:'Hapus'})}</button>`
+      : `<button type="button" class="link-btn" data-hdel="${i}">${L({es:'Quitar',en:'Remove',id:'Hapus'})}</button>`;
+    return `
     <div class="dz" data-hito="${i}">
       <div class="dz-row"><span style="width:auto;font-weight:600;color:var(--dl)">${L({es:'Hito',en:'Milestone',id:'Tahap'})} ${i+1}</span>
         <span class="spacer" style="flex:1"></span>
-        <button type="button" class="link-btn" data-hdel="${i}">${L({es:'Quitar',en:'Remove',id:'Hapus'})}</button></div>
+        ${btnDel}</div>
       <div class="grid2">
-        <div class="field"><label for="${hid(i,'pct')}">%</label><input id="${hid(i,'pct')}" type="number" step="0.01" data-hi="${i}" data-hkey="pct" value="${escAttr(h.pct)}"></div>
-        <div class="field"><label for="${hid(i,'monto')}">${L({es:'Cantidad',en:'Amount',id:'Jumlah'})}</label><input id="${hid(i,'monto')}" data-hi="${i}" data-hkey="monto" value="${escAttr(h.monto)}"></div>
+        <div class="field"${anchoPct}><label for="${hid(i,'pct')}">%</label><input id="${hid(i,'pct')}" type="number" step="0.01" data-hi="${i}" data-hkey="pct" value="${escAttr(h.pct)}"${lockPct}></div>
+        <div class="field"><label for="${hid(i,'monto')}">${L({es:'Cantidad',en:'Amount',id:'Jumlah'})}</label><input id="${hid(i,'monto')}" data-hi="${i}" data-hkey="monto" value="${escAttr(h.monto)}"${lockMonto}></div>
         <div class="field"><label for="${hid(i,'fecha')}">${L({es:'Vencimiento',en:'Due date',id:'Jatuh tempo'})}</label>
           <input id="${hid(i,'fecha')}" type="date" data-hi="${i}" data-hkey="fecha" value="${escAttr(h.fecha||'')}">
           ${!h.fecha && h.timing ? `<span style="display:block;font-size:11px;color:var(--muted);margin-top:3px">${L({es:'Este contrato decía',en:'This contract said',id:'Kontrak ini menyebut'})}: «${esc(h.timing)}»</span>` : ''}
         </div>
-        <div class="field"><label for="${hid(i,'es')}">${L({es:'Texto (Español)',en:'Text (Spanish)',id:'Teks (Spanyol)'})}</label><input id="${hid(i,'es')}" data-hi="${i}" data-hkey="es" value="${escAttr(h.es)}"></div>
-        <div class="field"><label for="${hid(i,'en')}">${L({es:'Texto (English)',en:'Text (English)',id:'Teks (Inggris)'})}</label><input id="${hid(i,'en')}" data-hi="${i}" data-hkey="en" value="${escAttr(h.en)}"></div>
-        <div class="field"><label for="${hid(i,'id')}">${L({es:'Texto (Bahasa)',en:'Text (Bahasa)',id:'Teks (Bahasa)'})}</label><input id="${hid(i,'id')}" data-hi="${i}" data-hkey="id" value="${escAttr(h.id)}"></div>
+        <div class="field"><label for="${hid(i,'es')}">${L({es:'Texto (Español)',en:'Text (Spanish)',id:'Teks (Spanyol)'})}</label><input id="${hid(i,'es')}" data-hi="${i}" data-hkey="es" value="${escAttr(h.es)}"${lockTxt}></div>
+        <div class="field"><label for="${hid(i,'en')}">${L({es:'Texto (English)',en:'Text (English)',id:'Teks (Inggris)'})}</label><input id="${hid(i,'en')}" data-hi="${i}" data-hkey="en" value="${escAttr(h.en)}"${lockTxt}></div>
+        <div class="field"><label for="${hid(i,'id')}">${L({es:'Texto (Bahasa)',en:'Text (Bahasa)',id:'Teks (Bahasa)'})}</label><input id="${hid(i,'id')}" data-hi="${i}" data-hkey="id" value="${escAttr(h.id)}"${lockTxt}></div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   const total = HITOS.reduce((t,h)=>t+(parseFloat(h.pct)||0),0);
+  const btnAdd = esConstruccion
+    ? `<button type="button" class="btn ghost" id="hitoAdd" data-hito-admin style="display:none">+ ${L({es:'Añadir hito',en:'Add milestone',id:'Tambah tahap'})}</button>`
+    : `<button type="button" class="btn ghost" id="hitoAdd">+ ${L({es:'Añadir hito',en:'Add milestone',id:'Tambah tahap'})}</button>`;
   return rows + `<div class="dz-row" style="margin-top:10px">
-    <button type="button" class="btn ghost" id="hitoAdd">+ ${L({es:'Añadir hito',en:'Add milestone',id:'Tambah tahap'})}</button>
+    ${btnAdd}
     <span class="spacer" style="flex:1"></span>
     <span style="font-size:12px;color:${Math.round(total)===100?'var(--muted)':'var(--be)'}">Σ ${total}%</span>
   </div>`;
 }
 function refreshHitos(){ const b=$('[data-sec="pagos"] .body'); if(b) b.innerHTML=hitosBodyHTML(); }
+
+/* Cantidad de cada hito "calculado" — ver la nota grande de arriba. Se
+   recalcula en dos momentos: cuando `precio_total` cambia (enganchado en
+   aplicarReglasCampos(), app.html — "único punto por el que pasa 'un campo
+   cambió'") y cuando el propio % de un hito calculado se edita a mano
+   (parcela_inventario.js, listener de `data-hkey`). Parchea el `<input>` en
+   sitio si ya está pintado, nunca `refreshHitos()`: eso reconstruye toda la
+   sección y machaca lo que el agente esté tecleando en OTRO hito en ese
+   mismo instante. */
+function recalcularMontosHitos(){
+  if(!Array.isArray(HITOS) || !HITOS.some(h=>h.calculado)) return;
+  const elP = document.querySelector('[name="precio_total"]');
+  const total = elP ? parseImporte(elP.value) : 0;
+  const aplicar = (i, nuevo) => {
+    if(HITOS[i].monto === nuevo) return;
+    HITOS[i].monto = nuevo;
+    const el = document.getElementById(hid(i,'monto'));
+    if(el) el.value = nuevo;
+  };
+  if(!(total > 0)){
+    // Sin precio total no hay nada que repartir — se limpia en vez de dejar
+    // un importe calculado que ya no corresponde a ningún total.
+    HITOS.forEach((h,i)=>{ if(h.calculado) aplicar(i, ''); });
+    return;
+  }
+  /* El ÚLTIMO hito calculado se lleva el RESTO exacto, no su propio % — no es
+     un capricho de redondeo, es que la misma página del documento enseña el
+     precio total Y los cinco importes: `fmtImporte()` redondea a 2
+     decimales, y redondear 25/25/25/20/5 por separado puede dejar la suma
+     un céntimo por encima o por debajo del total (aritmética de dinero:
+     reference_aritmetica_de_dinero_funcion_pura_y_test.md). Con el último
+     absorbiendo la diferencia, los cinco SIEMPRE suman exactamente el total,
+     sea cual sea el redondeo de los cuatro anteriores. */
+  const calculados = HITOS.map((h,i)=>h.calculado ? i : -1).filter(i=>i>=0);
+  const ultimo = calculados[calculados.length-1];
+  let repartido = 0;
+  calculados.forEach(i=>{
+    if(i === ultimo) return;   // se calcula al final, con lo que sobre
+    const pct = parseFloat(HITOS[i].pct) || 0;
+    const importe = pct > 0 ? Math.round(total * pct) / 100 : 0;
+    repartido += importe;
+    aplicar(i, importe ? fmtImporte(importe) : '');
+  });
+  aplicar(ultimo, fmtImporte(total - repartido));
+}
 function hitosRowsHTML(){
   // {{moneda}} literal: se resuelve en el pase genérico de marcadores que buildDoc()
   // corre justo después de insertar estas filas (ver buildDoc: hitos → luego {{...}}).

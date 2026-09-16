@@ -594,11 +594,34 @@ function buildForm(){
   // hitos: delegación (una sola vez; el form persiste entre rebuilds)
   if(!form._hitosWired){ form._hitosWired = true;
     form.addEventListener('input', e=>{ const el=e.target.closest('[data-hkey]'); if(!el) return;
-      const h=HITOS[+el.dataset.hi]; if(h){ h[el.dataset.hkey]=el.value; renderDebounced(); } });
+      const h=HITOS[+el.dataset.hi]; if(h){ h[el.dataset.hkey]=el.value;
+        // Un % de fábrica editado a mano (admin/super_admin) recalcula su
+        // propia Cantidad al momento, sin esperar a que cambie precio_total.
+        if(typeof recalcularMontosHitos === 'function') recalcularMontosHitos();
+        renderDebounced(); } });
     form.addEventListener('click', e=>{
       const del=e.target.closest('[data-hdel]');
-      if(del){ HITOS.splice(+del.dataset.hdel,1); refreshHitos(); render(); return; }
-      if(e.target.closest('#hitoAdd')){ HITOS.push({pct:'',monto:'',timing:'',es:'',en:'',id:'',fecha:''}); refreshHitos(); render(); }
+      // updateSaveButton() DESPUÉS de refreshHitos() — mismo motivo que el
+      // #techoSel de esta misma tarde: refreshHitos() repinta la sección
+      // entera desde cero, y hitosBodyHTML() pinta los hitos de fábrica
+      // bloqueados y sus botones ocultos DE FÁBRICA (mismo criterio que
+      // FIJOS_ESTUDIO — "se pinta bloqueado siempre, se abre después"). Sin
+      // esta llamada, el primer Quitar/Añadir de un admin volvía a esconder
+      // ambos botones y a bloquear % y concepto hasta que tocara, por
+      // casualidad, algún campo con `name` (el único wiring que ya llama a
+      // updateSaveButton()).
+      if(del){ HITOS.splice(+del.dataset.hdel,1); refreshHitos(); updateSaveButton(); render(); return; }
+      if(e.target.closest('#hitoAdd')){
+        // En Construcción, un hito nuevo también saca su Cantidad de
+        // precio_total × % — el motivo que dio el owner ("usamos el PRECIO
+        // TOTAL PROYECTO fijo para calcular los hitos") no es solo de los
+        // cinco de fábrica, es de la tabla entera. Sin `fijo`: el % y el
+        // concepto de uno añadido a mano se quedan libres, solo la Cantidad
+        // deja de teclearse.
+        const nuevo = { pct:'', monto:'', timing:'', es:'', en:'', id:'', fecha:'' };
+        if(CONTRACT_TIPO[CURRENT.slug] === 'construccion') nuevo.calculado = true;
+        HITOS.push(nuevo); refreshHitos(); updateSaveButton(); render();
+      }
     });
   }
   // techo/extras: mismo patrón de delegación de arriba, una sola vez.
