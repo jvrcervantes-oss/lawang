@@ -9,7 +9,7 @@
 
    Desde el 16-sep-2026 el orden lo pone la base: `unidades.codigo_orden` es una
    columna generada con la clave natural (migración
-   20260916120000_unidades_codigo_orden_natural.sql) y la vista `unidades_estado`
+   20260916093309_unidades_codigo_orden_natural.sql) y la vista `unidades_estado`
    la expone. Se ordena por ELLA. Este test recorre el repo y falla con fichero:línea
    si alguien vuelve a escribir `.order('codigo')`.
 
