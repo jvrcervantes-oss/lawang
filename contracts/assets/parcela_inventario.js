@@ -626,7 +626,12 @@ function buildForm(){
           // última cifra del techo ya no elegido (mismo hallazgo).
           OBRA_VINCULO_HECHO = null; syncPrecioObraVinculada();
         }
-        syncPrecioTechoExtras(); renderDebounced(); refreshTechoExtras(); return;
+        // updateSaveButton() pone/quita el candado de precio_total en vivo —
+        // #techoSel no tiene `name`, así que el wiring genérico de buildForm()
+        // (form.querySelectorAll('select[name]')...) nunca lo alcanza; sin
+        // esta llamada explícita, el campo se quedaba con el candado del
+        // ÚLTIMO buildForm() completo, no con el techo recién elegido/quitado.
+        syncPrecioTechoExtras(); renderDebounced(); refreshTechoExtras(); updateSaveButton(); return;
       }
       const chkExtra = e.target.closest('[data-extra-opt]');
       if(chkExtra){

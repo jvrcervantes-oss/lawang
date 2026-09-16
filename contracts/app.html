@@ -78,12 +78,12 @@
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
 <script src="assets/documento_diseno.js?v=38a41b3c"></script>
 <script src="assets/documento_anexos.js?v=241913ec"></script>
-<script src="assets/parcela_inventario.js?v=a0ef184e"></script>
+<script src="assets/parcela_inventario.js?v=3d3841d2"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
 <script src="assets/modelos_catalogo.js?v=4e4fdee1"></script>
 <!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
-<script src="assets/techo_extras.js?v=91298847"></script>
+<script src="assets/techo_extras.js?v=e2a3013e"></script>
 <script src="assets/hitos_fechas.js?v=f4fb5a15"></script>
 <script src="assets/entidades_pago.js?v=3041528f"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
@@ -2057,29 +2057,24 @@ function fieldHTML(f){
      (busca por `name` y lee `.value`), pero no se puede seleccionar ni copiar,
      y este dato se copia a mano a menudo. */
   const fijado = FIJOS_ESTUDIO.includes(key);
-  /* PRECIO TOTAL DE CONSTRUCCIÓN, SOLO ADMIN/SUPER_ADMIN (16-sep-2026, owner,
-     tras el feedback en producción). Mismo mecanismo de pantalla que arriba
-     (readonly + `updateSaveButton()` lo destapa cuando ya se sabe el rol),
-     pero con su PROPIO corte de rol — `CAN_EDIT_TEXT` (admin/super_admin),
-     nunca sales_manager: aquí no hay "negociación con el comprador" que lo
-     justifique, el precio lo pone el techo+extras elegidos
-     (syncPrecioTechoExtras). Atributo `data-fijo-admin-construccion` propio,
-     nunca `data-fijo-super`, porque comparte tabla con FIJOS_ESTUDIO
-     rompería el aviso de "dirección y sales managers" para un campo que
-     sales_manager NO puede tocar. */
-  // Solo se bloquea si YA hay un valor (auto-puesto por el techo, por la
-  // Reserva vinculada, o tecleado antes de que existiera esta regla) — hallazgo
-  // real de code-review: bloquearlo también en blanco dejaba un contrato sin
-  // techo elegido y sin Reserva vinculada con precio_total vacío Y candado
-  // puesto, sin nadie salvo un admin capaz de rellenarlo por primera vez.
+  /* PRECIO TOTAL DE CONSTRUCCIÓN CON TECHO ELEGIDO: NADIE LO TECLEA, NI
+     ADMIN (16-sep-2026, segunda vuelta — owner, tras revisar el candado
+     admin/super_admin del primer intento: "cerrar también la entrada manual
+     de admin"). No es un corte de rol como FIJOS_ESTUDIO: se bloquea SIEMPRE
+     que `TECHO_ELEGIDO` mande el precio, sea quien sea quien mire — techo
+     elegido = precio 100% calculado (techo + extras), sin excepción de rol.
+     Sin techo elegido (modelo sin variantes, o contrato antiguo) el campo
+     sigue abierto como siempre: nada que proteger si nadie lo está
+     calculando. `updateSaveButton()` mantiene esto al día cuando `TECHO_
+     ELEGIDO` cambia sin pasar por un `buildForm()` completo — ver ahí. */
   const fijadoPrecioConstruccion = key === 'precio_total' && CONTRACT_TIPO[CURRENT.slug] === 'construccion'
-    && !!String(def || '').trim();
+    && typeof TECHO_ELEGIDO !== 'undefined' && !!TECHO_ELEGIDO;
   const marca = fijado ? ' readonly data-fijo-super class="dato-fijo"' +
     ' title="Lo fija el estudio: lo cambian dirección y los sales managers"'
-    : fijadoPrecioConstruccion ? ' readonly data-fijo-admin-construccion class="dato-fijo"' +
-    ' title="Lo calcula el techo y los extras elegidos — solo admin/super_admin puede editarlo a mano"' : '';
+    : fijadoPrecioConstruccion ? ' readonly data-fijo-techo class="dato-fijo"' +
+    ' title="Lo calcula el techo y los extras elegidos — no se edita a mano"' : '';
   const avisoPrecioConstruccion = fijadoPrecioConstruccion
-    ? `<p class="mini">🔒 ${L({es:'Lo calcula el techo y los extras elegidos. Solo admin/super_admin puede editarlo a mano.',en:'Set by the chosen roof and extras. Only admin/super_admin can edit it by hand.',id:'Dihitung dari atap dan ekstra yang dipilih. Hanya admin/super_admin yang bisa mengubahnya.'})}</p>`
+    ? `<p class="mini">🔒 ${L({es:'Lo calcula el techo y los extras elegidos. No se edita a mano.',en:'Set by the chosen roof and extras. Not editable by hand.',id:'Dihitung dari atap dan ekstra yang dipilih. Tidak bisa diubah manual.'})}</p>`
     : '';
   return `<div class="field" data-key="${key}">${etiquetaHTML(key, label)}
     <input id="${fid(key)}" name="${key}" type="${t}" ${attrs}${marca} value="${def}" autocomplete="off">${avisoPrecioConstruccion}</div>`;
@@ -3712,13 +3707,19 @@ function updateSaveButton(){
     el.title = abreFijos ? 'Lo fija el estudio en ' + VALIDEZ_DIAS_MINIMO + ' días; tu rol puede cambiarlo'
                          : 'Lo fija el estudio: lo cambian dirección y los sales managers';
   });
-  // precio_total de Construcción (16-sep-2026): mismo mecanismo, corte de rol
-  // propio (CAN_EDIT_TEXT — admin/super_admin, sin sales_manager, ver la nota
-  // junto a fijadoPrecioConstruccion en fieldHTML()).
-  document.querySelectorAll('[data-fijo-admin-construccion]').forEach(el=>{
-    el.readOnly = !CAN_EDIT_TEXT;
-    el.classList.toggle('dato-fijo', !CAN_EDIT_TEXT);
-  });
+  // precio_total de Construcción con techo elegido (16-sep-2026, segunda
+  // vuelta): candado SIN corte de rol, puesto/quitado según haya o no
+  // TECHO_ELEGIDO — ver la nota junto a fijadoPrecioConstruccion en
+  // fieldHTML(). Esta función ya se llama tras elegir/quitar techo (ver
+  // parcela_inventario.js), así que el candado se pone y se quita en vivo sin
+  // esperar a un buildForm() completo.
+  {
+    const bloquear = CONTRACT_TIPO[CURRENT.slug] === 'construccion' && !!TECHO_ELEGIDO;
+    document.querySelectorAll('[data-fijo-techo]').forEach(el=>{
+      el.readOnly = bloquear;
+      el.classList.toggle('dato-fijo', bloquear);
+    });
+  }
   const btn=$('#btnSave'); if(!btn) return;
   const tipo = CONTRACT_TIPO[CURRENT.slug];
   const form=$('#form'); if(form) form.classList.toggle('locked', LOCKED);

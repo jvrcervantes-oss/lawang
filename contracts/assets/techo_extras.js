@@ -101,26 +101,39 @@ function refreshTechoExtras(){ const b=document.getElementById('techoExtrasBox')
    SIN opción de rechazar (16-sep, corrección del owner tras probarlo): la
    primera versión reutilizaba `avisaPrecioForzado`, que ofrece "dejar el
    precio de antes" — y eso es exactamente lo que NO puede pasar aquí. El
-   precio de villa−suelo puede estar negociado aparte del catálogo, pero el
    precio de un techo/extra que el propio agente acaba de marcar no es
    negociable por omisión: si elige un extra, su precio ENTRA sí o sí.
-   CON aviso que hay que cerrar a propósito (16-sep, segunda vuelta —
-   Administración en la consulta de deploy): un simple toast no basta cuando
-   YA había un precio_total puesto (típicamente de una Reserva vinculada,
-   dinero real) — ese mismo campo dispara `crearProformaAutomatica()` al
-   guardar y `firma-submit` lo relee para facturar al firmar, así que un
-   cambio que nadie llega a ver no puede quedar en un toast fácil de perder.
-   `lwConfirmar({..., cancelar:false})` es un modal de un solo botón
-   ("Entendido"): no ofrece volver atrás —eso seguiría siendo el aviso
-   rechazable que se quitó arriba—, solo obliga a verlo antes de seguir. Si
-   NO había precio antes (primera vez que se resuelve, nada que perder), se
-   queda en el toast: no hay nada que confirmar sobre un campo que estaba
-   vacío. */
-async function syncPrecioTechoExtras(){
+   SIN modal de confirmación tampoco (16-sep, tercera vuelta — owner): el
+   modal (`lwConfirmar({cancelar:false})`) nació para tapar el hueco de que,
+   con techo elegido, `precio_total` seguía editable a mano para admin/
+   super_admin — un cambio de techo podía pisar en silencio un precio que
+   alguien acababa de teclear. Ese hueco se cerró de raíz en `fieldHTML()`
+   (el campo pasa a `readonly` para TODOS en cuanto hay techo, sin excepción
+   de rol), así que ya no hay nada que un modal necesite tapar: con techo
+   elegido, nadie puede haber tecleado nada que este cambio pueda pisar. Un
+   toast informativo basta. */
+function syncPrecioTechoExtras(){
   if(CONTRACT_TIPO[CURRENT.slug] !== 'construccion' || !TECHO_ELEGIDO) return;
   const el = document.querySelector('[name="precio_total"]');
   if(!el) return;
   const mon = TECHO_ELEGIDO.moneda || 'EUR';
+  /* La moneda VIAJA con el precio del techo, del mismo nivel que lo dio —
+     mismo criterio que ya documenta modelos_catalogo.js. Casi todo el
+     catálogo es EUR, pero Riverfront I/II son IDR de arriba a abajo
+     (catálogo, proyecto y unidades ya coinciden hoy — verificado, no a ojo).
+     Si el campo `moneda` del documento está vacío, lo rellena; si YA tiene un
+     valor que no cuadra con el techo, no lo pisa en silencio (podría
+     desincronizar otros importes ya escritos en esa moneda) — se avisa de
+     forma persistente, como ya hace marcarCampoAviso con villa_m2. */
+  const elMon = document.querySelector('[name="moneda"]');
+  if(elMon){
+    const monActual = elMon.value.trim();
+    if(!monActual){ elMon.value = mon; elMon.dispatchEvent(new Event('input', { bubbles:true })); }
+    else if(monActual !== mon){
+      marcarCampoAviso(elMon, `El techo/extra elegido está en ${mon} pero este documento va en ${monActual}. `
+        + `El precio que se va a poner es en ${mon}, no en ${monActual} — revísalo antes de guardar.`);
+    }
+  }
   const obra = Number(TECHO_ELEGIDO.precio) + EXTRAS_ELEGIDOS.reduce((t,e)=>t+(Number(e.precio)||0),0);
   if(!(obra > 0)) return;   // datos raros: mejor no tocar nada
   const nuevo = fmtImporte(obra), antes = String(el.value||'').trim();
@@ -131,18 +144,7 @@ async function syncPrecioTechoExtras(){
     ? ' + ' + EXTRAS_ELEGIDOS.map(e=>e.nombre+' '+fmtImporte(Number(e.precio))).join(' + ')
     : '';
   const desglose = TECHO_ELEGIDO.nombre + ' ' + fmtImporte(Number(TECHO_ELEGIDO.precio)) + detalle;
-  if(antes){
-    await lwConfirmar({
-      titulo: 'Precio actualizado',
-      cuerpo: `<p>Este documento traía <b>${escAttr(antes)} ${mon}</b> y ha pasado a <b>${escAttr(nuevo)} ${mon}</b>, `
-        + `según el techo y los extras elegidos: ${escAttr(desglose)} ${mon}.</p>`
-        + `<p>Este importe alimenta la proforma automática al guardar y la factura al firmar — revísalo antes de seguir.</p>`,
-      confirmar: 'Entendido',
-      cancelar: false,
-    });
-  }else{
-    toast(lwT('Precio puesto a ') + nuevo + ' ' + mon + ' — ' + desglose);
-  }
+  toast((antes ? lwT('Precio actualizado a ') : lwT('Precio puesto a ')) + nuevo + ' ' + mon + ' — ' + desglose);
 }
 
 /* Fila del extra elegido, para el documento — mismo espíritu que
