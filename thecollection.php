@@ -1121,7 +1121,7 @@ span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
 <!-- ═══ DATA ════════════════════════════════════════════════ -->
 <script>
 (function () {
-  var RATES = { EUR:1, USD:1.08, AUD:1.65, IDR:17500 };
+  var RATES = { EUR:1, USD:1.08, AUD:1.62, IDR:17500 };
   var SYMS  = { EUR:"€", USD:"$", AUD:"A$", IDR:"Rp " };
   const EUR_TO_USD = 1.08;
   function money(eur, cur) {
@@ -1339,7 +1339,7 @@ span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
 </script>
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
-<script src="assets/lawang-card.js?v=20260908111654"></script>
+<script src="assets/lawang-card.js?v=20260916113721"></script>
 <script src="assets/portfolio-app.js?v=20260908113407"></script>
 
 <script>

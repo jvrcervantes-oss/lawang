@@ -769,9 +769,11 @@ if ($slug === '') { http_response_code(404); exit; }
       } else {
         actionHtml = '<span class="text-xs font-label-md text-[#5F6257] bg-[#F0ECE1] px-3 py-1.5 rounded-full">—</span>';
       }
+      var precioM2 = (row.precio_suelo != null && row.superficie_m2) ? row.precio_suelo / row.superficie_m2 : null;
       row_.innerHTML = '<div class="flex flex-col"><div class="flex items-center gap-2"><span class="font-headline-sm text-lg font-bold text-deep-lagoon">'+esc(row.codigo)+'</span>' +
         '<span class="px-2 py-0.5 rounded-full text-[11px] font-label-md font-semibold '+pillClass+'">'+esc(estadoLabel)+'</span></div>' +
-        '<span class="text-xs text-[#44483f] font-body-sm">'+esc(row.superficie_m2)+' m² · Reference price '+fmtMoney(row.precio, row.moneda)+'</span></div>' +
+        '<span class="text-xs text-[#44483f] font-body-sm">'+esc(row.superficie_m2)+' m² · '+fmtMoney(precioM2, row.moneda)+'/m² land</span>' +
+        '<span class="text-xs text-[#5F6257] font-body-sm">Land '+fmtMoney(row.precio_suelo, row.moneda)+' + Construction '+fmtMoney(row.precio_construccion, row.moneda)+' = '+fmtMoney(row.precio, row.moneda)+' total</span></div>' +
         '<div>'+actionHtml+'</div>';
       plotsWrap.appendChild(row_);
     });

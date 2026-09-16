@@ -44,8 +44,8 @@
 
   // ── Divisa ────────────────────────────────────────────────────────────────
   var SYMS = { EUR: '€', USD: '$', AUD: 'A$', IDR: 'Rp ' };
-  var RATES = { EUR: 1, USD: 1.08, AUD: 1.65, IDR: 17500 };
-  var RATES_FECHA = '11 Sep 2026';
+  var RATES = { EUR: 1, USD: 1.08, AUD: 1.62, IDR: 17500 };
+  var RATES_FECHA = '16 Sep 2026';
   var MONEDAS = ['EUR', 'USD', 'AUD', 'IDR'];
 
   function valida(v, lista) { return lista.indexOf(v) !== -1 ? v : null; }

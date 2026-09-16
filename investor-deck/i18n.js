@@ -28,8 +28,8 @@
   var CLAVE_CUR = 'lw_deck_cur';           // propia del deck
 
   var SYMS = { EUR: '€', USD: '$', AUD: 'A$', IDR: 'Rp ' };
-  var RATES = { EUR: 1, USD: 1.08, AUD: 1.65, IDR: 17500 };
-  var RATES_FECHA = '11 Sep 2026';
+  var RATES = { EUR: 1, USD: 1.08, AUD: 1.62, IDR: 17500 };
+  var RATES_FECHA = '16 Sep 2026';
   var MONEDAS = ['EUR', 'USD', 'AUD', 'IDR'];
 
   function valida(v, lista) { return lista.indexOf(v) !== -1 ? v : null; }
@@ -257,8 +257,10 @@
     { re: /^Type (\d{2})$/, es: 'Tipo $1', id: 'Tipe $1' },
     { re: /^(\d+) of (\d+) plots available$/,
       es: '$1 de $2 parcelas disponibles', id: '$1 dari $2 kavling tersedia' },
-    { re: /^(.+) m² · Reference price (.+)$/,
-      es: '$1 m² · Precio de referencia $2', id: '$1 m² · Harga referensi $2' },
+    { re: /^(.+) m² · (.+)\/m² land$/,
+      es: '$1 m² · $2/m² de suelo', id: '$1 m² · $2/m² tanah' },
+    { re: /^Land (.+) \+ Construction (.+) = (.+) total$/,
+      es: 'Suelo $1 + Construcción $2 = $3 total', id: 'Tanah $1 + Konstruksi $2 = $3 total' },
     { re: /^Year-1 Rental Forecast — (.+)$/,
       es: 'Previsión de alquiler Año 1 — $1', id: 'Proyeksi Sewa Tahun ke-1 — $1' },
     { re: /^(\S+) villa model$/, es: 'Modelo de villa $1', id: 'Model villa $1' },
