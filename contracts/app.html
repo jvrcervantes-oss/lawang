@@ -78,12 +78,12 @@
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
 <script src="assets/documento_diseno.js?v=38a41b3c"></script>
 <script src="assets/documento_anexos.js?v=241913ec"></script>
-<script src="assets/parcela_inventario.js?v=e16fa481"></script>
+<script src="assets/parcela_inventario.js?v=129a8881"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
 <script src="assets/modelos_catalogo.js?v=4e4fdee1"></script>
 <!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
-<script src="assets/techo_extras.js?v=4a87fe2b"></script>
+<script src="assets/techo_extras.js?v=4bbf6d24"></script>
 <script src="assets/hitos_fechas.js?v=f4fb5a15"></script>
 <script src="assets/entidades_pago.js?v=3041528f"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
@@ -2664,9 +2664,15 @@ function collect(){
 
   /* Techo elegido, para {{techo_nombre}} (16-sep-2026) — nunca un campo del
      formulario, lo fija el selector de techoExtrasBodyHTML(). El precio no
-     imprime aparte: ya está dentro de precio_total (syncPrecioTechoExtras). */
+     imprime aparte: ya está dentro de precio_total (syncPrecioTechoExtras).
+     Con "(por defecto)" cuando nadie lo tocó (hallazgo MEDIA de Legal,
+     consulta de deploy 16-sep): el techo más económico se preselecciona solo
+     al cargar el modelo, así que el documento tiene que decir si esa partida
+     la eligió el comercial o la puso el software — el rastro importa si el
+     comprador la disputa después de firmar. */
   if(CONTRACT_TIPO[CURRENT.slug] === 'construccion' && TECHO_ELEGIDO)
-    data.techo_nombre = TECHO_ELEGIDO.nombre;
+    data.techo_nombre = TECHO_ELEGIDO.nombre
+      + (TECHO_ELEGIDO.por_defecto ? ' ' + L({es:'(por defecto)',en:'(default)',id:'(bawaan)'}) : '');
 
   /* `adq1_tipo` no es un campo del formulario: sale de la ficha enlazada y lo
      usan las plantillas con <!--if:adq1_tipo=empresa--> para elegir entre el

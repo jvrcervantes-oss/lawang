@@ -616,7 +616,12 @@ function buildForm(){
         // techo (nunca al recuperar uno ya congelado, que trae la suya) —
         // recalcularla en cada guardado perdía el rastro de cuándo se
         // resolvió el tramo 2026/2027 (hallazgo de code-review, 16-sep).
-        if(nuevo) TECHO_ELEGIDO = { ...nuevo, fecha_resuelta: nuevo.fecha_resuelta || new Date().toISOString() };
+        // `por_defecto: false` — este handler SOLO corre con un `change` real
+        // del select (nunca disparado a mano en este fichero): en cuanto el
+        // agente toca el desplegable, deja de ser la preselección automática
+        // del más barato, aunque casualmente elija el mismo (hallazgo MEDIA
+        // de Legal, consulta de deploy 16-sep).
+        if(nuevo) TECHO_ELEGIDO = { ...nuevo, fecha_resuelta: nuevo.fecha_resuelta || new Date().toISOString(), por_defecto: false };
         // updateSaveButton() pone/quita el candado de precio_total en vivo —
         // #techoSel no tiene `name`, así que el wiring genérico de buildForm()
         // (form.querySelectorAll('select[name]')...) nunca lo alcanza; sin

@@ -53,7 +53,13 @@ async function cargarTechosYExtras(modeloId, proyectoId){
      Un contrato ya guardado con su techo (o uno huérfano) no se toca aquí. */
   if(!TECHO_ELEGIDO && TECHOS_OPCIONES.length){
     const masBarato = TECHOS_OPCIONES.reduce((min,t)=>Number(t.precio) < Number(min.precio) ? t : min);
-    TECHO_ELEGIDO = { ...masBarato, fecha_resuelta: new Date().toISOString() };
+    // `por_defecto` (hallazgo MEDIA de Legal en la consulta de deploy, 16-sep):
+    // esto lo eligió el software, no el comercial. Se apaga en cuanto el
+    // #techoSel dispara un `change` real (parcela_inventario.js) y deja
+    // rastro en el propio documento impreso (ver techoExtrasBodyHTML/collect
+    // en app.html) — si el comprador disputa esta partida, hay que poder
+    // distinguir "nadie lo tocó" de "se negoció y se dejó así a propósito".
+    TECHO_ELEGIDO = { ...masBarato, fecha_resuelta: new Date().toISOString(), por_defecto: true };
   }
   refreshTechoExtras();
   syncPrecioTechoExtras();
@@ -80,9 +86,15 @@ function techoExtrasBodyHTML(){
      variantes, nunca para vaciarlo — la preselección del más económico corre
      en cargarTechosYExtras() en cuanto se resuelven las opciones. Si el
      modelo no tiene ninguna variante, no hay nada que elegir y se avisa. */
+  // Aviso "por defecto" visible en el propio editor (hallazgo MEDIA de Legal,
+  // consulta de deploy 16-sep) — que quien redacta lo note ANTES de imprimir,
+  // no solo al leer el PDF ya generado.
+  const avisoPorDefecto = (TECHO_ELEGIDO && TECHO_ELEGIDO.por_defecto)
+    ? `<p class="mini">${L({es:'Preseleccionado por ser el más económico — nadie lo ha elegido a mano todavía. El documento lo marca como "por defecto" mientras siga así.',en:'Preselected as the cheapest — no one has chosen it by hand yet. The document marks it "default" while this stays so.',id:'Dipilih otomatis karena paling murah — belum dipilih manual.'})}</p>`
+    : '';
   const selectTecho = techosMostrar.length
     ? `<div class="field"><label for="techoSel">${L({es:'Techo',en:'Roof',id:'Atap'})}</label>
-        <select class="sui-sel" id="techoSel">${optsTecho}</select></div>`
+        <select class="sui-sel" id="techoSel">${optsTecho}</select>${avisoPorDefecto}</div>`
     : `<div class="field"><label>${L({es:'Techo',en:'Roof',id:'Atap'})}</label>
         <p class="mini">${L({es:'Este modelo no tiene variantes de techo.',en:'This model has no roof variants.',id:'Model ini tidak punya varian atap.'})}</p></div>`;
 
@@ -183,8 +195,21 @@ function syncMonedaTechoExtras(){
    caso que alimenta `crearProformaAutomatica()`/`firma-submit` sin que nadie
    lo haya visto — el mismo riesgo que motivó el modal la primera vez, solo
    que mal diagnosticado como "problema de tecleo" la segunda). Si NO había
-   precio antes (nada que sustituir), se queda en el toast informativo. */
-function syncPrecioTechoExtras(){
+   precio antes (nada que sustituir), se queda en el toast informativo.
+
+   ASYNC y la escritura DENTRO del `await` (16-sep, quinta vuelta — hallazgo
+   ALTA de Administración en la consulta de deploy sobre la preselección
+   automática del techo más barato, cargarTechosYExtras()): con `el.value`
+   escrito ANTES de abrir el modal, el candado que ese modal representa no
+   frenaba nada — el precio ya estaba puesto cuando el agente lo veía, y con
+   la preselección automática eso puede pasar sin que nadie haya tocado el
+   `<select>`, solo por cargar el modelo o reabrir un contrato anterior al
+   16-sep. El agente sigue sin poder RECHAZAR el precio nuevo (eso sigue
+   prohibido, decisión del owner: "no debe permitirme dejar el precio en
+   48.000") — `lwConfirmar` se llama igual con `cancelar:false` y `aplicar()`
+   corre pase lo que pase (Entendido, Escape o clic fuera), nunca según el
+   resultado — pero ahora lo ve ANTES de que exista. */
+async function syncPrecioTechoExtras(){
   if(CONTRACT_TIPO[CURRENT.slug] !== 'construccion' || !TECHO_ELEGIDO) return;
   const el = document.querySelector('[name="precio_total"]');
   if(!el) return;
@@ -194,22 +219,26 @@ function syncPrecioTechoExtras(){
   if(!(obra > 0)) return;   // datos raros: mejor no tocar nada
   const nuevo = fmtImporte(obra), antes = String(el.value||'').trim();
   if(antes && parseImporte(antes) === obra) return;   // ya cuadra
-  el.value = nuevo; AUTO_UNIDAD['precio_total'] = nuevo;
-  el.dispatchEvent(new Event('input', { bubbles:true }));   // que la vista previa se entere
+  const aplicar = () => {
+    el.value = nuevo; AUTO_UNIDAD['precio_total'] = nuevo;
+    el.dispatchEvent(new Event('input', { bubbles:true }));   // que la vista previa se entere
+  };
   const detalle = EXTRAS_ELEGIDOS.length
     ? ' + ' + EXTRAS_ELEGIDOS.map(e=>e.nombre+' '+fmtImporte(Number(e.precio))).join(' + ')
     : '';
   const desglose = TECHO_ELEGIDO.nombre + ' ' + fmtImporte(Number(TECHO_ELEGIDO.precio)) + detalle;
   if(antes){
-    lwConfirmar({
+    await lwConfirmar({
       titulo: 'Precio actualizado',
       cuerpo: `<p>Este documento traía <b>${escAttr(antes)} ${mon}</b> — puesto automáticamente por la Reserva vinculada o por un techo anterior — `
-        + `y ha pasado a <b>${escAttr(nuevo)} ${mon}</b>, según el techo y los extras elegidos: ${escAttr(desglose)} ${mon}.</p>`
+        + `y va a pasar a <b>${escAttr(nuevo)} ${mon}</b>, según el techo y los extras elegidos: ${escAttr(desglose)} ${mon}.</p>`
         + `<p>Este importe alimenta la proforma automática al guardar y la factura al firmar — revísalo antes de seguir.</p>`,
       confirmar: 'Entendido',
       cancelar: false,
     });
+    aplicar();
   }else{
+    aplicar();
     toast(lwT('Precio puesto a ') + nuevo + ' ' + mon + ' — ' + desglose);
   }
 }
