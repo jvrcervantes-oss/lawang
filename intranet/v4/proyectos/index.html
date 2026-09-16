@@ -4,7 +4,7 @@
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=c55b4142" defer></script>
 <link href="../assets/shell.css?v=4978e676" rel="stylesheet">
-<script src="../assets/editores.js?v=bb0dcc61" defer></script><script src="../assets/maqueta.js?v=7a878384" defer></script>
+<script src="../assets/editores.js?v=64c23c67" defer></script><script src="../assets/maqueta.js?v=7a878384" defer></script>
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>Inventario de Proyectos &amp; Suelo — Lawang Intranet</title>
@@ -641,7 +641,6 @@
 </div>
 
 </section>
-</div>
 </div><!-- /cajon-vista-proyecto -->
 <!-- Vista de detalle de UNA parcela — sustituye el contenido de arriba,
      nunca se apila encima. Rellenada por abrirDetalleUnidad() en datos.js
@@ -673,7 +672,8 @@
 <div class="flex items-center justify-between pb-2 border-b border-warm-border/60"><span class="text-on-surface-variant font-medium">Precio de suelo por m²</span><span class="font-kpi-number font-bold text-volcanic-ash" data-lw="dp-suelo-m2">—</span></div>
 <div class="flex items-center justify-between"><span class="text-on-surface-variant font-medium">Construcción</span><span class="font-kpi-number font-bold text-volcanic-ash" data-lw="dp-obra">—</span></div>
 </div>
-</div>
+</div><!-- /cajon-vista-parcela -->
+</div><!-- /flex-1 overflow-y-auto (cuerpo con scroll del cajón) -->
 <!-- Pie de Acciones Rápidas del Cajón -->
 <div class="p-5 bg-surface-container-low border-t border-warm-border flex flex-col gap-2.5 shrink-0">
 <!-- Antes decía "PDF": no hay generador de PDF de balances en la suite, y

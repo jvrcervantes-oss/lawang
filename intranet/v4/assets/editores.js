@@ -1066,6 +1066,20 @@
           var campos = [
             { k: 'resort', label: 'Resort', valor: p.resort || '' },
             { k: 'parcela_master', label: 'Parcela máster (código)', valor: p.parcela_master || '' },
+            // Fecha de entrega ESTIMADA del PROYECTO (16-sep-2026, encargo del
+            // owner) — agregada, para el deck/marketing. Distinta a propósito
+            // de unidades.obra_fecha_entrega (fecha real de obra por parcela,
+            // se edita en "Editar unidad"); no se derivan la una de la otra.
+            // `fecha_entrega_estimada_fijada_en` NO es un campo del formulario:
+            // se sella sola con la fecha de HOY al guardar, si el valor cambia
+            // — así la estimación siempre lleva escrito cuándo se fijó, sin
+            // pedirle a nadie que recuerde marcarlo (regla del estudio: todo
+            // dato volátil lleva su fecha).
+            { k: 'fecha_entrega_estimada_proyecto', tipo: 'date', medio: 1,
+              label: 'Entrega estimada (proyecto, no parcela)',
+              valor: p.fecha_entrega_estimada_proyecto || '' },
+            { tipo: 'lectura', medio: 1, label: 'Estimación fijada el',
+              valor: p.fecha_entrega_estimada_fijada_en || 'nunca — se sella sola al guardar una fecha' },
             // Foto de portada (11-sep-2026, encargo del owner): va al bucket
             // 'documentacion' que ya usan Enlaces/FAQ — nunca una columna
             // imagen_url en `proyectos` (Regla 0, "si el cliente lo puede dar
@@ -1100,10 +1114,21 @@
           }
 
           modal('Editar proyecto · ' + p.nombre, campos, 'Guardar', function (v) {
-            return sb.from('proyectos').update({
+            var nuevaFecha = v.fecha_entrega_estimada_proyecto || null;
+            var cambioFecha = nuevaFecha !== (p.fecha_entrega_estimada_proyecto || null);
+            var payloadProyecto = {
               resort: (v.resort || '').trim() || null,
               parcela_master: (v.parcela_master || '').trim() || null,
-            }).eq('id', p.id).select('id').then(function (r) {
+              fecha_entrega_estimada_proyecto: nuevaFecha,
+            };
+            // Se sella con HOY solo si la fecha realmente cambia — así queda
+            // escrito CUÁNDO se fijó la estimación, sin pedirle a nadie que lo
+            // recuerde (regla del estudio: todo dato volátil lleva su fecha).
+            // Guardar sin tocar la fecha no re-sella nada.
+            if (cambioFecha) {
+              payloadProyecto.fecha_entrega_estimada_fijada_en = nuevaFecha ? new Date().toISOString().slice(0, 10) : null;
+            }
+            return sb.from('proyectos').update(payloadProyecto).eq('id', p.id).select('id').then(function (r) {
               if (r.error) return r;
               // La RLS de `proyectos` exige es_admin() para UPDATE: un no-admin
               // no da error, da 0 filas (mismo aviso que /proyectos/ desde el

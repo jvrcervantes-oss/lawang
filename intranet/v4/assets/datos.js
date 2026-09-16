@@ -1000,6 +1000,7 @@
         opts = opts || {};
         var elegido = PS.filter(function (p) { return p.nombre === nombre; })[0];
         if (!elegido) return;
+        volverAProyecto();   // por si quedaba abierta la vista de detalle de OTRO proyecto
         window.LW_V4 = window.LW_V4 || {};
         window.LW_V4.proyecto = elegido; window.LW_V4.managers = MGRS; window.LW_V4.equipoNombre = EQUIPO_NOMBRE;
         var d = POR_P[elegido.nombre] || { t: 0, cartera: 0 }, cob = COB_P[elegido.nombre] || 0;
@@ -1021,6 +1022,53 @@
         pon('d-master', elegido.parcela_master || 'sin registrar');
         pon('d-sup', elegido.parcela_master_m2 ? elegido.parcela_master_m2 + ' m² (' + d.t + ' parcelas)' : d.t + ' parcelas');
         pon('d-docs', (DOC_P[elegido.nombre] || 0) + ' documentos');
+
+        /* Fecha de entrega ESTIMADA del proyecto (16-sep-2026, encargo del
+           owner), NO la fecha real de obra por parcela (unidades.obra_fecha_entrega,
+           distinta). Sin tratamiento alarmante, solo honesto: una estimación de
+           más de ~6 meses sin revisar se marca aparte, porque un dato volátil
+           que envejece en silencio es justo lo que la casa pide evitar. */
+        var elEntrega = document.querySelector('[data-lw="d-entrega"]');
+        if (elEntrega) {
+          if (!elegido.fecha_entrega_estimada_proyecto) {
+            elEntrega.textContent = 'sin estimar';
+            elEntrega.style.color = '';
+          } else {
+            var fEntrega = fFecha(elegido.fecha_entrega_estimada_proyecto);
+            var vieja = false;
+            if (elegido.fecha_entrega_estimada_fijada_en) {
+              var meses = (Date.now() - new Date(elegido.fecha_entrega_estimada_fijada_en + 'T00:00:00').getTime()) / (1000 * 60 * 60 * 24 * 30.44);
+              vieja = meses >= 6;
+            }
+            elEntrega.textContent = fEntrega + (vieja ? ' · estimación antigua' : '');
+            elEntrega.style.color = vieja ? '#8A6A34' : '';
+          }
+        }
+
+        /* Desglose de parcelas por estado, DENTRO del cajón de un proyecto
+           (16-sep-2026, revisión previa Desarrollo/Diseño/Datos): reutiliza
+           d.porEstado, la misma agregación que ya alimenta los chips globales
+           de arriba — sin consulta nueva. Estado vacío propio si el proyecto
+           no tiene parcelas, en vez de pintar tres ceros sin contexto. */
+        var cajaResumen = document.querySelector('[data-lw="d-resumen-estados"]');
+        var vacioResumen = document.querySelector('[data-lw="d-resumen-vacio"]');
+        if (cajaResumen && vacioResumen) {
+          if (!d.t) {
+            cajaResumen.innerHTML = ''; cajaResumen.classList.add('hidden');
+            vacioResumen.classList.remove('hidden');
+          } else {
+            vacioResumen.classList.add('hidden');
+            cajaResumen.classList.remove('hidden');
+            var porEstado = d.porEstado || {};
+            cajaResumen.innerHTML = Object.keys(ESTADO_ETIQUETA).map(function (clave) {
+              var n = porEstado[clave] || 0;
+              if (!n) return '';
+              return '<span style="display:inline-flex;align-items:center;gap:5px;font:600 11px sans-serif;color:#44483f">' +
+                '<span style="width:7px;height:7px;border-radius:999px;flex:0 0 auto;background:' + colorEstado(clave) + '"></span>' +
+                n + ' ' + etiquetaEstado(clave).toLowerCase() + '</span>';
+            }).join('');
+          }
+        }
 
         /* Foto de portada en el Expediente, si hay una subida. */
         var imgCover = document.querySelector('[data-lw="d-cover-img"]');
@@ -1260,6 +1308,77 @@
       window.LW_V4.unidades = UNIDADES_CAJON;
       window.LW_V4.estadoColor = colorEstado;
       window.LW_V4.estadoEtiqueta = etiquetaEstado;
+
+      /* Vista de detalle de UNA parcela, DENTRO del mismo cajón — patrón
+         maestro→detalle, no un cajón anidado (Diseño, revisión previa
+         16-sep-2026). Reutiliza la fila ya cacheada en UNIDADES_CAJON: la
+         misma consulta `unidades_estado` que pinta la tarjeta compacta ya
+         trae fase_masterplan/zona_masterplan/cobrado_suelo/cobrado_obra, así
+         que no hace falta un fetch nuevo para "ver más detalle". */
+      function abrirDetalleUnidad(id) {
+        var u = UNIDADES_CAJON[id];
+        if (!u) return;
+        var vp = document.getElementById('cajon-vista-proyecto');
+        var vd = document.getElementById('cajon-vista-parcela');
+        if (!vp || !vd) return;
+        pon('dp-proyecto', u.proyecto || 'este proyecto');
+        pon('dp-codigo', u.codigo || '—');
+        var nota = document.querySelector('[data-lw="dp-nota"]');
+        if (nota) { nota.textContent = etiquetaEstado(u.estado).toUpperCase(); nota.style.background = colorEstado(u.estado); }
+        pon('dp-tipo', u.modelo || '—');
+        pon('dp-agente', u.contrato_creado_por ? (EQUIPO_NOMBRE[u.contrato_creado_por] || u.contrato_creado_por) : '—');
+        var elC = document.querySelector('[data-lw="dp-comprador-link"]');
+        if (elC) {
+          elC.textContent = u.comprador_nombre || '—';
+          var clienteId = u.contrato_id ? COMPRADOR_ID_POR_CONTRATO[u.contrato_id] : null;
+          if (clienteId) { elC.href = '/intranet/compradores/?id=' + clienteId; elC.target = '_blank'; }
+          else { elC.removeAttribute('href'); elC.removeAttribute('target'); elC.style.cursor = 'default'; elC.style.textDecoration = 'none'; }
+        }
+        var elK = document.querySelector('[data-lw="dp-contrato-link"]');
+        if (elK) {
+          elK.textContent = u.contrato_numero || 'sin contrato';
+          if (u.contrato_numero) { elK.href = '/intranet/v4/contratos/?contrato=' + encodeURIComponent(u.contrato_numero); elK.target = '_blank'; }
+          else { elK.removeAttribute('href'); elK.removeAttribute('target'); elK.style.cursor = 'default'; elK.style.textDecoration = 'none'; }
+        }
+        pon('dp-superficie', u.superficie_m2 != null ? Number(u.superficie_m2).toLocaleString('es-ES') + ' m²' : '—');
+        // fase_masterplan/zona_masterplan (sector del PLANO) — no confundir con
+        // obra_fase (catálogo obra_fases, avance de CONSTRUCCIÓN): son dos
+        // conceptos distintos, ver hallazgo de Desarrollo en la revisión previa.
+        pon('dp-fase-zona', (u.fase_masterplan || u.zona_masterplan)
+          ? [u.fase_masterplan ? 'Fase ' + u.fase_masterplan : null, u.zona_masterplan ? 'Zona ' + u.zona_masterplan : null].filter(Boolean).join(' · ')
+          : 'sin registrar');
+        pon('dp-total', u.precio != null ? fmt(u.precio, u.moneda || 'EUR') : '—');
+        pon('dp-suelo', u.precio_suelo != null ? fmt(u.precio_suelo, u.moneda || 'EUR') + ' · cobrado ' + fmt(u.cobrado_suelo || 0, u.moneda || 'EUR') : '—');
+        pon('dp-suelo-m2', (u.precio_suelo != null && u.superficie_m2) ? fmt(u.precio_suelo / u.superficie_m2, u.moneda || 'EUR') + '/m²' : '—');
+        pon('dp-obra', u.precio_construccion != null ? fmt(u.precio_construccion, u.moneda || 'EUR') + ' · cobrado ' + fmt(u.cobrado_obra || 0, u.moneda || 'EUR') : 'sin construcción asociada');
+        vp.classList.add('hidden');
+        vd.classList.remove('hidden');
+        var cuerpo = vd.closest('.overflow-y-auto');
+        if (cuerpo) cuerpo.scrollTop = 0;
+      }
+      function volverAProyecto() {
+        var vp = document.getElementById('cajon-vista-proyecto');
+        var vd = document.getElementById('cajon-vista-parcela');
+        if (vd) vd.classList.add('hidden');
+        if (vp) vp.classList.remove('hidden');
+      }
+      window.LW_V4.abrirDetalleUnidad = abrirDetalleUnidad;
+      var cajaUnidadesClic = document.getElementById('d-unidades');
+      if (cajaUnidadesClic) cajaUnidadesClic.addEventListener('click', function (ev) {
+        // El lápiz de editar y los enlaces a comprador/contrato tienen su
+        // propio comportamiento (editores.js escucha el mismo contenedor) —
+        // aquí se descartan explícitamente para no abrir el detalle A LA VEZ.
+        if (ev.target.closest('[data-lw-accion="editar-unidad"]') || ev.target.closest('a')) return;
+        var tarjeta = ev.target.closest('[data-lw-accion="abrir-detalle-unidad"]');
+        if (!tarjeta) return;
+        var bEd = tarjeta.querySelector('[data-lw-accion="editar-unidad"]');
+        var uid = bEd && bEd.getAttribute('data-uid');
+        if (uid) abrirDetalleUnidad(uid);
+      });
+      var cajonDetalleClic = document.getElementById('cajon-detalle');
+      if (cajonDetalleClic) cajonDetalleClic.addEventListener('click', function (ev) {
+        if (ev.target.closest('[data-lw-accion="volver-a-proyecto"]')) volverAProyecto();
+      });
       window.LW_V4.estados = ESTADO_ETIQUETA;
       // email -> nombre del equipo. Lo necesita el editor del parcelario para
       // no ensenar el correo del agente justo al lado de la tarjeta que ya
@@ -1433,7 +1552,7 @@
       var DS_ACTUAL = [];
 
       Promise.all([
-        q(sb.from('proyectos').select('id,nombre,resort,parcela_master,parcela_master_m2').eq('activo', true).order('nombre'), 'proyectos'),
+        q(sb.from('proyectos').select('id,nombre,resort,parcela_master,parcela_master_m2,fecha_entrega_estimada_proyecto,fecha_entrega_estimada_fijada_en').eq('activo', true).order('nombre'), 'proyectos'),
         q(sb.from('unidades').select('proyecto,estado,moneda,precio,precio_suelo,precio_construccion'), 'unidades'),
         /* La RPC de EQUIPO, nunca `.from('facturas')`. `facturas` tiene RLS por
            agente (`es_suyo`), así que una lectura directa devuelve solo «lo mío»
