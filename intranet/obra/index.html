@@ -169,7 +169,7 @@ async function cargar(){
   CARGANDO = true; FALLO = null; pintar();
   const [u, f, ff] = await Promise.all([
     // unidades_estado trae el contrato vinculado sin joins a mano
-    SB.from('unidades_estado').select('id, codigo, proyecto, modelo, estado, contrato_id, contrato_numero, comprador_nombre, obra_fase, obra_fecha_entrega, obra_actualizado').order('proyecto').order('codigo'),
+    SB.from('unidades_estado').select('id, codigo, proyecto, modelo, estado, contrato_id, contrato_numero, comprador_nombre, obra_fase, obra_fecha_entrega, obra_actualizado').order('proyecto').order('codigo_orden'),
     SB.from('obra_fases').select('*').order('orden'),
     SB.from('obra_fotos').select('id, unidad_id, path, titulo, tomada_en, visible').order('tomada_en', { ascending:false }),
   ]);

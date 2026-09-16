@@ -374,7 +374,7 @@ async function cargar(){
     // `unidades_estado` es la vista que añade el contrato vinculado y lo
     // facturado (calculado, no guardado: guardarlo sería una tercera copia
     // que se queda vieja en cuanto se anule una factura).
-    SB.from('unidades_estado').select('*').order('proyecto').order('codigo'),
+    SB.from('unidades_estado').select('*').order('proyecto').order('codigo_orden'),
     SB.from('contratos').select('id, numero, comprador_nombre').order('created_at', { ascending:false }),
     // `id` es obligatorio y no decorativo: `lwDeclaraModelosEnProyecto` lo usa
     // para el `.delete().in('id', …)` al retirar un modelo. Sin él, cada fila

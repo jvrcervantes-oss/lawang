@@ -1212,7 +1212,12 @@
            comprador y el cobrado partido en suelo/obra (unidad_parte_cobrada_split,
            11-sep-2026) — no se vuelve a cruzar ni repartir aquí a mano. */
         q(sb.from('unidades_estado').select('id,codigo,proyecto,tipo,modelo,estado,precio,precio_guardado,precio_suelo,precio_construccion,superficie_m2,moneda,notas,fase_masterplan,zona_masterplan,contrato_id,contrato_numero,comprador_nombre,contrato_firmado,cobrado_suelo,cobrado_obra,obra_firmada,contrato_creado_por')
-            .eq('proyecto', elegido.nombre).order('codigo').limit(60), 'unidades de ' + elegido.nombre)
+            // `codigo_orden` (16-sep-2026): orden NATURAL calculado por la base (columna
+            // generada de `unidades`). `.order('codigo')` era orden de texto —SH-10 antes
+            // que SH-2— y con `.limit(60)` sobre 228 parcelas Postgres devolvía las 60
+            // primeras EN ESE orden: la SH-2 no llegaba y el cajón decía «60 unidades».
+            // El límite es una red (el mayor proyecto tiene 228), no un tamaño de página.
+            .eq('proyecto', elegido.nombre).order('codigo_orden').limit(500), 'unidades de ' + elegido.nombre)
           .then(function (uu) {
             var caja = document.getElementById('d-unidades');
             if (!caja || uu == null) return;
@@ -1942,7 +1947,7 @@
         var mayor = ps.slice().sort(function (x, y) { return (conteo[y.nombre] || 0) - (conteo[x.nombre] || 0); })[0];
         var nombre = pedido || mayor.nombre;
         var h2 = hojaConTexto(/Master Plan|Horizon S1/i); if (h2) h2.textContent = nombre + ' · Master Plan & Cuentas';
-        q(sb.from('unidades_estado').select('codigo,modelo,estado,contrato_numero,comprador_nombre').eq('proyecto', nombre).order('codigo').limit(120), 'unidades de ' + nombre)
+        q(sb.from('unidades_estado').select('codigo,modelo,estado,contrato_numero,comprador_nombre').eq('proyecto', nombre).order('codigo_orden').limit(500), 'unidades de ' + nombre)
           .then(function (us) {
             if (us == null) return;
             panelReal('Unidades de ' + nombre + (pedido ? '' : ' (primer proyecto por orden — abre otro con ?proyecto=)'),

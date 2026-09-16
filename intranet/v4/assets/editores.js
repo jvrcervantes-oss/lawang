@@ -1732,7 +1732,7 @@
         // en EUR e IDR a la vez (Riverfront) exportaba un "Precio" desnudo,
         // que Excel puede sumar como si fuera una sola divisa.
         sb.from('unidades_estado').select('codigo,modelo,estado,precio,moneda,contrato_numero,comprador_nombre')
-          .eq('proyecto', p.nombre).order('codigo').then(function (r) {
+          .eq('proyecto', p.nombre).order('codigo_orden').then(function (r) {
             if (r.error) return aviso('No se pudo exportar: ' + r.error.message, '#ba1a1a');
             var filas = (r.data || []).map(function (u) {
               return [u.codigo, u.modelo || '', u.estado || '', u.precio != null ? u.precio : '', u.moneda || '', u.contrato_numero || '', u.comprador_nombre || ''];
@@ -1840,7 +1840,7 @@
         // Unidades pero sin Obra veía el flujo entero y fallaba al guardar.
         if (!puedeH(aut.ficha, 'obra')) return aviso('El avance de obra exige la herramienta Obra (policy puede(\'obra\')).', '#8A6A34');
         Promise.all([
-          sb.from('unidades_estado').select('id,codigo,proyecto,obra_fase,obra_fecha_entrega').order('codigo').limit(500),
+          sb.from('unidades_estado').select('id,codigo,proyecto,obra_fase,obra_fecha_entrega').order('codigo_orden').limit(500),
           sb.from('obra_fases').select('*').order('orden')
         ]).then(function (rs) {
           if (rs[0].error) return aviso('No se pudieron leer las unidades: ' + rs[0].error.message, '#93000a');

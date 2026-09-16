@@ -376,7 +376,7 @@ function abrir(id){
 let SB = null, PROYECTOS = [], TIPOS = [];
 
 async function recargar(){
-  const { data } = await SB.from('unidades_estado').select('*').order('proyecto').order('codigo');
+  const { data } = await SB.from('unidades_estado').select('*').order('proyecto').order('codigo_orden');
   UNI = data || [];
   pintarChips(); pintar();
 }
@@ -490,7 +490,7 @@ window.LW_AUTH.then(async ({ sb }) => {
      para el formulario, y pedirlos después dejaría los botones vivos un segundo
      antes de poder contestar. */
   const [u, p, t] = await Promise.all([
-    sb.from('unidades_estado').select('*').order('proyecto').order('codigo'),
+    sb.from('unidades_estado').select('*').order('proyecto').order('codigo_orden'),
     sb.from('proyectos').select('nombre').eq('activo', true).order('nombre'),
     sb.from('tipos_vivienda').select('clave, etiqueta').eq('activo', true).order('etiqueta'),
   ]);

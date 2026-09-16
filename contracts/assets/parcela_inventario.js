@@ -87,17 +87,17 @@ async function cargarUnidadesDelProyecto(proyecto){
   try{
     const { data, error } = await sb.from('unidades')
       .select('codigo, modelo, superficie_m2, precio_suelo, precio, moneda, estado, contrato_id')
-      .eq('proyecto', proyecto).order('codigo');
+      .eq('proyecto', proyecto).order('codigo_orden');
     /* 21-ago-2026: el error se GUARDA. Antes se descartaba con un `if(!error)` y
        el catch de abajo estaba vacío, así que un inventario ilegible dejaba la
        lista a cero — y una lista a cero significa «este proyecto no tiene
        inventario», que es lo que hace caer el campo a texto libre. Las dos
        situaciones se veían igual en pantalla y solo una es segura. */
     if(error) UNIDADES_PROY.fallo = error.message || 'no se ha podido leer';
-    // El .order('codigo') de arriba es orden de texto de Postgres: B10 antes que
-    // B2. Se reordena aquí con el mismo criterio numérico que ya usa el resto de
-    // la suite (suiComparar, contracts/assets/suite.js) para que B1..B2..B10 salga
-    // en el orden que un humano espera.
+    // `codigo_orden` (16-sep-2026) ya viene en orden natural desde la base: es
+    // una columna generada de `unidades`. Se reordena igualmente aquí con el mismo
+    // criterio (suiComparar, contracts/assets/suite.js): cinturón y tirantes, y
+    // cubre a app.html cuando no carga suite.js.
     else UNIDADES_PROY.lista = (typeof suiOrdenarPorCodigo === 'function')
       ? suiOrdenarPorCodigo(data || [])
       : (data || []).slice()   /* app.html no carga suite.js; ver la nota de arriba */
@@ -416,7 +416,7 @@ async function syncUnidadConstruccion(){
   if(!padre){ if(caja) caja.remove(); return; }
   if(!UNIDADES_RESERVA_VINCULADA || UNIDADES_RESERVA_VINCULADA.reserva !== sel.value){
     const { data, error } = await sb.from('unidades')
-      .select('id,codigo,precio').eq('contrato_id', padre.id).order('codigo');
+      .select('id,codigo,precio').eq('contrato_id', padre.id).order('codigo_orden');
     UNIDADES_RESERVA_VINCULADA = { reserva: sel.value, lista: error ? [] : (data||[]) };
     // cambió de Reserva vinculada: si la parcela que había elegida no es de
     // ESTA reserva, se suelta — arrastrarla sería atribuirle el dinero de otra
