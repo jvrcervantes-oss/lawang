@@ -83,7 +83,7 @@
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
 <script src="assets/modelos_catalogo.js?v=4e4fdee1"></script>
 <!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
-<script src="assets/techo_extras.js?v=e2a3013e"></script>
+<script src="assets/techo_extras.js?v=0aa4df0e"></script>
 <script src="assets/hitos_fechas.js?v=f4fb5a15"></script>
 <script src="assets/entidades_pago.js?v=3041528f"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
@@ -2165,6 +2165,11 @@ function aplicarReglasCampos(){
   syncParcelaMaster();
   syncResort();
   syncUbicacionProyecto();
+  // Re-comprueba moneda-vs-techo en CADA pasada, no solo al elegir techo: un
+  // agente puede editar `moneda` a mano después (select[name], ya pasa por
+  // aquí vía el wiring genérico de buildForm()) — hallazgo MEDIA de
+  // Administración, consulta de deploy 16-sep.
+  if(typeof syncMonedaTechoExtras === 'function') syncMonedaTechoExtras();
   // va DESPUÉS de los de proyecto: lee el proyecto ya elegido para resolver qué
   // cuentas ofrece este contrato (cascada proyecto → tipo → general)
   syncCuentasProyecto();
@@ -4019,6 +4024,19 @@ async function guardarContrato(){
      && UNIDADES_RESERVA_VINCULADA.lista.length > 1 && !UNIDAD_ID_CONSTRUCCION){
     toastMal(lwT('Elige a qué parcela pertenece esta Construcción antes de guardarla'));
     const el = document.getElementById('selUnidadConstruccion');
+    if(el){ el.focus(); el.scrollIntoView({behavior:'smooth', block:'center'}); }
+    return;
+  }
+  /* Moneda del techo/extra vs moneda del documento (16-sep-2026, hallazgo
+     ALTA de Administración): NO se guarda con el desajuste puesto — un
+     aviso persistente no basta porque `crearProformaAutomatica()` factura
+     con `precio_total`+`moneda` tal cual en el PRIMER guardado, y
+     `firma-submit` los relee al firmar. Guardar con esto activo dejaría una
+     proforma o una factura con el importe correcto bajo la etiqueta de
+     moneda equivocada (~15.000x de diferencia real EUR↔IDR). */
+  if(typeof MONEDA_DESAJUSTE !== 'undefined' && MONEDA_DESAJUSTE){
+    toastMal(lwT('La moneda del techo/extra elegido no coincide con la del documento — corrígelo antes de guardar'));
+    const el = document.querySelector('[name="moneda"]');
     if(el){ el.focus(); el.scrollIntoView({behavior:'smooth', block:'center'}); }
     return;
   }

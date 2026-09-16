@@ -94,46 +94,67 @@ function techoExtrasBodyHTML(){
 }
 function refreshTechoExtras(){ const b=document.getElementById('techoExtrasBox'); if(b) b.innerHTML=techoExtrasBodyHTML(); }
 
+/* MONEDA del techo/extra vs moneda del documento — 16-sep-2026, hallazgo de
+   Administración en la consulta de deploy (ALTA): un desajuste no puede
+   quedarse en un simple aviso, porque `firma-submit` factura con `moneda`
+   tal cual (~15.000x de diferencia real EUR↔IDR, no un matiz estético).
+   Casi todo el catálogo es EUR, pero Riverfront I/II son IDR de arriba a
+   abajo (catálogo, proyecto y unidades ya coinciden hoy — verificado, no a
+   ojo). `MONEDA_DESAJUSTE` es lo que lee `guardarContrato()` (app.html) para
+   BLOQUEAR el guardado — un aviso persistente no basta cuando lo que está en
+   juego es la cifra que se factura, no solo un campo por rellenar.
+   Función propia (no solo dentro de syncPrecioTechoExtras) porque tiene que
+   volver a correr si el agente edita `moneda` A MANO después de elegir techo
+   — sin esto, el aviso solo se comprobaba al elegir/quitar techo y un cambio
+   posterior de moneda podía desincronizarse sin que nadie se enterara hasta
+   la firma (segundo hallazgo de Administración, MEDIA). */
+let MONEDA_DESAJUSTE = false;
+function syncMonedaTechoExtras(){
+  const elMon = document.querySelector('[name="moneda"]');
+  if(!elMon || !TECHO_ELEGIDO){ MONEDA_DESAJUSTE = false; return; }
+  const mon = TECHO_ELEGIDO.moneda || 'EUR';
+  const monActual = elMon.value.trim();
+  if(!monActual){
+    elMon.value = mon; elMon.dispatchEvent(new Event('input', { bubbles:true }));
+    MONEDA_DESAJUSTE = false;
+    return;
+  }
+  MONEDA_DESAJUSTE = monActual !== mon;
+  if(MONEDA_DESAJUSTE){
+    marcarCampoAviso(elMon, `El techo/extra elegido está en ${mon} pero este documento va en ${monActual}. `
+      + `El precio que se va a poner es en ${mon}, no en ${monActual} — corrígelo, no se puede guardar así.`);
+  }else{
+    elMon.classList.remove('campo-aviso');
+    const nota = elMon.closest('.field'); if(nota){ const av = nota.querySelector('.aviso-campo'); if(av) av.remove(); }
+  }
+}
+
 /* `precio_total` en Construcción pasa a salir de aquí cuando el modelo elegido
    tiene techo — por delante de `syncPrecioObraVinculada` (parcela_inventario.js),
    que sigue mandando cuando no hay techo elegido (modelos sin variantes, o
    contratos antiguos).
-   SIN opción de rechazar (16-sep, corrección del owner tras probarlo): la
-   primera versión reutilizaba `avisaPrecioForzado`, que ofrece "dejar el
-   precio de antes" — y eso es exactamente lo que NO puede pasar aquí. El
-   precio de un techo/extra que el propio agente acaba de marcar no es
-   negociable por omisión: si elige un extra, su precio ENTRA sí o sí.
-   SIN modal de confirmación tampoco (16-sep, tercera vuelta — owner): el
-   modal (`lwConfirmar({cancelar:false})`) nació para tapar el hueco de que,
-   con techo elegido, `precio_total` seguía editable a mano para admin/
-   super_admin — un cambio de techo podía pisar en silencio un precio que
-   alguien acababa de teclear. Ese hueco se cerró de raíz en `fieldHTML()`
-   (el campo pasa a `readonly` para TODOS en cuanto hay techo, sin excepción
-   de rol), así que ya no hay nada que un modal necesite tapar: con techo
-   elegido, nadie puede haber tecleado nada que este cambio pueda pisar. Un
-   toast informativo basta. */
+   SIN opción de rechazar al elegir/cambiar un extra (16-sep, corrección del
+   owner tras probarlo): la primera versión reutilizaba `avisaPrecioForzado`,
+   que ofrece "dejar el precio de antes" — y eso es exactamente lo que NO
+   puede pasar cuando el propio agente acaba de marcar un extra: su precio
+   ENTRA sí o sí.
+   CON modal de confirmación cuando YA había un precio real puesto (16-sep,
+   cuarta vuelta — Legal en la consulta de deploy cazó el error de la tercera:
+   el candado `readonly` de fieldHTML() impide TECLEAR encima, pero el precio
+   previo de una Construcción casi nunca viene de tecleo — viene de
+   `syncPrecioObraVinculada()`, automático desde el Bloqueo/Reserva vinculada,
+   dinero real. Elegir un techo sustituye ESE precio por el del catálogo de
+   techos, y esa sustitución entre dos fuentes automáticas es exactamente el
+   caso que alimenta `crearProformaAutomatica()`/`firma-submit` sin que nadie
+   lo haya visto — el mismo riesgo que motivó el modal la primera vez, solo
+   que mal diagnosticado como "problema de tecleo" la segunda). Si NO había
+   precio antes (nada que sustituir), se queda en el toast informativo. */
 function syncPrecioTechoExtras(){
   if(CONTRACT_TIPO[CURRENT.slug] !== 'construccion' || !TECHO_ELEGIDO) return;
   const el = document.querySelector('[name="precio_total"]');
   if(!el) return;
   const mon = TECHO_ELEGIDO.moneda || 'EUR';
-  /* La moneda VIAJA con el precio del techo, del mismo nivel que lo dio —
-     mismo criterio que ya documenta modelos_catalogo.js. Casi todo el
-     catálogo es EUR, pero Riverfront I/II son IDR de arriba a abajo
-     (catálogo, proyecto y unidades ya coinciden hoy — verificado, no a ojo).
-     Si el campo `moneda` del documento está vacío, lo rellena; si YA tiene un
-     valor que no cuadra con el techo, no lo pisa en silencio (podría
-     desincronizar otros importes ya escritos en esa moneda) — se avisa de
-     forma persistente, como ya hace marcarCampoAviso con villa_m2. */
-  const elMon = document.querySelector('[name="moneda"]');
-  if(elMon){
-    const monActual = elMon.value.trim();
-    if(!monActual){ elMon.value = mon; elMon.dispatchEvent(new Event('input', { bubbles:true })); }
-    else if(monActual !== mon){
-      marcarCampoAviso(elMon, `El techo/extra elegido está en ${mon} pero este documento va en ${monActual}. `
-        + `El precio que se va a poner es en ${mon}, no en ${monActual} — revísalo antes de guardar.`);
-    }
-  }
+  syncMonedaTechoExtras();
   const obra = Number(TECHO_ELEGIDO.precio) + EXTRAS_ELEGIDOS.reduce((t,e)=>t+(Number(e.precio)||0),0);
   if(!(obra > 0)) return;   // datos raros: mejor no tocar nada
   const nuevo = fmtImporte(obra), antes = String(el.value||'').trim();
@@ -144,7 +165,18 @@ function syncPrecioTechoExtras(){
     ? ' + ' + EXTRAS_ELEGIDOS.map(e=>e.nombre+' '+fmtImporte(Number(e.precio))).join(' + ')
     : '';
   const desglose = TECHO_ELEGIDO.nombre + ' ' + fmtImporte(Number(TECHO_ELEGIDO.precio)) + detalle;
-  toast((antes ? lwT('Precio actualizado a ') : lwT('Precio puesto a ')) + nuevo + ' ' + mon + ' — ' + desglose);
+  if(antes){
+    lwConfirmar({
+      titulo: 'Precio actualizado',
+      cuerpo: `<p>Este documento traía <b>${escAttr(antes)} ${mon}</b> — puesto automáticamente por la Reserva vinculada o por un techo anterior — `
+        + `y ha pasado a <b>${escAttr(nuevo)} ${mon}</b>, según el techo y los extras elegidos: ${escAttr(desglose)} ${mon}.</p>`
+        + `<p>Este importe alimenta la proforma automática al guardar y la factura al firmar — revísalo antes de seguir.</p>`,
+      confirmar: 'Entendido',
+      cancelar: false,
+    });
+  }else{
+    toast(lwT('Precio puesto a ') + nuevo + ' ' + mon + ' — ' + desglose);
+  }
 }
 
 /* Fila del extra elegido, para el documento — mismo espíritu que
