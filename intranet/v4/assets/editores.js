@@ -97,6 +97,18 @@
     lago: '#104C4F', hoja: '#8F9B7A', apagado: '#75786e', tinta: '#2E3437'
   };
 
+  /* Flechita de <select> (16-sep-2026, encargo del owner: "no queda claro que
+     es un desplegable"). La v4 carga Tailwind Forms (`?plugins=forms`), que SI
+     pinta una flecha por defecto sobre `select` — pero cada campo fija su color
+     de fondo con el shorthand `background`, que resetea `background-image` a
+     `none`, y el inline style siempre gana a la hoja de Tailwind por
+     especificidad. Un solo SVG en base64 a nivel de modulo, para que cualquier
+     <select> de este fichero (el formulario generico y los widgets a mano como
+     montaTramos) lo pinte igual sin depender del CDN. */
+  var flechaSelect = ";appearance:none;-webkit-appearance:none;-moz-appearance:none;" +
+    "background-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 20 20%22 fill=%22none%22 stroke=%22%2344483f%22 stroke-width=%222%22><path d=%22M5 7l5 5 5-5%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/></svg>');" +
+    "background-repeat:no-repeat;background-position:right 10px center;background-size:14px;padding-right:32px";
+
   function modal(titulo, campos, textoBoton, onGuardar, opts) {
     opts = opts || {};
     /* `lateral` se conserva como opcion muerta: las llamadas que ya lo pasaban
@@ -161,7 +173,7 @@
        —el mismo que separa las filas del cajon— en vez del #8A8474 de control,
        que a este tamano y sobre crema se leia como una caja de texto de 2005. */
     var estilo = 'width:100%;padding:9px 12px;border:1px solid ' + CAJ.borde + ';border-radius:8px;' +
-      'font-weight:500;font-size:14px;color:' + CAJ.tinta + ';background:' + CAJ.papel + ';box-sizing:border-box';
+      'font-weight:500;font-size:14px;color:' + CAJ.tinta + ';background-color:' + CAJ.papel + ';box-sizing:border-box';
     /* Cada campo es una FILA DEL CAJON: tarjeta con su borde y su radio 12, y la
        etiqueta dentro. Antes la etiqueta era un rotulo en mayusculas con
        tracking de titular flotando encima de un campo suelto — mas fuerte que el
@@ -185,7 +197,7 @@
         d.innerHTML = '<input type="checkbox" data-k="' + esc(c.k) + '"' + (c.valor ? ' checked' : '') + ' style="margin-top:2px">' +
           '<span>' + esc(c.label) + (c.ayuda ? '<br><small style="color:#8A6A34">' + esc(c.ayuda) + '</small>' : '') + '</span>';
       } else if (c.tipo === 'select') {
-        d.innerHTML = inner + '<select data-k="' + esc(c.k) + '" style="' + estilo + '">' +
+        d.innerHTML = inner + '<select data-k="' + esc(c.k) + '" style="' + estilo + flechaSelect + '">' +
           (c.opciones || []).map(function (o) {
             var vv = typeof o === 'string' ? [o, o] : o;
             return '<option value="' + esc(vv[0]) + '"' + (String(c.valor) === String(vv[0]) ? ' selected' : '') + '>' + esc(vv[1]) + '</option>';
@@ -206,9 +218,13 @@
         d.innerHTML = esc(c.label);
       } else if (c.tipo === 'lectura') {
         // Espejo de solo lectura: se ve el valor y se entiende que no se toca
-        // aquí. Tampoco lleva `data-k`, por lo mismo que 'nota'.
-        d.innerHTML = inner + '<input value="' + esc(c.valor == null ? '' : c.valor) + '" readonly tabindex="-1" style="' +
-          estilo + ';background:#f5f4ee;color:#75786e;cursor:not-allowed">';
+        // aquí. Tampoco lleva `data-k`, por lo mismo que 'nota'. `dataMostrar`
+        // es opcional y SOLO sirve para que otro script (ej. el recalculo de
+        // precio de suelo) lo encuentre y actualice su texto en vivo — nunca
+        // se lee al recoger el formulario.
+        d.innerHTML = inner + '<input' + (c.dataMostrar ? ' data-mostrar="' + esc(c.dataMostrar) + '"' : '') +
+          ' value="' + esc(c.valor == null ? '' : c.valor) + '" readonly tabindex="-1" style="' +
+          estilo + ';background-color:#f5f4ee;color:#75786e;cursor:not-allowed">';
       } else if (c.tipo === 'textarea') {
         d.innerHTML = inner + '<textarea data-k="' + esc(c.k) + '" rows="4" style="' + estilo + ';resize:vertical">' + esc(c.valor) + '</textarea>';
       } else if (c.tipo === 'file') {
@@ -441,9 +457,9 @@
       var el = document.createElement('div');
       el.style.cssText = 'display:grid;grid-template-columns:1fr 92px 84px 22px;gap:6px;align-items:center';
       var campoEstilo = 'padding:7px 8px;border:1px solid ' + CAJ.borde + ';border-radius:6px;font-size:12.5px;' +
-        'color:' + CAJ.tinta + ';background:' + CAJ.papel + ';box-sizing:border-box;width:100%';
+        'color:' + CAJ.tinta + ';background-color:' + CAJ.papel + ';box-sizing:border-box;width:100%';
       var selDisp = document.createElement('select');
-      selDisp.style.cssText = campoEstilo;
+      selDisp.style.cssText = campoEstilo + flechaSelect;
       opciones.forEach(function (o) {
         var op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; selDisp.appendChild(op);
       });
@@ -484,6 +500,53 @@
       return filas.map(function (f) {
         return { disparador_tipo: f.disp.value, umbral: f.umbral.value, pct_tramo: f.pct.value };
       });
+    };
+  }
+
+  /* ---------- Entrega estimada del proyecto, en trimestres (16-sep-2026) ----------
+     Encargo del owner: "Q1 de 2027 es para el primer trimestre de 2027" — la
+     columna `proyectos.fecha_entrega_estimada_proyecto` sigue siendo un `date`
+     (no hace falta migracion nueva), pero SIEMPRE el primer dia del trimestre
+     elegido, y aqui solo se edita como trimestre+año, nunca como fecha exacta.
+     `tipo:'custom'` (mismo patron que montaTramos): dos <select> que no mapean
+     a una sola columna, asi que el formulario generico no los sabe dibujar. */
+  function montaTrimestre(host, valorFecha) {
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px';
+    var campoEstilo = 'padding:9px 12px;border:1px solid ' + CAJ.borde + ';border-radius:8px;' +
+      'font-weight:500;font-size:14px;color:' + CAJ.tinta + ';background-color:' + CAJ.papel + ';box-sizing:border-box;width:100%';
+    var selQ = document.createElement('select');
+    selQ.style.cssText = campoEstilo + flechaSelect;
+    [['', 'Trimestre'], ['1', 'Q1'], ['2', 'Q2'], ['3', 'Q3'], ['4', 'Q4']].forEach(function (o) {
+      var op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; selQ.appendChild(op);
+    });
+    var selA = document.createElement('select');
+    selA.style.cssText = campoEstilo + flechaSelect;
+    var opBlank = document.createElement('option'); opBlank.value = ''; opBlank.textContent = 'Año'; selA.appendChild(opBlank);
+    var hoyAnio = new Date().getFullYear();
+    var anioValor = null, qValor = null;
+    if (valorFecha) {
+      var fv = new Date(valorFecha + 'T00:00:00');
+      anioValor = fv.getFullYear();
+      qValor = Math.floor(fv.getMonth() / 3) + 1;
+    }
+    // 2 años atras (por si la estimacion ya quedo vieja/pasada, no perderla al
+    // abrir el formulario) hasta 10 años adelante — de sobra para un proyecto
+    // inmobiliario real.
+    var desde = Math.min(hoyAnio - 2, anioValor || hoyAnio);
+    for (var y = desde; y <= hoyAnio + 10; y++) {
+      var opY = document.createElement('option'); opY.value = String(y); opY.textContent = String(y); selA.appendChild(opY);
+    }
+    if (anioValor) selA.value = String(anioValor);
+    if (qValor) selQ.value = String(qValor);
+    wrap.appendChild(selQ); wrap.appendChild(selA);
+    host.appendChild(wrap);
+    // getter que `onGuardar` llama para recoger el estado ACTUAL del formulario
+    return function () {
+      var q = Number(selQ.value), a = Number(selA.value);
+      if (!q || !a) return null;
+      var mes = (q - 1) * 3 + 1;
+      return a + '-' + (mes < 10 ? '0' + mes : mes) + '-01';
     };
   }
 
@@ -735,7 +798,7 @@
       return { id: r.id, precio: precio };
     });
     var sel = document.createElement('select');
-    sel.style.cssText = 'width:100%;padding:7px 9px;border:1px solid ' + CAJ.borde + ';border-radius:8px;font-size:12.5px;margin-top:4px';
+    sel.style.cssText = 'width:100%;padding:7px 9px;border:1px solid ' + CAJ.borde + ';border-radius:8px;font-size:12.5px;margin-top:4px' + flechaSelect;
     var opBlank = document.createElement('option'); opBlank.value = ''; opBlank.textContent = 'Añadir a un proyecto…';
     sel.appendChild(opBlank);
     proyectosLibres.forEach(function (nombre) {
@@ -1063,6 +1126,9 @@
           unidadesModelo.forEach(function (u) { if (u.modelo) enUso[u.modelo] = (enUso[u.modelo] || 0) + 1; });
           var declarados = villas.map(function (v) { return v.modelo_id; }).filter(Boolean);
 
+          // getter de montaTrimestre() -- se rellena al pintar el campo 'custom'
+          // de abajo, y onGuardar lo llama para saber el trimestre elegido.
+          var getEntrega;
           var campos = [
             { k: 'resort', label: 'Resort', valor: p.resort || '' },
             { k: 'parcela_master', label: 'Parcela máster (código)', valor: p.parcela_master || '' },
@@ -1070,14 +1136,27 @@
             // owner) — agregada, para el deck/marketing. Distinta a propósito
             // de unidades.obra_fecha_entrega (fecha real de obra por parcela,
             // se edita en "Editar unidad"); no se derivan la una de la otra.
+            // En TRIMESTRES (owner, 16-sep-2026: "Q1 de 2027 es para el primer
+            // trimestre de 2027") -- se sigue guardando como `date` (el primer
+            // día del trimestre elegido), montaTrimestre() hace la conversión
+            // en los dos sentidos.
             // `fecha_entrega_estimada_fijada_en` NO es un campo del formulario:
             // se sella sola con la fecha de HOY al guardar, si el valor cambia
             // — así la estimación siempre lleva escrito cuándo se fijó, sin
             // pedirle a nadie que recuerde marcarlo (regla del estudio: todo
             // dato volátil lleva su fecha).
-            { k: 'fecha_entrega_estimada_proyecto', tipo: 'date', medio: 1,
-              label: 'Entrega estimada (proyecto, no parcela)',
-              valor: p.fecha_entrega_estimada_proyecto || '' },
+            { tipo: 'custom', medio: 1, label: 'Entrega estimada (proyecto, no parcela)',
+              render: function (d) {
+                // 'custom' no lleva la tarjeta crema de los demas campos (ver el
+                // renderizador generico): se reconstruye aqui, igual de forma y
+                // color, para que no se note que es un widget aparte.
+                d.style.cssText = 'display:grid;gap:6px;background:#f5f4ee;border:1px solid ' + CAJ.borde + ';' +
+                  'border-radius:12px;padding:12px 14px;font-weight:500;font-size:12px;line-height:1.35;color:' + CAJ.apagado;
+                var lbl = document.createElement('span');
+                lbl.textContent = 'Entrega estimada (proyecto, no parcela)';
+                d.appendChild(lbl);
+                getEntrega = montaTrimestre(d, p.fecha_entrega_estimada_proyecto);
+              } },
             { tipo: 'lectura', medio: 1, label: 'Estimación fijada el',
               valor: p.fecha_entrega_estimada_fijada_en || 'nunca — se sella sola al guardar una fecha' },
             // Foto de portada (11-sep-2026, encargo del owner): va al bucket
@@ -1114,7 +1193,7 @@
           }
 
           modal('Editar proyecto · ' + p.nombre, campos, 'Guardar', function (v) {
-            var nuevaFecha = v.fecha_entrega_estimada_proyecto || null;
+            var nuevaFecha = getEntrega ? getEntrega() : (p.fecha_entrega_estimada_proyecto || null);
             var cambioFecha = nuevaFecha !== (p.fecha_entrega_estimada_proyecto || null);
             var payloadProyecto = {
               resort: (v.resort || '').trim() || null,
@@ -1279,8 +1358,14 @@
           }
           camposU.push(
             { k: 'superficie_m2', label: 'Superficie (m²)', tipo: 'number', medio: 1 },
-            { k: 'precio_suelo', label: 'Precio de suelo', tipo: 'number', medio: 1 },
+            // Precio de suelo (16-sep-2026): igual que en "Editar unidad", solo
+            // lectura, calculado de superficie × precio/m² — nunca un numero
+            // suelto. Sin superficie no hay como calcularlo.
+            { k: 'precio_m2', label: 'Precio por m²', tipo: 'number', medio: 1,
+              ayuda: 'Rellena antes la superficie — sin ella no se puede calcular el precio de suelo.' },
+            { tipo: 'lectura', label: 'Precio de suelo', medio: 1, dataMostrar: 'precio-suelo-calc', valor: 'rellena la superficie primero' },
             { k: 'precio_construccion', label: 'Precio de construcción', tipo: 'number', medio: 1 },
+            { tipo: 'nota', label: 'Precio de suelo = superficie × precio por m². Precio total = suelo + construcción. Ninguno de los dos se escribe a mano: los calcula siempre la base.' },
             { k: 'moneda', label: 'Moneda', tipo: 'select', medio: 1, opciones: ['EUR', 'IDR'], valor: 'EUR' },
             { k: 'notas', label: 'Notas', tipo: 'textarea' }
           );
@@ -1290,16 +1375,36 @@
             // parseImporte() en /proyectos/ para sus inputs de texto libre —
             // aplicar esa transformación aquí le comería el punto y lo rompería.
             var num = function (s) { var n = parseFloat(s); return isNaN(n) ? null : n; };
+            var supNueva = num(v.superficie_m2), pm2Nueva = num(v.precio_m2);
             var fila = {
               codigo: v.codigo.trim(), proyecto: v.proyecto,
-              tipo: v.tipo, modelo: v.modelo ? v.modelo.trim() : null, superficie_m2: num(v.superficie_m2),
-              precio_suelo: num(v.precio_suelo), precio_construccion: num(v.precio_construccion),
+              tipo: v.tipo, modelo: v.modelo ? v.modelo.trim() : null, superficie_m2: supNueva,
+              precio_suelo: (supNueva && pm2Nueva != null) ? Math.round(supNueva * pm2Nueva * 100) / 100 : null,
+              precio_construccion: num(v.precio_construccion),
               moneda: v.moneda, notas: v.notas.trim() || null
             };
             if (v.fase_masterplan) fila.fase_masterplan = v.fase_masterplan.trim();
             if (v.zona_masterplan) fila.zona_masterplan = v.zona_masterplan.trim();
             return sb.from('unidades').insert(fila);
           });
+          var cm2N = document.querySelector('#lw-editor [data-k="precio_m2"]');
+          var csupN = document.querySelector('#lw-editor [data-k="superficie_m2"]');
+          var cmonN = document.querySelector('#lw-editor [data-k="moneda"]');
+          var csueloMostradoN = document.querySelector('#lw-editor [data-mostrar="precio-suelo-calc"]');
+          if (cm2N && csupN && csueloMostradoN) {
+            // fmtM no existe en este bloque (solo lo define editarUnidad): mismo
+            // respaldo que usa el resto de la suite cuando dinero.js no cargo.
+            var fmtMN = function (x, m) {
+              return (typeof lwFormatoImporte === 'function') ? lwFormatoImporte(x, m || 'EUR') : String(x) + ' ' + (m || 'EUR');
+            };
+            var recalculaN = function () {
+              var m2 = parseFloat(cm2N.value), sup = parseFloat(csupN.value);
+              if (!isNaN(m2) && !isNaN(sup) && sup > 0) csueloMostradoN.value = fmtMN(Math.round(m2 * sup * 100) / 100, cmonN ? cmonN.value : 'EUR');
+              else csueloMostradoN.value = (!isNaN(sup) && sup > 0) ? '—' : 'rellena la superficie primero';
+            };
+            cm2N.addEventListener('input', recalculaN);
+            csupN.addEventListener('input', recalculaN);
+          }
         }, function (e) {
           aviso('No se pudo abrir: ' + (e && e.message || e), '#ba1a1a');
         });
@@ -1404,14 +1509,25 @@
             campos.push({ k: 'fase_masterplan', label: 'Fase (masterplan)', medio: 1, valor: n0(u.fase_masterplan), ayuda: 'I, II…' });
             campos.push({ k: 'zona_masterplan', label: 'Zona', medio: 1, valor: n0(u.zona_masterplan), ayuda: '1, 2, 3…' });
           }
+          var haySuperficie = !!Number(u.superficie_m2);
           campos.push(
+            /* Precio de suelo (16-sep-2026, encargo del owner): deja de ser un
+               campo propio y pasa a SOLO LECTURA, calculado siempre como
+               superficie × precio/m² — nunca un numero suelto tecleado aparte.
+               Sin superficie no hay como calcularlo, asi que se bloquea con un
+               aviso en vez de dejar un hueco vacio sin explicar (decision del
+               owner: mejor bloquear que dejarlo escribible como excepcion).
+               `data-mostrar` (no `data-k`): es un espejo, igual que 'lectura'
+               ya hace con el total — no viaja en el payload, lo recalcula
+               `recalcula()` mas abajo segun se teclea. */
             { k: 'precio_m2', label: 'Precio por m²', tipo: 'number', medio: 1,
-              valor: (u.precio_suelo != null && Number(u.superficie_m2)) ? Math.round(Number(u.precio_suelo) / Number(u.superficie_m2) * 100) / 100 : '',
-              ayuda: 'Con la superficie, rellena el suelo solo. No se guarda: lo que se guarda es el suelo.' },
-            { k: 'precio_suelo', label: 'Precio de suelo', tipo: 'number', medio: 1, valor: n0(u.precio_suelo) },
+              valor: (u.precio_suelo != null && haySuperficie) ? Math.round(Number(u.precio_suelo) / Number(u.superficie_m2) * 100) / 100 : '',
+              ayuda: haySuperficie ? 'El precio de suelo se calcula solo: superficie × este precio.' : 'Rellena antes la superficie (arriba) — sin ella no se puede calcular el precio de suelo.' },
+            { tipo: 'lectura', label: 'Precio de suelo', medio: 1, dataMostrar: 'precio-suelo-calc',
+              valor: (u.precio_suelo != null && haySuperficie) ? fmtM(u.precio_suelo, u.moneda) : (haySuperficie ? '—' : 'rellena la superficie primero') },
             { k: 'precio_construccion', label: 'Precio de construcción', tipo: 'number', medio: 1, valor: n0(u.precio_construccion) },
             { tipo: 'lectura', label: 'Precio total', medio: 1, valor: totalDerivado ? fmtM(totalDerivado, u.moneda) : '—' },
-            { tipo: 'nota', label: 'El total es siempre suelo + construcción y lo calcula la base — ya no se puede escribir un valor distinto (28-ago-2026): un CSV trajo 143 parcelas con el total descuadrado de sus propias columnas.' },
+            { tipo: 'nota', label: 'Precio de suelo = superficie × precio por m². Precio total = suelo + construcción. Ninguno de los dos se escribe a mano: los calcula siempre la base (28-ago-2026: un CSV trajo 143 parcelas con el total descuadrado de sus propias columnas).' },
             { k: 'moneda', label: 'Moneda', tipo: 'select', medio: 1, opciones: ['EUR', 'USD', 'AUD', 'IDR'], valor: u.moneda || 'EUR' }
           );
           if (vinculada) {
@@ -1483,10 +1599,18 @@
           modal((u.codigo || 'Unidad'), campos, 'Guardar cambios', function (v) {
             var num = function (x) { var n = parseFloat(x); return isNaN(n) ? null : n; };
             var txt = function (x) { return (x || '').trim() || null; };
+            // Precio de suelo (16-sep-2026): ya no llega en `v` (el campo es
+            // 'lectura', sin data-k) -- se calcula aqui mismo, en el unico
+            // sitio que escribe la fila, a partir de lo que se acaba de
+            // teclear en superficie y precio/m². Sin superficie o sin
+            // precio/m² no hay como calcularlo: se guarda null, nunca un
+            // valor tecleado a mano por otra via.
+            var supGuardar = num(v.superficie_m2), pm2Guardar = num(v.precio_m2);
             var fila = {
               codigo: v.codigo.trim(), proyecto: v.proyecto, tipo: v.tipo,
-              modelo: txt(v.modelo), superficie_m2: num(v.superficie_m2),
-              precio_suelo: num(v.precio_suelo), precio_construccion: num(v.precio_construccion),
+              modelo: txt(v.modelo), superficie_m2: supGuardar,
+              precio_suelo: (supGuardar && pm2Guardar != null) ? Math.round(supGuardar * pm2Guardar * 100) / 100 : null,
+              precio_construccion: num(v.precio_construccion),
               moneda: v.moneda, notas: txt(v.notas)
               // `precio` no va aqui a proposito — ver la cabecera de esta funcion.
             };
@@ -1511,18 +1635,21 @@
             encabezado: encabezado
           });
 
-          /* Precio por m² -> precio de suelo, como en la herramienta viva. Va
-             aqui y no dentro de modal() porque es la unica pantalla que lo
-             necesita: el modal canonico no tiene campos que se hablen entre si,
-             y abrirle esa puerta a todos por un caso es mas de lo que hace
-             falta. modal() ya ha pintado el DOM cuando se llega aqui. */
+          /* Precio por m² -> precio de suelo (16-sep-2026: precio_suelo ya no
+             es un campo, es un espejo de solo lectura — ver el 'lectura' de
+             arriba con dataMostrar:'precio-suelo-calc'). Va aqui y no dentro
+             de modal() porque es la unica pantalla que lo necesita: el modal
+             canonico no tiene campos que se hablen entre si, y abrirle esa
+             puerta a todos por un caso es mas de lo que hace falta. modal()
+             ya ha pintado el DOM cuando se llega aqui. */
           var cm2 = document.querySelector('#lw-editor [data-k="precio_m2"]');
           var csup = document.querySelector('#lw-editor [data-k="superficie_m2"]');
-          var csuelo = document.querySelector('#lw-editor [data-k="precio_suelo"]');
-          if (cm2 && csup && csuelo) {
+          var csueloMostrado = document.querySelector('#lw-editor [data-mostrar="precio-suelo-calc"]');
+          if (cm2 && csup && csueloMostrado) {
             var recalcula = function () {
               var m2 = parseFloat(cm2.value), sup = parseFloat(csup.value);
-              if (!isNaN(m2) && !isNaN(sup) && sup > 0) csuelo.value = Math.round(m2 * sup * 100) / 100;
+              if (!isNaN(m2) && !isNaN(sup) && sup > 0) csueloMostrado.value = fmtM(Math.round(m2 * sup * 100) / 100, u.moneda);
+              else csueloMostrado.value = (!isNaN(sup) && sup > 0) ? '—' : 'rellena la superficie primero';
             };
             cm2.addEventListener('input', recalcula);
             csup.addEventListener('input', recalcula);

@@ -24,6 +24,12 @@
   function fmt(n, m) { return (typeof lwFormatoImporte === 'function') ? lwFormatoImporte(n, m) : (n + ' ' + (m || '')); }
   function tipoC(t) { return (typeof lwTipoContrato !== 'undefined') ? lwTipoContrato(t) : t; }
   function fFecha(x) { if (!x) return '—'; var d = new Date(x); return isNaN(d) ? String(x).slice(0, 10) : d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }); }
+  /* Entrega estimada del PROYECTO en trimestres (16-sep-2026, encargo del
+     owner: "Q1 de 2027 es para el primer trimestre de 2027") -- se guarda
+     como el primer dia del trimestre (editores.js -> montaTrimestre()), aqui
+     solo se lee al reves para mostrarla. NO usar para unidades.obra_fecha_entrega,
+     que sigue siendo una fecha exacta por parcela. */
+  function fTrimestre(x) { if (!x) return '—'; var d = new Date(x + 'T00:00:00'); if (isNaN(d)) return String(x).slice(0, 10); return 'Q' + (Math.floor(d.getMonth() / 3) + 1) + ' ' + d.getFullYear(); }
   // busca `valor` en una lista de pares [valor, etiqueta] (Equipos de venta / Condiciones)
   function etiquetaDe(lista, valor) {
     var f = (lista || []).filter(function (x) { return x[0] === valor; })[0];
@@ -1034,7 +1040,7 @@
             elEntrega.textContent = 'sin estimar';
             elEntrega.style.color = '';
           } else {
-            var fEntrega = fFecha(elegido.fecha_entrega_estimada_proyecto);
+            var fEntrega = fTrimestre(elegido.fecha_entrega_estimada_proyecto);
             var vieja = false;
             if (elegido.fecha_entrega_estimada_fijada_en) {
               var meses = (Date.now() - new Date(elegido.fecha_entrega_estimada_fijada_en + 'T00:00:00').getTime()) / (1000 * 60 * 60 * 24 * 30.44);
