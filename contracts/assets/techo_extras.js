@@ -45,6 +45,16 @@ async function cargarTechosYExtras(modeloId, proyectoId){
   ]);
   TECHOS_OPCIONES = t.error ? [] : (t.data || []);
   EXTRAS_OPCIONES = e.error ? [] : (e.data || []);
+  /* Una vivienda siempre lleva techo (corrección del owner, 16-sep: "no puede
+     salir -sin elegir-"). Si el modelo tiene variantes y todavía no hay
+     ninguna elegida (contrato nuevo, o cambio real de tipología que ya limpió
+     TECHO_ELEGIDO en syncTipologiaModelos), se preselecciona la MÁS ECONÓMICA
+     — nunca la primera del array, que no tiene por qué venir ordenada.
+     Un contrato ya guardado con su techo (o uno huérfano) no se toca aquí. */
+  if(!TECHO_ELEGIDO && TECHOS_OPCIONES.length){
+    const masBarato = TECHOS_OPCIONES.reduce((min,t)=>Number(t.precio) < Number(min.precio) ? t : min);
+    TECHO_ELEGIDO = { ...masBarato, fecha_resuelta: new Date().toISOString() };
+  }
   refreshTechoExtras();
   syncPrecioTechoExtras();
 }
@@ -65,10 +75,16 @@ function techoExtrasBodyHTML(){
     + `${esc(t.nombre)} — ${fmtImporte(Number(t.precio))} ${esc(t.moneda)}`
     + `${t.huerfano ? ' — ' + L({es:'ya no está en el catálogo',en:'no longer in the catalogue',id:'tidak ada lagi di katalog'}) : ''}`
     + `</option>`).join('');
-  const selectTecho = `<div class="field"><label for="techoSel">${L({es:'Techo',en:'Roof',id:'Atap'})}</label>
-    <select class="sui-sel" id="techoSel"><option value="">${L({es:'— sin elegir —',en:'— not chosen —',id:'— belum dipilih —'})}</option>${optsTecho}</select>
-    ${!TECHOS_OPCIONES.length && !TECHO_ELEGIDO ? `<p class="mini">${L({es:'Este modelo no tiene variantes de techo.',en:'This model has no roof variants.',id:'Model ini tidak punya varian atap.'})}</p>` : ''}
-    </div>`;
+  /* SIN opción "— sin elegir —" (corrección del owner, 16-sep): una vivienda
+     siempre lleva techo, así que el desplegable solo sirve para CAMBIAR entre
+     variantes, nunca para vaciarlo — la preselección del más económico corre
+     en cargarTechosYExtras() en cuanto se resuelven las opciones. Si el
+     modelo no tiene ninguna variante, no hay nada que elegir y se avisa. */
+  const selectTecho = techosMostrar.length
+    ? `<div class="field"><label for="techoSel">${L({es:'Techo',en:'Roof',id:'Atap'})}</label>
+        <select class="sui-sel" id="techoSel">${optsTecho}</select></div>`
+    : `<div class="field"><label>${L({es:'Techo',en:'Roof',id:'Atap'})}</label>
+        <p class="mini">${L({es:'Este modelo no tiene variantes de techo.',en:'This model has no roof variants.',id:'Model ini tidak punya varian atap.'})}</p></div>`;
 
   /* Los extras SOLO se pueden marcar con un techo ya elegido (revisión de
      código, 16-sep: sin esto, un extra marcado sin techo se imprimía en el
@@ -81,16 +97,35 @@ function techoExtrasBodyHTML(){
   const sinTecho = !TECHO_ELEGIDO;
   const extrasMostrar = [...EXTRAS_OPCIONES];
   EXTRAS_ELEGIDOS.forEach(e=>{ if(!extrasMostrar.some(x=>x.extra_id===e.extra_id)) extrasMostrar.push({ ...e, huerfano:true }); });
-  const extrasHTML = extrasMostrar.map(x=>{
+  const lblExtra  = L({es:'Extra',en:'Extra',id:'Ekstra'});
+  const lblPrecio = L({es:'Precio',en:'Price',id:'Harga'});
+  /* Tabla en vez de checkboxes sueltos uno debajo de otro (aviso del owner,
+     16-sep: "no queda claro cómo está"): con nombre y precio en columnas
+     propias, alineado a la derecha en cifras tabulares, se lee de un vistazo
+     qué está marcado y cuánto suma cada uno — mismo patrón `.reg-tabla` que
+     ya usan los registros de envíos/firmas de este mismo documento (incluye
+     su propio colapso a tarjeta en móvil, vía `data-l`). */
+  const filasExtras = extrasMostrar.map(x=>{
     const marcado = EXTRAS_ELEGIDOS.some(e=>e.extra_id===x.extra_id);
-    return `<label class="mini" style="display:block;padding:4px 0">
-      <input type="checkbox" data-extra-opt="${escAttr(x.extra_id)}" ${marcado ? 'checked' : ''} ${sinTecho ? 'disabled' : ''}>
-      ${esc(x.nombre)} — ${fmtImporte(Number(x.precio))} ${esc(x.moneda)}${x.huerfano ? ' — ' + L({es:'ya no se ofrece',en:'no longer offered',id:'tidak lagi ditawarkan'}) : ''}</label>`;
-  }).join('') || `<p class="mini">${L({es:'Este modelo no tiene extras.',en:'This model has no extras.',id:'Model ini tidak punya extra.'})}</p>`;
+    return `<tr${marcado ? ' class="sel"' : ''}>
+      <td style="width:1%;padding-right:0"><input type="checkbox" data-extra-opt="${escAttr(x.extra_id)}" ${marcado ? 'checked' : ''} ${sinTecho ? 'disabled' : ''}></td>
+      <td data-l="${escAttr(lblExtra)}">${esc(x.nombre)}${x.huerfano ? ' — <span class="mini">' + L({es:'ya no se ofrece',en:'no longer offered',id:'tidak lagi ditawarkan'}) + '</span>' : ''}</td>
+      <td data-l="${escAttr(lblPrecio)}" style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums">${fmtImporte(Number(x.precio))} ${esc(x.moneda)}</td>
+    </tr>`;
+  }).join('');
+  const totalExtras = EXTRAS_ELEGIDOS.reduce((t,e)=>t+(Number(e.precio)||0),0);
+  const monedaExtras = (TECHO_ELEGIDO && TECHO_ELEGIDO.moneda) || (extrasMostrar[0] && extrasMostrar[0].moneda) || 'EUR';
+  const tablaExtras = extrasMostrar.length
+    ? `<div class="reg-envoltura"><table class="reg-tabla">
+        <thead><tr><th></th><th>${esc(lblExtra)}</th><th style="text-align:right">${esc(lblPrecio)}</th></tr></thead>
+        <tbody>${filasExtras}</tbody>
+        ${EXTRAS_ELEGIDOS.length ? `<tfoot><tr><td></td><td style="font-weight:600">${L({es:'Total extras',en:'Extras total',id:'Total ekstra'})}</td><td style="text-align:right;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums">${fmtImporte(totalExtras)} ${esc(monedaExtras)}</td></tr></tfoot>` : ''}
+      </table></div>`
+    : `<p class="mini">${L({es:'Este modelo no tiene extras.',en:'This model has no extras.',id:'Model ini tidak punya extra.'})}</p>`;
   const avisoSinTecho = (sinTecho && extrasMostrar.length)
     ? `<p class="mini">${L({es:'Elige un techo para poder añadir extras: sin techo no hay sobre qué sumar su precio.',en:'Choose a roof to add extras: without one there is nothing to add their price to.',id:'Pilih atap dulu untuk menambah ekstra.'})}</p>` : '';
 
-  return selectTecho + `<div class="field" style="grid-column:1/-1"><label>${L({es:'Extras',en:'Extras',id:'Ekstra'})}</label>${avisoSinTecho}${extrasHTML}</div>`;
+  return selectTecho + `<div class="field" style="grid-column:1/-1"><label>${L({es:'Extras',en:'Extras',id:'Ekstra'})}</label>${avisoSinTecho}${tablaExtras}</div>`;
 }
 function refreshTechoExtras(){ const b=document.getElementById('techoExtrasBox'); if(b) b.innerHTML=techoExtrasBodyHTML(); }
 

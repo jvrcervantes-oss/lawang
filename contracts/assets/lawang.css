@@ -2042,7 +2042,7 @@ input.lw-elegible:disabled{ cursor:default; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   app.css   sha256:be4bf7a22156
+   app.css   sha256:9471b243ab75
    ───────────────────────────────────────────────────────────────────── */
 /* Estilos propios del Generador de Contratos — sacados de app.html el 17-ago-2026.
    ============================================================================
@@ -2645,6 +2645,12 @@ input.lw-elegible:disabled{ cursor:default; }
      `.sui-tabla`) y sin `min-width`: el registro vive en un modal de 820px y
      forzar 720 obligaría a hacer scroll lateral en escritorio. */
   .reg-tabla tbody tr:hover{ background:var(--sup-hover,#EFEADE); }
+  /* Fila marcada — techo/extras del punto 4 (16-sep): la tabla es la única
+     tabla de `.reg-tabla` con filas seleccionables (checkbox), el resto son
+     registros de solo lectura. Misma señal que `.sui-tabla tr.sel`. */
+  .reg-tabla tbody tr.sel{ background:var(--sup-sel,#F2EEE3); box-shadow:inset 3px 0 0 var(--dl,#104C4F); }
+  .reg-tabla tbody tr.sel:hover{ background:var(--sup-sel,#F2EEE3); }
+  .reg-tabla tfoot td{ padding:var(--fila-y,11px) 12px; border-top:1px solid var(--linea,#E4DCCB); }
   /* «Aviso de anulación» partido en dos líneas convertía una fila de 42px en
      una de 61 y volvía a romper el ritmo que arregla todo lo de arriba. Va por
      CLASE y no por posición porque la vía es la 3ª columna en dos registros y

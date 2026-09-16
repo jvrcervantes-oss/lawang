@@ -606,26 +606,17 @@ function buildForm(){
     form.addEventListener('change', e=>{
       const selTecho = e.target.closest('#techoSel');
       if(selTecho){
+        // El select ya no lleva opción vacía (owner, 16-sep: una vivienda
+        // siempre lleva techo) — `id` es siempre uno de TECHOS_OPCIONES, así
+        // que no hay rama de "deseleccionar" que mantener.
         const id = selTecho.value;
-        if(id){
-          const nuevo = TECHOS_OPCIONES.find(t=>t.techo_id===id)
-            || (TECHO_ELEGIDO && TECHO_ELEGIDO.techo_id===id ? TECHO_ELEGIDO : null);
-          // fecha_resuelta se fija UNA vez, la primera vez que se elige ESTE
-          // techo (nunca al recuperar uno ya congelado, que trae la suya) —
-          // recalcularla en cada guardado perdía el rastro de cuándo se
-          // resolvió el tramo 2026/2027 (hallazgo de code-review, 16-sep).
-          TECHO_ELEGIDO = nuevo ? { ...nuevo, fecha_resuelta: nuevo.fecha_resuelta || new Date().toISOString() } : null;
-        }else{
-          // Deseleccionar el techo se lleva los extras con él: un extra sin
-          // techo no tiene sobre qué sumar su precio, y dejarlo marcado
-          // imprimía "incluido" sin que su importe entrara en precio_total
-          // (bug real, code-review 16-sep).
-          TECHO_ELEGIDO = null; EXTRAS_ELEGIDOS = [];
-          // La Reserva vinculada vuelve a mandar el precio (villa−suelo), como
-          // antes de elegir techo — sin esto, precio_total se quedaba con la
-          // última cifra del techo ya no elegido (mismo hallazgo).
-          OBRA_VINCULO_HECHO = null; syncPrecioObraVinculada();
-        }
+        const nuevo = TECHOS_OPCIONES.find(t=>t.techo_id===id)
+          || (TECHO_ELEGIDO && TECHO_ELEGIDO.techo_id===id ? TECHO_ELEGIDO : null);
+        // fecha_resuelta se fija UNA vez, la primera vez que se elige ESTE
+        // techo (nunca al recuperar uno ya congelado, que trae la suya) —
+        // recalcularla en cada guardado perdía el rastro de cuándo se
+        // resolvió el tramo 2026/2027 (hallazgo de code-review, 16-sep).
+        if(nuevo) TECHO_ELEGIDO = { ...nuevo, fecha_resuelta: nuevo.fecha_resuelta || new Date().toISOString() };
         // updateSaveButton() pone/quita el candado de precio_total en vivo —
         // #techoSel no tiene `name`, así que el wiring genérico de buildForm()
         // (form.querySelectorAll('select[name]')...) nunca lo alcanza; sin
