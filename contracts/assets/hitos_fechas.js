@@ -70,17 +70,34 @@ function fechaHitoImpresa(iso, lang){
      super administrador"). Un hito añadido a mano no la lleva: su % y su
      concepto se quedan libres para cualquiera, como siempre.
    · `h.calculado` — los 5 de fábrica Y cualquier hito añadido a mano
-     mientras el contrato sea de Construcción (parcela_inventario.js,
-     `#hitoAdd`): el motivo del owner ("usamos el PRECIO TOTAL PROYECTO fijo
-     para calcular los hitos") es de la tabla entera, no solo de los cinco.
-     La Cantidad deja de teclearse — sale de PRECIO TOTAL PROYECTO × %
-     (recalcularMontosHitos, más abajo) — siempre en solo lectura, sin
-     excepción de rol: no hay "cifra a mano" que proteger cuando la cifra la
-     pone la aritmética.
+     MIENTRAS ESTE CONTRATO YA TENGA CALENDARIO DE FÁBRICA (algún `h.fijo` —
+     `haiFijo`, más abajo; no "mientras sea de Construcción": un contrato de
+     Construcción de ANTES de este cambio no tiene ningún `fijo` y sigue
+     siendo 100% manual, botones de añadir/quitar incluidos — corrección
+     MEDIA de Administración, consulta de deploy 16-sep). Cuando sí hay
+     calendario de fábrica, el motivo del owner ("usamos el PRECIO TOTAL
+     PROYECTO fijo para calcular los hitos") es de la tabla entera, no solo
+     de los cinco. La Cantidad deja de teclearse — sale de PRECIO TOTAL
+     PROYECTO × % (recalcularMontosHitos, más abajo; solo el hito marcado
+     `resto` absorbe la diferencia de redondeo, nunca "el último del
+     array" — corrección ALTA de Legal, misma consulta) — siempre en solo
+     lectura, sin excepción de rol: no hay "cifra a mano" que proteger
+     cuando la cifra la pone la aritmética. `guardarContrato()` (app.html)
+     bloquea el guardado si Σ% de los hitos calculados no da 100 —
+     corrección ALTA de Administración, misma consulta: sin esto,
+     `total - repartido` podía salir negativo en un documento firmable.
    Vencimiento no cambia para nadie: sigue siendo el desfase de fábrica
    (vence_dias) convertido a fecha editable, "por ahora como está" (owner). */
 function hitosBodyHTML(){
   const esConstruccion = typeof CONTRACT_TIPO !== 'undefined' && CONTRACT_TIPO[CURRENT.slug] === 'construccion';
+  // El candado de Añadir/Quitar va por si ESTE contrato usa de verdad el
+  // calendario de fábrica (al menos un hito `fijo`), no por el TIPO de
+  // contrato (corrección MEDIA de Administración, consulta de deploy
+  // 16-sep): con el corte por tipo, un contrato de Construcción guardado
+  // ANTES de hoy —sin ningún hito `fijo`, "sigue siendo 100% manual"— perdía
+  // igualmente sus botones para cualquiera que no fuera admin/super_admin,
+  // contradiciendo el propio punto de partida de este cambio.
+  const haiFijo = HITOS.some(h=>h.fijo);
   const rows = HITOS.map((h,i)=>{
     const fijo = esConstruccion && !!h.fijo;
     const calculado = esConstruccion && !!h.calculado;
@@ -96,10 +113,10 @@ function hitosBodyHTML(){
     // la columna") — un 25 no necesita el ancho de un importe.
     const anchoPct = esConstruccion ? ' style="max-width:80px"' : '';
     // Quitar un hito de fábrica, o añadir uno nuevo, reparte de nuevo el
-    // 100% oficial de la obra: en Construcción se pinta oculto de fábrica y
-    // updateSaveButton() lo revela solo a quien puede (mismo `data-hito-admin`
-    // en el botón de abajo).
-    const btnDel = esConstruccion
+    // 100% oficial de la obra: si este contrato tiene calendario de fábrica
+    // se pinta oculto de fábrica y updateSaveButton() lo revela solo a quien
+    // puede (mismo `data-hito-admin` en el botón de abajo).
+    const btnDel = haiFijo
       ? `<button type="button" class="link-btn" data-hdel="${i}" data-hito-admin style="display:none">${L({es:'Quitar',en:'Remove',id:'Hapus'})}</button>`
       : `<button type="button" class="link-btn" data-hdel="${i}">${L({es:'Quitar',en:'Remove',id:'Hapus'})}</button>`;
     return `
@@ -121,14 +138,22 @@ function hitosBodyHTML(){
     </div>`;
   }).join('');
   const total = HITOS.reduce((t,h)=>t+(parseFloat(h.pct)||0),0);
-  const btnAdd = esConstruccion
+  const btnAdd = haiFijo
     ? `<button type="button" class="btn ghost" id="hitoAdd" data-hito-admin style="display:none">+ ${L({es:'Añadir hito',en:'Add milestone',id:'Tambah tahap'})}</button>`
     : `<button type="button" class="btn ghost" id="hitoAdd">+ ${L({es:'Añadir hito',en:'Add milestone',id:'Tambah tahap'})}</button>`;
+  // Por qué no hay botones ni campos abiertos (hallazgo MEDIA de Legal,
+  // consulta de deploy 16-sep): un candado sin explicación se lee como un
+  // fallo. VISIBLE de fábrica (asume que no se puede, igual que los botones
+  // asumen lo contrario) y updateSaveButton() lo esconde en cuanto el rol
+  // resulta ser admin/super_admin.
+  const avisoAdmin = haiFijo
+    ? `<p class="mini" data-hito-admin-aviso>${L({es:'Añadir o quitar hitos, y editar el % y el concepto de los cinco de fábrica, es de administración (admin o super administrador) desde el 16-sep-2026.',en:'Adding or removing milestones, and editing the % and wording of the five factory ones, has been an admin/super-admin action since 16-Sep-2026.',id:'Menambah/menghapus tahap serta mengubah % dan teks lima tahap standar, sejak 16-Sep-2026 hanya untuk admin/super admin.'})}</p>`
+    : '';
   return rows + `<div class="dz-row" style="margin-top:10px">
     ${btnAdd}
     <span class="spacer" style="flex:1"></span>
     <span style="font-size:12px;color:${Math.round(total)===100?'var(--muted)':'var(--be)'}">Σ ${total}%</span>
-  </div>`;
+  </div>${avisoAdmin}`;
 }
 function refreshHitos(){ const b=$('[data-sec="pagos"] .body'); if(b) b.innerHTML=hitosBodyHTML(); }
 
@@ -156,25 +181,36 @@ function recalcularMontosHitos(){
     HITOS.forEach((h,i)=>{ if(h.calculado) aplicar(i, ''); });
     return;
   }
-  /* El ÚLTIMO hito calculado se lleva el RESTO exacto, no su propio % — no es
-     un capricho de redondeo, es que la misma página del documento enseña el
-     precio total Y los cinco importes: `fmtImporte()` redondea a 2
-     decimales, y redondear 25/25/25/20/5 por separado puede dejar la suma
-     un céntimo por encima o por debajo del total (aritmética de dinero:
-     reference_aritmetica_de_dinero_funcion_pura_y_test.md). Con el último
-     absorbiendo la diferencia, los cinco SIEMPRE suman exactamente el total,
-     sea cual sea el redondeo de los cuatro anteriores. */
-  const calculados = HITOS.map((h,i)=>h.calculado ? i : -1).filter(i=>i>=0);
-  const ultimo = calculados[calculados.length-1];
-  let repartido = 0;
-  calculados.forEach(i=>{
-    if(i === ultimo) return;   // se calcula al final, con lo que sobre
-    const pct = parseFloat(HITOS[i].pct) || 0;
+  /* Solo el hito marcado `resto:true` (el 5º de fábrica, "Revisión y
+     entrega" — tokens.json) se lleva la diferencia de redondeo, NUNCA "el
+     último del array" (corrección ALTA de Legal, consulta de deploy 16-sep:
+     un hito añadido a mano con su propio % pasaba a ser el último y se
+     llevaba el resto ajeno en vez de calcular el suyo — el documento
+     imprimía su % real junto a un importe que no le correspondía). Sin esto
+     no es un capricho de redondeo: la misma página enseña el precio total Y
+     los importes, `fmtImporte()` redondea a 2 decimales, y redondear
+     25/25/25/20/5 por separado puede dejar la suma un céntimo por encima o
+     por debajo del total (aritmética de dinero:
+     reference_aritmetica_de_dinero_funcion_pura_y_test.md). */
+  let repartido = 0, idxResto = -1;
+  HITOS.forEach((h,i)=>{
+    if(!h.calculado) return;
+    if(h.resto){ idxResto = i; return; }   // se calcula al final, con lo que sobre
+    const pct = parseFloat(h.pct) || 0;
     const importe = pct > 0 ? Math.round(total * pct) / 100 : 0;
     repartido += importe;
     aplicar(i, importe ? fmtImporte(importe) : '');
   });
-  aplicar(ultimo, fmtImporte(total - repartido));
+  if(idxResto < 0) return;   // ningún hito reclama el resto: nada más que hacer
+  /* Nunca negativo (corrección ALTA de Administración, misma consulta): si
+     Σ% de los hitos calculados no suma 100 —un admin editó un % de fábrica
+     sin recuadrar los demás, o un hito añadido a mano se pasa del hueco que
+     queda—, `total - repartido` podía salir negativo, y una Cantidad
+     negativa en un calendario de pagos firmable es peor que una en blanco.
+     Esto es solo el cinturón de PANTALLA para que ni transitoriamente se
+     vea ese número; `guardarContrato()` (app.html) bloquea el guardado de
+     verdad cuando Σ%≠100. */
+  aplicar(idxResto, fmtImporte(Math.max(0, total - repartido)));
 }
 function hitosRowsHTML(){
   // {{moneda}} literal: se resuelve en el pase genérico de marcadores que buildDoc()

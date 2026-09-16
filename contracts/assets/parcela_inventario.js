@@ -612,14 +612,18 @@ function buildForm(){
       // updateSaveButton()).
       if(del){ HITOS.splice(+del.dataset.hdel,1); refreshHitos(); updateSaveButton(); render(); return; }
       if(e.target.closest('#hitoAdd')){
-        // En Construcción, un hito nuevo también saca su Cantidad de
-        // precio_total × % — el motivo que dio el owner ("usamos el PRECIO
-        // TOTAL PROYECTO fijo para calcular los hitos") no es solo de los
-        // cinco de fábrica, es de la tabla entera. Sin `fijo`: el % y el
-        // concepto de uno añadido a mano se quedan libres, solo la Cantidad
-        // deja de teclearse.
+        // Hereda `calculado` si ESTE contrato ya usa el calendario de
+        // fábrica (algún hito `fijo`) — no por tipo de contrato (misma
+        // corrección MEDIA de Administración que el candado de los botones,
+        // hitos_fechas.js: un contrato de Construcción de ANTES de hoy no
+        // tiene ningún `fijo` y sigue siendo 100% manual, así que un hito
+        // añadido ahí tampoco debe salir con la Cantidad bloqueada). Cuando
+        // sí hay calendario de fábrica, el motivo del owner ("usamos el
+        // PRECIO TOTAL PROYECTO fijo para calcular los hitos") es de la
+        // tabla entera. Sin `fijo`: el % y el concepto de uno añadido a
+        // mano se quedan libres, solo la Cantidad deja de teclearse.
         const nuevo = { pct:'', monto:'', timing:'', es:'', en:'', id:'', fecha:'' };
-        if(CONTRACT_TIPO[CURRENT.slug] === 'construccion') nuevo.calculado = true;
+        if(HITOS.some(h=>h.fijo)) nuevo.calculado = true;
         HITOS.push(nuevo); refreshHitos(); updateSaveButton(); render();
       }
     });

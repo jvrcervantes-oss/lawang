@@ -78,13 +78,13 @@
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
 <script src="assets/documento_diseno.js?v=38a41b3c"></script>
 <script src="assets/documento_anexos.js?v=241913ec"></script>
-<script src="assets/parcela_inventario.js?v=85a872f7"></script>
+<script src="assets/parcela_inventario.js?v=4b3d88e8"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
 <script src="assets/modelos_catalogo.js?v=4e4fdee1"></script>
 <!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
 <script src="assets/techo_extras.js?v=4bbf6d24"></script>
-<script src="assets/hitos_fechas.js?v=ce36922b"></script>
+<script src="assets/hitos_fechas.js?v=0fc8b707"></script>
 <script src="assets/entidades_pago.js?v=3041528f"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
@@ -3775,6 +3775,11 @@ function updateSaveButton(){
     document.querySelectorAll('[data-hito-admin]').forEach(el=>{
       el.style.display = abreHitos ? '' : 'none';
     });
+    // El aviso es lo INVERSO de los botones: se ve cuando NO se puede tocar
+    // el candado, para explicar por qué no está — hallazgo MEDIA de Legal.
+    document.querySelectorAll('[data-hito-admin-aviso]').forEach(el=>{
+      el.style.display = abreHitos ? 'none' : '';
+    });
   }
   const btn=$('#btnSave'); if(!btn) return;
   const tipo = CONTRACT_TIPO[CURRENT.slug];
@@ -4090,6 +4095,26 @@ async function guardarContrato(){
     const el = document.querySelector('[name="moneda"]');
     if(el){ el.focus(); el.scrollIntoView({behavior:'smooth', block:'center'}); }
     return;
+  }
+  /* Σ% del calendario de pagos calculado (16-sep-2026, hallazgo ALTA de
+     Administración, misma consulta que el `resto` de recalcularMontosHitos):
+     el hito marcado `resto` absorbe la diferencia de redondeo asumiendo que
+     el resto de % suman 100 — si no suman (un admin editó un % de fábrica
+     sin recuadrar los demás, o un hito añadido a mano se pasa del hueco que
+     queda), `total - repartido` puede salir negativo o sin sentido. El tope
+     a 0 en recalcularMontosHitos() es solo la pantalla; esto es lo que
+     impide que un calendario descuadrado llegue a guardarse y, de ahí, a la
+     proforma automática o a la factura. Solo mira los hitos `calculado`: un
+     contrato de Construcción de antes de este cambio no tiene ninguno y no
+     entra aquí. */
+  if(CONTRACT_TIPO[CURRENT.slug] === 'construccion' && HITOS.some(h=>h.calculado)){
+    const sumaCalc = HITOS.filter(h=>h.calculado).reduce((t,h)=>t+(parseFloat(h.pct)||0), 0);
+    if(Math.round(sumaCalc * 100) / 100 !== 100){
+      toastMal(lwT('Los porcentajes del calendario de pagos no suman 100% — corrígelo antes de guardar'));
+      const el = document.querySelector('[data-sec="pagos"]');
+      if(el) el.scrollIntoView({behavior:'smooth', block:'center'});
+      return;
+    }
   }
   const esNuevo = !(SAVED_CONTRACT && SAVED_CONTRACT.id);
 
