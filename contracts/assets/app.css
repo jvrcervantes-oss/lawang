@@ -604,7 +604,12 @@
      registros de solo lectura. Misma señal que `.sui-tabla tr.sel`. */
   .reg-tabla tbody tr.sel{ background:var(--sup-sel,#F2EEE3); box-shadow:inset 3px 0 0 var(--dl,#104C4F); }
   .reg-tabla tbody tr.sel:hover{ background:var(--sup-sel,#F2EEE3); }
-  .reg-tabla tfoot td{ padding:var(--fila-y,11px) 12px; border-top:1px solid var(--linea,#E4DCCB); }
+  /* Sin regla propia de `tfoot td`: el borde inferior de la última fila de
+     `tbody` (que sí lleva `.reg-tabla td` normal, la tabla de extras no tiene
+     el `:last-child{border-bottom:none}` de las de solo lectura) ya separa el
+     total. Una regla `tfoot td` más específica que `.reg-tabla td` pisaría la
+     versión móvil de esa misma regla (que sí necesita ganar dentro de su
+     media query) — guardrail de coherencia, 16-sep, `margenes_movil`. */
   /* «Aviso de anulación» partido en dos líneas convertía una fila de 42px en
      una de 61 y volvía a romper el ritmo que arregla todo lo de arriba. Va por
      CLASE y no por posición porque la vía es la 3ª columna en dos registros y
