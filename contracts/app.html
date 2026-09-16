@@ -5060,6 +5060,18 @@ function camposSinRellenar(){
   // avisa aparte si los porcentajes no cuadran, eso no se duplica aquí.
   if(SECTIONS.some(s => s.special === 'hitos') && !(HITOS||[]).length)
     faltan.push(L({es:'Calendario de pagos',en:'Payment schedule',id:'Jadwal pembayaran'}));
+  /* precio_total > 0, no solo "no vacío" (hallazgo de Administración en la
+     consulta de deploy, 16-sep): un "0" es una cadena no vacía y el barrido
+     de arriba lo dejaba pasar. En los tipos que facturan solos al guardar
+     (TIPOS_CON_PROFORMA_AUTO), crearProformaAutomatica() se calla sin avisar
+     si el precio no es positivo (`if(!precio || precio<=0) return`) — un
+     contrato podía llegar a FIRMA sin proforma y sin que nadie se enterara
+     de que faltaba. */
+  if(TIPOS_CON_PROFORMA_AUTO.includes(CONTRACT_TIPO[CURRENT.slug])){
+    const elPrecio = document.querySelector('[name="precio_total"]');
+    if(elPrecio && !(parseImporte(elPrecio.value) > 0))
+      faltan.push(L({es:'Precio total (tiene que ser mayor que 0)',en:'Total price (must be greater than 0)',id:'Total harga (harus lebih dari 0)'}));
+  }
   return faltan;
 }
 function avisoCamposFaltantes(faltan){
