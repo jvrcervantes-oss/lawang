@@ -98,15 +98,25 @@ function refreshTechoExtras(){ const b=document.getElementById('techoExtrasBox')
    tiene techo — por delante de `syncPrecioObraVinculada` (parcela_inventario.js),
    que sigue mandando cuando no hay techo elegido (modelos sin variantes, o
    contratos antiguos).
-   SIN confirmación con opción de rechazar (16-sep, corrección del owner tras
-   probarlo): la primera versión reutilizaba `avisaPrecioForzado`, que ofrece
-   "dejar el precio de antes" — y eso es exactamente lo que NO puede pasar
-   aquí. El precio de villa−suelo puede estar negociado aparte del catálogo,
-   pero el precio de un techo/extra que el propio agente acaba de marcar no es
-   negociable por omisión: si elige un extra, su precio ENTRA sí o sí. Se
-   avisa con un toast informativo (no bloqueante, sin botón de "dejarlo
-   como estaba") y se sigue. */
-function syncPrecioTechoExtras(){
+   SIN opción de rechazar (16-sep, corrección del owner tras probarlo): la
+   primera versión reutilizaba `avisaPrecioForzado`, que ofrece "dejar el
+   precio de antes" — y eso es exactamente lo que NO puede pasar aquí. El
+   precio de villa−suelo puede estar negociado aparte del catálogo, pero el
+   precio de un techo/extra que el propio agente acaba de marcar no es
+   negociable por omisión: si elige un extra, su precio ENTRA sí o sí.
+   CON aviso que hay que cerrar a propósito (16-sep, segunda vuelta —
+   Administración en la consulta de deploy): un simple toast no basta cuando
+   YA había un precio_total puesto (típicamente de una Reserva vinculada,
+   dinero real) — ese mismo campo dispara `crearProformaAutomatica()` al
+   guardar y `firma-submit` lo relee para facturar al firmar, así que un
+   cambio que nadie llega a ver no puede quedar en un toast fácil de perder.
+   `lwConfirmar({..., cancelar:false})` es un modal de un solo botón
+   ("Entendido"): no ofrece volver atrás —eso seguiría siendo el aviso
+   rechazable que se quitó arriba—, solo obliga a verlo antes de seguir. Si
+   NO había precio antes (primera vez que se resuelve, nada que perder), se
+   queda en el toast: no hay nada que confirmar sobre un campo que estaba
+   vacío. */
+async function syncPrecioTechoExtras(){
   if(CONTRACT_TIPO[CURRENT.slug] !== 'construccion' || !TECHO_ELEGIDO) return;
   const el = document.querySelector('[name="precio_total"]');
   if(!el) return;
@@ -117,11 +127,21 @@ function syncPrecioTechoExtras(){
   if(antes && parseImporte(antes) === obra) return;   // ya cuadra
   el.value = nuevo; AUTO_UNIDAD['precio_total'] = nuevo;
   el.dispatchEvent(new Event('input', { bubbles:true }));   // que la vista previa se entere
+  const detalle = EXTRAS_ELEGIDOS.length
+    ? ' + ' + EXTRAS_ELEGIDOS.map(e=>e.nombre+' '+fmtImporte(Number(e.precio))).join(' + ')
+    : '';
+  const desglose = TECHO_ELEGIDO.nombre + ' ' + fmtImporte(Number(TECHO_ELEGIDO.precio)) + detalle;
   if(antes){
-    const detalle = EXTRAS_ELEGIDOS.length
-      ? ' + ' + EXTRAS_ELEGIDOS.map(e=>e.nombre+' '+fmtImporte(Number(e.precio))).join(' + ')
-      : '';
-    toast(lwT('Precio actualizado a ') + nuevo + ' ' + mon + ' — ' + TECHO_ELEGIDO.nombre + ' ' + fmtImporte(Number(TECHO_ELEGIDO.precio)) + detalle);
+    await lwConfirmar({
+      titulo: 'Precio actualizado',
+      cuerpo: `<p>Este documento traía <b>${escAttr(antes)} ${mon}</b> y ha pasado a <b>${escAttr(nuevo)} ${mon}</b>, `
+        + `según el techo y los extras elegidos: ${escAttr(desglose)} ${mon}.</p>`
+        + `<p>Este importe alimenta la proforma automática al guardar y la factura al firmar — revísalo antes de seguir.</p>`,
+      confirmar: 'Entendido',
+      cancelar: false,
+    });
+  }else{
+    toast(lwT('Precio puesto a ') + nuevo + ' ' + mon + ' — ' + desglose);
   }
 }
 
