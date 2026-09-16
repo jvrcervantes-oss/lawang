@@ -564,12 +564,6 @@ function buildForm(){
         <div class="body">${hitosBodyHTML()}</div></section>`;
       return;
     }
-    if(s.special==='techo_extras'){
-      html += `<section class="section" data-sec="techo_extras" data-tier="${s.tier}">
-        <header data-acc><span class="num">${idx}</span><h2>${L(s.title)}</h2><span class="chev">▾</span></header>
-        <div class="body">${techoExtrasBodyHTML()}</div></section>`;
-      return;
-    }
     const optional = s.optional ? `<div class="opt-toggle">${L({es:'añadir',en:'add',id:'tambah'})}<label class="switch"><input type="checkbox" data-opt="${s.id}"><span class="slider"></span></label></div>` : '';
     const cls = s.optional ? 'optional off' : '';
     const grid = ['comprador','sociedad','dinero','gestion','otros'].includes(s.id);
@@ -582,9 +576,17 @@ function buildForm(){
     // El hueco lo rellena pintarFichaComprador() al final de buildForm(): o el
     // buscador + «crear ficha» (sin enlazar), o el chip de la ficha (enlazada).
     const clienteBuscadorHTML = s.id==='comprador' ? '<div id="cliFicha"></div>' : '';
+    // Techo y extras (16-sep-2026, reubicado tras feedback del owner: iban en
+    // su propia sección al final del formulario — "no deberían abrirse en el
+    // punto 8, deberían estar dentro del 4"). Van DENTRO de "Identificación
+    // del proyecto (Construcción)", después de sus campos, con su propio
+    // envoltorio (`techoExtrasBox`) para que refreshTechoExtras() lo repinte
+    // sin rehacer la sección entera.
+    const techoExtrasHTML = s.id==='proyecto_construccion'
+      ? `<div id="techoExtrasBox">${techoExtrasBodyHTML()}</div>` : '';
     html += `<section class="section ${cls}" data-sec="${s.id}" data-tier="${s.tier}">
       <header data-acc><span class="num">${idx}</span><h2>${L(s.title)}</h2>${optional}<span class="chev">▾</span></header>
-      <div class="body">${clienteBuscadorHTML}<div class="${grid?'grid2':''}">${body}</div>${note}${s.id==='comprador' ? compradorExtraHTML : ''}</div></section>`;
+      <div class="body">${clienteBuscadorHTML}<div class="${grid?'grid2':''}">${body}</div>${note}${s.id==='comprador' ? compradorExtraHTML : ''}${techoExtrasHTML}</div></section>`;
   });
   if(anexosAlFinal) html += buildAnnexPanel();
   form.innerHTML = html;

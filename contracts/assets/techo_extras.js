@@ -92,14 +92,21 @@ function techoExtrasBodyHTML(){
 
   return selectTecho + `<div class="field" style="grid-column:1/-1"><label>${L({es:'Extras',en:'Extras',id:'Ekstra'})}</label>${avisoSinTecho}${extrasHTML}</div>`;
 }
-function refreshTechoExtras(){ const b=$('[data-sec="techo_extras"] .body'); if(b) b.innerHTML=techoExtrasBodyHTML(); }
+function refreshTechoExtras(){ const b=document.getElementById('techoExtrasBox'); if(b) b.innerHTML=techoExtrasBodyHTML(); }
 
 /* `precio_total` en Construcción pasa a salir de aquí cuando el modelo elegido
    tiene techo — por delante de `syncPrecioObraVinculada` (parcela_inventario.js),
    que sigue mandando cuando no hay techo elegido (modelos sin variantes, o
-   contratos antiguos). Reutiliza `avisaPrecioForzado`: mismo aviso, mismo
-   respeto a un precio ya negociado a mano. */
-async function syncPrecioTechoExtras(){
+   contratos antiguos).
+   SIN confirmación con opción de rechazar (16-sep, corrección del owner tras
+   probarlo): la primera versión reutilizaba `avisaPrecioForzado`, que ofrece
+   "dejar el precio de antes" — y eso es exactamente lo que NO puede pasar
+   aquí. El precio de villa−suelo puede estar negociado aparte del catálogo,
+   pero el precio de un techo/extra que el propio agente acaba de marcar no es
+   negociable por omisión: si elige un extra, su precio ENTRA sí o sí. Se
+   avisa con un toast informativo (no bloqueante, sin botón de "dejarlo
+   como estaba") y se sigue. */
+function syncPrecioTechoExtras(){
   if(CONTRACT_TIPO[CURRENT.slug] !== 'construccion' || !TECHO_ELEGIDO) return;
   const el = document.querySelector('[name="precio_total"]');
   if(!el) return;
@@ -108,13 +115,14 @@ async function syncPrecioTechoExtras(){
   if(!(obra > 0)) return;   // datos raros: mejor no tocar nada
   const nuevo = fmtImporte(obra), antes = String(el.value||'').trim();
   if(antes && parseImporte(antes) === obra) return;   // ya cuadra
-  const detalle = EXTRAS_ELEGIDOS.length
-    ? ' + ' + EXTRAS_ELEGIDOS.map(e=>escAttr(e.nombre)+' '+fmtImporte(Number(e.precio))).join(' + ')
-    : '';
-  const queEsTexto = `el <b>techo y extras</b> elegidos: ${escAttr(TECHO_ELEGIDO.nombre)} ${fmtImporte(Number(TECHO_ELEGIDO.precio))}${detalle} ${mon}`;
-  if(!antes){ el.value = nuevo; AUTO_UNIDAD['precio_total'] = nuevo; return; }
   el.value = nuevo; AUTO_UNIDAD['precio_total'] = nuevo;
-  await avisaPrecioForzado({ antes, nuevo, tipoDoc:'construccion', unidad:{ codigo:'', moneda: mon }, el, queEsTexto });
+  el.dispatchEvent(new Event('input', { bubbles:true }));   // que la vista previa se entere
+  if(antes){
+    const detalle = EXTRAS_ELEGIDOS.length
+      ? ' + ' + EXTRAS_ELEGIDOS.map(e=>e.nombre+' '+fmtImporte(Number(e.precio))).join(' + ')
+      : '';
+    toast(lwT('Precio actualizado a ') + nuevo + ' ' + mon + ' — ' + TECHO_ELEGIDO.nombre + ' ' + fmtImporte(Number(TECHO_ELEGIDO.precio)) + detalle);
+  }
 }
 
 /* Fila del extra elegido, para el documento — mismo espíritu que

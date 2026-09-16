@@ -78,12 +78,12 @@
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
 <script src="assets/documento_diseno.js?v=38a41b3c"></script>
 <script src="assets/documento_anexos.js?v=241913ec"></script>
-<script src="assets/parcela_inventario.js?v=50422f8c"></script>
+<script src="assets/parcela_inventario.js?v=a0ef184e"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
 <script src="assets/modelos_catalogo.js?v=4e4fdee1"></script>
 <!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
-<script src="assets/techo_extras.js?v=8bdbd45a"></script>
+<script src="assets/techo_extras.js?v=5fa4ee72"></script>
 <script src="assets/hitos_fechas.js?v=f4fb5a15"></script>
 <script src="assets/entidades_pago.js?v=3041528f"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
@@ -1701,7 +1701,7 @@ function resetBorrador(slug){
   COMPRADORES = []; saveCompradores();
   ANNEXES = []; saveAnnexes();
   CLAUSES = []; saveClauses();
-  AUTO_ANX = ''; AUTO_MASTER = ''; AUTO_RESORT = ''; UNIDADES_PROY = { proyecto:null, lista:[], fallo:null };
+  AUTO_ANX = ''; AUTO_MASTER = ''; AUTO_RESORT = ''; AUTO_UBICACION = ''; UNIDADES_PROY = { proyecto:null, lista:[], fallo:null };
   /* Y los de la tipologia: al cambiar de contrato o de plantilla, lo pintado y
      lo precargado son de OTRO documento. Si no se sueltan, el primer repintado
      del siguiente contrato se cree un cambio de tipologia y le pisa los m2. */
@@ -2057,10 +2057,32 @@ function fieldHTML(f){
      (busca por `name` y lee `.value`), pero no se puede seleccionar ni copiar,
      y este dato se copia a mano a menudo. */
   const fijado = FIJOS_ESTUDIO.includes(key);
+  /* PRECIO TOTAL DE CONSTRUCCIÓN, SOLO ADMIN/SUPER_ADMIN (16-sep-2026, owner,
+     tras el feedback en producción). Mismo mecanismo de pantalla que arriba
+     (readonly + `updateSaveButton()` lo destapa cuando ya se sabe el rol),
+     pero con su PROPIO corte de rol — `CAN_EDIT_TEXT` (admin/super_admin),
+     nunca sales_manager: aquí no hay "negociación con el comprador" que lo
+     justifique, el precio lo pone el techo+extras elegidos
+     (syncPrecioTechoExtras). Atributo `data-fijo-admin-construccion` propio,
+     nunca `data-fijo-super`, porque comparte tabla con FIJOS_ESTUDIO
+     rompería el aviso de "dirección y sales managers" para un campo que
+     sales_manager NO puede tocar. */
+  // Solo se bloquea si YA hay un valor (auto-puesto por el techo, por la
+  // Reserva vinculada, o tecleado antes de que existiera esta regla) — hallazgo
+  // real de code-review: bloquearlo también en blanco dejaba un contrato sin
+  // techo elegido y sin Reserva vinculada con precio_total vacío Y candado
+  // puesto, sin nadie salvo un admin capaz de rellenarlo por primera vez.
+  const fijadoPrecioConstruccion = key === 'precio_total' && CONTRACT_TIPO[CURRENT.slug] === 'construccion'
+    && !!String(def || '').trim();
   const marca = fijado ? ' readonly data-fijo-super class="dato-fijo"' +
-    ' title="Lo fija el estudio: lo cambian dirección y los sales managers"' : '';
+    ' title="Lo fija el estudio: lo cambian dirección y los sales managers"'
+    : fijadoPrecioConstruccion ? ' readonly data-fijo-admin-construccion class="dato-fijo"' +
+    ' title="Lo calcula el techo y los extras elegidos — solo admin/super_admin puede editarlo a mano"' : '';
+  const avisoPrecioConstruccion = fijadoPrecioConstruccion
+    ? `<p class="mini">🔒 ${L({es:'Lo calcula el techo y los extras elegidos. Solo admin/super_admin puede editarlo a mano.',en:'Set by the chosen roof and extras. Only admin/super_admin can edit it by hand.',id:'Dihitung dari atap dan ekstra yang dipilih. Hanya admin/super_admin yang bisa mengubahnya.'})}</p>`
+    : '';
   return `<div class="field" data-key="${key}">${etiquetaHTML(key, label)}
-    <input id="${fid(key)}" name="${key}" type="${t}" ${attrs}${marca} value="${def}" autocomplete="off"></div>`;
+    <input id="${fid(key)}" name="${key}" type="${t}" ${attrs}${marca} value="${def}" autocomplete="off">${avisoPrecioConstruccion}</div>`;
 }
 
 /* Campos que solo se preguntan según lo que valga otro campo — el equivalente
@@ -2147,6 +2169,7 @@ function aplicarReglasCampos(){
   syncAutoAnnex();
   syncParcelaMaster();
   syncResort();
+  syncUbicacionProyecto();
   // va DESPUÉS de los de proyecto: lee el proyecto ya elegido para resolver qué
   // cuentas ofrece este contrato (cascada proyecto → tipo → general)
   syncCuentasProyecto();
@@ -2346,6 +2369,32 @@ function syncResort(){
   if(resort === actual) return;
   campo.value = resort;
   AUTO_RESORT = resort;
+  renderDebounced();
+}
+
+/* Ubicación del proyecto = la isla de su resort (16-sep-2026, owner: "Balian
+   Hills es Bali, Signature es Bali y Sumba Hills es Sumba"). Mismo patrón que
+   syncResort: se autorrellena, pero un valor escrito a mano (proyecto sin
+   resort conocido, o una ubicación más específica que el agente quiera dejar)
+   nunca se pisa — solo se repone cuando el campo está vacío o es el que puso
+   este mismo automatismo. */
+const ISLA_POR_RESORT = { 'Balian Hills':'Bali', 'Signature project':'Bali', 'Sumba Hills':'Sumba' };
+let AUTO_UBICACION = '';
+function syncUbicacionProyecto(){
+  const sel   = document.querySelector('[name="proyecto_nombre"]');
+  const campo = document.querySelector('[name="ubicacion_proyecto"]');
+  if(!sel || !campo) return;
+  const actual = campo.value.trim();
+  if(actual && actual !== AUTO_UBICACION){ AUTO_UBICACION = ''; return; }
+  // Mismo comportamiento que syncResort ANTE un resort sin isla conocida:
+  // se limpia igual que se rellena (hallazgo de code-review: con `!isla ||`
+  // por delante, cambiar de un proyecto conocido a uno sin mapear dejaba la
+  // isla del proyecto ANTERIOR pegada, sin que fuera ni lo tecleado a mano ni
+  // lo que toca ahora).
+  const isla = ISLA_POR_RESORT[resortDe(sel.value)] || '';
+  if(isla === actual) return;
+  campo.value = isla;
+  AUTO_UBICACION = isla;
   renderDebounced();
 }
 
@@ -3110,15 +3159,6 @@ function deriveSections(){
     SECTIONS.forEach(s=>{ s.fields = s.fields.map(f=>
       (f[0]==='tipologia_construccion' && f[2]==='select') ? [f[0], f[1], f[2], MODELOS_DB] : f); });
   }
-  // Techo y extras del modelo (16-sep-2026): sección especial, justo después de
-  // "Identificación del proyecto (Construcción)" — mismo mecanismo que 'pagos'
-  // (special:'hitos') más abajo, cuerpo propio en vez de fields genéricos.
-  if(inDoc.has('tipologia_construccion')){
-    let ins = SECTIONS.findIndex(s=>s.id==='proyecto_construccion');
-    ins = ins<0 ? SECTIONS.length : ins+1;
-    SECTIONS.splice(ins, 0, { id:'techo_extras', tier:'por_proyecto', special:'techo_extras',
-      title:{es:'Techo y extras',en:'Roof and extras',id:'Atap dan ekstra'}, fields:[] });
-  }
   const known = new Set(SECTIONS.flatMap(s=>s.fields.map(f=>f[0])));
   const missing = [...inDoc].filter(k=>!known.has(k));
   if(missing.length){
@@ -3671,6 +3711,13 @@ function updateSaveButton(){
     el.classList.toggle('dato-fijo', !abreFijos);
     el.title = abreFijos ? 'Lo fija el estudio en ' + VALIDEZ_DIAS_MINIMO + ' días; tu rol puede cambiarlo'
                          : 'Lo fija el estudio: lo cambian dirección y los sales managers';
+  });
+  // precio_total de Construcción (16-sep-2026): mismo mecanismo, corte de rol
+  // propio (CAN_EDIT_TEXT — admin/super_admin, sin sales_manager, ver la nota
+  // junto a fijadoPrecioConstruccion en fieldHTML()).
+  document.querySelectorAll('[data-fijo-admin-construccion]').forEach(el=>{
+    el.readOnly = !CAN_EDIT_TEXT;
+    el.classList.toggle('dato-fijo', !CAN_EDIT_TEXT);
   });
   const btn=$('#btnSave'); if(!btn) return;
   const tipo = CONTRACT_TIPO[CURRENT.slug];
@@ -4982,14 +5029,55 @@ function blobToBase64(blob){
     reader.readAsDataURL(blob);
   });
 }
+/* Todos los campos rellenos antes de poder ENVIAR (email o firma) — 16-sep-2026,
+   petición del owner para TODOS los tipos de contrato: "guardarlo se puede,
+   pero no se puede enviar". Guardar con huecos sigue permitido (un borrador es
+   legítimo); lo que deja de poder salir del estudio es un documento a medio
+   rellenar. Anexos queda fuera SIN necesidad de excluirlo a mano: vive en su
+   propio panel (buildAnnexPanel), nunca en SECTIONS/fields, así que nunca
+   entra en este barrido.
+   Se mide la visibilidad REAL (`offsetParent`), no el tipo declarado: así un
+   campo condicional (CAMPO_SI) o una sección "optional" apagada no cuenta como
+   hueco, y un campo compuesto (teléfono: el `name` real es un input oculto)
+   se lee por su `.field` envolvente, no por el input suelto. */
+function camposSinRellenar(){
+  const faltan = [];
+  (SECTIONS||[]).forEach(s=>{
+    (s.fields||[]).forEach(f=>{
+      const [key, labelObj, type] = f;
+      if(type==='legacy' || type==='signature') return;   // se rellenan solos, o al firmar — nunca antes de enviar
+      const caja = document.querySelector(`.field[data-key="${key}"]`);
+      if(!caja || caja.offsetParent === null) return;   // no visible: campo condicional o sección apagada
+      const el = document.querySelector(`[name="${key}"]`);
+      if(!el || String(el.value||'').trim()) return;
+      faltan.push(L(labelObj));
+    });
+  });
+  // El calendario de pagos (HITOS) no vive en SECTIONS[].fields —es la sección
+  // 'special:hitos', con fields:[]— así que el barrido de arriba nunca lo ve
+  // (hallazgo de code-review: un contrato con 0 hitos pasaba el candado
+  // entero). Si la plantilla lo trae, exige AL MENOS uno; el "Σ 100%" ya
+  // avisa aparte si los porcentajes no cuadran, eso no se duplica aquí.
+  if(SECTIONS.some(s => s.special === 'hitos') && !(HITOS||[]).length)
+    faltan.push(L({es:'Calendario de pagos',en:'Payment schedule',id:'Jadwal pembayaran'}));
+  return faltan;
+}
+function avisoCamposFaltantes(faltan){
+  return lwT('Faltan por rellenar: ') + faltan.slice(0,6).join(', ') + (faltan.length>6 ? '…' : '')
+    + '. ' + lwT('Guárdalo y complétalos antes de enviarlo.');
+}
 function openEmailModal(){
   const numero = SAVED_CONTRACT ? SAVED_CONTRACT.numero : null;
   $('#emFile').value = '';
+  const faltan = numero ? camposSinRellenar() : [];
   // Mismo criterio que Facturas (abrirMail()): sin guardar no hay número, y un
   // documento sin número no queda registrado como emitido — se deshabilita el
   // envío en vez de dejar salir un contrato del que no hay rastro en la BD.
-  $('#emSend').disabled = !numero;
-  $('#emAviso').textContent = numero ? '' : 'Guarda el contrato primero: sin guardar no se envía.';
+  // Con número pero campos vacíos, mismo candado: guardar no es lo mismo que
+  // poder enviarlo (owner, 16-sep).
+  $('#emSend').disabled = !numero || faltan.length > 0;
+  $('#emAviso').textContent = !numero ? 'Guarda el contrato primero: sin guardar no se envía.'
+    : faltan.length ? avisoCamposFaltantes(faltan) : '';
   // mismo dato que usa firmantesDelContrato() para la firma — Facturas ya
   // precarga así desde d.cliente_email, aquí faltaba el equivalente.
   const d = collect();
@@ -5097,6 +5185,10 @@ let FIRMA_NEXT = null;   // a quién le toca firmar: {rol, orden, total, firmado
 
 async function openFirmaModal(){
   if(!SAVED_CONTRACT){ toastMal(lwT('Guarda el contrato antes de enviarlo a firma')); return; }
+  // Mismo candado que el envío por email, mismo motivo (owner, 16-sep):
+  // guardar no es lo mismo que poder enviarlo a firma.
+  const faltan = camposSinRellenar();
+  if(faltan.length){ toastMal(avisoCamposFaltantes(faltan)); return; }
   const lista = firmantesDelContrato();
   if(!lista.length){ toastMal(lwT('El contrato no tiene ningún firmante con nombre')); return; }
   /* CADENA ROTA ANTES DE EMPEZAR — 15-ago-2026.
