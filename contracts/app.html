@@ -78,10 +78,12 @@
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
 <script src="assets/documento_diseno.js?v=38a41b3c"></script>
 <script src="assets/documento_anexos.js?v=241913ec"></script>
-<script src="assets/parcela_inventario.js?v=0b6b5438"></script>
+<script src="assets/parcela_inventario.js?v=50422f8c"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
 <script src="assets/modelos_catalogo.js?v=4e4fdee1"></script>
+<!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
+<script src="assets/techo_extras.js?v=8bdbd45a"></script>
 <script src="assets/hitos_fechas.js?v=f4fb5a15"></script>
 <script src="assets/entidades_pago.js?v=3041528f"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
@@ -926,6 +928,22 @@ function syncTipologiaModelos(){
     else if(!String(el.value || '').trim()) el.value = delCatalogo;
     el.readOnly = true; el.classList.add('dato-fijo'); el.setAttribute('tabindex', '-1');
   });
+
+  /* Techo y extras del modelo elegido (16-sep-2026) — solo Construcción.
+     Un cambio DE VERDAD de tipología (no la carga inicial de un contrato
+     guardado, que ya trae su techo/extras congelados) suelta la elección
+     anterior: era de OTRO modelo y sus techos no tienen por qué existir aquí. */
+  if(CONTRACT_TIPO[CURRENT.slug] === 'construccion'){
+    if(cambio){ TECHO_ELEGIDO = null; EXTRAS_ELEGIDOS = []; }
+    if(ficha){
+      const proyEl = document.querySelector('[name="proyecto_nombre"]');
+      const proyNombre = proyEl ? String(proyEl.value || '').trim() : '';
+      const proyectoId = (PROYECTOS_DB || []).find(p => p.nombre === proyNombre);
+      cargarTechosYExtras(ficha.id, proyectoId ? proyectoId.id : null);
+    }else{
+      TECHOS_OPCIONES = []; EXTRAS_OPCIONES = []; TECHO_MODELO_HECHO = null; refreshTechoExtras();
+    }
+  }
 }
 
 let PROYECTOS_DB = null;
@@ -1688,6 +1706,8 @@ function resetBorrador(slug){
      lo precargado son de OTRO documento. Si no se sueltan, el primer repintado
      del siguiente contrato se cree un cambio de tipologia y le pisa los m2. */
   TIPO_LISTA_PINTADA = null; TIPO_MODELO_HECHO = null;
+  // Techo/extras del modelo: mismo motivo que la línea de arriba — de otro documento.
+  TECHO_ELEGIDO = null; EXTRAS_ELEGIDOS = []; TECHO_MODELO_HECHO = null; TECHOS_OPCIONES = []; EXTRAS_OPCIONES = [];
   AUTO_APODERADO = {}; AUTO_POA = {};
   // AUTO_UNIDAD es `const` (parcela_inventario.js): no se reasigna con `={}`,
   // se vacía campo a campo. Hallazgo de la auditoría de hoy: era la ÚNICA guarda
@@ -2593,6 +2613,12 @@ function collect(){
     if(u) data.unidad_construccion_codigo = u.codigo;
   }
 
+  /* Techo elegido, para {{techo_nombre}} (16-sep-2026) — nunca un campo del
+     formulario, lo fija el selector de techoExtrasBodyHTML(). El precio no
+     imprime aparte: ya está dentro de precio_total (syncPrecioTechoExtras). */
+  if(CONTRACT_TIPO[CURRENT.slug] === 'construccion' && TECHO_ELEGIDO)
+    data.techo_nombre = TECHO_ELEGIDO.nombre;
+
   /* `adq1_tipo` no es un campo del formulario: sale de la ficha enlazada y lo
      usan las plantillas con <!--if:adq1_tipo=empresa--> para elegir entre el
      párrafo de persona y el de sociedad (19-ago-2026). Va en `data`, así que
@@ -2790,6 +2816,11 @@ function buildDoc(){
   // pagos con la cabecera y ni una fila parece un contrato a medio rellenar.
   html=html.replace(/<!--seccion-hitos-->([\s\S]*?)<!--\/seccion-hitos-->/g, (m,dentro)=> HITOS.length ? dentro : '');
   html=html.replace('<!--hitos-->', hitosRowsHTML());   // tabla de pagos dinámica
+  // Extras del techo/modelo elegidos (16-sep-2026): sin ninguno no se imprime
+  // ni el título ni la tabla — mismo criterio que hitos, arriba.
+  html=html.replace(/<!--seccion-extras-construccion-->([\s\S]*?)<!--\/seccion-extras-construccion-->/g,
+    (m,dentro)=> (EXTRAS_ELEGIDOS && EXTRAS_ELEGIDOS.length) ? dentro : '');
+  html=html.replace('<!--extras-construccion-->', extrasConstruccionRowsHTML());
   html=html.replace('<!--compradores-extra-->', compradoresExtraHTML());   // Adquiriente II, III, IV… sin tope
   html=html.replace('<!--firmas-adquirientes-->', compradoresFirmasHTML());   // firmas de esos adquirientes extra
   html=html.replace('<!--datos-bancarios-->', datosBancariosHTML());   // tabla de la cuenta bancaria elegida
@@ -2996,6 +3027,7 @@ function deriveSections(){
   inDoc.delete('adq2_firmante_nombre');   // derivado (applyRepresentanteComprador) — nunca un campo del form
   inDoc.delete('adq_representacion');   // derivado: nombre+fecha del poder a la vez, no un campo del form
   inDoc.delete('unidad_construccion_codigo');   // derivado (collect(), arriba): lo fija el selector de parcela, nunca se teclea
+  inDoc.delete('techo_nombre');   // derivado (collect(), arriba): lo fija el selector de la sección "Techo y extras", nunca se teclea
   /* La clausula historica «el adquiriente firma como sociedad (PT PMA)»: sus
      campos comp_* siguen dentro de cinco plantillas y su seccion se retiro de
      tokens.json el 19-ago-2026 (encargo del owner). Sin esta linea reaparecen en
@@ -3077,6 +3109,15 @@ function deriveSections(){
   if((MODELOS_DB||[]).length){
     SECTIONS.forEach(s=>{ s.fields = s.fields.map(f=>
       (f[0]==='tipologia_construccion' && f[2]==='select') ? [f[0], f[1], f[2], MODELOS_DB] : f); });
+  }
+  // Techo y extras del modelo (16-sep-2026): sección especial, justo después de
+  // "Identificación del proyecto (Construcción)" — mismo mecanismo que 'pagos'
+  // (special:'hitos') más abajo, cuerpo propio en vez de fields genéricos.
+  if(inDoc.has('tipologia_construccion')){
+    let ins = SECTIONS.findIndex(s=>s.id==='proyecto_construccion');
+    ins = ins<0 ? SECTIONS.length : ins+1;
+    SECTIONS.splice(ins, 0, { id:'techo_extras', tier:'por_proyecto', special:'techo_extras',
+      title:{es:'Techo y extras',en:'Roof and extras',id:'Atap dan ekstra'}, fields:[] });
   }
   const known = new Set(SECTIONS.flatMap(s=>s.fields.map(f=>f[0])));
   const missing = [...inDoc].filter(k=>!known.has(k));
@@ -3833,6 +3874,17 @@ function contractPayload(){
     // ediciones de texto fijo de ESTA plantilla. Recargable 1:1 desde el panel.
     datos: { fields: data, hitos: HITOS, design: DESIGN, annexes: ANNEXES.map(sinPaginas), clauses: CLAUSES,
               compradores: COMPRADORES,
+              /* Techo y extras CONGELADOS (16-sep-2026) — nunca FK viva a
+                 modelo_techos/modelo_extras: precio_2027 cambia con el reloj
+                 del servidor y un extra puede dejar de ofrecerse después, pero
+                 un contrato firmado no cambia de precio solo. `fecha_resuelta`
+                 (dentro de TECHO_ELEGIDO) se fija UNA vez, al elegir el techo
+                 —ver el handler de #techoSel en parcela_inventario.js—, nunca
+                 aquí: recalcularla en cada guardado (como se hizo la primera
+                 vez, hallazgo de code-review) perdía justo el rastro de
+                 CUÁNDO se resolvió el tramo que Legal pidió poder defender. */
+              techo: TECHO_ELEGIDO,
+              extras: EXTRAS_ELEGIDOS,
               /* el enlace con la ficha de `clients` (18-ago-2026). Lo lee
                  `sincronizar_compradores`, que lo prefiere a adivinar por
                  pasaporte o email — ver la nota junto a ADQ1_CLIENT. */
@@ -4601,6 +4653,15 @@ async function openSavedContract(id){
      es lo correcto para una fila antigua sin la clave. */
   const plantillaConHitos = SECTIONS.some(s => s.special === 'hitos');
   HITOS = Array.isArray(d.hitos) ? d.hitos.map(h=>({...h})) : (plantillaConHitos ? HITOS : []);
+  // Techo/extras: mismo caso que HITOS, SIN `if` delante (17-ago, ver arriba) —
+  // una fila vieja sin la clave no se queda con la elección del contrato
+  // anterior. `TECHO_MODELO_HECHO = null` fuerza a refrescar TECHOS_OPCIONES/
+  // EXTRAS_OPCIONES contra el modelo+proyecto de ESTE contrato en vez de
+  // quedarse con las del anterior (cargarTechosYExtras() las repinta sola en
+  // cuanto syncTipologiaModelos() vuelva a correr, dentro de populateForm).
+  TECHO_ELEGIDO = d.techo || null;
+  EXTRAS_ELEGIDOS = Array.isArray(d.extras) ? d.extras.map(e=>({...e})) : [];
+  TECHO_MODELO_HECHO = null; TECHOS_OPCIONES = []; EXTRAS_OPCIONES = [];
   // la ficha enlazada, si la hay. Se relee de `clients` en vez de fiarse de lo
   // que el contrato copió el día que se guardó: si el cliente cambió de email,
   // manda la ficha — que es justo lo que este cambio viene a arreglar.
@@ -4862,6 +4923,9 @@ async function derivarContrato(slug){
   // ese mismo motivo y se limpian.
   limpiarOverrides(slug);
   ANNEXES = []; saveAnnexes(); CLAUSES = []; saveClauses();
+  // Techo/extras: mismo motivo que Anexos/Cláusulas — propios de CADA
+  // documento, no "el objetivo de derivar" como Compradores/Hitos.
+  TECHO_ELEGIDO = null; EXTRAS_ELEGIDOS = []; TECHO_MODELO_HECHO = null; TECHOS_OPCIONES = []; EXTRAS_OPCIONES = [];
   AUTO_MASTER = ''; UNIDADES_PROY = { proyecto:null, lista:[], fallo:null };
   /* Mismos dos huecos que la auditoría de hoy encontró en este punto:
      AUTO_UNIDAD (guarda "puso el automatismo" de precio/tipología/villa desde

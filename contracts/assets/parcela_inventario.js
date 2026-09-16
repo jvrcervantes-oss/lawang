@@ -353,6 +353,11 @@ async function avisaPrecioForzado({ antes, nuevo, tipoDoc, unidad, suelo, villa,
 let OBRA_VINCULO_HECHO = null;   // numero del Bloqueo ya resuelto, para no repreguntar en cada tecla
 async function syncPrecioObraVinculada(){
   if(CONTRACT_TIPO[CURRENT.slug] !== 'construccion' || !sb) return;
+  // El techo elegido (16-sep-2026, assets/techo_extras.js) manda sobre la
+  // Reserva vinculada: "todos los precios salen de modelos" (decisión del
+  // owner). Sin techo elegido (modelo sin variantes, o contrato antiguo) esta
+  // función sigue mandando exactamente como hasta ahora.
+  if(typeof TECHO_ELEGIDO !== 'undefined' && TECHO_ELEGIDO) return;
   const sel = document.querySelector('[name="num_reserva_vinculada"]');
   const el  = document.querySelector('[name="precio_total"]');
   if(!sel || !el) return;
@@ -559,6 +564,12 @@ function buildForm(){
         <div class="body">${hitosBodyHTML()}</div></section>`;
       return;
     }
+    if(s.special==='techo_extras'){
+      html += `<section class="section" data-sec="techo_extras" data-tier="${s.tier}">
+        <header data-acc><span class="num">${idx}</span><h2>${L(s.title)}</h2><span class="chev">▾</span></header>
+        <div class="body">${techoExtrasBodyHTML()}</div></section>`;
+      return;
+    }
     const optional = s.optional ? `<div class="opt-toggle">${L({es:'añadir',en:'add',id:'tambah'})}<label class="switch"><input type="checkbox" data-opt="${s.id}"><span class="slider"></span></label></div>` : '';
     const cls = s.optional ? 'optional off' : '';
     const grid = ['comprador','sociedad','dinero','gestion','otros'].includes(s.id);
@@ -586,6 +597,47 @@ function buildForm(){
       const del=e.target.closest('[data-hdel]');
       if(del){ HITOS.splice(+del.dataset.hdel,1); refreshHitos(); render(); return; }
       if(e.target.closest('#hitoAdd')){ HITOS.push({pct:'',monto:'',timing:'',es:'',en:'',id:'',fecha:''}); refreshHitos(); render(); }
+    });
+  }
+  // techo/extras: mismo patrón de delegación de arriba, una sola vez.
+  if(!form._techoExtrasWired){ form._techoExtrasWired = true;
+    form.addEventListener('change', e=>{
+      const selTecho = e.target.closest('#techoSel');
+      if(selTecho){
+        const id = selTecho.value;
+        if(id){
+          const nuevo = TECHOS_OPCIONES.find(t=>t.techo_id===id)
+            || (TECHO_ELEGIDO && TECHO_ELEGIDO.techo_id===id ? TECHO_ELEGIDO : null);
+          // fecha_resuelta se fija UNA vez, la primera vez que se elige ESTE
+          // techo (nunca al recuperar uno ya congelado, que trae la suya) —
+          // recalcularla en cada guardado perdía el rastro de cuándo se
+          // resolvió el tramo 2026/2027 (hallazgo de code-review, 16-sep).
+          TECHO_ELEGIDO = nuevo ? { ...nuevo, fecha_resuelta: nuevo.fecha_resuelta || new Date().toISOString() } : null;
+        }else{
+          // Deseleccionar el techo se lleva los extras con él: un extra sin
+          // techo no tiene sobre qué sumar su precio, y dejarlo marcado
+          // imprimía "incluido" sin que su importe entrara en precio_total
+          // (bug real, code-review 16-sep).
+          TECHO_ELEGIDO = null; EXTRAS_ELEGIDOS = [];
+          // La Reserva vinculada vuelve a mandar el precio (villa−suelo), como
+          // antes de elegir techo — sin esto, precio_total se quedaba con la
+          // última cifra del techo ya no elegido (mismo hallazgo).
+          OBRA_VINCULO_HECHO = null; syncPrecioObraVinculada();
+        }
+        syncPrecioTechoExtras(); renderDebounced(); refreshTechoExtras(); return;
+      }
+      const chkExtra = e.target.closest('[data-extra-opt]');
+      if(chkExtra){
+        const id = chkExtra.dataset.extraOpt;
+        if(chkExtra.checked){
+          const opt = EXTRAS_OPCIONES.find(x=>x.extra_id===id)
+            || (EXTRAS_ELEGIDOS.find(x=>x.extra_id===id) || null);
+          if(opt && !EXTRAS_ELEGIDOS.some(x=>x.extra_id===id)) EXTRAS_ELEGIDOS.push(opt);
+        }else{
+          EXTRAS_ELEGIDOS = EXTRAS_ELEGIDOS.filter(x=>x.extra_id!==id);
+        }
+        syncPrecioTechoExtras(); renderDebounced();
+      }
     });
   }
   // flecha de salto: clic en la etiqueta de un campo → ese punto del contrato

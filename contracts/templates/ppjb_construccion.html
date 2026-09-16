@@ -72,6 +72,7 @@
       <tbody>
         <tr><td><span data-lang="es">Nombre del Proyecto</span><span data-lang="en">Project Name</span><span data-lang="id">Nama Proyek</span></td><td><span class="f f-lg">{{proyecto_nombre}}</span></td></tr>
         <tr><td><span data-lang="es">Tipología de Vivienda</span><span data-lang="en">Housing Typology</span><span data-lang="id">Tipologi Hunian</span></td><td><span class="f f-lg">{{tipologia_construccion}}</span></td></tr>
+        <!--opt:techo_nombre--><tr><td><span data-lang="es">Techo</span><span data-lang="en">Roof</span><span data-lang="id">Atap</span></td><td><span class="f f-lg">{{techo_nombre}}</span></td></tr><!--/opt:techo_nombre-->
         <!-- 🔴 FALTABA (28-ago-2026, aviso del owner: "el campo ¿Qué parcela es esta
              construcción? no se imprime"). El dato lleva desde el 24-ago en la base
              (contratos.unidad_id, construccion_por_parcela.sql) y desde hoy siempre
@@ -86,6 +87,18 @@
         <tr><td><span data-lang="es">Ubicación</span><span data-lang="en">Location</span><span data-lang="id">Lokasi</span></td><td><span class="f f-lg">{{ubicacion_proyecto}}</span></td></tr>
       </tbody>
     </table>
+
+    <!-- Extras/opcionales elegidos (16-sep-2026): solo si hay al menos uno.
+         El precio de cada uno ya está SUMADO dentro de {{precio_total}} del
+         Artículo 4 (ver syncPrecioTechoExtras, assets/techo_extras.js) — esta
+         tabla es el desglose, no una segunda cifra a reconciliar a mano. -->
+    <!--seccion-extras-construccion-->
+    <h2><span data-lang="es">Extras / opcionales incluidos</span><span data-lang="en">Included extras / options</span><span data-lang="id">Ekstra / opsi yang termasuk</span></h2>
+    <table class="pays">
+      <thead><tr><th><span data-lang="es">Extra</span><span data-lang="en">Extra</span><span data-lang="id">Ekstra</span></th><th><span data-lang="es">Importe</span><span data-lang="en">Amount</span><span data-lang="id">Jumlah</span></th></tr></thead>
+      <tbody><!--extras-construccion--></tbody>
+    </table>
+    <!--/seccion-extras-construccion-->
 
     <!-- ============ ARTÍCULOS ============ -->
     <h2><span data-lang="es">Artículo 1 — Definiciones</span><span data-lang="en">Article 1 — Definitions</span><span data-lang="id">Pasal 1 — Definisi</span></h2>

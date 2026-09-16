@@ -1,10 +1,10 @@
 <!DOCTYPE html><html lang="es" style=""><head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d6d6608e" data-herramienta="unidades"></script>
-<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=310f2346" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1" defer></script><script src="/contracts/assets/proyectos_csv.js?v=e610515a" defer></script><script src="../assets/datos.js?v=99178b3c" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=310f2346" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1" defer></script><script src="/contracts/assets/proyectos_csv.js?v=e610515a" defer></script><script src="../assets/datos.js?v=91921e8c" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=c55b4142" defer></script>
 <link href="../assets/shell.css?v=4978e676" rel="stylesheet">
-<script src="../assets/editores.js?v=20aed029" defer></script><script src="../assets/maqueta.js?v=7a878384" defer></script>
+<script src="../assets/editores.js?v=bb0dcc61" defer></script><script src="../assets/maqueta.js?v=7a878384" defer></script>
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>Inventario de Proyectos &amp; Suelo — Lawang Intranet</title>
@@ -390,6 +390,12 @@
 </div>
 <!-- Cuerpo con Scroll Exhaustivo -->
 <div class="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+<!-- Vista MAESTRO (ficha del proyecto) vs vista DETALLE (una parcela), las dos
+     DENTRO del mismo cajón — nunca un cajón anidado (Diseño, revisión previa
+     16-sep-2026: el cajón ya ocupa el 70% del viewport y no hay precedente de
+     overlay de segundo nivel en la suite). abrirDetalleUnidad()/volverAProyecto()
+     en datos.js alternan la visibilidad de estos dos contenedores. -->
+<div id="cajon-vista-proyecto">
 <!-- 0. EXPEDIENTE: subido arriba del todo (11-sep-2026, encargo del owner —
      antes era la última sección y era lo primero que se quería mirar). Trae
      también la foto de portada, si se ha subido una desde "Editar proyecto". -->
@@ -411,9 +417,20 @@
 <span class="text-on-surface-variant font-medium">Documentación cargada:</span>
 <span class="px-2 py-0.5 rounded bg-[#FBEFBE] text-[#634A00] font-bold font-label-md" data-lw="d-docs">—</span>
 </div>
-<div class="flex items-center justify-between">
+<div class="flex items-center justify-between pb-2 border-b border-warm-border/60">
 <span class="text-on-surface-variant font-medium">Superficie registrada:</span>
 <span class="font-kpi-number text-[13px] font-bold text-volcanic-ash" data-lw="d-sup">—</span>
+</div>
+<!-- Desglose de parcelas por estado (16-sep-2026, encargo del owner): reutiliza
+     POR_P[proyecto].porEstado, la misma fuente que ya pinta los chips globales
+     de arriba de la pagina — sin consulta nueva. Estado vacio propio si el
+     proyecto no tiene parcelas (Diseño, revision previa: nada de tres ceros
+     sin contexto). -->
+<div data-lw="d-resumen-vacio" class="hidden text-outline text-[11px] italic pt-2">Aún sin parcelas registradas para este proyecto.</div>
+<div data-lw="d-resumen-estados" class="flex flex-wrap gap-x-3 gap-y-1 pt-2"></div>
+<div class="flex items-center justify-between pt-2">
+<span class="text-on-surface-variant font-medium">Entrega estimada (proyecto):</span>
+<span class="font-kpi-number text-[13px] font-bold text-volcanic-ash text-right" data-lw="d-entrega">—</span>
 </div>
 </div>
 </section>
@@ -561,11 +578,17 @@
      lee al recorrer la rejilla sin pararse. Los dos colores los pone datos.js
      desde ESTADO_COLOR, que es la fuente única; aquí no hay ningún color de
      estado escrito. -->
-<div class="p-2.5 rounded-lg bg-surface-container-low border border-warm-border hover:bg-surface-container-lowest transition-colors flex flex-col gap-1.5">
+<div class="p-2.5 rounded-lg bg-surface-container-low border border-warm-border hover:bg-surface-container-lowest transition-colors flex flex-col gap-1.5 cursor-pointer" data-lw-accion="abrir-detalle-unidad">
 <div class="flex items-center justify-between gap-1.5">
 <div class="flex items-baseline gap-1.5 min-w-0">
 <span class="font-headline-sm text-[17px] font-bold text-deep-lagoon tracking-tight leading-none shrink-0" data-lw="u-codigo">—</span>
 <span class="text-[10px] font-semibold text-outline truncate" data-lw="u-tipo">—</span>
+<!-- Agente que creó el contrato: destacado por POSICIÓN (fila superior,
+     junto al código) y TAMAÑO (11px, igual que la fila comprador/contrato
+     de abajo), nunca por negrita ni color de marca — el único acento de la
+     tarjeta ya lo lleva el estado (u-nota, a la derecha). Decisión de
+     Diseño en la revisión previa del 16-sep-2026. -->
+<span class="text-[11px] font-medium text-on-surface-variant truncate" data-lw="u-agente">—</span>
 </div>
 <div class="flex items-center gap-1 shrink-0">
 <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide text-white" data-lw="u-nota">—</span>
@@ -614,12 +637,42 @@
 <span class="text-[9px] text-outline tabular-nums whitespace-nowrap shrink-0" data-lw="u-obra-txt">—</span>
 </div>
 </div>
-<!-- Agente que creó el contrato (11-sep-2026) — mismo dato que ya enseña /proyectos/ -->
-<div class="text-[10px] text-outline truncate" data-lw="u-agente">—</div>
 </div>
 </div>
 
 </section>
+</div>
+</div><!-- /cajon-vista-proyecto -->
+<!-- Vista de detalle de UNA parcela — sustituye el contenido de arriba,
+     nunca se apila encima. Rellenada por abrirDetalleUnidad() en datos.js
+     a partir de la fila ya cacheada en UNIDADES_CAJON (misma consulta que
+     pinta la tarjeta compacta, sin fetch nuevo). -->
+<div id="cajon-vista-parcela" class="hidden space-y-4">
+<button type="button" data-lw-accion="volver-a-proyecto" class="flex items-center gap-1 text-[13px] font-label-md font-semibold text-deep-lagoon hover:text-territorial-green transition-colors">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+<span>Volver a <span data-lw="dp-proyecto">este proyecto</span></span>
+</button>
+<div class="flex items-center justify-between gap-3">
+<div class="flex items-center gap-2">
+<span class="font-headline-md text-[24px] font-bold text-deep-lagoon tracking-tight" data-lw="dp-codigo">—</span>
+<span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide text-white" data-lw="dp-nota">—</span>
+</div>
+</div>
+<div class="bg-surface-container-low rounded-xl border border-warm-border divide-y divide-warm-border/60 text-xs">
+<div class="flex items-center justify-between px-4 py-2.5"><span class="text-on-surface-variant font-medium">Modelo</span><span class="font-kpi-number font-bold text-volcanic-ash" data-lw="dp-tipo">—</span></div>
+<div class="flex items-center justify-between px-4 py-2.5"><span class="text-on-surface-variant font-medium">Agente</span><span class="font-kpi-number font-bold text-volcanic-ash" data-lw="dp-agente">—</span></div>
+<div class="flex items-center justify-between px-4 py-2.5"><span class="text-on-surface-variant font-medium">Comprador</span><a class="font-label-md font-bold text-deep-lagoon hover:underline" data-lw="dp-comprador-link" href="#" rel="noopener">—</a></div>
+<div class="flex items-center justify-between px-4 py-2.5"><span class="text-on-surface-variant font-medium">Contrato</span><a class="font-kpi-number font-bold text-deep-lagoon hover:underline" data-lw="dp-contrato-link" href="#" rel="noopener">—</a></div>
+<div class="flex items-center justify-between px-4 py-2.5"><span class="text-on-surface-variant font-medium">Superficie</span><span class="font-kpi-number font-bold text-volcanic-ash" data-lw="dp-superficie">—</span></div>
+<div class="flex items-center justify-between px-4 py-2.5"><span class="text-on-surface-variant font-medium">Fase / zona del masterplan</span><span class="font-kpi-number font-bold text-volcanic-ash" data-lw="dp-fase-zona">—</span></div>
+</div>
+<div class="bg-surface-container-low rounded-xl border border-warm-border p-4 space-y-3 text-xs">
+<h4 class="text-xs font-bold uppercase tracking-wider text-outline">Precio y cobro</h4>
+<div class="flex items-center justify-between pb-2 border-b border-warm-border/60"><span class="text-on-surface-variant font-medium">Precio total</span><span class="font-kpi-number font-bold text-volcanic-ash" data-lw="dp-total">—</span></div>
+<div class="flex items-center justify-between pb-2 border-b border-warm-border/60"><span class="text-on-surface-variant font-medium">Suelo</span><span class="font-kpi-number font-bold text-volcanic-ash" data-lw="dp-suelo">—</span></div>
+<div class="flex items-center justify-between pb-2 border-b border-warm-border/60"><span class="text-on-surface-variant font-medium">Precio de suelo por m²</span><span class="font-kpi-number font-bold text-volcanic-ash" data-lw="dp-suelo-m2">—</span></div>
+<div class="flex items-center justify-between"><span class="text-on-surface-variant font-medium">Construcción</span><span class="font-kpi-number font-bold text-volcanic-ash" data-lw="dp-obra">—</span></div>
+</div>
 </div>
 <!-- Pie de Acciones Rápidas del Cajón -->
 <div class="p-5 bg-surface-container-low border-t border-warm-border flex flex-col gap-2.5 shrink-0">
