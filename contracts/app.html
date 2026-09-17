@@ -1124,7 +1124,6 @@ function buildCompradorPanel(){
         <div class="field"><label for="${cid(c.id,'nombre')}">${L({es:'Nombre y apellidos',en:'Full name',id:'Nama lengkap'})}</label><input id="${cid(c.id,'nombre')}" data-ci="${c.id}" data-ckey="nombre" value="${escAttr(c.nombre)}"></div>
         <div class="field"><label for="${cid(c.id,'nacionalidad')}">${L({es:'Nacionalidad',en:'Nationality',id:'Kewarganegaraan'})}</label><input id="${cid(c.id,'nacionalidad')}" data-ci="${c.id}" data-ckey="nacionalidad" list="dl-nacionalidades" value="${escAttr(c.nacionalidad)}"></div>
         <div class="field"><label for="${cid(c.id,'pasaporte')}">${L({es:'Nº pasaporte / identificación fiscal',en:'Passport / Tax ID no.',id:'No. paspor / Nomor Identifikasi Pajak'})}</label><input id="${cid(c.id,'pasaporte')}" data-ci="${c.id}" data-ckey="pasaporte" value="${escAttr(c.pasaporte)}"></div>
-        <div class="field"><label for="${cid(c.id,'domicilio')}">${L({es:'Domicilio',en:'Address',id:'Alamat'})}</label><input id="${cid(c.id,'domicilio')}" data-ci="${c.id}" data-ckey="domicilio" value="${escAttr(c.domicilio||'')}"></div>
         <div class="field"><label for="${cid(c.id,'telefono_numero')}">${L({es:'Teléfono',en:'Phone',id:'Telepon'})}</label>
           <div style="display:flex;gap:6px">
             <input data-ci="${c.id}" data-ckey="telefono_prefijo" list="dl-prefijos" placeholder="Prefijo" aria-label="${escAttr(L({es:'Prefijo internacional',en:'Country code',id:'Kode negara'}))}" style="flex:0 0 86px" value="${escAttr(t.prefijo)}">
@@ -1164,14 +1163,14 @@ function wireCompradorPanel(){
     saveCompradores(); renderDebounced();
   });
   p.addEventListener('click', e=>{
-    if(e.target.closest('#compradorAdd')){ COMPRADORES.push({id:'bc'+(compradorSeq++), nombre:'', nacionalidad:'', pasaporte:'', domicilio:'', telefono:'', email:''}); saveCompradores(); rebuildComprador(); render(); return; }
+    if(e.target.closest('#compradorAdd')){ COMPRADORES.push({id:'bc'+(compradorSeq++), nombre:'', nacionalidad:'', pasaporte:'', telefono:'', email:''}); saveCompradores(); rebuildComprador(); render(); return; }
     const d=e.target.closest('[data-cdel]'); if(d){ COMPRADORES=COMPRADORES.filter(x=>x.id!==d.dataset.cdel); saveCompradores(); rebuildComprador(); render(); return; }
     /* «Cambiar de cliente» de un adquiriente adicional: mismo gesto y mismo
        efecto que el del Adquiriente I — se suelta la ficha Y sus datos. */
     const cb=e.target.closest('[data-ccambiar]');
     if(cb){
       const row=COMPRADORES.find(x=>x.id===cb.dataset.ccambiar);
-      if(row){ Object.assign(row, {client_id:null, nombre:'', nacionalidad:'', pasaporte:'', domicilio:'', telefono:'', email:''});
+      if(row){ Object.assign(row, {client_id:null, nombre:'', nacionalidad:'', pasaporte:'', telefono:'', email:''});
         saveCompradores(); rebuildComprador(); render(); }
     }
   });
@@ -1354,7 +1353,7 @@ function aplicarBloqueoComprador(){
   document.querySelectorAll('#compradorPanel [data-comprador]').forEach(caja=>{
     const fila = COMPRADORES.find(x => x.id === caja.dataset.comprador);
     const rejilla = caja.querySelector('.grid2'); if(!rejilla || !fila) return;
-    const trae = ['nombre','nacionalidad','pasaporte','domicilio','telefono','email']
+    const trae = ['nombre','nacionalidad','pasaporte','telefono','email']
       .some(k => String(fila[k] || '').trim());
     rejilla.classList.toggle('sin-ficha', bloquear && !fila.client_id && !trae);
   });
@@ -1520,7 +1519,7 @@ async function buscarClientes(q, res, onPick, input){
     e.preventDefault();   // antes del blur del input, si no el blur cierra la lista primero
     const c=res._data[+el.dataset.ci];
     onPick({ nombre:c.full_name||'', nacionalidad:c.nationality||'', pasaporte:c.passport_number||'',
-      telefono:c.phone||'', email:c.email||'', domicilio:c.address||'' }, c);
+      telefono:c.phone||'', email:c.email||'' }, c);
     if(input) input.value='';
     res.hidden=true; res.innerHTML='';
   }));
@@ -1549,37 +1548,37 @@ function emailsConocidos(){
    pedirlo. El marcador lo respeta `auto_t.py`. */
 const COMPRADOR_FRASE = {
   ppjb_reserva: {
-    es:(n,f)=>`<b>ADQUIRIENTE ${n}:</b> Identificado con nombre y apellidos <span class="f">${f.nom}</span>, de nacionalidad <span class="f">${f.nac}</span>, pasaporte <span class="f">${f.pas}</span>, con domicilio en <span class="f">${f.dom}</span>, teléfono <span class="f">${f.tel}</span> y email <span class="f">${f.email}</span>.`,
-    en:(n,f)=>`<b>BUYER ${n}:</b> Identified with full name <span class="f">${f.nom}</span>, of nationality <span class="f">${f.nac}</span>, passport <span class="f">${f.pas}</span>, residing at <span class="f">${f.dom}</span>, telephone <span class="f">${f.tel}</span> and email <span class="f">${f.email}</span>.`,
-    id:(n,f)=>`<b>PEMBELI ${n}:</b> Diidentifikasi dengan nama lengkap <span class="f">${f.nom}</span>, berkewarganegaraan <span class="f">${f.nac}</span>, paspor <span class="f">${f.pas}</span>, beralamat di <span class="f">${f.dom}</span>, telepon <span class="f">${f.tel}</span> dan email <span class="f">${f.email}</span>.`,
+    es:(n,f)=>`<b>ADQUIRIENTE ${n}:</b> Identificado con nombre y apellidos <span class="f">${f.nom}</span>, de nacionalidad <span class="f">${f.nac}</span>, pasaporte <span class="f">${f.pas}</span>, teléfono <span class="f">${f.tel}</span> y email <span class="f">${f.email}</span>.`,
+    en:(n,f)=>`<b>BUYER ${n}:</b> Identified with full name <span class="f">${f.nom}</span>, of nationality <span class="f">${f.nac}</span>, passport <span class="f">${f.pas}</span>, telephone <span class="f">${f.tel}</span> and email <span class="f">${f.email}</span>.`,
+    id:(n,f)=>`<b>PEMBELI ${n}:</b> Diidentifikasi dengan nama lengkap <span class="f">${f.nom}</span>, berkewarganegaraan <span class="f">${f.nac}</span>, paspor <span class="f">${f.pas}</span>, telepon <span class="f">${f.tel}</span> dan email <span class="f">${f.email}</span>.`,
   },
   ppjb_parcela: {
-    es:(n,f)=>`<b>ADQUIRIENTE ${n}:</b> <span class="f">${f.nom}</span>, nacional de <span class="f">${f.nac}</span>, con pasaporte nº <span class="f">${f.pas}</span> y domicilio en <span class="f">${f.dom}</span>, teléfono <span class="f">${f.tel}</span> y email <span class="f">${f.email}</span> a efecto de notificaciones.`,
-    en:(n,f)=>`<b>BUYER ${n}:</b> <span class="f">${f.nom}</span>, national of <span class="f">${f.nac}</span>, holder of passport no. <span class="f">${f.pas}</span>, residing at <span class="f">${f.dom}</span>, telephone <span class="f">${f.tel}</span> and email <span class="f">${f.email}</span> for notification purposes.`,
-    id:(n,f)=>`<b>PEMBELI ${n}:</b> <span class="f">${f.nom}</span>, warga negara <span class="f">${f.nac}</span>, pemegang paspor no. <span class="f">${f.pas}</span>, beralamat di <span class="f">${f.dom}</span>, telepon <span class="f">${f.tel}</span> dan email <span class="f">${f.email}</span> untuk keperluan pemberitahuan.`,
+    es:(n,f)=>`<b>ADQUIRIENTE ${n}:</b> <span class="f">${f.nom}</span>, nacional de <span class="f">${f.nac}</span>, con pasaporte nº <span class="f">${f.pas}</span>, teléfono <span class="f">${f.tel}</span> y email <span class="f">${f.email}</span> a efecto de notificaciones.`,
+    en:(n,f)=>`<b>BUYER ${n}:</b> <span class="f">${f.nom}</span>, national of <span class="f">${f.nac}</span>, holder of passport no. <span class="f">${f.pas}</span>, telephone <span class="f">${f.tel}</span> and email <span class="f">${f.email}</span> for notification purposes.`,
+    id:(n,f)=>`<b>PEMBELI ${n}:</b> <span class="f">${f.nom}</span>, warga negara <span class="f">${f.nac}</span>, pemegang paspor no. <span class="f">${f.pas}</span>, telepon <span class="f">${f.tel}</span> dan email <span class="f">${f.email}</span> untuk keperluan pemberitahuan.`,
   },
   ppjb_construccion: {
-    es:(n,f)=>`<b>ADQUIRIENTE ${n}:</b> D./Dña. <span class="f">${f.nom}</span>, nacional de <span class="f">${f.nac}</span>, con Pasaporte/Nº de identificación fiscal <span class="f">${f.pas}</span> y domicilio en <span class="f">${f.dom}</span>. Teléfono <span class="f">${f.tel}</span> y email a efecto de notificaciones: <span class="f">${f.email}</span>.`,
-    en:(n,f)=>`<b>BUYER ${n}:</b> Mr./Ms. <span class="f">${f.nom}</span>, national of <span class="f">${f.nac}</span>, with Passport/Tax ID no. <span class="f">${f.pas}</span> and address at <span class="f">${f.dom}</span>. Telephone <span class="f">${f.tel}</span> and notification email: <span class="f">${f.email}</span>.`,
-    id:(n,f)=>`<b>PEMBELI ${n}:</b> Tn./Ny. <span class="f">${f.nom}</span>, warga negara <span class="f">${f.nac}</span>, dengan Paspor/Nomor Identifikasi Pajak no. <span class="f">${f.pas}</span> dan beralamat di <span class="f">${f.dom}</span>. Telepon <span class="f">${f.tel}</span> dan email pemberitahuan: <span class="f">${f.email}</span>.`,
+    es:(n,f)=>`<b>ADQUIRIENTE ${n}:</b> D./Dña. <span class="f">${f.nom}</span>, nacional de <span class="f">${f.nac}</span>, con Pasaporte/Nº de identificación fiscal <span class="f">${f.pas}</span>. Teléfono <span class="f">${f.tel}</span> y email a efecto de notificaciones: <span class="f">${f.email}</span>.`,
+    en:(n,f)=>`<b>BUYER ${n}:</b> Mr./Ms. <span class="f">${f.nom}</span>, national of <span class="f">${f.nac}</span>, with Passport/Tax ID no. <span class="f">${f.pas}</span>. Telephone <span class="f">${f.tel}</span> and notification email: <span class="f">${f.email}</span>.`,
+    id:(n,f)=>`<b>PEMBELI ${n}:</b> Tn./Ny. <span class="f">${f.nom}</span>, warga negara <span class="f">${f.nac}</span>, dengan Paspor/Nomor Identifikasi Pajak no. <span class="f">${f.pas}</span>. Telepon <span class="f">${f.tel}</span> dan email pemberitahuan: <span class="f">${f.email}</span>.`,
   },
   // La ampliada usa la misma redacción que la Carta corta: mismo papel, mismo texto
   // ya aprobado por el cliente para el adquiriente N.
   carta_reserva_ampliada: {
-    es:(n,f)=>`<b>ADQUIRIENTE ${n}:</b> <span class="f">${f.nom}</span>, de nacionalidad <span class="f">${f.nac}</span>, titular del pasaporte n.º <span class="f">${f.pas}</span>, con domicilio en <span class="f">${f.dom}</span>, teléfono <span class="f">${f.tel}</span> y email <span class="f">${f.email}</span>, actuando igualmente en nombre propio junto con la Segunda Parte.`,
-    en:(n,f)=>`<b>BUYER ${n}:</b> <span class="f">${f.nom}</span>, of <span class="f">${f.nac}</span> nationality, holder of passport no. <span class="f">${f.pas}</span>, with address at <span class="f">${f.dom}</span>, telephone <span class="f">${f.tel}</span> and email <span class="f">${f.email}</span>, likewise acting in their own name together with the Second Party.`,
-    id:(n,f)=>`<b>PEMBELI ${n}:</b> <span class="f">${f.nom}</span>, berkewarganegaraan <span class="f">${f.nac}</span>, pemegang paspor no. <span class="f">${f.pas}</span>, beralamat di <span class="f">${f.dom}</span>, telepon <span class="f">${f.tel}</span> dan email <span class="f">${f.email}</span>, juga bertindak atas nama sendiri bersama Pihak Kedua.`,
+    es:(n,f)=>`<b>ADQUIRIENTE ${n}:</b> <span class="f">${f.nom}</span>, de nacionalidad <span class="f">${f.nac}</span>, titular del pasaporte n.º <span class="f">${f.pas}</span>, teléfono <span class="f">${f.tel}</span> y email <span class="f">${f.email}</span>, actuando igualmente en nombre propio junto con la Segunda Parte.`,
+    en:(n,f)=>`<b>BUYER ${n}:</b> <span class="f">${f.nom}</span>, of <span class="f">${f.nac}</span> nationality, holder of passport no. <span class="f">${f.pas}</span>, telephone <span class="f">${f.tel}</span> and email <span class="f">${f.email}</span>, likewise acting in their own name together with the Second Party.`,
+    id:(n,f)=>`<b>PEMBELI ${n}:</b> <span class="f">${f.nom}</span>, berkewarganegaraan <span class="f">${f.nac}</span>, pemegang paspor no. <span class="f">${f.pas}</span>, telepon <span class="f">${f.tel}</span> dan email <span class="f">${f.email}</span>, juga bertindak atas nama sendiri bersama Pihak Kedua.`,
   },
   carta_reserva: {
-    es:(n,f)=>`<b>ADQUIRIENTE ${n}:</b> <span class="f">${f.nom}</span>, de nacionalidad <span class="f">${f.nac}</span>, titular del pasaporte n.º <span class="f">${f.pas}</span>, con domicilio en <span class="f">${f.dom}</span>, teléfono <span class="f">${f.tel}</span> y email <span class="f">${f.email}</span>, actuando igualmente en nombre propio junto con la Segunda Parte.`,
-    en:(n,f)=>`<b>BUYER ${n}:</b> <span class="f">${f.nom}</span>, of <span class="f">${f.nac}</span> nationality, holder of passport no. <span class="f">${f.pas}</span>, with address at <span class="f">${f.dom}</span>, telephone <span class="f">${f.tel}</span> and email <span class="f">${f.email}</span>, likewise acting in their own name together with the Second Party.`,
-    id:(n,f)=>`<b>PEMBELI ${n}:</b> <span class="f">${f.nom}</span>, berkewarganegaraan <span class="f">${f.nac}</span>, pemegang paspor no. <span class="f">${f.pas}</span>, beralamat di <span class="f">${f.dom}</span>, telepon <span class="f">${f.tel}</span> dan email <span class="f">${f.email}</span>, juga bertindak atas nama sendiri bersama Pihak Kedua.`,
+    es:(n,f)=>`<b>ADQUIRIENTE ${n}:</b> <span class="f">${f.nom}</span>, de nacionalidad <span class="f">${f.nac}</span>, titular del pasaporte n.º <span class="f">${f.pas}</span>, teléfono <span class="f">${f.tel}</span> y email <span class="f">${f.email}</span>, actuando igualmente en nombre propio junto con la Segunda Parte.`,
+    en:(n,f)=>`<b>BUYER ${n}:</b> <span class="f">${f.nom}</span>, of <span class="f">${f.nac}</span> nationality, holder of passport no. <span class="f">${f.pas}</span>, telephone <span class="f">${f.tel}</span> and email <span class="f">${f.email}</span>, likewise acting in their own name together with the Second Party.`,
+    id:(n,f)=>`<b>PEMBELI ${n}:</b> <span class="f">${f.nom}</span>, berkewarganegaraan <span class="f">${f.nac}</span>, pemegang paspor no. <span class="f">${f.pas}</span>, telepon <span class="f">${f.tel}</span> dan email <span class="f">${f.email}</span>, juga bertindak atas nama sendiri bersama Pihak Kedua.`,
   },
 };
 /* lwT:fin */
 function compradorFields(c){ return { nom:esc(c.nombre||''), nac:esc(c.nacionalidad||''), pas:esc(c.pasaporte||''),
-  dom:esc(c.domicilio||''), tel:esc(c.telefono||''), email:esc(c.email||'') }; }
-function compradorTieneDatos(c){ return !!(c.nombre||c.nacionalidad||c.pasaporte||c.domicilio||c.telefono||c.email); }
+  tel:esc(c.telefono||''), email:esc(c.email||'') }; }
+function compradorTieneDatos(c){ return !!(c.nombre||c.nacionalidad||c.pasaporte||c.telefono||c.email); }
 function compradoresExtraHTML(){
   const frase = COMPRADOR_FRASE[CURRENT.slug]; if(!frase) return '';
   let h='';
@@ -4913,7 +4912,8 @@ const CAMPOS_FICHA = [
   ['adq1_pasaporte',    'passport_number', 'Pasaporte'],
   ['adq1_email',        'email',           'Email'],
   ['adq1_telefono',     'phone',           'Teléfono'],
-  ['adq1_domicilio',    'address',         'Domicilio'],
+  // adq1_domicilio salió del contrato y de la ficha el 17-sep-2026 (owner:
+  // «es irrelevante»); la columna `clients.address` se queda con lo guardado.
   // añadida el 18-ago-2026 con el enlace a la ficha: la nacionalidad se imprime
   // en el contrato y vive en `clients`, así que o la gobierna la ficha o es un
   // campo más por el que contrato y ficha pueden decir cosas distintas
@@ -4938,7 +4938,6 @@ const CAMPOS_EMPRESA = ['adq1_forma_juridica','adq1_registro','adq1_rep_nombre',
 const ETIQUETA_EMPRESA = {
   adq1_nombre:       {es:'Razón social',           en:'Company name',        id:'Nama perusahaan'},
   adq1_nacionalidad: {es:'País de constitución',   en:'Country of incorporation', id:'Negara pendirian'},
-  adq1_domicilio:    {es:'Domicilio social',       en:'Registered address',  id:'Alamat terdaftar'},
 };
 async function avisaFichaDistinta(contratoId){
   /* LA COMPARACIÓN YA NO ESTÁ AQUÍ — 19-ago-2026. Vivía en esta función, con su
@@ -4964,7 +4963,7 @@ async function avisaFichaDistinta(contratoId){
     });
     if(!ok) return;
     const porCampo = { nombre:'adq1_nombre', identidad:'adq1_pasaporte', email:'adq1_email',
-                       telefono:'adq1_telefono', domicilio:'adq1_domicilio', pais:'adq1_nacionalidad' };
+                       telefono:'adq1_telefono', pais:'adq1_nacionalidad' };
     let n = 0;
     (d.diferencias || []).forEach(x => {
       const el = document.querySelector(`[name="${porCampo[x.campo] || ''}"]`);
@@ -5135,12 +5134,23 @@ function blobToBase64(blob){
    campo condicional (CAMPO_SI) o una sección "optional" apagada no cuenta como
    hueco, y un campo compuesto (teléfono: el `name` real es un input oculto)
    se lee por su `.field` envolvente, no por el input suelto. */
+/* Lo que el candado de envío NO exige (17-sep-2026, el owner lo pidió al
+   día siguiente de estrenarlo): los campos de gestión y los que su propia
+   etiqueta declara opcionales. El nº de contrato lo asigna la base al guardar
+   (tipo `readonly`, nadie puede teclearlo) y «Nombre del contrato» es un
+   apodo interno que no imprime nada. Una sección opcional entera
+   (hs_segunda_parte: el comprador firma por apoderado «dejar en blanco si
+   firma él mismo») se salta por id, no campo a campo. */
+const CAMPOS_OPCIONALES = new Set(['nombre_contrato', 'precio_total_letras', 'precio_reserva_letras']);
+const SECCIONES_OPCIONALES = new Set(['hs_segunda_parte']);
 function camposSinRellenar(){
   const faltan = [];
   (SECTIONS||[]).forEach(s=>{
+    if(SECCIONES_OPCIONALES.has(s.id)) return;
     (s.fields||[]).forEach(f=>{
       const [key, labelObj, type] = f;
       if(type==='legacy' || type==='signature') return;   // se rellenan solos, o al firmar — nunca antes de enviar
+      if(type==='readonly' || CAMPOS_OPCIONALES.has(key)) return;   // gestión/opcional: ver CAMPOS_OPCIONALES arriba
       const caja = document.querySelector(`.field[data-key="${key}"]`);
       if(!caja || caja.offsetParent === null) return;   // no visible: campo condicional o sección apagada
       const el = document.querySelector(`[name="${key}"]`);

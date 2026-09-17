@@ -681,10 +681,9 @@ function pintarFicha(){
         </div>
         <div><label for="f-pas" id="lab-pas">${lwT('Pasaporte / NPWP')}${ob}</label><input id="f-pas" ${dis} value="${esc(c.passport_number||'')}"></div>
       </div>
-      <!-- Domicilio: hasta hoy no estaba en la ficha aunque la columna existía y
-           el contrato la imprime. Una empresa sin domicilio social no se puede
-           redactar, así que entra ahora para las dos (19-ago-2026). -->
-      <label for="f-dom" id="lab-dom">${lwT('Domicilio')}</label><input id="f-dom" ${dis} value="${esc(c.address||'')}">
+      <!-- Domicilio y fecha de nacimiento salieron de la ficha el 17-sep-2026
+           (owner: «es irrelevante»). Las columnas address y date_of_birth
+           siguen en clients con lo que ya tenían: el guardado no las toca. -->
       <label for="f-idioma">${lwT('Idioma de comunicación')}</label>
       <select class="sui-sel" id="f-idioma" ${dis}>
         <option value="es" ${(c.idioma_comunicacion||'es')==='es'?'selected':''}>${lwT('Español')}</option>
@@ -707,7 +706,6 @@ function pintarFicha(){
           <input id="f-rep-cargo" ${dis} value="${esc(c.rep_cargo||'')}" placeholder="Administrador, Director…"></div>
       </div>
       <div class="sui-row">
-        <div class="solo-persona"><label for="f-nac-fecha">${lwT('Fecha de nacimiento')}</label><input id="f-nac-fecha" type="date" ${dis} value="${esc(c.date_of_birth||'')}"></div>
         <div><label for="f-kyc">${lwT('Estado KYC')}</label><select class="sui-sel" id="f-kyc" ${dis}>${KYC.map(([v,l])=>`<option value="${v}" ${(c.kyc_status||'pending')===v?'selected':''}>${l}</option>`).join('')}</select></div>
       </div>
       <label for="f-notas">${lwT('Notas')}</label><textarea id="f-notas" ${dis}>${esc(c.notes||'')}</textarea>
@@ -1020,10 +1018,9 @@ function pintarFicha(){
      en toda la suite, y un NIF en una columna aparte se quedaría fuera de esa
      comparación. Lo que cambia son las ETIQUETAS y qué campos se enseñan. */
   const ETIQUETAS = {
-    persona: { nombre:lwT('Nombre completo'), nac:lwT('Nacionalidad'), pas:lwT('Pasaporte / identificación fiscal'), dom:lwT('Domicilio'),
+    persona: { nombre:lwT('Nombre completo'), nac:lwT('Nacionalidad'), pas:lwT('Pasaporte / identificación fiscal'),
                nota:'' },
     empresa: { nombre:lwT('Razón social'), nac:lwT('País de constitución'), pas:lwT('Identificación fiscal (NIF, NPWP, EIN…)'),
-               dom:lwT('Domicilio social'),
                nota:lwT('Una empresa y su dueño pueden compartir correo: son dos fichas distintas y las dos son válidas.') },
   };
   function pintarSegunTipo(){
@@ -1031,7 +1028,7 @@ function pintarFicha(){
     const t = sel.value === 'empresa' ? 'empresa' : 'persona';
     const e = ETIQUETAS[t];
     const poner = (id, txt) => { const l = document.getElementById(id); if(l) l.textContent = txt; };
-    poner('lab-nombre', e.nombre); poner('lab-nac', e.nac); poner('lab-pas', e.pas); poner('lab-dom', e.dom);
+    poner('lab-nombre', e.nombre); poner('lab-nac', e.nac); poner('lab-pas', e.pas);
     const nota = document.getElementById('notaTipo'); if(nota) nota.textContent = e.nota;
     document.querySelectorAll('#suiCajon .solo-empresa').forEach(x => { x.hidden = (t !== 'empresa'); });
     document.querySelectorAll('#suiCajon .solo-persona').forEach(x => { x.hidden = (t === 'empresa'); });
@@ -1297,7 +1294,6 @@ async function guardar(id){
     phone: telNum ? (telPre ? telPre + ' ' + telNum : telNum) : null,
     nationality:$('#f-nac').value.trim() || null,
     passport_number:$('#f-pas').value.trim() || null,
-    address:$('#f-dom').value.trim() || null,
     idioma_comunicacion: $('#f-idioma').value || 'es',
     // Los campos de empresa se VACÍAN al pasar a persona, no se dejan de lado:
     // si no, una ficha corregida seguiría arrastrando el CIF de cuando estaba
@@ -1306,7 +1302,6 @@ async function guardar(id){
     registro_num:   esEmpresa ? ($('#f-registro').value.trim() || null) : null,
     rep_nombre:     esEmpresa ? ($('#f-rep').value.trim() || null) : null,
     rep_cargo:      esEmpresa ? ($('#f-rep-cargo').value.trim() || null) : null,
-    date_of_birth: esEmpresa ? null : ($('#f-nac-fecha').value || null),
     kyc_status:$('#f-kyc').value,
     notes:$('#f-notas').value.trim() || null,
   };

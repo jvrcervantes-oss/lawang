@@ -94,7 +94,7 @@ CON_COMPRADOR.forEach(slug => {
 
 /* ── 2) los campos de la redacción de empresa existen como campo ───────────── */
 const DE_EMPRESA = ['adq1_forma_juridica', 'adq1_registro', 'adq1_rep_nombre',
-                    'adq1_rep_cargo', 'adq1_domicilio'];
+                    'adq1_rep_cargo'];   // adq1_domicilio salió el 17-sep-2026
 DE_EMPRESA.forEach(k => afirma('`' + k + '` está declarado en tokens.json',
   CAMPOS_COMPRADOR.has(k), 'sin campo, el marcador se imprime en blanco'));
 
