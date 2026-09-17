@@ -16,7 +16,7 @@
      uno, para que ninguna herramienta pueda cargar media suite: antes
      Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
      salieron los desplegables con cuatro aspectos. -->
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=4ca2c47e">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=f5662397">
 <!-- Iconos Phosphor para el menu lateral de topbar.js. Esta pagina no los
      cargaba y el menu salia sin iconos; el comentario de mas abajo que dice
      "esta pagina no carga Phosphor" se refiere a un caso concreto de emoji y
@@ -176,10 +176,15 @@
    31-jul-2026, sobre la capa compartida `suite.css` + `suite.js`.
 
    YA NO SE SUBEN ARCHIVOS. Van todos a Google Drive o a un enlace externo, por
-   petición del owner y por una razón concreta: un dossier pasa de 50 MB, el
-   almacén de Supabase es de 1 GB PARA TODO —contratos firmados incluidos— y al
-   ritmo actual quedan unos 60 días de margen. En Drive el espacio ya está
-   pagado. Aquí queda la ficha, que es lo que hace que el documento se encuentre.
+   petición del owner y por una razón concreta: un dossier pasa de 50 MB, y el
+   almacén de Supabase —contratos firmados incluidos— es compartido por toda la
+   suite. (17-sep-2026: el owner pasó al plan Pro, 100 GB de ficheros en vez del
+   1 GB del Free con el que se escribió esta nota; el motivo de no subir aquí
+   sigue en pie —un dossier no debería competir por ese cupo con un contrato
+   firmado— pero ya no es una cuestión de días de margen. Si el owner decide
+   que ahora sí caben aquí, esto es lo que hay que revisar primero.) En Drive
+   el espacio ya está pagado. Aquí queda la ficha, que es lo que hace que el
+   documento se encuentre.
    Lo que se subió antes de este cambio SE SIGUE ABRIENDO con enlace firmado:
    quitarle la salida a un archivo que ya está dentro no libera nada y pierde el
    documento.
@@ -368,7 +373,10 @@ const CATEGORIAS = [
 const CARPETA_FAQ = 'Preguntas frecuentes';
 
 const $ = s => document.querySelector(s);
-const mb = b => !b ? '—' : b < 1048576 ? Math.round(b/1024) + ' KB' : (b/1048576).toFixed(1) + ' MB';
+// Con el plan Pro (100 GB de ficheros, 17-sep-2026) el máximo ya no cabe
+// cómodo en MB: sin este tramo el medidor decía "102400.0 MB" en vez de
+// "100.0 GB". El corte en 1 GiB es el mismo criterio que el de KB→MB.
+const mb = b => !b ? '—' : b < 1048576 ? Math.round(b/1024) + ' KB' : b < 1073741824 ? (b/1048576).toFixed(1) + ' MB' : (b/1073741824).toFixed(1) + ' GB';
 const fecha = f => f ? new Date(f).toLocaleDateString(IDIOMA === 'en' ? 'en-GB' : 'es-ES', {day:'2-digit', month:'short', year:'numeric'}) : '';
 const esSuperAdmin = rol => rol === 'super_admin';
 

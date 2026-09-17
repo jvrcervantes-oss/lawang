@@ -2210,8 +2210,23 @@
 
       ata(/^\+? ?Nueva tarifa$/i, function () {
         if (!superAdmin) return soloSuper();
-        var tarifas = (window.LW_V4 && window.LW_V4.tarifas) || [];
-        var vigente = tarifas.filter(function (t) { return t.efectivo_desde <= hoy; })[0] || null;
+        /* `LW_V4.tarifas` lo rellena datos.js de forma asincrona. Si aun no ha
+           resuelto, el modal afirmaba «todavia no hay ninguna tarifa, no se esta
+           devengando nada» — falso, y dicho justo en el momento de decidir el
+           numero. Se pregunta a la base en vez de suponer. El INSERT siempre fue
+           correcto; lo que mentia era el texto. */
+        var cache = window.LW_V4 && window.LW_V4.tarifas;
+        if (cache) return abreConTarifas(cache);
+        sb.from('comision_admin_tarifas').select('id,pct,efectivo_desde')
+          .order('efectivo_desde', { ascending: false })
+          .then(function (r) {
+            if (r.error) return aviso('No se han podido leer las tarifas vigentes, asi que no se puede decir que % rige ahora mismo. Recarga la pantalla y prueba otra vez.', '#9E2F26');
+            abreConTarifas(r.data || []);
+          });
+      });
+
+      function abreConTarifas(tarifas) {
+        var vigente = (tarifas || []).filter(function (t) { return t.efectivo_desde <= hoy; })[0] || null;
         modal('Nueva tarifa de comision', [
           { k: 'pct', label: '% de comision', tipo: 'number', paso: '0.0001', req: 1, medio: 1,
             valor: vigente ? Number(vigente.pct) : 0.5,
@@ -2253,21 +2268,31 @@
             creado_por: (aut.session && aut.session.user && aut.session.user.email) || null
           }).select('id').single();
         });
-      });
+      }
 
       window.LW_V4.abreEstadoComisionAdmin = function (lineaId, etiqueta, actual) {
         if (!admin) return soloAdmin();
+        /* La nota de la linea VIENE RELLENA. El campo nacia vacio y el parche la
+           escribia siempre, asi que marcar una linea como facturada borraba la
+           unica explicacion de por que existe — y en un `ajuste` o un desanulado
+           esa nota la escribio el trigger («El recibi bajo de X a Y despues del
+           alta», «revisar si procede reponer el devengo»). */
+        var linea = (window.LW_V4 && window.LW_V4.caLineas && window.LW_V4.caLineas[lineaId]) || {};
+        var notaActual = linea.nota || '';
         modal('Estado de la comision — ' + (etiqueta || ''), [
           { k: 'estado', label: 'Estado', tipo: 'select', req: 1, valor: actual,
             opciones: [['pendiente', 'Pendiente'], ['facturada', 'Facturada'],
                        ['cobrada', 'Cobrada'], ['exenta', 'Exenta (no se cobra)']] },
-          { k: 'nota', label: 'Nota' },
+          { k: 'nota', label: 'Nota', valor: notaActual,
+            ayuda: notaActual ? 'lo que hay escrito lo puso el sistema al detectar un cambio — borrarlo pierde el porque de esta linea' : '' },
           { k: 'revisar', label: 'Dejar de marcarla para revisar', tipo: 'check',
             ayuda: 'solo la bandera; si el descuadre es real sigue saliendo en el aviso de arriba, que se recalcula desde la base' },
           { tipo: 'nota', label: 'El importe, la base y el % no se tocan desde aqui: los calcula la base sobre el recibi. ' +
               '«Exenta» es la salida para el dinero que entra pero no es una venta — un aporte de capital, un traspaso entre sociedades, una devolucion.' }
         ], 'Guardar', function (v) {
-          var parche = { estado: v.estado, nota: (v.nota || '').trim() || null };
+          var parche = { estado: v.estado };
+          // la nota solo viaja si de verdad cambio: asi no se pisa sola
+          if ((v.nota || '').trim() !== notaActual.trim()) parche.nota = (v.nota || '').trim() || null;
           if (v.revisar) parche.revisar = false;
           /* `.select()` detras del UPDATE a proposito: un UPDATE que no toca
              ninguna fila NO da error en PostgREST, asi que sin esto una sesion

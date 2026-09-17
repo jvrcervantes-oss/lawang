@@ -2946,10 +2946,23 @@
       sb.rpc('comision_admin_descuadres')
         .then(function (r) { return r.error ? null : r.data; }, function () { return null; })
     ]).then(function (r) {
-      var tarifas = r[0], lineas = r[1] || [], proyectos = r[2] || [], desc = r[3];
-      if (!tarifas) return;
+      var tarifas = r[0], lineas = r[1], proyectos = r[2], desc = r[3];
+      /* `q()` ya ha pintado el cartel de fallo en el contenedor y ha devuelto
+         null. Si siguieramos, `pinta()` lo sobrescribiria con «todavia no ha
+         entrado dinero» y los KPI dirian «nada sin facturar»: una alarma rota
+         que se lee igual que «todo tranquilo», que es el peor estado posible en
+         un libro de dinero. Se para aqui y el cartel de fallo se queda. */
+      if (!tarifas || !lineas) return;
       window.LW_V4 = window.LW_V4 || {};
       window.LW_V4.tarifas = tarifas;
+      /* Las lineas, al alcance del editor: necesita la `nota` que ya tiene la
+         fila para no borrarla al cambiar el estado. */
+      window.LW_V4.caLineas = {};
+      lineas.forEach(function (l) { window.LW_V4.caLineas[l.id] = l; });
+      /* «No he podido leer los proyectos» y «esta linea no tiene proyecto» se
+         veian los dos como «—». Se distinguen. */
+      var proyectosRotos = !proyectos;
+      proyectos = proyectos || [];
 
       var proyectoDe = {}; proyectos.forEach(function (p) { proyectoDe[p.id] = p.nombre; });
       var vigente = tarifas.filter(function (t) { return t.efectivo_desde <= hoy; })[0] || null;
@@ -2985,8 +2998,14 @@
       if (caja && desc && !desc.sin_tarifa) {
         var avisos = [];
         if (desc.recibis_sin_linea)      avisos.push(desc.recibis_sin_linea + ' recibí(s) vivo(s) sin línea de comisión');
-        if (desc.lineas_mal_calculadas)  avisos.push(desc.lineas_mal_calculadas + ' línea(s) cuyo importe no cuadra con su base y su %');
+        if (desc.lineas_mal_calculadas)  avisos.push(desc.lineas_mal_calculadas + ' devengo(s) cuyo importe no cuadra con su base y su %');
         if (desc.devengos_con_base_cero) avisos.push(desc.devengos_con_base_cero + ' línea(s) con base 0');
+        /* Los tres de abajo cubren lo que el contador del alta no veía: un recibí
+           editado por fuera, y las dos rutas (anular / desanular) en las que el
+           trigger se traga su propio fallo. */
+        if (desc.devengos_con_base_distinta_del_recibi) avisos.push(desc.devengos_con_base_distinta_del_recibi + ' devengo(s) cuya base ya no coincide con su recibí');
+        if (desc.anulados_con_devengo_vivo)             avisos.push(desc.anulados_con_devengo_vivo + ' recibí(s) anulado(s) con la comisión todavía viva');
+        if (desc.vivos_con_devengo_anulado)             avisos.push(desc.vivos_con_devengo_anulado + ' recibí(s) vivo(s) con la comisión anulada (se repone desde administración)');
         if (avisos.length) {
           caja.hidden = false;
           caja.classList.add('flex');
@@ -3050,7 +3069,9 @@
           return '<tr class="border-b border-outline-variant/30' + (l.anulada ? ' opacity-60' : '') + '">' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(fFecha(l.devengado_el)) + '</td>' +
             '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + recibi + etqTipo + '</td>' +
-            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(l.proyecto_id ? (proyectoDe[l.proyecto_id] || '—') : '—') + '</td>' +
+            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' +
+              esc(!l.proyecto_id ? '(sin proyecto)'
+                  : (proyectoDe[l.proyecto_id] || (proyectosRotos ? '(no se pudo leer)' : '(proyecto borrado)'))) + '</td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(l.sociedad || '—') + '</td>' +
             '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant text-right">' + esc(fmt(l.base_total, l.moneda)) + '</td>' +
             '<td class="px-5 py-4 font-label-md text-label-md text-right ' + (negativa ? 'text-error' : 'text-on-surface') + '">' +
@@ -3073,7 +3094,7 @@
         if (!b) return;
         ev.preventDefault(); ev.stopPropagation();
         if (window.LW_V4 && window.LW_V4.abreEstadoComisionAdmin) {
-          window.LW_V4.abreEstadoComisionAdmin(b.getAttribute('data-lw-ca-estado'), b.getAttribute('data-lw-etq'), b.getAttribute('data-lw-actual'));
+          window.LW_V4.abreEstadoComisionAdmin(b.getAttribute('data-lw-ca-estado'), b.getAttribute('data-lw-etq'), b.getAttribute('data-lw-actual'));  // la nota la lee de LW_V4.caLineas
         } else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
       });
     });
