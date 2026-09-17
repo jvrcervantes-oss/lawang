@@ -119,7 +119,19 @@ function bankDefaultFor(slug, proyectoId){
 // mecanismo que lo bloquee — quien la elija para FIRMAR un contrato real
 // (no solo para facturar) tiene que corregir esa frase a mano en el
 // documento antes de imprimirlo.
-const SOCIEDAD_OPTIONS = Object.entries(SOCIEDADES).filter(([,c])=>!c.soloFacturas).map(([v,c])=>[v, c.label]);   // orden de inserción: Tepi Sun Gai primero (default)
+/* FUNCION, no constante (17-sep-2026). Era un `const` de nivel de fichero que se
+   evaluaba al parsear el <script>, y desde que `SOCIEDADES` se llena de la base
+   —despues, y de forma asincrona— se quedaba en `[]` PARA SIEMPRE: el desplegable
+   «Sociedad firmante (Promotor)» salia sin una sola opcion y ningun contrato
+   nuevo podia emitirse como San Dal Woods ni como la Ltd.
+   La cabecera de este fichero ya avisaba de este fallo exacto para el caso de
+   orden de carga; pasar a asincrono lo reprodujo. Como funcion, se evalua cuando
+   se construyen las SECTIONS, que es despues del `await cargarSociedades(sb)`.
+   El orden de las opciones sigue siendo el de insercion, que lo fija el `orden`
+   de la tabla: Tepi Sun Gai primero. */
+function sociedadOptions(){
+  return Object.entries(SOCIEDADES).filter(([,c])=>!c.soloFacturas).map(([v,c])=>[v, c.label]);
+}
 function applyPromotor(data){
   const key = data.sociedad_firmante || (CURRENT && SOCIEDAD_DEFAULT[CURRENT.slug]) || 'tepi_sungai';   // vacío → default de la plantilla (o Tepi Sun Gai)
   /* Una clave que NO existe lanza, no cae a Tepi Sun Gai (17-sep-2026). La

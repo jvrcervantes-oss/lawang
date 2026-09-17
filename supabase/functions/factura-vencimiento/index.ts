@@ -88,11 +88,17 @@ async function caja(): Promise<Record<string, any>> {
        Tepi Sun Gai, asi que un contrato de San Dal Woods emitia su factura con
        el NPWP de la otra PT y nadie lo veia. La base ya lo rechazaria por clave
        ajena; aqui se corta antes, con un mensaje que dice cual falta. */
-function sociedadEmisora(C: Record<string, any>, elegida: string | null | undefined): string {
+function sociedadEmisora(C: Record<string, any>, elegida: string | null | undefined,
+                        tipo?: string | null): string {
   const v = String(elegida || '').trim();
-  if (!v) return 'tepi_sungai';
-  if (!C.SOCIEDADES[v]) throw new Error('la sociedad emisora «' + v + '» no esta en public.sociedades');
-  return v;
+  // Vacio -> el default DE LA PLANTILLA, no `tepi_sungai` a secas. `ppjb_reserva`
+  // es de San Dal Woods, asi que devolver Tepi hacia que el contrato se imprimiera
+  // con una sociedad y su factura saliera con el NPWP de la otra (hallazgo Legal,
+  // consulta de deploy del 17-sep-2026). `lwSociedadContrato` ya aplica esa tabla.
+  const clave = v || (typeof C.lwSociedadContrato === 'function'
+    ? C.lwSociedadContrato('', tipo || '') : 'tepi_sungai');
+  if (!C.SOCIEDADES[clave]) throw new Error('la sociedad emisora «' + clave + '» no esta en public.sociedades');
+  return clave;
 }
 
 
@@ -204,7 +210,7 @@ Deno.serve(async (req) => {
       const lineas = [{ descripcion, importe: String(yo.pendiente) }];
       const campos: Record<string, string> = {
         tipo: 'factura',
-        sociedad: sociedadEmisora(C, f.sociedad_firmante),
+        sociedad: sociedadEmisora(C, f.sociedad_firmante, (ct as any).tipo),
         cuenta: f.cuenta_bancaria && C.CUENTAS_BANCARIAS[f.cuenta_bancaria] ? f.cuenta_bancaria : '',
         fecha_emision: hoy, fecha_vencimiento: v.fecha, moneda,
         numero_visible: '', contrato_numero: ct.numero || '',
@@ -225,7 +231,7 @@ Deno.serve(async (req) => {
         contrato_numero: ct.numero || null, contrato_id: v.contrato_id,
         total: totales.total, moneda, fecha_emision: hoy,
         datos: { fields: { ...campos, lineas }, lineas, totales },
-      }).select('id, numero').single();
+      }).select('id, numero, datos').single();
       if (ins.error || !ins.data) throw new Error('no se pudo crear la factura: ' + (ins.error?.message ?? 'sin fila'));
 
       // El vencimiento queda marcado YA, con la factura recién creada: si el
@@ -236,7 +242,7 @@ Deno.serve(async (req) => {
       if (marca.error) console.error('venc', v.id, 'facturado pero SIN marcar factura_id:', marca.error.message);
 
       campos.numero_visible = ins.data.numero;
-      const html = C.documentoPagina({ ...campos, lineas }, { numero: ins.data.numero, base: SITIO });
+      const html = C.documentoPagina({ ...campos, lineas }, { numero: ins.data.numero, emisor: (ins.data as any)?.datos?.emisor ?? null, base: SITIO });
       const rr = await fetch(RENDER_URL.replace(/\/$/, '') + '/render-pdf', {
         method: 'POST', headers: { 'content-type': 'application/json', 'X-Render-Secret': RENDER_SECRET },
         body: JSON.stringify({ html }),

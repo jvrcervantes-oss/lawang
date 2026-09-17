@@ -229,11 +229,17 @@ async function compartidos() {
        Tepi Sun Gai, asi que un contrato de San Dal Woods emitia su factura con
        el NPWP de la otra PT y nadie lo veia. La base ya lo rechazaria por clave
        ajena; aqui se corta antes, con un mensaje que dice cual falta. */
-function sociedadEmisora(C: Record<string, any>, elegida: string | null | undefined): string {
+function sociedadEmisora(C: Record<string, any>, elegida: string | null | undefined,
+                        tipo?: string | null): string {
   const v = String(elegida || '').trim();
-  if (!v) return 'tepi_sungai';
-  if (!C.SOCIEDADES[v]) throw new Error('la sociedad emisora «' + v + '» no esta en public.sociedades');
-  return v;
+  // Vacio -> el default DE LA PLANTILLA, no `tepi_sungai` a secas. `ppjb_reserva`
+  // es de San Dal Woods, asi que devolver Tepi hacia que el contrato se imprimiera
+  // con una sociedad y su factura saliera con el NPWP de la otra (hallazgo Legal,
+  // consulta de deploy del 17-sep-2026). `lwSociedadContrato` ya aplica esa tabla.
+  const clave = v || (typeof C.lwSociedadContrato === 'function'
+    ? C.lwSociedadContrato('', tipo || '') : 'tepi_sungai');
+  if (!C.SOCIEDADES[clave]) throw new Error('la sociedad emisora «' + clave + '» no esta en public.sociedades');
+  return clave;
 }
 
 
@@ -396,7 +402,7 @@ async function facturarPrimerHito(o: { contratoId: string; numero: string; ct: a
   // ahí tal cual y se pueda corregir o anular como cualquier otra.
   const campos: Record<string, string> = {
     tipo: 'factura',
-    sociedad: sociedadEmisora(C, f.sociedad_firmante),
+    sociedad: sociedadEmisora(C, f.sociedad_firmante, o.ct.tipo),
     cuenta: f.cuenta_bancaria && C.CUENTAS_BANCARIAS[f.cuenta_bancaria] ? f.cuenta_bancaria : '',
     fecha_emision: hoy, fecha_vencimiento: '', moneda,
     numero_visible: '', contrato_numero: o.numero,
@@ -421,12 +427,12 @@ async function facturarPrimerHito(o: { contratoId: string; numero: string; ct: a
     contrato_numero: o.numero, contrato_id: o.contratoId,
     total: totales.total, moneda, fecha_emision: hoy,
     datos: { fields: { ...campos, lineas }, lineas, totales },
-  }).select('id, numero').single();
+  }).select('id, numero, datos').single();
   if (error || !fila) throw new Error('no se pudo crear la factura: ' + (error?.message ?? 'sin fila'));
 
   // El número ya emitido tiene que salir impreso en el papel que se manda.
   campos.numero_visible = fila.numero;
-  const html = C.documentoPagina({ ...campos, lineas }, { numero: fila.numero, base: SITIO });
+  const html = C.documentoPagina({ ...campos, lineas }, { numero: fila.numero, emisor: (fila as any)?.datos?.emisor ?? null, base: SITIO });
 
   const rr = await fetch(RENDER_URL.replace(/\/$/, '') + '/render-pdf', {
     method: 'POST',
@@ -503,7 +509,7 @@ async function enviarProformaTotal(o: { contratoId: string; numero: string; ct: 
   const lineas = [{ descripcion: 'Total del proyecto', importe: String(precio) }];
   const campos: Record<string, string> = {
     tipo: 'proforma',
-    sociedad: sociedadEmisora(C, f.sociedad_firmante),
+    sociedad: sociedadEmisora(C, f.sociedad_firmante, o.ct.tipo),
     cuenta: f.cuenta_bancaria && C.CUENTAS_BANCARIAS[f.cuenta_bancaria] ? f.cuenta_bancaria : '',
     fecha_emision: hoy, fecha_vencimiento: '', moneda,
     numero_visible: '', contrato_numero: o.numero,
@@ -521,7 +527,7 @@ async function enviarProformaTotal(o: { contratoId: string; numero: string; ct: 
 
   // La proforma que ya se creó al guardar el contrato (o.contratoId es FK real).
   const { data: existente, error: errBusca } = await sb.from('facturas')
-    .select('id, numero').eq('contrato_id', o.contratoId).eq('tipo', 'proforma').eq('anulada', false)
+    .select('id, numero, datos').eq('contrato_id', o.contratoId).eq('tipo', 'proforma').eq('anulada', false)
     .order('created_at', { ascending: true }).limit(1).maybeSingle();
   if (errBusca) throw new Error('no se pudo buscar la proforma: ' + errBusca.message);
 
@@ -533,7 +539,7 @@ async function enviarProformaTotal(o: { contratoId: string; numero: string; ct: 
       proyecto_nombre: campos.proyecto_nombre || null, contrato_numero: o.numero,
       total: totales.total, moneda, fecha_emision: hoy,
       datos: { fields: { ...campos, lineas }, lineas, totales },
-    }).eq('id', existente.id).select('id, numero').single();
+    }).eq('id', existente.id).select('id, numero, datos').single();
     if (upd.error || !upd.data) throw new Error('no se pudo actualizar la proforma: ' + (upd.error?.message ?? ''));
     fila = upd.data;
   } else {
@@ -543,13 +549,13 @@ async function enviarProformaTotal(o: { contratoId: string; numero: string; ct: 
       contrato_numero: o.numero, contrato_id: o.contratoId,
       total: totales.total, moneda, fecha_emision: hoy,
       datos: { fields: { ...campos, lineas }, lineas, totales },
-    }).select('id, numero').single();
+    }).select('id, numero, datos').single();
     if (ins.error || !ins.data) throw new Error('no se pudo crear la proforma: ' + (ins.error?.message ?? ''));
     fila = ins.data;
   }
 
   campos.numero_visible = fila.numero;
-  const html = C.documentoPagina({ ...campos, lineas }, { numero: fila.numero, base: SITIO });
+  const html = C.documentoPagina({ ...campos, lineas }, { numero: fila.numero, emisor: (fila as any)?.datos?.emisor ?? null, base: SITIO });
 
   const rr = await fetch(RENDER_URL.replace(/\/$/, '') + '/render-pdf', {
     method: 'POST',

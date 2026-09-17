@@ -1785,7 +1785,14 @@ function estadoDelFormulario(d){
 
 function render(){
   const d = collect();
-  const soc = SOCIEDADES[d.sociedad] || SOCIEDADES.tepi_sungai;
+  /* Sin caida a `tepi_sungai` (hallazgo Administracion, 17-sep-2026): este era
+     el octavo sitio y el peor, porque es LA pantalla que emite. Se disparaba si
+     el catalogo no habia cargado —el catch de arriba solo saca un aviso y deja
+     seguir— o si alguien marca la sociedad como inactiva, que `cargarSociedades`
+     filtra pero la clave ajena no. El resultado era una factura de San Dal Woods
+     con el NPWP de la otra PT. Sin sociedad se pinta el documento sin emisor,
+     que salta a la vista. */
+  const soc = SOCIEDADES[d.sociedad] || {};
   // Sin guardar no hay número: la línea no se pinta (antes decía «BORRADOR»,
   // fuera por decisión del owner el 30-jul). El número lo asigna el trigger al
   // guardar, así que un documento sin número es uno que aún no se ha emitido.
@@ -1797,7 +1804,7 @@ function render(){
   const hoja = document.querySelector('.sheet');
   if(hoja) Object.entries(v.hoja).forEach(([k, val]) => hoja.style.setProperty(k, val));
 
-  doc.innerHTML = documentoHTML(d, { numero });
+  doc.innerHTML = documentoHTML(d, { numero, emisor: (SAVED && SAVED.emisor) || null });
   estadoDelFormulario(d);
 
   $('#btnSave').textContent = SAVED ? 'Actualizar (' + SAVED.numero + ')' : 'Guardar en base de datos';
@@ -1841,6 +1848,7 @@ $('#btnPrint').onclick = () => {
 function paginaParaEmail(){
   return documentoPagina(collect(), {
     numero: (SAVED && SAVED.numero) || '',
+    emisor: (SAVED && SAVED.emisor) || null,
     base: location.origin,
   });
 }
@@ -2578,13 +2586,16 @@ $('#btnSave').onclick = async () => {
       data = rpcData;
     }else{
       const q = (SAVED && SAVED.id)
-        ? sb.from('facturas').update(payload()).eq('id', SAVED.id).select('id,numero').single()
-        : sb.from('facturas').insert(payload()).select('id,numero').single();
+        ? sb.from('facturas').update(payload()).eq('id', SAVED.id).select('id,numero,datos').single()
+        : sb.from('facturas').insert(payload()).select('id,numero,datos').single();
       const r = await q;
       if(r.error) throw r.error;
       data = r.data;
     }
-    SAVED = { id:data.id, numero:data.numero };
+    // `emisor`: la identidad CONGELADA que puso la base al emitir. Viaja en
+    // SAVED para que la vista previa y el PDF del correo impriman lo que dice
+    // el documento, no lo que diga hoy la ficha de la sociedad.
+    SAVED = { id:data.id, numero:data.numero, emisor:(data.datos && data.datos.emisor) || null };
     $('[name="numero_visible"]').value = data.numero;
     LDOCS = null;   // el listado queda viejo: al volver se recarga y el documento nuevo aparece (auditoría 19-ago)
     toast(lwT('Guardada como ') + data.numero);
@@ -3191,7 +3202,7 @@ async function abrir(f){
   // caché del listado, así que editar líneas sin guardar quedaba escrito en
   // LDOCS y reabrir el documento enseñaba la edición fantasma
   LINEAS = (f.datos && f.datos.lineas && f.datos.lineas.length) ? f.datos.lineas.map(l => ({...l})) : [{ descripcion:'', importe:'' }];
-  SAVED = f.anulada ? null : { id:f.id, numero:f.numero };   // una anulada se abre como copia, no se reescribe
+  SAVED = f.anulada ? null : { id:f.id, numero:f.numero, emisor:(f.datos && f.datos.emisor) || null };   // una anulada se abre como copia, no se reescribe
   CONTRATO_ID = f.contrato_id || null;
   pintarContratoElegido();
   // el panel de hitos se repinta para ESTE contrato (auditoría 19-ago): antes

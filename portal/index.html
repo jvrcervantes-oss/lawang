@@ -810,9 +810,23 @@
   /* ── carga ────────────────────────────────────────────────────────── */
   function cargar(){
     muestra('vCarga');
-    cargarCuentasBancarias(sb).catch(function(e){
-      console.warn('cuentas de cobro no disponibles:', e && e.message);
-    }).then(function(){
+    /* Las sociedades, IMPRESCINDIBLES aqui (hallazgo Desarrollo, consulta de
+       deploy del 17-sep-2026): desde que `SOCIEDADES` se carga de la base, sin
+       esta llamada el objeto queda vacio y toda factura del portal sale sin
+       razon social, sin NPWP, sin domicilio, sin logo y —lo peor— sin `tinta`.
+       Sin tinta no hay `--brand-primary`, y como esta pagina no carga brand.css
+       a proposito, `.doc thead` se pinta blanco sobre transparente: ilegible.
+       Es el mismo fallo del 1-sep, por otra puerta.
+       El comprador entra con `signInWithPassword`, asi que su sesion es
+       `authenticated` y la RLS de `sociedades` le deja leerla. */
+    Promise.all([
+      cargarSociedades(sb).catch(function(e){
+        console.warn('sociedades no disponibles:', e && e.message);
+      }),
+      cargarCuentasBancarias(sb).catch(function(e){
+        console.warn('cuentas de cobro no disponibles:', e && e.message);
+      })
+    ]).then(function(){
       sb.rpc('portal_situacion').then(function(r){
         if (r.error){
           muestra('vLogin');

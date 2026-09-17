@@ -62,4 +62,6 @@ export const EXPORTA: string[] = [
   "importeVencimiento",
   "cobradoEfectivo",
   "cascada",
+  "lwSociedadContrato",
+  "SOCIEDAD_DEFAULT",
 ];
