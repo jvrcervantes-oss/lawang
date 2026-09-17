@@ -5140,13 +5140,17 @@ function blobToBase64(blob){
    (tipo `readonly`, nadie puede teclearlo) y «Nombre del contrato» es un
    apodo interno que no imprime nada. Una sección opcional entera
    (hs_segunda_parte: el comprador firma por apoderado «dejar en blanco si
-   firma él mismo») se salta por id, no campo a campo. */
+   firma él mismo») se salta entera SOLO mientras está toda en blanco: si se
+   eligió apoderado, la fecha del poder vuelve a exigirse — sin ella
+   applyRepresentanteComprador() descarta la representación en silencio y el
+   comprador firmaría él mismo sin que nadie lo haya decidido. */
 const CAMPOS_OPCIONALES = new Set(['nombre_contrato', 'precio_total_letras', 'precio_reserva_letras']);
 const SECCIONES_OPCIONALES = new Set(['hs_segunda_parte']);
+const valorCampo = key => { const el = document.querySelector(`[name="${key}"]`); return el ? String(el.value||'').trim() : ''; };
 function camposSinRellenar(){
   const faltan = [];
   (SECTIONS||[]).forEach(s=>{
-    if(SECCIONES_OPCIONALES.has(s.id)) return;
+    if(SECCIONES_OPCIONALES.has(s.id) && !(s.fields||[]).some(f => valorCampo(f[0]))) return;
     (s.fields||[]).forEach(f=>{
       const [key, labelObj, type] = f;
       if(type==='legacy' || type==='signature') return;   // se rellenan solos, o al firmar — nunca antes de enviar
