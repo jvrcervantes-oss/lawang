@@ -2109,17 +2109,33 @@
           var ordenPago = filas.length ? filas[0].orden_pago : null;
           var diasPorDefecto = ordenPago != null && plazos[ordenPago] != null ? plazos[ordenPago] : '';
 
-          // El importe pendiente sale de la MISMA cascada que usa el dashboard
-          // de Vencimientos y la facturación automática (logica.js), nunca de
-          // pct × precio en bruto: un contrato con dinero ya cobrado debe
-          // enseñar lo que queda, no el hito entero.
-          pendientesDe(sb, elegibles).then(function (imp) {
+          var diasCalc = diasPorDefecto === '' ? 0 : Number(diasPorDefecto);
+          var fechaNueva = new Date(Date.now() + diasCalc * 864e5).toISOString().slice(0, 10);
+
+          // El importe pendiente sale de la MISMA cascada que usan el dashboard de
+          // Vencimientos y la facturación automática (logica.js), nunca de pct ×
+          // precio en bruto: un contrato con dinero ya cobrado debe enseñar lo que
+          // queda, no el hito entero.
+          pendientesDe(sb, proy, fase, zona, faseNueva, elegibles, fechaNueva).then(function (res) {
+            var imp = res.imp || {};
             var MOTIVO = {
               calendario_manual: 'calendario a medida, no el de fábrica',
               ajustado_a_mano: 'su fecha ya se tocó a mano',
               ya_facturado: 'ese pago ya está facturado',
               sin_vencimiento_en_ese_orden: 'no tiene ese pago en su calendario'
             };
+
+            // Total POR MONEDA, nunca uno solo: en Lawang conviven euros y rupias
+            // y sumarlas sería inventar una cifra.
+            var totales = {};
+            elegibles.forEach(function (f) {
+              var p = imp[f.contrato_id];
+              if (!p || p.pendiente == null || !p.moneda) return;
+              totales[p.moneda] = (totales[p.moneda] || 0) + p.pendiente;
+            });
+            var totalTxt = Object.keys(totales).map(function (m) {
+              return (typeof lwFormatoImporte === 'function') ? lwFormatoImporte(totales[m], m) : totales[m] + ' ' + m;
+            }).join('  ·  ');
 
             var campos = [
               { tipo: 'lectura', medio: 1, label: 'Tramo', valor: 'Fase ' + fase + ' · ' + zona },
@@ -2128,23 +2144,43 @@
                   d.style.cssText = 'display:grid;gap:8px;background:#f5f4ee;border:1px solid ' + CAJ.borde +
                     ';border-radius:12px;padding:12px 14px;font-size:12px;line-height:1.4;color:' + CAJ.apagado;
                   var h = document.createElement('div');
+
                   if (!elegibles.length) {
                     h.innerHTML = '<b style="color:#8A6A34">Ningún contrato recibe fecha de cobro con este avance.</b>' +
                       '<div style="margin-top:4px">La obra avanza igual y queda registrada, pero no se cobra nada.</div>';
                   } else {
-                    h.innerHTML = '<b>' + elegibles.length + (elegibles.length === 1 ? ' contrato recibe' : ' contratos reciben') +
-                      ' fecha de cobro:</b>';
+                    var cab = elegibles.length + (elegibles.length === 1 ? ' contrato recibe' : ' contratos reciben') +
+                      ' fecha de cobro';
+                    h.innerHTML = '<b>' + cab + (totalTxt ? ', por ' + esc(totalTxt) : '') + ':</b>' +
+                      '<div style="margin-top:2px;font-size:11px">Vencerían el <b>' + esc(fechaNueva) + '</b>' +
+                      (elegibles.length > 8 ? ', repartidos de 8 en 8 en días seguidos' : '') +
+                      '. El importe es el pendiente <b>a día de hoy</b>; la factura se emite al vencer, con lo cobrado entonces.</div>';
                     var ul = document.createElement('div');
                     ul.style.cssText = 'margin-top:6px;display:grid;gap:3px';
                     elegibles.forEach(function (f) {
                       var l = document.createElement('div');
                       var p = imp[f.contrato_id];
-                      l.innerHTML = '· <b>' + esc(f.numero || '—') + '</b>' +
-                        (p && p.txt ? ' — pendiente ' + esc(p.txt) : '');
+                      var cola;
+                      if (!p) {
+                        // Nunca en blanco: un hueco mudo se lee como "no debe nada".
+                        cola = '<span style="color:#8A6A34">importe no disponible' +
+                          (res.error ? '' : ' con tus permisos') + '</span>';
+                      } else if (p.cubierto) {
+                        // La edge salta lo que ya está cubierto por lo cobrado, así
+                        // que este contrato recibe fecha pero no generará factura.
+                        cola = '<span style="color:#8A6A34">ya cubierto — recibe fecha, no se facturará</span>';
+                      } else {
+                        cola = 'pendiente ' + esc(p.txt);
+                      }
+                      l.innerHTML = '· <b>' + esc(f.numero || '—') + '</b> — ' + cola;
                       ul.appendChild(l);
                     });
                     h.appendChild(ul);
+                    if (res.sinLogica)
+                      h.insertAdjacentHTML('beforeend',
+                        '<div style="margin-top:6px;color:#8A6A34">No se pudieron calcular importes en esta pantalla; la obra avanza igual.</div>');
                   }
+
                   if (fuera.length) {
                     var f2 = document.createElement('div');
                     f2.style.cssText = 'margin-top:8px;padding-top:8px;border-top:1px solid ' + CAJ.borde;
@@ -2160,13 +2196,21 @@
                     f2.appendChild(ul2);
                     h.appendChild(f2);
                   }
+
+                  if (elegibles.length) {
+                    // Lo que pasa DESPUÉS, dicho: a partir de aquí no hay persona.
+                    var av = document.createElement('div');
+                    av.style.cssText = 'margin-top:8px;padding-top:8px;border-top:1px solid ' + CAJ.borde + ';color:#8A6A34';
+                    av.textContent = 'Al vencer, cada contrato recibe su factura y el aviso al comprador de forma automática: a partir de aquí no hay revisión humana.';
+                    h.appendChild(av);
+                  }
                   d.appendChild(h);
                 } },
               { k: 'dias', tipo: 'number', paso: '1', req: 1, valor: diasPorDefecto,
                 label: 'Días hasta que venza el cobro',
                 ayuda: diasPorDefecto === ''
-                  ? 'Este proyecto no tiene plazo configurado para este pago. Escríbelo aquí, o configúralo en Proyectos → Estado y obra.'
-                  : 'Viene del plazo configurado en la ficha del proyecto. Puedes cambiarlo solo para este avance.' },
+                  ? 'Este proyecto no tiene plazo configurado para este pago. Escríbelo aquí, o configúralo en Proyectos → Estado y obra. Si lo cambias, las fechas e importes de arriba se recalculan al confirmar.'
+                  : 'Viene del plazo configurado en la ficha del proyecto. Puedes cambiarlo solo para este avance; si lo haces, la fecha de arriba cambia igual.' },
               { k: 'nota', tipo: 'textarea', label: 'Qué se ha hecho (queda en el histórico del parte)' }
             ];
 
@@ -2186,6 +2230,19 @@
                   // mientras el modal estaba abierto, la base rechaza (40001)
                   // en vez de fijar cobros sobre una lista que ya no es la vista.
                   p_contratos_esperados: elegibles.map(function (f) { return f.contrato_id; })
+                }).then(function (r) {
+                  // La RPC devuelve la fecha REAL de cada contrato (el reparto de
+                  // 8 por día empuja a algunos hacia delante). Se dice, en vez de
+                  // dejar creer que todos vencen el mismo día.
+                  if (!r.error && r.data && r.data.length) {
+                    var ds = {};
+                    r.data.forEach(function (x) { ds[x.fecha_vencimiento] = (ds[x.fecha_vencimiento] || 0) + 1; });
+                    var resumen = Object.keys(ds).sort().map(function (f) {
+                      return ds[f] + (ds[f] === 1 ? ' cobro el ' : ' cobros el ') + f;
+                    }).join(' · ');
+                    aviso('Obra avanzada · ' + resumen);
+                  }
+                  return r;
                 });
               });
           });
@@ -2193,40 +2250,64 @@
       }
 
       /* El pendiente real de cada contrato afectado, con la cascada compartida.
-         Si logica.js no está cargado se sigue adelante sin importes: la previa
-         con los contratos y sus motivos ya vale, y es mejor que no poder avanzar. */
-      function pendientesDe(sb, elegibles) {
-        if (!elegibles.length || typeof cascada !== 'function' || typeof cobradoEfectivo !== 'function')
-          return Promise.resolve({});
-        var ids = elegibles.map(function (f) { return f.contrato_id; });
-        return Promise.all([
-          sb.rpc('contratos_equipo').select('id,numero,precio_total,moneda,tipo,contrato_padre_id'),
-          sb.rpc('contratos_cobrado_equipo'),
-          sb.from('contrato_vencimientos').select('contrato_id,orden,pct,monto,fecha').in('contrato_id', ids)
-        ]).then(function (rs) {
-          var cs = (rs[0] && rs[0].data) || [];
-          var cobrados = {};
-          ((rs[1] && rs[1].data) || []).forEach(function (r) { cobrados[r.contrato_id || r.id] = r.cobrado || r.total || 0; });
-          var vencs = (rs[2] && rs[2].data) || [];
-          var porC = {};
-          vencs.forEach(function (v) { (porC[v.contrato_id] = porC[v.contrato_id] || []).push(v); });
+
+         Los datos de dinero salen de `obra_datos_cobro`, que tiene EL MISMO gate
+         que la lista (consulta de deploy 17-sep, Administración): antes se leían
+         de contratos_equipo()/contratos_cobrado_equipo(), que son de alcance por
+         agente, así que un project manager veía la lista entera de contratos y
+         los importes en blanco — indistinguible de "no hay nada pendiente",
+         justo antes de confirmar cobros reales. Hoy hay 6 usuarios con la
+         herramienta Obra y solo 4 son admin, o sea que no era hipotético.
+
+         `fechaNueva` es la fecha que se va a PONER, no la que hay. La cascada
+         reparte lo cobrado por orden de fecha, así que calcularla con la fecha
+         vieja podía enseñar un pendiente y facturar otro. */
+      function pendientesDe(sb, proy, fase, zona, faseNueva, elegibles, fechaNueva) {
+        if (!elegibles.length) return Promise.resolve({ imp: {}, sinPermiso: false });
+        if (typeof cascada !== 'function' || typeof cobradoEfectivo !== 'function')
+          return Promise.resolve({ imp: {}, sinLogica: true });
+
+        return sb.rpc('obra_datos_cobro', {
+          p_proyecto_id: proy.id, p_fase_masterplan: fase,
+          p_zona_masterplan: zona, p_fase_nueva: faseNueva
+        }).then(function (r) {
+          if (r.error) return { imp: {}, error: r.error.message };
+          var filas = r.data || [];
           var hoy = new Date().toISOString().slice(0, 10);
+          var cs = filas.map(function (x) {
+            return { id: x.contrato_id, numero: x.numero, precio_total: x.precio_total,
+                     moneda: x.moneda, tipo: 'construccion', contrato_padre_id: null };
+          });
+          var cobrados = {};
+          filas.forEach(function (x) { cobrados[x.contrato_id] = Number(x.cobrado) || 0; });
+
           var out = {};
           elegibles.forEach(function (f) {
+            var fila = filas.filter(function (x) { return x.contrato_id === f.contrato_id; })[0];
+            if (!fila) return;
             var c = cs.filter(function (x) { return x.id === f.contrato_id; })[0];
-            if (!c) return;
-            var anot = cascada(porC[c.id] || [], c, cobradoEfectivo(c, cs, cobrados), hoy);
+            // La fecha que se va a poner entra ANTES de repartir: es lo que
+            // decide en qué orden absorbe cada hito el dinero ya cobrado.
+            var vencs = (fila.vencimientos || []).map(function (v) {
+              return v.orden === f.orden_pago
+                ? { orden: v.orden, pct: v.pct, monto: v.monto, fecha: fechaNueva }
+                : v;
+            });
+            var anot = cascada(vencs, c, cobradoEfectivo(c, cs, cobrados), hoy);
             var mio = anot.filter(function (x) { return x.orden === f.orden_pago; })[0];
             if (!mio || mio.pendiente == null) return;
-            var mon = c.moneda || 'EUR';
-            // lwFormatoImporte es la unica forma de escribir dinero en la suite
-            // (dinero.js). Nunca toLocaleString: da decimales en rupias.
-            var txt = (typeof lwFormatoImporte === 'function')
-              ? lwFormatoImporte(mio.pendiente, mon) : String(mio.pendiente) + ' ' + mon;
-            out[c.id] = { pendiente: mio.pendiente, txt: txt };
+            var mon = fila.moneda;
+            var txt = !mon
+              // Sin moneda no se supone EUR: en Lawang conviven rupias y euros, y
+              // una cifra en rupias rotulada «€» no da ningún error, solo se lee mal.
+              ? String(mio.pendiente) + ' (moneda sin definir)'
+              : ((typeof lwFormatoImporte === 'function')
+                  ? lwFormatoImporte(mio.pendiente, mon) : String(mio.pendiente) + ' ' + mon);
+            out[f.contrato_id] = { pendiente: mio.pendiente, moneda: mon, txt: txt,
+                                   cubierto: mio.pendiente === 0 };
           });
-          return out;
-        }, function () { return {}; });
+          return { imp: out };
+        }, function (e) { return { imp: {}, error: String(e) }; });
       }
 
     },
