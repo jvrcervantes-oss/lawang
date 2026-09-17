@@ -287,8 +287,16 @@ function recalcularMontosHitos(){
      guardó. */
   const descuento = parseImporte((typeof CAMPOS_HEREDADOS !== 'undefined' && CAMPOS_HEREDADOS.carta_cobrado_importe) || '');
   if(descuento > 0){
-    const nuevos = lwDescuentoCascada(HITOS.map(h=>h.monto), descuento);
-    HITOS.forEach((h,i)=> aplicar(i, nuevos[i]));
+    // Solo sobre los hitos `calculado` — igual que el reparto de arriba
+    // (`if(!h.calculado) return;`). Un hito escrito a mano por el agente NO
+    // entra en la cascada: ni se le resta el descuento, ni "gasta" parte de
+    // él, porque su importe no es una fracción del total que este bloque
+    // controle — es un valor que el agente tecleó a propósito (hallazgo
+    // code-review 17-sep: la primera versión pisaba también los manuales).
+    const idxCalc = [], montosCalc = [];
+    HITOS.forEach((h,i)=>{ if(h.calculado){ idxCalc.push(i); montosCalc.push(h.monto); } });
+    const nuevos = lwDescuentoCascada(montosCalc, descuento);
+    idxCalc.forEach((i,k)=> aplicar(i, nuevos[k]));
   }
 }
 function hitosRowsHTML(){

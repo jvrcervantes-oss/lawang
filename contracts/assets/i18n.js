@@ -158,6 +158,18 @@
     'Esto no se puede deshacer.': 'This cannot be undone.',
     'Tu sesión ha caducado. Vuelve a entrar.': 'Your session has expired. Please log in again.',
 
+    /* ---------- toast de guardarContrato() al traspasar Carta de Reserva
+       (17-sep-2026) — mismo vocabulario que el .sui-aviso persistente de
+       hitos_fechas.js ("paid under the Letter", "left over", "cannot
+       absorb"), aquí como fragmentos porque el toast se concatena con el
+       importe/número reales, no una frase entera. Hallazgo code-review: la
+       primera versión no tenía entrada EN y se quedaba en español para un
+       agente en inglés. */
+    'se ha descontado': 'deducted',
+    'ya cobrado en': 'already paid under',
+    'sobran': 'left over:',
+    'cobrados en la Carta que este Bloqueo no puede absorber': 'paid under the Letter, which this Deed cannot absorb',
+
     /* ---------- dialogo.js: parar al usuario y elegir de una lista ---------- */
     '¿Seguimos?': 'Are you sure?',
     'Elige una opción': 'Choose an option',
