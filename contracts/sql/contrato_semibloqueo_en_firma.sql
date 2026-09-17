@@ -38,6 +38,11 @@
 -- NADA SE BORRA. Las firmas anuladas se quedan como historia con
 -- `estado = 'anulado'`, y su `snapshot_path` conserva el documento que el
 -- comprador vio y firmo. Esa copia es la prueba, y sobrevive a la edicion.
+--
+-- 17-sep-2026: el raise exception se acorta (owner: "ve al grano"). El detalle
+-- de cuántos enlaces/firmas hay ya no va en el mensaje -- el operador solo
+-- necesita saber qué hacer, no el conteo; si hace falta el detalle está en
+-- `contrato_firmas`. Ver migración 20260917040000_errores_de_guardado_al_grano.
 
 create or replace function public.contrato_no_editable_en_firma()
 returns trigger language plpgsql security definer set search_path = '' as $$
@@ -62,8 +67,7 @@ begin
   end if;
 
   raise exception
-    'Este contrato esta enviado a firma (% enlace(s) sin usar, % firma(s) ya recogida(s)) y no se puede editar. Para cambiarlo hay que anular la firma: al guardar, la app te lo ofrece. Anular invalida lo ya firmado y el comprador tendra que firmar de nuevo.',
-    coalesce(n_vivas, 0), coalesce(n_firmadas, 0)
+    'Contrato enviado a firma: usa «Editar (anula la firma)» para guardar cambios.'
     using errcode = '23514';
 end $$;
 

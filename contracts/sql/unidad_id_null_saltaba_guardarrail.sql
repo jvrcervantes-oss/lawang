@@ -43,7 +43,7 @@ begin
   v_raiz := coalesce(new.contrato_padre_id, new.id);
   select contrato_id into v_unidad_contrato from public.unidades where id = new.unidad_id;
   if v_unidad_contrato is distinct from v_raiz then
-    raise exception 'unidad_id debe pertenecer a la misma reserva raíz del contrato' using errcode = '23514';
+    raise exception 'Esta parcela no pertenece a esta reserva.' using errcode = '23514';   -- 17-sep-2026: mensaje sin jerga interna (owner, ver 20260917040000_errores_de_guardado_al_grano)
   end if;
   return new;
 end;

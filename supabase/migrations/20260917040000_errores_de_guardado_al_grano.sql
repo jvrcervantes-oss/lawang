@@ -1,60 +1,27 @@
 -- ════════════════════════════════════════════════════════════════════════════
--- UN CONTRATO QUE RESERVA PARCELA NO SE GUARDA SIN PROYECTO Y SIN PARCELA
--- 14-sep-2026 · encargo del owner · revisión previa: Datos + Desarrollo
--- 17-sep-2026: los dos raise exception de abajo se acortaron (owner: "ve al
--- grano, el operador no necesita el porqué"). El porqué se queda en ESTE
--- comentario, no en el texto que ve el operador — ver migración
--- 20260917040000_errores_de_guardado_al_grano.
+-- LOS ERRORES DE GUARDAR UN CONTRATO, AL GRANO — 17-sep-2026
 -- ════════════════════════════════════════════════════════════════════════════
--- POR QUÉ EXISTE. RP00164 (54.204 €) se guardó sin proyecto y con el código de
--- la subparcela ("C3") escrito en `parcela_master` —el código del terreno
--- entero— en vez de en `parcela_codigo`. Como la plantilla imprime cada campo
--- en una frase distinta, el PDF que firmaron las dos partes dice «parcela
--- máster C3» y deja EN BLANCO el número de la parcela que se cede. Y como
--- `sincroniza_unidad_contrato()` lee `parcela_codigo` para atar la unidad, la
--- parcela C3 se quedó `disponible` con el contrato firmado y 27.102 € cobrados:
--- vendible dos veces, sin que nada avisara.
+-- Owner: «el mensaje de error al guardar un contrato... mucho texto que el
+-- operador no necesita saber, ve al grano. 'Error: Rellena los campos [y los
+-- enumeras]'. Haz lo mismo con el resto de errores.»
 --
--- El agujero por el que salió está escrito literalmente aquí abajo, en esta
--- misma función: un `return new` mudo. Este fichero lo convierte en un error.
+-- El texto que se RAISE EXCEPTION es justo el que ve el operador en el toast
+-- (contracts/app.html, catch de guardarContrato()) — no una entrada de log.
+-- Estas tres funciones lo escribían pensando en documentar el porqué DENTRO
+-- del mensaje, que es trabajo del comentario de cabecera de cada función
+-- (contracts/sql/*.sql), no de la frase que sale en pantalla. Se acorta la
+-- frase; el porqué se queda donde ya estaba, en los comentarios de cada
+-- fichero fuente — no se toca ni una línea de esos.
 --
--- POR QUÉ SE MODIFICA ESTA FUNCIÓN Y NO SE AÑADE UN TRIGGER HERMANO.
--- Un `trg_exige_parcela` aparte serían dos triggers razonando sobre los mismos
--- dos campos, con orden de disparo por nombre alfabético y con la lista de
--- tipos duplicada — la familia de fallo que este repo ya paga tres veces. El
--- sitio donde la falta de parcela YA se detecta es este `if`; lo único que le
--- faltaba era hablar.
---
--- LA LISTA DE TIPOS NO SE ESCRIBE A MANO. Sale de `contrato_tipo_etapa`
--- (`etapa = 'reserva'`), que es donde el estudio ya declara qué tipos reservan
--- una parcela: reserva_parcela, carta_reserva, carta_reserva_ampliada,
--- carta_reserva_hak_sewa y carta_reserva_pma. Un tipo nuevo de reserva hereda
--- el guardarraíl el día que se le pone su etapa, sin tocar este fichero.
--- `construccion` queda fuera sola y por el motivo correcto: su etapa es
--- 'contrato', y además se vincula por `unidad_id`, no por código de parcela.
---
--- LA SALIDA PARA EL LEGADO, QUE TAMBIÉN PROTEGE LAS ALTAS NUEVAS.
--- Hay 37 contratos ya guardados que no cumplirían la regla, 18 de ellos
--- firmados. Rechazar todo UPDATE los dejaría imposibles de anular y de
--- corregir — incluido RP00164, que es justo al que hay que ir. Peor: esta
--- misma función hace `update public.contratos set contrato_padre_id` sobre el
--- contrato VIEJO en el traspaso carta→bloqueo, así que guardar un contrato
--- nuevo y perfectamente válido abortaría por culpa de un legado ajeno, con un
--- mensaje hablando de otro contrato.
--- Por eso la regla solo muerde cuando el UPDATE TOCA esos campos: si el
--- proyecto y los códigos son idénticos a los de OLD, se deja pasar. Se puede
--- anular, cobrar y corregir lo demás; lo que no se puede es dejarlos mal
--- habiéndolos tocado.
---
--- FUERA DE ALCANCE A PROPÓSITO: que el código EXISTA en `unidades`. Cerraría
--- también los 23 códigos huérfanos que LAW-73 dejó vivos, pero bloquea guardar
--- en un proyecto cuyas unidades aún no están cargadas. Es una decisión del
--- owner, no un detalle de implementación — va anotada aparte.
---
--- IDEMPOTENTE: es un `create or replace` de la función. Correrlo dos veces
--- deja lo mismo. No toca datos, no toca la tabla, no borra nada.
+-- Solo cambian las TRES cadenas citadas abajo. El resto de raise exception del
+-- flujo de guardado (parcela ya asignada, traspaso sin pasaporte/email, tipo
+-- no permitido, poder notarial ajeno...) ya dicen qué falta y qué hacer sin
+-- rodeo — no se tocan para no arriesgar precisión legal por brevedad donde no
+-- hace falta.
 -- ════════════════════════════════════════════════════════════════════════════
 
+-- ── 1) sincroniza_unidad_contrato() — mismo cuerpo que la migración
+--       20260914120341 (exige_parcela_al_guardar), solo las dos frases largas.
 create or replace function public.sincroniza_unidad_contrato()
  returns trigger
  language plpgsql
@@ -98,9 +65,6 @@ begin
     end if;
   end if;
 
-  -- ── EL GUARDARRAÍL (14-sep-2026) ──────────────────────────────────────────
-  -- Antes esto era `if ... then return new; end if;` a secas: sin proyecto o
-  -- sin códigos, la función se callaba y el contrato se guardaba suelto.
   if coalesce(array_length(cods, 1), 0) = 0 or proy is null then
 
     select true into exige
@@ -108,9 +72,6 @@ begin
      where e.tipo = new.tipo and e.etapa = 'reserva';
 
     if coalesce(exige, false) then
-      -- El legado sigue siendo editable y anulable mientras no se toquen estos
-      -- dos campos. Ver la cabecera: sin esto, el traspaso interno de esta
-      -- misma función aborta altas nuevas y válidas.
       proy_ant := case when tg_op = 'UPDATE'
                   then coalesce(nullif(btrim(old.datos->'fields'->>'proyecto_nombre'), ''), old.proyecto_nombre)
                   end;
@@ -202,6 +163,65 @@ begin
     ocupada_id := null; ocupada := null; ocupada_tipo := null; ids_ocupa := null;
   end loop;
 
+  return new;
+end;
+$function$;
+
+-- ── 2) contrato_no_editable_en_firma() — mismo cuerpo, mensaje corto y sin
+--       parámetros (n_vivas/n_firmadas eran solo para el texto largo).
+create or replace function public.contrato_no_editable_en_firma()
+ returns trigger
+ language plpgsql
+ security definer
+ set search_path to ''
+as $function$
+declare
+  n_vivas    int;
+  n_firmadas int;
+begin
+  if new.datos is not distinct from old.datos then
+    return new;
+  end if;
+
+  select count(*) filter (where cf.estado = 'pendiente'),
+         count(*) filter (where cf.estado = 'firmado')
+    into n_vivas, n_firmadas
+    from public.contrato_firmas cf
+   where cf.contrato_id = new.id;
+
+  if coalesce(n_vivas, 0) = 0 and coalesce(n_firmadas, 0) = 0 then
+    return new;
+  end if;
+
+  raise exception
+    'Contrato enviado a firma: usa «Editar (anula la firma)» para guardar cambios.'
+    using errcode = '23514';
+end $function$;
+
+-- ── 3) trg_valida_unidad_id_contrato() — mismo cuerpo, un mensaje sin jerga
+--       interna ("unidad_id", "reserva raíz") en el único raise que la tenía.
+create or replace function public.trg_valida_unidad_id_contrato()
+ returns trigger
+ language plpgsql
+ security definer
+ set search_path to ''
+as $function$
+declare
+  v_raiz uuid;
+  v_unidad_contrato uuid;
+begin
+  if tg_op = 'UPDATE' and new.unidad_id is distinct from old.unidad_id
+     and not public.es_admin() then
+    raise exception 'solo un admin puede cambiar la parcela de un contrato ya guardado' using errcode = '42501';
+  end if;
+
+  if new.unidad_id is null then return new; end if;
+
+  v_raiz := coalesce(new.contrato_padre_id, new.id);
+  select contrato_id into v_unidad_contrato from public.unidades where id = new.unidad_id;
+  if v_unidad_contrato is distinct from v_raiz then
+    raise exception 'Esta parcela no pertenece a esta reserva.' using errcode = '23514';
+  end if;
   return new;
 end;
 $function$;
