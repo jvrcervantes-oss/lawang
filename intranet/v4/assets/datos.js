@@ -2073,7 +2073,21 @@
               .select('fase_masterplan,zona_masterplan,fase_anterior,fase_nueva,fecha,autor,nota,dias_offset,proyecto_id')
               .order('creado_en', { ascending: false }).limit(8), 'partes de trabajo')
             .then(function (ps) {
-              if (ps == null || !ps.length) return;
+              // Se pinta SIEMPRE, tambien vacio: la banda de arriba anuncia que
+              // ahora hay partes de trabajo, y una pantalla que lo dice y no
+              // enseña nada se lee como que algo falla. Y `null` (no se pudo
+              // leer) no se confunde con `[]` (no hay ninguno): son cosas
+              // distintas y se dicen distinto.
+              if (ps == null) {
+                panelReal('Últimos partes de trabajo', [], [],
+                  'No se pudieron leer los partes de trabajo.');
+                return;
+              }
+              if (!ps.length) {
+                panelReal('Últimos partes de trabajo', [], [],
+                  'Todavía no hay ningún parte de trabajo. Se crean desde «Nuevo parte de trabajo».');
+                return;
+              }
               var nombres = {};
               q(sb.from('proyectos').select('id,nombre'), 'proyectos de los partes').then(function (pr) {
                 (pr || []).forEach(function (x) { nombres[x.id] = x.nombre; });
@@ -2087,7 +2101,7 @@
                       esc((r.fase_anterior ? r.fase_anterior + ' → ' : 'arranca en ') + r.fase_nueva +
                         ' · ' + fFecha(r.fecha) + (r.autor ? ' · ' + r.autor : '')),
                       r.dias_offset != null ? 'cobro +' + Number(r.dias_offset) + 'd' : '');
-                  }), [], 'Todavía no hay ningún parte de trabajo.');
+                  }), []);
               });
             });
 

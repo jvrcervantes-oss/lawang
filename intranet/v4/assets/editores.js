@@ -2119,6 +2119,7 @@
           pendientesDe(sb, proy, fase, zona, faseNueva, elegibles, fechaNueva).then(function (res) {
             var imp = res.imp || {};
             var MOTIVO = {
+              anterior_al_mecanismo: 'contrato anterior a este mecanismo — se cobra a mano, como hasta ahora',
               calendario_manual: 'calendario a medida, no el de fábrica',
               ajustado_a_mano: 'su fecha ya se tocó a mano',
               ya_facturado: 'ese pago ya está facturado',
