@@ -2058,7 +2058,38 @@
           pon2('k-hitos', String(us.filter(function (u) { return u.obra_fecha_entrega; }).length));
           pon2('k-hitos-pie', 'unidades con fecha de entrega puesta');
           pon2('k-certificaciones', '—');
-          bandaNota('«Certificaciones», «% completado», contratista, fecha de inicio y las cámaras se quedan en «—»: la suite no guarda ninguno de esos datos. Lo que sí guarda por unidad — fase, entrega y última actualización — es lo que ves.', '#8A6A34');
+          // 17-sep-2026: esta banda decía que la suite no guarda avance de obra, y
+          // desde hoy sí lo hace — por fase-zona del masterplan, con partes de
+          // trabajo (obra_partes_trabajo). Se corrige en vez de borrarla: lo que
+          // sigue sin existir (contratista, cámaras) se sigue diciendo, porque un
+          // «—» sin explicación es lo que esta banda vino a evitar.
+          bandaNota('Contratista y cámaras se quedan en «—»: la suite no guarda esos datos. El avance sí: por unidad (fase y entrega) y, desde hoy, por tramo del masterplan con partes de trabajo, que además fijan la fecha de cobro de cada fase.', '#8A6A34');
+
+          /* Últimos partes de trabajo (17-sep-2026). Van al panel de la derecha
+             porque son el histórico de quién movió la obra y cuándo — hasta hoy
+             no había ninguno, y un avance sin rastro es justo lo que el encargo
+             venía a cerrar. */
+          q(sb.from('obra_partes_trabajo')
+              .select('fase_masterplan,zona_masterplan,fase_anterior,fase_nueva,fecha,autor,nota,dias_offset,proyecto_id')
+              .order('creado_en', { ascending: false }).limit(8), 'partes de trabajo')
+            .then(function (ps) {
+              if (ps == null || !ps.length) return;
+              var nombres = {};
+              q(sb.from('proyectos').select('id,nombre'), 'proyectos de los partes').then(function (pr) {
+                (pr || []).forEach(function (x) { nombres[x.id] = x.nombre; });
+                panelReal('Últimos partes de trabajo',
+                  ps.map(function (r) {
+                    // itemPanel mete lo que se le da en innerHTML sin escapar:
+                    // todo lo que sale de la base pasa por esc() (el repo es publico
+                    // y una zona o un autor son texto libre).
+                    return itemPanel(
+                      esc((nombres[r.proyecto_id] || '—') + ' · fase ' + r.fase_masterplan + ' · ' + r.zona_masterplan),
+                      esc((r.fase_anterior ? r.fase_anterior + ' → ' : 'arranca en ') + r.fase_nueva +
+                        ' · ' + fFecha(r.fecha) + (r.autor ? ' · ' + r.autor : '')),
+                      r.dias_offset != null ? 'cobro +' + Number(r.dias_offset) + 'd' : '');
+                  }), [], 'Todavía no hay ningún parte de trabajo.');
+              });
+            });
 
           // siguiente entrega: la fecha futura mas cercana
           var hoy = new Date().toISOString().slice(0, 10);

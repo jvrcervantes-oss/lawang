@@ -1981,6 +1981,254 @@
           }, { sinRecarga: true });
         });
       });
+
+      /* Parte de trabajo: avanzar una fase-zona y fijar los cobros de esa fase
+         (17-sep-2026, encargo del owner — encargos/20260917_lawang_vencimientos_obra.md).
+
+         Es otra cosa que "Registrar avance técnico", que es por UNIDAD y solo
+         mueve `unidades.obra_fase` + fotos. Esto mueve el cubo entero
+         (proyecto + fase del masterplan + zona) y, al hacerlo, FIJA LA FECHA DE
+         COBRO del pago de esa fase en todos los contratos de Construcción de ese
+         cubo. O sea: dispara dinero real hacia compradores reales. De ahí que
+         haya vista previa obligatoria antes de confirmar.
+
+         El flujo lo imponen las funciones de la base, no esta pantalla:
+         obra_contratos_afectados() para la previa → obra_confirmar_avance() con
+         los MISMOS ids que se enseñaron (candado optimista: si la lista cambió
+         mientras tanto, la base rechaza en vez de escribir sobre datos viejos). */
+      ata(/Nuevo parte de trabajo/i, function () {
+        if (!puedeH(aut.ficha, 'obra'))
+          return aviso('Los partes de trabajo exigen la herramienta Obra (policy puede(\'obra\')).', '#8A6A34');
+
+        Promise.all([
+          sb.from('proyectos').select('id,nombre,estado').eq('estado', 'en_construccion').order('nombre'),
+          sb.from('obra_fases').select('clave,es,orden').order('orden')
+        ]).then(function (rs) {
+          if (rs[0].error) return aviso('No se pudieron leer los proyectos: ' + rs[0].error.message, '#93000a');
+          var proys = rs[0].data || [], fases = rs[1].data || [];
+          // Sin proyectos en construcción no hay nada que avanzar, y el motivo
+          // no es obvio: se dice entero, con el camino para resolverlo.
+          if (!proys.length)
+            return aviso('Ningún proyecto está «En construcción». El parte de trabajo fija cobros, así que primero hay que pasar el proyecto a ese estado desde Proyectos → Estado y obra.', '#8A6A34');
+
+          modal('Parte de trabajo · elegir proyecto', [
+            { k: 'proyecto', label: 'Proyecto en construcción', tipo: 'select', req: 1,
+              opciones: proys.map(function (p) { return [p.id, p.nombre]; }) }
+          ], 'Continuar', function (v) {
+            var p = proys.filter(function (x) { return x.id === v.proyecto; })[0];
+            setTimeout(function () { eligeFaseZona(sb, p, fases); }, 300);
+          }, { sinRecarga: true });
+        });
+      });
+
+      /* Paso 2 — qué cubo del masterplan avanza, y a qué fase.
+         La fase siguiente NO se elige: la base solo admite avanzar un paso
+         (obra_fases.orden + 1), así que ofrecerla sería ofrecer un error. */
+      function eligeFaseZona(sb, proy, fases) {
+        Promise.all([
+          sb.from('unidades').select('fase_masterplan,zona_masterplan').eq('proyecto_id', proy.id),
+          sb.from('obra_progreso_fase_zona').select('fase_masterplan,zona_masterplan,obra_fase_actual')
+            .eq('proyecto_id', proy.id)
+        ]).then(function (rs) {
+          if (rs[0].error) return aviso('No se pudieron leer las parcelas: ' + rs[0].error.message, '#93000a');
+          var uds = rs[0].data || [], prog = rs[1].data || [];
+
+          // Cubos reales del proyecto. Una parcela sin fase o sin zona queda
+          // fuera a propósito: la base rechaza avanzar un cubo con cualquiera de
+          // las dos en blanco, porque NULL ahí significa "sin zonificar todavía",
+          // no una zona que se llame NULL.
+          // La clave del cubo va en JSON, no concatenando con un separador:
+          // cualquier separador de texto puede aparecer dentro de una zona real
+          // y partirla de vuelta daria datos equivocados sin dar ningun error.
+          var cubos = {};
+          uds.forEach(function (u) {
+            if (!u.fase_masterplan || !u.zona_masterplan) return;
+            var k = JSON.stringify([u.fase_masterplan, u.zona_masterplan]);
+            cubos[k] = (cubos[k] || 0) + 1;
+          });
+          var claves = Object.keys(cubos).sort();
+          if (!claves.length)
+            return aviso('Este proyecto no tiene ninguna parcela con fase y zona del masterplan puestas, así que no hay cubo que avanzar.', '#8A6A34');
+
+          var porCubo = {};
+          prog.forEach(function (r) { porCubo[JSON.stringify([r.fase_masterplan, r.zona_masterplan])] = r.obra_fase_actual; });
+
+          var etiqueta = {}, siguiente = {};
+          fases.forEach(function (f) { etiqueta[f.clave] = f.es || f.clave; });
+
+          var ops = claves.map(function (k) {
+            var partes = JSON.parse(k);
+            var actual = porCubo[k] || null;
+            var sig = null;
+            if (!actual) { sig = fases[0] && fases[0].clave; }
+            else {
+              for (var i = 0; i < fases.length; i++) {
+                if (fases[i].clave === actual) { sig = fases[i + 1] && fases[i + 1].clave; break; }
+              }
+            }
+            siguiente[k] = sig;
+            var texto = 'Fase ' + partes[0] + ' · ' + partes[1] + ' · ' + cubos[k] + ' parcelas · ' +
+              (actual ? 'ahora en ' + (etiqueta[actual] || actual) : 'sin empezar') +
+              (sig ? ' → ' + (etiqueta[sig] || sig) : ' · ya terminado');
+            return [k, texto];
+          });
+
+          modal('Parte de trabajo · ' + proy.nombre, [
+            { k: 'cubo', label: 'Qué parte de la obra avanza', tipo: 'select', req: 1, opciones: ops,
+              ayuda: 'Cada avance fija la fecha de cobro de esa fase en los contratos de esas parcelas.' }
+          ], 'Ver qué se va a cobrar', function (v) {
+            var sig = siguiente[v.cubo];
+            if (!sig) return { error: { message: 'Ese tramo ya está en la última fase de obra: no hay paso siguiente.' } };
+            var partes = JSON.parse(v.cubo);
+            setTimeout(function () {
+              previaAvance(sb, proy, partes[0], partes[1], sig, etiqueta[sig] || sig);
+            }, 300);
+          }, { sinRecarga: true });
+        });
+      }
+
+      /* Paso 3 — la vista previa, y solo desde aquí se confirma.
+         Enseña los contratos que van a recibir fecha de cobro Y los que se
+         quedan fuera con su motivo: un contrato excluido en silencio es
+         exactamente el fallo que esta pantalla tiene que evitar. */
+      function previaAvance(sb, proy, fase, zona, faseNueva, faseNuevaEs) {
+        Promise.all([
+          sb.rpc('obra_contratos_afectados', {
+            p_proyecto_id: proy.id, p_fase_masterplan: fase,
+            p_zona_masterplan: zona, p_fase_nueva: faseNueva
+          }),
+          sb.from('proyecto_plazo_pago').select('orden_pago,dias').eq('proyecto_id', proy.id)
+        ]).then(function (rs) {
+          if (rs[0].error) return aviso('No se pudo calcular la previa: ' + rs[0].error.message, '#93000a');
+          var filas = rs[0].data || [];
+          var plazos = {};
+          ((rs[1] && rs[1].data) || []).forEach(function (x) { plazos[x.orden_pago] = x.dias; });
+
+          var elegibles = filas.filter(function (f) { return f.elegible; });
+          var fuera = filas.filter(function (f) { return !f.elegible; });
+          var ordenPago = filas.length ? filas[0].orden_pago : null;
+          var diasPorDefecto = ordenPago != null && plazos[ordenPago] != null ? plazos[ordenPago] : '';
+
+          // El importe pendiente sale de la MISMA cascada que usa el dashboard
+          // de Vencimientos y la facturación automática (logica.js), nunca de
+          // pct × precio en bruto: un contrato con dinero ya cobrado debe
+          // enseñar lo que queda, no el hito entero.
+          pendientesDe(sb, elegibles).then(function (imp) {
+            var MOTIVO = {
+              calendario_manual: 'calendario a medida, no el de fábrica',
+              ajustado_a_mano: 'su fecha ya se tocó a mano',
+              ya_facturado: 'ese pago ya está facturado',
+              sin_vencimiento_en_ese_orden: 'no tiene ese pago en su calendario'
+            };
+
+            var campos = [
+              { tipo: 'lectura', medio: 1, label: 'Tramo', valor: 'Fase ' + fase + ' · ' + zona },
+              { tipo: 'lectura', medio: 1, label: 'Pasa a', valor: faseNuevaEs },
+              { tipo: 'custom', label: 'Lo que se va a cobrar', render: function (d) {
+                  d.style.cssText = 'display:grid;gap:8px;background:#f5f4ee;border:1px solid ' + CAJ.borde +
+                    ';border-radius:12px;padding:12px 14px;font-size:12px;line-height:1.4;color:' + CAJ.apagado;
+                  var h = document.createElement('div');
+                  if (!elegibles.length) {
+                    h.innerHTML = '<b style="color:#8A6A34">Ningún contrato recibe fecha de cobro con este avance.</b>' +
+                      '<div style="margin-top:4px">La obra avanza igual y queda registrada, pero no se cobra nada.</div>';
+                  } else {
+                    h.innerHTML = '<b>' + elegibles.length + (elegibles.length === 1 ? ' contrato recibe' : ' contratos reciben') +
+                      ' fecha de cobro:</b>';
+                    var ul = document.createElement('div');
+                    ul.style.cssText = 'margin-top:6px;display:grid;gap:3px';
+                    elegibles.forEach(function (f) {
+                      var l = document.createElement('div');
+                      var p = imp[f.contrato_id];
+                      l.innerHTML = '· <b>' + esc(f.numero || '—') + '</b>' +
+                        (p && p.txt ? ' — pendiente ' + esc(p.txt) : '');
+                      ul.appendChild(l);
+                    });
+                    h.appendChild(ul);
+                  }
+                  if (fuera.length) {
+                    var f2 = document.createElement('div');
+                    f2.style.cssText = 'margin-top:8px;padding-top:8px;border-top:1px solid ' + CAJ.borde;
+                    f2.innerHTML = '<b>' + fuera.length + (fuera.length === 1 ? ' contrato se queda' : ' contratos se quedan') +
+                      ' fuera</b> (siguen gestionándose a mano):';
+                    var ul2 = document.createElement('div');
+                    ul2.style.cssText = 'margin-top:4px;display:grid;gap:3px;color:#8A6A34';
+                    fuera.forEach(function (f) {
+                      var l = document.createElement('div');
+                      l.textContent = '· ' + (f.numero || '—') + ' — ' + (MOTIVO[f.motivo] || f.motivo || 'sin motivo');
+                      ul2.appendChild(l);
+                    });
+                    f2.appendChild(ul2);
+                    h.appendChild(f2);
+                  }
+                  d.appendChild(h);
+                } },
+              { k: 'dias', tipo: 'number', paso: '1', req: 1, valor: diasPorDefecto,
+                label: 'Días hasta que venza el cobro',
+                ayuda: diasPorDefecto === ''
+                  ? 'Este proyecto no tiene plazo configurado para este pago. Escríbelo aquí, o configúralo en Proyectos → Estado y obra.'
+                  : 'Viene del plazo configurado en la ficha del proyecto. Puedes cambiarlo solo para este avance.' },
+              { k: 'nota', tipo: 'textarea', label: 'Qué se ha hecho (queda en el histórico del parte)' }
+            ];
+
+            modal('Confirmar parte de trabajo · ' + proy.nombre, campos,
+              elegibles.length ? 'Avanzar y fijar cobros' : 'Avanzar la obra', function (v) {
+                var dias = Number(v.dias);
+                if (!isFinite(dias) || dias < 0)
+                  return { error: { message: 'Los días hasta el cobro tienen que ser un número de 0 en adelante.' } };
+                return sb.rpc('obra_confirmar_avance', {
+                  p_proyecto_id: proy.id,
+                  p_fase_masterplan: fase,
+                  p_zona_masterplan: zona,
+                  p_fase_nueva: faseNueva,
+                  p_dias: dias,
+                  p_nota: (v.nota || '').trim() || null,
+                  // Los MISMOS ids que se acaban de enseñar. Si algo cambió
+                  // mientras el modal estaba abierto, la base rechaza (40001)
+                  // en vez de fijar cobros sobre una lista que ya no es la vista.
+                  p_contratos_esperados: elegibles.map(function (f) { return f.contrato_id; })
+                });
+              });
+          });
+        });
+      }
+
+      /* El pendiente real de cada contrato afectado, con la cascada compartida.
+         Si logica.js no está cargado se sigue adelante sin importes: la previa
+         con los contratos y sus motivos ya vale, y es mejor que no poder avanzar. */
+      function pendientesDe(sb, elegibles) {
+        if (!elegibles.length || typeof cascada !== 'function' || typeof cobradoEfectivo !== 'function')
+          return Promise.resolve({});
+        var ids = elegibles.map(function (f) { return f.contrato_id; });
+        return Promise.all([
+          sb.rpc('contratos_equipo').select('id,numero,precio_total,moneda,tipo,contrato_padre_id'),
+          sb.rpc('contratos_cobrado_equipo'),
+          sb.from('contrato_vencimientos').select('contrato_id,orden,pct,monto,fecha').in('contrato_id', ids)
+        ]).then(function (rs) {
+          var cs = (rs[0] && rs[0].data) || [];
+          var cobrados = {};
+          ((rs[1] && rs[1].data) || []).forEach(function (r) { cobrados[r.contrato_id || r.id] = r.cobrado || r.total || 0; });
+          var vencs = (rs[2] && rs[2].data) || [];
+          var porC = {};
+          vencs.forEach(function (v) { (porC[v.contrato_id] = porC[v.contrato_id] || []).push(v); });
+          var hoy = new Date().toISOString().slice(0, 10);
+          var out = {};
+          elegibles.forEach(function (f) {
+            var c = cs.filter(function (x) { return x.id === f.contrato_id; })[0];
+            if (!c) return;
+            var anot = cascada(porC[c.id] || [], c, cobradoEfectivo(c, cs, cobrados), hoy);
+            var mio = anot.filter(function (x) { return x.orden === f.orden_pago; })[0];
+            if (!mio || mio.pendiente == null) return;
+            var mon = c.moneda || 'EUR';
+            // lwFormatoImporte es la unica forma de escribir dinero en la suite
+            // (dinero.js). Nunca toLocaleString: da decimales en rupias.
+            var txt = (typeof lwFormatoImporte === 'function')
+              ? lwFormatoImporte(mio.pendiente, mon) : String(mio.pendiente) + ' ' + mon;
+            out[c.id] = { pendiente: mio.pendiente, txt: txt };
+          });
+          return out;
+        }, function () { return {}; });
+      }
+
     },
 
     compradores: function (aut) {
