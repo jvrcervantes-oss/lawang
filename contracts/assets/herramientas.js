@@ -172,20 +172,19 @@ const LW_HERRAMIENTAS = [
       : [d.solicitudesVivas ? hT('%n por resolver o pagar', { n: d.solicitudesVivas }) : hT('Sin solicitudes en vuelo'),
          d.solicitudesVivas > 0] },
 
-  /* Nueva 17-sep-2026 (encargo del owner: «0,5% de comisión a todo el dinero que
-     entra [...] es de administración [...] no es equipo de ventas»). Va la última
-     de Administración, detrás de Solicitudes, porque es lo que cierra el ciclo
-     del dinero: Facturas lo pide, Recibos lo cobra, Solicitudes lo reparte, y
-     esto cobra el porcentaje por haberlo hecho todo desde aquí.
+  /* Va la última de Administración, detrás de Solicitudes, porque es lo que
+     cierra el ciclo del dinero: Facturas lo pide, Recibos lo cobra, Solicitudes
+     lo reparte, y esto cobra el porcentaje por haberlo hecho todo desde aquí.
      OJO con el vecindario: «Solicitudes» y las Comisiones de la v4 son la
      comisión del EQUIPO DE VENTAS; ésta no tiene nada que ver con ella — es una
      tarifa por usar la intranet, aplicada sobre cada entrada de dinero.
-     `herr:'facturas'` y no una clave nueva: quien lleva las facturas es quien
-     lleva esto, y una clave nueva nace sin que nadie la tenga, con lo que la
-     herramienta quedaría invisible hasta ir a darla de alta usuario por usuario.
-     `soloAdmin` es la puerta del menú; la de verdad es la RLS (es_admin() para
-     leer el libro, es_super_admin() para tocar la tarifa). */
-  { grupo:'Administración', nombre:'Comisión de administración', icon:'ph-percent', href:'/intranet/v4/comision-admin/', herr:'facturas', soloAdmin:true,
+     `soloSuper` y no `soloAdmin`: esto abre lo que el estudio le cobra al
+     cliente, y los cuatro admin del equipo no tienen por qué verlo. Sin `herr`
+     a propósito — `soloSuper` ya es más estrecho que cualquier reparto por
+     herramienta, y una clave propia solo añadiría una casilla que nadie marca.
+     La puerta del menú es ésta; la de verdad es la RLS, que exige
+     es_super_admin() para leer y para escribir. */
+  { grupo:'Administración', nombre:'Comisión de administración', icon:'ph-percent', href:'/intranet/v4/comision-admin/', soloSuper:true,
     para:'El porcentaje que se cobra por el uso de la intranet sobre todo el dinero que entra, y el libro de lo devengado.',
     claves:'comision administracion porcentaje tarifa intranet dinero que entra recibos devengo libro fee admin percentage rate platform incoming money ledger' },
 
@@ -280,6 +279,10 @@ const lwEsSuper = f => !!f && f.rol === 'super_admin';
 const lwPermitida = (t, ficha) =>
   !t.soloPermiso &&
   (!t.soloAdmin || lwEsAdmin(ficha)) &&
+  /* `soloSuper` es un peldano por encima de `soloAdmin`: no basta con ser admin.
+     Hizo falta para la Comision de administracion, que abre lo que el estudio le
+     cobra al cliente — un dato que los cuatro admin no tienen por que ver. */
+  (!t.soloSuper || lwEsSuper(ficha)) &&
   (!ficha || lwEsSuper(ficha) || !t.herr ||
    [].concat(t.herr).some(h => (ficha.herramientas || []).includes(h)));
 

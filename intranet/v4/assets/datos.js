@@ -2897,16 +2897,21 @@
     });
   };
 
-  /* ---------- Comisión de administración (17-sep-2026) ----------
-     Encargo del owner: «0,5% de comisión a todo el dinero que entra [...] es de
-     administración [...] no es equipo de ventas». Pantalla de lectura: TODOS los
-     importes los calcula un disparador de la base sobre cada recibí, y el grant
-     de `comision_admin_lineas` para `authenticated` es solo SELECT + UPDATE de
-     (estado, nota, revisar) — desde aquí es IMPOSIBLE tocar base, pct o importe
-     aunque alguien lo intente por consola. El alta de tarifa vive en editores.js
-     (ED['comision-admin']) y la exige `es_super_admin()` en la base. */
+  /* ---------- Comisión de administración ----------
+     Un porcentaje sobre todo el dinero que entra por la intranet. No tiene nada
+     que ver con la comisión del equipo de ventas, que vive en «Comisiones».
+     Pantalla de lectura: TODOS los importes los calcula un disparador de la base
+     sobre cada recibí, y el grant de `comision_admin_lineas` para `authenticated`
+     es solo SELECT + UPDATE de (estado, nota, revisar) — desde aquí es IMPOSIBLE
+     tocar base, pct o importe aunque alguien lo intente por consola. Anular una
+     comisión y editar una tarifa van por RPC, porque las dos hacen algo más que
+     escribir una columna: una emite el abono si ya estaba facturada, y la otra
+     guarda la versión anterior de la tarifa antes de pisarla. */
   REG['comision-admin'] = function (sb) {
-    if (!(window.LW_V4 && window.LW_V4.esAdmin)) { notaSoloAdmin(); return; }
+    /* Super admin, no admin: la RLS de las dos tablas exige `es_super_admin()`,
+       asi que un admin normal veria la pantalla montarse y todas las consultas
+       devolver vacio — que se lee como «no hay nada» y no como «no es para ti». */
+    if (!(window.LW_V4 && window.LW_V4.esSuperAdmin)) { notaSoloAdmin(); return; }
 
     var cuerpoTar = document.getElementById('lw-ca-tarifas');
     var cuerpoLin = document.getElementById('lw-ca-lineas');
@@ -2955,6 +2960,8 @@
       if (!tarifas || !lineas) return;
       window.LW_V4 = window.LW_V4 || {};
       window.LW_V4.tarifas = tarifas;
+      window.LW_V4.tarifaPorId = {};
+      tarifas.forEach(function (t) { window.LW_V4.tarifaPorId[t.id] = t; });
       /* Las lineas, al alcance del editor: necesita la `nota` que ya tiene la
          fila para no borrarla al cambiar el estado. */
       window.LW_V4.caLineas = {};
@@ -3025,8 +3032,10 @@
               (esVigente ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-surface-container-high text-on-surface-variant') + '">' +
               (esVigente ? 'Vigente' : (futura ? 'Programada' : 'Histórica')) + '</span></td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(t.creado_por || '—') + '</td>' +
-            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline max-w-md">' + esc(t.nota || '—') + '</td></tr>';
-        }).join('') : '<tr><td colspan="5" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Ninguna tarifa dada de alta: no se está devengando comisión.</td></tr>';
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline max-w-md">' + esc(t.nota || '—') + '</td>' +
+            '<td class="px-5 py-4 text-right"><button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" ' +
+              'data-lw-ca-tarifa="' + esc(t.id) + '">Editar</button></td></tr>';
+        }).join('') : '<tr><td colspan="6" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Ninguna tarifa dada de alta: no se está devengando comisión.</td></tr>';
       }
 
       // ── Filtros del libro ─────────────────────────────────────────────────
@@ -3078,10 +3087,21 @@
               esc(fmt(l.importe, l.moneda)) + '<br><span class="text-outline text-[11px]">' + esc(Number(l.pct_aplicado)) + '%</span></td>' +
             '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' +
               est[1] + '">' + esc(est[0]) + '</span>' + banderas + '</td>' +
-            '<td class="px-5 py-4 text-right">' + (l.anulada ? '' :
-              '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" ' +
-              'data-lw-ca-estado="' + esc(l.id) + '" data-lw-etq="' + esc(l.recibi_numero) + '" data-lw-actual="' + esc(l.estado) + '">Cambiar estado</button>') +
-            '</td></tr>';
+            '<td class="px-5 py-4 text-right"><div class="flex justify-end gap-1">' + (l.anulada
+              ? (l.tipo_linea === 'devengo' && l.recibi_id
+                 ? '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" ' +
+                   'data-lw-ca-repone="' + esc(l.id) + '" data-lw-etq="' + esc(l.recibi_numero) + '">Reponer</button>'
+                 : '')
+              : '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" ' +
+                'data-lw-ca-estado="' + esc(l.id) + '" data-lw-etq="' + esc(l.recibi_numero) + '" data-lw-actual="' + esc(l.estado) + '">Estado</button>' +
+                /* Anular SOLO el devengo: sus ajustes y abonos van detras de el y
+                   se anulan con el, asi que ofrecerlo por separado invitaria a
+                   dejar media serie viva. */
+                (l.tipo_linea === 'devengo'
+                 ? '<button type="button" class="px-3 py-1 rounded-full text-error hover:bg-error-container/40 font-label-md text-[12px]" ' +
+                   'data-lw-ca-anula="' + esc(l.id) + '" data-lw-etq="' + esc(l.recibi_numero) + '" data-lw-estado="' + esc(l.estado) + '">Anular</button>'
+                 : '')) +
+            '</div></td></tr>';
         }).join('') : '<tr><td colspan="8" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">' +
           (lineas.length ? 'Ninguna línea para este filtro.' : 'Todavía no ha entrado dinero desde que rige la tarifa. La comisión no es retroactiva: solo cuenta lo que se registre a partir de ahora.') + '</td></tr>';
       }
@@ -3089,14 +3109,26 @@
       [selProy, selEstado, selMes].forEach(function (s) { if (s) s.addEventListener('change', pinta); });
 
       // acción delegada, con stopPropagation para ganar a maqueta.js (Regla 0)
-      if (cuerpoLin) cuerpoLin.addEventListener('click', function (ev) {
-        var b = ev.target.closest && ev.target.closest('[data-lw-ca-estado]');
-        if (!b) return;
-        ev.preventDefault(); ev.stopPropagation();
-        if (window.LW_V4 && window.LW_V4.abreEstadoComisionAdmin) {
-          window.LW_V4.abreEstadoComisionAdmin(b.getAttribute('data-lw-ca-estado'), b.getAttribute('data-lw-etq'), b.getAttribute('data-lw-actual'));  // la nota la lee de LW_V4.caLineas
-        } else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
-      });
+      /* Una sola delegacion para todas las acciones de fila, de las dos tablas.
+         `stopPropagation` para ganar a maqueta.js, que escucha en burbujeo. */
+      function delega(caja, pares) {
+        if (!caja) return;
+        caja.addEventListener('click', function (ev) {
+          for (var i = 0; i < pares.length; i++) {
+            var b = ev.target.closest && ev.target.closest('[' + pares[i][0] + ']');
+            if (!b) continue;
+            ev.preventDefault(); ev.stopPropagation();
+            var fn = window.LW_V4 && window.LW_V4[pares[i][1]];
+            if (fn) fn(b);
+            else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
+            return;
+          }
+        });
+      }
+      delega(cuerpoLin, [['data-lw-ca-estado', 'abreEstadoComisionAdmin'],
+                         ['data-lw-ca-anula',  'abreAnulaComisionAdmin'],
+                         ['data-lw-ca-repone', 'abreReponeComisionAdmin']]);
+      delega(cuerpoTar, [['data-lw-ca-tarifa', 'abreEditaTarifaComisionAdmin']]);
     });
   };
 
@@ -3153,6 +3185,10 @@
       window.LW_V4 = window.LW_V4 || {};
       window.LW_V4.miEmail = (aut.session && aut.session.user && aut.session.user.email) || '';
       window.LW_V4.esAdmin = rol === 'admin' || rol === 'super_admin';
+      /* Un peldano por encima: hay pantallas que ni los admin ven — hoy la
+         Comision de administracion, que abre lo que el estudio le cobra al
+         cliente. Se guarda aparte y no se deduce de `esAdmin`. */
+      window.LW_V4.esSuperAdmin = rol === 'super_admin';
 
       /* La cabecera de Home traia «3 de Septiembre de 2026» escrito a mano: la
          fecha de la captura de Stitch. Una fecha congelada no envejece con un

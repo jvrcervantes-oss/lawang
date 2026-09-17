@@ -89,11 +89,15 @@
   var PANEL_CONTROL = [
     { path: 'cuentas',       icono: 'account_balance', texto: 'Cuentas' },
     { path: 'equipos-venta', icono: 'groups',           texto: 'Equipos de venta' },
-    { path: 'condiciones',   icono: 'percent',          texto: 'Condiciones' },
-    /* 17-sep-2026: la comision de administracion (0,5% por el uso de la
-       intranet sobre todo el dinero que entra) se configura aqui, no en
-       Comisiones -- aquella es la del equipo de ventas y son dos cosas
-       distintas que comparten palabra. */
+    { path: 'condiciones',   icono: 'percent',          texto: 'Condiciones' }
+  ];
+
+  /* La comision de administracion va aparte del resto del Panel de control:
+     aquellas tres las ve cualquier admin, y esta SOLO el super admin, porque
+     abre lo que el estudio le cobra al cliente. Se configura aqui y no en
+     «Comisiones» — aquella es la del equipo de ventas, y son dos cosas
+     distintas que comparten palabra. */
+  var PANEL_CONTROL_SUPER = [
     { path: 'comision-admin', icono: 'price_change',      texto: 'Comision de administracion' }
   ];
 
@@ -137,6 +141,7 @@
      hay parpadeo: el usuario nunca llega a ver el menu sin estos dos items y
      luego perderlos. */
   function esAdminSesion(ficha) { return !!ficha && (ficha.rol === 'admin' || ficha.rol === 'super_admin'); }
+  function esSuperSesion(ficha) { return !!ficha && ficha.rol === 'super_admin'; }
 
   /* Construye la seccion "Panel de control" entera (cabecera + 3 enlaces) y
      la cuelga justo detras del grupo que contiene "Usuarios" ("Base de
@@ -158,7 +163,7 @@
     nuevaCabecera.textContent = 'Panel de control';
     nuevoGrupo.appendChild(nuevaCabecera);
 
-    PANEL_CONTROL.forEach(function (spec) {
+    PANEL_CONTROL.concat(esSuperSesion(ficha) ? PANEL_CONTROL_SUPER : []).forEach(function (spec) {
       var a = ancla.cloneNode(true);              // clon de "Usuarios": hereda las clases exactas
       a.setAttribute('data-path', spec.path);
       a.removeAttribute('aria-current');
