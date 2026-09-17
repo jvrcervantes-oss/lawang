@@ -3287,7 +3287,7 @@ function deriveSections(){
   // petición del cliente) como un campo más, si la plantilla trae la identidad
   // tokenizada ({{prom_razon}}). Se elige por contrato; default por plantilla (pdef).
   if(templateHTML.includes('{{prom_razon}}')){
-    const campo = ['sociedad_firmante',{es:'Sociedad firmante (Promotor)',en:'Signing company (Developer)',id:'Perusahaan penandatangan'},'select',SOCIEDAD_OPTIONS];
+    const campo = ['sociedad_firmante',{es:'Sociedad firmante (Promotor)',en:'Signing company (Developer)',id:'Perusahaan penandatangan'},'select',sociedadOptions()];
     const g = SECTIONS.find(s=>s.id==='gestion');
     if(g) g.fields.push(campo);
     else SECTIONS.unshift({ id:'gestion', tier:'gestion', title:{es:'Gestión del contrato',en:'Contract management',id:'Manajemen kontrak'}, fields:[campo] });
@@ -4084,7 +4084,12 @@ async function crearProformaAutomatica(contratoId, numero, payload){
     toastMal('No se ha creado la proforma: la sociedad «' + socElegida + '» no esta en el catalogo.');
     return;
   }
-  const sociedad = socElegida || 'tepi_sungai';
+  /* Y el vacio se resuelve con el default DE LA PLANTILLA, no con Tepi Sun Gai
+     a secas (hallazgo Legal, 17-sep-2026): `SOCIEDAD_DEFAULT` dice que un
+     `ppjb_reserva` es de San Dal Woods, asi que el contrato se imprimia como
+     SAN DAL WOODS y su proforma automatica salia con el NPWP de TEPI SUN GAI.
+     `lwSociedadContrato` es el resolver compartido que ya aplica esa tabla. */
+  const sociedad = lwSociedadContrato(socElegida, payload.tipo);
   const moneda = payload.moneda || 'EUR';
   try{
     const { error } = await sb.from('facturas').insert({
@@ -5131,6 +5136,21 @@ async function derivarContrato(slug){
      empieza en blanco, igual que ya arrancan los hitos, y lo pone quien
      redacta ESE documento. */
   if(!mismoTipo){ delete f.precio_total; delete f.precio_reserva; delete f.precio_m2; }
+  /* La cuenta de cobro es el mismo caso que el precio de arriba, hallazgo de
+     Administración (consulta de deploy, 17-sep-2026): `AUTO_CUENTA` marca "esto
+     lo puso el automatismo, no una persona", y `aplicaPrecargaCuenta()` respeta
+     cualquier valor que NO sea ese marcador por considerarlo elegido a mano. Sin
+     borrar `cuenta_bancaria` aquí, la cuenta de la Carta de origen viaja al
+     Bloqueo/Construcción derivado y se trata como "elección manual intocable"
+     aunque nadie la haya elegido para ESTE documento — silencioso, sin el toast
+     de "este proyecto no cobra ahí" (ese solo salta si la cuenta ya ni se
+     ofrece; una que sigue ofrecida pero no es la del proyecto+tipo destino no
+     avisa nunca). Mismo criterio que el precio: el duplicado del MISMO tipo
+     conserva su cuenta: es la misma operación repetida. A un tipo distinto
+     empieza vacía y `aplicaPrecargaCuenta()` (llamada dentro de
+     aplicarReglasCampos → syncCuentasProyecto, más abajo) pone la del
+     proyecto+tipo destino. */
+  if(!mismoTipo) delete f.cuenta_bancaria;
 
   // se suelta el vínculo con la fila de origen ANTES de cargar: lo que viene es
   // un contrato nuevo sin guardar, no una edición del anterior
@@ -5153,6 +5173,10 @@ async function derivarContrato(slug){
   // documento, no "el objetivo de derivar" como Compradores/Hitos.
   TECHO_ELEGIDO = null; EXTRAS_ELEGIDOS = []; TECHO_MODELO_HECHO = null; TECHOS_OPCIONES = []; EXTRAS_OPCIONES = [];
   AUTO_MASTER = ''; UNIDADES_PROY = { proyecto:null, lista:[], fallo:null };
+  // Mismo motivo que AUTO_MASTER, mismo hallazgo de Administración de arriba:
+  // sin soltar el marcador, una cuenta que por casualidad coincida con la que
+  // deje aquí un derivado anterior se tomaría por "puesta por el automatismo".
+  AUTO_CUENTA = '';
   // Mismo motivo que en resetBorrador() y openSavedContract(): la tipología y
   // el modelo pintados son de OTRO documento — sin soltarlos, el primer
   // repintado del derivado se cree un cambio de tipología y le pisa los m².
