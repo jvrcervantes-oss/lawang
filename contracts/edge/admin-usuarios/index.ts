@@ -198,20 +198,41 @@ Deno.serve(async (req) => {
           + `Se ha creado tu cuenta de acceso a la intranet de Lawang Tropical Properties.\n\n`
           + `Usuario: ${email}\n\n`
           + `La contraseña te la habrá dado quien te ha dado de alta. Si no la tienes, pídesela.`;
-        const rEmail = await fetch('https://lawangproperties.com/contracts/api/send_email.php', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json', 'X-Suite-Token': jwt },
-          body: JSON.stringify({
-            to: email, subject: 'Tu acceso a la intranet — Lawang Tropical Properties',
-            message: mensaje, attach: false,
-            cta_url: 'https://lawangproperties.com/intranet/', cta_texto: 'Entrar a la intranet',
-          }),
-        });
+        // 8s de tope (revisión de deploy, Seguridad, 17-sep): sin esto un SMTP
+        // lento colgaba el alta del tiempo que tardara send_email.php en
+        // resolver, convirtiendo un fallo de correo en un alta que parece
+        // atascada — cuando el diseño es justo que un fallo de correo no
+        // afecte al alta.
+        const ac = new AbortController();
+        const to_ = setTimeout(() => ac.abort(), 8000);
+        let rEmail: Response;
+        try {
+          rEmail = await fetch('https://lawangproperties.com/contracts/api/send_email.php', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', 'X-Suite-Token': jwt },
+            body: JSON.stringify({
+              to: email, subject: 'Tu acceso a la intranet — Lawang Tropical Properties',
+              message: mensaje, attach: false,
+              cta_url: 'https://lawangproperties.com/intranet/', cta_texto: 'Entrar a la intranet',
+            }),
+            signal: ac.signal,
+          });
+        } finally {
+          clearTimeout(to_);
+        }
         const tEmail = await rEmail.text();
-        if (rEmail.ok && tEmail.includes('"ok":true')) emailEnviado = true;
-        else emailError = tEmail.slice(0, 200);
+        if (rEmail.ok && tEmail.includes('"ok":true')) {
+          emailEnviado = true;
+        } else {
+          // el detalle real (puede llevar host/puerto SMTP) se loguea server-side
+          // y no viaja al navegador del admin — mismo criterio que send_email.php
+          // no expone su propia config al que lo llama.
+          console.error('admin-usuarios: fallo al enviar bienvenida a ' + email + ': ' + tEmail.slice(0, 300));
+          emailError = 'no_se_pudo_enviar';
+        }
       } catch (e) {
-        emailError = String((e as Error)?.message ?? e);
+        console.error('admin-usuarios: excepción al enviar bienvenida a ' + email + ': ' + String((e as Error)?.message ?? e));
+        emailError = 'no_se_pudo_enviar';
       }
       // un fallo de correo NO revierte el alta: la cuenta ya existe y funciona;
       // el panel avisa con email_error para que el admin le diga la contraseña
