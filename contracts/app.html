@@ -3161,6 +3161,22 @@ function deriveSections(){
   inDoc.delete('adq_representacion');   // derivado: nombre+fecha del poder a la vez, no un campo del form
   inDoc.delete('unidad_construccion_codigo');   // derivado (collect(), arriba): lo fija el selector de parcela, nunca se teclea
   inDoc.delete('techo_nombre');   // derivado (collect(), arriba): lo fija el selector de la sección "Techo y extras", nunca se teclea
+  /* carta_cobrado_importe/numeros (17-sep-2026): los escribe SOLO el trigger
+     de la base (carta_cobrado_al_bloquear, BEFORE INSERT) — regla 2 del
+     encargo, "el cliente nunca manda este cálculo". Sin este delete caían en
+     el cajón automático «Otros campos» de aquí abajo como un <input text>
+     editable a mano (mismo mecanismo que ya vació 'comp_*' arriba), con DOS
+     efectos malos a la vez: (1) un campo que cualquiera podía teclear encima
+     de un número que solo debe poner el servidor, y (2) collect() metía ''
+     en `data.carta_cobrado_importe` desde ESE input fantasma ANTES de que
+     corriera el merge de CAMPOS_HEREDADOS más abajo — como collect() solo
+     copia de CAMPOS_HEREDADOS lo que `data` NO tenga ya, el '' del input
+     fantasma ganaba siempre y el marcador {{carta_cobrado_importe}} salía en
+     blanco en el documento aunque el trigger sí hubiera calculado el
+     descuento. Encontrado verificando en producción (RP00188 de prueba),
+     no a ojo. */
+  inDoc.delete('carta_cobrado_importe');
+  inDoc.delete('carta_cobrado_numeros');
   /* La clausula historica «el adquiriente firma como sociedad (PT PMA)»: sus
      campos comp_* siguen dentro de cinco plantillas y su seccion se retiro de
      tokens.json el 19-ago-2026 (encargo del owner). Sin esta linea reaparecen en
