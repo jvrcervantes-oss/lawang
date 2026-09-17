@@ -2049,7 +2049,7 @@ input.lw-elegible:disabled{ cursor:default; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   app.css   sha256:a9eb7c0144b2
+   app.css   sha256:a447c90e2409
    ───────────────────────────────────────────────────────────────────── */
 /* Estilos propios del Generador de Contratos — sacados de app.html el 17-ago-2026.
    ============================================================================
@@ -2471,17 +2471,40 @@ input.lw-elegible:disabled{ cursor:default; }
      quedaba con espacio para una letra. El <td> se queda `table-cell`
      (hereda el ancho real, colspan de las 5 columnas) y el flex vive en un
      bloque normal por dentro, que sí crece como se espera. */
+  /* El botón ▸ EN·ID vive en esta misma fila (17-sep-2026, owner: "súbelo a
+     la fila del concepto") — es del concepto, no un dato más de la fila de
+     números. `.field` se lleva el hueco que sobra; el botón y el "N." se
+     quedan a su tamaño natural. */
   .hito-titulo-fila{ display:flex; align-items:center; gap:8px; }
   .hito-num{ flex:none; font-weight:600; color:var(--dl); }
   .hito-titulo-fila .field{ flex:1; min-width:0; }
+  .hito-titulo-fila .hito-mas-btn{ flex:none; }
   /* Anchos de %/Cantidad medidos con el input REAL (no de fábrica: esos son
      `dato-fijo`, sin borde ni relleno, y por eso cabían en cualquier hueco).
      Un input normal lleva 11px 13px de relleno + borde + el spinner nativo
-     de `type=number` — sin contar eso, "50" salía cortado en "5". */
-  .hitos-tabla td.pct{ width:76px; }
-  .hitos-tabla td.monto{ width:150px; }
+     de `type=number` — sin contar eso, "50" salía cortado en "5". Segunda
+     pasada (17-sep, owner: "el % queda aún pequeño"): más ancho todavía. */
+  .hitos-tabla td.pct{ width:100px; }
+  .hitos-tabla td.monto{ width:172px; }
   .hitos-tabla td.fecha{ width:150px; }
   .hitos-tabla .field{ margin:0; }
+  /* Cantidad + moneda como un solo bloque visual (17-sep-2026, owner: "ponle
+     la moneda a la cantidad"), estilo "grupo de input" — el campo a la
+     izquierda con las esquinas rectas por el lado que toca a la etiqueta, la
+     moneda a la derecha en su propia cajita, para que se lean como una sola
+     pieza y no como dos controles sueltos pegados. */
+  .hito-monto-grupo{ display:flex; align-items:stretch; }
+  .hito-monto-grupo input{ flex:1; min-width:0; border-top-right-radius:0; border-bottom-right-radius:0; }
+  .hito-monto-grupo .hito-moneda{ flex:none; display:flex; align-items:center; padding:0 8px; font-size:11px; font-weight:600; letter-spacing:.02em; color:var(--muted); background:rgba(190,179,165,.14); border:1px solid var(--line); border-left:0; border-top-right-radius:var(--r-sm); border-bottom-right-radius:var(--r-sm); white-space:nowrap; }
+  /* La Cantidad calculada (owner: "aunque esté bloqueado se vea mejor") deja
+     de ser texto sin caja — el `dato-fijo` normal (sin borde, sin fondo) es
+     el sitio correcto para un dato que la BASE asigna solo (nº de contrato,
+     m² del catálogo…), pero aquí compite visualmente con la moneda de al
+     lado, que sí tiene caja: sin una propia, el número flota. Mismo tono que
+     el resto de campos bloqueados de la suite (`[readonly]`), no uno nuevo —
+     solo con las esquinas rectas por el lado de la moneda, para seguir
+     leyéndose como una sola pieza con ella. */
+  .hitos-tabla .hito-monto-grupo input.dato-fijo{ border:1px solid var(--line); background:rgba(190,179,165,.14); padding-left:13px; border-top-right-radius:0; border-bottom-right-radius:0; }
   .hitos-tabla .hito-nota{ display:block; font-size:10.5px; color:var(--muted); margin-top:3px; }
   .hitos-tabla td.acciones{ white-space:nowrap; text-align:right; padding-top:11px; }
   .hitos-tabla .hito-mas-btn{ font-size:11.5px; }
