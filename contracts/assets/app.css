@@ -390,6 +390,31 @@
   .dz-row input[type=color]{ height:34px; padding:2px; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer; }
   .up{ display:inline-flex; align-items:center; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:9px; padding:7px 12px; font-size:12.5px; color:var(--va); cursor:pointer; transition:border-color .18s var(--ease), box-shadow .18s var(--ease); }
   .up:hover{ border-color:var(--dl); box-shadow:var(--sh-sm); }
+
+  /* Calendario de pagos como TABLA (17-sep-2026) — ver la nota grande junto a
+     hitosBodyHTML() en hitos_fechas.js para el porqué. `overflow-x:auto` es el
+     único permiso para desbordar el ancho de la página (regla del estudio:
+     tablas, diagramas y código en su propio contenedor con scroll, nunca el
+     body entero). `.field` reusa el aspecto de los inputs del resto del
+     formulario (borde, foco, dato-fijo) pero SIN su margen vertical de 12px:
+     ese margen es la mitad de la altura que esta tabla vino a quitar. */
+  .hitos-tabla-wrap{ overflow-x:auto; margin-top:2px; }
+  .hitos-tabla{ width:100%; min-width:460px; border-collapse:collapse; }
+  .hitos-tabla th{ text-align:left; font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); padding:0 6px 6px; }
+  .hitos-tabla td{ padding:5px 6px; vertical-align:top; }
+  .hitos-tabla tr.hito-fila{ border-top:1px solid var(--hair); }
+  .hitos-tabla tr.hito-fila:first-child{ border-top:none; }
+  .hitos-tabla td.n{ padding-top:11px; font-weight:600; color:var(--dl); width:18px; }
+  .hitos-tabla td.pct{ width:64px; }
+  .hitos-tabla td.monto{ width:110px; }
+  .hitos-tabla td.fecha{ width:140px; }
+  .hitos-tabla .field{ margin:0; }
+  .hitos-tabla .hito-nota{ display:block; font-size:10.5px; color:var(--muted); margin-top:3px; }
+  .hitos-tabla td.acciones{ white-space:nowrap; text-align:right; }
+  .hitos-tabla .hito-mas-btn{ font-size:11.5px; }
+  .hitos-tabla tr.hito-mas td{ padding-top:0; padding-bottom:8px; }
+  .hitos-tabla tr.hito-mas .grid2{ margin:0; }
+  @media screen and (max-width:520px){ .hitos-tabla td.fecha{ width:120px; } }
   .up input{ display:none; }
 
   /* ---------- panel Diseño (rework moderno · compacto) ---------- */

@@ -600,6 +600,22 @@ function buildForm(){
         if(typeof recalcularMontosHitos === 'function') recalcularMontosHitos();
         renderDebounced(); } });
     form.addEventListener('click', e=>{
+      // ▸ EN·ID (17-sep-2026): abre/cierra la fila hermana con el concepto en
+      // inglés y bahasa. Solo CSS + `hidden` — no hay estado que guardar, y
+      // refreshHitos() la vuelve a pintar cerrada la próxima vez que repinte
+      // la sección entera (al añadir/quitar un hito), que es aceptable: no es
+      // un dato, es solo qué se ve en este instante.
+      const masBtn = e.target.closest('[data-hmas]');
+      if(masBtn){
+        const fila = document.getElementById('hito-mas-' + masBtn.dataset.hmas);
+        if(fila){
+          const abierta = !fila.hidden;
+          fila.hidden = abierta;
+          masBtn.setAttribute('aria-expanded', String(!abierta));
+          masBtn.textContent = 'EN·ID ' + (abierta ? '▸' : '▾');
+        }
+        return;
+      }
       const del=e.target.closest('[data-hdel]');
       // updateSaveButton() DESPUÉS de refreshHitos() — mismo motivo que el
       // #techoSel de esta misma tarde: refreshHitos() repinta la sección

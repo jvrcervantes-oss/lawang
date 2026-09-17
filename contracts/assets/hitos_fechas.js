@@ -109,9 +109,6 @@ function hitosBodyHTML(){
     // Cantidad calculada: sin excepción de rol, así que no necesita esperar
     // a updateSaveButton() — se pinta bloqueada y se queda así siempre.
     const lockMonto = calculado ? ` readonly class="dato-fijo" title="${escAttr(L({es:'Lo calcula el % sobre el precio total del proyecto. No se edita a mano.',en:'Calculated from the % of the total project price. Not editable by hand.',id:'Dihitung dari % harga total proyek. Tidak bisa diubah manual.'}))}"` : '';
-    // Columna del % más estrecha en Construcción (owner: "reduce el ancho de
-    // la columna") — un 25 no necesita el ancho de un importe.
-    const anchoPct = esConstruccion ? ' style="max-width:80px"' : '';
     // Quitar un hito de fábrica, o añadir uno nuevo, reparte de nuevo el
     // 100% oficial de la obra: si este contrato tiene calendario de fábrica
     // se pinta oculto de fábrica y updateSaveButton() lo revela solo a quien
@@ -119,23 +116,47 @@ function hitosBodyHTML(){
     const btnDel = haiFijo
       ? `<button type="button" class="link-btn" data-hdel="${i}" data-hito-admin style="display:none">${L({es:'Quitar',en:'Remove',id:'Hapus'})}</button>`
       : `<button type="button" class="link-btn" data-hdel="${i}">${L({es:'Quitar',en:'Remove',id:'Hapus'})}</button>`;
+    const notaTiming = !h.fecha && h.timing
+      ? `<span class="hito-nota">${L({es:'Este contrato decía',en:'This contract said',id:'Kontrak ini menyebut'})}: «${esc(h.timing)}»</span>` : '';
+    /* TABLA, NO TARJETAS (17-sep-2026, owner: "de una vista se vea mucho
+       mejor, ahora hay demasiado scroll"). Antes cada hito era un bloque de
+       3 filas (label encima de cada campo) — 5 hitos de fábrica eran
+       15 filas visibles solo para leerlos. Una fila por hito con las
+       etiquetas UNA VEZ en <thead> es la misma información en una fracción
+       del alto. % / Cantidad / Vencimiento van en la misma fila (owner:
+       "cabe si lo aprietas"): el ancho de columna hace ese trabajo, no hace
+       falta apretar nada a mano. "Texto" pasa a llamarse "Concepto" (owner)
+       y el español vive en la fila visible; inglés y bahasa se van a una
+       fila hermana oculta que abre el botón ▸ — la "tabla desplegable" que
+       pidió: no hace falta ver los tres idiomas para saber qué hito es. */
     return `
-    <div class="dz" data-hito="${i}">
-      <div class="dz-row"><span style="width:auto;font-weight:600;color:var(--dl)">${L({es:'Hito',en:'Milestone',id:'Tahap'})} ${i+1}</span>
-        <span class="spacer" style="flex:1"></span>
-        ${btnDel}</div>
-      <div class="grid2">
-        <div class="field"${anchoPct}><label for="${hid(i,'pct')}">%</label><input id="${hid(i,'pct')}" type="number" step="0.01" data-hi="${i}" data-hkey="pct" value="${escAttr(h.pct)}"${lockPct}></div>
-        <div class="field"><label for="${hid(i,'monto')}">${L({es:'Cantidad',en:'Amount',id:'Jumlah'})}</label><input id="${hid(i,'monto')}" data-hi="${i}" data-hkey="monto" value="${escAttr(h.monto)}"${lockMonto}></div>
-        <div class="field"><label for="${hid(i,'fecha')}">${L({es:'Vencimiento',en:'Due date',id:'Jatuh tempo'})}</label>
-          <input id="${hid(i,'fecha')}" type="date" data-hi="${i}" data-hkey="fecha" value="${escAttr(h.fecha||'')}">
-          ${!h.fecha && h.timing ? `<span style="display:block;font-size:11px;color:var(--muted);margin-top:3px">${L({es:'Este contrato decía',en:'This contract said',id:'Kontrak ini menyebut'})}: «${esc(h.timing)}»</span>` : ''}
+    <tr class="hito-fila" data-hito="${i}">
+      <td class="n">${i+1}</td>
+      <td class="concepto"><input id="${hid(i,'es')}" data-hi="${i}" data-hkey="es" value="${escAttr(h.es)}"${lockTxt}
+        aria-label="${escAttr(L({es:'Concepto (Español), hito',en:'Concept (Spanish), milestone',id:'Konsep (Spanyol), tahap'}))} ${i+1}"
+        placeholder="${escAttr(L({es:'Concepto (Español)',en:'Concept (Spanish)',id:'Konsep (Spanyol)'}))}"></td>
+      <td class="pct"><input id="${hid(i,'pct')}" type="number" step="0.01" data-hi="${i}" data-hkey="pct" value="${escAttr(h.pct)}"${lockPct}
+        aria-label="% ${L({es:'del hito',en:'of milestone',id:'tahap'})} ${i+1}"></td>
+      <td class="monto"><input id="${hid(i,'monto')}" data-hi="${i}" data-hkey="monto" value="${escAttr(h.monto)}"${lockMonto}
+        aria-label="${escAttr(L({es:'Cantidad, hito',en:'Amount, milestone',id:'Jumlah, tahap'}))} ${i+1}"></td>
+      <td class="fecha"><input id="${hid(i,'fecha')}" type="date" data-hi="${i}" data-hkey="fecha" value="${escAttr(h.fecha||'')}"
+        aria-label="${escAttr(L({es:'Vencimiento, hito',en:'Due date, milestone',id:'Jatuh tempo, tahap'}))} ${i+1}">${notaTiming}</td>
+      <td class="acciones">
+        <button type="button" class="link-btn hito-mas-btn" data-hmas="${i}" aria-expanded="false" aria-controls="hito-mas-${i}"
+          title="${escAttr(L({es:'Concepto en inglés y bahasa',en:'Concept in English and Bahasa',id:'Konsep dalam bahasa Inggris dan Indonesia'}))}">EN·ID ▸</button>
+        ${btnDel}
+      </td>
+    </tr>
+    <tr class="hito-mas" id="hito-mas-${i}" data-hito-mas="${i}" hidden>
+      <td></td>
+      <td colspan="4">
+        <div class="grid2">
+          <div class="field"><label for="${hid(i,'en')}">${L({es:'Concepto (English)',en:'Concept (English)',id:'Konsep (Inggris)'})}</label><input id="${hid(i,'en')}" data-hi="${i}" data-hkey="en" value="${escAttr(h.en)}"${lockTxt}></div>
+          <div class="field"><label for="${hid(i,'id')}">${L({es:'Concepto (Bahasa)',en:'Concept (Bahasa)',id:'Konsep (Bahasa)'})}</label><input id="${hid(i,'id')}" data-hi="${i}" data-hkey="id" value="${escAttr(h.id)}"${lockTxt}></div>
         </div>
-        <div class="field"><label for="${hid(i,'es')}">${L({es:'Texto (Español)',en:'Text (Spanish)',id:'Teks (Spanyol)'})}</label><input id="${hid(i,'es')}" data-hi="${i}" data-hkey="es" value="${escAttr(h.es)}"${lockTxt}></div>
-        <div class="field"><label for="${hid(i,'en')}">${L({es:'Texto (English)',en:'Text (English)',id:'Teks (Inggris)'})}</label><input id="${hid(i,'en')}" data-hi="${i}" data-hkey="en" value="${escAttr(h.en)}"${lockTxt}></div>
-        <div class="field"><label for="${hid(i,'id')}">${L({es:'Texto (Bahasa)',en:'Text (Bahasa)',id:'Teks (Bahasa)'})}</label><input id="${hid(i,'id')}" data-hi="${i}" data-hkey="id" value="${escAttr(h.id)}"${lockTxt}></div>
-      </div>
-    </div>`;
+      </td>
+      <td></td>
+    </tr>`;
   }).join('');
   const total = HITOS.reduce((t,h)=>t+(parseFloat(h.pct)||0),0);
   const btnAdd = haiFijo
@@ -149,7 +170,15 @@ function hitosBodyHTML(){
   const avisoAdmin = haiFijo
     ? `<p class="mini" data-hito-admin-aviso>${L({es:'Añadir o quitar hitos, y editar el % y el concepto de los cinco de fábrica, es de administración (admin o super administrador) desde el 16-sep-2026.',en:'Adding or removing milestones, and editing the % and wording of the five factory ones, has been an admin/super-admin action since 16-Sep-2026.',id:'Menambah/menghapus tahap serta mengubah % dan teks lima tahap standar, sejak 16-Sep-2026 hanya untuk admin/super admin.'})}</p>`
     : '';
-  return rows + `<div class="dz-row" style="margin-top:10px">
+  return `<div class="hitos-tabla-wrap"><table class="hitos-tabla"><thead><tr>
+      <th></th>
+      <th>${L({es:'Concepto',en:'Concept',id:'Konsep'})}</th>
+      <th>%</th>
+      <th>${L({es:'Cantidad',en:'Amount',id:'Jumlah'})}</th>
+      <th>${L({es:'Vencimiento',en:'Due date',id:'Jatuh tempo'})}</th>
+      <th></th>
+    </tr></thead><tbody>${rows}</tbody></table></div>
+  <div class="dz-row" style="margin-top:10px">
     ${btnAdd}
     <span class="spacer" style="flex:1"></span>
     <span style="font-size:12px;color:${Math.round(total)===100?'var(--muted)':'var(--be)'}">Σ ${total}%</span>
