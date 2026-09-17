@@ -4138,14 +4138,24 @@ async function guardarContrato(){
      100% no se puede guardar, nueva norma» — GENERALIZA lo del 16-sep, que
      solo miraba los hitos `calculado` de Construcción para proteger al hito
      `resto` de recalcularMontosHitos: si el resto de % no sumaban 100,
-     `total - repartido` podía salir negativo o sin sentido. Esa razón sigue
-     siendo válida para los calculados; la nueva norma la extiende a
-     CUALQUIER contrato con calendario de pagos, tecleado a mano o no — un
-     calendario que no suma el 100% del precio no describe de verdad cómo se
-     cobra, sea Construcción o cualquier otro tipo. */
+     `total - repartido` podía salir negativo o sin sentido.
+     ⚠️ Corregido el mismo día tras medir contra producción (verificado ≠
+     supuesto): más de 150 contratos ya guardados —reservas y construcciones
+     a precio cerrado— tienen TODOS sus hitos sin ningún % (Σ=0), porque son
+     un calendario de IMPORTES FIJOS, nunca pensado como reparto porcentual
+     (mismo caso que ya documenta hitosRowsHTML: "un hito puede ser un
+     importe cerrado -la reserva- sin porcentaje del total que lo
+     represente"). Aplicar la norma a secas los habría dejado INGUARDABLES
+     para siempre —ni siquiera para corregir un email— en cuanto alguien
+     reabriera cualquiera de esos 150. La norma se exige cuando ALGÚN hito
+     trae %: ahí sí hay un reparto porcentual pensado, y es exactamente el
+     que puede estar mal. Un calendario enteramente sin % (Σ=0) se sigue
+     guardando igual que siempre — no es que "esté bien", es que la norma no
+     aplica a un calendario que nunca quiso ser un reparto porcentual. */
   if(SECTIONS.some(s => s.special === 'hitos') && HITOS.length){
+    const haySuma = HITOS.some(h => parseFloat(h.pct) > 0);
     const suma = HITOS.reduce((t,h)=>t+(parseFloat(h.pct)||0), 0);
-    if(Math.round(suma * 100) / 100 !== 100){
+    if(haySuma && Math.round(suma * 100) / 100 !== 100){
       avisoNoGuardado(lwT('Los porcentajes del calendario de pagos no suman 100% — corrígelo.'));
       const el = document.querySelector('[data-sec="pagos"]');
       if(el) el.scrollIntoView({behavior:'smooth', block:'center'});
