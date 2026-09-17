@@ -918,7 +918,7 @@ body.rail-abierto > header{ margin-left:-208px; }
    El razonamiento completo está junto al código, en topbar.js. */
 
 /* ─────────────────────────────────────────────────────────────────────
-   suite.css   sha256:c5bdf62b8cfc
+   suite.css   sha256:849d707a8761
    ───────────────────────────────────────────────────────────────────── */
 
 /* ── TEXTO IGUAL EN MOVIL QUE EN ESCRITORIO — 15-ago-2026 ──────────────────
@@ -1704,6 +1704,13 @@ a.lw-kpi.mando:hover{ border-color:#BEB3A5; }
   max-width:min(620px, calc(100vw - 32px - env(safe-area-inset-left) - env(safe-area-inset-right)));
   padding:18px 26px 21px;
   font-size:15.5px;
+  /* `pre-line` (17-sep-2026): algunos avisos ahora traen un título propio y el
+     detalle en la línea de abajo ("ERROR: No se pudo guardar\nRellena: …",
+     ver guardarContrato() en app.html). Sin esto `textContent` con un '\n'
+     se pinta como un espacio y las dos frases quedan pegadas. Un toast que
+     no trae '\n' se comporta exactamente igual que antes: `pre-line` solo
+     actúa sobre saltos de línea reales, no sobre el resto del texto. */
+  white-space:pre-line;
   /* Un halo rojo además de la sombra: despega el aviso del formulario que hay
      justo debajo, que es blanco y está lleno de texto. */
   box-shadow:0 22px 60px -18px rgba(158,47,38,.55), 0 0 0 6px rgba(158,47,38,.13);
@@ -2042,7 +2049,7 @@ input.lw-elegible:disabled{ cursor:default; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   app.css   sha256:b8bcee7fff9f
+   app.css   sha256:5642ba98ed69
    ───────────────────────────────────────────────────────────────────── */
 /* Estilos propios del Generador de Contratos — sacados de app.html el 17-ago-2026.
    ============================================================================
@@ -2451,8 +2458,8 @@ input.lw-elegible:disabled{ cursor:default; }
   .hitos-tabla tr.hito-fila{ border-top:1px solid var(--hair); }
   .hitos-tabla tr.hito-fila:first-child{ border-top:none; }
   .hitos-tabla td.n{ padding-top:11px; font-weight:600; color:var(--dl); width:18px; }
-  .hitos-tabla td.pct{ width:64px; }
-  .hitos-tabla td.monto{ width:110px; }
+  .hitos-tabla td.pct{ width:56px; }
+  .hitos-tabla td.monto{ width:105px; }
   .hitos-tabla td.fecha{ width:140px; }
   .hitos-tabla .field{ margin:0; }
   .hitos-tabla .hito-nota{ display:block; font-size:10.5px; color:var(--muted); margin-top:3px; }

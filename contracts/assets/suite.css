@@ -782,6 +782,13 @@ a.lw-kpi.mando:hover{ border-color:#BEB3A5; }
   max-width:min(620px, calc(100vw - 32px - env(safe-area-inset-left) - env(safe-area-inset-right)));
   padding:18px 26px 21px;
   font-size:15.5px;
+  /* `pre-line` (17-sep-2026): algunos avisos ahora traen un título propio y el
+     detalle en la línea de abajo ("ERROR: No se pudo guardar\nRellena: …",
+     ver guardarContrato() en app.html). Sin esto `textContent` con un '\n'
+     se pinta como un espacio y las dos frases quedan pegadas. Un toast que
+     no trae '\n' se comporta exactamente igual que antes: `pre-line` solo
+     actúa sobre saltos de línea reales, no sobre el resto del texto. */
+  white-space:pre-line;
   /* Un halo rojo además de la sombra: despega el aviso del formulario que hay
      justo debajo, que es blanco y está lleno de texto. */
   box-shadow:0 22px 60px -18px rgba(158,47,38,.55), 0 0 0 6px rgba(158,47,38,.13);

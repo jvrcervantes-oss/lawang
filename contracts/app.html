@@ -20,7 +20,7 @@
      uno, para que ninguna herramienta pueda cargar media suite: antes
      Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
      salieron los desplegables con cuatro aspectos. -->
-<link rel="stylesheet" href="assets/lawang.css?v=f5662397">
+<link rel="stylesheet" href="assets/lawang.css?v=8f1cbce9">
 <!-- Iconos Phosphor: los usa el menu lateral de topbar.js (15-ago-2026). Ya
      los cargaban intranet/, compradores/ y creatividades/; se igualan las demas
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
@@ -84,7 +84,7 @@
 <script src="assets/modelos_catalogo.js?v=4e4fdee1"></script>
 <!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
 <script src="assets/techo_extras.js?v=4bbf6d24"></script>
-<script src="assets/hitos_fechas.js?v=07a85b2c"></script>
+<script src="assets/hitos_fechas.js?v=c27a5631"></script>
 <script src="assets/entidades_pago.js?v=3041528f"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
@@ -4251,16 +4251,20 @@ async function guardarContrato(){
     // base de datos (17-sep-2026, owner: "ve al grano")— así que se enseñan
     // literales. Si se toca el texto de una excepción, tocar también este
     // patrón: un freno nuevo que no empiece por una de estas frases cae en el
-    // "No se pudo guardar" genérico.
+    // detalle genérico de abajo.
     const m = String(err.message || err);
     const esFrenoConocido = /^(Rellena:|La parcela |El traspaso de la parcela |El poder |Un contrato no puede ser su propio|El documento |Falta el pasaporte|No tienes (ningún|permiso)|Contrato enviado a firma|Esta parcela no pertenece|solo un admin puede)/.test(m);
     // RLS cruda (policy sin su propio raise, p.ej. un rol sin permiso que
     // ningún trigger llegó a explicar): Postgres la manda en inglés y con
     // el nombre de la tabla — no se enseña así.
     const esRLS = /row-level security|permission denied/i.test(m);
-    toastMal(esFrenoConocido ? m
-      : esRLS ? 'No tienes permiso para guardar este contrato.'
-      : 'No se pudo guardar: ' + m);
+    const detalle = esFrenoConocido ? m : esRLS ? 'No tienes permiso para guardar este contrato.' : m;
+    // Título separado del detalle (17-sep-2026, owner: "ERROR: No se pudo
+    // guardar / Rellena los campos XXXX"). El salto de línea lo renderiza
+    // `white-space:pre-line` de `.toast.mal` (suite.css) — un toast sin \n
+    // se comporta exactamente igual que antes, así que esto no toca ningún
+    // otro aviso de la suite.
+    toastMal('ERROR: No se pudo guardar\n' + detalle);
   }
   btn.disabled=false; updateSaveButton();
 }

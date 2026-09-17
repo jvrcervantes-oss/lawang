@@ -405,8 +405,8 @@
   .hitos-tabla tr.hito-fila{ border-top:1px solid var(--hair); }
   .hitos-tabla tr.hito-fila:first-child{ border-top:none; }
   .hitos-tabla td.n{ padding-top:11px; font-weight:600; color:var(--dl); width:18px; }
-  .hitos-tabla td.pct{ width:64px; }
-  .hitos-tabla td.monto{ width:110px; }
+  .hitos-tabla td.pct{ width:56px; }
+  .hitos-tabla td.monto{ width:105px; }
   .hitos-tabla td.fecha{ width:140px; }
   .hitos-tabla .field{ margin:0; }
   .hitos-tabla .hito-nota{ display:block; font-size:10.5px; color:var(--muted); margin-top:3px; }
