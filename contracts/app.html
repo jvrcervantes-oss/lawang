@@ -5153,6 +5153,10 @@ async function derivarContrato(slug){
   // documento, no "el objetivo de derivar" como Compradores/Hitos.
   TECHO_ELEGIDO = null; EXTRAS_ELEGIDOS = []; TECHO_MODELO_HECHO = null; TECHOS_OPCIONES = []; EXTRAS_OPCIONES = [];
   AUTO_MASTER = ''; UNIDADES_PROY = { proyecto:null, lista:[], fallo:null };
+  // Mismo motivo que en resetBorrador() y openSavedContract(): la tipología y
+  // el modelo pintados son de OTRO documento — sin soltarlos, el primer
+  // repintado del derivado se cree un cambio de tipología y le pisa los m².
+  TIPO_LISTA_PINTADA = null; TIPO_MODELO_HECHO = null;
   /* Mismos dos huecos que la auditoría de hoy encontró en este punto:
      AUTO_UNIDAD (guarda "puso el automatismo" de precio/tipología/villa desde
      el inventario — const, se vacía campo a campo, no se reasigna) y los
@@ -5172,6 +5176,24 @@ async function derivarContrato(slug){
   // buildForm() ya pintó con ADQ1_CLIENT=null (el buscador, no el chip); se
   // repinta con la ficha real, igual que hace openSavedContract al reabrir.
   if(adq1Ficha){ ADQ1_CLIENT = adq1Ficha; pintarFichaComprador(); }
+  /* Proyecto y parcela SÍ viajan — es "qué se vende", no "cuánto" (a
+     diferencia de precio_total, borrado más arriba a propósito). Pero
+     populateForm() solo pone `.value` a pelo: no dispara los listeners de
+     'input'/'change' que cargan el inventario del proyecto ni repintan el
+     selector de parcela (wireCampoParcela). openSavedContract() lo resuelve
+     llamando aplicarReglasCampos() al reabrir (línea ~4946); aquí faltaba —
+     y por eso "Copiar datos" parecía no arrastrar la parcela: el valor SÍ
+     quedaba en el campo oculto, pero nadie volvía a pintar el chip ni a
+     cargar el inventario para saber si era traspasable (TIPOS_CEDEN_PARCELA).
+     Se espera aquí, ANTES de aplicarReglasCampos(), porque
+     cargarUnidadesDelProyecto() marca `UNIDADES_PROY.proyecto` como cargado
+     ANTES de su primer await: si aplicarReglasCampos() la disparara ella sola
+     sin esperar (como hace al abrir un contrato en blanco), una segunda
+     llamada encontraría el proyecto ya "cargado" y devolvería la lista vacía
+     que aún no había llegado. */
+  const proyEl = document.querySelector('[name="proyecto_nombre"]');
+  if(proyEl && proyEl.value) await cargarUnidadesDelProyecto(proyEl.value);
+  syncDatosDeUnidad();   // el precio_total del tipo destino (suelo del Bloqueo, obra de la Construcción) desde la parcela ya cargada
   /* Mismo motivo que la línea de arriba, mismo bug si se olvida: buildForm()
      corrió aplicarReglasCampos() → syncUnidadConstruccion() ANTES de que
      populateForm() pusiera `num_reserva_vinculada` en el campo, así que el
@@ -5180,6 +5202,11 @@ async function derivarContrato(slug){
      explícitamente). Encontrado al verificar en producción, 24-ago-2026. */
   await syncUnidadConstruccion();
   if(hitos) HITOS = hitos;   // mismo tipo: su calendario, con fechas de hoy. Distinto: el plan del tipo destino, que loadTemplate ya puso.
+  // Cuentas del proyecto, parcela máster, resort, ubicación, apoderado
+  // Hak Sewa/POA, moneda-vs-techo… todo lo que openSavedContract() ya
+  // reaplica al reabrir un contrato guardado y que aquí no corría desde
+  // que "Copiar datos" existe: mismo hueco que la parcela, misma causa.
+  aplicarReglasCampos();
   refreshHitos(); updateSaveButton(); editBtnIdle(); render();
   $('#dvOverlay').classList.remove('open');
   toast(lwT('Contrato nuevo con los datos de ') + origen + ' · sin número hasta que lo guardes');
