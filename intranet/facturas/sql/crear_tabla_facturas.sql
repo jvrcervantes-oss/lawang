@@ -65,3 +65,20 @@ create policy "agentes autenticados actualizan facturas no anuladas"
   on public.facturas for update to authenticated
   using (anulada = false and public.es_agente())
   with check (public.es_agente());
+
+-- ---------------------------------------------------------------------------
+-- 17-sep-2026 — ESTE FICHERO YA NO ES LA FOTO COMPLETA.
+-- Los permisos de `facturas` y el trigger de numeracion cambiaron en dos
+-- migraciones que viven en `supabase/migrations/` (espejo en `contracts/sql/`):
+--   · 20260917160000_sociedades_a_la_base.sql
+--   · 20260917161500_facturas_emisor_congelado_y_permisos.sql
+-- Resumen de lo que cambia respecto a lo de arriba:
+--   · `set_factura_numero` es SECURITY DEFINER, y `anon`/`authenticated` ya no
+--     tienen privilegio sobre las tres secuencias.
+--   · `anon` no tiene NINGUN grant sobre `facturas`.
+--   · `authenticated` no puede escribir `numero` ni `justificante_path`.
+--   · `sociedad` es NOT NULL y tiene clave ajena contra `public.sociedades`.
+--   · Cada documento nace con su emisor congelado en `datos->'emisor'`.
+-- Hay tres cajones de .sql en este repo y este es el de la numeracion: si se
+-- toca uno solo, el otro queda viejo (hallazgo de Datos, revision previa 17-sep).
+-- ---------------------------------------------------------------------------
