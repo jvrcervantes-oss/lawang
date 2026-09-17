@@ -96,11 +96,15 @@
 </style>
 </head>
 <body>
+  <!-- ACCION PRINCIPAL: ultima de la barra (convencion en topbar.css). Solo la
+       ve el super admin: la policy de INSERT exige es_super_admin(), asi que a
+       cualquier otro este boton le daria un error al guardar.
+       El comentario va FUERA del <header> a proposito: `tools/unificar.py` mide
+       la divergencia de barras comparando el bloque entero, asi que un
+       comentario propio dentro cuenta como una barra distinta. Lo unico que de
+       verdad diferencia esta de las demas es el rotulo de su accion. -->
   <header class="lw-topbar" data-titulo="Sociedades emisoras">
     <div class="lw-spacer"></div>
-    <!-- ACCION PRINCIPAL: ultima de la barra (convencion en topbar.css).
-         Solo la ve el super admin: la policy de INSERT exige es_super_admin(),
-         asi que a cualquier otro este boton le daria un error al guardar. -->
     <button type="button" class="lw-btn primary" id="btnNueva" hidden><i class="ph ph-plus"></i>Nueva sociedad</button>
   </header>
 
