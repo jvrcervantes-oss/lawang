@@ -112,29 +112,33 @@ function hitosBodyHTML(){
     // Quitar un hito de fábrica, o añadir uno nuevo, reparte de nuevo el
     // 100% oficial de la obra: si este contrato tiene calendario de fábrica
     // se pinta oculto de fábrica y updateSaveButton() lo revela solo a quien
-    // puede (mismo `data-hito-admin` en el botón de abajo).
+    // puede (mismo `data-hito-admin` en el botón de abajo). "X" en vez de
+    // "Quitar" (17-sep-2026, owner) — el texto se mantiene en el `title`/
+    // `aria-label` para quien use lector de pantalla o pase el ratón.
+    const tituloQuitar = escAttr(L({es:'Quitar hito',en:'Remove milestone',id:'Hapus tahap'})) + ' ' + (i+1);
     const btnDel = haiFijo
-      ? `<button type="button" class="link-btn" data-hdel="${i}" data-hito-admin style="display:none">${L({es:'Quitar',en:'Remove',id:'Hapus'})}</button>`
-      : `<button type="button" class="link-btn" data-hdel="${i}">${L({es:'Quitar',en:'Remove',id:'Hapus'})}</button>`;
+      ? `<button type="button" class="link-btn hito-x" data-hdel="${i}" data-hito-admin style="display:none" title="${tituloQuitar}" aria-label="${tituloQuitar}">✕</button>`
+      : `<button type="button" class="link-btn hito-x" data-hdel="${i}" title="${tituloQuitar}" aria-label="${tituloQuitar}">✕</button>`;
     const notaTiming = !h.fecha && h.timing
       ? `<span class="hito-nota">${L({es:'Este contrato decía',en:'This contract said',id:'Kontrak ini menyebut'})}: «${esc(h.timing)}»</span>` : '';
     /* TABLA, NO TARJETAS (17-sep-2026, owner: "de una vista se vea mucho
        mejor, ahora hay demasiado scroll"). Antes cada hito era un bloque de
        3 filas (label encima de cada campo) — 5 hitos de fábrica eran
-       15 filas visibles solo para leerlos. Una fila por hito con las
-       etiquetas UNA VEZ en <thead> es la misma información en una fracción
-       del alto. % / Cantidad / Vencimiento van en la misma fila (owner:
-       "cabe si lo aprietas"): el ancho de columna hace ese trabajo, no hace
-       falta apretar nada a mano. "Texto" pasa a llamarse "Concepto" (owner)
-       y el español vive en la fila visible; inglés y bahasa se van a una
-       fila hermana oculta que abre el botón ▸ — la "tabla desplegable" que
-       pidió: no hace falta ver los tres idiomas para saber qué hito es. */
+       15 filas visibles solo para leerlos. Las etiquetas de columna van UNA
+       VEZ en <thead>, y el Concepto (owner: "texto" pasa a llamarse
+       "concepto") ya no es una columna más — es el TÍTULO de cada hito, en
+       su propia fila de ancho completo, con el número delante ("1. Prepa­
+       ración del terreno..."); debajo va la fila de datos (%, Cantidad,
+       Vencimiento) más los dos botones de acción. Inglés y bahasa se van a
+       una fila hermana oculta que abre el botón ▸ — la "tabla desplegable"
+       que pidió: no hace falta ver los tres idiomas para saber qué hito es. */
     return `
-    <tr class="hito-fila" data-hito="${i}">
-      <td class="n">${i+1}</td>
-      <td class="concepto"><div class="field"><input id="${hid(i,'es')}" data-hi="${i}" data-hkey="es" value="${escAttr(h.es)}"${lockTxt}
+    <tr class="hito-titulo" data-hito="${i}">
+      <td colspan="5"><span class="hito-num">${i+1}.</span><div class="field"><input id="${hid(i,'es')}" data-hi="${i}" data-hkey="es" value="${escAttr(h.es)}"${lockTxt}
         aria-label="${escAttr(L({es:'Concepto (Español), hito',en:'Concept (Spanish), milestone',id:'Konsep (Spanyol), tahap'}))} ${i+1}"
         placeholder="${escAttr(L({es:'Concepto (Español)',en:'Concept (Spanish)',id:'Konsep (Spanyol)'}))}"></div></td>
+    </tr>
+    <tr class="hito-fila" data-hito="${i}">
       <td class="pct"><div class="field"><input id="${hid(i,'pct')}" type="number" step="0.01" data-hi="${i}" data-hkey="pct" value="${escAttr(h.pct)}"${lockPct}
         aria-label="% ${L({es:'del hito',en:'of milestone',id:'tahap'})} ${i+1}"></div></td>
       <td class="monto"><div class="field"><input id="${hid(i,'monto')}" data-hi="${i}" data-hkey="monto" value="${escAttr(h.monto)}"${lockMonto}
@@ -144,18 +148,16 @@ function hitosBodyHTML(){
       <td class="acciones">
         <button type="button" class="link-btn hito-mas-btn" data-hmas="${i}" aria-expanded="false" aria-controls="hito-mas-${i}"
           title="${escAttr(L({es:'Concepto en inglés y bahasa',en:'Concept in English and Bahasa',id:'Konsep dalam bahasa Inggris dan Indonesia'}))}">EN·ID ▸</button>
-        ${btnDel}
       </td>
+      <td class="acciones">${btnDel}</td>
     </tr>
     <tr class="hito-mas" id="hito-mas-${i}" data-hito-mas="${i}" hidden>
-      <td></td>
-      <td colspan="4">
+      <td colspan="5">
         <div class="grid2">
           <div class="field"><label for="${hid(i,'en')}">${L({es:'Concepto (English)',en:'Concept (English)',id:'Konsep (Inggris)'})}</label><input id="${hid(i,'en')}" data-hi="${i}" data-hkey="en" value="${escAttr(h.en)}"${lockTxt}></div>
           <div class="field"><label for="${hid(i,'id')}">${L({es:'Concepto (Bahasa)',en:'Concept (Bahasa)',id:'Konsep (Bahasa)'})}</label><input id="${hid(i,'id')}" data-hi="${i}" data-hkey="id" value="${escAttr(h.id)}"${lockTxt}></div>
         </div>
       </td>
-      <td></td>
     </tr>`;
   }).join('');
   const total = HITOS.reduce((t,h)=>t+(parseFloat(h.pct)||0),0);
@@ -171,11 +173,10 @@ function hitosBodyHTML(){
     ? `<p class="mini" data-hito-admin-aviso>${L({es:'Añadir o quitar hitos, y editar el % y el concepto de los cinco de fábrica, es de administración (admin o super administrador) desde el 16-sep-2026.',en:'Adding or removing milestones, and editing the % and wording of the five factory ones, has been an admin/super-admin action since 16-Sep-2026.',id:'Menambah/menghapus tahap serta mengubah % dan teks lima tahap standar, sejak 16-Sep-2026 hanya untuk admin/super admin.'})}</p>`
     : '';
   return `<div class="hitos-tabla-wrap"><table class="hitos-tabla"><thead><tr>
-      <th></th>
-      <th>${L({es:'Concepto',en:'Concept',id:'Konsep'})}</th>
       <th>%</th>
       <th>${L({es:'Cantidad',en:'Amount',id:'Jumlah'})}</th>
       <th>${L({es:'Vencimiento',en:'Due date',id:'Jatuh tempo'})}</th>
+      <th></th>
       <th></th>
     </tr></thead><tbody>${rows}</tbody></table></div>
   <div class="dz-row" style="margin-top:10px">

@@ -402,16 +402,26 @@
   .hitos-tabla{ width:100%; min-width:460px; border-collapse:collapse; }
   .hitos-tabla th{ text-align:left; font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); padding:0 6px 6px; }
   .hitos-tabla td{ padding:5px 6px; vertical-align:top; }
-  .hitos-tabla tr.hito-fila{ border-top:1px solid var(--hair); }
-  .hitos-tabla tr.hito-fila:first-child{ border-top:none; }
-  .hitos-tabla td.n{ padding-top:11px; font-weight:600; color:var(--dl); width:18px; }
+  /* El Concepto es el TÍTULO de cada hito (17-sep-2026, owner), en su propia
+     fila de ancho completo con el número delante — el separador entre un
+     hito y el siguiente va aquí, no en la fila de datos que viene justo
+     debajo (esa no lleva borde propio: es la continuación del mismo hito). */
+  .hitos-tabla tr.hito-titulo{ border-top:1px solid var(--hair); }
+  .hitos-tabla tr.hito-titulo:first-child{ border-top:none; }
+  .hitos-tabla tr.hito-titulo td{ padding-top:11px; padding-bottom:2px; display:flex; align-items:center; gap:8px; }
+  .hito-num{ flex:none; font-weight:600; color:var(--dl); }
+  .hitos-tabla tr.hito-titulo .field{ flex:1; min-width:0; }
   .hitos-tabla td.pct{ width:56px; }
   .hitos-tabla td.monto{ width:105px; }
   .hitos-tabla td.fecha{ width:140px; }
   .hitos-tabla .field{ margin:0; }
   .hitos-tabla .hito-nota{ display:block; font-size:10.5px; color:var(--muted); margin-top:3px; }
-  .hitos-tabla td.acciones{ white-space:nowrap; text-align:right; }
+  .hitos-tabla td.acciones{ white-space:nowrap; text-align:right; padding-top:11px; }
   .hitos-tabla .hito-mas-btn{ font-size:11.5px; }
+  /* "X" (17-sep-2026, owner: en vez de "Quitar") — tamaño de toque cómodo
+     pese a ser un solo carácter, mismo tono rojo que el resto de acciones
+     destructivas de la suite. */
+  .hitos-tabla .hito-x{ font-size:15px; font-weight:600; color:#9E2F26; text-decoration:none; padding:2px 6px; }
   .hitos-tabla tr.hito-mas td{ padding-top:0; padding-bottom:8px; }
   .hitos-tabla tr.hito-mas .grid2{ margin:0; }
   @media screen and (max-width:520px){ .hitos-tabla td.fecha{ width:120px; } }

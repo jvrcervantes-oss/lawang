@@ -20,7 +20,7 @@
      uno, para que ninguna herramienta pueda cargar media suite: antes
      Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
      salieron los desplegables con cuatro aspectos. -->
-<link rel="stylesheet" href="assets/lawang.css?v=8f1cbce9">
+<link rel="stylesheet" href="assets/lawang.css?v=a4e2fa50">
 <!-- Iconos Phosphor: los usa el menu lateral de topbar.js (15-ago-2026). Ya
      los cargaban intranet/, compradores/ y creatividades/; se igualan las demas
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
@@ -84,7 +84,7 @@
 <script src="assets/modelos_catalogo.js?v=4e4fdee1"></script>
 <!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
 <script src="assets/techo_extras.js?v=4bbf6d24"></script>
-<script src="assets/hitos_fechas.js?v=c27a5631"></script>
+<script src="assets/hitos_fechas.js?v=e5debd90"></script>
 <script src="assets/entidades_pago.js?v=3041528f"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
@@ -861,6 +861,15 @@ function modelosDelProyectoActual(){
   if(!CATALOGO_MODELOS) return MODELOS_DB;
   const sel = document.querySelector('[name="proyecto_nombre"]');
   const proy = sel ? String(sel.value || '').trim() : '';
+  // Sin proyecto no hay tipología que ofrecer (17-sep-2026, owner: "bloquea
+  // que no se pueda elegir casa si no se ha elegido proyecto"). Antes esto
+  // caía en `lwModelosDeProyecto('', …)`, que no encuentra ninguna villa con
+  // proyecto vacío y por eso devuelve el CATÁLOGO ENTERO — el mismo fallback
+  // que sí es correcto para un proyecto YA elegido pero sin modelos
+  // declarados (16 de 29 proyectos activos), un caso legítimo distinto que
+  // no se toca. syncTipologiaModelos() decide qué hacer con la lista vacía
+  // (deshabilita el desplegable, salvo que ya traiga una tipología guardada).
+  if(!proy) return [];
   const r = lwModelosDeProyecto(proy, CATALOGO_MODELOS.villas, CATALOGO_MODELOS.catalogo);
   return r.lista.map(m => m.modelo);
 }
@@ -897,6 +906,27 @@ function syncTipologiaModelos(){
 
   const permitidos = modelosDelProyectoActual() || [];
   const valor = String(sel.value || '').trim();
+  /* Bloqueo de la Tipología sin Proyecto (17-sep-2026, owner). Un contrato
+     YA GUARDADO con tipología pero sin proyecto (legado) no se deshabilita:
+     `permitidos` sale vacío igual, y el mecanismo de "huérfana" de más abajo
+     ya la conserva como única opción — deshabilitar el desplegable aquí
+     también le impediría cambiarla el día que se le ponga proyecto. Solo se
+     bloquea cuando de verdad no hay nada elegido todavía. */
+  const proyEl = document.querySelector('[name="proyecto_nombre"]');
+  const hayProyecto = !!(proyEl && String(proyEl.value || '').trim());
+  const caja = sel.closest('.field');
+  if(!hayProyecto && !valor){
+    sel.disabled = true;
+    if(caja){
+      caja.classList.add('campo-aviso');
+      let nota = caja.querySelector('.aviso-campo');
+      if(!nota){ nota = document.createElement('p'); nota.className = 'aviso-campo'; caja.appendChild(nota); }
+      nota.textContent = '⚠️ ' + L({es:'Elige antes un Proyecto.',en:'Choose a Project first.',id:'Pilih dulu Proyek.'});
+    }
+  }else{
+    sel.disabled = false;
+    if(caja){ caja.classList.remove('campo-aviso'); const nota = caja.querySelector('.aviso-campo'); if(nota) nota.remove(); }
+  }
   const firma = permitidos.join('|') + '§' + valor;
   if(firma !== TIPO_LISTA_PINTADA){
     TIPO_LISTA_PINTADA = firma;
@@ -1035,6 +1065,15 @@ function toastMal(msg){
   const v=getComputedStyle(document.documentElement).getPropertyValue('--t-toast-mal').trim();
   const ms=parseFloat(v) ? (v.endsWith('ms') ? parseFloat(v) : parseFloat(v)*1000) : 7000;
   clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),ms);
+}
+/* «ERROR: No se pudo guardar» como título en su propia línea, y el motivo
+   debajo (17-sep-2026, owner: pide un título separado en los avisos de
+   guardado — antes solo el catch de guardarContrato() lo decía así y cada
+   freno de arriba escribía su frase suelta). El salto de línea lo renderiza
+   `white-space:pre-line` de `.toast.mal` (suite.css). Todo freno NUEVO que
+   impida guardar un contrato pasa por aquí, no por toastMal() a secas. */
+function avisoNoGuardado(detalle){
+  toastMal('ERROR: No se pudo guardar\n' + detalle);
 }
 // SOCIEDAD_DEFAULT vive en assets/entities.js desde el 9-sep-2026 (con su
 // porqué): Vencimientos atribuye cada contrato a su sociedad con la MISMA
@@ -4056,8 +4095,8 @@ async function crearProformaAutomatica(contratoId, numero, payload){
 }
 
 async function guardarContrato(){
-  if(!sb){ toastMal(lwT('Supabase no disponible')); return; }
-  if(LOCKED){ toastMal(lwT('Contrato bloqueado, no se puede guardar')); return; }   // el botón ya se oculta; la RLS también lo bloquearía
+  if(!sb){ avisoNoGuardado(lwT('Supabase no disponible.')); return; }
+  if(LOCKED){ avisoNoGuardado(lwT('Contrato bloqueado.')); return; }   // el botón ya se oculta; la RLS también lo bloquearía
   const tipo = CONTRACT_TIPO[CURRENT.slug];
   if(!tipo) return;
   /* El Poder Notarial no existe suelto (14-ago, petición del owner): acompaña a
@@ -4065,7 +4104,7 @@ async function guardarContrato(){
      el aviso visual porque sin guardar no hay número ni "Enviar a firma", así
      que este es el único portillo por el que puede salir un poder huérfano. */
   if(CURRENT.slug === 'poa_notario' && !String((collect().poa_hs_vinculado)||'').trim()){
-    toastMal(lwT('Elige el contrato al que acompaña este Poder Notarial antes de guardarlo'));
+    avisoNoGuardado(lwT('Elige el contrato al que acompaña este Poder Notarial.'));
     const el = document.querySelector('[name="poa_hs_vinculado"]');
     if(el){ el.focus(); el.scrollIntoView({behavior:'smooth', block:'center'}); }
     return;
@@ -4077,7 +4116,7 @@ async function guardarContrato(){
      ya la asigna sola y este freno no dispara. */
   if(tipo === 'construccion' && UNIDADES_RESERVA_VINCULADA
      && UNIDADES_RESERVA_VINCULADA.lista.length > 1 && !UNIDAD_ID_CONSTRUCCION){
-    toastMal(lwT('Elige a qué parcela pertenece esta Construcción antes de guardarla'));
+    avisoNoGuardado(lwT('Elige a qué parcela pertenece esta Construcción.'));
     const el = document.getElementById('selUnidadConstruccion');
     if(el){ el.focus(); el.scrollIntoView({behavior:'smooth', block:'center'}); }
     return;
@@ -4090,30 +4129,44 @@ async function guardarContrato(){
      proforma o una factura con el importe correcto bajo la etiqueta de
      moneda equivocada (~15.000x de diferencia real EUR↔IDR). */
   if(typeof MONEDA_DESAJUSTE !== 'undefined' && MONEDA_DESAJUSTE){
-    toastMal(lwT('La moneda del techo/extra elegido no coincide con la del documento — corrígelo antes de guardar'));
+    avisoNoGuardado(lwT('La moneda del techo/extra elegido no coincide con la del documento — corrígelo.'));
     const el = document.querySelector('[name="moneda"]');
     if(el){ el.focus(); el.scrollIntoView({behavior:'smooth', block:'center'}); }
     return;
   }
-  /* Σ% del calendario de pagos calculado (16-sep-2026, hallazgo ALTA de
-     Administración, misma consulta que el `resto` de recalcularMontosHitos):
-     el hito marcado `resto` absorbe la diferencia de redondeo asumiendo que
-     el resto de % suman 100 — si no suman (un admin editó un % de fábrica
-     sin recuadrar los demás, o un hito añadido a mano se pasa del hueco que
-     queda), `total - repartido` puede salir negativo o sin sentido. El tope
-     a 0 en recalcularMontosHitos() es solo la pantalla; esto es lo que
-     impide que un calendario descuadrado llegue a guardarse y, de ahí, a la
-     proforma automática o a la factura. Solo mira los hitos `calculado`: un
-     contrato de Construcción de antes de este cambio no tiene ninguno y no
-     entra aquí. */
-  if(CONTRACT_TIPO[CURRENT.slug] === 'construccion' && HITOS.some(h=>h.calculado)){
-    const sumaCalc = HITOS.filter(h=>h.calculado).reduce((t,h)=>t+(parseFloat(h.pct)||0), 0);
-    if(Math.round(sumaCalc * 100) / 100 !== 100){
-      toastMal(lwT('Los porcentajes del calendario de pagos no suman 100% — corrígelo antes de guardar'));
+  /* Σ% del calendario de pagos (17-sep-2026, owner: «si los hitos no suman
+     100% no se puede guardar, nueva norma» — GENERALIZA lo del 16-sep, que
+     solo miraba los hitos `calculado` de Construcción para proteger al hito
+     `resto` de recalcularMontosHitos: si el resto de % no sumaban 100,
+     `total - repartido` podía salir negativo o sin sentido. Esa razón sigue
+     siendo válida para los calculados; la nueva norma la extiende a
+     CUALQUIER contrato con calendario de pagos, tecleado a mano o no — un
+     calendario que no suma el 100% del precio no describe de verdad cómo se
+     cobra, sea Construcción o cualquier otro tipo. */
+  if(SECTIONS.some(s => s.special === 'hitos') && HITOS.length){
+    const suma = HITOS.reduce((t,h)=>t+(parseFloat(h.pct)||0), 0);
+    if(Math.round(suma * 100) / 100 !== 100){
+      avisoNoGuardado(lwT('Los porcentajes del calendario de pagos no suman 100% — corrígelo.'));
       const el = document.querySelector('[data-sec="pagos"]');
       if(el) el.scrollIntoView({behavior:'smooth', block:'center'});
       return;
     }
+  }
+  /* El techo es obligatorio en una vivienda (16-sep, owner: "no puede salir
+     sin elegir") y cargarTechosYExtras() ya lo preselecciona solo en cuanto
+     hay variantes — así que en el uso normal TECHO_ELEGIDO nunca debería
+     llegar aquí vacío. Este es el cinturón: si por lo que sea (RPC caído a
+     mitad de sesión, un estado que no se sincronizó) el modelo elegido SÍ
+     tiene variantes de techo y ninguna quedó puesta, no se guarda con la
+     partida más cara de la construcción sin decidir. Un modelo sin ninguna
+     variante de techo (TECHOS_OPCIONES vacío) no entra aquí: no hay nada que
+     elegir y techo_extras.js ya lo dice en pantalla. */
+  if(tipo === 'construccion' && typeof TECHOS_OPCIONES !== 'undefined'
+     && TECHOS_OPCIONES.length && !TECHO_ELEGIDO){
+    avisoNoGuardado(lwT('Elige el techo de la vivienda.'));
+    const el = document.getElementById('techoSel');
+    if(el){ el.focus(); el.scrollIntoView({behavior:'smooth', block:'center'}); }
+    return;
   }
   const esNuevo = !(SAVED_CONTRACT && SAVED_CONTRACT.id);
 
@@ -4131,7 +4184,7 @@ async function guardarContrato(){
   if(!esNuevo && sb){
     await cargarEstadoFirma();
     if(EN_FIRMA.vivas + EN_FIRMA.firmadas > 0){
-      toastMal(lwT('Este contrato está enviado a firma: pulsa «Editar (anula la firma)» para poder guardarlo'));
+      avisoNoGuardado(lwT('Este contrato está enviado a firma. Pulsa «Editar (anula la firma)» para poder guardarlo.'));
       return;
     }
   }
@@ -4259,12 +4312,7 @@ async function guardarContrato(){
     // el nombre de la tabla — no se enseña así.
     const esRLS = /row-level security|permission denied/i.test(m);
     const detalle = esFrenoConocido ? m : esRLS ? 'No tienes permiso para guardar este contrato.' : m;
-    // Título separado del detalle (17-sep-2026, owner: "ERROR: No se pudo
-    // guardar / Rellena los campos XXXX"). El salto de línea lo renderiza
-    // `white-space:pre-line` de `.toast.mal` (suite.css) — un toast sin \n
-    // se comporta exactamente igual que antes, así que esto no toca ningún
-    // otro aviso de la suite.
-    toastMal('ERROR: No se pudo guardar\n' + detalle);
+    avisoNoGuardado(detalle);
   }
   btn.disabled=false; updateSaveButton();
 }
