@@ -222,6 +222,16 @@
   border-bottom: 1px solid var(--line-soft); font-size: 13.5px; }
 .dato:last-child { border-bottom: 0; }
 .dato b { font-weight: 600; text-align: right; word-break: break-word; }
+/* Ficha de UN conjunto de anuncios dentro del detalle de campaña (17-sep-2026). Mismo
+   idioma visual que `.caja` pero mas ligera -- son varias dentro del mismo cajon, y una
+   sombra propia por cada una se ve pesado. */
+.conjunto { border: 1px solid var(--line); border-radius: var(--r-box); padding: 12px 14px;
+  margin-bottom: 12px; }
+.conjunto:last-child { margin-bottom: 0; }
+.conjunto > header { display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+.conjunto > header b { font: 600 13.5px/1.4 var(--sans); }
+.conjunto .publico { font: 400 12.5px/1.5 var(--text); color: var(--mist); margin: 4px 0 2px; }
 .cajon textarea { width: 100%; font: 400 13.5px/1.5 var(--text); padding: 10px;
   border: 1px solid var(--line); border-radius: var(--r-ctrl); background: var(--canvas);
   resize: vertical; min-height: 72px; }

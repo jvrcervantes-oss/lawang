@@ -25,7 +25,7 @@ const $ = s => document.querySelector(s);
 lwIdiomaAplicar();   // traduce la HTML de index.html; en espanol no toca el DOM
 
 let SB = null, YO = null;
-let LEADS = [], ETAPAS = [], CAMPANAS = [], SERIE = [], ACCIONES = [];
+let LEADS = [], ETAPAS = [], CAMPANAS = [], SERIE = [], ACCIONES = [], CONJUNTOS = [];
 /* Arranca en «Hoy» (11-sep-2026, owner). La pregunta con la que se abre esta pantalla
    por la mañana no es «cómo va el embudo», es «a quién llamo». */
 let VISTA = 'hoy';
@@ -1437,9 +1437,11 @@ function pintarBandeja(){
    ========================================================================== */
 async function cargarPanel(){
   CARGADO.panel = true;
-  const [c, s] = await Promise.all([SB.rpc('crm_campanas'), SB.rpc('crm_serie_semanal', { p_semanas: 8 })]);
+  const [c, s, j] = await Promise.all([SB.rpc('crm_campanas'), SB.rpc('crm_serie_semanal', { p_semanas: 8 }),
+                                       SB.rpc('crm_campanas_conjuntos')]);
   CAMPANAS = c.error ? [] : (c.data || []);
   SERIE    = s.error ? [] : (s.data || []);
+  CONJUNTOS = j.error ? [] : (j.data || []);
   pintarPanel();
 }
 
@@ -1478,16 +1480,92 @@ function pintarPanel(){
     : lwT('Sin datos de campaña todavía.');
   $('#tCampanas').innerHTML = `
     <thead><tr><th>${lwT('Campaña')}</th><th class="num">${lwT('Invertido')}</th><th class="num">${lwT('Leads')}</th>
-      <th class="num">${lwT('Coste/lead')}</th><th class="num">${lwT('Clics')}</th><th class="num">${lwT('7 días')}</th></tr></thead>
+      <th class="num">${lwT('Coste/lead')}</th><th class="num">${lwT('Clics')}</th><th class="num">${lwT('7 días')}</th><th></th></tr></thead>
     <tbody>${CAMPANAS.length ? CAMPANAS.map(c => {
       const cp = c.leads ? Number(c.gasto || 0) / c.leads : null;
-      return `<tr><td><b>${esc(c.nombre || c.cliente)}</b><div style="font-size:11.5px;color:var(--mist)">${esc(c.cliente)}</div></td>
+      return `<tr data-campana="${esc(c.campaign_id)}" style="cursor:pointer">
+        <td><b>${esc(c.nombre || c.cliente)}</b><div style="font-size:11.5px;color:var(--mist)">${esc(c.cliente)}</div></td>
         <td class="num">${dinero(c.gasto, c.moneda)}</td>
         <td class="num">${c.leads ?? '—'}</td>
         <td class="num">${cp == null ? '—' : dinero(Math.round(cp), c.moneda)}</td>
         <td class="num">${c.clics ?? '—'}</td>
-        <td class="num">${c.leads_7d ?? 0} leads</td></tr>`;
-    }).join('') : '<tr><td colspan="6"><p class="vacio">' + lwT('Aún no hay datos de campañas.') + '</p></td></tr>'}</tbody>`;
+        <td class="num">${c.leads_7d ?? 0} leads</td>
+        <td style="text-align:right"><i class="ph ph-caret-right" style="color:var(--mist)"></i></td></tr>`;
+    }).join('') : '<tr><td colspan="7"><p class="vacio">' + lwT('Aún no hay datos de campañas.') + '</p></td></tr>'}</tbody>`;
+  $('#tCampanas').querySelectorAll('tr[data-campana]').forEach(tr =>
+    tr.onclick = () => abrirDetalleCampana(tr.dataset.campana,
+      CAMPANAS.find(c => c.campaign_id === tr.dataset.campana)));
+}
+
+/* Nombres legibles para lo que Meta devuelve en crudo — mismo criterio que `vocabulario.js`:
+   se declaran UNA vez y de aqui los lee cualquiera, nunca a mano en la plantilla. */
+const OBJETIVO_LEGIBLE = {
+  OUTCOME_LEADS: 'Generación de leads', OUTCOME_ENGAGEMENT: 'Mensajes / interacción',
+  OUTCOME_TRAFFIC: 'Tráfico', OUTCOME_AWARENESS: 'Reconocimiento de marca',
+  OUTCOME_SALES: 'Ventas', OUTCOME_APP_PROMOTION: 'Promoción de app',
+};
+const ESTADO_CONJUNTO = {
+  ACTIVE: ['verde', 'Activo'], PAUSED: ['gris', 'Pausado'],
+  DELETED: ['rojo', 'Borrado'], ARCHIVED: ['gris', 'Archivado'],
+  PENDING_REVIEW: ['oro', 'En revisión'], DISAPPROVED: ['rojo', 'Rechazado'],
+  CAMPAIGN_PAUSED: ['gris', 'Pausado (por su campaña)'],
+};
+
+/* ==========================================================================
+   DETALLE DE UNA CAMPAÑA — objetivo, targeting real y rendimiento por conjunto
+   --------------------------------------------------------------------------
+   Mismo dato que ya enseña el panel de AxisWorks (`meta_campana_detalle()`),
+   pero leido de Supabase: esta intranet no tiene token de Meta ni debe
+   tenerlo. El vigilante deja la foto en `axisworks_meta_campanas_conjuntos`
+   cada 4 horas (`_vigila_crm_conjuntos_snapshot`, R15) y aqui solo se pinta.
+   Sin creatividades a proposito (alcance del 17-sep-2026): lo que hace falta
+   aqui es a quien apunta y que esta consiguiendo cada conjunto, no el anuncio.
+   ========================================================================== */
+function abrirDetalleCampana(campaignId, resumen){
+  cerrarFicha();
+  const conjuntos = CONJUNTOS.filter(x => x.campaign_id === campaignId)
+    .sort((a, b) => (b.effective_status === 'ACTIVE') - (a.effective_status === 'ACTIVE')
+                  || Number(b.gasto_14d || 0) - Number(a.gasto_14d || 0));
+  const objetivo = conjuntos[0]?.objetivo;
+  const actualizado = conjuntos.reduce((mas, x) => !mas || x.actualizado_en > mas ? x.actualizado_en : mas, null);
+
+  const velo = document.createElement('div'); velo.className = 'velo'; velo.onclick = cerrarFicha;
+  const c = document.createElement('aside'); c.className = 'cajon';
+  c.innerHTML = `
+    <header>
+      <button class="cerrar" aria-label="${lwT('Cerrar')}">&times;</button>
+      <h2>${esc(resumen?.nombre || resumen?.cliente || '')}</h2>
+      <div class="meta" style="margin-top:8px;display:flex;gap:7px;flex-wrap:wrap">
+        <span class="chip meta">${esc(lwT(OBJETIVO_LEGIBLE[objetivo] || objetivo || 'Objetivo no disponible'))}</span>
+        ${actualizado ? `<span class="chip gris">${lwT('Datos de %f', { f: fechaHora(actualizado) })}</span>` : ''}
+      </div>
+    </header>
+    <div class="cuerpo">
+      ${!conjuntos.length ? `<p class="vacio">${lwT('Todavía no hay foto de esta campaña. La trae el vigilante en su próxima vuelta.')}</p>` : `
+      <p class="lb">${lwT('Conjuntos de anuncios')}</p>
+      ${conjuntos.map(x => {
+        const [color, nombreEstado] = ESTADO_CONJUNTO[x.effective_status] || ['gris', x.effective_status || '—'];
+        const cpl = x.leads_14d ? Number(x.gasto_14d || 0) / x.leads_14d : null;
+        const geo = (x.geo || []).join(', ') || '—';
+        // «o» y «Y» conectan nombres de criterio que vienen tal cual de Meta (dato, no
+        // interfaz — suite_lawang.md: "lo que NO se traduce: los datos"), así que se
+        // quedan en español igual que los propios nombres de los criterios.
+        const publico = (x.publico || []).length
+          ? x.publico.map(bloque => bloque.join(' o ')).join(' Y ')
+          : lwT('sin filtro de público (audiencia amplia)');
+        return `<div class="conjunto">
+          <header><b>${esc(x.adset_nombre || x.adset_id)}</b><span class="chip ${color}">${esc(lwT(nombreEstado))}</span></header>
+          <p class="publico"><b>${lwT('A quién apunta:')}</b> ${esc(geo)} · ${lwT('%n–%m años', { n: x.age_min ?? 18, m: x.age_max ?? 65 })}
+            ${x.publico && x.publico.length ? ' · ' + esc(publico) : ' — ' + esc(publico)}</p>
+          <div class="dato"><span>${lwT('Presupuesto/día')}</span><b>${dinero(x.daily_budget, x.moneda)}</b></div>
+          <div class="dato"><span>${lwT('Invertido (14 días)')}</span><b>${dinero(x.gasto_14d, x.moneda)}</b></div>
+          <div class="dato"><span>${lwT('Leads (14 días)')}</span><b>${x.leads_14d ?? 0}</b></div>
+          <div class="dato"><span>${lwT('Coste/lead (14 días)')}</span><b>${cpl == null ? '—' : dinero(Math.round(cpl), x.moneda)}</b></div>
+          <div class="dato"><span>${lwT('Clics (14 días)')}</span><b>${x.clics_14d ?? 0}</b></div>
+        </div>`;
+      }).join('')}`}
+    </div>`;
+  document.body.append(velo, c);
 }
 
 /* Gráfica en SVG a mano: dos series, leads (barras) y gasto (línea). Sin
