@@ -67,6 +67,18 @@
 --    Arreglo de una línea: `pg_advisory_xact_lock` por Carta, liberado solo
 --    al terminar la transacción — serializa sin tocar el resto del sistema.
 -- ════════════════════════════════════════════════════════════════════════════
+--
+-- DECISIÓN DEL OWNER, 18-sep-2026: el reparto "quien se guarda primero, se
+-- lleva primero" (arriba, "disponible por Carta") se queda SIN cláusula que
+-- lo explique en el documento. Legal lo había marcado como punto abierto tras
+-- el 17-sep; el owner respondió que el Bloqueo YA admite varias parcelas en
+-- un solo documento (chips de `parcela_codigo`, ver `parcela_inventario.js`),
+-- así que el camino esperado es una Carta multi-parcela → UN Bloqueo que se
+-- lleva todas de una vez — no el reparto secuencial que motivó esta migración.
+-- Ese reparto sigue existiendo (CR00025 lo usa de verdad) y sigue siendo
+-- financieramente seguro (el ledger de arriba impide el doble cómputo pase lo
+-- que pase), pero es el caso raro, no el flujo que hay que documentar en la
+-- plantilla. No añadir cláusula para esto salvo que el owner lo pida explícito.
 
 create or replace function public.carta_cobrado_al_bloquear()
 returns trigger
