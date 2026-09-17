@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="es"><head><title>Equipos de venta — Lawang Intranet</title>
+<!DOCTYPE html><html lang="es"><head><title>Comisión de administración — Lawang Intranet</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d6d6608e"></script>
 <script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=310f2346" defer></script><script src="../assets/datos.js?v=fd3578b2" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
@@ -10,80 +10,86 @@
 
 <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 bg-surface-container-lowest p-8 rounded-xl shadow-sm">
 <div class="flex flex-col gap-2 max-w-3xl">
-<h1 class="font-headline-lg text-headline-lg text-deep-lagoon tracking-tight">Equipos de venta</h1>
-<p class="font-body-md text-body-md text-on-surface-variant">Los equipos comerciales, su manager, y quién forma parte de cada uno — con la fecha desde la que un closer está dentro y, si ya no lo está, desde cuándo.</p>
+<h1 class="font-headline-lg text-headline-lg text-deep-lagoon tracking-tight" data-lwt>Comisión de administración</h1>
+<p class="font-body-md text-body-md text-on-surface-variant" data-lwt>Un porcentaje sobre todo el dinero que entra por la intranet. Se devenga solo, recibí a recibí, con el porcentaje que regía el día del alta — cambiar la tarifa nunca reescribe lo ya devengado. No tiene nada que ver con la comisión del equipo de ventas.</p>
 </div>
 <div class="flex flex-wrap items-center gap-3">
-<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md transition-colors shadow-sm" type="button"><span class="material-symbols-outlined text-[18px]">add</span>Nuevo equipo</button>
+<a class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-label-md transition-colors shadow-sm" href="../recibos/"><span class="material-symbols-outlined text-[18px]">payments</span><span data-lwt>Recibos</span></a>
+<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md transition-colors shadow-sm" type="button"><span class="material-symbols-outlined text-[18px]">add</span><span data-lwt>Nueva tarifa</span></button>
 </div>
 </div>
 
 <div class="rounded-xl border border-burnt-earth/30 bg-surface-alt px-5 py-4 flex items-start gap-3" role="status">
 <span class="material-symbols-outlined text-[20px] text-burnt-earth shrink-0">lock</span>
-<p class="font-body-sm text-body-sm text-on-surface-variant">Pantalla de administración: crear equipos, dar de alta o de baja miembros exige rol <b class="text-on-surface">admin</b> o <b class="text-on-surface">super_admin</b>, y lo comprueba la base (policy <code>es_admin()</code>), no solo esta pantalla.</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant" data-lwt>Pantalla de administración: el libro lo lee <b class="text-on-surface">admin</b> o <b class="text-on-surface">super_admin</b>, y cambiar la tarifa es solo de <b class="text-on-surface">super_admin</b>. Lo comprueba la base (policies <code>es_admin()</code> / <code>es_super_admin()</code>), no esta pantalla. Los importes los calcula un disparador de la base: desde aquí no se puede tocar ni la base, ni el porcentaje, ni el importe de una línea — solo su estado de cobro.</p>
+</div>
+
+<div class="rounded-xl border border-error/40 bg-error-container/40 px-5 py-4 items-start gap-3" role="alert" id="lw-ca-descuadres" hidden>
+<span class="material-symbols-outlined text-[20px] text-error shrink-0">report</span>
+<p class="font-body-sm text-body-sm text-on-surface" data-lw="k-descuadres">—</p>
 </div>
 
 <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
 <div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col justify-between">
 <div class="flex items-start justify-between gap-3">
-<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold">Equipos activos</span>
-<span class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-territorial-green"><span class="material-symbols-outlined text-[18px]">groups</span></span>
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold" data-lwt>Tarifa vigente</span>
+<span class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-territorial-green"><span class="material-symbols-outlined text-[18px]">percent</span></span>
 </div>
 <div class="mt-4 flex items-baseline gap-2">
-<span class="font-kpi-number text-kpi-number text-on-surface tracking-tight" data-lw="k-equipos-activos">—</span>
+<span class="font-kpi-number text-kpi-number text-on-surface tracking-tight" data-lw="k-tarifa">—</span>
 </div>
-<p class="mt-2 pt-2 border-t border-outline-variant/30 font-body-sm text-body-sm text-outline" data-lw="k-equipos-pie">—</p>
+<p class="mt-2 pt-2 border-t border-outline-variant/30 font-body-sm text-body-sm text-outline" data-lw="k-tarifa-pie">—</p>
 </div>
 <div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col justify-between">
 <div class="flex items-start justify-between gap-3">
-<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold">Closers activos</span>
-<span class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-deep-lagoon"><span class="material-symbols-outlined text-[18px]">badge</span></span>
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold" data-lwt>Devengado este mes</span>
+<span class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-deep-lagoon"><span class="material-symbols-outlined text-[18px]">calendar_month</span></span>
 </div>
-<div class="mt-4 flex items-baseline gap-2">
-<span class="font-kpi-number text-kpi-number text-on-surface tracking-tight" data-lw="k-miembros-activos">—</span>
-</div>
-<p class="mt-2 pt-2 border-t border-outline-variant/30 font-body-sm text-body-sm text-outline" data-lw="k-miembros-pie">—</p>
-</div>
-<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col justify-between">
-<div class="flex items-start justify-between gap-3">
-<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold">Managers</span>
-<span class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-burnt-earth"><span class="material-symbols-outlined text-[18px]">supervisor_account</span></span>
-</div>
-<div class="mt-4 flex items-baseline gap-2">
-<span class="font-kpi-number text-kpi-number text-on-surface tracking-tight" data-lw="k-managers">—</span>
-</div>
-<p class="mt-2 pt-2 border-t border-outline-variant/30 font-body-sm text-body-sm text-outline" data-lw="k-managers-pie">—</p>
+<!-- Una linea por moneda y NUNCA sumadas entre si: 500 EUR + 500 IDR no son «1.000 nada». -->
+<div class="mt-4 font-kpi-number text-kpi-number text-on-surface tracking-tight leading-tight" data-lw="k-mes">—</div>
+<p class="mt-2 pt-2 border-t border-outline-variant/30 font-body-sm text-body-sm text-outline" data-lw="k-mes-pie">—</p>
 </div>
 <div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col justify-between">
 <div class="flex items-start justify-between gap-3">
-<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold">Sin closers activos</span>
-<span class="w-10 h-10 rounded-xl bg-error-container/60 flex items-center justify-center text-error"><span class="material-symbols-outlined text-[18px]">report</span></span>
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold" data-lwt>Pendiente de facturar</span>
+<span class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-burnt-earth"><span class="material-symbols-outlined text-[18px]">account_balance_wallet</span></span>
+</div>
+<div class="mt-4 font-kpi-number text-kpi-number text-on-surface tracking-tight leading-tight" data-lw="k-pendiente">—</div>
+<p class="mt-2 pt-2 border-t border-outline-variant/30 font-body-sm text-body-sm text-outline" data-lw="k-pendiente-pie">—</p>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col justify-between">
+<div class="flex items-start justify-between gap-3">
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold" data-lwt>Para revisar</span>
+<span class="w-10 h-10 rounded-xl bg-error-container/60 flex items-center justify-center text-error"><span class="material-symbols-outlined text-[18px]">flag</span></span>
 </div>
 <div class="mt-4 flex items-baseline gap-2">
-<span class="font-kpi-number text-kpi-number text-on-surface tracking-tight" data-lw="k-sin-miembros">—</span>
+<span class="font-kpi-number text-kpi-number text-on-surface tracking-tight" data-lw="k-revisar">—</span>
 </div>
-<p class="mt-2 pt-2 border-t border-outline-variant/30 font-body-sm text-body-sm text-outline" data-lw="k-sin-miembros-pie">—</p>
+<p class="mt-2 pt-2 border-t border-outline-variant/30 font-body-sm text-body-sm text-outline" data-lw="k-revisar-pie">—</p>
 </div>
 </section>
 
 <section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
-<div class="px-8 pt-8 pb-4 flex flex-col gap-1 border-b border-outline-variant/40">
-<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">Equipos</span>
-<h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight">Los equipos dados de alta</h2>
+<div class="px-8 pt-8 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-outline-variant/40">
+<div class="flex flex-col gap-1">
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold" data-lwt>Tarifas</span>
+<h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight" data-lwt>El porcentaje y desde cuándo rige</h2>
+</div>
+<p class="font-body-sm text-body-sm text-outline max-w-md" data-lwt>Una tarifa no se edita ni se borra: se añade otra con su fecha. Así se puede decir siempre qué porcentaje regía el día que entró cada euro.</p>
 </div>
 <div class="overflow-x-auto">
 <table class="w-full text-left border-collapse">
 <thead>
 <tr class="border-b border-outline-variant/60 bg-surface-container-low">
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Equipo</th>
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Manager</th>
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Closers activos</th>
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Estado</th>
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline text-right">Acciones</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Porcentaje</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Rige desde</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Estado</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Quién</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Nota</th>
 </tr>
 </thead>
-<tbody id="lw-equipos-filas">
-<tr><td colspan="5" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Trayendo los equipos…</td></tr>
+<tbody id="lw-ca-tarifas">
+<tr><td colspan="5" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant" data-lwt>Trayendo las tarifas…</td></tr>
 </tbody>
 </table>
 </div>
@@ -92,30 +98,45 @@
 <section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
 <div class="px-8 pt-8 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-outline-variant/40">
 <div class="flex flex-col gap-1">
-<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">Miembros</span>
-<h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight">Quién está (o estuvo) en cada equipo</h2>
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold" data-lwt>Libro</span>
+<h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight" data-lwt>Una línea por cada entrada de dinero</h2>
 </div>
-<select id="lw-mi-equipo" class="px-4 py-2.5 rounded-full bg-surface-container-low border border-control-border/40 font-label-md text-[13px] text-on-surface-variant">
-<option value="">Todos los equipos</option>
+<div class="flex flex-wrap items-center gap-2">
+<select id="lw-ca-proyecto" class="px-4 py-2.5 rounded-full bg-surface-container-low border border-control-border/40 font-label-md text-[13px] text-on-surface-variant">
+<option value="" data-lwt>Todos los proyectos</option>
 </select>
+<select id="lw-ca-estado" class="px-4 py-2.5 rounded-full bg-surface-container-low border border-control-border/40 font-label-md text-[13px] text-on-surface-variant">
+<option value="" data-lwt>Todos los estados</option>
+<option value="pendiente" data-lwt>Pendiente</option>
+<option value="facturada" data-lwt>Facturada</option>
+<option value="cobrada" data-lwt>Cobrada</option>
+<option value="exenta" data-lwt>Exenta</option>
+</select>
+<select id="lw-ca-mes" class="px-4 py-2.5 rounded-full bg-surface-container-low border border-control-border/40 font-label-md text-[13px] text-on-surface-variant">
+<option value="" data-lwt>Todos los meses</option>
+</select>
+</div>
 </div>
 <div class="overflow-x-auto">
 <table class="w-full text-left border-collapse">
 <thead>
 <tr class="border-b border-outline-variant/60 bg-surface-container-low">
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Closer</th>
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Equipo</th>
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Desde</th>
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Hasta</th>
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Estado</th>
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline text-right">Acción</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Fecha</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Recibí</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Proyecto</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Sociedad</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline text-right" data-lwt>Dinero entrado</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline text-right" data-lwt>Comisión</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Estado</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline text-right" data-lwt>Acción</th>
 </tr>
 </thead>
-<tbody id="lw-miembros-filas">
-<tr><td colspan="6" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Trayendo los miembros…</td></tr>
+<tbody id="lw-ca-lineas">
+<tr><td colspan="8" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant" data-lwt>Trayendo el libro…</td></tr>
 </tbody>
 </table>
 </div>
+<p class="px-8 py-4 border-t border-outline-variant/40 font-body-sm text-body-sm text-outline" data-lwt>Los importes son brutos, antes de cualquier retención. Un abono (importe negativo) es la vuelta de una comisión cuyo recibí se anuló o se borró; un ajuste es la diferencia cuando el recibí cambió de importe después de facturarse.</p>
 </section>
 
 </div>

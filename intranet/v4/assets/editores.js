@@ -2184,6 +2184,99 @@
        viva a propósito: es un master-detail de 1000+ líneas que no encaja en
        la piel de tarjetas de la v4, y portarlo entero no es lo que se pidió.
        El botón "Abrir la herramienta viva" sigue ahí para eso. */
+    /* Comision de administracion (17-sep-2026, encargo del owner: «0,5% a todo
+       el dinero que entra [...] que ese campo sea editable»). Dos acciones y ni
+       una mas, porque todo lo demas lo calcula la base:
+         · alta de TARIFA -> solo super_admin (policy es_super_admin), y nunca un
+           UPDATE: una tarifa nueva es una fila nueva con su fecha, para que se
+           pueda decir siempre que % regia el dia que entro cada euro.
+         · estado de una LINEA -> admin. El grant por columna de la base solo deja
+           escribir (estado, nota, revisar): base, pct e importe son del trigger,
+           y desde aqui no hay forma de tocarlos ni por consola. */
+    'comision-admin': function (aut) {
+      var sb = aut.sb, admin = esAdmin(aut.ficha);
+      var superAdmin = !!(aut.ficha && aut.ficha.rol === 'super_admin');
+      window.LW_V4 = window.LW_V4 || {};
+      var hoy = new Date().toISOString().slice(0, 10);
+
+      var soloSuper = function () {
+        return aviso('Cambiar la comision de administracion es solo para super_admin (policy es_super_admin) — tu sesion es de ' +
+          ((aut.ficha && aut.ficha.rol) || 'agente') + '.', '#8A6A34');
+      };
+      var soloAdmin = function () {
+        return aviso('El libro de comision lo lleva administracion (policy es_admin) — tu sesion es de ' +
+          ((aut.ficha && aut.ficha.rol) || 'agente') + '.', '#8A6A34');
+      };
+
+      ata(/^\+? ?Nueva tarifa$/i, function () {
+        if (!superAdmin) return soloSuper();
+        var tarifas = (window.LW_V4 && window.LW_V4.tarifas) || [];
+        var vigente = tarifas.filter(function (t) { return t.efectivo_desde <= hoy; })[0] || null;
+        modal('Nueva tarifa de comision', [
+          { k: 'pct', label: '% de comision', tipo: 'number', paso: '0.0001', req: 1, medio: 1,
+            valor: vigente ? Number(vigente.pct) : 0.5,
+            ayuda: 'sobre el dinero que entra por cada recibi' },
+          { k: 'efectivo_desde', label: 'Rige desde', tipo: 'date', req: 1, medio: 1, valor: hoy,
+            ayuda: 'hoy o mas adelante — nunca hacia atras' },
+          { k: 'nota', label: 'Por que cambia' },
+          { tipo: 'nota', label: vigente
+              ? ('Ahora rige el ' + Number(vigente.pct) + '% desde el ' + vigente.efectivo_desde +
+                 '. La tarifa vieja NO se borra y lo ya devengado NO se recalcula: cada linea guarda congelado el % que regia su dia.')
+              : 'Todavia no hay ninguna tarifa, asi que no se esta devengando nada. Esta sera la primera y empezara a contar a partir de su fecha.' }
+        ], 'Crear tarifa', function (v) {
+          var pct = Number(v.pct);
+          if (!(pct >= 0) || pct > 100) {
+            return { error: { message: 'El porcentaje va entre 0 y 100. Ojo con el separador: medio por ciento es 0,5 — no 50.' } };
+          }
+          /* Freno al dedo gordo. No es una regla de negocio (la base acepta
+             cualquier % entre 0 y 100 a proposito), es que 0,5 tecleado como 5
+             multiplica por diez la factura de un mes entero y nadie lo nota
+             hasta que se emite. Un aviso que se puede aceptar, no un bloqueo. */
+          if (pct > 5 && !window.confirm('Vas a fijar la comision en ' + pct + '%.\n\n' +
+              (vigente ? 'La vigente es del ' + Number(vigente.pct) + '%. ' : '') +
+              'Se aplicara a todo el dinero que entre desde el ' + v.efectivo_desde + '.\n\nSeguro?')) {
+            return { error: { message: 'Cancelado: no se ha creado ninguna tarifa.' } };
+          }
+          if (v.efectivo_desde < hoy) {
+            return { error: { message: 'Una tarifa no puede empezar a regir en el pasado: cambiaria el % que la pantalla dice que regia aquellos dias. La base lo rechaza igual.' } };
+          }
+          /* `.select().single()` detras del insert: la policy de SELECT de esta
+             tabla es es_admin() y quien llega aqui es super_admin, asi que no hay
+             riesgo de confundir un insert bueno con uno tapado por RLS -- y a
+             cambio se confirma que la fila existe de verdad. */
+          return sb.from('comision_admin_tarifas').insert({
+            pct: pct,
+            efectivo_desde: v.efectivo_desde,
+            nota: (v.nota || '').trim() || null,
+            // la policy exige que coincida con auth.email(): lo pone la sesion,
+            // no el formulario
+            creado_por: (aut.session && aut.session.user && aut.session.user.email) || null
+          }).select('id').single();
+        });
+      });
+
+      window.LW_V4.abreEstadoComisionAdmin = function (lineaId, etiqueta, actual) {
+        if (!admin) return soloAdmin();
+        modal('Estado de la comision — ' + (etiqueta || ''), [
+          { k: 'estado', label: 'Estado', tipo: 'select', req: 1, valor: actual,
+            opciones: [['pendiente', 'Pendiente'], ['facturada', 'Facturada'],
+                       ['cobrada', 'Cobrada'], ['exenta', 'Exenta (no se cobra)']] },
+          { k: 'nota', label: 'Nota' },
+          { k: 'revisar', label: 'Dejar de marcarla para revisar', tipo: 'check',
+            ayuda: 'solo la bandera; si el descuadre es real sigue saliendo en el aviso de arriba, que se recalcula desde la base' },
+          { tipo: 'nota', label: 'El importe, la base y el % no se tocan desde aqui: los calcula la base sobre el recibi. ' +
+              '«Exenta» es la salida para el dinero que entra pero no es una venta — un aporte de capital, un traspaso entre sociedades, una devolucion.' }
+        ], 'Guardar', function (v) {
+          var parche = { estado: v.estado, nota: (v.nota || '').trim() || null };
+          if (v.revisar) parche.revisar = false;
+          /* `.select()` detras del UPDATE a proposito: un UPDATE que no toca
+             ninguna fila NO da error en PostgREST, asi que sin esto una sesion
+             sin permiso veria «guardado» y no habria guardado nada. */
+          return sb.from('comision_admin_lineas').update(parche).eq('id', lineaId).select('id,estado').single();
+        });
+      };
+    },
+
     cuentas: function (aut) {
       var sb = aut.sb, superAdmin = !!(aut.ficha && aut.ficha.rol === 'super_admin');
       var soloSuper = function () {

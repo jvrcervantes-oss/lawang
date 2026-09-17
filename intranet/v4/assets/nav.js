@@ -89,7 +89,12 @@
   var PANEL_CONTROL = [
     { path: 'cuentas',       icono: 'account_balance', texto: 'Cuentas' },
     { path: 'equipos-venta', icono: 'groups',           texto: 'Equipos de venta' },
-    { path: 'condiciones',   icono: 'percent',          texto: 'Condiciones' }
+    { path: 'condiciones',   icono: 'percent',          texto: 'Condiciones' },
+    /* 17-sep-2026: la comision de administracion (0,5% por el uso de la
+       intranet sobre todo el dinero que entra) se configura aqui, no en
+       Comisiones -- aquella es la del equipo de ventas y son dos cosas
+       distintas que comparten palabra. */
+    { path: 'comision-admin', icono: 'price_change',      texto: 'Comision de administracion' }
   ];
 
   /* Documentacion se fusiono dentro de Proyectos (owner, 8-sep): la pestana

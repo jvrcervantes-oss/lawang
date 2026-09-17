@@ -2897,6 +2897,188 @@
     });
   };
 
+  /* ---------- Comisión de administración (17-sep-2026) ----------
+     Encargo del owner: «0,5% de comisión a todo el dinero que entra [...] es de
+     administración [...] no es equipo de ventas». Pantalla de lectura: TODOS los
+     importes los calcula un disparador de la base sobre cada recibí, y el grant
+     de `comision_admin_lineas` para `authenticated` es solo SELECT + UPDATE de
+     (estado, nota, revisar) — desde aquí es IMPOSIBLE tocar base, pct o importe
+     aunque alguien lo intente por consola. El alta de tarifa vive en editores.js
+     (ED['comision-admin']) y la exige `es_super_admin()` en la base. */
+  REG['comision-admin'] = function (sb) {
+    if (!(window.LW_V4 && window.LW_V4.esAdmin)) { notaSoloAdmin(); return; }
+
+    var cuerpoTar = document.getElementById('lw-ca-tarifas');
+    var cuerpoLin = document.getElementById('lw-ca-lineas');
+    var selProy   = document.getElementById('lw-ca-proyecto');
+    var selEstado = document.getElementById('lw-ca-estado');
+    var selMes    = document.getElementById('lw-ca-mes');
+    var hoy       = new Date().toISOString().slice(0, 10);
+    var mesActual = hoy.slice(0, 7);
+
+    var ESTADOS = {
+      pendiente: ['Pendiente', 'bg-surface-container-high text-on-surface-variant'],
+      facturada: ['Facturada', 'bg-secondary-container text-on-secondary-container'],
+      cobrada:   ['Cobrada',   'bg-primary-fixed text-on-primary-fixed'],
+      exenta:    ['Exenta',    'bg-surface-container text-outline']
+    };
+    var TIPO_LINEA = { devengo: 'Devengo', ajuste: 'Ajuste', abono: 'Abono' };
+
+    /* Suma POR MONEDA y nunca entre monedas: 500 EUR + 500 IDR no son «1.000
+       nada». Devuelve el texto ya formateado, o «—» si no hay nada que sumar --
+       un cero falso en un panel de control es peor que un hueco. */
+    function sumaPorMoneda(lista) {
+      var porM = {};
+      lista.forEach(function (l) { porM[l.moneda] = (porM[l.moneda] || 0) + Number(l.importe || 0); });
+      var claves = Object.keys(porM);
+      if (!claves.length) return '—';
+      return claves.sort().map(function (m) { return fmt(porM[m], m); }).join(' · ');
+    }
+
+    Promise.all([
+      q(sb.from('comision_admin_tarifas').select('id,pct,efectivo_desde,nota,creado_por,created_at').order('efectivo_desde', { ascending: false }), 'tarifas de comisión', cuerpoTar),
+      q(sb.from('comision_admin_lineas').select('id,tipo_linea,linea_origen_id,recibi_id,recibi_numero,sociedad,contrato_id,proyecto_id,devengado_el,fecha_recibi,base_total,moneda,pct_aplicado,importe,anulada,revisar,estado,nota').order('devengado_el', { ascending: false }), 'libro de comisión', cuerpoLin),
+      q(sb.from('proyectos').select('id,nombre'), 'proyectos'),
+      /* Sin `q()` a proposito: un fallo aqui NO puede tumbar la pantalla, solo
+         deja el aviso de descuadres sin pintar. Con rama de rechazo propia --
+         un fallo de red lanza y no devuelve `r.error`, y sin ella el
+         Promise.all entero se cae y no se pinta ni el libro. */
+      sb.rpc('comision_admin_descuadres')
+        .then(function (r) { return r.error ? null : r.data; }, function () { return null; })
+    ]).then(function (r) {
+      var tarifas = r[0], lineas = r[1] || [], proyectos = r[2] || [], desc = r[3];
+      if (!tarifas) return;
+      window.LW_V4 = window.LW_V4 || {};
+      window.LW_V4.tarifas = tarifas;
+
+      var proyectoDe = {}; proyectos.forEach(function (p) { proyectoDe[p.id] = p.nombre; });
+      var vigente = tarifas.filter(function (t) { return t.efectivo_desde <= hoy; })[0] || null;
+
+      // ── KPIs ──────────────────────────────────────────────────────────────
+      pon2('k-tarifa', vigente ? (Number(vigente.pct) + '%') : '—');
+      pon2('k-tarifa-pie', vigente
+        ? ('rige desde el ' + fFecha(vigente.efectivo_desde))
+        : 'todavía no hay ninguna tarifa: no se está devengando nada');
+
+      var vivas = lineas.filter(function (l) { return !l.anulada && l.estado !== 'exenta'; });
+      var delMes = vivas.filter(function (l) { return (l.devengado_el || '').slice(0, 7) === mesActual; });
+      pon2('k-mes', sumaPorMoneda(delMes));
+      pon2('k-mes-pie', delMes.length
+        ? (delMes.length + (delMes.length === 1 ? ' entrada de dinero' : ' entradas de dinero'))
+        : 'ninguna entrada de dinero este mes');
+
+      var pendientes = vivas.filter(function (l) { return l.estado === 'pendiente'; });
+      pon2('k-pendiente', sumaPorMoneda(pendientes));
+      pon2('k-pendiente-pie', pendientes.length ? (pendientes.length + ' líneas sin facturar') : 'nada sin facturar');
+
+      var porRevisar = lineas.filter(function (l) { return l.revisar; });
+      pon2('k-revisar', String(porRevisar.length));
+      pon2('k-revisar-pie', porRevisar.length
+        ? 'el recibí cambió después de facturarse, o desapareció'
+        : 'ninguna línea pide una mirada');
+
+      /* El banco de pruebas del silencio: el disparador traga sus propios fallos
+         a propósito (un error calculando la comisión no puede impedir que se
+         registre un cobro), así que lo que se perdería sin esto es dinero sin
+         facturar. `comision_admin_descuadres()` lo recalcula desde la base. */
+      var caja = document.getElementById('lw-ca-descuadres');
+      if (caja && desc && !desc.sin_tarifa) {
+        var avisos = [];
+        if (desc.recibis_sin_linea)      avisos.push(desc.recibis_sin_linea + ' recibí(s) vivo(s) sin línea de comisión');
+        if (desc.lineas_mal_calculadas)  avisos.push(desc.lineas_mal_calculadas + ' línea(s) cuyo importe no cuadra con su base y su %');
+        if (desc.devengos_con_base_cero) avisos.push(desc.devengos_con_base_cero + ' línea(s) con base 0');
+        if (avisos.length) {
+          caja.hidden = false;
+          caja.classList.add('flex');
+          pon2('k-descuadres', 'Hay que mirar esto: ' + avisos.join(' · ') + '.');
+        }
+      }
+
+      // ── Tarifas ───────────────────────────────────────────────────────────
+      if (cuerpoTar) {
+        cuerpoTar.innerHTML = tarifas.length ? tarifas.map(function (t) {
+          var esVigente = vigente && t.id === vigente.id;
+          var futura = t.efectivo_desde > hoy;
+          return '<tr class="border-b border-outline-variant/30">' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(Number(t.pct)) + '%</td>' +
+            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(fFecha(t.efectivo_desde)) + '</td>' +
+            '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' +
+              (esVigente ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-surface-container-high text-on-surface-variant') + '">' +
+              (esVigente ? 'Vigente' : (futura ? 'Programada' : 'Histórica')) + '</span></td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(t.creado_por || '—') + '</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline max-w-md">' + esc(t.nota || '—') + '</td></tr>';
+        }).join('') : '<tr><td colspan="5" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Ninguna tarifa dada de alta: no se está devengando comisión.</td></tr>';
+      }
+
+      // ── Filtros del libro ─────────────────────────────────────────────────
+      if (selProy) {
+        selProy.innerHTML = '<option value="">Todos los proyectos</option>' +
+          proyectos.slice().sort(function (a, b) { return (a.nombre || '').localeCompare(b.nombre || ''); })
+            .map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.nombre) + '</option>'; }).join('') +
+          '<option value="__sin">(sin proyecto)</option>';
+      }
+      if (selMes) {
+        var meses = {}; lineas.forEach(function (l) { if (l.devengado_el) meses[l.devengado_el.slice(0, 7)] = 1; });
+        selMes.innerHTML = '<option value="">Todos los meses</option>' +
+          Object.keys(meses).sort().reverse().map(function (m) { return '<option value="' + esc(m) + '">' + esc(m) + '</option>'; }).join('');
+      }
+
+      function pinta() {
+        if (!cuerpoLin) return;
+        var fp = selProy ? selProy.value : '', fe = selEstado ? selEstado.value : '', fm = selMes ? selMes.value : '';
+        var lista = lineas.filter(function (l) {
+          if (fp === '__sin') { if (l.proyecto_id) return false; }
+          else if (fp && l.proyecto_id !== fp) return false;
+          if (fe && l.estado !== fe) return false;
+          if (fm && (l.devengado_el || '').slice(0, 7) !== fm) return false;
+          return true;
+        });
+
+        cuerpoLin.innerHTML = lista.length ? lista.map(function (l) {
+          var est = ESTADOS[l.estado] || [l.estado, 'bg-surface-container-high text-on-surface-variant'];
+          var negativa = Number(l.importe) < 0;
+          var etqTipo = l.tipo_linea === 'devengo' ? '' :
+            '<br><span class="text-outline text-[11px] uppercase tracking-wider">' + esc(TIPO_LINEA[l.tipo_linea] || l.tipo_linea) + '</span>';
+          var banderas = (l.anulada ? '<span class="ml-2 text-outline text-[11px] uppercase tracking-wider">anulada</span>' : '') +
+                         (l.revisar ? '<span class="ml-2 text-error text-[11px] uppercase tracking-wider">revisar</span>' : '');
+          /* El recibí borrado deja la línea huérfana a propósito (on delete set
+             null): se enseña el número que tuvo, que es lo único que queda. */
+          var recibi = l.recibi_id
+            ? '<a class="text-deep-lagoon hover:underline" href="/intranet/facturas/?id=' + encodeURIComponent(l.recibi_id) + '">' + esc(l.recibi_numero) + '</a>'
+            : esc(l.recibi_numero) + ' <span class="text-error text-[11px] uppercase tracking-wider">borrado</span>';
+
+          return '<tr class="border-b border-outline-variant/30' + (l.anulada ? ' opacity-60' : '') + '">' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(fFecha(l.devengado_el)) + '</td>' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + recibi + etqTipo + '</td>' +
+            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(l.proyecto_id ? (proyectoDe[l.proyecto_id] || '—') : '—') + '</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(l.sociedad || '—') + '</td>' +
+            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant text-right">' + esc(fmt(l.base_total, l.moneda)) + '</td>' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-right ' + (negativa ? 'text-error' : 'text-on-surface') + '">' +
+              esc(fmt(l.importe, l.moneda)) + '<br><span class="text-outline text-[11px]">' + esc(Number(l.pct_aplicado)) + '%</span></td>' +
+            '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' +
+              est[1] + '">' + esc(est[0]) + '</span>' + banderas + '</td>' +
+            '<td class="px-5 py-4 text-right">' + (l.anulada ? '' :
+              '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" ' +
+              'data-lw-ca-estado="' + esc(l.id) + '" data-lw-etq="' + esc(l.recibi_numero) + '" data-lw-actual="' + esc(l.estado) + '">Cambiar estado</button>') +
+            '</td></tr>';
+        }).join('') : '<tr><td colspan="8" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">' +
+          (lineas.length ? 'Ninguna línea para este filtro.' : 'Todavía no ha entrado dinero desde que rige la tarifa. La comisión no es retroactiva: solo cuenta lo que se registre a partir de ahora.') + '</td></tr>';
+      }
+      pinta();
+      [selProy, selEstado, selMes].forEach(function (s) { if (s) s.addEventListener('change', pinta); });
+
+      // acción delegada, con stopPropagation para ganar a maqueta.js (Regla 0)
+      if (cuerpoLin) cuerpoLin.addEventListener('click', function (ev) {
+        var b = ev.target.closest && ev.target.closest('[data-lw-ca-estado]');
+        if (!b) return;
+        ev.preventDefault(); ev.stopPropagation();
+        if (window.LW_V4 && window.LW_V4.abreEstadoComisionAdmin) {
+          window.LW_V4.abreEstadoComisionAdmin(b.getAttribute('data-lw-ca-estado'), b.getAttribute('data-lw-etq'), b.getAttribute('data-lw-actual'));
+        } else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
+      });
+    });
+  };
+
   /* Las 3 pantallas moviles comparten datos con sus hermanas de escritorio:
      misma tabla, mismos handlers. El registro va por ultimo segmento de ruta,
      asi que "contratos.html" (movil) apunta al mismo handler que "contratos".
