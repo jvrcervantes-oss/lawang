@@ -251,7 +251,7 @@ function cargarSociedades(sb){
   if(SOCIEDADES_PROMESA) return SOCIEDADES_PROMESA;
   SOCIEDADES_PROMESA = (async () => {
     const { data, error } = await sb.from('sociedades')
-      .select('clave,label,razon,marca,npwp,npwp_label,nib,domicilio,rep,logo,logo_alto,emisor_debajo,folio,tinta')
+      .select('clave,label,razon,marca,npwp,npwp_label,nib,domicilio,rep,logo,logo_alto,emisor_debajo,folio,tinta,es_indonesia')
       .eq('activa', true).order('orden');
     if(error){ SOCIEDADES_PROMESA = null; throw error; }
     (data || []).forEach(r => {
@@ -265,7 +265,11 @@ function cargarSociedades(sb){
         ...(r.nib ? { nib: r.nib } : {}),
         logo: r.logo, logoAlto: r.logo_alto,
         ...(r.emisor_debajo ? { emisorDebajo: true } : {}),
-        folio: r.folio, ...(r.tinta ? { tinta: r.tinta } : {})
+        folio: r.folio, ...(r.tinta ? { tinta: r.tinta } : {}),
+        // Las 9 plantillas declaran al Promotor «sociedad de nacionalidad
+        // Indonesia». En false, `app.html` avisa de que esa clausula hay que
+        // corregirla a mano antes de imprimir.
+        esIndonesia: r.es_indonesia !== false
       };
     });
     return SOCIEDADES;

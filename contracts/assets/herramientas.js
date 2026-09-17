@@ -256,6 +256,22 @@ const LW_HERRAMIENTAS = [
     claves:'cuentas bancarias banco iban swift cobro pago escrow notario destino plantillas contratos bank accounts payment details escrow beneficiary',
     estado:d => d.cuentas == null ? null
       : [hT('%n cuentas', { n: d.cuentas }), false] },
+
+  /* Nueva 17-sep-2026. La identidad de cada sociedad emisora —razon social,
+     NPWP o CRN, NIB, domicilio, representante, logo, folio y tinta— vivia
+     escrita a mano en `entities.js`; ahora esta en `public.sociedades` y esta
+     es su unica puerta. Sacar el dato de un fichero sin dar donde editarlo deja
+     el mismo problema con un paso mas.
+     Comparte el permiso `cuentas` a proposito: un permiso nuevo obliga a
+     redesplegar la edge `admin-usuarios` (LAW-70), y las dos pantallas van de
+     lo mismo — datos que decide el super admin y que acaban impresos en un
+     documento. Mirar puede cualquiera del equipo que tenga la herramienta;
+     escribir lo exige la RLS con `es_super_admin()`, no esta pantalla. */
+  { grupo:'Equipo', nombre:'Sociedades emisoras', icon:'ph-buildings', href:'/intranet/sociedades/', herr:'cuentas', soloAdmin:true,
+    para:'Con que identidad fiscal emite cada empresa sus contratos y sus facturas.',
+    claves:'sociedades emisoras empresa razon social npwp crn nib domicilio representante logo folio tinta pt tepi san dal woods ltd companies issuer legal entity tax id',
+    estado:d => d.sociedades == null ? null
+      : [hT('%n sociedades', { n: d.sociedades }), false] },
 ];
 
 /* Quién ve qué. `soloAdmin` es la puerta dura; si no, basta con tener la

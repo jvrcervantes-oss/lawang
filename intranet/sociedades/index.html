@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="/favicon.png">
+<title>Lawang · Sociedades emisoras</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=f16dedc6">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
+<script src="/contracts/assets/i18n.js?v=182d53de"></script>
+<script src="/contracts/assets/herramientas.js?v=e51247c8"></script>
+<script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!-- Entra con el permiso de `cuentas`, no con uno propio y a proposito: un
+     permiso nuevo obliga a redesplegar la edge `admin-usuarios` (LAW-70), y las
+     dos pantallas van de lo mismo — datos que decide el super admin y que
+     acaban impresos en un documento. Escribir lo gobierna la base, no esto. -->
+<script src="/contracts/assets/guard.js?v=d6d6608e" data-herramienta="cuentas"></script>
+<style>
+  :root{ --line:#E4DCCB; --card:#FFFFFF; --rl2:#F1EBDD; --texto-2:#4A5052; --tbh:64px; }
+  *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }
+  body{ font-family:var(--font-body,'Jost',sans-serif); background:var(--rl2); color:#22282A; }
+
+  /* Mismo reparto 340 / resto que Cuentas y Usuarios: lista a la izquierda,
+     ficha a la derecha. 340px fijos, el valor del mockup 4d. */
+  .stage{ display:grid; grid-template-columns:340px 1fr; height:calc(100% - var(--tbh)); }
+  @media screen and (max-width:900px){
+    .stage{ grid-template-columns:1fr; }
+    .ficha{ display:none; }
+    .stage.abierta .lista{ display:none; }
+    .stage.abierta .ficha{ display:block; }
+  }
+  .lista{ overflow:auto; border-right:1px solid var(--line); }
+  .cab{ position:sticky; top:0; background:var(--rl2); padding:14px 18px 10px; border-bottom:1px solid var(--line); z-index:2;
+        font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--texto-2); font-weight:600; }
+  .ficha{ overflow:auto; padding:26px 30px 60px; }
+  .vacio{ display:grid; place-items:center; height:100%; color:var(--texto-2); font-size:14px; }
+
+  .c{ display:block; width:100%; text-align:left; background:none; border:0; border-bottom:1px solid var(--line);
+      padding:13px 18px; cursor:pointer; font:inherit; color:inherit; }
+  .c:hover{ background:#FBF7EE; }
+  .c.sel{ background:var(--card); box-shadow:inset 3px 0 0 var(--brand-primary,#2E6B4F); }
+  .c .n{ font-size:14px; font-weight:500; }
+  .c .m{ font-size:12px; color:var(--texto-2); margin-top:2px; }
+  .c .r{ margin-top:6px; display:flex; gap:5px; flex-wrap:wrap; align-items:center; }
+
+  .tag{ font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; padding:2px 7px; border-radius:99px;
+        background:#EDE6D7; color:var(--texto-2); }
+  .tag.t-off{ background:#EFE0DE; color:#7A3A32; }
+  .tag.t-fuera{ background:#FBF3E4; color:#7A5B22; }
+  /* La muestra de color del folio: el papel de esa sociedad, para reconocerla
+     de un vistazo sin leer. Es un cuadrado, no un texto con el hex: nadie
+     reconoce `#E6EFE0`. */
+  .folio{ width:13px; height:13px; border-radius:2px; border:1px solid var(--line); flex:none; }
+
+  h2.t{ font-family:var(--font-display,'Cormorant Garamond',serif); font-size:27px; font-weight:500; margin:0 0 2px; }
+  .sub{ font-size:12.5px; color:var(--texto-2); margin:0 0 22px; }
+  .caja{ background:var(--card); border:1px solid var(--line); border-radius:3px; padding:20px 22px; margin-bottom:18px; }
+  .caja > h3{ font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--texto-2);
+              font-weight:600; margin:0 0 14px; }
+  .par{ display:grid; grid-template-columns:1fr 1fr; gap:12px 16px; }
+  @media screen and (max-width:700px){ .par{ grid-template-columns:1fr; } }
+  label.f{ display:block; font-size:12px; color:var(--texto-2); margin-bottom:4px; }
+  .f-full{ grid-column:1/-1; }
+  input[type=text], textarea, select{ width:100%; font:inherit; font-size:13.5px; padding:8px 10px;
+    border:1px solid var(--line); border-radius:3px; background:#FFF; color:inherit; }
+  input[type=text]:disabled{ background:#F6F2E8; color:var(--texto-2); }
+  textarea{ min-height:58px; resize:vertical; }
+  .nota{ font-size:12px; color:var(--texto-2); line-height:1.55; margin:10px 0 0; }
+  .acciones{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:16px; }
+  .op{ display:flex; align-items:center; gap:9px; font-size:13px; padding:3px 0; }
+  .op input[type=checkbox]{ accent-color:var(--brand-primary,#2E6B4F); flex:none; }
+
+  .aviso{ background:#FBF3E4; border:1px solid #E6D3A9; border-radius:3px; padding:11px 14px;
+          font-size:12.5px; line-height:1.55; margin:0 0 16px; }
+  .aviso.mal{ background:#F7E9E6; border-color:#E2BDB5; }
+
+  /* El historial de cambios de identidad fiscal. Filas finas: se viene a
+     comprobar quien toco que y cuando, no a leerlo entero. */
+  .log{ border-top:1px solid var(--line); padding:9px 0; font-size:12.5px; }
+  .log:first-of-type{ border-top:0; padding-top:0; }
+  .log .q{ color:var(--texto-2); font-size:11.5px; }
+  .log .d{ margin-top:3px; }
+  .log del{ background:#F7E9E6; text-decoration:line-through; padding:0 2px; }
+  .log ins{ background:#E2EFE3; text-decoration:none; padding:0 2px; }
+
+  .toast{ position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(14px); opacity:0;
+          background:#22282A; color:#FBF7EE; padding:11px 18px; border-radius:3px; font-size:13px;
+          pointer-events:none; transition:opacity .18s, transform .18s; max-width:min(560px,90vw); z-index:60; }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+  <header class="lw-topbar" data-titulo="Sociedades emisoras">
+    <div class="lw-spacer"></div>
+    <!-- ACCION PRINCIPAL: ultima de la barra (convencion en topbar.css).
+         Solo la ve el super admin: la policy de INSERT exige es_super_admin(),
+         asi que a cualquier otro este boton le daria un error al guardar. -->
+    <button type="button" class="lw-btn primary" id="btnNueva" hidden><i class="ph ph-plus"></i>Nueva sociedad</button>
+  </header>
+
+  <div class="stage" id="stage">
+    <div class="lista">
+      <div class="cab" data-lwt="Sociedades">Sociedades</div>
+      <div id="listaC" data-lwt="Cargando…">Cargando…</div>
+    </div>
+    <div class="ficha" id="ficha"><div class="vacio" data-lwt="Elige una sociedad">Elige una sociedad</div></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
+<script src="/contracts/assets/suite-comun.js?v=310f2346"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════════════════════
+   SOCIEDADES EMISORAS — el panel del super admin. 17-sep-2026.
+   ═══════════════════════════════════════════════════════════════════════════
+   POR QUÉ EXISTE. La identidad de cada sociedad emisora —razón social, NPWP o
+   CRN, NIB, domicilio, representante, y el logo, folio y tinta con que sale su
+   documento— vivía escrita a mano en `contracts/assets/entities.js`. Cambiar una
+   coma costaba un commit y un despliegue, y el fichero se sirve público. Hoy
+   vive en `public.sociedades` y esta pantalla es su única puerta.
+
+   Es la mitad que faltaba: sacar el dato de un fichero sin dar dónde editarlo
+   deja el mismo problema con un paso más.
+
+   QUIÉN PUEDE. Leer, cualquiera del equipo con el permiso de `cuentas`: saber
+   con qué identidad emite cada sociedad es información de trabajo. ESCRIBIR,
+   solo el super admin, y no por cortesía de esta pantalla: las policies de
+   `sociedades` exigen `es_super_admin()`. Aquí se esconden los controles para no
+   ofrecer lo que va a rebotar; quien llegue por la API rebota igual.
+
+   LO QUE ESTA PANTALLA NO TOCA, A PROPÓSITO:
+     · La `clave`. Ni al crear se puede cambiar después, ni se edita nunca. Va
+       guardada dentro de cada contrato (`datos.fields.sociedad_firmante`) y de
+       cada factura (`facturas.sociedad`), y las plantillas la miran literalmente
+       en `<!--if:sociedad_firmante=tepi_sungai-->`. La base rechaza renombrarla:
+       el GRANT de UPDATE la deja fuera Y un trigger lanza si cambia.
+     · Borrar. Se DESACTIVA. No hay policy de DELETE, y `facturas.sociedad` tiene
+       clave ajena contra esta tabla: borrar una dejaría documentos emitidos
+       apuntando a una sociedad que no existe.
+     · El emisor de un documento YA EMITIDO. Desde el 17-sep cada factura congela
+       su emisor dentro (`datos.emisor`) al crearse, así que corregir aquí un
+       NPWP NO reescribe lo que reimprime un documento viejo. Eso es deliberado:
+       antes sí lo hacía, y en silencio.
+
+   DOS AVISOS QUE SALEN SOLOS, y por qué:
+     · Una sociedad marcada como NO indonesia avisa de que las nueve plantillas
+       declaran al Promotor «sociedad de nacionalidad Indonesia». Es dato de la
+       fila (`es_indonesia`), no su nombre — el mismo patrón que `es_escrow` en
+       las cuentas, y por la misma razón: la convención por nombre se sostenía
+       mientras las filas nacían por SQL.
+     · Dar de alta una sociedad NUEVA avisa de que las tres series de numeración
+       (INV/PRO/REC) son GLOBALES y compartidas. La cuarta empresa entraría a
+       consumir la misma serie y su numeración propia quedaría con huecos ante su
+       contable. Está abierto como LAW-235 y decidido por el owner el 17-sep:
+       no se separan todavía. El aviso existe para que quien dé el alta lo sepa
+       ANTES, no cuando le pregunte un inspector.
+   ═══════════════════════════════════════════════════════════════════════════ */
+const $ = s => document.querySelector(s);
+let sb = null;        // lo entrega `guard.js` por LW_AUTH; nunca se crea aqui
+let YO = null;        // ficha del usuario
+
+let SOCS = [];        // todas, incluidas las desactivadas
+let LOG = [];         // cambios de identidad fiscal
+let SEL = null;       // clave seleccionada
+let SUPER = false;    // ¿puede escribir?
+let NUEVA = false;    // la ficha está en modo alta
+
+/* Los campos que el documento DICE, separados de los que solo son aspecto.
+   El corte no es estético: cambiar `razon` o `npwp` cambia lo que afirma un
+   documento; cambiar `folio` o `tinta` no. Por eso el historial solo vigila los
+   primeros y el aviso de "esto sale impreso" solo aparece sobre esa caja. */
+const FISCALES = ['razon','marca','npwp','npwp_label','nib','domicilio','rep'];
+
+const ETIQ = {
+  razon:'Razón social', marca:'Marca', npwp:'Identificación fiscal',
+  npwp_label:'Etiqueta fiscal', nib:'NIB', domicilio:'Domicilio',
+  rep:'Representante', label:'Nombre en el desplegable', logo:'Logo',
+  logo_alto:'Alto del logo', folio:'Folio', activa:'Activa', orden:'Orden',
+  emisor_debajo:'Emisor debajo del logo', es_indonesia:'Sociedad indonesa',
+};
+
+/* ── carga ──────────────────────────────────────────────────────────── */
+async function cargar(){
+  /* Se piden TODAS, activas y no. `cargarSociedades()` de entities.js filtra
+     `activa = true` porque las pantallas que imprimen no deben ofrecer una
+     retirada; aquí hace falta verla para poder reactivarla. Por eso este panel
+     consulta por su cuenta y no carga entities.js. */
+  const [s, l] = await Promise.all([
+    sb.from('sociedades').select('*').order('orden'),
+    sb.from('sociedades_log').select('clave,antes,accion,quien,cuando').order('cuando', { ascending:false }).limit(200),
+  ]);
+  if(s.error){
+    $('#listaC').innerHTML = '<div style="padding:18px">' + esc(lwT('No se pudieron leer las sociedades: ')) + esc(s.error.message) + '</div>';
+    return;
+  }
+  SOCS = s.data || [];
+  /* El log solo lo lee el super admin (su policy lo exige). Para un admin normal
+     la consulta vuelve vacía y eso NO es un error: se calla y no se pinta la
+     caja. Un aviso rojo aquí diría "algo falla" cuando lo que pasa es "no es
+     para ti". */
+  LOG = l.error ? [] : (l.data || []);
+  pintarLista();
+  if(SEL) abrir(SEL);
+}
+
+function pintarLista(){
+  if(!SOCS.length){
+    $('#listaC').innerHTML = '<div style="padding:18px;font-size:13px">' +
+      esc(lwT('No hay ninguna sociedad dada de alta.')) + '</div>';
+    return;
+  }
+  $('#listaC').innerHTML = SOCS.map(s =>
+    '<button type="button" class="c' + (s.clave === SEL ? ' sel' : '') + '" data-clave="' + esc(s.clave) + '">' +
+      '<div class="n">' + esc(s.razon) + '</div>' +
+      '<div class="m">' + esc(s.marca || s.label || '—') + '</div>' +
+      '<div class="r">' +
+        '<span class="folio" style="background:' + esc(s.folio || '#FFF') + '"></span>' +
+        '<span class="tag">' + esc(s.npwp_label || 'NPWP') + '</span>' +
+        (s.es_indonesia === false ? '<span class="tag t-fuera">' + esc(lwT('No indonesa')) + '</span>' : '') +
+        (s.activa ? '' : '<span class="tag t-off">' + esc(lwT('Desactivada')) + '</span>') +
+      '</div>' +
+    '</button>').join('');
+  $('#listaC').querySelectorAll('[data-clave]').forEach(b =>
+    b.addEventListener('click', () => abrir(b.dataset.clave)));
+}
+
+/* ── la ficha ───────────────────────────────────────────────────────── */
+function campo(k, s, opts){
+  opts = opts || {};
+  const id = 'f_' + k;
+  const v = s[k] == null ? '' : String(s[k]);
+  return '<div' + (opts.full ? ' class="f-full"' : '') + '>' +
+    '<label class="f" for="' + id + '">' + esc(lwT(ETIQ[k] || k)) + '</label>' +
+    (opts.area
+      ? '<textarea id="' + id + '" name="' + k + '"' + (SUPER ? '' : ' disabled') + '>' + esc(v) + '</textarea>'
+      : '<input type="text" id="' + id + '" name="' + k + '" value="' + esc(v) + '"' +
+        (SUPER ? '' : ' disabled') + (opts.ph ? ' placeholder="' + esc(opts.ph) + '"' : '') + '>') +
+    '</div>';
+}
+
+function abrir(clave){
+  NUEVA = false;
+  SEL = clave;
+  const s = SOCS.find(x => x.clave === clave);
+  if(!s) return;
+  pintarLista();
+  $('#stage').classList.add('abierta');
+  pintarFicha(s);
+}
+
+function fichaNueva(){
+  NUEVA = true; SEL = null;
+  pintarLista();
+  $('#stage').classList.add('abierta');
+  pintarFicha({ clave:'', label:'', razon:'', marca:'', npwp:'', npwp_label:'NPWP', nib:'',
+                domicilio:'', rep:'', logo:'', logo_alto:'', folio:'', activa:true,
+                orden:(SOCS.reduce((m,x)=>Math.max(m, x.orden||0), 0) + 1), es_indonesia:true,
+                emisor_debajo:false, tinta:null });
+}
+
+function pintarFicha(s){
+  const tinta = s.tinta || {};
+  const bloqueoClave = NUEVA
+    ? '<p class="nota">' + esc(lwT('La clave NO se puede cambiar después. Va guardada dentro de cada contrato y cada factura que emita esta sociedad. Usa minúsculas y guiones bajos: por ejemplo, ')) + '<code>mi_empresa_sa</code>.</p>'
+    : '<p class="nota">' + esc(lwT('La clave no se edita nunca: va dentro de cada contrato y cada factura ya emitidos.')) + '</p>';
+
+  $('#ficha').innerHTML =
+    '<h2 class="t">' + esc(NUEVA ? lwT('Nueva sociedad') : s.razon) + '</h2>' +
+    '<p class="sub">' + esc(NUEVA
+        ? lwT('Se dará de alta en el catálogo y aparecerá en el desplegable de sociedad firmante.')
+        : lwT('Así emite esta sociedad sus contratos y sus facturas.')) + '</p>' +
+
+    (NUEVA ? '<div class="aviso">' + esc(lwT(
+        'Las tres series de numeración (INV, PRO y REC) son GLOBALES y las comparten todas las sociedades. ' +
+        'Esta empresa consumirá la misma numeración que las demás, así que su serie propia tendrá huecos. ' +
+        'Está pendiente de decidir con un contable indonesio (LAW-235) antes de separarlas.')) + '</div>' : '') +
+
+    (!NUEVA && s.es_indonesia === false ? '<div class="aviso">' + esc(lwT(
+        'Las nueve plantillas de contrato declaran al Promotor como «sociedad de nacionalidad Indonesia», ' +
+        'y para esta sociedad eso es falso. Quien la use para FIRMAR un contrato —no solo para facturar— ' +
+        'tiene que corregir esa cláusula a mano antes de imprimir el documento final.')) + '</div>' : '') +
+
+    (SUPER ? '' : '<div class="aviso">' + esc(lwT(
+        'Solo el super admin puede cambiar estos datos. Los ves en modo lectura.')) + '</div>') +
+
+    '<form id="form">' +
+      '<div class="caja">' +
+        '<h3>' + esc(lwT('Identidad — esto se IMPRIME')) + '</h3>' +
+        '<div class="par">' +
+          '<div class="f-full"><label class="f" for="f_clave">' + esc(lwT('Clave')) + '</label>' +
+            '<input type="text" id="f_clave" name="clave" value="' + esc(s.clave || '') + '"' +
+            (NUEVA && SUPER ? '' : ' disabled') + ' placeholder="mi_empresa_sa"></div>' +
+          campo('razon', s, { full:true }) +
+          campo('marca', s) + campo('label', s) +
+          campo('npwp_label', s, { ph:'NPWP · CRN · VAT…' }) + campo('npwp', s) +
+          campo('nib', s) + campo('rep', s) +
+          campo('domicilio', s, { full:true, area:true }) +
+        '</div>' +
+        '<label class="op" style="margin-top:12px">' +
+          '<input type="checkbox" name="es_indonesia"' + (s.es_indonesia !== false ? ' checked' : '') +
+            (SUPER ? '' : ' disabled') + '>' +
+          '<span>' + esc(lwT('Es una sociedad indonesa (las plantillas lo declaran así)')) + '</span></label>' +
+        bloqueoClave +
+        (NUEVA ? '' : '<p class="nota">' + esc(lwT(
+          'Corregir esto NO cambia los documentos ya emitidos: cada factura guarda dentro la identidad con la que salió.')) + '</p>') +
+      '</div>' +
+
+      '<div class="caja">' +
+        '<h3>' + esc(lwT('Aspecto del documento')) + '</h3>' +
+        '<div class="par">' +
+          campo('logo', s, { full:true, ph:'/contracts/assets/brand/…' }) +
+          campo('logo_alto', s, { ph:'24mm' }) +
+          campo('folio', s, { ph:'#E7E3D2' }) +
+          '<div><label class="f" for="f_tp">' + esc(lwT('Tinta principal')) + '</label>' +
+            '<input type="text" id="f_tp" name="tinta_primary" value="' + esc(tinta.primary || '') + '"' +
+            (SUPER ? '' : ' disabled') + ' placeholder="#662906"></div>' +
+          '<div><label class="f" for="f_td">' + esc(lwT('Tinta oscura')) + '</label>' +
+            '<input type="text" id="f_td" name="tinta_deep" value="' + esc(tinta.deep || '') + '"' +
+            (SUPER ? '' : ' disabled') + ' placeholder="#42210B"></div>' +
+        '</div>' +
+        '<label class="op" style="margin-top:12px">' +
+          '<input type="checkbox" name="emisor_debajo"' + (s.emisor_debajo ? ' checked' : '') +
+            (SUPER ? '' : ' disabled') + '>' +
+          '<span>' + esc(lwT('El emisor va DEBAJO del logo (para logos apaisados)')) + '</span></label>' +
+        '<p class="nota">' + esc(lwT(
+          'Esto es solo aspecto: cambiarlo sí afecta a la reimpresión de un documento viejo, y es lo que se quiere — un retoque de marca no obliga a reemitir nada.')) + '</p>' +
+      '</div>' +
+
+      '<div class="caja">' +
+        '<h3>' + esc(lwT('En el catálogo')) + '</h3>' +
+        '<div class="par">' + campo('orden', s) + '</div>' +
+        '<label class="op" style="margin-top:12px">' +
+          '<input type="checkbox" name="activa"' + (s.activa ? ' checked' : '') +
+            (SUPER ? '' : ' disabled') + '>' +
+          '<span>' + esc(lwT('Activa — se ofrece al redactar contratos y facturas')) + '</span></label>' +
+        '<p class="nota">' + esc(lwT(
+          'Una sociedad no se borra, se desactiva: sus documentos emitidos siguen apuntando a ella.')) + '</p>' +
+      '</div>' +
+
+      (SUPER ? '<div class="acciones">' +
+        '<button type="submit" class="lw-btn primary">' + esc(NUEVA ? lwT('Dar de alta') : lwT('Guardar cambios')) + '</button>' +
+        (NUEVA ? '<button type="button" class="lw-btn" id="btnCancelar">' + esc(lwT('Cancelar')) + '</button>' : '') +
+      '</div>' : '') +
+    '</form>' +
+
+    (NUEVA ? '' : historialHTML(s.clave));
+
+  $('#form').addEventListener('submit', guardar);
+  const bc = $('#btnCancelar');
+  if(bc) bc.addEventListener('click', () => { NUEVA = false; $('#ficha').innerHTML =
+    '<div class="vacio">' + esc(lwT('Elige una sociedad')) + '</div>'; pintarLista(); });
+}
+
+/* ── historial de identidad fiscal ──────────────────────────────────── */
+function historialHTML(clave){
+  const filas = LOG.filter(l => l.clave === clave);
+  if(!filas.length) return '';
+  /* Cada fila del log guarda la versión ANTERIOR entera. Para leerla de un
+     vistazo hace falta el DIFF contra lo que vino después, que es la fila
+     anterior en el tiempo (o la sociedad de hoy, para la más reciente). */
+  const hoy = SOCS.find(s => s.clave === clave) || {};
+  const cambios = filas.map((l, i) => {
+    const despues = i === 0 ? hoy : filas[i - 1].antes;
+    const diff = FISCALES.filter(k => (l.antes[k] || '') !== (despues[k] || ''))
+      .map(k => '<div class="d">' + esc(lwT(ETIQ[k] || k)) + ': ' +
+        '<del>' + esc(l.antes[k] || '—') + '</del> <ins>' + esc(despues[k] || '—') + '</ins></div>').join('');
+    if(!diff) return '';   // solo cambió aspecto: no es identidad, no se lista
+    return '<div class="log"><div class="q">' +
+      esc(new Date(l.cuando).toLocaleString('es-ES')) + ' · ' + esc(l.quien || lwT('(sin registrar)')) +
+      '</div>' + diff + '</div>';
+  }).filter(Boolean).join('');
+  if(!cambios) return '';
+  return '<div class="caja"><h3>' + esc(lwT('Cambios de identidad fiscal')) + '</h3>' + cambios +
+    '<p class="nota">' + esc(lwT(
+      'Solo se listan los campos que el documento DICE. Los retoques de logo, folio o tinta no aparecen aquí.')) + '</p></div>';
+}
+
+/* ── guardar ────────────────────────────────────────────────────────── */
+async function guardar(ev){
+  ev.preventDefault();
+  const f = new FormData($('#form'));
+  const txt = k => String(f.get(k) || '').trim();
+
+  const fila = {
+    label: txt('label'), razon: txt('razon'), marca: txt('marca'),
+    npwp: txt('npwp') || null, npwp_label: txt('npwp_label') || 'NPWP',
+    nib: txt('nib') || null, domicilio: txt('domicilio'), rep: txt('rep') || null,
+    logo: txt('logo') || null, logo_alto: txt('logo_alto') || null,
+    folio: txt('folio') || null,
+    emisor_debajo: !!f.get('emisor_debajo'),
+    es_indonesia: !!f.get('es_indonesia'),
+    activa: !!f.get('activa'),
+    orden: Number(txt('orden')) || 0,
+  };
+  /* Tinta: objeto o nada. Un `{primary:'', deep:''}` no es "sin tinta", es una
+     tinta vacía — y `documentoVars` la aplicaría como override en blanco, que
+     deja el documento sin color en vez de heredar el de marca. */
+  const tp = txt('tinta_primary'), td = txt('tinta_deep');
+  fila.tinta = (tp || td) ? { primary: tp, deep: td } : null;
+
+  if(!fila.razon || !fila.domicilio){
+    toastMal(lwT('La razón social y el domicilio son obligatorios: los imprime cada documento.'));
+    return;
+  }
+
+  let r;
+  if(NUEVA){
+    const clave = txt('clave').toLowerCase();
+    if(!/^[a-z][a-z0-9_]{2,}$/.test(clave)){
+      toastMal(lwT('La clave solo admite minúsculas, números y guiones bajos, y empieza por letra.'));
+      return;
+    }
+    if(SOCS.some(s => s.clave === clave)){ toastMal(lwT('Ya existe una sociedad con esa clave.')); return; }
+    r = await sb.from('sociedades').insert({ ...fila, clave }).select('clave').single();
+    if(!r.error) SEL = clave;
+  }else{
+    // `clave` NO viaja en el UPDATE: no está en el GRANT y un trigger lanza.
+    r = await sb.from('sociedades').update(fila).eq('clave', SEL).select('clave').single();
+  }
+
+  if(r.error){ toastMal(lwT('No se pudo guardar: ') + r.error.message); return; }
+  NUEVA = false;
+  toast(lwT('Guardado'));
+  await cargar();
+}
+
+/* ── arranque ───────────────────────────────────────────────────────── */
+lwIdiomaAplicar();
+
+/* El cliente de Supabase lo entrega `guard.js`, no se crea aquí: es el mismo
+   que usa la barra compartida y la campana, y dos clientes sobre la misma
+   sesión es la duplicación de siempre con otro nombre. */
+LW_AUTH.then(async ({ sb: cliente, session, ficha }) => {
+  sb = cliente;
+
+  /* La ficha se vuelve a consultar si el guard no la trae. No es redundancia:
+     el 29-jul un `guard.js` cacheado por el servidor (max-age 7 días) seguía
+     siendo la versión que no devolvía `ficha`, y el panel de usuarios le decía
+     al super_admin que no era administrador. Depender de que un asset
+     compartido esté fresco para decidir un permiso es frágil. */
+  YO = ficha || (await sb.from('usuarios').select('rol, herramientas, activo, nombre')
+                   .eq('user_id', session.user.id).maybeSingle()).data;
+
+  if(!YO){
+    $('#stage').innerHTML = '<div class="vacio" style="grid-column:1/-1">' +
+      esc(lwT('No se ha podido leer tu ficha de usuario. Recarga la página.')) + '</div>';
+    return;
+  }
+
+  SUPER = YO.rol === 'super_admin';
+
+  /* El botón de alta sale del HTML con `hidden`: se enseña solo a quien puede
+     usarlo. Un botón que existe y revienta al guardar es peor que uno que no
+     está, porque el error llega después de teclear doce campos. */
+  const b = $('#btnNueva');
+  b.hidden = !SUPER;
+  if(SUPER) b.addEventListener('click', fichaNueva);
+
+  await cargar();
+});
+</script>
+</body>
+</html>
