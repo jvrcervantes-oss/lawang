@@ -145,7 +145,11 @@ function documentoHTML(d, opts){
   '<div class="cliente">' +
     '<b>' + linea(d.cliente_nombre) + '</b><br>' +
     (d.cliente_documento ? escDoc(d.cliente_documento) + '<br>' : '') +
-    (d.cliente_domicilio ? escDoc(d.cliente_domicilio).replace(/\n/g, '<br>') + '<br>' : '') +
+    // cliente_domicilio: fuera del documento el 17-sep-2026 (owner: "elimina
+    // el domicilio de las facturas y recibís" — Recibí usa esta misma
+    // plantilla, ver TIPOS_DOC.recibi arriba). El input ya había salido del
+    // formulario el 24-ago; esto es lo que faltaba para que tampoco se
+    // imprimiera desde una factura vieja que aún lo tuviera guardado.
     (d.cliente_email ? escDoc(d.cliente_email) : '') +
     (d.proyecto_nombre ? '<div style="margin-top:2mm">Proyecto · Project: <b>' + escDoc(d.proyecto_nombre) + '</b></div>' : '') +
   '</div>' +
