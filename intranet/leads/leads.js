@@ -1566,6 +1566,7 @@ function abrirDetalleCampana(campaignId, resumen){
       }).join('')}`}
     </div>`;
   document.body.append(velo, c);
+  c.querySelector('.cerrar').onclick = cerrarFicha;
 }
 
 /* Gráfica en SVG a mano: dos series, leads (barras) y gasto (línea). Sin
