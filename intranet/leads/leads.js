@@ -1537,7 +1537,7 @@ function abrirDetalleCampana(campaignId, resumen){
       <h2>${esc(resumen?.nombre || resumen?.cliente || '')}</h2>
       <div class="meta" style="margin-top:8px;display:flex;gap:7px;flex-wrap:wrap">
         <span class="chip meta">${esc(lwT(OBJETIVO_LEGIBLE[objetivo] || objetivo || 'Objetivo no disponible'))}</span>
-        ${actualizado ? `<span class="chip gris">${lwT('Datos de %f', { f: fechaHora(actualizado) })}</span>` : ''}
+        ${actualizado ? `<span class="chip gris">${lwT('Datos de %f', { f: esc(fechaHora(actualizado)) })}</span>` : ''}
       </div>
     </header>
     <div class="cuerpo">
