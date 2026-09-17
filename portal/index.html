@@ -513,6 +513,7 @@
          cambiar_pass_error:'No se pudo guardar', cambiar_pass_ok:'Contraseña actualizada.', guardar:'Guardar',
          prefs:'Preferencias de notificación', pref_email:'Avisos por correo', pref_sms:'Avisos por SMS',
          err_carga:'No hemos podido cargar tu información. Recarga la página o inténtalo más tarde.',
+         err_catalogo:'Falta parte de los datos de la empresa: un documento que abras ahora puede salir incompleto. Recarga la página.',
          no_ficha:'Tu acceso no está ligado todavía a ninguna ficha. Escríbenos y lo revisamos.' },
     en:{ area:'Client area',
          login_intro:'Enter the email you purchased with. If you have a contract with us, the link arrives right away.',
@@ -575,6 +576,7 @@
          cambiar_pass_error:'Could not save', cambiar_pass_ok:'Password updated.', guardar:'Save',
          prefs:'Notification preferences', pref_email:'Email alerts', pref_sms:'SMS alerts',
          err_carga:'We could not load your information. Reload the page or try again later.',
+         err_catalogo:'Some company details are missing: a document opened now may be incomplete. Please reload the page.',
          no_ficha:'Your access is not linked to a record yet. Write to us and we will check it.' }
   };
   var LANG = localStorage.getItem('lw_portal_lang') ||
@@ -819,13 +821,20 @@
        Es el mismo fallo del 1-sep, por otra puerta.
        El comprador entra con `signInWithPassword`, asi que su sesion es
        `authenticated` y la RLS de `sociedades` le deja leerla. */
+    /* Los dos catch AVISAN EN PANTALLA, no solo en consola. Si alguno de los dos
+       catalogos no carga, el documento que ve el comprador sale incompleto —sin
+       emisor, o sin datos bancarios— y eso no puede descubrirlo abriendo la
+       consola del navegador. El aviso es deliberadamente distinto del generico
+       de carga: dice que el documento puede salir incompleto. */
+    var avisaCatalogo = function(que){
+      return function(e){
+        console.warn(que + ' no disponible:', e && e.message);
+        toastMal(t('err_catalogo'));
+      };
+    };
     Promise.all([
-      cargarSociedades(sb).catch(function(e){
-        console.warn('sociedades no disponibles:', e && e.message);
-      }),
-      cargarCuentasBancarias(sb).catch(function(e){
-        console.warn('cuentas de cobro no disponibles:', e && e.message);
-      })
+      cargarSociedades(sb).catch(avisaCatalogo('sociedades')),
+      cargarCuentasBancarias(sb).catch(avisaCatalogo('cuentas de cobro'))
     ]).then(function(){
       sb.rpc('portal_situacion').then(function(r){
         if (r.error){
