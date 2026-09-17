@@ -84,7 +84,7 @@
 <script src="assets/modelos_catalogo.js?v=4e4fdee1"></script>
 <!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
 <script src="assets/techo_extras.js?v=4bbf6d24"></script>
-<script src="assets/hitos_fechas.js?v=e86f44aa"></script>
+<script src="assets/hitos_fechas.js?v=b5376544"></script>
 <script src="assets/entidades_pago.js?v=ab7c9adf"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
@@ -4330,9 +4330,20 @@ async function guardarContrato(){
       refreshHitos();
       // UN solo toast con el guardado (más abajo): dos toast() seguidos se
       // pisan — el segundo borra el primero antes de que se lea (mismo
-      // fallo ya documentado en populateForm()).
-      avisoCobrado = ' · ' + lwT('se ha descontado') + ' ' + df.carta_cobrado_importe + ' '
-        + (collect().moneda || '') + ' ' + lwT('ya cobrado en') + ' ' + df.carta_cobrado_numeros;
+      // fallo ya documentado en populateForm()). El toast se desvanece solo
+      // (avisoCartaAplica/`.sui-aviso` en la tabla de pagos, hitos_fechas.js,
+      // es la fuente PERSISTENTE — esto es solo el aviso inmediato).
+      if(df.carta_cobrado_importe){
+        avisoCobrado = ' · ' + lwT('se ha descontado') + ' ' + df.carta_cobrado_importe + ' '
+          + (collect().moneda || '') + ' ' + lwT('ya cobrado en') + ' ' + df.carta_cobrado_numeros;
+      }
+      // Hallazgo ALTA de Legal/Administración (consulta de deploy 17-sep): el
+      // sobrante que el trigger SÍ calcula no aparecía en ningún sitio
+      // visible — "no puede desaparecer en silencio" (regla 4 del encargo).
+      if(df.carta_cobrado_sobrante){
+        avisoCobrado += ' · ⚠️ ' + lwT('sobran') + ' ' + df.carta_cobrado_sobrante + ' '
+          + (collect().moneda || '') + ' ' + lwT('cobrados en la Carta que este Bloqueo no puede absorber');
+      }
     }
     toast((SAVED_CONTRACT ? 'Guardado como ' : '') + data.numero + avisoCobrado);
     render();

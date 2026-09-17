@@ -175,6 +175,32 @@ function hitosBodyHTML(){
   const avisoAdmin = haiFijo
     ? `<p class="mini" data-hito-admin-aviso>${L({es:'Añadir o quitar hitos, y editar el % y el concepto de los cinco de fábrica, es de administración (admin o super administrador) desde el 16-sep-2026.',en:'Adding or removing milestones, and editing the % and wording of the five factory ones, has been an admin/super-admin action since 16-Sep-2026.',id:'Menambah/menghapus tahap serta mengubah % dan teks lima tahap standar, sejak 16-Sep-2026 hanya untuk admin/super admin.'})}</p>`
     : '';
+  /* Abono de la Carta de Reserva — se enseña aquí, y no solo en el toast del
+     guardado, porque un toast se desvanece en segundos y esto tiene que
+     "no desaparecer en silencio" (regla 4 del encargo, hallazgo ALTA de
+     Legal en la consulta de deploy del 17-sep: el sobrante que el trigger sí
+     calcula no aparecía en NINGÚN sitio visible — ni en el PDF, que es
+     correcto y a propósito, ni en pantalla, que no lo era). Vive DENTRO de
+     hitosBodyHTML() y no en un sitio aparte para que se repinte solo cada
+     vez que refreshHitos() corre — abrir el contrato, editar un campo,
+     reordenar hitos — sin tener que acordarse de llamarlo en cada punto por
+     separado. Fuente: CAMPOS_HEREDADOS, la misma que ya usa collect() para
+     imprimir la cláusula del documento (app.html) — nunca un cálculo propio
+     aquí, nunca un RPC a contrato_cobrado(). */
+  const cc = (typeof CAMPOS_HEREDADOS !== 'undefined') ? CAMPOS_HEREDADOS : {};
+  const avisoCartaCobrado = (cc.carta_cobrado_importe || cc.carta_cobrado_sobrante) ? `
+  <p class="sui-aviso" role="status">
+    ${cc.carta_cobrado_importe ? esc(L({
+        es:`Se han descontado ${cc.carta_cobrado_importe} ya cobrados en la Carta de Reserva ${cc.carta_cobrado_numeros || ''}.`,
+        en:`${cc.carta_cobrado_importe} already paid under Reservation Letter ${cc.carta_cobrado_numeros || ''} has been deducted.`,
+        id:`Sebesar ${cc.carta_cobrado_importe} yang telah dibayarkan pada Surat Reservasi ${cc.carta_cobrado_numeros || ''} telah dikurangkan.`
+      })) : ''}
+    ${cc.carta_cobrado_sobrante ? ' ⚠️ ' + esc(L({
+        es:`Sobran ${cc.carta_cobrado_sobrante} cobrados en la Carta que este Bloqueo no puede absorber (su precio es menor) — decide a mano qué hacer con ese resto.`,
+        en:`${cc.carta_cobrado_sobrante} paid under the Letter is left over — this Deed's price cannot absorb it (it is lower) — decide by hand what to do with the rest.`,
+        id:`Sisa ${cc.carta_cobrado_sobrante} yang dibayarkan pada Surat tidak dapat diserap oleh Perjanjian ini (harganya lebih rendah) — tentukan secara manual apa yang harus dilakukan dengan sisa tersebut.`
+      })) : ''}
+  </p>` : '';
   return `<div class="hitos-tabla-wrap"><table class="hitos-tabla"><thead><tr>
       <th>%</th>
       <th>${L({es:'Cantidad',en:'Amount',id:'Jumlah'})}</th>
@@ -185,7 +211,7 @@ function hitosBodyHTML(){
     ${btnAdd}
     <span class="spacer" style="flex:1"></span>
     <span style="font-size:12px;color:${Math.round(total)===100?'var(--muted)':'var(--be)'}">Σ ${total}%</span>
-  </div>${avisoAdmin}`;
+  </div>${avisoAdmin}${avisoCartaCobrado}`;
 }
 function refreshHitos(){ const b=$('[data-sec="pagos"] .body'); if(b) b.innerHTML=hitosBodyHTML(); }
 
