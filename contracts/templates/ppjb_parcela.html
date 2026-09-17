@@ -160,6 +160,24 @@
     <p data-lang="en"><b>Price terms:</b> The Contract Price is fixed, except in the event of regulatory changes directly affecting the works, or modifications requested by the Client and expressly agreed in writing. The Contract Price is expressed in <span class="f f-xs">{{moneda}}</span>. Pursuant to the Indonesian Currency Law (UU 7/2011), payments to be made within Indonesian territory shall be settled in Indonesian Rupiah (IDR) at the exchange rate agreed by the Parties of 1 <span class="f f-xs">{{moneda}}</span> = <span class="f f-sm">{{tipo_cambio_idr}}</span> IDR. The IDR equivalents shown next to each amount are calculated at that same rate and are for information purposes only.</p>
     <p data-lang="id"><b>Ketentuan harga:</b> Harga Kontrak bersifat tetap, kecuali dalam hal perubahan peraturan yang berdampak langsung pada pekerjaan, atau perubahan yang diminta Klien dan disepakati secara tertulis. Harga Kontrak dinyatakan dalam <span class="f f-xs">{{moneda}}</span>. Sesuai Undang-Undang Mata Uang Indonesia (UU 7/2011), pembayaran yang dilakukan di wilayah Indonesia diselesaikan dalam Rupiah (IDR) dengan kurs yang disepakati Para Pihak sebesar 1 <span class="f f-xs">{{moneda}}</span> = <span class="f f-sm">{{tipo_cambio_idr}}</span> IDR. Nilai setara IDR yang tercantum di samping setiap jumlah dihitung dengan kurs yang sama dan bersifat informatif.</p>
 
+    <!-- Abono ya cobrado en la Carta de Reserva de origen (17-sep-2026,
+         revision previa #24). Solo imprime si el trigger de la base
+         (carta_cobrado_al_bloquear, contracts/sql/carta_cobrado_al_bloquear.sql)
+         estampo datos.fields.carta_cobrado_importe al crear este Bloqueo, con
+         el mismo mecanismo opt de marcador opcional que ya usa el resto de la
+         plantilla para secciones opcionales. Ante discrepancia entre idiomas
+         prevalece el Bahasa (norma ya asentada de la serie CA, ver
+         reference_lawang_carta_reserva_ampliada). -->
+    <!--opt:carta_cobrado_importe-->
+    <p data-lang="es">De los cuales ya se han abonado <span class="f f-num6">{{carta_cobrado_importe}}</span> {{moneda}}, conforme a la Carta de Reserva <span class="f">{{carta_cobrado_numeros}}</span> cuya parcela se traspasa a este Contrato.</p>
+    <!--/opt:carta_cobrado_importe-->
+    <!--opt:carta_cobrado_importe-->
+    <p data-lang="en">Of which <span class="f f-num6">{{carta_cobrado_importe}}</span> {{moneda}} has already been paid under Reservation Letter <span class="f">{{carta_cobrado_numeros}}</span>, whose plot is transferred to this Agreement.</p>
+    <!--/opt:carta_cobrado_importe-->
+    <!--opt:carta_cobrado_importe-->
+    <p data-lang="id">Dari jumlah tersebut, sebesar <span class="f f-num6">{{carta_cobrado_importe}}</span> {{moneda}} telah dibayarkan berdasarkan Surat Reservasi <span class="f">{{carta_cobrado_numeros}}</span>, yang kavlingnya dialihkan ke Perjanjian ini.</p>
+    <!--/opt:carta_cobrado_importe-->
+
     <!--datos-bancarios-->
 
 <!--seccion-hitos-->

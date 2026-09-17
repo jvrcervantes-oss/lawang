@@ -233,16 +233,37 @@ function recalcularMontosHitos(){
     repartido += importe;
     aplicar(i, importe ? fmtImporte(importe) : '');
   });
-  if(idxResto < 0) return;   // ningún hito reclama el resto: nada más que hacer
-  /* Nunca negativo (corrección ALTA de Administración, misma consulta): si
-     Σ% de los hitos calculados no suma 100 —un admin editó un % de fábrica
-     sin recuadrar los demás, o un hito añadido a mano se pasa del hueco que
-     queda—, `total - repartido` podía salir negativo, y una Cantidad
-     negativa en un calendario de pagos firmable es peor que una en blanco.
-     Esto es solo el cinturón de PANTALLA para que ni transitoriamente se
-     vea ese número; `guardarContrato()` (app.html) bloquea el guardado de
-     verdad cuando Σ%≠100. */
-  aplicar(idxResto, fmtImporte(Math.max(0, total - repartido)));
+  if(idxResto >= 0){
+    /* Nunca negativo (corrección ALTA de Administración, misma consulta): si
+       Σ% de los hitos calculados no suma 100 —un admin editó un % de fábrica
+       sin recuadrar los demás, o un hito añadido a mano se pasa del hueco que
+       queda—, `total - repartido` podía salir negativo, y una Cantidad
+       negativa en un calendario de pagos firmable es peor que una en blanco.
+       Esto es solo el cinturón de PANTALLA para que ni transitoriamente se
+       vea ese número; `guardarContrato()` (app.html) bloquea el guardado de
+       verdad cuando Σ%≠100. */
+    aplicar(idxResto, fmtImporte(Math.max(0, total - repartido)));
+  }
+
+  /* Abono de la Carta de Reserva, ya cobrado y congelado al traspasar la
+     parcela (17-sep-2026) — ver sql/carta_cobrado_al_bloquear.sql, que es
+     quien lo CALCULA de verdad, una sola vez, al guardar el Bloqueo por
+     primera vez. Aquí solo se REAPLICA sobre lo que acaba de calcularse
+     arriba, cada vez que `precio_total` cambia: el 50/50 base se recalcula
+     con el precio nuevo y el descuento —que es un número fijo, no un
+     porcentaje— se resta otra vez en cascada, en el MISMO orden que usa el
+     trigger (`lwDescuentoCascada`, dinero.js — misma función, no una tercera
+     copia). Antes del primer guardado no hay nada que leer aquí: recién
+     derivado (derivarContrato() limpia CAMPOS_HEREDADOS), este bloque no
+     hace nada y el 50/50 de arriba se queda tal cual — es justo lo que pide
+     la regla 7 del encargo. NUNCA se llama a `contrato_cobrado()` por RPC
+     para "adelantarlo": la única fuente es lo que el propio contrato ya
+     guardó. */
+  const descuento = parseImporte((typeof CAMPOS_HEREDADOS !== 'undefined' && CAMPOS_HEREDADOS.carta_cobrado_importe) || '');
+  if(descuento > 0){
+    const nuevos = lwDescuentoCascada(HITOS.map(h=>h.monto), descuento);
+    HITOS.forEach((h,i)=> aplicar(i, nuevos[i]));
+  }
 }
 function hitosRowsHTML(){
   // {{moneda}} literal: se resuelve en el pase genérico de marcadores que buildDoc()

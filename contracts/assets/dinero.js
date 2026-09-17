@@ -124,6 +124,32 @@ function lwImporteCanonico(n){
                                      maximumFractionDigits: 2 });
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   DESCONTAR EN CASCADA — 17-sep-2026 (abono de la Carta de Reserva sobre los
+   hitos del Bloqueo de Parcela que la sucede)
+   ═══════════════════════════════════════════════════════════════════════════
+   Vive en DOS sitios a propósito, no por descuido: aquí (para que
+   `recalcularMontosHitos()`, en hitos_fechas.js, pueda reaplicar el descuento
+   ya congelado cada vez que `precio_total` cambia y recalcula el 50/50 base) y
+   en `sql/carta_cobrado_al_bloquear.sql` (que hace el cálculo REAL, una sola
+   vez, al guardar el Bloqueo por primera vez — el trigger, nunca el
+   navegador: ver la nota de seguridad en ese fichero). Las dos copias
+   comparten la MISMA idea — restar del primer hito lo que quepa, el resto del
+   segundo, y así, sin bajar nunca de 0 — y el mismo orden: el de la lista tal
+   cual está, sin marca especial por hito.
+   `descuento` YA viene topado (nunca más que `precio_total`) y ya es un
+   número fijo — esta función no vuelve a topar nada, solo reparte. */
+function lwDescuentoCascada(montos, descuento){
+  let restante = Number(descuento) || 0;
+  return (montos || []).map(function(m){
+    const v = lwParseImporte(m) || 0;
+    if(restante <= 0 || v <= 0) return lwImporteCanonico(v);
+    const resta = Math.min(v, restante);
+    restante -= resta;
+    return lwImporteCanonico(v - resta);
+  });
+}
+
 
 /* ═══════════════════════════════════════════════════════════════════════════
    SUMAR CUANDO HAY VARIAS MONEDAS — 26-ago-2026
@@ -183,4 +209,4 @@ function lwMonedaPrincipal(mapa){
    que no falte ninguna. */
 if(typeof module !== 'undefined' && module.exports)
   module.exports = { lwParseImporte, lwFormatoImporte, lwImporteCanonico, LW_DECIMALES,
-                     lwSumaPorMoneda, lwSumaTexto, lwMonedaPrincipal };
+                     lwSumaPorMoneda, lwSumaTexto, lwMonedaPrincipal, lwDescuentoCascada };

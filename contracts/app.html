@@ -63,7 +63,7 @@
      puede editar su propio documento. -->
 <script src="assets/autoria.js?v=4e47fa06"></script>
 <script src="assets/vocabulario.js?v=fd814f9b"></script>
-<script src="assets/dinero.js?v=ced29282"></script>
+<script src="assets/dinero.js?v=aed0c9a9"></script>
 <script src="assets/dialogo.js?v=cefc9e4e"></script>
 <!-- Quien compra, normalizado. La MISMA lista que usa Facturas: el nombre de
      la operación tiene que decir lo mismo en las dos herramientas (19-ago-2026). -->
@@ -84,7 +84,7 @@
 <script src="assets/modelos_catalogo.js?v=4e4fdee1"></script>
 <!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
 <script src="assets/techo_extras.js?v=4bbf6d24"></script>
-<script src="assets/hitos_fechas.js?v=a53e2995"></script>
+<script src="assets/hitos_fechas.js?v=e86f44aa"></script>
 <script src="assets/entidades_pago.js?v=ab7c9adf"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
@@ -307,6 +307,12 @@
       <div class="em-body">
         <p class="em-note">Se copian comprador, proyecto, unidad e importes. No se copian el número, la fecha de firma ni las firmas. El calendario de pagos solo viaja entre contratos del mismo tipo, y con los vencimientos recalculados desde hoy — cada tipo arranca con su plan pactado.</p>
         <label>Contrato a generar<select class="sui-sel" id="dvTpl"></select></label>
+        <!-- Carta de Reserva → Bloqueo de Parcela (17-sep-2026): el abono ya
+             pagado en la Carta se descuenta solo, pero SOLO al guardar (el
+             cálculo real vive en el trigger de la base — nunca aquí, regla 2
+             del encargo). `.sui-aviso`, no un toast: tiene que seguir
+             viéndose mientras el modal esté abierto, no desaparecer solo. -->
+        <p class="sui-aviso" id="dvAvisoCarta" role="status" hidden data-lwt="El abono ya pagado en la Carta de origen se calculará y descontará automáticamente al guardar este Bloqueo.">El abono ya pagado en la Carta de origen se calculará y descontará automáticamente al guardar este Bloqueo.</p>
         <button class="btn primary" id="dvGo" style="margin-top:6px" data-lwt="Generar">Generar</button>
       </div>
     </div>
@@ -4291,15 +4297,44 @@ async function guardarContrato(){
   const btn=$('#btnSave'); btn.disabled=true; btn.textContent='Guardando…';
   try{
     const payload = contractPayload();
+    // `,datos` (17-sep-2026, no solo `id,numero`): el trigger de la base
+    // (carta_cobrado_al_bloquear, BEFORE INSERT) puede estampar
+    // fields.carta_cobrado_* y descontar los hitos en el MISMO insert, cuando
+    // este Bloqueo traspasó de verdad su parcela desde una Carta de Reserva
+    // con dinero cobrado. Sin releerlo aquí, la vista previa y "Enviar a
+    // firma" seguían enseñando el 50/50 sin descontar hasta que alguien
+    // reabría el contrato — y el snapshot que se firma sale de buildDoc() en
+    // caliente, así que se podía firmar el calendario equivocado justo
+    // después de guardar.
     const q = (SAVED_CONTRACT && SAVED_CONTRACT.id)
-      ? sb.from('contratos').update(payload).eq('id', SAVED_CONTRACT.id).select('id,numero').single()
-      : sb.from('contratos').insert(payload).select('id,numero').single();
+      ? sb.from('contratos').update(payload).eq('id', SAVED_CONTRACT.id).select('id,numero,datos').single()
+      : sb.from('contratos').insert(payload).select('id,numero,datos').single();
     const { data, error } = await q;
     if(error) throw error;
     SAVED_CONTRACT = { id:data.id, numero:data.numero };
     const numEl = document.querySelector('[name="contrato_num"]');
     if(numEl){ numEl.value = data.numero; }
-    toast((SAVED_CONTRACT ? 'Guardado como ' : '') + data.numero);
+    /* Solo aplica al PRIMER guardado (esNuevo): el trigger calcula esto una
+       única vez, en el INSERT (regla 3 del encargo) — una edición posterior
+       no lo vuelve a tocar, así que no hay nada nuevo que releer ahí.
+       `carta_cobrado_importe` es la clave que el trigger SIEMPRE escribe
+       junto a las demás cuando hubo descuento real (nunca suelta); su
+       presencia basta para saber que hay algo que reflejar. */
+    let avisoCobrado = '';
+    if(esNuevo && data.datos && data.datos.fields && data.datos.fields.carta_cobrado_importe){
+      const df = data.datos.fields;
+      ['carta_cobrado_importe','carta_cobrado_numeros','carta_cobrado_sobrante'].forEach(k=>{
+        if(df[k] != null && df[k] !== '') CAMPOS_HEREDADOS[k] = df[k];
+      });
+      if(Array.isArray(data.datos.hitos)) HITOS = data.datos.hitos.map(h=>({...h}));
+      refreshHitos();
+      // UN solo toast con el guardado (más abajo): dos toast() seguidos se
+      // pisan — el segundo borra el primero antes de que se lea (mismo
+      // fallo ya documentado en populateForm()).
+      avisoCobrado = ' · ' + lwT('se ha descontado') + ' ' + df.carta_cobrado_importe + ' '
+        + (collect().moneda || '') + ' ' + lwT('ya cobrado en') + ' ' + df.carta_cobrado_numeros;
+    }
+    toast((SAVED_CONTRACT ? 'Guardado como ' : '') + data.numero + avisoCobrado);
     render();
     // LAW-71: el salto se registra DESPUÉS, que es cuando existe el contrato al
     // que colgarlo. La RPC comprueba `es_super_admin()` por su cuenta: que este
@@ -5079,12 +5114,29 @@ async function avisaFichaDistinta(contratoId){
    unidad (reserva → bloqueo de parcela → obra). Esto los rellena de una vez.
    Se deriva de lo que hay EN PANTALLA, así que sirve igual sobre un contrato
    guardado, uno bloqueado por firma o un borrador a medias. */
+/* El aviso de "esto trae abono de la Carta" se decide con el mismo criterio
+   que usa la base (`like 'carta_reserva%'`, sql/carta_cobrado_al_bloquear.sql)
+   y NO con `TIPOS_CEDEN_PARCELA` (parcela_inventario.js): esa lista es de
+   4 tipos escritos a mano y ya le falta uno (`carta_reserva_investor_deck`,
+   LAW-48 otra vez) — usarla aquí habría escondido el aviso justo en el tipo
+   que más lo necesita. No se calcula NADA aquí (regla 2 del encargo): solo
+   se decide si el mensaje fijo se enseña o no. */
+function avisoCartaAplica(slugDestino){
+  return CONTRACT_TIPO[slugDestino] === 'reserva_parcela'
+      && String(CONTRACT_TIPO[CURRENT.slug] || '').startsWith('carta_reserva');
+}
+function actualizarAvisoDerivar(){
+  const av = document.getElementById('dvAvisoCarta'); if(!av) return;
+  av.hidden = !avisoCartaAplica($('#dvTpl').value);
+}
 function abrirDerivar(){
   const sel = $('#dvTpl');
   sel.innerHTML = plantillasOfrecidas()
     .map(t=>`<option value="${t.slug}" ${t.slug===CURRENT.slug?'selected':''}>${t.num?t.num+'. ':''}${L(t.name)}</option>`).join('');
+  actualizarAvisoDerivar();
   $('#dvOverlay').classList.add('open');
 }
+$('#dvTpl').addEventListener('change', actualizarAvisoDerivar);
 async function derivarContrato(slug){
   const origen = (SAVED_CONTRACT && SAVED_CONTRACT.numero) || 'el borrador actual';
   const f = collect();
