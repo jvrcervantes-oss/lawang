@@ -408,12 +408,26 @@
      debajo (esa no lleva borde propio: es la continuación del mismo hito). */
   .hitos-tabla tr.hito-titulo{ border-top:1px solid var(--hair); }
   .hitos-tabla tr.hito-titulo:first-child{ border-top:none; }
-  .hitos-tabla tr.hito-titulo td{ padding-top:11px; padding-bottom:2px; display:flex; align-items:center; gap:8px; }
+  .hitos-tabla tr.hito-titulo td{ padding-top:11px; padding-bottom:2px; }
+  /* 🔴 El flex va en este DIV, no en el <td> de arriba (17-sep-2026, medido
+     con el propio navegador tras el aviso "los campos dan para meter 1
+     pixel" — el owner tenía toda la razón). Un <td colspan> con
+     `display:flex` deja de participar en el reparto de ancho de columnas de
+     la tabla: Chrome lo encogía al ancho de la PRIMERA columna (~61px) en
+     vez de ocupar las 5, y el Concepto —que vive dentro de ese flex— se
+     quedaba con espacio para una letra. El <td> se queda `table-cell`
+     (hereda el ancho real, colspan de las 5 columnas) y el flex vive en un
+     bloque normal por dentro, que sí crece como se espera. */
+  .hito-titulo-fila{ display:flex; align-items:center; gap:8px; }
   .hito-num{ flex:none; font-weight:600; color:var(--dl); }
-  .hitos-tabla tr.hito-titulo .field{ flex:1; min-width:0; }
-  .hitos-tabla td.pct{ width:56px; }
-  .hitos-tabla td.monto{ width:105px; }
-  .hitos-tabla td.fecha{ width:140px; }
+  .hito-titulo-fila .field{ flex:1; min-width:0; }
+  /* Anchos de %/Cantidad medidos con el input REAL (no de fábrica: esos son
+     `dato-fijo`, sin borde ni relleno, y por eso cabían en cualquier hueco).
+     Un input normal lleva 11px 13px de relleno + borde + el spinner nativo
+     de `type=number` — sin contar eso, "50" salía cortado en "5". */
+  .hitos-tabla td.pct{ width:76px; }
+  .hitos-tabla td.monto{ width:150px; }
+  .hitos-tabla td.fecha{ width:150px; }
   .hitos-tabla .field{ margin:0; }
   .hitos-tabla .hito-nota{ display:block; font-size:10.5px; color:var(--muted); margin-top:3px; }
   .hitos-tabla td.acciones{ white-space:nowrap; text-align:right; padding-top:11px; }
