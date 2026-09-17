@@ -539,6 +539,11 @@ async function crear(){
   btn.disabled = false; btn.textContent = lwT('Crear usuario');
   if(!d.ok){ toastMal(lwT('No se pudo crear: ') + (d.error || '')); return; }
   toast(lwT('Usuario creado: ') + email);
+  // El correo solo avisa del alta (nunca lleva la contraseña, ver admin-usuarios):
+  // si falla, la cuenta ya existe igual — solo falta decirle la contraseña a mano.
+  if(d.email_enviado === false){
+    toastMal(lwT('Aviso: no se pudo enviar el correo de bienvenida. Dile la contraseña a mano.'));
+  }
   await cargar();
   SEL = d.user_id; pintarLista(); pintarFicha();
 }

@@ -179,7 +179,44 @@ Deno.serve(async (req) => {
         await admin.auth.admin.deleteUser(creado.user.id);
         return json({ error: 'no_se_pudo_registrar: ' + eFila.message }, 500);
       }
-      return json({ ok: true, user_id: creado.user.id, email });
+
+      // Correo de bienvenida (17-sep-2026, encargo del owner: avisar al alta).
+      // SOLO notifica que la cuenta existe y el email de acceso — la
+      // CONTRASEÑA NO VIAJA por aquí: en la revisión previa Seguridad la marcó
+      // como no aceptable para cuentas que tocan datos de compradores reales
+      // (un email es un canal persistente y reenviable, al revés que el aviso
+      // verbal que usa hoy quien da de alta). Eso no cambia: el admin le sigue
+      // diciendo la contraseña a mano.
+      // Vía de envío: se reenvía el MISMO jwt del admin ya validado arriba,
+      // como X-Suite-Token — la vía "sesión" que ya usan contratos y facturas
+      // desde el navegador (send_email.php, vía 1). Cero secretos nuevos.
+      let emailEnviado = false;
+      let emailError: string | null = null;
+      try {
+        const saludo = nombre ? nombre.split(' ')[0] : email;
+        const mensaje = `Hola ${saludo},\n\n`
+          + `Se ha creado tu cuenta de acceso a la intranet de Lawang Tropical Properties.\n\n`
+          + `Usuario: ${email}\n\n`
+          + `La contraseña te la habrá dado quien te ha dado de alta. Si no la tienes, pídesela.`;
+        const rEmail = await fetch('https://lawangproperties.com/contracts/api/send_email.php', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'X-Suite-Token': jwt },
+          body: JSON.stringify({
+            to: email, subject: 'Tu acceso a la intranet — Lawang Tropical Properties',
+            message: mensaje, attach: false,
+            cta_url: 'https://lawangproperties.com/intranet/', cta_texto: 'Entrar a la intranet',
+          }),
+        });
+        const tEmail = await rEmail.text();
+        if (rEmail.ok && tEmail.includes('"ok":true')) emailEnviado = true;
+        else emailError = tEmail.slice(0, 200);
+      } catch (e) {
+        emailError = String((e as Error)?.message ?? e);
+      }
+      // un fallo de correo NO revierte el alta: la cuenta ya existe y funciona;
+      // el panel avisa con email_error para que el admin le diga la contraseña
+      // a mano, como hasta ahora.
+      return json({ ok: true, user_id: creado.user.id, email, email_enviado: emailEnviado, email_error: emailError });
     }
 
     // ── cambiar contraseña ───────────────────────────────────────────────
