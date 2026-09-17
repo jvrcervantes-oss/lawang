@@ -184,11 +184,11 @@ returns trigger
 language plpgsql
 set search_path to ''
 as $$
-declare clave text := new.datos->'fields'->>'sociedad_firmante';
+declare v_clave text := new.datos->'fields'->>'sociedad_firmante';
 begin
-  if clave is not null and clave <> ''
-     and not exists (select 1 from public.sociedades s where s.clave = clave) then
-    raise exception 'La sociedad firmante «%» no existe en public.sociedades.', clave;
+  if v_clave is not null and v_clave <> ''
+     and not exists (select 1 from public.sociedades s where s.clave = v_clave) then
+    raise exception 'La sociedad firmante «%» no existe en public.sociedades.', v_clave;
   end if;
   return new;
 end; $$;
