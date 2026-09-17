@@ -6,10 +6,16 @@
    SOCIEDADES), que es la fuente única que comparten Contratos y Facturas. Esto
    es solo cómo se eligen y cómo se imprimen.
 
-   ⚠️ Por eso este fichero tiene que cargarse DESPUÉS de entities.js: hay una
-   constante que se calcula al cargar (SOCIEDAD_OPTIONS) y lee SOCIEDADES. Si se
-   pone antes, sale vacía y el desplegable de sociedad firmante aparece sin
-   opciones — sin ningún error.
+   ⚠️ Este fichero se carga DESPUÉS de entities.js, pero desde el 17-sep-2026 eso
+   ya no basta: `SOCIEDADES` se llena de la base de forma ASÍNCRONA. Lo que había
+   aquí era una constante (`SOCIEDAD_OPTIONS`) evaluada al parsear el <script>,
+   que se quedó congelada en `[]` para siempre y dejó el desplegable de sociedad
+   firmante sin una sola opción — sin ningún error, que es justo lo que esta nota
+   llevaba advirtiendo desde que se escribió. Hoy es `sociedadOptions()`, una
+   FUNCIÓN: se evalúa al construir las SECTIONS, después de que `init()` haya
+   esperado a `cargarSociedades(sb)`.
+   La regla general, por si aparece otra: nada que lea `SOCIEDADES` puede
+   calcularse en el cuerpo del fichero. O es función, o se recalcula tras la carga.
    ═══════════════════════════════════════════════════════════════════════════ */
 /* ---------- cuenta bancaria: desplegable único reusado en varias plantillas ----------
    Las cuentas se cargan de `public.cuentas_bancarias` con cargarCuentasBancarias()
