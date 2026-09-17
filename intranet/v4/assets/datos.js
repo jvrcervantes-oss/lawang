@@ -942,9 +942,35 @@
         disponible: 'Disponible', reservada: 'Reservada', bloqueada: 'Bloqueada',
         vendida: 'Vendida', cobrada: 'Cobrada', no_disponible: 'No disponible'
       };
+      /* Estado del PROYECTO (17-sep-2026, encargo del owner) — ocho valores,
+         distintos de los seis de una parcela: aquellos dicen si una parcela se
+         puede vender, estos en qué punto de su vida está el proyecto entero.
+         Se pintan con la misma familia de color que las parcelas para que la
+         pantalla siga leyéndose igual, no con una paleta nueva.
+         El estado NO se deriva de nada: lo pone una persona con
+         proyecto_cambiar_estado(), y solo `en_construccion` habilita el disparo
+         de vencimientos por avance de obra. */
+      var PROY_ESTADO_COLOR = {
+        en_venta: '#485B37',        // verde territorial — vivo, se está vendiendo
+        no_disponible: '#75786e',   // outline — fuera de comercialización
+        en_construccion: '#8C5E10', // ámbar — la obra está en marcha (y cobrando)
+        construido: '#316669',      // secondary — obra terminada, sin entregar
+        finalizado: '#104C4F',      // deep lagoon — entregado y cerrado
+        gestionado: '#316669',      // en explotación
+        stand_by: '#8A6A34',        // pausado
+        cedido: '#75786e'           // ya no es nuestro
+      };
+      var PROY_ESTADO_ETIQUETA = {
+        en_venta: 'En venta', no_disponible: 'No disponible',
+        en_construccion: 'En construcción', construido: 'Construido',
+        finalizado: 'Finalizado', gestionado: 'Gestionado',
+        stand_by: 'Stand-by', cedido: 'Cedido'
+      };
       function claveEstado(e) { return String(e || '').trim().toLowerCase().replace(/\s+/g, '_'); }
       function colorEstado(e) { return ESTADO_COLOR[claveEstado(e)] || '#75786e'; }
       function etiquetaEstado(e) { return ESTADO_ETIQUETA[claveEstado(e)] || (e || '—'); }
+      function colorProyEstado(e) { return PROY_ESTADO_COLOR[claveEstado(e)] || '#75786e'; }
+      function etiquetaProyEstado(e) { return PROY_ESTADO_ETIQUETA[claveEstado(e)] || (e || '—'); }
 
       /* El punto de color de cada chip de filtro «Unidades». Se inyecta desde
          aquí y no se escribe en la HTML a propósito: marcaChip() reescribe el
@@ -1028,6 +1054,57 @@
         pon('d-master', elegido.parcela_master || 'sin registrar');
         pon('d-sup', elegido.parcela_master_m2 ? elegido.parcela_master_m2 + ' m² (' + d.t + ' parcelas)' : d.t + ' parcelas');
         pon('d-docs', (DOC_P[elegido.nombre] || 0) + ' documentos');
+
+        /* Estado del proyecto, umbral para iniciar obra y plazos de cobro
+           (17-sep-2026, encargo del owner). Tres cosas que hasta hoy no existían
+           en `proyectos`.
+
+           El porcentaje vendido NO se recalcula aquí: sale de la RPC
+           `proyecto_pct_vendido`, que cuenta vendida+cobrada+BLOQUEADA. Es a
+           propósito un número distinto del KPI «vendidas» de esta misma
+           pantalla (que cuenta solo ventas consumadas): aquel responde cuántas
+           ventas hemos cerrado, éste si hay compromiso contractual suficiente
+           para levantar la obra. Contarlo a mano aquí sería la tercera
+           implementación del mismo criterio, que es exactamente como se rompen
+           estas cosas. */
+        var elEstado = document.querySelector('[data-lw="d-estado"]');
+        if (elEstado) {
+          elEstado.textContent = etiquetaProyEstado(elegido.estado);
+          elEstado.style.background = colorProyEstado(elegido.estado);
+          elEstado.style.color = '#fff';
+        }
+
+        pon('d-umbral', '—');
+        vig(sb.rpc('proyecto_pct_vendido', { p_proyecto_id: elegido.id })).then(function (r) {
+          if (r.error) { fallo('porcentaje vendido', r.error); return; }
+          var pct = Number(r.data);
+          var umbral = Number(elegido.pct_minimo_inicio);
+          if (!isFinite(pct) || !isFinite(umbral)) return;
+          var el = document.querySelector('[data-lw="d-umbral"]');
+          if (!el) return;
+          var llega = pct >= umbral;
+          el.textContent = pct.toFixed(1).replace('.0', '') + '% de ' + umbral + '%' +
+            (llega ? ' · puede iniciar obra' : '');
+          // Ámbar, no rojo: no llegar al umbral no es un error, es el estado
+          // normal de un proyecto que todavía se está vendiendo.
+          el.style.color = llega ? '#485B37' : '#8A6A34';
+        });
+
+        /* Los cinco plazos de cobro, si están configurados. Sin configurar no es
+           un fallo: es lo que hay hasta que alguien los fije, y obra_confirmar_avance
+           lo dice con su propio mensaje si hace falta uno que no existe. */
+        pon('d-plazos', '—');
+        q(sb.from('proyecto_plazo_pago').select('orden_pago,dias')
+            .eq('proyecto_id', elegido.id).order('orden_pago'), 'plazos de cobro')
+          .then(function (pl) {
+            var el = document.querySelector('[data-lw="d-plazos"]');
+            if (!el) return;
+            if (pl == null) { el.textContent = 'no se pudieron leer'; return; }
+            if (!pl.length) { el.textContent = 'sin configurar'; el.style.color = '#8A6A34'; return; }
+            el.style.color = '';
+            el.textContent = pl.map(function (x) { return x.dias + 'd'; }).join(' · ') +
+              (pl.length < 5 ? ' · faltan ' + (5 - pl.length) : '');
+          });
 
         /* Fecha de entrega ESTIMADA del proyecto (16-sep-2026, encargo del
            owner), NO la fecha real de obra por parcela (unidades.obra_fecha_entrega,
@@ -1319,6 +1396,10 @@
       window.LW_V4.unidades = UNIDADES_CAJON;
       window.LW_V4.estadoColor = colorEstado;
       window.LW_V4.estadoEtiqueta = etiquetaEstado;
+      // Estados de PROYECTO para el editor (modal "Estado y obra"), misma
+      // razón que los de parcela: fuente única, no dos listas a mano.
+      window.LW_V4.proyEstados = PROY_ESTADO_ETIQUETA;
+      window.LW_V4.proyEstadoEtiqueta = etiquetaProyEstado;
 
       /* Vista de detalle de UNA parcela, DENTRO del mismo cajón — patrón
          maestro→detalle, no un cajón anidado (Diseño, revisión previa
@@ -1563,7 +1644,7 @@
       var DS_ACTUAL = [];
 
       Promise.all([
-        q(sb.from('proyectos').select('id,nombre,resort,parcela_master,parcela_master_m2,fecha_entrega_estimada_proyecto,fecha_entrega_estimada_fijada_en').eq('activo', true).order('nombre'), 'proyectos'),
+        q(sb.from('proyectos').select('id,nombre,resort,parcela_master,parcela_master_m2,fecha_entrega_estimada_proyecto,fecha_entrega_estimada_fijada_en,estado,pct_minimo_inicio').eq('activo', true).order('nombre'), 'proyectos'),
         q(sb.from('unidades').select('proyecto,estado,moneda,precio,precio_suelo,precio_construccion'), 'unidades'),
         /* La RPC de EQUIPO, nunca `.from('facturas')`. `facturas` tiene RLS por
            agente (`es_suyo`), así que una lectura directa devuelve solo «lo mío»

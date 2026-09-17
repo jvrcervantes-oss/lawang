@@ -1,10 +1,10 @@
 <!DOCTYPE html><html lang="es" style=""><head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d6d6608e" data-herramienta="unidades"></script>
-<script src="/contracts/assets/dinero.js?v=aed0c9a9" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=310f2346" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1" defer></script><script src="/contracts/assets/proyectos_csv.js?v=e610515a" defer></script><script src="../assets/datos.js?v=01b4b911" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/dinero.js?v=aed0c9a9" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=310f2346" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1" defer></script><script src="/contracts/assets/proyectos_csv.js?v=e610515a" defer></script><script src="../assets/datos.js?v=c56a66f9" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=2737c21a" defer></script>
 <link href="../assets/shell.css?v=4978e676" rel="stylesheet">
-<script src="../assets/editores.js?v=db6d5396" defer></script><script src="../assets/maqueta.js?v=7a878384" defer></script>
+<script src="../assets/editores.js?v=12b42346" defer></script><script src="../assets/maqueta.js?v=7a878384" defer></script>
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>Inventario de Proyectos &amp; Suelo — Lawang Intranet</title>
@@ -428,6 +428,22 @@
      sin contexto). -->
 <div data-lw="d-resumen-vacio" class="hidden text-outline text-[11px] italic pt-2">Aún sin parcelas registradas para este proyecto.</div>
 <div data-lw="d-resumen-estados" class="flex flex-wrap gap-x-3 gap-y-1 pt-2"></div>
+<!-- Estado del proyecto, umbral de venta y plazos de obra (17-sep-2026, encargo
+     del owner). El estado NO se edita aqui ni con un UPDATE: sale de
+     proyecto_cambiar_estado(), que valida el umbral y deja rastro en
+     proyecto_eventos. Esta fila solo lo ENSEÑA. -->
+<div class="flex items-center justify-between pb-2 border-b border-warm-border/60">
+<span class="text-on-surface-variant font-medium">Estado del proyecto:</span>
+<span class="px-2 py-0.5 rounded font-bold font-label-md" data-lw="d-estado">—</span>
+</div>
+<div class="flex items-center justify-between pb-2 border-b border-warm-border/60">
+<span class="text-on-surface-variant font-medium">Vendido (para iniciar obra):</span>
+<span class="font-kpi-number text-[13px] font-bold text-volcanic-ash text-right" data-lw="d-umbral">—</span>
+</div>
+<div class="flex items-center justify-between pb-2 border-b border-warm-border/60">
+<span class="text-on-surface-variant font-medium">Plazos de cobro por fase:</span>
+<span class="font-kpi-number text-[13px] font-bold text-volcanic-ash text-right" data-lw="d-plazos">—</span>
+</div>
 <div class="flex items-center justify-between pt-2">
 <span class="text-on-surface-variant font-medium">Entrega estimada (proyecto):</span>
 <span class="font-kpi-number text-[13px] font-bold text-volcanic-ash text-right" data-lw="d-entrega">—</span>
@@ -690,6 +706,10 @@
 <button class="py-2 px-3 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-warm-border transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" type="button">
 <span class="material-symbols-outlined text-[16px]">settings</span>
 <span class="">Editar proyecto</span>
+</button>
+<button class="py-2 px-3 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-warm-border transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" id="btn-estado-obra" data-real="1" type="button">
+<span class="material-symbols-outlined text-[16px]">construction</span>
+<span class="">Estado y obra</span>
 </button>
 <button class="py-2 px-3 rounded-lg bg-surface-container-lowest hover:bg-error-container text-error border border-warm-border transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" type="button" title="Solo super admin, y solo si el proyecto no tiene unidades, modelos ni documentos">
 <span class="material-symbols-outlined text-[16px]">delete</span>

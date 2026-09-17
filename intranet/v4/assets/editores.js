@@ -1100,6 +1100,131 @@
         });
       }
 
+      /* Estado y obra (17-sep-2026, encargo del owner). Gobierna las tres cosas
+         que deciden si un proyecto puede empezar a cobrar por obra: en qué
+         estado está, qué porcentaje de venta exige para arrancar, y cuántos
+         días pasan entre avanzar una fase y su cobro.
+
+         Por qué NO es un campo más de "Editar proyecto": el estado no se guarda
+         con un UPDATE. Va por `proyecto_cambiar_estado()`, que valida el umbral,
+         exige motivo escrito para saltárselo y deja rastro en `proyecto_eventos`.
+         Meterlo en el formulario general lo convertiría en un campo cualquiera y
+         se perdería todo eso. Mismo criterio que el avance de obra por RPC. */
+      ata(/^Estado y obra$/i, function () {
+        var p = proyectoObj();
+        if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
+        if (!esAdminP)
+          return aviso('Cambiar el estado de un proyecto es cosa de admin (la policy es es_admin(), no esta pantalla).', '#8A6A34');
+
+        Promise.all([
+          sb.rpc('proyecto_pct_vendido', { p_proyecto_id: p.id }),
+          sb.from('proyecto_plazo_pago').select('orden_pago,dias').eq('proyecto_id', p.id).order('orden_pago'),
+          sb.from('proyecto_eventos').select('evento,detalle,quien,creado_en')
+            .eq('proyecto_id', p.id).order('creado_en', { ascending: false }).limit(5)
+        ]).then(function (rs) {
+          var pct = Number((rs[0] && rs[0].data) || 0);
+          var plazos = (rs[1] && rs[1].data) || [];
+          var eventos = (rs[2] && rs[2].data) || [];
+          var umbral = Number(p.pct_minimo_inicio);
+          var llega = pct >= umbral;
+
+          var ESTADOS = (window.LW_V4 && window.LW_V4.proyEstados) || {
+            en_venta: 'En venta', no_disponible: 'No disponible',
+            en_construccion: 'En construcción', construido: 'Construido',
+            finalizado: 'Finalizado', gestionado: 'Gestionado',
+            stand_by: 'Stand-by', cedido: 'Cedido'
+          };
+          var opciones = Object.keys(ESTADOS).map(function (k) { return [k, ESTADOS[k]]; });
+
+          var porPago = {};
+          plazos.forEach(function (x) { porPago[x.orden_pago] = x.dias; });
+          var NOMBRE_PAGO = {
+            1: '1 · Preparación del terreno', 2: '2 · Estructura',
+            3: '3 · Instalaciones', 4: '4 · Acabados', 5: '5 · Revisión y entrega'
+          };
+
+          var campos = [
+            { tipo: 'lectura', medio: 1, label: 'Vendido ahora mismo',
+              valor: pct.toFixed(1).replace('.0', '') + '% (cuenta vendidas, cobradas y bloqueadas)' },
+            { tipo: 'lectura', medio: 1, label: 'Hace falta para iniciar obra', valor: umbral + '%' },
+            { k: 'estado', tipo: 'select', label: 'Estado del proyecto',
+              opciones: opciones, valor: p.estado || 'en_venta',
+              ayuda: 'Solo «En construcción» hace que un avance de obra dispare cobros.' }
+          ];
+
+          if (!llega) {
+            campos.push({ tipo: 'nota', label: 'Este proyecto todavía no llega al ' + umbral +
+              '% de venta. Puedes pasarlo a «En construcción» igualmente, pero hace falta escribir el motivo aquí abajo y queda registrado con tu nombre y la fecha.' });
+            campos.push({ k: 'motivo', label: 'Motivo para iniciar por debajo del umbral',
+              ayuda: 'Solo se usa si eliges «En construcción».' });
+          }
+
+          campos.push({ k: 'umbral', tipo: 'number', medio: 1, paso: '1',
+            label: 'Cambiar el % que exige este proyecto', valor: umbral });
+
+          for (var i = 1; i <= 5; i++) {
+            campos.push({ k: 'dias' + i, tipo: 'number', medio: 1, paso: '1',
+              label: 'Días hasta el cobro · pago ' + NOMBRE_PAGO[i],
+              valor: porPago[i] == null ? '' : porPago[i],
+              ayuda: i === 1 ? 'Días desde que se avanza la fase hasta que vence su cobro. En blanco = sin configurar; entonces habrá que escribirlo a mano en cada avance.' : '' });
+          }
+
+          if (eventos.length) {
+            campos.push({ tipo: 'nota', label: 'Últimos movimientos: ' + eventos.map(function (e) {
+              var d = e.detalle || {};
+              var q = e.quien || 'alguien';
+              if (e.evento === 'inicio_forzado_bajo_umbral')
+                return '⚠ inicio forzado al ' + d.pct_vendido + '% por ' + q;
+              return (ESTADOS[d.a] || d.a || e.evento) + ' por ' + q;
+            }).join(' · ') });
+          }
+
+          modal('Estado y obra · ' + p.nombre, campos, 'Guardar', function (v) {
+            var tareas = [];
+            var nuevoEstado = v.estado || p.estado;
+
+            if (nuevoEstado !== p.estado) {
+              tareas.push(sb.rpc('proyecto_cambiar_estado', {
+                p_proyecto_id: p.id,
+                p_estado: nuevoEstado,
+                // Forzar solo cuando de verdad hace falta: si llega al umbral,
+                // la función no pide nada y este parámetro da igual.
+                p_forzar: (nuevoEstado === 'en_construccion' && !llega),
+                p_motivo: (v.motivo || '').trim() || null
+              }));
+            }
+
+            var nuevoUmbral = Number(v.umbral);
+            if (isFinite(nuevoUmbral) && nuevoUmbral !== umbral) {
+              // El umbral sí es una columna normal de `proyectos` (no tiene
+              // reglas propias), así que va por UPDATE como el resto de la ficha.
+              tareas.push(sb.from('proyectos').update({ pct_minimo_inicio: nuevoUmbral })
+                .eq('id', p.id).select('id'));
+            }
+
+            for (var j = 1; j <= 5; j++) {
+              var bruto = v['dias' + j];
+              if (bruto === '' || bruto == null) continue;
+              var dias = Number(bruto);
+              if (!isFinite(dias) || dias === porPago[j]) continue;
+              tareas.push(sb.rpc('proyecto_fijar_plazo', {
+                p_proyecto_id: p.id, p_orden_pago: j, p_dias: dias
+              }));
+            }
+
+            if (!tareas.length) return Promise.resolve({ error: null });
+
+            // Se devuelve el PRIMER error que aparezca: el modal ya sabe
+            // pintarlo, y la función de la base trae el mensaje explicando por
+            // qué (umbral sin motivo, estado desconocido, días fuera de rango).
+            return Promise.all(tareas).then(function (rr) {
+              for (var k = 0; k < rr.length; k++) if (rr[k] && rr[k].error) return rr[k];
+              return { error: null };
+            });
+          });
+        }, function (e) { aviso('No se pudo leer el estado del proyecto: ' + e, '#ba1a1a'); });
+      });
+
       /* Editar proyecto (11-sep-2026, sincronizando v4 con lo nuevo de
          /proyectos/): ficha (resort/parcela máster), qué se puede construir
          aquí y sales/project manager, en el MISMO modal — igual que la ficha
