@@ -1071,14 +1071,27 @@
       'This is one of the older records left without an author: for now only an administrator can edit it.',
     'Pasar la ficha a': 'Hand the record over to',
     'Traspasar': 'Hand over',
-    'Quien la reciba podrá abrirla y corregirla (mientras no cuelgue de un contrato firmado); los demás la seguirán viendo en el directorio, solo de consulta. Los contratos y las facturas NO se mueven: el traspaso es de la ficha, no del trabajo.':
-      'Whoever receives it will be able to open and correct it (as long as it does not hang off a signed contract); everyone else will keep seeing it in the directory, read-only. Contracts and invoices do NOT move: what changes hands is the record, not the work.',
+    'Quien la reciba podrá abrirla y corregirla (mientras no cuelgue de un contrato firmado); los demás la seguirán viendo en el directorio, solo de consulta. Sin marcar la casilla de arriba, los contratos y las facturas NO se mueven: el traspaso es solo de la ficha.':
+      'Whoever receives it will be able to open and correct it (as long as it does not hang off a signed contract); everyone else will keep seeing it in the directory, read-only. Without ticking the box above, contracts and invoices do NOT move: only the record changes hands.',
     'Pasar la ficha de %n a %d': 'Hand the record of %n over to %d',
     'Podrá abrirla y corregirla. Sus contratos y sus facturas no se mueven.':
       'They will be able to open and correct it. Their contracts and invoices do not move.',
     'Esa ficha ya es suya.': 'That record is already theirs.',
     'No se pudo traspasar: ': 'Could not hand it over: ',
     'Ficha traspasada a ': 'Record handed over to ',
+    /* Arrastrar contratos/facturas en el traspaso — 17-sep-2026, solo super_admin. */
+    'Arrastrar también sus contratos y facturas (solo los que sean de %n)':
+      'Also drag along their contracts and invoices (only the ones that belong to %n)',
+    'Ej. Ana deja el equipo, sus clientes pasan a Carmen': 'E.g. Ana is leaving the team, her clients move to Carmen',
+    'Escribe el motivo: es lo que explica el traspaso dentro de un año.':
+      'Write the reason: it is what explains the transfer a year from now.',
+    'Se traspasarán también los contratos y las facturas de %n. Lo que ya sea de otra persona, o esté firmado o anulado, no se mueve y queda a la vista para revisarlo a mano.':
+      'The contracts and invoices of %n will also be transferred. Anything that already belongs to someone else, or is signed or voided, does not move and stays visible to review by hand.',
+    'Traspaso de %n': 'Transfer of %n',
+    'Contratos: %m movidos · %f firmados sin tocar · %o de otro autor · %s sin autor.':
+      'Contracts: %m moved · %f signed, left untouched · %o belong to someone else · %s have no author.',
+    'Facturas y recibís: %m movidas (%a anuladas incluidas) · %o de otro autor · %s sin autor.':
+      'Invoices and receipts: %m moved (including %a voided) · %o belong to someone else · %s have no author.',
     'Contratos, pagos, facturas, documentos y portal de esta persona NO se muestran aquí: son del compañero que lleva la ficha. Que no aparezcan no significa que no existan.':
       'This person’s contracts, payments, invoices, documents and portal are NOT shown here: they belong to the colleague who owns the record. Their absence does not mean they do not exist.',
     'de otro': 'someone else’s',

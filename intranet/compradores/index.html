@@ -20,7 +20,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=72259afd"></script>
+<script src="/contracts/assets/i18n.js?v=182d53de"></script>
 <script src="/contracts/assets/herramientas.js?v=e17eadaa"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="/contracts/assets/visor.js?v=28038adb" defer></script>
@@ -734,7 +734,24 @@ function pintarFicha(){
                 esc(u.nombre || u.email)}</option>`).join('')}</select></div>
           <div style="display:flex;align-items:flex-end"><button class="btn" id="btnTraspasar">${lwT('Traspasar')}</button></div>
         </div>
-        <p class="nota">${lwT('Quien la reciba podrá abrirla y corregirla (mientras no cuelgue de un contrato firmado); los demás la seguirán viendo en el directorio, solo de consulta. Los contratos y las facturas NO se mueven: el traspaso es de la ficha, no del trabajo.')}</p>`}
+        ${
+          /* Arrastrar contratos/facturas — 17-sep-2026, encargo del owner. Solo
+             super_admin: es la version en bloque de "Reasignar autor"
+             (contracts/assets/autoria.js), que ya está restringida a ese rol
+             porque reatribuir un documento es un acto de administración de
+             personas, no de documentos. La casilla de la ficha (arriba) sigue
+             siendo de cualquier admin y sin motivo, sin cambios. */
+          (YO && YO.rol === 'super_admin') ? `
+        <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12.5px">
+          <input type="checkbox" id="f-traspasa-todo">
+          ${lwT('Arrastrar también sus contratos y facturas (solo los que sean de %n)', { n: nombreDe(c.propietario) || '—' })}
+        </label>
+        <div class="sui-row" id="cajaMotivoTraspaso" hidden>
+          <div><label for="f-traspaso-motivo">${lwT('Motivo')}</label>
+            <input id="f-traspaso-motivo" type="text" maxlength="180" placeholder="${lwT('Ej. Ana deja el equipo, sus clientes pasan a Carmen')}"></div>
+        </div>` : ''
+        }
+        <p class="nota">${lwT('Quien la reciba podrá abrirla y corregirla (mientras no cuelgue de un contrato firmado); los demás la seguirán viendo en el directorio, solo de consulta. Sin marcar la casilla de arriba, los contratos y las facturas NO se mueven: el traspaso es solo de la ficha.')}</p>`}
     </fieldset>`}
 
     ${nuevo ? '<p class="nota">' + lwT('Los documentos se suben después de crear la ficha.') + '</p>' :
@@ -1041,6 +1058,10 @@ function pintarFicha(){
      datos buenos. «Cancelar» vuelve a pintar la ficha, que es la forma mas
      corta y mas segura de descartar: los valores se releen de CLIENTES. */
   const bt = $('#btnTraspasar'); if(bt) bt.addEventListener('click', () => traspasar(c));
+  const chkTodo = $('#f-traspasa-todo');
+  if(chkTodo) chkTodo.addEventListener('change', () => {
+    const caja = $('#cajaMotivoTraspaso'); if(caja) caja.hidden = !chkTodo.checked;
+  });
   const be = $('#btnEditar');
   if(be) be.addEventListener('click', () => {
     $('#fsIdentidad').querySelectorAll('input,select,textarea').forEach(el => { el.disabled = false; });
@@ -1187,7 +1208,16 @@ async function borrarComprador(c){
    movía un escalón: «pídele el traspaso» no servía de nada porque no había
    ninguna pantalla para traspasar, solo SQL. Esto es esa pantalla. Sirve
    también para las fichas antiguas sin autor, que hasta hoy no eran de nadie.
-   No mueve contratos ni facturas: esos cuelgan de quien los guardó. */
+
+   17-sep-2026, encargo del owner: por defecto SIGUE sin mover contratos ni
+   facturas (esos cuelgan de quien los guardó) — pero un super_admin puede
+   marcar «Arrastrar también sus contratos y facturas», y entonces el traspaso
+   pasa por la RPC `traspasar_cliente_con_documentos`
+   (contracts/sql/traspaso_cliente_arrastra_documentos.sql), que hace las dos
+   cosas en una sola transacción y SOLO mueve lo que era del propietario
+   saliente: un documento de un tercer agente no se reatribuye solo por
+   traspasar al comprador, se cuenta aparte para revisarlo a mano con
+   «Reasignar autor». */
 const sinNombre = '—';
 async function traspasar(c){
   const sel = $('#f-dueno'); if(!sel || !sel.value) return;
@@ -1195,19 +1225,50 @@ async function traspasar(c){
   if(String(c.propietario||'').toLowerCase() === nuevo.toLowerCase()){
     toastMal(lwT('Esa ficha ya es suya.')); return;
   }
+  const chk = $('#f-traspasa-todo');
+  const conDocumentos = !!(chk && chk.checked);
+  const motivo = (($('#f-traspaso-motivo') && $('#f-traspaso-motivo').value) || '').trim();
+  if(conDocumentos && motivo.length < 3){
+    toastMal(lwT('Escribe el motivo: es lo que explica el traspaso dentro de un año.')); return;
+  }
+
   const ok = await lwConfirmar({
     // El literal de respaldo va FUERA del lwT(): el extractor de claves recoge
     // todos los literales de dentro de la llamada, y un «—» suelto se contaba
     // como una frase a traducir.
     titulo: lwT('Pasar la ficha de %n a %d', { n: c.full_name || sinNombre, d: nombreDe(nuevo) }),
-    cuerpo: '<p>' + lwT('Podrá abrirla y corregirla. Sus contratos y sus facturas no se mueven.') + '</p>',
+    cuerpo: '<p>' + (conDocumentos
+      ? lwT('Se traspasarán también los contratos y las facturas de %n. Lo que ya sea de otra persona, o esté firmado o anulado, no se mueve y queda a la vista para revisarlo a mano.', { n: nombreDe(c.propietario) || sinNombre })
+      : lwT('Podrá abrirla y corregirla. Sus contratos y sus facturas no se mueven.')) + '</p>',
     confirmar: lwT('Traspasar'),
   });
   if(!ok) return;
+
   const b = $('#btnTraspasar'); if(b) b.disabled = true;
-  const { error } = await SB.from('clients').update({ propietario: nuevo }).eq('id', c.id);
-  if(b) b.disabled = false;
-  if(error){ toastMal(lwT('No se pudo traspasar: ') + error.message); return; }
+
+  if(conDocumentos){
+    const { data, error } = await SB.rpc('traspasar_cliente_con_documentos',
+      { p_client_id: c.id, p_nuevo_propietario: nuevo, p_motivo: motivo });
+    if(b) b.disabled = false;
+    if(error){ toastMal(lwT('No se pudo traspasar: ') + error.message); return; }
+    const r = (data && data[0]) || {};
+    await lwConfirmar({
+      titulo: lwT('Traspaso de %n', { n: c.full_name || sinNombre }),
+      cuerpo:
+        '<p>' + lwT('Contratos: %m movidos · %f firmados sin tocar · %o de otro autor · %s sin autor.', {
+          m: r.contratos_movidos || 0, f: r.contratos_omitidos_firmados || 0,
+          o: r.contratos_omitidos_otro_autor || 0, s: r.contratos_omitidos_sin_autor || 0 }) + '</p>' +
+        '<p>' + lwT('Facturas y recibís: %m movidas (%a anuladas incluidas) · %o de otro autor · %s sin autor.', {
+          m: r.facturas_movidas || 0, a: r.facturas_movidas_anuladas || 0,
+          o: r.facturas_omitidas_otro_autor || 0, s: r.facturas_omitidas_sin_autor || 0 }) + '</p>',
+      confirmar: lwT('Entendido'),
+      cancelar: false,
+    });
+  } else {
+    const { error } = await SB.from('clients').update({ propietario: nuevo }).eq('id', c.id);
+    if(b) b.disabled = false;
+    if(error){ toastMal(lwT('No se pudo traspasar: ') + error.message); return; }
+  }
   toast(lwT('Ficha traspasada a ') + nombreDe(nuevo));
   await cargar(); pintarLista(); pintarFicha();
 }
