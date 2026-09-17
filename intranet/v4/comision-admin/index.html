@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="es"><head><title>Comisión de administración — Lawang Intranet</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d6d6608e"></script>
-<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=310f2346" defer></script><script src="../assets/datos.js?v=0e7564fd" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=310f2346" defer></script><script src="/contracts/assets/entities.js?v=1f7bf26c" defer></script><script src="/contracts/assets/paginacion.js?v=2ac67b84" defer></script><script src="../assets/datos.js?v=4de51a5b" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=2737c21a" defer></script>
 <link href="../assets/shell.css?v=4978e676" rel="stylesheet">
@@ -99,10 +99,39 @@
 <section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
 <div class="px-8 pt-8 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-outline-variant/40">
 <div class="flex flex-col gap-1">
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold" data-lwt>Por sociedad</span>
+<h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight" data-lwt>Cada empresa, su propia cuenta</h2>
+</div>
+<p class="font-body-sm text-body-sm text-outline max-w-md" data-lwt>Cada sociedad es un deudor distinto y se le factura por separado. Nunca se suman entre sí, ni tampoco entre monedas.</p>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-outline-variant/60 bg-surface-container-low">
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Sociedad</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline text-right" data-lwt>Entradas</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline text-right" data-lwt>Dinero entrado</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline text-right" data-lwt>Comisión devengada</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline text-right" data-lwt>Pendiente de facturar</th>
+</tr>
+</thead>
+<tbody id="lw-ca-sociedades">
+<tr><td colspan="5" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant" data-lwt>Trayendo el reparto por sociedad…</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+<div class="px-8 pt-8 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-outline-variant/40">
+<div class="flex flex-col gap-1">
 <span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold" data-lwt>Libro</span>
 <h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight" data-lwt>Una línea por cada entrada de dinero</h2>
 </div>
 <div class="flex flex-wrap items-center gap-2">
+<select id="lw-ca-sociedad" class="px-4 py-2.5 rounded-full bg-surface-container-low border border-control-border/40 font-label-md text-[13px] text-on-surface-variant">
+<option value="" data-lwt>Todas las sociedades</option>
+</select>
 <select id="lw-ca-proyecto" class="px-4 py-2.5 rounded-full bg-surface-container-low border border-control-border/40 font-label-md text-[13px] text-on-surface-variant">
 <option value="" data-lwt>Todos los proyectos</option>
 </select>
@@ -137,6 +166,19 @@
 </tbody>
 </table>
 </div>
+<div id="lw-ca-pag"></div>
+<!-- El pie del paginador compartido se estila en `suite.css`, que la v4 no carga
+     (va con shell.css + Tailwind). Cuatro reglas aqui en vez de tocar shell.css,
+     que es de las 22 pantallas: el dia que una segunda pagine, suben ahi. -->
+<style>
+.sui-pager{display:flex;align-items:center;justify-content:flex-end;gap:10px;
+  padding:14px 32px;border-top:1px solid rgba(197,200,188,.4);
+  font:500 12.5px/1.4 "Neue Kabel",system-ui,sans-serif;color:#44483f}
+.sui-pager .n{font-variant-numeric:tabular-nums}
+.sui-pager button{border:1px solid rgba(138,132,116,.4);background:#fff;color:#1b1c19;
+  border-radius:999px;padding:5px 12px;font:600 12.5px/1 "Neue Kabel",system-ui,sans-serif;cursor:pointer}
+.sui-pager button:disabled{opacity:.45;cursor:default}
+</style>
 <p class="px-8 py-4 border-t border-outline-variant/40 font-body-sm text-body-sm text-outline" data-lwt>Los importes son brutos, antes de cualquier retención. Un abono (importe negativo) es la vuelta de una comisión cuyo recibí se anuló o se borró; un ajuste es la diferencia cuando el recibí cambió de importe después de facturarse.</p>
 </section>
 

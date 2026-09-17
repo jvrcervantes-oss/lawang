@@ -2915,9 +2915,32 @@
 
     var cuerpoTar = document.getElementById('lw-ca-tarifas');
     var cuerpoLin = document.getElementById('lw-ca-lineas');
+    var cuerpoSoc = document.getElementById('lw-ca-sociedades');
     var selProy   = document.getElementById('lw-ca-proyecto');
+    var selSoc    = document.getElementById('lw-ca-sociedad');
     var selEstado = document.getElementById('lw-ca-estado');
     var selMes    = document.getElementById('lw-ca-mes');
+
+    /* El nombre de la sociedad sale de `entities.js`, que es donde vive la
+       identidad de cada emisora — no de un mapa escrito aqui, que divergiria en
+       cuanto se de de alta la siguiente empresa. `SOCIEDADES` es un const de
+       nivel superior de ese fichero: se alcanza por ambito global, no por
+       `window`. Si no ha cargado, se enseña la clave arreglada en vez de un
+       hueco: `tepi_sungai` -> `Tepi Sungai`. */
+    function nombreSociedad(clave) {
+      if (!clave) return '(sin sociedad)';
+      try {
+        var soc = (typeof SOCIEDADES !== 'undefined') && SOCIEDADES[clave];
+        if (soc && (soc.razon || soc.marca)) return soc.razon || soc.marca;
+      } catch (e) { /* entities.js aun no ha cargado */ }
+      return String(clave).replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+    }
+
+    /* Paginador compartido de la suite (`paginacion.js`): el libro nace de una
+       tabla que crece —87 lineas el primer dia— y la regla del estudio es que
+       eso se decide el primer dia, no cuando molesta. Si no ha cargado, la
+       tabla sale entera en vez de romperse. */
+    var PAG = (typeof lwPaginador === 'function') ? lwPaginador('#lw-ca-pag') : null;
     var hoy       = new Date().toISOString().slice(0, 10);
     var mesActual = hoy.slice(0, 7);
 
@@ -3039,6 +3062,49 @@
       }
 
       // ── Filtros del libro ─────────────────────────────────────────────────
+      /* Una fila por sociedad: cada una es un deudor distinto y se le factura
+         por separado, asi que nunca se suman entre si. Y dentro de cada una,
+         por moneda, por lo mismo de siempre. Se calcula sobre TODAS las lineas
+         (devengo, ajuste y abono) porque lo que se le factura a una sociedad es
+         el neto, no solo los devengos. */
+      function pintaSociedades() {
+        if (!cuerpoSoc) return;
+        var porSoc = {};
+        lineas.filter(function (l) { return !l.anulada; }).forEach(function (l) {
+          var k = l.sociedad || '';
+          var e = porSoc[k] || (porSoc[k] = { n: 0, base: {}, com: {}, pend: {} });
+          if (l.tipo_linea === 'devengo') e.n++;
+          e.base[l.moneda] = (e.base[l.moneda] || 0) + Number(l.base_total || 0);
+          e.com[l.moneda]  = (e.com[l.moneda]  || 0) + Number(l.importe || 0);
+          if (l.estado === 'pendiente') e.pend[l.moneda] = (e.pend[l.moneda] || 0) + Number(l.importe || 0);
+        });
+        var claves = Object.keys(porSoc).sort();
+        var porMoneda = function (m) {
+          var ks = Object.keys(m);
+          return ks.length ? ks.sort().map(function (x) { return fmt(m[x], x); }).join('<br>') : '—';
+        };
+        cuerpoSoc.innerHTML = claves.length ? claves.map(function (k) {
+          var e = porSoc[k];
+          return '<tr class="border-b border-outline-variant/30">' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(nombreSociedad(k)) + '</td>' +
+            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant text-right">' + e.n + '</td>' +
+            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant text-right">' + porMoneda(e.base) + '</td>' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface text-right">' + porMoneda(e.com) + '</td>' +
+            '<td class="px-5 py-4 font-body-md text-body-md text-burnt-earth text-right">' + porMoneda(e.pend) + '</td>' +
+            '</tr>';
+        }).join('') : '<tr><td colspan="5" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Todavía no hay ninguna entrada de dinero devengada.</td></tr>';
+      }
+      pintaSociedades();
+
+      if (selSoc) {
+        var socs = {};
+        lineas.forEach(function (l) { socs[l.sociedad || ''] = 1; });
+        selSoc.innerHTML = '<option value="">Todas las sociedades</option>' +
+          Object.keys(socs).sort().map(function (k) {
+            return '<option value="' + esc(k) + '">' + esc(nombreSociedad(k)) + '</option>';
+          }).join('');
+      }
+
       if (selProy) {
         selProy.innerHTML = '<option value="">Todos los proyectos</option>' +
           proyectos.slice().sort(function (a, b) { return (a.nombre || '').localeCompare(b.nombre || ''); })
@@ -3053,16 +3119,22 @@
 
       function pinta() {
         if (!cuerpoLin) return;
-        var fp = selProy ? selProy.value : '', fe = selEstado ? selEstado.value : '', fm = selMes ? selMes.value : '';
+        var fp = selProy ? selProy.value : '', fe = selEstado ? selEstado.value : '',
+            fm = selMes ? selMes.value : '', fs = selSoc ? selSoc.value : '';
         var lista = lineas.filter(function (l) {
           if (fp === '__sin') { if (l.proyecto_id) return false; }
           else if (fp && l.proyecto_id !== fp) return false;
+          if (fs && (l.sociedad || '') !== fs) return false;
           if (fe && l.estado !== fe) return false;
           if (fm && (l.devengado_el || '').slice(0, 7) !== fm) return false;
           return true;
         });
+        /* El paginador anuncia siempre el recorte («26–50 de 87») y vuelve solo
+           a la pagina 1 al cambiar un filtro. Si no cargo, `pagina` no existe y
+           la lista sale entera: recortada en silencio, nunca. */
+        var enPantalla = PAG ? PAG.pagina(lista) : lista;
 
-        cuerpoLin.innerHTML = lista.length ? lista.map(function (l) {
+        cuerpoLin.innerHTML = enPantalla.length ? enPantalla.map(function (l) {
           var est = ESTADOS[l.estado] || [l.estado, 'bg-surface-container-high text-on-surface-variant'];
           var negativa = Number(l.importe) < 0;
           var etqTipo = l.tipo_linea === 'devengo' ? '' :
@@ -3081,7 +3153,7 @@
             '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' +
               esc(!l.proyecto_id ? '(sin proyecto)'
                   : (proyectoDe[l.proyecto_id] || (proyectosRotos ? '(no se pudo leer)' : '(proyecto borrado)'))) + '</td>' +
-            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(l.sociedad || '—') + '</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(nombreSociedad(l.sociedad)) + '</td>' +
             '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant text-right">' + esc(fmt(l.base_total, l.moneda)) + '</td>' +
             '<td class="px-5 py-4 font-label-md text-label-md text-right ' + (negativa ? 'text-error' : 'text-on-surface') + '">' +
               esc(fmt(l.importe, l.moneda)) + '<br><span class="text-outline text-[11px]">' + esc(Number(l.pct_aplicado)) + '%</span></td>' +
@@ -3103,10 +3175,13 @@
                  : '')) +
             '</div></td></tr>';
         }).join('') : '<tr><td colspan="8" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">' +
-          (lineas.length ? 'Ninguna línea para este filtro.' : 'Todavía no ha entrado dinero desde que rige la tarifa. La comisión no es retroactiva: solo cuenta lo que se registre a partir de ahora.') + '</td></tr>';
+          (lineas.length ? 'Ninguna línea para este filtro.' : 'Todavía no hay ninguna entrada de dinero en el libro.') + '</td></tr>';
       }
       pinta();
-      [selProy, selEstado, selMes].forEach(function (s) { if (s) s.addEventListener('change', pinta); });
+      if (PAG) PAG.alCambiar(pinta);
+      [selProy, selSoc, selEstado, selMes].forEach(function (s) {
+        if (s) s.addEventListener('change', function () { pinta(); pintaSociedades(); });
+      });
 
       // acción delegada, con stopPropagation para ganar a maqueta.js (Regla 0)
       /* Una sola delegacion para todas las acciones de fila, de las dos tablas.
