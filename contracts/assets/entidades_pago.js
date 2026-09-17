@@ -122,7 +122,15 @@ function bankDefaultFor(slug, proyectoId){
 const SOCIEDAD_OPTIONS = Object.entries(SOCIEDADES).filter(([,c])=>!c.soloFacturas).map(([v,c])=>[v, c.label]);   // orden de inserción: Tepi Sun Gai primero (default)
 function applyPromotor(data){
   const key = data.sociedad_firmante || (CURRENT && SOCIEDAD_DEFAULT[CURRENT.slug]) || 'tepi_sungai';   // vacío → default de la plantilla (o Tepi Sun Gai)
-  const soc = SOCIEDADES[key] || SOCIEDADES.tepi_sungai;
+  /* Una clave que NO existe lanza, no cae a Tepi Sun Gai (17-sep-2026). La
+     diferencia con la linea de arriba importa: «no ha elegido sociedad» es un
+     caso normal y tiene su default por plantilla; «ha elegido una que no
+     existe» es un dato corrupto o un catalogo sin cargar, y seguir imprimiendo
+     mete la identidad fiscal de OTRA empresa en el contrato sin avisar. */
+  const soc = SOCIEDADES[key];
+  if(!soc) throw new Error('La sociedad firmante «' + key + '» no esta en el catalogo. ' +
+    'Si acabas de abrir la pagina, espera a que cargue; si persiste, avisa: el documento ' +
+    'no se puede imprimir con la identidad de otra sociedad.');
   data.prom_razon=soc.razon; data.prom_marca=soc.marca||''; data.prom_domicilio=soc.domicilio;
   data.prom_npwp=soc.npwp; data.prom_rep=soc.rep;
   // opcionales: si la sociedad no los tiene, el <!--opt:--> de la plantilla

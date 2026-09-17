@@ -209,123 +209,69 @@ function cargarApoderadosHakSewa(sb){
      `tinta`     {primary, deep} = todo lo coloreado del documento
    Lo usan hoy las facturas (los contratos llevan su logo fijo en cada
    plantilla). Añadir una sociedad = un bloque más aquí, nada más. */
-const SOCIEDADES = {
-  /* ⚠️ La CLAVE es `tepi_sungai` y NO se toca: va guardada dentro de cada
-     contrato (`sociedad_firmante`) y de cada factura, y las plantillas la miran
-     en `<!--if:sociedad_firmante=tepi_sungai-->`. Renombrarla dejaría a los
-     contratos ya emitidos apuntando a una sociedad que no existe y sin logo.
-     Lo que se corrige el 31-jul-2026 es el nombre que se IMPRIME: la sociedad
-     está inscrita como «PT TEPI SUN GAI», separado, y lo emitíamos junto. Es lo
-     mismo que reclamaba el memorándum del abogado del comprador sobre CR00003.
-     Ojo al leerlo: «tepi sungai» junto es riverbank en indonesio y es el nombre
-     de la colección en la web pública — ese sí va junto y no hay que tocarlo. */
-  tepi_sungai: {
-    label: 'PT Tepi Sun Gai (marca «Lawang Tropical Properties»)',
-    razon: 'PT TEPI SUN GAI', marca: 'LAWANG TROPICAL PROPERTIES',
-    logo: '/contracts/assets/brand/lawang-logo-v3-dark.png',
-    /* Este lockup es una tira de 7,2:1: al lado del emisor no cabe grande sin
-       dejarle una columna de 52mm en la que el domicilio se parte en nueve
-       líneas. Decisión del owner (30-jul, 17:10h): aquí el logo va GRANDE y el
-       emisor DEBAJO, que es lo que aprovecha el ancho de una tira. San Dal
-       Woods, cuyo lockup es 2,1:1, se queda con el emisor al lado. */
-    logoAlto: '14mm',            // 14mm × 7,2:1 = 100,7mm de ancho
-    emisorDebajo: true,
-    // verde claro: el equivalente en la gama de marca al crema de SAN DAL WOODS.
-    // Historia del ajuste (30-jul, owner): #F3F7F0 → #DAE6D0 (-10% de
-    // luminosidad) se pasó de fuerte, así que se queda a MEDIO camino, en -5%.
-    // El crema de San Dal Woods sí se queda con el -10%: el verde carga más a
-    // la vista que el crema al mismo nivel de luminosidad.
-    folio: '#E6EFE0',
-    /* Tinta EXPLÍCITA (1-sep-2026, tarde) — hasta hoy esta sociedad no la
-       llevaba a propósito ("sin tinta, se queda con el verde/lagoon de
-       Lawang vía brand.css", ver la nota de san_dal_woods más abajo): es
-       la propia marca Lawang, tiene sentido heredar. El fallo real es que
-       /portal/ NO carga brand.css/lawang.css (decisión consciente, "sistema
-       visual propio") — sin la cascada, `--brand-primary` queda sin valor y
-       ".doc thead" imprime texto BLANCO sobre fondo transparente: invisible.
-       Mismos hex que ya pone brand.css (--tg/--dl) para que la intranet no
-       cambie ni un píxel; el portal deja de depender de una hoja que
-       decidió no cargar. */
-    tinta: { primary:'#485B37', deep:'#104C4F' },
-    domicilio: 'Jalan Gunung Tangkuban Perahu, Gg. Dewi Sri Dusun Tegal Buah RT. 000 RW. 000, Padangsambian Kelod, Denpasar Barat, Kota Denpasar, Bali 80117 Indonesia',
-    npwp: '1000.0000.0619.8026',
-    /* ⚠️ EL REPRESENTANTE DE ESTA SOCIEDAD ES I WAYAN EKA ARYAWAN (desde
-       11-ago-2026, petición del owner — sustituye a I Made Monjong Adhi
-       Nugruah). Identificación (NIK) tomada del mismo catálogo que ya usa el
-       apoderado de la serie Hak Sewa (hoy `APODERADOS_HAK_SEWA`, arriba en
-       este mismo fichero — vivía en tokens.json cuando se escribió esta nota).
-       El 4-ago-2026 cambié este campo a Pablo Cantero Gambín leyendo mal al
-       owner: dijo «en este caso mete a Pablo Cantero» refiriéndose SOLO al
-       PPJB de Bonian C2, y lo apliqué aquí, que es la ficha de la que beben
-       las NUEVE plantillas. Revertido el mismo día.
-       Si algún documento concreto lo firma otra persona, va escrito EN ESE
-       documento —como está hoy en `templates/ppjb_bonian_c2.html`—, no aquí. */
-    rep: 'I Wayan Eka Aryawan',
-    // NIB: identidad de la sociedad, no es dato personal, se queda aquí.
-    // `rep_npwp`/`cred` (identidad personal del firmante) YA NO están en este
-    // fichero público — ver la nota de FIRMANTES_CRED más abajo. Los rellena
-    // cargarFirmantesCred() al vuelo, igual que hace con `rep_npwp`/`cred` de
-    // cada sociedad de esta lista.
-    nib: '2410250046282' },
-  san_dal_woods: {
-    label: 'PT SAN DAL WOODS',
-    razon: 'PT SAN DAL WOODS', marca: '',
-    /* Lockup único: el owner juntó isotipo y palabra en una sola imagen
-       (`swnewlogo.png`, 30-jul 15:40h). Se sirve una copia con el FONDO QUITADO:
-       el original viene con el crema viejo (#F8F7F2) opaco, que sobre el folio
-       actual (#E7E3D2) se veía como un rectángulo más claro pegado encima; el
-       multiply tampoco lo salva, porque ese crema no es blanco y tiñe.
-       La copia va además RECORTADA a la tinta (el original traía 20px de aire
-       por lado): así el alto que se pide aquí es el alto que se ve, y el logo se
-       puede alinear con el título del documento sin adivinar el margen interno.
-       479×227 px (ratio 2,11): a 24mm de alto son 50,6mm de ancho, lo que cabe
-       al lado de los datos del emisor. Subirlo es una línea, pero cada mm de
-       alto se lo come el presupuesto de UNA página (facturas/index.html). */
-    logo: '/contracts/assets/brand/sandalwoods-lockup.png',
-    logoAlto: '24mm',
-    folio: '#E7E3D2',              // crema, +10% de fuerza sobre el #f8f7f2 inicial (-10% de luminosidad)
-    // Tinta del documento cuando emite esta sociedad. `primary` es el marrón
-    // exacto del SWlogo (muestreado del PNG: #662906) y `deep` el Burnt Earth
-    // de la guía de marca, más oscuro, para los titulares. Sin `tinta` el
-    // documento se queda con el verde/lagoon de Lawang (brand.css).
-    tinta: { primary:'#662906', deep:'#42210B' },
-    domicilio: 'Jl. Sunset Road No. 89, Pertokoan Sunset Indah I, No. 3B RT. 000 RW. 000, Kuta, Kuta, Kab. Badung, Bali',
-    npwp: '1000.0000.0012.5018', rep: 'Pablo Cantero Gambín' },
-  /* SANDAL WOODS Ltd (Hong Kong) — añadida 12-ago-2026, petición del owner.
-     Misma marca comercial SandalWoods que `san_dal_woods` (PT indonesia),
-     vehículo legal distinto: se reutiliza el mismo lockup/tinta/folio por
-     continuidad visual de marca; cambiar aquí si el cliente quiere un logo
-     propio para esta sociedad.
-     `npwpLabel`: Hong Kong no tiene NPWP (impuesto indonesio) — su
-     identificación fiscal es el CRN (Company Registration Number). Sin este
-     campo, facturas/documento.js imprimía "NPWP 79887714", una etiqueta
-     falsa; con él, cada sociedad imprime la suya (las dos PT se quedan con
-     el 'NPWP' de siempre, por defecto en documento.js).
-     `rep`/`cred`: representante Pablo Cantero Gambín (12-ago, confirmado por
-     el owner) — mismo pasaporte que ya tiene registrado como representante
-     de `san_dal_woods`, la PT hermana de la misma marca: es la misma persona
-     real, no un dato nuevo inventado.
-     ⚠️ Pendiente sin resolver (owner/Legal, 12-ago): las 9 plantillas de
-     contrato declaran al Promotor "sociedad de nacionalidad Indonesia" / "an
-     Indonesian company" / "perusahaan yang didirikan berdasarkan hukum
-     Indonesia" — cierto para las dos PT, FALSO para esta Ltd de Hong Kong.
-     Con el representante ya puesto, esta sociedad SÍ aparece en el
-     desplegable "Sociedad firmante" de Contratos, pero elegirla en cualquiera
-     de las 9 plantillas imprime esa frase incorrecta hasta que se revise
-     plantilla por plantilla — el agente que la use para firmar un contrato
-     real (no solo facturar) tiene que corregir esa cláusula a mano o avisar
-     antes de imprimir el documento final. */
-  sandal_woods_ltd: {
-    label: 'SANDAL WOODS Ltd (Hong Kong)',
-    razon: 'SANDAL WOODS Ltd', marca: '',
-    logo: '/contracts/assets/brand/sandalwoods-lockup.png',
-    logoAlto: '24mm',
-    folio: '#E7E3D2',
-    tinta: { primary:'#662906', deep:'#42210B' },
-    domicilio: "Suite D, 6/F Ho Lee Comm Bldg, 38-44 D'Aguilar St, Central, Hong Kong",
-    npwpLabel: 'CRN', npwp: '79887714',
-    rep: 'Pablo Cantero Gambín', nib: '' },
-};
+/* ---------- sociedades emisoras — YA NO VIVEN AQUI (17-sep-2026) ----------
+   Estaban escritas a mano en este fichero: razon social, NPWP, NIB, domicilio,
+   representante, logo, folio y tinta de las tres sociedades. Ahora viven en
+   `public.sociedades`, con RLS (SELECT solo `authenticated`) y escritura solo
+   para super admin, y se editan desde /intranet/sociedades/.
+
+   POR QUE SE MUEVEN. No es por ocultarlas —la identidad de la emisora ya va
+   impresa en cada documento que el comprador tiene en la mano— sino por la
+   norma de la suite: «si el cliente lo puede dar de alta, o cambiar de opinion
+   sobre ello, no puede vivir en un fichero». Cada alta o correccion exigia un
+   commit y un despliegue. Y con mas de una empresa dentro de la intranet la
+   lista deja de ser «lo que va impreso» y pasa a ser el censo de clientes del
+   estudio, que no puede servirse sin sesion.
+
+   `clave` (tepi_sungai, san_dal_woods, sandal_woods_ltd) NO CAMBIA NUNCA: va
+   guardada dentro de cada contrato (`sociedad_firmante`) y de cada factura, y
+   las plantillas la miran en `<!--if:sociedad_firmante=tepi_sungai-->`. La base
+   rechaza renombrarla.
+
+   Como se usa: `await cargarSociedades(sb)` una vez al arrancar, ANTES de
+   pintar el selector de sociedad o de imprimir un documento. Quien lea
+   SOCIEDADES despues lo hace igual que siempre.
+
+   Y el emisor de un documento ya emitido no sale de aqui: desde el 17-sep cada
+   factura congela su emisor dentro (`datos.emisor`) al crearse, asi que editar
+   una sociedad ya no reescribe lo que reimprime un documento viejo. */
+const SOCIEDADES = {};
+let SOCIEDADES_PROMESA = null;
+
+/* Rellena el objeto EN SU SITIO, nunca reasignar — mismo motivo que en
+   `cargarCuentasBancarias`: `firma-submit` y los tests publican esta misma
+   referencia en su `caja`, asi que cambiar el objeto por otro los dejaria
+   leyendo uno vacio para siempre.
+   Si la consulta falla, LANZA y deja la promesa a null para poder reintentar.
+   Un fallo mudo aqui imprime un documento SIN emisor, o —peor— con el emisor
+   equivocado: hasta el 17-sep-2026 habia siete sitios que, al no encontrar la
+   sociedad, caian a `tepi_sungai` en silencio. Eso hacia que un contrato de
+   San Dal Woods emitiera su factura con el NPWP de la otra PT. */
+function cargarSociedades(sb){
+  if(SOCIEDADES_PROMESA) return SOCIEDADES_PROMESA;
+  SOCIEDADES_PROMESA = (async () => {
+    const { data, error } = await sb.from('sociedades')
+      .select('clave,label,razon,marca,npwp,npwp_label,nib,domicilio,rep,logo,logo_alto,emisor_debajo,folio,tinta')
+      .eq('activa', true).order('orden');
+    if(error){ SOCIEDADES_PROMESA = null; throw error; }
+    (data || []).forEach(r => {
+      SOCIEDADES[r.clave] = {
+        label: r.label, razon: r.razon, marca: r.marca || '',
+        domicilio: r.domicilio, npwp: r.npwp, rep: r.rep,
+        // `npwpLabel` y `nib` solo si los trae: `documento.js` da por hecho
+        // 'NPWP' cuando falta la etiqueta, y una cadena vacia no es lo mismo
+        // que no tener NIB.
+        ...(r.npwp_label && r.npwp_label !== 'NPWP' ? { npwpLabel: r.npwp_label } : {}),
+        ...(r.nib ? { nib: r.nib } : {}),
+        logo: r.logo, logoAlto: r.logo_alto,
+        ...(r.emisor_debajo ? { emisorDebajo: true } : {}),
+        folio: r.folio, ...(r.tinta ? { tinta: r.tinta } : {})
+      };
+    });
+    return SOCIEDADES;
+  })();
+  return SOCIEDADES_PROMESA;
+}
 
 /* ---------- credenciales de quien puede aparecer como "Firmante" ----------
    El campo "Firmante" de Gestión del contrato (ver applyPromotor en app.html)
@@ -360,6 +306,12 @@ let FIRMANTES_PROMESA = null;
 function cargarFirmantesCred(sb){
   if(FIRMANTES_PROMESA) return FIRMANTES_PROMESA;
   FIRMANTES_PROMESA = (async () => {
+    /* Las sociedades PRIMERO: mas abajo se recorre SOCIEDADES para repoblar
+       `soc.cred`/`soc.rep_npwp`, y desde el 17-sep-2026 ese objeto nace vacio y
+       lo llena `cargarSociedades`. Sin esta espera el bucle no encontraria
+       ninguna sociedad y las credenciales se quedarian sin enganchar EN
+       SILENCIO — el contrato saldria sin el documento del representante. */
+    await cargarSociedades(sb);
     const { data, error } = await sb.from('firmantes_cred')
       .select('nombre,rep_npwp,cred_es,cred_en,cred_id');
     if(error){ FIRMANTES_PROMESA = null; throw error; }

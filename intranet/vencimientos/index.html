@@ -48,7 +48,7 @@
 <!-- entities.js ANTES que logica.js: trae SOCIEDADES (etiquetas de los chips
      de empresa) y lwSociedadContrato, el resolver que las funciones de empresa
      de logica.js llaman como global (9-sep-2026). -->
-<script src="/contracts/assets/entities.js?v=1f7bf26c"></script>
+<script src="/contracts/assets/entities.js?v=eef4320e"></script>
 <!-- Con sello desde el 9-sep: iba sin ?v= y el CDN cachea js 7 días — un
      logica.js viejo deja esta pantalla llamando a funciones que no existen,
      en silencio. Sello a mano (sha256 normalizado, como sella_assets.py):
@@ -321,6 +321,12 @@ window.LW_AUTH.then(async ({ sb, ficha }) => {
      por autor y esta pantalla existe para el dinero de TODO el equipo (mismo
      motivo, mismo comentario que Operaciones). contrato_vencimientos sí se lee
      directo: su RLS ya es de equipo (es_agente), sin filtro de autor. */
+  /* Las sociedades, de la base desde el 17-sep-2026. Sin esto los chips de
+     empresa enseñarian la CLAVE cruda (`tepi_sungai`) en vez de la razon
+     social: `SOCIEDADES` nace vacio y el resolver cae al nombre de la clave. */
+  try { await cargarSociedades(sb); }
+  catch(e){ toastMal(lwT('No se pudo leer el catálogo de sociedades: ') + e.message); }
+
   const [c, cb, v, f] = await Promise.all([
     /* `soc`: la sociedad firmante guardada en el contrato — la RPC devuelve la
        fila entera (setof contratos, select *), así que el ->> extrae en el

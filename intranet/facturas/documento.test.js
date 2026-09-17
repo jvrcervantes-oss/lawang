@@ -32,6 +32,29 @@ new Function('caja',
   'compradoresDeContrato,nombresFactura,documentosFactura,primerDato,documentoPagina,documentoHTML,TIPOS_DOC});'
 )(caja);
 
+/* SOCIEDADES se siembra AQUI desde el 17-sep-2026.
+   Antes venia dentro de `entities.js` como literal, asi que el test leia el
+   catalogo real de rebote. Ahora vive en `public.sociedades` y el fichero solo
+   trae el cargador, que necesita una sesion de Supabase — algo que este test no
+   tiene ni debe tener: comprueba el RENDERIZADOR del documento, no el contenido
+   del catalogo. Con la semilla, lo que se afirma abajo sigue siendo exactamente
+   lo mismo (que el folio de ESA sociedad llega al elemento) y deja de romperse
+   el dia que alguien cambie un color desde el panel.
+   Mismo criterio que ya se sigue con CUENTAS_BANCARIAS mas abajo. */
+Object.assign(caja.SOCIEDADES, {
+  tepi_sungai: { label:'PT Tepi Sun Gai', razon:'PT TEPI SUN GAI',
+    marca:'LAWANG TROPICAL PROPERTIES', domicilio:'Jalan Gunung Tangkuban Perahu, Bali',
+    npwp:'1000.0000.0619.8026', rep:'I Wayan Eka Aryawan', nib:'2410250046282',
+    logo:'/contracts/assets/brand/lawang-logo-v3-dark.png', logoAlto:'14mm',
+    emisorDebajo:true, folio:'#E6EFE0', tinta:{ primary:'#485B37', deep:'#104C4F' } },
+  san_dal_woods: { label:'PT SAN DAL WOODS', razon:'PT SAN DAL WOODS', marca:'',
+    domicilio:'Jl. Sunset Road No. 89, Bali', npwp:'1000.0000.0012.5018',
+    rep:'Pablo Cantero Gambin',
+    logo:'/contracts/assets/brand/sandalwoods-lockup.png', logoAlto:'24mm',
+    folio:'#E7E3D2', tinta:{ primary:'#662906', deep:'#42210B' } },
+});
+
+
 ['SOCIEDADES','CUENTAS_BANCARIAS','calcTotales','fmtMoneda','parseImporte','compradoresDeContrato',
  'nombresFactura','documentosFactura','primerDato','documentoPagina','documentoHTML','TIPOS_DOC']
   .forEach(k => assert.ok(caja[k], 'firma-submit espera ' + k + ' y no está'));

@@ -31,7 +31,7 @@
      emitió el equipo, no una reconstrucción parecida. `entities.js` trae los
      datos bancarios dentro de la propia factura. -->
 <link rel="stylesheet" href="/intranet/facturas/documento.css?v=20260731">
-<script src="/contracts/assets/entities.js?v=1f7bf26c"></script>
+<script src="/contracts/assets/entities.js?v=eef4320e"></script>
 <script src="/contracts/assets/dinero.js?v=ced29282"></script>
 <!-- `vocabulario.js` trae `lwEsPreliminar`: QUÉ contratos no suman precio. Se
      carga el fichero compartido y no se copia la lista aquí a propósito — esa
@@ -1370,7 +1370,13 @@
     if (!f) return;
     var campos = Object.assign({}, f.fields || {});
     if (!Array.isArray(campos.lineas)) campos.lineas = Array.isArray(f.lineas) ? f.lineas : [];
+    // La identidad, del emisor congelado del propio documento si lo trae; la
+    // cosmetica, de la tabla viva. Ver documento.js para el porque.
     var soc = (typeof SOCIEDADES !== 'undefined' && SOCIEDADES[campos.sociedad]) || {};
+    // `f` aqui ya es la proyeccion del RPC `portal_situacion`, no la fila:
+    // trae `fields`, `lineas` y `emisor` sueltos. Por eso `f.emisor` y no
+    // `f.datos.emisor` — el RPC lo proyecta desde el 17-sep-2026.
+    if(f && f.emisor) soc = Object.assign({}, soc, f.emisor);
     var v = documentoVars(soc);
     var estilo = function(k){ return Object.keys(v[k]).filter(function(p){ return v[k][p]; }).map(function(p){ return p+':'+v[k][p]; }).join(';'); };
     abreDrawer(

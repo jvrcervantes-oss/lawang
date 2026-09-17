@@ -96,8 +96,20 @@ function documentoHTML(d, opts){
   opts = opts || {};
   var base = opts.base || '';
   var numero = opts.numero || '';
-  var soc = (typeof SOCIEDADES !== 'undefined' && SOCIEDADES[d.sociedad]) ||
-            (typeof SOCIEDADES !== 'undefined' && SOCIEDADES.tepi_sungai) || {};
+  /* DOS fuentes distintas a proposito (17-sep-2026):
+       · la IDENTIDAD (razon, marca, domicilio, identificacion fiscal) sale del
+         emisor CONGELADO dentro del documento si lo trae — `opts.emisor`, que
+         es `factura.datos.emisor`. Un documento ya emitido no cambia de emisor
+         porque alguien edite la ficha de la sociedad despues.
+       · la COSMETICA (logo, folio, tinta) sale de la tabla viva: retocar la
+         marca no obliga a reimprimir nada y siempre se quiere la actual.
+     Los 412 documentos anteriores a esa fecha no tienen `emisor` congelado y
+     siguen leyendo la tabla, que es su comportamiento de siempre.
+     Y NO hay caida a `tepi_sungai`: hasta hoy, una sociedad que no resolviera
+     imprimia la identidad de la otra PT en silencio. Sin identidad se imprime
+     vacio, que salta a la vista. */
+  var soc   = (typeof SOCIEDADES !== 'undefined' && SOCIEDADES[d.sociedad]) || {};
+  var ident = opts.emisor || soc;
   var t = calcTotales(d.lineas, d.moneda, { pct: d.imp_pct });
   var tipo = TIPOS_DOC[d.tipo] || TIPOS_DOC.factura;
   var linea = v => v ? escDoc(v) : '<span class="vacio">—</span>';
@@ -123,10 +135,10 @@ function documentoHTML(d, opts){
         (soc.logo2 ? '<img class="logo2" src="' + escDoc(url(soc.logo2)) + '" alt="">' : '') +
       '</div>' +
       '<div class="emisor">' +
-        '<b>' + escDoc(soc.razon) + '</b>' +
-        (soc.marca ? '<span class="marca">' + escDoc(soc.marca) + '</span>' : '') +
-        '<div>' + escDoc(soc.domicilio) + '</div>' +
-        '<div>' + escDoc(soc.npwpLabel || 'NPWP') + ' ' + escDoc(soc.npwp) + '</div>' +
+        '<b>' + escDoc(ident.razon) + '</b>' +
+        (ident.marca ? '<span class="marca">' + escDoc(ident.marca) + '</span>' : '') +
+        '<div>' + escDoc(ident.domicilio) + '</div>' +
+        '<div>' + escDoc(ident.npwpLabel || ident.npwp_label || 'NPWP') + ' ' + escDoc(ident.npwp) + '</div>' +
       '</div>' +
     '</div>' +
     '<div class="titulo">' +
@@ -168,8 +180,9 @@ function documentoHTML(d, opts){
   bancoDocHTML(d) +
   (d.notas ? '<h3>Notas · Notes</h3><div class="notas">' + escDoc(d.notas) + '</div>' : '') +
 
-  '<div class="pie">' + escDoc(soc.razon) + (soc.marca ? ' · ' + escDoc(soc.marca) : '') +
-    ' · ' + escDoc(soc.npwpLabel || 'NPWP') + ' ' + escDoc(soc.npwp) + ' · ' + escDoc(soc.domicilio) + '</div>';
+  '<div class="pie">' + escDoc(ident.razon) + (ident.marca ? ' · ' + escDoc(ident.marca) : '') +
+    ' · ' + escDoc(ident.npwpLabel || ident.npwp_label || 'NPWP') + ' ' + escDoc(ident.npwp) +
+    ' · ' + escDoc(ident.domicilio) + '</div>';
 }
 
 /* Documento COMPLETO y autónomo, para mandarlo al renderizador de PDF (Chromium

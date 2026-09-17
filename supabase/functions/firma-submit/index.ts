@@ -197,9 +197,45 @@ async function compartidos() {
       cuenta: c.cuenta, codigo: c.codigo, direccion: c.direccion, extra: c.extra };
   }
 
+
+  /* Las sociedades emisoras tampoco vienen ya dentro de entities.js
+     (17-sep-2026): viven en `public.sociedades`. Se rellena EL MISMO objeto que
+     publico el `new Function`, igual que las cuentas — `documento.js` lee la
+     global SOCIEDADES por referencia.
+     No se puede llamar a `cargarSociedades(sb)`: esa funcion vive DENTRO del
+     `new Function`, que no puede await. Por eso se lee aqui con la service key.
+     Si falla, se corta. Un catalogo vacio imprimiria un documento sin emisor, y
+     hasta hoy el fallback mudo lo imprimia con la identidad de la OTRA PT. */
+  const { data: socs, error: errSocs } = await sb.from('sociedades')
+    .select('clave,label,razon,marca,npwp,npwp_label,nib,domicilio,rep,logo,logo_alto,emisor_debajo,folio,tinta')
+    .eq('activa', true);
+  if (errSocs) throw new Error('no se pudieron leer las sociedades emisoras: ' + errSocs.message);
+  for (const s of socs ?? []) {
+    caja.SOCIEDADES[s.clave] = {
+      label: s.label, razon: s.razon, marca: s.marca || '',
+      domicilio: s.domicilio, npwp: s.npwp, npwpLabel: s.npwp_label, nib: s.nib || '',
+      rep: s.rep, logo: s.logo, logoAlto: s.logo_alto,
+      emisorDebajo: !!s.emisor_debajo, folio: s.folio, tinta: s.tinta,
+    };
+  }
   COMPARTIDOS = caja;
   return caja;
 }
+
+/* Que sociedad emite. Vacio y desconocida NO son lo mismo (17-sep-2026):
+     · sin elegir  -> `tepi_sungai`, el default historico de los contratos
+       anteriores a que el campo existiera. Es una decision escrita.
+     · elegida pero ausente del catalogo -> se corta. Antes tambien caia a
+       Tepi Sun Gai, asi que un contrato de San Dal Woods emitia su factura con
+       el NPWP de la otra PT y nadie lo veia. La base ya lo rechazaria por clave
+       ajena; aqui se corta antes, con un mensaje que dice cual falta. */
+function sociedadEmisora(C: Record<string, any>, elegida: string | null | undefined): string {
+  const v = String(elegida || '').trim();
+  if (!v) return 'tepi_sungai';
+  if (!C.SOCIEDADES[v]) throw new Error('la sociedad emisora «' + v + '» no esta en public.sociedades');
+  return v;
+}
+
 
 /* A QUIÉN SE LE MANDA EL FIRMADO — la unión de las DOS listas, no una de ellas.
    14-sep-2026, tras encontrarlo en producción: CR00056 se firmó el 11-sep y la
@@ -360,7 +396,7 @@ async function facturarPrimerHito(o: { contratoId: string; numero: string; ct: a
   // ahí tal cual y se pueda corregir o anular como cualquier otra.
   const campos: Record<string, string> = {
     tipo: 'factura',
-    sociedad: f.sociedad_firmante && C.SOCIEDADES[f.sociedad_firmante] ? f.sociedad_firmante : 'tepi_sungai',
+    sociedad: sociedadEmisora(C, f.sociedad_firmante),
     cuenta: f.cuenta_bancaria && C.CUENTAS_BANCARIAS[f.cuenta_bancaria] ? f.cuenta_bancaria : '',
     fecha_emision: hoy, fecha_vencimiento: '', moneda,
     numero_visible: '', contrato_numero: o.numero,
@@ -467,7 +503,7 @@ async function enviarProformaTotal(o: { contratoId: string; numero: string; ct: 
   const lineas = [{ descripcion: 'Total del proyecto', importe: String(precio) }];
   const campos: Record<string, string> = {
     tipo: 'proforma',
-    sociedad: f.sociedad_firmante && C.SOCIEDADES[f.sociedad_firmante] ? f.sociedad_firmante : 'tepi_sungai',
+    sociedad: sociedadEmisora(C, f.sociedad_firmante),
     cuenta: f.cuenta_bancaria && C.CUENTAS_BANCARIAS[f.cuenta_bancaria] ? f.cuenta_bancaria : '',
     fecha_emision: hoy, fecha_vencimiento: '', moneda,
     numero_visible: '', contrato_numero: o.numero,

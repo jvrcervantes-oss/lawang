@@ -2921,12 +2921,14 @@
     var selEstado = document.getElementById('lw-ca-estado');
     var selMes    = document.getElementById('lw-ca-mes');
 
-    /* El nombre de la sociedad sale de `entities.js`, que es donde vive la
-       identidad de cada emisora — no de un mapa escrito aqui, que divergiria en
-       cuanto se de de alta la siguiente empresa. `SOCIEDADES` es un const de
-       nivel superior de ese fichero: se alcanza por ambito global, no por
-       `window`. Si no ha cargado, se enseña la clave arreglada en vez de un
-       hueco: `tepi_sungai` -> `Tepi Sungai`. */
+    /* El nombre de la sociedad sale de `SOCIEDADES` (entities.js), que desde el
+       17-sep-2026 lo rellena `cargarSociedades(sb)` desde `public.sociedades` —
+       ya no es un literal del fichero. Se lanza aqui sin await y se repinta al
+       terminar: la pantalla no depende de ello para ser correcta, solo para
+       enseñar la razon social en vez de la clave.
+       `SOCIEDADES` es un const de nivel superior de ese fichero: se alcanza por
+       ambito global, no por `window`. Si no ha cargado, se enseña la clave
+       arreglada en vez de un hueco: `tepi_sungai` -> `Tepi Sungai`. */
     function nombreSociedad(clave) {
       if (!clave) return '(sin sociedad)';
       try {
@@ -2972,7 +2974,15 @@
          un fallo de red lanza y no devuelve `r.error`, y sin ella el
          Promise.all entero se cae y no se pinta ni el libro. */
       sb.rpc('comision_admin_descuadres')
-        .then(function (r) { return r.error ? null : r.data; }, function () { return null; })
+        .then(function (r) { return r.error ? null : r.data; }, function () { return null; }),
+      /* Las sociedades ya no son un literal de `entities.js`: las trae
+         `cargarSociedades`. Va DENTRO del Promise.all para que la tabla ya este
+         llena cuando `nombreSociedad` pinte; si no, se veria la clave cruda y
+         luego saltaria sola al nombre. Un fallo aqui no tumba la pantalla: se
+         cae al nombre derivado de la clave, que es legible. */
+      (typeof cargarSociedades === 'function'
+        ? cargarSociedades(sb).catch(function (e) { console.error('sociedades:', e); return null; })
+        : null)
     ]).then(function (r) {
       var tarifas = r[0], lineas = r[1], proyectos = r[2], desc = r[3];
       /* `q()` ya ha pintado el cartel de fallo en el contenedor y ha devuelto

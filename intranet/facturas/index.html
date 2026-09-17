@@ -53,7 +53,7 @@
      .htaccess pusiera no-cache en todo el js/css (el edge no revalida hasta que
      expire su TTL de 7 dias). Sin esto la factura de PT SAN DAL WOODS sigue
      saliendo con el logo de Lawang. Se puede quitar pasado el 3-ago-2026. -->
-<script src="/contracts/assets/entities.js?v=1f7bf26c"></script>
+<script src="/contracts/assets/entities.js?v=eef4320e"></script>
 <!-- aritmética de dinero (con test propio en totales.test.js) -->
 <!-- maquetacion del documento: la MISMA que arma la factura automatica del
      primer hito (contracts/edge/firma-submit se baja este fichero y lo ejecuta) -->
@@ -1023,6 +1023,8 @@ sb.auth.getSession().then(async ({data:{session}}) => {
      sesión restaurada, o la consulta saldría como anon y la RLS la niega.
      Si falla se dice en voz alta: una factura emitida sin datos bancarios es una
      factura que el cliente no puede pagar. */
+  try { await cargarSociedades(sb); }
+  catch(e){ toastMal(lwT('No se ha podido cargar el catálogo de sociedades.')); console.error(e); }
   try { await cargarCuentasBancarias(sb); pintarSelectCuentas(); }
   catch(e){ toastMal(lwT('No se han podido cargar las cuentas de cobro: ') + (e.message || e) + ' — recarga antes de emitir'); }
   document.body.hidden = false;
