@@ -566,6 +566,72 @@
       });
   }
 
+  /* ══════════════ ficha de DOCUMENTO (factura · proforma · recibí) en cajón (18-sep-2026) ══════════════
+     La misma desde Facturas, Recibos y Home. Solo lectura: el documento se
+     abre, imprime, envía o anula en la herramienta viva (/intranet/facturas/),
+     que es la única que emite con numeración de la base. */
+  var CAMPOS_FACTURA = 'id,numero,tipo,sociedad,cliente_nombre,proyecto_nombre,contrato_numero,contrato_id,total,moneda,fecha_emision,anulada,enviada,fecha_envio,creado_por,created_at,justificantes,justificante_path,client_id';
+  function estadoDoc(f) { return f.anulada ? ['Anulada', 'mal'] : (f.enviada ? ['Enviada', 'ok'] : ['Emitida', 'espera']); }
+  function fichaFactura(sb, f0) {
+    var H = window.lwCajonHtml;
+    if (!(window.lwCajon && H)) { toast('La ficha aún no ha cargado — prueba de nuevo en un segundo.'); return; }
+    var acciones = [{ texto: 'Abrir el documento', href: '/intranet/facturas/?id=' + encodeURIComponent(f0.id), tono: 'primario' }];
+    if (f0.contrato_numero && f0.tipo !== 'recibi') acciones.push({ texto: 'Emitir recibí', href: '/intranet/facturas/?contrato=' + encodeURIComponent(f0.contrato_numero) });
+    acciones.push({ texto: 'Cerrar', cerrar: true });
+    var caj = window.lwCajon({
+      sub: tipoDoc(f0.tipo) + (f0.anulada ? ' · anulada' : ''),
+      titulo: f0.numero || '',
+      bajoTitulo: (f0.cliente_nombre || '—') + (f0.contrato_numero ? ' · ' + f0.contrato_numero : ''),
+      cuerpo: '<p style="margin:0;font-size:13px;color:#8A8474">Trayendo la ficha…</p>',
+      acciones: acciones
+    });
+    Promise.all([
+      sb.rpc('facturas_equipo').select(CAMPOS_FACTURA).eq('id', f0.id).maybeSingle(),
+      f0.contrato_id ? sb.rpc('contratos_equipo').select(CAMPOS_CONTRATO).eq('id', f0.contrato_id).maybeSingle() : Promise.resolve({ data: null })
+    ]).then(function (r) {
+      if (!document.getElementById('lw-cajon')) return;
+      var f = r[0].data || f0, c = r[1].data;
+      var cuerpo = '';
+      if (r[0].error) cuerpo += H.nota('No se pudo leer la ficha completa (' + esc(r[0].error.message || '') + '): se enseña lo que hay en el listado.');
+      var est = estadoDoc(f);
+      cuerpo += H.seccion('Documento',
+        H.dato('Tipo', tipoDoc(f.tipo)) +
+        H.dato('Estado', H.tag(est[0], est[1]), { html: 1 }) +
+        H.dato('Importe', f.total != null ? fmt(f.total, f.moneda) : null) +
+        H.dato('Fecha de emisión', f.fecha_emision ? fFecha(f.fecha_emision) : fFecha(f.created_at)) +
+        H.dato('Enviado al cliente', f.enviada ? (f.fecha_envio ? fFecha(f.fecha_envio) : 'Sí') : 'No') +
+        H.dato('Sociedad emisora', f.sociedad ? String(f.sociedad).replace(/_/g, ' ') : null) +
+        H.dato('Emitido por', f.creado_por));
+      cuerpo += H.seccion('Cliente y contrato',
+        H.dato('Cliente', f.client_id ? H.enlace('/intranet/v4/compradores/?id=' + encodeURIComponent(f.client_id), f.cliente_nombre || 'Ficha de comprador') : f.cliente_nombre, { html: !!f.client_id }) +
+        H.dato('Proyecto', f.proyecto_nombre) +
+        H.dato('Contrato', c ? enlaceFichaContrato(c) : (f.contrato_numero || null), { html: !!c }) +
+        (c && c.precio_total != null ? H.dato('Precio del contrato', fmt(c.precio_total, c.moneda)) : ''));
+      if (f.tipo === 'recibi') {
+        var js = Array.isArray(f.justificantes) ? f.justificantes.slice() : [];
+        if (!js.length && f.justificante_path) js.push({ path: f.justificante_path });
+        cuerpo += H.seccion('Justificantes de pago (' + js.length + ')',
+          js.length ? js.map(function (j, i) {
+            return '<button type="button" data-lw-just="' + esc(j.path) + '" style="justify-self:start;padding:8px 14px;border-radius:10px;border:1px solid #c5c8bc;background:#fff;color:#104C4F;font:600 13px \'Neue Kabel\',sans-serif;cursor:pointer">' + esc(j.nombre || ('Justificante ' + (i + 1))) + '</button>';
+          }).join('') : H.nota('Este recibí no tiene justificante adjunto. Se adjunta desde la herramienta viva.'));
+      }
+      caj.cuerpo.innerHTML = cuerpo;
+      caj.cuerpo.addEventListener('click', function (ev) {
+        var a = ev.target.closest && ev.target.closest('[data-lw-ficha-contrato]');
+        if (a && c) { ev.preventDefault(); fichaContrato(sb, c); return; }
+        var b = ev.target.closest && ev.target.closest('[data-lw-just]');
+        if (b) {
+          ev.preventDefault(); b.disabled = true;
+          sb.storage.from('justificantes').createSignedUrl(b.getAttribute('data-lw-just'), 300).then(function (u) {
+            b.disabled = false;
+            if (u.error || !u.data) { toast('No se pudo abrir el justificante: ' + (u.error && u.error.message || 'sin URL')); return; }
+            window.open(u.data.signedUrl, '_blank', 'noopener');
+          });
+        }
+      });
+    });
+  }
+
   /* ══════════════ chips con CUENTA REAL y filtro combinado (18-sep-2026) ══════════════
      Stitch traía «Firmados 41» escrito a mano. Aquí cada grupo de chips se
      regenera desde los datos: cada <tr> pintada lleva data-lw-<grupo>="clave"
@@ -609,6 +675,8 @@
     var inp = document.querySelector('main input[placeholder^="Buscar"]');
     if (!inp) return;
     inp.addEventListener('input', function () { alCambiar(inp.value.trim().toLowerCase()); aplicar(); });
+    var q0 = new URLSearchParams(location.search).get('q');
+    if (q0) { inp.value = q0; alCambiar(q0.trim().toLowerCase()); aplicar(); }
   }
 
   var REG = {
@@ -623,7 +691,7 @@
         pon2('k-encurso', String(cs.length - firmados));
         pon2('k-firmados-pie', firmados + ' firmados');
       });
-      q(sb.rpc('facturas_equipo').select('tipo,total,moneda,anulada,created_at,numero,cliente_nombre,proyecto_nombre'), 'facturas').then(function (fs) {
+      q(sb.rpc('facturas_equipo').select('id,tipo,total,moneda,anulada,enviada,created_at,numero,cliente_nombre,proyecto_nombre,contrato_numero,contrato_id'), 'facturas').then(function (fs) {
         if (!fs) return;
         var s = sumaMesEUR(fs.filter(function (f) { return f.tipo === 'recibi'; }));
         kpi(/COBRADO ESTE MES/i, fmt(s.eur, 'EUR'), s.otros ? '+' + s.otros + ' cobros en otra moneda' : 'recibís del mes en curso');
@@ -643,10 +711,20 @@
         var t = tablaPor([/TIPO/, /DOC/, /COMPRADOR|CLIENTE/, /IMPORTE/]);
         if (t) {
           var pl = plantillaFilas(t);
-          fs.slice().sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; }).slice(0, 6).forEach(function (f) {
-            fila(pl, [f.tipo === 'recibi' ? 'Recibí' : f.tipo === 'proforma' ? 'Proforma' : 'Factura',
-              f.numero, f.cliente_nombre, f.proyecto_nombre || '—', fmt(f.total, f.moneda), fFecha(f.created_at),
-              f.anulada ? 'ANULADA' : 'EMITIDA'], '/intranet/facturas/');
+          var porIdF = {};
+          var ult = fs.slice().sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; }).slice(0, 8);
+          ult.forEach(function (f) {
+            porIdF[f.id] = f;
+            fila(pl, [tipoDoc(f.tipo), f.numero, f.cliente_nombre, f.proyecto_nombre || '—', fmt(f.total, f.moneda), fFecha(f.created_at), '']);
+            var tr = pl.tbody.lastElementChild; tr.setAttribute('data-lw-id', f.id); tr.style.cursor = 'pointer';
+            var tds = tr.querySelectorAll('td'); var est = estadoDoc(f);
+            if (tds[6]) tds[6].innerHTML = pill(est[0], est[1]);
+          });
+          pon2('k-ult-n', String(ult.length));
+          // la fila abre la ficha del documento en el cajon (antes saltaba a la herramienta clasica)
+          pl.tbody.addEventListener('click', function (ev) {
+            var tr = ev.target.closest && ev.target.closest('tr[data-lw-id]'); if (!tr) return;
+            ev.stopPropagation(); var f = porIdF[tr.getAttribute('data-lw-id')]; if (f) fichaFactura(sb, f);
           });
         }
       });
@@ -658,6 +736,15 @@
           kpi(/VENCIMIENTOS/i, String(n), 'con fecha en los próximos 30 días');
           pon2('k-operaciones', String(n));   // la tarjeta es «Vencimientos (30 días)»
         });
+      // «15 por conciliar esta semana» era del diseño: se cuentan los hitos con fecha en 7 días
+      var en7 = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
+      cnt(sb, 'contrato_vencimientos', function (x) { return x.gte('fecha', hoy).lte('fecha', en7).eq('contratos.bloqueado', true); }, '*, contratos!inner(id)')
+        .then(function (n7) { pon2('k-venc-semana', n7 == null ? '—' : (n7 + ' con fecha en los próximos 7 días')); });
+      // el buscador de Home busca en Contratos (Enter)
+      var busca = document.querySelector('main input[placeholder^="Buscar"]');
+      if (busca) busca.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter' && busca.value.trim()) location.href = '/intranet/v4/contratos/?q=' + encodeURIComponent(busca.value.trim());
+      });
       /* 'libre' NO es un estado de `unidades` — el real es 'disponible'. Esta
          consulta llevaba devolviendo cero desde el 4-sep sin dar ningun error, y
          el KPI ensenaba «0 unidades libres» sobre un inventario lleno. Es la
@@ -686,7 +773,7 @@
           card.innerHTML = '<p style="font:600 18px \'Neue Kabel\',sans-serif;margin:0 0 10px">Vencimientos críticos</p>' +
             (vs.length ? vs.map(function (v) { return itemPanel(esc(v.descripcion || 'Hito') + ' · ' + esc(v.contratos.numero), fFecha(v.fecha), v.monto ? esc(v.monto) : (v.pct ? esc(v.pct) + ' %' : '—')); }).join('')
                        : '<p style="font:400 13px \'Neue Kabel\',sans-serif;color:#44483f">Ninguno con fecha futura en contratos firmados.</p>') +
-            '<a href="/intranet/vencimientos/" style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">Abrir tesorería →</a>';
+            '<a href="/intranet/v4/vencimientos/" style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">Abrir tesorería →</a>';
         });
       q(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado').eq('estado', 'pendiente'), 'firmas pendientes')
         .then(function (fs2) {
@@ -700,7 +787,7 @@
           card.innerHTML = '<p style="font:600 18px \'Neue Kabel\',sans-serif;margin:0 0 10px">Firmas pendientes</p>' +
             '<p style="font:700 30px \'Neue Kabel\',sans-serif;margin:0">' + total + '</p>' +
             '<p style="font:400 12px \'Neue Kabel\',sans-serif;color:#8A8474;margin:2px 0 10px">contratos esperando la firma del comprador</p>' +
-            '<a href="/intranet/operaciones/?filtro=firma_viva" style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">Verlos en Operaciones →</a>';
+            '<a href="/intranet/v4/operaciones/?filtro=firma" style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">Verlos en Operaciones →</a>';
         });
     },
 
@@ -1249,91 +1336,181 @@
     },
     operaciones: function (sb) {
       var t = tablaPor([/OPERACI|CONTRATO/, /COMPRADOR/, /IMPORTE|ESTADO/]);
+      var hoy = new Date().toISOString().slice(0, 10);
       Promise.all([
-        q(sb.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,bloqueado,contrato_padre_id,created_at'), 'operaciones', t),
+        q(sb.rpc('contratos_equipo').select(CAMPOS_CONTRATO).order('created_at', { ascending: false }).limit(1000), 'operaciones', t),
         vig(sb.rpc('contratos_cobrado_equipo')).then(function (r) { return r.error ? (fallo('cobrado', r.error), null) : (r.data || []); }),
-        q(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado').eq('estado', 'pendiente'), 'firmas pendientes')
+        q(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado,expira_en').eq('estado', 'pendiente'), 'firmas pendientes'),
+        q(sb.from('contrato_vencimientos').select('contrato_id,descripcion,fecha,monto').gte('fecha', hoy).order('fecha').limit(1000), 'próximos vencimientos')
       ]).then(function (r) {
-        var cs = r[0], cob = r[1] || [], fi = r[2] || [];
+        var cs = r[0], cob = r[1] || [], fi = r[2] || [], vs = r[3] || [];
         if (!cs) return;
         var cobId = {}; cob.forEach(function (x) { cobId[x.contrato_id] = Number(x.cobrado) || 0; });
-        var chip = hojaConTexto(/^Todas\b/i); if (chip) chip.textContent = 'Todas (' + cs.length + ')';
-        var eur = 0, otras = 0;
+        var firmaDe = {}; fi.forEach(function (x) { firmaDe[x.contrato_id] = x; });
+        var proxDe = {}; vs.forEach(function (v) { if (!proxDe[v.contrato_id]) proxDe[v.contrato_id] = v; });   // ya vienen por fecha
+        var porId = {}; cs.forEach(function (c) { porId[c.id] = c; });
+        window.LW_V4 = window.LW_V4 || {}; window.LW_V4.contratosLista = porId;
+
+        /* KPIs — SOLO en euros, como en Contratos: no se mezclan monedas. */
+        var eur = 0, otras = 0, firmados = 0, cobEUR = 0, pendEUR = 0;
         cs.forEach(function (c) {
+          if (c.bloqueado) firmados++;
           if (c.precio_total == null) return;
-          if ((c.moneda || 'EUR') === 'EUR') eur += Number(c.precio_total) || 0; else otras++;
+          if ((c.moneda || 'EUR') !== 'EUR') { otras++; return; }
+          var p = Number(c.precio_total) || 0, cb = cobId[c.id] || 0;
+          eur += p; cobEUR += cb;
+          if (c.bloqueado) pendEUR += Math.max(0, p - cb);
         });
         pon2('k-volumen', fmt(eur, 'EUR'));
+        pon2('k-volumen-pie', cs.length + ' contrato' + (cs.length === 1 ? '' : 's') + ' · ' + firmados + ' firmado' + (firmados === 1 ? '' : 's'));
         if (otras) bandaNota('El volumen es SOLO en euros: ' + otras + ' contrato(s) en otra moneda fuera de la suma.', '#8A6A34');
-        pon2('k-escrow', '—');
-        var cobT = 0; cob.forEach(function (x) { cobT += Number(x.cobrado) || 0; });
-        pon2('k-cobros', fmt(cobT, 'EUR'));
-        var nf = {}; fi.forEach(function (x) { nf[x.contrato_id] = 1; });
-        pon2('k-firmas', String(Object.keys(nf).length));
+        pon2('k-cobros', fmt(cobEUR, 'EUR'));
+        var pct = eur ? Math.round(cobEUR / eur * 1000) / 10 : 0;
+        pon2('k-cobros-pct', eur ? pct + ' % del volumen en euros' : 'sin volumen en euros');
+        var barra = document.querySelector('[data-lw-barra="k-cobros"]'); if (barra) barra.style.width = Math.min(100, pct) + '%';
+        var nf = Object.keys(firmaDe).length;
+        pon2('k-firmas', String(nf));
+        var lim48 = Date.now() + 48 * 3600e3;
+        var urg = fi.filter(function (x) { return x.expira_en && new Date(x.expira_en).getTime() < lim48; }).length;
+        pon2('k-firmas-pie', nf ? (urg ? urg + ' expira' + (urg === 1 ? '' : 'n') + ' en menos de 48 h' : 'ninguna expira en 48 h') : 'nada esperando firma');
+        pon2('k-pendiente', fmt(pendEUR, 'EUR'));
+
+        /* Estado real de cada operación: en firma > en curso > cobrado / cobro pendiente. */
+        function estadoDe(c) {
+          if (firmaDe[c.id]) return 'firma';
+          if (!c.bloqueado) return 'curso';
+          if (c.precio_total != null && (cobId[c.id] || 0) >= Number(c.precio_total)) return 'cobrado';
+          return 'pendiente';
+        }
+        var ETQ = { firma: ['En firma', 'espera'], curso: ['En curso', ''], cobrado: ['Cobrado', 'ok'], pendiente: ['Cobro pendiente', 'mal'] };
+        var nEst = { firma: 0, curso: 0, cobrado: 0, pendiente: 0 };
+        cs.forEach(function (c) { nEst[estadoDe(c)]++; });
 
         if (t) {
           var pl = plantillaFilas(t);
-          cs.slice().sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; }).slice(0, 120).forEach(function (c) {
-            fila(pl, [c.numero, tipoC(c.tipo), c.comprador_nombre || '—', c.proyecto_nombre || '—',
+          pon2('p-total', String(cs.length)); pon2('p-desde', String(cs.length)); pon2('p-vis', cs.length + ' visibles');
+          cs.forEach(function (c) {
+            var e = estadoDe(c), cb = cobId[c.id] || 0, pv = proxDe[c.id];
+            var estr = tipoC(c.tipo);
+            if (c.contrato_padre_id && porId[c.contrato_padre_id]) estr += ' · cuelga de ' + porId[c.contrato_padre_id].numero;
+            var hijos = cs.filter(function (h) { return h.contrato_padre_id === c.id; });
+            if (hijos.length) estr += ' · encadena ' + hijos.map(function (h) { return h.numero; }).join(', ');
+            fila(pl, [c.numero, c.comprador_nombre || '—', (c.proyecto_nombre || '—') + (c.parcela_codigo ? ' · ' + c.parcela_codigo : ''), estr,
               c.precio_total != null ? fmt(c.precio_total, c.moneda) : '—',
-              c.bloqueado ? 'FIRMADO' : 'EN CURSO', fFecha(c.created_at)],
-              '/intranet/operaciones/?contrato=' + encodeURIComponent(c.numero));
+              fmt(cb, c.moneda) + (c.precio_total ? ' (' + Math.round(cb / Number(c.precio_total) * 100) + ' %)' : ''),
+              pv ? fFecha(pv.fecha) + (pv.descripcion ? ' · ' + pv.descripcion : '') : (c.bloqueado ? 'sin hitos futuros' : '—'),
+              '', '']);
+            var tr = pl.tbody.lastElementChild;
+            tr.setAttribute('data-lw-fila', ''); tr.setAttribute('data-lw-id', c.id);
+            tr.setAttribute('data-lw-estado', e); tr.setAttribute('data-lw-proyecto', c.proyecto_nombre || '');
+            tr.setAttribute('data-lw-pajar', [c.numero, c.comprador_nombre, c.proyecto_nombre, c.parcela_codigo, tipoC(c.tipo)].join(' ').toLowerCase());
+            var tds = tr.querySelectorAll('td');
+            if (tds[7]) tds[7].innerHTML = pill(ETQ[e][0], ETQ[e][1]);
+            if (tds[8]) tds[8].innerHTML = ABRIR;
+            tr.style.cursor = 'pointer';
           });
+          pl.tbody.addEventListener('click', function (ev) {
+            var tr = ev.target.closest && ev.target.closest('tr[data-lw-id]'); if (!tr) return;
+            ev.stopPropagation();
+            var c = porId[tr.getAttribute('data-lw-id')]; if (!c) return;
+            pintaExpediente(c);
+            fichaContrato(sb, c, { sinExpediente: true });
+          });
+
+          var estado = {}, texto = '';
+          var aplicar = function () {
+            aplicaFiltros(pl.tbody, estado, ['estado', 'proyecto'], texto, function (n) { pon2('p-desde', String(n)); pon2('p-vis', n + ' visibles'); });
+          };
+          var ops = [{ clave: '*', texto: 'Todas', n: cs.length }];
+          ['curso', 'firma', 'pendiente', 'cobrado'].forEach(function (k) { ops.push({ clave: k, texto: ETQ[k][0], n: nEst[k] }); });
+          var contChips = document.querySelector('[data-lw-chips="estado"]');
+          chipsReales(contChips, 'estado', ops, estado, aplicar);
+          buscadorDe(aplicar, function (v) { texto = v; });
+          // el selector de «territorio» del diseño pasa a filtrar por proyecto REAL
+          var sel = document.querySelector('main select');
+          if (sel) {
+            var proys = {}; cs.forEach(function (c) { if (c.proyecto_nombre) proys[c.proyecto_nombre] = (proys[c.proyecto_nombre] || 0) + 1; });
+            sel.innerHTML = '<option value="*">Todos los proyectos</option>' + Object.keys(proys).sort().map(function (p) { return '<option value="' + esc(p) + '">' + esc(p) + ' (' + proys[p] + ')</option>'; }).join('');
+            sel.setAttribute('data-real', '');
+            sel.addEventListener('change', function () { estado.proyecto = { attr: 'proyecto', valor: sel.value }; aplicar(); });
+          }
+          // ?filtro=firma (enlace de Home «contratos en firma»)
+          var filtro = new URLSearchParams(location.search).get('filtro');
+          if (filtro && contChips) {
+            var idx = ['*', 'curso', 'firma', 'pendiente', 'cobrado'].indexOf(filtro);
+            var bs = contChips.querySelectorAll('button'); if (idx > 0 && bs[idx]) bs[idx].click();
+          }
         }
 
-        /* --- EXPEDIENTE: ?contrato= o el mas reciente. El «notario con acta» y
-           el «cobro SWIFT» del diseno eran inventados: el timeline real son los
-           vencimientos del contrato, y la estructura encadenada es la de verdad
-           (contrato_padre_id), con el cobrado de cada pieza. */
-        var pedido = new URLSearchParams(location.search).get('contrato');
-        var el = cs.filter(function (c) { return c.numero === pedido; })[0] ||
-                 cs.slice().sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; })[0];
-        if (!el) return;
-        var raiz = el.contrato_padre_id ? (cs.filter(function (c) { return c.id === el.contrato_padre_id; })[0] || el) : el;
-        var hijos = cs.filter(function (c) { return c.contrato_padre_id === raiz.id; });
-        pon2('x-id', 'Expediente');
-        pon2('x-num', raiz.numero);
-        pon2('x-sub', (raiz.comprador_nombre || '—') + (raiz.proyecto_nombre ? ' · ' + raiz.proyecto_nombre : ''));
-        var totalCadena = 0, monEl = raiz.moneda || 'EUR';
-        [raiz].concat(hijos).forEach(function (c) {
-          if ((c.moneda || 'EUR') === monEl && !(typeof lwEsPreliminar === 'function' && lwEsPreliminar(c.tipo))) totalCadena += Number(c.precio_total) || 0;
-        });
-        pon2('x-total', 'Total: ' + fmt(totalCadena, monEl));
-        var pinta = function (pref, c) {
-          if (!c) {
-            pon2(pref + '-titulo', 'Sin contrato encadenado');
-            pon2(pref + '-sub', 'esta operación es de una sola pieza');
-            pon2(pref + '-importe', '');
-            return;
-          }
-          pon2(pref + '-titulo', c.numero + ' · ' + tipoC(c.tipo));
-          var cb2 = cobId[c.id] || 0;
-          pon2(pref + '-sub', 'Cobrado ' + fmt(cb2, c.moneda) + (c.precio_total != null ? ' / ' + fmt(c.precio_total, c.moneda) : ''));
-          pon2(pref + '-importe', c.precio_total != null ? fmt(c.precio_total, c.moneda) : '—');
-        };
-        pinta('e1', raiz);
-        pinta('e2', hijos[0]);
-        if (hijos.length > 1) bandaNota('La cadena de ' + raiz.numero + ' tiene ' + hijos.length + ' contratos colgando; aquí se enseña el primero. La cadena completa vive en la herramienta (/intranet/operaciones/).', '#485B37');
-
-        q(sb.from('contrato_vencimientos').select('descripcion,pct,monto,fecha,nota').eq('contrato_id', el.id).order('fecha', { ascending: true, nullsFirst: false }).limit(3), 'hitos del expediente')
-          .then(function (vs) {
-            if (vs == null) return;
-            for (var i2 = 0; i2 < 3; i2++) {
-              var v = vs[i2];
-              pon2('h' + (i2 + 1) + '-t', v ? (v.descripcion || 'Hito ' + (i2 + 1)) : '—');
-              pon2('h' + (i2 + 1) + '-s', v ? (v.monto ? String(v.monto) : (v.pct ? v.pct + ' %' : (v.nota || '—'))) : 'sin más hitos');
-              pon2('h' + (i2 + 1) + '-f', v ? (v.fecha ? fFecha(v.fecha) : 'sin fecha') : '');
-            }
+        /* --- EXPEDIENTE (panel lateral): ?contrato= o el más reciente. El «notario
+           con acta» y el «cobro SWIFT» del diseño eran inventados: el timeline real
+           son los vencimientos del contrato, y la estructura encadenada es la de
+           verdad (contrato_padre_id), con el cobrado de cada pieza. */
+        var hitosVig = null;
+        function pintaExpediente(el) {
+          var raiz = el.contrato_padre_id ? (porId[el.contrato_padre_id] || el) : el;
+          var hijos = cs.filter(function (c) { return c.contrato_padre_id === raiz.id; });
+          pon2('x-id', el === raiz ? 'Expediente' : 'Expediente · abierto desde ' + el.numero);
+          pon2('x-num', raiz.numero); pon2('x-h2', raiz.numero);
+          pon2('x-sub', (raiz.comprador_nombre || '—') + (raiz.proyecto_nombre ? ' · ' + raiz.proyecto_nombre : ''));
+          var totalCadena = 0, monEl = raiz.moneda || 'EUR';
+          [raiz].concat(hijos).forEach(function (c) {
+            if ((c.moneda || 'EUR') === monEl && !(typeof lwEsPreliminar === 'function' && lwEsPreliminar(c.tipo))) totalCadena += Number(c.precio_total) || 0;
           });
+          pon2('x-total', 'Total: ' + fmt(totalCadena, monEl));
+          var pinta = function (pref, c) {
+            if (!c) {
+              pon2(pref + '-titulo', 'Sin contrato encadenado');
+              pon2(pref + '-sub', 'esta operación es de una sola pieza');
+              pon2(pref + '-importe', '');
+              return;
+            }
+            pon2(pref + '-titulo', c.numero + ' · ' + tipoC(c.tipo));
+            var cb2 = cobId[c.id] || 0;
+            pon2(pref + '-sub', 'Cobrado ' + fmt(cb2, c.moneda) + (c.precio_total != null ? ' / ' + fmt(c.precio_total, c.moneda) : ''));
+            pon2(pref + '-importe', c.precio_total != null ? fmt(c.precio_total, c.moneda) : '—');
+          };
+          pinta('e1', raiz);
+          pinta('e2', hijos[0]);
+          pon2('x-mas', hijos.length > 1 ? 'La cadena tiene ' + hijos.length + ' contratos colgando; aquí se enseña el primero. Los demás, en la ficha de ' + raiz.numero + '.' : '');
+          var pedido2 = el;
+          sb.from('contrato_vencimientos').select('descripcion,pct,monto,fecha,nota').eq('contrato_id', el.id).order('fecha', { ascending: true, nullsFirst: false }).limit(3)
+            .then(function (rv) {
+              if (rv.error || hitosVig !== pedido2) return;
+              var vs2 = rv.data || [];
+              for (var i2 = 0; i2 < 3; i2++) {
+                var v = vs2[i2];
+                pon2('h' + (i2 + 1) + '-t', v ? (v.descripcion || 'Hito ' + (i2 + 1)) : '—');
+                pon2('h' + (i2 + 1) + '-s', v ? (v.monto ? fmt(v.monto, el.moneda) : (v.pct ? v.pct + ' %' : (v.nota || '—'))) : 'sin más hitos');
+                pon2('h' + (i2 + 1) + '-f', v ? (v.fecha ? fFecha(v.fecha) : 'sin fecha') : '');
+              }
+            });
+          hitosVig = pedido2;
+          expedienteActual = { el: el, raiz: raiz };
+        }
+        var expedienteActual = null;
+        var pedido = new URLSearchParams(location.search).get('contrato');
+        var el0 = cs.filter(function (c) { return c.numero === pedido; })[0] || cs[0];
+        if (!el0) return;
+        pintaExpediente(el0);
+        if (pedido && el0.numero === pedido) fichaContrato(sb, el0, { sinExpediente: true });
 
-        // los dos botones del cajon llevan a las herramientas reales
+        // los botones del panel llevan a las herramientas reales, siempre sobre el expediente que se ve
         var botones = document.querySelectorAll('button');
         for (var i3 = 0; i3 < botones.length; i3++) {
-          var tx = (botones[i3].textContent || '').trim();
+          var tx = (botones[i3].textContent || '').trim(), ico = botones[i3].querySelector('.material-symbols-outlined');
           if (/Emitir recib/i.test(tx)) {
-            (function (num) { botones[i3].addEventListener('click', function () { location.href = '/intranet/facturas/?contrato=' + encodeURIComponent(num); }); })(el.numero);
+            botones[i3].setAttribute('data-real', '');
+            botones[i3].addEventListener('click', function (ev) { ev.stopPropagation(); if (expedienteActual) location.href = '/intranet/facturas/?contrato=' + encodeURIComponent(expedienteActual.el.numero); });
           } else if (/proforma encadenada|Abrir proforma/i.test(tx)) {
-            (function (num) { botones[i3].addEventListener('click', function () { location.href = '/contracts/app.html?contrato=' + encodeURIComponent(num); }); })(raiz.numero);
+            botones[i3].setAttribute('data-real', '');
+            botones[i3].addEventListener('click', function (ev) { ev.stopPropagation(); if (expedienteActual) location.href = '/contracts/app.html?contrato=' + encodeURIComponent(expedienteActual.raiz.numero); });
+          } else if (!tx && ico && ico.textContent.trim() === 'open_in_new') {
+            botones[i3].setAttribute('data-real', ''); botones[i3].title = 'Ficha del expediente';
+            botones[i3].addEventListener('click', function (ev) { ev.stopPropagation(); if (expedienteActual) fichaContrato(sb, expedienteActual.el, { sinExpediente: true }); });
+          } else if (/^Actualizar$/i.test(tx)) {
+            botones[i3].setAttribute('data-real', '');
+            botones[i3].addEventListener('click', function (ev) { ev.stopPropagation(); location.reload(); });
           }
         }
       });
@@ -4185,6 +4362,7 @@
       // la ficha de sesion entera (herramientas incluidas), para quien decida por ella
       window.LW_V4.ficha = aut.ficha || null;
       window.LW_V4.fichaContrato = function (c, opts) { fichaContrato(aut.sb, c, opts); };
+      window.LW_V4.fichaFactura = function (f) { fichaFactura(aut.sb, f); };
 
       /* La cabecera de Home traia «3 de Septiembre de 2026» escrito a mano: la
          fecha de la captura de Stitch. Una fecha congelada no envejece con un

@@ -2,7 +2,7 @@
 
 <html lang="es"><head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d6d6608e"></script>
-<script src="/contracts/assets/dinero.js?v=aed0c9a9" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=310f2346" defer></script><script src="../assets/datos.js?v=954d29ad" defer></script>
+<script src="/contracts/assets/dinero.js?v=aed0c9a9" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=310f2346" defer></script><script src="../assets/datos.js?v=377019a7" defer></script>
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=2737c21a" defer></script>
 <link href="../assets/shell.css?v=4978e676" rel="stylesheet">
@@ -86,7 +86,7 @@
 </div>
 <p class="mt-2 font-body-sm text-body-sm text-tertiary flex items-center gap-1.5 pt-2 border-t border-outline-variant/30 font-medium">
 <span class="material-symbols-outlined text-[15px] text-tertiary">schedule</span>
-<span>15 por conciliar esta semana</span>
+<span data-lw="k-venc-semana">—</span>
 </p>
 </div>
 <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-tertiary to-tertiary-fixed"></div>
@@ -124,14 +124,10 @@
 <div class="px-6 py-4 flex flex-wrap items-center justify-between gap-3 bg-surface-container-low/40">
 <div>
 <h2 class="font-headline-sm text-headline-sm text-volcanic-ash">Operaciones Recientes</h2>
-<p class="font-body-sm text-body-sm text-on-surface-variant">Libro auxiliar de movimientos y certificaciones contractuales</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Últimos documentos emitidos: facturas, proformas y recibís</p>
 </div>
 <div class="flex items-center gap-2">
-<button class="px-3 py-1.5 rounded-full bg-surface-container-lowest text-on-surface-variant hover:text-on-surface font-label-md text-body-sm flex items-center gap-1.5 shadow-sm transition-colors">
-<span class="material-symbols-outlined text-[16px]">filter_list</span>
-<span>Filtrar</span>
-</button>
-<a class="text-territorial-green hover:underline font-label-md text-body-sm flex items-center gap-1 pl-1" href="#">
+<a class="text-territorial-green hover:underline font-label-md text-body-sm flex items-center gap-1 pl-1" href="/intranet/v4/facturas/">
 <span>Ver todas</span>
 <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
 </a>
@@ -152,108 +148,23 @@
 </tr>
 </thead>
 <tbody class="font-body-md text-body-md text-volcanic-ash divide-y divide-surface-container">
-<!-- Fila 1 -->
+<tr><td class="py-8 px-5 text-center text-on-surface-variant" colspan="7">Trayendo los últimos documentos…</td></tr>
 <tr class="hover:bg-surface-container-low/60 transition-colors">
-<td class="py-3.5 px-5 whitespace-nowrap">
-<span class="inline-flex items-center gap-1.5 font-medium text-body-sm">
-<span class="w-1.5 h-1.5 rounded-full bg-deep-lagoon"></span>
-                    Proforma
-                  </span>
-</td>
-<td class="py-3.5 px-4 font-kpi-number text-body-sm font-semibold text-on-surface-variant">PRO-2026-089</td>
-<td class="py-3.5 px-4 font-medium text-volcanic-ash">Inversor Demo Alpha</td>
-<td class="py-3.5 px-4 text-on-surface-variant font-body-sm truncate max-w-[210px]" title="Horizon S1 Master (Villa 04)">Horizon S1 Master (Villa 04)</td>
-<td class="py-3.5 px-4 font-kpi-number text-body-md font-semibold text-right whitespace-nowrap text-volcanic-ash">95.000,00 €</td>
-<td class="py-3.5 px-4 text-center font-body-sm text-on-surface-variant whitespace-nowrap">03 Sep 2026</td>
-<td class="py-3.5 px-5 text-center whitespace-nowrap">
-<span class="inline-block px-3 py-0.5 rounded-full font-label-md text-[11px] font-semibold bg-secondary-container text-on-secondary-container uppercase tracking-wider">
-                    Emitida
-                  </span>
-</td>
-</tr>
-<!-- Fila 2 -->
-<tr class="hover:bg-surface-container-low/60 transition-colors">
-<td class="py-3.5 px-5 whitespace-nowrap">
-<span class="inline-flex items-center gap-1.5 font-medium text-body-sm">
-<span class="w-1.5 h-1.5 rounded-full bg-territorial-green"></span>
-                    Contrato
-                  </span>
-</td>
-<td class="py-3.5 px-4 font-kpi-number text-body-sm font-semibold text-on-surface-variant">CTR-2026-114</td>
-<td class="py-3.5 px-4 font-medium text-volcanic-ash">Grupo Sur Inversiones</td>
-<td class="py-3.5 px-4 text-on-surface-variant font-body-sm truncate max-w-[210px]" title="Sumba Hills Parcel C">Sumba Hills Parcel C</td>
-<td class="py-3.5 px-4 font-kpi-number text-body-md font-semibold text-right whitespace-nowrap text-volcanic-ash">120.000,00 €</td>
-<td class="py-3.5 px-4 text-center font-body-sm text-on-surface-variant whitespace-nowrap">02 Sep 2026</td>
-<td class="py-3.5 px-5 text-center whitespace-nowrap">
-<span class="inline-block px-3 py-0.5 rounded-full font-label-md text-[11px] font-semibold bg-primary-fixed text-primary uppercase tracking-wider">
-                    Firmado
-                  </span>
-</td>
-</tr>
-<!-- Fila 3 -->
-<tr class="hover:bg-surface-container-low/60 transition-colors">
-<td class="py-3.5 px-5 whitespace-nowrap">
-<span class="inline-flex items-center gap-1.5 font-medium text-body-sm">
-<span class="w-1.5 h-1.5 rounded-full bg-deep-lagoon"></span>
-                    Recibí
-                  </span>
-</td>
-<td class="py-3.5 px-4 font-kpi-number text-body-sm font-semibold text-on-surface-variant">REC-2026-052</td>
-<td class="py-3.5 px-4 font-medium text-volcanic-ash">Inversiones Costa Bali</td>
-<td class="py-3.5 px-4 text-on-surface-variant font-body-sm truncate max-w-[210px]" title="Palm Field W5">Palm Field W5</td>
-<td class="py-3.5 px-4 font-kpi-number text-body-md font-semibold text-right whitespace-nowrap text-volcanic-ash">25.000,00 €</td>
-<td class="py-3.5 px-4 text-center font-body-sm text-on-surface-variant whitespace-nowrap">01 Sep 2026</td>
-<td class="py-3.5 px-5 text-center whitespace-nowrap">
-<span class="inline-block px-3 py-0.5 rounded-full font-label-md text-[11px] font-semibold bg-secondary-container text-on-secondary-container uppercase tracking-wider">
-                    Emitida
-                  </span>
-</td>
-</tr>
-<!-- Fila 4 -->
-<tr class="hover:bg-surface-container-low/60 transition-colors">
-<td class="py-3.5 px-5 whitespace-nowrap">
-<span class="inline-flex items-center gap-1.5 font-medium text-body-sm">
-<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
-                    Factura
-                  </span>
-</td>
-<td class="py-3.5 px-4 font-kpi-number text-body-sm font-semibold text-on-surface-variant">FAC-2026-301</td>
-<td class="py-3.5 px-4 font-medium text-volcanic-ash">Inversor Demo Beta</td>
-<td class="py-3.5 px-4 text-on-surface-variant font-body-sm truncate max-w-[210px]" title="Riverfront II">Riverfront II</td>
-<td class="py-3.5 px-4 font-kpi-number text-body-md font-semibold text-right whitespace-nowrap text-volcanic-ash">42.500,00 €</td>
-<td class="py-3.5 px-4 text-center font-body-sm text-on-surface-variant whitespace-nowrap">30 Ago 2026</td>
-<td class="py-3.5 px-5 text-center whitespace-nowrap">
-<span class="inline-block px-3 py-0.5 rounded-full font-label-md text-[11px] font-semibold bg-surface-alt text-tertiary uppercase tracking-wider">
-                    Pendiente
-                  </span>
-</td>
-</tr>
-<!-- Fila 5 -->
-<tr class="hover:bg-surface-container-low/60 transition-colors">
-<td class="py-3.5 px-5 whitespace-nowrap">
-<span class="inline-flex items-center gap-1.5 font-medium text-body-sm">
-<span class="w-1.5 h-1.5 rounded-full bg-stone-sand"></span>
-                    Contrato
-                  </span>
-</td>
-<td class="py-3.5 px-4 font-kpi-number text-body-sm font-semibold text-on-surface-variant">CTR-2026-112</td>
-<td class="py-3.5 px-4 font-medium text-volcanic-ash">Grupo Litoral SL</td>
-<td class="py-3.5 px-4 text-on-surface-variant font-body-sm truncate max-w-[210px]" title="Bonian Village">Bonian Village</td>
-<td class="py-3.5 px-4 font-kpi-number text-body-md font-semibold text-right whitespace-nowrap text-volcanic-ash">60.000,00 €</td>
-<td class="py-3.5 px-4 text-center font-body-sm text-on-surface-variant whitespace-nowrap">29 Ago 2026</td>
-<td class="py-3.5 px-5 text-center whitespace-nowrap">
-<span class="inline-block px-3 py-0.5 rounded-full font-label-md text-[11px] font-semibold bg-surface-container-high text-on-surface-variant uppercase tracking-wider">
-                    En Revisión
-                  </span>
-</td>
+<td class="py-3.5 px-5 whitespace-nowrap font-medium text-body-sm">—</td>
+<td class="py-3.5 px-4 font-kpi-number text-body-sm font-semibold text-on-surface-variant">—</td>
+<td class="py-3.5 px-4 font-medium text-volcanic-ash">—</td>
+<td class="py-3.5 px-4 text-on-surface-variant font-body-sm truncate max-w-[210px]">—</td>
+<td class="py-3.5 px-4 font-kpi-number text-body-md font-semibold text-right whitespace-nowrap text-volcanic-ash">—</td>
+<td class="py-3.5 px-4 text-center font-body-sm text-on-surface-variant whitespace-nowrap">—</td>
+<td class="py-3.5 px-5 text-center whitespace-nowrap">—</td>
 </tr>
 </tbody>
 </table>
 </div>
 <!-- Footer de la tabla -->
 <div class="px-6 py-3 bg-surface-container-low/30 text-on-surface-variant font-body-sm text-body-sm flex justify-between items-center">
-<span>Mostrando las últimas 5 operaciones de tesorería y firma</span>
-<span class="font-kpi-number text-[12px] text-stone-sand">EXPEDIENTES VALIDADOS POR NOTARÍA REGISTRAL</span>
+<span>Los <span data-lw="k-ult-n">—</span> últimos documentos emitidos · la fila abre la ficha</span>
+<a class="text-territorial-green hover:underline font-label-md" href="/intranet/v4/recibos/">Recibos →</a>
 </div>
 </div>
 <!-- b. HERRAMIENTAS DE ACCESO FRECUENTE -->
@@ -264,50 +175,50 @@
 </div>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 <!-- Card Acceso 1 -->
-<a class="p-5 bg-surface-container-lowest rounded-xl shadow-sm hover:shadow-md transition-all group flex items-start gap-4" href="#">
+<a class="p-5 bg-surface-container-lowest rounded-xl shadow-sm hover:shadow-md transition-all group flex items-start gap-4" href="/intranet/v4/operaciones/">
 <div class="w-11 h-11 rounded-xl bg-surface-container-low flex items-center justify-center text-territorial-green group-hover:bg-primary-container group-hover:text-on-primary transition-colors flex-shrink-0">
 <span class="material-symbols-outlined text-[24px]">sync_alt</span>
 </div>
 <div class="space-y-1">
 <h4 class="font-headline-sm text-[18px] text-volcanic-ash group-hover:text-territorial-green transition-colors leading-tight">Operaciones &amp; Trazabilidad</h4>
 <p class="font-body-sm text-body-sm text-on-surface-variant leading-snug">
-                Estado de cuenta, documentos, firmas notariales y conciliaciones.
+                Estado de cuenta, cobros, hitos y firmas de cada contrato.
               </p>
 </div>
 </a>
 <!-- Card Acceso 2 -->
-<a class="p-5 bg-surface-container-lowest rounded-xl shadow-sm hover:shadow-md transition-all group flex items-start gap-4" href="#">
+<a class="p-5 bg-surface-container-lowest rounded-xl shadow-sm hover:shadow-md transition-all group flex items-start gap-4" href="/intranet/v4/proyectos/">
 <div class="w-11 h-11 rounded-xl bg-surface-container-low flex items-center justify-center text-deep-lagoon group-hover:bg-deep-lagoon group-hover:text-on-secondary transition-colors flex-shrink-0">
 <span class="material-symbols-outlined text-[24px]">apartment</span>
 </div>
 <div class="space-y-1">
 <h4 class="font-headline-sm text-[18px] text-volcanic-ash group-hover:text-deep-lagoon transition-colors leading-tight">Inventario de Proyectos &amp; Bóveda</h4>
 <p class="font-body-sm text-body-sm text-on-surface-variant leading-snug">
-                418 parcelas en cartera, licencias PBG, SLF y planos georeferenciados.
+                Parcelario, estados de cada unidad y documentos por proyecto.
               </p>
 </div>
 </a>
 <!-- Card Acceso 3 -->
-<a class="p-5 bg-surface-container-lowest rounded-xl shadow-sm hover:shadow-md transition-all group flex items-start gap-4" href="#">
+<a class="p-5 bg-surface-container-lowest rounded-xl shadow-sm hover:shadow-md transition-all group flex items-start gap-4" href="/intranet/v4/vencimientos/">
 <div class="w-11 h-11 rounded-xl bg-surface-container-low flex items-center justify-center text-tertiary group-hover:bg-tertiary group-hover:text-on-tertiary transition-colors flex-shrink-0">
 <span class="material-symbols-outlined text-[24px]">event_upcoming</span>
 </div>
 <div class="space-y-1">
 <h4 class="font-headline-sm text-[18px] text-volcanic-ash group-hover:text-tertiary transition-colors leading-tight">Vencimientos &amp; Tesorería</h4>
 <p class="font-body-sm text-body-sm text-on-surface-variant leading-snug">
-                Previsiones semanales de cobro, flujo de caja proyectado y alertas bancarias.
+                Calendario de cobros y previsión de caja.
               </p>
 </div>
 </a>
 <!-- Card Acceso 4 -->
-<a class="p-5 bg-surface-container-lowest rounded-xl shadow-sm hover:shadow-md transition-all group flex items-start gap-4" href="#">
+<a class="p-5 bg-surface-container-lowest rounded-xl shadow-sm hover:shadow-md transition-all group flex items-start gap-4" href="/intranet/v4/soporte/">
 <div class="w-11 h-11 rounded-xl bg-surface-container-low flex items-center justify-center text-stone-sand group-hover:bg-volcanic-ash group-hover:text-on-primary transition-colors flex-shrink-0">
 <span class="material-symbols-outlined text-[24px]">support_agent</span>
 </div>
 <div class="space-y-1">
 <h4 class="font-headline-sm text-[18px] text-volcanic-ash group-hover:text-volcanic-ash transition-colors leading-tight">Soporte &amp; Atención</h4>
 <p class="font-body-sm text-body-sm text-on-surface-variant leading-snug">
-                Bandeja de incidencias y consultas directas desde el portal inversor.
+                Mensajes de los compradores desde el portal.
               </p>
 </div>
 </a>
@@ -362,10 +273,10 @@
 </div>
 </div>
 </div>
-<button class="w-full py-2.5 rounded-full bg-surface-container hover:bg-surface-container-high transition-colors font-label-md text-body-sm text-volcanic-ash flex items-center justify-center gap-1" type="button">
+<a class="w-full py-2.5 rounded-full bg-surface-container hover:bg-surface-container-high transition-colors font-label-md text-body-sm text-volcanic-ash flex items-center justify-center gap-1" href="/intranet/v4/vencimientos/">
 <span>Abrir calendario de tesorería</span>
 <span class="material-symbols-outlined text-[16px]">calendar_month</span>
-</button>
+</a>
 </div>
 <!-- b. FIRMAS & TRÁMITES PENDIENTES -->
 <div class="bg-surface-container-lowest rounded-xl shadow-sm p-5 space-y-4">
@@ -410,24 +321,11 @@
 </div>
 </div>
 </div>
-<a class="block text-center text-territorial-green hover:underline font-label-md text-body-sm pt-1" href="#">
-          Gestionar contratos en trámite (14) →
+<a class="block text-center text-territorial-green hover:underline font-label-md text-body-sm pt-1" href="/intranet/v4/operaciones/?filtro=firma">
+          Ver los contratos en firma →
         </a>
 </div>
-<!-- Widget Asistencia Territorial Bali / Sumba -->
-<div class="bg-surface-alt rounded-xl p-5 space-y-3 relative overflow-hidden">
-<div class="flex items-center gap-2 text-territorial-green">
-<span class="material-symbols-outlined text-[20px]">villa</span>
-<span class="font-label-md text-[11px] uppercase tracking-widest font-bold">Oficina Central Denpasar</span>
-</div>
-<p class="font-headline-sm text-[17px] text-volcanic-ash leading-snug">
-          Horario operativo en vigor: GMT+8. Soporte y gestoría documental activa.
-        </p>
-<div class="flex items-center justify-between pt-2 border-t border-stone-sand/30 font-body-sm text-body-sm text-on-surface-variant">
-<span>Notaría Asignada: <strong>PPAT Bali Sur</strong></span>
-<span class="inline-block w-2 h-2 rounded-full bg-territorial-green"></span>
-</div>
-</div>
+
 </div>
 </div>
 </div></div></main></div></body></html>
