@@ -515,7 +515,7 @@
 
       if (c.pdf_firmado_path) {
         cuerpo += H.seccion('Documento firmado',
-          (!c.bloqueado ? H.nota('El contrato se reabrió después de firmarse: este PDF es de la versión firmada anterior y el texto actual puede no coincidir con él.') : '') +
+          (!c.bloqueado ? H.nota('El contrato se reabrió después de firmarse. Este PDF es la versión firmada y es la que vincula a las partes; el texto reabierto no tiene efecto hasta una nueva firma.') : '') +
           '<button type="button" data-lw-pdf="' + esc(c.pdf_firmado_path) + '" style="justify-self:start;padding:9px 16px;border-radius:10px;border:1px solid #c5c8bc;background:#fff;color:#104C4F;font:600 13px \'Neue Kabel\',sans-serif;cursor:pointer">Ver PDF firmado</button>' +
           (c.pdf_firmado_hash ? H.dato('SHA-256', c.pdf_firmado_hash) : ''));
       }
@@ -1502,7 +1502,12 @@
             tr.setAttribute('data-lw-estado', e); tr.setAttribute('data-lw-proyecto', c.proyecto_nombre || '');
             tr.setAttribute('data-lw-pajar', [c.numero, c.comprador_nombre, c.proyecto_nombre, c.parcela_codigo, tipoC(c.tipo)].join(' ').toLowerCase());
             var tds = tr.querySelectorAll('td');
-            if (tds[7]) tds[7].innerHTML = pill(ETQ[e][0], ETQ[e][1]);
+            // Legal (19-sep): una reserva firmada sin señal cobrada bloquea parcela sin contraprestación; un
+            // «sin importe» solo es legítimo en un poder — en el resto es un precio que falta
+            var etq = ETQ[e];
+            if (e === 'reserva' && !(cb > 0)) etq = ['Reserva firmada · sin señal cobrada', 'mal'];
+            if (e === 'sinimporte' && c.tipo !== 'poa') etq = ['Firmado · falta precio', 'espera'];
+            if (tds[7]) tds[7].innerHTML = pill(etq[0], etq[1]);
             if (tds[8]) tds[8].innerHTML = ABRIR;
             tr.style.cursor = 'pointer';
           });
