@@ -1025,6 +1025,9 @@ sb.auth.getSession().then(async ({data:{session}}) => {
      factura que el cliente no puede pagar. */
   try { await cargarSociedades(sb); }
   catch(e){ toastMal(lwT('No se ha podido cargar el catálogo de sociedades.')); console.error(e); }
+  // Se pinta DESPUÉS de la carga, pase lo que pase: si falló, el desplegable
+  // dice por qué está vacío en vez de quedarse mudo (ver pintarSelectSociedades).
+  pintarSelectSociedades();
   try { await cargarCuentasBancarias(sb); pintarSelectCuentas(); }
   catch(e){ toastMal(lwT('No se han podido cargar las cuentas de cobro: ') + (e.message || e) + ' — recarga antes de emitir'); }
   document.body.hidden = false;
@@ -1137,8 +1140,26 @@ let MI_FICHA = null;    // {rol, herramientas, activo} — la fija esa misma com
 const TIPOS = TIPOS_DOC;
 
 /* ---------- selects que salen de entities.js ---------- */
-$('#selSociedad').innerHTML = Object.entries(SOCIEDADES)
-  .map(([k,s]) => `<option value="${k}">${esc(s.label)}</option>`).join('');
+/* Es una FUNCIÓN, y por el mismo motivo que la de las cuentas de aquí abajo:
+   desde el 17-sep-2026 las sociedades llegan por RED (tabla `public.sociedades`,
+   antes eran un literal en entities.js). Pintado arriba del todo, a la vez que
+   se parsea el script, `SOCIEDADES` todavía es `{}` y el desplegable «Sociedad
+   que factura» salía VACÍO PARA SIEMPRE — sin una sola opción que elegir, así
+   que no se podía emitir ni un recibí ni una factura ni una proforma.
+   Es la CUARTA vez que muerde el mismo patrón en esta suite (cuentas 6-ago,
+   apoderados 12-ago, `sociedadOptions()` de entidades_pago.js el 17-sep): una
+   lista que se pinta antes de que llegue el dato. Si vuelve a aparecer, el
+   arreglo no es acordarse: es que nada pinte un catálogo en el cuerpo del
+   script. */
+function pintarSelectSociedades(){
+  const sel = $('#selSociedad');
+  const opts = Object.entries(SOCIEDADES)
+    .map(([k,s]) => `<option value="${k}">${esc(s.label)}</option>`).join('');
+  // Nunca un select mudo: si el catálogo no llegó, el desplegable lo DICE. Un
+  // hueco vacío parece un fallo del usuario; esto parece lo que es.
+  sel.innerHTML = opts ||
+    `<option value="" disabled selected>${esc(lwT('No se ha podido cargar el catálogo de sociedades — recarga la página'))}</option>`;
+}
 // Van TODAS, incluidas las de notario (escrow): si el contrato pactó cobrar en
 // una cuenta concreta, la factura tiene que decir esa misma. La etiqueta ya
 // avisa de cuál es cuál.
