@@ -306,6 +306,169 @@
     });
   }
 
+  /* ---------- CAJON DE FICHA: para MIRAR, y desde ahi editar (18-sep-2026) ----------
+     Owner: «prefiero que al clickar en un agente se me abra un cajeton lateral»
+     (Usuarios), y en Compradores «si abro un comprador me lleva a la version
+     antigua, preparalo para la v4 ya». Las dos pantallas necesitaban lo mismo:
+     una ficha de solo lectura con acciones al pie, que se abre para comprobar
+     un dato mucho mas a menudo que para cambiarlo (la regla «ficha que ya
+     existe abre cerrada» de contexto/suite_lawang.md).
+
+     Es OTRA funcion y no `modal()` con campos de tipo `lectura`, por tres cosas
+     que no son de gusto:
+       · `modal()` es un formulario: valida, recoge y guarda. Aqui no hay nada
+         que guardar, y un pie con «Guardar» sobre una ficha que no se edita
+         es una promesa falsa.
+       · id propio (`lw-cajon`): `modal()` arranca con cierraModal(), que borra
+         `#lw-editor`. Si la ficha viviera ahi, pulsar «Editar datos» la
+         cerraria en vez de abrir el formulario encima.
+       · z-index diez por debajo de `--z-modal`: el editor se abre ENCIMA de la
+         ficha y al cerrarse la ficha sigue ahi — el mismo patron que el cajon
+         de /v4/proyectos/ con su editor de parcela.
+
+     La PIEL es la de `modal()` (CAJ, FUENTE, banda de cabecera, tarjetas de
+     radio 12, pie fijo), medida del cajon de proyecto y no reinventada.
+
+     Los clics se paran en la raiz del cajon: `maqueta.js` delega en `document`
+     y anunciaria cada boton de aqui como «sin cablear» encima de lo que el
+     boton ya hizo. Pararlos aqui, una vez, evita repetir `stopPropagation` en
+     cada accion de cada ficha. */
+  function cierraCajon() {
+    var c = document.getElementById('lw-cajon');
+    if (!c) return;
+    var p = c.querySelector('[data-c="panel"]'), f = c.querySelector('[data-c="fondo"]');
+    if (p) p.style.transform = 'translateX(100%)';
+    if (f) f.style.opacity = '0';
+    if (c._teclas) document.removeEventListener('keydown', c._teclas);
+    var alCerrar = c._alCerrar; c._alCerrar = null;
+    setTimeout(function () { if (c.parentNode) c.remove(); }, 260);
+    if (typeof alCerrar === 'function') alCerrar();
+  }
+  function cajon(o) {
+    o = o || {};
+    var viejo = document.getElementById('lw-cajon');
+    if (viejo) { viejo._alCerrar = null; viejo.remove(); }
+    var w = document.createElement('div');
+    w.id = 'lw-cajon';
+    var z = 'calc(var(--z-modal,400) - 10)';
+    var cajaPanel = 'position:fixed;top:0;right:0;height:100%;width:' + (o.ancho || 'min(720px,96vw)') + ';' +
+      'background:' + CAJ.papel + ';border-left:1px solid ' + CAJ.borde + ';z-index:' + z + ';' +
+      'box-shadow:0 25px 50px -12px rgba(0,0,0,.25);display:flex;flex-direction:column;' +
+      'transform:translateX(100%);transition:transform .3s ease-in-out;' + FUENTE;
+    var cajaCabecera = 'display:flex;justify-content:space-between;align-items:flex-start;gap:16px;' +
+      'padding:20px 24px;background:' + CAJ.banda + ';border-bottom:1px solid ' + CAJ.borde + ';flex-shrink:0';
+    var cajaCuerpo = 'flex:1;overflow:auto;padding:20px 24px;min-height:0;display:grid;gap:14px;align-content:start';
+    var cajaPie = 'display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px 24px;' +
+      'border-top:1px solid ' + CAJ.borde + ';background:' + CAJ.banda + ';flex-shrink:0';
+    var estiloBoton = function (a) {
+      var base = 'padding:11px 18px;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;';
+      if (a.tono === 'primario') return base + 'flex:1;justify-content:center;border:0;background:' + CAJ.lago + ';color:#fff;letter-spacing:.02em';
+      if (a.tono === 'peligro') return base + 'border:1px solid #9E2F26;background:' + CAJ.papel + ';color:#9E2F26;margin-left:auto';
+      return base + 'border:1px solid ' + CAJ.borde + ';background:' + CAJ.papel + ';color:' + CAJ.tinta;
+    };
+    w.innerHTML =
+      '<div data-c="fondo" style="position:fixed;inset:0;background:rgba(0,0,0,.3);backdrop-filter:blur(2px);z-index:calc(' + z + ' - 1);transition:opacity .3s ease-in-out;opacity:0"></div>' +
+      '<aside role="dialog" aria-modal="true" aria-label="' + esc(o.titulo || 'Ficha') + '" data-c="panel" style="' + cajaPanel + '">' +
+      '<div style="' + cajaCabecera + '"><div style="min-width:0">' +
+      (o.sub ? '<p style="margin:0 0 5px;font-weight:600;font-size:11px;line-height:1.3;letter-spacing:.12em;text-transform:uppercase;color:' + CAJ.hoja + '">' + esc(o.sub) + '</p>' : '') +
+      "<h3 style=\"margin:0;font:700 25px/1.2 'Neue Kabel',sans-serif;letter-spacing:-.01em;color:" + CAJ.lago + ";overflow-wrap:anywhere\">" + esc(o.titulo || '') + '</h3>' +
+      (o.bajoTitulo ? '<p style="margin:6px 0 0;font-size:13px;color:' + CAJ.apagado + '">' + esc(o.bajoTitulo) + '</p>' : '') +
+      '</div><button type="button" data-c="cerrar" aria-label="Cerrar" style="border:0;background:none;font-size:22px;cursor:pointer;color:#75786e;line-height:1">×</button></div>' +
+      '<div data-c="cuerpo" style="' + cajaCuerpo + '">' + (o.cuerpo || '') + '</div>' +
+      '<div data-c="pie" style="' + cajaPie + '"></div></aside>';
+    var pie = w.querySelector('[data-c="pie"]');
+    (o.acciones || []).forEach(function (a) {
+      var b;
+      if (a.href) {
+        b = document.createElement('a'); b.href = a.href;
+        if (a.nuevaPestana) { b.target = '_blank'; b.rel = 'noopener'; }
+      } else { b = document.createElement('button'); b.type = 'button'; }
+      b.textContent = a.texto;
+      b.style.cssText = estiloBoton(a);
+      if (a.cerrar) b.addEventListener('click', cierraCajon);
+      else if (typeof a.onClick === 'function') b.addEventListener('click', function (ev) { a.onClick(ev, w); });
+      pie.appendChild(b);
+    });
+    // Un cajon sin acciones lleva al menos «Cerrar»: la X de arriba no basta
+    // en movil, donde el pulgar vive abajo.
+    if (!(o.acciones || []).some(function (a) { return a.cerrar; })) {
+      var bc = document.createElement('button'); bc.type = 'button'; bc.textContent = 'Cerrar';
+      bc.style.cssText = estiloBoton({}); bc.addEventListener('click', cierraCajon); pie.appendChild(bc);
+    }
+    w.querySelector('[data-c="cerrar"]').addEventListener('click', cierraCajon);
+    w.querySelector('[data-c="fondo"]').addEventListener('click', cierraCajon);
+    // Parar aqui lo que ya se atendio dentro (ver cabecera del bloque).
+    w.addEventListener('click', function (ev) {
+      if (ev.target.closest && ev.target.closest('button, a')) ev.stopPropagation();
+    });
+    w._alCerrar = o.alCerrar || null;
+    w._teclas = function (ev) {
+      // Con el editor abierto encima, Escape es del editor (que hoy no lo
+      // escucha): no se le cierra la ficha por debajo sin querer.
+      if (ev.key === 'Escape' && !document.getElementById('lw-editor')) cierraCajon();
+    };
+    document.addEventListener('keydown', w._teclas);
+    document.body.appendChild(w);
+    var panel = w.querySelector('[data-c="panel"]'), fondo = w.querySelector('[data-c="fondo"]');
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { panel.style.transform = 'translateX(0)'; fondo.style.opacity = '1'; });
+    });
+    return { el: w, cuerpo: w.querySelector('[data-c="cuerpo"]'), pie: pie, cierra: cierraCajon };
+  }
+  /* Piezas con las que una pantalla compone el cuerpo del cajon. Devuelven
+     HTML ya escapado: el texto entra crudo y sale seguro. `html:1` en `dato`
+     es la unica puerta para meter marcado (una etiqueta de estado, un
+     enlace), y quien la usa escapa el mismo. */
+  var CAJON_HTML = {
+    seccion: function (titulo, inner, id) {
+      return '<section' + (id ? ' data-cajon-sec="' + esc(id) + '"' : '') + ' style="background:' + CAJ.banda + ';border:1px solid ' + CAJ.borde + ';border-radius:12px;padding:12px 14px">' +
+        '<h4 style="margin:0 0 8px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:' + CAJ.hoja + '">' + esc(titulo) + '</h4>' +
+        '<div style="display:grid;gap:6px">' + (inner || '') + '</div></section>';
+    },
+    dato: function (etq, valor, opts) {
+      var v = (valor == null || valor === '') ? '<span style="color:' + CAJ.apagado + '">—</span>' : ((opts && opts.html) ? valor : esc(valor));
+      return '<div style="display:flex;justify-content:space-between;gap:14px;padding:6px 0;border-bottom:1px solid rgba(228,220,203,.7);font-size:13px">' +
+        '<span style="color:' + CAJ.apagado + ';font-weight:500;flex:0 0 38%">' + esc(etq) + '</span>' +
+        '<span style="color:' + CAJ.tinta + ';font-weight:500;text-align:right;overflow-wrap:anywhere;min-width:0">' + v + '</span></div>';
+    },
+    tabla: function (cabeceras, filas) {
+      return '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr>' +
+        cabeceras.map(function (h) { return '<th style="text-align:left;padding:6px 8px;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:' + CAJ.apagado + ';border-bottom:1px solid ' + CAJ.borde + '">' + esc(h) + '</th>'; }).join('') +
+        '</tr></thead><tbody>' +
+        filas.map(function (f) { return '<tr>' + f.map(function (c) { return '<td style="padding:7px 8px;border-bottom:1px solid rgba(228,220,203,.7);color:' + CAJ.tinta + ';vertical-align:top">' + c + '</td>'; }).join('') + '</tr>'; }).join('') +
+        '</tbody></table></div>';
+    },
+    tag: function (texto, tono) {
+      var c = { ok: ['#E4F0DA', '#3F5230'], espera: ['#FBF3E4', '#8A6A34'], mal: ['#FFDAD6', '#93000A'] }[tono] || ['#EAE8E2', CAJ.tinta];
+      return '<span style="display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;background:' + c[0] + ';color:' + c[1] + '">' + esc(texto) + '</span>';
+    },
+    chips: function (lista) {
+      return '<div style="display:flex;flex-wrap:wrap;gap:6px">' + lista.map(function (x) {
+        return '<span style="padding:3px 10px;border-radius:999px;background:' + CAJ.papel + ';border:1px solid ' + CAJ.borde + ';font-size:12px;color:' + CAJ.tinta + '">' + esc(x) + '</span>';
+      }).join('') + '</div>';
+    },
+    nota: function (texto, html) {
+      return '<p style="margin:0;font-size:12.5px;line-height:1.5;color:#8A6A34;background:#FBF3E4;border:1px solid #EBDCB4;border-radius:10px;padding:9px 12px">' + (html ? texto : esc(texto)) + '</p>';
+    },
+    enlace: function (href, texto, nuevaPestana) {
+      return '<a href="' + esc(href) + '"' + (nuevaPestana ? ' target="_blank" rel="noopener"' : '') + ' style="color:' + CAJ.lago + ';font-weight:600;text-decoration:underline">' + esc(texto) + '</a>';
+    }
+  };
+  window.lwCajon = cajon;
+  window.lwCierraCajon = cierraCajon;
+  window.lwCajonHtml = CAJON_HTML;
+  /* Un UPDATE o un DELETE que la policy filtra no da error: devuelve 0 filas y
+     el editor diria «guardado» sobre nada (reference_supabase_grant_manda_
+     antes_que_la_policy). Todo lo que escribe con `.select('id')` pasa por
+     aqui y convierte el silencio en un mensaje. */
+  function unaFila(r) {
+    if (r && r.error) return r;
+    if (!(r && r.data && r.data.length)) {
+      return { error: { message: 'la base no ha cambiado ninguna fila — la policy no deja tocarla con tu sesión.' } };
+    }
+    return r;
+  }
+
   /* Owner, 14-sep-2026: «si da algun error el pop up ponlo en el centro y en
      rojo, que destaque que ha habido algun problema».
 
@@ -948,7 +1111,12 @@
     return Promise.resolve(p).then(function (r) {
       if (r && r.error) return r;
       if (!r || !r.data || !r.data.length) {
-        return { error: { message: queNoPaso + ' — no tienes permiso para editar cuentas de cobro (el gate es la policy es_super_admin, no esta pantalla).' } };
+        /* CERO filas tiene DOS causas y desde fuera no se distinguen: la RLS te
+           deniega, o la fila ya no estaba (otro super admin la movio antes). Se
+           dicen las dos — afirmar solo la primera mandaba a pedir permisos a quien
+           ya los tiene. La pantalla se refresca al volver de aqui, asi que reabrir
+           el cajon enseña como esta de verdad. */
+        return { error: { message: queNoPaso + ': o no tienes permiso (el gate es la policy es_super_admin, no esta pantalla), o alguien lo cambió antes que tú. Se ha refrescado la pantalla — cierra el cajón y vuelve a abrirlo para ver cómo está ahora.' } };
       }
       return r;
     });
@@ -1047,13 +1215,20 @@
             /* Cuantas cuentas ofrece HOY este contrato, en su propia fila: es lo
                que contesta «¿puedo quitar esta sin dejarlo sin ninguna?» sin
                abrir las otras quince fichas. */
-            var pista = !filas.length ? 'ahora mismo no ofrece ninguna cuenta'
-              : filas.length + (filas.length === 1 ? ' cuenta · ' : ' cuentas · ') +
-                (otraDef ? 'precargada: ' + etqDe(otraDef.clave) : esDef ? 'precargada: esta' : 'sin precargada');
-            return '<div data-pl="' + esc(p.slug) + '" style="padding:8px 0;border-top:1px solid ' + CAJ.borde + '">' +
+            /* `otras` = las que ofrece SIN contar esta, para poder recalcular la
+               pista en vivo al marcar y desmarcar. Antes se calculaba una sola vez
+               al abrir: decia «2 cuentas» mientras la dejabas en 0, y este era el
+               UNICO camino que llegaba a dejar un contrato que cobra sin ninguna
+               cuenta y sin el aviso rojo que si trae `montaReparto` — justo lo que
+               el panel existe para evitar, por la puerta de atras (Desarrollo,
+               consulta de deploy del 18-sep). */
+            var otras = filas.filter(function (x) { return x.clave !== clave; }).length;
+            return '<div data-pl="' + esc(p.slug) + '" data-cobra="' + (p.cobra ? '1' : '0') + '"' +
+              ' data-otras="' + otras + '" data-otradef="' + esc(otraDef ? etqDe(otraDef.clave) : '') + '"' +
+              ' style="padding:8px 0;border-top:1px solid ' + CAJ.borde + '">' +
               '<div style="font-weight:500;font-size:13px;color:' + CAJ.tinta + '">' + esc(p.nombre || p.slug) +
                 (p.archivada ? ' <span style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#8A8474">archivado</span>' : '') + '</div>' +
-              '<div style="font-weight:400;font-size:12px;color:#8A8474;margin:1px 0 5px">' + esc(pista) + '</div>' +
+              '<div data-e="pista" style="font-weight:400;font-size:12px;margin:1px 0 5px"></div>' +
               '<div style="display:flex;gap:16px;align-items:center;font-weight:500;font-size:12.5px;color:' + CAJ.tinta + '">' +
                 '<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-ofrece' +
                   (marcada ? ' checked' : '') + '>se ofrece aquí</label>' +
@@ -1063,15 +1238,31 @@
           }).join(''));
     host.appendChild(caja);
 
-    caja.addEventListener('change', function () {
+    function repintaFilas() {
       caja.querySelectorAll('[data-pl]').forEach(function (fila) {
         var of = fila.querySelector('[data-ofrece]'), pre = fila.querySelector('[data-pre]');
         pre.disabled = !of.checked;
         // precargar una cuenta que el contrato ya no ofrece imprimiria un destino
         // de pago que su propio desplegable no admite
         if (!of.checked) pre.checked = false;
+        var n = Number(fila.getAttribute('data-otras')) + (of.checked ? 1 : 0);
+        var cobra = fila.getAttribute('data-cobra') === '1';
+        var otraDef = fila.getAttribute('data-otradef');
+        var t = fila.querySelector('[data-e="pista"]');
+        if (!n) {
+          t.textContent = cobra
+            ? 'Se quedaría sin NINGUNA cuenta: quien abra el documento encuentra vacío el desplegable de destino de pago.'
+            : 'no ofrece ninguna cuenta';
+          t.style.color = cobra ? '#9E2F26' : '#8A8474';
+        } else {
+          t.style.color = '#8A8474';
+          t.textContent = n + (n === 1 ? ' cuenta · ' : ' cuentas · ') +
+            (pre.checked ? 'precargada: esta' : otraDef ? 'precargada: ' + otraDef : 'sin precargada');
+        }
       });
-    });
+    }
+    caja.addEventListener('change', repintaFilas);
+    repintaFilas();
 
     return function lee() {
       var cambios = [];
@@ -2612,6 +2803,56 @@
           });
         });
       });
+
+      /* EDITAR una ficha, desde su cajon (18-sep-2026). Quien puede lo decide la
+         base, no esta pantalla: `admins actualizan clientes` (cualquier ficha) o
+         `el autor corrige su ficha mientras no este firmada`. Por eso el UPDATE
+         lleva `.select('id')` + unaFila: si la policy lo filtra, la base devuelve
+         0 filas SIN error y sin eso el cajon diria «guardado». Al editar NO se
+         exigen los seis datos del alta (decision explicita de la herramienta
+         clasica: hay 200 fichas antiguas sin nacionalidad ni pasaporte). */
+      window.LW_V4.abreEditaComprador = function (c) {
+        if (!c) return aviso('La ficha aún no ha cargado.', '#8A6A34');
+        var tel = /^(\+\d{1,4})\s*(.*)$/.exec(String(c.phone || '').trim());
+        var esEmpresa = c.tipo === 'empresa';
+        modal('Editar datos — ' + (c.full_name || ''), [
+          { k: 'tipo', label: 'Tipo de comprador', tipo: 'select', medio: 1, valor: c.tipo || 'persona',
+            opciones: [['persona', 'Persona física'], ['empresa', 'Empresa']] },
+          { k: 'kyc_status', label: 'Estado KYC', tipo: 'select', medio: 1, valor: c.kyc_status || 'pending',
+            opciones: [['pending', 'Pendiente'], ['submitted', 'En revisión'], ['verified', 'Aprobado'], ['rejected', 'Rechazado']] },
+          { k: 'full_name', label: esEmpresa ? 'Razón social' : 'Nombre completo', req: 1, valor: c.full_name || '' },
+          { k: 'email', label: 'Email', tipo: 'email', valor: c.email || '',
+            ayuda: 'Solo de contacto: cambiarlo NO cambia con qué email entra al portal.' },
+          { k: 'prefijo', label: 'Prefijo del teléfono', medio: 1, valor: tel ? tel[1] : '', ayuda: '+34, +62, +61…' },
+          { k: 'telefono', label: 'Teléfono', medio: 1, valor: tel ? tel[2] : (c.phone || '') },
+          { k: 'nationality', label: esEmpresa ? 'País de constitución' : 'Nacionalidad', medio: 1, valor: c.nationality || '' },
+          { k: 'passport_number', label: esEmpresa ? 'Identificación fiscal' : 'Pasaporte / NPWP', medio: 1, valor: c.passport_number || '',
+            ayuda: 'Es lo que se imprime en el contrato.' },
+          { k: 'idioma_comunicacion', label: 'Idioma de comunicación', tipo: 'select', valor: c.idioma_comunicacion || 'es',
+            opciones: [['es', 'Español'], ['en', 'English'], ['id', 'Bahasa Indonesia']] },
+          { k: 'forma_juridica', label: 'Forma jurídica (solo empresa)', medio: 1, valor: c.forma_juridica || '', ayuda: 'S.L., LLC, PT PMA, GmbH…' },
+          { k: 'registro_num', label: 'Nº de registro mercantil (solo empresa)', medio: 1, valor: c.registro_num || '' },
+          { k: 'rep_nombre', label: 'Representante legal (solo empresa)', medio: 1, valor: c.rep_nombre || '' },
+          { k: 'rep_cargo', label: 'Cargo del representante (solo empresa)', medio: 1, valor: c.rep_cargo || '' },
+          { k: 'notes', label: 'Notas', tipo: 'textarea', valor: c.notes || '' },
+          { tipo: 'nota', label: 'Si esta ficha cuelga de un contrato ya FIRMADO, su pasaporte y domicilio están impresos en ese documento y la base rechazará el cambio: es cosa de un administrador.' }
+        ], 'Guardar datos', function (v) {
+          if (v.prefijo && !/^\+\d{1,4}$/.test(v.prefijo)) return { error: { message: 'El prefijo va con «+» y solo dígitos: +34, +62…' } };
+          var patch = {
+            tipo: v.tipo, kyc_status: v.kyc_status,
+            full_name: v.full_name.trim(), email: v.email.trim() || null,
+            phone: v.telefono ? ((v.prefijo ? v.prefijo + ' ' : '') + v.telefono.trim()) : null,
+            nationality: v.nationality.trim() || null, passport_number: v.passport_number.trim() || null,
+            idioma_comunicacion: v.idioma_comunicacion || 'es',
+            forma_juridica: v.tipo === 'empresa' ? (v.forma_juridica.trim() || null) : null,
+            registro_num: v.tipo === 'empresa' ? (v.registro_num.trim() || null) : null,
+            rep_nombre: v.tipo === 'empresa' ? (v.rep_nombre.trim() || null) : null,
+            rep_cargo: v.tipo === 'empresa' ? (v.rep_cargo.trim() || null) : null,
+            notes: v.notes.trim() || null
+          };
+          return sb.from('clients').update(patch).eq('id', c.id).select('id').then(unaFila);
+        });
+      };
     },
 
     usuarios: function (aut) {
@@ -2621,13 +2862,20 @@
       var ETIQ_ROL = { agente: 'Agente', sales_manager: 'Sales manager', project_manager: 'Project manager', admin: 'Administrador', super_admin: 'Super admin' };
       var ROLES_ED = ['agente', 'sales_manager', 'project_manager', 'admin'].concat(aut.ficha.rol === 'super_admin' ? ['super_admin'] : []);
       var miEmail = ((aut.session && aut.session.user && aut.session.user.email) || '').toLowerCase();
+      window.LW_V4 = window.LW_V4 || {};
+      // una sola lista de roles: datos.js la LEE de aqui para pintar la ficha
+      window.LW_V4.ETIQ_ROL = ETIQ_ROL;
 
-      ata(/^Modificar rol$/i, function () {
+      /* 18-sep-2026: ya no se atan por TEXTO a los botones del panel fijo de la
+         derecha («Modificar rol» / «Cambiar contraseña»), que se retiro con el
+         panel. Son funciones que abre el cajon de ficha de cada usuario
+         (datos.js), con el usuario que se esta mirando — no «el primero de la
+         lista», que era lo que aquel panel enseñaba sin decirlo. */
+      window.LW_V4.abreEditaUsuario = function (u) {
         if (!(esAdmin(aut.ficha) && puedeH(aut.ficha, 'usuarios'))) {
           return aviso('Tocar roles exige administración con la herramienta Usuarios (la policy lo exige igual que este aviso).', '#8A6A34');
         }
-        var u = window.LW_V4 && window.LW_V4.usuario;
-        if (!u) return aviso('El perfil aún no ha cargado.', '#8A6A34');
+        if (!u) return aviso('La ficha aún no ha cargado.', '#8A6A34');
         var yoMismo = miEmail && (u.email || '').toLowerCase() === miEmail;
         var soySuper = aut.ficha.rol === 'super_admin';
         // un admin no toca a un super_admin, y nadie se quita a sí mismo el
@@ -2672,20 +2920,21 @@
             /* la proteccion real vive en la policy (super_admin intocable salvo
                super_admin, es_admin AND puede) — si esto falla por RLS, ese ES
                el mensaje, no un fallo del editor */
-            return sb.from('usuarios').update(patch).eq('email', u.email);
+            // `.select()` + unaFila: un UPDATE que la policy filtra devuelve 0
+            // filas SIN error, y el editor diria «guardado» sobre nada.
+            return sb.from('usuarios').update(patch).eq('email', u.email).select('user_id').then(unaFila);
           });
         });
-      });
+      };
 
       // mismo endpoint que cambiarPassword() en /intranet/usuarios/: la Edge
       // Function admin-usuarios, nunca auth.admin desde el navegador (no hay
       // service_role en cliente — revision previa Datos+Seguridad)
-      ata(/^Cambiar contraseña$/i, function () {
+      window.LW_V4.abreCambiaPassword = function (u) {
         if (!(esAdmin(aut.ficha) && puedeH(aut.ficha, 'usuarios'))) {
           return aviso('Cambiar contraseñas exige administración con la herramienta Usuarios.', '#8A6A34');
         }
-        var u = window.LW_V4 && window.LW_V4.usuario;
-        if (!u) return aviso('El perfil aún no ha cargado.', '#8A6A34');
+        if (!u) return aviso('La ficha aún no ha cargado.', '#8A6A34');
         if (u.rol === 'super_admin' && aut.ficha.rol !== 'super_admin') {
           return aviso('Solo un super admin puede modificar la cuenta de otro super admin.', '#8A6A34');
         }
@@ -2709,7 +2958,7 @@
               else aviso('No se pudo: ' + ((d && d.error) || ''), '#93000a');
             });
         });
-      });
+      };
     },
 
     /* Equipos de venta y Condiciones (14-sep-2026, encargo del owner) — dos
@@ -2761,6 +3010,44 @@
           { k: 'hasta', label: 'Fecha de baja', tipo: 'date', req: 1, valor: new Date().toISOString().slice(0, 10) }
         ], 'Dar de baja', function (v) {
           return sb.from('equipo_miembros').update({ hasta: v.hasta }).eq('id', miembroId);
+        });
+      };
+
+      /* 18-sep-2026, owner: «permíteme editar equipos o closers por si puse
+         algo mal». Dos UPDATE con `.select('id')` + unaFila, por lo de siempre:
+         la policy `es_admin()` filtra en silencio. Los datos actuales vienen
+         en los `data-*` del boton, que es lo que la fila ya sabe — sin volver
+         a consultar para abrir un cajon. */
+      window.LW_V4.abreEditaEquipo = function (b) {
+        if (!admin) return soloAdmin();
+        var id = b.getAttribute('data-lw-edita-equipo');
+        modal('Editar equipo — ' + (b.getAttribute('data-lw-nombre') || ''), [
+          { k: 'nombre', label: 'Nombre del equipo', req: 1, valor: b.getAttribute('data-lw-nombre') || '' },
+          { k: 'manager_email', label: 'Email del manager', tipo: 'email', req: 1, valor: b.getAttribute('data-lw-manager') || '',
+            ayuda: 'la persona que gestiona el reparto del equipo; cambiarlo cambia quién ve sus condiciones de nivel manager' }
+        ], 'Guardar equipo', function (v) {
+          return sb.from('equipos_venta').update({
+            nombre: v.nombre.trim(), manager_email: v.manager_email.trim().toLowerCase()
+          }).eq('id', id).select('id').then(unaFila);
+        });
+      };
+
+      window.LW_V4.abreEditaMiembro = function (b) {
+        if (!admin) return soloAdmin();
+        var id = b.getAttribute('data-lw-edita-miembro');
+        var equipos = (window.LW_V4.equiposLista || []);
+        modal('Editar miembro — ' + (b.getAttribute('data-lw-email') || ''), [
+          { k: 'equipo_id', label: 'Equipo', tipo: 'select', req: 1, valor: b.getAttribute('data-lw-equipo') || '', opciones: equipos },
+          { k: 'closer_email', label: 'Email del closer', tipo: 'email', req: 1, valor: b.getAttribute('data-lw-email') || '',
+            ayuda: 'Es la clave con la que se le atribuyen ventas y comisiones: si estaba mal escrito, corregirlo aquí las reengancha.' },
+          { k: 'desde', label: 'Desde', tipo: 'date', req: 1, medio: 1, valor: b.getAttribute('data-lw-desde') || '' },
+          { k: 'hasta', label: 'Hasta (opcional)', tipo: 'date', medio: 1, valor: b.getAttribute('data-lw-hasta') || '', ayuda: 'vacío = sigue activo' }
+        ], 'Guardar miembro', function (v) {
+          if (v.hasta && v.hasta < v.desde) return { error: { message: '«Hasta» no puede ser anterior a «Desde».' } };
+          return sb.from('equipo_miembros').update({
+            equipo_id: v.equipo_id, closer_email: v.closer_email.trim().toLowerCase(),
+            desde: v.desde, hasta: v.hasta || null
+          }).eq('id', id).select('id').then(unaFila);
         });
       };
 
@@ -2877,6 +3164,29 @@
           });
         });
       });
+
+      /* BORRAR (18-sep-2026, owner: «permíteme borrar condiciones que no
+         quiera»). Los tramos caen en cascada (FK). Las comisiones YA devengadas
+         NO: su FK es NO ACTION, asi que si las hay la base rechaza el DELETE —
+         se mira antes y se dice en claro, en vez de dejar que salga el error
+         de clave foranea. Sin papelera: por eso «Desactivar» sigue al lado. */
+      window.LW_V4.abreBorraCondicion = function (b) {
+        if (!admin) return soloAdmin();
+        var id = b.getAttribute('data-lw-borra-cond'), etq = b.getAttribute('data-lw-etq') || '';
+        sb.from('comisiones_devengadas').select('id', { count: 'exact', head: true }).eq('condicion_id', id).then(function (r) {
+          var n = r.error ? 0 : (r.count || 0);
+          if (n) {
+            return modal('No se puede borrar — ' + etq, [
+              { tipo: 'nota', label: 'Esta condición ya ha devengado ' + n + (n === 1 ? ' comisión' : ' comisiones') + ' que la citan: la base no deja borrarla. Desactívala en su lugar — deja de aplicarse a lo nuevo y lo devengado se conserva.' }
+            ], 'Entendido', function () { return Promise.resolve({}); }, { sinRecarga: true });
+          }
+          modal('Borrar condición — ' + etq, [
+            { tipo: 'nota', label: 'Se borra la condición con sus tramos. No hay papelera: si la vuelves a necesitar habrá que crearla de nuevo. Si solo quieres que deje de aplicarse, usa «Desactivar».' }
+          ], 'Borrar definitivamente', function () {
+            return sb.from('condiciones_comision').delete().eq('id', id).select('id').then(unaFila);
+          });
+        });
+      };
 
       window.LW_V4.abreToggleCondicion = function (condId, etiqueta, activoActual) {
         if (!admin) return soloAdmin();
@@ -3162,14 +3472,18 @@
         var p = d.plantillas.filter(function (x) { return x.slug === slug; })[0];
         if (!p) return sinDatos();
         var filas = d.reparto.filter(function (x) { return x.slug === slug; });
-        var u = d.usoTipo[slug];
+        var u = d.usoTipo && d.usoTipo[slug];
         var lee = null;
 
         var encabezado = '<div style="font-weight:400;font-size:12.5px;line-height:1.5;color:#44483f">' +
           '<b>' + esc(p.slug) + '</b> · ' +
           (u ? esc(u.contratos + ' contratos emitidos, ' + u.firmados + ' firmados') +
                (u.ultimo ? ' · último ' + esc(new Date(u.ultimo).toLocaleDateString('es-ES')) : '')
-             : 'sin usar todavía') + '</div>';
+             /* «no he podido mirarlo» y «no se usa» se parecen en pantalla y solo
+                una es cierta: archivar un tipo creyendo que no se usa es justo la
+                decision que esta cifra sostiene. */
+             : (d.usoTipo === null ? '<span style="color:#93000a">no se ha podido leer cuántos contratos hay de este tipo</span>'
+                                   : 'sin usar todavía')) + '</div>';
 
         var campos = [
           { k: 'archivada', tipo: 'check', valor: p.archivada,
@@ -3202,10 +3516,13 @@
             var ahora = lee();
             pasos.push(function () { return guardaReparto(sb, 'plantilla_cuentas', { slug: slug }, filas, ahora); });
           }
+          /* `recarga()` va en las DOS ramas. Si solo fuera en la buena, tras un
+             fallo a media cadena el cajon seguiria diffeando contra los datos de
+             antes, y el segundo intento borraria una fila ya borrada — cero filas,
+             que se leeria como «no tienes permiso». */
           return enCadena(pasos).then(function (r) {
-            if (r && r.error) return r;
             recarga();
-            return null;
+            return (r && r.error) ? r : null;
           });
         }, { sub: 'Reparto por contrato', encabezado: encabezado, sinRecarga: true });
       };
@@ -3290,9 +3607,8 @@
                 return guardaReparto(sb, 'proyecto_cuentas', { proyecto_id: id, slug: e.slug }, e.antes, e.ahora);
               };
             })).then(function (r) {
-              if (r && r.error) return r;
-              recarga();
-              return null;
+              recarga();                     // en las dos ramas: ver la nota de «por contrato»
+              return (r && r.error) ? r : null;
             });
           });
         }, { sub: 'Excepción por proyecto', sinRecarga: true });
@@ -3307,7 +3623,7 @@
         var c = d.cuentas.filter(function (x) { return x.clave === clave; })[0];
         if (!c) return sinDatos();
         var nota = lwNotaCuenta.lee(c.extra);
-        var u = d.uso[clave];
+        var u = d.uso && d.uso[clave];
         var leeRep = null;
 
         /* Que hay YA EMITIDO con esta cuenta, con la cifra, encima de los campos
@@ -3318,7 +3634,12 @@
           'clave <b>' + esc(clave) + '</b> — no se cambia nunca: va dentro de cada contrato y cada factura ya emitidos.' +
           (c.actualizado_en ? '<br>última edición ' + esc(new Date(c.actualizado_en).toLocaleDateString('es-ES')) : '') +
           '</div>' +
-          (u && u.contratos
+          (d.uso === null
+            /* Sin cifra NO se calla la advertencia: se edita el titular o el numero
+               de una cuenta que puede estar impresa en contratos firmados. */
+            ? '<div style="margin-top:8px;font-weight:400;font-size:12.5px;line-height:1.5;padding:10px 12px;border-radius:10px;' +
+              'color:#93000a;background:#ffdad6;border:1px solid #f5b8b2">No se ha podido comprobar en cuántos contratos está esta cuenta ni cuántos hay firmados. Si los hay, cambiar el titular, el número o la casilla ESCROW cambia lo que imprimen al reabrirlos.</div>'
+            : u && u.contratos
             ? '<div style="margin-top:8px;font-weight:400;font-size:12.5px;line-height:1.5;padding:10px 12px;border-radius:10px;' +
               (u.firmados ? 'color:#93000a;background:#ffdad6;border:1px solid #f5b8b2' : 'color:#8A6A34;background:#FBF3E4;border:1px solid #EBDCB4') + '">' +
               (u.firmados
@@ -3339,9 +3660,9 @@
           { k: 'nota_id', tipo: 'textarea', valor: nota.id, label: 'Nota — ID', medio: 1 },
           { tipo: 'nota', label: 'Si solo rellenas ES, se imprime ese texto en los tres idiomas. En cuanto pongas EN o ID, cada idioma imprime el suyo.' },
           { k: 'es_escrow', tipo: 'check', valor: c.es_escrow, label: 'Es una cuenta ESCROW (depósito en garantía)',
-            ayuda: 'Añade sola al contrato la fila «Naturaleza de la cuenta — depósito en garantía». Márcala solo donde el documento lo pacte de verdad.' },
+            ayuda: 'Añade o quita sola en el contrato la fila «Naturaleza de la cuenta — depósito en garantía». Va en los DOS sentidos y alcanza a lo ya emitido: al reimprimir un contrato firmado con esta cuenta, marcarla le mete una cláusula que no pactó y desmarcarla le quita una que sí pactó. Tócala solo si está mal puesta.' },
           { k: 'activa', tipo: 'check', valor: c.activa, label: 'Activa',
-            ayuda: 'Desactivarla la retira de todos los desplegables. Los contratos ya emitidos con ella la conservan impresa; no se borra nunca.' },
+            ayuda: '⚠️ Desactivarla la retira de todos los desplegables, y además los contratos y facturas ya emitidos con ella salen SIN el bloque de datos bancarios al reabrirlos o reimprimirlos, sin ningún aviso (verificado el 18-sep: entities.js carga solo las activas y la tabla se omite entera si falta la clave). La fila no se borra y reactivarla lo devuelve todo. Si la cuenta está en documentos emitidos, déjala activa y quítala del reparto.' },
           { tipo: 'custom', render: function (host) { leeRep = montaRepartoPorCuenta(host, d, clave); } }
         ], 'Guardar cambios', function (v) {
           /* `clave` NO va en el update, a proposito. Y cada escritura pasa por
@@ -3361,10 +3682,13 @@
               });
             });
           }
+          /* `recarga()` va en las DOS ramas. Si solo fuera en la buena, tras un
+             fallo a media cadena el cajon seguiria diffeando contra los datos de
+             antes, y el segundo intento borraria una fila ya borrada — cero filas,
+             que se leeria como «no tienes permiso». */
           return enCadena(pasos).then(function (r) {
-            if (r && r.error) return r;
             recarga();
-            return null;
+            return (r && r.error) ? r : null;
           });
         }, { sub: 'Cuenta de cobro', encabezado: encabezado, sinRecarga: true });
       };

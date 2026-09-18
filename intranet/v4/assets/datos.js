@@ -20,7 +20,21 @@
 
   var seg = location.pathname.replace(/\/(index\.html)?$/, '').split('/').pop();
 
-  function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+  /* 🔴 18-sep-2026 — `.textContent` → `.innerHTML` escapa `&`, `<` y `>` pero NO la
+     comilla doble, y este `esc()` se usa DENTRO de atributos en 18 sitios
+     (`data-lw-etq="' + esc(nombre) + '"`, `<option value="' + esc(id) + '">`…).
+     Un nombre de proyecto con una comilla cierra el atributo y cuelga un
+     `onclick` del botón de al lado — y `proyectos.nombre` lo escribe cualquier
+     `es_admin()`, mientras que el botón que queda envenenado abre el editor de
+     `cuentas_bancarias`, que solo toca un super_admin: el número al que
+     transfiere el comprador. La CSP del proyecto es Report-Only y lleva
+     'unsafe-inline', así que no frena nada.
+     El `esc()` de editores.js sí escapaba la comilla; este no. Se iguala aquí,
+     en la fuente, y no en cada punto de uso: una lista a mano de "los sitios
+     peligrosos" ES el bug. `&quot;` dentro de texto se pinta como comilla, así
+     que los usos que no son de atributo no cambian de aspecto.
+     Lo cazó Seguridad en la consulta de deploy del 18-sep. */
+  function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML.replace(/"/g, '&quot;'); }
   function fmt(n, m) { return (typeof lwFormatoImporte === 'function') ? lwFormatoImporte(n, m) : (n + ' ' + (m || '')); }
   function tipoC(t) { return (typeof lwTipoContrato !== 'undefined') ? lwTipoContrato(t) : t; }
   function fFecha(x) { if (!x) return '—'; var d = new Date(x); return isNaN(d) ? String(x).slice(0, 10) : d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }); }
@@ -608,32 +622,49 @@
     },
 
     compradores: function (sb) {
-      /* Directorio completo (fase A3). La inversion NO suma contratos
-         preliminares (lwEsPreliminar): la Carta reparte el mismo precio que su
-         Bloqueo y sumarla cuenta la villa dos veces — la regla es de
-         vocabulario.js, no de aqui. El aviso Ficha≠ viene de la vista
-         documentos_desactualizados, igual que en la herramienta viva. */
+      /* Directorio completo (fase A3) y, desde el 18-sep-2026, la FICHA en un
+         cajon propio de la v4 — antes cada fila mandaba a /intranet/compradores/
+         (owner: «si abro un comprador me lleva a la version antigua»).
+
+         La inversion NO suma contratos preliminares (lwEsPreliminar): la Carta
+         reparte el mismo precio que su Bloqueo y sumarla cuenta la villa dos
+         veces — la regla es de vocabulario.js, no de aqui.
+
+         🔴 POR QUE `documentos_desactualizados` YA NO VA EN EL Promise.all
+         (18-sep-2026, owner: «al abrirlo se abre un mock-up y tarda un monton
+         en mostrar datos reales»). Medido en la base: esa vista tarda 12,7 s,
+         porque `diferencias_con_ficha()` descomprime el jsonb `datos` ENTERO
+         de cada contrato y cada factura (el TOAST de LAW: 97% de `contratos`
+         son blobs). Todo lo demas de esta pantalla vuelve en milisegundos. Y
+         el velo de carga se rinde a los 12 s (shell.css, `lw-rendirse`), asi
+         que justo antes de llegar los datos destapaba la maqueta de Stitch.
+         Ahora la vista se pide DESPUES de pintar, fuera del contador del velo,
+         y su aviso «Ficha ≠» aparece cuando llega. La vista en si no se toca
+         aqui: queda como pendiente de Datos (una columna materializada). */
       var t = tablaPor([/INVERSOR|TITULAR/, /CONTACTO|PA[IÍ]S/]);
       Promise.all([
-        q(sb.from('clients').select('id,full_name,email,phone,nationality,tipo,kyc_status,created_at').order('created_at', { ascending: false }).limit(500), 'compradores', t),
-        q(sb.rpc('contratos_equipo').select('id,tipo,precio_total,moneda,bloqueado'), 'contratos'),
-        q(sb.from('contrato_compradores').select('contrato_id,client_id'), 'vinculos'),
+        q(sb.from('clients').select('id,full_name,email,phone,nationality,passport_number,tipo,forma_juridica,registro_num,rep_nombre,rep_cargo,kyc_status,idioma_comunicacion,notes,propietario,created_at').order('created_at', { ascending: false }).limit(500), 'compradores', t),
+        q(sb.rpc('contratos_equipo').select('id,numero,tipo,proyecto_nombre,fecha_firma,precio_total,moneda,bloqueado'), 'contratos'),
+        q(sb.from('contrato_compradores').select('contrato_id,client_id,rol'), 'vinculos'),
         vig(sb.rpc('contratos_cobrado_equipo')).then(function (r) { return r.error ? (fallo('cobrado', r.error), null) : (r.data || []); }),
         q(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado').eq('estado', 'pendiente'), 'firmas'),
-        q(sb.from('documentos_desactualizados').select('congelado,diferencias').limit(1000), 'ficha≠')
+        // nombre del agente que dio de alta cada ficha (`clients.propietario` es un email)
+        q(sb.from('usuarios').select('email,nombre'), 'equipo')
       ]).then(function (r) {
-        var cs = r[0], cts = r[1] || [], vin = r[2] || [], cob = r[3] || [], fir = r[4] || [], div = r[5] || [];
+        var cs = r[0], cts = r[1] || [], vin = r[2] || [], cob = r[3] || [], fir = r[4] || [], eq = r[5] || [];
         if (!cs) return;
         var esPre = function (tp) { return (typeof lwEsPreliminar === 'function') && lwEsPreliminar(tp); };
         var porC = {}; cts.forEach(function (c2) { porC[c2.id] = c2; });
         var cobId = {}; cob.forEach(function (x) { cobId[x.contrato_id] = Number(x.cobrado) || 0; });
         var firmaPend = {}; fir.forEach(function (x) { firmaPend[x.contrato_id] = 1; });
+        var nombreEquipo = {}; eq.forEach(function (u) { if (u.email) nombreEquipo[u.email.toLowerCase()] = u.nombre || u.email; });
         var deCliente = {};
         vin.forEach(function (v) {
           var c2 = porC[v.contrato_id]; if (!c2) return;
-          var d = deCliente[v.client_id] = deCliente[v.client_id] || { inv: 0, pag: 0, otras: 0, n: 0, firma: 0 };
+          var d = deCliente[v.client_id] = deCliente[v.client_id] || { inv: 0, pag: 0, otras: 0, n: 0, firma: 0, proys: {} };
           d.n++;
           if (firmaPend[v.contrato_id]) d.firma++;
+          if (c2.proyecto_nombre) d.proys[c2.proyecto_nombre] = 1;
           if ((c2.moneda || 'EUR') !== 'EUR') { d.otras++; }
           else {
             if (!esPre(c2.tipo)) d.inv += Number(c2.precio_total) || 0;
@@ -671,10 +702,196 @@
         pon2('cc-contrato', 'Con contrato (' + conContrato.length + ')');
         pon2('cc-firma', 'En firma (' + enFirma.length + ')');
         pon2('cc-prospectos', 'Sin contrato (' + (cs.length - conContrato.length) + ')');
+        pon2('k-lista-pie', cs.length > 200 ? 'Se enseñan 200 de ' + cs.length + ' compradores — usa el buscador para el resto' : cs.length + (cs.length === 1 ? ' comprador' : ' compradores') + ' · pulsa uno para abrir su ficha');
 
-        // Ficha≠: el control de divergencia de la suite, no puede perderse aqui
-        var difN = div.filter(function (x) { return x.diferencias && x.diferencias.length; }).length;
-        if (difN) bandaNota('Ficha ≠: ' + difN + ' documento(s) emitidos difieren de la ficha del comprador — el detalle vive en la herramienta (/intranet/compradores/).', '#C06C47');
+        /* ================= LA FICHA (cajon compartido de editores.js) ================= */
+        var KYC = { pending: ['Pendiente', 'espera'], submitted: ['En revisión', 'espera'], verified: ['Aprobado', 'ok'], rejected: ['Rechazado', 'mal'] };
+        var IDIOMA = { es: 'Español', en: 'English', id: 'Bahasa Indonesia' };
+        // mismas etiquetas que DOCS en /intranet/compradores/ (alli viven dentro del HTML: no hay fuente compartida que importar)
+        var DOC_TIPO = { passport: 'Pasaporte', npwp: 'NPWP', visa: 'Visado', proof_of_funds: 'Justificante de fondos', proof_of_address: 'Justificante de domicilio', signed_contract: 'Contrato firmado', other: 'Otro' };
+        var TIPO_DOC_FAC = { factura: 'Factura', proforma: 'Proforma', recibi: 'Recibí' };
+        var porId = {}; cs.forEach(function (c2) { porId[c2.id] = c2; });
+
+        function quitaId() {
+          var u2 = new URL(location.href);
+          if (u2.searchParams.has('id')) { u2.searchParams.delete('id'); history.replaceState(null, '', u2.href); }
+        }
+        function seccionEstadoCuentas(vins, H) {
+          if (!vins.length) return H.nota('Sin contrato enlazado todavía.');
+          var suyos = vins.map(function (v) { return porC[v.contrato_id]; });
+          var monedas = {}; suyos.forEach(function (x) { monedas[x.moneda || 'EUR'] = 1; });
+          var lista = Object.keys(monedas);
+          var cobrado = suyos.reduce(function (a, x) { return a + (cobId[x.id] || 0); }, 0);
+          if (lista.length > 1) {
+            return H.nota('Sus contratos están en monedas distintas (' + lista.join(', ') + '): no hay una sola cifra. El detalle por contrato está arriba.') +
+              H.dato('Cobrado (recibís, todas las monedas)', suyos.map(function (x) { return fmt(cobId[x.id] || 0, x.moneda || 'EUR'); }).join(' · '));
+          }
+          var moneda = lista[0];
+          var sumables = suyos.filter(function (x) { return !esPre(x.tipo); });
+          if (!sumables.length) {
+            return H.nota('Solo tiene Carta(s) de Reserva: el precio final de la villa lo fija el contrato que la sustituya. La cuota de reserva sí es exigible — se ve en la herramienta clásica.') +
+              H.dato('Cobrado', fmt(cobrado, moneda));
+          }
+          var precio = sumables.reduce(function (a, x) { return a + (Number(x.precio_total) || 0); }, 0);
+          var pendiente = precio - cobrado;
+          return '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center">' +
+            ['Precio pactado', 'Cobrado', 'Pendiente'].map(function (etq, i) {
+              var v = [precio, cobrado, pendiente][i];
+              var color = i === 1 ? '#3F5230' : (i === 2 && pendiente > 0 ? '#9E2F26' : '#2E3437');
+              return '<div><div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#75786e">' + etq + '</div>' +
+                '<div style="font-size:18px;font-weight:700;color:' + color + '">' + esc(fmt(v, moneda)) + '</div></div>';
+            }).join('') + '</div>' +
+            '<p style="margin:6px 0 0;font-size:11.5px;color:#75786e">Solo cuenta como cobrado el recibí — una factura o proforma es lo que se debe, no lo pagado.' +
+            (sumables.length !== suyos.length ? ' El precio no cuenta las Cartas de Reserva.' : '') + '</p>';
+        }
+        function abreFicha(c2) {
+          var H = window.lwCajonHtml;
+          if (!(window.lwCajon && H)) { toast('La ficha aún no ha cargado — prueba de nuevo en un segundo.'); return; }
+          window.LW_V4 = window.LW_V4 || {}; window.LW_V4.comprador = c2;
+          var esEmpresa = c2.tipo === 'empresa';
+          var vins = vin.filter(function (v) { return v.client_id === c2.id && porC[v.contrato_id]; });
+          var kyc = KYC[c2.kyc_status || 'pending'] || [c2.kyc_status, 'neutro'];
+          var identidad =
+            H.dato('Tipo', esEmpresa ? 'Empresa' : 'Persona física') +
+            H.dato('Email', c2.email) +
+            H.dato('Teléfono', c2.phone ? H.enlace('https://wa.me/' + String(c2.phone).replace(/[^0-9]/g, ''), c2.phone, true) : null, { html: 1 }) +
+            H.dato(esEmpresa ? 'País de constitución' : 'Nacionalidad', c2.nationality) +
+            H.dato(esEmpresa ? 'Identificación fiscal' : 'Pasaporte / NPWP', c2.passport_number) +
+            (esEmpresa
+              ? H.dato('Forma jurídica', c2.forma_juridica) + H.dato('Nº de registro', c2.registro_num) +
+                H.dato('Representante legal', [c2.rep_nombre, c2.rep_cargo].filter(Boolean).join(' · '))
+              : '') +
+            H.dato('Idioma de comunicación', IDIOMA[c2.idioma_comunicacion || 'es'] || c2.idioma_comunicacion) +
+            H.dato('KYC', H.tag(kyc[0], kyc[1]), { html: 1 }) +
+            H.dato('Alta en la suite', fFecha(c2.created_at)) +
+            (c2.notes ? H.dato('Notas', c2.notes) : '');
+          var quienAlta = c2.propietario
+            ? 'La dio de alta <b>' + esc(nombreEquipo[String(c2.propietario).toLowerCase()] || c2.propietario) + '</b>' +
+              ((window.LW_V4.miEmail || '').toLowerCase() === String(c2.propietario).toLowerCase() ? ' (tú)' : '') + '.'
+            : '<b>Nadie.</b> Ficha antigua sin autor: hoy solo la corrige un administrador.';
+          var contratos = vins.length
+            ? H.tabla(['Contrato', 'Proyecto', 'Rol', 'Estado'], vins.map(function (v) {
+                var k = porC[v.contrato_id];
+                return [
+                  (k.numero ? H.enlace('/intranet/v4/contratos/?contrato=' + encodeURIComponent(k.numero), k.numero) : 'sin nº') +
+                    '<div style="font-size:11px;color:#75786e">' + esc(tipoC(k.tipo)) + '</div>',
+                  esc(k.proyecto_nombre || '—'),
+                  esc(String(v.rol || '').replace('adquiriente_', 'Adquiriente ')),
+                  k.bloqueado ? H.tag('Firmado', 'ok') : (firmaPend[k.id] ? H.tag('En firma', 'espera') : H.tag('Sin firmar', 'neutro'))
+                ];
+              }))
+            : H.nota('Ninguno enlazado todavía. El enlace se crea solo al guardar un contrato con su pasaporte o su email.');
+          var cuerpo =
+            H.seccion('Identidad', identidad) +
+            H.seccion('Responsable de la ficha', H.nota(quienAlta, true)) +
+            H.seccion('Contratos (' + vins.length + ')', contratos) +
+            H.seccion('Estado de cuentas', seccionEstadoCuentas(vins, H)) +
+            H.seccion('Facturas', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'facturas') +
+            H.seccion('Documentación KYC', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'docs') +
+            H.seccion('Portal del comprador', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'portal') +
+            H.nota('Subir documentos, invitar o revocar el portal, traspasar la ficha y borrarla siguen por ahora en la herramienta clásica: ' +
+              H.enlace('/intranet/compradores/?id=' + encodeURIComponent(c2.id), 'abrirla allí', true) + '.', true);
+          var acciones = [
+            { texto: 'Editar datos', tono: 'primario', onClick: function () {
+              if (window.LW_V4.abreEditaComprador) window.LW_V4.abreEditaComprador(c2);
+              else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
+            } },
+            // pestaña nueva a proposito: quien repasa fichas no quiere perder la lista
+            { texto: 'Crear contrato', href: '/contracts/?cliente=' + encodeURIComponent(c2.id), nuevaPestana: true },
+            { texto: 'Cerrar', cerrar: true }
+          ];
+          var cj = window.lwCajon({ sub: esEmpresa ? 'Ficha de empresa compradora' : 'Ficha de comprador', titulo: c2.full_name || 'Sin nombre',
+            bajoTitulo: [c2.nationality, c2.passport_number].filter(Boolean).join(' · ') || 'sin identificación',
+            cuerpo: cuerpo, acciones: acciones, alCerrar: quitaId });
+          var u2 = new URL(location.href);
+          u2.searchParams.set('id', c2.id);
+          history.replaceState(null, '', u2.href);
+
+          var pinta = function (id, html) {
+            var s = cj.cuerpo.querySelector('[data-cajon-sec="' + id + '"] > div');
+            if (s) s.innerHTML = html;
+          };
+          var ids = vins.map(function (v) { return v.contrato_id; });
+
+          /* Lo que cuesta una consulta se pide al abrir, no al listar 200
+             fichas: facturas de SUS contratos, sus documentos y su acceso al
+             portal. `facturas_equipo` y no `.from('facturas')`: la RLS por
+             agente dejaria fuera las de un contrato guardado por otro. */
+          if (!ids.length) pinta('facturas', H.nota('Sin contrato enlazado, no hay a qué factura atarla.'));
+          else sb.rpc('facturas_equipo').select('id,numero,tipo,contrato_numero,proyecto_nombre,total,moneda,fecha_emision,anulada')
+            .in('contrato_id', ids).order('fecha_emision', { ascending: false }).then(function (rf) {
+              if (rf.error) return pinta('facturas', H.nota('No se pudieron leer las facturas: ' + rf.error.message));
+              var fs = rf.data || [];
+              if (!fs.length) return pinta('facturas', H.nota('Ninguna factura emitida todavía en sus contratos.'));
+              var vivas = fs.filter(function (x) { return !x.anulada; }), nulas = fs.filter(function (x) { return x.anulada; });
+              var tabla = function (lista) {
+                return H.tabla(['Nº', 'Tipo', 'Contrato · unidad', 'Fecha', 'Importe'], lista.map(function (x) {
+                  return [
+                    H.enlace('/intranet/facturas/?id=' + encodeURIComponent(x.id), x.numero || 'borrador', true),
+                    esc(TIPO_DOC_FAC[x.tipo] || x.tipo || '—'),
+                    esc([x.contrato_numero, x.proyecto_nombre].filter(Boolean).join(' · ') || '—'),
+                    esc(fFecha(x.fecha_emision)),
+                    '<span style="white-space:nowrap">' + esc(x.total != null ? fmt(Number(x.total), x.moneda) : '—') + '</span>'
+                  ];
+                }));
+              };
+              // las anuladas se APARTAN, no se esconden: un contador a la vista
+              pinta('facturas', (vivas.length ? tabla(vivas) : H.nota('Ninguna vigente: todas sus facturas están anuladas.')) +
+                (nulas.length ? '<details style="font-size:12px;color:#75786e"><summary style="cursor:pointer">' + nulas.length + (nulas.length === 1 ? ' anulada' : ' anuladas') + ' · no cuentan</summary>' + tabla(nulas) + '</details>' : ''));
+            });
+
+          sb.from('documents').select('id,doc_type,storage_path,uploaded_at,caduca_el').eq('client_id', c2.id).order('uploaded_at', { ascending: false })
+            .then(function (rd) {
+              if (rd.error) return pinta('docs', H.nota('No se pudieron leer los documentos: ' + rd.error.message));
+              var ds = rd.data || [];
+              if (!ds.length) return pinta('docs', H.nota('Sin documentos todavía.'));
+              var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+              pinta('docs', H.tabla(['Documento', 'Subido', 'Caduca', ''], ds.map(function (d) {
+                var cad = '<span style="color:#75786e">sin caducidad</span>';
+                if (d.caduca_el) {
+                  var dd = Math.round((new Date(d.caduca_el + 'T00:00:00') - hoy) / 86400000);
+                  cad = dd < 0 ? H.tag('caducado hace ' + (-dd) + ' d', 'mal') : (dd <= 60 ? H.tag(fFecha(d.caduca_el), 'espera') : H.tag(fFecha(d.caduca_el), 'ok'));
+                }
+                return [esc(DOC_TIPO[d.doc_type] || d.doc_type || '—'), esc(fFecha(d.uploaded_at)), cad,
+                  d.storage_path ? '<button type="button" data-doc-path="' + esc(d.storage_path) + '" style="padding:4px 10px;border-radius:999px;border:1px solid #E4DCCB;background:#fff;font-size:12px;cursor:pointer;color:#104C4F;font-weight:600">Abrir</button>' : ''];
+              })));
+              /* Bucket privado: enlace temporal de 5 minutos, nunca una URL fija
+                 — igual que la herramienta clásica. */
+              cj.cuerpo.querySelectorAll('[data-doc-path]').forEach(function (b) {
+                b.addEventListener('click', function () {
+                  b.disabled = true;
+                  sb.storage.from('kyc').createSignedUrl(b.getAttribute('data-doc-path'), 300).then(function (ru) {
+                    b.disabled = false;
+                    if (ru.error || !(ru.data && ru.data.signedUrl)) return toast('No se pudo abrir el documento' + (ru.error ? ': ' + ru.error.message : ''));
+                    window.open(ru.data.signedUrl, '_blank', 'noopener');
+                  });
+                });
+              });
+            });
+
+          sb.from('portal_accesos').select('email,activo,ultimo_acceso,accesos').eq('client_id', c2.id).then(function (rp) {
+            if (rp.error) return pinta('portal', H.nota('No se pudo leer el acceso al portal: ' + rp.error.message));
+            var suyos = rp.data || [], activos = suyos.filter(function (x) { return x.activo; });
+            var rastro = function (a) {
+              return !a.accesos ? H.tag('sin estrenar', 'espera')
+                : H.tag(a.accesos + (a.accesos === 1 ? ' entrada' : ' entradas'), 'ok') + (a.ultimo_acceso ? ' <span style="font-size:11px;color:#75786e">última: ' + esc(fFecha(a.ultimo_acceso)) + '</span>' : '');
+            };
+            var html;
+            if (activos.length) {
+              html = activos.map(function (a) { return H.dato(a.email, rastro(a), { html: 1 }); }).join('') +
+                '<p style="margin:4px 0 0;font-size:11.5px;color:#75786e">Ve sus contratos, pagos, facturas y obra en /portal/.</p>';
+            } else if (suyos.length) {
+              html = H.nota('Acceso REVOCADO. Se puede volver a invitar desde la herramienta clásica; mientras haya una fila revocada, la entrada automática no se la devuelve.');
+            } else if (c2.email && vins.length) {
+              html = H.nota('Entra solo: con ' + esc(c2.email) + ' y sus contratos, el portal le abre la puerta sin invitación (salvo que ese correo sea de alguien del equipo).', true);
+            } else {
+              html = H.nota('Sin acceso todavía. La entrada automática pide correo en la ficha y al menos un contrato — le falta ' + (c2.email ? 'el contrato' : 'el correo') + '.');
+            }
+            pinta('portal', html);
+          });
+        }
+        window.LW_V4 = window.LW_V4 || {};
+        window.LW_V4.abreFichaComprador = function (id) { var c2 = porId[id]; if (c2) abreFicha(c2); };
 
         if (!t) return;
         var pl = plantillaFilas(t);
@@ -684,15 +901,25 @@
             c2.full_name,
             (c2.email || '—') + (c2.nationality ? ' · ' + c2.nationality : ''),
             c2.tipo === 'empresa' ? 'Empresa' : 'Persona física',
-            d ? d.n + (d.n === 1 ? ' contrato' : ' contratos') : '—',
+            d ? Object.keys(d.proys).join(' · ') || (d.n + (d.n === 1 ? ' contrato' : ' contratos')) : '—',
             d && d.inv ? fmt(d.inv, 'EUR') : (d && d.otras ? 'otra moneda' : '—'),
             d && d.inv ? fmt(d.pag, 'EUR') + ' · ' + Math.round(d.pag / d.inv * 100) + '%' : (d ? fmt(d.pag, 'EUR') : '—'),
-            c2.kyc_status === 'verified' ? 'KYC VERIFICADO' : 'KYC PENDIENTE',
+            (KYC[c2.kyc_status || 'pending'] || [c2.kyc_status])[0],
             ''
-          ], '/intranet/compradores/?id=' + c2.id);
+          ]);
           var tr = pl.tbody.lastElementChild;
+          tr.style.cursor = 'pointer';
+          tr.setAttribute('data-id', c2.id);
           tr.setAttribute('data-tiene-contrato', d ? '1' : '0');
           tr.setAttribute('data-en-firma', d && d.firma ? '1' : '0');
+          tr.lastElementChild.innerHTML = '<button type="button" data-real title="Ver ficha" class="p-1 text-on-surface-variant hover:text-deep-lagoon transition-colors"><span class="material-symbols-outlined text-[18px]">visibility</span></button>';
+        });
+        pl.tbody.addEventListener('click', function (ev) {
+          var tr = ev.target.closest && ev.target.closest('tr[data-id]');
+          if (!tr) return;
+          ev.preventDefault(); ev.stopPropagation();
+          var c2 = porId[tr.getAttribute('data-id')];
+          if (c2) abreFicha(c2);
         });
 
         var chipsCompradores = ['todos', 'contrato', 'firma', 'prospectos'].map(function (k) {
@@ -717,6 +944,31 @@
             btn.classList.toggle('text-on-surface-variant', !on);
             btn.classList.toggle('font-medium', !on);
           });
+
+        // el buscador de la cabecera: nombre, email, pasaporte o nacionalidad (sobre las filas pintadas)
+        var busca = document.getElementById('buyerSearch');
+        if (busca) busca.addEventListener('input', function () {
+          var qq = busca.value.trim().toLowerCase();
+          pl.tbody.querySelectorAll('tr[data-id]').forEach(function (tr) {
+            var c2 = porId[tr.getAttribute('data-id')] || {};
+            var pajar = [c2.full_name, c2.email, c2.passport_number, c2.nationality, c2.phone].join(' ').toLowerCase();
+            tr.style.display = (!qq || pajar.indexOf(qq) !== -1) ? '' : 'none';
+          });
+        });
+
+        // ?id= abre la ficha directamente: es adonde apuntan ahora los enlaces
+        // «comprador» de Proyectos y Soporte, y adonde vuelve «Editar datos».
+        var pedido = new URLSearchParams(location.search).get('id');
+        if (pedido && porId[pedido]) setTimeout(function () { abreFicha(porId[pedido]); }, 0);
+
+        /* Ficha≠: el control de divergencia de la suite. Se pide AL FINAL y
+           fuera de `vig()` (ver cabecera: 12,7 s en la base) — la pantalla ya
+           esta pintada y usable cuando llega. */
+        sb.from('documentos_desactualizados').select('congelado,diferencias').limit(1000).then(function (rv) {
+          if (rv.error) { console.error('[v4 datos] ficha≠', rv.error); return; }
+          var difN = (rv.data || []).filter(function (x) { return x.diferencias && x.diferencias.length; }).length;
+          if (difN) bandaNota('Ficha ≠: ' + difN + ' documento(s) emitidos difieren de la ficha del comprador — el detalle vive en la herramienta clásica (/intranet/compradores/).', '#C06C47');
+        });
       });
     },
     operaciones: function (sb) {
@@ -1396,7 +1648,7 @@
               if (elC) {
                 elC.textContent = u.comprador_nombre || '—';
                 var clienteId = u.contrato_id ? COMPRADOR_ID_POR_CONTRATO[u.contrato_id] : null;
-                if (clienteId) { elC.href = '/intranet/compradores/?id=' + clienteId; elC.target = '_blank'; }
+                if (clienteId) { elC.href = '/intranet/v4/compradores/?id=' + clienteId; elC.target = '_blank'; }
                 else { elC.removeAttribute('href'); elC.removeAttribute('target'); elC.style.cursor = 'default'; elC.style.textDecoration = 'none'; }
               }
               var elK = f.querySelector('[data-lw="u-contrato-link"]');
@@ -1423,7 +1675,7 @@
         if (opts.empujarUrl !== false) {
           var u2 = new URL(location.href);
           u2.searchParams.set('proyecto', nombre);
-          history.replaceState(null, '', u2.pathname + u2.search);
+          history.replaceState(null, '', u2.href);
         }
       }
       window.LW_V4 = window.LW_V4 || {}; window.LW_V4.abrirProyecto = abrirCajon;
@@ -1460,7 +1712,7 @@
         if (elC) {
           elC.textContent = u.comprador_nombre || '—';
           var clienteId = u.contrato_id ? COMPRADOR_ID_POR_CONTRATO[u.contrato_id] : null;
-          if (clienteId) { elC.href = '/intranet/compradores/?id=' + clienteId; elC.target = '_blank'; }
+          if (clienteId) { elC.href = '/intranet/v4/compradores/?id=' + clienteId; elC.target = '_blank'; }
           else { elC.removeAttribute('href'); elC.removeAttribute('target'); elC.style.cursor = 'default'; elC.style.textDecoration = 'none'; }
         }
         var elK = document.querySelector('[data-lw="dp-contrato-link"]');
@@ -2179,34 +2431,121 @@
     },
 
     usuarios: function (sb) {
-      /* Perfil, matriz y auditoria reales (fase A5). La matriz sale de
-         usuarios.herramientas — la lista real que gobierna el guard — y la
-         auditoria de la tabla notificaciones (hechos escritos por triggers).
-         Las IPs y el 2FA del diseno no existen en la suite: fuera. */
-      var t = tablaPor([/MIEMBRO|NOMBRE|USUARIO/, /ROL|ACCESO/]);
+      /* Listado, FICHA EN CAJON y auditoria reales. La ficha sale de
+         `usuarios.*` — la lista real que gobierna el guard — y la auditoria de
+         la tabla `notificaciones` (hechos escritos por triggers). Las IPs y el
+         2FA del diseno no existen en la suite: fuera.
+
+         18-sep-2026, owner: «prefiero que al clickar en un agente se me abra un
+         cajeton lateral». Hasta hoy la pantalla tenia un panel fijo a la
+         derecha («Rol activo inspeccionado») con cuatro permisos del primer
+         usuario de la lista — nadie sabia de quien hablaba ni por que de ese.
+         Se retira: todo lo que decia, y lo que no decia (proyectos, tipos de
+         contrato, alta), vive ahora en el cajon de cada fila. Y los dos KPIs
+         que se quedaban en «—» (notarial, 2FA) con una banda excusandolos se
+         cambian por dos que la base SI sabe: administradores y cuentas
+         inactivas. */
+      var t = tablaPor([/NOMBRE|USUARIO/, /ROL|HERRAMIENTAS/]);
       Promise.all([
-        q(sb.from('usuarios').select('user_id,nombre,email,rol,activo,herramientas,proyectos,tipos_contrato').order('nombre'), 'usuarios', t),
-        q(sb.from('notificaciones').select('titulo,detalle,creado_en').order('creado_en', { ascending: false }).limit(8), 'auditoría')
+        q(sb.from('usuarios').select('user_id,nombre,email,rol,activo,herramientas,proyectos,proyectos_supervisados,tipos_contrato,creado_en,creado_por').order('nombre'), 'usuarios', t),
+        /* `enlace` es lo que hace que la auditoria sea navegable (owner: «que
+           tenga enlaces vivos linkables»): la campana viva ya lo usa, aqui
+           se leia solo el titulo. 30 y no 8: los que sobran de 6 se pliegan
+           bajo «ver mas», sin segunda consulta. */
+        q(sb.from('notificaciones').select('titulo,detalle,enlace,creado_en').order('creado_en', { ascending: false }).limit(30), 'auditoría'),
+        // nombres de proyecto para la ficha: `usuarios.proyectos` guarda ids
+        q(sb.from('proyectos').select('id,nombre'), 'proyectos')
       ]).then(function (r) {
-        var us = r[0], ns = r[1] || [];
+        var us = r[0], ns = r[1] || [], proys = r[2] || [];
         if (!us) return;
+        var nombreProy = {}; proys.forEach(function (p) { nombreProy[p.id] = p.nombre; });
         var act = us.filter(function (u) { return u.activo; });
+        var esAdminRol = function (u) { return u.rol === 'admin' || u.rol === 'super_admin'; };
         pon2('k-usuarios', String(act.length));
+        pon2('k-usuarios-pie', us.length + (us.length === 1 ? ' usuario' : ' usuarios') + ' dados de alta · pulsa uno para abrir su ficha');
         var roles = {}; us.forEach(function (u) { if (u.rol) roles[u.rol] = 1; });
         pon2('k-roles', String(Object.keys(roles).length));
-        pon2('k-notarial', '—');
-        pon2('k-2fa', '—');
-        bandaNota('«Supervisión notarial» y «2FA» se quedan en «—»: la suite no guarda ninguno de esos datos.', '#8A6A34');
+        pon2('k-admins', String(act.filter(esAdminRol).length));
+        pon2('k-inactivos', String(us.length - act.length));
+
+        // ETIQ_ROL vive en editores.js (una sola lista de roles): se lee, no se copia
+        var rolDe = function (u) {
+          var E = (window.LW_V4 && window.LW_V4.ETIQ_ROL) || {};
+          return E[u.rol] || u.rol || '—';
+        };
+        var nombresProy = function (ids) { return (ids || []).map(function (id) { return nombreProy[id] || id; }); };
+
+        /* ---- la ficha, en el cajon compartido de editores.js ---- */
+        function quitaU() {
+          var u2 = new URL(location.href);
+          if (u2.searchParams.has('u')) { u2.searchParams.delete('u'); history.replaceState(null, '', u2.href); }
+        }
+        function abreFicha(u) {
+          var H = window.lwCajonHtml;
+          if (!(window.lwCajon && H)) { toast('La ficha aún no ha cargado — prueba de nuevo en un segundo.'); return; }
+          window.LW_V4 = window.LW_V4 || {}; window.LW_V4.usuario = u;
+          var hs = u.herramientas || [], pr = nombresProy(u.proyectos), sup = nombresProy(u.proyectos_supervisados);
+          var tipos = (u.tipos_contrato || []).map(function (k) { return tipoC(k); });
+          var cuerpo =
+            H.seccion('Cuenta',
+              H.dato('Email', u.email) +
+              H.dato('Rol', rolDe(u)) +
+              H.dato('Estado', u.activo ? H.tag('Activo', 'ok') : H.tag('Inactivo', 'mal'), { html: 1 }) +
+              H.dato('Alta', u.creado_en ? fFecha(u.creado_en) + (u.creado_por ? ' · por ' + u.creado_por : '') : null)) +
+            H.seccion('Herramientas (' + hs.length + ')',
+              hs.length ? H.chips(hs)
+                : H.nota(u.rol === 'super_admin' ? 'Super admin: entra en todas las herramientas sin necesitar la lista.'
+                                                  : 'Sin ninguna herramienta marcada: no puede abrir nada de la suite.')) +
+            H.seccion('Proyectos en los que trabaja (' + pr.length + ')',
+              pr.length ? H.chips(pr) : H.nota('Ninguno: no puede crear ni editar contratos en ningún proyecto.')) +
+            H.seccion('Proyectos que supervisa como manager (' + sup.length + ')',
+              sup.length ? H.chips(sup) : H.nota('Ninguno. Es una lista distinta de la de arriba: supervisar es ver y escribir lo del proyecto entero, no solo lo propio.')) +
+            H.seccion('Contratos que puede hacer',
+              tipos.length ? H.chips(tipos) : H.nota('Sin restricción: vacío = TODOS los tipos (al revés que Proyectos).'));
+          var soyAdmin = !!(window.LW_V4.esAdmin);
+          var acciones = [];
+          if (soyAdmin) {
+            acciones.push({ texto: 'Editar permisos', tono: 'primario', onClick: function () {
+              if (window.LW_V4.abreEditaUsuario) window.LW_V4.abreEditaUsuario(u);
+              else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
+            } });
+            acciones.push({ texto: 'Cambiar contraseña', onClick: function () {
+              if (window.LW_V4.abreCambiaPassword) window.LW_V4.abreCambiaPassword(u);
+              else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
+            } });
+          } else {
+            cuerpo += H.nota('Editar permisos o contraseñas es de administración: aquí solo se consulta.');
+          }
+          acciones.push({ texto: 'Cerrar', cerrar: true });
+          window.lwCajon({ sub: 'Ficha de usuario', titulo: u.nombre || u.email || '—', bajoTitulo: u.nombre ? u.email : '',
+                           cuerpo: cuerpo, acciones: acciones, alCerrar: quitaU });
+          var u2 = new URL(location.href);
+          u2.searchParams.set('u', u.email || '');
+          history.replaceState(null, '', u2.href);
+        }
+        var porEmail = {}; us.forEach(function (u) { if (u.email) porEmail[u.email.toLowerCase()] = u; });
 
         if (t) {
           var pl = plantillaFilas(t);
           us.forEach(function (u) {
-            fila(pl, [u.nombre || '—', u.email || '—', u.rol || '—', u.activo ? 'ACTIVO' : 'INACTIVO',
-              (u.herramientas || []).length + ' herramientas', ''],
-              '/intranet/v4/usuarios/?u=' + encodeURIComponent(u.email || ''));
+            fila(pl, [u.nombre || '—', u.email || '—', rolDe(u),
+              (u.herramientas || []).length + (u.rol === 'super_admin' ? ' · todas' : ''),
+              String((u.proyectos || []).length),
+              u.activo ? 'ACTIVO' : 'INACTIVO', '']);
             var tr = pl.tbody.lastElementChild;
+            tr.style.cursor = 'pointer';
+            tr.setAttribute('data-email', u.email || '');
             tr.setAttribute('data-rol', u.rol || '');
             tr.setAttribute('data-herr', ' ' + (u.herramientas || []).join(' ') + ' ');
+            tr.lastElementChild.innerHTML = '<button type="button" data-real class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px] transition-colors">Ver ficha</button>';
+          });
+          // una fila = una ficha; delegado porque los chips de filtro las esconden y enseñan
+          pl.tbody.addEventListener('click', function (ev) {
+            var tr = ev.target.closest && ev.target.closest('tr[data-email]');
+            if (!tr) return;
+            ev.preventDefault(); ev.stopPropagation();
+            var u = porEmail[(tr.getAttribute('data-email') || '').toLowerCase()];
+            if (u) abreFicha(u);
           });
 
           /* Los chips "Legal/Obra/Sales/Finance" del diseño de Stitch se
@@ -2215,9 +2554,9 @@
              super_admin/admin/agente, ver migración 20260729090521), así que
              llamarlos por un departamento inducía a leer un PERMISO de
              herramienta como si fuera la función de la persona. Ahora dicen
-             qué filtran de verdad — acceso a esa herramienta, mismo mapeo que
-             ya usa la matriz de abajo (m1-m4). "Super Admin" sí es un rol
-             real: filtra por igualdad exacta, no se mezcla con "admin". */
+             qué filtran de verdad — acceso a esa herramienta. "Super Admin"
+             sí es un rol real: filtra por igualdad exacta, no se mezcla con
+             "admin". */
           var mapaRolChip = { legal: 'contratos', obra: 'unidades', sales: 'compradores', finance: 'facturas' };
           function coincideChipUsuario(fila2, clave) {
             if (clave === 'admin') return fila2.getAttribute('data-rol') === 'super_admin';
@@ -2250,42 +2589,55 @@
               btn.classList.toggle('text-on-surface-variant', !on);
               btn.classList.toggle('hover:bg-surface-container-high', !on);
             });
-        }
 
-        /* perfil: ?u= o el primero. La matriz refleja usuarios.herramientas —
-           exactamente lo que el guard aplica, ni mas ni menos. */
-        var pedido = new URLSearchParams(location.search).get('u');
-        var el = us.filter(function (u) { return u.email === pedido; })[0] || us[0];
-        if (el) {
-          window.LW_V4 = window.LW_V4 || {}; window.LW_V4.usuario = el;
-          pon2('u-perfil', 'Perfil: ' + (el.nombre || el.email) + ' · ' + (el.rol || '—'));
-          var hs = el.herramientas || [];
-          var tiene = function (h) { return el.rol === 'super_admin' || hs.indexOf(h) !== -1; };
-          pon2('m1', tiene('contratos') ? 'Autorizado' : 'Sin acceso');
-          pon2('m2', tiene('facturas') ? 'Autorizado' : 'Sin acceso');
-          pon2('m3', tiene('unidades') ? 'Autorizado' : 'Sin acceso');
-          pon2('m4', tiene('compradores') ? 'Autorizado' : 'Sin acceso');
-        }
-
-        var caja = document.getElementById('auditoria');
-        if (caja && caja.firstElementChild) {
-          var molde = null;
-          for (var i6 = 0; i6 < caja.children.length; i6++) {
-            if (caja.children[i6].querySelector && caja.children[i6].querySelector('[data-lw="a-titulo"]')) { molde = caja.children[i6].cloneNode(true); break; }
-          }
-          if (molde) {
-            caja.innerHTML = '';
-            if (!ns.length) {
-              caja.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Sin hechos registrados todavía.</p>';
-            }
-            ns.forEach(function (nx) {
-              var f = molde.cloneNode(true);
-              var p3 = function (k, v) { var e = f.querySelector('[data-lw="' + k + '"]'); if (e) e.textContent = v; };
-              p3('a-titulo', nx.titulo || 'Hecho');
-              p3('a-sub', nx.detalle || '');
-              p3('a-fecha', fFecha(nx.creado_en));
-              caja.appendChild(f);
+          // el buscador de la cabecera de la tabla: filtra por nombre, email o rol
+          var busca = document.getElementById('userSearchInput');
+          if (busca) busca.addEventListener('input', function () {
+            var qq = busca.value.trim().toLowerCase();
+            pl.tbody.querySelectorAll('tr[data-email]').forEach(function (tr) {
+              tr.style.display = (!qq || tr.textContent.toLowerCase().indexOf(qq) !== -1) ? '' : 'none';
             });
+          });
+        }
+
+        // ?u= abre la ficha directamente — es lo que hace que «Guardar permisos»
+        // (que recarga la página) vuelva a la misma ficha, y lo que permite
+        // enlazar a un usuario desde otra pantalla.
+        var pedido = new URLSearchParams(location.search).get('u');
+        var el = pedido ? porEmail[pedido.toLowerCase()] : null;
+        if (el) setTimeout(function () { abreFicha(el); }, 0);
+
+        /* ---- auditoria: hechos de `notificaciones`, con su enlace ---- */
+        var caja = document.getElementById('auditoria');
+        var mas = document.getElementById('lw-audit-mas');
+        if (caja) {
+          if (!ns.length) {
+            caja.innerHTML = '<p class="text-body-sm text-on-surface-variant">Sin hechos registrados todavía.</p>';
+          } else {
+            caja.innerHTML = ns.map(function (nx, i) {
+              var titulo = esc(nx.titulo || 'Hecho');
+              var enlace = nx.enlace && /^(\/|https?:\/\/)/.test(nx.enlace) ? nx.enlace : null;
+              return '<div class="flex items-start gap-3"' + (i >= 6 ? ' data-audit-mas hidden' : '') + '>' +
+                '<div class="w-2 h-2 rounded-full ' + (enlace ? 'bg-deep-lagoon' : 'bg-stone-sand') + ' mt-1.5 shrink-0"></div>' +
+                '<div class="flex flex-col min-w-0">' +
+                (enlace
+                  ? '<a href="' + esc(enlace) + '" class="text-body-sm text-deep-lagoon font-medium hover:underline">' + titulo + '</a>'
+                  : '<span class="text-body-sm text-volcanic-ash font-medium">' + titulo + '</span>') +
+                '<div class="flex items-center gap-2 text-stone-sand text-[11px] mt-0.5"><span>' + esc(nx.detalle || '') + '</span>' +
+                (nx.detalle ? '<span>•</span>' : '') + '<span>' + esc(fFecha(nx.creado_en)) + '</span></div></div></div>';
+            }).join('');
+          }
+          if (mas) {
+            var ocultos = caja.querySelectorAll('[data-audit-mas]').length;
+            if (ocultos) {
+              mas.hidden = false;
+              mas.textContent = 'Ver ' + ocultos + ' hechos anteriores';
+              mas.addEventListener('click', function (ev) {
+                ev.stopPropagation();
+                caja.querySelectorAll('[data-audit-mas]').forEach(function (e) { e.hidden = false; });
+                mas.hidden = true;
+              });
+            }
           }
         }
       });
@@ -2393,7 +2745,7 @@
         var enlaces = document.querySelectorAll('a[href="#"]');
         for (var i2 = 0; i2 < enlaces.length; i2++) {
           var t2 = (enlaces[i2].textContent || '').trim();
-          if (/Ver perfil/.test(t2)) enlaces[i2].href = '/intranet/compradores/?id=' + el.client_id;
+          if (/Ver perfil/.test(t2)) enlaces[i2].href = '/intranet/v4/compradores/?id=' + el.client_id;
           else if (/WhatsApp/.test(t2)) {
             if (c.phone) enlaces[i2].href = 'https://wa.me/' + String(c.phone).replace(/[^0-9]/g, '');
             else enlaces[i2].style.display = 'none';
@@ -2727,9 +3079,19 @@
     /* Las dos RPC son EXTRAS y estan gateadas a super admin en la base: a un
        admin normal le devuelven vacio, que es correcto (tampoco puede cambiar
        nada). Por eso no pasan por `q()`: un `fallo()` pintaria la seccion en
-       rojo por no tener una cifra de adorno. */
+       rojo por no tener una cifra de adorno.
+
+       Pero devuelve **null si no se pudo leer** y `[]` si de verdad no hay nada:
+       «no he podido mirarlo» y «no se usa» se parecen mucho en pantalla y solo
+       una es cierta. Sin esa distincion, el aviso rojo «esta cuenta esta en N
+       contratos, y N ya FIRMADOS» desaparecia sin dejar rastro cuando la RPC
+       fallaba, y se editaba el titular o el numero de una cuenta impresa en
+       contratos firmados sin ver la advertencia. La herramienta viva ya degrada
+       asi (/intranet/cuentas/, lineas 207-234). Cazado por Desarrollo en la
+       consulta de deploy del 18-sep. */
     function qSuave(p) {
-      return vig(p).then(function (r) { return (r && !r.error && r.data) || []; }, function () { return []; });
+      return vig(p).then(function (r) { return (r && r.error) ? null : ((r && r.data) || []); },
+                         function () { return null; });
     }
 
     function carga() {
@@ -2772,12 +3134,12 @@
          viene indexada por TIPO y no por slug (`reserva_parcela` vs
          `ppjb_parcela`), y quien traduce es `TIPO_SLUG` de vocabulario.js —
          el mismo mapa que usa /intranet/cuentas/, no una copia. */
-      var USO = {};
+      var USO = usoCu === null ? null : {};
       (usoCu || []).forEach(function (u) { USO[u.clave] = u; });
-      var USO_TIPO = {};
+      var USO_TIPO = usoTi === null ? null : {};
       (usoTi || []).forEach(function (u) {
         var s = (typeof TIPO_SLUG !== 'undefined' && TIPO_SLUG[u.tipo]) || u.tipo;
-        USO_TIPO[s] = u;
+        if (USO_TIPO) USO_TIPO[s] = u;
       });
 
       /* La alarma de verdad: un documento que COBRA, se sigue ofreciendo al
@@ -2816,7 +3178,7 @@
         tbody.innerHTML = !pls.length ? vacia(5, 'Ningún tipo de contrato registrado.') : pls.map(function (p) {
           var filas = porSlug[p.slug] || [];
           var def = filas.filter(function (x) { return x.es_default; })[0];
-          var u = USO_TIPO[p.slug];
+          var u = USO_TIPO && USO_TIPO[p.slug];
           var ofrece = !p.cobra
             ? '<span class="text-outline">no lleva cuenta de cobro</span>'
             : (filas.length
@@ -2829,7 +3191,8 @@
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' +
               (!p.cobra ? '—' : def ? esc(etiqueta(def)) : 'sin precargada') + '</td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline text-right">' +
-              (u ? esc(u.contratos + ' · ' + u.firmados + ' firmados') : 'sin usar') + '</td>' +
+              (u ? esc(u.contratos + ' · ' + u.firmados + ' firmados')
+                 : (USO_TIPO === null ? '<span class="text-error">sin cifra</span>' : 'sin usar')) + '</td>' +
             '<td class="px-5 py-4 text-right">' + btnEditar('data-lw-cu-contrato', p.slug) + '</td></tr>';
         }).join('');
       }
@@ -2875,7 +3238,7 @@
              comprador de ese proyecto sigue viendo en su documento. */
           var usos = rep.filter(function (x) { return x.clave === c.clave; }).length +
                      (repProy || []).filter(function (x) { return x.clave === c.clave; }).length;
-          var u = USO[c.clave];
+          var u = USO && USO[c.clave];
           return '<tr class="border-b border-outline-variant/30' + (c.activa ? '' : ' opacity-60') + '">' +
             '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(c.label || c.clave) +
               (c.es_escrow ? tag('escrow', 'text-burnt-earth') : '') + '</td>' +
@@ -2883,7 +3246,8 @@
               (usos ? esc(usos + (usos === 1 ? ' documento' : ' documentos')) : '<span class="text-outline">ninguno</span>') + '</td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + (c.activa ? 'activa' : 'de baja') + '</td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-right ' + (u && u.firmados ? 'text-error' : 'text-outline') + '">' +
-              (u && u.contratos ? esc(u.contratos + ' · ' + u.firmados + ' firmados') : '—') + '</td>' +
+              (u && u.contratos ? esc(u.contratos + ' · ' + u.firmados + ' firmados')
+                 : (USO === null ? '<span class="text-error">sin cifra</span>' : '—')) + '</td>' +
             '<td class="px-5 py-4 text-right">' + btnEditar('data-lw-cu-cuenta', c.clave) + '</td></tr>';
         }).join('');
       }
@@ -2945,6 +3309,8 @@
     ]).then(function (r) {
       var equipos = r[0], miembros = r[1] || [], usuarios = r[2] || [];
       if (!equipos) return;
+      // el editor de miembro ofrece el equipo en un select: la lista es esta, no otra consulta
+      window.LW_V4.equiposLista = equipos.map(function (e) { return [e.id, e.nombre + (e.activo ? '' : ' (de baja)')]; });
       var nombrePorEmail = {};
       usuarios.forEach(function (u) { if (u.email) nombrePorEmail[u.email.toLowerCase()] = u.nombre || u.email; });
       var nombreDe = function (email) { return email ? (nombrePorEmail[email.toLowerCase()] || email) : '—'; };
@@ -2987,6 +3353,7 @@
               (e.activo ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-surface-container-high text-on-surface-variant') + '">' +
               (e.activo ? 'Activo' : 'De baja') + '</span></td>' +
             '<td class="px-5 py-4 text-right"><div class="flex justify-end gap-2">' +
+            '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" data-lw-edita-equipo="' + esc(e.id) + '" data-lw-nombre="' + esc(e.nombre) + '" data-lw-manager="' + esc(e.manager_email || '') + '">Editar</button>' +
             '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" data-lw-miembro="' + esc(e.id) + '" data-lw-nombre="' + esc(e.nombre) + '">+ Miembro</button>' +
             '<button type="button" class="px-3 py-1 rounded-full text-burnt-earth hover:bg-surface-container-high font-label-md text-[12px]" data-lw-toggle-equipo="' + esc(e.id) + '" data-lw-nombre="' + esc(e.nombre) + '" data-lw-activo="' + (e.activo ? '1' : '0') + '">' +
             (e.activo ? 'Desactivar' : 'Reactivar') + '</button>' +
@@ -3009,9 +3376,11 @@
             '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' +
               (activo ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-surface-container-high text-on-surface-variant') + '">' +
               (activo ? 'Activo' : 'De baja') + '</span></td>' +
-            '<td class="px-5 py-4 text-right">' + (activo
+            '<td class="px-5 py-4 text-right"><div class="flex justify-end gap-2">' +
+            '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" data-lw-edita-miembro="' + esc(m.id) + '" data-lw-equipo="' + esc(m.equipo_id) + '" data-lw-email="' + esc(m.closer_email) + '" data-lw-desde="' + esc(m.desde || '') + '" data-lw-hasta="' + esc(m.hasta || '') + '">Editar</button>' +
+            (activo
               ? '<button type="button" class="px-3 py-1 rounded-full text-error hover:bg-error-container/40 font-label-md text-[12px]" data-lw-baja="' + esc(m.id) + '" data-lw-email="' + esc(m.closer_email) + '">Dar de baja</button>'
-              : '') + '</td></tr>';
+              : '') + '</div></td></tr>';
         }).join('') : '<tr><td colspan="6" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Sin miembros para este filtro.</td></tr>';
       }
       pintaMiembros();
@@ -3019,6 +3388,13 @@
 
       // acciones — delegadas, con stopPropagation para ganar a maqueta.js (Regla 0)
       if (cuerpoEq) cuerpoEq.addEventListener('click', function (ev) {
+        var bE = ev.target.closest && ev.target.closest('[data-lw-edita-equipo]');
+        if (bE) {
+          ev.preventDefault(); ev.stopPropagation();
+          if (window.LW_V4 && window.LW_V4.abreEditaEquipo) window.LW_V4.abreEditaEquipo(bE);
+          else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
+          return;
+        }
         var bM = ev.target.closest && ev.target.closest('[data-lw-miembro]');
         if (bM) {
           ev.preventDefault(); ev.stopPropagation();
@@ -3035,6 +3411,13 @@
         }
       });
       if (cuerpoMi) cuerpoMi.addEventListener('click', function (ev) {
+        var bE = ev.target.closest && ev.target.closest('[data-lw-edita-miembro]');
+        if (bE) {
+          ev.preventDefault(); ev.stopPropagation();
+          if (window.LW_V4 && window.LW_V4.abreEditaMiembro) window.LW_V4.abreEditaMiembro(bE);
+          else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
+          return;
+        }
         var b = ev.target.closest && ev.target.closest('[data-lw-baja]');
         if (!b) return;
         ev.preventDefault(); ev.stopPropagation();
@@ -3113,9 +3496,12 @@
             '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' +
               (c.activo ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-surface-container-high text-on-surface-variant') + '">' +
               (c.activo ? 'Activa' : 'Inactiva') + '</span></td>' +
-            '<td class="px-5 py-4 text-right"><button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" ' +
+            '<td class="px-5 py-4 text-right"><div class="flex justify-end gap-2"><button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" ' +
               'data-lw-toggle-cond="' + esc(c.id) + '" data-lw-etq="' + esc((equipoDe[c.equipo_id] || '') + ' · ' + (proyectoDe[c.proyecto_id] || '')) + '" data-lw-activo="' + (c.activo ? '1' : '0') + '">' +
-              (c.activo ? 'Desactivar' : 'Reactivar') + '</button></td></tr>';
+              (c.activo ? 'Desactivar' : 'Reactivar') + '</button>' +
+              '<button type="button" class="px-3 py-1 rounded-full text-error hover:bg-error-container/40 font-label-md text-[12px]" ' +
+              'data-lw-borra-cond="' + esc(c.id) + '" data-lw-etq="' + esc((equipoDe[c.equipo_id] || '') + ' · ' + (proyectoDe[c.proyecto_id] || '')) + '">Borrar</button>' +
+              '</div></td></tr>';
         }).join('') : '<tr><td colspan="7" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Ninguna condición para este filtro.</td></tr>';
       }
       pinta();
@@ -3123,6 +3509,13 @@
       if (selProyecto) selProyecto.addEventListener('change', pinta);
 
       if (cuerpo) cuerpo.addEventListener('click', function (ev) {
+        var bB = ev.target.closest && ev.target.closest('[data-lw-borra-cond]');
+        if (bB) {
+          ev.preventDefault(); ev.stopPropagation();
+          if (window.LW_V4 && window.LW_V4.abreBorraCondicion) window.LW_V4.abreBorraCondicion(bB);
+          else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
+          return;
+        }
         var b = ev.target.closest && ev.target.closest('[data-lw-toggle-cond]');
         if (!b) return;
         ev.preventDefault(); ev.stopPropagation();
@@ -3496,6 +3889,8 @@
          Comision de administracion, que abre lo que el estudio le cobra al
          cliente. Se guarda aparte y no se deduce de `esAdmin`. */
       window.LW_V4.esSuperAdmin = rol === 'super_admin';
+      // la ficha de sesion entera (herramientas incluidas), para quien decida por ella
+      window.LW_V4.ficha = aut.ficha || null;
 
       /* La cabecera de Home traia «3 de Septiembre de 2026» escrito a mano: la
          fecha de la captura de Stitch. Una fecha congelada no envejece con un

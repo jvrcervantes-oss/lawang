@@ -210,7 +210,10 @@
       if (t) toast('«' + t + '» — disponible en la fase de cableado');
     }
   });
-  document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') cerrarModal(); });
+  /* `cerrarModal` se fue con la ventana propia de este fichero (14-sep) y esta
+     linea siguio llamandola: un ReferenceError en consola a cada Escape. El
+     cajon de ficha y el editor gestionan su propia tecla. */
+  document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && typeof cerrarModal === 'function') cerrarModal(); });
 
   /* ---------- responsive: etiquetar cáscara + hamburguesa ---------- */
   function prepara() {
