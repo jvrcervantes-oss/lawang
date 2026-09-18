@@ -2698,7 +2698,24 @@
     });
   };
 
-  /* ---------- Cuentas de cobro y su reparto ---------- */
+  /* ---------- Cuentas de cobro y su reparto ----------
+     Esta pantalla decide ADONDE TRANSFIERE EL COMPRADOR, asi que lee el
+     catalogo completo y no un recorte:
+
+     🔴 18-sep-2026 — leia `plantillas_pago`, que NO es «las plantillas que
+     cobran». Es la vista puente del 14-sep y su cuerpo entero es
+     `SELECT slug, nombre, orden FROM plantillas_contrato`: SIN filtro. Con eso
+     la tarjeta «Documentos que cobran» decia 20 cuando cobran 8, la tabla
+     listaba los 15 tipos que el owner archivo justamente para quitar morralla,
+     y «Sin cuenta marcada» daba 11 documentos mudos donde los 11 eran
+     `cobra = false` — documentos que no llevan datos bancarios y por tanto no
+     tienen ningun desplegable que llenar. Las once alarmas eran falsas y la
+     unica cifra que importaba (contratos que COBRAN y no ofrecen ninguna
+     cuenta) quedaba enterrada entre ellas.
+
+     Ahora se lee `plantillas_contrato` con `cobra` y `archivada`, que es lo
+     que hace /intranet/cuentas/ desde el 14-sep. La vista puente sigue en pie
+     para `contracts/assets/entities.js` (retirarla es LAW-206). */
   REG.cuentas = function (sb) {
     var tbody = document.getElementById('lw-reparto');
     var cajaRep = tbody ? tbody.closest('section') : null;
@@ -2707,64 +2724,114 @@
     var tbodyCu = document.getElementById('lw-reparto-cuenta');
     var cajaCu = document.getElementById('lw-cuentas');
 
-    Promise.all([
-      /* `es_escrow` es una COLUMNA, no el prefijo `notario_` de la clave: la
-         convencion de nombre valia mientras las cuentas nacian por SQL. */
-      q(sb.from('cuentas_bancarias').select('clave,label,titular,banco,activa,es_escrow,orden').order('orden'), 'cuentas bancarias', cajaCu),
-      q(sb.from('plantillas_pago').select('slug,nombre,orden').order('orden'), 'plantillas de pago', cajaRep),
-      q(sb.from('plantilla_cuentas').select('slug,clave,es_default'), 'reparto por contrato'),
-      q(sb.from('proyecto_cuentas').select('proyecto_id,slug,clave,es_default'), 'reparto por proyecto', cajaProy),
-      /* Falta desde el 14-sep (14-sep añadió proyecto_cuentas pero nunca trajo
-         `proyectos`, así que «Por proyecto» no tenía con qué pintar filas —
-         era la mitad que faltaba de las tres pestañas). */
-      q(sb.from('proyectos').select('id,nombre').eq('activo', true).order('nombre'), 'proyectos', cajaProy)
-    ]).then(function (r) {
-      var cus = r[0], pls = r[1], rep = r[2], repProy = r[3], proys = r[4];
+    /* Las dos RPC son EXTRAS y estan gateadas a super admin en la base: a un
+       admin normal le devuelven vacio, que es correcto (tampoco puede cambiar
+       nada). Por eso no pasan por `q()`: un `fallo()` pintaria la seccion en
+       rojo por no tener una cifra de adorno. */
+    function qSuave(p) {
+      return vig(p).then(function (r) { return (r && !r.error && r.data) || []; }, function () { return []; });
+    }
+
+    function carga() {
+      return Promise.all([
+        /* `es_escrow` es una COLUMNA, no el prefijo `notario_` de la clave: la
+           convencion de nombre valia mientras las cuentas nacian por SQL.
+           Se piden TODAS, activas y no: este panel es justo donde hay que ver
+           —y poder reactivar— una desactivada. Y se piden los campos enteros
+           porque el editor de `editores.js` los rellena desde aqui, sin una
+           segunda consulta. */
+        q(sb.from('cuentas_bancarias')
+            .select('clave,label,titular,banco,cuenta,codigo,direccion,extra,orden,activa,es_escrow,actualizado_en')
+            .order('orden'), 'cuentas bancarias', cajaCu),
+        q(sb.from('plantillas_contrato').select('slug,nombre,orden,cobra,archivada').order('orden'), 'tipos de contrato', cajaRep),
+        q(sb.from('plantilla_cuentas').select('slug,clave,es_default'), 'reparto por contrato'),
+        q(sb.from('proyecto_cuentas').select('proyecto_id,slug,clave,es_default'), 'reparto por proyecto', cajaProy),
+        /* Falta desde el 14-sep (14-sep añadió proyecto_cuentas pero nunca trajo
+           `proyectos`, así que «Por proyecto» no tenía con qué pintar filas —
+           era la mitad que faltaba de las tres pestañas). */
+        q(sb.from('proyectos').select('id,nombre').eq('activo', true).order('nombre'), 'proyectos', cajaProy),
+        qSuave(sb.rpc('cuentas_uso')),
+        qSuave(sb.rpc('plantillas_uso'))
+      ]).then(function (r) { pinta(r[0], r[1], r[2], r[3], r[4], r[5], r[6]); });
+    }
+
+    function pinta(cus, pls, rep, repProy, proys, usoCu, usoTi) {
       if (!cus || !pls || !rep) return;
 
       var porClave = {};
       cus.forEach(function (c) { porClave[c.clave] = c; });
       var activas = cus.filter(function (c) { return c.activa; });
       var escrow = cus.filter(function (c) { return c.es_escrow; });
+      var cobran = pls.filter(function (p) { return p.cobra; });
+      var archivadas = pls.filter(function (p) { return p.archivada; });
 
       var porSlug = {};
       rep.forEach(function (x) { (porSlug[x.slug] = porSlug[x.slug] || []).push(x); });
-      var huerfanas = pls.filter(function (p) { return !(porSlug[p.slug] || []).length; });
+
+      /* Lo emitido con cada cuenta, y lo emitido de cada tipo. `plantillas_uso`
+         viene indexada por TIPO y no por slug (`reserva_parcela` vs
+         `ppjb_parcela`), y quien traduce es `TIPO_SLUG` de vocabulario.js —
+         el mismo mapa que usa /intranet/cuentas/, no una copia. */
+      var USO = {};
+      (usoCu || []).forEach(function (u) { USO[u.clave] = u; });
+      var USO_TIPO = {};
+      (usoTi || []).forEach(function (u) {
+        var s = (typeof TIPO_SLUG !== 'undefined' && TIPO_SLUG[u.tipo]) || u.tipo;
+        USO_TIPO[s] = u;
+      });
+
+      /* La alarma de verdad: un documento que COBRA, se sigue ofreciendo al
+         crear un contrato y no tiene ninguna cuenta marcada — el agente lo abre
+         y se encuentra vacío el desplegable donde va el destino del dinero. Los
+         que no cobran no tienen desplegable, y los archivados ya no se ofrecen:
+         ni unos ni otros son una alarma. */
+      var mudos = cobran.filter(function (p) { return !p.archivada && !(porSlug[p.slug] || []).length; });
       var etiqueta = function (x) { var c = porClave[x.clave]; return c ? (c.label || c.clave) : x.clave; };
 
       pon2('k-activas', String(activas.length));
       pon2('k-total', String(cus.length));
       pon2('k-activas-pie', (cus.length - activas.length) + ' dadas de baja');
-      pon2('k-plantillas', String(pls.length));
-      pon2('k-plantillas-pie', (repProy || []).length + ' excepciones por proyecto');
-      pon2('k-huerfanas', String(huerfanas.length));
-      /* Una plantilla sin cuentas marcadas lo dice en voz alta: un desplegable
-         vacio sin explicacion acaba en una cuenta escrita a mano. */
-      pon2('k-huerfanas-pie', huerfanas.length
-        ? huerfanas.slice(0, 3).map(function (p) { return p.nombre; }).join(' · ')
-        : 'todas ofrecen alguna cuenta');
+      pon2('k-plantillas', String(cobran.length));
+      pon2('k-plantillas-pie', 'de ' + pls.length + ' tipos en el catálogo · ' + archivadas.length + ' archivados');
+      pon2('k-huerfanas', String(mudos.length));
+      pon2('k-huerfanas-pie', mudos.length
+        ? mudos.slice(0, 3).map(function (p) { return p.nombre; }).join(' · ')
+        : 'ningún documento vivo se queda sin cuenta');
       pon2('k-escrow', String(escrow.length));
       pon2('k-escrow-pie', escrow.length ? 'declaradas por columna, no por nombre' : 'ninguna marcada');
 
+      var tag = function (txt, clase) {
+        return '<span class="ml-2 text-[11px] uppercase tracking-wider ' + (clase || 'text-outline') + '">' + esc(txt) + '</span>';
+      };
+      var btnEditar = function (attr, valor, extra) {
+        return '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" ' +
+          attr + '="' + esc(valor) + '"' + (extra || '') + '>Editar</button>';
+      };
+      var vacia = function (cols, txt) {
+        return '<tr><td colspan="' + cols + '" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">' + esc(txt) + '</td></tr>';
+      };
+
       // ---------- Por contrato ----------
-      var t = tbody && tbody.closest('table');
-      if (t) {
-        var pl = plantillaFilas(t);
-        if (pl) {
-          if (!pls.length) {
-            pl.tbody.innerHTML = '<tr><td colspan="3" style="padding:18px;text-align:center;font:400 13px \'Neue Kabel\',sans-serif;color:#8A8474">Ningun documento de pago registrado.</td></tr>';
-          } else {
-            pls.forEach(function (p) {
-              var filas = porSlug[p.slug] || [];
-              var def = filas.filter(function (x) { return x.es_default; })[0];
-              fila(pl, [
-                p.nombre || p.slug,
-                filas.length ? filas.map(etiqueta).join(' · ') : 'sin cuenta marcada',
-                def ? etiqueta(def) : '—'
-              ]);
-            });
-          }
-        }
+      if (tbody) {
+        tbody.innerHTML = !pls.length ? vacia(5, 'Ningún tipo de contrato registrado.') : pls.map(function (p) {
+          var filas = porSlug[p.slug] || [];
+          var def = filas.filter(function (x) { return x.es_default; })[0];
+          var u = USO_TIPO[p.slug];
+          var ofrece = !p.cobra
+            ? '<span class="text-outline">no lleva cuenta de cobro</span>'
+            : (filas.length
+                ? esc(filas.map(etiqueta).join(' · '))
+                : '<span class="text-error">sin cuenta marcada</span>');
+          return '<tr class="border-b border-outline-variant/30' + (p.archivada ? ' opacity-60' : '') + '">' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(p.nombre || p.slug) +
+              (p.archivada ? tag('archivado') : '') + '</td>' +
+            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + ofrece + '</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' +
+              (!p.cobra ? '—' : def ? esc(etiqueta(def)) : 'sin precargada') + '</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline text-right">' +
+              (u ? esc(u.contratos + ' · ' + u.firmados + ' firmados') : 'sin usar') + '</td>' +
+            '<td class="px-5 py-4 text-right">' + btnEditar('data-lw-cu-contrato', p.slug) + '</td></tr>';
+        }).join('');
       }
 
       /* ---------- Por proyecto ----------
@@ -2774,73 +2841,87 @@
          es el estado normal y sano, no una falta de configurar — con 1 sola
          fila en `proyecto_cuentas` hoy, casi todos los proyectos van a decir
          «hereda», y eso es correcto. */
-      var tProy = tbodyProy && tbodyProy.closest('table');
-      if (tProy) {
-        var plProy = plantillaFilas(tProy);
-        if (plProy) {
-          if (proys === null) {
-            plProy.tbody.innerHTML = '<tr><td colspan="3" style="padding:18px;text-align:center;font:400 13px \'Neue Kabel\',sans-serif;color:#93000a">No se pudo leer el catalogo de proyectos.</td></tr>';
-          } else if (!proys.length) {
-            plProy.tbody.innerHTML = '<tr><td colspan="3" style="padding:18px;text-align:center;font:400 13px \'Neue Kabel\',sans-serif;color:#8A8474">Ningun proyecto activo.</td></tr>';
-          } else {
-            var porProy = {};
-            (repProy || []).forEach(function (x) { (porProy[x.proyecto_id] = porProy[x.proyecto_id] || []).push(x); });
-            proys.forEach(function (p) {
-              var reglas = porProy[p.id] || [];
-              var tiposVistos = {}, tipos = [];
+      if (tbodyProy) {
+        var nombrePl = {};
+        pls.forEach(function (p) { nombrePl[p.slug] = p.nombre || p.slug; });
+        tbodyProy.innerHTML = proys === null
+          ? vacia(4, 'No se pudo leer el catálogo de proyectos.')
+          : (!proys.length ? vacia(4, 'Ningún proyecto activo.') : proys.map(function (p) {
+              var reglas = (repProy || []).filter(function (x) { return x.proyecto_id === p.id; });
+              var vistos = {}, tipos = [];
               reglas.forEach(function (x) {
-                var t2 = x.slug === '*' ? 'cualquier contrato' : x.slug;
-                if (!tiposVistos[t2]) { tiposVistos[t2] = 1; tipos.push(t2); }
+                var t2 = x.slug === '*' ? 'cualquier contrato' : (nombrePl[x.slug] || x.slug);
+                if (!vistos[t2]) { vistos[t2] = 1; tipos.push(t2); }
               });
-              fila(plProy, [
-                p.nombre,
-                reglas.length ? tipos.join(' · ') : 'hereda el reparto general',
-                reglas.length ? String(reglas.length) : '—'
-              ]);
-            });
-          }
-        }
+              return '<tr class="border-b border-outline-variant/30">' +
+                '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(p.nombre) + '</td>' +
+                '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' +
+                  (reglas.length ? esc(tipos.join(' · ')) : '<span class="text-outline">hereda el reparto general</span>') + '</td>' +
+                '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + (reglas.length ? String(reglas.length) : '—') + '</td>' +
+                '<td class="px-5 py-4 text-right">' + btnEditar('data-lw-cu-proyecto', p.id, ' data-lw-etq="' + esc(p.nombre) + '"') + '</td></tr>';
+            }).join(''));
       }
 
       // ---------- Por cuenta ----------
-      var tCu = tbodyCu && tbodyCu.closest('table');
-      if (tCu) {
-        var plCu = plantillaFilas(tCu);
-        if (plCu) {
-          if (!cus.length) {
-            plCu.tbody.innerHTML = '<tr><td colspan="3" style="padding:18px;text-align:center;font:400 13px \'Neue Kabel\',sans-serif;color:#8A8474">Ninguna cuenta dada de alta.</td></tr>';
-          } else {
-            cus.forEach(function (c) {
-              /* Ojo (hallazgo de Administración en la consulta de deploy,
-                 15-sep): "se ofrece en" tiene que sumar las DOS fuentes del
-                 reparto, no solo `rep` (plantilla_cuentas). Una cuenta atada
-                 SOLO por una excepción de `proyecto_cuentas` (por ejemplo un
-                 notario propio de un proyecto) seguía saliendo "ninguno"
-                 aunque estuviera en uso real — quien mirase esta tabla para
-                 decidir qué cuenta dar de baja podía desactivar una que un
-                 comprador de ese proyecto sigue viendo en su documento. */
-              var usos = rep.filter(function (x) { return x.clave === c.clave; }).length
-                + (repProy || []).filter(function (x) { return x.clave === c.clave; }).length;
-              fila(plCu, [
-                c.label || c.clave,
-                usos ? (usos + (usos === 1 ? ' documento' : ' documentos')) : 'ninguno',
-                c.activa ? 'activa' : 'de baja'
-              ]);
-            });
-          }
-        }
+      if (tbodyCu) {
+        tbodyCu.innerHTML = !cus.length ? vacia(5, 'Ninguna cuenta dada de alta.') : cus.map(function (c) {
+          /* Ojo (hallazgo de Administración en la consulta de deploy,
+             15-sep): "se ofrece en" tiene que sumar las DOS fuentes del
+             reparto, no solo `rep` (plantilla_cuentas). Una cuenta atada
+             SOLO por una excepción de `proyecto_cuentas` (por ejemplo un
+             notario propio de un proyecto) seguía saliendo "ninguno"
+             aunque estuviera en uso real — quien mirase esta tabla para
+             decidir qué cuenta dar de baja podía desactivar una que un
+             comprador de ese proyecto sigue viendo en su documento. */
+          var usos = rep.filter(function (x) { return x.clave === c.clave; }).length +
+                     (repProy || []).filter(function (x) { return x.clave === c.clave; }).length;
+          var u = USO[c.clave];
+          return '<tr class="border-b border-outline-variant/30' + (c.activa ? '' : ' opacity-60') + '">' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(c.label || c.clave) +
+              (c.es_escrow ? tag('escrow', 'text-burnt-earth') : '') + '</td>' +
+            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' +
+              (usos ? esc(usos + (usos === 1 ? ' documento' : ' documentos')) : '<span class="text-outline">ninguno</span>') + '</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + (c.activa ? 'activa' : 'de baja') + '</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-right ' + (u && u.firmados ? 'text-error' : 'text-outline') + '">' +
+              (u && u.contratos ? esc(u.contratos + ' · ' + u.firmados + ' firmados') : '—') + '</td>' +
+            '<td class="px-5 py-4 text-right">' + btnEditar('data-lw-cu-cuenta', c.clave) + '</td></tr>';
+        }).join('');
       }
 
       if (cajaCu) {
         cajaCu.innerHTML = cus.length
           ? cus.map(function (c) {
               return itemPanel(esc(c.label || c.clave) + (c.es_escrow ? ' · escrow' : ''),
-                               esc([c.banco, c.titular].filter(Boolean).join(' — ') || '—'),
+                               esc([c.banco, c.cuenta].filter(Boolean).join(' — ') || '—'),
                                c.activa ? 'activa' : 'de baja');
             }).join('')
           : '<p style="font:400 13px \'Neue Kabel\',sans-serif;color:#44483f;margin:0">Ninguna cuenta dada de alta.</p>';
       }
-    });
+
+      /* Lo que el editor necesita de esta pantalla, publicado igual que
+         `window.LW_V4.unidades` en /v4/proyectos/: los datos ya leidos (para no
+         volver a consultarlos al abrir un cajon) y la RECARGA. La recarga es lo
+         que evita el `location.reload()` del modal generico — aqui se guardan
+         casillas sueltas y recargar la pagina entera por cada una seria perder
+         la pestaña abierta y el sitio de la tabla. */
+      window.LW_V4 = window.LW_V4 || {};
+      window.LW_V4.cuentas = {
+        cuentas: cus, plantillas: pls, reparto: rep,
+        repartoProyecto: repProy || [], proyectos: proys || [],
+        uso: USO, usoTipo: USO_TIPO
+      };
+      window.LW_V4.recargaCuentas = carga;
+    }
+
+    /* Delegado en el <tbody> estatico y ANTES de cargar: las filas se reemplazan
+       enteras en cada repintado (un listener directo moriria con ellas) y
+       `maqueta.js` escucha en `document`, asi que llegaria despues y anunciaria
+       el boton como «sin cablear». `delega` para con stopPropagation. */
+    delega(tbody,     [['data-lw-cu-contrato', 'abreRepartoContrato']]);
+    delega(tbodyProy, [['data-lw-cu-proyecto', 'abreRepartoProyecto']]);
+    delega(tbodyCu,   [['data-lw-cu-cuenta',   'abreEditaCuenta']]);
+
+    carga();
   };
 
   /* ---------- Equipos de venta y Condiciones de comisión (14-sep-2026) ----------
@@ -3351,20 +3432,6 @@
       // acción delegada, con stopPropagation para ganar a maqueta.js (Regla 0)
       /* Una sola delegacion para todas las acciones de fila, de las dos tablas.
          `stopPropagation` para ganar a maqueta.js, que escucha en burbujeo. */
-      function delega(caja, pares) {
-        if (!caja) return;
-        caja.addEventListener('click', function (ev) {
-          for (var i = 0; i < pares.length; i++) {
-            var b = ev.target.closest && ev.target.closest('[' + pares[i][0] + ']');
-            if (!b) continue;
-            ev.preventDefault(); ev.stopPropagation();
-            var fn = window.LW_V4 && window.LW_V4[pares[i][1]];
-            if (fn) fn(b);
-            else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
-            return;
-          }
-        });
-      }
       delega(cuerpoLin, [['data-lw-ca-estado', 'abreEstadoComisionAdmin'],
                          ['data-lw-ca-anula',  'abreAnulaComisionAdmin'],
                          ['data-lw-ca-repone', 'abreReponeComisionAdmin']]);

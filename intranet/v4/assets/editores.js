@@ -832,6 +832,268 @@
     });
   }
 
+  /* ---------- Reparto de cuentas de cobro: la matriz «ofrece / precargada» ----------
+     (18-sep-2026) El widget que le faltaba a la v4 para que /v4/cuentas/ deje de
+     ser una pantalla de solo mirar. Lo usan los tres editores de esa pantalla —
+     por contrato, por proyecto (una vez por bloque) y por cuenta— porque las tres
+     son la MISMA decision leida en tres sentidos.
+
+     Dos reglas que no se ven en el marcado y por las que esto no es un
+     `multicheck` cualquiera:
+
+     · «precargada» solo tiene sentido sobre una cuenta OFRECIDA. Al desmarcar la
+       casilla, su radio se apaga; y si era la precargada, la precarga cae sola a
+       «ninguna» — precargar una cuenta que el desplegable ya no ofrece imprimiria
+       un destino de pago imposible de elegir.
+     · «ninguna precargada» EXISTE como opcion. Un radio no se desmarca solo, y
+       quitar la precarga sin quitar la cuenta es una cosa que hay que poder
+       hacer (es lo correcto salvo que el documento cobre siempre en el mismo
+       sitio).
+
+     El estado no se guarda al vuelo casilla a casilla como en /intranet/cuentas/:
+     aqui el cajon es un formulario y se aplica el DIFF al guardar. Es la lengua
+     de la v4 —un cajon, un boton— y ademas deja cancelar. Lo que no cambia es que
+     cada escritura se verifica contra las filas devueltas (`verifica`). */
+  var REPARTO_N = 0;
+  function montaReparto(host, items, sel, opts) {
+    opts = opts || {};
+    var grupo = 'lwrep' + (++REPARTO_N);
+    var caja = document.createElement('div');
+    caja.style.cssText = 'background:' + CAJ.banda + ';border:1px solid ' + CAJ.borde +
+      ';border-radius:12px;padding:12px 14px;margin:0 0 10px';
+    var cab = '';
+    if (opts.titulo) {
+      cab = '<div style="font-weight:600;font-size:13px;color:' + CAJ.tinta + ';margin-bottom:2px">' + esc(opts.titulo) + '</div>';
+    }
+    if (opts.sub) {
+      cab += '<div style="font-weight:400;font-size:12px;color:#8A8474;margin-bottom:10px">' + esc(opts.sub) + '</div>';
+    }
+    var filaEstilo = 'display:flex;align-items:center;gap:9px;padding:6px 0;font-weight:500;font-size:13px;color:' + CAJ.tinta;
+    caja.innerHTML = cab +
+      '<div data-e="filas">' + items.map(function (it) {
+        var on = !!(sel.claves && sel.claves[it.clave]);
+        var esDef = sel.def === it.clave;
+        return '<div style="' + filaEstilo + (on ? '' : ';opacity:.6') + '" data-fila="' + esc(it.clave) + '">' +
+          '<input type="checkbox" data-ofrece="' + esc(it.clave) + '"' + (on ? ' checked' : '') + '>' +
+          '<span style="flex:1;min-width:0">' + esc(it.label) +
+            (it.escrow ? ' <span style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#42210B">escrow</span>' : '') +
+            (it.activa === false ? ' <span style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#8A8474">de baja</span>' : '') +
+            (it.peligro ? ' <span title="' + esc(it.peligro) + '">⚠️</span>' : '') +
+          '</span>' +
+          '<label style="display:flex;gap:5px;align-items:center;font-size:12px;color:#8A8474;white-space:nowrap">' +
+            '<input type="radio" name="' + grupo + '" data-def="' + esc(it.clave) + '"' +
+              (esDef ? ' checked' : '') + (on ? '' : ' disabled') + '>precargada</label>' +
+        '</div>';
+      }).join('') + '</div>' +
+      '<label style="' + filaEstilo + ';border-top:1px solid ' + CAJ.borde + ';margin-top:6px;padding-top:9px;color:#8A8474">' +
+        '<input type="radio" name="' + grupo + '" data-def="">' +
+        '<span>Ninguna precargada — se elige en cada contrato</span></label>' +
+      '<p data-e="estado" style="margin:8px 0 0;font-weight:400;font-size:12px;line-height:1.45"></p>';
+    host.appendChild(caja);
+
+    var sinDef = caja.querySelector('[data-def=""]');
+    if (!sel.def) sinDef.checked = true;
+
+    function repinta() {
+      var n = 0;
+      caja.querySelectorAll('[data-ofrece]').forEach(function (ch) {
+        var fila = ch.closest('[data-fila]');
+        var rad = fila.querySelector('[data-def]');
+        fila.style.opacity = ch.checked ? '' : '.6';
+        rad.disabled = !ch.checked;
+        if (!ch.checked && rad.checked) { rad.checked = false; sinDef.checked = true; }
+        if (ch.checked) n++;
+      });
+      var def = caja.querySelector('[data-def]:checked');
+      var p = caja.querySelector('[data-e="estado"]');
+      if (!n) {
+        /* El unico estado de esta pantalla que rompe un contrato de verdad: el
+           agente lo abre y se encuentra vacio el desplegable donde va el destino
+           del dinero. Se dice en rojo y en el sitio, no al guardar. */
+        p.style.color = '#9E2F26';
+        p.textContent = opts.vacioOk
+          ? 'Sin ninguna marcada: hereda el reparto general (que es lo normal).'
+          : 'No ofrecerá NINGUNA cuenta: quien abra el documento se encuentra el desplegable de destino de pago vacío.';
+        if (opts.vacioOk) p.style.color = '#8A8474';
+      } else {
+        p.style.color = '#8A8474';
+        p.textContent = n + (n === 1 ? ' cuenta ofrecida · ' : ' cuentas ofrecidas · ') +
+          (def && def.getAttribute('data-def') ? 'precargada: ' + (nombreItem(items, def.getAttribute('data-def'))) : 'sin precargada');
+      }
+      if (typeof opts.alCambiar === 'function') opts.alCambiar();
+    }
+    caja.addEventListener('change', repinta);
+    repinta();
+
+    return function lee() {
+      var claves = [];
+      caja.querySelectorAll('[data-ofrece]:checked').forEach(function (ch) { claves.push(ch.getAttribute('data-ofrece')); });
+      var d = caja.querySelector('[data-def]:checked');
+      var def = d ? d.getAttribute('data-def') : '';
+      return { claves: claves, def: def && claves.indexOf(def) !== -1 ? def : null };
+    };
+  }
+  function nombreItem(items, clave) {
+    for (var i = 0; i < items.length; i++) if (items[i].clave === clave) return items[i].label;
+    return clave;
+  }
+
+  /* 0 FILAS SIN ERROR = LA RLS LO PARO EN SILENCIO, y es el desenlace caro de esta
+     pantalla: sin esto, a un admin que no es super admin el cajon le diria
+     «guardado» sin haber guardado nada, y se iria creyendo que la cuenta de cobro
+     del comprador es otra. Medido contra la base en /intranet/cuentas/: como
+     agente el update afecta 0 filas y NO lanza; como super admin afecta 1.
+     `modal()` solo mira `r.error`, asi que la traduccion se hace aqui. */
+  function verifica(p, queNoPaso) {
+    return Promise.resolve(p).then(function (r) {
+      if (r && r.error) return r;
+      if (!r || !r.data || !r.data.length) {
+        return { error: { message: queNoPaso + ' — no tienes permiso para editar cuentas de cobro (el gate es la policy es_super_admin, no esta pantalla).' } };
+      }
+      return r;
+    });
+  }
+  // encadena escrituras y se para en la primera que falle, devolviendo su error
+  function enCadena(pasos) {
+    return pasos.reduce(function (prev, paso) {
+      return prev.then(function (acc) {
+        if (acc && acc.error) return acc;
+        return Promise.resolve(paso()).then(function (r) { return (r && r.error) ? r : null; });
+      });
+    }, Promise.resolve(null));
+  }
+
+  /* El DIFF de un reparto contra lo que hay en la base. `base` son las columnas
+     que identifican el nivel (`{slug}` para plantilla_cuentas, `{proyecto_id,
+     slug}` para proyecto_cuentas) y se reusan tal cual en el filtro y en el
+     insert — una sola definicion, no dos listas a mano que puedan separarse. */
+  function guardaReparto(sb, tabla, base, antes, ahora) {
+    var antesClaves = antes.map(function (x) { return x.clave; });
+    var antesDef = (antes.filter(function (x) { return x.es_default; })[0] || {}).clave || null;
+    var quitar = antesClaves.filter(function (c) { return ahora.claves.indexOf(c) === -1; });
+    var poner = ahora.claves.filter(function (c) { return antesClaves.indexOf(c) === -1; });
+    var filtro = function (qq) {
+      Object.keys(base).forEach(function (k) { qq = qq.eq(k, base[k]); });
+      return qq;
+    };
+    var pasos = [];
+    quitar.forEach(function (c) {
+      pasos.push(function () {
+        return verifica(filtro(sb.from(tabla).delete()).eq('clave', c).select('clave'),
+                        'No se pudo quitar «' + c + '»');
+      });
+    });
+    poner.forEach(function (c) {
+      var fila = { clave: c };
+      Object.keys(base).forEach(function (k) { fila[k] = base[k]; });
+      pasos.push(function () {
+        return verifica(sb.from(tabla).insert(fila).select('clave'), 'No se pudo añadir «' + c + '»');
+      });
+    });
+    if (ahora.def && ahora.def !== antesDef) {
+      /* El trigger (`un_solo_default_por_plantilla` / `..._por_proyecto`)
+         desmarca sola a la anterior: por eso aqui no hay dos sentencias en
+         orden, y por eso la garantia es un trigger y no un indice unico parcial
+         (que no sirve para ON CONFLICT, 42P10). */
+      pasos.push(function () {
+        return verifica(filtro(sb.from(tabla).update({ es_default: true })).eq('clave', ahora.def).select('clave'),
+                        'No se pudo marcar la precargada');
+      });
+    } else if (!ahora.def && antesDef && ahora.claves.indexOf(antesDef) !== -1) {
+      /* «Ninguna precargada» va explicita y acotada a este nivel: no hay trigger
+         que desmarque —el trigger solo garantiza que no haya dos—. Si la que
+         estaba precargada se ha QUITADO del reparto, ya no hay fila que
+         desmarcar y este paso sobra (de ahi el tercer condicional). */
+      pasos.push(function () {
+        return verifica(filtro(sb.from(tabla).update({ es_default: false })).eq('es_default', true).select('clave'),
+                        'No se pudo quitar la precarga');
+      });
+    }
+    if (!pasos.length) return Promise.resolve(null);
+    return enCadena(pasos);
+  }
+
+  /* El mismo reparto visto DESDE LA CUENTA: aqui lo fijo es la cuenta y lo que
+     varia es el contrato — al reves que `montaReparto`. No se funden en una:
+     pedirian un parametro de "sentido" que habria que leer dos veces cada vez
+     que se toque esto, y ademas aqui «precargada» es una casilla y no un radio
+     (cada contrato tiene la suya, no compiten entre si).
+
+     Devuelve SOLO los contratos en los que algo cambia, ya en la forma que
+     `guardaReparto` espera. */
+  function montaRepartoPorCuenta(host, d, clave) {
+    var filasDe = function (slug) { return d.reparto.filter(function (x) { return x.slug === slug; }); };
+    /* Los que cobran y se siguen ofreciendo, mas cualquiera donde esta cuenta ya
+       este marcada aunque este archivado: si no, una fila que existe en la base
+       desaparece de la pantalla y no hay como quitarla. */
+    var pls = d.plantillas.filter(function (p) {
+      var marcada = filasDe(p.slug).some(function (x) { return x.clave === clave; });
+      return (p.cobra && !p.archivada) || marcada;
+    });
+    var caja = document.createElement('div');
+    caja.style.cssText = 'background:' + CAJ.banda + ';border:1px solid ' + CAJ.borde +
+      ';border-radius:12px;padding:12px 14px;margin:0';
+    var etqDe = function (cl) {
+      var c = d.cuentas.filter(function (x) { return x.clave === cl; })[0];
+      return c ? (c.label || c.clave) : cl;
+    };
+    caja.innerHTML = '<div style="font-weight:600;font-size:13px;color:' + CAJ.tinta + ';margin-bottom:10px">En qué contratos se ofrece esta cuenta</div>' +
+      (!pls.length ? '<div style="font-weight:400;font-size:12px;color:#8A8474">Ningún tipo de contrato cobra. Nada que repartir.</div>'
+        : pls.map(function (p) {
+            var filas = filasDe(p.slug);
+            var marcada = filas.some(function (x) { return x.clave === clave; });
+            var esDef = filas.some(function (x) { return x.clave === clave && x.es_default; });
+            var otraDef = filas.filter(function (x) { return x.es_default && x.clave !== clave; })[0];
+            /* Cuantas cuentas ofrece HOY este contrato, en su propia fila: es lo
+               que contesta «¿puedo quitar esta sin dejarlo sin ninguna?» sin
+               abrir las otras quince fichas. */
+            var pista = !filas.length ? 'ahora mismo no ofrece ninguna cuenta'
+              : filas.length + (filas.length === 1 ? ' cuenta · ' : ' cuentas · ') +
+                (otraDef ? 'precargada: ' + etqDe(otraDef.clave) : esDef ? 'precargada: esta' : 'sin precargada');
+            return '<div data-pl="' + esc(p.slug) + '" style="padding:8px 0;border-top:1px solid ' + CAJ.borde + '">' +
+              '<div style="font-weight:500;font-size:13px;color:' + CAJ.tinta + '">' + esc(p.nombre || p.slug) +
+                (p.archivada ? ' <span style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#8A8474">archivado</span>' : '') + '</div>' +
+              '<div style="font-weight:400;font-size:12px;color:#8A8474;margin:1px 0 5px">' + esc(pista) + '</div>' +
+              '<div style="display:flex;gap:16px;align-items:center;font-weight:500;font-size:12.5px;color:' + CAJ.tinta + '">' +
+                '<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-ofrece' +
+                  (marcada ? ' checked' : '') + '>se ofrece aquí</label>' +
+                '<label style="display:flex;gap:6px;align-items:center;color:#8A8474"><input type="checkbox" data-pre' +
+                  (esDef ? ' checked' : '') + (marcada ? '' : ' disabled') + '>precargada</label>' +
+              '</div></div>';
+          }).join(''));
+    host.appendChild(caja);
+
+    caja.addEventListener('change', function () {
+      caja.querySelectorAll('[data-pl]').forEach(function (fila) {
+        var of = fila.querySelector('[data-ofrece]'), pre = fila.querySelector('[data-pre]');
+        pre.disabled = !of.checked;
+        // precargar una cuenta que el contrato ya no ofrece imprimiria un destino
+        // de pago que su propio desplegable no admite
+        if (!of.checked) pre.checked = false;
+      });
+    });
+
+    return function lee() {
+      var cambios = [];
+      caja.querySelectorAll('[data-pl]').forEach(function (fila) {
+        var slug = fila.getAttribute('data-pl');
+        var of = fila.querySelector('[data-ofrece]').checked;
+        var pre = fila.querySelector('[data-pre]').checked;
+        var antes = filasDe(slug);
+        var antesClaves = antes.map(function (x) { return x.clave; });
+        var antesDef = (antes.filter(function (x) { return x.es_default; })[0] || {}).clave || null;
+        var ahoraClaves = of
+          ? (antesClaves.indexOf(clave) === -1 ? antesClaves.concat([clave]) : antesClaves)
+          : antesClaves.filter(function (x) { return x !== clave; });
+        var ahoraDef = pre ? clave
+          : (antesDef === clave ? null : (ahoraClaves.indexOf(antesDef) !== -1 ? antesDef : null));
+        if (of === (antesClaves.indexOf(clave) !== -1) && ahoraDef === antesDef) return;  // nada que hacer
+        cambios.push({ slug: slug, antes: antes, ahora: { claves: ahoraClaves, def: ahoraDef } });
+      });
+      return cambios;
+    };
+  }
+
   /* ---------- editores por pantalla ---------- */
   var ED = {
 
@@ -2829,13 +3091,288 @@
       };
     },
 
+    /* ---------- Cuentas de cobro y su reparto (18-sep-2026) ----------
+       Hasta hoy esta pantalla solo sabia dar de ALTA una cuenta; todo lo demas
+       habia que ir a hacerlo a /intranet/cuentas/. Ahora hereda las cuatro
+       acciones de la herramienta viva, que es lo que Regla 0 bis de
+       `contexto/suite_lawang.md` exige de una version de diseño: mismas
+       funcionalidades, otra piel.
+
+       Lo caro no son los formularios, son las reglas que llevan dentro y que se
+       heredan una por una de /intranet/cuentas/:
+       · `clave` NO se edita jamas: viaja dentro de cada contrato y cada factura
+         ya emitidos (`datos.fields.cuenta_bancaria`). Renombrarla dejaria
+         documentos firmados apuntando a algo que no existe.
+       · archivar es un FLAG y nunca un borrado: `plantilla_cuentas` cuelga de
+         `plantillas_contrato` con ON DELETE CASCADE, asi que borrar un tipo
+         archivado se llevaria su reparto por delante sin decir una palabra, y al
+         desarchivarlo volveria sin cuentas.
+       · una cuenta de ESCROW nunca en el nivel `'*'` de un proyecto sin
+         confirmarlo: dejaria su Carta de Reserva ofreciendo solo un deposito en
+         garantia que la Carta no pacta (verificado: los contratos de obra de
+         Soka cobran en la cuenta de empresa, no en su notario).
+       · toda escritura se verifica contra las filas devueltas (`verifica`): la
+         RLS de estas cuatro tablas deniega con CERO filas y sin error.
+
+       Lo que NO se porta, dicho a proposito: el buscador `#qC` de la herramienta
+       viva (aqui las tres tablas son cortas y se ven enteras) y el `orden` de una
+       cuenta, que alli tampoco se edita — nace al final de la lista. */
     cuentas: function (aut) {
       var sb = aut.sb, superAdmin = !!(aut.ficha && aut.ficha.rol === 'super_admin');
       var soloSuper = function () {
-        return aviso('Dar de alta una cuenta de cobro es solo para super_admin (policy es_super_admin) — tu sesión es de ' +
-          ((aut.ficha && aut.ficha.rol) || 'agente') + '.', '#8A6A34');
+        return aviso('Cambiar una cuenta de cobro o su reparto es solo para super_admin (policy es_super_admin) — tu sesión es de ' +
+          ((aut.ficha && aut.ficha.rol) || 'agente') + '. Puedes verlo en las tablas.', '#8A6A34');
+      };
+      // los datos que `datos.js` ya leyo y publico: abrir un cajon no vuelve a consultar
+      var D = function () { return (window.LW_V4 && window.LW_V4.cuentas) || null; };
+      var recarga = function () {
+        var f = window.LW_V4 && window.LW_V4.recargaCuentas;
+        if (f) f(); else location.reload();
+      };
+      var sinDatos = function () { return aviso('Los datos de la pantalla aún no han cargado — prueba de nuevo en un segundo.', '#8A6A34'); };
+      var etq = function (d, clave) {
+        var c = d.cuentas.filter(function (x) { return x.clave === clave; })[0];
+        return c ? (c.label || c.clave) : clave;
+      };
+      /* Las desactivadas no se ofrecen para marcar: estan fuera de todos los
+         desplegables por definicion. Pero si alguna esta YA marcada aqui (se
+         desactivo despues) se enseña, porque si no desaparece de la pantalla una
+         fila que si existe en la base. */
+      var candidatas = function (d, yaMarcadas) {
+        return d.cuentas.filter(function (c) { return c.activa || yaMarcadas[c.clave]; })
+          .map(function (c) { return { clave: c.clave, label: c.label || c.clave, escrow: c.es_escrow, activa: c.activa }; });
+      };
+      var marcadasDe = function (filas) {
+        var m = {}; filas.forEach(function (x) { m[x.clave] = true; }); return m;
+      };
+      var defDe = function (filas) {
+        var f = filas.filter(function (x) { return x.es_default; })[0];
+        return f ? f.clave : null;
       };
 
+      /* ═══ 1. POR CONTRATO — la vista del encargo original del owner: se abre un
+         tipo de documento y se marcan sus cuentas. Aqui vive ademas el archivado,
+         con la cifra de uso delante: es lo que separa la morralla de lo que se usa
+         poco. */
+      window.LW_V4 = window.LW_V4 || {};
+      window.LW_V4.abreRepartoContrato = function (b) {
+        if (!superAdmin) return soloSuper();
+        var d = D(); if (!d) return sinDatos();
+        var slug = b.getAttribute('data-lw-cu-contrato');
+        var p = d.plantillas.filter(function (x) { return x.slug === slug; })[0];
+        if (!p) return sinDatos();
+        var filas = d.reparto.filter(function (x) { return x.slug === slug; });
+        var u = d.usoTipo[slug];
+        var lee = null;
+
+        var encabezado = '<div style="font-weight:400;font-size:12.5px;line-height:1.5;color:#44483f">' +
+          '<b>' + esc(p.slug) + '</b> · ' +
+          (u ? esc(u.contratos + ' contratos emitidos, ' + u.firmados + ' firmados') +
+               (u.ultimo ? ' · último ' + esc(new Date(u.ultimo).toLocaleDateString('es-ES')) : '')
+             : 'sin usar todavía') + '</div>';
+
+        var campos = [
+          { k: 'archivada', tipo: 'check', valor: p.archivada,
+            label: 'Archivado — no aparece al crear un contrato',
+            ayuda: 'Solo lo retira del desplegable de «Nuevo contrato». Lo ya emitido no cambia, y un contrato guardado de este tipo se sigue abriendo, imprimiendo y firmando.' }
+        ];
+        if (u && u.firmados && !p.archivada) {
+          campos.push({ tipo: 'nota', label: 'Tiene ' + u.firmados + ' contratos FIRMADOS. Archivarlo no los toca: se siguen abriendo e imprimiendo.' });
+        }
+        if (p.cobra) {
+          campos.push({ tipo: 'custom', render: function (host) {
+            lee = montaReparto(host, candidatas(d, marcadasDe(filas)),
+              { claves: marcadasDe(filas), def: defDe(filas) },
+              { titulo: 'Qué cuentas puede elegir el agente en este contrato' });
+          } });
+          campos.push({ tipo: 'nota', label: 'Un contrato YA GUARDADO conserva la cuenta con la que se hizo, aunque aquí la desmarques. No se reescribe nada de lo emitido.' });
+        } else {
+          campos.push({ tipo: 'nota', label: 'Este documento no lleva datos bancarios (no cobra), así que no hay ninguna cuenta que repartir.' });
+        }
+
+        modal(p.nombre || slug, campos, 'Guardar', function (v) {
+          var pasos = [];
+          if (!!v.archivada !== !!p.archivada) {
+            pasos.push(function () {
+              return verifica(sb.from('plantillas_contrato').update({ archivada: !!v.archivada })
+                .eq('slug', slug).select('slug'), 'No se pudo cambiar el archivado');
+            });
+          }
+          if (p.cobra && lee) {
+            var ahora = lee();
+            pasos.push(function () { return guardaReparto(sb, 'plantilla_cuentas', { slug: slug }, filas, ahora); });
+          }
+          return enCadena(pasos).then(function (r) {
+            if (r && r.error) return r;
+            recarga();
+            return null;
+          });
+        }, { sub: 'Reparto por contrato', encabezado: encabezado, sinRecarga: true });
+      };
+
+      /* ═══ 2. POR PROYECTO — la EXCEPCION, no una matriz. Un proyecto que no
+         aparece hereda, y eso es lo normal y lo correcto: 8 tipos × 29 proyectos
+         son 232 casillas que nadie mantiene. Marcar algo aqui RESTRINGE. */
+      window.LW_V4.abreRepartoProyecto = function (b) {
+        if (!superAdmin) return soloSuper();
+        var d = D(); if (!d) return sinDatos();
+        var id = b.getAttribute('data-lw-cu-proyecto');
+        var nombre = b.getAttribute('data-lw-etq') || 'Proyecto';
+        var mias = d.repartoProyecto.filter(function (x) { return String(x.proyecto_id) === String(id); });
+
+        /* Los bloques: «cualquier contrato» primero, luego los tipos que cobran y
+           siguen ofreciendose, y ademas cualquier tipo que YA tenga excepcion aqui
+           aunque este archivado — si no, una regla viva desaparece de la pantalla
+           y no hay forma de quitarla. */
+        var conRegla = {}; mias.forEach(function (x) { conRegla[x.slug] = true; });
+        var bloques = [{ slug: '*', nombre: 'Cualquier contrato de este proyecto' }];
+        d.plantillas.forEach(function (t) {
+          if ((t.cobra && !t.archivada) || (conRegla[t.slug] && t.slug !== '*')) {
+            bloques.push({ slug: t.slug, nombre: t.nombre || t.slug, archivada: t.archivada });
+          }
+        });
+
+        var lectores = [];
+        var campos = [
+          { tipo: 'nota', label: 'Marcar una cuenta aquí RESTRINGE: ese tipo de contrato, en este proyecto, dejará de ofrecer las demás. Sin nada marcado hereda el reparto general, que es lo normal.' },
+          { tipo: 'custom', render: function (host) {
+            bloques.forEach(function (bl) {
+              var filas = mias.filter(function (x) { return x.slug === bl.slug; });
+              var marcadas = marcadasDe(filas);
+              var items = candidatas(d, marcadas).map(function (it) {
+                /* El aviso donde de verdad muerde, y solo ahi: una cuenta de
+                   escrow en «cualquier contrato» haria que la Carta de Reserva
+                   de este proyecto ofreciera un deposito en garantia que no
+                   pacta. */
+                if (bl.slug === '*' && it.escrow) {
+                  it.peligro = 'Es una cuenta de escrow: aquí valdría para TODOS los contratos del proyecto, incluidos los que no pactan depósito en garantía.';
+                }
+                return it;
+              });
+              lectores.push({ slug: bl.slug, antes: filas,
+                lee: montaReparto(host, items, { claves: marcadas, def: defDe(filas) },
+                  { titulo: bl.nombre + (bl.archivada ? ' (archivado)' : ''),
+                    sub: filas.length ? filas.length + ' reglas propias' : 'hereda el reparto general',
+                    vacioOk: true }) });
+            });
+          } }
+        ];
+
+        modal(nombre, campos, 'Guardar', function () {
+          var estados = lectores.map(function (L) { return { slug: L.slug, antes: L.antes, ahora: L.lee() }; });
+          /* La confirmacion de peligro va ANTES de escribir nada, y con el dialogo
+             de la suite (`dialogo.js`), nunca con el `confirm()` del navegador:
+             arranca el foco en Cancelar y admite tono «peligro». */
+          var todos = estados.filter(function (e) { return e.slug === '*'; })[0];
+          var nuevasEscrow = [];
+          if (todos) {
+            var antesTodos = {}; todos.antes.forEach(function (x) { antesTodos[x.clave] = true; });
+            todos.ahora.claves.forEach(function (cl) {
+              var c = d.cuentas.filter(function (x) { return x.clave === cl; })[0];
+              if (c && c.es_escrow && !antesTodos[cl]) nuevasEscrow.push(c.label || cl);
+            });
+          }
+          var previo = !nuevasEscrow.length ? Promise.resolve(true)
+            : (typeof lwConfirmar === 'function'
+                ? lwConfirmar({
+                    titulo: '¿Una cuenta de escrow para TODOS los contratos?',
+                    cuerpo: '«' + nuevasEscrow.join('», «') + '» es una cuenta de ESCROW y la estás marcando para CUALQUIER contrato de este proyecto. Sus contratos de obra y sus cartas de reserva pasarían a ofrecer solo esa cuenta, con una cláusula de depósito en garantía que no pactan.',
+                    confirmar: 'Marcarla igualmente', tono: 'peligro'
+                  })
+                /* Si `dialogo.js` no cargo, NO se sigue en silencio: se para y se
+                   dice. Una confirmacion que se salta sola no es una confirmacion. */
+                : Promise.resolve(false));
+
+          return Promise.resolve(previo).then(function (sigo) {
+            if (!sigo) return { error: { message: 'Cancelado: no se ha guardado nada. Una cuenta de escrow en «cualquier contrato» hay que confirmarla.' } };
+            return enCadena(estados.map(function (e) {
+              return function () {
+                return guardaReparto(sb, 'proyecto_cuentas', { proyecto_id: id, slug: e.slug }, e.antes, e.ahora);
+              };
+            })).then(function (r) {
+              if (r && r.error) return r;
+              recarga();
+              return null;
+            });
+          });
+        }, { sub: 'Excepción por proyecto', sinRecarga: true });
+      };
+
+      /* ═══ 3. POR CUENTA — mantenimiento del dato que el comprador lee en su
+         contrato, y el reparto visto desde el otro lado. */
+      window.LW_V4.abreEditaCuenta = function (b) {
+        if (!superAdmin) return soloSuper();
+        var d = D(); if (!d) return sinDatos();
+        var clave = b.getAttribute('data-lw-cu-cuenta');
+        var c = d.cuentas.filter(function (x) { return x.clave === clave; })[0];
+        if (!c) return sinDatos();
+        var nota = lwNotaCuenta.lee(c.extra);
+        var u = d.uso[clave];
+        var leeRep = null;
+
+        /* Que hay YA EMITIDO con esta cuenta, con la cifra, encima de los campos
+           que se pueden cambiar. La distincion que importa es firmados / no
+           firmados: un contrato sin firmar se corrige, uno firmado es un documento
+           que alguien tiene en la mano. */
+        var encabezado = '<div style="font-weight:400;font-size:12.5px;line-height:1.5;color:#44483f">' +
+          'clave <b>' + esc(clave) + '</b> — no se cambia nunca: va dentro de cada contrato y cada factura ya emitidos.' +
+          (c.actualizado_en ? '<br>última edición ' + esc(new Date(c.actualizado_en).toLocaleDateString('es-ES')) : '') +
+          '</div>' +
+          (u && u.contratos
+            ? '<div style="margin-top:8px;font-weight:400;font-size:12.5px;line-height:1.5;padding:10px 12px;border-radius:10px;' +
+              (u.firmados ? 'color:#93000a;background:#ffdad6;border:1px solid #f5b8b2' : 'color:#8A6A34;background:#FBF3E4;border:1px solid #EBDCB4') + '">' +
+              (u.firmados
+                ? 'Está en ' + u.contratos + ' contratos, y ' + u.firmados + ' ya FIRMADOS. Si cambias el titular, el número o la casilla ESCROW, cambia lo que imprimen esos documentos cuando alguien los reabra. Para una cuenta distinta, crea una nueva en vez de reescribir esta.'
+                : 'Está en ' + u.contratos + ' contratos, ninguno firmado todavía.') +
+              '</div>'
+            : '');
+
+        modal(c.label || clave, [
+          { k: 'label', label: 'Etiqueta (la que se ve en el desplegable)', valor: c.label, req: 1 },
+          { k: 'titular', label: 'Titular', valor: c.titular, medio: 1 },
+          { k: 'banco', label: 'Banco', valor: c.banco, medio: 1 },
+          { k: 'cuenta', label: 'Número de cuenta', valor: c.cuenta, medio: 1 },
+          { k: 'codigo', label: 'Código Swift / Routing', valor: c.codigo, medio: 1 },
+          { k: 'direccion', label: 'Domicilio del banco', valor: c.direccion },
+          { k: 'nota_es', tipo: 'textarea', valor: nota.es, label: 'Nota que se imprime en el contrato — ES' },
+          { k: 'nota_en', tipo: 'textarea', valor: nota.en, label: 'Nota — EN', medio: 1 },
+          { k: 'nota_id', tipo: 'textarea', valor: nota.id, label: 'Nota — ID', medio: 1 },
+          { tipo: 'nota', label: 'Si solo rellenas ES, se imprime ese texto en los tres idiomas. En cuanto pongas EN o ID, cada idioma imprime el suyo.' },
+          { k: 'es_escrow', tipo: 'check', valor: c.es_escrow, label: 'Es una cuenta ESCROW (depósito en garantía)',
+            ayuda: 'Añade sola al contrato la fila «Naturaleza de la cuenta — depósito en garantía». Márcala solo donde el documento lo pacte de verdad.' },
+          { k: 'activa', tipo: 'check', valor: c.activa, label: 'Activa',
+            ayuda: 'Desactivarla la retira de todos los desplegables. Los contratos ya emitidos con ella la conservan impresa; no se borra nunca.' },
+          { tipo: 'custom', render: function (host) { leeRep = montaRepartoPorCuenta(host, d, clave); } }
+        ], 'Guardar cambios', function (v) {
+          /* `clave` NO va en el update, a proposito. Y cada escritura pasa por
+             `verifica`: un UPDATE que la RLS deja en cero filas no devuelve error. */
+          var pasos = [function () {
+            return verifica(sb.from('cuentas_bancarias').update({
+              label: v.label, titular: v.titular, banco: v.banco, cuenta: v.cuenta,
+              codigo: v.codigo, direccion: v.direccion,
+              extra: lwNotaCuenta.aJson({ es: v.nota_es, en: v.nota_en, id: v.nota_id }),
+              es_escrow: !!v.es_escrow, activa: !!v.activa
+            }).eq('clave', clave).select('clave'), 'No se pudo guardar la cuenta');
+          }];
+          if (leeRep) {
+            leeRep().forEach(function (cambio) {
+              pasos.push(function () {
+                return guardaReparto(sb, 'plantilla_cuentas', { slug: cambio.slug }, cambio.antes, cambio.ahora);
+              });
+            });
+          }
+          return enCadena(pasos).then(function (r) {
+            if (r && r.error) return r;
+            recarga();
+            return null;
+          });
+        }, { sub: 'Cuenta de cobro', encabezado: encabezado, sinRecarga: true });
+      };
+
+      /* ═══ 4. ALTA de una cuenta. La `clave` se pide una vez y no se cambia
+         jamas; la cuenta nace DESACTIVADA y sin ningun contrato asignado, a
+         proposito: no puede aparecer en el desplegable de un contrato antes de
+         que alguien haya comprobado el numero con el justificante delante. */
       var btn = ata(/^\+? ?Nueva cuenta$/i, function () {
         if (!superAdmin) return soloSuper();
         // claves existentes + siguiente `orden`: hace falta antes de abrir el
@@ -2855,7 +3392,7 @@
             { k: 'codigo', label: 'Código Swift / Routing', medio: 1 },
             { k: 'direccion', label: 'Domicilio del banco' },
             { k: 'es_escrow', label: 'Es una cuenta ESCROW (depósito en garantía)', tipo: 'check' },
-            { tipo: 'nota', label: 'Nace desactivada y sin ningún contrato asignado: no puede aparecer en el desplegable de un contrato antes de que alguien compruebe el número. Se activa y se reparte después, desde «Abrir la herramienta viva».' }
+            { tipo: 'nota', label: 'Nace desactivada y sin ningún contrato asignado: no puede aparecer en el desplegable de un contrato antes de que alguien compruebe el número. Se activa y se reparte después, con el botón «Editar» de su fila en «Por cuenta».' }
           ], 'Crear cuenta', function (v) {
             var clave = v.clave.trim().toLowerCase();
             if (!/^[a-z0-9_]{3,}$/.test(clave)) {
@@ -2871,8 +3408,12 @@
               titular: v.titular.trim(), banco: v.banco.trim(), cuenta: v.cuenta.trim(),
               codigo: v.codigo.trim(), direccion: v.direccion.trim(), extra: '',
               es_escrow: !!v.es_escrow, activa: false, orden: siguienteOrden
-            }).select('clave').single();
-          });
+            }).select('clave').single().then(function (rr) {
+              if (rr && rr.error) return rr;
+              recarga();
+              return null;
+            });
+          }, { sinRecarga: true });
         });
       });
       // `hidden` de salida en el HTML: solo se destapa para super_admin — un
