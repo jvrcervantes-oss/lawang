@@ -387,6 +387,230 @@
   }
 
   /* ══════════════ registro por pantalla ══════════════ */
+  /* ══════════════ ficha de CONTRATO en cajón lateral (18-sep-2026) ══════════════
+     Una sola ficha para Contratos, Operaciones y Home: la misma función abierta
+     desde tres pantallas, no tres fichas (Regla 0 de la suite). Solo lectura;
+     lo que escribe (editar, emitir, firmar) sigue en la herramienta viva y las
+     acciones del pie llevan allí. Se pide TODO al abrir y solo de ese contrato:
+     el listado no carga cobros, hitos ni firmas de 200 contratos para pintar
+     una tabla que no los enseña (hallazgo de Seguridad del 18-sep en
+     Compradores, misma familia). */
+  var CAMPOS_CONTRATO = 'id,numero,tipo,nombre_contrato,comprador_nombre,proyecto_nombre,parcela_codigo,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,pdf_firmado_hash,creado_por,created_at,contrato_padre_id';
+  function URL_FACTURA(id) { return '/intranet/v4/facturas/?id=' + encodeURIComponent(id); }
+  function tipoDoc(t) { return t === 'recibi' ? 'Recibí' : t === 'proforma' ? 'Proforma' : 'Factura'; }
+  function pill(texto, tono) {
+    var c = { ok: ['#E4F0DA', '#3F5230'], espera: ['#FBF3E4', '#8A6A34'], mal: ['#FFDAD6', '#93000A'] }[tono] || ['#EAE8E2', '#2E3437'];
+    return '<span style="display:inline-block;padding:2px 9px;border-radius:999px;font:600 11px/1.5 \'Neue Kabel\',sans-serif;letter-spacing:.04em;text-transform:uppercase;background:' + c[0] + ';color:' + c[1] + '">' + esc(texto) + '</span>';
+  }
+  var ABRIR = '<span style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">Abrir</span>';
+  function enlaceFichaContrato(x) {
+    return '<a href="#" data-lw-ficha-contrato="' + esc(x.id) + '" style="color:#104C4F;font-weight:600;text-decoration:underline">' + esc(x.numero) + '</a>' +
+      (x.tipo ? ' <span style="color:#8A8474">· ' + esc(tipoC(x.tipo)) + '</span>' : '');
+  }
+  function fichaContrato(sb, c0, opts) {
+    opts = opts || {};
+    var H = window.lwCajonHtml;
+    if (!(window.lwCajon && H)) { toast('La ficha aún no ha cargado — prueba de nuevo en un segundo.'); return; }
+    var num = c0.numero || '';
+    var acciones = [
+      { texto: c0.bloqueado ? 'Ver en el generador' : 'Editar en el generador', href: '/contracts/app.html?contrato=' + encodeURIComponent(num), tono: 'primario' },
+      { texto: 'Emitir recibí', href: '/intranet/facturas/?contrato=' + encodeURIComponent(num) }
+    ];
+    if (!opts.sinExpediente) acciones.push({ texto: 'Expediente', href: '/intranet/v4/operaciones/?contrato=' + encodeURIComponent(num) });
+    acciones.push({ texto: 'Cerrar', cerrar: true });
+    var caj = window.lwCajon({
+      sub: tipoC(c0.tipo) + (c0.bloqueado ? ' · firmado' : ' · borrador'),
+      titulo: num,
+      bajoTitulo: (c0.comprador_nombre || '—') + (c0.proyecto_nombre ? ' · ' + c0.proyecto_nombre : ''),
+      cuerpo: '<p style="margin:0;font-size:13px;color:#8A8474">Trayendo la ficha…</p>',
+      acciones: acciones
+    });
+    var id = c0.id;
+    var porId = {};
+    var familia = 'contrato_padre_id.eq.' + id + (c0.contrato_padre_id ? ',id.eq.' + c0.contrato_padre_id : '');
+    Promise.all([
+      sb.rpc('contratos_equipo').select(CAMPOS_CONTRATO).eq('id', id).maybeSingle(),
+      sb.rpc('facturas_equipo').select('id,numero,tipo,total,moneda,anulada,fecha_emision,created_at').eq('contrato_id', id).order('created_at'),
+      sb.from('contrato_vencimientos').select('orden,descripcion,pct,monto,fecha,factura_id,no_facturar').eq('contrato_id', id).order('orden'),
+      sb.rpc('contrato_firmas_equipo').select('firmante_nombre,firmante_rol,estado,creado_en,firmado_en,expira_en').eq('contrato_id', id).order('creado_en'),
+      sb.from('contrato_compradores').select('client_id,rol').eq('contrato_id', id),
+      sb.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,bloqueado,contrato_padre_id,created_at').or(familia)
+    ]).then(function (r) {
+      if (!document.getElementById('lw-cajon')) return;   // la cerraron antes de que llegara
+      var c = r[0].data || c0;
+      var cuerpo = '';
+      var errs = r.filter(function (x) { return x.error; });
+      if (errs.length) {
+        console.error('[v4 datos] ficha de contrato', errs.map(function (x) { return x.error; }));
+        cuerpo += H.nota('Parte de la ficha no se pudo leer (' + esc(errs[0].error.message || 'sin detalle') + '): lo que falta sale como vacío.');
+      }
+      var padre = null, hijos = [];
+      (r[5].data || []).forEach(function (x) {
+        porId[x.id] = x;
+        if (x.id === c.contrato_padre_id) padre = x; else if (x.contrato_padre_id === c.id) hijos.push(x);
+      });
+      cuerpo += H.seccion('Contrato',
+        H.dato('Estado', c.bloqueado ? H.tag('Firmado', 'ok') : H.tag('Borrador', 'espera'), { html: 1 }) +
+        H.dato('Tipo', tipoC(c.tipo)) +
+        (c.nombre_contrato ? H.dato('Nombre', c.nombre_contrato) : '') +
+        H.dato('Proyecto', c.proyecto_nombre) +
+        H.dato('Parcela', c.parcela_codigo) +
+        H.dato('Precio', c.precio_total != null ? fmt(c.precio_total, c.moneda) : null) +
+        H.dato('Fecha de firma', c.fecha_firma ? fFecha(c.fecha_firma) : null) +
+        H.dato('Creado', fFecha(c.created_at) + (c.creado_por ? ' · ' + c.creado_por : '')) +
+        (padre ? H.dato('Cuelga de', enlaceFichaContrato(padre), { html: 1 }) : '') +
+        (hijos.length ? H.dato('Encadenados', hijos.map(enlaceFichaContrato).join('<br>'), { html: 1 }) : ''));
+
+      /* Compradores: el nombre congelado en el contrato siempre; las fichas
+         enlazadas (contrato_compradores) se resuelven a nombre en una segunda
+         consulta y se pintan en su sección cuando llegan. */
+      var vins = r[4].data || [];
+      cuerpo += H.seccion('Comprador' + (vins.length > 1 ? 'es' : ''),
+        H.dato('En el contrato', c.comprador_nombre) +
+        (vins.length ? '<p style="margin:0;font-size:12px;color:#8A8474">Resolviendo ' + vins.length + ' ficha(s) enlazada(s)…</p>' : ''), 'compradores');
+
+      var fs = r[1].data || [];
+      var cobrado = 0, otrasMon = 0;
+      fs.forEach(function (f) {
+        if (f.tipo !== 'recibi' || f.anulada) return;
+        if ((f.moneda || 'EUR') === (c.moneda || 'EUR')) cobrado += Number(f.total) || 0; else otrasMon++;
+      });
+      var pend = c.precio_total != null ? Math.max(0, Number(c.precio_total) - cobrado) : null;
+      cuerpo += H.seccion('Cobros (' + fs.length + ' documento' + (fs.length === 1 ? '' : 's') + ')',
+        H.dato('Cobrado en recibís', fmt(cobrado, c.moneda) + (otrasMon ? ' · +' + otrasMon + ' en otra moneda, fuera de la suma' : '')) +
+        (pend != null ? H.dato('Pendiente sobre el precio', fmt(pend, c.moneda)) : '') +
+        (fs.length ? H.tabla(['Documento', 'Tipo', 'Importe', 'Fecha', ''], fs.map(function (f) {
+          return [H.enlace(URL_FACTURA(f.id), f.numero), esc(tipoDoc(f.tipo)), esc(fmt(f.total, f.moneda)),
+            esc(fFecha(f.fecha_emision || f.created_at)),
+            f.anulada ? H.tag('Anulada', 'mal') : (f.tipo === 'recibi' ? H.tag('Cobrado', 'ok') : '')];
+        })) : H.nota('Sin facturas ni recibís todavía.')));
+
+      var vs = r[2].data || [];
+      cuerpo += H.seccion('Calendario de pagos (' + vs.length + ')',
+        vs.length ? H.tabla(['#', 'Concepto', 'Importe', 'Fecha', 'Facturado'], vs.map(function (v) {
+          return [esc(v.orden != null ? v.orden : ''), esc(v.descripcion || '—'),
+            esc(v.monto != null ? fmt(v.monto, c.moneda) : (v.pct != null ? v.pct + ' %' : '—')),
+            esc(v.fecha ? fFecha(v.fecha) : 'sin fecha'),
+            v.factura_id ? H.tag('Sí', 'ok') : (v.no_facturar ? '<span style="color:#8A8474">no se factura</span>' : H.tag('No', 'espera'))];
+        })) : H.nota('Este contrato no tiene calendario de pagos registrado.'));
+
+      var fi = r[3].data || [];
+      cuerpo += H.seccion('Firmas (' + fi.length + ')',
+        fi.length ? H.tabla(['Firmante', 'Rol', 'Estado', 'Fecha'], fi.map(function (f) {
+          var tono = f.estado === 'firmado' ? 'ok' : f.estado === 'pendiente' ? 'espera' : 'mal';
+          return [esc(f.firmante_nombre || '—'), esc(f.firmante_rol || '—'), H.tag(f.estado || '—', tono),
+            esc(f.firmado_en ? fFecha(f.firmado_en) : (f.expira_en ? 'expira ' + fFecha(f.expira_en) : fFecha(f.creado_en)))];
+        })) : H.nota('Sin solicitudes de firma.'));
+
+      if (c.pdf_firmado_path) {
+        cuerpo += H.seccion('Documento firmado',
+          '<button type="button" data-lw-pdf="' + esc(c.pdf_firmado_path) + '" style="justify-self:start;padding:9px 16px;border-radius:10px;border:1px solid #c5c8bc;background:#fff;color:#104C4F;font:600 13px \'Neue Kabel\',sans-serif;cursor:pointer">Ver PDF firmado</button>' +
+          (c.pdf_firmado_hash ? H.dato('SHA-256', c.pdf_firmado_hash) : ''));
+      }
+      caj.cuerpo.innerHTML = cuerpo;
+
+      if (vins.length) {
+        sb.from('clients').select('id,full_name').in('id', vins.map(function (v) { return v.client_id; })).then(function (rc) {
+          var sec = caj.cuerpo.querySelector('[data-cajon-sec="compradores"] > div');
+          if (!sec) return;
+          if (rc.error) { sec.innerHTML = H.dato('En el contrato', c.comprador_nombre) + H.nota('No se pudieron resolver las fichas enlazadas.'); return; }
+          var nombre = {}; (rc.data || []).forEach(function (k) { nombre[k.id] = k.full_name; });
+          sec.innerHTML = H.dato('En el contrato', c.comprador_nombre) + vins.map(function (v) {
+            return H.dato(v.rol || 'Comprador', H.enlace('/intranet/v4/compradores/?id=' + encodeURIComponent(v.client_id), nombre[v.client_id] || 'Ficha de comprador'), { html: 1 });
+          }).join('');
+        });
+      }
+      caj.cuerpo.addEventListener('click', function (ev) {
+        var a = ev.target.closest && ev.target.closest('[data-lw-ficha-contrato]');
+        if (a) { ev.preventDefault(); var x = porId[a.getAttribute('data-lw-ficha-contrato')]; if (x) fichaContrato(sb, x, opts); return; }
+        var b = ev.target.closest && ev.target.closest('[data-lw-pdf]');
+        if (b) {
+          ev.preventDefault(); b.disabled = true; b.textContent = 'Abriendo…';
+          // URL firmada de vida corta, como hace la herramienta viva; la policy del bucket decide quién la obtiene
+          sb.storage.from('contratos-firmados').createSignedUrl(b.getAttribute('data-lw-pdf'), 300).then(function (u) {
+            b.disabled = false; b.textContent = 'Ver PDF firmado';
+            if (u.error || !u.data) { toast('No se pudo abrir el PDF: ' + (u.error && u.error.message || 'sin URL')); return; }
+            window.open(u.data.signedUrl, '_blank', 'noopener');
+          });
+        }
+      });
+    });
+  }
+  /* Registro de firmas: las últimas solicitudes de firma del equipo, en cajón.
+     El botón de la cabecera de Contratos no hacía nada (18-sep). */
+  function registroFirmas(sb, cs) {
+    var H = window.lwCajonHtml;
+    if (!(window.lwCajon && H)) { toast('La ficha aún no ha cargado — prueba de nuevo en un segundo.'); return; }
+    var porId = {}; (cs || []).forEach(function (c) { porId[c.id] = c; });
+    var caj = window.lwCajon({ sub: 'Contratos', titulo: 'Registro de firmas', bajoTitulo: 'Solicitudes de firma del equipo, la más reciente primero',
+      cuerpo: '<p style="margin:0;font-size:13px;color:#8A8474">Trayendo el registro…</p>' });
+    sb.rpc('contrato_firmas_equipo').select('contrato_id,firmante_nombre,firmante_rol,estado,creado_en,firmado_en,expira_en')
+      .order('creado_en', { ascending: false }).limit(80).then(function (r) {
+        if (!document.getElementById('lw-cajon')) return;
+        if (r.error) { caj.cuerpo.innerHTML = H.nota('No se pudo leer el registro: ' + esc(r.error.message || '')); return; }
+        var fs = r.data || [];
+        var pend = fs.filter(function (f) { return f.estado === 'pendiente'; }).length;
+        caj.cuerpo.innerHTML = H.seccion('Últimas ' + fs.length + ' solicitudes · ' + pend + ' pendiente' + (pend === 1 ? '' : 's'),
+          fs.length ? H.tabla(['Contrato', 'Firmante', 'Estado', 'Fecha'], fs.map(function (f) {
+            var c = porId[f.contrato_id];
+            var tono = f.estado === 'firmado' ? 'ok' : f.estado === 'pendiente' ? 'espera' : 'mal';
+            return [c ? enlaceFichaContrato({ id: c.id, numero: c.numero }) : '<span style="color:#8A8474">fuera de tu alcance</span>',
+              esc(f.firmante_nombre || '—') + (f.firmante_rol ? ' <span style="color:#8A8474">· ' + esc(f.firmante_rol) + '</span>' : ''),
+              H.tag(f.estado || '—', tono),
+              esc(f.firmado_en ? fFecha(f.firmado_en) : (f.expira_en && f.estado === 'pendiente' ? 'expira ' + fFecha(f.expira_en) : fFecha(f.creado_en)))];
+          })) : H.nota('Ninguna solicitud de firma registrada.'));
+        caj.cuerpo.addEventListener('click', function (ev) {
+          var a = ev.target.closest && ev.target.closest('[data-lw-ficha-contrato]'); if (!a) return;
+          ev.preventDefault(); var c = porId[a.getAttribute('data-lw-ficha-contrato')]; if (c) fichaContrato(sb, c);
+        });
+      });
+  }
+
+  /* ══════════════ chips con CUENTA REAL y filtro combinado (18-sep-2026) ══════════════
+     Stitch traía «Firmados 41» escrito a mano. Aquí cada grupo de chips se
+     regenera desde los datos: cada <tr> pintada lleva data-lw-<grupo>="clave"
+     y el chip solo enseña/oculta. Varios grupos se combinan (Y) y el buscador
+     también. `cablearChipsFiltro` (arriba) sirve para UN grupo con chips ya en
+     el HTML; esto es para cuando los chips nacen de la base. */
+  function chipsReales(cont, grupo, opciones, estado, aplicar) {
+    if (!cont) return;
+    while (cont.children.length > 1) cont.lastElementChild.remove();   // se conserva la etiqueta del grupo
+    var ON = cont.getAttribute('data-lw-on') || 'bg-volcanic-ash text-surface-container-lowest';
+    var OFF = cont.getAttribute('data-lw-off') || 'bg-surface-container-low text-volcanic-ash hover:bg-surface-container-high';
+    var BASE = cont.getAttribute('data-lw-base') || 'px-3.5 py-1.5 rounded-full font-label-md text-body-sm transition-colors';
+    opciones.forEach(function (o, i) {
+      var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-real', '');
+      b.className = BASE + ' ' + (i === 0 ? ON : OFF);
+      b.textContent = o.texto + (o.n != null ? ' ' + o.n : '');
+      b.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        estado[grupo] = { attr: o.atributo || grupo, valor: o.clave };
+        Array.prototype.forEach.call(cont.querySelectorAll('button'), function (x) { x.className = BASE + ' ' + (x === b ? ON : OFF); });
+        aplicar();
+      });
+      cont.appendChild(b);
+    });
+  }
+  function aplicaFiltros(tbody, estado, grupos, texto, alTerminar) {
+    var n = 0;
+    Array.prototype.forEach.call(tbody.querySelectorAll('tr[data-lw-fila]'), function (tr) {
+      var ok = true;
+      for (var i = 0; i < grupos.length && ok; i++) {
+        var s = estado[grupos[i]];
+        if (s && s.valor !== '*' && tr.getAttribute('data-lw-' + s.attr) !== s.valor) ok = false;
+      }
+      if (ok && texto && (tr.getAttribute('data-lw-pajar') || '').indexOf(texto) === -1) ok = false;
+      tr.style.display = ok ? '' : 'none';
+      if (ok) n++;
+    });
+    if (alTerminar) alTerminar(n);
+  }
+  function buscadorDe(aplicar, alCambiar) {
+    var inp = document.querySelector('main input[placeholder^="Buscar"]');
+    if (!inp) return;
+    inp.addEventListener('input', function () { alCambiar(inp.value.trim().toLowerCase()); aplicar(); });
+  }
+
   var REG = {
 
     home: function (sb) {
@@ -481,8 +705,9 @@
     },
 
     contratos: function (sb) {
-      var t = tablaPor([/CONTRATO|N[ºU]/, /COMPRADOR/, /TIPO|ESTADO/]);
-      q(sb.rpc('contratos_equipo').select('numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,bloqueado,created_at'), 'contratos', t)
+      var t = tablaPor([/CONTRATO|N[ºU°]/, /COMPRADOR/, /TIPO|ESTADO/]);
+      var miEmail = (window.LW_V4 && window.LW_V4.miEmail) || '';
+      q(sb.rpc('contratos_equipo').select(CAMPOS_CONTRATO).order('created_at', { ascending: false }).limit(1000), 'contratos', t)
         .then(function (cs) {
           if (!cs) return;
 
@@ -491,53 +716,86 @@
              los llena la base. Dos etiquetas se reescribieron porque preguntaban
              algo que la base no responde sin mentir: firmado = `bloqueado`, y no
              hay fecha de firma fiable con la que acotar «del mes». */
-          var pon = pon2;
-          var eur = 0, otras = 0, firmados = 0;
+          var eur = 0, otras = 0, firmados = 0, mios = 0;
           cs.forEach(function (c) {
             if (c.bloqueado) firmados++;
+            if (miEmail && c.creado_por === miEmail) mios++;
             if (c.precio_total == null) return;
             if ((c.moneda || 'EUR') === 'EUR') eur += Number(c.precio_total) || 0; else otras++;
           });
-          pon('k-activos', String(cs.length));
-          pon('k-volumen', fmt(eur, 'EUR'));
-          pon('k-firmados', String(firmados));
-          pon('k-pendientes', String(cs.length - firmados));
-
-          /* drawer de previsualizacion: cabecera real del contrato elegido
-             (?contrato= o el ultimo). La minuta renderizada es fase de editores:
-             el boton Editar lleva al generador real mientras tanto. */
-          var pedido = new URLSearchParams(location.search).get('contrato');
-          var elg = cs.filter(function (c) { return c.numero === pedido; })[0] ||
-                    cs.slice().sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; })[0];
-          if (elg) {
-            pon2('dw-num', 'Minuta ' + elg.numero);
-            pon2('dw-estado', elg.bloqueado ? 'Firmado' : 'Borrador');
-            pon2('dw-tipo', tipoC(elg.tipo) + (elg.proyecto_nombre ? ' · ' + elg.proyecto_nombre : ''));
-            var be = document.querySelectorAll('button');
-            for (var i4 = 0; i4 < be.length; i4++) {
-              if (/Editar Minuta/i.test(be[i4].textContent || '')) {
-                (function (num) { be[i4].addEventListener('click', function () { location.href = '/contracts/app.html?contrato=' + encodeURIComponent(num); }); })(elg.numero);
-              }
-            }
-          }
+          pon2('k-activos', String(cs.length));
+          pon2('k-volumen', fmt(eur, 'EUR'));
+          pon2('k-firmados', String(firmados));
+          pon2('k-pendientes', String(cs.length - firmados));
           if (otras) {
             bandaNota('El volumen es SOLO en euros: ' + otras + ' contrato(s) en otra moneda quedan fuera de la suma. ' +
               'No se mezclan monedas — el total saldria en una unidad que no existe.', '#8A6A34');
           }
+          window.LW_V4 = window.LW_V4 || {};
+          window.LW_V4.contratosLista = {};
+          var porNum = {};
+          cs.forEach(function (c) { window.LW_V4.contratosLista[c.id] = c; porNum[c.numero] = c; });
 
-          if (!cs.length) return;
-          var chip = hojaConTexto(/^Todos\b/i); if (chip) chip.textContent = 'Todos ' + cs.length;
+          // «Registro de firmas» (cabecera): cajón con las últimas solicitudes de firma del equipo
+          var bReg = hojaConTexto(/Registro de firmas/i); bReg = bReg && (bReg.closest('button') || bReg);
+          if (bReg) {
+            bReg.setAttribute('data-real', '');
+            bReg.addEventListener('click', function (ev) { ev.stopPropagation(); registroFirmas(sb, cs); });
+          }
+
           if (!t) { console.info('[v4] contratos: tabla sin ancla'); return; }
           var pl = plantillaFilas(t);
-          var pintadas = Math.min(cs.length, 120);
-          pon2('p-desde', pintadas ? '1-' + pintadas : '0');
-          pon2('p-total', String(cs.length));   // el pie decia «de 210», fijo
-          cs.sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; }).slice(0, 120).forEach(function (c) {
+          pon2('p-total', String(cs.length));
+          pon2('p-desde', String(cs.length));
+          /* Se pintan TODOS (la base ya acota a lo que la sesión puede ver): el
+             tope de 120 dejaba fuera contratos sin decirlo, y el paginador
+             «1 2 3 … 27» era dibujo. La fila abre la ficha en el cajón; el
+             generador vivo queda como acción dentro de ella. */
+          cs.forEach(function (c) {
             fila(pl, [c.numero, tipoC(c.tipo), c.comprador_nombre || '—', c.proyecto_nombre || '—',
               c.precio_total != null ? fmt(c.precio_total, c.moneda) : '—',
-              c.bloqueado ? 'FIRMADO' : 'BORRADOR', fFecha(c.created_at)],
-              '/contracts/app.html?contrato=' + encodeURIComponent(c.numero));
+              fFecha(c.created_at), c.creado_por || '—', '', '']);
+            var tr = pl.tbody.lastElementChild;
+            tr.setAttribute('data-lw-fila', ''); tr.setAttribute('data-lw-id', c.id);
+            tr.setAttribute('data-lw-tipo', c.tipo || '');
+            tr.setAttribute('data-lw-estado', c.bloqueado ? 'firmado' : 'borrador');
+            tr.setAttribute('data-lw-mio', miEmail && c.creado_por === miEmail ? '1' : '0');
+            tr.setAttribute('data-lw-pajar', [c.numero, c.comprador_nombre, c.proyecto_nombre, c.creado_por, c.parcela_codigo, tipoC(c.tipo)].join(' ').toLowerCase());
+            var tds = tr.querySelectorAll('td');
+            if (tds[7]) tds[7].innerHTML = pill(c.bloqueado ? 'Firmado' : 'Borrador', c.bloqueado ? 'ok' : 'espera');
+            if (tds[8]) tds[8].innerHTML = ABRIR;
+            tr.style.cursor = 'pointer';
           });
+          pl.tbody.addEventListener('click', function (ev) {
+            var tr = ev.target.closest && ev.target.closest('tr[data-lw-id]'); if (!tr) return;
+            ev.stopPropagation();
+            var c = window.LW_V4.contratosLista[tr.getAttribute('data-lw-id')];
+            if (c) fichaContrato(sb, c);
+          });
+
+          /* Chips con la cuenta REAL: el grupo Tipo nace de los tipos que hay
+             (no de una lista fija: «Cesión de Derechos 9» no existía en la base). */
+          var estado = {}, texto = '';
+          var porTipo = {}; cs.forEach(function (c) { var k = c.tipo || ''; porTipo[k] = (porTipo[k] || 0) + 1; });
+          var opsTipo = [{ clave: '*', texto: 'Todos', n: cs.length }].concat(
+            Object.keys(porTipo).sort(function (a, b) { return porTipo[b] - porTipo[a]; })
+              .map(function (k) { return { clave: k, texto: k ? tipoC(k) : 'Sin tipo', n: porTipo[k] }; }));
+          var opsEstado = [
+            { clave: '*', texto: 'Todos', n: cs.length },
+            { clave: 'borrador', texto: 'Borradores', n: cs.length - firmados },
+            { clave: 'firmado', texto: 'Firmados', n: firmados }
+          ];
+          if (miEmail) opsEstado.push({ clave: '1', atributo: 'mio', texto: 'Míos', n: mios });
+          var aplicar = function () {
+            aplicaFiltros(pl.tbody, estado, ['tipo', 'estado'], texto, function (n) { pon2('p-desde', String(n)); });
+          };
+          chipsReales(document.querySelector('[data-lw-chips="tipo"]'), 'tipo', opsTipo, estado, aplicar);
+          chipsReales(document.querySelector('[data-lw-chips="estado"]'), 'estado', opsEstado, estado, aplicar);
+          buscadorDe(aplicar, function (v) { texto = v; });
+
+          // ?contrato=NUM abre la ficha directamente (enlaces de la auditoría, de Home, etc.)
+          var pedido = new URLSearchParams(location.search).get('contrato');
+          if (pedido && porNum[pedido]) fichaContrato(sb, porNum[pedido]);
         });
     },
 
@@ -3926,6 +4184,7 @@
       window.LW_V4.esSuperAdmin = rol === 'super_admin';
       // la ficha de sesion entera (herramientas incluidas), para quien decida por ella
       window.LW_V4.ficha = aut.ficha || null;
+      window.LW_V4.fichaContrato = function (c, opts) { fichaContrato(aut.sb, c, opts); };
 
       /* La cabecera de Home traia «3 de Septiembre de 2026» escrito a mano: la
          fecha de la captura de Stitch. Una fecha congelada no envejece con un
