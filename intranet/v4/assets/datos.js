@@ -887,83 +887,134 @@
     },
 
     facturas: function (sb) {
-      /* Esta pantalla de Stitch es el EDITOR de emision: cablearlo a escribir es
-         la fase de editores (mismas vias que la herramienta viva, con encadenado
-         y anulacion — emitir un recibi ademas mueve el estado del contrato). Lo
-         que ya es real aqui: el panel de emitidos y el selector de contratos. */
-      bandaNota('El formulario de abajo es diseño todavía: la emisión real (con validaciones, encadenado y numeración) vive en /intranet/facturas/ hasta que el editor v4 esté cableado.', '#8A6A34');
-      q(sb.rpc('contratos_equipo').select('numero,comprador_nombre,created_at'), 'contratos para el selector').then(function (cs2) {
-        if (!cs2 || !cs2.length) return;
-        var sels = document.querySelectorAll('select');
-        for (var i5 = 0; i5 < sels.length; i5++) {
-          if (/CC00082|COMPRADOR/.test(sels[i5].textContent || '')) {
-            sels[i5].innerHTML = cs2.sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; }).slice(0, 40)
-              .map(function (c) { return '<option>' + esc(c.numero + ' · ' + (c.comprador_nombre || '')) + '</option>'; }).join('');
-            break;
-          }
-        }
-      });
-      // esta pantalla de Stitch es un EDITOR de documento, no un listado: el
-      // panel en vivo trae las últimas emitidas y la emisión real va a la herramienta
-      q(sb.rpc('facturas_equipo').select('id,numero,tipo,cliente_nombre,contrato_numero,total,moneda,anulada,created_at'), 'facturas')
+      /* Listado REAL de facturas y proformas (los recibís tienen su pantalla).
+         La pantalla de Stitch era un editor de emisión dibujado; la emisión
+         sigue en la herramienta viva (numeración por secuencia de la base). */
+      var t = tablaPor([/DOCUMENTO|N[ºU°]/, /CLIENTE/, /TIPO|ESTADO/]);
+      q(sb.rpc('facturas_equipo').select(CAMPOS_FACTURA).neq('tipo', 'recibi').order('created_at', { ascending: false }).limit(2000), 'facturas', t)
         .then(function (fs) {
-          if (fs == null) return;
-          var ult = fs.slice().sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; }).slice(0, 10);
-          panelReal('Últimos documentos emitidos (' + fs.length + ' en total)',
-            ult.map(function (f) {
-              return itemPanel(esc(f.numero) + ' · ' + (f.tipo === 'recibi' ? 'Recibí' : f.tipo === 'proforma' ? 'Proforma' : 'Factura'),
-                esc(f.cliente_nombre || '—') + (f.contrato_numero ? ' · ' + esc(f.contrato_numero) : '') + ' · ' + fFecha(f.created_at),
-                fmt(f.total, f.moneda) + (f.anulada ? ' · ANULADA' : ''));
-            }),
-            ult.map(function (f) { return '/intranet/facturas/?id=' + f.id; }),
-            'Sin documentos emitidos.', '/intranet/facturas/');
+          if (!fs) return;
+          var ini = new Date(); ini.setDate(1); ini.setHours(0, 0, 0, 0);
+          var mesEUR = 0, mesOtras = 0, nFac = 0, nFacAnu = 0, nPro = 0, nProAnu = 0;
+          fs.forEach(function (f) {
+            if (f.tipo === 'proforma') { nPro++; if (f.anulada) nProAnu++; } else { nFac++; if (f.anulada) nFacAnu++; }
+            if (f.tipo !== 'proforma' && !f.anulada && new Date(f.fecha_emision || f.created_at) >= ini) {
+              if ((f.moneda || 'EUR') === 'EUR') mesEUR += Number(f.total) || 0; else mesOtras++;
+            }
+          });
+          pon2('k-mes', fmt(mesEUR, 'EUR'));
+          pon2('k-mes-pie', 'facturas vigentes del mes, en euros' + (mesOtras ? ' · +' + mesOtras + ' en otra moneda' : ''));
+          pon2('k-facturas', String(nFac));
+          pon2('k-facturas-pie', nFacAnu + ' anulada' + (nFacAnu === 1 ? '' : 's') + ' · histórico completo');
+          pon2('k-proformas', String(nPro));
+          pon2('k-proformas-pie', nProAnu + ' anulada' + (nProAnu === 1 ? '' : 's') + ' · no facturan ni vencen');
+          var porId = {}; fs.forEach(function (f) { porId[f.id] = f; });
+          window.LW_V4 = window.LW_V4 || {}; window.LW_V4.facturasLista = porId;
+
+          if (t) {
+            var pl = plantillaFilas(t);
+            pon2('p-total', String(fs.length)); pon2('p-desde', String(fs.length));
+            fs.forEach(function (f) {
+              var est = estadoDoc(f);
+              fila(pl, [f.numero, tipoDoc(f.tipo), f.cliente_nombre || '—', f.contrato_numero || '—', f.proyecto_nombre || '—',
+                fmt(f.total, f.moneda), fFecha(f.fecha_emision || f.created_at), '', '']);
+              var tr = pl.tbody.lastElementChild;
+              tr.setAttribute('data-lw-fila', ''); tr.setAttribute('data-lw-id', f.id);
+              tr.setAttribute('data-lw-tipo', f.tipo === 'proforma' ? 'proforma' : 'factura');
+              tr.setAttribute('data-lw-estado', f.anulada ? 'anulada' : (f.enviada ? 'enviada' : 'emitida'));
+              tr.setAttribute('data-lw-pajar', [f.numero, f.cliente_nombre, f.contrato_numero, f.proyecto_nombre].join(' ').toLowerCase());
+              var tds = tr.querySelectorAll('td');
+              if (tds[7]) tds[7].innerHTML = pill(est[0], est[1]);
+              if (tds[8]) tds[8].innerHTML = ABRIR;
+              tr.style.cursor = 'pointer';
+            });
+            pl.tbody.addEventListener('click', function (ev) {
+              var tr = ev.target.closest && ev.target.closest('tr[data-lw-id]'); if (!tr) return;
+              ev.stopPropagation(); var f = porId[tr.getAttribute('data-lw-id')]; if (f) fichaFactura(sb, f);
+            });
+            var estado = {}, texto = '';
+            var aplicar = function () { aplicaFiltros(pl.tbody, estado, ['tipo', 'estado'], texto, function (n) { pon2('p-desde', String(n)); }); };
+            var cuenta = function (f) { return fs.filter(f).length; };
+            chipsReales(document.querySelector('[data-lw-chips="tipo"]'), 'tipo', [
+              { clave: '*', texto: 'Todos', n: fs.length },
+              { clave: 'factura', texto: 'Facturas', n: nFac },
+              { clave: 'proforma', texto: 'Proformas', n: nPro }], estado, aplicar);
+            chipsReales(document.querySelector('[data-lw-chips="estado"]'), 'estado', [
+              { clave: '*', texto: 'Todas', n: fs.length },
+              { clave: 'emitida', texto: 'Emitidas', n: cuenta(function (f) { return !f.anulada && !f.enviada; }) },
+              { clave: 'enviada', texto: 'Enviadas', n: cuenta(function (f) { return !f.anulada && f.enviada; }) },
+              { clave: 'anulada', texto: 'Anuladas', n: nFacAnu + nProAnu }], estado, aplicar);
+            buscadorDe(aplicar, function (v) { texto = v; });
+          }
+          /* ?id= abre la ficha. Si no está en este listado (un recibí, enlazado
+             desde la ficha de un contrato) se pide ese documento solo. */
+          var pedido = new URLSearchParams(location.search).get('id');
+          if (pedido) {
+            if (porId[pedido]) fichaFactura(sb, porId[pedido]);
+            else sb.rpc('facturas_equipo').select(CAMPOS_FACTURA).eq('id', pedido).maybeSingle().then(function (r) {
+              if (r.data) fichaFactura(sb, r.data); else toast('Ese documento no está a tu alcance o no existe.');
+            });
+          }
         });
     },
 
     recibos: function (sb) {
-      vaciaKpis([/TOTAL COBRADO/i, /CONCILIADOS|EMITIDOS/i]);
-      var t = tablaPor([/RECIBO|N[ºU]/, /PAGADOR|TITULAR/, /IMPORTE/]);
-      q(sb.rpc('facturas_equipo').select('id,numero,tipo,cliente_nombre,contrato_numero,total,moneda,anulada,created_at'), 'recibís', t)
-        .then(function (fs) {
-          if (!fs) return;
-          var rs = fs.filter(function (f) { return f.tipo === 'recibi'; });
+      var t = tablaPor([/RECIBO|N[ºU°]/, /PAGADOR|TITULAR/, /IMPORTE/]);
+      q(sb.rpc('facturas_equipo').select(CAMPOS_FACTURA).eq('tipo', 'recibi').order('created_at', { ascending: false }).limit(2000), 'recibís', t)
+        .then(function (rs) {
+          if (!rs) return;
+          var nJust = function (r) { return (Array.isArray(r.justificantes) && r.justificantes.length) || (r.justificante_path ? 1 : 0); };
           var s = sumaMesEUR(rs);
-          kpi(/TOTAL COBRADO/i, fmt(s.eur, 'EUR'), 'recibís EUR del mes' + (s.otros ? ' · +' + s.otros + ' en otra moneda' : ''));
-          kpi(/CONCILIADOS|EMITIDOS/i, rs.length + ' emitidos', 'histórico completo');
-          if (!t) return;
-          var pl = plantillaFilas(t);
-          var pintadas = Math.min(rs.length, 120);
-          pon2('p-desde', String(pintadas));    // el pie decia «Mostrando 5 de 16»
-          pon2('p-total', String(rs.length));
-          rs.sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; }).slice(0, 120).forEach(function (f) {
-            fila(pl, [f.numero, f.contrato_numero || '—', f.cliente_nombre || '—', '', fmt(f.total, f.moneda), '',
-              fFecha(f.created_at), f.anulada ? 'ANULADA' : 'EMITIDA'], '/intranet/facturas/?id=' + f.id);
-            pl.tbody.lastElementChild.setAttribute('data-moneda', f.moneda || 'EUR');
-          });
+          pon2('k-cobrado-mes', fmt(s.eur, 'EUR'));
+          pon2('k-cobrado-mes-pie', 'recibís vigentes del mes, en euros' + (s.otros ? ' · +' + s.otros + ' en otra moneda' : ''));
+          var anul = rs.filter(function (r) { return r.anulada; }).length;
+          var sinJ = rs.filter(function (r) { return !r.anulada && !nJust(r); }).length;
+          pon2('k-emitidos', String(rs.length));
+          pon2('k-emitidos-pie', anul + ' anulado' + (anul === 1 ? '' : 's') + ' · histórico completo');
+          pon2('k-sinjust', String(sinJ));
+          pon2('k-sinjust-pie', sinJ ? 'recibís vigentes sin justificante de pago adjunto' : 'todos los recibís vigentes tienen justificante');
+          var porId = {}; rs.forEach(function (r) { porId[r.id] = r; });
+          window.LW_V4 = window.LW_V4 || {}; window.LW_V4.facturasLista = porId;
 
-          /* Chips de filtro: solo "Todos" y las dos divisas tienen un dato real
-             detrás (`moneda`). "Reservas", "Estructura & Hitos" y "Honorarios
-             notariales" son categorías del diseño de Stitch que no existen en
-             ningún campo del recibí (no hay `categoria` ni se puede derivar
-             del tipo de documento) — se dejan tal cual, sin fingir un filtro
-             que no filtra nada; caen en el aviso genérico de maqueta.js hasta
-             que se decida de dónde sale esa categoría. */
-          var chipsMoneda = Array.prototype.slice.call(document.querySelectorAll('#filter-container .filter-chip')).filter(function (b) {
-            var txt = b.textContent.replace(/\s+/g, ' ').trim();
-            if (/^Todos/i.test(txt)) { b.setAttribute('data-chip-clave', 'todos'); return true; }
-            if (/Divisa EUR/i.test(txt)) { b.setAttribute('data-chip-clave', 'EUR'); return true; }
-            if (/Divisa IDR/i.test(txt)) { b.setAttribute('data-chip-clave', 'IDR'); return true; }
-            return false;
-          });
-          cablearChipsFiltro(chipsMoneda, pl.tbody, 'tr[data-moneda]',
-            function (btn) { return btn.getAttribute('data-chip-clave'); },
-            'todos',
-            function (fila2, clave) { return fila2.getAttribute('data-moneda') === clave; },
-            null);   // el aspecto ya lo pinta el script propio de esta página (línea ~765)
+          if (t) {
+            var pl = plantillaFilas(t);
+            pon2('p-total', String(rs.length)); pon2('p-desde', String(rs.length));
+            var porMon = {};
+            rs.forEach(function (r) {
+              var m = r.moneda || 'EUR'; porMon[m] = (porMon[m] || 0) + 1;
+              var nj = nJust(r), est = estadoDoc(r);
+              fila(pl, [r.numero, r.contrato_numero || '—', r.cliente_nombre || '—', r.proyecto_nombre || '—', fmt(r.total, r.moneda),
+                nj ? nj + ' adjunto' + (nj === 1 ? '' : 's') : 'sin justificante', fFecha(r.fecha_emision || r.created_at), '', '']);
+              var tr = pl.tbody.lastElementChild;
+              tr.setAttribute('data-lw-fila', ''); tr.setAttribute('data-lw-id', r.id);
+              tr.setAttribute('data-lw-moneda', m);
+              tr.setAttribute('data-lw-estado', r.anulada ? 'anulado' : 'emitido');
+              tr.setAttribute('data-lw-just', nj ? '1' : '0');
+              tr.setAttribute('data-lw-pajar', [r.numero, r.cliente_nombre, r.contrato_numero, r.proyecto_nombre].join(' ').toLowerCase());
+              var tds = tr.querySelectorAll('td');
+              if (tds[5] && !nj && !r.anulada) tds[5].innerHTML = pill('sin justificante', 'espera');
+              if (tds[7]) tds[7].innerHTML = pill(r.anulada ? 'Anulado' : (r.enviada ? 'Enviado' : 'Emitido'), est[1]);
+              if (tds[8]) tds[8].innerHTML = ABRIR;
+              tr.style.cursor = 'pointer';
+            });
+            pl.tbody.addEventListener('click', function (ev) {
+              var tr = ev.target.closest && ev.target.closest('tr[data-lw-id]'); if (!tr) return;
+              ev.stopPropagation(); var r = porId[tr.getAttribute('data-lw-id')]; if (r) fichaFactura(sb, r);
+            });
+            var estado = {}, texto = '';
+            var aplicar = function () { aplicaFiltros(pl.tbody, estado, ['moneda', 'estado'], texto, function (n) { pon2('p-desde', String(n)); }); };
+            chipsReales(document.querySelector('[data-lw-chips="moneda"]'), 'moneda',
+              [{ clave: '*', texto: 'Todas', n: rs.length }].concat(Object.keys(porMon).sort().map(function (m) { return { clave: m, texto: 'Divisa ' + m, n: porMon[m] }; })), estado, aplicar);
+            chipsReales(document.querySelector('[data-lw-chips="estado"]'), 'estado', [
+              { clave: '*', texto: 'Todos', n: rs.length },
+              { clave: 'emitido', texto: 'Emitidos', n: rs.length - anul },
+              { clave: 'anulado', texto: 'Anulados', n: anul },
+              { clave: '0', atributo: 'just', texto: 'Sin justificante', n: rs.filter(function (r) { return !nJust(r); }).length }], estado, aplicar);
+            buscadorDe(aplicar, function (v) { texto = v; });
+          }
+          var pedido = new URLSearchParams(location.search).get('id');
+          if (pedido && porId[pedido]) fichaFactura(sb, porId[pedido]);
         });
-      // el botón de emitir abre el formulario REAL, no el cajón de la maqueta
-      var b = hojaConTexto(/Emitir recib/i);
-      if (b) { var btn = b.closest('button') || b; btn.removeAttribute('onclick'); }
     },
 
     compradores: function (sb) {
