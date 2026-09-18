@@ -380,7 +380,7 @@
     var eur = 0, otros = 0;
     (recibis || []).forEach(function (f) {
       if (f.anulada) return;
-      if (new Date(f.created_at) < mesIni) return;
+      if (new Date(f.fecha_emision || f.created_at) < mesIni) return;   // el mes es el de EMISIÓN
       if ((f.moneda || 'EUR') === 'EUR') eur += Number(f.total) || 0; else otros++;
     });
     return { eur: eur, otros: otros };
@@ -398,6 +398,14 @@
   var CAMPOS_CONTRATO = 'id,numero,tipo,nombre_contrato,comprador_nombre,proyecto_nombre,parcela_codigo,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,pdf_firmado_hash,creado_por,created_at,contrato_padre_id';
   function URL_FACTURA(id) { return '/intranet/v4/facturas/?id=' + encodeURIComponent(id); }
   function tipoDoc(t) { return t === 'recibi' ? 'Recibí' : t === 'proforma' ? 'Proforma' : 'Factura'; }
+  /* Una solicitud de firma «pendiente» con `expira_en` pasado ya no la puede usar el
+     comprador (firma-submit devuelve 410): se pinta caducada y no cuenta como viva
+     (Legal, consulta de deploy 19-sep). */
+  function firmaCaducada(f) { return f.estado === 'pendiente' && !!f.expira_en && new Date(f.expira_en).getTime() < Date.now(); }
+  /* Cartas de reserva y demás preliminares llevan el precio de la casa entera y solo
+     cobran la señal: fuera de volúmenes y de «cobro pendiente» (Administración, 19-sep;
+     tercera vez que este patrón reincide — `lwEsPreliminar` es la fuente única). */
+  function esPreliminar(c) { return typeof lwEsPreliminar === 'function' && lwEsPreliminar(c.tipo); }
   function pill(texto, tono) {
     var c = { ok: ['#E4F0DA', '#3F5230'], espera: ['#FBF3E4', '#8A6A34'], mal: ['#FFDAD6', '#93000A'] }[tono] || ['#EAE8E2', '#2E3437'];
     return '<span style="display:inline-block;padding:2px 9px;border-radius:999px;font:600 11px/1.5 \'Neue Kabel\',sans-serif;letter-spacing:.04em;text-transform:uppercase;background:' + c[0] + ';color:' + c[1] + '">' + esc(texto) + '</span>';
@@ -419,7 +427,7 @@
     if (!opts.sinExpediente) acciones.push({ texto: 'Expediente', href: '/intranet/v4/operaciones/?contrato=' + encodeURIComponent(num) });
     acciones.push({ texto: 'Cerrar', cerrar: true });
     var caj = window.lwCajon({
-      sub: tipoC(c0.tipo) + (c0.bloqueado ? ' · firmado' : ' · borrador'),
+      sub: tipoC(c0.tipo) + (c0.bloqueado ? ' · firmado' : (c0.pdf_firmado_path ? ' · reabierto' : ' · borrador')),
       titulo: num,
       bajoTitulo: (c0.comprador_nombre || '—') + (c0.proyecto_nombre ? ' · ' + c0.proyecto_nombre : ''),
       cuerpo: '<p style="margin:0;font-size:13px;color:#8A8474">Trayendo la ficha…</p>',
@@ -434,7 +442,8 @@
       sb.from('contrato_vencimientos').select('orden,descripcion,pct,monto,fecha,factura_id,no_facturar').eq('contrato_id', id).order('orden'),
       sb.rpc('contrato_firmas_equipo').select('firmante_nombre,firmante_rol,estado,creado_en,firmado_en,expira_en').eq('contrato_id', id).order('creado_en'),
       sb.from('contrato_compradores').select('client_id,rol').eq('contrato_id', id),
-      sb.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,bloqueado,contrato_padre_id,created_at').or(familia)
+      sb.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,bloqueado,contrato_padre_id,created_at').or(familia),
+      sb.rpc('contratos_cobrado_equipo').select('contrato_id,cobrado').eq('contrato_id', id)
     ]).then(function (r) {
       if (!document.getElementById('lw-cajon')) return;   // la cerraron antes de que llegara
       var c = r[0].data || c0;
@@ -450,7 +459,7 @@
         if (x.id === c.contrato_padre_id) padre = x; else if (x.contrato_padre_id === c.id) hijos.push(x);
       });
       cuerpo += H.seccion('Contrato',
-        H.dato('Estado', c.bloqueado ? H.tag('Firmado', 'ok') : H.tag('Borrador', 'espera'), { html: 1 }) +
+        H.dato('Estado', c.bloqueado ? H.tag('Firmado', 'ok') : (c.pdf_firmado_path ? H.tag('Reabierto', 'mal') : H.tag('Borrador', 'espera')), { html: 1 }) +
         H.dato('Tipo', tipoC(c.tipo)) +
         (c.nombre_contrato ? H.dato('Nombre', c.nombre_contrato) : '') +
         H.dato('Proyecto', c.proyecto_nombre) +
@@ -470,15 +479,16 @@
         (vins.length ? '<p style="margin:0;font-size:12px;color:#8A8474">Resolviendo ' + vins.length + ' ficha(s) enlazada(s)…</p>' : ''), 'compradores');
 
       var fs = r[1].data || [];
-      var cobrado = 0, otrasMon = 0;
-      fs.forEach(function (f) {
-        if (f.tipo !== 'recibi' || f.anulada) return;
-        if ((f.moneda || 'EUR') === (c.moneda || 'EUR')) cobrado += Number(f.total) || 0; else otrasMon++;
-      });
-      var pend = c.precio_total != null ? Math.max(0, Number(c.precio_total) - cobrado) : null;
+      /* Lo cobrado lo dice el oráculo vivo `contrato_cobrado()` (recibís aplicados,
+         también los aplicados a facturas del contrato), no una suma propia: dos
+         pantallas con dos «cobrado» distintos era el hallazgo (Administración/Legal, 19-sep). */
+      var cobRow = (r[6] && r[6].data || [])[0];
+      var cobrado = cobRow && cobRow.cobrado != null ? Number(cobRow.cobrado) || 0 : null;
+      var pend = (cobrado != null && c.precio_total != null && !esPreliminar(c)) ? Math.max(0, Number(c.precio_total) - cobrado) : null;
       cuerpo += H.seccion('Cobros (' + fs.length + ' documento' + (fs.length === 1 ? '' : 's') + ')',
-        H.dato('Cobrado en recibís', fmt(cobrado, c.moneda) + (otrasMon ? ' · +' + otrasMon + ' en otra moneda, fuera de la suma' : '')) +
+        H.dato('Cobrado (recibís aplicados)', cobrado != null ? fmt(cobrado, c.moneda) : 'sin dato') +
         (pend != null ? H.dato('Pendiente sobre el precio', fmt(pend, c.moneda)) : '') +
+        (esPreliminar(c) ? H.nota('Es un documento preliminar: el precio es el de la casa entera y solo se cobra la señal, así que no se calcula «pendiente».') : '') +
         (fs.length ? H.tabla(['Documento', 'Tipo', 'Importe', 'Fecha', ''], fs.map(function (f) {
           return [H.enlace(URL_FACTURA(f.id), f.numero), esc(tipoDoc(f.tipo)), esc(fmt(f.total, f.moneda)),
             esc(fFecha(f.fecha_emision || f.created_at)),
@@ -497,13 +507,15 @@
       var fi = r[3].data || [];
       cuerpo += H.seccion('Firmas (' + fi.length + ')',
         fi.length ? H.tabla(['Firmante', 'Rol', 'Estado', 'Fecha'], fi.map(function (f) {
-          var tono = f.estado === 'firmado' ? 'ok' : f.estado === 'pendiente' ? 'espera' : 'mal';
-          return [esc(f.firmante_nombre || '—'), esc(f.firmante_rol || '—'), H.tag(f.estado || '—', tono),
+          var cad = firmaCaducada(f);
+          var tono = cad ? 'mal' : f.estado === 'firmado' ? 'ok' : f.estado === 'pendiente' ? 'espera' : 'mal';
+          return [esc(f.firmante_nombre || '—'), esc(f.firmante_rol || '—'), H.tag(cad ? 'caducada' : (f.estado || '—'), tono),
             esc(f.firmado_en ? fFecha(f.firmado_en) : (f.expira_en ? 'expira ' + fFecha(f.expira_en) : fFecha(f.creado_en)))];
         })) : H.nota('Sin solicitudes de firma.'));
 
       if (c.pdf_firmado_path) {
         cuerpo += H.seccion('Documento firmado',
+          (!c.bloqueado ? H.nota('El contrato se reabrió después de firmarse: este PDF es de la versión firmada anterior y el texto actual puede no coincidir con él.') : '') +
           '<button type="button" data-lw-pdf="' + esc(c.pdf_firmado_path) + '" style="justify-self:start;padding:9px 16px;border-radius:10px;border:1px solid #c5c8bc;background:#fff;color:#104C4F;font:600 13px \'Neue Kabel\',sans-serif;cursor:pointer">Ver PDF firmado</button>' +
           (c.pdf_firmado_hash ? H.dato('SHA-256', c.pdf_firmado_hash) : ''));
       }
@@ -549,14 +561,15 @@
         if (!document.getElementById('lw-cajon')) return;
         if (r.error) { caj.cuerpo.innerHTML = H.nota('No se pudo leer el registro: ' + esc(r.error.message || '')); return; }
         var fs = r.data || [];
-        var pend = fs.filter(function (f) { return f.estado === 'pendiente'; }).length;
+        var pend = fs.filter(function (f) { return f.estado === 'pendiente' && !firmaCaducada(f); }).length;
         caj.cuerpo.innerHTML = H.seccion('Últimas ' + fs.length + ' solicitudes · ' + pend + ' pendiente' + (pend === 1 ? '' : 's'),
           fs.length ? H.tabla(['Contrato', 'Firmante', 'Estado', 'Fecha'], fs.map(function (f) {
             var c = porId[f.contrato_id];
-            var tono = f.estado === 'firmado' ? 'ok' : f.estado === 'pendiente' ? 'espera' : 'mal';
+            var cad = firmaCaducada(f);
+            var tono = cad ? 'mal' : f.estado === 'firmado' ? 'ok' : f.estado === 'pendiente' ? 'espera' : 'mal';
             return [c ? enlaceFichaContrato({ id: c.id, numero: c.numero }) : '<span style="color:#8A8474">fuera de tu alcance</span>',
               esc(f.firmante_nombre || '—') + (f.firmante_rol ? ' <span style="color:#8A8474">· ' + esc(f.firmante_rol) + '</span>' : ''),
-              H.tag(f.estado || '—', tono),
+              H.tag(cad ? 'caducada' : (f.estado || '—'), tono),
               esc(f.firmado_en ? fFecha(f.firmado_en) : (f.expira_en && f.estado === 'pendiente' ? 'expira ' + fFecha(f.expira_en) : fFecha(f.creado_en)))];
           })) : H.nota('Ninguna solicitud de firma registrada.'));
         caj.cuerpo.addEventListener('click', function (ev) {
@@ -712,7 +725,7 @@
         pon2('k-encurso', String(cs.length - firmados));
         pon2('k-firmados-pie', firmados + ' firmados');
       });
-      q(sb.rpc('facturas_equipo').select('id,tipo,total,moneda,anulada,enviada,created_at,numero,cliente_nombre,proyecto_nombre,contrato_numero,contrato_id'), 'facturas').then(function (fs) {
+      q(sb.rpc('facturas_equipo').select('id,tipo,total,moneda,anulada,enviada,created_at,fecha_emision,numero,cliente_nombre,proyecto_nombre,contrato_numero,contrato_id'), 'facturas').then(function (fs) {
         if (!fs) return;
         var s = sumaMesEUR(fs.filter(function (f) { return f.tipo === 'recibi'; }));
         kpi(/COBRADO ESTE MES/i, fmt(s.eur, 'EUR'), s.otros ? '+' + s.otros + ' cobros en otra moneda' : 'recibís del mes en curso');
@@ -724,7 +737,7 @@
         var prev = 0;
         fs.forEach(function (f) {
           if (f.tipo !== 'recibi' || f.anulada || (f.moneda || 'EUR') !== 'EUR') return;
-          var d = new Date(f.created_at);
+          var d = new Date(f.fecha_emision || f.created_at);
           if (d >= iniPrev && d < ini) prev += Number(f.total) || 0;
         });
         // el «vs mes anterior» lo pone la propia tarjeta: aqui solo va la cifra
@@ -815,20 +828,27 @@
     contratos: function (sb) {
       var t = tablaPor([/CONTRATO|N[ºU°]/, /COMPRADOR/, /TIPO|ESTADO/]);
       var miEmail = (window.LW_V4 && window.LW_V4.miEmail) || '';
-      q(sb.rpc('contratos_equipo').select(CAMPOS_CONTRATO).order('created_at', { ascending: false }).limit(1000), 'contratos', t)
-        .then(function (cs) {
+      Promise.all([
+        q(sb.rpc('contratos_equipo').select(CAMPOS_CONTRATO).order('created_at', { ascending: false }).limit(1000), 'contratos', t),
+        q(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado,expira_en').eq('estado', 'pendiente'), 'firmas pendientes')
+      ]).then(function (rr) {
+          var cs = rr[0];
+          var firmaDe = {}; (rr[1] || []).forEach(function (x) { if (!firmaCaducada(x)) firmaDe[x.contrato_id] = x; });
           if (!cs) return;
+          // firmado > en firma (hay firma viva pendiente: ya no es editable) > borrador
+          var estadoC = function (c) { return c.bloqueado ? 'firmado' : firmaDe[c.id] ? 'firma' : 'borrador'; };
+          var ETQ_C = { firmado: ['Firmado', 'ok'], firma: ['En firma', 'espera'], borrador: ['Borrador', ''] };
 
           /* KPIs: los cuatro numeros de Stitch (210, 12.4M, 41, 18) eran
              inventados y se leian como reales. Nacen en «—» en el fichero y solo
              los llena la base. Dos etiquetas se reescribieron porque preguntaban
              algo que la base no responde sin mentir: firmado = `bloqueado`, y no
              hay fecha de firma fiable con la que acotar «del mes». */
-          var eur = 0, otras = 0, firmados = 0, mios = 0;
+          var eur = 0, otras = 0, firmados = 0, mios = 0, enFirma = 0;
           cs.forEach(function (c) {
-            if (c.bloqueado) firmados++;
+            if (c.bloqueado) firmados++; else if (firmaDe[c.id]) enFirma++;
             if (miEmail && c.creado_por === miEmail) mios++;
-            if (c.precio_total == null) return;
+            if (c.precio_total == null || esPreliminar(c)) return;   // cartas de reserva: fuera del volumen
             if ((c.moneda || 'EUR') === 'EUR') eur += Number(c.precio_total) || 0; else otras++;
           });
           pon2('k-activos', String(cs.length));
@@ -836,7 +856,7 @@
           pon2('k-firmados', String(firmados));
           pon2('k-pendientes', String(cs.length - firmados));
           if (otras) {
-            bandaNota('El volumen es SOLO en euros: ' + otras + ' contrato(s) en otra moneda quedan fuera de la suma. ' +
+            bandaNota('El volumen es SOLO en euros y sin cartas de reserva: ' + otras + ' contrato(s) en otra moneda quedan fuera de la suma. ' +
               'No se mezclan monedas — el total saldria en una unidad que no existe.', '#8A6A34');
           }
           window.LW_V4 = window.LW_V4 || {};
@@ -866,11 +886,11 @@
             var tr = pl.tbody.lastElementChild;
             tr.setAttribute('data-lw-fila', ''); tr.setAttribute('data-lw-id', c.id);
             tr.setAttribute('data-lw-tipo', c.tipo || '');
-            tr.setAttribute('data-lw-estado', c.bloqueado ? 'firmado' : 'borrador');
+            tr.setAttribute('data-lw-estado', estadoC(c));
             tr.setAttribute('data-lw-mio', miEmail && c.creado_por === miEmail ? '1' : '0');
             tr.setAttribute('data-lw-pajar', [c.numero, c.comprador_nombre, c.proyecto_nombre, c.creado_por, c.parcela_codigo, tipoC(c.tipo)].join(' ').toLowerCase());
             var tds = tr.querySelectorAll('td');
-            if (tds[7]) tds[7].innerHTML = pill(c.bloqueado ? 'Firmado' : 'Borrador', c.bloqueado ? 'ok' : 'espera');
+            if (tds[7]) tds[7].innerHTML = pill(ETQ_C[estadoC(c)][0], ETQ_C[estadoC(c)][1]);
             if (tds[8]) tds[8].innerHTML = ABRIR;
             tr.style.cursor = 'pointer';
           });
@@ -890,7 +910,8 @@
               .map(function (k) { return { clave: k, texto: k ? tipoC(k) : 'Sin tipo', n: porTipo[k] }; }));
           var opsEstado = [
             { clave: '*', texto: 'Todos', n: cs.length },
-            { clave: 'borrador', texto: 'Borradores', n: cs.length - firmados },
+            { clave: 'borrador', texto: 'Borradores', n: cs.length - firmados - enFirma },
+            { clave: 'firma', texto: 'En firma', n: enFirma },
             { clave: 'firmado', texto: 'Firmados', n: firmados }
           ];
           if (miEmail) opsEstado.push({ clave: '1', atributo: 'mio', texto: 'Míos', n: mios });
@@ -924,7 +945,7 @@
             }
           });
           pon2('k-mes', fmt(mesEUR, 'EUR'));
-          pon2('k-mes-pie', 'facturas vigentes del mes, en euros' + (mesOtras ? ' · +' + mesOtras + ' en otra moneda' : ''));
+          pon2('k-mes-pie', 'facturas vigentes del mes en euros, impuestos incluidos' + (mesOtras ? ' · +' + mesOtras + ' en otra moneda' : ''));
           pon2('k-facturas', String(nFac));
           pon2('k-facturas-pie', nFacAnu + ' anulada' + (nFacAnu === 1 ? '' : 's') + ' · histórico completo');
           pon2('k-proformas', String(nPro));
@@ -987,7 +1008,7 @@
           var nJust = function (r) { return (Array.isArray(r.justificantes) && r.justificantes.length) || (r.justificante_path ? 1 : 0); };
           var s = sumaMesEUR(rs);
           pon2('k-cobrado-mes', fmt(s.eur, 'EUR'));
-          pon2('k-cobrado-mes-pie', 'recibís vigentes del mes, en euros' + (s.otros ? ' · +' + s.otros + ' en otra moneda' : ''));
+          pon2('k-cobrado-mes-pie', 'recibís vigentes del mes en euros, impuestos incluidos' + (s.otros ? ' · +' + s.otros + ' en otra moneda' : ''));
           var anul = rs.filter(function (r) { return r.anulada; }).length;
           var sinJ = rs.filter(function (r) { return !r.anulada && !nJust(r); }).length;
           pon2('k-emitidos', String(rs.length));
@@ -1418,6 +1439,7 @@
         var cs = r[0], cob = r[1] || [], fi = r[2] || [], vs = r[3] || [];
         if (!cs) return;
         var cobId = {}; cob.forEach(function (x) { cobId[x.contrato_id] = Number(x.cobrado) || 0; });
+        fi = fi.filter(function (x) { return !firmaCaducada(x); });   // una firma caducada no es «en firma»
         var firmaDe = {}; fi.forEach(function (x) { firmaDe[x.contrato_id] = x; });
         var proxDe = {}; vs.forEach(function (v) { if (!proxDe[v.contrato_id]) proxDe[v.contrato_id] = v; });   // ya vienen por fecha
         var porId = {}; cs.forEach(function (c) { porId[c.id] = c; });
@@ -1427,14 +1449,15 @@
         var eur = 0, otras = 0, firmados = 0, cobEUR = 0, pendEUR = 0;
         cs.forEach(function (c) {
           if (c.bloqueado) firmados++;
-          if (c.precio_total == null) return;
-          if ((c.moneda || 'EUR') !== 'EUR') { otras++; return; }
+          if ((c.moneda || 'EUR') !== 'EUR') { if (c.precio_total != null && !esPreliminar(c)) otras++; return; }
+          cobEUR += cobId[c.id] || 0;                       // lo cobrado cuenta siempre (también la señal de una carta)
+          if (c.precio_total == null || esPreliminar(c)) return;   // el precio de una carta es el de la casa entera: fuera
           var p = Number(c.precio_total) || 0, cb = cobId[c.id] || 0;
-          eur += p; cobEUR += cb;
+          eur += p;
           if (c.bloqueado) pendEUR += Math.max(0, p - cb);
         });
         pon2('k-volumen', fmt(eur, 'EUR'));
-        pon2('k-volumen-pie', cs.length + ' contrato' + (cs.length === 1 ? '' : 's') + ' · ' + firmados + ' firmado' + (firmados === 1 ? '' : 's'));
+        pon2('k-volumen-pie', cs.length + ' contrato' + (cs.length === 1 ? '' : 's') + ' · ' + firmados + ' firmado' + (firmados === 1 ? '' : 's') + ' · sin cartas de reserva');
         if (otras) bandaNota('El volumen es SOLO en euros: ' + otras + ' contrato(s) en otra moneda fuera de la suma.', '#8A6A34');
         pon2('k-cobros', fmt(cobEUR, 'EUR'));
         var pct = eur ? Math.round(cobEUR / eur * 1000) / 10 : 0;
@@ -1451,11 +1474,13 @@
         function estadoDe(c) {
           if (firmaDe[c.id]) return 'firma';
           if (!c.bloqueado) return 'curso';
-          if (c.precio_total != null && (cobId[c.id] || 0) >= Number(c.precio_total)) return 'cobrado';
+          if (esPreliminar(c)) return 'reserva';               // firmada: solo cobra la señal, no hay «pendiente»
+          if (c.precio_total == null) return 'sinimporte';       // poderes, hak sewa notario…: nada que cobrar
+          if ((cobId[c.id] || 0) >= Number(c.precio_total)) return 'cobrado';
           return 'pendiente';
         }
-        var ETQ = { firma: ['En firma', 'espera'], curso: ['En curso', ''], cobrado: ['Cobrado', 'ok'], pendiente: ['Cobro pendiente', 'mal'] };
-        var nEst = { firma: 0, curso: 0, cobrado: 0, pendiente: 0 };
+        var ETQ = { firma: ['En firma', 'espera'], curso: ['En curso', ''], cobrado: ['Cobrado', 'ok'], pendiente: ['Cobro pendiente', 'mal'], reserva: ['Reserva firmada', 'ok'], sinimporte: ['Firmado · sin importe', ''] };
+        var nEst = { firma: 0, curso: 0, cobrado: 0, pendiente: 0, reserva: 0, sinimporte: 0 };
         cs.forEach(function (c) { nEst[estadoDe(c)]++; });
 
         if (t) {
@@ -1470,7 +1495,7 @@
             fila(pl, [c.numero, c.comprador_nombre || '—', (c.proyecto_nombre || '—') + (c.parcela_codigo ? ' · ' + c.parcela_codigo : ''), estr,
               c.precio_total != null ? fmt(c.precio_total, c.moneda) : '—',
               fmt(cb, c.moneda) + (c.precio_total ? ' (' + Math.round(cb / Number(c.precio_total) * 100) + ' %)' : ''),
-              pv ? fFecha(pv.fecha) + (pv.descripcion ? ' · ' + pv.descripcion : '') : (c.bloqueado ? 'sin hitos futuros' : '—'),
+              pv ? fFecha(pv.fecha) + (pv.descripcion ? ' · ' + pv.descripcion : '') : (c.bloqueado && !esPreliminar(c) ? 'sin hitos futuros' : '—'),
               '', '']);
             var tr = pl.tbody.lastElementChild;
             tr.setAttribute('data-lw-fila', ''); tr.setAttribute('data-lw-id', c.id);
@@ -1494,7 +1519,7 @@
             aplicaFiltros(pl.tbody, estado, ['estado', 'proyecto'], texto, function (n) { pon2('p-desde', String(n)); pon2('p-vis', n + ' visibles'); });
           };
           var ops = [{ clave: '*', texto: 'Todas', n: cs.length }];
-          ['curso', 'firma', 'pendiente', 'cobrado'].forEach(function (k) { ops.push({ clave: k, texto: ETQ[k][0], n: nEst[k] }); });
+          ['curso', 'firma', 'pendiente', 'cobrado', 'reserva'].forEach(function (k) { ops.push({ clave: k, texto: ETQ[k][0], n: nEst[k] }); });
           var contChips = document.querySelector('[data-lw-chips="estado"]');
           chipsReales(contChips, 'estado', ops, estado, aplicar);
           buscadorDe(aplicar, function (v) { texto = v; });
@@ -1509,7 +1534,7 @@
           // ?filtro=firma (enlace de Home «contratos en firma»)
           var filtro = new URLSearchParams(location.search).get('filtro');
           if (filtro && contChips) {
-            var idx = ['*', 'curso', 'firma', 'pendiente', 'cobrado'].indexOf(filtro);
+            var idx = ['*', 'curso', 'firma', 'pendiente', 'cobrado', 'reserva'].indexOf(filtro);
             var bs = contChips.querySelectorAll('button'); if (idx > 0 && bs[idx]) bs[idx].click();
           }
         }
@@ -1577,10 +1602,10 @@
           } else if (/proforma encadenada|Abrir proforma/i.test(tx)) {
             botones[i3].setAttribute('data-real', '');
             botones[i3].addEventListener('click', function (ev) { ev.stopPropagation(); if (expedienteActual) location.href = '/contracts/app.html?contrato=' + encodeURIComponent(expedienteActual.raiz.numero); });
-          } else if (!tx && ico && ico.textContent.trim() === 'open_in_new') {
+          } else if (ico && ico.textContent.trim() === 'open_in_new' && tx === 'open_in_new') {
             botones[i3].setAttribute('data-real', ''); botones[i3].title = 'Ficha del expediente';
             botones[i3].addEventListener('click', function (ev) { ev.stopPropagation(); if (expedienteActual) fichaContrato(sb, expedienteActual.el, { sinExpediente: true }); });
-          } else if (/^Actualizar$/i.test(tx)) {
+          } else if (/Actualizar$/i.test(tx)) {
             botones[i3].setAttribute('data-real', '');
             botones[i3].addEventListener('click', function (ev) { ev.stopPropagation(); location.reload(); });
           }
