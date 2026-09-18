@@ -484,9 +484,11 @@
          pantallas con dos «cobrado» distintos era el hallazgo (Administración/Legal, 19-sep). */
       var cobRow = (r[6] && r[6].data || [])[0];
       var cobrado = cobRow && cobRow.cobrado != null ? Number(cobRow.cobrado) || 0 : null;
+      // el oráculo suma recibís sin mirar la moneda: si hay alguno en otra, se dice (hoy 0 casos)
+      var otrasMon = fs.filter(function (f) { return f.tipo === 'recibi' && !f.anulada && (f.moneda || 'EUR') !== (c.moneda || 'EUR'); }).length;
       var pend = (cobrado != null && c.precio_total != null && !esPreliminar(c)) ? Math.max(0, Number(c.precio_total) - cobrado) : null;
       cuerpo += H.seccion('Cobros (' + fs.length + ' documento' + (fs.length === 1 ? '' : 's') + ')',
-        H.dato('Cobrado (recibís aplicados)', cobrado != null ? fmt(cobrado, c.moneda) : 'sin dato') +
+        H.dato('Cobrado (recibís aplicados)', (cobrado != null ? fmt(cobrado, c.moneda) : 'sin dato') + (otrasMon ? ' · incluye ' + otrasMon + ' recibí(s) en otra moneda a valor facial' : '')) +
         (pend != null ? H.dato('Pendiente sobre el precio', fmt(pend, c.moneda)) : '') +
         (esPreliminar(c) ? H.nota('Es un documento preliminar: el precio es el de la casa entera y solo se cobra la señal, así que no se calcula «pendiente».') : '') +
         (fs.length ? H.tabla(['Documento', 'Tipo', 'Importe', 'Fecha', ''], fs.map(function (f) {
@@ -1446,22 +1448,22 @@
         window.LW_V4 = window.LW_V4 || {}; window.LW_V4.contratosLista = porId;
 
         /* KPIs — SOLO en euros, como en Contratos: no se mezclan monedas. */
-        var eur = 0, otras = 0, firmados = 0, cobEUR = 0, pendEUR = 0;
+        var eur = 0, otras = 0, firmados = 0, cobEUR = 0, pendEUR = 0, cobBase = 0;
         cs.forEach(function (c) {
           if (c.bloqueado) firmados++;
           if ((c.moneda || 'EUR') !== 'EUR') { if (c.precio_total != null && !esPreliminar(c)) otras++; return; }
           cobEUR += cobId[c.id] || 0;                       // lo cobrado cuenta siempre (también la señal de una carta)
           if (c.precio_total == null || esPreliminar(c)) return;   // el precio de una carta es el de la casa entera: fuera
           var p = Number(c.precio_total) || 0, cb = cobId[c.id] || 0;
-          eur += p;
+          eur += p; cobBase += cb;                           // misma base que el volumen: sin señales de cartas
           if (c.bloqueado) pendEUR += Math.max(0, p - cb);
         });
         pon2('k-volumen', fmt(eur, 'EUR'));
         pon2('k-volumen-pie', cs.length + ' contrato' + (cs.length === 1 ? '' : 's') + ' · ' + firmados + ' firmado' + (firmados === 1 ? '' : 's') + ' · sin cartas de reserva');
         if (otras) bandaNota('El volumen es SOLO en euros: ' + otras + ' contrato(s) en otra moneda fuera de la suma.', '#8A6A34');
         pon2('k-cobros', fmt(cobEUR, 'EUR'));
-        var pct = eur ? Math.round(cobEUR / eur * 1000) / 10 : 0;
-        pon2('k-cobros-pct', eur ? pct + ' % del volumen en euros' : 'sin volumen en euros');
+        var pct = eur ? Math.round(cobBase / eur * 1000) / 10 : 0;   // numerador y denominador con la misma base (Administración, 19-sep)
+        pon2('k-cobros-pct', eur ? pct + ' % del volumen en euros, sin señales de cartas' : 'sin volumen en euros');
         var barra = document.querySelector('[data-lw-barra="k-cobros"]'); if (barra) barra.style.width = Math.min(100, pct) + '%';
         var nf = Object.keys(firmaDe).length;
         pon2('k-firmas', String(nf));
