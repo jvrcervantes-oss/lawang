@@ -150,6 +150,7 @@
      `cargarCuentasBancarias` filtra `activa = true` — cargarlo solo añadiría un
      objeto global que esta pantalla no usa. -->
 <script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
+<script src="/contracts/assets/nota_cuenta.js?v=e0f248ec"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CUENTAS BANCARIAS — el panel del super admin. 14-sep-2026.
@@ -388,22 +389,10 @@ function pintarListaContratos(q){
   }).join('');
 }
 
-/* El campo `extra` de una cuenta es JSONB y puede ser dos cosas: un texto suelto
-   o {es,en,id}. No es capricho — la fila «Nota» se imprime en los tres idiomas
-   del contrato, y donde se guardó un texto plano salía en español aunque el
-   documento estuviera en inglés. Aquí se editan los tres huecos por separado en
-   vez de enseñar JSON crudo: quien administra cuentas no tiene por qué saber
-   escribir un objeto, y un JSON mal cerrado se guardaría como texto. */
-function notaDe(extra){
-  if(extra && typeof extra === 'object') return { es: extra.es || '', en: extra.en || '', id: extra.id || '' };
-  const t = (extra == null ? '' : String(extra));
-  return { es: t, en: '', id: '' };
-}
-function notaAJson(n){
-  if(!n.es && !n.en && !n.id) return '';          // sin nota: cadena vacía, la fila no se imprime
-  if(!n.en && !n.id) return n.es;                  // un solo idioma: texto plano, como estaba
-  return { es: n.es, en: n.en || n.es, id: n.id || n.es };
-}
+/* La «Nota» que se imprime en el contrato vive en `contracts/assets/nota_cuenta.js`
+   desde el 18-sep-2026: la lee y la escribe tambien /intranet/v4/cuentas/, y dos
+   copias de esta conversion divergen imprimiendo la nota en el idioma equivocado
+   dentro de un contrato firmado. */
 
 function pintarFicha(){
   if(MODO === 'contrato') return pintarFichaContrato();
@@ -646,7 +635,7 @@ function pintarFichaCuenta(){
   const c = CUENTAS.find(x => x.clave === SEL);
   if(!c){ $('#ficha').innerHTML = '<div class="vacio">' + lwT('Elige una cuenta') + '</div>'; return; }
   const ro = PUEDO_ESCRIBIR ? '' : ' disabled';
-  const nota = notaDe(c.extra);
+  const nota = lwNotaCuenta.lee(c.extra);
 
   const aviso = PUEDO_ESCRIBIR ? '' :
     '<p class="aviso">' + lwT('Estás viendo el reparto, no puedes cambiarlo: solo un super admin edita cuentas de cobro. Es el dato que decide adónde transfiere el comprador.') + '</p>';
@@ -878,7 +867,7 @@ async function guardarCuenta(clave){
     cuenta:    val('cuenta').trim(),
     codigo:    val('codigo').trim(),
     direccion: val('direccion').trim(),
-    extra:     notaAJson({ es: nota.es.trim(), en: nota.en.trim(), id: nota.id.trim() }),
+    extra:     lwNotaCuenta.aJson({ es: nota.es.trim(), en: nota.en.trim(), id: nota.id.trim() }),
     es_escrow: !!($('#f_escrow') || {}).checked,
     activa:    !!($('#f_activa') || {}).checked,
   };

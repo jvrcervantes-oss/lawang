@@ -1651,7 +1651,7 @@
            —menos filas, sin ningún error— y el cobrado de la cartera saldría
            bajo para todo el que no sea super admin. Está avisado en la cabecera
            de este fichero y aun así caí en ello al escribir esta pantalla. */
-        q(sb.rpc('facturas_equipo').select('proyecto_nombre,tipo,total,moneda,anulada'), 'facturas'),
+        q(sb.rpc('facturas_equipo').select('proyecto_id,proyecto_nombre,tipo,total,moneda,anulada'), 'facturas'),
         q(sb.from('documentos_proyecto').select('id,proyecto,categoria,titulo,descripcion,url,carpeta,visible_portal,confidencial,creado_en'), 'documentación'),
         /* Managers de cada proyecto (11-sep-2026, encargo del owner: sincronizar
            v4 con lo nuevo de Proyectos). Sin permiso esto vuelve vacío por RLS
@@ -1704,6 +1704,17 @@
         PS = ps; MGRS = mgrs; DS_ACTUAL = ds;
         EQUIPO_NOMBRE = {};
         eq.forEach(function (e) { if (e.email) EQUIPO_NOMBRE[e.email] = e.nombre || e.email; });
+        /* NOMBRE_POR_PROYECTO_ID (18-sep-2026): una factura/recibí que cuelga de
+           un contrato con parcela_codigo se guarda con `proyecto_nombre` tipo
+           "Soka Village W2 — B1" (intranet/facturas/index.html, campo "Proyecto
+           / unidad" — correcto para el propio recibí, identifica la parcela).
+           Sumar por ese texto exacto contra el nombre limpio del proyecto deja
+           fuera cualquier recibí con sufijo de parcela: el sumario general
+           enseñaba solo el dinero de las facturas SIN parcela vinculada,
+           aunque hubiera cobros reales de sobra. `proyecto_id` no lleva sufijo
+           nunca, así que es la clave de verdad. */
+        var NOMBRE_POR_PROYECTO_ID = {};
+        ps.forEach(function (p) { NOMBRE_POR_PROYECTO_ID[p.id] = p.nombre; });
 
         /* --- agregados, SOLO EUR --- */
         var tot = { cartera: 0, suelo: 0, obra: 0 }, fueraEur = 0;
@@ -1727,7 +1738,7 @@
         COB_P = {};
         fs.forEach(function (f) {
           if (f.anulada || (f.moneda || 'EUR') !== 'EUR') return;
-          if (f.tipo === 'recibi') { cobrado += Number(f.total || 0); var k = f.proyecto_nombre || ''; COB_P[k] = (COB_P[k] || 0) + Number(f.total || 0); }
+          if (f.tipo === 'recibi') { cobrado += Number(f.total || 0); var k = NOMBRE_POR_PROYECTO_ID[f.proyecto_id] || f.proyecto_nombre || ''; COB_P[k] = (COB_P[k] || 0) + Number(f.total || 0); }
           else if (f.tipo === 'factura') facturado += Number(f.total || 0);
         });
         DOC_P = {}; ds.forEach(function (d) { DOC_P[d.proyecto] = (DOC_P[d.proyecto] || 0) + 1; });
