@@ -165,6 +165,43 @@
       (sub ? '<div style="font-size:12px;color:#8A8474">' + sub + '</div>' : '') + '</div>' +
       (der != null ? '<div style="font-weight:700;white-space:nowrap;align-self:center">' + der + '</div>' : '') + '</div>';
   }
+  /* Acciones de fila delegadas en un contenedor ESTATICO. Vive aqui arriba y no
+     dentro de una pantalla porque la usan dos (Comision de administracion y
+     Cuentas de cobro) y en esta suite un mismo bloque en dos sitios ES el bug,
+     no la causa del bug (Regla 0 de `contexto/suite_lawang.md`).
+
+     `stopPropagation` no es higiene: `maqueta.js` delega en `document` y llega
+     por burbujeo DESPUES, asi que sin esto anunciaria el boton como «sin
+     cablear» encima del editor que si respondio. */
+  function delega(caja, pares) {
+    if (!caja) return;
+    caja.addEventListener('click', function (ev) {
+      for (var i = 0; i < pares.length; i++) {
+        var b = ev.target.closest && ev.target.closest('[' + pares[i][0] + ']');
+        if (!b) continue;
+        ev.preventDefault(); ev.stopPropagation();
+        var fn = window.LW_V4 && window.LW_V4[pares[i][1]];
+        if (fn) fn(b);
+        else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
+        return;
+      }
+    });
+  }
+  /* Lista real ANCLADA por `data-lw-lista`, en el sitio del layout donde vive
+     de verdad — a diferencia de `panelReal`, que siempre se cuelga justo
+     debajo del `<h1>` (útil cuando el marcado de Stitch no tiene hueco propio,
+     pero en /obra/ el hueco YA existe: 18-sep-2026). Un item sin `url` cae al
+     `verUrl` común — todas las filas de obra abren la misma herramienta real,
+     no una ficha por unidad, así que no hace falta una URL por fila. */
+  function pintaListaObra(clave, items, vacio, verUrl) {
+    var cont = document.querySelector('[data-lw-lista="' + clave + '"]'); if (!cont) return;
+    cont.innerHTML = items.length ? items.join('')
+      : '<p style="font:400 13px \'Neue Kabel\',sans-serif;color:#8A8474;margin:2px 0">' + esc(vacio) + '</p>';
+    if (verUrl) {
+      var its = cont.querySelectorAll('[data-mq-item]');
+      for (var i = 0; i < its.length; i++) its[i].addEventListener('click', function () { location.href = verUrl; });
+    }
+  }
   function panelReal(titulo, items, urls, vacio, verMasUrl) {
     var h1 = document.querySelector('h1'); if (!h1) return;
     var cab = h1; for (var i = 0; i < 4 && cab.parentElement; i++) { cab = cab.parentElement; if (cab.parentElement && cab.parentElement.tagName === 'MAIN') break; }
@@ -2055,104 +2092,85 @@
     },
 
     obra: function (sb) {
-      /* Cuerpo real (fase A3). La suite guarda POR UNIDAD: fase, fecha de
-         entrega y ultima actualizacion — no guarda contratista, % de avance,
-         fecha de inicio ni camaras. Lo que no existe se queda en guion con el
-         motivo a la vista; el 68% del diseno era un numero inventado. */
-      q(sb.from('unidades_estado').select('codigo,proyecto,modelo,estado,obra_fase,obra_fecha_entrega,obra_actualizado,comprador_nombre').not('obra_fase', 'is', null).order('obra_actualizado', { ascending: false }).limit(60), 'obra')
-        .then(function (us) {
-          if (us == null) return;
-          kpi(/EN OBRA|ACTIVAS/i, String(us.length), 'unidades con fase abierta');
-          var proys = {}; us.forEach(function (u) { if (u.proyecto) proys[u.proyecto] = 1; });
-          pon2('k-po', String(Object.keys(proys).length));
-          pon2('k-po-pie', Object.keys(proys).slice(0, 3).join(', ') || 'sin proyectos en obra');
-          pon2('k-hitos', String(us.filter(function (u) { return u.obra_fecha_entrega; }).length));
-          pon2('k-hitos-pie', 'unidades con fecha de entrega puesta');
-          pon2('k-certificaciones', '—');
-          // 17-sep-2026: esta banda decía que la suite no guarda avance de obra, y
-          // desde hoy sí lo hace — por fase-zona del masterplan, con partes de
-          // trabajo (obra_partes_trabajo). Se corrige en vez de borrarla: lo que
-          // sigue sin existir (contratista, cámaras) se sigue diciendo, porque un
-          // «—» sin explicación es lo que esta banda vino a evitar.
-          bandaNota('Contratista y cámaras se quedan en «—»: la suite no guarda esos datos. El avance sí: por unidad (fase y entrega) y, desde hoy, por tramo del masterplan con partes de trabajo, que además fijan la fecha de cobro de cada fase.', '#8A6A34');
+      /* Reescrito 18-sep-2026 (encargo del owner: "limpia lo que no sea un
+         dato real, cablea hasta el final"). El HTML de Stitch traia dron,
+         peritajes con firma digital y 82.000 € de escrow, ensayos de
+         laboratorio, un calendario con ingenieros nombrados y una cuadrilla
+         con supervisor nombrado — nada de eso existe en la base y se retiro
+         del marcado (no solo del cableado). Lo que la suite SÍ guarda: fase +
+         fecha de entrega por unidad, y desde el 17-sep el avance por
+         fase-zona con partes de trabajo (obra_partes_trabajo) que además fija
+         la fecha de cobro. Verificado en Supabase el 18-sep: los tres viven
+         hoy a cero filas — ningún proyecto ha pasado a 'en_construccion'
+         todavía —, así que el estado correcto de esta pantalla es un vacío
+         honesto, no actividad inventada.
 
-          /* Últimos partes de trabajo (17-sep-2026). Van al panel de la derecha
-             porque son el histórico de quién movió la obra y cuándo — hasta hoy
-             no había ninguno, y un avance sin rastro es justo lo que el encargo
-             venía a cerrar. */
-          q(sb.from('obra_partes_trabajo')
-              .select('fase_masterplan,zona_masterplan,fase_anterior,fase_nueva,fecha,autor,nota,dias_offset,proyecto_id')
-              .order('creado_en', { ascending: false }).limit(8), 'partes de trabajo')
-            .then(function (ps) {
-              // Se pinta SIEMPRE, tambien vacio: la banda de arriba anuncia que
-              // ahora hay partes de trabajo, y una pantalla que lo dice y no
-              // enseña nada se lee como que algo falla. Y `null` (no se pudo
-              // leer) no se confunde con `[]` (no hay ninguno): son cosas
-              // distintas y se dicen distinto.
-              if (ps == null) {
-                panelReal('Últimos partes de trabajo', [], [],
-                  'No se pudieron leer los partes de trabajo.');
-                return;
-              }
-              if (!ps.length) {
-                panelReal('Últimos partes de trabajo', [], [],
-                  'Todavía no hay ningún parte de trabajo. Se crean desde «Nuevo parte de trabajo».');
-                return;
-              }
-              var nombres = {};
-              q(sb.from('proyectos').select('id,nombre'), 'proyectos de los partes').then(function (pr) {
-                (pr || []).forEach(function (x) { nombres[x.id] = x.nombre; });
-                panelReal('Últimos partes de trabajo',
-                  ps.map(function (r) {
-                    // itemPanel mete lo que se le da en innerHTML sin escapar:
-                    // todo lo que sale de la base pasa por esc() (el repo es publico
-                    // y una zona o un autor son texto libre).
-                    return itemPanel(
-                      esc((nombres[r.proyecto_id] || '—') + ' · fase ' + r.fase_masterplan + ' · ' + r.zona_masterplan),
-                      esc((r.fase_anterior ? r.fase_anterior + ' → ' : 'arranca en ') + r.fase_nueva +
-                        ' · ' + fFecha(r.fecha) + (r.autor ? ' · ' + r.autor : '')),
-                      r.dias_offset != null ? 'cobro +' + Number(r.dias_offset) + 'd' : '');
-                  }), []);
-              });
-            });
+         `k-po` cuenta el CATÁLOGO (`proyectos.estado`), no una tabla
+         derivada: contar "proyectos distintos con alguna unidad con fase"
+         perdería un proyecto recién pasado a construcción que aún no tiene
+         ningún parte — el mismo fallo, ya cazado dos veces en esta suite, de
+         agrupar por la fila que todavía no existe. */
+      Promise.all([
+        q(sb.from('unidades_estado').select('codigo,proyecto,modelo,estado,obra_fase,obra_fecha_entrega,obra_actualizado,comprador_nombre').not('obra_fase', 'is', null).order('obra_actualizado', { ascending: false }).limit(60), 'unidades en obra'),
+        q(sb.from('proyectos').select('id,nombre,estado').order('nombre'), 'proyectos'),
+        cnt(sb, 'unidades_estado', function (qq) { return qq.not('obra_fecha_entrega', 'is', null); }),
+        cnt(sb, 'obra_partes_trabajo'),
+        q(sb.from('obra_partes_trabajo').select('fase_masterplan,zona_masterplan,fase_anterior,fase_nueva,fecha,autor,nota,dias_offset,proyecto_id').order('creado_en', { ascending: false }).limit(6), 'últimos partes de trabajo'),
+        q(sb.from('obra_fases').select('clave,es').order('orden'), 'fases de obra')
+      ]).then(function (r) {
+        var us = r[0], proys = r[1] || [], nEntregas = r[2], nPartes = r[3], ultimosPartes = r[4], fases = r[5];
+        if (us == null) return;
 
-          // siguiente entrega: la fecha futura mas cercana
-          var hoy = new Date().toISOString().slice(0, 10);
-          var conFecha = us.filter(function (u) { return u.obra_fecha_entrega && u.obra_fecha_entrega >= hoy; })
-            .sort(function (a, b) { return a.obra_fecha_entrega < b.obra_fecha_entrega ? -1 : 1; });
-          if (conFecha.length) {
-            var sgu = conFecha[0];
-            var d = Math.round((new Date(sgu.obra_fecha_entrega) - new Date(hoy)) / 864e5);
-            pon2('sig-titulo', 'Entrega ' + sgu.codigo);
-            pon2('sig-sub', (sgu.proyecto || '—') + ' · ' + fFecha(sgu.obra_fecha_entrega));
-            pon2('sig-chip', 'en ' + d + (d === 1 ? ' día' : ' días'));
-            pon2('sig-prio', (sgu.obra_fase || '—'));
-          } else {
-            pon2('sig-titulo', 'Sin entregas con fecha futura');
-            pon2('sig-sub', '—'); pon2('sig-chip', '—'); pon2('sig-prio', '—');
-          }
+        var enConstruccion = proys.filter(function (p) { return p.estado === 'en_construccion'; });
+        pon2('k-po', String(enConstruccion.length));
+        pon2('k-po-pie', enConstruccion.length
+          ? enConstruccion.map(function (p) { return p.nombre; }).slice(0, 3).join(', ')
+          : 'ningún proyecto en construcción todavía');
 
-          // tarjeta destacada: la unidad con actividad mas reciente
-          var u0 = us[0];
-          if (u0) {
-            pon2('o-estado', (u0.estado || '—').toUpperCase() + ' · ' + (u0.obra_fase || 'sin fase'));
-            pon2('o-codigo', 'Código: ' + u0.codigo);
-            pon2('o-titulo', (u0.proyecto || '—') + ' · ' + (u0.modelo || u0.codigo));
-            pon2('o-lugar', u0.comprador_nombre ? 'Comprador: ' + u0.comprador_nombre : 'Sin comprador vinculado');
-            pon2('o-contratista', 'Contratista: — (no se registra)');
-            pon2('o-pct', '—');
-            pon2('o-inicio', 'Inicio: — (no se registra)');
-            pon2('o-hito', 'Fase actual: ' + (u0.obra_fase || '—'));
-            pon2('o-entrega', 'Entrega: ' + (u0.obra_fecha_entrega ? fFecha(u0.obra_fecha_entrega) : 'sin fecha'));
-          }
+        pon2('k-hitos', nEntregas == null ? '—' : String(nEntregas));
+        pon2('k-hitos-pie', 'unidades con fecha de entrega puesta');
 
-          panelReal('Unidades en obra', us.map(function (u) {
-            return itemPanel(esc(u.codigo) + ' · ' + esc(u.proyecto || ''),
-              esc(u.modelo || '—') + ' · ' + esc(u.comprador_nombre || 'sin comprador') + ' · entrega ' + fFecha(u.obra_fecha_entrega),
-              esc(u.obra_fase || '—'));
-          }), us.map(function () { return '/intranet/obra/'; }),
-          'Ninguna unidad con fase de obra abierta.', '/intranet/obra/');
-        });
+        pon2('k-partes', nPartes == null ? '—' : String(nPartes));
+
+        var nombreFase = {}; (fases || []).forEach(function (f) { nombreFase[f.clave] = f.es || f.clave; });
+        var nombreProy = {}; proys.forEach(function (p) { nombreProy[p.id] = p.nombre; });
+
+        var hoy = new Date().toISOString().slice(0, 10);
+        var conFecha = us.filter(function (u) { return u.obra_fecha_entrega && u.obra_fecha_entrega >= hoy; })
+          .sort(function (a, b) { return a.obra_fecha_entrega < b.obra_fecha_entrega ? -1 : 1; });
+        if (conFecha.length) {
+          var sgu = conFecha[0];
+          var d = Math.round((new Date(sgu.obra_fecha_entrega) - new Date(hoy)) / 864e5);
+          pon2('sig-titulo', 'Entrega ' + sgu.codigo);
+          pon2('sig-sub', (sgu.proyecto || '—') + ' · ' + fFecha(sgu.obra_fecha_entrega));
+          pon2('sig-chip', 'en ' + d + (d === 1 ? ' día' : ' días'));
+          pon2('sig-prio', nombreFase[sgu.obra_fase] || sgu.obra_fase || '—');
+        } else {
+          pon2('sig-titulo', 'Sin entregas con fecha futura');
+          pon2('sig-sub', '—'); pon2('sig-chip', '—'); pon2('sig-prio', '—');
+        }
+
+        pintaListaObra('unidades-obra', us.map(function (u) {
+          return itemPanel(esc(u.codigo) + ' · ' + esc(u.proyecto || '—'),
+            esc(u.modelo || '—') + ' · ' + esc(u.comprador_nombre || 'sin comprador') + ' · entrega ' + fFecha(u.obra_fecha_entrega),
+            esc(nombreFase[u.obra_fase] || u.obra_fase || '—'));
+        }), 'Ninguna unidad con fase de obra abierta todavía. Se abre una desde «Registrar avance técnico».', '/intranet/obra/');
+
+        pintaListaObra('proximas-entregas', conFecha.slice(0, 5).map(function (u) {
+          return itemPanel(esc(u.codigo) + ' · ' + esc(u.proyecto || '—'), fFecha(u.obra_fecha_entrega), '');
+        }), 'Ninguna unidad con fecha de entrega futura.', '/intranet/obra/');
+
+        pintaListaObra('partes-trabajo', (ultimosPartes || []).map(function (p) {
+          // itemPanel mete lo que se le da en innerHTML sin escapar: todo lo
+          // que sale de la base pasa por esc() (el repo es publico y una
+          // zona o un autor son texto libre).
+          return itemPanel(
+            esc((nombreProy[p.proyecto_id] || '—') + ' · fase ' + p.fase_masterplan + ' · ' + p.zona_masterplan),
+            esc((p.fase_anterior ? p.fase_anterior + ' → ' : 'arranca en ') + p.fase_nueva +
+              ' · ' + fFecha(p.fecha) + (p.autor ? ' · ' + p.autor : '')),
+            p.dias_offset != null ? 'cobro +' + Number(p.dias_offset) + 'd' : '');
+        }), 'Todavía no hay ningún parte de trabajo. Se crean desde «Nuevo parte de trabajo».');
+      });
     },
     /* documentacion/: fusionada en Proyectos el 8-sep (decision del owner).
        La pagina es una redireccion; no queda nada que cablear aqui. */
