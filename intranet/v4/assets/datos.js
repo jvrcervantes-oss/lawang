@@ -643,7 +643,11 @@
          aqui: queda como pendiente de Datos (una columna materializada). */
       var t = tablaPor([/INVERSOR|TITULAR/, /CONTACTO|PA[IÍ]S/]);
       Promise.all([
-        q(sb.from('clients').select('id,full_name,email,phone,nationality,passport_number,tipo,forma_juridica,registro_num,rep_nombre,rep_cargo,kyc_status,idioma_comunicacion,notes,propietario,created_at').order('created_at', { ascending: false }).limit(500), 'compradores', t),
+        /* Solo lo que el LISTADO enseña. Pasaporte, registro, representante,
+           notas y propietario se piden al abrir UNA ficha (abreFicha): traer
+           500 pasaportes de golpe para pintar una tabla que no los enseña era
+           un hallazgo MEDIA de Seguridad en la consulta de deploy (18-sep). */
+        q(sb.from('clients').select('id,full_name,email,phone,nationality,tipo,kyc_status,created_at').order('created_at', { ascending: false }).limit(500), 'compradores', t),
         q(sb.rpc('contratos_equipo').select('id,numero,tipo,proyecto_nombre,fecha_firma,precio_total,moneda,bloqueado'), 'contratos'),
         q(sb.from('contrato_compradores').select('contrato_id,client_id,rol'), 'vinculos'),
         vig(sb.rpc('contratos_cobrado_equipo')).then(function (r) { return r.error ? (fallo('cobrado', r.error), null) : (r.data || []); }),
@@ -744,9 +748,23 @@
             '<p style="margin:6px 0 0;font-size:11.5px;color:#75786e">Solo cuenta como cobrado el recibí — una factura o proforma es lo que se debe, no lo pagado.' +
             (sumables.length !== suyos.length ? ' El precio no cuenta las Cartas de Reserva.' : '') + '</p>';
         }
-        function abreFicha(c2) {
+        /* La ficha COMPLETA se pide al abrir, y solo la de ese comprador. Si
+           la consulta falla se pinta con lo que el listado ya sabe y se avisa:
+           una ficha a medias sin decirlo es la familia de LAW-186. */
+        var CAMPOS_FICHA = 'id,full_name,email,phone,nationality,passport_number,tipo,forma_juridica,registro_num,rep_nombre,rep_cargo,kyc_status,idioma_comunicacion,notes,propietario,created_at';
+        function abreFicha(c0) {
           var H = window.lwCajonHtml;
           if (!(window.lwCajon && H)) { toast('La ficha aún no ha cargado — prueba de nuevo en un segundo.'); return; }
+          sb.from('clients').select(CAMPOS_FICHA).eq('id', c0.id).maybeSingle().then(function (r) {
+            if (r.error || !r.data) {
+              console.error('[v4 datos] ficha de comprador', r.error);
+              toast('No se pudo leer la ficha completa: se enseña lo que hay en el listado.');
+              pintaFicha(c0);
+            } else pintaFicha(r.data);
+          });
+        }
+        function pintaFicha(c2) {
+          var H = window.lwCajonHtml;
           window.LW_V4 = window.LW_V4 || {}; window.LW_V4.comprador = c2;
           var esEmpresa = c2.tipo === 'empresa';
           var vins = vin.filter(function (v) { return v.client_id === c2.id && porC[v.contrato_id]; });
@@ -951,7 +969,7 @@
           var qq = busca.value.trim().toLowerCase();
           pl.tbody.querySelectorAll('tr[data-id]').forEach(function (tr) {
             var c2 = porId[tr.getAttribute('data-id')] || {};
-            var pajar = [c2.full_name, c2.email, c2.passport_number, c2.nationality, c2.phone].join(' ').toLowerCase();
+            var pajar = [c2.full_name, c2.email, c2.nationality, c2.phone].join(' ').toLowerCase();
             tr.style.display = (!qq || pajar.indexOf(qq) !== -1) ? '' : 'none';
           });
         });
