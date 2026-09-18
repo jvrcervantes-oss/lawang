@@ -1,10 +1,10 @@
 <!DOCTYPE html><html lang="es" style=""><head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d6d6608e" data-herramienta="vencimientos"></script>
-<script src="/contracts/assets/dinero.js?v=aed0c9a9" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=310f2346" defer></script><script src="/intranet/vencimientos/logica.js?v=567781fe" defer></script><script src="../assets/datos.js?v=51a6b437" defer></script>
+<script src="/contracts/assets/dinero.js?v=aed0c9a9" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=310f2346" defer></script><script src="/intranet/vencimientos/logica.js?v=567781fe" defer></script><script src="../assets/datos.js?v=67c29560" defer></script>
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=2737c21a" defer></script>
 <link href="../assets/shell.css?v=4978e676" rel="stylesheet">
-<script src="../assets/editores.js?v=fa757397" defer></script><script src="../assets/maqueta.js?v=950e7818" defer></script><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><title>Lawang Properties &amp; Suite — Consola Operativa</title><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="../assets/fonts/fonts.css" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<script src="../assets/editores.js?v=fa757397" defer></script><script src="../assets/maqueta.js?v=266316f0" defer></script><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><title>Lawang Properties &amp; Suite — Consola Operativa</title><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="../assets/fonts/fonts.css" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}#sidebar-root{transition:width 0.25s cubic-bezier(0.4,0,0.2,1);}#main-stage,#topbar-stage{transition:padding-left 0.25s cubic-bezier(0.4,0,0.2,1),left 0.25s cubic-bezier(0.4,0,0.2,1);}.sidebar-collapsed #sidebar-root{width:68px;}.sidebar-collapsed #main-stage{padding-left:68px;}.sidebar-collapsed #topbar-stage{left:68px;}.sidebar-collapsed .nav-text-item,.sidebar-collapsed .nav-section-title,.sidebar-collapsed .sidebar-full-brand,.sidebar-collapsed .sidebar-user-details{display:none;}.sidebar-collapsed .nav-link-anchor{justify-content:center;padding-left:0;padding-right:0;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
     darkMode: "class",
     theme: {
@@ -171,15 +171,7 @@
 <h1 class="font-headline-lg text-headline-lg text-primary tracking-tight">Vencimientos &amp; Tesorería</h1>
 </div>
 <div class="flex flex-wrap items-center gap-3">
-<div class="relative">
-<select class="appearance-none bg-surface-container-lowest text-on-surface font-label-md text-label-md rounded-full px-4 py-2.5 pr-9 shadow-sm hover:bg-surface-container-low transition-colors cursor-pointer focus:outline-none">
-<option>Septiembre 2026</option>
-<option>Próximos 30 días</option>
-<option>Q4 2026</option>
-<option>Ejercicio Fiscal 2026/27</option>
-</select>
-<span class="material-symbols-outlined pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-control-border text-[18px]">expand_more</span>
-</div>
+
 <button class="inline-flex items-center gap-2 bg-surface-container-lowest hover:bg-surface-container-low text-deep-lagoon font-label-md text-label-md px-5 py-2.5 rounded-full shadow-sm transition-all duration-150" type="button">
 <span class="material-symbols-outlined text-[18px]">file_download</span>
         Exportar previsión de caja
@@ -238,33 +230,20 @@
 </div>
 <div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex flex-col justify-between">
 <div class="flex items-center justify-between">
-<span class="font-label-md text-body-sm uppercase tracking-widest text-control-border font-semibold">Saldo en escrow notarial</span>
+<span class="font-label-md text-body-sm uppercase tracking-widest text-control-border font-semibold">Cobrado en cartera</span>
 <span class="w-7 h-7 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container">
-<span class="material-symbols-outlined text-[16px]">assured_workload</span>
+<span class="material-symbols-outlined text-[16px]">payments</span>
 </span>
 </div>
 <div class="mt-4">
-<div class="font-kpi-number text-headline-md text-deep-lagoon" data-lw="k-escrow">—</div>
-<div class="flex items-center gap-2 mt-1.5">
-<span class="w-2 h-2 rounded-full bg-territorial-green animate-pulse"></span>
-<span class="text-territorial-green font-label-md text-[11px] font-semibold">Escrow notarial • Custodia notarial</span>
-</div>
+<div class="font-kpi-number text-headline-md text-deep-lagoon" data-lw="k-cobrado">—</div>
+<div class="mt-1.5 text-on-surface-variant font-label-md text-[11px] font-semibold" data-lw="k-cobrado-pie">—</div>
 </div>
 </div>
 </section>
 <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-<div class="xl:col-span-8 flex flex-col gap-6 min-w-0">
-<div class="flex items-center justify-between bg-surface-container-lowest p-2 rounded-xl shadow-sm">
-<div class="inline-flex p-1 bg-surface-container-low rounded-lg">
-<button class="px-4 py-1.5 rounded-md bg-deep-lagoon text-on-primary font-label-md text-body-sm font-semibold shadow-sm transition-all" type="button">Vista Cronológica / Lista</button>
-<button class="px-4 py-1.5 rounded-md text-on-surface-variant hover:text-on-surface font-label-md text-body-sm transition-all" type="button">Calendario Semanal</button>
-<button class="px-4 py-1.5 rounded-md text-on-surface-variant hover:text-on-surface font-label-md text-body-sm transition-all" type="button">Por Proyecto (Bali / Sumba)</button>
-</div>
-<div class="hidden sm:flex items-center gap-2 px-3 py-1 bg-surface-container-low rounded-lg text-body-sm text-volcanic-ash">
-<span class="material-symbols-outlined text-[18px] text-control-border">filter_list</span>
-<span class="">Filtro activo: Todos los tipos</span>
-</div>
-</div>
+<div class="xl:col-span-12 flex flex-col gap-6 min-w-0">
+
 <div class="space-y-4">
 <div class="flex items-center gap-3 px-1">
 <span class="w-2.5 h-2.5 rounded-full bg-error"></span>
@@ -470,97 +449,7 @@
 </div>
 </div>
 </div>
-<aside class="xl:col-span-4 space-y-6">
-<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm space-y-5">
-<div class="flex items-center justify-between">
-<h3 class="font-headline-sm text-headline-sm text-volcanic-ash">Automatización de Cobro</h3>
-<span class="w-2 h-2 rounded-full bg-territorial-green"></span>
-</div>
-<p class="text-on-surface-variant font-body-sm">Flujos automáticos sincronizados con la pasarela bancaria e integración con asesores legales en Bali.</p>
-<div class="space-y-3">
-<div class="p-3.5 rounded-xl bg-surface-container-low space-y-2">
-<div class="flex items-center justify-between">
-<span class="font-label-md text-body-sm text-on-surface font-semibold flex items-center gap-2">
-<span class="material-symbols-outlined text-territorial-green text-[18px]">chat</span>
-                Recordatorios WhatsApp / Email
-              </span>
-<span class="text-territorial-green font-label-md text-[11px] font-bold uppercase">Activo</span>
-</div>
-<p class="text-[12px] text-control-border leading-relaxed font-body-sm">Disparar plantilla notarial a compradores cuando falten 48h para la expiración de firma.</p>
-<button class="w-full py-2 px-3 rounded-full bg-surface-container-lowest hover:bg-surface-container text-deep-lagoon font-label-md text-body-sm transition-colors text-center" type="button">
-              Ejecutar recordatorio masivo (4)
-            </button>
-</div>
-<div class="p-3.5 rounded-xl bg-surface-container-low space-y-2">
-<div class="flex items-center justify-between">
-<span class="font-label-md text-body-sm text-on-surface font-semibold flex items-center gap-2">
-<span class="material-symbols-outlined text-deep-lagoon text-[18px]">sync_alt</span>
-                Conciliación bancaria
-              </span>
-<span class="text-on-surface-variant font-label-md text-[11px] font-semibold">10:45 AM</span>
-</div>
-<p class="text-[12px] text-control-border leading-relaxed font-body-sm">Emparejamiento en tiempo real de transacciones entrantes con identificadores de contrato.</p>
-<button class="w-full py-2 px-3 rounded-full bg-deep-lagoon hover:bg-primary text-on-primary font-label-md text-body-sm transition-colors text-center" type="button">
-              Conciliar extracto ahora
-            </button>
-</div>
-<div class="p-3.5 rounded-xl bg-surface-container-low space-y-2">
-<div class="flex items-center justify-between">
-<span class="font-label-md text-body-sm text-on-surface font-semibold flex items-center gap-2">
-<span class="material-symbols-outlined text-burnt-earth text-[18px]">gavel</span>
-                Reclamación Notarial
-              </span>
-<span class="px-2 py-0.5 rounded-full bg-burnt-earth/10 text-burnt-earth font-label-md text-[10px] font-bold">Leyes RI</span>
-</div>
-<p class="text-[12px] text-control-border leading-relaxed font-body-sm">Genera dossier y providencia de decaimiento de plazo de reserva bajo legislación indonesia.</p>
-<button class="w-full py-2 px-3 rounded-full bg-surface-container-lowest hover:bg-surface-container text-burnt-earth font-label-md text-body-sm transition-colors text-center" type="button">
-              Generar orden de reclamación
-            </button>
-</div>
-</div>
-</div>
-<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm space-y-4">
-<div class="flex items-center justify-between">
-<span class="font-label-md text-body-sm uppercase tracking-widest text-control-border font-semibold">Distribución de Entradas</span>
-<span class="text-deep-lagoon font-body-sm font-semibold">Q3/Q4</span>
-</div>
-<div class="space-y-3 pt-1">
-<div>
-<div class="flex justify-between text-body-sm mb-1.5 font-label-md">
-<span class="text-volcanic-ash">Bali • Uluwatu &amp; Canggu</span>
-<span class="font-kpi-number text-deep-lagoon font-semibold">215.000 € (63%)</span>
-</div>
-<div class="h-2 rounded-full bg-surface-container-high overflow-hidden">
-<div class="h-full bg-deep-lagoon rounded-full" style="width: 63%"></div>
-</div>
-</div>
-<div>
-<div class="flex justify-between text-body-sm mb-1.5 font-label-md">
-<span class="text-volcanic-ash">Sumba Sanctuary Retreat</span>
-<span class="font-kpi-number text-territorial-green font-semibold">92.805 € (27%)</span>
-</div>
-<div class="h-2 rounded-full bg-surface-container-high overflow-hidden">
-<div class="h-full bg-territorial-green rounded-full" style="width: 27%"></div>
-</div>
-</div>
-<div>
-<div class="flex justify-between text-body-sm mb-1.5 font-label-md">
-<span class="text-volcanic-ash">Java Eco Lodges</span>
-<span class="font-kpi-number text-burnt-earth font-semibold">35.000 € (10%)</span>
-</div>
-<div class="h-2 rounded-full bg-surface-container-high overflow-hidden">
-<div class="h-full bg-burnt-earth rounded-full" style="width: 10%"></div>
-</div>
-</div>
-</div>
-<div class="p-3 rounded-lg bg-surface-container-low flex items-center gap-3 mt-4">
-<span class="material-symbols-outlined text-territorial-green shrink-0 text-[20px]">verified_user</span>
-<p class="text-[12px] text-on-surface-variant font-body-sm leading-tight">
-            Garantía de fondos segregados depositados en la cuenta escrow del notario designado.
-          </p>
-</div>
-</div>
-</aside>
+
 </div>
 </div></main></div>
 

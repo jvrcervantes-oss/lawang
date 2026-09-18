@@ -121,6 +121,7 @@
     [/registrar hito/i, '/intranet/vencimientos/'],
     [/registrar avance|firmar peritaje/i, '/intranet/obra/'],
     [/nuevo ticket/i, '/intranet/soporte/'],
+    [/nueva solicitud/i, '/intranet/solicitudes/'],
     [/invitar miembro|editar permisos/i, '/intranet/usuarios/'],
     [/nueva creatividad|dossier$/i, '/intranet/creatividades/'],
     [/subir nuevo expediente/i, '/intranet/documentacion/'],

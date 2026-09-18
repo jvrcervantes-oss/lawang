@@ -671,6 +671,27 @@
     });
     if (alTerminar) alTerminar(n);
   }
+  /* CSV de lo que la pantalla ya tiene en memoria: sin ir a la base otra vez y
+     sin fichero «generado» de mentira. Separador «;» (Excel en español), BOM
+     para que abra con acentos, y las celdas que empiezan por = + - @ llevan
+     apostrofo delante: una hoja de calculo las ejecutaria como formula. */
+  function exportaCSV(nombre, cabeceras, filas) {
+    var celda = function (v) {
+      v = v == null ? '' : String(v);
+      if (/^[=+\-@]/.test(v)) v = "'" + v;
+      return /[";\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+    };
+    var txt = '\uFEFF' + [cabeceras].concat(filas).map(function (f) { return f.map(celda).join(';'); }).join('\r\n');
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([txt], { type: 'text/csv;charset=utf-8' }));
+    a.download = nombre; document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+  function botonConTexto(rx) {
+    var bs = document.querySelectorAll('main button');
+    for (var i = 0; i < bs.length; i++) if (rx.test((bs[i].textContent || '').replace(/\s+/g, ' ').trim())) return bs[i];
+    return null;
+  }
   function buscadorDe(aplicar, alCambiar) {
     var inp = document.querySelector('main input[placeholder^="Buscar"]');
     if (!inp) return;
@@ -824,7 +845,7 @@
           cs.forEach(function (c) { window.LW_V4.contratosLista[c.id] = c; porNum[c.numero] = c; });
 
           // «Registro de firmas» (cabecera): cajón con las últimas solicitudes de firma del equipo
-          var bReg = hojaConTexto(/Registro de firmas/i); bReg = bReg && (bReg.closest('button') || bReg);
+          var bReg = botonConTexto(/Registro de firmas/i);
           if (bReg) {
             bReg.setAttribute('data-real', '');
             bReg.addEventListener('click', function (ev) { ev.stopPropagation(); registroFirmas(sb, cs); });
@@ -1241,7 +1262,7 @@
               var tabla = function (lista) {
                 return H.tabla(['Nº', 'Tipo', 'Contrato · unidad', 'Fecha', 'Importe'], lista.map(function (x) {
                   return [
-                    H.enlace('/intranet/facturas/?id=' + encodeURIComponent(x.id), x.numero || 'borrador', true),
+                    H.enlace(URL_FACTURA(x.id), x.numero || 'borrador', true),
                     esc(TIPO_DOC_FAC[x.tipo] || x.tipo || '—'),
                     esc([x.contrato_numero, x.proyecto_nombre].filter(Boolean).join(' · ') || '—'),
                     esc(fFecha(x.fecha_emision)),
@@ -1606,9 +1627,28 @@
         pon2('k-vencidos-n', nc + (nc === 1 ? ' contrato' : ' contratos'));
         pon2('k-vencidos-total', 'Total: ' + fmt(m.vencido, mon));
         pon2('k-vencidos-chip', venc.length ? 'el más antiguo, del ' + fFecha(venc[0].fecha) : 'nada vencido');
-        /* La suite no lleva el saldo de la cuenta del notario — lleva lo COBRADO,
-           que no es lo mismo: el escrow también se libera. Guion a propósito. */
-        pon2('k-escrow', '—');
+        /* La tarjeta del diseño era «Saldo en escrow notarial»: la suite no lleva
+           el saldo del notario, lleva lo COBRADO (recibís), que no es lo mismo.
+           Se enseña eso, que sí es un dato (19-sep-2026). */
+        var cobradoCartera = 0;
+        cs.forEach(function (c) { if (c.bloqueado && (c.moneda || 'EUR') === mon) cobradoCartera += cobradoPorId[c.id] || 0; });
+        pon2('k-cobrado', fmt(cobradoCartera, mon));
+        pon2('k-cobrado-pie', 'recibís de contratos firmados en ' + mon);
+        // «Exportar previsión de caja»: CSV de la cascada que esta pantalla ya tiene en memoria
+        var bExp = botonConTexto(/Exportar previsi/i);
+        if (bExp) {
+          bExp.setAttribute('data-real', '');
+          bExp.addEventListener('click', function (ev) {
+            ev.stopPropagation();
+            var filas = m.filas.filter(function (f) { return f.estado !== 'cobrado'; })
+              .sort(function (a, b) { return (a.fecha || '9999') < (b.fecha || '9999') ? -1 : 1; })
+              .map(function (f) {
+                return [f.fecha || 'sin fecha', f.descripcion || 'Hito', f.contrato.numero, tipoC(f.contrato.tipo), f.contrato.proyecto_nombre || '', f.contrato.comprador_nombre || '',
+                  f.importe != null ? f.importe : '', f.pendiente != null ? f.pendiente : '', mon, f.estado, f.contrato.bloqueado ? 'firmado' : 'borrador'];
+              });
+            exportaCSV('prevision_caja_' + hoy + '.csv', ['Fecha', 'Hito', 'Contrato', 'Tipo', 'Proyecto', 'Comprador', 'Importe', 'Pendiente', 'Moneda', 'Estado', 'Contrato firmado'], filas);
+          });
+        }
 
         var avisos = [];
         if (m.nSinFecha) avisos.push(m.nSinFecha + ' vencimiento(s) sin fecha, que no se pueden vigilar');
@@ -1652,7 +1692,7 @@
             pon3('v-importe', f.pendiente != null ? fmt(f.pendiente, mon) : (f.importe != null ? fmt(f.importe, mon) : '—'));
             pon3('v-nota', notaDe(f));
             fila2.style.cursor = 'pointer';
-            fila2.addEventListener('click', function () { location.href = '/intranet/vencimientos/'; });
+            fila2.addEventListener('click', function () { fichaContrato(sb, f.contrato); });   // la ficha del contrato, en el cajón
             c2.appendChild(fila2);
           });
           if (filas.length > 10) {
@@ -2703,6 +2743,16 @@
         pon('k-sinficha-pie', faltan ? 'sin dormitorios, banos ni superficie: no pueden heredar nada' : 'todos con ficha completa');
         pon('k-sinrender', String(sinRender));
         pon('k-sinrender-pie', sinRender ? 'marcados como pendientes de imagen' : 'todos con render');
+        var bExp = botonConTexto(/Exportar cat[aá]logo/i);
+        if (bExp) {
+          bExp.setAttribute('data-real', '');
+          bExp.addEventListener('click', function (ev) {
+            ev.stopPropagation();
+            exportaCSV('catalogo_modelos.csv',
+              ['Modelo', 'Slug', 'Dormitorios', 'Baños', 'Villa m²', 'Terraza m²', 'Precio construcción', 'Moneda', 'Publicado', 'Activo', 'Renders pendientes', 'Unidades enlazadas'],
+              ms.map(function (m) { return [m.nombre, m.slug, m.dormitorios, m.banos, m.villa_m2, m.terraza_m2, m.precio_construccion, m.moneda, m.publicado ? 'sí' : 'no', m.activo ? 'sí' : 'no', m.renders_pendientes ? 'sí' : 'no', porModelo[m.id] || 0]; }));
+          });
+        }
 
         pon('c-todos', String(ms.length));
         pon('c-publicados', String(publicados));
@@ -2841,8 +2891,8 @@
                   (u.contrato_numero ? esc(u.contrato_numero) + ' · ' : '') + esc(u.comprador_nombre || 'sin comprador'),
                   (u.estado || '—').toUpperCase());
               }),
-              us.map(function () { return '/intranet/proyectos/?proyecto=' + encodeURIComponent(nombre); }),
-              'Este proyecto no tiene unidades dadas de alta.', '/intranet/proyectos/?proyecto=' + encodeURIComponent(nombre));
+              us.map(function () { return '/intranet/v4/proyectos/?proyecto=' + encodeURIComponent(nombre); }),
+              'Este proyecto no tiene unidades dadas de alta.', '/intranet/v4/proyectos/?proyecto=' + encodeURIComponent(nombre));
           });
       });
     },
@@ -3182,14 +3232,25 @@
         var espera = hs.filter(function (h) { return /espera/.test(h.estado || ''); });
         pon2('k-abiertos', String(abiertos.length));
         pon2('k-abiertos-pie', 'de ' + hs.length + ' hilos en total');
-        pon2('k-whatsapp', '—');
-        pon2('k-satisfaccion', '—');
-        pon2('k-tmr', '—');
-        pon2('k-tmr-chip', 'no se mide');
-        bandaNota('«Tiempo medio de respuesta», «Canal WhatsApp» y «Satisfacción» se quedan en «—»: la suite no mide ninguno de los tres, y las cifras que había eran del diseño.', '#8A6A34');
+        /* Las tres tarjetas del diseño («Tiempo medio de respuesta», «Canal
+           WhatsApp», «Satisfacción») median cosas que la suite no guarda y se
+           quedaban en «—» con una banda explicándolo. Se cambian por tres que sí
+           salen de la base (19-sep-2026): en espera, sin responder y resueltos. */
+        var resueltos = hs.filter(function (h) { return /resuelt|cerrad/.test(h.estado || ''); });
+        var sinResp = hs.filter(function (h) {
+          var u = ultimo[h.id] || ultimo[h.client_id];
+          return h.estado === 'abierto' && u && u.de !== 'equipo';   // el último mensaje lo escribió el comprador
+        });
+        pon2('k-espera', String(espera.length));
+        pon2('k-espera-pie', espera.length ? 'marcados en espera de un tercero' : 'ningún hilo en espera');
+        pon2('k-sinresp', String(sinResp.length));
+        pon2('k-sinresp-pie', sinResp.length ? 'abiertos cuyo último mensaje es del comprador' : 'ningún hilo abierto espera respuesta del equipo');
+        pon2('k-resueltos', String(resueltos.length));
+        pon2('k-resueltos-pie', 'de ' + hs.length + ' hilos en total');
         pon2('c-todos', 'Todos (' + hs.length + ')');
         pon2('c-abiertos', 'Abiertos (' + abiertos.length + ')');
         pon2('c-espera', 'En espera (' + espera.length + ')');
+        pon2('c-resueltos', 'Resueltos (' + resueltos.length + ')');
         pon2('n-hilos', abiertos.length + ' activos');
 
         var lista = document.getElementById('lista-hilos');
@@ -3212,12 +3273,21 @@
           pon3('t-quien', u ? (u.de === 'equipo' ? 'Equipo' : 'Comprador') : '—');
           pon3('t-fecha', fFecha(h.actualizado_en));
           f.setAttribute('data-estado-hilo', h.estado || '');
+          f.setAttribute('data-lw-pajar', [c.full_name, c.email, h.categoria, u && u.texto].join(' ').toLowerCase());
           f.style.cursor = 'pointer';
           f.addEventListener('click', function () { location.search = '?hilo=' + encodeURIComponent(h.id); });
           lista.appendChild(f);
         });
 
-        var chipsSoporte = ['todos', 'abiertos', 'espera'].map(function (k) {
+        // buscador vivo sobre la bandeja (nombre, email, categoría y último mensaje)
+        var inpS = document.querySelector('main input[placeholder^="Buscar"]');
+        if (inpS) inpS.addEventListener('input', function () {
+          var v = inpS.value.trim().toLowerCase();
+          Array.prototype.forEach.call(lista.querySelectorAll('[data-estado-hilo]'), function (x) {
+            x.style.display = (!v || (x.getAttribute('data-lw-pajar') || '').indexOf(v) !== -1) ? '' : 'none';
+          });
+        });
+        var chipsSoporte = ['todos', 'abiertos', 'espera', 'resueltos'].map(function (k) {
           var sp = document.querySelector('[data-lw="c-' + k + '"]'); var b = sp && sp.closest('button');
           if (b) b.setAttribute('data-chip-clave', k);
           return b;
@@ -3227,7 +3297,7 @@
           'todos',
           function (fila, clave) {
             var e = fila.getAttribute('data-estado-hilo') || '';
-            return clave === 'abiertos' ? e === 'abierto' : /espera/.test(e);
+            return clave === 'abiertos' ? e === 'abierto' : clave === 'resueltos' ? /resuelt|cerrad/.test(e) : /espera/.test(e);
           },
           function (btn, on) {
             btn.classList.toggle('bg-primary', on);
@@ -3296,13 +3366,8 @@
         });
       });
     },
-    'generador-contratos': function () {
-      bandaNota('Diseño v4 del generador — el generador REAL (con todas sus validaciones) es /contracts/app.html; los botones de esta pantalla te llevan allí');
-    },
-
-    'contratos-inversor': function () {
-      bandaNota('VISTA PREVIA del portal del comprador — datos de demostración. El portal real vive en /portal/ con su propio acceso', '#C06C47');
-    }
+    /* generador-contratos y contratos-inversor eran diseños sin datos: desde el
+       19-sep-2026 redirigen a la herramienta viva (como leads/), sin handler. */
   };
 
 
