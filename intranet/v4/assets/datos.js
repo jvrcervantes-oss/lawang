@@ -2486,12 +2486,19 @@
           window.LW_V4 = window.LW_V4 || {}; window.LW_V4.usuario = u;
           var hs = u.herramientas || [], pr = nombresProy(u.proyectos), sup = nombresProy(u.proyectos_supervisados);
           var tipos = (u.tipos_contrato || []).map(function (k) { return tipoC(k); });
+          var soyAdmin = !!(window.LW_V4.esAdmin);
           var cuerpo =
             H.seccion('Cuenta',
               H.dato('Email', u.email) +
               H.dato('Rol', rolDe(u)) +
               H.dato('Estado', u.activo ? H.tag('Activo', 'ok') : H.tag('Inactivo', 'mal'), { html: 1 }) +
-              H.dato('Alta', u.creado_en ? fFecha(u.creado_en) + (u.creado_por ? ' · por ' + u.creado_por : '') : null)) +
+              H.dato('Alta', u.creado_en ? fFecha(u.creado_en) + (u.creado_por ? ' · por ' + u.creado_por : '') : null));
+          /* El mapa de permisos (herramientas, proyectos, tipos) solo lo ve
+             administracion: para el resto del equipo es la lista de que puede
+             tocar cada admin, util solo para una cuenta comprometida (Seguridad,
+             revision previa 18-sep). La policy de `usuarios` deja leerlo; esto
+             es no enseñarlo. */
+          if (soyAdmin) cuerpo +=
             H.seccion('Herramientas (' + hs.length + ')',
               hs.length ? H.chips(hs)
                 : H.nota(u.rol === 'super_admin' ? 'Super admin: entra en todas las herramientas sin necesitar la lista.'
@@ -2502,7 +2509,6 @@
               sup.length ? H.chips(sup) : H.nota('Ninguno. Es una lista distinta de la de arriba: supervisar es ver y escribir lo del proyecto entero, no solo lo propio.')) +
             H.seccion('Contratos que puede hacer',
               tipos.length ? H.chips(tipos) : H.nota('Sin restricción: vacío = TODOS los tipos (al revés que Proyectos).'));
-          var soyAdmin = !!(window.LW_V4.esAdmin);
           var acciones = [];
           if (soyAdmin) {
             acciones.push({ texto: 'Editar permisos', tono: 'primario', onClick: function () {
@@ -2616,7 +2622,12 @@
           } else {
             caja.innerHTML = ns.map(function (nx, i) {
               var titulo = esc(nx.titulo || 'Hecho');
-              var enlace = nx.enlace && /^(\/|https?:\/\/)/.test(nx.enlace) ? nx.enlace : null;
+              /* Solo rutas propias: `//evil.com` y `/\evil.com` tambien empiezan por
+                 «/» y el navegador los abre fuera (hallazgo ALTA de Seguridad en la
+                 revision previa, 18-sep). Un http(s) solo si es este mismo origen. */
+              var enlace = null;
+              if (nx.enlace && /^\/(?![\/\\])/.test(nx.enlace)) enlace = nx.enlace;
+              else if (nx.enlace && nx.enlace.indexOf(location.origin + '/') === 0) enlace = nx.enlace;
               return '<div class="flex items-start gap-3"' + (i >= 6 ? ' data-audit-mas hidden' : '') + '>' +
                 '<div class="w-2 h-2 rounded-full ' + (enlace ? 'bg-deep-lagoon' : 'bg-stone-sand') + ' mt-1.5 shrink-0"></div>' +
                 '<div class="flex flex-col min-w-0">' +
@@ -3462,6 +3473,7 @@
       var proyectoDe = {}; proyectos.forEach(function (p) { proyectoDe[p.id] = p.nombre; });
       var nombrePorEmail = {}; usuarios.forEach(function (u) { if (u.email) nombrePorEmail[u.email.toLowerCase()] = u.nombre || u.email; });
       var tramosDe = {}; tramos.forEach(function (t) { (tramosDe[t.condicion_id] = tramosDe[t.condicion_id] || []).push(t); });
+      window.LW_V4.condicionesLista = {}; conds.forEach(function (c) { window.LW_V4.condicionesLista[c.id] = c; });
 
       pon2('k-cond-activas', String(conds.filter(function (c) { return c.activo; }).length));
       pon2('k-cond-total', String(conds.length));
@@ -3499,8 +3511,13 @@
             '<td class="px-5 py-4 text-right"><div class="flex justify-end gap-2"><button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" ' +
               'data-lw-toggle-cond="' + esc(c.id) + '" data-lw-etq="' + esc((equipoDe[c.equipo_id] || '') + ' · ' + (proyectoDe[c.proyecto_id] || '')) + '" data-lw-activo="' + (c.activo ? '1' : '0') + '">' +
               (c.activo ? 'Desactivar' : 'Reactivar') + '</button>' +
+              /* Borrar solo la que ya esta desactivada (Seguridad, revision previa
+                 18-sep): una activa puede estar aplicandose a contratos firmados
+                 sin devengo todavia, y borrarla se llevaria sus tramos sin rastro.
+                 Primero se desactiva —que deja de aplicarse— y entonces se borra. */
+              (c.activo ? '' :
               '<button type="button" class="px-3 py-1 rounded-full text-error hover:bg-error-container/40 font-label-md text-[12px]" ' +
-              'data-lw-borra-cond="' + esc(c.id) + '" data-lw-etq="' + esc((equipoDe[c.equipo_id] || '') + ' · ' + (proyectoDe[c.proyecto_id] || '')) + '">Borrar</button>' +
+              'data-lw-borra-cond="' + esc(c.id) + '" data-lw-etq="' + esc((equipoDe[c.equipo_id] || '') + ' · ' + (proyectoDe[c.proyecto_id] || '')) + '">Borrar</button>') +
               '</div></td></tr>';
         }).join('') : '<tr><td colspan="7" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Ninguna condición para este filtro.</td></tr>';
       }

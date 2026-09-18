@@ -3173,6 +3173,9 @@
       window.LW_V4.abreBorraCondicion = function (b) {
         if (!admin) return soloAdmin();
         var id = b.getAttribute('data-lw-borra-cond'), etq = b.getAttribute('data-lw-etq') || '';
+        // el boton solo sale en filas desactivadas; esto es por si alguien lo llama a mano
+        var cond = ((window.LW_V4.condicionesLista || {})[id]);
+        if (cond && cond.activo) return aviso('Desactiva la condición antes de borrarla: una activa puede estar aplicándose a contratos firmados.', '#8A6A34');
         sb.from('comisiones_devengadas').select('id', { count: 'exact', head: true }).eq('condicion_id', id).then(function (r) {
           var n = r.error ? 0 : (r.count || 0);
           if (n) {
