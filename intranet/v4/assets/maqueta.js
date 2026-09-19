@@ -113,9 +113,12 @@
      tenemos en la versión estándar»). Rutas absolutas: las herramientas viven
      en el dominio real, no dentro de v4/. */
   var FORM_REAL = [
-    [/nuevo contrato|nueva operaci/i, '/contracts/app.html'],
-    [/nueva factura|nuevo documento|emitir factura/i, '/intranet/facturas/?tipo=factura'],
-    [/emitir recib/i, '/intranet/facturas/?tipo=recibi'],
+    /* 19-sep-2026: sin `?nuevo=1` / `?nueva=1` las tres herramientas abren el
+       LISTADO (app.html: `par.has('nuevo')`; facturas: `par.has('nueva')`) y el
+       agente tenía que volver a pulsar «Nueva». Ahora aterrizan en el formulario. */
+    [/nuevo contrato|nueva operaci/i, '/contracts/app.html?nuevo=1'],
+    [/nueva factura|nuevo documento|emitir factura/i, '/intranet/facturas/?nueva=1&tipo=factura'],
+    [/emitir recib/i, '/intranet/facturas/?nueva=1&tipo=recibi'],
     [/alta de comprador/i, '/intranet/compradores/?nuevo=1'],
     [/nueva unidad|nuevo proyecto|importar csv/i, '/intranet/proyectos/'],
     [/registrar hito/i, '/intranet/vencimientos/'],

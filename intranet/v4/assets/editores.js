@@ -1470,7 +1470,7 @@
         ], 'Confirmar: pagada', function () {
           return sb.from('comisiones_devengadas').update({
             estado: 'pagada', pagado_por: miEmail, pagado_en: new Date().toISOString()
-          }).eq('id', id);
+          }).eq('id', id).select('id').then(unaFila);   // 0 filas = la policy no deja (19-sep-2026)
         });
       };
     },
@@ -2088,6 +2088,15 @@
             campos.push({ k: 'zona_masterplan', label: 'Zona', medio: 1, valor: n0(u.zona_masterplan), ayuda: '1, 2, 3…' });
           }
           var haySuperficie = !!Number(u.superficie_m2);
+          /* Lo que se PINTA al abrir, para saber al guardar si se tocó. El €/m²
+             del prefill va redondeado a 2 decimales: si se reenviara siempre,
+             guardar sin tocar reescribía `precio_suelo` con sup × €/m²
+             redondeado — medido el 19-sep-2026: 81 de 461 parcelas derivaban
+             (hasta 5 €). Si ni la superficie ni el €/m² cambian, el suelo no
+             viaja y la base conserva el que tenía. */
+          var pm2Exacto = (u.precio_suelo != null && haySuperficie) ? Number(u.precio_suelo) / Number(u.superficie_m2) : null;
+          var pm2Inicial = pm2Exacto != null ? Math.round(pm2Exacto * 100) / 100 : null;
+          var supInicial = u.superficie_m2 == null ? null : Number(u.superficie_m2);
           campos.push(
             /* Precio de suelo (16-sep-2026, encargo del owner): deja de ser un
                campo propio y pasa a SOLO LECTURA, calculado siempre como
@@ -2104,7 +2113,7 @@
             { tipo: 'lectura', label: 'Precio de suelo', medio: 1, dataMostrar: 'precio-suelo-calc',
               valor: (u.precio_suelo != null && haySuperficie) ? fmtM(u.precio_suelo, u.moneda) : (haySuperficie ? '—' : 'rellena la superficie primero') },
             { k: 'precio_construccion', label: 'Precio de construcción', tipo: 'number', medio: 1, valor: n0(u.precio_construccion) },
-            { tipo: 'lectura', label: 'Precio total', medio: 1, valor: totalDerivado ? fmtM(totalDerivado, u.moneda) : '—' },
+            { tipo: 'lectura', label: 'Precio total', medio: 1, dataMostrar: 'precio-total-calc', valor: totalDerivado ? fmtM(totalDerivado, u.moneda) : '—' },
             { tipo: 'nota', label: 'Precio de suelo = superficie × precio por m². Precio total = suelo + construcción. Ninguno de los dos se escribe a mano: los calcula siempre la base (28-ago-2026: un CSV trajo 143 parcelas con el total descuadrado de sus propias columnas).' },
             { k: 'moneda', label: 'Moneda', tipo: 'select', medio: 1, opciones: ['EUR', 'USD', 'AUD', 'IDR'], valor: u.moneda || 'EUR' }
           );
@@ -2187,11 +2196,18 @@
             var fila = {
               codigo: v.codigo.trim(), proyecto: v.proyecto, tipo: v.tipo,
               modelo: txt(v.modelo), superficie_m2: supGuardar,
-              precio_suelo: (supGuardar && pm2Guardar != null) ? Math.round(supGuardar * pm2Guardar * 100) / 100 : null,
               precio_construccion: num(v.precio_construccion),
               moneda: v.moneda, notas: txt(v.notas)
               // `precio` no va aqui a proposito — ver la cabecera de esta funcion.
             };
+            // `precio_suelo` SOLO si se tocó superficie o €/m² (ver pm2Inicial arriba)
+            var tocoSuelo = (supGuardar !== supInicial) || (pm2Guardar !== pm2Inicial);
+            /* Si solo cambió la superficie, el €/m² que multiplica es el EXACTO de
+               la base, no el redondeado que se pintó: con el redondeado una
+               medición nueva legítima arrastraba la misma deriva disfrazada de
+               cambio (Administración, revisión previa 19-sep-2026). */
+            var pm2Usar = (pm2Guardar === pm2Inicial && pm2Exacto != null) ? pm2Exacto : pm2Guardar;
+            if (tocoSuelo) fila.precio_suelo = (supGuardar && pm2Usar != null) ? Math.round(supGuardar * pm2Usar * 100) / 100 : null;
             if ('fase_masterplan' in v) fila.fase_masterplan = txt(v.fase_masterplan);
             if ('zona_masterplan' in v) fila.zona_masterplan = txt(v.zona_masterplan);
             if (!vinculada) { fila.estado = v.estado; fila.contrato_id = v.contrato_id || null; }
@@ -2223,14 +2239,43 @@
           var cm2 = document.querySelector('#lw-editor [data-k="precio_m2"]');
           var csup = document.querySelector('#lw-editor [data-k="superficie_m2"]');
           var csueloMostrado = document.querySelector('#lw-editor [data-mostrar="precio-suelo-calc"]');
+          var cobra = document.querySelector('#lw-editor [data-k="precio_construccion"]');
+          var ctotalMostrado = document.querySelector('#lw-editor [data-mostrar="precio-total-calc"]');
+          var cmodelo = document.querySelector('#lw-editor [data-k="modelo"]');
           if (cm2 && csup && csueloMostrado) {
+            /* El total se recalcula EN VIVO al teclear, como `suma()` en la viva:
+               un total fijo al abrir decía el precio de antes mientras se
+               cambiaba la construcción (auditoría 19-sep-2026). */
             var recalcula = function () {
               var m2 = parseFloat(cm2.value), sup = parseFloat(csup.value);
-              if (!isNaN(m2) && !isNaN(sup) && sup > 0) csueloMostrado.value = fmtM(Math.round(m2 * sup * 100) / 100, u.moneda);
+              var suelo = (!isNaN(m2) && !isNaN(sup) && sup > 0) ? Math.round(m2 * sup * 100) / 100 : null;
+              if (suelo != null) csueloMostrado.value = fmtM(suelo, u.moneda);
               else csueloMostrado.value = (!isNaN(sup) && sup > 0) ? '—' : 'rellena la superficie primero';
+              if (ctotalMostrado) {
+                var obra = cobra ? parseFloat(cobra.value) : NaN;
+                var total = (suelo != null || !isNaN(obra)) ? (suelo || 0) + (isNaN(obra) ? 0 : obra) : null;
+                ctotalMostrado.value = total ? fmtM(total, u.moneda) : '—';
+              }
             };
             cm2.addEventListener('input', recalcula);
             csup.addEventListener('input', recalcula);
+            if (cobra) cobra.addEventListener('input', recalcula);
+            /* Modelo → construcción, calcado de la viva (proyectos/index.html,
+               `precioModelo`): elegir un modelo del catálogo rellena la
+               construcción con su precio y rehace el total; volver a «sin
+               decidir» los vacía — un total que da por supuesto un modelo que
+               ya no está elegido es peor que no tener total. Un modelo fuera
+               del catálogo respeta lo que haya. */
+            if (cmodelo && cobra && cmodelo.tagName === 'SELECT') {
+              cmodelo.addEventListener('change', function () {
+                if (!cmodelo.value) { cobra.value = ''; recalcula(); aviso('Sin modelo: la construcción y el total quedan sin fijar'); return; }
+                var m = null;
+                for (var iM2 = 0; iM2 < mods.lista.length; iM2++) { if (mods.lista[iM2].modelo === cmodelo.value) m = mods.lista[iM2]; }
+                if (!m || m.precio_construccion == null) return;
+                cobra.value = m.precio_construccion; recalcula();
+                aviso('Precio de construcción recalculado para ' + cmodelo.value);
+              });
+            }
           }
         }, function (e) {
           aviso('No se pudo abrir: ' + (e && e.message || e), '#ba1a1a');
@@ -2357,26 +2402,32 @@
            edita aqui a proposito: la herramienta viva tampoco lo deja tocar
            por pantalla (decision deliberada, no un descuido — 15-sep-2026),
            asi que v4 no abre una via que el equipo no queria que existiera. */
+        /* Paridad con /intranet/vencimientos/ (auditoría 19-sep-2026): allí solo
+           se ajusta la FECHA, solo de contratos FIRMADOS (`bloqueado`), se puede
+           dejar vacía (vuelve a «Sin fecha») y la nota no se toca por pantalla.
+           Y toda escritura va con `.select('id')` + unaFila: la RLS deniega con
+           0 filas y sin error, y el editor decía «guardado» sobre nada. */
         Promise.all([
-          sb.from('contrato_vencimientos').select('id,contrato_id,descripcion,pct,monto,fecha,nota').order('fecha', { ascending: true, nullsFirst: true }).limit(400),
-          sb.rpc('contratos_equipo').select('id,numero')
+          sb.from('contrato_vencimientos').select('id,contrato_id,descripcion,pct,monto,fecha,factura_id').order('fecha', { ascending: true, nullsFirst: true }),
+          sb.rpc('contratos_equipo').select('id,numero,bloqueado')
         ]).then(function (rs) {
           if (rs[0].error) return aviso('No se pudieron leer los hitos: ' + rs[0].error.message, '#93000a');
-          var vs = rs[0].data || [], cs = (rs[1].data || []);
-          var num = {}; cs.forEach(function (c) { num[c.id] = c.numero; });
+          var cs = (rs[1].data || []);
+          var num = {}; cs.forEach(function (c) { if (c.bloqueado) num[c.id] = c.numero; });
+          /* Un hito YA FACTURADO no se mueve desde aquí: su fecha viaja en la
+             factura que el comprador ya recibió; se corrige anulando y
+             reemitiendo desde Facturas (Administración, revisión previa 19-sep). */
+          var vs = (rs[0].data || []).filter(function (v) { return !!num[v.contrato_id] && !v.factura_id; });
           var ops = vs.map(function (v) {
-            return [v.id, (num[v.contrato_id] || '¿?') + ' · ' + (v.descripcion || 'hito') + ' · ' + (v.fecha || 'SIN FECHA')];
+            return [v.id, num[v.contrato_id] + ' · ' + (v.descripcion || 'hito') + ' · ' + (v.fecha || 'SIN FECHA')];
           });
-          if (!ops.length) return aviso('No hay hitos que ajustar.', '#8A6A34');
-          modal('Ajustar un hito', [
+          if (!ops.length) return aviso('No hay hitos de contratos firmados que ajustar (los de contratos sin firmar no se tocan: se regeneran solos).', '#8A6A34');
+          modal('Ajustar la fecha de un hito', [
             { k: 'id', label: 'Hito', tipo: 'select', opciones: ops, req: 1 },
-            { k: 'fecha', label: 'Fecha', tipo: 'date' },
-            { k: 'nota', label: 'Nota', tipo: 'textarea' }
+            { k: 'fecha', label: 'Fecha', tipo: 'date', ayuda: 'Vacía = vuelve a «Sin fecha».' },
+            { tipo: 'nota', label: 'Solo contratos firmados y hitos aún sin facturar (uno facturado se corrige anulando y reemitiendo desde Facturas). El importe y la nota no se editan por pantalla (decisión del 15-sep-2026, igual que en la herramienta clásica).' }
           ], 'Guardar ajuste', function (v) {
-            var patch = { ajustado: true };
-            if (v.fecha) patch.fecha = v.fecha;
-            if (v.nota !== '') patch.nota = v.nota;
-            return sb.from('contrato_vencimientos').update(patch).eq('id', v.id);
+            return sb.from('contrato_vencimientos').update({ fecha: v.fecha || null, ajustado: true }).eq('id', v.id).select('id').then(unaFila);
           });
         });
       });
@@ -2811,8 +2862,35 @@
          0 filas SIN error y sin eso el cajon diria «guardado». Al editar NO se
          exigen los seis datos del alta (decision explicita de la herramienta
          clasica: hay 200 fichas antiguas sin nacionalidad ni pasaporte). */
+      /* Mismos mensajes que la viva para los tres rechazos de la base (auditoría
+         19-sep-2026): el «duplicate key» crudo mandaba a mirar el correo cuando el
+         choque era el pasaporte, y el 0-filas decía «tu sesión ha caducado». */
+      function errorClienteHumano(r) {
+        if (!(r && r.error)) return r;
+        var msg = String(r.error.message || ''), code = String(r.error.code || '');
+        var m = /clients_pasaporte_uniq/.test(msg)
+          ? 'Ese pasaporte / NPWP ya está en otra ficha (el correo no tiene nada que ver con este aviso). Esa ficha puede ser de un compañero: búscala en el directorio antes de crear otra.'
+          : /clients_email_tipo_key|clients_email_key/.test(msg)
+          ? 'Ya hay otra ficha DEL MISMO TIPO con ese correo. Una persona y su empresa sí pueden compartirlo, pero dos personas (o dos empresas) no. Esa otra ficha puede ser de un compañero.'
+          : /duplicate key/.test(msg)
+          ? 'Ese dato ya está en otra ficha: ' + msg
+          : /PGRST116/.test(code) || /ninguna fila/.test(msg)
+          ? 'No se ha guardado: la base no te deja editar esta ficha. Suele ser porque no la diste de alta tú, o porque ya cuelga de un contrato firmado. Habla con un administrador — recargar no lo arregla.'
+          : null;
+        return m ? { error: { message: m } } : r;
+      }
+      var miEmailC = ((aut.session && aut.session.user && aut.session.user.email) || '').toLowerCase();
       window.LW_V4.abreEditaComprador = function (c) {
         if (!c) return aviso('La ficha aún no ha cargado.', '#8A6A34');
+        /* Mismo gate de pantalla que la viva (`soloLectura`): editar es de
+           admin/super_admin, o del AUTOR de la ficha. Sin `propietario` (fichas
+           del backfill viejo) no es de nadie salvo para admin. El candado real
+           sigue siendo la policy — si la ficha cuelga de un contrato firmado la
+           base la rechaza y se dice con el mensaje de arriba. */
+        var mia = !!c.propietario && String(c.propietario).toLowerCase() === miEmailC;
+        if (!esAdmin(aut.ficha) && !mia) {
+          return aviso('Esta ficha la dio de alta otra persona: solo un administrador (o quien la creó) puede editarla.', '#8A6A34');
+        }
         var tel = /^(\+\d{1,4})\s*(.*)$/.exec(String(c.phone || '').trim());
         var esEmpresa = c.tipo === 'empresa';
         modal('Editar datos — ' + (c.full_name || ''), [
@@ -2838,9 +2916,12 @@
           { tipo: 'nota', label: 'Si esta ficha cuelga de un contrato ya FIRMADO, su pasaporte y domicilio están impresos en ese documento y la base rechazará el cambio: es cosa de un administrador.' }
         ], 'Guardar datos', function (v) {
           if (v.prefijo && !/^\+\d{1,4}$/.test(v.prefijo)) return { error: { message: 'El prefijo va con «+» y solo dígitos: +34, +62…' } };
+          if (v.full_name.trim().length < 2) return { error: { message: 'Falta el nombre' } };
           var patch = {
             tipo: v.tipo, kyc_status: v.kyc_status,
-            full_name: v.full_name.trim(), email: v.email.trim() || null,
+            // MAYÚSCULAS como la viva («el único sitio que escribe clients.full_name»):
+            // el contrato y la factura enlazan esta ficha y la imprimen tal cual.
+            full_name: v.full_name.trim().toUpperCase(), email: v.email.trim() || null,
             phone: v.telefono ? ((v.prefijo ? v.prefijo + ' ' : '') + v.telefono.trim()) : null,
             nationality: v.nationality.trim() || null, passport_number: v.passport_number.trim() || null,
             idioma_comunicacion: v.idioma_comunicacion || 'es',
@@ -2850,7 +2931,7 @@
             rep_cargo: v.tipo === 'empresa' ? (v.rep_cargo.trim() || null) : null,
             notes: v.notes.trim() || null
           };
-          return sb.from('clients').update(patch).eq('id', c.id).select('id').then(unaFila);
+          return sb.from('clients').update(patch).eq('id', c.id).select('id').then(unaFila).then(errorClienteHumano);
         });
       };
     },
@@ -2882,31 +2963,56 @@
         // acceso por accidente desde esta pantalla — mismo candado que la
         // herramienta viva (`bloqueado`/`yoMismo` de intranet/usuarios/)
         if (u.rol === 'super_admin' && !soySuper) return aviso('Solo un super admin puede modificar la cuenta de otro super admin.', '#8A6A34');
-        // el catalogo de herramientas sale de las fichas reales, no de una lista a mano
+        /* El catálogo de casillas es `LW_PERMISOS` (herramientas.js), la MISMA
+           fuente que /intranet/usuarios/ — no la unión de lo que ya tienen las
+           fichas: con eso una llave que nadie tuviera todavía (una herramienta
+           recién dada de alta) no se podía conceder a nadie (auditoría 19-sep).
+           Si la página no cargó herramientas.js se cae a la unión, y se nota. */
         Promise.all([
-          sb.from('usuarios').select('herramientas'),
+          (typeof LW_PERMISOS !== 'undefined') ? Promise.resolve({ data: null }) : sb.from('usuarios').select('herramientas'),
           sb.from('proyectos').select('id,nombre').eq('activo', true).order('nombre')
         ]).then(function (rs) {
-          var todas = {};
-          ((rs[0].data) || []).forEach(function (x) { (x.herramientas || []).forEach(function (h) { todas[h] = 1; }); });
-          var ops = Object.keys(todas).sort();
+          var ops;
+          if (typeof LW_PERMISOS !== 'undefined') {
+            ops = LW_PERMISOS.map(function (p) { return Array.isArray(p) ? [p[0], p[1]] : p; });
+          } else {
+            var todas = {};
+            ((rs[0].data) || []).forEach(function (x) { (x.herramientas || []).forEach(function (h) { todas[h] = 1; }); });
+            ops = Object.keys(todas).sort();
+            aviso('Catálogo de permisos no cargado (herramientas.js): se ofrecen solo las llaves que ya tiene alguien.', '#8A6A34');
+          }
+          /* Si el catálogo de proyectos FALLÓ, no se ofrece la rejilla y
+             `proyectos` no viaja en el patch: mandar `[]` le quitaría a esta
+             persona todos sus proyectos sin que nadie lo pidiera (misma guarda
+             `PROYECTOS !== null` de la herramienta viva). */
+          var proyectosOk = !rs[1].error;
           var proyectos = (rs[1].data) || [];
           var tiposCat = (typeof LW_TIPO_CONTRATO === 'object' && LW_TIPO_CONTRATO)
             ? Object.keys(LW_TIPO_CONTRATO).map(function (k) { return [k, LW_TIPO_CONTRATO[k]]; }) : [];
+          /* El ROL solo lo cambia un super_admin (viva: `fRol` disabled salvo
+             soySuper). Un admin lo ve, no lo toca — y no viaja en el patch. */
+          var rolEditable = soySuper && !yoMismo;
           var campos = [
             { k: 'nombre', label: 'Nombre', medio: 1, valor: u.nombre || '' },
-            { k: 'rol', label: 'Rol', tipo: 'select', medio: 1, opciones: ROLES_ED.map(function (r) { return [r, ETIQ_ROL[r] || r]; }), valor: u.rol }
+            rolEditable
+              ? { k: 'rol', label: 'Rol', tipo: 'select', medio: 1, opciones: ROLES_ED.map(function (r) { return [r, ETIQ_ROL[r] || r]; }), valor: u.rol }
+              : { tipo: 'lectura', label: 'Rol', medio: 1, valor: ETIQ_ROL[u.rol] || u.rol || '—' }
           ];
           if (yoMismo) {
             campos.push({ tipo: 'nota', label: 'Es tu propia cuenta: para no dejarte fuera por accidente, el rol y el estado activo no se tocan desde aquí.' });
           } else {
+            if (!soySuper) campos.push({ tipo: 'nota', label: 'El rol solo lo cambia un super admin.' });
             campos.push({ k: 'activo', label: 'Activo', tipo: 'check', valor: u.activo });
           }
-          campos.push(
-            { k: 'herramientas', label: 'Herramientas', tipo: 'multicheck', opciones: ops, valor: u.herramientas || [] },
-            { k: 'proyectos', label: 'Proyectos en los que trabaja', tipo: 'multicheck',
+          campos.push({ k: 'herramientas', label: 'Herramientas', tipo: 'multicheck', opciones: ops, valor: u.herramientas || [] });
+          if (proyectosOk) {
+            campos.push({ k: 'proyectos', label: 'Proyectos en los que trabaja', tipo: 'multicheck',
               opciones: proyectos.map(function (p) { return [p.id, p.nombre]; }), valor: u.proyectos || [],
-              ayuda: 'Limita en qué proyectos puede crear y editar contratos. Sin ninguno marcado, no puede crear en ninguno.' },
+              ayuda: 'Limita en qué proyectos puede crear y editar contratos. Sin ninguno marcado, no puede crear en ninguno.' });
+          } else {
+            campos.push({ tipo: 'nota', label: 'No se pudo cargar el catálogo de proyectos: los suyos se conservan tal cual (no se tocan desde aquí hasta que cargue).' });
+          }
+          campos.push(
             { k: 'tipos_contrato', label: 'Contratos que puede hacer', tipo: 'multicheck',
               opciones: tiposCat, valor: u.tipos_contrato || [],
               ayuda: 'Vacío = TODOS (al revés que Proyectos, arriba): no marcar nada aquí no bloquea, lo abre todo.' }
@@ -2914,9 +3020,11 @@
           modal('Permisos de ' + (u.nombre || u.email), campos, 'Guardar permisos', function (v) {
             var patch = {
               nombre: v.nombre.trim() || null, herramientas: v.herramientas,
-              proyectos: v.proyectos, tipos_contrato: v.tipos_contrato
+              tipos_contrato: v.tipos_contrato
             };
-            if (!yoMismo) { patch.rol = v.rol; patch.activo = v.activo; }
+            if (proyectosOk) patch.proyectos = v.proyectos;
+            if (!yoMismo) { patch.activo = v.activo; }
+            if (rolEditable) { patch.rol = v.rol; }
             /* la proteccion real vive en la policy (super_admin intocable salvo
                super_admin, es_admin AND puede) — si esto falla por RLS, ese ES
                el mensaje, no un fallo del editor */
@@ -3009,7 +3117,7 @@
         modal('Dar de baja — ' + (closerEmail || ''), [
           { k: 'hasta', label: 'Fecha de baja', tipo: 'date', req: 1, valor: new Date().toISOString().slice(0, 10) }
         ], 'Dar de baja', function (v) {
-          return sb.from('equipo_miembros').update({ hasta: v.hasta }).eq('id', miembroId);
+          return sb.from('equipo_miembros').update({ hasta: v.hasta }).eq('id', miembroId).select('id').then(unaFila);
         });
       };
 
@@ -3059,7 +3167,7 @@
               ? 'El equipo vuelve a estar disponible para nuevas condiciones de comisión.'
               : 'El equipo deja de ofrecerse para condiciones nuevas. Los miembros y el histórico de comisiones no se tocan.' }
         ], pasaA ? 'Reactivar' : 'Desactivar', function () {
-          return sb.from('equipos_venta').update({ activo: pasaA }).eq('id', equipoId);
+          return sb.from('equipos_venta').update({ activo: pasaA }).eq('id', equipoId).select('id').then(unaFila);
         });
       };
     },
@@ -3199,7 +3307,7 @@
               ? 'Vuelve a aplicarse a las comisiones que se disparen desde ahora.'
               : 'Deja de aplicarse a comisiones nuevas. Lo ya devengado no cambia.' }
         ], pasaA ? 'Reactivar' : 'Desactivar', function () {
-          return sb.from('condiciones_comision').update({ activo: pasaA }).eq('id', condId);
+          return sb.from('condiciones_comision').update({ activo: pasaA }).eq('id', condId).select('id').then(unaFila);
         });
       };
     },

@@ -420,9 +420,14 @@
     var H = window.lwCajonHtml;
     if (!(window.lwCajon && H)) { toast('La ficha aún no ha cargado — prueba de nuevo en un segundo.'); return; }
     var num = c0.numero || '';
+    /* 19-sep-2026 (auditoría de paridad): las herramientas vivas leen el UUID
+       en `?contrato=` (`openSavedContract(id)` en app.html y `traerContrato` →
+       `.eq('id', …)` en facturas), no el número: con el número aterrizaban en
+       «No se pudo cargar el contrato». Y «Emitir recibí» sin `tipo=recibi`
+       abría una FACTURA (facturas/index.html: `nuevoDocumento(LTIPO || 'factura')`). */
     var acciones = [
-      { texto: c0.bloqueado ? 'Ver en el generador' : 'Editar en el generador', href: '/contracts/app.html?contrato=' + encodeURIComponent(num), tono: 'primario' },
-      { texto: 'Emitir recibí', href: '/intranet/facturas/?contrato=' + encodeURIComponent(num) }
+      { texto: c0.bloqueado ? 'Ver en el generador' : 'Editar en el generador', href: '/contracts/app.html?contrato=' + encodeURIComponent(c0.id), tono: 'primario' },
+      { texto: 'Emitir recibí', href: '/intranet/facturas/?tipo=recibi&contrato=' + encodeURIComponent(c0.id) }
     ];
     if (!opts.sinExpediente) acciones.push({ texto: 'Expediente', href: '/intranet/v4/operaciones/?contrato=' + encodeURIComponent(num) });
     acciones.push({ texto: 'Cerrar', cerrar: true });
@@ -591,7 +596,8 @@
     var H = window.lwCajonHtml;
     if (!(window.lwCajon && H)) { toast('La ficha aún no ha cargado — prueba de nuevo en un segundo.'); return; }
     var acciones = [{ texto: 'Abrir el documento', href: '/intranet/facturas/?id=' + encodeURIComponent(f0.id), tono: 'primario' }];
-    if (f0.contrato_numero && f0.tipo !== 'recibi') acciones.push({ texto: 'Emitir recibí', href: '/intranet/facturas/?contrato=' + encodeURIComponent(f0.contrato_numero) });
+    // UUID y tipo, no el número: ver la nota de fichaContrato (19-sep-2026)
+    if (f0.contrato_id && f0.tipo !== 'recibi') acciones.push({ texto: 'Emitir recibí', href: '/intranet/facturas/?tipo=recibi&contrato=' + encodeURIComponent(f0.contrato_id) });
     acciones.push({ texto: 'Cerrar', cerrar: true });
     var caj = window.lwCajon({
       sub: tipoDoc(f0.tipo) + (f0.anulada ? ' · anulada' : ''),
@@ -1087,7 +1093,15 @@
            notas y propietario se piden al abrir UNA ficha (abreFicha): traer
            500 pasaportes de golpe para pintar una tabla que no los enseña era
            un hallazgo MEDIA de Seguridad en la consulta de deploy (18-sep). */
-        q(sb.from('clients').select('id,full_name,email,phone,nationality,tipo,kyc_status,created_at').order('created_at', { ascending: false }).limit(500), 'compradores', t),
+        /* EL DIRECTORIO (14-sep-2026, decisión del owner, calcado de la viva):
+           `clients` a pelo devuelve solo las fichas que TÚ diste de alta (RLS del
+           11-sep) — un agente veía entre 1 y 14 de 179, no encontraba al
+           comprador, lo creaba otra vez y la base se lo rechazaba contra una fila
+           invisible (17 altas rechazadas en 18 minutos el 14-sep).
+           `compradores_directorio()` devuelve la IDENTIDAD de todas, sin `notes`;
+           lo del negocio de cada uno sigue filtrado por autor. Se piden solo las
+           columnas que el LISTADO enseña (minimización, Seguridad 18-sep). */
+        q(sb.rpc('compradores_directorio').select('id,full_name,email,phone,nationality,tipo,kyc_status,created_at').order('created_at', { ascending: false }), 'compradores', t),
         q(sb.rpc('contratos_equipo').select('id,numero,tipo,proyecto_nombre,fecha_firma,precio_total,moneda,bloqueado'), 'contratos'),
         q(sb.from('contrato_compradores').select('contrato_id,client_id,rol'), 'vinculos'),
         vig(sb.rpc('contratos_cobrado_equipo')).then(function (r) { return r.error ? (fallo('cobrado', r.error), null) : (r.data || []); }),
@@ -1605,10 +1619,11 @@
           var tx = (botones[i3].textContent || '').trim(), ico = botones[i3].querySelector('.material-symbols-outlined');
           if (/Emitir recib/i.test(tx)) {
             botones[i3].setAttribute('data-real', '');
-            botones[i3].addEventListener('click', function (ev) { ev.stopPropagation(); if (expedienteActual) location.href = '/intranet/facturas/?contrato=' + encodeURIComponent(expedienteActual.el.numero); });
+            // UUID y tipo, no el número: ver la nota de fichaContrato (19-sep-2026)
+            botones[i3].addEventListener('click', function (ev) { ev.stopPropagation(); if (expedienteActual) location.href = '/intranet/facturas/?tipo=recibi&contrato=' + encodeURIComponent(expedienteActual.el.id); });
           } else if (/proforma encadenada|Abrir proforma/i.test(tx)) {
             botones[i3].setAttribute('data-real', '');
-            botones[i3].addEventListener('click', function (ev) { ev.stopPropagation(); if (expedienteActual) location.href = '/contracts/app.html?contrato=' + encodeURIComponent(expedienteActual.raiz.numero); });
+            botones[i3].addEventListener('click', function (ev) { ev.stopPropagation(); if (expedienteActual) location.href = '/contracts/app.html?contrato=' + encodeURIComponent(expedienteActual.raiz.id); });
           } else if (ico && ico.textContent.trim() === 'open_in_new' && tx === 'open_in_new') {
             botones[i3].setAttribute('data-real', ''); botones[i3].title = 'Ficha del expediente';
             botones[i3].addEventListener('click', function (ev) { ev.stopPropagation(); if (expedienteActual) fichaContrato(sb, expedienteActual.el, { sinExpediente: true }); });
@@ -2185,12 +2200,20 @@
             // unidad_parte_cobrada_split, no se reparten aquí.
             var barraUnidad = function (f, clave, cartera, cobrado, firmado) {
               var firmPct = cartera ? (firmado ? 100 : 0) : 0;
-              var cobPct = cartera ? Math.min(100, (Number(cobrado) || 0) / cartera * 100) : 0;
+              /* `cobrado_suelo`/`cobrado_obra` llegan NULL cuando el contrato no es
+                 visible para quien consulta (migración 20260916093309, LAW-186
+                 mitad B). Eso no es «0,00 cobrado»: es «no he podido mirar», y se
+                 dice así — como hace la herramienta viva («no visible — el
+                 contrato no es tuyo»). Pintar 0 aquí era mentir (19-sep-2026). */
+              var noVisible = cartera && cobrado == null;
+              var cobPct = (cartera && !noVisible) ? Math.min(100, (Number(cobrado) || 0) / cartera * 100) : 0;
               var elCob = f.querySelector('[data-barra="u-' + clave + '-cobrado"]');
               var elFir = f.querySelector('[data-barra="u-' + clave + '-firmado"]');
               if (elCob) elCob.style.width = cobPct + '%';
               if (elFir) elFir.style.width = Math.max(0, firmPct - cobPct) + '%';
-              pon('u-' + clave + '-txt', cartera ? fmt(cobrado, 'EUR') + ' / ' + fmt(cartera, 'EUR') : 'sin cartera', f);
+              pon('u-' + clave + '-txt', !cartera ? 'sin cartera'
+                : noVisible ? 'cobro no visible · ' + fmt(cartera, 'EUR')
+                : fmt(cobrado, 'EUR') + ' / ' + fmt(cartera, 'EUR'), f);
             };
             uu.forEach(function (u) {
               var f = base.cloneNode(true);
@@ -2305,9 +2328,9 @@
           ? [u.fase_masterplan ? 'Fase ' + u.fase_masterplan : null, u.zona_masterplan ? 'Zona ' + u.zona_masterplan : null].filter(Boolean).join(' · ')
           : 'sin registrar');
         pon('dp-total', u.precio != null ? fmt(u.precio, u.moneda || 'EUR') : '—');
-        pon('dp-suelo', u.precio_suelo != null ? fmt(u.precio_suelo, u.moneda || 'EUR') + ' · cobrado ' + fmt(u.cobrado_suelo || 0, u.moneda || 'EUR') : '—');
+        pon('dp-suelo', u.precio_suelo != null ? fmt(u.precio_suelo, u.moneda || 'EUR') + (u.cobrado_suelo == null ? ' · cobro no visible' : ' · cobrado ' + fmt(u.cobrado_suelo, u.moneda || 'EUR')) : '—');
         pon('dp-suelo-m2', (u.precio_suelo != null && u.superficie_m2) ? fmt(u.precio_suelo / u.superficie_m2, u.moneda || 'EUR') + '/m²' : '—');
-        pon('dp-obra', u.precio_construccion != null ? fmt(u.precio_construccion, u.moneda || 'EUR') + ' · cobrado ' + fmt(u.cobrado_obra || 0, u.moneda || 'EUR') : 'sin construcción asociada');
+        pon('dp-obra', u.precio_construccion != null ? fmt(u.precio_construccion, u.moneda || 'EUR') + (u.cobrado_obra == null ? ' · cobro no visible' : ' · cobrado ' + fmt(u.cobrado_obra, u.moneda || 'EUR')) : 'sin construcción asociada');
         vp.classList.add('hidden');
         vd.classList.remove('hidden');
         var cuerpo = vd.closest('.overflow-y-auto');
@@ -3246,7 +3269,9 @@
          Responder es fase C: va por la RPC portal_enviar_mensaje y cada mensaje
          dispara un email real al comprador, asi que aqui NI SE TOCA. */
       Promise.all([
-        q(sb.from('hilo_soporte').select('id,client_id,categoria,estado,actualizado_en').order('actualizado_en', { ascending: false }).limit(80), 'hilos'),
+        // sin `limit`: la viva carga todos los hilos y aquí 80 → 25 pintados dejaba
+        // tickets fuera sin decirlo (auditoría 19-sep-2026)
+        q(sb.from('hilo_soporte').select('id,client_id,categoria,estado,actualizado_en').order('actualizado_en', { ascending: false }), 'hilos'),
         q(sb.from('clients').select('id,full_name,email,phone,tipo'), 'clientes de soporte'),
         q(sb.from('mensajes_comprador').select('hilo_id,client_id,de,autor,texto,creado_en').order('creado_en', { ascending: false }).limit(600), 'mensajes')
       ]).then(function (r) {
@@ -3292,7 +3317,7 @@
         if (!hs.length) {
           lista.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0;padding:6px 2px">Ningún hilo de soporte todavía.</p>';
         }
-        hs.slice(0, 25).forEach(function (h) {
+        hs.forEach(function (h) {
           var f = molde.cloneNode(true);
           var pon3 = function (k, v) { var e = f.querySelector('[data-lw="' + k + '"]'); if (e) e.textContent = v; };
           var c = cli[h.client_id] || {};
@@ -3496,7 +3521,9 @@
           tabla.innerHTML = '<tr><td colspan="8" style="padding:18px;text-align:center;font:400 13px \'Neue Kabel\',sans-serif;color:#8A8474">Ninguna solicitud registrada.</td></tr>';
           return;
         }
-        tabla.innerHTML = ss.slice(0, 25).map(function (x) {
+        // TODAS las filas, como la viva (/intranet/solicitudes/): los chips contaban
+        // sobre todas pero filtraban sobre las 25 pintadas (auditoría 19-sep-2026).
+        tabla.innerHTML = ss.map(function (x) {
           var c = ct[x.contrato_id]; var u = us[x.creado_por];
           /* Marca visual: solo las nacidas solas de una comisión de manager llevan
              el badge — el resto (`origen='manual'`) es lo que ya se veía antes. */
