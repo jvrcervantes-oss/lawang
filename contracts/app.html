@@ -1990,6 +1990,14 @@ function etiquetaHTML(key, texto){
 function fieldHTML(f){
   const [key,labelObj,type,extra] = f;
   const label = L(labelObj);
+  /* Asterisco de obligatorio (20-sep-2026, encargo del owner: "marca los campos
+     obligatorios con un asterisco"). Mismo criterio que camposSinRellenar(): lo
+     único que ese candado no exige es CAMPOS_OPCIONALES — legacy/signature/
+     readonly ni siquiera pasan por aquí, se pintan en su propia rama de abajo
+     sin la clase. Va por CLASE del `.field`, nunca metido en el texto del
+     <label>: aplicarBloqueoComprador() reescribe `label.textContent` a mano
+     (ver más arriba) y un asterisco de texto habría desaparecido con ella. */
+  const reqCls = CAMPOS_OPCIONALES.has(key) ? '' : ' req';
   /* ── CAMPO DE LEGADO (27-ago-2026) ─────────────────────────────────────────
      Un campo que YA NO se rellena pero que 31 documentos guardados sí tienen.
      Caso real: `validez_meses`. El owner pidió pasar el plazo de la reserva de
@@ -2044,10 +2052,10 @@ function fieldHTML(f){
     // exactamente el mismo corte de rol que ya usa "Editar texto" — no una
     // coincidencia nueva que haya que mantener sincronizada a mano.
     const bloqueado = key==='firmante' && !CAN_EDIT_TEXT;
-    return `<div class="field" data-key="${key}">${etiquetaHTML(key, label)}<select class="sui-sel" id="${fid(key)}" name="${key}" ${bloqueado?'disabled':''}><option value=""></option>${opts}${huerfano}</select></div>`;
+    return `<div class="field${reqCls}" data-key="${key}">${etiquetaHTML(key, label)}<select class="sui-sel" id="${fid(key)}" name="${key}" ${bloqueado?'disabled':''}><option value=""></option>${opts}${huerfano}</select></div>`;
   }
   if(type==='textarea'){
-    return `<div class="field" data-key="${key}" style="grid-column:1/-1">${etiquetaHTML(key, label)}<textarea id="${fid(key)}" name="${key}" rows="3">${def}</textarea></div>`;
+    return `<div class="field${reqCls}" data-key="${key}" style="grid-column:1/-1">${etiquetaHTML(key, label)}<textarea id="${fid(key)}" name="${key}" rows="3">${def}</textarea></div>`;
   }
   if(type==='readonly'){
     // Nº de contrato: lo asigna el trigger de Supabase al guardar (guardarContrato()
@@ -2067,7 +2075,7 @@ function fieldHTML(f){
     /* La etiqueta apunta al NÚMERO, que es el campo principal; el prefijo lleva
        su propio nombre accesible. El oculto con `name` no necesita etiqueta: no
        se enfoca ni se lee, solo lo mantiene wireTelefonos(). */
-    return `<div class="field field-tel" data-key="${key}">${etiquetaHTML(key, label)}
+    return `<div class="field field-tel${reqCls}" data-key="${key}">${etiquetaHTML(key, label)}
       <div style="display:flex;gap:6px">
         <input class="tel-prefijo" list="dl-prefijos" placeholder="Prefijo" aria-label="${escAttr(label)} — prefijo internacional" style="flex:0 0 86px" value="${escAttr(t0.prefijo)}">
         <input id="${fid(key)}" class="tel-numero" placeholder="Número" style="flex:1" value="${escAttr(t0.numero)}">
@@ -2120,7 +2128,7 @@ function fieldHTML(f){
   const avisoPrecioConstruccion = fijadoPrecioConstruccion
     ? `<p class="mini">🔒 ${L({es:'Lo calcula el techo y los extras elegidos. No se edita a mano.',en:'Set by the chosen roof and extras. Not editable by hand.',id:'Dihitung dari atap dan ekstra yang dipilih. Tidak bisa diubah manual.'})}</p>`
     : '';
-  return `<div class="field" data-key="${key}">${etiquetaHTML(key, label)}
+  return `<div class="field${reqCls}" data-key="${key}">${etiquetaHTML(key, label)}
     <input id="${fid(key)}" name="${key}" type="${t}" ${attrs}${marca} value="${def}" autocomplete="off">${avisoPrecioConstruccion}</div>`;
 }
 
@@ -5367,8 +5375,12 @@ function blobToBase64(blob){
    firma él mismo») se salta entera SOLO mientras está toda en blanco: si se
    eligió apoderado, la fecha del poder vuelve a exigirse — sin ella
    applyRepresentanteComprador() descarta la representación en silencio y el
-   comprador firmaría él mismo sin que nadie lo haya decidido. */
-const CAMPOS_OPCIONALES = new Set(['nombre_contrato', 'precio_total_letras', 'precio_reserva_letras']);
+   comprador firmaría él mismo sin que nadie lo haya decidido.
+   `adq1_registro` (20-sep-2026, encargo del owner): el Nº de registro
+   mercantil solo aparece cuando el comprador es una empresa (CAMPOS_EMPRESA,
+   más abajo), y no toda sociedad lo tiene a mano al redactar el contrato —
+   se completa después sin bloquear el envío. */
+const CAMPOS_OPCIONALES = new Set(['nombre_contrato', 'precio_total_letras', 'precio_reserva_letras', 'adq1_registro']);
 const SECCIONES_OPCIONALES = new Set(['hs_segunda_parte']);
 const valorCampo = key => { const el = document.querySelector(`[name="${key}"]`); return el ? String(el.value||'').trim() : ''; };
 function camposSinRellenar(){
