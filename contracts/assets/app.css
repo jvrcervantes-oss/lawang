@@ -216,6 +216,12 @@
   .field label:hover{ color:var(--dl); }
   .field label::after{ content:' ↳'; opacity:0; transition:opacity .15s var(--ease); }
   .field label:hover::after{ opacity:.65; }
+  /* Asterisco de obligatorio (20-sep-2026, encargo del owner). Va por CLASE del
+     `.field` (marcada en fieldHTML/app.html), nunca dentro del texto del <label>:
+     aplicarBloqueoComprador() reescribe `label.textContent` a mano al cambiar de
+     ficha o de persona/empresa (ver app.html), y eso habría borrado un asterisco
+     metido como texto sin que nadie tocara esta regla. */
+  .field.req label::before{ content:'* '; color:var(--be); }
   /* La PISTA de un campo (27-ago-2026, ver `partirEtiqueta` en app.html). Caja
      baja y sin tracking: es una frase y se lee como una frase. Va entre la
      etiqueta y el control porque se lee ANTES de contestar, no después. §15 —
