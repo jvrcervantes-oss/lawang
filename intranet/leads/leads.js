@@ -187,19 +187,17 @@ function ir(v){
    3,4 M firmados solo ha entrado un 4,7%, y el orden cambia según cuál se mire. El puesto
    lo decide el COBRADO (decisión del owner): premiar la firma es premiar papel sin pagar.
    ========================================================================== */
-let RANKING = [], ATRIBUIR = [], SOLO_RAICES = false, SOLO_PENDIENTES = true;
+let RANKING = [], SOLO_RAICES = false;
 /* Quien gestiona el CRM (tiene `ranking` o `reparto`). Decide que pestanas de
    direccion se ven; la puerta de verdad sigue siendo la de la base. */
 let GESTOR_CRM = false, REPARTO = [];
 
 async function cargarClosers(){
-  const [r, a, p] = await Promise.all([
+  const [r, p] = await Promise.all([
     SB.rpc('crm_ranking_closers', { p_solo_raices: SOLO_RAICES }),
-    SB.rpc('crm_contratos_para_atribuir', { p_solo_pendientes: SOLO_PENDIENTES }),
     SB.rpc('crm_reparto_config'),
   ]);
   RANKING  = r.error ? [] : (r.data || []);
-  ATRIBUIR = a.error ? [] : (a.data || []);
   REPARTO  = p.error ? [] : (p.data || []);
   await cargarEquipo();
   pintarClosers();
@@ -306,7 +304,8 @@ function pintarClosers(){
     const importeSinAtribuir = dinero(Math.round(sinAtribuir.firmado), 'EUR');
     av.innerHTML = `<b>${lwT('El ranking todavía no está completo.')}</b> ${lwT('Hay')}
       <b>${lwT('%n ventas sin atribuir', { n: sinAtribuir.contratos })}</b>
-      ${lwT('(%s firmados) que no cuentan para nadie. Se asignan abajo, en «A quién se atribuye cada venta».', { s: importeSinAtribuir })}`;
+      ${lwT('(%s firmados) que no cuentan para nadie.', { s: importeSinAtribuir })}
+      ${lwT('Se asignan desde')} <a href="/intranet/solicitudes/" target="_blank" rel="noopener">${lwT('Comisiones → A quién se atribuye cada venta')}</a>.`;
   } else av.hidden = true;
 
   $('#subRanking').textContent = SOLO_RAICES
@@ -331,62 +330,6 @@ function pintarClosers(){
         <td class="num">${dinero(Math.round(x.ticket_medio || 0), 'EUR')}</td>
       </tr>`;
     }).join('') : '<tr><td colspan="6"><p class="vacio">' + lwT('Todavía no hay ninguna venta atribuida.') + '</p></td></tr>'}</tbody>`;
-
-  pintarAtribuir();
-}
-
-function pintarAtribuir(){
-  $('#subAtribuir').textContent = SOLO_PENDIENTES
-    ? lwT(ATRIBUIR.length === 1 ? '%n venta sin atribuir' : '%n ventas sin atribuir', { n: ATRIBUIR.length })
-    : lwT('%n ventas firmadas en total', { n: ATRIBUIR.length });
-
-  $('#tAtribuir').innerHTML = `
-    <thead><tr><th>${lwT('Contrato')}</th><th>${lwT('Comprador')}</th><th class="num">${lwT('Importe')}</th>
-      <th class="num">${lwT('Cobrado')}</th><th>${lwT('Quién lo cerró')}</th></tr></thead>
-    <tbody>${ATRIBUIR.length ? ATRIBUIR.map(c => `
-      <tr>
-        <td><b>${esc(c.numero || '')}</b>
-          <div style="font-size:11.5px;color:var(--mist)">${esc(c.proyecto || '')}${
-            c.es_hijo ? ' · <span class="chip gris">' + lwT('de cadena') + '</span>' : ''}</div></td>
-        <td>${c.comprador ? esc(c.comprador) : lwT('sin nombre')}</td>
-        <td class="num">${dinero(Math.round(c.precio_total || 0), c.moneda || 'EUR')}</td>
-        <td class="num">${Number(c.cobrado) ? dinero(Math.round(c.cobrado), c.moneda || 'EUR') : '—'}</td>
-        <td>
-          <select class="sui-sel" data-atrib="${esc(c.contrato_id)}" data-previo="${esc(c.closer_email || '')}">
-            <option value="">${lwT('— sin atribuir —')}</option>
-            ${(EQUIPO_TODO || []).map(u => `<option value="${esc(u.email)}"${
-              c.closer_email && u.email.toLowerCase() === c.closer_email.toLowerCase() ? ' selected' : ''
-            }>${esc(u.nombre || u.email)}</option>`).join('')}
-          </select>
-          ${c.creado_por && !c.closer_email
-            ? `<div style="font-size:11px;color:var(--mist);margin-top:3px">${lwT('lo creó %s', { s: esc(c.creado_por) })}</div>` : ''}
-        </td>
-      </tr>`).join('') : '<tr><td colspan="5"><p class="vacio">' + lwT('Todas las ventas están atribuidas.') + '</p></td></tr>'}</tbody>`;
-
-  $('#tAtribuir').querySelectorAll('[data-atrib]').forEach(s => s.onchange = () => atribuir(s));
-}
-
-async function atribuir(sel){
-  sel.disabled = true;
-  const { error } = await SB.rpc('crm_contrato_closer_set', {
-    p_contrato: sel.dataset.atrib,
-    p_email: sel.value || null,
-    p_previo: sel.dataset.previo || null,
-  });
-  sel.disabled = false;
-  if(error){
-    if(String(error.code) === '409' || /ya no es la que tenias/i.test(error.message || '')){
-      toastMal(lwT('Otra persona ha cambiado esa atribución. Recargo.'));
-      return cargarClosers();
-    }
-    toastMal(lwT('No se pudo guardar: ') + error.message);
-    return cargarClosers();
-  }
-  sel.dataset.previo = sel.value || '';
-  /* Se recarga entero y no solo la fila: cambiar una atribución mueve el ranking de arriba,
-     y dejar la tabla de puestos desfasada mientras se rellena el histórico es justo lo que
-     haría desconfiar de la cifra. */
-  cargarClosers();
 }
 
 /* ==========================================================================
@@ -1107,20 +1050,19 @@ async function pintarDuenoFicha(l){
 }
 
 /* La lista de a quién se puede asignar se pide una vez por sesión: son 24 filas y no
-   cambian mientras alguien mira un tablero. */
-let EQUIPO = null, EQUIPO_TODO = null;
+   cambian mientras alguien mira un tablero.
+   Hasta el 21-sep esta misma consulta alimentaba también «A quién se atribuye cada
+   venta» (necesitaba la lista SIN filtrar por 'leads': varias ventas del histórico las
+   cerró gente que hoy ni entra al CRM). Esa pantalla se mudó a Comisiones
+   (/intranet/solicitudes/), que pide su propia lista sin filtrar — no la reutiliza de
+   aquí porque es otra herramienta con su propio candado ('ranking'). */
+let EQUIPO = null;
 async function cargarEquipo(){
   if(EQUIPO) return EQUIPO;
   const { data, error } = await SB.from('usuarios')
     .select('email, nombre, rol, activo, herramientas').eq('activo', true);
-  /* Dos listas distintas a propósito, y conviene no confundirlas:
-     · EQUIPO      — a quién se le puede DAR un lead. Tiene que poder verlo, o el lead se
-                     apaga en silencio en manos de quien no abre el CRM.
-     · EQUIPO_TODO — a quién se le puede ATRIBUIR una venta ya cerrada. Aquí no hace falta
-                     que vea el CRM: se está registrando un hecho del pasado, y varias de
-                     las ventas del histórico las cerró gente que hoy ni entra aquí. */
-  EQUIPO_TODO = error ? [] : (data || []);
-  EQUIPO = EQUIPO_TODO.filter(u =>
+  const todos = error ? [] : (data || []);
+  EQUIPO = todos.filter(u =>
     u.rol === 'super_admin' || (u.herramientas || []).includes('leads'));
   return EQUIPO;
 }
@@ -2289,13 +2231,6 @@ $('#filtroCadenas').addEventListener('click', e => {
   const b = e.target.closest('[data-raices]'); if(!b) return;
   SOLO_RAICES = b.dataset.raices === '1';
   $('#filtroCadenas').querySelectorAll('button').forEach(x =>
-    x.setAttribute('aria-pressed', String(x === b)));
-  cargarClosers();
-});
-$('#filtroAtribuir').addEventListener('click', e => {
-  const b = e.target.closest('[data-pend]'); if(!b) return;
-  SOLO_PENDIENTES = b.dataset.pend === '1';
-  $('#filtroAtribuir').querySelectorAll('button').forEach(x =>
     x.setAttribute('aria-pressed', String(x === b)));
   cargarClosers();
 });
