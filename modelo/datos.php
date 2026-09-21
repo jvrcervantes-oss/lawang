@@ -224,6 +224,17 @@ function lw_au_catalogo() {
     $modelos = require __DIR__ . '/modelos.php';
     $out = [];
     foreach ($modelos as $id => $m) {
+        // FIX DE EMERGENCIA (21-sep-2026, hallazgo de code-review + caída real en
+        // produccion): un modelo publicado sin filas en `modelo_techos` (Loftbung, desde
+        // el 15-sep) llegaba aqui con `$m['techos']` sin definir. `lw_techo_precio_activo()`
+        // exige `array $techo` sin admitir null, asi que `$m['techos']['sirap']` sobre un
+        // array inexistente lanzaba un TypeError SIN CAPTURAR — fatal, y esta funcion la
+        // llaman TODAS las paginas de producto (/dali, /modelo/<id>, /palmfield) para
+        // montar el selector de villa del configurador: un modelo mal cargado tiraba abajo
+        // las tres. Mismo criterio que "sin render no se enseña": un modelo sin los dos
+        // techos resueltos no puede participar en el configurador (necesita precio de
+        // villa por techo) y se omite del catálogo entero en vez de reventar la página.
+        if (empty($m['techos']['sirap']) || empty($m['techos']['bambu'])) continue;
         $imgs  = lw_modelo_imgs($id);
         $sirap = lw_techo_precio_activo($m['techos']['sirap']);
         $bambu = lw_techo_precio_activo($m['techos']['bambu']);
