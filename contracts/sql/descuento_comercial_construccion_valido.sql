@@ -20,9 +20,17 @@
 --     con forma reconocible (número en `precio`) — que es como lo escribe
 --     `contractPayload()` hoy siempre que hay techo elegido.
 --   · SÍ valida que `descuento_comercial` nunca sea negativo.
---   · SÍ es el cinturón final si lo de arriba no fuera calculable por lo que
---     sea (formato inesperado en `datos.techo`/`datos.extras`): `precio_total`
---     (columna propia, ya numérica) nunca puede quedar en cero ni negativo.
+--   · SÍ es el cinturón final CUANDO HAY DESCUENTO (`v_descuento > 0`), tanto
+--     si el 15% se pudo calcular como si no (formato inesperado en
+--     `datos.techo`/`datos.extras`): `precio_total` (columna propia, ya
+--     numérica) no puede quedar en cero ni negativo por culpa de ese
+--     descuento. ⚠️ CORREGIDO el mismo día (migración
+--     …_fix_precio_total_incondicional, hallado por autorrevisión antes de
+--     cerrar la tarea): la primera versión de este cinturón NO estaba
+--     condicionada a que hubiera descuento, así que bloqueaba CUALQUIER
+--     UPDATE de un contrato tipo=construccion — y hay contratos reales
+--     (CC00040/CC00076/CC00086) con `precio_total` NULL sin ningún descuento,
+--     que habrían quedado inguardables para cualquier otra edición.
 --   · NO valida el ROL de quien escribe — igual que `validez_dias`/
 --     FIJOS_ESTUDIO, comprobar "qué rol tiene la sesión que hizo este UPDATE"
 --     no es un dato que un trigger de fila pueda leer sin más infraestructura
@@ -78,15 +86,21 @@ begin
           v_descuento, v_base;
       end if;
     end if;
-  end if;
 
-  -- Cinturón final, SIEMPRE comprobable con independencia de si `datos.techo`
-  -- traía la forma esperada: `precio_total` es columna propia ya numérica
-  -- (la resuelve `parseImporte()` en el navegador antes de mandarla) y jamás
-  -- puede quedar en cero o negativa — ni por este descuento ni por ningún
-  -- otro motivo, para un Contrato de Construcción.
-  if coalesce(new.precio_total, 0) <= 0 then
-    raise exception 'precio_total no puede quedar en cero o negativo en un Contrato de Construcción.';
+    -- Cinturón final, condicionado a `v_descuento > 0` — CORREGIDO EL MISMO
+    -- DÍA (migración …_fix_precio_total_incondicional, hallado por
+    -- autorrevisión antes de cerrar la tarea, no en producción): la primera
+    -- versión de este cinturón vivía FUERA del `if v_descuento > 0`, así que
+    -- corría en CUALQUIER UPDATE de un contrato tipo=construccion — y hay
+    -- contratos reales (CC00040/CC00076/CC00086) con `precio_total` NULL sin
+    -- ningún descuento, que habrían quedado inguardables para cualquier otra
+    -- edición. `precio_total` es columna propia ya numérica (la resuelve
+    -- `parseImporte()` en el navegador) — este cinturón solo exige que no
+    -- quede en cero o negativa CUANDO hay un descuento que podría haberla
+    -- dejado así.
+    if coalesce(new.precio_total, 0) <= 0 then
+      raise exception 'precio_total no puede quedar en cero o negativo al aplicar un descuento comercial.';
+    end if;
   end if;
 
   return new;
@@ -104,7 +118,7 @@ create trigger trg_descuento_comercial_construccion
   for each row execute function public.descuento_comercial_construccion_valido();
 
 comment on function public.descuento_comercial_construccion_valido() is
-  'BEFORE INSERT OR UPDATE en contratos, solo tipo=construccion: bloquea un descuento_comercial negativo o por encima del 15% de techo+extras (cuando esa forma es calculable) y, siempre, un precio_total en cero o negativo. NO valida el rol de quien escribe (ver comentario de cabecera) — ese candado sigue siendo de pantalla. 21-sep-2026, revisión previa #33.';
+  'BEFORE INSERT OR UPDATE en contratos, solo tipo=construccion: bloquea un descuento_comercial negativo o por encima del 15% de techo+extras (cuando esa forma es calculable), y --SOLO cuando hay descuento (v_descuento>0)-- que precio_total no quede en cero o negativo. NO valida el rol de quien escribe (ver comentario de cabecera) — ese candado sigue siendo de pantalla. 21-sep-2026, revisión previa #33; corregido el mismo día (autorrevisión) para no bloquear ediciones de contratos sin descuento y con precio_total ya en null/0.';
 
 -- ── comprobación tras aplicar ────────────────────────────────────────────────
 --   select tgname, tgtype from pg_trigger

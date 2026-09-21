@@ -31,6 +31,19 @@ let TECHOS_OPCIONES  = [];    // catálogo YA resuelto (tramo+delta) del modelo+
 let EXTRAS_OPCIONES  = [];
 let TECHO_MODELO_HECHO = null;   // "modeloId§proyectoId" ya resuelto, para no repetir el RPC en cada tecla
 
+/* Base sobre la que se aplica el descuento comercial (21-sep-2026): techo +
+   Σextras, ÚNICA función para ese cálculo — antes vivía repetido a mano en
+   syncPrecioTechoExtras() (aquí abajo) y en la validación de guardarContrato()
+   (app.html), y una tercera vez, inevitable, en SQL (trg_descuento_comercial_
+   construccion — otro runtime, no se puede compartir función). Dos copias en
+   JS sí eran evitables: hallazgo de autorrevisión (code-review) el mismo día.
+   `null` si no hay techo elegido — no 0, para que quien llama no confunda
+   "sin techo" con "techo gratis". */
+function baseTechoExtras(){
+  if(!TECHO_ELEGIDO) return null;
+  return Number(TECHO_ELEGIDO.precio) + EXTRAS_ELEGIDOS.reduce((t,e)=>t+(Number(e.precio)||0), 0);
+}
+
 /* Trae las opciones del modelo elegido. Nunca lanza (quien llama está pintando
    un formulario): sin red se queda con listas vacías, igual que
    `lwCargarCatalogoModelos`. */
@@ -224,7 +237,7 @@ async function syncPrecioTechoExtras(){
   if(!el) return;
   const mon = TECHO_ELEGIDO.moneda || 'EUR';
   syncMonedaTechoExtras();
-  const base = Number(TECHO_ELEGIDO.precio) + EXTRAS_ELEGIDOS.reduce((t,e)=>t+(Number(e.precio)||0),0);
+  const base = baseTechoExtras();
   if(!(base > 0)) return;   // datos raros: mejor no tocar nada
   /* Descuento comercial (21-sep-2026, revisión previa #33): RESTA de la
      fórmula, no la reabre — el candado de fijadoPrecioConstruccion (app.html)

@@ -83,7 +83,7 @@
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
 <script src="assets/modelos_catalogo.js?v=4e4fdee1"></script>
 <!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
-<script src="assets/techo_extras.js?v=2eb2a418"></script>
+<script src="assets/techo_extras.js?v=14b3cc79"></script>
 <script src="assets/hitos_fechas.js?v=73e20d57"></script>
 <script src="assets/entidades_pago.js?v=ab7c9adf"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
@@ -970,7 +970,21 @@ function syncTipologiaModelos(){
      guardado, que ya trae su techo/extras congelados) suelta la elección
      anterior: era de OTRO modelo y sus techos no tienen por qué existir aquí. */
   if(CONTRACT_TIPO[CURRENT.slug] === 'construccion'){
-    if(cambio){ TECHO_ELEGIDO = null; EXTRAS_ELEGIDOS = []; }
+    /* `descuento_comercial`/`_motivo` se limpian aquí TAMBIÉN (hallazgo de
+       autorrevisión, mismo día que se escribió el campo): un descuento
+       negociado sobre el precio del modelo A no significa nada sobre el
+       precio del modelo B — igual que EXTRAS_ELEGIDOS, que ya se vaciaba
+       aquí por el mismo motivo. Sin esto, cambiar de modelo con un
+       descuento puesto lo restaba en silencio de la base NUEVA (distinto
+       precio, mismo importe, sin volver a pedir el motivo ni comprobar el
+       15% contra el precio que el agente ve en pantalla en ese instante). */
+    if(cambio){
+      TECHO_ELEGIDO = null; EXTRAS_ELEGIDOS = [];
+      ['descuento_comercial', 'descuento_comercial_motivo'].forEach(k=>{
+        const el = document.querySelector('[name="' + k + '"]');
+        if(el && el.value){ el.value = ''; el.dispatchEvent(new Event('input', { bubbles:true })); }
+      });
+    }
     if(ficha){
       const proyEl = document.querySelector('[name="proyecto_nombre"]');
       const proyNombre = proyEl ? String(proyEl.value || '').trim() : '';
@@ -2778,9 +2792,20 @@ function collect(){
      "campo con algo dentro" (ver el comentario grande junto a SUSTITUYE_A),
      no "campo > 0" — y "0" tecleado a mano cuenta como "algo dentro", así
      que un <!--opt:descuento_comercial--> imprimiría "descuento de 0 EUR"
-     en cualquier contrato donde alguien escribiera un cero explícito. */
+     en cualquier contrato donde alguien escribiera un cero explícito.
+     🔴 Exige TAMBIÉN `TECHO_ELEGIDO` (hallazgo de autorrevisión, mismo día):
+     el campo se OCULTA sin techo elegido (updateSaveButton), pero ocultar no
+     es vaciar — un valor tecleado con un techo, si luego se cambia de modelo
+     y `syncTipologiaModelos()` pone `TECHO_ELEGIDO = null`, puede sobrevivir
+     en el `<input>` oculto. Sin este segundo requisito, `collect()` seguiría
+     leyéndolo y la cláusula imprimiría un descuento que ya no está restando
+     nada de `precio_total` (que con `!TECHO_ELEGIDO` lo manda otra fuente,
+     `syncPrecioObraVinculada`) — el documento diría una cosa y el precio
+     otra. Cinturón, no sustituto: `syncTipologiaModelos()` limpia el campo
+     de verdad en cuanto cambia de modelo (ver el `if(cambio)` de esa
+     función), esto es la defensa por si algún camino se les escapa. */
   if(CONTRACT_TIPO[CURRENT.slug] === 'construccion')
-    data.descuento_comercial_aplica = (parseImporte(data.descuento_comercial) || 0) > 0 ? 'si' : 'no';
+    data.descuento_comercial_aplica = (TECHO_ELEGIDO && (parseImporte(data.descuento_comercial) || 0) > 0) ? 'si' : 'no';
 
   /* `adq1_tipo` no es un campo del formulario: sale de la ficha enlazada y lo
      usan las plantillas con <!--if:adq1_tipo=empresa--> para elegir entre el
@@ -4313,14 +4338,18 @@ async function guardarContrato(){
     const elDCMotivo = document.querySelector('[name="descuento_comercial_motivo"]');
     const dc = elDC ? (parseImporte(elDC.value) || 0) : 0;
     const motivo = elDCMotivo ? String(elDCMotivo.value || '').trim() : '';
-    const baseTechoExtras = Number(TECHO_ELEGIDO.precio)
-      + EXTRAS_ELEGIDOS.reduce((t,e)=>t+(Number(e.precio)||0), 0);
+    // baseTechoExtras(): misma función que usa syncPrecioTechoExtras()
+    // (assets/techo_extras.js) — antes esta cuenta estaba repetida a mano
+    // aquí también (hallazgo de autorrevisión, mismo día: dos copias en JS
+    // que un cambio futuro en cómo se suman techo+extras solo tocaría en
+    // una de las dos, desincronizando pantalla y validación de guardado).
+    const base = baseTechoExtras() || 0;
     if(dc < 0){
       avisoNoGuardado(lwT('El descuento comercial no puede ser negativo.'));
       if(elDC){ elDC.focus(); elDC.scrollIntoView({behavior:'smooth', block:'center'}); }
       return;
     }
-    if(baseTechoExtras > 0 && dc > baseTechoExtras * 0.15){
+    if(base > 0 && dc > base * 0.15){
       avisoNoGuardado(lwT('El descuento comercial no puede superar el 15% del precio de techo + extras.'));
       if(elDC){ elDC.focus(); elDC.scrollIntoView({behavior:'smooth', block:'center'}); }
       return;
