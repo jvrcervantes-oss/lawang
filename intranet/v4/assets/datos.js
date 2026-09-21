@@ -395,7 +395,7 @@
      el listado no carga cobros, hitos ni firmas de 200 contratos para pintar
      una tabla que no los enseña (hallazgo de Seguridad del 18-sep en
      Compradores, misma familia). */
-  var CAMPOS_CONTRATO = 'id,numero,tipo,nombre_contrato,comprador_nombre,proyecto_nombre,parcela_codigo,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,pdf_firmado_hash,creado_por,created_at,contrato_padre_id';
+  var CAMPOS_CONTRATO = 'id,numero,tipo,nombre_contrato,comprador_nombre,proyecto_nombre,parcela_codigo,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,pdf_firmado_hash,creado_por,created_at,contrato_padre_id,liberado_en,liberado_motivo';
   function URL_FACTURA(id) { return '/intranet/v4/facturas/?id=' + encodeURIComponent(id); }
   function tipoDoc(t) { return t === 'recibi' ? 'Recibí' : t === 'proforma' ? 'Proforma' : 'Factura'; }
   /* Una solicitud de firma «pendiente» con `expira_en` pasado ya no la puede usar el
@@ -448,7 +448,21 @@
       sb.rpc('contrato_firmas_equipo').select('firmante_nombre,firmante_rol,estado,creado_en,firmado_en,expira_en').eq('contrato_id', id).order('creado_en'),
       sb.from('contrato_compradores').select('client_id,rol').eq('contrato_id', id),
       sb.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,bloqueado,contrato_padre_id,created_at').or(familia),
-      sb.rpc('contratos_cobrado_equipo').select('contrato_id,cobrado').eq('contrato_id', id)
+      sb.rpc('contratos_cobrado_equipo').select('contrato_id,cobrado').eq('contrato_id', id),
+      /* Botón «Liberar reserva» (21-sep-2026): el catálogo real de qué tipos son
+         Carta de Reserva sale de `contrato_tipo_etapa` —nunca una lista a mano,
+         ver contexto/suite_lawang.md sobre por qué eso es lo que se rompe— y el
+         criterio es EL MISMO que fijó la migración de `libera_reserva()`: etapa
+         'reserva' menos 'reserva_parcela' (el Bloqueo no es lo que este botón
+         libera). Solo lo lee quien tiene la herramienta CRM (`puede('leads')`,
+         policy de la tabla): si falla o vuelve vacío el botón simplemente no
+         sale, que es el lado seguro — el candado de verdad es el RPC. */
+      sb.from('contrato_tipo_etapa').select('tipo').eq('etapa', 'reserva').neq('tipo', 'reserva_parcela'),
+      /* La parcela que ocupa ESTE contrato hoy es la que tiene su `contrato_id`
+         apuntando aquí (misma relación que usa `sincroniza_unidad_contrato()`
+         en servidor) — nunca se resuelve por `parcela_codigo` a mano, que es un
+         texto congelado y puede llevar varios códigos separados por coma. */
+      sb.from('unidades').select('id,codigo,estado,proyecto,proyecto_id').eq('contrato_id', id)
     ]).then(function (r) {
       if (!document.getElementById('lw-cajon')) return;   // la cerraron antes de que llegara
       var c = r[0].data || c0;
@@ -472,8 +486,32 @@
         H.dato('Precio', c.precio_total != null ? fmt(c.precio_total, c.moneda) : null) +
         H.dato('Fecha de firma', c.fecha_firma ? fFecha(c.fecha_firma) : null) +
         H.dato('Creado', fFecha(c.created_at) + (c.creado_por ? ' · ' + c.creado_por : '')) +
+        /* Liberación (21-sep-2026): eje aparte del Estado de arriba — un CR
+           firmado puede liberarse igual que uno en borrador (el RPC no exige
+           lo contrario), así que es un dato propio y no un tag más de Estado. */
+        (c.liberado_en ? H.dato('Reserva', H.tag(c.liberado_motivo === 'desistida' ? 'Liberada · comprador desistió' : 'Liberada · plazo vencido', 'mal') +
+          '<br><span style="font-size:11.5px;color:#8A8474">' + esc(fFecha(c.liberado_en)) + '</span>', { html: 1 }) : '') +
         (padre ? H.dato('Cuelga de', enlaceFichaContrato(padre), { html: 1 }) : '') +
         (hijos.length ? H.dato('Encadenados', hijos.map(enlaceFichaContrato).join('<br>'), { html: 1 }) : ''));
+
+      /* Botón «Liberar reserva (comprador desiste)» (21-sep-2026). Solo UX: el
+         candado real es el propio RPC (rol + es_manager_de del proyecto de la
+         unidad) — un sales_manager de otro proyecto ve el botón igual y recibe
+         el 42501 del servidor tal cual, sin disfrazarlo (decisión del owner,
+         ver la cabecera de la migración). */
+      var tiposReserva = (r[7].data || []).map(function (x) { return x.tipo; });
+      var unidadesLigadas = r[8].data || [];
+      var unidadesReservadas = unidadesLigadas.filter(function (u) { return u.estado === 'reservada'; });
+      var rolSesion = (window.LW_V4 && window.LW_V4.ficha && window.LW_V4.ficha.rol) || '';
+      var puedeVerBoton = rolSesion === 'admin' || rolSesion === 'super_admin' || rolSesion === 'sales_manager';
+      var esCartaReserva = tiposReserva.indexOf(c.tipo) !== -1;
+      if (puedeVerBoton && esCartaReserva && !c.liberado_en && unidadesReservadas.length) {
+        cuerpo += H.seccion('Liberar reserva',
+          H.nota('El comprador desiste antes de que venza el plazo: la parcela vuelve a "disponible". El contrato no se borra ni se edita — queda sellado como liberado, y el recibí ya cobrado (no reembolsable) no se toca.') +
+          unidadesReservadas.map(function (u) {
+            return '<button type="button" data-lw-liberar="' + esc(u.id) + '" style="justify-self:start;margin-top:4px;padding:9px 16px;border-radius:10px;border:1px solid #9E2F26;background:#fff;color:#9E2F26;font:600 13px \'Neue Kabel\',sans-serif;cursor:pointer">Liberar reserva (comprador desiste) — Parcela ' + esc(u.codigo || '—') + '</button>';
+          }).join('<br>'));
+      }
 
       /* Compradores: el nombre congelado en el contrato siempre; las fichas
          enlazadas (contrato_compradores) se resuelven a nombre en una segunda
@@ -551,6 +589,32 @@
             if (u.error || !u.data) { toast('No se pudo abrir el PDF: ' + (u.error && u.error.message || 'sin URL')); return; }
             window.open(u.data.signedUrl, '_blank', 'noopener');
           });
+        }
+        var lib = ev.target.closest && ev.target.closest('[data-lw-liberar]');
+        if (lib) {
+          ev.preventDefault();
+          var uid = lib.getAttribute('data-lw-liberar');
+          var uu = unidadesReservadas.filter(function (x) { return x.id === uid; })[0];
+          if (!uu) return;
+          if (typeof window.lwVentana !== 'function') { toast('El formulario aún no ha cargado — prueba de nuevo en un segundo.'); return; }
+          window.lwVentana('Liberar reserva — Parcela ' + (uu.codigo || '—'), [
+            { k: '_intro', tipo: 'nota', label: 'El comprador desiste: la parcela ' + (uu.codigo || '') + ' vuelve a «disponible». El contrato ' + num + ' no se borra ni se edita — solo queda sellado como liberado. Esto no tiene botón para deshacerlo.' },
+            { k: 'nota', label: 'Motivo del desistimiento', tipo: 'textarea', req: 1, ayuda: 'Obligatorio: qué ha pasado, para el histórico del contrato.' }
+          ], 'Liberar reserva', function (vals) {
+            var nota = (vals.nota || '').trim();
+            // El "req" del formulario ya descarta vacío/solo-espacios; esto además
+            // descarta un relleno de un par de caracteres que no cuenta nada.
+            if (nota.replace(/\s+/g, '').length < 6) {
+              return { error: { message: 'Cuenta el motivo con algo más de detalle: con un par de letras no queda registrado para nadie que lo lea después.' } };
+            }
+            return sb.rpc('libera_reserva', { p_unidad_id: uu.id, p_contrato_id: c.id, p_motivo: 'desistida', p_nota: nota }).then(function (rr) {
+              if (rr.error) return { error: rr.error };
+              toast('Reserva liberada: la parcela ' + (uu.codigo || '') + ' ya está disponible.');
+              fichaContrato(sb, c, opts);
+              return {};
+            });
+          }, { sinRecarga: true, sub: 'Liberación manual · comprador desiste' });
+          return;
         }
       });
     });
