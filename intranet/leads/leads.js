@@ -302,10 +302,15 @@ function pintarClosers(){
   if(sinAtribuir && sinAtribuir.contratos > 0){
     av.hidden = false;
     const importeSinAtribuir = dinero(Math.round(sinAtribuir.firmado), 'EUR');
+    /* Esta pestaña la ven ranking O reparto (GESTOR_CRM), pero la sección de destino solo
+       la abre quien tiene 'ranking' (o super_admin) — no basta con 'reparto'. Con los
+       permisos de hoy nadie tiene 'reparto' sin 'ranking' (verificado en producción), pero
+       el texto no promete el enlace a quien pueda no tener el permiso: dice el requisito. */
     av.innerHTML = `<b>${lwT('El ranking todavía no está completo.')}</b> ${lwT('Hay')}
       <b>${lwT('%n ventas sin atribuir', { n: sinAtribuir.contratos })}</b>
       ${lwT('(%s firmados) que no cuentan para nadie.', { s: importeSinAtribuir })}
-      ${lwT('Se asignan desde')} <a href="/intranet/solicitudes/" target="_blank" rel="noopener">${lwT('Comisiones → A quién se atribuye cada venta')}</a>.`;
+      ${lwT('Se asignan desde Comisiones → «A quién se atribuye cada venta», visible solo con el permiso de ranking.')}
+      <a href="/intranet/solicitudes/" target="_blank" rel="noopener">${lwT('Abrir Comisiones')}</a>`;
   } else av.hidden = true;
 
   $('#subRanking').textContent = SOLO_RAICES

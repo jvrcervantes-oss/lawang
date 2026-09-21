@@ -128,12 +128,19 @@
       <!-- ATRIBUCIÓN DE VENTAS — traída desde intranet/leads/ el 21-sep-2026 (encargo del
            owner: es sitio de Comisiones, no de Leads). Decide qué closer se lleva la
            comisión de cada contrato (escribe en `contrato_closer`, que lee el motor de
-           comisiones) — por eso el candado es el mismo que exige la RPC de escritura
-           (`crm_contrato_closer_set`: `puede('ranking') or es_admin()`), NUNCA el permiso
-           más ancho de la pestaña de origen ('ranking' O 'reparto'). Moverla sin este
-           candado propio habría AMPLIADO quién la ve — verificado en producción antes de
-           mover: solo fran.mg@lawangproperties.com y p@pabloglobal.es (ambos admin) tienen
-           'ranking' hoy.
+           comisiones). El candado del cliente es MÁS ESTRECHO a propósito que el de la
+           RPC de escritura (`crm_contrato_closer_set`: `puede('ranking') or es_admin()`,
+           y `es_admin()` — comprobado en la base — es CUALQUIER rol admin, cuatro cuentas
+           hoy, no solo las dos con la casilla). Usar ese `es_admin()` tal cual aquí
+           repetiría el incidente ya documentado en `leads.js` (11-sep-2026, GESTOR_CRM):
+           dejar pasar por ROL metía en la tabla de comisiones a admins que no gestionan
+           ventas — ahí, literalmente, la operadora de marketing. Por eso el JS de abajo
+           usa `super_admin` (pasa por todo, como el resto de la suite) O la casilla
+           'ranking', NUNCA `rol === 'admin'` a secas: hoy son fran.mg@lawangproperties.com
+           y p@pabloglobal.es, verificado en producción. La RPC sigue siendo más permisiva
+           que esta pantalla — eso no se toca aquí, es harina de otro costal (LAW-*
+           pendiente) — pero la pantalla nunca debe ser MÁS permisiva que su propia UI del
+           CRM de origen.
            Oculta la sección ENTERA si no se cumple, no solo deshabilitada: dejarla visible
            para alguien con 'operaciones' (los 7+ sales managers que sí entran a esta
            pantalla) sería enseñar el bloque sin darle nada que hacer. -->
@@ -141,8 +148,8 @@
         <h3 data-lwt="A quién se atribuye cada venta">A quién se atribuye cada venta</h3>
         <p id="subAtribuir" style="font-size:13px;color:var(--texto-2,#5D6A63);margin:0 0 10px">—</p>
         <div class="sui-filtros" id="filtroAtribuir" style="margin:0 0 10px">
-          <button class="sui-chip" data-pend="1" data-lwt>Sin atribuir</button>
-          <button class="sui-chip" data-pend="0" data-lwt>Todas</button>
+          <button class="sui-chip" data-pend="1" aria-pressed="true" data-lwt>Sin atribuir</button>
+          <button class="sui-chip" data-pend="0" aria-pressed="false" data-lwt>Todas</button>
         </div>
         <div class="sui-tabla-caja">
           <table class="sui-tabla" id="tAtribuir"></table>
@@ -545,19 +552,26 @@ function pintarAtribuir(){
     ? lwT(ATRIBUIR.length === 1 ? '%n venta sin atribuir' : '%n ventas sin atribuir', { n: ATRIBUIR.length })
     : lwT('%n ventas firmadas en total', { n: ATRIBUIR.length });
 
-  $('#filtroAtribuir').querySelectorAll('button').forEach(b =>
-    b.classList.toggle('on', (b.dataset.pend === '1') === SOLO_PENDIENTES_ATR));
+  $('#filtroAtribuir').querySelectorAll('button').forEach(b => {
+    const on = (b.dataset.pend === '1') === SOLO_PENDIENTES_ATR;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', String(on));
+  });
 
+  /* Cabecera con lwT() y no data-lwt: esta tabla se pinta DESPUÉS de que
+     lwIdiomaAplicar() ya recorrió el DOM al cargar la página (dialogo.js/i18n.js no
+     vuelven a pasar sobre HTML insertado luego) — el mismo patrón que usa el resto de
+     este fichero para lo que se construye en tiempo de ejecución (ETIQUETA, TAG…). */
   $('#tAtribuir').innerHTML = `
-    <thead><tr><th data-lwt>Contrato</th><th data-lwt>Comprador</th><th data-lwt>Importe</th>
-      <th data-lwt>Cobrado</th><th data-lwt>Quién lo cerró</th></tr></thead>
+    <thead><tr><th>${lwT('Contrato')}</th><th>${lwT('Comprador')}</th><th>${lwT('Importe')}</th>
+      <th>${lwT('Cobrado')}</th><th>${lwT('Quién lo cerró')}</th></tr></thead>
     <tbody>${ATRIBUIR.length ? ATRIBUIR.map(c => `
       <tr>
         <td><b>${esc(c.numero || '')}</b>
           <span class="mini">${esc(c.proyecto || '')}${c.es_hijo ? ' · ' + lwT('de cadena') : ''}</span></td>
         <td>${c.comprador ? esc(c.comprador) : lwT('sin nombre')}</td>
-        <td>${lwFormatoImporte(Number(c.precio_total || 0))} ${esc(c.moneda || 'EUR')}</td>
-        <td>${Number(c.cobrado) ? lwFormatoImporte(Number(c.cobrado)) + ' ' + esc(c.moneda || 'EUR') : '—'}</td>
+        <td>${esc(lwFormatoImporte(Number(c.precio_total || 0), c.moneda || 'EUR'))}</td>
+        <td>${Number(c.cobrado) ? esc(lwFormatoImporte(Number(c.cobrado), c.moneda || 'EUR')) : '—'}</td>
         <td>
           <select class="sui-sel" data-atrib="${esc(c.contrato_id)}" data-previo="${esc(c.closer_email || '')}">
             <option value="">${lwT('— sin atribuir —')}</option>
@@ -622,11 +636,15 @@ suiOrdenable($('#tabla'), ORDEN, (x, campo) => campo === 'importe' ? Number(x.im
 window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   SB = sb; YO = session && session.user;
   ADMIN = !!(ficha && (ficha.rol === 'admin' || ficha.rol === 'super_admin'));
-  /* Candado propio de la atribución, no el de esta pantalla ('operaciones'): igual que
-     exige `crm_contrato_closer_set` en la base — admin o casilla 'ranking'. Oculta la
-     sección ENTERA (no deshabilitada) para quien solo tiene 'operaciones', que hoy son
-     7+ sales managers que no deben ver quién se atribuye cada venta. */
-  PUEDE_ATRIBUIR = !!ficha && (ADMIN || (ficha.herramientas || []).includes('ranking'));
+  /* Candado propio de la atribución, no el de esta pantalla ('operaciones') NI el `ADMIN`
+     de arriba: `rol === 'admin'` a secas admitiría a los 4 admins de Lawang, y de esos
+     solo 2 tienen la casilla 'ranking' — los otros dos (uno de ellos la operadora de
+     marketing) verían el firmado/cobrado de cada venta y quién la cerró sin que nadie lo
+     haya decidido. Mismo criterio, mismo porqué, que GESTOR_CRM en leads.js (11-sep-2026):
+     super_admin (pasa por todo) O la casilla 'ranking', nunca el rol admin por sí solo.
+     Oculta la sección ENTERA (no deshabilitada) para quien no la cumple, incluida la
+     mayoría de quienes sí entran a esta pantalla por 'operaciones'. */
+  PUEDE_ATRIBUIR = !!ficha && (ficha.rol === 'super_admin' || (ficha.herramientas || []).includes('ranking'));
   $('#bloqueAtribuir').hidden = !PUEDE_ATRIBUIR;
   if(PUEDE_ATRIBUIR) cargarAtribucion();
   await cargar();
