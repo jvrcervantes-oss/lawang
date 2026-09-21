@@ -49,7 +49,7 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=edd6e191"></script>
+<script src="/contracts/assets/i18n.js?v=ea89bbe6"></script>
 <script src="/contracts/assets/herramientas.js?v=e51247c8"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -128,19 +128,19 @@
       <!-- ATRIBUCIÓN DE VENTAS — traída desde intranet/leads/ el 21-sep-2026 (encargo del
            owner: es sitio de Comisiones, no de Leads). Decide qué closer se lleva la
            comisión de cada contrato (escribe en `contrato_closer`, que lee el motor de
-           comisiones). El candado del cliente es MÁS ESTRECHO a propósito que el de la
-           RPC de escritura (`crm_contrato_closer_set`: `puede('ranking') or es_admin()`,
-           y `es_admin()` — comprobado en la base — es CUALQUIER rol admin, cuatro cuentas
-           hoy, no solo las dos con la casilla). Usar ese `es_admin()` tal cual aquí
-           repetiría el incidente ya documentado en `leads.js` (11-sep-2026, GESTOR_CRM):
-           dejar pasar por ROL metía en la tabla de comisiones a admins que no gestionan
-           ventas — ahí, literalmente, la operadora de marketing. Por eso el JS de abajo
-           usa `super_admin` (pasa por todo, como el resto de la suite) O la casilla
-           'ranking', NUNCA `rol === 'admin'` a secas: hoy son solo 2 de los 4 admins de
-           Lawang (verificado en producción contra la tabla `usuarios`). La RPC sigue siendo más permisiva
-           que esta pantalla — eso no se toca aquí, es harina de otro costal (LAW-*
-           pendiente) — pero la pantalla nunca debe ser MÁS permisiva que su propia UI del
-           CRM de origen.
+           comisiones). El candado del cliente REPLICA, no amplía, el de las dos RPC que
+           usa esta sección — comprobado leyendo su definición en la base, no de memoria:
+           `crm_contratos_para_atribuir` (lectura) lleva `where public.puede('ranking')` en
+           el propio SELECT (sin permiso, cero filas — no es RLS de tabla, pero protege
+           igual: la fuga no puede pasar por aquí) y `crm_contrato_closer_set` (escritura)
+           levanta PT403 si `not public.puede('ranking')`. Ninguna de las dos tiene una
+           rama `es_admin()`: pasar por rol admin nunca ha sido válido aquí. `puede()` ya
+           deja pasar a super_admin por sí solo, así que el candado del cliente —
+           `super_admin` O la casilla 'ranking' — es un calco exacto del de la base, ni más
+           ancho ni más estrecho. Repetir por rol (`ficha.rol === 'admin'`) sí habría sido
+           el error: admitiría a los 4 admins de Lawang cuando solo 2 tienen la casilla —
+           el mismo incidente que ya documenta `leads.js` en GESTOR_CRM (11-sep-2026), ahí
+           con la operadora de marketing viendo comisiones que no le tocan.
            Oculta la sección ENTERA si no se cumple, no solo deshabilitada: dejarla visible
            para alguien con 'operaciones' (los 7+ sales managers que sí entran a esta
            pantalla) sería enseñar el bloque sin darle nada que hacer. -->
@@ -519,10 +519,12 @@ function formulario(existente){
    --------------------------------------------------------------------------
    Decide qué closer se lleva la comisión de cada contrato: escribe en
    `contrato_closer`, la tabla que lee directamente el motor de comisiones. Por eso el
-   candado es el mismo que exige la escritura de verdad — la RPC `crm_contrato_closer_set`
-   comprueba `puede('ranking') or es_admin()` — y NO el permiso más ancho ('ranking' O
-   'reparto') que gobernaba la pestaña de origen. Esto es una reubicación de UI: ni las
-   RPC ni la policy de la base se tocan aquí.
+   candado (PUEDE_ATRIBUIR, en LW_AUTH.then más abajo) es el mismo que exigen las dos RPC
+   de verdad — `crm_contrato_closer_set` (escritura) levanta PT403 si `not puede('ranking')`
+   y `crm_contratos_para_atribuir` (lectura) lleva `where puede('ranking')` en el propio
+   SELECT, cero filas sin permiso — y NO el permiso más ancho ('ranking' O 'reparto') que
+   gobernaba la pestaña de origen. Esto es una reubicación de UI: ni las RPC ni la policy
+   de la base se tocan aquí.
 
    La lista de «a quién se puede atribuir» es su propia consulta, sin filtrar por
    herramienta: varias ventas del histórico las cerró gente que hoy no tiene acceso a
