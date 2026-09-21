@@ -63,6 +63,11 @@ $sinRender = empty($m['imgs']);
 
 $precioValor = lw_modelo_precio_desde($m);
 $precio   = lw_precio_fmt($precioValor);
+// Solo se anuncia la subida de 2027 MIENTRAS sigue vigente el precio de ahora — pasado el
+// corte, el precio activo ya es el nuevo y no hay nada que anunciar. Restaurada 21-sep-2026
+// (hallazgo de Administración en la consulta de deploy): el rebuild la habia dejado caer
+// sin querer al limpiar una variable que parecia sin uso.
+$antes2027 = lw_antes_del_corte_2027();
 $nombre   = $m['nombre'];
 $villa    = 'Villa ' . $nombre;
 $dorm     = (int) $m['dormitorios'];
@@ -587,12 +592,16 @@ foreach ($incluido as $it):
 <div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/70 via-transparent to-transparent"></div>
 <div class="absolute bottom-4 left-4 right-4 flex items-end justify-between">
 <span class="font-headline-md text-2xl text-white font-bold"><?= lw_e($techosComp['sirap']['nombre']) ?></span>
+<span class="font-kpi-number text-lg text-surface font-bold bg-primary/80 px-3 py-1 rounded-lg backdrop-blur-sm"><?= lw_e(lw_precio_fmt($techosComp['sirap']['now'] ?? null)) ?></span>
 </div>
 </div>
 <div class="p-6 md:p-8 flex flex-col justify-between flex-1 space-y-6">
 <div class="space-y-3">
 <h3 class="font-headline-sm text-2xl text-primary font-bold"><?= lw_e($techosComp['sirap']['nombre']) ?></h3>
 <p class="font-body-md text-on-surface-variant leading-relaxed"><?= lw_e($techosComp['sirap']['desc'] ?? '') ?></p>
+<?php if ($antes2027 && !empty($techosComp['sirap']['y2027'])): ?>
+<p class="text-[11px] text-on-surface-variant">2026 price shown. From 2027: <?= lw_e(lw_precio_fmt($techosComp['sirap']['y2027'])) ?>.</p>
+<?php endif; ?>
 </div>
 </div>
 </div>
@@ -602,12 +611,16 @@ foreach ($incluido as $it):
 <div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/70 via-transparent to-transparent"></div>
 <div class="absolute bottom-4 left-4 right-4 flex items-end justify-between">
 <span class="font-headline-md text-2xl text-white font-bold"><?= lw_e($techosComp['bambu']['nombre']) ?></span>
+<span class="font-kpi-number text-lg text-white font-bold bg-deep-lagoon/90 px-3 py-1 rounded-lg backdrop-blur-sm"><?= lw_e(lw_precio_fmt($techosComp['bambu']['now'] ?? null)) ?></span>
 </div>
 </div>
 <div class="p-6 md:p-8 flex flex-col justify-between flex-1 space-y-6">
 <div class="space-y-3">
 <h3 class="font-headline-sm text-2xl text-primary font-bold"><?= lw_e($techosComp['bambu']['nombre']) ?></h3>
 <p class="font-body-md text-on-surface-variant leading-relaxed"><?= lw_e($techosComp['bambu']['desc'] ?? '') ?></p>
+<?php if ($antes2027 && !empty($techosComp['bambu']['y2027'])): ?>
+<p class="text-[11px] text-on-surface-variant">2026 price shown. From 2027: <?= lw_e(lw_precio_fmt($techosComp['bambu']['y2027'])) ?>.</p>
+<?php endif; ?>
 </div>
 </div>
 </div>
