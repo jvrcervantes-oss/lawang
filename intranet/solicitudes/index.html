@@ -136,8 +136,8 @@
            dejar pasar por ROL metía en la tabla de comisiones a admins que no gestionan
            ventas — ahí, literalmente, la operadora de marketing. Por eso el JS de abajo
            usa `super_admin` (pasa por todo, como el resto de la suite) O la casilla
-           'ranking', NUNCA `rol === 'admin'` a secas: hoy son fran.mg@lawangproperties.com
-           y p@pabloglobal.es, verificado en producción. La RPC sigue siendo más permisiva
+           'ranking', NUNCA `rol === 'admin'` a secas: hoy son solo 2 de los 4 admins de
+           Lawang (verificado en producción contra la tabla `usuarios`). La RPC sigue siendo más permisiva
            que esta pantalla — eso no se toca aquí, es harina de otro costal (LAW-*
            pendiente) — pero la pantalla nunca debe ser MÁS permisiva que su propia UI del
            CRM de origen.
