@@ -247,6 +247,27 @@ $slugPath = lw_modelo_url_path($m['id']);
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- Ancho real de la scrollbar vertical, ANTES del CSS de mas abajo (restyle 21-sep-2026,
+     correccion tras verificacion en produccion: `scrollTo(10000,0)` dejaba `scrollX` en 8px
+     pese a que `overflow-x:hidden` en `body` ya evitaba el scrollbar VISIBLE — el hallazgo de
+     verificador es real, gesto/trackpad si llegaba a esos 8px). Causa: `100vw` en Chrome
+     incluye el ancho de la scrollbar (`window.innerWidth`), pero el layout normal de
+     `.lw-heroPh`/`.brk` centrado con margin-left:50%+translateX(-50%) usa como referencia el
+     ancho SIN scrollbar (`document.documentElement.clientWidth`) — la diferencia (~17px en
+     Windows/Chrome) se queda de sobra a cada lado, simetrica, y por eso `overflow-x:hidden`
+     no bastaba: el navegador seguia dejando alcanzar esos px por scroll programatico o gesto,
+     aunque no pintara barra. Probado primero `overflow-x:hidden`/`clip` en `html` (no solo
+     `body`) para taparlo del todo: SI elimina el `scrollX` alcanzable, pero rompe de verdad
+     el `position:sticky` de `.res` (el resumen en vivo del configurador) — verificado en
+     produccion, no supuesto. La correccion de raiz es esta: fijar `--sbw` (ancho de scrollbar)
+     como variable CSS en px de verdad, no como `calc(100vw - 100%)` (ese calculo, guardado en
+     una custom property, se reinserta como TEXTO donde se usa `var(--sbw)` — el `100%` de
+     dentro se re-resuelve contra el padre de 830px en vez de contra `body`, y el resultado
+     colapsaba a `100%` sin querer: tambien probado y descartado). Con `--sbw` en px reales,
+     `calc(100vw - var(--sbw,0px))` en `.lw-heroPh`/`.brk` (mas abajo) da el ancho exacto sin
+     tocar `overflow-x` de `html` ni arriesgar el sticky. Se repite en cada resize por si la
+     barra aparece/desaparece (ej. al cargar contenido que añade scroll vertical). -->
+<script>(function(){function s(){document.documentElement.style.setProperty('--sbw',(window.innerWidth-document.documentElement.clientWidth)+'px')}s();window.addEventListener('resize',s)})();</script>
 <!-- Idioma de la web publica (EN/ES/ID). idioma-web.js va SIN defer y lo antes
      posible: fija el idioma y la tipografia antes del primer pintado. El
      diccionario de landings sí puede diferirse: traduce sobre el DOM ya montado. -->
@@ -411,8 +432,8 @@ html:not([data-lang="es"]) .i-es{display:none !important}
    `margin-left:50%` usa el ancho del PADRE (830px) para el primer desplazamiento y
    `translateX(-50%)` lo recentra con el ancho FINAL del propio elemento (el que gane el
    min con max-width) — los dos terminos que dependen de 830px se cancelan entre si. */
-.lw-heroPh{width:100vw;margin-left:50%;transform:translateX(-50%);margin-top:26px;
-  position:relative;overflow:hidden;background:var(--verde-osc)}
+.lw-heroPh{width:calc(100vw - var(--sbw,0px));margin-left:50%;transform:translateX(-50%);
+  margin-top:26px;position:relative;overflow:hidden;background:var(--verde-osc)}
 .lw-heroPh img{width:100%;height:clamp(360px,72vh,760px);object-fit:cover;display:block}
 .lw-heroPh__bar{position:absolute;left:0;right:0;bottom:0;
   background:linear-gradient(180deg,transparent 0%,rgba(20,28,18,.16) 32%,
@@ -430,7 +451,7 @@ html:not([data-lang="es"]) .i-es{display:none !important}
    abajo) y ensanchar solo añadiria sangrado sin beneficio, con el riesgo de tocar el borde
    del viewport en una tarjeta con esquinas redondeadas. */
 @media(min-width:768px){
-  .brk{width:100vw;max-width:1100px;margin-left:50%;transform:translateX(-50%)}
+  .brk{width:calc(100vw - var(--sbw,0px));max-width:1100px;margin-left:50%;transform:translateX(-50%)}
 }
 
 /* Guardrail de especificidad (hallazgo Desarrollo, consulta de deploy 14-sep-2026):
