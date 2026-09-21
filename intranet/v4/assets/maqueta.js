@@ -103,8 +103,11 @@
     [/nuevo contrato/i, 'generador-contratos'],
     [/emitir factura|nueva factura/i, 'facturas'],
     [/calendario de tesorer/i, 'vencimientos'],
-    [/registro de firmas/i, 'contratos'],
-    [/registro de auditor/i, 'operaciones']
+    [/registro de firmas/i, 'contratos']
+    /* «Registro de auditoría» tenía aquí un resto de Stitch que la llevaba a
+       Operaciones (que no habla de auditoría en absoluto). Desde el 21-sep
+       el botón vive solo en usuarios/ y hace scroll a su propio panel «Auditoría
+       Reciente» — cableado real en datos.js, data-real evita que llegue aquí. */
   ];
 
   /* Con datos reales (cableado 4-sep-2026), crear/editar NO abre el modal de
@@ -125,7 +128,12 @@
     [/registrar avance|firmar peritaje/i, '/intranet/obra/'],
     [/nuevo ticket/i, '/intranet/soporte/'],
     [/nueva solicitud/i, '/intranet/solicitudes/'],
-    [/invitar miembro|editar permisos/i, '/intranet/usuarios/'],
+    /* 21-sep-2026: apuntaba a /intranet/usuarios/ a secas — la misma pantalla
+       en la que ya está el botón, así que "+ Invitar miembro" se redirigia a
+       sí misma y parecía no hacer nada. `?nuevo=1` la aterriza en el formulario
+       real (mismo patrón que facturas/compradores/proyectos, 19-sep). */
+    [/invitar miembro/i, '/intranet/usuarios/?nuevo=1'],
+    [/editar permisos/i, '/intranet/usuarios/'],
     [/nueva creatividad|dossier$/i, '/intranet/creatividades/'],
     [/subir nuevo expediente/i, '/intranet/documentacion/'],
     [/añadir adquirente|editar texto|copiar datos/i, '/contracts/app.html']

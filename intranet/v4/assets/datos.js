@@ -3390,6 +3390,18 @@
             }
           }
         }
+
+        /* El botón de cabecera «Registro de auditoría» llevaba a Operaciones
+           (resto de un mapeo de Stitch, 21-sep-2026): esta misma pantalla YA
+           tiene el registro real ahí abajo. Lleva ahí en vez de navegar. */
+        var btnAudit = document.getElementById('btnAuditLog');
+        var tarjetaAudit = document.getElementById('lwAuditCard');
+        if (btnAudit && tarjetaAudit) btnAudit.addEventListener('click', function () {
+          tarjetaAudit.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          tarjetaAudit.style.transition = 'box-shadow .25s ease';
+          tarjetaAudit.style.boxShadow = '0 0 0 3px rgba(16,76,79,.35)';
+          setTimeout(function () { tarjetaAudit.style.boxShadow = ''; }, 1200);
+        });
       });
     },
     soporte: function (sb) {

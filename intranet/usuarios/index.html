@@ -594,6 +594,11 @@ LW_AUTH.then(async ({ sb, session, ficha }) => {
   }
   await cargar();
   if(YO.rol === 'super_admin') pintarPrivilegios();
+  /* ?nuevo=1 abre el alta directamente (21-sep-2026) — mismo patrón que
+     compradores/facturas/proyectos: lo usa el CTA «+ Invitar miembro» de la
+     v4, que hasta ahora aterrizaba en el listado y el agente tenía que
+     buscar el botón «Nuevo usuario» otra vez. */
+  if(new URLSearchParams(location.search).get('nuevo')) nuevoUsuario();
 });
 
 /* Frenos saltados — LAW-71. Dos fuentes en una caja: `privilegios_ejercidos`
