@@ -2316,12 +2316,23 @@
           var fallo = rs[0].error || rs[1].error || rs[2].error;
           if (fallo) return aviso('No se pudo generar el CSV: ' + fallo.message, '#ba1a1a');
           var ps = (rs[0] && rs[0].data) || [], us = (rs[1] && rs[1].data) || [], fs = (rs[2] && rs[2].data) || [];
+          /* Misma conversión estimada IDR→EUR que el cajón de unidades
+             (datos.js, `estimaEUR`/`TASA_IDR_EUR_ESTIMADA`) — no una segunda
+             tasa a mano: dos números "estimado" que no coincidan serían peor
+             que uno solo (21-sep-2026, mismo encargo del owner sobre
+             Riverfront I/II). Sin `window.LW_V4.estimaEUR` cargado (datos.js
+             no llegó a tiempo), se cae al comportamiento de antes —excluir y
+             contar— en vez de calcular una tasa propia aquí. */
+          var estimaEUR = (window.LW_V4 && window.LW_V4.estimaEUR) || null;
           var porP = {};
           us.forEach(function (u) {
-            var d = porP[u.proyecto || '¿?'] = porP[u.proyecto || '¿?'] || { t: 0, disp: 0, cartera: 0, fueraEur: 0 };
+            var d = porP[u.proyecto || '¿?'] = porP[u.proyecto || '¿?'] || { t: 0, disp: 0, cartera: 0, estimado: 0, fueraEur: 0 };
             d.t++;
             if (u.estado === 'disponible') d.disp++;
-            if ((u.moneda || 'EUR') === 'EUR') d.cartera += Number(u.precio || 0); else d.fueraEur++;
+            var moneda = u.moneda || 'EUR';
+            if (moneda === 'EUR') d.cartera += Number(u.precio || 0);
+            else if (moneda === 'IDR' && estimaEUR) { d.cartera += estimaEUR(u.precio); d.estimado++; }
+            else d.fueraEur++;
           });
           var cobP = {};
           fs.forEach(function (f) {
@@ -2329,12 +2340,12 @@
             var k = f.proyecto_nombre || ''; cobP[k] = (cobP[k] || 0) + Number(f.total || 0);
           });
           var filas = ps.map(function (p) {
-            var d = porP[p.nombre] || { t: 0, disp: 0, cartera: 0, fueraEur: 0 };
+            var d = porP[p.nombre] || { t: 0, disp: 0, cartera: 0, estimado: 0, fueraEur: 0 };
             var cob = cobP[p.nombre] || 0;
-            return [p.nombre, p.resort || '', d.t, d.disp, d.cartera.toFixed(2), cob.toFixed(2), (d.cartera - cob).toFixed(2), d.fueraEur];
+            return [p.nombre, p.resort || '', d.t, d.disp, d.cartera.toFixed(2), cob.toFixed(2), (d.cartera - cob).toFixed(2), d.estimado, d.fueraEur];
           });
           descargaCsv('lawang-proyectos-' + new Date().toISOString().slice(0, 10) + '.csv',
-            ['Proyecto', 'Resort', 'Unidades', 'Disponibles', 'Cartera EUR', 'Cobrado EUR', 'Pendiente EUR', 'Unidades fuera de EUR'],
+            ['Proyecto', 'Resort', 'Unidades', 'Disponibles', 'Cartera EUR (incl. estimado)', 'Cobrado EUR', 'Pendiente EUR', 'Unidades convertidas (estimado IDR)', 'Unidades sin tasa de conversión'],
             filas);
         }, function (e) {
           aviso('No se pudo generar el CSV: ' + (e && e.message || e), '#ba1a1a');

@@ -36,6 +36,35 @@
      Lo cazó Seguridad en la consulta de deploy del 18-sep. */
   function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML.replace(/"/g, '&quot;'); }
   function fmt(n, m) { return (typeof lwFormatoImporte === 'function') ? lwFormatoImporte(n, m) : (n + ' ' + (m || '')); }
+  /* Conversión ESTIMADA IDR→EUR, solo para Proyectos v4 (21-sep-2026, encargo
+     del owner). dinero.js dice a propósito «no se convierte nada, no hay tipo
+     de cambio en el sistema y meter uno inventado sería peor» — eso sigue
+     siendo la norma en Facturas/Operaciones/Compradores, donde la cifra es un
+     documento legal. Aquí es distinto: el owner pidió explícitamente ver
+     Riverfront (única cartera en IDR) sumado en € aunque sea una cifra
+     aproximada, así que se marca «estimado» en vez de mentir diciendo que es
+     un precio real.
+     Encontrado el mismo día: el cajón de unidades enseñaba el importe en
+     rupias con el sufijo "EUR" pegado sin convertir nada (`fmt(u.precio,
+     'EUR')` a pelo) — una casa de 2.759.500.000 IDR se leía como si costara
+     2.759.500.000 €. Ese es el bug que se corrige aquí; la suma en € de abajo
+     es la petición añadida.
+     Tasa: cambio medio EUR/IDR del 21-sep-2026 (~20.400). Como cualquier tipo
+     de cambio, envejece — revisar de vez en cuando, no hay automatismo que la
+     refresque sola. */
+  var TASA_IDR_EUR_ESTIMADA = 20400;
+  function estimaEUR(importeIDR) { return (Number(importeIDR) || 0) / TASA_IDR_EUR_ESTIMADA; }
+  /* Texto de un importe que puede venir en IDR: enseña la cifra real en su
+     moneda y, si no es EUR, el estimado en € al lado — nunca solo el
+     estimado, para que quede claro de dónde sale. */
+  function fmtConEstimado(n, moneda) {
+    if (n == null) return '—';
+    if ((moneda || 'EUR') === 'EUR') return fmt(n, 'EUR');
+    return fmt(n, moneda) + ' (≈ ' + fmt(estimaEUR(n), 'EUR') + ' estimado)';
+  }
+  window.LW_V4 = window.LW_V4 || {};
+  window.LW_V4.estimaEUR = estimaEUR;
+  window.LW_V4.TASA_IDR_EUR_ESTIMADA = TASA_IDR_EUR_ESTIMADA;
   function tipoC(t) { return (typeof lwTipoContrato !== 'undefined') ? lwTipoContrato(t) : t; }
   function fFecha(x) { if (!x) return '—'; var d = new Date(x); return isNaN(d) ? String(x).slice(0, 10) : d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }); }
   /* Entrega estimada del PROYECTO en trimestres (16-sep-2026, encargo del
@@ -2278,7 +2307,7 @@
             // la base no da. El cobrado SÍ es la cifra exacta —
             // cobrado_suelo/cobrado_obra vienen partidos de
             // unidad_parte_cobrada_split, no se reparten aquí.
-            var barraUnidad = function (f, clave, cartera, cobrado, firmado) {
+            var barraUnidad = function (f, clave, cartera, cobrado, firmado, moneda) {
               var firmPct = cartera ? (firmado ? 100 : 0) : 0;
               /* `cobrado_suelo`/`cobrado_obra` llegan NULL cuando el contrato no es
                  visible para quien consulta (migración 20260916093309, LAW-186
@@ -2291,9 +2320,14 @@
               var elFir = f.querySelector('[data-barra="u-' + clave + '-firmado"]');
               if (elCob) elCob.style.width = cobPct + '%';
               if (elFir) elFir.style.width = Math.max(0, firmPct - cobPct) + '%';
+              /* 21-sep-2026: esto pintaba SIEMPRE "EUR" sin mirar `moneda` — las
+                 diez parcelas de Riverfront (en IDR de verdad, ver migración
+                 20260826124756) se leían como "2.759.500.000,00 EUR". Ahora se
+                 respeta la moneda real y, si no es EUR, se añade el estimado en
+                 € al lado (fmtConEstimado, arriba). */
               pon('u-' + clave + '-txt', !cartera ? 'sin cartera'
-                : noVisible ? 'cobro no visible · ' + fmt(cartera, 'EUR')
-                : fmt(cobrado, 'EUR') + ' / ' + fmt(cartera, 'EUR'), f);
+                : noVisible ? 'cobro no visible · ' + fmtConEstimado(cartera, moneda)
+                : fmtConEstimado(cobrado, moneda) + ' / ' + fmtConEstimado(cartera, moneda), f);
             };
             uu.forEach(function (u) {
               var f = base.cloneNode(true);
@@ -2319,7 +2353,7 @@
               UNIDADES_CAJON[u.id] = u;
               var bEd = f.querySelector('[data-lw-accion="editar-unidad"]');
               if (bEd) { bEd.setAttribute('data-uid', u.id); bEd.title = 'Editar ' + (u.codigo || 'unidad'); }
-              pon('u-total', u.precio != null ? fmt(u.precio, 'EUR') : '—', f);
+              pon('u-total', fmtConEstimado(u.precio, u.moneda), f);
               // Enlaces directos a la ficha del comprador y al contrato
               // (11-sep-2026, encargo del owner). Sin ficha/contrato detrás no
               // se pone href — un enlace a "#" es peor que texto sin subrayar.
@@ -2336,8 +2370,8 @@
                 if (u.contrato_numero) { elK.href = '/intranet/v4/contratos/?contrato=' + encodeURIComponent(u.contrato_numero); elK.target = '_blank'; }
                 else { elK.removeAttribute('href'); elK.removeAttribute('target'); elK.style.cursor = 'default'; elK.style.textDecoration = 'none'; }
               }
-              barraUnidad(f, 'suelo', Number(u.precio_suelo) || 0, u.cobrado_suelo, !!u.contrato_firmado);
-              barraUnidad(f, 'obra', Number(u.precio_construccion) || 0, u.cobrado_obra, !!u.obra_firmada);
+              barraUnidad(f, 'suelo', Number(u.precio_suelo) || 0, u.cobrado_suelo, !!u.contrato_firmado, u.moneda);
+              barraUnidad(f, 'obra', Number(u.precio_construccion) || 0, u.cobrado_obra, !!u.obra_firmada, u.moneda);
               // Agente que creó el contrato (11-sep-2026, encargo del owner: ver
               // de un vistazo qué agente hizo el contrato de cada unidad). Sin
               // ficha en `usuarios` (cuentas legacy) se enseña el email a secas.
@@ -2684,8 +2718,14 @@
         var NOMBRE_POR_PROYECTO_ID = {};
         ps.forEach(function (p) { NOMBRE_POR_PROYECTO_ID[p.id] = p.nombre; });
 
-        /* --- agregados, SOLO EUR --- */
-        var tot = { cartera: 0, suelo: 0, obra: 0 }, fueraEur = 0;
+        /* --- agregados, TODO EN EUR --- (21-sep-2026, encargo del owner: las
+           unidades en IDR de Riverfront I/II se convierten a un estimado en €
+           y entran en la misma suma, en vez de desaparecer de la cartera como
+           antes — `fueraEstimado` cuenta cuántas son estimado, no cuántas se
+           pierden. Una moneda SIN tasa de conversión (si apareciera USD/AUD)
+           sigue fuera de la suma y de `fueraEstimado`: inventar una tasa para
+           esa sí sería mentir sin que nadie lo haya pedido. */
+        var tot = { cartera: 0, suelo: 0, obra: 0 }, fueraEstimado = 0, fueraSinTasa = 0;
         var ests = { disponible: 0, reservada: 0, bloqueada: 0, vendida: 0, cobrada: 0, no_disponible: 0 };
         POR_P = {};
         us.forEach(function (u) {
@@ -2697,10 +2737,14 @@
           var eNorm = (u.estado || '').replace(/\s+/g, '_');
           d.porEstado[eNorm] = (d.porEstado[eNorm] || 0) + 1;
           if (eNorm in ests) ests[eNorm]++;
-          if (!u.moneda || u.moneda !== 'EUR') { fueraEur++; return; }
-          tot.cartera += Number(u.precio || 0); tot.suelo += Number(u.precio_suelo || 0); tot.obra += Number(u.precio_construccion || 0);
-          d.cartera += Number(u.precio || 0);
-          d.suelo += Number(u.precio_suelo || 0); d.obra += Number(u.precio_construccion || 0);
+          var moneda = u.moneda || 'EUR';
+          var factor = moneda === 'EUR' ? 1 : (moneda === 'IDR' ? (1 / TASA_IDR_EUR_ESTIMADA) : null);
+          if (factor == null) { fueraSinTasa++; return; }
+          if (moneda !== 'EUR') fueraEstimado++;
+          var precioEur = Number(u.precio || 0) * factor, sueloEur = Number(u.precio_suelo || 0) * factor, obraEur = Number(u.precio_construccion || 0) * factor;
+          tot.cartera += precioEur; tot.suelo += sueloEur; tot.obra += obraEur;
+          d.cartera += precioEur;
+          d.suelo += sueloEur; d.obra += obraEur;
         });
         var cobrado = 0, facturado = 0;
         COB_P = {};
@@ -2782,8 +2826,12 @@
         pon('k-cartera', fmt(tot.cartera, 'EUR'));
         // Nota corta y solo cuando aplica (decisión del owner, 11-sep-2026:
         // el aviso largo de antes "no aportaba nada" — esto es un aviso, no
-        // un párrafo). Sin unidades fuera de EUR, no hay nada que decir.
-        pon('k-cartera-pie', 'Volumen en ' + ps.length + ' desarrollos activos' + (fueraEur ? ' · cifras en EUR' : ''));
+        // un párrafo). Ampliada 21-sep-2026: ahora dice también cuántas
+        // unidades entran convertidas (estimado, no precio real) y, si
+        // aparece una moneda sin tasa, que se quedó fuera de verdad.
+        pon('k-cartera-pie', 'Volumen en ' + ps.length + ' desarrollos activos'
+          + (fueraEstimado ? ' · incluye ' + fueraEstimado + ' unidad(es) en IDR convertida(s) a € (estimado)' : '')
+          + (fueraSinTasa ? ' · ' + fueraSinTasa + ' unidad(es) sin tasa de conversión quedan fuera' : ''));
         pon('k-cobrado', fmt(cobrado, 'EUR'));
         pon('k-cobrado-pie', facturado ? (Math.round(cobrado / facturado * 1000) / 10) + '% de lo facturado (' + fmt(facturado, 'EUR') + ')' : 'sin facturas emitidas');
         pon('k-pendiente', fmt(tot.cartera - cobrado, 'EUR'));
