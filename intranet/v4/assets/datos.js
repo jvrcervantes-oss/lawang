@@ -36,6 +36,64 @@
      Lo cazó Seguridad en la consulta de deploy del 18-sep. */
   function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML.replace(/"/g, '&quot;'); }
   function fmt(n, m) { return (typeof lwFormatoImporte === 'function') ? lwFormatoImporte(n, m) : (n + ' ' + (m || '')); }
+
+  /* ===== Closer (atribución de venta) — 21-sep-2026, encargo del owner.
+     Compartido entre el Expediente de Operaciones (pintaExpediente) y la
+     ficha de contrato en cajón (fichaContrato): un solo candado, una sola
+     lectura, un solo RPC de escritura — nada duplicado entre los dos sitios.
+     MISMO candado que ya construyó Comisiones para esta misma tabla
+     (intranet/solicitudes/index.html, PUEDE_ATRIBUIR): 'ranking' o
+     super_admin, NUNCA 'admin' a secas (dos de los cuatro admin de Lawang no
+     tienen 'ranking' y no deben ver ni tocar quién cierra cada venta).
+     Se pinta siempre sobre la RAÍZ: el motor de comisiones
+     (comisiones_evaluar_contrato_fn.sql) solo lee `contrato_closer` de ahí. */
+  function closerPuede() {
+    var f = window.LW_V4 && window.LW_V4.ficha;
+    return !!f && (f.rol === 'super_admin' || (f.herramientas || []).indexOf('ranking') !== -1);
+  }
+  var CLOSER_CACHE = null; // promesa -> { map: {contrato_id: email|''}, equipo: [{email,nombre}] }
+  /* Única vía de LECTURA: `contrato_closer` no admite SELECT directo ni para
+     `authenticated` (revoke total en 20260911020137) — todo pasa por esta RPC,
+     que ya trae "closer_email" por contrato y filtra ella misma por permiso
+     (`where puede('ranking') or es_admin()`), así que no hay lógica de
+     permisos que reinventar aquí, solo el filtrado por id en cliente. */
+  function closerDatos(sb) {
+    if (CLOSER_CACHE) return CLOSER_CACHE;
+    CLOSER_CACHE = Promise.all([
+      sb.rpc('crm_contratos_para_atribuir', { p_solo_pendientes: false }),
+      sb.from('usuarios').select('email,nombre').eq('activo', true)
+    ]).then(function (r) {
+      var map = {};
+      if (r[0].error) console.error('[v4 datos] closer:', r[0].error);
+      else (r[0].data || []).forEach(function (c) { map[c.contrato_id] = c.closer_email || ''; });
+      if (r[1].error) console.error('[v4 datos] equipo closer:', r[1].error);
+      return { map: map, equipo: r[1].error ? [] : (r[1].data || []) };
+    });
+    return CLOSER_CACHE;
+  }
+  function closerOpcionesHtml(equipo, actual) {
+    return '<option value="">— sin atribuir —</option>' + (equipo || []).map(function (u) {
+      return '<option value="' + esc(u.email) + '"' + (actual && u.email.toLowerCase() === actual.toLowerCase() ? ' selected' : '') + '>' + esc(u.nombre || u.email) + '</option>';
+    }).join('');
+  }
+  // Mismo patrón que atribuirVenta() en intranet/solicitudes/ (Comisiones):
+  // p_previo es el testigo del bloqueo optimista, exigido por el propio RPC.
+  function closerGuardar(sb, sel) {
+    var id = sel.getAttribute('data-lw-closer-sel'), previo = sel.getAttribute('data-previo') || '', destino = sel.value;
+    sel.disabled = true;
+    sb.rpc('crm_contrato_closer_set', { p_contrato: id, p_email: destino || null, p_previo: previo || null }).then(function (r) {
+      sel.disabled = false;
+      if (r.error) {
+        if (/ya no es la que tenias/i.test(r.error.message || '')) { toastMal('Otra persona ha cambiado esa atribución justo ahora — recarga la ficha para verla.'); sel.value = previo; return; }
+        toastMal('No se pudo guardar el closer: ' + r.error.message);
+        sel.value = previo;
+        return;
+      }
+      sel.setAttribute('data-previo', destino || '');
+      if (CLOSER_CACHE) CLOSER_CACHE.then(function (d) { d.map[id] = destino || ''; });
+      toast('Closer actualizado.');
+    });
+  }
   /* Conversión ESTIMADA IDR→EUR, solo para Proyectos v4 (21-sep-2026, encargo
      del owner). dinero.js dice a propósito «no se convierte nada, no hay tipo
      de cambio en el sistema y meter uno inventado sería peor» — eso sigue
@@ -528,6 +586,20 @@
         (padre ? H.dato('Cuelga de', enlaceFichaContrato(padre), { html: 1 }) : '') +
         (hijos.length ? H.dato('Encadenados', hijos.map(enlaceFichaContrato).join('<br>'), { html: 1 }) : ''));
 
+      /* Closer (21-sep-2026): SIEMPRE sobre la raíz de la cadena, nunca sobre
+         el hijo que se esté viendo — igual que pintaExpediente() en
+         Operaciones, y por la misma razón: el motor de comisiones solo lee
+         `contrato_closer` de la raíz. Candado propio, oculto entero (no
+         deshabilitado) para quien no lo cumple. Se rellena después de pintar
+         (más abajo, junto al resto de secciones asíncronas de este cajón)
+         porque la lectura pasa por un RPC y no hay que bloquear el resto de
+         la ficha esperándola. */
+      var raizCloser = padre || c;
+      var puedeCloser = closerPuede();
+      if (puedeCloser) {
+        cuerpo += H.seccion('Cierre de la venta', '<p style="margin:0;font-size:12.5px;color:#8A8474">Trayendo…</p>', 'closer');
+      }
+
       /* Botón «Liberar reserva (comprador desiste)» (21-sep-2026). Solo UX: el
          candado real es el propio RPC (rol + es_manager_de del proyecto de la
          unidad) — un sales_manager de otro proyecto ve el botón igual y recibe
@@ -615,6 +687,25 @@
           (c.pdf_firmado_hash ? H.dato('SHA-256', c.pdf_firmado_hash) : ''));
       }
       caj.cuerpo.innerHTML = cuerpo;
+
+      if (puedeCloser) {
+        var secCloser = caj.cuerpo.querySelector('[data-cajon-sec="closer"] > div');
+        if (secCloser) {
+          closerDatos(sb).then(function (d) {
+            if (!document.body.contains(secCloser)) return; // el cajón ya se cerró
+            var actual = d.map[raizCloser.id];
+            if (actual === undefined) {
+              secCloser.innerHTML = H.nota('Este contrato aún no cuenta como venta firmada con precio (el motor de comisiones exige ambos): la atribución de closer no aplica todavía.');
+              return;
+            }
+            secCloser.innerHTML = H.dato('Closer' + (raizCloser.id !== c.id ? ' (de ' + esc(raizCloser.numero) + ')' : ''),
+              '<select data-lw-closer-sel="' + esc(raizCloser.id) + '" data-previo="' + esc(actual || '') + '" style="padding:6px 10px;border-radius:8px;border:1px solid #c5c8bc;font:500 13px \'Neue Kabel\',sans-serif;background:#fff">' +
+                closerOpcionesHtml(d.equipo, actual) + '</select>', { html: 1 });
+            var sel = secCloser.querySelector('[data-lw-closer-sel]');
+            if (sel) sel.addEventListener('change', function () { closerGuardar(sb, sel); });
+          });
+        }
+      }
 
       if (vins.length) {
         sb.from('clients').select('id,full_name').in('id', vins.map(function (v) { return v.client_id; })).then(function (rc) {
@@ -2033,6 +2124,7 @@
            son los vencimientos del contrato, y la estructura encadenada es la de
            verdad (contrato_padre_id), con el cobrado de cada pieza. */
         var hitosVig = null;
+        var closerVig = null;
         function pintaExpediente(el) {
           var raiz = el.contrato_padre_id ? (porId[el.contrato_padre_id] || el) : el;
           var hijos = cs.filter(function (c) { return c.contrato_padre_id === raiz.id; });
@@ -2059,6 +2151,41 @@
           pinta('e1', raiz);
           pinta('e2', hijos[0]);
           pon2('x-mas', hijos.length > 1 ? 'La cadena tiene ' + hijos.length + ' contratos colgando; aquí se enseña el primero. Los demás, en la ficha de ' + raiz.numero + '.' : '');
+
+          /* Closer (21-sep-2026): SIEMPRE sobre la raíz (`raiz`, nunca `el`) —
+             el motor de comisiones solo lee `contrato_closer` de ahí. Mismo
+             candado y misma fuente de datos que la sección gemela de
+             fichaContrato() más abajo en este fichero: closerPuede() /
+             closerDatos() / closerOpcionesHtml() / closerGuardar(). */
+          var closerBloque = document.querySelector('[data-lw="closer-bloque"]');
+          var closerSel = document.querySelector('[data-lw="x-closer-sel"]');
+          if (closerBloque && closerSel) {
+            if (!closerPuede()) {
+              closerBloque.hidden = true;
+            } else {
+              closerBloque.hidden = false;
+              closerSel.onchange = null;
+              closerSel.disabled = true;
+              closerSel.innerHTML = '<option>Cargando…</option>';
+              var pedidoC = raiz.id;
+              closerVig = pedidoC;
+              closerDatos(sb).then(function (d) {
+                if (closerVig !== pedidoC) return; // se cambió de expediente mientras llegaba
+                var actual = d.map[raiz.id];
+                if (actual === undefined) {
+                  closerSel.innerHTML = '<option value="">— no aplica (sin firmar/sin precio) —</option>';
+                  closerSel.disabled = true;
+                  return;
+                }
+                closerSel.innerHTML = closerOpcionesHtml(d.equipo, actual);
+                closerSel.setAttribute('data-lw-closer-sel', raiz.id);
+                closerSel.setAttribute('data-previo', actual || '');
+                closerSel.disabled = false;
+                closerSel.onchange = function () { closerGuardar(sb, closerSel); };
+              });
+            }
+          }
+
           var pedido2 = el;
           sb.from('contrato_vencimientos').select('descripcion,pct,monto,fecha,nota').eq('contrato_id', el.id).order('fecha', { ascending: true, nullsFirst: false }).limit(3)
             .then(function (rv) {
@@ -5017,6 +5144,123 @@
         return itemPanel(esc(p2.nombre), esc(p2.resort || '—'), d.t + ' uds · ' + d.disp + ' disp.');
       }), ps.map(function (p2) { return '/intranet/v4/proyectos/?proyecto=' + encodeURIComponent(p2.nombre); }),
       'Sin proyectos activos.', '/intranet/v4/proyectos/');
+    });
+  };
+
+  /* ---------- Sociedades emisoras (21-sep-2026, S9) ----------
+     La identidad de cada sociedad que emite un documento de Lawang: acaba
+     impresa en cada contrato y cada factura. Pantalla SOLO de super_admin —
+     mismo criterio y mismo motivo que Comision de administracion: lo que se
+     toca aqui no es un dato de trabajo, es de quien es la firma.
+     Se piden TODAS las sociedades, activas y no: la vista que filtra solo
+     activas (`cargarSociedades`, entities.js) es para quien REDACTA un
+     documento, no para quien administra el catalogo — aqui hace falta ver
+     la desactivada para poder reactivarla. */
+  REG['sociedades'] = function (sb) {
+    if (!(window.LW_V4 && window.LW_V4.esSuperAdmin)) { notaSoloAdmin(); return; }
+
+    var cuerpoLista = document.getElementById('lw-soc-lista');
+    var cuerpoLog = document.getElementById('lw-soc-log');
+    var selLog = document.getElementById('lw-soc-log-filtro');
+
+    // Los mismos 7 campos que la herramienta clasica vigila en el historial:
+    // los que el documento DICE. Retocar logo/folio/tinta no es identidad.
+    var FISCALES = ['razon', 'marca', 'npwp', 'npwp_label', 'nib', 'domicilio', 'rep'];
+    var ETIQ = {
+      razon: 'Razón social', marca: 'Marca', npwp: 'Identificación fiscal',
+      npwp_label: 'Etiqueta fiscal', nib: 'NIB', domicilio: 'Domicilio', rep: 'Representante'
+    };
+    function fFechaHora(x) {
+      if (!x) return '—';
+      var d = new Date(x);
+      return isNaN(d) ? String(x).slice(0, 10) : d.toLocaleString('es-ES');
+    }
+
+    Promise.all([
+      q(sb.from('sociedades').select('*').order('orden'), 'sociedades', cuerpoLista),
+      q(sb.from('sociedades_log').select('clave,antes,accion,quien,cuando').order('cuando', { ascending: false }).limit(200), 'historial de sociedades', cuerpoLog)
+    ]).then(function (r) {
+      var socs = r[0], log = r[1];
+      if (!socs) return;   // fallo() ya pinto el aviso en cuerpoLista
+
+      window.LW_V4 = window.LW_V4 || {};
+      window.LW_V4.sociedadesPorClave = {};
+      socs.forEach(function (s) { window.LW_V4.sociedadesPorClave[s.clave] = s; });
+
+      // ── Lista ────────────────────────────────────────────────────────
+      if (cuerpoLista) {
+        cuerpoLista.innerHTML = socs.length ? socs.map(function (s) {
+          var npwpPendiente = s.es_indonesia !== false && !s.npwp;
+          return '<tr class="border-b border-outline-variant/30' + (s.activa ? '' : ' opacity-60') + '">' +
+            '<td class="px-5 py-4"><div class="flex items-center gap-2.5">' +
+              '<span style="width:13px;height:13px;border-radius:2px;border:1px solid #E4DCCB;flex:none;display:inline-block;background:' + esc(s.folio || '#FFF') + '"></span>' +
+              '<div><div class="font-label-md text-label-md text-on-surface">' + esc(s.razon) + '</div>' +
+              '<div class="font-body-sm text-body-sm text-outline">' + esc(s.marca || s.label || '—') + '</div></div>' +
+            '</div></td>' +
+            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(s.npwp_label || 'NPWP') + ': ' + esc(s.npwp || '—') + '</td>' +
+            '<td class="px-5 py-4"><div class="flex flex-wrap gap-1">' +
+              (s.es_indonesia === false ? '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider bg-surface-container-high text-on-surface-variant">No indonesa</span>' : '') +
+              (npwpPendiente ? '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider bg-error-container/60 text-error">NPWP pendiente</span>' : '') +
+            '</div></td>' +
+            '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' +
+              (s.activa ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-error-container/60 text-error') + '">' + (s.activa ? 'Activa' : 'Desactivada') + '</span></td>' +
+            '<td class="px-5 py-4 text-right"><button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" data-lw-soc-editar="' + esc(s.clave) + '">Editar</button></td></tr>';
+        }).join('') : '<tr><td colspan="5" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">No hay ninguna sociedad dada de alta.</td></tr>';
+      }
+
+      if (selLog) {
+        selLog.innerHTML = '<option value="">Todas las sociedades</option>' +
+          socs.map(function (s) { return '<option value="' + esc(s.clave) + '">' + esc(s.razon) + '</option>'; }).join('');
+      }
+
+      // ── Historial de identidad fiscal ───────────────────────────────
+      // Mismo mecanismo de DIFF que la herramienta clasica: cada fila del
+      // log guarda la version ANTERIOR entera, asi que hace falta la fila
+      // de DESPUES (la siguiente en el tiempo, o la sociedad de hoy si es
+      // la ultima) para poder ensenar que cambio.
+      function pintaLog() {
+        if (!cuerpoLog || !log) return;   // sin log: fallo() ya pinto el aviso
+        var filtro = selLog ? selLog.value : '';
+        var porClave = {};
+        log.forEach(function (l) { (porClave[l.clave] = porClave[l.clave] || []).push(l); });
+        Object.keys(porClave).forEach(function (k) {
+          porClave[k].sort(function (a, b) { return new Date(a.cuando) - new Date(b.cuando); });
+        });
+
+        var filas = [];
+        Object.keys(porClave).forEach(function (clave) {
+          if (filtro && clave !== filtro) return;
+          var serie = porClave[clave];   // antiguo -> reciente
+          var hoy = window.LW_V4.sociedadesPorClave[clave] || {};
+          for (var i = serie.length - 1; i >= 0; i--) {
+            var l = serie[i];
+            var despues = (i === serie.length - 1) ? hoy : serie[i + 1].antes;
+            var cambios = FISCALES.filter(function (k) { return (l.antes[k] || '') !== (despues[k] || ''); });
+            if (!cambios.length) continue;   // solo cambio aspecto: no es identidad
+            filas.push({
+              clave: clave, cuando: l.cuando, quien: l.quien,
+              cambios: cambios.map(function (k) {
+                return esc(ETIQ[k] || k) + ': <del>' + esc(l.antes[k] || '—') + '</del> → <ins>' + esc(despues[k] || '—') + '</ins>';
+              }).join('<br>')
+            });
+          }
+        });
+        filas.sort(function (a, b) { return new Date(b.cuando) - new Date(a.cuando); });
+
+        cuerpoLog.innerHTML = filas.length ? filas.map(function (f) {
+          var nombre = (window.LW_V4.sociedadesPorClave[f.clave] || {}).razon || f.clave;
+          return '<tr class="border-b border-outline-variant/30">' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(fFechaHora(f.cuando)) + '</td>' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(nombre) + '</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(f.quien || '(sin registrar)') + '</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-on-surface-variant">' + f.cambios + '</td></tr>';
+        }).join('') : '<tr><td colspan="4" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">' +
+          (filtro ? 'Ningún cambio de identidad fiscal registrado para esta sociedad.' : 'Ningún cambio de identidad fiscal registrado todavía.') + '</td></tr>';
+      }
+      pintaLog();
+      if (selLog) selLog.addEventListener('change', pintaLog);
+
+      delega(cuerpoLista, [['data-lw-soc-editar', 'abreEditaSociedad']]);
     });
   };
 

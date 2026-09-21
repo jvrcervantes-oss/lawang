@@ -175,7 +175,8 @@
      «Comisiones» — aquella es la del equipo de ventas, y son dos cosas
      distintas que comparten palabra. */
   var PANEL_CONTROL_SUPER = [
-    { path: 'comision-admin', icono: 'price_change',      texto: 'Comisión de administración' }
+    { path: 'comision-admin', icono: 'price_change',      texto: 'Comisión de administración' },
+    { path: 'sociedades',     icono: 'domain',             texto: 'Sociedades emisoras' }
   ];
 
   /* Documentacion se fusiono dentro de Proyectos (owner, 8-sep): la pestana
