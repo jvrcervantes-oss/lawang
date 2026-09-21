@@ -4902,10 +4902,16 @@
           var desactivando = (s.activa !== false) && !fila.activa;
           if (!desactivando) return guarda();
 
+          // `facturas` (Lawang: comprador<->contrato), NUNCA `axisworks_facturas`
+          // (facturacion del propio ESTUDIO a sus clientes, tabla ajena — RLS
+          // sin ninguna policy para `authenticated`, ni `sociedad` ni `tipo`
+          // existen ahi. Confundir las dos bloqueaba SIEMPRE la desactivacion,
+          // con un mensaje de "no se ha podido comprobar" que escondia el
+          // verdadero motivo — cazado en la autorrevision de code-review.
           return aseguraModulosDoc(['dialogo']).then(function () {
             return Promise.all([
-              sb.from('axisworks_facturas').select('id', { count: 'exact', head: true }).eq('sociedad', s.clave).eq('anulada', false).eq('tipo', 'factura'),
-              sb.from('axisworks_facturas').select('id', { count: 'exact', head: true }).eq('sociedad', s.clave).eq('anulada', false).eq('tipo', 'proforma')
+              sb.from('facturas').select('id', { count: 'exact', head: true }).eq('sociedad', s.clave).eq('anulada', false).eq('tipo', 'factura'),
+              sb.from('facturas').select('id', { count: 'exact', head: true }).eq('sociedad', s.clave).eq('anulada', false).eq('tipo', 'proforma')
             ]);
           }).then(function (r) {
             if (r[0].error || r[1].error) {
