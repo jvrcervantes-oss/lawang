@@ -164,7 +164,12 @@ $TELEFONOS = [
     ['show' => '+62 811-3830-5240', 'tel' => '+6281138305240'],
     ['show' => '+62 811-3830-5237', 'tel' => '+6281138305237'],
 ];
+// 21-sep-2026: $portada YA es una URL absoluta (bucket público de Supabase) desde que las
+// fotos dejaron el disco — solo el respaldo sin foto ('/assets/img/lugar/costa.webp') sigue
+// siendo una ruta relativa del propio sitio. Sin esta rama, el prefijo de dominio de abajo
+// duplicaba el esquema ("lawangproperties.comhttps://...supabase.co/..."), un og:image roto.
 $ogImg = $portada ?? '/assets/img/lugar/costa.webp';
+$ogImgAbs = (strpos($ogImg, 'http') === 0) ? $ogImg : 'https://lawangproperties.com' . $ogImg;
 $slugPath = lw_modelo_url_path($m['id']);
 
 // Etiqueta real del snapshot financiero (nombre del proyecto de ejemplo, nunca "este modelo").
@@ -186,7 +191,7 @@ $deckEtiqueta = $deckEj['proyecto'] ?? '';
 <meta property="og:title" content="<?= lw_e($villa) ?> · Turnkey villa in Bali">
 <meta property="og:description" content="Turnkey new build, <?= lw_e($dormTxt) ?>. You choose the plot and finish; the price is locked in writing before you sign.">
 <meta property="og:url" content="https://lawangproperties.com/<?= lw_e($slugPath) ?>">
-<meta property="og:image" content="https://lawangproperties.com<?= lw_e($ogImg) ?>">
+<meta property="og:image" content="<?= lw_e($ogImgAbs) ?>">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 
