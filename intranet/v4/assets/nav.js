@@ -44,6 +44,83 @@
 
   function normaliza(t) { return (t || '').replace(/\s+/g, ' ').trim(); }
 
+  /* Idioma ES/EN de la sidebar — 21-sep-2026 (S20). El mecanismo entero
+     (idioma.js + i18n.js) es de la intranet clasica desde el 11-sep; aqui
+     solo se cablea sobre el marcado que YA dibujo Stitch (par de botones
+     ES/EN bajo «Idioma» en cada una de las 17 herramientas reales — las
+     paginas puramente de redireccion no llevan sidebar y se quedan fuera).
+     `T` cae a identidad si la pagina no cargo i18n.js (las 3 vistas
+     moviles y cualquier redireccion que arrastre nav.js sin el par de
+     scripts): nunca se asume que `window.lwT` existe. */
+  var T = window.lwT || function (s) { return s; };
+
+  /* Busca el par de botones "ES"/"EN" por TEXTO EXACTO, no por clase de
+     Tailwind — mismo criterio que `ata()` de editores.js: el marcado de
+     Stitch se repite en 17 sidebars y no hay un id comun donde colgarse.
+     Recarga entera al cambiar (nunca traduccion en caliente) — mismo
+     criterio que ya usa topbar.js en la clasica: una herramienta con el
+     cajon abierto es mas fragil de re-traducir en vivo que perder el
+     scroll. */
+  var IDIOMA_ACTIVO = ['bg-deep-lagoon', 'text-on-primary'];
+  var IDIOMA_INACTIVO = ['text-on-surface-variant', 'hover:text-on-surface'];
+  function wireIdiomaToggle(aside) {
+    if (!window.lwSetIdioma) return;               // idioma.js no cargo en esta pagina
+    aside.querySelectorAll('button').forEach(function (b) {
+      var t = normaliza(b.textContent);
+      if (t !== 'ES' && t !== 'EN') return;
+      var destino = t.toLowerCase();
+      if (destino === window.LW_IDIOMA) {
+        b.classList.remove.apply(b.classList, IDIOMA_INACTIVO);
+        b.classList.add.apply(b.classList, IDIOMA_ACTIVO);
+      } else {
+        b.classList.remove.apply(b.classList, IDIOMA_ACTIVO);
+        b.classList.add.apply(b.classList, IDIOMA_INACTIVO);
+        b.addEventListener('click', function () {
+          window.lwSetIdioma(destino);
+          location.reload();
+        });
+      }
+    });
+  }
+
+  /* Traduce lo ESTATICO compartido de la sidebar: las 4 cabeceras de grupo
+     (+ «Panel de control», injertada aparte — ver mas abajo), la etiqueta
+     de cada herramienta (RUTAS/INJERTOS ya dejaron el texto en español
+     antes de que esto corra) y «Cerrar Sesión». Nunca antes de
+     `recablea()`: esta necesita el texto español para casar `RUTAS` por
+     texto, y traducir primero lo dejaria ciego. */
+  // Traduce los enlaces (icono + etiqueta) de CUALQUIER contenedor — toda la
+  // sidebar, o solo el grupo recien injertado (ver el pase de LW_AUTH.then
+  // mas abajo: re-escanear los 14-17 enlaces ya traducidos en cada pagina
+  // con sesion iniciada era trabajo de sobra por los 3-4 nuevos).
+  function traduceEnlaces(scope) {
+    scope.querySelectorAll('a').forEach(function (a) {
+      var spans = a.querySelectorAll('span');
+      if (spans.length < 2) return;
+      var etiqueta = spans[spans.length - 1];        // spans[0] es la ligadura del icono
+      etiqueta.textContent = T(normaliza(etiqueta.textContent));
+    });
+  }
+
+  function traduceSidebar(aside) {
+    if (!window.lwT) return;
+    aside.querySelectorAll('nav > div > span').forEach(function (sp) {
+      sp.textContent = T(normaliza(sp.textContent));
+    });
+    traduceEnlaces(aside);
+    aside.querySelectorAll('span').forEach(function (sp) {
+      if (normaliza(sp.textContent) === 'Idioma') sp.textContent = T('Idioma');
+    });
+  }
+
+  /* «Buscar»/«Notificaciones» del header (fuera del aside, uno por pagina). */
+  function traduceHeader() {
+    if (!window.lwT) return;
+    document.querySelectorAll('header button[title]').forEach(function (b) {
+      b.title = T(b.title);
+    });
+  }
+
   function marcaActiva(a) {
     a.setAttribute('aria-current', 'page');
     // píldora activa de la cáscara canónica (creatividades, 3-sep-2026)
@@ -98,7 +175,7 @@
      «Comisiones» — aquella es la del equipo de ventas, y son dos cosas
      distintas que comparten palabra. */
   var PANEL_CONTROL_SUPER = [
-    { path: 'comision-admin', icono: 'price_change',      texto: 'Comision de administracion' }
+    { path: 'comision-admin', icono: 'price_change',      texto: 'Comisión de administración' }
   ];
 
   /* Documentacion se fusiono dentro de Proyectos (owner, 8-sep): la pestana
@@ -177,6 +254,7 @@
     });
 
     grupo.insertAdjacentElement('afterend', nuevoGrupo);
+    return nuevoGrupo;
   }
 
   function recablea() {
@@ -208,6 +286,20 @@
       }
     });
 
+    // Idioma: SIEMPRE despues del bucle de arriba — traduceSidebar reescribe
+    // el textContent que ese bucle necesita en español para casar RUTAS.
+    document.querySelectorAll('aside').forEach(function (aside) {
+      wireIdiomaToggle(aside);
+      traduceSidebar(aside);
+    });
+    traduceHeader();
+    // El marcado ESTATICO propio de cada pantalla (comision-admin, 48
+    // `data-lwt`; el que se vaya marcando en el resto) no lo toca lo de
+    // arriba — eso es solo la sidebar. Sin esta llamada, `data-lwt` es
+    // decoracion muerta: nadie lo lee. i18n.js no la carga ninguna pagina
+    // clasica tampoco (ahi la pone topbar.js) — aqui no hay topbar.js.
+    if (window.lwIdiomaAplicar) window.lwIdiomaAplicar();
+
     // Acciones simuladas: el resto de href="#" no navega ni salta arriba.
     document.addEventListener('click', function (e) {
       var a = e.target.closest && e.target.closest('a[href="#"]');
@@ -224,7 +316,7 @@
       'background:#070907;color:#F5F0E6;border:1px solid #C89B5C;border-radius:4px;' +
       'font:600 11px/1.4 Manrope,system-ui,sans-serif;letter-spacing:.08em;' +
       'padding:7px 12px;opacity:.92;text-transform:uppercase';
-    d.innerHTML = 'Maqueta v4 · datos ficticios · <a href="' + ROOT +
+    d.innerHTML = T('Maqueta v4 · datos ficticios') + ' · <a href="' + ROOT +
       '" style="color:#DFB376;text-decoration:underline">Hub</a>';
     document.body.appendChild(d);
   }
@@ -240,7 +332,17 @@
   if (window.LW_AUTH && typeof window.LW_AUTH.then === 'function') {
     window.LW_AUTH.then(function (aut) {
       document.querySelectorAll('aside').forEach(function (aside) {
-        injertaPanelControl(aside, aut && aut.ficha);
+        // «Panel de control» nace DESPUES del primer traduceSidebar (este
+        // pase espera a LW_AUTH) — sin traducir el grupo nuevo se queda en
+        // español aunque el resto de la sidebar ya este en ingles. Se
+        // traduce SOLO `nuevoGrupo` (code-review, 21-sep): volver a barrer
+        // los 14-17 enlaces ya traducidos en cada carga con sesion no
+        // cambia nada que ya no estuviera en ingles, solo trabajo de mas.
+        var nuevoGrupo = injertaPanelControl(aside, aut && aut.ficha);
+        if (!nuevoGrupo || !window.lwT) return;
+        var cabecera = nuevoGrupo.querySelector('span');
+        if (cabecera) cabecera.textContent = T(normaliza(cabecera.textContent));
+        traduceEnlaces(nuevoGrupo);
       });
     });
   }

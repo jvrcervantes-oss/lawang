@@ -205,6 +205,58 @@
     'Modelos': 'House models',
     'Obra': 'Construction',
     'Usuarios': 'Users',
+    /* Herramientas nacidas en la v4 (21-sep-2026, S20): «Comisiones» del
+       equipo de ventas, y el grupo «Panel de control» (Cuentas, Equipos de
+       venta, Condiciones, Comisión de administración) — nav.js las inyecta
+       por texto, herramientas.js ya trae el nombre canónico de las dos
+       últimas (líneas 187 y 254), aquí solo faltaba la traducción. */
+    'Comisiones': 'Commissions',
+    'Panel de control': 'Control panel',
+    'Cuentas': 'Accounts',
+    'Equipos de venta': 'Sales teams',
+    'Condiciones': 'Terms',
+    'Comisión de administración': 'Administration commission',
+    'Idioma': 'Language',
+    'Cerrar Sesión': 'Log out',
+    'Notificaciones': 'Notifications',
+    'Maqueta v4 · datos ficticios': 'v4 mockup · sample data',
+
+    /* ---------- v4/comision-admin/: la pantalla entera ya llevaba data-lwt
+       de antes de S20, solo faltaba el diccionario ---------- */
+    'Un porcentaje sobre todo el dinero que entra por la intranet, sin excepciones. Se devenga solo, recibí a recibí, y cada línea guarda congelado el porcentaje que le tocó: editar la tarifa no reescribe lo ya devengado salvo que se pida. No tiene nada que ver con la comisión del equipo de ventas.':
+      'A percentage of every euro that comes in through the intranet, no exceptions. It accrues on its own, receipt by receipt, and each line keeps the percentage that applied to it frozen: editing the rate does not rewrite what has already accrued unless asked to. It has nothing to do with the sales team commission.',
+    'Nueva tarifa': 'New rate',
+    'Tarifa vigente': 'Current rate',
+    'Devengado este mes': 'Accrued this month',
+    'Pendiente de facturar': 'Pending invoicing',
+    'Para revisar': 'To review',
+    'Tarifas': 'Rates',
+    'El porcentaje y desde cuándo rige': 'The percentage and since when it applies',
+    'Se puede editar una tarifa o añadir otra con su fecha. Editar guarda antes la versión anterior, así que siempre se puede decir qué porcentaje regía el día que entró cada euro.':
+      'A rate can be edited or a new one added with its date. Editing keeps the previous version first, so it is always possible to tell which percentage applied the day each euro came in.',
+    'Rige desde': 'In effect since',
+    'Acción': 'Action',
+    'Trayendo las tarifas…': 'Loading the rates…',
+    'Por sociedad': 'By company',
+    'Cada empresa, su propia cuenta': 'Each company, its own account',
+    'Cada sociedad es un deudor distinto y se le factura por separado. Nunca se suman entre sí, ni tampoco entre monedas.':
+      'Each company is a separate debtor and is invoiced separately. They are never added together, nor across currencies.',
+    'Sociedad': 'Company',
+    'Entradas': 'Entries',
+    'Dinero entrado': 'Money in',
+    'Comisión devengada': 'Commission accrued',
+    'Trayendo el reparto por sociedad…': 'Loading the split by company…',
+    'Libro': 'Ledger',
+    'Una línea por cada entrada de dinero': 'One line per money-in entry',
+    'Todas las sociedades': 'All companies',
+    'Todos los estados': 'All statuses',
+    'Cobrada': 'Collected',
+    'Exenta': 'Exempt',
+    'Todos los meses': 'All months',
+    'Comisión': 'Commission',
+    'Trayendo el libro…': 'Loading the ledger…',
+    'Los importes son brutos, antes de cualquier retención. Un abono (importe negativo) es la vuelta de una comisión cuyo recibí se anuló o se borró; un ajuste es la diferencia cuando el recibí cambió de importe después de facturarse.':
+      'Amounts are gross, before any withholding. A credit (negative amount) is the reversal of a commission whose receipt was voided or deleted; an adjustment is the difference when the receipt changed amount after being invoiced.',
 
     /* ---------- Soporte ---------- */
     'Buscar comprador…': 'Search buyer…',
