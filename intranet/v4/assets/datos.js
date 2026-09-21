@@ -53,6 +53,7 @@
      de cambio, envejece — revisar de vez en cuando, no hay automatismo que la
      refresque sola. */
   var TASA_IDR_EUR_ESTIMADA = 20400;
+  var TASA_IDR_EUR_ESTIMADA_FECHA = '21-sep-2026';
   function estimaEUR(importeIDR) { return (Number(importeIDR) || 0) / TASA_IDR_EUR_ESTIMADA; }
   /* Texto de un importe que puede venir en IDR: enseña la cifra real en su
      moneda y, si no es EUR, el estimado en € al lado — nunca solo el
@@ -60,11 +61,12 @@
   function fmtConEstimado(n, moneda) {
     if (n == null) return '—';
     if ((moneda || 'EUR') === 'EUR') return fmt(n, 'EUR');
-    return fmt(n, moneda) + ' (≈ ' + fmt(estimaEUR(n), 'EUR') + ' estimado)';
+    return fmt(n, moneda) + ' (≈ ' + fmt(estimaEUR(n), 'EUR') + ' estimado, tasa del ' + TASA_IDR_EUR_ESTIMADA_FECHA + ')';
   }
   window.LW_V4 = window.LW_V4 || {};
   window.LW_V4.estimaEUR = estimaEUR;
   window.LW_V4.TASA_IDR_EUR_ESTIMADA = TASA_IDR_EUR_ESTIMADA;
+  window.LW_V4.TASA_IDR_EUR_ESTIMADA_FECHA = TASA_IDR_EUR_ESTIMADA_FECHA;
   function tipoC(t) { return (typeof lwTipoContrato !== 'undefined') ? lwTipoContrato(t) : t; }
   function fFecha(x) { if (!x) return '—'; var d = new Date(x); return isNaN(d) ? String(x).slice(0, 10) : d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }); }
   /* Entrega estimada del PROYECTO en trimestres (16-sep-2026, encargo del
@@ -2830,7 +2832,7 @@
         // unidades entran convertidas (estimado, no precio real) y, si
         // aparece una moneda sin tasa, que se quedó fuera de verdad.
         pon('k-cartera-pie', 'Volumen en ' + ps.length + ' desarrollos activos'
-          + (fueraEstimado ? ' · incluye ' + fueraEstimado + ' unidad(es) en IDR convertida(s) a € (estimado)' : '')
+          + (fueraEstimado ? ' · incluye ' + fueraEstimado + ' unidad(es) en IDR convertida(s) a € (estimado, tasa del ' + TASA_IDR_EUR_ESTIMADA_FECHA + ')' : '')
           + (fueraSinTasa ? ' · ' + fueraSinTasa + ' unidad(es) sin tasa de conversión quedan fuera' : ''));
         pon('k-cobrado', fmt(cobrado, 'EUR'));
         pon('k-cobrado-pie', facturado ? (Math.round(cobrado / facturado * 1000) / 10) + '% de lo facturado (' + fmt(facturado, 'EUR') + ')' : 'sin facturas emitidas');

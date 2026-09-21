@@ -2324,6 +2324,7 @@
              no llegó a tiempo), se cae al comportamiento de antes —excluir y
              contar— en vez de calcular una tasa propia aquí. */
           var estimaEUR = (window.LW_V4 && window.LW_V4.estimaEUR) || null;
+          var tasaFecha = (window.LW_V4 && window.LW_V4.TASA_IDR_EUR_ESTIMADA_FECHA) || 'sin fecha';
           var porP = {};
           us.forEach(function (u) {
             var d = porP[u.proyecto || '¿?'] = porP[u.proyecto || '¿?'] || { t: 0, disp: 0, cartera: 0, estimado: 0, fueraEur: 0 };
@@ -2345,7 +2346,7 @@
             return [p.nombre, p.resort || '', d.t, d.disp, d.cartera.toFixed(2), cob.toFixed(2), (d.cartera - cob).toFixed(2), d.estimado, d.fueraEur];
           });
           descargaCsv('lawang-proyectos-' + new Date().toISOString().slice(0, 10) + '.csv',
-            ['Proyecto', 'Resort', 'Unidades', 'Disponibles', 'Cartera EUR (incl. estimado)', 'Cobrado EUR', 'Pendiente EUR', 'Unidades convertidas (estimado IDR)', 'Unidades sin tasa de conversión'],
+            ['Proyecto', 'Resort', 'Unidades', 'Disponibles', 'Cartera EUR (incl. estimado IDR, tasa del ' + tasaFecha + ')', 'Cobrado EUR', 'Pendiente EUR', 'Unidades convertidas (estimado IDR)', 'Unidades sin tasa de conversión'],
             filas);
         }, function (e) {
           aviso('No se pudo generar el CSV: ' + (e && e.message || e), '#ba1a1a');
