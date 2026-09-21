@@ -608,13 +608,19 @@ async function pintarPrivilegios(){
 
   const fallo = priv.error ? (priv.error.message || lwT('no se ha podido leer')) : null;
   const filas = priv.data || [];
+  /* Claves EXACTAS de `registra_privilegio()` (supabase/migrations/
+     20260819045000_law71_frenos_saltables_con_rastro.sql) — dos de las seis
+     no casaban con lo que la base escribe de verdad (hallazgo de
+     code-review sobre la paridad en v4, 21-sep-2026): sin la clave correcta
+     el fallback `|| r.evento` de abajo enseñaba la jerga cruda de la base
+     en vez de la frase, a la única persona que mira este panel. */
   const NOMBRE = {
     desbloqueado:            lwT('desbloqueó un contrato firmado'),
     editado_estando_firmado: lwT('editó un contrato firmado'),
-    facturado_sin_bloquear:  lwT('facturó un contrato sin firmar'),
+    factura_sin_bloquear:    lwT('facturó un contrato sin firmar'),
     cobro_a_otro_comprador:  lwT('aplicó un cobro al comprador de otro contrato'),
     cobro_a_factura_huerfana:lwT('aplicó un cobro a una factura sin contrato'),
-    guardado_sin_ficha:      lwT('guardó un contrato sin ficha de comprador'),
+    comprador_sin_ficha:     lwT('guardó un contrato sin ficha de comprador'),
   };
   const dia = s => new Date(s).toLocaleString(lwLocale(), { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
 

@@ -4090,6 +4090,11 @@
             var d = new Date(s);
             return isNaN(d) ? String(s) : d.toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
           };
+          var pintaFalloFrenos = function () {
+            cuerpoFrenos.innerHTML = '<p class="text-[12.5px] mt-1" style="color:#C8791F">'
+              + '<b>No se ha podido leer el registro de privilegios.</b> Esto NO quiere decir que '
+              + 'nadie se haya saltado nada: quiere decir que no se ha mirado. Recarga la página.</p>';
+          };
           Promise.all([
             sb.from('privilegios_ejercidos').select('cuando,quien,evento,contrato,detalle')
               .order('cuando', { ascending: false }).limit(50),
@@ -4098,13 +4103,22 @@
             var priv = r[0] || {}, borr = r[1] || {};
             var fallo = priv.error ? (priv.error.message || 'no se ha podido leer') : null;
             var filas = priv.data || [];
+            /* Claves EXACTAS de `registra_privilegio()` (supabase/migrations/
+               20260819045000_law71_frenos_saltables_con_rastro.sql) — no las
+               que "suenan bien". Dos de las seis no casaban con lo que la
+               base escribe de verdad (`factura_sin_bloquear`, no
+               `facturado_sin_bloquear`; `comprador_sin_ficha`, no
+               `guardado_sin_ficha`), copiadas tal cual de un bug ya existente
+               en /intranet/usuarios/ (hallazgo de code-review, 21-sep-2026):
+               sin la clave correcta el fallback `|| f.evento` enseñaba la
+               jerga cruda de la base al super_admin en vez de la frase. */
             var NOMBRE = {
               desbloqueado: 'desbloqueó un contrato firmado',
               editado_estando_firmado: 'editó un contrato firmado',
-              facturado_sin_bloquear: 'facturó un contrato sin firmar',
+              factura_sin_bloquear: 'facturó un contrato sin firmar',
               cobro_a_otro_comprador: 'aplicó un cobro al comprador de otro contrato',
               cobro_a_factura_huerfana: 'aplicó un cobro a una factura sin contrato',
-              guardado_sin_ficha: 'guardó un contrato sin ficha de comprador'
+              comprador_sin_ficha: 'guardó un contrato sin ficha de comprador'
             };
             var cabecera = '<div class="flex items-center justify-between mb-2">' +
               '<span class="text-[11px] tracking-[0.12em] uppercase text-on-surface-variant font-bold">Registro</span>' +
@@ -4133,6 +4147,16 @@
                 }).join('') + '</tbody></table></div>';
             }
             cuerpoFrenos.innerHTML = cabecera + cuerpo;
+          }, function (e) {
+            // Sin este segundo brazo, un RECHAZO (no un `.error` en la
+            // respuesta — un throw de red/timeout) dejaba el "Cargando…"
+            // inicial para siempre: exactamente la alarma-que-parece-viva
+            // que este panel existe para evitar (hallazgo de code-review,
+            // 21-sep-2026). Mismo motivo por el que `q()`/`cnt()` de este
+            // fichero siempre llevan los dos brazos del `.then` — esto no
+            // pasaba por esos helpers, así que se le había quedado corto.
+            console.error('[v4 datos] frenos saltados:', e);
+            pintaFalloFrenos();
           });
         }
       });

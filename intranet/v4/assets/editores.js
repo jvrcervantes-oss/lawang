@@ -4056,13 +4056,29 @@
           return aviso('Dar de alta exige administración con la herramienta Usuarios.', '#8A6A34');
         }
         var rolInicial = 'agente';
+        var soySuperAlta = aut.ficha.rol === 'super_admin';
+        /* admin-usuarios (accion:'crear') rechaza con 403 cualquier rol que
+           no sea 'agente' si quien crea no es super_admin (index.ts línea
+           ~161: «solo_super_admin_crea_admins», y el nombre del error no
+           miente pero tampoco distingue: bloquea TAMBIÉN sales_manager/
+           project_manager, no solo admin). ROLES_ED no filtra eso — ofrecía
+           las cuatro opciones a cualquier admin y el 403 llegaba después de
+           rellenar el formulario entero (hallazgo de code-review,
+           21-sep-2026). Se ofrece solo lo que de verdad se puede crear. */
+        var rolesAlta = soySuperAlta ? ROLES_ED : ['agente'];
         modal('Nuevo usuario', [
           { k: 'email', label: 'Email', tipo: 'email', req: 1, medio: 1 },
           { k: 'nombre', label: 'Nombre', req: 1, medio: 1 },
           { k: 'password', label: 'Contraseña provisional', req: 1, medio: 1,
             ayuda: 'Mínimo 10 caracteres. La verá al entrar; que la cambie después. No se puede volver a consultar.' },
-          { k: 'rol', label: 'Rol', tipo: 'select', medio: 1, valor: rolInicial,
-            opciones: ROLES_ED.map(function (r) { return [r, ETIQ_ROL[r] || r]; }) },
+          soySuperAlta
+            ? { k: 'rol', label: 'Rol', tipo: 'select', medio: 1, valor: rolInicial,
+                opciones: rolesAlta.map(function (r) { return [r, ETIQ_ROL[r] || r]; }) }
+            // Sin `k`: no viaja en el payload (mismo patrón que 'nota'/
+            // 'lectura' en el resto del fichero) — el rol real lo fija
+            // `rolInicial` explícito en el onGuardar de abajo, nunca el
+            // default implícito de la edge.
+            : { tipo: 'lectura', label: 'Rol', medio: 1, valor: ETIQ_ROL[rolInicial] || rolInicial },
           { tipo: 'nota', label: 'Se crea la cuenta y se le da acceso de inmediato. Nace sin ningún proyecto asignado — se asigna después editando la ficha ya creada.' },
           /* CRM de leads NUNCA preseleccionada, aunque el rol elegido la
              traiga por defecto en «Herramientas que verá» de abajo — decisión
@@ -4092,8 +4108,12 @@
                 'apikey': 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg'
               },
               body: JSON.stringify({
+                // `v.rol` explícito (soySuperAlta) o `rolInicial` ('agente':
+                // sin campo `k` en el formulario, no viaja en `v`) — nunca el
+                // default implícito de la edge, que es el mismo valor pero
+                // por casualidad, no por diseño.
                 accion: 'crear', email: email, password: v.password,
-                nombre: (v.nombre || '').trim(), rol: v.rol,
+                nombre: (v.nombre || '').trim(), rol: v.rol || rolInicial,
                 herramientas: herramientas, tipos_contrato: v.tipos_contrato || []
               })
             }).then(function (resp) {
