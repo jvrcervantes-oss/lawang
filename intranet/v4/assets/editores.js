@@ -2831,7 +2831,10 @@
 
     compradores: function (aut) {
       var sb = aut.sb;
-      ata(/Alta de comprador/i, function () {
+      /* `btnAlta` se guarda para poder disparar el alta sola con `?nuevo=1`
+         (paridad 21-sep-2026): la pantalla llega desde otro sitio de la suite
+         que ya sabe que quiere dar de alta, sin obligar a buscar el botón. */
+      var btnAlta = ata(/Alta de comprador/i, function () {
         /* Los SEIS datos que exige un alta (owner, 14-sep-2026) — y el telefono
            partido en prefijo + numero, igual que en /intranet/compradores/, que
            es lo que pidio. Cuales son NO se decide aqui: la lista vive en
@@ -2839,7 +2842,11 @@
            pantalla carga, porque si se escribiera tambien aqui las dos copias
            divergirian y este editor seguiria dando de alta fichas a medias.
            El `req: 1` de cada campo es lo que pinta el asterisco y da el aviso
-           en el sitio; el validador compartido es el que manda. */
+           en el sitio; el validador compartido es el que manda.
+           Los 5 campos de debajo (idioma + los 4 "solo empresa") se añaden
+           21-sep-2026 para igualar al formulario de EDITAR (abreEditaComprador
+           más abajo): antes el alta pedía 7 de las 13 columnas y el resto se
+           quedaba a medias hasta la primera edición. */
         modal('Alta de comprador', [
           { k: 'full_name', label: 'Nombre completo / razón social', req: 1 },
           { k: 'email', label: 'Email', tipo: 'email', req: 1 },
@@ -2847,7 +2854,13 @@
           { k: 'telefono', label: 'Teléfono', req: 1, medio: 1 },
           { k: 'nationality', label: 'Nacionalidad', req: 1, ayuda: 'código de dos letras: ES, SG, AU…' },
           { k: 'passport_number', label: 'Pasaporte / NPWP', req: 1, ayuda: 'Es lo que se imprime en el contrato.' },
-          { k: 'tipo', label: 'Tipo', tipo: 'select', opciones: [['persona', 'Persona física'], ['empresa', 'Empresa']], valor: 'persona' }
+          { k: 'tipo', label: 'Tipo', tipo: 'select', opciones: [['persona', 'Persona física'], ['empresa', 'Empresa']], valor: 'persona' },
+          { k: 'idioma_comunicacion', label: 'Idioma de comunicación', tipo: 'select', valor: 'es',
+            opciones: [['es', 'Español'], ['en', 'English'], ['id', 'Bahasa Indonesia']] },
+          { k: 'forma_juridica', label: 'Forma jurídica (solo empresa)', medio: 1, ayuda: 'S.L., LLC, PT PMA, GmbH…' },
+          { k: 'registro_num', label: 'Nº de registro mercantil (solo empresa)', medio: 1 },
+          { k: 'rep_nombre', label: 'Representante legal (solo empresa)', medio: 1 },
+          { k: 'rep_cargo', label: 'Cargo del representante (solo empresa)', medio: 1 }
         ], 'Dar de alta', function (v) {
           if (typeof faltanDatosComprador === 'function') {
             var faltan = faltanDatosComprador(v);
@@ -2859,12 +2872,24 @@
              es de administracion (policy es_admin) — asimetria deliberada de la
              suite (migracion 7-ago), que este editor respeta y no "arregla" */
           return sb.from('clients').insert({
-            full_name: v.full_name, email: v.email || null,
+            // MAYÚSCULAS, igual que ya hace el UPDATE de editar (línea de abajo):
+            // el contrato y la factura enlazan esta ficha y la imprimen tal cual.
+            full_name: v.full_name.trim().toUpperCase(), email: v.email || null,
             phone: v.prefijo ? v.prefijo + ' ' + v.telefono : (v.telefono || null),
             nationality: v.nationality || null, passport_number: v.passport_number || null,
-            tipo: v.tipo
-          });
+            tipo: v.tipo, idioma_comunicacion: v.idioma_comunicacion || 'es',
+            forma_juridica: v.tipo === 'empresa' ? (v.forma_juridica || null) : null,
+            registro_num: v.tipo === 'empresa' ? (v.registro_num || null) : null,
+            rep_nombre: v.tipo === 'empresa' ? (v.rep_nombre || null) : null,
+            rep_cargo: v.tipo === 'empresa' ? (v.rep_cargo || null) : null
+          }).then(errorClienteHumano);
         });
+        // Nacionalidad como picker de nombre completo, no texto libre — igual
+        // que el resto de la suite (geo.js + dialogo.js, cargados en esta
+        // página). `modal()` ya construyó el DOM cuando esta línea corre.
+        if (window.lwPicker && typeof NACIONALIDADES !== 'undefined') {
+          window.lwPicker(document.querySelector('#lw-editor [data-k="nationality"]'), NACIONALIDADES, { titulo: 'Nacionalidad' });
+        }
       });
 
       /* EDITAR una ficha, desde su cajon (18-sep-2026). Quien puede lo decide la
@@ -2945,7 +2970,14 @@
           };
           return sb.from('clients').update(patch).eq('id', c.id).select('id').then(unaFila).then(errorClienteHumano);
         });
+        if (window.lwPicker && typeof NACIONALIDADES !== 'undefined') {
+          window.lwPicker(document.querySelector('#lw-editor [data-k="nationality"]'), NACIONALIDADES, { titulo: 'Nacionalidad' });
+        }
       };
+      /* `?nuevo=1` abre el alta sola (paridad 21-sep-2026): quien llega desde
+         otro sitio de la suite con la intención ya tomada no debería tener que
+         encontrar el botón. Una sola vez, al cargar — no en cada repintado. */
+      if (btnAlta && new URLSearchParams(location.search).get('nuevo') === '1') btnAlta.click();
     },
 
     usuarios: function (aut) {

@@ -1281,6 +1281,31 @@
         var TIPO_DOC_FAC = { factura: 'Factura', proforma: 'Proforma', recibi: 'Recibí' };
         var porId = {}; cs.forEach(function (c2) { porId[c2.id] = c2; });
 
+        /* Portal del comprador — misma Edge Function que /intranet/compradores/
+           (portal-invitar): el body nunca decide el permiso, lo decide el JWT
+           del admin en servidor. Códigos → mensaje humano, calcados de la viva
+           (18-sep-2026, paridad S6). */
+        var MOTIVOS_PORTAL = {
+          ese_email_es_del_equipo: 'Ese correo ya es de un usuario del equipo. Una misma cuenta no puede ser del equipo y del portal a la vez. Para probar el portal, usa otro correo (con Gmail vale tucorreo+portal@gmail.com: llega al mismo buzón y cuenta como distinto).',
+          email_invalido: 'Ese correo no tiene una forma válida.',
+          sin_fichas: 'No se ha podido saber a qué ficha dar acceso. Recarga la página e inténtalo otra vez.',
+          no_autorizado: 'Hace falta ser administrador para invitar o revocar accesos.',
+          sin_sesion: 'Tu sesión ha caducado. Vuelve a entrar.',
+          sesion_invalida: 'Tu sesión ha caducado. Vuelve a entrar.',
+          password_corta: 'La contraseña necesita 10 caracteres o más.',
+          no_es_cuenta_de_portal: 'Ese email no tiene acceso al portal todavía — invítalo primero.'
+        };
+        function motivoPortal(e) { return MOTIVOS_PORTAL[e] || e; }
+        function llamaPortal(body) {
+          return sb.auth.getSession().then(function (s) {
+            return fetch('https://vtulllundrfennhjddhc.supabase.co/functions/v1/portal-invitar', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json', authorization: 'Bearer ' + s.data.session.access_token },
+              body: JSON.stringify(body)
+            }).then(function (r) { return r.json(); }, function () { return { error: 'respuesta ilegible' }; });
+          });
+        }
+
         function quitaId() {
           var u2 = new URL(location.href);
           if (u2.searchParams.has('id')) { u2.searchParams.delete('id'); history.replaceState(null, '', u2.href); }
@@ -1352,6 +1377,31 @@
             ? 'La dio de alta <b>' + esc(nombreEquipo[String(c2.propietario).toLowerCase()] || c2.propietario) + '</b>' +
               ((window.LW_V4.miEmail || '').toLowerCase() === String(c2.propietario).toLowerCase() ? ' (tú)' : '') + '.'
             : '<b>Nadie.</b> Ficha antigua sin autor: hoy solo la corrige un administrador.';
+          /* Traspasar la ficha (14-sep en la clásica, paridad 21-sep). Sin RPC
+             por defecto: la policy «admins actualizan clientes» ya deja a un
+             admin escribir `propietario` — solo con la casilla de arrastrar
+             contratos/facturas entra `traspasar_cliente_con_documentos`. */
+          function seccionResponsable() {
+            var base = H.nota(quienAlta, true);
+            if (!window.LW_V4.esAdmin) return base;
+            var opciones = eq.map(function (u) {
+              return '<option value="' + esc(u.email) + '"' + (String(c2.propietario || '').toLowerCase() === String(u.email).toLowerCase() ? ' selected' : '') + '>' + esc(u.nombre || u.email) + '</option>';
+            }).join('');
+            var controles = '<div style="display:grid;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(228,220,203,.7)">' +
+              '<div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">' +
+              '<label style="display:grid;gap:4px;font-size:11.5px;color:#75786e;flex:1;min-width:160px">Pasar la ficha a<select data-tr-sel style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #E4DCCB;border-radius:8px;font-size:13px;color:#2E3437;background:#fff">' + opciones + '</select></label>' +
+              '<button type="button" data-tr-btn style="padding:9px 16px;border-radius:8px;border:0;background:#104C4F;color:#fff;font-weight:600;font-size:13px;cursor:pointer">Traspasar</button>' +
+              '</div>';
+            if (window.LW_V4.esSuperAdmin) {
+              controles += '<label style="display:flex;gap:8px;align-items:flex-start;font-size:12px;color:#2E3437;margin-top:2px">' +
+                '<input type="checkbox" data-tr-chk style="margin-top:2px">' +
+                '<span>Arrastrar también sus contratos y facturas (solo los que sean de ' + esc(nombreEquipo[String(c2.propietario || '').toLowerCase()] || c2.propietario || '—') + ')</span></label>' +
+                '<div data-tr-caja hidden style="display:grid;gap:4px">' +
+                '<label style="font-size:11.5px;color:#75786e">Motivo<input type="text" data-tr-motivo maxlength="180" placeholder="Ej. Ana deja el equipo, sus clientes pasan a Carmen" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #E4DCCB;border-radius:8px;font-size:13px;color:#2E3437;background:#fff"></label></div>';
+            }
+            controles += '<p style="margin:8px 0 0;font-size:11.5px;color:#75786e">Quien la reciba podrá abrirla y corregirla (mientras no cuelgue de un contrato firmado); los demás la seguirán viendo en el directorio, solo de consulta. Sin marcar la casilla, los contratos y las facturas NO se mueven: el traspaso es solo de la ficha.</p></div>';
+            return base + controles;
+          }
           var contratos = vins.length
             ? H.tabla(['Contrato', 'Proyecto', 'Rol', 'Estado'], vins.map(function (v) {
                 var k = porC[v.contrato_id];
@@ -1366,29 +1416,103 @@
             : H.nota('Ninguno enlazado todavía. El enlace se crea solo al guardar un contrato con su pasaporte o su email.');
           var cuerpo =
             H.seccion('Identidad', identidad) +
-            H.seccion('Responsable de la ficha', H.nota(quienAlta, true)) +
+            H.seccion('Responsable de la ficha', seccionResponsable()) +
             H.seccion('Contratos (' + vins.length + ')', contratos) +
             H.seccion('Estado de cuentas', seccionEstadoCuentas(vins, H)) +
             H.seccion('Facturas', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'facturas') +
             H.seccion('Documentación KYC', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'docs') +
-            H.seccion('Portal del comprador', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'portal') +
-            H.nota('Subir documentos, invitar o revocar el portal, traspasar la ficha y borrarla siguen por ahora en la herramienta clásica: ' +
-              H.enlace('/intranet/compradores/?id=' + encodeURIComponent(c2.id), 'abrirla allí', true) + '.', true);
+            H.seccion('Portal del comprador', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'portal');
           var acciones = [
             { texto: 'Editar datos', tono: 'primario', onClick: function () {
               if (window.LW_V4.abreEditaComprador) window.LW_V4.abreEditaComprador(c2);
               else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
             } },
             // pestaña nueva a proposito: quien repasa fichas no quiere perder la lista
-            { texto: 'Crear contrato', href: '/contracts/?cliente=' + encodeURIComponent(c2.id), nuevaPestana: true },
-            { texto: 'Cerrar', cerrar: true }
+            { texto: 'Crear contrato', href: '/contracts/?cliente=' + encodeURIComponent(c2.id), nuevaPestana: true }
           ];
+          /* Borrar: SOLO super_admin, calcado de la clásica — la puerta real es
+             `borrar_comprador()` en la base (es_super_admin() + bloqueos por
+             contrato/portal), esto solo evita ofrecer lo que fallaría. */
+          if (window.LW_V4.esSuperAdmin) {
+            acciones.push({ texto: 'Borrar la ficha', tono: 'peligro', onClick: function () {
+              lwConfirmar({
+                titulo: 'Borrar la ficha de ' + (c2.full_name || 'este comprador'),
+                cuerpo: '<p>Se borra la ficha y sus documentos KYC del archivo privado, si los tuviera.</p>' +
+                  '<p>Si estuviera vinculada a un contrato o tuviera acceso al portal, el sistema lo impide y te dice cuál — esta acción es para <b>duplicados sueltos</b>.</p>' +
+                  '<p>No hay papelera.</p>',
+                confirmar: 'Borrar la ficha', tono: 'peligro'
+              }).then(function (ok) {
+                if (!ok) return;
+                sb.rpc('borrar_comprador', { p_client_id: c2.id }).then(function (r) {
+                  if (r.error) { toastMal(r.error.message); return; }
+                  var rutas = (r.data && r.data.rutas_kyc) || [];
+                  var limpia = rutas.length ? sb.storage.from('kyc').remove(rutas) : Promise.resolve({});
+                  limpia.then(function (rs) {
+                    if (rs && rs.error) toastMal('Ficha borrada, pero ' + rutas.length + ' fichero(s) KYC no se pudieron quitar del bucket: ' + rs.error.message);
+                    toast('Ficha de ' + ((r.data && r.data.nombre) || 'comprador') + ' borrada' + (rutas.length ? ' · ' + rutas.length + ' documento(s) retirados' : ''));
+                    cj.cierra();
+                    location.reload();
+                  });
+                });
+              });
+            } });
+          }
+          acciones.push({ texto: 'Cerrar', cerrar: true });
           var cj = window.lwCajon({ sub: esEmpresa ? 'Ficha de empresa compradora' : 'Ficha de comprador', titulo: c2.full_name || 'Sin nombre',
             bajoTitulo: [c2.nationality, c2.passport_number].filter(Boolean).join(' · ') || 'sin identificación',
             cuerpo: cuerpo, acciones: acciones, alCerrar: quitaId });
           var u2 = new URL(location.href);
           u2.searchParams.set('id', c2.id);
           history.replaceState(null, '', u2.href);
+
+          /* Traspaso: wiring de los controles que seccionResponsable() acaba de
+             pintar (viven en el cuerpo del cajon ya montado). */
+          var bTr = cj.cuerpo.querySelector('[data-tr-btn]');
+          if (bTr) {
+            var chkTodo = cj.cuerpo.querySelector('[data-tr-chk]');
+            var cajaMotivo = cj.cuerpo.querySelector('[data-tr-caja]');
+            if (chkTodo) chkTodo.addEventListener('change', function () { if (cajaMotivo) cajaMotivo.hidden = !chkTodo.checked; });
+            bTr.addEventListener('click', function () {
+              var sel = cj.cuerpo.querySelector('[data-tr-sel]');
+              var nuevo = sel && sel.value;
+              if (!nuevo) return;
+              if (String(c2.propietario || '').toLowerCase() === nuevo.toLowerCase()) { toastMal('Esa ficha ya es suya.'); return; }
+              var conDocumentos = !!(chkTodo && chkTodo.checked);
+              var motivoEl = cj.cuerpo.querySelector('[data-tr-motivo]');
+              var motivo = ((motivoEl && motivoEl.value) || '').trim();
+              if (conDocumentos && motivo.length < 3) { toastMal('Escribe el motivo: es lo que explica el traspaso dentro de un año.'); return; }
+              var nombreNuevo = nombreEquipo[nuevo.toLowerCase()] || nuevo;
+              lwConfirmar({
+                titulo: 'Pasar la ficha de ' + (c2.full_name || '—') + ' a ' + nombreNuevo,
+                cuerpo: '<p>' + (conDocumentos
+                  ? 'Se traspasarán también los contratos y las facturas de ' + esc(nombreEquipo[String(c2.propietario || '').toLowerCase()] || c2.propietario || '—') + '. Lo que ya sea de otra persona, o esté firmado o anulado, no se mueve y queda a la vista para revisarlo a mano.'
+                  : 'Podrá abrirla y corregirla. Sus contratos y sus facturas no se mueven.') + '</p>',
+                confirmar: 'Traspasar'
+              }).then(function (ok) {
+                if (!ok) return;
+                bTr.disabled = true;
+                var p = conDocumentos
+                  ? sb.rpc('traspasar_cliente_con_documentos', { p_client_id: c2.id, p_nuevo_propietario: nuevo, p_motivo: motivo })
+                  : sb.from('clients').update({ propietario: nuevo }).eq('id', c2.id);
+                p.then(function (r) {
+                  bTr.disabled = false;
+                  if (r.error) { toastMal('No se pudo traspasar: ' + r.error.message); return; }
+                  if (conDocumentos) {
+                    var res = (r.data && r.data[0]) || {};
+                    lwConfirmar({
+                      titulo: 'Traspaso de ' + (c2.full_name || '—'),
+                      cuerpo: '<p>Contratos: ' + (res.contratos_movidos || 0) + ' movidos · ' + (res.contratos_omitidos_firmados || 0) + ' firmados sin tocar · ' + (res.contratos_omitidos_otro_autor || 0) + ' de otro autor · ' + (res.contratos_omitidos_sin_autor || 0) + ' sin autor.</p>' +
+                        '<p>Facturas y recibís: ' + (res.facturas_movidas || 0) + ' movidas (' + (res.facturas_movidas_anuladas || 0) + ' anuladas incluidas) · ' + (res.facturas_omitidas_otro_autor || 0) + ' de otro autor · ' + (res.facturas_omitidas_sin_autor || 0) + ' sin autor.</p>',
+                      confirmar: 'Entendido', cancelar: false
+                    }).then(function () { cj.cierra(); location.reload(); });
+                  } else {
+                    toast('Ficha traspasada a ' + nombreNuevo);
+                    cj.cierra(); location.reload();
+                  }
+                });
+              });
+            });
+          }
 
           var pinta = function (id, html) {
             var s = cj.cuerpo.querySelector('[data-cajon-sec="' + id + '"] > div');
@@ -1423,55 +1547,251 @@
                 (nulas.length ? '<details style="font-size:12px;color:#75786e"><summary style="cursor:pointer">' + nulas.length + (nulas.length === 1 ? ' anulada' : ' anuladas') + ' · no cuentan</summary>' + tabla(nulas) + '</details>' : ''));
             });
 
-          sb.from('documents').select('id,doc_type,storage_path,uploaded_at,caduca_el').eq('client_id', c2.id).order('uploaded_at', { ascending: false })
-            .then(function (rd) {
-              if (rd.error) return pinta('docs', H.nota('No se pudieron leer los documentos: ' + rd.error.message));
-              var ds = rd.data || [];
-              if (!ds.length) return pinta('docs', H.nota('Sin documentos todavía.'));
-              var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-              pinta('docs', H.tabla(['Documento', 'Subido', 'Caduca', ''], ds.map(function (d) {
-                var cad = '<span style="color:#75786e">sin caducidad</span>';
-                if (d.caduca_el) {
-                  var dd = Math.round((new Date(d.caduca_el + 'T00:00:00') - hoy) / 86400000);
-                  cad = dd < 0 ? H.tag('caducado hace ' + (-dd) + ' d', 'mal') : (dd <= 60 ? H.tag(fFecha(d.caduca_el), 'espera') : H.tag(fFecha(d.caduca_el), 'ok'));
-                }
-                return [esc(DOC_TIPO[d.doc_type] || d.doc_type || '—'), esc(fFecha(d.uploaded_at)), cad,
-                  d.storage_path ? '<button type="button" data-doc-path="' + esc(d.storage_path) + '" style="padding:4px 10px;border-radius:999px;border:1px solid #E4DCCB;background:#fff;font-size:12px;cursor:pointer;color:#104C4F;font-weight:600">Abrir</button>' : ''];
-              })));
-              /* Bucket privado: enlace temporal de 5 minutos, nunca una URL fija
-                 — igual que la herramienta clásica. */
-              cj.cuerpo.querySelectorAll('[data-doc-path]').forEach(function (b) {
-                b.addEventListener('click', function () {
-                  b.disabled = true;
-                  sb.storage.from('kyc').createSignedUrl(b.getAttribute('data-doc-path'), 300).then(function (ru) {
-                    b.disabled = false;
-                    if (ru.error || !(ru.data && ru.data.signedUrl)) return toast('No se pudo abrir el documento' + (ru.error ? ': ' + ru.error.message : ''));
-                    window.open(ru.data.signedUrl, '_blank', 'noopener');
+          /* Documentación KYC: tabla + subir + borrar (admin). Función nombrada
+             porque se vuelve a llamar tras subir/retirar — sin recargar toda la
+             página, igual que hace el resto del cajon. */
+          function cargaDocs() {
+            sb.from('documents').select('id,doc_type,storage_path,uploaded_at,caduca_el').eq('client_id', c2.id).order('uploaded_at', { ascending: false })
+              .then(function (rd) {
+                if (rd.error) return pinta('docs', H.nota('No se pudieron leer los documentos: ' + rd.error.message));
+                var ds = rd.data || [];
+                var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+                var tablaDocs = ds.length ? H.tabla(['Documento', 'Subido', 'Caduca', ''], ds.map(function (d) {
+                  var cad = '<span style="color:#75786e">sin caducidad</span>';
+                  if (d.caduca_el) {
+                    var dd = Math.round((new Date(d.caduca_el + 'T00:00:00') - hoy) / 86400000);
+                    cad = dd < 0 ? H.tag('caducado hace ' + (-dd) + ' d', 'mal') : (dd <= 60 ? H.tag(fFecha(d.caduca_el), 'espera') : H.tag(fFecha(d.caduca_el), 'ok'));
+                  }
+                  var acciones2 = (d.storage_path ? '<button type="button" data-doc-path="' + esc(d.storage_path) + '" style="padding:4px 10px;border-radius:999px;border:1px solid #E4DCCB;background:#fff;font-size:12px;cursor:pointer;color:#104C4F;font-weight:600">Abrir</button>' : '') +
+                    (window.LW_V4.esAdmin ? '<button type="button" data-doc-borrar="' + esc(d.id) + '" style="margin-left:6px;padding:4px 10px;border-radius:999px;border:1px solid #9E2F26;background:#fff;font-size:12px;cursor:pointer;color:#9E2F26;font-weight:600">Borrar</button>' : '');
+                  return [esc(DOC_TIPO[d.doc_type] || d.doc_type || '—'), esc(fFecha(d.uploaded_at)), cad, acciones2];
+                })) : H.nota('Sin documentos todavía.');
+                var formSubida = '<div style="display:grid;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(228,220,203,.7)">' +
+                  '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+                  '<label style="display:grid;gap:4px;font-size:11.5px;color:#75786e">Tipo<select data-doc-tipo style="padding:7px 9px;border:1px solid #E4DCCB;border-radius:8px;font-size:13px;color:#2E3437;background:#fff">' +
+                  Object.keys(DOC_TIPO).map(function (k) { return '<option value="' + esc(k) + '">' + esc(DOC_TIPO[k]) + '</option>'; }).join('') +
+                  '</select></label>' +
+                  '<label style="display:grid;gap:4px;font-size:11.5px;color:#75786e">Caduca el (opcional)<input type="date" data-doc-caduca style="padding:7px 9px;border:1px solid #E4DCCB;border-radius:8px;font-size:13px;color:#2E3437;background:#fff"></label>' +
+                  '</div>' +
+                  '<label style="display:grid;gap:4px;font-size:11.5px;color:#75786e">Fichero<input type="file" data-doc-file accept="application/pdf,image/*" style="font-size:13px"></label>' +
+                  '<button type="button" data-doc-subir style="align-self:start;padding:9px 16px;border-radius:8px;border:0;background:#104C4F;color:#fff;font-weight:600;font-size:13px;cursor:pointer">Subir documento</button>' +
+                  '<p style="margin:0;font-size:11px;color:#75786e">Van a un bucket privado. Al abrirlos se genera un enlace temporal de 5 minutos, no una URL fija.</p>' +
+                  '</div>';
+                pinta('docs', tablaDocs + formSubida);
+
+                /* Bucket privado: enlace temporal de 5 minutos, nunca una URL fija
+                   — igual que la herramienta clásica. */
+                cj.cuerpo.querySelectorAll('[data-doc-path]').forEach(function (b) {
+                  b.addEventListener('click', function () {
+                    b.disabled = true;
+                    sb.storage.from('kyc').createSignedUrl(b.getAttribute('data-doc-path'), 300).then(function (ru) {
+                      b.disabled = false;
+                      if (ru.error || !(ru.data && ru.data.signedUrl)) return toast('No se pudo abrir el documento' + (ru.error ? ': ' + ru.error.message : ''));
+                      window.open(ru.data.signedUrl, '_blank', 'noopener');
+                    });
+                  });
+                });
+                /* 🔴 Con RLS activa un DELETE sin permiso no da error: devuelve 0
+                   filas. Se comprueba `count`, no solo `error` (mismo fallo que
+                   ya se corrigió en la clásica el 27-ago). */
+                cj.cuerpo.querySelectorAll('[data-doc-borrar]').forEach(function (b) {
+                  b.addEventListener('click', function () {
+                    var idDoc = b.getAttribute('data-doc-borrar');
+                    var d = ds.filter(function (x) { return x.id === idDoc; })[0];
+                    if (!d) return;
+                    var nombreDoc = DOC_TIPO[d.doc_type] || d.doc_type || 'documento';
+                    lwConfirmar({
+                      titulo: 'Retirar ' + nombreDoc,
+                      cuerpo: '<p>Se retira <b>' + esc(nombreDoc) + '</b>' + (d.uploaded_at ? ' (subido el ' + esc(fFecha(d.uploaded_at)) + ')' : '') + ' de la ficha, y su fichero del archivo privado.</p><p>No hay papelera: si el documento sigue haciendo falta habrá que volver a subirlo.</p>',
+                      confirmar: 'Retirar el documento', tono: 'peligro'
+                    }).then(function (ok) {
+                      if (!ok) return;
+                      b.disabled = true; b.textContent = 'Retirando…';
+                      sb.from('documents').delete({ count: 'exact' }).eq('id', idDoc).then(function (r) {
+                        if (r.error || !r.count) {
+                          b.disabled = false; b.textContent = 'Borrar';
+                          toastMal(r.error ? 'No se pudo retirar: ' + r.error.message : 'No se ha retirado: tu usuario no tiene permiso para borrar documentos.');
+                          return;
+                        }
+                        var limpia = d.storage_path ? sb.storage.from('kyc').remove([d.storage_path]) : Promise.resolve({});
+                        limpia.then(function (rs) {
+                          if (rs && rs.error) toastMal('Documento retirado de la ficha, pero su fichero sigue en el archivo (' + d.storage_path + '): ' + rs.error.message);
+                          toast(nombreDoc + ' retirado');
+                          cargaDocs();
+                        });
+                      });
+                    });
+                  });
+                });
+                var bSub = cj.cuerpo.querySelector('[data-doc-subir]');
+                if (bSub) bSub.addEventListener('click', function () {
+                  var fEl = cj.cuerpo.querySelector('[data-doc-file]');
+                  var f = fEl && fEl.files && fEl.files[0];
+                  if (!f) { toastMal('Elige un fichero'); return; }
+                  if (f.size > 20 * 1024 * 1024) { toastMal('El fichero supera los 20 MB'); return; }
+                  bSub.disabled = true; bSub.textContent = 'Subiendo…';
+                  var tipoDoc = cj.cuerpo.querySelector('[data-doc-tipo]').value;
+                  var caduca = cj.cuerpo.querySelector('[data-doc-caduca]').value || null;
+                  var limpio = f.name.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w.-]/g, '_');
+                  var path = c2.id + '/' + Date.now() + '_' + limpio;
+                  sb.storage.from('kyc').upload(path, f, { upsert: false, contentType: f.type || 'application/octet-stream' }).then(function (up) {
+                    if (up.error) { bSub.disabled = false; bSub.textContent = 'Subir documento'; toastMal('No se pudo subir: ' + up.error.message); return; }
+                    // el fichero ya subió: si el insert falla no se reintenta el upload, se avisa igual
+                    sb.from('documents').insert({ client_id: c2.id, doc_type: tipoDoc, storage_path: path, status: 'pending', caduca_el: caduca }).then(function (ins) {
+                      bSub.disabled = false; bSub.textContent = 'Subir documento';
+                      if (ins.error) { toastMal('El fichero se subió pero no se pudo registrar en la ficha: ' + ins.error.message); return; }
+                      toast('Documento subido');
+                      cargaDocs();
+                    });
                   });
                 });
               });
-            });
+          }
 
-          sb.from('portal_accesos').select('email,activo,ultimo_acceso,accesos').eq('client_id', c2.id).then(function (rp) {
-            if (rp.error) return pinta('portal', H.nota('No se pudo leer el acceso al portal: ' + rp.error.message));
-            var suyos = rp.data || [], activos = suyos.filter(function (x) { return x.activo; });
-            var rastro = function (a) {
-              return !a.accesos ? H.tag('sin estrenar', 'espera')
-                : H.tag(a.accesos + (a.accesos === 1 ? ' entrada' : ' entradas'), 'ok') + (a.ultimo_acceso ? ' <span style="font-size:11px;color:#75786e">última: ' + esc(fFecha(a.ultimo_acceso)) + '</span>' : '');
-            };
-            var html;
-            if (activos.length) {
-              html = activos.map(function (a) { return H.dato(a.email, rastro(a), { html: 1 }); }).join('') +
-                '<p style="margin:4px 0 0;font-size:11.5px;color:#75786e">Ve sus contratos, pagos, facturas y obra en /portal/.</p>';
-            } else if (suyos.length) {
-              html = H.nota('Acceso REVOCADO. Se puede volver a invitar desde la herramienta clásica; mientras haya una fila revocada, la entrada automática no se la devuelve.');
-            } else if (c2.email && vins.length) {
-              html = H.nota('Entra solo: con ' + esc(c2.email) + ' y sus contratos, el portal le abre la puerta sin invitación (salvo que ese correo sea de alguien del equipo).', true);
-            } else {
-              html = H.nota('Sin acceso todavía. La entrada automática pide correo en la ficha y al menos un contrato — le falta ' + (c2.email ? 'el contrato' : 'el correo') + '.');
-            }
-            pinta('portal', html);
-          });
+          /* Portal del comprador: invitar/reenviar/contraseña/revocar (admin),
+             vista previa (cualquiera) y acceso a tickets. */
+          function cargaPortal() {
+            sb.from('portal_accesos').select('email,activo,ultimo_acceso,accesos').eq('client_id', c2.id).then(function (rp) {
+              if (rp.error) return pinta('portal', H.nota('No se pudo leer el acceso al portal: ' + rp.error.message));
+              var suyos = rp.data || [], activos = suyos.filter(function (x) { return x.activo; });
+              var rastro = function (a) {
+                return !a.accesos ? H.tag('sin estrenar', 'espera')
+                  : H.tag(a.accesos + (a.accesos === 1 ? ' entrada' : ' entradas'), 'ok') + (a.ultimo_acceso ? ' <span style="font-size:11px;color:#75786e">última: ' + esc(fFecha(a.ultimo_acceso)) + '</span>' : '');
+              };
+              var estado;
+              if (activos.length) {
+                estado = activos.map(function (a) { return H.dato(a.email, rastro(a), { html: 1 }); }).join('') +
+                  '<p style="margin:4px 0 0;font-size:11.5px;color:#75786e">Ve sus contratos, pagos, facturas y obra en /portal/.</p>';
+              } else if (suyos.length) {
+                estado = H.nota('Acceso REVOCADO. Se puede volver a invitar desde aquí; mientras haya una fila revocada, la entrada automática no se la devuelve.');
+              } else if (c2.email && vins.length) {
+                estado = H.nota('Entra solo: con ' + esc(c2.email) + ' y sus contratos, el portal le abre la puerta sin invitación (salvo que ese correo sea de alguien del equipo).', true);
+              } else {
+                estado = H.nota('Sin acceso todavía. La entrada automática pide correo en la ficha y al menos un contrato — le falta ' + (c2.email ? 'el contrato' : 'el correo') + '.');
+              }
+              var botonesTop = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">' +
+                '<button type="button" data-portal-preview style="padding:7px 14px;border-radius:8px;border:1px solid #E4DCCB;background:#fff;color:#104C4F;font-weight:600;font-size:12.5px;cursor:pointer">Vista previa del portal</button>' +
+                '<button type="button" data-portal-tickets style="padding:7px 14px;border-radius:8px;border:1px solid #E4DCCB;background:#fff;color:#104C4F;font-weight:600;font-size:12.5px;cursor:pointer">Ver tickets →</button>' +
+                '</div>';
+              var controles;
+              if (window.LW_V4.esAdmin) {
+                var emailPre = (activos[0] && activos[0].email) || c2.email || '';
+                controles = '<div style="display:grid;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(228,220,203,.7)">' +
+                  '<label style="display:grid;gap:4px;font-size:11.5px;color:#75786e">Email de acceso<input type="email" data-portal-email value="' + esc(emailPre) + '" style="padding:7px 9px;border:1px solid #E4DCCB;border-radius:8px;font-size:13px;color:#2E3437;background:#fff"></label>' +
+                  '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+                  '<button type="button" data-portal-invitar style="padding:9px 16px;border-radius:8px;border:0;background:#104C4F;color:#fff;font-weight:600;font-size:13px;cursor:pointer">' + (activos.length ? 'Reenviar enlace' : 'Invitar al portal') + '</button>' +
+                  (activos.length ? '<button type="button" data-portal-pass style="padding:9px 16px;border-radius:8px;border:1px solid #E4DCCB;background:#fff;color:#2E3437;font-weight:600;font-size:13px;cursor:pointer">Ponerle contraseña</button>' : '') +
+                  (activos.length ? '<button type="button" data-portal-revocar style="padding:9px 16px;border-radius:8px;border:1px solid #9E2F26;background:#fff;color:#9E2F26;font-weight:600;font-size:13px;cursor:pointer">Revocar acceso</button>' : '') +
+                  '</div></div>';
+              } else {
+                controles = '<p style="margin:8px 0 0;font-size:11.5px;color:#75786e">Invitar o revocar lo hace un administrador.</p>';
+              }
+              pinta('portal', botonesTop + estado + controles);
+
+              var bPrev = cj.cuerpo.querySelector('[data-portal-preview]');
+              if (bPrev) bPrev.addEventListener('click', abrePreviewPortal);
+              var bTick = cj.cuerpo.querySelector('[data-portal-tickets]');
+              if (bTick) bTick.addEventListener('click', function () {
+                window.open('/intranet/soporte/?id=' + encodeURIComponent(c2.id), '_blank', 'noopener');
+              });
+
+              if (window.LW_V4.esAdmin) {
+                var campoEmail = cj.cuerpo.querySelector('[data-portal-email]');
+                var bInv = cj.cuerpo.querySelector('[data-portal-invitar]');
+                if (bInv) bInv.addEventListener('click', function () {
+                  var email = (campoEmail.value || '').trim().toLowerCase();
+                  if (!email) { toastMal('Falta el email de acceso'); return; }
+                  lwConfirmar({
+                    titulo: 'Invitar a ' + email + ' al portal',
+                    cuerpo: '<p>Se le envía un <b>correo de acceso</b> y podrá ver en el portal todo lo de esta ficha: contratos, pagos, facturas y obra.</p>',
+                    confirmar: 'Enviar la invitación'
+                  }).then(function (ok) {
+                    if (!ok) return;
+                    bInv.disabled = true;
+                    llamaPortal({ accion: 'invitar', email: email, client_ids: [c2.id] }).then(function (r) {
+                      bInv.disabled = false;
+                      if (r.error) { toastMal(motivoPortal(r.error)); return; }
+                      toast(r.aviso ? 'Acceso creado, pero el correo no salió: reenvía en un rato' : 'Invitación enviada');
+                      cargaPortal();
+                    });
+                  });
+                });
+                var bPass = cj.cuerpo.querySelector('[data-portal-pass]');
+                if (bPass) bPass.addEventListener('click', function () {
+                  var email = (campoEmail.value || '').trim().toLowerCase() || (activos[0] && activos[0].email);
+                  if (!email) return;
+                  var p = prompt('Nueva contraseña para ' + email + ' (mínimo 10 caracteres).\nApúntala: no se puede volver a consultar, solo cambiar por otra.');
+                  if (p === null) return;
+                  if (p.length < 10) { toastMal('Mínimo 10 caracteres'); return; }
+                  bPass.disabled = true;
+                  llamaPortal({ accion: 'password', email: email, password: p }).then(function (r) {
+                    bPass.disabled = false;
+                    if (r.error) { toastMal(motivoPortal(r.error)); return; }
+                    toast('Contraseña puesta. Pásasela tú: no queda guardada en ningún sitio consultable.');
+                  });
+                });
+                var bRev = cj.cuerpo.querySelector('[data-portal-revocar]');
+                if (bRev) bRev.addEventListener('click', function () {
+                  var email = activos[0] && activos[0].email;
+                  if (!email) return;
+                  lwConfirmar({
+                    titulo: 'Revocar el acceso de ' + email,
+                    cuerpo: '<p>Dejará de ver <b>todas</b> las fichas vinculadas a ese email, no solo ésta.</p>',
+                    confirmar: 'Revocar el acceso', tono: 'peligro'
+                  }).then(function (ok) {
+                    if (!ok) return;
+                    bRev.disabled = true;
+                    llamaPortal({ accion: 'revocar', email: email }).then(function (r) {
+                      bRev.disabled = false;
+                      if (r.error) { toastMal(motivoPortal(r.error)); return; }
+                      toast('Acceso revocado');
+                      cargaPortal();
+                    });
+                  });
+                });
+              }
+            });
+          }
+
+          /* Vista previa del portal (paridad con la clásica, 15-sep): NO abre
+             sesión del comprador — no hay Auth Admin API/service_role en este
+             entorno para un magic-link real sin su contraseña (verificado). Lee
+             en fresco con el permiso de equipo que esta ficha ya tiene. */
+          function abrePreviewPortal() {
+            var idsC = vins.map(function (v) { return v.contrato_id; });
+            var pContratos = Promise.resolve({ data: vins.map(function (v) { return porC[v.contrato_id]; }).filter(Boolean) });
+            var pFacturas = idsC.length
+              ? sb.rpc('facturas_equipo').select('id,numero,tipo,contrato_numero,proyecto_nombre,total,moneda,fecha_emision,anulada').in('contrato_id', idsC).order('fecha_emision', { ascending: false })
+              : Promise.resolve({ data: [] });
+            var pDocs = sb.from('documents').select('id,doc_type,uploaded_at').eq('client_id', c2.id).order('uploaded_at', { ascending: false });
+            Promise.all([pContratos, pFacturas, pDocs]).then(function (r) {
+              var cts = r[0].data || [];
+              var facs = (r[1] && r[1].data) || [];
+              var docs = (r[2] && r[2].data) || [];
+              var tContratos = cts.length ? H.tabla(['Nº', 'Tipo', 'Estado', 'Precio', 'Cobrado'], cts.map(function (x) {
+                return [esc(x.numero || 'borrador'), esc(tipoC(x.tipo)), x.bloqueado ? 'Firmado' : 'Borrador',
+                  (!esPre(x.tipo) && x.precio_total != null) ? esc(fmt(Number(x.precio_total), x.moneda)) : '—',
+                  esc(fmt(cobId[x.id] || 0, x.moneda))];
+              })) : H.nota('Sin contratos.');
+              var tFacturas = facs.length ? H.tabla(['Nº', 'Fecha', 'Importe', 'Estado'], facs.map(function (f) {
+                return [esc(f.numero || 'borrador'), esc(fFecha(f.fecha_emision)), f.total != null ? esc(fmt(Number(f.total), f.moneda)) : '—', f.anulada ? 'Anulada' : '—'];
+              })) : H.nota('Sin facturas.');
+              var tDocs = docs.length ? H.tabla(['Documento', 'Subido'], docs.map(function (d) {
+                return [esc(DOC_TIPO[d.doc_type] || d.doc_type || '—'), esc(fFecha(d.uploaded_at))];
+              })) : H.nota('Sin documentos.');
+              lwConfirmar({
+                titulo: 'Vista previa del portal — ' + (c2.full_name || ''),
+                cuerpo: H.nota('Esto es lo que este comprador ve ahora mismo en /portal/. No se ha abierto ninguna sesión suya: se lee con tu permiso de equipo.') +
+                  '<h4 style="margin:14px 0 6px;font-size:13px;color:#104C4F">Contratos</h4>' + tContratos +
+                  '<h4 style="margin:14px 0 6px;font-size:13px;color:#104C4F">Facturas</h4>' + tFacturas +
+                  '<h4 style="margin:14px 0 6px;font-size:13px;color:#104C4F">Documentos</h4>' + tDocs,
+                confirmar: 'Cerrar', cancelar: false
+              });
+            });
+          }
+
+          cargaDocs();
+          cargaPortal();
         }
         window.LW_V4 = window.LW_V4 || {};
         window.LW_V4.abreFichaComprador = function (id) { var c2 = porId[id]; if (c2) abreFicha(c2); };
