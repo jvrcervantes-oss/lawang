@@ -1372,6 +1372,26 @@
     return sb.rpc('contratos_equipo').select('id,numero,comprador_nombre,proyecto_nombre')
       .order('created_at', { ascending: false }).limit(500);
   }
+  /* Facturas pendientes de TODO el equipo, sin filtrar por comprador — el
+     estado de arranque de «Factura que se cobra» cuando el recibí aún no
+     sabe de quién es (mismo camino que `cargarFacturasAbiertas()` del
+     clásico cuando `CONTRATO_ID` es null: 27-ago-2026, «sin contrato
+     elegido, todas»). En cuanto se elige una factura, el contrato — y por
+     tanto el comprador — ya se sabe, y las siguientes cargas usan
+     `contratos_del_mismo_comprador` para acotar, igual que siempre. */
+  function cargaTodasAbiertasRecibiDoc(sb, moneda) {
+    return Promise.all([
+      sb.rpc('facturas_equipo').select('id,numero,contrato_id,contrato_numero,cliente_nombre,total,tipo,anulada,moneda'),
+      sb.rpc('facturas_pendiente_equipo')
+    ]).then(function (rs) {
+      if (rs[0].error || rs[1].error) return [];
+      var pend = {}; (rs[1].data || []).forEach(function (x) { pend[x.factura_id] = Number(x.pendiente) || 0; });
+      return (rs[0].data || [])
+        .filter(function (x) { return x.tipo === 'factura' && !x.anulada && (pend[x.id] || 0) > 0.005 && x.contrato_id; })
+        .filter(function (x) { return (x.moneda || 'EUR') === moneda; })
+        .map(function (x) { return { id: x.id, numero: x.numero, contrato_id: x.contrato_id, contrato_numero: x.contrato_numero, cliente_nombre: x.cliente_nombre, pendiente: pend[x.id], moneda: x.moneda }; });
+    });
+  }
   function opcionesSociedadDoc() {
     return Object.keys(SOCIEDADES).map(function (k) { return [k, SOCIEDADES[k].label]; });
   }
@@ -1536,6 +1556,96 @@
     caj.cuerpo.appendChild(frame);
   }
 
+  /* ---------- calco estructural del formulario clásico (21-sep-2026) ----------
+     Owner, al ver el editor de arriba: «no me vale esto, necesito la misma
+     estructura antigua pero con nuevo restyling». Medido de verdad contra
+     /intranet/facturas/ (capturas 1440 y 390, factura y recibí) — no de
+     memoria. Estos cinco ayudantes son el ÚNICO sitio que dibuja una sección:
+     tarjeta con barra + rótulo (Documento, Fechas, Conceptos, Lo que se ha
+     cobrado) o tarjeta plegable con +/− (Emisor, Cliente, Impuesto, Notas),
+     fila de dos columnas fija (Moneda+Nº, Fecha+Vencimiento — medido: el
+     clásico NO las apila a 390, así que aquí tampoco hace falta breakpoint),
+     y un campo simple con su etiqueta. Con esto un solo campo `custom` de
+     `modal()` pinta la sección entera — cero cambios en `modal()` mismo, así
+     que los otros 15 editores que lo usan no se tocan ni hay que
+     reverificarlos. Piel: los mismos tokens CAJ de siempre, NUNCA
+     documento.css ni clases del clásico. */
+  function tituloBarraDoc(texto) {
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
+      '<span style="width:3px;height:13px;background:' + CAJ.lago + ';border-radius:2px;display:inline-block;flex:0 0 auto"></span>' +
+      '<span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:' + CAJ.tinta + '">' + esc(texto) + '</span></div>';
+  }
+  function seccionFijaDoc(host, titulo) {
+    var card = document.createElement('div');
+    card.style.cssText = 'background:' + CAJ.papel + ';border:1px solid ' + CAJ.borde + ';border-radius:12px;padding:14px 16px;margin-bottom:12px;display:grid;gap:12px';
+    card.innerHTML = tituloBarraDoc(titulo);
+    host.appendChild(card);
+    return card;
+  }
+  // Plegable con +/− a mano (no <details>: control total del marcador sin
+  // colar una hoja de estilos global). Abierta por defecto en Emisor/Cliente,
+  // cerrada en Impuesto/Notas — igual que el clásico.
+  function seccionPlegableDoc(host, titulo, abierta) {
+    var card = document.createElement('div');
+    card.style.cssText = 'background:' + CAJ.papel + ';border:1px solid ' + CAJ.borde + ';border-radius:12px;padding:14px 16px;margin-bottom:12px';
+    var btn = document.createElement('button'); btn.type = 'button';
+    btn.style.cssText = 'all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:8px;' +
+      'font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:' + CAJ.tinta + ';width:100%';
+    var marca = document.createElement('span'); marca.style.cssText = 'width:11px;color:' + CAJ.apagado;
+    marca.textContent = abierta ? '−' : '+';
+    var lbl = document.createElement('span'); lbl.textContent = titulo;
+    btn.appendChild(marca); btn.appendChild(lbl);
+    var body = document.createElement('div');
+    body.style.cssText = 'display:' + (abierta ? 'grid' : 'none') + ';gap:12px;margin-top:12px';
+    btn.addEventListener('click', function () {
+      var abierto = body.style.display !== 'none';
+      body.style.display = abierto ? 'none' : 'grid';
+      marca.textContent = abierto ? '+' : '−';
+    });
+    card.appendChild(btn); card.appendChild(body);
+    host.appendChild(card);
+    return body;
+  }
+  function filaDosDoc(host) {
+    var row = document.createElement('div');
+    row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:12px';
+    host.appendChild(row);
+    return row;
+  }
+  // Campo simple: etiqueta pequeña + control, SIN la tarjeta crema de
+  // `modal()` — la tarjeta ya la pone la sección que lo envuelve, y una
+  // segunda capa se leía como campo dentro de campo.
+  function campoSimpleDoc(host, cfg) {
+    var wrap = document.createElement('div'); wrap.style.cssText = 'display:grid;gap:5px;min-width:0';
+    var lbl = document.createElement('label'); lbl.style.cssText = 'font-size:12px;color:' + CAJ.apagado + ';font-weight:500';
+    lbl.textContent = cfg.label + (cfg.req ? ' *' : '');
+    wrap.appendChild(lbl);
+    var estilo = 'width:100%;padding:9px 12px;border:1px solid ' + CAJ.borde + ';border-radius:8px;font-weight:500;font-size:14px;' +
+      'color:' + (cfg.readonly ? CAJ.apagado : CAJ.tinta) + ';background-color:' + (cfg.readonly ? CAJ.banda : CAJ.papel) + ';box-sizing:border-box';
+    var el;
+    if (cfg.tipo === 'select') {
+      el = document.createElement('select'); el.style.cssText = estilo + flechaSelect;
+      (cfg.opciones || []).forEach(function (o) {
+        var vv = typeof o === 'string' ? [o, o] : o;
+        var op = document.createElement('option'); op.value = vv[0]; op.textContent = vv[1];
+        if (String(cfg.valor) === String(vv[0])) op.selected = true;
+        el.appendChild(op);
+      });
+    } else if (cfg.tipo === 'textarea') {
+      el = document.createElement('textarea'); el.rows = cfg.rows || 4; el.style.cssText = estilo + ';resize:vertical'; el.value = cfg.valor || '';
+    } else {
+      el = document.createElement('input'); el.type = cfg.tipo || 'text'; el.value = cfg.valor == null ? '' : cfg.valor;
+      el.style.cssText = estilo + (cfg.readonly ? ';cursor:not-allowed' : '');
+      if (cfg.readonly) { el.readOnly = true; el.tabIndex = -1; }
+      if (cfg.placeholder) el.placeholder = cfg.placeholder;
+    }
+    if (cfg.k) el.setAttribute('data-k', cfg.k);
+    wrap.appendChild(el);
+    if (cfg.ayuda) { var s = document.createElement('small'); s.style.cssText = 'font-size:11.5px;color:' + CAJ.apagado; s.textContent = cfg.ayuda; wrap.appendChild(s); }
+    host.appendChild(wrap);
+    return el;
+  }
+
   /* ---------- Factura / proforma: crear o editar ---------- */
   function abrirEditorFacturaDoc(pre) {
     pre = pre || {};
@@ -1584,78 +1694,110 @@
         var campos = [];
         if (!sociedadesOk) campos.push({ tipo: 'nota', label: 'No se ha podido cargar el catálogo de sociedades — recarga antes de emitir.' });
         if (!cuentasOk) campos.push({ tipo: 'nota', label: 'No se han podido cargar las cuentas de cobro — recarga antes de emitir.' });
-        campos.push(
-          { k: 'tipo', label: 'Tipo de documento', tipo: 'select', medio: 1,
+        campos.push({ tipo: 'custom', label: 'Formulario', render: function (host) {
+          /* Calco estructural del clásico (21-sep-2026), medido en
+             /intranet/facturas/ a 1440 y 390: Documento[Contrato → fila
+             Moneda+Nº] → Fechas[fila Emisión+Vencimiento] → Emisor plegable
+             → Cliente plegable → Conceptos → Impuesto plegado → Notas
+             plegado. Piel: tokens CAJ de siempre, nunca documento.css.
+
+             Tipo de documento: en el clásico vive en la barra SUPERIOR de la
+             página — el cajón no tiene esa barra (es un panel lateral, no
+             una página). Se deja aquí suelto, sin tarjeta, antes de
+             Documento: mismo lugar lógico, sin ampliar la cabecera
+             compartida de modal() que usan otros 15 editores. Hallazgo para
+             el informe, no arreglo silencioso. */
+          campoSimpleDoc(host, {
+            k: 'tipo', label: 'Tipo de documento', tipo: 'select',
             valor: existente ? existente.tipo : (pre.tipo === 'proforma' ? 'proforma' : 'factura'),
-            opciones: [['factura', 'Factura'], ['proforma', 'Factura proforma']] },
-          { k: 'moneda', label: 'Moneda', tipo: 'select', medio: 1, valor: f0.moneda || 'EUR', opciones: ['EUR', 'USD', 'AUD', 'IDR'] },
-          { tipo: 'custom', label: 'Contrato', render: function (host) {
-              var lbl = document.createElement('div'); lbl.textContent = 'Contrato'; lbl.style.cssText = 'font-size:12px;color:' + CAJ.apagado + ';margin-bottom:4px';
-              var btn = document.createElement('button'); btn.type = 'button';
-              btn.style.cssText = 'width:100%;text-align:left;padding:9px 12px;border:1px solid ' + CAJ.borde +
-                ';border-radius:8px;font-weight:500;font-size:14px;color:' + CAJ.tinta + ';background-color:' + CAJ.papel + ';cursor:pointer';
-              btn.textContent = estadoContrato.numero ? estadoContrato.numero : '— elige un contrato —';
-              var nota = document.createElement('p'); nota.style.cssText = 'margin:6px 0 0;font-size:12px;color:' + CAJ.apagado;
-              host.appendChild(lbl); host.appendChild(btn); host.appendChild(nota);
-              btn.addEventListener('click', function () {
-                lwElegir({ titulo: 'Elige un contrato', opciones: opcionesContratoPickerDoc(contratosLigeros), valor: estadoContrato.id })
-                  .then(function (id) {
-                    if (id === null) return;
-                    var antes = btn.textContent; btn.disabled = true; btn.textContent = 'Cargando…';
-                    aplicaContratoDoc(sb, id).then(function (res) {
-                      btn.disabled = false;
-                      if (res.error) { toastMal('No se pudo cargar el contrato: ' + (res.error.message || res.error)); btn.textContent = antes; return; }
-                      estadoContrato.id = id; estadoContrato.numero = res.numero; estadoContrato.clienteId = res.clienteId;
-                      btn.textContent = res.numero + ' · ' + (res.comprador || '—');
-                      nota.textContent = res.puesto.length ? 'Traído del contrato: ' + res.puesto.join(', ') + '.' : 'El contrato no tenía datos de cliente que traer.';
-                    });
-                  });
-              });
-              // SOLO para un documento NUEVO (code-review 21-sep): al editar uno
-              // ya guardado, `estadoContrato.numero` puede venir vacío si el
-              // propio documento nunca trajo `contrato_numero` — y este
-              // refresco automático (sin que el agente pulse nada) llama a
-              // `aplicaContratoDoc`, que SOBRESCRIBE cliente_nombre/documento/
-              // email/proyecto_nombre con lo que diga HOY el contrato. Eso
-              // pisaba en silencio los datos ya guardados del documento que se
-              // estaba abriendo para editar. Cambiar el contrato SÍ debe traer
-              // sus datos — pero solo cuando lo pide un clic (rama de arriba).
-              if (!existente && estadoContrato.id && !estadoContrato.numero) {
-                aplicaContratoDoc(sb, estadoContrato.id).then(function (res) {
-                  if (res.error) return;
-                  estadoContrato.numero = res.numero; estadoContrato.clienteId = res.clienteId;
-                  btn.textContent = res.numero + ' · ' + (res.comprador || '—');
+            opciones: [['factura', 'Factura'], ['proforma', 'Factura proforma']]
+          });
+
+          var secDoc = seccionFijaDoc(host, 'Documento');
+          var lblC = document.createElement('div'); lblC.textContent = 'Contrato';
+          lblC.style.cssText = 'font-size:12px;color:' + CAJ.apagado;
+          var btnC = document.createElement('button'); btnC.type = 'button';
+          btnC.style.cssText = 'width:100%;text-align:left;padding:9px 12px;border:1px solid ' + CAJ.borde +
+            ';border-radius:8px;font-weight:500;font-size:14px;color:' + CAJ.tinta + ';background-color:' + CAJ.papel + ';cursor:pointer';
+          btnC.textContent = estadoContrato.numero ? estadoContrato.numero : '— elige un contrato —';
+          var notaC = document.createElement('p'); notaC.style.cssText = 'margin:0;font-size:12px;color:' + CAJ.apagado;
+          secDoc.appendChild(lblC); secDoc.appendChild(btnC); secDoc.appendChild(notaC);
+          btnC.addEventListener('click', function () {
+            lwElegir({ titulo: 'Elige un contrato', opciones: opcionesContratoPickerDoc(contratosLigeros), valor: estadoContrato.id })
+              .then(function (id) {
+                if (id === null) return;
+                var antes = btnC.textContent; btnC.disabled = true; btnC.textContent = 'Cargando…';
+                aplicaContratoDoc(sb, id).then(function (res) {
+                  btnC.disabled = false;
+                  if (res.error) { toastMal('No se pudo cargar el contrato: ' + (res.error.message || res.error)); btnC.textContent = antes; return; }
+                  estadoContrato.id = id; estadoContrato.numero = res.numero; estadoContrato.clienteId = res.clienteId;
+                  btnC.textContent = res.numero + ' · ' + (res.comprador || '—');
+                  notaC.textContent = res.puesto.length ? 'Traído del contrato: ' + res.puesto.join(', ') + '.' : 'El contrato no tenía datos de cliente que traer.';
                 });
-              }
-            } },
-          { k: 'sociedad', label: 'Sociedad que factura', tipo: 'select', req: 1, medio: 1,
-            valor: f0.sociedad || '', opciones: [['', '— elige —']].concat(opcionesSociedadDoc()) },
-          { k: 'cuenta', label: 'Cuenta donde se cobra', tipo: 'select', medio: 1, valor: f0.cuenta || '', opciones: opcionesCuentaDoc() },
-          { k: 'banco_titular', label: 'Titular (solo si «Otros»)', medio: 1, valor: f0.banco_titular || '' },
-          { k: 'banco_nombre', label: 'Banco (solo si «Otros»)', medio: 1, valor: f0.banco_nombre || '' },
-          { k: 'banco_cuenta', label: 'Nº de cuenta (solo si «Otros»)', medio: 1, valor: f0.banco_cuenta || '' },
-          { k: 'banco_codigo', label: 'Swift / Routing (solo si «Otros»)', medio: 1, valor: f0.banco_codigo || '' },
-          { k: 'banco_direccion', label: 'Dirección del banco (solo si «Otros»)', valor: f0.banco_direccion || '' },
-          { k: 'banco_extra', label: 'Nota de la cuenta (solo si «Otros»)', valor: f0.banco_extra || '' },
-          { k: 'cliente_nombre', label: 'Nombre o razón social', req: 1, valor: f0.cliente_nombre || '' },
-          { k: 'cliente_documento', label: 'Pasaporte / NPWP / NIF', medio: 1, valor: f0.cliente_documento || '' },
-          { k: 'cliente_email', label: 'Email', tipo: 'email', medio: 1, valor: f0.cliente_email || '' },
-          { k: 'proyecto_nombre', label: 'Proyecto / unidad', valor: f0.proyecto_nombre || '' },
-          { k: 'fecha_emision', label: 'Fecha de emisión', tipo: 'date', medio: 1, valor: f0.fecha_emision || new Date().toISOString().slice(0, 10) },
-          { k: 'fecha_vencimiento', label: 'Vencimiento (opcional)', tipo: 'date', medio: 1, valor: f0.fecha_vencimiento || '' },
-          { tipo: 'custom', label: 'Conceptos', render: function (host) {
-              var lbl = document.createElement('div'); lbl.textContent = 'Conceptos'; lbl.style.cssText = 'font-size:12px;color:' + CAJ.apagado + ';margin-bottom:4px';
-              host.appendChild(lbl);
-              getLineas = montaLineasDoc(host, lineas0);
-            } },
-          { k: 'imp_etiqueta', label: 'Impuesto — etiqueta (opcional)', medio: 1, valor: f0.imp_etiqueta || '', ayuda: 'Ej. PPN' },
-          { k: 'imp_pct', label: 'Impuesto — porcentaje (opcional)', medio: 1, valor: f0.imp_pct || '' },
-          { k: 'notas', label: 'Notas', tipo: 'textarea', valor: f0.notas || '' }
-        );
+              });
+          });
+          // SOLO para un documento NUEVO (code-review 21-sep): al editar uno ya
+          // guardado, `estadoContrato.numero` puede venir vacío si el propio
+          // documento nunca trajo `contrato_numero`, y este refresco automático
+          // pisaría en silencio los datos ya guardados con lo que diga HOY el
+          // contrato. Cambiar el contrato SÍ trae datos — pero solo con un clic.
+          if (!existente && estadoContrato.id && !estadoContrato.numero) {
+            aplicaContratoDoc(sb, estadoContrato.id).then(function (res) {
+              if (res.error) return;
+              estadoContrato.numero = res.numero; estadoContrato.clienteId = res.clienteId;
+              btnC.textContent = res.numero + ' · ' + (res.comprador || '—');
+            });
+          }
+          var filaDM = filaDosDoc(secDoc);
+          campoSimpleDoc(filaDM, { k: 'moneda', label: 'Moneda', tipo: 'select', valor: f0.moneda || 'EUR', opciones: ['EUR', 'USD', 'AUD', 'IDR'] });
+          campoSimpleDoc(filaDM, { label: 'Nº de documento', readonly: 1, valor: existente ? (existente.numero || '') : 'Lo asigna la base al guardar' });
+
+          var secFechas = seccionFijaDoc(host, 'Fechas');
+          var filaF = filaDosDoc(secFechas);
+          campoSimpleDoc(filaF, { k: 'fecha_emision', label: 'Fecha de emisión', tipo: 'date', valor: f0.fecha_emision || new Date().toISOString().slice(0, 10) });
+          campoSimpleDoc(filaF, { k: 'fecha_vencimiento', label: 'Vencimiento (opcional)', tipo: 'date', valor: f0.fecha_vencimiento || '' });
+
+          var secEmisor = seccionPlegableDoc(host, 'Emisor', true);
+          campoSimpleDoc(secEmisor, { k: 'sociedad', label: 'Sociedad que factura', tipo: 'select', req: 1, valor: f0.sociedad || '', opciones: [['', '— elige —']].concat(opcionesSociedadDoc()) });
+          var selCuenta = campoSimpleDoc(secEmisor, { k: 'cuenta', label: 'Cuenta donde se cobra', tipo: 'select', valor: f0.cuenta || '', opciones: opcionesCuentaDoc() });
+          var hintCuenta = document.createElement('p'); hintCuenta.style.cssText = 'margin:0;font-size:11.5px;color:' + CAJ.apagado;
+          hintCuenta.textContent = 'Sin cuenta, el documento no imprime datos bancarios.';
+          secEmisor.appendChild(hintCuenta);
+          // Los datos de «Otros» solo se enseñan con esa cuenta elegida —
+          // medido: el clásico los esconde igual (toggleCuentaOtros()).
+          var wrapOtros = document.createElement('div'); wrapOtros.style.cssText = 'display:grid;gap:12px';
+          secEmisor.appendChild(wrapOtros);
+          campoSimpleDoc(wrapOtros, { k: 'banco_titular', label: 'Titular', valor: f0.banco_titular || '' });
+          campoSimpleDoc(wrapOtros, { k: 'banco_nombre', label: 'Banco', valor: f0.banco_nombre || '' });
+          campoSimpleDoc(wrapOtros, { k: 'banco_cuenta', label: 'Nº de cuenta', valor: f0.banco_cuenta || '' });
+          campoSimpleDoc(wrapOtros, { k: 'banco_codigo', label: 'Swift / Routing', valor: f0.banco_codigo || '' });
+          campoSimpleDoc(wrapOtros, { k: 'banco_direccion', label: 'Dirección del banco', valor: f0.banco_direccion || '' });
+          campoSimpleDoc(wrapOtros, { k: 'banco_extra', label: 'Nota de la cuenta', valor: f0.banco_extra || '' });
+          function actualizaOtros() { wrapOtros.style.display = selCuenta.value === 'otros' ? 'grid' : 'none'; }
+          selCuenta.addEventListener('change', actualizaOtros); actualizaOtros();
+
+          var secCliente = seccionPlegableDoc(host, 'Cliente', true);
+          campoSimpleDoc(secCliente, { k: 'cliente_nombre', label: 'Nombre o razón social', req: 1, valor: f0.cliente_nombre || '' });
+          campoSimpleDoc(secCliente, { k: 'cliente_documento', label: 'Pasaporte / NPWP / NIF', valor: f0.cliente_documento || '' });
+          campoSimpleDoc(secCliente, { k: 'cliente_email', label: 'Email', tipo: 'email', valor: f0.cliente_email || '' });
+          campoSimpleDoc(secCliente, { k: 'proyecto_nombre', label: 'Proyecto / unidad', valor: f0.proyecto_nombre || '', placeholder: 'Ej. Palm Field — Cabana 2BR S2' });
+
+          var secConceptos = seccionFijaDoc(host, 'Conceptos');
+          getLineas = montaLineasDoc(secConceptos, lineas0);
+
+          var secImp = seccionPlegableDoc(host, 'Impuesto (opcional)', false);
+          campoSimpleDoc(secImp, { k: 'imp_etiqueta', label: 'Impuesto — etiqueta', valor: f0.imp_etiqueta || '', ayuda: 'Ej. PPN' });
+          campoSimpleDoc(secImp, { k: 'imp_pct', label: 'Impuesto — porcentaje', valor: f0.imp_pct || '' });
+
+          var secNotas = seccionPlegableDoc(host, 'Notas (opcional)', false);
+          campoSimpleDoc(secNotas, { k: 'notas', label: 'Notas', tipo: 'textarea', valor: f0.notas || '' });
+        } });
 
         modal(existente ? 'Editar ' + (existente.numero || 'documento') : 'Nuevo documento', campos,
           existente ? 'Guardar cambios' : 'Emitir', function (v) {
             if (!estadoContrato.id) return { error: { message: 'Elige el contrato al que corresponde este documento.' } };
+            if (!v.sociedad) return { error: { message: 'Falta «Sociedad que factura».' } };
+            if (!v.cliente_nombre) return { error: { message: 'Falta «Nombre o razón social».' } };
             var lineas = getLineas ? getLineas() : [];
             var d = v; d.lineas = lineas;
             var t = calcTotales(lineas, d.moneda, { pct: d.imp_pct });
@@ -1717,7 +1859,6 @@
 
       function construye(sociedadesOk, cuentasOk, contratosLigeros, existente) {
         var f0 = (existente && existente.datos && existente.datos.fields) || {};
-        var bloqueadoContrato = !!pre.contrato_id && !existente;
         var estadoContrato = {
           id: existente ? existente.contrato_id : (pre.contrato_id || null),
           numero: (existente && existente.contrato_numero) || '',
@@ -1730,6 +1871,7 @@
         var facturasAbiertasCache = [];
         var getJustificantes = null;
         var repintaAplic = function () {};
+        var pintaBtnF = function () {};
         // code-review 21-sep: al EDITAR, la primera carga tiene que RESTAURAR
         // las aplicaciones que el recibí ya tenía en `recibi_aplicaciones` —
         // si no, guardar borra sin darse cuenta el reparto real de un cobro ya
@@ -1737,6 +1879,10 @@
         // cada edición). Esta bandera hace que la restauración ocurra UNA vez.
         var aplicacionesRestauradas = false;
 
+        // Facturas pendientes DEL COMPRADOR de estadoContrato.id — solo tiene
+        // sentido llamarla una vez ese contrato (y por tanto el comprador) ya
+        // se conoce. Mismo camino que cargarFacturasAbiertas() del clásico
+        // cuando CONTRATO_ID ya está fijado.
         function cargaAbiertas() {
           if (!estadoContrato.id) return Promise.resolve([]);
           return Promise.all([
@@ -1751,156 +1897,224 @@
             return (rs[0].data || [])
               .filter(function (x) { return x.tipo === 'factura' && !x.anulada && (pend[x.id] || 0) > 0.005 && x.contrato_id && suyos[x.contrato_id]; })
               .filter(function (x) { return (x.moneda || 'EUR') === estadoContrato.moneda; })
-              .map(function (x) { return { id: x.id, numero: x.numero, pendiente: pend[x.id] }; });
+              .map(function (x) { return { id: x.id, numero: x.numero, contrato_numero: estadoContrato.numero, cliente_nombre: estadoContrato.clienteNombre, pendiente: pend[x.id], moneda: x.moneda }; });
           });
         }
 
         var campos = [];
         if (!sociedadesOk) campos.push({ tipo: 'nota', label: 'No se ha podido cargar el catálogo de sociedades — recarga antes de emitir.' });
         if (!cuentasOk) campos.push({ tipo: 'nota', label: 'No se han podido cargar las cuentas de cobro — recarga antes de emitir.' });
-        campos.push(
-          { tipo: 'custom', label: 'Contrato', render: function (host) {
-              var lbl = document.createElement('div'); lbl.textContent = 'Contrato'; lbl.style.cssText = 'font-size:12px;color:' + CAJ.apagado + ';margin-bottom:4px';
-              var btn = document.createElement('button'); btn.type = 'button';
-              var bloqueado = bloqueadoContrato || !!existente;
-              btn.style.cssText = 'width:100%;text-align:left;padding:9px 12px;border:1px solid ' + CAJ.borde +
-                ';border-radius:8px;font-weight:500;font-size:14px;color:' + CAJ.tinta + ';background-color:' + CAJ.papel +
-                ';cursor:' + (bloqueado ? 'not-allowed' : 'pointer');
-              btn.textContent = estadoContrato.numero ? estadoContrato.numero : '— elige un contrato —';
-              btn.disabled = bloqueado;
-              var nota = document.createElement('p'); nota.style.cssText = 'margin:6px 0 0;font-size:12px;color:' + CAJ.apagado;
-              if (bloqueado) nota.textContent = 'Ya viene fijado desde donde se abrió este recibí.';
-              host.appendChild(lbl); host.appendChild(btn); host.appendChild(nota);
-              function refresca() {
-                aplicaContratoDoc(sb, estadoContrato.id).then(function (res) {
-                  if (res.error) { toastMal('No se pudo cargar el contrato: ' + (res.error.message || res.error)); return; }
-                  estadoContrato.numero = res.numero; estadoContrato.clienteId = res.clienteId;
-                  estadoContrato.moneda = res.moneda || estadoContrato.moneda;
-                  estadoContrato.clienteNombre = res.clienteNombre; estadoContrato.clienteDocumento = res.clienteDocumento;
-                  estadoContrato.clienteEmail = res.clienteEmail; estadoContrato.proyectoNombre = res.proyectoNombre;
-                  btn.textContent = res.numero + ' · ' + (res.comprador || '—');
-                  var selMoneda = campoDeDoc('moneda'); if (selMoneda) selMoneda.value = estadoContrato.moneda;
-                  // Al EDITAR, la primera pasada no vacía las aplicaciones: se
-                  // restauran de la base justo debajo. Cualquier pasada
-                  // POSTERIOR (cambio manual de contrato o de moneda, que solo
-                  // puede pasar en un recibí NUEVO — el botón va bloqueado al
-                  // editar) sí las vacía: son de otro comprador o otra divisa.
-                  if (!(existente && !aplicacionesRestauradas)) aplicaciones = [];
-                  cargaAbiertas().then(function (abs) {
-                    facturasAbiertasCache = abs;
-                    if (existente && !aplicacionesRestauradas) {
-                      aplicacionesRestauradas = true;
-                      // Mismo camino que abrir() en /intranet/facturas/ (líneas
-                      // ~3247-3260): se lee `recibi_aplicaciones` de ESTE
-                      // recibí y el pendiente que se enseña es el que queda
-                      // SIN él más lo que él mismo ya aplicaba — porque
-                      // `facturas_pendiente_equipo()` ya se lo ha descontado,
-                      // así que una factura que este recibí saldó del todo ni
-                      // siquiera aparece en `facturasAbiertasCache`.
-                      sb.from('recibi_aplicaciones').select('factura_id,importe_aplicado').eq('recibi_id', existente.id)
-                        .then(function (rr) {
-                          if (rr.error) { toastMal('No se pudieron traer las facturas que este recibí ya saldaba: ' + rr.error.message); repintaAplic(); return; }
-                          (rr.data || []).forEach(function (row) {
-                            var abierta = facturasAbiertasCache.filter(function (x) { return x.id === row.factura_id; })[0];
-                            aplicaciones.push({
-                              factura_id: row.factura_id,
-                              numero: abierta ? abierta.numero : row.factura_id,
-                              pendiente: (abierta ? abierta.pendiente : 0) + Number(row.importe_aplicado),
-                              importe: lwImporteCanonico(Number(row.importe_aplicado))
-                            });
-                          });
-                          repintaAplic();
-                        }, function (e) { toastMal('No se pudieron traer las facturas que este recibí ya saldaba: ' + (e && e.message || e)); repintaAplic(); });
-                    } else {
-                      repintaAplic();
-                    }
-                  });
-                });
-              }
-              btn.addEventListener('click', function () {
-                if (btn.disabled) return;
-                lwElegir({ titulo: 'Elige un contrato', opciones: opcionesContratoPickerDoc(contratosLigeros), valor: estadoContrato.id })
-                  .then(function (id) {
-                    if (id === null) return;
-                    estadoContrato.id = id; btn.textContent = 'Cargando…'; refresca();
-                  });
+        campos.push({ tipo: 'custom', label: 'Formulario', render: function (host) {
+          /* Calco estructural del clásico (21-sep-2026), medido en modo
+             recibí de /intranet/facturas/ a 1440 y 390: Documento[«Factura
+             que se cobra» → fila Moneda+Nº] → Fechas[fila Emisión+
+             Vencimiento — el clásico la enseña igual que en factura, aunque
+             el vencimiento no pinte nada en un cobro: se calca tal cual,
+             hallazgo aparte] → Emisor plegable → Cliente plegable (visible
+             también en recibí, medido) → «Lo que se ha cobrado» →
+             Justificante → Impuesto plegado → Notas plegado.
+
+             El picker YA NO elige un contrato: elige la FACTURA que se
+             cobra, igual que `elegirFacturaDelRecibi()` del clásico — el
+             contrato y el comprador se DERIVAN de ella. Antes el editor
+             pedía el contrato primero, que es una vía distinta a la medida.
+             Piel: tokens CAJ, nunca documento.css. */
+          var secDoc = seccionFijaDoc(host, 'Documento');
+          var lblF = document.createElement('div'); lblF.textContent = 'Factura que se cobra';
+          lblF.style.cssText = 'font-size:12px;color:' + CAJ.apagado;
+          var btnF = document.createElement('button'); btnF.type = 'button';
+          btnF.style.cssText = 'width:100%;text-align:left;padding:9px 12px;border:1px solid ' + CAJ.borde +
+            ';border-radius:8px;font-weight:500;font-size:14px;color:' + CAJ.tinta + ';background-color:' + CAJ.papel + ';cursor:pointer';
+          btnF.textContent = '— elige la factura que cobras —';
+          secDoc.appendChild(lblF); secDoc.appendChild(btnF);
+
+          pintaBtnF = function () {
+            if (!aplicaciones.length) { btnF.textContent = '— elige la factura que cobras —'; return; }
+            var f0a = aplicaciones[0];
+            btnF.textContent = f0a.numero + (aplicaciones.length > 1 ? ' y ' + (aplicaciones.length - 1) + ' más' : '') +
+              (estadoContrato.clienteNombre ? ' — ' + estadoContrato.clienteNombre : '');
+          };
+
+          // Aplica una factura YA ELEGIDA: el contrato, el comprador y el
+          // pendiente salen de ella — mismo camino que aplicarFacturaAlRecibi().
+          function aplicaFactura(f) {
+            var cambioContrato = f.contrato_id && f.contrato_id !== estadoContrato.id;
+            (cambioContrato ? aplicaContratoDoc(sb, f.contrato_id).then(function (res) {
+              if (res.error) { toastMal('No se pudo cargar el contrato de esa factura: ' + (res.error.message || res.error)); return; }
+              estadoContrato.id = f.contrato_id; estadoContrato.numero = res.numero; estadoContrato.clienteId = res.clienteId;
+              estadoContrato.moneda = res.moneda || estadoContrato.moneda;
+              estadoContrato.clienteNombre = res.clienteNombre; estadoContrato.clienteDocumento = res.clienteDocumento;
+              estadoContrato.clienteEmail = res.clienteEmail; estadoContrato.proyectoNombre = res.proyectoNombre;
+              var selMoneda = campoDeDoc('moneda'); if (selMoneda) selMoneda.value = estadoContrato.moneda;
+            }) : Promise.resolve()).then(function () { return cargaAbiertas(); }).then(function (abs) {
+              facturasAbiertasCache = abs;
+              aplicaciones.push({ factura_id: f.id, numero: f.numero, pendiente: f.pendiente, importe: '' });
+              pintaBtnF(); repintaAplic();
+              toast('Factura ' + f.numero + ' — escribe cuánto se ha cobrado');
+            });
+          }
+
+          function abreBuscador() {
+            var yaElegidas = {}; aplicaciones.forEach(function (a) { yaElegidas[a.factura_id] = 1; });
+            var fuente = estadoContrato.id ? cargaAbiertas() : cargaTodasAbiertasRecibiDoc(sb, estadoContrato.moneda);
+            fuente.then(function (abs) {
+              if (estadoContrato.id) facturasAbiertasCache = abs;
+              var libres = abs.filter(function (x) { return !yaElegidas[x.id]; });
+              if (!libres.length) { toastMal(abs.length ? 'Todas las facturas pendientes ya están en este recibí.' : 'No hay ninguna factura pendiente de cobro.'); return; }
+              lwElegir({
+                titulo: 'Factura que se cobra', buscarPh: 'Número, comprador o contrato…',
+                opciones: libres.map(function (f) {
+                  return { valor: f.id, texto: (f.numero || 'sin nº') + ' — ' + (f.cliente_nombre || 'sin nombre'),
+                    nota: 'pendiente ' + fmtMoneda(f.pendiente, f.moneda || estadoContrato.moneda) + (f.contrato_numero ? ' · ' + f.contrato_numero : '') };
+                })
+              }).then(function (id) {
+                if (!id) return;
+                var f = libres.filter(function (x) { return x.id === id; })[0]; if (!f) return;
+                aplicaFactura(f);
               });
-              if (estadoContrato.id) refresca();
-            } },
-          { k: 'sociedad', label: 'Sociedad que cobra', tipo: 'select', req: 1, medio: 1,
-            valor: f0.sociedad || '', opciones: [['', '— elige —']].concat(opcionesSociedadDoc()) },
-          { k: 'cuenta', label: 'Cuenta donde se cobró', tipo: 'select', medio: 1, valor: f0.cuenta || '', opciones: opcionesCuentaDoc(true) },
-          { k: 'moneda', label: 'Moneda', tipo: 'select', medio: 1, valor: estadoContrato.moneda, opciones: ['EUR', 'USD', 'AUD', 'IDR'] },
-          { k: 'fecha_emision', label: 'Fecha del cobro', tipo: 'date', medio: 1, valor: f0.fecha_emision || new Date().toISOString().slice(0, 10) },
-          { tipo: 'custom', label: 'Lo que se ha cobrado', render: function (host) {
-              var lbl = document.createElement('div'); lbl.textContent = 'Facturas que salda este recibí'; lbl.style.cssText = 'font-size:12px;color:' + CAJ.apagado + ';margin-bottom:4px';
-              host.appendChild(lbl);
-              var lista = document.createElement('div'); lista.style.cssText = 'display:grid;gap:6px';
-              var btnAdd = document.createElement('button'); btnAdd.type = 'button'; btnAdd.textContent = '+ Añadir otra factura';
-              btnAdd.style.cssText = 'justify-self:start;padding:7px 12px;border-radius:8px;border:1px dashed ' + CAJ.hoja +
-                ';background:transparent;color:' + CAJ.lago + ';font-weight:600;font-size:12.5px;cursor:pointer';
-              var aviso2 = document.createElement('p'); aviso2.style.cssText = 'margin:0;font-size:11.5px;color:' + CAJ.apagado;
-              host.appendChild(lista); host.appendChild(btnAdd); host.appendChild(aviso2);
-              function repinta() {
-                var usadas = {}; aplicaciones.forEach(function (a) { usadas[a.factura_id] = 1; });
-                var libres = facturasAbiertasCache.filter(function (x) { return !usadas[x.id]; });
-                btnAdd.hidden = !libres.length;
-                aviso2.textContent = !estadoContrato.id ? 'Elige primero el contrato.'
-                  : !aplicaciones.length ? (facturasAbiertasCache.length ? 'Elige qué factura(s) salda este cobro.' : 'Este comprador no tiene facturas pendientes en ' + estadoContrato.moneda + '.')
-                  : '';
-                lista.innerHTML = '';
-                aplicaciones.forEach(function (a, i) {
-                  var el = document.createElement('div');
-                  el.style.cssText = 'display:grid;grid-template-columns:1fr 120px 22px;gap:6px;align-items:center';
-                  var campoEstilo = 'padding:7px 8px;border:1px solid ' + CAJ.borde + ';border-radius:6px;font-size:12.5px;color:' + CAJ.tinta + ';background-color:' + CAJ.papel + ';box-sizing:border-box;width:100%';
-                  var span = document.createElement('div'); span.style.cssText = 'font-size:12.5px;color:' + CAJ.tinta;
-                  span.textContent = a.numero + ' — pendiente ' + a.pendiente;
-                  var inpImp = document.createElement('input'); inpImp.type = 'text'; inpImp.inputMode = 'decimal'; inpImp.placeholder = 'Importe cobrado';
-                  inpImp.value = a.importe; inpImp.style.cssText = campoEstilo;
-                  var btnDel = document.createElement('button'); btnDel.type = 'button'; btnDel.textContent = '×'; btnDel.title = 'Quitar';
-                  btnDel.style.cssText = 'border:0;background:none;color:#9E2F26;font-size:19px;line-height:1;cursor:pointer';
-                  inpImp.addEventListener('input', function () { a.importe = inpImp.value; });
-                  inpImp.addEventListener('blur', function () {
-                    var n = lwParseImporte(inpImp.value); var txt = lwImporteCanonico(n);
-                    inpImp.value = txt; a.importe = txt;
-                  });
-                  btnDel.addEventListener('click', function () { aplicaciones.splice(i, 1); repinta(); });
-                  el.appendChild(span); el.appendChild(inpImp); el.appendChild(btnDel);
-                  lista.appendChild(el);
-                });
+            });
+          }
+          btnF.addEventListener('click', abreBuscador);
+
+          if (existente) {
+            // EDITAR: no se pide elegir — se restaura de `recibi_aplicaciones`
+            // (código de más abajo, code-review 21-sep) sin vaciar nada antes.
+            btnF.textContent = 'Cargando…';
+            aplicaContratoDoc(sb, estadoContrato.id).then(function (res) {
+              if (!res.error) {
+                estadoContrato.numero = res.numero; estadoContrato.clienteId = res.clienteId;
+                estadoContrato.moneda = res.moneda || estadoContrato.moneda;
+                estadoContrato.clienteNombre = res.clienteNombre; estadoContrato.clienteDocumento = res.clienteDocumento;
+                estadoContrato.clienteEmail = res.clienteEmail; estadoContrato.proyectoNombre = res.proyectoNombre;
               }
-              repintaAplic = repinta;
-              btnAdd.addEventListener('click', function () {
-                var usadas = {}; aplicaciones.forEach(function (a) { usadas[a.factura_id] = 1; });
-                var libres = facturasAbiertasCache.filter(function (x) { return !usadas[x.id]; });
-                if (!libres.length) return;
-                lwElegir({ titulo: 'Elige la factura que salda', opciones: libres.map(function (x) { return { valor: x.id, texto: x.numero, nota: 'pendiente ' + x.pendiente }; }) })
-                  .then(function (id) {
-                    if (id === null) return;
-                    var f = libres.filter(function (x) { return x.id === id; })[0]; if (!f) return;
-                    aplicaciones.push({ factura_id: f.id, numero: f.numero, pendiente: f.pendiente, importe: '' });
-                    repinta();
-                  });
+              cargaAbiertas().then(function (abs) {
+                facturasAbiertasCache = abs;
+                aplicacionesRestauradas = true;
+                sb.from('recibi_aplicaciones').select('factura_id,importe_aplicado').eq('recibi_id', existente.id)
+                  .then(function (rr) {
+                    if (rr.error) { toastMal('No se pudieron traer las facturas que este recibí ya saldaba: ' + rr.error.message); pintaBtnF(); repintaAplic(); return; }
+                    (rr.data || []).forEach(function (row) {
+                      var abierta = facturasAbiertasCache.filter(function (x) { return x.id === row.factura_id; })[0];
+                      aplicaciones.push({
+                        factura_id: row.factura_id,
+                        numero: abierta ? abierta.numero : row.factura_id,
+                        pendiente: (abierta ? abierta.pendiente : 0) + Number(row.importe_aplicado),
+                        importe: lwImporteCanonico(Number(row.importe_aplicado))
+                      });
+                    });
+                    pintaBtnF(); repintaAplic();
+                  }, function (e) { toastMal('No se pudieron traer las facturas que este recibí ya saldaba: ' + (e && e.message || e)); pintaBtnF(); repintaAplic(); });
               });
-              repinta();
-            } },
-          { tipo: 'custom', label: 'Justificante', render: function (host) {
-              var lbl = document.createElement('div'); lbl.textContent = 'Justificante de pago (obligatorio)'; lbl.style.cssText = 'font-size:12px;color:' + CAJ.apagado + ';margin-bottom:4px';
-              host.appendChild(lbl);
-              getJustificantes = montaJustificantesDoc(host, sb);
-              if (existente && Array.isArray(existente.justificantes) && existente.justificantes.length) {
-                var ya = document.createElement('p'); ya.style.cssText = 'margin:6px 0 0;font-size:12px;color:' + CAJ.apagado;
-                ya.textContent = 'Este recibí ya tiene ' + existente.justificantes.length + ' justificante(s) — al guardar, se sustituyen por los que subas aquí.';
-                host.appendChild(ya);
-              }
-            } },
-          { k: 'notas', label: 'Notas', tipo: 'textarea', valor: f0.notas || '' }
-        );
+            });
+          } else if (pre.contrato_id) {
+            // Atajo desde la ficha de un contrato: se precarga sola la lista
+            // de pendientes de ese comprador y, si solo hay una, se aplica —
+            // es el caso normal (un hito facturado, pendiente de cobro).
+            btnF.textContent = 'Cargando…';
+            aplicaContratoDoc(sb, estadoContrato.id).then(function (res) {
+              if (res.error) { toastMal('No se pudo cargar el contrato: ' + (res.error.message || res.error)); btnF.textContent = '— elige la factura que cobras —'; return; }
+              estadoContrato.numero = res.numero; estadoContrato.clienteId = res.clienteId;
+              estadoContrato.moneda = res.moneda || estadoContrato.moneda;
+              estadoContrato.clienteNombre = res.clienteNombre; estadoContrato.clienteDocumento = res.clienteDocumento;
+              estadoContrato.clienteEmail = res.clienteEmail; estadoContrato.proyectoNombre = res.proyectoNombre;
+              var selMoneda = campoDeDoc('moneda'); if (selMoneda) selMoneda.value = estadoContrato.moneda;
+              cargaAbiertas().then(function (abs) {
+                facturasAbiertasCache = abs;
+                if (abs.length === 1) { aplicaFactura(abs[0]); return; }
+                pintaBtnF(); repintaAplic();
+              });
+            });
+          }
+
+          var filaDM = filaDosDoc(secDoc);
+          campoSimpleDoc(filaDM, { k: 'moneda', label: 'Moneda', tipo: 'select', valor: estadoContrato.moneda, opciones: ['EUR', 'USD', 'AUD', 'IDR'] });
+          campoSimpleDoc(filaDM, { label: 'Nº de documento', readonly: 1, valor: existente ? (existente.numero || '') : 'Lo asigna la base al guardar' });
+
+          var secFechas = seccionFijaDoc(host, 'Fechas');
+          var filaF = filaDosDoc(secFechas);
+          campoSimpleDoc(filaF, { k: 'fecha_emision', label: 'Fecha de emisión', tipo: 'date', valor: f0.fecha_emision || new Date().toISOString().slice(0, 10) });
+          campoSimpleDoc(filaF, { k: 'fecha_vencimiento', label: 'Vencimiento (opcional)', tipo: 'date', valor: f0.fecha_vencimiento || '' });
+
+          var secEmisor = seccionPlegableDoc(host, 'Emisor', true);
+          campoSimpleDoc(secEmisor, { k: 'sociedad', label: 'Sociedad que cobra', tipo: 'select', req: 1, valor: f0.sociedad || '', opciones: [['', '— elige —']].concat(opcionesSociedadDoc()) });
+          campoSimpleDoc(secEmisor, { k: 'cuenta', label: 'Cuenta donde se cobró', tipo: 'select', valor: f0.cuenta || '', opciones: opcionesCuentaDoc(true) });
+          var hintCuenta = document.createElement('p'); hintCuenta.style.cssText = 'margin:0;font-size:11.5px;color:' + CAJ.apagado;
+          hintCuenta.textContent = 'Sin cuenta, el documento no imprime datos bancarios.';
+          secEmisor.appendChild(hintCuenta);
+
+          var secCliente = seccionPlegableDoc(host, 'Cliente', true);
+          campoSimpleDoc(secCliente, { k: 'cliente_nombre', label: 'Nombre o razón social', valor: estadoContrato.clienteNombre });
+          campoSimpleDoc(secCliente, { k: 'cliente_documento', label: 'Pasaporte / NPWP / NIF', valor: estadoContrato.clienteDocumento });
+          campoSimpleDoc(secCliente, { k: 'cliente_email', label: 'Email', tipo: 'email', valor: estadoContrato.clienteEmail });
+          campoSimpleDoc(secCliente, { k: 'proyecto_nombre', label: 'Proyecto / unidad', valor: estadoContrato.proyectoNombre, placeholder: 'Ej. Palm Field — Cabana 2BR S2' });
+
+          var secAplic = seccionFijaDoc(host, 'Lo que se ha cobrado');
+          var lista = document.createElement('div'); lista.style.cssText = 'display:grid;gap:6px'; secAplic.appendChild(lista);
+          var btnAdd = document.createElement('button'); btnAdd.type = 'button'; btnAdd.textContent = '+ Añadir otra factura';
+          btnAdd.style.cssText = 'justify-self:start;padding:7px 12px;border-radius:8px;border:1px dashed ' + CAJ.hoja +
+            ';background:transparent;color:' + CAJ.lago + ';font-weight:600;font-size:12.5px;cursor:pointer';
+          secAplic.appendChild(btnAdd);
+          var avisoAplic = document.createElement('p'); avisoAplic.style.cssText = 'margin:0;font-size:11.5px;color:' + CAJ.apagado;
+          secAplic.appendChild(avisoAplic);
+          var totalAplic = document.createElement('p'); totalAplic.style.cssText = 'margin:0;font-size:12px;font-weight:600;color:' + CAJ.tinta;
+          secAplic.appendChild(totalAplic);
+          function repinta() {
+            var usadas = {}; aplicaciones.forEach(function (a) { usadas[a.factura_id] = 1; });
+            var libres = facturasAbiertasCache.filter(function (x) { return !usadas[x.id]; });
+            btnAdd.hidden = !estadoContrato.id;
+            avisoAplic.textContent = !estadoContrato.id ? 'Elige arriba la factura que se cobra.'
+              : libres.length ? 'Hay ' + libres.length + ' factura' + (libres.length === 1 ? '' : 's') + ' pendiente' + (libres.length === 1 ? '' : 's') + ' más de este comprador.'
+              : 'No le queda ninguna otra factura pendiente a este comprador.';
+            var suma = aplicaciones.reduce(function (s, a) { return s + (lwParseImporte(a.importe) || 0); }, 0);
+            totalAplic.textContent = aplicaciones.length ? 'Total del recibí: ' + fmtMoneda(suma, estadoContrato.moneda) + ' (' + aplicaciones.length + ' factura' + (aplicaciones.length === 1 ? '' : 's') + ')' : '';
+            lista.innerHTML = '';
+            aplicaciones.forEach(function (a, i) {
+              var el = document.createElement('div');
+              el.style.cssText = 'display:grid;grid-template-columns:1fr 130px 22px;gap:6px;align-items:start';
+              var campoEstilo = 'padding:7px 8px;border:1px solid ' + CAJ.borde + ';border-radius:6px;font-size:12.5px;color:' + CAJ.tinta + ';background-color:' + CAJ.papel + ';box-sizing:border-box;width:100%';
+              var col1 = document.createElement('div'); col1.style.cssText = 'display:grid;gap:2px';
+              var num = document.createElement('div'); num.style.cssText = 'font-size:12.5px;color:' + CAJ.tinta; num.textContent = a.numero;
+              var pend = document.createElement('button'); pend.type = 'button';
+              pend.style.cssText = 'all:unset;cursor:pointer;font-size:11px;color:' + CAJ.lago + ';font-weight:600;text-decoration:underline';
+              pend.textContent = 'Pendiente ' + fmtMoneda(a.pendiente, estadoContrato.moneda) + ' — cobrarlo entero';
+              pend.addEventListener('click', function () { a.importe = lwImporteCanonico(a.pendiente); repinta(); });
+              col1.appendChild(num); col1.appendChild(pend);
+              var inpImp = document.createElement('input'); inpImp.type = 'text'; inpImp.inputMode = 'decimal'; inpImp.placeholder = 'Importe cobrado';
+              inpImp.value = a.importe; inpImp.style.cssText = campoEstilo;
+              var btnDel = document.createElement('button'); btnDel.type = 'button'; btnDel.textContent = '×'; btnDel.title = 'Quitar';
+              btnDel.style.cssText = 'border:0;background:none;color:#9E2F26;font-size:19px;line-height:1;cursor:pointer';
+              inpImp.addEventListener('input', function () { a.importe = inpImp.value; });
+              inpImp.addEventListener('blur', function () { var n = lwParseImporte(inpImp.value); var txt = lwImporteCanonico(n); inpImp.value = txt; a.importe = txt; repinta(); });
+              btnDel.addEventListener('click', function () { aplicaciones.splice(i, 1); pintaBtnF(); repinta(); });
+              el.appendChild(col1); el.appendChild(inpImp); el.appendChild(btnDel);
+              lista.appendChild(el);
+            });
+          }
+          repintaAplic = repinta;
+          btnAdd.addEventListener('click', abreBuscador);
+          repinta();
+
+          var secJust = seccionFijaDoc(host, 'Justificante de pago (obligatorio)');
+          getJustificantes = montaJustificantesDoc(secJust, sb);
+          if (existente && Array.isArray(existente.justificantes) && existente.justificantes.length) {
+            var ya = document.createElement('p'); ya.style.cssText = 'margin:0;font-size:12px;color:' + CAJ.apagado;
+            ya.textContent = 'Este recibí ya tiene ' + existente.justificantes.length + ' justificante(s) — al guardar, se sustituyen por los que subas aquí.';
+            secJust.appendChild(ya);
+          }
+
+          var secImp = seccionPlegableDoc(host, 'Impuesto (opcional)', false);
+          campoSimpleDoc(secImp, { k: 'imp_etiqueta', label: 'Impuesto — etiqueta', valor: f0.imp_etiqueta || '', ayuda: 'Ej. PPN' });
+          campoSimpleDoc(secImp, { k: 'imp_pct', label: 'Impuesto — porcentaje', valor: f0.imp_pct || '' });
+
+          var secNotas = seccionPlegableDoc(host, 'Notas (opcional)', false);
+          campoSimpleDoc(secNotas, { k: 'notas', label: 'Notas', tipo: 'textarea', valor: f0.notas || '' });
+        } });
 
         modal(existente ? 'Editar ' + (existente.numero || 'recibí') : 'Emitir recibí de cobro', campos,
           existente ? 'Guardar cambios' : 'Emitir recibí', function (v) {
-            if (!estadoContrato.id) return { error: { message: 'Elige el contrato al que corresponde este recibí.' } };
+            if (!estadoContrato.id) return { error: { message: 'Elige la factura que se cobra.' } };
             if (!aplicaciones.length) return { error: { message: 'Elige al menos una factura que salde este recibí.' } };
+            if (!v.sociedad) return { error: { message: 'Falta «Sociedad que cobra».' } };
             var justificantes = getJustificantes ? getJustificantes() : [];
             if (!justificantes.length) return { error: { message: 'Adjunta el justificante de pago.' } };
             for (var i = 0; i < aplicaciones.length; i++) {
@@ -1910,8 +2124,10 @@
             }
             var lineas = aplicaciones.map(function (a) { return { descripcion: 'Aplicado a factura ' + a.numero, importe: a.importe }; });
             var d = v; d.tipo = 'recibi'; d.lineas = lineas;
-            d.cliente_nombre = estadoContrato.clienteNombre; d.cliente_documento = estadoContrato.clienteDocumento;
-            d.cliente_email = estadoContrato.clienteEmail; d.proyecto_nombre = estadoContrato.proyectoNombre;
+            d.cliente_nombre = v.cliente_nombre || estadoContrato.clienteNombre;
+            d.cliente_documento = v.cliente_documento || estadoContrato.clienteDocumento;
+            d.cliente_email = v.cliente_email || estadoContrato.clienteEmail;
+            d.proyecto_nombre = v.proyecto_nombre || estadoContrato.proyectoNombre;
             d.contrato_numero = estadoContrato.numero;
             var t = calcTotales(lineas, d.moneda, {});
             var pFactura = {
@@ -1932,17 +2148,19 @@
 
         // code-review 21-sep: la Moneda es libre (mismo comprador puede tener
         // contratos en monedas distintas) pero nada volvía a comprobar la
-        // lista de facturas si se tocaba DESPUÉS de elegir el contrato — se
+        // lista de facturas si se tocaba DESPUÉS de elegir la factura — se
         // podía elegir una factura en EUR y guardar el recibí en USD. Mismo
         // guardarraíl que `$('#fa-moneda').addEventListener('change', …)` en
         // /intranet/facturas/: cambiar la moneda vacía lo ya elegido (ya no
-        // es válido en la divisa nueva) y vuelve a preguntar por el contrato.
+        // es válido en la divisa nueva).
         var selMonedaWire = campoDeDoc('moneda');
         if (selMonedaWire) {
           selMonedaWire.addEventListener('change', function () {
             estadoContrato.moneda = selMonedaWire.value || 'EUR';
             aplicaciones = [];
-            cargaAbiertas().then(function (abs) { facturasAbiertasCache = abs; repintaAplic(); });
+            pintaBtnF();
+            if (estadoContrato.id) cargaAbiertas().then(function (abs) { facturasAbiertasCache = abs; repintaAplic(); });
+            else repintaAplic();
           });
         }
       }
@@ -4567,6 +4785,212 @@
       // `hidden` de salida en el HTML: solo se destapa para super_admin — un
       // admin normal ni lo ve, aunque el click de todas formas lo rechazaría.
       if (btn && superAdmin) btn.hidden = false;
+    },
+
+    /* Sociedades emisoras (21-sep-2026, S9) — SOLO super admin, y no por
+       gusto: la RLS de INSERT/UPDATE de `sociedades` exige es_super_admin(),
+       asi que esto es UI, no el candado real.
+
+       Alta y edicion son la logica de la herramienta clasica
+       (intranet/sociedades/, 17-sep) PORTADA, no reescrita: mismo filtro del
+       historial (solo los 7 campos FISCALES cuentan como identidad), mismo
+       tratamiento de `es_indonesia` (se lee la columna, nunca se deriva de
+       la clave — es el bug que se corrigio el 17-sep en
+       sociedades_jurisdiccion.sql) y la misma inmutabilidad de `clave`.
+
+       El payload de UPDATE es una ALLOWLIST de EXACTAMENTE las 16 columnas
+       del GRANT (verificado contra contracts/sql/sociedades.sql +
+       sociedades_jurisdiccion.sql) — `clave` nunca viaja, ni deshabilitada
+       en el formulario: no esta en `camposEdicion()`, asi que ni siquiera se
+       recoge. Si algun dia un campo se cuela en `payloadDesdeForm` sin
+       ampliar antes el GRANT del .sql, mejor que lo rechace Postgres con
+       42501 a la vista que enviar algo que la base iba a tirar de todas
+       formas — el candado de abajo lo deja explicito. */
+    'sociedades': function (aut) {
+      var sb = aut.sb;
+      var superAdmin = !!(aut.ficha && aut.ficha.rol === 'super_admin');
+      window.LW_V4 = window.LW_V4 || {};
+
+      var soloSuper = function () {
+        return aviso('Sociedades emisoras es solo para super_admin — tu sesion es de ' +
+          ((aut.ficha && aut.ficha.rol) || 'agente') + '.', '#8A6A34');
+      };
+
+      var TEXTO_ES_INDONESIA = 'Las nueve plantillas de contrato declaran al Promotor como «sociedad de ' +
+        'nacionalidad Indonesia», y para esta sociedad eso es falso. Quien la use para FIRMAR un contrato ' +
+        '—no solo para facturar— tiene que corregir esa clausula a mano antes de imprimir el documento final.';
+      var TEXTO_LAW_235 = 'Las tres series de numeracion (INV, PRO y REC) son GLOBALES y las comparten ' +
+        'todas las sociedades: esta empresa consumira la misma numeracion que las demas, asi que su serie ' +
+        'propia tendra huecos. Aplazado por el owner el 17-sep (LAW-235) SOLO mientras todas las sociedades ' +
+        'son del propio grupo Lawang — en cuanto se de de alta una que no lo sea, compartir la numeracion ' +
+        'deja de ser aceptable y hay que separar las series antes, no despues.';
+
+      // Los 16 campos del GRANT UPDATE, ni uno mas.
+      var CAMPOS_UPDATE = ['label', 'razon', 'marca', 'npwp', 'npwp_label', 'nib', 'domicilio', 'rep',
+        'logo', 'logo_alto', 'emisor_debajo', 'folio', 'tinta', 'activa', 'orden', 'es_indonesia'];
+
+      function payloadDesdeForm(v) {
+        var fila = {
+          label: (v.label || '').trim() || (v.razon || '').trim(),
+          razon: (v.razon || '').trim(), marca: (v.marca || '').trim(),
+          npwp: (v.npwp || '').trim() || null, npwp_label: (v.npwp_label || '').trim() || 'NPWP',
+          nib: (v.nib || '').trim() || null, domicilio: (v.domicilio || '').trim(),
+          rep: (v.rep || '').trim() || null, logo: (v.logo || '').trim() || null,
+          logo_alto: (v.logo_alto || '').trim() || null, folio: (v.folio || '').trim() || null,
+          emisor_debajo: !!v.emisor_debajo, es_indonesia: !!v.es_indonesia, activa: !!v.activa,
+          orden: Number(v.orden) || 0
+        };
+        // Objeto o nada — nunca `{primary:'',deep:''}`: eso lo aplicaria
+        // documentoVars como override en blanco, no como "hereda el de marca".
+        var tp = (v.tinta_primary || '').trim(), td = (v.tinta_deep || '').trim();
+        fila.tinta = (tp || td) ? { primary: tp, deep: td } : null;
+        var extra = Object.keys(fila).filter(function (k) { return CAMPOS_UPDATE.indexOf(k) === -1; });
+        if (extra.length) return { error: { message: 'Candado de columnas: ' + extra.join(', ') + ' no estan en el GRANT de UPDATE de sociedades.' } };
+        return fila;
+      }
+
+      function camposEdicion(s) {
+        var base = [
+          { tipo: 'lectura', label: 'Clave', medio: 1, valor: s.clave },
+          { tipo: 'nota', label: 'La clave no se edita nunca: va dentro de cada contrato y cada factura ya emitidos.' },
+          { k: 'razon', label: 'Razón social', req: 1, valor: s.razon },
+          { k: 'marca', label: 'Marca', medio: 1, valor: s.marca },
+          { k: 'label', label: 'Nombre en el desplegable', medio: 1, valor: s.label },
+          { k: 'npwp_label', label: 'Etiqueta fiscal', medio: 1, valor: s.npwp_label || 'NPWP' },
+          { k: 'npwp', label: 'Identificación fiscal', medio: 1, valor: s.npwp },
+          { k: 'nib', label: 'NIB', medio: 1, valor: s.nib },
+          { k: 'rep', label: 'Representante', medio: 1, valor: s.rep },
+          { k: 'domicilio', label: 'Domicilio', tipo: 'textarea', req: 1, valor: s.domicilio },
+          { k: 'es_indonesia', label: 'Es una sociedad indonesa (las plantillas lo declaran así)', tipo: 'check', valor: s.es_indonesia !== false }
+        ];
+        if (s.es_indonesia === false) base.push({ tipo: 'nota', label: TEXTO_ES_INDONESIA });
+        return base.concat([
+          { tipo: 'nota', label: 'Corregir esto NO cambia los documentos ya emitidos: cada factura guarda dentro la identidad con la que salió.' },
+          { tipo: 'nota', label: 'Aspecto del documento — esto NO cambia lo que el documento dice.' },
+          { k: 'logo', label: 'Logo', valor: s.logo, ayuda: '/contracts/assets/brand/…' },
+          { k: 'logo_alto', label: 'Alto del logo', medio: 1, valor: s.logo_alto, ayuda: '24mm' },
+          { k: 'folio', label: 'Folio', medio: 1, valor: s.folio, ayuda: '#E7E3D2' },
+          { k: 'tinta_primary', label: 'Tinta principal', medio: 1, valor: (s.tinta || {}).primary, ayuda: '#662906' },
+          { k: 'tinta_deep', label: 'Tinta oscura', medio: 1, valor: (s.tinta || {}).deep, ayuda: '#42210B' },
+          { k: 'emisor_debajo', label: 'El emisor va DEBAJO del logo (para logos apaisados)', tipo: 'check', valor: s.emisor_debajo },
+          { tipo: 'nota', label: 'En el catálogo.' },
+          { k: 'orden', label: 'Orden', tipo: 'number', medio: 1, valor: s.orden || 0 },
+          { k: 'activa', label: 'Activa — se ofrece al redactar contratos y facturas', tipo: 'check', valor: s.activa !== false },
+          { tipo: 'nota', label: 'Una sociedad no se borra, se desactiva: sus documentos emitidos siguen apuntando a ella.' }
+        ]);
+      }
+
+      // ── Editar una sociedad que ya existe ───────────────────────────────
+      window.LW_V4.abreEditaSociedad = function (btn) {
+        if (!superAdmin) return soloSuper();
+        var clave = btn.getAttribute ? btn.getAttribute('data-lw-soc-editar') : btn;
+        var s = (window.LW_V4.sociedadesPorClave && window.LW_V4.sociedadesPorClave[clave]) || null;
+        if (!s) return aviso('No se ha podido leer esta sociedad — recarga la pantalla.', '#9E2F26');
+
+        modal('Editar sociedad — ' + s.razon, camposEdicion(s), 'Guardar cambios', function (v) {
+          var fila = payloadDesdeForm(v);
+          if (fila.error) return fila;
+
+          function guarda() {
+            return sb.from('sociedades').update(fila).eq('clave', s.clave).select('clave').single();
+          }
+
+          // Desactivar una sociedad YA EXISTENTE (nunca aplica en el alta):
+          // antes de dejar seguir, comprobar si tiene facturas o proformas
+          // sin anular. Si las tiene, bloqueante con DOBLE confirmacion — no
+          // un aviso pasivo. Si no las tiene, se guarda directo.
+          var desactivando = (s.activa !== false) && !fila.activa;
+          if (!desactivando) return guarda();
+
+          return aseguraModulosDoc(['dialogo']).then(function () {
+            return Promise.all([
+              sb.from('axisworks_facturas').select('id', { count: 'exact', head: true }).eq('sociedad', s.clave).eq('anulada', false).eq('tipo', 'factura'),
+              sb.from('axisworks_facturas').select('id', { count: 'exact', head: true }).eq('sociedad', s.clave).eq('anulada', false).eq('tipo', 'proforma')
+            ]);
+          }).then(function (r) {
+            if (r[0].error || r[1].error) {
+              var e = r[0].error || r[1].error;
+              return { error: { message: 'No se ha podido comprobar si esta sociedad tiene facturas o proformas sin anular, y por seguridad no se desactiva sin saberlo: ' + e.message } };
+            }
+            var nf = r[0].count || 0, np = r[1].count || 0;
+            if (!nf && !np) return guarda();
+
+            return window.lwConfirmar({
+              titulo: 'Desactivar ' + s.razon,
+              cuerpo: 'Esta sociedad tiene <b>' + nf + '</b> factura(s) y <b>' + np + '</b> proforma(s) sin anular. ' +
+                'Desactivarla no toca los documentos ya emitidos, pero impide emitir o convertir proformas nuevas con esta clave.',
+              confirmar: 'Sí, quiero desactivarla', tono: 'peligro'
+            }).then(function (ok1) {
+              if (!ok1) return { error: { message: 'Cancelado: la sociedad sigue activa.' } };
+              return window.lwConfirmar({
+                titulo: 'Confírmalo una segunda vez',
+                cuerpo: 'Vas a desactivar <b>' + esc(s.razon) + '</b> con ' + nf + ' factura(s) y ' + np +
+                  ' proforma(s) todavía sin anular.',
+                confirmar: 'Confirmar desactivación', tono: 'peligro'
+              }).then(function (ok2) {
+                if (!ok2) return { error: { message: 'Cancelado: la sociedad sigue activa.' } };
+                return guarda();
+              });
+            });
+          });
+        }, { sub: 'Sociedades emisoras' });
+      };
+
+      // ── Nueva sociedad ───────────────────────────────────────────────────
+      var btnNueva = document.getElementById('btn-nueva-sociedad');
+      if (btnNueva) {
+        if (superAdmin) btnNueva.hidden = false;
+        btnNueva.addEventListener('click', function () {
+          if (!superAdmin) return soloSuper();
+          var socs = window.LW_V4.sociedadesPorClave || {};
+          var maxOrden = Object.keys(socs).reduce(function (m, k) { return Math.max(m, socs[k].orden || 0); }, 0);
+
+          modal('Nueva sociedad', [
+            { tipo: 'nota', label: 'Se dará de alta en el catálogo y aparecerá en el desplegable de sociedad firmante.' },
+            { k: 'clave', label: 'Clave', req: 1,
+              ayuda: 'minúsculas, números y guion bajo, sin espacios — por ejemplo mi_empresa_sa. No se puede cambiar después: nunca.' },
+            { k: 'razon', label: 'Razón social', req: 1 },
+            { k: 'domicilio', label: 'Domicilio', tipo: 'textarea', req: 1 },
+            { k: 'marca', label: 'Marca', medio: 1 },
+            { k: 'label', label: 'Nombre en el desplegable', medio: 1 },
+            { k: 'npwp_label', label: 'Etiqueta fiscal', medio: 1, valor: 'NPWP' },
+            { k: 'npwp', label: 'Identificación fiscal', medio: 1 },
+            { k: 'nib', label: 'NIB', medio: 1 },
+            { k: 'rep', label: 'Representante', medio: 1 },
+            { k: 'es_indonesia', label: 'Es una sociedad indonesa (las plantillas lo declaran así)', tipo: 'check', valor: true },
+            { k: 'npwp_pendiente', label: 'Sin NIF fiscal, pendiente — no apta para emitir documentos hasta completarse', tipo: 'check',
+              ayuda: 'marca esto SOLO si de verdad todavía no se tiene el NPWP; la sociedad queda visible en el listado con este aviso hasta que se complete' },
+            { k: 'cesion_dpa_firmado', label: 'Confirmo que el contrato de cesión y el DPA con esta sociedad ya están firmados', tipo: 'check',
+              ayuda: 'obligatorio si la sociedad NO es indonesia, o en general si no es una de las 2-3 del propio grupo Lawang' },
+            { tipo: 'nota', label: TEXTO_LAW_235 },
+            { tipo: 'nota', label: 'Aspecto del documento.' },
+            { k: 'logo', label: 'Logo', ayuda: '/contracts/assets/brand/…' },
+            { k: 'logo_alto', label: 'Alto del logo', medio: 1, ayuda: '24mm' },
+            { k: 'folio', label: 'Folio', medio: 1, ayuda: '#E7E3D2' },
+            { k: 'tinta_primary', label: 'Tinta principal', medio: 1, ayuda: '#662906' },
+            { k: 'tinta_deep', label: 'Tinta oscura', medio: 1, ayuda: '#42210B' },
+            { k: 'emisor_debajo', label: 'El emisor va DEBAJO del logo (para logos apaisados)', tipo: 'check' },
+            { k: 'orden', label: 'Orden', tipo: 'number', medio: 1, valor: maxOrden + 1 }
+          ], 'Dar de alta', function (v) {
+            var clave = (v.clave || '').toLowerCase();
+            if (!/^[a-z0-9_]+$/.test(clave)) {
+              return { error: { message: 'La clave solo admite minúsculas, números y guion bajo, sin espacios — por ejemplo mi_empresa_sa. No se puede cambiar después.' } };
+            }
+            if (socs[clave]) return { error: { message: 'Ya existe una sociedad con esa clave.' } };
+            if (v.es_indonesia && !(v.npwp || '').trim() && !v.npwp_pendiente) {
+              return { error: { message: 'Falta la identificación fiscal (NPWP). Si de verdad todavía no se tiene, marca la casilla «Sin NIF fiscal, pendiente».' } };
+            }
+            if (!v.es_indonesia && !v.cesion_dpa_firmado) {
+              return { error: { message: 'Para una sociedad que no es indonesa hay que confirmar antes que el contrato de cesión y el DPA ya están firmados.' } };
+            }
+            var fila = payloadDesdeForm(v);
+            if (fila.error) return fila;
+            fila.clave = clave;
+            fila.activa = true;   // nace activa siempre; desactivarla es un paso aparte, ya existiendo
+            return sb.from('sociedades').insert(fila).select('clave').single();
+          });
+        });
+      }
     },
 
     /* "Nuevo documento" (21-sep-2026): abre el editor nativo de factura/
