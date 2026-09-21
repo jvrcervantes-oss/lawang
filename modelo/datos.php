@@ -74,65 +74,57 @@ function lw_aud_fmt($eur) {
 }
 
 /**
- * Nombre y descripción de los siete extras. El PRECIO no está aquí: vive en `modelos.php`
- * porque dos de los siete (Airbnb Kit y Oasis Pool) escalan con el modelo.
+ * Cruza los extras YA RESUELTOS del catálogo (nombre+desc+precio+orden, `catalogo_publico()`)
+ * en una lista ordenada y lista para pintar.
  *
- * Las descripciones son las de la columna «EXTRAS INFO» del price list del owner (Google
- * Sheet, 7-sep-2026), traducidas al inglés porque estas landings son solo inglés desde el
- * pivote australiano del 2-sep. `airbnb` se queda SIN descripción a propósito: el price
- * list no trae ninguna para ese, y rellenarla con algo plausible sería inventarse qué
- * incluye un extra de 5.000-8.000 € en una página de tráfico de pago.
+ * ⚠️ 21-sep-2026: hasta hoy el nombre y la descripción de los 7 extras vivían en un array
+ * fijo aquí mismo (`lw_extras_meta()`, ya retirada) — una copia a mano de la columna
+ * `extras.descripcion` de Supabase, que SÍ es editable desde /intranet/modelos/ pero cuyo
+ * cambio nunca llegaba a la web pública porque esta seguía leyendo la copia. Mismo patrón
+ * de "el dato tiene un dueño" que ya mordió con las fotos de modelo el mismo día. Ahora
+ * nombre/desc/orden salen del propio `$m['extras'][id]`, que ya trae eso resuelto.
  *
- * El ORDEN de este array es el que se pinta.
+ * `airbnb` seguía sin descripción en el price list del owner (7-sep-2026) cuando esto se
+ * escribió — si algún día se rellena en Supabase, aparece aquí sin tocar código.
  */
-function lw_extras_meta() {
-    return [
-        'airbnb'   => ['nombre' => 'Airbnb Kit',        'desc' => null],
-        'zero'     => ['nombre' => 'Zero Chemical Pool', 'desc' => 'Ozone purification, no chlorine'],
-        // Ampersand CRUDO, no `&amp;`: estas descripciones viajan en JSON al JS y se pintan
-        // con textContent, que NO decodifica entidades — con `&amp;` se lee literal en la
-        // pagina. Si algun dia se pintaran con innerHTML habria que escaparlas ahi.
-        'recovery' => ['nombre' => 'Recovery',          'desc' => 'Fire & Ice 2 m pools'],
-        'sauna'    => ['nombre' => 'Sauna',             'desc' => '2 × 1.5 m — fits four'],
-        'rooftop'  => ['nombre' => 'Rooftop',           'desc' => 'Sofa, BBQ and shade included'],
-        'oasis'    => ['nombre' => 'Oasis Pool',        'desc' => 'White cement pool with a beach finish, natural rock and palms'],
-        'gym'      => ['nombre' => 'Exterior Gym',      'desc' => 'Three-level pull-up bar, dip bar, dumbbell kit, press bench, flat bench'],
-    ];
-}
-
-/** Cruza `lw_extras_meta()` con los precios del modelo. Lista ordenada y lista para pintar. */
 function lw_extras_resueltos(array $m) {
-    $precios = isset($m['extras']) && is_array($m['extras']) ? $m['extras'] : [];
+    $extras = isset($m['extras']) && is_array($m['extras']) ? $m['extras'] : [];
     $out = [];
-    foreach (lw_extras_meta() as $id => $meta) {
-        if (!isset($precios[$id])) continue;   // sin precio no se ofrece: no se estima a ojo
+    foreach ($extras as $id => $e) {
+        if (!isset($e['precio'])) continue;   // sin precio no se ofrece: no se estima a ojo
         $out[] = [
             'id'     => $id,
-            'nombre' => $meta['nombre'],
-            'desc'   => $meta['desc'],
-            'eur'    => (int) $precios[$id],
+            'nombre' => $e['nombre_en'] ?? ($e['nombre'] ?? ''),
+            'desc'   => $e['desc_en'] ?: null,
+            'eur'    => (int) $e['precio'],
+            'orden'  => $e['orden'] ?? 999,
         ];
     }
+    usort($out, function ($a, $b) { return $a['orden'] <=> $b['orden']; });
     return $out;
 }
 
 /**
- * Snapshot financiero de ejemplo — sección "Snapshot financiero" de /modelo/<id>
- * (21-sep-2026, restyle Modo calco). SIEMPRE la economía de Villa Dali en Palm Field W5:
- * es un ejemplo fijo elegido por el owner en la revisión previa, no el proyecto de la
- * página que se esté viendo — por eso el texto de la plantilla lo rotula explícitamente
- * como "economics on a Palm Field W5 plot", nunca como una cifra universal del modelo.
+ * Snapshot financiero de ejemplo — sección "Snapshot financiero" de /modelo/<id>.
  *
- * Lee la RPC pública `deck_forecast_ejemplo_publico()` (contracts/sql/, migración
- * 20260921060245) — NUNCA las tablas `deck_forecast`/`deck_forecast_proyecto` a secas:
- * están protegidas por RLS a es_agente()/es_admin() (son el investor deck privado) y la
- * RPC es la única ventana de solo lectura que un visitante anónimo puede usar.
+ * ⚠️ 21-sep-2026: pasa de UN ejemplo fijo (siempre Villa Dali en Palm Field W5, se mirara
+ * la ficha que se mirara) a un OBJETO por slug de modelo, con los 3 pares (modelo,proyecto)
+ * confirmados por el owner como datos reales — Dali/Dream/Dune, todos en Palm Field W5
+ * (`deck_forecast_ejemplo_publico()`, migración `deck_forecast_ejemplo_publico_por_modelo`).
+ * `deck_forecast` tiene MÁS filas publicadas de las que parecen fiables (Bonian Village
+ * para Dali está `publicado=true` y `destacado=true` con 5% de ocupación — dato de prueba,
+ * no real) así que el par se sigue fijando a mano en la RPC, nunca "el primero publicado".
+ * Un modelo SIN par confirmado (Loftbung, Temple, Trinity) no sale en el objeto — la
+ * plantilla debe OCULTAR la sección entera para ese modelo, no caer al ejemplo de otro.
  *
- * Mismo patrón de caché en 3 niveles que lw_catalogo() (arriba en este mismo fichero):
- * una landing pública no puede depender de que Supabase responda en cada visita, y sin
- * NADA que servir (sin caché, sin red) la sección se OCULTA — nunca un cero ni un dato
- * inventado. `static $memo` usa `false` como centinela de "aún no resuelto" porque `null`
- * es una respuesta válida (recurso sin caché y sin red).
+ * Lee la RPC pública `deck_forecast_ejemplo_publico()` — NUNCA las tablas
+ * `deck_forecast`/`deck_forecast_proyecto` a secas: están protegidas por RLS a
+ * es_agente()/es_admin() (son el investor deck privado) y la RPC es la única ventana de
+ * solo lectura que un visitante anónimo puede usar.
+ *
+ * Mismo patrón de caché en 3 niveles que lw_catalogo() (arriba en este mismo fichero): una
+ * landing pública no puede depender de que Supabase responda en cada visita, y sin NADA
+ * que servir (sin caché, sin red) la sección se OCULTA — nunca un cero ni un dato inventado.
  */
 function lw_deck_forecast_cache_path() {
     $priv = __DIR__ . '/../private';
@@ -141,19 +133,12 @@ function lw_deck_forecast_cache_path() {
 }
 
 /**
- * Devuelve, sin ambigüedad, TRES cosas distintas (hallazgo de code-review, 21-sep-2026 —
- * la primera versión las confundía):
- *   - array  → la RPC respondió 200 con datos: la fila sigue publicada.
- *   - null   → la RPC respondió 200 con el JSON `null`: es una respuesta VÁLIDA y
- *     AUTORITATIVA — la fila dejó de estar publicada. No es un fallo de red.
- *   - false  → no se pudo ni preguntar (sin curl, timeout, HTTP != 200, JSON inválido):
- *     esto SÍ es un fallo de red, y es el único caso en el que vale la pena caer a la
- *     caché vieja en vez de creer la respuesta.
- * Antes ambos casos devolvían `null` y lw_deck_forecast_ejemplo() no podía distinguir
- * "la fila se despublicó, hay que ocultar" de "Supabase no respondió, sirve lo de antes"
- * — con eso, una vez que había CUALQUIER caché en disco, despublicar la fila en la
- * intranet nunca llegaba a ocultar la sección en la web: cada 5 minutos volvía a fallar
- * "network" y volvía a caer a la misma caché vieja, para siempre.
+ * `false` = fallo de red/HTTP/JSON inválido (no fiable, cae a la caché vieja). `array` = la
+ * RPC respondió 200 con un objeto — SIEMPRE un objeto, `{}` incluido si ningún modelo tiene
+ * ejemplo confirmado ahora mismo (a diferencia de la versión de un solo modelo, esta RPC ya
+ * no devuelve `null` a nivel raíz: `coalesce(..., '{}'::jsonb)` en el propio SQL). Un objeto
+ * vacío SÍ es autoritativo y se cachea igual: significa "hoy nadie tiene ejemplo publicado",
+ * no "no se pudo preguntar".
  */
 function lw_deck_forecast_fetch() {
     if (!function_exists('curl_init')) return false;
@@ -176,13 +161,14 @@ function lw_deck_forecast_fetch() {
     if ($code !== 200 || !is_string($body) || $body === '') return false;
     $d = json_decode($body, true);
     if (json_last_error() !== JSON_ERROR_NONE) return false; // cuerpo no es JSON: no fiable
-    if ($d === null) return null;      // JSON `null` de verdad: autoritativo, fila despublicada
-    return is_array($d) ? $d : false;  // cualquier otra forma: no es lo que se esperaba
+    return is_array($d) ? $d : false; // cualquier otra forma: no es lo que se esperaba
 }
 
+/** El mapa {slug: ejemplo} completo, o `[]` si nadie tiene ejemplo confirmado ahora mismo.
+ *  El llamador (index.php) extrae `$mapa[$m['id']] ?? null` para EL modelo de esta página. */
 function lw_deck_forecast_ejemplo() {
-    static $memo = false; // false = "aún no resuelto"; distinto de null (resuelto y vacío)
-    if ($memo !== false) return $memo;
+    static $memo = null;
+    if ($memo !== null) return $memo;
 
     $cache  = lw_deck_forecast_cache_path();
     $fresca = is_file($cache) && (time() - filemtime($cache) < LW_CAT_TTL);
@@ -193,12 +179,6 @@ function lw_deck_forecast_ejemplo() {
     }
 
     $d = lw_deck_forecast_fetch();
-    if ($d === null) {
-        // Autoritativo: la fila dejó de estar publicada. La caché vieja NO puede seguir
-        // sirviendo un dato que ya no es cierto — se borra, no se conserva "por si acaso".
-        @unlink($cache);
-        return $memo = null;
-    }
     if (is_array($d)) {
         $tmp = $cache . '.' . getmypid() . '.tmp';
         if (@file_put_contents($tmp, json_encode($d, JSON_UNESCAPED_UNICODE)) !== false) {
@@ -212,8 +192,8 @@ function lw_deck_forecast_ejemplo() {
         $cached = json_decode((string) @file_get_contents($cache), true);
         if (is_array($cached)) return $memo = $cached;
     }
-    // Sin caché y sin red: null. La plantilla oculta la sección entera.
-    return $memo = null;
+    // Sin caché y sin red: mapa vacío. La plantilla oculta la sección para todos.
+    return $memo = [];
 }
 
 /**

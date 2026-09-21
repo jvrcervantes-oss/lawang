@@ -5,7 +5,7 @@
  */
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 
-require __DIR__ . '/lib.php';
+require __DIR__ . '/datos.php'; // también hace require de lib.php
 $M = require __DIR__ . '/modelos.php';
 
 $fallos = 0;
@@ -14,9 +14,10 @@ function ok($cond, $msg) {
     if (!$cond) { $fallos++; echo "FALLO: $msg\n"; }
 }
 
-// 2-sep: pivote a mercado australiano, catálogo completo de 5 modelos.
-ok(count($M) === 5, 'el catálogo son los 5 modelos reales');
-foreach (['dali', 'dune', 'dream', 'trinity', 'temple'] as $id) {
+// 2-sep: pivote a mercado australiano, catálogo de 5 modelos — 15-sep-2026 sube a 6 con
+// Loftbung (publicado sin ficha técnica completa: sin `techos`, ver más abajo).
+ok(count($M) === 6, 'el catálogo son los 6 modelos reales');
+foreach (['dali', 'dune', 'dream', 'trinity', 'temple', 'loftbung'] as $id) {
     ok(isset($M[$id]), "falta el modelo $id en el catálogo");
 }
 
@@ -84,10 +85,17 @@ ok(lw_precio_fmt(null) === null, 'sin precio no se formatea nada');
 ok(lw_precio_fmt('') === null, 'cadena vacia no es precio');
 ok(lw_precio_fmt(69000) === '€69,000', 'formato inglés de miles (coma), no español — pivote australiano');
 
-// Techos: los 5 modelos llevan Sirap y Bambú, con precio 'now'/'y2027' numérico, y Sirap
-// siempre por debajo de Bambú (si dejara de serlo, "Desde" tomaría el precio equivocado
-// como protagonista — es la asunción que usa lw_modelo_precio_desde()).
+// Techos: todo modelo CON ficha técnica lleva Sirap y Bambú, con precio 'now'/'y2027'
+// numérico, y Sirap siempre por debajo de Bambú (si dejara de serlo, "Desde" tomaría el
+// precio equivocado como protagonista — la asunción que usa lw_modelo_precio_desde()).
+// Loftbung (15-sep-2026) se publicó SIN techos a propósito (ficha técnica incompleta) —
+// es justo el caso real que tiró la web en producción una vez (lw_au_catalogo() ya lo
+// tolera con un try/catch) y este bucle no debe fingir que no existe.
 foreach ($M as $id => $mm) {
+    if (empty($mm['techos'])) {
+        ok($id === 'loftbung', "$id no tiene techos — solo Loftbung debería estar así hoy");
+        continue;
+    }
     foreach (['sirap', 'bambu'] as $tk) {
         ok(isset($mm['techos'][$tk]), "$id debe tener techo $tk");
         ok(is_numeric($mm['techos'][$tk]['now']) && is_numeric($mm['techos'][$tk]['y2027']),
@@ -98,6 +106,9 @@ foreach ($M as $id => $mm) {
     ok($mm['techos']['sirap']['now'] <= $mm['techos']['bambu']['now'],
         "$id: Sirap debe seguir siendo el techo más barato (o lw_modelo_precio_desde apunta al equivocado)");
 }
+ok(!empty($M['loftbung']) && empty($M['loftbung']['techos']), 'Loftbung sigue sin techos (si esto falla, hay que revisar si el bucle de arriba ya puede endurecerse)');
+// La app real no debe reventar con ese hueco — es el mismo camino que index.php recorre.
+ok(is_array(lw_au_catalogo()['loftbung']['techos'] ?? []), 'lw_au_catalogo() no debe reventar con un modelo sin techos');
 
 // El corte de precio se decide con el reloj de Bali, nunca con un valor que pase el
 // llamador en produccion — antes de 2027 debe devolver 'now', en/después de 2027 debe
@@ -218,8 +229,10 @@ foreach (LW_M2_PRESETS as $p) {
 
 // Identidad de techos: es lo que sostiene que la selección se mantenga POR CLAVE al cambiar
 // de modelo. Los nombres visibles SÍ difieren entre modelos (Dali "Sirap Ulin" vs Dune
-// "Sirap") — por eso no se puede keyear por nombre.
+// "Sirap") — por eso no se puede keyear por nombre. Loftbung, sin ficha técnica, se salta
+// (mismo caso ya cubierto arriba).
 foreach ($M as $id => $mm) {
+    if (empty($mm['techos'])) continue;
     ok(count($mm['techos']) === 2, "$id debe tener exactamente 2 techos, ni uno más");
     ok(array_key_exists('sirap', $mm['techos']) && array_key_exists('bambu', $mm['techos']),
         "$id debe usar las claves 'sirap'/'bambu': la selección del configurador se mantiene por clave");
@@ -230,6 +243,25 @@ foreach ($M as $id => $mm) {
 }
 ok($M['dali']['techos']['sirap']['nombre'] !== $M['dune']['techos']['sirap']['nombre'],
     'los nombres de techo difieren entre modelos: por eso el configurador keyea por clave y no por nombre');
+
+// ── lw_extras_resueltos() con catálogo inyectado (21-sep-2026): nombre/desc/orden vienen
+//    ahora de catalogo_publico() (Supabase), no de un array fijo en código — se prueba la
+//    ORDENACIÓN y el FILTRADO sin depender de qué haya publicado nadie hoy en la intranet. ──
+$mFake = ['extras' => [
+    'gym'    => ['nombre_en' => 'Exterior Gym', 'desc_en' => 'Pull-up bar', 'precio' => 6000, 'orden' => 7],
+    'sauna'  => ['nombre_en' => 'Sauna',        'desc_en' => 'Fits four',   'precio' => 8000, 'orden' => 4],
+    'airbnb' => ['nombre_en' => 'Airbnb Kit',   'desc_en' => '',            'precio' => 5000, 'orden' => 1],
+    'oasis'  => ['nombre_en' => 'Oasis Pool',   'desc_en' => 'Beach finish'], // sin 'precio': no disponible en este modelo
+]];
+$resueltos = lw_extras_resueltos($mFake);
+ok(count($resueltos) === 3, 'un extra sin precio en este modelo no se ofrece: no se estima a ojo');
+ok(array_column($resueltos, 'id') === ['airbnb', 'sauna', 'gym'],
+    'lw_extras_resueltos debe ordenar por el `orden` real del catálogo, no por el orden en que llegan las claves');
+ok($resueltos[0]['desc'] === null, 'una descripción vacía se pinta como null, nunca como cadena vacía visible');
+ok($resueltos[1]['desc'] === 'Fits four' && $resueltos[1]['eur'] === 8000,
+    'nombre/desc/precio de cada extra deben venir del catálogo inyectado, no de una copia fija');
+ok(lw_extras_resueltos(['extras' => []]) === [], 'un modelo sin extras da lista vacía, nunca un error');
+ok(lw_extras_resueltos([]) === [], 'un modelo sin clave "extras" siquiera da lista vacía');
 
 // Aritmética del presupuesto. El precio del techo es el precio COMPLETO de la villa con ese
 // techo, NO un sobrecoste: 48.000 y 50.000 son dos precios de villa de Dali.

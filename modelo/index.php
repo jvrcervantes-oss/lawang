@@ -120,7 +120,10 @@ foreach ($CAT as $cmId => $v) {
 $techosComp = (!empty($m['techos']['sirap']) && !empty($m['techos']['bambu'])) ? $m['techos'] : null;
 
 // ── Snapshot financiero: SIEMPRE Villa Dali en Palm Field W5 (decisión del owner) ────
-$deckEj = lw_deck_forecast_ejemplo();
+// 21-sep-2026: lw_deck_forecast_ejemplo() ya devuelve el mapa de TODOS los modelos con
+// ejemplo confirmado — se extrae el de ESTE modelo. Un modelo sin entrada (Loftbung,
+// Temple, Trinity) da null y la sección se oculta para él, nunca cae al ejemplo de otro.
+$deckEj = lw_deck_forecast_ejemplo()[$m['id']] ?? null;
 $finCalc = null;
 if ($deckEj) {
     $clavesReq = ['proyecto', 'moneda', 'adr_medio', 'adr_optimo', 'ocupacion_media',
@@ -683,7 +686,7 @@ foreach ($incluido as $it):
 <div class="border-b border-surface-container-highest/80 pb-4">
 <span class="font-label-md text-xs text-territorial-green uppercase tracking-widest font-semibold"><?= lw_i18n('Ejemplo real', 'Real example') ?></span>
 <h3 class="font-headline-md text-2xl md:text-3xl text-primary font-bold"><?= lw_e($deckEtiqueta) ?></h3>
-<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Economics of one plot at Palm Field — not this page's model, and not a promise of yield.</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Economics of one specific plot at <?= lw_e($deckEtiqueta) ?> — figures vary by plot and are confirmed on the call, never a promise of yield.</p>
 </div>
 <?php foreach ($finCalc as $caso => $f): $label = $caso === 'average' ? 'Average' : 'Optimal'; ?>
 <div class="bg-surface p-4 rounded-2xl border border-surface-container-highest space-y-2">

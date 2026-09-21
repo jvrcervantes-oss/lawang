@@ -136,8 +136,16 @@ function lw_cat_normaliza(array $d) {
                 }
             }
         }
+        // 21-sep-2026: cada extra llega como {nombre,desc,precio} (antes solo el precio a
+        // secas — nombre/desc vivían duplicados a mano en modelo/datos.php). `sub_en`/
+        // `desc_en` por el mismo motivo que arriba: la plantilla ya da por hecho el _en.
         if (!empty($m['extras'])) {
-            foreach ($m['extras'] as $ek => $v) $m['extras'][$ek] = 0 + $v;
+            foreach ($m['extras'] as $ek => $v) {
+                if (isset($v['precio'])) $m['extras'][$ek]['precio'] = 0 + $v['precio'];
+                if (isset($v['orden']))  $m['extras'][$ek]['orden']  = 0 + $v['orden'];
+                $m['extras'][$ek]['nombre_en'] = $v['nombre'] ?? '';
+                $m['extras'][$ek]['desc_en']   = $v['desc']   ?? '';
+            }
         }
         $out[$slug] = $m;
     }

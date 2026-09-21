@@ -52,8 +52,9 @@
  * disponible), en vez del precio de la villa a secas bajo un «+ land included».
  *
  * Precios: price list del owner (Google Sheet «UPDATED: SEPTEMBER 2026», leído el 7-sep).
- * Los de 2027 se ignoran por orden suya. Los siete extras y sus importes por modelo viven en
- * `modelo/modelos.php`; su nombre y descripción, en `lw_extras_meta()` de `modelo/datos.php`.
+ * Los de 2027 se ignoran por orden suya. Los siete extras, con su importe por modelo, nombre
+ * y descripción, salen todos de `catalogo_publico()` (Supabase, tabla `extras`) — desde el
+ * 21-sep-2026 ya no hay una copia de nombre/descripción a mano en `modelo/datos.php`.
  *
  * ── 7-sep-2026 (2ª pasada): móvil primero, menos texto y titulares grandes ────────────
  * Encargo del owner: «la gran mayoría van a entrar por móvil; necesito mucho menos texto en
