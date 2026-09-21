@@ -687,7 +687,16 @@ function buildForm(){
           EXTRAS_ELEGIDOS = EXTRAS_ELEGIDOS.filter(x=>x.extra_id!==id);
         }
         syncPrecioTechoExtras(); renderDebounced();
+        return;
       }
+      /* Descuento comercial (21-sep-2026): en 'change' (blur/Enter), no en
+         'input' — el wiring genérico de más abajo ya dispara aplicarReglasCampos/
+         renderDebounced/updateSaveButton en cada tecla, y syncPrecioTechoExtras()
+         abre un modal de confirmación cuando ya había un precio puesto (ver la
+         nota grande junto a esa función): en 'input' ese modal saltaría en CADA
+         dígito mientras se teclea el importe. */
+      const elDescuento = e.target.closest('[name="descuento_comercial"]');
+      if(elDescuento){ syncPrecioTechoExtras(); renderDebounced(); }
     });
   }
   // flecha de salto: clic en la etiqueta de un campo → ese punto del contrato

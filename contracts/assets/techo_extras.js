@@ -63,6 +63,15 @@ async function cargarTechosYExtras(modeloId, proyectoId){
   }
   refreshTechoExtras();
   syncPrecioTechoExtras();
+  /* updateSaveButton() (21-sep-2026, ver CAMPOS_DESCUENTO_COMERCIAL en
+     app.html) es quien enseña/oculta el campo de descuento comercial según
+     `!!TECHO_ELEGIDO` — sin esta llamada, la preselección automática del
+     techo más barato de aquí arriba (TECHO_ELEGIDO recién puesto) dejaba el
+     campo oculto hasta que ALGO MÁS disparara updateSaveButton() por su
+     cuenta (cualquier tecla en otro campo del formulario). Mismo motivo por
+     el que el handler de #techoSel en parcela_inventario.js ya la llama tras
+     un cambio manual — esta es la otra vía por la que TECHO_ELEGIDO cambia. */
+  if(typeof updateSaveButton === 'function') updateSaveButton();
 }
 
 /* Un techo/extra guardado que hoy ya no está entre las opciones (retirado del
@@ -215,8 +224,20 @@ async function syncPrecioTechoExtras(){
   if(!el) return;
   const mon = TECHO_ELEGIDO.moneda || 'EUR';
   syncMonedaTechoExtras();
-  const obra = Number(TECHO_ELEGIDO.precio) + EXTRAS_ELEGIDOS.reduce((t,e)=>t+(Number(e.precio)||0),0);
-  if(!(obra > 0)) return;   // datos raros: mejor no tocar nada
+  const base = Number(TECHO_ELEGIDO.precio) + EXTRAS_ELEGIDOS.reduce((t,e)=>t+(Number(e.precio)||0),0);
+  if(!(base > 0)) return;   // datos raros: mejor no tocar nada
+  /* Descuento comercial (21-sep-2026, revisión previa #33): RESTA de la
+     fórmula, no la reabre — el candado de fijadoPrecioConstruccion (app.html)
+     sigue siendo el único que decide precio_total, esto solo cambia lo que
+     ese candado calcula. Se lee directo del campo (no de collect(), que aquí
+     no está disponible sin recorrer todo el formulario) — vale 0 si el campo
+     no existe todavía (plantilla sin el marcador) o está vacío. Clamp a
+     [0, base]: un valor fuera del 15% permitido no se corrige aquí —
+     guardarContrato() (app.html) es quien bloquea el guardado — pero tampoco
+     se deja imprimir un precio_total negativo mientras se teclea. */
+  const elDescuento = document.querySelector('[name="descuento_comercial"]');
+  const descuento = elDescuento ? Math.min(Math.max(parseImporte(elDescuento.value) || 0, 0), base) : 0;
+  const obra = base - descuento;
   const nuevo = fmtImporte(obra), antes = String(el.value||'').trim();
   if(antes && parseImporte(antes) === obra) return;   // ya cuadra
   const aplicar = () => {
@@ -226,7 +247,8 @@ async function syncPrecioTechoExtras(){
   const detalle = EXTRAS_ELEGIDOS.length
     ? ' + ' + EXTRAS_ELEGIDOS.map(e=>e.nombre+' '+fmtImporte(Number(e.precio))).join(' + ')
     : '';
-  const desglose = TECHO_ELEGIDO.nombre + ' ' + fmtImporte(Number(TECHO_ELEGIDO.precio)) + detalle;
+  const detalleDescuento = descuento > 0 ? ' − ' + fmtImporte(descuento) + ' (' + lwT('descuento comercial') + ')' : '';
+  const desglose = TECHO_ELEGIDO.nombre + ' ' + fmtImporte(Number(TECHO_ELEGIDO.precio)) + detalle + detalleDescuento;
   if(antes){
     await lwConfirmar({
       titulo: 'Precio actualizado',
