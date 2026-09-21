@@ -1298,12 +1298,21 @@
         function motivoPortal(e) { return MOTIVOS_PORTAL[e] || e; }
         function llamaPortal(body) {
           return sb.auth.getSession().then(function (s) {
+            /* Sesión caducada = `data.session` null, sin error de por medio.
+               Sin esta comprobación, leer `.access_token` de null tira una
+               excepción DENTRO del .then y ningún caller de llamaPortal lleva
+               .catch — el botón se quedaba disabled para siempre y sin avisar
+               (hallazgo code-review 21-sep-2026). Se devuelve el mismo código
+               que ya traduce MOTIVOS_PORTAL, así el caller no cambia nada. */
+            if (!(s && s.data && s.data.session && s.data.session.access_token)) {
+              return { error: 'sin_sesion' };
+            }
             return fetch('https://vtulllundrfennhjddhc.supabase.co/functions/v1/portal-invitar', {
               method: 'POST',
               headers: { 'content-type': 'application/json', authorization: 'Bearer ' + s.data.session.access_token },
               body: JSON.stringify(body)
             }).then(function (r) { return r.json(); }, function () { return { error: 'respuesta ilegible' }; });
-          });
+          }, function () { return { error: 'sin_sesion' }; });
         }
 
         function quitaId() {
@@ -1491,12 +1500,21 @@
               }).then(function (ok) {
                 if (!ok) return;
                 bTr.disabled = true;
+                /* `.select('id')` en la rama sin documentos: un UPDATE que la
+                   policy filtra no da error, devuelve 0 filas — sin comprobar
+                   `r.data.length` el cajon diría «traspasada» sin haber
+                   tocado nada (mismo fallo que `unaFila()` ya evita en
+                   editores.js; hallazgo code-review 21-sep-2026). */
                 var p = conDocumentos
                   ? sb.rpc('traspasar_cliente_con_documentos', { p_client_id: c2.id, p_nuevo_propietario: nuevo, p_motivo: motivo })
-                  : sb.from('clients').update({ propietario: nuevo }).eq('id', c2.id);
+                  : sb.from('clients').update({ propietario: nuevo }).eq('id', c2.id).select('id');
                 p.then(function (r) {
                   bTr.disabled = false;
                   if (r.error) { toastMal('No se pudo traspasar: ' + r.error.message); return; }
+                  if (!conDocumentos && !(r.data && r.data.length)) {
+                    toastMal('No se ha traspasado: la base no te ha dejado tocar esta ficha. Habla con un administrador — recargar no lo arregla.');
+                    return;
+                  }
                   if (conDocumentos) {
                     var res = (r.data && r.data[0]) || {};
                     lwConfirmar({
