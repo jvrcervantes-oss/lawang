@@ -505,12 +505,28 @@
       var rolSesion = (window.LW_V4 && window.LW_V4.ficha && window.LW_V4.ficha.rol) || '';
       var puedeVerBoton = rolSesion === 'admin' || rolSesion === 'super_admin' || rolSesion === 'sales_manager';
       var esCartaReserva = tiposReserva.indexOf(c.tipo) !== -1;
-      if (puedeVerBoton && esCartaReserva && !c.liberado_en && unidadesReservadas.length) {
+      if (puedeVerBoton && esCartaReserva && !c.liberado_en && unidadesReservadas.length === 1) {
         cuerpo += H.seccion('Liberar reserva',
           H.nota('El comprador desiste antes de que venza el plazo: la parcela vuelve a "disponible". El contrato no se borra ni se edita — queda sellado como liberado, y el recibí ya cobrado (no reembolsable) no se toca.') +
           unidadesReservadas.map(function (u) {
             return '<button type="button" data-lw-liberar="' + esc(u.id) + '" style="justify-self:start;margin-top:4px;padding:9px 16px;border-radius:10px;border:1px solid #9E2F26;background:#fff;color:#9E2F26;font:600 13px \'Neue Kabel\',sans-serif;cursor:pointer">Liberar reserva (comprador desiste) — Parcela ' + esc(u.codigo || '—') + '</button>';
           }).join('<br>'));
+      } else if (puedeVerBoton && esCartaReserva && !c.liberado_en && unidadesReservadas.length > 1) {
+        /* 21-sep-2026, hallazgo de code-review + comprobado contra producción
+           (CR00025 tiene HOY 3 parcelas reservadas a la vez): libera_reserva()
+           marca `contratos.liberado_en` en cuanto libera la PRIMERA parcela, y
+           su propio guard de idempotencia («if liberado_en is not null then
+           return») convierte cualquier llamada siguiente para una parcela
+           hermana en un ÉXITO MUDO que no toca nada — la parcela se queda
+           reservada para siempre, sin ningún botón que la vuelva a ofrecer.
+           Ofrecer un botón por parcela aquí sería un mensaje mudo por diseño:
+           mejor no ofrecer ninguno que ofrecer uno que miente en el segundo
+           clic. Pide una liberación por contrato que el RPC no da hoy —
+           arreglarlo es tocar la función (Datos+Seguridad), no esta pantalla. */
+        cuerpo += H.seccion('Liberar reserva',
+          H.nota('Este contrato tiene ' + unidadesReservadas.length + ' parcelas reservadas a la vez (' +
+            esc(unidadesReservadas.map(function (u) { return u.codigo || '—'; }).join(', ')) +
+            '). Liberar una desde aquí marcaría el contrato entero como liberado y dejaría el resto reservadas sin ninguna forma de soltarlas después. Este botón no cubre ese caso todavía — pide a Desarrollo que la libere a mano.'));
       }
 
       /* Compradores: el nombre congelado en el contrato siempre; las fichas
