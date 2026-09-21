@@ -119,7 +119,7 @@
     cierraModal();
     var w = document.createElement('div');
     w.id = 'lw-editor';
-    var cajaForm = 'pointer-events:auto;position:fixed;top:0;right:0;height:100%;width:min(640px,96vw);' +
+    var cajaForm = 'pointer-events:auto;position:fixed;top:0;right:0;height:100%;width:' + (opts.ancho || 'min(640px,96vw)') + ';' +
       'background:' + CAJ.papel + ';border-left:1px solid ' + CAJ.borde + ';' +
       'box-shadow:0 25px 50px -12px rgba(0,0,0,.25);display:flex;flex-direction:column;' +
       'transform:translateX(100%);transition:transform .3s ease-in-out;';
@@ -1343,7 +1343,11 @@
     entities: { src: '/contracts/assets/entities.js?v=e015c66a', listo: function () { return typeof SOCIEDADES !== 'undefined'; } },
     compradores: { src: '/contracts/assets/compradores.js?v=7eb94ab0', listo: function () { return typeof compradoresDeContrato === 'function'; } },
     dialogo: { src: '/contracts/assets/dialogo.js?v=cefc9e4e', listo: function () { return typeof window.lwElegir === 'function'; } },
-    totales: { src: '/intranet/facturas/totales.js', listo: function () { return typeof calcTotales === 'function'; } }
+    totales: { src: '/intranet/facturas/totales.js', listo: function () { return typeof calcTotales === 'function'; } },
+    // El MISMO motor que pinta la vista previa y la impresión del clásico y
+    // que arma el PDF que se manda solo al firmar (22-sep-2026, split en
+    // vivo pedido por el owner) — nunca una segunda plantilla del documento.
+    documento: { src: '/intranet/facturas/documento.js', listo: function () { return typeof documentoHTML === 'function'; } }
   };
   var modPromesasDoc = {};
   function cargaModuloDoc(nombre) {
@@ -1446,7 +1450,7 @@
 
   /* Conceptos (líneas) de factura/proforma — {descripcion,importe}, misma
      forma que `LINEAS` de /intranet/facturas/. */
-  function montaLineasDoc(host, iniciales) {
+  function montaLineasDoc(host, iniciales, alCambiar) {
     var filas = (iniciales && iniciales.length)
       ? iniciales.map(function (l) { return { descripcion: l.descripcion || '', importe: l.importe || '' }; })
       : [{ descripcion: '', importe: '' }];
@@ -1484,6 +1488,7 @@
         el.appendChild(inpDesc); el.appendChild(inpImp); el.appendChild(btnDel);
         lista.appendChild(el);
       });
+      if (alCambiar) alCambiar();
     }
     repinta();
     btnAdd.addEventListener('click', function () { filas.push({ descripcion: '', importe: '' }); repinta(); });
@@ -1646,6 +1651,74 @@
     return el;
   }
 
+  /* ---------- split en vivo (22-sep-2026, calco estructural — paso 2) ----------
+     Owner: quiere el visor partido EN VIVO como el clásico — formulario a la
+     izquierda, factura pintándose a la derecha mientras se rellena, no solo
+     el iframe post-guardado. Medido en /intranet/facturas/: `.stage` es un
+     grid `minmax(400px,500px) 1fr` que a ≤900px apila a una columna (medido:
+     NO esconde la previa detrás de un FAB — el "Vista previa ⤢" es solo un
+     atajo para bajar hasta ella, la pila entera es visible); repinta en
+     CADA evento `input` del formulario (`$('#form').addEventListener('input',
+     render)`), sin debounce; usa documentoHTML()/documentoVars() de
+     documento.js — el MISMO motor del iframe post-guardado y del PDF que se
+     manda solo al firmar, nunca reimplementado aquí. */
+  var estiloSplitDocPuesto = false;
+  function aseguraEstiloSplitDoc() {
+    if (estiloSplitDocPuesto) return;
+    estiloSplitDocPuesto = true;
+    var s = document.createElement('style'); s.id = 'lw-doc-split-css';
+    // grid-template-columns medido: mismo reparto que el clásico
+    // (formulario acotado, previa se lleva el resto), a escala del cajón,
+    // que es más estrecho que la página completa. ≤860px apila una columna
+    // — mismo comportamiento que .stage del clásico a ≤900px, nunca oculta.
+    // `min-width:0` en las dos columnas: sin esto un grid item toma como
+    // mínimo el min-content de lo que lleva dentro —aquí una opción larga
+    // del selector o el texto fijo "Lo asigna la base al guardar"— y la
+    // columna se ensancha por su cuenta aunque el track sea 1fr, sacando
+    // scroll horizontal del cajón. Medido a 390px: sin esto desbordaba.
+    s.textContent = '.lw-doc-split{display:grid;grid-template-columns:minmax(320px,400px) 1fr;gap:18px;align-items:start;min-width:0}' +
+      '.lw-doc-split>div{min-width:0}' +
+      '@media screen and (max-width:860px){.lw-doc-split{grid-template-columns:1fr}}';
+    document.head.appendChild(s);
+  }
+  // Construye el split y devuelve las piezas para que cada editor (factura,
+  // recibí) escriba su propio repintado — la FORMA del documento difiere
+  // (Conceptos vs. aplicaciones), el maquetado del split no.
+  function montaSplitDoc(host) {
+    aseguraEstiloSplitDoc();
+    var wrap = document.createElement('div'); wrap.className = 'lw-doc-split';
+    var colForm = document.createElement('div');
+    var colPrev = document.createElement('div');
+    wrap.appendChild(colForm); wrap.appendChild(colPrev);
+    host.appendChild(wrap);
+    var barra = document.createElement('div');
+    barra.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:10px';
+    barra.innerHTML = '<span style="width:3px;height:13px;background:' + CAJ.lago + ';border-radius:2px;display:inline-block;flex:0 0 auto"></span>' +
+      '<span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:' + CAJ.tinta + '">Vista previa</span>';
+    colPrev.appendChild(barra);
+    // El marco (sombra, radio, fondo) es piel de v4; DENTRO, `.sheet`/`.doc`
+    // son las clases del clásico con su documento.css tal cual — es el
+    // documento real, no una interpretación.
+    var sheetWrap = document.createElement('div'); sheetWrap.className = 'sheet';
+    sheetWrap.style.cssText = 'background:#fff;border-radius:4px;box-shadow:0 1px 2px rgba(34,40,42,.06),0 8px 28px rgba(34,40,42,.09);' +
+      'padding:12mm;box-sizing:border-box;max-width:100%;overflow:auto';
+    var docEl = document.createElement('div'); docEl.className = 'doc';
+    sheetWrap.appendChild(docEl);
+    colPrev.appendChild(sheetWrap);
+    return { colForm: colForm, colPrev: colPrev, docEl: docEl, sheetWrap: sheetWrap, wrap: wrap };
+  }
+  // Pinta el documento con el MISMO motor que el clásico. `vals` es la forma
+  // de `collect()`: los campos planos + `.lineas`. `numero` solo cuando ya
+  // existe (un documento sin número es uno que aún no se ha emitido — igual
+  // que en /intranet/facturas/).
+  function repintaSplitDoc(piezas, vals, numero) {
+    var soc = (typeof SOCIEDADES !== 'undefined' && SOCIEDADES[vals.sociedad]) || {};
+    var v = documentoVars(soc);
+    Object.keys(v.doc).forEach(function (k) { piezas.docEl.style.setProperty(k, v.doc[k]); });
+    Object.keys(v.hoja).forEach(function (k) { piezas.sheetWrap.style.setProperty(k, v.hoja[k]); });
+    piezas.docEl.innerHTML = documentoHTML(vals, { numero: numero || '' });
+  }
+
   /* ---------- Factura / proforma: crear o editar ---------- */
   function abrirEditorFacturaDoc(pre) {
     pre = pre || {};
@@ -1656,7 +1729,7 @@
         return aviso('Emitir facturas exige la herramienta «Facturas» — pídesela a un administrador.', '#8A6A34');
       }
       var esEdicion = !!pre.id;
-      aseguraModulosDoc(['entities', 'compradores', 'totales', 'dialogo']).then(function () {
+      aseguraModulosDoc(['entities', 'compradores', 'totales', 'dialogo', 'documento']).then(function () {
         return Promise.all([
           cargarSociedades(sb).then(function () { return true; }, function () { return false; }),
           cargarCuentasBancarias(sb).then(function () { return true; }, function () { return false; }),
@@ -1694,19 +1767,29 @@
         var campos = [];
         if (!sociedadesOk) campos.push({ tipo: 'nota', label: 'No se ha podido cargar el catálogo de sociedades — recarga antes de emitir.' });
         if (!cuentasOk) campos.push({ tipo: 'nota', label: 'No se han podido cargar las cuentas de cobro — recarga antes de emitir.' });
-        campos.push({ tipo: 'custom', label: 'Formulario', render: function (host) {
-          /* Calco estructural del clásico (21-sep-2026), medido en
-             /intranet/facturas/ a 1440 y 390: Documento[Contrato → fila
-             Moneda+Nº] → Fechas[fila Emisión+Vencimiento] → Emisor plegable
-             → Cliente plegable → Conceptos → Impuesto plegado → Notas
-             plegado. Piel: tokens CAJ de siempre, nunca documento.css.
+        campos.push({ tipo: 'custom', label: 'Formulario', render: function (hostRaiz) {
+          /* Calco estructural del clásico (21-sep-2026, ampliado 22-sep con
+             el split en vivo): Documento[Contrato → fila Moneda+Nº] →
+             Fechas[fila Emisión+Vencimiento] → Emisor plegable → Cliente
+             plegable → Conceptos → Impuesto plegado → Notas plegado, en la
+             columna izquierda; a la derecha, la factura pintándose en vivo
+             con documentoHTML()/documento.css reales — nunca una segunda
+             plantilla. Piel del FORMULARIO: tokens CAJ, nunca documento.css;
+             la columna derecha es al revés a propósito: el marco es de v4,
+             el documento de dentro es el real. */
+          var piezas = montaSplitDoc(hostRaiz);
+          var host = piezas.colForm;
+          function repintaPreview() {
+            var vals = {};
+            piezas.wrap.querySelectorAll('[data-k]').forEach(function (el) {
+              vals[el.getAttribute('data-k')] = el.type === 'checkbox' ? el.checked : el.value;
+            });
+            vals.lineas = getLineas ? getLineas() : [];
+            repintaSplitDoc(piezas, vals, existente ? (existente.numero || '') : '');
+          }
+          piezas.wrap.addEventListener('input', repintaPreview);
+          piezas.wrap.addEventListener('change', repintaPreview);
 
-             Tipo de documento: en el clásico vive en la barra SUPERIOR de la
-             página — el cajón no tiene esa barra (es un panel lateral, no
-             una página). Se deja aquí suelto, sin tarjeta, antes de
-             Documento: mismo lugar lógico, sin ampliar la cabecera
-             compartida de modal() que usan otros 15 editores. Hallazgo para
-             el informe, no arreglo silencioso. */
           campoSimpleDoc(host, {
             k: 'tipo', label: 'Tipo de documento', tipo: 'select',
             valor: existente ? existente.tipo : (pre.tipo === 'proforma' ? 'proforma' : 'factura'),
@@ -1733,6 +1816,7 @@
                   estadoContrato.id = id; estadoContrato.numero = res.numero; estadoContrato.clienteId = res.clienteId;
                   btnC.textContent = res.numero + ' · ' + (res.comprador || '—');
                   notaC.textContent = res.puesto.length ? 'Traído del contrato: ' + res.puesto.join(', ') + '.' : 'El contrato no tenía datos de cliente que traer.';
+                  repintaPreview();
                 });
               });
           });
@@ -1746,6 +1830,7 @@
               if (res.error) return;
               estadoContrato.numero = res.numero; estadoContrato.clienteId = res.clienteId;
               btnC.textContent = res.numero + ' · ' + (res.comprador || '—');
+              repintaPreview();
             });
           }
           var filaDM = filaDosDoc(secDoc);
@@ -1783,7 +1868,7 @@
           campoSimpleDoc(secCliente, { k: 'proyecto_nombre', label: 'Proyecto / unidad', valor: f0.proyecto_nombre || '', placeholder: 'Ej. Palm Field — Cabana 2BR S2' });
 
           var secConceptos = seccionFijaDoc(host, 'Conceptos');
-          getLineas = montaLineasDoc(secConceptos, lineas0);
+          getLineas = montaLineasDoc(secConceptos, lineas0, repintaPreview);
 
           var secImp = seccionPlegableDoc(host, 'Impuesto (opcional)', false);
           campoSimpleDoc(secImp, { k: 'imp_etiqueta', label: 'Impuesto — etiqueta', valor: f0.imp_etiqueta || '', ayuda: 'Ej. PPN' });
@@ -1791,6 +1876,8 @@
 
           var secNotas = seccionPlegableDoc(host, 'Notas (opcional)', false);
           campoSimpleDoc(secNotas, { k: 'notas', label: 'Notas', tipo: 'textarea', valor: f0.notas || '' });
+
+          repintaPreview();
         } });
 
         modal(existente ? 'Editar ' + (existente.numero || 'documento') : 'Nuevo documento', campos,
@@ -1818,7 +1905,7 @@
               abreDocumentoViewerDoc(res.data.id, function () { location.reload(); });
               return {};
             });
-          }, { sinRecarga: true, sub: existente ? 'Editar documento' : 'Facturación' });
+          }, { sinRecarga: true, sub: existente ? 'Editar documento' : 'Facturación', ancho: 'min(1180px,96vw)' });
       }
     });
   }
@@ -1833,7 +1920,7 @@
         return aviso('Emitir recibís exige la herramienta «Facturas» — pídesela a un administrador.', '#8A6A34');
       }
       var esEdicion = !!pre.id;
-      aseguraModulosDoc(['entities', 'compradores', 'totales', 'dialogo']).then(function () {
+      aseguraModulosDoc(['entities', 'compradores', 'totales', 'dialogo', 'documento']).then(function () {
         return Promise.all([
           cargarSociedades(sb).then(function () { return true; }, function () { return false; }),
           cargarCuentasBancarias(sb).then(function () { return true; }, function () { return false; }),
@@ -1904,21 +1991,53 @@
         var campos = [];
         if (!sociedadesOk) campos.push({ tipo: 'nota', label: 'No se ha podido cargar el catálogo de sociedades — recarga antes de emitir.' });
         if (!cuentasOk) campos.push({ tipo: 'nota', label: 'No se han podido cargar las cuentas de cobro — recarga antes de emitir.' });
-        campos.push({ tipo: 'custom', label: 'Formulario', render: function (host) {
-          /* Calco estructural del clásico (21-sep-2026), medido en modo
-             recibí de /intranet/facturas/ a 1440 y 390: Documento[«Factura
-             que se cobra» → fila Moneda+Nº] → Fechas[fila Emisión+
-             Vencimiento — el clásico la enseña igual que en factura, aunque
-             el vencimiento no pinte nada en un cobro: se calca tal cual,
-             hallazgo aparte] → Emisor plegable → Cliente plegable (visible
-             también en recibí, medido) → «Lo que se ha cobrado» →
-             Justificante → Impuesto plegado → Notas plegado.
+        campos.push({ tipo: 'custom', label: 'Formulario', render: function (hostRaiz) {
+          /* Calco estructural del clásico (21-sep-2026, ampliado 22-sep con
+             el split en vivo), medido en modo recibí de /intranet/facturas/
+             a 1440 y 390: Documento[«Factura que se cobra» → fila
+             Moneda+Nº] → Fechas[fila Emisión+Vencimiento — el clásico la
+             enseña igual que en factura, aunque el vencimiento no pinte
+             nada en un cobro: se calca tal cual, hallazgo aparte] → Emisor
+             plegable → Cliente plegable (visible también en recibí,
+             medido) → «Lo que se ha cobrado» → Justificante → Impuesto
+             plegado → Notas plegado, en la columna izquierda; a la derecha,
+             el recibí pintándose en vivo con el motor real
+             (documentoHTML()/documento.css — nunca una segunda plantilla).
 
              El picker YA NO elige un contrato: elige la FACTURA que se
              cobra, igual que `elegirFacturaDelRecibi()` del clásico — el
              contrato y el comprador se DERIVAN de ella. Antes el editor
              pedía el contrato primero, que es una vía distinta a la medida.
-             Piel: tokens CAJ, nunca documento.css. */
+             Piel del formulario: tokens CAJ, nunca documento.css. */
+          var piezas = montaSplitDoc(hostRaiz);
+          var host = piezas.colForm;
+          // Las «líneas» de un recibí, para el motor de render, son las
+          // facturas que salda — mismo texto que ya usa onGuardar más abajo
+          // («Aplicado a factura X»), no una segunda descripción inventada.
+          function lineasDeAplicaciones() {
+            return aplicaciones.map(function (a) { return { descripcion: 'Aplicado a factura ' + a.numero, importe: a.importe }; });
+          }
+          function repintaPreview() {
+            var vals = {};
+            piezas.wrap.querySelectorAll('[data-k]').forEach(function (el) {
+              vals[el.getAttribute('data-k')] = el.type === 'checkbox' ? el.checked : el.value;
+            });
+            vals.lineas = lineasDeAplicaciones();
+            vals.cliente_nombre = vals.cliente_nombre || estadoContrato.clienteNombre;
+            vals.cliente_documento = vals.cliente_documento || estadoContrato.clienteDocumento;
+            vals.cliente_email = vals.cliente_email || estadoContrato.clienteEmail;
+            vals.proyecto_nombre = vals.proyecto_nombre || estadoContrato.proyectoNombre;
+            vals.contrato_numero = estadoContrato.numero;
+            // Sin `tipo` propio en el formulario de recibí (a diferencia de
+            // factura, que sí trae el selector): documentoHTML() cae a
+            // TIPOS_DOC.factura si no se lo dice, y el papel salía
+            // rotulado "Factura" en vez de "Recibí".
+            vals.tipo = 'recibi';
+            repintaSplitDoc(piezas, vals, existente ? (existente.numero || '') : '');
+          }
+          piezas.wrap.addEventListener('input', repintaPreview);
+          piezas.wrap.addEventListener('change', repintaPreview);
+
           var secDoc = seccionFijaDoc(host, 'Documento');
           var lblF = document.createElement('div'); lblF.textContent = 'Factura que se cobra';
           lblF.style.cssText = 'font-size:12px;color:' + CAJ.apagado;
@@ -1929,10 +2048,13 @@
           secDoc.appendChild(lblF); secDoc.appendChild(btnF);
 
           pintaBtnF = function () {
-            if (!aplicaciones.length) { btnF.textContent = '— elige la factura que cobras —'; return; }
-            var f0a = aplicaciones[0];
-            btnF.textContent = f0a.numero + (aplicaciones.length > 1 ? ' y ' + (aplicaciones.length - 1) + ' más' : '') +
-              (estadoContrato.clienteNombre ? ' — ' + estadoContrato.clienteNombre : '');
+            if (!aplicaciones.length) { btnF.textContent = '— elige la factura que cobras —'; }
+            else {
+              var f0a = aplicaciones[0];
+              btnF.textContent = f0a.numero + (aplicaciones.length > 1 ? ' y ' + (aplicaciones.length - 1) + ' más' : '') +
+                (estadoContrato.clienteNombre ? ' — ' + estadoContrato.clienteNombre : '');
+            }
+            repintaPreview();
           };
 
           // Aplica una factura YA ELEGIDA: el contrato, el comprador y el
@@ -2089,6 +2211,7 @@
               el.appendChild(col1); el.appendChild(inpImp); el.appendChild(btnDel);
               lista.appendChild(el);
             });
+            repintaPreview();
           }
           repintaAplic = repinta;
           btnAdd.addEventListener('click', abreBuscador);
@@ -2108,6 +2231,8 @@
 
           var secNotas = seccionPlegableDoc(host, 'Notas (opcional)', false);
           campoSimpleDoc(secNotas, { k: 'notas', label: 'Notas', tipo: 'textarea', valor: f0.notas || '' });
+
+          repintaPreview();
         } });
 
         modal(existente ? 'Editar ' + (existente.numero || 'recibí') : 'Emitir recibí de cobro', campos,
@@ -2144,7 +2269,7 @@
                 abreDocumentoViewerDoc(res.data.id, function () { location.reload(); });
                 return {};
               });
-          }, { sinRecarga: true, sub: existente ? 'Editar recibí' : 'Recibí de cobro' });
+          }, { sinRecarga: true, sub: existente ? 'Editar recibí' : 'Recibí de cobro', ancho: 'min(1180px,96vw)' });
 
         // code-review 21-sep: la Moneda es libre (mismo comprador puede tener
         // contratos en monedas distintas) pero nada volvía a comprobar la

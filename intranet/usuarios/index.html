@@ -32,7 +32,7 @@
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
 <script src="/contracts/assets/i18n.js?v=ea89bbe6"></script>
-<script src="/contracts/assets/herramientas.js?v=e51247c8"></script>
+<script src="/contracts/assets/herramientas.js?v=8e8b4432"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js?v=d6d6608e" data-herramienta="usuarios"></script>
@@ -198,9 +198,10 @@ const HERRAMIENTAS = LW_PERMISOS;
    uno abre los datos de contacto de un centenar de personas, otro las cifras de
    comisiones de cada comercial, y otro decide quién recibe qué leads. Verlos
    sueltos entre «Obra» y «Facturas» hace que se marquen por inercia, que es
-   justo lo que Seguridad pidió evitar al separarlos. */
-const PERMISOS_CRM = ['leads', 'ranking', 'reparto', 'closers'];
-const ES_CRM  = ([v]) => PERMISOS_CRM.includes(v);
+   justo lo que Seguridad pidió evitar al separarlos.
+   `LW_PERMISOS_CRM` sale de herramientas.js (paridad 21-sep-2026): la v4
+   necesitaba la misma lista para su propia alta y vivía solo aquí, a mano. */
+const ES_CRM  = ([v]) => LW_PERMISOS_CRM.includes(v);
 const HERR_CRM  = HERRAMIENTAS.filter(ES_CRM);
 const HERR_RESTO = HERRAMIENTAS.filter(h => !ES_CRM(h));
 /* Qué abre cada una, en una línea. Sin esto, «Reparto de leads» y «Ranking de
