@@ -351,7 +351,7 @@
     var w = document.createElement('div');
     w.id = 'lw-cajon';
     var z = 'calc(var(--z-modal,400) - 10)';
-    var cajaPanel = 'position:fixed;top:0;right:0;height:100%;width:' + (o.ancho || 'min(720px,96vw)') + ';' +
+    var cajaPanel = 'position:fixed;top:0;right:0;height:100%;width:' + (o.ancho || 'min(60vw,96vw)') + ';' +
       'background:' + CAJ.papel + ';border-left:1px solid ' + CAJ.borde + ';z-index:' + z + ';' +
       'box-shadow:0 25px 50px -12px rgba(0,0,0,.25);display:flex;flex-direction:column;' +
       'transform:translateX(100%);transition:transform .3s ease-in-out;' + FUENTE;
