@@ -458,7 +458,10 @@
        abría una FACTURA (facturas/index.html: `nuevoDocumento(LTIPO || 'factura')`). */
     var acciones = [
       { texto: c0.bloqueado ? 'Ver en el generador' : 'Editar en el generador', href: '/contracts/app.html?contrato=' + encodeURIComponent(c0.id), tono: 'primario' },
-      { texto: 'Emitir recibí', href: '/intranet/facturas/?tipo=recibi&contrato=' + encodeURIComponent(c0.id) }
+      { texto: 'Emitir recibí', onClick: function () {
+        if (window.LW_V4 && window.LW_V4.abrirEditorRecibi) window.LW_V4.abrirEditorRecibi({ contrato_id: c0.id });
+        else toastMal('El editor de recibís aún está cargando — prueba de nuevo en un segundo.');
+      } }
     ];
     if (!opts.sinExpediente) acciones.push({ texto: 'Expediente', href: '/intranet/v4/operaciones/?contrato=' + encodeURIComponent(num) });
     acciones.push({ texto: 'Cerrar', cerrar: true });
@@ -707,8 +710,24 @@
     var H = window.lwCajonHtml;
     if (!(window.lwCajon && H)) { toast('La ficha aún no ha cargado — prueba de nuevo en un segundo.'); return; }
     var acciones = [{ texto: 'Abrir el documento', href: '/intranet/facturas/?id=' + encodeURIComponent(f0.id), tono: 'primario' }];
+    // Editar (21-sep-2026): solo mientras el documento sigue vivo — un
+    // congelado (anulado o ya enviado) no se toca, se reemite. El candado de
+    // autoría/admin lo decide el propio editor (es_suyo-espejo), no esta
+    // ficha: un solo sitio que sepa la regla, igual que el resto de la suite.
+    if (!f0.anulada && !f0.enviada) {
+      acciones.push({ texto: 'Editar', onClick: function () {
+        if (!(window.LW_V4 && (window.LW_V4.abrirEditorFactura || window.LW_V4.abrirEditorRecibi))) {
+          toastMal('El editor de documentos aún está cargando — prueba de nuevo en un segundo.'); return;
+        }
+        if (f0.tipo === 'recibi') window.LW_V4.abrirEditorRecibi({ id: f0.id });
+        else window.LW_V4.abrirEditorFactura({ id: f0.id });
+      } });
+    }
     // UUID y tipo, no el número: ver la nota de fichaContrato (19-sep-2026)
-    if (f0.contrato_id && f0.tipo !== 'recibi') acciones.push({ texto: 'Emitir recibí', href: '/intranet/facturas/?tipo=recibi&contrato=' + encodeURIComponent(f0.contrato_id) });
+    if (f0.contrato_id && f0.tipo !== 'recibi') acciones.push({ texto: 'Emitir recibí', onClick: function () {
+      if (window.LW_V4 && window.LW_V4.abrirEditorRecibi) window.LW_V4.abrirEditorRecibi({ contrato_id: f0.contrato_id });
+      else toastMal('El editor de recibís aún está cargando — prueba de nuevo en un segundo.');
+    } });
     acciones.push({ texto: 'Cerrar', cerrar: true });
     var caj = window.lwCajon({
       sub: tipoDoc(f0.tipo) + (f0.anulada ? ' · anulada' : ''),
@@ -2069,7 +2088,11 @@
           if (/Emitir recib/i.test(tx)) {
             botones[i3].setAttribute('data-real', '');
             // UUID y tipo, no el número: ver la nota de fichaContrato (19-sep-2026)
-            botones[i3].addEventListener('click', function (ev) { ev.stopPropagation(); if (expedienteActual) location.href = '/intranet/facturas/?tipo=recibi&contrato=' + encodeURIComponent(expedienteActual.el.id); });
+            botones[i3].addEventListener('click', function (ev) {
+              ev.stopPropagation(); if (!expedienteActual) return;
+              if (window.LW_V4 && window.LW_V4.abrirEditorRecibi) window.LW_V4.abrirEditorRecibi({ contrato_id: expedienteActual.el.id });
+              else toastMal('El editor de recibís aún está cargando — prueba de nuevo en un segundo.');
+            });
           } else if (/proforma encadenada|Abrir proforma/i.test(tx)) {
             botones[i3].setAttribute('data-real', '');
             botones[i3].addEventListener('click', function (ev) { ev.stopPropagation(); if (expedienteActual) location.href = '/contracts/app.html?contrato=' + encodeURIComponent(expedienteActual.raiz.id); });
@@ -4907,8 +4930,21 @@
                          (l.revisar ? '<span class="ml-2 text-error text-[11px] uppercase tracking-wider">revisar</span>' : '');
           /* El recibí borrado deja la línea huérfana a propósito (on delete set
              null): se enseña el número que tuvo, que es lo único que queda. */
+          // 21-sep-2026: ya no navega fuera de v4 — abre el visor en cajón
+          // (window.LW_V4.abreVerDocumento, wired más abajo con delegación,
+          // que se registra UNA vez aunque pinta() se repinte varias).
+          if (!window.__lwVerRecibiWired) {
+            window.__lwVerRecibiWired = true;
+            document.addEventListener('click', function (ev) {
+              var a = ev.target.closest && ev.target.closest('[data-lw-ver-recibi]');
+              if (!a) return;
+              ev.preventDefault();
+              if (window.LW_V4 && window.LW_V4.abreVerDocumento) window.LW_V4.abreVerDocumento(a.getAttribute('data-lw-ver-recibi'));
+              else toastMal('El visor de documentos aún está cargando — prueba de nuevo en un segundo.');
+            });
+          }
           var recibi = l.recibi_id
-            ? '<a class="text-deep-lagoon hover:underline" href="/intranet/facturas/?id=' + encodeURIComponent(l.recibi_id) + '">' + esc(l.recibi_numero) + '</a>'
+            ? '<a class="text-deep-lagoon hover:underline" href="#" data-lw-ver-recibi="' + esc(l.recibi_id) + '">' + esc(l.recibi_numero) + '</a>'
             : esc(l.recibi_numero) + ' <span class="text-error text-[11px] uppercase tracking-wider">borrado</span>';
 
           return '<tr class="border-b border-outline-variant/30' + (l.anulada ? ' opacity-60' : '') + '">' +

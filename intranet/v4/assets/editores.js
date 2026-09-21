@@ -1285,6 +1285,675 @@
     };
   }
 
+  /* ═══════════════════════════════════════════════════════════════════════
+     EMISIÓN DE FACTURAS · PROFORMAS · RECIBÍS DENTRO DE v4 (21-sep-2026)
+     ═══════════════════════════════════════════════════════════════════════
+     Encargo del owner: "crear una factura o un recibí en la v4 apunta a la
+     version antigua". Hasta hoy "Nuevo documento" (/v4/facturas/) y
+     "+ Emitir recibi de cobro" (/v4/recibos/) no tenian handler propio: caian
+     en maqueta.js (FORM_REAL), que los mandaba a /intranet/facturas/. Este
+     bloque los cablea DE VERDAD, dentro de v4, con el mismo patron de cajon
+     lateral que Usuarios/Compradores (18-sep) — nunca un componente nuevo.
+
+     DOS CAMINOS DE GUARDADO REALES (revision previa 21-sep, Datos+Seguridad+
+     Legal, verificados contra la base VIVA con execute_sql, no contra un .sql
+     que puede estar desfasado):
+       · Factura/proforma -> INSERT/UPDATE directo sobre `facturas`, protegido
+         por RLS + `trg_set_factura_numero` (numeracion atomica, SECURITY
+         DEFINER) + `trg_congela_emisor` (congela sociedad/razon/NPWP en
+         `datos.emisor` al crear). Nunca se manda `numero` ni
+         `justificante_path`: el GRANT de columnas no los concede a
+         `authenticated` (migracion 20260917161500_facturas_emisor_congelado_y_permisos.sql).
+       · Recibi -> RPC `guardar_recibi(p_id, p_factura, p_aplicaciones)`. Exige
+         `es_agente() and puede('facturas')`, un contrato, un justificante YA
+         subido a storage `justificantes` (se valida contra `storage.objects`)
+         y al menos una aplicacion a una factura del MISMO comprador
+         (`contratos_mismo_comprador`, LAW-41(2), REC00019 aplicado a otro
+         cliente) — la base es el tirante, este formulario es el cinturon.
+         Reeditar un recibi ya guardado pasa por el MISMO rpc con `p_id`, y la
+         base lo rechaza si no es tuyo o esta anulado (`es_suyo`) — 42501.
+
+     El `datos.fields`/`datos.lineas`/`datos.totales` que se guarda tiene que
+     tener EXACTAMENTE la forma que lee `/intranet/facturas/documento.js`
+     (mismo `payload()` de esa pantalla, leido linea a linea): es el fichero
+     que pinta el documento y lo reutiliza tambien la Edge de firma. Un campo
+     de menos aqui no rompe el guardado, rompe el PAPEL — por eso este bloque
+     no reescribe el render: ver un documento ya emitido abre un cajon con un
+     <iframe> a `/intranet/facturas/?id=<id>&vista=1` (mismo origen, misma
+     sesion, sin exigir el permiso de emitir — lineas 996-1016 de esa
+     pantalla). Es la unica forma de no duplicar documento.css/documento.js.
+
+     `entidades_pago.js` NO se carga aqui (corregido contra el repo, 21-sep):
+     `cargarCuentasBancarias` vive en `entities.js`, y la herramienta clasica
+     de facturas tampoco carga `entidades_pago.js` — ofrece TODAS las cuentas
+     activas a proposito (su comentario ~1163: "si el contrato pacto cobrar en
+     una cuenta concreta, la factura tiene que decir esa misma"). La cascada
+     plantilla_cuentas/proyecto_cuentas de `entidades_pago.js` es del
+     GENERADOR DE CONTRATOS, no de facturas.
+
+     MODULOS COMPARTIDOS QUE ESTA PANTALLA TAL VEZ NO TRAE. "Emitir recibi"
+     tambien se abre desde la ficha de Contratos/Operaciones/Home (18-sep), y
+     esas paginas hoy NO cargan entities.js/compradores.js/dialogo.js/
+     totales.js — nunca lo necesitaron antes de este build. Tocar esas cinco
+     HTML para un handler que solo dispara si alguien pulsa "Emitir recibi"
+     seria la Regla 0 al reves: se piden solo cuando hacen falta (ver
+     aseguraModulosDoc), nunca se copia su contenido. dinero.js YA esta en las
+     16 pantallas (comprobado), asi que no entra en la lista. */
+  var MODULOS_DOC = {
+    entities: { src: '/contracts/assets/entities.js?v=e015c66a', listo: function () { return typeof SOCIEDADES !== 'undefined'; } },
+    compradores: { src: '/contracts/assets/compradores.js?v=7eb94ab0', listo: function () { return typeof compradoresDeContrato === 'function'; } },
+    dialogo: { src: '/contracts/assets/dialogo.js?v=cefc9e4e', listo: function () { return typeof window.lwElegir === 'function'; } },
+    totales: { src: '/intranet/facturas/totales.js', listo: function () { return typeof calcTotales === 'function'; } }
+  };
+  var modPromesasDoc = {};
+  function cargaModuloDoc(nombre) {
+    var m = MODULOS_DOC[nombre];
+    if (!m || m.listo()) return Promise.resolve();
+    if (modPromesasDoc[nombre]) return modPromesasDoc[nombre];
+    modPromesasDoc[nombre] = new Promise(function (res, rej) {
+      var s = document.createElement('script');
+      s.src = m.src;
+      s.onload = function () { res(); };
+      s.onerror = function () { delete modPromesasDoc[nombre]; rej(new Error('no se pudo cargar ' + nombre)); };
+      document.head.appendChild(s);
+    });
+    return modPromesasDoc[nombre];
+  }
+  function aseguraModulosDoc(nombres) {
+    return nombres.reduce(function (p, n) { return p.then(function () { return cargaModuloDoc(n); }); }, Promise.resolve());
+  }
+
+  function opcionesContratoPickerDoc(cs) {
+    return (cs || []).map(function (c) {
+      return { valor: c.id, texto: (c.numero || '—') + ' · ' + (c.comprador_nombre || '—'), nota: c.proyecto_nombre || '' };
+    });
+  }
+  function listaContratosLigeraDoc(sb) {
+    return sb.rpc('contratos_equipo').select('id,numero,comprador_nombre,proyecto_nombre')
+      .order('created_at', { ascending: false }).limit(500);
+  }
+  function opcionesSociedadDoc() {
+    return Object.keys(SOCIEDADES).map(function (k) { return [k, SOCIEDADES[k].label]; });
+  }
+  function opcionesCuentaDoc(sinOtros) {
+    var out = [['', '— sin datos bancarios —']];
+    Object.keys(CUENTAS_BANCARIAS).map(function (k) { return [k, CUENTAS_BANCARIAS[k].label]; })
+      .sort(function (a, b) { return a[1].localeCompare(b[1], 'es'); })
+      .forEach(function (o) { out.push(o); });
+    if (!sinOtros) out.push(['otros', 'Otros — escribir la cuenta a mano']);
+    return out;
+  }
+  function campoDeDoc(k) { return document.querySelector('#lw-editor [data-k="' + k + '"]'); }
+  function ponCampoDoc(k, valor) { var el = campoDeDoc(k); if (el) el.value = valor || ''; }
+
+  /* Trae el contrato COMPLETO y rellena identidad/proyecto/moneda/sociedad/
+     cuenta por el MISMO camino protegido que usa la ficha del contrato
+     (RPC `contratos_equipo`, nunca un segundo fetch a `clients`) — mismo
+     patron que `traerContrato()` de /intranet/facturas/, linea a linea:
+     los campos de IDENTIDAD se VACIAN cuando el contrato nuevo no los trae
+     (auditoria 21-ago: dejar el dato del contrato ANTERIOR es peor que un
+     hueco), y moneda/sociedad/cuenta NUNCA se vacian, solo se rellenan si
+     el contrato trae algo que exista en el catalogo cargado. */
+  function aplicaContratoDoc(sb, id) {
+    return sb.rpc('contratos_equipo')
+      .select('numero,tipo,moneda,precio_total,proyecto_id,campos:datos->fields,extras:datos->compradores,ficha:datos->>adq1_client_id')
+      .eq('id', id).maybeSingle()
+      .then(function (r) {
+        if (r.error || !r.data) return { error: r.error || { message: 'contrato no encontrado' } };
+        var data = r.data, f = data.campos || {};
+        var compradores = compradoresDeContrato(f, data.extras);
+        var nombres = nombresFactura(compradores);
+        var docs = documentosFactura(compradores);
+        var email = primerDato(compradores, 'email');
+        var unidad = [f.proyecto_nombre, f.parcela_codigo || f.villa_nombre || f.tipologia_villa].filter(Boolean).join(' — ');
+        var puesto = [];
+        function poner(k, v, etq) { if (v) { ponCampoDoc(k, v); puesto.push(etq); } else { ponCampoDoc(k, ''); } }
+        poner('contrato_numero', data.numero, 'nº de contrato');
+        poner('cliente_nombre', nombres, 'nombre');
+        poner('cliente_documento', docs, 'documento');
+        poner('cliente_email', email, 'email');
+        poner('proyecto_nombre', unidad, 'proyecto');
+        if (data.moneda || f.moneda) ponCampoDoc('moneda', data.moneda || f.moneda);
+        if (f.sociedad_firmante && SOCIEDADES[f.sociedad_firmante]) ponCampoDoc('sociedad', f.sociedad_firmante);
+        if (f.cuenta_bancaria && CUENTAS_BANCARIAS[f.cuenta_bancaria]) ponCampoDoc('cuenta', f.cuenta_bancaria);
+        return {
+          numero: data.numero, comprador: nombres, clienteId: data.ficha || null,
+          proyectoId: data.proyecto_id || null, moneda: data.moneda || f.moneda, puesto: puesto,
+          clienteNombre: nombres, clienteDocumento: docs, clienteEmail: email, proyectoNombre: unidad
+        };
+      }, function (e) { return { error: e }; });
+  }
+
+  /* Conceptos (líneas) de factura/proforma — {descripcion,importe}, misma
+     forma que `LINEAS` de /intranet/facturas/. */
+  function montaLineasDoc(host, iniciales) {
+    var filas = (iniciales && iniciales.length)
+      ? iniciales.map(function (l) { return { descripcion: l.descripcion || '', importe: l.importe || '' }; })
+      : [{ descripcion: '', importe: '' }];
+    var wrap = document.createElement('div'); wrap.style.cssText = 'display:grid;gap:6px';
+    var lista = document.createElement('div'); lista.style.cssText = 'display:grid;gap:6px'; wrap.appendChild(lista);
+    var btnAdd = document.createElement('button'); btnAdd.type = 'button'; btnAdd.textContent = '+ Añadir concepto';
+    btnAdd.style.cssText = 'justify-self:start;padding:7px 12px;border-radius:8px;border:1px dashed ' + CAJ.hoja +
+      ';background:transparent;color:' + CAJ.lago + ';font-weight:600;font-size:12.5px;cursor:pointer';
+    wrap.appendChild(btnAdd);
+    host.appendChild(wrap);
+    function repinta() {
+      lista.innerHTML = '';
+      filas.forEach(function (f, i) {
+        var el = document.createElement('div');
+        el.style.cssText = 'display:grid;grid-template-columns:1fr 130px 22px;gap:6px;align-items:center';
+        var campoEstilo = 'padding:7px 8px;border:1px solid ' + CAJ.borde + ';border-radius:6px;font-size:12.5px;' +
+          'color:' + CAJ.tinta + ';background-color:' + CAJ.papel + ';box-sizing:border-box;width:100%';
+        var inpDesc = document.createElement('input'); inpDesc.type = 'text'; inpDesc.placeholder = 'Descripción';
+        inpDesc.value = f.descripcion; inpDesc.style.cssText = campoEstilo;
+        var inpImp = document.createElement('input'); inpImp.type = 'text'; inpImp.inputMode = 'decimal';
+        inpImp.placeholder = 'Importe'; inpImp.value = f.importe; inpImp.style.cssText = campoEstilo;
+        var btnDel = document.createElement('button'); btnDel.type = 'button'; btnDel.textContent = '×'; btnDel.title = 'Quitar concepto';
+        btnDel.style.cssText = 'border:0;background:none;color:#9E2F26;font-size:19px;line-height:1;cursor:pointer';
+        inpDesc.addEventListener('input', function () { f.descripcion = inpDesc.value; });
+        inpImp.addEventListener('input', function () { f.importe = inpImp.value; });
+        inpImp.addEventListener('blur', function () {
+          var n = lwParseImporte(inpImp.value);
+          var txt = lwImporteCanonico(n);
+          inpImp.value = txt; f.importe = txt;
+        });
+        btnDel.addEventListener('click', function () {
+          if (filas.length <= 1) filas = [{ descripcion: '', importe: '' }]; else filas.splice(i, 1);
+          repinta();
+        });
+        el.appendChild(inpDesc); el.appendChild(inpImp); el.appendChild(btnDel);
+        lista.appendChild(el);
+      });
+    }
+    repinta();
+    btnAdd.addEventListener('click', function () { filas.push({ descripcion: '', importe: '' }); repinta(); });
+    return function () { return filas.filter(function (f) { return (f.descripcion || '').trim() || (f.importe || '').trim(); }); };
+  }
+
+  /* Justificantes de un recibí — mismo bucket ('justificantes'), misma
+     convención de ruta (UUID+extensión; el NOMBRE ORIGINAL va dentro del
+     jsonb, nunca en la ruta — revisión previa Seguridad) y mismo tope (8,
+     10 MB) que /intranet/facturas/: `guardar_recibi()` valida cada `path`
+     contra `storage.objects`, así que hay que subir ANTES de llamar al RPC
+     y con la misma convención, o el RPC rechaza el recibí entero. */
+  function montaJustificantesDoc(host, sb) {
+    var lista = [];
+    var wrap = document.createElement('div'); wrap.style.cssText = 'display:grid;gap:8px';
+    var input = document.createElement('input'); input.type = 'file'; input.multiple = true;
+    input.accept = 'image/jpeg,image/png,image/webp,application/pdf';
+    input.style.cssText = 'padding:7px 10px;border:1px solid ' + CAJ.borde + ';border-radius:8px;font-size:12.5px;background:' + CAJ.papel;
+    var estado = document.createElement('div'); estado.style.cssText = 'display:grid;gap:4px;font-size:12.5px';
+    var hint = document.createElement('p');
+    hint.style.cssText = 'margin:0;font-size:11.5px;color:' + CAJ.apagado;
+    hint.textContent = 'Hasta 8, 10 MB cada uno. Se puede adjuntar más de uno: un pago real llega a veces en el resguardo y la captura del banco.';
+    wrap.appendChild(input); wrap.appendChild(estado); wrap.appendChild(hint);
+    host.appendChild(wrap);
+    function repinta() {
+      estado.innerHTML = lista.map(function (j, i) {
+        return '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center">' +
+          '<span>✓ ' + esc(j.nombre) + '</span>' +
+          '<button type="button" data-quitar="' + i + '" style="border:0;background:none;color:#9E2F26;cursor:pointer;font-size:16px;line-height:1">×</button></div>';
+      }).join('');
+    }
+    estado.addEventListener('click', function (ev) {
+      var b = ev.target.closest('[data-quitar]'); if (!b) return;
+      lista.splice(Number(b.getAttribute('data-quitar')), 1); repinta();
+    });
+    input.addEventListener('change', function () {
+      var elegidos = Array.prototype.slice.call(input.files); input.value = '';
+      if (!elegidos.length) return;
+      if (lista.length + elegidos.length > 8) { toastMal('Un recibí admite hasta 8 justificantes (ya lleva ' + lista.length + ')'); return; }
+      elegidos.reduce(function (p, f) {
+        return p.then(function () {
+          if (f.size > 10 * 1024 * 1024) { toastMal(f.name + ' supera los 10 MB: no se ha subido'); return; }
+          var ext = (f.name.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
+          var path = crypto.randomUUID() + ext;
+          return sb.storage.from('justificantes').upload(path, f, { upsert: false, contentType: f.type || 'application/octet-stream' })
+            .then(function (up) {
+              if (up.error) { toastMal('No se pudo subir ' + f.name + ': ' + (up.error.message || up.error)); return; }
+              lista.push({ path: path, nombre: f.name, subido_en: new Date().toISOString() }); repinta();
+            });
+        });
+      }, Promise.resolve());
+    });
+    return function () { return lista; };
+  }
+
+  /* Ver un documento ya emitido: cajón con un <iframe> a la herramienta
+     clásica en modo `?vista=1` (mismo origen, misma sesión, sin exigir el
+     permiso de emitir). Nunca se reescribe el render aquí. */
+  function abreDocumentoViewerDoc(id, alCerrar) {
+    if (!id) return;
+    var frame = document.createElement('iframe');
+    frame.src = '/intranet/facturas/?id=' + encodeURIComponent(id) + '&vista=1';
+    frame.title = 'Documento';
+    frame.style.cssText = 'width:100%;height:calc(100vh - 140px);border:0;background:#fff;display:block';
+    var caj = cajon({
+      sub: 'Documento', titulo: 'Vista del documento', ancho: 'min(880px,96vw)',
+      cuerpo: '', acciones: [{ texto: 'Cerrar', cerrar: 1 }], alCerrar: alCerrar
+    });
+    caj.cuerpo.style.padding = '0';
+    caj.cuerpo.appendChild(frame);
+  }
+
+  /* ---------- Factura / proforma: crear o editar ---------- */
+  function abrirEditorFacturaDoc(pre) {
+    pre = pre || {};
+    if (!window.LW_AUTH) return;
+    window.LW_AUTH.then(function (aut) {
+      var sb = aut.sb;
+      if (!puedeH(aut.ficha, 'facturas')) {
+        return aviso('Emitir facturas exige la herramienta «Facturas» — pídesela a un administrador.', '#8A6A34');
+      }
+      var esEdicion = !!pre.id;
+      aseguraModulosDoc(['entities', 'compradores', 'totales', 'dialogo']).then(function () {
+        return Promise.all([
+          cargarSociedades(sb).then(function () { return true; }, function () { return false; }),
+          cargarCuentasBancarias(sb).then(function () { return true; }, function () { return false; }),
+          listaContratosLigeraDoc(sb),
+          esEdicion
+            ? sb.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,client_id,creado_por,anulada,enviada,datos').eq('id', pre.id).maybeSingle()
+            : Promise.resolve({ data: null })
+        ]);
+      }).then(function (r) {
+        var sociedadesOk = r[0], cuentasOk = r[1];
+        var contratos = r[2].data || [];
+        var existente = esEdicion ? r[3].data : null;
+        if (esEdicion && !existente) return aviso('No se encontró ese documento.', '#93000a');
+        if (esEdicion) {
+          if (existente.anulada) return aviso('Ese documento está anulado: no se edita — se emite uno nuevo.', '#8A6A34');
+          if (existente.enviada) return aviso('Ya se envió al cliente: no se edita. Anúlalo y emite otro si hace falta corregirlo.', '#8A6A34');
+          var miEmail = ((aut.session && aut.session.user && aut.session.user.email) || '').toLowerCase();
+          if (!esAdmin(aut.ficha) && (existente.creado_por || '').toLowerCase() !== miEmail) {
+            return aviso('Este documento lo emitió otra persona: solo esa persona o un administrador puede editarlo.', '#8A6A34');
+          }
+        }
+        construye(sociedadesOk, cuentasOk, contratos, existente);
+      }, function (e) { aviso('No se ha podido preparar el editor: ' + (e && e.message || e), '#93000a'); });
+
+      function construye(sociedadesOk, cuentasOk, contratosLigeros, existente) {
+        var f0 = (existente && existente.datos && existente.datos.fields) || {};
+        var lineas0 = (existente && existente.datos && existente.datos.lineas) || [];
+        var estadoContrato = {
+          id: existente ? existente.contrato_id : (pre.contrato_id || null),
+          numero: (existente && existente.contrato_numero) || '',
+          clienteId: (existente && existente.client_id) || null
+        };
+        var getLineas = null;
+
+        var campos = [];
+        if (!sociedadesOk) campos.push({ tipo: 'nota', label: 'No se ha podido cargar el catálogo de sociedades — recarga antes de emitir.' });
+        if (!cuentasOk) campos.push({ tipo: 'nota', label: 'No se han podido cargar las cuentas de cobro — recarga antes de emitir.' });
+        campos.push(
+          { k: 'tipo', label: 'Tipo de documento', tipo: 'select', medio: 1,
+            valor: existente ? existente.tipo : (pre.tipo === 'proforma' ? 'proforma' : 'factura'),
+            opciones: [['factura', 'Factura'], ['proforma', 'Factura proforma']] },
+          { k: 'moneda', label: 'Moneda', tipo: 'select', medio: 1, valor: f0.moneda || 'EUR', opciones: ['EUR', 'USD', 'AUD', 'IDR'] },
+          { tipo: 'custom', label: 'Contrato', render: function (host) {
+              var lbl = document.createElement('div'); lbl.textContent = 'Contrato'; lbl.style.cssText = 'font-size:12px;color:' + CAJ.apagado + ';margin-bottom:4px';
+              var btn = document.createElement('button'); btn.type = 'button';
+              btn.style.cssText = 'width:100%;text-align:left;padding:9px 12px;border:1px solid ' + CAJ.borde +
+                ';border-radius:8px;font-weight:500;font-size:14px;color:' + CAJ.tinta + ';background-color:' + CAJ.papel + ';cursor:pointer';
+              btn.textContent = estadoContrato.numero ? estadoContrato.numero : '— elige un contrato —';
+              var nota = document.createElement('p'); nota.style.cssText = 'margin:6px 0 0;font-size:12px;color:' + CAJ.apagado;
+              host.appendChild(lbl); host.appendChild(btn); host.appendChild(nota);
+              btn.addEventListener('click', function () {
+                lwElegir({ titulo: 'Elige un contrato', opciones: opcionesContratoPickerDoc(contratosLigeros), valor: estadoContrato.id })
+                  .then(function (id) {
+                    if (id === null) return;
+                    var antes = btn.textContent; btn.disabled = true; btn.textContent = 'Cargando…';
+                    aplicaContratoDoc(sb, id).then(function (res) {
+                      btn.disabled = false;
+                      if (res.error) { toastMal('No se pudo cargar el contrato: ' + (res.error.message || res.error)); btn.textContent = antes; return; }
+                      estadoContrato.id = id; estadoContrato.numero = res.numero; estadoContrato.clienteId = res.clienteId;
+                      btn.textContent = res.numero + ' · ' + (res.comprador || '—');
+                      nota.textContent = res.puesto.length ? 'Traído del contrato: ' + res.puesto.join(', ') + '.' : 'El contrato no tenía datos de cliente que traer.';
+                    });
+                  });
+              });
+              // SOLO para un documento NUEVO (code-review 21-sep): al editar uno
+              // ya guardado, `estadoContrato.numero` puede venir vacío si el
+              // propio documento nunca trajo `contrato_numero` — y este
+              // refresco automático (sin que el agente pulse nada) llama a
+              // `aplicaContratoDoc`, que SOBRESCRIBE cliente_nombre/documento/
+              // email/proyecto_nombre con lo que diga HOY el contrato. Eso
+              // pisaba en silencio los datos ya guardados del documento que se
+              // estaba abriendo para editar. Cambiar el contrato SÍ debe traer
+              // sus datos — pero solo cuando lo pide un clic (rama de arriba).
+              if (!existente && estadoContrato.id && !estadoContrato.numero) {
+                aplicaContratoDoc(sb, estadoContrato.id).then(function (res) {
+                  if (res.error) return;
+                  estadoContrato.numero = res.numero; estadoContrato.clienteId = res.clienteId;
+                  btn.textContent = res.numero + ' · ' + (res.comprador || '—');
+                });
+              }
+            } },
+          { k: 'sociedad', label: 'Sociedad que factura', tipo: 'select', req: 1, medio: 1,
+            valor: f0.sociedad || '', opciones: [['', '— elige —']].concat(opcionesSociedadDoc()) },
+          { k: 'cuenta', label: 'Cuenta donde se cobra', tipo: 'select', medio: 1, valor: f0.cuenta || '', opciones: opcionesCuentaDoc() },
+          { k: 'banco_titular', label: 'Titular (solo si «Otros»)', medio: 1, valor: f0.banco_titular || '' },
+          { k: 'banco_nombre', label: 'Banco (solo si «Otros»)', medio: 1, valor: f0.banco_nombre || '' },
+          { k: 'banco_cuenta', label: 'Nº de cuenta (solo si «Otros»)', medio: 1, valor: f0.banco_cuenta || '' },
+          { k: 'banco_codigo', label: 'Swift / Routing (solo si «Otros»)', medio: 1, valor: f0.banco_codigo || '' },
+          { k: 'banco_direccion', label: 'Dirección del banco (solo si «Otros»)', valor: f0.banco_direccion || '' },
+          { k: 'banco_extra', label: 'Nota de la cuenta (solo si «Otros»)', valor: f0.banco_extra || '' },
+          { k: 'cliente_nombre', label: 'Nombre o razón social', req: 1, valor: f0.cliente_nombre || '' },
+          { k: 'cliente_documento', label: 'Pasaporte / NPWP / NIF', medio: 1, valor: f0.cliente_documento || '' },
+          { k: 'cliente_email', label: 'Email', tipo: 'email', medio: 1, valor: f0.cliente_email || '' },
+          { k: 'proyecto_nombre', label: 'Proyecto / unidad', valor: f0.proyecto_nombre || '' },
+          { k: 'fecha_emision', label: 'Fecha de emisión', tipo: 'date', medio: 1, valor: f0.fecha_emision || new Date().toISOString().slice(0, 10) },
+          { k: 'fecha_vencimiento', label: 'Vencimiento (opcional)', tipo: 'date', medio: 1, valor: f0.fecha_vencimiento || '' },
+          { tipo: 'custom', label: 'Conceptos', render: function (host) {
+              var lbl = document.createElement('div'); lbl.textContent = 'Conceptos'; lbl.style.cssText = 'font-size:12px;color:' + CAJ.apagado + ';margin-bottom:4px';
+              host.appendChild(lbl);
+              getLineas = montaLineasDoc(host, lineas0);
+            } },
+          { k: 'imp_etiqueta', label: 'Impuesto — etiqueta (opcional)', medio: 1, valor: f0.imp_etiqueta || '', ayuda: 'Ej. PPN' },
+          { k: 'imp_pct', label: 'Impuesto — porcentaje (opcional)', medio: 1, valor: f0.imp_pct || '' },
+          { k: 'notas', label: 'Notas', tipo: 'textarea', valor: f0.notas || '' }
+        );
+
+        modal(existente ? 'Editar ' + (existente.numero || 'documento') : 'Nuevo documento', campos,
+          existente ? 'Guardar cambios' : 'Emitir', function (v) {
+            if (!estadoContrato.id) return { error: { message: 'Elige el contrato al que corresponde este documento.' } };
+            var lineas = getLineas ? getLineas() : [];
+            var d = v; d.lineas = lineas;
+            var t = calcTotales(lineas, d.moneda, { pct: d.imp_pct });
+            if (!t.subtotal) return { error: { message: 'El documento no tiene importe.' } };
+            var payload = {
+              tipo: d.tipo || 'factura', sociedad: d.sociedad, cliente_nombre: d.cliente_nombre || null,
+              proyecto_nombre: d.proyecto_nombre || null, contrato_numero: estadoContrato.numero || null,
+              contrato_id: estadoContrato.id, client_id: estadoContrato.clienteId,
+              total: t.total, moneda: d.moneda || null, fecha_emision: d.fecha_emision || null,
+              justificantes: [], datos: { fields: d, lineas: lineas, totales: t }
+            };
+            var q = existente
+              ? sb.from('facturas').update(payload).eq('id', existente.id).select('id,numero').single()
+              : sb.from('facturas').insert(payload).select('id,numero').single();
+            return q.then(function (res) {
+              if (res.error) return { error: res.error };
+              toast((existente ? 'Actualizada como ' : 'Guardada como ') + res.data.numero);
+              abreDocumentoViewerDoc(res.data.id, function () { location.reload(); });
+              return {};
+            });
+          }, { sinRecarga: true, sub: existente ? 'Editar documento' : 'Facturación' });
+      }
+    });
+  }
+
+  /* ---------- Recibí de cobro: crear o editar ---------- */
+  function abrirEditorRecibiDoc(pre) {
+    pre = pre || {};
+    if (!window.LW_AUTH) return;
+    window.LW_AUTH.then(function (aut) {
+      var sb = aut.sb;
+      if (!puedeH(aut.ficha, 'facturas')) {
+        return aviso('Emitir recibís exige la herramienta «Facturas» — pídesela a un administrador.', '#8A6A34');
+      }
+      var esEdicion = !!pre.id;
+      aseguraModulosDoc(['entities', 'compradores', 'totales', 'dialogo']).then(function () {
+        return Promise.all([
+          cargarSociedades(sb).then(function () { return true; }, function () { return false; }),
+          cargarCuentasBancarias(sb).then(function () { return true; }, function () { return false; }),
+          listaContratosLigeraDoc(sb),
+          esEdicion
+            ? sb.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,client_id,creado_por,anulada,enviada,datos,justificantes').eq('id', pre.id).eq('tipo', 'recibi').maybeSingle()
+            : Promise.resolve({ data: null })
+        ]);
+      }).then(function (r) {
+        var sociedadesOk = r[0], cuentasOk = r[1], contratos = r[2].data || [];
+        var existente = esEdicion ? r[3].data : null;
+        if (esEdicion && !existente) return aviso('No se encontró ese recibí.', '#93000a');
+        if (esEdicion) {
+          if (existente.anulada) return aviso('Ese recibí está anulado: no se edita — se emite uno nuevo.', '#8A6A34');
+          if (existente.enviada) return aviso('Ya se envió al cliente: no se edita. Anúlalo y emite otro si hace falta corregirlo.', '#8A6A34');
+          var miEmail = ((aut.session && aut.session.user && aut.session.user.email) || '').toLowerCase();
+          if (!esAdmin(aut.ficha) && (existente.creado_por || '').toLowerCase() !== miEmail) {
+            return aviso('Este recibí lo emitió otra persona: solo esa persona o un administrador puede editarlo (la base lo rechazaría igual).', '#8A6A34');
+          }
+        }
+        construye(sociedadesOk, cuentasOk, contratos, existente);
+      }, function (e) { aviso('No se ha podido preparar el editor: ' + (e && e.message || e), '#93000a'); });
+
+      function construye(sociedadesOk, cuentasOk, contratosLigeros, existente) {
+        var f0 = (existente && existente.datos && existente.datos.fields) || {};
+        var bloqueadoContrato = !!pre.contrato_id && !existente;
+        var estadoContrato = {
+          id: existente ? existente.contrato_id : (pre.contrato_id || null),
+          numero: (existente && existente.contrato_numero) || '',
+          clienteId: (existente && existente.client_id) || null,
+          moneda: f0.moneda || 'EUR',
+          clienteNombre: f0.cliente_nombre || '', clienteDocumento: f0.cliente_documento || '',
+          clienteEmail: f0.cliente_email || '', proyectoNombre: f0.proyecto_nombre || ''
+        };
+        var aplicaciones = [];   // [{factura_id, numero, pendiente, importe}]
+        var facturasAbiertasCache = [];
+        var getJustificantes = null;
+        var repintaAplic = function () {};
+        // code-review 21-sep: al EDITAR, la primera carga tiene que RESTAURAR
+        // las aplicaciones que el recibí ya tenía en `recibi_aplicaciones` —
+        // si no, guardar borra sin darse cuenta el reparto real de un cobro ya
+        // registrado (guardar_recibi() hace DELETE+INSERT sobre esa tabla en
+        // cada edición). Esta bandera hace que la restauración ocurra UNA vez.
+        var aplicacionesRestauradas = false;
+
+        function cargaAbiertas() {
+          if (!estadoContrato.id) return Promise.resolve([]);
+          return Promise.all([
+            sb.rpc('facturas_equipo').select('id,numero,contrato_id,contrato_numero,cliente_nombre,total,tipo,anulada,moneda'),
+            sb.rpc('facturas_pendiente_equipo'),
+            sb.rpc('contratos_del_mismo_comprador', { p_contrato_id: estadoContrato.id })
+          ]).then(function (rs) {
+            if (rs[0].error || rs[1].error || rs[2].error) return [];
+            var pend = {}; (rs[1].data || []).forEach(function (x) { pend[x.factura_id] = Number(x.pendiente) || 0; });
+            var suyos = {};
+            (rs[2].data || []).forEach(function (x) { suyos[(x && typeof x === 'object') ? Object.values(x)[0] : x] = 1; });
+            return (rs[0].data || [])
+              .filter(function (x) { return x.tipo === 'factura' && !x.anulada && (pend[x.id] || 0) > 0.005 && x.contrato_id && suyos[x.contrato_id]; })
+              .filter(function (x) { return (x.moneda || 'EUR') === estadoContrato.moneda; })
+              .map(function (x) { return { id: x.id, numero: x.numero, pendiente: pend[x.id] }; });
+          });
+        }
+
+        var campos = [];
+        if (!sociedadesOk) campos.push({ tipo: 'nota', label: 'No se ha podido cargar el catálogo de sociedades — recarga antes de emitir.' });
+        if (!cuentasOk) campos.push({ tipo: 'nota', label: 'No se han podido cargar las cuentas de cobro — recarga antes de emitir.' });
+        campos.push(
+          { tipo: 'custom', label: 'Contrato', render: function (host) {
+              var lbl = document.createElement('div'); lbl.textContent = 'Contrato'; lbl.style.cssText = 'font-size:12px;color:' + CAJ.apagado + ';margin-bottom:4px';
+              var btn = document.createElement('button'); btn.type = 'button';
+              var bloqueado = bloqueadoContrato || !!existente;
+              btn.style.cssText = 'width:100%;text-align:left;padding:9px 12px;border:1px solid ' + CAJ.borde +
+                ';border-radius:8px;font-weight:500;font-size:14px;color:' + CAJ.tinta + ';background-color:' + CAJ.papel +
+                ';cursor:' + (bloqueado ? 'not-allowed' : 'pointer');
+              btn.textContent = estadoContrato.numero ? estadoContrato.numero : '— elige un contrato —';
+              btn.disabled = bloqueado;
+              var nota = document.createElement('p'); nota.style.cssText = 'margin:6px 0 0;font-size:12px;color:' + CAJ.apagado;
+              if (bloqueado) nota.textContent = 'Ya viene fijado desde donde se abrió este recibí.';
+              host.appendChild(lbl); host.appendChild(btn); host.appendChild(nota);
+              function refresca() {
+                aplicaContratoDoc(sb, estadoContrato.id).then(function (res) {
+                  if (res.error) { toastMal('No se pudo cargar el contrato: ' + (res.error.message || res.error)); return; }
+                  estadoContrato.numero = res.numero; estadoContrato.clienteId = res.clienteId;
+                  estadoContrato.moneda = res.moneda || estadoContrato.moneda;
+                  estadoContrato.clienteNombre = res.clienteNombre; estadoContrato.clienteDocumento = res.clienteDocumento;
+                  estadoContrato.clienteEmail = res.clienteEmail; estadoContrato.proyectoNombre = res.proyectoNombre;
+                  btn.textContent = res.numero + ' · ' + (res.comprador || '—');
+                  var selMoneda = campoDeDoc('moneda'); if (selMoneda) selMoneda.value = estadoContrato.moneda;
+                  // Al EDITAR, la primera pasada no vacía las aplicaciones: se
+                  // restauran de la base justo debajo. Cualquier pasada
+                  // POSTERIOR (cambio manual de contrato o de moneda, que solo
+                  // puede pasar en un recibí NUEVO — el botón va bloqueado al
+                  // editar) sí las vacía: son de otro comprador o otra divisa.
+                  if (!(existente && !aplicacionesRestauradas)) aplicaciones = [];
+                  cargaAbiertas().then(function (abs) {
+                    facturasAbiertasCache = abs;
+                    if (existente && !aplicacionesRestauradas) {
+                      aplicacionesRestauradas = true;
+                      // Mismo camino que abrir() en /intranet/facturas/ (líneas
+                      // ~3247-3260): se lee `recibi_aplicaciones` de ESTE
+                      // recibí y el pendiente que se enseña es el que queda
+                      // SIN él más lo que él mismo ya aplicaba — porque
+                      // `facturas_pendiente_equipo()` ya se lo ha descontado,
+                      // así que una factura que este recibí saldó del todo ni
+                      // siquiera aparece en `facturasAbiertasCache`.
+                      sb.from('recibi_aplicaciones').select('factura_id,importe_aplicado').eq('recibi_id', existente.id)
+                        .then(function (rr) {
+                          if (rr.error) { toastMal('No se pudieron traer las facturas que este recibí ya saldaba: ' + rr.error.message); repintaAplic(); return; }
+                          (rr.data || []).forEach(function (row) {
+                            var abierta = facturasAbiertasCache.filter(function (x) { return x.id === row.factura_id; })[0];
+                            aplicaciones.push({
+                              factura_id: row.factura_id,
+                              numero: abierta ? abierta.numero : row.factura_id,
+                              pendiente: (abierta ? abierta.pendiente : 0) + Number(row.importe_aplicado),
+                              importe: lwImporteCanonico(Number(row.importe_aplicado))
+                            });
+                          });
+                          repintaAplic();
+                        }, function (e) { toastMal('No se pudieron traer las facturas que este recibí ya saldaba: ' + (e && e.message || e)); repintaAplic(); });
+                    } else {
+                      repintaAplic();
+                    }
+                  });
+                });
+              }
+              btn.addEventListener('click', function () {
+                if (btn.disabled) return;
+                lwElegir({ titulo: 'Elige un contrato', opciones: opcionesContratoPickerDoc(contratosLigeros), valor: estadoContrato.id })
+                  .then(function (id) {
+                    if (id === null) return;
+                    estadoContrato.id = id; btn.textContent = 'Cargando…'; refresca();
+                  });
+              });
+              if (estadoContrato.id) refresca();
+            } },
+          { k: 'sociedad', label: 'Sociedad que cobra', tipo: 'select', req: 1, medio: 1,
+            valor: f0.sociedad || '', opciones: [['', '— elige —']].concat(opcionesSociedadDoc()) },
+          { k: 'cuenta', label: 'Cuenta donde se cobró', tipo: 'select', medio: 1, valor: f0.cuenta || '', opciones: opcionesCuentaDoc(true) },
+          { k: 'moneda', label: 'Moneda', tipo: 'select', medio: 1, valor: estadoContrato.moneda, opciones: ['EUR', 'USD', 'AUD', 'IDR'] },
+          { k: 'fecha_emision', label: 'Fecha del cobro', tipo: 'date', medio: 1, valor: f0.fecha_emision || new Date().toISOString().slice(0, 10) },
+          { tipo: 'custom', label: 'Lo que se ha cobrado', render: function (host) {
+              var lbl = document.createElement('div'); lbl.textContent = 'Facturas que salda este recibí'; lbl.style.cssText = 'font-size:12px;color:' + CAJ.apagado + ';margin-bottom:4px';
+              host.appendChild(lbl);
+              var lista = document.createElement('div'); lista.style.cssText = 'display:grid;gap:6px';
+              var btnAdd = document.createElement('button'); btnAdd.type = 'button'; btnAdd.textContent = '+ Añadir otra factura';
+              btnAdd.style.cssText = 'justify-self:start;padding:7px 12px;border-radius:8px;border:1px dashed ' + CAJ.hoja +
+                ';background:transparent;color:' + CAJ.lago + ';font-weight:600;font-size:12.5px;cursor:pointer';
+              var aviso2 = document.createElement('p'); aviso2.style.cssText = 'margin:0;font-size:11.5px;color:' + CAJ.apagado;
+              host.appendChild(lista); host.appendChild(btnAdd); host.appendChild(aviso2);
+              function repinta() {
+                var usadas = {}; aplicaciones.forEach(function (a) { usadas[a.factura_id] = 1; });
+                var libres = facturasAbiertasCache.filter(function (x) { return !usadas[x.id]; });
+                btnAdd.hidden = !libres.length;
+                aviso2.textContent = !estadoContrato.id ? 'Elige primero el contrato.'
+                  : !aplicaciones.length ? (facturasAbiertasCache.length ? 'Elige qué factura(s) salda este cobro.' : 'Este comprador no tiene facturas pendientes en ' + estadoContrato.moneda + '.')
+                  : '';
+                lista.innerHTML = '';
+                aplicaciones.forEach(function (a, i) {
+                  var el = document.createElement('div');
+                  el.style.cssText = 'display:grid;grid-template-columns:1fr 120px 22px;gap:6px;align-items:center';
+                  var campoEstilo = 'padding:7px 8px;border:1px solid ' + CAJ.borde + ';border-radius:6px;font-size:12.5px;color:' + CAJ.tinta + ';background-color:' + CAJ.papel + ';box-sizing:border-box;width:100%';
+                  var span = document.createElement('div'); span.style.cssText = 'font-size:12.5px;color:' + CAJ.tinta;
+                  span.textContent = a.numero + ' — pendiente ' + a.pendiente;
+                  var inpImp = document.createElement('input'); inpImp.type = 'text'; inpImp.inputMode = 'decimal'; inpImp.placeholder = 'Importe cobrado';
+                  inpImp.value = a.importe; inpImp.style.cssText = campoEstilo;
+                  var btnDel = document.createElement('button'); btnDel.type = 'button'; btnDel.textContent = '×'; btnDel.title = 'Quitar';
+                  btnDel.style.cssText = 'border:0;background:none;color:#9E2F26;font-size:19px;line-height:1;cursor:pointer';
+                  inpImp.addEventListener('input', function () { a.importe = inpImp.value; });
+                  inpImp.addEventListener('blur', function () {
+                    var n = lwParseImporte(inpImp.value); var txt = lwImporteCanonico(n);
+                    inpImp.value = txt; a.importe = txt;
+                  });
+                  btnDel.addEventListener('click', function () { aplicaciones.splice(i, 1); repinta(); });
+                  el.appendChild(span); el.appendChild(inpImp); el.appendChild(btnDel);
+                  lista.appendChild(el);
+                });
+              }
+              repintaAplic = repinta;
+              btnAdd.addEventListener('click', function () {
+                var usadas = {}; aplicaciones.forEach(function (a) { usadas[a.factura_id] = 1; });
+                var libres = facturasAbiertasCache.filter(function (x) { return !usadas[x.id]; });
+                if (!libres.length) return;
+                lwElegir({ titulo: 'Elige la factura que salda', opciones: libres.map(function (x) { return { valor: x.id, texto: x.numero, nota: 'pendiente ' + x.pendiente }; }) })
+                  .then(function (id) {
+                    if (id === null) return;
+                    var f = libres.filter(function (x) { return x.id === id; })[0]; if (!f) return;
+                    aplicaciones.push({ factura_id: f.id, numero: f.numero, pendiente: f.pendiente, importe: '' });
+                    repinta();
+                  });
+              });
+              repinta();
+            } },
+          { tipo: 'custom', label: 'Justificante', render: function (host) {
+              var lbl = document.createElement('div'); lbl.textContent = 'Justificante de pago (obligatorio)'; lbl.style.cssText = 'font-size:12px;color:' + CAJ.apagado + ';margin-bottom:4px';
+              host.appendChild(lbl);
+              getJustificantes = montaJustificantesDoc(host, sb);
+              if (existente && Array.isArray(existente.justificantes) && existente.justificantes.length) {
+                var ya = document.createElement('p'); ya.style.cssText = 'margin:6px 0 0;font-size:12px;color:' + CAJ.apagado;
+                ya.textContent = 'Este recibí ya tiene ' + existente.justificantes.length + ' justificante(s) — al guardar, se sustituyen por los que subas aquí.';
+                host.appendChild(ya);
+              }
+            } },
+          { k: 'notas', label: 'Notas', tipo: 'textarea', valor: f0.notas || '' }
+        );
+
+        modal(existente ? 'Editar ' + (existente.numero || 'recibí') : 'Emitir recibí de cobro', campos,
+          existente ? 'Guardar cambios' : 'Emitir recibí', function (v) {
+            if (!estadoContrato.id) return { error: { message: 'Elige el contrato al que corresponde este recibí.' } };
+            if (!aplicaciones.length) return { error: { message: 'Elige al menos una factura que salde este recibí.' } };
+            var justificantes = getJustificantes ? getJustificantes() : [];
+            if (!justificantes.length) return { error: { message: 'Adjunta el justificante de pago.' } };
+            for (var i = 0; i < aplicaciones.length; i++) {
+              var imp = lwParseImporte(aplicaciones[i].importe);
+              if (!imp || imp <= 0) return { error: { message: 'Falta el importe aplicado a ' + aplicaciones[i].numero } };
+              if (imp > aplicaciones[i].pendiente + 0.01) return { error: { message: aplicaciones[i].numero + ' solo tiene ' + aplicaciones[i].pendiente + ' pendiente' } };
+            }
+            var lineas = aplicaciones.map(function (a) { return { descripcion: 'Aplicado a factura ' + a.numero, importe: a.importe }; });
+            var d = v; d.tipo = 'recibi'; d.lineas = lineas;
+            d.cliente_nombre = estadoContrato.clienteNombre; d.cliente_documento = estadoContrato.clienteDocumento;
+            d.cliente_email = estadoContrato.clienteEmail; d.proyecto_nombre = estadoContrato.proyectoNombre;
+            d.contrato_numero = estadoContrato.numero;
+            var t = calcTotales(lineas, d.moneda, {});
+            var pFactura = {
+              sociedad: d.sociedad, cliente_nombre: d.cliente_nombre || null, proyecto_nombre: d.proyecto_nombre || null,
+              contrato_numero: d.contrato_numero || null, contrato_id: estadoContrato.id,
+              total: t.total, moneda: d.moneda || null, fecha_emision: d.fecha_emision || null,
+              justificantes: justificantes, datos: { fields: d, lineas: lineas, totales: t }
+            };
+            var pAplicaciones = aplicaciones.map(function (a) { return { factura_id: a.factura_id, importe: lwParseImporte(a.importe) }; });
+            return sb.rpc('guardar_recibi', { p_id: (existente && existente.id) || null, p_factura: pFactura, p_aplicaciones: pAplicaciones })
+              .then(function (res) {
+                if (res.error) return { error: res.error };
+                toast((existente ? 'Actualizado como ' : 'Guardado como ') + res.data.numero);
+                abreDocumentoViewerDoc(res.data.id, function () { location.reload(); });
+                return {};
+              });
+          }, { sinRecarga: true, sub: existente ? 'Editar recibí' : 'Recibí de cobro' });
+
+        // code-review 21-sep: la Moneda es libre (mismo comprador puede tener
+        // contratos en monedas distintas) pero nada volvía a comprobar la
+        // lista de facturas si se tocaba DESPUÉS de elegir el contrato — se
+        // podía elegir una factura en EUR y guardar el recibí en USD. Mismo
+        // guardarraíl que `$('#fa-moneda').addEventListener('change', …)` en
+        // /intranet/facturas/: cambiar la moneda vacía lo ya elegido (ya no
+        // es válido en la divisa nueva) y vuelve a preguntar por el contrato.
+        var selMonedaWire = campoDeDoc('moneda');
+        if (selMonedaWire) {
+          selMonedaWire.addEventListener('change', function () {
+            estadoContrato.moneda = selMonedaWire.value || 'EUR';
+            aplicaciones = [];
+            cargaAbiertas().then(function (abs) { facturasAbiertasCache = abs; repintaAplic(); });
+          });
+        }
+      }
+    });
+  }
+
+  window.LW_V4 = window.LW_V4 || {};
+  window.LW_V4.abreVerDocumento = abreDocumentoViewerDoc;
+  window.LW_V4.abrirEditorFactura = abrirEditorFacturaDoc;
+  window.LW_V4.abrirEditorRecibi = abrirEditorRecibiDoc;
+
   /* ---------- editores por pantalla ---------- */
   var ED = {
 
@@ -3898,6 +4567,18 @@
       // `hidden` de salida en el HTML: solo se destapa para super_admin — un
       // admin normal ni lo ve, aunque el click de todas formas lo rechazaría.
       if (btn && superAdmin) btn.hidden = false;
+    },
+
+    /* "Nuevo documento" (21-sep-2026): abre el editor nativo de factura/
+       proforma — ver el bloque «EMISIÓN DE FACTURAS…» más arriba. Nunca
+       navega a /intranet/facturas/. */
+    facturas: function () {
+      ata(/^\+? ?Nuevo documento$/i, function () { abrirEditorFacturaDoc({}); });
+    },
+
+    /* "+ Emitir recibí de cobro" (21-sep-2026): mismo bloque, camino RPC. */
+    recibos: function () {
+      ata(/emitir recib.*de cobro/i, function () { abrirEditorRecibiDoc({}); });
     }
   };
 

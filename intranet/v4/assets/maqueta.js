@@ -120,8 +120,14 @@
        LISTADO (app.html: `par.has('nuevo')`; facturas: `par.has('nueva')`) y el
        agente tenía que volver a pulsar «Nueva». Ahora aterrizan en el formulario. */
     [/nuevo contrato|nueva operaci/i, '/contracts/app.html?nuevo=1'],
-    [/nueva factura|nuevo documento|emitir factura/i, '/intranet/facturas/?nueva=1&tipo=factura'],
-    [/emitir recib/i, '/intranet/facturas/?nueva=1&tipo=recibi'],
+    /* «Nuevo documento» (/v4/facturas/) y «+ Emitir recibí de cobro»
+       (/v4/recibos/) YA NO redirigen a /intranet/facturas/ (21-sep-2026):
+       editores.js los cablea con `ata()` — se ata en directo al botón con
+       `stopPropagation`, así que este array ni se consulta para ellos. Se
+       retiran las dos entradas del todo (no se dejan "por si acaso"): una
+       redirección viva que sobreviviera a un fallo de `ata()` sería
+       exactamente el escape silencioso a la herramienta vieja que este
+       build vino a cerrar. */
     [/alta de comprador/i, '/intranet/compradores/?nuevo=1'],
     [/nueva unidad|nuevo proyecto|importar csv/i, '/intranet/proyectos/'],
     [/registrar hito/i, '/intranet/vencimientos/'],

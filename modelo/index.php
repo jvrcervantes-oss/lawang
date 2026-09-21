@@ -77,22 +77,22 @@ $g       = $m['imgs'];
 $portada = $g[0] ?? null;
 
 /**
- * Tres vistas del hero cinemático + la foto de la sección "Distribución": elegidas a
- * mano para Dali (día/techo Sirap = dali.webp, techo Bambú = dali3.webp, interior =
- * dali7.webp, planta = dali9.webp — verificado mirando las 9 fotos una por una, no por
- * nombre de fichero) y con índice de respaldo para cualquier otro modelo del catálogo
- * que entre por esta misma plantilla y no tenga ese mismo reparto curado.
+ * Tres vistas del hero cinemático + la foto de la sección "Distribución": buscadas por el
+ * PIE real de cada foto (21-sep-2026, `lw_foto_por_pie()` en catalogo.php), no por
+ * posición en el array — desde que las fotos vienen de `deck_fotos` (subidas y
+ * reordenables desde /intranet/modelos/) un índice fijo se desincroniza en cuanto alguien
+ * añade o reordena una foto ahí. Con respaldo posicional para el modelo que no tenga
+ * pies que casen con estos patrones (uno nuevo, subido sin etiquetar bien).
  */
-$heroDay      = $g[0] ?? null;
-$heroTechoAlt = $g[2] ?? $g[1] ?? $g[0] ?? null;
-$heroInterior = $g[6] ?? $g[1] ?? $g[0] ?? null;
-// dali9.webp ES una planta cenital real ya renderizada por el estudio (no un CAD que
-// haya que inventar) — se usa aquí en vez de "otra foto exterior cualquiera": es un
-// asset real y encaja mejor con lo que pide la sección. Desviación señalada al owner.
-// Nunca mezclar `??`/`?:` sin parentesis (PHP lo rechaza como fatal de sintaxis) — de ahi
-// la variable intermedia en vez de encadenar `$g[8] ?? end($g) ?: $portada` en una linea.
+$heroDay      = lw_foto_por_pie($m['id'], ['sirap', 'ulin exterior']) ?? $g[0] ?? null;
+$heroTechoAlt = lw_foto_por_pie($m['id'], ['bamboo exterior', 'bambu exterior']) ?? $g[2] ?? $g[1] ?? $g[0] ?? null;
+$heroInterior = lw_foto_por_pie($m['id'], ['bedroom', 'living room', 'interior']) ?? $g[6] ?? $g[1] ?? $g[0] ?? null;
+// "Top View" es la planta cenital real ya renderizada por el estudio (no un CAD que haya
+// que inventar) — encaja mejor con lo que pide la sección "Distribución" que cualquier
+// otra foto exterior. Nunca mezclar `??`/`?:` sin parentesis (PHP lo rechaza como fatal
+// de sintaxis) — de ahi la variable intermedia en vez de encadenar todo en una línea.
 $ultimoImg    = $g ? end($g) : null;
-$layoutImg    = $g[8] ?? $ultimoImg ?? $portada;
+$layoutImg    = lw_foto_por_pie($m['id'], ['top view']) ?? $ultimoImg ?? $portada;
 
 $dormTxt  = $dorm . ' ' . ($dorm === 1 ? 'bedroom' : 'bedrooms');
 $sizeTxt  = $m['villa_m2'] . 'm² + ' . $m['terraza_m2'] . 'm² terrace';

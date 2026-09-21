@@ -187,9 +187,132 @@ function lw_catalogo() {
     return $memo = [];
 }
 
-/* Regenerar el respaldo:  php modelo/catalogo.php --respaldo
+/**
+ * ── Fotos de modelo (21-sep-2026) ────────────────────────────────────────────────────
+ *
+ * MISMOS tres niveles de arriba, mismo motivo: `lw_modelo_imgs()` (modelo/lib.php) leía
+ * antes `assets/img/buildings/<id>/web/*.webp` EN DISCO — nadie las podía subir desde la
+ * intranet, hacía falta un deploy para añadir o quitar una foto. La fuente real es
+ * `deck_fotos` (ambito='modelo'), la misma tabla que ya alimenta el investor deck desde
+ * /intranet/modelos/ → "Fotos del deck...". Ver la migración `modelo_fotos_publico.sql`
+ * para el porqué completo (el dato tiene un dueño, RLS, bucket público).
+ *
+ * Cada foto trae `path` (relativo al bucket `deck`, público) y `pie` (el `alt` real, no
+ * inventado — el uploader de la intranet lo exige en inglés antes de guardar).
+ */
+function lw_fotos_cache_path() {
+    $priv = __DIR__ . '/../private';
+    if (is_dir($priv) && is_writable($priv)) return $priv . '/catalogo_fotos_modelo.json';
+    return sys_get_temp_dir() . '/lw_catalogo_fotos_modelo.json';
+}
+
+function lw_fotos_fetch() {
+    if (!function_exists('curl_init')) return null;
+    $ch = curl_init(LW_SB_URL . '/rest/v1/rpc/modelo_fotos_publico');
+    curl_setopt_array($ch, [
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => '{}',
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 4,
+        CURLOPT_CONNECTTIMEOUT => 3,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_HTTPHEADER     => [
+            'apikey: ' . LW_SB_KEY,
+            'Content-Type: application/json',
+        ],
+    ]);
+    $body = curl_exec($ch);
+    $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    curl_close($ch);
+    if ($code !== 200 || !is_string($body) || $body === '') return null;
+    $d = json_decode($body, true);
+    // A diferencia de lw_cat_fetch(): un objeto vacío SÍ es válido aquí (un modelo
+    // recién publicado puede no tener fotos todavía, y eso no debe tirar la caché
+    // entera a "fallo de red" — sería servir fotos de ayer para TODOS los modelos
+    // solo porque uno nuevo está vacío).
+    return is_array($d) ? $d : null;
+}
+
+function lw_fotos_catalogo() {
+    static $memo = null;
+    if ($memo !== null) return $memo;
+
+    $cache  = lw_fotos_cache_path();
+    $fresca = is_file($cache) && (time() - filemtime($cache) < LW_CAT_TTL);
+
+    if ($fresca) {
+        $d = json_decode((string) @file_get_contents($cache), true);
+        if (is_array($d)) return $memo = $d;
+    }
+
+    $d = lw_fotos_fetch();
+    if ($d !== null) {
+        $tmp = $cache . '.' . getmypid() . '.tmp';
+        if (@file_put_contents($tmp, json_encode($d, JSON_UNESCAPED_UNICODE)) !== false) {
+            @rename($tmp, $cache);
+        }
+        return $memo = $d;
+    }
+
+    if (is_file($cache)) {
+        $d = json_decode((string) @file_get_contents($cache), true);
+        if (is_array($d)) return $memo = $d;
+    }
+
+    $resp = __DIR__ . '/catalogo_fotos_respaldo.json';
+    if (is_file($resp)) {
+        $d = json_decode((string) @file_get_contents($resp), true);
+        if (is_array($d)) { unset($d['_aviso']); return $memo = $d; }
+    }
+
+    return $memo = [];
+}
+
+/** URLs públicas ya resueltas de un modelo, en el orden que fijó quien las subió desde
+ *  la intranet (`orden` de deck_fotos) — nunca alfabético ni por fecha de subida.
+ *  `$cat` es inyectable (fixture de test_modelo.php); por defecto, la caché/red real. */
+function lw_fotos_urls($id, $cat = null) {
+    $cat = $cat ?? lw_fotos_catalogo();
+    if (empty($cat[$id]) || !is_array($cat[$id])) return [];
+    $out = [];
+    foreach ($cat[$id] as $f) {
+        if (!empty($f['path'])) $out[] = LW_SB_URL . '/storage/v1/object/public/deck/' . $f['path'];
+    }
+    return $out;
+}
+
+/**
+ * URL pública de la primera foto de un modelo cuyo PIE (el `alt` real, subido desde la
+ * intranet) contenga alguno de los patrones dados, en orden de preferencia. Sin match,
+ * `null` — quien llama decide el respaldo posicional, esto no inventa una foto.
+ *
+ * Existe porque el pie ya no es un adorno: desde que las fotos vienen de `deck_fotos`
+ * (21-sep-2026) cada una trae una etiqueta real ("Dali Top View", "Bamboo Exterior") que
+ * dice QUÉ es, y adivinarlo por posición (antes "la 3ª foto es el techo bambú porque así
+ * las miré yo una vez") se desincroniza en cuanto alguien reordena o añade fotos desde
+ * /intranet/modelos/. Buscar por texto es la misma fuente que ya ve el visitante.
+ *
+ * `$cat` inyectable por el mismo motivo que `lw_fotos_urls()`: `test_modelo.php` prueba
+ * el orden de preferencia y el respaldo sin depender de qué haya subido nadie hoy a
+ * /intranet/modelos/ (ni de tener red desde donde se corra el test).
+ */
+function lw_foto_por_pie($id, array $patrones, $cat = null) {
+    $cat = $cat ?? lw_fotos_catalogo();
+    if (empty($cat[$id]) || !is_array($cat[$id])) return null;
+    foreach ($patrones as $patron) {
+        foreach ($cat[$id] as $f) {
+            if (empty($f['path']) || empty($f['pie'])) continue;
+            if (stripos($f['pie'], $patron) !== false) {
+                return LW_SB_URL . '/storage/v1/object/public/deck/' . $f['path'];
+            }
+        }
+    }
+    return null;
+}
+
+/* Regenerar los respaldos:  php modelo/catalogo.php --respaldo
    Solo CLI. Se corre cuando se cambia algo del catálogo que deba sobrevivir a un
-   arranque en frío sin red; no hace falta en cada edición de precio. */
+   arranque en frío sin red; no hace falta en cada edición de precio o cada foto nueva. */
 if (PHP_SAPI === 'cli' && isset($argv[1]) && $argv[1] === '--respaldo') {
     $d = lw_cat_fetch();
     if (!$d) { fwrite(STDERR, "No se ha podido leer el catálogo de Supabase.\n"); exit(1); }
@@ -201,4 +324,14 @@ if (PHP_SAPI === 'cli' && isset($argv[1]) && $argv[1] === '--respaldo') {
         json_encode($d, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n");
     unset($d['_aviso']);
     echo 'Respaldo regenerado: ' . count($d) . " modelos.\n";
+
+    $df = lw_fotos_fetch();
+    if ($df === null) { fwrite(STDERR, "No se ha podido leer las fotos de Supabase.\n"); exit(1); }
+    $df['_aviso'] = 'FOTO GENERADA — no editar a mano. La fuente es `deck_fotos`, que se '
+                  . 'edita en /intranet/modelos/ → "Fotos del deck...". Se regenera con '
+                  . '`php modelo/catalogo.php --respaldo`.';
+    file_put_contents(__DIR__ . '/catalogo_fotos_respaldo.json',
+        json_encode($df, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n");
+    unset($df['_aviso']);
+    echo 'Respaldo de fotos regenerado: ' . count($df) . " modelos.\n";
 }

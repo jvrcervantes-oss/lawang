@@ -4,6 +4,8 @@
  * Sin estado ni salida: todo lo que hay aquí se puede probar con `php modelo/test_modelo.php`.
  */
 
+require_once __DIR__ . '/catalogo.php';
+
 /** Huso de Bali (WITA). El corte de precio 2026→2027 se decide con ESTE reloj, nunca con
  * el del visitante ni con nada que llegue por request — cazado en revisión previa (Seguridad,
  * 2-sep): un `?preview2027=1` o una `Date` de JS reintroduce el mismo problema que se evita
@@ -13,36 +15,19 @@
 define('LW_TZ_BALI', 'Asia/Makassar');
 define('LW_CORTE_2027', '2027-01-01 00:00:00');
 
-/** Renders publicables de un modelo, en orden natural (dali.webp antes que dali2.webp). */
+/**
+ * Fotos publicables de un modelo, en el orden que fijó quien las subió desde la intranet.
+ *
+ * ⚠️ 21-sep-2026: hasta hoy escaneaba `assets/img/buildings/<id>/web/` EN DISCO — nadie
+ * podía subir una foto sin deploy, y Temple/Trinity mostraban "renders en camino" pese a
+ * tener 11 fotos reales cada uno ya subidas a la intranet (`deck_fotos`, sin usar). Ahora
+ * lee de ahí vía `lw_fotos_urls()` (modelo/catalogo.php), la MISMA tabla que ya alimenta
+ * el investor deck — "Fotos del deck..." en /intranet/modelos/. El parámetro `$root` se
+ * mantiene por compatibilidad de firma (lo usaban las pruebas de disco de antes) pero ya
+ * no hace nada: no hay más disco que leer aquí.
+ */
 function lw_modelo_imgs($id, $root = null) {
-    $root = $root !== null ? $root : dirname(__DIR__);
-    $dir  = $root . '/assets/img/buildings/' . $id . '/web';
-    $f = glob($dir . '/*.{jpg,jpeg,png,webp}', GLOB_BRACE);
-    if (!$f) return [];
-    // Original + .webp conviven en disco (conversion 24-ago sin borrar el original,
-    // cache CDN 7 dias) — sin esto cada render sale duplicado en la galeria.
-    $porStem = [];
-    foreach ($f as $p) {
-        $stem = pathinfo($p, PATHINFO_FILENAME);
-        $esWebp = strtolower(pathinfo($p, PATHINFO_EXTENSION)) === 'webp';
-        if (!isset($porStem[$stem]) || $esWebp) $porStem[$stem] = $p;
-    }
-    $f = array_values($porStem);
-    sort($f, SORT_NATURAL);
-    // ?v=<mtime>: el CDN de Hostinger cachea las imagenes 7 dias POR NOMBRE, asi que
-    // sobrescribir un render con el mismo fichero seguia sirviendo el viejo (paso el
-    // 11-sep-2026 al sustituir el juego de Dali por el del dossier: la portada seguia
-    // siendo la foto que el cliente decia que ya no existia). Se versiona por fecha de
-    // modificacion y no con una lista a mano de ficheros: el fallo de la lista es que
-    // siempre se cae justo en el que falta ([[reference_lista_a_mano_es_el_bug]]).
-    // pathinfo() sigue devolviendo el nombre limpio con el query detras, asi que las
-    // busquedas por nombre de fichero no se rompen.
-    $urls = [];
-    foreach ($f as $p) {
-        $v = @filemtime($p);
-        $urls[] = '/assets/img/buildings/' . $id . '/web/' . basename($p) . ($v ? '?v=' . $v : '');
-    }
-    return $urls;
+    return lw_fotos_urls($id);
 }
 
 /**

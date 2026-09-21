@@ -20,23 +20,51 @@ foreach (['dali', 'dune', 'dream', 'trinity', 'temple'] as $id) {
     ok(isset($M[$id]), "falta el modelo $id en el catálogo");
 }
 
-// Dali/Dune/Dream tienen renders reales en assets/img/buildings/<id>/web/.
-foreach (['dali' => 'dali', 'dune' => 'dune', 'dream' => 'dream'] as $id => $stem) {
+// Dali/Dune/Dream/Trinity/Temple: los 5 tienen fotos reales en `deck_fotos` (21-sep-2026 —
+// antes Trinity/Temple no tenían NINGUNA carpeta en disco y mostraban "renders en camino"
+// pese a tener 11 fotos reales cada uno ya subidas desde /intranet/modelos/, sin usar).
+foreach (['dali', 'dune', 'dream', 'trinity', 'temple'] as $id) {
     $mm = lw_modelo_get($id, $M);
-    ok($mm !== null && count($mm['imgs']) >= 5, "$id debe ser publicable con sus renders");
-    // El primer render es el del hero: orden natural, <id>.webp antes que <id>2.webp.
-    ok(substr($mm['imgs'][0], -(strlen($stem) + 5)) === $stem . '.webp',
-        "el hero de $id debe ser $stem.webp, no {$stem}2.webp");
+    ok($mm !== null && count($mm['imgs']) >= 5, "$id debe ser publicable con sus fotos reales de deck_fotos");
+    // La URL sale ya resuelta al bucket público, nunca una ruta de disco ni un nombre
+    // predecible (el path lo pone el uploader de la intranet, es un UUID).
+    ok(strpos($mm['imgs'][0], LW_SB_URL . '/storage/v1/object/public/deck/') === 0,
+        "la primera foto de $id debe venir del bucket público deck, no de disco");
 }
 
-// Trinity/Temple: publicados SIN render por decisión expresa del owner (2-sep), pero solo
-// porque marcan `renders_pendientes` a propósito — no porque la regla se haya apagado.
-foreach (['trinity', 'temple'] as $id) {
-    $mm = lw_modelo_get($id, $M);
-    ok($mm !== null, "$id debe publicarse igual (renders_pendientes)");
-    ok($mm['imgs'] === [], "$id no tiene renders todavía, la lista debe salir vacía");
-    ok(!empty($M[$id]['renders_pendientes']), "$id debe marcar renders_pendientes explícitamente");
-}
+// El mecanismo `renders_pendientes` sigue vivo para el modelo que de verdad no tenga
+// fotos todavía (ver el 'fantasma' más abajo) — Trinity/Temple ya no lo necesitan porque
+// SÍ tienen fotos reales, pero la excepción por modelo sigue siendo válida en general.
+
+// ── lw_foto_por_pie() / lw_fotos_urls() con catálogo inyectado: prueba la lógica de
+//    coincidencia y el orden de preferencia sin depender de qué haya subido nadie hoy a
+//    /intranet/modelos/ ni de tener red desde donde corra el test. ──────────────────────
+$catFake = [
+    'zeta' => [
+        ['path' => 'modelo/uno.webp', 'pie' => 'Zeta Bamboo Exterior', 'tipo' => 'render', 'orden' => 0],
+        ['path' => 'modelo/dos.webp', 'pie' => 'Zeta Ulin Exterior',   'tipo' => 'render', 'orden' => 1],
+        ['path' => 'modelo/tres.webp', 'pie' => 'Zeta Top View',       'tipo' => 'render', 'orden' => 2],
+    ],
+    'vacio' => [],
+];
+ok(lw_fotos_urls('zeta', $catFake) === [
+    LW_SB_URL . '/storage/v1/object/public/deck/modelo/uno.webp',
+    LW_SB_URL . '/storage/v1/object/public/deck/modelo/dos.webp',
+    LW_SB_URL . '/storage/v1/object/public/deck/modelo/tres.webp',
+], 'lw_fotos_urls debe resolver al bucket público en el orden del catálogo');
+ok(lw_fotos_urls('no-existe', $catFake) === [], 'un modelo sin filas en el catálogo de fotos da lista vacía');
+ok(lw_fotos_urls('vacio', $catFake) === [], 'un modelo con fila vacía en el catálogo de fotos da lista vacía');
+
+ok(lw_foto_por_pie('zeta', ['ulin exterior'], $catFake) === LW_SB_URL . '/storage/v1/object/public/deck/modelo/dos.webp',
+    'lw_foto_por_pie debe encontrar por el pie real, sin importar mayúsculas');
+ok(lw_foto_por_pie('zeta', ['top view'], $catFake) === LW_SB_URL . '/storage/v1/object/public/deck/modelo/tres.webp',
+    'lw_foto_por_pie debe encontrar la planta por su pie');
+ok(lw_foto_por_pie('zeta', ['no va a casar con nada', 'bamboo exterior'], $catFake) === LW_SB_URL . '/storage/v1/object/public/deck/modelo/uno.webp',
+    'lw_foto_por_pie prueba los patrones EN ORDEN: el primero que no casa no debe tapar al segundo que sí');
+ok(lw_foto_por_pie('zeta', ['no existe este pie'], $catFake) === null,
+    'sin ningún patrón que case, null — nunca una foto cualquiera de relleno');
+ok(lw_foto_por_pie('no-existe', ['top view'], $catFake) === null,
+    'un modelo sin fotos en el catálogo no debe casar con nada');
 
 // Un modelo NUEVO que no marque el flag sigue cayendo al catálogo si no tiene imágenes —
 // la excepción es por modelo, no un apagado general de la regla.
