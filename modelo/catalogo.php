@@ -93,6 +93,17 @@ function lw_cat_fetch() {
 function lw_cat_normaliza(array $d) {
     $out = [];
     foreach ($d as $slug => $m) {
+        // `_aviso` es un STRING hermano de los modelos que `--respaldo` (mas abajo)
+        // escribe en catalogo_respaldo.json para quien abra el JSON a mano — nunca un
+        // modelo. Sin este salto, el arranque en frio sin red (el UNICO camino que lee
+        // el respaldo) tiraba abajo /dali, /palmfield y /modelo/<id> con un fatal ("no se
+        // puede usar un string como array") justo el dia que la caché habia caducado Y
+        // Supabase no respondia — el caso exacto para el que existe el respaldo. El
+        // `unset($m['_aviso'])` de mas abajo NO arreglaba esto: `_aviso` nunca estuvo
+        // DENTRO de un `$m` de modelo, asi que ese unset no borraba nada (hallazgo de
+        // verificacion local, 21-sep-2026 — `php -S` + `php -l` disponibles por primera
+        // vez en el entorno).
+        if ($slug === '_aviso' || !is_array($m)) continue;
         // `sub_en` existe porque la plantilla lo lee. Desde el pivote australiano
         // (2-sep) el sitio es solo inglés y `lw_i18n` ya solo pinta la versión en
         // inglés, así que las dos claves llevan el mismo texto — pero quitar una
@@ -128,7 +139,6 @@ function lw_cat_normaliza(array $d) {
         if (!empty($m['extras'])) {
             foreach ($m['extras'] as $ek => $v) $m['extras'][$ek] = 0 + $v;
         }
-        unset($m['_aviso']);
         $out[$slug] = $m;
     }
     return $out;
