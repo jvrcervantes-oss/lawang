@@ -225,6 +225,35 @@ $deckEtiqueta = $deckEj['proyecto'] ?? '';
 html[data-lang="es"] .i-en{display:none !important}
 html:not([data-lang="es"]) .i-es{display:none !important}
 
+/* ── Selector de divisa: la misma regla que traía au-landing.css (`.lw-cur{position:
+   relative}`), que esta página ya NO carga (usa dali-tesla-tw.min.css en su lugar). Sin
+   esto el `.lw-lang__menu` (position:absolute, inyectado por idioma-web.js) calculaba su
+   ancla contra el <header> entero en vez de contra el botón — el desplegable se abría
+   fuera del viewport, a la derecha del todo. `.lw-lang` (idioma) no lo sufre porque
+   idioma-web.js SÍ se pone su propio position:relative; `.lw-cur` es un clon deliberado
+   que no usa esa clase (guarda de idempotencia de montaSelector), así que necesita la
+   regla aparte. */
+.lw-cur{position:relative;display:inline-flex;flex:none}
+
+/* ── Grupo "moneda + idioma": una mini-sección propia, separada del precio y del CTA de
+   WhatsApp (antes los 4 elementos iban sueltos en la misma fila, sin agrupar). `.lw-meta`
+   es también `.nav__cta` a propósito: es el selector que i18n-landing.js busca para
+   montar el idioma (`querySelector('.nav__cta')`, primer match del documento) — así el
+   idioma aterriza DENTRO de esta píldora, junto a la divisa, sin tocar el script. */
+.lw-meta{display:flex;align-items:center;gap:10px;padding:6px 12px;border-radius:999px;
+  background:rgba(239,238,232,.7);border:1px solid #e4e2dd}
+.lw-meta .lw-cur,.lw-meta .lw-lang{display:flex}
+
+/* ── Micro-animación al pasar por encima de los botones del menú: la píldora de fondo
+   entra con un scale+fade desde el centro (no un bounce, easing suave) y el texto sube
+   1px — legible como intención, no como decoración. ─────────────────────────────────── */
+.nav__pill{position:relative;isolation:isolate;transition:color .18s ease,transform .18s ease}
+.nav__pill::before{content:'';position:absolute;inset:0;border-radius:999px;
+  background:rgba(49,67,34,.08);transform:scale(.85);opacity:0;z-index:-1;
+  transition:transform .18s cubic-bezier(.16,1,.3,1),opacity .18s ease}
+.nav__pill:hover{transform:translateY(-1px)}
+.nav__pill:hover::before{transform:scale(1);opacity:1}
+
 /* ── Tarjetas de opción (pasos del configurador): valores EXACTOS del tailwind.config
    del mockup (primary #314322, on-surface #1b1c19, on-surface-variant #44483f,
    surface-container-low #f5f4ee, surface-container-highest #e4e2dd), no nombres de clase
@@ -280,7 +309,7 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 <div class="h-20 w-full px-4 md:px-margin-desktop flex items-center justify-between gap-4">
 <div class="flex items-center gap-5">
 <a class="flex items-center" href="/">
-<img class="h-8" src="/assets/img/lawang-logo-v3.webp" alt="Lawang Tropical Properties">
+<img class="h-8" src="/assets/img/lawang-logo-v3-dark.webp" alt="Lawang Tropical Properties">
 </a>
 <div class="h-8 w-px bg-surface-container-highest hidden md:block"></div>
 <div class="hidden md:flex items-center gap-2 bg-surface-container-low/90 border border-surface-container-highest px-3.5 py-1.5 rounded-full shadow-sm">
@@ -290,14 +319,14 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 </div>
 </div>
 <nav class="hidden xl:flex items-center gap-1 bg-surface-container-low/90 p-1.5 rounded-full border border-surface-container-highest">
-<a class="px-3.5 py-1.5 rounded-full text-on-surface-variant hover:text-primary transition-all font-label-md text-body-sm" href="#section-layout"><?= lw_i18n('Distribución', 'Layout') ?></a>
-<a class="px-3.5 py-1.5 rounded-full text-on-surface-variant hover:text-primary transition-all font-label-md text-body-sm" href="#section-cubiertas"><?= lw_i18n('Cubiertas', 'Roofs') ?></a>
-<a class="px-3.5 py-1.5 rounded-full text-on-surface-variant hover:text-primary transition-all font-label-md text-body-sm" href="#section-financial"><?= lw_i18n('Rentabilidad', 'Returns & FAQ') ?></a>
-<a class="px-3.5 py-1.5 rounded-full text-on-surface-variant hover:text-primary transition-all font-label-md text-body-sm" href="#section-collection"><?= lw_i18n('Colección', 'Collection') ?></a>
+<a class="nav__pill px-3.5 py-1.5 rounded-full text-on-surface-variant hover:text-primary font-label-md text-body-sm" href="#section-layout"><?= lw_i18n('Distribución', 'Layout') ?></a>
+<a class="nav__pill px-3.5 py-1.5 rounded-full text-on-surface-variant hover:text-primary font-label-md text-body-sm" href="#section-cubiertas"><?= lw_i18n('Cubiertas', 'Roofs') ?></a>
+<a class="nav__pill px-3.5 py-1.5 rounded-full text-on-surface-variant hover:text-primary font-label-md text-body-sm" href="#section-financial"><?= lw_i18n('Rentabilidad', 'Returns & FAQ') ?></a>
+<a class="nav__pill px-3.5 py-1.5 rounded-full text-on-surface-variant hover:text-primary font-label-md text-body-sm" href="#section-collection"><?= lw_i18n('Colección', 'Collection') ?></a>
 </nav>
-<!-- nav__cta: hook de i18n-landing.js (monta aquí el selector EN/ES/ID) + divisa + CTA -->
-<div class="nav__cta flex items-center gap-3 md:gap-element-gap">
-<div class="lw-cur" id="lw-div-sel" data-no-i18n></div>
+<!-- CTA: precio + WhatsApp, separados de la píldora de moneda/idioma (antes iban los 4
+     sueltos en la misma fila). El grupo moneda+idioma vive en `.lw-meta` más abajo. -->
+<div class="flex items-center gap-3 md:gap-element-gap">
 <div class="flex flex-col text-right pl-2 border-l border-surface-container-highest">
 <span class="font-body-sm text-[11px] text-on-surface-variant uppercase tracking-wider"><?= lw_i18n('Desde', 'From') ?></span>
 <span class="font-kpi-number text-lg md:text-headline-sm text-primary tracking-tight font-bold"<?= $precioValor !== null ? ' data-eur-fijo="' . (int) $precioValor . '"' : '' ?>><?= lw_e($precioTxt) ?></span>
@@ -306,6 +335,12 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 <span class="material-symbols-outlined text-[16px]">support_agent</span>
 <span><?= lw_i18n('Escríbenos', 'WhatsApp') ?></span>
 </a>
+<div class="h-8 w-px bg-surface-container-highest hidden md:block"></div>
+<!-- nav__cta: hook de i18n-landing.js (monta aquí el selector EN/ES/ID), junto a la
+     divisa, dentro de la misma píldora `.lw-meta`. -->
+<div class="lw-meta nav__cta">
+<div class="lw-cur" id="lw-div-sel" data-no-i18n></div>
+</div>
 </div>
 </div>
 </header>
@@ -755,7 +790,7 @@ foreach ($incluido as $it):
 <div class="max-w-7xl mx-auto space-y-16">
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
 <div class="lg:col-span-5 space-y-4">
-<img class="h-9" src="/assets/img/lawang-logo-v3.webp" alt="Lawang Tropical Properties">
+<img class="h-9" src="/assets/img/lawang-logo-v3-dark.webp" alt="Lawang Tropical Properties">
 <p class="font-body-md text-sm text-on-surface-variant leading-relaxed max-w-md">PT Tepi Sun Gai · Registered Developer &amp; Property Advisory. Developing turnkey architectural villas in Bali, with fixed-price EPC contracts and titles transferred in writing.</p>
 <div class="flex items-center gap-3 pt-2">
 <span class="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center gap-1">
