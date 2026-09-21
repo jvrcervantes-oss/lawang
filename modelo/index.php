@@ -324,7 +324,25 @@ $slugPath = lw_modelo_url_path($m['id']);
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--papel);color:var(--ink);font-family:var(--sans);
-  line-height:1.55;-webkit-font-smoothing:antialiased;text-wrap:pretty}
+  line-height:1.55;-webkit-font-smoothing:antialiased;text-wrap:pretty;overflow-x:hidden}
+/* overflow-x:hidden a proposito (restyle 21-sep-2026): el hero y las tarjetas de cubierta/
+   snapshot financiero rompen el ancho de .grid (830px) con la formula 100vw+margin-left:50%+
+   translateX(-50%) de abajo. En Chrome 100vw incluye el ancho de la scrollbar vertical, asi
+   que sin esto aparece un scroll horizontal fantasma de unos px — verificado con
+   document.documentElement.scrollWidth en el preview local antes de dar esto por bueno.
+   SOLO en `body`, nunca tambien en `html` — hallazgo de code-review (21-sep) mas
+   verificacion propia que le dio la vuelta al resultado: la sospecha era que dejarlo solo en
+   `body` podia desenganchar `position:sticky` de `.nav`/`.res` (assets/au-landing.css) en
+   algun motor. Probado en el preview local: con SOLO `body{overflow-x:hidden}`, `.nav` sigue
+   con top:0 tras 2895px de scroll y `document.scrollingElement` sigue siendo `html` (el
+   overflow de body se propaga al viewport porque `html` no fija el suyo — CSS Overflow L3).
+   Añadir ADEMAS `html{overflow-x:hidden}` (lo probé, no fue una suposicion) SI rompe de
+   verdad `.res` — el sticky del resumen en vivo del configurador (`#estimator`) deja de
+   pegarse (top pasa de ~96px a valores negativos, ya no se pega) porque entonces es `html`,
+   no la propagacion desde `body`, quien fija el overflow del scroller raiz, y eso cambia como
+   resuelve el motor la cadena de contenedores de scroll para un sticky anidado varios niveles
+   por debajo. Conclusion: `body` solo es lo correcto, no una version a medias de la "arreglada
+   del todo" — añadir mas overflow-x:hidden por si acaso habria sido peor, no mejor. */
 img{max-width:100%;display:block}
 a{color:inherit;text-decoration:none}
 ::selection{background:var(--verde);color:var(--papel)}
@@ -378,6 +396,42 @@ html:not([data-lang="es"]) .i-es{display:none !important}
    max-width propio se quedan pegados a la izquierda. */
 .grid{display:grid;grid-template-columns:minmax(0,1fr);gap:40px;align-items:start;
   max-width:830px;margin-inline:auto}
+
+/* ── Breakout de composicion (restyle 21-sep-2026, correccion) ────────────────────────
+   El encargo anterior solo cambio CONTENIDO dentro del mismo lenguaje visual de siempre
+   (chips pequeños, mosaico de 3 fotos, tablas de texto) — el owner lo vio en produccion y
+   tenia razon: seguia siendo el diseño antiguo. Esto amplia dos piezas mas alla de los
+   830px de `.grid` para que lean como el mockup (foto dominante, tarjetas con peso real):
+   `.lw-heroPh` (la foto del hero, full-bleed) y `.brk` (tarjetas de cubiertas/snapshot,
+   hasta 1100px). Formula estandar (Kevin Powell): width:100vw + margin-left:50% +
+   transform:translateX(-50%) — funciona aunque el padre real mida 830px porque `.grid` ya
+   esta centrado en el mismo eje que el viewport (margin-inline:auto encadenado con `.wrap`,
+   que tiene padding simetrico): verificado con la aritmetica antes de escribir esto, no
+   supuesto. `max-width` en `.brk` tras `width:100vw` sigue centrando bien porque
+   `margin-left:50%` usa el ancho del PADRE (830px) para el primer desplazamiento y
+   `translateX(-50%)` lo recentra con el ancho FINAL del propio elemento (el que gane el
+   min con max-width) — los dos terminos que dependen de 830px se cancelan entre si. */
+.lw-heroPh{width:100vw;margin-left:50%;transform:translateX(-50%);margin-top:26px;
+  position:relative;overflow:hidden;background:var(--verde-osc)}
+.lw-heroPh img{width:100%;height:clamp(360px,72vh,760px);object-fit:cover;display:block}
+.lw-heroPh__bar{position:absolute;left:0;right:0;bottom:0;
+  background:linear-gradient(180deg,transparent 0%,rgba(20,28,18,.16) 32%,
+    rgba(20,28,18,.86) 66%,rgba(20,28,18,.94) 100%);
+  padding:64px var(--gut) 22px;display:flex;gap:clamp(18px,4vw,52px);flex-wrap:wrap}
+.lw-heroPh__it{color:#fff}
+.lw-heroPh__lb{display:block;font-family:var(--sans);font-size:11px;text-transform:uppercase;
+  letter-spacing:.09em;color:rgba(255,255,255,.76);margin-bottom:4px}
+.lw-heroPh__vl{display:block;font-family:var(--head);font-size:17px;font-weight:600}
+@media(max-width:560px){
+  .lw-heroPh img{height:56vh}
+  .lw-heroPh__bar{padding:38px 18px 16px;gap:18px}
+}
+/* Solo ensancha desde 768px: por debajo `.grid2` ya cae a una columna (regla propia mas
+   abajo) y ensanchar solo añadiria sangrado sin beneficio, con el riesgo de tocar el borde
+   del viewport en una tarjeta con esquinas redondeadas. */
+@media(min-width:768px){
+  .brk{width:100vw;max-width:1100px;margin-left:50%;transform:translateX(-50%)}
+}
 
 /* Guardrail de especificidad (hallazgo Desarrollo, consulta de deploy 14-sep-2026):
    `.btn{display:inline-flex}` de au-landing.css es una regla de AUTOR y gana siempre
@@ -466,17 +520,41 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 @media(max-width:640px){.grid2{grid-template-columns:1fr}}
 
 /* ── Comparativa de cubiertas ─────────────────────────────────────────────────── */
-.tcomp{border:1px solid var(--linea);border-radius:8px;overflow:hidden;background:var(--papel)}
-.tcomp__fig{aspect-ratio:4/3;overflow:hidden}
+/* border-radius 10px (antes 8) y aspect-ratio mas alto (antes 4/3): con `.brk` la tarjeta
+   pasa de ~403px a ~538px de ancho, y una foto REAL en vez de hueco vacio (lw_techo_img()
+   sigue sin fichero — el fallback vive en el PHP de mas abajo) es el hallazgo central de
+   esta correccion: "tarjetas con peso visual real, no tabla de texto plano". */
+.tcomp{border:1px solid var(--linea);border-radius:10px;overflow:hidden;background:var(--papel)}
+.tcomp__fig{aspect-ratio:5/4;overflow:hidden}
 .tcomp__fig img{width:100%;height:100%;object-fit:cover}
-.tcomp__body{padding:24px}
-.tcomp__body h3{font-family:var(--head);font-size:18px;font-weight:600;color:var(--lagoon);margin:0 0 10px}
+.tcomp__body{padding:26px 28px}
+/* var(--display) en vez de var(--head): titulo de subseccion (escala 24px/600), no una
+   etiqueta pequeña — mismo criterio de escala que pide el mockup para este nivel. */
+.tcomp__body h3{font-family:var(--display);font-size:24px;font-weight:700;color:var(--lagoon);margin:0 0 10px}
 .tcomp__body p{font-size:14px;color:var(--ink2);margin:0 0 18px}
 
 /* ── Snapshot financiero ──────────────────────────────────────────────────────── */
 .fin h3{font-family:var(--head);font-size:15px;font-weight:600;color:var(--lagoon);
   text-transform:uppercase;letter-spacing:.03em;margin:0 0 14px}
 .fin__nota{font-size:12.5px;color:var(--ink2);margin-top:18px;max-width:64ch}
+
+/* ── Barras "average vs optimal" (restyle 21-sep-2026) ────────────────────────────────
+   Sustituye la insinuacion de "solo numeros en una tabla" por una lectura visual inmediata
+   ANTES del desglose detallado (que se mantiene tal cual, justo debajo): dos barras
+   horizontales cuyo ancho es proporcional al neto real de cada caso — dataviz: magnitud de
+   2 casos con nombre propio, marca fina, extremos redondeados, etiqueta directa (no hace
+   falta leyenda con solo 2 barras, cada una lleva su nombre encima). Un solo hue por barra
+   (verde/lagoon, los dos acentos ya usados en el resto de la pagina) porque son DOS casos
+   con nombre, no una serie categorica arbitraria — nunca un "%" de rentabilidad como
+   insignia (vetado por Legal en la revision previa): la etiqueta es siempre € + "/yr net". */
+.finbars{display:flex;flex-direction:column;gap:16px;margin-top:22px;max-width:620px}
+.finbar__top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:7px}
+.finbar__cat{font-family:var(--sans);font-size:12px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.05em;color:var(--ink2)}
+.finbar__val{font-family:var(--head);font-size:16px;font-weight:600;color:var(--lagoon)}
+.finbar__track{height:10px;border-radius:999px;background:var(--linea);overflow:hidden}
+.finbar__fill{height:100%;border-radius:999px;background:var(--verde)}
+.finbar--optimal .finbar__fill{background:var(--lagoon)}
 
 /* ── More from the collection (cross-sell) ────────────────────────────────────── */
 .cruzada{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:22px}
@@ -598,24 +676,6 @@ html:not([data-lang="es"]) .i-es{display:none !important}
       <h1 id="lw-hero-title"><?= lw_e($villa) ?></h1>
       <p class="hero__sub" id="lw-hero-sub"><?= lw_e($m['sub_en'] ?? '') ?></p>
 
-      <div class="chips">
-        <div class="chip">
-          <span class="chip__ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5L21 16z"/></svg></span>
-          <span><span class="chip__lb">Size</span>
-                <span class="chip__vl" id="lw-fact-size"><?= lw_e($sizeTxt) ?></span></span>
-        </div>
-        <div class="chip">
-          <span class="chip__ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h2v16H4V4zm7 0h2v16h-2V4zm7 0h2v16h-2V4z"/></svg></span>
-          <span><span class="chip__lb">Layout</span>
-                <span class="chip__vl" id="lw-fact-layout"><?= lw_e($dorm . ' bed · ' . $banos . ' bath') ?></span></span>
-        </div>
-        <div class="chip">
-          <span class="chip__ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg></span>
-          <span><span class="chip__lb">From</span>
-                <span class="chip__vl" id="lw-hero-price"<?= $precioValor !== null ? ' data-eur-fijo="' . (int) $precioValor . '"' : '' ?>><?= lw_e($precioTxt) ?></span></span>
-        </div>
-      </div>
-
       <div class="hero__cta">
         <a class="btn btn--terra" href="#estimator">See Your Figure</a>
         <a class="btn btn--lag" href="#galeria" id="lw-hero-gallery-link"<?= $sinRender ? ' hidden' : '' ?>>View gallery</a>
@@ -624,9 +684,11 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 
     <?php if ($sinRender): ?>
     <!-- Estado "renders en camino" (Diseño, revisión previa 2-sep): nunca un placeholder
-         gris ni un icono de imagen rota — el mismo peso visual que el mosaico con fotos,
-         honesto sobre lo que falta sin parecer un error. Clase compartida en
-         assets/au-landing.css (`.mosaico--pend`), nacida aquí el 14-sep-2026. -->
+         gris ni un icono de imagen rota — el mismo peso visual que la foto real, honesto
+         sobre lo que falta sin parecer un error. Clase compartida en assets/au-landing.css
+         (`.mosaico--pend`), nacida aquí el 14-sep-2026 — intacta en esta correccion, no era
+         el problema que senaló el owner (el problema era el mosaico de 3 fotos CUANDO SÍ
+         hay renders, rama de abajo). -->
     <div class="mosaico mosaico--pend" id="lw-hero-fig">
       <figure>
         <svg viewBox="0 0 120 90" aria-hidden="true"><path d="M10 48 L60 12 L110 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><rect x="24" y="48" width="72" height="34" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M48 82 V58 H72 V82" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>
@@ -635,20 +697,30 @@ html:not([data-lang="es"]) .i-es{display:none !important}
       </figure>
     </div>
     <?php else: ?>
-    <div class="mosaico" id="lw-hero-fig">
-      <figure>
-        <img src="<?= lw_e($portada) ?>" alt="<?= lw_e($villa) ?>, Lawang Tropical Properties: exterior with overflow pool" fetchpriority="high">
-        <figcaption>
-          <span class="mos__et">Render</span>
-          <span class="mos__tt"><?= lw_e($villa) ?></span>
-        </figcaption>
-      </figure>
-      <?php foreach (array_slice($resto, 0, 2) as $i => $extraImg): ?>
-      <figure>
-        <img src="<?= lw_e($extraImg) ?>" alt="Project render of the <?= lw_e($villa) ?> (<?= $i + 2 ?> of <?= count($g) ?>)" loading="lazy">
-      </figure>
-      <?php endforeach; ?>
-    </div>
+    <!-- Foto dominante, no mosaico de 3 pequeñas (correccion 21-sep-2026): el mismo primer
+         render real de siempre ($portada), a pantalla casi completa (full-bleed, ver
+         `.lw-heroPh` mas arriba) con las 3 cifras que antes eran `.chip` sueltas ahora como
+         una franja discreta SUPERPUESTA a la foto — nunca el elemento visual principal,
+         la foto lo es. Los otros renders (dali2 en adelante) siguen apareciendo mas abajo
+         (Sobre el modelo, cubiertas, galeria): no se pierde ningun dato, solo cambia el
+         peso que tenian aqui arriba. -->
+    <figure class="lw-heroPh" id="lw-hero-fig">
+      <img src="<?= lw_e($portada) ?>" alt="<?= lw_e($villa) ?>, Lawang Tropical Properties: exterior with overflow pool" fetchpriority="high">
+      <figcaption class="lw-heroPh__bar">
+        <span class="lw-heroPh__it">
+          <span class="lw-heroPh__lb">Size</span>
+          <span class="lw-heroPh__vl" id="lw-fact-size"><?= lw_e($sizeTxt) ?></span>
+        </span>
+        <span class="lw-heroPh__it">
+          <span class="lw-heroPh__lb">Layout</span>
+          <span class="lw-heroPh__vl" id="lw-fact-layout"><?= lw_e($dorm . ' bed · ' . $banos . ' bath') ?></span>
+        </span>
+        <span class="lw-heroPh__it">
+          <span class="lw-heroPh__lb">From</span>
+          <span class="lw-heroPh__vl" id="lw-hero-price"<?= $precioValor !== null ? ' data-eur-fijo="' . (int) $precioValor . '"' : '' ?>><?= lw_e($precioTxt) ?></span>
+        </span>
+      </figcaption>
+    </figure>
     <?php endif; ?>
   </section>
 
@@ -817,15 +889,22 @@ html:not([data-lang="es"]) .i-es{display:none !important}
     <h2>Two complete villa prices, not an add-on</h2>
     <p class="sec__desc">Same structure, architecture and installations either way — the roof
       you choose is the price of the villa, confirmed by the developer.</p>
-    <div class="grid2">
-      <?php foreach (['sirap', 'bambu'] as $tk):
+    <div class="grid2 brk">
+      <?php $tcIdx = 0; foreach (['sirap', 'bambu'] as $tk):
         $t   = $techosComp[$tk];
         $img = lw_techo_img($tk);
+        // No existe assets/img/roofs/ todavia (verificado, correccion 21-sep-2026): en vez
+        // de una tarjeta sin imagen se usa una foto REAL de este modelo — es la villa real
+        // con ese techo puesto, no un placeholder. lw_techo_img() sigue siendo la fuente el
+        // dia que exista una foto de cubierta de verdad. Se empieza en $resto[1] (no en
+        // $resto[0]) para no repetir la misma foto que ya usa "Sobre el modelo" arriba.
+        if (!$img) $img = $resto[$tcIdx + 1] ?? $portada;
+        $tcIdx++;
         $now = lw_techo_precio_activo($t);
       ?>
       <div class="tcomp">
         <?php if ($img): ?>
-        <div class="tcomp__fig"><img src="<?= lw_e($img) ?>" alt="<?= lw_e($t['nombre']) ?> roof finish" loading="lazy"></div>
+        <div class="tcomp__fig"><img src="<?= lw_e($img) ?>" alt="<?= lw_e($t['nombre']) ?> roof finish on <?= lw_e($villa) ?>" loading="lazy"></div>
         <?php endif; ?>
         <div class="tcomp__body">
           <h3><?= lw_e($t['nombre']) ?></h3>
@@ -968,7 +1047,31 @@ html:not([data-lang="es"]) .i-es{display:none !important}
     <h2>How the numbers add up</h2>
     <p class="sec__desc">Example economics on a <?= lw_e($deckEj['proyecto']) ?> plot — not a
       guaranteed range; figures vary by plot and are confirmed on the call.</p>
-    <div class="grid2 fin">
+
+    <?php
+      // Barras horizontales proporcionales al neto real (restyle 21-sep-2026): lectura
+      // visual inmediata antes del desglose detallado de abajo, que se mantiene intacto.
+      // $finMax con suelo 1 evita una division por 0 si algun dia los dos netos fueran 0
+      // (no pasaria hoy con estos datos, pero "nunca un 0 sin blindar" es la misma regla
+      // que ya aplica al resto de esta seccion). max(4, ...) evita una barra invisible.
+      $finMax = max((int) $finCalc['average']['neto'], (int) $finCalc['optimal']['neto'], 1);
+    ?>
+    <div class="finbars">
+      <?php foreach (['average' => 'Average case', 'optimal' => 'Optimal case'] as $caso => $etiqueta):
+        $f = $finCalc[$caso];
+        $w = max(4, (int) round($f['neto'] / $finMax * 100));
+      ?>
+      <div class="finbar<?= $caso === 'optimal' ? ' finbar--optimal' : '' ?>">
+        <div class="finbar__top">
+          <span class="finbar__cat"><?= lw_e($etiqueta) ?></span>
+          <span class="finbar__val"><?= lw_e(lw_precio_fmt($f['neto'])) ?>/yr net</span>
+        </div>
+        <div class="finbar__track"><div class="finbar__fill" style="width:<?= $w ?>%"></div></div>
+      </div>
+      <?php endforeach; ?>
+    </div>
+
+    <div class="grid2 fin brk">
       <?php foreach (['average' => 'Average case', 'optimal' => 'Optimal case'] as $caso => $etiqueta):
         $f = $finCalc[$caso];
       ?>
