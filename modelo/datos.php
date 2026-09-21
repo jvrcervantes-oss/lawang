@@ -13,6 +13,13 @@
  */
 
 require_once __DIR__ . '/lib.php';
+// `catalogo.php` trae LW_SB_URL/LW_SB_KEY/LW_CAT_TTL, que lw_deck_forecast_ejemplo() (mas
+// abajo) reutiliza para no inventar una segunda conexion a Supabase. `require_once` es
+// idempotente: modelos.php YA lo requiere, esto solo evita depender del ORDEN en que
+// index.php cargue los ficheros — sin esto, llamar a lw_deck_forecast_ejemplo() antes de
+// requerir modelos.php (un futuro caller que no sea esta landing) rompería con
+// "constante indefinida" en vez de fallar de forma obvia en el require.
+require_once __DIR__ . '/catalogo.php';
 
 /**
  * Tipo de cambio EUR→AUD.
@@ -107,6 +114,106 @@ function lw_extras_resueltos(array $m) {
         ];
     }
     return $out;
+}
+
+/**
+ * Snapshot financiero de ejemplo — sección "Snapshot financiero" de /modelo/<id>
+ * (21-sep-2026, restyle Modo calco). SIEMPRE la economía de Villa Dali en Palm Field W5:
+ * es un ejemplo fijo elegido por el owner en la revisión previa, no el proyecto de la
+ * página que se esté viendo — por eso el texto de la plantilla lo rotula explícitamente
+ * como "economics on a Palm Field W5 plot", nunca como una cifra universal del modelo.
+ *
+ * Lee la RPC pública `deck_forecast_ejemplo_publico()` (contracts/sql/, migración
+ * 20260921060245) — NUNCA las tablas `deck_forecast`/`deck_forecast_proyecto` a secas:
+ * están protegidas por RLS a es_agente()/es_admin() (son el investor deck privado) y la
+ * RPC es la única ventana de solo lectura que un visitante anónimo puede usar.
+ *
+ * Mismo patrón de caché en 3 niveles que lw_catalogo() (arriba en este mismo fichero):
+ * una landing pública no puede depender de que Supabase responda en cada visita, y sin
+ * NADA que servir (sin caché, sin red) la sección se OCULTA — nunca un cero ni un dato
+ * inventado. `static $memo` usa `false` como centinela de "aún no resuelto" porque `null`
+ * es una respuesta válida (recurso sin caché y sin red).
+ */
+function lw_deck_forecast_cache_path() {
+    $priv = __DIR__ . '/../private';
+    if (is_dir($priv) && is_writable($priv)) return $priv . '/deck_forecast_ejemplo.json';
+    return sys_get_temp_dir() . '/lw_deck_forecast_ejemplo.json';
+}
+
+/**
+ * Devuelve, sin ambigüedad, TRES cosas distintas (hallazgo de code-review, 21-sep-2026 —
+ * la primera versión las confundía):
+ *   - array  → la RPC respondió 200 con datos: la fila sigue publicada.
+ *   - null   → la RPC respondió 200 con el JSON `null`: es una respuesta VÁLIDA y
+ *     AUTORITATIVA — la fila dejó de estar publicada. No es un fallo de red.
+ *   - false  → no se pudo ni preguntar (sin curl, timeout, HTTP != 200, JSON inválido):
+ *     esto SÍ es un fallo de red, y es el único caso en el que vale la pena caer a la
+ *     caché vieja en vez de creer la respuesta.
+ * Antes ambos casos devolvían `null` y lw_deck_forecast_ejemplo() no podía distinguir
+ * "la fila se despublicó, hay que ocultar" de "Supabase no respondió, sirve lo de antes"
+ * — con eso, una vez que había CUALQUIER caché en disco, despublicar la fila en la
+ * intranet nunca llegaba a ocultar la sección en la web: cada 5 minutos volvía a fallar
+ * "network" y volvía a caer a la misma caché vieja, para siempre.
+ */
+function lw_deck_forecast_fetch() {
+    if (!function_exists('curl_init')) return false;
+    $ch = curl_init(LW_SB_URL . '/rest/v1/rpc/deck_forecast_ejemplo_publico');
+    curl_setopt_array($ch, [
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => '{}',
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 4,
+        CURLOPT_CONNECTTIMEOUT => 3,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_HTTPHEADER     => [
+            'apikey: ' . LW_SB_KEY,
+            'Content-Type: application/json',
+        ],
+    ]);
+    $body = curl_exec($ch);
+    $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    curl_close($ch);
+    if ($code !== 200 || !is_string($body) || $body === '') return false;
+    $d = json_decode($body, true);
+    if (json_last_error() !== JSON_ERROR_NONE) return false; // cuerpo no es JSON: no fiable
+    if ($d === null) return null;      // JSON `null` de verdad: autoritativo, fila despublicada
+    return is_array($d) ? $d : false;  // cualquier otra forma: no es lo que se esperaba
+}
+
+function lw_deck_forecast_ejemplo() {
+    static $memo = false; // false = "aún no resuelto"; distinto de null (resuelto y vacío)
+    if ($memo !== false) return $memo;
+
+    $cache  = lw_deck_forecast_cache_path();
+    $fresca = is_file($cache) && (time() - filemtime($cache) < LW_CAT_TTL);
+
+    if ($fresca) {
+        $d = json_decode((string) @file_get_contents($cache), true);
+        if (is_array($d)) return $memo = $d;
+    }
+
+    $d = lw_deck_forecast_fetch();
+    if ($d === null) {
+        // Autoritativo: la fila dejó de estar publicada. La caché vieja NO puede seguir
+        // sirviendo un dato que ya no es cierto — se borra, no se conserva "por si acaso".
+        @unlink($cache);
+        return $memo = null;
+    }
+    if (is_array($d)) {
+        $tmp = $cache . '.' . getmypid() . '.tmp';
+        if (@file_put_contents($tmp, json_encode($d, JSON_UNESCAPED_UNICODE)) !== false) {
+            @rename($tmp, $cache);
+        }
+        return $memo = $d;
+    }
+    // $d === false: fallo de red/HTTP, NO autoritativo — la caché vieja, si la hay, sigue
+    // siendo mejor que nada, y nunca se borra por un fallo de red.
+    if (is_file($cache)) {
+        $cached = json_decode((string) @file_get_contents($cache), true);
+        if (is_array($cached)) return $memo = $cached;
+    }
+    // Sin caché y sin red: null. La plantilla oculta la sección entera.
+    return $memo = null;
 }
 
 /**

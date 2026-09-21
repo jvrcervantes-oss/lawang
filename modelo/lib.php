@@ -55,6 +55,18 @@ function lw_modelo_imgs($id, $root = null) {
  * Es una excepción CONSCIENTE por modelo, no un apagado general de la regla: un modelo
  * nuevo que no marque el flag sigue cayendo al catálogo si le faltan imágenes.
  */
+/**
+ * Ruta pública (sin barra inicial) de la ficha de un modelo — "dali" es el único con
+ * alias en la raíz del sitio (histórico: fue la primera landing, antes de existir
+ * /modelo/<id>), el resto vive bajo "modelo/<id>". Hallazgo de code-review (21-sep-2026):
+ * esta regla ya vivía repetida a mano en tres sitios de index.php ($slugPath, el
+ * cross-sell y el urlBase que recibe el JS) — una sola fuente, para que un segundo modelo
+ * alias-en-raíz (si algún día lo hay) no obligue a perseguir cada copia.
+ */
+function lw_modelo_url_path($id) {
+    return $id === 'dali' ? 'dali' : 'modelo/' . $id;
+}
+
 function lw_modelo_get($id, array $modelos, $root = null) {
     $id = strtolower(preg_replace('/[^A-Za-z0-9-]/', '', (string) $id));
     if ($id === '' || !isset($modelos[$id])) return null;

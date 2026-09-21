@@ -1,0 +1,19 @@
+-- deck_forecast_ejemplo_publico() -- 21-sep-2026
+-- Aplicada y bajada con `npx supabase migration fetch`: el fichero que manda es
+-- supabase/migrations/20260921060245_deck_forecast_ejemplo_publico.sql. Este es el
+-- RELATO (el porque), no una segunda fuente -- no se edita a mano.
+--
+-- RPC publica de solo lectura para la seccion "Snapshot financiero" de /modelo/<id>.
+-- `deck_forecast` / `deck_forecast_proyecto` estan protegidas por RLS a
+-- es_agente()/es_admin() (son el investor deck privado); un visitante anonimo de la web
+-- publica no puede leerlas. En vez de abrir la tabla entera via `anon`, que expondria la
+-- economia de TODOS los proyectos/modelos, esta funcion SECURITY DEFINER fija los dos UUID
+-- (Villa Dali / Palm Field W5, decision del owner) en el propio SQL y no acepta parametros
+-- -- no hay forma de pedirle otro proyecto. Mismo patron que catalogo_publico().
+--
+-- El dato tiene un dueno: la tabla la edita el equipo desde el investor deck privado; esta
+-- funcion es una ventana de solo lectura, nunca una copia congelada -- un cambio de ADR o
+-- de porcentaje en la intranet se ve en la landing en el siguiente fetch (cache 5 min en
+-- modelo/datos.php), sin tocar codigo.
+--
+-- Ver la definicion completa en supabase/migrations/20260921060245_deck_forecast_ejemplo_publico.sql

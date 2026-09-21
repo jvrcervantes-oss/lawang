@@ -160,6 +160,69 @@ foreach ($CAT as $cmId => $v) {
     ];
 }
 
+// ── Comparativa de cubiertas (seccion nueva, restyle 21-sep-2026) ────────────────────
+// Solo se pinta si ESTE modelo tiene los dos techos resueltos: un modelo como Loftbung no
+// trae 'techos' en absoluto (catalogo_publico() lo omite si no hay filas en
+// modelo_techos), y el configurador ya tolera ese hueco en pintaTechos() (au-landing-cfg.
+// js) — esta seccion sigue el mismo criterio en vez de enseñar una tarjeta a medias.
+$techosComp = (!empty($m['techos']['sirap']) && !empty($m['techos']['bambu'])) ? $m['techos'] : null;
+
+// ── Snapshot financiero (seccion nueva, restyle 21-sep-2026) ─────────────────────────
+// SIEMPRE la economia de Villa Dali en Palm Field W5 (decision del owner en la revision
+// previa) — no varia con el modelo de ESTA pagina, por eso el texto de la seccion la
+// rotula explicitamente como el ejemplo de una parcela concreta y nunca como una cifra
+// del modelo que se este viendo. null si la RPC no tiene nada que servir (sin cache, sin
+// red, o la fila deja de estar publicada): la seccion entera se oculta, ver mas abajo.
+$deckEj = lw_deck_forecast_ejemplo();
+$finCalc = null;
+if ($deckEj) {
+    // Blindaje contra un payload a medias (hallazgo de code-review, 21-sep): sin esto, una
+    // clave que faltara se leia como 0 en la aritmetica de abajo y el panel enseñaba
+    // "€0 costs" en vez de ocultarse — justo lo que la regla de esta sección prohíbe.
+    // Tambien se exige EUR explicitamente: lw_precio_fmt() pone el símbolo € a pelo, y
+    // aunque esta RPC hoy solo sirve una fila fija en EUR, si algún día dejara de serlo es
+    // mejor ocultar la sección que enseñar euros que no son euros.
+    $clavesReq = ['proyecto', 'moneda', 'adr_medio', 'adr_optimo', 'ocupacion_media',
+                  'ocupacion_optima', 'inversion_base', 'pct_gestion', 'pct_mantenimiento', 'pct_impuesto'];
+    $completo = true;
+    foreach ($clavesReq as $k) {
+        if (!array_key_exists($k, $deckEj)) { $completo = false; break; }
+    }
+    if ($completo && $deckEj['moneda'] === 'EUR') {
+        // Un neto aproximado, con la resta explicita (gestion + mantenimiento + impuesto) —
+        // nunca una cifra de rentabilidad suelta tipo insignia: Legal vetó esa forma en la
+        // revisión previa.
+        $costesPct = (float) $deckEj['pct_gestion'] + (float) $deckEj['pct_mantenimiento'] + (float) $deckEj['pct_impuesto'];
+        $finCalc = [];
+        foreach (['average' => ['adr_medio', 'ocupacion_media'], 'optimal' => ['adr_optimo', 'ocupacion_optima']] as $caso => $claves) {
+            $adr  = (float) $deckEj[$claves[0]];
+            $ocup = (float) $deckEj[$claves[1]];
+            // Redondeado UNA sola vez, aquí: bruto y costes se guardan ya redondeados y el
+            // neto se calcula sobre esos mismos enteros — si no, "bruto − costes" en
+            // pantalla puede no coincidir con "neto" en pantalla por ±1 (hallazgo de
+            // code-review: redondear los tres por separado desde el valor sin redondear
+            // no es distributivo).
+            $bruto  = (int) round($adr * 365 * $ocup);
+            $costes = (int) round($bruto * $costesPct);
+            $finCalc[$caso] = [
+                'adr' => $adr, 'ocup' => $ocup, 'bruto' => $bruto,
+                'costes' => $costes, 'neto' => $bruto - $costes,
+            ];
+        }
+    }
+}
+if (!$finCalc) $deckEj = null; // payload a medias o moneda inesperada: oculta TODA la sección
+
+// ── "More from the collection" (cross-sell, seccion nueva, restyle 21-sep-2026) ──────
+// Cero dato nuevo: reutiliza $CAT tal cual lo resuelve lw_au_catalogo() mas arriba, con
+// el mismo criterio de "sin render no se enseña" que ya usa el resto de la pagina
+// ($sinRender / $v['thumb']) — nunca un placeholder de imagen.
+$otrosModelos = [];
+foreach ($CAT as $ocId => $ov) {
+    if ($ocId === $m['id'] || $ov['sinRender']) continue;
+    $otrosModelos[$ocId] = $ov;
+}
+
 $WA_NUM   = '6281138319862';
 $WA_LINK  = 'https://wa.me/' . $WA_NUM . '?text=' . rawurlencode("Hi, I'm interested in the " . $villa . ' from Lawang Tropical Properties.');
 $WA_SHOW  = '+62 811-3831-9862';
@@ -179,7 +242,7 @@ $ogImg = $portada ?? '/assets/img/lugar/costa.webp';
 // Mismo criterio que $configuradorModelos['path'] más abajo: Dali es el único modelo
 // con alias raíz (/dali). El canonical y el og:url tienen que decir la URL real, o el
 // primer pantallazo (antes de que corra el JS) ya contradice lo que el visitante ve.
-$slugPath = $m['id'] === 'dali' ? 'dali' : 'modelo/' . $m['id'];
+$slugPath = lw_modelo_url_path($m['id']);
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -395,7 +458,45 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 .pasos__it h3{font-size:17px;font-weight:600;margin:0 0 8px}
 .pasos__it p{font-size:14px;color:var(--ink2)}
 
-/* ── Precio ───────────────────────────────────────────────────────────────────── */
+/* ── Grid de 2 tarjetas (21-sep-2026, restyle) — comparativa de cubiertas y snapshot
+   financiero. Una sola clase genérica para las dos secciones nuevas: son el mismo layout
+   (dos tarjetas lado a lado, apiladas en móvil), y una segunda definición casi idéntica
+   es justo la duplicación que `tools/unificar.py` vigila dentro de un mismo proyecto. ── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:24px}
+@media(max-width:640px){.grid2{grid-template-columns:1fr}}
+
+/* ── Comparativa de cubiertas ─────────────────────────────────────────────────── */
+.tcomp{border:1px solid var(--linea);border-radius:8px;overflow:hidden;background:var(--papel)}
+.tcomp__fig{aspect-ratio:4/3;overflow:hidden}
+.tcomp__fig img{width:100%;height:100%;object-fit:cover}
+.tcomp__body{padding:24px}
+.tcomp__body h3{font-family:var(--head);font-size:18px;font-weight:600;color:var(--lagoon);margin:0 0 10px}
+.tcomp__body p{font-size:14px;color:var(--ink2);margin:0 0 18px}
+
+/* ── Snapshot financiero ──────────────────────────────────────────────────────── */
+.fin h3{font-family:var(--head);font-size:15px;font-weight:600;color:var(--lagoon);
+  text-transform:uppercase;letter-spacing:.03em;margin:0 0 14px}
+.fin__nota{font-size:12.5px;color:var(--ink2);margin-top:18px;max-width:64ch}
+
+/* ── More from the collection (cross-sell) ────────────────────────────────────── */
+.cruzada{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:22px}
+@media(max-width:900px){.cruzada{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.cruzada{grid-template-columns:1fr}}
+.cruzada__card{display:block;border:1px solid var(--linea);border-radius:8px;overflow:hidden;
+  background:var(--papel);transition:border-color .14s ease}
+.cruzada__card:hover,.cruzada__card:focus-visible{border-color:var(--verde)}
+.cruzada__card figure{margin:0;aspect-ratio:4/3;overflow:hidden}
+.cruzada__card img{width:100%;height:100%;object-fit:cover}
+.cruzada__body{padding:16px 18px}
+.cruzada__nb{display:block;font-family:var(--head);font-size:15px;font-weight:600;color:var(--lagoon)}
+.cruzada__sp{display:block;font-size:12.5px;color:var(--ink2);margin-top:4px}
+.cruzada__pr{display:block;font-family:var(--head);font-size:14px;font-weight:600;color:var(--verde);margin-top:10px}
+
+/* ── Precio: tabla de filas reutilizada por la comparativa de cubiertas y el snapshot
+   financiero de arriba (21-sep-2026) — antes vivía aquí sin ninguna sección que la usara
+   (la tabla de precio original la sustituyó el configurador el 14-sep, hallazgo de la
+   auditoría previa a este restyle), así que en vez de escribir un tercer juego de filas
+   con el mismo aspecto, estas dos secciones nuevas la reactivan. ─────────────────────── */
 .precio{display:flex;justify-content:center}
 .precio__box{max-width:540px;width:100%}
 .precio .et,.precio h2{text-align:center}
@@ -404,8 +505,12 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 .precio__fila{display:flex;justify-content:space-between;align-items:baseline;padding:18px 26px;
   border-bottom:1px solid var(--linea);background:var(--papel)}
 .precio__fila:last-child{border-bottom:0}
-.precio__fila span:first-child{font-size:13px;color:var(--ink2);text-transform:uppercase;letter-spacing:.03em}
-.precio__fila span:last-child{font-family:var(--head);font-size:18px;font-weight:600}
+/* `>` a proposito (21-sep-2026): el snapshot financiero anida un <span> de sub-etiqueta
+   DENTRO del primer span de cada fila (label + detalle en dos lineas) — con el selector
+   descendiente de antes, ese span anidado tambien casaba con ":last-child" y heredaba el
+   tipo de la CIFRA (Space Grotesk 18px) en vez del suyo propio. */
+.precio__fila > span:first-child{font-size:13px;color:var(--ink2);text-transform:uppercase;letter-spacing:.03em}
+.precio__fila > span:last-child{font-family:var(--head);font-size:18px;font-weight:600}
 .precio__nota{font-size:12.5px;color:var(--ink2);margin-top:16px;text-align:center}
 .precio__cta{text-align:center;margin-top:26px}
 
@@ -702,6 +807,50 @@ html:not([data-lang="es"]) .i-es{display:none !important}
     </div>
   </section>
 
+  <!-- ── Comparativa de cubiertas (seccion nueva, restyle 21-sep-2026) ────────────────
+       Fuente: $techosComp = $m['techos'] (ya resuelto por catalogo_publico(), ver
+       modelo/catalogo.php) — nunca specs inventadas: si el modelo no trae los dos techos
+       la seccion entera se omite ($techosComp queda null, calculado mas arriba). -->
+  <?php if ($techosComp): ?>
+  <section class="sec">
+    <p class="et">Roof options</p>
+    <h2>Two complete villa prices, not an add-on</h2>
+    <p class="sec__desc">Same structure, architecture and installations either way — the roof
+      you choose is the price of the villa, confirmed by the developer.</p>
+    <div class="grid2">
+      <?php foreach (['sirap', 'bambu'] as $tk):
+        $t   = $techosComp[$tk];
+        $img = lw_techo_img($tk);
+        $now = lw_techo_precio_activo($t);
+      ?>
+      <div class="tcomp">
+        <?php if ($img): ?>
+        <div class="tcomp__fig"><img src="<?= lw_e($img) ?>" alt="<?= lw_e($t['nombre']) ?> roof finish" loading="lazy"></div>
+        <?php endif; ?>
+        <div class="tcomp__body">
+          <h3><?= lw_e($t['nombre']) ?></h3>
+          <?php if (!empty($t['desc'])): ?>
+          <p><?= lw_e($t['desc']) ?></p>
+          <?php endif; ?>
+          <div class="precio__tabla">
+            <div class="precio__fila">
+              <span><?= $antes2027 ? '2026 price' : 'Price' ?></span>
+              <span><?= lw_e(lw_precio_fmt($now)) ?></span>
+            </div>
+            <?php if ($antes2027 && isset($t['y2027']) && $t['y2027'] != $now): ?>
+            <div class="precio__fila">
+              <span>From 2027</span>
+              <span><?= lw_e(lw_precio_fmt($t['y2027'])) ?></span>
+            </div>
+            <?php endif; ?>
+          </div>
+        </div>
+      </div>
+      <?php endforeach; ?>
+    </div>
+  </section>
+  <?php endif; ?>
+
   <!-- ── Galería ────────────────────────────────────────────────────────────── -->
   <?php if (!$sinRender): ?>
   <section class="sec" id="galeria">
@@ -799,6 +948,55 @@ html:not([data-lang="es"]) .i-es{display:none !important}
       </div>
     </details>
   </section>
+
+  <!-- ── Snapshot financiero (seccion nueva, restyle 21-sep-2026) ─────────────────────
+       SIEMPRE Villa Dali en Palm Field W5 (decision del owner) — nunca el modelo de esta
+       pagina. Por eso el rotulado dice "on a Palm Field W5 plot" en vez de nombrar el
+       modelo: es un ejemplo de como se hace la cuenta, no una cifra de ESTA villa.
+       $deckEj/$finCalc: null si la RPC no tiene nada (sin cache y sin red, o la fila deja
+       de estar publicada) — la seccion se oculta entera, nunca un cero ni una cifra de
+       rentabilidad suelta tipo insignia (vetado por Legal en la revision previa: aqui solo
+       hay euros y la resta explicita de gestion+mantenimiento+impuesto).
+       Texto revisado por Legal 21-sep-2026 (el de la revision previa solo cubria los
+       numeros): "Average/Optimal" sin un tercer polo se leia como rango garantizado, y la
+       nota al pie no repetia el disclaimer de asesoria financiera que ya lleva el worked
+       example de este mismo proyecto en el investor deck — de ahi el "not a guaranteed
+       range" de la descripcion y el "or financial advice" de la nota. -->
+  <?php if ($deckEj && $finCalc): ?>
+  <section class="sec sec--surface">
+    <p class="et">Worked example</p>
+    <h2>How the numbers add up</h2>
+    <p class="sec__desc">Example economics on a <?= lw_e($deckEj['proyecto']) ?> plot — not a
+      guaranteed range; figures vary by plot and are confirmed on the call.</p>
+    <div class="grid2 fin">
+      <?php foreach (['average' => 'Average case', 'optimal' => 'Optimal case'] as $caso => $etiqueta):
+        $f = $finCalc[$caso];
+      ?>
+      <div>
+        <h3><?= lw_e($etiqueta) ?></h3>
+        <div class="precio__tabla">
+          <div class="precio__fila">
+            <span>Gross rental revenue<br><span style="font-size:11.5px;text-transform:none;letter-spacing:0"><?= lw_e(lw_precio_fmt($f['adr'])) ?> ADR × <?= (int) round($f['ocup'] * 100) ?>% occupancy</span></span>
+            <span><?= lw_e(lw_precio_fmt($f['bruto'])) ?></span>
+          </div>
+          <div class="precio__fila">
+            <span>Costs<br><span style="font-size:11.5px;text-transform:none;letter-spacing:0">Management <?= (int) round((float) $deckEj['pct_gestion'] * 100) ?>% + maintenance <?= (int) round((float) $deckEj['pct_mantenimiento'] * 100) ?>% + tax <?= (int) round((float) $deckEj['pct_impuesto'] * 100) ?>%</span></span>
+            <span>&minus;<?= lw_e(lw_precio_fmt($f['costes'])) ?></span>
+          </div>
+          <div class="precio__fila">
+            <span>Net estimate, per year</span>
+            <span><?= lw_e(lw_precio_fmt($f['neto'])) ?></span>
+          </div>
+        </div>
+      </div>
+      <?php endforeach; ?>
+    </div>
+    <p class="fin__nota">Total investment used in this example, <?= lw_e($deckEj['proyecto']) ?>:
+      <?= lw_e(lw_precio_fmt($deckEj['inversion_base'])) ?>. Indicative only, not a quote or
+      financial advice — actual rental income depends on the plot, the season and how the villa
+      is managed.</p>
+  </section>
+  <?php endif; ?>
 
   <!-- ── FAQ ────────────────────────────────────────────────────────────────── -->
   <section class="sec faq" id="faq">
@@ -904,6 +1102,34 @@ html:not([data-lang="es"]) .i-es{display:none !important}
       <a href="<?= lw_e($WA_LINK) ?>" id="lw-wa-link" target="_blank" rel="noopener"><?= lw_e($WA_SHOW) ?></a>
     </div>
   </section>
+
+  <!-- ── More from the collection (cross-sell, seccion nueva, restyle 21-sep-2026) ────
+       Cero dato nuevo: $otrosModelos ya viene filtrado mas arriba a partir de $CAT
+       (lw_au_catalogo()) — mismos modelos, specs y precios que el paso 1 del
+       configurador. Solo se pinta si queda al menos un modelo con render. -->
+  <?php if ($otrosModelos): ?>
+  <section class="sec">
+    <div class="gal__head">
+      <h2>More from the collection</h2>
+      <p class="gal__note">Same construction system across the range — only the size and
+        layout change.</p>
+    </div>
+    <div class="cruzada">
+      <?php foreach ($otrosModelos as $ocId => $ov):
+        $ocPath = lw_modelo_url_path($ocId);
+      ?>
+      <a class="cruzada__card" href="/<?= lw_e($ocPath) ?>">
+        <figure><img src="<?= lw_e($ov['thumb']) ?>" alt="<?= lw_e($ov['villa']) ?>, Lawang Tropical Properties" loading="lazy"></figure>
+        <div class="cruzada__body">
+          <span class="cruzada__nb"><?= lw_e($ov['villa']) ?></span>
+          <span class="cruzada__sp"><?= lw_e($ov['specs']) ?></span>
+          <span class="cruzada__pr">From <?= lw_e(lw_precio_fmt($ov['desde_eur'])) ?></span>
+        </div>
+      </a>
+      <?php endforeach; ?>
+    </div>
+  </section>
+  <?php endif; ?>
 
 </div><!-- /col -->
 
