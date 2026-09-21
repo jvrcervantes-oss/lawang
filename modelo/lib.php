@@ -56,15 +56,24 @@ function lw_modelo_imgs($id, $root = null) {
  * nuevo que no marque el flag sigue cayendo al catálogo si le faltan imágenes.
  */
 /**
- * Ruta pública (sin barra inicial) de la ficha de un modelo — "dali" es el único con
- * alias en la raíz del sitio (histórico: fue la primera landing, antes de existir
- * /modelo/<id>), el resto vive bajo "modelo/<id>". Hallazgo de code-review (21-sep-2026):
- * esta regla ya vivía repetida a mano en tres sitios de index.php ($slugPath, el
- * cross-sell y el urlBase que recibe el JS) — una sola fuente, para que un segundo modelo
- * alias-en-raíz (si algún día lo hay) no obligue a perseguir cada copia.
+ * Ruta pública (sin barra inicial) de la ficha de un modelo — siempre "modelo/<id>".
+ *
+ * ⚠️ LAW-258 (21-sep-2026): hasta hoy "dali" tenía aquí un caso especial que devolvía
+ * "dali" a secas (histórico: fue la primera landing, antes de existir /modelo/<id>).
+ * Ese alias dejó de ser cierto el 4-sep-2026, cuando "/dali" pasó a ser una página DISTINTA
+ * (dali/index.php, la landing de campaña australiana — ver .htaccess regla 3c). Nadie
+ * actualizó esta función ese día: el resultado era que el canonical, el og:url y el
+ * `urlBase` que recibe el JS (assets/au-landing-cfg.js, `history.replaceState`) seguían
+ * apuntando "/modelo/dali" a "/dali" — así que abrir la ficha reescribía la barra de
+ * direcciones a la landing de campaña sin que nadie lo notara, y un refresco o un enlace
+ * compartido aterrizaba en la página equivocada. Comprobados los 4 usos de esta función
+ * (todos dentro de modelo/index.php: $slugPath, cross-sell, pie, urlBase) antes de quitar
+ * el caso especial — ninguna campaña ni /dali ni /palmfield dependen de él.
+ *
+ * Una sola fuente para esta regla: vivía repetida a mano en tres sitios de index.php.
  */
 function lw_modelo_url_path($id) {
-    return $id === 'dali' ? 'dali' : 'modelo/' . $id;
+    return 'modelo/' . $id;
 }
 
 function lw_modelo_get($id, array $modelos, $root = null) {
