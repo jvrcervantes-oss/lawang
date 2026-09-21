@@ -519,7 +519,13 @@
       { texto: 'Emitir recibí', onClick: function () {
         if (window.LW_V4 && window.LW_V4.abrirEditorRecibi) window.LW_V4.abrirEditorRecibi({ contrato_id: c0.id });
         else toastMal('El editor de recibís aún está cargando — prueba de nuevo en un segundo.');
-      } }
+      } },
+      // Proforma desde contrato (S14, 21-sep-2026): mismo enlace profundo que
+      // «Editar en el generador» — la pantalla de destino (facturas/index.html)
+      // lee ?contrato=&tipo=proforma al cargar y abre el editor nativo ella
+      // misma (editores.js). Sin gate de rol a propósito, igual que «Emitir
+      // recibí»: el editor ya exige la herramienta 'facturas' al abrirse.
+      { texto: 'Nueva proforma', href: '/intranet/v4/facturas/?contrato=' + encodeURIComponent(c0.id) + '&tipo=proforma' }
     ];
     if (!opts.sinExpediente) acciones.push({ texto: 'Expediente', href: '/intranet/v4/operaciones/?contrato=' + encodeURIComponent(num) });
     acciones.push({ texto: 'Cerrar', cerrar: true });
@@ -797,9 +803,60 @@
      que es la única que emite con numeración de la base. */
   var CAMPOS_FACTURA = 'id,numero,tipo,sociedad,cliente_nombre,proyecto_nombre,contrato_numero,contrato_id,total,moneda,fecha_emision,anulada,enviada,fecha_envio,creado_por,created_at,justificantes,justificante_path,client_id';
   function estadoDoc(f) { return f.anulada ? ['Anulada', 'mal'] : (f.enviada ? ['Enviada', 'ok'] : ['Emitida', 'espera']); }
+
+  /* ══ Anular / Borrar (S14, 21-sep-2026 — encargo 20260919, revisión previa
+     #34) ══ Calcado del comportamiento de /intranet/facturas/, con el mismo
+     texto y el mismo `unaFila` (exportado por editores.js: «0 filas» es la
+     RLS denegando en silencio, nunca un fallo aparte que se reescriba a mano
+     — reference_supabase_grant_manda_antes_que_la_policy). */
+  function periodoFiscalTranscurrido(fechaISO) {
+    if (!fechaISO) return false;
+    var d = new Date(fechaISO + 'T00:00:00');
+    if (isNaN(d)) return false;
+    var hoy = new Date();
+    return d.getFullYear() < hoy.getFullYear() || (d.getFullYear() === hoy.getFullYear() && d.getMonth() < hoy.getMonth());
+  }
+  function anularDocumento(sb, f0) {
+    // Recordatorio en pantalla, nunca automatizado (hard-stop de CLAUDE.md:
+    // mandar algo a un tercero real no se hace solo). Solo para factura/recibí
+    // ya enviados de verdad — una proforma nunca sale del sistema así.
+    var avisoEnviado = !!f0.enviada && (f0.tipo === 'factura' || f0.tipo === 'recibi');
+    var avisoPeriodo = periodoFiscalTranscurrido(f0.fecha_emision);
+    var cuerpo = '<p>El número no se reutiliza y ya no se podrá editar. La factura queda en el registro marcada como anulada.</p>';
+    if (avisoEnviado) cuerpo += '<p><b>Este documento ya se envió</b> — recuerda avisar al comprador de que queda anulado.</p>';
+    if (avisoPeriodo) cuerpo += '<p>La fecha de emisión cae en un periodo fiscal ya transcurrido (PPN mensual / LKPM trimestral puede estar ya declarado): conviene avisarlo a Administración.</p>';
+    lwConfirmar({ titulo: 'Anular ' + (f0.numero || 'el documento'), cuerpo: cuerpo, confirmar: 'Anular', tono: 'peligro' }).then(function (ok) {
+      if (!ok) return;
+      sb.from('facturas').update({ anulada: true }).eq('id', f0.id).select('id').then(function (r) {
+        var u = (window.LW_V4 && window.LW_V4.unaFila) ? window.LW_V4.unaFila(r) : r;
+        if (u.error) { toastMal('No se pudo anular: ' + (u.error.message || u.error)); return; }
+        toast('Documento anulado');
+        if (window.lwCierraCajon) window.lwCierraCajon();
+        location.reload();
+      });
+    });
+  }
+  function borrarDocumento(sb, f0) {
+    lwConfirmar({
+      titulo: 'Borrar ' + (f0.numero || 'el documento'),
+      cuerpo: '<p>Lo normal es <b>anularla</b>: así queda el rastro y la serie no pierde un número.</p>' +
+        '<p>Borrarla deja un <b>hueco en la numeración</b> que habrá que explicarle a un contable. No hay papelera.</p>',
+      confirmar: 'Borrar de todos modos', cancelar: 'Mejor anularla', tono: 'peligro'
+    }).then(function (ok) {
+      if (!ok) return;
+      sb.from('facturas').delete().eq('id', f0.id).select('id').then(function (r) {
+        var u = (window.LW_V4 && window.LW_V4.unaFila) ? window.LW_V4.unaFila(r) : r;
+        if (u.error) { toastMal('No se pudo borrar: ' + (u.error.message || u.error)); return; }
+        toast('Documento borrado');
+        if (window.lwCierraCajon) window.lwCierraCajon();
+        location.reload();
+      });
+    });
+  }
   function fichaFactura(sb, f0) {
     var H = window.lwCajonHtml;
     if (!(window.lwCajon && H)) { toast('La ficha aún no ha cargado — prueba de nuevo en un segundo.'); return; }
+    var V4 = window.LW_V4 || {};
     var acciones = [{ texto: 'Abrir el documento', href: '/intranet/facturas/?id=' + encodeURIComponent(f0.id), tono: 'primario' }];
     // Editar (21-sep-2026): solo mientras el documento sigue vivo — un
     // congelado (anulado o ya enviado) no se toca, se reemite. El candado de
@@ -819,6 +876,19 @@
       if (window.LW_V4 && window.LW_V4.abrirEditorRecibi) window.LW_V4.abrirEditorRecibi({ contrato_id: f0.contrato_id });
       else toastMal('El editor de recibís aún está cargando — prueba de nuevo en un segundo.');
     } });
+    // Anular (S14): se ofrece a cualquiera que vea el documento — la RLS es la
+    // que de verdad decide (autor o admin, con la herramienta 'facturas');
+    // esto solo evita ofrecerlo sobre algo que ya no se puede tocar.
+    if (!f0.anulada) acciones.push({ texto: 'Anular', tono: 'peligro', onClick: function () { anularDocumento(sb, f0); } });
+    // Borrar (S14): desde el 21-sep NI SIQUIERA super_admin borra un documento
+    // ya enviado — coincide con la policy que Datos aplica en paralelo
+    // (contracts/sql/facturas_enviada_no_se_borra.sql). super_admin lo ve
+    // directo (nace ya cumpliendo el resto de la policy); un admin normal
+    // necesita ADEMÁS que no esté anulado y que ningún recibí lo tenga
+    // aplicado — eso exige preguntar a la base, así que se resuelve aparte
+    // (más abajo) y se añade al pie SOLO si la respuesta lo permite. Nunca se
+    // pinta un botón que la RLS vaya a rechazar con un 42501 genérico.
+    if (!f0.enviada && V4.esSuperAdmin) acciones.push({ texto: 'Borrar', tono: 'peligro', onClick: function () { borrarDocumento(sb, f0); } });
     acciones.push({ texto: 'Cerrar', cerrar: true });
     var caj = window.lwCajon({
       sub: tipoDoc(f0.tipo) + (f0.anulada ? ' · anulada' : ''),
@@ -827,6 +897,20 @@
       cuerpo: '<p style="margin:0;font-size:13px;color:#8A8474">Trayendo la ficha…</p>',
       acciones: acciones
     });
+    // Borrar para un admin normal (no super_admin): solo si nada lo referencia
+    // desde `recibi_aplicaciones`, exactamente el resto de la policy. Un
+    // vistazo ligero (LIMIT 1, indexado) antes de ofrecer el botón — el que
+    // llega tarde no rompe nada porque el pie ya tiene «Cerrar».
+    if (!f0.anulada && !f0.enviada && V4.esAdmin && !V4.esSuperAdmin) {
+      sb.from('recibi_aplicaciones').select('id').or('factura_id.eq.' + f0.id + ',recibi_id.eq.' + f0.id).limit(1).then(function (r) {
+        if (!document.getElementById('lw-cajon')) return;             // la cerraron antes de que llegara
+        if (r.error || (r.data && r.data.length)) return;              // referenciado, o no se pudo comprobar: no se ofrece
+        var b = document.createElement('button'); b.type = 'button'; b.textContent = 'Borrar';
+        b.style.cssText = 'padding:11px 18px;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;border:1px solid #9E2F26;background:#ffffff;color:#9E2F26;margin-left:auto';
+        b.addEventListener('click', function () { borrarDocumento(sb, f0); });
+        caj.pie.appendChild(b);
+      });
+    }
     Promise.all([
       sb.rpc('facturas_equipo').select(CAMPOS_FACTURA).eq('id', f0.id).maybeSingle(),
       f0.contrato_id ? sb.rpc('contratos_equipo').select(CAMPOS_CONTRATO).eq('id', f0.contrato_id).maybeSingle() : Promise.resolve({ data: null })
@@ -844,6 +928,14 @@
         H.dato('Enviado al cliente', f.enviada ? (f.fecha_envio ? fFecha(f.fecha_envio) : 'Sí') : 'No') +
         H.dato('Sociedad emisora', f.sociedad ? String(f.sociedad).replace(/_/g, ' ') : null) +
         H.dato('Emitido por', f.creado_por));
+      // Reasignar autor (S14): el propio módulo se lo enseña solo al
+      // super_admin (window.LW_AUTORIA.puede) — aquí solo se reserva el hueco
+      // cuando el script está cargado, para no dejar un <div> vacío al resto.
+      // `editable:true` SIEMPRE (corrección de la revisión previa #34: LAW-71
+      // deja EXPRESAMENTE que un super_admin reasigne el autor de un
+      // documento anulado — es el único cambio que el trigger permite sobre
+      // una fila anulada — al revés de lo que decía el plan original).
+      if (window.LW_AUTORIA && window.LW_AUTORIA.puede(V4.ficha)) cuerpo += '<div data-lw-autoria-host style="justify-self:start"></div>';
       cuerpo += H.seccion('Cliente y contrato',
         H.dato('Cliente', f.client_id ? H.enlace('/intranet/v4/compradores/?id=' + encodeURIComponent(f.client_id), f.cliente_nombre || 'Ficha de comprador') : f.cliente_nombre, { html: !!f.client_id }) +
         H.dato('Proyecto', f.proyecto_nombre) +
@@ -858,6 +950,13 @@
           }).join('') : H.nota('Este recibí no tiene justificante adjunto. Se adjunta desde la herramienta viva.'));
       }
       caj.cuerpo.innerHTML = cuerpo;
+      var hostAutoria = caj.cuerpo.querySelector('[data-lw-autoria-host]');
+      if (hostAutoria && window.LW_AUTORIA) {
+        window.LW_AUTORIA.montar(hostAutoria, {
+          sb: sb, ficha: V4.ficha, tabla: 'facturas', filaId: f.id, actual: f.creado_por, editable: true,
+          onCambio: function (nuevo) { toast('Autor reasignado a ' + nuevo); f.creado_por = nuevo; }
+        });
+      }
       caj.cuerpo.addEventListener('click', function (ev) {
         var a = ev.target.closest && ev.target.closest('[data-lw-ficha-contrato]');
         if (a && c) { ev.preventDefault(); fichaContrato(sb, c); return; }
@@ -1185,7 +1284,14 @@
           if (t) {
             var pl = plantillaFilas(t);
             pon2('p-total', String(fs.length)); pon2('p-desde', String(fs.length));
-            fs.forEach(function (f) {
+
+            // Una fila de documento: la usan tanto el listado plano como la
+            // vista por contrato (S14) — el marcado y los atributos de filtro
+            // son IDÉNTICOS en las dos, solo cambia el orden en que se llaman.
+            // `grupo`, si se pasa, marca de qué cabecera de contrato cuelga —
+            // lo necesita `sincronizaCabecerasGrupo()` para saber si a esa
+            // cabecera le queda alguna fila visible tras filtrar/buscar.
+            function pintaFilaDoc(f, grupo) {
               var est = estadoDoc(f);
               fila(pl, [f.numero, tipoDoc(f.tipo), f.cliente_nombre || '—', f.contrato_numero || '—', f.proyecto_nombre || '—',
                 fmt(f.total, f.moneda), fFecha(f.fecha_emision || f.created_at), '', '']);
@@ -1194,17 +1300,74 @@
               tr.setAttribute('data-lw-tipo', f.tipo === 'proforma' ? 'proforma' : 'factura');
               tr.setAttribute('data-lw-estado', f.anulada ? 'anulada' : (f.enviada ? 'enviada' : 'emitida'));
               tr.setAttribute('data-lw-pajar', [f.numero, f.cliente_nombre, f.contrato_numero, f.proyecto_nombre].join(' ').toLowerCase());
+              if (grupo) tr.setAttribute('data-lw-grupo', grupo);
               var tds = tr.querySelectorAll('td');
               if (tds[7]) tds[7].innerHTML = pill(est[0], est[1]);
               if (tds[8]) tds[8].innerHTML = ABRIR;
               tr.style.cursor = 'pointer';
-            });
+            }
+            function pintaListado() { pl.tbody.innerHTML = ''; fs.forEach(function (f) { pintaFilaDoc(f); }); }
+            /* Vista por contrato (S14, 21-sep-2026): agrupa lo que este
+               listado YA tiene (facturas+proformas — los recibís viven en su
+               propia pantalla), solo lectura. Calco simplificado de
+               `pintarPorContrato()` de la clásica: aquí no se cruza con
+               recibís, así que no hay «cobrado»/«sin recibí» que calcular —
+               solo cuántos documentos y de quién, que es lo único que este
+               listado puede afirmar por sí solo. Un solo cajón «Sin
+               contrato», nunca uno por cliente: sumarlos daría un total de un
+               conjunto que no es un conjunto (mismo motivo que la clásica,
+               26-ago-2026). */
+            function pintaPorContrato() {
+              pl.tbody.innerHTML = '';
+              var grupos = {}, orden = [];
+              fs.forEach(function (f) {
+                var clave = f.contrato_id || '__sin_contrato__';
+                if (!grupos[clave]) {
+                  grupos[clave] = { sinContrato: !f.contrato_id, numero: f.contrato_numero, cliente: f.cliente_nombre, proyecto: f.proyecto_nombre, docs: [] };
+                  orden.push(clave);
+                }
+                grupos[clave].docs.push(f);
+              });
+              orden.forEach(function (k) {
+                var g = grupos[k];
+                var n = g.docs.length + (g.docs.length === 1 ? ' documento' : ' documentos');
+                var etiqueta = g.sinContrato ? 'Sin contrato' : (g.numero || '—');
+                var sub = g.sinContrato ? (n + ' · no son un contrato: no se suman entre sí')
+                  : ((g.cliente || 'sin cliente') + ' · ' + (g.proyecto || 'sin proyecto') + ' · ' + n);
+                pl.tbody.insertAdjacentHTML('beforeend',
+                  '<tr data-lw-grupo-cab="' + esc(k) + '" style="background:#F5F4EE"><td colspan="9" style="padding:9px 20px;font:700 12.5px \'Neue Kabel\',sans-serif;color:#104C4F">' +
+                  esc(etiqueta) + ' <span style="margin-left:8px;font-weight:500;font-size:11.5px;color:#8A8474">' + esc(sub) + '</span></td></tr>');
+                g.docs.forEach(function (f) { pintaFilaDoc(f, k); });
+              });
+            }
+            /* Hallazgo del code-review de esta misma subtarea (21-sep-2026):
+               `aplicaFiltros` solo esconde `tr[data-lw-fila]` — las cabeceras
+               de grupo se quedaban SIEMPRE visibles aunque el chip/buscador
+               dejara el grupo entero sin una sola fila debajo (cabecera
+               huérfana con un «3 documentos» que ya no hay). Se corrige aquí,
+               sin tocar `aplicaFiltros` (la usan otras 6 pantallas): tras cada
+               filtrado, una cabecera se esconde si NINGUNA de sus filas
+               (mismo `data-lw-grupo`) sigue visible. Solo aplica en la vista
+               agrupada — en «Listado» no hay cabeceras que sincronizar. */
+            function sincronizaCabecerasGrupo() {
+              var visibles = {};
+              Array.prototype.forEach.call(pl.tbody.querySelectorAll('tr[data-lw-grupo]'), function (tr) {
+                if (tr.style.display !== 'none') visibles[tr.getAttribute('data-lw-grupo')] = true;
+              });
+              Array.prototype.forEach.call(pl.tbody.querySelectorAll('tr[data-lw-grupo-cab]'), function (cab) {
+                cab.style.display = visibles[cab.getAttribute('data-lw-grupo-cab')] ? '' : 'none';
+              });
+            }
+            pintaListado();
             pl.tbody.addEventListener('click', function (ev) {
               var tr = ev.target.closest && ev.target.closest('tr[data-lw-id]'); if (!tr) return;
               ev.stopPropagation(); var f = porId[tr.getAttribute('data-lw-id')]; if (f) fichaFactura(sb, f);
             });
-            var estado = {}, texto = '';
-            var aplicar = function () { aplicaFiltros(pl.tbody, estado, ['tipo', 'estado'], texto, function (n) { pon2('p-desde', String(n)); }); };
+            var estado = {}, texto = '', vista = 'lista';
+            var aplicar = function () {
+              aplicaFiltros(pl.tbody, estado, ['tipo', 'estado'], texto, function (n) { pon2('p-desde', String(n)); });
+              sincronizaCabecerasGrupo();
+            };
             var cuenta = function (f) { return fs.filter(f).length; };
             chipsReales(document.querySelector('[data-lw-chips="tipo"]'), 'tipo', [
               { clave: '*', texto: 'Todos', n: fs.length },
@@ -1216,6 +1379,22 @@
               { clave: 'enviada', texto: 'Enviadas', n: cuenta(function (f) { return !f.anulada && f.enviada; }) },
               { clave: 'anulada', texto: 'Anuladas', n: nFacAnu + nProAnu }], estado, aplicar);
             buscadorDe(aplicar, function (v) { texto = v; });
+
+            var vistaBox = document.querySelector('[data-lw-vista]');
+            if (vistaBox) vistaBox.addEventListener('click', function (ev) {
+              var b = ev.target.closest && ev.target.closest('[data-lw-vista-btn]'); if (!b) return;
+              ev.stopPropagation();
+              var modo = b.getAttribute('data-lw-vista-btn');
+              if (modo === vista) return;
+              vista = modo;
+              Array.prototype.forEach.call(vistaBox.querySelectorAll('button'), function (x) {
+                var on = x === b;
+                x.classList.toggle('bg-deep-lagoon', on); x.classList.toggle('text-on-secondary', on); x.classList.toggle('shadow-sm', on);
+                x.classList.toggle('bg-surface-container', !on); x.classList.toggle('text-on-surface-variant', !on);
+              });
+              if (vista === 'contrato') pintaPorContrato(); else pintaListado();
+              aplicar();
+            });
           }
           /* ?id= abre la ficha. Si no está en este listado (un recibí, enlazado
              desde la ficha de un contrato) se pide ese documento solo. */

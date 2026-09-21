@@ -2171,6 +2171,11 @@
   window.LW_V4.abreVerDocumento = abreDocumentoViewerDoc;
   window.LW_V4.abrirEditorFactura = abrirEditorFacturaDoc;
   window.LW_V4.abrirEditorRecibi = abrirEditorRecibiDoc;
+  /* Exportado (S14, 21-sep-2026): datos.js -- otra IIFE, otro cierre -- necesita
+     el MISMO chequeo de «0 filas = la policy lo denegó» para anular/borrar desde
+     la ficha en cajón. Reescribirlo allí a mano es la reincidencia que esto
+     existe para evitar (reference_supabase_grant_manda_antes_que_la_policy). */
+  window.LW_V4.unaFila = unaFila;
 
   /* ---------- editores por pantalla ---------- */
   var ED = {
@@ -5004,6 +5009,16 @@
        navega a /intranet/facturas/. */
     facturas: function () {
       ata(/^\+? ?Nuevo documento$/i, function () { abrirEditorFacturaDoc({}); });
+      /* Proforma desde contrato (S14, 21-sep-2026, revisión previa #34): la
+         ficha de contrato v4 enlaza aquí con ?contrato=<uuid>&tipo=proforma en
+         vez de abrir el editor ella misma -- cargar editores.js en
+         contratos/index.html sería el acoplamiento cruzado que Seguridad pidió
+         evitar. Se dispara una vez, al cargar esta pantalla; el listado de
+         abajo (datos.js, REG.facturas) se pinta igual por debajo, sin saberlo. */
+      var qsProforma = new URLSearchParams(location.search);
+      if (qsProforma.get('contrato') && qsProforma.get('tipo') === 'proforma') {
+        abrirEditorFacturaDoc({ contrato_id: qsProforma.get('contrato'), tipo: 'proforma' });
+      }
     },
 
     /* "+ Emitir recibí de cobro" (21-sep-2026): mismo bloque, camino RPC. */
