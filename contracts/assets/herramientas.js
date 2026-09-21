@@ -350,6 +350,46 @@ const LW_PERMISOS = (function () {
   });
 })();
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPARTIDO CON LA v4 (paridad 21-sep-2026, alta nativa de /v4/usuarios/)
+   ═══════════════════════════════════════════════════════════════════════════
+   Estos tres catálogos vivían SOLO dentro del <script> de /intranet/usuarios/,
+   escritos a mano. La v4 necesita exactamente lo mismo para su propio
+   formulario de alta — con qué llave es CRM y con qué se preselecciona cada
+   rol — y una segunda copia de "qué toca a cada rol" es la clase de fallo que
+   ya le ha costado dinero al estudio: dos sitios deciden el permiso de
+   arranque de un agente nuevo, y el día que diverjan lo deciden distinto según
+   por dónde se dé de alta (ver contexto/patrones_tecnicos.md → «El dato tiene
+   un dueño»). Se sella aquí, la clásica y la v4 lo LEEN. */
+
+/* Las llaves del CRM van en su PROPIO grupo, no mezcladas con el resto
+   (encargo del owner, 11-sep-2026): reparten con un criterio distinto entre
+   sí y distinto del resto de la suite — Leads abre los datos de contacto de
+   un centenar de personas, Ranking las cifras de cada comercial, Reparto
+   quién atiende cada campaña, Agenda la agenda de llamadas de venta. */
+const LW_PERMISOS_CRM = ['leads', 'ranking', 'reparto', 'closers'];
+
+/* Con qué herramientas y qué tipos de contrato nace cada rol (11-sep-2026,
+   encargo del owner) — solo PRESELECCIÓN al crear: sigue siendo editable
+   después, ficha a ficha. `tipos_contrato` vacío en la tabla significa
+   "TODOS" (al revés que `proyectos`), así que sin esto un agente nuevo podía
+   emitir cualquier tipo de contrato desde el minuto uno — se rellena
+   explícito para que la restricción sea real desde el alta. */
+const LW_HERR_POR_ROL = {
+  agente:          ['contratos','compradores','documentacion','unidades','facturas','operaciones'],
+  project_manager: ['contratos','compradores','documentacion','unidades','facturas','obra','operaciones'],
+  sales_manager:   ['contratos','compradores','documentacion','unidades','facturas','operaciones'],
+  admin:           ['contratos','compradores','documentacion','unidades','facturas','operaciones'],
+  super_admin:     ['contratos','compradores','documentacion','unidades','facturas','obra','operaciones'],
+};
+const LW_TIPOS_POR_ROL = {
+  agente:          ['carta_reserva','reserva_parcela','construccion'],
+  project_manager: ['carta_reserva','reserva_parcela','construccion'],
+  sales_manager:   ['carta_reserva','reserva_parcela','construccion','hak_sewa_notario','poa'],
+  admin:           ['carta_reserva','reserva_parcela','construccion','hak_sewa_notario','poa'],
+  super_admin:     ['carta_reserva','reserva_parcela','construccion','hak_sewa_notario','poa'],
+};
+
 
 /* Orden de los grupos, para que el menú lateral no repita cabeceras si el
    catálogo trae entradas del mismo grupo separadas. El hub no lo necesita

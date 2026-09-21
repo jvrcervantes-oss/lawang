@@ -134,11 +134,12 @@
     [/registrar avance|firmar peritaje/i, '/intranet/obra/'],
     [/nuevo ticket/i, '/intranet/soporte/'],
     [/nueva solicitud/i, '/intranet/solicitudes/'],
-    /* 21-sep-2026: apuntaba a /intranet/usuarios/ a secas — la misma pantalla
-       en la que ya está el botón, así que "+ Invitar miembro" se redirigia a
-       sí misma y parecía no hacer nada. `?nuevo=1` la aterriza en el formulario
-       real (mismo patrón que facturas/compradores/proyectos, 19-sep). */
-    [/invitar miembro/i, '/intranet/usuarios/?nuevo=1'],
+    /* «+ Invitar miembro» YA NO redirige a /intranet/usuarios/ (21-sep-2026,
+       misma tarde): tuvo aquí un `?nuevo=1` provisional (023ec818) mientras
+       se construía el alta nativa; ahora editores.js la cablea con `ata()`
+       — se ata en directo al botón con `stopPropagation`, así que este array
+       ni se consulta para él. Se retira del todo, no se deja "por si acaso"
+       (mismo criterio que facturas/recibos, arriba). */
     [/editar permisos/i, '/intranet/usuarios/'],
     [/nueva creatividad|dossier$/i, '/intranet/creatividades/'],
     [/subir nuevo expediente/i, '/intranet/documentacion/'],

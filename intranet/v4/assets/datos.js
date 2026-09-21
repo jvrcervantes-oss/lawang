@@ -4069,6 +4069,72 @@
           tarjetaAudit.style.boxShadow = '0 0 0 3px rgba(16,76,79,.35)';
           setTimeout(function () { tarjetaAudit.style.boxShadow = ''; }, 1200);
         });
+
+        /* ---- Frenos saltados — LAW-71 (paridad 21-sep-2026 con /intranet/usuarios/) ----
+           Dos fuentes en una caja: `privilegios_ejercidos` (quién se saltó qué
+           freno y por qué) y cuántas filas guarda la caja negra `borrados`, lo
+           que queda de un contrato o una factura eliminados. Es una vista de
+           EQUIPO (no de una ficha), y solo la ve super_admin — un peldaño por
+           encima del esAdmin+puedeH que ya filtra el resto de lo sensible de
+           esta pantalla (Editar permisos, Herramientas), mismo criterio que
+           la clásica (YO.rol === 'super_admin').
+           El candado REAL de estas dos tablas lo cierra Datos en paralelo
+           (RLS de `contrato_eventos`/`privilegios_ejercidos`/`borrados`, hoy
+           legibles por SDK directo sin pasar por ninguna pantalla) — esto de
+           aquí es el gate de UI sobre el mismo criterio, no la seguridad. */
+        var cajaFrenos = document.getElementById('lwFrenos');
+        var cuerpoFrenos = document.getElementById('lwFrenosCuerpo');
+        if (cajaFrenos && cuerpoFrenos && window.LW_V4 && window.LW_V4.esSuperAdmin) {
+          cajaFrenos.hidden = false;
+          var diaHora = function (s) {
+            var d = new Date(s);
+            return isNaN(d) ? String(s) : d.toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+          };
+          Promise.all([
+            sb.from('privilegios_ejercidos').select('cuando,quien,evento,contrato,detalle')
+              .order('cuando', { ascending: false }).limit(50),
+            sb.from('borrados').select('id', { count: 'exact', head: true })
+          ]).then(function (r) {
+            var priv = r[0] || {}, borr = r[1] || {};
+            var fallo = priv.error ? (priv.error.message || 'no se ha podido leer') : null;
+            var filas = priv.data || [];
+            var NOMBRE = {
+              desbloqueado: 'desbloqueó un contrato firmado',
+              editado_estando_firmado: 'editó un contrato firmado',
+              facturado_sin_bloquear: 'facturó un contrato sin firmar',
+              cobro_a_otro_comprador: 'aplicó un cobro al comprador de otro contrato',
+              cobro_a_factura_huerfana: 'aplicó un cobro a una factura sin contrato',
+              guardado_sin_ficha: 'guardó un contrato sin ficha de comprador'
+            };
+            var cabecera = '<div class="flex items-center justify-between mb-2">' +
+              '<span class="text-[11px] tracking-[0.12em] uppercase text-on-surface-variant font-bold">Registro</span>' +
+              '<span class="text-[11.5px] text-on-surface-variant">' +
+              (borr.error ? 'caja negra: no se ha podido leer'
+                : esc(String(borr.count || 0)) + ((borr.count || 0) === 1
+                  ? ' documento borrado guardado en la caja negra' : ' documentos borrados guardados en la caja negra')) +
+              '</span></div>';
+            var cuerpo;
+            if (fallo) {
+              // «no se ha podido leer» y «nadie se ha saltado nada» SE PARECEN
+              // mucho en pantalla y son afirmaciones distintas — la lección del
+              // 21-ago-2026 en la clásica: la alarma rota no se pinta igual que
+              // la alarma tranquila.
+              cuerpo = '<p class="text-[12.5px] mt-1" style="color:#C8791F"><b>No se ha podido leer el registro de privilegios.</b> Esto NO quiere decir que nadie se haya saltado nada: quiere decir que no se ha mirado. Recarga la página.</p>';
+            } else if (!filas.length) {
+              cuerpo = '<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Mirado ahora mismo: <b>nadie se ha saltado ningún freno</b> todavía.</p>';
+            } else {
+              cuerpo = '<div class="overflow-x-auto mt-2"><table class="w-full text-left" style="font-size:12.5px;border-collapse:collapse">' +
+                '<tbody>' + filas.map(function (f) {
+                  return '<tr class="border-t border-outline-variant/30">' +
+                    '<td class="py-1.5 pr-3 whitespace-nowrap text-on-surface-variant">' + esc(diaHora(f.cuando)) + '</td>' +
+                    '<td class="py-1.5 pr-3">' + esc(f.quien || '—') + '</td>' +
+                    '<td class="py-1.5 pr-3"><b>' + esc(NOMBRE[f.evento] || f.evento) + '</b>' + (f.contrato ? ' · ' + esc(f.contrato) : '') + '</td>' +
+                    '<td class="py-1.5 text-on-surface-variant">' + esc((f.detalle && (f.detalle.motivo || f.detalle.razon)) || '') + '</td></tr>';
+                }).join('') + '</tbody></table></div>';
+            }
+            cuerpoFrenos.innerHTML = cabecera + cuerpo;
+          });
+        }
       });
     },
     soporte: function (sb) {

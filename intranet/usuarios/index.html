@@ -225,21 +225,10 @@ const ROLES_GESTOR = ['sales_manager','project_manager'];
    después, ficha a ficha. `tipos_contrato` vacío hoy significa "TODOS" (al
    revés que «Proyectos»: ver la nota grande de más abajo), así que sin esto
    un agente nuevo podía emitir cualquier tipo de contrato desde el minuto
-   uno — se rellena explícito para que la restricción sea real desde el alta. */
-const LW_HERR_POR_ROL = {
-  agente:          ['contratos','compradores','documentacion','unidades','facturas','operaciones'],
-  project_manager: ['contratos','compradores','documentacion','unidades','facturas','obra','operaciones'],
-  sales_manager:   ['contratos','compradores','documentacion','unidades','facturas','operaciones'],
-  admin:           ['contratos','compradores','documentacion','unidades','facturas','operaciones'],
-  super_admin:     ['contratos','compradores','documentacion','unidades','facturas','obra','operaciones'],
-};
-const LW_TIPOS_POR_ROL = {
-  agente:          ['carta_reserva','reserva_parcela','construccion'],
-  project_manager: ['carta_reserva','reserva_parcela','construccion'],
-  sales_manager:   ['carta_reserva','reserva_parcela','construccion','hak_sewa_notario','poa'],
-  admin:           ['carta_reserva','reserva_parcela','construccion','hak_sewa_notario','poa'],
-  super_admin:     ['carta_reserva','reserva_parcela','construccion','hak_sewa_notario','poa'],
-};
+   uno — se rellena explícito para que la restricción sea real desde el alta.
+   `LW_HERR_POR_ROL`/`LW_TIPOS_POR_ROL` salen de herramientas.js (paridad
+   21-sep-2026, misma razón que `LW_PERMISOS_CRM` de arriba): vivían solo
+   aquí y la v4 necesitaba la misma preselección para su propia alta. */
 
 let SB = null, YO = null, USUARIOS = [], SEL = null, PROYECTOS = [];
 

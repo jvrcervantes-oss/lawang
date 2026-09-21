@@ -252,7 +252,21 @@
             var vv = typeof o === 'string' ? [o, o] : o;
             return '<label style="display:flex;gap:7px;align-items:center"><input type="checkbox" value="' + esc(vv[0]) + '"' +
               ((c.valor || []).indexOf(vv[0]) !== -1 ? ' checked' : '') + '>' + esc(vv[1]) + '</label>';
-          }).join('') + '</div>';
+          }).join('') + '</div>' +
+          /* Atajos OPT-IN por campo (21-sep-2026, LAW-71/paridad de Usuarios):
+             solo se pintan si el campo trae `c.atajos` — no se enciende por
+             defecto en los demas multicheck de la suite (Equipos, el propio
+             «Herramientas» de este mismo formulario...) sin que lo pidan. Cada
+             entrada es {texto, valor}: `valor` es el estado (true/false) al
+             que deja TODAS las casillas del campo al pulsarlo. El TEXTO y si
+             "vaciar" tiene sentido lo decide quien define el campo, no esta
+             funcion generica — en Usuarios, `tipos_contrato` vacio significa
+             TODOS, así que ahí un botón "Ninguno" mentiría y no se ofrece. */
+          (Array.isArray(c.atajos) && c.atajos.length
+            ? '<div style="display:flex;gap:8px;margin-top:8px">' + c.atajos.map(function (a) {
+                return '<button type="button" data-atajo="1" style="padding:5px 12px;border-radius:8px;border:1px solid ' + CAJ.borde + ';background:' + CAJ.papel + ';color:' + CAJ.tinta + ';font-weight:600;font-size:12px;cursor:pointer">' + esc(a.texto) + '</button>';
+              }).join('') + '</div>'
+            : '');
       } else {
         d.innerHTML = inner + '<input data-k="' + esc(c.k) + '" type="' + (c.tipo || 'text') + '" value="' + esc(c.valor == null ? '' : c.valor) + '"' +
           (c.paso ? ' step="' + esc(c.paso) + '"' : '') + ' style="' + estilo + '">';
@@ -261,6 +275,20 @@
         d.innerHTML += '<small style="font-weight:400;font-size:12px;text-transform:none;letter-spacing:0;color:#8A8474">' + esc(c.ayuda) + '</small>';
       }
       cont.appendChild(d);
+      // Los botones de atajo se cablean DESPUES de appendChild: la linea de
+      // `c.ayuda` de arriba hace `d.innerHTML +=`, que reserializa y reparsea
+      // TODO el subarbol — cualquier listener puesto antes se perderia.
+      if (c.tipo === 'multicheck' && Array.isArray(c.atajos) && c.atajos.length) {
+        var cajaMC = d.querySelector('[data-k="' + c.k + '"]');
+        var botonesMC = d.querySelectorAll('[data-atajo]');
+        botonesMC.forEach(function (btn, ai) {
+          btn.addEventListener('click', function (ev) {
+            ev.preventDefault();
+            var on = !!c.atajos[ai].valor;
+            if (cajaMC) cajaMC.querySelectorAll('input').forEach(function (i) { i.checked = on; });
+          });
+        });
+      }
     });
     var muestraError = function (msg) {
       var e = w.querySelector('[data-e="error"]');
@@ -4008,6 +4036,115 @@
       // una sola lista de roles: datos.js la LEE de aqui para pintar la ficha
       window.LW_V4.ETIQ_ROL = ETIQ_ROL;
 
+      /* ---------- alta nativa (paridad 21-sep-2026) ----------
+         Hasta hoy «+ Invitar miembro» redirigía a /intranet/usuarios/?nuevo=1
+         (commit 023ec818, arreglo provisional del mismo día). Se sustituye por
+         el mismo patrón que ya usan Compradores/Facturas/Recibos: `ata()`
+         reclama el botón EN DIRECTO y su entrada en el FORM_REAL de
+         maqueta.js se retira del todo (no se deja "por si acaso" — una
+         redirección viva que sobreviviera a un fallo de `ata()` sería
+         exactamente el escape silencioso a la herramienta vieja que este
+         build vino a cerrar, mismo criterio que ya se aplicó ahí el 21-sep). */
+      var esCrmAlta = function (p) { return (typeof LW_PERMISOS_CRM !== 'undefined') && LW_PERMISOS_CRM.indexOf(p[0]) !== -1; };
+      var herrCrmAlta = (typeof LW_PERMISOS !== 'undefined') ? LW_PERMISOS.filter(esCrmAlta) : [];
+      var herrRestoAlta = (typeof LW_PERMISOS !== 'undefined') ? LW_PERMISOS.filter(function (p) { return !esCrmAlta(p); }) : [];
+      var tiposCatAlta = (typeof LW_TIPO_CONTRATO === 'object' && LW_TIPO_CONTRATO)
+        ? Object.keys(LW_TIPO_CONTRATO).map(function (k) { return [k, LW_TIPO_CONTRATO[k]]; }) : [];
+
+      var btnAlta = ata(/Invitar miembro/i, function () {
+        if (!(esAdmin(aut.ficha) && puedeH(aut.ficha, 'usuarios'))) {
+          return aviso('Dar de alta exige administración con la herramienta Usuarios.', '#8A6A34');
+        }
+        var rolInicial = 'agente';
+        modal('Nuevo usuario', [
+          { k: 'email', label: 'Email', tipo: 'email', req: 1, medio: 1 },
+          { k: 'nombre', label: 'Nombre', req: 1, medio: 1 },
+          { k: 'password', label: 'Contraseña provisional', req: 1, medio: 1,
+            ayuda: 'Mínimo 10 caracteres. La verá al entrar; que la cambie después. No se puede volver a consultar.' },
+          { k: 'rol', label: 'Rol', tipo: 'select', medio: 1, valor: rolInicial,
+            opciones: ROLES_ED.map(function (r) { return [r, ETIQ_ROL[r] || r]; }) },
+          { tipo: 'nota', label: 'Se crea la cuenta y se le da acceso de inmediato. Nace sin ningún proyecto asignado — se asigna después editando la ficha ya creada.' },
+          /* CRM de leads NUNCA preseleccionada, aunque el rol elegido la
+             traiga por defecto en «Herramientas que verá» de abajo — decisión
+             deliberada (igual que /intranet/usuarios/): Leads abre datos de
+             contacto de personas reales y eso se decide una a una. */
+          { k: 'herr_crm', label: 'CRM de leads', tipo: 'multicheck', opciones: herrCrmAlta, valor: [],
+            ayuda: 'Nunca preseleccionada: Leads abre datos de contacto de personas reales y se decide una a una, nunca de regalo con el rol.' },
+          { k: 'herr_resto', label: 'Herramientas que verá', tipo: 'multicheck', opciones: herrRestoAlta,
+            valor: (typeof LW_HERR_POR_ROL === 'object' && LW_HERR_POR_ROL[rolInicial]) || [], ayuda: 'Preselección según el rol elegido arriba — editable.' },
+          { k: 'tipos_contrato', label: 'Contratos que puede hacer', tipo: 'multicheck', opciones: tiposCatAlta,
+            valor: (typeof LW_TIPOS_POR_ROL === 'object' && LW_TIPOS_POR_ROL[rolInicial]) || [], ayuda: 'Preselección según el rol — vacío marcado del todo equivale a "todos".' }
+        ], 'Crear usuario', function (v) {
+          var email = (v.email || '').trim().toLowerCase();
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: { message: 'email no válido' } };
+          if ((v.password || '').length < 10) return { error: { message: 'la contraseña necesita 10 caracteres o más' } };
+          var herramientas = (v.herr_crm || []).concat(v.herr_resto || []);
+          // mismo endpoint que abreCambiaPassword: la Edge Function
+          // admin-usuarios, nunca auth.admin desde el navegador.
+          return sb.auth.getSession().then(function (r) {
+            var token = r && r.data && r.data.session && r.data.session.access_token;
+            if (!token) return { error: { message: 'sesión no encontrada' } };
+            return fetch('https://vtulllundrfennhjddhc.supabase.co/functions/v1/admin-usuarios', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token,
+                'apikey': 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg'
+              },
+              body: JSON.stringify({
+                accion: 'crear', email: email, password: v.password,
+                nombre: (v.nombre || '').trim(), rol: v.rol,
+                herramientas: herramientas, tipos_contrato: v.tipos_contrato || []
+              })
+            }).then(function (resp) {
+              return resp.json().catch(function () { return { error: 'respuesta ilegible del servidor' }; });
+            }).then(function (d) {
+              if (!d || !d.ok) return { error: { message: (d && d.error) || 'no se pudo crear' } };
+              // Confirmación en los DOS sentidos (17-sep-2026 en la clásica,
+              // misma regla aquí): el éxito también habla, no solo el fallo —
+              // sin esto quien da de alta no sabe si el correo salió o no.
+              if (d.email_enviado === false) {
+                aviso('Usuario creado: ' + email + '. Aviso: no se pudo enviar el correo de bienvenida — dale la contraseña a mano.', '#8A6A34');
+              } else {
+                aviso('Usuario creado: ' + email + ' — correo de bienvenida enviado.');
+              }
+              // ?u=<email> es lo que hace que la recarga de abajo reabra la
+              // ficha del recién creado — mismo mecanismo que ya usa abreFicha
+              // en datos.js para «Guardar permisos». Solo si vino el user_id:
+              // sin él no hay ficha que abrir y no se toca la URL.
+              var u2 = new URL(location.href);
+              u2.searchParams.delete('nuevo');
+              if (d.user_id) u2.searchParams.set('u', email); else u2.searchParams.delete('u');
+              history.replaceState(null, '', u2.href);
+              // Recarga DIFERIDA a propósito: con `sinRecarga` modal() no
+              // recarga sola, y este hueco es lo que deja tiempo a leer el
+              // aviso de arriba —sobre todo el de "no se pudo enviar el
+              // correo"— antes de que la página cambie debajo.
+              setTimeout(function () { location.reload(); }, 2500);
+              return {};
+            });
+          });
+        }, { sinRecarga: true });
+        // Preselección de Herramientas/Tipos según el rol elegido, recalculada
+        // al cambiar el select — mismo patrón que $('#nRol').on('change') en
+        // /intranet/usuarios/.
+        var selRol = document.querySelector('#lw-editor [data-k="rol"]');
+        if (selRol) selRol.addEventListener('change', function () {
+          var rol = selRol.value;
+          var herr = (typeof LW_HERR_POR_ROL === 'object' && LW_HERR_POR_ROL[rol]) || [];
+          var tipos = (typeof LW_TIPOS_POR_ROL === 'object' && LW_TIPOS_POR_ROL[rol]) || [];
+          var cajaResto = document.querySelector('#lw-editor [data-k="herr_resto"]');
+          if (cajaResto) cajaResto.querySelectorAll('input').forEach(function (i) { i.checked = herr.indexOf(i.value) !== -1; });
+          var cajaTipos = document.querySelector('#lw-editor [data-k="tipos_contrato"]');
+          if (cajaTipos) cajaTipos.querySelectorAll('input').forEach(function (i) { i.checked = tipos.indexOf(i.value) !== -1; });
+        });
+      });
+      /* `?nuevo=1` abre el alta sola (paridad 21-sep-2026, mismo patrón que
+         Compradores/Facturas/Proyectos): quien llega desde otro sitio de la
+         suite con la intención ya tomada no debería tener que encontrar el
+         botón. Una sola vez, al cargar — no en cada repintado. */
+      if (btnAlta && new URLSearchParams(location.search).get('nuevo') === '1') btnAlta.click();
+
       /* 18-sep-2026: ya no se atan por TEXTO a los botones del panel fijo de la
          derecha («Modificar rol» / «Cambiar contraseña»), que se retiro con el
          panel. Son funciones que abre el cajon de ficha de cada usuario
@@ -4069,6 +4206,9 @@
           if (proyectosOk) {
             campos.push({ k: 'proyectos', label: 'Proyectos en los que trabaja', tipo: 'multicheck',
               opciones: proyectos.map(function (p) { return [p.id, p.nombre]; }), valor: u.proyectos || [],
+              /* Vacio SI revoca aqui (correcto, como la clasica): "Proyectos"
+                 no tiene el sentido invertido de tipos_contrato de abajo. */
+              atajos: [{ texto: 'Marcar todos', valor: true }, { texto: 'Ninguno', valor: false }],
               ayuda: 'Limita en qué proyectos puede crear y editar contratos. Sin ninguno marcado, no puede crear en ninguno.' });
           } else {
             campos.push({ tipo: 'nota', label: 'No se pudo cargar el catálogo de proyectos: los suyos se conservan tal cual (no se tocan desde aquí hasta que cargue).' });
@@ -4076,6 +4216,14 @@
           campos.push(
             { k: 'tipos_contrato', label: 'Contratos que puede hacer', tipo: 'multicheck',
               opciones: tiposCat, valor: u.tipos_contrato || [],
+              /* SIN "Ninguno" aquí, a propósito (revisión previa Seguridad,
+                 #35, 21-sep-2026): en `tipos_contrato` el array vacío
+                 significa TODOS (ver `ayuda` de abajo), así que un atajo con
+                 esa etiqueta CONCEDERÍA acceso a todo — justo lo contrario de
+                 lo que promete. Se deja solo "Marcar todos", que sí es
+                 coherente con su etiqueta; vaciar el campo se sigue pudiendo
+                 hacer a mano, casilla a casilla, con el riesgo a la vista. */
+              atajos: [{ texto: 'Marcar todos', valor: true }],
               ayuda: 'Vacío = TODOS (al revés que Proyectos, arriba): no marcar nada aquí no bloquea, lo abre todo.' }
           );
           modal('Permisos de ' + (u.nombre || u.email), campos, 'Guardar permisos', function (v) {
