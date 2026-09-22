@@ -3075,7 +3075,7 @@
             { tipo: 'lectura', label: 'Precio de suelo', medio: 1, dataMostrar: 'precio-suelo-calc', valor: 'rellena la superficie primero' },
             { k: 'precio_construccion', label: 'Precio de construcción', tipo: 'number', medio: 1 },
             { tipo: 'nota', label: 'Precio de suelo = superficie × precio por m². Precio total = suelo + construcción. Ninguno de los dos se escribe a mano: los calcula siempre la base.' },
-            { k: 'moneda', label: 'Moneda', tipo: 'select', medio: 1, opciones: ['EUR', 'IDR'], valor: 'EUR' },
+            { k: 'moneda', label: 'Moneda', tipo: 'select', medio: 1, opciones: ['EUR', 'USD', 'AUD', 'IDR'], valor: 'EUR' },
             { k: 'notas', label: 'Notas', tipo: 'textarea' }
           );
           modal('Nueva unidad', camposU, 'Crear unidad', function (v) {
