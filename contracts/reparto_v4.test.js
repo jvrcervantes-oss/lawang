@@ -169,8 +169,14 @@ const resumen = l => l.map(x => x.op + ':' + (x.datos && x.datos.clave || x.filt
   assert.strictEqual(nota.aJson({ es: 'Pago en IDR', en: '', id: '' }), 'Pago en IDR',
     'con un solo idioma se guarda texto plano, como estaba');
   assert.deepStrictEqual(nota.aJson({ es: 'Pago en IDR', en: 'Payment in IDR', id: '' }),
-    { es: 'Pago en IDR', en: 'Payment in IDR', id: 'Pago en IDR' },
-    'el idioma que falta debe caer al español, no salir en blanco en un contrato firmado');
+    { es: 'Pago en IDR', en: 'Payment in IDR', id: '' },
+    'LAW-247: el bahasa que falta se queda vacío, nunca cae al español — el ' +
+    'bahasa prevalece legalmente y una copia disfrazada de traducción es peor ' +
+    'que un hueco visible');
+  assert.deepStrictEqual(nota.aJson({ es: 'Pago en IDR', en: '', id: 'Pembayaran dalam IDR' }),
+    { es: 'Pago en IDR', en: 'Pago en IDR', id: 'Pembayaran dalam IDR' },
+    'el inglés que falta SÍ sigue cayendo al español (fuera de alcance de LAW-247); ' +
+    'el bahasa que sí se escribió se conserva tal cual');
   assert.deepStrictEqual(nota.lee({ es: 'a', en: 'b' }), { es: 'a', en: 'b', id: '' });
   assert.deepStrictEqual(nota.lee('texto viejo'), { es: 'texto viejo', en: '', id: '' },
     'no sabe leer la nota de texto plano que ya está en la base');

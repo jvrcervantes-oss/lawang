@@ -534,7 +534,11 @@
 (function(){
   'use strict';
   var SB_URL = 'https://vtulllundrfennhjddhc.supabase.co';
-  var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0dWxsbHVuZHJmZW5uaGpkZGhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwMTgwNTcsImV4cCI6MjA5OTU5NDA1N30.K9nikTSO-7Z9civle2EzUhNp3kx8foljV06PRSWMZcs';
+  // LAW-264 (22-sep-2026): era la clave LEGACY anon (JWT), publicada tal cual en
+  // este HTML servido por CDN. Verificado por Datos: es la mitad anon/publicable
+  // (no service_role), pero se cambia por la clave `sb_publishable_...` moderna,
+  // rotable de forma independiente sin tocar el resto del proyecto Supabase.
+  var SB_KEY = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';
   var PROYECTO = 'Palm Field W5';
 
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }

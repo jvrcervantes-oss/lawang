@@ -36,15 +36,21 @@
     /* De los tres huecos a lo que se guarda. Las tres ramas importan:
        · nada escrito  → cadena vacía, y la fila «Nota» no se imprime;
        · solo ES       → texto plano, como estaba (no se inventa un objeto);
-       · ES + alguno   → objeto, y el idioma que falte cae al español en vez de
-                         salir en blanco dentro de un contrato firmado. */
+       · ES + alguno   → objeto, y el inglés que falte cae al español.
+       El bahasa (`id`) NUNCA cae al español (LAW-247, decisión del owner
+       22-sep-2026: opción b). El bahasa PREVALECE legalmente en estos
+       documentos (Ley nº 24/2009) — heredar el texto ES sin que se note es
+       imprimir una traducción falsa con apariencia de traducción real. Si
+       nadie escribió el bahasa, se queda vacío a propósito: en pantalla y en
+       el contrato se ve claramente vacío, nunca disfrazado de traducción. No
+       bloquea el guardado — solo dice la verdad sobre lo que hay. */
     aJson: function (n) {
       var es = (n && n.es ? String(n.es) : '').trim();
       var en = (n && n.en ? String(n.en) : '').trim();
       var id = (n && n.id ? String(n.id) : '').trim();
       if (!es && !en && !id) return '';
       if (!en && !id) return es;
-      return { es: es, en: en || es, id: id || es };
+      return { es: es, en: en || es, id: id };
     }
   };
 })();
