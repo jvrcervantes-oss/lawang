@@ -65,6 +65,8 @@
   function cierraModal() {
     var m = document.getElementById('lw-editor');
     if (!m) return;
+    var alCerrar = m._alCerrar; m._alCerrar = null;
+    if (typeof alCerrar === 'function') setTimeout(alCerrar, 0);
     var panel = m.querySelector('[data-e="form"]');
     // Si entro deslizando, sale deslizando; si no, se quita y ya.
     if (panel && panel.getAttribute('data-lateral')) {
@@ -119,6 +121,9 @@
     cierraModal();
     var w = document.createElement('div');
     w.id = 'lw-editor';
+    // `opts.alCerrar` (22-sep-2026): quien abre el editor en modo lectura tras
+    // emitir quiere recargar el listado al cerrarlo, igual que hacía el visor.
+    w._alCerrar = typeof opts.alCerrar === 'function' ? opts.alCerrar : null;
     var cajaForm = 'pointer-events:auto;position:fixed;top:0;right:0;height:100%;width:' + (opts.ancho || 'min(640px,96vw)') + ';' +
       'background:' + CAJ.papel + ';border-left:1px solid ' + CAJ.borde + ';' +
       'box-shadow:0 25px 50px -12px rgba(0,0,0,.25);display:flex;flex-direction:column;' +
@@ -2199,6 +2204,9 @@
       // El visor se cierra SIN su alCerrar (que recarga la página): el recibí
       // se abre encima y una recarga aquí lo mataría a medio rellenar.
       var cajonAbierto = document.getElementById('lw-cajon'); if (cajonAbierto) cajonAbierto._alCerrar = null;
+      // Y el editor en modo lectura tampoco dispara el suyo (recargaría la
+      // página encima del recibí recién abierto).
+      var editorAbierto = document.getElementById('lw-editor'); if (editorAbierto) editorAbierto._alCerrar = null;
       cierraModal(); cierraCajon();
       abrirEditorRecibiDoc({ contrato_id: saved.contrato_id, factura_id: saved.id });
     });
@@ -2301,37 +2309,35 @@
      (iframe ?vista=1, mismo origen) y, en el pie, las mismas acciones que la
      barra de la previa — es donde el usuario aterriza con el número recién
      asignado, así que es donde de verdad descarga y envía. */
+  /* «Abrir el documento» y el visor tras emitir (22-sep-2026, owner: «la
+     vista que usamos para Nuevo documento es la que debemos usar para Abrir
+     documento»): el MISMO editor a pantalla completa, en modo lectura —
+     formulario inerte con lo guardado, la hoja al lado y la barra con PDF,
+     email, recibí y registro. El iframe ?vista=1 de la herramienta clásica
+     se retira: era otra vista. `alCerrar` llega al modal (recarga el listado
+     tras emitir, o vuelve a la ficha). */
   function abreDocumentoViewerDoc(id, alCerrar) {
-    if (!id) return;
-    var frame = document.createElement('iframe');
-    frame.src = '/intranet/facturas/?id=' + encodeURIComponent(id) + '&vista=1';
-    frame.title = 'Documento';
-    frame.style.cssText = 'width:100%;height:calc(100vh - 140px);border:0;background:#fff;display:block';
-    var docP = null;
-    var con = function (cb) {
-      if (!docP) docP = new Promise(function (res) { conDocGuardado(id, function (aut, d) { res({ aut: aut, d: d }); }); });
-      docP.then(function (x) { cb(x.aut, x.d); });
-    };
-    var acciones = [
-      { texto: 'Descargar PDF', onClick: function () { con(function (aut, d) { imprimeDoc(d.vals, d.saved); }); } },
-      { texto: 'Enviar por email', onClick: function () { con(function (aut, d) {
-        if (!puedeH(aut.ficha, 'facturas')) return aviso('Enviar documentos exige la herramienta «Facturas» — pídesela a un administrador.', '#8A6A34');
-        // cierraCajon() ya dispara alCerrar (recarga): no se llama dos veces.
-        enviaDocMail(aut.sb, d.vals, d.saved, function () { cierraCajon(); });
-      }); } },
-      { texto: 'Crear recibí', onClick: function () { con(function (aut, d) {
-        if (d.saved.tipo !== 'factura') return aviso('Solo se crea un recibí a partir de una factura.', '#8A6A34');
-        creaRecibiDesdeDoc(d.saved);
-      }); } },
-      { texto: '📨 Registro', onClick: function () { con(function (aut, d) { registroEnviosDoc(aut.sb, d.saved); }); } },
-      { texto: 'Cerrar', cerrar: 1 }
-    ];
-    var caj = cajon({
-      sub: 'Documento', titulo: 'Vista del documento', ancho: 'min(880px,96vw)',
-      cuerpo: '', acciones: acciones, alCerrar: alCerrar
+    if (!id || !window.LW_AUTH) return;
+    window.LW_AUTH.then(function (aut) {
+      aut.sb.rpc('facturas_equipo').select('id,tipo').eq('id', id).maybeSingle().then(function (r) {
+        if (r.error || !r.data) return toastMal('No se encontró ese documento' + (r.error ? ': ' + r.error.message : '.'));
+        if (r.data.tipo === 'recibi') abrirEditorRecibiDoc({ id: id, soloLectura: true, alCerrar: alCerrar });
+        else abrirEditorFacturaDoc({ id: id, soloLectura: true, alCerrar: alCerrar });
+      });
     });
-    caj.cuerpo.style.padding = '0';
-    caj.cuerpo.appendChild(frame);
+  }
+  // Deja el editor recién abierto en modo lectura: clase para el CSS (botones
+  // fuera, campos inertes) + readOnly real (la clase quita el ratón, no el
+  // teclado) + fuera el submit y el pie. Idempotente: se repite tras cada
+  // repintado de líneas/aplicaciones, que crea campos nuevos.
+  function dejaSoloLecturaDoc() {
+    var ed = document.getElementById('lw-editor'); if (!ed) return;
+    ed.classList.add('lw-doc-lectura');
+    Array.prototype.forEach.call(ed.querySelectorAll('.lw-doc-split>div:first-child input,.lw-doc-split>div:first-child textarea,.lw-doc-split>div:first-child select'), function (el) {
+      if (el.tagName === 'SELECT') el.tabIndex = -1; else el.readOnly = true;
+    });
+    var g = ed.querySelector('[data-e="guardar"]');
+    if (g) { var pie = g.parentNode; g.remove(); if (pie) pie.classList.add('lw-doc-pie-oculto'); }
   }
 
   /* ---------- calco estructural del formulario clásico (21-sep-2026) ----------
@@ -2376,7 +2382,7 @@
     opts = opts || {};
     var card = document.createElement('div');
     card.style.cssText = 'background:' + CAJ.papel + ';border:1px solid ' + CAJ.borde + ';border-radius:12px;padding:14px 16px;margin-bottom:12px';
-    var btn = document.createElement('button'); btn.type = 'button';
+    var btn = document.createElement('button'); btn.type = 'button'; btn.setAttribute('data-lw-plegable', '1');
     btn.style.cssText = 'all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:8px;' +
       'font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:' + CAJ.tinta + ';width:100%';
     var marca = document.createElement('span'); marca.style.cssText = 'width:11px;color:' + CAJ.apagado + ';flex:0 0 auto';
@@ -2533,6 +2539,18 @@
       // recortaba 18px por la izquierda. La hoja no se encoge: es el calco.
       '@media screen and (max-width:1366px){.lw-doc-split{grid-template-columns:minmax(480px,560px) 1fr}}' +
       '.lw-doc-pie-movido{display:none !important}' +
+      /* MODO LECTURA (22-sep-2026, owner: «la vista que usamos para Nuevo
+         documento es la que debemos usar para Abrir documento»): la misma
+         pantalla, con el formulario inerte. Los botones del formulario se
+         esconden salvo los de plegar/desplegar, «Ver» justificante y el
+         del contrato/factura (inerte, enseña el elegido); los campos no
+         se tocan; sin Emitir ni pie. La barra de la previa (PDF, email,
+         recibí, registro) sigue viva: es para lo que se abre. */
+      '.lw-doc-pie-oculto{display:none !important}' +
+      '.lw-doc-lectura .lw-doc-split>div:first-child button:not([data-lw-plegable]):not([data-ver]):not([data-lw-lectura-inerte]){display:none !important}' +
+      '.lw-doc-lectura .lw-doc-split>div:first-child [data-lw-lectura-inerte]{pointer-events:none}' +
+      '.lw-doc-lectura .lw-doc-split>div:first-child input[type=file]{display:none !important}' +
+      '.lw-doc-lectura .lw-doc-split>div:first-child :is(input,select,textarea){pointer-events:none;background-color:#F1EBDD !important;color:#4A5052 !important}' +
       '@media screen and (max-width:860px){.lw-doc-split{grid-template-columns:1fr}.lw-doc-split>.lw-doc-prev{position:static;max-height:none}' +
         '.lw-doc-pie-movido{display:flex !important}.lw-doc-emitir-barra{display:none !important}}' +
       '@media screen and (max-width:560px){.lw-doc-pv .sheet{zoom:.58}.lw-doc-pv{overflow-x:auto;justify-content:flex-start;padding:16px 10px 60px}}';
@@ -2627,7 +2645,7 @@
         if (esEdicion && !existente) return aviso('No se encontró ese documento.', '#93000a');
         var copia = (!esEdicion && pre.copia_de) ? r[3].data : null;
         if (pre.copia_de && !copia) return aviso('No se encontró la factura que quieres copiar.', '#93000a');
-        if (esEdicion) {
+        if (esEdicion && !pre.soloLectura) {
           if (existente.tipo === 'proforma') return aviso('La proforma la genera el contrato al guardarse y la actualiza la firma: se consulta, no se edita.', '#8A6A34');
           if (existente.anulada) return aviso('Ese documento está anulado: no se edita — emite una copia desde su ficha.', '#8A6A34');
           if (existente.enviada) return aviso('Ya se envió al cliente: no se edita. Anúlalo y emite otro si hace falta corregirlo.', '#8A6A34');
@@ -2689,6 +2707,7 @@
             repintaSplitDoc(piezas, recogeVals(), existente ? (existente.numero || '') : '');
             if (repasaBarra) repasaBarra();
             if (delC) delC.marca();
+            if (pre.soloLectura) dejaSoloLecturaDoc();
           }
           piezas.wrap.addEventListener('input', repintaPreview);
           piezas.wrap.addEventListener('change', repintaPreview);
@@ -2697,7 +2716,7 @@
           // emitir: las acciones reales llegan en el visor que abre «Emitir».
           repasaBarra = montaBarraDoc(piezas, {
             sb: sb, getVals: recogeVals, esRecibi: false,
-            principal: document.querySelector('#lw-editor [data-e="guardar"]'),
+            principal: pre.soloLectura ? null : document.querySelector('#lw-editor [data-e="guardar"]'),
             saved: existente
               ? { id: existente.id, numero: existente.numero, tipo: existente.tipo, contrato_id: existente.contrato_id, emisor: existente.datos && existente.datos.emisor }
               : { tipo: 'factura' },
@@ -2717,7 +2736,7 @@
           var secDoc = seccionFijaDoc(host, 'Documento');
           var lblC = document.createElement('div'); lblC.textContent = 'Contrato';
           lblC.style.cssText = 'font-size:12px;color:' + CAJ.apagado;
-          var btnC = document.createElement('button'); btnC.type = 'button';
+          var btnC = document.createElement('button'); btnC.type = 'button'; btnC.setAttribute('data-lw-lectura-inerte', '1');
           btnC.style.cssText = 'width:100%;text-align:left;padding:9px 12px;border:1px solid ' + CAJ.borde +
             ';border-radius:8px;font-weight:500;font-size:14px;color:' + CAJ.tinta + ';background-color:' + CAJ.papel + ';cursor:pointer';
           btnC.textContent = estadoContrato.numero ? estadoContrato.numero : '— elige un contrato —';
@@ -2816,7 +2835,9 @@
           campoSimpleDoc(secNotas, { k: 'notas', label: 'Notas', tipo: 'textarea', valor: f0.notas || '' });
 
           repintaPreview();
-          if (contratoInicial) {
+          // En modo lectura NO se recarga el contrato: se enseña lo GUARDADO
+          // tal cual, no lo que el contrato diga hoy.
+          if (contratoInicial && !pre.soloLectura) {
             btnC.textContent = 'Cargando…';
             aplicaContratoDoc(sb, contratoInicial).then(function (res) {
               if (res.error) { btnC.textContent = estadoContrato.numero || '— elige un contrato —'; toastMal(lwErrorHumano(res.error, 'No se pudo cargar el contrato')); return; }
@@ -2825,8 +2846,9 @@
           }
         } });
 
-        modal(existente ? 'Editar ' + (existente.numero || 'documento') : (copia ? 'Nuevo documento — copia de ' + (copia.numero || '') : 'Nuevo documento'), campos,
+        modal(pre.soloLectura ? (existente.numero || 'Documento') : existente ? 'Editar ' + (existente.numero || 'documento') : (copia ? 'Nuevo documento — copia de ' + (copia.numero || '') : 'Nuevo documento'), campos,
           existente ? 'Guardar cambios' : 'Emitir', function (v) {
+            if (pre.soloLectura) return { error: { message: 'Este documento se abre solo para consultarlo.' } };
             if (!estadoContrato.id) return { error: { message: 'Elige el contrato al que corresponde este documento.' } };
             if (!v.sociedad) return { error: { message: 'Falta «Sociedad que factura».' } };
             if (!v.cliente_nombre) return { error: { message: 'Falta «Nombre o razón social».' } };
@@ -2855,7 +2877,8 @@
              pantalla entera, como `pantalla('documento')` del clásico — un
              A4 al 78% más un formulario de 400-500px no caben en un cajón de
              1180 sin que la hoja se recorte. El recibí sigue en su cajón. */
-          }, { sinRecarga: true, sub: existente ? 'Editar documento' : 'Facturación', ancho: '100vw' });
+          }, { sinRecarga: true, sub: pre.soloLectura ? 'Documento' : (existente ? 'Editar documento' : 'Facturación'), ancho: '100vw', alCerrar: pre.alCerrar });
+        if (pre.soloLectura) dejaSoloLecturaDoc();
       }
     });
   }
@@ -2883,7 +2906,7 @@
         var sociedadesOk = r[0], cuentasOk = r[1], contratos = r[2].data || [];
         var existente = esEdicion ? r[3].data : null;
         if (esEdicion && !existente) return aviso('No se encontró ese recibí.', '#93000a');
-        if (esEdicion) {
+        if (esEdicion && !pre.soloLectura) {
           if (existente.anulada) return aviso('Ese recibí está anulado: no se edita — se emite uno nuevo.', '#8A6A34');
           if (existente.enviada) return aviso('Ya se envió al cliente: no se edita. Anúlalo y emite otro si hace falta corregirlo.', '#8A6A34');
           var miEmail = ((aut.session && aut.session.user && aut.session.user.email) || '').toLowerCase();
@@ -2993,6 +3016,7 @@
           function repintaPreview() {
             repintaSplitDoc(piezas, recogeVals(), existente ? (existente.numero || '') : '');
             if (repasaBarra) repasaBarra();
+            if (pre.soloLectura) dejaSoloLecturaDoc();
           }
           piezas.wrap.addEventListener('input', repintaPreview);
           piezas.wrap.addEventListener('change', repintaPreview);
@@ -3000,7 +3024,7 @@
           // registro; «Crear recibí» no, que de un recibí no sale otro.
           repasaBarra = montaBarraDoc(piezas, {
             sb: sb, getVals: recogeVals, esRecibi: true,
-            principal: document.querySelector('#lw-editor [data-e="guardar"]'),
+            principal: pre.soloLectura ? null : document.querySelector('#lw-editor [data-e="guardar"]'),
             saved: existente
               ? { id: existente.id, numero: existente.numero, tipo: 'recibi', contrato_id: existente.contrato_id, emisor: existente.datos && existente.datos.emisor }
               : { tipo: 'recibi' },
@@ -3010,7 +3034,7 @@
           var secDoc = seccionFijaDoc(host, 'Documento');
           var lblF = document.createElement('div'); lblF.textContent = 'Factura que se cobra';
           lblF.style.cssText = 'font-size:12px;color:' + CAJ.apagado;
-          var btnF = document.createElement('button'); btnF.type = 'button';
+          var btnF = document.createElement('button'); btnF.type = 'button'; btnF.setAttribute('data-lw-lectura-inerte', '1');
           btnF.style.cssText = 'width:100%;text-align:left;padding:9px 12px;border:1px solid ' + CAJ.borde +
             ';border-radius:8px;font-weight:500;font-size:14px;color:' + CAJ.tinta + ';background-color:' + CAJ.papel + ';cursor:pointer';
           btnF.textContent = '— elige la factura que cobras —';
@@ -3072,8 +3096,10 @@
             // EDITAR: no se pide elegir — se restaura de `recibi_aplicaciones`
             // (código de más abajo, code-review 21-sep) sin vaciar nada antes.
             btnF.textContent = 'Cargando…';
-            aplicaContratoDoc(sb, estadoContrato.id).then(function (res) {
-              if (!res.error) {
+            // En modo lectura se enseña lo GUARDADO: no se recarga el contrato,
+            // solo se restauran las facturas que este recibí saldó.
+            (pre.soloLectura ? Promise.resolve({ error: null, omitido: true }) : aplicaContratoDoc(sb, estadoContrato.id)).then(function (res) {
+              if (!res.error && !res.omitido) {
                 estadoContrato.numero = res.numero; estadoContrato.clienteId = res.clienteId;
                 estadoContrato.moneda = res.moneda || estadoContrato.moneda;
                 estadoContrato.clienteNombre = res.clienteNombre; estadoContrato.clienteDocumento = res.clienteDocumento;
@@ -3259,8 +3285,9 @@
           repintaPreview();
         } });
 
-        modal(existente ? 'Editar ' + (existente.numero || 'recibí') : 'Emitir recibí de cobro', campos,
+        modal(pre.soloLectura ? (existente.numero || 'Recibí') : existente ? 'Editar ' + (existente.numero || 'recibí') : 'Emitir recibí de cobro', campos,
           existente ? 'Guardar cambios' : 'Emitir recibí', function (v) {
+            if (pre.soloLectura) return { error: { message: 'Este recibí se abre solo para consultarlo.' } };
             if (!estadoContrato.id) return { error: { message: 'Elige la factura que se cobra.' } };
             if (!aplicaciones.length) return { error: { message: 'Elige al menos una factura que salde este recibí.' } };
             if (!v.sociedad) return { error: { message: 'Falta «Sociedad que cobra».' } };
@@ -3295,7 +3322,8 @@
               });
           // Pantalla entera, como el de factura (owner, 22-sep-2026: «haz lo
           // mismo con el panel de recibís»).
-          }, { sinRecarga: true, sub: existente ? 'Editar recibí' : 'Recibí de cobro', ancho: '100vw' });
+          }, { sinRecarga: true, sub: pre.soloLectura ? 'Recibí' : (existente ? 'Editar recibí' : 'Recibí de cobro'), ancho: '100vw', alCerrar: pre.alCerrar });
+        if (pre.soloLectura) dejaSoloLecturaDoc();
 
         // code-review 21-sep: la Moneda es libre (mismo comprador puede tener
         // contratos en monedas distintas) pero nada volvía a comprobar la
