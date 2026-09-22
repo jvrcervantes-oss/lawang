@@ -157,6 +157,33 @@ function etapa(o){
   return (c.pendiente != null && c.pendiente > 0) ? 'cobro_pend' : 'cobro_ok';
 }
 
+/* ---------- la OPERACIÓN entera (22-sep-2026, v4/operaciones) ----------
+   `etapa(o)` mira UNA pieza. Una operación es la cadena (Carta → Bloqueo →
+   Construcción), y su situación es la de la pieza donde está el trabajo hoy:
+   la última creada que no esté liberada. El dinero, en cambio, es de TODA la
+   cadena (`cuentaGrupo`): un Bloqueo recién firmado con la señal de la Carta
+   ya cobrada no «debe» el precio entero. Vive aquí, junto a `etapa()`, para
+   que la clásica pueda usarla el día que enseñe la cadena en su tablero — no
+   como una segunda copia en datos.js. */
+function cadenaOperacion(o){
+  const raiz = o.padre || o;
+  return [raiz, ...(raiz.hijos || [])].slice().sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')));
+}
+function piezaActiva(o){
+  const cad = cadenaOperacion(o);
+  const vivas = cad.filter(c => !c.liberado_en);
+  return (vivas.length ? vivas : cad)[(vivas.length ? vivas : cad).length - 1];
+}
+function etapaOperacion(o){
+  const p = piezaActiva(o);
+  const caducada = f => f.expira_en && new Date(f.expira_en).getTime() < Date.now();
+  if(!p.bloqueado) return (p.firmas || []).some(f => f.estado === 'pendiente' && !caducada(f)) ? 'firma_viva' : 'sin_firmar';
+  const c = cuentaGrupo(o.padre || o);
+  if(p.tipo === 'poa' && !c.precio) return 'cobro_ok';
+  if(!c.precio) return 'cobro_pend';
+  return (c.pendiente != null && c.pendiente > 0) ? 'cobro_pend' : 'cobro_ok';
+}
+
 
 /* ═══════════════════════════════════════════════════════════════════════════
    EL CARGADOR — 26-ago-2026
@@ -174,7 +201,12 @@ function etapa(o){
 /* Los topes viajan con las consultas que los aplican: un tope que se lee en un
    fichero y se usa en otro es un número que nadie recuerda que existe hasta que
    los totales salen cortos. */
-const TOPE_CONTRATOS = 300, TOPE_FACTURAS = 500, TOPE_FIRMAS = 300;
+/* TOPE_CONTRATOS 300 → 900 (22-sep-2026): producción iba por 261 contratos
+   con el alta de histórico en marcha; a 300 el recorte habría dejado los
+   totales parciales en semanas. Nunca ≥ 1000: el `+1` que detecta el
+   recorte muere en el tope de filas de PostgREST. Medido el 24-ago: la
+   consulta sin tocar `datos` cuesta 0,37 ms — el volumen no es el coste. */
+const TOPE_CONTRATOS = 900, TOPE_FACTURAS = 500, TOPE_FIRMAS = 300;
 
 async function lwOperacionesCargar(SB, avisar){
   /* `let` y no `const`: el cuerpo reasigna estas cuatro — venían de ser
@@ -208,7 +240,7 @@ async function lwOperacionesCargar(SB, avisar){
     // directo: desde que la RLS de SELECT filtra por autor, una lectura directa
     // dejaría a un agente normal viendo solo SUS contratos aquí — y Operaciones
     // existe justo para cruzar los de todo el equipo. Mismo dato, sin el filtro.
-    SB.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,contrato_padre_id,created_at,creado_por').order('created_at',{ascending:false}).limit(TOPE_CONTRATOS + 1),
+    SB.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,parcela_codigo,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,contrato_padre_id,created_at,creado_por,liberado_en').order('created_at',{ascending:false}).limit(TOPE_CONTRATOS + 1),
     // `created_at` va en el select aunque no se pinte: PostgREST exige que la
     // columna del `order` esté proyectada cuando el origen es una función (a
     // diferencia de una tabla/vista, donde ordenar por una columna no

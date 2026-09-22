@@ -1,276 +1,118 @@
 <!DOCTYPE html><html lang="es"><head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d6d6608e" data-herramienta="operaciones"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=a2c1a4c0" defer></script>
-<script src="/contracts/assets/dinero.js?v=aed0c9a9" defer></script><script src="/intranet/facturas/totales.js" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=395cfe0e" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="../assets/datos.js?v=a7f7ca4a" defer></script>
+<script src="/contracts/assets/i18n.js?v=5b01e731" defer></script>
+<script src="/contracts/assets/dinero.js?v=aed0c9a9" defer></script><script src="/intranet/facturas/totales.js" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=ff745c92" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="../assets/datos.js?v=a9225945" defer></script>
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=f8f8a146" defer></script>
 <link href="../assets/shell.css?v=bd0a56cb" rel="stylesheet">
-<script src="../assets/editores.js?v=752bd0e4" defer></script><script src="../assets/maqueta.js?v=00d3b3c0" defer></script><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><title>Lawang Properties &amp; Suite</title><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="../assets/fonts/fonts.css" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+<script src="../assets/editores.js?v=41e32a92" defer></script><script src="../assets/maqueta.js?v=00d3b3c0" defer></script><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><title>Lawang Properties &amp; Suite</title><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="../assets/fonts/fonts.css" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"tertiary":"#563349","on-error":"#ffffff","surface-tint":"#51643f","inverse-primary":"#b8cea1","on-secondary-container":"#356b6e","tertiary-fixed-dim":"#e9b9d4","on-tertiary-container":"#edbdd8","on-primary":"#ffffff","stone-sand":"#BEB3A5","on-tertiary-fixed":"#2e1125","primary-fixed":"#d3eabb","on-surface":"#1b1c19","primary":"#314322","burnt-earth":"#42210B","volcanic-ash":"#2E3437","surface-alt":"#F1EBDD","on-primary-fixed-variant":"#3a4c2a","surface-container-lowest":"#ffffff","background":"#fbf9f4","outline":"#75786e","error-container":"#ffdad6","on-surface-variant":"#44483f","deep-lagoon":"#104C4F","on-secondary-fixed-variant":"#144e51","surface-container-low":"#f5f4ee","on-secondary":"#ffffff","secondary-fixed":"#b6ecef","secondary":"#316669","on-primary-fixed":"#0f2003","surface":"#fbf9f4","raw-linen":"#F5F0E6","outline-variant":"#c5c8bc","tertiary-container":"#6f4a61","error":"#ba1a1a","primary-fixed-dim":"#b8cea1","on-tertiary-fixed-variant":"#5f3c52","on-error-container":"#93000a","secondary-container":"#b3e9ed","primary-container":"#485b37","surface-container-highest":"#e4e2dd","on-tertiary":"#ffffff","tertiary-fixed":"#ffd8ed","inverse-on-surface":"#f2f1eb","surface-container":"#efeee8","surface-container-high":"#e9e8e3","on-background":"#1b1c19","surface-variant":"#e4e2dd","surface-dim":"#dbdad5","secondary-fixed-dim":"#9ad0d3","control-border":"#8A8474","inverse-surface":"#30312d","on-primary-container":"#bcd2a5","soft-canopy":"#8F9B7A","surface-bright":"#fbf9f4","on-secondary-fixed":"#002021","territorial-green":"#485B37"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"margin-mobile":"16px","margin-desktop":"48px","gutter":"24px","element-gap":"16px"},"fontFamily":{"body-md":["Neue Kabel"],"kpi-number":["Neue Kabel"],"body-lg":["Neue Kabel"],"label-md":["Neue Kabel"],"headline-sm":["Neue Kabel"],"headline-lg":["Neue Kabel"],"headline-md":["Neue Kabel"],"body-sm":["Neue Kabel"]},"fontSize":{"body-md":["15px",{"lineHeight":"24px","fontWeight":"500"}],"kpi-number":["36px",{"lineHeight":"40px","fontWeight":"600"}],"body-lg":["18px",{"lineHeight":"28px","fontWeight":"500"}],"label-md":["14px",{"lineHeight":"20px","fontWeight":"600"}],"headline-sm":["24px",{"lineHeight":"32px","fontWeight":"600"}],"headline-lg":["40px",{"lineHeight":"48px","fontWeight":"600"}],"headline-md":["32px",{"lineHeight":"40px","fontWeight":"600"}],"body-sm":["13px",{"lineHeight":"20px","fontWeight":"500"}]}}}};</script></head><body class="bg-surface font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-low z-50 flex flex-col justify-between py-6 px-4 shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex flex-col gap-6"><div class="flex items-center justify-between px-2"><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-deep-lagoon tracking-wider font-semibold leading-none">LAWANG</span><span class="font-body-sm text-body-sm text-outline tracking-widest uppercase leading-none mt-1">PROPERTIES &amp; SUITE</span></div><button class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[20px]">left_panel_close</span></button></div><nav class="flex flex-col gap-5 overflow-y-auto max-h-[calc(100vh-220px)] pr-1" data-active-classes="bg-primary-container text-on-primary font-bold rounded-xl"><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Seguimiento</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="home" href="#"><span class="material-symbols-outlined text-[20px]">dashboard</span><span class="">Home</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="operaciones" href="#"><span class="material-symbols-outlined text-[20px]">sync_alt</span><span class="">Operaciones</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="soporte" href="#"><span class="material-symbols-outlined text-[20px]">support_agent</span><span class="">Soporte</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="vencimientos" href="#"><span class="material-symbols-outlined text-[20px]">event_busy</span><span class="">Vencimientos</span></a></div><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Documentación</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="contratos" href="#"><span class="material-symbols-outlined text-[20px]">history_edu</span><span class="">Contratos</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="creatividades" href="#"><span class="material-symbols-outlined text-[20px]">palette</span><span class="">Creatividades</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="documentacion" href="#"><span class="material-symbols-outlined text-[20px]">folder</span><span class="">Documentación</span></a></div><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Administración</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="facturas" href="#"><span class="material-symbols-outlined text-[20px]">receipt_long</span><span class="">Facturas</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="recibos" href="#"><span class="material-symbols-outlined text-[20px]">payments</span><span class="">Recibos</span></a></div><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Base de Datos</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="proyectos" href="#"><span class="material-symbols-outlined text-[20px]">apartment</span><span class="">Proyectos</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="obra" href="#"><span class="material-symbols-outlined text-[20px]">foundation</span><span class="">Obra</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="compradores" href="#"><span class="material-symbols-outlined text-[20px]">badge</span><span class="">Compradores</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="usuarios" href="#"><span class="material-symbols-outlined text-[20px]">group</span><span class="">Usuarios</span></a></div></nav></div><div class="flex flex-col gap-3 pt-4 border-t border-outline/20"><div class="flex items-center justify-between px-3"><span class="font-body-sm text-body-sm text-outline uppercase tracking-wider">Idioma</span><div class="flex items-center bg-surface-container p-1 rounded-full"><button class="px-3 py-0.5 rounded-full font-label-md text-label-md bg-deep-lagoon text-on-primary" type="button">ES</button><button class="px-3 py-0.5 rounded-full font-label-md text-label-md text-on-surface-variant hover:text-on-surface" type="button">EN</button></div></div><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="login" href="#"><span class="material-symbols-outlined text-[20px]">logout</span><span class="">Cerrar Sesión</span></a></div></aside><div class="pl-72"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-low/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-gutter flex items-center justify-between"><div class="flex items-center gap-4"></div><div class="flex items-center gap-4"><button class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" title="Buscar" type="button"><span class="material-symbols-outlined text-[20px]">search</span></button><button class="relative w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" title="Notificaciones" type="button"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-1 right-1 w-4 h-4 bg-error text-on-error font-body-sm text-[10px] rounded-full flex items-center justify-center font-bold whitespace-nowrap" data-lw="k-avisos">—</span></button><div class="flex items-center gap-3 pl-3 border-l border-outline/20"><div class="flex flex-col text-right"><span class="font-label-md text-label-md text-on-surface leading-tight" data-lw-user>Usuario del equipo</span><span class="font-body-sm text-body-sm text-outline leading-tight" data-lw-rol>—</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="relative w-full pt-16 bg-surface px-margin-desktop min-h-screen"><div class="flex flex-col w-full pb-16 space-y-8">
-<!-- ENCABEZADO DE PÁGINA -->
+<!-- ENCABEZADO DE PÁGINA (22-sep-2026: vocabulario del equipo, no del mockup) -->
 <section class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pt-2">
 <div class="space-y-2 max-w-4xl">
-<h1 class="font-headline-md text-headline-md text-volcanic-ash leading-none tracking-tight font-bold">
-        Operaciones &amp; Trazabilidad
-      </h1>
+<h1 class="font-headline-md text-headline-md text-volcanic-ash leading-none tracking-tight font-bold" data-lwt>Operaciones</h1>
+<p class="font-body-md text-on-surface-variant" data-lwt>Una fila por venta: la Carta de Reserva, el Bloqueo de Parcela y la Construcción del mismo comprador van juntas, con el dinero de toda la cadena. Pulsa una fila para abrir su ficha.</p>
 </div>
-<!-- Botones de acción -->
-
-<div class="flex items-center gap-2.5 shrink-0 self-start lg:self-end"><button class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-deep-lagoon text-on-secondary font-label-md text-body-sm hover:bg-deep-lagoon/90 shadow-md transition-all" type="button"><span class="material-symbols-outlined text-[18px]">add</span><span class="">+ Nueva operación</span></button></div></section>
-<!-- KPIS EJECUTIVOS EN FILA DE TARJETAS -->
+<div class="flex items-center gap-2.5 shrink-0 self-start lg:self-end"><button class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-deep-lagoon text-on-secondary font-label-md text-body-sm hover:bg-deep-lagoon/90 shadow-md transition-all" type="button"><span class="material-symbols-outlined text-[18px]">add</span><span data-lwt>Nueva operación</span></button></div></section>
+<!-- KPIS: sobre lo que se ve (filtro + buscador), los rellena datos.js -->
 <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
-<!-- Card 1 -->
-<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm flex flex-col justify-between relative overflow-hidden group">
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm flex flex-col justify-between relative overflow-hidden">
 <div class="flex items-start justify-between">
-<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold">Volumen en Curso</span>
-<span class="p-1.5 rounded-full bg-surface-container-low text-deep-lagoon">
-<span class="material-symbols-outlined text-[18px]">trending_up</span>
-</span>
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold" data-lwt>Operaciones</span>
+<span class="p-1.5 rounded-full bg-surface-container-low text-deep-lagoon"><span class="material-symbols-outlined text-[18px]">sync_alt</span></span>
 </div>
 <div class="mt-4">
-<div class="font-kpi-number text-kpi-number text-deep-lagoon tracking-tight" data-lw="k-volumen">—</div>
+<div class="font-kpi-number text-kpi-number text-deep-lagoon tracking-tight" data-lw="k-ops">—</div>
+<div class="mt-1 font-body-sm text-stone-sand" data-lw="k-ops-pie">—</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm flex flex-col justify-between relative overflow-hidden">
+<div class="flex items-start justify-between">
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold" data-lwt>Precio pactado</span>
+<span class="p-1.5 rounded-full bg-surface-container-low text-deep-lagoon"><span class="material-symbols-outlined text-[18px]">trending_up</span></span>
+</div>
+<div class="mt-4">
+<div class="font-kpi-number text-kpi-number text-deep-lagoon tracking-tight" data-lw="k-precio">—</div>
+<div class="mt-1 font-body-sm text-stone-sand" data-lw="k-precio-pie">—</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm flex flex-col justify-between relative overflow-hidden">
+<div class="flex items-start justify-between">
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold" data-lwt>Cobrado</span>
+<span class="p-1.5 rounded-full bg-surface-container-low text-territorial-green"><span class="material-symbols-outlined text-[18px]">account_balance</span></span>
+</div>
+<div class="mt-4">
+<div class="font-kpi-number text-kpi-number text-deep-lagoon tracking-tight" data-lw="k-cobrado">—</div>
 <div class="mt-1 flex items-center gap-2">
-<span class="w-1.5 h-1.5 rounded-full bg-territorial-green"></span>
-<span class="font-body-sm text-stone-sand" data-lw="k-volumen-pie">—</span>
+<div class="w-16 h-1.5 bg-surface-container-high rounded-full overflow-hidden shrink-0"><div class="bg-territorial-green h-full rounded-full" style="width: 0%" data-lw-barra="k-cobrado"></div></div>
+<span class="font-body-sm text-stone-sand" data-lw="k-cobrado-pie">—</span>
 </div>
 </div>
-<div class="absolute -right-6 -bottom-6 w-24 h-24 bg-secondary-container/20 rounded-full blur-xl pointer-events-none"></div>
 </div>
-<!-- Card 2 -->
-<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm flex flex-col justify-between relative overflow-hidden group">
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm flex flex-col justify-between relative overflow-hidden">
 <div class="flex items-start justify-between">
-<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold">Cobrado (recibís)</span>
-<span class="p-1.5 rounded-full bg-surface-container-low text-territorial-green">
-<span class="material-symbols-outlined text-[18px]">account_balance</span>
-</span>
-</div>
-<div class="mt-4">
-<div class="font-kpi-number text-kpi-number text-deep-lagoon tracking-tight" data-lw="k-cobros">—</div>
-<div class="mt-1 flex items-center gap-2">
-<div class="w-16 h-1.5 bg-surface-container-high rounded-full overflow-hidden">
-<div class="bg-territorial-green h-full rounded-full" style="width: 0%" data-lw-barra="k-cobros"></div>
-</div>
-<span class="font-body-sm text-stone-sand" data-lw="k-cobros-pct">—</span>
-</div>
-</div>
-<div class="absolute -right-6 -bottom-6 w-24 h-24 bg-primary-fixed/30 rounded-full blur-xl pointer-events-none"></div>
-</div>
-<!-- Card 3 -->
-<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm flex flex-col justify-between relative overflow-hidden group">
-<div class="flex items-start justify-between">
-<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold">Expedientes en Firma</span>
-<span class="p-1.5 rounded-full bg-error-container/40 text-error">
-<span class="material-symbols-outlined text-[18px]">history_edu</span>
-</span>
-</div>
-<div class="mt-4">
-<div class="font-kpi-number text-kpi-number text-deep-lagoon tracking-tight"><span data-lw="k-firmas">—</span> <span class="text-headline-sm font-headline-sm text-stone-sand font-normal">firmas</span></div>
-<div class="mt-1 flex items-center gap-1.5 text-error font-body-sm">
-<span class="material-symbols-outlined text-[14px]">warning</span>
-<span class="" data-lw="k-firmas-pie">—</span>
-</div>
-</div>
-<div class="absolute -right-6 -bottom-6 w-24 h-24 bg-error-container/10 rounded-full blur-xl pointer-events-none"></div>
-</div>
-<!-- Card 4 -->
-<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm flex flex-col justify-between relative overflow-hidden group">
-<div class="flex items-start justify-between">
-<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold">Cobro pendiente</span>
-<span class="p-1.5 rounded-full bg-secondary-container/40 text-deep-lagoon">
-<span class="material-symbols-outlined text-[18px]">verified_user</span>
-</span>
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold" data-lwt>Pendiente de cobro</span>
+<span class="p-1.5 rounded-full bg-secondary-container/40 text-deep-lagoon"><span class="material-symbols-outlined text-[18px]">schedule</span></span>
 </div>
 <div class="mt-4">
 <div class="font-kpi-number text-kpi-number text-deep-lagoon tracking-tight" data-lw="k-pendiente">—</div>
-<div class="mt-1 flex items-center gap-1.5 text-soft-canopy font-body-sm">
-<span class="material-symbols-outlined text-[14px]">schedule</span>
-<span class="">en contratos firmados, en euros</span>
+<div class="mt-1 font-body-sm text-stone-sand" data-lw="k-pendiente-pie">—</div>
 </div>
-</div>
-<div class="absolute -right-6 -bottom-6 w-24 h-24 bg-secondary-fixed/20 rounded-full blur-xl pointer-events-none"></div>
 </div>
 </section>
-<!-- BARRA DE FILTROS, BÚSQUEDA Y TERRITORIO -->
+<!-- BUSCADOR, CHIPS Y PROYECTO -->
 <section class="bg-surface-container-lowest p-4 rounded-xl shadow-sm space-y-4">
 <div class="flex flex-col lg:flex-row items-center justify-between gap-4">
-<!-- Input de búsqueda rápido -->
 <div class="relative w-full lg:w-96">
 <span class="absolute left-3.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-stone-sand text-[20px]">search</span>
-<input class="w-full pl-11 pr-4 py-2 bg-surface-container-low rounded-full font-body-sm text-volcanic-ash placeholder:text-stone-sand focus:outline-none focus:bg-surface-container-lowest shadow-sm transition-all" placeholder="Buscar comprador, contrato (RP/CC), lote..." type="text">
+<input class="w-full pl-11 pr-4 py-2 bg-surface-container-low rounded-full font-body-sm text-volcanic-ash placeholder:text-stone-sand focus:outline-none focus:bg-surface-container-lowest shadow-sm transition-all" data-lwt-ph placeholder="Buscar comprador, nº de contrato, proyecto o parcela…" type="text">
 </div>
-<!-- Píldoras de filtro de estado: las genera datos.js con la cuenta real -->
+<!-- Chips de situación: los genera datos.js con la cuenta real -->
 <div class="flex items-center gap-1.5 overflow-x-auto w-full lg:w-auto pb-2 lg:pb-0" data-lw-chips="estado" data-lw-on="bg-primary text-on-primary shadow-sm" data-lw-off="bg-surface-container-low text-on-surface-variant hover:bg-surface-container transition-colors" data-lw-base="px-3.5 py-1.5 rounded-full font-label-md text-body-sm shrink-0">
-<span class="sr-only">Estado</span>
+<span class="sr-only">Situación</span>
 </div>
-<!-- Selector de territorio territorial -->
 <div class="flex items-center gap-2 self-end lg:self-auto shrink-0">
-<span class="material-symbols-outlined text-[18px] text-stone-sand">travel_explore</span>
+<span class="material-symbols-outlined text-[18px] text-stone-sand">apartment</span>
 <select class="bg-surface-container-low text-volcanic-ash font-label-md text-body-sm py-1.5 pl-3 pr-8 rounded-full focus:outline-none appearance-none cursor-pointer">
-<option value="*">Todos los proyectos</option>
+<option value="*" data-lwt>Todos los proyectos</option>
 </select>
 </div>
 </div>
 </section>
-<!-- CONTENIDO PRINCIPAL: TABLA DE OPERACIONES + PANEL LATERAL DETALLE RÁPIDO -->
-<section class="grid grid-cols-1 2xl:grid-cols-12 gap-6 items-start">
-<!-- TABLA PRINCIPAL (8 o 9 cols en desktop amplio) -->
-<div class="2xl:col-span-8 bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
-<div class="px-6 py-4.5 bg-surface-container-low/60 flex items-center justify-between">
+<!-- TABLA A TODO EL ANCHO: una fila por operación; la ficha se abre en el cajón compartido -->
+<section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden" id="lw-ops-caja">
+<div class="px-6 py-4 bg-surface-container-low/60 flex items-center justify-between">
 <div class="flex items-center gap-3">
-<span class="font-label-md text-volcanic-ash text-body-sm uppercase tracking-wider font-bold">Listado Transaccional Activo</span>
+<span class="font-label-md text-volcanic-ash text-body-sm uppercase tracking-wider font-bold" data-lwt>Operaciones</span>
 <span class="px-2 py-0.5 rounded-full bg-surface-container text-stone-sand text-[11px] font-label-md" data-lw="p-vis">—</span>
 </div>
 <div class="flex items-center gap-4 text-stone-sand text-body-sm font-label-md">
-<button class="hover:text-volcanic-ash flex items-center gap-1" type="button">
-<span class="material-symbols-outlined text-[16px]">refresh</span>
-<span class="">Actualizar</span>
-</button>
+<button class="hover:text-volcanic-ash flex items-center gap-1" type="button"><span class="material-symbols-outlined text-[16px]">refresh</span><span data-lwt>Actualizar</span></button>
 </div>
 </div>
 <div class="overflow-x-auto">
 <table class="w-full text-left border-collapse">
 <thead>
 <tr class="bg-surface-container-low text-on-surface-variant font-label-md text-[11px] tracking-wider uppercase">
-<th class="py-3 px-4 font-bold">Cód. Operación</th>
-<th class="py-3 px-4 font-bold">Comprador &amp; Entidad</th>
-<th class="py-3 px-4 font-bold">Proyecto / Lote</th>
-<th class="py-3 px-4 font-bold">Estructura Contractual</th>
-<th class="py-3 px-4 font-bold">Operador</th>
-<th class="py-3 px-4 font-bold text-right">Importe Total</th>
-<th class="py-3 px-4 font-bold text-right">Desembolsado</th>
-<th class="py-3 px-4 font-bold">Próximo Venc.</th>
-<th class="py-3 px-4 font-bold text-center">Estado</th>
-<th class="py-3 px-4 font-bold text-right">Acciones</th>
+<th class="py-3 px-4 font-bold">Nº</th>
+<th class="py-3 px-4 font-bold" data-lwt>Comprador</th>
+<th class="py-3 px-4 font-bold" data-lwt>Proyecto</th>
+<th class="py-3 px-4 font-bold" data-lwt>Contratos de la operación</th>
+<th class="py-3 px-4 font-bold text-right" data-lwt>Precio</th>
+<th class="py-3 px-4 font-bold text-right" data-lwt>Cobrado</th>
+<th class="py-3 px-4 font-bold text-right" data-lwt>Pendiente</th>
+<th class="py-3 px-4 font-bold" data-lwt>Situación</th>
+<th class="py-3 px-4 font-bold" data-lwt>Operador</th>
 </tr>
 </thead>
-<tbody class="divide-y divide-surface-container-high/40 text-body-sm font-body-sm">
-<tr><td class="py-8 px-6 text-center text-stone-sand" colspan="10">Trayendo las operaciones…</td></tr>
-<tr class="hover:bg-surface-alt/50 transition-colors">
-<td class="py-4 px-4 font-label-md font-bold text-deep-lagoon whitespace-nowrap">—</td>
-<td class="py-4 px-4 whitespace-nowrap font-label-md text-volcanic-ash font-semibold">—</td>
-<td class="py-4 px-4 whitespace-nowrap font-label-md text-volcanic-ash">—</td>
-<td class="py-4 px-4 text-on-surface-variant text-[12px]">—</td>
-<td class="py-4 px-4 whitespace-nowrap font-label-md text-volcanic-ash">—</td>
-<td class="py-4 px-4 text-right font-kpi-number text-volcanic-ash whitespace-nowrap">—</td>
-<td class="py-4 px-4 text-right font-kpi-number text-territorial-green whitespace-nowrap">—</td>
-<td class="py-4 px-4 whitespace-nowrap text-volcanic-ash">—</td>
-<td class="py-4 px-4 text-center whitespace-nowrap">—</td>
-<td class="py-4 px-4 text-right whitespace-nowrap">—</td>
-</tr>
+<tbody class="divide-y divide-surface-container-high/40 text-body-sm font-body-sm" id="lw-ops-lista">
+<tr><td class="py-8 px-6 text-center text-stone-sand" colspan="9" data-lwt>Trayendo las operaciones…</td></tr>
 </tbody>
 </table>
 </div>
-<!-- Paginación elegante -->
 <div class="px-6 py-3.5 bg-surface-container-low/40 flex items-center justify-between text-body-sm text-stone-sand">
-<span class="">Mostrando <span data-lw="p-desde">—</span> de <span data-lw="p-total">—</span> expedientes</span>
-</div>
-</div>
-<!-- PANEL LATERAL: expediente seleccionado (lo rellena datos.js) -->
-<div class="2xl:col-span-4 bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col space-y-6 p-6">
-<!-- Encabezado de la Ficha -->
-<div class="flex items-start justify-between pb-4 border-b border-surface-container-high/60">
-<div>
-<div class="flex items-center gap-2 mb-1">
-<span class="px-2 py-0.5 rounded bg-deep-lagoon/10 text-deep-lagoon font-label-md text-[10px] uppercase font-bold tracking-wider">EXPEDIENTE SELECCIONADO</span>
-<span class="text-stone-sand text-[11px]"><span data-lw="x-id">—</span></span>
-</div>
-<h2 class="font-headline-sm text-headline-sm text-volcanic-ash font-bold leading-tight" data-lw="x-h2">—</h2>
-<p class="font-body-md text-volcanic-ash font-medium"><span data-lw="x-sub">—</span></p>
-</div>
-<button class="p-1.5 rounded-full hover:bg-surface-container text-stone-sand hover:text-volcanic-ash transition-colors" type="button">
-<span class="material-symbols-outlined text-[20px]">open_in_new</span>
-</button>
-</div>
-<!-- Resumen de Contratos Vinculados (Encadenamiento) -->
-<div class="space-y-3">
-<div class="flex items-center justify-between">
-<h3 class="font-label-md text-[11px] tracking-[0.16em] uppercase text-stone-sand font-bold">Estructura Encadenada</h3>
-<span class="font-label-md text-[11px] text-deep-lagoon font-semibold"><span data-lw="x-total">—</span></span>
-</div>
-<div class="space-y-2">
-<!-- Contrato Suelo -->
-<div class="p-3 rounded-lg bg-surface-container-low flex items-center justify-between">
-<div class="flex items-center gap-3">
-<span class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-deep-lagoon">
-<span class="material-symbols-outlined text-[16px]">landscape</span>
-</span>
-<div>
-<div class="font-label-md text-volcanic-ash text-body-sm font-semibold"><span data-lw="e1-titulo">—</span></div>
-<div class="text-[11px] text-stone-sand"><span data-lw="e1-sub">—</span></div>
-</div>
-</div>
-<span class="font-kpi-number text-body-md text-volcanic-ash"><span data-lw="e1-importe">—</span></span>
-</div>
-<!-- Contrato Construcción -->
-<div class="p-3 rounded-lg bg-surface-container-low flex items-center justify-between">
-<div class="flex items-center gap-3">
-<span class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-territorial-green">
-<span class="material-symbols-outlined text-[16px]">foundation</span>
-</span>
-<div>
-<div class="font-label-md text-volcanic-ash text-body-sm font-semibold"><span data-lw="e2-titulo">—</span></div>
-<div class="text-[11px] text-stone-sand"><span data-lw="e2-sub">—</span></div>
-</div>
-</div>
-<span class="font-kpi-number text-body-md text-volcanic-ash"><span data-lw="e2-importe">—</span></span>
-</div>
-</div>
-</div>
-<!-- Closer de la venta (21-sep-2026): candado propio ('ranking' o super_admin),
-     lo muestra/oculta y rellena datos.js (pintaExpediente). Se pinta sobre la
-     RAÍZ de la cadena, igual que el resto de este panel. -->
-<div class="space-y-2" data-lw="closer-bloque" hidden>
-<div class="flex items-center justify-between">
-<h3 class="font-label-md text-[11px] tracking-[0.16em] uppercase text-stone-sand font-bold">Closer</h3>
-</div>
-<select class="w-full text-body-sm rounded-lg border border-surface-container-high bg-surface-container-lowest px-3 py-2 text-volcanic-ash" data-lw="x-closer-sel"></select>
-</div>
-<!-- Trazabilidad Notarial y Bancaria -->
-<div class="space-y-3">
-<h3 class="font-label-md text-[11px] tracking-[0.16em] uppercase text-stone-sand font-bold">Próximos hitos de pago</h3>
-<div class="relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-[2px] before:bg-surface-container-highest">
-<!-- Hito 1: Notario -->
-<div class="relative">
-<span class="absolute -left-[23px] top-0.5 w-3.5 h-3.5 rounded-full bg-territorial-green ring-4 ring-surface-container-lowest"></span>
-<div>
-<span class="font-label-md text-[12px] text-volcanic-ash font-bold block"><span data-lw="h1-t">—</span></span>
-<p class="font-body-sm text-[12px] text-on-surface-variant"><span data-lw="h1-s">—</span></p>
-<span class="text-[10px] text-stone-sand" data-lw="h1-f">—</span>
-</div>
-</div>
-<!-- Hito 2: transferencia a la cuenta escrow -->
-<div class="relative">
-<span class="absolute -left-[23px] top-0.5 w-3.5 h-3.5 rounded-full bg-deep-lagoon ring-4 ring-surface-container-lowest"></span>
-<div>
-<span class="font-label-md text-[12px] text-volcanic-ash font-bold block"><span data-lw="h2-t">—</span></span>
-<p class="font-body-sm text-[12px] text-on-surface-variant"><span data-lw="h2-s">—</span></p>
-<span class="text-[10px] text-stone-sand"><span data-lw="h2-f">—</span></span>
-</div>
-</div>
-<!-- Hito 3: Firma Próxima -->
-<div class="relative">
-<span class="absolute -left-[23px] top-0.5 w-3.5 h-3.5 rounded-full bg-stone-sand ring-4 ring-surface-container-lowest"></span>
-<div>
-<span class="font-label-md text-[12px] text-volcanic-ash font-bold block"><span data-lw="h3-t">—</span></span>
-<p class="font-body-sm text-[12px] text-on-surface-variant"><span data-lw="h3-s">—</span></p>
-<span class="text-[10px] text-error font-medium"><span data-lw="h3-f">—</span></span>
-</div>
-</div>
-</div>
-</div>
-<p class="font-body-sm text-[12px] text-on-surface-variant" data-lw="x-mas"></p>
-<!-- Botones de Acción Directa -->
-<div class="pt-4 space-y-2.5">
-<button class="w-full py-2.5 px-4 rounded-full bg-deep-lagoon text-on-secondary font-label-md text-body-sm hover:bg-deep-lagoon/90 transition-all flex items-center justify-center gap-2 shadow-sm" type="button">
-<span class="material-symbols-outlined text-[18px]">receipt</span>
-<span class="">Emitir recibí de cobro</span>
-</button>
-<button class="w-full py-2.5 px-4 rounded-full bg-surface-container text-volcanic-ash font-label-md text-body-sm hover:bg-surface-container-high transition-all flex items-center justify-center gap-2" type="button">
-<span class="material-symbols-outlined text-[18px]">account_tree</span>
-<span class="">Abrir proforma encadenada</span>
-</button>
-</div>
+<span><span data-lwt>Mostrando</span> <span data-lw="p-desde">—</span> <span data-lwt>de</span> <span data-lw="p-total">—</span> <span data-lwt>operaciones</span></span>
 </div>
 </section>
 </div></main></div>
