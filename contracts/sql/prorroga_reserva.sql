@@ -39,3 +39,5 @@
 -- Fuente (la ultima es la vigente):
 --   supabase/migrations/20260921142708_carta_cobrado_aplicado_tabla_lateral.sql
 --   supabase/migrations/20260922125208_prorroga_reserva_art3_escrow.sql
+--   supabase/migrations/20260922134811_parametros_reservas_y_cuota_liberada.sql  (parametros, parametro_set, carta_cobrado_calcula/recalcula)
+--   supabase/migrations/20260922143713_deshace_liberacion_reserva.sql  (deshace_liberacion, solo admin, prorroga en el mismo acto)

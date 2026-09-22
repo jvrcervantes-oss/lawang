@@ -757,6 +757,17 @@
             ? '<button type="button" data-lw-prorrogar="1" style="justify-self:start;margin-top:4px;padding:9px 16px;border-radius:10px;border:1px solid #2F5D9E;background:#fff;color:#2F5D9E;font:600 13px \'Neue Kabel\',system-ui;cursor:pointer">Prorrogar reserva</button>'
             : (topeAlcanzado ? H.nota('Ya tiene ' + prorrogas.length + ' prórroga(s): la siguiente solo la puede dar un admin.') : '')));
       }
+      /* «Deshacer liberación» (22-sep-2026, owner): solo admin. El cron del
+         22-sep liberó parcelas con el comprador aún en ello, y una Carta
+         liberada no se podía prorrogar. El RPC `deshace_liberacion` devuelve la
+         Carta a viva, re-engancha sus parcelas (solo si ninguna la ocupa hoy
+         otro contrato vivo — si no, lo dice con nombre) y la prorroga en el
+         mismo acto para que no vuelva a estar vencida. */
+      if ((rolSesion === 'admin' || rolSesion === 'super_admin') && esCartaReserva && c.liberado_en) {
+        cuerpo += H.seccion('Deshacer liberación',
+          H.nota('La reserva se liberó (' + esc(c.liberado_motivo === 'desistida' ? 'el comprador desistió' : 'plazo vencido') + ', ' + esc(fFecha(c.liberado_en)) + '). Si el comprador sigue en ello, esto devuelve la Carta a viva, vuelve a enganchar su parcela y la prorroga en el mismo acto. Solo si ninguna otra operación ocupa ya la parcela.') +
+          '<button type="button" data-lw-deshacer="1" style="justify-self:start;margin-top:4px;padding:9px 16px;border-radius:10px;border:1px solid #2F5D9E;background:#fff;color:#2F5D9E;font:600 13px \'Neue Kabel\',system-ui;cursor:pointer">Deshacer liberación</button>');
+      }
       if (puedeVerBoton && esCartaReserva && !c.liberado_en && unidadesReservadas.length > 1) {
         /* 21-sep-2026, hallazgo de code-review + comprobado contra producción
            (CR00025 tiene HOY 3 parcelas reservadas a la vez): libera_reserva()
@@ -963,6 +974,31 @@
             if (u.error || !u.data) { toast('No se pudo abrir el PDF: ' + (u.error && u.error.message || 'sin URL')); return; }
             window.open(u.data.signedUrl, '_blank', 'noopener');
           });
+        }
+        var des = ev.target.closest && ev.target.closest('[data-lw-deshacer]');
+        if (des) {
+          ev.preventDefault();
+          if (typeof window.lwVentana !== 'function') { toast('El formulario aún no ha cargado — prueba de nuevo en un segundo.'); return; }
+          window.lwVentana('Deshacer liberación — ' + num, [
+            { k: '_intro', tipo: 'nota', label: 'La Carta vuelve a viva y su parcela vuelve a "reservada" a su nombre. Como el plazo ya venció, se prorroga en el mismo acto: sin eso el automatismo la liberaría otra vez tras la gracia.' },
+            { k: 'dias', label: 'Días de prórroga desde el vencimiento', tipo: 'number', valor: diasDefecto, req: 1, medio: 1, ayuda: 'Un admin puede dar hasta ' + maxDiasAdmin + '.' },
+            { k: 'motivo', label: 'Motivo', tipo: 'textarea', req: 1, ayuda: 'Obligatorio: por qué se deshace (el comprador sigue en ello, se liberó por error…).' },
+            { k: 'comunicado', label: 'Se lo he comunicado al comprador', tipo: 'check', valor: false }
+          ], 'Deshacer liberación', function (vals) {
+            var dias = parseInt(vals.dias, 10);
+            var motivo = (vals.motivo || '').trim();
+            if (!(dias >= 1)) return { error: { message: 'Pon un número de días (mínimo 1).' } };
+            if (motivo.replace(/\s+/g, '').length < 6) {
+              return { error: { message: 'Cuenta el motivo con algo más de detalle: queda en el histórico del contrato.' } };
+            }
+            return sb.rpc('deshace_liberacion', { p_contrato_id: c.id, p_motivo: motivo, p_dias: dias, p_comunicado: !!vals.comunicado }).then(function (rr) {
+              if (rr.error) return { error: rr.error };
+              toast('Liberación deshecha: la reserva vuelve a estar viva y vence el ' + fFecha(rr.data) + '.');
+              fichaContrato(sb, c, opts);
+              return {};
+            });
+          }, { sinRecarga: true, sub: 'Deshacer liberación · admin' });
+          return;
         }
         var pro = ev.target.closest && ev.target.closest('[data-lw-prorrogar]');
         if (pro) {
