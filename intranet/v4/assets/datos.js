@@ -1188,7 +1188,13 @@
     var H = window.lwCajonHtml;
     if (!(window.lwCajon && H)) { toast('La ficha aún no ha cargado — prueba de nuevo en un segundo.'); return; }
     var V4 = window.LW_V4 || {};
-    var acciones = [{ texto: 'Abrir el documento', href: '/intranet/facturas/?id=' + encodeURIComponent(f0.id), tono: 'primario' }];
+    // El visor v4 (editores.js), no la herramienta antigua (22-sep-2026, owner:
+    // «abrir recibís me lleva a la intranet antigua»). Al cerrarlo, vuelve a
+    // esta ficha. Si editores.js aún no ha cargado, el enlace clásico de siempre.
+    var acciones = [{ texto: 'Abrir el documento', tono: 'primario', onClick: function () {
+      if (window.LW_V4 && typeof window.LW_V4.verDocumento === 'function') window.LW_V4.verDocumento(f0.id, function () { fichaFactura(sb, f0); });
+      else location.href = '/intranet/facturas/?id=' + encodeURIComponent(f0.id);
+    } }];
     // Editar (21-sep-2026): solo mientras el documento sigue vivo — un
     // congelado (anulado o ya enviado) no se toca, se reemite. El candado de
     // autoría/admin lo decide el propio editor (es_suyo-espejo), no esta

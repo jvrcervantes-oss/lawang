@@ -3287,6 +3287,10 @@
   window.LW_V4 = window.LW_V4 || {};
   window.LW_V4.abreVerDocumento = abreDocumentoViewerDoc;
   window.LW_V4.abrirEditorFactura = abrirEditorFacturaDoc;
+  // «Abrir el documento» de la ficha (22-sep-2026, owner: «abrir recibís me
+  // lleva a la intranet antigua»): el visor v4 —el papel con PDF, email,
+  // recibí y registro—, nunca la navegación a /intranet/facturas/.
+  window.LW_V4.verDocumento = abreDocumentoViewerDoc;
   window.LW_V4.abrirEditorRecibi = abrirEditorRecibiDoc;
   /* Exportado (S14, 21-sep-2026): datos.js -- otra IIFE, otro cierre -- necesita
      el MISMO chequeo de «0 filas = la policy lo denegó» para anular/borrar desde
