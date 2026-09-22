@@ -4,7 +4,7 @@
      «La forma de una herramienta»): el script propio de esta página llama a lwT() al
      arrancar y tiene que encontrarlo ya definido. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=d7201d14"></script>
+<script src="/contracts/assets/i18n.js?v=da214f8f"></script>
 <!-- toast()/toastMal() (suite-comun.js) y lwPicker() (dialogo.js): el selector de
      contrato es una lista cerrada y larga —un agente puede tener decenas— y la suite
      no monta un <select> ni un <datalist> para eso. vocabulario.js da el nombre
@@ -90,6 +90,8 @@
 <div class="flex flex-col gap-1 pb-4 border-b border-outline-variant/40">
 <span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold" data-lwt>Resultado</span>
 <h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight" data-lwt>Borrador para revisar</h2>
+<!-- Solo cuando el resultado viene del historial: de qué consulta es. -->
+<p class="font-body-sm text-body-sm text-outline hidden" hidden id="lw-resultado-nota"></p>
 </div>
 
 <!-- Un `.sui-aviso` con role="status" por cada punto pendiente que devuelve
@@ -113,6 +115,31 @@
 <button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-label-md transition-colors shadow-sm" data-real id="lw-copiar" type="button"><span class="material-symbols-outlined text-[18px]">content_copy</span><span data-lwt>Copiar borrador</span></button>
 </div>
 </div>
+</section>
+
+<!-- Historial (22-sep-2026, petición del owner: «por si hay que rescatarlas»).
+     Lee `bot_consultas` con la sesión del agente: la RLS («quien ve el
+     contrato ve sus consultas») decide qué sale, igual que en la lista de
+     contratos. Se conservan 90 días (pg_cron, decisión de Seguridad en el
+     encargo). «Ver» vuelve a pintar el borrador guardado en la sección de
+     resultado, con sus fuentes y sus puntos pendientes; «Reutilizar» carga
+     contrato y pregunta en el formulario para redactar otra vez. Nada de esto
+     vuelve a llamar al modelo ni escribe en la base. -->
+<section class="bg-surface-container-lowest rounded-xl p-8 shadow-sm flex flex-col gap-5" id="lw-historial">
+<div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4 pb-4 border-b border-outline-variant/40">
+<div class="flex flex-col gap-1">
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold" data-lwt>Historial</span>
+<h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight" data-lwt>Consultas anteriores</h2>
+<p class="font-body-sm text-body-sm text-outline" data-lwt>Las consultas se guardan 90 días: cada agente ve las de los contratos a su alcance.</p>
+</div>
+<div class="flex flex-wrap items-center gap-3">
+<label class="sr-only" for="lw-hist-filtro" data-lwt>Buscar por contrato, comprador o texto</label>
+<input autocomplete="off" class="w-72 max-w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-2.5 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:border-deep-lagoon" data-lwt-ph id="lw-hist-filtro" placeholder="Buscar por contrato, comprador o texto" type="search">
+<button class="flex items-center gap-2 px-4 py-2.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-label-md transition-colors shadow-sm" data-real id="lw-hist-actualizar" type="button"><span class="material-symbols-outlined text-[18px]">refresh</span><span data-lwt>Actualizar</span></button>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-outline" id="lw-hist-estado" data-lwt>Cargando el historial…</p>
+<div class="flex flex-col divide-y divide-outline-variant/40" id="lw-hist-lista"></div>
 </section>
 
 </div>
@@ -267,6 +294,113 @@
     vacia($('lw-fuentes'));
     muestra($('lw-borrador-caja'), false);
     muestra($('lw-resultado'), false);
+    $('lw-resultado-nota').textContent = '';
+    muestra($('lw-resultado-nota'), false);
+  }
+
+  /* ── Historial: bot_consultas con la sesión del agente ─────────────────
+     Todo por textContent — la pregunta y el borrador son texto de terceros y
+     del modelo, nunca se interpretan como HTML. */
+  var HIST = [];
+  function fechaCorta(iso) {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return iso || '';
+    return d.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' +
+      d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  }
+  function etiquetaContrato(c) {
+    var k = c.contratos || {};
+    return [k.numero || '—', k.comprador_nombre || '—', k.proyecto_nombre || '—'].join(' · ');
+  }
+  function chip(texto, tono) {
+    var s = document.createElement('span');
+    s.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full font-body-sm text-[12px] ' +
+      (tono === 'ok' ? 'bg-primary-fixed text-on-primary-fixed' : tono === 'mal' ? 'bg-error-container text-on-error-container' : 'bg-surface-container-high text-on-surface-variant');
+    s.textContent = texto;
+    return s;
+  }
+  function botonFila(texto, icono, onClick) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.setAttribute('data-real', '');
+    b.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-[13px] transition-colors';
+    var i = document.createElement('span'); i.className = 'material-symbols-outlined text-[16px]'; i.textContent = icono;
+    var t = document.createElement('span'); t.textContent = texto;
+    b.appendChild(i); b.appendChild(t);
+    b.addEventListener('click', function (ev) { ev.stopPropagation(); onClick(); });
+    return b;
+  }
+  function renderHistorial(ctx) {
+    var lista = $('lw-hist-lista'), estado = $('lw-hist-estado');
+    var filtro = $('lw-hist-filtro').value.trim().toLowerCase();
+    var filas = HIST.filter(function (c) {
+      if (!filtro) return true;
+      return (etiquetaContrato(c) + ' ' + (c.pregunta || '') + ' ' + (c.preguntado_por || '')).toLowerCase().indexOf(filtro) !== -1;
+    });
+    vacia(lista);
+    if (!filas.length) {
+      estado.textContent = HIST.length ? lwT('Ninguna consulta coincide con el filtro.') : lwT('Todavía no hay consultas guardadas. Se conservan 90 días.');
+      return;
+    }
+    estado.textContent = lwT('%n consultas (se conservan 90 días)', { n: filas.length });
+    filas.forEach(function (c) {
+      var fila = document.createElement('div');
+      fila.className = 'flex flex-col lg:flex-row lg:items-center gap-3 py-3';
+      var izq = document.createElement('div');
+      izq.className = 'flex flex-col gap-1 min-w-0 flex-1';
+      var l1 = document.createElement('div');
+      l1.className = 'flex flex-wrap items-center gap-2 font-body-sm text-body-sm text-on-surface-variant';
+      var f = document.createElement('span'); f.textContent = fechaCorta(c.creado_en); l1.appendChild(f);
+      var k = document.createElement('span'); k.className = 'font-label-md text-label-md text-on-surface'; k.textContent = etiquetaContrato(c); l1.appendChild(k);
+      l1.appendChild(chip(c.respuesta ? lwT('Borrador') : lwT('Descartado'), c.respuesta ? 'ok' : 'mal'));
+      var nb = (c.bloqueos || []).length;
+      if (nb) l1.appendChild(chip(lwT('%n pendientes', { n: nb }), ''));
+      var quien = document.createElement('span'); quien.textContent = (c.preguntado_por === ctx.email) ? lwT('tú') : (c.preguntado_por || ''); l1.appendChild(quien);
+      var l2 = document.createElement('p');
+      l2.className = 'font-body-md text-body-md text-on-surface truncate';
+      var primera = String(c.pregunta || '').split(/\r?\n/).filter(function (x) { return x.trim(); })[0] || '';
+      l2.textContent = primera.length > 140 ? primera.slice(0, 140) + '…' : primera;
+      l2.title = String(c.pregunta || '').slice(0, 600);
+      izq.appendChild(l1); izq.appendChild(l2);
+      var der = document.createElement('div');
+      der.className = 'flex items-center gap-2 shrink-0';
+      der.appendChild(botonFila(lwT('Ver'), 'visibility', function () { verConsulta(c); }));
+      der.appendChild(botonFila(lwT('Reutilizar pregunta'), 'replay', function () { reutilizar(c, ctx); }));
+      fila.appendChild(izq); fila.appendChild(der);
+      lista.appendChild(fila);
+    });
+  }
+  function verConsulta(c) {
+    limpiaResultado();
+    pintaResultado({ borrador: c.respuesta, fuentes: c.fuentes || [], bloqueos: c.bloqueos || [] });
+    var nota = $('lw-resultado-nota');
+    nota.textContent = lwT('Consulta del %f · %c', { f: fechaCorta(c.creado_en), c: etiquetaContrato(c) });
+    muestra(nota, true);
+    if (!c.respuesta) toastMal(lwT('Esta consulta se descartó: no hay borrador, solo los puntos pendientes.'));
+  }
+  function reutilizar(c, ctx) {
+    var etiqueta = ctx.etiquetaPorId[c.contrato_id];
+    if (etiqueta) $('lw-contrato').value = etiqueta;
+    $('lw-pregunta').value = c.pregunta || '';
+    contador();
+    toast(lwT('Pregunta cargada en el formulario: revísala y vuelve a redactar.'));
+    $('lw-pregunta').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  function cargaHistorial(ctx) {
+    var estado = $('lw-hist-estado');
+    estado.textContent = lwT('Cargando el historial…');
+    ctx.sb.from('bot_consultas')
+      .select('id, contrato_id, pregunta, respuesta, fuentes, bloqueos, creado_en, preguntado_por, contratos(numero, comprador_nombre, proyecto_nombre)')
+      .order('creado_en', { ascending: false })
+      .limit(100)
+      .then(function (r) {
+        if (r.error) {
+          /* «No hay consultas» y «no he podido mirar» no se leen igual. */
+          estado.textContent = lwT('No se ha podido cargar el historial: ') + (r.error.message || '');
+          return;
+        }
+        HIST = r.data || [];
+        renderHistorial(ctx);
+      });
   }
 
   function contador() {
@@ -278,9 +412,17 @@
     var sb = aut.sb;
     var input = $('lw-contrato'), estado = $('lw-contrato-estado');
     var porEtiqueta = {};          // «CC00107 · NOMBRE · Proyecto» -> uuid
+    var etiquetaPorId = {};        // uuid -> etiqueta (para «Reutilizar» desde el historial)
+    // guard.js resuelve {sb, session, ficha}: el email sale de la ficha o, si no, de la sesión.
+    var email = (aut.ficha && aut.ficha.email) || (aut.session && aut.session.user && aut.session.user.email) || '';
+    var ctx = { sb: sb, email: email, etiquetaPorId: etiquetaPorId };
 
     $('lw-pregunta').addEventListener('input', contador);
     contador();
+
+    cargaHistorial(ctx);
+    $('lw-hist-actualizar').addEventListener('click', function (ev) { ev.stopPropagation(); cargaHistorial(ctx); });
+    $('lw-hist-filtro').addEventListener('input', function () { renderHistorial(ctx); });
 
     /* La lista es la que devuelve la RLS de `contratos` para esta sesión:
        lo mismo que la edge podrá leer con el mismo JWT. Nunca se pide `datos`
@@ -307,6 +449,7 @@
         var opciones = cs.map(function (c) {
           var etiqueta = [c.numero || '—', c.comprador_nombre || '—', c.proyecto_nombre || '—'].join(' · ');
           porEtiqueta[etiqueta] = c.id;
+          etiquetaPorId[c.id] = etiqueta;
           var tipo = (typeof lwTipoContrato === 'function') ? lwTipoContrato(c.tipo) : (c.tipo || '');
           return { valor: etiqueta, texto: etiqueta, nota: tipo + ' · ' + lwT(c.bloqueado ? 'firmado' : 'sin firmar') };
         });
@@ -354,9 +497,11 @@
             // Un borrador descartado sigue trayendo los puntos pendientes:
             // se enseñan, sin borrador, sin fuentes y sin «Copiar».
             if (cuerpo && (cuerpo.bloqueos || []).length) pintaResultado({ bloqueos: cuerpo.bloqueos });
+            cargaHistorial(ctx);   // un borrador descartado también queda registrado
             return;
           }
           pintaResultado(cuerpo);
+          cargaHistorial(ctx);
         });
       }).catch(function (e) {
         ocupado(false);
