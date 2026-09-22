@@ -1,0 +1,399 @@
+<!DOCTYPE html><html lang="es"><head><title>Asistente de respuestas — Lawang Intranet</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d6d6608e" data-herramienta="contratos"></script>
+<!-- idioma.js e i18n.js SIN defer, los dos y en este orden (contexto/suite_lawang.md →
+     «La forma de una herramienta»): el script propio de esta página llama a lwT() al
+     arrancar y tiene que encontrarlo ya definido. -->
+<script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
+<script src="/contracts/assets/i18n.js?v=d7201d14"></script>
+<!-- toast()/toastMal() (suite-comun.js) y lwPicker() (dialogo.js): el selector de
+     contrato es una lista cerrada y larga —un agente puede tener decenas— y la suite
+     no monta un <select> ni un <datalist> para eso. vocabulario.js da el nombre
+     visible del tipo de contrato en la nota de cada opción. -->
+<script src="/contracts/assets/suite-comun.js?v=310f2346" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script>
+<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/datos.js?v=cb05fc33" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<meta name="robots" content="noindex">
+<script src="../assets/nav.js?v=3c3cdedd" defer></script>
+<link href="../assets/shell.css?v=6cd61b92" rel="stylesheet">
+<script src="../assets/maqueta.js?v=00d3b3c0" defer></script><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"secondary-fixed-dim":"#9ad0d3","on-primary":"#ffffff","on-surface":"#1b1c19","surface-container-low":"#f5f4ee","on-error-container":"#93000a","on-primary-container":"#bcd2a5","on-tertiary-fixed":"#2e1125","surface-bright":"#fbf9f4","surface":"#fbf9f4","secondary-container":"#b3e9ed","surface-container-highest":"#e4e2dd","background":"#fbf9f4","surface-container":"#efeee8","on-secondary-container":"#356b6e","on-tertiary-container":"#edbdd8","on-secondary":"#ffffff","inverse-primary":"#b8cea1","on-secondary-fixed-variant":"#144e51","inverse-surface":"#30312d","burnt-earth":"#42210B","surface-container-lowest":"#ffffff","surface-tint":"#51643f","inverse-on-surface":"#f2f1eb","primary-container":"#485b37","primary-fixed-dim":"#b8cea1","on-error":"#ffffff","tertiary":"#563349","surface-alt":"#F1EBDD","control-border":"#8A8474","error":"#ba1a1a","volcanic-ash":"#2E3437","secondary-fixed":"#b6ecef","on-secondary-fixed":"#002021","deep-lagoon":"#104C4F","on-background":"#1b1c19","soft-canopy":"#8F9B7A","surface-variant":"#e4e2dd","stone-sand":"#BEB3A5","tertiary-fixed-dim":"#e9b9d4","surface-dim":"#dbdad5","outline-variant":"#c5c8bc","territorial-green":"#485B37","on-primary-fixed":"#0f2003","on-tertiary-fixed-variant":"#5f3c52","raw-linen":"#F5F0E6","primary-fixed":"#d3eabb","error-container":"#ffdad6","primary":"#314322","on-surface-variant":"#44483f","tertiary-fixed":"#ffd8ed","secondary":"#316669","on-tertiary":"#ffffff","tertiary-container":"#6f4a61","outline":"#75786e","on-primary-fixed-variant":"#3a4c2a","surface-container-high":"#e9e8e3"},borderRadius:{DEFAULT:"0.25rem",lg:"0.5rem",xl:"0.75rem",full:"9999px"},spacing:{"gutter":"24px","margin-desktop":"48px","margin-mobile":"16px","element-gap":"16px"},fontFamily:{"kpi-number":["Neue Kabel"],"label-md":["Neue Kabel"],"headline-lg":["Neue Kabel"],"headline-sm":["Neue Kabel"],"body-lg":["Neue Kabel"],"body-md":["Neue Kabel"],"headline-md":["Neue Kabel"],"body-sm":["Neue Kabel"]},fontSize:{"kpi-number":["36px",{lineHeight:"40px",fontWeight:"600"}],"label-md":["14px",{lineHeight:"20px",fontWeight:"600"}],"headline-lg":["40px",{lineHeight:"48px",fontWeight:"600"}],"headline-sm":["24px",{lineHeight:"32px",fontWeight:"600"}],"body-lg":["18px",{lineHeight:"28px",fontWeight:"500"}],"body-md":["15px",{lineHeight:"24px",fontWeight:"500"}],"headline-md":["32px",{lineHeight:"40px",fontWeight:"600"}],"body-sm":["13px",{lineHeight:"20px",fontWeight:"500"}]}}}}</script></head><body class="bg-raw-linen font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-low z-50 flex flex-col justify-between py-6 px-4 shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex flex-col gap-6"><div class="flex items-center justify-between px-2"><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-deep-lagoon tracking-wider font-semibold leading-none">LAWANG</span><span class="font-body-sm text-body-sm text-outline tracking-widest uppercase leading-none mt-1">PROPERTIES &amp; SUITE</span></div><button class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[20px]">left_panel_close</span></button></div><nav class="flex flex-col gap-5 overflow-y-auto max-h-[calc(100vh-220px)] pr-1" data-active-classes="bg-primary-container text-on-primary font-bold rounded-xl"><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Seguimiento</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="home" href="#"><span class="material-symbols-outlined text-[20px]">dashboard</span><span class="">Home</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="operaciones" href="#"><span class="material-symbols-outlined text-[20px]">sync_alt</span><span class="">Operaciones</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="soporte" href="#"><span class="material-symbols-outlined text-[20px]">support_agent</span><span class="">Soporte</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="vencimientos" href="#"><span class="material-symbols-outlined text-[20px]">event_busy</span><span class="">Vencimientos</span></a></div><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Documentación</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="contratos" href="#"><span class="material-symbols-outlined text-[20px]">history_edu</span><span class="">Contratos</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="creatividades" href="#"><span class="material-symbols-outlined text-[20px]">palette</span><span class="">Creatividades</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="documentacion" href="#"><span class="material-symbols-outlined text-[20px]">folder</span><span class="">Documentación</span></a></div><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Administración</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="facturas" href="#"><span class="material-symbols-outlined text-[20px]">receipt_long</span><span class="">Facturas</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="recibos" href="#"><span class="material-symbols-outlined text-[20px]">payments</span><span class="">Recibos</span></a></div><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Base de Datos</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="proyectos" href="#"><span class="material-symbols-outlined text-[20px]">apartment</span><span class="">Proyectos</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="obra" href="#"><span class="material-symbols-outlined text-[20px]">foundation</span><span class="">Obra</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="compradores" href="#"><span class="material-symbols-outlined text-[20px]">badge</span><span class="">Compradores</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="usuarios" href="#"><span class="material-symbols-outlined text-[20px]">group</span><span class="">Usuarios</span></a></div></nav></div><div class="flex flex-col gap-3 pt-4 border-t border-outline/20"><div class="flex items-center justify-between px-3"><span class="font-body-sm text-body-sm text-outline uppercase tracking-wider">Idioma</span><div class="flex items-center bg-surface-container p-1 rounded-full"><button class="px-3 py-0.5 rounded-full font-label-md text-label-md bg-deep-lagoon text-on-primary" type="button">ES</button><button class="px-3 py-0.5 rounded-full font-label-md text-label-md text-on-surface-variant hover:text-on-surface" type="button">EN</button></div></div><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="login" href="#"><span class="material-symbols-outlined text-[20px]">logout</span><span class="">Cerrar Sesión</span></a></div></aside><div class="pl-72 min-h-screen flex flex-col"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-low/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-gutter flex items-center justify-between"><div class="flex items-center gap-4"></div><div class="flex items-center gap-4"><button class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" title="Buscar" type="button"><span class="material-symbols-outlined text-[20px]">search</span></button><button class="relative w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" title="Notificaciones" type="button"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-1 right-1 w-4 h-4 bg-error text-on-error font-body-sm text-[10px] rounded-full flex items-center justify-center font-bold whitespace-nowrap" data-lw="k-avisos">—</span></button><div class="flex items-center gap-3 pl-3 border-l border-outline/20"><div class="flex flex-col text-right"><span class="font-label-md text-label-md text-on-surface leading-tight" data-lw-user>Usuario del equipo</span><span class="font-body-sm text-body-sm text-outline leading-tight" data-lw-rol>—</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-16 px-margin-desktop py-8 flex-1 bg-raw-linen">
+<div class="flex flex-col w-full gap-8">
+
+<!-- Asistente de respuestas — 22-sep-2026, S5 del encargo
+     encargos/20260922_lawang_bot_apoyo_agentes.md. Flujo pedido por el owner:
+     «cliente - agente - bot IA y de vuelta». El agente pega la pregunta del
+     comprador, elige SU contrato y recibe un BORRADOR que revisa y reenvía él.
+     Desde esta pantalla NO se envía nada: ni WhatsApp, ni email, ni portal —
+     el único botón de salida es «Copiar borrador» (decisión del owner y de
+     Legal en la tabla de Decisiones del encargo). Quien redacta es la Edge
+     Function `bot-agentes`, que lee el contrato con el JWT del agente: lo que
+     no puede ver aquí tampoco lo puede preguntar allí. -->
+<div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 bg-surface-container-lowest p-8 rounded-xl shadow-sm">
+<div class="flex flex-col gap-2 max-w-3xl">
+<h1 class="font-headline-lg text-headline-lg text-deep-lagoon tracking-tight" data-lwt>Asistente de respuestas</h1>
+<p class="font-body-md text-body-md text-on-surface-variant" data-lwt>Redacta un BORRADOR de respuesta a la pregunta de un comprador citando solo su contrato. Tú lo revisas, lo corriges si hace falta y se lo reenvías: desde aquí no se envía nada.</p>
+</div>
+</div>
+
+<!-- Aviso que NO se va (regla de `.sui-aviso`): es lo que hay que tener
+     delante cada vez que se entra, no una vez. Las tres clases de pregunta las
+     decide Legal (Decisiones del encargo): cita literal, «¿existe el
+     documento?» y contraoferta comercial — la tercera no se redacta nunca. -->
+<div class="sui-aviso rounded-xl border border-burnt-earth/30 bg-surface-alt px-5 py-4 flex items-start gap-3" role="status">
+<span class="material-symbols-outlined text-[20px] text-burnt-earth shrink-0">smart_toy</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant" data-lwt>Cita solo el ejemplar del contrato elegido. Lo que no esté en él lo marca como pendiente, y una contraoferta comercial la deja para el promotor: no rellenes ninguno de los dos huecos con algo plausible.</p>
+</div>
+
+<section class="bg-surface-container-lowest rounded-xl p-8 shadow-sm flex flex-col gap-6">
+<div class="flex flex-col gap-1 pb-4 border-b border-outline-variant/40">
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold" data-lwt>Consulta</span>
+<h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight" data-lwt>Qué contrato y qué pregunta</h2>
+</div>
+
+<div class="flex flex-col gap-2">
+<label class="font-label-md text-label-md text-on-surface" for="lw-contrato" data-lwt>Contrato</label>
+<!-- `lwPicker` (dialogo.js) convierte este campo en el disparador de la lista:
+     queda readonly y se abre con clic, Enter o flecha abajo. El VALOR visible
+     es la etiqueta «CC00107 · NOMBRE · Proyecto»; el uuid que viaja al
+     servidor se resuelve desde esa etiqueta (mapa en el script de abajo),
+     porque el picker escribe en el campo el `valor` de la opción y un uuid
+     en pantalla no le dice nada al agente. -->
+<input autocomplete="off" class="w-full max-w-2xl rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:border-deep-lagoon" data-lwt-ph id="lw-contrato" placeholder="Elige el contrato del comprador" type="text">
+<p class="font-body-sm text-body-sm text-outline" data-lwt id="lw-contrato-estado">Cargando tus contratos…</p>
+</div>
+
+<div class="flex flex-col gap-2">
+<label class="font-label-md text-label-md text-on-surface" for="lw-pregunta" data-lwt>Pregunta del comprador (pégala tal cual)</label>
+<!-- maxlength 4000 = TOPE_PREGUNTA de la edge, que además lo vuelve a
+     comprobar en servidor (400 pregunta_demasiado_larga). -->
+<textarea class="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:border-deep-lagoon" data-lwt-ph id="lw-pregunta" maxlength="4000" placeholder="Pega aquí el mensaje del comprador, sin resumirlo ni corregirlo." rows="9"></textarea>
+<p class="font-body-sm text-body-sm text-outline text-right" id="lw-contador">0 / 4000</p>
+</div>
+
+<!-- Acción principal: UNA, la última de la barra (Controles compartidos de
+     contexto/suite_lawang.md). `data-real` para que maqueta.js no la
+     secuestre con su «disponible en la fase de cableado». -->
+<div class="flex flex-wrap items-center justify-end gap-3 pt-2">
+<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary disabled:opacity-60 disabled:cursor-wait font-label-md text-label-md transition-colors shadow-sm" data-real id="lw-redactar" type="button"><span class="material-symbols-outlined text-[18px]">edit_note</span><span data-lwt id="lw-redactar-texto">Redactar borrador</span></button>
+</div>
+</section>
+
+<!-- Resultado. Nace oculto y se destapa con la respuesta de la edge. Con
+     `{error}` se queda oculto salvo los puntos pendientes que vengan en la
+     respuesta (un borrador descartado sigue trayendo `bloqueos`, y esos sí
+     le sirven al agente): el borrador, las fuentes y «Copiar» solo aparecen
+     cuando hay borrador. -->
+<!-- Clase `hidden` de Tailwind ADEMÁS del atributo: `.flex` tiene la misma
+     especificidad que `[hidden]` del reset y va después, así que el atributo
+     solo no oculta nada (medido con el harness QA, 22-sep). El script
+     conmuta los dos a la vez (muestra()). -->
+<section class="bg-surface-container-lowest rounded-xl p-8 shadow-sm flex flex-col gap-5 hidden" hidden id="lw-resultado">
+<div class="flex flex-col gap-1 pb-4 border-b border-outline-variant/40">
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold" data-lwt>Resultado</span>
+<h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight" data-lwt>Borrador para revisar</h2>
+</div>
+
+<!-- Un `.sui-aviso` con role="status" por cada punto pendiente que devuelve
+     el servidor (`bloqueos`), y otro si la plantilla cambió tras la firma.
+     Los crea el script; aquí solo está el hueco. -->
+<div class="flex flex-col gap-3" id="lw-avisos"></div>
+
+<div class="flex flex-col gap-4 hidden" hidden id="lw-borrador-caja">
+<!-- Marca fija, exigida por Legal (Decisiones del encargo): visible siempre
+     que haya borrador, pegada a él, y no se puede quitar. -->
+<div class="sui-aviso rounded-xl border border-deep-lagoon/30 bg-surface-container-low px-5 py-4 flex items-start gap-3" role="status">
+<span class="material-symbols-outlined text-[20px] text-deep-lagoon shrink-0">smart_toy</span>
+<p class="font-body-sm text-body-sm text-on-surface" data-lwt>Borrador generado por IA — revísalo antes de enviarlo</p>
+</div>
+<pre class="whitespace-pre-wrap break-words font-body-md text-body-md text-on-surface bg-surface-container-low rounded-xl p-6 m-0" id="lw-borrador" style="white-space:pre-wrap"></pre>
+<div class="flex flex-col gap-2">
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold" data-lwt>Fuentes citadas</span>
+<ul class="flex flex-col gap-1 font-body-sm text-body-sm text-on-surface-variant list-disc pl-5" id="lw-fuentes"></ul>
+</div>
+<div class="flex flex-wrap items-center justify-end gap-3">
+<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-label-md transition-colors shadow-sm" data-real id="lw-copiar" type="button"><span class="material-symbols-outlined text-[18px]">content_copy</span><span data-lwt>Copiar borrador</span></button>
+</div>
+</div>
+</section>
+
+</div>
+</main></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* Mismo host que guard.js/editores.js/datos.js: la suite lo escribe en
+     cada llamada a una edge (admin-usuarios, portal-invitar). */
+  var URL_SB = 'https://vtulllundrfennhjddhc.supabase.co';
+  var KEY_SB = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';   // publicable: el candado es la RLS
+  var EDGE = URL_SB + '/functions/v1/bot-agentes';
+  var TOPE = 4000;
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* El texto de cada error de la edge, para toastMal. Los códigos son los de
+     contracts/edge/bot-agentes/index.ts; uno que no esté aquí se enseña con
+     su código para que se pueda buscar, nunca se traga. */
+  var ERRORES = {
+    sin_sesion: 'Tu sesión ha caducado: vuelve a entrar.',
+    sesion_invalida: 'Tu sesión ha caducado: vuelve a entrar.',
+    contrato_id_invalido: 'El contrato elegido no es válido: vuelve a elegirlo.',
+    pregunta_requerida: 'Pega la pregunta del comprador antes de redactar.',
+    pregunta_demasiado_larga: 'La pregunta supera los 4.000 caracteres: recórtala.',
+    no_autorizado: 'Ese contrato no está a tu alcance: no se ha redactado nada.',
+    bot_no_configurado: 'El asistente no está configurado todavía: avisa a administración.',
+    sin_prompt_sistema: 'El asistente no está configurado todavía: avisa a administración.',
+    modelo_no_disponible: 'El modelo no responde ahora mismo: vuelve a intentarlo en un minuto.',
+    no_se_pudo_leer_contrato: 'No se ha podido leer el expediente del contrato: no se ha redactado nada.',
+    no_se_pudo_leer_contexto: 'No se ha podido leer el expediente del contrato: no se ha redactado nada.',
+    no_se_pudo_registrar: 'No se pudo registrar la consulta, y sin registro no hay borrador.',
+    no_se_pudo_comprobar_limite: 'No se pudo comprobar tu límite de consultas: vuelve a intentarlo.',
+    bloqueo_invalido: 'Un freno del asistente está mal escrito: avisa a administración.',
+    limite_hora: 'Has alcanzado el límite de consultas por hora',
+    limite_dia: 'Has alcanzado el límite de consultas de hoy'
+  };
+  /* `borrador_descartado` trae un `motivo`: el post-chequeo del servidor
+     (cifra ajena, patrón de salida) o el modelo (rehusó, cortado, vacío). */
+  var DESCARTES = {
+    cifra_ajena_al_contexto: 'Borrador descartado: contenía una cifra que no está en el contrato.',
+    patron_salida: 'Borrador descartado: tocaba un punto que solo decide el promotor.',
+    patron_salida_invalido: 'Borrador descartado: un freno del asistente está mal escrito.',
+    modelo_rehuso: 'Borrador descartado: el modelo no quiso responder a esa pregunta.',
+    respuesta_truncada: 'Borrador descartado: la respuesta salió cortada. Prueba con una pregunta más corta.',
+    respuesta_vacia: 'Borrador descartado: el modelo no devolvió texto.'
+  };
+  function textoError(cuerpo, status) {
+    var e = cuerpo && cuerpo.error;
+    if (e === 'borrador_descartado') {
+      var motivo = cuerpo.motivo || '—';
+      return DESCARTES[cuerpo.motivo] ? lwT(DESCARTES[cuerpo.motivo]) : lwT('Borrador descartado: %m', { m: motivo });
+    }
+    if (status === 429) return lwT(ERRORES[e] || ERRORES.limite_hora);
+    if (ERRORES[e]) return lwT(ERRORES[e]);
+    var codigo = e || ('HTTP ' + status);
+    return lwT('No se pudo redactar el borrador (%e).', { e: codigo });
+  }
+
+  /* Qué es cada fuente, en palabras: la edge devuelve {tabla, id, campo} —
+     referencias, no copias (Seguridad) — y el agente no tiene por qué saber
+     cómo se llama una tabla. */
+  var TABLAS = {
+    contratos: 'Contrato', unidades: 'Unidad', proyectos: 'Proyecto',
+    cuentas_bancarias: 'Cuenta de cobro', contrato_documentos: 'Documento del contrato',
+    documentos_proyecto: 'Documento del proyecto', modelo_documentos: 'Documento del modelo',
+    plantillas_contrato: 'Plantilla', bot_fuentes: 'Reglas del asistente'
+  };
+
+  function aviso(texto, detalle) {
+    var d = document.createElement('div');
+    d.className = 'sui-aviso rounded-xl border border-burnt-earth/30 bg-surface-alt px-5 py-4 flex items-start gap-3';
+    d.setAttribute('role', 'status');
+    var ic = document.createElement('span');
+    ic.className = 'material-symbols-outlined text-[20px] text-burnt-earth shrink-0';
+    ic.textContent = 'report';
+    var p = document.createElement('p');
+    p.className = 'font-body-sm text-body-sm text-on-surface-variant';
+    var b = document.createElement('b');
+    b.className = 'text-on-surface';
+    b.textContent = texto;
+    p.appendChild(b);
+    if (detalle) {
+      var s = document.createElement('span');
+      s.textContent = ' ' + detalle;
+      p.appendChild(s);
+    }
+    d.appendChild(ic); d.appendChild(p);
+    return d;
+  }
+
+  function vacia(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+  /* Atributo `hidden` Y clase `hidden` de Tailwind: con `.flex` en el mismo
+     nodo, el atributo solo no oculta (ver el comentario del <section>). */
+  function muestra(el, si) { el.hidden = !si; el.classList.toggle('hidden', !si); }
+
+  function pintaAvisos(cuerpo) {
+    var caja = $('lw-avisos');
+    vacia(caja);
+    (cuerpo.bloqueos || []).forEach(function (b) {
+      if (!b || !b.motivo) return;
+      caja.appendChild(aviso(lwT('Punto pendiente: ') + b.motivo, b.ref ? '(' + b.ref + ')' : ''));
+    });
+    if (cuerpo.plantilla_cambio_tras_firma) {
+      caja.appendChild(aviso(
+        lwT('La plantilla ha cambiado desde la firma: contrasta con el PDF firmado'),
+        lwT('Comprobado por la fecha de la plantilla, no por su texto: el texto articulado no está en la base.')));
+    }
+    return caja.children.length > 0;
+  }
+
+  function pintaFuentes(fuentes) {
+    var ul = $('lw-fuentes');
+    vacia(ul);
+    (fuentes || []).forEach(function (f) {
+      if (!f || !f.tabla) return;
+      var li = document.createElement('li');
+      var id = String(f.id || '');
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(id)) id = id.slice(0, 8) + '…';
+      li.textContent = lwT(TABLAS[f.tabla] || f.tabla) + (f.campo ? ' · ' + f.campo : '') + (id ? ' · ' + id : '');
+      ul.appendChild(li);
+    });
+    if (!ul.children.length) {
+      var li0 = document.createElement('li');
+      li0.textContent = lwT('El servidor no ha citado ninguna fuente.');
+      ul.appendChild(li0);
+    }
+  }
+
+  function pintaResultado(cuerpo) {
+    var hayAvisos = pintaAvisos(cuerpo);
+    var conBorrador = typeof cuerpo.borrador === 'string' && cuerpo.borrador.trim() !== '';
+    muestra($('lw-borrador-caja'), conBorrador);
+    if (conBorrador) {
+      $('lw-borrador').textContent = cuerpo.borrador;
+      pintaFuentes(cuerpo.fuentes);
+    } else {
+      $('lw-borrador').textContent = '';
+      vacia($('lw-fuentes'));
+    }
+    var sec = $('lw-resultado');
+    muestra(sec, hayAvisos || conBorrador);
+    if (!sec.hidden) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function limpiaResultado() {
+    vacia($('lw-avisos'));
+    $('lw-borrador').textContent = '';
+    vacia($('lw-fuentes'));
+    muestra($('lw-borrador-caja'), false);
+    muestra($('lw-resultado'), false);
+  }
+
+  function contador() {
+    var n = $('lw-pregunta').value.length;
+    $('lw-contador').textContent = lwT('%n / %m', { n: n, m: TOPE });
+  }
+
+  function init(aut) {
+    var sb = aut.sb;
+    var input = $('lw-contrato'), estado = $('lw-contrato-estado');
+    var porEtiqueta = {};          // «CC00107 · NOMBRE · Proyecto» -> uuid
+
+    $('lw-pregunta').addEventListener('input', contador);
+    contador();
+
+    /* La lista es la que devuelve la RLS de `contratos` para esta sesión:
+       lo mismo que la edge podrá leer con el mismo JWT. Nunca se pide `datos`
+       (TOAST, ver datos.js). */
+    sb.from('contratos')
+      .select('id, numero, comprador_nombre, proyecto_nombre, tipo, bloqueado')
+      .order('numero', { ascending: false })
+      .then(function (r) {
+        if (r.error) {
+          /* «No hay contratos» y «no he podido mirar» NO se leen igual. */
+          estado.textContent = lwT('No se han podido cargar los contratos: ') + (r.error.message || '');
+          toastMal(lwT('No se han podido cargar los contratos: ') + (r.error.message || ''));
+          return;
+        }
+        var cs = r.data || [];
+        if (!cs.length) {
+          estado.textContent = lwT('No tienes ningún contrato a la vista: sin contrato no hay nada que citar.');
+          return;
+        }
+        if (!window.lwPicker) {
+          estado.textContent = lwT('El selector de contratos no ha cargado — recarga la página.');
+          return;
+        }
+        var opciones = cs.map(function (c) {
+          var etiqueta = [c.numero || '—', c.comprador_nombre || '—', c.proyecto_nombre || '—'].join(' · ');
+          porEtiqueta[etiqueta] = c.id;
+          var tipo = (typeof lwTipoContrato === 'function') ? lwTipoContrato(c.tipo) : (c.tipo || '');
+          return { valor: etiqueta, texto: etiqueta, nota: tipo + ' · ' + lwT(c.bloqueado ? 'firmado' : 'sin firmar') };
+        });
+        window.lwPicker(input, opciones, { titulo: lwT('Contrato del comprador') });
+        estado.textContent = cs.length === 1
+          ? lwT('1 contrato a tu alcance')
+          : lwT('%n contratos a tu alcance', { n: cs.length });
+      });
+
+    var btn = $('lw-redactar'), btnTexto = $('lw-redactar-texto');
+    function ocupado(si) {
+      btn.disabled = si;
+      btnTexto.textContent = si ? lwT('Redactando…') : lwT('Redactar borrador');
+    }
+
+    btn.addEventListener('click', function (ev) {
+      ev.stopPropagation();   // maqueta.js no lo ve pasar (además de data-real)
+      var contratoId = porEtiqueta[input.value];
+      var pregunta = $('lw-pregunta').value.trim();
+      if (!contratoId) { toastMal(lwT('Elige primero el contrato del comprador.')); input.focus(); return; }
+      if (!pregunta) { toastMal(lwT('Pega la pregunta del comprador antes de redactar.')); $('lw-pregunta').focus(); return; }
+      if (pregunta.length > TOPE) { toastMal(lwT(ERRORES.pregunta_demasiado_larga)); return; }
+
+      ocupado(true);
+      limpiaResultado();
+      sb.auth.getSession().then(function (r) {
+        var token = r && r.data && r.data.session && r.data.session.access_token;
+        if (!token) { ocupado(false); toastMal(lwT(ERRORES.sin_sesion)); return; }
+        var status = 0;
+        return fetch(EDGE, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token,
+            'apikey': KEY_SB
+          },
+          body: JSON.stringify({ contrato_id: contratoId, pregunta: pregunta })
+        }).then(function (res) {
+          status = res.status;
+          return res.json().catch(function () { return { error: 'respuesta_ilegible' }; });
+        }).then(function (cuerpo) {
+          ocupado(false);
+          if (!cuerpo || cuerpo.error || status < 200 || status >= 300) {
+            toastMal(textoError(cuerpo || {}, status));
+            // Un borrador descartado sigue trayendo los puntos pendientes:
+            // se enseñan, sin borrador, sin fuentes y sin «Copiar».
+            if (cuerpo && (cuerpo.bloqueos || []).length) pintaResultado({ bloqueos: cuerpo.bloqueos });
+            return;
+          }
+          pintaResultado(cuerpo);
+        });
+      }).catch(function (e) {
+        ocupado(false);
+        toastMal(lwT('No hay conexión con el asistente: comprueba la red y vuelve a intentarlo.') + ' (' + ((e && e.message) || e) + ')');
+      });
+    });
+
+    $('lw-copiar').addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      var texto = $('lw-borrador').textContent;
+      if (!texto) { toastMal(lwT('No hay borrador que copiar.')); return; }
+      if (!(navigator.clipboard && navigator.clipboard.writeText)) {
+        toastMal(lwT('No se pudo copiar: selecciona el texto y cópialo a mano.'));
+        return;
+      }
+      navigator.clipboard.writeText(texto).then(function () {
+        toast(lwT('Borrador copiado.'));
+      }, function () {
+        toastMal(lwT('No se pudo copiar: selecciona el texto y cópialo a mano.'));
+      });
+    });
+  }
+
+  /* DOMContentLoaded PRIMERO y LW_AUTH después, en ese orden: suite-comun.js,
+     dialogo.js y vocabulario.js van con `defer` y en modo QA `LW_AUTH` llega
+     ya resuelto — su `.then` correría antes de que existieran toastMal y
+     lwPicker. Los scripts diferidos siempre han terminado cuando salta
+     DOMContentLoaded. */
+  function arranca() {
+    if (!window.LW_AUTH || typeof window.LW_AUTH.then !== 'function') {
+      $('lw-contrato-estado').textContent = lwT('Sin sesión: recarga la página o vuelve a entrar.');
+      return;
+    }
+    window.LW_AUTH.then(init);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arranca);
+  else arranca();
+})();
+</script>
+
+</body></html>

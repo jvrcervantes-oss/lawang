@@ -127,6 +127,24 @@ const LW_HERRAMIENTAS = [
     claves:'contratos ppjb reserva construccion anexos contracts reservation construction annexes deeds',
     estado:d => d.contratos == null ? null
       : [hT('%g guardados · %e editables', { g: d.contratos, e: d.contratosEditables }), false] },
+  /* Nueva 22-sep-2026 (encargo del owner: «apoyo de una IA que nos ayude a
+     responder» las dudas que un comprador manda a su agente —
+     encargos/20260922_lawang_bot_apoyo_agentes.md). Va PEGADA a Contratos
+     porque es su otra cara: allí se emite el ejemplar, aquí se responde
+     citándolo. Redacta un BORRADOR y nada más — no envía, no tiene WhatsApp
+     ni email: el agente lo revisa y lo reenvía él (owner y Legal, misma
+     fecha). Quien redacta es la Edge Function bot-agentes, que lee el
+     contrato con el JWT del agente: la RLS de `contratos` es la puerta real.
+     `herr:'contratos'` A PROPÓSITO, no una clave nueva (decisión CEO en el
+     encargo): quien ve el contrato puede pedir el borrador, y una clave nueva
+     obliga a redesplegar la edge admin-usuarios (LAW-70) — mismo precedente
+     que Vencimientos, Modelos y Solicitudes. Al compartir clave dos
+     tarjetas, la etiqueta del permiso va en LW_ETIQUETA_PROPIA (abajo).
+     Sin `estado`: no hay nada que vigilar cada mañana — se usa cuando llega
+     una pregunta, no al revés. */
+  { grupo:'Documentación', nombre:'Asistente', icon:'ph-robot', href:'/intranet/v4/asistente/', herr:'contratos',
+    para:'Un borrador de respuesta a la duda de un comprador, citando solo su contrato. Lo revisas y lo mandas tú.',
+    claves:'asistente bot ia inteligencia artificial borrador respuesta comprador pregunta duda contrato clausula pendiente assistant ai draft reply buyer question doubt contract clause pending' },
   // Dossier y Creatividades, unificadas en UNA tarjeta (7-ago-2026): antes
   // eran dos entradas sueltas para dos herramientas de producción de
   // contenido que casi siempre se usan seguidas. `herr` como ARRAY = ve la
@@ -330,6 +348,7 @@ const LW_ETIQUETA_PROPIA = {
   creatividades: 'Creatividades',
   facturas:      'Facturas y recibís',   // dos tarjetas (Facturas y Recibos), un solo permiso
   operaciones:   'Operaciones y solicitudes',   // dos tarjetas (Operaciones y Solicitudes), un solo permiso — 9-sep-2026
+  contratos:     'Contratos y asistente',       // dos tarjetas (Contratos y Asistente), un solo permiso — 22-sep-2026
   usuarios:      'Usuarios (admin)',     // el «(admin)» avisa de que además exige rol
 };
 

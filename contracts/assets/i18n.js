@@ -2652,6 +2652,87 @@
       '«%p» is available again when creating a contract',
     'No se pudo cambiar: ': 'Could not change: ',
 
+    /* ---------- Asistente de respuestas (/intranet/v4/asistente/, 22-sep-2026) ----------
+       Un BORRADOR de respuesta a la pregunta de un comprador citando su contrato
+       (encargos/20260922_lawang_bot_apoyo_agentes.md, S5). «Draft» y no
+       «reply»/«answer» en todo el bloque: Legal exige que se lea como algo que
+       el agente revisa antes de reenviar, nunca como una respuesta ya dada.
+       Los mensajes de error son los códigos de la Edge Function bot-agentes
+       puestos en palabras; el catálogo de códigos vive en el index.ts. */
+    'Asistente': 'Assistant',
+    'Contratos y asistente': 'Contracts & assistant',
+    'Asistente de respuestas': 'Reply assistant',
+    'Un borrador de respuesta a la duda de un comprador, citando solo su contrato. Lo revisas y lo mandas tú.':
+      'A draft reply to a buyer\'s question, citing only their contract. You review it and send it yourself.',
+    'Redacta un BORRADOR de respuesta a la pregunta de un comprador citando solo su contrato. Tú lo revisas, lo corriges si hace falta y se lo reenvías: desde aquí no se envía nada.':
+      'It drafts a DRAFT reply to a buyer\'s question citing only their contract. You review it, fix it if needed and forward it yourself: nothing is sent from here.',
+    'Cita solo el ejemplar del contrato elegido. Lo que no esté en él lo marca como pendiente, y una contraoferta comercial la deja para el promotor: no rellenes ninguno de los dos huecos con algo plausible.':
+      'It cites only the chosen contract. Anything not in it is flagged as pending, and a commercial counter-offer is left to the developer: do not fill either gap with something plausible.',
+    'Consulta': 'Query',
+    'Qué contrato y qué pregunta': 'Which contract and which question',
+    'Elige el contrato del comprador': 'Pick the buyer\'s contract',
+    'Contrato del comprador': 'Buyer\'s contract',
+    'Cargando tus contratos…': 'Loading your contracts…',
+    'No tienes ningún contrato a la vista: sin contrato no hay nada que citar.':
+      'You have no contract in sight: without a contract there is nothing to cite.',
+    'No se han podido cargar los contratos: ': 'Could not load the contracts: ',
+    'El selector de contratos no ha cargado — recarga la página.': 'The contract picker did not load — reload the page.',
+    '1 contrato a tu alcance': '1 contract within your reach',
+    '%n contratos a tu alcance': '%n contracts within your reach',
+    'firmado': 'signed',
+    'Pregunta del comprador (pégala tal cual)': 'Buyer\'s question (paste it as is)',
+    'Pega aquí el mensaje del comprador, sin resumirlo ni corregirlo.': 'Paste the buyer\'s message here, without summarising or correcting it.',
+    '%n / %m': '%n / %m',
+    'Redactar borrador': 'Write draft',
+    'Redactando…': 'Drafting…',
+    'Elige primero el contrato del comprador.': 'Pick the buyer\'s contract first.',
+    'Pega la pregunta del comprador antes de redactar.': 'Paste the buyer\'s question before drafting.',
+    'Resultado': 'Result',
+    'Borrador para revisar': 'Draft to review',
+    'Punto pendiente: ': 'Pending point: ',
+    'La plantilla ha cambiado desde la firma: contrasta con el PDF firmado':
+      'The template has changed since signing: check against the signed PDF',
+    'Comprobado por la fecha de la plantilla, no por su texto: el texto articulado no está en la base.':
+      'Checked by the template\'s date, not its wording: the articled text is not in the database.',
+    'Borrador generado por IA — revísalo antes de enviarlo': 'AI-generated draft — review it before sending',
+    'Fuentes citadas': 'Sources cited',
+    'El servidor no ha citado ninguna fuente.': 'The server cited no sources.',
+    'Cuenta de cobro': 'Payment account',
+    'Documento del contrato': 'Contract document',
+    'Documento del proyecto': 'Project document',
+    'Documento del modelo': 'Model document',
+    'Plantilla': 'Template',
+    'Reglas del asistente': 'Assistant rules',
+    'Copiar borrador': 'Copy draft',
+    'Borrador copiado.': 'Draft copied.',
+    'No hay borrador que copiar.': 'There is no draft to copy.',
+    'No se pudo copiar: selecciona el texto y cópialo a mano.': 'Could not copy: select the text and copy it by hand.',
+    'Sin sesión: recarga la página o vuelve a entrar.': 'No session: reload the page or sign in again.',
+    'No hay conexión con el asistente: comprueba la red y vuelve a intentarlo.':
+      'No connection to the assistant: check the network and try again.',
+    'No se pudo redactar el borrador (%e).': 'Could not write the draft (%e).',
+    /* códigos de error de la edge */
+    'Tu sesión ha caducado: vuelve a entrar.': 'Your session has expired: sign in again.',
+    'El contrato elegido no es válido: vuelve a elegirlo.': 'The chosen contract is not valid: pick it again.',
+    'La pregunta supera los 4.000 caracteres: recórtala.': 'The question exceeds 4,000 characters: trim it.',
+    'Ese contrato no está a tu alcance: no se ha redactado nada.': 'That contract is not within your reach: nothing was drafted.',
+    'El asistente no está configurado todavía: avisa a administración.': 'The assistant is not set up yet: tell administration.',
+    'El modelo no responde ahora mismo: vuelve a intentarlo en un minuto.': 'The model is not responding right now: try again in a minute.',
+    'No se ha podido leer el expediente del contrato: no se ha redactado nada.': 'Could not read the contract file: nothing was drafted.',
+    'No se pudo registrar la consulta, y sin registro no hay borrador.': 'Could not log the query, and without a log there is no draft.',
+    'No se pudo comprobar tu límite de consultas: vuelve a intentarlo.': 'Could not check your query limit: try again.',
+    'Un freno del asistente está mal escrito: avisa a administración.': 'One of the assistant\'s brakes is misspelt: tell administration.',
+    'Has alcanzado el límite de consultas por hora': 'You have reached the hourly query limit',
+    'Has alcanzado el límite de consultas de hoy': 'You have reached today\'s query limit',
+    /* borrador descartado por el post-chequeo del servidor o por el modelo */
+    'Borrador descartado: %m': 'Draft discarded: %m',
+    'Borrador descartado: contenía una cifra que no está en el contrato.': 'Draft discarded: it contained a figure that is not in the contract.',
+    'Borrador descartado: tocaba un punto que solo decide el promotor.': 'Draft discarded: it touched a point only the developer decides.',
+    'Borrador descartado: un freno del asistente está mal escrito.': 'Draft discarded: one of the assistant\'s brakes is misspelt.',
+    'Borrador descartado: el modelo no quiso responder a esa pregunta.': 'Draft discarded: the model declined to answer that question.',
+    'Borrador descartado: la respuesta salió cortada. Prueba con una pregunta más corta.': 'Draft discarded: the reply came out cut off. Try a shorter question.',
+    'Borrador descartado: el modelo no devolvió texto.': 'Draft discarded: the model returned no text.',
+
   };
 
   window.LW_EN = EN;

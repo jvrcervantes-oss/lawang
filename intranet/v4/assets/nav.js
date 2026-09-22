@@ -36,6 +36,7 @@
        (owner, 14-sep). Ruta ABSOLUTA, no relativa a ROOT: lo que hay en
        v4/leads/ es solo una redireccion para los enlaces viejos. */
     ['CRM', '/intranet/leads/'],
+    ['Asistente', 'asistente/'],
     ['Comisiones', 'comisiones/'],
     ['Cuentas', 'cuentas/'],
     ['Equipos de venta', 'equipos-venta/'],
@@ -145,6 +146,14 @@
   var INJERTOS = [
     { path: 'leads',      tras: 'home',     icono: 'person_search',  texto: 'CRM',
       href: '/intranet/leads/' },   // vista propia: sale de la v4
+    /* Asistente de respuestas (22-sep-2026, S5 de
+       encargos/20260922_lawang_bot_apoyo_agentes.md): tras Contratos, en
+       Documentación, como en herramientas.js. OJO: este fichero NO lee el
+       catálogo (pese a lo que dice el comentario de arriba, RUTAS e INJERTOS
+       son listas propias) — una tarjeta nueva en herramientas.js sale en el
+       hub y en la barra clásica, pero en esta sidebar solo si se injerta
+       aquí. Se deja dicho para que la próxima herramienta no se quede fuera. */
+    { path: 'asistente',  tras: 'contratos', icono: 'smart_toy',     texto: 'Asistente' },
     { path: 'comisiones', tras: 'recibos',  icono: 'request_quote',  texto: 'Comisiones' }
   ];
 
