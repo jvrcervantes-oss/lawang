@@ -567,7 +567,9 @@
          el cron que libera, así que la ficha y el automatismo no pueden
          discrepar. Para un contrato que no es Carta devuelve null y no se pinta. */
       sb.rpc('reserva_vence_el', { p_contrato_id: id }),
-      sb.from('contrato_prorrogas').select('n,dias,desde,hasta,motivo,comunicado_al_comprador,quien,creado_en').eq('contrato_id', id).order('n')
+      sb.from('contrato_prorrogas').select('n,dias,desde,hasta,motivo,comunicado_al_comprador,quien,creado_en').eq('contrato_id', id).order('n'),
+      // los topes de la prórroga y los días de gracia los pone el owner en /v4/ajustes/ (22-sep)
+      sb.from('parametros').select('clave,valor').like('clave', 'reservas.%')
     ]).then(function (r) {
       if (!document.getElementById('lw-cajon')) return;   // la cerraron antes de que llegara
       var c = r[0].data || c0;
@@ -587,6 +589,14 @@
       var esCartaViva = tiposReservaCat.indexOf(c.tipo) !== -1 && !c.liberado_en;
       var venceEl = (r[9] && !r[9].error && r[9].data) ? String(r[9].data).slice(0, 10) : null;
       var prorrogas = (r[10] && r[10].data) || [];
+      var PARAM = {};
+      ((r[11] && r[11].data) || []).forEach(function (x) { PARAM[x.clave] = x.valor; });
+      function param(k, def) { var v = PARAM[k]; return (typeof v === 'number' && isFinite(v)) ? v : def; }
+      var diasGracia = param('reservas.dias_gracia', 3);
+      var maxProrrogasManager = param('reservas.prorrogas_max_manager', 2);
+      var maxDiasManager = param('reservas.prorroga_dias_max_manager', 30);
+      var maxDiasAdmin = param('reservas.prorroga_dias_max_admin', 180);
+      var diasDefecto = param('reservas.prorroga_dias_defecto', 15);
       var hoyISO = new Date().toISOString().slice(0, 10);
       function masDias(iso, n) { var d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
       cuerpo += H.seccion('Contrato',
@@ -609,7 +619,7 @@
            sorpresa. Sin fecha = la Carta no tiene fecha de pago o validez y el
            cron la salta (no se inventa). */
         (esCartaViva ? H.dato('Vence el', (venceEl
-            ? esc(fFecha(venceEl)) + (venceEl < hoyISO ? ' ' + H.tag('Vencida · se libera el ' + fFecha(masDias(venceEl, 3)), 'mal') : (venceEl === hoyISO ? ' ' + H.tag('Vence hoy', 'espera') : ''))
+            ? esc(fFecha(venceEl)) + (venceEl < hoyISO ? ' ' + H.tag('Vencida · se libera el ' + fFecha(masDias(venceEl, diasGracia)), 'mal') : (venceEl === hoyISO ? ' ' + H.tag('Vence hoy', 'espera') : ''))
             : '<span style="color:#8A8474">sin plazo (falta fecha de pago o validez en la Carta)</span>') +
           (prorrogas.length ? '<br><span style="font-size:11.5px;color:#8A8474">' + prorrogas.length + ' prórroga(s): ' +
             esc(prorrogas.map(function (x) { return '+' + x.dias + 'd hasta ' + fFecha(x.hasta) + ' (' + (x.quien || '—') + (x.comunicado_al_comprador ? ', comunicada al comprador' : '') + ')'; }).join(' · ')) + '</span>' : ''),
@@ -659,14 +669,14 @@
          una promesa oral vincula (Legal). */
       if (puedeVerBoton && esCartaReserva && !c.liberado_en && unidadesReservadas.length >= 1) {
         var esAdminSesion = rolSesion === 'admin' || rolSesion === 'super_admin';
-        var topeAlcanzado = prorrogas.length >= 2 && !esAdminSesion;
+        var topeAlcanzado = prorrogas.length >= maxProrrogasManager && !esAdminSesion;
         cuerpo += H.seccion('Prorrogar reserva',
           H.nota(venceEl
-            ? 'Alarga el plazo de la reserva desde su vencimiento actual (' + fFecha(venceEl) + '). Máximo 2 prórrogas por Carta; la tercera solo la puede dar un admin. Al vencer hay 3 días de gracia antes de que la parcela se libere sola.'
+            ? 'Alarga el plazo de la reserva desde su vencimiento actual (' + fFecha(venceEl) + '). Máximo ' + maxProrrogasManager + ' prórroga(s) por Carta para un sales manager; a partir de ahí solo un admin. Al vencer hay ' + diasGracia + ' día(s) de gracia antes de que la parcela se libere sola. (Estos números se cambian en Ajustes.)'
             : 'Esta Carta no tiene fecha de pago de la reserva o plazo de validez: no hay vencimiento que prorrogar (y el automatismo tampoco la libera).') +
           (venceEl && !topeAlcanzado
             ? '<button type="button" data-lw-prorrogar="1" style="justify-self:start;margin-top:4px;padding:9px 16px;border-radius:10px;border:1px solid #2F5D9E;background:#fff;color:#2F5D9E;font:600 13px \'Neue Kabel\',system-ui;cursor:pointer">Prorrogar reserva</button>'
-            : (topeAlcanzado ? H.nota('Ya tiene 2 prórrogas: la siguiente solo la puede dar un admin.') : '')));
+            : (topeAlcanzado ? H.nota('Ya tiene ' + prorrogas.length + ' prórroga(s): la siguiente solo la puede dar un admin.') : '')));
       }
       if (puedeVerBoton && esCartaReserva && !c.liberado_en && unidadesReservadas.length > 1) {
         /* 21-sep-2026, hallazgo de code-review + comprobado contra producción
@@ -788,7 +798,7 @@
           if (typeof window.lwVentana !== 'function') { toast('El formulario aún no ha cargado — prueba de nuevo en un segundo.'); return; }
           window.lwVentana('Prorrogar reserva — ' + num, [
             { k: '_intro', tipo: 'nota', label: 'La reserva vence el ' + fFecha(venceEl) + '. Los días se suman a esa fecha. El contrato no se toca: la prórroga queda registrada aparte y el automatismo la respeta.' },
-            { k: 'dias', label: 'Días de prórroga', tipo: 'number', valor: 15, req: 1, medio: 1, ayuda: 'De 1 a 30 (un admin, hasta 180).' },
+            { k: 'dias', label: 'Días de prórroga', tipo: 'number', valor: diasDefecto, req: 1, medio: 1, ayuda: 'De 1 a ' + maxDiasManager + ' (un admin, hasta ' + maxDiasAdmin + ').' },
             { k: 'motivo', label: 'Motivo', tipo: 'textarea', req: 1, ayuda: 'Obligatorio: por qué se alarga (el comprador está en ello, espera transferencia…), para el histórico del contrato.' },
             { k: 'comunicado', label: 'Se lo he comunicado al comprador', tipo: 'check', valor: false, ayuda: 'Solo constancia. El sistema no avisa al comprador: la prórroga va a su favor y no necesita su firma.' }
           ], 'Prorrogar', function (vals) {
@@ -5959,6 +5969,61 @@
      activas (`cargarSociedades`, entities.js) es para quien REDACTA un
      documento, no para quien administra el catalogo — aqui hace falta ver
      la desactivada para poder reactivarla. */
+  /* Ajustes (22-sep-2026): la tabla `parametros`, clave a clave. Cualquier
+     admin la ve; guardar pasa por `parametro_set` (super admin en la base, con
+     el rango de cada ajuste). No se guarda casilla a casilla: un botón por
+     fila, para que un valor a medio teclear no llegue a la base. */
+  REG['ajustes'] = function (sb) {
+    if (!(window.LW_V4 && window.LW_V4.esAdmin)) { notaSoloAdmin(); return; }
+    var cuerpo = document.getElementById('lw-ajustes-lista');
+    var soloLee = !(window.LW_V4 && window.LW_V4.esSuperAdmin);
+    function fFechaHora(x) { if (!x) return '—'; var d = new Date(x); return isNaN(d) ? String(x).slice(0, 10) : d.toLocaleString('es-ES'); }
+    function pinta() {
+      q(sb.from('parametros').select('*').order('grupo').order('orden'), 'ajustes', cuerpo).then(function (rows) {
+        if (!rows) return;
+        if (!rows.length) { cuerpo.innerHTML = '<tr><td colspan="4" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">No hay ajustes dados de alta.</td></tr>'; return; }
+        cuerpo.innerHTML = rows.map(function (r) {
+          var esNum = typeof r.valor === 'number';
+          var rango = esNum && (r.minimo != null || r.maximo != null) ? ' <span class="text-outline">(' + (r.minimo != null ? r.minimo : '…') + ' – ' + (r.maximo != null ? r.maximo : '…') + ')</span>' : '';
+          return '<tr class="border-b border-outline-variant/30" data-clave="' + esc(r.clave) + '">' +
+            '<td class="px-5 py-4"><div class="font-label-md text-label-md text-on-surface">' + esc(r.etiqueta) + '</div>' +
+              (r.ayuda ? '<div class="font-body-sm text-body-sm text-outline mt-1">' + esc(r.ayuda) + '</div>' : '') +
+              '<div class="font-body-sm text-[11px] text-outline mt-1"><code>' + esc(r.clave) + '</code>' + rango + '</div></td>' +
+            '<td class="px-5 py-4">' + (esNum
+              ? '<input type="number" step="1" data-k="valor" value="' + esc(r.valor) + '"' + (r.minimo != null ? ' min="' + esc(r.minimo) + '"' : '') + (r.maximo != null ? ' max="' + esc(r.maximo) + '"' : '') + (soloLee ? ' disabled' : '') +
+                ' style="width:110px;padding:8px 10px;border:1px solid #E4DCCB;border-radius:10px;font:inherit">'
+              : '<code>' + esc(JSON.stringify(r.valor)) + '</code>') + '</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(fFechaHora(r.actualizado_en)) + (r.actualizado_por ? '<br>' + esc(r.actualizado_por) : '') + '</td>' +
+            '<td class="px-5 py-4 text-right">' + (esNum && !soloLee
+              ? '<button type="button" data-guardar="1" class="px-4 py-2 rounded-full bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md">Guardar</button>'
+              : '') + '</td></tr>';
+        }).join('');
+      });
+    }
+    pinta();
+    if (cuerpo && !cuerpo._wired) {
+      cuerpo._wired = true;
+      cuerpo.addEventListener('click', function (ev) {
+        var b = ev.target.closest && ev.target.closest('[data-guardar]');
+        if (!b) return;
+        ev.preventDefault(); ev.stopPropagation();
+        var tr = b.closest('tr'); var clave = tr.getAttribute('data-clave');
+        var inp = tr.querySelector('[data-k="valor"]');
+        var n = parseInt(inp.value, 10);
+        if (!isFinite(n)) { toast('Pon un número entero.'); return; }
+        b.disabled = true;
+        sb.rpc('parametro_set', { p_clave: clave, p_valor: n }).then(function (rr) {
+          b.disabled = false;
+          if (rr.error) { toast('No se guardó: ' + (rr.error.message || 'sin detalle')); return; }
+          toast('Guardado: ' + clave + ' = ' + n + '. Se aplica desde ahora (la próxima pasada del automatismo, la próxima prórroga).');
+          pinta();
+        });
+      });
+    }
+    var aviso = document.getElementById('lw-ajustes-solo-lectura');
+    if (aviso) aviso.hidden = !soloLee;
+  };
+
   REG['sociedades'] = function (sb) {
     if (!(window.LW_V4 && window.LW_V4.esSuperAdmin)) { notaSoloAdmin(); return; }
 

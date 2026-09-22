@@ -179,7 +179,12 @@
   var PANEL_CONTROL = [
     { path: 'cuentas',       icono: 'account_balance', texto: 'Cuentas' },
     { path: 'equipos-venta', icono: 'groups',           texto: 'Equipos de venta' },
-    { path: 'condiciones',   icono: 'percent',          texto: 'Condiciones' }
+    { path: 'condiciones',   icono: 'percent',          texto: 'Condiciones' },
+    /* Ajustes (22-sep-2026, owner: «en el panel de control podemos controlar
+       los días de gracia, las prórrogas, los techos, todo lo configurable»):
+       la tabla `parametros`. Lo ve cualquier admin; escribir exige super admin
+       en la base (parametro_set), como Cuentas. */
+    { path: 'ajustes',       icono: 'tune',             texto: 'Ajustes' }
   ];
 
   /* La comision de administracion va aparte del resto del Panel de control:

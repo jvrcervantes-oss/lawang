@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="es"><head><title>Sociedades emisoras — Lawang Intranet</title>
+<!DOCTYPE html><html lang="es"><head><title>Ajustes — Lawang Intranet</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d6d6608e"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
 <script src="/contracts/assets/i18n.js?v=564130b2" defer></script><script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="../assets/datos.js?v=fec07228" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
@@ -11,72 +11,40 @@
 
 <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 bg-surface-container-lowest p-8 rounded-xl shadow-sm">
 <div class="flex flex-col gap-2 max-w-3xl">
-<h1 class="font-headline-lg text-headline-lg text-deep-lagoon tracking-tight" data-lwt>Sociedades emisoras</h1>
-<p class="font-body-md text-body-md text-on-surface-variant" data-lwt>La identidad con la que cada sociedad de Lawang emite un contrato o una factura: razón social, identificación fiscal, domicilio, y el aspecto del documento. Hoy hay dos sociedades emisoras — PT SAN DAL WOODS y una segunda — más una tercera dada de alta sin documentos emitidos todavía.</p>
+<h1 class="font-headline-lg text-headline-lg text-deep-lagoon tracking-tight" data-lwt>Ajustes</h1>
+<p class="font-body-md text-body-md text-on-surface-variant" data-lwt>Los números que el sistema aplica solo: cuántos días de gracia tiene una reserva al vencer, cuántas prórrogas puede dar un sales manager y de cuántos días, y qué propone el formulario. Cambiarlos aquí vale desde ese momento, sin tocar código.</p>
 </div>
 </div>
 
 <div class="rounded-xl border border-burnt-earth/30 bg-surface-alt px-5 py-4 flex items-start gap-3" role="status">
 <span class="material-symbols-outlined text-[20px] text-burnt-earth shrink-0">lock</span>
-<!-- SIN data-lwt a propósito, mismo motivo que en Comisión de administración
-     (21-sep-2026, S20): lleva <b> y <code> dentro, y lwIdiomaAplicar() hace
-     `el.textContent = ...`, que los aplanaría a texto plano. Se queda en
-     español en las dos vistas. -->
-<p class="font-body-sm text-body-sm text-on-surface-variant">Esta pantalla es solo de <b class="text-on-surface">super_admin</b>: ni el resto del equipo ni los administradores la ven, ni pueden escribir aunque tecleen la URL — lo comprueba la base (policy <code>es_super_admin()</code> sobre <code>sociedades</code>), no esta pantalla. La <b class="text-on-surface">clave</b> de una sociedad no se edita nunca: va dentro de cada contrato y cada factura ya emitidos, y un intento de cambiarla lo rechaza un disparador. Una sociedad no se borra, se desactiva.</p>
+<!-- SIN data-lwt: lleva <b> dentro (mismo motivo que Sociedades). -->
+<p class="font-body-sm text-body-sm text-on-surface-variant">Ver los ajustes lo puede cualquier admin; <b class="text-on-surface">cambiarlos exige super admin</b>, y lo comprueba la base (<code>parametro_set</code>), no esta pantalla. Cada ajuste tiene su rango: fuera de él no se guarda.</p>
 </div>
 
+<p id="lw-ajustes-solo-lectura" class="font-body-sm text-body-sm text-outline" hidden data-lwt>Tu sesión no es super admin: puedes mirar, no cambiar.</p>
+
 <section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
-<div class="px-8 pt-8 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-outline-variant/40">
-<div class="flex flex-col gap-1">
-<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold" data-lwt>Catálogo</span>
-<h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight" data-lwt>Cada sociedad y su identidad</h2>
-</div>
-<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md transition-colors shadow-sm" type="button" id="btn-nueva-sociedad" hidden><span class="material-symbols-outlined text-[18px]">add</span><span data-lwt>Nueva sociedad</span></button>
+<div class="px-8 pt-8 pb-4 flex flex-col gap-1 border-b border-outline-variant/40">
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold" data-lwt>Reservas</span>
+<h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight" data-lwt>Vencimiento, gracia y prórrogas de las Cartas de Reserva</h2>
 </div>
 <div class="overflow-x-auto">
 <table class="w-full text-left border-collapse">
 <thead>
 <tr class="border-b border-outline-variant/60 bg-surface-container-low">
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Sociedad</th>
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Identificación fiscal</th>
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Avisos</th>
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Estado</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Ajuste</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Valor</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Último cambio</th>
 <th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline text-right" data-lwt>Acción</th>
 </tr>
 </thead>
-<tbody id="lw-soc-lista">
-<tr><td colspan="5" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant" data-lwt>Trayendo las sociedades…</td></tr>
+<tbody id="lw-ajustes-lista">
+<tr><td colspan="4" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant" data-lwt>Trayendo los ajustes…</td></tr>
 </tbody>
 </table>
 </div>
-</section>
-
-<section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
-<div class="px-8 pt-8 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-outline-variant/40">
-<div class="flex flex-col gap-1">
-<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold" data-lwt>Rastro</span>
-<h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight" data-lwt>Cambios de identidad fiscal</h2>
-</div>
-<select id="lw-soc-log-filtro" class="px-4 py-2.5 rounded-full bg-surface-container-low border border-control-border/40 font-label-md text-[13px] text-on-surface-variant">
-<option value="" data-lwt>Todas las sociedades</option>
-</select>
-</div>
-<div class="overflow-x-auto">
-<table class="w-full text-left border-collapse">
-<thead>
-<tr class="border-b border-outline-variant/60 bg-surface-container-low">
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Cuándo</th>
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Sociedad</th>
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Quién</th>
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Qué cambió</th>
-</tr>
-</thead>
-<tbody id="lw-soc-log">
-<tr><td colspan="4" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant" data-lwt>Trayendo el historial…</td></tr>
-</tbody>
-</table>
-</div>
-<p class="px-8 py-4 border-t border-outline-variant/40 font-body-sm text-body-sm text-outline" data-lwt>Solo se listan los campos que el documento DICE (razón social, marca, identificación fiscal, NIB, domicilio, representante). Los retoques de logo, folio o tinta no dejan rastro aquí: son aspecto, no identidad.</p>
+<p class="px-8 py-4 border-t border-outline-variant/40 font-body-sm text-body-sm text-outline" data-lwt>El automatismo que libera reservas corre cada día a las 04:00 UTC y lee estos valores en cada pasada; la prórroga los lee al pulsar «Prorrogar» en la ficha de la Carta.</p>
 </section>
 
 </div>

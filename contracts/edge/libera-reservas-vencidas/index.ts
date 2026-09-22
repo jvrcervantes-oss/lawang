@@ -46,8 +46,17 @@ const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SE
 // Tope por ejecución (mismo patrón que factura-vencimiento/avisos-manager):
 // si se acumulan vencidas, no se liberan 300 de golpe.
 const TOPE_POR_EJECUCION = 20;
-// Días de gracia tras el vencimiento antes de liberar (owner, 22-sep-2026).
-const DIAS_GRACIA = 3;
+// Días de gracia tras el vencimiento antes de liberar, y aviso previo: los
+// pone el owner en /intranet/v4/ajustes/ (tabla `parametros`, 22-sep-2026);
+// estos son solo el valor de respaldo si la lectura falla.
+const DIAS_GRACIA_DEFECTO = 3;
+const AVISO_DIAS_ANTES_DEFECTO = 1;
+
+async function parametroNum(clave: string, defecto: number): Promise<number> {
+  const { data, error } = await sb.rpc('parametro', { p_clave: clave });
+  if (error || data == null || typeof data !== 'number' || !Number.isFinite(data)) return defecto;
+  return data;
+}
 
 function hoyISO(): string {
   return new Date().toISOString().slice(0, 10);
@@ -82,7 +91,9 @@ Deno.serve(async (req) => {
   const body = await req.json().catch(() => ({}));
   const dry = body.dry === true;
   const hoy = hoyISO();
-  const manana = masDias(hoy, 1);
+  const DIAS_GRACIA = await parametroNum('reservas.dias_gracia', DIAS_GRACIA_DEFECTO);
+  const AVISO_DIAS_ANTES = await parametroNum('reservas.aviso_dias_antes', AVISO_DIAS_ANTES_DEFECTO);
+  const diaAviso = AVISO_DIAS_ANTES > 0 ? masDias(hoy, AVISO_DIAS_ANTES) : null;
 
   // ── candidatos + vencimiento, en un viaje: parcela reservada, contrato de
   // tipo Carta de Reserva, no liberado. Si el contrato hizo traspaso a un
@@ -103,16 +114,16 @@ Deno.serve(async (req) => {
     const enlace = '/intranet/operaciones/?contrato=' + c.contrato_id;
     const prorrogas = c.n_prorrogas > 0 ? ' · ' + c.n_prorrogas + ' prórroga(s)' : '';
 
-    if (vence === manana) {
-      // ── aviso 1 día antes — mismo canal que el resto de la suite ──────────
-      if (dry) { avisadas.push('[DRY D-1] ' + etiqueta); continue; }
+    if (diaAviso && vence === diaAviso) {
+      // ── aviso previo (D-N, N configurable) — mismo canal que el resto de la suite ──
+      if (dry) { avisadas.push('[DRY D-' + AVISO_DIAS_ANTES + '] ' + etiqueta); continue; }
       const { error: eAv } = await sb.rpc('_avisar_managers', {
         p_proyecto_id: c.proyecto_id,
         p_tipo: 'reserva_por_vencer',
-        p_titulo: 'Reserva ' + (c.numero || '') + ' vence mañana',
+        p_titulo: 'Reserva ' + (c.numero || '') + (AVISO_DIAS_ANTES === 1 ? ' vence mañana' : ' vence el ' + fechaLarga(vence)),
         p_detalle: (c.comprador_nombre || 'Comprador') + ' · ' + (c.proyecto_nombre || c.proyecto) + ' ' +
-          c.codigo + prorrogas + ' · sin Bloqueo de Parcela detrás — vence mañana; tras ' + DIAS_GRACIA +
-          ' días de gracia se libera sola si nadie prorroga o libera',
+          c.codigo + prorrogas + ' · sin Bloqueo de Parcela detrás — vence el ' + fechaLarga(vence) + '; tras ' + DIAS_GRACIA +
+          ' día(s) de gracia se libera sola si nadie prorroga o libera',
         p_enlace: enlace,
         p_contrato_id: c.contrato_id,
       });
@@ -123,7 +134,7 @@ Deno.serve(async (req) => {
 
     if (vence > hoy) continue; // no vence todavía y no es mañana: nada que hacer hoy
 
-    if (hoy < liberaEl) {
+    if (DIAS_GRACIA > 0 && hoy < liberaEl) {
       // ── vencida, en gracia: un solo aviso, aunque el cron corra 3 veces ────
       // (y si un día no corrió, el siguiente lo manda igual — no depende de
       // que hoy sea exactamente el día del vencimiento).
@@ -163,7 +174,7 @@ Deno.serve(async (req) => {
       p_nota: null,
     });
     if (eLib) saltadas.push(etiqueta + ': ' + eLib.message);
-    else emitidas.push(etiqueta + ' (venció ' + vence + ', liberada tras ' + DIAS_GRACIA + ' días de gracia)');
+    else emitidas.push(etiqueta + ' (venció ' + vence + ', liberada tras ' + DIAS_GRACIA + ' día(s) de gracia)');
   }
 
   console.log(

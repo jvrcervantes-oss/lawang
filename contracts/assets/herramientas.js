@@ -265,6 +265,15 @@ const LW_HERRAMIENTAS = [
     estado:d => d.cuentas == null ? null
       : [hT('%n cuentas', { n: d.cuentas }), false] },
 
+  /* Ajustes (22-sep-2026): los números que gobiernan las reservas (días de
+     gracia, prórrogas, techos) viven en la tabla `parametros` y el owner los
+     cambia aquí sin tocar código. Sin `herr` a propósito: no es un permiso
+     repartible — lo ve cualquier admin (soloAdmin) y escribe solo super admin
+     (parametro_set, en la base). Vive en la v4. */
+  { grupo:'Equipo', nombre:'Ajustes', icon:'ph-sliders-horizontal', href:'/intranet/v4/ajustes/', soloAdmin:true,
+    para:'Días de gracia, prórrogas y techos de las reservas: lo que el sistema aplica solo.',
+    claves:'ajustes parametros configuracion reservas gracia prorroga prorrogas topes settings parameters reservation grace extension limits' },
+
 ];
 
 /* Quién ve qué. `soloAdmin` es la puerta dura; si no, basta con tener la
