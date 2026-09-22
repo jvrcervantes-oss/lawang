@@ -323,14 +323,14 @@
 </section>
 
 <!-- SECCIÓN 3: MASTERPLAN & DISPONIBILIDAD -->
-<section class="w-full px-6 md:px-margin-desktop py-14 bg-surface border-y border-[#D8D2C5]" id="masterplan">
+<section class="w-full px-6 md:px-margin-desktop py-14 bg-surface border-y border-control-border/20" id="masterplan">
 <div class="lw-wide flex flex-col gap-8">
   <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
     <div class="flex flex-col gap-2 lw-prose">
       <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal">Masterplan &amp; Plot Availability</h2>
       <p class="font-body-md text-body-md text-on-surface-variant">Individually cadastred plots. Live inventory read directly from Palm Field's records — sizes, prices and status are informational and confirmed at Plot Lock.</p>
     </div>
-    <div class="flex items-center gap-4 bg-surface-container-low p-2.5 rounded-full border border-[#D8D2C5] text-xs font-label-md">
+    <div class="flex items-center gap-4 bg-surface-container-low p-2.5 rounded-full border border-control-border/25 text-xs font-label-md">
       <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-territorial-green"></span><span class="text-on-surface font-semibold">Available</span></div>
       <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500"></span><span class="text-on-surface font-semibold">Reserved</span></div>
       <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#B3261E]"></span><span class="text-on-surface-variant">Sold / Blocked</span></div>
@@ -338,11 +338,11 @@
   </div>
 
   <!-- Aéreo a todo el ancho del contenedor: antes iba a media columna con max-height:420px. -->
-  
+
 
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-start">
     <!-- Plano de parcelas: 1690×2200 (vertical). object-contain para no recortar códigos de parcela. -->
-    <div class="lg:col-span-7 bg-surface-container-lowest p-5 rounded-2xl shadow-md border border-[#D8D2C5] flex flex-col gap-3">
+    <div class="lg:col-span-7 bg-surface-container-lowest p-5 rounded-2xl shadow-sm border border-control-border/25 flex flex-col gap-3">
       <div class="flex items-center justify-between gap-3 flex-wrap">
         <span class="font-headline-sm text-lg font-bold text-deep-lagoon">Masterplan</span>
         <div class="flex items-center gap-3 text-[11px] font-label-md">
@@ -358,29 +358,29 @@
            viva porque v2/ vive un nivel mas hondo), no rectangulos -- ver
            ZONAS mas abajo. -->
       <div class="relative w-full select-none" id="plan-wrap">
-        <img id="masterplan-img" src="" alt="Palm Field masterplan showing every plot code and surface area" loading="lazy" class="w-full rounded-xl border border-[#D8D2C5] bg-[#F0ECE1] object-contain block">
+        <img id="masterplan-img" src="" alt="Palm Field masterplan showing every plot code and surface area" loading="lazy" class="w-full rounded-xl border border-control-border/25 bg-surface-container object-contain block">
         <div class="absolute inset-0" id="plan-hotspots"></div>
       </div>
-      <p class="font-body-sm text-xs text-[#5F6257]">Tap an available plot to reserve it. Status is live; surface areas are confirmed by survey at Plot Lock.</p>
+      <p class="font-body-sm text-xs text-on-surface-variant">Tap an available plot to reserve it. Status is live; surface areas are confirmed by survey at Plot Lock.</p>
     </div>
 
     <div class="lg:col-span-5 flex flex-col gap-4 lg:sticky lg:top-24">
-      <div class="bg-surface-container-lowest rounded-2xl shadow-md border border-[#D8D2C5] overflow-hidden">
-        <div class="p-4 bg-[#E4DFD5] border-b border-[#D8D2C5] flex items-center justify-between">
+      <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-control-border/25 overflow-hidden">
+        <div class="p-4 bg-surface-container-low border-b border-control-border/25 flex items-center justify-between">
           <span class="font-label-md text-xs uppercase font-bold text-deep-lagoon tracking-wider">Live plot inventory</span>
           <span class="text-xs font-body-sm text-territorial-green font-semibold" id="plots-count">Loading…</span>
         </div>
-        <div class="divide-y divide-[#D8D2C5]/70 max-h-[520px] overflow-y-auto" id="plots-wrap">
-          <div class="p-6 text-sm text-[#5F6257]">Loading live plot data…</div>
+        <div class="divide-y divide-control-border/15 max-h-[520px] overflow-y-auto" id="plots-wrap">
+          <div class="p-6 text-sm text-on-surface-variant">Loading live plot data…</div>
         </div>
       </div>
 
-      <div class="bg-[#E4DFD5]/70 p-5 rounded-xl border border-[#D8D2C5] flex flex-col gap-3">
+      <div class="bg-surface-container-low/70 p-5 rounded-xl border border-control-border/25 flex flex-col gap-3">
         <span class="font-label-md text-xs uppercase tracking-wider text-burnt-earth font-bold">Reservation Protocol</span>
         <div class="grid grid-cols-1 gap-3 text-xs">
-          <div class="flex flex-col gap-1"><strong class="text-deep-lagoon font-semibold">1. Reservation deposit</strong><span class="text-[#44483f]">Formal plot lock with <span data-eur="3000">€3,000</span> in the notary's escrow account.</span></div>
-          <div class="flex flex-col gap-1"><strong class="text-deep-lagoon font-semibold">2. 10-day validity</strong><span class="text-[#44483f]">Due-diligence window; refundable per the Letter of Reservation.</span></div>
-          <div class="flex flex-col gap-1"><strong class="text-deep-lagoon font-semibold">3. Notarial signature</strong><span class="text-[#44483f]">Hak Sewa deed and Power of Attorney before a PPAT notary.</span></div>
+          <div class="flex flex-col gap-1"><strong class="text-deep-lagoon font-semibold">1. Reservation deposit</strong><span class="text-on-surface-variant">Formal plot lock with <span data-eur="3000">€3,000</span> in the notary's escrow account.</span></div>
+          <div class="flex flex-col gap-1"><strong class="text-deep-lagoon font-semibold">2. 10-day validity</strong><span class="text-on-surface-variant">Due-diligence window; refundable per the Letter of Reservation.</span></div>
+          <div class="flex flex-col gap-1"><strong class="text-deep-lagoon font-semibold">3. Notarial signature</strong><span class="text-on-surface-variant">Hak Sewa deed and Power of Attorney before a PPAT notary.</span></div>
         </div>
       </div>
     </div>
@@ -509,22 +509,24 @@
   </div>
 </footer>
 
-<!-- MODAL DE RESERVA (sin cambios funcionales respecto a la version anterior) -->
-<div class="fixed inset-0 bg-[rgba(20,20,18,.55)] z-[60] items-center justify-center p-5 hidden" id="backdrop">
-  <div class="bg-white max-w-[480px] w-full rounded-xl p-7 max-h-[90vh] overflow-auto shadow-2xl">
+<!-- MODAL DE RESERVA (sin cambios funcionales respecto a la version anterior; solo
+     clases/colores Tesla-style — ids, name, type, autocomplete intactos porque el
+     <script> de abajo (investor-deck-codigo/-reservar) los referencia por id). -->
+<div class="fixed inset-0 bg-[rgba(20,20,18,.6)] backdrop-blur-sm z-[60] items-center justify-center p-5 hidden" id="backdrop">
+  <div class="bg-surface-container-lowest max-w-[480px] w-full rounded-2xl p-7 max-h-[90vh] overflow-auto shadow-2xl border border-control-border/20">
     <div id="step-request">
       <h3 class="font-headline-sm text-2xl text-deep-lagoon font-bold mb-1">Reserve plot <span id="plot-code-label"></span></h3>
-      <div class="text-sm text-[#5F6257] mb-4">We'll email you a one-time verification code before anything is issued.</div>
+      <div class="text-sm text-on-surface-variant mb-4">We'll email you a one-time verification code before anything is issued.</div>
       <div id="msg-area"></div>
       <div class="flex flex-col gap-3">
-        <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-nombre">Full name</label><input id="f-nombre" class="w-full px-3 py-2 border border-[#BEB3A5] rounded" autocomplete="name"></div>
-        <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-pasaporte">Passport number</label><input id="f-pasaporte" class="w-full px-3 py-2 border border-[#BEB3A5] rounded"></div>
-        <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-email">Email</label><input id="f-email" type="email" class="w-full px-3 py-2 border border-[#BEB3A5] rounded" autocomplete="email"></div>
-        <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-telefono">Phone</label><input id="f-telefono" class="w-full px-3 py-2 border border-[#BEB3A5] rounded" autocomplete="tel"></div>
-        <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-nacionalidad">Nationality</label><input id="f-nacionalidad" class="w-full px-3 py-2 border border-[#BEB3A5] rounded"></div>
-        <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-domicilio">Address</label><input id="f-domicilio" class="w-full px-3 py-2 border border-[#BEB3A5] rounded"></div>
+        <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-nombre">Full name</label><input id="f-nombre" class="w-full px-3 py-2 border border-control-border/40 rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-territorial-green/40 focus:border-territorial-green transition-all" autocomplete="name"></div>
+        <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-pasaporte">Passport number</label><input id="f-pasaporte" class="w-full px-3 py-2 border border-control-border/40 rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-territorial-green/40 focus:border-territorial-green transition-all"></div>
+        <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-email">Email</label><input id="f-email" type="email" class="w-full px-3 py-2 border border-control-border/40 rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-territorial-green/40 focus:border-territorial-green transition-all" autocomplete="email"></div>
+        <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-telefono">Phone</label><input id="f-telefono" class="w-full px-3 py-2 border border-control-border/40 rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-territorial-green/40 focus:border-territorial-green transition-all" autocomplete="tel"></div>
+        <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-nacionalidad">Nationality</label><input id="f-nacionalidad" class="w-full px-3 py-2 border border-control-border/40 rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-territorial-green/40 focus:border-territorial-green transition-all"></div>
+        <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-domicilio">Address</label><input id="f-domicilio" class="w-full px-3 py-2 border border-control-border/40 rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-territorial-green/40 focus:border-territorial-green transition-all"></div>
       </div>
-      <label class="flex gap-2 text-xs items-start my-4"><input type="checkbox" id="f-consent" class="mt-0.5"> I have read and agree to the reservation terms and Lawang's privacy policy, and consent to my data being processed to manage this reservation.</label>
+      <label class="flex gap-2 text-xs items-start my-4"><input type="checkbox" id="f-consent" class="mt-0.5 accent-territorial-green"> I have read and agree to the reservation terms and Lawang's privacy policy, and consent to my data being processed to manage this reservation.</label>
       <!-- El texto de arriba citaba "Lawang's privacy policy" sin enlazarla a ninguna
            parte. Un consentimiento que remite a un documento que el usuario no puede
            abrir no es informado (RGPD art. 7/13, UU PDP). Va aparte y no dentro de la
@@ -532,24 +534,24 @@
            partiria en trozos que ya no traducirian. -->
       <p class="text-xs -mt-2 mb-4"><a class="text-deep-lagoon underline" href="/legal" target="_blank" rel="noopener">Read Lawang&rsquo;s Privacy &amp; Terms</a></p>
       <div class="flex gap-3 justify-end mt-2">
-        <button class="border border-[#BEB3A5] px-4 py-2 rounded" id="btn-cancel" type="button">Cancel</button>
-        <button class="bg-deep-lagoon text-white px-4 py-2 rounded font-semibold" id="btn-send-code" type="button">Send verification code</button>
+        <button class="border border-control-border/40 px-4 py-2 rounded-lg font-label-md text-body-sm hover:bg-surface-container-low transition-colors" id="btn-cancel" type="button">Cancel</button>
+        <button class="bg-deep-lagoon hover:bg-territorial-green text-white px-4 py-2 rounded-lg font-semibold font-label-md text-body-sm transition-colors" id="btn-send-code" type="button">Send verification code</button>
       </div>
     </div>
     <div id="step-verify" class="hidden">
       <h3 class="font-headline-sm text-2xl text-deep-lagoon font-bold mb-1">Enter your code</h3>
-      <div class="text-sm text-[#5F6257] mb-4">We sent a 6-digit code to your email. It expires in 10 minutes.</div>
+      <div class="text-sm text-on-surface-variant mb-4">We sent a 6-digit code to your email. It expires in 10 minutes.</div>
       <div id="msg-area-2"></div>
-      <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-codigo">Verification code</label><input id="f-codigo" inputmode="numeric" maxlength="6" class="w-full px-3 py-2 border border-[#BEB3A5] rounded"></div>
+      <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-codigo">Verification code</label><input id="f-codigo" inputmode="numeric" maxlength="6" class="w-full px-3 py-2 border border-control-border/40 rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-territorial-green/40 focus:border-territorial-green transition-all tracking-[0.3em] text-center font-semibold"></div>
       <div class="flex gap-3 justify-end mt-4">
-        <button class="border border-[#BEB3A5] px-4 py-2 rounded" id="btn-back" type="button">Back</button>
-        <button class="bg-deep-lagoon text-white px-4 py-2 rounded font-semibold" id="btn-confirm" type="button">Confirm reservation</button>
+        <button class="border border-control-border/40 px-4 py-2 rounded-lg font-label-md text-body-sm hover:bg-surface-container-low transition-colors" id="btn-back" type="button">Back</button>
+        <button class="bg-deep-lagoon hover:bg-territorial-green text-white px-4 py-2 rounded-lg font-semibold font-label-md text-body-sm transition-colors" id="btn-confirm" type="button">Confirm reservation</button>
       </div>
     </div>
     <div id="step-done" class="hidden">
       <h3 class="font-headline-sm text-2xl text-deep-lagoon font-bold mb-1" id="done-title"></h3>
-      <div id="done-body" class="text-sm text-[#444]"></div>
-      <div class="flex justify-end mt-4"><button class="bg-deep-lagoon text-white px-4 py-2 rounded font-semibold" id="btn-close" type="button">Close</button></div>
+      <div id="done-body" class="text-sm text-on-surface-variant"></div>
+      <div class="flex justify-end mt-4"><button class="bg-deep-lagoon hover:bg-territorial-green text-white px-4 py-2 rounded-lg font-semibold font-label-md text-body-sm transition-colors" id="btn-close" type="button">Close</button></div>
     </div>
   </div>
 </div>
@@ -1302,7 +1304,7 @@
     body: JSON.stringify({ p_proyecto: PROYECTO })
   }).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
     .then(function(rows){
-      if(!rows || !rows.length){ plotsWrap.innerHTML = '<div class="p-6 text-sm text-[#5F6257]">No plots published yet.</div>'; plotsCount.textContent=''; return; }
+      if(!rows || !rows.length){ plotsWrap.innerHTML = '<div class="p-6 text-sm text-on-surface-variant">No plots published yet.</div>'; plotsCount.textContent=''; return; }
       ULTIMAS_FILAS = rows;
       if(ZONAS) pintaPlano(rows);
       var disponibles = rows.filter(function(r){ return r.estado === 'disponible'; }).length;
@@ -1314,16 +1316,16 @@
         var estadoLabel = { disponible:'Available', reservada:'Reserved', bloqueada:'Blocked', no_disponible:'Not available' }[row.estado] || row.estado;
         var pillClass = row.estado === 'disponible' ? 'bg-territorial-green/15 text-territorial-green' : (row.estado === 'reservada' ? 'bg-amber-100 text-amber-800' : 'bg-[#FBE9E7] text-[#B3261E]');
         var row_ = document.createElement('div');
-        row_.className = 'p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#E4DFD5]/30 transition-colors';
+        row_.className = 'p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-surface-container-low/50 transition-colors';
         var actionHtml;
         if(row.estado === 'disponible'){
           actionHtml = '<a class="px-3.5 py-1.5 rounded-full bg-deep-lagoon hover:bg-territorial-green text-white text-xs font-label-md font-semibold transition-colors" href="mailto:sales@lawangproperties.com?subject=Palm%20Field%20'+encodeURIComponent(row.codigo)+'">Contact us</a>';
         } else {
-          actionHtml = '<span class="text-xs font-label-md text-[#5F6257] bg-[#F0ECE1] px-3 py-1.5 rounded-full">—</span>';
+          actionHtml = '<span class="text-xs font-label-md text-on-surface-variant bg-surface-container px-3 py-1.5 rounded-full">—</span>';
         }
         row_.innerHTML = '<div class="flex flex-col"><div class="flex items-center gap-2"><span class="font-headline-sm text-lg font-bold text-deep-lagoon">'+esc(row.codigo)+'</span>' +
           '<span class="px-2 py-0.5 rounded-full text-[11px] font-label-md font-semibold '+pillClass+'">'+esc(estadoLabel)+'</span></div>' +
-          '<span class="text-xs text-[#44483f] font-body-sm">'+esc(row.superficie_m2)+' m² · Reference price '+fmtMoney(row.precio, row.moneda)+'</span></div>' +
+          '<span class="text-xs text-on-surface-variant font-body-sm">'+esc(row.superficie_m2)+' m² · Reference price '+fmtMoney(row.precio, row.moneda)+'</span></div>' +
           '<div>'+actionHtml+'</div>';
         plotsWrap.appendChild(row_);
       });
@@ -1331,7 +1333,7 @@
       if(window.lwRepintaDinero) lwRepintaDinero();
     })
     .catch(function(){
-      plotsWrap.innerHTML = '<div class="p-6 text-sm text-[#5F6257]">We could not load live plot data right now. Please contact <a class="text-deep-lagoon underline" href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a>.</div>';
+      plotsWrap.innerHTML = '<div class="p-6 text-sm text-on-surface-variant">We could not load live plot data right now. Please contact <a class="text-deep-lagoon underline" href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a>.</div>';
       plotsCount.textContent = '';
     });
 
@@ -1356,7 +1358,7 @@
   document.getElementById('btn-back').addEventListener('click', function(){ stepVerify.classList.add('hidden'); stepRequest.classList.remove('hidden'); });
 
   function msg(elId, text, cls){
-    document.getElementById(elId).innerHTML = '<div class="text-sm px-3 py-2.5 rounded mb-3 '+(cls==='err' ? 'bg-[#fbe9e7] text-[#a13b2a]' : 'bg-[#e7efe1] text-territorial-green')+'">'+esc(text)+'</div>';
+    document.getElementById(elId).innerHTML = '<div class="text-sm px-3 py-2.5 rounded-lg mb-3 '+(cls==='err' ? 'bg-[#fbe9e7] text-[#a13b2a]' : 'bg-territorial-green/10 text-territorial-green')+'">'+esc(text)+'</div>';
   }
 
   document.getElementById('btn-send-code').addEventListener('click', function(){
