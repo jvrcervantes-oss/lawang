@@ -413,16 +413,29 @@
       } else { b = document.createElement('button'); b.type = 'button'; }
       b.textContent = a.texto;
       b.style.cssText = estiloBoton(a);
+      // `disabled`/`title` (22-sep-2026, S10.3): el botón «Activar deck» nace
+      // deshabilitado sin título guardado — mismo criterio que la clásica
+      // (nunca activar un deck vacío), y `title` dice por qué sin un tooltip
+      // aparte.
+      if (a.disabled) { b.disabled = true; if (b.tagName === 'BUTTON') b.style.opacity = '.5'; }
+      if (a.title) b.title = a.title;
       if (a.cerrar) b.addEventListener('click', cierraCajon);
       else if (typeof a.onClick === 'function') b.addEventListener('click', function (ev) { a.onClick(ev, w); });
       pie.appendChild(b);
     });
     // Un cajon sin acciones lleva al menos «Cerrar»: la X de arriba no basta
-    // en movil, donde el pulgar vive abajo.
-    if (!(o.acciones || []).some(function (a) { return a.cerrar; })) {
+    // en movil, donde el pulgar vive abajo. `pieExtra` (HTML crudo, para el
+    // shim de suiAbrirCajon/deck_fotos.js) ya trae el suyo — no se duplica.
+    if (!o.pieExtra && !(o.acciones || []).some(function (a) { return a.cerrar; })) {
       var bc = document.createElement('button'); bc.type = 'button'; bc.textContent = 'Cerrar';
       bc.style.cssText = estiloBoton({}); bc.addEventListener('click', cierraCajon); pie.appendChild(bc);
     }
+    /* `pieExtra` — puente para código que compone su PROPIO pie como HTML
+       crudo en vez del array `acciones` (hoy solo deck_fotos.js, vía el shim
+       suiAbrirCajon de más abajo: su pie trae un botón con
+       id="df-cerrar" al que engancha `onclick = suiCerrarCajon` DESPUÉS de
+       abrir, y necesita existir de verdad en el DOM). */
+    if (o.pieExtra) pie.insertAdjacentHTML('beforeend', o.pieExtra);
     w.querySelector('[data-c="cerrar"]').addEventListener('click', cierraCajon);
     w.querySelector('[data-c="fondo"]').addEventListener('click', cierraCajon);
     // Parar aqui lo que ya se atendio dentro (ver cabecera del bloque).
@@ -443,6 +456,37 @@
     });
     return { el: w, cuerpo: w.querySelector('[data-c="cuerpo"]'), pie: pie, cierra: cierraCajon };
   }
+
+  /* ═══ SHIM suiAbrirCajon/suiCerrarCajon PARA LA v4 (S10.2, 22-sep-2026) ═══
+     `contracts/assets/deck_fotos.js` es una pieza COMPARTIDA de la suite
+     (Regla 0 de contexto/suite_lawang.md — la usan /proyectos/ y /modelos/
+     clásicos) que llama a `suiAbrirCajon`/`suiCerrarCajon` (contracts/assets/
+     suite.js) como identificadores GLOBALES sueltos, sin `window.` delante.
+     La v4 no carga suite.js (tiene su propio cajón, `cajon()` de arriba) ni
+     `#suiVelo`/`#suiCajon` en el DOM — sin este puente, abrir "Fotos del
+     deck" desde v4 lanzaría un ReferenceError en la primera línea de
+     `deck_fotos.js`.
+
+     La solución NO es traer suite.js + suite.css (harían falta también las
+     variables de brand.css, que la v4 no define — su Tailwind vive en otro
+     sistema de tokens) ni reescribir deck_fotos.js (es la pieza que la Regla
+     0 prohíbe copiar/repetir). Es dar a esos dos nombres globales una
+     implementación que abre el MISMO cajón de esta pantalla (`cajon()`),
+     reusando su `pieExtra` para el HTML crudo que trae `deck_fotos.js` en
+     `opts.pie` (con su propio botón `#df-cerrar`, al que engancha
+     `onclick = suiCerrarCajon` justo después de llamar a `suiAbrirCajon`).
+     El CSS de sus clases (`.sui-bloque`, `.sui-btn`, `.campo`…) vive en
+     shell.css, traducido a la paleta CAJ — mismo patrón que ya usó S6 con
+     las clases de dialogo.js. */
+  window.suiAbrirCajon = function (opts) {
+    opts = opts || {};
+    return cajon({
+      titulo: opts.titulo, sub: opts.sub, cuerpo: opts.cuerpo,
+      pieExtra: opts.pie, alCerrar: opts.onCerrar
+    });
+  };
+  window.suiCerrarCajon = function () { cierraCajon(); };
+
   /* Piezas con las que una pantalla compone el cuerpo del cajon. Devuelven
      HTML ya escapado: el texto entra crudo y sale seguro. `html:1` en `dato`
      es la unica puerta para meter marcado (una etiqueta de estado, un
@@ -2711,6 +2755,104 @@
       var puedeUsuarios = esAdminP && puedeH(ficha, 'usuarios');
       var proyectoObj = function () { return window.LW_V4 && window.LW_V4.proyecto; };
 
+      /* Categorías de un ENLACE (S11.1, 22-sep-2026): fuente ÚNICA para el
+         alta y la edición — nunca las 9 del CHECK de la tabla (incluye
+         `faq`/`portada`). Si se expusiera el CHECK completo en el <select> de
+         edición, alguien podría reclasificar en silencio una fila protegida
+         (una FAQ interna, o `publicado_investor_deck=true`) fuera de su
+         categoría, sin pasar por el candado de confirmación que sí tiene el
+         alta — hallazgo de la revisión previa #40 (Seguridad+Legal+Datos). */
+      var CATS_ENLACE = ['comercial', 'legal', 'tecnico', 'precios'];
+
+      /* Candado de publicación (portal / dosier de inversores) — S10.4/S11.1:
+         antes eran `window.confirm()` en el alta y NADA en la edición (dos
+         candados hubiera sido la Regla 0 al revés: uno se queda atrás). Ahora
+         es una función, `lwConfirmar` (cargado bajo demanda), y S17 exige
+         `grep -c window.confirm = 0` en el gate — este es el único punto
+         donde se decide. Devuelve una promesa: { ok:true } o { ok:false, msg }. */
+      function confirmaPublicacionDoc(v, nombreProyecto) {
+        // El deck es PÚBLICO y sin login, así que su confirmación es más dura
+        // que la del portal: aquello lo ven compradores con contrato, esto lo
+        // ve internet. Esta comprobación es un candado duro, no una confirmación:
+        // nunca se pregunta, se rechaza.
+        if (v.publicado_investor_deck && v.confidencial) {
+          return Promise.resolve({ ok: false, msg: 'un documento confidencial no puede publicarse en el dosier de inversores — desmarca una de las dos' });
+        }
+        if (!v.visible_portal && !v.publicado_investor_deck) return Promise.resolve({ ok: true });
+        return aseguraModulosDoc(['dialogo']).then(function () {
+          var pasos = Promise.resolve(true);
+          if (v.visible_portal) {
+            pasos = pasos.then(function (ok) {
+              if (!ok) return false;
+              return lwConfirmar({
+                titulo: 'Publicar al portal',
+                cuerpo: '<p>«' + esc(v.titulo) + '» quedará visible para TODOS los compradores de ' + esc(nombreProyecto) + ' en su portal.</p>',
+                confirmar: 'Publicar'
+              });
+            });
+          }
+          if (v.publicado_investor_deck) {
+            pasos = pasos.then(function (ok) {
+              if (!ok) return false;
+              return lwConfirmar({
+                titulo: 'Publicar en el dosier de inversores',
+                cuerpo: '<p>«' + esc(v.titulo) + '» quedará descargable por CUALQUIERA que abra el dosier público de ' + esc(nombreProyecto) + ', sin contraseña y sin contrato.</p>' +
+                  '<p>Si el enlace es de Drive, ábrelo antes en una ventana de incógnito: si no está compartido en abierto, el inversor se choca con una pantalla de permisos.</p>',
+                confirmar: 'Publicar', tono: 'peligro'
+              });
+            });
+          }
+          return pasos;
+        }).then(function (ok) {
+          return ok ? { ok: true } : { ok: false, msg: 'publicación cancelada — desmarca la casilla o confirma' };
+        });
+      }
+
+      /* Renombrar un proyecto (S10.1, 22-sep-2026): porta el `renombrarProyecto()`
+         de /intranet/proyectos/index.html:704-732 — mismo radio de impacto (5
+         tablas), mismo aviso de `contracts/tokens.json` (no se actualiza
+         solo), mismo RPC `renombrar_proyecto` (SECURITY DEFINER, gate
+         es_admin() dentro). Nunca un UPDATE directo a `proyectos.nombre`. */
+      function confirmaYRenombraProyecto(p, nuevo) {
+        var cuenta = function (tabla, columna) { return sb.from(tabla).select('id', { count: 'exact', head: true }).eq(columna, p.nombre); };
+        return Promise.all([
+          cuenta('unidades', 'proyecto'),
+          // contratos/facturas: RPC "equipo", NUNCA `.from()` a pelo (hallazgo
+          // de code-review, 22-sep-2026) — la RLS de esas dos tablas escala
+          // por `es_suyo()` (ver la cabecera de este fichero, líneas 5-7: "aun
+          // así caí en ello al escribir esta pantalla"). Un admin real la
+          // salta igual, pero un manager sin `es_admin()` vería el radio de
+          // impacto incompleto justo antes de una operación que toca 5 tablas
+          // — mismo patrón que ya usa el resto de esta pantalla más abajo
+          // (`facturas_equipo` en el `Promise.all` principal).
+          sb.rpc('contratos_equipo').select('id,proyecto_nombre'),
+          sb.rpc('facturas_equipo').select('id,proyecto_nombre'),
+          cuenta('documentos_proyecto', 'proyecto'),
+          cuenta('modelos_villa', 'proyecto')
+        ]).then(function (rs) {
+          var uds = (rs[0] && rs[0].count) || 0;
+          var con = ((rs[1] && rs[1].data) || []).filter(function (c) { return c.proyecto_nombre === p.nombre; }).length;
+          var fac = ((rs[2] && rs[2].data) || []).filter(function (f) { return f.proyecto_nombre === p.nombre; }).length;
+          var doc = (rs[3] && rs[3].count) || 0, mod = (rs[4] && rs[4].count) || 0;
+          var radio = [
+            uds ? uds + ' unidad(es)' : '', con ? con + ' contrato(s)' : '',
+            fac ? fac + ' factura(s)' : '', doc ? doc + ' documento(s)' : '',
+            mod ? mod + ' modelo(s) de villa' : ''
+          ].filter(Boolean).join(', ');
+          var avisoRadio = radio ? 'Se actualizará en: ' + radio + '.' : 'No hay nada vinculado a este nombre todavía.';
+          return aseguraModulosDoc(['dialogo']).then(function () {
+            return lwConfirmar({
+              titulo: 'Renombrar «' + p.nombre + '» a «' + nuevo + '»',
+              cuerpo: '<p>' + esc(avisoRadio) + '</p><p>Si este proyecto aparece en <b>contracts/tokens.json</b> (proyecto_nombre, parcelaPorProyecto, resortPorProyecto), ese archivo <b>no se actualiza solo</b> y hay que tocarlo a mano.</p>',
+              confirmar: 'Renombrar'
+            });
+          });
+        }).then(function (ok) {
+          if (!ok) return { error: { message: 'Cancelado: el proyecto conserva su nombre.' } };
+          return sb.rpc('renombrar_proyecto', { p_antiguo: p.nombre, p_nuevo: nuevo });
+        });
+      }
+
       // enlaces/FAQ exigen 'documentacion': gate LOCAL, ya no aborta toda la
       // pantalla — editar/borrar proyecto son otro permiso y siguen abajo.
       if (puedeH(ficha, 'documentacion')) {
@@ -2725,30 +2867,27 @@
           modal('Nuevo enlace · ' + p, [
             { k: 'titulo', label: 'Título', req: 1 },
             { k: 'url', label: 'URL', req: 1, ayuda: 'https://…' },
-            { k: 'categoria', label: 'Categoría', tipo: 'select', opciones: ['comercial', 'legal', 'tecnico', 'precios'], valor: 'comercial' },
+            { k: 'categoria', label: 'Categoría', tipo: 'select', opciones: CATS_ENLACE, valor: 'comercial' },
+            // S11.3 (22-sep-2026): la columna ya existía (la consulta de
+            // datos.js ya la traía) — solo faltaba el wiring del formulario.
+            { k: 'carpeta', label: 'Carpeta (opcional)', ayuda: 'Para agrupar en la vista de la clásica. Ej. "Legal", "Planos".' },
+            { k: 'descripcion', label: 'Descripción (opcional)', tipo: 'textarea' },
             { k: 'visible_portal', label: 'Visible para el comprador', tipo: 'check', ayuda: 'lo verán TODOS los compradores de ' + p + ' en su portal' },
             { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check', valor: 1 },  // nace MARCADA: la tabla se diseño con default true y el formulario mandaba false explicito, asi que todo documento nuevo nacia no-confidencial y el 'cinturon y tirantes' del RPC no protegia nada
             { k: 'publicado_investor_deck', label: 'Publicar en el dosier de inversores', tipo: 'check', ayuda: 'PÚBLICO: lo ve cualquiera que abra el enlace del deck, sin contraseña y sin contrato' }
           ], 'Guardar enlace', function (v) {
             if (!/^https?:\/\//.test(v.url)) return { error: { message: 'la URL tiene que empezar por http:// o https://' } };
-            if (v.visible_portal && !window.confirm('«' + v.titulo + '» quedará visible para TODOS los compradores de ' + p + ' en su portal. ¿Publicarlo?')) {
-              return { error: { message: 'publicación al portal cancelada — desmarca la casilla o confirma' } };
-            }
-            // El deck es PÚBLICO y sin login, así que su confirmación es más dura que la
-            // del portal: aquello lo ven compradores con contrato, esto lo ve internet.
-            if (v.publicado_investor_deck && v.confidencial) {
-              return { error: { message: 'un documento confidencial no puede publicarse en el dosier de inversores — desmarca una de las dos' } };
-            }
-            if (v.publicado_investor_deck && !window.confirm('«' + v.titulo + '» quedará descargable por CUALQUIERA que abra el dosier público de ' + p + ', sin contraseña y sin contrato.\n\nSi el enlace es de Drive, ábrelo antes en una ventana de incógnito: si no está compartido en abierto, el inversor se choca con una pantalla de permisos.\n\n¿Publicarlo?')) {
-              return { error: { message: 'publicación al dosier cancelada — desmarca la casilla o confirma' } };
-            }
-            return sb.from('documentos_proyecto').insert({
-              proyecto: p, titulo: v.titulo, url: v.url, categoria: v.categoria,
-              visible_portal: v.visible_portal, confidencial: v.confidencial,
-              // Confidencial MANDA sobre publicado. La misma regla vive también en el
-              // RPC `investor_deck_documentos` a propósito: una casilla del navegador
-              // no es un permiso.
-              publicado_investor_deck: !!v.publicado_investor_deck && !v.confidencial
+            return confirmaPublicacionDoc(v, p).then(function (c) {
+              if (!c.ok) return { error: { message: c.msg } };
+              return sb.from('documentos_proyecto').insert({
+                proyecto: p, titulo: v.titulo, url: v.url, categoria: v.categoria,
+                carpeta: v.carpeta.trim() || null, descripcion: v.descripcion.trim() || null,
+                visible_portal: v.visible_portal, confidencial: v.confidencial,
+                // Confidencial MANDA sobre publicado. La misma regla vive también en el
+                // RPC `investor_deck_documentos` a propósito: una casilla del navegador
+                // no es un permiso.
+                publicado_investor_deck: !!v.publicado_investor_deck && !v.confidencial
+              });
             });
           });
         });
@@ -2758,13 +2897,129 @@
           var p = proyecto(); if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
           modal('Nueva pregunta frecuente · ' + p, [
             { k: 'titulo', label: 'Pregunta', req: 1 },
-            { k: 'descripcion', label: 'Respuesta', tipo: 'textarea', req: 1 }
+            // S11.4 (22-sep-2026): la respuesta pasa a opcional (igual que la
+            // clásica, que guarda `.trim() || null`) — solo cambia la
+            // validación de frontend, la columna ya admitía null. Y se fija
+            // `carpeta: CARPETA_FAQ` al guardar, igual que la clásica, para
+            // que la FAQ aparezca como su propia sección en el árbol de
+            // Documentación en vez de mezclada sin carpeta.
+            { k: 'descripcion', label: 'Respuesta (opcional)', tipo: 'textarea' }
           ], 'Guardar pregunta', function (v) {
             // como las seis existentes: categoria faq, solo equipo
             return sb.from('documentos_proyecto').insert({
-              proyecto: p, titulo: v.titulo, descripcion: v.descripcion,
-              categoria: 'faq', confidencial: true, visible_portal: false
+              proyecto: p, titulo: v.titulo, descripcion: v.descripcion.trim() || null,
+              categoria: 'faq', carpeta: 'Preguntas frecuentes', confidencial: true, visible_portal: false
             });
+          });
+        });
+
+        /* Editar/borrar un enlace o una FAQ (S11.1, 22-sep-2026). Delegado en
+           los contenedores ESTÁTICOS (#d-enlaces/#d-faqs): datos.js reemplaza
+           sus filas en cada apertura del cajón, un listener por fila se
+           perdería al abrir el siguiente proyecto. `window.LW_V4.documentos`
+           lo llena datos.js al pintar (DOCUMENTOS_CAJON), mismo patrón que
+           `window.LW_V4.unidades` para "Editar unidad". */
+        function documentoDe(fila) {
+          var id = fila.getAttribute('data-doc-id');
+          return (window.LW_V4 && window.LW_V4.documentos && window.LW_V4.documentos[id]) || null;
+        }
+
+        /* Confirmación de publicación en la EDICIÓN: solo se pregunta si una
+           casilla PASA de false a true — repreguntar en cada guardado de un
+           documento que YA estaba publicado sería el aviso-que-siempre-se-
+           ignora que esta suite ya aprendió a no repetir (contexto/
+           suite_lawang.md, "Un fallo no se avisa igual que un guardado"). El
+           candado duro (confidencial+deck a la vez) usa los valores FINALES,
+           no el delta: da igual si `confidencial` es nuevo o ya lo era. */
+        function confirmaPublicacionDocEdicion(v, anterior, nombreProyecto) {
+          if (v.publicado_investor_deck && v.confidencial) {
+            return Promise.resolve({ ok: false, msg: 'un documento confidencial no puede publicarse en el dosier de inversores — desmarca una de las dos' });
+          }
+          var nuevoPortal = v.visible_portal && !anterior.visible_portal;
+          var nuevoDeck = v.publicado_investor_deck && !anterior.publicado_investor_deck;
+          if (!nuevoPortal && !nuevoDeck) return Promise.resolve({ ok: true });
+          return confirmaPublicacionDoc({ titulo: v.titulo, confidencial: v.confidencial, visible_portal: nuevoPortal, publicado_investor_deck: nuevoDeck }, nombreProyecto);
+        }
+
+        function abreEditarEnlace(d2) {
+          var p = proyecto() || d2.proyecto || '';
+          // Trampa cazada en revisión previa #40: una fila con `categoria`
+          // fuera de las 4 restringidas (p.ej. 'fotos', subida hoy solo desde
+          // la clásica) en un <select> de 4 opciones saldría con la primera
+          // marcada — guardar sin tocar la reclasificaría EN SILENCIO. Si la
+          // categoría actual no está en la lista restringida, se añade como
+          // opción extra ya seleccionada, en vez de forzar una de las 4.
+          var catsAquí = CATS_ENLACE.indexOf(d2.categoria) !== -1 ? CATS_ENLACE : CATS_ENLACE.concat([d2.categoria]);
+          modal('Editar enlace', [
+            { k: 'titulo', label: 'Título', req: 1, valor: d2.titulo || '' },
+            { k: 'url', label: 'URL', req: 1, valor: d2.url || '', ayuda: 'https://…' },
+            { k: 'categoria', label: 'Categoría', tipo: 'select', opciones: catsAquí, valor: d2.categoria || CATS_ENLACE[0] },
+            { k: 'carpeta', label: 'Carpeta (opcional)', valor: d2.carpeta || '' },
+            { k: 'descripcion', label: 'Descripción (opcional)', tipo: 'textarea', valor: d2.descripcion || '' },
+            { k: 'visible_portal', label: 'Visible para el comprador', tipo: 'check', valor: !!d2.visible_portal, ayuda: 'lo verán TODOS los compradores de ' + p + ' en su portal' },
+            { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check', valor: !!d2.confidencial },
+            { k: 'publicado_investor_deck', label: 'Publicar en el dosier de inversores', tipo: 'check', valor: !!d2.publicado_investor_deck, ayuda: 'PÚBLICO: lo ve cualquiera que abra el enlace del deck, sin contraseña y sin contrato' }
+          ], 'Guardar cambios', function (v) {
+            if (!/^https?:\/\//.test(v.url)) return { error: { message: 'la URL tiene que empezar por http:// o https://' } };
+            return confirmaPublicacionDocEdicion(v, d2, p).then(function (c) {
+              if (!c.ok) return { error: { message: c.msg } };
+              return sb.from('documentos_proyecto').update({
+                titulo: v.titulo, url: v.url, categoria: v.categoria,
+                carpeta: v.carpeta.trim() || null, descripcion: v.descripcion.trim() || null,
+                visible_portal: v.visible_portal, confidencial: v.confidencial,
+                publicado_investor_deck: !!v.publicado_investor_deck && !v.confidencial
+              }).eq('id', d2.id).select('id').then(unaFila);
+            });
+          });
+        }
+
+        function abreEditarFaq(d2) {
+          modal('Editar pregunta frecuente', [
+            { k: 'titulo', label: 'Pregunta', req: 1, valor: d2.titulo || '' },
+            { k: 'descripcion', label: 'Respuesta (opcional)', tipo: 'textarea', valor: d2.descripcion || '' }
+          ], 'Guardar cambios', function (v) {
+            return sb.from('documentos_proyecto').update({
+              titulo: v.titulo, descripcion: v.descripcion.trim() || null
+            }).eq('id', d2.id).select('id').then(unaFila);
+          });
+        }
+
+        /* Borrar (S11.1): la policy DELETE de `documentos_proyecto` exige
+           `es_super_admin()` — más estricta que editar (`puede('documentacion')`
+           a secas). datos.js ya esconde el botón para quien no lo es
+           (pintaAccionesDoc); este chequeo es el cinturón, no el gate real —
+           si RLS deniega, `unaFila` lo dice, nunca un "borrado" mentiroso. */
+        function borraDocumento(d2, etiquetaTipo) {
+          aseguraModulosDoc(['dialogo']).then(function () {
+            return lwConfirmar({
+              titulo: 'Borrar ' + etiquetaTipo,
+              cuerpo: '<p>«' + esc(d2.titulo || etiquetaTipo) + '» se borra de la documentación del proyecto. No se puede deshacer.</p>',
+              confirmar: 'Borrar', tono: 'peligro'
+            });
+          }).then(function (ok) {
+            if (!ok) return;
+            sb.from('documentos_proyecto').delete().eq('id', d2.id).select('id').then(function (r) {
+              var u2 = unaFila(r);
+              if (u2.error) return aviso('No se pudo borrar: ' + u2.error.message, '#ba1a1a');
+              aviso('Borrado');
+              location.reload();
+            });
+          });
+        }
+
+        [document.getElementById('d-enlaces'), document.getElementById('d-faqs')].forEach(function (caja) {
+          if (!caja) return;
+          caja.addEventListener('click', function (ev) {
+            var bEditar = ev.target.closest && ev.target.closest('[data-doc-editar]');
+            var bBorrar = ev.target.closest && ev.target.closest('[data-doc-borrar]');
+            if (!bEditar && !bBorrar) return;
+            ev.preventDefault(); ev.stopPropagation();
+            var fila = ev.target.closest('[data-doc-id]');
+            if (!fila) return;
+            var d2 = documentoDe(fila);
+            if (!d2) return aviso('Este elemento ya no está en pantalla — vuelve a abrir el proyecto.', '#8A6A34');
+            if (bEditar) { if (d2.categoria === 'faq') abreEditarFaq(d2); else abreEditarEnlace(d2); return; }
+            borraDocumento(d2, d2.categoria === 'faq' ? 'esta pregunta' : 'este enlace');
           });
         });
       }
@@ -2924,6 +3179,15 @@
           // de abajo, y onGuardar lo llama para saber el trimestre elegido.
           var getEntrega;
           var campos = [
+            // S10.1 (22-sep-2026): el modal de editar no traía `nombre` (solo
+            // lo tenía el alta) — se escribe por el RPC `renombrar_proyecto`,
+            // que hace el cascade atómico a unidades/contratos/facturas/
+            // documentos_proyecto/modelos_villa. Nunca un UPDATE directo a
+            // `proyectos.nombre` a secas: dejaría esas 5 tablas huérfanas,
+            // con el nombre viejo, mientras el desplegable ya solo ofrece
+            // el nuevo (ver contracts/... /renombrar_proyecto.sql).
+            { k: 'nombre', label: 'Nombre', req: 1, valor: p.nombre,
+              ayuda: 'Cuidado: renombrar aquí toca unidades, contratos, facturas, documentación y modelos de este proyecto — se confirma con el radio de impacto antes de guardar.' },
             { k: 'resort', label: 'Resort', valor: p.resort || '' },
             { k: 'parcela_master', label: 'Parcela máster (código)', valor: p.parcela_master || '' },
             // Fecha de entrega ESTIMADA del PROYECTO (16-sep-2026, encargo del
@@ -2987,6 +3251,11 @@
           }
 
           modal('Editar proyecto · ' + p.nombre, campos, 'Guardar', function (v) {
+            var nombreNuevo = (v.nombre || '').trim();
+            if (!nombreNuevo) return { error: { message: 'el nombre no puede quedar vacío' } };
+            var renombrando = nombreNuevo !== p.nombre;
+            var nombreEfectivo = renombrando ? nombreNuevo : p.nombre;
+
             var nuevaFecha = getEntrega ? getEntrega() : (p.fecha_entrega_estimada_proyecto || null);
             var cambioFecha = nuevaFecha !== (p.fecha_entrega_estimada_proyecto || null);
             var payloadProyecto = {
@@ -3001,81 +3270,272 @@
             if (cambioFecha) {
               payloadProyecto.fecha_entrega_estimada_fijada_en = nuevaFecha ? new Date().toISOString().slice(0, 10) : null;
             }
-            return sb.from('proyectos').update(payloadProyecto).eq('id', p.id).select('id').then(function (r) {
-              if (r.error) return r;
-              // La RLS de `proyectos` exige es_admin() para UPDATE: un no-admin
-              // no da error, da 0 filas (mismo aviso que /proyectos/ desde el
-              // 12-ago). Sin este chequeo la ficha no se guarda y aun así se
-              // cierra el modal como si hubiera ido bien — un fallo silencioso
-              // (hallazgo de Desarrollo en la revisión de este mismo despliegue).
-              if (!r.data || !r.data.length) {
-                return { error: { message: 'no tienes permiso para editar la ficha del proyecto (solo admin)' } };
-              }
-              var trabajos = [];
-              if (esAdminP && catalogo.length) {
-                trabajos.push(lwDeclaraModelosEnProyecto(sb, p.nombre, v.modelos || [], {
-                  catalogo: catalogo, villas: villas, enUso: new Set(Object.keys(enUso)), proyecto_id: p.id
-                }).then(function (rm) {
-                  if (!rm.ok) aviso('La ficha sí, los modelos no: ' + rm.error, '#ba1a1a');
-                  else if (rm.rechazadas.length) aviso('No se retiran ' + rm.rechazadas.map(function (x) { return x.modelo; }).join(', ') + ': hay parcelas que los usan', '#8A6A34');
-                }));
-              }
-              if (puedeUsuarios && managers.length) {
-                var marcados = v.managers || [];
-                managers.forEach(function (m) {
-                  var teniaAntes = (m.proyectos_supervisados || []).indexOf(p.id) !== -1;
-                  var marcadoAhora = marcados.indexOf(m.user_id) !== -1;
-                  if (teniaAntes === marcadoAhora) return;
-                  trabajos.push(sb.rpc('usuario_supervisa_proyecto', { p_user_id: m.user_id, p_proyecto_id: p.id, p_asignar: marcadoAhora })
-                    .then(function (rr) { if (rr.error) aviso('No se pudo actualizar el proyecto de ' + (m.nombre || m.email) + ': ' + rr.error.message, '#ba1a1a'); }));
-                });
-              }
-              if (v.imagen) {
-                var file = v.imagen;
-                if (file.size > 8 * 1024 * 1024) {
-                  aviso('La ficha sí, la foto no: pasa de 8 MB.', '#ba1a1a');
-                } else {
-                  var ext = (file.name.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
-                  var path = 'proyectos/' + p.id + '/' + crypto.randomUUID() + ext;
-                  trabajos.push(
-                    sb.storage.from('documentacion').upload(path, file, { contentType: file.type || undefined }).then(function (up) {
-                      if (up.error) { aviso('La ficha sí, la foto no: ' + up.error.message, '#ba1a1a'); return; }
-                      return sb.from('documentos_proyecto').insert({
-                        proyecto: p.nombre, categoria: 'portada', titulo: 'Portada',
-                        path: path, mime: file.type || null, bytes: file.size, confidencial: true
-                      }).then(function (ri) {
-                        if (ri.error) {
-                          // fichero huérfano en el bucket sin fila: se retira,
-                          // igual que hace subirDoc() en /intranet/modelos/.
-                          sb.storage.from('documentacion').remove([path]);
-                          aviso('La ficha sí, la foto no: ' + ri.error.message, '#ba1a1a');
-                        }
-                      });
-                    })
-                  );
+
+            // El renombrado va PRIMERO y por su propio RPC (nunca dentro del
+            // UPDATE de abajo, que solo toca `proyectos` por `id`): cascadea
+            // unidades/contratos/facturas/documentos_proyecto/modelos_villa,
+            // y lo que sigue (modelos declarados, foto de portada) tiene que
+            // escribir ya con el nombre NUEVO — si escribiera con el viejo,
+            // `lwDeclaraModelosEnProyecto` y la portada quedarían colgando de
+            // un nombre que `modelos_villa`/`documentos_proyecto` ya dejaron
+            // de tener tras el cascade.
+            var pasoRenombrar = !renombrando
+              ? Promise.resolve({ error: null })
+              : confirmaYRenombraProyecto(p, nombreNuevo);
+
+            return pasoRenombrar.then(function (rr) {
+              if (rr && rr.error) return rr;
+              return sb.from('proyectos').update(payloadProyecto).eq('id', p.id).select('id').then(function (r) {
+                if (r.error) return r;
+                // La RLS de `proyectos` exige es_admin() para UPDATE: un no-admin
+                // no da error, da 0 filas (mismo aviso que /proyectos/ desde el
+                // 12-ago). Sin este chequeo la ficha no se guarda y aun así se
+                // cierra el modal como si hubiera ido bien — un fallo silencioso
+                // (hallazgo de Desarrollo en la revisión de este mismo despliegue).
+                if (!r.data || !r.data.length) {
+                  return { error: { message: 'no tienes permiso para editar la ficha del proyecto (solo admin)' } };
                 }
-              }
-              return Promise.all(trabajos).then(function () { return r; });
+                var trabajos = [];
+                if (esAdminP && catalogo.length) {
+                  trabajos.push(lwDeclaraModelosEnProyecto(sb, nombreEfectivo, v.modelos || [], {
+                    catalogo: catalogo, villas: villas, enUso: new Set(Object.keys(enUso)), proyecto_id: p.id
+                  }).then(function (rm) {
+                    if (!rm.ok) aviso('La ficha sí, los modelos no: ' + rm.error, '#ba1a1a');
+                    else if (rm.rechazadas.length) aviso('No se retiran ' + rm.rechazadas.map(function (x) { return x.modelo; }).join(', ') + ': hay parcelas que los usan', '#8A6A34');
+                  }));
+                }
+                if (puedeUsuarios && managers.length) {
+                  var marcados = v.managers || [];
+                  managers.forEach(function (m) {
+                    var teniaAntes = (m.proyectos_supervisados || []).indexOf(p.id) !== -1;
+                    var marcadoAhora = marcados.indexOf(m.user_id) !== -1;
+                    if (teniaAntes === marcadoAhora) return;
+                    trabajos.push(sb.rpc('usuario_supervisa_proyecto', { p_user_id: m.user_id, p_proyecto_id: p.id, p_asignar: marcadoAhora })
+                      .then(function (rr2) { if (rr2.error) aviso('No se pudo actualizar el proyecto de ' + (m.nombre || m.email) + ': ' + rr2.error.message, '#ba1a1a'); }));
+                  });
+                }
+                if (v.imagen) {
+                  var file = v.imagen;
+                  if (file.size > 8 * 1024 * 1024) {
+                    aviso('La ficha sí, la foto no: pasa de 8 MB.', '#ba1a1a');
+                  } else {
+                    var ext = (file.name.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
+                    var path = 'proyectos/' + p.id + '/' + crypto.randomUUID() + ext;
+                    trabajos.push(
+                      sb.storage.from('documentacion').upload(path, file, { contentType: file.type || undefined }).then(function (up) {
+                        if (up.error) { aviso('La ficha sí, la foto no: ' + up.error.message, '#ba1a1a'); return; }
+                        return sb.from('documentos_proyecto').insert({
+                          proyecto: nombreEfectivo, categoria: 'portada', titulo: 'Portada',
+                          path: path, mime: file.type || null, bytes: file.size, confidencial: true
+                        }).then(function (ri) {
+                          if (ri.error) {
+                            // fichero huérfano en el bucket sin fila: se retira,
+                            // igual que hace subirDoc() en /intranet/modelos/.
+                            sb.storage.from('documentacion').remove([path]);
+                            aviso('La ficha sí, la foto no: ' + ri.error.message, '#ba1a1a');
+                          }
+                        });
+                      })
+                    );
+                  }
+                }
+                return Promise.all(trabajos).then(function () {
+                  // Navegación manual en vez del reload por defecto de modal()
+                  // (opts.sinRecarga, ver la llamada de abajo): tras renombrar,
+                  // un `location.reload()` a secas se quedaría con
+                  // `?proyecto=<nombre-viejo>` en la URL, que ya no casa con
+                  // ningún proyecto — el cajón se recargaría cerrado, sin
+                  // avisar de que el guardado SÍ funcionó. Se corrige el
+                  // parámetro con `history.replaceState` (conserva cualquier
+                  // otro query — `?qa=1` del harness incluido) y LUEGO se
+                  // recarga de verdad, para traer los datos ya actualizados.
+                  var u2 = new URL(location.href);
+                  u2.searchParams.set('proyecto', nombreEfectivo);
+                  history.replaceState(null, '', u2.href);
+                  setTimeout(function () { location.reload(); }, renombrando ? 300 : 0);
+                  return r;
+                });
+              });
             });
-          });
+          }, { sinRecarga: true });
         });
       });
 
-      /* Borrar proyecto (11-sep-2026): botón ya solo super_admin lo ve
-         (title lo avisa desde Stitch); el gate real es el RPC —
-         es_super_admin() dentro de borrar_proyecto(), no esta UI. Rechaza el
-         borrado solo si quedan unidades, modelos o documentos colgando. */
+      /* Borrar proyecto (11-sep-2026, recuento+lwConfirmar añadidos S10.4
+         22-sep-2026): botón ya solo super_admin lo ve (title lo avisa desde
+         Stitch); el gate real es el RPC — es_super_admin() dentro de
+         borrar_proyecto(), no esta UI. El RPC rechaza el borrado si quedan
+         unidades, modelos de villa o documentos colgando (contratos/facturas
+         NO bloquean — proyecto_nombre ahí es una foto impresa, no una
+         consulta en vivo). El recuento de aquí es solo UX, para no pedir
+         confirmar a ciegas: NUNCA sustituye la llamada al RPC, aunque dé
+         cero — puede desincronizarse entre el cálculo y el clic. */
       ata(/^Borrar proyecto$/i, function () {
         var p = proyectoObj();
         if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
         if (!esSuper) return aviso('Borrar un proyecto es solo para super_admin.', '#8A6A34');
-        if (!window.confirm('Borrar el proyecto «' + p.nombre + '» del catálogo. Solo funciona si no le quedan unidades, modelos ni documentos colgando. ¿Seguro?')) return;
-        sb.rpc('borrar_proyecto', { p_nombre: p.nombre }).then(function (r) {
-          if (r.error) return aviso('No se pudo borrar: ' + r.error.message, '#ba1a1a');
-          aviso('Proyecto borrado');
-          setTimeout(function () { location.href = '/intranet/v4/proyectos/'; }, 1200);
+        var cuenta = function (tabla, columna) { return sb.from(tabla).select('id', { count: 'exact', head: true }).eq(columna, p.nombre); };
+        Promise.all([
+          cuenta('unidades', 'proyecto'), cuenta('modelos_villa', 'proyecto'), cuenta('documentos_proyecto', 'proyecto')
+        ]).then(function (rs) {
+          var uds = (rs[0] && rs[0].count) || 0, mods = (rs[1] && rs[1].count) || 0, docs = (rs[2] && rs[2].count) || 0;
+          var bloquea = [
+            uds ? uds + ' unidad(es)' : '', mods ? mods + ' modelo(s) de villa' : '', docs ? docs + ' documento(s)' : ''
+          ].filter(Boolean).join(', ');
+          return aseguraModulosDoc(['dialogo']).then(function () {
+            return lwConfirmar({
+              titulo: 'Borrar el proyecto «' + p.nombre + '» del catálogo',
+              cuerpo: (bloquea
+                ? '<p>Bloqueado ahora mismo: quedan <b>' + esc(bloquea) + '</b> colgando. El sistema rechazará el borrado hasta que se vacíen.</p>'
+                : '<p>Nada de lo que bloquea el borrado ahora mismo — puede desincronizarse entre este cálculo y el clic; el RPC es quien decide de verdad.</p>') +
+                '<p>Contratos y facturas que nombren este proyecto NO se tocan: quedan como documentos ya emitidos.</p>',
+              confirmar: 'Borrar el proyecto', tono: 'peligro'
+            });
+          });
+        }).then(function (ok) {
+          if (!ok) return;
+          sb.rpc('borrar_proyecto', { p_nombre: p.nombre }).then(function (r) {
+            if (r.error) return aviso('No se pudo borrar: ' + r.error.message, '#ba1a1a');
+            aviso('Proyecto borrado');
+            setTimeout(function () { location.href = '/intranet/v4/proyectos/'; }, 1200);
+          });
         });
       });
+
+      /* Fotos del Investor Deck (S10.2, 22-sep-2026): pieza COMPARTIDA de la
+         suite (contracts/assets/deck_fotos.js, Regla 0) que ya usan
+         /proyectos/ y /modelos/ clásicos — se engancha TAL CUAL, nunca se
+         reescribe. Sube = publica al instante en el bucket público 'deck',
+         sin estado intermedio "sin publicar": el propio deck_fotos.js lo
+         avisa en pantalla antes de dejar subir nada. dialogo.js hace falta
+         para que su confirmación de "Quitar esta foto" no se salte sola. */
+      ata(/^Fotos del deck$/i, function () {
+        var p = proyectoObj();
+        if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
+        aseguraModulosDoc(['dialogo', 'deckFotos']).then(function () {
+          if (!window.lwDeckFotos) return aviso('No se ha podido cargar el gestor de fotos del deck.', '#ba1a1a');
+          window.lwDeckFotos.abrir({
+            SB: sb, ambito: 'proyecto', proyectoId: p.id, esAdmin: esAdminP,
+            titulo: 'Fotos públicas del deck', sub: p.nombre
+          });
+        }, function (e) { aviso('No se ha podido cargar el gestor de fotos del deck: ' + (e && e.message || e), '#ba1a1a'); });
+      });
+
+      /* Investor Deck (S10.3, 22-sep-2026, revisión previa #40 Seguridad+
+         Legal+Datos): porta `abrirInvestorDeck()` de
+         /intranet/proyectos/index.html:904-983 TAL CUAL — mismo RPC
+         (`investor_deck_activar`, SECURITY DEFINER con `es_admin()` propio,
+         nunca un UPDATE en bloque a `unidades` desde aquí), misma
+         confirmación "Incluidas las vendidas y reservadas", mismo botón
+         "Activar" deshabilitado sin título guardado. El mecanismo YA EXISTE
+         en producción (Palm Field, 15-sep) — esto solo lo engancha a la v4,
+         con el cajón NATIVO de este fichero (`cajon()`) en vez de
+         `suiAbrirCajon`: Guardar y Activar/Desactivar son SIEMPRE dos clics
+         distintos, nunca el mismo, igual que la clásica. */
+      ata(/^Investor Deck$/i, function () {
+        var p = proyectoObj();
+        if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
+        Promise.all([
+          sb.from('deck_config_proyecto').select('titulo,meta_desc,modelo_destacado_id').eq('proyecto_id', p.id).maybeSingle(),
+          sb.from('unidades').select('id', { count: 'exact', head: true }).eq('proyecto', p.nombre).eq('publicado_investor_deck', true),
+          sb.from('modelos_villa').select('modelo_id,modelo').eq('proyecto', p.nombre).not('modelo_id', 'is', null)
+        ]).then(function (rs) {
+          if (rs[0].error) return aviso('No se pudo abrir el Investor Deck: ' + rs[0].error.message, '#ba1a1a');
+          var cfg = (rs[0] && rs[0].data) || {};
+          var activo = !!((rs[1] && rs[1].count) || 0);
+          var modelosDelProyecto = (rs[2] && rs[2].data) || [];
+          pintaInvestorDeck(p, cfg, activo, modelosDelProyecto);
+        }, function (e) { aviso('No se pudo abrir el Investor Deck: ' + (e && e.message || e), '#ba1a1a'); });
+      });
+
+      function pintaInvestorDeck(p, cfg, activo, modelosDelProyecto) {
+        var tituloEn = (cfg.titulo && cfg.titulo.en) || '';
+        var metaEn = (cfg.meta_desc && cfg.meta_desc.en) || '';
+        var destacadoId = cfg.modelo_destacado_id || '';
+        var estiloDeck = 'width:100%;padding:9px 12px;border:1px solid ' + CAJ.borde + ';border-radius:8px;font-weight:500;font-size:14px;color:' + CAJ.tinta + ';background-color:#fff;box-sizing:border-box';
+        var campoDeck = function (label, valorHtml, ayuda) {
+          return '<label style="display:grid;gap:6px;background:' + CAJ.banda + ';border:1px solid ' + CAJ.borde + ';border-radius:12px;padding:12px 14px;font-weight:500;font-size:12px;color:' + CAJ.apagado + '">' +
+            esc(label) + valorHtml + (ayuda ? '<small style="font-weight:400;font-size:11.5px;color:#8A8474">' + esc(ayuda) + '</small>' : '') + '</label>';
+        };
+        var cuerpo =
+          '<p style="margin:0 0 4px;font-size:13px;color:' + CAJ.apagado + ';line-height:1.5">Página pública de due diligence para inversores, sin login. Se sirve en <code>/investor-deck/' + esc(p.slug || '<slug>') + '/</code>.</p>' +
+          (!esAdminP ? '<p style="margin:0 0 4px;font-size:12.5px;color:#8A6A34">Solo un administrador puede editar o activar el Investor Deck.</p>' : '') +
+          campoDeck('Slug de la URL', '<input id="id-slug" value="' + esc(p.slug || '') + '" placeholder="ej. sumba-hills" style="' + estiloDeck + '"' + (esAdminP ? '' : ' disabled') + '>', 'Se escribe una sola vez. Cambiarlo tras activar el deck rompe cualquier enlace ya compartido.') +
+          campoDeck('Título (inglés)', '<input id="id-titulo" value="' + esc(tituloEn) + '" placeholder="ej. Sumba Hills — Investor Deck" style="' + estiloDeck + '"' + (esAdminP ? '' : ' disabled') + '>') +
+          campoDeck('Meta description (inglés)', '<input id="id-meta" value="' + esc(metaEn) + '" style="' + estiloDeck + '"' + (esAdminP ? '' : ' disabled') + '>') +
+          campoDeck('Modelo "Most requested" (opcional)',
+            '<select id="id-destacado" style="' + estiloDeck + flechaSelect + '"' + (esAdminP ? '' : ' disabled') + '><option value="">— ninguno —</option>' +
+            modelosDelProyecto.map(function (m) { return '<option value="' + esc(m.modelo_id) + '"' + (destacadoId === m.modelo_id ? ' selected' : '') + '>' + esc(m.modelo) + '</option>'; }).join('') +
+            '</select>') +
+          '<p style="margin:0;font-size:12px;color:' + CAJ.apagado + '">KPIs de cabecera y plano interactivo de parcelas no se editan aquí todavía — sin ellos, esas secciones simplemente no aparecen en la página pública (nunca placeholders).</p>' +
+          '<div style="background:' + CAJ.banda + ';border:1px solid ' + CAJ.borde + ';border-radius:12px;padding:12px 14px;font-size:13px;color:' + CAJ.tinta + '">' +
+            '<b>Estado: </b>' + (activo
+              ? 'el deck está <b style="color:#3F5230">ACTIVO</b> — todas las unidades de este proyecto son visibles en la página pública.'
+              : 'el deck está <b style="color:#9E2F26">INACTIVO</b> — nada de este proyecto es visible en la página pública.') +
+          '</div>';
+
+        var puedeActivar = esAdminP && (activo || !!tituloEn);
+
+        var c = cajon({
+          titulo: 'Investor Deck', sub: p.nombre, ancho: 'min(560px,96vw)',
+          cuerpo: cuerpo,
+          acciones: [
+            { texto: 'Guardar', tono: 'primario', disabled: !esAdminP, onClick: guardarDeckConfig },
+            { texto: activo ? 'Desactivar deck' : 'Activar deck', tono: activo ? '' : 'primario',
+              disabled: !puedeActivar, title: (!activo && !tituloEn) ? 'Guarda un título primero' : '',
+              onClick: toggleInvestorDeck },
+            { texto: 'Cerrar', cerrar: true }
+          ]
+        });
+
+        function guardarDeckConfig() {
+          var slug = document.getElementById('id-slug').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+          var tEn = document.getElementById('id-titulo').value.trim();
+          var mEn = document.getElementById('id-meta').value.trim();
+          if (!tEn || !mEn) return aviso('Título y meta description son obligatorios.', '#8A6A34');
+          var destId = document.getElementById('id-destacado').value || null;
+          var tareas = [];
+          if (slug && slug !== (p.slug || '')) {
+            tareas.push(sb.from('proyectos').update({ slug: slug }).eq('id', p.id).select('id').then(unaFila));
+          }
+          // `.select().then(unaFila)` (hallazgo de code-review, 22-sep-2026):
+          // sin esto, un upsert que la RLS deniega en silencio (`for all using
+          // (es_admin())`, sesión caducada, lo que sea) devuelve sin `.error`
+          // y el código seguía derecho a "Guardado" + reload — el mismo fallo
+          // silencioso que este fichero ya avisa y evita en el UPDATE de
+          // `proyectos` de más arriba.
+          tareas.push(sb.from('deck_config_proyecto').upsert({
+            proyecto_id: p.id, titulo: { en: tEn }, meta_desc: { en: mEn }, modelo_destacado_id: destId
+          }, { onConflict: 'proyecto_id' }).select('proyecto_id').then(unaFila));
+          Promise.all(tareas).then(function (rr) {
+            var err = rr.filter(function (r) { return r && r.error; })[0];
+            if (err) return aviso('No se pudo guardar: ' + (err.error.message || 'la base no ha cambiado nada — puede que el slug ya lo use otro proyecto, o que tu sesión no tenga permiso.'), '#ba1a1a');
+            aviso('Guardado');
+            location.reload();
+          });
+        }
+
+        function toggleInvestorDeck() {
+          var nuevoEstado = !activo;
+          aseguraModulosDoc(['dialogo']).then(function () {
+            return lwConfirmar({
+              titulo: nuevoEstado ? 'Activar el Investor Deck' : 'Desactivar el Investor Deck',
+              cuerpo: nuevoEstado
+                ? '<p>Todas las unidades de ' + esc(p.nombre) + ' pasarán a ser visibles, sin login, en /investor-deck/. <b>Incluidas las vendidas y reservadas.</b></p>'
+                : '<p>' + esc(p.nombre) + ' deja de ser visible en el Investor Deck público.</p>',
+              confirmar: nuevoEstado ? 'Activar' : 'Desactivar'
+            });
+          }).then(function (ok) {
+            if (!ok) return;
+            return sb.rpc('investor_deck_activar', { p_proyecto: p.nombre, p_activo: nuevoEstado }).then(function (r) {
+              if (r.error) return aviso('No se pudo cambiar el estado: ' + r.error.message, '#ba1a1a');
+              aviso(nuevoEstado ? 'Deck activado' : 'Deck desactivado');
+              c.cierra();
+              location.reload();
+            });
+          });
+        }
+      }
 
       /* Nuevo proyecto (11-sep-2026): mismo alcance que altaProyecto() en
          /proyectos/ — solo el nombre. Resort/parcela máster se añaden después
@@ -3345,7 +3805,14 @@
               { k: 'contrato_id', label: 'Contrato asociado', tipo: 'select', valor: '',
                 opciones: [['', '— sin contrato —']].concat(contratos.map(function (c) {
                   return [c.id, (c.numero || 'sin nº') + ' — ' + (c.comprador_nombre || 'sin nombre')];
-                })) }
+                })) },
+              // `avisoEstado` (S10.6, 22-sep-2026): porta el aviso de
+              // /intranet/proyectos/index.html:1450-1459 — el guardia que dice
+              // en voz alta lo que la base no puede saber sola (que ESTA
+              // parcela ya está comprometida con OTRO contrato). Contenedor
+              // 'custom' vacío al abrir; se rellena tras `modal()`, cuando los
+              // <select> de estado/contrato ya existen en el DOM.
+              { tipo: 'custom', render: function (d) { d.style.cssText = 'display:none;grid-column:1/-1'; d.id = 'aviso-estado-u'; } }
             );
           }
           campos.push({ k: 'notas', label: 'Notas', tipo: 'textarea', valor: n0(u.notas) });
@@ -3492,6 +3959,41 @@
                 aviso('Precio de construcción recalculado para ' + cmodelo.value);
               });
             }
+          }
+          /* avisoEstado (S10.6, 22-sep-2026) — solo existe cuando la parcela
+             NO está vinculada (arriba, el campo 'custom' con id
+             "aviso-estado-u" solo se pinta en ese `else`). Compara CONTRA
+             `window.LW_V4.unidades`: las unidades YA CARGADAS del proyecto
+             abierto en el cajón, no toda la cartera como hacía `UNIDADES` en
+             la clásica — más estrecho, pero cubre el caso real (dos parcelas
+             del MISMO proyecto compartiendo contrato por error), que es lo
+             que este aviso existe para cazar. */
+          var estSel = document.querySelector('#lw-editor [data-k="estado"]');
+          var conSel = document.querySelector('#lw-editor [data-k="contrato_id"]');
+          var avisoEstadoDiv = document.getElementById('aviso-estado-u');
+          if (estSel && conSel && avisoEstadoDiv) {
+            var actualizaAvisoEstado = function () {
+              var est = estSel.value, cid = conSel.value;
+              var msgs = [];
+              if ((est === 'vendida' || est === 'reservada') && !cid) {
+                msgs.push('Marcada como ' + etiq(est).toLowerCase() + ' pero sin contrato asociado: no se podrá saber de quién es.');
+              }
+              var mapaUnidades = (window.LW_V4 && window.LW_V4.unidades) || {};
+              var otras = [];
+              Object.keys(mapaUnidades).forEach(function (idU) {
+                var uu = mapaUnidades[idU];
+                if (uu && uu.contrato_id && uu.contrato_id === cid && uu.id !== u.id) otras.push(uu.codigo);
+              });
+              if (cid && otras.length) msgs.push('Ese contrato ya está asociado a ' + otras.join(', ') + '. Si no es una operación de varias unidades, revísalo.');
+              if (msgs.length) {
+                avisoEstadoDiv.style.display = 'block';
+                avisoEstadoDiv.innerHTML = '<p style="margin:0;font-weight:500;font-size:12.5px;line-height:1.5;color:#8A6A34;background:#FBF3E4;border:1px solid #EBDCB4;border-radius:12px;padding:11px 14px">' +
+                  msgs.map(esc).join('<br>') + '</p>';
+              } else { avisoEstadoDiv.style.display = 'none'; avisoEstadoDiv.innerHTML = ''; }
+            };
+            estSel.addEventListener('change', actualizaAvisoEstado);
+            conSel.addEventListener('change', actualizaAvisoEstado);
+            actualizaAvisoEstado();
           }
         }, function (e) {
           aviso('No se pudo abrir: ' + (e && e.message || e), '#ba1a1a');

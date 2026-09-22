@@ -2559,11 +2559,16 @@
       // COMPRADOR_ID_POR_CONTRATO: contrato_id -> client_id del Adquiriente I,
       // para el enlace directo a /compradores/ de cada parcela (11-sep-2026).
       var COMPRADOR_ID_POR_CONTRATO = {};
-      var MOLDE = null, MOLDE_ENLACE = null, MOLDE_FAQ = null, MOLDE_UNIDAD = null;
+      var MOLDE = null, MOLDE_ENLACE = null, MOLDE_FAQ = null, MOLDE_DOC = null, MOLDE_UNIDAD = null;
       // Las unidades del proyecto abierto, por id, tal y como se pintaron.
       // Es lo que lee el editor del parcelario (editores.js) para abrir el
       // formulario ya relleno. Se vacía en cada repintado del cajón.
       var UNIDADES_CAJON = {};
+      // Mismo patrón, para los enlaces/documentos/FAQ del proyecto abierto
+      // (S11.1, 22-sep-2026): el editor de editores.js lee de aquí para abrir
+      // "Editar enlace"/"Editar FAQ" con la fila ya rellena, sin una consulta
+      // nueva por cada clic.
+      var DOCUMENTOS_CAJON = {};
       /* FUENTE ÚNICA del color y del nombre de cada estado de unidad
          (14-sep-2026). Antes este mapa pintaba SOLO la pastilla del parcelario
          y un comentario pedía «acuérdate de cambiar también los chips»: eso es
@@ -2897,8 +2902,44 @@
            se sostenia. La lectura es de equipo (es_agente); el alta seguira
            exigiendo puede('documentacion'), la misma llave de siempre. */
         var docsEl = DS_ACTUAL.filter(function (d2) { return d2.proyecto === elegido.nombre; });
-        var enl = docsEl.filter(function (d2) { return d2.categoria !== 'faq'; });
-        var faq = docsEl.filter(function (d2) { return d2.categoria === 'faq'; });
+        /* S11.5 (22-sep-2026): 'portada' (la foto de fondo de la tarjeta, ya se
+           ve en el Expediente de arriba y en la propia rejilla) queda fuera de
+           las tres listas — antes colaba como si fuera un enlace de
+           documentación, sin ningún enlace real detrás. Y un documento SUBIDO
+           como fichero (tiene `path`; el CHECK de la tabla exige que `path` y
+           `url` sean mutuamente excluyentes salvo en una FAQ) se separa de los
+           enlaces de verdad, en su propia pestaña "Documentos" — antes se
+           mezclaban indistinguibles y sin forma de abrirse (ver S11.2).
+           Los `general` (documentos de la EMPRESA sin proyecto real detrás —
+           NPWP, Akta…, 18-sep-2026) quedan fuera A PROPÓSITO: este cajón es la
+           documentación DE ESTE proyecto; mostrarlos aquí los repetiría
+           idénticos en cada proyecto de la cartera sin ningún dato que los
+           distinga. Siguen viéndose en /intranet/documentacion/, que no cambia. */
+        var noPortada = docsEl.filter(function (d2) { return d2.categoria !== 'portada'; });
+        var enl = noPortada.filter(function (d2) { return d2.categoria !== 'faq' && !d2.path; });
+        var docs = noPortada.filter(function (d2) { return d2.categoria !== 'faq' && !!d2.path; });
+        var faq = noPortada.filter(function (d2) { return d2.categoria === 'faq'; });
+        /* Lo que "Editar enlace"/"Editar FAQ" (editores.js) necesita para abrir
+           con la fila ya rellena, sin una consulta nueva por cada clic — mismo
+           patrón que UNIDADES_CAJON/window.LW_V4.unidades, arriba. */
+        DOCUMENTOS_CAJON = {};
+        docsEl.forEach(function (d2) { DOCUMENTOS_CAJON[d2.id] = d2; });
+        window.LW_V4.documentos = DOCUMENTOS_CAJON;
+        /* Quién ve editar/borrar en cada fila (S11.1): editar pide
+           puede('documentacion') (misma llave que el alta), borrar pide
+           es_super_admin() — la policy DELETE de `documentos_proyecto` es más
+           estricta que la de UPDATE. Pintarlo mal no abre un agujero (RLS
+           sigue mandando), pero un botón que va a fallar SIEMPRE por permiso
+           es peor que no pintarlo: parece un fallo del sistema, no un límite
+           de rol. */
+        var fichaDoc = window.LW_V4.ficha;
+        var puedeEditarDoc = !!fichaDoc && (fichaDoc.rol === 'super_admin' || (fichaDoc.herramientas || []).indexOf('documentacion') !== -1);
+        var puedeBorrarDoc = !!window.LW_V4.esSuperAdmin;
+        var pintaAccionesDoc = function (f) {
+          var be = f.querySelector('[data-doc-editar]'), bb = f.querySelector('[data-doc-borrar]');
+          if (be) be.classList.toggle('hidden', !puedeEditarDoc);
+          if (bb) bb.classList.toggle('hidden', !puedeBorrarDoc);
+        };
         var cajaE = document.getElementById('d-enlaces');
         // Molde cacheado UNA vez (11-sep-2026): antes se releía de
         // `firstElementChild` en cada apertura, así que un proyecto sin
@@ -2913,11 +2954,37 @@
           if (!enl.length) cajaE.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Este proyecto no tiene enlaces guardados.</p>';
           enl.forEach(function (d2) {
             var f = mE.cloneNode(true);
+            f.setAttribute('data-doc-id', d2.id);
             var p3 = function (k, v2) { var e = f.querySelector('[data-lw="' + k + '"]'); if (e) e.textContent = v2; };
             p3('en-titulo', d2.titulo || 'Enlace');
             p3('en-meta', (d2.categoria || '—') + (d2.visible_portal ? ' · visible al comprador' : '') + (d2.confidencial ? ' · confidencial' : ''));
-            if (d2.url) f.href = d2.url; else { f.removeAttribute('href'); f.style.cursor = 'default'; }
+            var a2 = f.querySelector('a');
+            if (a2) { if (d2.url) a2.href = d2.url; else { a2.removeAttribute('href'); a2.style.cursor = 'default'; } }
+            pintaAccionesDoc(f);
             cajaE.appendChild(f);
+          });
+        }
+        /* Documentos SUBIDOS como fichero (S11.2/S11.5): sin edición/borrado
+           desde aquí a propósito (fuera del alcance de S11 — hoy no hay alta
+           de fichero suelto en v4, solo la portada del proyecto), pero SÍ con
+           forma de abrirse: `createSignedUrl` al pulsar, TTL corto, mismo
+           patrón que ya usa esta pantalla para las portadas de la rejilla
+           (createSignedUrls en lote, más abajo). El bucket 'documentacion' es
+           privado — nunca se marca público para "arreglar" un 403. */
+        var cajaD = document.getElementById('d-documentos');
+        if (!MOLDE_DOC && cajaD && cajaD.firstElementChild) MOLDE_DOC = cajaD.firstElementChild.cloneNode(true);
+        if (cajaD && MOLDE_DOC) {
+          var mD = MOLDE_DOC.cloneNode(true);
+          cajaD.innerHTML = '';
+          if (!docs.length) cajaD.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Este proyecto no tiene documentos subidos.</p>';
+          docs.forEach(function (d2) {
+            var f = mD.cloneNode(true);
+            f.setAttribute('data-doc-id', d2.id);
+            var p3 = function (k, v2) { var e = f.querySelector('[data-lw="' + k + '"]'); if (e) e.textContent = v2; };
+            p3('dc-titulo', d2.titulo || 'Documento');
+            var tam = (typeof d2.bytes === 'number' && d2.bytes > 0) ? ' · ' + Math.round(d2.bytes / 1024) + ' KB' : '';
+            p3('dc-meta', (d2.categoria || '—') + tam + (d2.confidencial ? ' · confidencial' : ''));
+            cajaD.appendChild(f);
           });
         }
         var cajaF = document.getElementById('d-faqs');
@@ -2928,9 +2995,11 @@
           if (!faq.length) cajaF.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Sin preguntas frecuentes para este proyecto.</p>';
           faq.forEach(function (d2) {
             var f = mF.cloneNode(true);
+            f.setAttribute('data-doc-id', d2.id);
             var p3 = function (k, v2) { var e = f.querySelector('[data-lw="' + k + '"]'); if (e) e.textContent = v2; };
             p3('fq-pregunta', d2.titulo || 'Pregunta');
             p3('fq-respuesta', d2.descripcion || '—');
+            pintaAccionesDoc(f);
             cajaF.appendChild(f);
           });
         }
@@ -2998,8 +3067,20 @@
                 : noVisible ? 'cobro no visible · ' + fmtConEstimado(cartera, moneda)
                 : fmtConEstimado(cobrado, moneda) + ' / ' + fmtConEstimado(cartera, moneda), f);
             };
-            uu.forEach(function (u) {
+            uu.forEach(function (u, idxUnidad) {
               var f = base.cloneNode(true);
+              // Orden NATURAL (S10.5, 22-sep-2026): `uu` ya llega ordenada por
+              // `codigo_orden` desde la base — se guarda el índice para poder
+              // volver a él tras ordenar por otro criterio, sin una segunda
+              // consulta ni reordenar a mano por texto (SH-10 antes que SH-2).
+              f.setAttribute('data-orden-natural', idxUnidad);
+              // `data-estado` con la CLAVE cruda (S10.5, hallazgo de code-review
+              // 22-sep-2026): ordenar por "estado" tiene que seguir el orden
+              // lógico de ESTADO_ETIQUETA (disponible→…→no_disponible), no el
+              // alfabético del texto ya en mayúsculas que pinta la pastilla —
+              // localeCompare sobre "BLOQUEADA/COBRADA/DISPONIBLE…" mezclaría
+              // el progreso de venta con el orden del diccionario.
+              f.setAttribute('data-estado', u.estado || '');
               pon('u-codigo', u.codigo, f);
               pon('u-tipo', u.modelo || '—', f);
               /* Estado destacado (11-sep-2026) y reforzado el 14-sep-2026: la
@@ -3047,6 +3128,13 @@
               pon('u-agente', u.contrato_creado_por ? (EQUIPO_NOMBRE[u.contrato_creado_por] || u.contrato_creado_por) : '—', f);
               caja.appendChild(f);
             });
+            // S10.5: cambiar de proyecto reinicia el filtro/orden — si no, el
+            // texto buscado en el proyecto anterior dejaría el nuevo con la
+            // rejilla vacía en silencio, sin que nadie entienda por qué.
+            var buscadorUds = document.getElementById('d-unidades-buscar');
+            var ordenUds = document.getElementById('d-unidades-orden');
+            if (buscadorUds) buscadorUds.value = '';
+            if (ordenUds) ordenUds.value = 'codigo';
           });
 
         if (opts.mostrar) {
@@ -3280,6 +3368,87 @@
         });
       }
 
+      /* Filtro/orden de unidades DENTRO del cajón (S10.5, 22-sep-2026):
+         100% client-side sobre las filas que ya pintó abrirCajon() — sin
+         consulta nueva. Los dos controles son DOM estático (no dependen de
+         qué proyecto esté abierto), así que se cablean UNA vez, igual que
+         wireTabsDoc/wireControles; cada disparo relee `#d-unidades` en el
+         momento, así que siempre actúa sobre lo que esté pintado entonces. */
+      function wireFiltroUnidadesCajon() {
+        var caja = document.getElementById('d-unidades');
+        var buscador = document.getElementById('d-unidades-buscar');
+        var orden = document.getElementById('d-unidades-orden');
+        if (!caja || !buscador || !orden) return;
+        var textoDeFila = function (f) {
+          var t = function (k) { var e = f.querySelector('[data-lw="' + k + '"]'); return e ? e.textContent : ''; };
+          return (t('u-codigo') + ' ' + t('u-tipo') + ' ' + t('u-comprador-link') + ' ' + t('u-contrato-link') + ' ' + t('u-agente')).toLowerCase();
+        };
+        var aplicaFiltro = function () {
+          var q2 = buscador.value.toLowerCase().trim();
+          Array.prototype.forEach.call(caja.children, function (f) {
+            if (!f.querySelector) return;
+            f.classList.toggle('hidden', !!q2 && textoDeFila(f).indexOf(q2) === -1);
+          });
+        };
+        var aplicaOrden = function () {
+          var criterio = orden.value;
+          var filas = Array.prototype.slice.call(caja.children).filter(function (f) { return f.hasAttribute && f.hasAttribute('data-orden-natural'); });
+          var val = function (f, k) { var e = f.querySelector('[data-lw="' + k + '"]'); return e ? e.textContent.trim() : ''; };
+          if (criterio === 'codigo') {
+            // Vuelve al orden con el que abrirCajon() las pintó (codigo_orden
+            // de la base, orden NATURAL — no alfabético): guardado en cada
+            // fila al pintarla, para no reordenar por texto (SH-10 antes que
+            // SH-2 es el fallo que esto evita).
+            filas.sort(function (a, b) { return Number(a.getAttribute('data-orden-natural')) - Number(b.getAttribute('data-orden-natural')); });
+          } else if (criterio === 'estado') {
+            // Orden LÓGICO (disponible→reservada→bloqueada→vendida→cobrada→
+            // no_disponible, el mismo de ESTADO_ETIQUETA y de los chips de
+            // arriba), no alfabético del texto ya en mayúsculas de la
+            // pastilla — corregido en code-review (22-sep-2026): ordenar por
+            // texto mezclaba BLOQUEADA/COBRADA/DISPONIBLE sin seguir el
+            // progreso real de venta.
+            var claves = Object.keys(ESTADO_ETIQUETA);
+            var rango = function (f) {
+              var i = claves.indexOf(f.getAttribute('data-estado') || '');
+              return i === -1 ? claves.length : i;
+            };
+            filas.sort(function (a, b) { return rango(a) - rango(b); });
+          } else if (criterio === 'comprador') {
+            filas.sort(function (a, b) { return val(a, 'u-comprador-link').localeCompare(val(b, 'u-comprador-link')); });
+          }
+          filas.forEach(function (f) { caja.appendChild(f); });
+        };
+        buscador.oninput = aplicaFiltro;
+        orden.onchange = function () { aplicaOrden(); aplicaFiltro(); };
+      }
+
+      /* Abrir un documento SUBIDO como fichero (S11.2, 22-sep-2026): mismo
+         patrón que ya usa esta pantalla para el PDF firmado y el justificante
+         (`createSignedUrl`, TTL corto, `window.open` dentro del `.then`) —
+         nunca el bucket 'documentacion' hecho público. Delegado en el
+         contenedor ESTÁTICO (`#d-documentos`): datos.js reemplaza sus filas
+         en cada apertura del cajón, así que un listener por fila se perdería
+         al abrir el siguiente proyecto. */
+      function wireDocumentosAbrir(sb) {
+        var caja = document.getElementById('d-documentos');
+        if (!caja) return;
+        caja.addEventListener('click', function (ev) {
+          var f = ev.target.closest && ev.target.closest('[data-doc-abrir]');
+          if (!f) return;
+          var id = f.getAttribute('data-doc-id');
+          var d2 = DOCUMENTOS_CAJON[id];
+          if (!d2 || !d2.path) return;
+          var meta = f.querySelector('[data-lw="dc-meta"]');
+          var metaOrig = meta ? meta.textContent : '';
+          if (meta) meta.textContent = 'Abriendo…';
+          sb.storage.from('documentacion').createSignedUrl(d2.path, 300).then(function (u) {
+            if (meta) meta.textContent = metaOrig;
+            if (u.error || !u.data) { toast('No se pudo abrir: ' + (u.error && u.error.message || 'sin URL')); return; }
+            window.open(u.data.signedUrl, '_blank', 'noopener');
+          });
+        });
+      }
+
       function wireControles() {
         var contP = document.getElementById('chips-proyecto');
         var contU = document.getElementById('chips-estado');
@@ -3315,7 +3484,10 @@
       var DS_ACTUAL = [];
 
       Promise.all([
-        q(sb.from('proyectos').select('id,nombre,resort,parcela_master,parcela_master_m2,fecha_entrega_estimada_proyecto,fecha_entrega_estimada_fijada_en,estado,pct_minimo_inicio').eq('activo', true).order('nombre'), 'proyectos'),
+        // `slug` (22-sep-2026, S10.3): lo lee y lo escribe el editor nativo del
+        // Investor Deck — sin él "Investor Deck" no podría mostrar la URL
+        // pública ni ofrecer cambiarlo.
+        q(sb.from('proyectos').select('id,nombre,slug,resort,parcela_master,parcela_master_m2,fecha_entrega_estimada_proyecto,fecha_entrega_estimada_fijada_en,estado,pct_minimo_inicio').eq('activo', true).order('nombre'), 'proyectos'),
         q(sb.from('unidades').select('proyecto,estado,moneda,precio,precio_suelo,precio_construccion'), 'unidades'),
         /* La RPC de EQUIPO, nunca `.from('facturas')`. `facturas` tiene RLS por
            agente (`es_suyo`), así que una lectura directa devuelve solo «lo mío»
@@ -3323,7 +3495,14 @@
            bajo para todo el que no sea super admin. Está avisado en la cabecera
            de este fichero y aun así caí en ello al escribir esta pantalla. */
         q(sb.rpc('facturas_equipo').select('proyecto_id,proyecto_nombre,tipo,total,moneda,anulada'), 'facturas'),
-        q(sb.from('documentos_proyecto').select('id,proyecto,categoria,titulo,descripcion,url,carpeta,visible_portal,confidencial,creado_en'), 'documentación'),
+        // `path` (S11.2/S11.5, 22-sep-2026): sin ella no hay forma de distinguir
+        // un documento SUBIDO (con fichero, sin `url`) de un enlace, ni de
+        // abrirlo — el cajón los mezclaba indistinguibles y sin forma de
+        // abrirse. `mime`/`bytes` solo para el meta de la fila (S11.2).
+        // `general` (18-sep-2026): documentos de la EMPRESA sin proyecto real
+        // detrás (NPWP, Akta…) — sin este campo `d2.proyecto === elegido.nombre`
+        // los deja fuera siempre, invisibles en TODOS los proyectos.
+        q(sb.from('documentos_proyecto').select('id,proyecto,categoria,titulo,descripcion,url,path,mime,bytes,carpeta,visible_portal,confidencial,publicado_investor_deck,general,creado_en'), 'documentación'),
         /* Managers de cada proyecto (11-sep-2026, encargo del owner: sincronizar
            v4 con lo nuevo de Proyectos). Sin permiso esto vuelve vacío por RLS
            ("el equipo se ve entre sí" ya deja leer la fila; quien no es admin
@@ -3534,6 +3713,8 @@
 
         wireControles();
         wireTabsDoc();
+        wireFiltroUnidadesCajon();
+        wireDocumentosAbrir(sb);
         renderizar();
 
         /* Llegar con ?proyecto= en la URL abre ESE cajón — quien navega con un

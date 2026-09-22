@@ -272,3 +272,43 @@ input.lw-elegible:disabled{ cursor:default; opacity:1; }
   .lw-elegir{ width:100%; max-height:88vh; border-radius:16px 16px 0 0;
     padding-bottom:env(safe-area-inset-bottom); }
 }
+
+/* ══ CLASES DE deck_fotos.js EN LA v4 (S10.2, 22-sep-2026) ══
+   Mismo motivo y mismo patrón que el bloque `.lw-dlg-*` de arriba: esta pieza
+   compartida (contracts/assets/deck_fotos.js) pinta clases `.sui-*`/.campo`/
+   `.mini` que solo existían en `contracts/assets/suite.css`, apoyadas en
+   variables de brand.css que la v4 no define. Bloque AUTOCONTENIDO (nada de
+   var() de fuera), traducido a la paleta CAJ de editores.js (borde #E4DCCB,
+   banda #f5f4ee, papel #fff, lago #104C4F, tinta #2E3437, apagado #75786e)
+   para que el cajón de fotos se lea como el resto de la v4. Solo lo que
+   `deck_fotos.js` pinta de verdad — no es una copia de suite.css entera. */
+.sui-aviso{
+  margin:0 0 12px; padding:11px 14px; border-radius:12px;
+  background:#FBF3E4; border:1px solid #EBDCB4; color:#8A6A34;
+  font-size:12.5px; line-height:1.5;
+}
+.sui-nota{ margin:0 0 10px; font-size:12px; line-height:1.5; color:#75786e; }
+.sui-bloque{
+  display:flex; gap:12px; align-items:flex-start; padding:10px 0;
+  border-bottom:1px solid #E4DCCB;
+}
+.sui-sel{
+  padding:7px 10px; border:1px solid #E4DCCB; border-radius:8px;
+  font:500 12.5px 'Neue Kabel','Jost',sans-serif; color:#2E3437; background:#fff;
+}
+.sui-btn{
+  padding:7px 12px; border-radius:8px; border:1px solid #E4DCCB; background:#fff;
+  color:#2E3437; font:600 12.5px 'Neue Kabel','Jost',sans-serif; cursor:pointer;
+}
+.sui-btn:hover{ border-color:#104C4F; }
+.sui-btn.primario{ background:#104C4F; border-color:#104C4F; color:#fff; }
+.sui-btn.primario:hover{ background:#0d5b5f; }
+.sui-btn:disabled{ opacity:.5; cursor:default; }
+.campo{ margin:0; }
+.campo label,.mini{ display:block; font-size:11.5px; font-weight:600; color:#75786e; margin:0 0 4px; }
+.campo input{
+  width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #E4DCCB;
+  border-radius:8px; font:500 12.5px 'Neue Kabel','Jost',sans-serif; color:#2E3437;
+}
+.campo input:focus{ outline:none; border-color:#104C4F; box-shadow:0 0 0 3px rgba(16,76,79,.12); }
+.flojo{ color:#8A8474; font-weight:500; }
