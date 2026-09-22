@@ -120,28 +120,49 @@ foreach ($CAT as $cmId => $v) {
 $techosComp = (!empty($m['techos']['sirap']) && !empty($m['techos']['bambu'])) ? $m['techos'] : null;
 
 // ── Snapshot financiero ───────────────────────────────────────────────────────────
-// 22-sep-2026: Dali pasa del ejemplo de UNA parcela real (Palm Field W5) al forecast
-// de MERCADO que calcula la propia empresa para una villa de 1 dormitorio en la zona
-// (hoja "Forecast Alquiler Tabanan/Balian", tabla "Scenario 1 BR" en EUR — fuentes
-// AirROI + informe NF Group Bali Q3 2025). La hoja trae DOS bases de inversión para
-// ese mismo escenario (60.000€ arriba vs 80.000€ en "G2 Tabanan"); el owner confirmó
-// la de 60.000€. Números tal cual los da la empresa (no recalculados aquí): Total
-// Villa Income - las tres comisiones = Net Income, cuadra en los dos casos.
-if ($m['id'] === 'dali') {
-    $deckEj = [
-        'proyecto'         => 'Tabanan / Balian',
-        'mercado'          => true,
-        'adr_medio'        => 81,
-        'adr_optimo'       => 94,
-        'ocupacion_media'  => 0.59,
-        'ocupacion_optima' => 0.66,
-        'inversion_base'   => 60000,
-        'moneda'           => 'EUR',
-    ];
-    $finCalc = [
-        'average' => ['adr' => 81, 'ocup' => 0.59, 'bruto' => 19521, 'costes' => 6832, 'neto' => 12689],
-        'optimal' => ['adr' => 94, 'ocup' => 0.66, 'bruto' => 22654, 'costes' => 7929, 'neto' => 14725],
-    ];
+// 22-sep-2026: Dali, Dune (1 dormitorio) y Dream (2 dormitorios) pasan del ejemplo de
+// UNA parcela real (Palm Field W5) al forecast de MERCADO que calcula la propia
+// empresa por tamaño de vivienda (hoja "Forecast Alquiler Tabanan/Balian", tablas
+// "Scenario 1 BR"/"Scenario 2 BR" en EUR — fuentes AirROI + informe NF Group Bali
+// Q3 2025). La hoja trae DOS bases de inversión para el escenario 1BR (60.000€ arriba
+// vs 80.000€ en "G2 Tabanan"); el owner confirmó la de 60.000€ — vale para Dali Y Dune
+// por ser el mismo tamaño, no se volvió a preguntar. 2BR no tiene ese conflicto (una
+// sola tabla en la hoja). Números tal cual los da la empresa (no recalculados aquí):
+// Total Villa Income - las tres comisiones = Net Income, cuadra en todos los casos.
+$LW_FORECAST_MERCADO = [
+    'dali' => [
+        'deckEj'  => ['proyecto' => 'Tabanan / Balian', 'mercado' => true, 'moneda' => 'EUR',
+            'adr_medio' => 81, 'adr_optimo' => 94, 'ocupacion_media' => 0.59, 'ocupacion_optima' => 0.66,
+            'inversion_base' => 60000],
+        'finCalc' => [
+            'average' => ['adr' => 81, 'ocup' => 0.59, 'bruto' => 19521, 'costes' => 6832, 'neto' => 12689],
+            'optimal' => ['adr' => 94, 'ocup' => 0.66, 'bruto' => 22654, 'costes' => 7929, 'neto' => 14725],
+        ],
+    ],
+    'dune' => [
+        // Mismo tamaño (1 dormitorio) que Dali → misma tabla "Scenario 1 BR" de la hoja.
+        'deckEj'  => ['proyecto' => 'Tabanan / Balian', 'mercado' => true, 'moneda' => 'EUR',
+            'adr_medio' => 81, 'adr_optimo' => 94, 'ocupacion_media' => 0.59, 'ocupacion_optima' => 0.66,
+            'inversion_base' => 60000],
+        'finCalc' => [
+            'average' => ['adr' => 81, 'ocup' => 0.59, 'bruto' => 19521, 'costes' => 6832, 'neto' => 12689],
+            'optimal' => ['adr' => 94, 'ocup' => 0.66, 'bruto' => 22654, 'costes' => 7929, 'neto' => 14725],
+        ],
+    ],
+    'dream' => [
+        // 2 dormitorios → tabla "Scenario 2 BR" de la misma hoja, sin tabla alternativa.
+        'deckEj'  => ['proyecto' => 'Tabanan / Balian', 'mercado' => true, 'moneda' => 'EUR',
+            'adr_medio' => 115, 'adr_optimo' => 132, 'ocupacion_media' => 0.48, 'ocupacion_optima' => 0.54,
+            'inversion_base' => 85000],
+        'finCalc' => [
+            'average' => ['adr' => 115, 'ocup' => 0.48, 'bruto' => 22655, 'costes' => 7930, 'neto' => 14725],
+            'optimal' => ['adr' => 132, 'ocup' => 0.54, 'bruto' => 26004, 'costes' => 9101, 'neto' => 16903],
+        ],
+    ],
+];
+if (isset($LW_FORECAST_MERCADO[$m['id']])) {
+    $deckEj  = $LW_FORECAST_MERCADO[$m['id']]['deckEj'];
+    $finCalc = $LW_FORECAST_MERCADO[$m['id']]['finCalc'];
 } else {
     // lw_deck_forecast_ejemplo() devuelve el mapa de TODOS los modelos con ejemplo
     // confirmado — se extrae el de ESTE modelo. Un modelo sin entrada (Loftbung,
@@ -746,7 +767,7 @@ foreach ($incluido as $it):
 <?php if (!empty($deckEj['mercado'])): ?>
 <span class="font-label-md text-xs text-territorial-green uppercase tracking-widest font-semibold"><?= lw_i18n('Previsión de mercado', 'Market forecast') ?></span>
 <h3 class="font-headline-md text-2xl md:text-3xl text-primary font-bold"><?= lw_e($deckEtiqueta) ?></h3>
-<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Rental forecast for a 1-bedroom villa in this area — not tied to a specific plot, and never a promise of yield. Source: internal market analysis (AirROI + NF Group Bali market report, Q3 2025), reviewed September 2026.</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Rental forecast for a <?= $dorm ?>-bedroom villa in this area — not tied to a specific plot, and never a promise of yield. Source: internal market analysis (AirROI + NF Group Bali market report, Q3 2025), reviewed September 2026.</p>
 <?php else: ?>
 <span class="font-label-md text-xs text-territorial-green uppercase tracking-widest font-semibold"><?= lw_i18n('Ejemplo real', 'Real example') ?></span>
 <h3 class="font-headline-md text-2xl md:text-3xl text-primary font-bold"><?= lw_e($deckEtiqueta) ?></h3>
