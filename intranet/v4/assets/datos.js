@@ -5001,6 +5001,23 @@
     carga();
   };
 
+  /* Owner, 22-sep-2026: manager de equipo, closer de miembro y override de
+     condición se ELIGEN entre los usuarios de la intranet, no se teclean.
+     Las dos pantallas ya bajaban `usuarios` para pintar nombres; esto deja
+     la misma consulta a disposición de los selects de editores.js
+     (`opsUsuarios`), sin otra petición. Solo activos y ordenados por nombre:
+     a un usuario de baja no se le da de alta en un equipo — si ya estaba, el
+     editor conserva su valor y lo marca. */
+  function publicaUsuariosLista(usuarios) {
+    window.LW_V4.usuariosLista = (usuarios || [])
+      .filter(function (u) { return u.email && u.activo !== false; })
+      .sort(function (a, b) { return String(a.nombre || a.email).localeCompare(String(b.nombre || b.email), 'es'); })
+      .map(function (u) {
+        var em = u.email.toLowerCase();
+        return [em, (u.nombre ? u.nombre + ' · ' : '') + em + (u.rol && u.rol !== 'agente' ? ' (' + u.rol + ')' : '')];
+      });
+  }
+
   /* ---------- Equipos de venta y Condiciones de comisión (14-sep-2026) ----------
      Dos pantallas SOLO admin/super_admin: nav.js ya las esconde del menú para
      cualquier otra sesión, y aquí se repite el gate (defensa en profundidad,
@@ -5018,12 +5035,13 @@
     Promise.all([
       q(sb.from('equipos_venta').select('id,nombre,manager_email,activo,created_at').order('nombre'), 'equipos de venta', cuerpoEq),
       q(sb.from('equipo_miembros').select('id,equipo_id,closer_email,desde,hasta').order('desde', { ascending: false }), 'miembros de equipo', cuerpoMi),
-      q(sb.from('usuarios').select('email,nombre'), 'usuarios')
+      q(sb.from('usuarios').select('email,nombre,rol,activo'), 'usuarios')
     ]).then(function (r) {
       var equipos = r[0], miembros = r[1] || [], usuarios = r[2] || [];
       if (!equipos) return;
       // el editor de miembro ofrece el equipo en un select: la lista es esta, no otra consulta
       window.LW_V4.equiposLista = equipos.map(function (e) { return [e.id, e.nombre + (e.activo ? '' : ' (de baja)')]; });
+      publicaUsuariosLista(usuarios);
       var nombrePorEmail = {};
       usuarios.forEach(function (u) { if (u.email) nombrePorEmail[u.email.toLowerCase()] = u.nombre || u.email; });
       var nombreDe = function (email) { return email ? (nombrePorEmail[email.toLowerCase()] || email) : '—'; };
@@ -5167,10 +5185,11 @@
       q(sb.from('equipos_venta').select('id,nombre'), 'equipos de venta'),
       q(sb.from('proyectos').select('id,nombre'), 'proyectos'),
       q(sb.from('condicion_tramos').select('id,condicion_id,orden,disparador_tipo,umbral,pct_tramo').order('orden'), 'tramos de comisión'),
-      q(sb.from('usuarios').select('email,nombre'), 'usuarios')
+      q(sb.from('usuarios').select('email,nombre,rol,activo'), 'usuarios')
     ]).then(function (r) {
       var conds = r[0], equipos = r[1] || [], proyectos = r[2] || [], tramos = r[3] || [], usuarios = r[4] || [];
       if (!conds) return;
+      publicaUsuariosLista(usuarios);
       var equipoDe = {}; equipos.forEach(function (e) { equipoDe[e.id] = e.nombre; });
       var proyectoDe = {}; proyectos.forEach(function (p) { proyectoDe[p.id] = p.nombre; });
       var nombrePorEmail = {}; usuarios.forEach(function (u) { if (u.email) nombrePorEmail[u.email.toLowerCase()] = u.nombre || u.email; });

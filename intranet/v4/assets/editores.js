@@ -497,6 +497,24 @@
     return r;
   }
 
+  /* Owner, 22-sep-2026: «me pide el email del closer pero eso está mal,
+     debería salirme el listado de Usuarios dados de alta en la intranet. Al
+     igual que el dar de alta el equipo: deben ser usuarios ya creados».
+     El manager de un equipo, el closer de un miembro y el override de una
+     condición se ELIGEN de `usuarios` (la lista la deja datos.js en
+     `window.LW_V4.usuariosLista` al pintar la pantalla), nunca se teclean:
+     el email es la clave con la que se atribuyen ventas y comisiones, y uno
+     mal escrito no falla — deja las comisiones huérfanas en silencio.
+     `actual` (el valor ya guardado al editar) se conserva aunque no esté en
+     la lista —usuario dado de baja o un email tecleado antes de este cambio—
+     para que abrir el cajón no lo pierda; se marca para que se vea. */
+  function opsUsuarios(actual, textoVacio) {
+    var lista = ((window.LW_V4 && window.LW_V4.usuariosLista) || []).slice();
+    var a = (actual || '').trim().toLowerCase();
+    if (a && !lista.some(function (o) { return o[0] === a; })) lista.push([a, a + ' (no está en Usuarios)']);
+    return [['', textoVacio || '— elige un usuario —']].concat(lista);
+  }
+
   /* Owner, 14-sep-2026: «si da algun error el pop up ponlo en el centro y en
      rojo, que destaque que ha habido algun problema».
 
@@ -4401,9 +4419,11 @@
 
       ata(/^\+? ?Nuevo equipo$/i, function () {
         if (!admin) return soloAdmin();
+        if (!(window.LW_V4.usuariosLista || []).length) return aviso('La lista de usuarios aún no ha cargado — espera un momento y vuelve a pulsar.', '#8A6A34');
         modal('Nuevo equipo de venta', [
           { k: 'nombre', label: 'Nombre del equipo', req: 1 },
-          { k: 'manager_email', label: 'Email del manager', req: 1, ayuda: 'la persona que gestiona el reparto del equipo' }
+          { k: 'manager_email', label: 'Manager', tipo: 'select', req: 1, opciones: opsUsuarios('', '— elige un usuario —'),
+            ayuda: 'la persona que gestiona el reparto del equipo; tiene que estar dada de alta en Usuarios' }
         ], 'Crear equipo', function (v) {
           return sb.from('equipos_venta').insert({
             nombre: v.nombre.trim(), manager_email: v.manager_email.trim().toLowerCase()
@@ -4413,8 +4433,10 @@
 
       window.LW_V4.abreAnadirMiembro = function (equipoId, equipoNombre) {
         if (!admin) return soloAdmin();
+        if (!(window.LW_V4.usuariosLista || []).length) return aviso('La lista de usuarios aún no ha cargado — espera un momento y vuelve a pulsar.', '#8A6A34');
         modal('Añadir miembro — ' + (equipoNombre || ''), [
-          { k: 'closer_email', label: 'Email del closer', req: 1 },
+          { k: 'closer_email', label: 'Closer', tipo: 'select', req: 1, opciones: opsUsuarios('', '— elige un usuario —'),
+            ayuda: 'solo usuarios dados de alta en la intranet: el email es la clave con la que se le atribuyen ventas y comisiones' },
           { k: 'desde', label: 'Desde', tipo: 'date', req: 1, medio: 1, valor: new Date().toISOString().slice(0, 10) },
           { k: 'hasta', label: 'Hasta (opcional)', tipo: 'date', medio: 1, ayuda: 'vacío = sigue activo' }
         ], 'Añadir al equipo', function (v) {
@@ -4446,7 +4468,8 @@
         var id = b.getAttribute('data-lw-edita-equipo');
         modal('Editar equipo — ' + (b.getAttribute('data-lw-nombre') || ''), [
           { k: 'nombre', label: 'Nombre del equipo', req: 1, valor: b.getAttribute('data-lw-nombre') || '' },
-          { k: 'manager_email', label: 'Email del manager', tipo: 'email', req: 1, valor: b.getAttribute('data-lw-manager') || '',
+          { k: 'manager_email', label: 'Manager', tipo: 'select', req: 1, valor: (b.getAttribute('data-lw-manager') || '').toLowerCase(),
+            opciones: opsUsuarios(b.getAttribute('data-lw-manager'), '— elige un usuario —'),
             ayuda: 'la persona que gestiona el reparto del equipo; cambiarlo cambia quién ve sus condiciones de nivel manager' }
         ], 'Guardar equipo', function (v) {
           return sb.from('equipos_venta').update({
@@ -4461,8 +4484,9 @@
         var equipos = (window.LW_V4.equiposLista || []);
         modal('Editar miembro — ' + (b.getAttribute('data-lw-email') || ''), [
           { k: 'equipo_id', label: 'Equipo', tipo: 'select', req: 1, valor: b.getAttribute('data-lw-equipo') || '', opciones: equipos },
-          { k: 'closer_email', label: 'Email del closer', tipo: 'email', req: 1, valor: b.getAttribute('data-lw-email') || '',
-            ayuda: 'Es la clave con la que se le atribuyen ventas y comisiones: si estaba mal escrito, corregirlo aquí las reengancha.' },
+          { k: 'closer_email', label: 'Closer', tipo: 'select', req: 1, valor: (b.getAttribute('data-lw-email') || '').toLowerCase(),
+            opciones: opsUsuarios(b.getAttribute('data-lw-email'), '— elige un usuario —'),
+            ayuda: 'Es la clave con la que se le atribuyen ventas y comisiones: si estaba mal puesto, elegir el usuario correcto las reengancha.' },
           { k: 'desde', label: 'Desde', tipo: 'date', req: 1, medio: 1, valor: b.getAttribute('data-lw-desde') || '' },
           { k: 'hasta', label: 'Hasta (opcional)', tipo: 'date', medio: 1, valor: b.getAttribute('data-lw-hasta') || '', ayuda: 'vacío = sigue activo' }
         ], 'Guardar miembro', function (v) {
@@ -4512,8 +4536,9 @@
               opciones: proyectos.map(function (p) { return [p.id, p.nombre]; }) },
             { k: 'nivel', label: 'Nivel', tipo: 'select', req: 1, medio: 1,
               opciones: [['manager', 'Manager'], ['closer', 'Closer']] },
-            { k: 'closer_email', label: 'Override individual (email)', medio: 1,
-              ayuda: 'solo con nivel «Closer» — vacío aplica a todo el equipo' },
+            { k: 'closer_email', label: 'Override individual', tipo: 'select', medio: 1,
+              opciones: opsUsuarios('', '— todo el equipo —'),
+              ayuda: 'solo con nivel «Closer» — «todo el equipo» aplica a cualquier closer del equipo' },
             { k: 'pct_comision', label: '% de comisión', tipo: 'number', paso: '0.01', req: 1, medio: 1 },
             { k: 'base_calculo', label: 'Base de cálculo', tipo: 'select', req: 1, medio: 1,
               opciones: (window.LW_V4.BASES_CALCULO || BASES_CALCULO_FALLBACK) },
