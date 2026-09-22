@@ -2136,7 +2136,11 @@
       ctx.principal.style.cssText = 'flex:0 0 auto;padding:6px 16px;border-radius:999px;border:0;background:' + CAJ.lago +
         ';color:#fff;font-weight:600;font-size:12.5px;cursor:pointer;white-space:nowrap;line-height:1.3;margin-left:6px';
       barra.insertBefore(ctx.principal, sp);
-      if (pie) pie.style.display = 'none';
+      // El pie se esconde solo en escritorio (regla en aseguraEstiloSplitDoc):
+      // ≤860px la previa se apila BAJO el formulario y Emitir quedaría debajo
+      // de veinte campos — ahí el pie vuelve y el botón de la barra se oculta.
+      if (pie) pie.classList.add('lw-doc-pie-movido');
+      ctx.principal.classList.add('lw-doc-emitir-barra');
     }
     var bPdf = btn('Descargar PDF', function () { imprimeDoc(ctx.getVals(), ctx.saved); });
     var bMail = btn('Enviar por email', function () { enviaDocMail(ctx.sb, ctx.getVals(), ctx.saved, ctx.alEnviado); });
@@ -2368,7 +2372,16 @@
       '.lw-doc-pv{flex:1 1 auto;min-height:0;overflow:auto;background:#eae5d8;padding:22px 0 60px;display:flex;justify-content:center}' +
       '.lw-doc-pv .sheet{flex:0 0 auto;width:210mm;min-height:297mm;background:var(--folio,#fff);padding:15mm 16mm;box-sizing:border-box;zoom:.78;' +
         'box-shadow:0 10px 40px rgba(46,52,55,.16);font-family:var(--font-body,\'Jost\',sans-serif);color:var(--ink,#2E3437)}' +
-      '@media screen and (max-width:860px){.lw-doc-split{grid-template-columns:1fr}.lw-doc-split>.lw-doc-prev{position:static;max-height:none}}' +
+      // !important: el pie de modal() lleva su display:flex EN LÍNEA (cajaPie),
+      // y una clase sin !important no le gana. Medido en el arnés: sin esto el
+      // pie seguía visible con Emitir ya movido a la barra.
+      // ≤1366px el formulario cede a 560 (sigue +12% sobre el clásico): medido a
+      // 1280, con 600 la hoja de 619px no cabía en la previa (599) y se
+      // recortaba 18px por la izquierda. La hoja no se encoge: es el calco.
+      '@media screen and (max-width:1366px){.lw-doc-split{grid-template-columns:minmax(480px,560px) 1fr}}' +
+      '.lw-doc-pie-movido{display:none !important}' +
+      '@media screen and (max-width:860px){.lw-doc-split{grid-template-columns:1fr}.lw-doc-split>.lw-doc-prev{position:static;max-height:none}' +
+        '.lw-doc-pie-movido{display:flex !important}.lw-doc-emitir-barra{display:none !important}}' +
       '@media screen and (max-width:560px){.lw-doc-pv .sheet{zoom:.58}.lw-doc-pv{overflow-x:auto;justify-content:flex-start;padding:16px 10px 60px}}';
     document.head.appendChild(s);
     /* Lo que el clásico carga en su <head> y la v4 no: los TOKENS de marca
@@ -2541,17 +2554,6 @@
           btnC.textContent = estadoContrato.numero ? estadoContrato.numero : '— elige un contrato —';
           var notaC = document.createElement('p'); notaC.style.cssText = 'margin:0;font-size:12px;color:' + CAJ.apagado;
           secDoc.appendChild(lblC); secDoc.appendChild(btnC); secDoc.appendChild(notaC);
-          // «Del contrato»: hitos, total, encadenados — va justo debajo del
-          // contrato, como #delContrato/#delVinculado en el clásico.
-          // `ctxDelC.lineas` se rellena más abajo, cuando existen las líneas
-          // (el bloque va arriba, bajo el contrato; los conceptos, después).
-          var ctxDelC = {
-            sb: sb, lineas: null, repinta: repintaPreview, esNuevo: !existente, propioId: existente ? existente.id : null,
-            tipoActual: function () { return selTipo.value; },
-            monedaActual: function () { var m = campoDeDoc('moneda'); return m ? m.value : 'EUR'; },
-            sociedadActual: function () { var s = campoDeDoc('sociedad'); return s ? s.value : ''; }
-          };
-          delC = montaDelContratoDoc(secDoc, ctxDelC);
           function contratoCargado(id, res) {
             estadoContrato.id = id; estadoContrato.numero = res.numero; estadoContrato.clienteId = res.clienteId;
             btnC.textContent = res.numero + ' · ' + (res.comprador || '—');
@@ -2587,6 +2589,18 @@
           var filaDM = filaDosDoc(secDoc);
           campoSimpleDoc(filaDM, { k: 'moneda', label: 'Moneda', tipo: 'select', valor: f0.moneda || 'EUR', opciones: ['EUR', 'USD', 'AUD', 'IDR'] });
           campoSimpleDoc(filaDM, { label: 'Nº de documento', readonly: 1, valor: existente ? (existente.numero || '') : 'Lo asigna la base al guardar' });
+          // «Del contrato»: hitos, total, encadenados — DEBAJO de Moneda y Nº,
+          // como #delContrato/#delVinculado en el clásico (27-ago-2026, owner:
+          // moneda y nº «pegados al contrato, juntos y arriba», el bloque de
+          // hitos después). `ctxDelC.lineas` se rellena cuando existen las
+          // líneas, que se montan más abajo.
+          var ctxDelC = {
+            sb: sb, lineas: null, repinta: repintaPreview, esNuevo: !existente, propioId: existente ? existente.id : null,
+            tipoActual: function () { return selTipo.value; },
+            monedaActual: function () { var m = campoDeDoc('moneda'); return m ? m.value : 'EUR'; },
+            sociedadActual: function () { var s = campoDeDoc('sociedad'); return s ? s.value : ''; }
+          };
+          delC = montaDelContratoDoc(secDoc, ctxDelC);
 
           var secFechas = seccionFijaDoc(host, 'Fechas');
           var filaF = filaDosDoc(secFechas);
