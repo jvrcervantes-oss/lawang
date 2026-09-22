@@ -123,38 +123,34 @@
     <p data-lang="es">La superficie total de la parcela es de <span class="f f-num6">{{tipologia_villa}}</span> m², con un precio por metro cuadrado de <span class="f f-num6">{{precio_m2}}</span> {{moneda}}, resultando un precio total de compra de <span class="f f-num6">{{precio_total}}</span> {{moneda}}.</p>
     <p data-lang="en">The total area of the plot is <span class="f f-num6">{{tipologia_villa}}</span> m², with a price per square meter of <span class="f f-num6">{{precio_m2}}</span> {{moneda}}, resulting in a total purchase price of <span class="f f-num6">{{precio_total}}</span> {{moneda}}.</p>
     <p data-lang="id">Luas total kavling adalah <span class="f f-num6">{{tipologia_villa}}</span> m², dengan harga per meter persegi <span class="f f-num6">{{precio_m2}}</span> {{moneda}}, menghasilkan harga beli total <span class="f f-num6">{{precio_total}}</span> {{moneda}}.</p>
-    <ul data-lang="es">
-<!--if:modalidad_pago=reserva-->
-      <li><b>1. Reserva:</b> <span class="f">{{precio_reserva}}</span> {{moneda}} a la firma del presente contrato privado.</li>
-      <li><b>2. Pago final:</b> el resto del precio, con la firma ante notario (PPAT) y entrega del terreno, en un periodo máximo de <!--opt:plazo_pago_final_dias--><span class="f f-xs">{{plazo_pago_final_dias}}</span> días<!--/opt:plazo_pago_final_dias--><!--opt:plazo_pago_final_meses--><span class="f f-xs">{{plazo_pago_final_meses}}</span> meses<!--/opt:plazo_pago_final_meses--> posteriores a la firma de este Contrato de Bloqueo de Parcela.</li>
-<!--/if:modalidad_pago-->
-<!--if:modalidad_pago=pago_total-->
-      <li><b>1. Pago total:</b> <span class="f f-num6">{{precio_total}}</span> {{moneda}}, con la firma ante notario (PPAT) y entrega del terreno, en un periodo máximo de <!--opt:plazo_pago_final_dias--><span class="f f-xs">{{plazo_pago_final_dias}}</span> días<!--/opt:plazo_pago_final_dias--><!--opt:plazo_pago_final_meses--><span class="f f-xs">{{plazo_pago_final_meses}}</span> meses<!--/opt:plazo_pago_final_meses--> posteriores a la firma de este Contrato de Bloqueo de Parcela.</li>
-<!--/if:modalidad_pago-->
-    </ul>
-    <ul data-lang="en">
-<!--if:modalidad_pago=reserva-->
-      <li><b>1. Reservation:</b> <span class="f">{{precio_reserva}}</span> {{moneda}} upon signing this private agreement.</li>
-      <li><b>2. Final payment:</b> the remainder of the price, upon signing before a notary (PPAT) and handover of the land, within a maximum period of <!--opt:plazo_pago_final_dias--><span class="f f-xs">{{plazo_pago_final_dias}}</span> days<!--/opt:plazo_pago_final_dias--><!--opt:plazo_pago_final_meses--><span class="f f-xs">{{plazo_pago_final_meses}}</span> months<!--/opt:plazo_pago_final_meses--> after signing this Plot Hold Agreement.</li>
-<!--/if:modalidad_pago-->
-<!--if:modalidad_pago=pago_total-->
-      <li><b>1. Full payment:</b> <span class="f f-num6">{{precio_total}}</span> {{moneda}}, upon signing before a notary (PPAT) and handover of the land, within a maximum period of <!--opt:plazo_pago_final_dias--><span class="f f-xs">{{plazo_pago_final_dias}}</span> days<!--/opt:plazo_pago_final_dias--><!--opt:plazo_pago_final_meses--><span class="f f-xs">{{plazo_pago_final_meses}}</span> months<!--/opt:plazo_pago_final_meses--> after signing this Plot Hold Agreement.</li>
-<!--/if:modalidad_pago-->
-    </ul>
-    <ul data-lang="id">
-<!--if:modalidad_pago=reserva-->
-      <li><b>1. Reservasi:</b> <span class="f">{{precio_reserva}}</span> {{moneda}} saat penandatanganan perjanjian di bawah tangan ini.</li>
-      <li><b>2. Pembayaran akhir:</b> sisa harga, saat penandatanganan di hadapan notaris (PPAT) dan serah terima tanah, dalam jangka waktu maksimal <!--opt:plazo_pago_final_dias--><span class="f f-xs">{{plazo_pago_final_dias}}</span> hari<!--/opt:plazo_pago_final_dias--><!--opt:plazo_pago_final_meses--><span class="f f-xs">{{plazo_pago_final_meses}}</span> bulan<!--/opt:plazo_pago_final_meses--> setelah penandatanganan Perjanjian Penahanan Kavling ini.</li>
-<!--/if:modalidad_pago-->
-<!--if:modalidad_pago=pago_total-->
-      <li><b>1. Pembayaran penuh:</b> <span class="f f-num6">{{precio_total}}</span> {{moneda}}, saat penandatanganan di hadapan notaris (PPAT) dan serah terima tanah, dalam jangka waktu maksimal <!--opt:plazo_pago_final_dias--><span class="f f-xs">{{plazo_pago_final_dias}}</span> hari<!--/opt:plazo_pago_final_dias--><!--opt:plazo_pago_final_meses--><span class="f f-xs">{{plazo_pago_final_meses}}</span> bulan<!--/opt:plazo_pago_final_meses--> setelah penandatanganan Perjanjian Penahanan Kavling ini.</li>
-<!--/if:modalidad_pago-->
-    </ul>
-<!--if:modalidad_pago=reserva-->
-    <p data-lang="es">La reserva deberá ser ingresada a la cuenta ESCROW del notario de Indonesia designado por el PROMOTOR.</p>
-    <p data-lang="en">The reservation amount shall be deposited into the ESCROW account of the Indonesian notary appointed by the DEVELOPER.</p>
-    <p data-lang="id">Jumlah reservasi harus disetorkan ke rekening ESCROW notaris Indonesia yang ditunjuk oleh PENGEMBANG.</p>
-<!--/if:modalidad_pago-->
+    <!-- Artículo 3 generado del CALENDARIO DE PAGOS (22-sep-2026, revisión previa #41,
+         texto de Legal). Antes salía de tres campos sueltos (modalidad_pago, precio_reserva,
+         plazo_pago_final_*) que cada agente rellenaba a su manera y que contradecían la
+         tabla de hitos del mismo documento (RP00171-RP00197: plazo 15/30/45/100 días con
+         hitos a +3 meses; precio_reserva unas veces la cuota de la Carta y otras el 50%).
+         Los hitos son la ÚNICA fuente: el párrafo remite a la tabla y no la duplica
+         (precedente: ppjb_construccion.html, «conforme al calendario de pagos»). Sin
+         «ante notario (PPAT)»: el 50/50 es pago privado; la escritura la rige el Art. 4.
+         Los campos viejos siguen como `legacy` en tokens.json para los Bloqueos ya emitidos. -->
+    <p data-lang="es">El precio total, deducidas en su caso las cantidades ya abonadas conforme a la Carta de Reserva indicada, se abonará según el calendario de pagos que figura a continuación, que forma parte integrante de este Artículo. En caso de discrepancia entre el porcentaje y el importe de un hito, prevalece el importe. La formalización ante PPAT y la entrega se rigen por el Artículo 4.</p>
+    <p data-lang="en">The total price, less any amounts already paid under the Reservation Letter referred to above, shall be paid in accordance with the payment schedule set out below, which forms an integral part of this Article. In the event of any discrepancy between the percentage and the amount of an instalment, the amount shall prevail. Execution before the PPAT and handover are governed by Article 4.</p>
+    <p data-lang="id">Harga total, setelah dikurangi jumlah yang telah dibayarkan berdasarkan Surat Reservasi tersebut di atas (jika ada), dibayar sesuai jadwal pembayaran yang tercantum di bawah ini, yang merupakan bagian tidak terpisahkan dari Pasal ini. Apabila terdapat perbedaan antara persentase dan jumlah suatu tahapan, jumlah yang berlaku. Penandatanganan di hadapan PPAT dan serah terima diatur dalam Pasal 4.</p>
+    <!-- Cuenta de cobro (22-sep-2026): la cláusula de ESCROW solo si la cuenta elegida lo ES
+         (`cuentas_bancarias.es_escrow`). `cuenta_es_escrow` lo estampa la BASE en
+         datos.fields al guardar (trigger contrato_cuenta_es_escrow) y la app lo espeja en la
+         vista previa — nunca lo teclea nadie. Sin cuenta → 'no' (nunca sale un Bloqueo sin
+         decir dónde se paga; hallazgo Legal). Antes salía siempre: RP00197 cobra en la cuenta
+         del constructor y prometía escrow de notario. -->
+<!--if:cuenta_es_escrow=si-->
+    <p data-lang="es">Los pagos previstos en este Artículo se efectuarán exclusivamente mediante transferencia a la cuenta ESCROW del notario de Indonesia designado por el PROMOTOR, indicada en el presente Contrato.</p>
+    <p data-lang="en">All payments under this Article shall be made exclusively by transfer to the ESCROW account of the Indonesian notary appointed by the DEVELOPER, as indicated in this Agreement.</p>
+    <p data-lang="id">Seluruh pembayaran menurut Pasal ini dilakukan semata-mata melalui transfer ke rekening ESCROW notaris Indonesia yang ditunjuk oleh PENGEMBANG, sebagaimana tercantum dalam Perjanjian ini.</p>
+<!--/if:cuenta_es_escrow-->
+<!--if:cuenta_es_escrow=no-->
+    <p data-lang="es">Los pagos previstos en este Artículo se efectuarán exclusivamente mediante transferencia bancaria a la cuenta del PROMOTOR indicada en el presente Contrato.</p>
+    <p data-lang="en">All payments under this Article shall be made exclusively by bank transfer to the DEVELOPER's account indicated in this Agreement.</p>
+    <p data-lang="id">Seluruh pembayaran menurut Pasal ini dilakukan semata-mata melalui transfer bank ke rekening PENGEMBANG yang tercantum dalam Perjanjian ini.</p>
+<!--/if:cuenta_es_escrow-->
 
     <p data-lang="es"><b>Términos del precio:</b> El Precio del Contrato es fijo, excepto en caso de cambios normativos que afecten directamente a la obra, o modificaciones solicitadas por el Cliente acordadas expresamente por escrito. El Precio del Contrato se expresa en <span class="f f-xs">{{moneda}}</span>. Conforme a la Ley de Moneda de Indonesia (UU 7/2011), los pagos que deban realizarse en territorio indonesio se efectuarán en Rupias Indonesias (IDR) aplicando el tipo de cambio pactado por las Partes de 1 <span class="f f-xs">{{moneda}}</span> = <span class="f f-sm">{{tipo_cambio_idr}}</span> IDR. Las equivalencias en IDR que figuran junto a cada importe se calculan a ese mismo tipo y tienen carácter informativo.</p>
     <p data-lang="en"><b>Price terms:</b> The Contract Price is fixed, except in the event of regulatory changes directly affecting the works, or modifications requested by the Client and expressly agreed in writing. The Contract Price is expressed in <span class="f f-xs">{{moneda}}</span>. Pursuant to the Indonesian Currency Law (UU 7/2011), payments to be made within Indonesian territory shall be settled in Indonesian Rupiah (IDR) at the exchange rate agreed by the Parties of 1 <span class="f f-xs">{{moneda}}</span> = <span class="f f-sm">{{tipo_cambio_idr}}</span> IDR. The IDR equivalents shown next to each amount are calculated at that same rate and are for information purposes only.</p>
@@ -181,7 +177,7 @@
     <!--datos-bancarios-->
 
 <!--seccion-hitos-->
-    <h2><span data-lang="es">Cronograma de ejecución</span><span data-lang="en">Execution schedule</span><span data-lang="id">Jadwal pelaksanaan</span></h2>
+    <h2><span data-lang="es">Calendario de pagos</span><span data-lang="en">Payment schedule</span><span data-lang="id">Jadwal pembayaran</span></h2>
     <table class="pays">
       <thead><tr><th class="n">#</th>
         <th><span data-lang="es">Hito / Descripción</span><span data-lang="en">Milestone / Description</span><span data-lang="id">Tahapan / Deskripsi</span></th>
@@ -193,6 +189,18 @@
         <!--hitos-->
       </tbody>
     </table>
+    <!-- Nota del hito descontado (22-sep-2026, Legal): la fila lleva (*) y la celda % en
+         blanco porque su importe ya no es el 50% del precio; sin esta nota un tercero
+         pregunta por qué la primera fila no es 50% y la segunda sí. -->
+    <!--opt:carta_cobrado_importe-->
+    <p class="nota-hitos" data-lang="es">(*) Importe neto tras deducir los <span class="f f-num6">{{carta_cobrado_importe}}</span> {{moneda}} ya abonados conforme a la Carta de Reserva <span class="f">{{carta_cobrado_numeros}}</span>.</p>
+    <!--/opt:carta_cobrado_importe-->
+    <!--opt:carta_cobrado_importe-->
+    <p class="nota-hitos" data-lang="en">(*) Net amount after deducting the <span class="f f-num6">{{carta_cobrado_importe}}</span> {{moneda}} already paid under Reservation Letter <span class="f">{{carta_cobrado_numeros}}</span>.</p>
+    <!--/opt:carta_cobrado_importe-->
+    <!--opt:carta_cobrado_importe-->
+    <p class="nota-hitos" data-lang="id">(*) Jumlah bersih setelah dikurangi <span class="f f-num6">{{carta_cobrado_importe}}</span> {{moneda}} yang telah dibayarkan berdasarkan Surat Reservasi <span class="f">{{carta_cobrado_numeros}}</span>.</p>
+    <!--/opt:carta_cobrado_importe-->
 <!--/seccion-hitos-->
 
     <h2><span data-lang="es">Artículo 4 — Entrega y formalización</span><span data-lang="en">Article 4 — Delivery and formalization</span><span data-lang="id">Pasal 4 — Serah terima dan formalisasi</span></h2>

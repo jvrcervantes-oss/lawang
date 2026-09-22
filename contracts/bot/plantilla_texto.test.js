@@ -48,12 +48,19 @@ ok(!cons.includes('{{') && !cons.includes('<'), 'construcción: quedan marcadore
 ok(!cons.includes('<!--'), 'construcción: quedan comentarios');
 
 // ── parcela, ES: régimen y renovación citables ─────────────────────────────
-// modalidad_pago decide qué bloque <!--if:--> de pagos y de escrow entra (RP00194 es «reserva»)
-const parc = plantillaTexto(T('ppjb_parcela.html'), 'es', { regimen_tenencia: 'leasehold', modalidad_pago: 'reserva', plazo_pago_final_dias: '30', plazo_pago_final_meses: '' }, esReservado);
+// 22-sep-2026: el Art. 3 se genera del calendario de pagos (ya no hay modalidad_pago ni
+// plazo_pago_final_*) y la cláusula de cuenta la decide `cuenta_es_escrow`, que estampa
+// la BASE desde cuentas_bancarias.es_escrow — una u otra, nunca ninguna (Legal).
+const parc = plantillaTexto(T('ppjb_parcela.html'), 'es', { regimen_tenencia: 'leasehold', cuenta_es_escrow: 'si', carta_cobrado_importe: '1.000', carta_cobrado_numeros: 'CR00062' }, esReservado);
 ok(parc.includes('30+30+30'), 'parcela: falta el 30+30+30 del Art. 2');
 ok(parc.includes('podrá renovarse conforme a la legislación vigente'), 'parcela: falta la cláusula de renovación');
-ok(parc.includes('30 días') && !parc.includes('(en blanco) meses'), 'parcela: <!--opt:--> no respeta el campo vacío/lleno');
-ok(parc.includes('cuenta ESCROW del notario'), 'parcela: falta la cláusula de escrow');
+ok(parc.includes('según el calendario de pagos que figura a continuación'), 'parcela: el Art. 3 no remite al calendario de pagos');
+ok(!parc.includes('ante notario (PPAT) y entrega del terreno, en un periodo'), 'parcela: el Art. 3 sigue citando al notario en el pago');
+ok(parc.includes('cuenta ESCROW del notario') && !parc.includes('cuenta del PROMOTOR indicada'), 'parcela: con cuenta escrow falta la cláusula de escrow (o sale la otra)');
+ok(parc.includes('(*) Importe neto tras deducir los 1.000'), 'parcela: falta la nota (*) del hito descontado');
+const parcNo = plantillaTexto(T('ppjb_parcela.html'), 'es', { regimen_tenencia: 'leasehold', cuenta_es_escrow: 'no' }, esReservado);
+ok(parcNo.includes('cuenta del PROMOTOR indicada en el presente Contrato') && !parcNo.includes('cuenta ESCROW del notario'), 'parcela: sin escrow debe salir la cláusula de cuenta del PROMOTOR y no la de escrow');
+ok(!parcNo.includes('(*) Importe neto'), 'parcela: sin descuento no debe salir la nota (*)');
 
 // ── inglés ─────────────────────────────────────────────────────────────────
 const en = plantillaTexto(T('ppjb_construccion.html'), 'en', { plazo_meses: '8' }, esReservado);

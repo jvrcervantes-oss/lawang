@@ -296,7 +296,13 @@ function recalcularMontosHitos(){
     const idxCalc = [], montosCalc = [];
     HITOS.forEach((h,i)=>{ if(h.calculado){ idxCalc.push(i); montosCalc.push(h.monto); } });
     const nuevos = lwDescuentoCascada(montosCalc, descuento);
-    idxCalc.forEach((i,k)=> aplicar(i, nuevos[k]));
+    idxCalc.forEach((i,k)=>{
+      aplicar(i, nuevos[k]);
+      // Espejo de la marca que pone la base (carta_cobrado_aplica_hitos): el
+      // hito que absorbió descuento imprime el importe con (*) y sin el "50%"
+      // que ya no es verdad. Solo render — la base la recalcula y pisa al guardar.
+      HITOS[i].descontado = parseImporte(nuevos[k]) !== parseImporte(montosCalc[k]);
+    });
   }
 }
 function hitosRowsHTML(){
@@ -304,10 +310,17 @@ function hitosRowsHTML(){
   // corre justo después de insertar estas filas (ver buildDoc: hitos → luego {{...}}).
   return HITOS.map((h,i)=>{
     // .mny marca "esto es un importe" para que idrEquiv() le añada la equivalencia en IDR
-    const monto = (h.monto||'') ? `<span class="mny">${esc(String(h.monto))}</span> {{moneda}}` : '';
+    // Hito DESCONTADO (22-sep-2026): su importe ya no es el % del precio porque
+    // absorbió el abono de la Carta de Reserva (la marca la pone la base,
+    // carta_cobrado_aplica_hitos; aquí la espeja recalcularMontosHitos). Se
+    // imprime el importe con (*) y la celda % en blanco — `pct` sigue en el
+    // dato (Σ%=100 al guardar y contrato_vencimientos lo leen), solo no se
+    // enseña. La nota (*) vive en la plantilla, bajo la tabla (Legal).
+    const descontado = !!h.descontado;
+    const monto = (h.monto||'') ? `<span class="mny">${esc(String(h.monto))}</span> {{moneda}}${descontado ? ' (*)' : ''}` : '';
     // % vacío o 0 → celda en blanco, sin "0%". Un hito puede ser un importe
     // cerrado (la reserva) sin porcentaje del total que lo represente.
-    const pct = (String(h.pct||'').trim()==='' || parseFloat(h.pct)===0) ? '' : esc(String(h.pct))+'%';
+    const pct = (descontado || String(h.pct||'').trim()==='' || parseFloat(h.pct)===0) ? '' : esc(String(h.pct))+'%';
     /* La celda de timing imprime la FECHA de vencimiento cuando el hito la tiene
        (18-ago-2026: los pagos se controlan por fecha de calendario, no por texto
        libre). Con espacios por idioma, porque "09/03/2026" en inglés se lee como

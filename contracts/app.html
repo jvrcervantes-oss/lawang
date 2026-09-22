@@ -84,7 +84,7 @@
 <script src="assets/modelos_catalogo.js?v=4e4fdee1"></script>
 <!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
 <script src="assets/techo_extras.js?v=0b29d8c4"></script>
-<script src="assets/hitos_fechas.js?v=73e20d57"></script>
+<script src="assets/hitos_fechas.js?v=83507a5f"></script>
 <script src="assets/entidades_pago.js?v=72c8d06a"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
@@ -2817,6 +2817,18 @@ function collect(){
      función), esto es la defensa por si algún camino se les escapa. */
   if(CONTRACT_TIPO[CURRENT.slug] === 'construccion')
     data.descuento_comercial_aplica = (TECHO_ELEGIDO && (parseImporte(data.descuento_comercial) || 0) > 0) ? 'si' : 'no';
+  /* `cuenta_es_escrow` (22-sep-2026, revisión previa #41): 'si'|'no' según la
+     cuenta elegida (`cuentas_bancarias.es_escrow`). La plantilla del Bloqueo lo
+     usa en <!--if:cuenta_es_escrow=si--> / =no para imprimir la cláusula de
+     ESCROW del notario o la de «cuenta del PROMOTOR» — nunca ninguna (Legal).
+     Aquí es solo el ESPEJO para la vista previa: el valor que se guarda lo
+     estampa la base (trigger contrato_cuenta_es_escrow) y pisa lo que mande
+     el cliente, así que ni tecleándolo por la API se puede hacer mentir al
+     documento (Seguridad). Sin cuenta → 'no'. */
+  {
+    const cb = (typeof CUENTAS_BANCARIAS !== 'undefined' && data.cuenta_bancaria) ? CUENTAS_BANCARIAS[data.cuenta_bancaria] : null;
+    data.cuenta_es_escrow = (cb && cb.es_escrow) ? 'si' : 'no';
+  }
   /* `precio_lista_construccion` (22-sep-2026, owner): techo + extras ANTES del
      descuento, para que la cláusula del precio enseñe las tres cifras — lista,
      descuento y neto — y el comprador vea de dónde sale el número. Solo se
@@ -3262,6 +3274,7 @@ function deriveSections(){
      no a ojo. */
   inDoc.delete('carta_cobrado_importe');
   inDoc.delete('carta_cobrado_numeros');
+  inDoc.delete('cuenta_es_escrow');   // derivado (collect(), de la cuenta elegida) y estampado por la base — nunca un campo del form
   /* La clausula historica «el adquiriente firma como sociedad (PT PMA)»: sus
      campos comp_* siguen dentro de cinco plantillas y su seccion se retiro de
      tokens.json el 19-ago-2026 (encargo del owner). Sin esta linea reaparecen en

@@ -560,7 +560,14 @@
          apuntando aquí (misma relación que usa `sincroniza_unidad_contrato()`
          en servidor) — nunca se resuelve por `parcela_codigo` a mano, que es un
          texto congelado y puede llevar varios códigos separados por coma. */
-      sb.from('unidades').select('id,codigo,estado,proyecto,proyecto_id').eq('contrato_id', id)
+      sb.from('unidades').select('id,codigo,estado,proyecto,proyecto_id').eq('contrato_id', id),
+      /* Vencimiento y prórrogas de una Carta de Reserva (22-sep-2026): la fecha
+         la dice la BASE (`reserva_vence_el`, base + última prórroga), nunca se
+         suma aquí fecha_pago_reserva + validez — es la misma función que usa
+         el cron que libera, así que la ficha y el automatismo no pueden
+         discrepar. Para un contrato que no es Carta devuelve null y no se pinta. */
+      sb.rpc('reserva_vence_el', { p_contrato_id: id }),
+      sb.from('contrato_prorrogas').select('n,dias,desde,hasta,motivo,comunicado_al_comprador,quien,creado_en').eq('contrato_id', id).order('n')
     ]).then(function (r) {
       if (!document.getElementById('lw-cajon')) return;   // la cerraron antes de que llegara
       var c = r[0].data || c0;
@@ -575,6 +582,13 @@
         porId[x.id] = x;
         if (x.id === c.contrato_padre_id) padre = x; else if (x.contrato_padre_id === c.id) hijos.push(x);
       });
+      // Carta de Reserva viva: catálogo real (contrato_tipo_etapa), ver el botón Liberar más abajo
+      var tiposReservaCat = (r[7].data || []).map(function (x) { return x.tipo; });
+      var esCartaViva = tiposReservaCat.indexOf(c.tipo) !== -1 && !c.liberado_en;
+      var venceEl = (r[9] && !r[9].error && r[9].data) ? String(r[9].data).slice(0, 10) : null;
+      var prorrogas = (r[10] && r[10].data) || [];
+      var hoyISO = new Date().toISOString().slice(0, 10);
+      function masDias(iso, n) { var d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
       cuerpo += H.seccion('Contrato',
         H.dato('Estado', c.bloqueado ? H.tag('Firmado', 'ok') : (c.pdf_firmado_path ? H.tag('Reabierto', 'mal') : H.tag('Borrador', 'espera')), { html: 1 }) +
         H.dato('Tipo', tipoC(c.tipo)) +
@@ -589,6 +603,17 @@
            lo contrario), así que es un dato propio y no un tag más de Estado. */
         (c.liberado_en ? H.dato('Reserva', H.tag(c.liberado_motivo === 'desistida' ? 'Liberada · comprador desistió' : 'Liberada · plazo vencido', 'mal') +
           '<br><span style="font-size:11.5px;color:#8A8474">' + esc(fFecha(c.liberado_en)) + '</span>', { html: 1 }) : '') +
+        /* «Vence el» (22-sep-2026): solo Cartas vivas. Tras el vencimiento hay 3
+           días de gracia antes de que el cron libere (aviso a managers el día
+           que vence); se dice aquí para que nadie descubra la liberación por
+           sorpresa. Sin fecha = la Carta no tiene fecha de pago o validez y el
+           cron la salta (no se inventa). */
+        (esCartaViva ? H.dato('Vence el', (venceEl
+            ? esc(fFecha(venceEl)) + (venceEl < hoyISO ? ' ' + H.tag('Vencida · se libera el ' + fFecha(masDias(venceEl, 3)), 'mal') : (venceEl === hoyISO ? ' ' + H.tag('Vence hoy', 'espera') : ''))
+            : '<span style="color:#8A8474">sin plazo (falta fecha de pago o validez en la Carta)</span>') +
+          (prorrogas.length ? '<br><span style="font-size:11.5px;color:#8A8474">' + prorrogas.length + ' prórroga(s): ' +
+            esc(prorrogas.map(function (x) { return '+' + x.dias + 'd hasta ' + fFecha(x.hasta) + ' (' + (x.quien || '—') + (x.comunicado_al_comprador ? ', comunicada al comprador' : '') + ')'; }).join(' · ')) + '</span>' : ''),
+          { html: 1 }) : '') +
         (padre ? H.dato('Cuelga de', enlaceFichaContrato(padre), { html: 1 }) : '') +
         (hijos.length ? H.dato('Encadenados', hijos.map(enlaceFichaContrato).join('<br>'), { html: 1 }) : ''));
 
@@ -623,7 +648,27 @@
           unidadesReservadas.map(function (u) {
             return '<button type="button" data-lw-liberar="' + esc(u.id) + '" style="justify-self:start;margin-top:4px;padding:9px 16px;border-radius:10px;border:1px solid #9E2F26;background:#fff;color:#9E2F26;font:600 13px \'Neue Kabel\',sans-serif;cursor:pointer">Liberar reserva (comprador desiste) — Parcela ' + esc(u.codigo || '—') + '</button>';
           }).join('<br>'));
-      } else if (puedeVerBoton && esCartaReserva && !c.liberado_en && unidadesReservadas.length > 1) {
+      }
+      /* Botón «Prorrogar reserva» (22-sep-2026, owner): sales_manager de su
+         proyecto para arriba, 2 prórrogas por Carta y la 3ª solo admin — eso lo
+         decide el RPC `prorroga_reserva` (rol explícito + advisory lock + tope),
+         aquí solo se ofrece a quien puede verlo, como Liberar. La prórroga NO
+         toca el contrato (datos se congela al firmar): es una fila aparte que
+         el cron y esta ficha leen por `reserva_vence_el`. Aviso interno, nunca
+         al comprador (decisión del owner); si un agente se lo dijo, se marca —
+         una promesa oral vincula (Legal). */
+      if (puedeVerBoton && esCartaReserva && !c.liberado_en && unidadesReservadas.length >= 1) {
+        var esAdminSesion = rolSesion === 'admin' || rolSesion === 'super_admin';
+        var topeAlcanzado = prorrogas.length >= 2 && !esAdminSesion;
+        cuerpo += H.seccion('Prorrogar reserva',
+          H.nota(venceEl
+            ? 'Alarga el plazo de la reserva desde su vencimiento actual (' + fFecha(venceEl) + '). Máximo 2 prórrogas por Carta; la tercera solo la puede dar un admin. Al vencer hay 3 días de gracia antes de que la parcela se libere sola.'
+            : 'Esta Carta no tiene fecha de pago de la reserva o plazo de validez: no hay vencimiento que prorrogar (y el automatismo tampoco la libera).') +
+          (venceEl && !topeAlcanzado
+            ? '<button type="button" data-lw-prorrogar="1" style="justify-self:start;margin-top:4px;padding:9px 16px;border-radius:10px;border:1px solid #2F5D9E;background:#fff;color:#2F5D9E;font:600 13px \'Neue Kabel\',system-ui;cursor:pointer">Prorrogar reserva</button>'
+            : (topeAlcanzado ? H.nota('Ya tiene 2 prórrogas: la siguiente solo la puede dar un admin.') : '')));
+      }
+      if (puedeVerBoton && esCartaReserva && !c.liberado_en && unidadesReservadas.length > 1) {
         /* 21-sep-2026, hallazgo de code-review + comprobado contra producción
            (CR00025 tiene HOY 3 parcelas reservadas a la vez): libera_reserva()
            marca `contratos.liberado_en` en cuanto libera la PRIMERA parcela, y
@@ -736,6 +781,31 @@
             if (u.error || !u.data) { toast('No se pudo abrir el PDF: ' + (u.error && u.error.message || 'sin URL')); return; }
             window.open(u.data.signedUrl, '_blank', 'noopener');
           });
+        }
+        var pro = ev.target.closest && ev.target.closest('[data-lw-prorrogar]');
+        if (pro) {
+          ev.preventDefault();
+          if (typeof window.lwVentana !== 'function') { toast('El formulario aún no ha cargado — prueba de nuevo en un segundo.'); return; }
+          window.lwVentana('Prorrogar reserva — ' + num, [
+            { k: '_intro', tipo: 'nota', label: 'La reserva vence el ' + fFecha(venceEl) + '. Los días se suman a esa fecha. El contrato no se toca: la prórroga queda registrada aparte y el automatismo la respeta.' },
+            { k: 'dias', label: 'Días de prórroga', tipo: 'number', valor: 15, req: 1, medio: 1, ayuda: 'De 1 a 30 (un admin, hasta 180).' },
+            { k: 'motivo', label: 'Motivo', tipo: 'textarea', req: 1, ayuda: 'Obligatorio: por qué se alarga (el comprador está en ello, espera transferencia…), para el histórico del contrato.' },
+            { k: 'comunicado', label: 'Se lo he comunicado al comprador', tipo: 'check', valor: false, ayuda: 'Solo constancia. El sistema no avisa al comprador: la prórroga va a su favor y no necesita su firma.' }
+          ], 'Prorrogar', function (vals) {
+            var dias = parseInt(vals.dias, 10);
+            var motivo = (vals.motivo || '').trim();
+            if (!(dias >= 1)) return { error: { message: 'Pon un número de días (mínimo 1).' } };
+            if (motivo.replace(/\s+/g, '').length < 6) {
+              return { error: { message: 'Cuenta el motivo con algo más de detalle: con un par de letras no queda registrado para nadie que lo lea después.' } };
+            }
+            return sb.rpc('prorroga_reserva', { p_contrato_id: c.id, p_dias: dias, p_motivo: motivo, p_comunicado: !!vals.comunicado }).then(function (rr) {
+              if (rr.error) return { error: rr.error };
+              toast('Reserva prorrogada: ahora vence el ' + fFecha(rr.data) + '.');
+              fichaContrato(sb, c, opts);
+              return {};
+            });
+          }, { sinRecarga: true, sub: 'Prórroga de la reserva' });
+          return;
         }
         var lib = ev.target.closest && ev.target.closest('[data-lw-liberar]');
         if (lib) {

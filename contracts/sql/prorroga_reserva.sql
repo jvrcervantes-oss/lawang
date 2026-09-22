@@ -1,0 +1,41 @@
+-- ════════════════════════════════════════════════════════════════════════════
+-- PRÓRROGA DE CARTA DE RESERVA + GRACIA · ESCROW CONDICIONAL · DESCUENTO CON UN DUEÑO
+-- 22-sep-2026 — revisión previa #41 (Legal + Datos + Seguridad)
+-- ════════════════════════════════════════════════════════════════════════════
+-- POR QUÉ. Owner: «el cliente tarda en pagar y el sistema libera la parcela
+-- porque el Bloqueo no ha llegado a ocurrir». Una Carta firmada no puede
+-- alargar su plazo (datos se congela al firmar), así que la prórroga vive en
+-- una tabla aparte (`contrato_prorrogas`), la escribe SOLO `prorroga_reserva()`
+-- (sales_manager de su proyecto para arriba; 2 por Carta, la 3ª solo admin;
+-- 1-30 días el manager, hasta 180 el admin) y el vencimiento tiene una única
+-- fuente: `reserva_vence_el(contrato)` — la edge `libera-reservas-vencidas`
+-- (vía `reservas_vencimiento()`, un solo viaje sin `datos`) y la ficha v4 la
+-- llaman. Al vencer NO se libera ese día: aviso a managers y 3 días de gracia.
+--
+-- En la misma migración, dos cosas del Bloqueo de Parcela que Legal pidió:
+--   · `cuenta_es_escrow` ('si'|'no') lo estampa la base en datos.fields desde
+--     cuentas_bancarias.es_escrow (trigger contrato_cuenta_es_escrow) — la
+--     plantilla imprime la cláusula ESCROW o la de «cuenta del PROMOTOR», nunca
+--     ninguna, y un agente no puede forzarla por la API.
+--   · La cascada del descuento de la Carta sobre los hitos tiene UN dueño:
+--     `carta_cobrado_aplica_hitos(datos, modo)`, en INSERT y en UPDATE. Antes
+--     `hitos` viajaba libre en cada guardado. Marca `descontado`/`monto_bruto`/
+--     `pct_original` en el hito descontado (solo render: el documento deja el %
+--     en blanco y pone (*) con la nota); `pct` no se toca nunca.
+--
+-- Decisiones que quedan al owner (contexto/pendientes.md): plazo N de
+-- convocatoria a escritura en el Art. 4 del Bloqueo (Legal: con 50/50 privado
+-- el comprador paga el 100% antes de la AJB) y destino de la cuota cuando la
+-- Carta vence sin Bloqueo.
+--
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Objetos: contrato_prorrogas, prorrogas_select, reserva_vence_el,
+--   reservas_vencimiento, prorroga_reserva, contrato_cuenta_es_escrow,
+--   trg_contrato_cuenta_es_escrow, carta_cobrado_aplica_hitos,
+--   carta_cobrado_congelado_en_update, carta_cobrado_al_bloquear,
+--   contrato_eventos_evento_check (+ 'reserva_prorrogada')
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260921142708_carta_cobrado_aplicado_tabla_lateral.sql
+--   supabase/migrations/20260922125208_prorroga_reserva_art3_escrow.sql

@@ -58,6 +58,7 @@
 --   supabase/migrations/20260824035201_construccion_por_parcela.sql
 --   supabase/migrations/20260828073214_rp00116_corrige_parcela_codigo.sql
 --   supabase/migrations/20260910043844_carta_reserva_traspaso_por_prefijo.sql
+--   supabase/migrations/20260922125208_prorroga_reserva_art3_escrow.sql  (reserva_vence_el, reservas_vencimiento, prorroga_reserva - la edge ya no calcula el vencimiento en TypeScript)
 --   supabase/migrations/20260914120341_exige_parcela_al_guardar.sql
 --   supabase/migrations/20260916040622_avanza_unidad_por_cobro_exige_suelo_100.sql
 --   supabase/migrations/20260917012656_errores_de_guardado_al_grano.sql
