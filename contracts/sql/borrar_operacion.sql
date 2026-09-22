@@ -24,7 +24,12 @@
 --     supabase/migrations/20260922141500_borrar_operacion_gate_pagada_no_cerrada.sql
 --     para la corrección del nombre del estado (el esquema real usa 'pagada'
 --     + pago_referencia/pagado_en, no 'cerrada'/factura_id como en la
---     migración original de solicitudes_pago).
+--     migración original de solicitudes_pago), y
+--     supabase/migrations/20260922143000_borrar_operacion_gate_pagada_cubre_closer.sql
+--     porque una comisión de CLOSER pagada no lleva solicitud_id
+--     (comisiones_devengadas_solicitud_solo_manager lo exige NULL para
+--     closer) — el gate mira también el estado propio del devengo, no solo
+--     el de su solicitud.
 --   · contratos                    → BORRADOS (el padre y sus hijos). El
 --     ON DELETE SET NULL de facturas_contrato_id_fkey deja huérfanas (pero
 --     con contrato_numero congelado, ver trg_facturas_congela_contrato_numero)
@@ -59,7 +64,7 @@ declare
   n_devengos int;
   n_solic    int;
   bloqueado_ajeno text;
-  sp_pagada_numero bigint;
+  d_pagada_id uuid;
   solicitudes_a_purgar uuid[];
 begin
   if not public.es_agente() then
@@ -93,15 +98,17 @@ begin
     end if;
   end if;
 
-  -- Gate: una comisión ya pagada (solicitud 'pagada') no se purga sola.
-  select sp.numero into sp_pagada_numero
+  -- Gate: una comisión ya pagada no se purga sola -- ni la de closer (estado
+  -- propio del devengo, sin solicitud) ni la de manager (estado de su
+  -- solicitud_pago).
+  select d.id into d_pagada_id
     from public.comisiones_devengadas d
-    join public.solicitudes_pago sp on sp.id = d.solicitud_id
+    left join public.solicitudes_pago sp on sp.id = d.solicitud_id
    where d.contrato_raiz_id = any(ids)
-     and sp.estado = 'pagada'
+     and (d.estado = 'pagada' or sp.estado = 'pagada')
    limit 1;
-  if sp_pagada_numero is not null then
-    raise exception 'Esta operación ya tiene una comisión pagada (solicitud SP-%): no se puede borrar automáticamente, resuélvelo a mano', sp_pagada_numero;
+  if d_pagada_id is not null then
+    raise exception 'Esta operación ya tiene una comisión pagada (devengo %): no se puede borrar automáticamente, resuélvelo a mano', d_pagada_id;
   end if;
 
   update public.contrato_firmas set estado = 'anulado'
