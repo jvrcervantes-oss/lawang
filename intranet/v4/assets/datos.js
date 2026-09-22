@@ -1212,15 +1212,11 @@
         else toastMal('El editor de documentos aún está cargando — prueba de nuevo en un segundo.');
       } });
     }
-    if (!f0.anulada && !f0.enviada && f0.tipo !== 'proforma') {
-      acciones.push({ texto: 'Editar', onClick: function () {
-        if (!(window.LW_V4 && (window.LW_V4.abrirEditorFactura || window.LW_V4.abrirEditorRecibi))) {
-          toastMal('El editor de documentos aún está cargando — prueba de nuevo en un segundo.'); return;
-        }
-        if (f0.tipo === 'recibi') window.LW_V4.abrirEditorRecibi({ id: f0.id });
-        else window.LW_V4.abrirEditorFactura({ id: f0.id });
-      } });
-    }
+    // Sin «Editar» (22-sep-2026, owner: «¿por qué Abrir no es editar
+    // directamente? son dos modelos y debería ser uno»): «Abrir el documento»
+    // abre el editor; si el documento no admite cambios (proforma, anulado,
+    // enviado, de otra persona), la misma pantalla sale bloqueada con el
+    // motivo arriba. Un solo botón, un solo modelo.
     // UUID y tipo, no el número: ver la nota de fichaContrato (19-sep-2026)
     if (f0.contrato_id && f0.tipo !== 'recibi') acciones.push({ texto: 'Emitir recibí', onClick: function () {
       if (window.LW_V4 && window.LW_V4.abrirEditorRecibi) window.LW_V4.abrirEditorRecibi({ contrato_id: f0.contrato_id, factura_id: f0.id });
