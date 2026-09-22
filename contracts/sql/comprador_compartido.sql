@@ -1,0 +1,17 @@
+-- ============================================================================
+-- Comprador compartido entre closers — 22-sep-2026 (PUNTERO)
+-- ----------------------------------------------------------------------------
+-- La persona es del equipo; el contrato y su dinero son de quien lo hace, de su
+-- manager o de un admin. El generador de contratos busca la ficha por
+-- compradores_directorio() y la ficha del comprador dice cuántos contratos
+-- tiene aunque no los enseñe (comprador_contratos_resumen()).
+--
+-- Fuente única (texto íntegro con el porqué):
+--   supabase/migrations/20260922145104_comprador_compartido_entre_closers.sql
+--     · contrato_visible(autor, proyecto)   — UNA expresión para policy y RPC
+--     · policy SELECT de contratos la usa
+--     · contrato_compradores: escribir solo sobre un contrato que se ve
+--     · contrato_cobrado(): sin EXECUTE para authenticated (oráculo interno)
+--     · contratos_cobrado_equipo(), contratos_del_mismo_comprador(): filtradas
+--     · comprador_contratos_resumen(client_id): tipo·proyecto·autor·firmado·visible
+-- ============================================================================

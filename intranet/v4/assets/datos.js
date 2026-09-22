@@ -2051,8 +2051,8 @@
           var cuerpo =
             H.seccion('Identidad', identidad) +
             H.seccion('Responsable de la ficha', seccionResponsable()) +
-            H.seccion('Contratos (' + vins.length + ')', contratos) +
-            H.seccion('Estado de cuentas', seccionEstadoCuentas(vins, H)) +
+            H.seccion('Contratos (' + vins.length + ')', contratos, 'contratos') +
+            H.seccion('Estado de cuentas', seccionEstadoCuentas(vins, H), 'cuentas') +
             H.seccion('Facturas', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'facturas') +
             H.seccion('Documentación KYC', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'docs') +
             H.seccion('Portal del comprador', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'portal');
@@ -2098,6 +2098,38 @@
           var u2 = new URL(location.href);
           u2.searchParams.set('id', c2.id);
           history.replaceState(null, '', u2.href);
+          /* LA FICHA DICE LO QUE NO ENSEÑA — 22-sep-2026, decisión del owner.
+             Dos closers pueden tener contrato con la misma persona; `vins` solo
+             trae los que la RLS te deja ver, y el «Estado de cuentas» de arriba
+             los suma como si fueran todos. `comprador_contratos_resumen()` da
+             TODOS sus contratos (tipo, proyecto, autor, firmado; sin importes ni
+             número) y marca cuáles ves. Se pide DESPUÉS de abrir: es una nota,
+             no un requisito. Calcado de /intranet/compradores/. */
+          sb.rpc('comprador_contratos_resumen', { p_client_id: c2.id }).then(function (r) {
+            if (r.error) { console.warn('[v4 datos] comprador_contratos_resumen', r.error); return; }
+            var todos = r.data || [];
+            var ajenos = todos.filter(function (x) { return !x.visible; });
+            if (!ajenos.length || !cj.cuerpo) return;
+            var sc = cj.cuerpo.querySelector('[data-cajon-sec="contratos"] > div');
+            if (sc) {
+              var lis = ajenos.map(function (x) {
+                return '<li>' + esc(tipoC(x.tipo)) + ' · ' + esc(x.proyecto_nombre || '—') + ' · de <b>' +
+                  esc(nombreEquipo[String(x.autor || '').toLowerCase()] || x.autor || 'nadie (sin autor)') + '</b> · ' +
+                  (x.bloqueado ? H.tag('Firmado', 'ok') : H.tag('Sin firmar', 'neutro')) + '</li>';
+              }).join('');
+              sc.insertAdjacentHTML('beforeend',
+                H.nota('Esta persona tiene <b>' + todos.length + '</b> contratos en total; aquí ves <b>' + (todos.length - ajenos.length) + '</b>. ' +
+                       'Los que no ves son de otro comercial: sus cifras no entran en esta ficha.', true) +
+                '<ul style="margin:0 0 0 18px;padding:0;font-size:12.5px;color:#2E3437;display:grid;gap:4px">' + lis + '</ul>' +
+                (ajenos.some(function (x) { return x.bloqueado; })
+                  ? H.nota('Un contrato firmado, sea de quien sea, congela esta ficha: desde entonces solo la corrige un administrador.')
+                  : ''));
+            }
+            var h4 = cj.cuerpo.querySelector('[data-cajon-sec="cuentas"] > h4');
+            if (h4) h4.textContent = 'Estado de cuentas de tus contratos';
+            var scu = cj.cuerpo.querySelector('[data-cajon-sec="cuentas"] > div');
+            if (scu) scu.insertAdjacentHTML('afterbegin', H.nota('Solo suma tus contratos: los de otros comerciales no entran en estas cifras.'));
+          });
 
           /* Traspaso: wiring de los controles que seccionResponsable() acaba de
              pintar (viven en el cuerpo del cajon ya montado). */

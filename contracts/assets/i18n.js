@@ -1192,6 +1192,15 @@
     'Puedes editar los datos de la ficha': 'You can edit the record’s details',
     'Estado de cuentas': 'Account status',
     'Contratos firmados': 'Signed contracts',
+    // comprador compartido entre closers (22-sep-2026): la ficha dice lo que no enseña
+    'Estado de cuentas de tus contratos': 'Account status of your contracts',
+    'Esta persona tiene %n contratos en total; aquí ves %v.': 'This person has %n contracts in total; you can see %v here.',
+    'Los que no ves son de otro comercial: sus cifras no entran en esta ficha.': 'The ones you can’t see belong to another agent: their figures are not part of this record.',
+    'de %a': 'by %a',
+    'No se pudo leer la ficha del comprador: ': 'Could not read the buyer’s record: ',
+    'nadie (sin autor)': 'nobody (no author)',
+    'Solo suma tus contratos: los de otros comerciales no entran en estas cifras.': 'Adds up only your contracts: other agents’ contracts are not included in these figures.',
+    'Un contrato firmado, sea de quien sea, congela esta ficha: desde entonces solo la corrige un administrador.': 'A signed contract, whoever made it, freezes this record: from then on only an administrator can correct it.',
     'Contrato · unidad': 'Contract · unit',
     'Avance de pago por proyecto': 'Payment progress by project',
     'Solo cuenta como cobrado el recibí — una factura o proforma es lo que se debe, no lo pagado.':
