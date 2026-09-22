@@ -98,6 +98,13 @@ contracts/assets/apoderados/
 # Supabase CLI: caché local, no se versiona
 supabase/.temp/
 
+# Bot de apoyo a agentes (22-sep-2026): la FUENTE de las reglas y bloqueos es la
+# base (`bot_fuentes`, `bot_bloqueos`, sembradas por la migración). Estos dos
+# ficheros son la copia de trabajo de Legal; el .json lleva referencias internas
+# (LAW-xxx) y este repo es público y se sirve entero — nunca al árbol.
+contracts/bot/bloqueos.json
+contracts/bot/prompt_sistema.md
+
 # ── Las fotos que sube el cliente desde el panel (14-sep-2026) ──────────────
 # `assets/img/properties/` tiene dos tipos de fichero, y se distinguen por el
 # NOMBRE: los assets del estudio llevan nombre legible (`aqua-1.jpg`,
