@@ -77,6 +77,16 @@ ok(r.ok, 'las cifras del contexto con puntos de miles tienen que pasar');
 r = postCheck('Total price: 1,500,000,000 IDR.', contexto, bloqueos);
 ok(r.ok, 'las cifras del contexto con comas de miles tienen que pasar');
 
+// decimales y números contiguos NO se pegan en una cifra falsa
+r = postCheck('Equivalente: USD 250,000.00 aprox.', JSON.stringify({ precio_total: 250000 }), bloqueos);
+ok(r.ok, 'un importe con dos decimales (250,000.00) no se colapsa a 25000000');
+r = postCheck('Hito 2 600000000 IDR (40 %).', contexto, bloqueos);
+ok(r.ok, 'un número seguido de otro con un espacio (2 600000000) no se pega en uno solo');
+r = postCheck('Cuota: 1.234,50 IDR.', contexto, bloqueos);
+ok(r.ok, 'miles con punto y decimales con coma (1.234,50) pasan');
+r = postCheck('Tarjeta 1234 5678 9012 3456.', contexto, bloqueos);
+ok(!r.ok && r.motivo === 'cifra_ajena_al_contexto', 'grupos de 4 dígitos (tarjeta/cuenta) sí se pegan y se descartan');
+
 // una fecha del contexto reescrita con otro separador NO es una cuenta ajena
 r = postCheck('Fecha de firma: 2026-05-14 (14/05/2026).', contexto, bloqueos);
 ok(r.ok, 'una fecha con / o - no se colapsa a una secuencia de 8 dígitos');

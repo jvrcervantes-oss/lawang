@@ -14,14 +14,17 @@
    Descarta el borrador si:
    (a) contiene una secuencia de ≥8 dígitos que no está en contextoTexto. Se
        comparan con los separadores de miles/agrupación quitados (espacio,
-       punto, coma entre dígitos): «1234 5678 9012» y «1.234.567.890» son la
-       misma secuencia. NO se quitan «/» ni «-»: son fechas, y una fecha del
-       contexto reescrita con otro separador no es una cuenta ajena.
+       punto o coma seguidos de un grupo de 3-4 dígitos): «1234 5678 9012» y
+       «1.234.567.890» son la misma secuencia. Un separador seguido de OTRA
+       cosa no se toca: «250,000.00» son decimales (no 25000000) y «hito 2
+       600000000» son dos números, no uno. NO se quitan «/» ni «-»: son
+       fechas, y una fecha del contexto reescrita con otro separador no es
+       una cuenta ajena.
    (b) casa algún patron_salida (regex, insensible a mayúsculas) de bloqueos.
    Un patron_salida que no compila DESCARTA (fail closed): un freno roto no
    puede leerse como "sin freno". */
 function postCheck(borrador, contextoTexto, bloqueos) {
-  const colapsa = (s) => String(s ?? '').replace(/(\d)[ .,](?=\d)/g, '$1');
+  const colapsa = (s) => String(s ?? '').replace(/(\d)[ .,](?=\d{3,4}(?!\d))/g, '$1');
   const ctx = colapsa(contextoTexto);
   const secuencias = colapsa(borrador).match(/\d{8,}/g) || [];
   for (const seq of secuencias) {
