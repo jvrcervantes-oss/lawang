@@ -504,6 +504,76 @@
     return '<a href="#" data-lw-ficha-contrato="' + esc(x.id) + '" style="color:#104C4F;font-weight:600;text-decoration:underline">' + esc(x.numero) + '</a>' +
       (x.tipo ? ' <span style="color:#8A8474">· ' + esc(tipoC(x.tipo)) + '</span>' : '');
   }
+  /* Borrar operación (S13, 22-sep-2026): mismo RPC y mismo gate que la
+     clásica (intranet/operaciones/index.html, borrarOperacion/967-1044),
+     releído hoy porque `borrar_operacion()` se tocó 5 veces en las últimas
+     horas por hallazgos de Legal/Administración AJENOS a este encargo. La
+     versión aplicada (20260922143000_borrar_operacion_gate_pagada_cubre_closer)
+     purga comisiones_devengadas + su solicitud_pago al vuelo, y solo para en
+     seco si alguna comisión de la cadena (closer O manager) está ya
+     'pagada' — el owner decidió purgar automáticamente el resto (22-sep,
+     migración 134500). El recuento de aquí es solo UX, igual que en «Borrar
+     proyecto»: el RPC es quien decide de verdad y puede desincronizarse
+     entre este cálculo y el clic — el mensaje real del gate se enseña tal
+     cual si para. */
+  function borrarOperacionV4(sb, c0) {
+    var fam = 'id.eq.' + c0.id + ',contrato_padre_id.eq.' + c0.id;
+    sb.rpc('contratos_equipo').select('id,numero').or(fam).then(function (rc) {
+      if (rc.error) { toastMal(lwErrorHumano(rc.error, 'No se pudo preparar el borrado')); return; }
+      var contratos = (rc.data && rc.data.length) ? rc.data : [{ id: c0.id, numero: c0.numero }];
+      var ids = contratos.map(function (x) { return x.id; });
+      Promise.all([
+        sb.rpc('facturas_equipo').select('id,anulada').in('contrato_id', ids),
+        sb.rpc('contrato_firmas_equipo').select('id,contrato_id,estado,snapshot_path').in('contrato_id', ids).in('estado', ['pendiente', 'procesando']),
+        sb.from('comisiones_devengadas').select('id,estado,solicitud_id').in('contrato_raiz_id', ids)
+      ]).then(function (r) {
+        var facturasVivas = (r[0].error ? [] : (r[0].data || [])).filter(function (f) { return !f.anulada; }).length;
+        var firmasVivas = r[1].error ? [] : (r[1].data || []);
+        var comisiones = r[2].error ? [] : (r[2].data || []);
+        var yaPagadas = comisiones.filter(function (x) { return x.estado === 'pagada'; }).length;
+        var detalle = [];
+        detalle.push(contratos.length > 1
+          ? contratos.length + ' contratos (' + contratos.map(function (x) { return x.numero || 'sin nº'; }).join(', ') + ')'
+          : 'el contrato ' + (c0.numero || 'sin nº'));
+        if (firmasVivas.length) detalle.push(firmasVivas.length + ' ' + (firmasVivas.length === 1 ? 'enlace de firma quedará ANULADO' : 'enlaces de firma quedarán ANULADOS'));
+        if (facturasVivas) detalle.push(facturasVivas + ' ' + (facturasVivas === 1 ? 'factura quedará ANULADA (no se borra: la serie no puede tener huecos)' : 'facturas quedarán ANULADAS (no se borran: la serie no puede tener huecos)'));
+        if (comisiones.length) detalle.push(comisiones.length + ' comisión(es) devengada(s) y su solicitud de pago (si la tienen) se PURGARÁN' +
+          (yaPagadas ? ' — OJO: ' + yaPagadas + ' ya está' + (yaPagadas === 1 ? '' : 'n') + ' PAGADA(S): el sistema va a parar el borrado entero' : ''));
+        detalle.push('La parcela vinculada vuelve a estar disponible.');
+        if (typeof lwConfirmar !== 'function') { toast('El diálogo de confirmación aún no ha cargado — prueba de nuevo en un segundo.'); return; }
+        lwConfirmar({
+          titulo: 'Borrar la operación de ' + (c0.comprador_nombre || 'sin comprador'),
+          cuerpo: '<p>Se borra ' + detalle[0] + '.</p>' +
+            (detalle.length > 1 ? '<ul style="margin:0 0 10px;padding-left:18px">' + detalle.slice(1).map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>' : '') +
+            '<p>No hay papelera. Si hay una comisión ya pagada (de closer o de manager), el sistema para el borrado entero y hay que resolverlo a mano.</p>',
+          confirmar: 'Borrar la operación', tono: 'peligro'
+        }).then(function (ok) {
+          if (!ok) return;
+          var rutas = [];
+          ids.forEach(function (cid) { rutas.push('pendientes/' + cid + '.html'); });
+          firmasVivas.forEach(function (f) { if (f.snapshot_path) rutas.push(f.snapshot_path); });
+          rutas = rutas.filter(function (x, i, a) { return x && x.indexOf('pendientes/') === 0 && a.indexOf(x) === i; });
+          sb.rpc('borrar_operacion', { p_contrato_id: c0.id }).then(function (rr) {
+            if (rr.error) { toastMal(lwErrorHumano(rr.error, 'No se pudo borrar')); return; }
+            // Los borradores de firma del ALMACENAMIENTO no los borra el RPC (no
+            // alcanza a un bucket): se limpian aparte, DESPUÉS de que el borrado
+            // haya ido bien — un fallo aquí es basura huérfana, no un motivo para
+            // parar (mismo criterio que la clásica).
+            if (rutas.length) {
+              sb.storage.from('contratos-firmados').remove(rutas).then(function (rs) {
+                if (rs.error) console.warn('Operación borrada; sus borradores de firma siguen en el almacenamiento:', rs.error.message);
+              });
+            }
+            var d = rr.data || {};
+            toast('Operación borrada · ' + (d.contratos_borrados || 0) + ' contrato(s), ' + (d.facturas_anuladas || 0) + ' factura(s) anulada(s)' +
+              (d.comisiones_purgadas ? ', ' + d.comisiones_purgadas + ' comisión(es) purgada(s)' : ''));
+            if (window.lwCierraCajon) window.lwCierraCajon();
+            location.reload();
+          });
+        });
+      });
+    });
+  }
   function fichaContrato(sb, c0, opts) {
     opts = opts || {};
     var H = window.lwCajonHtml;
@@ -528,6 +598,10 @@
       { texto: 'Nueva proforma', href: '/intranet/v4/facturas/?contrato=' + encodeURIComponent(c0.id) + '&tipo=proforma' }
     ];
     if (!opts.sinExpediente) acciones.push({ texto: 'Expediente', href: '/intranet/v4/operaciones/?contrato=' + encodeURIComponent(num) });
+    // Borrar operación (S13, 22-sep-2026): mismo botón que la clásica
+    // (intranet/operaciones/index.html:967, id="btnBorrarOp") — nunca oculto
+    // por rol, el gate de verdad es el propio RPC (es_agente / es_super_admin).
+    acciones.push({ texto: 'Borrar operación', tono: 'peligro', onClick: function () { borrarOperacionV4(sb, c0); } });
     acciones.push({ texto: 'Cerrar', cerrar: true });
     var caj = window.lwCajon({
       sub: tipoC(c0.tipo) + (c0.bloqueado ? ' · firmado' : (c0.pdf_firmado_path ? ' · reabierto' : ' · borrador')),
@@ -546,7 +620,12 @@
       sb.rpc('contrato_firmas_equipo').select('firmante_nombre,firmante_rol,estado,creado_en,firmado_en,expira_en').eq('contrato_id', id).order('creado_en'),
       sb.from('contrato_compradores').select('client_id,rol').eq('contrato_id', id),
       sb.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,bloqueado,contrato_padre_id,created_at').or(familia),
-      sb.rpc('contratos_cobrado_equipo').select('contrato_id,cobrado').eq('contrato_id', id),
+      // SIN filtro de contrato (S13, 22-sep-2026): el estado de cuenta
+      // CONSOLIDADO de la cadena (más abajo) necesita lo cobrado de la raíz Y
+      // de cada hijo, no solo de `id`. Mismo coste que ya paga el listado
+      // (`operaciones:`, más arriba en este fichero), que pide esta misma RPC
+      // sin filtrar.
+      sb.rpc('contratos_cobrado_equipo').select('contrato_id,cobrado'),
       /* Botón «Liberar reserva» (21-sep-2026): el catálogo real de qué tipos son
          Carta de Reserva sale de `contrato_tipo_etapa` —nunca una lista a mano,
          ver contexto/suite_lawang.md sobre por qué eso es lo que se rompe— y el
@@ -696,6 +775,11 @@
             '). Liberar una desde aquí marcaría el contrato entero como liberado y dejaría el resto reservadas sin ninguna forma de soltarlas después. Este botón no cubre ese caso todavía — pide a Desarrollo que la libere a mano.'));
       }
 
+      /* cobrado de TODA la familia (S13, 22-sep-2026): un solo mapa, usado
+         aquí y por el «Estado de cuenta de la cadena» de más abajo. */
+      var cobradoPorId = {};
+      (r[6] && r[6].data || []).forEach(function (x) { cobradoPorId[x.contrato_id] = Number(x.cobrado) || 0; });
+
       /* Compradores: el nombre congelado en el contrato siempre; las fichas
          enlazadas (contrato_compradores) se resuelven a nombre en una segunda
          consulta y se pintan en su sección cuando llegan. */
@@ -703,13 +787,16 @@
       cuerpo += H.seccion('Comprador' + (vins.length > 1 ? 'es' : ''),
         H.dato('En el contrato', c.comprador_nombre) +
         (vins.length ? '<p style="margin:0;font-size:12px;color:#8A8474">Resolviendo ' + vins.length + ' ficha(s) enlazada(s)…</p>' : ''), 'compradores');
+      // Documentación KYC (S13, 22-sep-2026): mismo criterio que la clásica
+      // (intranet/operaciones/index.html:801-824) — el pasaporte es de la
+      // persona, no de la venta.
+      cuerpo += H.seccion('Documentación KYC del comprador', '<p style="margin:0;font-size:12px;color:#8A8474">Trayendo…</p>', 'docskyc');
 
       var fs = r[1].data || [];
       /* Lo cobrado lo dice el oráculo vivo `contrato_cobrado()` (recibís aplicados,
          también los aplicados a facturas del contrato), no una suma propia: dos
          pantallas con dos «cobrado» distintos era el hallazgo (Administración/Legal, 19-sep). */
-      var cobRow = (r[6] && r[6].data || [])[0];
-      var cobrado = cobRow && cobRow.cobrado != null ? Number(cobRow.cobrado) || 0 : null;
+      var cobrado = cobradoPorId[c.id] != null ? cobradoPorId[c.id] : null;
       // el oráculo suma recibís sin mirar la moneda: si hay alguno en otra, se dice (hoy 0 casos)
       var otrasMon = fs.filter(function (f) { return f.tipo === 'recibi' && !f.anulada && (f.moneda || 'EUR') !== (c.moneda || 'EUR'); }).length;
       var pend = (cobrado != null && c.precio_total != null && !esPreliminar(c)) ? Math.max(0, Number(c.precio_total) - cobrado) : null;
@@ -722,6 +809,35 @@
             esc(fFecha(f.fecha_emision || f.created_at)),
             f.anulada ? H.tag('Anulada', 'mal') : (f.tipo === 'recibi' ? H.tag('Cobrado', 'ok') : '')];
         })) : H.nota('Sin facturas ni recibís todavía.')));
+
+      /* Estado de cuenta CONSOLIDADO de la cadena (S13, 22-sep-2026): «Cobros»
+         de arriba es contrato a contrato; esto suma TODOS los encadenados en
+         un solo bloque, como la clásica (líneas 910-939). Reutiliza
+         `cuentaGrupo` de operaciones-cuentas.js (Regla 0) — cero aritmética
+         propia: se le da la forma padre/hijos cross-enlazados que espera y se
+         lee lo que ya usan las 9 herramientas clásicas. */
+      if ((padre || hijos.length) && typeof cuentaGrupo === 'function') {
+        // Cadena de 3+ niveles (Reserva→PPJB→Construcción): `c` puede tener
+        // PADRE y sus PROPIOS hijos a la vez (arriba, «Cuelga de»/«Encadenados»
+        // conviven en el mismo H.seccion) — hallazgo de la autorevisión
+        // `code-review` (22-sep-2026): si al haber padre se descartaban los
+        // hijos de `c`, el consolidado infravaloraba lo cobrado de la cadena
+        // real, el mismo tipo de fallo que ya costó dinero (328.000 € de Juan
+        // José Carbajo Pinal, ver operaciones-cuentas.js). `padre.hijos` pasa
+        // a incluir SIEMPRE a `c` y a los hijos propios de `c`.
+        c.cobrado = cobradoPorId[c.id] || 0;
+        hijos.forEach(function (h) { h.cobrado = cobradoPorId[h.id] || 0; });
+        if (padre) { padre.cobrado = cobradoPorId[padre.id] || 0; c.padre = padre; padre.hijos = [c].concat(hijos); }
+        else { c.hijos = hijos; }
+        var cg = cuentaGrupo(c);
+        cuerpo += H.seccion('Estado de cuenta de la cadena (' + cg.grupo.length + ' contratos)',
+          H.dato('Precio (suma de la cadena)', cg.precio != null ? fmt(cg.precio, cg.moneda) : 'sin fijar') +
+          H.dato('Cobrado (suma de la cadena)', fmt(cg.facturado, cg.moneda)) +
+          H.dato('Pendiente', cg.pendiente != null ? fmt(cg.pendiente, cg.moneda) : 'no calculable') +
+          H.nota('Solo el recibí cuenta como cobrado. ' + (cg.soloPreliminar
+            ? 'Solo hay un documento preliminar en la cadena: cuenta igual, es la cuota de reserva exigible.'
+            : 'Una Carta de Reserva no suma precio: declara el mismo importe que luego reparten el Bloqueo/la Construcción. Detalle de cada contrato en «Cuelga de»/«Encadenados», arriba.')));
+      }
 
       var vs = r[2].data || [];
       cuerpo += H.seccion('Calendario de pagos (' + vs.length + ')',
@@ -768,17 +884,73 @@
         }
       }
 
-      if (vins.length) {
-        sb.from('clients').select('id,full_name').in('id', vins.map(function (v) { return v.client_id; })).then(function (rc) {
-          var sec = caj.cuerpo.querySelector('[data-cajon-sec="compradores"] > div');
-          if (!sec) return;
-          if (rc.error) { sec.innerHTML = H.dato('En el contrato', c.comprador_nombre) + H.nota('No se pudieron resolver las fichas enlazadas.'); return; }
-          var nombre = {}; (rc.data || []).forEach(function (k) { nombre[k.id] = k.full_name; });
-          sec.innerHTML = H.dato('En el contrato', c.comprador_nombre) + vins.map(function (v) {
-            return H.dato(v.rol || 'Comprador', H.enlace('/intranet/v4/compradores/?id=' + encodeURIComponent(v.client_id), nombre[v.client_id] || 'Ficha de comprador'), { html: 1 });
-          }).join('');
-        });
-      }
+      /* Compradores + KYC inline + «Sus otros contratos» + documentación KYC
+         (S13, 22-sep-2026): un solo Promise.all — antes solo resolvía el
+         nombre; ahora también el tag de estado KYC (sin salir a Compradores)
+         y las operaciones NO emparentadas del mismo comprador (POR_CLIENTE de
+         la clásica, líneas 869-881). La documentación va en su propia
+         sección («docskyc») porque puede tener filas aunque no haya vins
+         (un documento colgado directo del contrato_id). */
+      var clientIds = vins.map(function (v) { return v.client_id; });
+      var KYC_ES = { pending: 'Pendiente', submitted: 'En revisión', verified: 'Aprobado', rejected: 'Rechazado' };
+      var DOC_ES = { passport: 'Pasaporte', npwp: 'NPWP', visa: 'Visado', proof_of_funds: 'Justificante de fondos', proof_of_address: 'Justificante de domicilio', signed_contract: 'Contrato firmado', other: 'Otro' };
+      Promise.all([
+        clientIds.length ? sb.from('clients').select('id,full_name,kyc_status').in('id', clientIds) : Promise.resolve({ data: [] }),
+        clientIds.length ? sb.from('contrato_compradores').select('client_id,contrato_id').in('client_id', clientIds) : Promise.resolve({ data: [] }),
+        sb.from('documents').select('doc_type,uploaded_at,caduca_el,client_id').or(clientIds.length ? 'contrato_id.eq.' + id + ',client_id.in.(' + clientIds.join(',') + ')' : 'contrato_id.eq.' + id)
+      ]).then(function (rr) {
+        var rc = rr[0], rv2 = rr[1], rd = rr[2];
+        var ficha = {}; (rc.error ? [] : (rc.data || [])).forEach(function (k) { ficha[k.id] = k; });
+        var sec = caj.cuerpo.querySelector('[data-cajon-sec="compradores"] > div');
+        if (sec && vins.length) {
+          if (rc.error) {
+            sec.innerHTML = H.dato('En el contrato', c.comprador_nombre) + H.nota('No se pudieron resolver las fichas enlazadas.');
+          } else {
+            var otrosIds = {};
+            (rv2.error ? [] : (rv2.data || [])).forEach(function (v2) {
+              if (v2.contrato_id === c.id) return;
+              (otrosIds[v2.client_id] = otrosIds[v2.client_id] || []).push(v2.contrato_id);
+            });
+            var idsOtros = [];
+            Object.keys(otrosIds).forEach(function (cid) { otrosIds[cid].forEach(function (x) { if (idsOtros.indexOf(x) === -1) idsOtros.push(x); }); });
+            var pintaComp = function (porIdOtros) {
+              sec.innerHTML = H.dato('En el contrato', c.comprador_nombre) + vins.map(function (v) {
+                var k = ficha[v.client_id] || {};
+                var kycTono = k.kyc_status === 'verified' ? 'ok' : (k.kyc_status === 'rejected' ? 'mal' : 'espera');
+                var kycTx = KYC_ES[k.kyc_status] || (k.kyc_status || 'pendiente');
+                var otros = (otrosIds[v.client_id] || []).map(function (oid) { return porIdOtros[oid]; }).filter(Boolean);
+                return H.dato(v.rol || 'Comprador',
+                  H.enlace('/intranet/v4/compradores/?id=' + encodeURIComponent(v.client_id), k.full_name || 'Ficha de comprador') +
+                  ' ' + H.tag(kycTx, kycTono) +
+                  (otros.length ? '<br><span style="font-size:11.5px;color:#8A8474">Sus otros contratos: ' +
+                    otros.map(function (o) { return H.enlace('/intranet/v4/operaciones/?contrato=' + encodeURIComponent(o.numero), o.numero); }).join(' · ') + '</span>' : ''),
+                  { html: 1 });
+              }).join('');
+            };
+            if (idsOtros.length) {
+              sb.rpc('contratos_equipo').select('id,numero').in('id', idsOtros).then(function (ro) {
+                var porIdOtros = {}; (ro.error ? [] : (ro.data || [])).forEach(function (o) { porIdOtros[o.id] = o; });
+                pintaComp(porIdOtros);
+              });
+            } else pintaComp({});
+          }
+        }
+        var secd = caj.cuerpo.querySelector('[data-cajon-sec="docskyc"] > div');
+        if (secd) {
+          if (rd.error) {
+            secd.innerHTML = H.nota('No se pudo leer la documentación KYC.');
+          } else {
+            var docs = rd.data || [];
+            secd.innerHTML = docs.length ? H.tabla(['Documento', 'De', 'Subido', 'Caduca'], docs.map(function (d) {
+              var dd = d.caduca_el ? Math.round((new Date(d.caduca_el) - new Date()) / 86400000) : null;
+              var cad = !d.caduca_el ? '<span style="color:#8A8474">sin fecha</span>'
+                : (dd < 0 ? H.tag('caducado hace ' + (-dd) + ' d', 'mal') : (dd <= 60 ? H.tag(fFecha(d.caduca_el), 'espera') : H.tag(fFecha(d.caduca_el), 'ok')));
+              var nom = (ficha[d.client_id] && ficha[d.client_id].full_name) || c.comprador_nombre || '—';
+              return [esc(DOC_ES[d.doc_type] || d.doc_type || '—'), esc(nom), esc(fFecha(d.uploaded_at)), cad];
+            })) : H.nota(vins.length ? ('Ningún documento subido todavía para ' + (vins.length > 1 ? 'estos compradores.' : 'este comprador.')) : 'Sin ficha de comprador enlazada no hay documentación que mostrar.');
+          }
+        }
+      });
       caj.cuerpo.addEventListener('click', function (ev) {
         var a = ev.target.closest && ev.target.closest('[data-lw-ficha-contrato]');
         if (a) { ev.preventDefault(); var x = porId[a.getAttribute('data-lw-ficha-contrato')]; if (x) fichaContrato(sb, x, opts); return; }
@@ -2282,9 +2454,24 @@
         q(sb.rpc('contratos_equipo').select(CAMPOS_CONTRATO).order('created_at', { ascending: false }).limit(1000), 'operaciones', t),
         vig(sb.rpc('contratos_cobrado_equipo')).then(function (r) { return r.error ? (fallo('cobrado', r.error), null) : (r.data || []); }),
         q(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado,expira_en').eq('estado', 'pendiente'), 'firmas pendientes'),
-        q(sb.from('contrato_vencimientos').select('contrato_id,descripcion,fecha,monto').gte('fecha', hoy).order('fecha').limit(1000), 'próximos vencimientos')
+        q(sb.from('contrato_vencimientos').select('contrato_id,descripcion,fecha,monto').gte('fecha', hoy).order('fecha').limit(1000), 'próximos vencimientos'),
+        // operador por fila (S13, 22-sep-2026): nombre del agente que creó
+        // cada contrato — mismo patrón ya usado en Compradores (`nombreEquipo`).
+        q(sb.from('usuarios').select('email,nombre'), 'equipo'),
+        // «Sin facturar» (S13): documento vivo (no anulado, no proforma) por
+        // contrato — igual criterio que la clásica (FILTROS, sin_factura).
+        // `.limit(2000)`: mismo tope defensivo que ya usan las demás consultas
+        // de este Promise.all (contratos 1000, vencimientos 1000) — sin él,
+        // sobrepasar el límite por defecto de PostgREST recortaría en
+        // silencio y «Sin facturar» mentiría para las filas que quedaran fuera
+        // (autorevisión `code-review`, 22-sep-2026).
+        q(sb.rpc('facturas_equipo').select('id,contrato_id,contrato_numero,tipo,anulada').limit(2000), 'facturas'),
+        // «Falta ficha» (S13): compradoresNombrados(contrato) vs fichas reales
+        // enlazadas — igual criterio que la clásica (fichasQueFaltan, en
+        // operaciones-cuentas.js). Mismo `.limit(2000)` que arriba.
+        q(sb.from('contrato_compradores').select('contrato_id,client_id').limit(2000), 'compradores enlazados')
       ]).then(function (r) {
-        var cs = r[0], cob = r[1] || [], fi = r[2] || [], vs = r[3] || [];
+        var cs = r[0], cob = r[1] || [], fi = r[2] || [], vs = r[3] || [], eq = r[4] || [], facs = r[5] || [], vin2 = r[6] || [];
         if (!cs) return;
         var cobId = {}; cob.forEach(function (x) { cobId[x.contrato_id] = Number(x.cobrado) || 0; });
         fi = fi.filter(function (x) { return !firmaCaducada(x); });   // una firma caducada no es «en firma»
@@ -2292,6 +2479,29 @@
         var proxDe = {}; vs.forEach(function (v) { if (!proxDe[v.contrato_id]) proxDe[v.contrato_id] = v; });   // ya vienen por fecha
         var porId = {}; cs.forEach(function (c) { porId[c.id] = c; });
         window.LW_V4 = window.LW_V4 || {}; window.LW_V4.contratosLista = porId;
+        var nombreEquipo = {}; eq.forEach(function (u) { if (u.email) nombreEquipo[u.email.toLowerCase()] = u.nombre || u.email; });
+        var operadorDe = function (c) { return c.creado_por ? (nombreEquipo[c.creado_por.toLowerCase()] || c.creado_por) : '—'; };
+        // las facturas viejas no tienen contrato_id: se enlazan también por el
+        // nº impreso, mismo criterio que operaciones-cuentas.js (lwOperacionesCargar).
+        // Mapa precalculado UNA vez (autorevisión `code-review`, 22-sep-2026):
+        // antes `facturasDe` escaneaba `facs` entero por cada contrato, y se
+        // llamaba dos veces por fila (contador de chip + atributo de fila) —
+        // hasta 1000×2000×2 comparaciones. Con el mapa, O(contratos+facturas).
+        var facturasPorContratoId = {}, facturasPorNumero = {};
+        facs.forEach(function (f) {
+          if (f.contrato_id) (facturasPorContratoId[f.contrato_id] = facturasPorContratoId[f.contrato_id] || []).push(f);
+          else if (f.contrato_numero) (facturasPorNumero[f.contrato_numero] = facturasPorNumero[f.contrato_numero] || []).push(f);
+        });
+        var facturasDe = function (c) {
+          var propias = facturasPorContratoId[c.id] || [];
+          return c.numero && facturasPorNumero[c.numero] ? propias.concat(facturasPorNumero[c.numero]) : propias;
+        };
+        var sinFacturar = function (c) { return !facturasDe(c).some(function (f) { return !f.anulada && f.tipo !== 'proforma'; }); };
+        var comprasReales = {}; vin2.forEach(function (v) { comprasReales[v.contrato_id] = (comprasReales[v.contrato_id] || 0) + 1; });
+        var faltaFicha = function (c) {
+          var nombrados = String(c.comprador_nombre || '').trim() ? String(c.comprador_nombre).split(' · ').filter(function (x) { return x.trim(); }).length : 0;
+          return Math.max(0, nombrados - (comprasReales[c.id] || 0)) > 0;
+        };
 
         /* KPIs — SOLO en euros, como en Contratos: no se mezclan monedas. */
         var eur = 0, otras = 0, firmados = 0, cobEUR = 0, pendEUR = 0, cobBase = 0;
@@ -2318,14 +2528,22 @@
         pon2('k-firmas-pie', nf ? (urg ? urg + ' expira' + (urg === 1 ? '' : 'n') + ' en menos de 48 h' : 'ninguna expira en 48 h') : 'nada esperando firma');
         pon2('k-pendiente', fmt(pendEUR, 'EUR'));
 
-        /* Estado real de cada operación: en firma > en curso > cobrado / cobro pendiente. */
+        /* Estado real de cada operación: en firma > en curso > cobrado / cobro
+           pendiente. El PRECIO/PENDIENTE se lee de `cuenta()`
+           (operaciones-cuentas.js, S13 22-sep-2026) — antes era una resta a
+           mano aquí, una segunda copia de la misma aritmética que ya vive en
+           la pieza compartida de las 9 herramientas clásicas. Los propios
+           BUCKETS (curso/firma/reserva/sinimporte/…) se quedan: son
+           vocabulario de esta pantalla, más fino que el embudo genérico de
+           4 etapas del módulo compartido. */
         function estadoDe(c) {
           if (firmaDe[c.id]) return 'firma';
           if (!c.bloqueado) return 'curso';
           if (esPreliminar(c)) return 'reserva';               // firmada: solo cobra la señal, no hay «pendiente»
           if (c.precio_total == null) return 'sinimporte';       // poderes, hak sewa notario…: nada que cobrar
-          if ((cobId[c.id] || 0) >= Number(c.precio_total)) return 'cobrado';
-          return 'pendiente';
+          c.cobrado = cobId[c.id] || 0;
+          var pendiente = (typeof cuenta === 'function') ? cuenta(c).pendiente : Math.max(0, Number(c.precio_total) - c.cobrado);
+          return (pendiente != null && pendiente > 0) ? 'pendiente' : 'cobrado';
         }
         var ETQ = { firma: ['En firma', 'espera'], curso: ['En curso', ''], cobrado: ['Cobrado', 'ok'], pendiente: ['Cobro pendiente', 'mal'], reserva: ['Reserva firmada', 'ok'], sinimporte: ['Firmado · sin importe', ''] };
         var nEst = { firma: 0, curso: 0, cobrado: 0, pendiente: 0, reserva: 0, sinimporte: 0 };
@@ -2341,6 +2559,7 @@
             var hijos = cs.filter(function (h) { return h.contrato_padre_id === c.id; });
             if (hijos.length) estr += ' · encadena ' + hijos.map(function (h) { return h.numero; }).join(', ');
             fila(pl, [c.numero, c.comprador_nombre || '—', (c.proyecto_nombre || '—') + (c.parcela_codigo ? ' · ' + c.parcela_codigo : ''), estr,
+              operadorDe(c),
               c.precio_total != null ? fmt(c.precio_total, c.moneda) : '—',
               fmt(cb, c.moneda) + (c.precio_total ? ' (' + Math.round(cb / Number(c.precio_total) * 100) + ' %)' : ''),
               pv ? fFecha(pv.fecha) + (pv.descripcion ? ' · ' + pv.descripcion : '') : (c.bloqueado && !esPreliminar(c) ? 'sin hitos futuros' : '—'),
@@ -2348,15 +2567,21 @@
             var tr = pl.tbody.lastElementChild;
             tr.setAttribute('data-lw-fila', ''); tr.setAttribute('data-lw-id', c.id);
             tr.setAttribute('data-lw-estado', e); tr.setAttribute('data-lw-proyecto', c.proyecto_nombre || '');
-            tr.setAttribute('data-lw-pajar', [c.numero, c.comprador_nombre, c.proyecto_nombre, c.parcela_codigo, tipoC(c.tipo)].join(' ').toLowerCase());
+            // «Sin facturar»/«Falta ficha» (S13): criterios ORTOGONALES al
+            // estado de cobro — se pintan en su propio atributo, nunca
+            // mezclados con data-lw-estado (chipsReales soporta un `atributo`
+            // por opción dentro del mismo grupo de chips).
+            tr.setAttribute('data-lw-docsinfactura', sinFacturar(c) ? '1' : '0');
+            tr.setAttribute('data-lw-docfaltaficha', faltaFicha(c) ? '1' : '0');
+            tr.setAttribute('data-lw-pajar', [c.numero, c.comprador_nombre, c.proyecto_nombre, c.parcela_codigo, tipoC(c.tipo), operadorDe(c), c.creado_por].join(' ').toLowerCase());
             var tds = tr.querySelectorAll('td');
             // Legal (19-sep): una reserva firmada sin señal cobrada bloquea parcela sin contraprestación; un
             // «sin importe» solo es legítimo en un poder — en el resto es un precio que falta
             var etq = ETQ[e];
             if (e === 'reserva' && !(cb > 0)) etq = ['Reserva firmada · sin señal cobrada', 'mal'];
             if (e === 'sinimporte' && c.tipo !== 'poa') etq = ['Firmado · falta precio', 'espera'];
-            if (tds[7]) tds[7].innerHTML = pill(etq[0], etq[1]);
-            if (tds[8]) tds[8].innerHTML = ABRIR;
+            if (tds[8]) tds[8].innerHTML = pill(etq[0], etq[1]);
+            if (tds[9]) tds[9].innerHTML = ABRIR;
             tr.style.cursor = 'pointer';
           });
           pl.tbody.addEventListener('click', function (ev) {
@@ -2373,6 +2598,15 @@
           };
           var ops = [{ clave: '*', texto: 'Todas', n: cs.length }];
           ['curso', 'firma', 'pendiente', 'cobrado', 'reserva'].forEach(function (k) { ops.push({ clave: k, texto: ETQ[k][0], n: nEst[k] }); });
+          // «Sin facturar»/«Falta ficha» (S13, 22-sep-2026): paridad con la
+          // clásica (FILTROS: sin_factura/falta_ficha) — mismo grupo de chips
+          // de un solo clic, pero comparan un atributo PROPIO (`docsinfactura`/
+          // `docfaltaficha`) en vez de `estado`, así que no compiten con las
+          // 5 etapas de arriba por la misma clave.
+          var nSinFactura = cs.filter(function (c) { return sinFacturar(c); }).length;
+          var nFaltaFicha = cs.filter(function (c) { return faltaFicha(c); }).length;
+          ops.push({ clave: '1', texto: 'Sin facturar', n: nSinFactura, atributo: 'docsinfactura' });
+          ops.push({ clave: '1', texto: 'Falta ficha', n: nFaltaFicha, atributo: 'docfaltaficha' });
           var contChips = document.querySelector('[data-lw-chips="estado"]');
           chipsReales(contChips, 'estado', ops, estado, aplicar);
           buscadorDe(aplicar, function (v) { texto = v; });
@@ -2384,10 +2618,14 @@
             sel.setAttribute('data-real', '');
             sel.addEventListener('change', function () { estado.proyecto = { attr: 'proyecto', valor: sel.value }; aplicar(); });
           }
-          // ?filtro=firma (enlace de Home «contratos en firma»)
+          // ?filtro=firma (enlace de Home «contratos en firma») y ?filtro=firma_viva
+          // (S13, 22-sep-2026: clave VIEJA que sigue usando el Home CLÁSICO —
+          // intranet/index.html:647 — nunca renombrada aquí. Sin este alias caía
+          // en silencio a «Todas», fallo mudo para quien llega por ese enlace).
           var filtro = new URLSearchParams(location.search).get('filtro');
+          if (filtro === 'firma_viva') filtro = 'firma';
           if (filtro && contChips) {
-            var idx = ['*', 'curso', 'firma', 'pendiente', 'cobrado', 'reserva'].indexOf(filtro);
+            var idx = ['*', 'curso', 'firma', 'pendiente', 'cobrado', 'reserva', 'sin_factura', 'falta_ficha'].indexOf(filtro);
             var bs = contChips.querySelectorAll('button'); if (idx > 0 && bs[idx]) bs[idx].click();
           }
         }
