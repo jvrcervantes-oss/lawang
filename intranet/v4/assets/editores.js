@@ -1393,7 +1393,11 @@
     // El MISMO motor que pinta la vista previa y la impresión del clásico y
     // que arma el PDF que se manda solo al firmar (22-sep-2026, split en
     // vivo pedido por el owner) — nunca una segunda plantilla del documento.
-    documento: { src: '/intranet/facturas/documento.js', listo: function () { return typeof documentoHTML === 'function'; } }
+    documento: { src: '/intranet/facturas/documento.js', listo: function () { return typeof documentoHTML === 'function'; } },
+    // Fotos del Investor Deck (S10.2, 22-sep-2026) — pieza compartida de la
+    // suite (Regla 0), usada hoy por Proyectos aquí y previsiblemente por
+    // Modelos v4 más adelante; se carga bajo demanda igual que el resto.
+    deckFotos: { src: '/contracts/assets/deck_fotos.js?v=442fb967', listo: function () { return !!window.lwDeckFotos; } }
   };
   var modPromesasDoc = {};
   function cargaModuloDoc(nombre) {
@@ -1418,9 +1422,24 @@
       return { valor: c.id, texto: (c.numero || '—') + ' · ' + (c.comprador_nombre || '—'), nota: c.proyecto_nombre || '' };
     });
   }
+  /* `created_at` VA EN EL SELECT aunque no se pinte (22-sep-2026, owner: «el
+     buscar por contrato no funciona»): sobre un recurso de FUNCIÓN PostgREST
+     exige que la columna del order() esté proyectada — sin ella responde
+     42703 «column contratos.created_at does not exist» (verificado contra el
+     REST vivo). El clásico lo tenía documentado en cargarContratos() y
+     operaciones/ ya lo había pagado antes: esta era la segunda vez. Y el
+     error ya no se traga: `r.data || []` dejaba el picker en «Nada coincide»
+     sin decir por qué. Sin `numero` no se ofrece, igual que el clásico. */
   function listaContratosLigeraDoc(sb) {
-    return sb.rpc('contratos_equipo').select('id,numero,comprador_nombre,proyecto_nombre')
-      .order('created_at', { ascending: false }).limit(500);
+    return sb.rpc('contratos_equipo').select('id,numero,comprador_nombre,proyecto_nombre,created_at')
+      .order('created_at', { ascending: false }).limit(500)
+      .then(function (r) {
+        if (r.error) {
+          toastMal(lwErrorHumano(r.error, 'No se pudo cargar la lista de contratos'));
+          return { data: [] };
+        }
+        return { data: (r.data || []).filter(function (c) { return c.numero; }) };
+      });
   }
   /* Facturas pendientes de TODO el equipo, sin filtrar por comprador — el
      estado de arranque de «Factura que se cobra» cuando el recibí aún no
@@ -1722,10 +1741,52 @@
     // del selector o el texto fijo "Lo asigna la base al guardar"— y la
     // columna se ensancha por su cuenta aunque el track sea 1fr, sacando
     // scroll horizontal del cajón. Medido a 390px: sin esto desbordaba.
-    s.textContent = '.lw-doc-split{display:grid;grid-template-columns:minmax(320px,400px) 1fr;gap:18px;align-items:start;min-width:0}' +
+    /* CALCO del clásico (22-sep-2026, owner: «copia el diseño de la factura»
+       + «que se abra en pantalla completa como la versión en producción»):
+       · reparto `minmax(400px,500px) 1fr` = `.stage` de /intranet/facturas/;
+       · la previa (`.lw-doc-prev`) se queda PEGADA arriba mientras el
+         formulario se desplaza por debajo — son los dos paneles con scroll
+         propio del clásico, dentro del único scroll del cajón; el 180px es
+         cabecera (91) + pie (69) + relleno superior del cuerpo (20), medidos
+         en un arnés a 1440×900: Chrome pega el sticky al borde de CONTENIDO
+         del scroller, no al de relleno, así que sin ese 20 la hoja se
+         recortaba 22px por abajo;
+       · `.lw-doc-pv` = `.pane-preview` + `.pv-scroll` del clásico, mismo
+         fondo #eae5d8 y mismo centrado;
+       · `.sheet` = la hoja del clásico LITERAL: A4 (210×297mm), 15mm 16mm,
+         `zoom:.78` para que quepa en el panel, sombra, folio de la
+         sociedad. Y la tipografía/tinta que el clásico pone en `body` y
+         que aquí es Neue Kabel: sin `font-family` la factura salía en la
+         fuente de la intranet, no en Jost (mismo fallo que el correo del
+         6-ago, ver documentoPagina()). `zoom:.58` y scroll lateral ≤560px,
+         como el móvil del clásico (31-jul). */
+    s.textContent = '.lw-doc-split{display:grid;grid-template-columns:minmax(400px,500px) 1fr;gap:18px;align-items:start;min-width:0}' +
       '.lw-doc-split>div{min-width:0}' +
-      '@media screen and (max-width:860px){.lw-doc-split{grid-template-columns:1fr}}';
+      '.lw-doc-split>.lw-doc-prev{position:sticky;top:0;max-height:calc(100vh - 180px);display:flex;flex-direction:column}' +
+      '.lw-doc-pv{flex:1 1 auto;min-height:0;overflow:auto;background:#eae5d8;padding:22px 0 60px;display:flex;justify-content:center}' +
+      '.lw-doc-pv .sheet{flex:0 0 auto;width:210mm;min-height:297mm;background:var(--folio,#fff);padding:15mm 16mm;box-sizing:border-box;zoom:.78;' +
+        'box-shadow:0 10px 40px rgba(46,52,55,.16);font-family:var(--font-body,\'Jost\',sans-serif);color:var(--ink,#2E3437)}' +
+      '@media screen and (max-width:860px){.lw-doc-split{grid-template-columns:1fr}.lw-doc-split>.lw-doc-prev{position:static;max-height:none}}' +
+      '@media screen and (max-width:560px){.lw-doc-pv .sheet{zoom:.58}.lw-doc-pv{overflow-x:auto;justify-content:flex-start;padding:16px 10px 60px}}';
     document.head.appendChild(s);
+    /* Lo que el clásico carga en su <head> y la v4 no: los TOKENS de marca
+       (brand.css: --brand-primary/--brand-deep/--font-body/--ink que
+       documento.css consume; solo `:root{}`, sin solape con shell.css —
+       comprobado con comm), las fuentes Jost + Cormorant Garamond del
+       documento, y documento.css por si la pantalla que abre el editor
+       (Home, Contratos, Operaciones también emiten recibís) no lo trae. Se
+       inyectan aquí, UNA vez, y no en cada HTML: es el editor quien los
+       necesita, no la pantalla. */
+    [
+      ['lw-doc-fonts', 'https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap'],
+      ['lw-doc-brand', '/contracts/assets/brand.css'],
+      ['lw-doc-css', '/intranet/facturas/documento.css']
+    ].forEach(function (par) {
+      if (document.getElementById(par[0])) return;
+      if (par[0] !== 'lw-doc-fonts' && document.querySelector('link[href*="' + par[1].split('/').pop() + '"]')) return;
+      var l = document.createElement('link'); l.id = par[0]; l.rel = 'stylesheet'; l.href = par[1];
+      document.head.appendChild(l);
+    });
   }
   // Construye el split y devuelve las piezas para que cada editor (factura,
   // recibí) escriba su propio repintado — la FORMA del documento difiere
@@ -1734,23 +1795,25 @@
     aseguraEstiloSplitDoc();
     var wrap = document.createElement('div'); wrap.className = 'lw-doc-split';
     var colForm = document.createElement('div');
-    var colPrev = document.createElement('div');
+    var colPrev = document.createElement('div'); colPrev.className = 'lw-doc-prev';
     wrap.appendChild(colForm); wrap.appendChild(colPrev);
     host.appendChild(wrap);
     var barra = document.createElement('div');
-    barra.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:10px';
+    barra.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:10px;flex:0 0 auto';
     barra.innerHTML = '<span style="width:3px;height:13px;background:' + CAJ.lago + ';border-radius:2px;display:inline-block;flex:0 0 auto"></span>' +
       '<span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:' + CAJ.tinta + '">Vista previa</span>';
     colPrev.appendChild(barra);
-    // El marco (sombra, radio, fondo) es piel de v4; DENTRO, `.sheet`/`.doc`
-    // son las clases del clásico con su documento.css tal cual — es el
-    // documento real, no una interpretación.
+    // El panel y la hoja son los del clásico (`.lw-doc-pv` ≡ .pane-preview +
+    // .pv-scroll; `.sheet` A4 al 78%), pintados por aseguraEstiloSplitDoc():
+    // aquí NO hay estilo inline — el que había (radio 4, 12mm, sin ancho de
+    // folio) era una interpretación, y el owner pidió el diseño de la
+    // factura, no uno parecido. DENTRO, `.doc` es documento.css tal cual.
+    var pv = document.createElement('div'); pv.className = 'lw-doc-pv';
     var sheetWrap = document.createElement('div'); sheetWrap.className = 'sheet';
-    sheetWrap.style.cssText = 'background:#fff;border-radius:4px;box-shadow:0 1px 2px rgba(34,40,42,.06),0 8px 28px rgba(34,40,42,.09);' +
-      'padding:12mm;box-sizing:border-box;max-width:100%;overflow:auto';
     var docEl = document.createElement('div'); docEl.className = 'doc';
     sheetWrap.appendChild(docEl);
-    colPrev.appendChild(sheetWrap);
+    pv.appendChild(sheetWrap);
+    colPrev.appendChild(pv);
     return { colForm: colForm, colPrev: colPrev, docEl: docEl, sheetWrap: sheetWrap, wrap: wrap };
   }
   // Pinta el documento con el MISMO motor que el clásico. `vals` es la forma
@@ -1951,7 +2014,11 @@
               abreDocumentoViewerDoc(res.data.id, function () { location.reload(); });
               return {};
             });
-          }, { sinRecarga: true, sub: existente ? 'Editar documento' : 'Facturación', ancho: 'min(1180px,96vw)' });
+          /* `ancho:'100vw'` (22-sep-2026, owner): el editor de factura ocupa la
+             pantalla entera, como `pantalla('documento')` del clásico — un
+             A4 al 78% más un formulario de 400-500px no caben en un cajón de
+             1180 sin que la hoja se recorte. El recibí sigue en su cajón. */
+          }, { sinRecarga: true, sub: existente ? 'Editar documento' : 'Facturación', ancho: '100vw' });
       }
     });
   }
