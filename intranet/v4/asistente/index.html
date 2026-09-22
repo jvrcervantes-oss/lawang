@@ -181,7 +181,8 @@
     contratos: 'Contrato', unidades: 'Unidad', proyectos: 'Proyecto',
     cuentas_bancarias: 'Cuenta de cobro', contrato_documentos: 'Documento del contrato',
     documentos_proyecto: 'Documento del proyecto', modelo_documentos: 'Documento del modelo',
-    plantillas_contrato: 'Plantilla', bot_fuentes: 'Reglas del asistente'
+    plantillas_contrato: 'Plantilla', plantilla_web: 'Plantilla (texto publicado)', sociedades: 'Sociedad firmante',
+    bot_fuentes: 'Reglas del asistente'
   };
 
   function aviso(texto, detalle) {
@@ -221,7 +222,7 @@
     if (cuerpo.plantilla_cambio_tras_firma) {
       caja.appendChild(aviso(
         lwT('La plantilla ha cambiado desde la firma: contrasta con el PDF firmado'),
-        lwT('Comprobado por la fecha de la plantilla, no por su texto: el texto articulado no está en la base.')));
+        lwT('Comprobado por la fecha de publicación de la plantilla, no por su texto.')));
     }
     return caja.children.length > 0;
   }
