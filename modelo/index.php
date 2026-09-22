@@ -77,16 +77,28 @@ $g       = $m['imgs'];
 $portada = $g[0] ?? null;
 
 /**
- * Tres vistas del hero cinemático + la foto de la sección "Distribución": buscadas por el
+ * Vistas del hero cinemático + la foto de la sección "Distribución": buscadas por el
  * PIE real de cada foto (21-sep-2026, `lw_foto_por_pie()` en catalogo.php), no por
  * posición en el array — desde que las fotos vienen de `deck_fotos` (subidas y
  * reordenables desde /intranet/modelos/) un índice fijo se desincroniza en cuanto alguien
  * añade o reordena una foto ahí. Con respaldo posicional para el modelo que no tenga
  * pies que casen con estos patrones (uno nuevo, subido sin etiquetar bien).
+ *
+ * 22-sep-2026: $heroInterior pasa a priorizar "living room" sobre "bedroom" — Dune y
+ * Dream ya resolvían así de facto (no tienen foto con pie "bedroom" literal, solo
+ * "Room 1"/"Room 2"), Dali era la única que enseñaba el dormitorio en vez del salón
+ * completo. Ahora las tres son consistentes: el hotspot "Interior" enseña el espacio
+ * de estar, no solo la cama. Kitchen/Toilet/Bamboo Aerea son fotos reales nuevas
+ * (mismo pie en las 3 fichas, comprobado en Supabase antes de escribir esto), sin
+ * respaldo posicional — si un modelo no las tiene aún, el hotspot/vista no aparece
+ * (mismo criterio que $techosComp: nunca enseñar un hueco vacío como si fuera un dato).
  */
 $heroDay      = lw_foto_por_pie($m['id'], ['sirap', 'ulin exterior']) ?? $g[0] ?? null;
 $heroTechoAlt = lw_foto_por_pie($m['id'], ['bamboo exterior', 'bambu exterior']) ?? $g[2] ?? $g[1] ?? $g[0] ?? null;
-$heroInterior = lw_foto_por_pie($m['id'], ['bedroom', 'living room', 'interior']) ?? $g[6] ?? $g[1] ?? $g[0] ?? null;
+$heroInterior = lw_foto_por_pie($m['id'], ['living room', 'bedroom', 'interior']) ?? $g[6] ?? $g[1] ?? $g[0] ?? null;
+$heroKitchen  = lw_foto_por_pie($m['id'], ['kitchen']);
+$heroToilet   = lw_foto_por_pie($m['id'], ['toilet']);
+$heroAerea    = lw_foto_por_pie($m['id'], ['bamboo aerea', 'aerea']);
 // "Top View" es la planta cenital real ya renderizada por el estudio (no un CAD que haya
 // que inventar) — encaja mejor con lo que pide la sección "Distribución" que cualquier
 // otra foto exterior. Nunca mezclar `??`/`?:` sin parentesis (PHP lo rechaza como fatal
@@ -453,43 +465,36 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 <div class="view-layer absolute inset-0 w-full h-full bg-cover bg-center opacity-0 scale-105 pointer-events-none" id="layer-interior" style="background-image:url('<?= lw_e($heroInterior) ?>')">
 <div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/80 via-transparent to-volcanic-ash/30"></div>
 </div>
+<?php if ($heroKitchen): ?>
+<div class="view-layer absolute inset-0 w-full h-full bg-cover bg-center opacity-0 scale-105 pointer-events-none" id="layer-kitchen" style="background-image:url('<?= lw_e($heroKitchen) ?>')">
+<div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/80 via-transparent to-volcanic-ash/30"></div>
+</div>
+<?php endif; ?>
+<?php if ($heroToilet): ?>
+<div class="view-layer absolute inset-0 w-full h-full bg-cover bg-center opacity-0 scale-105 pointer-events-none" id="layer-toilet" style="background-image:url('<?= lw_e($heroToilet) ?>')">
+<div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/80 via-transparent to-volcanic-ash/30"></div>
+</div>
+<?php endif; ?>
+<?php if ($heroAerea): ?>
+<div class="view-layer absolute inset-0 w-full h-full bg-cover bg-center opacity-0 scale-105 pointer-events-none" id="layer-aerea" style="background-image:url('<?= lw_e($heroAerea) ?>')">
+<div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/80 via-transparent to-volcanic-ash/30"></div>
+</div>
+<?php endif; ?>
 
-<!-- Hotspots: reposicionados SOBRE la foto real (heroDay), no los % del mockup -->
-<div class="hotspot group absolute z-20 -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110" id="hotspot-roof" style="top:24%;left:50%" onclick="lwSetView('roof')">
-<span class="absolute -inset-2.5 rounded-full bg-surface/30 animate-ping"></span>
-<span class="relative flex items-center justify-center w-8 h-8 rounded-full bg-surface/95 text-territorial-green shadow-xl border border-surface-container-highest">
-<span class="material-symbols-outlined text-[16px]">roofing</span>
-</span>
-<div class="absolute left-10 top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col bg-surface/95 text-on-surface backdrop-blur-md px-3.5 py-1.5 rounded-xl shadow-xl pointer-events-none whitespace-nowrap min-w-[150px] border border-surface-container-highest">
-<span class="text-[10px] uppercase tracking-wider text-on-surface-variant font-medium"><?= lw_i18n('Techo', 'Roof') ?></span>
-<span class="font-label-md text-body-sm text-primary font-semibold" id="hs-roof-nb"><?= lw_e($techosComp['sirap']['nombre'] ?? 'Roof') ?></span>
-</div>
-</div>
-<div class="hotspot group absolute z-20 -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110" id="hotspot-pool" style="top:74%;left:33%" onclick="lwSetView('day')">
-<span class="absolute -inset-2.5 rounded-full bg-secondary-fixed/40 animate-ping"></span>
-<span class="relative flex items-center justify-center w-8 h-8 rounded-full bg-deep-lagoon text-on-secondary shadow-xl border border-white/20">
-<span class="material-symbols-outlined text-[16px]">pool</span>
-</span>
-<div class="absolute left-10 top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col bg-surface/95 text-on-surface backdrop-blur-md px-3.5 py-1.5 rounded-xl shadow-xl pointer-events-none whitespace-nowrap min-w-[150px] border border-surface-container-highest">
-<span class="text-[10px] uppercase tracking-wider text-on-surface-variant font-medium"><?= lw_i18n('Piscina', 'Pool') ?></span>
-<span class="font-label-md text-body-sm text-deep-lagoon font-semibold">Overflow pool, sukabumi stone</span>
-</div>
-</div>
+<!-- Hotspots: reposicionados SOBRE la foto real (heroDay), no los % del mockup —
+     22-sep-2026: fuera Roof/Pool/Garden (pedido del owner: redundantes con el dock o
+     ya no aportaban); Interior pasa a "Living Room" (ver $heroInterior arriba); nuevos
+     Kitchen y Toilet con fotos reales propias. -->
 <div class="hotspot group absolute z-20 -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110" id="hotspot-interior" style="top:48%;left:48%" onclick="lwSetView('interior')">
 <span class="absolute -inset-2.5 rounded-full bg-tertiary-fixed/30 animate-ping"></span>
 <span class="relative flex items-center justify-center w-8 h-8 rounded-full bg-surface/95 text-primary shadow-xl border border-surface-container-highest">
-<span class="material-symbols-outlined text-[16px]">bed</span>
+<span class="material-symbols-outlined text-[16px]">weekend</span>
 </span>
 <div class="absolute left-10 top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col bg-surface/95 text-on-surface backdrop-blur-md px-3.5 py-1.5 rounded-xl shadow-xl pointer-events-none whitespace-nowrap min-w-[150px] border border-surface-container-highest">
-<span class="text-[10px] uppercase tracking-wider text-on-surface-variant font-medium"><?= lw_i18n('Interior', 'Interior') ?></span>
+<span class="text-[10px] uppercase tracking-wider text-on-surface-variant font-medium"><?= lw_i18n('Salón', 'Living room') ?></span>
 <span class="font-label-md text-body-sm text-primary font-semibold">AC &amp; hot water included</span>
 </div>
 </div>
-<!-- 22-sep-2026: 2 hotspots más, mirados sobre la foto real (heroDay, 1672x941) — solo lo
-     que de verdad se ve Y de verdad está incluido (alcance.incluido de este modelo):
-     la terraza exterior es su propia línea del alcance, distinta de la piscina. El
-     jardín es descriptivo del entorno real (no una reclamación de qué incluye la
-     venta), así que no compite con el "no incluido" de mobiliario/decoración. -->
 <div class="hotspot group absolute z-20 -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110" id="hotspot-terraza" style="top:79%;left:63%" onclick="lwSetView('day')">
 <span class="absolute -inset-2.5 rounded-full bg-surface/30 animate-ping"></span>
 <span class="relative flex items-center justify-center w-8 h-8 rounded-full bg-surface/95 text-territorial-green shadow-xl border border-surface-container-highest">
@@ -500,16 +505,30 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 <span class="font-label-md text-body-sm text-territorial-green font-semibold">Exterior terrace, included</span>
 </div>
 </div>
-<div class="hotspot group absolute z-20 -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110" id="hotspot-jardin" style="top:52%;left:9%" onclick="lwSetView('day')">
-<span class="absolute -inset-2.5 rounded-full bg-tertiary-fixed/30 animate-ping"></span>
-<span class="relative flex items-center justify-center w-8 h-8 rounded-full bg-surface/95 text-primary shadow-xl border border-surface-container-highest">
-<span class="material-symbols-outlined text-[16px]">park</span>
+<?php if ($heroKitchen): ?>
+<div class="hotspot group absolute z-20 -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110" id="hotspot-kitchen" style="top:50%;left:58%" onclick="lwSetView('kitchen')">
+<span class="absolute -inset-2.5 rounded-full bg-secondary-fixed/40 animate-ping"></span>
+<span class="relative flex items-center justify-center w-8 h-8 rounded-full bg-deep-lagoon text-on-secondary shadow-xl border border-white/20">
+<span class="material-symbols-outlined text-[16px]">kitchen</span>
 </span>
 <div class="absolute left-10 top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col bg-surface/95 text-on-surface backdrop-blur-md px-3.5 py-1.5 rounded-xl shadow-xl pointer-events-none whitespace-nowrap min-w-[150px] border border-surface-container-highest">
-<span class="text-[10px] uppercase tracking-wider text-on-surface-variant font-medium"><?= lw_i18n('Jardín', 'Garden') ?></span>
-<span class="font-label-md text-body-sm text-primary font-semibold">Tropical garden setting</span>
+<span class="text-[10px] uppercase tracking-wider text-on-surface-variant font-medium"><?= lw_i18n('Cocina', 'Kitchen') ?></span>
+<span class="font-label-md text-body-sm text-deep-lagoon font-semibold">Kitchenette, see photo</span>
 </div>
 </div>
+<?php endif; ?>
+<?php if ($heroToilet): ?>
+<div class="hotspot group absolute z-20 -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110" id="hotspot-toilet" style="top:58%;left:37%" onclick="lwSetView('toilet')">
+<span class="absolute -inset-2.5 rounded-full bg-surface/30 animate-ping"></span>
+<span class="relative flex items-center justify-center w-8 h-8 rounded-full bg-surface/95 text-territorial-green shadow-xl border border-surface-container-highest">
+<span class="material-symbols-outlined text-[16px]">bathroom</span>
+</span>
+<div class="absolute left-10 top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col bg-surface/95 text-on-surface backdrop-blur-md px-3.5 py-1.5 rounded-xl shadow-xl pointer-events-none whitespace-nowrap min-w-[150px] border border-surface-container-highest">
+<span class="text-[10px] uppercase tracking-wider text-on-surface-variant font-medium"><?= lw_i18n('Baño', 'Bathroom') ?></span>
+<span class="font-label-md text-body-sm text-territorial-green font-semibold">En-suite bathroom, see photo</span>
+</div>
+</div>
+<?php endif; ?>
 </div>
 
 <!-- HUD superior: real y estático, sin clima en vivo ni audio inventado -->
@@ -534,9 +553,15 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 <span class="hidden md:inline"><?= lw_i18n('Techo firma', 'Signature roof') ?></span>
 </button>
 <button class="cam-btn flex items-center gap-2 px-3.5 py-1.5 rounded-full font-label-md text-body-sm text-white/90 hover:text-white hover:bg-white/10 transition-all" id="cam-interior" onclick="lwSetView('interior')">
-<span class="material-symbols-outlined text-[17px]">bed</span>
-<span class="hidden md:inline"><?= lw_i18n('Interior', 'Interior') ?></span>
+<span class="material-symbols-outlined text-[17px]">weekend</span>
+<span class="hidden md:inline"><?= lw_i18n('Salón', 'Living room') ?></span>
 </button>
+<?php if ($heroAerea): ?>
+<button class="cam-btn flex items-center gap-2 px-3.5 py-1.5 rounded-full font-label-md text-body-sm text-white/90 hover:text-white hover:bg-white/10 transition-all" id="cam-aerea" onclick="lwSetView('aerea')">
+<span class="material-symbols-outlined text-[17px]">flight</span>
+<span class="hidden md:inline"><?= lw_i18n('Aérea', 'Aerial') ?></span>
+</button>
+<?php endif; ?>
 </div>
 <a class="hidden xl:flex items-center gap-2 glass-panel px-4 py-2 rounded-full shadow-md border border-surface-container-highest/80 text-primary hover:text-deep-lagoon hover:bg-white transition-all group" href="#section-layout">
 <span class="text-xs font-label-md font-semibold tracking-wider uppercase"><?= lw_i18n('Explorar proyecto', 'Explore project') ?></span>
@@ -1009,9 +1034,12 @@ foreach ($incluido as $it):
 <script>
 (function () {
   'use strict';
-  // ── Crossfade + dock de cámara del hero (3 vistas reales) ─────────────────────────
-  var LAYERS = {day: 'layer-day', roof: 'layer-roof', interior: 'layer-interior'};
-  var BTNS   = {day: 'cam-day', roof: 'cam-roof', interior: 'cam-interior'};
+  // ── Crossfade + dock de cámara del hero. Kitchen/Toilet no tienen botón en el dock
+  //    (se llega por su hotspot); si el modelo no tiene esa foto, el <div id="layer-...">
+  //    ni existe (PHP lo omite) y getElementById da null — lwSetView ya lo contempla. ──
+  var LAYERS = {day: 'layer-day', roof: 'layer-roof', interior: 'layer-interior',
+                kitchen: 'layer-kitchen', toilet: 'layer-toilet', aerea: 'layer-aerea'};
+  var BTNS   = {day: 'cam-day', roof: 'cam-roof', interior: 'cam-interior', aerea: 'cam-aerea'};
   window.lwSetView = function (key) {
     if (!LAYERS[key]) return;
     Object.keys(LAYERS).forEach(function (k) {
