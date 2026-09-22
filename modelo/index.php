@@ -353,6 +353,10 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 
 /* ── Hero cinemático: capas cross-fade (día / techo bambú / interior) ──────────────── */
 .view-layer{transition:opacity .7s ease-out,transform .7s ease-out}
+/* 22-sep-2026: los hotspots se ocultan fuera de la vista 'day' (JS, más abajo) — esta
+   transición evita el corte brusco; sustituye a `transition-transform` de Tailwind
+   (que solo animaba el hover) sin perder ese efecto. */
+.hotspot{transition:opacity .3s ease,transform .15s ease}
 
 /* ── FAQ: acordeón de tarjetas bordeadas con <details> nativo (mismo aspecto que el
    mockup, sin JS propio — menos superficie, misma jerarquía visual). ────────────────── */
@@ -1055,6 +1059,16 @@ foreach ($incluido as $it):
         layer.classList.add('opacity-0', 'scale-105', 'pointer-events-none');
         if (btn) btn.className = 'cam-btn flex items-center gap-2 px-3.5 py-1.5 rounded-full font-label-md text-body-sm text-white/90 hover:text-white hover:bg-white/10 transition-all';
       }
+    });
+    // 22-sep-2026: los hotspots estan calibrados a ojo sobre la foto de DIA — en
+    // cualquier otra vista (techo, cocina, bano, salon, aerea) no senalan nada real
+    // de esa foto, asi que solo se ven cuando la vista activa es 'day'. El propio
+    // hotspot que se acaba de pulsar (p.ej. Kitchen) se oculta con el resto: para
+    // volver a verlos hay que volver a 'Day' desde el dock.
+    document.querySelectorAll('.hotspot').forEach(function (h) {
+      var enDia = key === 'day';
+      h.style.opacity = enDia ? '' : '0';
+      h.style.pointerEvents = enDia ? '' : 'none';
     });
   };
 
