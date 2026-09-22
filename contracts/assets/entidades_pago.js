@@ -214,8 +214,15 @@ function tablaCuentaHTML(key, o){
   // val puede ser un dato (número de cuenta, dirección…) o un texto con palabras.
   // Si lleva palabras se pasa como {es,en,id} y se imprime en los tres idiomas,
   // como la etiqueta: si no, al cambiar a inglés la fila salía en español.
+  // El bahasa (`id`) NUNCA cae al español (LAW-247, 22-sep-2026, hallazgo de
+  // code-review sobre el commit 3691a5cc): esta funcion es la que IMPRIME el
+  // documento, y tenia su PROPIA copia del mismo respaldo que se acababa de
+  // quitar en nota_cuenta.js:aJson(). Arreglar solo el guardado no arregla el
+  // documento firmado si quien lo imprime vuelve a inventarse la traduccion
+  // que falta -- exactamente el bug que LAW-247 abrio para cerrar. El ingles
+  // conserva su respaldo al español (mismo alcance que aJson()).
   const celda = v => (v && typeof v === 'object')
-    ? `<span data-lang="es">${esc(String(v.es||''))}</span><span data-lang="en">${esc(String(v.en||v.es||''))}</span><span data-lang="id">${esc(String(v.id||v.es||''))}</span>`
+    ? `<span data-lang="es">${esc(String(v.es||''))}</span><span data-lang="en">${esc(String(v.en||v.es||''))}</span><span data-lang="id">${esc(String(v.id||''))}</span>`
     : esc(String(v));
   const row=(esL,enL,idL,val)=> !val ? '' : `<tr><td><span data-lang="es">${esL}</span><span data-lang="en">${enL}</span><span data-lang="id">${idL}</span></td><td>${celda(val)}</td></tr>`;
   // Cuenta de ESCROW = depósito en garantía. Se añade una fila que lo declara.

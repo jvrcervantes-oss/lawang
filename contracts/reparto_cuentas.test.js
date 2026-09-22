@@ -202,6 +202,35 @@ const sinProyectos = new Function('CUENTAS_BANCARIAS', 'PLANTILLA_CUENTAS', 'PRO
 assert.deepStrictEqual(sinProyectos('ppjb_parcela', SOKA).map((o) => o[0]).sort(), claves('ppjb_parcela'),
   'sin el mapeo por proyecto se ofrece lo del tipo de contrato, que es como funcionaba esta mañana');
 
+/* ---- 13. LAW-247 en el documento IMPRESO, no solo al guardar (22-sep-2026) ----
+   `celda()`, dentro de `tablaCuentaHTML`, es la funcion que IMPRIME cualquier
+   campo bilingue de una cuenta -- Nota incluida. Tenia su PROPIA copia del
+   mismo respaldo `v.id||v.es` que se habia quitado de nota_cuenta.js:aJson()
+   (hallazgo de code-review sobre el commit 3691a5cc): arreglar el guardado no
+   sirve de nada si quien IMPRIME el contrato vuelve a inventarse la
+   traduccion de bahasa que falta -- exactamente el bug que LAW-247 abrio para
+   cerrar, esta vez en la otra punta del dato. */
+const codigoTabla = extrae('tablaCuentaHTML', '/* la cuenta que el agente ELIGE');
+const escFake = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const construyeTabla = (extra) => new Function('esc', 'CUENTAS_BANCARIAS',
+  codigoTabla + '\n;return tablaCuentaHTML;')(escFake, {
+    x: { titular: 'Titular X', banco: 'Banco X', cuenta: '123', codigo: 'SWIFT',
+         direccion: 'Calle X', extra: extra },
+  })('x', {});
+
+const sinBahasa = construyeTabla({ es: 'Pago en IDR', en: 'Payment in IDR', id: '' });
+assert.ok(/<span data-lang="id"><\/span>/.test(sinBahasa),
+  'sin bahasa escrito, la columna id del documento impreso debe salir VACIA');
+assert.ok(!/data-lang="id">Pago en IDR/.test(sinBahasa),
+  'LAW-247 en el documento impreso: el bahasa no puede heredar el texto español');
+
+const conBahasa = construyeTabla({ es: 'Pago en IDR', en: 'Payment in IDR', id: 'Pembayaran dalam IDR' });
+assert.ok(/data-lang="id">Pembayaran dalam IDR<\/span>/.test(conBahasa),
+  'con bahasa escrito, se imprime tal cual');
+
+console.log('✓ LAW-247 tambien se cumple en tablaCuentaHTML/celda, no solo al guardar');
+
 /* ---- 6. las listas a mano no han vuelto ----
    Se miran sobre el código SIN COMENTARIOS, y es la diferencia entre un guardián
    y un estorbo: los cuatro nombres siguen escritos en los comentarios a
