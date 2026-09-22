@@ -150,7 +150,20 @@ if [ -n "$suite" ]; then
     # Ahora se mira ANTES y DESPUES: se stagea solo lo que ha aparecido por
     # correr el sellador. Lo que ya estaba modificado se queda donde estaba, que
     # es el arbol de quien lo esta editando.
-    antes=$(git diff --name-only -- '*.html' '*.php')
+    # 🔴 22-sep-2026 — LA PROTECCION DE ARRIBA NO PROTEGIA NADA con 2+ ficheros
+    # sucios. `antes` guarda una lista separada por SALTOS DE LINEA (la salida de
+    # `git diff --name-only`); el `case " $antes " in *" $f "*)` la trata como si
+    # fuera una lista separada por ESPACIOS. Con un solo fichero sucio el patron
+    # casaba por casualidad y el "arreglo del 8-sep" parecia funcionar; con dos o
+    # mas, ningun `$f` queda nunca rodeado de espacios y el `case` no casa jamas
+    # — el bucle vuelve a hacer `git add` de TODO html/php modificado, exactamente
+    # el bug que el comentario de arriba dice haber cerrado. Reincidencia real:
+    # un commit de LAW-264/LAW-247 (2 ficheros) se llevo dentro un layout entero
+    # de `modelo/index.php` de otra sesion en paralelo. Se recupero con
+    # `reset --soft` + `stash` antes de pushear — ver tools/aprendizaje.py.
+    # `tr '\n' ' '` iguala el formato al que el `case` ya asumia: ahora SI hay
+    # espacios a los dos lados de cada nombre.
+    antes=$(git diff --name-only -- '*.html' '*.php' | tr '\n' ' ')
     "$py" "$sellador" >/dev/null 2>&1 || true
     for f in $(git diff --name-only -- '*.html' '*.php'); do
       case " $antes " in *" $f "*) continue ;; esac
