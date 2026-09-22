@@ -4,13 +4,13 @@
      «La forma de una herramienta»): el script propio de esta página llama a lwT() al
      arrancar y tiene que encontrarlo ya definido. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=d8bdf14d"></script>
+<script src="/contracts/assets/i18n.js?v=5b01e731"></script>
 <!-- toast()/toastMal() (suite-comun.js) y lwPicker() (dialogo.js): el selector de
      contrato es una lista cerrada y larga —un agente puede tener decenas— y la suite
      no monta un <select> ni un <datalist> para eso. vocabulario.js da el nombre
      visible del tipo de contrato en la nota de cada opción. -->
 <script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script>
-<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/datos.js?v=aaef018b" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/datos.js?v=b84b0e82" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=f8f8a146" defer></script>
 <link href="../assets/shell.css?v=bd0a56cb" rel="stylesheet">
@@ -206,6 +206,8 @@
 <p class="font-body-sm text-body-sm text-outline" data-lwt>Las consultas se guardan 90 días: cada agente ve las de los contratos a su alcance.</p>
 </div>
 <div class="flex flex-wrap items-center gap-3">
+<!-- Chip del tema activo (lo pone renderHistorial cuando se filtra desde «Temas frecuentes») -->
+<div class="flex items-center gap-2" id="lw-hist-tema"></div>
 <label class="sr-only" for="lw-hist-filtro" data-lwt>Buscar por contrato, comprador o texto</label>
 <input autocomplete="off" class="w-72 max-w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-2.5 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:border-deep-lagoon" data-lwt-ph id="lw-hist-filtro" placeholder="Buscar por contrato, comprador o texto" type="search">
 <button class="flex items-center gap-2 px-4 py-2.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-label-md transition-colors shadow-sm" data-real id="lw-hist-actualizar" type="button"><span class="material-symbols-outlined text-[18px]">refresh</span><span data-lwt>Actualizar</span></button>
@@ -577,7 +579,7 @@
   }
 
   /* ── Temas frecuentes: bot_temas_resumen(p_dias) ────────────────────── */
-  var TEMAS = { dias: 30, filas: [], frenados: {} };
+  var TEMAS = { dias: 30, filas: [], frenados: {}, patrones: {}, patronesCargados: false };
   function renderTemas(ctx) {
     var cuerpo = $('lw-temas-lista'), estado = $('lw-temas-estado');
     vacia(cuerpo);
@@ -598,20 +600,35 @@
       tr.appendChild(celda(String(t.consultas || 0), true));
       tr.appendChild(celda(String(t.con_retirados || 0), true));
       tr.appendChild(celda(String(t.descartadas || 0), true));
-      var accion = document.createElement('td');
-      accion.className = 'py-2 align-top text-right';
-      if (t.frenado) {
-        accion.appendChild(chip(lwT('hueco del contrato → adenda, no FAQ'), 'mal'));
-      } else if (ctx.super) {
-        accion.appendChild(botonFila(lwT('Fijar respuesta aprobada'), 'verified', function () { prefillFaq({ tema_clave: t.tema_clave }); }));
+      var celdaAccion = document.createElement('td');
+      celdaAccion.className = 'py-2 align-top';
+      var acciones = document.createElement('div');
+      acciones.className = 'flex flex-wrap items-center justify-end gap-2';
+      celdaAccion.appendChild(acciones);
+      // «Ver consultas» filtra el historial con el patrón del tema (ver filtraPorTema).
+      if (Number(t.consultas || 0) > 0) {
+        acciones.appendChild(botonFila(lwT('Ver consultas'), 'filter_list', function () { filtraPorTema(t, ctx); }));
       }
-      tr.appendChild(accion);
+      if (t.frenado) {
+        acciones.appendChild(chip(lwT('hueco del contrato → adenda, no FAQ'), 'mal'));
+      } else if (ctx.super) {
+        acciones.appendChild(botonFila(lwT('Fijar respuesta aprobada'), 'verified', function () { prefillFaq({ tema_clave: t.tema_clave }); }));
+      }
+      tr.appendChild(celdaAccion);
       cuerpo.appendChild(tr);
     });
   }
   function cargaTemas(ctx) {
     var estado = $('lw-temas-estado');
     estado.textContent = lwT('Cargando los temas…');
+    // Los patrones, una sola vez: los lee cualquier agente (RLS SELECT es_agente()).
+    if (!TEMAS.patronesCargados) {
+      TEMAS.patronesCargados = true;
+      ctx.sb.from('bot_temas').select('clave, patron').eq('activo', true).then(function (r) {
+        if (r.error) return;   // sin patrones no hay filtro por tema; el resumen sigue
+        (r.data || []).forEach(function (t) { TEMAS.patrones[t.clave] = t.patron; });
+      });
+    }
     $('lw-temas-30').className = 'px-4 py-1 rounded-full font-label-md text-label-md transition-colors ' + (TEMAS.dias === 30 ? 'bg-deep-lagoon text-on-primary' : 'text-on-surface-variant hover:text-on-surface');
     $('lw-temas-90').className = 'px-4 py-1 rounded-full font-label-md text-label-md transition-colors ' + (TEMAS.dias === 90 ? 'bg-deep-lagoon text-on-primary' : 'text-on-surface-variant hover:text-on-surface');
     return ctx.sb.rpc('bot_temas_resumen', { p_dias: TEMAS.dias }).then(function (r) {
@@ -663,15 +680,26 @@
     var lista = $('lw-hist-lista'), estado = $('lw-hist-estado');
     var filtro = $('lw-hist-filtro').value.trim().toLowerCase();
     var filas = HIST.filter(function (c) {
+      if (HIST_TEMA && !HIST_TEMA.re.test(c.pregunta || '')) return false;
       if (!filtro) return true;
       return (etiquetaContrato(c) + ' ' + (c.pregunta || '') + ' ' + (c.preguntado_por || '')).toLowerCase().indexOf(filtro) !== -1;
     });
+    // Chip del tema activo, con su «quitar»
+    var cajaTema = $('lw-hist-tema');
+    vacia(cajaTema);
+    if (HIST_TEMA) {
+      var q = botonFila(lwT('Tema: %t', { t: HIST_TEMA.nombre }), 'close', function () { HIST_TEMA = null; renderHistorial(ctx); });
+      q.title = lwT('Quitar el filtro de tema');
+      cajaTema.appendChild(q);
+    }
     vacia(lista);
     if (!filas.length) {
       estado.textContent = HIST.length ? lwT('Ninguna consulta coincide con el filtro.') : lwT('Todavía no hay consultas guardadas. Se conservan 90 días.');
       return;
     }
-    estado.textContent = lwT('%n consultas (se conservan 90 días)', { n: filas.length });
+    estado.textContent = HIST_TEMA
+      ? lwT('%n consultas del tema «%t» (de las %m guardadas)', { n: filas.length, t: HIST_TEMA.nombre, m: HIST.length })
+      : lwT('%n consultas (se conservan 90 días)', { n: filas.length });
     filas.forEach(function (c) {
       var fila = document.createElement('div');
       fila.className = 'flex flex-col lg:flex-row lg:items-center gap-3 py-3';
@@ -745,14 +773,42 @@
     nota.textContent = texto;
     muestra(nota, true);
     if (!c.respuesta) toastMal(lwT('Esta consulta se descartó: no hay borrador, solo los puntos pendientes.'));
+    /* Igual que «Reutilizar» (owner, 22-sep): sube arriba con el contrato y la
+       pregunta puestos, y el borrador al lado. Sin toast: el resultado ya se ve. */
+    rellenaFormulario(c, ctx);
+    $('lw-resultado').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
-  function reutilizar(c, ctx) {
+  function rellenaFormulario(c, ctx) {
     var etiqueta = ctx.etiquetaPorId[c.contrato_id];
     if (etiqueta) { $('lw-contrato').value = etiqueta; if (ctx.contratoElegido) ctx.contratoElegido(); }
     $('lw-pregunta').value = c.pregunta || '';
     contador();
+  }
+  function reutilizar(c, ctx) {
+    rellenaFormulario(c, ctx);
     toast(lwT('Pregunta cargada en el formulario: revísala y vuelve a redactar.'));
     $('lw-pregunta').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  /* ── Tema ↔ historial ────────────────────────────────────────────────────
+     Las dos tablas tienen grano distinto (un tema agrupa; una consulta es una
+     fila) y fundirlas quedaba demasiado compacto (owner, 22-sep). En su lugar
+     se enlazan: «Ver consultas» en un tema filtra el historial con el mismo
+     patrón que usa la base (bot_temas.patron, dialecto ARE de Postgres, que
+     aquí se traduce a JS: \y y \m/\M son \b) y baja hasta él; el chip del
+     historial quita el filtro. Un patrón que JS no entienda no filtra: se
+     avisa, no se finge. */
+  var HIST_TEMA = null;   // {clave, nombre, re}
+  function regexTema(patronAre) {
+    try { return new RegExp(String(patronAre || '').replace(/\\y|\\m|\\M/g, '\\b'), 'i'); }
+    catch (e) { return null; }
+  }
+  function filtraPorTema(t, ctx) {
+    var patron = TEMAS.patrones[t.tema_clave];
+    var re = patron ? regexTema(patron) : null;
+    if (!re) { toastMal(lwT('No se ha podido aplicar el filtro de ese tema.')); return; }
+    HIST_TEMA = { clave: t.tema_clave, nombre: nombreTema(t), re: re };
+    renderHistorial(ctx);
+    $('lw-historial').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   function cargaHistorial(ctx) {
     var estado = $('lw-hist-estado');
