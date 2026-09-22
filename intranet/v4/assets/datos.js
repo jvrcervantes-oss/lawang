@@ -628,12 +628,21 @@
     // por rol, el gate de verdad es el propio RPC (es_agente / es_super_admin).
     acciones.push({ texto: 'Borrar operación', tono: 'peligro', onClick: function () { borrarOperacionV4(sb, c0); } });
     acciones.push({ texto: 'Cerrar', cerrar: true });
+    /* Trazabilidad en la barra (22-sep-2026, owner): en /v4/contratos/ la ficha
+       abierta se refleja como `?contrato=NUM` — lo mismo que el listado ya sabe
+       abrir al cargar (más abajo, «?contrato=NUM abre la ficha directamente»),
+       así que la URL se puede copiar, compartir y recargar. Al cerrar se quita.
+       replaceState, no pushState: el botón Atrás del navegador sigue saliendo
+       de la herramienta, no rebobinando fichas. */
+    var enContratos = location.pathname.indexOf('/v4/contratos/') !== -1;
+    if (enContratos && num) { try { history.replaceState(null, '', '?contrato=' + encodeURIComponent(num)); } catch (e) { /* sin historial (iframe, file:) */ } }
     var caj = window.lwCajon({
       sub: tipoC(c0.tipo) + (c0.bloqueado ? ' · firmado' : (c0.pdf_firmado_path ? ' · reabierto' : ' · borrador')),
       titulo: num,
       bajoTitulo: (c0.comprador_nombre || '—') + (c0.proyecto_nombre ? ' · ' + c0.proyecto_nombre : ''),
       cuerpo: '<p style="margin:0;font-size:13px;color:#8A8474">Trayendo la ficha…</p>',
-      acciones: acciones
+      acciones: acciones,
+      alCerrar: function () { if (enContratos) { try { history.replaceState(null, '', location.pathname); } catch (e) {} } }
     });
     var id = c0.id;
     var porId = {};
@@ -756,31 +765,43 @@
       var rolSesion = (window.LW_V4 && window.LW_V4.ficha && window.LW_V4.ficha.rol) || '';
       var puedeVerBoton = rolSesion === 'admin' || rolSesion === 'super_admin' || rolSesion === 'sales_manager';
       var esCartaReserva = tiposReserva.indexOf(c.tipo) !== -1;
-      if (puedeVerBoton && esCartaReserva && !c.liberado_en && unidadesReservadas.length === 1) {
-        cuerpo += H.seccion('Liberar reserva',
-          H.nota('El comprador desiste antes de que venza el plazo: la parcela vuelve a "disponible". El contrato no se borra ni se edita — queda sellado como liberado, y el recibí ya cobrado (no reembolsable) no se toca.') +
-          unidadesReservadas.map(function (u) {
-            return '<button type="button" data-lw-liberar="' + esc(u.id) + '" style="justify-self:start;margin-top:4px;padding:9px 16px;border-radius:10px;border:1px solid #9E2F26;background:#fff;color:#9E2F26;font:600 13px \'Neue Kabel\',sans-serif;cursor:pointer">Liberar reserva (comprador desiste) — Parcela ' + esc(u.codigo || '—') + '</button>';
-          }).join('<br>'));
-      }
-      /* Botón «Prorrogar reserva» (22-sep-2026, owner): sales_manager de su
-         proyecto para arriba, 2 prórrogas por Carta y la 3ª solo admin — eso lo
-         decide el RPC `prorroga_reserva` (rol explícito + advisory lock + tope),
-         aquí solo se ofrece a quien puede verlo, como Liberar. La prórroga NO
-         toca el contrato (datos se congela al firmar): es una fila aparte que
-         el cron y esta ficha leen por `reserva_vence_el`. Aviso interno, nunca
-         al comprador (decisión del owner); si un agente se lo dijo, se marca —
-         una promesa oral vincula (Legal). */
+      /* Liberar y Prorrogar van JUNTAS en una sección «Reserva», a dos columnas
+         (22-sep-2026, owner): son las dos salidas de la misma situación y se
+         leen de un vistazo. Cada una conserva su candado real en el RPC. */
+      var colProrrogar = '', colLiberar = '';
       if (puedeVerBoton && esCartaReserva && !c.liberado_en && unidadesReservadas.length >= 1) {
         var esAdminSesion = rolSesion === 'admin' || rolSesion === 'super_admin';
         var topeAlcanzado = prorrogas.length >= maxProrrogasManager && !esAdminSesion;
-        cuerpo += H.seccion('Prorrogar reserva',
-          H.nota(venceEl
-            ? 'Alarga el plazo de la reserva desde su vencimiento actual (' + fFecha(venceEl) + '). Máximo ' + maxProrrogasManager + ' prórroga(s) por Carta para un sales manager; a partir de ahí solo un admin. Al vencer hay ' + diasGracia + ' día(s) de gracia antes de que la parcela se libere sola. (Estos números se cambian en Ajustes.)'
-            : 'Esta Carta no tiene fecha de pago de la reserva o plazo de validez: no hay vencimiento que prorrogar (y el automatismo tampoco la libera).') +
+        colProrrogar = H.nota(venceEl
+            ? 'Alarga el plazo desde el vencimiento actual (' + fFecha(venceEl) + '). Máximo ' + maxProrrogasManager + ' prórroga(s) de un sales manager; después, solo admin. Gracia al vencer: ' + diasGracia + ' día(s). Los números se cambian en Ajustes.'
+            : 'Sin fecha de pago de la reserva o plazo de validez no hay vencimiento que prorrogar (y el automatismo tampoco la libera).') +
           (venceEl && !topeAlcanzado
             ? '<button type="button" data-lw-prorrogar="1" style="justify-self:start;margin-top:4px;padding:9px 16px;border-radius:10px;border:1px solid #2F5D9E;background:#fff;color:#2F5D9E;font:600 13px \'Neue Kabel\',system-ui;cursor:pointer">Prorrogar reserva</button>'
-            : (topeAlcanzado ? H.nota('Ya tiene ' + prorrogas.length + ' prórroga(s): la siguiente solo la puede dar un admin.') : '')));
+            : (topeAlcanzado ? H.nota('Ya tiene ' + prorrogas.length + ' prórroga(s): la siguiente solo la puede dar un admin.') : ''));
+      }
+      if (puedeVerBoton && esCartaReserva && !c.liberado_en && unidadesReservadas.length === 1) {
+        colLiberar = H.nota('El comprador desiste: la parcela vuelve a disponible. El contrato queda sellado como liberado y el recibí ya cobrado (no reembolsable) no se toca.') +
+          unidadesReservadas.map(function (u) {
+            return '<button type="button" data-lw-liberar="' + esc(u.id) + '" style="justify-self:start;margin-top:4px;padding:9px 16px;border-radius:10px;border:1px solid #9E2F26;background:#fff;color:#9E2F26;font:600 13px \'Neue Kabel\',sans-serif;cursor:pointer">Liberar reserva — Parcela ' + esc(u.codigo || '—') + '</button>';
+          }).join('<br>');
+      } else if (puedeVerBoton && esCartaReserva && !c.liberado_en && unidadesReservadas.length > 1) {
+        /* 21-sep-2026, hallazgo de code-review + comprobado contra producción
+           (CR00025 tiene HOY 3 parcelas reservadas a la vez): libera_reserva()
+           marca `contratos.liberado_en` en cuanto libera la PRIMERA parcela, y
+           su guard de idempotencia convierte la llamada para una hermana en un
+           ÉXITO MUDO. Mejor no ofrecer botón que uno que miente en el segundo
+           clic. Pide una liberación por contrato que el RPC no da hoy. */
+        colLiberar = H.nota('Este contrato tiene ' + unidadesReservadas.length + ' parcelas reservadas a la vez (' +
+            esc(unidadesReservadas.map(function (u) { return u.codigo || '—'; }).join(', ')) +
+            '). Liberar una marcaría el contrato entero como liberado y dejaría el resto sin forma de soltarlas. Este caso no está cubierto todavía — pide a Desarrollo que la libere a mano.');
+      }
+      if (colProrrogar || colLiberar) {
+        var col = function (titulo, html) {
+          return '<div style="display:grid;gap:6px;align-content:start;min-width:0"><div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A8474">' + titulo + '</div>' + html + '</div>';
+        };
+        cuerpo += H.seccion('Reserva', (colProrrogar && colLiberar)
+          ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">' + col('Prorrogar', colProrrogar) + col('Liberar', colLiberar) + '</div>'
+          : (colProrrogar ? col('Prorrogar', colProrrogar) : col('Liberar', colLiberar)));
       }
       /* «Deshacer liberación» (22-sep-2026, owner): solo admin. El cron del
          22-sep liberó parcelas con el comprador aún en ello, y una Carta
@@ -793,24 +814,6 @@
           H.nota('La reserva se liberó (' + esc(c.liberado_motivo === 'desistida' ? 'el comprador desistió' : 'plazo vencido') + ', ' + esc(fFecha(c.liberado_en)) + '). Si el comprador sigue en ello, esto devuelve la Carta a viva, vuelve a enganchar su parcela y la prorroga en el mismo acto. Solo si ninguna otra operación ocupa ya la parcela.') +
           '<button type="button" data-lw-deshacer="1" style="justify-self:start;margin-top:4px;padding:9px 16px;border-radius:10px;border:1px solid #2F5D9E;background:#fff;color:#2F5D9E;font:600 13px \'Neue Kabel\',system-ui;cursor:pointer">Deshacer liberación</button>');
       }
-      if (puedeVerBoton && esCartaReserva && !c.liberado_en && unidadesReservadas.length > 1) {
-        /* 21-sep-2026, hallazgo de code-review + comprobado contra producción
-           (CR00025 tiene HOY 3 parcelas reservadas a la vez): libera_reserva()
-           marca `contratos.liberado_en` en cuanto libera la PRIMERA parcela, y
-           su propio guard de idempotencia («if liberado_en is not null then
-           return») convierte cualquier llamada siguiente para una parcela
-           hermana en un ÉXITO MUDO que no toca nada — la parcela se queda
-           reservada para siempre, sin ningún botón que la vuelva a ofrecer.
-           Ofrecer un botón por parcela aquí sería un mensaje mudo por diseño:
-           mejor no ofrecer ninguno que ofrecer uno que miente en el segundo
-           clic. Pide una liberación por contrato que el RPC no da hoy —
-           arreglarlo es tocar la función (Datos+Seguridad), no esta pantalla. */
-        cuerpo += H.seccion('Liberar reserva',
-          H.nota('Este contrato tiene ' + unidadesReservadas.length + ' parcelas reservadas a la vez (' +
-            esc(unidadesReservadas.map(function (u) { return u.codigo || '—'; }).join(', ')) +
-            '). Liberar una desde aquí marcaría el contrato entero como liberado y dejaría el resto reservadas sin ninguna forma de soltarlas después. Este botón no cubre ese caso todavía — pide a Desarrollo que la libere a mano.'));
-      }
-
       /* cobrado de TODA la familia (S13, 22-sep-2026): un solo mapa, usado
          aquí y por el «Estado de cuenta de la cadena» de más abajo. */
       var cobradoPorId = {};
@@ -820,9 +823,14 @@
          enlazadas (contrato_compradores) se resuelven a nombre en una segunda
          consulta y se pintan en su sección cuando llegan. */
       var vins = r[4].data || [];
+      /* Dos cosas distintas y se dicen con su nombre (owner, 22-sep: «la tabla
+         Comprador no la entiendo»): el NOMBRE ESCRITO EN EL DOCUMENTO (texto
+         congelado del contrato) y la FICHA de comprador enlazada (la persona
+         en la base, con su KYC y sus otras operaciones). Pueden no coincidir. */
       cuerpo += H.seccion('Comprador' + (vins.length > 1 ? 'es' : ''),
-        H.dato('En el contrato', c.comprador_nombre) +
-        (vins.length ? '<p style="margin:0;font-size:12px;color:#8A8474">Resolviendo ' + vins.length + ' ficha(s) enlazada(s)…</p>' : ''), 'compradores');
+        H.dato('Nombre escrito en el documento', c.comprador_nombre) +
+        (vins.length ? '<p style="margin:0;font-size:12px;color:#8A8474">Trayendo la ficha de comprador enlazada…</p>'
+                     : H.nota('Este contrato no está enlazado a ninguna ficha de comprador: solo hay el nombre del documento. La ficha se enlaza desde el generador (pasaporte + email).')), 'compradores');
       // Documentación KYC (S13, 22-sep-2026): mismo criterio que la clásica
       // (intranet/operaciones/index.html:801-824) — el pasaporte es de la
       // persona, no de la venta.
@@ -940,7 +948,7 @@
         var sec = caj.cuerpo.querySelector('[data-cajon-sec="compradores"] > div');
         if (sec && vins.length) {
           if (rc.error) {
-            sec.innerHTML = H.dato('En el contrato', c.comprador_nombre) + H.nota('No se pudieron resolver las fichas enlazadas.');
+            sec.innerHTML = H.dato('Nombre escrito en el documento', c.comprador_nombre) + H.nota('No se pudieron resolver las fichas enlazadas.');
           } else {
             var otrosIds = {};
             (rv2.error ? [] : (rv2.data || [])).forEach(function (v2) {
@@ -950,14 +958,15 @@
             var idsOtros = [];
             Object.keys(otrosIds).forEach(function (cid) { otrosIds[cid].forEach(function (x) { if (idsOtros.indexOf(x) === -1) idsOtros.push(x); }); });
             var pintaComp = function (porIdOtros) {
-              sec.innerHTML = H.dato('En el contrato', c.comprador_nombre) + vins.map(function (v) {
+              sec.innerHTML = H.dato('Nombre escrito en el documento', c.comprador_nombre) + vins.map(function (v) {
                 var k = ficha[v.client_id] || {};
                 var kycTono = k.kyc_status === 'verified' ? 'ok' : (k.kyc_status === 'rejected' ? 'mal' : 'espera');
                 var kycTx = KYC_ES[k.kyc_status] || (k.kyc_status || 'pendiente');
                 var otros = (otrosIds[v.client_id] || []).map(function (oid) { return porIdOtros[oid]; }).filter(Boolean);
-                return H.dato(v.rol || 'Comprador',
+                return H.dato('Ficha enlazada' + (v.rol && v.rol !== 'Comprador' ? ' · ' + v.rol : ''),
                   H.enlace('/intranet/v4/compradores/?id=' + encodeURIComponent(v.client_id), k.full_name || 'Ficha de comprador') +
                   ' ' + H.tag(kycTx, kycTono) +
+                  ' <span style="font-size:11px;color:#8A8474">KYC</span>' +
                   (otros.length ? '<br><span style="font-size:11.5px;color:#8A8474">Sus otros contratos: ' +
                     otros.map(function (o) { return H.enlace('/intranet/v4/operaciones/?contrato=' + encodeURIComponent(o.numero), o.numero); }).join(' · ') + '</span>' : ''),
                   { html: 1 });
