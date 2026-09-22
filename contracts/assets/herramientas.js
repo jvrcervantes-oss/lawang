@@ -190,21 +190,11 @@ const LW_HERRAMIENTAS = [
       : [d.solicitudesVivas ? hT('%n por resolver o pagar', { n: d.solicitudesVivas }) : hT('Sin solicitudes en vuelo'),
          d.solicitudesVivas > 0] },
 
-  /* Va la última de Administración, detrás de Solicitudes, porque es lo que
-     cierra el ciclo del dinero: Facturas lo pide, Recibos lo cobra, Solicitudes
-     lo reparte, y esto cobra el porcentaje por haberlo hecho todo desde aquí.
-     OJO con el vecindario: «Solicitudes» y las Comisiones de la v4 son la
-     comisión del EQUIPO DE VENTAS; ésta no tiene nada que ver con ella — es una
-     tarifa por usar la intranet, aplicada sobre cada entrada de dinero.
-     `soloSuper` y no `soloAdmin`: esto abre lo que el estudio le cobra al
-     cliente, y los cuatro admin del equipo no tienen por qué verlo. Sin `herr`
-     a propósito — `soloSuper` ya es más estrecho que cualquier reparto por
-     herramienta, y una clave propia solo añadiría una casilla que nadie marca.
-     La puerta del menú es ésta; la de verdad es la RLS, que exige
-     es_super_admin() para leer y para escribir. */
-  { grupo:'Administración', nombre:'Comisión de administración', icon:'ph-percent', href:'/intranet/v4/comision-admin/', soloSuper:true,
-    para:'El porcentaje que se cobra por el uso de la intranet sobre todo el dinero que entra, y el libro de lo devengado.',
-    claves:'comision administracion porcentaje tarifa intranet dinero que entra recibos devengo libro fee admin percentage rate platform incoming money ledger' },
+  /* «Comisión de administración» y «Sociedades emisoras» ya NO salen en este
+     catálogo (owner, 22-sep-2026): son pantallas de la v4 y solo se llega a
+     ellas desde su «Panel de control» (`intranet/v4/assets/nav.js`,
+     PANEL_CONTROL_SUPER), solo super admin. La puerta de verdad sigue siendo la
+     RLS (`es_super_admin()`), no este menú. */
 
   { grupo:'Base de datos', nombre:'Proyectos', icon:'ph-buildings', href:'/intranet/proyectos/', herr:'unidades',
     para:'Inventario de parcelas y villas con su estado de venta, por proyecto.',
@@ -275,21 +265,6 @@ const LW_HERRAMIENTAS = [
     estado:d => d.cuentas == null ? null
       : [hT('%n cuentas', { n: d.cuentas }), false] },
 
-  /* Nueva 17-sep-2026. La identidad de cada sociedad emisora —razon social,
-     NPWP o CRN, NIB, domicilio, representante, logo, folio y tinta— vivia
-     escrita a mano en `entities.js`; ahora esta en `public.sociedades` y esta
-     es su unica puerta. Sacar el dato de un fichero sin dar donde editarlo deja
-     el mismo problema con un paso mas.
-     Comparte el permiso `cuentas` a proposito: un permiso nuevo obliga a
-     redesplegar la edge `admin-usuarios` (LAW-70), y las dos pantallas van de
-     lo mismo — datos que decide el super admin y que acaban impresos en un
-     documento. Mirar puede cualquiera del equipo que tenga la herramienta;
-     escribir lo exige la RLS con `es_super_admin()`, no esta pantalla. */
-  { grupo:'Equipo', nombre:'Sociedades emisoras', icon:'ph-buildings', href:'/intranet/sociedades/', herr:'cuentas', soloAdmin:true,
-    para:'Con que identidad fiscal emite cada empresa sus contratos y sus facturas.',
-    claves:'sociedades emisoras empresa razon social npwp crn nib domicilio representante logo folio tinta pt tepi san dal woods ltd companies issuer legal entity tax id',
-    estado:d => d.sociedades == null ? null
-      : [hT('%n sociedades', { n: d.sociedades }), false] },
 ];
 
 /* Quién ve qué. `soloAdmin` es la puerta dura; si no, basta con tener la

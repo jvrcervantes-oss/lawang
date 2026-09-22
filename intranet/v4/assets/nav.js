@@ -161,10 +161,12 @@
 
   /* "Panel de control" (15-sep-2026, encargo del owner): seccion nueva del
      menu, admin/super_admin solamente, para las herramientas de
-     configuracion de la intranet — Cuentas, Equipos de venta, Condiciones.
-     Usuarios se queda fuera y donde estaba a proposito: el owner la quiere
-     separada por ser la que mas se toca del grupo (altas, roles, meter
-     closers en un equipo de venta).
+     configuracion de la intranet — Usuarios, Cuentas, Equipos de venta,
+     Condiciones. Usuarios se quedo fuera del 15 al 22-sep (el owner la queria
+     separada por ser la que mas se toca); el 22-sep pidio llevarsela dentro:
+     va la PRIMERA del grupo, y no se clona — se MUEVE el enlace que Stitch
+     dibujo en "Base de Datos", asi conserva su data-path, su traduccion y su
+     marca de activo del primer pase.
      Stitch nunca dibujo esta seccion, asi que no hay cabecera+enlaces que
      clonar de uno en uno como en INJERTOS de arriba: `injertaPanelControl`
      construye el grupo entero (cabecera incluida) clonando el div de "Base
@@ -251,6 +253,7 @@
     var nuevaCabecera = cabecera.cloneNode(true);
     nuevaCabecera.textContent = 'Panel de control';
     nuevoGrupo.appendChild(nuevaCabecera);
+    nuevoGrupo.appendChild(ancla);                // appendChild MUEVE Usuarios: sale de "Base de Datos"
 
     PANEL_CONTROL.concat(esSuperSesion(ficha) ? PANEL_CONTROL_SUPER : []).forEach(function (spec) {
       var a = ancla.cloneNode(true);              // clon de "Usuarios": hereda las clases exactas
