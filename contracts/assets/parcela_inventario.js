@@ -513,9 +513,17 @@ function syncDatosDeUnidad(){
       tipoDoc === 'reserva_parcela' ? suelo
     : tipoDoc === 'construccion'    ? ((villa != null && suelo != null) ? villa - suelo : null)
     : villa;
-  const forzar = completas && (tipoDoc === 'reserva_parcela' || tipoDoc === 'construccion');
+  /* Con techo elegido el precio de Construcción lo manda techo+extras
+     (16-sep-2026), no villa−suelo del inventario — syncPrecioObraVinculada()
+     ya se retiraba en ese caso, pero ESTA función no, y al tocar la parcela
+     forzaba villa−suelo encima del precio calculado (22-sep-2026, CC00105
+     guardado a 45.250 con techo 48.000 + extras 5.000). */
+  const techoManda = tipoDoc === 'construccion' && typeof TECHO_ELEGIDO !== 'undefined' && !!TECHO_ELEGIDO;
+  const forzar = completas && !techoManda && (tipoDoc === 'reserva_parcela' || tipoDoc === 'construccion');
   const elPrecio = document.querySelector('[name="precio_total"]');
-  if(forzar && precioSegunTipo != null && elPrecio){
+  if(techoManda){
+    // nada: el precio ya lo gobierna syncPrecioTechoExtras()
+  } else if(forzar && precioSegunTipo != null && elPrecio){
     const antes = String(elPrecio.value || '').trim();
     const nuevo = fmtImporte(precioSegunTipo);
     if(antes && parseImporte(antes) !== precioSegunTipo){

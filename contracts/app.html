@@ -78,7 +78,7 @@
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
 <script src="assets/documento_diseno.js?v=38a41b3c"></script>
 <script src="assets/documento_anexos.js?v=241913ec"></script>
-<script src="assets/parcela_inventario.js?v=ee303d71"></script>
+<script src="assets/parcela_inventario.js?v=d9b0b640"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
 <script src="assets/modelos_catalogo.js?v=4e4fdee1"></script>
@@ -2133,8 +2133,18 @@ function fieldHTML(f){
      sigue abierto como siempre: nada que proteger si nadie lo está
      calculando. `updateSaveButton()` mantiene esto al día cuando `TECHO_
      ELEGIDO` cambia sin pasar por un `buildForm()` completo — ver ahí. */
-  const fijadoPrecioConstruccion = key === 'precio_total' && CONTRACT_TIPO[CURRENT.slug] === 'construccion'
-    && typeof TECHO_ELEGIDO !== 'undefined' && !!TECHO_ELEGIDO;
+  const esPrecioConstruccion = key === 'precio_total' && CONTRACT_TIPO[CURRENT.slug] === 'construccion';
+  const fijadoPrecioConstruccion = esPrecioConstruccion && typeof TECHO_ELEGIDO !== 'undefined' && !!TECHO_ELEGIDO;
+  /* 🔴 `data-fijo-techo` va SIEMPRE en el precio de Construcción, con o sin
+     techo todavía (22-sep-2026). Hasta hoy solo se emitía cuando el techo ya
+     mandaba en el momento de pintar el formulario — y en un contrato NUEVO el
+     formulario se pinta antes de que el modelo cargue sus techos, así que el
+     `querySelectorAll('[data-fijo-techo]')` de updateSaveButton() no
+     encontraba nada y el campo se quedaba abierto para teclear encima
+     (CC00105/CC00106/CC00107 guardados con un precio que no cuadra con
+     techo+extras). El atributo marca "este campo lo gobierna el techo";
+     `readonly` es el estado, y lo pone/quita updateSaveButton() en vivo. */
+  const marcaTecho = esPrecioConstruccion && !fijadoPrecioConstruccion ? ' data-fijo-techo' : '';
   /* Descuento comercial (21-sep-2026, ver CAMPOS_DESCUENTO_COMERCIAL): se
      pinta SIEMPRE bloqueado, igual que FIJOS_ESTUDIO — el rol todavía no se
      conoce en este punto de buildForm(). updateSaveButton() lo abre para
@@ -2146,7 +2156,7 @@ function fieldHTML(f){
     : fijadoPrecioConstruccion ? ' readonly data-fijo-techo class="dato-fijo"' +
     ' title="Lo calcula el techo y los extras elegidos — no se edita a mano"'
     : fijadoDescuentoComercial ? ' readonly data-fijo-descuento class="dato-fijo"' +
-    ' title="Solo lo cambian dirección (admin/super admin)"' : '';
+    ' title="Solo lo cambian dirección (admin/super admin)"' : marcaTecho;
   const avisoPrecioConstruccion = fijadoPrecioConstruccion
     ? `<p class="mini">🔒 ${L({es:'Lo calcula el techo y los extras elegidos. No se edita a mano.',en:'Set by the chosen roof and extras. Not editable by hand.',id:'Dihitung dari atap dan ekstra yang dipilih. Tidak bisa diubah manual.'})}</p>`
     : '';
@@ -2806,6 +2816,16 @@ function collect(){
      función), esto es la defensa por si algún camino se les escapa. */
   if(CONTRACT_TIPO[CURRENT.slug] === 'construccion')
     data.descuento_comercial_aplica = (TECHO_ELEGIDO && (parseImporte(data.descuento_comercial) || 0) > 0) ? 'si' : 'no';
+  /* `precio_lista_construccion` (22-sep-2026, owner): techo + extras ANTES del
+     descuento, para que la cláusula del precio enseñe las tres cifras — lista,
+     descuento y neto — y el comprador vea de dónde sale el número. Solo se
+     imprime dentro del <!--if:descuento_comercial_aplica=si--> de la plantilla;
+     sin descuento el contrato sigue diciendo exactamente lo de siempre.
+     Mismo formato que los importes tecleados (fmtImporte → "67.000"). */
+  if(CONTRACT_TIPO[CURRENT.slug] === 'construccion' && typeof baseTechoExtras === 'function'){
+    const lista = baseTechoExtras();
+    data.precio_lista_construccion = lista > 0 ? fmtImporte(lista) : '';
+  }
 
   /* `adq1_tipo` no es un campo del formulario: sale de la ficha enlazada y lo
      usan las plantillas con <!--if:adq1_tipo=empresa--> para elegir entre el
@@ -3265,6 +3285,7 @@ function deriveSections(){
      adq1_tipo justo arriba: sin este delete caería en el cajón automático
      de "Otros campos" con su nombre en crudo. */
   inDoc.delete('descuento_comercial_aplica');
+  inDoc.delete('precio_lista_construccion');   // idem: lo calcula collect() (22-sep-2026)
   SECTIONS = src.map(s=>({ ...s, fields: s.fields.filter(f=>inDoc.has(f[0])) }))
                 .filter(s=>s.fields.length);
   const relabel = ETIQUETAS_POR_PLANTILLA[CURRENT.slug];
@@ -3898,6 +3919,7 @@ function updateSaveButton(){
     document.querySelectorAll('[data-fijo-techo]').forEach(el=>{
       el.readOnly = bloquear;
       el.classList.toggle('dato-fijo', bloquear);
+      el.title = bloquear ? 'Lo calcula el techo y los extras elegidos — no se edita a mano' : '';
     });
   }
   // Descuento comercial de Construcción (21-sep-2026, revisión previa #33):

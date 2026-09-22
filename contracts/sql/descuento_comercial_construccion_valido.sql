@@ -125,3 +125,9 @@ comment on function public.descuento_comercial_construccion_valido() is
 --    where tgrelid = 'public.contratos'::regclass and tgname = 'trg_descuento_comercial_construccion';
 --   -- tgtype impar (BEFORE), INSERT+UPDATE.
 --   select proname from pg_proc where proname = 'descuento_comercial_construccion_valido';
+
+-- ─── 22-sep-2026 ─────────────────────────────────────────────────────────────
+-- SUSTITUIDA por contracts/sql/precio_construccion_cuadra_con_techo.sql (migración
+-- 20260922160000): misma función, añade la comprobación precio_total = techo +
+-- Σextras − descuento cuando datos.techo trae precio. Este fichero queda como
+-- historia del porqué; la versión vigente de la función es la de aquel.
