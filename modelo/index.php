@@ -528,10 +528,6 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 <div class="p-5 pb-3 border-b border-surface-container-highest/70 flex flex-col gap-2">
 <div class="flex items-center justify-between">
 <span class="px-3 py-0.5 rounded-full bg-soft-canopy/20 text-territorial-green font-label-md text-xs uppercase tracking-widest font-semibold">New build · Turnkey</span>
-<div class="flex items-center gap-1 text-deep-lagoon text-xs font-semibold">
-<span class="material-symbols-outlined text-[15px]">verified</span>
-<span>PT Tepi Sun Gai · Registered Developer</span>
-</div>
 </div>
 <div class="flex items-baseline justify-between">
 <div>
@@ -554,14 +550,18 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 </div>
 </div>
 <div class="flex items-center justify-center gap-1.5 pt-2">
-<span class="font-label-md text-xs text-on-surface-variant font-semibold" id="lw-paso-lb">Step 1 of 3</span>
+<span class="font-label-md text-xs text-on-surface-variant font-semibold" id="lw-paso-lb">Step 1 of 2</span>
 </div>
 </div>
 
 <!-- Cuerpo scrollable: paso 1 villa (server-render, clases Tailwind reales) + paso 2/3
      (contenedores vacíos, los pinta assets/au-landing-cfg.js con class="op") -->
 <div class="flex-1 overflow-y-auto p-5 space-y-5 res">
-<div class="cfg__step space-y-3" data-paso="1">
+<!-- 22-sep-2026: "¿Qué villa?" no aplica en una ficha de UN modelo — cambiar de villa
+     ya vive en "More from the collection"/el nav. Oculto siempre (ocultarVilla:true en
+     lwAuCfgInit, más abajo); el motor arranca directo en "Which roof?". No se toca en
+     /dali (motor compartido, esa página no pasa la opción). -->
+<div class="cfg__step space-y-3" data-paso="1" hidden>
 <div class="flex flex-col mb-1">
 <span class="font-headline-sm text-headline-sm text-primary font-semibold"><?= lw_i18n('¿Qué villa?', 'Which villa?') ?></span>
 <p class="font-body-sm text-body-sm text-on-surface-variant">Same construction system across the range — only the size changes the price.</p>
@@ -592,22 +592,42 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 <div class="cfg__step space-y-2" data-paso="3" hidden>
 <div class="flex flex-col mb-1">
 <span class="font-headline-sm text-headline-sm text-primary font-semibold"><?= lw_i18n('¿Algún extra?', 'Any extras?') ?></span>
-<p class="font-body-sm text-body-sm text-on-surface-variant">Optional — none of them is needed to move in. The plot is priced separately, sized on the call (from €125/m²).</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Optional — none of them is needed to move in.</p>
 </div>
 <div id="lw-extras" class="space-y-2"></div>
+
+<!-- Parcela: se cotiza aparte del total configurado (villa+techo+extras), a propósito
+     — decisión ya tomada en /palmfield el 7-sep-2026 (ver su docblock): la parcela no
+     se bundlea con el precio de la villa. Esto solo deja ver la tarifa real por m²
+     (lw_parcela_tarifa_m2(), modelo/lib.php) según isla y ubicación; el tamaño se
+     concreta en la llamada, nunca aquí. -->
+<div class="pt-3 mt-1 border-t border-surface-container-highest/60 space-y-2.5">
+<div class="flex flex-col mb-1">
+<span class="font-headline-sm text-headline-sm text-primary font-semibold"><?= lw_i18n('¿Qué isla?', 'Which island?') ?></span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">The plot is priced separately, sized on the call.</p>
+</div>
+<label class="op"><input type="radio" name="lw-isla" value="bali" checked><span><span class="op__nb">Bali</span><span class="op__sp">Cliff, ricefield, riverfront or beachfront</span></span></label>
+<label class="op"><input type="radio" name="lw-isla" value="sumba"><span><span class="op__nb">Sumba</span><span class="op__sp">Flat plot rate</span></span></label>
+<div id="lw-zona-wrap" class="space-y-2.5">
+<label class="op"><input type="radio" name="lw-zona" value="otras" checked><span><span class="op__nb">Cliff · Ricefield · Riverfront</span></span><span class="op__pr"><b>€<?= lw_e((string) lw_parcela_tarifa_m2('otras')) ?>/m²</b></span></label>
+<label class="op"><input type="radio" name="lw-zona" value="beachfront"><span><span class="op__nb">Beachfront</span></span><span class="op__pr"><b>€<?= lw_e((string) lw_parcela_tarifa_m2('beachfront')) ?>/m²</b></span></label>
+</div>
+<p class="text-[11px] text-on-surface-variant" id="lw-parcela-nota"></p>
+</div>
+</div>
 </div>
 
+<!-- Pie: navegación de pasos + resumen + precio en vivo + CTA WhatsApp directo (sin
+     modal). El resumen vivía debajo de la tabla de pasos (fuera de vista sin
+     scrollear); ahora va aquí, junto al total, siempre visible. -->
+<div class="p-4 md:p-5 border-t border-surface-container-highest/80 bg-surface/95 flex flex-col gap-3">
 <!-- Resumen — lo escribe recalcular() en au-landing-cfg.js -->
-<div class="pt-3 border-t border-surface-container-highest/70 space-y-2 text-xs text-on-surface-variant">
+<div class="pb-3 border-b border-surface-container-highest/70 space-y-2 text-xs text-on-surface-variant">
 <div class="flex justify-between gap-3"><span id="lw-r-villa" class="font-semibold text-on-surface"></span><span id="lw-r-villa-pr" class="font-kpi-number text-primary"></span></div>
 <div id="lw-r-villa-sub"></div>
 <div class="flex justify-between gap-3"><span id="lw-r-extras" class="font-semibold text-on-surface"></span><span id="lw-r-extras-pr" class="font-kpi-number text-primary"></span></div>
 <div id="lw-r-extras-sub"></div>
 </div>
-</div>
-
-<!-- Pie: navegación de pasos + precio en vivo + CTA WhatsApp directo (sin modal) -->
-<div class="p-4 md:p-5 border-t border-surface-container-highest/80 bg-surface/95 flex flex-col gap-3">
 <div class="flex items-center justify-between">
 <div class="flex flex-col">
 <span class="text-[10px] text-on-surface-variant uppercase tracking-wider font-semibold"><?= lw_i18n('Total configurado', 'Configured total') ?></span>
@@ -958,7 +978,7 @@ foreach ($incluido as $it):
 <!-- Motor del configurador ANTES del script inline que lo invoca (window.lwAuCfgInit
      tiene que existir cuando se llama más abajo) — sin defer a propósito, o el inline
      que sigue se ejecutaría primero y fallaría "lwAuCfgInit is not a function". -->
-<script src="/assets/au-landing-cfg.js?v=20260921160100"></script>
+<script src="/assets/au-landing-cfg.js?v=20260922104135"></script>
 <script>
 (function () {
   'use strict';
@@ -998,14 +1018,49 @@ foreach ($incluido as $it):
   if (typeof window.lwTrack === 'function') track('ViewContent');
   else window.addEventListener('load', function () { track('ViewContent'); });
 
-  // ── Configurador villa → techo → extras: motor compartido con /dali, SIN TOCAR ────
+  // ── Configurador villa → techo → extras: motor compartido con /dali. La única opción
+  //    propia de esta página es ocultarVilla (22-sep-2026, ver el paso data-paso="1" más
+  //    arriba) — el resto del motor sigue sin tocarse. ─────────────────────────────────
   window.lwAuCfgInit({
     cfg: CFG,
     waNum: WA_NUM,
     urlBase: '/<?= lw_e($slugPath) ?>',
     villaDefault: MODELO,
-    waIntro: "Hi, I'm interested in the "
+    waIntro: "Hi, I'm interested in the ",
+    ocultarVilla: true
   });
+
+  // ── Parcela: isla + ubicación → tarifa real por m² (lw_parcela_tarifa_m2(), modelo/
+  //    lib.php — misma fuente que /palmfield, nunca un número copiado a mano). Solo
+  //    informativo: no entra en "Total configurado" (decisión ya tomada en /palmfield
+  //    el 7-sep-2026, ver su docblock) ni en el mensaje de WhatsApp. ──────────────────
+  (function () {
+    var TARIFAS = <?= json_encode([
+        'beachfront' => lw_parcela_tarifa_m2('beachfront'),
+        'otras'      => lw_parcela_tarifa_m2('otras'),
+        'sumba'      => lw_parcela_tarifa_m2('sumba'),
+    ]) ?>;
+    var zonaWrap = document.getElementById('lw-zona-wrap');
+    var nota     = document.getElementById('lw-parcela-nota');
+    if (!zonaWrap || !nota) return;
+    function refresca() {
+      var isla = document.querySelector('input[name="lw-isla"]:checked');
+      var esSumba = !!isla && isla.value === 'sumba';
+      zonaWrap.hidden = esSumba;
+      var tarifa;
+      if (esSumba) {
+        tarifa = TARIFAS.sumba;
+      } else {
+        var zona = document.querySelector('input[name="lw-zona"]:checked');
+        tarifa = TARIFAS[zona ? zona.value : 'otras'];
+      }
+      nota.textContent = 'Plot rate for this selection: €' + tarifa + '/m² — size confirmed on the call, not included in the total above.';
+    }
+    document.querySelectorAll('input[name="lw-isla"], input[name="lw-zona"]').forEach(function (r) {
+      r.addEventListener('change', refresca);
+    });
+    refresca();
+  }());
 
   // ── Cookies: reabrir el aviso de consent.js ───────────────────────────────────────
   ['lw-cookies', 'lw-cookies-en'].forEach(function (id) {

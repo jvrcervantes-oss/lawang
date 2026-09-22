@@ -28,7 +28,12 @@ window.lwAuCfgInit = function (opts) {
 
   var S = {villa: villaDef, techo: 'sirap', extras: {}, div: 'EUR'};
   try { var _g = localStorage.getItem('lw_deck_cur'); if (CFG.divisas[_g]) S.div = _g; } catch (e) {}
-  var PASOS = 3, paso = 1;
+  // 22-sep-2026: `opts.ocultarVilla` — en una ficha de UN modelo, elegir OTRA villa desde
+  // dentro del propio configurador no aplica (para eso está "More from the collection").
+  // /dali no manda esta opción y sigue con sus 3 pasos de siempre. STEPS traduce el índice
+  // visible (1..N, lo que ve el usuario) al data-paso real del HTML (que no cambia).
+  var STEPS = opts.ocultarVilla ? [2, 3] : [1, 2, 3];
+  var PASOS = STEPS.length, paso = 1;
 
   function eur(n) { return '€' + Number(n).toLocaleString('en-US'); }
   function divFmt(n, cod) {
@@ -106,8 +111,9 @@ window.lwAuCfgInit = function (opts) {
 
   function muestraPaso(n) {
     paso = n;
+    var real = STEPS[n - 1];
     document.querySelectorAll('.cfg__step').forEach(function (s) {
-      s.hidden = Number(s.getAttribute('data-paso')) !== n;
+      s.hidden = Number(s.getAttribute('data-paso')) !== real;
     });
     txt('lw-paso-lb', 'Step ' + n + ' of ' + PASOS);
     var a = $('lw-atras'); if (a) a.hidden = n === 1;
@@ -199,7 +205,12 @@ window.lwAuCfgInit = function (opts) {
     if (!t) return;
     if (t.type === 'radio') {
       if (t.name === 'lw-villa') { S.villa = t.value; pintaTechos(); pintaExtras(); }
-      else if (t.name === 'lw-techo') { S.techo = t.value; }
+      else if (t.name === 'lw-techo') {
+        S.techo = t.value;
+        // Hero cinematico (solo en paginas de producto que lo definen — /dali no lo tiene):
+        // el techo bambu ensena la vista alternativa, sirap vuelve a la vista de dia real.
+        if (window.lwSetView) window.lwSetView(t.value === 'bambu' ? 'roof' : 'day');
+      }
       else { return; }
       recalcular();
       if (paso < PASOS) avanza(1);
@@ -280,4 +291,7 @@ window.lwAuCfgInit = function (opts) {
   pintaExtras();
   muestraPaso(1);
   recalcular();
+  // Enlace compartido con ?roof=bambu: el hero arranca ya en la vista alternativa,
+  // no solo el radio marcado.
+  if (window.lwSetView && S.techo === 'bambu') window.lwSetView('roof');
 };
