@@ -746,7 +746,7 @@ foreach ($incluido as $it):
 <?php if (!empty($deckEj['mercado'])): ?>
 <span class="font-label-md text-xs text-territorial-green uppercase tracking-widest font-semibold"><?= lw_i18n('Previsión de mercado', 'Market forecast') ?></span>
 <h3 class="font-headline-md text-2xl md:text-3xl text-primary font-bold"><?= lw_e($deckEtiqueta) ?></h3>
-<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Rental forecast for a 1-bedroom villa in this area, based on third-party market data — not tied to a specific plot, and never a promise of yield.</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Rental forecast for a 1-bedroom villa in this area — not tied to a specific plot, and never a promise of yield. Source: internal market analysis (AirROI + NF Group Bali market report, Q3 2025), reviewed September 2026.</p>
 <?php else: ?>
 <span class="font-label-md text-xs text-territorial-green uppercase tracking-widest font-semibold"><?= lw_i18n('Ejemplo real', 'Real example') ?></span>
 <h3 class="font-headline-md text-2xl md:text-3xl text-primary font-bold"><?= lw_e($deckEtiqueta) ?></h3>
@@ -762,7 +762,7 @@ foreach ($incluido as $it):
 <div class="text-[11px] text-on-surface-variant"><?= lw_e(lw_precio_fmt($f['adr'])) ?> ADR × <?= (int) round($f['ocup'] * 100) ?>% occupancy — gross <?= lw_e(lw_precio_fmt($f['bruto'])) ?>, minus management + maintenance + tax (<?= lw_e(lw_precio_fmt($f['costes'])) ?>)</div>
 </div>
 <?php endforeach; ?>
-<p class="text-[11px] text-on-surface-variant leading-relaxed"><?= !empty($deckEj['mercado']) ? 'Investment used in this forecast' : 'Total investment used in this example' ?>: <?= lw_e(lw_precio_fmt($deckEj['inversion_base'])) ?>. Indicative only, not a quote or financial advice — actual rental income depends on the plot, the season and how the villa is managed.</p>
+<p class="text-[11px] text-on-surface-variant leading-relaxed"><?= !empty($deckEj['mercado']) ? 'Investment base used in this forecast (company estimate for this scenario)' : 'Total investment used in this example' ?>: <?= lw_e(lw_precio_fmt($deckEj['inversion_base'])) ?>. Indicative only, not a quote or financial advice — actual rental income depends on the plot, the season and how the villa is managed.</p>
 </div>
 <?php endif; ?>
 </div>
