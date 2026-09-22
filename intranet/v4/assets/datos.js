@@ -609,18 +609,13 @@
        `.eq('id', …)` en facturas), no el número: con el número aterrizaban en
        «No se pudo cargar el contrato». Y «Emitir recibí» sin `tipo=recibi`
        abría una FACTURA (facturas/index.html: `nuevoDocumento(LTIPO || 'factura')`). */
+    /* Solo lo que es DEL CONTRATO (owner, 22-sep-2026). «Emitir recibí» y
+       «Nueva proforma» se quitaron de aquí: un recibí va contra una factura,
+       no contra un contrato (79 de 82 recibís reales están aplicados a una
+       factura; se crea desde la factura con «Crear recibí»), y la proforma
+       se emite desde Facturas. */
     var acciones = [
-      { texto: c0.bloqueado ? 'Ver en el generador' : 'Editar en el generador', href: '/contracts/app.html?contrato=' + encodeURIComponent(c0.id), tono: 'primario' },
-      { texto: 'Emitir recibí', onClick: function () {
-        if (window.LW_V4 && window.LW_V4.abrirEditorRecibi) window.LW_V4.abrirEditorRecibi({ contrato_id: c0.id });
-        else toastMal('El editor de recibís aún está cargando — prueba de nuevo en un segundo.');
-      } },
-      // Proforma desde contrato (S14, 21-sep-2026): mismo enlace profundo que
-      // «Editar en el generador» — la pantalla de destino (facturas/index.html)
-      // lee ?contrato=&tipo=proforma al cargar y abre el editor nativo ella
-      // misma (editores.js). Sin gate de rol a propósito, igual que «Emitir
-      // recibí»: el editor ya exige la herramienta 'facturas' al abrirse.
-      { texto: 'Nueva proforma', href: '/intranet/v4/facturas/?contrato=' + encodeURIComponent(c0.id) + '&tipo=proforma' }
+      { texto: c0.bloqueado ? 'Ver en el generador' : 'Editar en el generador', href: '/contracts/app.html?contrato=' + encodeURIComponent(c0.id), tono: 'primario' }
     ];
     if (!opts.sinExpediente) acciones.push({ texto: 'Expediente', href: '/intranet/v4/operaciones/?contrato=' + encodeURIComponent(num) });
     // Borrar operación (S13, 22-sep-2026): mismo botón que la clásica

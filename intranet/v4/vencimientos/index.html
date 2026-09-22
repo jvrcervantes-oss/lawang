@@ -1,8 +1,8 @@
 <!DOCTYPE html><html lang="es" style=""><head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d6d6608e" data-herramienta="vencimientos"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=3727bf1f" defer></script>
-<script src="/contracts/assets/dinero.js?v=aed0c9a9" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/intranet/vencimientos/logica.js?v=567781fe" defer></script><script src="../assets/datos.js?v=4a7821a1" defer></script>
+<script src="/contracts/assets/i18n.js?v=fa934c6a" defer></script>
+<script src="/contracts/assets/dinero.js?v=aed0c9a9" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><!-- entities.js ANTES que logica.js (S15, 22-sep-2026): trae SOCIEDADES y lwSociedadContrato, que empresasFinancieras()/filtraEmpresa() de logica.js llaman como global — sin esto los chips de empresa enseñan la clave cruda. Mismo orden que la clasica. --><script src="/contracts/assets/entities.js?v=e015c66a" defer></script><script src="/intranet/vencimientos/logica.js?v=567781fe" defer></script><script src="../assets/datos.js?v=1cd6b1ff" defer></script>
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=f8f8a146" defer></script>
 <link href="../assets/shell.css?v=bd0a56cb" rel="stylesheet">
@@ -184,10 +184,10 @@
       </button>
 </div>
 </section>
-<section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+<section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-8">
 <div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex flex-col justify-between">
 <div class="flex items-center justify-between">
-<span class="font-label-md text-body-sm uppercase tracking-widest text-control-border font-semibold">Previsión de Entradas</span>
+<span class="font-label-md text-body-sm uppercase tracking-widest text-control-border font-semibold">Vence en 90 días</span>
 <span class="w-7 h-7 rounded-full bg-surface-container-low flex items-center justify-center text-deep-lagoon">
 <span class="material-symbols-outlined text-[16px]">account_balance_wallet</span>
 </span>
@@ -196,7 +196,6 @@
 <div class="font-kpi-number text-headline-md text-deep-lagoon" data-lw="k-prevision">—</div>
 <div class="flex items-center gap-2 mt-1.5">
 <span class="px-2 py-0.5 rounded-full bg-soft-canopy/25 text-territorial-green font-label-md text-[11px] font-semibold" data-lw="k-prevision-chip">—</span>
-<span class="text-on-surface-variant font-body-sm text-[12px]">Septiembre 2026</span>
 </div>
 </div>
 </div>
@@ -242,216 +241,128 @@
 <div class="mt-1.5 text-on-surface-variant font-label-md text-[11px] font-semibold" data-lw="k-cobrado-pie">—</div>
 </div>
 </div>
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-body-sm uppercase tracking-widest text-control-border font-semibold">Cartera</span>
+<span class="w-7 h-7 rounded-full bg-surface-container-low flex items-center justify-center text-deep-lagoon">
+<span class="material-symbols-outlined text-[16px]">account_balance</span>
+</span>
+</div>
+<div class="mt-4">
+<div class="font-kpi-number text-headline-md text-deep-lagoon" data-lw="k-cartera">—</div>
+<div class="mt-1.5 text-on-surface-variant font-label-md text-[11px] font-semibold" data-lw="k-cartera-pie">—</div>
+</div>
+</div>
 </section>
+<!-- S15 (22-sep-2026): decisión del owner de portar el detalle completo a v4,
+     revirtiendo el recorte del 19-sep (commit 096369ef) que había dejado esto
+     como tres tramos con 10 filas y "y N más en la herramienta completa". El
+     cuerpo entero (chips, tabla paginada, por proyecto, facturas) lo pinta
+     REG.vencimientos en assets/datos.js — este marcado solo da el hueco donde
+     colgarlo, calcado del patrón de tabla real que ya usa /v4/facturas/. -->
 <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
 <div class="xl:col-span-12 flex flex-col gap-6 min-w-0">
 
-<div class="space-y-4">
-<div class="flex items-center gap-3 px-1">
-<span class="w-2.5 h-2.5 rounded-full bg-error"></span>
-<h2 class="font-headline-sm text-headline-sm text-burnt-earth">Urgentes / Vencidos</h2>
-<span class="px-2 py-0.5 rounded-full bg-error-container text-error font-label-md text-[11px] font-bold" data-lw="n-vencidos">—</span>
-</div>
-<div class="space-y-3" id="lista-vencidos">
-<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-<div class="flex items-start gap-3.5 min-w-0">
-<div class="w-10 h-10 rounded-full bg-error-container text-error flex items-center justify-center shrink-0">
-<span class="material-symbols-outlined text-[20px]">history_edu</span>
-</div>
-<div class="min-w-0">
-<div class="flex items-center gap-2 flex-wrap">
-<span class="font-label-md text-label-md text-on-surface font-semibold" data-lw="v-titulo">—</span>
-<span class="px-2 py-0.5 rounded-full bg-error-container text-error font-label-md text-[11px] font-bold uppercase" data-lw="v-chip">—</span>
-</div>
-<div class="text-body-sm text-on-surface-variant mt-0.5" data-lw="v-desc">—</div>
-</div>
-</div>
-<div class="flex items-center justify-between md:justify-end gap-6 shrink-0">
-<div class="text-right">
-<div class="font-kpi-number text-headline-sm text-burnt-earth" data-lw="v-importe">—</div>
-<div class="text-body-sm text-error text-[12px] font-medium" data-lw="v-nota">—</div>
-</div>
-<div class="flex items-center gap-2">
-<button class="px-3.5 py-1.5 rounded-full bg-surface-container-low hover:bg-surface-container-high text-on-surface font-label-md text-body-sm transition-colors" type="button">Reactivar enlace</button>
-<button class="px-3.5 py-1.5 rounded-full bg-error text-on-error font-label-md text-body-sm hover:opacity-90 transition-opacity" type="button">Aviso urgente</button>
-</div>
-</div>
-</div>
-</div>
-<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-<div class="flex items-start gap-3.5 min-w-0">
-<div class="w-10 h-10 rounded-full bg-error-container text-error flex items-center justify-center shrink-0">
-<span class="material-symbols-outlined text-[20px]">description</span>
-</div>
-<div class="min-w-0">
-<div class="flex items-center gap-2 flex-wrap">
-<span class="font-label-md text-label-md text-on-surface font-semibold">Firma comprador F · CC00013</span>
-<span class="px-2 py-0.5 rounded-full bg-error-container text-error font-label-md text-[11px] font-bold uppercase">Vencido hace 1 día</span>
-</div>
-<div class="text-body-sm text-on-surface-variant mt-0.5">Construcción Java • Lote 4 Reserva Natural</div>
-</div>
-</div>
-<div class="flex items-center justify-between md:justify-end gap-6 shrink-0">
-<div class="text-right">
-<div class="font-kpi-number text-headline-sm text-burnt-earth">35.000,00 €</div>
-<div class="text-body-sm text-error text-[12px] font-medium">Requiere firma 2 de 3</div>
-</div>
-<div class="flex items-center gap-2">
-<button class="px-3.5 py-1.5 rounded-full bg-surface-container-low hover:bg-surface-container-high text-on-surface font-label-md text-body-sm transition-colors" type="button">Reactivar enlace</button>
-<button class="px-3.5 py-1.5 rounded-full bg-burnt-earth text-on-primary font-label-md text-body-sm hover:opacity-90 transition-opacity" type="button">WhatsApp Legal</button>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div class="space-y-4">
-<div class="flex items-center gap-3 px-1">
-<span class="w-2.5 h-2.5 rounded-full bg-burnt-earth"></span>
-<h2 class="font-headline-sm text-headline-sm text-volcanic-ash">Esta Semana (Próximos 7 días)</h2>
-<span class="px-2 py-0.5 rounded-full bg-soft-canopy/20 text-territorial-green font-label-md text-[11px] font-semibold" data-lw="n-semana">—</span>
-</div>
-<div class="space-y-3" id="lista-semana">
-<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-<div class="flex items-start gap-3.5 min-w-0">
-<div class="w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
-<span class="material-symbols-outlined text-[20px]">draw</span>
-</div>
-<div class="min-w-0">
-<div class="flex items-center gap-2 flex-wrap">
-<span class="font-label-md text-label-md text-on-surface font-semibold">Firma comprador G · RP00027</span>
-<span class="px-2 py-0.5 rounded-full bg-burnt-earth/15 text-burnt-earth font-label-md text-[11px] font-semibold uppercase">Vence en 1 día</span>
-</div>
-<div class="text-body-sm text-on-surface-variant mt-0.5">Reserva Inti Living • Villa Uluwatu Cliffside</div>
-</div>
-</div>
-<div class="flex items-center justify-between md:justify-end gap-6 shrink-0">
-<div class="text-right">
-<div class="font-kpi-number text-headline-sm text-deep-lagoon">20.000,00 €</div>
-<span class="px-2.5 py-0.5 rounded-full bg-soft-canopy/20 text-territorial-green font-label-md text-[11px] font-semibold">Pendiente Firma</span>
-</div>
-<button class="w-9 h-9 rounded-full bg-surface-container-low hover:bg-surface-container-high flex items-center justify-center text-on-surface transition-colors" type="button">
-<span class="material-symbols-outlined text-[20px]">chevron_right</span>
-</button>
-</div>
-</div>
-</div>
-<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-<div class="flex items-start gap-3.5 min-w-0">
-<div class="w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
-<span class="material-symbols-outlined text-[20px]">edit_document</span>
-</div>
-<div class="min-w-0">
-<div class="flex items-center gap-2 flex-wrap">
-<span class="font-label-md text-label-md text-on-surface font-semibold">Firma comprador G · CC00018</span>
-<span class="px-2 py-0.5 rounded-full bg-burnt-earth/15 text-burnt-earth font-label-md text-[11px] font-semibold uppercase">Vence en 1 día</span>
-</div>
-<div class="text-body-sm text-on-surface-variant mt-0.5">Contrato Maestro Inti • Comprador: Comprador de ejemplo G</div>
-</div>
-</div>
-<div class="flex items-center justify-between md:justify-end gap-6 shrink-0">
-<div class="text-right">
-<div class="font-kpi-number text-headline-sm text-deep-lagoon">45.000,00 €</div>
-<span class="px-2.5 py-0.5 rounded-full bg-soft-canopy/20 text-territorial-green font-label-md text-[11px] font-semibold">Pendiente Firma</span>
-</div>
-<button class="w-9 h-9 rounded-full bg-surface-container-low hover:bg-surface-container-high flex items-center justify-center text-on-surface transition-colors" type="button">
-<span class="material-symbols-outlined text-[20px]">chevron_right</span>
-</button>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div class="space-y-4">
-<div class="flex items-center gap-3 px-1">
-<span class="w-2.5 h-2.5 rounded-full bg-deep-lagoon"></span>
-<h2 class="font-headline-sm text-headline-sm text-volcanic-ash">A 30-60 Días (Hitos de Obra y Facturas)</h2>
-<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-md text-[11px] font-semibold" data-lw="n-prox">—</span>
-</div>
-<div class="space-y-3" id="lista-prox">
-<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-<div class="flex items-start gap-3.5 min-w-0">
-<div class="w-10 h-10 rounded-full bg-surface-container-low text-deep-lagoon flex items-center justify-center shrink-0">
-<span class="material-symbols-outlined text-[20px]">receipt_long</span>
-</div>
-<div class="min-w-0">
-<div class="flex items-center gap-2 flex-wrap">
-<span class="font-label-md text-label-md text-on-surface font-semibold">Factura INV00036</span>
-<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-volcanic-ash font-label-md text-[11px]">En 37 días</span>
-</div>
-<div class="text-body-sm text-on-surface-variant mt-0.5">Hito Cimentación Villa Aqua 3 • Fase Terrenos Bali</div>
-</div>
-</div>
-<div class="flex items-center justify-between md:justify-end gap-6 shrink-0">
-<div class="text-right">
-<div class="font-kpi-number text-headline-sm text-deep-lagoon">15.805,00 €</div>
-<span class="px-2.5 py-0.5 rounded-full bg-surface-container-high text-volcanic-ash font-label-md text-[11px] font-medium">Programado</span>
-</div>
-<button class="w-9 h-9 rounded-full bg-surface-container-low hover:bg-surface-container-high flex items-center justify-center text-on-surface transition-colors" type="button">
-<span class="material-symbols-outlined text-[20px]">chevron_right</span>
-</button>
-</div>
-</div>
-</div>
-<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-<div class="flex items-start gap-3.5 min-w-0">
-<div class="w-10 h-10 rounded-full bg-surface-container-low text-deep-lagoon flex items-center justify-center shrink-0">
-<span class="material-symbols-outlined text-[20px]">receipt</span>
-</div>
-<div class="min-w-0">
-<div class="flex items-center gap-2 flex-wrap">
-<span class="font-label-md text-label-md text-on-surface font-semibold">Factura INV00063</span>
-<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-volcanic-ash font-label-md text-[11px]">En 59 días</span>
-</div>
-<div class="text-body-sm text-on-surface-variant mt-0.5">Reserva Sumba • Hito Apertura Registral</div>
-</div>
-</div>
-<div class="flex items-center justify-between md:justify-end gap-6 shrink-0">
-<div class="text-right">
-<div class="font-kpi-number text-headline-sm text-deep-lagoon">5.000,00 €</div>
-<span class="px-2.5 py-0.5 rounded-full bg-surface-container-high text-volcanic-ash font-label-md text-[11px] font-medium">Programado</span>
-</div>
-<button class="w-9 h-9 rounded-full bg-surface-container-low hover:bg-surface-container-high flex items-center justify-center text-on-surface transition-colors" type="button">
-<span class="material-symbols-outlined text-[20px]">chevron_right</span>
-</button>
-</div>
-</div>
-</div>
-<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-<div class="flex items-start gap-3.5 min-w-0">
-<div class="w-10 h-10 rounded-full bg-soft-canopy/20 text-territorial-green flex items-center justify-center shrink-0">
-<span class="material-symbols-outlined text-[20px]">domain_verification</span>
-</div>
-<div class="min-w-0">
-<div class="flex items-center gap-2 flex-wrap">
-<span class="font-label-md text-label-md text-on-surface font-semibold">Factura INV00099-QA</span>
-<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-volcanic-ash font-label-md text-[11px]">30 abr 2026</span>
-</div>
-<div class="text-body-sm text-on-surface-variant mt-0.5">Fin Estructura Hormigón • Comprador: Comprador de ejemplo C</div>
-</div>
-</div>
-<div class="flex items-center justify-between md:justify-end gap-6 shrink-0">
-<div class="text-right">
-<div class="font-kpi-number text-headline-sm text-territorial-green">82.000,00 €</div>
-<span class="px-2.5 py-0.5 rounded-full bg-soft-canopy/20 text-territorial-green font-label-md text-[11px] font-semibold">Hitos Obra</span>
-</div>
-<button class="w-9 h-9 rounded-full bg-surface-container-low hover:bg-surface-container-high flex items-center justify-center text-on-surface transition-colors" type="button">
-<span class="material-symbols-outlined text-[20px]">chevron_right</span>
-</button>
-</div>
-</div>
-</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex flex-col gap-4">
+<div class="flex flex-wrap items-center gap-x-8 gap-y-3">
+<div class="flex flex-wrap items-center gap-2" data-lw-chips="empresa" data-lw-on="bg-deep-lagoon text-on-secondary font-semibold shadow-sm" data-lw-off="bg-surface-container text-on-surface-variant hover:bg-surface-container-high" data-lw-base="px-4 py-1.5 rounded-full font-label-md text-label-md transition-colors">
+<span class="font-label-md text-[11px] uppercase tracking-widest text-control-border font-semibold">Empresa</span>
+</div>
+<div class="flex flex-wrap items-center gap-2" data-lw-chips="moneda" data-lw-on="bg-deep-lagoon text-on-secondary font-semibold shadow-sm" data-lw-off="bg-surface-container text-on-surface-variant hover:bg-surface-container-high" data-lw-base="px-4 py-1.5 rounded-full font-label-md text-label-md transition-colors">
+<span class="font-label-md text-[11px] uppercase tracking-widest text-control-border font-semibold">Moneda</span>
+</div>
+</div>
+<div class="flex flex-wrap items-center justify-between gap-x-8 gap-y-3">
+<div class="flex flex-wrap items-center gap-2" data-lw-chips="estado" data-lw-on="bg-deep-lagoon text-on-secondary font-semibold shadow-sm" data-lw-off="bg-surface-container text-on-surface-variant hover:bg-surface-container-high" data-lw-base="px-4 py-1.5 rounded-full font-label-md text-label-md transition-colors">
+<span class="font-label-md text-[11px] uppercase tracking-widest text-control-border font-semibold">Estado</span>
+</div>
+<!-- «Incluir sin firmar»: nace hidden — solo se enseña si hay algo sin
+     firmar que contar (mismo criterio que la clásica, index.html:598-602).
+     APAGADO por defecto: nadie se encuentra un número distinto sin pedirlo. -->
+<button type="button" id="venc-chip-sinfirmar" hidden class="px-4 py-1.5 rounded-full font-label-md text-label-md transition-colors bg-surface-container text-on-surface-variant hover:bg-surface-container-high" title="Mientras se da de alta el histórico, «sin firmar» significa «aún no marcado», no «aún no acordado»">Incluir sin firmar</button>
+</div>
+<div id="venc-avisos"></div>
+</div>
+
+<div class="space-y-3">
+<div class="flex items-center justify-between px-1 flex-wrap gap-2">
+<h2 class="font-headline-sm text-headline-sm text-volcanic-ash" id="venc-tabla-titulo">Todos los vencimientos</h2>
+<span class="text-body-sm font-body-sm text-control-border" id="venc-resumen">—</span>
+</div>
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low text-control-border font-label-md text-[11px] uppercase tracking-wider select-none">
+<th class="py-3.5 px-5 font-semibold">Vence</th>
+<th class="py-3.5 px-4 font-semibold">Contrato</th>
+<th class="py-3.5 px-4 font-semibold">Comprador</th>
+<th class="py-3.5 px-4 font-semibold">Concepto</th>
+<th class="py-3.5 px-4 font-semibold text-right">Importe</th>
+<th class="py-3.5 px-4 font-semibold text-right">Cubierto</th>
+<th class="py-3.5 px-4 font-semibold text-right">Pendiente</th>
+<th class="py-3.5 px-5 font-semibold">Estado</th>
+</tr>
+</thead>
+<tbody id="venc-tbody" class="text-on-surface font-body-sm text-body-sm">
+<tr><td class="py-8 px-5 text-center text-control-border" colspan="8">Trayendo los vencimientos…</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="flex items-center justify-end gap-3" id="venc-pager" hidden>
+<button type="button" id="venc-pag-antes" class="px-3.5 py-1.5 rounded-full bg-surface-container-lowest hover:bg-surface-container-high text-on-surface font-label-md text-body-sm transition-colors shadow-sm disabled:opacity-40" disabled>← Anteriores</button>
+<span class="text-body-sm font-body-sm text-control-border" id="venc-pag-info">—</span>
+<button type="button" id="venc-pag-despues" class="px-3.5 py-1.5 rounded-full bg-surface-container-lowest hover:bg-surface-container-high text-on-surface font-label-md text-body-sm transition-colors shadow-sm disabled:opacity-40">Siguientes →</button>
+</div>
+</div>
+
+<div class="space-y-3">
+<h2 class="font-headline-sm text-headline-sm text-volcanic-ash px-1">Por proyecto</h2>
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low text-control-border font-label-md text-[11px] uppercase tracking-wider select-none">
+<th class="py-3.5 px-5 font-semibold">Proyecto</th>
+<th class="py-3.5 px-4 font-semibold text-right">Cartera</th>
+<th class="py-3.5 px-4 font-semibold text-right">Cobrado</th>
+<th class="py-3.5 px-4 font-semibold text-right">Vence en 90 días</th>
+<th class="py-3.5 px-5 font-semibold text-right">Vencido</th>
+</tr>
+</thead>
+<tbody id="venc-tproy" class="text-on-surface font-body-sm text-body-sm">
+<tr><td class="py-8 px-5 text-center text-control-border" colspan="5">Trayendo proyectos…</td></tr>
+</tbody>
+</table>
 </div>
 </div>
 </div>
 
+<div class="space-y-3">
+<h2 class="font-headline-sm text-headline-sm text-volcanic-ash px-1">Facturas con vencimiento propio</h2>
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low text-control-border font-label-md text-[11px] uppercase tracking-wider select-none">
+<th class="py-3.5 px-5 font-semibold">Vence</th>
+<th class="py-3.5 px-4 font-semibold">Factura</th>
+<th class="py-3.5 px-4 font-semibold">Cliente</th>
+<th class="py-3.5 px-4 font-semibold text-right">Importe</th>
+<th class="py-3.5 px-5 font-semibold">Estado</th>
+</tr>
+</thead>
+<tbody id="venc-tfact" class="text-on-surface font-body-sm text-body-sm">
+<tr><td class="py-8 px-5 text-center text-control-border" colspan="5">Trayendo facturas…</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+<p class="text-body-sm font-body-sm text-control-border px-1">Una factura emitida con fecha de vencimiento es una promesa aparte del calendario de hitos: se lista para que nada con fecha se quede sin vigilar, pero no se suma a la cascada — su cobro ya entra por el recibí.</p>
+</div>
+
+</div>
 </div>
 </div></main></div>
 

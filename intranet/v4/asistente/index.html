@@ -4,13 +4,13 @@
      «La forma de una herramienta»): el script propio de esta página llama a lwT() al
      arrancar y tiene que encontrarlo ya definido. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=3727bf1f"></script>
+<script src="/contracts/assets/i18n.js?v=fa934c6a"></script>
 <!-- toast()/toastMal() (suite-comun.js) y lwPicker() (dialogo.js): el selector de
      contrato es una lista cerrada y larga —un agente puede tener decenas— y la suite
      no monta un <select> ni un <datalist> para eso. vocabulario.js da el nombre
      visible del tipo de contrato en la nota de cada opción. -->
 <script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script>
-<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/datos.js?v=4a7821a1" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/datos.js?v=1cd6b1ff" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=f8f8a146" defer></script>
 <link href="../assets/shell.css?v=bd0a56cb" rel="stylesheet">
@@ -155,6 +155,41 @@
 </section>
 </div>
 
+<!-- Temas frecuentes (22-sep-2026, noche 4). `bot_temas_resumen(p_dias)` cuenta
+     por tema —regex ES/EN/ID sobre la pregunta— cuántas consultas hubo, en
+     cuántas el servidor retiró algún punto y cuántas se descartaron. Corre con
+     la sesión del agente (security invoker): cada uno ve el resumen de lo que
+     la RLS le deja ver, el super_admin el de todo. Un tema FRENADO (cuelga de
+     un freno activo de bot_bloqueos) no admite respuesta aprobada: un freno es
+     un hueco del contrato y se resuelve con adenda, no con una FAQ que lo
+     tape — la base lo rechaza (bot_faq_frena) y aquí ni se ofrece el botón. -->
+<section class="bg-surface-container-lowest rounded-xl p-8 shadow-sm flex flex-col gap-5" id="lw-temas">
+<div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4 pb-4 border-b border-outline-variant/40">
+<div class="flex flex-col gap-1">
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold" data-lwt>Temas</span>
+<h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight" data-lwt>Temas frecuentes</h2>
+<p class="font-body-sm text-body-sm text-outline" data-lwt>Qué preguntan los compradores, por tema, y en cuántas consultas el asistente tuvo que retirar un punto o descartar el borrador.</p>
+</div>
+<div class="flex items-center bg-surface-container p-1 rounded-full self-start" role="group" aria-label="Ventana de días">
+<button class="px-4 py-1 rounded-full font-label-md text-label-md bg-deep-lagoon text-on-primary transition-colors" data-dias="30" data-real id="lw-temas-30" type="button"><span data-lwt>30 días</span></button>
+<button class="px-4 py-1 rounded-full font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-dias="90" data-real id="lw-temas-90" type="button"><span data-lwt>90 días</span></button>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-outline" data-lwt id="lw-temas-estado">Cargando los temas…</p>
+<div class="overflow-x-auto">
+<table class="w-full text-left font-body-md text-body-md">
+<thead><tr class="font-label-md text-[11px] tracking-[0.12em] uppercase text-outline">
+<th class="py-2 pr-4 font-bold" data-lwt>Tema</th>
+<th class="py-2 pr-4 font-bold text-right" data-lwt>Consultas</th>
+<th class="py-2 pr-4 font-bold text-right" data-lwt>Con puntos retirados</th>
+<th class="py-2 pr-4 font-bold text-right" data-lwt>Descartadas</th>
+<th class="py-2 font-bold"></th>
+</tr></thead>
+<tbody class="divide-y divide-outline-variant/40" id="lw-temas-lista"></tbody>
+</table>
+</div>
+</section>
+
 <!-- Historial (22-sep-2026, petición del owner: «por si hay que rescatarlas»).
      Lee `bot_consultas` con la sesión del agente: la RLS («quien ve el
      contrato ve sus consultas») decide qué sale, igual que en la lista de
@@ -178,6 +213,66 @@
 </div>
 <p class="font-body-sm text-body-sm text-outline" id="lw-hist-estado" data-lwt>Cargando el historial…</p>
 <div class="flex flex-col divide-y divide-outline-variant/40" id="lw-hist-lista"></div>
+</section>
+
+<!-- Respuestas aprobadas (22-sep-2026, noche 4). Solo super_admin: la UI lo
+     OCULTA (`hidden` + clase, ver muestra()) y el candado real es la RLS de
+     bot_faq (insert/update solo es_super_admin()) más los triggers de la base;
+     la edge repite los frenos para devolver un error legible. Una FAQ no se
+     edita: se retira (activo=false) o se sustituye (nace otra con
+     sustituye_a y la anterior se retira), para que lo que un agente leyó un
+     día siga siendo rastreable. Sin cifras de 8+ dígitos (cuenta, teléfono,
+     pasaporte): lo frena la edge y lo vuelve a frenar la base. -->
+<section class="bg-surface-container-lowest rounded-xl p-8 shadow-sm flex flex-col gap-6 hidden" hidden id="lw-faq">
+<div class="flex flex-col gap-1 pb-4 border-b border-outline-variant/40">
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold" data-lwt>Administración</span>
+<h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight" data-lwt>Respuestas aprobadas</h2>
+<p class="font-body-sm text-body-sm text-outline" data-lwt>Lo que el asistente puede dar por bueno además del contrato: una pregunta y su respuesta, acotadas a un proyecto o a un tipo de contrato. Las lee cualquier agente; solo un super administrador las aprueba o las retira.</p>
+</div>
+
+<div class="sui-aviso rounded-xl border border-burnt-earth/30 bg-surface-alt px-5 py-4 flex items-start gap-3" role="status">
+<span class="material-symbols-outlined text-[20px] text-burnt-earth shrink-0">gavel</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant" data-lwt>Un tema frenado por el asistente no admite respuesta aprobada: es un hueco del contrato y se resuelve con una adenda. Y ninguna respuesta lleva una cifra de 8 o más dígitos seguidos (cuenta, teléfono, pasaporte).</p>
+</div>
+
+<form class="flex flex-col gap-5" id="lw-faq-form" novalidate>
+<p class="font-body-sm text-body-sm text-on-surface bg-surface-container-low rounded-lg px-4 py-2 hidden" hidden id="lw-faq-sustituye-nota"></p>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+<div class="flex flex-col gap-2">
+<label class="font-label-md text-label-md text-on-surface" for="lw-faq-tema" data-lwt>Tema</label>
+<input autocomplete="off" class="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:border-deep-lagoon" data-lwt-ph id="lw-faq-tema" placeholder="Elige el tema" type="text">
+</div>
+<div class="flex flex-col gap-2">
+<label class="font-label-md text-label-md text-on-surface" for="lw-faq-proyecto" data-lwt>Proyecto (opcional)</label>
+<input autocomplete="off" class="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:border-deep-lagoon" data-lwt-ph id="lw-faq-proyecto" placeholder="Cualquier proyecto" type="text">
+</div>
+<div class="flex flex-col gap-2">
+<label class="font-label-md text-label-md text-on-surface" for="lw-faq-tipo" data-lwt>Tipo de contrato (opcional)</label>
+<input autocomplete="off" class="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:border-deep-lagoon" data-lwt-ph id="lw-faq-tipo" placeholder="Cualquier tipo" type="text">
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<label class="font-label-md text-label-md text-on-surface" for="lw-faq-pregunta" data-lwt>Pregunta (como la haría el comprador)</label>
+<input autocomplete="off" class="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:border-deep-lagoon" data-lwt-ph id="lw-faq-pregunta" maxlength="1000" placeholder="¿Qué documentos recibo al firmar?" type="text">
+</div>
+<div class="flex flex-col gap-2">
+<label class="font-label-md text-label-md text-on-surface" for="lw-faq-respuesta" data-lwt>Respuesta aprobada</label>
+<textarea class="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:border-deep-lagoon" data-lwt-ph id="lw-faq-respuesta" maxlength="4000" placeholder="Lo que el asistente puede dar por bueno. Sin cifras largas ni datos de un comprador concreto." rows="6"></textarea>
+<p class="font-body-sm text-body-sm text-outline text-right" id="lw-faq-contador">0 / 4000</p>
+</div>
+<div class="flex flex-wrap items-center justify-end gap-3 pt-2">
+<button class="flex items-center gap-2 px-4 py-2.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-label-md transition-colors shadow-sm" data-real id="lw-faq-limpiar" type="button"><span class="material-symbols-outlined text-[18px]">backspace</span><span data-lwt>Limpiar</span></button>
+<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary disabled:opacity-60 disabled:cursor-wait font-label-md text-label-md transition-colors shadow-sm" data-real id="lw-faq-guardar" type="submit"><span class="material-symbols-outlined text-[18px]">verified</span><span data-lwt id="lw-faq-guardar-texto">Guardar respuesta aprobada</span></button>
+</div>
+</form>
+
+<div class="flex flex-col gap-3 pt-4 border-t border-outline-variant/40">
+<div class="flex flex-wrap items-center justify-between gap-3">
+<h3 class="font-label-md text-label-md text-on-surface" data-lwt>Respuestas vigentes</h3>
+<p class="font-body-sm text-body-sm text-outline" data-lwt id="lw-faq-estado">Cargando las respuestas aprobadas…</p>
+</div>
+<div class="flex flex-col divide-y divide-outline-variant/40" id="lw-faq-lista"></div>
+</div>
 </section>
 
 </div>
@@ -250,7 +345,9 @@
     bot_fuentes: 'Reglas del asistente'
   };
 
-  function aviso(texto, detalle) {
+  /* `enBloque`: el detalle va debajo del encabezado, con sus saltos de línea
+     (los puntos retirados traen cita, motivo y frase fija en líneas). */
+  function aviso(texto, detalle, enBloque) {
     var d = document.createElement('div');
     d.className = 'sui-aviso rounded-xl border border-burnt-earth/30 bg-surface-alt px-5 py-4 flex items-start gap-3';
     d.setAttribute('role', 'status');
@@ -258,18 +355,61 @@
     ic.className = 'material-symbols-outlined text-[20px] text-burnt-earth shrink-0';
     ic.textContent = 'report';
     var p = document.createElement('p');
-    p.className = 'font-body-sm text-body-sm text-on-surface-variant';
+    p.className = 'font-body-sm text-body-sm text-on-surface-variant min-w-0';
     var b = document.createElement('b');
     b.className = 'text-on-surface';
     b.textContent = texto;
     p.appendChild(b);
     if (detalle) {
       var s = document.createElement('span');
-      s.textContent = ' ' + detalle;
+      if (enBloque) { s.className = 'block mt-1 whitespace-pre-line break-words'; s.textContent = detalle; }
+      else s.textContent = ' ' + detalle;
       p.appendChild(s);
     }
     d.appendChild(ic); d.appendChild(p);
     return d;
+  }
+
+  /* El texto de un error de Postgres/PostgREST en palabras (suite-comun.js).
+     Defensivo por si el compartido no cargó: nunca se calla un fallo. */
+  function humano(error, prefijo) {
+    if (window.lwErrorHumano) return lwErrorHumano(error, prefijo);
+    return prefijo + ': ' + ((error && error.message) || error || '');
+  }
+
+  function idiomaEn() {
+    var idioma = (typeof window.lwIdioma === 'function') ? window.lwIdioma() : window.LW_IDIOMA;
+    return idioma === 'en';
+  }
+  function nombreTema(t) { return (idiomaEn() ? t.nombre_en : t.nombre_es) || t.nombre_es || t.nombre_en || t.clave || t.tema_clave || ''; }
+
+  /* ── Puntos retirados: se cortan del borrador COMPLETO ──────────────────
+     La edge no los devuelve separados: `ensambla` los escribe dentro de
+     `borrador` como «N. Encabezado — Pendiente» / «N. … — Contraoferta» /
+     «Introducción: … — Pendiente», seguidos de líneas sangradas (cita del
+     modelo si la hay, motivo con su ref y la frase fija). Se cortan igual que
+     `seccionesDe` en la edge: un bloque dura hasta la siguiente cabecera
+     «N. » / «Introducción: », la línea «Fuentes usadas:» o la marca IA. Lo
+     anterior a la primera cabecera (aviso de plantilla) no se toca. Un punto
+     que el MODELO clasificó «— Contraoferta» sin que el servidor lo retirara
+     también sale aquí: al agente le sirve igual, y el texto del comprador no
+     se toca por ello (ese recorte lo hace el servidor en borrador_comprador). */
+  var RE_CABECERA = /^\s*(?:\d{1,2}\.\s+|Introducción:\s+)/;
+  var RE_RETIRADO = /^\s*(?:\d{1,2}\.\s+|Introducción:\s+).*\s—\s(?:Pendiente|Contraoferta)\s*$/;
+  var MARCA_IA = 'Borrador generado por IA';
+  function bloquesRetirados(borrador) {
+    var bloques = [], actual = null;
+    String(borrador || '').split(/\r?\n/).forEach(function (l) {
+      var corte = RE_CABECERA.test(l) || /^\s*Fuentes usadas\s*:/i.test(l) || l.indexOf(MARCA_IA) !== -1;
+      if (corte) {
+        if (actual) bloques.push(actual);
+        actual = RE_RETIRADO.test(l) ? { cabecera: l.trim(), lineas: [] } : null;
+        return;
+      }
+      if (actual && l.trim()) actual.lineas.push(l.trim());
+    });
+    if (actual) bloques.push(actual);
+    return bloques.map(function (b) { return { cabecera: b.cabecera, detalle: b.lineas.join('\n') }; });
   }
 
   function vacia(el) { while (el.firstChild) el.removeChild(el.firstChild); }
@@ -280,8 +420,13 @@
   function pintaAvisos(cuerpo) {
     var caja = $('lw-avisos');
     vacia(caja);
+    var retirados = bloquesRetirados(cuerpo.borrador);
+    var textoRetirados = retirados.map(function (b) { return b.cabecera + '\n' + b.detalle; }).join('\n');
+    retirados.forEach(function (b) { caja.appendChild(aviso(b.cabecera, b.detalle, true)); });
     (cuerpo.bloqueos || []).forEach(function (b) {
       if (!b || !b.motivo) return;
+      // El motivo que ya va escrito dentro de un punto retirado no se repite.
+      if (textoRetirados.indexOf(b.motivo) !== -1) return;
       caja.appendChild(aviso(lwT('Punto pendiente: ') + b.motivo, b.ref ? '(' + b.ref + ')' : ''));
     });
     if (cuerpo.plantilla_cambio_tras_firma) {
@@ -312,29 +457,153 @@
      pregunta; solo cuando se apilan hace falta bajar hasta él. */
   function apilado() { return !(window.matchMedia && window.matchMedia('(min-width: 1024px)').matches); }
 
+  /* Qué consulta está en pantalla: «Copiar» registra la copia contra ella
+     (bot_respuestas_copiadas). Sin id (respuesta con error) se copia sin
+     registrar. */
+  var ACTUAL = { consulta_id: null };
+
   function pintaResultado(cuerpo) {
     var hayAvisos = pintaAvisos(cuerpo);
     var conBorrador = typeof cuerpo.borrador === 'string' && cuerpo.borrador.trim() !== '';
+    ACTUAL.consulta_id = cuerpo.consulta_id || null;
     muestra($('lw-borrador-caja'), conBorrador);
     if (conBorrador) {
-      $('lw-borrador').textContent = cuerpo.borrador;
+      /* Al comprador va el recorte del servidor (`borrador_comprador`: solo
+         los puntos no retirados, sin nada dirigido al agente). Una consulta
+         del historial anterior a ese recorte solo trae el borrador completo. */
+      var texto = (typeof cuerpo.borrador_comprador === 'string') ? cuerpo.borrador_comprador : cuerpo.borrador;
+      $('lw-borrador').value = texto;
+      if (!texto.trim()) {
+        $('lw-avisos').appendChild(aviso(lwT('Todos los puntos han quedado pendientes: no hay texto que mandar al comprador todavía.')));
+        hayAvisos = true;
+      }
       pintaFuentes(cuerpo.fuentes);
     } else {
-      $('lw-borrador').textContent = '';
+      $('lw-borrador').value = '';
       vacia($('lw-fuentes'));
     }
+    if (Array.isArray(cuerpo.faq)) pintaFaqContrato(cuerpo.faq, true);
     muestra($('lw-resultado-vacio'), !(hayAvisos || conBorrador));
     if ((hayAvisos || conBorrador) && apilado()) $('lw-resultado').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function limpiaResultado() {
+    ACTUAL.consulta_id = null;
     vacia($('lw-avisos'));
-    $('lw-borrador').textContent = '';
+    $('lw-borrador').value = '';
     vacia($('lw-fuentes'));
     muestra($('lw-borrador-caja'), false);
     muestra($('lw-resultado-vacio'), true);
     $('lw-resultado-nota').textContent = '';
     muestra($('lw-resultado-nota'), false);
+  }
+
+  /* ── Respuestas aprobadas que aplican al contrato elegido ──────────────
+     Las del proyecto del contrato, las de su tipo y las de procedimiento
+     (sin proyecto ni tipo). La edge repite esta misma selección para el
+     modelo; aquí el agente las ve antes de redactar. `porId` guarda la
+     respuesta: la edge devuelve en `faq` solo id/tema/pregunta. */
+  var FAQ_CONTRATO = { id: null, sel: null, porId: {} };
+  function pintaFaqContrato(lista, desdeRespuesta) {
+    var caja = $('lw-faq-contrato'), estado = $('lw-faq-contrato-estado');
+    muestra($('lw-faq-contrato-caja'), true);
+    vacia(caja);
+    var filas = (lista || []).filter(function (f) { return f && f.pregunta; });
+    if (!filas.length) {
+      estado.textContent = lwT('Ninguna respuesta aprobada para este proyecto');
+      return;
+    }
+    estado.textContent = desdeRespuesta
+      ? lwT('%n respuestas aprobadas que el asistente ha tenido en cuenta', { n: filas.length })
+      : lwT('%n respuestas aprobadas', { n: filas.length });
+    filas.forEach(function (f) {
+      var respuesta = f.respuesta || (FAQ_CONTRATO.porId[f.id] || {}).respuesta || '';
+      if (f.respuesta) FAQ_CONTRATO.porId[f.id] = f;
+      var d = document.createElement('div');
+      d.className = 'rounded-lg bg-surface-container-low px-4 py-3 flex flex-col gap-1';
+      var b = document.createElement('b');
+      b.className = 'font-body-sm text-body-sm text-on-surface';
+      b.textContent = f.pregunta;
+      var p = document.createElement('p');
+      p.className = 'font-body-sm text-body-sm text-on-surface-variant whitespace-pre-line break-words';
+      p.textContent = respuesta || lwT('(respuesta no cargada: vuelve a elegir el contrato)');
+      d.appendChild(b); d.appendChild(p);
+      caja.appendChild(d);
+    });
+  }
+  function cargaFaqContrato(ctx, sel) {
+    if (!sel || !sel.id) return Promise.resolve();
+    FAQ_CONTRATO.id = sel.id; FAQ_CONTRATO.sel = sel;
+    var estado = $('lw-faq-contrato-estado');
+    muestra($('lw-faq-contrato-caja'), true);
+    vacia($('lw-faq-contrato'));
+    estado.textContent = lwT('Buscando respuestas aprobadas…');
+    var q = ctx.sb.from('bot_faq').select('id, tema_clave, pregunta, respuesta').eq('activo', true);
+    q = sel.proyecto_id ? q.or('proyecto_id.is.null,proyecto_id.eq.' + sel.proyecto_id) : q.is('proyecto_id', null);
+    q = sel.tipo ? q.or('tipo_contrato.is.null,tipo_contrato.eq.' + sel.tipo) : q.is('tipo_contrato', null);
+    return q.limit(20).then(function (r) {
+      if (FAQ_CONTRATO.id !== sel.id) return;   // el agente ya eligió otro contrato
+      if (r.error) {
+        /* «Ninguna» y «no he podido mirar» no se leen igual. */
+        estado.textContent = humano(r.error, lwT('No se han podido leer las respuestas aprobadas'));
+        return;
+      }
+      FAQ_CONTRATO.porId = {};
+      (r.data || []).forEach(function (f) { FAQ_CONTRATO.porId[f.id] = f; });
+      pintaFaqContrato(r.data || [], false);
+    });
+  }
+
+  /* ── Temas frecuentes: bot_temas_resumen(p_dias) ────────────────────── */
+  var TEMAS = { dias: 30, filas: [], frenados: {} };
+  function renderTemas(ctx) {
+    var cuerpo = $('lw-temas-lista'), estado = $('lw-temas-estado');
+    vacia(cuerpo);
+    if (!TEMAS.filas.length) { estado.textContent = lwT('No hay temas definidos todavía.'); return; }
+    var total = TEMAS.filas.reduce(function (s, t) { return s + Number(t.consultas || 0); }, 0);
+    estado.textContent = lwT('%n consultas en los últimos %d días, por tema', { n: total, d: TEMAS.dias });
+    TEMAS.filas.forEach(function (t) {
+      var tr = document.createElement('tr');
+      var celda = function (texto, derecha) {
+        var td = document.createElement('td');
+        td.className = 'py-2.5 pr-4 align-top' + (derecha ? ' text-right tabular-nums' : '');
+        td.textContent = texto;
+        return td;
+      };
+      var nombre = celda(nombreTema(t), false);
+      nombre.className += ' font-label-md text-label-md text-on-surface';
+      tr.appendChild(nombre);
+      tr.appendChild(celda(String(t.consultas || 0), true));
+      tr.appendChild(celda(String(t.con_retirados || 0), true));
+      tr.appendChild(celda(String(t.descartadas || 0), true));
+      var accion = document.createElement('td');
+      accion.className = 'py-2 align-top text-right';
+      if (t.frenado) {
+        accion.appendChild(chip(lwT('hueco del contrato → adenda, no FAQ'), 'mal'));
+      } else if (ctx.super) {
+        accion.appendChild(botonFila(lwT('Fijar respuesta aprobada'), 'verified', function () { prefillFaq({ tema_clave: t.tema_clave }); }));
+      }
+      tr.appendChild(accion);
+      cuerpo.appendChild(tr);
+    });
+  }
+  function cargaTemas(ctx) {
+    var estado = $('lw-temas-estado');
+    estado.textContent = lwT('Cargando los temas…');
+    $('lw-temas-30').className = 'px-4 py-1 rounded-full font-label-md text-label-md transition-colors ' + (TEMAS.dias === 30 ? 'bg-deep-lagoon text-on-primary' : 'text-on-surface-variant hover:text-on-surface');
+    $('lw-temas-90').className = 'px-4 py-1 rounded-full font-label-md text-label-md transition-colors ' + (TEMAS.dias === 90 ? 'bg-deep-lagoon text-on-primary' : 'text-on-surface-variant hover:text-on-surface');
+    return ctx.sb.rpc('bot_temas_resumen', { p_dias: TEMAS.dias }).then(function (r) {
+      if (r.error) {
+        /* «Sin temas» y «no he podido mirar» no se leen igual. */
+        estado.textContent = humano(r.error, lwT('No se ha podido cargar el resumen por temas'));
+        vacia($('lw-temas-lista'));
+        return;
+      }
+      TEMAS.filas = r.data || [];
+      TEMAS.frenados = {};
+      TEMAS.filas.forEach(function (t) { if (t.frenado) TEMAS.frenados[t.tema_clave] = true; });
+      renderTemas(ctx);
+    });
   }
 
   /* ── Historial: bot_consultas con la sesión del agente ─────────────────
@@ -393,6 +662,8 @@
       l1.appendChild(chip(c.respuesta ? lwT('Borrador') : lwT('Descartado'), c.respuesta ? 'ok' : 'mal'));
       var nb = (c.bloqueos || []).length;
       if (nb) l1.appendChild(chip(lwT('%n pendientes', { n: nb }), ''));
+      var copia = copiaDe(c);
+      if (copia) l1.appendChild(chip(lwT('Copiada'), 'ok'));
       var quien = document.createElement('span'); quien.textContent = (c.preguntado_por === ctx.email) ? lwT('tú') : (c.preguntado_por || ''); l1.appendChild(quien);
       var l2 = document.createElement('p');
       l2.className = 'font-body-md text-body-md text-on-surface truncate';
@@ -404,21 +675,43 @@
       der.className = 'flex items-center gap-2 shrink-0';
       der.appendChild(botonFila(lwT('Ver'), 'visibility', function () { verConsulta(c); }));
       der.appendChild(botonFila(lwT('Reutilizar pregunta'), 'replay', function () { reutilizar(c, ctx); }));
+      /* Solo super_admin: la RLS de bot_faq rechaza el insert a cualquier otro;
+         aquí solo se evita ofrecer lo que va a fallar. */
+      if (ctx.super && c.respuesta) {
+        der.appendChild(botonFila(lwT('Fijar como respuesta aprobada'), 'verified', function () {
+          var primera = String(c.pregunta || '').split(/\r?\n/).filter(function (x) { return x.trim(); })[0] || '';
+          prefillFaq({ pregunta: primera.trim().slice(0, 1000), respuesta: (copia && copia.texto) || c.respuesta || '' });
+        }));
+      }
       fila.appendChild(izq); fila.appendChild(der);
       lista.appendChild(fila);
     });
   }
+  /* La copia más reciente de esta consulta (embed ordenado y limitado a 1 en
+     cargaHistorial). null si nadie la copió. */
+  function copiaDe(c) {
+    var l = c && c.bot_respuestas_copiadas;
+    return (Array.isArray(l) && l[0] && l[0].texto) ? l[0] : null;
+  }
   function verConsulta(c) {
     limpiaResultado();
-    pintaResultado({ borrador: c.respuesta, fuentes: c.fuentes || [], bloqueos: c.bloqueos || [] });
+    pintaResultado({ consulta_id: c.id, borrador: c.respuesta, fuentes: c.fuentes || [], bloqueos: c.bloqueos || [] });
     var nota = $('lw-resultado-nota');
-    nota.textContent = lwT('Consulta del %f · %c', { f: fechaCorta(c.creado_en), c: etiquetaContrato(c) });
+    var texto = lwT('Consulta del %f · %c', { f: fechaCorta(c.creado_en), c: etiquetaContrato(c) });
+    /* Si el agente ya copió un texto para el comprador, es ESE el que se
+       rescata: lo que salió, no lo que propuso el modelo. */
+    var copia = copiaDe(c);
+    if (copia && c.respuesta) {
+      $('lw-borrador').value = copia.texto;
+      texto += ' · ' + lwT('Texto copiado el %f', { f: fechaCorta(copia.copiado_en) });
+    }
+    nota.textContent = texto;
     muestra(nota, true);
     if (!c.respuesta) toastMal(lwT('Esta consulta se descartó: no hay borrador, solo los puntos pendientes.'));
   }
   function reutilizar(c, ctx) {
     var etiqueta = ctx.etiquetaPorId[c.contrato_id];
-    if (etiqueta) $('lw-contrato').value = etiqueta;
+    if (etiqueta) { $('lw-contrato').value = etiqueta; if (ctx.contratoElegido) ctx.contratoElegido(); }
     $('lw-pregunta').value = c.pregunta || '';
     contador();
     toast(lwT('Pregunta cargada en el formulario: revísala y vuelve a redactar.'));
@@ -427,9 +720,14 @@
   function cargaHistorial(ctx) {
     var estado = $('lw-hist-estado');
     estado.textContent = lwT('Cargando el historial…');
+    /* El embed de bot_respuestas_copiadas trae solo la copia más reciente de
+       cada consulta (orden y límite sobre la tabla referenciada); su RLS es
+       la misma que la de la consulta, así que quien ve una ve la otra. */
     ctx.sb.from('bot_consultas')
-      .select('id, contrato_id, pregunta, respuesta, fuentes, bloqueos, creado_en, preguntado_por, contratos(numero, comprador_nombre, proyecto_nombre)')
+      .select('id, contrato_id, pregunta, respuesta, fuentes, bloqueos, creado_en, preguntado_por, contratos(numero, comprador_nombre, proyecto_nombre), bot_respuestas_copiadas(texto, copiado_en)')
       .order('creado_en', { ascending: false })
+      .order('copiado_en', { ascending: false, referencedTable: 'bot_respuestas_copiadas' })
+      .limit(1, { referencedTable: 'bot_respuestas_copiadas' })
       .limit(100)
       .then(function (r) {
         if (r.error) {
@@ -447,14 +745,268 @@
     $('lw-contador').textContent = lwT('%n / %m', { n: n, m: TOPE });
   }
 
+  /* Una sola forma de llamar a la edge (consulta y administración de FAQ):
+     mismas cabeceras, mismo JWT de la sesión. Resuelve {status, cuerpo};
+     rechaza solo si no hay red. */
+  function llamaEdge(sb, body) {
+    return sb.auth.getSession().then(function (r) {
+      var token = r && r.data && r.data.session && r.data.session.access_token;
+      if (!token) return { status: 401, cuerpo: { error: 'sin_sesion' } };
+      var status = 0;
+      return fetch(EDGE, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token,
+          'apikey': KEY_SB
+        },
+        body: JSON.stringify(body)
+      }).then(function (res) {
+        status = res.status;
+        return res.json().catch(function () { return { error: 'respuesta_ilegible' }; });
+      }).then(function (cuerpo) { return { status: status, cuerpo: cuerpo || {} }; });
+    });
+  }
+
+  /* ── Administración de respuestas aprobadas (solo super_admin) ─────────
+     Formulario + lista de bot_faq activas. Guardar y retirar van por la edge
+     (accion faq_guardar / faq_retirar), que valida y repite los frenos antes
+     de que la RLS y los triggers de la base den la última palabra. */
+  var ERRORES_FAQ = {
+    limite_faq: 'Has alcanzado el límite de respuestas aprobadas por hora: vuelve a intentarlo más tarde.',
+    no_autorizado: 'Solo un super administrador puede aprobar o retirar respuestas.',
+    faq_no_encontrada: 'Esa respuesta aprobada ya no existe o ya estaba retirada.',
+    no_se_pudo_guardar_faq: 'No se pudo guardar la respuesta aprobada.',
+    no_se_pudo_retirar_faq: 'No se pudo retirar la respuesta aprobada.'
+  };
+  function textoErrorFaq(cuerpo, status) {
+    var e = cuerpo && cuerpo.error;
+    if (e === 'faq_frenada') {
+      if (cuerpo.motivo === 'cifra') return lwT('La respuesta contiene una cifra de 8 o más dígitos seguidos (cuenta, teléfono, pasaporte): no se guarda.');
+      var motivo = (cuerpo.motivo || '—') + (cuerpo.ref ? ' (' + cuerpo.ref + ')' : '');
+      return lwT('Respuesta frenada por el asistente: %m', { m: motivo });
+    }
+    // 23514 de la base (bot_faq_frena): el mensaje ya viene en castellano, escrito para la persona.
+    if (e === 'faq_rechazada') return cuerpo.message || lwT(ERRORES_FAQ.no_se_pudo_guardar_faq);
+    if (e === 'faq_invalida') {
+      var campo = cuerpo.campo || '—';
+      return lwT('Falta un dato de la respuesta aprobada (%c).', { c: campo });
+    }
+    if (ERRORES_FAQ[e]) return lwT(ERRORES_FAQ[e]);
+    if (ERRORES[e]) return lwT(ERRORES[e]);
+    var codigo = e || ('HTTP ' + status);
+    return lwT('No se pudo guardar la respuesta aprobada (%e).', { e: codigo });
+  }
+  var FAQ = { temas: [], proyectos: [], lista: [], sustituye_a: null, ctx: null };
+  function temaPorNombre(n) {
+    n = String(n || '').trim();
+    return FAQ.temas.filter(function (t) { return n && (t.nombre_es === n || t.nombre_en === n || t.clave === n); })[0] || null;
+  }
+  function temaPorClave(k) { return FAQ.temas.filter(function (t) { return t.clave === k; })[0] || null; }
+  function proyectoPorNombre(n) {
+    n = String(n || '').trim();
+    return FAQ.proyectos.filter(function (p) { return n && p.nombre === n; })[0] || null;
+  }
+  function proyectoPorId(id) { return FAQ.proyectos.filter(function (p) { return p.id === id; })[0] || null; }
+  function tiposContrato() { return (typeof LW_TIPO_CONTRATO === 'object' && LW_TIPO_CONTRATO) ? Object.keys(LW_TIPO_CONTRATO) : []; }
+  function nombreTipo(k) { return (typeof lwTipoContrato === 'function') ? lwTipoContrato(k) : (k || '—'); }
+  function tipoPorNombre(n) {
+    n = String(n || '').trim();
+    return tiposContrato().filter(function (k) { return n && (nombreTipo(k) === n || k === n); })[0] || null;
+  }
+  function contadorFaq() {
+    var n = $('lw-faq-respuesta').value.length;
+    $('lw-faq-contador').textContent = lwT('%n / %m', { n: n, m: 4000 });
+  }
+  function limpiaFaq() {
+    ['lw-faq-tema', 'lw-faq-proyecto', 'lw-faq-tipo', 'lw-faq-pregunta', 'lw-faq-respuesta'].forEach(function (id) { $(id).value = ''; });
+    FAQ.sustituye_a = null;
+    $('lw-faq-sustituye-nota').textContent = '';
+    muestra($('lw-faq-sustituye-nota'), false);
+    contadorFaq();
+  }
+  /* Prellena el formulario desde el historial («Fijar como respuesta
+     aprobada»), desde un tema («Fijar respuesta aprobada») o desde una FAQ
+     vigente («Sustituir»). Solo existe con el formulario visible. */
+  function prefillFaq(o) {
+    o = o || {};
+    limpiaFaq();   // siempre desde cero: un proyecto o tipo de la vez anterior no puede colarse
+    var t = o.tema_clave ? temaPorClave(o.tema_clave) : null;
+    if (t) $('lw-faq-tema').value = nombreTema(t);
+    var p = o.proyecto_id ? proyectoPorId(o.proyecto_id) : null;
+    if (p) $('lw-faq-proyecto').value = p.nombre;
+    if (o.tipo_contrato) $('lw-faq-tipo').value = nombreTipo(o.tipo_contrato);
+    if (o.pregunta) $('lw-faq-pregunta').value = String(o.pregunta).slice(0, 1000);
+    if (o.respuesta) $('lw-faq-respuesta').value = String(o.respuesta).slice(0, 4000);
+    contadorFaq();
+    if (o.sustituye_a) {
+      FAQ.sustituye_a = o.sustituye_a;
+      var resumen = String(o.pregunta || '').slice(0, 120);
+      $('lw-faq-sustituye-nota').textContent = lwT('Sustituye a «%p»: al guardar, la anterior queda retirada.', { p: resumen });
+      muestra($('lw-faq-sustituye-nota'), true);
+    }
+    $('lw-faq').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    $('lw-faq-pregunta').focus();
+  }
+  function renderFaqLista(ctx) {
+    var lista = $('lw-faq-lista'), estado = $('lw-faq-estado');
+    vacia(lista);
+    if (!FAQ.lista.length) { estado.textContent = lwT('Todavía no hay ninguna respuesta aprobada.'); return; }
+    estado.textContent = lwT('%n respuestas vigentes', { n: FAQ.lista.length });
+    FAQ.lista.forEach(function (f) {
+      var fila = document.createElement('div');
+      fila.className = 'flex flex-col lg:flex-row lg:items-start gap-3 py-3';
+      var izq = document.createElement('div');
+      izq.className = 'flex flex-col gap-1 min-w-0 flex-1';
+      var l1 = document.createElement('div');
+      l1.className = 'flex flex-wrap items-center gap-2 font-body-sm text-body-sm text-on-surface-variant';
+      var t = temaPorClave(f.tema_clave);
+      l1.appendChild(chip(t ? nombreTema(t) : (f.tema_clave || '—'), ''));
+      var p = f.proyecto_id ? proyectoPorId(f.proyecto_id) : null;
+      l1.appendChild(chip(f.proyecto_id ? (p ? p.nombre : lwT('proyecto sin acceso')) : lwT('cualquier proyecto'), ''));
+      l1.appendChild(chip(f.tipo_contrato ? nombreTipo(f.tipo_contrato) : lwT('cualquier tipo'), ''));
+      var quien = document.createElement('span');
+      quien.textContent = (f.aprobado_por || '') + (f.aprobado_en ? ' · ' + fechaCorta(f.aprobado_en) : '');
+      l1.appendChild(quien);
+      var l2 = document.createElement('b');
+      l2.className = 'font-body-md text-body-md text-on-surface';
+      l2.textContent = f.pregunta || '';
+      var l3 = document.createElement('p');
+      l3.className = 'font-body-sm text-body-sm text-on-surface-variant whitespace-pre-line break-words';
+      l3.textContent = f.respuesta || '';
+      izq.appendChild(l1); izq.appendChild(l2); izq.appendChild(l3);
+      var der = document.createElement('div');
+      der.className = 'flex items-center gap-2 shrink-0';
+      der.appendChild(botonFila(lwT('Sustituir'), 'edit', function () {
+        prefillFaq({ tema_clave: f.tema_clave, proyecto_id: f.proyecto_id, tipo_contrato: f.tipo_contrato, pregunta: f.pregunta, respuesta: f.respuesta, sustituye_a: f.id });
+      }));
+      der.appendChild(botonFila(lwT('Retirar'), 'delete', function () { retiraFaq(ctx, f); }));
+      fila.appendChild(izq); fila.appendChild(der);
+      lista.appendChild(fila);
+    });
+  }
+  function cargaFaqLista(ctx) {
+    var estado = $('lw-faq-estado');
+    estado.textContent = lwT('Cargando las respuestas aprobadas…');
+    return ctx.sb.from('bot_faq')
+      .select('id, tema_clave, proyecto_id, tipo_contrato, pregunta, respuesta, aprobado_por, aprobado_en, creado_en')
+      .eq('activo', true)
+      .order('creado_en', { ascending: false })
+      .then(function (r) {
+        if (r.error) {
+          /* «Ninguna» y «no he podido mirar» no se leen igual. */
+          estado.textContent = humano(r.error, lwT('No se han podido cargar las respuestas aprobadas'));
+          return;
+        }
+        FAQ.lista = r.data || [];
+        renderFaqLista(ctx);
+      });
+  }
+  function retiraFaq(ctx, f) {
+    var resumen = String(f.pregunta || '').slice(0, 120);
+    var titulo = lwT('Retirar la respuesta aprobada «%p»', { p: resumen });
+    /* lwConfirmar (dialogo.js) es la forma de parar en la suite; `confirm()`
+       solo como último recurso si el compartido no cargó. Sin `cuerpo`: la
+       pregunta es texto de terceros y el título va por textContent. */
+    var pregunta = window.lwConfirmar
+      ? lwConfirmar({ titulo: titulo, confirmar: lwT('Retirar'), tono: 'peligro' })
+      : Promise.resolve(window.confirm(titulo));
+    pregunta.then(function (si) {
+      if (!si) return;
+      return llamaEdge(ctx.sb, { accion: 'faq_retirar', id: f.id }).then(function (r) {
+        var c = r.cuerpo;
+        if (c.error || r.status < 200 || r.status >= 300) { toastMal(textoErrorFaq(c, r.status)); return; }
+        toast(lwT('Respuesta aprobada retirada: el asistente deja de tenerla en cuenta.'));
+        cargaFaqLista(ctx);
+        if (FAQ_CONTRATO.sel) cargaFaqContrato(ctx, FAQ_CONTRATO.sel);
+      });
+    }).catch(function (e) {
+      toastMal(lwT('No hay conexión con el asistente: comprueba la red y vuelve a intentarlo.') + ' (' + ((e && e.message) || e) + ')');
+    });
+  }
+  function guardaFaq(ctx) {
+    var tema = temaPorNombre($('lw-faq-tema').value);
+    var pregunta = $('lw-faq-pregunta').value.trim();
+    var respuesta = $('lw-faq-respuesta').value.trim();
+    if (!tema) { toastMal(lwT('Elige el tema de la respuesta aprobada.')); $('lw-faq-tema').focus(); return; }
+    if (TEMAS.frenados[tema.clave]) { toastMal(lwT('Ese tema está frenado por el asistente: es un hueco del contrato y se resuelve con adenda, no con una respuesta aprobada.')); return; }
+    if (!pregunta) { toastMal(lwT('Escribe la pregunta tal y como la haría el comprador.')); $('lw-faq-pregunta').focus(); return; }
+    if (!respuesta) { toastMal(lwT('Escribe la respuesta aprobada.')); $('lw-faq-respuesta').focus(); return; }
+    var proyecto = proyectoPorNombre($('lw-faq-proyecto').value);
+    if ($('lw-faq-proyecto').value.trim() && !proyecto) { toastMal(lwT('Ese proyecto no está en la lista: elígelo del desplegable.')); return; }
+    var tipo = tipoPorNombre($('lw-faq-tipo').value);
+    if ($('lw-faq-tipo').value.trim() && !tipo) { toastMal(lwT('Ese tipo de contrato no está en la lista: elígelo del desplegable.')); return; }
+    if (!proyecto && !tipo && !tema.procedimiento) {
+      toastMal(lwT('Una respuesta aprobada necesita proyecto o tipo de contrato (solo los temas de procedimiento valen para todos).'));
+      return;
+    }
+    var btn = $('lw-faq-guardar'), btnTexto = $('lw-faq-guardar-texto');
+    btn.disabled = true; btnTexto.textContent = lwT('Guardando…');
+    var sustituye = FAQ.sustituye_a || null;
+    llamaEdge(ctx.sb, {
+      accion: 'faq_guardar', tema_clave: tema.clave, proyecto_id: proyecto ? proyecto.id : null,
+      tipo_contrato: tipo || null, pregunta: pregunta, respuesta: respuesta, sustituye_a: sustituye
+    }).then(function (r) {
+      btn.disabled = false; btnTexto.textContent = lwT('Guardar respuesta aprobada');
+      var c = r.cuerpo;
+      if (c.error || r.status < 200 || r.status >= 300) { toastMal(textoErrorFaq(c, r.status)); return; }
+      // La nueva ya está guardada; si la anterior no se pudo retirar, se dice.
+      if (sustituye && c.anterior_retirada === false) toastMal(lwT('Respuesta guardada, pero la anterior sigue activa: retírala a mano.'));
+      else toast(lwT('Respuesta aprobada guardada: el asistente la tiene en cuenta desde ahora.'));
+      limpiaFaq();
+      cargaFaqLista(ctx);
+      if (FAQ_CONTRATO.sel) cargaFaqContrato(ctx, FAQ_CONTRATO.sel);
+    }, function (e) {
+      btn.disabled = false; btnTexto.textContent = lwT('Guardar respuesta aprobada');
+      toastMal(lwT('No hay conexión con el asistente: comprueba la red y vuelve a intentarlo.') + ' (' + ((e && e.message) || e) + ')');
+    });
+  }
+  function initFaq(ctx) {
+    muestra($('lw-faq'), true);
+    $('lw-faq-respuesta').addEventListener('input', contadorFaq);
+    contadorFaq();
+    $('lw-faq-limpiar').addEventListener('click', function (ev) { ev.stopPropagation(); limpiaFaq(); });
+    $('lw-faq-form').addEventListener('submit', function (ev) { ev.preventDefault(); ev.stopPropagation(); guardaFaq(ctx); });
+    /* Los tres selectores son funciones: la lista de temas se recalcula con
+       los frenados del resumen (que carga aparte) y la de proyectos con la
+       tabla. Opción vacía = «cualquiera» en los dos opcionales. */
+    if (window.lwPicker) {
+      window.lwPicker($('lw-faq-tema'), function () {
+        return FAQ.temas.filter(function (t) { return !TEMAS.frenados[t.clave]; }).map(function (t) {
+          return { valor: nombreTema(t), texto: nombreTema(t), nota: t.procedimiento ? lwT('procedimiento: vale para todos los contratos') : '' };
+        });
+      }, { titulo: lwT('Tema') });
+      window.lwPicker($('lw-faq-proyecto'), function () {
+        return [{ valor: '', texto: lwT('Cualquier proyecto') }].concat(FAQ.proyectos.map(function (p) { return { valor: p.nombre, texto: p.nombre }; }));
+      }, { titulo: lwT('Proyecto (opcional)') });
+      window.lwPicker($('lw-faq-tipo'), function () {
+        return [{ valor: '', texto: lwT('Cualquier tipo') }].concat(tiposContrato().map(function (k) { return { valor: nombreTipo(k), texto: nombreTipo(k), nota: k }; }));
+      }, { titulo: lwT('Tipo de contrato (opcional)') });
+    }
+    ctx.sb.from('bot_temas').select('clave, nombre_es, nombre_en, procedimiento').eq('activo', true).order('orden').then(function (r) {
+      if (r.error) { toastMal(humano(r.error, lwT('No se han podido cargar los temas'))); return; }
+      FAQ.temas = r.data || [];
+      if (FAQ.lista.length) renderFaqLista(ctx);   // los chips de tema ya con nombre
+    });
+    ctx.sb.from('proyectos').select('id, nombre').order('nombre').then(function (r) {
+      if (r.error) { toastMal(humano(r.error, lwT('No se han podido cargar los proyectos'))); return; }
+      FAQ.proyectos = r.data || [];
+      if (FAQ.lista.length) renderFaqLista(ctx);
+    });
+    cargaFaqLista(ctx);
+  }
+
   function init(aut) {
     var sb = aut.sb;
     var input = $('lw-contrato'), estado = $('lw-contrato-estado');
-    var porEtiqueta = {};          // «CC00107 · NOMBRE · Proyecto» -> uuid
+    var porEtiqueta = {};          // «CC00107 · NOMBRE · Proyecto» -> {id, proyecto_id, tipo}
     var etiquetaPorId = {};        // uuid -> etiqueta (para «Reutilizar» desde el historial)
     // guard.js resuelve {sb, session, ficha}: el email sale de la ficha o, si no, de la sesión.
     var email = (aut.ficha && aut.ficha.email) || (aut.session && aut.session.user && aut.session.user.email) || '';
-    var ctx = { sb: sb, email: email, etiquetaPorId: etiquetaPorId };
+    /* super_admin solo destapa la UI de administración; el candado real es
+       la RLS de bot_faq y los triggers de la base. */
+    var esSuper = !!(aut.ficha && aut.ficha.rol === 'super_admin');
+    var ctx = { sb: sb, email: email, etiquetaPorId: etiquetaPorId, super: esSuper };
 
     $('lw-pregunta').addEventListener('input', contador);
     contador();
@@ -463,11 +1015,25 @@
     $('lw-hist-actualizar').addEventListener('click', function (ev) { ev.stopPropagation(); cargaHistorial(ctx); });
     $('lw-hist-filtro').addEventListener('input', function () { renderHistorial(ctx); });
 
+    cargaTemas(ctx);
+    [$('lw-temas-30'), $('lw-temas-90')].forEach(function (b) {
+      b.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        var dias = Number(b.getAttribute('data-dias')) || 30;
+        if (dias === TEMAS.dias) return;
+        TEMAS.dias = dias;
+        cargaTemas(ctx);
+      });
+    });
+
+    if (esSuper) initFaq(ctx);
+
     /* La lista es la que devuelve la RLS de `contratos` para esta sesión:
        lo mismo que la edge podrá leer con el mismo JWT. Nunca se pide `datos`
-       (TOAST, ver datos.js). */
+       (TOAST, ver datos.js). proyecto_id y tipo acotan las respuestas
+       aprobadas del contrato. */
     sb.from('contratos')
-      .select('id, numero, comprador_nombre, proyecto_nombre, tipo, bloqueado')
+      .select('id, numero, comprador_nombre, proyecto_nombre, proyecto_id, tipo, bloqueado')
       .order('numero', { ascending: false })
       .then(function (r) {
         if (r.error) {
@@ -487,7 +1053,7 @@
         }
         var opciones = cs.map(function (c) {
           var etiqueta = [c.numero || '—', c.comprador_nombre || '—', c.proyecto_nombre || '—'].join(' · ');
-          porEtiqueta[etiqueta] = c.id;
+          porEtiqueta[etiqueta] = { id: c.id, proyecto_id: c.proyecto_id || null, tipo: c.tipo || null };
           etiquetaPorId[c.id] = etiqueta;
           var tipo = (typeof lwTipoContrato === 'function') ? lwTipoContrato(c.tipo) : (c.tipo || '');
           return { valor: etiqueta, texto: etiqueta, nota: tipo + ' · ' + lwT(c.bloqueado ? 'firmado' : 'sin firmar') };
@@ -497,6 +1063,16 @@
           ? lwT('1 contrato a tu alcance')
           : lwT('%n contratos a tu alcance', { n: cs.length });
       });
+    /* Solo `change` (lwPicker dispara input Y change: con los dos se
+       consultaría dos veces). «Reutilizar» escribe el valor sin evento y
+       dispara este mismo manejador a mano. */
+    function contratoElegido() {
+      var sel = porEtiqueta[input.value];
+      if (!sel) { muestra($('lw-faq-contrato-caja'), false); FAQ_CONTRATO.id = null; FAQ_CONTRATO.sel = null; return; }
+      if (sel.id !== FAQ_CONTRATO.id) cargaFaqContrato(ctx, sel);
+    }
+    input.addEventListener('change', contratoElegido);
+    ctx.contratoElegido = contratoElegido;
 
     var btn = $('lw-redactar'), btnTexto = $('lw-redactar-texto');
     function ocupado(si) {
@@ -506,60 +1082,61 @@
 
     btn.addEventListener('click', function (ev) {
       ev.stopPropagation();   // maqueta.js no lo ve pasar (además de data-real)
-      var contratoId = porEtiqueta[input.value];
+      var sel = porEtiqueta[input.value];
+      var contratoId = sel && sel.id;
       var pregunta = $('lw-pregunta').value.trim();
       if (!contratoId) { toastMal(lwT('Elige primero el contrato del comprador.')); input.focus(); return; }
       if (!pregunta) { toastMal(lwT('Pega la pregunta del comprador antes de redactar.')); $('lw-pregunta').focus(); return; }
       if (pregunta.length > TOPE) { toastMal(lwT(ERRORES.pregunta_demasiado_larga)); return; }
+      if (sel.id !== FAQ_CONTRATO.id) cargaFaqContrato(ctx, sel);   // por si se llegó aquí sin pasar por el selector
 
       ocupado(true);
       limpiaResultado();
-      sb.auth.getSession().then(function (r) {
-        var token = r && r.data && r.data.session && r.data.session.access_token;
-        if (!token) { ocupado(false); toastMal(lwT(ERRORES.sin_sesion)); return; }
-        var status = 0;
-        return fetch(EDGE, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + token,
-            'apikey': KEY_SB
-          },
-          body: JSON.stringify({ contrato_id: contratoId, pregunta: pregunta })
-        }).then(function (res) {
-          status = res.status;
-          return res.json().catch(function () { return { error: 'respuesta_ilegible' }; });
-        }).then(function (cuerpo) {
-          ocupado(false);
-          if (!cuerpo || cuerpo.error || status < 200 || status >= 300) {
-            toastMal(textoError(cuerpo || {}, status));
-            // Un borrador descartado sigue trayendo los puntos pendientes:
-            // se enseñan, sin borrador, sin fuentes y sin «Copiar».
-            if (cuerpo && (cuerpo.bloqueos || []).length) pintaResultado({ bloqueos: cuerpo.bloqueos });
-            cargaHistorial(ctx);   // un borrador descartado también queda registrado
-            return;
-          }
-          pintaResultado(cuerpo);
-          cargaHistorial(ctx);
-        });
+      llamaEdge(sb, { contrato_id: contratoId, pregunta: pregunta }).then(function (r) {
+        ocupado(false);
+        var cuerpo = r.cuerpo, status = r.status;
+        if (!cuerpo || cuerpo.error || status < 200 || status >= 300) {
+          toastMal(textoError(cuerpo || {}, status));
+          // Un borrador descartado sigue trayendo los puntos pendientes:
+          // se enseñan, sin borrador, sin fuentes y sin «Copiar».
+          if (cuerpo && (cuerpo.bloqueos || []).length) pintaResultado({ bloqueos: cuerpo.bloqueos });
+          cargaHistorial(ctx);   // un borrador descartado también queda registrado
+          return;
+        }
+        pintaResultado(cuerpo);
+        cargaHistorial(ctx);
       }).catch(function (e) {
         ocupado(false);
         toastMal(lwT('No hay conexión con el asistente: comprueba la red y vuelve a intentarlo.') + ' (' + ((e && e.message) || e) + ')');
       });
     });
 
+    /* «Copiar» se lleva lo que hay en el campo (el agente puede haberlo
+       corregido) y lo REGISTRA antes de copiar: bot_respuestas_copiadas es
+       la prueba de lo que salió hacia el comprador, y su trigger frena una
+       cifra larga que no estuviera en el borrador — si la base lo rechaza, no
+       se copia. El texto del rechazo lo escribe el trigger en castellano. */
     $('lw-copiar').addEventListener('click', function (ev) {
       ev.stopPropagation();
-      var texto = $('lw-borrador').textContent;
-      if (!texto) { toastMal(lwT('No hay borrador que copiar.')); return; }
+      var texto = $('lw-borrador').value;
+      if (!texto.trim()) { toastMal(lwT('No hay borrador que copiar.')); return; }
       if (!(navigator.clipboard && navigator.clipboard.writeText)) {
         toastMal(lwT('No se pudo copiar: selecciona el texto y cópialo a mano.'));
         return;
       }
-      navigator.clipboard.writeText(texto).then(function () {
-        toast(lwT('Borrador copiado.'));
-      }, function () {
-        toastMal(lwT('No se pudo copiar: selecciona el texto y cópialo a mano.'));
+      var registro = ACTUAL.consulta_id
+        ? sb.from('bot_respuestas_copiadas').upsert({ consulta_id: ACTUAL.consulta_id, texto: texto, copiado_por: ctx.email }, { onConflict: 'consulta_id,copiado_por' })
+        : Promise.resolve({ error: null });
+      registro.then(function (r) {
+        if (r && r.error) { toastMal(humano(r.error, lwT('No se ha guardado la copia'))); return; }
+        return navigator.clipboard.writeText(texto).then(function () {
+          toast(lwT('Borrador copiado.'));
+          if (ACTUAL.consulta_id) cargaHistorial(ctx);
+        }, function () {
+          toastMal(lwT('No se pudo copiar: selecciona el texto y cópialo a mano.'));
+        });
+      }, function (e) {
+        toastMal(humano(e, lwT('No se ha guardado la copia')));
       });
     });
   }
