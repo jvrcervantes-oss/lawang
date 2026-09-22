@@ -83,7 +83,7 @@
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
 <script src="assets/modelos_catalogo.js?v=4e4fdee1"></script>
 <!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
-<script src="assets/techo_extras.js?v=14b3cc79"></script>
+<script src="assets/techo_extras.js?v=ca3042d9"></script>
 <script src="assets/hitos_fechas.js?v=73e20d57"></script>
 <script src="assets/entidades_pago.js?v=ab7c9adf"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
@@ -492,8 +492,8 @@ const TEMPLATES = [
     name:{es:'Contrato General',en:'General Agreement',id:'Perjanjian Umum'},
     l2:{es:'General',en:'General',id:'Umum'}, ready:true, disabled:true },   // deshabilitado: no seleccionable para contratos nuevos (se mantiene para reabrir CG ya guardados)
   { slug:'commercial_offer', file:'templates/commercial_offer.html', cover:'#5F6B29',
-    name:{es:'Oferta Comercial (Apéndice D)',en:'Commercial Offer (Appendix D)',id:'Penawaran Komersial (Lampiran D)'},
-    l2:{es:'Oferta Comercial',en:'Commercial Offer',id:'Penawaran Komersial'}, ready:true },
+    name:{es:'Oferta Comercial',en:'Commercial Offer',id:'Penawaran Komersial'},
+    l2:{es:'Oferta Comercial',en:'Commercial Offer',id:'Penawaran Komersial'}, ready:true, disabled:true },   // 22-sep-2026, owner: la Oferta Comercial ya no se hace ni es Apéndice D de ningún contrato; queda solo para reabrir la CO ya guardada (1 en base, jul-2026)
   { slug:'commercial_collaboration', file:'templates/commercial_collaboration.html', cover:'#447A2E',
     name:{es:'Acuerdo Comercial',en:'Commercial Agreement',id:'Perjanjian Komersial'},
     l2:{es:'Acuerdo Comercial y Referidos',en:'Commercial Agreement and Referral',id:'Perjanjian Komersial dan Referral'}, ready:true },

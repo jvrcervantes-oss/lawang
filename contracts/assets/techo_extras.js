@@ -255,6 +255,7 @@ async function syncPrecioTechoExtras(){
   if(antes && parseImporte(antes) === obra) return;   // ya cuadra
   const aplicar = () => {
     el.value = nuevo; AUTO_UNIDAD['precio_total'] = nuevo;
+    AUTO_UNIDAD['_precio_techo'] = nuevo;   // "lo puso esta fórmula" — ver puestoPorFormula
     el.dispatchEvent(new Event('input', { bubbles:true }));   // que la vista previa se entere
   };
   const detalle = EXTRAS_ELEGIDOS.length
@@ -262,7 +263,15 @@ async function syncPrecioTechoExtras(){
     : '';
   const detalleDescuento = descuento > 0 ? ' − ' + fmtImporte(descuento) + ' (' + lwT('descuento comercial') + ')' : '';
   const desglose = TECHO_ELEGIDO.nombre + ' ' + fmtImporte(Number(TECHO_ELEGIDO.precio)) + detalle + detalleDescuento;
-  if(antes){
+  /* El modal solo tiene sentido la PRIMERA vez que la fórmula pisa un precio
+     que vino de fuera (Reserva vinculada, contrato guardado con techo anterior).
+     Si el precio que hay lo puso esta misma fórmula hace un momento, cada extra
+     marcado y cada descuento tecleado volvía a abrirlo — el owner lo sufrió el
+     22-sep-2026 ("no para de salir un pop-up"). Se recuerda en AUTO_UNIDAD
+     (y no en una variable propia) para que se limpie donde ya se limpia todo lo
+     automático: resetBorrador / cambio de plantilla / cargar otro contrato. */
+  const puestoPorFormula = !!antes && AUTO_UNIDAD['_precio_techo'] === antes;
+  if(antes && !puestoPorFormula){
     await lwConfirmar({
       titulo: 'Precio actualizado',
       cuerpo: `<p>Este documento traía <b>${escAttr(antes)} ${mon}</b> — puesto automáticamente por la Reserva vinculada o por un techo anterior — `
