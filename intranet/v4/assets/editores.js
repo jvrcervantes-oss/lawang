@@ -2744,18 +2744,35 @@
     modelos: function (aut) {
       var sb = aut.sb, admin = esAdmin(aut.ficha);
       var soloAdmin = function () { aviso('La familia de modelos la escribe solo administración (policy es_admin) — tu sesión es de ' + ((aut.ficha && aut.ficha.rol) || 'agente') + '.', '#8A6A34'); };
+      var SLUG_VALIDO = /^[a-z0-9-]+$/;
       ata(/^\+? ?Nuevo modelo$/i, function () {
         if (!admin) return soloAdmin();
         modal('Nuevo modelo', [
           { k: 'nombre', label: 'Nombre', req: 1 },
-          { k: 'slug', label: 'Slug', ayuda: 'vacío = se genera del nombre; es la URL pública /modelo/<slug>' },
+          { k: 'slug', label: 'Slug', ayuda: 'vacío = se genera del nombre; es la URL pública /modelo/<slug> — solo minúsculas, números y guiones' },
           { k: 'moneda', label: 'Moneda', tipo: 'select', opciones: ['EUR', 'IDR'], valor: 'EUR' },
           { k: 'precio', label: 'Precio de construcción', tipo: 'number', paso: '0.01', ayuda: 'se puede dejar vacío y ponerlo al completar la ficha' }
         ], 'Crear modelo', function (v) {
+          var slug = (v.slug || '').trim().toLowerCase() || slugDe(v.nombre);
+          /* Validación de FORMATO (S12, 22-sep-2026): la `unique` de la base
+             ya impide un slug duplicado de verdad — esto es solo para no
+             dejar pasar lo que la base va a rechazar igual, y para traducir
+             el 23505 crudo de Postgres al mismo aviso amable que la clásica
+             (intranet/modelos/index.html:928), en vez de dejarlo pasar tal
+             cual. */
+          if (!SLUG_VALIDO.test(slug)) {
+            return { error: { message: 'el slug solo admite minúsculas, números y guiones' } };
+          }
           return sb.from('modelos').insert({
-            nombre: v.nombre, slug: v.slug || slugDe(v.nombre), moneda: v.moneda,
+            nombre: v.nombre, slug: slug, moneda: v.moneda,
             precio_construccion: v.precio === '' ? null : Number(v.precio),
             activo: true, publicado: false
+          }).then(function (r) {
+            var msg = (r.error && r.error.message) || '';
+            if (r.error && /duplicate key|unique constraint/i.test(msg) && /slug/i.test(msg)) {
+              return { error: { message: 'Ya hay un modelo en esa dirección (' + slug + ') — elige otra.' } };
+            }
+            return r;
           });
         });
       });
@@ -2778,7 +2795,11 @@
         Promise.all([
           sb.from('modelo_techos').select('id,nombre,precio_ahora,precio_2027').eq('modelo_id', m.id).order('orden', { ascending: true, nullsFirst: false }),
           sb.from('extras').select('id,nombre').eq('activo', true).order('orden', { ascending: true, nullsFirst: false }),
-          sb.from('modelo_extras').select('id,extra_id,precio,disponible').eq('modelo_id', m.id),
+          // `moneda` en el SELECT (S12, 22-sep-2026, regresión corregida): sin
+          // ella una fila de extra escrita desde aquí quedaba sin moneda —
+          // modelo_extras.moneda existe y la clásica ya la lee y la escribe
+          // (intranet/modelos/index.html:651-652).
+          sb.from('modelo_extras').select('id,extra_id,precio,moneda,disponible').eq('modelo_id', m.id),
           sb.from('modelos_villa').select('id,proyecto,precio_construccion').eq('modelo_id', m.id).order('proyecto'),
           sb.from('proyectos').select('id,nombre').eq('activo', true).order('nombre')
         ]).then(function (r) {
@@ -2812,6 +2833,12 @@
           var noIncluidoActual = (m.alcance && m.alcance.no_incluido) || [];
 
           modal('Editar «' + m.nombre + '»', [
+            /* Nombre/slug/moneda (S12, 22-sep-2026): antes no estaban en este
+               modal. Mismo orden que la clásica (intranet/modelos/index.html:
+               608-620): ficha primero, specs después. */
+            { k: 'nombre', label: 'Nombre', req: 1, valor: m.nombre, medio: 1 },
+            { k: 'slug', label: 'Slug', req: 1, valor: m.slug, medio: 1, ayuda: '/modelo/<slug> — solo minúsculas, números y guiones; cambiarlo rompe los enlaces ya publicados' },
+            { k: 'moneda', label: 'Moneda', tipo: 'select', opciones: ['EUR', 'IDR'], valor: m.moneda || 'EUR', medio: 1 },
             { k: 'dormitorios', label: 'Dormitorios', tipo: 'number', valor: m.dormitorios },
             { k: 'banos', label: 'Baños', tipo: 'number', valor: m.banos },
             { k: 'villa_m2', label: 'Villa (m²)', tipo: 'number', paso: '0.01', valor: m.villa_m2 },
@@ -2832,60 +2859,123 @@
             var lineas = function (s) { return String(s || '').split('\n').map(function (x) { return x.trim(); }).filter(Boolean); };
             var incluido = lineas(v.alcance_incluido), noIncluido = lineas(v.alcance_no_incluido);
             var alcance = (incluido.length || noIncluido.length) ? { incluido: incluido, no_incluido: noIncluido } : null;
+
+            var nombreNuevo = (v.nombre || '').trim();
+            var slugNuevo = (v.slug || '').trim().toLowerCase();
+            var monedaNueva = v.moneda || m.moneda || 'EUR';
+            if (!nombreNuevo) return Promise.resolve({ error: { message: 'el nombre no puede quedar vacío' } });
+            if (!SLUG_VALIDO.test(slugNuevo)) return Promise.resolve({ error: { message: 'el slug solo admite minúsculas, números y guiones' } });
+
             // Valores de ANTES de este guardado — si la ficha se actualiza pero
             // alguna sub-tabla falla, se restauran para no dejar la ficha a
             // medias mientras el aviso dice «no se pudo guardar» (mismo
             // espíritu que «Nueva condición» borrando la fila huérfana cuando
             // fallan sus tramos, más arriba en este mismo fichero).
             var previo = {
+              nombre: m.nombre, slug: m.slug, moneda: m.moneda,
               dormitorios: m.dormitorios, banos: m.banos, villa_m2: m.villa_m2, terraza_m2: m.terraza_m2,
               precio_construccion: m.precio_construccion, descripcion: m.descripcion, notas: m.notas,
               alcance: m.alcance, publicado: m.publicado, renders_pendientes: m.renders_pendientes, activo: m.activo
             };
 
-            return sb.from('modelos').update({
-              dormitorios: v.dormitorios === '' ? null : Number(v.dormitorios),
-              banos: v.banos === '' ? null : Number(v.banos),
-              villa_m2: v.villa_m2 === '' ? null : Number(v.villa_m2),
-              terraza_m2: v.terraza_m2 === '' ? null : Number(v.terraza_m2),
-              precio_construccion: v.precio === '' ? null : Number(v.precio),
-              descripcion: v.descripcion || null,
-              notas: v.notas || null,
-              alcance: alcance,
-              publicado: v.publicado, renders_pendientes: v.renders_pendientes, activo: v.activo
-            }).eq('id', m.id).then(function (r0) {
-              if (r0.error) return r0;
-              var tareas = [];
-              (getTechos ? getTechos() : []).forEach(function (t) {
-                tareas.push(sb.from('modelo_techos').update({ precio_ahora: t.precio_ahora, precio_2027: t.precio_2027 }).eq('id', t.id));
-              });
-              (getExtras ? getExtras() : []).forEach(function (e) {
-                if (e.existenteId) {
-                  tareas.push(sb.from('modelo_extras').update({ precio: e.precio, disponible: e.disponible }).eq('id', e.existenteId));
-                } else if (e.precio != null || !e.disponible) {
-                  // sin fila = «se ofrece, precio de catálogo» (montaExtrasModelo); solo se
-                  // crea fila cuando hay algo que decir que el default no cubre.
-                  tareas.push(sb.from('modelo_extras').insert({ modelo_id: m.id, extra_id: e.extraId, precio: e.precio, disponible: e.disponible }));
+            /* Renombrar (S12, 22-sep-2026): `trg_modelo_renombrado` (AFTER
+               UPDATE OF nombre) propaga el nombre nuevo a `unidades.modelo` y
+               `modelos_villa.modelo` — el aviso PREVIO dice a cuántas filas,
+               mismo criterio que la clásica (intranet/modelos/index.html:
+               596-608): «se avisa de cuántas filas se van a mover ANTES».
+               Nunca se pregunta si el nombre no cambia. */
+            var pasoRenombrar = (nombreNuevo === m.nombre)
+              ? Promise.resolve(true)
+              : aseguraModulosDoc(['dialogo']).then(function () {
+                  return Promise.all([
+                    sb.from('unidades').select('id', { count: 'exact', head: true }).eq('modelo_id', m.id),
+                    sb.from('modelos_villa').select('id', { count: 'exact', head: true }).eq('modelo_id', m.id)
+                  ]);
+                }).then(function (rs) {
+                  var falloConteo = (rs[0] && rs[0].error) || (rs[1] && rs[1].error);
+                  if (falloConteo) {
+                    // Hallazgo de la autorevisión (22-sep-2026): sin este
+                    // chequeo, un conteo fallido caía a 0 en silencio y el
+                    // aviso decía «ninguna fila todavía» aunque el rename SÍ
+                    // fuera a mover filas — mentir en el aviso previo es peor
+                    // que no preguntar. Se para aquí, antes de confirmar nada.
+                    return Promise.reject(new Error('no se ha podido calcular a cuántas filas afecta el renombrado: ' + falloConteo.message));
+                  }
+                  var nUd = (rs[0] && rs[0].count) || 0, nMv = (rs[1] && rs[1].count) || 0;
+                  var radio = [nUd ? nUd + ' unidad(es)' : '', nMv ? nMv + ' precio(s) por proyecto' : ''].filter(Boolean).join(' y ');
+                  return lwConfirmar({
+                    titulo: 'Renombrar «' + m.nombre + '» a «' + nombreNuevo + '»',
+                    cuerpo: '<p>El nombre nuevo se propaga solo a <b>' + (radio || 'ninguna fila todavía') +
+                      '</b>. Lo ya impreso en un documento firmado no se toca.</p>',
+                    confirmar: 'Renombrar'
+                  });
+                });
+
+            return pasoRenombrar.then(function (ok) {
+              if (!ok) return { error: { message: 'Cancelado: el modelo conserva su nombre.' } };
+              // `.select('id')` + `verifica()` (hallazgo de la autorevisión, 22-sep-2026;
+              // corregido tras probarlo en el navegador real — `unaFila()` espera un
+              // resultado YA resuelto, no una promesa; `verifica()` es la que envuelve
+              // la consulta, mismo patrón que ya usa `abrirPrevisionDeck()` más abajo):
+              // sin esto un UPDATE denegado por RLS con 0 filas se leía como éxito. De
+              // paso, parar AQUÍ si la ficha no se guardó deja de tocar las sub-tablas —
+              // el rollback de `previo` de abajo ya no hace falta para esta rama, solo
+              // para cuando la ficha SÍ se guarda pero una sub-tabla falla después.
+              return verifica(sb.from('modelos').update({
+                nombre: nombreNuevo, slug: slugNuevo, moneda: monedaNueva,
+                dormitorios: v.dormitorios === '' ? null : Number(v.dormitorios),
+                banos: v.banos === '' ? null : Number(v.banos),
+                villa_m2: v.villa_m2 === '' ? null : Number(v.villa_m2),
+                terraza_m2: v.terraza_m2 === '' ? null : Number(v.terraza_m2),
+                precio_construccion: v.precio === '' ? null : Number(v.precio),
+                descripcion: v.descripcion || null,
+                notas: v.notas || null,
+                alcance: alcance,
+                publicado: v.publicado, renders_pendientes: v.renders_pendientes, activo: v.activo,
+                actualizado_en: new Date().toISOString()
+              }).eq('id', m.id).select('id'), 'No se ha guardado la ficha del modelo').then(function (r0) {
+                if (r0.error) {
+                  var msg = r0.error.message || '';
+                  if (/duplicate key|unique constraint/i.test(msg) && /slug/i.test(msg)) {
+                    return { error: { message: 'Ya hay un modelo en esa dirección (' + slugNuevo + ') — elige otra.' } };
+                  }
+                  return r0;
                 }
-              });
-              var precios = getPrecios ? getPrecios() : { filas: [], nuevoProyecto: '' };
-              precios.filas.forEach(function (f) {
-                tareas.push(sb.from('modelos_villa').update({ precio_construccion: f.precio }).eq('id', f.id));
-              });
-              if (precios.nuevoProyecto) {
-                // solo `modelo_id`: trg_espejo_modelo rellena el texto `modelo` espejo
-                // antes del INSERT (dispara en todo INSERT, la lista de columnas del
-                // trigger solo acota los UPDATE — verificado contra la migración).
-                tareas.push(sb.from('modelos_villa').insert({
-                  proyecto: precios.nuevoProyecto, proyecto_id: idPorProyecto[precios.nuevoProyecto] || null,
-                  modelo_id: m.id, precio_construccion: null, moneda: m.moneda || 'EUR'
-                }));
-              }
-              return Promise.all(tareas).then(function (rs) {
-                var conError = rs.filter(function (x) { return x && x.error; })[0];
-                if (!conError) return { error: null };
-                return sb.from('modelos').update(previo).eq('id', m.id).then(function () {
-                  return { error: conError.error };
+                var tareas = [];
+                (getTechos ? getTechos() : []).forEach(function (t) {
+                  tareas.push(verifica(sb.from('modelo_techos').update({ precio_ahora: t.precio_ahora, precio_2027: t.precio_2027 }).eq('id', t.id).select('id'), 'No se ha guardado un techo'));
+                });
+                (getExtras ? getExtras() : []).forEach(function (e) {
+                  if (e.existenteId) {
+                    tareas.push(verifica(sb.from('modelo_extras').update({ precio: e.precio, moneda: monedaNueva, disponible: e.disponible }).eq('id', e.existenteId).select('id'), 'No se ha guardado un extra'));
+                  } else if (e.precio != null || !e.disponible) {
+                    // sin fila = «se ofrece, precio de catálogo» (montaExtrasModelo); solo se
+                    // crea fila cuando hay algo que decir que el default no cubre.
+                    // `moneda` (S12, 22-sep-2026): regresión corregida — sin ella una fila
+                    // nueva de modelo_extras quedaba sin moneda (default 'EUR' de la base,
+                    // que miente si el modelo es IDR).
+                    tareas.push(verifica(sb.from('modelo_extras').insert({ modelo_id: m.id, extra_id: e.extraId, precio: e.precio, moneda: monedaNueva, disponible: e.disponible }).select('id'), 'No se ha guardado un extra'));
+                  }
+                });
+                var precios = getPrecios ? getPrecios() : { filas: [], nuevoProyecto: '' };
+                precios.filas.forEach(function (f) {
+                  tareas.push(verifica(sb.from('modelos_villa').update({ precio_construccion: f.precio }).eq('id', f.id).select('id'), 'No se ha guardado el precio por proyecto'));
+                });
+                if (precios.nuevoProyecto) {
+                  // solo `modelo_id`: trg_espejo_modelo rellena el texto `modelo` espejo
+                  // antes del INSERT (dispara en todo INSERT, la lista de columnas del
+                  // trigger solo acota los UPDATE — verificado contra la migración).
+                  tareas.push(verifica(sb.from('modelos_villa').insert({
+                    proyecto: precios.nuevoProyecto, proyecto_id: idPorProyecto[precios.nuevoProyecto] || null,
+                    modelo_id: m.id, precio_construccion: null, moneda: monedaNueva
+                  }).select('id'), 'No se ha guardado el precio por proyecto'));
+                }
+                return Promise.all(tareas).then(function (rs) {
+                  var conError = rs.filter(function (x) { return x && x.error; })[0];
+                  if (!conError) return { error: null };
+                  return sb.from('modelos').update(previo).eq('id', m.id).then(function () {
+                    return { error: conError.error };
+                  });
                 });
               });
             });
@@ -2895,12 +2985,217 @@
           aviso('No se pudo abrir «Editar datos»: ' + (e && e.message || e), '#93000a');
         });
       });
+      /* Subir/descargar documento (S12, 22-sep-2026): antes esta pantalla
+         solo LEÍA `modelo_documentos` (datos.js) y el botón redirigía a la
+         clásica «porque hace falta el bucket». El bucket ya existe
+         (`modelos`, privado, migración 20260907053801) y la policy de
+         escritura es `es_agente()` — mismo patrón de subida que `subirDoc()`
+         de intranet/modelos/index.html: recodificar NO hace falta aquí (no
+         es una imagen del deck), solo subir el fichero tal cual y anotar la
+         fila; si la fila falla, el fichero huérfano se retira. */
       ata(/^Añadir documento$/i, function () {
-        // subir un fichero exige el bucket de almacenamiento: es el único paso
-        // de esta pantalla que sigue en la herramienta viva, dicho en voz alta
-        aviso('La subida de ficheros vive aún en /intranet/modelos/ (necesita el bucket). Todo lo demás de esta pantalla ya es nativo.', '#8A6A34');
-        setTimeout(function () { location.href = '/intranet/modelos/'; }, 1600);
+        var m = window.LW_V4 && window.LW_V4.modelo;
+        if (!m) return aviso('La ficha del modelo aún no ha cargado.', '#8A6A34');
+        modal('Añadir documento · ' + m.nombre, [
+          { k: 'tipo', label: 'Tipo', tipo: 'select', opciones: [
+              ['plano', 'Plano · anexo del contrato'], ['calidades', 'Memoria de calidades'],
+              ['ficha', 'Ficha'], ['render', 'Render'], ['otro', 'Otro']
+            ], valor: 'otro' },
+          { k: 'file', label: 'Fichero', tipo: 'file', req: 1, accept: 'application/pdf,image/jpeg,image/png,image/webp',
+            ayuda: 'PDF o imagen, hasta 50 MB. Nace privado; el de tipo «plano» es el que el contrato de Construcción adjunta al elegir este modelo.' }
+        ], 'Subir', function (v) {
+          var file = v.file;
+          if (!file) return { error: { message: 'elige un fichero' } };
+          if (file.size > 52428800) return { error: { message: 'el fichero pasa de 50 MB' } };
+          var ext = (file.name.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
+          var path = m.id + '/' + crypto.randomUUID() + ext;
+          return sb.storage.from('modelos').upload(path, file, { contentType: file.type || undefined }).then(function (up) {
+            if (up.error) return { error: up.error };
+            return sb.from('modelo_documentos').insert({
+              modelo_id: m.id, nombre: file.name, path: path, tipo: v.tipo || 'otro', tamano_bytes: file.size,
+              // `subido_por` (hallazgo de la autorevisión, 22-sep-2026): la clásica lo manda
+              // (YO.id) — sin él, la columna (nullable) se queda sin quién subió el fichero.
+              subido_por: (aut.session && aut.session.user && aut.session.user.id) || null
+            }).then(function (r) {
+              if (r.error) {
+                // fichero huérfano en el bucket sin fila: se retira, igual que
+                // subirDoc() en /intranet/modelos/ — un objeto sin fila no lo
+                // ve nadie y no lo borra nadie.
+                // LÍMITE CONOCIDO (hallazgo de la autorevisión, 22-sep-2026,
+                // ya presente en subirDoc() de la clásica, no una regresión
+                // de aquí): «modelos bucket: subir» es es_agente() pero
+                // «modelos bucket: borrar» es es_admin() — un agente no-admin
+                // cuyo INSERT falle no puede limpiar su propio huérfano; el
+                // remove() se deniega en silencio y el fichero se queda en el
+                // bucket PRIVADO (no expuesto, solo desaprovechando espacio).
+                // Arreglarlo de raíz es tocar la policy de borrado, fuera del
+                // alcance de esta pantalla.
+                sb.storage.from('modelos').remove([path]);
+              }
+              return r;
+            });
+          });
+        });
       });
+
+      /* Fotos del Investor Deck (S12, 22-sep-2026): pieza COMPARTIDA de la
+         suite (contracts/assets/deck_fotos.js, Regla 0) — ya la usan
+         /proyectos/ y /modelos/ clásicos, y v4/proyectos/ desde S10.2; se
+         engancha TAL CUAL para v4/modelos/, nunca se reescribe. */
+      ata(/^Fotos del deck$/i, function () {
+        var m = window.LW_V4 && window.LW_V4.modelo;
+        if (!m) return aviso('La ficha del modelo aún no ha cargado.', '#8A6A34');
+        aseguraModulosDoc(['dialogo', 'deckFotos']).then(function () {
+          if (!window.lwDeckFotos) return aviso('No se ha podido cargar el gestor de fotos del deck.', '#ba1a1a');
+          window.lwDeckFotos.abrir({
+            SB: sb, ambito: 'modelo', modeloId: m.id, esAdmin: admin,
+            titulo: 'Fotos públicas del deck', sub: m.nombre
+          });
+        }, function (e) { aviso('No se ha podido cargar el gestor de fotos del deck: ' + (e && e.message || e), '#ba1a1a'); });
+      });
+
+      /* Abrir un documento subido (S12, 22-sep-2026): mismo patrón que S11.2
+         (`wireDocumentosAbrir`, Documentación de Proyectos) — createSignedUrl
+         de vida corta, TTL 300s, delegado en el contenedor ESTÁTICO porque
+         datos.js reemplaza sus filas (clona/renderiza) en cada carga de la
+         ficha — un listener por fila se perdería al abrir el siguiente
+         modelo. */
+      (function wireDocumentosAbrirModelo() {
+        var caja = document.getElementById('d-docs');
+        if (!caja) return;
+        caja.addEventListener('click', function (ev) {
+          var f = ev.target.closest && ev.target.closest('[data-doc-abrir]');
+          if (!f) return;
+          var path = f.getAttribute('data-doc-path');
+          if (!path) return;
+          var meta = f.querySelector('[data-lw="doc-meta"]');
+          var metaOrig = meta ? meta.textContent : '';
+          if (meta) meta.textContent = 'Abriendo…';
+          sb.storage.from('modelos').createSignedUrl(path, 300).then(function (u) {
+            if (meta) meta.textContent = metaOrig;
+            if (u.error || !u.data) { aviso('No se pudo abrir: ' + (u.error && u.error.message || 'sin URL'), '#ba1a1a'); return; }
+            window.open(u.data.signedUrl, '_blank', 'noopener');
+          });
+        });
+      })();
+
+      /* Previsión del deck (S12, 22-sep-2026): editor de `deck_forecast`
+         (por par proyecto+modelo) y `deck_forecast_proyecto` (gastos, por
+         proyecto). Botón por fila en «Unidades que lo usan», delegado en
+         `#d-proyectos` por el mismo motivo que el de arriba — datos.js
+         reconstruye esas filas en cada apertura. Solo admin: mismo gate que
+         el resto de esta pantalla, y es_admin() manda igual en la RLS. */
+      (function wireForecastModelo() {
+        var caja = document.getElementById('d-proyectos');
+        if (!caja) return;
+        caja.addEventListener('click', function (ev) {
+          var f = ev.target.closest && ev.target.closest('[data-forecast-proyecto]');
+          if (!f) return;
+          ev.stopPropagation();
+          var fila = f.closest('[data-proyecto-fila]');
+          var proyectoNombre = fila && fila.getAttribute('data-proyecto-nombre');
+          var proyectoId = fila && fila.getAttribute('data-proyecto-id');
+          if (!admin) return soloAdmin();
+          var m = window.LW_V4 && window.LW_V4.modelo;
+          if (!m || !proyectoNombre || !proyectoId) return aviso('Este proyecto aún no ha cargado.', '#8A6A34');
+          abrirPrevisionDeck(m, proyectoNombre, proyectoId);
+        });
+      })();
+
+      /* La previsión del deck (Year-1 Rental Forecast) NO es cosmética:
+         `deck_forecast_ejemplo_publico()` la expone a un inversor externo en
+         el siguiente fetch (caché 5 min, allowlist fija de 3 pares, decisión
+         del owner 21-sep-2026 — esa allowlist no se toca aquí). Por eso lleva
+         la MISMA doble validación numérica que la clásica
+         (intranet/modelos/index.html:389-479): el CHECK de la base es el
+         tirante, esto es el cinturón — evita ofrecer lo que va a fallar al
+         guardar, y dice CUÁL es el motivo.
+
+         DEJADO FUERA A PROPÓSITO (LAW-273, contexto/pendientes.md): el aviso
+         de desfase de la clásica (inversión base vs. construcción + parcela
+         más barata del proyecto, `unidad_referencia_id`) no se porta aquí —
+         el alcance de esta pasada era la doble validación, no el detector de
+         envejecimiento. `unidad_referencia_id` no viaja en el payload. */
+      function abrirPrevisionDeck(m, proyectoNombre, proyectoId) {
+        Promise.all([
+          sb.from('deck_forecast').select('adr_medio,adr_optimo,ocupacion_media,ocupacion_optima,inversion_base,destacado,publicado').eq('proyecto_id', proyectoId).eq('modelo_id', m.id).maybeSingle(),
+          sb.from('deck_forecast_proyecto').select('pct_gestion,pct_mantenimiento,pct_impuesto,contrato_vigente,publicado').eq('proyecto_id', proyectoId).maybeSingle()
+        ]).then(function (rs) {
+          var falloLectura = rs.filter(function (x) { return x && x.error; })[0];
+          if (falloLectura) return aviso('No se pudo abrir la previsión: ' + falloLectura.error.message, '#ba1a1a');
+          var f = (rs[0] && rs[0].data) || {};
+          var cfg = (rs[1] && rs[1].data) || {};
+          var pct = function (val, def) { return val == null ? def : Math.round(val * 1000) / 10; };
+          modal('Previsión del deck', [
+            { k: 'adr_medio', label: 'Precio medio/noche · escenario medio (€)', tipo: 'number', paso: '0.01', valor: f.adr_medio, medio: 1 },
+            { k: 'adr_optimo', label: 'Precio medio/noche · óptimo (€)', tipo: 'number', paso: '0.01', valor: f.adr_optimo, medio: 1 },
+            { k: 'ocupacion_media', label: 'Ocupación media (%)', tipo: 'number', paso: '0.1', valor: pct(f.ocupacion_media, ''), medio: 1 },
+            { k: 'ocupacion_optima', label: 'Ocupación óptima (%)', tipo: 'number', paso: '0.1', valor: pct(f.ocupacion_optima, ''), medio: 1 },
+            { k: 'inversion_base', label: 'Inversión total, base del ROI (€)', tipo: 'number', paso: '0.01', valor: f.inversion_base,
+              ayuda: 'explícita, no derivada — si es un precio de paquete pactado, que sea a propósito' },
+            { k: 'destacado', label: 'Marcar como «El más solicitado» en el deck', tipo: 'check', valor: !!f.destacado },
+            { k: 'publicado', label: 'Publicar en el deck público', tipo: 'check', valor: !!f.publicado, ayuda: 'sin esta casilla el modelo no sale en el forecast — nace apagada a propósito' },
+            { tipo: 'nota', label: 'Gastos de «' + proyectoNombre + '»: son del CONTRATO de gestión de alquiler, no de este modelo — cambiarlos mueve la tarjeta de TODOS los modelos de este proyecto.' },
+            { k: 'pct_gestion', label: 'Gestión (%)', tipo: 'number', paso: '0.1', valor: pct(cfg.pct_gestion, 20), medio: 1 },
+            { k: 'pct_mantenimiento', label: 'Mantenimiento (%)', tipo: 'number', paso: '0.1', valor: pct(cfg.pct_mantenimiento, 5), medio: 1 },
+            { k: 'pct_impuesto', label: 'Impuesto de alquiler (%)', tipo: 'number', paso: '0.1', valor: pct(cfg.pct_impuesto, 10), medio: 1 },
+            { k: 'contrato_vigente', label: 'Contrato de gestión que los fija', valor: cfg.contrato_vigente, medio: 1, ayuda: 'ej. CG-2026-01' },
+            { k: 'publicado_proyecto', label: 'Publicar el forecast de este proyecto', tipo: 'check', valor: !!cfg.publicado, ayuda: 'si se apaga, el deck de este proyecto se queda sin bloque de previsión entero' }
+          ], 'Guardar', function (v) {
+            var num = function (s) { var t = String(s == null ? '' : s).trim().replace(',', '.'); return t === '' ? null : Number(t); };
+            var frac = function (s) { var n = num(s); return n == null ? null : n / 100; };
+            var fila = {
+              proyecto_id: proyectoId, modelo_id: m.id,
+              adr_medio: num(v.adr_medio), adr_optimo: num(v.adr_optimo),
+              ocupacion_media: frac(v.ocupacion_media), ocupacion_optima: frac(v.ocupacion_optima),
+              inversion_base: num(v.inversion_base),
+              destacado: v.destacado, publicado: v.publicado,
+              actualizado_en: new Date().toISOString()
+            };
+            for (var i = 0, camposNum = [['adr_medio', 'el precio medio/noche'], ['adr_optimo', 'el precio óptimo'],
+                 ['ocupacion_media', 'la ocupación media'], ['ocupacion_optima', 'la ocupación óptima'],
+                 ['inversion_base', 'la inversión base']]; i < camposNum.length; i++) {
+              var k = camposNum[i][0];
+              if (fila[k] == null || !(fila[k] > 0)) return { error: { message: 'Falta o no es válido: ' + camposNum[i][1] } };
+            }
+            if (fila.ocupacion_media > 1 || fila.ocupacion_optima > 1) {
+              return { error: { message: 'La ocupación es un porcentaje: no puede pasar de 100.' } };
+            }
+            var cf = {
+              proyecto_id: proyectoId,
+              pct_gestion: frac(v.pct_gestion), pct_mantenimiento: frac(v.pct_mantenimiento), pct_impuesto: frac(v.pct_impuesto),
+              contrato_vigente: (v.contrato_vigente || '').trim() || null,
+              publicado: v.publicado_proyecto,
+              actualizado_en: new Date().toISOString()
+            };
+            for (var j = 0, clavesPct = ['pct_gestion', 'pct_mantenimiento', 'pct_impuesto']; j < clavesPct.length; j++) {
+              var kk = clavesPct[j];
+              if (cf[kk] == null || cf[kk] < 0 || cf[kk] > 1) return { error: { message: 'Los porcentajes van entre 0 y 100.' } };
+            }
+            if (cf.pct_gestion + cf.pct_mantenimiento + cf.pct_impuesto >= 1) {
+              return { error: { message: 'Los tres porcentajes juntos se comen el ingreso entero: el neto saldría negativo.' } };
+            }
+            // `verifica()` da un mensaje de RLS escrito para sus llamadas de
+            // siempre («el gate es la policy es_super_admin») — deck_forecast
+            // y deck_forecast_proyecto los escribe cualquier es_admin(), no
+            // solo super_admin (hallazgo de la autorevisión, 22-sep-2026): se
+            // corrige el texto aquí para no mandar a un admin real a buscar
+            // un permiso que ya tiene.
+            var verificaAdmin = function (p, queNoPaso) {
+              return verifica(p, queNoPaso).then(function (r) {
+                if (r && r.error && r.error.message) {
+                  r.error.message = r.error.message.replace('es_super_admin', 'es_admin');
+                }
+                return r;
+              });
+            };
+            return verificaAdmin(sb.from('deck_forecast').upsert(fila, { onConflict: 'proyecto_id,modelo_id' }).select('id'), 'No se ha guardado la previsión').then(function (r1) {
+              if (r1.error) return r1;
+              return verificaAdmin(sb.from('deck_forecast_proyecto').upsert(cf, { onConflict: 'proyecto_id' }).select('proyecto_id'), 'La previsión sí, los gastos del proyecto no');
+            });
+          }, { sub: m.nombre + ' · ' + proyectoNombre });
+        }, function (e) { aviso('No se pudo abrir la previsión: ' + (e && e.message || e), '#ba1a1a'); });
+      }
     },
 
     /* Comisiones (antes «Solicitudes», renombrada 14-sep-2026).

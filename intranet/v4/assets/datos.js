@@ -3751,10 +3751,14 @@
 
       Promise.all([
         q(sb.from('modelos').select('id,slug,nombre,dormitorios,banos,villa_m2,terraza_m2,descripcion,precio_construccion,moneda,publicado,activo,renders_pendientes,alcance,notas,orden').order('orden', { ascending: true, nullsFirst: false }), 'modelos'),
-        q(sb.from('unidades').select('modelo_id,proyecto'), 'unidades por modelo'),
-        q(sb.from('modelo_documentos').select('modelo_id,nombre,tipo,tamano_bytes,subido_en,visible_portal'), 'documentos de modelo')
+        q(sb.from('unidades').select('modelo_id,proyecto,proyecto_id'), 'unidades por modelo'),
+        q(sb.from('modelo_documentos').select('id,modelo_id,nombre,path,tipo,tamano_bytes,subido_en,visible_portal'), 'documentos de modelo'),
+        // «Sin catalogar» (S12, 22-sep-2026): view ya existente (migración
+        // 20260907053801) que agrupa unidades cuyo texto libre `modelo` no
+        // enlaza a ningún modelo_id — se enseña, no se «arregla» sola.
+        q(sb.from('modelos_sin_catalogar').select('*'), 'modelos sin catalogar')
       ]).then(function (r) {
-        var ms = r[0], us = r[1] || [], ds = r[2] || [];
+        var ms = r[0], us = r[1] || [], ds = r[2] || [], sinCat = r[3] || [];
         if (!ms) return;
 
         /* «Sin ficha tecnica» es el dato que de verdad manda en esta pantalla:
@@ -3764,13 +3768,20 @@
         var sinFicha = function (m) {
           return m.dormitorios == null && m.banos == null && m.villa_m2 == null && m.terraza_m2 == null;
         };
-        var porModelo = {}, proyModelo = {};
+        var porModelo = {}, proyModelo = {}, proyModeloId = {};
         us.forEach(function (u) {
           if (!u.modelo_id) return;
           porModelo[u.modelo_id] = (porModelo[u.modelo_id] || 0) + 1;
           var d = proyModelo[u.modelo_id] = proyModelo[u.modelo_id] || {};
           var k = u.proyecto || 'Sin proyecto';
           d[k] = (d[k] || 0) + 1;
+          // Previsión del deck (S12): id del proyecto para poder abrir su
+          // editor — `deck_forecast` se guarda por (proyecto_id, modelo_id),
+          // nunca por el nombre en texto.
+          if (u.proyecto_id) {
+            var pid = proyModeloId[u.modelo_id] = proyModeloId[u.modelo_id] || {};
+            pid[k] = u.proyecto_id;
+          }
         });
         var docsModelo = {};
         ds.forEach(function (d) { (docsModelo[d.modelo_id] = docsModelo[d.modelo_id] || []).push(d); });
@@ -3843,6 +3854,10 @@
           c.setAttribute('data-publicados', m.publicado ? '1' : '0');
           c.setAttribute('data-sinficha', sinFicha(m) ? '1' : '0');
           c.setAttribute('data-sinrender', m.renders_pendientes ? '1' : '0');
+          // Buscador (S12): nombre/slug en minúsculas, listos para comparar
+          // sin normalizar en cada tecla.
+          c.setAttribute('data-nombre', (m.nombre || '').toLowerCase());
+          c.setAttribute('data-slug', (m.slug || '').toLowerCase());
           c.style.cursor = 'pointer';
           c.addEventListener('click', function () { location.search = '?modelo=' + encodeURIComponent(m.slug || m.nombre); });
           grid.appendChild(c);
@@ -3853,16 +3868,56 @@
           if (b) b.setAttribute('data-chip-clave', k);
           return b;
         }).filter(Boolean);
-        cablearChipsFiltro(chipsModelos, grid, '[data-publicados]',
-          function (btn) { return btn.getAttribute('data-chip-clave'); },
-          'todos',
-          function (fila, clave) { return fila.getAttribute('data-' + clave) === '1'; },
-          function (btn, on) {
-            btn.classList.toggle('bg-primary-container', on);
-            btn.classList.toggle('text-on-primary', on);
-            btn.classList.toggle('bg-surface-container-low', !on);
-            btn.classList.toggle('text-on-surface-variant', !on);
+
+        /* Chips + buscador (S12, 22-sep-2026): UN solo cableado, no dos que
+           pisen su propio resultado. `cablearChipsFiltro` (usada en el resto
+           de la suite) filtra solo por chip; aquí hace falta chip Y texto a
+           la vez, así que en vez de llamarla y AÑADIR un segundo listener por
+           encima (dos pasadas por la rejilla en cada click, y el resultado
+           dependiendo de qué listener corra segundo — hallazgo de la
+           autorevisión, 22-sep-2026), se cablea directo: un único listener
+           por chip que pinta el estado activo y llama a la MISMA función de
+           filtrado que usa el buscador. */
+        var buscadorModelos = document.querySelector('input[type="search"]');
+        var chipActivaModelos = 'todos';
+        var aplicaFiltroModelos = function () {
+          var texto = ((buscadorModelos && buscadorModelos.value) || '').trim().toLowerCase();
+          Array.prototype.forEach.call(grid.children, function (fila) {
+            if (!fila.getAttribute) return;
+            var chipOk = chipActivaModelos === 'todos' || fila.getAttribute('data-' + chipActivaModelos) === '1';
+            var nombre = fila.getAttribute('data-nombre') || '', slug = fila.getAttribute('data-slug') || '';
+            var textoOk = !texto || nombre.indexOf(texto) !== -1 || slug.indexOf(texto) !== -1;
+            fila.style.display = (chipOk && textoOk) ? '' : 'none';
           });
+        };
+        if (buscadorModelos) buscadorModelos.addEventListener('input', aplicaFiltroModelos);
+        chipsModelos.forEach(function (btn) {
+          btn.addEventListener('click', function (ev) {
+            ev.stopPropagation();   // si no, maqueta.js la ve pasar y avisa «sin cablear»
+            chipsModelos.forEach(function (b) {
+              var on = b === btn;
+              b.classList.toggle('bg-primary-container', on);
+              b.classList.toggle('text-on-primary', on);
+              b.classList.toggle('bg-surface-container-low', !on);
+              b.classList.toggle('text-on-surface-variant', !on);
+            });
+            chipActivaModelos = btn.getAttribute('data-chip-clave') || 'todos';
+            aplicaFiltroModelos();
+          });
+        });
+
+        /* Aviso «sin catalogar» (S12, 22-sep-2026): unidades cuyo texto
+           libre `modelo` no enlaza a ningún modelo_id — visible, no
+           silencioso (mismo criterio que la clásica, sin «arreglarlo» solo:
+           puede ser un modelo real pendiente de dar de alta). */
+        if (sinCat.length) {
+          var totalSinCat = sinCat.reduce(function (a, x) { return a + Number(x.unidades || 0); }, 0);
+          var detalleSinCat = sinCat.map(function (x) {
+            return x.proyecto + ' — «' + x.nombra_a + '»: ' + x.unidades + (x.unidades === 1 ? ' unidad' : ' unidades');
+          }).join('; ');
+          bandaNota(totalSinCat + (totalSinCat === 1 ? ' unidad nombra' : ' unidades nombran') +
+            ' un modelo que no está en este catálogo (' + detalleSinCat + '). No suman en ninguna cifra de esta pantalla.', '#8A6A34');
+        }
 
         /* --- ficha: la de ?modelo= o la que mas unidades arrastra --- */
         var pedido = new URLSearchParams(location.search).get('modelo');
@@ -3889,10 +3944,24 @@
           if (!claves.length) {
             caja.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Ninguna unidad usa este modelo todavia.</p>';
           } else {
+            var idsPorProyecto = proyModeloId[el.id] || {};
             claves.forEach(function (k) {
               var f = base.cloneNode(true);
               pon('p-nombre', k, f);
               pon('p-n', String(mapa[k]), f);
+              // Previsión del deck (S12): id de proyecto en el propio DOM —
+              // `deck_forecast` se guarda por (proyecto_id, modelo_id), el
+              // click delegado de editores.js lo lee de aquí, nunca vuelve a
+              // preguntar a la base solo para saber qué fila tocó.
+              f.setAttribute('data-proyecto-nombre', k);
+              if (idsPorProyecto[k]) f.setAttribute('data-proyecto-id', idsPorProyecto[k]);
+              else {
+                // Sin proyecto_id (unidad antigua sin backfill): se retira el
+                // botón en vez de dejarlo abrir un editor que no sabría a qué
+                // proyecto escribir.
+                var bF = f.querySelector('[data-forecast-proyecto]');
+                if (bF) bF.remove();
+              }
               caja.appendChild(f);
             });
           }
@@ -3910,6 +3979,12 @@
               var f = moldeD.cloneNode(true);
               pon('doc-titulo', d.nombre || 'Documento', f);
               pon('doc-meta', (d.tipo || '—') + ' · ' + fFecha(d.subido_en) + (d.visible_portal ? ' · visible al comprador' : ''), f);
+              // Abrir el fichero (S12, 22-sep-2026): mismo patrón que S11.2
+              // en Documentación de proyecto — `data-doc-path` en la propia
+              // fila, click delegado en editores.js, `createSignedUrl` con
+              // TTL corto sobre el bucket privado 'modelos'.
+              if (d.path) f.setAttribute('data-doc-path', d.path);
+              else f.removeAttribute('data-doc-abrir');
               cd.appendChild(f);
             });
           }
