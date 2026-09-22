@@ -590,18 +590,14 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 </div>
 
 <div class="cfg__step space-y-2" data-paso="3" hidden>
-<div class="flex flex-col mb-1">
-<span class="font-headline-sm text-headline-sm text-primary font-semibold"><?= lw_i18n('¿Algún extra?', 'Any extras?') ?></span>
-<p class="font-body-sm text-body-sm text-on-surface-variant">Optional — none of them is needed to move in.</p>
-</div>
-<div id="lw-extras" class="space-y-2"></div>
-
-<!-- Parcela: se cotiza aparte del total configurado (villa+techo+extras), a propósito
-     — decisión ya tomada en /palmfield el 7-sep-2026 (ver su docblock): la parcela no
-     se bundlea con el precio de la villa. Esto solo deja ver la tarifa real por m²
-     (lw_parcela_tarifa_m2(), modelo/lib.php) según isla y ubicación; el tamaño se
-     concreta en la llamada, nunca aquí. -->
-<div class="pt-3 mt-1 border-t border-surface-container-highest/60 space-y-2.5">
+<!-- Parcela PRIMERO, antes que los extras — 22-sep-2026: enterrada debajo de la lista
+     de extras (5-6 filas) quedaba fuera de la vista sin hacer scroll y el owner no la
+     encontraba. Se cotiza aparte del total configurado (villa+techo+extras), a
+     propósito — decisión ya tomada en /palmfield el 7-sep-2026 (ver su docblock): la
+     parcela no se bundlea con el precio de la villa. Esto solo deja ver la tarifa real
+     por m² (lw_parcela_tarifa_m2(), modelo/lib.php) según isla y ubicación; el tamaño
+     se concreta en la llamada, nunca aquí. -->
+<div class="space-y-2.5">
 <div class="flex flex-col mb-1">
 <span class="font-headline-sm text-headline-sm text-primary font-semibold"><?= lw_i18n('¿Qué isla?', 'Which island?') ?></span>
 <p class="font-body-sm text-body-sm text-on-surface-variant">The plot is priced separately, sized on the call.</p>
@@ -614,6 +610,12 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 </div>
 <p class="text-[11px] text-on-surface-variant" id="lw-parcela-nota"></p>
 </div>
+
+<div class="flex flex-col mb-1 pt-3 mt-1 border-t border-surface-container-highest/60">
+<span class="font-headline-sm text-headline-sm text-primary font-semibold"><?= lw_i18n('¿Algún extra?', 'Any extras?') ?></span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Optional — none of them is needed to move in.</p>
+</div>
+<div id="lw-extras" class="space-y-2"></div>
 </div>
 </div>
 
@@ -978,7 +980,7 @@ foreach ($incluido as $it):
 <!-- Motor del configurador ANTES del script inline que lo invoca (window.lwAuCfgInit
      tiene que existir cuando se llama más abajo) — sin defer a propósito, o el inline
      que sigue se ejecutaría primero y fallaría "lwAuCfgInit is not a function". -->
-<script src="/assets/au-landing-cfg.js?v=20260922104135"></script>
+<script src="/assets/au-landing-cfg.js?v=20260922110312"></script>
 <script>
 (function () {
   'use strict';

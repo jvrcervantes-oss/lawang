@@ -213,7 +213,12 @@ window.lwAuCfgInit = function (opts) {
       }
       else { return; }
       recalcular();
-      if (paso < PASOS) avanza(1);
+      // 22-sep-2026: el techo YA NO avanza solo en paginas con foto cinematica
+      // (lwSetView) — el visitante necesita poder alternar sirap/bambu para comparar
+      // las dos fotos sin que el paso se cierre debajo. /dali no define lwSetView y
+      // sigue avanzando solo al elegir techo, como pidio el owner el 7-sep-2026.
+      var saltaSolo = t.name === 'lw-techo' && window.lwSetView;
+      if (paso < PASOS && !saltaSolo) avanza(1);
       return;
     }
     if (t.type === 'checkbox' && t.name === 'lw-extra') {
