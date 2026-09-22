@@ -4415,6 +4415,127 @@
         pon2('c-aprobada', String(aprob.length));
         pon2('c-resueltas', String(ss.filter(function (x) { return RESUELTAS.indexOf(x.estado) >= 0; }).length));
 
+        var porId = {}; ss.forEach(function (x) { porId[x.id] = x; });
+
+        /* ---------- ficha en cajon (S8, 22-sep-2026) ----------
+           Mismo patron que Usuarios/Compradores (`abreFicha` + `window.lwCajon`):
+           datos.js es SOLO LECTURA (cabecera del fichero), asi que esta funcion
+           solo PINTA la ficha y llama a lo que editores.js deja en
+           `window.LW_V4.*Solicitud` — nunca escribe por su cuenta. */
+        function quitaId() {
+          var u2 = new URL(location.href);
+          if (u2.searchParams.has('id')) { u2.searchParams.delete('id'); history.replaceState(null, '', u2.href); }
+        }
+        function abreFicha(x) {
+          var H = window.lwCajonHtml;
+          if (!(window.lwCajon && H)) { toast('La ficha aún no ha cargado — prueba de nuevo en un segundo.'); return; }
+          var c = ct[x.contrato_id]; var u = us[x.creado_por];
+          var miId = (window.LW_V4 && window.LW_V4.miId) || '';
+          var soyAdmin = !!(window.LW_V4 && window.LW_V4.esAdmin);
+          var mia = !!(miId && x.creado_por === miId);
+
+          var cuerpo = H.seccion('La solicitud',
+            H.dato('Quién pide', u ? (u.nombre || u.email) : '—') +
+            H.dato('Concepto', x.concepto) +
+            H.dato('Importe', fmt(x.importe, x.moneda || 'EUR')) +
+            H.dato('De la venta', c ? [c.numero, tipoC(c.tipo), c.proyecto_nombre].filter(Boolean).join(' · ') : null) +
+            H.dato('Fecha límite', x.vence_el ? fFecha(x.vence_el) : null) +
+            H.dato('Nota', x.nota) +
+            H.dato('Pedida', fFecha(x.creado_en)) +
+            // beneficiario_email/origen los fuerza el trigger de alta, nunca esta
+            // pantalla (correccion #5 de Administracion, revision previa #37):
+            // aqui solo se ENSEÑAN, no hay campo editable para ninguno de los dos.
+            H.dato('Origen', x.origen === 'comision_automatica' ? 'Comisión automática de manager' : 'Manual'));
+
+          if (x.estado !== 'pendiente') {
+            var tonoEstado = x.estado === 'pagada' ? 'ok' : x.estado === 'rechazada' ? 'mal' : x.estado === 'aprobada' ? 'espera' : null;
+            cuerpo += H.seccion('Resolución',
+              H.dato('Estado', H.tag(ETIQUETA[x.estado] || x.estado, tonoEstado), { html: 1 }) +
+              H.dato('Motivo', x.motivo_rechazo) +
+              H.dato('Resuelta por', x.resuelto_por ? ((us[x.resuelto_por] && (us[x.resuelto_por].nombre || us[x.resuelto_por].email)) || x.resuelto_por) + ' · ' + fFecha(x.resuelto_en) : null) +
+              H.dato('Pagada por', x.pagado_por ? ((us[x.pagado_por] && (us[x.pagado_por].nombre || us[x.pagado_por].email)) || x.pagado_por) + ' · ' + fFecha(x.pagado_en) : null) +
+              // opcional en la base (`solicitud_pagada_con_sello` solo exige
+              // `pagado_en`, nunca `pago_referencia`) — correccion #2: se enseña
+              // tal cual, sin fingir que siempre hay una.
+              H.dato('Referencia del pago', x.pago_referencia));
+          }
+
+          var acciones = [];
+          if (x.estado === 'pendiente' && soyAdmin) {
+            acciones.push({ texto: 'Aprobar', tono: 'primario', onClick: function () {
+              if (window.LW_V4.aprobarSolicitud) window.LW_V4.aprobarSolicitud(x);
+              else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
+            } });
+            acciones.push({ texto: 'Rechazar…', onClick: function () {
+              if (window.LW_V4.rechazarSolicitud) window.LW_V4.rechazarSolicitud(x);
+              else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
+            } });
+          }
+          // «Editar» exige TAMBIÉN pendiente, no solo autoría (correccion #3): la
+          // policy real es `es_admin() OR (creado_por=auth.uid() AND estado=
+          // 'pendiente')` — ofrecer el boton sobre una resuelta fallaria con 22023
+          // en vez de no pintarse.
+          if (x.estado === 'pendiente' && mia) {
+            acciones.push({ texto: 'Editar', onClick: function () {
+              if (window.LW_V4.abreAltaSolicitud) window.LW_V4.abreAltaSolicitud(x);
+              else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
+            } });
+            acciones.push({ texto: 'Anular', tono: 'peligro', onClick: function () {
+              if (window.LW_V4.anularSolicitud) window.LW_V4.anularSolicitud(x);
+              else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
+            } });
+          }
+          if (x.estado === 'aprobada' && soyAdmin) {
+            acciones.push({ texto: 'Marcar pagada…', tono: 'primario', onClick: function () {
+              if (window.LW_V4.pagarSolicitud) window.LW_V4.pagarSolicitud(x);
+              else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
+            } });
+          }
+          acciones.push({ texto: 'Cerrar', cerrar: true });
+
+          var cj = window.lwCajon({
+            sub: 'SP-' + x.numero + ' · ' + (ETIQUETA[x.estado] || x.estado),
+            titulo: u ? (u.nombre || u.email) : 'Solicitud de pago',
+            bajoTitulo: 'El pago se hace fuera de la suite (transferencia, Wise…); aquí queda pedido, aprobado y pagado.',
+            cuerpo: cuerpo, acciones: acciones, alCerrar: quitaId
+          });
+          var u2 = new URL(location.href);
+          u2.searchParams.set('id', x.id);
+          history.replaceState(null, '', u2.href);
+
+          /* Correccion #1 de Administracion (revision previa #37, ALTA): la
+             comision del manager (comisiones_devengadas con solicitud_id=esta
+             fila) no tiene ningun trigger que sincronice su estado cuando ESTA
+             solicitud pasa a pagada — riesgo de que quede «pendiente» con el
+             pago ya hecho. No se arregla el trigger que falta aqui (otra tarea):
+             solo se hace VISIBLE, y solo para las nacidas de una comision
+             automatica (las manuales no tienen fila que vincular). */
+          if (x.origen === 'comision_automatica' && cj && cj.cuerpo) {
+            sb.from('comisiones_devengadas').select('estado,pagado_en')
+              .eq('solicitud_id', x.id).eq('nivel', 'manager').maybeSingle()
+              .then(function (rcd) {
+                if (!cj.cuerpo.isConnected) return;   // el cajon ya se cerro
+                var html;
+                if (rcd.error || !rcd.data) {
+                  html = H.seccion('Comisión de manager vinculada',
+                    H.nota('No se encuentra la fila de comisiones_devengadas de esta comisión automática (o tu sesión no puede verla) — no hay sincronización automática entre las dos: compruébalo a mano si hace falta.'));
+                } else {
+                  var cd = rcd.data;
+                  var tonoCd = cd.estado === 'pagada' ? 'ok' : cd.estado === 'en_disputa' ? 'mal' : 'espera';
+                  var diverge = (x.estado === 'pagada') !== (cd.estado === 'pagada');
+                  html = H.seccion('Comisión de manager vinculada',
+                    H.dato('Estado en comisiones_devengadas', H.tag(cd.estado, tonoCd), { html: 1 }) +
+                    (diverge
+                      ? H.nota('⚠ Diverge de esta solicitud: nada sincroniza los dos estados automáticamente al marcar esta pagada. Si ya se pagó por un lado, revisa el otro a mano.')
+                      : ''));
+                }
+                cj.cuerpo.insertAdjacentHTML('beforeend', html);
+              });
+          }
+        }
+        window.LW_V4 = window.LW_V4 || {};
+        window.LW_V4.abreFichaSolicitud = function (id) { var x = porId[id]; if (x) abreFicha(x); };
+
         if (!tabla) return;
         if (!ss.length) {
           tabla.innerHTML = '<tr><td colspan="8" style="padding:18px;text-align:center;font:400 13px \'Neue Kabel\',sans-serif;color:#8A8474">Ninguna solicitud registrada.</td></tr>';
@@ -4429,36 +4550,90 @@
           var origenHtml = x.origen === 'comision_automatica'
             ? '<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;background:#104C4F;color:#fff;font:600 10.5px \'Neue Kabel\',sans-serif;text-transform:uppercase;letter-spacing:.04em"><span class="material-symbols-outlined" style="font-size:13px;line-height:1">bolt</span>Automática</span>'
             : '<span style="font:500 11px \'Neue Kabel\',sans-serif;color:#8A8474">Manual</span>';
-          return '<tr class="border-b border-outline-variant/30" data-estado="' + esc(x.estado) + '">' +
+          var venta = c ? [c.numero, tipoC(c.tipo), c.proyecto_nombre].filter(Boolean).join(' · ') : '';
+          var pajar = ['SP-' + x.numero, x.concepto, u ? (u.nombre || u.email) : '', venta].join(' ').toLowerCase();
+          return '<tr class="border-b border-outline-variant/30" style="cursor:pointer" data-id="' + esc(x.id) + '" data-estado="' + esc(x.estado) + '" data-creado-por="' + esc(x.creado_por || '') + '" data-pajar="' + esc(pajar) + '">' +
             '<td class="px-5 py-4 font-label-md text-label-md text-on-surface"><b>SP-' + esc(x.numero) + '</b></td>' +
             '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(u ? (u.nombre || u.email) : '—') + '</td>' +
             '<td class="px-5 py-4">' + origenHtml + '</td>' +
             '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(x.concepto || '—') + '</td>' +
             '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(fmt(x.importe, x.moneda || 'EUR')) + '</td>' +
-            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(c ? [c.numero, tipoC(c.tipo), c.proyecto_nombre].filter(Boolean).join(' · ') : '—') + '</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(venta || '—') + '</td>' +
             '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-surface-container-high font-label-md text-[11px] uppercase tracking-wider">' + esc(ETIQUETA[x.estado] || x.estado) + '</span></td>' +
-            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline text-right">' + diasDesde(x.creado_en) + ' d</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline text-right">' + esc(fFecha(x.creado_en)) + ' · ' + diasDesde(x.creado_en) + ' d</td>' +
             '</tr>';
         }).join('');
 
-        var chipsComisiones = ['todas', 'pendiente', 'aprobada', 'resueltas'].map(function (k) {
-          var sp = document.querySelector('[data-lw="c-' + k + '"]'); var b = sp && sp.closest('button');
-          if (b) b.setAttribute('data-chip-clave', k);
-          return b;
-        }).filter(Boolean);
-        cablearChipsFiltro(chipsComisiones, tabla, 'tr[data-estado]',
-          function (btn) { return btn.getAttribute('data-chip-clave'); },
-          'todas',
-          function (fila, clave) {
-            return clave === 'resueltas' ? RESUELTAS.indexOf(fila.getAttribute('data-estado')) >= 0
-                                          : fila.getAttribute('data-estado') === clave;
-          },
-          function (btn, on) {
-            btn.classList.toggle('bg-primary-container', on);
-            btn.classList.toggle('text-on-primary', on);
-            btn.classList.toggle('bg-surface-container-low', !on);
-            btn.classList.toggle('text-on-surface-variant', !on);
+        // una fila = una ficha (mismo patron que Usuarios/Compradores): delegado
+        // en el tbody porque los filtros de abajo esconden/enseñan filas.
+        tabla.addEventListener('click', function (ev) {
+          var tr = ev.target.closest && ev.target.closest('tr[data-id]');
+          if (!tr) return;
+          ev.preventDefault(); ev.stopPropagation();
+          var x = porId[tr.getAttribute('data-id')];
+          if (x) abreFicha(x);
+        });
+
+        /* ---------- filtros: chip de estado + agente (solo admin) + buscador ----------
+           Tres criterios independientes sobre las MISMAS filas — cablearChipsFiltro
+           es de una sola dimension y no basta con agente+buscador a la vez, asi que
+           aqui se combinan a mano sobre atributos `data-*` ya puestos en cada <tr>. */
+        var filtroEstado = 'todas', filtroAgente = '';
+        function aplicaFiltrosLawang() {
+          var buscadorEl = document.getElementById('lw-buscar');
+          var qTxt = ((buscadorEl && buscadorEl.value) || '').toLowerCase();
+          tabla.querySelectorAll('tr[data-id]').forEach(function (tr) {
+            var okEstado = filtroEstado === 'todas' ? true
+              : filtroEstado === 'resueltas' ? RESUELTAS.indexOf(tr.getAttribute('data-estado')) >= 0
+              : tr.getAttribute('data-estado') === filtroEstado;
+            var okAgente = !filtroAgente || tr.getAttribute('data-creado-por') === filtroAgente;
+            var okTexto = !qTxt || (tr.getAttribute('data-pajar') || '').indexOf(qTxt) !== -1;
+            tr.style.display = (okEstado && okAgente && okTexto) ? '' : 'none';
           });
+        }
+        var chipsComisiones = Array.prototype.slice.call(document.querySelectorAll('[data-chip-clave]'))
+          .filter(function (b) { return ['todas', 'pendiente', 'aprobada', 'resueltas'].indexOf(b.getAttribute('data-chip-clave')) !== -1; });
+        chipsComisiones.forEach(function (btn) {
+          btn.addEventListener('click', function (ev) {
+            ev.stopPropagation();   // si no, maqueta.js la ve pasar y avisa «sin cablear»
+            filtroEstado = btn.getAttribute('data-chip-clave');
+            chipsComisiones.forEach(function (b) {
+              var on = b === btn;
+              b.classList.toggle('bg-primary-container', on);
+              b.classList.toggle('text-on-primary', on);
+              b.classList.toggle('bg-surface-container-low', !on);
+              b.classList.toggle('text-on-surface-variant', !on);
+            });
+            aplicaFiltrosLawang();
+          });
+        });
+        var buscador = document.getElementById('lw-buscar');
+        if (buscador) buscador.addEventListener('input', aplicaFiltrosLawang);
+
+        // filtro por agente: SOLO admin (un agente ya ve solo lo suyo) y solo si
+        // hay mas de uno entre lo que la RLS dejo ver — mismo criterio que
+        // pintarFiltroAgente() en /intranet/solicitudes/.
+        var selAgente = document.getElementById('lw-fAgente');
+        if (selAgente) {
+          if (window.LW_V4 && window.LW_V4.esAdmin) {
+            var vistos = [];
+            ss.forEach(function (x) { if (x.creado_por && vistos.indexOf(x.creado_por) === -1) vistos.push(x.creado_por); });
+            if (vistos.length > 1) {
+              var opcionesAg = vistos.map(function (uid) {
+                var u2 = us[uid]; return { uid: uid, nombre: u2 ? (u2.nombre || u2.email) : uid };
+              }).sort(function (a, b) { return a.nombre.localeCompare(b.nombre, 'es'); });
+              selAgente.innerHTML = '<option value="">Todos los agentes</option>' +
+                opcionesAg.map(function (o) { return '<option value="' + esc(o.uid) + '">' + esc(o.nombre) + '</option>'; }).join('');
+              selAgente.hidden = false;
+              selAgente.addEventListener('change', function () { filtroAgente = selAgente.value; aplicaFiltrosLawang(); });
+            }
+          }
+        }
+
+        // ?id= abre la ficha directamente (enlace desde la campana, o tras
+        // guardar un editor que recarga la pagina).
+        var pedidoId = new URLSearchParams(location.search).get('id');
+        if (pedidoId && porId[pedidoId]) setTimeout(function () { abreFicha(porId[pedidoId]); }, 0);
       }
 
       function pintaEquipo(cd, eqs, miembros) {
@@ -5558,6 +5733,10 @@
          guarda aquí y no dentro de cada REG[seg], que solo recibe `sb`. */
       window.LW_V4 = window.LW_V4 || {};
       window.LW_V4.miEmail = (aut.session && aut.session.user && aut.session.user.email) || '';
+      // el uuid de sesion (auth.uid()): lo necesita cualquier pantalla que
+      // compare contra `creado_por` u otra columna de autoria, que es un uuid
+      // y no un email (S8, Comisiones/Solicitudes).
+      window.LW_V4.miId = (aut.session && aut.session.user && aut.session.user.id) || '';
       window.LW_V4.esAdmin = rol === 'admin' || rol === 'super_admin';
       /* Un peldano por encima: hay pantallas que ni los admin ven — hoy la
          Comision de administracion, que abre lo que el estudio le cobra al

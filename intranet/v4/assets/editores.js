@@ -2495,14 +2495,19 @@
       });
     },
 
-    /* Comisiones (antes «Solicitudes», renombrada 14-sep-2026). La pestaña «A
-       Lawang» sigue siendo solo lectura — su escritura real vive en
-       /intranet/solicitudes/, con la máquina de estados en la base. Lo único
-       nativo de aquí es «Marcar pagada» en «Reparto de equipo»: un UPDATE
-       directo sobre `comisiones_devengadas`, con la policy (manager del
-       equipo, o admin) como único gate — esta pantalla solo la refleja
-       (datos.js decide si enseñar el botón; la policy decide si el UPDATE
-       cuaja). */
+    /* Comisiones (antes «Solicitudes», renombrada 14-sep-2026).
+       «Reparto de equipo»: solo «Marcar pagada» (UPDATE directo sobre
+       `comisiones_devengadas`, policy = manager del equipo o admin).
+       «A Lawang» (S8, 22-sep-2026, paridad con /intranet/solicitudes/): TODAS
+       las transiciones van por UPDATE directo sobre `solicitudes_pago` — el
+       unico candado real es el trigger `trg_solicitud_pago_transicion`
+       (BEFORE UPDATE): pendiente→aprobada/rechazada exige es_admin(),
+       pendiente→anulada exige creado_por=auth.uid(), aprobada→pagada exige
+       es_admin(); cualquier otro salto lanza 22023. El motivo obligatorio en
+       rechazo es un CHECK aparte (`solicitud_rechazo_con_motivo`), tambien
+       server-side — aqui solo se refleja con `req:1`, nunca se ensancha nada.
+       Sin RPC ni edge: el INSERT/UPDATE directo ya esta cubierto por la RLS
+       real (revision previa #37, Seguridad VERDE). */
     comisiones: function (aut) {
       var sb = aut.sb;
       var miEmail = (aut.session && aut.session.user && aut.session.user.email) || '';
@@ -2518,6 +2523,87 @@
           }).eq('id', id).select('id').then(unaFila);   // 0 filas = la policy no deja (19-sep-2026)
         });
       };
+
+      /* ---------- alta / edición nativa (S8) ----------
+         Misma funcion para las dos: `existente` trae la fila a editar, o es
+         null/undefined para un alta. `beneficiario_email`/`origen`/
+         `creado_por` NUNCA viajan en el payload — los fuerza el trigger de
+         alta (`_trg_solicitud_pago_alta`), forzarlos aqui seria pisar lo que
+         ya decide la base. Moneda: SOLO EUR/USD/IDR (`solicitud_moneda_valida`
+         — correccion #4, NO las 4 de Parcelas/S1: con AUD el INSERT lo
+         rechaza). */
+      window.LW_V4.abreAltaSolicitud = function (existente) {
+        var x = existente || {};
+        sb.from('contratos').select('id,numero,tipo,proyecto_nombre').then(function (rc) {
+          if (rc.error) aviso('No se pudo cargar el listado de contratos: se ofrece sin selector de venta.', '#8A6A34');
+          var contratos = rc.error ? [] : (rc.data || []);
+          var opsContratos = [['', '— sin venta asociada —']].concat(
+            contratos.slice().sort(function (a, b) { return (a.numero || '').localeCompare(b.numero || '', 'es'); })
+              .map(function (c) { return [c.id, (c.numero || 'sin nº') + (c.proyecto_nombre ? ' — ' + c.proyecto_nombre : '')]; }));
+          modal(existente ? 'Editar SP-' + existente.numero : 'Nueva solicitud de pago', [
+            { k: 'concepto', label: 'Concepto — qué pago estás pidiendo', req: 1, valor: x.concepto || '' },
+            { k: 'importe', label: 'Importe', tipo: 'number', paso: '0.01', req: 1, medio: 1, valor: x.importe != null ? x.importe : '' },
+            { k: 'moneda', label: 'Moneda', tipo: 'select', medio: 1, opciones: ['EUR', 'USD', 'IDR'], valor: x.moneda || 'EUR' },
+            { k: 'contrato_id', label: 'De qué venta viene, si viene de una', tipo: 'select', valor: x.contrato_id || '', opciones: opsContratos },
+            { k: 'vence_el', label: 'Fecha límite', tipo: 'date', valor: x.vence_el || '' },
+            { k: 'nota', label: 'Nota para Administración', tipo: 'textarea', valor: x.nota || '' }
+          ], existente ? 'Guardar cambios' : 'Crear solicitud', function (v) {
+            var importe = Number(String(v.importe).replace(',', '.'));
+            if (!(importe > 0)) return { error: { message: 'el importe no se entiende — escribe un número mayor que cero' } };
+            var fila = {
+              concepto: v.concepto.trim(), importe: importe, moneda: v.moneda,
+              contrato_id: v.contrato_id || null,
+              vence_el: v.vence_el || null,
+              nota: v.nota.trim() || null
+            };
+            return (existente
+              ? sb.from('solicitudes_pago').update(fila).eq('id', existente.id)
+              : sb.from('solicitudes_pago').insert(fila)
+            ).select('id').then(unaFila);
+          });
+        });
+      };
+
+      /* ---------- aprobar / rechazar / anular / marcar pagada ----------
+         Cada una es un UPDATE directo de estado; el trigger decide si cuaja.
+         `.select('id')` + unaFila: la policy filtra sin dar error, 0 filas
+         seria un «guardado» mentiroso sobre nada. */
+      function resolverSolicitud(x, cambio) {
+        return sb.from('solicitudes_pago').update(cambio).eq('id', x.id).select('id').then(unaFila);
+      }
+      window.LW_V4.aprobarSolicitud = function (x) {
+        modal('Aprobar SP-' + x.numero, [
+          { tipo: 'nota', label: 'SP-' + x.numero + ' queda APROBADA — pendiente de pago. Solo la resuelve un administrador (el trigger lo exige igual que este aviso).' }
+        ], 'Aprobar', function () { return resolverSolicitud(x, { estado: 'aprobada' }); });
+      };
+      window.LW_V4.rechazarSolicitud = function (x) {
+        modal('Rechazar SP-' + x.numero, [
+          { k: 'motivo', label: 'Motivo del rechazo — se le enseña al compañero tal cual', tipo: 'textarea', req: 1 }
+        ], 'Rechazar la solicitud', function (v) {
+          // el CHECK solicitud_rechazo_con_motivo ya lo exige server-side; esto
+          // solo evita el viaje redondo cuando el campo llega vacío.
+          if (!v.motivo.trim()) return { error: { message: 'el motivo es obligatorio — sin él la base no acepta el rechazo' } };
+          return resolverSolicitud(x, { estado: 'rechazada', motivo_rechazo: v.motivo.trim() });
+        });
+      };
+      window.LW_V4.anularSolicitud = function (x) {
+        modal('Anular SP-' + x.numero, [
+          { tipo: 'nota', label: 'SP-' + x.numero + ' quedará anulada. No se borra: el registro se queda, sin efecto. Solo quien la creó puede anularla (el trigger lo exige igual que este aviso).' }
+        ], 'Anular', function () { return resolverSolicitud(x, { estado: 'anulada' }); });
+      };
+      window.LW_V4.pagarSolicitud = function (x) {
+        modal('Marcar pagada SP-' + x.numero, [
+          // opcional en la base (`solicitud_pagada_con_sello` solo exige
+          // pagado_en, nunca pago_referencia — correccion #2): sin `req`.
+          { k: 'referencia', label: 'Referencia del pago (opcional) — transferencia, Wise, fecha…', valor: '' }
+        ], 'Confirmar: pagada', function (v) {
+          return resolverSolicitud(x, { estado: 'pagada', pago_referencia: v.referencia.trim() || null });
+        });
+      };
+
+      /* «+ Nueva solicitud» de la cabecera: mismo patron `ata()` que el resto
+         de altas nativas de la v4 — reclama el boton por TEXTO, en directo. */
+      ata(/^\+? ?Nueva solicitud$/i, function () { window.LW_V4.abreAltaSolicitud(null); });
     },
 
     proyectos: function (aut) {

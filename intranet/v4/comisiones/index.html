@@ -83,13 +83,16 @@
 <div class="bg-surface-container-lowest rounded-xl p-4 shadow-sm flex flex-col lg:flex-row lg:items-center gap-4">
 <div class="relative flex-1 min-w-0">
 <span class="material-symbols-outlined text-[20px] text-outline absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">search</span>
-<input class="w-full pl-10 pr-4 py-2.5 rounded-full bg-surface-container-low border border-control-border/40 font-body-md text-body-md text-on-surface placeholder:text-outline focus:border-primary-container focus:ring-0" placeholder="Buscar por número, concepto o venta…" type="search"/>
+<input id="lw-buscar" class="w-full pl-10 pr-4 py-2.5 rounded-full bg-surface-container-low border border-control-border/40 font-body-md text-body-md text-on-surface placeholder:text-outline focus:border-primary-container focus:ring-0" placeholder="Buscar por número, concepto o venta…" type="search"/>
 </div>
+<!-- Solo para admin: para un agente todas las filas ya son suyas, y el filtro
+     sería una lista de una sola persona (mismo criterio que /intranet/solicitudes/). -->
+<select id="lw-fAgente" hidden class="px-4 py-2.5 rounded-full bg-surface-container-low border border-control-border/40 font-label-md text-[13px] text-on-surface-variant"></select>
 <div class="flex flex-wrap items-center gap-2">
-<button class="px-4 py-2 rounded-full bg-primary-container text-on-primary font-label-md text-[13px] font-medium shrink-0 flex items-center gap-1.5 transition-colors" type="button"><span>Todas</span><span class="text-on-primary/70" data-lw="c-todas">—</span></button>
-<button class="px-4 py-2 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container font-label-md text-[13px] font-medium shrink-0 flex items-center gap-1.5 transition-colors" type="button"><span class="w-2 h-2 rounded-full bg-error"></span><span>Pendientes</span><span class="text-outline" data-lw="c-pendiente">—</span></button>
-<button class="px-4 py-2 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container font-label-md text-[13px] font-medium shrink-0 flex items-center gap-1.5 transition-colors" type="button"><span class="w-2 h-2 rounded-full bg-burnt-earth"></span><span>Aprobadas</span><span class="text-outline" data-lw="c-aprobada">—</span></button>
-<button class="px-4 py-2 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container font-label-md text-[13px] font-medium shrink-0 flex items-center gap-1.5 transition-colors" type="button"><span class="w-2 h-2 rounded-full bg-stone-sand"></span><span>Resueltas</span><span class="text-outline" data-lw="c-resueltas">—</span></button>
+<button class="px-4 py-2 rounded-full bg-primary-container text-on-primary font-label-md text-[13px] font-medium shrink-0 flex items-center gap-1.5 transition-colors" type="button" data-chip-clave="todas"><span>Todas</span><span class="text-on-primary/70" data-lw="c-todas">—</span></button>
+<button class="px-4 py-2 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container font-label-md text-[13px] font-medium shrink-0 flex items-center gap-1.5 transition-colors" type="button" data-chip-clave="pendiente"><span class="w-2 h-2 rounded-full bg-error"></span><span>Pendientes</span><span class="text-outline" data-lw="c-pendiente">—</span></button>
+<button class="px-4 py-2 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container font-label-md text-[13px] font-medium shrink-0 flex items-center gap-1.5 transition-colors" type="button" data-chip-clave="aprobada"><span class="w-2 h-2 rounded-full bg-burnt-earth"></span><span>Aprobadas</span><span class="text-outline" data-lw="c-aprobada">—</span></button>
+<button class="px-4 py-2 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container font-label-md text-[13px] font-medium shrink-0 flex items-center gap-1.5 transition-colors" type="button" data-chip-clave="resueltas"><span class="w-2 h-2 rounded-full bg-stone-sand"></span><span>Resueltas</span><span class="text-outline" data-lw="c-resueltas">—</span></button>
 </div>
 </div>
 
@@ -105,7 +108,7 @@
 <th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Importe</th>
 <th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Venta</th>
 <th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline">Estado</th>
-<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline text-right">Días</th>
+<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline text-right">Cuándo</th>
 </tr>
 </thead>
 <tbody id="lw-filas">
