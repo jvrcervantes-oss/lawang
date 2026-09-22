@@ -350,6 +350,7 @@
 <section class="w-full px-6 md:px-margin-desktop py-14 bg-surface-alt border-y border-control-border/20" id="modelos">
 <div class="lw-wide flex flex-col gap-8">
   <div class="flex flex-col gap-2 lw-prose">
+    <span class="font-label-md text-xs uppercase tracking-widest text-territorial-green font-semibold">Catalog</span>
     <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal">Villa Typologies</h2>
     <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">Prices below are <b>construction only</b> — land price depends on the plot chosen in the masterplan.</p>
   </div>
@@ -1018,10 +1019,10 @@
   var SLUG_OK = /^[a-z0-9-]+$/;
   var DESTACADO = 'dream';   // "Most requested" es decisión comercial, no dato de BD.
 
-  // Estado sin render: mismo dibujo y mismo texto que /modelo/ (Diseño, 2-sep).
-  // Nunca un gris muerto ni un icono de imagen rota.
+  // Estado sin render: mismo dibujo y mismo texto que /modelo/ (Diseño, 2-sep),
+  // adaptado a la caja fija h-60 de la tarjeta "collection" (antes aspect-[4/3]).
   var SIN_RENDER =
-    '<div class="w-full aspect-[4/3] relative overflow-hidden bg-[#E4DFD5] flex flex-col items-center justify-center gap-2 text-deep-lagoon/70">' +
+    '<div class="w-full h-60 relative overflow-hidden bg-[#E4DFD5] flex flex-col items-center justify-center gap-2 text-deep-lagoon/70">' +
       '<svg viewBox="0 0 120 90" aria-hidden="true" class="w-20 h-auto">' +
         '<path d="M10 48 L60 12 L110 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>' +
         '<rect x="24" y="48" width="72" height="34" fill="none" stroke="currentColor" stroke-width="2.5"/>' +
@@ -1036,22 +1037,25 @@
     if(!SLUG_OK.test(slug)) return SIN_RENDER;
     var propia = (fotosModelo && fotosModelo.length) ? fotosModelo[0].src : null;
     var ruta = propia || ('../../../assets/img/buildings/' + slug + '/web/' + slug + '.webp');
-    return '<div class="w-full aspect-[4/3] relative overflow-hidden bg-surface-container" data-foto>' +
-      '<img src="' + esc(ruta) + '" alt="' + esc(nombre) + ' villa model" loading="lazy" ' +
-      'class="w-full h-full object-cover" data-render></div>';
+    return '<img src="' + esc(ruta) + '" alt="' + esc(nombre) + ' villa model" loading="lazy" ' +
+      'class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" data-render>';
   }
 
   // El precio solo entra en el conversor de divisa si de verdad viene en EUR:
   // `data-eur` le dice al selector "esto son euros". Etiquetar como EUR un importe
   // que la intranet guardó en otra moneda sería publicar una cifra falsa.
-  function precioModelo(precio, moneda){
-    if(precio == null) return '<span class="font-headline-sm text-xl font-bold text-deep-lagoon">Upon request</span>';
+  // `claseColor`: en la ficha (fondo claro) va text-deep-lagoon; superpuesto sobre
+  // la foto (tarjeta "collection", calcada de /modelo) va claro para leerse sobre
+  // el degradado oscuro.
+  function precioModelo(precio, moneda, claseColor){
+    var color = claseColor || 'text-deep-lagoon';
+    if(precio == null) return '<span class="font-kpi-number text-lg font-bold ' + color + '">Upon request</span>';
     var n = Number(precio);
-    if(!isFinite(n)) return '<span class="font-headline-sm text-xl font-bold text-deep-lagoon">Upon request</span>';
+    if(!isFinite(n)) return '<span class="font-kpi-number text-lg font-bold ' + color + '">Upon request</span>';
     if((moneda || 'EUR') === 'EUR'){
-      return '<span class="font-headline-sm text-xl font-bold text-deep-lagoon lw-money" data-eur="' + n + '">' + lwMoney(n) + '</span>';
+      return '<span class="font-kpi-number text-lg font-bold ' + color + ' lw-money" data-eur="' + n + '">' + lwMoney(n) + '</span>';
     }
-    return '<span class="font-headline-sm text-xl font-bold text-deep-lagoon">' +
+    return '<span class="font-kpi-number text-lg font-bold ' + color + '">' +
       esc(moneda) + ' ' + n.toLocaleString('en-GB') + '</span>';
   }
 
@@ -1059,49 +1063,53 @@
 
   var mg = document.getElementById('modelos-grid');
 
+  // Tarjeta calcada de "More from the collection" (#section-collection en
+  // /modelo/index.php), pedido del owner 22-sep: foto a toda anchura con
+  // degradado + nombre/precio superpuestos abajo, cuerpo con specs en una
+  // linea y CTA "View model" — en vez de la caja de specs 2x2 de antes.
+  // Enlaza a la ficha real de la villa (misma URL que usa /modelo entre si
+  // mismo, /modelo/<slug>), que ya esta en produccion.
   function pintaModelos(rows, porModelo){
     mg.innerHTML = '';
-    rows.forEach(function(m, i){
+    rows.forEach(function(m){
       var slug = String(m.slug == null ? '' : m.slug);
       var destacado = slug === DESTACADO;
-      var tag = 'Type ' + (i + 1 < 10 ? '0' : '') + (i + 1);
+      var specs = num(m.villa_m2) + ' m² built · +' + num(m.terraza_m2) + ' m² terrace &amp; pool · ' +
+        num(m.dormitorios) + ' bed · ' + num(m.banos) + ' bath';
 
-      var card = document.createElement('div');
-      card.className = 'bg-surface-container-lowest rounded-2xl overflow-hidden flex flex-col justify-between shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all border' +
-        (destacado ? ' border-2 border-territorial-green relative' : ' border-control-border/25');
+      var card = document.createElement(SLUG_OK.test(slug) ? 'a' : 'div');
+      if(SLUG_OK.test(slug)) card.href = '/modelo/' + slug;
+      card.className = 'bg-surface-container-lowest rounded-3xl overflow-hidden border shadow-md flex flex-col group hover:-translate-y-2 transition-all duration-300 relative' +
+        (destacado ? ' border-2 border-territorial-green' : ' border-control-border/25');
       card.innerHTML =
         (destacado ? '<span class="absolute top-3 right-3 z-10 bg-territorial-green text-white text-[10px] font-label-md font-bold px-3 py-0.5 rounded-full tracking-wider uppercase">Most requested</span>' : '') +
-        fotoModelo(slug, m.nombre, porModelo[slug]) +
-        '<span class="absolute top-3 left-3 bg-deep-lagoon text-white px-2.5 py-0.5 rounded-full text-xs font-label-md uppercase font-semibold" data-tag>' + esc(tag) + '</span>' +
-        '<div class="flex flex-col gap-4 p-6">' +
-          '<h3 class="font-headline-sm text-2xl font-bold text-deep-lagoon">' + esc(m.nombre) + '</h3>' +
-          '<div class="grid grid-cols-2 gap-2 text-xs font-body-sm text-on-surface-variant bg-surface-container-low p-3 rounded-lg border border-control-border/25">' +
-            '<div><strong>Built</strong><br>' + num(m.villa_m2) + ' m²</div>' +
-            '<div><strong>Terrace &amp; pool</strong><br>+' + num(m.terraza_m2) + ' m²</div>' +
-            '<div><strong>Bedrooms</strong><br>' + num(m.dormitorios) + '</div>' +
-            '<div><strong>Bathrooms</strong><br>' + num(m.banos) + '</div></div></div>' +
-        '<div class="px-6 pb-6 pt-5 border-t border-control-border/25 flex flex-col gap-3">' +
-          '<div class="flex items-baseline justify-between gap-3"><span class="text-xs text-on-surface-variant font-body-sm uppercase">Construction from</span>' + precioModelo(m.precio, m.moneda) + '</div>' +
-          '<span class="text-[11px] text-on-surface-variant">+ land price, per plot chosen below</span>' +
+        '<div class="relative h-60 overflow-hidden bg-volcanic-ash" data-foto>' +
+          fotoModelo(slug, m.nombre, porModelo[slug]) +
+          '<div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/85 via-transparent to-transparent pointer-events-none"></div>' +
+          '<div class="absolute bottom-4 left-4 right-4 flex justify-between items-end gap-2 pointer-events-none">' +
+            '<span class="text-white font-headline-sm text-xl font-bold">' + esc(m.nombre) + '</span>' +
+            precioModelo(m.precio, m.moneda, 'text-surface-container-lowest') +
+          '</div>' +
+        '</div>' +
+        '<div class="p-6 flex-1 flex flex-col justify-between gap-4">' +
+          '<p class="font-body-sm text-xs text-on-surface-variant leading-relaxed">' + specs + '. Construction only — land price depends on the plot chosen below.</p>' +
+          '<span class="w-full py-2.5 rounded-full bg-surface-container-low group-hover:bg-deep-lagoon group-hover:text-white text-deep-lagoon font-label-md text-xs font-semibold tracking-wide border border-control-border/25 transition-all flex items-center justify-center gap-1.5">' +
+            '<span>View model</span><span class="material-symbols-outlined text-[15px]">arrow_outward</span>' +
+          '</span>' +
         '</div>';
 
-      // La etiqueta "Type NN" va dentro del marco de la foto, exista render o no.
-      var marco = card.querySelector('[data-foto]') || card.firstElementChild;
-      var tagEl = card.querySelector('[data-tag]');
-      if(marco && tagEl && marco !== tagEl) marco.appendChild(tagEl);
-
-      // Si el render no está en disco, la tarjeta se cae sola al estado honesto.
+      // Si el render no está en disco, la caja de foto se cae sola al estado
+      // honesto (SIN_RENDER trae ya su propio degradado/fondo, no hace falta
+      // reponer el gradiente aparte).
       var img = card.querySelector('[data-render]');
       if(img){
         img.addEventListener('error', function(){
-          var caja = img.parentNode;
-          if(!caja || !caja.parentNode) return;
+          var caja = card.querySelector('[data-foto]');
+          if(!caja) return;
           var tmp = document.createElement('div');
           tmp.innerHTML = SIN_RENDER;
-          var nuevo = tmp.firstChild;
-          if(tagEl) nuevo.appendChild(tagEl);
-          caja.parentNode.replaceChild(nuevo, caja);
-          if(window.lwDeck) lwDeck.traduce(nuevo);
+          caja.replaceChild(tmp.firstChild, img);
+          if(window.lwDeck) lwDeck.traduce(caja);
         });
       }
       mg.appendChild(card);
