@@ -485,6 +485,31 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 <span class="font-label-md text-body-sm text-primary font-semibold">AC &amp; hot water included</span>
 </div>
 </div>
+<!-- 22-sep-2026: 2 hotspots más, mirados sobre la foto real (heroDay, 1672x941) — solo lo
+     que de verdad se ve Y de verdad está incluido (alcance.incluido de este modelo):
+     la terraza exterior es su propia línea del alcance, distinta de la piscina. El
+     jardín es descriptivo del entorno real (no una reclamación de qué incluye la
+     venta), así que no compite con el "no incluido" de mobiliario/decoración. -->
+<div class="hotspot group absolute z-20 -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110" id="hotspot-terraza" style="top:79%;left:63%" onclick="lwSetView('day')">
+<span class="absolute -inset-2.5 rounded-full bg-surface/30 animate-ping"></span>
+<span class="relative flex items-center justify-center w-8 h-8 rounded-full bg-surface/95 text-territorial-green shadow-xl border border-surface-container-highest">
+<span class="material-symbols-outlined text-[16px]">deck</span>
+</span>
+<div class="absolute left-10 top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col bg-surface/95 text-on-surface backdrop-blur-md px-3.5 py-1.5 rounded-xl shadow-xl pointer-events-none whitespace-nowrap min-w-[150px] border border-surface-container-highest">
+<span class="text-[10px] uppercase tracking-wider text-on-surface-variant font-medium"><?= lw_i18n('Terraza', 'Terrace') ?></span>
+<span class="font-label-md text-body-sm text-territorial-green font-semibold">Exterior terrace, included</span>
+</div>
+</div>
+<div class="hotspot group absolute z-20 -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110" id="hotspot-jardin" style="top:52%;left:9%" onclick="lwSetView('day')">
+<span class="absolute -inset-2.5 rounded-full bg-tertiary-fixed/30 animate-ping"></span>
+<span class="relative flex items-center justify-center w-8 h-8 rounded-full bg-surface/95 text-primary shadow-xl border border-surface-container-highest">
+<span class="material-symbols-outlined text-[16px]">park</span>
+</span>
+<div class="absolute left-10 top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col bg-surface/95 text-on-surface backdrop-blur-md px-3.5 py-1.5 rounded-xl shadow-xl pointer-events-none whitespace-nowrap min-w-[150px] border border-surface-container-highest">
+<span class="text-[10px] uppercase tracking-wider text-on-surface-variant font-medium"><?= lw_i18n('Jardín', 'Garden') ?></span>
+<span class="font-label-md text-body-sm text-primary font-semibold">Tropical garden setting</span>
+</div>
+</div>
 </div>
 
 <!-- HUD superior: real y estático, sin clima en vivo ni audio inventado -->
