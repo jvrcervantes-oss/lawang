@@ -1518,6 +1518,26 @@
   }
   function campoDeDoc(k) { return document.querySelector('#lw-editor [data-k="' + k + '"]'); }
   function ponCampoDoc(k, valor) { var el = campoDeDoc(k); if (el) el.value = valor || ''; }
+  /* Calco de bloquear()/soltarCampos() del clásico (22-sep-2026, owner:
+     «había campos que bloqueábamos al cargarlos desde el contrato»). Se
+     bloquea SOLO lo que el contrato ha rellenado de verdad — un hueco
+     bloqueado no protege nada y deja una factura que no se puede completar.
+     `readonly` y no `disabled`: disabled no entra en el `vals` del modal. Un
+     <select> no tiene readonly: se le quita el puntero y el tab. Y se pinta
+     distinto (crema, tinta apagada) con su porqué en el title: un campo gris
+     sin explicación se lee como una pantalla rota. */
+  function bloqueaCampoDoc(k, si) {
+    var el = campoDeDoc(k); if (!el) return;
+    if (el.tagName === 'SELECT') { el.style.pointerEvents = si ? 'none' : ''; el.tabIndex = si ? -1 : 0; }
+    else el.readOnly = !!si;
+    el.style.backgroundColor = si ? '#F1EBDD' : CAJ.papel;
+    el.style.color = si ? '#4A5052' : CAJ.tinta;
+    el.title = si ? 'Traído del contrato: se cambia en el contrato, no aquí' : '';
+    if (si) el.setAttribute('data-del-contrato', '1'); else el.removeAttribute('data-del-contrato');
+  }
+  function sueltaCamposDoc() {
+    Array.prototype.forEach.call(document.querySelectorAll('#lw-editor [data-del-contrato="1"]'), function (el) { bloqueaCampoDoc(el.getAttribute('data-k'), false); });
+  }
 
   /* Trae el contrato COMPLETO y rellena identidad/proyecto/moneda/sociedad/
      cuenta por el MISMO camino protegido que usa la ficha del contrato
@@ -1529,7 +1549,7 @@
      el contrato trae algo que exista en el catalogo cargado. */
   function aplicaContratoDoc(sb, id) {
     return sb.rpc('contratos_equipo')
-      .select('numero,tipo,moneda,precio_total,proyecto_id,campos:datos->fields,extras:datos->compradores,ficha:datos->>adq1_client_id')
+      .select('numero,tipo,moneda,precio_total,proyecto_id,contrato_padre_id,campos:datos->fields,hitos:datos->hitos,extras:datos->compradores,ficha:datos->>adq1_client_id')
       .eq('id', id).maybeSingle()
       .then(function (r) {
         if (r.error || !r.data) return { error: r.error || { message: 'contrato no encontrado' } };
@@ -1540,25 +1560,299 @@
         var email = primerDato(compradores, 'email');
         var unidad = [f.proyecto_nombre, f.parcela_codigo || f.villa_nombre || f.tipologia_villa].filter(Boolean).join(' — ');
         var puesto = [];
-        function poner(k, v, etq) { if (v) { ponCampoDoc(k, v); puesto.push(etq); } else { ponCampoDoc(k, ''); } }
+        // Se sueltan TODOS antes de poner: si no, al cambiar de contrato un
+        // campo que el nuevo no trae se quedaría gris y sin poder escribir.
+        sueltaCamposDoc();
+        function poner(k, v, etq) { if (v) { ponCampoDoc(k, v); puesto.push(etq); bloqueaCampoDoc(k, true); } else { ponCampoDoc(k, ''); bloqueaCampoDoc(k, false); } }
         poner('contrato_numero', data.numero, 'nº de contrato');
         poner('cliente_nombre', nombres, 'nombre');
         poner('cliente_documento', docs, 'documento');
         poner('cliente_email', email, 'email');
         poner('proyecto_nombre', unidad, 'proyecto');
-        if (data.moneda || f.moneda) ponCampoDoc('moneda', data.moneda || f.moneda);
-        if (f.sociedad_firmante && SOCIEDADES[f.sociedad_firmante]) ponCampoDoc('sociedad', f.sociedad_firmante);
-        if (f.cuenta_bancaria && CUENTAS_BANCARIAS[f.cuenta_bancaria]) ponCampoDoc('cuenta', f.cuenta_bancaria);
+        if (data.moneda || f.moneda) { ponCampoDoc('moneda', data.moneda || f.moneda); if (campoDeDoc('moneda')) { puesto.push('moneda'); bloqueaCampoDoc('moneda', true); } }
+        if (f.sociedad_firmante && SOCIEDADES[f.sociedad_firmante]) { ponCampoDoc('sociedad', f.sociedad_firmante); if (campoDeDoc('sociedad')) { puesto.push('sociedad'); bloqueaCampoDoc('sociedad', true); } }
+        if (f.cuenta_bancaria && CUENTAS_BANCARIAS[f.cuenta_bancaria]) { ponCampoDoc('cuenta', f.cuenta_bancaria); if (campoDeDoc('cuenta')) { puesto.push('cuenta de cobro'); bloqueaCampoDoc('cuenta', true); } }
         return {
-          numero: data.numero, comprador: nombres, clienteId: data.ficha || null,
+          id: id, numero: data.numero, comprador: nombres, clienteId: data.ficha || null,
           proyectoId: data.proyecto_id || null, moneda: data.moneda || f.moneda, puesto: puesto,
-          clienteNombre: nombres, clienteDocumento: docs, clienteEmail: email, proyectoNombre: unidad
+          clienteNombre: nombres, clienteDocumento: docs, clienteEmail: email, proyectoNombre: unidad,
+          // para el bloque «Del contrato» (hitos, total, encadenados)
+          precio: data.precio_total || f.precio_total, hitos: data.hitos || [], tipoContrato: data.tipo || '',
+          padreId: data.contrato_padre_id || null, nCompradores: compradores.length
         };
       }, function (e) { return { error: e }; });
   }
 
   /* Conceptos (líneas) de factura/proforma — {descripcion,importe}, misma
      forma que `LINEAS` de /intranet/facturas/. */
+  /* ═══ «DEL CONTRATO»: hitos, total del proyecto, encadenados (22-sep-2026)
+     Owner: «falta toda la parte de saber qué hitos están en el contrato…
+     trae absolutamente todo lo que tiene la versión estándar». Calco, función
+     a función, de pintarOpcionesContrato / marcarHitosUsados /
+     cargarHitosOtraFactura / precargarConceptos / soltarPrecargaAlCambiarTipo
+     / pintarVinculados / traerVinculado de /intranet/facturas/. Las
+     DESCRIPCIONES de línea son las mismas cadenas que allí (descHito,
+     «Precio total del contrato N», «[Tipo] hito», «Tipo — precio total del
+     contrato N»): es por ellas por lo que un hito facturado en el clásico se
+     ve tachado aquí y al revés. Los porqués de cada regla están en el
+     clásico y no se repiten: aquí solo lo que cambia de sitio. */
+  var estiloDelContratoPuesto = false;
+  function aseguraEstiloDelContrato() {
+    if (estiloDelContratoPuesto) return; estiloDelContratoPuesto = true;
+    var s = document.createElement('style'); s.id = 'lw-doc-contrato-css';
+    s.textContent = '.lw-dc{margin-top:4px;padding:11px 12px;border:1px solid ' + CAJ.borde + ';border-radius:11px;background:#f7f4ea}' +
+      '.lw-dc:empty{display:none}.lw-dc.lw-dc-vinc{padding:0;border:0;background:none;margin-top:0}' +
+      '.lw-dc .t{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:' + CAJ.apagado + '}' +
+      '.lw-dc .arrastrado{font-size:12px;color:' + CAJ.apagado + ';margin:5px 0 0;line-height:1.5}' +
+      '.lw-dc .pregunta{margin:11px 0 7px;font-size:13px;font-weight:600;color:' + CAJ.tinta + '}' +
+      '.lw-dc .hitos{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}' +
+      '.lw-dc .hito{font:inherit;font-size:12px;text-align:left;background:' + CAJ.papel + ';border:1px solid ' + CAJ.borde + ';border-radius:9px;padding:6px 10px;cursor:pointer;color:' + CAJ.tinta + '}' +
+      '.lw-dc .hito:hover{border-color:' + CAJ.lago + ';color:' + CAJ.lago + '}.lw-dc .hito b{color:' + CAJ.lago + '}' +
+      '.lw-dc .hito.usado,.lw-dc .hito:disabled{opacity:.45;text-decoration:line-through;cursor:not-allowed}' +
+      '.lw-dc .hito-todo{display:block;width:100%;text-align:left;cursor:pointer;padding:11px 13px;border:1px solid ' + CAJ.hoja + ';border-radius:11px;background:' + CAJ.papel + ';font:inherit;color:' + CAJ.tinta + '}' +
+      '.lw-dc .hito-todo .q{display:block;font-size:12.5px;font-weight:600;letter-spacing:-.01em}' +
+      '.lw-dc .hito-todo .n{display:block;margin-top:1px;font-size:19px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}' +
+      '.lw-dc .hito-todo .p{display:block;margin-top:2px;font-size:11.5px;color:' + CAJ.apagado + '}' +
+      '.lw-dc .hito-todo:hover{background:' + CAJ.banda + '}' +
+      '.lw-dc .hito-todo.usado,.lw-dc .hito-todo:disabled{opacity:.5;cursor:not-allowed;border-style:dashed}' +
+      '.lw-dc .hito-todo.doble{background:rgba(255,255,255,.55);margin:8px 0 9px}' +
+      '.lw-dc .excepcion{margin-top:12px}.lw-dc .excepcion>summary{cursor:pointer;font-size:11.5px;color:' + CAJ.apagado + ';list-style:none}' +
+      '.lw-dc .excepcion>summary::-webkit-details-marker{display:none}.lw-dc .excepcion>summary::before{content:"＋ ";font-size:10px}.lw-dc .excepcion[open]>summary::before{content:"− "}' +
+      '.lw-dc .vinc{margin-top:8px;padding:10px 12px;border:1px solid ' + CAJ.lago + ';border-left-width:3px;border-radius:10px;background:#EEF3EA}' +
+      '.lw-dc .vinc.malo{border-color:#9E2F26;background:#FBF3F1}' +
+      '.lw-dc .vinc-t{font-size:12.5px;font-weight:600;color:' + CAJ.lago + ';margin-bottom:3px}.lw-dc .vinc.malo .vinc-t{color:#9E2F26}' +
+      '.lw-dc .vinc p{margin:0;font-size:12px;color:#4A5052;line-height:1.45}' +
+      '.lw-dc .vinc-btn{margin-top:9px;font:inherit;font-size:12.5px;font-weight:500;padding:6px 11px;border-radius:999px;border:1px solid ' + CAJ.lago + ';background:' + CAJ.papel + ';color:' + CAJ.lago + ';cursor:pointer}' +
+      '.lw-dc .vinc-btn.usado,.lw-dc .vinc-btn:disabled{opacity:.5;cursor:not-allowed}' +
+      '.lw-dc .hito,.lw-dc .hito-todo{transition:transform .1s ease-out,background-color .12s ease-out,border-color .12s ease-out}' +
+      '.lw-dc .hito:active:not(:disabled),.lw-dc .hito-todo:active:not(:disabled){transform:scale(.98)}';
+    document.head.appendChild(s);
+  }
+  function descHitoDoc(h) {
+    return [h.texto, h.pct ? '(' + h.pct + '% del precio acordado)' : ''].filter(Boolean).join(' ') + (h.timing ? ' — ' + h.timing : '');
+  }
+  function hitosDeDoc(crudos, precio, moneda) {
+    return (crudos || []).map(function (h) {
+      var pct = parseImporte(h.pct);
+      var monto = parseImporte(h.monto) || (pct && precio ? redondear(precio * pct / 100, moneda) : 0);
+      return { texto: h.es || h.en || '', pct: pct, monto: monto, timing: h.timing || '' };
+    }).filter(function (h) { return h.texto || h.monto; });
+  }
+  function importeTxtDoc(n) { return String(n).replace('.', ','); }
+  // Fecha LOCAL, no UTC (hoyLocalISO del clásico): de noche en Bali
+  // toISOString() ya es mañana o todavía ayer, según el lado.
+  function hoyLocalDoc() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  /* ctx: { sb, lineas (api de montaLineasDoc), repinta, tipoActual(),
+     monedaActual(), sociedadActual(), esNuevo, propioId }. Devuelve
+     { pon(res), repinta(), marca(), alCambiarTipo(), limpia() }. */
+  function montaDelContratoDoc(host, ctx) {
+    aseguraEstiloDelContrato();
+    var caja = document.createElement('div'); caja.className = 'lw-dc';
+    var cajaV = document.createElement('div'); cajaV.className = 'lw-dc lw-dc-vinc';
+    host.appendChild(caja); host.appendChild(cajaV);
+    var C = null, DESC_TOTAL = '', DESC_UNIDAD = '', otraFactura = {}, huella = null;
+    var TE = function () { return (typeof TIPO_ES !== 'undefined') ? TIPO_ES : {}; };
+    var prelim = function (t) { return typeof lwEsPreliminar === 'function' && lwEsPreliminar(t); };
+    function filas() { return ctx.lineas ? ctx.lineas.todas() : []; }
+    function txt(l) { return (l.descripcion || '').trim(); }
+    function enBlanco() { return !filas().some(function (l) { return txt(l) || (l.importe || '').trim(); }); }
+    function anade(l) { ctx.lineas.anade(l); ctx.repinta(); }
+    function pon(ls) { ctx.lineas.pon(ls); ctx.repinta(); }
+    function cargaOtraFactura(contratoId) {
+      otraFactura = {};
+      if (!contratoId) return Promise.resolve();
+      return ctx.sb.from('facturas').select('id,numero,tipo,anulada,datos')
+        .eq('contrato_id', contratoId).eq('tipo', 'factura').eq('anulada', false).then(function (r) {
+          if (r.error) { console.error('hitos ya facturados:', r.error.message); return; }
+          (r.data || []).forEach(function (f) {
+            if (f.id === ctx.propioId) return;
+            (((f.datos || {}).lineas) || []).forEach(function (l) {
+              var d = (l.descripcion || '').trim(); if (d && !otraFactura[d]) otraFactura[d] = f.numero || 'otra factura';
+            });
+          });
+        });
+    }
+    function marca() {
+      var L = filas();
+      var hayTotal = !!DESC_TOTAL && L.some(function (l) { return txt(l) === DESC_TOTAL; });
+      var hayHito = L.some(function (l) { var d = txt(l); return d && d !== DESC_TOTAL; });
+      var botones = Array.prototype.slice.call(caja.querySelectorAll('[data-h]')).concat(Array.prototype.slice.call(cajaV.querySelectorAll('[data-vh]')));
+      botones.forEach(function (b) {
+        var desc = b.getAttribute('data-desc');
+        var usado = L.some(function (l) { return txt(l) === desc; });
+        var otra = !usado && otraFactura[desc];
+        b.disabled = usado || !!otra || hayTotal;
+        b.classList.toggle('usado', usado || !!otra);
+        b.title = usado ? 'Ya está en este documento'
+          : otra ? 'Ya facturado en ' + otra + ' — facturarlo otra vez lo cobraría dos veces'
+          : hayTotal ? 'Este documento factura el contrato entero: un hito encima cobraría de más' : '';
+      });
+      var bt = caja.querySelector('[data-todo]');
+      if (bt) { bt.disabled = hayTotal; bt.classList.toggle('usado', hayTotal); bt.title = hayTotal ? 'Ya está en este documento' : hayHito ? 'Sustituirá los conceptos que ya hay' : ''; }
+      Array.prototype.forEach.call(cajaV.querySelectorAll('[data-unidad],[data-vinc]'), function (b) {
+        var otra = b.getAttribute('data-otra');
+        var otraPuesta = !!otra && L.some(function (l) { return txt(l) === otra; });
+        if (b.hasAttribute('data-unidad')) {
+          var completa = otraPuesta && hayTotal;
+          b.disabled = completa; b.classList.toggle('usado', completa);
+          b.title = completa ? 'Ya está en este documento' : (hayHito || hayTotal ? 'Sustituirá los conceptos que ya hay' : '');
+        } else {
+          b.disabled = otraPuesta; b.classList.toggle('usado', otraPuesta);
+          b.title = otraPuesta ? 'Su precio total ya está en este documento: sus hitos encima lo cobrarían dos veces' : '';
+        }
+      });
+    }
+    function pinta() {
+      if (!C) { caja.innerHTML = ''; return; }
+      var esProforma = ctx.tipoActual() === 'proforma';
+      var precio = C.precio, moneda = C.moneda, hitos = C.hitos;
+      caja.innerHTML = '<div class="t">Del contrato ' + esc(C.numero || '') + '</div>' +
+        '<p class="arrastrado">' + (C.puesto.length ? 'Traído del contrato y <b>bloqueado</b>: ' + esc(C.puesto.join(', ')) + '.' : 'El contrato no tenía datos de cliente que traer.') +
+          (C.nCompradores > 1 ? ' Contrato a <b>' + C.nCompradores + ' nombres</b>.' : '') +
+          (precio ? ' Precio del contrato: <b>' + esc(fmtMoneda(precio, moneda)) + '</b>.' : '') + '</p>' +
+        ((precio || hitos.length) ? '<p class="pregunta">' + (esProforma ? 'Esta proforma declara el total del proyecto' : '¿Qué cobras en este documento?') + '</p>' : '') +
+        ((precio && esProforma) ? '<button type="button" class="hito-todo" data-todo="1"><span class="q">Total del proyecto</span>' +
+          '<span class="n">' + esc(fmtMoneda(precio, moneda)) + '</span><span class="p">Lo que se le comunica al cliente. Informativo: no factura ni vence</span></button>' : '') +
+        ((hitos.length && !esProforma) ? '<div class="hitos">' + hitos.map(function (h, i) {
+            return '<button type="button" class="hito" data-h="' + i + '">' + (h.pct ? '<b>' + esc(String(h.pct)) + '%</b> · ' : '') +
+              esc(h.texto || 'Hito ' + (i + 1)) + (h.monto ? ' · ' + esc(fmtMoneda(h.monto, moneda)) : '') + '</button>';
+          }).join('') + '</div><p class="arrastrado">Se factura el hito que se haya alcanzado.</p>' : '') +
+        ((precio && !esProforma) ? '<details class="excepcion"><summary>El proyecto se factura de una vez</summary>' +
+          '<button type="button" class="hito-todo" data-todo="1"><span class="q">Todo el contrato</span><span class="n">' + esc(fmtMoneda(precio, moneda)) + '</span>' +
+          '<span class="p">Una sola factura por el importe completo, sin hitos</span></button></details>' : '');
+      DESC_TOTAL = 'Precio total del contrato ' + (C.numero || '');
+      var bt = caja.querySelector('[data-todo]');
+      if (bt) {
+        bt.setAttribute('data-desc', DESC_TOTAL);
+        bt.addEventListener('click', function () {
+          if (bt.disabled) return;
+          var sigue = enBlanco() ? Promise.resolve(true) : lwConfirmar({
+            titulo: 'Sustituir los conceptos',
+            cuerpo: '<p>El documento ya tiene conceptos. Poner <b>todo el contrato</b> los reemplaza por una sola línea con el importe completo.</p>' +
+              '<p>Se hace así a propósito: dejar los dos cobraría el total <b>y</b> el hito, y el documento saldría creíble.</p>',
+            confirmar: 'Sustituir por el total', cancelar: 'Dejarlo como está' });
+          sigue.then(function (ok) {
+            if (!ok) return;
+            pon([{ descripcion: DESC_TOTAL, importe: importeTxtDoc(precio) }]);
+            toast((ctx.tipoActual() === 'proforma' ? 'Proforma' : 'Factura') + ' por el total del contrato: ' + fmtMoneda(precio, moneda));
+          });
+        });
+      }
+      Array.prototype.forEach.call(caja.querySelectorAll('[data-h]'), function (b) {
+        var h = hitos[+b.getAttribute('data-h')];
+        b.setAttribute('data-desc', descHitoDoc(h));
+        b.addEventListener('click', function () {
+          if (b.disabled) return;
+          anade({ descripcion: b.getAttribute('data-desc'), importe: h.monto ? importeTxtDoc(h.monto) : '' });
+          toast(h.monto ? 'Concepto añadido' : 'Concepto añadido — el contrato no fijaba importe, ponlo a mano');
+        });
+      });
+      marca();
+    }
+    function traeVinculado(c) {
+      var etiqueta = TE()[c.tipo] || c.tipo || 'Vinculado', moneda = C.moneda;
+      var precio = parseImporte(c.precio_total || (c.campos || {}).precio_total);
+      var hitos = hitosDeDoc(c.hitos, precio, moneda);
+      if (!hitos.length) { toastMal('Ese contrato no tiene hitos de pago que traer'); return; }
+      var box = document.createElement('div'); box.className = 'hitos';
+      box.innerHTML = hitos.map(function (h, i) {
+        return '<button type="button" class="hito" data-vh="' + i + '">[' + esc(etiqueta) + '] ' + (h.pct ? '<b>' + esc(String(h.pct)) + '%</b> · ' : '') +
+          esc(h.texto || 'Hito ' + (i + 1)) + (h.monto ? ' · ' + esc(fmtMoneda(h.monto, moneda)) : '') + '</button>';
+      }).join('');
+      cajaV.appendChild(box);
+      Array.prototype.forEach.call(box.querySelectorAll('[data-vh]'), function (b) {
+        var h = hitos[+b.getAttribute('data-vh')], desc = '[' + etiqueta + '] ' + descHitoDoc(h);
+        b.setAttribute('data-desc', desc);
+        b.addEventListener('click', function () {
+          if (b.disabled) return;
+          anade({ descripcion: desc, importe: h.monto ? importeTxtDoc(h.monto) : '', origen_contrato_id: c.id });
+          toast(h.monto ? 'Concepto añadido' : 'Concepto añadido — el contrato no fijaba importe, ponlo a mano');
+        });
+      });
+      marca();
+      var btn = cajaV.querySelector('[data-vinc="' + c.id + '"]'); if (btn) btn.remove();
+    }
+    function pintaVinculados() {
+      cajaV.innerHTML = '';
+      if (!C) return Promise.resolve();
+      var ors = ['contrato_padre_id.eq.' + C.id]; if (C.padreId) ors.push('id.eq.' + C.padreId);
+      return ctx.sb.rpc('contratos_equipo').select('id,numero,tipo,precio_total,campos:datos->fields,hitos:datos->hitos').or(ors.join(',')).then(function (r) {
+        if (r.error || !r.data || !r.data.length) return;
+        var data = r.data, sociedadP = ctx.sociedadActual(), monedaP = C.moneda;
+        cajaV.innerHTML = data.map(function (c) {
+          var socC = (c.campos || {}).sociedad_firmante || '';
+          var compatible = !socC || !sociedadP || socC === sociedadP;
+          var etiqueta = TE()[c.tipo] || c.tipo || 'Vinculado';
+          var precioC = parseImporte(c.precio_total || (c.campos || {}).precio_total);
+          var monedaC = (c.campos || {}).moneda || monedaP;
+          var sumable = compatible && precioC && C.precio && !prelim(c.tipo) && !prelim(C.tipoContrato) && monedaC === monedaP;
+          var totalUnidad = sumable ? C.precio + precioC : 0;
+          return compatible
+            ? '<div class="vinc" role="status"><div class="vinc-t">Este contrato va encadenado con ' + esc(c.numero) + '</div>' +
+              '<p>La venta está en dos contratos: <b>' + esc(etiqueta) + '</b> es el otro. Puedes cobrar los dos en este mismo documento.</p>' +
+              (sumable ? '<button type="button" class="hito-todo doble" data-unidad="' + esc(c.id) + '"><span class="q">Toda la unidad · los dos contratos</span>' +
+                '<span class="n">' + esc(fmtMoneda(totalUnidad, monedaP)) + '</span><span class="p">' + esc(fmtMoneda(C.precio, monedaP)) + ' de este + ' +
+                esc(fmtMoneda(precioC, monedaP)) + ' de ' + esc(c.numero) + '</span></button>' : '') +
+              '<button type="button" class="vinc-btn" data-vinc="' + esc(c.id) + '">Traer los conceptos de ' + esc(c.numero) + '</button></div>'
+            : '<div class="vinc malo" role="status"><div class="vinc-t">' + esc(c.numero) + ' (' + esc(etiqueta) + ') va encadenado con este</div>' +
+              '<p>Pero lo emite <b>otra sociedad</b>, así que no se puede combinar en la misma factura: sería una sociedad cobrando el ingreso de otra.</p></div>';
+        }).join('');
+        Array.prototype.forEach.call(cajaV.querySelectorAll('[data-vinc]'), function (b) {
+          var c = data.filter(function (x) { return x.id === b.getAttribute('data-vinc'); })[0];
+          b.addEventListener('click', function () { if (!b.disabled) traeVinculado(c); });
+        });
+        Array.prototype.forEach.call(cajaV.querySelectorAll('[data-unidad]'), function (b) {
+          var c = data.filter(function (x) { return x.id === b.getAttribute('data-unidad'); })[0];
+          var precioC = parseImporte(c.precio_total || (c.campos || {}).precio_total), total = C.precio + precioC;
+          DESC_UNIDAD = 'Precio total del contrato ' + (C.numero || '');
+          var descOtro = (TE()[c.tipo] || c.tipo || 'Vinculado') + ' — precio total del contrato ' + c.numero;
+          b.setAttribute('data-otra', descOtro);
+          var btnTraer = cajaV.querySelector('[data-vinc="' + c.id + '"]'); if (btnTraer) btnTraer.setAttribute('data-otra', descOtro);
+          b.addEventListener('click', function () {
+            if (b.disabled) return;
+            var sigue = enBlanco() ? Promise.resolve(true) : lwConfirmar({
+              titulo: 'Facturar la unidad completa',
+              cuerpo: '<p>Sustituye los conceptos por <b>dos líneas</b>: el precio total de cada uno de los dos contratos.</p>' +
+                '<p>Dos líneas y no una a propósito: son dos relaciones jurídicas con el mismo comprador, y fundirlas borra a qué contrato corresponde cada euro.</p>',
+              confirmar: 'Sustituir por los dos', cancelar: 'Dejarlo como está' });
+            sigue.then(function (ok) {
+              if (!ok) return;
+              pon([{ descripcion: DESC_UNIDAD, importe: importeTxtDoc(C.precio) }, { descripcion: descOtro, importe: importeTxtDoc(precioC) }]);
+              toast('Factura por la unidad completa: ' + fmtMoneda(total, monedaP));
+            });
+          });
+        });
+        marca();
+      });
+    }
+    function precarga() {
+      if (!ctx.esNuevo || ctx.tipoActual() !== 'proforma' || !enBlanco()) return;
+      var auto = caja.querySelector('[data-todo]'); if (!auto || auto.disabled) return;
+      auto.click();
+      setTimeout(function () { huella = JSON.stringify(filas()); }, 60);
+      setTimeout(function () { toast('Proforma precargada con el total del proyecto'); }, 350);
+    }
+    function sueltaPrecarga() {
+      if (!huella || ctx.tipoActual() === 'proforma') return;
+      if (JSON.stringify(filas()) !== huella) { huella = null; return; }
+      huella = null; pon([{ descripcion: '', importe: '' }]);
+      toast('Conceptos vaciados: el total del proyecto es de la proforma, no de una factura');
+    }
+    return {
+      pon: function (res) {
+        var moneda = ctx.monedaActual() || res.moneda || 'EUR', precio = parseImporte(res.precio);
+        C = { id: res.id, numero: res.numero, tipoContrato: res.tipoContrato, padreId: res.padreId, puesto: res.puesto || [],
+              nCompradores: res.nCompradores || 0, precio: precio, moneda: moneda, hitos: hitosDeDoc(res.hitos, precio, moneda) };
+        caja.innerHTML = '<div class="t">Cargando contrato…</div>';
+        return cargaOtraFactura(res.id).then(pinta).then(pintaVinculados).then(precarga);
+      },
+      repinta: function () { if (C) pinta(); },
+      marca: marca,
+      alCambiarTipo: function () { sueltaPrecarga(); if (C) pinta(); },
+      limpia: function () { C = null; caja.innerHTML = ''; cajaV.innerHTML = ''; }
+    };
+  }
+
   function montaLineasDoc(host, iniciales, alCambiar) {
     var filas = (iniciales && iniciales.length)
       ? iniciales.map(function (l) { return { descripcion: l.descripcion || '', importe: l.importe || '' }; })
@@ -1601,7 +1895,17 @@
     }
     repinta();
     btnAdd.addEventListener('click', function () { filas.push({ descripcion: '', importe: '' }); repinta(); });
-    return function () { return filas.filter(function (f) { return (f.descripcion || '').trim() || (f.importe || '').trim(); }); };
+    var api = function () { return filas.filter(function (f) { return (f.descripcion || '').trim() || (f.importe || '').trim(); }); };
+    // Para el bloque «Del contrato» (22-sep-2026): los hitos y el total del
+    // contrato ESCRIBEN líneas, igual que LINEAS en el clásico. `anade` quita
+    // la única línea en blanco antes de meter la primera, como allí.
+    api.todas = function () { return filas; };
+    api.pon = function (nuevas) { filas = (nuevas || []).map(function (l) { return Object.assign({}, l); }); if (!filas.length) filas = [{ descripcion: '', importe: '' }]; repinta(); };
+    api.anade = function (l) {
+      if (filas.length === 1 && !(filas[0].descripcion || '').trim() && !(filas[0].importe || '').trim()) filas = [];
+      filas.push(Object.assign({}, l)); repinta();
+    };
+    return api;
   }
 
   /* Justificantes de un recibí — mismo bucket ('justificantes'), misma
@@ -1822,6 +2126,17 @@
       b.setAttribute('aria-disabled', ok ? 'false' : 'true');
       b.setAttribute('data-porque', ok ? '' : porque); b.title = ok ? '' : porque;
       b.style.opacity = ok ? '1' : '.45';
+    }
+    /* «Emitir» pequeño y junto a «Vista previa» (owner, 22-sep-2026): el
+       submit del modal se MUEVE aquí (sigue dentro del <form>, así que
+       sigue siendo el submit y el modal lo sigue encontrando por data-e) y
+       el pie del cajón se esconde — la × de la cabecera cierra. */
+    if (ctx.principal) {
+      var pie = ctx.principal.parentNode;
+      ctx.principal.style.cssText = 'flex:0 0 auto;padding:6px 16px;border-radius:999px;border:0;background:' + CAJ.lago +
+        ';color:#fff;font-weight:600;font-size:12.5px;cursor:pointer;white-space:nowrap;line-height:1.3;margin-left:6px';
+      barra.insertBefore(ctx.principal, sp);
+      if (pie) pie.style.display = 'none';
     }
     var bPdf = btn('Descargar PDF', function () { imprimeDoc(ctx.getVals(), ctx.saved); });
     var bMail = btn('Enviar por email', function () { enviaDocMail(ctx.sb, ctx.getVals(), ctx.saved, ctx.alEnviado); });
@@ -2045,7 +2360,9 @@
          fuente de la intranet, no en Jost (mismo fallo que el correo del
          6-ago, ver documentoPagina()). `zoom:.58` y scroll lateral ≤560px,
          como el móvil del clásico (31-jul). */
-    s.textContent = '.lw-doc-split{display:grid;grid-template-columns:minmax(400px,500px) 1fr;gap:18px;align-items:start;min-width:0}' +
+    // minmax(480px,600px) y no los 400-500 del clásico: owner, 22-sep-2026,
+    // «la parte de escribir documentación que ocupe un 20% más».
+    s.textContent = '.lw-doc-split{display:grid;grid-template-columns:minmax(480px,600px) 1fr;gap:18px;align-items:start;min-width:0}' +
       '.lw-doc-split>div{min-width:0}' +
       '.lw-doc-split>.lw-doc-prev{position:sticky;top:0;max-height:calc(100vh - 180px);display:flex;flex-direction:column}' +
       '.lw-doc-pv{flex:1 1 auto;min-height:0;overflow:auto;background:#eae5d8;padding:22px 0 60px;display:flex;justify-content:center}' +
@@ -2179,12 +2496,17 @@
               vals[el.getAttribute('data-k')] = el.type === 'checkbox' ? el.checked : el.value;
             });
             vals.lineas = getLineas ? getLineas() : [];
+            // El papel imprime «Contrato · Contract: N» desde d.contrato_numero
+            // (documentoHTML). El clásico lo lleva en un input oculto; aquí no
+            // hay campo, así que se pone aquí — sin esto la línea no salía.
+            vals.contrato_numero = estadoContrato.numero || '';
             return vals;
           }
-          var repasaBarra = null;
+          var repasaBarra = null, delC = null;
           function repintaPreview() {
             repintaSplitDoc(piezas, recogeVals(), existente ? (existente.numero || '') : '');
             if (repasaBarra) repasaBarra();
+            if (delC) delC.marca();
           }
           piezas.wrap.addEventListener('input', repintaPreview);
           piezas.wrap.addEventListener('change', repintaPreview);
@@ -2193,17 +2515,22 @@
           // emitir: las acciones reales llegan en el visor que abre «Emitir».
           repasaBarra = montaBarraDoc(piezas, {
             sb: sb, getVals: recogeVals, esRecibi: false,
+            principal: document.querySelector('#lw-editor [data-e="guardar"]'),
             saved: existente
               ? { id: existente.id, numero: existente.numero, tipo: existente.tipo, contrato_id: existente.contrato_id, emisor: existente.datos && existente.datos.emisor }
               : { tipo: 'factura' },
             alEnviado: function () { cierraModal(); location.reload(); }
           });
 
-          campoSimpleDoc(host, {
+          var selTipo = campoSimpleDoc(host, {
             k: 'tipo', label: 'Tipo de documento', tipo: 'select',
             valor: existente ? existente.tipo : (pre.tipo === 'proforma' ? 'proforma' : 'factura'),
             opciones: [['factura', 'Factura'], ['proforma', 'Factura proforma']]
           });
+          // Qué se ofrece depende del tipo (la proforma pide el total, la
+          // factura un hito) y el total precargado de una proforma se va al
+          // dejar de serlo — mismo listener que $('#selTipo') en el clásico.
+          selTipo.addEventListener('change', function () { if (delC) delC.alCambiarTipo(); });
 
           var secDoc = seccionFijaDoc(host, 'Documento');
           var lblC = document.createElement('div'); lblC.textContent = 'Contrato';
@@ -2214,18 +2541,33 @@
           btnC.textContent = estadoContrato.numero ? estadoContrato.numero : '— elige un contrato —';
           var notaC = document.createElement('p'); notaC.style.cssText = 'margin:0;font-size:12px;color:' + CAJ.apagado;
           secDoc.appendChild(lblC); secDoc.appendChild(btnC); secDoc.appendChild(notaC);
+          // «Del contrato»: hitos, total, encadenados — va justo debajo del
+          // contrato, como #delContrato/#delVinculado en el clásico.
+          // `ctxDelC.lineas` se rellena más abajo, cuando existen las líneas
+          // (el bloque va arriba, bajo el contrato; los conceptos, después).
+          var ctxDelC = {
+            sb: sb, lineas: null, repinta: repintaPreview, esNuevo: !existente, propioId: existente ? existente.id : null,
+            tipoActual: function () { return selTipo.value; },
+            monedaActual: function () { var m = campoDeDoc('moneda'); return m ? m.value : 'EUR'; },
+            sociedadActual: function () { var s = campoDeDoc('sociedad'); return s ? s.value : ''; }
+          };
+          delC = montaDelContratoDoc(secDoc, ctxDelC);
+          function contratoCargado(id, res) {
+            estadoContrato.id = id; estadoContrato.numero = res.numero; estadoContrato.clienteId = res.clienteId;
+            btnC.textContent = res.numero + ' · ' + (res.comprador || '—');
+            notaC.textContent = '';
+            repintaPreview();
+            delC.pon(res).then(repintaPreview);
+          }
           btnC.addEventListener('click', function () {
-            lwElegir({ titulo: 'Elige un contrato', opciones: opcionesContratoPickerDoc(contratosLigeros), valor: estadoContrato.id })
+            lwElegir({ titulo: 'Elige un contrato', buscarPh: 'Número, comprador o proyecto…', opciones: opcionesContratoPickerDoc(contratosLigeros), valor: estadoContrato.id })
               .then(function (id) {
                 if (id === null) return;
                 var antes = btnC.textContent; btnC.disabled = true; btnC.textContent = 'Cargando…';
                 aplicaContratoDoc(sb, id).then(function (res) {
                   btnC.disabled = false;
                   if (res.error) { toastMal(lwErrorHumano(res.error, 'No se pudo cargar el contrato')); btnC.textContent = antes; return; }
-                  estadoContrato.id = id; estadoContrato.numero = res.numero; estadoContrato.clienteId = res.clienteId;
-                  btnC.textContent = res.numero + ' · ' + (res.comprador || '—');
-                  notaC.textContent = res.puesto.length ? 'Traído del contrato: ' + res.puesto.join(', ') + '.' : 'El contrato no tenía datos de cliente que traer.';
-                  repintaPreview();
+                  contratoCargado(id, res);
                 });
               });
           });
@@ -2234,21 +2576,21 @@
           // documento nunca trajo `contrato_numero`, y este refresco automático
           // pisaría en silencio los datos ya guardados con lo que diga HOY el
           // contrato. Cambiar el contrato SÍ trae datos — pero solo con un clic.
-          if (!existente && estadoContrato.id && !estadoContrato.numero) {
-            aplicaContratoDoc(sb, estadoContrato.id).then(function (res) {
-              if (res.error) return;
-              estadoContrato.numero = res.numero; estadoContrato.clienteId = res.clienteId;
-              btnC.textContent = res.numero + ' · ' + (res.comprador || '—');
-              repintaPreview();
-            });
-          }
+          /* Con contrato ya conocido —documento guardado que se reabre, o
+             proforma que llega desde la ficha del contrato— se carga IGUAL
+             que al elegirlo: como abrir() → traerContrato() del clásico, el
+             panel de hitos se repinta para ESTE contrato y los campos que
+             trae quedan bloqueados (auditoría 19-ago: si no, se quedaba el
+             panel del documento anterior). Va al final del render, cuando
+             todos los campos ya existen — `poner` escribe en ellos. */
+          var contratoInicial = estadoContrato.id;
           var filaDM = filaDosDoc(secDoc);
           campoSimpleDoc(filaDM, { k: 'moneda', label: 'Moneda', tipo: 'select', valor: f0.moneda || 'EUR', opciones: ['EUR', 'USD', 'AUD', 'IDR'] });
           campoSimpleDoc(filaDM, { label: 'Nº de documento', readonly: 1, valor: existente ? (existente.numero || '') : 'Lo asigna la base al guardar' });
 
           var secFechas = seccionFijaDoc(host, 'Fechas');
           var filaF = filaDosDoc(secFechas);
-          campoSimpleDoc(filaF, { k: 'fecha_emision', label: 'Fecha de emisión', tipo: 'date', valor: f0.fecha_emision || new Date().toISOString().slice(0, 10) });
+          campoSimpleDoc(filaF, { k: 'fecha_emision', label: 'Fecha de emisión', tipo: 'date', valor: f0.fecha_emision || hoyLocalDoc() });
           campoSimpleDoc(filaF, { k: 'fecha_vencimiento', label: 'Vencimiento (opcional)', tipo: 'date', valor: f0.fecha_vencimiento || '' });
 
           var secEmisor = seccionPlegableDoc(host, 'Emisor', true);
@@ -2278,15 +2620,26 @@
 
           var secConceptos = seccionFijaDoc(host, 'Conceptos');
           getLineas = montaLineasDoc(secConceptos, lineas0, repintaPreview);
+          ctxDelC.lineas = getLineas;
 
-          var secImp = seccionPlegableDoc(host, 'Impuesto (opcional)', false);
+          // Plegados salvo que traigan algo (abrirLoQueTengaContenido del
+          // clásico): un dato que está en el papel y no se ve en el
+          // formulario es la forma más fácil de reemitir algo sin enterarse.
+          var secImp = seccionPlegableDoc(host, 'Impuesto (opcional)', !!(f0.imp_etiqueta || f0.imp_pct));
           campoSimpleDoc(secImp, { k: 'imp_etiqueta', label: 'Impuesto — etiqueta', valor: f0.imp_etiqueta || '', ayuda: 'Ej. PPN' });
           campoSimpleDoc(secImp, { k: 'imp_pct', label: 'Impuesto — porcentaje', valor: f0.imp_pct || '' });
 
-          var secNotas = seccionPlegableDoc(host, 'Notas (opcional)', false);
+          var secNotas = seccionPlegableDoc(host, 'Notas (opcional)', !!f0.notas);
           campoSimpleDoc(secNotas, { k: 'notas', label: 'Notas', tipo: 'textarea', valor: f0.notas || '' });
 
           repintaPreview();
+          if (contratoInicial) {
+            btnC.textContent = 'Cargando…';
+            aplicaContratoDoc(sb, contratoInicial).then(function (res) {
+              if (res.error) { btnC.textContent = estadoContrato.numero || '— elige un contrato —'; toastMal(lwErrorHumano(res.error, 'No se pudo cargar el contrato')); return; }
+              contratoCargado(contratoInicial, res);
+            });
+          }
         } });
 
         modal(existente ? 'Editar ' + (existente.numero || 'documento') : 'Nuevo documento', campos,
@@ -2296,6 +2649,7 @@
             if (!v.cliente_nombre) return { error: { message: 'Falta «Nombre o razón social».' } };
             var lineas = getLineas ? getLineas() : [];
             var d = v; d.lineas = lineas;
+            d.contrato_numero = estadoContrato.numero || '';   // lo que imprime el papel, como el input oculto del clásico
             var t = calcTotales(lineas, d.moneda, { pct: d.imp_pct });
             if (!t.subtotal) return { error: { message: 'El documento no tiene importe.' } };
             var payload = {
@@ -2590,7 +2944,7 @@
 
           var secFechas = seccionFijaDoc(host, 'Fechas');
           var filaF = filaDosDoc(secFechas);
-          campoSimpleDoc(filaF, { k: 'fecha_emision', label: 'Fecha de emisión', tipo: 'date', valor: f0.fecha_emision || new Date().toISOString().slice(0, 10) });
+          campoSimpleDoc(filaF, { k: 'fecha_emision', label: 'Fecha de emisión', tipo: 'date', valor: f0.fecha_emision || hoyLocalDoc() });
           campoSimpleDoc(filaF, { k: 'fecha_vencimiento', label: 'Vencimiento (opcional)', tipo: 'date', valor: f0.fecha_vencimiento || '' });
 
           var secEmisor = seccionPlegableDoc(host, 'Emisor', true);
