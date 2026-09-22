@@ -1656,15 +1656,252 @@
   /* Ver un documento ya emitido: cajón con un <iframe> a la herramienta
      clásica en modo `?vista=1` (mismo origen, misma sesión, sin exigir el
      permiso de emitir). Nunca se reescribe el render aquí. */
+  /* ═══ ACCIONES DEL DOCUMENTO — la barra de la previa del clásico (22-sep-2026)
+     Owner: «te faltan todos los botones de herramientas que había en la
+     intranet antigua». Son los de `.pv-bar` de /intranet/facturas/: Descargar
+     PDF · Enviar por email · Crear recibí · 📨 Registro (Guardar ya es el
+     «Emitir» del pie del cajón). Viven en TRES sitios con el mismo código:
+     la barra de la previa de los dos editores (factura y recibí), el visor
+     que se abre al emitir, y la ficha de factura de datos.js (via
+     window.LW_V4.*). Reglas de activación calcadas de `razon()` del clásico,
+     con su porqué: sin número no hay PDF ni email (9-sep-2026, owner: se
+     pudo descargar un documento que no existía en la base y no se
+     distinguía de uno emitido); el recibí solo nace de una FACTURA guardada.
+     El diálogo del email y el registro van en `lwConfirmar` (dialogo.js):
+     es lo único que se apila por encima del cajón del editor — `modal()`
+     cierra el anterior al abrirse y `cajon()` queda por debajo. */
+  function limpiaNombreDoc(s) {
+    return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_');
+  }
+  function tipoDocEs(vals) {
+    return ((typeof TIPOS_DOC !== 'undefined' && TIPOS_DOC[vals.tipo]) || { es: 'Factura' }).es;
+  }
+  // La MISMA página que arma el renderizador de PDF (correo, factura
+  // automática de la firma): lo que se descarga es lo que recibe el comprador.
+  function paginaDoc(vals, saved) {
+    return documentoPagina(vals, { numero: (saved && saved.numero) || '', emisor: (saved && saved.emisor) || null, base: location.origin });
+  }
+  function totalDoc(vals) {
+    try { return calcTotales(vals.lineas || [], vals.moneda, { pct: vals.imp_pct }).total || 0; } catch (e) { return 0; }
+  }
+  /* PDF: lo genera el navegador, igual que en el clásico (window.print), pero
+     sobre un iframe oculto con la página del documento — la v4 no puede
+     imprimir su propia página (saldría la intranet entera). El título del
+     iframe y el de la página son el nombre del PDF que propone el navegador. */
+  function imprimeDoc(vals, saved) {
+    var rotulo = (saved && saved.numero) || limpiaNombreDoc(tipoDocEs(vals));
+    var titulo = (rotulo + '_' + (limpiaNombreDoc(vals.cliente_nombre) || 'SIN_NOMBRE')).toUpperCase();
+    var html = paginaDoc(vals, saved).replace('<head>', '<head><title>' + esc(titulo) + '</title>');
+    var fr = document.createElement('iframe');
+    fr.setAttribute('aria-hidden', 'true'); fr.title = titulo;
+    fr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+    var antes = document.title, hecho = false;
+    var quita = function () { if (hecho) return; hecho = true; document.title = antes; if (fr.parentNode) fr.parentNode.removeChild(fr); };
+    fr.onload = function () {
+      var w = fr.contentWindow, d = fr.contentDocument;
+      var listo = (d && d.fonts && d.fonts.ready) ? d.fonts.ready : Promise.resolve();
+      listo.then(function () {
+        setTimeout(function () {
+          document.title = titulo;
+          try { w.addEventListener('afterprint', function () { setTimeout(quita, 300); }); w.focus(); w.print(); }
+          catch (e) { quita(); toastMal('No se pudo abrir la impresión: ' + (e && e.message || e)); }
+          setTimeout(quita, 180000);
+        }, 200);
+      });
+    };
+    document.body.appendChild(fr);
+    fr.srcdoc = html;
+  }
+  /* Email: mismo endpoint y mismo payload que el clásico — la Edge
+     send-contract-email renderiza el PDF vía Railway (fuera del WAF de
+     Hostinger, LAW-30) y deja la fila en `correos_enviados` con factura_id.
+     Al confirmar se marca `facturas.enviada` (Administración, 11-ago: sin
+     esto el envío manual no congelaba la factura). El botón lo pulsa una
+     persona: mandar un correo a un tercero real no se automatiza. */
+  function enviaDocMail(sb, vals, saved, alEnviado) {
+    if (!(saved && saved.numero)) return aviso('Guarda el documento primero: sin número no se envía, porque no queda registrado como emitido.', '#8A6A34');
+    var tipo = tipoDocEs(vals);
+    var estiloIn = 'width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid ' + CAJ.borde + ';border-radius:8px;font:500 14px/1.4 inherit;color:' + CAJ.tinta + ';background:#fff;margin-top:4px';
+    var campo = function (id, label, tag, attrs, valor) {
+      return '<label style="display:block;margin:0 0 10px;font-size:12px;color:' + CAJ.apagado + '">' + esc(label) +
+        (tag === 'textarea'
+          ? '<textarea id="' + id + '" ' + attrs + ' style="' + estiloIn + ';resize:vertical">' + esc(valor) + '</textarea>'
+          : '<input id="' + id + '" ' + attrs + ' value="' + esc(valor) + '" style="' + estiloIn + '">') + '</label>';
+    };
+    var cuerpo = '<p style="margin:0 0 12px;font-size:12.5px;line-height:1.5;color:#8A6A34">Se adjunta ' + esc(saved.numero) + ' en PDF, tal y como se ve en la vista previa.</p>' +
+      campo('lw-mail-para', 'Para', 'input', 'type="email" autocomplete="off" placeholder="cliente@email.com"', vals.cliente_email || '') +
+      campo('lw-mail-asunto', 'Asunto', 'input', 'type="text"', tipo + ' ' + saved.numero + ' — Lawang Tropical Properties') +
+      // Firmante del CORREO: siempre la marca, nunca la sociedad emisora (owner, 8-sep-2026)
+      campo('lw-mail-msg', 'Mensaje', 'textarea', 'rows="6"', 'Buenos días' + (vals.cliente_nombre ? ' ' + vals.cliente_nombre : '') + ',\n\n' +
+        'Adjunto ' + tipo.toLowerCase() + ' ' + saved.numero + ' para su revisión.\n\nUn saludo,\nLawang Tropical Properties');
+    lwConfirmar({ titulo: 'Enviar por email — ' + saved.numero, cuerpo: cuerpo, confirmar: 'Enviar' }).then(function (ok) {
+      if (!ok) return;
+      var v = function (id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; };
+      var para = v('lw-mail-para'), asunto = v('lw-mail-asunto'), msg = v('lw-mail-msg');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(para)) { toastMal('Email de destinatario no válido'); return; }
+      if (!asunto) { toastMal('Falta el asunto'); return; }
+      toast('Enviando a ' + para + '…');
+      sb.auth.getSession().then(function (r) {
+        var tok = r && r.data && r.data.session && r.data.session.access_token;
+        return fetch('https://vtulllundrfennhjddhc.supabase.co/functions/v1/send-contract-email', {
+          method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (tok || '') },
+          body: JSON.stringify({
+            to: para, subject: asunto, message: msg,
+            filename: (saved.numero + '_' + (limpiaNombreDoc(vals.cliente_nombre) || 'CLIENTE') + '.pdf').toUpperCase(),
+            factura_id: saved.id, contrato_id: saved.contrato_id || null,
+            html: paginaDoc(vals, saved)
+          })
+        });
+      }).then(function (r) { return r.json().catch(function () { return { ok: false, error: 'Respuesta inválida del servidor' }; }); })
+        .then(function (res) {
+          if (!(res && res.ok)) { toastMal((res && res.error) || 'No se pudo enviar'); return; }
+          return sb.from('facturas').update({ enviada: true, fecha_envio: new Date().toISOString() }).eq('id', saved.id).then(function (m) {
+            if (m.error) console.error('factura', saved.numero, 'enviada pero SIN marcar enviada=true:', m.error.message);
+            toast('Enviado a ' + para);
+            if (alEnviado) alEnviado();
+          });
+        }, function (err) { toastMal('Error: ' + (err && err.message || err)); });
+    });
+  }
+  /* Registro de envíos: `correos_enviados` por factura_id, como el clásico
+     (31-ago-2026, owner: «ver qué hemos hecho con cada documento»). */
+  function registroEnviosDoc(sb, saved) {
+    if (!(saved && saved.id)) return aviso('Guarda el documento para ver su registro.', '#8A6A34');
+    var H = window.lwCajonHtml;
+    var via = function (x) { return typeof lwViaCorreo === 'function' ? lwViaCorreo(x) : (x || '—'); };
+    var fecha = function (iso) { return iso ? new Date(iso).toLocaleString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'; };
+    sb.from('correos_enviados').select('para,asunto,via,enviado_por,enviado_en')
+      .eq('factura_id', saved.id).order('enviado_en', { ascending: false }).limit(200).then(function (r) {
+        var cuerpo = r.error ? H.nota('No se pudo cargar el registro: ' + r.error.message)
+          : (r.data || []).length
+            ? H.tabla(['Cuándo', 'Para', 'Vía', 'Quién', 'Asunto'], r.data.map(function (m) {
+                return [esc(fecha(m.enviado_en)), esc(m.para), esc(via(m.via)), esc(m.enviado_por || 'Automático'), esc(m.asunto)];
+              }))
+            : H.nota('Sin correos registrados para este documento.');
+        lwConfirmar({ titulo: 'Registro de envíos — ' + (saved.numero || ''), cuerpo: cuerpo, confirmar: 'Cerrar', cancelar: false });
+      });
+  }
+  function creaRecibiDesdeDoc(saved) {
+    lwConfirmar({
+      titulo: 'Crear un recibí de ' + (saved.numero || 'esta factura'),
+      cuerpo: '<p style="margin:0">Esta factura ya está guardada, así que no se pierde. Se abre un recibí nuevo enganchado a ella.</p>',
+      confirmar: 'Crear recibí'
+    }).then(function (ok) {
+      if (!ok) return;
+      cierraModal(); cierraCajon();
+      abrirEditorRecibiDoc({ contrato_id: saved.contrato_id, factura_id: saved.id });
+    });
+  }
+  /* La barra, montada sobre `piezas.barra` del split. `ctx`: { sb, getVals,
+     saved: {id, numero, tipo, contrato_id, emisor}, esRecibi, alEnviado }.
+     Devuelve `repasa()`, que cada editor llama tras repintar la previa: el
+     total cambia con cada tecla y con él lo que se puede hacer. Un botón
+     apagado no está `disabled` (un disabled no enseña su `title` al pasar
+     el ratón): se atenúa y, al pulsarlo, dice POR QUÉ no — que es lo que
+     el clásico ponía en el title. */
+  function montaBarraDoc(piezas, ctx) {
+    var barra = piezas.barra; if (!barra) return function () {};
+    var sp = document.createElement('span'); sp.style.cssText = 'flex:1 1 auto'; barra.appendChild(sp);
+    barra.style.flexWrap = 'wrap';
+    var base = 'padding:6px 12px;border-radius:999px;border:1px solid ' + CAJ.borde + ';background:' + CAJ.papel + ';color:' + CAJ.lago +
+      ';font-weight:600;font-size:12px;cursor:pointer;white-space:nowrap;line-height:1.3';
+    function btn(texto, onClick) {
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = texto; b.style.cssText = base;
+      b.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        if (b.getAttribute('aria-disabled') === 'true') return aviso(b.getAttribute('data-porque') || 'No disponible todavía.', '#8A6A34');
+        onClick();
+      });
+      barra.appendChild(b); return b;
+    }
+    function razon(b, ok, porque) {
+      if (!b) return;
+      b.setAttribute('aria-disabled', ok ? 'false' : 'true');
+      b.setAttribute('data-porque', ok ? '' : porque); b.title = ok ? '' : porque;
+      b.style.opacity = ok ? '1' : '.45';
+    }
+    var bPdf = btn('Descargar PDF', function () { imprimeDoc(ctx.getVals(), ctx.saved); });
+    var bMail = btn('Enviar por email', function () { enviaDocMail(ctx.sb, ctx.getVals(), ctx.saved, ctx.alEnviado); });
+    var bRec = ctx.esRecibi ? null : btn('Crear recibí', function () { creaRecibiDesdeDoc(ctx.saved); });
+    var bReg = btn('📨 Registro', function () { registroEnviosDoc(ctx.sb, ctx.saved); });
+    function repasa() {
+      var vals = ctx.getVals(), total = totalDoc(vals), num = !!(ctx.saved && ctx.saved.numero);
+      razon(bPdf, total > 0 && num, !(total > 0) ? 'Todavía no hay ningún importe: el PDF saldría con el total a cero.'
+        : 'Guarda primero: sin guardar no hay número, y el PDF saldría idéntico a uno emitido sin existir en la base.');
+      razon(bMail, total > 0 && num, !(total > 0) ? 'Todavía no hay ningún importe que cobrar.'
+        : 'Guarda primero: sin guardar no hay número, y el comprador recibiría un documento que no existe en la base.');
+      razon(bRec, vals.tipo === 'factura' && num, vals.tipo !== 'factura' ? 'Solo se crea un recibí a partir de una factura.' : 'Guarda primero esta factura.');
+      bReg.style.display = (ctx.saved && ctx.saved.id) ? '' : 'none';
+    }
+    repasa();
+    return repasa;
+  }
+  // Un documento ya guardado, en la forma que las acciones esperan: `vals`
+  // (fields + lineas, lo que lee documentoHTML) y `saved` (identidad +
+  // emisor congelado). facturas_equipo(): el documento pudo emitirlo otro
+  // agente del equipo; rpc + eq + maybeSingle, sin order (42703 sobre RPC).
+  function cargaDocGuardado(sb, id) {
+    return sb.rpc('facturas_equipo').select('id,numero,tipo,contrato_id,cliente_nombre,datos').eq('id', id).maybeSingle().then(function (r) {
+      if (r.error || !r.data) return { error: (r.error && r.error.message) || 'No se encontró ese documento.' };
+      var f = r.data, datos = f.datos || {};
+      var vals = Object.assign({}, datos.fields || {}, { lineas: datos.lineas || [] });
+      if (!vals.tipo) vals.tipo = f.tipo || 'factura';
+      if (!vals.cliente_nombre) vals.cliente_nombre = f.cliente_nombre || '';
+      return { vals: vals, saved: { id: f.id, numero: f.numero, tipo: f.tipo, contrato_id: f.contrato_id, emisor: datos.emisor || null } };
+    });
+  }
+  function conDocGuardado(id, cb) {
+    if (!window.LW_AUTH) return;
+    window.LW_AUTH.then(function (aut) {
+      aseguraModulosDoc(['entities', 'totales', 'dialogo', 'documento']).then(function () {
+        return cargarSociedades(aut.sb).then(null, function () { return null; });
+      }).then(function () { return cargaDocGuardado(aut.sb, id); })
+        .then(function (d) { if (d.error) return toastMal(d.error); cb(aut, d); },
+              function (e) { toastMal('No se pudo preparar el documento: ' + (e && e.message || e)); });
+    });
+  }
+  // Para la ficha de factura (datos.js): las tres acciones sobre un id.
+  window.LW_V4 = window.LW_V4 || {};
+  window.LW_V4.imprimirDocumento = function (id) { conDocGuardado(id, function (aut, d) { imprimeDoc(d.vals, d.saved); }); };
+  window.LW_V4.enviarDocumento = function (id) {
+    conDocGuardado(id, function (aut, d) {
+      if (!puedeH(aut.ficha, 'facturas')) return aviso('Enviar documentos exige la herramienta «Facturas» — pídesela a un administrador.', '#8A6A34');
+      enviaDocMail(aut.sb, d.vals, d.saved, function () { location.reload(); });
+    });
+  };
+  window.LW_V4.registroEnvios = function (id) { conDocGuardado(id, function (aut, d) { registroEnviosDoc(aut.sb, d.saved); }); };
+
+  /* El visor que se abre al emitir: el documento tal cual lo pinta el clásico
+     (iframe ?vista=1, mismo origen) y, en el pie, las mismas acciones que la
+     barra de la previa — es donde el usuario aterriza con el número recién
+     asignado, así que es donde de verdad descarga y envía. */
   function abreDocumentoViewerDoc(id, alCerrar) {
     if (!id) return;
     var frame = document.createElement('iframe');
     frame.src = '/intranet/facturas/?id=' + encodeURIComponent(id) + '&vista=1';
     frame.title = 'Documento';
     frame.style.cssText = 'width:100%;height:calc(100vh - 140px);border:0;background:#fff;display:block';
+    var docP = null;
+    var con = function (cb) {
+      if (!docP) docP = new Promise(function (res) { conDocGuardado(id, function (aut, d) { res({ aut: aut, d: d }); }); });
+      docP.then(function (x) { cb(x.aut, x.d); });
+    };
+    var acciones = [
+      { texto: 'Descargar PDF', onClick: function () { con(function (aut, d) { imprimeDoc(d.vals, d.saved); }); } },
+      { texto: 'Enviar por email', onClick: function () { con(function (aut, d) {
+        if (!puedeH(aut.ficha, 'facturas')) return aviso('Enviar documentos exige la herramienta «Facturas» — pídesela a un administrador.', '#8A6A34');
+        enviaDocMail(aut.sb, d.vals, d.saved, function () { cierraCajon(); if (alCerrar) alCerrar(); });
+      }); } },
+      { texto: 'Crear recibí', onClick: function () { con(function (aut, d) {
+        if (d.saved.tipo !== 'factura') return aviso('Solo se crea un recibí a partir de una factura.', '#8A6A34');
+        creaRecibiDesdeDoc(d.saved);
+      }); } },
+      { texto: '📨 Registro', onClick: function () { con(function (aut, d) { registroEnviosDoc(aut.sb, d.saved); }); } },
+      { texto: 'Cerrar', cerrar: 1 }
+    ];
     var caj = cajon({
       sub: 'Documento', titulo: 'Vista del documento', ancho: 'min(880px,96vw)',
-      cuerpo: '', acciones: [{ texto: 'Cerrar', cerrar: 1 }], alCerrar: alCerrar
+      cuerpo: '', acciones: acciones, alCerrar: alCerrar
     });
     caj.cuerpo.style.padding = '0';
     caj.cuerpo.appendChild(frame);
@@ -1858,7 +2095,7 @@
     sheetWrap.appendChild(docEl);
     pv.appendChild(sheetWrap);
     colPrev.appendChild(pv);
-    return { colForm: colForm, colPrev: colPrev, docEl: docEl, sheetWrap: sheetWrap, wrap: wrap };
+    return { colForm: colForm, colPrev: colPrev, docEl: docEl, sheetWrap: sheetWrap, wrap: wrap, barra: barra };
   }
   // Pinta el documento con el MISMO motor que el clásico. `vals` es la forma
   // de `collect()`: los campos planos + `.lineas`. `numero` solo cuando ya
@@ -1932,16 +2169,31 @@
              el documento de dentro es el real. */
           var piezas = montaSplitDoc(hostRaiz);
           var host = piezas.colForm;
-          function repintaPreview() {
+          function recogeVals() {
             var vals = {};
             piezas.wrap.querySelectorAll('[data-k]').forEach(function (el) {
               vals[el.getAttribute('data-k')] = el.type === 'checkbox' ? el.checked : el.value;
             });
             vals.lineas = getLineas ? getLineas() : [];
-            repintaSplitDoc(piezas, vals, existente ? (existente.numero || '') : '');
+            return vals;
+          }
+          var repasaBarra = null;
+          function repintaPreview() {
+            repintaSplitDoc(piezas, recogeVals(), existente ? (existente.numero || '') : '');
+            if (repasaBarra) repasaBarra();
           }
           piezas.wrap.addEventListener('input', repintaPreview);
           piezas.wrap.addEventListener('change', repintaPreview);
+          // Los botones de la barra de la previa del clásico (22-sep-2026).
+          // Sobre un documento NUEVO todos explican que primero hay que
+          // emitir: las acciones reales llegan en el visor que abre «Emitir».
+          repasaBarra = montaBarraDoc(piezas, {
+            sb: sb, getVals: recogeVals, esRecibi: false,
+            saved: existente
+              ? { id: existente.id, numero: existente.numero, tipo: existente.tipo, contrato_id: existente.contrato_id, emisor: existente.datos && existente.datos.emisor }
+              : { tipo: 'factura' },
+            alEnviado: function () { cierraModal(); location.reload(); }
+          });
 
           campoSimpleDoc(host, {
             k: 'tipo', label: 'Tipo de documento', tipo: 'select',
@@ -2174,7 +2426,7 @@
           function lineasDeAplicaciones() {
             return aplicaciones.map(function (a) { return { descripcion: 'Aplicado a factura ' + a.numero, importe: a.importe }; });
           }
-          function repintaPreview() {
+          function recogeVals() {
             var vals = {};
             piezas.wrap.querySelectorAll('[data-k]').forEach(function (el) {
               vals[el.getAttribute('data-k')] = el.type === 'checkbox' ? el.checked : el.value;
@@ -2190,10 +2442,24 @@
             // TIPOS_DOC.factura si no se lo dice, y el papel salía
             // rotulado "Factura" en vez de "Recibí".
             vals.tipo = 'recibi';
-            repintaSplitDoc(piezas, vals, existente ? (existente.numero || '') : '');
+            return vals;
+          }
+          var repasaBarra = null;
+          function repintaPreview() {
+            repintaSplitDoc(piezas, recogeVals(), existente ? (existente.numero || '') : '');
+            if (repasaBarra) repasaBarra();
           }
           piezas.wrap.addEventListener('input', repintaPreview);
           piezas.wrap.addEventListener('change', repintaPreview);
+          // Barra de la previa del clásico (22-sep-2026): PDF, email y
+          // registro; «Crear recibí» no, que de un recibí no sale otro.
+          repasaBarra = montaBarraDoc(piezas, {
+            sb: sb, getVals: recogeVals, esRecibi: true,
+            saved: existente
+              ? { id: existente.id, numero: existente.numero, tipo: 'recibi', contrato_id: existente.contrato_id, emisor: existente.datos && existente.datos.emisor }
+              : { tipo: 'recibi' },
+            alEnviado: function () { cierraModal(); location.reload(); }
+          });
 
           var secDoc = seccionFijaDoc(host, 'Documento');
           var lblF = document.createElement('div'); lblF.textContent = 'Factura que se cobra';
@@ -2299,6 +2565,15 @@
               var selMoneda = campoDeDoc('moneda'); if (selMoneda) selMoneda.value = estadoContrato.moneda;
               cargaAbiertas().then(function (abs) {
                 facturasAbiertasCache = abs;
+                // «Crear recibí» desde una factura concreta (22-sep-2026): se
+                // aplica ESA, como crearRecibiDesdeFactura() del clásico. Si ya
+                // no tiene saldo o está anulada no está entre las abiertas y
+                // se dice, en vez de aplicar otra en silencio.
+                if (pre.factura_id) {
+                  var laFactura = abs.filter(function (x) { return x.id === pre.factura_id; })[0];
+                  if (laFactura) { aplicaFactura(laFactura); return; }
+                  toastMal('Esa factura ya no tiene saldo pendiente, o está anulada — no hay nada que cobrar en un recibí.');
+                }
                 if (abs.length === 1) { aplicaFactura(abs[0]); return; }
                 pintaBtnF(); repintaAplic();
               });

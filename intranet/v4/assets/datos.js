@@ -873,9 +873,23 @@
     }
     // UUID y tipo, no el número: ver la nota de fichaContrato (19-sep-2026)
     if (f0.contrato_id && f0.tipo !== 'recibi') acciones.push({ texto: 'Emitir recibí', onClick: function () {
-      if (window.LW_V4 && window.LW_V4.abrirEditorRecibi) window.LW_V4.abrirEditorRecibi({ contrato_id: f0.contrato_id });
+      if (window.LW_V4 && window.LW_V4.abrirEditorRecibi) window.LW_V4.abrirEditorRecibi({ contrato_id: f0.contrato_id, factura_id: f0.id });
       else toastMal('El editor de recibís aún está cargando — prueba de nuevo en un segundo.');
     } });
+    // Los botones de la barra de la previa del clásico (22-sep-2026, owner:
+    // «te faltan todos los botones de herramientas que había en la intranet
+    // antigua»). Los implementa editores.js (misma función en editor, visor
+    // y aquí); esta ficha solo los ofrece. Email solo sobre un documento
+    // vivo — uno anulado no se manda.
+    var V4acc = function (nombre, arg) {
+      return function () {
+        if (window.LW_V4 && typeof window.LW_V4[nombre] === 'function') window.LW_V4[nombre](arg);
+        else toastMal('Las acciones del documento aún están cargando — prueba de nuevo en un segundo.');
+      };
+    };
+    acciones.push({ texto: 'Descargar PDF', onClick: V4acc('imprimirDocumento', f0.id) });
+    if (!f0.anulada) acciones.push({ texto: 'Enviar por email', onClick: V4acc('enviarDocumento', f0.id) });
+    acciones.push({ texto: '📨 Registro', onClick: V4acc('registroEnvios', f0.id) });
     // Anular (S14): se ofrece a cualquiera que vea el documento — la RLS es la
     // que de verdad decide (autor o admin, con la herramienta 'facturas');
     // esto solo evita ofrecerlo sobre algo que ya no se puede tocar.
