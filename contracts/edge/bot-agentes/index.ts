@@ -268,27 +268,40 @@ function seccionesDe(texto) {
 /* Solo los puntos que el servidor NO retiró, numerados como el comprador, con
    el texto del modelo para cada uno (incluidas sus líneas «Fuente: …») y sin
    nada de lo que va dirigido al agente: bloques retirados, «Fuentes usadas:»,
-   la marca de IA, el preámbulo (aviso de plantilla cambiada) ni las frases
-   fijas — aunque el modelo las haya escrito en un punto no retirado. Si el
-   modelo no siguió la numeración (mismo criterio que `ensambla`), devuelve su
-   texto entero limpio de esas líneas. Un punto no retirado al que el modelo no
-   respondió no aparece: el aviso «(el modelo no ha respondido…)» es para el
-   agente, no para el comprador. */
+   la marca de IA, el preámbulo (aviso de plantilla cambiada), la etiqueta de
+   clase de la cabecera («— cita», «— existe el documento»: es lo que lee el
+   agente) ni las frases fijas. Un punto NO retirado en el que el modelo
+   escribió una frase fija, o cuya cabecera lleva clase pendiente/contraoferta,
+   sale ENTERO: quitar solo la frase dejaría al comprador la cita como
+   argumento a favor o en contra de lo que pide, que es justo lo que el prompt
+   prohíbe (revisión de código del 22-sep). Si el modelo no siguió la
+   numeración (mismo criterio que `ensambla`) no se sabe qué línea es de qué
+   punto: con algún punto retirado o alguna frase fija, vacío; si no, el texto
+   entero sin la cola. Un punto no retirado al que el modelo no respondió no
+   aparece: el aviso «(el modelo no ha respondido…)» es para el agente. */
 function borradorComprador(puntos, textoModelo) {
   const esFraseFija = (l) => l.includes(FRASE_PENDIENTE) || l.includes(FRASE_CONTRAOFERTA);
   const esCola = (l) => /^\s*Fuentes usadas\s*:/i.test(l) || l.includes(MARCA_IA);
-  const limpia = (lineas) => lineas.filter((l) => !esFraseFija(l) && !esCola(l)).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  const junta = (lineas) => lineas.filter((l) => !esCola(l)).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  const CLASE = /\s+—\s+(cita|existe el documento|pendiente|contraoferta)(\s*\+\s*(cita|existe el documento|pendiente|contraoferta))*\s*$/i;
   const lista = Array.isArray(puntos) ? puntos : [];
+  const hayRetirados = lista.some((p) => p && p.motivos && p.motivos.length);
   const { secciones } = seccionesDe(textoModelo);
   const numerados = lista.filter((p) => p && p.n > 0);
   const modeloNumeroBien = numerados.length === 0 || numerados.some((p) => secciones.has(p.n));
-  if (!modeloNumeroBien) return limpia(String(textoModelo ?? '').split(/\r?\n/));
+  if (!modeloNumeroBien) {
+    const lineas = String(textoModelo ?? '').split(/\r?\n/);
+    if (hayRetirados || lineas.some(esFraseFija)) return '';
+    return junta(lineas);
+  }
   const salida = [];
   for (const p of numerados) {
     if (p.motivos && p.motivos.length) continue;
     const sec = secciones.get(p.n);
     if (!sec) continue;
-    const texto = limpia(sec);
+    const clase = (sec[0].match(CLASE) || [''])[0];
+    if (sec.some(esFraseFija) || /pendiente|contraoferta/i.test(clase)) continue;
+    const texto = junta([sec[0].replace(CLASE, '')].concat(sec.slice(1)));
     if (texto) salida.push(texto);
   }
   return salida.join('\n\n').trim();
@@ -374,20 +387,15 @@ function compilaFrenos(lista: Bloqueo[]): { reglas: Regla[] } | { invalido: stri
 type Json = (o: unknown, s?: number) => Response;
 type FalloFaq = { error: string; status: number; message?: string };
 async function administraFaq(accion: string, body: Record<string, unknown>, email: string, jwt: string, json: Json): Promise<Response> {
-  // (1) tope propio: 20/h por email, contando lo que ya aprobó. aprobado_por
-  //     lo pone el trigger desde la sesión, así que el conteo no se falsea.
-  const desde = new Date(Date.now() - 3_600_000).toISOString();
-  const hora = await admin.from('bot_faq').select('id', { count: 'exact', head: true }).eq('aprobado_por', email).gte('creado_en', desde);
-  if (hora.error) return json({ error: 'no_se_pudo_comprobar_limite' }, 500);
-  if ((hora.count ?? 0) >= TOPE_FAQ_HORA) return json({ error: 'limite_faq', tope: TOPE_FAQ_HORA }, 429);
-
   const sb = createClient(URL_SB, ANON, { global: { headers: { Authorization: 'Bearer ' + jwt } } });
   // Errores de Postgres → HTTP: 42501 (RLS, o el trigger de inmutabilidad) es
-  // 403; 23514 son los RAISE en castellano de bot_faq_frena y viajan con su
-  // message; lo demás, 500 sin detalle.
+  // 403; 23514 son los RAISE en castellano de bot_faq_frena y 23503 una FK
+  // (tema_clave, proyecto_id o sustituye_a que no existen): los dos viajan con
+  // su message para que el panel lo enseñe; lo demás, 500 sin detalle.
   const errorPg = (e: { code?: string; message?: string }, fallo: string): FalloFaq =>
     e.code === '42501' ? { error: 'no_autorizado', status: 403 }
       : e.code === '23514' ? { error: 'faq_rechazada', status: 422, message: e.message ?? '' }
+      : e.code === '23503' ? { error: 'faq_invalida', status: 422, message: e.message ?? '' }
       : { error: fallo, status: 500 };
   const responde = (f: FalloFaq) => json(f.message === undefined ? { error: f.error } : { error: f.error, message: f.message }, f.status);
   // Retirar = update activo=false. Con .select('id') para SABER si tocó una
@@ -408,7 +416,16 @@ async function administraFaq(accion: string, body: Record<string, unknown>, emai
     return fallo ? responde(fallo) : json({ ok: true });
   }
 
-  // faq_guardar — (2) validaciones. `false` = venía y no vale; null = no venía.
+  // faq_guardar — (1) tope propio: 20/h por email, contando lo que ya aprobó.
+  //     aprobado_por lo pone el trigger desde la sesión, así que el conteo no
+  //     se falsea. Va DESPUÉS de retirar: retirar no inserta nada y una FAQ mal
+  //     aprobada tiene que poder retirarse aunque se haya agotado el tope.
+  const desde = new Date(Date.now() - 3_600_000).toISOString();
+  const hora = await admin.from('bot_faq').select('id', { count: 'exact', head: true }).eq('aprobado_por', email).gte('creado_en', desde);
+  if (hora.error) return json({ error: 'no_se_pudo_comprobar_limite' }, 500);
+  if ((hora.count ?? 0) >= TOPE_FAQ_HORA) return json({ error: 'limite_faq', tope: TOPE_FAQ_HORA }, 429);
+
+  // (2) validaciones. `false` = venía y no vale; null = no venía.
   const texto = (v: unknown, max: number) => typeof v === 'string' && v.trim() && v.length <= max ? v.trim() : null;
   const opcional = (v: unknown, valida: (s: string) => boolean) =>
     v === null || v === undefined || v === '' ? null : (typeof v === 'string' && valida(v) ? v : false);
@@ -690,10 +707,13 @@ Deno.serve(async (req) => {
     const neutro = (s: string) => s.replace(/PREGUNTA_COMPRADOR/g, 'PREGUNTA-COMPRADOR').replace(/FAQ_APROBADA/g, 'FAQ-APROBADA');
     // Las FAQ van como bloque aparte, ANTES de la pregunta y FUERA del
     // contexto: son referencia aprobada, no cláusula, y la whitelist del
-    // freno de cifras se calcula sin ellas.
+    // freno de cifras se calcula sin ellas. Se numeran [FAQ 1]…[FAQ n], sin
+    // el uuid: un uuid cuyo primer tramo sea todo dígitos (≈2 % de ellos)
+    // repetido por el modelo en «Fuentes usadas» sería una cifra ajena al
+    // contexto y tumbaría un borrador correcto (revisión de código, 22-sep).
     const bloqueFaq = faqs.length
       ? '<<<FAQ_APROBADA\n' +
-        faqs.map((f) => '[FAQ id ' + f.id + ' · tema ' + neutro(String(f.tema_clave ?? '')) + ']\nP: ' + neutro(String(f.pregunta ?? '')) + '\nR: ' + neutro(String(f.respuesta ?? ''))).join('\n\n') +
+        faqs.map((f, i) => '[FAQ ' + (i + 1) + ' · tema ' + neutro(String(f.tema_clave ?? '')) + ']\nP: ' + neutro(String(f.pregunta ?? '')) + '\nR: ' + neutro(String(f.respuesta ?? ''))).join('\n\n') +
         '\nFAQ_APROBADA>>>'
       : '- ninguna';
     const bloquePuntos = puntos.map((p) => {

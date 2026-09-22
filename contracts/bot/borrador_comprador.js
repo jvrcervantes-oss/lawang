@@ -51,27 +51,40 @@ function seccionesDe(texto) {
 /* Solo los puntos que el servidor NO retiró, numerados como el comprador, con
    el texto del modelo para cada uno (incluidas sus líneas «Fuente: …») y sin
    nada de lo que va dirigido al agente: bloques retirados, «Fuentes usadas:»,
-   la marca de IA, el preámbulo (aviso de plantilla cambiada) ni las frases
-   fijas — aunque el modelo las haya escrito en un punto no retirado. Si el
-   modelo no siguió la numeración (mismo criterio que `ensambla`), devuelve su
-   texto entero limpio de esas líneas. Un punto no retirado al que el modelo no
-   respondió no aparece: el aviso «(el modelo no ha respondido…)» es para el
-   agente, no para el comprador. */
+   la marca de IA, el preámbulo (aviso de plantilla cambiada), la etiqueta de
+   clase de la cabecera («— cita», «— existe el documento»: es lo que lee el
+   agente) ni las frases fijas. Un punto NO retirado en el que el modelo
+   escribió una frase fija, o cuya cabecera lleva clase pendiente/contraoferta,
+   sale ENTERO: quitar solo la frase dejaría al comprador la cita como
+   argumento a favor o en contra de lo que pide, que es justo lo que el prompt
+   prohíbe (revisión de código del 22-sep). Si el modelo no siguió la
+   numeración (mismo criterio que `ensambla`) no se sabe qué línea es de qué
+   punto: con algún punto retirado o alguna frase fija, vacío; si no, el texto
+   entero sin la cola. Un punto no retirado al que el modelo no respondió no
+   aparece: el aviso «(el modelo no ha respondido…)» es para el agente. */
 function borradorComprador(puntos, textoModelo) {
   const esFraseFija = (l) => l.includes(FRASE_PENDIENTE) || l.includes(FRASE_CONTRAOFERTA);
   const esCola = (l) => /^\s*Fuentes usadas\s*:/i.test(l) || l.includes(MARCA_IA);
-  const limpia = (lineas) => lineas.filter((l) => !esFraseFija(l) && !esCola(l)).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  const junta = (lineas) => lineas.filter((l) => !esCola(l)).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  const CLASE = /\s+—\s+(cita|existe el documento|pendiente|contraoferta)(\s*\+\s*(cita|existe el documento|pendiente|contraoferta))*\s*$/i;
   const lista = Array.isArray(puntos) ? puntos : [];
+  const hayRetirados = lista.some((p) => p && p.motivos && p.motivos.length);
   const { secciones } = seccionesDe(textoModelo);
   const numerados = lista.filter((p) => p && p.n > 0);
   const modeloNumeroBien = numerados.length === 0 || numerados.some((p) => secciones.has(p.n));
-  if (!modeloNumeroBien) return limpia(String(textoModelo ?? '').split(/\r?\n/));
+  if (!modeloNumeroBien) {
+    const lineas = String(textoModelo ?? '').split(/\r?\n/);
+    if (hayRetirados || lineas.some(esFraseFija)) return '';
+    return junta(lineas);
+  }
   const salida = [];
   for (const p of numerados) {
     if (p.motivos && p.motivos.length) continue;
     const sec = secciones.get(p.n);
     if (!sec) continue;
-    const texto = limpia(sec);
+    const clase = (sec[0].match(CLASE) || [''])[0];
+    if (sec.some(esFraseFija) || /pendiente|contraoferta/i.test(clase)) continue;
+    const texto = junta([sec[0].replace(CLASE, '')].concat(sec.slice(1)));
     if (texto) salida.push(texto);
   }
   return salida.join('\n\n').trim();

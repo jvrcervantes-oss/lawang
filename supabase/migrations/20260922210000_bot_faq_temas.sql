@@ -21,8 +21,9 @@
 --  * bot_bloqueos.tema_clave: cada freno del servidor cuelga de un tema. Asi
 --    "este tema esta frenado" se sabe con una consulta y una FAQ no puede
 --    tapar un hueco del contrato: un freno se resuelve con adenda, no con FAQ.
---  * bot_consultas.descarte_motivo: cuando el agente descarta el borrador,
---    por que (texto libre corto). Es lo que alimenta el resumen por temas.
+--  * bot_consultas.descarte_motivo: por que el SERVIDOR descarto el borrador
+--    (caida del proveedor, rehuso, truncado, cifra ajena, patron de salida).
+--    Sin el, "respuesta is null" mezclaba un freno con una caida de Anthropic.
 --  * bot_faq: respuestas APROBADAS por super_admin, acotadas a un proyecto o a
 --    un tipo de contrato (contratos.tipo, no el slug de plantilla: son dos
 --    vocabularios y el slug ya causo una plantilla equivocada — ver
@@ -146,7 +147,7 @@ update public.bot_bloqueos
 alter table public.bot_consultas
   add column if not exists descarte_motivo text;
 comment on column public.bot_consultas.descarte_motivo is
-  'Por que el agente descarto el borrador (texto corto). respuesta is null = consulta descartada sin borrador.';
+  'Por que el SERVIDOR descarto el borrador (modelo_no_disponible, modelo_rehuso, respuesta_truncada, respuesta_vacia, cifra_ajena_al_contexto, patron_salida). Lo escribe la edge; el agente no escribe aqui (sin policy de UPDATE). respuesta is null = descartada.';
 
 -- ---------------------------------------------------------------------------
 -- 4. bot_faq: respuestas aprobadas. Inmutables salvo retirarlas.
