@@ -1788,6 +1788,9 @@
       confirmar: 'Crear recibí'
     }).then(function (ok) {
       if (!ok) return;
+      // El visor se cierra SIN su alCerrar (que recarga la página): el recibí
+      // se abre encima y una recarga aquí lo mataría a medio rellenar.
+      var cajonAbierto = document.getElementById('lw-cajon'); if (cajonAbierto) cajonAbierto._alCerrar = null;
       cierraModal(); cierraCajon();
       abrirEditorRecibiDoc({ contrato_id: saved.contrato_id, factura_id: saved.id });
     });
@@ -1890,7 +1893,8 @@
       { texto: 'Descargar PDF', onClick: function () { con(function (aut, d) { imprimeDoc(d.vals, d.saved); }); } },
       { texto: 'Enviar por email', onClick: function () { con(function (aut, d) {
         if (!puedeH(aut.ficha, 'facturas')) return aviso('Enviar documentos exige la herramienta «Facturas» — pídesela a un administrador.', '#8A6A34');
-        enviaDocMail(aut.sb, d.vals, d.saved, function () { cierraCajon(); if (alCerrar) alCerrar(); });
+        // cierraCajon() ya dispara alCerrar (recarga): no se llama dos veces.
+        enviaDocMail(aut.sb, d.vals, d.saved, function () { cierraCajon(); });
       }); } },
       { texto: 'Crear recibí', onClick: function () { con(function (aut, d) {
         if (d.saved.tipo !== 'factura') return aviso('Solo se crea un recibí a partir de una factura.', '#8A6A34');
