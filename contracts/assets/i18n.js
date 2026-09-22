@@ -740,6 +740,7 @@
       '%n contracts with a price and no payment schedule',
     '%n contrato cuyos hitos no suman 100%': '%n contract whose milestones do not add up to 100%',
     '%n contratos cuyos hitos no suman 100%': '%n contracts whose milestones do not add up to 100%',
+    'El Bloqueo de Parcela necesita al menos un hito en el calendario de pagos: el Artículo 3 remite a él.': 'The Plot Hold Agreement needs at least one milestone in the payment schedule: Article 3 refers to it.',
     '%n sin firmar': '%n unsigned',
     '%n Carta de Reserva': '%n Reservation Letter',
     '%n Cartas de Reserva': '%n Reservation Letters',

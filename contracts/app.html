@@ -34,7 +34,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=31a46de3"></script>
+<script src="/contracts/assets/i18n.js?v=bd7ceb03"></script>
 <script src="/contracts/assets/herramientas.js?v=833776e2"></script>
 <script src="assets/topbar.js?v=c1bc6349" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -4339,6 +4339,18 @@ async function guardarContrato(){
       if(el) el.scrollIntoView({behavior:'smooth', block:'center'});
       return;
     }
+  }
+  /* Bloqueo de Parcela SIN hitos (22-sep-2026): el Artículo 3 nuevo remite «al
+     calendario de pagos que figura a continuación» y buildDoc no imprime la
+     tabla cuando no hay filas (<!--seccion-hitos-->) — el contrato citaría una
+     tabla que no está. Había borradores así (RP00193, RP00178: `hitos: []`).
+     Mismo cinturón que "sin cuenta habilitada": se dice en voz alta, no se
+     guarda a medias. */
+  if(tipo === 'reserva_parcela' && SECTIONS.some(s => s.special === 'hitos') && !HITOS.length){
+    avisoNoGuardado(lwT('El Bloqueo de Parcela necesita al menos un hito en el calendario de pagos: el Artículo 3 remite a él.'));
+    const el = document.querySelector('[data-sec="pagos"]');
+    if(el) el.scrollIntoView({behavior:'smooth', block:'center'});
+    return;
   }
   /* El techo es obligatorio en una vivienda (16-sep, owner: "no puede salir
      sin elegir") y cargarTechosYExtras() ya lo preselecciona solo en cuanto
