@@ -6302,6 +6302,10 @@
          red; el trigger es el respaldo si esto se saltara. */
       function validaCondicion(v, tramos) {
         var err = function (m) { return { error: { message: m } }; };
+        if (!v.nivel) return err('Falta el nivel.');
+        if (!v.equipo_id && v.nivel !== 'closer') return err('La condición estándar (sin equipo) es siempre de quien cierra: nivel «Closer».');
+        if (v.equipo_id && !v.proyecto_id) return err('Una condición de equipo es por proyecto: «Todos los proyectos» solo vale para la estándar.');
+        if (!v.vigente_desde || !/^\d{4}-\d{2}-\d{2}$/.test(String(v.vigente_desde))) return err('Falta la fecha «Vigente desde».');
         if (v.nivel === 'manager' && v.closer_email) return err('El override individual solo aplica con nivel «Closer».');
         if (!tramos.length) return err('Añade al menos un tramo de pago.');
         var suma = 0;
@@ -6338,16 +6342,25 @@
           sb.from('proyectos').select('id,nombre').eq('activo', true).order('nombre')
         ]).then(function (r) {
           var equipos = (r[0] && r[0].data) || [], proyectos = (r[1] && r[1].data) || [];
-          if (!equipos.length) return aviso('No hay equipos activos — crea uno primero en «Equipos de venta».', '#8A6A34');
           if (!proyectos.length) return aviso('No hay proyectos activos.', '#8A6A34');
           var getTramos = null;
+          /* ESTÁNDAR DE LAWANG (22-sep-2026, owner): equipo vacío = condición para
+             quien cierre SIN equipo, la paga Lawang (solicitud automática al
+             agente). Solo entonces «Todos los proyectos» y solo nivel Closer (el
+             nivel se esconde y se fija solo). Sin equipos activos también se
+             puede crear: por eso ya no se corta arriba. */
           modal('Nueva condición de comisión', [
-            { k: 'equipo_id', label: 'Equipo', tipo: 'select', req: 1, medio: 1,
-              opciones: equipos.map(function (e) { return [e.id, e.nombre]; }) },
-            { k: 'proyecto_id', label: 'Proyecto', tipo: 'select', req: 1, medio: 1,
-              opciones: proyectos.map(function (p) { return [p.id, p.nombre]; }) },
-            { k: 'nivel', label: 'Nivel', tipo: 'select', req: 1, medio: 1,
-              opciones: [['manager', 'Manager'], ['closer', 'Closer']] },
+            { k: 'equipo_id', label: 'Equipo', tipo: 'select', medio: 1,
+              opciones: [['', '— Estándar de Lawang (quien cierre sin equipo) —']].concat(equipos.map(function (e) { return [e.id, e.nombre]; })) },
+            { k: 'proyecto_id', label: 'Proyecto', tipo: 'select', medio: 1,
+              opciones: [['', '— Todos los proyectos (solo estándar) —']].concat(proyectos.map(function (p) { return [p.id, p.nombre]; })) },
+            { k: 'nivel', label: 'Nivel', tipo: 'select', medio: 1,
+              opciones: [['manager', 'Manager'], ['closer', 'Closer']],
+              visibleSi: { k: 'equipo_id', valores: equipos.map(function (e) { return e.id; }) },
+              ayuda: 'la estándar es siempre de quien cierra (Closer)' },
+            { k: 'vigente_desde', label: 'Vigente desde', tipo: 'date', req: 1, medio: 1,
+              valor: new Date().toISOString().slice(0, 10),
+              ayuda: 'solo cuentan las ventas (contrato raíz) creadas desde esta fecha: lo anterior no devenga' },
             { k: 'closer_email', label: 'Override individual', tipo: 'select', medio: 1,
               opciones: opsUsuarios('', '— todo el equipo —'),
               visibleSi: { k: 'nivel', valores: ['closer'] },
@@ -6360,6 +6373,9 @@
             { k: 'tramos', label: 'Tramos de pago (deben sumar 100%)', tipo: 'custom',
               render: function (d) { getTramos = montaTramos(d); } }
           ], 'Crear condición', function (v) {
+            v.equipo_id = v.equipo_id || null;
+            v.proyecto_id = v.proyecto_id || null;
+            if (!v.equipo_id) v.nivel = 'closer';   // la estándar es de quien cierra; el select iba oculto
             var tramos = getTramos ? getTramos() : [];
             var mal = validaCondicion(v, tramos);
             if (mal) return mal;
@@ -6378,7 +6394,8 @@
               id: condId, equipo_id: v.equipo_id, proyecto_id: v.proyecto_id, nivel: v.nivel,
               closer_email: v.nivel === 'closer' ? (v.closer_email ? v.closer_email.trim().toLowerCase() : null) : null,
               pct_comision: Number(v.pct_comision), base_calculo: v.base_calculo,
-              importe_fijo: v.base_calculo === 'importe_fijo' ? Number(v.importe_fijo) : null
+              importe_fijo: v.base_calculo === 'importe_fijo' ? Number(v.importe_fijo) : null,
+              vigente_desde: v.vigente_desde
             }).then(function (r) {
               if (r.error) return r;
               return sb.from('condicion_tramos').insert(filasTramos(condId, tramos)).then(function (r2) {
@@ -6452,7 +6469,7 @@
           var getTramos = null;
           var campos = [
             { tipo: 'lectura', label: 'Equipo · proyecto', valor: etq },
-            { tipo: 'lectura', label: 'Nivel', valor: cond.nivel === 'closer' ? 'Closer' : 'Manager', medio: 1 }
+            { tipo: 'lectura', label: 'Nivel', valor: !cond.equipo_id ? 'Estándar (quien cierra, paga Lawang)' : cond.nivel === 'closer' ? 'Closer' : 'Manager', medio: 1 }
           ];
           if (cond.nivel === 'closer') {
             campos.push({ k: 'closer_email', label: 'Override individual', tipo: 'select', medio: 1,
@@ -6460,6 +6477,9 @@
               ayuda: '«todo el equipo» aplica a cualquier closer del equipo; una persona concreta manda sobre eso' });
           }
           campos.push(
+            { k: 'vigente_desde', label: 'Vigente desde', tipo: 'date', req: 1, medio: 1,
+              valor: (cond.vigente_desde && cond.vigente_desde > '1900-01-01') ? cond.vigente_desde : '1900-01-01',
+              ayuda: 'solo cuentan las ventas (contrato raíz) creadas desde esta fecha; 1900-01-01 = sin corte' },
             { k: 'pct_comision', label: '% de comisión', tipo: 'number', paso: '0.01', req: 1, medio: 1, valor: cond.pct_comision },
             { k: 'base_calculo', label: 'Base de cálculo', tipo: 'select', req: 1, medio: 1, valor: cond.base_calculo,
               opciones: (window.LW_V4.BASES_CALCULO || BASES_CALCULO_FALLBACK) },
@@ -6476,13 +6496,14 @@
               render: function (d) { getTramos = montaTramos(d, tramosAct); } });
           }
           modal('Editar condición — ' + etq, campos, 'Guardar cambios', function (v) {
-            v.nivel = cond.nivel;
+            v.nivel = cond.nivel; v.equipo_id = cond.equipo_id; v.proyecto_id = cond.proyecto_id;
             var tramos = n ? tramosAct : (getTramos ? getTramos() : []);
             var mal = validaCondicion(v, tramos);
             if (mal) return mal;
             var patch = {
               pct_comision: Number(v.pct_comision), base_calculo: v.base_calculo,
-              importe_fijo: v.base_calculo === 'importe_fijo' ? Number(v.importe_fijo) : null
+              importe_fijo: v.base_calculo === 'importe_fijo' ? Number(v.importe_fijo) : null,
+              vigente_desde: v.vigente_desde
             };
             if (cond.nivel === 'closer') patch.closer_email = v.closer_email ? v.closer_email.trim().toLowerCase() : null;
             return sb.from('condiciones_comision').update(patch).eq('id', id).select('id').then(unaFila).then(function (r1) {

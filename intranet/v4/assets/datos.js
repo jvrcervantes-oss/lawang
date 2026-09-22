@@ -5534,7 +5534,8 @@
              automatica (las manuales no tienen fila que vincular). */
           if (x.origen === 'comision_automatica' && cj && cj.cuerpo) {
             sb.from('comisiones_devengadas').select('estado,pagado_en')
-              .eq('solicitud_id', x.id).eq('nivel', 'manager').maybeSingle()
+              // manager Y estándar (22-sep-2026): las dos las paga Lawang y llevan solicitud
+              .eq('solicitud_id', x.id).in('nivel', ['manager', 'estandar']).maybeSingle()
               .then(function (rcd) {
                 if (!cj.cuerpo.isConnected) return;   // el cajon ya se cerro
                 var html;
@@ -6203,7 +6204,7 @@
     var selProyecto = document.getElementById('lw-co-proyecto');
 
     Promise.all([
-      q(sb.from('condiciones_comision').select('id,equipo_id,proyecto_id,nivel,closer_email,pct_comision,base_calculo,importe_fijo,activo,created_at').order('created_at', { ascending: false }), 'condiciones de comisión', cuerpo),
+      q(sb.from('condiciones_comision').select('id,equipo_id,proyecto_id,nivel,closer_email,pct_comision,base_calculo,importe_fijo,activo,vigente_desde,created_at').order('created_at', { ascending: false }), 'condiciones de comisión', cuerpo),
       q(sb.from('equipos_venta').select('id,nombre'), 'equipos de venta'),
       q(sb.from('proyectos').select('id,nombre'), 'proyectos'),
       q(sb.from('condicion_tramos').select('id,condicion_id,orden,disparador_tipo,umbral,pct_tramo').order('orden'), 'tramos de comisión'),
@@ -6225,6 +6226,7 @@
       pon2('k-cond-closer', String(conds.filter(function (c) { return c.nivel === 'closer'; }).length));
 
       if (selEquipo) selEquipo.innerHTML = '<option value="">Todos los equipos</option>' +
+        '<option value="__estandar__">Estándar de Lawang (sin equipo)</option>' +
         equipos.map(function (e) { return '<option value="' + esc(e.id) + '">' + esc(e.nombre) + '</option>'; }).join('');
       if (selProyecto) selProyecto.innerHTML = '<option value="">Todos los proyectos</option>' +
         proyectos.map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.nombre) + '</option>'; }).join('');
@@ -6232,19 +6234,30 @@
       function pinta() {
         if (!cuerpo) return;
         var fe = selEquipo ? selEquipo.value : '', fp = selProyecto ? selProyecto.value : '';
-        var lista = conds.filter(function (c) { return (!fe || c.equipo_id === fe) && (!fp || c.proyecto_id === fp); });
+        var lista = conds.filter(function (c) {
+          var okEquipo = !fe || (fe === '__estandar__' ? !c.equipo_id : c.equipo_id === fe);
+          // una estándar «todos los proyectos» aplica también al proyecto filtrado
+          var okProyecto = !fp || c.proyecto_id === fp || (!c.equipo_id && !c.proyecto_id);
+          return okEquipo && okProyecto;
+        });
         cuerpo.innerHTML = lista.length ? lista.map(function (c) {
           var t = (tramosDe[c.id] || []).slice().sort(function (a, b) { return a.orden - b.orden; });
           var resumenTramos = t.length
             ? t.map(function (x) { return x.pct_tramo + '% ' + etiquetaDe(window.LW_V4.DISPARADORES, x.disparador_tipo); }).join(' · ')
             : '—';
-          var quien = c.nivel === 'closer'
-            ? (c.closer_email ? esc(nombrePorEmail[c.closer_email.toLowerCase()] || c.closer_email) + ' (override)' : 'todo el equipo · closer')
-            : 'manager';
+          /* Estándar de Lawang (22-sep-2026, owner): equipo NULL = se aplica a
+             quien cierra sin equipo, la paga Lawang; proyecto NULL = todos. */
+          var estandar = !c.equipo_id;
+          var quien = estandar
+            ? (c.closer_email ? esc(nombrePorEmail[c.closer_email.toLowerCase()] || c.closer_email) + ' (override)' : 'quien cierre sin equipo · paga Lawang')
+            : c.nivel === 'closer'
+              ? (c.closer_email ? esc(nombrePorEmail[c.closer_email.toLowerCase()] || c.closer_email) + ' (override)' : 'todo el equipo · closer')
+              : 'manager';
           var importeOBase = c.base_calculo === 'importe_fijo' ? fmt(c.importe_fijo, 'EUR') : (c.pct_comision + '%');
+          var vigencia = c.vigente_desde && c.vigente_desde > '1900-01-01' ? '<br><span class="text-outline text-[11px]">desde ' + esc(fFecha(c.vigente_desde)) + '</span>' : '';
           return '<tr class="border-b border-outline-variant/30">' +
-            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(equipoDe[c.equipo_id] || '—') + '</td>' +
-            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(proyectoDe[c.proyecto_id] || '—') + '</td>' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + (estandar ? 'Estándar de Lawang' : esc(equipoDe[c.equipo_id] || '—')) + vigencia + '</td>' +
+            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + (c.proyecto_id ? esc(proyectoDe[c.proyecto_id] || '—') : 'Todos los proyectos') + '</td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + quien + '</td>' +
             '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(importeOBase) +
               '<br><span class="text-outline text-[11px]">' + esc(etiquetaDe(window.LW_V4.BASES_CALCULO, c.base_calculo)) + '</span></td>' +
@@ -6257,9 +6270,9 @@
                  no ha devengado— los tramos. Equipo, proyecto y nivel no: son la
                  identidad de la condición. */
               '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" ' +
-              'data-lw-edita-cond="' + esc(c.id) + '" data-lw-etq="' + esc((equipoDe[c.equipo_id] || '') + ' · ' + (proyectoDe[c.proyecto_id] || '')) + '">Editar</button>' +
+              'data-lw-edita-cond="' + esc(c.id) + '" data-lw-etq="' + esc((estandar ? 'Estándar de Lawang' : (equipoDe[c.equipo_id] || '')) + ' · ' + (c.proyecto_id ? (proyectoDe[c.proyecto_id] || '') : 'Todos los proyectos')) + '">Editar</button>' +
               '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" ' +
-              'data-lw-toggle-cond="' + esc(c.id) + '" data-lw-etq="' + esc((equipoDe[c.equipo_id] || '') + ' · ' + (proyectoDe[c.proyecto_id] || '')) + '" data-lw-activo="' + (c.activo ? '1' : '0') + '">' +
+              'data-lw-toggle-cond="' + esc(c.id) + '" data-lw-etq="' + esc((estandar ? 'Estándar de Lawang' : (equipoDe[c.equipo_id] || '')) + ' · ' + (c.proyecto_id ? (proyectoDe[c.proyecto_id] || '') : 'Todos los proyectos')) + '" data-lw-activo="' + (c.activo ? '1' : '0') + '">' +
               (c.activo ? 'Desactivar' : 'Reactivar') + '</button>' +
               /* Borrar solo la que ya esta desactivada (Seguridad, revision previa
                  18-sep): una activa puede estar aplicandose a contratos firmados
@@ -6267,7 +6280,7 @@
                  Primero se desactiva —que deja de aplicarse— y entonces se borra. */
               (c.activo ? '' :
               '<button type="button" class="px-3 py-1 rounded-full text-error hover:bg-error-container/40 font-label-md text-[12px]" ' +
-              'data-lw-borra-cond="' + esc(c.id) + '" data-lw-etq="' + esc((equipoDe[c.equipo_id] || '') + ' · ' + (proyectoDe[c.proyecto_id] || '')) + '">Borrar</button>') +
+              'data-lw-borra-cond="' + esc(c.id) + '" data-lw-etq="' + esc((estandar ? 'Estándar de Lawang' : (equipoDe[c.equipo_id] || '')) + ' · ' + (c.proyecto_id ? (proyectoDe[c.proyecto_id] || '') : 'Todos los proyectos')) + '">Borrar</button>') +
               '</div></td></tr>';
         }).join('') : '<tr><td colspan="7" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Ninguna condición para este filtro.</td></tr>';
       }
