@@ -1,0 +1,60 @@
+-- ============================================================================
+-- BOT DE APOYO A AGENTES — temas, FAQ aprobadas y respuestas copiadas.
+-- 22-sep-2026, encargo 20260922_lawang_bot_apoyo_agentes (rev. previa #36).
+-- ----------------------------------------------------------------------------
+-- PARA QUE. El bot (20260922012840_bot_agentes) redacta borradores y frena en
+-- servidor lo que no puede contestar. Esta segunda capa da al super_admin y al
+-- agente lo que faltaba para que el bot MEJORE con el uso sin tocar el prompt:
+--   · bot_temas: las preguntas de los compradores se repiten por tema (quien
+--     cobra, retencion, plazo, penalizacion, anexos, titulo, comunidad, hitos,
+--     documentos). Cada tema es una regex ES/EN/ID sobre la pregunta, validada
+--     al guardarla. Solo `documentos_expediente` es de procedimiento: vale para
+--     todos los contratos porque no depende del ejemplar.
+--   · bot_bloqueos.tema_clave: cada freno cuelga de un tema. Un tema frenado no
+--     admite FAQ: un freno es un hueco del contrato y se resuelve con adenda,
+--     no con una respuesta bonita que lo tape.
+--   · bot_faq: respuestas APROBADAS por super_admin, acotadas a proyecto o a
+--     tipo de contrato (contratos.tipo, NO el slug de plantilla: son dos
+--     vocabularios y compartirlos ya cargo la plantilla equivocada — adenda.sql).
+--     Inmutables: se retiran (activo=false) y nace otra con sustituye_a, para
+--     que lo que un agente leyo un dia siga siendo rastreable. Sin cifras de 8+
+--     digitos (cuentas, telefonos, pasaportes). aprobado_por lo pone la sesion.
+--   · bot_respuestas_copiadas: lo que el agente copia para el comprador, tal
+--     cual. Ninguna cifra larga que no estuviera en el borrador del asistente.
+--   · bot_consultas.descarte_motivo: por que el agente descarto el borrador.
+--   · bot_temas_resumen(dias): consultas / con frenos / descartadas por tema,
+--     con la RLS de quien pregunta (invoker): el agente ve lo suyo, el
+--     super_admin todo. Devuelve tambien los temas a cero.
+--
+-- GRANTS. Corrige el hueco de la migracion anterior: la policy FOR ALL de
+-- super_admin sobre bot_fuentes/bot_bloqueos no servia sin INSERT/UPDATE
+-- concedidos a authenticated (el GRANT manda antes que la policy).
+-- Pendiente conocido: bot_temas tiene policy FOR ALL de super_admin pero solo
+-- grant SELECT, como pedia el encargo — hasta que un encargo abra la edicion de
+-- temas desde el panel, se editan por migracion.
+--
+-- DESTRUCTIVO-OK declarado en la migracion: un UPDATE de 7 filas de
+-- bot_bloqueos que solo rellena la columna nueva tema_clave. El prompt
+-- (bot_fuentes) no se toca: eso es S2.
+--
+-- PRUEBA: contracts/bot/arnes_faq.sql (9 casos con rol real + claims, todo en
+-- una transaccion con ROLLBACK, misma receta que tools/flujos_lawang.py).
+-- ============================================================================
+
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: table bot_temas · table bot_faq · table bot_respuestas_copiadas ·
+--   column bot_bloqueos.tema_clave · column bot_consultas.descarte_motivo ·
+--   function bot_temas_valida_patron() · function bot_faq_frena() ·
+--   function bot_faq_inmutable() · function bot_copia_frena() ·
+--   function bot_temas_resumen(int)
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260922012840_bot_agentes.sql   (bot_fuentes, bot_bloqueos, bot_consultas)
+--   supabase/migrations/20260922210000_bot_faq_temas.sql
+-- ============================================================================
