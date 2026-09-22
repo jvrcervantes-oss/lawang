@@ -280,10 +280,16 @@ function seccionesDe(texto) {
    entero sin la cola. Un punto no retirado al que el modelo no respondió no
    aparece: el aviso «(el modelo no ha respondido…)» es para el agente. */
 function borradorComprador(puntos, textoModelo) {
-  const esFraseFija = (l) => l.includes(FRASE_PENDIENTE) || l.includes(FRASE_CONTRAOFERTA);
+  // Frase fija literal en español, o su traducción: el prompt manda la línea en
+  // español, pero en producción (22-sep) el modelo escribió solo la versión
+  // inglesa en un punto y esa línea iba derecha al comprador. Se reconoce la
+  // familia entera (ES/EN/ID), y el punto sale entero.
+  const FRASE_TRADUCIDA = /pendiente de confirmaci[oó]n por el promotor|pending confirmation (from|by) the (developer|promoter|seller)|no lo confirmes al comprador|(do not|don't|cannot|can't) confirm (this|it) to the buyer|contraoferta comercial|commercial counter-?offer|menunggu konfirmasi/i;
+  const esFraseFija = (l) => l.includes(FRASE_PENDIENTE) || l.includes(FRASE_CONTRAOFERTA) || FRASE_TRADUCIDA.test(l);
   const esCola = (l) => /^\s*Fuentes usadas\s*:/i.test(l) || l.includes(MARCA_IA);
   const junta = (lineas) => lineas.filter((l) => !esCola(l)).join('\n').replace(/\n{3,}/g, '\n\n').trim();
-  const CLASE = /\s+—\s+(cita|existe el documento|pendiente|contraoferta)(\s*\+\s*(cita|existe el documento|pendiente|contraoferta))*\s*$/i;
+  // «— cita», «— cita + existe el documento», «— Cita (respuesta aprobada)»…
+  const CLASE = /\s+—\s+(cita|existe el documento|pendiente|contraoferta)(\s*\+\s*(cita|existe el documento|pendiente|contraoferta))*(\s*\([^()]{0,60}\))?\s*$/i;
   const lista = Array.isArray(puntos) ? puntos : [];
   const hayRetirados = lista.some((p) => p && p.motivos && p.motivos.length);
   const { secciones } = seccionesDe(textoModelo);

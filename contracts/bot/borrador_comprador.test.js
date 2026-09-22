@@ -85,6 +85,12 @@ ok(s2 === '2. Superficie\n   Artículo 2: «120 m²».\n   Fuente: Artículo 2',
 const s2b = borradorComprador([{ n: 1, texto: 'plazo', motivos: [] }], '1. Plazo — cita + pendiente\n   Artículo 6: «(en blanco) meses naturales».\n' + MARCA_IA);
 ok(s2b === '', 'cabecera con clase pendiente y sin frase fija: el punto sale entero');
 
+// frase fija TRADUCIDA (el modelo la escribió solo en inglés, visto en producción 22-sep) → el punto sale entero
+const modelo2c = '1. Community rules — Cita (respuesta aprobada)\n   Rules are provided in writing before handover.\n   Fuente: respuesta aprobada por el promotor\n\n3. Which annexes are listed — cita + existe el documento\n   Article 3 lists Appendix A, B and C, but none appear in the list of documents on file.\n   This point is pending confirmation from the developer: I cannot confirm this to the buyer until then.\n   Fuente: Artículo 3\n' + MARCA_IA;
+const s2c = borradorComprador([{ n: 1, texto: 'rules', motivos: [] }, { n: 2, texto: 'cuenta', motivos: [{ motivo: 'x', ref: null }] }, { n: 3, texto: 'annexes', motivos: [] }], modelo2c);
+ok(!s2c.includes('Appendix A') && !/pending confirmation/i.test(s2c), 'frase fija en inglés: el punto 3 sale entero');
+ok(s2c === '1. Community rules\n   Rules are provided in writing before handover.\n   Fuente: respuesta aprobada por el promotor', 'la etiqueta «— Cita (respuesta aprobada)» se quita y el punto 1 se queda');
+
 // todos los puntos retirados → nada que mandar
 const s3 = borradorComprador([{ n: 1, texto: 'cuenta', motivos: [{ motivo: 'x', ref: null }] }], '1. Sin artículo aplicable\n' + MARCA_IA);
 ok(s3 === '', 'si todos los puntos están retirados, el borrador para el comprador es vacío');
