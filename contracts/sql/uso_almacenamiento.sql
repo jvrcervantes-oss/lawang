@@ -27,73 +27,19 @@
 -- llevaba dos días diciendo el límite del Free con el Pro ya pagado).
 -- ============================================================================
 
-create or replace function public._uso_almacenamiento(
-  limite_ficheros bigint default 107374182400,  -- 100 GB (Pro)
-  limite_base     bigint default 8589934592     -- 8 GB   (Pro)
-)
-returns jsonb
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  ficheros bigint; n_ficheros bigint; base bigint; detalle jsonb; ritmo numeric;
-begin
-  select coalesce(sum((o.metadata->>'size')::bigint), 0), count(*)
-    into ficheros, n_ficheros from storage.objects o;
-
-  select pg_catalog.pg_database_size(pg_catalog.current_database()) into base;
-
-  -- MB/día sobre la ventana REAL: desde el primer fichero, con un tope de 90
-  -- días para que un histórico largo no diluya el ritmo de ahora, y un suelo de
-  -- 1 día para no dividir entre cero el día que se sube el primero.
-  select round(
-           coalesce(sum((o.metadata->>'size')::bigint), 0) / 1048576.0
-           / greatest(1, extract(epoch from (now() - min(o.created_at))) / 86400.0)
-         , 2)
-    into ritmo from storage.objects o
-   where o.created_at > now() - interval '90 days';
-
-  select jsonb_agg(x order by x->>'bytes' desc) into detalle from (
-    select jsonb_build_object('bucket', b.id, 'ficheros', count(o.id),
-             'bytes', coalesce(sum((o.metadata->>'size')::bigint), 0)) as x
-      from storage.buckets b left join storage.objects o on o.bucket_id = b.id
-     group by b.id) t;
-
-  return jsonb_build_object(
-    'medido_en', now(),
-    'ficheros', jsonb_build_object('bytes', ficheros, 'n', n_ficheros,
-      'limite', limite_ficheros,
-      'pct', round((ficheros::numeric / nullif(limite_ficheros,0)) * 100, 1)),
-    'base', jsonb_build_object('bytes', base, 'limite', limite_base,
-      'pct', round((base::numeric / nullif(limite_base,0)) * 100, 1)),
-    'buckets', coalesce(detalle, '[]'::jsonb),
-    -- Lo que importa no es el % de hoy sino cuánto margen queda AL RITMO REAL.
-    'ritmo_mb_dia', ritmo,
-    'dias_de_margen', case when ritmo > 0
-      then floor((limite_ficheros - ficheros) / 1048576.0 / ritmo) end);
-end;
-$$;
-revoke all on function public._uso_almacenamiento(bigint, bigint) from public, anon, authenticated;
-
--- El wrapper que llama el panel: mismo resultado, con el filtro de quién puede.
-create or replace function public.uso_almacenamiento(
-  limite_ficheros bigint default 107374182400,  -- 100 GB (Pro)
-  limite_base     bigint default 8589934592     -- 8 GB   (Pro)
-)
-returns jsonb
-language plpgsql
-security definer
-set search_path = ''
-as $$
-begin
-  if not public.es_agente() then raise exception 'no autorizado'; end if;
-  return public._uso_almacenamiento(limite_ficheros, limite_base);
-end;
-$$;
-revoke all on function public.uso_almacenamiento(bigint, bigint) from public, anon;
-grant execute on function public.uso_almacenamiento(bigint, bigint) to authenticated;
-
--- ⚠️ Al poner `search_path=''` en una función hay que comprobar que SIGUE
--- EJECUTANDO, no solo que el linter se calla: si revienta, el panel se queda sin
--- métricas y el aviso no salta nunca — en verde. (Lección de `es_agente()`, 28-jul.)
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: _uso_almacenamiento, uso_almacenamiento
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260731043307_uso_almacenamiento.sql
+--   supabase/migrations/20260731043420_uso_almacenamiento_ritmo_real.sql
+--   supabase/migrations/20260731043524_uso_almacenamiento_interno.sql
+--   supabase/migrations/20260917013026_uso_almacenamiento_plan_pro.sql
+--   supabase/migrations/20260917060000_uso_almacenamiento_plan_pro.sql
+-- ============================================================================

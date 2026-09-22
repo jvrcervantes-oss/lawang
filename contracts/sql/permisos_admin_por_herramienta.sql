@@ -30,45 +30,29 @@
 --     afectada es la de las fotos de obra, cuya policy es FOR ALL — y a quien
 --     no tenga «Obra» tampoco se le abre la herramienta, así que es coherente.
 
-create or replace function public.puede(herramienta text)
-returns boolean
-language sql stable security definer
-set search_path to ''
-as $$
-  select case
-    -- ÚNICO sin límite. Antes era es_admin() y ese era justo el agujero.
-    when public.es_super_admin() then true
-    when exists (select 1 from public.usuarios u where u.user_id = (select auth.uid()))
-      then exists (select 1 from public.usuarios u
-                    where u.user_id = (select auth.uid()) and u.activo
-                      and herramienta = any(u.herramientas))
-    -- cuenta de auth sin ficha: se conserva el fallback que ya tenía
-    else coalesce(((select auth.jwt()) -> 'app_metadata' ->> 'agente')::boolean, false)
-  end
-$$;
-
--- ── La gestión de usuarios, con su propia herramienta ───────────────────────
--- Se reescriben enteras conservando lo que ya decían y sumando `puede`.
--- Ojo al orden de la comprobación: `es_admin() AND puede('usuarios')` — el rol
--- sigue haciendo falta, la herramienta ya no basta por sí sola. Un agente con
--- «usuarios» marcado NO gestiona usuarios.
-drop policy if exists "solo admin crea usuarios" on public.usuarios;
-create policy "solo admin crea usuarios" on public.usuarios
-  for insert to authenticated
-  with check (public.es_admin() and public.puede('usuarios'));
-
-drop policy if exists "admin edita, pero no toca una fila super_admin sin serlo" on public.usuarios;
-create policy "admin edita, pero no toca una fila super_admin sin serlo" on public.usuarios
-  for update to authenticated
-  using (public.es_admin() and public.puede('usuarios')
-         and (rol <> 'super_admin' or public.es_super_admin()))
-  with check (public.es_admin() and public.puede('usuarios')
-              and (rol <> 'super_admin' or public.es_super_admin()));
-
--- ── Comprobación (la del catálogo, nunca el «ya lo mandé») ──────────────────
---   select prosrc from pg_proc where proname='puede';   → es_super_admin(), no es_admin()
---   select polname, pg_get_expr(polwithcheck, polrelid) from pg_policy
---    where polrelid='public.usuarios'::regclass;        → las dos con puede('usuarios')
--- Y la de comportamiento: DO con rollback suplantando a un admin con lista
--- corta — escribir en su herramienta pasa, en una que no tiene revienta, y
--- tocar `usuarios` sin la herramienta «usuarios» revienta.
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: admin, puede, solo
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260729090521_usuarios_y_permisos_tabla.sql
+--   supabase/migrations/20260729090612_usuarios_funciones_permisos.sql
+--   supabase/migrations/20260729091818_revocar_execute_anon_funciones_permisos.sql
+--   supabase/migrations/20260729091848_execute_solo_authenticated_funciones_permisos.sql
+--   supabase/migrations/20260807021850_unidades_catalogos_proyecto_tipo.sql
+--   supabase/migrations/20260807024457_unidades_catalogos_policies_to_authenticated.sql
+--   supabase/migrations/20260811034823_recibi_aplicaciones_reforma_facturacion.sql
+--   supabase/migrations/20260811053843_usuarios_admin_no_toca_super_admin.sql
+--   supabase/migrations/20260909135217_crm_leads_tablas_y_policies.sql
+--   supabase/migrations/20260909135711_crm_leads_firmado_es_bloqueado_y_puede_sin_rama_ciega.sql
+--   supabase/migrations/20260914121500_comisiones_devengadas_manager_no_veia_al_closer.sql
+--   supabase/migrations/20260916093309_unidades_codigo_orden_natural.sql
+--   supabase/migrations/20260917092917_congela_emisor_tambien_en_update.sql
+--   supabase/migrations/20260917150021_proyecto_cambiar_estado_y_plazos_funciones.sql
+--   supabase/migrations/20260921111614_contrato_closer_semilla_al_alta.sql
+-- ============================================================================

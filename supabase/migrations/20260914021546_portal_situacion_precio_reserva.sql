@@ -1,10 +1,26 @@
 -- portal_situacion(): anade `precio_reserva` a cada contrato del area de clientes.
--- El portal sumaba la Carta de Reserva junto al Bloqueo de Parcela y la
--- Construccion que la sustituyen (una villa contada dos veces). Al dejar de
--- sumarla, un comprador con SOLO Carta necesita ver su CUOTA de reserva, que es
--- lo unico exigible hasta que firme el contrato definitivo, y ese importe vive
--- en datos->'fields'->>'precio_reserva'. Copia integra en el repo:
--- proyectos/Lawang/supabase/migrations/20260914_portal_situacion_precio_reserva.sql
+--
+-- POR QUE. El area de clientes ensenaba el doble de lo que el comprador debe:
+-- sumaba la Carta de Reserva junto al Bloqueo de Parcela y la Construccion que
+-- la sustituyen, y esos tres documentos describen UNA villa, no tres. La regla
+-- vive en contracts/assets/vocabulario.js (`lwEsPreliminar`); la suite la
+-- aprendio el 12-ago-2026 en compradores/ y el 14-ago en operaciones/, y el
+-- portal -- la unica pantalla que ve el CLIENTE -- nunca la aplico.
+--
+-- Al dejar de sumar la Carta aparece el caso contrario: un comprador que SOLO
+-- tiene Carta, aun sin contrato definitivo, se quedaria con el resumen en
+-- blanco, y eso se lee como <<no debes nada>>. Lo que debe de verdad es la
+-- CUOTA de reserva, exigible a los 5 dias habiles de la firma y con retencion
+-- si el reservante desiste (carta_reserva_hak_sewa, cl. 4.1/7.2 -- hallazgo
+-- Legal ALTA del 12-ago-2026). Ese importe vive en
+-- `datos->'fields'->>'precio_reserva'` y hasta hoy no viajaba al portal.
+--
+-- No anade coste: `c.datos` ya se descomprimia aqui para `precio_total` y los
+-- hitos, asi que no hay un TOAST nuevo que pagar.
+--
+-- Se reescribe la funcion ENTERA a proposito (CREATE OR REPLACE no admite
+-- parches): SECURITY DEFINER y `SET search_path TO ''` se conservan tal cual --
+-- perderlos aqui abriria el portal de par en par.
 CREATE OR REPLACE FUNCTION public.portal_situacion()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -54,6 +70,8 @@ begin
         'parcela',     c.datos->'fields'->>'parcela_codigo',
         'precio',      c.precio_total,
         'precio_txt',  nullif(c.datos->'fields'->>'precio_total', ''),
+        -- la cuota de reserva: el unico importe exigible mientras no haya
+        -- contrato definitivo (ver la cabecera de esta migracion)
         'precio_reserva', nullif(c.datos->'fields'->>'precio_reserva', ''),
         'moneda',      c.moneda,
         'fecha_firma', c.fecha_firma,
@@ -173,4 +191,4 @@ begin
   ) into r;
   return r;
 end
-$function$;;
+$function$;

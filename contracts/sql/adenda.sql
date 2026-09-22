@@ -33,22 +33,15 @@
 -- primera adenda real sea AD00001 y no AD00002.
 -- ============================================================================
 
-create sequence if not exists public.contratos_ad_seq;
-
--- destructivo-ok: es un SWAP de CHECK, no un borrado de datos. Postgres no sabe
--- ampliar la lista de un CHECK en sitio: hay que soltarlo y volver a ponerlo, y
--- las dos van en la MISMA transaccion. Ni una fila se toca.
-alter table public.contratos drop constraint if exists contratos_tipo_check;
-alter table public.contratos add constraint contratos_tipo_check
-  check (tipo = any (array[
-    'reserva_parcela','construccion','contrato_general','commercial_offer',
-    'carta_reserva','carta_reserva_ampliada','acuerdo_comercial','protocolo_operativo',
-    'ppjb_bonian','ppjb_bonian_c2','hak_sewa_notario','carta_reserva_hak_sewa',
-    'poa','cc00014_timon','carta_reserva_pma',
-    'adenda'
-  ]));
-
--- La rama nueva es la ultima; el resto es la definicion viva tal cual estaba.
--- (cuerpo completo en la migracion `adenda_tipo_y_serie_ad`; se repite aqui solo
---  la linea que se anade, para que este fichero no compita con la funcion viva)
---   when 'adenda'             then prefix := 'AD'; seqname := 'public.contratos_ad_seq';
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: (fichero de ALTER/INSERT, sin CREATE)
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260908083655_adenda_tipo_y_serie_ad.sql
+-- ============================================================================

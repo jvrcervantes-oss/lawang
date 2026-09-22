@@ -46,88 +46,17 @@
 --     pantalla.
 -- ════════════════════════════════════════════════════════════════════════════
 
-create or replace function public.descuento_comercial_construccion_valido()
-returns trigger
-language plpgsql
-security definer
-set search_path to ''
-as $$
-declare
-  v_descuento numeric;
-  v_techo     numeric;
-  v_base      numeric;
-begin
-  if new.tipo <> 'construccion' then
-    return new;
-  end if;
-
-  -- Mismo parser que ya usa `carta_cobrado_al_bloquear()` para leer un campo
-  -- de dinero tecleado en pantalla (formato canónico "44.000", coma decimal).
-  v_descuento := coalesce(public.lw_importe(new.datos->'fields'->>'descuento_comercial'), 0);
-
-  if v_descuento < 0 then
-    raise exception 'El descuento comercial no puede ser negativo.';
-  end if;
-
-  if v_descuento > 0 then
-    -- Techo congelado: TECHO_ELEGIDO viaja como {..., precio:<number>, ...},
-    -- un número JSON crudo (nunca pasó por el formateador de pantalla) — se
-    -- castea directo, sin lw_importe(). Si no hay techo con esa forma (nulo,
-    -- o `precio` no numérico), v_techo sale NULL y el tope del 15% no se
-    -- puede calcular aquí: se deja pasar a la comprobación final de abajo.
-    v_techo := nullif(new.datos->'techo'->>'precio', '')::numeric;
-    if v_techo is not null then
-      select v_techo + coalesce(sum(nullif(x->>'precio','')::numeric), 0)
-        into v_base
-        from jsonb_array_elements(coalesce(new.datos->'extras', '[]'::jsonb)) x;
-
-      if v_base > 0 and v_descuento > round(v_base * 0.15, 2) then
-        raise exception 'El descuento comercial (%) supera el 15%% del precio de techo+extras (%).',
-          v_descuento, v_base;
-      end if;
-    end if;
-
-    -- Cinturón final, condicionado a `v_descuento > 0` — CORREGIDO EL MISMO
-    -- DÍA (migración …_fix_precio_total_incondicional, hallado por
-    -- autorrevisión antes de cerrar la tarea, no en producción): la primera
-    -- versión de este cinturón vivía FUERA del `if v_descuento > 0`, así que
-    -- corría en CUALQUIER UPDATE de un contrato tipo=construccion — y hay
-    -- contratos reales (CC00040/CC00076/CC00086) con `precio_total` NULL sin
-    -- ningún descuento, que habrían quedado inguardables para cualquier otra
-    -- edición. `precio_total` es columna propia ya numérica (la resuelve
-    -- `parseImporte()` en el navegador) — este cinturón solo exige que no
-    -- quede en cero o negativa CUANDO hay un descuento que podría haberla
-    -- dejado así.
-    if coalesce(new.precio_total, 0) <= 0 then
-      raise exception 'precio_total no puede quedar en cero o negativo al aplicar un descuento comercial.';
-    end if;
-  end if;
-
-  return new;
-end;
-$$;
-
-revoke execute on function public.descuento_comercial_construccion_valido() from public, anon, authenticated;
-
--- destructivo-ok: DROP defensivo de un trigger que hoy NO existe en producción
--- (comprobado con list_migrations antes de escribir esto) — solo por si esta
--- migración se reaplica alguna vez; no borra nada que exista.
-drop trigger if exists trg_descuento_comercial_construccion on public.contratos;
-create trigger trg_descuento_comercial_construccion
-  before insert or update on public.contratos
-  for each row execute function public.descuento_comercial_construccion_valido();
-
-comment on function public.descuento_comercial_construccion_valido() is
-  'BEFORE INSERT OR UPDATE en contratos, solo tipo=construccion: bloquea un descuento_comercial negativo o por encima del 15% de techo+extras (cuando esa forma es calculable), y --SOLO cuando hay descuento (v_descuento>0)-- que precio_total no quede en cero o negativo. NO valida el rol de quien escribe (ver comentario de cabecera) — ese candado sigue siendo de pantalla. 21-sep-2026, revisión previa #33; corregido el mismo día (autorrevisión) para no bloquear ediciones de contratos sin descuento y con precio_total ya en null/0.';
-
--- ── comprobación tras aplicar ────────────────────────────────────────────────
---   select tgname, tgtype from pg_trigger
---    where tgrelid = 'public.contratos'::regclass and tgname = 'trg_descuento_comercial_construccion';
---   -- tgtype impar (BEFORE), INSERT+UPDATE.
---   select proname from pg_proc where proname = 'descuento_comercial_construccion_valido';
-
--- ─── 22-sep-2026 ─────────────────────────────────────────────────────────────
--- SUSTITUIDA por contracts/sql/precio_construccion_cuadra_con_techo.sql (migración
--- 20260922013705): misma función, añade la comprobación precio_total = techo +
--- Σextras − descuento cuando datos.techo trae precio. Este fichero queda como
--- historia del porqué; la versión vigente de la función es la de aquel.
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: descuento_comercial_construccion_valido, trg_descuento_comercial_construccion
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260921122811_descuento_comercial_construccion_valido.sql
+--   supabase/migrations/20260921124646_descuento_comercial_construccion_valido_fix_precio_total_incondicional.sql
+--   supabase/migrations/20260922013705_precio_construccion_cuadra_con_techo.sql
+-- ============================================================================

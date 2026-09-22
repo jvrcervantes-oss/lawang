@@ -17,164 +17,63 @@
 -- antiguo — permiso completo si tiene el flag legacy. Sin esa rama, cualquier
 -- cuenta creada fuera del panel se quedaría muda sin que nadie entienda por qué.
 
-create table public.usuarios (
-  user_id uuid primary key references auth.users(id) on delete cascade,
-  email text not null unique,
-  nombre text,
-  rol text not null default 'agente' check (rol in ('super_admin','admin','agente')),
-  herramientas text[] not null default '{}',
-  activo boolean not null default true,
-  creado_en timestamptz not null default now(),
-  creado_por text default auth.email()
-);
-alter table public.usuarios enable row level security;
-
--- Alta de los usuarios existentes preservando el statu quo: quien tenía el flag
--- entra activo; quien no lo tenía (y hoy no ve nada) entra DESACTIVADO.
-insert into public.usuarios (user_id, email, rol, herramientas, activo, creado_por)
-select u.id, u.email,
-       case when u.email = 'jvr.cervantes@gmail.com' then 'super_admin' else 'agente' end,
-       array['contratos','facturas','operaciones','unidades','compradores','dossier'],
-       coalesce((u.raw_app_meta_data ->> 'agente')::boolean, false),
-       'migracion 29-jul-2026'
-from auth.users u;
-update public.usuarios set herramientas = herramientas || array['usuarios'] where rol = 'super_admin';
-
--- ── Funciones ────────────────────────────────────────────────────────────
--- SECURITY DEFINER es OBLIGATORIO en todas: sin él, consultar `usuarios` desde
--- una policy dispara la RLS de `usuarios`, que a su vez llama a estas funciones
--- → recursión infinita.
-create or replace function public.es_agente()
-returns boolean language sql stable security definer set search_path = '' as $$
-  select case
-    when exists (select 1 from public.usuarios u where u.user_id = (select auth.uid()))
-      then exists (select 1 from public.usuarios u where u.user_id = (select auth.uid()) and u.activo)
-    else coalesce(((select auth.jwt()) -> 'app_metadata' ->> 'agente')::boolean, false)
-  end
-$$;
-
-create or replace function public.es_admin()
-returns boolean language sql stable security definer set search_path = '' as $$
-  select exists (select 1 from public.usuarios u
-                  where u.user_id = (select auth.uid()) and u.activo
-                    and u.rol in ('super_admin','admin'))
-$$;
-
-create or replace function public.puede(herramienta text)
-returns boolean language sql stable security definer set search_path = '' as $$
-  select case
-    when public.es_admin() then true
-    when exists (select 1 from public.usuarios u where u.user_id = (select auth.uid()))
-      then exists (select 1 from public.usuarios u
-                    where u.user_id = (select auth.uid()) and u.activo
-                      and herramienta = any(u.herramientas))
-    else coalesce(((select auth.jwt()) -> 'app_metadata' ->> 'agente')::boolean, false)
-  end
-$$;
-
--- El coalesce final no es adorno: `autor = auth.email()` devuelve NULL sin
--- sesión, y `false or NULL` = NULL. En RLS un NULL deniega igual, pero un
--- predicado que devuelve NULL es una trampa para quien lo reutilice fuera.
-create or replace function public.es_suyo(autor text)
-returns boolean language sql stable security definer set search_path = '' as $$
-  select coalesce(autor is null or autor = (select auth.email()) or public.es_admin(), false)
-$$;
-
--- ── RLS de la propia tabla ───────────────────────────────────────────────
-create policy "cada uno lee su ficha, el admin todas" on public.usuarios
-  for select to authenticated using (user_id = (select auth.uid()) or public.es_admin());
-create policy "solo admin crea usuarios" on public.usuarios
-  for insert to authenticated with check (public.es_admin());
-create policy "solo admin edita usuarios" on public.usuarios
-  for update to authenticated using (public.es_admin()) with check (public.es_admin());
-
--- ── Propiedad del documento ──────────────────────────────────────────────
--- Las filas con creado_por NULL (anteriores al 27-jul, cuando se añadió la
--- columna) siguen siendo editables por cualquier agente: nadie las creó a
--- efectos de la base, y bloquearlas dejaría 15 contratos vivos intocables.
--- Las LECTURAS se quedan en es_agente() a propósito: Operaciones cruza
--- contratos + facturas + firmas, y filtrar lecturas por herramienta la dejaría
--- en blanco para quien solo tuviera 'operaciones'.
-drop policy if exists "agentes autenticados actualizan contratos no bloqueados" on public.contratos;
-create policy "el autor o un admin editan contratos no bloqueados" on public.contratos
-  for update to authenticated
-  using (bloqueado = false and public.es_agente() and public.puede('contratos') and public.es_suyo(creado_por))
-  with check (public.es_agente() and public.puede('contratos'));
-
-drop policy if exists "agentes autenticados insertan contratos" on public.contratos;
-create policy "agentes con la herramienta insertan contratos" on public.contratos
-  for insert to authenticated with check (public.es_agente() and public.puede('contratos'));
-
-drop policy if exists "agentes autenticados actualizan facturas no anuladas" on public.facturas;
-create policy "el autor o un admin editan facturas no anuladas" on public.facturas
-  for update to authenticated
-  using (anulada = false and public.es_agente() and public.puede('facturas') and public.es_suyo(creado_por))
-  with check (public.es_agente() and public.puede('facturas'));
-
-drop policy if exists "agentes autenticados insertan facturas" on public.facturas;
-create policy "agentes con la herramienta insertan facturas" on public.facturas
-  for insert to authenticated with check (public.es_agente() and public.puede('facturas'));
-
-drop policy if exists "agentes actualizan unidades" on public.unidades;
-create policy "agentes con la herramienta actualizan unidades" on public.unidades
-  for update to authenticated using (public.es_agente() and public.puede('unidades'))
-  with check (public.es_agente() and public.puede('unidades'));
-drop policy if exists "agentes crean unidades" on public.unidades;
-create policy "agentes con la herramienta crean unidades" on public.unidades
-  for insert to authenticated with check (public.es_agente() and public.puede('unidades'));
-
--- ── Permisos de ejecución ────────────────────────────────────────────────
--- Postgres concede EXECUTE a PUBLIC al crear una función, y `anon` lo hereda:
--- revocar solo de `anon` no hace nada. Hay que quitarlo de PUBLIC y devolverlo.
--- ⚠️ `authenticated` LO NECESITA: las policies evalúan estas funciones con los
--- privilegios de la sesión; sin EXECUTE, cada comprobación de RLS fallaría con
--- "permission denied" y la suite entera quedaría fuera.
-revoke execute on function public.es_agente()   from public;
-revoke execute on function public.es_admin()    from public;
-revoke execute on function public.puede(text)   from public;
-revoke execute on function public.es_suyo(text) from public;
-grant  execute on function public.es_agente()   to authenticated, service_role;
-grant  execute on function public.es_admin()    to authenticated, service_role;
-grant  execute on function public.puede(text)   to authenticated, service_role;
-grant  execute on function public.es_suyo(text) to authenticated, service_role;
-
--- ============================================================
--- APLICADO en producción el 11-ago-2026 por MCP (migración
--- `usuarios_admin_no_toca_super_admin`). Registro, no hace falta volver a
--- correrlo.
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
 --
--- Auditoría de suite: `es_admin()` no distingue admin de super_admin, y la
--- policy de UPDATE de `usuarios` solo miraba eso — un admin normal podía
--- ascenderse a sí mismo a super_admin, o degradar a uno, con una llamada
--- directa a la API. Los botones `disabled` del panel no son una barrera real.
--- ============================================================
-create or replace function public.es_super_admin()
-returns boolean language sql stable security definer set search_path = '' as $$
-  select exists (select 1 from public.usuarios u
-                  where u.user_id = (select auth.uid()) and u.activo
-                    and u.rol = 'super_admin')
-$$;
-
--- `revoke ... from public` NO basta en Supabase: al crear la función ya queda
--- un grant EXPLÍCITO a `anon`, aparte del que hereda de PUBLIC — hay que
--- revocárselo también a él, o la función queda invocable sin sesión.
-revoke execute on function public.es_super_admin() from public;
-revoke execute on function public.es_super_admin() from anon;
-grant  execute on function public.es_super_admin() to authenticated, service_role;
-
-drop policy if exists "solo admin edita usuarios" on public.usuarios;
-create policy "admin edita, pero no toca una fila super_admin sin serlo" on public.usuarios
-  for update to authenticated
-  using   (public.es_admin() and (rol <> 'super_admin' or public.es_super_admin()))
-  with check (public.es_admin() and (rol <> 'super_admin' or public.es_super_admin()));
-
--- ── Cómo se verificó (29-jul-2026), para repetirlo ───────────────────────
--- La conexión del MCP es PROPIETARIA de las tablas y por tanto BYPASEA la RLS:
--- un `select count(*)` desde ahí devuelve todo aunque la política esté mal, así
--- que no prueba nada. Hay que asumir el rol de verdad, y `set_config('role',…)`
--- dentro de un LATERAL no basta: se necesita `SET LOCAL ROLE authenticated`
--- dentro de una función plpgsql temporal (creada, usada y BORRADA).
--- Resultado sobre el contrato RP00016 (autor admin@):
---   sales@ → 0 filas (denegado) · su autor → 1 · super_admin → 1 · desactivado → 0
--- Y en lectura: un agente ve 1 ficha de usuario (la suya), el super_admin las 7,
--- y un usuario desactivado ve 0 contratos y 0 facturas.
+-- Objetos: admin, agentes, cada, el, es_admin, es_agente, es_super_admin, es_suyo, puede, solo, usuarios
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260729090521_usuarios_y_permisos_tabla.sql
+--   supabase/migrations/20260729090612_usuarios_funciones_permisos.sql
+--   supabase/migrations/20260729090633_es_suyo_nunca_null.sql
+--   supabase/migrations/20260729090740_rls_propiedad_contratos_facturas.sql
+--   supabase/migrations/20260729091818_revocar_execute_anon_funciones_permisos.sql
+--   supabase/migrations/20260729091848_execute_solo_authenticated_funciones_permisos.sql
+--   supabase/migrations/20260729094754_equipo_se_ve_entre_si.sql
+--   supabase/migrations/20260730044257_storage_update_snapshots_pendientes.sql
+--   supabase/migrations/20260731043211_documentacion_bucket_e_indice.sql
+--   supabase/migrations/20260731043542_aviso_almacenamiento_cron.sql
+--   supabase/migrations/20260731045054_borrado_con_permisos_y_enlaces.sql
+--   supabase/migrations/20260804050406_notificaciones_intranet.sql
+--   supabase/migrations/20260805023613_portal_comprador.sql
+--   supabase/migrations/20260807021850_unidades_catalogos_proyecto_tipo.sql
+--   supabase/migrations/20260807024457_unidades_catalogos_policies_to_authenticated.sql
+--   supabase/migrations/20260807043910_contratos_facturas_visibilidad_por_agente.sql
+--   supabase/migrations/20260811034823_recibi_aplicaciones_reforma_facturacion.sql
+--   supabase/migrations/20260811034859_bucket_justificantes.sql
+--   supabase/migrations/20260811035518_recibi_aplicaciones_delete_propio.sql
+--   supabase/migrations/20260811053843_usuarios_admin_no_toca_super_admin.sql
+--   supabase/migrations/20260817131756_storage_borrar_solo_snapshots_pendientes.sql
+--   supabase/migrations/20260819044926_law71_editar_firmado_y_borrar_facturas.sql
+--   supabase/migrations/20260821152750_law71_super_admin_reasigna_autor_de_factura_anulada.sql
+--   supabase/migrations/20260821153038_policies_de_law71_a_authenticated_no_a_public.sql
+--   supabase/migrations/20260826232208_usuarios_tipos_de_contrato_permitidos.sql
+--   supabase/migrations/20260901021433_aviso_soporte_mensajes_equipo.sql
+--   supabase/migrations/20260901120000_aviso_soporte_mensajes_equipo.sql
+--   supabase/migrations/20260909085614_notificaciones_nulo_solo_admins.sql
+--   supabase/migrations/20260909135217_crm_leads_tablas_y_policies.sql
+--   supabase/migrations/20260909135711_crm_leads_firmado_es_bloqueado_y_puede_sin_rama_ciega.sql
+--   supabase/migrations/20260910090734_permisos_agente_solo_lo_suyo_y_managers.sql
+--   supabase/migrations/20260911011008_managers_escriben_en_su_proyecto.sql
+--   supabase/migrations/20260911013643_proyectos_supervisados_separado.sql
+--   supabase/migrations/20260911030734_es_suyo_un_documento_sin_autor_no_es_de_todos.sql
+--   supabase/migrations/20260911031517_equipo_deja_de_saltarse_la_rls.sql
+--   supabase/migrations/20260911033802_proyectos_solo_los_asignados.sql
+--   supabase/migrations/20260911035515_solo_admin_da_de_alta_proyectos.sql
+--   supabase/migrations/20260914024847_directorio_de_compradores_y_el_autor_corrige_lo_suyo.sql
+--   supabase/migrations/20260914100424_comisiones_evaluar_contrato_fn.sql
+--   supabase/migrations/20260914121500_comisiones_devengadas_manager_no_veia_al_closer.sql
+--   supabase/migrations/20260914160000_comisiones_evaluar_contrato_fn.sql
+--   supabase/migrations/20260914_directorio_de_compradores_y_el_autor_corrige_lo_suyo.sql
+--   supabase/migrations/20260916093309_unidades_codigo_orden_natural.sql
+--   supabase/migrations/20260917092917_congela_emisor_tambien_en_update.sql
+--   supabase/migrations/20260917150021_proyecto_cambiar_estado_y_plazos_funciones.sql
+--   supabase/migrations/20260918021123_puede_proyecto_deja_de_abrir_cuando_el_nombre_no_casa.sql
+--   supabase/migrations/20260918021400_storage_deja_de_ser_una_carpeta_compartida.sql
+--   supabase/migrations/20260921111614_contrato_closer_semilla_al_alta.sql
+--   supabase/migrations/20260922133000_facturas_congela_contrato_numero_security_invoker.sql
+-- ============================================================================

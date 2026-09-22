@@ -16,40 +16,35 @@
 -- (ya mordió dos veces en este proyecto: unidades_estado_vista_fase_zona
 -- 10-ago, unidades_estado_precio_efectivo 26-ago). La vista real tenía
 -- `security_invoker=true` — se re-declara aquí EN LA MISMA sentencia.
-create or replace view public.unidades_estado
-with (security_invoker = true) as
- SELECT u.id,
-    u.codigo,
-    u.proyecto,
-    u.tipo,
-    u.superficie_m2,
-    COALESCE(u.precio, NULLIF(COALESCE(u.precio_suelo, 0::numeric) + COALESCE(u.precio_construccion, 0::numeric), 0::numeric)) AS precio,
-    u.moneda,
-    u.estado,
-    u.contrato_id,
-    u.notas,
-    u.created_at,
-    u.precio_suelo,
-    u.precio_construccion,
-    u.modelo,
-    u.obra_fase,
-    u.obra_fecha_entrega,
-    u.obra_actualizado,
-    c.numero AS contrato_numero,
-    c.comprador_nombre,
-    c.bloqueado AS contrato_firmado,
-    COALESCE(unidad_parte_cobrada(u.id), 0::numeric) AS facturado,
-        CASE
-            WHEN COALESCE(u.precio, NULLIF(COALESCE(u.precio_suelo, 0::numeric) + COALESCE(u.precio_construccion, 0::numeric), 0::numeric)) > 0::numeric THEN round(COALESCE(unidad_parte_cobrada(u.id), 0::numeric) / COALESCE(u.precio, NULLIF(COALESCE(u.precio_suelo, 0::numeric) + COALESCE(u.precio_construccion, 0::numeric), 0::numeric)) * 100::numeric, 1)
-            ELSE NULL::numeric
-        END AS pct_cobrado,
-    u.fase_masterplan,
-    u.zona_masterplan,
-    u.precio AS precio_guardado,
-    c.creado_por AS contrato_creado_por
-   FROM unidades u
-     LEFT JOIN contratos c ON c.id = u.contrato_id;
 
--- Comprobación:
---   select column_name from information_schema.columns where table_name='unidades_estado' and column_name='contrato_creado_por'; -- 1 fila
---   select reloptions from pg_class where relname='unidades_estado'; -- {security_invoker=true}
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: resetea, sustituye, unidades_estado
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260731065652_vinculo_contrato_unidad.sql
+--   supabase/migrations/20260805024801_unidades_estado_con_obra.sql
+--   supabase/migrations/20260807043910_contratos_facturas_visibilidad_por_agente.sql
+--   supabase/migrations/20260810100129_unidades_estado_vista_fase_zona.sql
+--   supabase/migrations/20260810101230_unidades_estado_restaura_security_invoker.sql
+--   supabase/migrations/20260811035145_unidades_estado_solo_recibi.sql
+--   supabase/migrations/20260812042114_estado_unidad_por_tipo_y_cobro_fix_view.sql
+--   supabase/migrations/20260819044137_cobro_repartido_entre_unidades.sql
+--   supabase/migrations/20260824035201_construccion_por_parcela.sql
+--   supabase/migrations/20260826112241_unidades_estado_precio_efectivo.sql
+--   supabase/migrations/20260902022413_unidades_estado_restaura_security_invoker_2.sql
+--   supabase/migrations/20260911005624_unidades_estado_agente_creador.sql
+--   supabase/migrations/20260911085553_unidades_estado_cobrado_suelo_obra.sql
+--   supabase/migrations/20260911085617_unidades_estado_restaura_security_invoker_3.sql
+--   supabase/migrations/20260915004928_unidades_estado_cobro_solo_si_contrato_visible.sql
+--   supabase/migrations/20260915005638_unidades_estado_deja_de_duplicar_el_gate.sql
+--   supabase/migrations/20260915100000_unidades_estado_cobro_solo_si_contrato_visible.sql
+--   supabase/migrations/20260915104500_unidades_estado_deja_de_duplicar_el_gate.sql
+--   supabase/migrations/20260916093309_unidades_codigo_orden_natural.sql
+--   supabase/migrations/20260922011052_law71_desbloqueado_estando_firmado.sql
+-- ============================================================================

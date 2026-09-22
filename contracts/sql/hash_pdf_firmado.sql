@@ -5,9 +5,16 @@
 -- upsert no hay forma de demostrar que el fichero no cambió — el hash SHA-256
 -- guardado en el registro sí lo prueba. Lo escriben firma-submit (firma
 -- remota) y la subida manual de app.html.
-alter table public.contrato_firmas add column pdf_hash text;
-comment on column public.contrato_firmas.pdf_hash is
-  'SHA-256 (hex) del PDF generado por esta firma. Lo escribe firma-submit al renderizar.';
-alter table public.contratos add column pdf_firmado_hash text;
-comment on column public.contratos.pdf_firmado_hash is
-  'SHA-256 (hex) del PDF al que apunta pdf_firmado_path. Lo escribe firma-submit o la subida manual.';
+
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: (fichero de ALTER/INSERT, sin CREATE)
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260729051748_hash_pdf_firmado.sql
+-- ============================================================================

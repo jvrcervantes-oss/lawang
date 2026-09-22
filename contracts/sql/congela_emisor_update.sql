@@ -16,37 +16,21 @@
 --
 -- Ahora: sociedad igual -> se preserva; sociedad distinta (o INSERT) -> se
 -- (re)congela desde la tabla. Verificado con bloque de rollback en los dos casos.
-create or replace function public.congela_emisor_factura()
-returns trigger
-language plpgsql
-security definer
-set search_path to ''
-as $$
-declare s public.sociedades%rowtype;
-begin
-  if tg_op = 'UPDATE' and new.sociedad is not distinct from old.sociedad then
-    if old.datos ? 'emisor' then
-      new.datos := jsonb_set(coalesce(new.datos, '{}'::jsonb), '{emisor}', old.datos->'emisor', true);
-    end if;
-    return new;
-  end if;
 
-  if new.sociedad is null then
-    raise exception 'Una factura no puede emitirse sin sociedad emisora.';
-  end if;
-
-  select * into s from public.sociedades where clave = new.sociedad;
-  if not found then
-    raise exception 'La sociedad emisora «%» no existe en public.sociedades.', new.sociedad;
-  end if;
-
-  new.datos := jsonb_set(
-    coalesce(new.datos, '{}'::jsonb), '{emisor}',
-    jsonb_build_object('clave', s.clave, 'razon', s.razon, 'marca', s.marca,
-      'npwp', s.npwp, 'npwp_label', s.npwp_label, 'nib', s.nib,
-      'domicilio', s.domicilio, 'rep', s.rep, 'congelado_en', to_jsonb(now())),
-    true);
-  return new;
-end; $$;
-
-revoke execute on function public.congela_emisor_factura() from anon, authenticated;
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: congela_emisor_factura
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260917082716_facturas_emisor_congelado_y_permisos.sql
+--   supabase/migrations/20260917092917_congela_emisor_tambien_en_update.sql
+--   supabase/migrations/20260917093621_congela_emisor_recalcula_si_cambia_sociedad.sql
+--   supabase/migrations/20260917161500_facturas_emisor_congelado_y_permisos.sql
+--   supabase/migrations/20260917174500_congela_emisor_tambien_en_update.sql
+--   supabase/migrations/20260917182000_congela_emisor_recalcula_si_cambia_sociedad.sql
+-- ============================================================================

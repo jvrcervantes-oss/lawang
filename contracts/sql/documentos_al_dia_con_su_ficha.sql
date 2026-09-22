@@ -18,74 +18,22 @@
 -- automática y el avance de unidades cuelgan del CONTRATO. Aquí solo se añade
 -- de QUIÉN es la factura, que hoy no se sabe más que por el texto copiado.
 
-alter table public.facturas
-  add column if not exists client_id uuid references public.clients(id);
-create index if not exists facturas_client_idx on public.facturas (client_id);
-
-comment on column public.facturas.client_id is
-  'Ficha del cliente facturado. ADEMAS de contrato_id, no en su lugar: los hitos y vencimientos cuelgan del contrato. Sirve para saber si los datos impresos siguen siendo los de la ficha.';
-
--- ── el criterio de "esto ya no coincide", UNA sola vez ──────────────────────
--- Compara ignorando mayúsculas y puntuación, igual que `clave()` en app.html:
--- `+34 600 11 22 33` y `34600112233` son el mismo teléfono, no una divergencia.
--- Y solo mira los campos que la FICHA tiene rellenos: que la ficha no sepa el
--- domicilio no convierte al documento en incorrecto.
-create or replace function public.diferencias_con_ficha(p_doc jsonb, p_ficha jsonb)
-returns jsonb
-language sql
-immutable
-as $$
-  select coalesce(jsonb_agg(jsonb_build_object('campo', k, 'documento', coalesce(d,''), 'ficha', f)
-                            order by k), '[]'::jsonb)
-    from (
-      select k,
-             nullif(btrim(p_doc->>k), '')   as d,
-             nullif(btrim(p_ficha->>k), '') as f
-        from jsonb_object_keys(p_ficha) k
-    ) t
-   where f is not null
-     and lower(regexp_replace(coalesce(d,''), '[^a-z0-9@.]', '', 'gi'))
-      is distinct from lower(regexp_replace(f, '[^a-z0-9@.]', '', 'gi'));
-$$;
-
--- ── qué documentos están desactualizados, sin abrirlos uno a uno ────────────
--- Hasta hoy la única forma de enterarse era abrir el documento y esperar a que
--- saltara el aviso (y solo existía en Contratos). Esto lo pone en una consulta
--- que puede leer cualquier herramienta y un panel.
-create or replace view public.documentos_desactualizados as
-select 'contrato'::text as tipo, c.id, c.numero,
-       coalesce(c.bloqueado, false) as congelado,
-       cl.id as client_id, cl.full_name as ficha,
-       public.diferencias_con_ficha(
-         jsonb_build_object(
-           'nombre',      c.datos->'fields'->>'adq1_nombre',
-           'identidad',   c.datos->'fields'->>'adq1_pasaporte',
-           'email',       c.datos->'fields'->>'adq1_email',
-           'telefono',    c.datos->'fields'->>'adq1_telefono',
-           'domicilio',   c.datos->'fields'->>'adq1_domicilio',
-           'pais',        c.datos->'fields'->>'adq1_nacionalidad'),
-         jsonb_build_object(
-           'nombre', cl.full_name, 'identidad', cl.passport_number, 'email', cl.email,
-           'telefono', cl.phone, 'domicilio', cl.address, 'pais', cl.nationality)
-       ) as diferencias
-  from public.contratos c
-  join public.clients cl on cl.id = (c.datos->>'adq1_client_id')::uuid
-union all
-select 'factura', f.id, f.numero,
-       coalesce(f.anulada, false) or coalesce(f.enviada, false) as congelado,
-       cl.id, cl.full_name,
-       public.diferencias_con_ficha(
-         jsonb_build_object(
-           'nombre',    f.cliente_nombre,
-           'identidad', f.datos->'fields'->>'cliente_documento',
-           'email',     f.datos->'fields'->>'cliente_email',
-           'domicilio', f.datos->'fields'->>'cliente_domicilio'),
-         jsonb_build_object(
-           'nombre', cl.full_name, 'identidad', cl.passport_number,
-           'email', cl.email, 'domicilio', cl.address)
-       )
-  from public.facturas f
-  join public.clients cl on cl.id = f.client_id;
-
-alter view public.documentos_desactualizados set (security_invoker = true);
-grant select on public.documentos_desactualizados to authenticated;
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: diferencias_con_ficha, documentos_desactualizados, facturas_client_idx
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260819141250_documentos_al_dia_con_su_ficha.sql
+--   supabase/migrations/20260819141345_diferencias_con_ficha_sin_falsos_positivos.sql
+--   supabase/migrations/20260821154831_auditoria_revocar_triggers_del_21ago_y_search_path.sql
+--   supabase/migrations/20260824044334_documentos_al_dia_sin_leer_el_blob.sql
+--   supabase/migrations/20260917005548_divergencia_contrato_sin_domicilio.sql
+--   supabase/migrations/20260917012943_divergencia_factura_sin_domicilio.sql
+--   supabase/migrations/20260917020000_divergencia_contrato_sin_domicilio.sql
+--   supabase/migrations/20260917050000_divergencia_factura_sin_domicilio.sql
+-- ============================================================================

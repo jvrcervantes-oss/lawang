@@ -1,3 +1,28 @@
+-- LAW-186 mitad B, segunda pieza (15-sep-2026): el RPC directo saltaba la vista entera
+--
+-- QUE PASABA. El fix anterior (20260915100000) protegio `unidades_estado`, el camino
+-- normal de la pantalla. Pero `unidad_parte_cobrada_split(p_unidad uuid)` es
+-- SECURITY DEFINER **sin ningun chequeo de permiso dentro**, y `get_advisors` avisa de
+-- que PostgREST la publica en `/rest/v1/rpc/unidad_parte_cobrada_split` para el rol
+-- `authenticated`. Verificado con impersonacion real contra la base (no solo leyendo
+-- el advisor): un agente sin relacion con el contrato de una parcela, llamando al RPC
+-- DIRECTAMENTE (sin pasar por la vista), recibe el cobro real —
+-- `{"cobrado_obra":33200,"obra_firmada":false,"cobrado_suelo":0}` para RP00040, un
+-- contrato ajeno. El fix de la vista no protege este camino porque no lo toca.
+--
+-- NO se revoca EXECUTE a `authenticated`: la propia vista, con security_invoker=true,
+-- necesita que `authenticated` pueda ejecutar la funcion para que la vista siga
+-- funcionando desde la pantalla — revocarlo habria roto el camino que SI hay que
+-- dejar pasar. El gate va DENTRO de la funcion, que es donde vive el privilegio real
+-- (SECURITY DEFINER), no en el GRANT.
+--
+-- MISMO CRITERIO que ya usa la vista, en UN solo sitio (no dos copias que puedan
+-- divergir): visible si la unidad no tiene contrato (nada que ocultar), o si quien
+-- llama es el autor/manager del contrato de ESA unidad, o admin. Las CTE internas
+-- (raiz, hijos, hermanas...) NO se tocan: siguen agregando la cadena completa para
+-- quien SI tiene permiso, exactamente igual que antes -- solo se envuelve el SELECT
+-- final en un `case` que devuelve NULL cuando no hay permiso, en vez de recalcular
+-- nada distinto.
 create or replace function public.unidad_parte_cobrada_split(p_unidad uuid)
 returns table(cobrado_suelo numeric, cobrado_obra numeric, obra_firmada boolean)
 language sql
@@ -82,6 +107,12 @@ as $function$
       then coalesce((select v from obra_firmada), false) end as obra_firmada;
 $function$;
 
+-- Su envoltorio de conveniencia (devuelve la suma como un solo numero, sin desglose):
+-- antes hacia `coalesce(cobrado_suelo,0) + coalesce(cobrado_obra,0)`, que habria
+-- convertido el NULL de "sin permiso" en un 0 que parece "nada cobrado" -- la misma
+-- ambiguedad que el prompt de Desarrollo prohibe (estado vacio = "no hay nada" vs
+-- "no he podido mirar", tienen que verse distinto). Sin el coalesce, NULL + NULL
+-- sigue siendo NULL y el "no visible" llega intacto a quien lo consuma.
 create or replace function public.unidad_parte_cobrada(p_unidad uuid)
 returns numeric
 language sql
@@ -90,4 +121,4 @@ set search_path to ''
 as $function$
   select cobrado_suelo + cobrado_obra
     from public.unidad_parte_cobrada_split(p_unidad);
-$function$;;
+$function$;

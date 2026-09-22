@@ -85,7 +85,7 @@
       sel.disabled = false;
       if (r.error) {
         if (/ya no es la que tenias/i.test(r.error.message || '')) { toastMal('Otra persona ha cambiado esa atribución justo ahora — recarga la ficha para verla.'); sel.value = previo; return; }
-        toastMal('No se pudo guardar el closer: ' + r.error.message);
+        toastMal(lwErrorHumano(r.error, 'No se pudo guardar el closer'));
         sel.value = previo;
         return;
       }
@@ -829,7 +829,7 @@
       if (!ok) return;
       sb.from('facturas').update({ anulada: true }).eq('id', f0.id).select('id').then(function (r) {
         var u = (window.LW_V4 && window.LW_V4.unaFila) ? window.LW_V4.unaFila(r) : r;
-        if (u.error) { toastMal('No se pudo anular: ' + (u.error.message || u.error)); return; }
+        if (u.error) { toastMal(lwErrorHumano(u.error, 'No se pudo anular')); return; }
         toast('Documento anulado');
         if (window.lwCierraCajon) window.lwCierraCajon();
         location.reload();
@@ -846,7 +846,7 @@
       if (!ok) return;
       sb.from('facturas').delete().eq('id', f0.id).select('id').then(function (r) {
         var u = (window.LW_V4 && window.LW_V4.unaFila) ? window.LW_V4.unaFila(r) : r;
-        if (u.error) { toastMal('No se pudo borrar: ' + (u.error.message || u.error)); return; }
+        if (u.error) { toastMal(lwErrorHumano(u.error, 'No se pudo borrar')); return; }
         toast('Documento borrado');
         if (window.lwCierraCajon) window.lwCierraCajon();
         location.reload();
@@ -1742,7 +1742,7 @@
               }).then(function (ok) {
                 if (!ok) return;
                 sb.rpc('borrar_comprador', { p_client_id: c2.id }).then(function (r) {
-                  if (r.error) { toastMal(r.error.message); return; }
+                  if (r.error) { toastMal(lwErrorHumano(r.error)); return; }
                   var rutas = (r.data && r.data.rutas_kyc) || [];
                   var limpia = rutas.length ? sb.storage.from('kyc').remove(rutas) : Promise.resolve({});
                   limpia.then(function (rs) {
@@ -1799,7 +1799,7 @@
                   : sb.from('clients').update({ propietario: nuevo }).eq('id', c2.id).select('id');
                 p.then(function (r) {
                   bTr.disabled = false;
-                  if (r.error) { toastMal('No se pudo traspasar: ' + r.error.message); return; }
+                  if (r.error) { toastMal(lwErrorHumano(r.error, 'No se pudo traspasar')); return; }
                   if (!conDocumentos && !(r.data && r.data.length)) {
                     toastMal('No se ha traspasado: la base no te ha dejado tocar esta ficha. Habla con un administrador — recargar no lo arregla.');
                     return;
@@ -1942,11 +1942,11 @@
                   var limpio = f.name.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w.-]/g, '_');
                   var path = c2.id + '/' + Date.now() + '_' + limpio;
                   sb.storage.from('kyc').upload(path, f, { upsert: false, contentType: f.type || 'application/octet-stream' }).then(function (up) {
-                    if (up.error) { bSub.disabled = false; bSub.textContent = 'Subir documento'; toastMal('No se pudo subir: ' + up.error.message); return; }
+                    if (up.error) { bSub.disabled = false; bSub.textContent = 'Subir documento'; toastMal(lwErrorHumano(up.error, 'No se pudo subir')); return; }
                     // el fichero ya subió: si el insert falla no se reintenta el upload, se avisa igual
                     sb.from('documents').insert({ client_id: c2.id, doc_type: tipoDoc, storage_path: path, status: 'pending', caduca_el: caduca }).then(function (ins) {
                       bSub.disabled = false; bSub.textContent = 'Subir documento';
-                      if (ins.error) { toastMal('El fichero se subió pero no se pudo registrar en la ficha: ' + ins.error.message); return; }
+                      if (ins.error) { toastMal(lwErrorHumano(ins.error, 'El fichero se subió pero no se pudo registrar en la ficha')); return; }
                       toast('Documento subido');
                       cargaDocs();
                     });

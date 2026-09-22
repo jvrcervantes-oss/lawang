@@ -23,7 +23,8 @@
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js?v=d6d6608e" data-herramienta="creatividades"></script>
-<script src="/contracts/assets/suite-comun.js?v=310f2346"></script>
+<script src="/contracts/assets/suite-comun.js?v=1dadde59"></script>
+<script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
 
 <!-- ═══════════════════════════════════════════════════════════════════════════════
      CREATIVIDADES — editor visual de piezas de pauta (Instagram/Facebook).
@@ -659,9 +660,13 @@ async function exportar(){
     // poder agruparlos por chequeo en el panel de revisión. Este aviso lee el texto:
     // sin `.txt` lanzaba al pulsar «Descargar PNG», que es justo el momento en que
     // no puede fallar.
-    const lista = E.fallos.map(f => '· ' + f.txt.replace(/<[^>]+>/g, '')).join('\n');
-    if (!confirm('Esta pieza no pasa la revisión:\n\n' + lista +
-                 '\n\n¿Descargarla igualmente?')) return;
+    // Diálogo de la suite (dialogo.js), no el `confirm` nativo — 22-sep-2026,
+    // norma de suite_lawang.md. El cuerpo es innerHTML: cada fallo pasa por esc().
+    const lista = E.fallos.map(f => '<li>' + esc(f.txt.replace(/<[^>]+>/g, '')) + '</li>').join('');
+    if (!(await lwConfirmar({
+          titulo: 'Esta pieza no pasa la revisión',
+          cuerpo: '<ul>' + lista + '</ul><p>¿Descargarla igualmente?</p>',
+          confirmar: 'Descargar igualmente', tono: 'peligro' }))) return;
   }
   const btn = $('#btnPng'); btn.disabled = true; const antes = btn.textContent;
   btn.textContent = 'Montando…';

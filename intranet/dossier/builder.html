@@ -765,7 +765,9 @@ function markCur(){
 }
 function move(i,dir){const j=i+dir;if(j<0||j>=state.pages.length)return;[state.pages[i],state.pages[j]]=[state.pages[j],state.pages[i]];render();persist();}
 function dup(i){const c=JSON.parse(JSON.stringify(state.pages[i]));c.id='p'+(uid++);c.free.forEach(f=>f.id='f'+(uid++));state.pages.splice(i+1,0,c);render();persist();}
-function del(i){if(!confirm('¿Eliminar la página '+(i+1)+'?'))return;const pid=state.pages[i].id;state.pages.splice(i,1);if(curPage===pid)curPage=null;render();persist();}
+/* `lwConfirmar` (dialogo.js, ya cargado arriba) y no el `confirm` nativo —
+   22-sep-2026, norma de la suite. `titulo` va por textContent, sin escapar. */
+async function del(i){if(!(await lwConfirmar({titulo:'¿Eliminar la página '+(i+1)+'?',confirmar:'Eliminar',tono:'peligro'})))return;const pid=state.pages[i].id;state.pages.splice(i,1);if(curPage===pid)curPage=null;render();persist();}
 
 /* ---------- edición de textos de plantilla ---------- */
 $pages.addEventListener('input',e=>{

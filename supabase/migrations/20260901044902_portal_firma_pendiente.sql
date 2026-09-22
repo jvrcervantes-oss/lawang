@@ -1,32 +1,35 @@
 -- Portal Lawang: "Firmar ahora" desde /portal/ (encargo del owner, 1-sep-2026).
 --
--- DECISION DEL OWNER, contraria a la recomendacion de Seguridad+Legal en la
--- revision previa (ver CEO/revisiones/estado.json, 3a entrada del 1-sep):
+-- DECISIÓN DEL OWNER, contraria a la recomendación de Seguridad+Legal en la
+-- revisión previa (ver CEO/revisiones/estado.json, 3ª entrada del 1-sep):
 -- se guarda el enlace de firma YA ENVIADO (con el token en claro dentro de la
--- URL) en contrato_firmas.enlace_firma, para que el portal pueda mostrarlo
+-- URL) en `contrato_firmas.enlace_firma`, para que el portal pueda mostrarlo
 -- y abrirlo directamente, en vez de minar un token nuevo al vuelo o reenviarlo
--- por email. Riesgo aceptado explicitamente por el owner tras dos vueltas de
--- explicacion: cualquiera con acceso de lectura a esta columna (agente,
--- backup, un bug futuro de RLS) podria abrir y completar la firma sin que el
--- comprador se entere -- antes solo existia token_hash, no reconstruible.
+-- por email. Riesgo aceptado explícitamente por el owner tras dos vueltas de
+-- explicación: cualquiera con acceso de lectura a esta columna (agente,
+-- backup, un bug futuro de RLS) podría abrir y completar la firma sin que el
+-- comprador se entere — antes solo existía `token_hash`, no reconstruible.
 --
--- Mitigacion aplicada sin negociar (no cambia lo que el owner pidio, solo
--- acota cuanto tiempo vive el dato): la columna solo se rellena al generar el
+-- Mitigación aplicada sin negociar (no cambia lo que el owner pidió, solo
+-- acota cuánto tiempo vive el dato): la columna solo se rellena al generar el
 -- enlace (contracts/app.html::enviarAFirma) y solo se LEE para filas con
--- estado='pendiente' -- un contrato ya firmado o un enlace anulado nunca la
--- expone, aunque el valor quede fisicamente en la fila vieja.
+-- estado='pendiente' — un contrato ya firmado o un enlace anulado nunca la
+-- expone, aunque el valor quede físicamente en la fila vieja.
 
 alter table public.contrato_firmas
   add column if not exists enlace_firma text;
 
 comment on column public.contrato_firmas.enlace_firma is
-  'Enlace de firma con el token EN CLARO (contracts/app.html::enviarAFirma lo escribe al generarlo). Decision consciente del owner (1-sep-2026) para que /portal/ lo muestre al comprador sin reenviar por email -- Seguridad+Legal recomendaron minar un token nuevo por clic o reenviar por email en su lugar. Solo relevante mientras estado=''pendiente''; portal_situacion() ya filtra por eso.';
+  'Enlace de firma con el token EN CLARO (contracts/app.html::enviarAFirma lo escribe al generarlo). '
+  'Decisión consciente del owner (1-sep-2026) para que /portal/ lo muestre al comprador sin reenviar '
+  'por email — Seguridad+Legal recomendaron minar un token nuevo por clic o reenviar por email en su '
+  'lugar. Solo relevante mientras estado=''pendiente''; portal_situacion() ya filtra por eso.';
 
--- portal_situacion(): se anade 'firma_pendiente' -- igual patron que el resto de
+-- portal_situacion(): se añade 'firma_pendiente' — igual patrón que el resto de
 -- claves (mis_ids/mis_clientes ya calculadas arriba), con DOBLE filtro por
 -- defecto (contrato ya visible para este comprador + firmante_email suyo,
 -- normalizado con lower(btrim(...)) porque un 9% de firmante_email reales no
--- vienen normalizados -- hallazgo real de Seguridad en la revision previa).
+-- vienen normalizados — hallazgo real de Seguridad en la revisión previa).
 create or replace function public.portal_situacion()
  returns jsonb
  language plpgsql
@@ -190,4 +193,3 @@ begin
   return r;
 end
 $function$;
-;

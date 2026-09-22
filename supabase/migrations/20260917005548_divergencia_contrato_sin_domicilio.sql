@@ -1,3 +1,11 @@
+-- 17-sep-2026 · El domicilio salió del contrato y de la ficha de compradores
+-- (owner: «es irrelevante»). La vista comparaba adq1_domicilio con
+-- clients.address: con el campo fuera del formulario, cada contrato nuevo
+-- enlazado a una ficha con dirección guardada habría saltado como
+-- «la ficha dice otra cosa: domicilio». Se quita SOLO de la mitad de contrato;
+-- la factura sigue imprimiendo cliente_domicilio y su comparación no cambia.
+-- Misma definición que 20260824044334 en todo lo demás. security_invoker se
+-- vuelve a fijar porque CREATE OR REPLACE VIEW lo resetea (3 reincidencias).
 create or replace view public.documentos_desactualizados as
 select 'contrato'::text as tipo, c.id, c.numero,
        coalesce(c.bloqueado, false) as congelado,
@@ -34,4 +42,4 @@ select 'factura', f.id, f.numero,
   join public.clients cl on cl.id = f.client_id;
 
 alter view public.documentos_desactualizados set (security_invoker = true);
-grant select on public.documentos_desactualizados to authenticated;;
+grant select on public.documentos_desactualizados to authenticated;

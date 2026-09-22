@@ -11,15 +11,21 @@
 
 -- destructivo-ok: drop+create de policy es el patron estandar del estudio para reemplazar una
 -- policy (departamentos/datos/prompt.md permite crear/drop policy sin preguntar); no borra datos.
-drop policy if exists "borrar facturas" on public.facturas;
-create policy "borrar facturas" on public.facturas
-  for delete using (
-    coalesce(enviada, false) = false
-    and (
-      public.es_super_admin()
-      or (public.es_admin()
-          and coalesce(anulada, false) = false
-          and not exists (select 1 from public.recibi_aplicaciones ra
-                           where ra.factura_id = facturas.id or ra.recibi_id = facturas.id))
-    )
-  );
+
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: borrar
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260731045054_borrado_con_permisos_y_enlaces.sql
+--   supabase/migrations/20260819044926_law71_editar_firmado_y_borrar_facturas.sql
+--   supabase/migrations/20260821153053_policy_borrar_facturas_a_authenticated.sql
+--   supabase/migrations/20260917010415_comision_admin_intranet.sql
+--   supabase/migrations/20260918021123_puede_proyecto_deja_de_abrir_cuando_el_nombre_no_casa.sql
+--   supabase/migrations/20260921125405_law_facturas_enviada_no_se_borra.sql
+-- ============================================================================

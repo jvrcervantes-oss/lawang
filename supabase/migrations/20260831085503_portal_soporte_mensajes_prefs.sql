@@ -14,8 +14,8 @@
 --      fingiendo `de='equipo'`.
 --   3. `leida`/visto lo marca el COMPRADOR sobre lo suyo (abrir la campana),
 --      no el equipo — al revés de lo que decía el plan inicial. Aquí no hay
---      columna `leida` por fila: se ha seguido el patrón que YA usa
---      `usuarios.notif_visto_hasta` (notificaciones_intranet.sql) — un único
+--      columna `leida` por fila: se seguido el patrón que YA usa `usuarios.
+--      notif_visto_hasta` (notificaciones_intranet.sql) — un único
 --      "visto hasta" por persona, más simple y ya probado.
 --   4. NUNCA RLS de escritura directa del portal sobre `portal_accesos`: esa
 --      tabla decide qué comprador ve qué ficha, y RLS no puede acotar QUÉ
@@ -35,6 +35,9 @@
 -- objetos que esta misma migración vuelve a crear a continuación
 -- (idempotencia). No se borra ninguna tabla, columna ni dato.
 
+/* ── Soporte: un ticket, varios mensajes ─────────────────────────────────
+   Dos tablas y no un jsonb dentro de la fila padre — mismo patrón que
+   `recibi_aplicaciones` colgando de `recibi_id`, no un array embebido. */
 create table if not exists public.tickets_comprador (
   id         uuid primary key default gen_random_uuid(),
   client_id  uuid not null references public.clients(id) on delete cascade,
@@ -61,6 +64,7 @@ comment on table public.tickets_comprador_mensajes is
   'Hilo de un ticket_comprador. `de` y `autor` los fija portal_enviar_ticket_mensaje(), nunca el propio INSERT del navegador.';
 create index if not exists tickets_comprador_mensajes_ticket_idx on public.tickets_comprador_mensajes (ticket_id, creado_en desc);
 
+/* ── Mensajes: un solo hilo por comprador con "su gestora" ──────────────── */
 create table if not exists public.mensajes_comprador (
   id         uuid primary key default gen_random_uuid(),
   client_id  uuid not null references public.clients(id) on delete cascade,
@@ -75,6 +79,12 @@ comment on table public.mensajes_comprador is
   'Chat de un comprador con el equipo, un solo hilo por client_id. `de`/`autor` los fija portal_enviar_mensaje(), nunca el INSERT del navegador.';
 create index if not exists mensajes_comprador_client_idx on public.mensajes_comprador (client_id, creado_en desc);
 
+/* ── Preferencias + "visto hasta" de notificaciones ──────────────────────
+   Tabla APARTE de `portal_accesos` a propósito (hallazgo 4 de Seguridad):
+   esa tabla decide qué ficha ve cada email y no se le da ninguna vía de
+   escritura al portal. `notif_visto_hasta` es el mismo patrón que ya usa
+   `usuarios.notif_visto_hasta` para el equipo — un único punto de corte, no
+   una columna `leida` por fila. */
 create table if not exists public.preferencias_comprador (
   client_id          uuid primary key references public.clients(id) on delete cascade,
   pref_email         boolean not null default true,
@@ -90,6 +100,14 @@ alter table public.tickets_comprador_mensajes enable row level security;
 alter table public.mensajes_comprador enable row level security;
 alter table public.preferencias_comprador enable row level security;
 
+/* ── quién es "mío" para el portal — la MISMA condición en cada policy,
+   nunca una subconsulta escalar (hallazgo 1/3): una familia real puede tener
+   más de una fila en portal_accesos para el mismo email. */
+
+-- tickets_comprador: el comprador ve los suyos; el equipo los ve y puede
+-- resolver/reabrir el estado (sin gate de herramienta: hoy ninguna lectura
+-- de `clients`/compradores lo exige tampoco — decisión explícita, ver
+-- hallazgo 5 de Datos, no un olvido).
 drop policy if exists "comprador ve sus tickets" on public.tickets_comprador;
 create policy "comprador ve sus tickets" on public.tickets_comprador
   for select to authenticated
@@ -103,6 +121,8 @@ create policy "equipo ve y resuelve tickets" on public.tickets_comprador
 drop policy if exists "equipo cambia el estado del ticket" on public.tickets_comprador;
 create policy "equipo cambia el estado del ticket" on public.tickets_comprador
   for update to authenticated using (public.es_agente()) with check (public.es_agente());
+-- Sin policy de INSERT para nadie: el alta pasa por portal_crear_ticket()
+-- (security definer, más abajo), que ejecuta con sus propios privilegios.
 
 drop policy if exists "comprador ve mensajes de sus tickets" on public.tickets_comprador_mensajes;
 create policy "comprador ve mensajes de sus tickets" on public.tickets_comprador_mensajes
@@ -118,6 +138,7 @@ create policy "comprador ve mensajes de sus tickets" on public.tickets_comprador
 drop policy if exists "equipo ve mensajes de tickets" on public.tickets_comprador_mensajes;
 create policy "equipo ve mensajes de tickets" on public.tickets_comprador_mensajes
   for select to authenticated using (public.es_agente());
+-- Sin policy de INSERT: pasa por portal_enviar_ticket_mensaje().
 
 drop policy if exists "comprador ve su hilo de mensajes" on public.mensajes_comprador;
 create policy "comprador ve su hilo de mensajes" on public.mensajes_comprador
@@ -129,6 +150,7 @@ create policy "comprador ve su hilo de mensajes" on public.mensajes_comprador
 drop policy if exists "equipo ve hilos de mensajes" on public.mensajes_comprador;
 create policy "equipo ve hilos de mensajes" on public.mensajes_comprador
   for select to authenticated using (public.es_agente());
+-- Sin policy de INSERT: pasa por portal_enviar_mensaje().
 
 drop policy if exists "comprador ve sus preferencias" on public.preferencias_comprador;
 create policy "comprador ve sus preferencias" on public.preferencias_comprador
@@ -140,6 +162,10 @@ create policy "comprador ve sus preferencias" on public.preferencias_comprador
 drop policy if exists "equipo ve preferencias" on public.preferencias_comprador;
 create policy "equipo ve preferencias" on public.preferencias_comprador
   for select to authenticated using (public.es_agente());
+-- Sin policy de INSERT/UPDATE para nadie (ni admin): solo las dos funciones
+-- de abajo escriben aquí, cada una limitada a las columnas que le tocan.
+
+/* ── RPCs: cada alta valida pertenencia y fija de/autor ella misma ──────── */
 
 create or replace function public.portal_crear_ticket(p_client_id uuid, p_asunto text, p_categoria text, p_mensaje text)
 returns uuid
@@ -164,6 +190,9 @@ end $$;
 revoke execute on function public.portal_crear_ticket(uuid,text,text,text) from public, anon;
 grant execute on function public.portal_crear_ticket(uuid,text,text,text) to authenticated;
 
+-- Un solo punto de entrada para responder un ticket, comprador o equipo: cada
+-- rol solo puede escribir en los hilos que le tocan, y `de`/`autor` salen de
+-- QUIÉN LLAMA, nunca de un parámetro.
 create or replace function public.portal_enviar_ticket_mensaje(p_ticket_id uuid, p_texto text)
 returns uuid
 language plpgsql security definer set search_path = '' as $$
@@ -190,6 +219,9 @@ end $$;
 revoke execute on function public.portal_enviar_ticket_mensaje(uuid,text) from public, anon;
 grant execute on function public.portal_enviar_ticket_mensaje(uuid,text) to authenticated;
 
+-- Mismo patrón dual para el chat de un solo hilo. El equipo tiene que decir
+-- DE QUÉ comprador es el hilo (lo elige desde la ficha en Compradores); el
+-- portal solo puede hablar del suyo propio, y aquí también se valida.
 create or replace function public.portal_enviar_mensaje(p_client_id uuid, p_texto text)
 returns uuid
 language plpgsql security definer set search_path = '' as $$
@@ -215,6 +247,9 @@ end $$;
 revoke execute on function public.portal_enviar_mensaje(uuid,text) from public, anon;
 grant execute on function public.portal_enviar_mensaje(uuid,text) to authenticated;
 
+-- La campana: "visto hasta ahora", sobre TODAS las fichas del comprador que
+-- llama (una familia puede tener varias) — mismo criterio que
+-- marcar_notificaciones_leidas() del equipo, en tabla propia (hallazgo 4).
 create or replace function public.portal_marcar_notificaciones_leidas()
 returns timestamptz
 language plpgsql security definer set search_path = '' as $$
@@ -245,4 +280,8 @@ begin
         actualizado_en = now();
 end $$;
 revoke execute on function public.portal_set_prefs(boolean,boolean) from public, anon;
-grant execute on function public.portal_set_prefs(boolean,boolean) to authenticated;;
+grant execute on function public.portal_set_prefs(boolean,boolean) to authenticated;
+
+-- Comprobación (la del catálogo, no la de que alguien lo corriera):
+--   select tablename from pg_tables where schemaname='public' and tablename like '%comprador%';
+--   select proname from pg_proc where proname like 'portal_%';

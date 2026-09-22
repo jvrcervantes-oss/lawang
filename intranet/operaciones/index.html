@@ -361,7 +361,7 @@
 <script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
 <script src="/contracts/assets/operaciones-cuentas.js?v=395cfe0e"></script>
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
-<script src="/contracts/assets/suite-comun.js?v=310f2346"></script>
+<script src="/contracts/assets/suite-comun.js?v=1dadde59"></script>
 <script>
 /* ============================================================
    OPERACIONES — la vista que cruza lo que ya existe.
@@ -458,7 +458,7 @@ async function cargarHitos(id){
   const { data, error } = await SB.rpc('contratos_equipo').select('hitos:datos->hitos').eq('id', id).single();
   if(error){
     // Que no se hayan podido leer NO es lo mismo que «no tiene hitos»: se dice.
-    toastMal(lwT('No se pudieron cargar los hitos de pago: ') + error.message);
+    toastMal(lwErrorHumano(error, lwT('No se pudieron cargar los hitos de pago: ')));
     return null;
   }
   HITOS_DE[id] = Array.isArray(data && data.hitos) ? data.hitos : [];
@@ -1038,7 +1038,7 @@ async function borrarOperacion(op){
   }catch(e){
     // El mensaje de la función ya viene escrito para leerse (dice qué contrato
     // bloquea y por qué); se enseña tal cual en vez de envolverlo en jerga.
-    toastMal(String(e.message || e));
+    toastMal(lwErrorHumano(e));
     if(b) b.disabled = false;
   }
 }

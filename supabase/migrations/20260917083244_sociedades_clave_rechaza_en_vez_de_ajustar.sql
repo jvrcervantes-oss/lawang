@@ -1,3 +1,10 @@
+-- La clave de una sociedad: RECHAZAR, no ajustar en silencio.
+--
+-- La primera version hacia `new.clave := old.clave`, asi que un intento de
+-- renombrarla no fallaba: simplemente no pasaba nada, y el log registraba un
+-- update sin cambios. El estandar de Seguridad en esta suite es rechazar, nunca
+-- ajustar por debajo — un guardado que dice que fue bien y no hizo lo que se le
+-- pidio es peor que un error.
 create or replace function public._sociedades_autoria() returns trigger
 language plpgsql security definer set search_path to '' as $$
 begin
@@ -9,4 +16,4 @@ begin
   return new;
 end; $$;
 
-revoke execute on function public._sociedades_autoria() from anon, authenticated;;
+revoke execute on function public._sociedades_autoria() from anon, authenticated;

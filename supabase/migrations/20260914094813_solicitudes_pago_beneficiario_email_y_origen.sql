@@ -1,11 +1,67 @@
--- destructivo-ok: el DROP POLICY de abajo es el patron "drop if exists +
--- create" para reemplazar la MISMA policy de SELECT que ya vivia en
--- produccion (visto en pg_policies) por una version ampliada -- no se
--- retira ninguna visibilidad que ya existiera, solo se anade una rama mas
--- (beneficiario_email = auth.email()). El UPDATE de backfill toca la unica
--- fila existente hoy y solo escribe beneficiario_email (nueva, antes NULL).
--- Backup de esa fila: ver cabecera del .sql versionado en el repo
--- (proyectos/Lawang/supabase/migrations/20260914150000_...). Nada se borra.
+-- destructivo-ok: no hay DROP ni DELETE ni UPDATE sin WHERE en este fichero.
+-- El UPDATE de backfill toca la unica fila existente hoy (numero SP-8,
+-- estado='pendiente') y solo escribe la columna beneficiario_email nueva --
+-- pasa por la maquina de estados existente por el camino
+-- pendiente->pendiente, que no exige permiso ninguno y no se toca aqui. Los
+-- "drop policy if exists" son el patron estandar del repo para poder
+-- re-ejecutar sin fallar por nombre duplicado -- reemplaza la MISMA policy de
+-- SELECT que ya existia (visto en pg_policies, no en el archivo original:
+-- fue ampliada en algun punto entre el 9-sep y hoy para que el manager del
+-- proyecto tambien vea la solicitud de su contrato -- esa ampliacion no
+-- se toca, solo se le anade una rama mas).
+--
+-- BACKUP -- el intento de escribir el snapshot bajo Backups/ de este proyecto
+-- lo bloquea permissions.deny (ya documentado: bloquea tambien escritura, no
+-- solo lectura). El snapshot de la unica fila existente antes de esta
+-- migracion queda aqui, en el propio fichero versionado:
+--   id=f98278c6-9296-484a-8d48-35239efe85aa numero=8 estado=pendiente
+--   contrato_id=4419c629-a0c4-40a3-a227-46c848eae1cc concepto='comision w30'
+--   importe=1000 moneda=EUR creado_por=0b3592b6-d4a1-479e-8b31-42e9d4bdceb7
+--   (gusabellan@gmail.com) creado_en=2026-09-10T02:51:14.98389+00:00
+--   resuelto_por/en=null pagado_por/en=null motivo_rechazo=null
+--   pago_referencia=null nota=null
+-- ============================================================================
+-- SOLICITUDES DE PAGO — beneficiario_email + origen — 14-sep-2026
+-- ----------------------------------------------------------------------------
+-- Subtarea del encargo de comisiones: cuando un tramo de
+-- condicion_tramos se dispara para un MANAGER, el cobro pasa por esta misma
+-- cola (ver comentario "solicitud_id" en comisiones_devengadas.sql,
+-- 20260914093049 en remoto). Ese futuro proceso automatico va a insertar en
+-- solicitudes_pago a nombre de un beneficiario que no es necesariamente quien
+-- ejecuta el INSERT. Esta migracion solo deja el terreno listo: columnas +
+-- trigger de alta + policy de lectura. NO crea el proceso que dispara el
+-- devengo (es otra subtarea del mismo encargo) y NO toca la maquina de
+-- estados de _trg_solicitud_pago_transicion.
+--
+-- (a) beneficiario_email — a quien hay que pagarle. Para una solicitud
+--     'manual' (la que ya existia) es siempre quien la crea -- el trigger de
+--     alta lo fuerza a auth.email(), igual que fuerza creado_por := auth.uid().
+--     Para 'comision_automatica' es el dato que trae el proceso que dispara
+--     el devengo, y puede ser una persona distinta de quien ejecuta el INSERT.
+--     Backfill de la unica fila existente: el email de su creado_por (que es
+--     tambien su beneficiario, porque nacio como solicitud manual).
+--
+-- (b) origen — 'manual' (default, lo que ya existia) | 'comision_automatica'.
+--     Nunca se lee para decidir permisos por si solo: decide que rama toma el
+--     trigger de alta.
+--
+-- (c) trigger de alta adaptado -- unico cambio de comportamiento real:
+--       - origen='manual' (default): igual que hasta hoy. Fuerza
+--         creado_por:=auth.uid() y ahora tambien beneficiario_email:=
+--         auth.email() (mismo dueño que crea la solicitud).
+--       - origen='comision_automatica': NO fuerza creado_por -- se queda con
+--         lo que traiga el INSERT (su propio default sigue siendo
+--         auth.uid(), asi que sigue satisfaciendo la policy de INSERT sin
+--         cambiarla). beneficiario_email se toma tal cual lo manda el
+--         proceso automatico (solo btrim). El CHECK
+--         solicitud_beneficiario_automatica exige que venga relleno.
+--
+-- (d) policy de SELECT ampliada -- se anade "o el beneficiario se ve a si
+--     mismo", sin tocar lo que ya veian admin/creador/manager del proyecto.
+--
+-- La policy de INSERT ("el equipo crea las suyas": es_agente() AND
+-- creado_por=auth.uid()) y la de UPDATE no se tocan -- fuera del alcance de
+-- esta subtarea, y el proceso automatico del encargo todavia no existe.
 -- ============================================================================
 
 -- (a) + (b) columnas nuevas ---------------------------------------------------
@@ -88,4 +144,3 @@ create policy "solicitudes: cada agente lee las suyas, admin todas, manager la"
          and public.es_manager_de(c.proyecto_id)
     )
   );
-;

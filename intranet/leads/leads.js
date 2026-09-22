@@ -265,14 +265,14 @@ async function marcarCloser(source, email, incluir){
   /* El mensaje de la base se enseña tal cual: el más probable es «no puedes añadirte a ti
      mismo a un origen», que es una regla de negocio, no un fallo — y explicarla con otras
      palabras aquí sería tener la regla escrita en dos sitios. */
-  if(error){ toastMal(error.message); return; }
+  if(error){ toastMal(lwErrorHumano(error)); return; }
   cargarClosers();
 }
 
 async function guardarOrigen(source, activo, tope){
   const { error } = await SB.rpc('crm_reparto_origen_set',
     { p_source: source, p_activo: activo, p_tope: tope, p_dias: null });
-  if(error){ toastMal(lwT('No se pudo guardar: ') + error.message); return; }
+  if(error){ toastMal(lwErrorHumano(error, lwT('No se pudo guardar: '))); return; }
   toast(lwT(activo === true ? 'Reparto automático encendido.'
       : activo === false ? 'Reparto automático apagado.' : 'Tope guardado.'));
   cargarClosers();
@@ -408,7 +408,7 @@ function pintarHoy(){
     ev.stopPropagation();
     b.disabled = true;
     const { error } = await SB.rpc('crm_lead_accion_completar', { p_accion: b.dataset.hecho });
-    if(error){ toastMal(lwT('No se pudo cerrar: ') + error.message); b.disabled = false; return; }
+    if(error){ toastMal(lwErrorHumano(error, lwT('No se pudo cerrar: '))); b.disabled = false; return; }
     const fila = HOY.find(a => a.accion_id === b.dataset.hecho);
     const lead = fila && LEADS.find(x => x.id === fila.lead_id);
     if(lead){ lead.accion_id = lead.accion_que = lead.accion_cuando = lead.accion_responsable = null; }
@@ -495,7 +495,7 @@ async function cargar(){
     pintarBandeja();
     if(VISTA === 'panel') cargarPanel();
   } catch(err){
-    toastMal(lwT('No se pudieron leer los leads: ') + (err.message || err));
+    toastMal(lwErrorHumano(err, lwT('No se pudieron leer los leads: ')));
     $('#tablero').innerHTML = '<p class="vacio">' + lwT('No se pudo leer la lista. Recarga la página.') + '</p>';
   } finally { btn.disabled = false; }
 }
@@ -725,7 +725,7 @@ async function asignar(lead, email){
     pintarPipeline(); pintarBandeja();
     if(ABIERTO && ABIERTO.id === lead.id) abrirFicha(lead);
   } catch(err){
-    toastMal(lwT('No se pudo cambiar el dueño: ') + (err.message || err));
+    toastMal(lwErrorHumano(err, lwT('No se pudo cambiar el dueño: ')));
   }
 }
 
@@ -753,7 +753,7 @@ async function mover(lead, estado){
   } catch(err){
     lead.estado = previo.estado; lead.estado_desde = previo.desde;
     pintarPipeline(); pintarBandeja();
-    toastMal(lwT('No se pudo guardar el cambio: ') + (err.message || err));
+    toastMal(lwErrorHumano(err, lwT('No se pudo guardar el cambio: ')));
   }
 }
 
@@ -884,7 +884,7 @@ async function guardarEstadoFila(clave){
     toast(lwT('Columna actualizada.'));
     await cargar();
     abrirEstructura();
-  } catch(err){ toastMal(lwT('No se pudo guardar la columna: ') + (err.message || err)); }
+  } catch(err){ toastMal(lwErrorHumano(err, lwT('No se pudo guardar la columna: '))); }
 }
 
 async function crearEstadoDesdeForm(){
@@ -901,7 +901,7 @@ async function crearEstadoDesdeForm(){
     toast(lwT('Columna creada.'));
     await cargar();
     abrirEstructura();
-  } catch(err){ toastMal(lwT('No se pudo crear la columna: ') + (err.message || err)); }
+  } catch(err){ toastMal(lwErrorHumano(err, lwT('No se pudo crear la columna: '))); }
 }
 
 /* Borrar es lo único que puede afectar a leads reales de otras personas, así que
@@ -938,7 +938,7 @@ async function borrarEstado(clave){
     toast(lwT('Columna borrada.'));
     await cargar();
     abrirEstructura();
-  } catch(err){ toastMal(lwT('No se pudo borrar la columna: ') + (err.message || err)); }
+  } catch(err){ toastMal(lwErrorHumano(err, lwT('No se pudo borrar la columna: '))); }
 }
 
 /* ==========================================================================
@@ -1124,7 +1124,7 @@ function pintarProximoPaso(l){
   if(hecho) hecho.onclick = async () => {
     hecho.disabled = true;
     const { error } = await SB.rpc('crm_lead_accion_completar', { p_accion: l.accion_id });
-    if(error){ toastMal(lwT('No se pudo cerrar: ') + error.message); hecho.disabled = false; return; }
+    if(error){ toastMal(lwErrorHumano(error, lwT('No se pudo cerrar: '))); hecho.disabled = false; return; }
     l.accion_id = l.accion_que = l.accion_cuando = l.accion_responsable = null;
     toast(lwT('Hecho. Pon el siguiente paso cuando lo tengas.'));
     pintarProximoPaso(l); pintarHilo(l); pintarPipeline(); pintarBandeja(); actualizarCuentaHoy();
@@ -1175,7 +1175,7 @@ function formularioProximoPaso(l){
     const { data, error } = await SB.rpc('crm_lead_accion_poner', {
       p_lead: l.id, p_que: que, p_cuando: cuando,
     });
-    if(error){ toastMal(lwT('No se pudo guardar: ') + error.message); return; }
+    if(error){ toastMal(lwErrorHumano(error, lwT('No se pudo guardar: '))); return; }
     const fila = (data || [])[0];
     if(fila){
       l.accion_id = fila.id; l.accion_que = fila.que;
@@ -1248,7 +1248,7 @@ async function dialogoHaciaContrato(l){
   if(seguir) seguir.onclick = async () => {
     seguir.disabled = true;
     const { data: f, error: e2 } = await SB.rpc('crm_lead_ficha_crear', { p_lead: l.id });
-    if(e2){ toastMal(lwT('No se pudo abrir la ficha: ') + e2.message); seguir.disabled = false; return; }
+    if(e2){ toastMal(lwErrorHumano(e2, lwT('No se pudo abrir la ficha: '))); seguir.disabled = false; return; }
     const ficha = (f || [])[0];
     if(!ficha || !ficha.client_id){ toastMal(lwT('No se pudo abrir la ficha.')); seguir.disabled = false; return; }
     /* `?cliente=` es el camino que ya existía y está probado (entrada desde Compradores);
@@ -1330,7 +1330,7 @@ async function guardarNota(l){
   const ta = document.querySelector('#nota'); const texto = (ta.value || '').trim();
   if(!texto) return;
   const { error } = await SB.rpc('crm_lead_nota', { p_lead: l.id, p_texto: texto });
-  if(error){ toastMal(lwT('No se pudo guardar la nota: ') + error.message); return; }
+  if(error){ toastMal(lwErrorHumano(error, lwT('No se pudo guardar la nota: '))); return; }
   ta.value = ''; l.notas = (l.notas || 0) + 1;
   pintarHilo(l); pintarPipeline(); pintarBandeja();
 }
@@ -2093,7 +2093,7 @@ async function pausarLead(phone, paused){
        seguiría diciendo «IA activa» junto a una conversación que acabas de pausar. */
     if(CHAT_ABIERTO === phone) verConversacion(phone);
     toast(lwT(paused ? 'IA pausada para ese lead.' : 'IA reanudada para ese lead.'));
-  } catch(err){ toastMal(lwT('No se pudo cambiar el estado: ') + err.message); }
+  } catch(err){ toastMal(lwErrorHumano(err, lwT('No se pudo cambiar el estado: '))); }
 }
 
 /* ==========================================================================
@@ -2107,7 +2107,7 @@ async function pausarLead(phone, paused){
 async function cargarAgenda(){
   CARGADO.agenda = true;
   try { CITAS = await llamarBot('citas_listar'); }
-  catch(err){ CITAS = []; toastMal(lwT('No se pudieron leer las citas: ') + err.message); }
+  catch(err){ CITAS = []; toastMal(lwErrorHumano(err, lwT('No se pudieron leer las citas: '))); }
   pintarAgenda();
 }
 
@@ -2192,7 +2192,7 @@ async function guardarCita(){
     toast(lwT(EDITANDO_CITA ? 'Cita actualizada.' : 'Cita agendada.'));
     limpiarFormularioAgenda();
     cargarAgenda();
-  } catch(err){ toastMal(lwT('No se pudo guardar la cita: ') + err.message); }
+  } catch(err){ toastMal(lwErrorHumano(err, lwT('No se pudo guardar la cita: '))); }
 }
 
 async function borrarCita(id){
@@ -2206,7 +2206,7 @@ async function borrarCita(id){
   });
   if(!seguro) return;
   try { await llamarBot('citas_borrar', { id }); toast(lwT('Cita borrada.')); cargarAgenda(); }
-  catch(err){ toastMal(lwT('No se pudo borrar: ') + err.message); }
+  catch(err){ toastMal(lwErrorHumano(err, lwT('No se pudo borrar: '))); }
 }
 
 /* ==========================================================================

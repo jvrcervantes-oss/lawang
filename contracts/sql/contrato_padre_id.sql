@@ -6,9 +6,16 @@
 -- Lo escribe contracts/app.html al guardar (el número elegido en el desplegable
 -- «Nº del Contrato de Reserva/PPJB vinculado» se resuelve a id); lo lee
 -- /intranet/operaciones/ para juntar ambos documentos en una sola operación.
-alter table public.contratos
-  add column contrato_padre_id uuid references public.contratos(id),
-  add constraint contratos_padre_no_self check (contrato_padre_id is distinct from id);
-create index contratos_padre_idx on public.contratos (contrato_padre_id);
-comment on column public.contratos.contrato_padre_id is
-  'Contrato de reserva/PPJB del que deriva este (misma venta). NULL = contrato raíz o sin vincular.';
+
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: contratos_padre_idx
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260729025648_contratos_contrato_padre_id.sql
+-- ============================================================================

@@ -22,19 +22,15 @@
 -- facturación: unidad_parte_cobrada y avanza_unidad_por_cobro trabajan por
 -- contrato_padre_id/unidad_id, nunca filtran por tipo.
 
-alter table public.contratos drop constraint contratos_tipo_check;
-alter table public.contratos add constraint contratos_tipo_check
-  check (tipo = any (array[
-    'reserva_parcela','construccion','contrato_general','commercial_offer',
-    'carta_reserva','carta_reserva_ampliada','acuerdo_comercial',
-    'protocolo_operativo','ppjb_bonian','ppjb_bonian_c2','hak_sewa_notario',
-    'carta_reserva_hak_sewa','poa','cc00014_timon'
-  ]::text[]));
-
-insert into public.correcciones_datos (tabla, fila_id, campo, valor_anterior, valor_nuevo, motivo, corregido_por)
-select 'contratos', id, 'tipo', 'construccion', 'cc00014_timon',
-  'CC00014 (Timon Taeke van den Bosch) tiene clausulas propias negociadas a mano, distintas de la plantilla generica de Construccion -- se le da un tipo propio para que reabra siempre su propia plantilla fija (contracts/templates/cc00014_timon.html), nunca la generica. Peticion del owner 28-ago-2026.',
-  'owner-28ago-via-CEO'
-from public.contratos where numero = 'CC00014';
-
-update public.contratos set tipo = 'cc00014_timon' where numero = 'CC00014';
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: (fichero de ALTER/INSERT, sin CREATE)
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260828060000_cc00014_timon_tipo_propio.sql
+-- ============================================================================

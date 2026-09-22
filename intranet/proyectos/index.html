@@ -210,7 +210,7 @@
      script de la pagina: son `const` de primer nivel y dos declaraciones del
      mismo nombre revientan la pagina entera. -->
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
-<script src="/contracts/assets/suite-comun.js?v=310f2346"></script>
+<script src="/contracts/assets/suite-comun.js?v=1dadde59"></script>
 <!-- Fotos publicas del investor deck. Compartida con la otra herramienta que
      las gestiona (Regla 0 de la suite): nace en contracts/assets/, no dentro de
      una pantalla. Depende de suite-comun (esc/toast) y dialogo (lwConfirmar). -->
@@ -724,7 +724,7 @@ async function renombrarProyecto(nombreActual){
   });
   if(!ok) return;
   const { error } = await SB.rpc('renombrar_proyecto', { p_antiguo: nombreActual, p_nuevo: nuevo });
-  if(error){ toastMal(lwT('No se pudo renombrar: ') + error.message); return; }
+  if(error){ toastMal(lwErrorHumano(error, lwT('No se pudo renombrar: '))); return; }
   toast(lwT('Proyecto renombrado'));
   if(PROY === nombreActual) PROY = nuevo;
   suiCerrarCajon();
@@ -836,7 +836,7 @@ function editarProyecto(nombre){
     };
     const btn = $('#btnGuardarFicha'); btn.disabled = true;
     const { data, error } = await SB.from('proyectos').update(fila).eq('nombre', nombre).select('id');
-    if(error){ btn.disabled = false; toastMal(lwT('No se pudo guardar: ') + error.message); return; }
+    if(error){ btn.disabled = false; toastMal(lwErrorHumano(error, lwT('No se pudo guardar: '))); return; }
     if(!data || !data.length){ btn.disabled = false; toastMal(lwT('No tienes permiso para editar la ficha del proyecto (solo admin).')); return; }
     /* La selección de modelos va en el MISMO botón: para quien la usa es una
        sola ficha. Se escribe después de la ficha y solo si el usuario es admin
@@ -949,7 +949,7 @@ function abrirInvestorDeck(nombre, proyectoId){
     const btn = $('#btnGuardarDeck'); btn.disabled = true;
     if(slug && slug !== (ficha.slug || '')){
       const { error: eSlug } = await SB.from('proyectos').update({ slug }).eq('id', proyectoId);
-      if(eSlug){ btn.disabled = false; toastMal(lwT('No se pudo guardar el slug (¿ya lo usa otro proyecto?): ') + eSlug.message); return; }
+      if(eSlug){ btn.disabled = false; toastMal(lwErrorHumano(eSlug, lwT('No se pudo guardar el slug (¿ya lo usa otro proyecto?): '))); return; }
     }
     const { error: eCfg } = await SB.from('deck_config_proyecto').upsert({
       proyecto_id: proyectoId,
@@ -958,7 +958,7 @@ function abrirInvestorDeck(nombre, proyectoId){
       modelo_destacado_id: destacadoId,
     }, { onConflict: 'proyecto_id' });
     btn.disabled = false;
-    if(eCfg){ toastMal(lwT('No se pudo guardar: ') + eCfg.message); return; }
+    if(eCfg){ toastMal(lwErrorHumano(eCfg, lwT('No se pudo guardar: '))); return; }
     toast(lwT('Guardado'));
     suiCerrarCajon();
     cargar();
@@ -975,7 +975,7 @@ function abrirInvestorDeck(nombre, proyectoId){
     if(!ok) return;
     const btn = $('#btnActivarDeck'); btn.disabled = true;
     const { error } = await SB.rpc('investor_deck_activar', { p_proyecto: nombre, p_activo: nuevoEstado });
-    if(error){ btn.disabled = false; toastMal(lwT('No se pudo cambiar el estado: ') + error.message); return; }
+    if(error){ btn.disabled = false; toastMal(lwErrorHumano(error, lwT('No se pudo cambiar el estado: '))); return; }
     toast(nuevoEstado ? lwT('Deck activado') : lwT('Deck desactivado'));
     suiCerrarCajon();
     cargar();
@@ -1008,7 +1008,7 @@ async function borrarProyecto(nombre){
   });
   if(!ok) return;
   const { error } = await SB.rpc('borrar_proyecto', { p_nombre: nombre });
-  if(error){ toastMal(lwT('No se pudo borrar: ') + error.message); return; }
+  if(error){ toastMal(lwErrorHumano(error, lwT('No se pudo borrar: '))); return; }
   toast(lwT('Proyecto borrado'));
   if(PROY === nombre) PROY = '';
   cargar();
@@ -1401,7 +1401,7 @@ async function borrarUnidad(u){
   });
   if(!ok) return;
   const { error } = await SB.rpc('borrar_unidad', { p_id: u.id });
-  if(error){ toastMal(lwT('No se pudo borrar: ') + error.message); return; }
+  if(error){ toastMal(lwErrorHumano(error, lwT('No se pudo borrar: '))); return; }
   toast(lwT('Parcela borrada'));
   suiCerrarCajon();
   SEL = null;

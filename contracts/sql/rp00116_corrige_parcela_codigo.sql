@@ -18,15 +18,15 @@
 -- nada) -- no hay ningún documento ya entregado a la compradora que se esté
 -- alterando.
 
-insert into public.correcciones_datos (tabla, fila_id, campo, valor_anterior, valor_nuevo, motivo, corregido_por)
-values (
-  'contratos', '4d235426-fbc6-470b-83a2-293a5f31aced', 'datos.fields.parcela_codigo',
-  'A5',
-  'W3.1 - D5',
-  'RP00116 imprimia "A5" (texto suelto de antes de LAW-73) aunque la relacion real (unidades.contrato_id) ya apuntaba a W3.1 - D5. Aviso del owner 28-ago-2026: "esta vinculado a A5, que esta fuera de inventario. Necesito quitarla y no puedo. La nueva vinculacion debe ser: W3 D5." Firma de este contrato anulada y nunca completada -- sin documento ya entregado que se este alterando.',
-  'owner-28ago-via-CEO'
-);
-
-update public.contratos
-set datos = jsonb_set(datos, '{fields,parcela_codigo}', '"W3.1 - D5"'::jsonb)
-where id = '4d235426-fbc6-470b-83a2-293a5f31aced' and numero = 'RP00116';
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: (fichero de ALTER/INSERT, sin CREATE)
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260828073214_rp00116_corrige_parcela_codigo.sql
+-- ============================================================================

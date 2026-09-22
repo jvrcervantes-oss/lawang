@@ -16,30 +16,19 @@
 -- sistema sin que nadie lo hubiera dado de baja.
 -- ============================================================================
 
-create table if not exists public.modelos_villa (
-  id                  uuid primary key default gen_random_uuid(),
-  proyecto            text not null,
-  modelo              text not null,
-  precio_construccion numeric,
-  moneda              text default 'EUR',
-  notas               text,
-  creado_en           timestamptz not null default now(),
-  unique (proyecto, modelo)
-);
-
-alter table public.modelos_villa enable row level security;
-drop policy if exists "modelos: leer"    on public.modelos_villa;
-drop policy if exists "modelos: escribir" on public.modelos_villa;
-create policy "modelos: leer" on public.modelos_villa
-  for select to authenticated using (public.es_agente());
--- Cambiar lo que cuesta construir es una decisión de precio: administradores.
-create policy "modelos: escribir" on public.modelos_villa
-  for all to authenticated using (public.es_admin()) with check (public.es_admin());
-
--- Semilla desde lo que ya está en el inventario: es el dato real del cliente,
--- no una cifra inventada.
-insert into public.modelos_villa (proyecto, modelo, precio_construccion, moneda)
-select distinct u.proyecto, u.modelo, u.precio_construccion, coalesce(u.moneda,'EUR')
-  from public.unidades u
- where u.modelo is not null and u.precio_construccion is not null
-on conflict (proyecto, modelo) do nothing;
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: modelos, modelos_villa
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260731071759_modelos_villa.sql
+--   supabase/migrations/20260907053801_catalogo_de_modelos.sql
+--   supabase/migrations/20260907060211_catalogo_modelos_alcance_de_obra.sql
+--   supabase/migrations/20260911033911_catalogo_por_proyecto_tambien_se_filtra.sql
+--   supabase/migrations/20260918021123_puede_proyecto_deja_de_abrir_cuando_el_nombre_no_casa.sql
+-- ============================================================================

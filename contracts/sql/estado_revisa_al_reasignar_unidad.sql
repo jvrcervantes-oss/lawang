@@ -23,31 +23,15 @@
 -- Mismo patrón que `unidad_revalua_al_corregir_precio.sql`: un trigger más que
 -- llama a la función ya existente, no una segunda versión del cálculo.
 
-create or replace function public.trg_revalua_unidad_por_reasignacion()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-begin
-  if new.unidad_id is distinct from old.unidad_id
-     or new.contrato_padre_id is distinct from old.contrato_padre_id then
-    perform public.avanza_unidad_por_cobro(new.id);
-    -- la unidad que PERDIÓ la asignación también hay que revisarla: puede
-    -- bajar de 'cobrada' si esa Construcción se llevaba su dinero.
-    if old.unidad_id is not null and old.unidad_id is distinct from new.unidad_id then
-      perform public.avanza_unidad_por_cobro(
-        (select contrato_id from public.unidades where id = old.unidad_id)
-      );
-    end if;
-  end if;
-  return new;
-end;
-$$;
-
-revoke all on function public.trg_revalua_unidad_por_reasignacion() from public, anon;
-
-drop trigger if exists trg_revalua_unidad_por_reasignacion on public.contratos;
-create trigger trg_revalua_unidad_por_reasignacion
-  after update of unidad_id, contrato_padre_id on public.contratos
-  for each row execute function public.trg_revalua_unidad_por_reasignacion();
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: trg_revalua_unidad_por_reasignacion
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260824044817_estado_revisa_al_reasignar_unidad.sql
+-- ============================================================================

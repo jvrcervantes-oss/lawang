@@ -1,3 +1,11 @@
+-- portal_situacion(): añade email/teléfono/país (31-ago-2026, encargo del owner).
+-- Hasta hoy solo devolvía `nombre` — la nueva sección "Mi perfil" del área de
+-- clientes necesita mostrar los datos de contacto reales de la ficha. Aditivo
+-- puro: no se toca ninguna clave existente, así que el portal que ya funciona
+-- sigue funcionando igual mientras se despliega el HTML nuevo.
+-- Copiado del `select ... from clients cl join mis_clientes mc` que ya usaba
+-- `nombre` en la misma función — mismo CTE, mismas columnas de origen
+-- (verificado contra el esquema real de `clients` antes de escribir esto).
 create or replace function public.portal_situacion()
 returns jsonb
 language plpgsql
@@ -127,4 +135,8 @@ begin
   ) into r;
   return r;
 end
-$$;;
+$$;
+
+-- Comprobación (la del catálogo, no la de que alguien lo corriera):
+--   select prosrc from pg_proc where proname = 'portal_situacion';
+-- tiene que enseñar las claves email/telefono/pais junto a nombre.

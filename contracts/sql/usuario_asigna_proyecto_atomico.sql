@@ -37,45 +37,20 @@
 -- cualquier admin. El repo tiene migraciones desincronizadas de producción
 -- (precedente: 33 el 9-sep) — un hallazgo de seguridad sobre una policy se
 -- verifica contra `pg_policies` en vivo, nunca contra el .sql del repo.
-create or replace function public.usuario_asigna_proyecto(
-  p_user_id uuid, p_proyecto_id uuid, p_asignar boolean
-)
-returns void
-language plpgsql
-security definer
-set search_path to ''
-as $$
-declare v_rol text;
-begin
-  if not (public.es_admin() and public.puede('usuarios')) then
-    raise exception 'no autorizado' using errcode = '42501';
-  end if;
-  select rol into v_rol from public.usuarios where user_id = p_user_id;
-  if v_rol is null then
-    raise exception 'usuario no encontrado' using errcode = '22023';
-  end if;
-  if v_rol = 'super_admin' and not public.es_super_admin() then
-    raise exception 'no autorizado' using errcode = '42501';
-  end if;
 
-  if p_asignar then
-    update public.usuarios
-       set proyectos = (
-         select array(select distinct unnest(coalesce(proyectos, '{}'::uuid[]) || array[p_proyecto_id]))
-       )
-     where user_id = p_user_id;
-  else
-    update public.usuarios
-       set proyectos = array_remove(coalesce(proyectos, '{}'::uuid[]), p_proyecto_id)
-     where user_id = p_user_id;
-  end if;
-end;
-$$;
-revoke execute on function public.usuario_asigna_proyecto(uuid, uuid, boolean) from public, anon;
-grant execute on function public.usuario_asigna_proyecto(uuid, uuid, boolean) to authenticated;
-
--- ── Comprobación ─────────────────────────────────────────────────────────
---   select proname from pg_proc where proname='usuario_asigna_proyecto';
--- Y de comportamiento (probado el 11-sep con DO + rollback, nunca con el MCP):
---   agente sin permiso → excepción 42501; admin/super_admin → asigna, repetir
---   no duplica (dedup por distinct/unnest), quitar sí reduce el array en 1.
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: es, usuario_asigna_proyecto
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260807044931_clients_solo_admin_edita.sql
+--   supabase/migrations/20260819155002_vencimientos_monto_y_pct_numericos.sql
+--   supabase/migrations/20260909135217_crm_leads_tablas_y_policies.sql
+--   supabase/migrations/20260911005009_usuario_asigna_proyecto_atomico.sql
+--   supabase/migrations/20260921125405_law_facturas_enviada_no_se_borra.sql
+-- ============================================================================

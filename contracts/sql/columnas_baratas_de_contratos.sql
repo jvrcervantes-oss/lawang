@@ -31,15 +31,15 @@
 -- columnas, así que hoy no afecta a ninguno.
 -- ============================================================================
 
-alter table public.contratos
-  add column if not exists nombre_contrato text
-    generated always as (datos->'fields'->>'nombre_contrato') stored;
-
-alter table public.contratos
-  add column if not exists parcela_codigo text
-    generated always as (datos->'fields'->>'parcela_codigo') stored;
-
-comment on column public.contratos.nombre_contrato is
-  'Reflejo generado de datos.fields.nombre_contrato. Existe para que los listados no tengan que descomprimir el jsonb (70 MB en 112 filas): leerlo de datos costaba 4,2 s.';
-comment on column public.contratos.parcela_codigo is
-  'Reflejo generado de datos.fields.parcela_codigo (puede ser una LISTA: «A4, A5»). Mismo motivo que nombre_contrato. La verdad del enlace sigue siendo unidades.contrato_id, no este texto.';
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: (fichero de ALTER/INSERT, sin CREATE)
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260824124219_columnas_baratas_de_contratos.sql
+-- ============================================================================

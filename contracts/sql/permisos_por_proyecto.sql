@@ -25,119 +25,47 @@
 -- fallo abierto en LAW-36. Con el id, renombrar un proyecto no toca ni un
 -- permiso.
 
-alter table public.usuarios
-  add column if not exists proyectos uuid[] not null default '{}';
-
-comment on column public.usuarios.proyectos is
-  'Proyectos (proyectos.id) sobre los que este usuario puede crear/editar contratos. Solo aplica al rol agente: admin y super_admin no tienen límite. Vacío = ninguno.';
-
--- ── El permiso, por nombre de proyecto ──────────────────────────────────────
--- Devuelve el nombre porque es lo que guarda el contrato (`proyecto_nombre` y
--- `datos->fields->>proyecto_nombre`); el id solo vive en la asignación.
--- `p_nombre` y no `nombre`: dentro del cuerpo se compara contra
--- `proyectos.nombre`, y Postgres no adivina cuál es cuál — «column reference
--- nombre is ambiguous» al crearla.
-create or replace function public.puede_proyecto(p_nombre text)
-returns boolean
-language sql stable security definer
-set search_path to ''
-as $$
-  select case
-    -- admin y super_admin, sin límite (decisión 2)
-    when public.es_admin() then true
-
-    -- Cuenta de auth SIN ficha en `usuarios` (hay 5 el 18-ago): mismo camino
-    -- que `puede()`, no uno propio. Si algún día ese fallback cambia, cambia
-    -- en los dos sitios o un usuario tendrá herramienta y no proyecto, o al
-    -- revés, sin que nadie entienda por qué.
-    when not exists (select 1 from public.usuarios u where u.user_id = (select auth.uid()))
-      then coalesce(((select auth.jwt()) -> 'app_metadata' ->> 'agente')::boolean, false)
-
-    -- Documento SIN proyecto: no hay proyecto que restringir. Es un caso real,
-    -- no un hueco — el Poder Notarial no lleva proyecto, y hay 12 contratos
-    -- históricos sin él. Bloquearlos dejaría al agente sin poder trabajar.
-    when coalesce(btrim(p_nombre), '') = '' then true
-
-    -- Nombre que NO está en el catálogo: contratos viejos con el nombre
-    -- comercial de entonces («Horizon by Balian Hills» cuando el catálogo dice
-    -- «Horizon S1»); son ~13 el 18-ago. No puede coincidir con ninguno de los
-    -- asignados, así que bloquearlo solo conseguiría que su propio autor no
-    -- pueda tocar su histórico. El selector solo ofrece nombres del catálogo,
-    -- así que un contrato NUEVO nunca cae por aquí.
-    when not exists (select 1 from public.proyectos p where p.nombre = btrim(p_nombre)) then true
-
-    else exists (
-      select 1
-        from public.usuarios u
-        join public.proyectos p on p.id = any (u.proyectos)
-       where u.user_id = (select auth.uid()) and u.activo
-         and p.nombre = btrim(p_nombre))
-  end
-$$;
-revoke execute on function public.puede_proyecto(text) from public, anon;
-
--- El proyecto de un contrato vive en DOS sitios y manda el del JSON (mismo
--- coalesce que `sincroniza_unidad_contrato`). Envuelto en una función para que
--- las cuatro policies no repitan la expresión: una lista a mano en cuatro
--- sitios es la forma larga de que un día solo se arreglen tres.
-create or replace function public.puede_proyecto_de(datos jsonb, col text)
-returns boolean
-language sql stable security definer
-set search_path to ''
-as $$
-  select public.puede_proyecto(
-    coalesce(nullif(btrim(datos -> 'fields' ->> 'proyecto_nombre'), ''), col))
-$$;
-revoke execute on function public.puede_proyecto_de(jsonb, text) from public, anon;
-
--- ── Las policies de `contratos`, con la condición nueva añadida ─────────────
--- Se reescriben ENTERAS a propósito (no hay ALTER POLICY que añada un AND):
--- cada una conserva palabra por palabra lo que ya tenía, y suma el proyecto.
--- LEER no cambia: un agente ya solo veía sus propios contratos (`es_suyo`).
-
-drop policy if exists "agentes con la herramienta insertan contratos" on public.contratos;
-create policy "agentes con la herramienta insertan contratos" on public.contratos
-  for insert to authenticated
-  with check (public.es_agente() and public.puede('contratos')
-              and public.puede_proyecto_de(datos, proyecto_nombre));
-
--- USING mira la fila VIEJA y WITH CHECK la NUEVA: así no se puede editar un
--- contrato de un proyecto ajeno, ni MOVER uno propio a un proyecto ajeno.
-drop policy if exists "el autor o un admin editan contratos no bloqueados" on public.contratos;
-create policy "el autor o un admin editan contratos no bloqueados" on public.contratos
-  for update to authenticated
-  using (bloqueado = false and public.es_agente() and public.puede('contratos')
-         and public.es_suyo(creado_por)
-         and public.puede_proyecto_de(datos, proyecto_nombre))
-  with check (public.es_agente() and public.puede('contratos')
-              and public.puede_proyecto_de(datos, proyecto_nombre));
-
-drop policy if exists "borrar contratos" on public.contratos;
-create policy "borrar contratos" on public.contratos
-  for delete to authenticated
-  using (public.es_super_admin()
-         or (coalesce(bloqueado, false) = false and public.es_agente()
-             and public.puede('contratos')
-             and creado_por is not null and creado_por = (select auth.email())
-             and public.puede_proyecto_de(datos, proyecto_nombre)));
-
--- ── Migración: nadie pierde acceso HOY ──────────────────────────────────────
--- Solo a los agentes, y solo a los que no tienen ninguno todavía (idempotente:
--- si se vuelve a ejecutar, no pisa lo que el owner ya haya afinado a mano).
--- A los admin se les deja vacío A PROPÓSITO: no les aplica, y rellenarlo daría
--- a entender que sí. Si un día uno baja a agente, se le asignan entonces.
-update public.usuarios u
-   set proyectos = (select coalesce(array_agg(p.id), '{}')
-                      from public.proyectos p where coalesce(p.activo, true))
- where u.rol = 'agente'
-   and coalesce(array_length(u.proyectos, 1), 0) = 0;
-
--- ── Comprobación (la del catálogo, nunca el «ya lo mandé») ──────────────────
---   select column_name from information_schema.columns
---    where table_name='usuarios' and column_name='proyectos';        → 1 fila
---   select polname, pg_get_expr(polwithcheck, polrelid) from pg_policy
---    where polrelid='public.contratos'::regclass;   → las 3 con puede_proyecto_de
---   select rol, count(*), min(coalesce(array_length(proyectos,1),0))
---     from public.usuarios group by rol;            → agente ≥ 29, admin 0
--- Y la de comportamiento: DO con rollback suplantando a un agente — crear en un
--- proyecto asignado pasa, en uno no asignado revienta, y sin proyecto pasa.
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: agentes, borrar, el, puede_proyecto, puede_proyecto_de
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260729090740_rls_propiedad_contratos_facturas.sql
+--   supabase/migrations/20260729094754_equipo_se_ve_entre_si.sql
+--   supabase/migrations/20260730044257_storage_update_snapshots_pendientes.sql
+--   supabase/migrations/20260731043211_documentacion_bucket_e_indice.sql
+--   supabase/migrations/20260731043542_aviso_almacenamiento_cron.sql
+--   supabase/migrations/20260731045054_borrado_con_permisos_y_enlaces.sql
+--   supabase/migrations/20260805023613_portal_comprador.sql
+--   supabase/migrations/20260807021850_unidades_catalogos_proyecto_tipo.sql
+--   supabase/migrations/20260807024457_unidades_catalogos_policies_to_authenticated.sql
+--   supabase/migrations/20260807043910_contratos_facturas_visibilidad_por_agente.sql
+--   supabase/migrations/20260811034823_recibi_aplicaciones_reforma_facturacion.sql
+--   supabase/migrations/20260811034859_bucket_justificantes.sql
+--   supabase/migrations/20260811035518_recibi_aplicaciones_delete_propio.sql
+--   supabase/migrations/20260817131756_storage_borrar_solo_snapshots_pendientes.sql
+--   supabase/migrations/20260819044926_law71_editar_firmado_y_borrar_facturas.sql
+--   supabase/migrations/20260821152750_law71_super_admin_reasigna_autor_de_factura_anulada.sql
+--   supabase/migrations/20260821153038_policies_de_law71_a_authenticated_no_a_public.sql
+--   supabase/migrations/20260821153053_policy_borrar_facturas_a_authenticated.sql
+--   supabase/migrations/20260901021433_aviso_soporte_mensajes_equipo.sql
+--   supabase/migrations/20260901120000_aviso_soporte_mensajes_equipo.sql
+--   supabase/migrations/20260910090734_permisos_agente_solo_lo_suyo_y_managers.sql
+--   supabase/migrations/20260911011008_managers_escriben_en_su_proyecto.sql
+--   supabase/migrations/20260911031517_equipo_deja_de_saltarse_la_rls.sql
+--   supabase/migrations/20260911033802_proyectos_solo_los_asignados.sql
+--   supabase/migrations/20260911034604_puede_proyecto_cuenta_tambien_lo_que_supervisas.sql
+--   supabase/migrations/20260911035515_solo_admin_da_de_alta_proyectos.sql
+--   supabase/migrations/20260914024847_directorio_de_compradores_y_el_autor_corrige_lo_suyo.sql
+--   supabase/migrations/20260914_directorio_de_compradores_y_el_autor_corrige_lo_suyo.sql
+--   supabase/migrations/20260917010415_comision_admin_intranet.sql
+--   supabase/migrations/20260918021123_puede_proyecto_deja_de_abrir_cuando_el_nombre_no_casa.sql
+--   supabase/migrations/20260918021400_storage_deja_de_ser_una_carpeta_compartida.sql
+--   supabase/migrations/20260921125405_law_facturas_enviada_no_se_borra.sql
+--   supabase/migrations/20260922133000_facturas_congela_contrato_numero_security_invoker.sql
+-- ============================================================================

@@ -25,101 +25,46 @@
 -- ============================================================================
 
 -- ---- el contrato manda sobre la unidad -------------------------------------
-create or replace function public.sincroniza_unidad_contrato()
-returns trigger language plpgsql security definer set search_path = '' as $$
-declare
-  cod     text := nullif(btrim(new.datos->'fields'->>'parcela_codigo'), '');
-  proy    text := coalesce(nullif(btrim(new.datos->'fields'->>'proyecto_nombre'), ''), new.proyecto_nombre);
-  cod_ant text;
-  ocupada text;
-begin
-  -- 1) Si el contrato cambió de parcela (o se la quitaron), la anterior se
-  --    suelta. Sin esto, corregir un código dejaría reservada una parcela que
-  --    ya no vende nadie, y esa no vuelve sola nunca.
-  if tg_op = 'UPDATE' then
-    cod_ant := nullif(btrim(old.datos->'fields'->>'parcela_codigo'), '');
-    if cod_ant is distinct from cod then
-      update public.unidades u set contrato_id = null
-       where u.contrato_id = new.id;
-    end if;
-  end if;
 
-  if cod is null or proy is null then return new; end if;
-
-  -- 2) Nadie le quita una parcela a otro contrato en silencio. Si ya está
-  --    tomada, se para el guardado con un mensaje que se entiende: es
-  --    justamente el caso de la doble venta, y fallar aquí es barato comparado
-  --    con descubrirlo cuando los dos compradores han firmado.
-  select c.numero into ocupada
-    from public.unidades u join public.contratos c on c.id = u.contrato_id
-   where u.proyecto = proy and u.codigo = cod and u.contrato_id <> new.id;
-  if ocupada is not null then
-    raise exception 'La parcela % de % ya está asignada al contrato %', cod, proy, ocupada
-      using errcode = '23505';
-  end if;
-
-  -- 3) Vincular y mover el estado.
-  update public.unidades u
-     set contrato_id = new.id,
-         estado = case
-           when u.estado in ('bloqueada','no_disponible') then u.estado
-           when coalesce(new.bloqueado, false) then 'vendida'
-           else 'reservada'
-         end
-   where u.proyecto = proy and u.codigo = cod;
-
-  return new;
-end $$;
-
-drop trigger if exists trg_sincroniza_unidad on public.contratos;
-create trigger trg_sincroniza_unidad
-  after insert or update on public.contratos
-  for each row execute function public.sincroniza_unidad_contrato();
-
--- ---- una unidad sin contrato vuelve a estar libre --------------------------
--- Cubre dos caminos de golpe: el borrado del contrato (la clave ajena pone
--- `contrato_id` a NULL) y el desvinculado a mano desde /unidades/. Sin esto, un
--- contrato borrado dejaba la parcela marcada como vendida para siempre.
--- La condición `new.estado = old.estado` es la que impide pisar a quien esté
--- cambiando el estado a propósito en esa misma operación.
-create or replace function public.libera_unidad_sin_contrato()
-returns trigger language plpgsql set search_path = '' as $$
-begin
-  if new.contrato_id is null and old.contrato_id is not null
-     and new.estado = old.estado
-     and old.estado in ('reservada','vendida') then
-    new.estado := 'disponible';
-  end if;
-  return new;
-end $$;
-
-drop trigger if exists trg_libera_unidad on public.unidades;
-create trigger trg_libera_unidad
-  before update on public.unidades
-  for each row execute function public.libera_unidad_sin_contrato();
-
--- ---- lo que se cobra de cada unidad, calculado, no guardado ----------------
--- Las proformas y las anuladas NO suman: una proforma no es un cobro y una
--- anulada dejó de serlo. Mismo criterio que /intranet/operaciones/.
-create or replace view public.unidades_estado as
-select u.*,
-       c.numero          as contrato_numero,
-       c.comprador_nombre,
-       c.bloqueado       as contrato_firmado,
-       coalesce(f.facturado, 0) as facturado,
-       case when u.precio > 0
-            then round(coalesce(f.facturado, 0) / u.precio * 100, 1) end as pct_cobrado
-  from public.unidades u
-  left join public.contratos c on c.id = u.contrato_id
-  left join lateral (
-     select sum(x.total) as facturado
-       from public.facturas x
-      where x.contrato_id = u.contrato_id
-        and coalesce(x.anulada, false) = false
-        and x.tipo <> 'proforma'
-  ) f on true;
-
--- La vista hereda la RLS de las tablas de debajo (`security_invoker`): sin esto
--- una vista de un `security definer` enseñaría filas que la policy niega.
-alter view public.unidades_estado set (security_invoker = true);
-grant select on public.unidades_estado to authenticated;
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: libera_unidad_sin_contrato, sincroniza_unidad_contrato, trg_libera_unidad, trg_sincroniza_unidad, unidades_estado
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260731065652_vinculo_contrato_unidad.sql
+--   supabase/migrations/20260805024801_unidades_estado_con_obra.sql
+--   supabase/migrations/20260810100129_unidades_estado_vista_fase_zona.sql
+--   supabase/migrations/20260810101230_unidades_estado_restaura_security_invoker.sql
+--   supabase/migrations/20260811035145_unidades_estado_solo_recibi.sql
+--   supabase/migrations/20260812042114_estado_unidad_por_tipo_y_cobro_fix_view.sql
+--   supabase/migrations/20260812042147_estado_unidad_por_tipo_y_cobro.sql
+--   supabase/migrations/20260814070120_parcela_traspaso_carta_a_bloqueo.sql
+--   supabase/migrations/20260814095601_traspaso_mismo_comprador_y_enlace.sql
+--   supabase/migrations/20260814095850_traspaso_carta_sucedida_editable.sql
+--   supabase/migrations/20260819044137_cobro_repartido_entre_unidades.sql
+--   supabase/migrations/20260824035201_construccion_por_parcela.sql
+--   supabase/migrations/20260826112241_unidades_estado_precio_efectivo.sql
+--   supabase/migrations/20260828073214_rp00116_corrige_parcela_codigo.sql
+--   supabase/migrations/20260902022413_unidades_estado_restaura_security_invoker_2.sql
+--   supabase/migrations/20260910043844_carta_reserva_traspaso_por_prefijo.sql
+--   supabase/migrations/20260911005624_unidades_estado_agente_creador.sql
+--   supabase/migrations/20260911085553_unidades_estado_cobrado_suelo_obra.sql
+--   supabase/migrations/20260911085617_unidades_estado_restaura_security_invoker_3.sql
+--   supabase/migrations/20260914120341_exige_parcela_al_guardar.sql
+--   supabase/migrations/20260915004928_unidades_estado_cobro_solo_si_contrato_visible.sql
+--   supabase/migrations/20260915005638_unidades_estado_deja_de_duplicar_el_gate.sql
+--   supabase/migrations/20260915100000_unidades_estado_cobro_solo_si_contrato_visible.sql
+--   supabase/migrations/20260915104500_unidades_estado_deja_de_duplicar_el_gate.sql
+--   supabase/migrations/20260916093309_unidades_codigo_orden_natural.sql
+--   supabase/migrations/20260917012656_errores_de_guardado_al_grano.sql
+--   supabase/migrations/20260917040000_errores_de_guardado_al_grano.sql
+--   supabase/migrations/20260921060542_libera_reservas_vencidas.sql
+--   supabase/migrations/20260921080952_enlace_por_id_y_law73_reabierta.sql
+--   supabase/migrations/20260921081711_law73_reabierta_ambito_por_codigo.sql
+--   supabase/migrations/20260921082637_fix_regresion_liberado_en.sql
+-- ============================================================================

@@ -17,3 +17,17 @@
 -- modelo/datos.php), sin tocar codigo.
 --
 -- Ver la definicion completa en supabase/migrations/20260921060245_deck_forecast_ejemplo_publico.sql
+
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: (fichero de ALTER/INSERT, sin CREATE)
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260921060245_deck_forecast_ejemplo_publico.sql
+--   supabase/migrations/20260921110646_deck_forecast_ejemplo_publico_por_modelo.sql
+-- ============================================================================

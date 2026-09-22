@@ -11,6 +11,34 @@
 -- (20260901150000_retirar_tickets.sql), después de desplegar y verificar
 -- este frontend nuevo.
 --
+-- PASADO POR REVISIÓN PREVIA (Seguridad + Datos) antes de escribir esto:
+--   1. (Seguridad) La columna `categoria` lleva su propio CHECK, no solo la
+--      RPC: cualquier vía futura que escriba directo a la tabla (backfill,
+--      admin) no puede colar un valor fuera del enum.
+--   2. (Seguridad) La policy de lectura de hilo_soporte para el comprador va
+--      SCOPED por portal_accesos (igual que el resto de la suite), no
+--      "authenticated" a secas -- mismo criterio que ya usan
+--      tickets_comprador y mensajes_comprador.
+--   3. (Datos, hallazgo real tras leer la RLS existente) Ni la RPC ni nada
+--      del plan original creaba la fila de `hilo_soporte`: el primer
+--      mensaje de un comprador nuevo no generaba fila, y un mensaje del
+--      EQUIPO no actualizaba `actualizado_en` -- la bandeja (que ordena por
+--      esa columna) habría mostrado conversaciones ya respondidas como si
+--      llevaran días sin tocarse. Se resuelve con un trigger dedicado
+--      `_trg_hilo_soporte_actividad` (AFTER INSERT en mensajes_comprador,
+--      para CUALQUIER `de`), separado del trigger de aviso a propósito: ese
+--      corta en seco con `if new.de <> 'cliente'` y mezclar los dos ahí
+--      habría dejado sin bump de actividad los mensajes del equipo.
+--   4. (Datos) Un mensaje nuevo del COMPRADOR reabre el hilo si estaba
+--      resuelto (una pregunta nueva no puede quedar "resuelta" sin
+--      respuesta) -- lo hace el trigger, nunca un parámetro que pudiera
+--      venir del navegador. Un mensaje del EQUIPO solo actualiza
+--      `actualizado_en`, nunca fuerza el estado: el equipo sigue siendo el
+--      único que decide marcar resuelto (con su propio botón, RLS directa).
+--   5. (Datos) La bandeja nueva de /intranet/soporte/ cuelga de guard.js /
+--      es_agente(), la misma puerta que el resto de la intranet -- no hay
+--      tabla ni ruta sin ese gate.
+--
 -- destructivo-ok: sin drop de tabla/función existente. Los `drop trigger/
 -- function if exists` de más abajo son de objetos que esta misma migración
 -- vuelve a crear (idempotencia).
@@ -279,4 +307,9 @@ begin
   ) into r;
   return r;
 end
-$$;;
+$$;
+
+-- Comprobación (la del catálogo, no la de que alguien lo corriera):
+--   select tablename from pg_tables where schemaname='public' and tablename = 'hilo_soporte';
+--   select proname, pronargs from pg_proc where proname = 'portal_enviar_mensaje';
+--   select tgname from pg_trigger where tgname = 'trg_hilo_soporte_actividad';

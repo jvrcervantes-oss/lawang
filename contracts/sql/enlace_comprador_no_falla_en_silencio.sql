@@ -22,43 +22,17 @@
 -- ARREGLO: no reabrir la función —eso deshace la auditoría—, sino que el
 -- TRIGGER sea `security definer`. Así la llamada corre como su dueño (postgres)
 -- y REST sigue cerrado para anon Y para authenticated, que era el objetivo.
-create or replace function public.trg_sincronizar_compradores()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-begin
-  begin
-    perform public.sincronizar_compradores(new.id);
-  exception when others then
-    raise warning 'sincronizar_compradores(%) no pudo completarse: %', new.id, sqlerrm;
-  end;
-  return new;
-end $$;
 
-revoke all on function public.trg_sincronizar_compradores() from public, anon, authenticated;
-
--- ── recuperación de lo que se perdió ───────────────────────────────────────
--- No se inventa nada: `sincronizar_compradores` solo RECONOCE fichas, nunca
--- crea personas (ver comprador_desde_ficha.sql). Los 7 contratos recuperaron su
--- enlace (RP00055 y RP00058 dos cada uno, por sus adquirientes adicionales) y
--- después quedaron 0 contratos con ficha y sin enlazar.
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
 --
---   select c.numero, public.sincronizar_compradores(c.id)
---     from public.contratos c
---    where c.datos->>'adq1_client_id' is not null
---      and not exists (select 1 from public.contrato_compradores cc
---                       where cc.contrato_id = c.id);
---
--- ── y para que no vuelva a ser silencioso ──────────────────────────────────
--- `informarCompradores()` en app.html YA avisaba de esto… con un `toast`, que
--- es lo que se perdió entre los otros dos que salen al guardar. Desde hoy es un
--- modal: un aviso que se puede no ver no es un aviso.
---
--- LECCIÓN, y es la tercera vez que este estudio la escribe de otra forma: **un
--- GRANT no restringe, añade — y un REVOKE sobre PUBLIC quita el permiso a todo
--- el que solo lo tenía por ahí**. Al cerrar una función a `anon`, comprobar
--- ANTES quién más la estaba usando y por qué camino:
---   select proacl from pg_proc where proname = '...';
---   select has_function_privilege('authenticated', oid, 'execute') ...
+-- Objetos: trg_sincronizar_compradores
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260804041013_compradores_desde_contrato.sql
+--   supabase/migrations/20260819101011_trigger_compradores_definer_y_ruidoso.sql
+-- ============================================================================

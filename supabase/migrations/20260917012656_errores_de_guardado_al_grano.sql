@@ -1,3 +1,27 @@
+-- ════════════════════════════════════════════════════════════════════════════
+-- LOS ERRORES DE GUARDAR UN CONTRATO, AL GRANO — 17-sep-2026
+-- ════════════════════════════════════════════════════════════════════════════
+-- Owner: «el mensaje de error al guardar un contrato... mucho texto que el
+-- operador no necesita saber, ve al grano. 'Error: Rellena los campos [y los
+-- enumeras]'. Haz lo mismo con el resto de errores.»
+--
+-- El texto que se RAISE EXCEPTION es justo el que ve el operador en el toast
+-- (contracts/app.html, catch de guardarContrato()) — no una entrada de log.
+-- Estas tres funciones lo escribían pensando en documentar el porqué DENTRO
+-- del mensaje, que es trabajo del comentario de cabecera de cada función
+-- (contracts/sql/*.sql), no de la frase que sale en pantalla. Se acorta la
+-- frase; el porqué se queda donde ya estaba, en los comentarios de cada
+-- fichero fuente — no se toca ni una línea de esos.
+--
+-- Solo cambian las TRES cadenas citadas abajo. El resto de raise exception del
+-- flujo de guardado (parcela ya asignada, traspaso sin pasaporte/email, tipo
+-- no permitido, poder notarial ajeno...) ya dicen qué falta y qué hacer sin
+-- rodeo — no se tocan para no arriesgar precisión legal por brevedad donde no
+-- hace falta.
+-- ════════════════════════════════════════════════════════════════════════════
+
+-- ── 1) sincroniza_unidad_contrato() — mismo cuerpo que la migración
+--       20260914120341 (exige_parcela_al_guardar), solo las dos frases largas.
 create or replace function public.sincroniza_unidad_contrato()
  returns trigger
  language plpgsql
@@ -143,6 +167,8 @@ begin
 end;
 $function$;
 
+-- ── 2) contrato_no_editable_en_firma() — mismo cuerpo, mensaje corto y sin
+--       parámetros (n_vivas/n_firmadas eran solo para el texto largo).
 create or replace function public.contrato_no_editable_en_firma()
  returns trigger
  language plpgsql
@@ -172,6 +198,8 @@ begin
     using errcode = '23514';
 end $function$;
 
+-- ── 3) trg_valida_unidad_id_contrato() — mismo cuerpo, un mensaje sin jerga
+--       interna ("unidad_id", "reserva raíz") en el único raise que la tenía.
 create or replace function public.trg_valida_unidad_id_contrato()
  returns trigger
  language plpgsql
@@ -196,4 +224,4 @@ begin
   end if;
   return new;
 end;
-$function$;;
+$function$;

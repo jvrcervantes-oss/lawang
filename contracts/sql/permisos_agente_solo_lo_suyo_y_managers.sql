@@ -53,185 +53,47 @@
 -- destructivo-ok: DROP+ADD CONSTRAINT solo amplía el CHECK de rol (5 valores en
 -- vez de 3), no borra filas ni relaja nada de lo que ya había. Mismo patrón que
 -- toda reescritura de policy de este fichero: se sustituye, no se retira.
-alter table public.usuarios drop constraint if exists usuarios_rol_check;
-alter table public.usuarios add constraint usuarios_rol_check
-  check (rol = any (array['super_admin','admin','agente','sales_manager','project_manager']));
 
-comment on column public.usuarios.proyectos is
-  'Proyectos (proyectos.id) sobre los que este usuario trabaja. Agente: crea/edita contratos y LEE obra/clientes de estos proyectos (desde el 10-sep, antes solo gobernaba escritura). sales_manager/project_manager: LEE (nunca edita) todo lo que pase en estos proyectos, de cualquier agente. admin y super_admin no tienen límite. Vacío = ninguno.';
-
-create or replace function public.es_gestor()
-returns boolean
-language sql stable security definer
-set search_path to ''
-as $$
-  select exists (
-    select 1 from public.usuarios u
-     where u.user_id = (select auth.uid()) and u.activo
-       and u.rol in ('sales_manager','project_manager')
-  )
-$$;
-revoke execute on function public.es_gestor() from public, anon;
-grant execute on function public.es_gestor() to authenticated;
-
--- Fail-CLOSED por proyecto_id (uuid). A diferencia de `puede_proyecto()`
--- (fail-open, por nombre, pensada para no bloquear una escritura), aquí un
--- proyecto NULL o sin match NO concede nada — es lectura, no escritura, y el
--- default seguro es "no se ve" (decisión 1 de arriba).
-create or replace function public.es_manager_de(p_proyecto_id uuid)
-returns boolean
-language sql stable security definer
-set search_path to ''
-as $$
-  select case
-    when public.es_admin() then true
-    when p_proyecto_id is null then false
-    else exists (
-      select 1 from public.usuarios u
-       where u.user_id = (select auth.uid()) and u.activo
-         and u.rol in ('sales_manager','project_manager')
-         and p_proyecto_id = any (u.proyectos))
-  end
-$$;
-revoke execute on function public.es_manager_de(uuid) from public, anon;
-grant execute on function public.es_manager_de(uuid) to authenticated;
-
--- ── 2. `clients` — de "abierto a todo el equipo" a "lo suyo + su manager" ───
-alter table public.clients add column if not exists propietario text;
-comment on column public.clients.propietario is
-  'Email de quien dio de alta la ficha (auth.email() de creado_por en contratos, NUNCA el nombre — mismo motivo que contratos.creado_por: es la identidad con la que decide la RLS). NULL = sin autor reconstruible: NO visible a un agente, solo admin/manager (decisión 2 de arriba — al revés que contratos).';
-create index if not exists clients_propietario_idx on public.clients (propietario);
-
-create or replace function public.cliente_visible(p_propietario text, p_client_id uuid)
-returns boolean
-language sql stable security definer
-set search_path to ''
-as $$
-  select case
-    when public.es_admin() then true
-    when public.es_gestor() then exists (
-      select 1
-        from public.contrato_compradores cc
-        join public.contratos c on c.id = cc.contrato_id
-       where cc.client_id = p_client_id
-         and public.es_manager_de(c.proyecto_id))
-    else coalesce(p_propietario = (select auth.email()), false)
-  end
-$$;
-revoke execute on function public.cliente_visible(text, uuid) from public, anon;
-grant execute on function public.cliente_visible(text, uuid) to authenticated;
-
-drop policy if exists "agentes leen clientes" on public.clients;
-create policy "cada uno lo suyo, el manager lo de su proyecto, admin todo" on public.clients
-  for select to authenticated
-  using (es_agente() and public.cliente_visible(propietario, id));
-
--- ── 3. `unidades` (obra) — de "abierto a todo el equipo" a "sus proyectos" ──
--- "Sus obras" es por PROYECTO ASIGNADO (`usuarios.proyectos`), no por autoría:
--- una unidad no la "crea" un agente concreto, es del proyecto entero. Mismo
--- concepto que ya gobierna la ESCRITURA de contratos desde el 18-ago, ahora
--- también para la LECTURA de obra. Fail-closed: los 462 registros tienen
--- proyecto_id hoy (comprobado en vivo), cero regresión por NULL.
-create or replace function public.unidad_visible(p_proyecto_id uuid)
-returns boolean
-language sql stable security definer
-set search_path to ''
-as $$
-  select case
-    when public.es_admin() then true
-    when public.es_manager_de(p_proyecto_id) then true
-    when p_proyecto_id is null then false
-    else exists (
-      select 1 from public.usuarios u
-       where u.user_id = (select auth.uid()) and u.activo
-         and p_proyecto_id = any (u.proyectos))
-  end
-$$;
-revoke execute on function public.unidad_visible(uuid) from public, anon;
-grant execute on function public.unidad_visible(uuid) to authenticated;
-
-drop policy if exists "agentes leen unidades" on public.unidades;
-create policy "agentes leen unidades de sus proyectos, manager de los suyos" on public.unidades
-  for select to authenticated
-  using (es_agente() and public.unidad_visible(proyecto_id));
-
--- ── 4. `contratos`/`facturas` — YA scoped a su autor; se AÑADE el manager ───
--- No existía policy "el equipo se ve entre sí" aquí (verificado en pg_policies
--- el 10-sep) — solo se añade la rama nueva, el resto queda intacto.
-drop policy if exists "agentes leen sus contratos" on public.contratos;
-create policy "agentes leen sus contratos" on public.contratos
-  for select to authenticated
-  using (es_agente() and (es_suyo(creado_por) or public.es_manager_de(proyecto_id)));
-
-drop policy if exists "agentes leen sus facturas" on public.facturas;
-create policy "agentes leen sus facturas" on public.facturas
-  for select to authenticated
-  using (es_agente() and (es_suyo(creado_por) or public.es_manager_de(proyecto_id)));
-
--- `recibi_aplicaciones` (recibís/justificantes) no tiene proyecto_id propio:
--- hereda el de la factura/recibí que referencia, en las dos direcciones.
-drop policy if exists "agentes leen aplicaciones de sus documentos" on public.recibi_aplicaciones;
-create policy "agentes leen aplicaciones de sus documentos" on public.recibi_aplicaciones
-  for select to authenticated
-  using (
-    (exists (select 1 from public.facturas r
-              where r.id = recibi_aplicaciones.recibi_id and es_agente()
-                and (es_suyo(r.creado_por) or public.es_manager_de(r.proyecto_id))))
-    or
-    (exists (select 1 from public.facturas f
-              where f.id = recibi_aplicaciones.factura_id and es_agente()
-                and (es_suyo(f.creado_por) or public.es_manager_de(f.proyecto_id))))
-  );
-
--- ── 5. `solicitudes_pago` — ya scoped a su creador; se AÑADE el manager ─────
--- `contrato_id` es referencia OPCIONAL (ver contracts/sql/solicitudes_pago):
--- una solicitud sin contrato no tiene proyecto derivable y un manager no la ve
--- (fail-closed, admin sigue viéndolas todas). Es el mismo criterio que el
--- resto de este fichero: sin dato para decidir, no se concede.
-drop policy if exists "solicitudes: cada agente lee las suyas, admin todas" on public.solicitudes_pago;
-create policy "solicitudes: cada agente lee las suyas, admin todas, manager las de su proyecto" on public.solicitudes_pago
-  for select to authenticated
-  using (
-    es_admin()
-    or (creado_por = (select auth.uid()))
-    or exists (select 1 from public.contratos c
-                where c.id = solicitudes_pago.contrato_id
-                  and public.es_manager_de(c.proyecto_id))
-  );
-
--- ── 6. Backfill de `clients.propietario` — SQL puro, sin PII embebida ───────
--- "El primer contrato que referencia cada ficha", vía `contrato_compradores`
--- (NO existe `contratos.client_id` — el vínculo real es la tabla puente).
--- Determinista por fecha (comprobado: cero empates de `created_at` entre las
--- 125 fichas con contrato). Las 46 fichas sin ningún contrato quedan con
--- propietario NULL — visibles solo a admin/manager desde ahora (decisión 2).
-update public.clients c
-   set propietario = sub.creado_por
-  from (
-    select distinct on (cc.client_id) cc.client_id, ct.creado_por
-      from public.contrato_compradores cc
-      join public.contratos ct on ct.id = cc.contrato_id
-     where ct.creado_por is not null
-     order by cc.client_id, ct.created_at asc
-  ) sub
- where c.id = sub.client_id
-   and c.propietario is null;
-
--- ── Comprobación (la del catálogo, nunca el «ya lo mandé») ──────────────────
---   select conname, pg_get_constraintdef(oid) from pg_constraint
---    where conrelid='public.usuarios'::regclass and contype='c';  → 5 roles
---   select count(*) from public.clients where propietario is not null;  → 125
---   select polname from pg_policy where polrelid in
---    ('public.clients'::regclass,'public.unidades'::regclass,
---     'public.contratos'::regclass,'public.facturas'::regclass,
---     'public.recibi_aplicaciones'::regclass,'public.solicitudes_pago'::regclass);
--- Y la de comportamiento: DO con `SET LOCAL ROLE authenticated` + JWT de un
--- agente real y de un manager de prueba — nunca con el MCP (bypasea RLS por
--- ser propietario de las tablas) ni con el SQL Editor.
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
 --
--- ── Pendiente para el owner, no resuelto aquí a propósito ───────────────────
--- 6 fichas de `clients` tienen contratos de MÁS DE UN agente (traspaso de
--- cliente entre agentes, probablemente). El backfill asigna el PRIMERO por
--- fecha porque es lo que se pidió, pero queda anotado en
--- `contexto/pendientes.md` con owner para que se revise a mano quién debe
--- verla de verdad — no se adivina.
+-- Objetos: agentes, cada, cliente_visible, clients_propietario_idx, es_gestor, es_manager_de, solicitudes, unidad_visible
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260729090612_usuarios_funciones_permisos.sql
+--   supabase/migrations/20260729090740_rls_propiedad_contratos_facturas.sql
+--   supabase/migrations/20260730044257_storage_update_snapshots_pendientes.sql
+--   supabase/migrations/20260731043211_documentacion_bucket_e_indice.sql
+--   supabase/migrations/20260731043542_aviso_almacenamiento_cron.sql
+--   supabase/migrations/20260804050406_notificaciones_intranet.sql
+--   supabase/migrations/20260805023613_portal_comprador.sql
+--   supabase/migrations/20260807021850_unidades_catalogos_proyecto_tipo.sql
+--   supabase/migrations/20260807024457_unidades_catalogos_policies_to_authenticated.sql
+--   supabase/migrations/20260807043910_contratos_facturas_visibilidad_por_agente.sql
+--   supabase/migrations/20260811034823_recibi_aplicaciones_reforma_facturacion.sql
+--   supabase/migrations/20260811034859_bucket_justificantes.sql
+--   supabase/migrations/20260811035518_recibi_aplicaciones_delete_propio.sql
+--   supabase/migrations/20260817131756_storage_borrar_solo_snapshots_pendientes.sql
+--   supabase/migrations/20260901021433_aviso_soporte_mensajes_equipo.sql
+--   supabase/migrations/20260901120000_aviso_soporte_mensajes_equipo.sql
+--   supabase/migrations/20260909071823_solicitudes_pago.sql
+--   supabase/migrations/20260909073555_solicitudes_pago_pagos_a_agentes.sql
+--   supabase/migrations/20260909085614_notificaciones_nulo_solo_admins.sql
+--   supabase/migrations/20260910090734_permisos_agente_solo_lo_suyo_y_managers.sql
+--   supabase/migrations/20260911011008_managers_escriben_en_su_proyecto.sql
+--   supabase/migrations/20260911013643_proyectos_supervisados_separado.sql
+--   supabase/migrations/20260911031517_equipo_deja_de_saltarse_la_rls.sql
+--   supabase/migrations/20260911033802_proyectos_solo_los_asignados.sql
+--   supabase/migrations/20260911035515_solo_admin_da_de_alta_proyectos.sql
+--   supabase/migrations/20260911055035_dar_de_alta_un_comprador_vuelve_a_funcionar.sql
+--   supabase/migrations/20260911134947_dar_de_alta_un_comprador_vuelve_a_funcionar.sql
+--   supabase/migrations/20260914094813_solicitudes_pago_beneficiario_email_y_origen.sql
+--   supabase/migrations/20260914150000_solicitudes_pago_beneficiario_email_y_origen.sql
+--   supabase/migrations/20260918021123_puede_proyecto_deja_de_abrir_cuando_el_nombre_no_casa.sql
+--   supabase/migrations/20260918021400_storage_deja_de_ser_una_carpeta_compartida.sql
+--   supabase/migrations/20260922133000_facturas_congela_contrato_numero_security_invoker.sql
+-- ============================================================================

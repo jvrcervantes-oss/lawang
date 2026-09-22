@@ -8,12 +8,63 @@
 -- (pendiente -> pagada / en_disputa).
 --
 -- QUÉ NO CUBRE esta subtarea: quién/qué proceso INSERTA la fila cuando un
--- tramo se dispara de verdad (ese cálculo es de otra subtarea del mismo
--- encargo). Aquí solo se deja la tabla, su unicidad y su RLS listas.
+-- tramo se dispara de verdad (ese cálculo -- leer el % de condiciones_comision/
+-- condicion_tramos, aplicarlo al contrato, congelar el snapshot -- es de otra
+-- subtarea del mismo encargo). Aquí solo se deja la tabla, su unicidad y su
+-- RLS listas para que ese proceso escriba en ella.
 --
--- FUNCIÓN DE ROL: public.es_admin() -- ya cubre super_admin.
+-- FUNCIÓN DE ROL: public.es_admin() -- mismo criterio que equipos_venta y
+-- condiciones_comision (ya cubre super_admin, verificado en
+-- 20260729090612_usuarios_funciones_permisos.sql).
+--
+-- UNIQUE (contrato_raiz_id, tramo_id, beneficiario_email): un mismo tramo no
+-- se devenga dos veces para el mismo beneficiario en el mismo contrato raíz --
+-- es el freno contra un doble disparo del proceso que aún no existe.
+--
+-- solicitud_id: FK a solicitudes_pago, nullable. Solo tiene sentido en
+-- nivel='manager' -- el cobro del manager pasa por la cola de solicitudes de
+-- pago ya existente (20260909071823_solicitudes_pago.sql); el cobro del
+-- closer se resuelve aquí mismo (columnas estado/pagado_por/pagado_en). La
+-- constraint comisiones_devengadas_solicitud_solo_manager solo impide que un
+-- closer llegue con solicitud_id relleno -- no obliga a que todo manager la
+-- tenga (puede estar pendiente de generarse esa solicitud todavía).
+--
+-- LECTURA -- regla de negocio de esta subtarea:
+--   · el propio beneficiario (beneficiario_email = auth.email()) ve sus
+--     filas, sea nivel manager o closer.
+--   · el manager de un equipo ve las filas nivel='closer' cuyo condicion_id
+--     pertenece a SU equipo (equipos_venta.manager_email = auth.email()) Y
+--     cuyo beneficiario_email es miembro VIGENTE de ese equipo hoy (mismo
+--     criterio de vigencia que condiciones_comision: equipo_miembros.desde <=
+--     hoy <= hasta, o hasta null). No hay columna equipo_id en esta tabla a
+--     propósito -- se llega al equipo por condicion_id -> condiciones_comision
+--     .equipo_id, la misma cadena que ya usa condicion_tramos.
+--   · admin/super_admin: todo, siempre.
+--
+-- ESCRITURA:
+--   · INSERT: solo admin en esta subtarea -- el proceso automático de disparo
+--     (otra subtarea) insertará vía su propia función, no por este GRANT.
+--   · UPDATE: restringido en DOS ejes a la vez. Por FILA (policy RLS): solo
+--     nivel='closer', y solo el manager del equipo dueño de esa fila o admin
+--     -- nunca el propio closer beneficiario, y nunca una fila nivel=
+--     'manager' (esas se resuelven vía solicitudes_pago, no desde aquí). Por
+--     COLUMNA (GRANT a nivel de columna -- RLS no filtra columnas): solo
+--     estado/pagado_por/pagado_en son escribibles: intentar tocar importe o
+--     beneficiario_email por UPDATE falla por permiso aunque la fila pase la
+--     policy.
+--   · DELETE: sin GRANT -- nadie borra un devengo desde aquí, ni admin (es
+--     dinero: se disputa con estado='en_disputa', no se borra).
+--
+-- GRANTS: mismo patrón que las tablas hermanas de este encargo -- revoke del
+-- ALL por defecto de Supabase a authenticated, grant explícito de lo mínimo.
+-- anon sin policies = sin acceso.
 --
 -- destructivo-ok: no hay DROP ni DELETE ni UPDATE sin WHERE en este fichero.
+-- El "revoke all" retira privilegio sobre una tabla creada dos líneas más
+-- arriba en esta misma migración (sin filas ni grants que perder); los
+-- "drop policy if exists" son el patrón estándar del repo para poder
+-- re-ejecutar la migración sin fallar por nombre duplicado -- los nombres son
+-- nuevos, no existe ninguno todavía.
 
 create table public.comisiones_devengadas (
   id                       uuid primary key default gen_random_uuid(),
@@ -42,9 +93,9 @@ create table public.comisiones_devengadas (
 comment on table public.comisiones_devengadas is
   'Fila que nace cuando un tramo de condicion_tramos se dispara de verdad para un contrato_raiz_id concreto: cuánto (importe/moneda) le toca a beneficiario_email por ese tramo, y su ciclo de cobro (estado). unique(contrato_raiz_id, tramo_id, beneficiario_email) impide devengar dos veces el mismo tramo para el mismo beneficiario en el mismo contrato. Quién/qué inserta la fila (el cálculo del disparo) es otra subtarea del mismo encargo.';
 comment on column public.comisiones_devengadas.disparado_por_snapshot is
-  'Copia congelada de los datos que dispararon el tramo -- el dato tiene un dueño: si condicion_tramos cambia después, este devengo no se recalcula solo.';
+  'Copia congelada de los datos que dispararon el tramo (ej. % cobrado del contrato en ese instante) -- el dato tiene un dueño: si condicion_tramos cambia después, este devengo no se recalcula solo, queda con lo que era cierto cuando se disparó.';
 comment on column public.comisiones_devengadas.solicitud_id is
-  'Solo nivel=manager la usa -- el cobro del manager pasa por la cola de solicitudes_pago. El cobro del closer se resuelve con estado/pagado_por/pagado_en de esta misma fila. Constraint comisiones_devengadas_solicitud_solo_manager impide que un closer llegue con esta columna rellena.';
+  'Solo nivel=manager la usa -- el cobro del manager pasa por la cola de solicitudes_pago. El cobro del closer se resuelve con las columnas estado/pagado_por/pagado_en de esta misma fila. Constraint comisiones_devengadas_solicitud_solo_manager impide que un closer llegue con esta columna rellena.';
 
 create index comisiones_devengadas_contrato_raiz_idx on public.comisiones_devengadas (contrato_raiz_id);
 create index comisiones_devengadas_beneficiario_idx  on public.comisiones_devengadas (beneficiario_email);
@@ -59,7 +110,8 @@ revoke all on public.comisiones_devengadas from anon, authenticated;
 grant select, insert on public.comisiones_devengadas to authenticated;
 grant update (estado, pagado_por, pagado_en) on public.comisiones_devengadas to authenticated;
 
--- anon: sin policies = sin acceso. DELETE: sin GRANT a nadie.
+-- anon: sin policies = sin acceso (mismo patrón que el resto de la intranet).
+-- DELETE: sin GRANT a nadie -- ver nota "ESCRITURA" arriba.
 
 drop policy if exists "comisiones_devengadas: leer" on public.comisiones_devengadas;
 create policy "comisiones_devengadas: leer" on public.comisiones_devengadas
@@ -132,4 +184,3 @@ create policy "comisiones_devengadas: el manager del equipo cierra el cobro del 
       )
     )
   );
-;

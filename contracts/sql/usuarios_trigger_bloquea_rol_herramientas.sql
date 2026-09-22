@@ -12,27 +12,15 @@
 -- es_super_admin() falla. No toca la policy existente (sigue haciendo su parte) ni ninguna otra
 -- columna de usuarios.
 
-create or replace function public.usuarios_bloquea_cambio_rol_herramientas()
-returns trigger
-language plpgsql
-set search_path = ''
-as $function$
-begin
-  if (new.rol is distinct from old.rol or new.herramientas is distinct from old.herramientas)
-     and not public.es_super_admin() then
-    raise exception 'Solo un super_admin puede cambiar el rol o las herramientas de un usuario'
-      using errcode = '42501';
-  end if;
-  return new;
-end;
-$function$;
-
--- destructivo-ok: DROP TRIGGER IF EXISTS solo por idempotencia — verificado antes de escribir esta
--- migración que public.usuarios no tenía ningún trigger propio (pg_trigger vacío); no borra datos,
--- solo re-crea limpio si esta migración se reaplicase.
-drop trigger if exists usuarios_candado_rol_herramientas on public.usuarios;
-
-create trigger usuarios_candado_rol_herramientas
-before update on public.usuarios
-for each row
-execute function public.usuarios_bloquea_cambio_rol_herramientas();
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: usuarios_bloquea_cambio_rol_herramientas, usuarios_candado_rol_herramientas
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260921110844_usuarios_trigger_bloquea_rol_herramientas.sql
+-- ============================================================================

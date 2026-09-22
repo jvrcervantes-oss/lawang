@@ -40,58 +40,15 @@
 --     service_role y vive en la Edge `portal-acceso`. Aquí solo la decisión.
 -- ============================================================================
 
-create or replace function public.portal_autoservicio(p_email text)
-returns jsonb
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  v_email   text := lower(btrim(coalesce(p_email, '')));
-  v_creadas int  := 0;
-  v_activos int  := 0;
-begin
-  if v_email !~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$' then
-    return jsonb_build_object('elegible', false, 'motivo', 'email_invalido');
-  end if;
-
-  if exists (select 1 from public.usuarios u where lower(btrim(u.email)) = v_email) then
-    return jsonb_build_object('elegible', false, 'motivo', 'equipo');
-  end if;
-
-  if exists (select 1 from public.portal_accesos pa where pa.email = v_email and not pa.activo) then
-    return jsonb_build_object('elegible', false, 'motivo', 'revocado');
-  end if;
-
-  -- Siembra idempotente: toda ficha con ese correo y con contrato. Se vuelve a
-  -- ejecutar en cada entrada a propósito — si al comprador le firman un segundo
-  -- contrato con otra ficha, la ve sin que nadie tenga que volver a invitarle.
-  insert into public.portal_accesos (email, client_id, activo, creado_por)
-  select v_email, c.id, true, 'autoservicio'
-    from public.clients c
-   where lower(btrim(coalesce(c.email, ''))) = v_email
-     and exists (select 1 from public.contrato_compradores cc where cc.client_id = c.id)
-  on conflict (email, client_id) do nothing;
-  get diagnostics v_creadas = row_count;
-
-  select count(*) into v_activos
-    from public.portal_accesos pa where pa.email = v_email and pa.activo;
-
-  if v_activos = 0 then
-    return jsonb_build_object('elegible', false, 'motivo', 'sin_ficha');
-  end if;
-
-  return jsonb_build_object('elegible', true, 'creadas', v_creadas, 'accesos', v_activos);
-end
-$$;
-
-comment on function public.portal_autoservicio(text) is
-  'Decide si un correo tiene derecho al portal (ficha de comprador con contrato, no del equipo, no revocado) y siembra sus filas en portal_accesos. La llama la Edge portal-acceso con service_role; no crea la cuenta de Auth ni envía nada.';
-
--- `revoke from public` a secas no cierra una función de Supabase: hay que
--- nombrar también a los roles (aprendido el 4-ago). Aquí NO la necesita
--- `authenticated` — solo la Edge con service_role.
-revoke execute on function public.portal_autoservicio(text) from public;
-revoke execute on function public.portal_autoservicio(text) from anon;
-revoke execute on function public.portal_autoservicio(text) from authenticated;
-grant  execute on function public.portal_autoservicio(text) to service_role;
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: portal_autoservicio
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260908013953_portal_autoservicio.sql
+-- ============================================================================

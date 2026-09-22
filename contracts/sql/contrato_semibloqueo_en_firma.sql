@@ -44,40 +44,17 @@
 -- necesita saber qué hacer, no el conteo; si hace falta el detalle está en
 -- `contrato_firmas`. Ver migración 20260917040000_errores_de_guardado_al_grano.
 
-create or replace function public.contrato_no_editable_en_firma()
-returns trigger language plpgsql security definer set search_path = '' as $$
-declare
-  n_vivas    int;
-  n_firmadas int;
-begin
-  -- Solo el CONTENIDO del documento. Un update que no toca `datos` (cerrar la
-  -- firma, apuntar el PDF, mover el contrato_padre_id) pasa sin mirar nada.
-  if new.datos is not distinct from old.datos then
-    return new;
-  end if;
-
-  select count(*) filter (where cf.estado = 'pendiente'),
-         count(*) filter (where cf.estado = 'firmado')
-    into n_vivas, n_firmadas
-    from public.contrato_firmas cf
-   where cf.contrato_id = new.id;
-
-  if coalesce(n_vivas, 0) = 0 and coalesce(n_firmadas, 0) = 0 then
-    return new;
-  end if;
-
-  raise exception
-    'Contrato enviado a firma: usa «Editar (anula la firma)» para guardar cambios.'
-    using errcode = '23514';
-end $$;
-
-drop trigger if exists trg_contrato_no_editable_en_firma on public.contratos;
-create trigger trg_contrato_no_editable_en_firma
-  before update on public.contratos
-  for each row execute function public.contrato_no_editable_en_firma();
-
--- Comprobacion despues de aplicar. Con CR00020 (1 firma `firmado`) debe fallar:
---   update public.contratos
---      set datos = jsonb_set(datos, '{fields,nombre_contrato}', '"prueba"')
---    where numero = 'CR00020';
--- y con cualquier borrador sin firmas debe pasar.
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: contrato_no_editable_en_firma, trg_contrato_no_editable_en_firma
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260815002956_contrato_semibloqueo_en_firma.sql
+--   supabase/migrations/20260917012656_errores_de_guardado_al_grano.sql
+--   supabase/migrations/20260917040000_errores_de_guardado_al_grano.sql
+-- ============================================================================

@@ -44,36 +44,17 @@
 -- p.ej. registro_eventos.sql). No borra filas, no afecta a escritura (esta
 -- tabla nunca tuvo policy de INSERT/UPDATE/DELETE — solo escriben triggers
 -- definer) y no toca RLS ni el esquema auth.
-drop policy if exists "agentes leen eventos" on public.contrato_eventos;
-create policy "super_admin ve todo, el resto solo eventos normales de sus contratos"
-  on public.contrato_eventos
-  for select to authenticated
-  using (
-    public.es_super_admin()
-    or (
-      public.es_agente()
-      and evento not in (
-        'editado_estando_firmado','desbloqueado','factura_sin_bloquear',
-        'cobro_a_factura_huerfana','cobro_a_otro_comprador','comprador_sin_ficha'
-      )
-      and exists (
-        select 1 from public.contratos c
-         where c.id = contrato_eventos.contrato_id
-           and (public.es_suyo(c.creado_por) or public.es_manager_de(c.proyecto_id))
-      )
-    )
-  );
 
--- ── Comprobación (la del catálogo, nunca el «ya lo mandé») ──────────────────
---   select polname, pg_get_expr(polqual, polrelid) from pg_policy
---    where polrelid = 'public.contrato_eventos'::regclass;             → 1 fila, la de arriba
--- Y la de comportamiento (transacción con ROLLBACK, SET LOCAL ROLE
--- authenticated + request.jwt.claims simulando cada usuario):
---   - agente raso, cualquier evento de OTRO contrato (con o sin evento
---     privilegiado)                                         → 0 filas
---   - agente raso, evento normal (p.ej. 'editado') de SU PROPIO contrato → ve la fila
---   - agente raso, evento privilegiado (p.ej. 'desbloqueado') de SU PROPIO
---     contrato                                               → 0 filas (sigue vetado)
---   - super_admin, cualquier contrato, cualquier evento        → ve todo
---   - lo mismo repetido contra la vista `privilegios_ejercidos`: agente raso
---     → 0 filas · super_admin → todas
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: super_admin
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260921143154_law_contrato_eventos_solo_dueno_no_privilegios.sql
+--   supabase/migrations/20260922011052_law71_desbloqueado_estando_firmado.sql
+-- ============================================================================

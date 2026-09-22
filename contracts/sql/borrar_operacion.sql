@@ -67,100 +67,19 @@
 -- factura anulada con contrato vivo también queda bloqueado.
 -- ============================================================================
 
-create or replace function public.borrar_operacion(p_contrato_id uuid)
-returns jsonb
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  ids        uuid[];
-  n_cont     int;
-  n_firmas   int;
-  n_fact     int;
-  n_devengos int;
-  n_solic    int;
-  bloqueado_ajeno text;
-  d_blindado_id uuid;
-  solicitudes_a_purgar uuid[];
-begin
-  if not public.es_agente() then
-    raise exception 'no autorizado';
-  end if;
-
-  -- El padre y sus hijos. Un solo nivel a propósito: hoy la cadena es
-  -- reserva → obra y no hay nietos; si algún día los hubiera, es mejor que esto
-  -- se quede corto y haya que repetirlo que no que arrastre de más.
-  select array_agg(c.id) into ids
-    from public.contratos c
-   where c.id = p_contrato_id or c.contrato_padre_id = p_contrato_id;
-  if ids is null then
-    raise exception 'esa operación no existe';
-  end if;
-
-  -- El permiso se comprueba contrato a contrato con la MISMA regla que la policy
-  -- de borrado: super admin siempre, o el autor si no está bloqueado. Si uno
-  -- solo de la cadena no se puede borrar, no se borra nada — media operación
-  -- borrada es un destrozo peor.
-  if not public.es_super_admin() then
-    select c.numero into bloqueado_ajeno
-      from public.contratos c
-     where c.id = any(ids)
-       and (coalesce(c.bloqueado,false) = true
-            or c.creado_por is null
-            or c.creado_por <> (select auth.email()))
-     limit 1;
-    if bloqueado_ajeno is not null then
-      raise exception 'El contrato % está firmado o es de otra persona: esta operación solo la puede borrar un super admin', bloqueado_ajeno;
-    end if;
-  end if;
-
-  -- Gate: comisión pagada, en disputa, o con solicitud ya aprobada -- ninguna
-  -- se purga sola. Solo 'pendiente' pasa de largo.
-  select d.id into d_blindado_id
-    from public.comisiones_devengadas d
-    left join public.solicitudes_pago sp on sp.id = d.solicitud_id
-   where d.contrato_raiz_id = any(ids)
-     and (d.estado in ('pagada', 'en_disputa') or sp.estado in ('pagada', 'aprobada'))
-   limit 1;
-  if d_blindado_id is not null then
-    raise exception 'Esta operación tiene una comisión pagada, en disputa o ya aprobada para pago (devengo %): no se puede borrar automáticamente, resuélvelo a mano', d_blindado_id;
-  end if;
-
-  update public.contrato_firmas set estado = 'anulado'
-   where contrato_id = any(ids) and estado in ('pendiente','procesando');
-  get diagnostics n_firmas = row_count;
-
-  update public.facturas set anulada = true
-   where contrato_id = any(ids) and coalesce(anulada,false) = false;
-  get diagnostics n_fact = row_count;
-
-  -- Orden importa: comisiones_devengadas.solicitud_id referencia
-  -- solicitudes_pago(id) sin ON DELETE — hay que borrar el devengo primero.
-  select array_agg(distinct d.solicitud_id) into solicitudes_a_purgar
-    from public.comisiones_devengadas d
-   where d.contrato_raiz_id = any(ids) and d.solicitud_id is not null;
-
-  delete from public.comisiones_devengadas where contrato_raiz_id = any(ids);
-  get diagnostics n_devengos = row_count;
-
-  if solicitudes_a_purgar is not null then
-    delete from public.solicitudes_pago where id = any(solicitudes_a_purgar);
-    get diagnostics n_solic = row_count;
-  else
-    n_solic := 0;
-  end if;
-
-  delete from public.contratos where id = any(ids);
-  get diagnostics n_cont = row_count;
-
-  return jsonb_build_object(
-    'contratos_borrados',   n_cont,
-    'firmas_anuladas',      n_firmas,
-    'facturas_anuladas',    n_fact,
-    'comisiones_purgadas',  n_devengos,
-    'solicitudes_purgadas', n_solic);
-end $$;
-
-revoke all on function public.borrar_operacion(uuid) from public, anon;
-grant execute on function public.borrar_operacion(uuid) to authenticated;
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: borrar_operacion
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260731072223_borrar_operacion.sql
+--   supabase/migrations/20260922134500_borrar_operacion_purga_comision_devengada.sql
+--   supabase/migrations/20260922141500_borrar_operacion_gate_pagada_no_cerrada.sql
+--   supabase/migrations/20260922143000_borrar_operacion_gate_pagada_cubre_closer.sql
+--   supabase/migrations/20260922150000_borrar_operacion_gate_aprobada_y_disputa.sql
+-- ============================================================================

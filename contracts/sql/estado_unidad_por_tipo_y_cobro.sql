@@ -37,199 +37,48 @@
 -- ============================================================================
 
 -- ---- 1) el tipo de contrato decide el TECHO al que llega la firma sola ----
-create or replace function public.sincroniza_unidad_contrato()
-returns trigger language plpgsql security definer set search_path = '' as $$
-declare
-  cod     text := nullif(btrim(new.datos->'fields'->>'parcela_codigo'), '');
-  proy    text := coalesce(nullif(btrim(new.datos->'fields'->>'proyecto_nombre'), ''), new.proyecto_nombre);
-  cod_ant text;
-  ocupada text;
-begin
-  if tg_op = 'UPDATE' then
-    cod_ant := nullif(btrim(old.datos->'fields'->>'parcela_codigo'), '');
-    if cod_ant is distinct from cod then
-      update public.unidades u set contrato_id = null
-       where u.contrato_id = new.id;
-    end if;
-  end if;
 
-  if cod is null or proy is null then return new; end if;
-
-  select c.numero into ocupada
-    from public.unidades u join public.contratos c on c.id = u.contrato_id
-   where u.proyecto = proy and u.codigo = cod and u.contrato_id <> new.id;
-  if ocupada is not null then
-    raise exception 'La parcela % de % ya está asignada al contrato %', cod, proy, ocupada
-      using errcode = '23505';
-  end if;
-
-  update public.unidades u
-     set contrato_id = new.id,
-         estado = case
-           -- vendida/cobrada solo las mueve el dinero (avanza_unidad_por_cobro,
-           -- más abajo) — ninguna firma ni edición de contrato las revierte.
-           when u.estado in ('vendida','cobrada') then u.estado
-           when u.estado = 'no_disponible' then u.estado
-           -- bloqueada manual (sin RP firmado detrás): protegida, igual que siempre.
-           when u.estado = 'bloqueada' and not exists (
-                  select 1 from public.contratos c2
-                   where c2.id = u.contrato_id
-                     and c2.tipo = 'reserva_parcela' and coalesce(c2.bloqueado, false)
-                ) then u.estado
-           when new.tipo = 'reserva_parcela' and coalesce(new.bloqueado, false) then 'bloqueada'
-           -- Contrato de Construcción: no mueve el estado de la parcela.
-           when new.tipo = 'construccion' then u.estado
-           -- cualquier otro caso (crear CR/RP, o firmar una CR) se queda en reservada.
-           else 'reservada'
-         end
-   where u.proyecto = proy and u.codigo = cod;
-
-  return new;
-end $$;
--- trg_sincroniza_unidad ya existe (creado en vinculo_contrato_unidad.sql) y
--- apunta a esta misma función por nombre — no hace falta recrearlo.
-
--- ---- 2) el dinero avanza vendida/cobrada, nunca las revierte --------------
--- Misma base que ya usa /intranet/proyectos/ para enseñar "Cobrado" y el % de la
--- parcela (`contrato_cobrado()` contra `unidades.precio`, vista
--- `unidades_estado`) — ninguna cuenta nueva, la misma.
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
 --
--- FIX-FORWARD sobre la consulta de deploy del propio 12-ago (capa 1), 3
--- hallazgos reales de Administración/Desarrollo/Legal:
---   · Una parcela con Bloqueo de Parcela (suelo) + Contrato de Construcción
---     SEPARADO -patrón real y normal en Lawang, confirmado contra producción-
---     nunca sumaba el cobro de los dos contratos juntos, y encima
---     `unidades.contrato_id` apunta SIEMPRE al de suelo (la CC nunca lleva
---     `parcela_codigo` propio, así que `sincroniza_unidad_contrato` no la
---     vincula jamás) — un recibí contra la CC actualizaba 0 filas. Se resuelve
---     vía `contratos.contrato_padre_id` (ya existente, 29-jul) al contrato
---     "raíz" que `unidades.contrato_id` sí conoce, y se suma el cobro de la
---     raíz + el de todos sus hijos.
---   · El guardarraíl de moneda mezclada no cubría un recibí repartido vía
---     `recibi_aplicaciones` cuyo PROPIO contrato_id (y moneda) puede ser
---     distinto del contrato de la factura a la que se aplica — se amplía a
---     cubrir también esa vía, sobre el mismo cluster raíz+hijos.
---   · Un recibí contra una simple Carta de Reserva (sin Bloqueo de Parcela
---     firmado detrás) saltaba directo a 'vendida' — palabra con peso
---     contractual, publicada en el masterplan público. El dinero no se salta
---     la escalera: hace falta que la parcela ya esté en 'bloqueada' (o más
---     allá) antes de que un recibí la mueva.
-create or replace function public.avanza_unidad_por_cobro(p_contrato_id uuid)
-returns void language plpgsql security definer set search_path = '' as $$
-declare
-  v_raiz_id uuid;
-  v_cobrado numeric;
-  v_mezcla  boolean;
-begin
-  if p_contrato_id is null then return; end if;
-
-  select coalesce(contrato_padre_id, id) into v_raiz_id
-    from public.contratos where id = p_contrato_id;
-  if v_raiz_id is null then return; end if;
-
-  select exists (
-    select 1 from public.facturas f
-     where f.tipo = 'recibi' and not coalesce(f.anulada, false)
-       and (f.contrato_id = v_raiz_id
-            or f.contrato_id in (select hijo.id from public.contratos hijo where hijo.contrato_padre_id = v_raiz_id))
-       and f.moneda is distinct from (select u.moneda from public.unidades u where u.contrato_id = v_raiz_id)
-    union all
-    select 1 from public.recibi_aplicaciones ra
-      join public.facturas r   on r.id = ra.recibi_id
-      join public.facturas fac on fac.id = ra.factura_id
-     where not coalesce(r.anulada, false) and not coalesce(fac.anulada, false)
-       and (fac.contrato_id = v_raiz_id
-            or fac.contrato_id in (select hijo.id from public.contratos hijo where hijo.contrato_padre_id = v_raiz_id))
-       and r.moneda is distinct from (select u.moneda from public.unidades u where u.contrato_id = v_raiz_id)
-  ) into v_mezcla;
-  if v_mezcla then return; end if;
-
-  v_cobrado := coalesce(public.contrato_cobrado(v_raiz_id), 0);
-  select v_cobrado + coalesce(sum(public.contrato_cobrado(hijo.id)), 0)
-    into v_cobrado
-    from public.contratos hijo
-   where hijo.contrato_padre_id = v_raiz_id;
-
-  update public.unidades u
-     set estado = case
-           when u.estado = 'no_disponible' then u.estado
-           when u.estado = 'bloqueada' and not exists (
-                  select 1 from public.contratos c2
-                   where c2.id = u.contrato_id
-                     and c2.tipo = 'reserva_parcela' and coalesce(c2.bloqueado, false)
-                ) then u.estado
-           when u.estado not in ('bloqueada', 'vendida', 'cobrada') then u.estado
-           when u.precio > 0 and v_cobrado >= u.precio then 'cobrada'
-           when v_cobrado > 0 then 'vendida'
-           else u.estado
-         end
-   where u.contrato_id = v_raiz_id;
-end $$;
-
-revoke all on function public.avanza_unidad_por_cobro(uuid) from public, anon, authenticated;
-
--- Recibí directo (sin repartir entre contratos): INSERT nuevo, o el propio
--- recibí que se anula/corrige después.
-create or replace function public.trg_avanza_por_recibi()
-returns trigger language plpgsql security definer set search_path = '' as $$
-begin
-  if new.tipo = 'recibi' then
-    perform public.avanza_unidad_por_cobro(new.contrato_id);
-  end if;
-  return new;
-end $$;
-
-drop trigger if exists trg_avanza_por_recibi on public.facturas;
-create trigger trg_avanza_por_recibi
-  after insert or update of anulada, total, contrato_id, tipo on public.facturas
-  for each row execute function public.trg_avanza_por_recibi();
-
--- Recibí repartido entre varios contratos (recibi_aplicaciones, 11-ago-2026):
--- el pago aparece aquí, no como INSERT nuevo en `facturas` — sin este
--- segundo trigger, un cobro que llega por reparto nunca movería la parcela
--- aunque `contrato_cobrado()` ya lo cuente (hallazgo de la revisión previa,
--- confirmado por Datos y Administración de forma independiente).
-create or replace function public.trg_avanza_por_aplicacion()
-returns trigger language plpgsql security definer set search_path = '' as $$
-declare
-  v_contrato_id uuid;
-begin
-  select f.contrato_id into v_contrato_id from public.facturas f where f.id = new.factura_id;
-  perform public.avanza_unidad_por_cobro(v_contrato_id);
-  return new;
-end $$;
-
-drop trigger if exists trg_avanza_por_aplicacion on public.recibi_aplicaciones;
-create trigger trg_avanza_por_aplicacion
-  after insert on public.recibi_aplicaciones
-  for each row execute function public.trg_avanza_por_aplicacion();
-
--- ---- 3) nuevo estado en el catálogo ----------------------------------------
-alter table public.unidades drop constraint unidades_estado_check;
-alter table public.unidades add constraint unidades_estado_check
-  check (estado = any (array['disponible','reservada','vendida','bloqueada','no_disponible','cobrada']));
-
--- ---- 4) fija en el repo lo que ya vivía solo en la base desde el 11-ago ----
--- (migración `20260811035145_unidades_estado_solo_recibi`, sin `.sql`
--- trackeado — hallazgo de la revisión previa). Redefinición idéntica a la
--- que ya corre en producción, cero cambio funcional: solo deja de haber un
--- estado vivo que el repo no puede reconstruir leyendo sus propios ficheros.
--- Columnas listadas una a una y en el mismo orden que la vista viva: un
--- `CREATE OR REPLACE VIEW` con `u.*` falla si el orden no coincide byte a
--- byte con lo que ya hay en producción (probado al aplicar esta migración).
-create or replace view public.unidades_estado as
-select u.id, u.codigo, u.proyecto, u.tipo, u.superficie_m2, u.precio, u.moneda, u.estado,
-       u.contrato_id, u.notas, u.created_at, u.precio_suelo, u.precio_construccion, u.modelo,
-       u.obra_fase, u.obra_fecha_entrega, u.obra_actualizado,
-       c.numero          as contrato_numero,
-       c.comprador_nombre,
-       c.bloqueado       as contrato_firmado,
-       coalesce(public.contrato_cobrado(u.contrato_id), 0) as facturado,
-       case when u.precio > 0
-            then round(coalesce(public.contrato_cobrado(u.contrato_id), 0) / u.precio * 100, 1) end as pct_cobrado,
-       u.fase_masterplan, u.zona_masterplan
-  from public.unidades u
-  left join public.contratos c on c.id = u.contrato_id;
-
-alter view public.unidades_estado set (security_invoker = true);
-grant select on public.unidades_estado to authenticated;
+-- Objetos: avanza_unidad_por_cobro, sincroniza_unidad_contrato, trg_avanza_por_aplicacion, trg_avanza_por_recibi, unidades_estado
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260731065652_vinculo_contrato_unidad.sql
+--   supabase/migrations/20260805024801_unidades_estado_con_obra.sql
+--   supabase/migrations/20260810100129_unidades_estado_vista_fase_zona.sql
+--   supabase/migrations/20260810101230_unidades_estado_restaura_security_invoker.sql
+--   supabase/migrations/20260811035145_unidades_estado_solo_recibi.sql
+--   supabase/migrations/20260812042114_estado_unidad_por_tipo_y_cobro_fix_view.sql
+--   supabase/migrations/20260812042147_estado_unidad_por_tipo_y_cobro.sql
+--   supabase/migrations/20260812043919_avanza_unidad_por_cobro_fix_forward.sql
+--   supabase/migrations/20260814070120_parcela_traspaso_carta_a_bloqueo.sql
+--   supabase/migrations/20260814095601_traspaso_mismo_comprador_y_enlace.sql
+--   supabase/migrations/20260814095850_traspaso_carta_sucedida_editable.sql
+--   supabase/migrations/20260819044137_cobro_repartido_entre_unidades.sql
+--   supabase/migrations/20260824035201_construccion_por_parcela.sql
+--   supabase/migrations/20260826112241_unidades_estado_precio_efectivo.sql
+--   supabase/migrations/20260828073214_rp00116_corrige_parcela_codigo.sql
+--   supabase/migrations/20260902022413_unidades_estado_restaura_security_invoker_2.sql
+--   supabase/migrations/20260910043844_carta_reserva_traspaso_por_prefijo.sql
+--   supabase/migrations/20260911005624_unidades_estado_agente_creador.sql
+--   supabase/migrations/20260911085553_unidades_estado_cobrado_suelo_obra.sql
+--   supabase/migrations/20260911085617_unidades_estado_restaura_security_invoker_3.sql
+--   supabase/migrations/20260914120341_exige_parcela_al_guardar.sql
+--   supabase/migrations/20260915004928_unidades_estado_cobro_solo_si_contrato_visible.sql
+--   supabase/migrations/20260915005638_unidades_estado_deja_de_duplicar_el_gate.sql
+--   supabase/migrations/20260915100000_unidades_estado_cobro_solo_si_contrato_visible.sql
+--   supabase/migrations/20260915104500_unidades_estado_deja_de_duplicar_el_gate.sql
+--   supabase/migrations/20260916040622_avanza_unidad_por_cobro_exige_suelo_100.sql
+--   supabase/migrations/20260916093309_unidades_codigo_orden_natural.sql
+--   supabase/migrations/20260917012656_errores_de_guardado_al_grano.sql
+--   supabase/migrations/20260917040000_errores_de_guardado_al_grano.sql
+--   supabase/migrations/20260921060542_libera_reservas_vencidas.sql
+--   supabase/migrations/20260921080952_enlace_por_id_y_law73_reabierta.sql
+--   supabase/migrations/20260921081711_law73_reabierta_ambito_por_codigo.sql
+--   supabase/migrations/20260921082637_fix_regresion_liberado_en.sql
+-- ============================================================================

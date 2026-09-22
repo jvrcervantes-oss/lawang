@@ -1,3 +1,7 @@
+-- portal_situacion() suma tickets/mensajes/preferencias (31-ago-2026), sobre
+-- las tablas de la migración anterior. Sigue siendo UN solo viaje de red
+-- (mismo criterio que ya usa esta función para contratos/facturas/obra):
+-- tickets y mensajes de un comprador real son pocos, no hace falta paginar.
 create or replace function public.portal_situacion()
 returns jsonb
 language plpgsql
@@ -35,6 +39,9 @@ begin
     'pais', (select cl.nationality from public.clients cl
                 join mis_clientes mc on mc.client_id = cl.id
                 order by cl.created_at limit 1),
+    -- client_id "principal" (el más antiguo): con lo que hoy tiene el portal
+    -- (una persona, no una familia con dos fichas distintas) basta para que
+    -- el crear-ticket/mensaje tenga a qué apuntar sin preguntar primero.
     'client_id', (select mc.client_id from mis_clientes mc
                     join public.clients cl on cl.id = mc.client_id
                    order by cl.created_at limit 1),
@@ -156,4 +163,4 @@ begin
   ) into r;
   return r;
 end
-$$;;
+$$;

@@ -35,118 +35,28 @@
 -- `reservada` — el Bloqueo de cualquiera de ellas es justo el caso que hoy
 -- revienta y que este cambio deja pasar.
 
-create or replace function public.sincroniza_unidad_contrato()
-returns trigger
-language plpgsql
-security definer
-set search_path to ''
-as $$
-declare
-  cods text[] := (
-    select coalesce(array_agg(distinct btrim(x)) filter (where btrim(x) <> ''), '{}')
-      from unnest(string_to_array(coalesce(new.datos->'fields'->>'parcela_codigo',''), ',')) x);
-  cods_ant text[];
-  proy text := coalesce(nullif(btrim(new.datos->'fields'->>'proyecto_nombre'), ''), new.proyecto_nombre);
-  cod          text;
-  ocupada      text;
-  ocupada_id   uuid;
-  ocupada_tipo text;
-  ids_nuevo    text[];
-  ids_ocupa    text[];
-  traspaso_ok  boolean;
-begin
-  if tg_op = 'UPDATE' and pg_trigger_depth() > 1
-     and new.datos     is not distinct from old.datos
-     and new.tipo      is not distinct from old.tipo
-     and new.bloqueado is not distinct from old.bloqueado then
-    return new;
-  end if;
-
-  if tg_op = 'UPDATE' then
-    cods_ant := (
-      select coalesce(array_agg(distinct btrim(x)) filter (where btrim(x) <> ''), '{}')
-        from unnest(string_to_array(coalesce(old.datos->'fields'->>'parcela_codigo',''), ',')) x);
-    if cods_ant is distinct from cods
-       or (old.datos->'fields'->>'proyecto_nombre') is distinct from (new.datos->'fields'->>'proyecto_nombre') then
-      update public.unidades u set contrato_id = null
-       where u.contrato_id = new.id
-         and (u.proyecto is distinct from proy or not (u.codigo = any (cods)));
-    end if;
-  end if;
-
-  if coalesce(array_length(cods, 1), 0) = 0 or proy is null then return new; end if;
-
-  ids_nuevo := public.contrato_identificadores(new.datos);
-
-  foreach cod in array cods loop
-    select c.id, c.numero, c.tipo, public.contrato_identificadores(c.datos)
-      into ocupada_id, ocupada, ocupada_tipo, ids_ocupa
-      from public.unidades u join public.contratos c on c.id = u.contrato_id
-     where u.proyecto = proy and u.codigo = cod and u.contrato_id <> new.id;
-
-    if ocupada_id is not null then
-      -- la Carta (cualquiera de las cinco) que perdió ESTA parcela a manos del
-      -- Bloqueo de su comprador sigue editable: se salta, el resto sigue.
-      if new.tipo like 'carta_reserva%'
-         and ocupada_tipo = 'reserva_parcela'
-         and ids_nuevo && ids_ocupa then
-        continue;
-      end if;
-
-      traspaso_ok := new.tipo = 'reserva_parcela'
-                 and ocupada_tipo like 'carta_reserva%';
-
-      if not traspaso_ok then
-        raise exception 'La parcela % de % ya esta asignada al contrato %', cod, proy, ocupada
-          using errcode = '23505';
-      end if;
-
-      if coalesce(array_length(ids_nuevo, 1), 0) = 0
-         or coalesce(array_length(ids_ocupa, 1), 0) = 0 then
-        raise exception 'El traspaso de la parcela % de % no se puede comprobar: falta el pasaporte o el email del comprador en % o en el contrato que estás guardando. Complétalo y vuelve a guardar.',
-          cod, proy, ocupada using errcode = '23514';
-      end if;
-      if not (ids_nuevo && ids_ocupa) then
-        raise exception 'El traspaso de la parcela % de % no cuadra: % está a nombre de otro comprador. La parcela solo pasa de una Carta de Reserva a su Bloqueo si coincide el pasaporte o el email.',
-          cod, proy, ocupada using errcode = '23514';
-      end if;
-    end if;
-
-    update public.unidades u
-       set contrato_id = new.id,
-           estado = case
-             when u.estado in ('vendida','cobrada') then u.estado
-             when u.estado = 'no_disponible' then u.estado
-             when u.estado = 'bloqueada' and not exists (
-                    select 1 from public.contratos c2
-                     where c2.id = u.contrato_id
-                       and c2.tipo = 'reserva_parcela' and coalesce(c2.bloqueado, false)
-                  ) then u.estado
-             when new.tipo = 'reserva_parcela' and coalesce(new.bloqueado, false) then 'bloqueada'
-             when new.tipo = 'construccion' then u.estado
-             else 'reservada'
-           end
-     where u.proyecto = proy and u.codigo = cod;
-
-    if ocupada_id is not null and traspaso_ok then
-      update public.contratos c
-         set contrato_padre_id = new.id
-       where c.id = ocupada_id and c.contrato_padre_id is null;
-    end if;
-
-    ocupada_id := null; ocupada := null; ocupada_tipo := null; ids_ocupa := null;
-  end loop;
-
-  return new;
-end;
-$$;
-revoke execute on function public.sincroniza_unidad_contrato() from public, anon, authenticated;
-
--- ── Comprobación ─────────────────────────────────────────────────────────────
---   select prosrc from pg_proc where proname = 'sincroniza_unidad_contrato';
---   -- debe contener "like 'carta_reserva%'" y ya NO la lista de tres strings.
---   select u.codigo, u.estado, c.numero, c.tipo
---     from public.unidades u left join public.contratos c on c.id = u.contrato_id
---    where u.proyecto = 'Mejan Village S7' and u.codigo in ('B2','B3','B4','B6','B7');
---   -- antes de guardar el Bloqueo: las 5 con CP00002. Después de guardarlo la
---   -- que se bloquea pasa a RP0000x y CP00002 se cuelga de ella (contrato_padre_id).
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: sincroniza_unidad_contrato
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260731065652_vinculo_contrato_unidad.sql
+--   supabase/migrations/20260812042147_estado_unidad_por_tipo_y_cobro.sql
+--   supabase/migrations/20260814070120_parcela_traspaso_carta_a_bloqueo.sql
+--   supabase/migrations/20260814095601_traspaso_mismo_comprador_y_enlace.sql
+--   supabase/migrations/20260814095850_traspaso_carta_sucedida_editable.sql
+--   supabase/migrations/20260828073214_rp00116_corrige_parcela_codigo.sql
+--   supabase/migrations/20260910043844_carta_reserva_traspaso_por_prefijo.sql
+--   supabase/migrations/20260914120341_exige_parcela_al_guardar.sql
+--   supabase/migrations/20260917012656_errores_de_guardado_al_grano.sql
+--   supabase/migrations/20260917040000_errores_de_guardado_al_grano.sql
+--   supabase/migrations/20260921060542_libera_reservas_vencidas.sql
+--   supabase/migrations/20260921080952_enlace_por_id_y_law73_reabierta.sql
+--   supabase/migrations/20260921081711_law73_reabierta_ambito_por_codigo.sql
+--   supabase/migrations/20260921082637_fix_regresion_liberado_en.sql
+-- ============================================================================

@@ -1,8 +1,44 @@
--- Solo super admin · tarifa retroactiva a todo · tarifa editable con log · anular desde el panel.
--- Porques completos: proyectos/Lawang/supabase/migrations/20260917140000_comision_admin_solo_super_retroactiva_y_editable.sql
--- destructivo-ok: drop policy (patron del repo para repintarlas) y un UPDATE con WHERE sobre la
--- unica fila de tarifa para moverla a su fecha retroactiva. La siembra solo crea lo que no existe.
+-- Comision de administracion: solo super admin, retroactiva a todo, y con la
+-- tarifa editable y las lineas anulables desde el panel
+-- ============================================================================
+-- Cuatro cambios pedidos por el owner:
+--
+-- [1] SOLO SUPER ADMIN. Antes el libro lo leia cualquier `es_admin()` (6 cuentas:
+--     4 admin + 2 super_admin) y solo la tarifa exigia super. Ahora las dos
+--     tablas, la reconciliacion y todas las acciones exigen `es_super_admin()`.
+--     El menu tambien lo esconde, pero eso es la puerta: la de verdad es esta.
+--
+-- [2] RETROACTIVA A TODO. La tarifa pasa a regir desde antes del primer recibi
+--     (2025-10-10), y se siembran las lineas de los 87 recibis vivos que ya
+--     habia: base 1.976.160,41 EUR -> 9.880,80 EUR de comision que aparecen en
+--     el libro de golpe.
+--     `devengado_el` de esas lineas sembradas es la FECHA DEL RECIBI, no la de
+--     hoy ni la de su alta en la base: 60 de ellos se cargaron en bloque el
+--     28-jul-2026 como historico, asi que fecharlos por el alta amontonaria un
+--     ano de dinero en un solo mes y la liquidacion mensual saldria absurda.
+--     Para los recibis NUEVOS sigue mandando el dia del alta, que es lo que
+--     impide retrasar la fecha de emision para escaparse del cobro.
+--     Los 10 recibis anulados NO generan linea: ese dinero no entro.
+--
+-- [3] TARIFA EDITABLE. Contradice el diseno de ayer --una tarifa no se editaba,
+--     se anadia otra con su fecha-- y se hace igual porque lo pide el owner,
+--     pero sin perder nada: cada edicion guarda la fila anterior entera en
+--     `comision_admin_tarifas_log`. Se puede seguir contestando "que % regia el
+--     dia X" reconstruyendo desde el log, que es lo que el append-only protegia.
+--     Editar NO recalcula lo ya devengado por defecto (cada linea lleva su pct
+--     congelado); `comision_admin_edita_tarifa(..., p_recalcular => true)` lo
+--     hace a peticion, y solo sobre lineas todavia `pendiente`.
+--
+-- [4] ANULAR UNA COMISION DESDE EL PANEL. `anulada` sigue FUERA del grant del
+--     navegador a proposito: se anula por RPC, que ademas emite el abono si la
+--     linea ya estaba facturada o cobrada. Un UPDATE suelto se saltaria eso y
+--     dejaria dinero ya emitido sin su contrapartida.
+--
+-- destructivo-ok: hay un `drop policy` (patron del repo para repintar policies)
+-- y un UPDATE con WHERE sobre la unica fila de tarifa, para moverla a su fecha
+-- retroactiva. El INSERT de siembra solo crea lineas donde no hay ninguna.
 
+-- ── 1. Solo super admin ─────────────────────────────────────────────────────
 drop policy if exists "comision_admin_tarifas: leer"   on public.comision_admin_tarifas;
 drop policy if exists "comision_admin_tarifas: alta"   on public.comision_admin_tarifas;
 drop policy if exists "comision_admin_tarifas: editar" on public.comision_admin_tarifas;
@@ -11,6 +47,9 @@ drop policy if exists "comision_admin_lineas: estado"  on public.comision_admin_
 
 create policy "comision_admin_tarifas: leer" on public.comision_admin_tarifas
   for select to authenticated using (public.es_super_admin());
+-- Sin `efectivo_desde >= current_date`: el owner quiere la tarifa vigente desde
+-- el principio de la intranet, asi que una fecha hacia atras es ahora legitima.
+-- Lo que sostiene el historial ya no es esa restriccion, es el log de ediciones.
 create policy "comision_admin_tarifas: alta" on public.comision_admin_tarifas
   for insert to authenticated
   with check (public.es_super_admin() and creado_por = (select auth.email()));
@@ -24,6 +63,7 @@ create policy "comision_admin_lineas: estado" on public.comision_admin_lineas
   for update to authenticated
   using (public.es_super_admin()) with check (public.es_super_admin());
 
+-- ── 2. El historial que sustituye al append-only ────────────────────────────
 create table if not exists public.comision_admin_tarifas_log (
   id              uuid primary key default gen_random_uuid(),
   tarifa_id       uuid not null,
@@ -77,6 +117,7 @@ create trigger trg_comision_admin_tarifa_log
   before update or delete on public.comision_admin_tarifas
   for each row execute function public._trg_comision_admin_tarifa_log();
 
+-- ── 3. Editar una tarifa, con recalculo opcional ────────────────────────────
 create or replace function public.comision_admin_edita_tarifa(
   p_tarifa_id uuid, p_pct numeric, p_efectivo_desde date,
   p_nota text default null, p_recalcular boolean default false)
@@ -104,11 +145,16 @@ begin
     raise exception 'esa tarifa no existe';
   end if;
 
+  -- el trigger de log guarda sola la fila anterior
   update public.comision_admin_tarifas
      set pct = p_pct, efectivo_desde = p_efectivo_desde,
          nota = coalesce(p_nota, nota)
    where id = p_tarifa_id;
 
+  /* Lo ya devengado NO se toca salvo que se pida: cada linea lleva su pct
+     congelado, y cambiar el pasado en silencio es justo lo que el libro evita.
+     Cuando se pide, solo alcanza a lo que sigue `pendiente`: una comision ya
+     facturada o cobrada no se reescribe, se ajusta o se abona. */
   if p_recalcular then
     update public.comision_admin_lineas l
        set pct_aplicado = p_pct,
@@ -133,6 +179,11 @@ $function$;
 revoke all on function public.comision_admin_edita_tarifa(uuid, numeric, date, text, boolean) from public, anon, authenticated;
 grant execute on function public.comision_admin_edita_tarifa(uuid, numeric, date, text, boolean) to authenticated;
 
+-- ── 4. Anular una comision desde el panel ───────────────────────────────────
+-- Por RPC y no por UPDATE: `anulada` sigue fuera del grant del navegador porque
+-- anular tiene una consecuencia que un UPDATE suelto no haria — si la comision
+-- ya estaba facturada o cobrada, hay que emitir el abono. Sin eso quedaria
+-- dinero emitido sin contrapartida en el libro.
 create or replace function public.comision_admin_anula_linea(p_linea_id uuid, p_motivo text default null)
 returns jsonb
 language plpgsql
@@ -199,6 +250,7 @@ $function$;
 revoke all on function public.comision_admin_anula_linea(uuid, text) from public, anon, authenticated;
 grant execute on function public.comision_admin_anula_linea(uuid, text) to authenticated;
 
+-- ── 5. La reconciliacion tambien pasa a super admin ─────────────────────────
 create or replace function public.comision_admin_descuadres()
 returns jsonb
 language plpgsql
@@ -224,6 +276,9 @@ begin
     return jsonb_build_object('sin_tarifa', true);
   end if;
 
+  /* Con la tarifa rigiendo desde el principio, «recibi vivo sin linea» pasa a
+     medirse por la FECHA DEL RECIBI y no por su alta: los historicos se cargaron
+     en bloque y por `created_at` ninguno contaria. */
   select count(*) into v_sin_linea
     from public.facturas f
    where f.tipo = 'recibi'
@@ -319,11 +374,17 @@ $function$;
 revoke all on function public.comision_admin_repone_devengo(uuid) from public, anon, authenticated;
 grant execute on function public.comision_admin_repone_devengo(uuid) to authenticated;
 
+-- ── 6. La tarifa rige desde el principio ────────────────────────────────────
 update public.comision_admin_tarifas
    set efectivo_desde = date '2025-01-01',
        nota = 'Tarifa de arranque: 0,5% por el uso de la intranet, sobre todo el dinero que entra. Rige desde el principio de la intranet.'
  where efectivo_desde = date '2026-09-17';
 
+-- ── 7. Siembra: los recibis que ya estaban ──────────────────────────────────
+-- `devengado_el` = fecha del recibi (ver cabecera: fecharlos por su alta
+-- amontonaria un ano entero en el 28-jul-2026). Solo los VIVOS: un recibi
+-- anulado es dinero que no entro. `on conflict` no hace falta -- el `not exists`
+-- deja la siembra repetible sin duplicar.
 insert into public.comision_admin_lineas (
   tipo_linea, recibi_id, recibi_numero, sociedad, contrato_id, proyecto_id,
   devengado_el, fecha_recibi, base_total, moneda, pct_aplicado, importe,
@@ -353,4 +414,3 @@ where f.tipo = 'recibi'
   and not coalesce(f.anulada, false)
   and not exists (select 1 from public.comision_admin_lineas l
                    where l.recibi_id = f.id and l.tipo_linea = 'devengo');
-;

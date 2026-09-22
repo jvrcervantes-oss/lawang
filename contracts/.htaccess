@@ -16,4 +16,6 @@
 # `/contracts/v3/` mientras la v3 se termina, asi que `/contracts/` tiene que
 # volver a abrir el generador — que es lo que el equipo espera y lo que hacia
 # esta manana.
+# 22-sep-2026: `/contracts/v3/` ya no existe (los 7 ficheros v3 se retiraron,
+# decision del owner: la v4 cubre todo). El orden de aqui abajo se queda.
 DirectoryIndex app.html index.html

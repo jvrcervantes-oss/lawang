@@ -1,24 +1,24 @@
 -- Soporte del portal: de "un hilo por comprador" a TICKETS (1-sep-2026,
--- correccion del owner sobre el diseno de esta misma manana -- "elegi mal,
--- soporte debe ser por tickets y no como una conversacion continua").
+-- corrección del owner sobre el diseño de esta misma mañana — "elegí mal,
+-- soporte debe ser por tickets y no como una conversación continua").
 --
 -- hilo_soporte pasa de 1 fila por client_id (PK=client_id) a 1 fila por
--- TICKET (PK=id nuevo, client_id deja de ser unico: un comprador puede tener
--- varios tickets, incluso de la misma categoria). La categoria -ya existia
--- como etiqueta opcional por MENSAJE- pasa a vivir en el TICKET y hace de
--- titulo (Pagos, Documentacion, Obra, Otro; General es el cajon
--- donde migran las conversaciones que ya existian hoy, ya abierto para no
+-- TICKET (PK=id nuevo, client_id deja de ser único: un comprador puede tener
+-- varios tickets, incluso de la misma categoría). La categoría —ya existía
+-- como etiqueta opcional por MENSAJE— pasa a vivir en el TICKET y hace de
+-- título («Pagos», «Documentación», «Obra», «Otro»; «General» es el cajón
+-- donde migran las conversaciones que ya existían hoy, ya abierto para no
 -- perder contexto). mensajes_comprador se cuelga de un hilo_id concreto en
--- vez de solo de client_id+categoria suelta.
+-- vez de solo de client_id+categoría suelta.
 --
 -- destructivo-ok: DROP CONSTRAINT hilo_soporte_pkey se sustituye por otra PK
 -- en la misma sentencia (ninguna fila se pierde, sigue habiendo exactamente
 -- una PK); DROP FUNCTION portal_enviar_mensaje(uuid,text,text) es la firma
--- VIEJA de la misma funcion, reemplazada por la de abajo -- codigo superseded,
+-- VIEJA de la misma función, reemplazada por la de abajo — código superseded,
 -- no dato. Ninguna fila de hilo_soporte ni de mensajes_comprador se borra en
--- esta migracion.
+-- esta migración.
 
--- 1) hilo_soporte: nueva PK, categoria obligatoria
+-- 1) hilo_soporte: nueva PK, categoría obligatoria
 alter table public.hilo_soporte add column id uuid not null default gen_random_uuid();
 alter table public.hilo_soporte add column categoria text;
 update public.hilo_soporte set categoria = 'General' where categoria is null;
@@ -30,20 +30,20 @@ alter table public.hilo_soporte add constraint hilo_soporte_pkey primary key (id
 create index if not exists hilo_soporte_client_id_idx on public.hilo_soporte(client_id);
 
 -- 2) mensajes_comprador: cada mensaje cuelga de UN ticket. La columna
--- categoria de mensajes_comprador se deja EN PAZ (no se borra: no destruye
+-- `categoria` de mensajes_comprador se deja EN PAZ (no se borra: no destruye
 -- nada tocar una columna que ya no se escribe, y borrarla es DDL destructivo
--- que si pide permiso aparte) -- simplemente deja de usarse, el titulo ahora
+-- que sí pide permiso aparte) — simplemente deja de usarse, el título ahora
 -- vive en el ticket.
 alter table public.mensajes_comprador add column hilo_id uuid references public.hilo_soporte(id);
 update public.mensajes_comprador mc
    set hilo_id = hs.id
   from public.hilo_soporte hs
- where hs.client_id = mc.client_id;   -- 1:1 en este punto de la migracion: todavia no existe ningun ticket nuevo
+ where hs.client_id = mc.client_id;   -- 1:1 en este punto de la migración: todavía no existe ningún ticket nuevo
 alter table public.mensajes_comprador alter column hilo_id set not null;
 create index if not exists mensajes_comprador_hilo_id_idx on public.mensajes_comprador(hilo_id);
 
 -- 3) trigger de actividad: ya no upsertea por client_id (eso lo hace ahora
--- portal_abrir_ticket al crear el ticket) -- solo bumpea EL ticket del mensaje.
+-- portal_abrir_ticket al crear el ticket) — solo bumpea EL ticket del mensaje.
 create or replace function public._trg_hilo_soporte_actividad()
  returns trigger
  language plpgsql
@@ -57,11 +57,11 @@ begin
    where id = new.hilo_id;
   return new;
 exception when others then
-  return new;   -- el mensaje ya se guardo; un fallo aqui no lo deshace
+  return new;   -- el mensaje ya se guardó; un fallo aquí no lo deshace
 end
 $function$;
 
--- 4) aviso al equipo: la categoria ahora sale del TICKET (join por hilo_id),
+-- 4) aviso al equipo: la categoría ahora sale del TICKET (join por hilo_id),
 -- no de new.categoria (esa columna ya no se rellena en mensajes nuevos).
 create or replace function public._trg_aviso_mensaje_comprador()
  returns trigger
@@ -75,7 +75,7 @@ begin
   select c.full_name into v_nombre from public.clients c where c.id = new.client_id;
   select hs.categoria into v_categoria from public.hilo_soporte hs where hs.id = new.hilo_id;
   v_cuerpo :=
-    'Nuevo mensaje del comprador en el area de clientes.' || chr(10) || chr(10) ||
+    'Nuevo mensaje del comprador en el área de clientes.' || chr(10) || chr(10) ||
     'Comprador: ' || coalesce(v_nombre, 'sin nombre') || chr(10) ||
     'Ticket: ' || coalesce(v_categoria, 'General') || chr(10) ||
     chr(10) ||
@@ -89,9 +89,9 @@ end
 $function$;
 
 -- 5) portal_enviar_mensaje: cambia de firma (p_client_id,p_texto,p_categoria)
--- a (p_hilo_id,p_texto) -- el ticket ya trae su categoria y su comprador, no
--- hace falta que el cliente los repita (y no puede mentir sobre cuales son).
--- Se DROPEA la firma vieja explicitamente: es codigo superseded, no dato.
+-- a (p_hilo_id,p_texto) — el ticket ya trae su categoría y su comprador, no
+-- hace falta que el cliente los repita (y no puede mentir sobre cuáles son).
+-- Se DROPEA la firma vieja explícitamente: es código superseded, no dato.
 drop function if exists public.portal_enviar_mensaje(uuid, text, text);
 
 create or replace function public.portal_enviar_mensaje(p_hilo_id uuid, p_texto text)
@@ -130,8 +130,8 @@ revoke execute on function public.portal_enviar_mensaje(uuid, text) from public;
 revoke execute on function public.portal_enviar_mensaje(uuid, text) from anon;
 grant execute on function public.portal_enviar_mensaje(uuid, text) to authenticated;
 
--- 6) portal_abrir_ticket: NUEVO -- solo el comprador abre tickets (el equipo
--- responde, no origina; mismo criterio que ya regia "quien escribe primero").
+-- 6) portal_abrir_ticket: NUEVO — solo el comprador abre tickets (el equipo
+-- responde, no origina; mismo criterio que ya regía "quién escribe primero").
 create or replace function public.portal_abrir_ticket(p_client_id uuid, p_categoria text, p_texto text)
  returns uuid
  language plpgsql
@@ -335,4 +335,3 @@ begin
   return r;
 end
 $function$;
-;

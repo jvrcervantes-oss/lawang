@@ -7,47 +7,27 @@
 -- queda creada y vacía a propósito — borrarla no aporta nada y sí puede pisar a
 -- otra sesión.
 
-alter table public.contratos drop constraint if exists contratos_tipo_check;  -- destructivo-ok: revertir CHECK al estado previo
-alter table public.contratos add constraint contratos_tipo_check
-  check (tipo = any (array[
-    'reserva_parcela','construccion','contrato_general','commercial_offer',
-    'carta_reserva','carta_reserva_ampliada','acuerdo_comercial','protocolo_operativo',
-    'ppjb_bonian','ppjb_bonian_c2','hak_sewa_notario','carta_reserva_hak_sewa',
-    'poa','cc00014_timon'
-  ]));
-
-create or replace function public.set_contrato_numero()
- returns trigger
- language plpgsql
- set search_path to ''
-as $function$
-declare
-  n bigint;
-  prefix text;
-  seqname text;
-begin
-  if new.numero is not null then
-    return new;
-  end if;
-  case new.tipo
-    when 'reserva_parcela'    then prefix := 'RP'; seqname := 'public.contratos_rp_seq';
-    when 'construccion'       then prefix := 'CC'; seqname := 'public.contratos_cc_seq';
-    when 'contrato_general'   then prefix := 'CG'; seqname := 'public.contratos_cg_seq';
-    when 'commercial_offer'   then prefix := 'CO'; seqname := 'public.contratos_co_seq';
-    when 'carta_reserva'      then prefix := 'CR'; seqname := 'public.contratos_cr_seq';
-    when 'carta_reserva_ampliada' then prefix := 'CA'; seqname := 'public.contratos_ca_seq';
-    when 'acuerdo_comercial'  then prefix := 'AC'; seqname := 'public.contratos_ac_seq';
-    when 'protocolo_operativo' then prefix := 'PO'; seqname := 'public.contratos_po_seq';
-    when 'ppjb_bonian'        then prefix := 'PB'; seqname := 'public.contratos_pb_seq';
-    when 'ppjb_bonian_c2'     then prefix := 'C2'; seqname := 'public.contratos_c2_seq';
-    when 'hak_sewa_notario'   then prefix := 'HS'; seqname := 'public.contratos_hs_seq';
-    when 'carta_reserva_hak_sewa' then prefix := 'CH'; seqname := 'public.contratos_ch_seq';
-    when 'poa'                then prefix := 'PA'; seqname := 'public.contratos_poa_seq';
-    when 'cc00014_timon'      then prefix := 'CC'; seqname := 'public.contratos_cc_seq';
-    else raise exception 'Tipo de contrato sin numeracion definida: %', new.tipo;
-  end case;
-  n := nextval(seqname);
-  new.numero := prefix || lpad(n::text, 5, '0');
-  return new;
-end;
-$function$;
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: set_contrato_numero
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260717073753_create_contratos_table.sql
+--   supabase/migrations/20260717082752_contratos_add_remaining_types.sql
+--   supabase/migrations/20260731075330_carta_reserva_ampliada.sql
+--   supabase/migrations/20260804065545_numeracion_ppjb_bonian.sql
+--   supabase/migrations/20260805023643_numeracion_hak_sewa.sql
+--   supabase/migrations/20260806060951_numeracion_ppjb_bonian_c2.sql
+--   supabase/migrations/20260806093122_numeracion_carta_reserva_hak_sewa.sql
+--   supabase/migrations/20260810094256_contrato_numero_serie_poa.sql
+--   supabase/migrations/20260831021755_cc00014_timon_numeracion_defensiva.sql
+--   supabase/migrations/20260907083636_carta_reserva_pma.sql
+--   supabase/migrations/20260908083655_adenda_tipo_y_serie_ad.sql
+--   supabase/migrations/20260910025145_investor_deck_palmfield.sql
+--   supabase/migrations/20260910025534_tipos_de_contrato_regenera_investor_deck.sql
+-- ============================================================================

@@ -23,28 +23,18 @@
 -- NULL). El `return` por NULL se queda, pero solo salta la comprobación de
 -- pertenencia a la reserva raíz — no tiene sentido para un valor vacío.
 
-create or replace function public.trg_valida_unidad_id_contrato()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  v_raiz uuid;
-  v_unidad_contrato uuid;
-begin
-  if tg_op = 'UPDATE' and new.unidad_id is distinct from old.unidad_id
-     and not public.es_admin() then
-    raise exception 'solo un admin puede cambiar la parcela de un contrato ya guardado' using errcode = '42501';
-  end if;
-
-  if new.unidad_id is null then return new; end if;
-
-  v_raiz := coalesce(new.contrato_padre_id, new.id);
-  select contrato_id into v_unidad_contrato from public.unidades where id = new.unidad_id;
-  if v_unidad_contrato is distinct from v_raiz then
-    raise exception 'Esta parcela no pertenece a esta reserva.' using errcode = '23514';   -- 17-sep-2026: mensaje sin jerga interna (owner, ver 20260917040000_errores_de_guardado_al_grano)
-  end if;
-  return new;
-end;
-$$;
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: trg_valida_unidad_id_contrato
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260824035201_construccion_por_parcela.sql
+--   supabase/migrations/20260824043534_unidad_id_null_saltaba_guardarrail.sql
+--   supabase/migrations/20260917012656_errores_de_guardado_al_grano.sql
+--   supabase/migrations/20260917040000_errores_de_guardado_al_grano.sql
+-- ============================================================================

@@ -34,15 +34,15 @@
 --    4. apuntarse a sí mismo     → bloquea
 -- ═══════════════════════════════════════════════════════════════════════════
 
-alter table public.contratos
-  add column if not exists poder_id uuid references public.contratos(id) on delete set null;
-
-comment on column public.contratos.poder_id is
-  'Poder Notarial (tipo=poa) bajo el que actua el apoderado DEL COMPRADOR en este contrato. Un poder cubre varios contratos.';
-
-create index if not exists contratos_poder_id_idx on public.contratos(poder_id);
-
--- La función y el trigger completos están en la migración aplicada; se repiten
--- aquí para poder recrearlos desde el repo:
---   public.valida_poder_id()  +  trigger contratos_valida_poder_id
---   (before insert or update of poder_id, datos on public.contratos)
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: contratos_poder_id_idx
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260817015522_poder_id_enlace_contrato_a_su_poder_notarial.sql
+-- ============================================================================

@@ -10,19 +10,16 @@
 -- `es_agente()` es la barrera correcta: exige fila activa en public.usuarios, y
 -- para quien no la tiene mira el claim `agente` del JWT, que un comprador no
 -- lleva. ALTER POLICY y no DROP+CREATE, para no tirar nada.
-alter policy "firmantes cred: solo con sesion" on public.firmantes_cred
-  using (public.es_agente());
 
-alter policy "apoderados hak sewa: solo con sesion" on public.apoderados_hak_sewa
-  using (public.es_agente());
-
--- Y el GRANT, que manda antes que la policy: `firmantes_cred` conservaba el ACL
--- completo de una relacion recien creada — anon con DELETE, INSERT, UPDATE y
--- TRUNCATE sobre la tabla de los NIK. Una sonda anonima devolvia `200 []` en vez
--- de 401, y un vector vacio no es un aprobado: solo significa que la policy
--- filtro. `sociedades` si recibio su revoke hoy; esta nunca lo tuvo.
-revoke all on public.firmantes_cred from anon, authenticated;
-grant select on public.firmantes_cred to authenticated;
-
-revoke all on public.apoderados_hak_sewa from anon, authenticated;
-grant select on public.apoderados_hak_sewa to authenticated;
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: (fichero de ALTER/INSERT, sin CREATE)
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260917093525_nik_solo_equipo_no_compradores.sql
+-- ============================================================================

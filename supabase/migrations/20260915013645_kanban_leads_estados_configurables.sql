@@ -43,6 +43,10 @@ create table if not exists public.lead_estados (
   clave           text primary key check (clave ~ '^[a-z][a-z0-9_]{1,29}$'),
   titulo          text not null check (char_length(btrim(titulo)) between 1 and 24),
   descripcion     text not null default '',
+  -- Paleta cerrada, no un color picker libre: nueve tonos ya distinguibles entre sí y
+  -- coherentes con el resto de la suite (hallazgo 4 de Diseño). Se comprueba aquí Y en
+  -- la función de escritura — un solo punto de control ya falló antes en este repo
+  -- (ver GRANT-antes-que-policy, security_invoker de unidades_estado).
   color           text not null check (color in (
                     '#64748B','#1D4ED8','#0F766E','#D97706','#064E3B','#94A3B8',
                     '#7C3AED','#0891B2','#B45309')),
@@ -165,6 +169,8 @@ begin
 
   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(p_lead::text, 0));
 
+  -- La fila de estado puede faltar: el 'nuevo' del tablero es un COALESCE, no un dato
+  -- guardado. Cuando falta, la referencia de concurrencia es la fecha de alta.
   select e.estado, e.estado_desde into v_actual, v_desde
     from public.lead_estado e where e.lead_id = p_lead;
   v_actual := coalesce(v_actual, 'nuevo');
@@ -316,4 +322,3 @@ revoke execute on function public.crm_estado_borrar(text, text) from public, ano
 grant execute on function public.crm_estado_crear(text, text, text, text, text) to authenticated;
 grant execute on function public.crm_estado_editar(text, text, text, text) to authenticated;
 grant execute on function public.crm_estado_borrar(text, text) to authenticated;;
-;

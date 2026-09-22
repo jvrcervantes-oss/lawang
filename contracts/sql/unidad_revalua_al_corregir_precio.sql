@@ -29,23 +29,15 @@
 -- avanza_unidad_por_cobro('ba87e81f-...')` (RP00071, la raíz de B7) la corrigió
 -- sola a 'vendida' — la función ya calculaba bien, solo faltaba quien la llamase.
 
-create or replace function public.trg_revalua_unidad_por_precio()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-begin
-  if new.precio is distinct from old.precio and new.contrato_id is not null then
-    perform public.avanza_unidad_por_cobro(new.contrato_id);
-  end if;
-  return new;
-end;
-$$;
-
-revoke all on function public.trg_revalua_unidad_por_precio() from public, anon;
-
-drop trigger if exists trg_revalua_unidad_por_precio on public.unidades;
-create trigger trg_revalua_unidad_por_precio
-  after update of precio on public.unidades
-  for each row execute function public.trg_revalua_unidad_por_precio();
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: trg_revalua_unidad_por_precio
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260824033457_unidad_revalua_al_corregir_precio.sql
+-- ============================================================================

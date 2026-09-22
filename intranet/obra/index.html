@@ -126,7 +126,7 @@
   <div class="toast" id="toast"></div>
 
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
-<script src="/contracts/assets/suite-comun.js?v=310f2346"></script>
+<script src="/contracts/assets/suite-comun.js?v=1dadde59"></script>
 <script>
 /* ============================================================================
    Obra — fase, fecha de entrega y fotos por unidad
@@ -310,7 +310,7 @@ async function guardar(u){
     p_fecha: $('#o-fecha').value || null,
   });
   b.disabled = false;
-  if(error){ toastMal(lwT('No se pudo guardar: ') + error.message); return; }
+  if(error){ toastMal(lwErrorHumano(error, lwT('No se pudo guardar: '))); return; }
   toast(lwT('Guardado'));
   suiCerrarCajon();
   await cargar();
@@ -350,7 +350,7 @@ async function subir(u, files){
       if(ins.error) throw ins.error;
       if(!ins.data || !ins.data.length) throw new Error(lwT('sin permiso para la herramienta Obra'));
       ok++;
-    }catch(e){ toastMal('«' + f.name + '»: ' + (e.message || e)); }
+    }catch(e){ toastMal(lwErrorHumano(e, '«' + f.name + '»')); }
   }
   caja.classList.remove('ocupado');
   if(ok) toast(lwT(ok === 1 ? '%n foto subida' : '%n fotos subidas', { n: ok }));
@@ -362,7 +362,7 @@ async function accionFoto(u, act, fid){
   const f = (FOTOS[u.id] || []).find(x => x.id === fid); if(!f) return;
   if(act === 'visible'){
     const { error } = await SB.from('obra_fotos').update({ visible: !f.visible }).eq('id', fid);
-    if(error){ toastMal(error.message); return; }
+    if(error){ toastMal(lwErrorHumano(error)); return; }
   }
   if(act === 'titulo'){
     /* `t` era el nombre de esta variable y ahora lo es del traductor: se
@@ -370,7 +370,7 @@ async function accionFoto(u, act, fid){
     const titulo = prompt(lwT('Título de la foto (lo ve el comprador):'), f.titulo || '');
     if(titulo === null) return;
     const { error } = await SB.from('obra_fotos').update({ titulo: titulo.trim() || null }).eq('id', fid);
-    if(error){ toastMal(error.message); return; }
+    if(error){ toastMal(lwErrorHumano(error)); return; }
   }
   if(act === 'borrar'){
     /* `lwConfirmar`, no `confirm()`: el nativo congela la extension de Chrome
@@ -383,7 +383,7 @@ async function accionFoto(u, act, fid){
     });
     if(!seguro) return;
     const { error } = await SB.from('obra_fotos').delete().eq('id', fid);
-    if(error){ toastMal(error.message); return; }
+    if(error){ toastMal(lwErrorHumano(error)); return; }
     await SB.storage.from('obra').remove([f.path]);   // si falla queda huérfano en el bucket, no en el portal
   }
   await cargar();

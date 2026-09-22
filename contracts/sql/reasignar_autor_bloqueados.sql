@@ -19,51 +19,25 @@
 -- estamos protegiendo.
 -- ═══════════════════════════════════════════════════════════════════════
 
-create or replace function public.es_super_admin()
-returns boolean language sql stable security definer set search_path = '' as $$
-  select exists (select 1 from public.usuarios u
-                  where u.user_id = (select auth.uid()) and u.activo and u.rol = 'super_admin')
-$$;
-
-revoke execute on function public.es_super_admin() from public;
-grant  execute on function public.es_super_admin() to authenticated, service_role;
-
--- Trigger compartido: en una fila cerrada, lo único que puede cambiar es el autor.
-create or replace function public.solo_cambia_autor()
-returns trigger language plpgsql set search_path = '' as $$
-begin
-  if to_jsonb(new) - 'creado_por' <> to_jsonb(old) - 'creado_por' then
-    raise exception 'En un documento cerrado solo se puede cambiar creado_por';
-  end if;
-  return new;
-end
-$$;
-
--- ── contratos bloqueados ────────────────────────────────────────────────
-create policy "el super_admin reasigna el autor de un contrato bloqueado"
-  on public.contratos for update to authenticated
-  using (bloqueado = true and public.es_super_admin())
-  with check (bloqueado = true and public.es_super_admin());
-
-create trigger contratos_bloqueado_solo_autor
-  before update on public.contratos
-  for each row when (old.bloqueado = true)
-  execute function public.solo_cambia_autor();
-
--- ── facturas anuladas ───────────────────────────────────────────────────
-create policy "el super_admin reasigna el autor de una factura anulada"
-  on public.facturas for update to authenticated
-  using (anulada = true and public.es_super_admin())
-  with check (anulada = true and public.es_super_admin());
-
-create trigger facturas_anulada_solo_autor
-  before update on public.facturas
-  for each row when (old.anulada = true)
-  execute function public.solo_cambia_autor();
-
--- ── Cómo comprobar que hace lo que dice, con una fila real ──────────────
--- 1) como super_admin, update de `creado_por` en un contrato bloqueado → 1 fila
--- 2) el mismo update tocando además `precio_total`                     → excepción del trigger
--- 3) como agente, el update del paso 1                                 → 0 filas (la RLS no deja)
--- El rastro de los tres intentos queda en `correcciones_datos` porque la app
--- escribe la traza ANTES de tocar la tabla, y anula la traza si el update falla.
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: contratos_bloqueado_solo_autor, el, es_super_admin, facturas_anulada_solo_autor, solo_cambia_autor
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260729090740_rls_propiedad_contratos_facturas.sql
+--   supabase/migrations/20260729094754_equipo_se_ve_entre_si.sql
+--   supabase/migrations/20260731045054_borrado_con_permisos_y_enlaces.sql
+--   supabase/migrations/20260811053843_usuarios_admin_no_toca_super_admin.sql
+--   supabase/migrations/20260819044926_law71_editar_firmado_y_borrar_facturas.sql
+--   supabase/migrations/20260821152750_law71_super_admin_reasigna_autor_de_factura_anulada.sql
+--   supabase/migrations/20260821153038_policies_de_law71_a_authenticated_no_a_public.sql
+--   supabase/migrations/20260911011008_managers_escriben_en_su_proyecto.sql
+--   supabase/migrations/20260914024847_directorio_de_compradores_y_el_autor_corrige_lo_suyo.sql
+--   supabase/migrations/20260914_directorio_de_compradores_y_el_autor_corrige_lo_suyo.sql
+--   supabase/migrations/20260918021123_puede_proyecto_deja_de_abrir_cuando_el_nombre_no_casa.sql
+-- ============================================================================

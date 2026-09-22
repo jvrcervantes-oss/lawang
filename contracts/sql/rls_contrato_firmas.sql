@@ -15,12 +15,36 @@
 -- Fix: el mismo claim que el resto de la suite. Las Edge Functions firma-get y
 -- firma-submit usan service_role, que se salta RLS — no les afecta.
 
-drop policy if exists "contrato_firmas_auth_all" on public.contrato_firmas;
-
-create policy "agentes autenticados gestionan firmas"
-  on public.contrato_firmas for all to authenticated
-  using (public.es_agente())
-  with check (public.es_agente());
-
--- Comprobación: debe devolver es_agente() en qual y with_check.
--- select policyname, qual, with_check from pg_policies where tablename='contrato_firmas';
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: agentes
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260729090740_rls_propiedad_contratos_facturas.sql
+--   supabase/migrations/20260730044257_storage_update_snapshots_pendientes.sql
+--   supabase/migrations/20260731043211_documentacion_bucket_e_indice.sql
+--   supabase/migrations/20260731043542_aviso_almacenamiento_cron.sql
+--   supabase/migrations/20260805023613_portal_comprador.sql
+--   supabase/migrations/20260807021850_unidades_catalogos_proyecto_tipo.sql
+--   supabase/migrations/20260807024457_unidades_catalogos_policies_to_authenticated.sql
+--   supabase/migrations/20260807043910_contratos_facturas_visibilidad_por_agente.sql
+--   supabase/migrations/20260811034823_recibi_aplicaciones_reforma_facturacion.sql
+--   supabase/migrations/20260811034859_bucket_justificantes.sql
+--   supabase/migrations/20260811035518_recibi_aplicaciones_delete_propio.sql
+--   supabase/migrations/20260817131756_storage_borrar_solo_snapshots_pendientes.sql
+--   supabase/migrations/20260901021433_aviso_soporte_mensajes_equipo.sql
+--   supabase/migrations/20260901120000_aviso_soporte_mensajes_equipo.sql
+--   supabase/migrations/20260910090734_permisos_agente_solo_lo_suyo_y_managers.sql
+--   supabase/migrations/20260911011008_managers_escriben_en_su_proyecto.sql
+--   supabase/migrations/20260911031517_equipo_deja_de_saltarse_la_rls.sql
+--   supabase/migrations/20260911033802_proyectos_solo_los_asignados.sql
+--   supabase/migrations/20260911035515_solo_admin_da_de_alta_proyectos.sql
+--   supabase/migrations/20260918021123_puede_proyecto_deja_de_abrir_cuando_el_nombre_no_casa.sql
+--   supabase/migrations/20260918021400_storage_deja_de_ser_una_carpeta_compartida.sql
+--   supabase/migrations/20260922133000_facturas_congela_contrato_numero_security_invoker.sql
+-- ============================================================================

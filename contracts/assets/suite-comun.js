@@ -131,6 +131,72 @@ const toastMal = (m, ms) => pintarAviso(
   nodoToast('toastMal', 'toast mal', 'alert', 'assertive'),
   m, ms || duracionToast('--t-toast-mal', 7000));
 
+/* ── EL ERROR SE TRADUCE ANTES DE ENSEÑARLO — 22-sep-2026 ───────────────────
+   Había 24 `toastMal(... + error.message)` repartidos por la suite: cuando
+   fallaba algo, el usuario leía el inglés de Postgres («update or delete on
+   table "clients" violates foreign key constraint…») y no sabía qué hacer.
+   El owner, textual: «cada vez que voy a hacer algo me encuentro un bug nuevo».
+   Parte de esos «bugs» eran errores legítimos mal contados.
+
+   Regla: nuestros propios RAISE (P0001, o 42501/23503/23514 con texto en
+   castellano escrito para el usuario, como los de guardar_recibi o
+   borrar_comprador) se enseñan TAL CUAL: están escritos para eso. Lo que se
+   traduce es SOLO lo que Postgres/PostgREST/Storage generan solos, y se
+   reconoce por sus plantillas inglesas, no por el código SQLSTATE — el código
+   no discrimina (nuestros RAISE reutilizan 23503 y 42501 a propósito, para que
+   las policies y los catch existentes los traten igual). Hallazgo de Desarrollo
+   en la revisión previa: un mapa por código tapaba mensajes ya escritos.
+
+   El crudo va SIEMPRE a console.error: la consola es para nosotros, el aviso
+   para la persona. `window.lwErrorHumano` y no `const`: `contracts/app.html`
+   no carga este fichero (choque de `esc`), y sus scripts compartidos hacen
+   `(window.lwErrorHumano || …)` para no reventar dentro de un catch. */
+window.lwErrorHumano = function (error, prefijo) {
+  const e = error || {};
+  const msg = String(e.message || (typeof e === 'string' ? e : '') || '');
+  const code = String(e.code || '');
+  const status = Number(e.statusCode || e.status || 0);
+  let texto = null;
+  if (/^new row violates row-level security|^permission denied/i.test(msg)) {
+    texto = 'No tienes permiso para hacer esto';
+  } else if (/^duplicate key value/i.test(msg)) {
+    texto = 'Ya existe uno igual';
+  } else if (/^update or delete on table .* violates foreign key/i.test(msg)) {
+    texto = 'Está enlazado a otros datos y no se puede borrar';
+  } else if (/^insert or update on table .* violates foreign key/i.test(msg)) {
+    texto = 'Apunta a un dato que ya no existe: recarga y vuelve a intentarlo';
+  } else if (/^null value in column/i.test(msg)) {
+    texto = 'Falta un dato obligatorio';
+  } else if (/violates check constraint/i.test(msg)) {
+    texto = 'Un dato no cumple una regla del sistema';
+  } else if (code === 'PGRST116' || /^JSON object requested, multiple \(or no\) rows/i.test(msg)) {
+    texto = 'No existe o no tienes acceso';
+  } else if (code === 'PGRST301' || /JWT expired|jwt expired/i.test(msg)) {
+    texto = 'Tu sesión ha caducado: vuelve a entrar';
+  } else if (/Failed to fetch|NetworkError|Load failed|ERR_NETWORK/i.test(msg) || (e instanceof TypeError && !code)) {
+    texto = 'No hay conexión con la base: comprueba la red y vuelve a intentarlo';
+  } else if (status === 413 || /exceeded the maximum allowed size|Payload too large/i.test(msg)) {
+    texto = 'El fichero es demasiado grande';
+  } else if (/^Bucket not found|^Object not found|^The resource was not found/i.test(msg)) {
+    texto = 'El fichero no está donde debería';
+  } else if (msg) {
+    texto = msg;                       // nuestro: ya está escrito para la persona
+  } else {
+    texto = 'Algo ha fallado';
+  }
+  try { console.error('[lawang]', prefijo || '', error); } catch (_) { /* consola cerrada */ }
+  /* El prefijo puede venir con su «: » de antes (`lwT('No se pudo guardar: ')`):
+     la clave de traducción de lwT es la frase exacta, así que no se toca la
+     llamada y se limpia aquí. */
+  const pre = prefijo ? String(prefijo).replace(/[\s:]+$/, '') : '';
+  return pre ? pre + ': ' + texto : texto;
+};
+
+/* Node lo necesita para el test (contracts/assets/errores.test.js); el
+   navegador lo ignora. */
+if (typeof module !== 'undefined' && module.exports)
+  module.exports = { lwErrorHumano: window.lwErrorHumano };
+
 /* El vocabulario de negocio (nombres de los tipos de contrato, qué tipos NO
    suman precio) vive en assets/vocabulario.js, no aquí: contracts/app.html lo
    necesita y no puede cargar ESTE fichero, porque su `esc()` local chocaria con

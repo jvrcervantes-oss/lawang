@@ -155,4 +155,7 @@ drop trigger if exists trg_aviso_mensaje_comprador on public.mensajes_comprador;
 create trigger trg_aviso_mensaje_comprador
   after insert on public.mensajes_comprador
   for each row execute function public._trg_aviso_mensaje_comprador();
-;
+
+-- Comprobación (la del catálogo, no la de que alguien lo corriera):
+--   select tgname from pg_trigger where tgname like 'trg_aviso_%';
+--   select proname from pg_proc where proname like '_trg_aviso_%' or proname = '_avisar_equipo_soporte';

@@ -24,64 +24,20 @@
 -- 20260911031517 — "el recibí que salda la factura pudo emitirlo otro agente"),
 -- y `carta_cobrado_al_bloquear()` (17-sep) sigue necesitando sumar Cartas de
 -- Reserva de OTROS agentes sobre la misma parcela para el descuento en cascada.
-create or replace function public.contrato_cobrado(p_contrato_id uuid)
-returns numeric
-language plpgsql
-stable
-security definer
-set search_path = ''
-as $$
-declare
-  v_existe boolean;
-begin
-  select true into v_existe from public.contratos c where c.id = p_contrato_id;
 
-  if not coalesce(v_existe, false) then
-    return 0;
-  end if;
-
-  if (select auth.role()) <> 'service_role' and not public.es_agente() then
-    return 0;
-  end if;
-
-  return
-    coalesce((
-      select sum(ra.importe_aplicado)
-        from public.recibi_aplicaciones ra
-        join public.facturas r on r.id = ra.recibi_id
-        join public.facturas f on f.id = ra.factura_id
-       where f.contrato_id = p_contrato_id
-         and not coalesce(r.anulada, false)
-         and not coalesce(f.anulada, false)
-    ), 0)
-    +
-    coalesce((
-      select sum(
-               r.total - coalesce((
-                 select sum(ra.importe_aplicado)
-                   from public.recibi_aplicaciones ra
-                   join public.facturas f2 on f2.id = ra.factura_id
-                  where ra.recibi_id = r.id
-                    and f2.contrato_id is not null
-                    and not coalesce(f2.anulada, false)
-               ), 0)
-             )
-        from public.facturas r
-       where r.tipo = 'recibi'
-         and r.contrato_id = p_contrato_id
-         and not coalesce(r.anulada, false)
-    ), 0);
-end;
-$$;
-
-comment on function public.contrato_cobrado(uuid) is
-  'Suma lo cobrado (recibí aplicados + recibí directo sin factura) de un contrato. SECURITY DEFINER para leer facturas/recibi_aplicaciones sin las RLS del que mira — misma cifra la vea quien la vea del equipo (20260911031517). Desde el 18-sep se guarda ella misma: exige es_agente() o auth.role()=service_role antes de sumar, si no devuelve 0 — así puede tener EXECUTE para `authenticated` (lo perdió en 20260917145913 por el hallazgo de oráculo) sin que un comprador del portal pueda leer lo cobrado de un contrato ajeno pidiendo el rpc a pelo con un uuid cualquiera.';
-
-grant execute on function public.contrato_cobrado(uuid) to authenticated;
-
--- ── comprobación tras aplicar ────────────────────────────────────────────────
---   select has_function_privilege('authenticated', 'public.contrato_cobrado(uuid)', 'EXECUTE');
---   -- true, y un agente real sigue viendo la cifra completa (probado en vivo,
---   -- 18-sep, con contrato fa72d8f4-cab8-4c82-83b7-04187e51544d: 127000), pero
---   -- una sesión `authenticated` sin fila en `usuarios` (ni claim `agente`)
---   -- recibe 0 sobre el mismo contrato: el oráculo queda cerrado.
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: contrato_cobrado
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260811035106_contrato_cobrado_fn.sql
+--   supabase/migrations/20260814114541_contrato_cobrado_no_pierde_dinero.sql
+--   supabase/migrations/20260917145913_carta_cobrado_al_bloquear_moneda_y_grant.sql
+--   supabase/migrations/20260918014618_20260918_contrato_cobrado_reabre_sin_reabrir_el_oraculo.sql
+--   supabase/migrations/20260918_contrato_cobrado_reabre_sin_reabrir_el_oraculo.sql
+-- ============================================================================

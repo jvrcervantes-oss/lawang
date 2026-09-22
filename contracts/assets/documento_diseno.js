@@ -40,7 +40,7 @@ async function saveSharedDesign(){
       .upsert({ slug:CURRENT.slug, design:DESIGN, updated_at:new Date().toISOString() });
     if(error) throw error;
     toast('Diseño guardado como plantilla — ya lo ven todos los agentes');
-  }catch(err){ toastMal('No se pudo guardar el diseño: ' + (err.message||err)); }
+  }catch(err){ toastMal(window.lwErrorHumano ? lwErrorHumano(err, 'No se pudo guardar el diseño') : 'No se pudo guardar el diseño: ' + (err.message || err)); // app.html no carga suite-comun.js; }
   if(btn){ btn.disabled=false; btn.textContent=t0; }
 }
 

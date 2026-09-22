@@ -29,122 +29,17 @@
 -- LAW-51: al tocar esta función se relee TODO consumidor — hoy el trigger
 -- `trg_compradores_desde_datos` y la llamada suelta desde /intranet/compradores/.
 
-create or replace function public.sincronizar_compradores(p_contrato uuid)
-returns jsonb
-language plpgsql
-security definer
-set search_path to ''
-as $$
-declare
-  v_datos  jsonb;
-  v_gente  jsonb;
-  p        jsonb;
-  v_nombre text; v_rol text; v_pas text; v_mail text; v_cid text;
-  v_client uuid;
-  v_enlaces int := 0;
-  v_sin_id text[] := '{}';
-  v_sin_ficha text[] := '{}';
-begin
-  select datos into v_datos from public.contratos where id = p_contrato;
-  if v_datos is null then return jsonb_build_object('error', 'contrato inexistente o sin datos'); end if;
-
-  v_gente := jsonb_build_array(jsonb_build_object(
-      'rol','adquiriente_1',
-      'client_id',    v_datos->>'adq1_client_id',
-      'nombre',       v_datos->'fields'->>'adq1_nombre',
-      'pasaporte',    v_datos->'fields'->>'adq1_pasaporte',
-      'email',        v_datos->'fields'->>'adq1_email',
-      'telefono',     v_datos->'fields'->>'adq1_telefono',
-      'nacionalidad', v_datos->'fields'->>'adq1_nacionalidad',
-      'domicilio',    v_datos->'fields'->>'adq1_domicilio'))
-    || coalesce((
-      select jsonb_agg(jsonb_build_object(
-               'rol','adquiriente_' || (ord + 1),
-               'client_id', e->>'client_id',
-               'nombre', e->>'nombre', 'pasaporte', e->>'pasaporte', 'email', e->>'email',
-               'telefono', e->>'telefono', 'nacionalidad', e->>'nacionalidad',
-               'domicilio', e->>'domicilio') order by ord)
-      from jsonb_array_elements(
-             case when jsonb_typeof(v_datos->'compradores') = 'array'
-                  then v_datos->'compradores' else '[]'::jsonb end) with ordinality t(e, ord)
-      where ord + 1 <= 9), '[]'::jsonb);
-
-  for p in select value from jsonb_array_elements(v_gente) loop
-    v_nombre := btrim(coalesce(p->>'nombre',''));
-    continue when v_nombre = '';
-    v_rol  := p->>'rol';
-    v_pas  := nullif(btrim(coalesce(p->>'pasaporte','')), '');
-    v_mail := lower(nullif(btrim(coalesce(p->>'email','')), ''));
-    v_cid  := nullif(btrim(coalesce(p->>'client_id','')), '');
-
-    v_client := null;
-
-    -- 1) el enlace explícito manda: ni se mira el texto
-    if v_cid is not null then
-      begin
-        select id into v_client from public.clients where id = v_cid::uuid;
-      exception when invalid_text_representation then
-        v_client := null;   -- un id corrupto no revienta el guardado del contrato
-      end;
-    end if;
-
-    -- 2) sin enlace, se RECONOCE por pasaporte o email (no se inventa)
-    if v_client is null then
-      if v_pas is null and v_mail is null then
-        v_sin_id := v_sin_id || v_nombre;
-        continue;
-      end if;
-      if v_pas is not null then
-        select id into v_client from public.clients
-         where lower(btrim(passport_number)) = lower(v_pas) limit 1;
-      end if;
-      if v_client is null and v_mail is not null then
-        -- 19-ago-2026: desde que existen fichas de EMPRESA, un correo puede
-        -- estar en dos fichas (una persona y su sociedad comparten correo casi
-        -- siempre). Este camino solo lo alcanzan los contratos viejos, que son
-        -- todos de personas, asi que ante empate gana la persona en vez de
-        -- depender del orden en que la base devuelva las filas.
-        select id into v_client from public.clients
-         where lower(email) = v_mail
-         order by (tipo = 'persona') desc, created_at
-         limit 1;
-      end if;
-    end if;
-
-    -- 3) y si no hay ficha, NO se crea una. Aquí estaba el insert que convertía
-    --    una errata en una persona nueva.
-    if v_client is null then
-      v_sin_ficha := v_sin_ficha || v_nombre;
-      continue;
-    end if;
-
-    insert into public.contrato_compradores (contrato_id, client_id, rol)
-    values (p_contrato, v_client, v_rol)
-    on conflict (contrato_id, rol) do update set client_id = excluded.client_id;
-    v_enlaces := v_enlaces + 1;
-  end loop;
-
-  -- `altas` se conserva en la respuesta y siempre vale 0: quien la lea seguirá
-  -- funcionando, y el cero dice por sí solo que esta función ya no da altas.
-  return jsonb_build_object('altas', 0, 'enlaces', v_enlaces,
-                            'sin_identificador', to_jsonb(v_sin_id),
-                            'sin_ficha',         to_jsonb(v_sin_ficha));
-end $$;
-
--- La función nació con EXECUTE para PUBLIC (lección del estudio: un GRANT no
--- restringe, añade — una función nueva nace pública) y NADIE la llama por RPC:
--- solo el trigger, que corre como owner y no necesita grant. Con anon podía
--- invocarse por la API REST sin sesión: una definer que ESCRIBE en
--- contrato_compradores y devuelve nombres de compradores. Cazado en la
--- auditoría del 19-ago; revocado ese día y verificado en catálogo.
-revoke execute on function public.sincronizar_compradores(uuid) from public, anon, authenticated;
-
--- ── Comprobación (la del catálogo, nunca el «ya lo mandé») ──────────────────
---   select has_function_privilege('anon', 'public.sincronizar_compradores(uuid)', 'EXECUTE');  → f
---   select prosrc from pg_proc where proname='sincronizar_compradores';
---     → NO debe aparecer ningún `insert into public.clients`
---   select count(*) from public.clients;   → antes y después de guardar un
---     contrato con un comprador inventado: la misma cifra.
--- Y la de comportamiento: DO con rollback — contrato con adq1_client_id enlaza
--- esa ficha; sin él pero con email conocido, la reconoce; con datos que no
--- existen, devuelve `sin_ficha` y no crea a nadie.
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: sincronizar_compradores
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260804041013_compradores_desde_contrato.sql
+--   supabase/migrations/20260819022615_sincronizar_compradores_desempate_por_tipo.sql
+--   supabase/migrations/20260824111810_compradores_sin_fantasmas.sql
+-- ============================================================================

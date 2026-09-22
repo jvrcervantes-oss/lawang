@@ -168,7 +168,7 @@
      script de la pagina: son `const` de primer nivel y dos declaraciones del
      mismo nombre revientan la pagina entera. -->
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
-<script src="/contracts/assets/suite-comun.js?v=310f2346"></script>
+<script src="/contracts/assets/suite-comun.js?v=1dadde59"></script>
 <script>
 /* ============================================================================
    Documentación de proyectos — índice por CARPETAS, con enlaces externos
@@ -685,8 +685,14 @@ async function guardarDoc(d){
   const conf = $('#sConf').checked;
   const deck = $('#sDeck').checked;
   if(deck && conf){ toastMal(t('deckBloqueadoConf')); $('#sConf').focus(); return; }
+  /* Diálogo de la suite y no `window.confirm` (22-sep-2026): la norma de
+     `contexto/suite_lawang.md` es que ningún freno salga por el diálogo nativo
+     del navegador — se traduce, se ve igual en toda la suite y el foco arranca
+     en «Cancelar». El texto va por `cuerpo` (innerHTML), por eso pasa por esc(). */
   if(deck && !(d && d.publicado_investor_deck) &&
-     !window.confirm('«' + titulo + t('deckConfirma') + $('#sProyecto').value + t('deckConfirma2'))){
+     !(await lwConfirmar({
+        cuerpo: esc('«' + titulo + t('deckConfirma') + $('#sProyecto').value + t('deckConfirma2')),
+        tono: 'peligro' }))){
     toastMal(t('deckCancelado')); return;
   }
   const b = $('#btnGuardar'); b.disabled = true;
@@ -795,7 +801,7 @@ async function borrar(d){
   const aviso = d.url
     ? t('quitarIndicePre') + d.titulo + t('quitarIndice')
     : t('borrarPre') + d.titulo + t('borrarPost');
-  if(!confirm(aviso)) return;
+  if(!(await lwConfirmar({ cuerpo: esc(aviso), tono: 'peligro' }))) return;
   try{
     // Primero el archivo y después la fila: al revés, un fallo al borrar el
     // objeto dejaría un fichero huérfano ocupando sitio y sin nadie que lo liste.

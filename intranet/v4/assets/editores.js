@@ -1563,7 +1563,7 @@
           var path = crypto.randomUUID() + ext;
           return sb.storage.from('justificantes').upload(path, f, { upsert: false, contentType: f.type || 'application/octet-stream' })
             .then(function (up) {
-              if (up.error) { toastMal('No se pudo subir ' + f.name + ': ' + (up.error.message || up.error)); return; }
+              if (up.error) { toastMal(lwErrorHumano(up.error, 'No se pudo subir ' + f.name)); return; }
               lista.push({ path: path, nombre: f.name, subido_en: new Date().toISOString() }); repinta();
             });
         });
@@ -1840,7 +1840,7 @@
                 var antes = btnC.textContent; btnC.disabled = true; btnC.textContent = 'Cargando…';
                 aplicaContratoDoc(sb, id).then(function (res) {
                   btnC.disabled = false;
-                  if (res.error) { toastMal('No se pudo cargar el contrato: ' + (res.error.message || res.error)); btnC.textContent = antes; return; }
+                  if (res.error) { toastMal(lwErrorHumano(res.error, 'No se pudo cargar el contrato')); btnC.textContent = antes; return; }
                   estadoContrato.id = id; estadoContrato.numero = res.numero; estadoContrato.clienteId = res.clienteId;
                   btnC.textContent = res.numero + ' · ' + (res.comprador || '—');
                   notaC.textContent = res.puesto.length ? 'Traído del contrato: ' + res.puesto.join(', ') + '.' : 'El contrato no tenía datos de cliente que traer.';
@@ -2090,7 +2090,7 @@
           function aplicaFactura(f) {
             var cambioContrato = f.contrato_id && f.contrato_id !== estadoContrato.id;
             (cambioContrato ? aplicaContratoDoc(sb, f.contrato_id).then(function (res) {
-              if (res.error) { toastMal('No se pudo cargar el contrato de esa factura: ' + (res.error.message || res.error)); return; }
+              if (res.error) { toastMal(lwErrorHumano(res.error, 'No se pudo cargar el contrato de esa factura')); return; }
               estadoContrato.id = f.contrato_id; estadoContrato.numero = res.numero; estadoContrato.clienteId = res.clienteId;
               estadoContrato.moneda = res.moneda || estadoContrato.moneda;
               estadoContrato.clienteNombre = res.clienteNombre; estadoContrato.clienteDocumento = res.clienteDocumento;
@@ -2142,7 +2142,7 @@
                 aplicacionesRestauradas = true;
                 sb.from('recibi_aplicaciones').select('factura_id,importe_aplicado').eq('recibi_id', existente.id)
                   .then(function (rr) {
-                    if (rr.error) { toastMal('No se pudieron traer las facturas que este recibí ya saldaba: ' + rr.error.message); pintaBtnF(); repintaAplic(); return; }
+                    if (rr.error) { toastMal(lwErrorHumano(rr.error, 'No se pudieron traer las facturas que este recibí ya saldaba')); pintaBtnF(); repintaAplic(); return; }
                     (rr.data || []).forEach(function (row) {
                       var abierta = facturasAbiertasCache.filter(function (x) { return x.id === row.factura_id; })[0];
                       aplicaciones.push({
@@ -2153,7 +2153,7 @@
                       });
                     });
                     pintaBtnF(); repintaAplic();
-                  }, function (e) { toastMal('No se pudieron traer las facturas que este recibí ya saldaba: ' + (e && e.message || e)); pintaBtnF(); repintaAplic(); });
+                  }, function (e) { toastMal(lwErrorHumano(e, 'No se pudieron traer las facturas que este recibí ya saldaba')); pintaBtnF(); repintaAplic(); });
               });
             });
           } else if (pre.contrato_id) {
@@ -2162,7 +2162,7 @@
             // es el caso normal (un hito facturado, pendiente de cobro).
             btnF.textContent = 'Cargando…';
             aplicaContratoDoc(sb, estadoContrato.id).then(function (res) {
-              if (res.error) { toastMal('No se pudo cargar el contrato: ' + (res.error.message || res.error)); btnF.textContent = '— elige la factura que cobras —'; return; }
+              if (res.error) { toastMal(lwErrorHumano(res.error, 'No se pudo cargar el contrato')); btnF.textContent = '— elige la factura que cobras —'; return; }
               estadoContrato.numero = res.numero; estadoContrato.clienteId = res.clienteId;
               estadoContrato.moneda = res.moneda || estadoContrato.moneda;
               estadoContrato.clienteNombre = res.clienteNombre; estadoContrato.clienteDocumento = res.clienteDocumento;

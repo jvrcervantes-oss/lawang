@@ -195,7 +195,7 @@
 <script src="/contracts/assets/paginacion.js?v=2ac67b84"></script>
 <script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
-<script src="/contracts/assets/suite-comun.js?v=310f2346"></script>
+<script src="/contracts/assets/suite-comun.js?v=1dadde59"></script>
 <!-- Qué campos exige un alta NO se decide aquí: la lista vive en
      `contracts/assets/compradores.js` porque la v4 crea `clients` por su cuenta
      (editores.js) y dos listas a mano divergen — ver el comentario de allí. -->
@@ -320,7 +320,7 @@ async function cargar(){
     // Sin directorio (migración aún no aplicada, o RPC caída) la pantalla no se
     // queda en blanco: vuelve a ser lo de antes, solo lo tuyo. Y se dice.
     CLIENTES = mias;
-    if(dir && dir.error) toastMal(lwT('No se pudo leer el directorio de compradores: ') + dir.error.message);
+    if(dir && dir.error) toastMal(lwErrorHumano(dir.error, lwT('No se pudo leer el directorio de compradores: ')));
   }
   DOCUMENTOS = d.error ? [] : (d.data || []);
   VINCULOS = v.error ? [] : (v.data || []);
@@ -339,10 +339,10 @@ async function cargar(){
     // en el email crudo — que es lo que de verdad importa ver.
     EQUIPO = eq || [];
   }
-  if(d.error) toastMal(lwT('No se pudieron leer los documentos: ') + d.error.message);
-  if(f.error) toastMal(lwT('No se pudieron leer las facturas: ') + f.error.message);
-  if(a.error) toastMal(lwT('No se pudieron leer los accesos al portal: ') + a.error.message);
-  if(cb.error) toastMal(lwT('No se pudo calcular lo cobrado: ') + cb.error.message);
+  if(d.error) toastMal(lwErrorHumano(d.error, lwT('No se pudieron leer los documentos: ')));
+  if(f.error) toastMal(lwErrorHumano(f.error, lwT('No se pudieron leer las facturas: ')));
+  if(a.error) toastMal(lwErrorHumano(a.error, lwT('No se pudieron leer los accesos al portal: ')));
+  if(cb.error) toastMal(lwErrorHumano(cb.error, lwT('No se pudo calcular lo cobrado: ')));
 }
 
 /* ── CUÁNTO LLEVA PAGADO, PROYECTO A PROYECTO ──────────────────────────────
@@ -425,7 +425,7 @@ async function cargarCuotasReserva(ids){
   if(error){
     // No poder leerla NO es «no tiene»: se dice, en vez de enseñar un importe
     // en blanco que se leería como «no debe nada».
-    toastMal(lwT('No se pudo leer la cuota de reserva: ') + error.message);
+    toastMal(lwErrorHumano(error, lwT('No se pudo leer la cuota de reserva: ')));
     return false;
   }
   (data || []).forEach(c => { CUOTA_RESERVA[c.id] = c.precio_reserva || null; });
@@ -452,7 +452,7 @@ async function cargarCorreosComprador(clientId, contratoIds, facturaIds){
     .or(partes.join(','))
     .order('enviado_en', { ascending:false });
   if(error){
-    toastMal(lwT('No se pudo leer el registro de envíos: ') + error.message);
+    toastMal(lwErrorHumano(error, lwT('No se pudo leer el registro de envíos: ')));
     CORREOS_COMPRADOR[clientId] = [];   // ver la nota de cargarCuotasReserva: no es "sin correos", es "no se sabe"; pero sin esto el bloque se queda pidiendo para siempre
     return false;
   }
@@ -484,7 +484,7 @@ async function cargarSoporte(clientId){
     SB.from('hilo_soporte').select('estado,actualizado_en').eq('client_id', clientId),
   ]);
   if(error || e2){
-    toastMal(lwT('No se pudo leer Soporte: ') + (error || e2).message);
+    toastMal(lwErrorHumano(error || e2, lwT('No se pudo leer Soporte: ')));
     return false;   // no se cachea el fallo: la próxima vez que se abra la ficha, reintenta
   }
   const ultimo = (msgs || [])[0];
@@ -1183,7 +1183,7 @@ async function borrarComprador(c){
   const btn = $('#btnBorrarComprador'); if(btn){ btn.disabled = true; btn.textContent = lwT('Borrando…'); }
   const { data, error } = await SB.rpc('borrar_comprador', { p_client_id: c.id });
   if(error){
-    toastMal(error.message);
+    toastMal(lwErrorHumano(error));
     if(btn){ btn.disabled = false; btn.textContent = lwT('Borrar comprador'); }
     return;
   }
@@ -1250,7 +1250,7 @@ async function traspasar(c){
     const { data, error } = await SB.rpc('traspasar_cliente_con_documentos',
       { p_client_id: c.id, p_nuevo_propietario: nuevo, p_motivo: motivo });
     if(b) b.disabled = false;
-    if(error){ toastMal(lwT('No se pudo traspasar: ') + error.message); return; }
+    if(error){ toastMal(lwErrorHumano(error, lwT('No se pudo traspasar: '))); return; }
     const r = (data && data[0]) || {};
     await lwConfirmar({
       titulo: lwT('Traspaso de %n', { n: c.full_name || sinNombre }),
@@ -1267,7 +1267,7 @@ async function traspasar(c){
   } else {
     const { error } = await SB.from('clients').update({ propietario: nuevo }).eq('id', c.id);
     if(b) b.disabled = false;
-    if(error){ toastMal(lwT('No se pudo traspasar: ') + error.message); return; }
+    if(error){ toastMal(lwErrorHumano(error, lwT('No se pudo traspasar: '))); return; }
   }
   toast(lwT('Ficha traspasada a ') + nombreDe(nuevo));
   await cargar(); pintarLista(); pintarFicha();
@@ -1446,7 +1446,7 @@ async function subir(clientId){
     await cargar(); pintarLista(); pintarFicha();
     toast(lwT('Documento subido'));
   }catch(err){
-    toastMal(lwT('No se pudo subir: ') + (err.message||err));
+    toastMal(lwErrorHumano(err, lwT('No se pudo subir: ')));
     btn.disabled=false; btn.textContent=lwT('Subir documento');
   }
 }

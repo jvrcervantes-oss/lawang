@@ -23,35 +23,15 @@
 -- distintas con el mismo correo pasarían por la misma. El campo del contrato
 -- ya se llama «Nº pasaporte / identificación fiscal» desde el primer día.
 
-alter table public.clients
-  add column if not exists tipo            text not null default 'persona',
-  add column if not exists forma_juridica  text,
-  add column if not exists registro_num    text,
-  add column if not exists rep_nombre      text,
-  add column if not exists rep_cargo       text;
-
--- El CHECK va aparte y con nombre: uno anónimo dentro del ADD COLUMN no se
--- puede quitar ni releer por nombre después (lección de contratos_tipo_check).
-do $$
-begin
-  if not exists (select 1 from pg_constraint
-                  where conrelid = 'public.clients'::regclass and conname = 'clients_tipo_check') then
-    alter table public.clients
-      add constraint clients_tipo_check check (tipo in ('persona','empresa'));
-  end if;
-end $$;
-
-comment on column public.clients.tipo is
-  'persona | empresa. En una empresa: full_name = razon social, passport_number = identificacion fiscal (NIF/CIF/NPWP/EIN), nationality = pais de constitucion, address = domicilio social.';
-comment on column public.clients.forma_juridica is 'S.L., LLC, PT PMA, GmbH... texto libre: el comprador puede ser de cualquier pais';
-comment on column public.clients.registro_num  is 'Nº de registro mercantil, NIB/OSS en Indonesia, state file number en EE.UU.';
-
--- ── el correo deja de ser unico A SECAS ─────────────────────────────────────
--- Una persona y su sociedad comparten correo, y eso es normal, no un duplicado.
--- Lo que sigue estando prohibido es que DOS PERSONAS (o dos sociedades) lo
--- compartan, que es lo que el UNIQUE venia a evitar de verdad — de ahi que la
--- clave pase a ser (correo, tipo) y no desaparezca. `lower()` de paso: el
--- UNIQUE viejo distinguia mayusculas, asi que "A@b.com" y "a@b.com" convivian.
-alter table public.clients drop constraint if exists clients_email_key;
-create unique index if not exists clients_email_tipo_key
-  on public.clients (lower(email), tipo) where email is not null;
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: (fichero de ALTER/INSERT, sin CREATE)
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260819022524_compradores_empresa.sql
+-- ============================================================================
