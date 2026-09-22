@@ -4,7 +4,7 @@
      «La forma de una herramienta»): el script propio de esta página llama a lwT() al
      arrancar y tiene que encontrarlo ya definido. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=da214f8f"></script>
+<script src="/contracts/assets/i18n.js?v=31a46de3"></script>
 <!-- toast()/toastMal() (suite-comun.js) y lwPicker() (dialogo.js): el selector de
      contrato es una lista cerrada y larga —un agente puede tener decenas— y la suite
      no monta un <select> ni un <datalist> para eso. vocabulario.js da el nombre
@@ -43,6 +43,11 @@
 <p class="font-body-sm text-body-sm text-on-surface-variant" data-lwt>Cita solo el ejemplar del contrato elegido. Lo que no esté en él lo marca como pendiente, y una contraoferta comercial la deja para el promotor: no rellenes ninguno de los dos huecos con algo plausible.</p>
 </div>
 
+<!-- Consulta y Resultado en la misma fila, a dos columnas desde lg (petición
+     del owner, 22-sep): la pregunta a la izquierda y el borrador a la derecha,
+     para leer los dos a la vez sin subir y bajar. En pantalla estrecha se
+     apilan y el resultado se desplaza a la vista al llegar. -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
 <section class="bg-surface-container-lowest rounded-xl p-8 shadow-sm flex flex-col gap-6">
 <div class="flex flex-col gap-1 pb-4 border-b border-outline-variant/40">
 <span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold" data-lwt>Consulta</span>
@@ -77,24 +82,28 @@
 </div>
 </section>
 
-<!-- Resultado. Nace oculto y se destapa con la respuesta de la edge. Con
-     `{error}` se queda oculto salvo los puntos pendientes que vengan en la
-     respuesta (un borrador descartado sigue trayendo `bloqueos`, y esos sí
-     le sirven al agente): el borrador, las fuentes y «Copiar» solo aparecen
-     cuando hay borrador. -->
-<!-- Clase `hidden` de Tailwind ADEMÁS del atributo: `.flex` tiene la misma
-     especificidad que `[hidden]` del reset y va después, así que el atributo
-     solo no oculta nada (medido con el harness QA, 22-sep). El script
-     conmuta los dos a la vez (muestra()). -->
-<!-- scroll-margin-top: al hacer scrollIntoView el título quedaba bajo la
-     cabecera fija de 64 px (visto en la captura de producción, 22-sep). -->
-<section class="bg-surface-container-lowest rounded-xl p-8 shadow-sm flex flex-col gap-5 hidden" hidden id="lw-resultado" style="scroll-margin-top:88px">
+<!-- Resultado. La columna está siempre a la vista (ocupa la mitad de la
+     fila); lo que se destapa con la respuesta de la edge es su contenido. Sin
+     respuesta enseña el hueco vacío (#lw-resultado-vacio). Con `{error}` solo
+     aparecen los puntos pendientes que vengan en la respuesta (un borrador
+     descartado sigue trayendo `bloqueos`, y esos sí le sirven al agente): el
+     borrador, las fuentes y «Copiar» solo aparecen cuando hay borrador. -->
+<!-- Clase `hidden` de Tailwind ADEMÁS del atributo en los hijos que se
+     conmutan: `.flex` tiene la misma especificidad que `[hidden]` del reset y
+     va después, así que el atributo solo no oculta nada (medido con el harness
+     QA, 22-sep). El script conmuta los dos a la vez (muestra()). -->
+<!-- scroll-margin-top: al hacer scrollIntoView (solo en pantalla estrecha,
+     donde las columnas se apilan) el título quedaba bajo la cabecera fija de
+     64 px (visto en la captura de producción, 22-sep). -->
+<section class="bg-surface-container-lowest rounded-xl p-8 shadow-sm flex flex-col gap-5" id="lw-resultado" style="scroll-margin-top:88px">
 <div class="flex flex-col gap-1 pb-4 border-b border-outline-variant/40">
 <span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold" data-lwt>Resultado</span>
 <h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight" data-lwt>Borrador para revisar</h2>
 <!-- Solo cuando el resultado viene del historial: de qué consulta es. -->
 <p class="font-body-sm text-body-sm text-outline hidden" hidden id="lw-resultado-nota"></p>
 </div>
+
+<p class="font-body-md text-body-md text-outline" data-lwt id="lw-resultado-vacio">El borrador aparecerá aquí: elige el contrato, pega la pregunta y pulsa «Redactar borrador».</p>
 
 <!-- Un `.sui-aviso` con role="status" por cada punto pendiente que devuelve
      el servidor (`bloqueos`), y otro si la plantilla cambió tras la firma.
@@ -109,15 +118,20 @@
 <p class="font-body-sm text-body-sm text-on-surface" data-lwt>Borrador generado por IA — revísalo antes de enviarlo</p>
 </div>
 <pre class="whitespace-pre-wrap break-words font-body-md text-body-md text-on-surface bg-surface-container-low rounded-xl p-6 m-0" id="lw-borrador" style="white-space:pre-wrap"></pre>
-<div class="flex flex-col gap-2">
-<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold" data-lwt>Fuentes citadas</span>
-<ul class="flex flex-col gap-1 font-body-sm text-body-sm text-on-surface-variant list-disc pl-5" id="lw-fuentes"></ul>
-</div>
-<div class="flex flex-wrap items-center justify-end gap-3">
+<div class="flex flex-wrap items-center justify-between gap-3">
+<!-- Fuentes plegadas (owner, 22-sep: la lista abierta «mete ruido»). Al
+     agente le basta el borrador, que ya cita los artículos; la lista de
+     tablas leídas queda a un clic para quien quiera contrastar, y completa
+     en `bot_consultas.fuentes` para la auditoría (Seguridad). -->
+<details class="min-w-0" id="lw-fuentes-caja">
+<summary class="cursor-pointer font-body-sm text-body-sm text-outline hover:text-on-surface list-none flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">expand_more</span><span id="lw-fuentes-resumen"></span></summary>
+<ul class="mt-2 flex flex-col gap-1 font-body-sm text-body-sm text-on-surface-variant list-disc pl-5" id="lw-fuentes"></ul>
+</details>
 <button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-label-md transition-colors shadow-sm" data-real id="lw-copiar" type="button"><span class="material-symbols-outlined text-[18px]">content_copy</span><span data-lwt>Copiar borrador</span></button>
 </div>
 </div>
 </section>
+</div>
 
 <!-- Historial (22-sep-2026, petición del owner: «por si hay que rescatarlas»).
      Lee `bot_consultas` con la sesión del agente: la RLS («quien ve el
@@ -259,6 +273,7 @@
   function pintaFuentes(fuentes) {
     var ul = $('lw-fuentes');
     vacia(ul);
+    $('lw-fuentes-caja').open = false;   // plegadas siempre al llegar un borrador nuevo
     (fuentes || []).forEach(function (f) {
       if (!f || !f.tabla) return;
       var li = document.createElement('li');
@@ -267,12 +282,13 @@
       li.textContent = lwT(TABLAS[f.tabla] || f.tabla) + (f.campo ? ' · ' + f.campo : '') + (id ? ' · ' + id : '');
       ul.appendChild(li);
     });
-    if (!ul.children.length) {
-      var li0 = document.createElement('li');
-      li0.textContent = lwT('El servidor no ha citado ninguna fuente.');
-      ul.appendChild(li0);
-    }
+    var n = ul.children.length;
+    $('lw-fuentes-resumen').textContent = n ? lwT('Fuentes consultadas (%n)', { n: n }) : lwT('El servidor no ha citado ninguna fuente.');
   }
+
+  /* A dos columnas (lg) el resultado ya está a la vista al lado de la
+     pregunta; solo cuando se apilan hace falta bajar hasta él. */
+  function apilado() { return !(window.matchMedia && window.matchMedia('(min-width: 1024px)').matches); }
 
   function pintaResultado(cuerpo) {
     var hayAvisos = pintaAvisos(cuerpo);
@@ -285,9 +301,8 @@
       $('lw-borrador').textContent = '';
       vacia($('lw-fuentes'));
     }
-    var sec = $('lw-resultado');
-    muestra(sec, hayAvisos || conBorrador);
-    if (!sec.hidden) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    muestra($('lw-resultado-vacio'), !(hayAvisos || conBorrador));
+    if ((hayAvisos || conBorrador) && apilado()) $('lw-resultado').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function limpiaResultado() {
@@ -295,7 +310,7 @@
     $('lw-borrador').textContent = '';
     vacia($('lw-fuentes'));
     muestra($('lw-borrador-caja'), false);
-    muestra($('lw-resultado'), false);
+    muestra($('lw-resultado-vacio'), true);
     $('lw-resultado-nota').textContent = '';
     muestra($('lw-resultado-nota'), false);
   }

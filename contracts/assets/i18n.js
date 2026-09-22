@@ -2695,8 +2695,10 @@
     'Comprobado por la fecha de la plantilla, no por su texto: el texto articulado no está en la base.':
       'Checked by the template\'s date, not its wording: the articled text is not in the database.',
     'Borrador generado por IA — revísalo antes de enviarlo': 'AI-generated draft — review it before sending',
-    'Fuentes citadas': 'Sources cited',
+    'Fuentes consultadas (%n)': 'Sources consulted (%n)',
     'El servidor no ha citado ninguna fuente.': 'The server cited no sources.',
+    'El borrador aparecerá aquí: elige el contrato, pega la pregunta y pulsa «Redactar borrador».':
+      'The draft will appear here: pick the contract, paste the question and press "Write draft".',
     'Cuenta de cobro': 'Payment account',
     'Documento del contrato': 'Contract document',
     'Documento del proyecto': 'Project document',
