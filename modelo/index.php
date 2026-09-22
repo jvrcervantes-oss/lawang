@@ -398,6 +398,16 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 @media (min-width:1024px){
   #section-collection .grid{grid-template-columns:repeat(4,minmax(0,1fr))}
 }
+
+/* Píldora "Villa: <nombre>" de la cabecera: oculta hasta que haya sitio de verdad.
+   md:768px la dejaba a mitad de camino (sin el nav, que aparece en xl:1280px, ya
+   competía con precio+WhatsApp+divisa); a 1280px exacto, con el nav ya sumado,
+   volvía a partirse en dos líneas. 1400px es el primer punto medido sin ninguno
+   de los dos aprietos. */
+@media (min-width:1400px){
+  #villa-divider{display:block}
+  #villa-pill{display:flex}
+}
 </style>
 </head>
 <body class="bg-surface font-body-md text-body-md text-on-surface antialiased selection:bg-soft-canopy selection:text-surface">
@@ -409,8 +419,13 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 <a class="flex items-center" href="/">
 <img class="h-8" src="/assets/img/lawang-logo-v3-dark.webp" alt="Lawang Tropical Properties">
 </a>
-<div class="h-8 w-px bg-surface-container-highest hidden md:block"></div>
-<div class="hidden md:flex items-center gap-2 bg-surface-container-low/90 border border-surface-container-highest px-3.5 py-1.5 rounded-full shadow-sm">
+<!-- 22-sep-2026: de md (768px) a lg (1024px) — entre medias, con el nav ya oculto
+     (xl) pero esta píldora aún visible, no cabía junto al precio+WhatsApp+divisa y
+     "Villa Dali" partía en dos líneas dentro de una píldora redonda. `lg:block`/
+     `lg:flex` no existen en dali-tesla-tw.min.css (build congelado) — el override
+     real va en el <style>, esto solo deja el estado por defecto (oculto). -->
+<div class="h-8 w-px bg-surface-container-highest hidden" id="villa-divider"></div>
+<div class="hidden items-center gap-2 bg-surface-container-low/90 border border-surface-container-highest px-3.5 py-1.5 rounded-full shadow-sm" id="villa-pill">
 <span class="w-2 h-2 rounded-full bg-territorial-green animate-pulse"></span>
 <span class="font-body-sm text-body-sm text-on-surface-variant">Villa:</span>
 <span class="font-label-md text-label-md text-deep-lagoon font-semibold tracking-wide"><?= lw_e($villa) ?></span>
@@ -651,16 +666,34 @@ html:not([data-lang="es"]) .i-es{display:none !important}
      parcela no se bundlea con el precio de la villa. Esto solo deja ver la tarifa real
      por m² (lw_parcela_tarifa_m2(), modelo/lib.php) según isla y ubicación; el tamaño
      se concreta en la llamada, nunca aquí. -->
+<!-- Isla: paso propio, separado de la tarifa — 22-sep-2026, pedido del owner. -->
 <div class="space-y-2.5">
 <div class="flex flex-col mb-1">
 <span class="font-headline-sm text-headline-sm text-primary font-semibold"><?= lw_i18n('¿Qué isla?', 'Which island?') ?></span>
 <p class="font-body-sm text-body-sm text-on-surface-variant">The plot is priced separately, sized on the call.</p>
 </div>
 <label class="op"><input type="radio" name="lw-isla" value="bali" checked><span><span class="op__nb">Bali</span><span class="op__sp">Cliff, ricefield, riverfront or beachfront</span></span></label>
-<label class="op"><input type="radio" name="lw-isla" value="sumba"><span><span class="op__nb">Sumba</span><span class="op__sp">Flat plot rate</span></span></label>
+<label class="op"><input type="radio" name="lw-isla" value="sumba"><span><span class="op__nb">Sumba</span><span class="op__sp">Beachfront only</span></span></label>
+</div>
+
+<!-- Tarifa por m²: propio bloque, debajo de la isla. Bali elige ubicación; Sumba tiene
+     una única opción real hoy (Beachfront, dentro de Sumba Hills — el resort se llamó
+     "SandalWoods" hasta el 27-ago-2026, ver supabase/migrations/20260827020601), así
+     que no hay nada que radio-seleccionar, solo mostrarla. -->
+<div class="space-y-2.5 pt-3 mt-1 border-t border-surface-container-highest/60">
+<div class="flex flex-col mb-1">
+<span class="font-headline-sm text-headline-sm text-primary font-semibold"><?= lw_i18n('Ubicación de la parcela', 'Plot location') ?></span>
+</div>
 <div id="lw-zona-wrap" class="space-y-2.5">
 <label class="op"><input type="radio" name="lw-zona" value="otras" checked><span><span class="op__nb">Cliff · Ricefield · Riverfront</span></span><span class="op__pr"><b>€<?= lw_e((string) lw_parcela_tarifa_m2('otras')) ?>/m²</b></span></label>
 <label class="op"><input type="radio" name="lw-zona" value="beachfront"><span><span class="op__nb">Beachfront</span></span><span class="op__pr"><b>€<?= lw_e((string) lw_parcela_tarifa_m2('beachfront')) ?>/m²</b></span></label>
+</div>
+<div id="lw-zona-sumba-wrap" class="space-y-2.5" hidden>
+<!-- Sin <input>: `.op>span:nth-child(2)` (au-landing-cfg.js/CSS del <style>) espera el
+     input como 1er hijo para poner el 2o en columna — aquí no hay input, así que el
+     wrapper de nombre+descripción lleva el mismo flex a mano, o "Beachfront" y su
+     descripción salen pegados en la misma línea. -->
+<div class="op" style="cursor:default"><span style="display:flex;flex-direction:column;flex:1;min-width:0"><span class="op__nb">Beachfront</span><span class="op__sp">Inside Sumba Hills — the only plot on offer today</span></span><span class="op__pr"><b>€<?= lw_e((string) lw_parcela_tarifa_m2('sumba')) ?>/m²</b></span></div>
 </div>
 <p class="text-[11px] text-on-surface-variant" id="lw-parcela-nota"></p>
 </div>
@@ -1109,13 +1142,15 @@ foreach ($incluido as $it):
         'otras'      => lw_parcela_tarifa_m2('otras'),
         'sumba'      => lw_parcela_tarifa_m2('sumba'),
     ]) ?>;
-    var zonaWrap = document.getElementById('lw-zona-wrap');
-    var nota     = document.getElementById('lw-parcela-nota');
+    var zonaWrap      = document.getElementById('lw-zona-wrap');
+    var zonaSumbaWrap = document.getElementById('lw-zona-sumba-wrap');
+    var nota          = document.getElementById('lw-parcela-nota');
     if (!zonaWrap || !nota) return;
     function refresca() {
       var isla = document.querySelector('input[name="lw-isla"]:checked');
       var esSumba = !!isla && isla.value === 'sumba';
       zonaWrap.hidden = esSumba;
+      if (zonaSumbaWrap) zonaSumbaWrap.hidden = !esSumba;
       var tarifa;
       if (esSumba) {
         tarifa = TARIFAS.sumba;
