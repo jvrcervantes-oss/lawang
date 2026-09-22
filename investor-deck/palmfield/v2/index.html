@@ -140,12 +140,12 @@
      por debajo de 1024px la foto va arriba (altura fija) y el cajon de due diligence
      debajo en flujo normal, a todo el ancho -- nada flota sobre nada, nada tapa el
      dock de camara ni los hotspots. Desde 1024px, columnas lado a lado. */
-  /* 22-sep-2026, pedido del owner: la foto ocupaba mas que el panel de
-     Documentation & FAQ, y aqui el papel importa mas que la imagen. Movil:
-     la foto baja de 56vh a 38vh. Escritorio: el aside crece (420->520px,
-     460->600px desde 1280px) y ya no es #hero-visual quien manda el reparto
-     (antes flex:1 1 auto se comia todo lo que sobraba) -- ahora el visor
-     tiene un max-width propio para que crecer el aside SI reduzca la foto. */
+  /* 22-sep-2026, pedido del owner: reparto FIJO 30/70 (foto/panel), no un
+     ancho en px que crece por saltos de breakpoint. flex-basis en % en vez
+     de flex:1 1 auto (que se comia todo lo que sobraba) -- el margen derecho
+     del aside (2rem, "tarjeta flotante" calcada de /modelo) se descuenta del
+     70% para que la suma siga dando 100% exacto, sin desbordar. Movil: la
+     foto baja de 56vh a 38vh, apilada, sin reparto por columnas. */
   #vision{height:auto}
   #vision > .relative.w-full.h-full{display:flex;flex-direction:column;height:auto}
   #hero-visual{position:relative;inset:auto;width:100%;height:38vh;min-height:300px;flex:none}
@@ -154,13 +154,9 @@
   @media (min-width:1024px){
     #vision{height:calc(100vh - 72px)}
     #vision > .relative.w-full.h-full{flex-direction:row;height:100%}
-    #hero-visual{width:auto;max-width:calc(100% - 520px);flex:1 1 auto;height:100%}
-    #vision aside{position:static;width:520px;height:calc(100% - 4rem);
-      margin:2rem 2rem 2rem 0;border-radius:1rem;flex:none}
-  }
-  @media (min-width:1280px){
-    #hero-visual{max-width:calc(100% - 600px)}
-    #vision aside{width:600px}
+    #hero-visual{width:auto;flex:0 0 30%;height:100%}
+    #vision aside{position:static;width:auto;flex:0 0 calc(70% - 2rem);
+      height:calc(100% - 4rem);margin:2rem 2rem 2rem 0;border-radius:1rem}
   }
   .faq-item{border:1px solid #e4e2dd;border-radius:16px;background:#fbf9f4;overflow:hidden}
   .faq-item + .faq-item{margin-top:14px}
@@ -277,10 +273,6 @@
     <!-- Dock de camara: una vista por foto real (maximo 4, mismo tope que /modelo) -->
     <div class="absolute bottom-4 md:bottom-8 left-4 md:left-8 z-30 flex items-center gap-3">
       <div class="glass-dock p-1.5 rounded-full shadow-2xl flex items-center gap-1 border border-white/10" id="cam-dock"><!-- lo llena el JS --></div>
-      <a class="hidden xl:flex items-center gap-2 glass-panel px-4 py-2 rounded-full shadow-md border border-surface-container-highest/80 text-primary hover:text-deep-lagoon hover:bg-white transition-all group" href="#modelos">
-        <span class="text-xs font-label-md font-semibold tracking-wider uppercase">Explore project</span>
-        <span class="material-symbols-outlined text-[18px] group-hover:translate-y-0.5 transition-transform">arrow_downward</span>
-      </a>
     </div>
   </div>
 
@@ -295,7 +287,7 @@
         A land-plot development in the <span class="italic font-light text-territorial-green">Balian river valley.</span>
       </h1>
       <p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Held under <b>Hak Sewa</b> with a notarial escrow account — not a security or investment product.</p>
-      <div class="grid grid-cols-2 gap-2 pt-1">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 pt-1">
         <div class="bg-surface-container/70 p-2 rounded-xl border border-surface-container-highest/50 flex flex-col"><span class="text-[9px] text-on-surface-variant uppercase tracking-wider">Land Managed</span><span class="font-kpi-number text-sm text-on-surface font-bold">500.000+ m²</span></div>
         <div class="bg-surface-container/70 p-2 rounded-xl border border-surface-container-highest/50 flex flex-col"><span class="text-[9px] text-on-surface-variant uppercase tracking-wider">Track Record</span><span class="font-kpi-number text-sm text-on-surface font-bold">6+ Years</span></div>
         <div class="bg-surface-container/70 p-2 rounded-xl border border-surface-container-highest/50 flex flex-col"><span class="text-[9px] text-on-surface-variant uppercase tracking-wider">Investors</span><span class="font-kpi-number text-sm text-on-surface font-bold">100+</span></div>
@@ -315,7 +307,7 @@
            son afirmaciones sobre ellos. -->
       <div id="docs-bloque" class="hidden flex-col gap-2">
         <h3 class="font-body-md text-[11px] uppercase tracking-wider text-on-surface-variant font-bold m-0">Project documents</h3>
-        <div id="docs-lista" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3"><!-- lo llena el JS --></div>
+        <div id="docs-lista" class="grid grid-cols-1 sm:grid-cols-2 gap-3"><!-- lo llena el JS --></div>
       </div>
 
       <!-- AQUI HABIA SEIS TARJETAS DE GARANTIAS (escrow, plazo, permisos, zonificacion,
@@ -729,8 +721,8 @@
   // el dock se construye por INDICE, tope de 4 (mismo tope que el dock de /modelo,
   // que nunca pasa de 4 botones). Los hotspots (HTML fijo, ver arriba) solo se ven
   // sobre la vista 0 -- calcado literal del "solo se ven en 'day'" de /modelo.
-  var CAM_ON  = 'cam-btn flex items-center gap-2 px-3.5 py-1.5 rounded-full font-label-md text-body-sm bg-surface text-primary shadow-sm font-semibold transition-all';
-  var CAM_OFF = 'cam-btn flex items-center gap-2 px-3.5 py-1.5 rounded-full font-label-md text-body-sm text-white/90 hover:text-white hover:bg-white/10 transition-all';
+  var CAM_ON  = 'cam-btn flex items-center justify-center w-9 h-9 rounded-full bg-surface text-primary shadow-sm transition-all';
+  var CAM_OFF = 'cam-btn flex items-center justify-center w-9 h-9 rounded-full text-white/90 hover:text-white hover:bg-white/10 transition-all';
   var CAM_ICONOS = ['wb_sunny', 'photo_camera', 'landscape', 'flight'];
 
   function pintaHero(fotos){
@@ -757,8 +749,11 @@
       btn.type = 'button';
       btn.id = 'hero-cam-' + i;
       btn.className = i === 0 ? CAM_ON : CAM_OFF;
-      btn.innerHTML = '<span class="material-symbols-outlined text-[17px]">' + (CAM_ICONOS[i] || 'photo_camera') + '</span>' +
-        '<span class="hidden md:inline">' + esc(f.pie ? f.pie.split(/[·,.]/)[0].trim().slice(0, 22) : ('View ' + (i + 1))) + '</span>';
+      // Solo icono, sin etiqueta: la columna de la foto es ahora un 30% fijo
+      // (pedido del owner) y 4 botones con texto no caben sin partirse en dos
+      // lineas. El nombre completo de la foto ya va en el HUD/tooltip, no aqui.
+      btn.title = f.pie ? f.pie.split(/[·,.]/)[0].trim() : ('View ' + (i + 1));
+      btn.innerHTML = '<span class="material-symbols-outlined text-[17px]">' + (CAM_ICONOS[i] || 'photo_camera') + '</span>';
       btn.addEventListener('click', function(){ window.lwSetView(i); });
       dock.appendChild(btn);
     });
