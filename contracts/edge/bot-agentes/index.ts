@@ -255,6 +255,12 @@ function ensambla(puntos: Punto[], textoModelo: string) {
   const { pre, secciones, cola } = seccionesDe(textoModelo);
   const salida: string[] = [];
   if (pre.length) salida.push(pre.join('\n'), '');
+  // La introducción (lo que va antes de «1.») también pasa por los frenos; si
+  // se retiró, se escribe aquí — si no, el agente solo la vería en los avisos
+  // del panel y el borrador saldría sin su frase fija (Seguridad, consulta de
+  // deploy 22-sep).
+  const intro = puntos.find((p) => p.n === 0);
+  if (intro && intro.motivos.length) salida.push(bloqueRetirado(intro, null), '');
   const numerados = puntos.filter((p) => p.n > 0);
   const modeloNumeroBien = numerados.length === 0 || numerados.some((p) => secciones.has(p.n));
   if (!modeloNumeroBien) {
@@ -275,7 +281,8 @@ function ensambla(puntos: Punto[], textoModelo: string) {
 }
 function bloqueRetirado(p: Punto, seccionModelo: string[] | null) {
   const frase = fraseFija(p.motivos);
-  const lineas = [p.n + '. ' + encabezadoDe(p.texto) + (frase === FRASE_CONTRAOFERTA ? ' — Contraoferta' : ' — Pendiente')];
+  const cabecera = p.n > 0 ? p.n + '. ' + encabezadoDe(p.texto) : 'Introducción: ' + encabezadoDe(p.texto);
+  const lineas = [cabecera + (frase === FRASE_CONTRAOFERTA ? ' — Contraoferta' : ' — Pendiente')];
   // La cita del modelo para un punto retirado suele venir ENTERA en su primera
   // línea («4. Artículo 6 — …»): se le quita solo el «4. », no la línea.
   // Y si el modelo, pese al prompt, le pone encabezado propio o frase fija a un
@@ -499,7 +506,7 @@ Deno.serve(async (req) => {
     if (unidad.data) fuentes.push({ tabla: 'unidades', id: (unidad.data as { id: string }).id });
     if (proyecto.data) fuentes.push({ tabla: 'proyectos', id: (proyecto.data as { id: string }).id });
     if (cuenta.data) fuentes.push({ tabla: 'cuentas_bancarias', id: (cuenta.data as { clave: string }).clave, campo: 'titular,banco' });
-    if (soc) fuentes.push({ tabla: 'sociedades', id: claveSociedad, campo: 'razon' });
+    if (soc) fuentes.push({ tabla: 'sociedades', id: claveSociedad, campo: 'razon,marca,npwp,nib,domicilio,rep' });
     for (const d of (docsC.data ?? []) as { id: string }[]) fuentes.push({ tabla: 'contrato_documentos', id: d.id });
     for (const d of (docsP.data ?? []) as { id: string }[]) fuentes.push({ tabla: 'documentos_proyecto', id: d.id });
     for (const d of (docsM.data ?? []) as { id: string }[]) fuentes.push({ tabla: 'modelo_documentos', id: d.id });
