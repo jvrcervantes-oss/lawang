@@ -305,31 +305,38 @@
            que no hay nada que enseñar, que es peor que no tenerla. Lo enciende el JS.
            Va DELANTE de las garantías de abajo porque esto son los papeles y aquello
            son afirmaciones sobre ellos. -->
-      <div id="docs-bloque" class="hidden flex-col gap-2">
-        <h3 class="font-body-md text-[11px] uppercase tracking-wider text-on-surface-variant font-bold m-0">Project documents</h3>
-        <div id="docs-lista" class="grid grid-cols-1 sm:grid-cols-2 gap-3"><!-- lo llena el JS --></div>
-      </div>
+      <!-- Documentacion y FAQ, SEPARADAS en dos bloques propios (pedido del
+           owner, 22-sep): antes eran un solo scroll continuo y no se distinguia
+           donde acababa uno y empezaba el otro. Desde 1024px van en dos
+           columnas lado a lado (el aside ya tiene sitio de sobra, 70% del
+           hero); en movil siguen apiladas, cada una en su propia tarjeta. -->
+      <div class="flex flex-col lg:grid lg:grid-cols-2 lg:items-start gap-5">
+        <div id="docs-bloque" class="hidden flex-col gap-3 bg-surface-container-low/60 rounded-2xl border border-control-border/20 p-4">
+          <h3 class="font-body-md text-[11px] uppercase tracking-wider text-on-surface-variant font-bold m-0">Project documents</h3>
+          <div id="docs-lista" class="grid grid-cols-1 gap-3"><!-- lo llena el JS --></div>
+        </div>
 
-      <!-- AQUI HABIA SEIS TARJETAS DE GARANTIAS (escrow, plazo, permisos, zonificacion,
-           firma notarial, transaccion directa). Retiradas el 14-sep-2026: estaban LETRA
-           POR LETRA en la seccion "Legal Security" (#seguridad-notarial), que ademas las
-           pone en contraste con el leasehold informal -- la version de aqui era la misma
-           afirmacion sin el contraste. No se ha suprimido ni una frase del deck: se ha
-           dejado de decir dos veces. El chip "Legal Security" de este mismo panel lleva
-           alli en un clic. El panel abre ahora con los papeles, que es lo que se venia
-           a buscar. -->
-      <div class="flex flex-col gap-2">
-        <h3 class="font-body-md text-[11px] uppercase tracking-wider text-on-surface-variant font-bold m-0">Frequently Asked Questions</h3>
-        <!-- LAS PREGUNTAS YA NO VIVEN AQUI (11-sep-2026). Salen de `deck_faq` por
-             `investor_deck_faq`, y se editan desde la intranet. El comentario de
-             arriba que decia "La FAQ vive AQUI y en ningun otro sitio" describia el
-             estado anterior y ya no es cierto: la fuente unica es ahora la base.
-             El texto sembrado es LETRA POR LETRA el que paso la consulta legal del
-             9-sep-2026 -- esto movio donde vive el dato, no lo reescribio.
-             ⚠️ Lo que sale de la base NO pasa por i18n.js (que casa por texto
-             ingles): cada fila trae sus tres idiomas dentro. Markup de cada fila:
-             .faq-item (Tesla-style), ver pintaFaq() en el <script>. -->
-        <div id="faq-lista" class="flex flex-col gap-2"><!-- lo llena el JS --></div>
+        <!-- AQUI HABIA SEIS TARJETAS DE GARANTIAS (escrow, plazo, permisos, zonificacion,
+             firma notarial, transaccion directa). Retiradas el 14-sep-2026: estaban LETRA
+             POR LETRA en la seccion "Legal Security" (#seguridad-notarial), que ademas las
+             pone en contraste con el leasehold informal -- la version de aqui era la misma
+             afirmacion sin el contraste. No se ha suprimido ni una frase del deck: se ha
+             dejado de decir dos veces. El chip "Legal Security" de este mismo panel lleva
+             alli en un clic. El panel abre ahora con los papeles, que es lo que se venia
+             a buscar. -->
+        <div class="flex flex-col gap-3 bg-surface-container-low/60 rounded-2xl border border-control-border/20 p-4">
+          <h3 class="font-body-md text-[11px] uppercase tracking-wider text-on-surface-variant font-bold m-0">Frequently Asked Questions</h3>
+          <!-- LAS PREGUNTAS YA NO VIVEN AQUI (11-sep-2026). Salen de `deck_faq` por
+               `investor_deck_faq`, y se editan desde la intranet. El comentario de
+               arriba que decia "La FAQ vive AQUI y en ningun otro sitio" describia el
+               estado anterior y ya no es cierto: la fuente unica es ahora la base.
+               El texto sembrado es LETRA POR LETRA el que paso la consulta legal del
+               9-sep-2026 -- esto movio donde vive el dato, no lo reescribio.
+               ⚠️ Lo que sale de la base NO pasa por i18n.js (que casa por texto
+               ingles): cada fila trae sus tres idiomas dentro. Markup de cada fila:
+               .faq-item (Tesla-style), ver pintaFaq() en el <script>. -->
+          <div id="faq-lista" class="flex flex-col gap-2"><!-- lo llena el JS --></div>
+        </div>
       </div>
 
       <div class="flex flex-wrap gap-2 pt-1 border-t border-control-border/25">
