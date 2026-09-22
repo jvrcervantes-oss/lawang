@@ -135,6 +135,26 @@
   .op__pr{text-align:right;flex:none}
   .op__pr b{font-family:'Jost',sans-serif;font-size:12px;font-weight:700;color:#314322;white-space:nowrap}
   .hotspot{transition:opacity .3s ease,transform .15s ease}
+  .view-layer{transition:opacity .7s ease-out,transform .7s ease-out}
+  /* Hero responsive: calcado de #hero-configurator en /modelo (22-sep-2026) --
+     por debajo de 1024px la foto va arriba (altura fija) y el cajon de due diligence
+     debajo en flujo normal, a todo el ancho -- nada flota sobre nada, nada tapa el
+     dock de camara ni los hotspots. Desde 1024px, columnas lado a lado. */
+  #vision{height:auto}
+  #vision > .relative.w-full.h-full{display:flex;flex-direction:column;height:auto}
+  #hero-visual{position:relative;inset:auto;width:100%;height:56vh;min-height:380px;flex:none}
+  #vision aside{position:relative;top:auto;right:auto;bottom:auto;left:auto;
+    width:100%;height:auto;max-height:none;margin:0;border-radius:0}
+  @media (min-width:1024px){
+    #vision{height:calc(100vh - 72px)}
+    #vision > .relative.w-full.h-full{flex-direction:row;height:100%}
+    #hero-visual{width:auto;flex:1 1 auto;height:100%}
+    #vision aside{position:static;width:420px;height:calc(100% - 4rem);
+      margin:2rem 2rem 2rem 0;border-radius:1rem;flex:none}
+  }
+  @media (min-width:1280px){
+    #vision aside{width:460px}
+  }
   .faq-item{border:1px solid #e4e2dd;border-radius:16px;background:#fbf9f4;overflow:hidden}
   .faq-item + .faq-item{margin-top:14px}
   .faq-item summary{list-style:none;cursor:pointer;padding:20px;display:flex;
@@ -192,76 +212,91 @@
      documentación delante sin mover la página — que es lo que hace un inversor en los
      primeros veinte segundos. La FAQ vive AQUÍ y en ningún otro sitio: dos copias derivan,
      y este texto es el que pasó la consulta legal del 9-sep-2026. -->
-<section class="relative w-full overflow-hidden bg-volcanic-ash" id="vision">
-<div class="flex flex-col lg:flex-row lg:h-[calc(100vh-72px)] lg:min-h-[620px] lg:max-h-[880px]">
+<section class="w-full relative overflow-hidden bg-volcanic-ash" id="vision">
+<div class="relative w-full h-full">
 
-  <!-- Composicion propia de PROYECTO (revision previa #42, hallazgo de Diseño):
-       el hero de /modelo es una villa + configurador, y eso no transfiere a un
-       proyecto con varios modelos + masterplan. Aqui la foto del SITIO ocupa
-       todo el visor (cine, no tarjeta), y el panel de la derecha es la due
-       diligence -- misma ranura estructural que el configurador de /modelo,
-       contenido distinto. En movil ninguno de los dos va en overlay: se apilan
-       en flujo normal (lección de /modelo, 22-sep: overlay + scroll propio en
-       pantallas pequeñas es donde nacen los callejones sin salida). -->
-  <div class="relative w-full lg:flex-1 lg:h-full" id="hero-visual">
+  <!-- Mecanica calcada de /modelo (pedido explicito del owner, 22-sep: "implementa el
+       diseño de /modelo a /investor-deck/v2"): capas crossfade + hotspots + dock de
+       camara + HUD en la foto; la venta (titulo, propuesta de valor, cifras) vive en
+       el aside, igual que alli vive la ficha de la villa -- no en un panel superpuesto
+       sobre la imagen. Diferencia real y deliberada: /modelo tiene un numero FIJO de
+       vistas con nombre (dia/techo/interior...); aqui las vistas son las fotos reales
+       que el equipo sube desde la intranet (`deck_fotos` uso='hero'), numero variable
+       -- el dock se construye por indice, no por nombre, para no perder ese contenido
+       real. Los hotspots no señalan una ventana real (no hay "la cocina de esta foto"
+       en una foto de site variable): son accesos directos a las secciones clave,
+       mismo lenguaje visual que los de /modelo (aro con pulso + icono + tooltip). -->
+  <div class="absolute inset-0 w-full h-full overflow-hidden" id="hero-visual">
 
-    <!-- Carrusel que se llena de `deck_fotos` (uso='hero') por `investor_deck_fotos`;
-         el equipo lo gestiona desde la ficha del proyecto en la intranet. Misma
-         mecanica exacta que el carrusel de «Site & Delivered Villas» de mas abajo
-         — scroll-snap, flechas solo con raton, arrastre en tactil. -->
-    <div id="hero-track" class="flex overflow-x-auto snap-x snap-mandatory scroll-smooth lw-carrusel h-[52vh] min-h-[360px] lg:h-full bg-volcanic-ash"><!-- lo llena el JS --></div>
+    <div class="absolute inset-0 w-full h-full overflow-hidden select-none" id="viewport-canvas"><!-- lo llena el JS: una .view-layer por foto --></div>
 
-    <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-black/25 pointer-events-none"></div>
-
-    <div class="absolute inset-x-0 top-0 p-4 md:p-6 flex flex-wrap justify-between items-start gap-2 z-10">
-      <span class="glass-panel px-3.5 py-1 rounded-full text-volcanic-ash font-label-md text-body-sm shadow-sm">Palm Field · Balian Hills</span>
-      <span class="bg-territorial-green text-white px-3 py-1 rounded-full text-[11px] font-label-md uppercase tracking-wider font-semibold shadow-sm">Hak Sewa · Notarial Escrow</span>
+    <div id="hero-hotspots">
+      <a href="#modelos" class="hotspot group absolute z-20 -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110" style="top:36%;left:68%">
+        <span class="absolute -inset-2.5 rounded-full bg-tertiary-fixed/30 animate-ping"></span>
+        <span class="relative flex items-center justify-center w-8 h-8 rounded-full bg-surface/95 text-primary shadow-xl border border-surface-container-highest"><span class="material-symbols-outlined text-[16px]">holiday_village</span></span>
+        <div class="absolute left-10 top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col bg-surface/95 text-on-surface backdrop-blur-md px-3.5 py-1.5 rounded-xl shadow-xl pointer-events-none whitespace-nowrap min-w-[150px] border border-surface-container-highest">
+          <span class="text-[10px] uppercase tracking-wider text-on-surface-variant font-medium">Villa Models</span>
+          <span class="font-label-md text-body-sm text-primary font-semibold">Dali · Dune · Dream</span>
+        </div>
+      </a>
+      <a href="#masterplan" class="hotspot group absolute z-20 -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110" style="top:56%;left:80%">
+        <span class="absolute -inset-2.5 rounded-full bg-surface/30 animate-ping"></span>
+        <span class="relative flex items-center justify-center w-8 h-8 rounded-full bg-surface/95 text-territorial-green shadow-xl border border-surface-container-highest"><span class="material-symbols-outlined text-[16px]">grid_view</span></span>
+        <div class="absolute left-10 top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col bg-surface/95 text-on-surface backdrop-blur-md px-3.5 py-1.5 rounded-xl shadow-xl pointer-events-none whitespace-nowrap min-w-[150px] border border-surface-container-highest">
+          <span class="text-[10px] uppercase tracking-wider text-on-surface-variant font-medium">Masterplan</span>
+          <span class="font-label-md text-body-sm text-territorial-green font-semibold">Live plot availability</span>
+        </div>
+      </a>
+      <a href="#rendimientos" class="hotspot group absolute z-20 -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110" style="top:72%;left:62%">
+        <span class="absolute -inset-2.5 rounded-full bg-secondary-fixed/40 animate-ping"></span>
+        <span class="relative flex items-center justify-center w-8 h-8 rounded-full bg-deep-lagoon text-on-secondary shadow-xl border border-white/20"><span class="material-symbols-outlined text-[16px]">payments</span></span>
+        <div class="absolute left-10 top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col bg-surface/95 text-on-surface backdrop-blur-md px-3.5 py-1.5 rounded-xl shadow-xl pointer-events-none whitespace-nowrap min-w-[150px] border border-surface-container-highest">
+          <span class="text-[10px] uppercase tracking-wider text-on-surface-variant font-medium">Forecast</span>
+          <span class="font-label-md text-body-sm text-deep-lagoon font-semibold">Year-1 rental income</span>
+        </div>
+      </a>
     </div>
 
-    <button type="button" id="hero-prev" aria-label="Previous photos"
-      class="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 items-center justify-center rounded-full glass-panel shadow-md text-volcanic-ash hover:bg-white transition-all disabled:opacity-0 disabled:pointer-events-none">
-      <span class="material-symbols-outlined text-[20px]">chevron_left</span></button>
-    <button type="button" id="hero-next" aria-label="More photos"
-      class="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 items-center justify-center rounded-full glass-panel shadow-md text-volcanic-ash hover:bg-white transition-all disabled:opacity-0 disabled:pointer-events-none">
-      <span class="material-symbols-outlined text-[20px]">chevron_right</span></button>
-
-    <!-- Panel de titulo + KPIs: overlay en desktop (cine), flujo normal en movil. -->
-    <div class="relative lg:absolute lg:inset-x-0 lg:bottom-0 z-10 p-5 md:p-8 lg:p-10">
-      <div class="glass-panel rounded-2xl lg:rounded-3xl p-6 md:p-7 flex flex-col gap-4 shadow-xl lg:max-w-[620px]">
-        <div class="flex flex-wrap items-center gap-3">
-          <span class="px-3 py-1 rounded-full bg-territorial-green/10 text-territorial-green border border-territorial-green/25 font-label-md text-body-sm tracking-wider uppercase font-semibold">Investor Deck · Due Diligence</span>
-          <!-- Fuera «Palm Field, by PT SAN DAL WOODS» (11-sep-2026, owner): la sociedad
-               promotora ya figura en el pie de página. Su par de traducción se retiró
-               de i18n.js en el mismo commit. -->
-        </div>
-        <h1 class="font-headline-lg text-[28px] md:text-[38px] leading-[1.08] text-deep-lagoon tracking-tight font-normal">
-          A land-plot development in the <span class="italic font-light text-territorial-green">Balian river valley.</span>
-        </h1>
-        <p class="font-body-md text-body-md text-on-surface-variant lw-prose leading-relaxed">
-          Held under <b>Hak Sewa</b> with a notarial escrow account — not a security or investment product. Real documentation, live plot inventory and a Year-1 forecast, for your own due diligence.
-        </p>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-          <div class="flex flex-col gap-0.5"><div class="flex items-center gap-1.5 text-territorial-green"><span class="material-symbols-outlined text-[16px]">landscape</span><span class="font-body-sm text-[10px] font-semibold tracking-wider uppercase text-on-surface-variant">Land Managed</span></div><span class="font-kpi-number text-[22px] leading-tight text-deep-lagoon">500.000+</span><span class="font-body-sm text-[11px] text-on-surface-variant">m² under title management</span></div>
-          <div class="flex flex-col gap-0.5"><div class="flex items-center gap-1.5 text-territorial-green"><span class="material-symbols-outlined text-[16px]">history_edu</span><span class="font-body-sm text-[10px] font-semibold tracking-wider uppercase text-on-surface-variant">Track Record</span></div><span class="font-kpi-number text-[22px] leading-tight text-deep-lagoon">6+ Years</span><span class="font-body-sm text-[11px] text-on-surface-variant">Continuous operation in Indonesia</span></div>
-          <div class="flex flex-col gap-0.5"><div class="flex items-center gap-1.5 text-territorial-green"><span class="material-symbols-outlined text-[16px]">shield_person</span><span class="font-body-sm text-[10px] font-semibold tracking-wider uppercase text-on-surface-variant">Investors</span></div><span class="font-kpi-number text-[22px] leading-tight text-deep-lagoon">100+</span><span class="font-body-sm text-[11px] text-on-surface-variant">International owners</span></div>
-          <div class="flex flex-col gap-0.5"><div class="flex items-center gap-1.5 text-territorial-green"><span class="material-symbols-outlined text-[16px]">verified</span><span class="font-body-sm text-[10px] font-semibold tracking-wider uppercase text-on-surface-variant">Permits</span></div><span class="font-kpi-number text-[22px] leading-tight text-deep-lagoon">100%</span><span class="font-body-sm text-[11px] text-on-surface-variant">PBG &amp; SLF in order</span></div>
-        </div>
+    <!-- HUD superior: real y estatico -->
+    <div class="absolute top-4 left-4 md:left-8 z-30 flex items-center gap-3">
+      <div class="glass-panel px-4 py-2 rounded-full shadow-md flex items-center gap-2.5 border border-surface-container-highest/80">
+        <span class="w-2.5 h-2.5 rounded-full bg-territorial-green animate-pulse"></span>
+        <span class="font-label-md text-body-sm text-primary font-semibold">Palm Field</span>
+        <span class="text-stone-sand text-xs">|</span>
+        <span class="font-body-sm text-body-sm text-on-surface-variant">Balian Hills, Bali</span>
       </div>
     </div>
 
-    <div id="hero-puntos" class="absolute right-4 bottom-4 lg:bottom-6 z-20 flex gap-1.5"></div>
+    <!-- Dock de camara: una vista por foto real (maximo 4, mismo tope que /modelo) -->
+    <div class="absolute bottom-4 md:bottom-8 left-4 md:left-8 z-30 flex items-center gap-3">
+      <div class="glass-dock p-1.5 rounded-full shadow-2xl flex items-center gap-1 border border-white/10" id="cam-dock"><!-- lo llena el JS --></div>
+      <a class="hidden xl:flex items-center gap-2 glass-panel px-4 py-2 rounded-full shadow-md border border-surface-container-highest/80 text-primary hover:text-deep-lagoon hover:bg-white transition-all group" href="#modelos">
+        <span class="text-xs font-label-md font-semibold tracking-wider uppercase">Explore project</span>
+        <span class="material-symbols-outlined text-[18px] group-hover:translate-y-0.5 transition-transform">arrow_downward</span>
+      </a>
+    </div>
   </div>
 
-  <!-- Derecha: la due diligence entera. En desktop es un dock de altura fija que
-       scrollea SOLO (misma ranura que el configurador de /modelo); en movil es
-       flujo normal, sin altura forzada ni scroll propio. -->
-  <aside id="faq" class="flex flex-col w-full lg:w-[400px] lg:h-full lg:shrink-0 bg-surface-container-lowest border-t lg:border-t-0 lg:border-l border-control-border/25 shadow-lg lg:overflow-hidden">
-    <div class="shrink-0 px-5 py-3.5 bg-surface-container-low border-b border-control-border/25 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-      <h2 class="font-headline-sm text-xl text-deep-lagoon font-semibold m-0">Documentation &amp; FAQ</h2>
-      <span class="font-body-sm text-xs text-on-surface-variant">Everything you need to start your due diligence, on this screen.</span>
+  <!-- Cajon de due diligence: misma ranura/chrome que el configurador de /modelo
+       (cabecera con eyebrow+titulo+mini-grid, cuerpo que scrollea solo, pie con
+       accesos rapidos) -- el motor del configurador no aplica aqui (no hay villa que
+       elegir), asi que el cuerpo lleva la documentacion+FAQ real en su lugar. -->
+  <aside id="faq" class="glass-panel shadow-2xl border border-surface-container-highest/80 flex flex-col overflow-hidden">
+    <div class="p-5 pb-3 border-b border-surface-container-highest/70 flex flex-col gap-2 shrink-0">
+      <span class="px-3 py-0.5 rounded-full bg-soft-canopy/20 text-territorial-green font-label-md text-xs uppercase tracking-widest font-semibold self-start">Investor Deck · Due Diligence</span>
+      <h1 class="font-headline-md text-[26px] leading-[1.1] text-primary font-bold">
+        A land-plot development in the <span class="italic font-light text-territorial-green">Balian river valley.</span>
+      </h1>
+      <p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Held under <b>Hak Sewa</b> with a notarial escrow account — not a security or investment product.</p>
+      <div class="grid grid-cols-2 gap-2 pt-1">
+        <div class="bg-surface-container/70 p-2 rounded-xl border border-surface-container-highest/50 flex flex-col"><span class="text-[9px] text-on-surface-variant uppercase tracking-wider">Land Managed</span><span class="font-kpi-number text-sm text-on-surface font-bold">500.000+ m²</span></div>
+        <div class="bg-surface-container/70 p-2 rounded-xl border border-surface-container-highest/50 flex flex-col"><span class="text-[9px] text-on-surface-variant uppercase tracking-wider">Track Record</span><span class="font-kpi-number text-sm text-on-surface font-bold">6+ Years</span></div>
+        <div class="bg-surface-container/70 p-2 rounded-xl border border-surface-container-highest/50 flex flex-col"><span class="text-[9px] text-on-surface-variant uppercase tracking-wider">Investors</span><span class="font-kpi-number text-sm text-on-surface font-bold">100+</span></div>
+        <div class="bg-primary/10 p-2 rounded-xl border border-primary/20 flex flex-col"><span class="text-[9px] text-primary uppercase tracking-wider font-semibold">Permits</span><span class="font-kpi-number text-sm text-territorial-green font-bold">100% PBG &amp; SLF</span></div>
+      </div>
     </div>
 
-    <div class="lg:min-h-0 lg:overflow-y-auto px-5 py-4 flex flex-col gap-5">
+    <div class="min-h-0 overflow-y-auto px-5 py-4 flex flex-col gap-5">
       <!-- DOCUMENTOS DEL PROYECTO (14-sep-2026). Salen de la documentación adjunta al
            proyecto en la intranet (/intranet/Documentacion/), no de aquí: es la misma
            fuente única que ya alimenta fotos, modelos, parcelas y FAQ. Cada fila se
@@ -675,37 +710,69 @@
     pinta();
   }
 
+  // ── Hero cinematico, mecanica calcada de /modelo (lwSetView + dock + hotspots) ────
+  // /modelo tiene vistas de NOMBRE fijo (day/roof/interior...); aqui las vistas son
+  // las fotos reales que sube el equipo desde la intranet (numero variable), asi que
+  // el dock se construye por INDICE, tope de 4 (mismo tope que el dock de /modelo,
+  // que nunca pasa de 4 botones). Los hotspots (HTML fijo, ver arriba) solo se ven
+  // sobre la vista 0 -- calcado literal del "solo se ven en 'day'" de /modelo.
+  var CAM_ON  = 'cam-btn flex items-center gap-2 px-3.5 py-1.5 rounded-full font-label-md text-body-sm bg-surface text-primary shadow-sm font-semibold transition-all';
+  var CAM_OFF = 'cam-btn flex items-center gap-2 px-3.5 py-1.5 rounded-full font-label-md text-body-sm text-white/90 hover:text-white hover:bg-white/10 transition-all';
+  var CAM_ICONOS = ['wb_sunny', 'photo_camera', 'landscape', 'flight'];
+
   function pintaHero(fotos){
-    var track  = document.getElementById('hero-track');
-    var puntos = document.getElementById('hero-puntos');
-    if(!track) return;
-    track.innerHTML = '';
-    if(puntos) puntos.innerHTML = '';
-    fotos.forEach(function(f, i){
-      var fig = document.createElement('figure');
-      fig.className = 'm-0 relative shrink-0 snap-center w-full h-full';
-      var img = document.createElement('img');
-      img.src = f.src;
-      img.alt = f.pie;
-      img.className = 'w-full h-full object-cover';
-      // Solo la primera es LCP. Marcarlas todas con prioridad alta es lo mismo que
-      // no marcar ninguna, y encima le pelean el ancho de banda.
-      if(i === 0) img.setAttribute('fetchpriority', 'high');
-      else img.loading = 'lazy';
-      var cap = document.createElement('figcaption');
-      cap.className = 'absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent ' +
-                      'text-stone-sand font-body-sm text-xs px-5 pt-10 pb-4 pr-24';
-      cap.textContent = f.pie + etiquetaTipo(f.tipo);
-      fig.appendChild(img); fig.appendChild(cap);
-      track.appendChild(fig);
-      if(puntos && fotos.length > 1){
-        var d = document.createElement('span');
-        d.className = 'w-1.5 h-1.5 rounded-full transition-all ' + (i === 0 ? 'bg-white w-4' : 'bg-white/50');
-        puntos.appendChild(d);
-      }
+    var canvas = document.getElementById('viewport-canvas');
+    var dock   = document.getElementById('cam-dock');
+    if(!canvas || !dock) return;
+    canvas.innerHTML = '';
+    dock.innerHTML = '';
+    var vistas = fotos.slice(0, 4);
+    vistas.forEach(function(f, i){
+      var layer = document.createElement('div');
+      layer.id = 'hero-layer-' + i;
+      layer.className = 'view-layer absolute inset-0 w-full h-full bg-cover bg-center pointer-events-none ' +
+        (i === 0 ? 'opacity-100 scale-100' : 'opacity-0 scale-105');
+      layer.style.backgroundImage = "url('" + f.src.replace(/'/g, "%27") + "')";
+      var grad = document.createElement('div');
+      grad.className = 'absolute inset-0 bg-gradient-to-t from-volcanic-ash/80 via-transparent to-volcanic-ash/30';
+      layer.appendChild(grad);
+      // Solo la primera es LCP: se carga eager, el resto son fondo CSS (no <img>,
+      // no hay `loading` que fijar) y el navegador ya las decodifica bajo demanda.
+      canvas.appendChild(layer);
+
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.id = 'hero-cam-' + i;
+      btn.className = i === 0 ? CAM_ON : CAM_OFF;
+      btn.innerHTML = '<span class="material-symbols-outlined text-[17px]">' + (CAM_ICONOS[i] || 'photo_camera') + '</span>' +
+        '<span class="hidden md:inline">' + esc(f.pie ? f.pie.split(/[·,.]/)[0].trim().slice(0, 22) : ('View ' + (i + 1))) + '</span>';
+      btn.addEventListener('click', function(){ window.lwSetView(i); });
+      dock.appendChild(btn);
     });
-    montaFlechas(track, document.getElementById('hero-prev'), document.getElementById('hero-next'), puntos);
-    if(window.lwDeck) lwDeck.traduce(track);
+
+    window.lwSetView = function(idx){
+      if(idx < 0 || idx >= vistas.length) return;
+      vistas.forEach(function(f, i){
+        var layer = document.getElementById('hero-layer-' + i);
+        var btn   = document.getElementById('hero-cam-' + i);
+        if(!layer) return;
+        if(i === idx){
+          layer.className = 'view-layer absolute inset-0 w-full h-full bg-cover bg-center pointer-events-none opacity-100 scale-100';
+          if(btn) btn.className = CAM_ON;
+        } else {
+          layer.className = 'view-layer absolute inset-0 w-full h-full bg-cover bg-center pointer-events-none opacity-0 scale-105';
+          if(btn) btn.className = CAM_OFF;
+        }
+      });
+      // Calcado de /modelo: los hotspots solo son visibles/clicables en la vista 0.
+      document.querySelectorAll('#hero-hotspots .hotspot').forEach(function(h){
+        var enPrincipal = idx === 0;
+        h.style.opacity = enPrincipal ? '' : '0';
+        h.style.pointerEvents = enPrincipal ? '' : 'none';
+      });
+    };
+
+    if(window.lwDeck) lwDeck.traduce(canvas);
   }
 
   function pintaGaleria(fotos){
