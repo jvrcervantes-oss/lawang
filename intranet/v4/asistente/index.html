@@ -4,13 +4,13 @@
      «La forma de una herramienta»): el script propio de esta página llama a lwT() al
      arrancar y tiene que encontrarlo ya definido. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=564130b2"></script>
+<script src="/contracts/assets/i18n.js?v=3727bf1f"></script>
 <!-- toast()/toastMal() (suite-comun.js) y lwPicker() (dialogo.js): el selector de
      contrato es una lista cerrada y larga —un agente puede tener decenas— y la suite
      no monta un <select> ni un <datalist> para eso. vocabulario.js da el nombre
      visible del tipo de contrato en la nota de cada opción. -->
 <script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script>
-<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/datos.js?v=bf3a91f1" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/datos.js?v=4a7821a1" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=f8f8a146" defer></script>
 <link href="../assets/shell.css?v=bd0a56cb" rel="stylesheet">
@@ -66,6 +66,18 @@
 <p class="font-body-sm text-body-sm text-outline" data-lwt id="lw-contrato-estado">Cargando tus contratos…</p>
 </div>
 
+<!-- Respuestas aprobadas que aplican al contrato elegido (22-sep-2026, noche 4:
+     FAQ del encargo). Se consultan al elegir el contrato —por su proyecto y
+     por su tipo, más las de procedimiento sin acotar— y la edge las pasa al
+     modelo como referencia aprobada. El agente las ve ANTES de redactar: si
+     la pregunta ya tiene respuesta aprobada, no hace falta el modelo. Lista
+     vacía y «no he podido mirar» se leen distinto (estado). -->
+<div class="flex flex-col gap-2 hidden" hidden id="lw-faq-contrato-caja">
+<span class="font-label-md text-label-md text-on-surface" data-lwt>Respuestas aprobadas para este contrato</span>
+<p class="font-body-sm text-body-sm text-outline" id="lw-faq-contrato-estado"></p>
+<div class="flex flex-col gap-2" id="lw-faq-contrato"></div>
+</div>
+
 <div class="flex flex-col gap-2">
 <label class="font-label-md text-label-md text-on-surface" for="lw-pregunta" data-lwt>Pregunta del comprador (pégala tal cual)</label>
 <!-- maxlength 4000 = TOPE_PREGUNTA de la edge, que además lo vuelve a
@@ -117,7 +129,17 @@
 <span class="material-symbols-outlined text-[20px] text-deep-lagoon shrink-0">smart_toy</span>
 <p class="font-body-sm text-body-sm text-on-surface" data-lwt>Borrador generado por IA — revísalo antes de enviarlo</p>
 </div>
-<pre class="whitespace-pre-wrap break-words font-body-md text-body-md text-on-surface bg-surface-container-low rounded-xl p-6 m-0" id="lw-borrador" style="white-space:pre-wrap"></pre>
+<!-- Campo EDITABLE (22-sep-2026, noche 4): el agente corrige el borrador aquí
+     y «Copiar» se lleva lo que hay en el campo, no lo que devolvió el modelo.
+     Lo que va al comprador es `borrador_comprador` (solo los puntos no
+     retirados, sin marca ni frases al agente); los puntos retirados se pintan
+     aparte, arriba, como avisos. maxlength 6000 = CHECK de
+     bot_respuestas_copiadas.texto, para que un texto muy largo no muera con
+     un error de restricción al copiar. Mismas clases que el campo de la
+     pregunta. -->
+<label class="sr-only" for="lw-borrador" data-lwt>Borrador para el comprador (editable)</label>
+<textarea class="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:border-deep-lagoon" id="lw-borrador" maxlength="6000" rows="14"></textarea>
+<p class="font-body-sm text-body-sm text-outline" data-lwt>Solo los puntos que el asistente ha podido contestar. Corrígelo aquí si hace falta: «Copiar» se lleva lo que quede escrito.</p>
 <div class="flex flex-wrap items-center justify-between gap-3">
 <!-- Fuentes plegadas (owner, 22-sep: la lista abierta «mete ruido»). Al
      agente le basta el borrador, que ya cita los artículos; la lista de

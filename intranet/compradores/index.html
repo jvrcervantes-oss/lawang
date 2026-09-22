@@ -20,7 +20,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=564130b2"></script>
+<script src="/contracts/assets/i18n.js?v=3727bf1f"></script>
 <script src="/contracts/assets/herramientas.js?v=0cab1a28"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="/contracts/assets/visor.js?v=28038adb" defer></script>
@@ -555,6 +555,39 @@ function pintarLista(){
 
 // partirTelefono() sale de geo.js — ver nota junto a NACIONALIDADES, arriba.
 
+/* LA FICHA DICE LO QUE NO ENSEÑA — 22-sep-2026, decisión del owner.
+   Desde que dos closers pueden tener contrato con la misma persona, el «Estado
+   de cuentas» de arriba (que suma SOLO los contratos que la RLS te deja ver)
+   podía leerse como el total de esa persona: A creía que el cliente le debía X
+   sin saber que además tiene otro contrato con B. `comprador_contratos_resumen()`
+   devuelve TODOS sus contratos —tipo, proyecto, autor y si está firmado—, sin
+   importes ni número, y marca cuáles ves. Con eso la ficha cuenta «tiene 3,
+   ves 2» y lista de quién son los otros, para que sepas a quién preguntar.
+   Se pide DESPUÉS de pintar: es una nota, no un requisito para abrir la ficha. */
+async function pintarContratosAjenos(c){
+  const caja = $('#contratosAjenos'); if(!caja || !SB) return;
+  const { data, error } = await SB.rpc('comprador_contratos_resumen', { p_client_id: c.id });
+  if(error){ console.warn('comprador_contratos_resumen', error); return; }
+  const filas = data || [];
+  const ajenos = filas.filter(r => !r.visible);
+  if(!ajenos.length) return;
+  const visibles = filas.length - ajenos.length;
+  const etiqueta = r => {
+    // el nombre en negrita se compone FUERA de la llamada a lwT: el chequeo
+    // estático de claves (tools/i18n_claves.py) lee los literales de dentro
+    const quien = '<b>' + esc(nombreDe(r.autor) || r.autor || lwT('nadie (sin autor)')) + '</b>';
+    const firma = r.bloqueado ? '<span class="tag ok">' + lwT('Firmado') + '</span>' : '<span class="tag espera">' + lwT('Sin firmar') + '</span>';
+    return esc(lwTipoContrato(r.tipo)) + ' · ' + esc(r.proyecto_nombre || '—') + ' · ' + lwT('de %a', { a: quien }) + ' · ' + firma;
+  };
+  caja.innerHTML = `<p class="nota falta" style="margin-top:8px">${lwT('Esta persona tiene %n contratos en total; aquí ves %v.', { n: filas.length, v: visibles })}
+      ${lwT('Los que no ves son de otro comercial: sus cifras no entran en esta ficha.')}</p>
+    <ul class="nota" style="margin:4px 0 0 18px;padding:0">${ajenos.map(r => '<li>' + etiqueta(r) + '</li>').join('')}</ul>
+    ${ajenos.some(r => r.bloqueado) ? '<p class="nota">' + lwT('Un contrato firmado, sea de quien sea, congela esta ficha: desde entonces solo la corrige un administrador.') + '</p>' : ''}`;
+  caja.hidden = false;
+  const leg = $('#legEstadoCuentas'); if(leg) leg.textContent = lwT('Estado de cuentas de tus contratos');
+  const p = $('#cuentasParciales');
+  if(p){ p.textContent = lwT('Solo suma tus contratos: los de otros comerciales no entran en estas cifras.'); p.hidden = false; }
+}
 function pintarFicha(){
   /* Los contratos preliminares de esta ficha necesitan su cuota. Se piden y se
      repinta cuando llegan; `CUOTA_RESERVA` recuerda lo pedido, así que la
@@ -766,6 +799,7 @@ function pintarFicha(){
     <fieldset>
       <legend>${lwT('Su actividad')}</legend>
       <p class="nota">${lwT('Contratos, pagos, facturas, documentos y portal de esta persona NO se muestran aquí: son del compañero que lleva la ficha. Que no aparezcan no significa que no existan.')}</p>
+      <div id="contratosAjenos" hidden></div>
     </fieldset>` : `
     <fieldset>
       <legend>${lwT('Contratos firmados')}</legend>
@@ -783,10 +817,12 @@ function pintarFicha(){
         </tbody></table>
         <p class="nota">${lwT('Pulsa un número de contrato para ver su operación completa.')}</p>`;
       })()}
+      <div id="contratosAjenos" hidden></div>
     </fieldset>`}
     ${nuevo ? '' : `
     <fieldset>
-      <legend>${lwT('Estado de cuentas')}</legend>
+      <legend id="legEstadoCuentas">${lwT('Estado de cuentas')}</legend>
+      <p class="nota falta" id="cuentasParciales" hidden></p>
       ${(() => {
         const suyos = VINCULOS.filter(v => v.client_id === c.id && v.contratos).map(v => v.contratos);
         if(!suyos.length) return '<p class="nota">' + lwT('Sin contrato enlazado todavía.') + '</p>';
@@ -1001,7 +1037,11 @@ function pintarFicha(){
     // y un botón deshabilitado invita a preguntar por qué en vez de explicarlo
     // solo (mismo criterio que ya usa facturas/index.html con "Borrar").
     pie: soloLectura
-      ? '<button class="sui-btn" id="btnCerrar">' + lwT('Cerrar') + '</button>'
+      /* «Crear contrato» también sobre una ficha ajena (22-sep-2026, owner):
+         la persona es del equipo, el contrato será de quien lo haga. El
+         generador la carga por el directorio, igual que su buscador. */
+      ? (nuevo ? '' : '<button class="sui-btn" id="btnNuevoContrato">' + lwT('Crear contrato') + '</button>') +
+        '<button class="sui-btn" id="btnCerrar">' + lwT('Cerrar') + '</button>'
       : cerrada
         ? `<button class="sui-btn primario" id="btnEditar">${lwT('Editar datos')}</button>
            <button class="sui-btn" id="btnNuevoContrato">${lwT('Crear contrato')}</button>
@@ -1091,6 +1131,7 @@ function pintarFicha(){
   if(bn) bn.addEventListener('click', () => {
     window.open('/contracts/?cliente=' + encodeURIComponent(c.id), '_blank', 'noopener');
   });
+  if(!nuevo) pintarContratosAjenos(c);
   $('#btnCerrar').addEventListener('click', suiCerrarCajon);
   const bs = $('#btnSubir'); if(bs) bs.addEventListener('click', () => subir(c.id));
   const bi = $('#btnPortalInv'); if(bi) bi.addEventListener('click', () => invitarPortal(c));

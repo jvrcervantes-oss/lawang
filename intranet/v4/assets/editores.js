@@ -2301,26 +2301,75 @@
   // Plegable con +/− a mano (no <details>: control total del marcador sin
   // colar una hoja de estilos global). Abierta por defecto en Emisor/Cliente,
   // cerrada en Impuesto/Notas — igual que el clásico.
-  function seccionPlegableDoc(host, titulo, abierta) {
+  /* `resumen` (22-sep-2026, owner: «Emisor y Cliente pueden venir cerrados y
+     mostrar la info al ladito sin tener que abrirlo»): calco de
+     montarPlegables/repasaPlegables/RESUMEN_DE del clásico. Una sección con
+     resumen se PLIEGA SOLA cuando todos sus campos tienen valor y enseña el
+     resumen en su cabecera; con un hueco se queda abierta — plegar un hueco
+     es esconder trabajo pendiente. Lo que el operador abre o cierra a mano
+     (`forzado`) no se le vuelve a tocar. La regla corre en repintaSplitDoc,
+     que ya corre en cada tecla. */
+  var plegablesDocActivos = [];
+  function seccionPlegableDoc(host, titulo, abierta, opts) {
+    opts = opts || {};
     var card = document.createElement('div');
     card.style.cssText = 'background:' + CAJ.papel + ';border:1px solid ' + CAJ.borde + ';border-radius:12px;padding:14px 16px;margin-bottom:12px';
     var btn = document.createElement('button'); btn.type = 'button';
     btn.style.cssText = 'all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:8px;' +
       'font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:' + CAJ.tinta + ';width:100%';
-    var marca = document.createElement('span'); marca.style.cssText = 'width:11px;color:' + CAJ.apagado;
+    var marca = document.createElement('span'); marca.style.cssText = 'width:11px;color:' + CAJ.apagado + ';flex:0 0 auto';
     marca.textContent = abierta ? '−' : '+';
-    var lbl = document.createElement('span'); lbl.textContent = titulo;
-    btn.appendChild(marca); btn.appendChild(lbl);
+    var lbl = document.createElement('span'); lbl.textContent = titulo; lbl.style.flex = '0 0 auto';
+    var res = document.createElement('span');
+    res.style.cssText = 'margin-left:auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;' +
+      'font-size:12.5px;font-weight:500;letter-spacing:0;text-transform:none;color:' + CAJ.apagado;
+    btn.appendChild(marca); btn.appendChild(lbl); btn.appendChild(res);
     var body = document.createElement('div');
     body.style.cssText = 'display:' + (abierta ? 'grid' : 'none') + ';gap:12px;margin-top:12px';
-    btn.addEventListener('click', function () {
-      var abierto = body.style.display !== 'none';
-      body.style.display = abierto ? 'none' : 'grid';
-      marca.textContent = abierto ? '+' : '−';
-    });
+    var estado = { body: body, res: res, marca: marca, resumen: opts.resumen, forzado: false };
+    function pon(plegado) {
+      body.style.display = plegado ? 'none' : 'grid';
+      marca.textContent = plegado ? '+' : '−';
+      res.textContent = (plegado && estado.resumen) ? (estado.resumen() || '') : '';
+      btn.setAttribute('aria-expanded', String(!plegado));
+    }
+    estado.pon = pon;
+    btn.addEventListener('click', function () { estado.forzado = true; pon(body.style.display !== 'none'); });
     card.appendChild(btn); card.appendChild(body);
     host.appendChild(card);
+    if (opts.resumen) plegablesDocActivos.push(estado);
     return body;
+  }
+  function repasaPlegablesDoc() {
+    plegablesDocActivos.forEach(function (p) {
+      if (!p.body.isConnected) return;
+      if (!p.forzado) {
+        var campos = Array.prototype.filter.call(p.body.querySelectorAll('input,select,textarea'), function (el) {
+          if (el.type === 'hidden') return false;
+          for (var n = el.parentElement; n && n !== p.body; n = n.parentElement) { if (n.style.display === 'none') return false; }
+          return true;
+        });
+        var completa = campos.length > 0 && campos.every(function (el) { return String(el.value || '').trim(); });
+        p.pon(completa);
+      } else {
+        p.res.textContent = (p.body.style.display === 'none' && p.resumen) ? (p.resumen() || '') : '';
+      }
+    });
+  }
+  // Los resúmenes de Emisor y Cliente, como RESUMEN_DE del clásico: leen el
+  // formulario vivo (campoDeDoc), así que valen para factura y recibí.
+  function resumenEmisorDoc() {
+    var soc = campoDeDoc('sociedad'), cta = campoDeDoc('cuenta');
+    var s = soc && soc.selectedOptions && soc.selectedOptions[0] ? soc.selectedOptions[0].text.split(' (')[0] : '';
+    var c = cta && cta.value ? (cta.selectedOptions[0] ? cta.selectedOptions[0].text : '') : '';
+    return [s, (!c || /sin datos bancarios/i.test(c)) ? '⚠️ sin cuenta' : c].filter(Boolean).join(' · ');
+  }
+  function resumenClienteDoc() {
+    var nEl = campoDeDoc('cliente_nombre'), pEl = campoDeDoc('proyecto_nombre');
+    var n = (nEl && nEl.value || '').trim(), p = (pEl && pEl.value || '').trim();
+    var partes = n.split('·').map(function (x) { return x.trim(); }).filter(Boolean);
+    var quien = partes.length > 1 ? partes[0] + ' +' + (partes.length - 1) : (n || 'sin nombre');
+    return [quien, p].filter(Boolean).join(' · ');
   }
   function filaDosDoc(host) {
     var row = document.createElement('div');
@@ -2450,6 +2499,7 @@
   // (Conceptos vs. aplicaciones), el maquetado del split no.
   function montaSplitDoc(host) {
     aseguraEstiloSplitDoc();
+    plegablesDocActivos = [];   // cada editor empieza con sus propias secciones plegables
     var wrap = document.createElement('div'); wrap.className = 'lw-doc-split';
     var colForm = document.createElement('div');
     var colPrev = document.createElement('div'); colPrev.className = 'lw-doc-prev';
@@ -2483,6 +2533,7 @@
     Object.keys(v.doc).forEach(function (k) { piezas.docEl.style.setProperty(k, v.doc[k]); });
     Object.keys(v.hoja).forEach(function (k) { piezas.sheetWrap.style.setProperty(k, v.hoja[k]); });
     piezas.docEl.innerHTML = documentoHTML(vals, { numero: numero || '' });
+    repasaPlegablesDoc();
   }
 
   /* ---------- Factura / proforma: crear o editar ---------- */
@@ -2649,7 +2700,7 @@
           campoSimpleDoc(filaF, { k: 'fecha_emision', label: 'Fecha de emisión', tipo: 'date', valor: f0.fecha_emision || hoyLocalDoc() });
           campoSimpleDoc(filaF, { k: 'fecha_vencimiento', label: 'Vencimiento (opcional)', tipo: 'date', valor: f0.fecha_vencimiento || '' });
 
-          var secEmisor = seccionPlegableDoc(host, 'Emisor', true);
+          var secEmisor = seccionPlegableDoc(host, 'Emisor', true, { resumen: resumenEmisorDoc });
           campoSimpleDoc(secEmisor, { k: 'sociedad', label: 'Sociedad que factura', tipo: 'select', req: 1, valor: f0.sociedad || '', opciones: [['', '— elige —']].concat(opcionesSociedadDoc()) });
           var selCuenta = campoSimpleDoc(secEmisor, { k: 'cuenta', label: 'Cuenta donde se cobra', tipo: 'select', valor: f0.cuenta || '', opciones: opcionesCuentaDoc() });
           var hintCuenta = document.createElement('p'); hintCuenta.style.cssText = 'margin:0;font-size:11.5px;color:' + CAJ.apagado;
@@ -2668,7 +2719,7 @@
           function actualizaOtros() { wrapOtros.style.display = selCuenta.value === 'otros' ? 'grid' : 'none'; }
           selCuenta.addEventListener('change', actualizaOtros); actualizaOtros();
 
-          var secCliente = seccionPlegableDoc(host, 'Cliente', true);
+          var secCliente = seccionPlegableDoc(host, 'Cliente', true, { resumen: resumenClienteDoc });
           campoSimpleDoc(secCliente, { k: 'cliente_nombre', label: 'Nombre o razón social', req: 1, valor: f0.cliente_nombre || '' });
           campoSimpleDoc(secCliente, { k: 'cliente_documento', label: 'Pasaporte / NPWP / NIF', valor: f0.cliente_documento || '' });
           campoSimpleDoc(secCliente, { k: 'cliente_email', label: 'Email', tipo: 'email', valor: f0.cliente_email || '' });
@@ -3039,29 +3090,39 @@
           campoSimpleDoc(filaF, { k: 'fecha_emision', label: 'Fecha de emisión', tipo: 'date', valor: f0.fecha_emision || hoyLocalDoc() });
           campoSimpleDoc(filaF, { k: 'fecha_vencimiento', label: 'Vencimiento (opcional)', tipo: 'date', valor: f0.fecha_vencimiento || '' });
 
-          var secEmisor = seccionPlegableDoc(host, 'Emisor', true);
+          var secEmisor = seccionPlegableDoc(host, 'Emisor', true, { resumen: resumenEmisorDoc });
           campoSimpleDoc(secEmisor, { k: 'sociedad', label: 'Sociedad que cobra', tipo: 'select', req: 1, valor: f0.sociedad || '', opciones: [['', '— elige —']].concat(opcionesSociedadDoc()) });
           campoSimpleDoc(secEmisor, { k: 'cuenta', label: 'Cuenta donde se cobró', tipo: 'select', valor: f0.cuenta || '', opciones: opcionesCuentaDoc(true) });
           var hintCuenta = document.createElement('p'); hintCuenta.style.cssText = 'margin:0;font-size:11.5px;color:' + CAJ.apagado;
           hintCuenta.textContent = 'Sin cuenta, el documento no imprime datos bancarios.';
           secEmisor.appendChild(hintCuenta);
 
-          var secCliente = seccionPlegableDoc(host, 'Cliente', true);
+          var secCliente = seccionPlegableDoc(host, 'Cliente', true, { resumen: resumenClienteDoc });
           campoSimpleDoc(secCliente, { k: 'cliente_nombre', label: 'Nombre o razón social', valor: estadoContrato.clienteNombre });
           campoSimpleDoc(secCliente, { k: 'cliente_documento', label: 'Pasaporte / NPWP / NIF', valor: estadoContrato.clienteDocumento });
           campoSimpleDoc(secCliente, { k: 'cliente_email', label: 'Email', tipo: 'email', valor: estadoContrato.clienteEmail });
           campoSimpleDoc(secCliente, { k: 'proyecto_nombre', label: 'Proyecto / unidad', valor: estadoContrato.proyectoNombre, placeholder: 'Ej. Palm Field — Cabana 2BR S2' });
 
           var secAplic = seccionFijaDoc(host, 'Lo que se ha cobrado');
-          var lista = document.createElement('div'); lista.style.cssText = 'display:grid;gap:6px'; secAplic.appendChild(lista);
+          /* Una TARJETA por factura y el total en una franja (22-sep-2026,
+             owner: «la sección queda rara, hazla más clara y legible»). Antes
+             era una fila de tres columnas con el número en pequeño, el
+             importe sin rótulo y «cobrarlo entero» como enlace subrayado
+             debajo del número: no se leía qué era cada cosa. Ahora: número
+             grande arriba, «Pendiente de esta factura» debajo, y el importe
+             con su rótulo y «Cobrar todo» al lado, que es la mitad barata de
+             nacer en blanco (el importe sigue naciendo vacío: 27-ago-2026, el
+             caso normal es un cobro parcial). */
+          var lista = document.createElement('div'); lista.style.cssText = 'display:grid;gap:8px'; secAplic.appendChild(lista);
+          var totalAplic = document.createElement('div');
+          totalAplic.style.cssText = 'display:none;justify-content:space-between;align-items:baseline;gap:12px;padding:10px 12px;border-radius:10px;background:' + CAJ.banda + ';border:1px solid ' + CAJ.borde;
+          secAplic.appendChild(totalAplic);
           var btnAdd = document.createElement('button'); btnAdd.type = 'button'; btnAdd.textContent = '+ Añadir otra factura';
           btnAdd.style.cssText = 'justify-self:start;padding:7px 12px;border-radius:8px;border:1px dashed ' + CAJ.hoja +
             ';background:transparent;color:' + CAJ.lago + ';font-weight:600;font-size:12.5px;cursor:pointer';
           secAplic.appendChild(btnAdd);
-          var avisoAplic = document.createElement('p'); avisoAplic.style.cssText = 'margin:0;font-size:11.5px;color:' + CAJ.apagado;
+          var avisoAplic = document.createElement('p'); avisoAplic.style.cssText = 'margin:0;font-size:11.5px;line-height:1.5;color:' + CAJ.apagado;
           secAplic.appendChild(avisoAplic);
-          var totalAplic = document.createElement('p'); totalAplic.style.cssText = 'margin:0;font-size:12px;font-weight:600;color:' + CAJ.tinta;
-          secAplic.appendChild(totalAplic);
           function repinta() {
             var usadas = {}; aplicaciones.forEach(function (a) { usadas[a.factura_id] = 1; });
             var libres = facturasAbiertasCache.filter(function (x) { return !usadas[x.id]; });
@@ -3071,27 +3132,36 @@
               : facturasOtraMoneda ? 'Este comprador tiene ' + facturasOtraMoneda + ' factura' + (facturasOtraMoneda === 1 ? '' : 's') + ' pendiente' + (facturasOtraMoneda === 1 ? '' : 's') + ', pero en otra moneda — un recibí no puede saldar una factura en una moneda distinta a la suya.'
               : 'No le queda ninguna otra factura pendiente a este comprador.';
             var suma = aplicaciones.reduce(function (s, a) { return s + (lwParseImporte(a.importe) || 0); }, 0);
-            totalAplic.textContent = aplicaciones.length ? 'Total del recibí: ' + fmtMoneda(suma, estadoContrato.moneda) + ' (' + aplicaciones.length + ' factura' + (aplicaciones.length === 1 ? '' : 's') + ')' : '';
+            totalAplic.style.display = aplicaciones.length ? 'flex' : 'none';
+            totalAplic.innerHTML = '<span style="font-size:12.5px;font-weight:600;color:' + CAJ.tinta + '">Total del recibí <span style="font-weight:500;color:' + CAJ.apagado + '">· ' +
+              aplicaciones.length + ' factura' + (aplicaciones.length === 1 ? '' : 's') + '</span></span>' +
+              '<span style="font-size:16px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;color:' + CAJ.lago + '">' + esc(fmtMoneda(suma, estadoContrato.moneda)) + '</span>';
             lista.innerHTML = '';
             aplicaciones.forEach(function (a, i) {
               var el = document.createElement('div');
-              el.style.cssText = 'display:grid;grid-template-columns:1fr 130px 22px;gap:6px;align-items:start';
-              var campoEstilo = 'padding:7px 8px;border:1px solid ' + CAJ.borde + ';border-radius:6px;font-size:12.5px;color:' + CAJ.tinta + ';background-color:' + CAJ.papel + ';box-sizing:border-box;width:100%';
-              var col1 = document.createElement('div'); col1.style.cssText = 'display:grid;gap:2px';
-              var num = document.createElement('div'); num.style.cssText = 'font-size:12.5px;color:' + CAJ.tinta; num.textContent = a.numero;
+              el.style.cssText = 'display:grid;gap:8px;padding:12px 14px;border:1px solid ' + CAJ.borde + ';border-radius:10px;background:' + CAJ.papel;
+              var cab = document.createElement('div'); cab.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-start;gap:10px';
+              var num = document.createElement('div');
+              num.innerHTML = '<div style="font-size:14px;font-weight:700;color:' + CAJ.tinta + ';letter-spacing:-.01em">' + esc(a.numero) + '</div>' +
+                '<div style="font-size:12px;color:' + CAJ.apagado + ';margin-top:2px">Pendiente de esta factura: <b style="color:' + CAJ.tinta + ';font-weight:600">' + esc(fmtMoneda(a.pendiente, estadoContrato.moneda)) + '</b></div>';
+              var btnDel = document.createElement('button'); btnDel.type = 'button'; btnDel.textContent = '×'; btnDel.title = 'Quitar esta factura del recibí';
+              btnDel.style.cssText = 'border:0;background:none;color:#9E2F26;font-size:20px;line-height:1;cursor:pointer;flex:0 0 auto;padding:0 2px';
+              cab.appendChild(num); cab.appendChild(btnDel);
+              var lbl = document.createElement('div'); lbl.style.cssText = 'font-size:12px;color:' + CAJ.apagado + ';font-weight:500'; lbl.textContent = 'Importe cobrado';
+              var fila = document.createElement('div'); fila.style.cssText = 'display:flex;gap:8px;align-items:center;flex-wrap:wrap';
+              var inpImp = document.createElement('input'); inpImp.type = 'text'; inpImp.inputMode = 'decimal'; inpImp.placeholder = '¿cuánto ha entrado?';
+              inpImp.value = a.importe;
+              inpImp.style.cssText = 'flex:1 1 160px;min-width:0;padding:9px 12px;border:1px solid ' + CAJ.borde + ';border-radius:8px;font-size:14px;font-weight:500;color:' + CAJ.tinta + ';background:' + CAJ.papel + ';box-sizing:border-box';
               var pend = document.createElement('button'); pend.type = 'button';
-              pend.style.cssText = 'all:unset;cursor:pointer;font-size:11px;color:' + CAJ.lago + ';font-weight:600;text-decoration:underline';
-              pend.textContent = 'Pendiente ' + fmtMoneda(a.pendiente, estadoContrato.moneda) + ' — cobrarlo entero';
+              pend.style.cssText = 'flex:0 0 auto;padding:7px 12px;border-radius:999px;border:1px solid ' + CAJ.lago + ';background:' + CAJ.papel + ';color:' + CAJ.lago + ';font-weight:600;font-size:12px;cursor:pointer;white-space:nowrap';
+              pend.textContent = 'Cobrar todo';
+              pend.title = 'Pone ' + fmtMoneda(a.pendiente, estadoContrato.moneda) + ', lo que queda pendiente';
               pend.addEventListener('click', function () { a.importe = lwImporteCanonico(a.pendiente); repinta(); });
-              col1.appendChild(num); col1.appendChild(pend);
-              var inpImp = document.createElement('input'); inpImp.type = 'text'; inpImp.inputMode = 'decimal'; inpImp.placeholder = 'Importe cobrado';
-              inpImp.value = a.importe; inpImp.style.cssText = campoEstilo;
-              var btnDel = document.createElement('button'); btnDel.type = 'button'; btnDel.textContent = '×'; btnDel.title = 'Quitar';
-              btnDel.style.cssText = 'border:0;background:none;color:#9E2F26;font-size:19px;line-height:1;cursor:pointer';
               inpImp.addEventListener('input', function () { a.importe = inpImp.value; });
               inpImp.addEventListener('blur', function () { var n = lwParseImporte(inpImp.value); var txt = lwImporteCanonico(n); inpImp.value = txt; a.importe = txt; repinta(); });
               btnDel.addEventListener('click', function () { aplicaciones.splice(i, 1); pintaBtnF(); repinta(); });
-              el.appendChild(col1); el.appendChild(inpImp); el.appendChild(btnDel);
+              fila.appendChild(inpImp); fila.appendChild(pend);
+              el.appendChild(cab); el.appendChild(lbl); el.appendChild(fila);
               lista.appendChild(el);
             });
             repintaPreview();
