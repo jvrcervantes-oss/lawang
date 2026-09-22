@@ -26,6 +26,16 @@
 */
 
 let TECHO_ELEGIDO   = null;   // {techo_id,clave,nombre,precio,moneda,tramo} | null — CONGELADO al guardar
+/* Contrato GUARDADO que nunca tuvo techo (anterior a la regla del 16-sep, o
+   de un modelo que entonces no tenía variantes) — 22-sep-2026. Mientras sea
+   true, cargarTechosYExtras() NO preselecciona: unos 70 contratos antiguos
+   tienen un precio negociado distinto del base (Tropical en Sumba Hills a
+   69.000 con base 44.000) y preseleccionar les cambiaba el precio al reabrir,
+   con el trigger del servidor cerrando luego la vuelta atrás. Lo pone
+   openSavedContract() (app.html), lo quita un cambio real de tipología,
+   resetBorrador() y derivar. Si el usuario elige un techo a mano en el
+   desplegable, la fórmula aplica desde ese momento: eso sí es una decisión. */
+let TECHO_LEGADO_SIN = false;
 let EXTRAS_ELEGIDOS = [];     // [{extra_id,clave,nombre,precio,moneda}, …]     — CONGELADO al guardar
 let TECHOS_OPCIONES  = [];    // catálogo YA resuelto (tramo+delta) del modelo+proyecto actual
 let EXTRAS_OPCIONES  = [];
@@ -64,7 +74,7 @@ async function cargarTechosYExtras(modeloId, proyectoId){
      TECHO_ELEGIDO en syncTipologiaModelos), se preselecciona la MÁS ECONÓMICA
      — nunca la primera del array, que no tiene por qué venir ordenada.
      Un contrato ya guardado con su techo (o uno huérfano) no se toca aquí. */
-  if(!TECHO_ELEGIDO && TECHOS_OPCIONES.length){
+  if(!TECHO_ELEGIDO && TECHOS_OPCIONES.length && !TECHO_LEGADO_SIN){
     const masBarato = TECHOS_OPCIONES.reduce((min,t)=>Number(t.precio) < Number(min.precio) ? t : min);
     // `por_defecto` (hallazgo MEDIA de Legal en la consulta de deploy, 16-sep):
     // esto lo eligió el software, no el comercial. Se apaga en cuanto el
@@ -72,7 +82,15 @@ async function cargarTechosYExtras(modeloId, proyectoId){
     // rastro en el propio documento impreso (ver techoExtrasBodyHTML/collect
     // en app.html) — si el comprador disputa esta partida, hay que poder
     // distinguir "nadie lo tocó" de "se negoció y se dejó así a propósito".
-    TECHO_ELEGIDO = { ...masBarato, fecha_resuelta: new Date().toISOString(), por_defecto: true };
+    /* `sintetico` (22-sep-2026, revisión previa #39 Legal+Datos): el modelo
+       no tiene variantes y modelo_techos_opciones() devolvió la única opción
+       «Ulin» calculada desde el precio base (se reconoce porque su techo_id es
+       el propio modelo_id, no una fila de modelo_techos). NO es "por defecto":
+       no había alternativa que elegir, así que el documento no debe sugerir
+       al comprador que se le adjudicó una entre varias (hallazgo MEDIA de
+       Legal). El rastro de que lo puso el software queda aquí, en datos.techo. */
+    const sintetico = String(masBarato.techo_id) === String(modeloId);
+    TECHO_ELEGIDO = { ...masBarato, fecha_resuelta: new Date().toISOString(), por_defecto: !sintetico, sintetico };
   }
   refreshTechoExtras();
   syncPrecioTechoExtras();
@@ -98,7 +116,14 @@ function techoExtrasBodyHTML(){
   const techosMostrar = [...TECHOS_OPCIONES];
   if(TECHO_ELEGIDO && !techosMostrar.some(t=>t.techo_id===TECHO_ELEGIDO.techo_id))
     techosMostrar.push({ ...TECHO_ELEGIDO, huerfano:true });
-  const optsTecho = techosMostrar.map(t=>
+  /* Contrato guardado sin techo (TECHO_LEGADO_SIN): el desplegable lleva una
+     opción vacía seleccionada para no fingir que hay un techo puesto. Elegir
+     uno a mano lo activa (handler en parcela_inventario.js); volver al vacío
+     no hace nada, igual que hasta hoy. */
+  const optVacia = (TECHO_LEGADO_SIN && !TECHO_ELEGIDO)
+    ? `<option value="" selected>${L({es:'— sin techo (contrato anterior a la regla del techo) —',en:'— no roof (contract predates the roof rule) —',id:'— tanpa atap (kontrak sebelum aturan atap) —'})}</option>`
+    : '';
+  const optsTecho = optVacia + techosMostrar.map(t=>
     `<option value="${escAttr(t.techo_id)}" ${TECHO_ELEGIDO && TECHO_ELEGIDO.techo_id===t.techo_id ? 'selected' : ''}>`
     + `${esc(t.nombre)} — ${fmtImporte(Number(t.precio))} ${esc(t.moneda)}`
     + `${t.huerfano ? ' — ' + L({es:'ya no está en el catálogo',en:'no longer in the catalogue',id:'tidak ada lagi di katalog'}) : ''}`

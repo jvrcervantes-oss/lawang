@@ -83,7 +83,7 @@
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
 <script src="assets/modelos_catalogo.js?v=4e4fdee1"></script>
 <!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
-<script src="assets/techo_extras.js?v=ca3042d9"></script>
+<script src="assets/techo_extras.js?v=0b29d8c4"></script>
 <script src="assets/hitos_fechas.js?v=73e20d57"></script>
 <script src="assets/entidades_pago.js?v=72c8d06a"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
@@ -979,7 +979,7 @@ function syncTipologiaModelos(){
        precio, mismo importe, sin volver a pedir el motivo ni comprobar el
        15% contra el precio que el agente ve en pantalla en ese instante). */
     if(cambio){
-      TECHO_ELEGIDO = null; EXTRAS_ELEGIDOS = [];
+      TECHO_ELEGIDO = null; EXTRAS_ELEGIDOS = []; TECHO_LEGADO_SIN = false;   // cambiar de modelo sí es una decisión: aplica la regla nueva
       ['descuento_comercial', 'descuento_comercial_motivo'].forEach(k=>{
         const el = document.querySelector('[name="' + k + '"]');
         if(el && el.value){ el.value = ''; el.dispatchEvent(new Event('input', { bubbles:true })); }
@@ -1735,6 +1735,7 @@ function limpiarOverrides(slug){
    tipo de documento), no algo que deba reiniciarse por contrato. */
 function resetBorrador(slug){
   SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null; PROYECTO_ABIERTO = '';
+  TECHO_LEGADO_SIN = false;
   /* HITOS también se reinicia (auditoría 19-ago): faltaba en esta lista y «+
      Nuevo contrato» heredaba el calendario de pagos del contrato ABIERTO — la
      misma familia de fallo que ANNEXES/COMPRADORES ya corregida aquí. Se
@@ -2792,7 +2793,7 @@ function collect(){
      comprador la disputa después de firmar. */
   if(CONTRACT_TIPO[CURRENT.slug] === 'construccion' && TECHO_ELEGIDO)
     data.techo_nombre = TECHO_ELEGIDO.nombre
-      + (TECHO_ELEGIDO.por_defecto ? ' ' + L({es:'(por defecto)',en:'(default)',id:'(bawaan)'}) : '');
+      + (TECHO_ELEGIDO.por_defecto ? ' ' + L({es:'(por defecto)',en:'(default)',id:'(pilihan standar)'}) : '');   // ID: registro contractual, no informático (Legal, 22-sep); el techo sintético «Ulin» lleva por_defecto=false a propósito
 
   /* `descuento_comercial_aplica` (21-sep-2026) — igual que `adq1_tipo` unas
      líneas más abajo: no es un campo del formulario, es un 'si'/'no' que
@@ -4336,7 +4337,7 @@ async function guardarContrato(){
      variante de techo (TECHOS_OPCIONES vacío) no entra aquí: no hay nada que
      elegir y techo_extras.js ya lo dice en pantalla. */
   if(tipo === 'construccion' && typeof TECHOS_OPCIONES !== 'undefined'
-     && TECHOS_OPCIONES.length && !TECHO_ELEGIDO){
+     && TECHOS_OPCIONES.length && !TECHO_ELEGIDO && !TECHO_LEGADO_SIN){   // legado sin techo: se respeta (22-sep-2026)
     avisoNoGuardado(lwT('Elige el techo de la vivienda.'));
     const el = document.getElementById('techoSel');
     if(el){ el.focus(); el.scrollIntoView({behavior:'smooth', block:'center'}); }
@@ -5117,6 +5118,7 @@ async function openSavedContract(id){
   // quedarse con las del anterior (cargarTechosYExtras() las repinta sola en
   // cuanto syncTipologiaModelos() vuelva a correr, dentro de populateForm).
   TECHO_ELEGIDO = d.techo || null;
+  TECHO_LEGADO_SIN = !d.techo;   // guardado sin techo: no preseleccionar al reabrir (22-sep-2026, ver techo_extras.js)
   EXTRAS_ELEGIDOS = Array.isArray(d.extras) ? d.extras.map(e=>({...e})) : [];
   TECHO_MODELO_HECHO = null; TECHOS_OPCIONES = []; EXTRAS_OPCIONES = [];
   // la ficha enlazada, si la hay. Se relee de `clients` en vez de fiarse de lo
@@ -5397,7 +5399,7 @@ async function derivarContrato(slug){
 
   // se suelta el vínculo con la fila de origen ANTES de cargar: lo que viene es
   // un contrato nuevo sin guardar, no una edición del anterior
-  SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null;
+  SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null; TECHO_LEGADO_SIN = false;
   EN_FIRMA = { vivas:0, firmadas:0, filas:[] }; aplicarEstadoFirma();
   ADQ1_CLIENT = null; CAMPOS_HEREDADOS = {}; UNIDADES_RESERVA_VINCULADA = null; UNIDAD_ID_CONSTRUCCION = null;
   // El contrato derivado hereda datos, no ediciones de texto: el párrafo que
