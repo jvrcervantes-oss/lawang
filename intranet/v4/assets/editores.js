@@ -1438,6 +1438,9 @@
     // que arma el PDF que se manda solo al firmar (22-sep-2026, split en
     // vivo pedido por el owner) — nunca una segunda plantilla del documento.
     documento: { src: '/intranet/facturas/documento.js', listo: function () { return typeof documentoHTML === 'function'; } },
+    // Reglas de dinero por contrato (facturado/cobrado/%), las mismas del
+    // listado y del clásico — para «cuánto lleva cobrado» del recibí.
+    facturasContratos: { src: '/contracts/assets/facturas_contratos.js', listo: function () { return typeof lwAgrupaPorContrato === 'function'; } },
     // Fotos del Investor Deck (S10.2, 22-sep-2026) — pieza compartida de la
     // suite (Regla 0), usada hoy por Proyectos aquí y previsiblemente por
     // Modelos v4 más adelante; se carga bajo demanda igual que el resto.
@@ -1838,17 +1841,40 @@
       huella = null; pon([{ descripcion: '', importe: '' }]);
       toast('Conceptos vaciados: el total del proyecto es de la proforma, no de una factura');
     }
+    /* Variante RECIBÍ (paraRecibi del clásico): lo traído y bloqueado, y
+       cuánto lleva cobrado ESTE contrato — la pregunta de verdad cuando
+       entra un pago parcial. Con lwAgrupaPorContrato, las mismas reglas de
+       dinero que el listado; nunca una segunda forma de sumar lo cobrado. */
+    function pintaRecibi() {
+      caja.innerHTML = '<div class="t">Del contrato ' + esc(C.numero || '') + '</div>' +
+        '<p class="arrastrado">' + (C.puesto.length ? 'Traído del contrato y <b>bloqueado</b>: ' + esc(C.puesto.join(', ')) + '.' : 'El contrato no tenía datos de cliente que traer.') +
+          (C.nCompradores > 1 ? ' Contrato a <b>' + C.nCompradores + ' nombres</b>.' : '') + '</p>' +
+        '<p class="arrastrado" data-cobrado>Calculando cuánto lleva cobrado este contrato…</p>';
+      var caj = caja.querySelector('[data-cobrado]');
+      return ctx.sb.rpc('facturas_equipo').select('id,tipo,total,moneda,anulada,contrato_id,contrato_numero,cliente_nombre,proyecto_nombre,fecha_emision')
+        .eq('contrato_id', C.id).then(function (r) {
+          if (r.error) { caj.textContent = 'No se pudo calcular lo cobrado: ' + r.error.message; return; }
+          var docs = r.data || [];
+          if (!docs.length) { caj.textContent = 'Este contrato no tiene todavía ninguna factura ni recibí.'; return; }
+          if (typeof lwAgrupaPorContrato !== 'function' || typeof lwSumaTexto !== 'function') { caj.textContent = ''; return; }
+          var g = lwAgrupaPorContrato(docs)[0];
+          var pct = g.unaMoneda && g.totalFacturado ? ' · ' + g.pct.toFixed(0) + ' %' : '';
+          caj.innerHTML = 'De este contrato hay <b>' + esc(lwSumaTexto(g.cobrado)) + '</b> cobrado' +
+            (g.totalFacturado ? ' sobre ' + esc(lwSumaTexto(g.facturado)) + ' facturado' + pct : '') + '.';
+        });
+    }
     return {
       pon: function (res) {
         var moneda = ctx.monedaActual() || res.moneda || 'EUR', precio = parseImporte(res.precio);
         C = { id: res.id, numero: res.numero, tipoContrato: res.tipoContrato, padreId: res.padreId, puesto: res.puesto || [],
               nCompradores: res.nCompradores || 0, precio: precio, moneda: moneda, hitos: hitosDeDoc(res.hitos, precio, moneda) };
         caja.innerHTML = '<div class="t">Cargando contrato…</div>';
+        if (ctx.esRecibi) return pintaRecibi();
         return cargaOtraFactura(res.id).then(pinta).then(pintaVinculados).then(precarga);
       },
-      repinta: function () { if (C) pinta(); },
-      marca: marca,
-      alCambiarTipo: function () { sueltaPrecarga(); if (C) pinta(); },
+      repinta: function () { if (!C) return; if (ctx.esRecibi) pintaRecibi(); else pinta(); },
+      marca: function () { if (!ctx.esRecibi) marca(); },
+      alCambiarTipo: function () { if (ctx.esRecibi) return; sueltaPrecarga(); if (C) pinta(); },
       limpia: function () { C = null; caja.innerHTML = ''; cajaV.innerHTML = ''; }
     };
   }
@@ -1914,8 +1940,12 @@
      10 MB) que /intranet/facturas/: `guardar_recibi()` valida cada `path`
      contra `storage.objects`, así que hay que subir ANTES de llamar al RPC
      y con la misma convención, o el RPC rechaza el recibí entero. */
-  function montaJustificantesDoc(host, sb) {
-    var lista = [];
+  /* `iniciales` (22-sep-2026): al EDITAR, los justificantes que el recibí ya
+     tiene se conservan y se ofrecen con «Ver» (URL firmada de 5 min, como
+     el clásico) y «Quitar» — quitar es de la lista, nunca del bucket. Antes
+     la v4 obligaba a resubirlos todos al guardar cambios. */
+  function montaJustificantesDoc(host, sb, iniciales) {
+    var lista = (iniciales || []).filter(function (j) { return j && j.path; }).map(function (j) { return Object.assign({}, j); });
     var wrap = document.createElement('div'); wrap.style.cssText = 'display:grid;gap:8px';
     var input = document.createElement('input'); input.type = 'file'; input.multiple = true;
     input.accept = 'image/jpeg,image/png,image/webp,application/pdf';
@@ -1929,14 +1959,26 @@
     function repinta() {
       estado.innerHTML = lista.map(function (j, i) {
         return '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center">' +
-          '<span>✓ ' + esc(j.nombre) + '</span>' +
-          '<button type="button" data-quitar="' + i + '" style="border:0;background:none;color:#9E2F26;cursor:pointer;font-size:16px;line-height:1">×</button></div>';
+          '<span>✓ ' + esc(j.nombre || 'Justificante adjunto') + '</span>' +
+          '<span style="display:flex;gap:10px;align-items:center">' +
+          '<button type="button" data-ver="' + i + '" style="all:unset;cursor:pointer;font-size:12px;font-weight:600;color:' + CAJ.lago + ';text-decoration:underline">Ver</button>' +
+          '<button type="button" data-quitar="' + i + '" title="Quitar de este recibí" style="border:0;background:none;color:#9E2F26;cursor:pointer;font-size:16px;line-height:1">×</button></span></div>';
       }).join('');
     }
     estado.addEventListener('click', function (ev) {
+      var v = ev.target.closest('[data-ver]');
+      if (v) {
+        var j = lista[Number(v.getAttribute('data-ver'))]; if (!j || !j.path) return;
+        sb.storage.from('justificantes').createSignedUrl(j.path, 300).then(function (u) {
+          if (u.error || !u.data) return toastMal(lwErrorHumano(u.error || {}, 'No se pudo abrir el justificante'));
+          window.open(u.data.signedUrl, '_blank', 'noopener');
+        });
+        return;
+      }
       var b = ev.target.closest('[data-quitar]'); if (!b) return;
       lista.splice(Number(b.getAttribute('data-quitar')), 1); repinta();
     });
+    repinta();
     input.addEventListener('change', function () {
       var elegidos = Array.prototype.slice.call(input.files); input.value = '';
       if (!elegidos.length) return;
@@ -2701,7 +2743,7 @@
         return aviso('Emitir recibís exige la herramienta «Facturas» — pídesela a un administrador.', '#8A6A34');
       }
       var esEdicion = !!pre.id;
-      aseguraModulosDoc(['entities', 'compradores', 'totales', 'dialogo', 'documento']).then(function () {
+      aseguraModulosDoc(['entities', 'compradores', 'totales', 'dialogo', 'documento', 'facturasContratos']).then(function () {
         return Promise.all([
           cargarSociedades(sb).then(function () { return true; }, function () { return false; }),
           cargarCuentasBancarias(sb).then(function () { return true; }, function () { return false; }),
@@ -2736,7 +2778,7 @@
           clienteEmail: f0.cliente_email || '', proyectoNombre: f0.proyecto_nombre || ''
         };
         var aplicaciones = [];   // [{factura_id, numero, pendiente, importe}]
-        var facturasAbiertasCache = [];
+        var facturasAbiertasCache = [], facturasOtraMoneda = 0, delC = null;
         var getJustificantes = null;
         var repintaAplic = function () {};
         var pintaBtnF = function () {};
@@ -2762,8 +2804,12 @@
             var pend = {}; (rs[1].data || []).forEach(function (x) { pend[x.factura_id] = Number(x.pendiente) || 0; });
             var suyos = {};
             (rs[2].data || []).forEach(function (x) { suyos[(x && typeof x === 'object') ? Object.values(x)[0] : x] = 1; });
-            return (rs[0].data || [])
-              .filter(function (x) { return x.tipo === 'factura' && !x.anulada && (pend[x.id] || 0) > 0.005 && x.contrato_id && suyos[x.contrato_id]; })
+            var delComprador = (rs[0].data || [])
+              .filter(function (x) { return x.tipo === 'factura' && !x.anulada && (pend[x.id] || 0) > 0.005 && x.contrato_id && suyos[x.contrato_id]; });
+            // «no tiene ninguna pendiente» y «tiene, pero en otra moneda» son
+            // dos situaciones distintas (FACTURAS_OTRA_MONEDA del clásico)
+            facturasOtraMoneda = delComprador.filter(function (x) { return (x.moneda || 'EUR') !== estadoContrato.moneda; }).length;
+            return delComprador
               .filter(function (x) { return (x.moneda || 'EUR') === estadoContrato.moneda; })
               .map(function (x) { return { id: x.id, numero: x.numero, contrato_numero: estadoContrato.numero, cliente_nombre: estadoContrato.clienteNombre, pendiente: pend[x.id], moneda: x.moneda }; });
           });
@@ -2827,6 +2873,7 @@
           // registro; «Crear recibí» no, que de un recibí no sale otro.
           repasaBarra = montaBarraDoc(piezas, {
             sb: sb, getVals: recogeVals, esRecibi: true,
+            principal: document.querySelector('#lw-editor [data-e="guardar"]'),
             saved: existente
               ? { id: existente.id, numero: existente.numero, tipo: 'recibi', contrato_id: existente.contrato_id, emisor: existente.datos && existente.datos.emisor }
               : { tipo: 'recibi' },
@@ -2862,6 +2909,7 @@
               estadoContrato.moneda = res.moneda || estadoContrato.moneda;
               estadoContrato.clienteNombre = res.clienteNombre; estadoContrato.clienteDocumento = res.clienteDocumento;
               estadoContrato.clienteEmail = res.clienteEmail; estadoContrato.proyectoNombre = res.proyectoNombre;
+              if (delC) delC.pon(res);   // «Del contrato»: traído y bloqueado + cuánto lleva cobrado
               var selMoneda = campoDeDoc('moneda'); if (selMoneda) selMoneda.value = estadoContrato.moneda;
             }) : Promise.resolve()).then(function () { return cargaAbiertas(); }).then(function (abs) {
               facturasAbiertasCache = abs;
@@ -2903,6 +2951,7 @@
                 estadoContrato.moneda = res.moneda || estadoContrato.moneda;
                 estadoContrato.clienteNombre = res.clienteNombre; estadoContrato.clienteDocumento = res.clienteDocumento;
                 estadoContrato.clienteEmail = res.clienteEmail; estadoContrato.proyectoNombre = res.proyectoNombre;
+              if (delC) delC.pon(res);   // «Del contrato»: traído y bloqueado + cuánto lleva cobrado
               }
               cargaAbiertas().then(function (abs) {
                 facturasAbiertasCache = abs;
@@ -2934,6 +2983,7 @@
               estadoContrato.moneda = res.moneda || estadoContrato.moneda;
               estadoContrato.clienteNombre = res.clienteNombre; estadoContrato.clienteDocumento = res.clienteDocumento;
               estadoContrato.clienteEmail = res.clienteEmail; estadoContrato.proyectoNombre = res.proyectoNombre;
+              if (delC) delC.pon(res);   // «Del contrato»: traído y bloqueado + cuánto lleva cobrado
               var selMoneda = campoDeDoc('moneda'); if (selMoneda) selMoneda.value = estadoContrato.moneda;
               cargaAbiertas().then(function (abs) {
                 facturasAbiertasCache = abs;
@@ -2953,8 +3003,36 @@
           }
 
           var filaDM = filaDosDoc(secDoc);
-          campoSimpleDoc(filaDM, { k: 'moneda', label: 'Moneda', tipo: 'select', valor: estadoContrato.moneda, opciones: ['EUR', 'USD', 'AUD', 'IDR'] });
+          var selMonedaR = campoSimpleDoc(filaDM, { k: 'moneda', label: 'Moneda', tipo: 'select', valor: estadoContrato.moneda, opciones: ['EUR', 'USD', 'AUD', 'IDR'] });
           campoSimpleDoc(filaDM, { label: 'Nº de documento', readonly: 1, valor: existente ? (existente.numero || '') : 'Lo asigna la base al guardar' });
+          // Cambiar la moneda a mitad refresca qué facturas se pueden saldar y
+          // quita las que dejan de valer (refrescarAplicablesDelRecibi del
+          // clásico): la base rechaza mezclar monedas (recibi_no_mezcla_moneda).
+          selMonedaR.addEventListener('change', function () {
+            estadoContrato.moneda = selMonedaR.value || 'EUR';
+            if (!estadoContrato.id) return;
+            cargaAbiertas().then(function (abs) {
+              facturasAbiertasCache = abs;
+              var validas = {}; abs.forEach(function (x) { validas[x.id] = 1; });
+              var fuera = aplicaciones.filter(function (a) { return !validas[a.factura_id]; });
+              if (fuera.length) {
+                aplicaciones = aplicaciones.filter(function (a) { return validas[a.factura_id]; });
+                toast('Quitad' + (fuera.length === 1 ? 'a ' : 'as ') + fuera.length + ' factura' + (fuera.length === 1 ? '' : 's') +
+                  ' que no son de esta moneda: ' + fuera.map(function (a) { return a.numero; }).join(', '));
+              }
+              pintaBtnF(); repintaAplic();
+            });
+          });
+          // «Del contrato» en su variante de recibí (pintarOpcionesContrato con
+          // paraRecibi): qué se trajo y quedó bloqueado, y cuánto lleva cobrado
+          // el contrato — sin hitos ni totales, que en un recibí insertaban
+          // importes en una sección que nadie ve (27-ago-2026).
+          delC = montaDelContratoDoc(secDoc, {
+            sb: sb, lineas: null, esRecibi: true, repinta: repintaPreview, esNuevo: !existente, propioId: existente ? existente.id : null,
+            tipoActual: function () { return 'recibi'; },
+            monedaActual: function () { return estadoContrato.moneda; },
+            sociedadActual: function () { var s = campoDeDoc('sociedad'); return s ? s.value : ''; }
+          });
 
           var secFechas = seccionFijaDoc(host, 'Fechas');
           var filaF = filaDosDoc(secFechas);
@@ -2989,7 +3067,8 @@
             var libres = facturasAbiertasCache.filter(function (x) { return !usadas[x.id]; });
             btnAdd.hidden = !estadoContrato.id;
             avisoAplic.textContent = !estadoContrato.id ? 'Elige arriba la factura que se cobra.'
-              : libres.length ? 'Hay ' + libres.length + ' factura' + (libres.length === 1 ? '' : 's') + ' pendiente' + (libres.length === 1 ? '' : 's') + ' más de este comprador.'
+              : libres.length ? 'Hay ' + libres.length + ' factura' + (libres.length === 1 ? '' : 's') + ' pendiente' + (libres.length === 1 ? '' : 's') + ' más de este comprador, incluidas las de sus otros contratos.'
+              : facturasOtraMoneda ? 'Este comprador tiene ' + facturasOtraMoneda + ' factura' + (facturasOtraMoneda === 1 ? '' : 's') + ' pendiente' + (facturasOtraMoneda === 1 ? '' : 's') + ', pero en otra moneda — un recibí no puede saldar una factura en una moneda distinta a la suya.'
               : 'No le queda ninguna otra factura pendiente a este comprador.';
             var suma = aplicaciones.reduce(function (s, a) { return s + (lwParseImporte(a.importe) || 0); }, 0);
             totalAplic.textContent = aplicaciones.length ? 'Total del recibí: ' + fmtMoneda(suma, estadoContrato.moneda) + ' (' + aplicaciones.length + ' factura' + (aplicaciones.length === 1 ? '' : 's') + ')' : '';
@@ -3022,12 +3101,7 @@
           repinta();
 
           var secJust = seccionFijaDoc(host, 'Justificante de pago (obligatorio)');
-          getJustificantes = montaJustificantesDoc(secJust, sb);
-          if (existente && Array.isArray(existente.justificantes) && existente.justificantes.length) {
-            var ya = document.createElement('p'); ya.style.cssText = 'margin:0;font-size:12px;color:' + CAJ.apagado;
-            ya.textContent = 'Este recibí ya tiene ' + existente.justificantes.length + ' justificante(s) — al guardar, se sustituyen por los que subas aquí.';
-            secJust.appendChild(ya);
-          }
+          getJustificantes = montaJustificantesDoc(secJust, sb, existente && Array.isArray(existente.justificantes) ? existente.justificantes : []);
 
           var secImp = seccionPlegableDoc(host, 'Impuesto (opcional)', false);
           campoSimpleDoc(secImp, { k: 'imp_etiqueta', label: 'Impuesto — etiqueta', valor: f0.imp_etiqueta || '', ayuda: 'Ej. PPN' });
@@ -3073,7 +3147,9 @@
                 abreDocumentoViewerDoc(res.data.id, function () { location.reload(); });
                 return {};
               });
-          }, { sinRecarga: true, sub: existente ? 'Editar recibí' : 'Recibí de cobro', ancho: 'min(1180px,96vw)' });
+          // Pantalla entera, como el de factura (owner, 22-sep-2026: «haz lo
+          // mismo con el panel de recibís»).
+          }, { sinRecarga: true, sub: existente ? 'Editar recibí' : 'Recibí de cobro', ancho: '100vw' });
 
         // code-review 21-sep: la Moneda es libre (mismo comprador puede tener
         // contratos en monedas distintas) pero nada volvía a comprobar la
