@@ -1071,11 +1071,26 @@
   // mismo, /modelo/<slug>), que ya esta en produccion.
   function pintaModelos(rows, porModelo){
     mg.innerHTML = '';
+    // Ficha tecnica esquematica: icono + cifra + etiqueta, mismo lenguaje visual
+    // que las 4 tarjetas KPI del hero (icono en territorial-green, numero grande,
+    // etiqueta en mayusculas) — pedido del owner (22-sep) en vez de la frase en
+    // texto corrido que habia antes.
+    var STATS_ICONOS = [
+      ['straighten',  function(m){ return num(m.villa_m2) + ' m²'; },   'Built'],
+      ['deck',        function(m){ return '+' + num(m.terraza_m2) + ' m²'; }, 'Terrace & pool'],
+      ['king_bed',    function(m){ return num(m.dormitorios); },        'Bedrooms'],
+      ['bathroom',    function(m){ return num(m.banos); },              'Bathrooms']
+    ];
     rows.forEach(function(m){
       var slug = String(m.slug == null ? '' : m.slug);
       var destacado = slug === DESTACADO;
-      var specs = num(m.villa_m2) + ' m² built · +' + num(m.terraza_m2) + ' m² terrace &amp; pool · ' +
-        num(m.dormitorios) + ' bed · ' + num(m.banos) + ' bath';
+      var statsHtml = STATS_ICONOS.map(function(s){
+        return '<div class="flex flex-col items-center gap-1 text-center py-2">' +
+          '<span class="material-symbols-outlined text-[18px] text-territorial-green">'+s[0]+'</span>' +
+          '<span class="font-kpi-number text-sm text-deep-lagoon font-bold">'+esc(s[1](m))+'</span>' +
+          '<span class="text-[9px] uppercase tracking-wider text-on-surface-variant">'+s[2]+'</span>' +
+        '</div>';
+      }).join('');
 
       var card = document.createElement(SLUG_OK.test(slug) ? 'a' : 'div');
       if(SLUG_OK.test(slug)) card.href = '/modelo/' + slug;
@@ -1092,10 +1107,13 @@
           '</div>' +
         '</div>' +
         '<div class="p-6 flex-1 flex flex-col justify-between gap-4">' +
-          '<p class="font-body-sm text-xs text-on-surface-variant leading-relaxed">' + specs + '. Construction only — land price depends on the plot chosen below.</p>' +
-          '<span class="w-full py-2.5 rounded-full bg-surface-container-low group-hover:bg-deep-lagoon group-hover:text-white text-deep-lagoon font-label-md text-xs font-semibold tracking-wide border border-control-border/25 transition-all flex items-center justify-center gap-1.5">' +
-            '<span>View model</span><span class="material-symbols-outlined text-[15px]">arrow_outward</span>' +
-          '</span>' +
+          '<div class="grid grid-cols-4 gap-1 bg-surface-container-low rounded-xl border border-control-border/20 divide-x divide-control-border/20">' + statsHtml + '</div>' +
+          '<div class="flex flex-col gap-3">' +
+            '<span class="text-[11px] text-on-surface-variant text-center">Construction only — land price depends on the plot chosen below.</span>' +
+            '<span class="w-full py-2.5 rounded-full bg-surface-container-low group-hover:bg-deep-lagoon group-hover:text-white text-deep-lagoon font-label-md text-xs font-semibold tracking-wide border border-control-border/25 transition-all flex items-center justify-center gap-1.5">' +
+              '<span>View model</span><span class="material-symbols-outlined text-[15px]">arrow_outward</span>' +
+            '</span>' +
+          '</div>' +
         '</div>';
 
       // Si el render no está en disco, la caja de foto se cae sola al estado
