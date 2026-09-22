@@ -637,7 +637,7 @@
     var caj = window.lwCajon({
       sub: tipoC(c0.tipo) + (c0.bloqueado ? ' · firmado' : (c0.pdf_firmado_path ? ' · reabierto' : ' · borrador')),
       titulo: num,
-      bajoTitulo: (c0.comprador_nombre || '—') + (c0.proyecto_nombre ? ' · ' + c0.proyecto_nombre : ''),
+      bajoTitulo: (c0.comprador_nombre || '—') + (c0.proyecto_nombre ? ' · ' + c0.proyecto_nombre : '') + (c0.parcela_codigo ? ' · Parcela ' + c0.parcela_codigo : ''),
       cuerpo: '<p style="margin:0;font-size:13px;color:#8A8474">Trayendo la ficha…</p>',
       acciones: acciones,
       alCerrar: function () { if (enContratos) { try { history.replaceState(null, '', location.pathname); } catch (e) {} } }
@@ -651,7 +651,7 @@
       sb.from('contrato_vencimientos').select('orden,descripcion,pct,monto,fecha,factura_id,no_facturar').eq('contrato_id', id).order('orden'),
       sb.rpc('contrato_firmas_equipo').select('firmante_nombre,firmante_rol,estado,creado_en,firmado_en,expira_en').eq('contrato_id', id).order('creado_en'),
       sb.from('contrato_compradores').select('client_id,rol').eq('contrato_id', id),
-      sb.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,bloqueado,contrato_padre_id,created_at').or(familia),
+      sb.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,parcela_codigo,precio_total,moneda,bloqueado,contrato_padre_id,created_at,liberado_en,pdf_firmado_path').or(familia),
       // SIN filtro de contrato (S13, 22-sep-2026): el estado de cuenta
       // CONSOLIDADO de la cadena (más abajo) necesita lo cobrado de la raíz Y
       // de cada hijo, no solo de `id`. Mismo coste que ya paga el listado
@@ -710,14 +710,98 @@
       var diasDefecto = param('reservas.prorroga_dias_defecto', 15);
       var hoyISO = new Date().toISOString().slice(0, 10);
       function masDias(iso, n) { var d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
-      cuerpo += H.seccion('Contrato',
+      /* ---------- RESUMEN DE LA VENTA (22-sep-2026, owner: «el cajetín al
+         abrir una operación sigue sin estar claro») ----------
+         La ficha respondía «qué es el contrato RP00198» cuando la pregunta,
+         viniendo de Operaciones, es «dónde está esta venta y qué toca ahora».
+         Así que lo primero es eso: la situación con LA MISMA palabra que la
+         fila del listado (etapaOperacion), el dinero de la cadena entera
+         (cuentaGrupo — Regla 0, cero aritmética propia) y el siguiente paso
+         deducido solo de datos que ya tenemos (nunca se inventa). El detalle
+         contrato a contrato va después. */
+      var fs = r[1].data || [], vs = r[2].data || [], fi = r[3].data || [];
+      var cobradoPorId = {};
+      (r[6] && r[6].data || []).forEach(function (x) { cobradoPorId[x.contrato_id] = Number(x.cobrado) || 0; });
+      var cobrado = cobradoPorId[c.id] != null ? cobradoPorId[c.id] : null;
+      var otrasMon = fs.filter(function (f) { return f.tipo === 'recibi' && !f.anulada && (f.moneda || 'EUR') !== (c.moneda || 'EUR'); }).length;
+      var pend = (cobrado != null && c.precio_total != null && !esPreliminar(c)) ? Math.max(0, Number(c.precio_total) - cobrado) : null;
+      /* La cadena: desde Operaciones llega entera y con las firmas de cada
+         pieza (opts.cadena); desde el resto de pantallas se arma con lo que
+         trae `familia` (padre + hijos de `c`). Cada pieza lleva su cobrado del
+         oráculo y se le da a cuentaGrupo/etapaOperacion la forma que esperan. */
+      c.firmas = fi; c.facturas = fs;
+      var piezas = (opts.cadena && opts.cadena.length) ? opts.cadena.slice()
+        : (padre ? [padre, c].concat(hijos) : [c].concat(hijos));
+      piezas.sort(function (a, b) { return String(a.created_at || '').localeCompare(String(b.created_at || '')); });
+      piezas.forEach(function (x) { x.cobrado = cobradoPorId[x.id] || 0; if (!x.firmas) x.firmas = []; if (x.id !== c.id) porId[x.id] = porId[x.id] || x; });
+      var grupoRaiz = Object.assign({}, piezas[0], { padre: null, hijos: piezas.slice(1) });
+      var hayCadena = piezas.length > 1;
+      var cg = (typeof cuentaGrupo === 'function') ? cuentaGrupo(grupoRaiz) : null;
+      var etapaV = (typeof etapaOperacion === 'function') ? etapaOperacion(grupoRaiz) : null;
+      var ETQ2 = { liberada: 'Reserva liberada' }; (typeof ETAPAS !== 'undefined' ? ETAPAS : []).forEach(function (e) { ETQ2[e[0]] = e[1]; });
+      var TONO2 = { sin_firmar: 'espera', firma_viva: 'espera', cobro_pend: 'mal', cobro_ok: 'ok', liberada: '' };
+      function estadoPieza(x) {
+        if (x.liberado_en) return ['liberada', 'mal'];
+        if (x.bloqueado) return ['firmado', 'ok'];
+        if ((x.firmas || []).some(function (f) { return f.estado === 'pendiente' && !firmaCaducada(f); })) return ['en firma', 'espera'];
+        if (x.pdf_firmado_path) return ['reabierto', 'espera'];
+        return ['borrador', ''];
+      }
+      var firmasVivas = fi.filter(function (f) { return f.estado === 'pendiente' && !firmaCaducada(f); });
+      var sigPaso;
+      if (c.liberado_en) {
+        sigPaso = 'Reserva liberada el ' + fFecha(c.liberado_en) + (c.liberado_motivo === 'desistida' ? ' (el comprador desistió)' : ' (plazo vencido)') + '. No queda nada exigible.';
+      } else if (!c.bloqueado) {
+        if (firmasVivas.length) sigPaso = 'Esperando la firma de ' + firmasVivas.map(function (f) { return f.firmante_nombre || f.firmante_rol || 'firmante'; }).join(', ') + (firmasVivas[0].expira_en ? ' · caduca el ' + fFecha(firmasVivas[0].expira_en) : '') + '.';
+        else if (c.pdf_firmado_path) sigPaso = 'Se reabrió después de firmarse: hay que volver a enviarlo a firma.';
+        else sigPaso = 'Borrador: falta enviarlo a firma.';
+      } else if (esCartaViva) {
+        sigPaso = 'Reserva firmada' + (venceEl ? ' · vence el ' + fFecha(venceEl) : '') + (hijos.length ? '.' : ' · siguiente paso: crear el Bloqueo de Parcela.');
+      } else {
+        var proxHito = vs.filter(function (v) { return !v.factura_id && !v.no_facturar; })[0];
+        var pendV = cg ? cg.pendiente : pend;
+        if (proxHito) sigPaso = 'Próximo pago: ' + (proxHito.monto != null ? fmt(proxHito.monto, c.moneda) : (proxHito.pct != null ? proxHito.pct + ' %' : '')) + (proxHito.fecha ? ' el ' + fFecha(proxHito.fecha) : ' (sin fecha)') + (proxHito.descripcion ? ' · ' + proxHito.descripcion : '') + '.';
+        else if (pendV != null && pendV > 0) sigPaso = 'Todo facturado; pendiente de cobro ' + fmt(pendV, c.moneda) + '.';
+        else if (pendV === 0) sigPaso = 'Cobrado del todo.';
+        else sigPaso = 'Firmado sin precio: no hay nada que cobrar registrado.';
+      }
+      var precioR = cg ? cg.precio : c.precio_total, cobradoR = cg ? cg.facturado : cobrado, pendR = cg ? cg.pendiente : pend;
+      var cajita = function (etq, val, sub) {
+        return '<div style="background:#fff;border:1px solid #E4DCCB;border-radius:10px;padding:10px 12px;min-width:0"><div style="font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#75786e">' + esc(etq) + '</div>' +
+          '<div style="margin-top:4px;font:700 18px/1.2 \'Neue Kabel\',sans-serif;color:#104C4F;overflow-wrap:anywhere">' + val + '</div>' +
+          (sub ? '<div style="font-size:11px;color:#8A8474;margin-top:2px">' + esc(sub) + '</div>' : '') + '</div>';
+      };
+      var sub = hayCadena ? 'de la venta completa (' + piezas.length + ' contratos)' : '';
+      cuerpo += H.seccion('Resumen de la venta',
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">' +
+          cajita('Situación', etapaV ? H.tag(ETQ2[etapaV] || etapaV, TONO2[etapaV] || '') : H.tag(c.bloqueado ? 'Firmado' : 'Borrador', c.bloqueado ? 'ok' : 'espera'), sub) +
+          cajita('Precio', precioR != null ? esc(fmt(precioR, c.moneda)) : '<span style="color:#8A8474;font-size:14px">sin fijar</span>', hayCadena ? 'suma de la cadena; la Carta no suma' : (esPreliminar(c) ? 'el de la casa entera; aquí solo se cobra la señal' : '')) +
+          cajita('Cobrado', cobradoR != null ? esc(fmt(cobradoR, c.moneda)) : '—', 'por recibís') +
+          ((cg && cg.soloPreliminar) ? cajita('Pendiente', '—', 'una reserva no debe el precio de la casa')
+                                     : cajita('Pendiente', pendR != null ? esc(fmt(pendR, c.moneda)) : '—', '')) +
+        '</div>' +
+        '<div style="margin-top:8px;font-size:13px;color:#2E3437"><span style="font-weight:700;color:#75786e;font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin-right:8px">Siguiente paso</span>' + esc(sigPaso) + '</div>');
+      if (hayCadena) {
+        cuerpo += H.seccion('Contratos de esta venta (' + piezas.length + ')',
+          H.tabla(['Contrato', 'Tipo', 'Estado', 'Precio', 'Cobrado'], piezas.map(function (x) {
+            var st = estadoPieza(x), esEste = x.id === c.id;
+            return [esEste ? '<b>' + esc(x.numero || '—') + '</b> <span style="font-size:11px;color:#8A8474">esta ficha</span>'
+                           : '<a href="#" data-lw-ficha-contrato="' + esc(x.id) + '" style="color:#104C4F;font-weight:600;text-decoration:underline">' + esc(x.numero || '—') + '</a>',
+              esc(tipoC(x.tipo)), H.tag(st[0], st[1]),
+              esc(x.precio_total != null ? fmt(x.precio_total, x.moneda) : '—') + (esPreliminar(x) ? ' <span style="font-size:11px;color:#8A8474">no suma</span>' : ''),
+              esc(fmt(cobradoPorId[x.id] || 0, x.moneda))];
+          })));
+      }
+      var dos = function (html) { return '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:0 24px">' + html + '</div>'; };
+      cuerpo += H.seccion('Datos del contrato', dos(
         H.dato('Estado', c.bloqueado ? H.tag('Firmado', 'ok') : (c.pdf_firmado_path ? H.tag('Reabierto', 'mal') : H.tag('Borrador', 'espera')), { html: 1 }) +
-        H.dato('Tipo', tipoC(c.tipo)) +
-        (c.nombre_contrato ? H.dato('Nombre', c.nombre_contrato) : '') +
-        H.dato('Proyecto', c.proyecto_nombre) +
-        H.dato('Parcela', c.parcela_codigo) +
         H.dato('Precio', c.precio_total != null ? fmt(c.precio_total, c.moneda) : null) +
-        H.dato('Fecha de firma', c.fecha_firma ? fFecha(c.fecha_firma) : null) +
+        (c.nombre_contrato ? H.dato('Nombre', c.nombre_contrato) : '') +
+        H.dato('Parcela', c.parcela_codigo) +
+        /* «Fecha de firma» solo en firmados: se rellena al CREAR el contrato
+           (contexto/suite_lawang.md), así que en un borrador leía como una
+           contradicción — «Borrador · Fecha de firma 22 sept». */
+        (c.bloqueado ? H.dato('Fecha de firma', c.fecha_firma ? fFecha(c.fecha_firma) : null) : '') +
         H.dato('Creado', fFecha(c.created_at) + (c.creado_por ? ' · ' + c.creado_por : '')) +
         /* Liberación (21-sep-2026): eje aparte del Estado de arriba — un CR
            firmado puede liberarse igual que uno en borrador (el RPC no exige
@@ -734,9 +818,7 @@
             : '<span style="color:#8A8474">sin plazo (falta fecha de pago o validez en la Carta)</span>') +
           (prorrogas.length ? '<br><span style="font-size:11.5px;color:#8A8474">' + prorrogas.length + ' prórroga(s): ' +
             esc(prorrogas.map(function (x) { return '+' + x.dias + 'd hasta ' + fFecha(x.hasta) + ' (' + (x.quien || '—') + (x.comunicado_al_comprador ? ', comunicada al comprador' : '') + ')'; }).join(' · ')) + '</span>' : ''),
-          { html: 1 }) : '') +
-        (padre ? H.dato('Cuelga de', enlaceFichaContrato(padre), { html: 1 }) : '') +
-        (hijos.length ? H.dato('Encadenados', hijos.map(enlaceFichaContrato).join('<br>'), { html: 1 }) : ''));
+          { html: 1 }) : '')));
 
       /* Closer (21-sep-2026): SIEMPRE sobre la raíz de la cadena, nunca sobre
          el hijo que se esté viendo — igual que pintaExpediente() en
@@ -811,92 +893,50 @@
           H.nota('La reserva se liberó (' + esc(c.liberado_motivo === 'desistida' ? 'el comprador desistió' : 'plazo vencido') + ', ' + esc(fFecha(c.liberado_en)) + '). Si el comprador sigue en ello, esto devuelve la Carta a viva, vuelve a enganchar su parcela y la prorroga en el mismo acto. Solo si ninguna otra operación ocupa ya la parcela.') +
           '<button type="button" data-lw-deshacer="1" style="justify-self:start;margin-top:4px;padding:9px 16px;border-radius:10px;border:1px solid #2F5D9E;background:#fff;color:#2F5D9E;font:600 13px \'Neue Kabel\',system-ui;cursor:pointer">Deshacer liberación</button>');
       }
-      /* cobrado de TODA la familia (S13, 22-sep-2026): un solo mapa, usado
-         aquí y por el «Estado de cuenta de la cadena» de más abajo. */
-      var cobradoPorId = {};
-      (r[6] && r[6].data || []).forEach(function (x) { cobradoPorId[x.contrato_id] = Number(x.cobrado) || 0; });
 
       /* Compradores: el nombre congelado en el contrato siempre; las fichas
          enlazadas (contrato_compradores) se resuelven a nombre en una segunda
          consulta y se pintan en su sección cuando llegan. */
       var vins = r[4].data || [];
-      /* Dos cosas distintas y se dicen con su nombre (owner, 22-sep: «la tabla
-         Comprador no la entiendo»): el NOMBRE ESCRITO EN EL DOCUMENTO (texto
-         congelado del contrato) y la FICHA de comprador enlazada (la persona
-         en la base, con su KYC y sus otras operaciones). Pueden no coincidir. */
+      /* Comprador en lenguaje llano (owner, 22-sep): la persona con su ficha
+         y su KYC; el nombre congelado del documento solo se enseña si NO
+         coincide con la ficha. El rol técnico (adquiriente_1) no se imprime. */
       cuerpo += H.seccion('Comprador' + (vins.length > 1 ? 'es' : ''),
-        H.dato('Nombre escrito en el documento', c.comprador_nombre) +
-        (vins.length ? '<p style="margin:0;font-size:12px;color:#8A8474">Trayendo la ficha de comprador enlazada…</p>'
-                     : H.nota('Este contrato no está enlazado a ninguna ficha de comprador: solo hay el nombre del documento. La ficha se enlaza desde el generador (pasaporte + email).')), 'compradores');
+        H.dato('Comprador', c.comprador_nombre) +
+        (vins.length ? '<p style="margin:0;font-size:12px;color:#8A8474">Trayendo la ficha de comprador…</p>'
+                     : H.nota('Sin ficha de comprador enlazada: solo consta el nombre del documento. Se enlaza desde el generador (pasaporte + email).')), 'compradores');
       // Documentación KYC: desde el 22-sep (owner) ya no es una sección con
       // tabla — el pasaporte es de la persona, no de la venta. Queda como UNA
       // línea dentro de Comprador (cuántos documentos y la caducidad más
       // cercana) con enlace a la ficha, que es donde se gestiona.
 
-      var fs = r[1].data || [];
-      /* Lo cobrado lo dice el oráculo vivo `contrato_cobrado()` (recibís aplicados,
-         también los aplicados a facturas del contrato), no una suma propia: dos
-         pantallas con dos «cobrado» distintos era el hallazgo (Administración/Legal, 19-sep). */
-      var cobrado = cobradoPorId[c.id] != null ? cobradoPorId[c.id] : null;
-      // el oráculo suma recibís sin mirar la moneda: si hay alguno en otra, se dice (hoy 0 casos)
-      var otrasMon = fs.filter(function (f) { return f.tipo === 'recibi' && !f.anulada && (f.moneda || 'EUR') !== (c.moneda || 'EUR'); }).length;
-      var pend = (cobrado != null && c.precio_total != null && !esPreliminar(c)) ? Math.max(0, Number(c.precio_total) - cobrado) : null;
-      cuerpo += H.seccion('Cobros (' + fs.length + ' documento' + (fs.length === 1 ? '' : 's') + ')',
-        H.dato('Cobrado (recibís aplicados)', (cobrado != null ? fmt(cobrado, c.moneda) : 'sin dato') + (otrasMon ? ' · incluye ' + otrasMon + ' recibí(s) en otra moneda a valor facial' : '')) +
-        (pend != null ? H.dato('Pendiente sobre el precio', fmt(pend, c.moneda)) : '') +
-        (esPreliminar(c) ? H.nota('Es un documento preliminar: el precio es el de la casa entera y solo se cobra la señal, así que no se calcula «pendiente».') : '') +
-        (fs.length ? H.tabla(['Documento', 'Tipo', 'Importe', 'Fecha', ''], fs.map(function (f) {
+      cuerpo += H.seccion('Facturas y recibís (' + fs.length + ')',
+        dos(H.dato('Cobrado' + (hayCadena ? ' (este contrato)' : ''), (cobrado != null ? fmt(cobrado, c.moneda) : 'sin dato') + (otrasMon ? ' · incluye ' + otrasMon + ' recibí(s) en otra moneda a valor facial' : '')) +
+            (pend != null ? H.dato('Pendiente' + (hayCadena ? ' (este contrato)' : ''), fmt(pend, c.moneda)) : '')) +
+        (esPreliminar(c) ? H.nota('Documento preliminar: solo se cobra la señal.') : '') +
+        (fs.length ? H.tabla(['Documento', 'Tipo', 'Importe', 'Fecha', 'Estado'], fs.map(function (f) {
           return [H.enlace(URL_FACTURA(f.id), f.numero), esc(tipoDoc(f.tipo)), esc(fmt(f.total, f.moneda)),
             esc(fFecha(f.fecha_emision || f.created_at)),
-            f.anulada ? H.tag('Anulada', 'mal') : (f.tipo === 'recibi' ? H.tag('Cobrado', 'ok') : '')];
+            f.anulada ? H.tag('Anulada', 'mal') : (f.tipo === 'recibi' ? H.tag('Cobrado', 'ok') : H.tag('Emitida', ''))];
         })) : H.nota('Sin facturas ni recibís todavía.')));
 
-      var vs = r[2].data || [];
       cuerpo += H.seccion('Calendario de pagos (' + vs.length + ')',
-        vs.length ? H.tabla(['#', 'Concepto', 'Importe', 'Fecha', 'Facturado'], vs.map(function (v) {
+        vs.length ? H.tabla(['#', 'Concepto', 'Importe', 'Fecha', 'Estado'], vs.map(function (v) {
           return [esc(v.orden != null ? v.orden : ''), esc(v.descripcion || '—'),
             esc(v.monto != null ? fmt(v.monto, c.moneda) : (v.pct != null ? v.pct + ' %' : '—')),
             esc(v.fecha ? fFecha(v.fecha) : 'sin fecha'),
-            v.factura_id ? H.tag('Sí', 'ok') : (v.no_facturar ? '<span style="color:#8A8474">no se factura</span>' : H.tag('No', 'espera'))];
-        })) : H.nota('Este contrato no tiene calendario de pagos registrado.'));
+            v.factura_id ? H.tag('Facturado', 'ok') : (v.no_facturar ? '<span style="color:#8A8474">no se factura</span>' : H.tag('Pendiente', 'espera'))];
+        })) : H.nota('Sin calendario de pagos registrado.'));
 
-      /* Estado de cuenta CONSOLIDADO de la cadena (S13, 22-sep-2026): «Cobros»
-         de arriba es contrato a contrato; esto suma TODOS los encadenados en
-         un solo bloque, como la clásica (líneas 910-939). Reutiliza
-         `cuentaGrupo` de operaciones-cuentas.js (Regla 0) — cero aritmética
-         propia: se le da la forma padre/hijos cross-enlazados que espera y se
-         lee lo que ya usan las 9 herramientas clásicas. */
-      if ((padre || hijos.length) && typeof cuentaGrupo === 'function') {
-        // Cadena de 3+ niveles (Reserva→PPJB→Construcción): `c` puede tener
-        // PADRE y sus PROPIOS hijos a la vez (arriba, «Cuelga de»/«Encadenados»
-        // conviven en el mismo H.seccion) — hallazgo de la autorevisión
-        // `code-review` (22-sep-2026): si al haber padre se descartaban los
-        // hijos de `c`, el consolidado infravaloraba lo cobrado de la cadena
-        // real, el mismo tipo de fallo que ya costó dinero (328.000 € de Juan
-        // José Carbajo Pinal, ver operaciones-cuentas.js). `padre.hijos` pasa
-        // a incluir SIEMPRE a `c` y a los hijos propios de `c`.
-        c.cobrado = cobradoPorId[c.id] || 0;
-        hijos.forEach(function (h) { h.cobrado = cobradoPorId[h.id] || 0; });
-        if (padre) { padre.cobrado = cobradoPorId[padre.id] || 0; c.padre = padre; padre.hijos = [c].concat(hijos); }
-        else { c.hijos = hijos; }
-        var cg = cuentaGrupo(c);
-        cuerpo += H.seccion('Estado de cuenta de la cadena (' + cg.grupo.length + ' contratos)',
-          H.dato('Precio (suma de la cadena)', cg.precio != null ? fmt(cg.precio, cg.moneda) : 'sin fijar') +
-          H.dato('Cobrado (suma de la cadena)', fmt(cg.facturado, cg.moneda)) +
-          H.dato('Pendiente', cg.pendiente != null ? fmt(cg.pendiente, cg.moneda) : 'no calculable') +
-          H.nota('Solo el recibí cuenta como cobrado. ' + (cg.soloPreliminar
-            ? 'Solo hay un documento preliminar en la cadena: cuenta igual, es la cuota de reserva exigible.'
-            : 'Una Carta de Reserva no suma precio: declara el mismo importe que luego reparten el Bloqueo/la Construcción. Detalle de cada contrato en «Cuelga de»/«Encadenados», arriba.')));
-      }
-
-      var fi = r[3].data || [];
-      cuerpo += H.seccion('Firmas (' + fi.length + ')',
-        fi.length ? H.tabla(['Firmante', 'Rol', 'Estado', 'Fecha'], fi.map(function (f) {
+      // Firmas: solo si hay alguna — «Firmas (0) · Sin solicitudes» era ruido;
+      // el estado sin firma ya lo dice el «Siguiente paso» del resumen.
+      if (fi.length) cuerpo += H.seccion('Firmas (' + fi.length + ')',
+        H.tabla(['Firmante', 'Rol', 'Estado', 'Fecha'], fi.map(function (f) {
           var cad = firmaCaducada(f);
           var tono = cad ? 'mal' : f.estado === 'firmado' ? 'ok' : f.estado === 'pendiente' ? 'espera' : 'mal';
           return [esc(f.firmante_nombre || '—'), esc(f.firmante_rol || '—'), H.tag(cad ? 'caducada' : (f.estado || '—'), tono),
             esc(f.firmado_en ? fFecha(f.firmado_en) : (f.expira_en ? 'expira ' + fFecha(f.expira_en) : fFecha(f.creado_en)))];
-        })) : H.nota('Sin solicitudes de firma.'));
+        })));
 
       if (c.pdf_firmado_path) {
         cuerpo += H.seccion('Documento firmado',
@@ -916,7 +956,8 @@
             if (!document.body.contains(secCloser)) return; // el cajón ya se cerró
             var actual = d.map[raizCloser.id];
             if (actual === undefined) {
-              secCloser.innerHTML = H.nota('Este contrato aún no cuenta como venta firmada con precio (el motor de comisiones exige ambos): la atribución de closer no aplica todavía.');
+              // sin venta firmada con precio no hay closer que atribuir: la sección sobra
+              var secVacia = secCloser.closest('section'); if (secVacia) secVacia.remove();
               return;
             }
             secCloser.innerHTML = H.dato('Closer' + (raizCloser.id !== c.id ? ' (de ' + esc(raizCloser.numero) + ')' : ''),
@@ -973,7 +1014,7 @@
         if (sec && !vins.length) ponDocs();
         if (sec && vins.length) {
           if (rc.error) {
-            sec.innerHTML = H.dato('Nombre escrito en el documento', c.comprador_nombre) + H.nota('No se pudieron resolver las fichas enlazadas.');
+            sec.innerHTML = H.dato('Comprador', c.comprador_nombre) + H.nota('No se pudo leer la ficha de comprador.');
             ponDocs();
           } else {
             var otrosIds = {};
@@ -984,15 +1025,18 @@
             var idsOtros = [];
             Object.keys(otrosIds).forEach(function (cid) { otrosIds[cid].forEach(function (x) { if (idsOtros.indexOf(x) === -1) idsOtros.push(x); }); });
             var pintaComp = function (porIdOtros) {
-              sec.innerHTML = H.dato('Nombre escrito en el documento', c.comprador_nombre) + vins.map(function (v) {
+              var nombresDoc = String(c.comprador_nombre || '').split(' · ');
+              sec.innerHTML = vins.map(function (v, i) {
                 var k = ficha[v.client_id] || {};
+                var nombreDoc = (nombresDoc[i] || (i === 0 ? c.comprador_nombre : '') || '').trim();
+                var difiere = k.full_name && nombreDoc && k.full_name.trim().toUpperCase() !== nombreDoc.toUpperCase();
                 var kycTono = k.kyc_status === 'verified' ? 'ok' : (k.kyc_status === 'rejected' ? 'mal' : 'espera');
                 var kycTx = KYC_ES[k.kyc_status] || (k.kyc_status || 'pendiente');
                 var otros = (otrosIds[v.client_id] || []).map(function (oid) { return porIdOtros[oid]; }).filter(Boolean);
-                return H.dato('Ficha enlazada' + (v.rol && v.rol !== 'Comprador' ? ' · ' + v.rol : ''),
+                return H.dato(vins.length > 1 ? 'Comprador ' + (i + 1) : 'Comprador',
                   H.enlace('/intranet/v4/compradores/?id=' + encodeURIComponent(v.client_id), k.full_name || 'Ficha de comprador') +
-                  ' ' + H.tag(kycTx, kycTono) +
-                  ' <span style="font-size:11px;color:#8A8474">KYC</span>' +
+                  ' ' + H.tag('KYC ' + kycTx, kycTono) +
+                  (difiere ? '<br><span style="font-size:11.5px;color:#8A6A34">En el documento figura como «' + esc(nombreDoc) + '»</span>' : '') +
                   (otros.length ? '<br><span style="font-size:11.5px;color:#8A8474">Sus otros contratos: ' +
                     otros.map(function (o) { return H.enlace('/intranet/v4/operaciones/?contrato=' + encodeURIComponent(o.numero), o.numero); }).join(' · ') + '</span>' : ''),
                   { html: 1 });
@@ -2772,10 +2816,10 @@
 
         tbody.addEventListener('click', function (ev) {
           var a = ev.target.closest && ev.target.closest('[data-lw-ficha-contrato]');
-          if (a) { ev.preventDefault(); ev.stopPropagation(); var x = porId[a.getAttribute('data-lw-ficha-contrato')]; if (x) fichaContrato(sb, x, { sinExpediente: true }); return; }
+          if (a) { ev.preventDefault(); ev.stopPropagation(); var x = porId[a.getAttribute('data-lw-ficha-contrato')]; if (x) fichaContrato(sb, x, { sinExpediente: true, cadena: cadena(x) }); return; }
           var tr = ev.target.closest && ev.target.closest('tr[data-lw-id]'); if (!tr) return;
           ev.stopPropagation();
-          var o = porId[tr.getAttribute('data-lw-id')]; if (o) fichaContrato(sb, o, { sinExpediente: true });
+          var o = porId[tr.getAttribute('data-lw-id')]; if (o) fichaContrato(sb, o, { sinExpediente: true, cadena: cadena(o) });
         });
 
         /* ---- KPIs y pie: sobre lo VISIBLE ---- */
@@ -2858,7 +2902,7 @@
         var pedido = new URLSearchParams(location.search).get('contrato');
         if (pedido) {
           var el0 = OPS.filter(function (c) { return c.numero === pedido; })[0];
-          if (el0) fichaContrato(sb, el0, { sinExpediente: true });
+          if (el0) fichaContrato(sb, el0, { sinExpediente: true, cadena: cadena(el0) });
           else if (typeof toastMal === 'function') toastMal(T('No encuentro el contrato') + ' ' + pedido + ' ' + T('entre los cargados.'));
         }
       }, function (e) { fallo('operaciones', e, caja); });
