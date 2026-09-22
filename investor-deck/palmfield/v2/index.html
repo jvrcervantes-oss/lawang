@@ -140,20 +140,27 @@
      por debajo de 1024px la foto va arriba (altura fija) y el cajon de due diligence
      debajo en flujo normal, a todo el ancho -- nada flota sobre nada, nada tapa el
      dock de camara ni los hotspots. Desde 1024px, columnas lado a lado. */
+  /* 22-sep-2026, pedido del owner: la foto ocupaba mas que el panel de
+     Documentation & FAQ, y aqui el papel importa mas que la imagen. Movil:
+     la foto baja de 56vh a 38vh. Escritorio: el aside crece (420->520px,
+     460->600px desde 1280px) y ya no es #hero-visual quien manda el reparto
+     (antes flex:1 1 auto se comia todo lo que sobraba) -- ahora el visor
+     tiene un max-width propio para que crecer el aside SI reduzca la foto. */
   #vision{height:auto}
   #vision > .relative.w-full.h-full{display:flex;flex-direction:column;height:auto}
-  #hero-visual{position:relative;inset:auto;width:100%;height:56vh;min-height:380px;flex:none}
+  #hero-visual{position:relative;inset:auto;width:100%;height:38vh;min-height:300px;flex:none}
   #vision aside{position:relative;top:auto;right:auto;bottom:auto;left:auto;
     width:100%;height:auto;max-height:none;margin:0;border-radius:0}
   @media (min-width:1024px){
     #vision{height:calc(100vh - 72px)}
     #vision > .relative.w-full.h-full{flex-direction:row;height:100%}
-    #hero-visual{width:auto;flex:1 1 auto;height:100%}
-    #vision aside{position:static;width:420px;height:calc(100% - 4rem);
+    #hero-visual{width:auto;max-width:calc(100% - 520px);flex:1 1 auto;height:100%}
+    #vision aside{position:static;width:520px;height:calc(100% - 4rem);
       margin:2rem 2rem 2rem 0;border-radius:1rem;flex:none}
   }
   @media (min-width:1280px){
-    #vision aside{width:460px}
+    #hero-visual{max-width:calc(100% - 600px)}
+    #vision aside{width:600px}
   }
   .faq-item{border:1px solid #e4e2dd;border-radius:16px;background:#fbf9f4;overflow:hidden}
   .faq-item + .faq-item{margin-top:14px}
