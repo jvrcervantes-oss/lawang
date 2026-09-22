@@ -106,12 +106,16 @@ revoke all on function public.trg_guarda_antes_de_borrar() from public, anon, au
 -- restricción, no de lo que se estaba haciendo. La lista vive AQUÍ desde hoy y
 -- la vigila `contracts/eventos.test.js`: quien añada un evento en código y no
 -- aquí, no llega a producción.
+-- 22-sep-2026 (fix urgente, 20260922011052_law71_desbloqueado_estando_firmado.sql):
+-- 'desbloqueado' colisionaba entre el ciclo de vida normal (contrato_evento_log)
+-- y el salto de privilegio de super_admin de más abajo -- este archivo se
+-- actualiza a la mano porque eventos.test.js lo lee a él, no a la migracion.
 alter table public.contrato_eventos drop constraint if exists contrato_eventos_evento_check;
 alter table public.contrato_eventos add constraint contrato_eventos_evento_check
   check (evento = any (array[
     'creado','editado','tipo_cambiado','enviado_a_firma','firma_abierta','firma_recogida',
     'firma_anulada','firmado_del_todo','desbloqueado','traspaso',
-    'editado_estando_firmado','factura_sin_bloquear','cobro_a_factura_huerfana',
+    'editado_estando_firmado','desbloqueado_estando_firmado','factura_sin_bloquear','cobro_a_factura_huerfana',
     'cobro_a_otro_comprador','comprador_sin_ficha','factura_borrada','contrato_borrado'
   ]));
 
@@ -160,7 +164,7 @@ as $$
 begin
   if coalesce(old.bloqueado, false) then
     perform public.registra_privilegio(new.id,
-      case when coalesce(new.bloqueado, false) then 'editado_estando_firmado' else 'desbloqueado' end,
+      case when coalesce(new.bloqueado, false) then 'editado_estando_firmado' else 'desbloqueado_estando_firmado' end,
       jsonb_build_object('numero', old.numero, 'bloqueado_antes', old.bloqueado,
                          'bloqueado_despues', new.bloqueado));
   end if;
@@ -310,7 +314,7 @@ create or replace view public.privilegios_ejercidos as
 select e.creado_en, e.quien, e.evento, c.numero as contrato, e.detalle
   from public.contrato_eventos e
   left join public.contratos c on c.id = e.contrato_id
- where e.evento in ('editado_estando_firmado','desbloqueado','factura_sin_bloquear',
+ where e.evento in ('editado_estando_firmado','desbloqueado_estando_firmado','factura_sin_bloquear',
                     'cobro_a_factura_huerfana','cobro_a_otro_comprador','comprador_sin_ficha')
 union all
 select b.borrado_en, b.quien, 'borrado_' || b.tabla, b.numero,
