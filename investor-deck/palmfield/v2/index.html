@@ -427,6 +427,11 @@
 <section class="w-full px-6 md:px-margin-desktop py-14 bg-surface-alt border-y border-control-border/20" id="rendimientos">
 <div class="lw-wide flex flex-col gap-8">
   <div class="flex flex-col gap-2 lw-prose">
+    <!-- Eyebrow con punto: calcado de la seccion "03 - Investment" de /modelo. -->
+    <div class="flex items-center gap-2">
+      <span class="w-2.5 h-2.5 rounded-full bg-territorial-green"></span>
+      <span class="font-label-md text-xs uppercase tracking-widest text-primary font-semibold">Investment</span>
+    </div>
     <!-- El titulo nombraba «Dali, Dune & Dream» a mano. Desde que los modelos del
          forecast salen de la intranet, esa lista se queda vieja el dia que se
          publique o se retire uno, y nadie se entera. La rellena el JS. -->
@@ -1177,39 +1182,42 @@
       var bruto = [0,1].map(function(i){ return adr[i] * 365 * occ[i]; });
       var neto  = bruto.map(function(g){ return g * (1 - retencion); });
 
-      var filasHtml = '';
-      filasHtml += '<tr><td>ADR</td><td class="text-right lw-money">'+eur(adr[0])+'</td><td class="text-right lw-money">'+eur(adr[1])+'</td></tr>';
-      filasHtml += '<tr><td>Occupancy</td><td class="text-right lw-money">'+Math.round(occ[0]*100)+'%</td><td class="text-right lw-money">'+Math.round(occ[1]*100)+'%</td></tr>';
-      filasHtml += '<tr><td>Gross villa income</td><td class="text-right lw-money">'+eur(bruto[0])+'</td><td class="text-right lw-money">'+eur(bruto[1])+'</td></tr>';
-      GASTOS.forEach(function(g){
-        // La palabra y el porcentaje van en NODOS DE TEXTO distintos a proposito:
-        // el % lo fija la intranet, y si viajara dentro de la clave de traduccion
-        // («Management fee (20%)») el dia que alguien ponga 18% la fila se
-        // quedaria en ingles sin que nadie lo notara.
-        filasHtml += '<tr><td><span>'+esc(g[0])+'</span> ('+Math.round(g[1]*100)+'%)</td>' +
-          '<td class="text-right lw-money">'+eur(-bruto[0]*g[1])+'</td>' +
-          '<td class="text-right lw-money">'+eur(-bruto[1]*g[1])+'</td></tr>';
-      });
-      filasHtml += '<tr class="font-semibold text-deep-lagoon border-t-2 border-control-border/25"><td>Net income</td><td class="text-right lw-money">'+eur(neto[0])+'</td><td class="text-right lw-money">'+eur(neto[1])+'</td></tr>';
-      filasHtml += '<tr class="font-bold text-territorial-green text-base"><td>ROI</td><td class="text-right lw-money">'+(neto[0]/base*100).toFixed(1)+'%</td><td class="text-right lw-money">'+(neto[1]/base*100).toFixed(1)+'%</td></tr>';
+      // Diseño calcado de la tarjeta de forecast de /modelo (03 · Investment):
+      // un bloque por escenario con la cifra neta en grande, no una tabla de
+      // filas. El ROI se suma a la linea de detalle (modelo no lo muestra en
+      // esta tarjeta, pero es un dato ya aprobado — ver revision previa) en
+      // vez de anadir una fila mas. La aritmetica (retencion, bruto, neto,
+      // ROI) NO se toca: sigue viviendo aqui y solo aqui.
+      var ESCENARIOS = [
+        ['Average', 0, 'territorial-green'],
+        ['Optimal', 1, 'deep-lagoon']
+      ];
+      var bloquesHtml = ESCENARIOS.map(function(e){
+        var label = e[0], i = e[1], color = e[2];
+        var costes = bruto[i] - neto[i];
+        return '<div class="bg-surface p-4 rounded-2xl border border-control-border/20 space-y-2">' +
+          '<div class="flex items-center justify-between gap-3">' +
+            '<span class="font-label-md text-xs uppercase tracking-wider text-on-surface-variant font-semibold">'+label+'</span>' +
+            '<span class="font-kpi-number text-lg text-'+color+' font-bold">'+eur(neto[i])+'/yr net</span>' +
+          '</div>' +
+          '<div class="text-[11px] text-on-surface-variant leading-relaxed">'+eur(adr[i])+' ADR × '+Math.round(occ[i]*100)+'% occupancy — gross '+eur(bruto[i])+', minus management + maintenance + tax ('+eur(costes)+') · <b class="text-'+color+'">'+(neto[i]/base*100).toFixed(1)+'% ROI</b></div>' +
+        '</div>';
+      }).join('');
 
       // El nombre del modelo lo teclea una persona en la intranet y esto es una
       // pagina publica: pasa por esc() SIEMPRE (XSS almacenado ya cazado aqui).
       var dorm = m.dormitorios === 1 ? '1 bedroom' : (m.dormitorios || 0) + ' bedrooms';
       var card = document.createElement('div');
-      card.className = 'bg-surface-container-lowest rounded-2xl shadow-sm hover:shadow-xl transition-all overflow-hidden relative border' +
-        (m.destacado ? '-2 border-territorial-green' : ' border-control-border/25');
+      card.className = 'bg-surface-container-lowest rounded-3xl p-6 md:p-7 shadow-sm hover:shadow-xl transition-all relative border space-y-5' +
+        (m.destacado ? ' border-2 border-territorial-green' : ' border-control-border/25');
       card.innerHTML =
         (m.destacado ? '<span class="absolute top-3 right-3 z-10 bg-territorial-green text-white text-[10px] font-label-md font-bold px-3 py-0.5 rounded-full tracking-wider uppercase">Most requested</span>' : '') +
-        '<div class="p-5 bg-surface-container-low border-b border-control-border/25">' +
-          '<span class="font-headline-sm text-xl font-bold text-deep-lagoon">'+esc(m.modelo_nombre)+' · '+esc(dorm)+'</span>' +
-          '<div class="text-xs text-on-surface-variant font-body-sm mt-1"><span>Construction:</span> <b>'+eur(Number(m.precio_construccion))+'</b></div>' +
-          '<div class="text-xs text-on-surface-variant font-body-sm"><span>Total investment (ROI base):</span> '+eur(base)+'</div>' +
+        '<div class="border-b border-control-border/20 pb-4">' +
+          '<span class="font-label-md text-xs text-territorial-green uppercase tracking-widest font-semibold">Market forecast</span>' +
+          '<h3 class="font-headline-md text-2xl text-deep-lagoon font-bold">'+esc(m.modelo_nombre)+' · '+esc(dorm)+'</h3>' +
+          '<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Construction <b>'+eur(Number(m.precio_construccion))+'</b> · total investment (ROI base) '+eur(base)+'.</p>' +
         '</div>' +
-        '<table class="w-full text-sm"><thead><tr class="text-[11px] uppercase tracking-wide text-on-surface-variant font-label-md">' +
-          '<th class="text-left font-medium px-5 pt-4 pb-2"></th><th class="text-right font-medium px-5 pt-4 pb-2">Average</th>' +
-          '<th class="text-right font-medium px-5 pt-4 pb-2">Optimal</th></tr></thead>' +
-          '<tbody class="[&_td]:px-5 [&_td]:py-2 [&_tr]:border-t [&_tr]:border-control-border/15">'+filasHtml+'</tbody></table>';
+        bloquesHtml;
       fg.appendChild(card);
     });
     if(window.lwDeck) lwDeck.traduce(document.getElementById('rendimientos'));
