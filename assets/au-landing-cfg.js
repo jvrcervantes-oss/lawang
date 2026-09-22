@@ -32,7 +32,8 @@ window.lwAuCfgInit = function (opts) {
   // dentro del propio configurador no aplica (para eso está "More from the collection").
   // /dali no manda esta opción y sigue con sus 3 pasos de siempre. STEPS traduce el índice
   // visible (1..N, lo que ve el usuario) al data-paso real del HTML (que no cambia).
-  var STEPS = opts.ocultarVilla ? [2, 3] : [1, 2, 3];
+  // Isla/ubicación de parcela/extras pasan a ser 3 pasos propios (antes uno solo).
+  var STEPS = opts.ocultarVilla ? [2, 3, 4, 5] : [1, 2, 3];
   var PASOS = STEPS.length, paso = 1;
 
   function eur(n) { return '€' + Number(n).toLocaleString('en-US'); }

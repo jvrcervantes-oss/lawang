@@ -378,13 +378,27 @@ html:not([data-lang="es"]) .i-es{display:none !important}
    criterio que el resto de este <style>: NUNCA Play CDN, y sin re-generar el build
    (no hay tailwind.config en el repo para reproducirlo con seguridad). ────────────── */
 
-/* Hero: la foto pasa a columna propia y el configurador deja de flotar encima —
-   solo desde 1024px; por debajo sigue exactamente como estaba (tarjeta flotante). */
+/* ── Hero responsive: rehecho el 22-sep-2026 ─────────────────────────────────────────
+   Por debajo de 1024px el configurador FLOTABA encima de la foto (z-40 sobre z-30,
+   hasta el 92% del ancho) tapando el dock de cámara entero — hit-test verificado con
+   Playwright: el click en "Day" caía sobre el CTA de WhatsApp de la tarjeta, no sobre
+   el botón. En cuanto se cambiaba de vista (un hotspot, "Bamboo") no había manera de
+   volver a la foto de día: ni el dock ni los hotspots (también debajo de la tarjeta)
+   eran alcanzables. Ahora, por debajo de 1024px, la foto va arriba (altura fija,
+   dock y hotspots siempre alcanzables) y el configurador debajo en flujo normal, a
+   todo el ancho — nada se superpone. Desde 1024px sigue exactamente como estaba
+   (columnas lado a lado, tarjeta de ancho fijo). */
+#hero-configurator{height:auto}
+#hero-configurator > .relative.w-full.h-full{display:flex;flex-direction:column;height:auto}
+#hero-visual{position:relative;inset:auto;width:100%;height:56vh;flex:none}
+#hero-configurator aside{position:relative;top:auto;right:auto;bottom:auto;left:auto;
+  width:100%;height:auto;max-height:none;margin:0;border-radius:0}
 @media (min-width:1024px){
-  #hero-configurator > .relative.w-full.h-full{display:flex;flex-direction:row}
-  #hero-visual{position:relative;inset:auto;width:auto;flex:1 1 auto;height:100%}
-  #hero-configurator aside{position:static;top:auto;right:auto;bottom:auto;
-    width:420px;height:calc(100% - 4rem);margin:2rem 2rem 2rem 0;flex:none}
+  #hero-configurator{height:100vh}
+  #hero-configurator > .relative.w-full.h-full{flex-direction:row;height:100%}
+  #hero-visual{width:auto;flex:1 1 auto;height:100%}
+  #hero-configurator aside{position:static;width:420px;height:calc(100% - 4rem);
+    margin:2rem 2rem 2rem 0;border-radius:1rem;flex:none}
 }
 @media (min-width:1280px){
   #hero-configurator aside{width:460px}
@@ -619,7 +633,7 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 </div>
 </div>
 <div class="flex items-center justify-center gap-1.5 pt-2">
-<span class="font-label-md text-xs text-on-surface-variant font-semibold" id="lw-paso-lb">Step 1 of 2</span>
+<span class="font-label-md text-xs text-on-surface-variant font-semibold" id="lw-paso-lb">Step 1 of 4</span>
 </div>
 </div>
 
@@ -658,16 +672,14 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 <div id="lw-techos" class="space-y-2"></div>
 </div>
 
-<div class="cfg__step space-y-2" data-paso="3" hidden>
-<!-- Parcela PRIMERO, antes que los extras — 22-sep-2026: enterrada debajo de la lista
-     de extras (5-6 filas) quedaba fuera de la vista sin hacer scroll y el owner no la
-     encontraba. Se cotiza aparte del total configurado (villa+techo+extras), a
-     propósito — decisión ya tomada en /palmfield el 7-sep-2026 (ver su docblock): la
-     parcela no se bundlea con el precio de la villa. Esto solo deja ver la tarifa real
-     por m² (lw_parcela_tarifa_m2(), modelo/lib.php) según isla y ubicación; el tamaño
-     se concreta en la llamada, nunca aquí. -->
-<!-- Isla: paso propio, separado de la tarifa — 22-sep-2026, pedido del owner. -->
-<div class="space-y-2.5">
+<!-- 22-sep-2026: isla, ubicación de parcela y extras pasan a SER TRES PASOS propios
+     (antes iban los tres apretados dentro de "Any extras?") — pedido del owner: Step 1
+     Roof, Step 2 Island, Step 3 Plot location, Step 4 Extras. La parcela se sigue
+     cotizando aparte del total configurado (villa+techo+extras) — decisión ya tomada
+     en /palmfield el 7-sep-2026, ver su docblock: no se bundlea con el precio de la
+     villa. Solo deja ver la tarifa real por m² (lw_parcela_tarifa_m2(), modelo/lib.php)
+     según isla y ubicación; el tamaño se concreta en la llamada, nunca aquí. -->
+<div class="cfg__step space-y-2.5" data-paso="3" hidden>
 <div class="flex flex-col mb-1">
 <span class="font-headline-sm text-headline-sm text-primary font-semibold"><?= lw_i18n('¿Qué isla?', 'Which island?') ?></span>
 <p class="font-body-sm text-body-sm text-on-surface-variant">The plot is priced separately, sized on the call.</p>
@@ -676,29 +688,30 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 <label class="op"><input type="radio" name="lw-isla" value="sumba"><span><span class="op__nb">Sumba</span><span class="op__sp">Beachfront only</span></span></label>
 </div>
 
-<!-- Tarifa por m²: propio bloque, debajo de la isla. Bali elige ubicación; Sumba tiene
-     una única opción real hoy (Beachfront, dentro de Sumba Hills — el resort se llamó
-     "SandalWoods" hasta el 27-ago-2026, ver supabase/migrations/20260827020601), así
-     que no hay nada que radio-seleccionar, solo mostrarla. -->
-<div class="space-y-2.5 pt-3 mt-1 border-t border-surface-container-highest/60">
+<div class="cfg__step space-y-2.5" data-paso="4" hidden>
 <div class="flex flex-col mb-1">
 <span class="font-headline-sm text-headline-sm text-primary font-semibold"><?= lw_i18n('Ubicación de la parcela', 'Plot location') ?></span>
 </div>
+<!-- Bali elige ubicación; Sumba tiene una única opción real hoy (Beachfront, dentro de
+     Sumba Hills — el resort se llamó "SandalWoods" hasta el 27-ago-2026, ver
+     supabase/migrations/20260827020601), así que no hay nada que radio-seleccionar,
+     solo mostrarla. -->
 <div id="lw-zona-wrap" class="space-y-2.5">
 <label class="op"><input type="radio" name="lw-zona" value="otras" checked><span><span class="op__nb">Cliff · Ricefield · Riverfront</span></span><span class="op__pr"><b>€<?= lw_e((string) lw_parcela_tarifa_m2('otras')) ?>/m²</b></span></label>
 <label class="op"><input type="radio" name="lw-zona" value="beachfront"><span><span class="op__nb">Beachfront</span></span><span class="op__pr"><b>€<?= lw_e((string) lw_parcela_tarifa_m2('beachfront')) ?>/m²</b></span></label>
 </div>
 <div id="lw-zona-sumba-wrap" class="space-y-2.5" hidden>
-<!-- Sin <input>: `.op>span:nth-child(2)` (au-landing-cfg.js/CSS del <style>) espera el
-     input como 1er hijo para poner el 2o en columna — aquí no hay input, así que el
-     wrapper de nombre+descripción lleva el mismo flex a mano, o "Beachfront" y su
-     descripción salen pegados en la misma línea. -->
+<!-- Sin <input>: `.op>span:nth-child(2)` (CSS del <style>) espera el input como 1er
+     hijo para poner el 2o en columna — aquí no hay input, así que el wrapper de
+     nombre+descripción lleva el mismo flex a mano, o "Beachfront" y su descripción
+     salen pegados en la misma línea. -->
 <div class="op" style="cursor:default"><span style="display:flex;flex-direction:column;flex:1;min-width:0"><span class="op__nb">Beachfront</span><span class="op__sp">Inside Sumba Hills — the only plot on offer today</span></span><span class="op__pr"><b>€<?= lw_e((string) lw_parcela_tarifa_m2('sumba')) ?>/m²</b></span></div>
 </div>
 <p class="text-[11px] text-on-surface-variant" id="lw-parcela-nota"></p>
 </div>
 
-<div class="flex flex-col mb-1 pt-3 mt-1 border-t border-surface-container-highest/60">
+<div class="cfg__step space-y-2" data-paso="5" hidden>
+<div class="flex flex-col mb-1">
 <span class="font-headline-sm text-headline-sm text-primary font-semibold"><?= lw_i18n('¿Algún extra?', 'Any extras?') ?></span>
 <p class="font-body-sm text-body-sm text-on-surface-variant">Optional — none of them is needed to move in.</p>
 </div>
@@ -1067,7 +1080,7 @@ foreach ($incluido as $it):
 <!-- Motor del configurador ANTES del script inline que lo invoca (window.lwAuCfgInit
      tiene que existir cuando se llama más abajo) — sin defer a propósito, o el inline
      que sigue se ejecutaría primero y fallaría "lwAuCfgInit is not a function". -->
-<script src="/assets/au-landing-cfg.js?v=20260922110312"></script>
+<script src="/assets/au-landing-cfg.js?v=20260922203350"></script>
 <script>
 (function () {
   'use strict';
@@ -1160,8 +1173,15 @@ foreach ($incluido as $it):
       }
       nota.textContent = 'Plot rate for this selection: €' + tarifa + '/m² — size confirmed on the call, not included in the total above.';
     }
+    // 22-sep-2026: isla y ubicación ahora son cada una su propio paso (como villa/techo
+    // ya hacían) — elegir una avanza sola al siguiente, reutilizando el botón "Next" del
+    // motor compartido (no expone un avanza() propio, así que se simula el click).
     document.querySelectorAll('input[name="lw-isla"], input[name="lw-zona"]').forEach(function (r) {
-      r.addEventListener('change', refresca);
+      r.addEventListener('change', function () {
+        refresca();
+        var siguiente = document.getElementById('lw-siguiente');
+        if (siguiente) siguiente.click();
+      });
     });
     refresca();
   }());
