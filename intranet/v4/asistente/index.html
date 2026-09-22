@@ -10,7 +10,7 @@
      no monta un <select> ni un <datalist> para eso. vocabulario.js da el nombre
      visible del tipo de contrato en la nota de cada opción. -->
 <script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script>
-<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/datos.js?v=1cd6b1ff" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/datos.js?v=a7f7ca4a" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=f8f8a146" defer></script>
 <link href="../assets/shell.css?v=bd0a56cb" rel="stylesheet">
@@ -411,6 +411,28 @@
     if (actual) bloques.push(actual);
     return bloques.map(function (b) { return { cabecera: b.cabecera, detalle: b.lineas.join('\n') }; });
   }
+  /* Lo contrario: el borrador SIN los bloques retirados, sin el preámbulo,
+     sin «Fuentes usadas:», sin la marca y sin las frases fijas. Solo para las
+     consultas guardadas antes de que la edge guardara `respuesta_comprador`;
+     una consulta nueva trae ya el recorte del servidor. Un punto con frase
+     fija sale entero, como en la edge. */
+  var RE_FRASE_FIJA = /pendiente de confirmaci[oó]n por el promotor|pending confirmation (from|by) the (developer|promoter|seller)|no lo confirmes al comprador|contraoferta comercial|commercial counter-?offer/i;
+  function sinRetirados(borrador) {
+    var secciones = [], actual = null;
+    String(borrador || '').split(/\r?\n/).forEach(function (l) {
+      if (/^\s*Fuentes usadas\s*:/i.test(l) || l.indexOf(MARCA_IA) !== -1) { actual = null; return; }
+      if (RE_CABECERA.test(l)) {
+        actual = RE_RETIRADO.test(l) ? null : [l.replace(/\s+—\s+(cita|existe el documento|pendiente|contraoferta)(\s*\+\s*(cita|existe el documento|pendiente|contraoferta))*(\s*\([^()]{0,60}\))?\s*$/i, '').trim()];
+        if (actual) secciones.push(actual);
+        return;
+      }
+      if (actual) actual.push(l);
+    });
+    return secciones
+      .filter(function (s) { return !s.some(function (l) { return RE_FRASE_FIJA.test(l); }); })
+      .map(function (s) { return s.join('\n').replace(/\n{3,}/g, '\n\n').trim(); })
+      .filter(Boolean).join('\n\n');
+  }
 
   function vacia(el) { while (el.firstChild) el.removeChild(el.firstChild); }
   /* Atributo `hidden` Y clase `hidden` de Tailwind: con `.flex` en el mismo
@@ -680,7 +702,10 @@
       if (ctx.super && c.respuesta) {
         der.appendChild(botonFila(lwT('Fijar como respuesta aprobada'), 'verified', function () {
           var primera = String(c.pregunta || '').split(/\r?\n/).filter(function (x) { return x.trim(); })[0] || '';
-          prefillFaq({ pregunta: primera.trim().slice(0, 1000), respuesta: (copia && copia.texto) || c.respuesta || '' });
+          // Semilla de la FAQ: lo copiado; si no, el recorte para el comprador
+          // (nunca el borrador entero: lleva frases al agente y la marca).
+          var recorte = (typeof c.respuesta_comprador === 'string') ? c.respuesta_comprador : sinRetirados(c.respuesta);
+          prefillFaq({ pregunta: primera.trim().slice(0, 1000), respuesta: (copia && copia.texto) || recorte || '' });
         }));
       }
       fila.appendChild(izq); fila.appendChild(der);
@@ -700,7 +725,14 @@
        Sobre la de un compañero se copia sin registrar — la interfaz no ofrece
        lo que la base va a rechazar. */
     var propia = !!(ctx && c.preguntado_por === ctx.email);
-    pintaResultado({ consulta_id: propia ? c.id : null, borrador: c.respuesta, fuentes: c.fuentes || [], bloqueos: c.bloqueos || [] });
+    /* Al área editable va el recorte GUARDADO (`respuesta_comprador`, lo
+       escribe la edge desde v6.3). Las consultas anteriores a esa columna
+       no lo tienen: se recorta aquí, en el cliente, con la misma regla
+       (fuera los puntos retirados, la cola y las frases fijas) antes que
+       cargar el borrador entero con «no lo confirmes al comprador» dentro
+       (revisión de código de S3, 22-sep). */
+    var comprador = (typeof c.respuesta_comprador === 'string') ? c.respuesta_comprador : sinRetirados(c.respuesta);
+    pintaResultado({ consulta_id: propia ? c.id : null, borrador: c.respuesta, borrador_comprador: comprador, fuentes: c.fuentes || [], bloqueos: c.bloqueos || [] });
     var nota = $('lw-resultado-nota');
     var texto = lwT('Consulta del %f · %c', { f: fechaCorta(c.creado_en), c: etiquetaContrato(c) });
     /* Si el agente ya copió un texto para el comprador, es ESE el que se
@@ -729,7 +761,7 @@
        cada consulta (orden y límite sobre la tabla referenciada); su RLS es
        la misma que la de la consulta, así que quien ve una ve la otra. */
     ctx.sb.from('bot_consultas')
-      .select('id, contrato_id, pregunta, respuesta, fuentes, bloqueos, creado_en, preguntado_por, contratos(numero, comprador_nombre, proyecto_nombre), bot_respuestas_copiadas(texto, copiado_en)')
+      .select('id, contrato_id, pregunta, respuesta, respuesta_comprador, fuentes, bloqueos, creado_en, preguntado_por, contratos(numero, comprador_nombre, proyecto_nombre), bot_respuestas_copiadas(texto, copiado_en)')
       .order('creado_en', { ascending: false })
       .order('copiado_en', { ascending: false, referencedTable: 'bot_respuestas_copiadas' })
       .limit(1, { referencedTable: 'bot_respuestas_copiadas' })
