@@ -516,6 +516,27 @@
      proyecto»: el RPC es quien decide de verdad y puede desincronizarse
      entre este cálculo y el clic — el mensaje real del gate se enseña tal
      cual si para. */
+  /* `dialogo.js` (lwConfirmar) es un módulo bajo demanda de editores.js
+     (aseguraModulosDoc, no expuesto en window) — Operaciones no dispara
+     ningún otro flujo que lo cargue antes de este botón (prorroga_reserva/
+     libera_reserva usan `lwVentana`, otro módulo). Verificado en producción
+     (22-sep-2026): sin este loader propio, el primer clic en «Borrar
+     operación» se quedaba en «prueba de nuevo en un segundo» para siempre,
+     porque nada más en la página iba a cargarlo. Se pide UNA vez; si ya está
+     (otra pantalla lo cargó antes), se resuelve al instante. */
+  var _cargaDialogo = null;
+  function aseguraDialogoV4() {
+    if (typeof lwConfirmar === 'function') return Promise.resolve();
+    if (_cargaDialogo) return _cargaDialogo;
+    _cargaDialogo = new Promise(function (res, rej) {
+      var s = document.createElement('script');
+      s.src = '/contracts/assets/dialogo.js?v=cefc9e4e';
+      s.onload = res;
+      s.onerror = function () { _cargaDialogo = null; rej(new Error('no se pudo cargar dialogo.js')); };
+      document.head.appendChild(s);
+    });
+    return _cargaDialogo;
+  }
   function borrarOperacionV4(sb, c0) {
     var fam = 'id.eq.' + c0.id + ',contrato_padre_id.eq.' + c0.id;
     sb.rpc('contratos_equipo').select('id,numero').or(fam).then(function (rc) {
@@ -540,13 +561,17 @@
         if (comisiones.length) detalle.push(comisiones.length + ' comisión(es) devengada(s) y su solicitud de pago (si la tienen) se PURGARÁN' +
           (yaPagadas ? ' — OJO: ' + yaPagadas + ' ya está' + (yaPagadas === 1 ? '' : 'n') + ' PAGADA(S): el sistema va a parar el borrado entero' : ''));
         detalle.push('La parcela vinculada vuelve a estar disponible.');
-        if (typeof lwConfirmar !== 'function') { toast('El diálogo de confirmación aún no ha cargado — prueba de nuevo en un segundo.'); return; }
-        lwConfirmar({
-          titulo: 'Borrar la operación de ' + (c0.comprador_nombre || 'sin comprador'),
-          cuerpo: '<p>Se borra ' + detalle[0] + '.</p>' +
-            (detalle.length > 1 ? '<ul style="margin:0 0 10px;padding-left:18px">' + detalle.slice(1).map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>' : '') +
-            '<p>No hay papelera. Si hay una comisión ya pagada (de closer o de manager), el sistema para el borrado entero y hay que resolverlo a mano.</p>',
-          confirmar: 'Borrar la operación', tono: 'peligro'
+        aseguraDialogoV4().then(function () {
+          return lwConfirmar({
+            titulo: 'Borrar la operación de ' + (c0.comprador_nombre || 'sin comprador'),
+            cuerpo: '<p>Se borra ' + detalle[0] + '.</p>' +
+              (detalle.length > 1 ? '<ul style="margin:0 0 10px;padding-left:18px">' + detalle.slice(1).map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>' : '') +
+              '<p>No hay papelera. Si hay una comisión ya pagada (de closer o de manager), el sistema para el borrado entero y hay que resolverlo a mano.</p>',
+            confirmar: 'Borrar la operación', tono: 'peligro'
+          });
+        }, function () {
+          toastMal('No se pudo cargar el diálogo de confirmación — prueba de nuevo.');
+          return false;
         }).then(function (ok) {
           if (!ok) return;
           var rutas = [];
