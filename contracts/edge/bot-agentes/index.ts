@@ -793,6 +793,11 @@ Deno.serve(async (req) => {
     //    lo necesita para guardar el descarte del agente y la copia enviada).
     const consultaId = crypto.randomUUID();
     const clientId = typeof datos.adq1_client_id === 'string' && UUID.test(datos.adq1_client_id) ? datos.adq1_client_id : null;
+    // Recorte para el comprador: solo los puntos no retirados, sin nada
+    // dirigido al agente (función pura, test en contracts/bot/). Se GUARDA
+    // junto al borrador: el historial lo carga en el área editable en vez del
+    // borrador entero (revisión de código de S3, 22-sep).
+    const borradorCompradorTexto = borrador ? borradorComprador(puntos, textoModelo) : null;
     const { error: eIns } = await admin.from('bot_consultas').insert({
       id: consultaId,
       contrato_id: contrato.id,
@@ -800,6 +805,7 @@ Deno.serve(async (req) => {
       preguntado_por: email,
       pregunta,
       respuesta: borrador,
+      respuesta_comprador: borradorCompradorTexto,
       fuentes,
       bloqueos: bloqueosUnicos,
       prompt_version: fuente.data.version,
@@ -819,9 +825,7 @@ Deno.serve(async (req) => {
     return json({
       consulta_id: consultaId,
       borrador,
-      // Recorte para el comprador: solo los puntos no retirados, sin nada
-      // dirigido al agente (función pura, test en contracts/bot/).
-      borrador_comprador: borradorComprador(puntos, textoModelo),
+      borrador_comprador: borradorCompradorTexto,
       faq: faqs.map((f) => ({ id: f.id, tema_clave: f.tema_clave, pregunta: f.pregunta })),
       fuentes,
       bloqueos: bloqueosUnicos,

@@ -57,4 +57,5 @@
 -- Fuente (la ultima es la vigente):
 --   supabase/migrations/20260922012840_bot_agentes.sql   (bot_fuentes, bot_bloqueos, bot_consultas)
 --   supabase/migrations/20260922210000_bot_faq_temas.sql
+--   supabase/migrations/20260922233000_bot_consultas_respuesta_comprador.sql (columna respuesta_comprador)
 -- ============================================================================

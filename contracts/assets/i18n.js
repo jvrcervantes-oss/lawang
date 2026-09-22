@@ -2775,6 +2775,100 @@
     'Borrador descartado: el modelo no quiso responder a esa pregunta.': 'Draft discarded: the model declined to answer that question.',
     'Borrador descartado: la respuesta salió cortada. Prueba con una pregunta más corta.': 'Draft discarded: the reply came out cut off. Try a shorter question.',
     'Borrador descartado: el modelo no devolvió texto.': 'Draft discarded: the model returned no text.',
+    /* FAQ aprobadas, respuestas copiadas y temas frecuentes (22-sep-2026, noche 4).
+       «Approved reply» para la FAQ: es lo único de esta pantalla que SÍ es una
+       respuesta dada (la aprueba un super administrador); el borrador sigue
+       siendo «draft». */
+    'Respuestas aprobadas para este contrato': 'Approved replies for this contract',
+    'Buscando respuestas aprobadas…': 'Looking for approved replies…',
+    'Ninguna respuesta aprobada para este proyecto': 'No approved reply for this project',
+    '%n respuestas aprobadas': '%n approved replies',
+    '%n respuestas aprobadas que el asistente ha tenido en cuenta': '%n approved replies the assistant took into account',
+    '(respuesta no cargada: vuelve a elegir el contrato)': '(reply not loaded: pick the contract again)',
+    'No se han podido leer las respuestas aprobadas': 'Could not read the approved replies',
+    'Borrador para el comprador (editable)': 'Draft for the buyer (editable)',
+    'Solo los puntos que el asistente ha podido contestar. Corrígelo aquí si hace falta: «Copiar» se lleva lo que quede escrito.':
+      'Only the points the assistant could answer. Fix it here if needed: "Copy" takes whatever is written.',
+    'Todos los puntos han quedado pendientes: no hay texto que mandar al comprador todavía.':
+      'Every point is pending: there is no text for the buyer yet.',
+    'No se ha guardado la copia': 'The copy was not saved',
+    'Copiada': 'Copied',
+    'Texto copiado el %f': 'Text copied on %f',
+    'Fijar como respuesta aprobada': 'Set as approved reply',
+    'Fijar respuesta aprobada': 'Set approved reply',
+    // Temas frecuentes
+    'Temas': 'Topics',
+    'Temas frecuentes': 'Frequent topics',
+    'Qué preguntan los compradores, por tema, y en cuántas consultas el asistente tuvo que retirar un punto o descartar el borrador.':
+      'What buyers ask, by topic, and in how many queries the assistant had to withdraw a point or discard the draft.',
+    'Ventana de días': 'Day window',
+    '30 días': '30 days',
+    '90 días': '90 days',
+    'Cargando los temas…': 'Loading topics…',
+    'No hay temas definidos todavía.': 'No topics defined yet.',
+    'No se ha podido cargar el resumen por temas': 'Could not load the summary by topic',
+    '%n consultas en los últimos %d días, por tema': '%n queries in the last %d days, by topic',
+    'Tema': 'Topic',
+    'Consultas': 'Queries',
+    'Con puntos retirados': 'With withdrawn points',
+    'Descartadas': 'Discarded',
+    'hueco del contrato → adenda, no FAQ': 'gap in the contract → addendum, not FAQ',
+    // Administración de respuestas aprobadas (solo super_admin)
+    'Respuestas aprobadas': 'Approved replies',
+    'Lo que el asistente puede dar por bueno además del contrato: una pregunta y su respuesta, acotadas a un proyecto o a un tipo de contrato. Las lee cualquier agente; solo un super administrador las aprueba o las retira.':
+      'What the assistant may take as given besides the contract: a question and its reply, scoped to a project or a contract type. Any agent reads them; only a super administrator approves or withdraws them.',
+    'Un tema frenado por el asistente no admite respuesta aprobada: es un hueco del contrato y se resuelve con una adenda. Y ninguna respuesta lleva una cifra de 8 o más dígitos seguidos (cuenta, teléfono, pasaporte).':
+      'A topic the assistant brakes on takes no approved reply: it is a gap in the contract and is solved with an addendum. And no reply carries a figure of 8 or more consecutive digits (account, phone, passport).',
+    'Elige el tema': 'Pick the topic',
+    'Proyecto (opcional)': 'Project (optional)',
+    'Cualquier proyecto': 'Any project',
+    'Tipo de contrato (opcional)': 'Contract type (optional)',
+    'Cualquier tipo': 'Any type',
+    'Pregunta (como la haría el comprador)': 'Question (as the buyer would ask it)',
+    '¿Qué documentos recibo al firmar?': 'Which documents do I get on signing?',
+    'Respuesta aprobada': 'Approved reply',
+    'Lo que el asistente puede dar por bueno. Sin cifras largas ni datos de un comprador concreto.':
+      'What the assistant may take as given. No long figures and no data of a specific buyer.',
+    'Limpiar': 'Clear',
+    'Guardar respuesta aprobada': 'Save approved reply',
+    'Respuestas vigentes': 'Current replies',
+    'Cargando las respuestas aprobadas…': 'Loading approved replies…',
+    'No se han podido cargar las respuestas aprobadas': 'Could not load the approved replies',
+    'Todavía no hay ninguna respuesta aprobada.': 'There is no approved reply yet.',
+    '%n respuestas vigentes': '%n current replies',
+    'cualquier proyecto': 'any project',
+    'cualquier tipo': 'any type',
+    'proyecto sin acceso': 'project not accessible',
+    'procedimiento: vale para todos los contratos': 'procedure: applies to every contract',
+    'Sustituir': 'Replace',
+    'Retirar': 'Withdraw',
+    'Retirar la respuesta aprobada «%p»': 'Withdraw the approved reply «%p»',
+    'Sustituye a «%p»: al guardar, la anterior queda retirada.': 'Replaces «%p»: on saving, the previous one is withdrawn.',
+    'Elige el tema de la respuesta aprobada.': 'Pick the topic of the approved reply.',
+    'Ese tema está frenado por el asistente: es un hueco del contrato y se resuelve con adenda, no con una respuesta aprobada.':
+      'That topic is braked by the assistant: it is a gap in the contract and is solved with an addendum, not with an approved reply.',
+    'Escribe la pregunta tal y como la haría el comprador.': 'Write the question as the buyer would ask it.',
+    'Escribe la respuesta aprobada.': 'Write the approved reply.',
+    'Ese proyecto no está en la lista: elígelo del desplegable.': 'That project is not on the list: pick it from the dropdown.',
+    'Ese tipo de contrato no está en la lista: elígelo del desplegable.': 'That contract type is not on the list: pick it from the dropdown.',
+    'Una respuesta aprobada necesita proyecto o tipo de contrato (solo los temas de procedimiento valen para todos).':
+      'An approved reply needs a project or a contract type (only procedure topics apply to all).',
+    'Respuesta aprobada guardada: el asistente la tiene en cuenta desde ahora.': 'Approved reply saved: the assistant takes it into account from now on.',
+    'Respuesta guardada, pero la anterior sigue activa: retírala a mano.': 'Reply saved, but the previous one is still active: withdraw it by hand.',
+    'Respuesta aprobada retirada: el asistente deja de tenerla en cuenta.': 'Approved reply withdrawn: the assistant no longer takes it into account.',
+    'No se han podido cargar los temas': 'Could not load the topics',
+    'No se han podido cargar los proyectos': 'Could not load the projects',
+    /* códigos de error de la edge para faq_guardar / faq_retirar */
+    'La respuesta contiene una cifra de 8 o más dígitos seguidos (cuenta, teléfono, pasaporte): no se guarda.':
+      'The reply contains a figure of 8 or more consecutive digits (account, phone, passport): it is not saved.',
+    'Respuesta frenada por el asistente: %m': 'Reply braked by the assistant: %m',
+    'Falta un dato de la respuesta aprobada (%c).': 'A field of the approved reply is missing (%c).',
+    'Has alcanzado el límite de respuestas aprobadas por hora: vuelve a intentarlo más tarde.': 'You have reached the hourly limit of approved replies: try again later.',
+    'Solo un super administrador puede aprobar o retirar respuestas.': 'Only a super administrator can approve or withdraw replies.',
+    'Esa respuesta aprobada ya no existe o ya estaba retirada.': 'That approved reply no longer exists or was already withdrawn.',
+    'No se pudo guardar la respuesta aprobada.': 'Could not save the approved reply.',
+    'No se pudo retirar la respuesta aprobada.': 'Could not withdraw the approved reply.',
+    'No se pudo guardar la respuesta aprobada (%e).': 'Could not save the approved reply (%e).',
 
   };
 
