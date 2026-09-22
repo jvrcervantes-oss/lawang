@@ -128,6 +128,6 @@ comment on function public.descuento_comercial_construccion_valido() is
 
 -- ─── 22-sep-2026 ─────────────────────────────────────────────────────────────
 -- SUSTITUIDA por contracts/sql/precio_construccion_cuadra_con_techo.sql (migración
--- 20260922160000): misma función, añade la comprobación precio_total = techo +
+-- 20260922013705): misma función, añade la comprobación precio_total = techo +
 -- Σextras − descuento cuando datos.techo trae precio. Este fichero queda como
 -- historia del porqué; la versión vigente de la función es la de aquel.
