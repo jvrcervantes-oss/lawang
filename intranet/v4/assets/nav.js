@@ -36,7 +36,6 @@
        (owner, 14-sep). Ruta ABSOLUTA, no relativa a ROOT: lo que hay en
        v4/leads/ es solo una redireccion para los enlaces viejos. */
     ['CRM', '/intranet/leads/'],
-    ['Asistente', 'asistente/'],
     ['Comisiones', 'comisiones/'],
     ['Cuentas', 'cuentas/'],
     ['Equipos de venta', 'equipos-venta/'],
@@ -152,7 +151,10 @@
        catálogo (pese a lo que dice el comentario de arriba, RUTAS e INJERTOS
        son listas propias) — una tarjeta nueva en herramientas.js sale en el
        hub y en la barra clásica, pero en esta sidebar solo si se injerta
-       aquí. Se deja dicho para que la próxima herramienta no se quede fuera. */
+       aquí. Y SOLO aquí: una fila en RUTAS no hace falta (el clon lleva
+       data-path y recablea() lo resuelve por esa rama, nunca por texto —
+       code-review, 22-sep). Se deja dicho para que la próxima herramienta
+       no se quede fuera. */
     { path: 'asistente',  tras: 'contratos', icono: 'smart_toy',     texto: 'Asistente' },
     { path: 'comisiones', tras: 'recibos',  icono: 'request_quote',  texto: 'Comisiones' }
   ];
