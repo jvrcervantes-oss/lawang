@@ -179,6 +179,12 @@ window.lwErrorHumano = function (error, prefijo) {
     texto = 'El fichero es demasiado grande';
   } else if (/^Bucket not found|^Object not found|^The resource was not found/i.test(msg)) {
     texto = 'El fichero no está donde debería';
+  } else if (/^PGRST20[0-4]$/.test(String(code || '')) ||
+             /^(invalid input syntax for type|column "?[\w.]+"? does not exist|relation "[^"]*" does not exist|function [^\s(]+\([^)]*\) does not exist|operator does not exist)/i.test(msg)) {
+    /* Errores de ESQUEMA (columna que ya no está, uuid mal formado, relación que
+       PostgREST no encuentra): son un bug nuestro, no algo que la persona pueda
+       arreglar, y el texto crudo son nombres de tablas. Seguridad, 22-sep. */
+    texto = 'Error interno: avisa al estudio (el detalle queda en la consola)';
   } else if (msg) {
     texto = msg;                       // nuestro: ya está escrito para la persona
   } else {

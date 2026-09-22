@@ -67,6 +67,13 @@ RedirectMatch 404 (?i)/modelo/(lib|modelos|datos)\.php$
 # primer despliegue: la lista a mano ERA el bug, igual que en el hook de cache-bust.
 RedirectMatch 404 (?i)/test_[^/]+\.php$
 
+# Dobles de diagnostico (`_diag_portal.html`): una pagina del portal con un payload
+# congelado para reproducir un fallo en local. Viaja en el repo y el servidor la servia
+# con 200 (auditoria 16-sep, consulta de deploy Seguridad 22-sep-2026): uuids y numeros
+# de documento reales aunque los nombres sean ficticios. Por PREFIJO, no por nombre,
+# para que el siguiente `_diag_*` nazca cubierto.
+RedirectMatch 404 (?i)/_diag_
+
 # ...y el `RedirectMatch` de arriba NO basta: casa la URL, no el fichero, asi que un
 # PATH_INFO detras de la extension se lo salta entero. Verificado en produccion el
 # 3-ago-2026: /api/test_lead_ticket.php/x ejecuto el arnes, y /modelo/lib.php/x y

@@ -24,42 +24,16 @@
 -- DIVERGENCIA ASUMIDA, no bug: la web pública (modelo/datos.php) sigue
 -- ocultando del configurador los modelos sin sirap+bambu; el editor de contratos
 -- sí les enseña «Ulin». Son dos consumidores distintos de dos fuentes distintas.
-create or replace function public.modelo_techos_opciones(p_modelo_id uuid, p_proyecto_id uuid default null)
-returns table(techo_id uuid, clave text, nombre text, precio numeric, moneda text, tramo text)
-language sql
-stable
-security definer
-set search_path to ''
-as $$
-  with base as (
-    select m.precio_construccion as catalogo, m.moneda as m_moneda,
-           mv.precio_construccion as propio, mv.moneda as mv_moneda,
-           coalesce(mv.precio_construccion, m.precio_construccion) as efectivo,
-           case when mv.precio_construccion is not null then coalesce(mv.moneda, m.moneda) else m.moneda end as moneda
-      from public.modelos m
-      left join public.modelos_villa mv
-        on mv.modelo_id = m.id and mv.proyecto_id = p_proyecto_id and mv.precio_construccion is not null
-     where m.id = p_modelo_id
-  ), tramo as (select public.catalogo_tramo_activo() as t)
-  (
-    select th.id, th.clave, th.nombre,
-           (case when tramo.t = '2026' then th.precio_ahora else th.precio_2027 end)
-             + coalesce(base.efectivo - base.catalogo, 0) as precio,
-           base.m_moneda, tramo.t
-      from public.modelo_techos th, base, tramo
-     where th.modelo_id = p_modelo_id
-     order by th.orden nulls last, th.nombre
-  )
-  union all
-  (
-    select p_modelo_id, 'ulin'::text, 'Ulin'::text, base.efectivo, base.moneda, tramo.t
-      from base, tramo
-     where base.efectivo is not null
-       and not exists (select 1 from public.modelo_techos th where th.modelo_id = p_modelo_id)
-  )
-$$;
 
-comment on function public.modelo_techos_opciones(uuid, uuid) is
-  'Variantes de techo de un modelo con precio YA resuelto (tramo por reloj del servidor + delta proyecto−catálogo). Desde el 22-sep-2026, un modelo SIN variantes devuelve una única opción sintética «Ulin» (techo_id = modelo_id, precio = base de construcción del modelo para el proyecto; cero filas si ese precio es NULL). Solo authenticated; la consume el editor de contratos.';
-revoke all on function public.modelo_techos_opciones(uuid, uuid) from public, anon;
-grant execute on function public.modelo_techos_opciones(uuid, uuid) to authenticated;
+-- ============================================================================
+-- PUNTERO — el codigo vive en supabase/migrations (22-sep-2026)
+-- ----------------------------------------------------------------------------
+-- Esta carpeta guardaba una COPIA del SQL de cada migracion "para leerla".
+-- Dos copias del mismo codigo se desincronizan solas (el 22-sep hubo que
+-- sincronizar borrar_operacion.sql a mano cuatro veces en un dia). Desde hoy
+-- aqui queda el porque (arriba) y el indice de donde esta el codigo:
+--
+-- Objetos: function modelo_techos_opciones(uuid, uuid)
+-- Fuente (la ultima es la vigente):
+--   supabase/migrations/20260922024034_techo_ulin_sintetico.sql
+-- ============================================================================

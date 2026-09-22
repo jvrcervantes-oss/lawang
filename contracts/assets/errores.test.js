@@ -38,6 +38,12 @@ es({ code: '23505', message: 'duplicate key value violates unique constraint "fa
    'Ya existe uno igual', 'UNIQUE');
 es({ code: '23514', message: 'new row for relation "facturas" violates check constraint "facturas_contrato_obligatorio"' }, 'No se pudo borrar',
    'No se pudo borrar: Un dato no cumple una regla del sistema', 'el error del 22-sep, tal como lo vio el owner');
+es({ code: '22P02', message: 'invalid input syntax for type uuid: "abc"' }, 'No se pudo abrir',
+   'No se pudo abrir: Error interno: avisa al estudio (el detalle queda en la consola)', 'error de esquema: no se enseña el crudo');
+es({ code: 'PGRST204', message: "Could not find the 'nota' column of 'leads' in the schema cache" }, null,
+   'Error interno: avisa al estudio (el detalle queda en la consola)', 'PostgREST sin la columna: bug nuestro');
+es({ code: 'P0001', message: 'La ficha de X no existe o no tienes acceso' }, null,
+   'La ficha de X no existe o no tienes acceso', 'un RAISE nuestro con «no existe» en castellano pasa tal cual');
 es({ code: '42501', message: 'new row violates row-level security policy for table "contratos"' }, null,
    'No tienes permiso para hacer esto', 'RLS');
 es({ code: '42501', message: 'permission denied for table clients' }, null,
