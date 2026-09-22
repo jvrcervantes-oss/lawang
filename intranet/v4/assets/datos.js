@@ -5977,6 +5977,7 @@
       var nombrePorEmail = {}; usuarios.forEach(function (u) { if (u.email) nombrePorEmail[u.email.toLowerCase()] = u.nombre || u.email; });
       var tramosDe = {}; tramos.forEach(function (t) { (tramosDe[t.condicion_id] = tramosDe[t.condicion_id] || []).push(t); });
       window.LW_V4.condicionesLista = {}; conds.forEach(function (c) { window.LW_V4.condicionesLista[c.id] = c; });
+      window.LW_V4.tramosDe = tramosDe;   // los lee «Editar condición» (editores.js) para precargar los tramos
 
       pon2('k-cond-activas', String(conds.filter(function (c) { return c.activo; }).length));
       pon2('k-cond-total', String(conds.length));
@@ -6011,7 +6012,13 @@
             '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' +
               (c.activo ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-surface-container-high text-on-surface-variant') + '">' +
               (c.activo ? 'Activa' : 'Inactiva') + '</span></td>' +
-            '<td class="px-5 py-4 text-right"><div class="flex justify-end gap-2"><button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" ' +
+            '<td class="px-5 py-4 text-right"><div class="flex justify-end gap-2">' +
+              /* Editar (22-sep-2026, owner): %, base, importe fijo, override y —si
+                 no ha devengado— los tramos. Equipo, proyecto y nivel no: son la
+                 identidad de la condición. */
+              '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" ' +
+              'data-lw-edita-cond="' + esc(c.id) + '" data-lw-etq="' + esc((equipoDe[c.equipo_id] || '') + ' · ' + (proyectoDe[c.proyecto_id] || '')) + '">Editar</button>' +
+              '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" ' +
               'data-lw-toggle-cond="' + esc(c.id) + '" data-lw-etq="' + esc((equipoDe[c.equipo_id] || '') + ' · ' + (proyectoDe[c.proyecto_id] || '')) + '" data-lw-activo="' + (c.activo ? '1' : '0') + '">' +
               (c.activo ? 'Desactivar' : 'Reactivar') + '</button>' +
               /* Borrar solo la que ya esta desactivada (Seguridad, revision previa
@@ -6029,6 +6036,13 @@
       if (selProyecto) selProyecto.addEventListener('change', pinta);
 
       if (cuerpo) cuerpo.addEventListener('click', function (ev) {
+        var bE = ev.target.closest && ev.target.closest('[data-lw-edita-cond]');
+        if (bE) {
+          ev.preventDefault(); ev.stopPropagation();
+          if (window.LW_V4 && window.LW_V4.abreEditaCondicion) window.LW_V4.abreEditaCondicion(bE);
+          else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
+          return;
+        }
         var bB = ev.target.closest && ev.target.closest('[data-lw-borra-cond]');
         if (bB) {
           ev.preventDefault(); ev.stopPropagation();

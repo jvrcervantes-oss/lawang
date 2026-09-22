@@ -290,6 +290,31 @@
         });
       }
     });
+    /* `visibleSi: { k, valores }` — un campo que solo tiene sentido con cierto
+       valor de OTRO campo (22-sep-2026, owner: «'Importe fijo' que aparezca
+       cuando seleccione la base correspondiente. Igual con 'Override
+       individual'»). Se esconde la tarjeta entera y, al esconderse, se VACÍA:
+       si no, un valor tecleado y luego ocultado viajaría igual en `vals` y la
+       validación de `onGuardar` lo rechazaría sin que se viera el campo. */
+    campos.forEach(function (c, i) {
+      if (!c.visibleSi || !c.visibleSi.k) return;
+      var propia = cont.children[i];
+      var amo = cont.querySelector('[data-k="' + c.visibleSi.k + '"]');
+      if (!propia || !amo) return;
+      var valores = [].concat(c.visibleSi.valores || []);
+      // la tarjeta lleva `display:grid` en línea, así que `hidden` no la esconde
+      var displayPropio = propia.style.display;
+      function aplica() {
+        var v = amo.type === 'checkbox' ? amo.checked : amo.value;
+        var ver = valores.indexOf(v) !== -1;
+        propia.style.display = ver ? displayPropio : 'none';
+        if (!ver) propia.querySelectorAll('[data-k]').forEach(function (el) {
+          if (el.type === 'checkbox') el.checked = false; else if (el.tagName !== 'DIV') el.value = '';
+        });
+      }
+      amo.addEventListener('change', aplica);
+      aplica();
+    });
     var muestraError = function (msg) {
       var e = w.querySelector('[data-e="error"]');
       e.textContent = msg; e.style.display = 'block';
@@ -662,7 +687,9 @@
     ['precio_construccion', 'Precio de construcción'],
     ['importe_fijo', 'Importe fijo']
   ];
-  function montaTramos(host) {
+  /* `iniciales` (22-sep-2026): tramos ya guardados, para EDITAR una condición.
+     Sin ellos arranca con dos filas vacías, como siempre. */
+  function montaTramos(host, iniciales) {
     var opciones = (window.LW_V4 && window.LW_V4.DISPARADORES) || DISPARADORES_TRAMO_FALLBACK;
     var filas = [];
     var wrap = document.createElement('div');
@@ -706,7 +733,7 @@
       actualizaSuma();
     }
 
-    function nuevaFila() {
+    function nuevaFila(valores) {
       var el = document.createElement('div');
       el.style.cssText = 'display:grid;grid-template-columns:1fr 92px 84px 22px;gap:6px;align-items:center';
       var campoEstilo = 'padding:7px 8px;border:1px solid ' + CAJ.borde + ';border-radius:6px;font-size:12.5px;' +
@@ -727,6 +754,12 @@
       btnDel.style.cssText = 'border:0;background:none;color:#9E2F26;font-size:19px;line-height:1;cursor:pointer';
 
       var fila = { el: el, disp: selDisp, umbral: inpUmbral, pct: inpPct };
+      // el botón «+ Añadir tramo» llama a nuevaFila con el evento: no es un tramo
+      if (valores && typeof valores === 'object' && !(valores instanceof Event)) {
+        if (valores.disparador_tipo) selDisp.value = valores.disparador_tipo;
+        if (valores.umbral != null) inpUmbral.value = valores.umbral;
+        if (valores.pct_tramo != null) inpPct.value = valores.pct_tramo;
+      }
 
       function actualizaUmbral() {
         var necesita = /^pct_cobrado_/.test(selDisp.value);
@@ -746,7 +779,8 @@
     }
 
     btnAdd.addEventListener('click', nuevaFila);
-    nuevaFila(); nuevaFila();   // arranca con dos: lo habitual es 2+ tramos
+    if (Array.isArray(iniciales) && iniciales.length) iniciales.forEach(nuevaFila);
+    else { nuevaFila(); nuevaFila(); }   // arranca con dos: lo habitual es 2+ tramos
 
     // getter que `onGuardar` llama para recoger el estado ACTUAL del formulario
     return function () {
@@ -6222,6 +6256,42 @@
           ((aut.ficha && aut.ficha.rol) || 'agente') + '.', '#8A6A34');
       };
 
+      /* Una sola validación para crear y para editar (22-sep-2026). Devuelve
+         `{error}` con el mensaje, o null si todo está bien. MISMA regla de
+         suma que el trigger `condicion_tramos_suma_100` de la base — aquí
+         ANTES de escribir nada, con un error legible y sin gastar un viaje de
+         red; el trigger es el respaldo si esto se saltara. */
+      function validaCondicion(v, tramos) {
+        var err = function (m) { return { error: { message: m } }; };
+        if (v.nivel === 'manager' && v.closer_email) return err('El override individual solo aplica con nivel «Closer».');
+        if (!tramos.length) return err('Añade al menos un tramo de pago.');
+        var suma = 0;
+        for (var i = 0; i < tramos.length; i++) {
+          var t = tramos[i], pct = Number(t.pct_tramo);
+          if (!t.disparador_tipo) return err('Falta el disparador del tramo ' + (i + 1) + '.');
+          if (!(pct > 0) || pct > 100) return err('El tramo ' + (i + 1) + ' necesita un % entre 0 y 100.');
+          if (/^pct_cobrado_/.test(t.disparador_tipo) && (t.umbral === '' || t.umbral == null)) {
+            return err('El tramo ' + (i + 1) + ' necesita un umbral (%) para ese disparador.');
+          }
+          suma += pct;
+        }
+        if (Math.abs(suma - 100) > 0.01) {
+          return err('Los tramos suman ' + (Math.round(suma * 100) / 100) + '% — deben sumar exactamente 100% antes de guardar.');
+        }
+        if (v.base_calculo === 'importe_fijo' && !(Number(v.importe_fijo) > 0)) return err('La base «Importe fijo» exige un importe mayor que 0.');
+        if (v.base_calculo !== 'importe_fijo' && v.importe_fijo) return err('El importe fijo solo aplica cuando la base es «Importe fijo».');
+        return null;
+      }
+      function filasTramos(condId, tramos) {
+        return tramos.map(function (t, i) {
+          return {
+            condicion_id: condId, orden: i + 1, disparador_tipo: t.disparador_tipo,
+            umbral: /^pct_cobrado_/.test(t.disparador_tipo) ? Number(t.umbral) : null,
+            pct_tramo: Number(t.pct_tramo)
+          };
+        });
+      }
+
       ata(/^\+? ?Nueva condici[oó]n$/i, function () {
         if (!admin) return soloAdmin();
         Promise.all([
@@ -6241,42 +6311,19 @@
               opciones: [['manager', 'Manager'], ['closer', 'Closer']] },
             { k: 'closer_email', label: 'Override individual', tipo: 'select', medio: 1,
               opciones: opsUsuarios('', '— todo el equipo —'),
-              ayuda: 'solo con nivel «Closer» — «todo el equipo» aplica a cualquier closer del equipo' },
+              visibleSi: { k: 'nivel', valores: ['closer'] },
+              ayuda: '«todo el equipo» aplica a cualquier closer del equipo; una persona concreta manda sobre eso' },
             { k: 'pct_comision', label: '% de comisión', tipo: 'number', paso: '0.01', req: 1, medio: 1 },
             { k: 'base_calculo', label: 'Base de cálculo', tipo: 'select', req: 1, medio: 1,
               opciones: (window.LW_V4.BASES_CALCULO || BASES_CALCULO_FALLBACK) },
             { k: 'importe_fijo', label: 'Importe fijo', tipo: 'number', paso: '0.01', medio: 1,
-              ayuda: 'solo si la base es «Importe fijo»' },
+              visibleSi: { k: 'base_calculo', valores: ['importe_fijo'] } },
             { k: 'tramos', label: 'Tramos de pago (deben sumar 100%)', tipo: 'custom',
               render: function (d) { getTramos = montaTramos(d); } }
           ], 'Crear condición', function (v) {
-            if (v.nivel === 'manager' && v.closer_email) {
-              return { error: { message: 'El override individual solo aplica con nivel «Closer».' } };
-            }
             var tramos = getTramos ? getTramos() : [];
-            if (!tramos.length) return { error: { message: 'Añade al menos un tramo de pago.' } };
-            var suma = 0;
-            for (var i = 0; i < tramos.length; i++) {
-              var t = tramos[i], pct = Number(t.pct_tramo);
-              if (!t.disparador_tipo) return { error: { message: 'Falta el disparador del tramo ' + (i + 1) + '.' } };
-              if (!(pct > 0) || pct > 100) return { error: { message: 'El tramo ' + (i + 1) + ' necesita un % entre 0 y 100.' } };
-              if (/^pct_cobrado_/.test(t.disparador_tipo) && (t.umbral === '' || t.umbral == null)) {
-                return { error: { message: 'El tramo ' + (i + 1) + ' necesita un umbral (%) para ese disparador.' } };
-              }
-              suma += pct;
-            }
-            // MISMA regla que el trigger `condicion_tramos_suma_100` de la base —
-            // aquí ANTES de escribir nada, con un error legible y sin gastar un
-            // viaje de red; el trigger es el respaldo si esto se saltara.
-            if (Math.abs(suma - 100) > 0.01) {
-              return { error: { message: 'Los tramos suman ' + (Math.round(suma * 100) / 100) + '% — deben sumar exactamente 100% antes de guardar.' } };
-            }
-            if (v.base_calculo === 'importe_fijo' && !(Number(v.importe_fijo) > 0)) {
-              return { error: { message: 'La base «Importe fijo» exige un importe mayor que 0.' } };
-            }
-            if (v.base_calculo !== 'importe_fijo' && v.importe_fijo) {
-              return { error: { message: 'El importe fijo solo aplica cuando la base es «Importe fijo».' } };
-            }
+            var mal = validaCondicion(v, tramos);
+            if (mal) return mal;
             // id generado aquí (no `.select().single()` tras el insert): evita un
             // viaje de red extra y el matiz de que un INSERT sin `.select()` no
             // aplica la policy de SELECT sobre la fila nueva. Sin fallback: la
@@ -6295,14 +6342,7 @@
               importe_fijo: v.base_calculo === 'importe_fijo' ? Number(v.importe_fijo) : null
             }).then(function (r) {
               if (r.error) return r;
-              var filas = tramos.map(function (t, i) {
-                return {
-                  condicion_id: condId, orden: i + 1, disparador_tipo: t.disparador_tipo,
-                  umbral: /^pct_cobrado_/.test(t.disparador_tipo) ? Number(t.umbral) : null,
-                  pct_tramo: Number(t.pct_tramo)
-                };
-              });
-              return sb.from('condicion_tramos').insert(filas).then(function (r2) {
+              return sb.from('condicion_tramos').insert(filasTramos(condId, tramos)).then(function (r2) {
                 if (r2.error) {
                   // condición huérfana sin tramos: se limpia sola — solo llega
                   // hasta aquí quien ya es admin, así que el DELETE no tropieza
@@ -6351,6 +6391,74 @@
               : 'Deja de aplicarse a comisiones nuevas. Lo ya devengado no cambia.' }
         ], pasaA ? 'Reactivar' : 'Desactivar', function () {
           return sb.from('condiciones_comision').update({ activo: pasaA }).eq('id', condId).select('id').then(unaFila);
+        });
+      };
+
+      /* EDITAR (22-sep-2026, owner: «déjame editar condiciones de comisión una
+         vez ya creadas»). Equipo, proyecto y nivel NO se cambian: son la
+         identidad por la que el motor busca la condición — para otra terna se
+         crea otra. Sí: %, base, importe fijo, override y los tramos. Los tramos
+         solo mientras la condición no haya devengado nada: `comisiones_devengadas`
+         cita cada tramo por id (FK NO ACTION) con su importe congelado, así que
+         reescribirlos reescribiría la historia. Con devengos se editan solo la
+         cabecera y se dice por qué. */
+      window.LW_V4.abreEditaCondicion = function (b) {
+        if (!admin) return soloAdmin();
+        var id = b.getAttribute('data-lw-edita-cond'), etq = b.getAttribute('data-lw-etq') || '';
+        var cond = (window.LW_V4.condicionesLista || {})[id];
+        if (!cond) return aviso('No encuentro esa condición — recarga la página.', '#8A6A34');
+        var tramosAct = ((window.LW_V4.tramosDe || {})[id] || []).slice().sort(function (x, y) { return x.orden - y.orden; });
+        sb.from('comisiones_devengadas').select('id', { count: 'exact', head: true }).eq('condicion_id', id).then(function (r) {
+          var n = r.error ? 0 : (r.count || 0);
+          var getTramos = null;
+          var campos = [
+            { tipo: 'lectura', label: 'Equipo · proyecto', valor: etq },
+            { tipo: 'lectura', label: 'Nivel', valor: cond.nivel === 'closer' ? 'Closer' : 'Manager', medio: 1 }
+          ];
+          if (cond.nivel === 'closer') {
+            campos.push({ k: 'closer_email', label: 'Override individual', tipo: 'select', medio: 1,
+              valor: cond.closer_email || '', opciones: opsUsuarios(cond.closer_email || '', '— todo el equipo —'),
+              ayuda: '«todo el equipo» aplica a cualquier closer del equipo; una persona concreta manda sobre eso' });
+          }
+          campos.push(
+            { k: 'pct_comision', label: '% de comisión', tipo: 'number', paso: '0.01', req: 1, medio: 1, valor: cond.pct_comision },
+            { k: 'base_calculo', label: 'Base de cálculo', tipo: 'select', req: 1, medio: 1, valor: cond.base_calculo,
+              opciones: (window.LW_V4.BASES_CALCULO || BASES_CALCULO_FALLBACK) },
+            { k: 'importe_fijo', label: 'Importe fijo', tipo: 'number', paso: '0.01', medio: 1,
+              valor: cond.importe_fijo == null ? '' : cond.importe_fijo,
+              visibleSi: { k: 'base_calculo', valores: ['importe_fijo'] } });
+          if (n) {
+            campos.push({ tipo: 'nota', label: 'Esta condición ya ha devengado ' + n + (n === 1 ? ' comisión' : ' comisiones') +
+              ': sus tramos no se tocan, porque cada devengo lleva su importe congelado sobre ellos. ' +
+              'Para otro calendario de pago, desactívala y crea una nueva. Tramos actuales: ' +
+              tramosAct.map(function (t) { return t.pct_tramo + '% ' + t.disparador_tipo + (t.umbral != null ? ' ' + t.umbral + '%' : ''); }).join(' · ') });
+          } else {
+            campos.push({ k: 'tramos', label: 'Tramos de pago (deben sumar 100%)', tipo: 'custom',
+              render: function (d) { getTramos = montaTramos(d, tramosAct); } });
+          }
+          modal('Editar condición — ' + etq, campos, 'Guardar cambios', function (v) {
+            v.nivel = cond.nivel;
+            var tramos = n ? tramosAct : (getTramos ? getTramos() : []);
+            var mal = validaCondicion(v, tramos);
+            if (mal) return mal;
+            var patch = {
+              pct_comision: Number(v.pct_comision), base_calculo: v.base_calculo,
+              importe_fijo: v.base_calculo === 'importe_fijo' ? Number(v.importe_fijo) : null
+            };
+            if (cond.nivel === 'closer') patch.closer_email = v.closer_email ? v.closer_email.trim().toLowerCase() : null;
+            return sb.from('condiciones_comision').update(patch).eq('id', id).select('id').then(unaFila).then(function (r1) {
+              if (r1.error || n) return r1;
+              /* Sin devengos nadie cita estos tramos: se sustituyen enteros. En
+                 UNA transacción (RPC): el trigger de suma 100 es DEFERRED y por
+                 REST un DELETE suelto moriría al cerrar con los tramos a 0. */
+              return sb.rpc('condicion_tramos_reemplaza', {
+                p_condicion: id,
+                p_tramos: filasTramos(id, tramos).map(function (f) {
+                  return { disparador_tipo: f.disparador_tipo, umbral: f.umbral, pct_tramo: f.pct_tramo };
+                })
+              });
+            });
+          });
         });
       };
     },
