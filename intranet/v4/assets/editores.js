@@ -2321,8 +2321,10 @@
     window.LW_AUTH.then(function (aut) {
       aut.sb.rpc('facturas_equipo').select('id,tipo').eq('id', id).maybeSingle().then(function (r) {
         if (r.error || !r.data) return toastMal('No se encontró ese documento' + (r.error ? ': ' + r.error.message : '.'));
-        if (r.data.tipo === 'recibi') abrirEditorRecibiDoc({ id: id, soloLectura: true, alCerrar: alCerrar });
-        else abrirEditorFacturaDoc({ id: id, soloLectura: true, alCerrar: alCerrar });
+        // Sin `soloLectura` forzado: abrir ES editar; el editor decide solo si
+        // el documento admite cambios y, si no, se bloquea y dice por qué.
+        if (r.data.tipo === 'recibi') abrirEditorRecibiDoc({ id: id, alCerrar: alCerrar });
+        else abrirEditorFacturaDoc({ id: id, alCerrar: alCerrar });
       });
     });
   }
@@ -2645,16 +2647,21 @@
         if (esEdicion && !existente) return aviso('No se encontró ese documento.', '#93000a');
         var copia = (!esEdicion && pre.copia_de) ? r[3].data : null;
         if (pre.copia_de && !copia) return aviso('No se encontró la factura que quieres copiar.', '#93000a');
-        if (esEdicion && !pre.soloLectura) {
-          if (existente.tipo === 'proforma') return aviso('La proforma la genera el contrato al guardarse y la actualiza la firma: se consulta, no se edita.', '#8A6A34');
-          if (existente.anulada) return aviso('Ese documento está anulado: no se edita — emite una copia desde su ficha.', '#8A6A34');
-          if (existente.enviada) return aviso('Ya se envió al cliente: no se edita. Anúlalo y emite otro si hace falta corregirlo.', '#8A6A34');
+        /* UN SOLO MODELO (22-sep-2026, owner: «Abrir documento por qué no es
+           editar directamente; son dos modelos y debería ser uno»). Abrir ES
+           editar. Si el documento no admite cambios, la MISMA pantalla se
+           abre con los campos bloqueados y una nota arriba que dice por qué —
+           nunca un aviso que no deja entrar ni una segunda vista. */
+        var motivoLectura = '';
+        if (esEdicion) {
           var miEmail = ((aut.session && aut.session.user && aut.session.user.email) || '').toLowerCase();
-          if (!esAdmin(aut.ficha) && (existente.creado_por || '').toLowerCase() !== miEmail) {
-            return aviso('Este documento lo emitió otra persona: solo esa persona o un administrador puede editarlo.', '#8A6A34');
-          }
+          if (existente.tipo === 'proforma') motivoLectura = 'Proforma: la genera el contrato al guardarse y la actualiza la firma. Se consulta, no se edita.';
+          else if (existente.anulada) motivoLectura = 'Documento anulado: no se edita. Desde su ficha se puede emitir una copia.';
+          else if (existente.enviada) motivoLectura = 'Ya enviado al cliente: no se edita. Anúlalo y emite otro si hace falta corregirlo.';
+          else if (!esAdmin(aut.ficha) && (existente.creado_por || '').toLowerCase() !== miEmail) motivoLectura = 'Lo emitió otra persona: solo esa persona o un administrador puede editarlo.';
+          if (motivoLectura) pre.soloLectura = true;
         }
-        construye(sociedadesOk, cuentasOk, contratos, existente, copia);
+        construye(sociedadesOk, cuentasOk, contratos, existente, copia, motivoLectura);
       }, function (e) { aviso('No se ha podido preparar el editor: ' + (e && e.message || e), '#93000a'); });
 
       /* `copia` («Emitir copia» de una anulada, 22-sep-2026, owner): el
@@ -2662,7 +2669,7 @@
          conceptos— pero como documento NUEVO: sin id, número nuevo al
          guardar y fecha de hoy. Es lo que hacía abrir() del clásico con una
          anulada («se abre como borrador nuevo»). */
-      function construye(sociedadesOk, cuentasOk, contratosLigeros, existente, copia) {
+      function construye(sociedadesOk, cuentasOk, contratosLigeros, existente, copia, motivoLectura) {
         var origen = existente || copia;
         var f0 = Object.assign({}, (origen && origen.datos && origen.datos.fields) || {});
         if (copia) { delete f0.fecha_emision; delete f0.fecha_vencimiento; }
@@ -2675,6 +2682,7 @@
         var getLineas = null;
 
         var campos = [];
+        if (motivoLectura) campos.push({ tipo: 'nota', label: motivoLectura });
         if (!sociedadesOk) campos.push({ tipo: 'nota', label: 'No se ha podido cargar el catálogo de sociedades — recarga antes de emitir.' });
         if (!cuentasOk) campos.push({ tipo: 'nota', label: 'No se han podido cargar las cuentas de cobro — recarga antes de emitir.' });
         campos.push({ tipo: 'custom', label: 'Formulario', render: function (hostRaiz) {
@@ -2906,18 +2914,20 @@
         var sociedadesOk = r[0], cuentasOk = r[1], contratos = r[2].data || [];
         var existente = esEdicion ? r[3].data : null;
         if (esEdicion && !existente) return aviso('No se encontró ese recibí.', '#93000a');
-        if (esEdicion && !pre.soloLectura) {
-          if (existente.anulada) return aviso('Ese recibí está anulado: no se edita — se emite uno nuevo.', '#8A6A34');
-          if (existente.enviada) return aviso('Ya se envió al cliente: no se edita. Anúlalo y emite otro si hace falta corregirlo.', '#8A6A34');
+        // Un solo modelo (22-sep-2026): abrir es editar; si no admite cambios,
+        // misma pantalla bloqueada con el porqué arriba (ver el de factura).
+        var motivoLectura = '';
+        if (esEdicion) {
           var miEmail = ((aut.session && aut.session.user && aut.session.user.email) || '').toLowerCase();
-          if (!esAdmin(aut.ficha) && (existente.creado_por || '').toLowerCase() !== miEmail) {
-            return aviso('Este recibí lo emitió otra persona: solo esa persona o un administrador puede editarlo (la base lo rechazaría igual).', '#8A6A34');
-          }
+          if (existente.anulada) motivoLectura = 'Recibí anulado: no se edita, se emite uno nuevo.';
+          else if (existente.enviada) motivoLectura = 'Ya enviado al cliente: no se edita. Anúlalo y emite otro si hace falta corregirlo.';
+          else if (!esAdmin(aut.ficha) && (existente.creado_por || '').toLowerCase() !== miEmail) motivoLectura = 'Lo emitió otra persona: solo esa persona o un administrador puede editarlo (la base lo rechazaría igual).';
+          if (motivoLectura) pre.soloLectura = true;
         }
-        construye(sociedadesOk, cuentasOk, contratos, existente);
+        construye(sociedadesOk, cuentasOk, contratos, existente, motivoLectura);
       }, function (e) { aviso('No se ha podido preparar el editor: ' + (e && e.message || e), '#93000a'); });
 
-      function construye(sociedadesOk, cuentasOk, contratosLigeros, existente) {
+      function construye(sociedadesOk, cuentasOk, contratosLigeros, existente, motivoLectura) {
         var f0 = (existente && existente.datos && existente.datos.fields) || {};
         var estadoContrato = {
           id: existente ? existente.contrato_id : (pre.contrato_id || null),
@@ -2966,6 +2976,7 @@
         }
 
         var campos = [];
+        if (motivoLectura) campos.push({ tipo: 'nota', label: motivoLectura });
         if (!sociedadesOk) campos.push({ tipo: 'nota', label: 'No se ha podido cargar el catálogo de sociedades — recarga antes de emitir.' });
         if (!cuentasOk) campos.push({ tipo: 'nota', label: 'No se han podido cargar las cuentas de cobro — recarga antes de emitir.' });
         campos.push({ tipo: 'custom', label: 'Formulario', render: function (hostRaiz) {
