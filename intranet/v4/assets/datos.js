@@ -2856,126 +2856,397 @@
       }, function (e) { fallo('operaciones', e, caja); });
     },
     vencimientos: function (sb) {
-      /* Cuerpo REAL (fase A, 8-sep). La aritmetica no se rehace: la pagina carga
-         intranet/vencimientos/logica.js — el modulo puro y testeado que la suite
-         extrajo el 18-ago para que ninguna pantalla reinvente la cascada — y aqui
-         solo se llama a modeloFinanciero() y se pinta. Manda el monto escrito;
-         sin monto, el pct sobre el precio; sin ninguno, null (nunca 0). */
+      /* S15 (22-sep-2026): el owner revirtió el recorte del 19-sep (096369ef,
+         "KPIs + CSV + redirect a la herramienta clásica para el detalle") y
+         pidió portar el detalle completo — cascada paginada, chips empresa/
+         moneda/sin-firmar, «Cubierto» como columna, por proyecto con «quién
+         debe», facturas con vencimiento propio. Todo sobre `logica.js`
+         (compartido, sin duplicar) y `entities.js` (empresa) — sin RPC ni
+         escritura nueva: el editor de fecha por hito sigue siendo el de
+         editores.js (`ata(/Registrar hito/i, ...)`), no se toca aquí. */
       if (typeof modeloFinanciero !== 'function') {
         fallo('vencimientos', 'logica.js no cargada: el cuerpo se queda en maqueta');
         return;
       }
-      var hoy = new Date().toISOString().slice(0, 10);
-      Promise.all([
-        q(sb.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,bloqueado,contrato_padre_id,created_at').limit(1000), 'contratos'),
-        vig(sb.rpc('contratos_cobrado_equipo')).then(function (r) { if (r.error) { fallo('cobrado', r.error); return null; } return r.data || []; }),
-        q(sb.from('contrato_vencimientos').select('id,contrato_id,orden,descripcion,pct,monto,fecha,ajustado,nota,factura_id,no_facturar').limit(3000), 'vencimientos')
-      ]).then(function (r) {
-        var cs = r[0], cb = r[1], vs = r[2];
-        if (!cs || !vs) return;
-        var cobradoPorId = {};
-        (cb || []).forEach(function (x) { cobradoPorId[x.contrato_id] = Number(x.cobrado) || 0; });
-        var MOD = modeloFinanciero({ hoyISO: hoy, contratos: cs, cobradoPorId: cobradoPorId, vencimientos: vs, incluirSinFirmar: false });
-        var monedas = Object.keys(MOD).sort(function (a, b) { return MOD[b].cartera - MOD[a].cartera; });
-        var mon = monedas[0] || 'EUR';
-        var m = MOD[mon] || { filas: [], vencido: 0, proximos30: 0, nSinFecha: 0 };
-        var dias = function (f) { return Math.round((new Date(f) - new Date(hoy)) / 864e5); };
+      // Fecha LOCAL, no UTC (Bali es UTC+8): `toISOString()` cerca de
+      // medianoche adelanta o atrasa el día un vencimiento entero, y esta
+      // pantalla tiene que decidir "vencido" exactamente igual que la clásica
+      // (misma cascada, mismo hoy — hallazgo de la revisión de este build).
+      var hoyD = new Date();
+      var hoy = hoyD.getFullYear() + '-' + String(hoyD.getMonth() + 1).padStart(2, '0') + '-' + String(hoyD.getDate()).padStart(2, '0');
 
-        pon2('k-prevision', fmt(m.proximos30, mon));
-        pon2('k-prevision-chip', 'con fecha en los próximos 30 días');
-        var d7 = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
+      var SIN_FIRMAR = (function () {
+        try { return localStorage.getItem('lw_venc_sin_firmar') === '1'; }
+        catch (_) { /* MUDO A PROPOSITO: sin localStorage cae al valor por defecto (apagado) */ return false; }
+      })();
+      var EMPRESA = (function () {
+        try { return localStorage.getItem('lw_venc_empresa') || 'todas'; }
+        catch (_) { /* MUDO A PROPOSITO: sin localStorage cae a "todas" */ return 'todas'; }
+      })();
+      var MONEDA = 'EUR', FILTRO = 'atencion', PAGINA = 0;
+      var POR_PAGINA = 25;
+      var RAW = null, MODELO = null, FACTURAS = [];
+
+      // Mismos 5 tramos que la clásica (index.html:586-591) — pura lectura de
+      // `f`, sin aritmética nueva.
+      var FILTROS = [
+        ['atencion', 'Necesitan atención', function (f) { return f.estado === 'vencido' || f.estado === 'sin_fecha' || f.estado === 'parcial'; }],
+        ['vencido', 'Vencidos', function (f) { return f.estado === 'vencido'; }],
+        ['proximos', 'Próximos 90 días', function (f) { return f.fecha && f.pendiente > 0 && f.fecha >= hoy && diasEntre(hoy, f.fecha) <= 90; }],
+        ['sin_fecha', 'Sin fecha', function (f) { return f.estado === 'sin_fecha'; }],
+        ['todos', 'Todos', function () { return true; }]
+      ];
+      var ESTADO_TAG = { vencido: ['Vencido', 'mal'], parcial: ['Parcial', 'espera'], pendiente: ['Pendiente', ''], cobrado: ['Cobrado', 'ok'], sin_fecha: ['Sin fecha', 'espera'] };
+
+      /* Las sociedades ANTES del modelo: `empresasFinancieras()`/`filtraEmpresa()`
+         de logica.js llaman a `lwSociedadContrato` (entities.js), y sin
+         SOCIEDADES cargado los chips de empresa enseñarían la clave cruda.
+         Si esta consulta falla, se sigue igual (sin chip de empresa, no en
+         blanco) — el resto del panel no depende de ella. */
+      (typeof cargarSociedades === 'function' ? cargarSociedades(sb) : Promise.resolve())
+        .catch(function (e) { fallo('sociedades', e); })
+        .then(function () {
+          return Promise.all([
+            // `soc`: la sociedad firmante guardada en el contrato, igual que la clásica (index.html:335).
+            q(sb.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,bloqueado,contrato_padre_id,created_at,soc:datos->fields->>sociedad_firmante').limit(1000), 'contratos'),
+            vig(sb.rpc('contratos_cobrado_equipo')).then(function (r) { if (r.error) { fallo('cobrado', r.error); return null; } return r.data || []; }),
+            q(sb.from('contrato_vencimientos').select('id,contrato_id,orden,descripcion,pct,monto,fecha,ajustado,nota,factura_id,no_facturar').limit(3000), 'vencimientos'),
+            // Facturas con vencimiento propio (criterio S15): mismo `venc` calculado que la clásica (index.html:338).
+            q(sb.rpc('facturas_equipo').select('numero,tipo,sociedad,cliente_nombre,total,moneda,anulada,created_at,venc:datos->fields->>fecha_vencimiento').limit(1000), 'facturas de vencimiento propio')
+          ]);
+        })
+        .then(function (r) {
+          if (!r) return;
+          var cs = r[0], cb = r[1], vs = r[2], fs = r[3];
+          if (!cs || !vs) return;
+          var cobradoPorId = {};
+          (cb || []).forEach(function (x) { cobradoPorId[x.contrato_id] = Number(x.cobrado) || 0; });
+          FACTURAS = (fs || []).filter(function (f) { return !f.anulada && f.venc && f.tipo !== 'recibi'; });
+          RAW = { hoyISO: hoy, contratos: cs, cobradoPorId: cobradoPorId, vencimientos: vs };
+
+          recalcula();
+          var monedas0 = Object.keys(MODELO).sort(function (a, b) { return MODELO[b].cartera - MODELO[a].cartera; });
+          MONEDA = monedas0[0] || 'EUR';
+          pintarTodo();
+
+          // «Exportar previsión de caja»: CSV de la cascada. Se lee MODELO/MONEDA
+          // EN EL MOMENTO DEL CLIC (no una `m` capturada al cargar): tras cambiar
+          // un chip, el CSV tiene que exportar lo que se está viendo, no lo de la
+          // carga inicial.
+          var bExp = botonConTexto(/Exportar previsi/i);
+          if (bExp) {
+            bExp.setAttribute('data-real', '');
+            bExp.addEventListener('click', function (ev) {
+              ev.stopPropagation();
+              var m2 = MODELO[MONEDA]; if (!m2) return;
+              var filas = m2.filas.filter(function (f) { return f.estado !== 'cobrado'; })
+                .sort(function (a, b) { return (a.fecha || '9999') < (b.fecha || '9999') ? -1 : 1; })
+                .map(function (f) {
+                  return [f.fecha || 'sin fecha', f.descripcion || 'Hito', f.contrato.numero, tipoC(f.contrato.tipo), f.contrato.proyecto_nombre || '', f.contrato.comprador_nombre || '',
+                    f.importe != null ? f.importe : '', f.pendiente != null ? f.pendiente : '', MONEDA, f.estado, f.contrato.bloqueado ? 'firmado' : 'borrador'];
+                });
+              exportaCSV('prevision_caja_' + hoy + '.csv', ['Fecha', 'Hito', 'Contrato', 'Tipo', 'Proyecto', 'Comprador', 'Importe', 'Pendiente', 'Moneda', 'Estado', 'Contrato firmado'], filas);
+            });
+          }
+        })
+        // Hallazgo del code-review de esta subtarea: todas las consultas de
+        // arriba pasan por `q()`/`vig()`, que absorben el `.error` de la RESPUESTA
+        // — pero si el propio fetch de supabase-js LANZA (red caída, típico en
+        // Bali), la cadena entera de `.then` no se ejecuta y sin este `.catch`
+        // la pantalla se queda para siempre en "Trayendo los vencimientos…" sin
+        // ni un error en pantalla ni una llamada a fallo().
+        .catch(function (e) { fallo('vencimientos', e); });
+
+      /* ── EL camino de recálculo, uno solo (mismo motivo que la clásica:
+         "cerrar una salida no cierra a sus hermanas", 9-sep-2026) ────────── */
+      function recalcula() {
+        var emps = (typeof empresasFinancieras === 'function') ? empresasFinancieras(RAW, FACTURAS) : [];
+        if (EMPRESA !== 'todas' && emps.indexOf(EMPRESA) === -1) EMPRESA = 'todas';
+        var entrada = (typeof filtraEmpresa === 'function') ? filtraEmpresa(RAW, EMPRESA) : RAW;
+        MODELO = modeloFinanciero({ hoyISO: RAW.hoyISO, contratos: entrada.contratos, cobradoPorId: RAW.cobradoPorId, vencimientos: RAW.vencimientos, incluirSinFirmar: SIN_FIRMAR });
+        if (!MODELO[MONEDA]) {
+          var mm = Object.keys(MODELO).sort(function (a, b) { return MODELO[b].cartera - MODELO[a].cartera; });
+          if (mm.length) MONEDA = mm[0];
+        }
+      }
+
+      function modeloVacio() { return { cartera: 0, cobrado: 0, pendiente: 0, vencido: 0, proximos30: 0, proximos90: 0, nSinFecha: 0, filas: [], porProyecto: {}, avisos: [], fuera: { sinFirmar: 0 } }; }
+
+      function pintarTodo() {
+        var m = MODELO[MONEDA] || modeloVacio();
+        pintarChipsEmpresa();
+        pintarChipsMoneda();
+        pintarAvisos(m);
+        pintarKpis(m);
+        pintarChipsEstado(m);
+        pintarTabla(m);
+        pintarProyectos(m);
+        pintarFacturas();
+      }
+
+      /* ── empresa: los chips salen de los DATOS, no del catálogo ─────────── */
+      function pintarChipsEmpresa() {
+        var cont = document.querySelector('[data-lw-chips="empresa"]'); if (!cont) return;
+        while (cont.children.length > 1) cont.lastElementChild.remove();
+        var emps = (typeof empresasFinancieras === 'function') ? empresasFinancieras(RAW, FACTURAS) : [];
+        if (emps.length < 2) return;
+        var nombreDe = function (k) { return (typeof SOCIEDADES !== 'undefined' && SOCIEDADES[k] && SOCIEDADES[k].razon) || k; };
+        var opciones = [{ clave: 'todas', texto: 'Todas' }].concat(emps.map(function (e) { return { clave: e, texto: nombreDe(e) }; }));
+        opciones.forEach(function (o) {
+          var b = document.createElement('button');
+          b.type = 'button'; b.setAttribute('data-real', '');
+          b.className = 'px-4 py-1.5 rounded-full font-label-md text-label-md transition-colors ' + (o.clave === EMPRESA ? 'bg-deep-lagoon text-on-secondary font-semibold shadow-sm' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high');
+          b.textContent = o.texto;
+          b.addEventListener('click', function (ev) {
+            ev.stopPropagation();
+            EMPRESA = o.clave;
+            try { localStorage.setItem('lw_venc_empresa', EMPRESA); }
+            catch (_) { /* MUDO A PROPOSITO: sin localStorage no se recuerda la empresa elegida */ }
+            PAGINA = 0; recalcula(); pintarTodo();
+          });
+          cont.appendChild(b);
+        });
+      }
+
+      /* ── moneda: cada agregado va por moneda, quien mira elige cuál ─────── */
+      function pintarChipsMoneda() {
+        var cont = document.querySelector('[data-lw-chips="moneda"]'); if (!cont) return;
+        while (cont.children.length > 1) cont.lastElementChild.remove();
+        var monedas = Object.keys(MODELO).sort(function (a, b) { return MODELO[b].cartera - MODELO[a].cartera; });
+        if (monedas.length < 2) return;
+        monedas.forEach(function (mm) {
+          var b = document.createElement('button');
+          b.type = 'button'; b.setAttribute('data-real', '');
+          b.className = 'px-4 py-1.5 rounded-full font-label-md text-label-md transition-colors ' + (mm === MONEDA ? 'bg-deep-lagoon text-on-secondary font-semibold shadow-sm' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high');
+          b.textContent = mm + ' ' + fmt(MODELO[mm].cartera, '');
+          b.addEventListener('click', function (ev) { ev.stopPropagation(); MONEDA = mm; PAGINA = 0; pintarTodo(); });
+          cont.appendChild(b);
+        });
+      }
+
+      /* ── estado (5 tramos) + «Incluir sin firmar» junto a ellos ─────────── */
+      function pintarChipsEstado(m) {
+        var cont = document.querySelector('[data-lw-chips="estado"]'); if (!cont) return;
+        while (cont.children.length > 1) cont.lastElementChild.remove();
+        FILTROS.forEach(function (entrada) {
+          var clave = entrada[0], texto = entrada[1], fn = entrada[2];
+          var n = m.filas.filter(fn).length;
+          var b = document.createElement('button');
+          b.type = 'button'; b.setAttribute('data-real', '');
+          b.className = 'px-4 py-1.5 rounded-full font-label-md text-label-md transition-colors ' + (clave === FILTRO ? 'bg-deep-lagoon text-on-secondary font-semibold shadow-sm' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high');
+          b.textContent = texto + ' ' + n;
+          b.addEventListener('click', function (ev) {
+            ev.stopPropagation();
+            FILTRO = clave; PAGINA = 0;
+            pintarChipsEstado(MODELO[MONEDA]); pintarTabla(MODELO[MONEDA]);
+          });
+          cont.appendChild(b);
+        });
+        var chipSF = document.getElementById('venc-chip-sinfirmar');
+        if (chipSF) {
+          var f = m.fuera || { sinFirmar: 0 };
+          chipSF.hidden = !(f.sinFirmar || SIN_FIRMAR);
+          chipSF.textContent = 'Incluir sin firmar' + (f.sinFirmar ? ' ' + f.sinFirmar : '');
+          chipSF.className = 'px-4 py-1.5 rounded-full font-label-md text-label-md transition-colors ' + (SIN_FIRMAR ? 'bg-deep-lagoon text-on-secondary font-semibold shadow-sm' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high');
+          chipSF.setAttribute('data-real', '');
+          chipSF.onclick = function (ev) {
+            ev.stopPropagation();
+            SIN_FIRMAR = !SIN_FIRMAR;
+            try { localStorage.setItem('lw_venc_sin_firmar', SIN_FIRMAR ? '1' : '0'); }
+            catch (_) { /* MUDO A PROPOSITO: sin localStorage no se recuerda el interruptor */ }
+            recalcula(); pintarTodo();
+          };
+        }
+      }
+
+      /* ── avisos: lo que impide vigilar de verdad ─────────────────────────── */
+      function pintarAvisos(m) {
+        var cont = document.getElementById('venc-avisos'); if (!cont) return;
+        var partes = [];
+        if (m.nSinFecha) partes.push(m.nSinFecha + ' vencimiento(s) sin fecha — no se pueden vigilar; usa el filtro «Sin fecha»');
+        var sinCal = (m.avisos || []).filter(function (a) { return a.tipo === 'sin_calendario'; });
+        if (sinCal.length) partes.push(sinCal.length + (sinCal.length === 1 ? ' contrato con precio y sin calendario de pagos' : ' contratos con precio y sin calendario de pagos'));
+        // pct_no_100 (hallazgo del code-review de esta subtarea): modeloFinanciero()
+        // ya calcula este aviso — logica.js lo empuja a m.avisos igual que sin_calendario
+        // — pero se filtraba aquí y se perdía en silencio. Mismo texto que la clásica.
+        var pctMal = (m.avisos || []).filter(function (a) { return a.tipo === 'pct_no_100'; });
+        if (pctMal.length) partes.push(pctMal.length + (pctMal.length === 1 ? ' contrato cuyos hitos no suman 100%' : ' contratos cuyos hitos no suman 100%'));
+        /* «Fuera de este panel» (hallazgo del code-review, gravedad alta): sin esto
+           se reproduce en silencio el incidente del 26-ago-2026 (Sumba Hills, 46
+           contratos y solo 2 firmados+preliminares → el panel salía VACÍO y nadie
+           sabía por qué, «aquí no hay dinero», la lectura peligrosa). `m.fuera` es
+           el contador que logica.js escribió justo para poder decirlo — no se
+           puede quitar del panel «detalle completo», es la mitad de por qué existe. */
+        var f = m.fuera || { sinFirmar: 0, preliminares: 0, proyectos: {}, importe: 0 };
+        if (f.sinFirmar || f.preliminares) {
+          var trozos = [];
+          if (f.sinFirmar) trozos.push(f.sinFirmar + ' sin firmar');
+          if (f.preliminares) trozos.push(f.preliminares + (f.preliminares === 1 ? ' Carta de Reserva' : ' Cartas de Reserva'));
+          var top = Object.keys(f.proyectos || {}).map(function (p) { return [p, f.proyectos[p]]; })
+            .sort(function (a, b) { return b[1] - a[1]; }).slice(0, 3)
+            .map(function (par) { return par[0] + ' (' + par[1] + ')'; }).join(', ');
+          partes.push('Fuera de este panel: ' + trozos.join(' y ')
+            + (f.importe ? ' — ' + fmt(f.importe, '') + ' de precio' : '')
+            + (top ? '. Sobre todo en ' + top : '')
+            + '. Aquí solo entran contratos firmados que no sean preliminares' + (SIN_FIRMAR ? ' (salvo los sin firmar, ya incluidos con el interruptor encendido)' : ''));
+        }
+        cont.innerHTML = partes.length
+          ? '<p class="text-body-sm font-body-sm px-3 py-2 rounded-lg bg-soft-canopy/15 text-territorial-green" role="status">' + esc(partes.join(' · ')) + '</p>'
+          : '';
+      }
+
+      /* ── KPIs (5: 90 días, críticos 7d, vencido, cobrado, cartera) ──────── */
+      function pintarKpis(m) {
+        pon2('k-prevision', fmt(m.proximos90, MONEDA));
+        pon2('k-prevision-chip', 'previsto en el trimestre');
+        var d7d = new Date(hoyD.getTime() + 7 * 864e5);
+        var d7 = d7d.getFullYear() + '-' + String(d7d.getMonth() + 1).padStart(2, '0') + '-' + String(d7d.getDate()).padStart(2, '0');
         var semana = m.filas.filter(function (f) { return f.estado !== 'vencido' && f.estado !== 'cobrado' && f.fecha && f.fecha >= hoy && f.fecha <= d7; });
         var sumaCrit = semana.reduce(function (a, f) { return a + (f.pendiente != null ? f.pendiente : (f.importe || 0)); }, 0);
         pon2('k-criticos', semana.length + (semana.length === 1 ? ' cobro' : ' cobros'));
-        pon2('k-criticos-total', 'Total: ' + fmt(sumaCrit, mon));
-        var venc = m.filas.filter(function (f) { return f.estado === 'vencido'; })
-          .sort(function (a, b) { return (a.fecha || '') < (b.fecha || '') ? -1 : 1; });
+        pon2('k-criticos-total', 'Total: ' + fmt(sumaCrit, MONEDA));
+        var venc = m.filas.filter(function (f) { return f.estado === 'vencido'; }).sort(function (a, b) { return (a.fecha || '') < (b.fecha || '') ? -1 : 1; });
         var nCon = {}; venc.forEach(function (f) { nCon[f.contrato_id] = 1; });
         var nc = Object.keys(nCon).length;
         pon2('k-vencidos-n', nc + (nc === 1 ? ' contrato' : ' contratos'));
-        pon2('k-vencidos-total', 'Total: ' + fmt(m.vencido, mon));
+        pon2('k-vencidos-total', 'Total: ' + fmt(m.vencido, MONEDA));
         pon2('k-vencidos-chip', venc.length ? 'el más antiguo, del ' + fFecha(venc[0].fecha) : 'nada vencido');
-        /* La tarjeta del diseño era «Saldo en escrow notarial»: la suite no lleva
-           el saldo del notario, lleva lo COBRADO (recibís), que no es lo mismo.
-           Se enseña eso, que sí es un dato (19-sep-2026). */
-        var cobradoCartera = 0;
-        cs.forEach(function (c) { if (c.bloqueado && (c.moneda || 'EUR') === mon) cobradoCartera += cobradoPorId[c.id] || 0; });
-        pon2('k-cobrado', fmt(cobradoCartera, mon));
-        pon2('k-cobrado-pie', 'recibís de contratos firmados en ' + mon);
-        // «Exportar previsión de caja»: CSV de la cascada que esta pantalla ya tiene en memoria
-        var bExp = botonConTexto(/Exportar previsi/i);
-        if (bExp) {
-          bExp.setAttribute('data-real', '');
-          bExp.addEventListener('click', function (ev) {
-            ev.stopPropagation();
-            var filas = m.filas.filter(function (f) { return f.estado !== 'cobrado'; })
-              .sort(function (a, b) { return (a.fecha || '9999') < (b.fecha || '9999') ? -1 : 1; })
-              .map(function (f) {
-                return [f.fecha || 'sin fecha', f.descripcion || 'Hito', f.contrato.numero, tipoC(f.contrato.tipo), f.contrato.proyecto_nombre || '', f.contrato.comprador_nombre || '',
-                  f.importe != null ? f.importe : '', f.pendiente != null ? f.pendiente : '', mon, f.estado, f.contrato.bloqueado ? 'firmado' : 'borrador'];
-              });
-            exportaCSV('prevision_caja_' + hoy + '.csv', ['Fecha', 'Hito', 'Contrato', 'Tipo', 'Proyecto', 'Comprador', 'Importe', 'Pendiente', 'Moneda', 'Estado', 'Contrato firmado'], filas);
-          });
+        // `m.cobrado` (logica.js) SUMA también lo cobrado de preliminares sueltos
+        // y —si «Incluir sin firmar» está encendido— de contratos sin firmar: no
+        // es "solo recibís de firmados" (hallazgo del code-review de esta
+        // subtarea: el texto viejo de esta pantalla lo daba por hecho y mentía
+        // en cuanto había una Carta de Reserva o el interruptor encendido).
+        // Mismo texto que la clásica: solo el % sobre la cartera, o nada.
+        pon2('k-cobrado', fmt(m.cobrado, MONEDA));
+        pon2('k-cobrado-pie', m.cartera ? Math.round(m.cobrado / m.cartera * 100) + '% de la cartera' : '');
+        pon2('k-cartera', fmt(m.cartera, MONEDA));
+        pon2('k-cartera-pie', 'contratos firmados, sin contar las Cartas de Reserva');
+      }
+
+      /* ── la tabla: cascada completa, paginada de verdad (25/página) ─────── */
+      function pintarTabla(m) {
+        var entrada = FILTROS.filter(function (x) { return x[0] === FILTRO; })[0] || FILTROS[4];
+        var filas = m.filas.filter(entrada[2]);
+        var titulo = document.getElementById('venc-tabla-titulo');
+        if (titulo) titulo.textContent = entrada[1] + ' · ' + filas.length;
+        var tbody = document.getElementById('venc-tbody');
+        var pager = document.getElementById('venc-pager');
+        var resumen = document.getElementById('venc-resumen');
+        if (!tbody) return;
+        if (!filas.length) {
+          tbody.innerHTML = '<tr><td class="py-8 px-5 text-center text-control-border" colspan="8">Nada con este filtro.</td></tr>';
+          if (pager) pager.hidden = true;
+          if (resumen) resumen.textContent = '0 de 0';
+          return;
         }
-
-        var avisos = [];
-        if (m.nSinFecha) avisos.push(m.nSinFecha + ' vencimiento(s) sin fecha, que no se pueden vigilar');
-        if (monedas.length > 1) avisos.push('cifras SOLO en ' + mon + ' — hay cartera también en ' + monedas.slice(1).join(', ') + ' y no se mezclan monedas');
-        if (avisos.length) bandaNota('Vigilancia: ' + avisos.join(' · ') + '. La cascada completa, el aging y la vista por proyecto viven en la herramienta (/intranet/vencimientos/).', '#8A6A34');
-
-        var caja = document.getElementById('lista-vencidos');
-        if (!caja || !caja.firstElementChild) { console.info('[v4] vencimientos: sin molde'); return; }
-        var molde = caja.firstElementChild.cloneNode(true);
-        // los botones del mock («Reactivar enlace», «Aviso urgente») no existen
-        // como funcion real: un boton que miente es peor que ninguno
-        molde.querySelectorAll('button').forEach(function (b) { b.remove(); });
-
-        var chipDe = function (f) {
-          if (f.estado === 'vencido') { var d = -dias(f.fecha); return 'Vencido hace ' + d + (d === 1 ? ' día' : ' días'); }
-          if (f.estado === 'parcial') return 'Parcial';
-          if (f.estado === 'sin_fecha') return 'Sin fecha';
-          if (f.fecha) { var e = dias(f.fecha); return e === 0 ? 'Vence hoy' : 'Vence en ' + e + (e === 1 ? ' día' : ' días'); }
-          return 'Pendiente';
-        };
-        var notaDe = function (f) {
-          if (f.nota) return f.nota;
-          if (f.estado === 'parcial' && f.cubierto) return 'Cubierto ' + fmt(f.cubierto, mon) + ' de ' + fmt(f.importe, mon);
-          if (f.estado === 'vencido') return 'Pendiente de cobro';
-          return f.contrato && f.contrato.bloqueado ? 'Contrato firmado' : 'Contrato en borrador';
-        };
-        var pinta = function (listaId, filas) {
-          var c2 = document.getElementById(listaId);
-          if (!c2) return;
-          c2.innerHTML = '';
-          if (!filas.length) {
-            c2.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0;padding:4px 2px">Nada en este tramo. Que siga así.</p>';
-            return;
-          }
-          filas.slice(0, 10).forEach(function (f) {
-            var fila2 = molde.cloneNode(true);
-            var pon3 = function (k, v) { var e = fila2.querySelector('[data-lw="' + k + '"]'); if (e) e.textContent = v; };
-            pon3('v-titulo', (f.descripcion || 'Hito') + ' · ' + (f.contrato.numero || 'sin nº'));
-            pon3('v-chip', chipDe(f));
-            pon3('v-desc', tipoC(f.contrato.tipo) + (f.contrato.proyecto_nombre ? ' · ' + f.contrato.proyecto_nombre : '') + (f.contrato.comprador_nombre ? ' · ' + f.contrato.comprador_nombre : ''));
-            pon3('v-importe', f.pendiente != null ? fmt(f.pendiente, mon) : (f.importe != null ? fmt(f.importe, mon) : '—'));
-            pon3('v-nota', notaDe(f));
-            fila2.style.cursor = 'pointer';
-            fila2.addEventListener('click', function () { fichaContrato(sb, f.contrato); });   // la ficha del contrato, en el cajón
-            c2.appendChild(fila2);
-          });
-          if (filas.length > 10) {
-            c2.insertAdjacentHTML('beforeend', '<p style="font:500 12px/1.4 sans-serif;color:#8A8474;margin:2px 0 0;padding:0 2px">y ' + (filas.length - 10) + ' más en la herramienta completa.</p>');
-          }
-        };
-        var prox = m.filas.filter(function (f) { return f.estado !== 'vencido' && f.estado !== 'cobrado' && f.fecha && f.fecha > d7 && dias(f.fecha) <= 60; })
-          .sort(function (a, b) { return a.fecha < b.fecha ? -1 : 1; });
-        pon2('n-vencidos', venc.length + (venc.length === 1 ? ' VENCIDO' : ' VENCIDOS'));
-        pon2('n-semana', semana.length + ' EN 7 DÍAS');
-        pon2('n-prox', prox.length + ' EN CALENDARIO');
-        pinta('lista-vencidos', venc);
-        pinta('lista-semana', semana.sort(function (a, b) { return a.fecha < b.fecha ? -1 : 1; }));
-        pinta('lista-prox', prox);
+        var totalPaginas = Math.max(1, Math.ceil(filas.length / POR_PAGINA));
+        if (PAGINA >= totalPaginas) PAGINA = totalPaginas - 1;
+        var desde = PAGINA * POR_PAGINA;
+        var pagina = filas.slice(desde, desde + POR_PAGINA);
+        var texto = (desde + 1) + '–' + (desde + pagina.length) + ' de ' + filas.length;
+        if (resumen) resumen.textContent = texto;
+        if (pager) pager.hidden = filas.length <= POR_PAGINA;
+        var pInfo = document.getElementById('venc-pag-info');
+        var pAntes = document.getElementById('venc-pag-antes');
+        var pDespues = document.getElementById('venc-pag-despues');
+        if (pInfo) pInfo.textContent = texto;
+        if (pAntes) pAntes.disabled = PAGINA === 0;
+        if (pDespues) pDespues.disabled = PAGINA >= totalPaginas - 1;
+        tbody.innerHTML = pagina.map(function (f) {
+          var tag = ESTADO_TAG[f.estado] || [f.estado, ''];
+          var estadoHtml = pill(tag[0], tag[1])
+            + (f.factura_id ? ' ' + pill('Facturada', 'ok') : '')
+            + (f.no_facturar ? ' ' + pill('Sin auto', '') : '');
+          var cubiertoHtml = f.cubierto ? esc(fmt(f.cubierto, MONEDA)) : '<span class="text-control-border">—</span>';
+          var fechaTxt = f.fecha ? esc(fFecha(f.fecha)) : '<span class="text-control-border">sin fecha</span>';
+          return '<tr class="hover:bg-surface-container-low/70 transition-colors border-t border-surface-container-high/40 cursor-pointer" data-vid="' + esc(f.id) + '">'
+            + '<td class="py-4 px-5 text-control-border">' + fechaTxt + (f.ajustado ? ' <span class="text-control-border" title="Fecha ajustada a mano">·aj</span>' : '') + '</td>'
+            + '<td class="py-4 px-4"><span class="font-label-md font-semibold text-deep-lagoon">' + esc(f.contrato.numero || 'sin nº') + '</span> <span class="text-on-surface-variant">' + esc(tipoC(f.contrato.tipo)) + '</span></td>'
+            + '<td class="py-4 px-4">' + esc(f.contrato.comprador_nombre || 'sin nombre') + '</td>'
+            + '<td class="py-4 px-4">' + esc(f.descripcion || 'Hito ' + f.orden) + (f.pct ? ' <span class="text-on-surface-variant">' + esc(f.pct) + '%</span>' : '') + '</td>'
+            + '<td class="py-4 px-4 text-right font-kpi-number font-semibold text-deep-lagoon text-[15px]">' + esc(fmt(f.importe, MONEDA)) + '</td>'
+            + '<td class="py-4 px-4 text-right">' + cubiertoHtml + '</td>'
+            + '<td class="py-4 px-4 text-right font-semibold">' + (f.pendiente != null ? esc(fmt(f.pendiente, MONEDA)) : '—') + '</td>'
+            + '<td class="py-4 px-5">' + estadoHtml + '</td>'
+            + '</tr>';
+        }).join('');
+      }
+      var tbodyEl = document.getElementById('venc-tbody');
+      if (tbodyEl) tbodyEl.addEventListener('click', function (ev) {
+        var tr = ev.target.closest && ev.target.closest('tr[data-vid]'); if (!tr) return;
+        ev.stopPropagation();
+        var m2 = MODELO && MODELO[MONEDA]; if (!m2) return;
+        var vid = tr.getAttribute('data-vid');
+        var f = m2.filas.filter(function (x) { return x.id === vid; })[0];
+        if (f) fichaContrato(sb, f.contrato);   // la ficha del contrato, en el cajón
       });
+      var pAntesBtn = document.getElementById('venc-pag-antes');
+      if (pAntesBtn) { pAntesBtn.setAttribute('data-real', ''); pAntesBtn.addEventListener('click', function (ev) { ev.stopPropagation(); if (PAGINA > 0) { PAGINA--; pintarTabla(MODELO[MONEDA]); } }); }
+      var pDespuesBtn = document.getElementById('venc-pag-despues');
+      if (pDespuesBtn) { pDespuesBtn.setAttribute('data-real', ''); pDespuesBtn.addEventListener('click', function (ev) { ev.stopPropagation(); PAGINA++; pintarTabla(MODELO[MONEDA]); }); }
+
+      /* ── por proyecto, con «quién debe» plegado por comprador ──────────── */
+      function pintarProyectos(m) {
+        var tbody = document.getElementById('venc-tproy'); if (!tbody) return;
+        var filas = Object.keys(m.porProyecto || {}).map(function (p) { return [p, m.porProyecto[p]]; })
+          .sort(function (a, b) { return b[1].cartera - a[1].cartera; });
+        if (!filas.length) { tbody.innerHTML = '<tr><td class="py-8 px-5 text-center text-control-border" colspan="5">Sin contratos en esta moneda.</td></tr>'; return; }
+        var html = '';
+        filas.forEach(function (par) {
+          var p = par[0], d = par[1];
+          html += '<tr class="border-t border-surface-container-high/40">'
+            + '<td class="py-4 px-5 font-label-md font-semibold text-on-surface">' + esc(p) + '</td>'
+            + '<td class="py-4 px-4 text-right">' + esc(fmt(d.cartera, MONEDA)) + '</td>'
+            + '<td class="py-4 px-4 text-right">' + esc(fmt(d.cobrado, MONEDA)) + '</td>'
+            + '<td class="py-4 px-4 text-right">' + (d.proximos90 ? esc(fmt(d.proximos90, MONEDA)) : '<span class="text-control-border">—</span>') + '</td>'
+            + '<td class="py-4 px-5 text-right">' + (d.vencido ? pill(fmt(d.vencido, MONEDA), 'mal') : '<span class="text-control-border">—</span>') + '</td>'
+            + '</tr>';
+          var personas = Object.keys(d.personas || {}).map(function (n) { return [n, d.personas[n]]; })
+            .filter(function (par2) { return par2[1].precio > 0 || par2[1].pendiente > 0; })
+            .sort(function (a, b) { return b[1].pendiente - a[1].pendiente; });
+          if (personas.length) {
+            html += '<tr class="border-t border-surface-container-high/40"><td colspan="5" class="p-0 bg-surface-container">'
+              + '<details class="px-5 py-2.5"><summary class="cursor-pointer text-body-sm font-body-sm text-control-border select-none">'
+              + personas.length + (personas.length === 1 ? ' comprador' : ' compradores') + ' · quién debe qué</summary>'
+              + '<table class="w-full text-left mt-2"><tbody>' + personas.map(function (par2) {
+                var n = par2[0], v = par2[1];
+                return '<tr class="border-t border-surface-container-high/40">'
+                  + '<td class="py-2 px-2 text-body-sm">' + esc(n) + (v.firmados === 0 ? ' ' + pill('sin firmar', '') : '') + '</td>'
+                  + '<td class="py-2 px-2 text-body-sm text-right">' + esc(fmt(v.precio, MONEDA)) + '</td>'
+                  + '<td class="py-2 px-2 text-body-sm text-right">' + esc(fmt(v.cobrado, MONEDA)) + '</td>'
+                  + '<td class="py-2 px-2 text-body-sm text-right font-semibold">' + (v.pendiente > 0.005 ? esc(fmt(v.pendiente, MONEDA)) : '<span class="text-control-border">Cobrado</span>') + '</td>'
+                  + '</tr>';
+              }).join('') + '</tbody></table></details></td></tr>';
+          }
+        });
+        tbody.innerHTML = html;
+      }
+
+      /* ── facturas con vencimiento propio: mismos chips de empresa/moneda
+         que el resto del panel — no un segundo filtro (igual que la clásica,
+         que filtra `pintarFacturas()` con las mismas variables globales). ── */
+      function pintarFacturas() {
+        var tbody = document.getElementById('venc-tfact'); if (!tbody) return;
+        var filas = FACTURAS.filter(function (f) {
+          return (f.moneda || 'EUR') === MONEDA
+            && (EMPRESA === 'todas' || (typeof lwSociedadContrato === 'function' && lwSociedadContrato(f.sociedad, f.tipo) === EMPRESA));
+        }).sort(function (a, b) { return a.venc < b.venc ? -1 : 1; }).slice(0, 40);
+        if (!filas.length) { tbody.innerHTML = '<tr><td class="py-8 px-5 text-center text-control-border" colspan="5">Ninguna factura con fecha de vencimiento en esta moneda.</td></tr>'; return; }
+        tbody.innerHTML = filas.map(function (f) {
+          var pasada = f.venc < hoy;
+          return '<tr class="border-t border-surface-container-high/40">'
+            + '<td class="py-4 px-5 text-control-border">' + esc(fFecha(f.venc)) + '</td>'
+            + '<td class="py-4 px-4"><span class="font-label-md font-semibold text-deep-lagoon">' + esc(f.numero || 'sin nº') + '</span> <span class="text-on-surface-variant">' + esc(tipoDoc(f.tipo)) + '</span></td>'
+            + '<td class="py-4 px-4">' + esc(f.cliente_nombre || '') + '</td>'
+            // MONEDA, no f.moneda: las filas ya están filtradas a la moneda activa
+            // (f.moneda||'EUR')===MONEDA — una factura con `moneda` vacía en base
+            // pasaba el filtro por el `||'EUR'` pero se pintaba sin sufijo de
+            // divisa si se usaba el campo crudo (hallazgo del code-review).
+            + '<td class="py-4 px-4 text-right font-kpi-number font-semibold text-deep-lagoon text-[15px]">' + esc(fmt(Number(f.total), MONEDA)) + '</td>'
+            + '<td class="py-4 px-5">' + pill(pasada ? 'Vencida' : 'En plazo', pasada ? 'mal' : '') + '</td>'
+            + '</tr>';
+        }).join('');
+      }
     },
     proyectos: function (sb) {
       var $ = function (k, raiz) { return (raiz || document).querySelector('[data-lw="' + k + '"]'); };
