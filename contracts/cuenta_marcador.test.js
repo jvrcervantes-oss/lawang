@@ -63,6 +63,16 @@ const CUENTAS_BANCARIAS = {
     cuenta: '444455556666', codigo: 'EEEEIDJA', direccion: 'Calle E 2',
     extra: { es: 'Código de banco: 001', en: 'Bank code: 001', id: 'Kode bank: 001' },
     es_escrow: false },
+  // LAW-247 (22-sep-2026): el `extra` de `empresa_prueba` de arriba lleva los
+  // tres idiomas rellenos y nunca ejercita el respaldo que hubo que quitar de
+  // `celda()`. Estas dos SÍ dejan el bahasa a medio escribir, que es el caso
+  // que de verdad importa: el bahasa PREVALECE legalmente sobre el documento.
+  nota_sin_bahasa: { label: 'Nota sin bahasa', titular: 'PT SIN BAHASA', banco: 'Banco S',
+    cuenta: '555566667777', codigo: 'SSSSIDJA', direccion: 'Calle S 4',
+    extra: { es: 'Pago en IDR', en: 'Payment in IDR', id: '' }, es_escrow: false },
+  nota_con_bahasa: { label: 'Nota con bahasa', titular: 'PT CON BAHASA', banco: 'Banco C',
+    cuenta: '888899990000', codigo: 'CCCCIDJA', direccion: 'Calle C 5',
+    extra: { es: 'Pago en IDR', en: 'Payment in IDR', id: 'Pembayaran dalam IDR' }, es_escrow: false },
 };
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -88,6 +98,22 @@ assert.ok(salida.includes('class="pays kv"'), 'perdió la clase de la maqueta de
 const conExtra = pinta('<!--cuenta:empresa_prueba-->');
 assert.ok(conExtra.includes('Código de banco: 001') && conExtra.includes('Kode bank: 001'),
   'el `extra` trilingüe tiene que salir en los tres idiomas');
+
+/* ---- 3.bis. LAW-247 EN EL DOCUMENTO IMPRESO, no solo al guardar (22-sep-2026) ----
+   `celda()`, dentro de esta misma `tablaCuentaHTML`, tenía su PROPIA copia del
+   respaldo `v.id||v.es` que se había quitado de nota_cuenta.js:aJson() (hallazgo
+   de code-review sobre el commit 3691a5cc): arreglar el guardado no sirve de
+   nada si quien IMPRIME el contrato vuelve a inventarse la traducción de bahasa
+   que falta -- el bahasa PREVALECE legalmente en estos documentos. */
+const sinBahasa = pinta('<!--cuenta:nota_sin_bahasa-->');
+assert.ok(/<span data-lang="id"><\/span>/.test(sinBahasa),
+  'sin bahasa escrito, la columna id del documento impreso debe salir VACÍA');
+assert.ok(!/data-lang="id">Pago en IDR/.test(sinBahasa),
+  'LAW-247 en el documento impreso: el bahasa no puede heredar el texto español');
+
+const conBahasa = pinta('<!--cuenta:nota_con_bahasa-->');
+assert.ok(/data-lang="id">Pembayaran dalam IDR<\/span>/.test(conBahasa),
+  'con bahasa escrito, se imprime tal cual');
 
 /* ---- 4. una clave que no existe no imprime nada (y no revienta) ---- */
 assert.strictEqual(pinta('<!--cuenta:no_existe-->'), '',
