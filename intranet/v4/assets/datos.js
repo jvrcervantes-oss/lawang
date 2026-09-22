@@ -750,9 +750,8 @@
          la ficha esperándola. */
       var raizCloser = padre || c;
       var puedeCloser = closerPuede();
-      if (puedeCloser) {
-        cuerpo += H.seccion('Cierre de la venta', '<p style="margin:0;font-size:12.5px;color:#8A8474">Trayendo…</p>', 'closer');
-      }
+      // la sección «Cierre de la venta» se añade AL FINAL de la ficha (owner, 22-sep:
+      // es de comisiones, no del día a día del contrato) — ver justo antes de pintar.
 
       /* Botón «Liberar reserva (comprador desiste)» (21-sep-2026). Solo UX: el
          candado real es el propio RPC (rol + es_manager_de del proyecto de la
@@ -831,10 +830,10 @@
         H.dato('Nombre escrito en el documento', c.comprador_nombre) +
         (vins.length ? '<p style="margin:0;font-size:12px;color:#8A8474">Trayendo la ficha de comprador enlazada…</p>'
                      : H.nota('Este contrato no está enlazado a ninguna ficha de comprador: solo hay el nombre del documento. La ficha se enlaza desde el generador (pasaporte + email).')), 'compradores');
-      // Documentación KYC (S13, 22-sep-2026): mismo criterio que la clásica
-      // (intranet/operaciones/index.html:801-824) — el pasaporte es de la
-      // persona, no de la venta.
-      cuerpo += H.seccion('Documentación KYC del comprador', '<p style="margin:0;font-size:12px;color:#8A8474">Trayendo…</p>', 'docskyc');
+      // Documentación KYC: desde el 22-sep (owner) ya no es una sección con
+      // tabla — el pasaporte es de la persona, no de la venta. Queda como UNA
+      // línea dentro de Comprador (cuántos documentos y la caducidad más
+      // cercana) con enlace a la ficha, que es donde se gestiona.
 
       var fs = r[1].data || [];
       /* Lo cobrado lo dice el oráculo vivo `contrato_cobrado()` (recibís aplicados,
@@ -853,6 +852,15 @@
             esc(fFecha(f.fecha_emision || f.created_at)),
             f.anulada ? H.tag('Anulada', 'mal') : (f.tipo === 'recibi' ? H.tag('Cobrado', 'ok') : '')];
         })) : H.nota('Sin facturas ni recibís todavía.')));
+
+      var vs = r[2].data || [];
+      cuerpo += H.seccion('Calendario de pagos (' + vs.length + ')',
+        vs.length ? H.tabla(['#', 'Concepto', 'Importe', 'Fecha', 'Facturado'], vs.map(function (v) {
+          return [esc(v.orden != null ? v.orden : ''), esc(v.descripcion || '—'),
+            esc(v.monto != null ? fmt(v.monto, c.moneda) : (v.pct != null ? v.pct + ' %' : '—')),
+            esc(v.fecha ? fFecha(v.fecha) : 'sin fecha'),
+            v.factura_id ? H.tag('Sí', 'ok') : (v.no_facturar ? '<span style="color:#8A8474">no se factura</span>' : H.tag('No', 'espera'))];
+        })) : H.nota('Este contrato no tiene calendario de pagos registrado.'));
 
       /* Estado de cuenta CONSOLIDADO de la cadena (S13, 22-sep-2026): «Cobros»
          de arriba es contrato a contrato; esto suma TODOS los encadenados en
@@ -883,15 +891,6 @@
             : 'Una Carta de Reserva no suma precio: declara el mismo importe que luego reparten el Bloqueo/la Construcción. Detalle de cada contrato en «Cuelga de»/«Encadenados», arriba.')));
       }
 
-      var vs = r[2].data || [];
-      cuerpo += H.seccion('Calendario de pagos (' + vs.length + ')',
-        vs.length ? H.tabla(['#', 'Concepto', 'Importe', 'Fecha', 'Facturado'], vs.map(function (v) {
-          return [esc(v.orden != null ? v.orden : ''), esc(v.descripcion || '—'),
-            esc(v.monto != null ? fmt(v.monto, c.moneda) : (v.pct != null ? v.pct + ' %' : '—')),
-            esc(v.fecha ? fFecha(v.fecha) : 'sin fecha'),
-            v.factura_id ? H.tag('Sí', 'ok') : (v.no_facturar ? '<span style="color:#8A8474">no se factura</span>' : H.tag('No', 'espera'))];
-        })) : H.nota('Este contrato no tiene calendario de pagos registrado.'));
-
       var fi = r[3].data || [];
       cuerpo += H.seccion('Firmas (' + fi.length + ')',
         fi.length ? H.tabla(['Firmante', 'Rol', 'Estado', 'Fecha'], fi.map(function (f) {
@@ -906,6 +905,9 @@
           (!c.bloqueado ? H.nota('El contrato se reabrió después de firmarse. Este PDF es la versión firmada y es la que vincula a las partes; el texto reabierto no tiene efecto hasta una nueva firma.') : '') +
           '<button type="button" data-lw-pdf="' + esc(c.pdf_firmado_path) + '" style="justify-self:start;padding:9px 16px;border-radius:10px;border:1px solid #c5c8bc;background:#fff;color:#104C4F;font:600 13px \'Neue Kabel\',sans-serif;cursor:pointer">Ver PDF firmado</button>' +
           (c.pdf_firmado_hash ? H.dato('SHA-256', c.pdf_firmado_hash) : ''));
+      }
+      if (puedeCloser) {
+        cuerpo += H.seccion('Cierre de la venta', '<p style="margin:0;font-size:12.5px;color:#8A8474">Trayendo…</p>', 'closer');
       }
       caj.cuerpo.innerHTML = cuerpo;
 
@@ -932,9 +934,9 @@
          (S13, 22-sep-2026): un solo Promise.all — antes solo resolvía el
          nombre; ahora también el tag de estado KYC (sin salir a Compradores)
          y las operaciones NO emparentadas del mismo comprador (POR_CLIENTE de
-         la clásica, líneas 869-881). La documentación va en su propia
-         sección («docskyc») porque puede tener filas aunque no haya vins
-         (un documento colgado directo del contrato_id). */
+         la clásica, líneas 869-881). La documentación va como una línea al
+         final de esta misma sección (22-sep, owner) y se pinta aunque no haya
+         vins (un documento colgado directo del contrato_id). */
       var clientIds = vins.map(function (v) { return v.client_id; });
       var KYC_ES = { pending: 'Pendiente', submitted: 'En revisión', verified: 'Aprobado', rejected: 'Rechazado' };
       var DOC_ES = { passport: 'Pasaporte', npwp: 'NPWP', visa: 'Visado', proof_of_funds: 'Justificante de fondos', proof_of_address: 'Justificante de domicilio', signed_contract: 'Contrato firmado', other: 'Otro' };
@@ -946,9 +948,35 @@
         var rc = rr[0], rv2 = rr[1], rd = rr[2];
         var ficha = {}; (rc.error ? [] : (rc.data || [])).forEach(function (k) { ficha[k.id] = k; });
         var sec = caj.cuerpo.querySelector('[data-cajon-sec="compradores"] > div');
+        /* La línea de documentación (KYC) que se cuelga al final de Comprador:
+           cuántos hay y el que caduca antes. Se calcula aquí y se pone después
+           de pintar las fichas (pintaComp), que reescribe la sección. */
+        var lineaDocs = '';
+        (function () {
+          if (rd.error) { lineaDocs = H.dato('Documentación', '<span style="color:#8A8474">no se pudo leer</span>', { html: 1 }); return; }
+          var docs = rd.data || [];
+          var enlaceFicha = vins.length ? ' · ' + H.enlace('/intranet/v4/compradores/?id=' + encodeURIComponent(vins[0].client_id), 'ver ficha') : '';
+          if (!docs.length) {
+            lineaDocs = H.dato('Documentación', '<span style="color:#8A8474">sin documentos subidos</span>' + enlaceFicha, { html: 1 });
+            return;
+          }
+          var peor = null;
+          docs.forEach(function (d) {
+            if (!d.caduca_el) return;
+            var dd = Math.round((new Date(d.caduca_el) - new Date()) / 86400000);
+            if (peor === null || dd < peor.dd) peor = { dd: dd, tipo: DOC_ES[d.doc_type] || d.doc_type || 'documento' };
+          });
+          var cad = !peor ? '' : (peor.dd < 0
+            ? ' · ' + H.tag(peor.tipo + ' caducado hace ' + (-peor.dd) + ' d', 'mal')
+            : (peor.dd <= 60 ? ' · ' + H.tag(peor.tipo + ' caduca en ' + peor.dd + ' d', 'espera') : ''));
+          lineaDocs = H.dato('Documentación', docs.length + ' documento' + (docs.length === 1 ? '' : 's') + cad + enlaceFicha, { html: 1 });
+        })();
+        var ponDocs = function () { if (sec && lineaDocs) sec.insertAdjacentHTML('beforeend', lineaDocs); };
+        if (sec && !vins.length) ponDocs();
         if (sec && vins.length) {
           if (rc.error) {
             sec.innerHTML = H.dato('Nombre escrito en el documento', c.comprador_nombre) + H.nota('No se pudieron resolver las fichas enlazadas.');
+            ponDocs();
           } else {
             var otrosIds = {};
             (rv2.error ? [] : (rv2.data || [])).forEach(function (v2) {
@@ -971,6 +999,7 @@
                     otros.map(function (o) { return H.enlace('/intranet/v4/operaciones/?contrato=' + encodeURIComponent(o.numero), o.numero); }).join(' · ') + '</span>' : ''),
                   { html: 1 });
               }).join('');
+              ponDocs();
             };
             if (idsOtros.length) {
               sb.rpc('contratos_equipo').select('id,numero').in('id', idsOtros).then(function (ro) {
@@ -978,21 +1007,6 @@
                 pintaComp(porIdOtros);
               });
             } else pintaComp({});
-          }
-        }
-        var secd = caj.cuerpo.querySelector('[data-cajon-sec="docskyc"] > div');
-        if (secd) {
-          if (rd.error) {
-            secd.innerHTML = H.nota('No se pudo leer la documentación KYC.');
-          } else {
-            var docs = rd.data || [];
-            secd.innerHTML = docs.length ? H.tabla(['Documento', 'De', 'Subido', 'Caduca'], docs.map(function (d) {
-              var dd = d.caduca_el ? Math.round((new Date(d.caduca_el) - new Date()) / 86400000) : null;
-              var cad = !d.caduca_el ? '<span style="color:#8A8474">sin fecha</span>'
-                : (dd < 0 ? H.tag('caducado hace ' + (-dd) + ' d', 'mal') : (dd <= 60 ? H.tag(fFecha(d.caduca_el), 'espera') : H.tag(fFecha(d.caduca_el), 'ok')));
-              var nom = (ficha[d.client_id] && ficha[d.client_id].full_name) || c.comprador_nombre || '—';
-              return [esc(DOC_ES[d.doc_type] || d.doc_type || '—'), esc(nom), esc(fFecha(d.uploaded_at)), cad];
-            })) : H.nota(vins.length ? ('Ningún documento subido todavía para ' + (vins.length > 1 ? 'estos compradores.' : 'este comprador.')) : 'Sin ficha de comprador enlazada no hay documentación que mostrar.');
           }
         }
       });
