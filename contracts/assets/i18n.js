@@ -238,6 +238,8 @@
     'sin precio con el que comparar': 'no price to compare against',
     'Lo que falta por cobrar de las operaciones con contrato firmado.': 'What is still to be collected on operations with a signed contract.',
     'Firmadas sin facturar': 'Signed, not invoiced',
+    'Reserva liberada': 'Reservation released',
+    'Liberadas': 'Released',
     'Reserva sin señal cobrada': 'Reservation, deposit not collected',
     'Falta precio': 'Price missing',
     'Firma caduca en < 48 h': 'Signature expires in < 48 h',

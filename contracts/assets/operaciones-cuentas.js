@@ -176,6 +176,10 @@ function piezaActiva(o){
 }
 function etapaOperacion(o){
   const p = piezaActiva(o);
+  /* Toda la cadena liberada (hallazgo Desarrollo, consulta de deploy 22-sep):
+     no se debe nada ni hay firma que esperar. Quinto valor, FUERA de ETAPAS a
+     proposito — el tablero de la clasica no lo pinta como columna. */
+  if(p.liberado_en) return 'liberada';
   const caducada = f => f.expira_en && new Date(f.expira_en).getTime() < Date.now();
   if(!p.bloqueado) return (p.firmas || []).some(f => f.estado === 'pendiente' && !caducada(f)) ? 'firma_viva' : 'sin_firmar';
   const c = cuentaGrupo(o.padre || o);

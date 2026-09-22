@@ -2706,10 +2706,14 @@
         }
         var ETQ = {};
         (typeof ETAPAS !== 'undefined' ? ETAPAS : []).forEach(function (e) { ETQ[e[0]] = e[1]; });
-        var TONO = { sin_firmar: 'espera', firma_viva: 'espera', cobro_pend: 'mal', cobro_ok: 'ok' };
+        var TONO = { sin_firmar: 'espera', firma_viva: 'espera', cobro_pend: 'mal', cobro_ok: 'ok', liberada: '' };
+        ETQ.liberada = T('Reserva liberada');   // etapaOperacion la devuelve; no es columna del tablero clásico
         var lim48 = Date.now() + 48 * 3600e3;
         function facturaViva(o) {
-          return cadena(o).some(function (c) { return (c.facturas || []).some(function (f) { return !f.anulada && f.tipo !== 'proforma'; }); });
+          // Solo una FACTURA cuenta (Administración, consulta de deploy 22-sep): un
+          // recibí es dinero recibido, no factura emitida — justo el caso fiscal
+          // que este chip existe para cazar (RP00025: 39.220 € por recibí y cero facturas).
+          return cadena(o).some(function (c) { return (c.facturas || []).some(function (f) { return !f.anulada && f.tipo === 'factura'; }); });
         }
         function firmadaAlguna(o) { return cadena(o).some(function (c) { return c.bloqueado && !c.liberado_en; }); }
         function faltaFicha(o) { return typeof fichasQueFaltan === 'function' && cadena(o).some(function (c) { return fichasQueFaltan(c) > 0; }); }
@@ -2721,8 +2725,12 @@
            es legítimo en un poder. Y la firma que caduca en menos de 48 h. */
         function avisosDe(o) {
           var out = [], cg = cuentaGrupo(o), p = (typeof piezaActiva === 'function') ? piezaActiva(o) : o;
+          if (p.liberado_en) return out;   // cadena liberada: ningún aviso pide acción sobre una reserva muerta
           if (faltaFicha(o)) out.push([T('Falta ficha'), 'mal']);
-          if (p.bloqueado && esPreliminar(p) && !(cg.facturado > 0)) out.push([T('Reserva sin señal cobrada'), 'mal']);
+          // Sobre CUALQUIER Carta firmada viva de la cadena, no sobre la pieza activa
+          // (Legal, consulta de deploy 22-sep): con el borrador del Bloqueo creado la
+          // pieza activa es el borrador y el aviso desaparecía en el paso normal del flujo.
+          if (cadena(o).some(function (c) { return c.bloqueado && !c.liberado_en && esPreliminar(c); }) && !(cg.facturado > 0)) out.push([T('Reserva sin señal cobrada'), 'mal']);
           if (p.bloqueado && !cg.precio && p.tipo !== 'poa') out.push([T('Falta precio'), 'espera']);
           if (cadena(o).some(function (c) { return (c.firmas || []).some(function (f) { return f.estado === 'pendiente' && f.expira_en && new Date(f.expira_en).getTime() < lim48 && new Date(f.expira_en).getTime() > Date.now(); }); })) out.push([T('Firma caduca en < 48 h'), 'mal']);
           return out;
@@ -2737,6 +2745,7 @@
         tbody.innerHTML = raices.map(function (o) {
           var cg = cuentaGrupo(o), e = etapaOperacion(o), piezas = cadena(o);
           var p = (typeof piezaActiva === 'function') ? piezaActiva(o) : o;
+          var lib = e === 'liberada';   // cadena liberada: nada exigible, el pendiente no se afirma
           var parcelas = []; piezas.forEach(function (c) { if (c.parcela_codigo && parcelas.indexOf(c.parcela_codigo) === -1) parcelas.push(c.parcela_codigo); });
           var pzHtml = piezas.map(function (c) {
             var st = estadoPieza(c);
@@ -2758,7 +2767,7 @@
             '<td class="py-3 px-4"><div class="flex flex-wrap gap-x-3 gap-y-1">' + pzHtml + '</div></td>' +
             '<td class="py-3 px-4 text-right font-kpi-number text-volcanic-ash">' + (cg.precio ? celdaNum(cg.precio, cg.moneda) : '<span class="text-stone-sand text-[12px]">' + T('sin fijar') + '</span>') + '</td>' +
             '<td class="py-3 px-4 text-right font-kpi-number text-territorial-green">' + celdaNum(cg.facturado, cg.moneda) + '</td>' +
-            '<td class="py-3 px-4 text-right font-kpi-number text-volcanic-ash">' + (cg.pendiente != null ? celdaNum(cg.pendiente, cg.moneda, cg.pendiente > 0) : '<span class="text-stone-sand">—</span>') + '</td>' +
+            '<td class="py-3 px-4 text-right font-kpi-number text-volcanic-ash">' + (cg.pendiente != null && !lib ? celdaNum(cg.pendiente, cg.moneda, cg.pendiente > 0) : '<span class="text-stone-sand">—</span>') + '</td>' +
             '<td class="py-3 px-4 whitespace-nowrap">' + pill(ETQ[e] || e, TONO[e] || '') +
               (piezas.length > 1 ? '<div class="text-[11px] text-stone-sand mt-1">' + esc(p.numero || '') + '</div>' : '') + '</td>' +
             '<td class="py-3 px-4 text-on-surface-variant text-[12px]" title="' + esc(o.creado_por || '') + '">' + esc(operadorDe(o)) + '</td>' +
@@ -2784,6 +2793,8 @@
           var precio = 0, cobrado = 0, pendiente = 0, otras = 0, firmadas = 0, sinCartas = 0;
           vis.forEach(function (o) {
             var cg = cuentaGrupo(o);
+            // liberada: lo cobrado es dinero real (señal no reembolsable) pero el precio ya no es un trato
+            if (etapaOperacion(o) === 'liberada') { if ((cg.moneda || 'EUR') === 'EUR') cobrado += cg.facturado || 0; return; }
             if (firmadaAlguna(o)) firmadas++;
             if (cg.soloPreliminar) sinCartas++;
             if ((cg.moneda || 'EUR') !== 'EUR') { otras++; return; }
@@ -2817,7 +2828,8 @@
           // «Firmadas sin facturar» y no «Sin facturar» a secas (owner, 22-sep):
           // un borrador sin factura es lo normal; la que pide acción es la firmada.
           { clave: '1', atributo: 'sinfactura', texto: T('Firmadas sin facturar'), n: nDe(function (o) { return firmadaAlguna(o) && !facturaViva(o); }) },
-          { clave: '1', atributo: 'faltaficha', texto: T('Falta ficha'), n: nDe(faltaFicha) }
+          { clave: '1', atributo: 'faltaficha', texto: T('Falta ficha'), n: nDe(faltaFicha) },
+          { clave: 'liberada', atributo: 'etapa', texto: T('Liberadas'), n: nDe(function (o) { return etapaOperacion(o) === 'liberada'; }) }
         ];
         var contChips = document.querySelector('[data-lw-chips="estado"]');
         chipsReales(contChips, 'estado', ops, estado, function () {
