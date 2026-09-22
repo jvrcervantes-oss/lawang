@@ -1193,7 +1193,17 @@
     // congelado (anulado o ya enviado) no se toca, se reemite. El candado de
     // autoría/admin lo decide el propio editor (es_suyo-espejo), no esta
     // ficha: un solo sitio que sepa la regla, igual que el resto de la suite.
-    if (!f0.anulada && !f0.enviada) {
+    // Una PROFORMA no se edita (22-sep-2026, owner): la genera el contrato al
+    // guardarse y la actualiza la firma; se consulta (PDF, email, registro).
+    // Una FACTURA anulada se reemite como copia (abrir() del clásico la abría
+    // «como borrador nuevo»): mismo contrato, cliente y conceptos, número nuevo.
+    if (f0.anulada && f0.tipo === 'factura') {
+      acciones.push({ texto: 'Emitir copia', onClick: function () {
+        if (window.LW_V4 && window.LW_V4.abrirEditorFactura) window.LW_V4.abrirEditorFactura({ copia_de: f0.id });
+        else toastMal('El editor de documentos aún está cargando — prueba de nuevo en un segundo.');
+      } });
+    }
+    if (!f0.anulada && !f0.enviada && f0.tipo !== 'proforma') {
       acciones.push({ texto: 'Editar', onClick: function () {
         if (!(window.LW_V4 && (window.LW_V4.abrirEditorFactura || window.LW_V4.abrirEditorRecibi))) {
           toastMal('El editor de documentos aún está cargando — prueba de nuevo en un segundo.'); return;
@@ -1606,9 +1616,23 @@
          La pantalla de Stitch era un editor de emisión dibujado; la emisión
          sigue en la herramienta viva (numeración por secuencia de la base). */
       var t = tablaPor([/DOCUMENTO|N[ºU°]/, /CLIENTE/, /TIPO|ESTADO/]);
-      q(sb.rpc('facturas_equipo').select(CAMPOS_FACTURA).neq('tipo', 'recibi').order('created_at', { ascending: false }).limit(2000), 'facturas', t)
-        .then(function (fs) {
+      Promise.all([
+        q(sb.rpc('facturas_equipo').select(CAMPOS_FACTURA).neq('tipo', 'recibi').order('created_at', { ascending: false }).limit(2000), 'facturas', t),
+        // Cuánto lleva cobrada cada factura (22-sep-2026, owner): la misma
+        // función que usa el recibí para saber qué puede saldar — nunca una
+        // segunda forma de restar recibís a facturas.
+        vig(sb.rpc('facturas_pendiente_equipo')).then(function (r) { return r.error ? (fallo('pendiente de cobro', r.error), null) : (r.data || []); })
+      ]).then(function (rr) {
+          var fs = rr[0], hayPend = !!rr[1], pendPor = {};
+          (rr[1] || []).forEach(function (x) { pendPor[x.factura_id] = Number(x.pendiente) || 0; });
           if (!fs) return;
+          // 'cobrada' | 'parcial' | 'pendiente' | 'na' (proforma, anulada o sin dato)
+          function cobroDe(f) {
+            if (f.tipo !== 'factura' || f.anulada || !hayPend) return 'na';
+            var p = pendPor[f.id]; if (p == null) p = Number(f.total) || 0;
+            var tot = Number(f.total) || 0;
+            return p <= 0.005 ? 'cobrada' : (tot - p <= 0.005 ? 'pendiente' : 'parcial');
+          }
           var ini = new Date(); ini.setDate(1); ini.setHours(0, 0, 0, 0);
           var mesEUR = 0, mesOtras = 0, nFac = 0, nFacAnu = 0, nPro = 0, nProAnu = 0;
           fs.forEach(function (f) {
@@ -1621,8 +1645,18 @@
           pon2('k-mes-pie', 'facturas vigentes del mes en euros, impuestos incluidos' + (mesOtras ? ' · +' + mesOtras + ' en otra moneda' : ''));
           pon2('k-facturas', String(nFac));
           pon2('k-facturas-pie', nFacAnu + ' anulada' + (nFacAnu === 1 ? '' : 's') + ' · histórico completo');
-          pon2('k-proformas', String(nPro));
-          pon2('k-proformas-pie', nProAnu + ' anulada' + (nProAnu === 1 ? '' : 's') + ' · no facturan ni vencen');
+          // KPI «Pendiente de cobro» en el sitio de «Proformas» (22-sep-2026):
+          // las proformas son automáticas y no facturan; lo pendiente es lo
+          // que de verdad se mira aquí.
+          var pendEUR = 0, pendOtras = 0, nPend = 0;
+          fs.forEach(function (f) {
+            var c = cobroDe(f); if (c !== 'pendiente' && c !== 'parcial') return;
+            nPend++; if ((f.moneda || 'EUR') === 'EUR') pendEUR += pendPor[f.id] || 0; else pendOtras++;
+          });
+          pon2('k-pendiente', hayPend ? fmt(pendEUR, 'EUR') : '—');
+          pon2('k-pendiente-pie', hayPend
+            ? (nPend + ' factura' + (nPend === 1 ? '' : 's') + ' vigente' + (nPend === 1 ? '' : 's') + ' con saldo pendiente, en euros' + (pendOtras ? ' · +' + pendOtras + ' en otra moneda' : ''))
+            : 'no se pudo calcular lo pendiente de cobro');
           var porId = {}; fs.forEach(function (f) { porId[f.id] = f; });
           window.LW_V4 = window.LW_V4 || {}; window.LW_V4.facturasLista = porId;
 
@@ -1639,16 +1673,25 @@
             function pintaFilaDoc(f, grupo) {
               var est = estadoDoc(f);
               fila(pl, [f.numero, tipoDoc(f.tipo), f.cliente_nombre || '—', f.contrato_numero || '—', f.proyecto_nombre || '—',
-                fmt(f.total, f.moneda), fFecha(f.fecha_emision || f.created_at), '', '']);
+                fmt(f.total, f.moneda), '', fFecha(f.fecha_emision || f.created_at), '', '']);
               var tr = pl.tbody.lastElementChild;
               tr.setAttribute('data-lw-fila', ''); tr.setAttribute('data-lw-id', f.id);
               tr.setAttribute('data-lw-tipo', f.tipo === 'proforma' ? 'proforma' : 'factura');
               tr.setAttribute('data-lw-estado', f.anulada ? 'anulada' : (f.enviada ? 'enviada' : 'emitida'));
+              var cobro = cobroDe(f); tr.setAttribute('data-lw-cobro', cobro);
               tr.setAttribute('data-lw-pajar', [f.numero, f.cliente_nombre, f.contrato_numero, f.proyecto_nombre].join(' ').toLowerCase());
               if (grupo) tr.setAttribute('data-lw-grupo', grupo);
               var tds = tr.querySelectorAll('td');
-              if (tds[7]) tds[7].innerHTML = pill(est[0], est[1]);
-              if (tds[8]) tds[8].innerHTML = ABRIR;
+              if (tds[6]) {
+                var tot = Number(f.total) || 0, pend = pendPor[f.id] == null ? tot : pendPor[f.id];
+                tds[6].innerHTML = cobro === 'cobrada' ? pill('Cobrada', 'ok')
+                  : cobro === 'pendiente' ? pill('Sin cobrar', 'espera')
+                  : cobro === 'parcial' ? pill('Parcial', 'espera') + '<div style="margin-top:3px;font-size:11.5px;color:#75786e;white-space:nowrap">' +
+                      esc(fmt(tot - pend, f.moneda)) + ' de ' + esc(fmt(tot, f.moneda)) + '</div>'
+                  : '<span style="color:#BEB3A5">—</span>';
+              }
+              if (tds[8]) tds[8].innerHTML = pill(est[0], est[1]);
+              if (tds[9]) tds[9].innerHTML = ABRIR;
               tr.style.cursor = 'pointer';
             }
             function pintaListado() { pl.tbody.innerHTML = ''; fs.forEach(function (f) { pintaFilaDoc(f); }); }
@@ -1680,7 +1723,7 @@
                 var sub = g.sinContrato ? (n + ' · no son un contrato: no se suman entre sí')
                   : ((g.cliente || 'sin cliente') + ' · ' + (g.proyecto || 'sin proyecto') + ' · ' + n);
                 pl.tbody.insertAdjacentHTML('beforeend',
-                  '<tr data-lw-grupo-cab="' + esc(k) + '" style="background:#F5F4EE"><td colspan="9" style="padding:9px 20px;font:700 12.5px \'Neue Kabel\',sans-serif;color:#104C4F">' +
+                  '<tr data-lw-grupo-cab="' + esc(k) + '" style="background:#F5F4EE"><td colspan="10" style="padding:9px 20px;font:700 12.5px \'Neue Kabel\',sans-serif;color:#104C4F">' +
                   esc(etiqueta) + ' <span style="margin-left:8px;font-weight:500;font-size:11.5px;color:#8A8474">' + esc(sub) + '</span></td></tr>');
                 g.docs.forEach(function (f) { pintaFilaDoc(f, k); });
               });
@@ -1708,22 +1751,32 @@
               var tr = ev.target.closest && ev.target.closest('tr[data-lw-id]'); if (!tr) return;
               ev.stopPropagation(); var f = porId[tr.getAttribute('data-lw-id')]; if (f) fichaFactura(sb, f);
             });
-            var estado = {}, texto = '', vista = 'lista';
+            // Proformas FUERA por defecto (22-sep-2026, owner): son automáticas
+            // (176 de 187 las crea el contrato) y duplicaban el ruido del
+            // listado. El chip inicial es «Facturas»; «Proformas» y «Todos»
+            // siguen a un clic.
+            var estado = { tipo: { attr: 'tipo', valor: 'factura' } }, texto = '', vista = 'lista';
             var aplicar = function () {
-              aplicaFiltros(pl.tbody, estado, ['tipo', 'estado'], texto, function (n) { pon2('p-desde', String(n)); });
+              aplicaFiltros(pl.tbody, estado, ['tipo', 'estado', 'cobro'], texto, function (n) { pon2('p-desde', String(n)); });
               sincronizaCabecerasGrupo();
             };
             var cuenta = function (f) { return fs.filter(f).length; };
             chipsReales(document.querySelector('[data-lw-chips="tipo"]'), 'tipo', [
-              { clave: '*', texto: 'Todos', n: fs.length },
               { clave: 'factura', texto: 'Facturas', n: nFac },
-              { clave: 'proforma', texto: 'Proformas', n: nPro }], estado, aplicar);
+              { clave: 'proforma', texto: 'Proformas', n: nPro },
+              { clave: '*', texto: 'Todos', n: fs.length }], estado, aplicar);
+            chipsReales(document.querySelector('[data-lw-chips="cobro"]'), 'cobro', [
+              { clave: '*', texto: 'Todo', n: null },
+              { clave: 'pendiente', texto: 'Sin cobrar', n: cuenta(function (f) { return cobroDe(f) === 'pendiente'; }) },
+              { clave: 'parcial', texto: 'Parciales', n: cuenta(function (f) { return cobroDe(f) === 'parcial'; }) },
+              { clave: 'cobrada', texto: 'Cobradas', n: cuenta(function (f) { return cobroDe(f) === 'cobrada'; }) }], estado, aplicar);
             chipsReales(document.querySelector('[data-lw-chips="estado"]'), 'estado', [
               { clave: '*', texto: 'Todas', n: fs.length },
               { clave: 'emitida', texto: 'Emitidas', n: cuenta(function (f) { return !f.anulada && !f.enviada; }) },
               { clave: 'enviada', texto: 'Enviadas', n: cuenta(function (f) { return !f.anulada && f.enviada; }) },
               { clave: 'anulada', texto: 'Anuladas', n: nFacAnu + nProAnu }], estado, aplicar);
             buscadorDe(aplicar, function (v) { texto = v; });
+            aplicar();   // el chip inicial «Facturas» filtra desde el primer pintado
 
             var vistaBox = document.querySelector('[data-lw-vista]');
             if (vistaBox) vistaBox.addEventListener('click', function (ev) {
@@ -1755,9 +1808,18 @@
 
     recibos: function (sb) {
       var t = tablaPor([/RECIBO|N[ºU°]/, /PAGADOR|TITULAR/, /IMPORTE/]);
-      q(sb.rpc('facturas_equipo').select(CAMPOS_FACTURA).eq('tipo', 'recibi').order('created_at', { ascending: false }).limit(2000), 'recibís', t)
-        .then(function (rs) {
-          if (!rs) return;
+      Promise.all([
+        q(sb.rpc('facturas_equipo').select(CAMPOS_FACTURA).eq('tipo', 'recibi').order('created_at', { ascending: false }).limit(2000), 'recibís', t),
+        // Qué factura(s) salda cada recibí (22-sep-2026, owner): es la razón de
+        // ser del documento y no estaba en la tabla. La RLS de
+        // recibi_aplicaciones deja ver las de los recibís que uno ve.
+        vig(sb.from('recibi_aplicaciones').select('recibi_id,factura_id,importe_aplicado')).then(function (r) { return r.error ? (fallo('facturas saldadas', r.error), []) : (r.data || []); }),
+        vig(sb.rpc('facturas_equipo').select('id,numero').eq('tipo', 'factura')).then(function (r) { return r.error ? [] : (r.data || []); })
+      ]).then(function (rr) {
+          var rs = rr[0]; if (!rs) return;
+          var numFac = {}; rr[2].forEach(function (x) { numFac[x.id] = x.numero; });
+          var saldaDe = {}; rr[1].forEach(function (a) { (saldaDe[a.recibi_id] = saldaDe[a.recibi_id] || []).push(numFac[a.factura_id] || 'factura fuera de tu alcance'); });
+          var justifDe = function (r) { return Array.isArray(r.justificantes) && r.justificantes.length ? r.justificantes : (r.justificante_path ? [{ path: r.justificante_path, nombre: '' }] : []); };
           var nJust = function (r) { return (Array.isArray(r.justificantes) && r.justificantes.length) || (r.justificante_path ? 1 : 0); };
           var s = sumaMesEUR(rs);
           pon2('k-cobrado-mes', fmt(s.eur, 'EUR'));
@@ -1778,21 +1840,36 @@
             rs.forEach(function (r) {
               var m = r.moneda || 'EUR'; porMon[m] = (porMon[m] || 0) + 1;
               var nj = nJust(r), est = estadoDoc(r);
-              fila(pl, [r.numero, r.contrato_numero || '—', r.cliente_nombre || '—', r.proyecto_nombre || '—', fmt(r.total, r.moneda),
+              var salda = (saldaDe[r.id] || []).join(' · ');
+              fila(pl, [r.numero, r.contrato_numero || '—', salda || '—', r.cliente_nombre || '—', r.proyecto_nombre || '—', fmt(r.total, r.moneda),
                 nj ? nj + ' adjunto' + (nj === 1 ? '' : 's') : 'sin justificante', fFecha(r.fecha_emision || r.created_at), '', '']);
               var tr = pl.tbody.lastElementChild;
               tr.setAttribute('data-lw-fila', ''); tr.setAttribute('data-lw-id', r.id);
               tr.setAttribute('data-lw-moneda', m);
               tr.setAttribute('data-lw-estado', r.anulada ? 'anulado' : 'emitido');
               tr.setAttribute('data-lw-just', nj ? '1' : '0');
-              tr.setAttribute('data-lw-pajar', [r.numero, r.cliente_nombre, r.contrato_numero, r.proyecto_nombre].join(' ').toLowerCase());
+              tr.setAttribute('data-lw-pajar', [r.numero, r.cliente_nombre, r.contrato_numero, r.proyecto_nombre, salda].join(' ').toLowerCase());
               var tds = tr.querySelectorAll('td');
-              if (tds[5] && !nj && !r.anulada) tds[5].innerHTML = pill('sin justificante', 'espera');
-              if (tds[7]) tds[7].innerHTML = pill(r.anulada ? 'Anulado' : (r.enviada ? 'Enviado' : 'Emitido'), est[1]);
-              if (tds[8]) tds[8].innerHTML = ABRIR;
+              if (tds[6] && !nj && !r.anulada) tds[6].innerHTML = pill('sin justificante', 'espera');
+              if (tds[8]) tds[8].innerHTML = pill(r.anulada ? 'Anulado' : (r.enviada ? 'Enviado' : 'Emitido'), est[1]);
+              // «Ver el justificante desde la fila» (22-sep-2026, owner): con uno,
+              // se abre; con varios, la ficha los lista todos.
+              if (tds[9]) tds[9].innerHTML = (nj ? '<span data-lw-ver-just="' + esc(r.id) + '" style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline;margin-right:12px">Justificante</span>' : '') + ABRIR;
               tr.style.cursor = 'pointer';
             });
             pl.tbody.addEventListener('click', function (ev) {
+              var vj = ev.target.closest && ev.target.closest('[data-lw-ver-just]');
+              if (vj) {
+                ev.stopPropagation();
+                var rj = porId[vj.getAttribute('data-lw-ver-just')], js = rj ? justifDe(rj) : [];
+                if (!js.length) return;
+                if (js.length > 1) { fichaFactura(sb, rj); return; }
+                sb.storage.from('justificantes').createSignedUrl(js[0].path, 300).then(function (u) {
+                  if (u.error || !u.data) return toastMal('No se pudo abrir el justificante' + (u.error ? ': ' + u.error.message : ''));
+                  window.open(u.data.signedUrl, '_blank', 'noopener');
+                });
+                return;
+              }
               var tr = ev.target.closest && ev.target.closest('tr[data-lw-id]'); if (!tr) return;
               ev.stopPropagation(); var r = porId[tr.getAttribute('data-lw-id')]; if (r) fichaFactura(sb, r);
             });

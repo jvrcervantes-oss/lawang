@@ -2,7 +2,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d6d6608e" data-herramienta="facturas"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
 <script src="/contracts/assets/i18n.js?v=a2c1a4c0" defer></script>
-<script src="/contracts/assets/dinero.js?v=aed0c9a9" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="../assets/datos.js?v=1cd6b1ff" defer></script>
+<script src="/contracts/assets/dinero.js?v=aed0c9a9" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="../assets/datos.js?v=a7f7ca4a" defer></script>
 <!-- 21-sep-2026: el editor nativo de facturas/recibí (editores.js) necesita
      estos cuatro — entities.js y compradores.js son los MISMOS que carga
      /intranet/facturas/ (mismo camino, ninguna copia); dialogo.js es
@@ -24,7 +24,7 @@
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=f8f8a146" defer></script>
 <link href="../assets/shell.css?v=bd0a56cb" rel="stylesheet">
-<script src="../assets/editores.js?v=4cf28abe" defer></script><script src="../assets/maqueta.js?v=00d3b3c0" defer></script><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><title>Lawang Properties &amp; Suite — Consola Operativa</title><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="../assets/fonts/fonts.css" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<script src="../assets/editores.js?v=752bd0e4" defer></script><script src="../assets/maqueta.js?v=00d3b3c0" defer></script><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><title>Lawang Properties &amp; Suite — Consola Operativa</title><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="../assets/fonts/fonts.css" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}#sidebar-root{transition:width 0.25s cubic-bezier(0.4,0,0.2,1);}#main-stage,#topbar-stage{transition:padding-left 0.25s cubic-bezier(0.4,0,0.2,1),left 0.25s cubic-bezier(0.4,0,0.2,1);}.sidebar-collapsed #sidebar-root{width:68px;}.sidebar-collapsed #main-stage{padding-left:68px;}.sidebar-collapsed #topbar-stage{left:68px;}.sidebar-collapsed .nav-text-item,.sidebar-collapsed .nav-section-title,.sidebar-collapsed .sidebar-full-brand,.sidebar-collapsed .sidebar-user-details{display:none;}.sidebar-collapsed .nav-link-anchor{justify-content:center;padding-left:0;padding-right:0;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
     darkMode: "class",
     theme: {
@@ -271,6 +271,7 @@
 <tr class="bg-surface-container-low text-control-border font-label-md text-[11px] uppercase tracking-wider select-none">
 <th class="py-3.5 px-5 font-semibold">N° Recibo</th>
 <th class="py-3.5 px-4 font-semibold">Contrato</th>
+<th class="py-3.5 px-4 font-semibold">Salda</th>
 <th class="py-3.5 px-4 font-semibold">Titular / Pagador</th>
 <th class="py-3.5 px-4 font-semibold">Proyecto</th>
 <th class="py-3.5 px-4 font-semibold text-right">Importe Cobrado</th>
@@ -281,10 +282,11 @@
 </tr>
 </thead>
 <tbody class="text-on-surface font-body-sm text-body-sm">
-<tr><td class="py-8 px-5 text-center text-control-border" colspan="9">Trayendo los recibís…</td></tr>
+<tr><td class="py-8 px-5 text-center text-control-border" colspan="10">Trayendo los recibís…</td></tr>
 <tr class="hover:bg-surface-container-low/70 transition-colors border-t border-surface-container-high/40">
 <td class="py-4 px-5 font-label-md font-semibold text-deep-lagoon tracking-wide">—</td>
 <td class="py-4 px-4 font-label-md text-on-surface">—</td>
+<td class="py-4 px-4 font-label-md text-deep-lagoon">—</td>
 <td class="py-4 px-4 font-medium text-on-surface">—</td>
 <td class="py-4 px-4 text-on-surface-variant">—</td>
 <td class="py-4 px-4 text-right font-kpi-number font-semibold text-deep-lagoon text-[15px]">—</td>

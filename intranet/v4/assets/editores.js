@@ -1635,10 +1635,12 @@
     return [h.texto, h.pct ? '(' + h.pct + '% del precio acordado)' : ''].filter(Boolean).join(' ') + (h.timing ? ' — ' + h.timing : '');
   }
   function hitosDeDoc(crudos, precio, moneda) {
-    return (crudos || []).map(function (h) {
+    return (crudos || []).map(function (h, idx) {
       var pct = parseImporte(h.pct);
       var monto = parseImporte(h.monto) || (pct && precio ? redondear(precio * pct / 100, moneda) : 0);
-      return { texto: h.es || h.en || '', pct: pct, monto: monto, timing: h.timing || '' };
+      // `orden` = ordinalidad en datos.hitos, ANTES del filtro: es la clave
+      // con la que contrato_vencimientos guarda la fecha de ese hito.
+      return { texto: h.es || h.en || '', pct: pct, monto: monto, timing: h.timing || '', orden: idx + 1 };
     }).filter(function (h) { return h.texto || h.monto; });
   }
   function importeTxtDoc(n) { return String(n).replace('.', ','); }
@@ -1653,7 +1655,28 @@
     var caja = document.createElement('div'); caja.className = 'lw-dc';
     var cajaV = document.createElement('div'); cajaV.className = 'lw-dc lw-dc-vinc';
     host.appendChild(caja); host.appendChild(cajaV);
-    var C = null, DESC_TOTAL = '', DESC_UNIDAD = '', otraFactura = {}, huella = null;
+    var C = null, DESC_TOTAL = '', DESC_UNIDAD = '', otraFactura = {}, huella = null, numPorId = {}, venc = {};
+    /* Calendario de pagos del contrato (contrato_vencimientos, una fila por
+       hito con su fecha y, si ya se facturó, su factura_id). Dos usos
+       (22-sep-2026, owner): al pulsar un hito se rellena el vencimiento de
+       la factura con la fecha del calendario — SOLO en parcela: «para
+       construcción no, los vencimientos de la casa se dispararán cuando se
+       dé inicio la obra»; y un hito que el calendario ya enlaza a una
+       factura sale tachado por ese enlace real, no solo por comparar textos. */
+    function cargaVencimientos() {
+      venc = {};
+      if (!C || ctx.esRecibi) return Promise.resolve();
+      return ctx.sb.from('contrato_vencimientos').select('orden,fecha,factura_id').eq('contrato_id', C.id).then(function (r) {
+        if (r.error) { console.error('calendario de pagos:', r.error.message); return; }
+        (r.data || []).forEach(function (v) { venc[v.orden] = v; });
+        C.hitos.forEach(function (h) {
+          var v = venc[h.orden];
+          if (v && v.factura_id && v.factura_id !== ctx.propioId) {
+            var d = descHitoDoc(h); if (!otraFactura[d]) otraFactura[d] = numPorId[v.factura_id] || 'otra factura';
+          }
+        });
+      });
+    }
     var TE = function () { return (typeof TIPO_ES !== 'undefined') ? TIPO_ES : {}; };
     var prelim = function (t) { return typeof lwEsPreliminar === 'function' && lwEsPreliminar(t); };
     function filas() { return ctx.lineas ? ctx.lineas.todas() : []; }
@@ -1662,12 +1685,13 @@
     function anade(l) { ctx.lineas.anade(l); ctx.repinta(); }
     function pon(ls) { ctx.lineas.pon(ls); ctx.repinta(); }
     function cargaOtraFactura(contratoId) {
-      otraFactura = {};
+      otraFactura = {}; numPorId = {};
       if (!contratoId) return Promise.resolve();
       return ctx.sb.from('facturas').select('id,numero,tipo,anulada,datos')
         .eq('contrato_id', contratoId).eq('tipo', 'factura').eq('anulada', false).then(function (r) {
           if (r.error) { console.error('hitos ya facturados:', r.error.message); return; }
           (r.data || []).forEach(function (f) {
+            numPorId[f.id] = f.numero;
             if (f.id === ctx.propioId) return;
             (((f.datos || {}).lineas) || []).forEach(function (l) {
               var d = (l.descripcion || '').trim(); if (d && !otraFactura[d]) otraFactura[d] = f.numero || 'otra factura';
@@ -1747,7 +1771,11 @@
         b.addEventListener('click', function () {
           if (b.disabled) return;
           anade({ descripcion: b.getAttribute('data-desc'), importe: h.monto ? importeTxtDoc(h.monto) : '' });
-          toast(h.monto ? 'Concepto añadido' : 'Concepto añadido — el contrato no fijaba importe, ponlo a mano');
+          var v = venc[h.orden], fv = campoDeDoc('fecha_vencimiento');
+          var conFecha = !!(v && v.fecha && fv && C.tipoContrato !== 'construccion');
+          if (conFecha) { fv.value = v.fecha; ctx.repinta(); }
+          toast((h.monto ? 'Concepto añadido' : 'Concepto añadido — el contrato no fijaba importe, ponlo a mano') +
+            (conFecha ? ' · vence el ' + v.fecha.split('-').reverse().join('/') + ' según el calendario del contrato' : ''));
         });
       });
       marca();
@@ -1870,7 +1898,7 @@
               nCompradores: res.nCompradores || 0, precio: precio, moneda: moneda, hitos: hitosDeDoc(res.hitos, precio, moneda) };
         caja.innerHTML = '<div class="t">Cargando contrato…</div>';
         if (ctx.esRecibi) return pintaRecibi();
-        return cargaOtraFactura(res.id).then(pinta).then(pintaVinculados).then(precarga);
+        return cargaOtraFactura(res.id).then(cargaVencimientos).then(pinta).then(pintaVinculados).then(precarga);
       },
       repinta: function () { if (!C) return; if (ctx.esRecibi) pintaRecibi(); else pinta(); },
       marca: function () { if (!ctx.esRecibi) marca(); },
@@ -2553,31 +2581,44 @@
           listaContratosLigeraDoc(sb),
           esEdicion
             ? sb.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,client_id,creado_por,anulada,enviada,datos').eq('id', pre.id).maybeSingle()
-            : Promise.resolve({ data: null })
+            : pre.copia_de
+              // la anulada pudo emitirla otro del equipo: facturas_equipo, rpc + eq, sin order
+              ? sb.rpc('facturas_equipo').select('id,numero,tipo,contrato_id,contrato_numero,client_id,datos').eq('id', pre.copia_de).maybeSingle()
+              : Promise.resolve({ data: null })
         ]);
       }).then(function (r) {
         var sociedadesOk = r[0], cuentasOk = r[1];
         var contratos = r[2].data || [];
         var existente = esEdicion ? r[3].data : null;
         if (esEdicion && !existente) return aviso('No se encontró ese documento.', '#93000a');
+        var copia = (!esEdicion && pre.copia_de) ? r[3].data : null;
+        if (pre.copia_de && !copia) return aviso('No se encontró la factura que quieres copiar.', '#93000a');
         if (esEdicion) {
-          if (existente.anulada) return aviso('Ese documento está anulado: no se edita — se emite uno nuevo.', '#8A6A34');
+          if (existente.tipo === 'proforma') return aviso('La proforma la genera el contrato al guardarse y la actualiza la firma: se consulta, no se edita.', '#8A6A34');
+          if (existente.anulada) return aviso('Ese documento está anulado: no se edita — emite una copia desde su ficha.', '#8A6A34');
           if (existente.enviada) return aviso('Ya se envió al cliente: no se edita. Anúlalo y emite otro si hace falta corregirlo.', '#8A6A34');
           var miEmail = ((aut.session && aut.session.user && aut.session.user.email) || '').toLowerCase();
           if (!esAdmin(aut.ficha) && (existente.creado_por || '').toLowerCase() !== miEmail) {
             return aviso('Este documento lo emitió otra persona: solo esa persona o un administrador puede editarlo.', '#8A6A34');
           }
         }
-        construye(sociedadesOk, cuentasOk, contratos, existente);
+        construye(sociedadesOk, cuentasOk, contratos, existente, copia);
       }, function (e) { aviso('No se ha podido preparar el editor: ' + (e && e.message || e), '#93000a'); });
 
-      function construye(sociedadesOk, cuentasOk, contratosLigeros, existente) {
-        var f0 = (existente && existente.datos && existente.datos.fields) || {};
-        var lineas0 = (existente && existente.datos && existente.datos.lineas) || [];
+      /* `copia` («Emitir copia» de una anulada, 22-sep-2026, owner): el
+         formulario nace relleno con los datos de aquella —contrato, cliente,
+         conceptos— pero como documento NUEVO: sin id, número nuevo al
+         guardar y fecha de hoy. Es lo que hacía abrir() del clásico con una
+         anulada («se abre como borrador nuevo»). */
+      function construye(sociedadesOk, cuentasOk, contratosLigeros, existente, copia) {
+        var origen = existente || copia;
+        var f0 = Object.assign({}, (origen && origen.datos && origen.datos.fields) || {});
+        if (copia) { delete f0.fecha_emision; delete f0.fecha_vencimiento; }
+        var lineas0 = (origen && origen.datos && origen.datos.lineas) || [];
         var estadoContrato = {
-          id: existente ? existente.contrato_id : (pre.contrato_id || null),
-          numero: (existente && existente.contrato_numero) || '',
-          clienteId: (existente && existente.client_id) || null
+          id: origen ? origen.contrato_id : (pre.contrato_id || null),
+          numero: (origen && origen.contrato_numero) || '',
+          clienteId: (origen && origen.client_id) || null
         };
         var getLineas = null;
 
@@ -2602,6 +2643,7 @@
               vals[el.getAttribute('data-k')] = el.type === 'checkbox' ? el.checked : el.value;
             });
             vals.lineas = getLineas ? getLineas() : [];
+            vals.tipo = tipoDocFijo;   // ya no hay selector: factura, salvo al reabrir otra cosa
             // El papel imprime «Contrato · Contract: N» desde d.contrato_numero
             // (documentoHTML). El clásico lo lleva en un input oculto; aquí no
             // hay campo, así que se pone aquí — sin esto la línea no salía.
@@ -2628,15 +2670,15 @@
             alEnviado: function () { cierraModal(); location.reload(); }
           });
 
-          var selTipo = campoSimpleDoc(host, {
-            k: 'tipo', label: 'Tipo de documento', tipo: 'select',
-            valor: existente ? existente.tipo : (pre.tipo === 'proforma' ? 'proforma' : 'factura'),
-            opciones: [['factura', 'Factura'], ['proforma', 'Factura proforma']]
-          });
-          // Qué se ofrece depende del tipo (la proforma pide el total, la
-          // factura un hito) y el total precargado de una proforma se va al
-          // dejar de serlo — mismo listener que $('#selTipo') en el clásico.
-          selTipo.addEventListener('change', function () { if (delC) delC.alCambiarTipo(); });
+          /* SIN selector de tipo (22-sep-2026, owner: «la proforma es algo
+             automático, no deberíamos poder elegirla: solo emitir facturas»).
+             Medido en la base: 176 de 187 proformas las crea el generador de
+             contratos al guardar un Bloqueo/Construcción («Total del
+             proyecto») y la firma las actualiza; una proforma editada a mano
+             la pisaría la firma. Aquí solo se emiten facturas; la proforma
+             se consulta desde el listado (PDF, email, registro), no se edita
+             (abrirEditorFacturaDoc lo corta antes de llegar aquí). */
+          var tipoDocFijo = existente ? (existente.tipo || 'factura') : 'factura';
 
           var secDoc = seccionFijaDoc(host, 'Documento');
           var lblC = document.createElement('div'); lblC.textContent = 'Contrato';
@@ -2689,7 +2731,7 @@
           // líneas, que se montan más abajo.
           var ctxDelC = {
             sb: sb, lineas: null, repinta: repintaPreview, esNuevo: !existente, propioId: existente ? existente.id : null,
-            tipoActual: function () { return selTipo.value; },
+            tipoActual: function () { return tipoDocFijo; },
             monedaActual: function () { var m = campoDeDoc('moneda'); return m ? m.value : 'EUR'; },
             sociedadActual: function () { var s = campoDeDoc('sociedad'); return s ? s.value : ''; }
           };
@@ -2749,7 +2791,7 @@
           }
         } });
 
-        modal(existente ? 'Editar ' + (existente.numero || 'documento') : 'Nuevo documento', campos,
+        modal(existente ? 'Editar ' + (existente.numero || 'documento') : (copia ? 'Nuevo documento — copia de ' + (copia.numero || '') : 'Nuevo documento'), campos,
           existente ? 'Guardar cambios' : 'Emitir', function (v) {
             if (!estadoContrato.id) return { error: { message: 'Elige el contrato al que corresponde este documento.' } };
             if (!v.sociedad) return { error: { message: 'Falta «Sociedad que factura».' } };
@@ -7076,9 +7118,12 @@
          contratos/index.html sería el acoplamiento cruzado que Seguridad pidió
          evitar. Se dispara una vez, al cargar esta pantalla; el listado de
          abajo (datos.js, REG.facturas) se pinta igual por debajo, sin saberlo. */
-      var qsProforma = new URLSearchParams(location.search);
-      if (qsProforma.get('contrato') && qsProforma.get('tipo') === 'proforma') {
-        abrirEditorFacturaDoc({ contrato_id: qsProforma.get('contrato'), tipo: 'proforma' });
+      /* Retirado el 22-sep-2026 (owner): la proforma la genera el contrato al
+         guardarse; ya no se emite a mano desde ninguna pantalla. `?contrato=`
+         sin tipo sigue abriendo el editor de FACTURA con ese contrato. */
+      var qsContrato = new URLSearchParams(location.search);
+      if (qsContrato.get('contrato') && qsContrato.get('tipo') !== 'proforma') {
+        abrirEditorFacturaDoc({ contrato_id: qsContrato.get('contrato') });
       }
     },
 
