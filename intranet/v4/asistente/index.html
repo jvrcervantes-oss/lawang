@@ -86,7 +86,9 @@
      especificidad que `[hidden]` del reset y va después, así que el atributo
      solo no oculta nada (medido con el harness QA, 22-sep). El script
      conmuta los dos a la vez (muestra()). -->
-<section class="bg-surface-container-lowest rounded-xl p-8 shadow-sm flex flex-col gap-5 hidden" hidden id="lw-resultado">
+<!-- scroll-margin-top: al hacer scrollIntoView el título quedaba bajo la
+     cabecera fija de 64 px (visto en la captura de producción, 22-sep). -->
+<section class="bg-surface-container-lowest rounded-xl p-8 shadow-sm flex flex-col gap-5 hidden" hidden id="lw-resultado" style="scroll-margin-top:88px">
 <div class="flex flex-col gap-1 pb-4 border-b border-outline-variant/40">
 <span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold" data-lwt>Resultado</span>
 <h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight" data-lwt>Borrador para revisar</h2>
