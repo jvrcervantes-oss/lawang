@@ -119,35 +119,60 @@ foreach ($CAT as $cmId => $v) {
 // ── Comparativa de cubiertas: solo si ESTE modelo tiene los dos techos resueltos ─────
 $techosComp = (!empty($m['techos']['sirap']) && !empty($m['techos']['bambu'])) ? $m['techos'] : null;
 
-// ── Snapshot financiero: SIEMPRE Villa Dali en Palm Field W5 (decisión del owner) ────
-// 21-sep-2026: lw_deck_forecast_ejemplo() ya devuelve el mapa de TODOS los modelos con
-// ejemplo confirmado — se extrae el de ESTE modelo. Un modelo sin entrada (Loftbung,
-// Temple, Trinity) da null y la sección se oculta para él, nunca cae al ejemplo de otro.
-$deckEj = lw_deck_forecast_ejemplo()[$m['id']] ?? null;
-$finCalc = null;
-if ($deckEj) {
-    $clavesReq = ['proyecto', 'moneda', 'adr_medio', 'adr_optimo', 'ocupacion_media',
-                  'ocupacion_optima', 'inversion_base', 'pct_gestion', 'pct_mantenimiento', 'pct_impuesto'];
-    $completo = true;
-    foreach ($clavesReq as $k) {
-        if (!array_key_exists($k, $deckEj)) { $completo = false; break; }
-    }
-    if ($completo && $deckEj['moneda'] === 'EUR') {
-        $costesPct = (float) $deckEj['pct_gestion'] + (float) $deckEj['pct_mantenimiento'] + (float) $deckEj['pct_impuesto'];
-        $finCalc = [];
-        foreach (['average' => ['adr_medio', 'ocupacion_media'], 'optimal' => ['adr_optimo', 'ocupacion_optima']] as $caso => $claves) {
-            $adr  = (float) $deckEj[$claves[0]];
-            $ocup = (float) $deckEj[$claves[1]];
-            $bruto  = (int) round($adr * 365 * $ocup);
-            $costes = (int) round($bruto * $costesPct);
-            $finCalc[$caso] = [
-                'adr' => $adr, 'ocup' => $ocup, 'bruto' => $bruto,
-                'costes' => $costes, 'neto' => $bruto - $costes,
-            ];
+// ── Snapshot financiero ───────────────────────────────────────────────────────────
+// 22-sep-2026: Dali pasa del ejemplo de UNA parcela real (Palm Field W5) al forecast
+// de MERCADO que calcula la propia empresa para una villa de 1 dormitorio en la zona
+// (hoja "Forecast Alquiler Tabanan/Balian", tabla "Scenario 1 BR" en EUR — fuentes
+// AirROI + informe NF Group Bali Q3 2025). La hoja trae DOS bases de inversión para
+// ese mismo escenario (60.000€ arriba vs 80.000€ en "G2 Tabanan"); el owner confirmó
+// la de 60.000€. Números tal cual los da la empresa (no recalculados aquí): Total
+// Villa Income - las tres comisiones = Net Income, cuadra en los dos casos.
+if ($m['id'] === 'dali') {
+    $deckEj = [
+        'proyecto'         => 'Tabanan / Balian',
+        'mercado'          => true,
+        'adr_medio'        => 81,
+        'adr_optimo'       => 94,
+        'ocupacion_media'  => 0.59,
+        'ocupacion_optima' => 0.66,
+        'inversion_base'   => 60000,
+        'moneda'           => 'EUR',
+    ];
+    $finCalc = [
+        'average' => ['adr' => 81, 'ocup' => 0.59, 'bruto' => 19521, 'costes' => 6832, 'neto' => 12689],
+        'optimal' => ['adr' => 94, 'ocup' => 0.66, 'bruto' => 22654, 'costes' => 7929, 'neto' => 14725],
+    ];
+} else {
+    // lw_deck_forecast_ejemplo() devuelve el mapa de TODOS los modelos con ejemplo
+    // confirmado — se extrae el de ESTE modelo. Un modelo sin entrada (Loftbung,
+    // Temple, Trinity) da null y la sección se oculta para él, nunca cae al ejemplo
+    // de otro.
+    $deckEj = lw_deck_forecast_ejemplo()[$m['id']] ?? null;
+    $finCalc = null;
+    if ($deckEj) {
+        $clavesReq = ['proyecto', 'moneda', 'adr_medio', 'adr_optimo', 'ocupacion_media',
+                      'ocupacion_optima', 'inversion_base', 'pct_gestion', 'pct_mantenimiento', 'pct_impuesto'];
+        $completo = true;
+        foreach ($clavesReq as $k) {
+            if (!array_key_exists($k, $deckEj)) { $completo = false; break; }
+        }
+        if ($completo && $deckEj['moneda'] === 'EUR') {
+            $costesPct = (float) $deckEj['pct_gestion'] + (float) $deckEj['pct_mantenimiento'] + (float) $deckEj['pct_impuesto'];
+            $finCalc = [];
+            foreach (['average' => ['adr_medio', 'ocupacion_media'], 'optimal' => ['adr_optimo', 'ocupacion_optima']] as $caso => $claves) {
+                $adr  = (float) $deckEj[$claves[0]];
+                $ocup = (float) $deckEj[$claves[1]];
+                $bruto  = (int) round($adr * 365 * $ocup);
+                $costes = (int) round($bruto * $costesPct);
+                $finCalc[$caso] = [
+                    'adr' => $adr, 'ocup' => $ocup, 'bruto' => $bruto,
+                    'costes' => $costes, 'neto' => $bruto - $costes,
+                ];
+            }
         }
     }
+    if (!$finCalc) $deckEj = null;
 }
-if (!$finCalc) $deckEj = null;
 
 // ── "More from the collection" — reutiliza $CAT, mismo criterio "sin render no se enseña" ──
 $otrosModelos = [];
@@ -308,6 +333,34 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 .faq-item[open] summary .mi{transform:rotate(180deg)}
 .faq-item__body{padding:0 20px 20px;border-top:1px solid rgba(228,226,221,.6);
   padding-top:12px;font-family:'Jost',sans-serif;font-size:13.5px;line-height:1.6;color:#44483f}
+
+/* ── 22-sep-2026: dali-tesla-tw.min.css es un build CONGELADO (npx tailwindcss sobre
+   el mockup, ver cabecera del <link>) — no lleva compiladas combinaciones de clases
+   nuevas que no estuvieran ya en el HTML el día del build. Lo que sigue no existe en
+   ese .min.css (comprobado contra el propio fichero), así que va aquí a mano, mismo
+   criterio que el resto de este <style>: NUNCA Play CDN, y sin re-generar el build
+   (no hay tailwind.config en el repo para reproducirlo con seguridad). ────────────── */
+
+/* Hero: la foto pasa a columna propia y el configurador deja de flotar encima —
+   solo desde 1024px; por debajo sigue exactamente como estaba (tarjeta flotante). */
+@media (min-width:1024px){
+  #hero-configurator > .relative.w-full.h-full{display:flex;flex-direction:row}
+  #hero-visual{position:relative;inset:auto;width:auto;flex:1 1 auto;height:100%}
+  #hero-configurator aside{position:static;top:auto;right:auto;bottom:auto;
+    width:420px;height:calc(100% - 4rem);margin:2rem 2rem 2rem 0;flex:none}
+}
+@media (min-width:1280px){
+  #hero-configurator aside{width:460px}
+}
+
+/* Catálogo "More from the collection": 4 en fila desde 1024px (son 5 modelos, uno es
+   el actual → caben los otros 4 sin partir fila). Por debajo, 2 columnas desde 640px. */
+@media (min-width:640px){
+  #section-collection .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (min-width:1024px){
+  #section-collection .grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
 </style>
 </head>
 <body class="bg-surface font-body-md text-body-md text-on-surface antialiased selection:bg-soft-canopy selection:text-surface">
@@ -356,6 +409,10 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 <!-- ═══ HERO: CONFIGURADOR A PANTALLA COMPLETA ══════════════════════════════════════ -->
 <section class="w-full h-screen pt-20 relative overflow-hidden bg-volcanic-ash" id="hero-configurator">
 <div class="relative w-full h-full">
+<!-- Columna visual: la foto a la izquierda. Desde 1024px es dueña de su propio ancho
+     (ver @media en el <style> — dali-tesla-tw.min.css no lleva esta combinación
+     compilada); por debajo sigue siendo el fondo a pantalla completa de siempre. -->
+<div class="absolute inset-0 w-full h-full overflow-hidden" id="hero-visual">
 <?php if ($sinRender): ?>
 <!-- Sin renders: fondo estático "en camino", sin dock de cámara ni hotspots — nunca una
      foto rota ni un hueco vacío con el mismo peso visual que una foto real. -->
@@ -441,8 +498,11 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 </a>
 </div>
 <?php endif; ?>
+</div>
 
-<!-- ═══ CAJÓN DEL CONFIGURADOR: villa → techo → extras (motor real, sin tocar) ═══════ -->
+<!-- ═══ CAJÓN DEL CONFIGURADOR: villa → techo → extras (motor real, sin tocar). Por
+     debajo de 1024px sigue flotando sobre la foto (igual que antes); desde 1024px
+     pasa a columna propia que ya no la tapa (regla en el <style>, mismo motivo). ══ -->
 <aside class="absolute top-4 right-4 md:right-8 bottom-8 md:bottom-10 z-40 w-[92vw] sm:w-[460px] glass-panel rounded-2xl shadow-2xl border border-surface-container-highest/80 flex flex-col overflow-hidden">
 <div class="p-5 pb-3 border-b border-surface-container-highest/70 flex flex-col gap-2">
 <div class="flex items-center justify-between">
@@ -560,14 +620,13 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
 <div>
 <h2 class="font-headline-lg text-3xl md:text-[44px] text-primary leading-tight font-bold"><?= lw_i18n('Distribución bioclimática', 'Bioclimatic layout') ?></h2>
-<p class="font-body-lg text-on-surface-variant max-w-2xl mt-2">Open-plan pavilion under a single roof, with cross-ventilation and a private plunge pool.</p>
 </div>
 </div>
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
-<div class="lg:col-span-7 relative group">
-<div class="relative rounded-3xl overflow-hidden shadow-2xl bg-surface-container-high border border-surface-container-highest/90 corner-accent">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-stretch">
+<div class="lg:col-span-7 relative group h-full">
+<div class="relative h-full rounded-3xl overflow-hidden shadow-2xl bg-surface-container-high border border-surface-container-highest/90 corner-accent">
 <?php if ($layoutImg): ?>
-<img alt="<?= lw_e($villa) ?> floor plan" class="w-full h-auto max-h-[700px] object-cover object-center group-hover:scale-105 transition-transform duration-700" src="<?= lw_e($layoutImg) ?>" loading="lazy">
+<img alt="<?= lw_e($villa) ?> floor plan" class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700" src="<?= lw_e($layoutImg) ?>" loading="lazy">
 <?php endif; ?>
 <div class="absolute top-6 right-6 glass-panel px-4 py-2 rounded-2xl shadow-xl border border-surface-container-highest flex flex-col items-end">
 <span class="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant"><?= lw_i18n('Superficie total', 'Total area') ?></span>
@@ -684,9 +743,15 @@ foreach ($incluido as $it):
 <?php if ($finCalc): ?>
 <div class="bg-surface-container-low rounded-3xl p-6 md:p-8 border border-surface-container-highest shadow-xl space-y-6">
 <div class="border-b border-surface-container-highest/80 pb-4">
+<?php if (!empty($deckEj['mercado'])): ?>
+<span class="font-label-md text-xs text-territorial-green uppercase tracking-widest font-semibold"><?= lw_i18n('Previsión de mercado', 'Market forecast') ?></span>
+<h3 class="font-headline-md text-2xl md:text-3xl text-primary font-bold"><?= lw_e($deckEtiqueta) ?></h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Rental forecast for a 1-bedroom villa in this area, based on third-party market data — not tied to a specific plot, and never a promise of yield.</p>
+<?php else: ?>
 <span class="font-label-md text-xs text-territorial-green uppercase tracking-widest font-semibold"><?= lw_i18n('Ejemplo real', 'Real example') ?></span>
 <h3 class="font-headline-md text-2xl md:text-3xl text-primary font-bold"><?= lw_e($deckEtiqueta) ?></h3>
 <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Economics of one specific plot at <?= lw_e($deckEtiqueta) ?> — figures vary by plot and are confirmed on the call, never a promise of yield.</p>
+<?php endif; ?>
 </div>
 <?php foreach ($finCalc as $caso => $f): $label = $caso === 'average' ? 'Average' : 'Optimal'; ?>
 <div class="bg-surface p-4 rounded-2xl border border-surface-container-highest space-y-2">
@@ -697,7 +762,7 @@ foreach ($incluido as $it):
 <div class="text-[11px] text-on-surface-variant"><?= lw_e(lw_precio_fmt($f['adr'])) ?> ADR × <?= (int) round($f['ocup'] * 100) ?>% occupancy — gross <?= lw_e(lw_precio_fmt($f['bruto'])) ?>, minus management + maintenance + tax (<?= lw_e(lw_precio_fmt($f['costes'])) ?>)</div>
 </div>
 <?php endforeach; ?>
-<p class="text-[11px] text-on-surface-variant leading-relaxed">Total investment used in this example: <?= lw_e(lw_precio_fmt($deckEj['inversion_base'])) ?>. Indicative only, not a quote or financial advice — actual rental income depends on the plot, the season and how the villa is managed.</p>
+<p class="text-[11px] text-on-surface-variant leading-relaxed"><?= !empty($deckEj['mercado']) ? 'Investment used in this forecast' : 'Total investment used in this example' ?>: <?= lw_e(lw_precio_fmt($deckEj['inversion_base'])) ?>. Indicative only, not a quote or financial advice — actual rental income depends on the plot, the season and how the villa is managed.</p>
 </div>
 <?php endif; ?>
 </div>
@@ -768,7 +833,7 @@ foreach ($incluido as $it):
 <span class="material-symbols-outlined text-[17px]">north</span>
 </a>
 </div>
-<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<div class="grid grid-cols-1 gap-6">
 <?php foreach ($otrosModelos as $ocId => $ov): ?>
 <a class="bg-surface rounded-3xl overflow-hidden border border-surface-container-highest shadow-lg flex flex-col group hover:-translate-y-2 transition-all duration-300" href="/<?= lw_e(lw_modelo_url_path($ocId)) ?>">
 <div class="relative h-60 overflow-hidden bg-volcanic-ash">
