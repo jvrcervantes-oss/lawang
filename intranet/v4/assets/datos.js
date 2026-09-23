@@ -5170,8 +5170,10 @@
       var pon = function (k, v, raiz) { var e = $(k, raiz); if (e) e.textContent = v; };
 
       Promise.all([
-        q(sb.from('modelos').select('id,slug,nombre,dormitorios,banos,villa_m2,terraza_m2,descripcion,precio_construccion,moneda,publicado,activo,renders_pendientes,alcance,notas,orden').order('orden', { ascending: true, nullsFirst: false }), 'modelos'),
-        q(sb.from('unidades').select('modelo_id,proyecto,proyecto_id'), 'unidades por modelo'),
+        q(sb.from('modelos').select('id,slug,nombre,dormitorios,banos,villa_m2,terraza_m2,descripcion,precio_construccion,moneda,publicado,activo,renders_pendientes,alcance,acabados,notas,orden').order('orden', { ascending: true, nullsFirst: false }), 'modelos'),
+        // `modelo` (texto): para avisar de las unidades que NOMBRAN un modelo sin estar
+        // enlazadas a él (revisión previa #56: 81 «Dream» de Sumba Hills).
+        q(sb.from('unidades').select('modelo_id,modelo,proyecto,proyecto_id'), 'unidades por modelo'),
         q(sb.from('modelo_documentos').select('id,modelo_id,nombre,path,tipo,tamano_bytes,subido_en,visible_portal'), 'documentos de modelo'),
         // «Sin catalogar» (S12, 22-sep-2026): view ya existente (migración
         // 20260907053801) que agrupa unidades cuyo texto libre `modelo` no
@@ -5184,17 +5186,23 @@
            del catálogo). El aviso va en la FILA del proyecto, no dentro del
            formulario: nadie abre doce fichas a comprobar. */
         q(sb.from('deck_forecast').select('modelo_id,proyecto_id,inversion_base'), 'previsiones del deck'),
-        q(sb.from('modelos_villa').select('modelo_id,proyecto,precio_construccion'), 'precios por proyecto'),
+        q(sb.from('modelos_villa').select('id,modelo_id,modelo,proyecto,proyecto_id,precio_construccion,moneda'), 'precios por proyecto'),
         q(sb.from('unidades').select('id,proyecto,precio_suelo').not('precio_suelo', 'is', null), 'suelo del inventario'),
         /* Fotos del deck (23-sep-2026, owner: «no puedo ver sus fotos»): la
            tarjeta y la ficha enseñan las que ya hay. Bucket `deck` PÚBLICO (lo
            que se sube ahí ya está publicado, ver deck_fotos.js), así que la URL
            pública es la correcta, no una firmada. Gestionarlas sigue siendo
            «Fotos del deck» (pieza compartida, no se duplica aquí). */
-        q(sb.from('deck_fotos').select('modelo_id,path,uso,orden').eq('ambito', 'modelo').order('uso').order('orden'), 'fotos del deck')
+        q(sb.from('deck_fotos').select('modelo_id,path,uso,orden').eq('ambito', 'modelo').order('uso').order('orden'), 'fotos del deck'),
+        // Ficha por bloques (23-sep-2026): techos y extras se VEN en la ficha,
+        // no solo dentro del editor. Tablas pequeñas: se cargan enteras.
+        q(sb.from('modelo_techos').select('id,modelo_id,nombre,precio_ahora,precio_2027,orden'), 'techos'),
+        q(sb.from('extras').select('id,nombre,orden').eq('activo', true).order('orden', { ascending: true, nullsFirst: false }), 'extras'),
+        q(sb.from('modelo_extras').select('id,modelo_id,extra_id,precio,moneda,disponible'), 'extras por modelo')
       ]).then(function (r) {
         var ms = r[0], us = r[1] || [], ds = r[2] || [], sinCat = r[3] || [];
         var FC = r[4] || [], MV = r[5] || [], SUELO = r[6] || [], FOTOS = r[7] || [];
+        var TECHOS = r[8] || [], EXTRAS = r[9] || [], MEX = r[10] || [];
         var fotosModelo = {};
         FOTOS.forEach(function (f) { if (f.modelo_id && f.path) (fotosModelo[f.modelo_id] = fotosModelo[f.modelo_id] || []).push(f); });
         var urlFoto = function (path) { return sb.storage.from('deck').getPublicUrl(path).data.publicUrl; };
@@ -5239,7 +5247,7 @@
           var e = ESTADOS[estadoDe(m)];
           nodo.textContent = e.t;
           nodo.style.background = e.bg; nodo.style.color = e.fg; nodo.style.border = '1px solid ' + e.bd;
-          if (m.renders_pendientes && estadoDe(m) !== 'inactivo') nodo.title = 'Además: renders pendientes';
+          nodo.title = '';
         };
         var porModelo = {}, proyModelo = {}, proyModeloId = {};
         us.forEach(function (u) {
@@ -5262,7 +5270,12 @@
         var activos = ms.filter(function (m) { return m.activo; }).length;
         var publicados = ms.filter(function (m) { return m.publicado; }).length;
         var faltan = ms.filter(sinFicha).length;
-        var sinRender = ms.filter(function (m) { return m.renders_pendientes; }).length;
+        /* «Sin fotos» se DERIVA de las fotos del deck (owner, 23-sep-2026). La
+           columna `renders_pendientes` no es eso: en la web permite publicar la
+           página de un modelo sin fotos (modelo/lib.php), y Trinity la tenía
+           marcada con 11 fotos. */
+        var sinFotos = function (m) { return !(fotosModelo[m.id] || []).length; };
+        var sinRender = ms.filter(sinFotos).length;
         var enlazadas = Object.keys(porModelo).reduce(function (a, k) { return a + porModelo[k]; }, 0);
 
         pon('k-activos', String(activos));
@@ -5273,15 +5286,15 @@
         pon('k-sinficha', String(faltan));
         pon('k-sinficha-pie', faltan ? 'sin dormitorios, banos ni superficie: no pueden heredar nada' : 'todos con ficha completa');
         pon('k-sinrender', String(sinRender));
-        pon('k-sinrender-pie', sinRender ? 'marcados como pendientes de imagen' : 'todos con render');
+        pon('k-sinrender-pie', sinRender ? 'sin ninguna foto en el deck' : 'todos tienen fotos');
         var bExp = botonConTexto(/Exportar cat[aá]logo/i);
         if (bExp) {
           bExp.setAttribute('data-real', '');
           bExp.addEventListener('click', function (ev) {
             ev.stopPropagation();
             exportaCSV('catalogo_modelos.csv',
-              ['Modelo', 'Slug', 'Dormitorios', 'Baños', 'Villa m²', 'Terraza m²', 'Precio construcción', 'Moneda', 'Publicado', 'Activo', 'Renders pendientes', 'Unidades enlazadas'],
-              ms.map(function (m) { return [m.nombre, m.slug, m.dormitorios, m.banos, m.villa_m2, m.terraza_m2, m.precio_construccion, m.moneda, m.publicado ? 'sí' : 'no', m.activo ? 'sí' : 'no', m.renders_pendientes ? 'sí' : 'no', porModelo[m.id] || 0]; }));
+              ['Modelo', 'Slug', 'Dormitorios', 'Baños', 'Villa m²', 'Terraza m²', 'Precio construcción', 'Moneda', 'Publicado', 'Activo', 'Publicar sin fotos', 'Fotos del deck', 'Unidades enlazadas'],
+              ms.map(function (m) { return [m.nombre, m.slug, m.dormitorios, m.banos, m.villa_m2, m.terraza_m2, m.precio_construccion, m.moneda, m.publicado ? 'sí' : 'no', m.activo ? 'sí' : 'no', m.renders_pendientes ? 'sí' : 'no', (fotosModelo[m.id] || []).length, porModelo[m.id] || 0]; }));
           });
         }
 
@@ -5326,7 +5339,7 @@
              "estado". */
           c.setAttribute('data-publicados', m.publicado ? '1' : '0');
           c.setAttribute('data-sinficha', sinFicha(m) ? '1' : '0');
-          c.setAttribute('data-sinrender', m.renders_pendientes ? '1' : '0');
+          c.setAttribute('data-sinrender', sinFotos(m) ? '1' : '0');
           // Buscador (S12): nombre/slug en minúsculas, listos para comparar
           // sin normalizar en cada tecla.
           c.setAttribute('data-nombre', (m.nombre || '').toLowerCase());
@@ -5345,12 +5358,12 @@
             nf.style.cssText = 'position:absolute;right:10px;bottom:10px;padding:2px 10px;border-radius:999px;background:rgba(27,28,25,.62);color:#fff;font:600 11px/18px sans-serif';
             cab.appendChild(nf);
           }
-          /* «Sin render» se SOLAPA con los estados (un modelo puede estar
-             publicado y sin render a la vez): va aparte, sobre la imagen. */
-          if (m.renders_pendientes && cab) {
+          /* «Sin fotos» se SOLAPA con los estados (un modelo puede estar
+             publicado y sin fotos a la vez): va aparte, sobre la imagen. */
+          if (sinFotos(m) && cab) {
             cab.style.position = 'relative';
             var sr = document.createElement('span');
-            sr.textContent = 'Sin render';
+            sr.textContent = 'Sin fotos';
             sr.style.cssText = 'position:absolute;left:10px;top:10px;padding:2px 10px;border-radius:999px;background:#BEB3A5;color:#2E3437;font:600 11px/18px sans-serif';
             cab.appendChild(sr);
           }
@@ -5462,108 +5475,35 @@
           mueveCajon(false);
         }, true);
 
-        /* La ficha se pinta aquí y al pinchar una tarjeta (sin recargar). Los
-           moldes de filas se guardan la PRIMERA vez: después de pintar, el
-           contenedor ya no tiene el molde original. */
-        var moldeProy, moldeDoc;
+        /* La ficha se pinta aquí y al pinchar una tarjeta (sin recargar). La
+           cabecera es de esta pantalla; el cuerpo —los bloques editables— lo
+           pinta ficha_modelo.js con los datos ya cargados (ninguna consulta
+           más). */
+        // Función y no `var`: pintaFicha() se llama más arriba (ficha inicial)
+        // antes de que una `var` de aquí se hubiera asignado.
+        function ctxFicha() {
+          return {
+            sb: sb, fmt: fmt, fFecha: fFecha, FC: FC, sinFicha: sinFicha,
+            baseDeberia: window.LW_V4.baseDeberia,
+            D: { villas: MV, techos: TECHOS, extras: EXTRAS, modeloExtras: MEX, docs: ds, fotos: fotosModelo, unidades: us }
+          };
+        }
         function pintaFicha(el) {
-        window.LW_V4 = window.LW_V4 || {}; window.LW_V4.modelo = el;
-        pintaGaleria(el);
-        pon('d-nombre', el.nombre || '—');
-        pon('d-slug', el.slug ? '/' + el.slug : 'sin slug');
-        pintaEstado($('d-estado'), el);
-        pon('d-dorm', el.dormitorios != null ? String(el.dormitorios) : '—');
-        pon('d-banos', el.banos != null ? String(el.banos) : '—');
-        pon('d-villa', el.villa_m2 != null ? el.villa_m2 + ' m²' : '—');
-        pon('d-terraza', el.terraza_m2 != null ? el.terraza_m2 + ' m²' : '—');
-        pon('d-precio', el.precio_construccion != null ? fmt(el.precio_construccion, el.moneda) : '—');
-        pon('d-desc', el.descripcion || 'Este modelo no tiene descripcion escrita. La web publica la toma de aqui, asi que mientras este vacia no hay nada que publicar.');
-
-        var caja = document.getElementById('d-proyectos');
-        if (caja && !moldeProy && caja.firstElementChild) moldeProy = caja.firstElementChild.cloneNode(true);
-        if (caja && moldeProy) {
-          var base = moldeProy;
-          caja.innerHTML = '';
-          var mapa = proyModelo[el.id] || {};
-          var claves = Object.keys(mapa).sort(function (a, b) { return mapa[b] - mapa[a]; });
-          if (!claves.length) {
-            caja.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Ninguna unidad usa este modelo todavia.</p>';
-          } else {
-            var idsPorProyecto = proyModeloId[el.id] || {};
-            claves.forEach(function (k) {
-              var f = base.cloneNode(true);
-              pon('p-nombre', k, f);
-              pon('p-n', String(mapa[k]), f);
-              // Previsión del deck (S12): id de proyecto en el propio DOM —
-              // `deck_forecast` se guarda por (proyecto_id, modelo_id), el
-              // click delegado de editores.js lo lee de aquí, nunca vuelve a
-              // preguntar a la base solo para saber qué fila tocó.
-              f.setAttribute('data-proyecto-nombre', k);
-              if (idsPorProyecto[k]) f.setAttribute('data-proyecto-id', idsPorProyecto[k]);
-              // LAW-273: la base de la previsión frente a suelo + construcción de hoy
-              var fcRow = idsPorProyecto[k] && FC.filter(function (x) { return x.modelo_id === el.id && x.proyecto_id === idsPorProyecto[k]; })[0];
-              var deb = fcRow && fcRow.inversion_base != null ? window.LW_V4.baseDeberia(el, k) : null;
-              if (deb && Math.abs(Number(fcRow.inversion_base) - deb.valor) >= 1) {
-                var dif = Number(fcRow.inversion_base) - deb.valor;
-                var av = document.createElement('p');
-                av.style.cssText = 'margin:4px 0 0;flex-basis:100%;font:500 11.5px/1.4 sans-serif;color:#93000a';
-                av.textContent = 'Previsión del deck: la base (' + fmt(Number(fcRow.inversion_base), 'EUR') + ') no cuadra con construcción + la parcela más barata (' + fmt(deb.valor, 'EUR') + ') — ' + (dif > 0 ? '+' : '') + fmt(dif, 'EUR') + '. O es un precio de paquete pactado, o se ha quedado vieja.';
-                f.appendChild(av);
-                f.style.flexWrap = 'wrap';
-              }
-              if (!idsPorProyecto[k]) {
-                // Sin proyecto_id (unidad antigua sin backfill): se retira el
-                // botón en vez de dejarlo abrir un editor que no sabría a qué
-                // proyecto escribir. (23-sep: antes colgaba del `else` del
-                // aviso LAW-273 y quitaba el botón a TODAS las filas sin
-                // desfase — es decir, casi siempre.)
-                var bF = f.querySelector('[data-forecast-proyecto]');
-                if (bF) bF.remove();
-              }
-              caja.appendChild(f);
-            });
-          }
-        }
-
-        var cd = document.getElementById('d-docs');
-        if (cd && !moldeDoc && cd.firstElementChild) moldeDoc = cd.firstElementChild.cloneNode(true);
-        if (cd && moldeDoc) {
-          var moldeD = moldeDoc;
-          cd.innerHTML = '';
-          var dd = docsModelo[el.id] || [];
-          if (!dd.length) {
-            cd.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Ningun documento adjunto a este modelo. La tabla existe y el boton tambien; todavia no se ha subido nada.</p>';
-          } else {
-            dd.forEach(function (d) {
-              var f = moldeD.cloneNode(true);
-              pon('doc-titulo', d.nombre || 'Documento', f);
-              pon('doc-meta', (d.tipo || '—') + ' · ' + fFecha(d.subido_en) + (d.visible_portal ? ' · visible al comprador' : ''), f);
-              // Abrir el fichero (S12, 22-sep-2026): mismo patrón que S11.2
-              // en Documentación de proyecto — `data-doc-path` en la propia
-              // fila, click delegado en editores.js, `createSignedUrl` con
-              // TTL corto sobre el bucket privado 'modelos'.
-              if (d.path) f.setAttribute('data-doc-path', d.path);
-              else f.removeAttribute('data-doc-abrir');
-              cd.appendChild(f);
-            });
-          }
-        }
+          window.LW_V4 = window.LW_V4 || {}; window.LW_V4.modelo = el;
+          pintaGaleria(el);
+          pon('d-nombre', el.nombre || '—');
+          pon('d-slug', el.slug ? '/modelo/' + el.slug : 'sin dirección web');
+          pintaEstado($('d-estado'), el);
+          if (window.lwFichaModelo) window.lwFichaModelo.pintar(el, ctxFicha());
+          else console.error('[v4] modelos: ficha_modelo.js no ha cargado');
         }
 
         /* Tira de fotos del deck en la ficha: solo mirar. Añadir, ordenar o
            borrar es «Fotos del deck» (deck_fotos.js); al cerrarlo, recargar
            la página trae lo nuevo. */
         function pintaGaleria(el) {
-          var ancla = document.querySelector('[data-lw="d-dorm"]');
-          var rejilla = ancla && ancla.closest('.grid');
-          if (!rejilla) return;
           var gal = document.getElementById('d-fotos');
-          if (!gal) {
-            gal = document.createElement('div');
-            gal.id = 'd-fotos';
-            gal.style.cssText = 'display:flex;gap:10px;overflow-x:auto;padding-bottom:4px';
-            rejilla.parentNode.insertBefore(gal, rejilla);
-          }
+          if (!gal) return;
           gal.innerHTML = '';
           var fs = fotosModelo[el.id] || [];
           if (!fs.length) {
