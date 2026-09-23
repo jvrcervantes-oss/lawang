@@ -1,0 +1,15 @@
+/* Neue Kabel — tipografía de marca de Lawang para la web pública (23-sep-2026).
+   Origen: familia completa que pasó el owner ("N-Kbl/Neue Kabel", 18 .otf, v1.00).
+   Se sirven solo los 6 pesos que usan las páginas, convertidos a WOFF2 con fontTools
+   (~210 KB -> ~63 KB cada uno). Rutas relativas a ESTE fichero (assets/): vale igual desde /modelo/<villa>
+   que desde /investor-deck/palmfield/v2/. Vive en assets/ y no junto a las
+   fuentes porque el pre-commit solo sella ?v= de assets/<fichero>.
+   Book (450) no se sirve: el 400 cubre el texto corrido y ahorra una descarga.
+   Nota de licencia: los .otf declaran fsType 4 (preview & print); el uso web sigue
+   la misma decisión que ya sirve Neue Kabel en la home desde /assets/fonts/. */
+@font-face{font-family:'Neue Kabel';src:url('fonts/neue-kabel/NeueKabel-Light.woff2') format('woff2');font-weight:300;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('fonts/neue-kabel/NeueKabel-LightItalic.woff2') format('woff2');font-weight:300;font-style:italic;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('fonts/neue-kabel/NeueKabel.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('fonts/neue-kabel/NeueKabel-Italic.woff2') format('woff2');font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('fonts/neue-kabel/NeueKabel-Medium.woff2') format('woff2');font-weight:500 600;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('fonts/neue-kabel/NeueKabel-Bold.woff2') format('woff2');font-weight:700 900;font-style:normal;font-display:swap}
