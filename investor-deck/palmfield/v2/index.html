@@ -93,7 +93,7 @@
      las clases contra el build antes de escribir, no ir tapando huecos sobre la marcha
      — se hizo (163 de 285 clases de la ficha viva no estaban en el build congelado de
      /modelo/, por eso este es un build nuevo y no una extensión a mano). -->
-<link rel="stylesheet" href="v2.min.css?v=20260923c">
+<link rel="stylesheet" href="v2.min.css?v=20260923d">
 <style>
   /* Display de marca: Neue Kabel, los mismos ficheros que sirve la home.
      brand.css la fija como unica fuente (The Seasons eliminada) y el owner
@@ -259,11 +259,15 @@
     <div class="absolute left-6 right-6 md:left-12 md:right-auto bottom-12 md:bottom-16 z-10 md:max-w-xl lg:max-w-[calc(60%-5rem)]">
       <h1 class="text-white font-headline-lg text-[34px] md:text-[54px] leading-[1.02] font-bold tracking-tight uppercase">Palm Field</h1>
       <p class="text-white/85 font-body-lg text-lg md:text-xl italic font-light mt-1">by Lawang Properties</p>
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4 md:mt-5">
-        <div class="bg-black/35 backdrop-blur-md px-3 py-2 rounded-xl border border-white/15 flex flex-col"><span class="text-[9px] text-white/70 uppercase tracking-wider">Land Managed</span><span class="font-kpi-number text-sm text-white font-bold whitespace-nowrap">500.000+ m²</span></div>
-        <div class="bg-black/35 backdrop-blur-md px-3 py-2 rounded-xl border border-white/15 flex flex-col"><span class="text-[9px] text-white/70 uppercase tracking-wider">Track Record</span><span class="font-kpi-number text-sm text-white font-bold whitespace-nowrap">6+ Years</span></div>
-        <div class="bg-black/35 backdrop-blur-md px-3 py-2 rounded-xl border border-white/15 flex flex-col"><span class="text-[9px] text-white/70 uppercase tracking-wider">Investors</span><span class="font-kpi-number text-sm text-white font-bold whitespace-nowrap">100+</span></div>
-        <div class="bg-territorial-green/70 backdrop-blur-md px-3 py-2 rounded-xl border border-white/20 flex flex-col"><span class="text-[9px] text-white/80 uppercase tracking-wider font-semibold">Permits</span><span class="font-kpi-number text-sm text-white font-bold whitespace-nowrap">100% PBG &amp; SLF</span></div>
+      <!-- Cifras mas destacadas (23-sep, owner: "destaca las tarjetas... mas"): icono,
+           cifra a 26px, fondo mas opaco y sombra para que se lean sobre cualquier foto.
+           2x2 SIEMPRE: en una fila de 4, "100% PBG & SLF" a 26px se salia de su
+           tarjeta y la fila se metia bajo el panel a 1100px (medido en captura). -->
+      <div class="grid grid-cols-2 gap-2.5 mt-5 md:mt-6 max-w-[560px]">
+        <div class="bg-black/50 border-white/20 backdrop-blur-md px-3.5 py-3 md:px-4 md:py-3.5 rounded-2xl border shadow-[0_8px_24px_rgba(0,0,0,0.28)] flex flex-col gap-1"><span class="flex items-center gap-1.5 text-[10px] md:text-[11px] text-white/80 uppercase tracking-wider font-semibold"><span class="material-symbols-outlined text-[16px] md:text-[18px] text-soft-canopy">landscape</span>Land Managed</span><span class="font-kpi-number text-lg sm:text-xl md:text-[26px] leading-tight sm:leading-none text-white font-bold sm:whitespace-nowrap">500.000+ m²</span></div>
+        <div class="bg-black/50 border-white/20 backdrop-blur-md px-3.5 py-3 md:px-4 md:py-3.5 rounded-2xl border shadow-[0_8px_24px_rgba(0,0,0,0.28)] flex flex-col gap-1"><span class="flex items-center gap-1.5 text-[10px] md:text-[11px] text-white/80 uppercase tracking-wider font-semibold"><span class="material-symbols-outlined text-[16px] md:text-[18px] text-soft-canopy">history</span>Track Record</span><span class="font-kpi-number text-lg sm:text-xl md:text-[26px] leading-tight sm:leading-none text-white font-bold sm:whitespace-nowrap">6+ Years</span></div>
+        <div class="bg-black/50 border-white/20 backdrop-blur-md px-3.5 py-3 md:px-4 md:py-3.5 rounded-2xl border shadow-[0_8px_24px_rgba(0,0,0,0.28)] flex flex-col gap-1"><span class="flex items-center gap-1.5 text-[10px] md:text-[11px] text-white/80 uppercase tracking-wider font-semibold"><span class="material-symbols-outlined text-[16px] md:text-[18px] text-soft-canopy">groups</span>Investors</span><span class="font-kpi-number text-lg sm:text-xl md:text-[26px] leading-tight sm:leading-none text-white font-bold sm:whitespace-nowrap">100+</span></div>
+        <div class="bg-territorial-green/85 border-white/25 backdrop-blur-md px-3.5 py-3 md:px-4 md:py-3.5 rounded-2xl border shadow-[0_8px_24px_rgba(0,0,0,0.28)] flex flex-col gap-1"><span class="flex items-center gap-1.5 text-[10px] md:text-[11px] text-white/80 uppercase tracking-wider font-semibold"><span class="material-symbols-outlined text-[16px] md:text-[18px] text-soft-canopy !text-white">verified</span>Permits</span><span class="font-kpi-number text-lg sm:text-xl md:text-[26px] leading-tight sm:leading-none text-white font-bold sm:whitespace-nowrap">100% PBG &amp; SLF</span></div>
       </div>
     </div>
 
