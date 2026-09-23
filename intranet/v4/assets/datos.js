@@ -35,7 +35,27 @@
      que los usos que no son de atributo no cambian de aspecto.
      Lo cazó Seguridad en la consulta de deploy del 18-sep. */
   function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML.replace(/"/g, '&quot;'); }
-  function fmt(n, m) { return (typeof lwFormatoImporte === 'function') ? lwFormatoImporte(n, m) : (n + ' ' + (m || '')); }
+  /* SIN DECIMALES EN TODA LA V4 (23-sep-2026, owner: «quita decimales de toda la
+     intranet v4»). Una regla en UN sitio: se envuelve la `lwFormatoImporte`
+     global de dinero.js, y así la cumplen datos.js, editores.js y cualquier
+     script de página que la llame. Solo cargan datos.js las páginas v4: la
+     intranet clásica, los PDF y los contratos siguen con sus céntimos. Los
+     CAMPOS de importe (lwImporteCanonico) no se tocan: lo que se teclea se
+     guarda tal cual; esto es solo cómo se enseña. */
+  if (typeof window.lwFormatoImporte === 'function' && !window.lwFormatoImporte.v4SinDecimales) {
+    var lwFormatoImporteConDecimales = window.lwFormatoImporte;
+    window.lwFormatoImporte = function (n, moneda, opts) {
+      var o = {}; for (var k in (opts || {})) o[k] = opts[k];
+      o.decimales = 0;
+      return lwFormatoImporteConDecimales(Math.round(Number(n) || 0), moneda, o);
+    };
+    window.lwFormatoImporte.v4SinDecimales = true;
+  }
+  // sin dinero.js (Ajustes, Asistente, Comunicación, Reservas, Sociedades): mismo aspecto
+  function fmt(n, m) {
+    if (typeof lwFormatoImporte === 'function') return lwFormatoImporte(n, m);
+    return new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 }).format(Math.round(Number(n) || 0)) + (m ? ' ' + m : '');
+  }
 
   /* ===== Closer (atribución de venta) — 21-sep-2026, encargo del owner.
      Compartido entre el Expediente de Operaciones (pintaExpediente) y la
