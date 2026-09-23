@@ -14,6 +14,28 @@
   var self = document.currentScript || document.querySelector('script[src*="nav.js"]');
   var ROOT = self ? self.src.replace(/assets\/nav\.js.*$/, '') : '../';
 
+  /* CORTINA DE PRIVACIDAD (23-sep-2026, owner: «que pida una contraseña y
+     cuando pasen 15 segundos sin uso vuelva a pedirla»). Pantalla -> segundos
+     sin uso antes de volver a taparse. La cortina vive en assets/cortina.js;
+     aquí solo se decide dónde se pone. Un fondo opaco se pone YA, en este
+     mismo instante, para que no se vea nada mientras llega cortina.js (que lo
+     sustituye por la suya). Sube CORTINA_V al cambiar cortina.js: no la sella
+     sella_assets, que solo recorre las etiquetas de los HTML. */
+  var CORTINA = { 'comision-admin': 15 };
+  var CORTINA_V = '20260923a';
+  (function () {
+    var seg = location.pathname.replace(/\/(index\.html)?$/, '').split('/').pop();
+    if (!CORTINA[seg]) return;
+    var pre = document.createElement('div');
+    pre.id = 'lw-cortina-pre';
+    pre.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:#0F2E30';
+    (document.body || document.documentElement).appendChild(pre);
+    var sc = document.createElement('script');
+    sc.src = ROOT + 'assets/cortina.js?v=' + CORTINA_V;
+    sc.setAttribute('data-segundos', String(CORTINA[seg]));
+    document.head.appendChild(sc);
+  })();
+
   // etiqueta visible (fin del textContent del enlace) -> carpeta de la herramienta
   var RUTAS = [
     ['Home', 'home/'],
