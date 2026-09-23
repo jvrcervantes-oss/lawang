@@ -5141,7 +5141,12 @@ async function openSavedContract(id){
      AUTO_ANX y AUTO_MASTER se ponen a cero SIN condición y el comentario explica
      por qué. No había llegado a sus vecinas. */
   ANNEXES = (d.annexes || []).map(sinPaginas); saveAnnexes(); rebuildAnnex();
+  // 23-sep-2026: sin rebuildClause() el artículo añadido (CC00105 «Art. 17»)
+  // salía en el documento pero no en el panel para editarlo; y sin resincronizar
+  // clauseSeq, el siguiente «+ Añadir artículo» repetía id (cl1) y editaba los dos.
   CLAUSES = Array.isArray(d.clauses) ? d.clauses : []; saveClauses();
+  clauseSeq = 1 + CLAUSES.reduce((m,c)=>Math.max(m, parseInt(String(c.id||'').replace('cl',''))||0), 0);
+  rebuildClause();
   COMPRADORES = (d.compradores || []).map(c=>({...c})); saveCompradores(); rebuildComprador();
   // Las ediciones del texto fijo se guardaban pero no se restauraban: un contrato
   // con boilerplate retocado se reabría (o se abría desde otro equipo) con el
