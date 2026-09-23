@@ -6101,6 +6101,28 @@
         pon2('c-resueltas', String(ss.filter(function (x) { return RESUELTAS.indexOf(x.estado) >= 0; }).length));
 
         var porId = {}; ss.forEach(function (x) { porId[x.id] = x; });
+        /* Quién COBRA es `beneficiario_email`, no `creado_por`: en una automática
+           `creado_por` es quien registró el recibí que la disparó (Administración,
+           casi siempre), y la columna enseñaba a esa persona como cobradora
+           (23-sep-2026). En una manual coinciden: el trigger de alta pone
+           beneficiario = el email de quien la crea. */
+        function quienCobra(x) {
+          var b = (x.beneficiario_email || '').toLowerCase();
+          var u = (b && porEmail[b]) || us[x.creado_por];
+          return u ? (u.nombre || u.email) : (x.beneficiario_email || '—');
+        }
+        /* El motor escribe un concepto de auditoría larguísimo («Comisión estándar —
+           tramo 1 (pct_cobrado_suelo 50%) — 2,5% s/ precio total… — importe BRUTO…»).
+           En la tabla va el titular; en la ficha, entero. */
+        function tipoAuto(x) {
+          var m = x.origen === 'comision_automatica' && /^Comisión (manager|estándar)/.exec(x.concepto || '');
+          return m ? m[1] : null;
+        }
+        function conceptoCorto(x) {
+          var m = x.origen === 'comision_automatica' && /^(Comisión \S+) — tramo (\d+)/.exec(x.concepto || '');
+          return m ? m[1] + ' · tramo ' + m[2] : (x.concepto || '—');
+        }
+        function claveCobra(x) { return (x.beneficiario_email || '').toLowerCase() || x.creado_por || ''; }
 
         /* ---------- ficha en cajon (S8, 22-sep-2026) ----------
            Mismo patron que Usuarios/Compradores (`abreFicha` + `window.lwCajon`):
@@ -6120,7 +6142,8 @@
           var mia = !!(miId && x.creado_por === miId);
 
           var cuerpo = H.seccion('La solicitud',
-            H.dato('Quién pide', u ? (u.nombre || u.email) : '—') +
+            H.dato('Quién cobra', quienCobra(x)) +
+            (x.origen === 'comision_automatica' && u ? H.dato('Disparada al registrar el cobro', u.nombre || u.email) : '') +
             H.dato('Concepto', x.concepto) +
             H.dato('Importe', fmt(x.importe, x.moneda || 'EUR')) +
             H.dato('De la venta', c ? [c.numero, tipoC(c.tipo), c.proyecto_nombre].filter(Boolean).join(' · ') : null) +
@@ -6130,7 +6153,10 @@
             // beneficiario_email/origen los fuerza el trigger de alta, nunca esta
             // pantalla (correccion #5 de Administracion, revision previa #37):
             // aqui solo se ENSEÑAN, no hay campo editable para ninguno de los dos.
-            H.dato('Origen', x.origen === 'comision_automatica' ? 'Comisión automática de manager' : 'Manual'));
+            H.dato('Origen', x.origen === 'comision_automatica'
+              ? (tipoAuto(x) === 'manager' ? 'Comisión automática de manager'
+                : tipoAuto(x) === 'estándar' ? 'Comisión automática estándar (agente sin equipo)'
+                : 'Comisión automática') : 'Manual'));
 
           if (x.estado !== 'pendiente') {
             var tonoEstado = x.estado === 'pagada' ? 'ok' : x.estado === 'rechazada' ? 'mal' : x.estado === 'aprobada' ? 'espera' : null;
@@ -6186,7 +6212,7 @@
 
           var cj = window.lwCajon({
             sub: 'SP-' + x.numero + ' · ' + (ETIQUETA[x.estado] || x.estado),
-            titulo: u ? (u.nombre || u.email) : 'Solicitud de pago',
+            titulo: quienCobra(x),
             bajoTitulo: 'El pago se hace fuera de la suite (transferencia, Wise…); aquí queda pedido, aprobado y pagado.',
             cuerpo: cuerpo, acciones: acciones, alCerrar: quitaId
           });
@@ -6209,13 +6235,13 @@
                 if (!cj.cuerpo.isConnected) return;   // el cajon ya se cerro
                 var html;
                 if (rcd.error || !rcd.data) {
-                  html = H.seccion('Comisión de manager vinculada',
+                  html = H.seccion('Comisión vinculada',
                     H.nota('No se encuentra la fila de comisiones_devengadas de esta comisión automática (o tu sesión no puede verla) — no hay sincronización automática entre las dos: compruébalo a mano si hace falta.'));
                 } else {
                   var cd = rcd.data;
                   var tonoCd = cd.estado === 'pagada' ? 'ok' : cd.estado === 'en_disputa' ? 'mal' : 'espera';
                   var diverge = (x.estado === 'pagada') !== (cd.estado === 'pagada');
-                  html = H.seccion('Comisión de manager vinculada',
+                  html = H.seccion('Comisión vinculada',
                     H.dato('Estado en comisiones_devengadas', H.tag(cd.estado, tonoCd), { html: 1 }) +
                     (diverge
                       ? H.nota('⚠ Diverge de esta solicitud: nada sincroniza los dos estados automáticamente al marcar esta pagada. Si ya se pagó por un lado, revisa el otro a mano.')
@@ -6243,13 +6269,13 @@
             ? '<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;background:#104C4F;color:#fff;font:600 10.5px \'Neue Kabel\',sans-serif;text-transform:uppercase;letter-spacing:.04em"><span class="material-symbols-outlined" style="font-size:13px;line-height:1">bolt</span>Automática</span>'
             : '<span style="font:500 11px \'Neue Kabel\',sans-serif;color:#8A8474">Manual</span>';
           var venta = c ? [c.numero, tipoC(c.tipo), c.proyecto_nombre].filter(Boolean).join(' · ') : '';
-          var pajar = ['SP-' + x.numero, x.concepto, u ? (u.nombre || u.email) : '', venta].join(' ').toLowerCase();
-          return '<tr class="border-b border-outline-variant/30" style="cursor:pointer" data-id="' + esc(x.id) + '" data-estado="' + esc(x.estado) + '" data-creado-por="' + esc(x.creado_por || '') + '" data-pajar="' + esc(pajar) + '">' +
-            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface"><b>SP-' + esc(x.numero) + '</b></td>' +
-            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(u ? (u.nombre || u.email) : '—') + '</td>' +
+          var pajar = ['SP-' + x.numero, x.concepto, quienCobra(x), venta].join(' ').toLowerCase();
+          return '<tr class="border-b border-outline-variant/30" style="cursor:pointer" data-id="' + esc(x.id) + '" data-estado="' + esc(x.estado) + '" data-creado-por="' + esc(claveCobra(x)) + '" data-pajar="' + esc(pajar) + '">' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface whitespace-nowrap"><b>SP-' + esc(x.numero) + '</b></td>' +
+            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(quienCobra(x)) + '</td>' +
             '<td class="px-5 py-4">' + origenHtml + '</td>' +
-            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(x.concepto || '—') + '</td>' +
-            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(fmt(x.importe, x.moneda || 'EUR')) + '</td>' +
+            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(conceptoCorto(x)) + '</td>' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface whitespace-nowrap">' + esc(fmt(x.importe, x.moneda || 'EUR')) + '</td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(venta || '—') + '</td>' +
             '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-surface-container-high font-label-md text-[11px] uppercase tracking-wider">' + esc(ETIQUETA[x.estado] || x.estado) + '</span></td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline text-right">' + esc(fFecha(x.creado_en)) + ' · ' + diasDesde(x.creado_en) + ' d</td>' +
@@ -6309,10 +6335,12 @@
         if (selAgente) {
           if (window.LW_V4 && window.LW_V4.esAdmin) {
             var vistos = [];
-            ss.forEach(function (x) { if (x.creado_por && vistos.indexOf(x.creado_por) === -1) vistos.push(x.creado_por); });
+            // por quien COBRA (misma clave que data-creado-por de cada fila)
+            var ejemplo = {};
+            ss.forEach(function (x) { var k = claveCobra(x); if (k && vistos.indexOf(k) === -1) { vistos.push(k); ejemplo[k] = x; } });
             if (vistos.length > 1) {
-              var opcionesAg = vistos.map(function (uid) {
-                var u2 = us[uid]; return { uid: uid, nombre: u2 ? (u2.nombre || u2.email) : uid };
+              var opcionesAg = vistos.map(function (k) {
+                return { uid: k, nombre: quienCobra(ejemplo[k]) };
               }).sort(function (a, b) { return a.nombre.localeCompare(b.nombre, 'es'); });
               selAgente.innerHTML = '<option value="">Todos los agentes</option>' +
                 opcionesAg.map(function (o) { return '<option value="' + esc(o.uid) + '">' + esc(o.nombre) + '</option>'; }).join('');
@@ -6389,7 +6417,7 @@
           return '<tr class="border-b border-outline-variant/30" data-eq-estado="' + esc(x.estado) + '" data-eq-equipo="' + esc(equipoNombre) + '">' +
             '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(etiqueta) + '</td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(equipoNombre) + '</td>' +
-            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(fmt(x.importe, x.moneda || 'EUR')) + '</td>' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface whitespace-nowrap">' + esc(fmt(x.importe, x.moneda || 'EUR')) + '</td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(c ? [c.numero, tipoC(c.tipo), c.proyecto_nombre].filter(Boolean).join(' · ') : '—') + '</td>' +
             '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' + (TAGCLASE_EQ[x.estado] || 'bg-surface-container-high') + '">' + esc(ETIQUETA_EQ[x.estado] || x.estado) + '</span></td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + fFecha(x.disparado_en) + '</td>' +
