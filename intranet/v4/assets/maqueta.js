@@ -163,6 +163,15 @@
     for (var i = 0; i < NAVEGAN.length; i++) {
       if (NAVEGAN[i][0].test(tl) && !en(NAVEGAN[i][1])) { location.href = ROOT + NAVEGAN[i][1] + '/'; return true; }
     }
+    /* Con datos reales, de aquí abajo todo es maqueta: formularios que no
+       guardan, «Generando…» que no genera y avisos de «fase de cableado». Sobre
+       una pantalla cableada eso cae en botones que YA tienen su propio código
+       sin `data-real` — los chips de rol de /v4/comunicacion/ enseñaban
+       «Project managers · 1 — disponible en la fase de cableado», y «Nuevo
+       comunicado» abría encima una ventana falsa de maqueta (23-sep-2026).
+       Un botón que no es de esta capa no se toca: se devuelve false sin
+       preventDefault, que un submit de formulario tiene que seguir enviando. */
+    if (conDatosReales()) return false;
     // 3) descargas / exports / envíos
     if (/descarg|export|\.zip|pdf$|enviar por email|^email$|csv/i.test(tl) || /picture_as_pdf|download|^send$/.test(ico)) {
       toast('Generando… (maqueta: no se emite ningún fichero ni correo real)'); return true;
@@ -218,11 +227,12 @@
       // haya cableado de verdad (data-real, rama de arriba).
       if (!conDatosReales() && conmutaChip(btn)) return;
       if (maneja(btn)) { ev.preventDefault(); return; }
+      if (conDatosReales()) return;                     // ver el corte al final de maneja()
       toast('«' + (sinIcono(texto(btn)) || 'Acción') + '» — disponible en la fase de cableado');
       return;
     }
     var a = ev.target.closest && ev.target.closest('a[href="#"]');
-    if (a && !a.closest('aside') && !a.closest('#lw-maqueta')) {
+    if (a && !a.closest('aside') && !a.closest('#lw-maqueta') && !conDatosReales()) {
       var t = sinIcono(texto(a));
       if (t) toast('«' + t + '» — disponible en la fase de cableado');
     }

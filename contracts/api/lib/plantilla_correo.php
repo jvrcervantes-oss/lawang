@@ -248,7 +248,7 @@ BTN;
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{$C['fondo']};margin:0;padding:32px 12px;">
   <tr>
     <td align="center">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="{$C['tarjeta']}" background="https://lawangproperties.com/assets/img/correo-grano.jpg" style="max-width:640px;background-color:{$C['tarjeta']};background-image:url('https://lawangproperties.com/assets/img/correo-grano.jpg');background-repeat:repeat;background-position:0 0;background-size:256px 256px;border:1px solid {$C['linea']};border-radius:16px;overflow:hidden;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="{$C['tarjeta']}" background="https://lawangproperties.com/assets/img/correo-grano.jpg" style="max-width:760px;background-color:{$C['tarjeta']};background-image:url('https://lawangproperties.com/assets/img/correo-grano.jpg');background-repeat:repeat;background-position:0 0;background-size:256px 256px;border:1px solid {$C['linea']};border-radius:16px;overflow:hidden;">
 
         <!-- barra superior -->
         <tr>
