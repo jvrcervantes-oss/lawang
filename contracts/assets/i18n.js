@@ -1181,6 +1181,11 @@
     'Ficha de': 'Record of',
     'Ficha actualizada': 'Record updated',
     'Comprador creado': 'Buyer created',
+    'Ese teléfono ya está en otra ficha': 'That phone number is already on another record',
+    'Si es la misma persona, no la crees otra vez: búscala en la lista por su teléfono y usa esa ficha.': 'If it is the same person, do not create them again: search the list by phone number and use that record.',
+    'Si de verdad comparten teléfono —un matrimonio que compra junto, una persona y su propia empresa— puedes seguir.': 'If they really share a phone —a couple buying together, a person and their own company— you can go ahead.',
+    'Guardar igualmente': 'Save anyway',
+    'No guardar': 'Don’t save',
     'Ese pasaporte / NPWP ya está en otra ficha (el correo no tiene nada que ver con este aviso). Desde el 11-sep cada uno ve solo los compradores que dio de alta, así que esa ficha puede existir y NO aparecerte en la lista: no crees una segunda: pide a un administrador que te la traspase o que la enlace a tu contrato.':
       'That passport / NPWP is already on another record (this warning has nothing to do with the email). Since 11 Sep each person only sees the buyers they created, so that record may exist and NOT show up in your list: do not create a second one: ask an administrator to transfer it to you or to link it to your contract.',
     'Ya hay otra ficha DEL MISMO TIPO con ese correo. Una persona y su empresa sí pueden compartirlo, pero dos personas (o dos empresas) no. Ojo: esa otra ficha puede ser de un compañero y no aparecerte en la lista — si es la misma persona, pide que te la traspasen en vez de crearla otra vez; si es una familia que comparte buzón, deja el correo en una sola e identifica a las demás por su pasaporte.':

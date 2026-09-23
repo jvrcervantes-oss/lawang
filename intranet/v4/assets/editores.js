@@ -1471,7 +1471,7 @@
      16 pantallas (comprobado), asi que no entra en la lista. */
   var MODULOS_DOC = {
     entities: { src: '/contracts/assets/entities.js?v=e015c66a', listo: function () { return typeof SOCIEDADES !== 'undefined'; } },
-    compradores: { src: '/contracts/assets/compradores.js?v=7eb94ab0', listo: function () { return typeof compradoresDeContrato === 'function'; } },
+    compradores: { src: '/contracts/assets/compradores.js?v=be8f79e8', listo: function () { return typeof compradoresDeContrato === 'function'; } },
     dialogo: { src: '/contracts/assets/dialogo.js?v=cefc9e4e', listo: function () { return typeof window.lwElegir === 'function'; } },
     totales: { src: '/intranet/facturas/totales.js', listo: function () { return typeof calcTotales === 'function'; } },
     // El MISMO motor que pinta la vista previa y la impresión del clásico y
