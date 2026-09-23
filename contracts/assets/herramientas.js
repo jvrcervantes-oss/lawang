@@ -121,6 +121,11 @@ const LW_HERRAMIENTAS = [
     estado:d => d.vencSinFecha == null ? null
       : [d.vencSinFecha ? hT('%n sin fecha que vigilar', { n: d.vencSinFecha }) : hT('Calendario al día'),
          d.vencSinFecha > 0] },
+  /* Reservas por vencer (23-sep-2026, owner): Cartas de Reserva vivas sin
+     Bloqueo y cuándo vencen. Clave propia desde el primer día. */
+  { grupo:'Seguimiento', nombre:'Reservas por vencer', icon:'ph-hourglass-medium', href:'/intranet/v4/reservas/', herr:'reservas',
+    para:'Cartas de Reserva que aún no tienen Bloqueo de Parcela y cuándo vencen.',
+    claves:'reservas vencer vencimiento carta reserva bloqueo parcela gracia prorroga reservations expiring hold plot extension' },
 
   { grupo:'Documentación', nombre:'Contratos', icon:'ph-file-text', href:'/contracts/', herr:'contratos',
     para:'Reservas, PPJB, construcción y anexos.',
@@ -142,7 +147,11 @@ const LW_HERRAMIENTAS = [
      tarjetas, la etiqueta del permiso va en LW_ETIQUETA_PROPIA (abajo).
      Sin `estado`: no hay nada que vigilar cada mañana — se usa cuando llega
      una pregunta, no al revés. */
-  { grupo:'Documentación', nombre:'Asistente', icon:'ph-robot', href:'/intranet/v4/asistente/', herr:'contratos',
+  /* Asistente: SEPARADAS 23-sep-2026 (owner: «hay herramientas que no se controla la vista
+     desde usuarios como las demás» → «separa todo»). Clave propia de VISTA;
+     guardar en la base sigue pidiendo el permiso de la herramienta madre.
+     La migración 20260923180000 se la dio a quien ya tenía la madre. */
+  { grupo:'Documentación', nombre:'Asistente', icon:'ph-robot', href:'/intranet/v4/asistente/', herr:'asistente',
     para:'Un borrador de respuesta a la duda de un comprador, citando solo su contrato. Lo revisas y lo mandas tú.',
     claves:'asistente bot ia inteligencia artificial borrador respuesta comprador pregunta duda contrato clausula pendiente assistant ai draft reply buyer question doubt contract clause pending' },
   // Dossier y Creatividades, unificadas en UNA tarjeta (7-ago-2026): antes
@@ -166,7 +175,11 @@ const LW_HERRAMIENTAS = [
     claves:'facturas proforma serie inv cobro impuesto invoices proforma series billing tax vat',
     estado:d => d.facturas == null ? null
       : [hT('%n emitidas', { n: d.facturas }) + (d.facturasAnuladas ? ' · ' + hT('%n anuladas', { n: d.facturasAnuladas }) : ''), false] },
-  { grupo:'Administración', nombre:'Recibos', icon:'ph-hand-coins', href:'/intranet/facturas/?tipo=recibi', herr:'facturas',
+  /* Recibos: SEPARADAS 23-sep-2026 (owner: «hay herramientas que no se controla la vista
+     desde usuarios como las demás» → «separa todo»). Clave propia de VISTA;
+     guardar en la base sigue pidiendo el permiso de la herramienta madre.
+     La migración 20260923180000 se la dio a quien ya tenía la madre. */
+  { grupo:'Administración', nombre:'Recibos', icon:'ph-hand-coins', href:'/intranet/facturas/?tipo=recibi', herr:'recibos',
     para:'Justificantes de pago y señales.',
     claves:'recibi recibos justificante señal pago receipts proof of payment deposit',
     estado:d => d.recibis == null ? null : [hT('%n emitidos', { n: d.recibis }), false] },
@@ -228,7 +241,11 @@ const LW_HERRAMIENTAS = [
      herramienta en silencio. Mismo precedente que Vencimientos con
      'operaciones'. Quien administra el inventario administra que se construye
      en el, asi que el criterio de acceso tampoco abre ningun hueco. */
-  { grupo:'Base de datos', nombre:'Modelos', icon:'ph-house-line', href:'/intranet/modelos/', herr:'unidades',
+  /* Modelos: SEPARADAS 23-sep-2026 (owner: «hay herramientas que no se controla la vista
+     desde usuarios como las demás» → «separa todo»). Clave propia de VISTA;
+     guardar en la base sigue pidiendo el permiso de la herramienta madre.
+     La migración 20260923180000 se la dio a quien ya tenía la madre. */
+  { grupo:'Base de datos', nombre:'Modelos', icon:'ph-house-line', href:'/intranet/modelos/', herr:'modelos',
     para:'Que se puede construir: habitaciones, metros, precio, techos, extras y planos de cada tipo de vivienda.',
     claves:'modelos tipologias villas tipos vivienda specs precio techos extras planos catalogo dormitorios metros house models types specs price roofs add-ons floor plans catalogue bedrooms sqm',
     /* El estado dice lo que hay que ARREGLAR, no cuantas filas hay: un modelo
@@ -333,9 +350,7 @@ const lwPermitida = (t, ficha) =>
 const LW_ETIQUETA_PROPIA = {
   dossier:       'Dossier',
   creatividades: 'Creatividades',
-  facturas:      'Facturas y recibís',   // dos tarjetas (Facturas y Recibos), un solo permiso
   comisiones:    'Comisiones y solicitudes de pago',   // permiso propio desde el 23-sep-2026
-  contratos:     'Contratos y asistente',       // dos tarjetas (Contratos y Asistente), un solo permiso — 22-sep-2026
   usuarios:      'Usuarios (admin)',     // el «(admin)» avisa de que además exige rol
 };
 
@@ -382,11 +397,11 @@ const LW_PERMISOS_CRM = ['leads', 'ranking', 'reparto', 'closers'];
    emitir cualquier tipo de contrato desde el minuto uno — se rellena
    explícito para que la restricción sea real desde el alta. */
 const LW_HERR_POR_ROL = {
-  agente:          ['contratos','compradores','documentacion','unidades','facturas','operaciones'],
-  project_manager: ['contratos','compradores','documentacion','unidades','facturas','obra','operaciones'],
-  sales_manager:   ['contratos','compradores','documentacion','unidades','facturas','operaciones'],
-  admin:           ['contratos','compradores','documentacion','unidades','facturas','operaciones'],
-  super_admin:     ['contratos','compradores','documentacion','unidades','facturas','obra','operaciones'],
+  agente:          ['contratos','compradores','documentacion','unidades','facturas','operaciones','asistente','recibos','modelos','reservas'],
+  project_manager: ['contratos','compradores','documentacion','unidades','facturas','obra','operaciones','asistente','recibos','modelos','reservas'],
+  sales_manager:   ['contratos','compradores','documentacion','unidades','facturas','operaciones','asistente','recibos','modelos','reservas'],
+  admin:           ['contratos','compradores','documentacion','unidades','facturas','operaciones','asistente','recibos','modelos','reservas'],
+  super_admin:     ['contratos','compradores','documentacion','unidades','facturas','obra','operaciones','asistente','recibos','modelos','reservas'],
 };
 const LW_TIPOS_POR_ROL = {
   agente:          ['carta_reserva','reserva_parcela','construccion'],

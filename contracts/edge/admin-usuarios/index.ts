@@ -84,7 +84,10 @@ const corsFor = (req: Request) => {
 // y no se podía quitar sin quitar Operaciones. Clave propia y, A PROPÓSITO, sin
 // concedérsela a nadie (al revés que 'vencimientos' el 18-ago): solo la ve un
 // super_admin, que `puede()` deja pasar siempre.
-const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte', 'leads', 'closers', 'ranking', 'reparto', 'cuentas', 'comisiones'];
+const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte', 'leads', 'closers', 'ranking', 'reparto', 'cuentas', 'comisiones', 'reservas', 'modelos', 'asistente', 'recibos'];
+// 'reservas', 'modelos', 'asistente', 'recibos' (23-sep-2026, owner: «separa
+// todo»): colgaban de operaciones/unidades/contratos/facturas. Clave propia de
+// vista; la migración 20260923180000 se la dio a quien ya tenía la madre.
 // 10-sep-2026: sales_manager/project_manager (encargados de proyecto: ven,
 // crean y corrigen contratos/facturas de cualquier agente en los proyectos
 // que supervisan — `usuarios.proyectos_supervisados`, distinta de `proyectos`)
