@@ -6791,7 +6791,19 @@
      en editores.js (ED['equipos-venta'] / ED.condiciones, expuestas en
      `window.LW_V4`); aquí solo se lee y se pinta. */
   REG['equipos-venta'] = function (sb) {
-    if (!(window.LW_V4 && window.LW_V4.esAdmin)) { notaSoloAdmin(); return; }
+    /* Sales manager (23-sep-2026, owner: «el Sales Manager entra a su panel y
+       configura cuánto van a cobrar sus closers… no todos ven lo de todos,
+       sólo lo suyo»): ve SOLO los equipos que dirige y sus miembros, sin
+       ningún botón — dar de alta equipos y miembros sigue siendo de
+       administración. La base ya le recorta la lectura (policies de
+       equipos_venta / equipo_miembros); el filtro de aquí es por si acaso. */
+    var esAdmEq = !!(window.LW_V4 && window.LW_V4.esAdmin);
+    var rolEq = (window.LW_V4 && window.LW_V4.ficha && window.LW_V4.ficha.rol) || '';
+    var miEmailEq = ((window.LW_V4 && window.LW_V4.miEmail) || '').toLowerCase();
+    if (!esAdmEq && rolEq !== 'sales_manager') { notaSoloAdmin(); return; }
+    if (!esAdmEq) document.querySelectorAll('main button').forEach(function (b) {
+      if (/Nuevo equipo/i.test(b.textContent || '')) b.style.display = 'none';
+    });
     var cuerpoEq = document.getElementById('lw-equipos-filas');
     var cuerpoMi = document.getElementById('lw-miembros-filas');
     var selEq = document.getElementById('lw-mi-equipo');
@@ -6804,6 +6816,15 @@
     ]).then(function (r) {
       var equipos = r[0], miembros = r[1] || [], usuarios = r[2] || [];
       if (!equipos) return;
+      if (!esAdmEq) {
+        equipos = equipos.filter(function (e) { return (e.manager_email || '').toLowerCase() === miEmailEq; });
+        var misIds = equipos.map(function (e) { return e.id; });
+        miembros = miembros.filter(function (m) { return misIds.indexOf(m.equipo_id) !== -1; });
+        var avisoEq = document.querySelector('[data-lw-aviso-admin] p');
+        if (avisoEq) avisoEq.innerHTML = equipos.length
+          ? 'Este es tu equipo: <b class="text-on-surface">' + esc(equipos.map(function (e) { return e.nombre; }).join(', ')) + '</b>. Las altas y bajas de closers las hace administración; lo que cobra cada uno lo configuras tú en <a href="../condiciones/" class="underline text-deep-lagoon">Condiciones</a>.'
+          : 'Todavía no diriges ningún equipo de venta. Cuando administración te asigne uno, aparecerá aquí con sus closers.';
+      }
       // el editor de miembro ofrece el equipo en un select: la lista es esta, no otra consulta
       window.LW_V4.equiposLista = equipos.map(function (e) { return [e.id, e.nombre + (e.activo ? '' : ' (de baja)')]; });
       publicaUsuariosLista(usuarios);
@@ -6848,11 +6869,11 @@
             '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' +
               (e.activo ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-surface-container-high text-on-surface-variant') + '">' +
               (e.activo ? 'Activo' : 'De baja') + '</span></td>' +
-            '<td class="px-5 py-4 text-right"><div class="flex justify-end gap-2">' +
+            '<td class="px-5 py-4 text-right"><div class="flex justify-end gap-2">' + (!esAdmEq ? '' :
             '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" data-lw-edita-equipo="' + esc(e.id) + '" data-lw-nombre="' + esc(e.nombre) + '" data-lw-manager="' + esc(e.manager_email || '') + '">Editar</button>' +
             '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" data-lw-miembro="' + esc(e.id) + '" data-lw-nombre="' + esc(e.nombre) + '">+ Miembro</button>' +
             '<button type="button" class="px-3 py-1 rounded-full text-burnt-earth hover:bg-surface-container-high font-label-md text-[12px]" data-lw-toggle-equipo="' + esc(e.id) + '" data-lw-nombre="' + esc(e.nombre) + '" data-lw-activo="' + (e.activo ? '1' : '0') + '">' +
-            (e.activo ? 'Desactivar' : 'Reactivar') + '</button>' +
+            (e.activo ? 'Desactivar' : 'Reactivar') + '</button>') +
             '</div></td></tr>';
         }).join('') : '<tr><td colspan="5" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Ningún equipo dado de alta todavía.</td></tr>';
       }
@@ -6872,11 +6893,11 @@
             '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' +
               (activo ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-surface-container-high text-on-surface-variant') + '">' +
               (activo ? 'Activo' : 'De baja') + '</span></td>' +
-            '<td class="px-5 py-4 text-right"><div class="flex justify-end gap-2">' +
+            '<td class="px-5 py-4 text-right"><div class="flex justify-end gap-2">' + (!esAdmEq ? '' :
             '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" data-lw-edita-miembro="' + esc(m.id) + '" data-lw-equipo="' + esc(m.equipo_id) + '" data-lw-email="' + esc(m.closer_email) + '" data-lw-desde="' + esc(m.desde || '') + '" data-lw-hasta="' + esc(m.hasta || '') + '">Editar</button>' +
             (activo
               ? '<button type="button" class="px-3 py-1 rounded-full text-error hover:bg-error-container/40 font-label-md text-[12px]" data-lw-baja="' + esc(m.id) + '" data-lw-email="' + esc(m.closer_email) + '">Dar de baja</button>'
-              : '') + '</div></td></tr>';
+              : '')) + '</div></td></tr>';
         }).join('') : '<tr><td colspan="6" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Sin miembros para este filtro.</td></tr>';
       }
       pintaMiembros();

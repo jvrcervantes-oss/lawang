@@ -84,11 +84,21 @@
      hacen falta las dos. Sin ficha legible no se entra (al revés que la regla
      general de abajo): una puerta de dirección no se abre por no poder mirar. */
   var ROL_REQ = propia && propia.getAttribute('data-rol');
+  /* `data-rol` admite una LISTA separada por espacios (23-sep-2026, owner:
+     «los sales manager deben tener acceso a dar de alta su equipo de ventas
+     + condiciones a ellos»): `data-rol="admin sales_manager"`. El super_admin
+     entra siempre; `admin` incluye al super_admin como hasta hoy; cualquier otro
+     rol listado entra solo si es el suyo. Un `data-rol` sin ningún rol conocido
+     se trata como `admin` (lo de siempre): nunca se abre por un typo. */
+  var ROLES_REQ = (ROL_REQ || '').split(/\s+/).filter(function (x) { return x; });
   function rolBasta(ficha) {
     if (!ROL_REQ) return true;
     if (!ficha) return false;
-    if (ROL_REQ === 'super_admin') return ficha.rol === 'super_admin';
-    return ficha.rol === 'admin' || ficha.rol === 'super_admin';
+    if (ficha.rol === 'super_admin') return true;
+    if (ROLES_REQ.length === 1 && ROLES_REQ[0] === 'super_admin') return false;
+    var otros = ROLES_REQ.filter(function (x) { return x !== 'admin' && x !== 'super_admin'; });
+    if (ficha.rol === 'admin') return ROLES_REQ.indexOf('admin') !== -1 || !otros.length;
+    return otros.indexOf(ficha.rol) !== -1;
   }
 
   var raiz = document.documentElement;

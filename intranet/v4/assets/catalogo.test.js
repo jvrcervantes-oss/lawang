@@ -62,9 +62,10 @@ for (const d of fs.readdirSync(V4, { withFileTypes: true })) {
   if (!g) continue;                                  // redirección o puerta de entrada
   const herr = /data-herramienta="[^"]+"/.test(g[0]);
   const rol = (g[0].match(/data-rol="([^"]+)"/) || [])[1] || '';
+  const roles = rol.split(/\s+/).filter(Boolean);
   if (!herr && !rol && !SIN_PUERTA_PROPIA[d.name]) errores.push(`${d.name}: guard.js sin data-herramienta ni data-rol — entra cualquier ficha activa`);
   if (SOLO_SUPER.includes(d.name) && rol !== 'super_admin') errores.push(`${d.name}: el menú la enseña solo al super admin y la puerta pide «${rol || 'nada'}»`);
-  else if (SOLO_ADMIN.includes(d.name) && rol !== 'admin' && rol !== 'super_admin') errores.push(`${d.name}: el menú la enseña solo a admin y la puerta pide «${rol || 'nada'}»`);
+  else if (SOLO_ADMIN.includes(d.name) && !roles.includes('admin') && rol !== 'super_admin') errores.push(`${d.name}: el menú la enseña solo a admin y la puerta pide «${rol || 'nada'}»`);
 }
 /* PUERTAS FIJAS — decisión del owner, no se tocan nunca. Condiciones es
    solo de administración: el 23-sep-2026 una sesión le quitó el candado para
@@ -72,12 +73,23 @@ for (const d of fs.readdirSync(V4, { withFileTypes: true })) {
    «vuelve a solo admin y esto no se mueve nunca». Va aparte de SOLO_ADMIN a
    propósito: sacarla del Panel de control en nav.js no la libera de aquí. Si
    un Sales Manager necesita configurar algo, va en otra pantalla. */
-const PUERTA_FIJA = { condiciones: 'admin' };
+/* 23-sep-2026, misma tarde, el owner la amplía: «los sales manager deben tener
+   acceso a dar de alta su equipo de ventas + condiciones a ellos». Sigue fijada:
+   ahora es «admin sales_manager», y solo el owner la cambia. */
+const PUERTA_FIJA = { condiciones: 'admin sales_manager', 'equipos-venta': 'admin sales_manager' };
 Object.keys(PUERTA_FIJA).forEach(p => {
   const f = path.join(V4, p, 'index.html');
   const g = fs.existsSync(f) && fs.readFileSync(f, 'utf8').match(/<script[^>]+guard\.js[^>]*>/);
   const rol = g ? ((g[0].match(/data-rol="([^"]+)"/) || [])[1] || '') : '(sin página)';
   if (rol !== PUERTA_FIJA[p]) errores.push(`${p}: puerta FIJADA por el owner en data-rol="${PUERTA_FIJA[p]}" y pide «${rol || 'nada'}» — no se cambia`);
+});
+// lo que el menú le enseña al sales manager tiene que dejarle entrar
+const PANEL_MANAGER = (nav.match(/var PANEL_MANAGER = \[([^\]]*)\]/) || ['', ''])[1].match(/'[^']+'/g) || [];
+PANEL_MANAGER.map(x => x.slice(1, -1)).forEach(p => {
+  const f = path.join(V4, p, 'index.html');
+  const g = fs.existsSync(f) && fs.readFileSync(f, 'utf8').match(/<script[^>]+guard\.js[^>]*>/);
+  const rol = g ? ((g[0].match(/data-rol="([^"]+)"/) || [])[1] || '') : '';
+  if (!rol.split(/\s+/).includes('sales_manager')) errores.push(`${p}: el menú se la enseña al sales manager y la puerta pide «${rol || 'nada'}»`);
 });
 [...SOLO_ADMIN, ...SOLO_SUPER].forEach(p => {
   if (!fs.existsSync(path.join(V4, p, 'index.html'))) errores.push(`${p}: está en el Panel de control de nav.js y no hay intranet/v4/${p}/`);

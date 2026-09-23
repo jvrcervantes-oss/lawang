@@ -59,6 +59,24 @@ const SUPER = { rol: 'super_admin', activo: true, herramientas: [] };
   r = await puerta({ 'data-rol': 'super_admin' }, SUPER);
   assert.ok(r.entra, 'el super admin entra en la suya');
 
+  // lista de roles (Equipos de venta, Condiciones: admin + sales manager)
+  const SM = { rol: 'sales_manager', activo: true, herramientas: [] };
+  const PM = { rol: 'project_manager', activo: true, herramientas: [] };
+  r = await puerta({ 'data-rol': 'admin sales_manager' }, SM);
+  assert.ok(r.entra, 'un sales manager entra donde la lista lo nombra');
+  r = await puerta({ 'data-rol': 'admin sales_manager' }, ADMIN);
+  assert.ok(r.entra, 'el admin sigue entrando con la lista');
+  r = await puerta({ 'data-rol': 'admin sales_manager' }, SUPER);
+  assert.ok(r.entra, 'el super admin entra siempre');
+  r = await puerta({ 'data-rol': 'admin sales_manager' }, AGENTE);
+  assert.ok(!r.entra, 'un agente no entra aunque haya lista');
+  r = await puerta({ 'data-rol': 'admin sales_manager' }, PM);
+  assert.ok(!r.entra, 'un project manager no entra si no está en la lista');
+  r = await puerta({ 'data-rol': 'admin' }, SM);
+  assert.ok(!r.entra, 'con data-rol=admin un sales manager no entra');
+  r = await puerta({ 'data-rol': 'adminn' }, SM);
+  assert.ok(!r.entra, 'un data-rol mal escrito no abre la puerta');
+
   // rol + herramienta: hacen falta las dos (Cuentas)
   r = await puerta({ 'data-rol': 'admin', 'data-herramienta': 'cuentas' }, AGENTE);
   assert.ok(!r.entra, 'un agente CON la herramienta cuentas no entra: falta el rol');

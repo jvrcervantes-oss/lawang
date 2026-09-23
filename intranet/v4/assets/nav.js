@@ -200,6 +200,14 @@
      abre lo que el estudio le cobra al cliente. Se configura aqui y no en
      «Comisiones» — aquella es la del equipo de ventas, y son dos cosas
      distintas que comparten palabra. */
+  /* Lo que un SALES MANAGER ve del Panel de control (23-sep-2026, owner: «los
+     sales manager deben tener acceso a dar de alta su equipo de ventas +
+     condiciones a ellos»). Solo su equipo: la puerta de la página es
+     `data-rol="admin sales_manager"` y la de los datos, la base (RPC
+     equipo_miembro_* y policies «el manager configura a sus closers»).
+     catalogo.test exige que cada una de estas páginas nombre sales_manager. */
+  var PANEL_MANAGER = ['equipos-venta', 'condiciones'];
+
   var PANEL_CONTROL_SUPER = [
     { path: 'comision-admin', icono: 'price_change',      texto: 'Comisión de administración' },
     { path: 'sociedades',     icono: 'domain',             texto: 'Sociedades emisoras' }
@@ -287,6 +295,7 @@
      luego perderlos. */
   function esAdminSesion(ficha) { return !!ficha && (ficha.rol === 'admin' || ficha.rol === 'super_admin'); }
   function esSuperSesion(ficha) { return !!ficha && ficha.rol === 'super_admin'; }
+  function esManagerVentas(ficha) { return !!ficha && ficha.rol === 'sales_manager'; }
 
   /* Construye la seccion "Panel de control" entera (cabecera + 3 enlaces) y
      la cuelga justo detras del grupo que contiene "Usuarios" ("Base de
@@ -294,7 +303,8 @@
      Equipos de venta/Condiciones antes del 15-sep, solo que ahora con
      cabecera propia en vez de ir sueltas dentro de ese grupo. */
   function injertaPanelControl(aside, ficha) {
-    if (!esAdminSesion(ficha)) return;
+    var soloManager = !esAdminSesion(ficha) && esManagerVentas(ficha);
+    if (!esAdminSesion(ficha) && !soloManager) return;
     if (aside.querySelector('[data-seccion="panel-control"]')) return;
     var ancla = aside.querySelector('[data-path="usuarios"]');
     var grupo = ancla && ancla.parentElement;
@@ -305,11 +315,14 @@
     var nuevoGrupo = grupo.cloneNode(false);      // mismo div vacio, mismas clases Tailwind
     nuevoGrupo.setAttribute('data-seccion', 'panel-control');
     var nuevaCabecera = cabecera.cloneNode(true);
-    nuevaCabecera.textContent = 'Panel de control';
+    // el sales manager ve «Mi equipo»: para él es su panel, no el de la empresa
+    nuevaCabecera.textContent = soloManager ? 'Mi equipo' : 'Panel de control';
     nuevoGrupo.appendChild(nuevaCabecera);
     nuevoGrupo.appendChild(ancla);                // appendChild MUEVE Usuarios: sale de "Base de Datos"
 
-    PANEL_CONTROL.concat(esSuperSesion(ficha) ? PANEL_CONTROL_SUPER : []).forEach(function (spec) {
+    PANEL_CONTROL.concat(esSuperSesion(ficha) ? PANEL_CONTROL_SUPER : []).filter(function (spec) {
+      return !soloManager || PANEL_MANAGER.indexOf(spec.path) !== -1;
+    }).forEach(function (spec) {
       var a = ancla.cloneNode(true);              // clon de "Usuarios": hereda las clases exactas
       a.setAttribute('data-path', spec.path);
       a.removeAttribute('aria-current');
