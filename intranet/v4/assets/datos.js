@@ -296,13 +296,18 @@
      pero en /obra/ el hueco YA existe: 18-sep-2026). Un item sin `url` cae al
      `verUrl` común — todas las filas de obra abren la misma herramienta real,
      no una ficha por unidad, así que no hace falta una URL por fila. */
-  function pintaListaObra(clave, items, vacio, verUrl) {
+  function pintaListaObra(clave, items, vacio, verUrl, urls) {
     var cont = document.querySelector('[data-lw-lista="' + clave + '"]'); if (!cont) return;
     cont.innerHTML = items.length ? items.join('')
       : '<p style="font:400 13px \'Neue Kabel\',sans-serif;color:#8A8474;margin:2px 0">' + esc(vacio) + '</p>';
-    if (verUrl) {
+    /* `urls[i]` (S16, 23-sep-2026): una URL por fila cuando la herramienta
+       viva sabe abrir esa unidad concreta (`/intranet/obra/?id=`); si no,
+       el `verUrl` común de siempre. */
+    if (verUrl || urls) {
       var its = cont.querySelectorAll('[data-mq-item]');
-      for (var i = 0; i < its.length; i++) its[i].addEventListener('click', function () { location.href = verUrl; });
+      for (var i = 0; i < its.length; i++) (function (el, u) {
+        if (u) el.addEventListener('click', function () { location.href = u; });
+      })(its[i], (urls && urls[i]) || verUrl);
     }
   }
   function panelReal(titulo, items, urls, vacio, verMasUrl) {
@@ -4791,15 +4796,25 @@
          ningún parte — el mismo fallo, ya cazado dos veces en esta suite, de
          agrupar por la fila que todavía no existe. */
       Promise.all([
-        q(sb.from('unidades_estado').select('codigo,proyecto,modelo,estado,obra_fase,obra_fecha_entrega,obra_actualizado,comprador_nombre').not('obra_fase', 'is', null).order('obra_actualizado', { ascending: false }).limit(60), 'unidades en obra'),
+        /* SIN `limit` (S16, 23-sep-2026): el 60 de antes dejaba unidades con
+           fase fuera sin decirlo — mismo fallo que ya se quitó en Soporte y
+           Comisiones. `id` para abrir ESA unidad en la viva; contrato y fotos
+           son columnas que la viva enseña y aquí faltaban. */
+        q(sb.from('unidades_estado').select('id,codigo,proyecto,modelo,estado,contrato_numero,obra_fase,obra_fecha_entrega,obra_actualizado,comprador_nombre').not('obra_fase', 'is', null).order('obra_actualizado', { ascending: false }), 'unidades en obra'),
         q(sb.from('proyectos').select('id,nombre,estado').order('nombre'), 'proyectos'),
         cnt(sb, 'unidades_estado', function (qq) { return qq.not('obra_fecha_entrega', 'is', null); }),
         cnt(sb, 'obra_partes_trabajo'),
         q(sb.from('obra_partes_trabajo').select('fase_masterplan,zona_masterplan,fase_anterior,fase_nueva,fecha,autor,nota,dias_offset,proyecto_id').order('creado_en', { ascending: false }).limit(6), 'últimos partes de trabajo'),
-        q(sb.from('obra_fases').select('clave,es').order('orden'), 'fases de obra')
+        q(sb.from('obra_fases').select('clave,es').order('orden'), 'fases de obra'),
+        // solo la columna para contar: las fotos se ven y se gestionan en la viva
+        q(sb.from('obra_fotos').select('unidad_id'), 'fotos de obra')
       ]).then(function (r) {
         var us = r[0], proys = r[1] || [], nEntregas = r[2], nPartes = r[3], ultimosPartes = r[4], fases = r[5];
         if (us == null) return;
+        // null = la consulta de fotos falló (ya avisada por q()): «? fotos», nunca un 0 que miente
+        var nFotos = r[6] == null ? null : {};
+        (r[6] || []).forEach(function (f) { nFotos[f.unidad_id] = (nFotos[f.unidad_id] || 0) + 1; });
+        var urlUnidad = function (u) { return '/intranet/obra/?id=' + encodeURIComponent(u.id); };
 
         var enConstruccion = proys.filter(function (p) { return p.estado === 'en_construccion'; });
         pon2('k-po', String(enConstruccion.length));
@@ -4831,14 +4846,19 @@
         }
 
         pintaListaObra('unidades-obra', us.map(function (u) {
+          var nf = nFotos == null ? null : (nFotos[u.id] || 0);
           return itemPanel(esc(u.codigo) + ' · ' + esc(u.proyecto || '—'),
-            esc(u.modelo || '—') + ' · ' + esc(u.comprador_nombre || 'sin comprador') + ' · entrega ' + fFecha(u.obra_fecha_entrega),
+            esc(u.modelo || '—') + ' · ' +
+            (u.contrato_numero ? esc(u.contrato_numero) + ' · ' + esc(u.comprador_nombre || 'sin comprador') : 'sin contrato') +
+            ' · ' + (nf == null ? '? fotos' : nf === 1 ? '1 foto' : nf + ' fotos') +
+            ' · entrega ' + (u.obra_fecha_entrega ? fFecha(u.obra_fecha_entrega) : 'sin fecha') +
+            ' · actualizado ' + (u.obra_actualizado ? fFecha(u.obra_actualizado) : '—'),
             esc(nombreFase[u.obra_fase] || u.obra_fase || '—'));
-        }), 'Ninguna unidad con fase de obra abierta todavía. Se abre una desde «Registrar avance técnico».', '/intranet/obra/');
+        }), 'Ninguna unidad con fase de obra abierta todavía. Se abre una desde «Registrar avance técnico».', '/intranet/obra/', us.map(urlUnidad));
 
         pintaListaObra('proximas-entregas', conFecha.slice(0, 5).map(function (u) {
           return itemPanel(esc(u.codigo) + ' · ' + esc(u.proyecto || '—'), fFecha(u.obra_fecha_entrega), '');
-        }), 'Ninguna unidad con fecha de entrega futura.', '/intranet/obra/');
+        }), 'Ninguna unidad con fecha de entrega futura.', '/intranet/obra/', conFecha.slice(0, 5).map(urlUnidad));
 
         pintaListaObra('partes-trabajo', (ultimosPartes || []).map(function (p) {
           // itemPanel mete lo que se le da en innerHTML sin escapar: todo lo
@@ -5206,30 +5226,59 @@
           (deHilo[k] = deHilo[k] || []).push(x);
         });
 
+        /* Estados: el CHECK de `hilo_soporte.estado` solo admite 'abierto' y
+           'resuelto' (verificado en la base el 23-sep-2026). El chip y la KPI
+           «En espera» del diseño contaban un estado que la base no puede
+           guardar — siempre 0 — y se retiraron (S16). La KPI pasa a
+           compradores distintos con algún ticket abierto: uno puede tener
+           varios a la vez, así que no es lo mismo que «Abiertos». */
         var abiertos = hs.filter(function (h) { return h.estado === 'abierto'; });
-        var espera = hs.filter(function (h) { return /espera/.test(h.estado || ''); });
+        var resueltos = hs.filter(function (h) { return h.estado === 'resuelto'; });
         pon2('k-abiertos', String(abiertos.length));
         pon2('k-abiertos-pie', 'de ' + hs.length + ' hilos en total');
-        /* Las tres tarjetas del diseño («Tiempo medio de respuesta», «Canal
-           WhatsApp», «Satisfacción») median cosas que la suite no guarda y se
-           quedaban en «—» con una banda explicándolo. Se cambian por tres que sí
-           salen de la base (19-sep-2026): en espera, sin responder y resueltos. */
-        var resueltos = hs.filter(function (h) { return /resuelt|cerrad/.test(h.estado || ''); });
+        var compAb = {}; abiertos.forEach(function (h) { compAb[h.client_id] = 1; });
+        var nComp = Object.keys(compAb).length;
         var sinResp = hs.filter(function (h) {
           var u = ultimo[h.id] || ultimo[h.client_id];
           return h.estado === 'abierto' && u && u.de !== 'equipo';   // el último mensaje lo escribió el comprador
         });
-        pon2('k-espera', String(espera.length));
-        pon2('k-espera-pie', espera.length ? 'marcados en espera de un tercero' : 'ningún hilo en espera');
+        pon2('k-compradores', String(nComp));
+        pon2('k-compradores-pie', nComp ? 'un comprador puede tener varios tickets a la vez' : 'ningún comprador tiene un ticket abierto');
         pon2('k-sinresp', String(sinResp.length));
         pon2('k-sinresp-pie', sinResp.length ? 'abiertos cuyo último mensaje es del comprador' : 'ningún hilo abierto espera respuesta del equipo');
         pon2('k-resueltos', String(resueltos.length));
         pon2('k-resueltos-pie', 'de ' + hs.length + ' hilos en total');
         pon2('c-todos', 'Todos (' + hs.length + ')');
         pon2('c-abiertos', 'Abiertos (' + abiertos.length + ')');
-        pon2('c-espera', 'En espera (' + espera.length + ')');
         pon2('c-resueltos', 'Resueltos (' + resueltos.length + ')');
         pon2('n-hilos', abiertos.length + ' activos');
+
+        /* --- el ticket elegido, ANTES de pintar la bandeja: decide el chip de
+           arranque ---
+           · ?hilo=<id>: el clic de una fila de esta misma pantalla.
+           · ?id=<client_id>: lo que mandan los avisos por email al equipo
+             (igual que la viva). Un comprador puede tener varios tickets: se
+             abre el más reciente (`hs` viene por actualizado_en DESC — casi
+             seguro el que disparó el aviso) y la bandeja se filtra por su
+             nombre para que se vean también los demás.
+           · sin nada: el abierto más reciente; si no hay abiertos, el último. */
+        // «el más reciente» no puede colgar del orden en que llegue la consulta
+        hs.sort(function (a, b) { var x = a.actualizado_en || '', y = b.actualizado_en || ''; return x < y ? 1 : x > y ? -1 : 0; });
+        abiertos = hs.filter(function (h) { return h.estado === 'abierto'; });
+        var params = new URLSearchParams(location.search);
+        var pedido = params.get('hilo'), pedidoCli = params.get('id');
+        var el = null, buscaCli = '';
+        if (pedido) el = hs.filter(function (h) { return String(h.id) === pedido; })[0] || null;
+        if (!el && pedidoCli) {
+          el = hs.filter(function (h) { return String(h.client_id) === pedidoCli; })[0] || null;
+          if (el) buscaCli = (cli[el.client_id] || {}).full_name || '';
+          else toast('Ese comprador no tiene ningún ticket de soporte.');
+        }
+        if (!el) el = abiertos[0] || hs[0];
+        /* Arranca en «Abiertos», como la viva. La única excepción: un ticket
+           PEDIDO por URL que ya está resuelto — en «Abiertos» su propia fila
+           no saldría en la bandeja y parecería que el enlace no funciona. */
+        var estadoF = (el && el.estado !== 'abierto' && (pedido || pedidoCli)) ? 'todos' : 'abiertos';
 
         var lista = document.getElementById('lista-hilos');
         if (!lista || !lista.firstElementChild) { console.info('[v4] soporte: sin molde'); return; }
@@ -5251,45 +5300,80 @@
           pon3('t-quien', u ? (u.de === 'equipo' ? 'Equipo' : 'Comprador') : '—');
           pon3('t-fecha', fFecha(h.actualizado_en));
           f.setAttribute('data-estado-hilo', h.estado || '');
+          f.setAttribute('data-ts', h.actualizado_en || '');
+          f.setAttribute('data-nombre', c.full_name || '');
+          f.setAttribute('data-cat', h.categoria || '');
           f.setAttribute('data-lw-pajar', [c.full_name, c.email, h.categoria, u && u.texto].join(' ').toLowerCase());
           f.style.cursor = 'pointer';
           f.addEventListener('click', function () { location.search = '?hilo=' + encodeURIComponent(h.id); });
           lista.appendChild(f);
         });
+        var vacioF = null;
+        if (hs.length) {
+          vacioF = document.createElement('p');
+          vacioF.style.cssText = 'font:500 13px/1.5 sans-serif;color:#75786e;margin:0;padding:6px 2px;display:none';
+          vacioF.textContent = 'Nada que enseñar con este filtro.';
+          lista.appendChild(vacioF);
+        }
 
-        // buscador vivo sobre la bandeja (nombre, email, categoría y último mensaje)
+        /* Chip de estado + buscador + orden en UNA sola pasada. Antes eran dos
+           listeners sueltos y el buscador volvía a enseñar filas que el chip
+           había escondido (salían resueltos estando en «Abiertos»). El orden
+           es el de la viva (comprador, categoría, estado, cuándo), con «más
+           recientes» de arranque y de desempate. */
         var inpS = document.querySelector('main input[placeholder^="Buscar"]');
-        if (inpS) inpS.addEventListener('input', function () {
-          var v = inpS.value.trim().toLowerCase();
-          Array.prototype.forEach.call(lista.querySelectorAll('[data-estado-hilo]'), function (x) {
-            x.style.display = (!v || (x.getAttribute('data-lw-pajar') || '').indexOf(v) !== -1) ? '' : 'none';
+        var selOrden = document.querySelector('[data-lw="orden-hilos"]');
+        if (inpS && buscaCli) inpS.value = buscaCli;
+        function aplicarSoporte() {
+          var v = inpS ? inpS.value.trim().toLowerCase() : '';
+          var modo = selOrden ? selOrden.value : 'reciente';
+          var filas = Array.prototype.slice.call(lista.querySelectorAll('[data-estado-hilo]'));
+          filas.sort(function (a, b) {
+            var A = a.dataset, B = b.dataset, r = 0;
+            if (modo === 'antiguo') return A.ts < B.ts ? -1 : A.ts > B.ts ? 1 : 0;
+            if (modo === 'nombre') r = (A.nombre || '').localeCompare(B.nombre || '', 'es', { sensitivity: 'base' });
+            else if (modo === 'categoria') r = (A.cat || '').localeCompare(B.cat || '', 'es', { sensitivity: 'base' });
+            else if (modo === 'estado' && A.estadoHilo !== B.estadoHilo) r = A.estadoHilo === 'abierto' ? -1 : 1;
+            return r || (A.ts < B.ts ? 1 : A.ts > B.ts ? -1 : 0);
           });
-        });
-        var chipsSoporte = ['todos', 'abiertos', 'espera', 'resueltos'].map(function (k) {
+          var vistas = 0;
+          filas.forEach(function (f) {
+            var e = f.getAttribute('data-estado-hilo') || '';
+            var okE = estadoF === 'todos' || (estadoF === 'abiertos' ? e === 'abierto' : e === 'resuelto');
+            var okQ = !v || (f.getAttribute('data-lw-pajar') || '').indexOf(v) !== -1;
+            f.style.display = (okE && okQ) ? '' : 'none';
+            if (okE && okQ) vistas++;
+            lista.insertBefore(f, vacioF);
+          });
+          if (vacioF) vacioF.style.display = vistas ? 'none' : '';
+        }
+        var chipsSoporte = ['abiertos', 'resueltos', 'todos'].map(function (k) {
           var sp = document.querySelector('[data-lw="c-' + k + '"]'); var b = sp && sp.closest('button');
           if (b) b.setAttribute('data-chip-clave', k);
           return b;
         }).filter(Boolean);
-        cablearChipsFiltro(chipsSoporte, lista, '[data-estado-hilo]',
-          function (btn) { return btn.getAttribute('data-chip-clave'); },
-          'todos',
-          function (fila, clave) {
-            var e = fila.getAttribute('data-estado-hilo') || '';
-            return clave === 'abiertos' ? e === 'abierto' : clave === 'resueltos' ? /resuelt|cerrad/.test(e) : /espera/.test(e);
-          },
-          function (btn, on) {
-            btn.classList.toggle('bg-primary', on);
-            btn.classList.toggle('text-on-primary', on);
-            btn.classList.toggle('font-semibold', on);
-            btn.classList.toggle('bg-surface-container-low', !on);
-            btn.classList.toggle('text-on-surface-variant', !on);
-            btn.classList.toggle('hover:bg-surface-container-high', !on);
-            btn.classList.toggle('transition-colors', !on);
+        function pintaChip(btn, on) {
+          btn.classList.toggle('bg-primary', on);
+          btn.classList.toggle('text-on-primary', on);
+          btn.classList.toggle('font-semibold', on);
+          btn.classList.toggle('bg-surface-container-low', !on);
+          btn.classList.toggle('text-on-surface-variant', !on);
+          btn.classList.toggle('hover:bg-surface-container-high', !on);
+          btn.classList.toggle('transition-colors', !on);
+        }
+        chipsSoporte.forEach(function (btn) {
+          pintaChip(btn, btn.getAttribute('data-chip-clave') === estadoF);
+          btn.addEventListener('click', function (ev) {
+            ev.stopPropagation();   // si no, maqueta.js la ve pasar y avisa «sin cablear»
+            estadoF = btn.getAttribute('data-chip-clave');
+            chipsSoporte.forEach(function (b) { pintaChip(b, b === btn); });
+            aplicarSoporte();
           });
+        });
+        if (inpS) inpS.addEventListener('input', aplicarSoporte);
+        if (selOrden) selOrden.addEventListener('change', aplicarSoporte);
+        aplicarSoporte();
 
-        /* --- el hilo elegido: ?hilo= o el mas reciente --- */
-        var pedido = new URLSearchParams(location.search).get('hilo');
-        var el = hs.filter(function (h) { return String(h.id) === pedido; })[0] || hs[0];
         if (!el) return;
         var c = cli[el.client_id] || {};
         window.LW_V4 = window.LW_V4 || {}; window.LW_V4.hilo = el; window.LW_V4.hiloCliente = c;

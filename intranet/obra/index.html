@@ -408,6 +408,11 @@ suiOrdenable($('#tabla'), ORDEN, valorDe, pintarTabla);
 window.LW_AUTH.then(async ({ sb, session }) => {
   SB = sb;
   await cargar();
+  /* ?id=<unidad> (23-sep-2026): lo manda la v4 al pulsar una unidad en obra —
+     abre su ficha directamente, igual que ?id= en Soporte. Una unidad que no
+     está en la lista (borrada o sin permiso) no abre nada, sin error. */
+  const pedida = new URLSearchParams(location.search).get('id');
+  if(pedida && UNIDADES.some(x => x.id === pedida)) abrir(pedida);
 });
 </script>
 </body>
