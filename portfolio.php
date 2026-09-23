@@ -23,6 +23,8 @@
 require __DIR__ . '/modelo/datos.php';
 $MODELOS = require __DIR__ . '/modelo/modelos.php';
 $CAT = lw_au_catalogo();
+// Escalera (23-sep, owner): de la villa mas pequena a la mas grande, de izquierda a derecha.
+uasort($CAT, function ($a, $b) { return ($a['villa_m2'] + $a['terraza_m2']) <=> ($b['villa_m2'] + $b['terraza_m2']); });
 
 $WA_LINK = 'https://wa.me/6281138319862?text=' . rawurlencode("Hi LAWANG, I'm looking at your villa models and I'd like to know more.");
 $SITE = 'https://lawangproperties.com';
@@ -117,10 +119,23 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--tg);outline-offset:
 .pf-hero p{max-width:40rem;margin:clamp(18px,2vw,26px) auto 0;font-size:15px;line-height:1.6;color:#5d625a}
 
 /* ── Rejilla de modelos: tarjetas .lw-prop de la home ── */
-/* Flex centrado y no grid: con 5 modelos, la ultima fila (2) queda centrada en vez de dejar un
-   hueco a la derecha. */
-.pf-grid{max-width:1280px;margin:0 auto;padding:0 var(--gut) clamp(64px,8vw,110px);display:flex;flex-wrap:wrap;justify-content:center;gap:22px}
-.pf-grid .lw-prop{flex:0 1 360px;min-width:min(100%,290px)}
+/* ESCALERA (23-sep, owner: «5 tarjetas formando una escalera, que crezcan a la derecha y no
+   hacia abajo»): UNA fila, de la villa mas pequena a la mas grande, y cada tarjeta un escalon
+   (--paso) mas arriba que la anterior. La fila no se parte nunca: por debajo de 1200px se
+   desliza de lado (scroll-snap) manteniendo los escalones. */
+.pf-grid{--paso:clamp(28px,3.4vw,52px);max-width:1440px;margin:0 auto;padding:calc(var(--paso) * 4) var(--gut) clamp(64px,8vw,110px);
+  display:flex;align-items:flex-start;gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+.pf-grid::-webkit-scrollbar{display:none}
+.pf-grid .lw-prop{flex:1 0 250px;min-width:0;scroll-snap-align:start;margin-top:calc(var(--paso) * (4 - var(--i)) - var(--paso) * 4)}
+.pf-grid .lw-prop:hover{transform:translateY(-6px)}
+/* Tarjeta estrecha: precio arriba y «View model» debajo, en vez de lado a lado. */
+.pf-grid .lw-prop-foot{flex-direction:column;align-items:flex-start;gap:6px}
+.pf-grid .lw-prop-price{font-size:25px}
+.pf-grid .lw-prop-title{font-size:25px}
+.pf-grid .lw-prop-meta{font-size:12.5px}
+.pf-grid .lw-prop > a{height:600px}
+.pf-paso{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.2em;color:var(--sc);margin-bottom:2px}
+@media(max-width:1199px){ .pf-grid{justify-content:flex-start;scroll-padding-inline:var(--gut)} .pf-grid .lw-prop{flex:0 0 min(78vw,300px)} }
 .pf-grid .lw-prop-loc{display:flex;align-items:center;gap:8px}
 .pf-grid .lw-prop-foot{justify-content:space-between;gap:12px}
 .pf-view{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--tg);
@@ -128,7 +143,6 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--tg);outline-offset:
 .lw-prop:hover .pf-view{gap:10px}
 .pf-sinrender{position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:rgba(245,240,230,.85);
   font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase}
-@media(max-width:560px){ .lw-prop > a{height:auto} .lw-prop-media{flex-basis:240px} }
 @media(prefers-reduced-motion:reduce){ .lw-prop,.lw-prop-img,.pf-view{transition:none!important} }
 </style>
 </head>
@@ -158,7 +172,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--tg);outline-offset:
   </section>
 
   <section class="pf-grid" aria-label="Villa models">
-<?php foreach ($CAT as $id => $v):
+<?php $i = 0; foreach ($CAT as $id => $v):
     // Mismas reglas que /modelo (revision previa de Marketing, 23-sep): solo los modelos que
     // /modelo/<id> sirve de verdad (lw_modelo_get: con fotos o con renders_pendientes) y el
     // «desde» con lw_modelo_precio_desde (mismo corte de 2027) — nunca una regla paralela.
@@ -167,8 +181,9 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--tg);outline-offset:
     $sub  = $m['sub_en'] ?? ($m['sub'] ?? '');
     $href = '/' . lw_modelo_url_path($id);
     $precio = lw_precio_fmt(lw_modelo_precio_desde($m));
+    $i++;
 ?>
-    <article class="lw-prop">
+    <article class="lw-prop" style="--i:<?= $i - 1 ?>">
       <a href="<?= lw_e($href) ?>">
         <div class="lw-prop-media ph-jungle">
 <?php if (!empty($v['thumb'])): ?>
