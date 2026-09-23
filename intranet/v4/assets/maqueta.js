@@ -257,7 +257,13 @@
           var b = document.createElement('button');
           b.type = 'button'; b.className = 'lw-burger'; b.setAttribute('aria-label', 'Menú');
           b.innerHTML = '<span class="material-symbols-outlined">menu</span>';
-          b.addEventListener('click', function (ev) { ev.stopPropagation(); document.body.classList.toggle('v4-nav-abierta'); });
+          // Escritorio: solo se ve con la sidebar plegada y la despliega.
+          // Móvil: abre/cierra el cajón. Mismo corte de 1024px que maneja().
+          b.addEventListener('click', function (ev) {
+            ev.stopPropagation();
+            if (window.innerWidth >= 1024) document.body.classList.remove('v4-nav-plegada');
+            else document.body.classList.toggle('v4-nav-abierta');
+          });
           izq.insertBefore(b, izq.firstChild);
         }
         break;

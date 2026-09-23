@@ -5,8 +5,8 @@
 <script src="/contracts/assets/dinero.js?v=a442e362" defer></script><script src="/intranet/facturas/totales.js" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=c76d3606" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1" defer></script><script src="/contracts/assets/proyectos_csv.js?v=e610515a" defer></script><script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="../assets/datos.js?v=49afbd74" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=e97ddd19" defer></script>
-<link href="../assets/shell.css?v=cadfe619" rel="stylesheet">
-<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/editores.js?v=b0c10584" defer></script><script src="../assets/maqueta.js?v=b51f4a9a" defer></script>
+<link href="../assets/shell.css?v=51dd07bb" rel="stylesheet">
+<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/editores.js?v=b0c10584" defer></script><script src="../assets/maqueta.js?v=9103cc35" defer></script>
 <!-- Fotos del Investor Deck (S10.2, 22-sep-2026): pieza COMPARTIDA de la suite
      (Regla 0, contexto/suite_lawang.md) — la usan /proyectos/ y /modelos/
      clásicos, aquí solo se engancha, nunca se reescribe. Depende de
@@ -236,7 +236,21 @@
             "body-lg": ["Neue Kabel", "sans-serif"],
             "headline-md": ["Neue Kabel", "sans-serif"],
             "label-md": ["Neue Kabel", "sans-serif"]
-          }
+          },
+          /* fontSize y spacing: los mismos de las otras 22 pantallas. Faltaban
+             aquí (23-sep-2026) y la sidebar y la topbar —mismo marcado que en
+             el resto— caían a 16px/400 y sin margen: "otro menú" en Proyectos. */
+          fontSize: {
+            "kpi-number": ["36px", {lineHeight: "40px", fontWeight: "600"}],
+            "label-md": ["14px", {lineHeight: "20px", fontWeight: "600"}],
+            "headline-lg": ["40px", {lineHeight: "48px", fontWeight: "600"}],
+            "headline-sm": ["24px", {lineHeight: "32px", fontWeight: "600"}],
+            "body-lg": ["18px", {lineHeight: "28px", fontWeight: "500"}],
+            "body-md": ["15px", {lineHeight: "24px", fontWeight: "500"}],
+            "headline-md": ["32px", {lineHeight: "40px", fontWeight: "600"}],
+            "body-sm": ["13px", {lineHeight: "20px", fontWeight: "500"}]
+          },
+          spacing: {"gutter": "24px", "margin-desktop": "48px", "margin-mobile": "16px", "element-gap": "16px"}
         }
       }
     }
