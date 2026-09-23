@@ -578,29 +578,43 @@
         '<span class="material-symbols-outlined" style="font-size:15px">' + t.icono + '</span>' + n + ' ' + esc(texto) + '</span>' : '';
     };
     var resumen = (nMal || nAt || nNuevos)
-      ? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">' +
+      ? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px">' +
           chip(nMal, nMal === 1 ? 'vencido o caducado' : 'vencidos o caducados', TONOS_AVISO.mal) +
           chip(nAt, 'por vencer', TONOS_AVISO.atencion) +
           chip(nNuevos, nNuevos === 1 ? 'novedad' : 'novedades', TONOS_AVISO.info) + '</div>'
       : '';
+    /* COMPACTA (23-sep-2026, owner: «tengo que hacer mucho scroll y las
+       tarjetas tienen el 70% del espacio vacío»): dos líneas en vez de
+       cuatro. Arriba, el título con la fecha corta a la derecha; abajo, la
+       etiqueta de color, «Nuevo» y el detalle, que se recorta con «…» si no
+       cabe (entero en el title al pasar el ratón). */
+    var hoyAnio = new Date().getFullYear();
+    var fechaCorta = function (x) {
+      if (!x) return '';
+      var d = new Date(String(x).length === 10 ? x + 'T00:00:00' : x);
+      if (isNaN(d)) return String(x).slice(0, 10);
+      return d.toLocaleDateString('es-ES', d.getFullYear() === hoyAnio ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' });
+    };
     var tarjeta = function (a) {
       var t = TONOS_AVISO[a.nivel] || TONOS_AVISO.neutro;
       var fondo = (a.clase === 'alerta' || a.nuevo) ? t.fondo : '#FFFFFF';
-      return '<a href="' + esc(aV4(a.enlace)) + '" style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;border:1px solid #E4DCCB;border-left:4px solid ' + t.borde + ';background:' + fondo + ';color:#1b1c19;text-decoration:none">' +
-        '<span class="material-symbols-outlined" style="font-size:19px;color:' + t.borde + ';margin-top:1px">' + t.icono + '</span>' +
+      return '<a href="' + esc(aV4(a.enlace)) + '" title="' + esc(a.titulo + (a.detalle ? ' — ' + a.detalle : '')) + '" style="display:flex;gap:8px;align-items:flex-start;padding:7px 10px;border-radius:8px;border:1px solid #E4DCCB;border-left:3px solid ' + t.borde + ';background:' + fondo + ';color:#1b1c19;text-decoration:none">' +
+        '<span class="material-symbols-outlined" style="font-size:17px;color:' + t.borde + ';margin-top:1px">' + t.icono + '</span>' +
         '<span style="flex:1;min-width:0">' +
-          '<span style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:3px">' +
-            '<span style="padding:1px 8px;border-radius:999px;background:' + t.pill + ';color:' + t.tinta + ';font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase">' + esc(a.etiqueta || 'Aviso') + '</span>' +
-            (a.nuevo && a.clase !== 'alerta' ? '<span style="padding:1px 8px;border-radius:999px;background:#104C4F;color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase">Nuevo</span>' : '') +
+          '<span style="display:flex;align-items:baseline;gap:8px">' +
+            '<span style="flex:1;min-width:0;font-weight:' + (a.nuevo || a.clase === 'alerta' ? '700' : '500') + ';font-size:13px;line-height:1.3;overflow-wrap:anywhere">' + esc(a.titulo) + '</span>' +
+            '<span style="flex:none;font-size:11px;color:#8A8474;white-space:nowrap">' + esc(fechaCorta(a.cuando)) + '</span>' +
           '</span>' +
-          '<span style="display:block;font-weight:' + (a.nuevo || a.clase === 'alerta' ? '700' : '500') + ';font-size:13px">' + esc(a.titulo) + '</span>' +
-          (a.detalle ? '<span style="display:block;font-size:12px;color:#44483f;margin-top:2px">' + esc(a.detalle) + '</span>' : '') +
-          '<span style="display:block;font-size:11px;color:#8A8474;margin-top:4px">' + esc(fFecha(a.cuando)) + '</span>' +
+          '<span style="display:flex;align-items:center;gap:6px;margin-top:3px;min-width:0">' +
+            '<span style="flex:none;padding:0 7px;border-radius:999px;background:' + t.pill + ';color:' + t.tinta + ';font-size:10px;line-height:17px;font-weight:700;letter-spacing:.04em;text-transform:uppercase">' + esc(a.etiqueta || 'Aviso') + '</span>' +
+            (a.nuevo && a.clase !== 'alerta' ? '<span style="flex:none;padding:0 7px;border-radius:999px;background:#104C4F;color:#fff;font-size:10px;line-height:17px;font-weight:700;letter-spacing:.04em;text-transform:uppercase">Nuevo</span>' : '') +
+            (a.detalle ? '<span style="flex:1;min-width:0;font-size:11.5px;color:#44483f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(a.detalle) + '</span>' : '') +
+          '</span>' +
         '</span></a>';
     };
     var bloque = function (titulo, lista) {
-      return lista.length ? '<h4 style="margin:14px 0 8px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#75786e">' + esc(titulo) + ' (' + lista.length + ')</h4>' +
-        '<div style="display:grid;gap:8px">' + lista.map(tarjeta).join('') + '</div>' : '';
+      return lista.length ? '<h4 style="margin:12px 0 6px;font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#75786e">' + esc(titulo) + ' (' + lista.length + ')</h4>' +
+        '<div style="display:grid;gap:5px">' + lista.map(tarjeta).join('') + '</div>' : '';
     };
     return resumen + bloque('Requiere atención', alertas) + bloque('Actividad reciente', hechos);
   }
@@ -642,7 +656,8 @@
         if (!out) cuerpo = H.nota('No se pudieron cargar los avisos. Prueba a recargar la página.');
         else if (!out.avisos.length) cuerpo = notaFallo + '<p style="margin:0;font-size:13px;color:#8A8474">Nada nuevo.</p>';
         else cuerpo = notaFallo + pintaAvisos(out.avisos, aV4);
-        window.lwCajon({ titulo: 'Avisos', sub: 'Lo que ha pasado y lo que vence en los próximos 15 días.', cuerpo: cuerpo });
+        // estrecho a propósito: es una lista de avisos, no una ficha con tablas
+        window.lwCajon({ titulo: 'Avisos', sub: 'Lo que ha pasado y lo que vence en los próximos 15 días.', cuerpo: cuerpo, ancho: 'min(460px,96vw)' });
       };
       // abrir = dar los hechos por vistos (las alertas de ≤5 días siguen contando, como en la viva)
       if (ULTIMO && ULTIMO.sinLeer) {
