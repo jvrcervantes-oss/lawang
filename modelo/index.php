@@ -942,11 +942,15 @@ foreach ($incluido as $it):
 <p class="i-en">First a reservation contract on the plot. Then the PPJB — the Indonesian sale contract — and the construction contract. All three are the developer's own documents and are reviewed before signing.</p>
 </div>
 </details>
+<!-- «Who builds it?» reescrita el 23-sep-2026 (owner: «no queda claro así»; revisada por Legal
+     ese mismo día). Sin nombrar a la sociedad: la firmante varía por contrato (Tepi Sun Gai por
+     defecto, SAN DAL WOODS en la reserva de Palm Field), de ahí «a Lawang company», no «the».
+     La identificación del responsable vive en /legal y en el propio contrato. -->
 <details class="faq-item">
 <summary><span><?= lw_i18n('¿Quién construye?', 'Who builds it?') ?></span><span class="material-symbols-outlined mi text-on-surface-variant text-[20px]">expand_more</span></summary>
 <div class="faq-item__body">
-<p class="i-es">Lawang Tropical Properties, a través de la sociedad indonesia PT Tepi Sun Gai. En la llamada te enseñamos obras entregadas y las que están en marcha ahora mismo.</p>
-<p class="i-en">Lawang Tropical Properties, through the Indonesian company PT Tepi Sun Gai. On the call we show you delivered projects and the ones underway right now.</p>
+<p class="i-es">Lawang construye tu villa. El contrato de construcción se firma con una sociedad de Lawang registrada en Indonesia; su denominación legal completa y sus datos registrales figuran en el contrato, que revisas antes de firmar. En la llamada te enseñamos obras entregadas y las que están en marcha ahora mismo.</p>
+<p class="i-en">Lawang builds your villa. The construction contract is signed with a Lawang company registered in Indonesia; its full legal name and registration details are written in the contract, which you review before signing. On the call we show you delivered projects and the ones underway right now.</p>
 </div>
 </details>
 </div>
