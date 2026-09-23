@@ -83,8 +83,13 @@ const LW_DECIMALES = { EUR:2, USD:2, AUD:2, IDR:0 };
 
 /* Importe a texto para enseñarlo. Devuelve SIEMPRE con su moneda detrás: un
    número suelto en esta suite no significa nada, porque se opera en cuatro. */
-function lwFormatoImporte(n, moneda){
-  const d = LW_DECIMALES[moneda] != null ? LW_DECIMALES[moneda] : 2;
+/* `opts.decimales` (23-sep-2026, owner en /v4/proyectos/: «quita decimales, son
+   irrelevantes aquí»): una pantalla de RESUMEN de cartera puede pedir 0 sin
+   copiarse su propio formateador. Sin `opts` no cambia nada: un documento
+   (factura, recibí, contrato) sigue saliendo con los céntimos de su moneda. */
+function lwFormatoImporte(n, moneda, opts){
+  const d = (opts && opts.decimales != null) ? opts.decimales
+          : (LW_DECIMALES[moneda] != null ? LW_DECIMALES[moneda] : 2);
   return new Intl.NumberFormat('de-DE', { minimumFractionDigits:d, maximumFractionDigits:d })
     .format(Number(n) || 0) + (moneda ? ' ' + moneda : '');
 }

@@ -3554,6 +3554,20 @@
     proyectos: function (sb) {
       var $ = function (k, raiz) { return (raiz || document).querySelector('[data-lw="' + k + '"]'); };
       var pon = function (k, v, raiz) { var e = $(k, raiz); if (e) e.textContent = v; };
+      /* SIN DECIMALES en toda esta pantalla (23-sep-2026, owner: «quita
+         decimales, son irrelevantes aquí, en todos lados»). Es un resumen de
+         cartera, no un documento: los céntimos de 4 millones son ruido. Se
+         tapan `fmt` y `fmtConEstimado` SOLO dentro de este módulo — el resto
+         de la v4 (facturas, recibos…) sigue con los céntimos de su moneda — y
+         el redondeo lo hace lwFormatoImporte (dinero.js), no un formateador
+         nuevo. Los porcentajes, también enteros. La exportación CSV no pasa
+         por aquí: sigue con dos decimales porque es un dato para Excel. */
+      function fmt(n, m) { return (typeof lwFormatoImporte === 'function') ? lwFormatoImporte(n, m, { decimales: 0 }) : (Math.round(Number(n) || 0) + ' ' + (m || '')); }
+      function fmtConEstimado(n, moneda) {
+        if (n == null) return '—';
+        if ((moneda || 'EUR') === 'EUR') return fmt(n, 'EUR');
+        return fmt(n, moneda) + ' (≈ ' + fmt(estimaEUR(n), 'EUR') + ')';
+      }
       // Sin `vaciaKpis` aquí a propósito: en esta pantalla las cifras de Stitch
       // ya se borraron del PROPIO fichero (los `data-lw` nacen en «—»), así que
       // no hay nada que vaciar en caliente. Si la consulta falla, se queda el
@@ -3566,8 +3580,18 @@
          propio contador sin filtrar la rejilla). Ahora hay un único estado y
          un único render: cualquier control cambia el estado y llama a
          renderizar(), que es quien decide qué tarjetas tocan en esta página. */
-      var PAGE_SIZE = 9;
-      var EST = { q: '', chipP: 'todos', chipU: 'todas', pag: 1 };
+      // 24 por página (antes 9) y tarjetas compactas: 23-sep-2026, owner
+      // «quiero ver más proyectos». 24 llena filas enteras a 2, 3 y 4 columnas.
+      var PAGE_SIZE = 24;
+      /* `vista`: rejilla / tabla / carpetas (23-sep-2026). Se recuerda en la
+         sesión del navegador (sessionStorage, como la herramienta clásica):
+         quien trabaja en Tabla no quiere volver a elegirla en cada recarga,
+         pero al día siguiente se empieza por la rejilla. */
+      var CLAVE_VISTA = 'lawang_v4_proyectos_vista';
+      var VISTAS = ['rejilla', 'tabla', 'carpetas'];
+      var vistaGuardada = null;
+      try { vistaGuardada = sessionStorage.getItem(CLAVE_VISTA); } catch (_) {}
+      var EST = { q: '', chipP: 'todos', chipU: 'todas', pag: 1, vista: VISTAS.indexOf(vistaGuardada) !== -1 ? vistaGuardada : 'rejilla' };
       var PS = [], POR_P = {}, COB_P = {}, DOC_P = {}, EQUIPO_NOMBRE = {}, MGRS = [];
       // FAM_P: firmado/cobrado por proyecto y familia (parcela/obra). FIRM_P:
       // firmado combinado por proyecto (para la barra sencilla de la tarjeta).
@@ -3718,8 +3742,7 @@
         var d = POR_P[elegido.nombre] || { t: 0, cartera: 0 }, cob = COB_P[elegido.nombre] || 0;
         pon('d-cartera', fmt(d.cartera, 'EUR'));
         pon('d-cobrado', fmt(cob, 'EUR'));
-        pon('d-pendiente', fmt(d.cartera - cob, 'EUR'));
-        pon('d-pct', d.cartera ? '(' + (Math.round(cob / d.cartera * 1000) / 10) + '%)' : '(—)');
+        pon('d-pct', d.cartera ? '(' + Math.round(cob / d.cartera * 100) + '%)' : '(—)');
         // LAW-186: ver el porqué en el comentario de esMiProyecto() más arriba.
         // `vePropio` se calcula SIEMPRE, no solo si existe la nota — si dependiera
         // del `if` de abajo, un `notaAlcance` que no se encuentre (markup futuro
@@ -3763,7 +3786,7 @@
           var el = document.querySelector('[data-lw="d-umbral"]');
           if (!el) return;
           var llega = pct >= umbral;
-          el.textContent = pct.toFixed(1).replace('.0', '') + '% de ' + umbral + '%' +
+          el.textContent = Math.round(pct) + '% de ' + umbral + '%' +
             (llega ? ' · puede iniciar obra' : '');
           // Ámbar, no rojo: no llegar al umbral no es un error, es el estado
           // normal de un proyecto que todavía se está vendiendo.
@@ -3864,7 +3887,7 @@
           var elFir = document.querySelector('[data-barra="' + clave + '-firmado"]');
           if (elCob) elCob.style.width = cobPct + '%';
           if (elFir) elFir.style.width = Math.max(0, firmPct - cobPct) + '%';
-          pon('d-' + clave + '-pct', cartera ? (Math.round(firmPct * 10) / 10) + '% firmado' + (vePropio ? '' : ' (tuyo)') : 'sin cartera registrada');
+          pon('d-' + clave + '-pct', cartera ? Math.round(firmPct) + '% firmado' + (vePropio ? '' : ' (tuyo)') : 'sin cartera registrada');
           pon('d-' + clave + '-cifras', cartera
             ? 'Cobrado ' + fmt(datos.cobrado, 'EUR') + ' · Firmado ' + fmt(datos.firmado, 'EUR') + ' · Total ' + fmt(cartera, 'EUR')
             : '—');
@@ -3887,7 +3910,7 @@
           var elFirS = document.querySelector('[data-barra="simple-firmado"]');
           if (elCobS) elCobS.style.width = cobPctS + '%';
           if (elFirS) elFirS.style.width = Math.max(0, firmPctS - cobPctS) + '%';
-          pon('d-pct2', 'Recaudado ' + (d.cartera ? (Math.round(cob / d.cartera * 1000) / 10) : 0) + '%' + (vePropio ? '' : ' (tuyo)'));
+          pon('d-pct2', 'Recaudado ' + (d.cartera ? Math.round(cob / d.cartera * 100) : 0) + '%' + (vePropio ? '' : ' (tuyo)'));
           pon('d-objetivo', 'Cartera ' + fmt(d.cartera, 'EUR'));
         }
         var notaSin = document.getElementById('cajon-nota-sin-atribuir');
@@ -4261,9 +4284,123 @@
       // que hace la herramienta viva.
       window.LW_V4.equipoNombre = EQUIPO_NOMBRE;
 
+      /* Las cifras de UN proyecto tal y como las enseñan las tres vistas
+         (rejilla, tabla, carpetas). Un solo sitio que las calcula: si la tabla
+         las sacara por su cuenta, el día que cambie el criterio de la rejilla
+         las dos dirían cosas distintas del mismo proyecto. */
+      function cifrasProyecto(p) {
+        var d = POR_P[p.nombre] || { t: 0, disp: 0, vend: 0, cartera: 0, porEstado: {} };
+        var cob = COB_P[p.nombre] || 0;
+        var firmado = FIRM_P[p.nombre] || 0;
+        var cobPct = d.cartera ? Math.min(100, cob / d.cartera * 100) : 0;
+        var firmPct = d.cartera ? Math.min(100, firmado / d.cartera * 100) : 0;
+        return {
+          d: d, cob: cob, cobPct: cobPct, firmPct: firmPct,
+          pctTxt: d.cartera ? Math.round(cob / d.cartera * 100) + '% cobrado' + (esMiProyecto(p) ? '' : ' (tuyo)') : 'sin cartera',
+          badge: d.t === 0 ? 'Sin inventario' : (d.disp ? 'Con disponibles' : 'Todo asignado')
+        };
+      }
+      // Barra de dos colores (oscuro = cobrado, claro = firmado sin cobrar) en
+      // HTML, para las vistas que se pintan por cadena (tabla, carpetas).
+      function barraHtml(c, alto) {
+        return '<div class="w-full bg-surface-container-high rounded-full overflow-hidden flex" style="height:' + (alto || 6) + 'px">' +
+          '<div class="bg-fiduciary-green h-full" style="width:' + c.cobPct + '%"></div>' +
+          '<div class="bg-soft-canopy h-full" style="width:' + Math.max(0, c.firmPct - c.cobPct) + '%"></div></div>';
+      }
+      function vacioHtml(extra) {
+        return '<p class="' + extra + ' p-6 text-[14px] text-outline">' +
+          esc(PS.length ? 'Ningún proyecto coincide con el filtro.' : 'Todavía no hay proyectos dados de alta.') + '</p>';
+      }
+
+      /* Vista TABLA (23-sep-2026): una fila por proyecto con las mismas cifras
+         que la tarjeta. Es la vista densa — la de «ver muchos a la vez». */
+      function renderizarTabla(lista) {
+        var caja = document.getElementById('projects-tabla');
+        if (!caja) return;
+        if (!lista.length) { caja.innerHTML = vacioHtml(''); return; }
+        var th = function (t, der) {
+          return '<th class="px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-outline whitespace-nowrap ' +
+            (der ? 'text-right' : 'text-left') + '">' + esc(t) + '</th>';
+        };
+        caja.innerHTML = '<table class="w-full text-[13px] tabular-nums">' +
+          '<thead class="bg-surface-container-low border-b border-warm-border"><tr>' +
+            th('Proyecto') + th('Ubicación') + th('Estado') + th('Parcelas', 1) + th('Vendidas', 1) + th('Disp.', 1) +
+            th('Cartera', 1) + th('Cobrado', 1) + th('Pendiente', 1) + th('Recaudación') +
+          '</tr></thead><tbody>' +
+          lista.map(function (p) {
+            var c = cifrasProyecto(p), d = c.d;
+            return '<tr class="border-b border-warm-border/60 last:border-0 hover:bg-surface-container-low cursor-pointer" data-proy="' + esc(p.nombre) + '">' +
+              '<td class="px-3 py-2 max-w-[260px]"><div class="font-semibold text-deep-lagoon truncate" title="' + esc(p.nombre) + '">' + esc(p.nombre) + '</div>' +
+                '<div class="text-[11px] text-outline truncate">' + esc(p.parcela_master ? 'Máster ' + p.parcela_master : 'Sin parcela máster') + '</div></td>' +
+              '<td class="px-3 py-2 text-on-surface-variant max-w-[180px] truncate" title="' + esc(p.resort || '') + '">' + esc(p.resort || '—') + '</td>' +
+              '<td class="px-3 py-2"><span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide text-white whitespace-nowrap" style="background:' +
+                colorProyEstado(p.estado) + '">' + esc(etiquetaProyEstado(p.estado)) + '</span></td>' +
+              '<td class="px-3 py-2 text-right font-semibold text-volcanic-ash">' + d.t + '</td>' +
+              '<td class="px-3 py-2 text-right" style="color:' + colorEstado('vendida') + '">' + d.vend + '</td>' +
+              '<td class="px-3 py-2 text-right" style="color:' + colorEstado('disponible') + '">' + d.disp + '</td>' +
+              '<td class="px-3 py-2 text-right whitespace-nowrap text-volcanic-ash">' + esc(fmt(d.cartera, 'EUR')) + '</td>' +
+              '<td class="px-3 py-2 text-right whitespace-nowrap font-semibold text-fiduciary-green">' + esc(fmt(c.cob, 'EUR')) + '</td>' +
+              '<td class="px-3 py-2 text-right whitespace-nowrap text-on-surface-variant">' + esc(fmt(d.cartera - c.cob, 'EUR')) + '</td>' +
+              '<td class="px-3 py-2 min-w-[140px]"><div class="flex items-center gap-2"><div class="flex-1">' + barraHtml(c, 6) + '</div>' +
+                '<span class="text-[11px] text-fiduciary-green font-semibold whitespace-nowrap">' +
+                esc(d.cartera ? Math.round(c.cob / d.cartera * 100) + '%' : '—') + '</span></div></td>' +
+            '</tr>';
+          }).join('') + '</tbody></table>';
+      }
+
+      /* Vista CARPETAS (23-sep-2026): los proyectos agrupados por UBICACIÓN
+         (`proyectos.resort`), una carpeta por sitio con su total. La rejilla ya
+         es «una tarjeta por proyecto»; repetirla con otro icono no aportaba
+         nada — lo que no se ve en ninguna otra vista es cuánto hay en cada
+         sitio. Orden de las carpetas: el del primer proyecto de cada una en PS
+         (W, S, G…, lwOrdenProyectos), y dentro, ese mismo orden. */
+      function renderizarCarpetas(lista) {
+        var caja = document.getElementById('projects-carpetas');
+        if (!caja) return;
+        if (!lista.length) { caja.innerHTML = vacioHtml('col-span-full'); return; }
+        var grupos = [], porClave = {};
+        lista.forEach(function (p) {
+          var k = (p.resort || '').trim() || 'Sin ubicación asignada';
+          if (!porClave[k]) { porClave[k] = { nombre: k, ps: [], t: 0, disp: 0, cartera: 0, cob: 0 }; grupos.push(porClave[k]); }
+          var g = porClave[k], c = cifrasProyecto(p);
+          g.ps.push(p); g.t += c.d.t; g.disp += c.d.disp; g.cartera += c.d.cartera; g.cob += c.cob;
+        });
+        caja.innerHTML = grupos.map(function (g) {
+          return '<section class="bg-surface-container-lowest rounded-xl border border-warm-border shadow-sm overflow-hidden min-w-0">' +
+            '<header class="px-4 py-3 bg-surface-container-low border-b border-warm-border flex items-start justify-between gap-3">' +
+              '<div class="flex items-center gap-2 min-w-0"><span class="material-symbols-outlined text-[20px] text-territorial-green shrink-0">folder_open</span>' +
+                '<div class="min-w-0"><div class="font-semibold text-[15px] text-deep-lagoon truncate" title="' + esc(g.nombre) + '">' + esc(g.nombre) + '</div>' +
+                '<div class="text-[11px] text-outline">' + g.ps.length + (g.ps.length === 1 ? ' proyecto' : ' proyectos') +
+                  ' · ' + g.t + ' parcelas · ' + g.disp + ' disp.</div></div></div>' +
+              '<div class="text-right shrink-0 tabular-nums"><div class="text-[13px] font-bold text-fiduciary-green">' + esc(fmt(g.cob, 'EUR')) + '</div>' +
+                '<div class="text-[11px] text-outline">de ' + esc(fmt(g.cartera, 'EUR')) + '</div></div>' +
+            '</header>' +
+            '<ul class="divide-y divide-warm-border/60">' + g.ps.map(function (p) {
+              var c = cifrasProyecto(p);
+              return '<li class="px-4 py-2 hover:bg-surface-container-low cursor-pointer flex items-center gap-3 min-w-0" data-proy="' + esc(p.nombre) + '">' +
+                '<div class="min-w-0 flex-1"><div class="text-[13px] font-semibold text-volcanic-ash truncate" title="' + esc(p.nombre) + '">' + esc(p.nombre) + '</div>' +
+                  '<div class="text-[11px] text-outline truncate">' + c.d.t + ' uds · ' + c.d.vend + ' vendidas · ' + c.d.disp + ' disp.</div></div>' +
+                '<div class="w-28 shrink-0">' + barraHtml(c, 5) +
+                  '<div class="text-[10px] text-right text-fiduciary-green font-semibold mt-0.5 whitespace-nowrap">' + esc(c.pctTxt) + '</div></div>' +
+              '</li>';
+            }).join('') + '</ul></section>';
+        }).join('');
+      }
+
+      function pintaResumen(filtrados, desde, hasta) {
+        var resumen = document.getElementById('resumen-listado');
+        if (!resumen) return;
+        resumen.textContent = filtrados.length
+          ? 'Mostrando ' + (desde + 1) + '–' + hasta + ' de ' + filtrados.length +
+            (filtrados.length !== PS.length ? ' proyectos (filtrado de ' + PS.length + ' en total)' : (filtrados.length === 1 ? ' proyecto activo' : ' proyectos activos'))
+          : (PS.length ? 'Ningún proyecto coincide con este filtro (' + PS.length + ' en total).' : 'Todavía no hay proyectos.');
+      }
+
       /* Rejilla + resumen + paginación de la página actual, sobre el filtro
-         vigente. Nunca vuelve a pedir datos: PS/POR_P/COB_P ya están en
-         memoria desde la carga inicial. */
+         vigente — o la tabla o las carpetas, según EST.vista (esas dos enseñan
+         TODO lo filtrado, sin paginar: son las vistas para ver muchos). Nunca
+         vuelve a pedir datos: PS/POR_P/COB_P ya están en memoria desde la
+         carga inicial. */
       function renderizar() {
         var grid = document.getElementById('projects-grid');
         if (!grid) return;
@@ -4271,44 +4408,56 @@
         if (!MOLDE) return;
 
         var filtrados = proyectosFiltrados();
+        var vista = EST.vista;
+        grid.classList.toggle('hidden', vista !== 'rejilla');
+        var cajaT = document.getElementById('projects-tabla'), cajaC = document.getElementById('projects-carpetas');
+        if (cajaT) cajaT.classList.toggle('hidden', vista !== 'tabla');
+        if (cajaC) cajaC.classList.toggle('hidden', vista !== 'carpetas');
+        var pagEl = document.getElementById('paginacion');
+        if (pagEl) pagEl.classList.toggle('hidden', vista !== 'rejilla');
+        if (vista === 'tabla' || vista === 'carpetas') {
+          if (vista === 'tabla') renderizarTabla(filtrados); else renderizarCarpetas(filtrados);
+          pintaResumen(filtrados, 0, filtrados.length);
+          return;
+        }
+
         var totalPaginas = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
         if (EST.pag > totalPaginas) EST.pag = totalPaginas;
         var desde = (EST.pag - 1) * PAGE_SIZE;
         var pagina = filtrados.slice(desde, desde + PAGE_SIZE);
 
         grid.innerHTML = '';
-        if (!pagina.length) {
-          grid.innerHTML = '<p style="grid-column:1/-1;font:500 14px sans-serif;color:#75786e;padding:24px 4px">' +
-            (PS.length ? 'Ningún proyecto coincide con el filtro.' : 'Todavía no hay proyectos dados de alta.') + '</p>';
-        }
+        if (!pagina.length) grid.innerHTML = vacioHtml('col-span-full');
         pagina.forEach(function (p) {
           var c = MOLDE.cloneNode(true);
-          var d = POR_P[p.nombre] || { t: 0, disp: 0, vend: 0, cartera: 0 };
-          var cob = COB_P[p.nombre] || 0;
+          var cf = cifrasProyecto(p), d = cf.d;
+          var sub = p.parcela_master ? 'Parcela máster ' + p.parcela_master + (p.parcela_master_m2 ? ' · ' + p.parcela_master_m2 + ' m²' : '') : 'Sin parcela máster registrada';
           pon('nombre', p.nombre, c);
           pon('sitio', p.resort || 'Sin ubicación asignada', c);
-          pon('sub', p.parcela_master ? 'Parcela máster ' + p.parcela_master + (p.parcela_master_m2 ? ' · ' + p.parcela_master_m2 + ' m²' : '') : 'Sin parcela máster registrada', c);
-          pon('badge', d.t === 0 ? 'Sin inventario' : (d.disp ? 'Con disponibles' : 'Todo asignado'), c);
+          pon('sub', sub, c);
+          // title con el texto entero: la tarjeta lo corta con «…» (truncate)
+          // para que nada se salga, y así no se pierde al pasar el ratón.
+          [['nombre', p.nombre], ['sitio', p.resort || ''], ['sub', sub]].forEach(function (x) {
+            var e = $(x[0], c); if (e && x[1]) e.title = x[1];
+          });
+          pon('badge', cf.badge, c);
           pon('uds', String(d.t), c);
           pon('vendidas', d.vend + ' vendidas', c);
           pon('disp', d.disp + ' disp.', c);
-          pon('cobrado', fmt(cob, 'EUR'), c);
-          pon('total', '/ ' + fmt(d.cartera, 'EUR'), c);
+          pon('cobrado', fmt(cf.cob, 'EUR'), c);
+          pon('pend', fmt(d.cartera - cf.cob, 'EUR'), c);
+          pon('total', 'de ' + fmt(d.cartera, 'EUR'), c);
           // LAW-186: "tuyo" avisa de que cob es SOLO lo cobrado por quien mira,
           // no lo del proyecto entero, cuando no es su manager ni admin — ver
           // esMiProyecto() más arriba.
-          pon('pct', d.cartera ? (Math.round(cob / d.cartera * 1000) / 10) + '% cobrado' + (esMiProyecto(p) ? '' : ' (tuyo)') : 'sin cartera', c);
-          pon('master', p.parcela_master || '—', c);
+          pon('pct', cf.pctTxt, c);
           // Dos colores en la misma barra (11-sep-2026): oscuro = cobrado,
           // claro = firmado (bloqueado=true) pero todavía sin cobrar. FIRM_P
           // es el firmado de Parcela+Construcción combinado — el desglose por
           // familia vive en el cajón, donde hay sitio para dos barras.
-          var firmado = FIRM_P[p.nombre] || 0;
-          var firmPct = d.cartera ? Math.min(100, firmado / d.cartera * 100) : 0;
-          var cobPct = d.cartera ? Math.min(100, cob / d.cartera * 100) : 0;
           var bCob = c.querySelector('[data-barra="cobrado"]'), bFir = c.querySelector('[data-barra="firmado"]');
-          if (bCob) bCob.style.width = cobPct + '%';
-          if (bFir) bFir.style.width = Math.max(0, firmPct - cobPct) + '%';
+          if (bCob) bCob.style.width = cf.cobPct + '%';
+          if (bFir) bFir.style.width = Math.max(0, cf.firmPct - cf.cobPct) + '%';
           // Foto de portada, si se ha subido una desde "Editar proyecto";
           // si no, se queda el degradado + la decoración de fábrica.
           var cover = c.querySelector('[data-lw="cover"]');
@@ -4326,13 +4475,7 @@
           grid.appendChild(c);
         });
 
-        var resumen = document.getElementById('resumen-listado');
-        if (resumen) {
-          resumen.textContent = filtrados.length
-            ? 'Mostrando ' + (desde + 1) + '–' + Math.min(desde + PAGE_SIZE, filtrados.length) + ' de ' + filtrados.length +
-              (filtrados.length !== PS.length ? ' proyectos (filtrado de ' + PS.length + ' en total)' : (filtrados.length === 1 ? ' proyecto activo' : ' proyectos activos'))
-            : (PS.length ? 'Ningún proyecto coincide con este filtro (' + PS.length + ' en total).' : 'Todavía no hay proyectos.');
-        }
+        pintaResumen(filtrados, desde, Math.min(desde + PAGE_SIZE, filtrados.length));
         var cajaPag = document.getElementById('pag-paginas');
         if (cajaPag) {
           cajaPag.innerHTML = '';
@@ -4340,6 +4483,7 @@
             (function (n) {
               var b = document.createElement('button');
               b.type = 'button'; b.textContent = String(n);
+              b.setAttribute('data-real', '');
               b.className = n === EST.pag
                 ? 'w-8 h-8 rounded-full bg-deep-lagoon text-surface-bright text-xs font-label-md shadow-sm font-semibold'
                 : 'w-8 h-8 rounded-full bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container text-xs font-label-md transition-colors border border-warm-border shadow-xs';
@@ -4495,6 +4639,43 @@
         var buscador = document.getElementById('project-search');
         if (buscador) buscador.addEventListener('input', function () {
           EST.q = buscador.value.toLowerCase().trim(); EST.pag = 1; renderizar();
+        });
+        /* Rejilla / Tabla / Carpetas (23-sep-2026). Mismo patrón que los chips:
+           las clases de activo/inactivo se leen del propio HTML. */
+        var contV = document.getElementById('vistas-proyectos');
+        var clasesV = chipClases(contV);
+        marcaChip(contV, 'data-vista', EST.vista, clasesV);
+        if (contV) contV.querySelectorAll('[data-vista]').forEach(function (b) {
+          b.addEventListener('click', function (ev) {
+            ev.stopPropagation();
+            EST.vista = b.getAttribute('data-vista');
+            try { sessionStorage.setItem(CLAVE_VISTA, EST.vista); } catch (_) {}
+            marcaChip(contV, 'data-vista', EST.vista, clasesV);
+            renderizar();
+          });
+        });
+        // Tabla y carpetas se repintan enteras en cada filtro: el clic se
+        // delega en su contenedor (estático), nunca en la fila.
+        ['projects-tabla', 'projects-carpetas'].forEach(function (id) {
+          var caja = document.getElementById(id);
+          if (caja) caja.addEventListener('click', function (ev) {
+            var fila = ev.target.closest('[data-proy]');
+            if (fila) abrirCajon(fila.getAttribute('data-proy'), { mostrar: true });
+          });
+        });
+        /* Escape cierra el proyecto abierto (23-sep-2026): a pantalla completa
+           ya no hay velo al que pulsar fuera. Si hay un editor o un diálogo
+           encima, Escape es suyo (dialogo.js lo frena con stopPropagation; el
+           editor de editores.js solo existe en el DOM mientras está abierto). */
+        document.addEventListener('keydown', function (ev) {
+          if (ev.key !== 'Escape' || ev.defaultPrevented) return;
+          if (document.getElementById('lw-editor') || document.querySelector('.lw-dlg-fondo.abierto')) return;
+          var cajon = document.getElementById('cajon-detalle');
+          if (!cajon || cajon.classList.contains('translate-x-full')) return;
+          var vd = document.getElementById('cajon-vista-parcela');
+          if (vd && !vd.classList.contains('hidden')) { volverAProyecto(); return; }
+          cajon.classList.add('translate-x-full');
+          var velo = document.getElementById('cajon-backdrop'); if (velo) velo.classList.add('hidden');
         });
         var btnAnt = document.getElementById('btn-pag-anterior');
         if (btnAnt) btnAnt.addEventListener('click', function () { if (EST.pag > 1) { EST.pag--; renderizar(); } });
@@ -4705,13 +4886,20 @@
           + (fueraEstimado ? ' · incluye ' + fueraEstimado + ' unidad(es) en IDR convertida(s) a € (estimado, tasa del ' + TASA_IDR_EUR_ESTIMADA_FECHA + ')' : '')
           + (fueraSinTasa ? ' · ' + fueraSinTasa + ' unidad(es) sin tasa de conversión quedan fuera' : ''));
         pon('k-cobrado', fmt(cobrado, 'EUR'));
-        pon('k-cobrado-pie', facturado ? (Math.round(cobrado / facturado * 1000) / 10) + '% de lo facturado (' + fmt(facturado, 'EUR') + ')' : 'sin facturas emitidas');
+        pon('k-cobrado-pie', facturado ? Math.round(cobrado / facturado * 100) + '% de lo facturado (' + fmt(facturado, 'EUR') + ')' : 'sin facturas emitidas');
         pon('k-pendiente', fmt(tot.cartera - cobrado, 'EUR'));
         pon('k-pendiente-pie', 'Cartera menos lo cobrado');
         pon('k-suelo-v', fmt(tot.suelo, 'EUR'));
         pon('k-obra', fmt(tot.obra, 'EUR'));
+        // pintaMixSueloObra (23-sep-2026): el peso de cada familia es la cifra
+        // grande y la barra; los importes, debajo de su lado.
         var base = tot.suelo + tot.obra;
-        pon('k-mix-pie', base ? 'Suelo: ' + (Math.round(tot.suelo / base * 1000) / 10) + '% · Construcción: ' + (Math.round(tot.obra / base * 1000) / 10) + '%' : '—');
+        var pctSuelo = base ? Math.round(tot.suelo / base * 100) : 0;
+        pon('k-suelo-pct', base ? pctSuelo + '%' : '—');
+        pon('k-obra-pct', base ? (100 - pctSuelo) + '%' : '—');
+        var bS = document.querySelector('[data-barra="k-suelo"]'), bO = document.querySelector('[data-barra="k-obra"]');
+        if (bS) bS.style.width = (base ? tot.suelo / base * 100 : 0) + '%';
+        if (bO) bO.style.width = (base ? tot.obra / base * 100 : 0) + '%';
 
         /* --- contadores de los chips: SIEMPRE globales, no cambian con el
            filtro activo — son "cuánto habría si eligieras este chip", no

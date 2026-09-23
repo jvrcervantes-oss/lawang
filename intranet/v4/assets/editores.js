@@ -5445,21 +5445,128 @@
         location.href = '/intranet/operaciones/';
       });
 
-      /* Importar CSV y las otras dos vistas (Tabla financiera / Carpetas):
-         viven de verdad en /intranet/proyectos/ — la tabla ancha editable y su
-         importador ya existen ahí, con vista previa antes de escribir nada.
-         Reconstruir un segundo importador aquí sería duplicar sin necesidad,
-         justo lo que la v4 evita en todo lo demás. */
+      /* IMPORTAR CSV, NATIVO EN LA V4 (23-sep-2026, owner: «Importar CSV no
+         funciona»). Hasta hoy el botón avisaba y saltaba a /intranet/proyectos/
+         — fuera de la v4 y a una pantalla que abre en Carpetas, donde el botón
+         ni se ve. Ahora importa aquí.
+         Lo que NO se reescribe (Regla 0): las reglas del import. Viven en
+         contracts/assets/proyectos_csv.js (alias de cabecera, «m²», nombre de
+         proyecto por contención, `estado`/`contrato_id` que un CSV NUNCA toca,
+         upsert en LOTES homogéneos) y esta pantalla solo pinta la vista previa,
+         como la clásica. Mismo flujo que allí: nada se escribe hasta confirmar.
+         Las vistas Tabla/Carpetas, que también saltaban fuera, las pinta ahora
+         datos.js en esta misma página. */
       var bCsv = document.getElementById('btn-importar-csv');
-      if (bCsv) bCsv.addEventListener('click', function (ev) {
-        ev.stopPropagation();
-        aviso('El importador de CSV vive en Proyectos (la vista de tabla) — abriendo…');
-        setTimeout(function () { location.href = '/intranet/proyectos/'; }, 900);
-      });
-      var bTabla = document.getElementById('btn-vista-tabla');
-      if (bTabla) bTabla.addEventListener('click', function (ev) { ev.stopPropagation(); location.href = '/intranet/proyectos/'; });
-      var bCarpetas = document.getElementById('btn-vista-carpetas');
-      if (bCarpetas) bCarpetas.addEventListener('click', function (ev) { ev.stopPropagation(); location.href = '/intranet/proyectos/'; });
+      if (bCsv) {
+        bCsv.setAttribute('data-real', '');
+        var inputCsv = document.createElement('input');
+        inputCsv.type = 'file'; inputCsv.accept = '.csv,text/csv'; inputCsv.hidden = true;
+        document.body.appendChild(inputCsv);
+        bCsv.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          if (typeof lwCsvAnaliza !== 'function') return aviso('El importador no ha cargado (proyectos_csv.js). Recarga la página.', '#ba1a1a');
+          inputCsv.value = '';
+          inputCsv.click();
+        });
+        inputCsv.addEventListener('change', function () {
+          var f = inputCsv.files && inputCsv.files[0];
+          if (f) importaCsv(f);
+        });
+      }
+      function importaCsv(file) {
+        if (file.size > LW_CSV_MAX_BYTES) {
+          return aviso('El fichero pesa ' + (file.size / 1024 / 1024).toFixed(1) + ' MB — el máximo son 5 MB. Pártelo en varios.', '#ba1a1a');
+        }
+        aviso('Leyendo ' + file.name + '…');
+        /* Lo que hay YA en la base, leído en el momento (no lo que pintó la
+           rejilla al cargar): decide qué fila es alta y cuál actualiza. Tipos
+           del catálogo `tipos_vivienda`, como la clásica; si no se puede leer,
+           los cuatro de siempre. */
+        Promise.all([
+          file.text(),
+          sb.from('unidades').select('proyecto,codigo').limit(20000),
+          sb.from('proyectos').select('nombre').eq('activo', true),
+          sb.from('tipos_vivienda').select('clave')
+        ]).then(function (rs) {
+          var texto = rs[0], ru = rs[1], rp = rs[2], rt = rs[3];
+          if (ru.error) return aviso('No se pudo leer el inventario actual: ' + ru.error.message, '#ba1a1a');
+          if (rp.error) return aviso('No se pudo leer la lista de proyectos: ' + rp.error.message, '#ba1a1a');
+          var tipos = (!rt.error && rt.data && rt.data.length) ? rt.data.map(function (x) { return x.clave; }) : ['parcela', 'villa', 'apartamento', 'local'];
+          var r = lwCsvAnaliza(texto, {
+            tipos: tipos,
+            proyectos: (rp.data || []).map(function (x) { return x.nombre; }),
+            existentes: new Set((ru.data || []).map(function (u) { return u.proyecto + ' ' + u.codigo; })),
+            parseImporte: (typeof lwParseImporte === 'function') ? lwParseImporte : undefined
+          });
+          if (r.error) return aviso(r.error, '#ba1a1a');
+          abreVistaPreviaCsv(file.name, r);
+        }, function (e) { aviso('No se pudo leer el fichero: ' + (e && e.message || e), '#ba1a1a'); });
+      }
+      function abreVistaPreviaCsv(nombre, r) {
+        var validas = r.validas || [];
+        var celda = 'padding:6px 8px;border-bottom:1px solid #E4DCCB;text-align:left;white-space:nowrap';
+        var html =
+          '<div style="display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13px;color:#2E3437;margin-bottom:10px">' +
+            '<span><b>' + r.analizadas.length + '</b> filas leídas</span>' +
+            '<span><b>' + r.altas + '</b> altas nuevas</span>' +
+            '<span><b>' + r.actualiza + '</b> actualizan una unidad existente</span>' +
+            (r.conError ? '<span style="color:#9E2F26"><b>' + r.conError + '</b> con error, no se importan</span>' : '') +
+          '</div>' +
+          (r.ignoradas.length ? '<p style="margin:0 0 10px;font-size:12px;color:#8A6A34">Columnas del CSV que no se importan: ' + r.ignoradas.map(esc).join(', ') + '</p>' : '') +
+          '<p style="margin:0 0 10px;font-size:12px;color:#75786e">Las columnas <code>estado</code> y <code>contrato_id</code> nunca se importan: las lleva el contrato.</p>' +
+          '<div style="max-height:55vh;overflow:auto;border:1px solid #E4DCCB;border-radius:10px">' +
+          '<table style="width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums">' +
+          '<thead style="position:sticky;top:0;background:#f5f4ee"><tr>' +
+            ['Fila', 'Código', 'Proyecto', 'Tipo', 'Precio', 'Resultado'].map(function (t) { return '<th style="' + celda + ';font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#75786e">' + t + '</th>'; }).join('') +
+          '</tr></thead><tbody>' +
+          r.analizadas.map(function (f) {
+            var err = f.errores && f.errores.length;
+            return '<tr style="' + (err ? 'background:#fdecea' : '') + '">' +
+              '<td style="' + celda + '">' + f.fila + '</td>' +
+              '<td style="' + celda + ';font-weight:600">' + esc(f.codigo || '—') + '</td>' +
+              '<td style="' + celda + '">' + esc(f.proyecto || '—') + '</td>' +
+              '<td style="' + celda + '">' + esc(f.tipo || '—') + '</td>' +
+              '<td style="' + celda + '">' + (f.precio != null ? esc(lwFormatoImporte(f.precio, f.moneda || 'EUR', { decimales: 0 })) : '—') + '</td>' +
+              '<td style="' + celda + ';white-space:normal;' + (err ? 'color:#9E2F26' : '') + '">' +
+                (err ? esc(f.errores.join('; ')) : (f.esAlta ? 'Alta nueva' : 'Actualiza')) + '</td>' +
+            '</tr>';
+          }).join('') +
+          '</tbody></table></div>';
+        modal('Importar unidades desde CSV',
+          [{ tipo: 'custom', render: function (d) { d.innerHTML = html; } }],
+          validas.length ? 'Confirmar importación (' + validas.length + ')' : 'Nada que importar',
+          function () {
+            if (!validas.length) return { error: { message: 'No hay ninguna fila válida que importar.' } };
+            var lotes = lwCsvLotesParaGuardar(validas, r.camposPresentes);
+            var total = lotes.reduce(function (n, l) { return n + l.length; }, 0);
+            var escritas = 0;
+            /* Lote a lote y en orden: lo ya escrito queda escrito, así que si
+               uno falla se dice CUÁNTAS entraron, no solo que falló. Con
+               `.select('id')`: la RLS deniega con 0 filas y sin error, y sin
+               contarlas el import diría «hecho» sobre nada. */
+            var paso = lotes.reduce(function (prom, lote) {
+              return prom.then(function () {
+                return sb.from('unidades').upsert(lote, { onConflict: 'proyecto,codigo' }).select('id').then(function (res) {
+                  if (res.error) throw new Error(res.error.message);
+                  var n = (res.data || []).length;
+                  escritas += n;
+                  if (n < lote.length) throw new Error('la base aceptó ' + n + ' de ' + lote.length + ' filas de un lote — tu usuario no tiene permiso sobre alguna unidad o proyecto');
+                });
+              });
+            }, Promise.resolve());
+            return paso.then(function () {
+              aviso('Importadas ' + escritas + ' unidades.');
+              return null;
+            }, function (e) {
+              return { error: { message: 'Importadas ' + escritas + ' de ' + total + ' — el resto no: ' + (e && e.message || e) } };
+            });
+          },
+          { sub: 'Proyectos · ' + nombre, ancho: 'min(900px,96vw)' });
+        if (!validas.length) {
+          var bG = document.querySelector('#lw-editor [data-e="guardar"]');
+          if (bG) { bG.disabled = true; bG.style.opacity = '.5'; bG.style.cursor = 'not-allowed'; }
+        }
+      }
     },
 
     vencimientos: function (aut) {

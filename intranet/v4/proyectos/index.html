@@ -2,11 +2,11 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/guard.js?v=54b33acd" data-herramienta="unidades"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
 <script src="/contracts/assets/i18n.js?v=9cf3ec54" defer></script>
-<script src="/contracts/assets/dinero.js?v=aed0c9a9" defer></script><script src="/intranet/facturas/totales.js" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=c76d3606" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1" defer></script><script src="/contracts/assets/proyectos_csv.js?v=e610515a" defer></script><script src="/contracts/assets/avisos.js?v=7a8fb119" defer></script><script src="../assets/datos.js?v=8218811a" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/dinero.js?v=a442e362" defer></script><script src="/intranet/facturas/totales.js" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=c76d3606" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1" defer></script><script src="/contracts/assets/proyectos_csv.js?v=e610515a" defer></script><script src="/contracts/assets/avisos.js?v=7a8fb119" defer></script><script src="../assets/datos.js?v=fe522b0d" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=c7770938" defer></script>
 <link href="../assets/shell.css?v=bd0a56cb" rel="stylesheet">
-<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/editores.js?v=0dee05dc" defer></script><script src="../assets/maqueta.js?v=7bc7b4af" defer></script>
+<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/editores.js?v=ec0112c3" defer></script><script src="../assets/maqueta.js?v=7bc7b4af" defer></script>
 <!-- Fotos del Investor Deck (S10.2, 22-sep-2026): pieza COMPARTIDA de la suite
      (Regla 0, contexto/suite_lawang.md) — la usan /proyectos/ y /modelos/
      clásicos, aquí solo se engancha, nunca se reescribe. Depende de
@@ -35,6 +35,16 @@
     ::-webkit-scrollbar-track { background: transparent; }
     .tabular-nums { font-variant-numeric: tabular-nums; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
+    /* Proyecto abierto a pantalla completa (23-sep-2026): desde 1280 px, ficha a
+       la izquierda y parcelario a la derecha, cada columna con su scroll. Por
+       debajo, el cuerpo del cajón hace scroll entero como siempre. */
+    @media (min-width: 1280px) {
+      #cajon-cuerpo { overflow: hidden; }
+      #cajon-vista-proyecto:not(.hidden) { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 28px; height: 100%; }
+      #cajon-col-info, #cajon-col-parcelas { overflow-y: auto; min-height: 0; padding-right: 6px; }
+      #cajon-col-parcelas { padding-left: 28px; border-left: 1px solid #E4DCCB; }
+      #cajon-vista-parcela { height: 100%; overflow-y: auto; max-width: 760px; }
+    }
   </style>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script id="tailwind-config">
@@ -156,7 +166,10 @@
 </button>
 </div>
 </div>
-<!-- 4 TARJETAS KPI DE TESORERÍA / CARTERA CONSOLIDADA (Cifras en una sola línea) -->
+<!-- 4 TARJETAS KPI DE TESORERÍA / CARTERA CONSOLIDADA. La cifra en una línea y
+     con tamaño que se adapta al ancho; la nota de debajo PUEDE partir línea
+     (23-sep-2026: con whitespace-nowrap la de Cartera —«incluye N unidades en
+     IDR convertidas…»— se salía de la tarjeta). -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 mb-7">
 <!-- KPI 1 -->
 <div class="bg-surface-container-lowest rounded-xl p-5 border border-warm-border shadow-sm flex flex-col justify-between">
@@ -164,9 +177,9 @@
 <span class="font-body-sm text-[11px] uppercase tracking-wider font-semibold text-outline">Cartera Consolidada</span>
 <span class="material-symbols-outlined text-territorial-green text-[19px]">account_balance</span>
 </div>
-<div class="font-kpi-number text-[26px] leading-tight text-volcanic-ash whitespace-nowrap tabular-nums font-bold" data-lw="k-cartera">—</div>
-<div class="mt-2 text-[12px] text-on-surface-variant whitespace-nowrap font-medium flex items-center gap-1.5">
-<span class="w-1.5 h-1.5 rounded-full bg-territorial-green"></span><span data-lw="k-cartera-pie">—</span></div>
+<div class="font-kpi-number text-[clamp(19px,1.7vw,26px)] leading-tight text-volcanic-ash whitespace-nowrap tabular-nums font-bold" data-lw="k-cartera">—</div>
+<div class="mt-2 text-[12px] leading-snug text-on-surface-variant font-medium flex items-start gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-territorial-green shrink-0 mt-[5px]"></span><span data-lw="k-cartera-pie">—</span></div>
 </div>
 <!-- KPI 2 -->
 <div class="bg-surface-container-lowest rounded-xl p-5 border border-warm-border shadow-sm flex flex-col justify-between">
@@ -174,9 +187,9 @@
 <span class="font-body-sm text-[11px] uppercase tracking-wider font-semibold text-outline">Total Cobrado</span>
 <span class="material-symbols-outlined text-fiduciary-green text-[19px]">verified_user</span>
 </div>
-<div class="font-kpi-number text-[26px] leading-tight text-fiduciary-green whitespace-nowrap tabular-nums font-bold" data-lw="k-cobrado">—</div>
-<div class="mt-2 text-[12px] text-fiduciary-green whitespace-nowrap font-semibold flex items-center gap-1.5">
-<span class="material-symbols-outlined text-[14px]">check_circle</span><span data-lw="k-cobrado-pie">—</span></div>
+<div class="font-kpi-number text-[clamp(19px,1.7vw,26px)] leading-tight text-fiduciary-green whitespace-nowrap tabular-nums font-bold" data-lw="k-cobrado">—</div>
+<div class="mt-2 text-[12px] leading-snug text-fiduciary-green font-semibold flex items-start gap-1.5">
+<span class="material-symbols-outlined text-[14px] shrink-0">check_circle</span><span data-lw="k-cobrado-pie">—</span></div>
 </div>
 <!-- KPI 3 -->
 <div class="bg-surface-container-lowest rounded-xl p-5 border border-warm-border shadow-sm flex flex-col justify-between">
@@ -184,8 +197,8 @@
 <span class="font-body-sm text-[11px] uppercase tracking-wider font-semibold text-outline">Pendiente de Cobro</span>
 <span class="material-symbols-outlined text-secondary text-[19px]">schedule</span>
 </div>
-<div class="font-kpi-number text-[26px] leading-tight text-volcanic-ash whitespace-nowrap tabular-nums font-bold" data-lw="k-pendiente">—</div>
-<div class="mt-2 text-[12px] text-on-surface-variant whitespace-nowrap font-medium" data-lw="k-pendiente-pie">—</div>
+<div class="font-kpi-number text-[clamp(19px,1.7vw,26px)] leading-tight text-volcanic-ash whitespace-nowrap tabular-nums font-bold" data-lw="k-pendiente">—</div>
+<div class="mt-2 text-[12px] leading-snug text-on-surface-variant font-medium" data-lw="k-pendiente-pie">—</div>
 </div>
 <!-- KPI 4 -->
 <div class="bg-surface-container-lowest rounded-xl p-5 border border-warm-border shadow-sm flex flex-col justify-between">
@@ -193,13 +206,34 @@
 <span class="font-body-sm text-[11px] uppercase tracking-wider font-semibold text-outline">Valoración Suelo vs Obra</span>
 <span class="material-symbols-outlined text-deep-lagoon text-[19px]">pie_chart</span>
 </div>
-<div class="font-kpi-number text-[19px] leading-tight text-deep-lagoon whitespace-nowrap tabular-nums font-bold" data-lw="k-mix"><span data-lw="k-suelo-v">—</span><span class="text-xs text-outline font-normal">S</span> · <span data-lw="k-obra">—</span><span class="text-xs text-outline font-normal">O</span></div>
-<div class="mt-2 text-[12px] text-on-surface-variant whitespace-nowrap font-medium" data-lw="k-mix-pie">—</div>
+<!-- 23-sep-2026 (owner: «mejora su visual, quita decimales»): antes eran dos
+     importes con céntimos pegados en una línea a 19px, con una «S» y una «O»
+     sueltas, y se salía de la tarjeta. Ahora el peso de cada familia es la
+     cifra grande, la barra lo enseña de un vistazo y los importes van debajo,
+     cada uno bajo su lado. Los rellena datos.js (pintaMixSueloObra). -->
+<div class="flex items-end justify-between gap-2">
+<div class="flex flex-col min-w-0">
+<span class="text-[10px] uppercase tracking-wider font-semibold text-deep-lagoon">Suelo</span>
+<span class="font-kpi-number text-[clamp(19px,1.7vw,26px)] leading-tight text-deep-lagoon tabular-nums font-bold" data-lw="k-suelo-pct">—</span>
+</div>
+<div class="flex flex-col items-end min-w-0">
+<span class="text-[10px] uppercase tracking-wider font-semibold text-territorial-green">Obra</span>
+<span class="font-kpi-number text-[clamp(19px,1.7vw,26px)] leading-tight text-territorial-green tabular-nums font-bold" data-lw="k-obra-pct">—</span>
+</div>
+</div>
+<div class="w-full bg-surface-container-high rounded-full h-2 overflow-hidden flex mt-1.5">
+<div class="bg-deep-lagoon h-full transition-all" data-barra="k-suelo" style="width:0%"></div>
+<div class="bg-soft-canopy h-full transition-all" data-barra="k-obra" style="width:0%"></div>
+</div>
+<div class="mt-2 flex items-baseline justify-between gap-2 text-[12px] font-medium text-on-surface-variant tabular-nums">
+<span class="truncate" data-lw="k-suelo-v">—</span>
+<span class="truncate text-right" data-lw="k-obra">—</span>
+</div>
 </div>
 </div>
 <!-- BUSCADOR & FILTROS POR ESTADO -->
 <div class="bg-surface-container-lowest rounded-xl p-3.5 border border-warm-border shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
-<div class="relative w-full md:w-80">
+<div class="relative w-full md:w-64 shrink-0">
 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[19px]">search</span>
 <input class="w-full pl-9 pr-4 py-1.5 bg-surface-container-low rounded-lg text-on-surface font-body-md text-[13px] placeholder:text-outline border border-warm-border/60 focus:outline-none focus:bg-surface-container-lowest focus:ring-1 focus:ring-territorial-green" id="project-search" placeholder="Filtrar por nombre, isla o lote..." type="text">
 </div>
@@ -226,18 +260,20 @@
 <span class="text-outline text-[11px] font-kpi-number" data-lw="c-estudio">—</span>
 </button>
 </div>
-<!-- Vista Rejilla / Tabla: esta es la única vista construida en v4; Tabla y
-     Carpetas ya existen y son mucho más profundas en /intranet/proyectos/ (la
-     tabla ancha editable de toda la vida), así que llevan ahí en vez de
-     duplicar un segundo renderer a medias. -->
-<div class="flex items-center gap-1 bg-surface-container-low p-1 rounded-lg border border-warm-border/60 shrink-0">
-<button class="p-1.5 rounded bg-surface-container-lowest text-deep-lagoon shadow-xs" title="Rejilla arquitectónica (esta vista)" type="button">
+<!-- Vistas Rejilla / Tabla / Carpetas (23-sep-2026, owner: «hay 3 vistas y
+     no funcionan»). Antes solo existía la rejilla: el botón de rejilla no hacía
+     nada y los otros dos sacaban de la v4 a /intranet/proyectos/. Ahora las
+     tres se pintan en esta página desde los datos ya cargados. `data-vista` lo
+     lee datos.js (wireControles); `data-real` aparta los botones de maqueta.js.
+     El botón activo lo marca datos.js con las clases del primero. -->
+<div class="flex items-center gap-1 bg-surface-container-low p-1 rounded-lg border border-warm-border/60 shrink-0" id="vistas-proyectos" role="group" aria-label="Vista">
+<button class="p-1.5 rounded bg-surface-container-lowest text-deep-lagoon shadow-xs" data-vista="rejilla" data-real title="Rejilla" aria-label="Vista rejilla" type="button">
 <span class="material-symbols-outlined text-[18px]">grid_view</span>
 </button>
-<button class="p-1.5 rounded text-outline hover:text-on-surface" id="btn-vista-tabla" title="Tabla financiera — abre la vista de tabla de /intranet/proyectos/" type="button">
+<button class="p-1.5 rounded text-outline hover:text-on-surface" data-vista="tabla" data-real title="Tabla financiera" aria-label="Vista tabla" type="button">
 <span class="material-symbols-outlined text-[18px]">table_rows</span>
 </button>
-<button class="p-1.5 rounded text-outline hover:text-on-surface" id="btn-vista-carpetas" title="Carpetas por proyecto — abre la vista de carpetas de /intranet/proyectos/" type="button">
+<button class="p-1.5 rounded text-outline hover:text-on-surface" data-vista="carpetas" data-real title="Carpetas por ubicación" aria-label="Vista carpetas" type="button">
 <span class="material-symbols-outlined text-[18px]">folder_open</span>
 </button>
 </div>
@@ -246,7 +282,11 @@
      Va en su propia fila y ETIQUETADA a proposito: la norma de la suite
      (contexto/suite_lawang.md) dice que dos ejes de filtro sin decir cual es
      cual empiezan los dos por "Todos" con numeros distintos y parecen el mismo.
-     Los conteos los rellena datos.js desde `unidades_estado`. -->
+     Los conteos los rellena datos.js desde `unidades_estado`.
+     El punto de color de cada chip NO va aquí (23-sep-2026, owner: «en los
+     filtros aparecen dos colores»): lo inyecta pintaPuntosChips() desde
+     ESTADO_COLOR, y el de Stitch que quedaba escrito aquí salía al lado con
+     otro tono — dos puntos por chip. -->
 <div class="flex items-center gap-3 flex-wrap mb-5">
 <span class="font-body-sm text-[11px] text-outline uppercase tracking-wider shrink-0">Unidades</span>
 <div class="flex items-center gap-2 overflow-x-auto no-scrollbar" id="chips-estado">
@@ -255,122 +295,122 @@
 <span class="px-1.5 py-0.2 bg-surface-bright/20 rounded-full text-[11px] font-kpi-number" data-lw="uds-todas">—</span>
 </button>
 <button class="px-4 py-1.5 rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface-variant border border-warm-border font-label-md text-[13px] font-medium transition-colors shrink-0 flex items-center gap-1.5" data-chip-u="disponible" type="button">
-<span class="w-2 h-2 rounded-full bg-territorial-green"></span>
 <span class="">Disponible</span>
 <span class="text-outline text-[11px] font-kpi-number" data-lw="uds-disponible">—</span>
 </button>
 <button class="px-4 py-1.5 rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface-variant border border-warm-border font-label-md text-[13px] font-medium transition-colors shrink-0 flex items-center gap-1.5" data-chip-u="reservada" type="button">
-<span class="w-2 h-2 rounded-full bg-secondary"></span>
 <span class="">Reservada</span>
 <span class="text-outline text-[11px] font-kpi-number" data-lw="uds-reservada">—</span>
 </button>
 <button class="px-4 py-1.5 rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface-variant border border-warm-border font-label-md text-[13px] font-medium transition-colors shrink-0 flex items-center gap-1.5" data-chip-u="bloqueada" type="button">
-<span class="w-2 h-2 rounded-full bg-tertiary"></span>
 <span class="">Bloqueada</span>
 <span class="text-outline text-[11px] font-kpi-number" data-lw="uds-bloqueada">—</span>
 </button>
 <button class="px-4 py-1.5 rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface-variant border border-warm-border font-label-md text-[13px] font-medium transition-colors shrink-0 flex items-center gap-1.5" data-chip-u="vendida" type="button">
-<span class="w-2 h-2 rounded-full bg-deep-lagoon"></span>
 <span class="">Vendida</span>
 <span class="text-outline text-[11px] font-kpi-number" data-lw="uds-vendida">—</span>
 </button>
 <button class="px-4 py-1.5 rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface-variant border border-warm-border font-label-md text-[13px] font-medium transition-colors shrink-0 flex items-center gap-1.5" data-chip-u="cobrada" type="button">
-<span class="w-2 h-2 rounded-full bg-primary"></span>
 <span class="">Cobrada</span>
 <span class="text-outline text-[11px] font-kpi-number" data-lw="uds-cobrada">—</span>
 </button>
 <button class="px-4 py-1.5 rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface-variant border border-warm-border font-label-md text-[13px] font-medium transition-colors shrink-0 flex items-center gap-1.5" data-chip-u="no_disponible" type="button">
-<span class="w-2 h-2 rounded-full bg-outline"></span>
 <span class="">No disponible</span>
 <span class="text-outline text-[11px] font-kpi-number" data-lw="uds-no_disponible">—</span>
 </button>
 </div>
 </div>
-<!-- REDISEÑO VISUAL DE PROYECTOS: GRID ELEGANTE DE 3 COLUMNAS -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="projects-grid">
-<!-- CARD 1: Horizon S1 (Destacado e inspeccionado) -->
-<div class="bg-surface-container-lowest rounded-xl border-2 border-territorial-green/80 shadow-md hover:shadow-lg transition-all flex flex-col overflow-hidden group">
+<!-- REJILLA DE PROYECTOS — compactada el 23-sep-2026 (owner: «quiero ver más
+     proyectos, comprime un poco las tarjetas» y «hay texto que se sale de las
+     tarjetas»). Mismos datos que antes; cambia la densidad: portada de 144 a
+     88 px, cuatro columnas desde 1280 px, y todo texto de longitud variable
+     con truncate + title (datos.js pone el title con el texto entero; la ficha
+     completa sigue en el cajón). La «Parcela máster» pierde su caja propia: ya
+     estaba repetida en el subtítulo de la portada. Los colores de «vendidas» y
+     «disp.» son los de ESTADO_COLOR (vendida = deep lagoon, disponible = verde
+     territorial): antes «vendidas» iba en ciruela, un tercer color que no era
+     el de ningún estado. -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="projects-grid">
+<div class="bg-surface-container-lowest rounded-xl border border-warm-border shadow-sm hover:shadow-md hover:border-territorial-green/70 transition-all flex flex-col overflow-hidden group min-w-0">
 <!-- Cabecera visual: textura arquitectónica por defecto, o la foto de portada
      que se suba desde "Editar proyecto" (datos.js le pone background-image y
      oculta la decoración de abajo cuando hay una). -->
-<div class="h-36 relative bg-gradient-to-br from-[#1b2b1a] via-[#2d3f27] to-[#104C4F] p-4 flex flex-col justify-between overflow-hidden bg-cover bg-center" data-lw="cover">
+<div class="h-[88px] relative bg-gradient-to-br from-[#1b2b1a] via-[#2d3f27] to-[#104C4F] px-3 py-2.5 flex flex-col justify-between overflow-hidden bg-cover bg-center" data-lw="cover">
 <div class="absolute -right-8 -top-8 w-36 h-36 rounded-full bg-primary-fixed/10 pointer-events-none blur-xl" data-lw-deco></div>
 <div class="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px] opacity-10" data-lw-deco></div>
-<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/5 to-transparent pointer-events-none hidden" data-lw-cover-overlay></div>
-<div class="relative z-10 flex items-center justify-between">
-<span class="px-2.5 py-1 rounded-md bg-black/40 backdrop-blur-md text-[11px] font-label-md tracking-wider uppercase text-surface-bright flex items-center gap-1">
-<span class="material-symbols-outlined text-[13px] text-territorial-green">location_on</span><span data-lw="sitio">—</span></span>
-<span class="px-2.5 py-1 rounded-md bg-territorial-green text-surface-bright text-[11px] font-label-md font-semibold tracking-wide uppercase shadow-xs" data-lw="badge">—</span>
+<div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/10 pointer-events-none hidden" data-lw-cover-overlay></div>
+<div class="relative z-10 flex items-center justify-between gap-2 min-w-0">
+<span class="min-w-0 px-2 py-0.5 rounded-md bg-black/40 backdrop-blur-md text-[10px] font-label-md tracking-wider uppercase text-surface-bright flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px] text-primary-fixed shrink-0">location_on</span><span class="truncate" data-lw="sitio">—</span></span>
+<span class="shrink-0 px-2 py-0.5 rounded-md bg-territorial-green text-surface-bright text-[10px] font-label-md font-semibold tracking-wide uppercase whitespace-nowrap" data-lw="badge">—</span>
 </div>
-<div class="relative z-10">
-<h3 class="font-headline-md text-[26px] text-surface-bright font-semibold tracking-tight group-hover:text-primary-fixed transition-colors" data-lw="nombre">—</h3>
-<span class="text-surface-bright/70 text-[12px] font-body-sm" data-lw="sub">—</span>
+<div class="relative z-10 min-w-0">
+<h3 class="font-headline-md text-[18px] leading-tight text-surface-bright font-semibold tracking-tight truncate group-hover:text-primary-fixed transition-colors" data-lw="nombre">—</h3>
+<span class="block text-surface-bright/75 text-[11px] font-body-sm truncate" data-lw="sub">—</span>
 </div>
 </div>
 <!-- Métricas de inventario y estado financiero -->
-<div class="p-5 flex-1 flex flex-col justify-between gap-4">
-<!-- Inventario -->
-<div class="flex items-center justify-between pb-3 border-b border-warm-border/60">
-<span class="text-xs text-outline font-semibold uppercase tracking-wider">Inventario parcelas</span>
-<span class="text-[13px] font-label-md font-semibold text-volcanic-ash"><span data-lw="uds">—</span> uds · <span class="text-tertiary" data-lw="vendidas">—</span> · <span class="text-territorial-green" data-lw="disp">—</span>
-</span>
+<div class="p-3.5 flex-1 flex flex-col gap-2.5 min-w-0">
+<div class="flex items-baseline justify-between gap-2 pb-2 border-b border-warm-border/60 min-w-0">
+<span class="text-[10px] text-outline font-semibold uppercase tracking-wider shrink-0">Parcelas</span>
+<span class="text-[12px] font-label-md font-semibold text-volcanic-ash truncate"><span data-lw="uds">—</span> uds · <span class="text-deep-lagoon" data-lw="vendidas">—</span> · <span class="text-territorial-green" data-lw="disp">—</span></span>
 </div>
 <!-- Estado de cuentas y barra de recaudación. Dos colores en la MISMA barra
      (11-sep-2026, encargo del owner): oscuro = ya cobrado, claro = firmado
      pero pendiente de cobro. Los anchos los pone datos.js con FIRM_P/COB_P. -->
-<div class="flex flex-col gap-2">
-<div class="flex items-baseline justify-between">
-<span class="text-xs font-semibold uppercase tracking-wider text-outline">Recaudación</span>
-<span class="text-[13px] font-kpi-number text-fiduciary-green font-bold" data-lw="pct">—</span>
+<div class="flex flex-col gap-1.5">
+<div class="flex items-baseline justify-between gap-2">
+<span class="text-[10px] font-semibold uppercase tracking-wider text-outline">Recaudación</span>
+<span class="text-[12px] font-kpi-number text-fiduciary-green font-bold whitespace-nowrap" data-lw="pct">—</span>
 </div>
-<!-- Barra de progreso -->
-<div class="w-full bg-surface-container-high rounded-full h-2 overflow-hidden flex">
+<div class="w-full bg-surface-container-high rounded-full h-1.5 overflow-hidden flex">
 <div class="bg-fiduciary-green h-full transition-all" data-barra="cobrado" style="width:0%"></div>
 <div class="bg-soft-canopy h-full transition-all" data-barra="firmado" style="width:0%"></div>
 </div>
-<div class="flex items-baseline justify-between pt-1">
-<div class="flex flex-col">
-<span class="text-[11px] text-outline uppercase font-medium">Cobrado</span>
-<span class="font-kpi-number text-[18px] text-fiduciary-green font-bold tabular-nums" data-lw="cobrado">—</span>
+<div class="flex items-end justify-between gap-3 pt-0.5 min-w-0">
+<div class="flex flex-col min-w-0">
+<span class="text-[10px] text-outline uppercase font-medium">Cobrado</span>
+<span class="font-kpi-number text-[15px] leading-tight text-fiduciary-green font-bold tabular-nums truncate" data-lw="cobrado">—</span>
 </div>
-<div class="flex flex-col text-right">
-<span class="text-[11px] text-outline uppercase font-medium">Pendiente / Total</span>
-<span class="font-kpi-number text-[14px] text-on-surface-variant font-semibold tabular-nums" data-lw="d-pendiente">—<span class="text-xs text-outline font-normal" data-lw="total">—</span></span>
+<div class="flex flex-col items-end text-right min-w-0">
+<span class="text-[10px] text-outline uppercase font-medium">Pendiente</span>
+<span class="font-kpi-number text-[13px] leading-tight text-on-surface-variant font-semibold tabular-nums truncate max-w-full" data-lw="pend">—</span>
+<span class="text-[10px] text-outline tabular-nums truncate max-w-full" data-lw="total">—</span>
 </div>
 </div>
-</div>
-<!-- Parcela master del proyecto (columna real de `proyectos`; la rellena datos.js) -->
-<div class="p-2.5 rounded-lg bg-surface-container-low border border-warm-border flex items-center justify-between text-xs">
-<div class="flex items-center gap-2 text-on-surface-variant font-medium">
-<span class="material-symbols-outlined text-[16px]">straighten</span>
-<span class="" data-lw="master-label">Parcela máster</span>
-</div>
-<span class="text-[11px] text-outline font-mono" data-lw="master">—</span>
 </div>
 <!-- Botón de acción hacia cajón — el onclick lo pone datos.js por tarjeta
      (necesita saber DE QUÉ proyecto abrir el cajón; un onclick fijo en la
      plantilla no distinguiría una tarjeta de otra). -->
-<button class="w-full py-2.5 px-4 rounded-lg bg-deep-lagoon/10 hover:bg-deep-lagoon text-deep-lagoon hover:text-surface-bright transition-all font-label-md text-[13px] font-semibold flex items-center justify-center gap-1.5 group/btn" data-abrir-cajon type="button">
+<button class="mt-auto w-full py-1.5 px-3 rounded-lg bg-deep-lagoon/10 hover:bg-deep-lagoon text-deep-lagoon hover:text-surface-bright transition-all font-label-md text-[12px] font-semibold flex items-center justify-center gap-1.5 group/btn" data-abrir-cajon data-real type="button">
 <span class="">Ver detalle &amp; cuentas</span>
-<span class="material-symbols-outlined text-[16px] group-hover/btn:translate-x-1 transition-transform">arrow_forward</span>
+<span class="material-symbols-outlined text-[15px] group-hover/btn:translate-x-1 transition-transform">arrow_forward</span>
 </button>
 </div>
 </div>
 </div>
+<!-- VISTA TABLA y VISTA CARPETAS (23-sep-2026, owner: «hay 3 vistas y no
+     funcionan»). Hasta hoy los botones de Tabla y Carpetas sacaban de la v4 a
+     /intranet/proyectos/ — que además abre siempre en Carpetas — y el de
+     Rejilla no hacía nada. Ahora las tres se pintan aquí, desde los mismos
+     datos ya cargados (PS/POR_P/COB_P/FIRM_P) y con el mismo filtro: ninguna
+     consulta nueva. Las pinta datos.js (renderizarTabla/renderizarCarpetas). -->
+<div class="hidden bg-surface-container-lowest rounded-xl border border-warm-border shadow-sm overflow-x-auto" id="projects-tabla"></div>
+<div class="hidden grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4 items-start" id="projects-carpetas"></div>
 <!-- PAGINACIÓN Y RESUMEN INFERIOR -->
-<div class="flex flex-col sm:flex-row items-center justify-between gap-4 py-8 mt-6 border-t border-warm-border">
+<div class="flex flex-col sm:flex-row items-center justify-between gap-4 py-6 mt-5 border-t border-warm-border">
 <div class="flex items-center gap-2">
 <span class="w-2 h-2 rounded-full bg-territorial-green"></span>
 <span class="font-body-sm text-[13px] text-on-surface-variant" id="resumen-listado">
             Cargando…
           </span>
 </div>
-<div class="flex items-center gap-2">
-<button class="px-3.5 py-1.5 rounded-full bg-surface-container-lowest text-on-surface-variant hover:text-on-surface hover:bg-surface-container text-xs font-label-md transition-colors border border-warm-border shadow-xs disabled:opacity-40" disabled="" id="btn-pag-anterior" type="button">
+<div class="flex items-center gap-2" id="paginacion">
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-lowest text-on-surface-variant hover:text-on-surface hover:bg-surface-container text-xs font-label-md transition-colors border border-warm-border shadow-xs disabled:opacity-40" disabled="" data-real id="btn-pag-anterior" type="button">
             Anterior
           </button>
 <div class="flex items-center gap-1" id="pag-paginas"></div>
-<button class="px-3.5 py-1.5 rounded-full bg-surface-container-lowest text-on-surface-variant hover:text-on-surface hover:bg-surface-container text-xs font-label-md transition-colors border border-warm-border shadow-xs disabled:opacity-40" disabled="" id="btn-pag-siguiente" type="button">
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-lowest text-on-surface-variant hover:text-on-surface hover:bg-surface-container text-xs font-label-md transition-colors border border-warm-border shadow-xs disabled:opacity-40" disabled="" data-real id="btn-pag-siguiente" type="button">
             Siguiente
           </button>
 </div>
@@ -380,34 +420,47 @@
 <!-- CAJÓN / PANEL LATERAL (.sui-cajon) SUPERPUESTO CON VELO TENUE -->
 <!-- Backdrop / Velo -->
 <div class="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-50 transition-opacity duration-300 hidden" id="cajon-backdrop" onclick="document.getElementById('cajon-detalle').classList.add('translate-x-full'); document.getElementById('cajon-backdrop').classList.add('hidden');"></div>
-<!-- Contenedor Cajón Lateral (~500px) — arranca FUERA de pantalla (translate-x-full):
+<!-- Contenedor del proyecto abierto — arranca FUERA de pantalla (translate-x-full):
      Stitch lo dejó en su estado "abierto" de fábrica, así que la página cargaba
      mostrando el cajón (con el contenido de muestra "Horizon…") antes de que
-     nadie hiciera clic en nada. Se abre solo con "Ver detalle & cuentas". -->
-<aside class="sui-cajon fixed top-0 right-0 h-full w-full max-w-[70%] bg-surface-container-lowest border-l border-warm-border z-50 shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out translate-x-full" id="cajon-detalle"
+     nadie hiciera clic en nada. Se abre solo con "Ver detalle & cuentas".
+     PANTALLA COMPLETA desde el 23-sep-2026 (owner: «cuando abro un proyecto
+     quiero que se abra a pantalla completa y ver el máximo parcelario posible
+     de una pasada»). Era un cajón del 70% con el parcelario DEBAJO de cuatro
+     secciones: para ver la primera parcela había que bajar una pantalla entera.
+     Ahora, desde 1280 px, son dos columnas con scroll propio: la ficha a la
+     izquierda (340 px) y el parcelario en todo el ancho restante, en rejilla
+     de auto-relleno. Por debajo de 1280 px vuelve a una sola columna. Nada se
+     ha quitado (Regla 0 bis): es la misma ficha, recolocada.
+     Cierra con la X y con Escape (datos.js): al ocupar toda la pantalla ya no
+     queda velo al que pulsar fuera.
+     Ojo: a esta etiqueta le faltaba el «>» de cierre y el navegador se comía
+     el comentario de abajo como si fueran atributos. -->
+<aside class="sui-cajon fixed inset-0 w-full bg-surface-container-lowest z-[60] shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out translate-x-full" id="cajon-detalle" role="dialog" aria-modal="true" aria-labelledby="cajon-titulo">
 <!-- Cabecera del Cajón -->
-<div class="px-6 py-5 bg-surface-container-low border-b border-warm-border flex items-start justify-between">
+<div class="px-6 py-3 bg-surface-container-low border-b border-warm-border flex items-center justify-between shrink-0">
 <div class="flex flex-col gap-1 pr-4">
 <span class="text-[11px] font-semibold text-soft-canopy uppercase tracking-widest">EXPEDIENTE FINANCIERO Y TERRITORIAL</span>
 <!-- data-lw, no anclaje por texto: hojaConTexto() excluye a propósito todo lo
      que esté dentro de un <aside> (evita pisar la sidebar), y este título VIVE
      dentro de uno — por eso se quedaba siempre en "Horizon S1" (11-sep-2026). -->
-<h2 class="font-headline-sm text-[26px] text-deep-lagoon font-bold leading-tight" data-lw="d-titulo">
+<h2 class="font-headline-sm text-[24px] text-deep-lagoon font-bold leading-tight" data-lw="d-titulo" id="cajon-titulo">
           —
         </h2>
 </div>
-<button class="w-8 h-8 rounded-full flex items-center justify-center text-outline hover:text-volcanic-ash hover:bg-surface-container transition-colors shrink-0" onclick="document.getElementById('cajon-detalle').classList.add('translate-x-full'); document.getElementById('cajon-backdrop').classList.add('hidden');" title="Cerrar panel" type="button">
+<button class="w-8 h-8 rounded-full flex items-center justify-center text-outline hover:text-volcanic-ash hover:bg-surface-container transition-colors shrink-0" onclick="document.getElementById('cajon-detalle').classList.add('translate-x-full'); document.getElementById('cajon-backdrop').classList.add('hidden');" title="Cerrar (Esc)" aria-label="Cerrar" data-lw-cerrar-cajon type="button">
 <span class="material-symbols-outlined text-[20px]">close</span>
 </button>
 </div>
 <!-- Cuerpo con Scroll Exhaustivo -->
-<div class="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+<div class="flex-1 min-h-0 overflow-y-auto px-6 py-5 space-y-6" id="cajon-cuerpo">
 <!-- Vista MAESTRO (ficha del proyecto) vs vista DETALLE (una parcela), las dos
      DENTRO del mismo cajón — nunca un cajón anidado (Diseño, revisión previa
      16-sep-2026: el cajón ya ocupa el 70% del viewport y no hay precedente de
      overlay de segundo nivel en la suite). abrirDetalleUnidad()/volverAProyecto()
      en datos.js alternan la visibilidad de estos dos contenedores. -->
 <div id="cajon-vista-proyecto">
+<div class="space-y-6" id="cajon-col-info">
 <!-- 0. EXPEDIENTE: subido arriba del todo (11-sep-2026, encargo del owner —
      antes era la última sección y era lo primero que se quería mirar). Trae
      también la foto de portada, si se ha subido una desde "Editar proyecto". -->
@@ -629,8 +682,9 @@
         </h4>
 <div class="flex flex-wrap gap-2" id="d-managers">—</div>
 </section>
-<!-- 2. DESGLOSE DE UNIDADES Y COMPRADORES VINCULADOS -->
-<section class="space-y-3">
+</div><!-- /cajon-col-info -->
+<!-- 2. DESGLOSE DE UNIDADES Y COMPRADORES VINCULADOS — la columna ancha -->
+<section class="space-y-3" id="cajon-col-parcelas">
 <div class="flex items-center justify-between">
 <h4 class="text-xs font-bold uppercase tracking-wider text-outline flex items-center gap-1.5">
 <span class="material-symbols-outlined text-[16px] text-territorial-green">person_search</span>
@@ -655,10 +709,10 @@
 <option value="comprador">Orden: comprador</option>
 </select>
 </div>
-<!-- Rejilla, no pila (14-sep-2026, encargo del owner). El cajon es ancho
-     (70% de la ventana), asi que caben 2-3 parcelas por fila y un proyecto
-     de 40 se recorre de un vistazo en vez de a base de scroll. -->
-<div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-2.5 items-start" id="d-unidades">
+<!-- Rejilla, no pila (14-sep-2026, encargo del owner). Desde el 23-sep el
+     cajón es de pantalla completa y la rejilla se auto-rellena (una tarjeta
+     cada 240 px): en 1920 px caben 6 parcelas por fila, en 1440 unas 4. -->
+<div class="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-2 items-start" id="d-unidades">
 <!-- Unidad 1 — plantilla clonada por unidad. Compactada el 14-sep-2026
      (encargo del owner) manteniendo TODO lo que enseñaba: código, modelo,
      estado, comprador, contrato, volumen, las dos barras de pago con sus
@@ -673,7 +727,7 @@
 <div class="flex items-center justify-between gap-1.5">
 <div class="flex items-baseline gap-1.5 min-w-0">
 <span class="font-headline-sm text-[17px] font-bold text-deep-lagoon tracking-tight leading-none shrink-0" data-lw="u-codigo">—</span>
-<span class="text-[10px] font-semibold text-outline truncate" data-lw="u-tipo">—</span>
+<span class="text-[10px] font-semibold text-outline truncate shrink-0 max-w-[84px]" data-lw="u-tipo">—</span>
 <!-- Agente que creó el contrato: destacado por POSICIÓN (fila superior,
      junto al código) y TAMAÑO (11px, igual que la fila comprador/contrato
      de abajo), nunca por negrita ni color de marca — el único acento de la
@@ -766,14 +820,14 @@
 </div><!-- /cajon-vista-parcela -->
 </div><!-- /flex-1 overflow-y-auto (cuerpo con scroll del cajón) -->
 <!-- Pie de Acciones Rápidas del Cajón -->
-<div class="p-5 bg-surface-container-low border-t border-warm-border flex flex-col gap-2.5 shrink-0">
+<div class="px-6 py-3 bg-surface-container-low border-t border-warm-border flex flex-col lg:flex-row lg:items-center gap-2 shrink-0">
 <!-- Antes decía "PDF": no hay generador de PDF de balances en la suite, y
      prometer uno que entrega un CSV es peor que llamarlo por su nombre. -->
-<button class="w-full py-2.5 px-4 rounded-xl bg-deep-lagoon text-surface-bright hover:bg-opacity-95 transition-all font-label-md text-[13px] font-semibold flex items-center justify-center gap-2 shadow-sm" id="btn-balance-csv" type="button">
+<button class="w-full lg:w-auto py-2 px-4 rounded-xl bg-deep-lagoon text-surface-bright hover:bg-opacity-95 transition-all font-label-md text-[13px] font-semibold flex items-center justify-center gap-2 shadow-sm" id="btn-balance-csv" type="button">
 <span class="material-symbols-outlined text-[18px]">download</span>
 <span class="">Exportar cuentas del proyecto (CSV)</span>
 </button>
-<div class="grid grid-cols-2 gap-2">
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-wrap lg:justify-end lg:ml-auto gap-2">
 <button class="py-2 px-3 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-warm-border transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" id="btn-ver-contratos" type="button">
 <span class="material-symbols-outlined text-[16px]">description</span>
 <span class="">Ver contratos</span>
