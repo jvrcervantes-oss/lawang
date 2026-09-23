@@ -96,6 +96,13 @@ RedirectMatch 404 (?i)/_diag_
   # con mod_alias, la regla 1 de abajo se lo comia y mandaba a /portfolio (404).
   RewriteRule ^portfolio\.html$ /thecollection [R=302,L,NE]
 
+  # La intranet v4 entra por Home (23-sep-2026, owner: «que /intranet/v4/home/ sea la url
+  # estándar cuando entras a /intranet/v4/»). La raíz servía el hub de maqueta de Stitch.
+  # Solo GET (un 30x convierte un POST en GET) y 302, no 301: si la portada de la v4
+  # cambia algún día, ningún navegador se queda con esta guardada para siempre.
+  RewriteCond %{REQUEST_METHOD} =GET
+  RewriteRule ^intranet/v4/?(index\.html)?$ /intranet/v4/home/ [R=302,L]
+
   # Sitemap dinamico: la URL de siempre (/sitemap.xml, la que ya conoce robots.txt) pasa a
   # servir sitemap.php, generado desde data.json — antes era un XML estatico con 5 URLs fijas
   # que nunca listaba ninguna propiedad. Rewrite interno, sin redirect: la URL no cambia.
