@@ -150,7 +150,7 @@ const LW_HERRAMIENTAS = [
   /* Asistente: SEPARADAS 23-sep-2026 (owner: «hay herramientas que no se controla la vista
      desde usuarios como las demás» → «separa todo»). Clave propia de VISTA;
      guardar en la base sigue pidiendo el permiso de la herramienta madre.
-     La migración 20260923180000 se la dio a quien ya tenía la madre. */
+     La migración 20260923180500_permisos_propios se la dio a quien ya tenía la madre. */
   { grupo:'Documentación', nombre:'Asistente', icon:'ph-robot', href:'/intranet/v4/asistente/', herr:'asistente',
     para:'Un borrador de respuesta a la duda de un comprador, citando solo su contrato. Lo revisas y lo mandas tú.',
     claves:'asistente bot ia inteligencia artificial borrador respuesta comprador pregunta duda contrato clausula pendiente assistant ai draft reply buyer question doubt contract clause pending' },
@@ -178,7 +178,7 @@ const LW_HERRAMIENTAS = [
   /* Recibos: SEPARADAS 23-sep-2026 (owner: «hay herramientas que no se controla la vista
      desde usuarios como las demás» → «separa todo»). Clave propia de VISTA;
      guardar en la base sigue pidiendo el permiso de la herramienta madre.
-     La migración 20260923180000 se la dio a quien ya tenía la madre. */
+     La migración 20260923180500_permisos_propios se la dio a quien ya tenía la madre. */
   { grupo:'Administración', nombre:'Recibos', icon:'ph-hand-coins', href:'/intranet/facturas/?tipo=recibi', herr:'recibos',
     para:'Justificantes de pago y señales.',
     claves:'recibi recibos justificante señal pago receipts proof of payment deposit',
@@ -244,7 +244,7 @@ const LW_HERRAMIENTAS = [
   /* Modelos: SEPARADAS 23-sep-2026 (owner: «hay herramientas que no se controla la vista
      desde usuarios como las demás» → «separa todo»). Clave propia de VISTA;
      guardar en la base sigue pidiendo el permiso de la herramienta madre.
-     La migración 20260923180000 se la dio a quien ya tenía la madre. */
+     La migración 20260923180500_permisos_propios se la dio a quien ya tenía la madre. */
   { grupo:'Base de datos', nombre:'Modelos', icon:'ph-house-line', href:'/intranet/modelos/', herr:'modelos',
     para:'Que se puede construir: habitaciones, metros, precio, techos, extras y planos de cada tipo de vivienda.',
     claves:'modelos tipologias villas tipos vivienda specs precio techos extras planos catalogo dormitorios metros house models types specs price roofs add-ons floor plans catalogue bedrooms sqm',

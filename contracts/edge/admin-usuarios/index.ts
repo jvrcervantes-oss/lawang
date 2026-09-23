@@ -87,7 +87,7 @@ const corsFor = (req: Request) => {
 const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte', 'leads', 'closers', 'ranking', 'reparto', 'cuentas', 'comisiones', 'reservas', 'modelos', 'asistente', 'recibos'];
 // 'reservas', 'modelos', 'asistente', 'recibos' (23-sep-2026, owner: «separa
 // todo»): colgaban de operaciones/unidades/contratos/facturas. Clave propia de
-// vista; la migración 20260923180000 se la dio a quien ya tenía la madre.
+// vista; la migración 20260923180500_permisos_propios se la dio a quien ya tenía la madre.
 // 10-sep-2026: sales_manager/project_manager (encargados de proyecto: ven,
 // crean y corrigen contratos/facturas de cualquier agente en los proyectos
 // que supervisan — `usuarios.proyectos_supervisados`, distinta de `proyectos`)
