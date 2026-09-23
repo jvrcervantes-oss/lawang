@@ -443,6 +443,14 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 }
 @media (max-width:1023px){ header .lw-lang__btn{min-height:40px} }  /* header+clase: la hoja que inyecta el selector llega despues con min-height:24px */
 #section-collection > div > div:first-child > a{white-space:nowrap}
+/* Caja de la imagen de «Bioclimatic layout» CUADRADA en todos los anchos (23-sep-2026):
+   - en movil tomaba la altura de la foto recortada (~250px) y «Total area» tapaba el plano;
+   - en escritorio se estiraba a la altura de la columna derecha, y en las villas sin lista de
+     alcance (hoy todas menos Dali) la foto medía >1000px de alto con la columna casi vacia.
+   Fuera tambien las escuadras .corner-accent del mockup: sobre la foto parecian un fallo. */
+#section-layout [class~="lg:col-span-7"]{height:auto}
+#section-layout [class~="lg:col-span-7"] > div{aspect-ratio:1/1;height:auto}
+#section-layout .corner-accent::before,#section-layout .corner-accent::after{display:none}
 
 /* ── Colores de los bloques (23-sep-2026, owner eligio H3/Y3/R3/I3/C2 de la comparativa
    con la paleta Lawang): H3 cabecera del panel en Territorial green · Y3 tarjeta del contrato
@@ -460,7 +468,9 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 #hero-configurator .lw-cfg-cab .grid > div *{color:#f5f0e6!important}
 /* Y3 */
 #section-layout{background:#f5f0e6!important}
-#section-layout .lg\:col-span-5 > div{background:#fffdf8!important;border-color:#beb3a5!important}
+/* Solo las FILAS de la lista (antes "> div" pintaba tambien los contenedores de la lista y del
+   boton: rectangulos blancos de esquina recta detras de las tarjetas redondeadas, 23-sep). */
+#section-layout .lg\:col-span-5 .space-y-3\.5 > div{background:#fffdf8!important;border-color:#beb3a5!important}
 #section-layout .lg\:col-span-5 > div:first-child{background:#485b37!important;border-color:#485b37!important}
 #section-layout .lg\:col-span-5 > div:first-child *{color:#f5f0e6!important}
 #section-layout .lg\:col-span-5 > div:first-child .material-symbols-outlined, #section-layout .lg\:col-span-5 > div:first-child .uppercase{color:#beb3a5!important}
@@ -857,14 +867,24 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 <!-- Specs desde el alcance real de obra ($m['alcance']['incluido']), no la poesía del mockup -->
 <div class="space-y-3.5">
 <?php
-$specIcons = ['bed', 'roofing', 'pool', 'air', 'bolt', 'engineering'];
+// Icono segun LO QUE DICE la linea, no segun su posicion (23-sep-2026): antes se ciclaba una
+// lista fija de 6 iconos, asi que con 7 lineas la ultima repetia la cama y «Exterior terrace»
+// salia con viento, «Air conditioning» con un rayo y «PLN» con un obrero. Primer patron que casa.
+$specIcons = [
+    '/pool|piscina/i'                                   => 'pool',
+    '/roof|techo|cubierta|atap/i'                       => 'roofing',
+    '/terrace|terraza|deck|teras/i'                     => 'deck',
+    '/air.?con|aire acond|hot water|agua caliente|AC\b/i' => 'ac_unit',
+    '/electric|el[eé]ctric|PLN|\d+\s*W\b|listrik/i'      => 'bolt',
+    '/structure|estructura|architect|arquitect|install|instalac/i' => 'architecture',
+    '/main building|edificio|building|bangunan/i'       => 'home',
+];
 $incluido  = (array) ($m['alcance']['incluido'] ?? []);
-$i = 0;
 foreach ($incluido as $it):
     $txt = is_array($it) ? ($it['en'] ?? $it['es'] ?? '') : (string) $it;
     if ($txt === '') continue;
-    $ic = $specIcons[$i % count($specIcons)];
-    $i++;
+    $ic = 'check_circle';
+    foreach ($specIcons as $re => $icono) { if (preg_match($re, $txt)) { $ic = $icono; break; } }
 ?>
 <div class="flex items-start gap-3.5 p-3.5 rounded-xl bg-surface-container/60 border border-surface-container-highest hover:bg-surface-container transition-colors">
 <span class="w-8 h-8 rounded-full bg-territorial-green/10 text-territorial-green flex items-center justify-center shrink-0 mt-0.5">
