@@ -128,22 +128,17 @@
        redirección viva que sobreviviera a un fallo de `ata()` sería
        exactamente el escape silencioso a la herramienta vieja que este
        build vino a cerrar. */
-    [/alta de comprador/i, '/intranet/compradores/?nuevo=1'],
-    [/nueva unidad|nuevo proyecto|importar csv/i, '/intranet/proyectos/'],
-    [/registrar hito/i, '/intranet/vencimientos/'],
-    [/registrar avance|firmar peritaje/i, '/intranet/obra/'],
-    [/nuevo ticket/i, '/intranet/soporte/'],
-    [/nueva solicitud/i, '/intranet/solicitudes/'],
-    /* «+ Invitar miembro» YA NO redirige a /intranet/usuarios/ (21-sep-2026,
-       misma tarde): tuvo aquí un `?nuevo=1` provisional (023ec818) mientras
-       se construía el alta nativa; ahora editores.js la cablea con `ata()`
-       — se ata en directo al botón con `stopPropagation`, así que este array
-       ni se consulta para él. Se retira del todo, no se deja "por si acaso"
-       (mismo criterio que facturas/recibos, arriba). */
-    [/editar permisos/i, '/intranet/usuarios/'],
-    [/nueva creatividad|dossier$/i, '/intranet/creatividades/'],
-    [/subir nuevo expediente/i, '/intranet/documentacion/'],
-    [/añadir adquirente|editar texto|copiar datos/i, '/contracts/app.html']
+    /* PODA (23-sep-2026, tras S16-S18): las otras once entradas que vivían
+       aquí ya no tenían a quién redirigir — o su botón ya es nativo y
+       editores.js lo ata con `stopPropagation` (Alta de comprador, Nueva
+       unidad, Nuevo proyecto, Importar CSV, Registrar hito, Registrar avance,
+       Nueva solicitud, Invitar/Editar permisos), o el botón ya no existe en
+       ninguna pantalla (Nuevo ticket, Firmar peritaje, Nueva creatividad,
+       Subir nuevo expediente, Añadir adquirente, Editar texto, Copiar datos).
+       Mismo criterio que facturas/recibos arriba: una redirección que
+       sobreviviera a un fallo del editor nativo sería la salida silenciosa a
+       la herramienta vieja. Queda solo el generador de contratos, que SIGUE
+       en la herramienta de siempre por decisión (encargo 19-sep). */
   ];
   function conDatosReales() { return document.body.getAttribute('data-datos') === 'reales'; }
 

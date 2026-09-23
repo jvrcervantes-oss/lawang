@@ -52,11 +52,21 @@ create index if not exists correos_enviados_factura_idx  on public.correos_envia
 
 alter table public.correos_enviados enable row level security;
 
--- Lectura: cualquier agente — el registro existe para responder "¿salió o no?"
--- y esa pregunta la hace quien atiende al cliente, no solo quien envió.
+-- Lectura — CAMBIADA el 23-sep-2026 (fuente única:
+-- supabase/migrations/20260923130000_correos_enviados_lectura_por_contrato.sql).
+-- Era «cualquier agente» y dejaba leer los envíos de toda la cartera; ahora es
+-- la regla de los contratos: admin todo, quien lo envió lo suyo, y el resto
+-- los envíos de un contrato que puede ver (contrato_visible). NO volver a
+-- ejecutar la versión vieja de este bloque: reabriría el hueco (Legal, 19-sep).
+-- destructivo-ok: sustituye una policy de lectura por otra más estricta
 drop policy if exists "agentes leen correos" on public.correos_enviados;
-create policy "agentes leen correos" on public.correos_enviados
-  for select to authenticated using (public.es_agente());
+drop policy if exists "correos: leer lo propio o del contrato visible" on public.correos_enviados;
+create policy "correos: leer lo propio o del contrato visible" on public.correos_enviados
+  for select to authenticated
+  using (public.es_agente() and (public.es_admin()
+    or coalesce(enviado_por = (select auth.email()), false)
+    or exists (select 1 from public.contratos c where c.id = correos_enviados.contrato_id
+               and public.contrato_visible(c.creado_por, c.proyecto_id))));
 
 -- Escritura: solo el camino del navegador la necesita (fmMail); las edges
 -- entran por service_role. with check exige el es_agente de siempre y que

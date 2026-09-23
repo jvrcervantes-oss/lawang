@@ -2236,11 +2236,33 @@
           var moneda = lista[0];
           var sumables = suyos.filter(function (x) { return !esPre(x.tipo); });
           if (!sumables.length) {
-            return H.nota('Solo tiene Carta(s) de Reserva: el precio final de la villa lo fija el contrato que la sustituya. La cuota de reserva sí es exigible — se ve en la herramienta clásica.') +
+            /* La cuota de reserva ES exigible (Legal ALTA, 12-ago-2026) y vive
+               en el jsonb del contrato: se pide al abrir la ficha, solo de estos
+               contratos (paridad S6, 23-sep-2026 — antes decía «se ve en la
+               clásica»). `data-cuota-reserva` lo rellena pintaFicha. */
+            return H.nota('Solo tiene Carta(s) de Reserva: el precio final de la villa lo fija el contrato que la sustituya. Lo exigible hoy es la cuota de reserva.') +
+              H.dato('Cuota de reserva', '<span data-cuota-reserva="' + esc(suyos.map(function (x) { return x.id; }).join(',')) + '" style="color:#75786e">Cargando…</span>', { html: 1 }) +
               H.dato('Cobrado', fmt(cobrado, moneda));
           }
           var precio = sumables.reduce(function (a, x) { return a + (Number(x.precio_total) || 0); }, 0);
           var pendiente = precio - cobrado;
+          /* Avance por proyecto (paridad S6): con contratos en más de un
+             proyecto, la cifra total no dice cuál va retrasado. Mismo cálculo
+             que la suma de abajo, partido por proyecto. */
+          var porProy = {};
+          sumables.forEach(function (x) {
+            var k = x.proyecto_nombre || '—';
+            var p = porProy[k] = porProy[k] || { precio: 0, cobrado: 0 };
+            p.precio += Number(x.precio_total) || 0;
+            p.cobrado += cobId[x.id] || 0;
+          });
+          var nombresProy = Object.keys(porProy);
+          var tablaProy = nombresProy.length > 1
+            ? '<div style="margin-top:10px">' + H.tabla(['Proyecto', 'Precio', 'Cobrado', 'Pendiente'], nombresProy.map(function (k) {
+                var p = porProy[k];
+                return [esc(k), esc(fmt(p.precio, moneda)), esc(fmt(p.cobrado, moneda)), esc(fmt(p.precio - p.cobrado, moneda))];
+              })) + '</div>'
+            : '';
           return '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center">' +
             ['Precio pactado', 'Cobrado', 'Pendiente'].map(function (etq, i) {
               var v = [precio, cobrado, pendiente][i];
@@ -2249,7 +2271,7 @@
                 '<div style="font-size:18px;font-weight:700;color:' + color + '">' + esc(fmt(v, moneda)) + '</div></div>';
             }).join('') + '</div>' +
             '<p style="margin:6px 0 0;font-size:11.5px;color:#75786e">Solo cuenta como cobrado el recibí — una factura o proforma es lo que se debe, no lo pagado.' +
-            (sumables.length !== suyos.length ? ' El precio no cuenta las Cartas de Reserva.' : '') + '</p>';
+            (sumables.length !== suyos.length ? ' El precio no cuenta las Cartas de Reserva.' : '') + '</p>' + tablaProy;
         }
         /* La ficha COMPLETA se pide al abrir, y solo la de ese comprador. Si
            la consulta falla se pinta con lo que el listado ya sabe y se avisa:
@@ -2334,6 +2356,8 @@
             H.seccion('Estado de cuentas', seccionEstadoCuentas(vins, H), 'cuentas') +
             H.seccion('Facturas', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'facturas') +
             H.seccion('Documentación KYC', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'docs') +
+            H.seccion('Registro de envíos', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'envios') +
+            H.seccion('Soporte', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'soporte') +
             H.seccion('Portal del comprador', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'portal');
           var acciones = [
             { texto: 'Editar datos', tono: 'primario', onClick: function () {
@@ -2474,6 +2498,63 @@
           };
           var ids = vins.map(function (v) { return v.contrato_id; });
 
+          /* ── Paridad S6 con /intranet/compradores/ (23-sep-2026): lo que la
+             primera pasada dejó fuera a propósito. Todo se pide al ABRIR y
+             solo de esta persona, como el resto de secciones del cajón. */
+
+          // Cuota de reserva: solo si seccionEstadoCuentas dejó el hueco (solo Cartas)
+          var huecoCuota = cj.cuerpo.querySelector('[data-cuota-reserva]');
+          if (huecoCuota) {
+            var preIds = huecoCuota.getAttribute('data-cuota-reserva').split(',').filter(Boolean);
+            sb.rpc('contratos_equipo').select('id,numero,precio_total,moneda,precio_reserva:datos->fields->>precio_reserva').in('id', preIds).then(function (rc) {
+              if (rc.error) { huecoCuota.textContent = 'no se pudo leer'; huecoCuota.style.color = '#9E2F26'; return; }
+              huecoCuota.style.color = '';
+              // sin cuota fijada, el precio del documento como aproximación — mismo criterio que la clásica
+              huecoCuota.textContent = (rc.data || []).map(function (x) {
+                var imp = x.precio_reserva ? x.precio_reserva + ' ' + (x.moneda || '') : fmt(Number(x.precio_total) || 0, x.moneda || 'EUR') + ' (sin cuota fijada: importe del documento)';
+                return (x.numero || 'sin nº') + ': ' + imp;
+              }).join(' · ') || '—';
+            });
+          }
+
+          /* Registro de envíos: `correos_enviados` de SUS contratos y facturas.
+             Desde el 23-sep la RLS solo deja leer los envíos de contratos que
+             la sesión puede ver (Legal, 19-sep) — la condición que se puso
+             para enseñarlo aquí. */
+          (function () {
+            if (!ids.length) return pinta('envios', H.nota('Sin contratos enlazados: no hay envíos que atarle.'));
+            sb.from('correos_enviados').select('para,asunto,via,enviado_por,enviado_en,contrato_id,factura_id')
+              .in('contrato_id', ids).order('enviado_en', { ascending: false }).limit(200).then(function (re) {
+                if (re.error) return pinta('envios', H.nota('No se pudo leer el registro de envíos: ' + re.error.message));
+                var filas = re.data || [];
+                if (!filas.length) return pinta('envios', H.nota('Sin correos registrados para sus contratos. El registro existe desde el 18-ago-2026: los envíos anteriores no dejaron rastro.'));
+                var via = function (v) { return typeof lwViaCorreo === 'function' ? lwViaCorreo(v) : (v || '—'); };
+                pinta('envios', H.tabla(['Cuándo', 'Contrato', 'Para', 'Vía', 'Quién'], filas.map(function (x) {
+                  var k = porC[x.contrato_id];
+                  return [esc(fFecha(x.enviado_en)), esc((k && k.numero) || '—') + (x.factura_id ? '<div style="font-size:11px;color:#75786e">con factura</div>' : ''),
+                    esc(x.para || '—'), esc(via(x.via)), esc(x.enviado_por || 'Automático')];
+                })));
+              });
+          })();
+
+          /* Soporte: un RESUMEN (cuántos abiertos, el último mensaje) y el
+             enlace a su bandeja en Soporte v4 — el hilo completo vive allí; repetirlo
+             aquí sería la duplicación que ya se cerró el 1-sep en la clásica. */
+          Promise.all([
+            sb.from('mensajes_comprador').select('de,texto,creado_en').eq('client_id', c2.id).order('creado_en', { ascending: false }).limit(1),
+            sb.from('hilo_soporte').select('estado,actualizado_en').eq('client_id', c2.id)
+          ]).then(function (rs) {
+            if (rs[0].error || rs[1].error) return pinta('soporte', H.nota('No se pudo leer Soporte: ' + (rs[0].error || rs[1].error).message));
+            var ultimo = (rs[0].data || [])[0], hilos = rs[1].data || [];
+            if (!ultimo && !hilos.length) return pinta('soporte', H.nota('Sin mensajes desde el área de clientes.'));
+            var abiertos = hilos.filter(function (h) { return h.estado === 'abierto'; }).length;
+            pinta('soporte',
+              '<p style="margin:0 0 6px;font-size:12.5px">' + (abiertos ? H.tag(abiertos + (abiertos === 1 ? ' abierto' : ' abiertos'), 'espera') : H.tag('Todo resuelto', 'ok')) +
+              ' <span style="color:#75786e;margin-left:6px">' + hilos.length + ' ticket' + (hilos.length === 1 ? '' : 's') + ' en total' + (ultimo ? ' · último mensaje ' + esc(fFecha(ultimo.creado_en)) : '') + '</span></p>' +
+              (ultimo ? '<p style="margin:0 0 8px;font-size:13px;color:#2E3437">' + esc((ultimo.de === 'equipo' ? 'Equipo: ' : 'Comprador: ') + ultimo.texto) + '</p>' : '') +
+              H.enlace('/intranet/v4/soporte/?id=' + encodeURIComponent(c2.id), 'Ver sus tickets en Soporte →'));
+          });
+
           /* Lo que cuesta una consulta se pide al abrir, no al listar 200
              fichas: facturas de SUS contratos, sus documentos y su acceso al
              portal. `facturas_equipo` y no `.from('facturas')`: la RLS por
@@ -2531,7 +2612,20 @@
                   '<button type="button" data-doc-subir style="align-self:start;padding:9px 16px;border-radius:8px;border:0;background:#104C4F;color:#fff;font-weight:600;font-size:13px;cursor:pointer">Subir documento</button>' +
                   '<p style="margin:0;font-size:11px;color:#75786e">Van a un bucket privado. Al abrirlos se genera un enlace temporal de 5 minutos, no una URL fija.</p>' +
                   '</div>';
-                pinta('docs', tablaDocs + formSubida);
+                /* Alerta KYC (paridad S6, 23-sep-2026) — misma regla que
+                   `alerta()` de la clásica: el PEOR documento con caducidad
+                   manda. Caducado invalida el KYC; a 60 días o menos, avisa. */
+                var peor = null;
+                ds.forEach(function (d) {
+                  if (!d.caduca_el) return;
+                  var dd = Math.round((new Date(d.caduca_el + 'T00:00:00') - hoy) / 86400000);
+                  if (peor === null || dd < peor) peor = dd;
+                });
+                var alertaKyc = peor === null ? ''
+                  : peor < 0 ? H.nota('Hay un documento caducado: el KYC de esta persona no vale hasta renovarlo.')
+                  : peor <= 60 ? H.nota('Un documento caduca en ' + peor + ' día' + (peor === 1 ? '' : 's') + ': conviene pedir el nuevo ya.')
+                  : '';
+                pinta('docs', alertaKyc + tablaDocs + formSubida);
 
                 /* Bucket privado: enlace temporal de 5 minutos, nunca una URL fija
                    — igual que la herramienta clásica. */
@@ -2646,7 +2740,7 @@
               if (bPrev) bPrev.addEventListener('click', abrePreviewPortal);
               var bTick = cj.cuerpo.querySelector('[data-portal-tickets]');
               if (bTick) bTick.addEventListener('click', function () {
-                window.open('/intranet/soporte/?id=' + encodeURIComponent(c2.id), '_blank', 'noopener');
+                window.open('/intranet/v4/soporte/?id=' + encodeURIComponent(c2.id), '_blank', 'noopener');
               });
 
               if (window.LW_V4.esAdmin) {
