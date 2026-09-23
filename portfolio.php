@@ -66,7 +66,11 @@ $n = count($CAT);
   --ease:cubic-bezier(.16,1,.3,1); --gut:clamp(20px,5vw,72px); }
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-padding-top:80px}
-body{font-family:var(--sans);color:var(--va);background:var(--rl) url('/assets/img/bg-ecommerce.webp') top center / 100% auto no-repeat;min-height:100vh;
+/* Fondo: la textura (2560x1440, alto = 56.25vw) terminaba de golpe y se notaba el corte contra el
+   crema liso. Un degradado ENCIMA la funde con --rl en su ultimo 45%. */
+body{font-family:var(--sans);color:var(--va);min-height:100vh;
+  background:linear-gradient(to bottom,rgba(245,240,230,0) 0,rgba(245,240,230,0) calc(56.25vw * .55),var(--rl) calc(56.25vw - 2px)),
+    url('/assets/img/bg-ecommerce.webp') top center / 100% auto no-repeat,var(--rl);
   -webkit-font-smoothing:antialiased}
 img{display:block;max-width:100%}
 a{color:inherit;text-decoration:none}
@@ -130,7 +134,33 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--tg);outline-offset:
 .pf-grid .lw-prop-title{font-size:clamp(26px,2.6vw,34px);min-height:0;-webkit-line-clamp:1}
 .pf-grid .lw-prop-sub{min-height:0;-webkit-line-clamp:3}
 .pf-grid .lw-prop-foot{justify-content:space-between;gap:12px}
+/* ── Gracia (23-sep, owner: «dale algo de gracia») ──
+   · numero de cada modelo en The Seasons, grande y tenue, en la esquina de los datos;
+   · filete verde que crece en el borde izquierdo de los datos al pasar el raton;
+   · la foto se oscurece un poco menos y el «View model» se convierte en pildora al hover;
+   · entrada suave al hacer scroll SOLO donde el navegador soporta animation-timeline (sin JS, y
+     sin tarjetas escondidas esperando a un observer: en el resto se ven quietas desde el inicio). */
+.pf-grid .lw-prop-body{position:relative}
+.pf-num{position:absolute;top:18px;right:28px;font-family:var(--serif);font-weight:300;font-size:clamp(46px,5vw,72px);line-height:1;color:rgba(72,91,55,.14);
+  letter-spacing:.02em;pointer-events:none;transition:color .4s var(--ease)}
+.lw-prop:hover .pf-num{color:rgba(72,91,55,.3)}
+.pf-grid .lw-prop-body::before{content:"";position:absolute;left:0;top:28px;bottom:28px;width:2px;background:var(--tg);transform:scaleY(0);
+  transform-origin:top;transition:transform .5s var(--ease)}
+.lw-prop:hover .lw-prop-body::before{transform:scaleY(1)}
+.pf-view{padding:8px 14px;border-radius:999px;border:1px solid transparent;transition:gap .3s var(--ease),background .3s,color .3s,border-color .3s}
+.lw-prop:hover .pf-view{background:var(--tg);color:var(--rl);border-color:var(--tg)}
+.pf-rango{max-width:1120px;margin:0 auto clamp(22px,3vw,34px);padding:0 var(--gut);display:flex;align-items:center;gap:16px;
+  font-size:11px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--tg)}
+.pf-rango::before,.pf-rango::after{content:"";flex:1;height:1px;background:linear-gradient(to right,transparent,var(--line))}
+.pf-rango::after{background:linear-gradient(to left,transparent,var(--line))}
+@supports (animation-timeline: view()){
+  @media (prefers-reduced-motion: no-preference){
+    .pf-grid .lw-prop{animation:pfEntra linear both;animation-timeline:view();animation-range:entry 0% entry 55%}
+    @keyframes pfEntra{from{opacity:.25;transform:translateY(40px) scale(.985)}to{opacity:1;transform:none}}
+  }
+}
 @media(max-width:760px){
+  .pf-num{top:14px;right:18px}
   .pf-grid .lw-prop > a{flex-direction:column}
   .pf-grid .lw-prop-media{flex:0 0 240px;min-height:240px;margin:8px 8px 0}
   .pf-grid .lw-prop-body{padding:18px 22px 22px}
@@ -171,6 +201,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--tg);outline-offset:
     <p>Same construction system and roof choice across the range — only the size changes the price. Prices are for the villa build; the plot is priced separately.</p>
   </section>
 
+  <p class="pf-rango"><?= (int) count(array_filter(array_keys($CAT), function ($k) use ($MODELOS) { return (bool) lw_modelo_get($k, $MODELOS); })) ?> models · from smallest to largest</p>
   <section class="pf-grid" aria-label="Villa models">
 <?php $i = 0; foreach ($CAT as $id => $v):
     // Mismas reglas que /modelo (revision previa de Marketing, 23-sep): solo los modelos que
@@ -194,6 +225,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--tg);outline-offset:
           <span class="lw-prop-line"><img class="lw-line-ico" src="/assets/img/cream-villas.webp" alt="" loading="lazy">Villa model</span>
         </div>
         <div class="lw-prop-body">
+          <span class="pf-num" aria-hidden="true"><?= sprintf('%02d', $i) ?></span>
           <div class="lw-prop-pills"><span class="pf-pill ten"><?= (int) $v['dorm'] ?> bed</span><span class="pf-pill plan"><?= (int) $v['banos'] ?> bath</span></div>
           <span class="lw-prop-loc"><b>Turnkey</b> villa</span>
           <h2 class="lw-prop-title"><?= lw_e($v['villa']) ?></h2>
