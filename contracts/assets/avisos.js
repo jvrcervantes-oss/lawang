@@ -141,10 +141,20 @@ function lwAvisosArmar(r, opts) {
   });
   var vistos = {};
   var avisos = [];
+  /* «TU …» DE OTRO (23-sep-2026, owner: «he rechazado la solicitud de un
+     agente y me pone a mí como si fuese rechazada para mí»). El aviso personal
+     «Tu solicitud SP-8 — rechazada» va dirigido al comercial que la pidió;
+     un admin lo recibe de la base porque puede leerlo todo, y se le leía como
+     suyo. Para quien NO es el destinatario se le quita el «Tu»: queda
+     «Solicitud SP-8 — rechazada», que además se funde con la copia de los
+     managers del mismo segundo. No se esconde: si la solicitud no tenía
+     contrato no hay copia de managers, y el admin se quedaría sin saberlo. */
+  var ajeno = function (n) { return !!n.destinatario && String(n.destinatario).toLowerCase() !== yo; };
+  var sinTu = function (t) { var r = String(t || '').replace(/^Tu /, ''); return r.charAt(0).toUpperCase() + r.slice(1); };
   crudos.forEach(function (n) {
     var seg = segundo(n.creado_en);
-    if (n.tipo === 'unidad_estado' && String(n.destinatario || '').toLowerCase() !== yo &&
-        generalUnidad[seg + '|' + codigoCopia(n.titulo)]) return;
+    if (n.tipo === 'unidad_estado' && ajeno(n) && generalUnidad[seg + '|' + codigoCopia(n.titulo)]) return;
+    if (ajeno(n) && /^Tu /.test(n.titulo || '')) n = Object.assign({}, n, { titulo: sinTu(n.titulo) });
     var clave = (n.tipo || '') + '|' + (n.titulo || '') + '|' + seg;
     if (vistos[clave]) return;
     vistos[clave] = true;

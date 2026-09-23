@@ -104,6 +104,19 @@ const mismaTx = lwAvisosArmar([ok([
 ]), ok([]), ok([]), ok([])], { esAdmin: true, email: 'jefe@x', ahora: AHORA });
 assert.deepStrictEqual(mismaTx.avisos.map(a => a.titulo).sort(), ['Parcela C4 vuelve a estar disponible', 'Unidad C2 — no_disponible'],
   'la copia de otra parcela del mismo segundo no desaparece');
+// «Tu solicitud …» de OTRO: el admin no lo lee como suyo, y se funde con la copia de managers
+const T1 = '2026-09-23T04:22:57.185563+00:00';
+const rech = lwAvisosArmar([ok([
+  { tipo: 'solicitud_pago', titulo: 'Tu solicitud SP-8 — rechazada', destinatario: 'agente@x', creado_en: T1 },
+  { tipo: 'solicitud_pago', titulo: 'Solicitud SP-8 — rechazada', destinatario: 'm1@x', creado_en: T1 },
+  { tipo: 'solicitud_pago', titulo: 'Solicitud SP-8 — rechazada', destinatario: 'm2@x', creado_en: T1 },
+  { tipo: 'solicitud_pago', titulo: 'Tu solicitud SP-9 — pagada', destinatario: 'agente@x', creado_en: T1 },
+]), ok([]), ok([]), ok([])], { esAdmin: true, email: 'jefe@x', ahora: AHORA });
+assert.deepStrictEqual(rech.avisos.map(a => a.titulo).sort(), ['Solicitud SP-8 — rechazada', 'Solicitud SP-9 — pagada'],
+  'sin «Tu» para quien no es el destinatario, y una vez por suceso');
+const suya = lwAvisosArmar([ok([{ tipo: 'solicitud_pago', titulo: 'Tu solicitud SP-8 — rechazada', destinatario: 'agente@x', creado_en: T1 }]), ok([]), ok([]), ok([])],
+  { esAdmin: false, email: 'Agente@x', ahora: AHORA });
+assert.strictEqual(suya.avisos[0].titulo, 'Tu solicitud SP-8 — rechazada', 'al propio agente sí le dice «Tu»');
 // un manager ve SU copia aunque exista el aviso general (la base solo le da la suya)
 const mgr = lwAvisosArmar([ok([
   { tipo: 'unidad_disponible', titulo: 'Parcela C4 vuelve a estar disponible', destinatario: null, creado_en: T0 },
