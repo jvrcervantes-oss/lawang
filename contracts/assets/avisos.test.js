@@ -71,11 +71,12 @@ assert.strictEqual(tono('Nuevo').clase, 'hecho');
 const { lwAvisoTonoHecho } = require('./avisos.js');
 assert.deepStrictEqual(lwAvisoTonoHecho('contrato_firmado'), ['ok', 'Firmado']);
 assert.deepStrictEqual(lwAvisoTonoHecho('factura_emitida'), ['neutro', 'Emitida'], 'emitida: gris, como en listados y fichas');
-assert.deepStrictEqual(lwAvisoTonoHecho('firma_enviada'), ['atencion', 'En firma'], 'en firma: ámbar, como en listados y fichas');
+assert.deepStrictEqual(lwAvisoTonoHecho('firma_enviada'), ['neutro', 'Firma enviada'], 'un hecho es una foto: no afirma «en firma» después de firmado');
 assert.deepStrictEqual(lwAvisoTonoHecho('unidad_reservada'), ['neutro', 'Inventario']);
 assert.deepStrictEqual(lwAvisoTonoHecho('solicitud_pago', 'Tu solicitud SP-2 — rechazada'), ['mal', 'Rechazada']);
 assert.deepStrictEqual(lwAvisoTonoHecho('solicitud_pago', 'Tu solicitud SP-2 — pagada'), ['ok', 'Pagada']);
-assert.deepStrictEqual(lwAvisoTonoHecho('solicitud_pago', 'Solicitud de pago SP-8'), ['atencion', 'Pendiente']);
+assert.deepStrictEqual(lwAvisoTonoHecho('solicitud_pago', 'Solicitud de pago SP-8'), ['neutro', 'Solicitud'], 'no dice «pendiente» de algo que quizá ya se pagó');
+assert.deepStrictEqual(lwAvisoTonoHecho('solicitud_pago', 'Tu solicitud SP-2 — aprobada'), ['atencion', 'Aprobada'], 'aprobada no es pagada');
 assert.deepStrictEqual(lwAvisoTonoHecho('tipo_nuevo_que_no_existe'), ['neutro', 'tipo nuevo que no existe'], 'un tipo sin clasificar no desaparece');
 
 // --- admin: ve las de todos ---

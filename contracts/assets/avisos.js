@@ -44,7 +44,12 @@ var LW_AVISOS_LIMITE = 40;
      alguien: vence pronto, en firma) · 'ok' (hecho: firma, cobro) · 'neutro'
      (informativo: factura emitida, inventario). Mismo significado que las
      etiquetas de los listados y las fichas: una factura emitida es gris en
-     todas partes, un enlace de firma enviado es ámbar («En firma») en todas.
+     todas partes.
+     UN HECHO ES UNA FOTO, NO UN ESTADO VIVO (Administración, 23-sep): la
+     notificación no se reescribe cuando la cosa avanza, así que un hecho
+     nunca afirma un estado que pueda caducar — «Solicitud» y «Firma enviada»
+     van en gris; lo que SIGUE pendiente lo avisan las alertas, que se
+     calculan con el estado actual en cada carga.
      El azul de la primera versión se retiró (23-sep): no significaba nada
      en el resto de la suite;
    · `etiqueta`: la palabra corta que acompaña al color — el color solo no
@@ -56,9 +61,9 @@ var LW_AVISOS_TONO_HECHO = {
   contrato_bloqueado: ['ok', 'Firmado'],
   operacion_saldada:  ['ok', 'Saldado'],
   unidad_cobrada:     ['ok', 'Cobrado'],
-  solicitud_pago:     ['atencion', 'Pendiente'],   // afinado por el título abajo
+  solicitud_pago:     ['neutro', 'Solicitud'],   // afinado por el título abajo
   factura_emitida:    ['neutro', 'Emitida'],
-  firma_enviada:      ['atencion', 'En firma'],
+  firma_enviada:      ['neutro', 'Firma enviada'],
   unidad_reservada:   ['neutro', 'Inventario'],
   unidad_bloqueada:   ['neutro', 'Inventario'],
   unidad_vendida:     ['neutro', 'Inventario'],
@@ -70,7 +75,7 @@ function lwAvisoTonoHecho(tipo, titulo) {
   if (tipo === 'solicitud_pago') {
     if (/rechazad/i.test(titulo || '')) return ['mal', 'Rechazada'];
     if (/pagad/i.test(titulo || '')) return ['ok', 'Pagada'];
-    if (/aprobad/i.test(titulo || '')) return ['ok', 'Aprobada'];
+    if (/aprobad/i.test(titulo || '')) return ['atencion', 'Aprobada'];   // aprobada ≠ pagada: sigue pendiente del pago
   }
   return LW_AVISOS_TONO_HECHO[tipo] || ['neutro', String(tipo || 'Aviso').replace(/_/g, ' ')];
 }
