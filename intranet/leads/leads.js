@@ -137,7 +137,7 @@ function enlaceSeguro(url){
    El `?v=` que usa el hub (`herramientas.js`) se sigue aceptando y se traduce a
    hash al entrar, para no tener que tocar los enlaces del hub.
    ========================================================================== */
-const VISTAS_OCULTABLES = { agenda: '#tabAgenda', closers: '#tabClosers' };
+const VISTAS_OCULTABLES = { agenda: '#tabAgenda', closers: '#tabClosers', trazabilidad: '#tabTrazabilidad' };
 
 function vistaPermitida(v){
   if(!document.querySelector('#v-' + v)) return false;
@@ -172,6 +172,7 @@ function ir(v){
   if(v === 'setter' && !CARGADO.setter) cargarSetter();
   if(v === 'agenda' && !CARGADO.agenda) cargarAgenda();
   if(v === 'closers') cargarClosers();
+  if(v === 'trazabilidad') cargarTrazabilidad();
 }
 
 /* ==========================================================================
@@ -2210,6 +2211,205 @@ async function borrarCita(id){
 }
 
 /* ==========================================================================
+   VISTA 8 — TRAZABILIDAD (solo super_admin, 23-sep-2026)
+   --------------------------------------------------------------------------
+   Cruza leads y compradores de Lawang con los contactos de las cuentas GoHighLevel
+   PROPIAS de los sales managers, para ver si un cliente entra por varios funnels.
+   Aquí no llega ni un teléfono ni un email: la Edge `trazabilidad-ghl` los convierte
+   en huellas HMAC antes de guardar nada, y solo guarda las que coinciden. El nombre que
+   se ve es el de NUESTRA ficha (lead o comprador); del lado GHL solo hay fuente y fecha.
+
+   Una persona puede coincidir por teléfono Y por email: la base devuelve una fila por
+   huella, y aquí se juntan las que comparten algún registro (misma persona).
+   ========================================================================== */
+let TRAZA = [], TRAZA_CUENTAS = [];
+
+async function llamarTraza(cuerpo){
+  const { data: ses } = await SB.auth.getSession();
+  const token = ses && ses.session && ses.session.access_token;
+  const r = await fetch('https://vtulllundrfennhjddhc.supabase.co/functions/v1/trazabilidad-ghl', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || '') },
+    body: JSON.stringify(cuerpo),
+  });
+  const out = await r.json().catch(() => ({}));
+  if(!r.ok) throw new Error(out.error || lwT('La sincronización respondió %s', { s: r.status }));
+  return out;
+}
+
+/* Junta las filas-huella que comparten algún registro (lead, comprador o contacto GHL). */
+function trazaPersonas(filas){
+  const padre = new Map();
+  const raiz = k => { while(padre.get(k) !== k) k = padre.get(k); return k; };
+  const une = (a, b) => { padre.set(raiz(a), raiz(b)); };
+  filas.forEach((f, i) => {
+    padre.set('h' + i, 'h' + i);
+    (f.apariciones || []).forEach(a => {
+      const k = a.origen + ':' + a.ref_id;
+      if(!padre.has(k)) padre.set(k, k);
+      une('h' + i, k);
+    });
+  });
+  const grupos = new Map();
+  filas.forEach((f, i) => {
+    const g = raiz('h' + i);
+    const p = grupos.get(g) || { tipos: new Set(), ap: new Map() };
+    (f.tipos || []).forEach(t => p.tipos.add(t));
+    (f.apariciones || []).forEach(a => p.ap.set(a.origen + ':' + a.ref_id, a));
+    grupos.set(g, p);
+  });
+  return [...grupos.values()].map(p => {
+    const ap = [...p.ap.values()].sort((a, b) => String(a.alta || '').localeCompare(String(b.alta || '')));
+    const propia = ap.find(a => a.origen !== 'ghl' && a.nombre);
+    const funnels = new Set(ap.map(a => a.origen === 'ghl' ? a.funnel : 'Lawang'));
+    return { nombre: propia ? propia.nombre : lwT('Sin ficha en Lawang'), tipos: [...p.tipos], ap,
+             funnels: funnels.size, cuentasGhl: new Set(ap.filter(a => a.origen === 'ghl').map(a => a.funnel)).size,
+             comprador: ap.some(a => a.origen === 'comprador') };
+  }).sort((a, b) => String(b.ap[b.ap.length - 1].alta || '').localeCompare(String(a.ap[a.ap.length - 1].alta || '')));
+}
+
+async function cargarTrazabilidad(){
+  const [c, k] = await Promise.all([SB.rpc('traza_coincidencias_listar'), SB.rpc('traza_cuentas_listar')]);
+  if(c.error || k.error){ toastMal(lwErrorHumano(c.error || k.error)); return; }
+  TRAZA = trazaPersonas(c.data || []);
+  TRAZA_CUENTAS = k.data || [];
+  pintarTrazabilidad();
+}
+
+function pintarTrazabilidad(){
+  const activas = TRAZA_CUENTAS.filter(x => x.activo).length;
+  const compradores = TRAZA.filter(p => p.comprador).length;
+  const dosGhl = TRAZA.filter(p => p.cuentasGhl >= 2).length;
+  $('#kpis-traza').innerHTML = `
+    <div class="kpi fuerte"><div class="rot">${lwT('En más de un funnel')}<i class="ph ph-git-merge"></i></div>
+      <p class="cifra">${TRAZA.length}</p><p class="pie">${lwT('personas')}</p></div>
+    <div class="kpi"><div class="rot">${lwT('Ya compradores')}<i class="ph ph-handshake"></i></div>
+      <p class="cifra">${compradores}</p><p class="pie">${lwT('con ficha de comprador en Lawang')}</p></div>
+    <div class="kpi"><div class="rot">${lwT('En dos sales managers')}<i class="ph ph-users-three"></i></div>
+      <p class="cifra oro">${dosGhl}</p><p class="pie">${lwT('en las cuentas de dos o más')}</p></div>
+    <div class="kpi"><div class="rot">${lwT('Cuentas activas')}<i class="ph ph-plug"></i></div>
+      <p class="cifra">${activas} / ${TRAZA_CUENTAS.length}</p><p class="pie">${lwT('cuentas GoHighLevel')}</p></div>`;
+
+  const ult = TRAZA_CUENTAS.map(x => x.ultima_sync).filter(Boolean).sort().pop();
+  $('#subTraza').textContent = ult ? lwT('Última sincronización: %f', { f: fechaHora(ult) })
+                                   : lwT('Todavía no se ha sincronizado ninguna cuenta');
+
+  $('#tTraza').innerHTML = TRAZA.length ? TRAZA.map(p => `
+    <article class="cita${p.cuentasGhl >= 2 ? ' urge' : ''}">
+      <div class="cuerpo">
+        <div class="quien">${esc(p.nombre)} ${p.comprador ? `<span class="chip verde">${lwT('Comprador')}</span>` : ''}
+          <span class="chip gris">${p.tipos.map(t => t === 'tel' ? lwT('teléfono') : 'email').join(' + ')}</span></div>
+        ${p.ap.map(a => `<div class="sub"><b>${esc(a.funnel)}</b> · ${esc(a.fuente || '—')} · ${a.alta ? fecha(a.alta) : '—'}</div>`).join('')}
+      </div>
+      <div class="cuando">${lwT('%n funnels', { n: p.funnels })}</div>
+    </article>`).join('')
+    : `<p class="vacio">${activas ? lwT('Nadie aparece en más de un funnel.') : lwT('Sin cuentas activas todavía: no hay nada que cruzar.')}</p>`;
+
+  $('#tTrazaCuentas').innerHTML = `<thead><tr><th>${lwT('Sales manager')}</th><th>${lwT('Etiqueta')}</th>
+      <th>${lwT('Adenda firmada')}</th><th>${lwT('Última pasada')}</th><th></th></tr></thead><tbody>` +
+    (TRAZA_CUENTAS.map(x => {
+      const r = x.ultimo_resultado || {};
+      const estado = !x.ultima_sync ? '—' : r.ok
+        ? lwT('%c contactos · %m con Lawang', { c: r.contactos ?? '—', m: r.huellas_con_lawang ?? '—' })
+        : `<span class="chip rojo">${esc(r.error || lwT('falló'))}</span>`;
+      return `<tr data-id="${esc(x.id)}">
+        <td><b>${esc(x.nombre)}</b><div class="sub">${esc(x.location_id)}</div>
+          ${x.activo ? `<span class="chip verde">${lwT('Activa')}</span>` : `<span class="chip gris">${lwT('Apagada')}</span>`}</td>
+        <td>${esc(x.etiqueta)}</td>
+        <td><div class="campo" style="margin:0"><input type="date" data-adenda value="${esc(x.adenda_firmada_en || '')}" aria-label="${esc(lwT('Adenda firmada'))}"></div></td>
+        <td>${x.ultima_sync ? fechaHora(x.ultima_sync) + '<div class="sub">' + estado + '</div>' : '—'}</td>
+        <td style="white-space:nowrap">
+          <button type="button" class="btn mini" data-tz="probar">${lwT('Probar')}</button>
+          <button type="button" class="btn mini${x.activo ? '' : ' pri'}" data-tz="estado">${x.activo ? lwT('Apagar') : lwT('Activar')}</button>
+          <button type="button" class="btn mini" data-tz="token">${lwT('Cambiar token')}</button>
+          <button type="button" class="btn mini" data-tz="borrar">${lwT('Borrar')}</button>
+        </td></tr>`;
+    }).join('') || `<tr><td colspan="5" class="vacio">${lwT('Ninguna cuenta conectada.')}</td></tr>`) + '</tbody>';
+}
+
+async function trazaAccion(e){
+  const b = e.target.closest('[data-tz]'); if(!b) return;
+  const fila = b.closest('tr'); const id = fila.dataset.id;
+  const cuenta = TRAZA_CUENTAS.find(x => x.id === id); if(!cuenta) return;
+  const accion = b.dataset.tz;
+  b.disabled = true;
+  try {
+    if(accion === 'probar'){
+      toast(lwT('Leyendo la cuenta… puede tardar un minuto.'));
+      const r = await llamarTraza({ accion: 'probar', cuenta_id: id });
+      const res = (r.resultados || {})[id] || {};
+      if(!res.ok) throw new Error(res.error || lwT('falló'));
+      await lwConfirmar({ titulo: lwT('Prueba en seco'), confirmar: lwT('Entendido'), cancelar: false,
+        cuerpo: lwT('%c contactos leídos con la etiqueta. %m coinciden con leads o compradores de Lawang. No se ha guardado nada.',
+                   { c: res.contactos, m: res.huellas_con_lawang }) });
+    }
+    if(accion === 'estado'){
+      const adenda = fila.querySelector('[data-adenda]').value || null;
+      if(!cuenta.activo && !adenda){ toastMal(lwT('Pon primero la fecha de la adenda firmada.')); return; }
+      if(cuenta.activo){
+        const ok = await lwConfirmar({ titulo: lwT('Apagar la cuenta'), tono: 'peligro', confirmar: lwT('Apagar'),
+          cuerpo: lwT('Se dejan de leer sus contactos y se borran sus coincidencias guardadas.') });
+        if(!ok) return;
+      }
+      const { error } = await SB.rpc('traza_cuenta_estado', { p_id: id, p_activo: !cuenta.activo, p_adenda: adenda });
+      if(error) throw error;
+      toast(cuenta.activo ? lwT('Cuenta apagada.') : lwT('Cuenta activada. Entra en la próxima sincronización.'));
+    }
+    if(accion === 'token'){
+      // Nunca prompt(): congela la extensión de Chrome (suite_lawang.md). El campo va dentro
+      // del propio diálogo y se lee al cerrarse; se vacía después para no dejar el token en el DOM.
+      const ok = await lwConfirmar({ titulo: lwT('Cambiar token de %n', { n: cuenta.nombre }), confirmar: lwT('Guardar'),
+        cuerpo: esc(lwT('Pega el token nuevo (pit-…). Se comprueba contra GoHighLevel antes de guardarlo.')) +
+          '<div class="campo" style="margin:12px 0 0"><input type="password" id="tzTokenNuevo" autocomplete="off" aria-label="Token"></div>' });
+      const campo = document.querySelector('#tzTokenNuevo');
+      const nuevo = campo ? campo.value.trim() : ''; if(campo) campo.value = '';
+      if(!ok || !nuevo) return;
+      const r = await llamarTraza({ accion: 'token', cuenta_id: id, token: nuevo });
+      toast(lwT('Token cambiado. %c contactos con la etiqueta.', { c: r.contactos_con_etiqueta }));
+    }
+    if(accion === 'borrar'){
+      const ok = await lwConfirmar({ titulo: lwT('Borrar la cuenta'), tono: 'peligro', confirmar: lwT('Borrar'),
+        cuerpo: lwT('Se borran su token y todas sus coincidencias. No se puede deshacer.') });
+      if(!ok) return;
+      const { error } = await SB.rpc('traza_cuenta_borrar', { p_id: id });
+      if(error) throw error;
+      toast(lwT('Cuenta borrada.'));
+    }
+    await cargarTrazabilidad();
+  } catch(err){ toastMal(lwErrorHumano(err)); }
+  finally { b.disabled = false; }
+}
+
+async function trazaAlta(){
+  const v = s => $(s).value.trim();
+  const cuerpo = { accion: 'alta', nombre: v('#tzNombre'), location_id: v('#tzLocation'), etiqueta: v('#tzEtiqueta'), token: v('#tzToken') };
+  if(!cuerpo.nombre || !cuerpo.location_id || !cuerpo.etiqueta || !cuerpo.token){
+    toastMal(lwT('Faltan datos: sales manager, Location ID, etiqueta y token.')); return;
+  }
+  const b = $('#btnTrazaAlta'); b.disabled = true;
+  try {
+    const r = await llamarTraza(cuerpo);
+    ['#tzNombre', '#tzLocation', '#tzEtiqueta', '#tzToken'].forEach(s => { $(s).value = ''; });
+    toast(lwT('Cuenta conectada (apagada). %c contactos con la etiqueta.', { c: r.contactos_con_etiqueta }));
+    await cargarTrazabilidad();
+  } catch(err){ toastMal(lwErrorHumano(err)); }
+  finally { b.disabled = false; $('#tzToken').value = ''; }
+}
+
+async function trazaSync(){
+  const b = $('#btnTrazaSync'); b.disabled = true;
+  toast(lwT('Sincronizando… puede tardar un minuto.'));
+  try {
+    const r = await llamarTraza({ accion: 'sincronizar' });
+    if(r.nada) toast(lwT('Ninguna cuenta activa: actívala con la fecha de la adenda firmada.'));
+    else if(r.conservada_pasada_anterior) toastMal(lwT('Alguna cuenta falló: se conserva la pasada anterior.'));
+    else toast(lwT('Sincronizado.'));
+    await cargarTrazabilidad();
+  } catch(err){ toastMal(lwErrorHumano(err)); }
+  finally { b.disabled = false; }
+}
+
+/* ==========================================================================
    ARRANQUE
    ========================================================================== */
 $('#nav').addEventListener('click', e => {
@@ -2258,6 +2458,9 @@ $('#btnEstructura').addEventListener('click', abrirEstructura);
 $('#btnRefrescarSetter').addEventListener('click', cargarSetter);
 $('#btnAgendarGuardar').addEventListener('click', guardarCita);
 $('#btnAgendarCancelar').addEventListener('click', limpiarFormularioAgenda);
+$('#tTrazaCuentas').addEventListener('click', trazaAccion);
+$('#btnTrazaAlta').addEventListener('click', trazaAlta);
+$('#btnTrazaSync').addEventListener('click', trazaSync);
 
 window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   SB = sb; YO = session && session.user; FICHA = ficha;
@@ -2287,6 +2490,9 @@ window.LW_AUTH.then(async ({ sb, session, ficha }) => {
      esto solo evita ofrecer un control que el resto del equipo no puede usar. */
   PUEDE_ESTRUCTURA = !!ficha && ficha.rol === 'super_admin';
   $('#btnEstructura').hidden = !PUEDE_ESTRUCTURA;
+  /* Trazabilidad: solo super_admin, ni por casilla (revisión previa #49). Candado de
+     comodidad: el de verdad es es_super_admin() dentro de cada traza_* de la base. */
+  $('#tabTrazabilidad').hidden = !PUEDE_ESTRUCTURA;
   await pintarAlcance();
   await cargar();
   $('#c-pipeline').textContent = LEADS.length;

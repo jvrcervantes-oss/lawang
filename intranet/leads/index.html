@@ -64,9 +64,9 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=53c8eec5"></script>
+<script src="/contracts/assets/i18n.js?v=4ba5c662"></script>
 <script src="/contracts/assets/herramientas.js?v=0cab1a28"></script>
-<script src="/contracts/assets/avisos.js?v=8500ed8c" defer></script><script src="/contracts/assets/topbar.js?v=8444fd68" defer></script>
+<script src="/contracts/assets/avisos.js?v=42a84640" defer></script><script src="/contracts/assets/topbar.js?v=8444fd68" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js?v=54b33acd" data-herramienta="leads"></script>
 <script src="/contracts/assets/suite.js?v=3cf4a63a"></script>
@@ -123,6 +123,11 @@
          de estadísticas, son cifras de negocio de cada compañero. -->
     <span class="crm-nav-sep" aria-hidden="true" data-lwt="· Dirección">· Dirección</span>
     <button role="tab" data-v="closers" aria-selected="false" id="tabClosers" hidden><i class="ph ph-trophy"></i><span data-lwt>Closers</span></button>
+    <!-- Trazabilidad (23-sep-2026): cruza leads y compradores con las cuentas GoHighLevel
+         propias de los sales managers. SOLO super_admin, ni siquiera `ranking`: los closers
+         son justo de quien se protege, y la vista le enseñaría a uno en qué cuentas de los
+         otros aparecen sus clientes (revisión previa #49, Seguridad). -->
+    <button role="tab" data-v="trazabilidad" aria-selected="false" id="tabTrazabilidad" hidden><i class="ph ph-git-merge"></i><span data-lwt>Trazabilidad</span></button>
   </nav>
 
   <!-- ========================= HOY ========================= -->
@@ -330,10 +335,52 @@
     </div>
   </section>
 
+  <!-- ======================= TRAZABILIDAD (solo super_admin) ======================= -->
+  <section class="crm-vista" id="v-trazabilidad" hidden>
+    <div class="kpis" id="kpis-traza"></div>
+
+    <!-- Legal (revisión previa #49): una coincidencia es una SEÑAL para que la mire una
+         persona, nunca un «no» automático a un descuento. Se dice cada vez que se entra. -->
+    <div class="aviso oro" role="status" style="margin-bottom:16px" data-lwt="Una coincidencia es una señal para revisar, no un veredicto: que alguien esté en dos funnels no prueba que juegue a dos bandas. El descuento se decide con la política de siempre.">Una coincidencia es una señal para revisar, no un veredicto: que alguien esté en dos funnels no prueba que juegue a dos bandas. El descuento se decide con la política de siempre.</div>
+
+    <div class="caja" style="margin-bottom:16px">
+      <header>
+        <div>
+          <h2 data-lwt="Personas en más de un funnel">Personas en más de un funnel</h2>
+          <p id="subTraza">—</p>
+        </div>
+        <button type="button" class="btn" id="btnTrazaSync"><i class="ph ph-arrows-clockwise"></i><span data-lwt>Sincronizar ahora</span></button>
+      </header>
+      <div id="tTraza" class="citas"></div>
+    </div>
+
+    <div class="caja">
+      <header>
+        <div>
+          <h2 data-lwt="Cuentas GoHighLevel conectadas">Cuentas GoHighLevel conectadas</h2>
+          <p data-lwt="Solo lectura. Una cuenta nace apagada y no se enciende sin la fecha de la adenda firmada por el sales manager.">Solo lectura. Una cuenta nace apagada y no se enciende sin la fecha de la adenda firmada por el sales manager.</p>
+        </div>
+      </header>
+      <div class="tabla-scroll"><table class="tabla" id="tTrazaCuentas"></table></div>
+      <details style="margin-top:14px">
+        <summary class="btn pri" style="list-style:none"><i class="ph ph-plus"></i><span data-lwt>Nueva cuenta</span></summary>
+        <div style="margin-top:12px">
+          <div class="fila-campos">
+            <div class="campo"><label for="tzNombre" data-lwt="Sales manager">Sales manager</label><input type="text" id="tzNombre" autocomplete="off"></div>
+            <div class="campo"><label for="tzLocation" data-lwt="Location ID">Location ID</label><input type="text" id="tzLocation" autocomplete="off"></div>
+            <div class="campo"><label for="tzEtiqueta" data-lwt="Etiqueta de contactos Lawang">Etiqueta de contactos Lawang</label><input type="text" id="tzEtiqueta" autocomplete="off"></div>
+          </div>
+          <div class="campo"><label for="tzToken" data-lwt="Token (pit-…) con permiso solo de lectura de contactos">Token (pit-…) con permiso solo de lectura de contactos</label><input type="password" id="tzToken" autocomplete="off"></div>
+          <button type="button" class="btn pri" id="btnTrazaAlta"><i class="ph ph-plug"></i><span data-lwt>Conectar cuenta</span></button>
+        </div>
+      </details>
+    </div>
+  </section>
+
   <div class="toast" id="toast"></div>
 
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
 <script src="/contracts/assets/suite-comun.js?v=24701ad2"></script>
-<script src="/intranet/leads/leads.js?v=16"></script>
+<script src="/intranet/leads/leads.js?v=17"></script>
 </body>
 </html>
