@@ -43,20 +43,21 @@ const r = [
   ok([{ factura_id: 'f4', pendiente: 0 }]),
 ];
 
-// --- agente: solo lo suyo; creado_por null NUNCA pasa (es_suyo(null)=TRUE en la base) ---
+// --- quién ve qué lo decide la RLS, no el armado (LAW-276, 23-sep-2026) ---
+// Con un manager, la RLS le devuelve también facturas/firmas de su equipo: el
+// armado ya NO las filtra por autor (antes le escondía las de su equipo).
 const ag = lwAvisosArmar(r, { esAdmin: false, email: yo, vistoHasta: '2026-09-20T00:00:00Z', ahora: AHORA });
 const t = ag.avisos.map(a => a.titulo);
 assert.ok(t.includes('Factura F1 vencida hace 3 d'), t);
-assert.ok(!t.some(x => /F2|F3/.test(x)), 'facturas ajenas o sin autor fuera: ' + t);
+assert.ok(t.some(x => /F2/.test(x)) && t.some(x => /RP10/.test(x)), 'lo que la RLS deja leer (su equipo) se avisa: ' + t);
 assert.ok(!t.some(x => /F4/.test(x)), 'factura ya cobrada fuera');
 assert.ok(!t.some(x => /F5|F6|F7/.test(x)), 'proforma, lejana y anulada fuera');
 assert.ok(t.includes('Factura F8 vence en 10 d'));
 assert.ok(t.includes('Enlace de firma de RP9 caduca en 1 d'));
-assert.ok(!t.some(x => /RP10/.test(x)), 'firma ajena fuera');
 // hechos: nuevo por vistoHasta; alertas: nuevo por d<=5 (F8 a 10 días no lo es)
 const nuevos = ag.avisos.filter(a => a.nuevo).map(a => a.titulo).sort();
-assert.deepStrictEqual(nuevos, ['Enlace de firma de RP9 caduca en 1 d', 'Factura F1 vencida hace 3 d', 'Nuevo']);
-assert.strictEqual(ag.sinLeer, 3);
+assert.deepStrictEqual(nuevos, ['Enlace de firma de RP10 caduca en 1 d', 'Enlace de firma de RP9 caduca en 1 d', 'Factura F1 vencida hace 3 d', 'Factura F2 vencida hace 3 d', 'Factura F3 vencida hace 3 d', 'Nuevo']);
+assert.strictEqual(ag.sinLeer, 6);
 assert.strictEqual(ag.avisos.find(a => a.titulo === 'Nuevo').enlace, '#', 'enlace javascript: neutralizado');
 
 // --- admin: ve las de todos ---

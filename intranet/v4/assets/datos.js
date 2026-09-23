@@ -619,6 +619,12 @@
     var l = window.LW_IDIOMA === 'en' ? 'en' : 'es';
     return o[l] || o.es || o.en || o.id || '';
   }
+  /* S10 (23-sep-2026): una unidad sin modelo (hoy 67, todas parcelas sueltas)
+     decía «—» en su tipo; la clásica enseña el tipo de la unidad. */
+  function tipoUnidad(u) {
+    var t = String((u && u.tipo) || '').trim();
+    return t ? t.charAt(0).toUpperCase() + t.slice(1) : '—';
+  }
   function pintaDeckFaq(sb, proyecto) {
     var caja = document.getElementById('d-deckfaq');
     if (!caja || !proyecto) return;
@@ -4100,7 +4106,7 @@
               // el progreso de venta con el orden del diccionario.
               f.setAttribute('data-estado', u.estado || '');
               pon('u-codigo', u.codigo, f);
-              pon('u-tipo', u.modelo || '—', f);
+              pon('u-tipo', u.modelo || tipoUnidad(u), f);
               /* Estado destacado (11-sep-2026) y reforzado el 14-sep-2026: la
                  pastilla sola no bastaba para leer una columna de parcelas de un
                  vistazo, así que el mismo color entra también por el filo
@@ -4194,7 +4200,7 @@
         pon('dp-codigo', u.codigo || '—');
         var nota = document.querySelector('[data-lw="dp-nota"]');
         if (nota) { nota.textContent = etiquetaEstado(u.estado).toUpperCase(); nota.style.background = colorEstado(u.estado); }
-        pon('dp-tipo', u.modelo || '—');
+        pon('dp-tipo', u.modelo || tipoUnidad(u));
         pon('dp-agente', u.contrato_creado_por ? (EQUIPO_NOMBRE[u.contrato_creado_por] || u.contrato_creado_por) : '—');
         var elC = document.querySelector('[data-lw="dp-comprador-link"]');
         if (elC) {

@@ -16,12 +16,14 @@
    QUIÉN VE QUÉ. La barrera de verdad es la RLS: `facturas` y `contrato_firmas`
    ya filtran por `es_suyo(creado_por) OR es_manager_de(proyecto)` (verificado
    en pg_policies el 23-sep-2026 — el comentario viejo de topbar.js que decía
-   «la RLS deja leer todas» ya no era cierto). El filtro por `creado_por` de
-   abajo se queda como defensa extra para quien no es admin, sobre todo por
-   `es_suyo(null) = TRUE`, que ya coló una vez avisos ajenos en esta campana.
-   Consecuencia conocida y aceptada al mudarlo (mismo comportamiento que antes):
-   a un manager no se le avisa de las facturas/firmas de su equipo aunque la
-   RLS se las deje ver.
+   «la RLS deja leer todas» ya no era cierto). Hasta el 23-sep había además un
+   filtro en cliente (`creado_por === email` para quien no es admin), puesto
+   por `es_suyo(null) = TRUE`, que una vez coló avisos ajenos. Se RETIRA
+   (LAW-276): hoy `es_suyo` es `es_admin() OR coalesce(autor = email, false)`
+   — null ya es false —, así que ese filtro no protegía de nada y a cambio le
+   escondía a cada manager las facturas y firmas de su equipo, que la RLS sí
+   le deja ver (`es_manager_de`). La campana avisa de lo que la sesión puede
+   leer, ni más ni menos.
 
    `nuevo` NO significa lo mismo en los dos orígenes, y se conserva tal cual:
    un hecho es nuevo si es posterior a `vistoHasta`; una factura o una firma lo
@@ -72,7 +74,6 @@ function lwAvisosArmar(r, opts) {
     // es peor que no avisar (19-ago-2026)
     var queda = pendientes[f.id] != null ? pendientes[f.id] : Number(f.total) || 0;
     if (!(queda > 0.005)) return;
-    if (!esAdmin && f.creado_por !== email) return;   // defensa extra, ver cabecera
     var d = dias(f.venc);
     if (d === null || d > LW_AVISOS_VENC_DIAS) return;
     avisos.push({
@@ -87,7 +88,6 @@ function lwAvisosArmar(r, opts) {
 
   datos(2).forEach(function (s) {
     var c = s.contratos || {};
-    if (!esAdmin && c.creado_por !== email) return;
     var d = dias(s.expira_en);
     if (d === null || d > LW_AVISOS_VENC_DIAS) return;
     avisos.push({
