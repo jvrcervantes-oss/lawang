@@ -90,7 +90,7 @@ async function fileToAnnexPages(file){
    `assets/folletos/` desde el 30-jul: compartían carpeta, y renombrar uno a
    `Dune.pdf` habría metido su "Desde 66.000€" dentro de todos los PPJB firmados
    de Dune. Una carpeta que se lee por convención de nombre no admite vecinos. */
-let AUTO_ANX = '';    // tipología cuyo anexo está puesto o pedido (evita un fetch por tecla)
+let AUTO_ANX = '';    // "tipología§techo" cuyo anexo está puesto o pedido (evita un fetch por tecla)
 let AUTO_CARGA = '';  // tipología que se está convirtiendo AHORA. Estado propio y no
                       // inferido de ANNEXES: si el PDF no existe, "sin anexo" y "aún
                       // convirtiendo" son el mismo estado y el panel se quedaba
@@ -114,8 +114,16 @@ let AUTO_CARGA = '';  // tipología que se está convirtiendo AHORA. Estado prop
 
    El SHA se calcula sobre el buffer venga de donde venga, así que el aviso «el
    pack ha cambiado desde que se guardó este contrato» sigue funcionando igual —
-   y ahora también detecta que alguien ha sustituido el plano desde Modelos. */
-async function bufferDelAnexo(tip){
+   y ahora también detecta que alguien ha sustituido el plano desde Modelos.
+
+   POR TECHO — 23-sep-2026, encargo del owner: el «Anexo Maestro» viene uno
+   por modelo Y acabado de techo (Dali Bambu ≠ Dali Sirap: cambian planos,
+   secciones y memoria). `modelo_documentos.techo_clave` dice a qué techo
+   pertenece cada plano; NULL = vale para cualquiera. Se busca primero el del
+   techo elegido y, si no hay, el genérico. Un plano de OTRO techo nunca se
+   usa: mejor sin anexo automático que con los planos del tejado que no es.
+   Devuelve { buf, techo } — `techo` es la clave del plano usado, o ''. */
+async function bufferDelAnexo(tip, techo){
   const ficha = (typeof fichaDelModelo === 'function') ? fichaDelModelo(tip) : null;
   if(ficha && typeof sb !== 'undefined' && sb){
     /* Si Modelos falla se sigue al PDF estático —mejor un anexo que ninguno—,
@@ -126,16 +134,17 @@ async function bufferDelAnexo(tip){
     let doc = null;
     try{
       const { data, error } = await sb.from('modelo_documentos')
-        .select('path, nombre, tipo, subido_en').eq('modelo_id', ficha.id).eq('tipo', 'plano')
-        .order('subido_en', { ascending:false }).limit(1);
+        .select('path, nombre, tipo, techo_clave, subido_en').eq('modelo_id', ficha.id).eq('tipo', 'plano')
+        .order('subido_en', { ascending:false });
       if(error) throw error;
-      doc = (data || [])[0] || null;
+      const planos = data || [];
+      doc = (techo && planos.find(d => d.techo_clave === techo)) || planos.find(d => !d.techo_clave) || null;
       if(doc && doc.path){
         const { data:url, error:eUrl } = await sb.storage.from('modelos').createSignedUrl(doc.path, 3600);
         if(eUrl || !url || !url.signedUrl) throw (eUrl || new Error('sin URL firmada'));
         const r = await fetch(url.signedUrl);
         if(!r.ok) throw new Error('HTTP ' + r.status);
-        return await r.arrayBuffer();
+        return { buf: await r.arrayBuffer(), techo: doc.techo_clave || '' };
       }
     }catch(e){
       // Solo se avisa si HABÍA algo que traerse. Que un modelo no tenga plano en
@@ -146,14 +155,29 @@ async function bufferDelAnexo(tip){
   }
   const r = await fetch('assets/anexos/'+encodeURIComponent(tip)+'.pdf');
   if(!r.ok) throw new Error(r.status);
-  return await r.arrayBuffer();
+  return { buf: await r.arrayBuffer(), techo: '' };
+}
+
+/* Techo que decide el anexo: el elegido en el contrato (techo_extras.js). El
+   «sintético» —modelo sin variantes, la única opción calculada del precio
+   base— no es un techo de modelo_techos y no tiene plano propio. */
+function techoDelAnexo(){
+  const t = (typeof TECHO_ELEGIDO !== 'undefined') ? TECHO_ELEGIDO : null;
+  return (t && !t.sintetico && t.clave) ? t.clave : '';
 }
 
 async function syncAutoAnnex(){
   const el = document.querySelector('[name="tipologia_construccion"]');
   const tip = el ? el.value.trim() : '';       // sin campo (otra plantilla) → se quita el anexo
-  if(tip === AUTO_ANX) return;
-  AUTO_ANX = tip;
+  /* Mientras llegan las opciones de techo del modelo no se decide nada: con el
+     techo aún vacío se bajaría y convertiría el plano genérico (o el PDF viejo
+     del repo) para tirarlo un segundo después. cargarTechosYExtras() vuelve a
+     llamar aquí al terminar. */
+  if(tip && typeof TECHO_CARGANDO !== 'undefined' && TECHO_CARGANDO && !techoDelAnexo()) return;
+  const techo = tip ? techoDelAnexo() : '';
+  const clave = tip ? tip + '§' + techo : '';
+  if(clave === AUTO_ANX) return;
+  AUTO_ANX = clave;
   // La entrada guardada (sin páginas) trae dos cosas que NO se pueden re-derivar:
   // si el agente apagó "Incluir en el contrato", y el hash del PDF que se anexó
   // de verdad. Sin esto, un anexo excluido a propósito volvía a entrar solo al
@@ -163,22 +187,28 @@ async function syncAutoAnnex(){
   if(!tip){ AUTO_CARGA=''; saveAnnexes(); rebuildAnnex(); render(); return; }
   AUTO_CARGA = tip; rebuildAnnex();
   try{
-    const buf = await bufferDelAnexo(tip);
+    const { buf, techo:techoPlano } = await bufferDelAnexo(tip, techo);
     const sha = await sha256hex(buf);           // antes de pdf.js: se queda el buffer
     const pages = await pdfToImages(buf);
-    if(AUTO_ANX !== tip) return;               // cambió de tipología mientras se convertía
-    ANNEXES = [{ id:'axauto', auto:tip, sha, title:'Planos y Especificaciones · '+tip,
+    if(AUTO_ANX !== clave) return;             // cambió de tipología o de techo mientras se convertía
+    // El nombre del techo solo va al título si el plano ES de ese techo.
+    const nomTecho = techoPlano && TECHO_ELEGIDO && TECHO_ELEGIDO.nombre ? ' · ' + TECHO_ELEGIDO.nombre : '';
+    ANNEXES = [{ id:'axauto', auto:tip, techo:techoPlano, sha, title:'Planos y Especificaciones · '+tip+nomTecho,
                  pages, on: guardado ? guardado.on !== false : true },
                ...ANNEXES.filter(a=>!a.auto)];
     // El PDF del servidor es mutable: si cambió desde que se guardó el contrato,
     // el anexo que se ve ya NO es el que se firmó. Se avisa, no se oculta.
-    if(guardado && guardado.sha && guardado.sha !== sha)
+    // Si lo que cambió es el TECHO (el agente eligió otro), el pack distinto es
+    // lo esperado y no un cambio en el servidor. `techo` ausente = guardado
+    // antes del 23-sep: ahí sí se avisa, porque sí era otro fichero.
+    const cambioDeTecho = guardado && guardado.techo !== undefined && guardado.techo !== techoPlano;
+    if(guardado && guardado.sha && guardado.sha !== sha && !cambioDeTecho)
       toastMal('OJO: el pack de '+tip+' ha cambiado desde que se guardó este contrato');
     else toast('Anexo de '+tip+' adjuntado ('+pages.length+' pág.)');
   }catch(_){
-    if(AUTO_ANX === tip) toast('Sin anexo automático para '+tip+' — súbelo a mano si lo necesitas');
+    if(AUTO_ANX === clave) toast('Sin anexo automático para '+tip+' — súbelo a mano si lo necesitas');
   }
-  if(AUTO_CARGA === tip) AUTO_CARGA = '';
+  if(AUTO_CARGA === tip && AUTO_ANX === clave) AUTO_CARGA = '';
   saveAnnexes(); rebuildAnnex(); render();
 }
 

@@ -5174,7 +5174,7 @@
         // `modelo` (texto): para avisar de las unidades que NOMBRAN un modelo sin estar
         // enlazadas a él (revisión previa #56: 81 «Dream» de Sumba Hills).
         q(sb.from('unidades').select('modelo_id,modelo,proyecto,proyecto_id'), 'unidades por modelo'),
-        q(sb.from('modelo_documentos').select('id,modelo_id,nombre,path,tipo,tamano_bytes,subido_en,visible_portal'), 'documentos de modelo'),
+        q(sb.from('modelo_documentos').select('id,modelo_id,nombre,path,tipo,tamano_bytes,subido_en,visible_portal,techo_clave'), 'documentos de modelo'),
         // «Sin catalogar» (S12, 22-sep-2026): view ya existente (migración
         // 20260907053801) que agrupa unidades cuyo texto libre `modelo` no
         // enlaza a ningún modelo_id — se enseña, no se «arregla» sola.
@@ -5196,7 +5196,7 @@
         q(sb.from('deck_fotos').select('modelo_id,path,uso,orden').eq('ambito', 'modelo').order('uso').order('orden'), 'fotos del deck'),
         // Ficha por bloques (23-sep-2026): techos y extras se VEN en la ficha,
         // no solo dentro del editor. Tablas pequeñas: se cargan enteras.
-        q(sb.from('modelo_techos').select('id,modelo_id,nombre,precio_ahora,precio_2027,orden'), 'techos'),
+        q(sb.from('modelo_techos').select('id,modelo_id,clave,nombre,precio_ahora,precio_2027,orden'), 'techos'),
         q(sb.from('extras').select('id,nombre,orden').eq('activo', true).order('orden', { ascending: true, nullsFirst: false }), 'extras'),
         q(sb.from('modelo_extras').select('id,modelo_id,extra_id,precio,moneda,disponible'), 'extras por modelo')
       ]).then(function (r) {

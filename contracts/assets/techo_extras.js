@@ -40,6 +40,7 @@ let EXTRAS_ELEGIDOS = [];     // [{extra_id,clave,nombre,precio,moneda}, …]   
 let TECHOS_OPCIONES  = [];    // catálogo YA resuelto (tramo+delta) del modelo+proyecto actual
 let EXTRAS_OPCIONES  = [];
 let TECHO_MODELO_HECHO = null;   // "modeloId§proyectoId" ya resuelto, para no repetir el RPC en cada tecla
+let TECHO_CARGANDO = false;      // RPC de techos en vuelo: el anexo automático (documento_anexos.js) espera a saber el techo
 
 /* Base sobre la que se aplica el descuento comercial (21-sep-2026): techo +
    Σextras, ÚNICA función para ese cálculo — antes vivía repetido a mano en
@@ -62,10 +63,14 @@ async function cargarTechosYExtras(modeloId, proyectoId){
   const firma = modeloId + '§' + (proyectoId || '');
   if(firma === TECHO_MODELO_HECHO) return;
   TECHO_MODELO_HECHO = firma;
-  const [t, e] = await Promise.all([
-    sb.rpc('modelo_techos_opciones', { p_modelo_id: modeloId, p_proyecto_id: proyectoId || null }),
-    sb.rpc('modelo_extras_opciones', { p_modelo_id: modeloId }),
-  ]);
+  TECHO_CARGANDO = true;
+  let t, e;
+  try{
+    [t, e] = await Promise.all([
+      sb.rpc('modelo_techos_opciones', { p_modelo_id: modeloId, p_proyecto_id: proyectoId || null }),
+      sb.rpc('modelo_extras_opciones', { p_modelo_id: modeloId }),
+    ]);
+  }finally{ TECHO_CARGANDO = false; }
   TECHOS_OPCIONES = t.error ? [] : (t.data || []);
   EXTRAS_OPCIONES = e.error ? [] : (e.data || []);
   /* Una vivienda siempre lleva techo (corrección del owner, 16-sep: "no puede
@@ -103,6 +108,8 @@ async function cargarTechosYExtras(modeloId, proyectoId){
      el que el handler de #techoSel en parcela_inventario.js ya la llama tras
      un cambio manual — esta es la otra vía por la que TECHO_ELEGIDO cambia. */
   if(typeof updateSaveButton === 'function') updateSaveButton();
+  // El anexo automático va por techo (23-sep-2026) y esperaba a este resultado.
+  if(typeof syncAutoAnnex === 'function') syncAutoAnnex();
 }
 
 /* Un techo/extra guardado que hoy ya no está entre las opciones (retirado del

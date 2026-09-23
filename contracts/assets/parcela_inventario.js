@@ -682,7 +682,9 @@ function buildForm(){
         // (form.querySelectorAll('select[name]')...) nunca lo alcanza; sin
         // esta llamada explícita, el campo se quedaba con el candado del
         // ÚLTIMO buildForm() completo, no con el techo recién elegido/quitado.
-        syncPrecioTechoExtras(); renderDebounced(); refreshTechoExtras(); updateSaveButton(); return;
+        syncPrecioTechoExtras(); renderDebounced(); refreshTechoExtras(); updateSaveButton();
+        syncAutoAnnex();   // el Anexo Maestro cambia con el techo (23-sep-2026)
+        return;
       }
       const chkExtra = e.target.closest('[data-extra-opt]');
       if(chkExtra){

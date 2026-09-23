@@ -35,7 +35,10 @@
    - La web cachea el catálogo 5 min (LW_CAT_TTL): tras guardar se dice.
    - Con el modelo publicado, la dirección web (slug) no se edita: rompe
      /modelo/<slug> y cualquier anuncio que apunte ahí.
-   - `modelo_documentos.tipo`: CHECK con exactamente estos 5 valores. */
+   - `modelo_documentos.tipo`: CHECK con exactamente estos 5 valores.
+   - `modelo_documentos.techo_clave` (23-sep-2026): a qué techo pertenece el
+     documento; NULL = todos. El contrato de Construcción adjunta el plano del
+     techo elegido. */
 (function () {
   var TIPOS_DOC = [['plano', 'Plano · anexo del contrato'], ['calidades', 'Memoria de calidades'], ['ficha', 'Ficha'], ['render', 'Render'], ['otro', 'Otro']];
   var C = { lagoon: '#104C4F', tinta: '#1b1c19', gris: '#2E3437', apagado: '#5E625A', borde: '#E4DCCB', crema: '#FBF9F4', lino: '#F5F0E6',
@@ -606,21 +609,35 @@
   function bDocs(col, m, h, ctx) {
     // Policy `modelo_docs: escribir` es es_agente(): cualquiera del equipo puede
     // cambiar el tipo, igual que ya puede subir. No se restringe aquí a admin.
-    var b = bloque(col, 'docs', 'Documentos', { puede: true, textoEditar: 'Cambiar tipo', editar: h.docs.length ? function (host) {
+    var b = bloque(col, 'docs', 'Documentos', { puede: true, textoEditar: h.techos.length ? 'Cambiar tipo o techo' : 'Cambiar tipo', editar: h.docs.length ? function (host) {
       var ins = h.docs.map(function (d) {
-        var f = document.createElement('div'); f.style.cssText = 'display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:10px;align-items:center';
+        var f = document.createElement('div'); f.style.cssText = 'display:grid;grid-template-columns:minmax(0,1fr) 210px' + (h.techos.length ? ' 150px' : '') + ';gap:10px;align-items:center';
         var n = document.createElement('span'); n.textContent = d.nombre || 'Documento'; n.style.cssText = 'font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
         var s = document.createElement('select'); s.className = 'fm-in';
         TIPOS_DOC.forEach(function (t) { var o = document.createElement('option'); o.value = t[0]; o.textContent = t[1]; if (d.tipo === t[0]) o.selected = true; s.appendChild(o); });
-        f.appendChild(n); f.appendChild(s); host.appendChild(f);
-        return { d: d, s: s };
+        f.appendChild(n); f.appendChild(s);
+        // Techo del documento (23-sep-2026): el Anexo Maestro viene uno por
+        // techo y el contrato adjunta el del techo elegido. «Todos» = NULL.
+        var t = null;
+        if (h.techos.length) {
+          t = document.createElement('select'); t.className = 'fm-in'; t.setAttribute('aria-label', 'Techo del documento');
+          [['', 'Todos los techos']].concat(h.techos.map(function (x) { return [x.clave, x.nombre]; })).forEach(function (o) {
+            var e = document.createElement('option'); e.value = o[0]; e.textContent = o[1]; if ((d.techo_clave || '') === o[0]) e.selected = true; t.appendChild(e);
+          });
+          f.appendChild(t);
+        }
+        host.appendChild(f);
+        return { d: d, s: s, t: t };
       });
-      nota(host, 'El de tipo «Plano» es el que el contrato de Construcción adjunta al elegir este modelo.');
+      nota(host, 'El de tipo «Plano» es el que el contrato de Construcción adjunta al elegir este modelo' + (h.techos.length ? ': primero el del techo elegido y, si no hay, el de «Todos los techos».' : '.'));
       return function () {
         var p = Promise.resolve();
         ins.forEach(function (r) {
-          if (r.s.value === r.d.tipo) return;
-          p = p.then(function () { return unaFila(ctx.sb.from('modelo_documentos').update({ tipo: r.s.value }).eq('id', r.d.id).select('id'), 'No se ha cambiado «' + r.d.nombre + '»'); });
+          var cambio = {};
+          if (r.s.value !== r.d.tipo) cambio.tipo = r.s.value;
+          if (r.t && r.t.value !== (r.d.techo_clave || '')) cambio.techo_clave = r.t.value || null;
+          if (!Object.keys(cambio).length) return;
+          p = p.then(function () { return unaFila(ctx.sb.from('modelo_documentos').update(cambio).eq('id', r.d.id).select('id'), 'No se ha cambiado «' + r.d.nombre + '»'); });
         });
         return p;
       };
@@ -633,8 +650,9 @@
       f.style.cssText = 'display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 10px;border-radius:10px;background:' + C.crema + ';cursor:pointer';
       if (d.path) { f.setAttribute('data-doc-abrir', ''); f.setAttribute('data-doc-path', d.path); }
       var tipo = (TIPOS_DOC.filter(function (t) { return t[0] === d.tipo; })[0] || [d.tipo, d.tipo || '—'])[1];
+      var techo = d.techo_clave ? (h.techos.filter(function (t) { return t.clave === d.techo_clave; })[0] || { nombre: d.techo_clave }).nombre : '';
       f.innerHTML = '<span data-lw="doc-titulo" style="font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(d.nombre || 'Documento') + '</span>' +
-        '<span data-lw="doc-meta" style="font-size:12px;color:' + C.apagado + ';white-space:nowrap">' + esc(tipo + ' · ' + ctx.fFecha(d.subido_en) + (d.visible_portal ? ' · visible al comprador' : '')) + '</span>';
+        '<span data-lw="doc-meta" style="font-size:12px;color:' + C.apagado + ';white-space:nowrap">' + esc(tipo + (techo ? ' · ' + techo : '') + ' · ' + ctx.fFecha(d.subido_en) + (d.visible_portal ? ' · visible al comprador' : '')) + '</span>';
       caja.appendChild(f);
     });
   }
