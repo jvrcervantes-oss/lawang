@@ -901,7 +901,8 @@
   if (!btn || !caja || !sel) return;
   var q = function (k) { return caja.querySelector('[data-lw="' + k + '"]'); };
   var escH = function (t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
-  function proyecto() { var t = document.getElementById('cajon-titulo'); return t ? t.textContent.trim() : ''; }
+  // El título es «<nombre> · Master Plan & Cuentas» (datos.js): el nombre es lo de antes del « · ».
+  function proyecto() { var t = document.getElementById('cajon-titulo'); return t ? t.textContent.split(' · ')[0].trim() : ''; }
   function tarjetas() {
     var m = {};
     document.querySelectorAll('#d-unidades .lw-u').forEach(function (c) {
