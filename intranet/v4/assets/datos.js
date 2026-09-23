@@ -6290,9 +6290,9 @@
 
       /* PAGOS DE LAWANG, SOLO LO SUYO (23-sep-2026, paso 2 del plan del owner:
          «no todos ven lo de todos, sólo lo suyo»). Para quien no es admin, esta
-         pestaña es «tu comisión»: las solicitudes a su nombre o que creó él. La
-         base le deja leer además las de los proyectos que supervisa (rama
-         es_manager_de de la RLS, anterior a este plan); aquí no se enseñan. */
+         pestaña es «tu comisión»: las solicitudes a su nombre o que creó él.
+         Desde la migración 20260923220000 la base tampoco le da otras (se quitó
+         la rama es_manager_de); el filtro se queda por si acaso. */
       if (ss && !(window.LW_V4 && window.LW_V4.esAdmin)) {
         var yoMail = ((window.LW_V4 && window.LW_V4.miEmail) || '').toLowerCase();
         var yoId = (window.LW_V4 && window.LW_V4.miId) || '';
