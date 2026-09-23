@@ -199,9 +199,9 @@
     'Bali Office': { es: 'Oficina en Bali', id: 'Kantor Bali' },
     'Direct lines': { es: 'Líneas directas', id: 'Saluran langsung' },
     'Notarial escrow': { es: 'Escrow notarial', id: 'Escrow notaris' },
-    '© 2026 Lawang Tropical Properties (PT Tepi Sun Gai). All rights reserved.':
-      { es: '© 2026 Lawang Tropical Properties (PT Tepi Sun Gai). Todos los derechos reservados.',
-        id: '© 2026 Lawang Tropical Properties (PT Tepi Sun Gai). Hak cipta dilindungi.' },
+    '© 2026 Lawang Tropical Properties. All rights reserved.':
+      { es: '© 2026 Lawang Tropical Properties. Todos los derechos reservados.',
+        id: '© 2026 Lawang Tropical Properties. Hak cipta dilindungi.' },
 
     /* — previsión financiera — */
     'Average': { es: 'Medio', id: 'Rata-rata' },

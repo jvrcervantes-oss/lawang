@@ -254,8 +254,8 @@
   "Turnkey EPC Standard":           { es: "Estándar EPC llave en mano", id: "Standar EPC Turnkey" },
   "Every project operates under guaranteed fixed-price written agreements with progress audits at each construction milestone.": { es: "Todo proyecto opera con contratos escritos a precio cerrado garantizado y auditorías de avance en cada hito de obra.", id: "Setiap proyek berjalan dengan perjanjian tertulis harga tetap terjamin dan audit kemajuan di setiap tahap konstruksi." },
   "Clean Deeds":                    { es: "Escrituras limpias", id: "Sertifikat Bersih" },
-  "© 2026 Lawang Tropical Properties (PT Tepi Sun Gai). 100% foreign freehold ownership via registered PMA structure.": { es: "© 2026 Lawang Tropical Properties (PT Tepi Sun Gai). Propiedad freehold 100% extranjera mediante estructura PMA registrada.", id: "© 2026 Lawang Tropical Properties (PT Tepi Sun Gai). Kepemilikan freehold asing 100% melalui struktur PMA terdaftar." },
-  "© 2026 Lawang Tropical Properties (PT Tepi Sun Gai). Foreign freehold ownership via registered PMA structure.": { es: "© 2026 Lawang Tropical Properties (PT Tepi Sun Gai). Propiedad freehold extranjera mediante estructura PMA registrada.", id: "© 2026 Lawang Tropical Properties (PT Tepi Sun Gai). Kepemilikan freehold asing melalui struktur PMA terdaftar." },
+  "© 2026 Lawang Tropical Properties. 100% foreign freehold ownership via registered PMA structure.": { es: "© 2026 Lawang Tropical Properties. Propiedad freehold 100% extranjera mediante estructura PMA registrada.", id: "© 2026 Lawang Tropical Properties. Kepemilikan freehold asing 100% melalui struktur PMA terdaftar." },
+  "© 2026 Lawang Tropical Properties. Foreign freehold ownership via registered PMA structure.": { es: "© 2026 Lawang Tropical Properties. Propiedad freehold extranjera mediante estructura PMA registrada.", id: "© 2026 Lawang Tropical Properties. Kepemilikan freehold asing melalui struktur PMA terdaftar." },
 
   /* ── /palmfield ────────────────────────────────────────────────────────── */
   "Palm Field":                     { es: "Palm Field", id: "Palm Field" },

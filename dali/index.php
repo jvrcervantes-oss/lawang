@@ -119,7 +119,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
      posible: fija el idioma y la tipografia antes del primer pintado. El
      diccionario de landings sí puede diferirse: traduce sobre el DOM ya montado. -->
 <script src="/assets/idioma-web.js?v=20260908113407"></script>
-<script src="/assets/i18n-landing.js?v=20260911114520" defer></script>
+<script src="/assets/i18n-landing.js?v=20260923093252" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>100% Freehold Architectural Villas in Bali &amp; Sumba — Lawang Tropical Properties</title>
 <meta name="description" content="Turnkey architectural villas in Bali &amp; Sumba. Fixed-price written EPC contract, land ready with power, water and permits. From <?= lw_e(lw_aud_fmt($DALI['desde_eur'])) ?>.">
@@ -488,7 +488,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
       </div>
     </div>
     <div class="pie__legal">
-      <span>© 2026 Lawang Tropical Properties (PT Tepi Sun Gai). 100% foreign freehold
+      <span>© 2026 Lawang Tropical Properties. 100% foreign freehold
         ownership via registered PMA structure.</span>
       <span>
         <a href="/legal">Legal &amp; privacy</a> ·

@@ -233,7 +233,7 @@ $deckEtiqueta = $deckEj['proyecto'] ?? '';
 <head>
 <meta charset="utf-8">
 <script src="/assets/idioma-web.js?v=20260908113407"></script>
-<script src="/assets/i18n-landing.js?v=20260911114520" defer></script>
+<script src="/assets/i18n-landing.js?v=20260923093252" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= lw_e($villa . $TITULO_SUFIJO) ?></title>
 <meta name="description" content="<?= lw_e($villa) ?>: a new-build <?= lw_e($dormTxt) ?> villa, built on the plot you choose. Finishes, scope of works and price, configured live.">
@@ -1003,7 +1003,7 @@ foreach ($incluido as $it):
      data-cookies: esta pagina SI carga consent.js; el manejador de #lw-cookies sigue
      mas abajo, en el script inline (este JS va antes, sin defer, a proposito). -->
 <footer data-lw-pie data-cookies data-wa="<?= lw_e($WA_LINK) ?>"></footer>
-<script src="/assets/lawang-pie.js?v=20260923b"></script>
+<script src="/assets/lawang-pie.js?v=20260923093252"></script>
 
 <!-- consent.js: gate del banner de cookies Y de window.lwTrack/Meta Pixel — SIN esto,
      track('ViewContent') de mas abajo comprueba `typeof window.lwTrack==='function'`,

@@ -52,17 +52,17 @@
           horario: 'We reply during Bali hours (WITA).',
           lineas: 'Direct lines', oficina: 'Bali office',
           legal: 'Legal & privacy', cookies: 'Cookie preferences',
-          copy: '© 2026 Lawang Tropical Properties (PT Tepi Sun Gai). All rights reserved.' },
+          copy: '© 2026 Lawang Tropical Properties. All rights reserved.' },
     es: { marca: 'Promotora registrada y asesoría inmobiliaria en Bali.',
           horario: 'Respondemos en horario de Bali (WITA).',
           lineas: 'Líneas directas', oficina: 'Oficina en Bali',
           legal: 'Aviso legal y privacidad', cookies: 'Preferencias de cookies',
-          copy: '© 2026 Lawang Tropical Properties (PT Tepi Sun Gai). Todos los derechos reservados.' },
+          copy: '© 2026 Lawang Tropical Properties. Todos los derechos reservados.' },
     id: { marca: 'Pengembang terdaftar & konsultan properti di Bali.',
           horario: 'Kami membalas pada jam kerja Bali (WITA).',
           lineas: 'Saluran langsung', oficina: 'Kantor Bali',
           legal: 'Legal & privasi', cookies: 'Preferensi cookie',
-          copy: '© 2026 Lawang Tropical Properties (PT Tepi Sun Gai). Hak cipta dilindungi.' }
+          copy: '© 2026 Lawang Tropical Properties. Hak cipta dilindungi.' }
   };
   // Aviso legal por idioma: /legal-es existe; en bahasa NO se hereda el español
   // (LAW-247), cae al inglés.
