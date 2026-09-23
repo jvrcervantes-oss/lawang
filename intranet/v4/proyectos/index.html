@@ -45,6 +45,13 @@
       #cajon-col-parcelas { padding-left: 28px; border-left: 1px solid #E4DCCB; }
       #cajon-vista-parcela { height: 100%; overflow-y: auto; max-width: 760px; }
     }
+    /* Columna izquierda de la ficha en Raw linen (23-sep-2026, owner: «ponle un
+       color de fondo Raw linen para destacarlo sobre el fondo»). Sus cajas eran
+       surface-container-low (#f5f4ee), casi el mismo tono: dentro de esta
+       columna pasan a blanco para no fundirse con el fondo nuevo. */
+    #cajon-col-info { background: #F5F0E6; border-radius: 14px; padding: 18px 16px; }
+    #cajon-col-info .bg-surface-container-low { background-color: #ffffff; }
+    #cajon-col-info .bg-surface-container-lowest { background-color: #F5F0E6; }
   </style>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script id="tailwind-config">
@@ -660,7 +667,7 @@
 <div>
 <div class="flex items-baseline justify-between gap-3 mb-1.5">
 <span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">En el Investor Deck <span class="normal-case tracking-normal font-normal" data-lw="dq-n"></span></span>
-<button class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-[12px] transition-colors hidden" id="btn-deckfaq" type="button">+ Nueva pregunta del deck</button>
+<button class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-[12px] transition-colors whitespace-nowrap shrink-0 hidden" id="btn-deckfaq" type="button">+ Nueva pregunta del deck</button>
 </div>
 <p class="font-body-sm text-[11px] text-outline mb-1.5">Públicas: las ve cualquiera que abra el deck del proyecto, sin contraseña.</p>
 <div class="flex flex-col gap-1.5" id="d-deckfaq"></div>
@@ -668,7 +675,7 @@
 <div class="pt-2">
 <div class="flex items-baseline justify-between gap-3 mb-1.5">
 <span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">Preguntas de inversores</span>
-<button class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-[12px] transition-colors hidden" id="btn-faq" type="button">+ Nueva pregunta</button>
+<button class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-[12px] transition-colors whitespace-nowrap shrink-0 hidden" id="btn-faq" type="button">+ Nueva pregunta</button>
 </div>
 <p class="font-body-sm text-[11px] text-outline mb-1.5">Internas, solo el equipo: lo que han preguntado inversores y su respuesta.</p>
 <div class="flex flex-col gap-1.5" id="d-faqs"><div class="px-2.5 py-1.5 rounded-lg bg-surface-container-low" data-doc-fila><div class="flex items-start justify-between gap-2"><details class="flex-1 min-w-0"><summary class="font-body-sm text-body-sm text-on-surface cursor-pointer" data-lw="fq-pregunta">—</summary><p class="font-body-sm text-body-sm text-on-surface-variant mt-1.5" data-lw="fq-respuesta">—</p></details><div class="flex items-center gap-0.5 shrink-0"><button type="button" class="p-1 rounded text-outline hover:text-deep-lagoon hover:bg-surface-container-lowest" data-doc-editar aria-label="Editar pregunta" title="Editar"><span class="material-symbols-outlined text-[15px]">edit</span></button><button type="button" class="p-1 rounded text-outline hover:text-error hover:bg-error-container hidden" data-doc-borrar aria-label="Borrar pregunta" title="Borrar"><span class="material-symbols-outlined text-[15px]">delete</span></button></div></div></div></div>
