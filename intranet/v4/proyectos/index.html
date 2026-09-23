@@ -128,6 +128,17 @@
       animation: lw-niebla-entra .22s ease-out; }
     @keyframes lw-niebla-entra { from { opacity: 0; } to { opacity: 1; } }
     @media (prefers-reduced-motion: reduce) { #cajon-niebla-parcela { animation: none; } }
+    /* VISTA PLANO (23-sep-2026, owner: «¿hay forma de incorporar aquí el masterplan de
+       los investor-decks?»). La imagen y los polígonos son los MISMOS ficheros del deck
+       (investor-deck/masterplan/*.json): no hay una segunda copia del plano. */
+    #d-plano .lw-plano-lienzo { position: relative; border: 1px solid #E4DCCB; border-radius: 14px; overflow: hidden; background: #fff; }
+    #d-plano img { display: block; width: 100%; height: auto; }
+    #d-plano svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    #d-plano polygon { stroke: #fff; stroke-width: 1; fill-opacity: .55; cursor: pointer; transition: fill-opacity .15s; vector-effect: non-scaling-stroke; }
+    #d-plano polygon:hover, #d-plano polygon:focus { fill-opacity: .85; outline: none; stroke-width: 2; }
+    #d-plano polygon.lw-oculta { fill-opacity: .12; }
+    #d-plano .lw-plano-ley { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: #5E625A; }
+    #d-plano .lw-plano-ley i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
     @keyframes lw-parcela-entra { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
     @media (prefers-reduced-motion: reduce) { #cajon-vista-parcela { animation: none; } }
   </style>
@@ -790,6 +801,7 @@
 <div class="flex items-center gap-0.5 bg-surface-container-low p-0.5 rounded-lg border border-warm-border/60" role="group" aria-label="Vista del parcelario">
 <button type="button" class="lw-vista-btn" data-lw-vista="tarjetas" aria-pressed="true">Tarjetas</button>
 <button type="button" class="lw-vista-btn" data-lw-vista="lista" aria-pressed="false">Lista</button>
+<button type="button" class="lw-vista-btn" data-lw-vista="plano" aria-pressed="false" hidden>Plano</button>
 </div>
 </div>
 <!-- Rejilla, no pila (14-sep-2026, encargo del owner). Desde el 23-sep el
@@ -830,6 +842,16 @@
 </div>
 </div>
 
+<!-- Vista PLANO: el masterplan del investor deck con cada parcela del color de su estado.
+     Solo existe en los proyectos que tienen masterplan (MASTERPLANES, abajo). -->
+<div id="d-plano" class="hidden space-y-3">
+<div class="flex flex-wrap items-center justify-between gap-3">
+<div class="lw-plano-ley" data-lw="plano-leyenda"></div>
+<select id="d-plano-lamina" class="pl-2.5 pr-8 py-1.5 bg-surface-container-low rounded-lg text-on-surface font-body-md text-[12px] border border-warm-border/60 focus:outline-none" aria-label="Lámina del masterplan" hidden></select>
+</div>
+<div class="lw-plano-lienzo"><img alt="" data-lw="plano-img"><svg viewBox="0 0 100 100" preserveAspectRatio="none" data-lw="plano-svg" role="group" aria-label="Parcelas del masterplan"></svg></div>
+<p class="text-[12px] text-on-surface-variant" data-lw="plano-pie"></p>
+</div>
 </section>
 </div><!-- /cajon-vista-proyecto -->
 <script>
@@ -857,6 +879,121 @@
   var guardada = null;
   try { guardada = localStorage.getItem(CLAVE); } catch (e) {}
   aplica(guardada === 'lista' ? 'lista' : 'tarjetas');
+  window.LW_V4_VISTA = { aplica: aplica, guardada: guardada };
+})();
+
+/* VISTA PLANO (23-sep-2026). Pinta el masterplan del investor deck con cada parcela del
+   color de su estado y, al pincharla, abre su ficha en el panel lateral de siempre.
+   NO hace ninguna consulta: lee las tarjetas que datos.js ya ha pintado en #d-unidades
+   (código, estado, color de la banda e id), así el plano nunca dice otra cosa que el
+   parcelario — y respeta el buscador: lo que el buscador oculta, el plano lo atenúa.
+   Qué proyectos tienen plano: la lista de abajo, que apunta a los MISMOS ficheros que
+   usan los decks. Proyecto nuevo con masterplan = una línea aquí + su .json. */
+(function () {
+  var MASTERPLANES = {
+    'Palm Field W5': '/investor-deck/masterplan/palmfield.json',
+    'Sumba Hills': '/investor-deck/masterplan/sumbahills.json'
+  };
+  var CACHE = {}, lamina = 0, proyectoPintado = null, pintando = false;
+  var btn = document.querySelector('[data-lw-vista="plano"]');
+  var caja = document.getElementById('d-plano');
+  var sel = document.getElementById('d-plano-lamina');
+  if (!btn || !caja || !sel) return;
+  var q = function (k) { return caja.querySelector('[data-lw="' + k + '"]'); };
+  var escH = function (t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  function proyecto() { var t = document.getElementById('cajon-titulo'); return t ? t.textContent.trim() : ''; }
+  function tarjetas() {
+    var m = {};
+    document.querySelectorAll('#d-unidades .lw-u').forEach(function (c) {
+      var ed = c.querySelector('[data-lw-accion="editar-unidad"]');
+      var uid = ed && ed.getAttribute('data-uid');
+      var cod = (c.querySelector('[data-lw="u-codigo"]') || {}).textContent;
+      if (!uid || !cod) return;   // la plantilla sin rellenar no cuenta
+      var banda = c.querySelector('[data-lw="u-banda"]');
+      m[cod.trim()] = { uid: uid, estado: ((c.querySelector('[data-lw="u-nota"]') || {}).textContent || '').trim(),
+        color: banda ? getComputedStyle(banda).backgroundColor : '#75786e', oculta: c.classList.contains('hidden') };
+    });
+    return m;
+  }
+  function pinta() {
+    var url = MASTERPLANES[proyecto()];
+    if (!url) return;
+    var d = CACHE[url];
+    if (!d) {
+      q('plano-pie').textContent = 'Cargando el masterplan…';
+      fetch(url).then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+        .then(function (j) { CACHE[url] = j; pinta(); })
+        .catch(function () { q('plano-pie').textContent = 'No se pudo cargar el masterplan de este proyecto.'; });
+      return;
+    }
+    pintando = true;
+    var pags = d.paginas || [];
+    if (lamina >= pags.length) lamina = 0;
+    sel.hidden = pags.length < 2;
+    sel.innerHTML = pags.map(function (p, i) { return '<option value="' + i + '"' + (i === lamina ? ' selected' : '') + '>' + escH(p.etiqueta || ('Lámina ' + (i + 1))) + '</option>'; }).join('');
+    var pag = pags[lamina];
+    if (!pag) { pintando = false; return; }
+    var img = q('plano-img'); if (img.getAttribute('src') !== pag.imagen) img.src = pag.imagen;
+    img.alt = 'Masterplan de ' + proyecto() + (pags.length > 1 ? ' — ' + (pag.etiqueta || '') : '');
+    var U = tarjetas(), svg = q('plano-svg'), NS = 'http://www.w3.org/2000/svg';
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    var enLamina = 0, ley = {};
+    Object.keys(pag.zonas || {}).forEach(function (cod) {
+      var u = U[cod], pts = pag.zonas[cod];
+      var pg = document.createElementNS(NS, 'polygon');
+      pg.setAttribute('points', pts.map(function (xy) { return xy[0] + ',' + xy[1]; }).join(' '));
+      pg.setAttribute('fill', u ? u.color : '#bdbdb5');
+      var t = document.createElementNS(NS, 'title');
+      t.textContent = cod + (u ? ' · ' + u.estado : ' · sin ficha en la base');
+      pg.appendChild(t);
+      if (u) {
+        enLamina++; ley[u.estado] = u.color;
+        if (u.oculta) pg.setAttribute('class', 'lw-oculta');
+        pg.setAttribute('tabindex', '0'); pg.setAttribute('role', 'button');
+        pg.setAttribute('aria-label', cod + ', ' + u.estado);
+        var abre = function () { if (window.LW_V4 && window.LW_V4.abrirDetalleUnidad) window.LW_V4.abrirDetalleUnidad(u.uid); };
+        pg.addEventListener('click', abre);
+        pg.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); abre(); } });
+      }
+      svg.appendChild(pg);
+    });
+    q('plano-leyenda').innerHTML = Object.keys(ley).map(function (e) { return '<span><i style="background:' + escH(ley[e]) + '"></i>' + escH(e) + '</span>'; }).join('');
+    var total = Object.keys(U).length, dibujadas = 0;
+    pags.forEach(function (p) { Object.keys(p.zonas || {}).forEach(function (c) { if (U[c]) dibujadas++; }); });
+    var faltan = total - dibujadas;
+    q('plano-pie').textContent = enLamina + (enLamina === 1 ? ' parcela' : ' parcelas') + ' en esta lámina' +
+      (faltan > 0 ? ' · ' + faltan + (faltan === 1 ? ' parcela del proyecto no está dibujada' : ' parcelas del proyecto no están dibujadas') +
+        ' en el masterplan (se ven en Tarjetas o Lista)' : '');
+    proyectoPintado = proyecto();
+    pintando = false;
+  }
+  function enPlano() { return btn.getAttribute('aria-pressed') === 'true'; }
+  function muestra() {
+    var on = enPlano();
+    caja.classList.toggle('hidden', !on);
+    var g = document.getElementById('d-unidades'), c = document.getElementById('d-unidades-cab');
+    if (g) g.style.display = on ? 'none' : '';
+    if (c) c.style.display = on ? 'none' : '';
+    if (on) { if (proyectoPintado !== proyecto()) lamina = 0; pinta(); }
+  }
+  function sincroniza() {
+    var tiene = !!MASTERPLANES[proyecto()];
+    btn.hidden = !tiene;
+    if (!tiene && enPlano()) window.LW_V4_VISTA.aplica('tarjetas');
+    else if (tiene && !enPlano() && window.LW_V4_VISTA.guardada === 'plano' && proyectoPintado === null) window.LW_V4_VISTA.aplica('plano');
+    muestra();
+  }
+  document.querySelectorAll('[data-lw-vista]').forEach(function (b) {
+    b.addEventListener('click', function () { setTimeout(muestra, 0); });
+  });
+  sel.addEventListener('change', function () { lamina = +sel.value || 0; pinta(); });
+  // datos.js repinta #d-unidades al abrir otro proyecto y al buscar: el plano le sigue.
+  var g = document.getElementById('d-unidades'), espera = null;
+  if (g) new MutationObserver(function () {
+    if (pintando) return;
+    clearTimeout(espera); espera = setTimeout(sincroniza, 60);
+  }).observe(g, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+  sincroniza();
 })();
 </script>
 <!-- Vista de detalle de UNA parcela — sustituye el contenido de arriba,
