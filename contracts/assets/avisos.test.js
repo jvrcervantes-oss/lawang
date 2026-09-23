@@ -6,6 +6,8 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
+// el formateador REAL de la suite, como en el navegador (avisos.js lo usa si está)
+global.lwFormatoImporte = require('./dinero.js').lwFormatoImporte;
 const { lwAvisosArmar, lwAvisoEnlace } = require('./avisos.js');
 
 const AHORA = '2026-09-23T12:00:00Z';
@@ -95,7 +97,9 @@ assert.strictEqual(ag.cobroSinComprobar, false);
 
 // --- el detalle dice lo que QUEDA, no el total (pago a cuenta) ---
 const parcial = lwAvisosArmar([ok([]), ok([{ id: 'p1', numero: 'P1', total: 1000, moneda: 'EUR', creado_por: yo, tipo: 'factura', venc: dia(1) }]), ok([]), ok([{ factura_id: 'p1', pendiente: 250.5 }])], { esAdmin: false, email: yo, ahora: AHORA });
-assert.strictEqual(parcial.avisos[0].detalle, '250,5 EUR sin cobrar');
+assert.strictEqual(parcial.avisos[0].detalle, '250,50 EUR sin cobrar');
+const miles = lwAvisosArmar([ok([]), ok([{ id: 'm1', numero: 'M1', total: 1500, moneda: 'EUR', tipo: 'factura', venc: dia(1) }]), ok([]), ok([])], { ahora: AHORA });
+assert.strictEqual(miles.avisos[0].detalle, '1.500,00 EUR sin cobrar', 'miles también con 4 cifras');
 const grande = lwAvisosArmar([ok([]), ok([{ id: 'g1', numero: 'G1', total: 200000000, moneda: 'IDR', tipo: 'factura', venc: dia(1) }]), ok([]), ok([])], { ahora: AHORA });
 assert.strictEqual(grande.avisos[0].detalle, '200.000.000 IDR sin cobrar', 'importe con separador de miles');
 

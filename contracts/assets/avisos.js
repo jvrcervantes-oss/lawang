@@ -71,6 +71,17 @@ function lwAvisoTonoHecho(tipo, titulo) {
   return LW_AVISOS_TONO_HECHO[tipo] || ['neutro', String(tipo || 'Aviso').replace(/_/g, ' ')];
 }
 
+/* Importe como en el resto de la suite: `lwFormatoImporte` de dinero.js
+   («1.500,00 EUR», «200.000.000 IDR»). Administración, consulta de deploy
+   23-sep: con Intl es-ES a pelo salía «1500 EUR» y «250,5 EUR». Si la página
+   no cargó dinero.js, la misma regla escrita igual (de-DE, 0 decimales en IDR). */
+function lwAvisoImporte(n, moneda) {
+  if (typeof lwFormatoImporte === 'function') return lwFormatoImporte(n, moneda);
+  var d = moneda === 'IDR' ? 0 : 2;
+  return new Intl.NumberFormat('de-DE', { minimumFractionDigits: d, maximumFractionDigits: d })
+    .format(Number(n) || 0) + (moneda ? ' ' + moneda : '');
+}
+
 function lwAvisoEnlace(e) {
   e = String(e == null ? '' : e).trim();
   // ni espacios ni controles ni barra invertida en ningún sitio: el navegador
@@ -117,7 +128,7 @@ function lwAvisosArmar(r, opts) {
       titulo: 'Factura ' + (f.numero || 'sin nº') + (d < 0 ? ' vencida hace ' + (-d) + ' d'
               : d === 0 ? ' vence hoy' : ' vence en ' + d + ' d'),
       // lo que QUEDA, no el total: con un pago a cuenta el total exageraba la deuda
-      detalle: new Intl.NumberFormat('es-ES', { maximumFractionDigits: 2 }).format(Math.round(queda * 100) / 100) + ' ' + (f.moneda || '') + ' sin cobrar',
+      detalle: lwAvisoImporte(queda, f.moneda) + ' sin cobrar',
       enlace: f.contrato_id ? '/intranet/operaciones/?contrato=' + encodeURIComponent(f.contrato_id) : '/intranet/facturas/',
       cuando: f.venc, nuevo: d <= 5,
       clase: 'alerta', nivel: d < 0 ? 'mal' : 'atencion', etiqueta: d < 0 ? 'Vencida' : (d === 0 ? 'Vence hoy' : 'Por vencer'),
