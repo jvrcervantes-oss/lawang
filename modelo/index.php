@@ -422,6 +422,7 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 @media (min-width:1400px){
   #villa-divider{display:block}
   #villa-pill{display:flex}
+}
 
 /* ── Barra T3 (23-sep-2026, owner eligio T3 de 4 variantes con la paleta Lawang, igual
    que el investor deck): Raw linen, menu en pildora Stone sand, enlaces Volcanic ash,
@@ -437,7 +438,52 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 #lw-topbar #villa-divider,#lw-topbar .border-l+div,#lw-topbar .h-8.w-px{background:#beb3a5}
 #lw-topbar .border-l{border-color:#beb3a5}
 #lw-topbar .lw-meta{background:rgba(190,179,165,.2);border-color:#beb3a5}
-}
+
+/* ── Colores de los bloques (23-sep-2026, owner eligio H3/Y3/R3/I3/C2 de la comparativa
+   con la paleta Lawang): H3 cabecera del panel en Territorial green · Y3 tarjeta del contrato
+   EPC destacada en Territorial green · R3 cuerpo de cada cubierta en el color de su precio ·
+   I3 forecast en bloque Deep lagoon, FAQ en blanco calido · C2 un tono por villa en la
+   coleccion (mismo criterio que el investor deck). Con !important porque el CSS compilado es
+   un build congelado y varias utilidades llevan la misma especificidad. ─────────────────── */
+/* H3 */
+#hero-configurator aside{background:rgba(245,240,230,.96)!important;border-color:#beb3a5!important}
+#hero-configurator .lw-cfg-cab{background:#485b37!important;border-color:#485b37!important}
+#hero-configurator .lw-cfg-cab span.rounded-full{background:rgba(245,240,230,.16)!important;color:#f5f0e6!important}
+#hero-configurator .lw-cfg-cab h1{color:#f5f0e6!important}
+#hero-configurator .lw-cfg-cab p{color:rgba(245,240,230,.85)!important}
+#hero-configurator .lw-cfg-cab .grid > div{background:rgba(245,240,230,.12)!important;border-color:rgba(245,240,230,.25)!important}
+#hero-configurator .lw-cfg-cab .grid > div *{color:#f5f0e6!important}
+/* Y3 */
+#section-layout{background:#f5f0e6!important}
+#section-layout .lg\:col-span-5 > div{background:#fffdf8!important;border-color:#beb3a5!important}
+#section-layout .lg\:col-span-5 > div:first-child{background:#485b37!important;border-color:#485b37!important}
+#section-layout .lg\:col-span-5 > div:first-child *{color:#f5f0e6!important}
+#section-layout .lg\:col-span-5 > div:first-child .material-symbols-outlined, #section-layout .lg\:col-span-5 > div:first-child .uppercase{color:#beb3a5!important}
+/* R3 */
+#section-cubiertas{background:#f5f0e6!important}
+#section-cubiertas h2{color:#104c4f!important}
+#section-cubiertas .grid > div:nth-child(1) > div:last-child{background:#485b37}
+#section-cubiertas .grid > div:nth-child(2) > div:last-child{background:#104c4f}
+#section-cubiertas .grid > div > div:last-child *{color:#f5f0e6!important}
+#section-cubiertas .grid > div > div:last-child .text-\[11px\], #section-cubiertas .grid > div > div:last-child p:last-child{color:rgba(245,240,230,.75)!important}
+/* I3 */
+#section-financial{background:#f5f0e6!important}
+#section-financial .lg\:col-span-6:first-child > div:first-child{background:#104c4f!important;border-color:#104c4f!important}
+#section-financial .lg\:col-span-6:first-child > div:first-child *{color:#f5f0e6!important}
+#section-financial .lg\:col-span-6:first-child > div:first-child .uppercase{color:#beb3a5!important}
+#section-financial .lg\:col-span-6:first-child > div:first-child .rounded-2xl{background:rgba(245,240,230,.1)!important;border-color:rgba(245,240,230,.2)!important}
+#section-financial .faq-item{background:#fffdf8!important;border-color:#beb3a5!important}
+#section-financial .lg\:col-span-6:last-child h3{color:#104c4f!important}
+/* C2 */
+#section-collection{background:#f5f0e6!important}
+#section-collection h2{color:#104c4f!important}
+#section-collection .grid > a:nth-child(4n+1) > div:last-child{background:#485b37}
+#section-collection .grid > a:nth-child(4n+2) > div:last-child{background:#104c4f}
+#section-collection .grid > a:nth-child(4n+3) > div:last-child{background:#42210b}
+#section-collection .grid > a:nth-child(4n+4) > div:last-child{background:#2e3437}
+#section-collection .grid > a > div:last-child p{color:rgba(245,240,230,.85)!important}
+#section-collection .grid > a > div:last-child > span{background:#f5f0e6!important;border-color:#f5f0e6!important;color:#2e3437!important}
+#lw-paso-lb{color:rgba(245,240,230,.75)!important}
 </style>
 </head>
 <body class="bg-surface font-body-md text-body-md text-on-surface antialiased selection:bg-soft-canopy selection:text-surface">
@@ -624,7 +670,7 @@ html:not([data-lang="es"]) .i-es{display:none !important}
      debajo de 1024px sigue flotando sobre la foto (igual que antes); desde 1024px
      pasa a columna propia que ya no la tapa (regla en el <style>, mismo motivo). ══ -->
 <aside class="absolute top-4 right-4 md:right-8 bottom-8 md:bottom-10 z-40 w-[92vw] sm:w-[460px] glass-panel rounded-2xl shadow-2xl border border-surface-container-highest/80 flex flex-col overflow-hidden">
-<div class="p-5 pb-3 border-b border-surface-container-highest/70 flex flex-col gap-2">
+<div class="lw-cfg-cab p-5 pb-3 border-b border-surface-container-highest/70 flex flex-col gap-2">
 <div class="flex items-center justify-between">
 <span class="px-3 py-0.5 rounded-full bg-soft-canopy/20 text-territorial-green font-label-md text-xs uppercase tracking-widest font-semibold">New build · Turnkey</span>
 </div>
