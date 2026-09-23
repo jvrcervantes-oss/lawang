@@ -115,6 +115,36 @@ main h1:not([style]){font-size:40px !important;font-weight:600 !important;color:
   /* Home centra su contenido en un contenedor con su propio px-8: sin esto sumaría 80px */
   main > .mx-auto:first-child{padding-left:0 !important;padding-right:0 !important}
 }
+/* CABECERA EN TARJETA (23-sep-2026, owner: «me gusta que vaya dentro de la
+   tarjeta blanca en todos y deja algo de margen con el topbar»). 11 pantallas
+   la traían de Stitch y 12 dejaban el título suelto. Cada HTML solo lleva la
+   clase `lw-cabecera` en su fila de título+acciones; la tarjeta vive aquí.
+   El aire con la topbar va en el `main` (64px de barra + 32px), no en la
+   tarjeta: así cualquier pantalla empieza a la misma altura aunque su primer
+   bloque no sea la cabecera. */
+main{padding-top:96px !important}
+main > .mx-auto:first-child{padding-top:0 !important}
+.lw-cabecera{background:#fff !important;padding:32px !important;border-radius:12px !important;
+  border:0 !important;box-shadow:0 1px 2px 0 rgba(0,0,0,.05) !important;margin-top:0 !important}
+/* 32px entre la tarjeta y lo siguiente, sea cual sea el contenedor que trajo
+   Stitch: con `gap-8` ya sale; con `space-y-6/7` salía 24-28; y en un flex-col
+   sin hueco (Contratos, Obra) la tarjeta quedaba pegada a las KPI. */
+[class*="space-y-"] > .lw-cabecera + *,
+main > .lw-cabecera + *{margin-top:32px !important}
+.flex-col:not([class*="gap-"]):not([class*="space-y-"]) > .lw-cabecera{margin-bottom:32px !important}
+/* Título primero: si título y botones no caben en una fila, bajan los botones.
+   Sin esto, Proyectos partía su título en tres líneas para hacerles sitio. */
+/* Móvil: la misma tarjeta, más compacta — a 40px y con 32 de relleno el
+   título de Proyectos ocupaba media pantalla antes de enseñar nada. */
+@media (max-width:1023px){
+  main{padding-top:88px !important}
+  .lw-cabecera{padding:20px !important}
+  main h1:not([style]){font-size:28px !important}
+}
+@media (min-width:1024px){
+  .lw-cabecera{flex-wrap:wrap !important}
+  .lw-cabecera > :first-child{flex:1 1 36rem;min-width:min(100%,36rem)}
+}
 
 /* ---------- plegado de sidebar en desktop (botón left_panel_close) ---------- */
 /* La hamburguesa de la topbar es el ÚNICO camino de vuelta con la sidebar
