@@ -2324,6 +2324,11 @@
       'Download or send the PDF first: you cannot upload a signed copy of something that never went out',
     'Aún no hay registro: el contrato no está guardado': 'No log yet: the contract is not saved',
     'Aún no hay PDF firmado': 'No signed PDF yet',
+    // cara v4 del generador (generador-v4.js): grupos y estado
+    'Firma': 'Signing',
+    'Sin guardar': 'Not saved',
+    'En firma': 'Out for signing',
+    'Taller del documento': 'Document workshop',
     'No hay firmas en curso que anular': 'There are no signatures in progress to cancel',
     'Solo se desbloquea un contrato firmado': 'Only a signed contract can be unlocked',
     'No se pudo comprobar si el PDF ya salió: «Subir firmado» queda apagado hasta descargarlo':

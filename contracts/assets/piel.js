@@ -31,6 +31,12 @@
   'use strict';
   var LLAVE = 'lw-piel';
   var piel = null;
+  function vieneDeLaV4() {
+    try {
+      var r = new URL(document.referrer);
+      return r.origin === location.origin && r.pathname.indexOf('/intranet/v4/') === 0;
+    } catch (_) { return false; }
+  }
   var q = new URLSearchParams(location.search);
   try {
     if (q.has('v4')) {
@@ -43,6 +49,14 @@
       }
     } else if (q.has('v3') && q.get('v3') !== '0') {
       sessionStorage.removeItem(LLAVE);            // pedir la v3 apaga la v4
+    } else if (vieneDeLaV4()) {
+      /* Se llega desde una pantalla de la v4 («Nuevo contrato», «Editar en el
+         generador», el panel, el viejo /v4/generador-contratos/): cara v4. Así
+         ningún enlace de la v4 tiene que acordarse de añadir `?v4=1` —cuatro
+         sitios que habría que mantener a mano— y se deja en la pestaña. */
+      piel = 'v4';
+      sessionStorage.setItem(LLAVE, 'v4');
+      sessionStorage.setItem('lw3-on', '0');
     } else if (sessionStorage.getItem(LLAVE) === 'v4') {
       piel = 'v4';
       sessionStorage.setItem('lw3-on', '0');       // la v3 pudo encenderse en otra herramienta

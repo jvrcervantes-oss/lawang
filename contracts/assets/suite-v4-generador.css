@@ -97,3 +97,186 @@ html.v4 .lw4-sb-seg button.bg-deep-lagoon{ background:var(--v4-lagoon); color:#f
 @media (prefers-reduced-motion: reduce){
   html.v4 .lw4-sb, html.v4 .lw4-velo{ transition:none; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FASE 3 · LA PIEL (23-sep-2026). Composición aprobada en el boceto:
+   cabecera · barra de herramientas a la vista · banda de estado · formulario
+   y documento a ancho completo. Quién va dónde lo coloca generador-v4.js;
+   aquí solo el aspecto. Valores MEDIDOS en /intranet/v4/proyectos/ y
+   /intranet/v4/contratos/ con getComputedStyle (no leídos del tailwind.config):
+   Neue Kabel · cabecera 64 px · píldoras 13 px · primaria laguna #104C4F ·
+   campos #f5f4ee con borde rgba(228,220,203,.6) y radio 8 · rótulos 11 px/600
+   en mayúsculas con 1.1 px de tracking, color #8F9B7A.
+   La paleta de marca es la misma en las dos caras (brand.css): lo que cambia
+   es tipografía, superficies planas, píldoras e iconos.
+   ═══════════════════════════════════════════════════════════════════════════ */
+html.v4{
+  --font-body:'Neue Kabel','Jost',sans-serif; --font-display:'Neue Kabel','Jost',sans-serif;
+  --card:#ffffff; --field-bg:#f5f4ee; --r-lg:12px; --r-md:10px; --r-sm:8px;
+  --sh-sm:none; --sh-md:none;
+  --v4-borde:#E4DCCB; --v4-eyebrow:#8F9B7A; --v4-apagado:#a7a89f;
+  --v4-ambar:#8A5A12; --v4-ambar-bg:#F6ECD9; --v4-laguna-bg:#E3EEEC;
+  --v4-taller:#6f4a61; --v4-taller-bg:#F3ECF0; --v4-peligro:#9E2F26;
+}
+html.v4 [data-ico]::before{
+  font-family:'Material Symbols Outlined'; font-weight:normal; font-style:normal; letter-spacing:normal;
+  text-transform:none; white-space:nowrap; direction:ltr; font-feature-settings:'liga'; -webkit-font-smoothing:antialiased;
+}
+
+/* ── lo de la clásica que la v4 no usa: su riel y su marca ─────────────── */
+html.v4 #lwRail, html.v4 .lw-rail-velo, html.v4 .lw-rail-movil, html.v4 .lw-home,
+html.v4 .lw-brand, html.v4 .lw-title, html.v4 .lw-sep, html.v4 #pvTitle{ display:none !important; }
+
+/* ── el cuerpo: columna a pantalla completa, nada del riel ─────────────── */
+@media screen and (min-width:901px){
+  html.v4 body{ display:flex; flex-direction:column; height:100dvh; overflow:hidden; }
+  html.v4 .stage{ flex:1; min-height:0; height:auto !important; }
+}
+html.v4 body, html.v4 body.con-rail, html.v4 body.rail-abierto{ padding-left:0 !important; background:#F5F0E6; }
+
+/* ── cabecera ──────────────────────────────────────────────────────────── */
+html.v4 .lw-topbar{
+  position:relative; top:auto; flex:none; margin-left:0 !important; height:64px; min-height:64px;
+  padding:0 24px !important; gap:12px; background:rgba(245,244,238,.96);
+  border-bottom:1px solid var(--v4-borde); box-shadow:none; font-family:var(--v4-font);
+}
+html.v4 .lw-topbar .lw-spacer{ display:none; }
+html.v4 .lw4-cab-der{ margin-left:auto; display:flex; align-items:center; gap:10px; }
+html.v4 .lw4-volver{
+  border:0 !important; background:transparent !important; box-shadow:none !important;
+  color:var(--v4-ink-2) !important; font-family:var(--v4-font) !important; font-size:13px !important;
+  padding:6px 10px 6px 6px !important; border-radius:999px !important;
+  display:inline-flex; align-items:center; gap:4px; height:auto !important;
+}
+html.v4 .lw4-volver:hover{ background:var(--v4-surface-high) !important; color:var(--v4-ink) !important; }
+html.v4 #tplPick{
+  height:36px; min-width:220px; border:1px solid rgba(228,220,203,.9); border-radius:8px; background-color:#fff;
+  font-family:var(--v4-font); font-size:14px; color:var(--v4-ink); box-shadow:none;
+}
+html.v4 .lang-hint{ font-family:var(--v4-font); font-size:11px; letter-spacing:.06em; color:var(--v4-outline); }
+html.v4 #langToggle{ background:#efeee8; border:0; border-radius:999px; padding:3px; }
+html.v4 #langToggle button{ border-radius:999px; font-family:var(--v4-font); font-size:12px; }
+html.v4 .lw4-estado{
+  display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; white-space:nowrap;
+  font-family:var(--v4-font); font-size:11px; font-weight:600; letter-spacing:.11em; text-transform:uppercase;
+  color:var(--v4-outline); background:#efeee8;
+}
+html.v4 .lw4-estado::before{ content:""; width:6px; height:6px; border-radius:99px; background:currentColor; }
+html.v4 .lw4-estado[data-estado="borrador"]{ color:var(--v4-green); background:#E7EFE2; }
+html.v4 .lw4-estado[data-estado="firma"]{ color:var(--v4-ambar); background:var(--v4-ambar-bg); }
+html.v4 .lw4-estado[data-estado="firmado"]{ color:var(--v4-lagoon); background:var(--v4-laguna-bg); }
+
+/* la acción principal, única y la última (norma de la suite) */
+html.v4 #btnSave, html.v4 #btnDownloadSigned{
+  align-items:center; gap:6px; height:36px; padding:0 18px !important; border:0 !important;
+  border-radius:999px !important; background:var(--v4-lagoon) !important; color:#fff !important;
+  font-family:var(--v4-font) !important; font-size:13px !important; font-weight:500 !important; box-shadow:none !important;
+}
+html.v4 #btnSave{ display:inline-flex; }
+html.v4 #btnSave:disabled{ background:#c9ccc5 !important; color:#fff !important; opacity:1; cursor:not-allowed; }
+/* Firmado: la principal pasa a ser el PDF firmado (boceto aprobado); fuera de
+   ese estado, PDF firmado no aparece en la cabecera. */
+html.v4 #btnDownloadSigned{ display:none !important; }
+html.v4[data-lw-estado="firmado"] #btnDownloadSigned{ display:inline-flex !important; }
+html.v4[data-lw-estado="firmado"] #btnSave{ display:none !important; }
+
+/* ── barra de herramientas: a la vista, sin menús ─────────────────────── */
+html.v4 .lw4-barra{
+  position:static; flex:none; display:flex; align-items:center; flex-wrap:nowrap; gap:6px;
+  padding:8px 24px; min-height:52px; background:#fff; border-bottom:1px solid var(--v4-borde);
+  backdrop-filter:none; -webkit-backdrop-filter:none; overflow-x:auto; scrollbar-width:none;
+}
+html.v4 .lw4-barra::-webkit-scrollbar{ display:none; }
+html.v4 .lw4-grupo{ display:flex; align-items:center; gap:2px; flex:none; }
+html.v4 .lw4-barra .lw4-grupo + .lw4-grupo{ border-left:1px solid var(--v4-borde); padding-left:12px; margin-left:8px; }
+html.v4 .lw4-barra .lw4-especiales{ margin-left:auto !important; }
+html.v4 .lw4-glab{
+  font-family:var(--v4-font) !important; font-size:10px !important; font-weight:600 !important; letter-spacing:.14em !important;
+  text-transform:uppercase; color:var(--v4-eyebrow) !important; margin-right:6px; white-space:nowrap;
+}
+html.v4 .lw4-tb{
+  display:inline-flex; align-items:center; gap:6px; height:34px; padding:0 11px !important;
+  border:0 !important; border-radius:6px !important; background:transparent !important; box-shadow:none !important;
+  font-family:var(--v4-font) !important; font-size:13px !important; font-weight:400 !important; color:var(--v4-ink) !important;
+  white-space:nowrap; text-decoration:none; opacity:1;
+}
+html.v4 .lw4-tb::before{ content:attr(data-ico); font-size:18px; line-height:1; color:var(--v4-ink-2); }
+html.v4 .lw4-tb:hover:not(:disabled){ background:var(--v4-surface-low) !important; }
+html.v4 .lw4-tb:disabled, html.v4 .lw4-tb[aria-disabled="true"]{ color:var(--v4-apagado) !important; opacity:1 !important; cursor:not-allowed; }
+html.v4 .lw4-tb:disabled::before, html.v4 .lw4-tb[aria-disabled="true"]::before{ color:#c5c6be; }
+html.v4 .lw4-tb:focus-visible{ outline:2px solid var(--v4-lagoon); outline-offset:1px; }
+/* la principal lleva su icono en blanco, no con el aspecto de la barra */
+html.v4 #btnSave::before, html.v4 #btnDownloadSigned::before{ color:#fff; font-size:17px; }
+html.v4 #btnSave:hover:not(:disabled), html.v4 #btnDownloadSigned:hover{ background:#0c3d40 !important; }
+
+/* ── banda de estado: solo en firma o firmado ─────────────────────────── */
+html.v4 .lw4-banda{ display:none; }
+html.v4[data-lw-estado="firma"] .lw4-banda, html.v4[data-lw-estado="firmado"] .lw4-banda{
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap; flex:none; padding:9px 24px;
+  font-family:var(--v4-font); font-size:13px;
+}
+html.v4[data-lw-estado="firma"] .lw4-banda{ background:var(--v4-ambar-bg); color:var(--v4-ambar); }
+html.v4[data-lw-estado="firmado"] .lw4-banda{ background:var(--v4-laguna-bg); color:var(--v4-lagoon); }
+html.v4 .lw4-banda-txt #lockBadge, html.v4 .lw4-banda-txt #firmaBadge{ color:inherit !important; font-size:13px !important; }
+html.v4 .lw4-banda-acc{ margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; }
+html.v4 .lw4-banda .lw4-tb{
+  height:30px; border:1px solid #E3BFB9 !important; border-radius:999px !important; background:#fff !important;
+  color:var(--v4-peligro) !important; font-size:12px !important;
+}
+html.v4 .lw4-banda .lw4-tb::before{ color:var(--v4-peligro); font-size:16px; }
+/* en la banda solo lo que se puede hacer en ESE estado (boceto aprobado) */
+html.v4 .lw4-banda .lw4-tb:disabled{ display:none !important; }
+
+/* ── escenario: formulario | documento ────────────────────────────────── */
+@media screen and (min-width:901px){
+  html.v4 .stage{ grid-template-columns:minmax(380px,460px) 1fr; }
+  /* «Cerrar» solo existe para la vista previa a pantalla completa del móvil */
+  html.v4 #btnClose{ display:none !important; }
+}
+/* entre 901 y 1280 px no caben los rótulos de grupo y los fijos de la derecha */
+@media screen and (min-width:901px) and (max-width:1280px){
+  html.v4 .lw4-barra .lw4-glab{ display:none; }
+  html.v4 .lw4-barra .lw4-grupo + .lw4-grupo{ padding-left:6px; margin-left:4px; }
+}
+html.v4 .pane-form{ background:#F5F0E6; }
+html.v4 .pane-preview{ background:#E7E4DB; border-left:1px solid var(--v4-borde); }
+html.v4 .lw4-pane-cab{ display:flex; align-items:center; flex:none; }
+html.v4 .lw4-taller{
+  flex:1; display:flex; align-items:center; gap:2px; padding:7px 20px; min-height:46px;
+  background:var(--v4-taller-bg); border-bottom:1px solid #E6D7E0;
+}
+html.v4 .lw4-taller[hidden]{ display:none; }
+html.v4 .lw4-taller .lw4-glab{ color:var(--v4-taller) !important; }
+html.v4 .lw4-taller .lw4-tb{ color:var(--v4-taller) !important; }
+html.v4 .lw4-taller .lw4-tb::before{ color:var(--v4-taller); }
+html.v4 .lw4-taller .lw4-tb:disabled{ color:#bba8b4 !important; }
+html.v4 .lw4-taller .lw4-tb:disabled::before{ color:#d3c3cd; }
+html.v4 #pvFrame{ border-radius:4px; box-shadow:0 2px 14px rgba(0,0,0,.08); }
+
+/* ── formulario: tarjetas planas y campos de la v4 ───────────────────── */
+html.v4 .pane-form, html.v4 .pane-form input, html.v4 .pane-form select, html.v4 .pane-form textarea,
+html.v4 .pane-form button{ font-family:var(--v4-font); }
+html.v4 .section{ border-color:var(--v4-borde); box-shadow:none; }
+html.v4 .section > header h2{ font-family:var(--v4-font); font-size:12px; font-weight:600; letter-spacing:.1em; color:var(--v4-lagoon); }
+html.v4 .tier-label{ font-family:var(--v4-font); font-size:11px; font-weight:600; letter-spacing:.1em; color:var(--v4-eyebrow); }
+html.v4 .field label{ font-family:var(--v4-font); font-size:11px; letter-spacing:.08em; color:var(--v4-outline); }
+html.v4 .field input, html.v4 .field textarea, html.v4 .field select{
+  font-size:15px; background-color:var(--v4-surface-low); border:1px solid rgba(228,220,203,.9); border-radius:8px; box-shadow:none;
+}
+html.v4 .field input:focus, html.v4 .field textarea:focus, html.v4 .field select:focus{
+  border-color:var(--v4-lagoon); background-color:#fff; box-shadow:0 0 0 3px rgba(16,76,79,.12);
+}
+
+/* ── tablet y móvil (≤ 900 px): una columna, la barra se desliza ──────── */
+@media screen and (max-width:900px){
+  html.v4 .lw-topbar{ height:auto; min-height:56px; flex-wrap:wrap; padding:8px 16px !important; row-gap:8px; }
+  html.v4 #tplPick{ min-width:0; flex:1 1 180px; }
+  html.v4 .lw4-barra{ padding:6px 16px; }
+  html.v4[data-lw-estado] .lw4-banda{ padding:9px 16px; }
+}
+@media screen and (max-width:600px){
+  html.v4 .lw4-glab{ display:none; }
+  html.v4 .lw4-barra .lw4-tb{ font-size:0 !important; padding:0 9px !important; gap:0; }
+  html.v4 .lw4-barra .lw4-tb::before{ font-size:20px; }
+  html.v4 .lang-hint{ display:none; }
+}
