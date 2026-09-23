@@ -190,7 +190,7 @@
     // Revisión cliente 23-jul: el logo de Lawang se queda siempre en el menú (fuera el "‹ The Collection").
     return '<header id="topbar" class="show '+(ghost?'pdp':'solid')+'">'
       + '<div id="logo"'+(ghost?'':' class="dark"')+'><a id="logo-inner" href="/" aria-label="Lawang — inicio"><img class="ll-white" src="assets/img/lawang-logo-v3.webp" alt="Lawang Tropical Properties"><span class="ll-dark" aria-hidden="true"></span></a></div>'
-      + '<nav id="nav">'+nl('#land','The Land',S.line==='land')+nl('#villas','The Villas',S.line==='villa')+nl('/#expedition','The Soul',false)+nl('#all','The Portfolio',false)+'</nav>'
+      + '<nav id="nav">'+nl('#land','The Land',S.line==='land')+nl('#villas','The Villas',S.line==='villa')+nl('/#expedition','The Soul',false)+nl('/portfolio','The Portfolio',false)+'</nav>'
       + '<div id="nav-actions">'
       +   '<div class="nav-lang-wrap" id="langWrap"><button class="nav-lang" data-act="lang-toggle" aria-haspopup="listbox" aria-expanded="'+(S.langOpen?'true':'false')+'"><span>'+langName+'</span><span class="lang-abbr">'+S.lang.toUpperCase()+'</span><span class="caret">▾</span></button>'
       +     '<ul class="lang-menu'+(S.langOpen?' open':'')+'" id="langMenu" role="listbox">'+li('en',flagEN,'English')+li('es',flagES,'Español')+li('id',flagID,'Bahasa')+'</ul></div>'

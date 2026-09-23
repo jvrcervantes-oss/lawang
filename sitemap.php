@@ -13,6 +13,7 @@ $SITE = 'https://lawangproperties.com';
 $urls = [
     ['loc' => $SITE . '/',              'lastmod' => '2026-07-28', 'freq' => 'weekly', 'pri' => '1.0'],
     ['loc' => $SITE . '/thecollection', 'lastmod' => '2026-07-28', 'freq' => 'weekly', 'pri' => '0.9'],
+    ['loc' => $SITE . '/portfolio',     'lastmod' => '2026-09-23', 'freq' => 'weekly', 'pri' => '0.8'],
     ['loc' => $SITE . '/legal',         'lastmod' => '2026-07-28', 'freq' => 'yearly', 'pri' => '0.3'],
     ['loc' => $SITE . '/legal-es',      'lastmod' => '2026-08-05', 'freq' => 'yearly', 'pri' => '0.3'],
     ['loc' => $SITE . '/accessibility', 'lastmod' => '2026-07-28', 'freq' => 'yearly', 'pri' => '0.3'],

@@ -91,10 +91,8 @@ RedirectMatch 404 (?i)/_diag_
 <IfModule mod_rewrite.c>
   RewriteEngine On
 
-  # /portfolio.html: alias temporal hasta que exista la pagina de la promotora — ELIMINAR al crearla.
-  # Va como RewriteRule y no como "Redirect" de mod_alias porque mod_rewrite corre ANTES:
-  # con mod_alias, la regla 1 de abajo se lo comia y mandaba a /portfolio (404).
-  RewriteRule ^portfolio\.html$ /thecollection [R=302,L,NE]
+  # /portfolio existe desde el 23-sep-2026 (portfolio.php: landing de seleccion de modelo). Se retira
+  # el alias temporal /portfolio.html -> /thecollection: ahora la regla 1 manda /portfolio.html a /portfolio.
 
   # La intranet v4 entra por Home (23-sep-2026, owner: «que /intranet/v4/home/ sea la url
   # estándar cuando entras a /intranet/v4/»). La raíz servía el hub de maqueta de Stitch.

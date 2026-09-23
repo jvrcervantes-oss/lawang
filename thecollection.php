@@ -1340,7 +1340,7 @@ span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
 <script src="assets/lawang-card.js?v=20260916113721"></script>
-<script src="assets/portfolio-app.js?v=20260908113407"></script>
+<script src="assets/portfolio-app.js?v=20260923162355"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */

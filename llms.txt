@@ -24,10 +24,10 @@ English source. The Spanish and Indonesian text is applied in the browser, so on
 English wording is visible to a non-JS fetch. There are no separate per-language URLs.
 
 ## Sections
-- [Portfolio](https://lawangproperties.com/thecollection): the full collection of available properties.
+- [The Collection](https://lawangproperties.com/thecollection): the full collection of available properties.
 - [Signature](https://lawangproperties.com/thecollection#signature): the flagship / primary estate listings.
 - [Palm Field](https://lawangproperties.com/palmfield): private pool villas in Balian Hills, with a step-by-step price estimator.
-- [Villa models](https://lawangproperties.com/modelo/dali): the five villa models, their specifications and prices.
+- [The Portfolio · villa models](https://lawangproperties.com/portfolio): choose among the turnkey villa models, each with its specifications and starting price; every model links to its own page (e.g. https://lawangproperties.com/modelo/dali).
 
 ## Legal
 - [Privacy & terms, English](https://lawangproperties.com/legal)
