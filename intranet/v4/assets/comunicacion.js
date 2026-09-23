@@ -259,7 +259,7 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Suite-Token': t || '' },
         body: JSON.stringify({
-          preview: true, subject: f.asunto, message: f.cuerpo, encabezado: f.encabezado || '',
+          preview: true, subject: f.asunto, message: f.cuerpo, encabezado: f.encabezado || '', etiqueta: 'Comunicado al equipo',
           cta_url: f.cta_url || CTA_DEFECTO.url, cta_texto: f.cta_texto || CTA_DEFECTO.texto
         })
       });

@@ -44,6 +44,7 @@ async function enviarEmail(to: string, c: Comunicado, prueba: boolean) {
       to,
       subject: (prueba ? '[PRUEBA] ' : '') + c.asunto,
       encabezado: c.encabezado || '',
+      etiqueta: 'Comunicado al equipo',
       message: c.cuerpo,
       cta_url: c.cta_url || CTA_DEFECTO.url,
       cta_texto: c.cta_texto || CTA_DEFECTO.texto,

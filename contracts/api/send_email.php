@@ -84,7 +84,38 @@ function sesion_valida(string $jwt): bool {
   curl_close($ch);
   // 200 con un `id` dentro = usuario real. Un 200 sin id no debería pasar, pero
   // dar por bueno un cuerpo que no se ha mirado es cómo se cuelan estas cosas.
-  return $code === 200 && is_string($resp) && str_contains($resp, '"id"');
+  if ($code !== 200 || !is_string($resp)) { return false; }
+  $u = json_decode($resp, true);
+  $uid = is_array($u) ? (string)($u['id'] ?? '') : '';
+  if (!preg_match('/^[0-9a-f-]{36}$/i', $uid)) { return false; }
+  return es_del_equipo($jwt, $uid);
+}
+
+/* Una sesión viva NO basta: tiene que ser alguien del EQUIPO (23-sep-2026,
+   Seguridad en la consulta de deploy de Comunicación; decisión del owner).
+   Los compradores del portal tienen cuenta en el mismo Supabase Auth, así que
+   hasta hoy un comprador con sesión podía mandar desde aquí, con la marca y el
+   remitente de Lawang, un correo a cualquier dirección.
+   Fila ACTIVA en `usuarios`, leída con el JWT de quien llama (la RLS deja a
+   cada uno leer su propia ficha). No se usa es_agente(): acepta además una
+   marca vieja de app_metadata sin ficha, y esa rendija es justo la que se
+   cierra. Todos los llamantes legítimos de esta vía son del equipo: el
+   generador de contratos, Facturas, admin-usuarios (con el JWT del admin) y la
+   vista previa de Comunicación — comprobado por grep de send_email.php. */
+function es_del_equipo(string $jwt, string $uid): bool {
+  $url = SUPA_URL . '/rest/v1/usuarios?select=user_id&activo=is.true&user_id=eq.' . rawurlencode($uid);
+  $ch = curl_init($url);
+  curl_setopt_array($ch, [
+    CURLOPT_HTTPHEADER => ['apikey: ' . SUPA_ANON, 'Authorization: Bearer ' . $jwt],
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_TIMEOUT => 10,
+  ]);
+  $resp = curl_exec($ch);
+  $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+  curl_close($ch);
+  if ($code !== 200 || !is_string($resp)) { return false; }
+  $filas = json_decode($resp, true);
+  return is_array($filas) && count($filas) === 1 && (($filas[0]['user_id'] ?? '') === $uid);
 }
 
 $autorizado = false;
@@ -131,6 +162,10 @@ $attach = ($in['attach'] ?? true) !== false;
 // sin él la tarjeta entra directa en el cuerpo, como hasta hoy.
 $encabezado = trim((string)($in['encabezado'] ?? ''));
 if (mb_strlen($encabezado) > 120) { fail('Encabezado demasiado largo'); }
+// Rótulo de la barra superior del diseño (23-sep-2026). Opcional; por defecto
+// «Lawang Estate». Los comunicados al equipo mandan «Comunicado al equipo».
+$etiqueta = trim((string)($in['etiqueta'] ?? ''));
+if (mb_strlen($etiqueta) > 40) { fail('Etiqueta demasiado larga'); }
 
 /* ---- vista previa (23-sep-2026, /intranet/v4/comunicacion/) ----------------
    Devuelve el HTML que saldría, SIN enviar nada ni tocar SMTP. Existe para que
@@ -151,7 +186,8 @@ if (($in['preview'] ?? false) === true) {
   require_once __DIR__ . '/lib/plantilla_correo.php';
   echo json_encode(['ok' => true, 'html' => lw_plantilla_correo(
     $message, $encabezado !== '' ? $encabezado : null,
-    ($pvUrl !== '' && $pvTexto !== '') ? ['url' => $pvUrl, 'texto' => $pvTexto] : null
+    ($pvUrl !== '' && $pvTexto !== '') ? ['url' => $pvUrl, 'texto' => $pvTexto] : null,
+    $etiqueta !== '' ? $etiqueta : null
   )], JSON_UNESCAPED_UNICODE);
   exit;
 }
@@ -186,7 +222,7 @@ if (!$autorizado && $interno) { $autorizado = true; $via = 'aviso-interno'; }
    Ningún llamante legítimo de esta vía (avisos de Postgres) usa ninguno de los
    dos: se verificó por grep de `cta_url` antes de cerrarlo. El botón que le
    toque se sigue deduciendo del propio mensaje, como hasta hoy. */
-if ($via === 'aviso-interno') { $encabezado = ''; unset($in['cta_url'], $in['cta_texto']); }
+if ($via === 'aviso-interno') { $encabezado = ''; $etiqueta = ''; unset($in['cta_url'], $in['cta_texto']); }
 
 if (!$autorizado) {
   // 401 y no 403: falta credencial, no es que la credencial no valga.
@@ -334,7 +370,7 @@ $boundary = 'lwc_' . bin2hex(random_bytes(16));
 // formato de TODO correo de la intranet con el mismo diseño que ya usa el
 // email de acceso al portal). Antes esta parte era texto plano a secas.
 require_once __DIR__ . '/lib/plantilla_correo.php';
-$mensajeHtml = lw_plantilla_correo($message, $encabezado !== '' ? $encabezado : null, $cta);
+$mensajeHtml = lw_plantilla_correo($message, $encabezado !== '' ? $encabezado : null, $cta, $etiqueta !== '' ? $etiqueta : null);
 
 // multipart/mixed con una sola parte de HTML es correo válido, así que el
 // camino sin adjunto reusa la misma estructura (y el mismo SmtpMailer) en vez
