@@ -252,22 +252,14 @@ $deckEtiqueta = $deckEj['proyecto'] ?? '';
 <link rel="preload" as="image" href="<?= lw_e($ogImg) ?>" fetchpriority="high">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<!-- Tipografia de marca: Neue Kabel (23-sep-2026), fuente unica compartida con el investor
-     deck. Sustituye a Cormorant Garamond / Instrument Sans / Jost de Google Fonts: la regla
-     general de abajo le gana al mapeo font-* del CSS compilado. -->
-<link rel="stylesheet" href="/assets/neue-kabel.css?v=20260923150655">
+<!-- Fuentes del mockup TAL CUAL (Cormorant Garamond / Instrument Sans / Jost): el CSS
+     compilado abajo mapea font-headline-*/font-kpi-number/font-body-*/font-label-md a
+     estas familias exactas — cambiarlas rompería la tipografía sin tocar una clase. -->
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Instrument+Sans:wght@400;500;600;700&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 <!-- Tailwind COMPILADO (npx tailwindcss sobre el mockup, mismo tailwind.config) — NUNCA
      el Play CDN: sin versión fija, sin SRI, y la CSP de seguridad_2026.md lo prohíbe. -->
 <link rel="stylesheet" href="/assets/dali-tesla-tw.min.css?v=20260921164216">
-<style>
-/* Neue Kabel en TODA la pagina (23-sep-2026, owner: "usa la fuente Neue ... tambien
-   para /modelo"). Regla general y no clase a clase: el CSS compilado mapea cada
-   font-* a Jost/Instrument Sans/Cormorant, y tocar ese build congelado es mas
-   arriesgado que ganarle en especificidad (0,1,1 > 0,1,0). Los iconos de Material
-   Symbols se excluyen: son una fuente de ligaduras y con otra familia se ven como texto. */
-body, body *:not(.material-symbols-outlined){font-family:'Neue Kabel',system-ui,-apple-system,'Segoe UI',sans-serif}
-</style>
 <style>
 /* Material Symbols Outlined: el link de Google Fonts trae el glifo, pero NO esta clase —
    sin ella el navegador pinta el nombre del icono como texto plano ("roofing"), no el
@@ -336,10 +328,10 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 .op:hover{border-color:rgba(49,67,34,.5)}
 .op input{width:16px;height:16px;accent-color:#314322;flex:none;margin:2px 0 0}
 .op>span:nth-child(2){display:flex;flex-direction:column;flex:1;min-width:0}
-.op__nb{font-family:'Neue Kabel',system-ui,sans-serif;font-size:14px;font-weight:600;color:#1b1c19}
-.op__sp{font-family:'Neue Kabel',system-ui,sans-serif;font-size:11px;color:#44483f;margin-top:2px}
+.op__nb{font-family:'Jost',sans-serif;font-size:14px;font-weight:600;color:#1b1c19}
+.op__sp{font-family:'Jost',sans-serif;font-size:11px;color:#44483f;margin-top:2px}
 .op__pr{text-align:right;flex:none}
-.op__pr b{font-family:'Neue Kabel',system-ui,sans-serif;font-size:12px;font-weight:700;color:#314322;
+.op__pr b{font-family:'Jost',sans-serif;font-size:12px;font-weight:700;color:#314322;
   white-space:nowrap;display:block}
 .op__pr i{font-style:normal;font-size:10px;color:#44483f;white-space:nowrap}
 .op__th{width:44px;height:36px;border-radius:8px;object-fit:cover;background:#e4e2dd;flex:none}
@@ -365,12 +357,12 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 .faq-item + .faq-item{margin-top:14px}
 .faq-item summary{list-style:none;cursor:pointer;padding:20px;display:flex;
   align-items:center;justify-content:space-between;gap:16px;
-  font-family:'Neue Kabel',system-ui,sans-serif;font-size:15px;font-weight:700;color:#314322}
+  font-family:'Jost',sans-serif;font-size:15px;font-weight:700;color:#314322}
 .faq-item summary::-webkit-details-marker{display:none}
 .faq-item summary .mi{transition:transform .2s ease}
 .faq-item[open] summary .mi{transform:rotate(180deg)}
 .faq-item__body{padding:0 20px 20px;border-top:1px solid rgba(228,226,221,.6);
-  padding-top:12px;font-family:'Neue Kabel',system-ui,sans-serif;font-size:13.5px;line-height:1.6;color:#44483f}
+  padding-top:12px;font-family:'Jost',sans-serif;font-size:13.5px;line-height:1.6;color:#44483f}
 
 /* ── 22-sep-2026: dali-tesla-tw.min.css es un build CONGELADO (npx tailwindcss sobre
    el mockup, ver cabecera del <link>) — no lleva compiladas combinaciones de clases
