@@ -93,7 +93,7 @@
      las clases contra el build antes de escribir, no ir tapando huecos sobre la marcha
      — se hizo (163 de 285 clases de la ficha viva no estaban en el build congelado de
      /modelo/, por eso este es un build nuevo y no una extensión a mano). -->
-<link rel="stylesheet" href="v2.min.css?v=20260923a">
+<link rel="stylesheet" href="v2.min.css?v=20260923c">
 <style>
   /* Display de marca: Neue Kabel, los mismos ficheros que sirve la home.
      brand.css la fija como unica fuente (The Seasons eliminada) y el owner
@@ -168,17 +168,17 @@
   @keyframes lwDestello{0%,30%{background:rgba(72,91,55,.32)}100%{background:rgba(143,155,122,.16)}}
   .lw-plano-activo{background:rgba(16,76,79,.55)!important}
   .faq-item{border:1px solid #e4e2dd;border-radius:16px;background:#fbf9f4;overflow:hidden}
-  .faq-item + .faq-item{margin-top:14px}
-  .faq-item summary{list-style:none;cursor:pointer;padding:20px;display:flex;
-    align-items:center;justify-content:space-between;gap:16px;
-    font-family:'Jost',sans-serif;font-size:15px;font-weight:700;color:#314322}
+  .faq-item + .faq-item{margin-top:8px}
+  .faq-item summary{list-style:none;cursor:pointer;padding:14px 16px;display:flex;
+    align-items:center;justify-content:space-between;gap:12px;
+    font-family:'Jost',sans-serif;font-size:14px;font-weight:700;color:#314322;line-height:1.35}
   .faq-item summary::-webkit-details-marker{display:none}
   .faq-item summary .mi{transition:transform .2s ease}
   .faq-item[open] summary .mi{transform:rotate(180deg)}
-  .faq-item__body{padding:0 20px 20px;border-top:1px solid rgba(228,226,221,.6);
-    padding-top:12px;font-family:'Jost',sans-serif;font-size:13.5px;line-height:1.6;color:#44483f}
+  .faq-item__body{padding:0 16px 16px;border-top:1px solid rgba(228,226,221,.6);
+    padding-top:10px;font-family:'Jost',sans-serif;font-size:13px;line-height:1.6;color:#44483f}
 </style>
-<script src="i18n.js?v=20260923a"></script>
+<script src="i18n.js?v=20260923c"></script>
 </head>
 <body class="bg-surface font-body-md text-body-md text-on-surface antialiased selection:bg-soft-canopy selection:text-surface-container-lowest">
 
@@ -279,17 +279,6 @@
         A land-plot development in the <span class="italic font-light text-territorial-green">Balian river valley.</span>
       </h2>
       <p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Held under <b>Hak Sewa</b> with a notarial escrow account — not a security or investment product.</p>
-      <!-- Pestañas Documentos / FAQ (22-sep, pedido del owner: "separamos en 2
-           secciones por pestañas"). Nace SOLO con FAQ: la de Documentos la enciende
-           pintaDocs() si el proyecto tiene algo publicado -- una pestaña que abre un
-           hueco vacio es peor que no tenerla. Con documentos, se abre esa primero
-           (decision del 14-sep: el panel abre con los papeles). -->
-      <div role="tablist" aria-label="Documentation & FAQ" class="flex gap-1 bg-surface-container/80 p-1 rounded-full border border-surface-container-highest/60 mt-1 self-start">
-        <button type="button" role="tab" id="tab-docs" aria-controls="docs-bloque" aria-selected="false" data-tab="docs"
-          class="hidden px-4 py-1.5 rounded-full font-label-md text-xs font-semibold transition-all">Documents</button>
-        <button type="button" role="tab" id="tab-faq" aria-controls="faq-bloque" aria-selected="true" data-tab="faq"
-          class="px-4 py-1.5 rounded-full font-label-md text-xs font-semibold transition-all bg-deep-lagoon text-white shadow-sm">FAQ</button>
-      </div>
     </div>
 
     <div class="min-h-0 overflow-y-auto px-5 py-4 flex flex-col gap-5">
@@ -302,10 +291,16 @@
            que no hay nada que enseñar, que es peor que no tenerla. Lo enciende el JS.
            Va DELANTE de las garantías de abajo porque esto son los papeles y aquello
            son afirmaciones sobre ellos. -->
-      <!-- Documentacion y FAQ en dos bloques propios (22-sep): el panel vuelve a ser
-           una tarjeta flotante mas estrecha, asi que van apilados, no lado a lado. -->
-      <div id="docs-bloque" role="tabpanel" aria-labelledby="tab-docs" class="hidden flex-col gap-3">
-        <div id="docs-lista" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3"><!-- lo llena el JS --></div>
+      <!-- Documentos y FAQ, LOS DOS A LA VISTA (23-sep, owner: "no queda claro el
+           Documents o FAQ asi, no podemos hacer las 2 columnas visibles?"). Sustituye
+           a las pestañas del 22-sep: una pestaña esconde la mitad del panel y no se
+           ve que exista. Desde 1280px lado a lado (xl:flex-row); por debajo, uno
+           encima del otro. Sin documentos publicados, la FAQ ocupa todo el ancho
+           (flex-1, y el bloque de documentos sigue oculto). -->
+      <div class="flex flex-col xl:flex-row gap-5 items-start">
+      <div id="docs-bloque" class="hidden flex-col gap-3 w-full xl:flex-1 min-w-0">
+        <h3 class="font-body-md text-[11px] uppercase tracking-wider text-on-surface-variant font-bold m-0">Project documents</h3>
+        <div id="docs-lista" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2"><!-- lo llena el JS --></div>
       </div>
 
       <!-- AQUI HABIA SEIS TARJETAS DE GARANTIAS (escrow, plazo, permisos, zonificacion,
@@ -316,7 +311,8 @@
            dejado de decir dos veces. El chip "Legal Security" de este mismo panel lleva
            alli en un clic. El panel abre ahora con los papeles, que es lo que se venia
            a buscar. -->
-      <div id="faq-bloque" role="tabpanel" aria-labelledby="tab-faq" class="flex flex-col gap-3">
+      <div id="faq-bloque" class="flex flex-col gap-3 w-full xl:flex-1 min-w-0">
+        <h3 class="font-body-md text-[11px] uppercase tracking-wider text-on-surface-variant font-bold m-0">Frequently Asked Questions</h3>
         <!-- LAS PREGUNTAS YA NO VIVEN AQUI (11-sep-2026). Salen de `deck_faq` por
              `investor_deck_faq`, y se editan desde la intranet. El comentario de
              arriba que decia "La FAQ vive AQUI y en ningun otro sitio" describia el
@@ -327,6 +323,7 @@
              ingles): cada fila trae sus tres idiomas dentro. Markup de cada fila:
              .faq-item (Tesla-style), ver pintaFaq() en el <script>. -->
         <div id="faq-lista" class="flex flex-col gap-2"><!-- lo llena el JS --></div>
+      </div>
       </div>
 
       <div class="flex flex-wrap gap-2 pt-1 border-t border-control-border/25">
@@ -935,40 +932,11 @@
       cont.appendChild(card);
       pintados++;
     });
-    if(!pintados) return;                       // nada publicable: pestaña y bloque siguen ocultos
-    var tab = document.getElementById('tab-docs');
-    if(tab){ tab.classList.remove('hidden'); }
-    activaPestana('docs');                      // con papeles, el panel abre con ellos (14-sep)
+    if(!pintados) return;                       // nada publicable: el bloque sigue oculto
+    bloque.classList.remove('hidden');
+    bloque.classList.add('flex');
     if(window.lwDeck) lwDeck.traduce(bloque);
   }
-
-  // ── pestañas del panel: Documentos / FAQ (22-sep) ─────────────────────────
-  // Clases literales (no montadas con '+'): el build de Tailwind de v2.min.css solo
-  // conoce las que aparecen escritas enteras en este fichero.
-  var TAB_ON  = ['bg-deep-lagoon', 'text-white', 'shadow-sm'];
-  var TAB_OFF = ['text-deep-lagoon', 'hover:bg-white/70'];
-  function activaPestana(nombre){
-    [['docs', 'docs-bloque'], ['faq', 'faq-bloque']].forEach(function(par){
-      var btn = document.getElementById('tab-' + par[0]);
-      var panel = document.getElementById(par[1]);
-      var on = par[0] === nombre;
-      if(btn){
-        btn.setAttribute('aria-selected', on ? 'true' : 'false');
-        TAB_ON.forEach(function(c){ btn.classList.toggle(c, on); });
-        TAB_OFF.forEach(function(c){ btn.classList.toggle(c, !on); });
-      }
-      if(panel){ panel.classList.toggle('hidden', !on); panel.classList.toggle('flex', on); }
-    });
-  }
-  document.querySelectorAll('[data-tab]').forEach(function(btn){
-    btn.addEventListener('click', function(){ activaPestana(btn.getAttribute('data-tab')); });
-  });
-  // El menu y el pie enlazan a #faq (el panel entero): quien pulsa "FAQ" viene a por
-  // las preguntas, asi que ese enlace abre la pestaña FAQ aunque hubiera documentos.
-  document.addEventListener('click', function(e){
-    var a = e.target.closest && e.target.closest('a[href="#faq"]');
-    if(a) activaPestana('faq');
-  });
 
   fetch(SB_URL + '/rest/v1/rpc/investor_deck_documentos', {
     method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},

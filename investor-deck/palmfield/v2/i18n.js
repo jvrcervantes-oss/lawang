@@ -188,9 +188,8 @@
         id: 'Ketuk kavling untuk melihatnya di daftar ketersediaan langsung. Status bersifat langsung; luas dikonfirmasi lewat survei saat Plot Lock.' },
     'Talk to us on WhatsApp': { es: 'Háblanos por WhatsApp', id: 'Hubungi kami via WhatsApp' },
 
-    /* — cabecera y panel (22-sep): menú, pestañas — */
+    /* — cabecera (22-sep): menú — */
     'Menu': { es: 'Menú', id: 'Menu' },
-    'Documents': { es: 'Documentos', id: 'Dokumen' },
 
     /* — pie (22-sep, calco de la estructura del pie de /modelo) — */
     'Collection': { es: 'Colección', id: 'Koleksi' },
