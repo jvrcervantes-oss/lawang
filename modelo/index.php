@@ -216,15 +216,8 @@ foreach ($CAT as $ocId => $ov) {
 
 $WA_NUM   = '6281138319862';
 $WA_LINK  = 'https://wa.me/' . $WA_NUM . '?text=' . rawurlencode("Hi, I'm interested in the " . $villa . ' from Lawang Tropical Properties.');
-$WA_SHOW  = '+62 811-3831-9862';
-$EMAIL    = 'sales@lawangproperties.com';
-
-$OFICINA = 'Jl. Gn. Tangkuban Perahu No.145, 2nd Floor, Padangsambian Klod, '
-         . 'Kec. Denpasar Bar., Kota Denpasar, Bali 80117';
-$TELEFONOS = [
-    ['show' => '+62 811-3830-5240', 'tel' => '+6281138305240'],
-    ['show' => '+62 811-3830-5237', 'tel' => '+6281138305237'],
-];
+// Telefonos, email y oficina ya NO viven aqui (23-sep-2026): solo los usaba el pie, que
+// ahora es /assets/lawang-pie.js, compartido con /investor-deck. Fuente unica: ese fichero.
 // 21-sep-2026: $portada YA es una URL absoluta (bucket público de Supabase) desde que las
 // fotos dejaron el disco — solo el respaldo sin foto ('/assets/img/lugar/costa.webp') sigue
 // siendo una ruta relativa del propio sitio. Sin esta rama, el prefijo de dominio de abajo
@@ -1002,74 +995,15 @@ foreach ($incluido as $it):
 <?php endif; ?>
 
 <!-- ═══ FOOTER ═══════════════════════════════════════════════════════════════════════ -->
-<footer class="bg-surface-alt border-t border-surface-container-highest pt-20 pb-12 px-6 md:px-margin-desktop text-on-surface">
-<div class="max-w-7xl mx-auto space-y-16">
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-<div class="lg:col-span-5 space-y-4">
-<img class="h-9" src="/assets/img/lawang-logo-v3-dark.webp" alt="Lawang Tropical Properties">
-<p class="font-body-md text-sm text-on-surface-variant leading-relaxed max-w-md">PT Tepi Sun Gai · Registered Developer &amp; Property Advisory. Developing turnkey architectural villas in Bali, with fixed-price EPC contracts and titles transferred in writing.</p>
-<div class="flex items-center gap-3 pt-2">
-<span class="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center gap-1">
-<span class="material-symbols-outlined text-[14px]">receipt_long</span> Fixed-Price EPC
-</span>
-<span class="px-3 py-1 rounded-full bg-deep-lagoon/10 text-deep-lagoon text-xs font-semibold flex items-center gap-1">
-<span class="material-symbols-outlined text-[14px]">verified</span> PPN Included
-</span>
-</div>
-</div>
-<div class="lg:col-span-4 grid grid-cols-2 gap-8">
-<div class="space-y-3">
-<span class="font-label-md text-xs uppercase tracking-wider text-primary font-bold"><?= lw_i18n('Colección', 'Collection') ?></span>
-<ul class="space-y-2 text-xs font-body-sm text-on-surface-variant">
-<?php foreach ($CAT as $lcId => $lv):
-    // Mismo filtro que el cross-sell de mas abajo: un modelo sin render hace que
-    // lw_modelo_get() devuelva null y rebote a /thecollection — un enlace de pie de
-    // pagina que aterriza en un sitio distinto al que promete es peor que no listarlo.
-    if ($lv['sinRender']) continue;
-?>
-<li><a class="hover:text-primary transition-colors" href="/<?= lw_e(lw_modelo_url_path($lcId)) ?>"><?= lw_e($lv['villa']) ?></a></li>
-<?php endforeach; ?>
-</ul>
-</div>
-<div class="space-y-3">
-<span class="font-label-md text-xs uppercase tracking-wider text-primary font-bold"><?= lw_i18n('Información', 'Information') ?></span>
-<ul class="space-y-2 text-xs font-body-sm text-on-surface-variant">
-<li><a class="hover:text-primary transition-colors" href="#section-financial">Legal &amp; returns</a></li>
-<li><a class="hover:text-primary transition-colors" href="#section-cubiertas">Roof finishes</a></li>
-<li><a class="hover:text-primary transition-colors" href="#section-layout">Layout</a></li>
-<li><a class="hover:text-primary transition-colors" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer">WhatsApp</a></li>
-</ul>
-</div>
-</div>
-<div class="lg:col-span-3 space-y-2 bg-surface p-5 rounded-2xl border border-surface-container-highest">
-<span class="font-label-md text-xs uppercase tracking-wider text-primary font-bold"><?= lw_i18n('WhatsApp', 'WhatsApp') ?></span>
-<p class="font-body-sm text-xs text-on-surface-variant i-es">Te respondemos en horario de Bali (WITA).</p>
-<p class="font-body-sm text-xs text-on-surface-variant i-en">We reply during Bali hours (WITA).</p>
-<a class="w-full py-2 rounded-xl bg-primary hover:bg-territorial-green text-on-primary text-xs font-label-md font-semibold transition-all flex items-center justify-center" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer"><?= lw_e($WA_SHOW) ?></a>
-</div>
-</div>
-<div class="pt-8 border-t border-surface-container-highest/80 grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-on-surface-variant">
-<div>
-<span class="font-bold text-primary block mb-1">Bali Office</span>
-<span><?= lw_e($OFICINA) ?></span>
-</div>
-<div>
-<span class="font-bold text-primary block mb-1"><?= lw_i18n('Líneas directas', 'Direct lines') ?></span>
-<?php foreach ($TELEFONOS as $t): ?><span class="block"><a class="hover:text-primary" href="tel:<?= lw_e($t['tel']) ?>"><?= lw_e($t['show']) ?></a></span><?php endforeach; ?>
-<span class="block"><a class="hover:text-primary" href="mailto:<?= lw_e($EMAIL) ?>"><?= lw_e($EMAIL) ?></a></span>
-</div>
-</div>
-<div class="pt-6 border-t border-surface-container-highest/60 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-on-surface-variant/80">
-<span class="i-es">© 2026 Lawang Tropical Properties (PT Tepi Sun Gai). Todos los derechos reservados.</span>
-<span class="i-en">© 2026 Lawang Tropical Properties (PT Tepi Sun Gai). All rights reserved.</span>
-<div class="flex items-center gap-6">
-<a class="hover:text-primary i-es" href="/legal-es">Aviso legal y privacidad</a>
-<a class="hover:text-primary i-en" href="/legal">Legal &amp; privacy</a>
-· <a class="hover:text-primary i-es" href="#" id="lw-cookies">Preferencias de cookies</a><a class="hover:text-primary i-en" href="#" id="lw-cookies-en">Cookie preferences</a>
-</div>
-</div>
-</div>
-</footer>
+<!-- Pie COMPARTIDO con /investor-deck (23-sep-2026, pedido del owner: comprimido y con el
+     contacto bien destacado). Lo pinta /assets/lawang-pie.js: una sola fuente para los
+     telefonos, la oficina y el aviso legal. Antes este pie ocupaba ~700px con columnas
+     Collection/Information que repetian el menu y la seccion "More from the collection".
+     data-wa: el enlace de siempre, con el nombre de esta villa en el mensaje.
+     data-cookies: esta pagina SI carga consent.js; el manejador de #lw-cookies sigue
+     mas abajo, en el script inline (este JS va antes, sin defer, a proposito). -->
+<footer data-lw-pie data-cookies data-wa="<?= lw_e($WA_LINK) ?>"></footer>
+<script src="/assets/lawang-pie.js?v=20260923085544"></script>
 
 <!-- consent.js: gate del banner de cookies Y de window.lwTrack/Meta Pixel — SIN esto,
      track('ViewContent') de mas abajo comprueba `typeof window.lwTrack==='function'`,

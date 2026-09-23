@@ -537,70 +537,17 @@
   <p class="lw-wide font-body-sm text-xs text-on-surface-variant" id="fx-nota-txt"></p>
 </div>
 
-<!-- FOOTER (22-sep, pedido del owner: "el mismo que /modelo, para que este unificado,
-     pero que no ocupe tanto"). Se calca la PIEL del pie de modelo/index.php -- rejilla
-     5/4/3, logo oscuro, listas Collection/Information, tarjeta de WhatsApp, oficina y
-     lineas directas, barra de copyright -- con la mitad de aire (py-10 frente a
-     pt-20/pb-12, y oficina+lineas+legal en UNA barra en vez de dos).
-     El TEXTO no se calca: el de /modelo habla de villas (EPC a precio fijo, PPN
-     incluido) y este deck es de parcelas en Hak Sewa. Se conservan la promotora
-     (PT SAN DAL WOODS, grafia fija) y el aviso de que no es una oferta de valores.
-     Oficina, telefonos y email: mismos valores que $OFICINA/$TELEFONOS/$EMAIL de
-     modelo/index.php (22-sep). "Collection" la pinta el JS desde investor_deck_modelos:
-     ni una lista de villas a mano (precedente de los 404 del 10-sep).
-     Sin "Cookie preferences": este deck no carga consent.js, y un enlace que no
-     abre nada es peor que no tenerlo. -->
-<footer class="w-full bg-surface-alt border-t border-surface-container-highest pt-10 pb-24 px-6 md:px-margin-desktop text-on-surface">
-<div class="lw-wide space-y-8">
-  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
-    <div class="lg:col-span-5 space-y-3">
-      <img class="h-8" src="../../../assets/img/lawang-logo-v3-dark.webp" alt="Lawang Tropical Properties">
-      <p class="font-body-md text-sm text-on-surface-variant leading-relaxed max-w-md"><span class="font-bold text-deep-lagoon">Lawang Properties — Palm Field</span><br>Balian Hills, Bali. Developed by PT SAN DAL WOODS.</p>
-      <div class="flex flex-wrap items-center gap-2 pt-1">
-        <span class="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">gavel</span> Hak Sewa</span>
-        <span class="px-3 py-1 rounded-full bg-deep-lagoon/10 text-deep-lagoon text-xs font-semibold flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">account_balance</span> Notarial escrow</span>
-      </div>
-    </div>
-    <div class="lg:col-span-4 grid grid-cols-2 gap-8">
-      <div class="space-y-3">
-        <span class="font-label-md text-xs uppercase tracking-wider text-primary font-bold">Collection</span>
-        <ul class="space-y-2 text-xs font-body-sm text-on-surface-variant" id="footer-coleccion"><!-- lo llena el JS --></ul>
-      </div>
-      <div class="space-y-3">
-        <span class="font-label-md text-xs uppercase tracking-wider text-primary font-bold">Information</span>
-        <ul class="space-y-2 text-xs font-body-sm text-on-surface-variant">
-          <li><a class="hover:text-primary transition-colors" href="#masterplan">Masterplan &amp; Plots</a></li>
-          <li><a class="hover:text-primary transition-colors" href="#rendimientos">Financial Forecast</a></li>
-          <li><a class="hover:text-primary transition-colors" href="#seguridad-notarial">Legal Security</a></li>
-          <li><a class="hover:text-primary transition-colors" href="#faq">FAQ</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="lg:col-span-3 space-y-2 bg-surface p-5 rounded-2xl border border-surface-container-highest">
-      <span class="font-label-md text-xs uppercase tracking-wider text-primary font-bold">WhatsApp</span>
-      <p class="font-body-sm text-xs text-on-surface-variant">We reply during Bali hours (WITA).</p>
-      <a class="w-full py-2 rounded-xl bg-primary hover:bg-territorial-green text-white text-xs font-label-md font-semibold transition-all flex items-center justify-center" href="https://wa.me/6281138319862" target="_blank" rel="noopener" data-wa-enlace data-no-i18n>+62 811-3831-9862</a>
-    </div>
-  </div>
-  <div class="pt-6 border-t border-surface-container-highest/80 grid grid-cols-1 md:grid-cols-3 gap-5 text-xs text-on-surface-variant">
-    <div>
-      <span class="font-bold text-primary block mb-1">Bali Office</span>
-      <span data-no-i18n>Jl. Gn. Tangkuban Perahu No.145, 2nd Floor, Padangsambian Klod, Kec. Denpasar Bar., Kota Denpasar, Bali 80117</span>
-    </div>
-    <div>
-      <span class="font-bold text-primary block mb-1">Direct lines</span>
-      <span class="block" data-no-i18n><a class="hover:text-primary" href="tel:+6281138305240">+62 811-3830-5240</a></span>
-      <span class="block" data-no-i18n><a class="hover:text-primary" href="tel:+6281138305237">+62 811-3830-5237</a></span>
-      <span class="block" data-no-i18n><a class="hover:text-primary" href="mailto:sales@lawangproperties.com?subject=Palm%20Field%20%E2%80%94%20investor%20enquiry">sales@lawangproperties.com</a></span>
-    </div>
-    <div class="leading-relaxed">This page does not replace legal or financial advice. Nothing here is an offer to sell securities or a solicitation of investment.</div>
-  </div>
-  <div class="pt-5 border-t border-surface-container-highest/60 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-on-surface-variant/80">
-    <span>© 2026 Lawang Tropical Properties (PT Tepi Sun Gai). All rights reserved.</span>
-    <a class="hover:text-primary" href="/legal" target="_blank" rel="noopener">Privacy &amp; Terms</a>
-  </div>
-</div>
+<!-- FOOTER compartido con /modelo (23-sep, pedido del owner: "que ya sirva para
+     /modelo e /investor-deck, comprimido, contacto bien destacado"). Lo pinta
+     /assets/lawang-pie.js, una sola fuente con sus tres idiomas. Aqui solo va lo
+     propio del deck: el aviso de que no es una oferta de valores (lo traduce el
+     walker de i18n.js, como antes). El boton de WhatsApp del pie lleva
+     data-wa-enlace, asi que la IIFE del final le pone el mismo mensaje traducido
+     que al flotante. -->
+<footer data-lw-pie data-wa="https://wa.me/6281138319862">
+  <span data-pie-nota>This page does not replace legal or financial advice. Nothing here is an offer to sell securities or a solicitation of investment.</span>
 </footer>
+<script src="../../../assets/lawang-pie.js?v=20260923085544"></script>
 
 <!-- MODAL DE RESERVA (sin cambios funcionales respecto a la version anterior; solo
      clases/colores Tesla-style — ids, name, type, autocomplete intactos porque el
@@ -1189,28 +1136,8 @@
       enganchaSinRender(card);
       mg.appendChild(card);
     });
-    pintaColeccionPie(rows);
     if(window.lwDeck) lwDeck.traduce(document.getElementById('modelos'));
     if(window.lwRepintaDinero) lwRepintaDinero();
-  }
-
-  // Lista "Collection" del pie: las mismas filas del catalogo, enlazadas a su ficha
-  // /modelo/<slug> -- como el pie de /modelo, que lista la coleccion desde $CAT.
-  function pintaColeccionPie(rows){
-    var ul = document.getElementById('footer-coleccion');
-    if(!ul) return;
-    ul.innerHTML = '';
-    rows.forEach(function(m){
-      var slug = String(m.slug == null ? '' : m.slug);
-      if(!SLUG_OK.test(slug)) return;
-      var li = document.createElement('li');
-      var a = document.createElement('a');
-      a.className = 'hover:text-primary transition-colors';
-      a.href = '/modelo/' + slug;
-      a.setAttribute('data-no-i18n', '');
-      a.textContent = m.nombre || slug;
-      li.appendChild(a); ul.appendChild(li);
-    });
   }
 
   function modelosCaidos(){
