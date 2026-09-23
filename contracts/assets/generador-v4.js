@@ -97,7 +97,16 @@
     bar.appendChild(grupo('Cobro', ['btnFacturar']));
     bar.appendChild(grupo('', ['btnRegistro', 'btnReset'], 'lw4-especiales'));
     bar.classList.add('lw4-barra');
-    top.insertAdjacentElement('afterend', bar);
+    /* Dónde vive la barra (owner, 23-sep: «las herramientas las pondría en el
+       lado de la derecha, encima del contrato»): en escritorio, dentro del
+       panel del documento, encima del taller. Por debajo de 900 px ese panel
+       es la vista previa a pantalla completa y está cerrada casi siempre, así
+       que ahí la barra vuelve bajo la cabecera para no quedar escondida. */
+    var estrecho = window.matchMedia('(max-width: 900px)');
+    var colocaBarra = function () {
+      if (estrecho.matches) top.insertAdjacentElement('afterend', bar);
+      else pane.insertBefore(bar, pane.firstChild);
+    };
 
     /* ── banda de estado: solo se ve en firma o firmado (CSS, por
           html[data-lw-estado], que pone pintaAcciones) ─────────────────── */
@@ -108,7 +117,7 @@
     var acc = document.createElement('div'); acc.className = 'lw4-banda-acc';
     ['btnEditarFirmado', 'btnDesbloquear'].forEach(function (id) { var b = $(id); if (b) acc.appendChild(b); });
     banda.appendChild(txt); banda.appendChild(acc);
-    bar.insertAdjacentElement('afterend', banda);
+    top.insertAdjacentElement('afterend', banda);   // la banda es del contrato entero: ancho completo
 
     /* ── taller del documento, encima de la vista previa ─────────────────── */
     var cab = document.createElement('div'); cab.className = 'lw4-pane-cab';
@@ -116,6 +125,9 @@
     cab.appendChild(taller);
     if (cierre) cab.appendChild(cierre);
     pane.insertBefore(cab, pane.firstChild);
+    colocaBarra();
+    if (estrecho.addEventListener) estrecho.addEventListener('change', colocaBarra);
+    else if (estrecho.addListener) estrecho.addListener(colocaBarra);
 
     // los grupos viejos se quedaron vacíos (sus botones ya están en su sitio nuevo)
     viejos.forEach(function (g) { if (!g.querySelector('button, a')) g.remove(); });

@@ -244,10 +244,18 @@ html.v4 .lw4-banda .lw4-tb:disabled{ display:none !important; }
   /* «Cerrar» solo existe para la vista previa a pantalla completa del móvil */
   html.v4 #btnClose{ display:none !important; }
 }
-/* entre 901 y 1280 px no caben los rótulos de grupo y los fijos de la derecha */
-@media screen and (min-width:901px) and (max-width:1280px){
-  html.v4 .lw4-barra .lw4-glab{ display:none; }
-  html.v4 .lw4-barra .lw4-grupo + .lw4-grupo{ padding-left:6px; margin-left:4px; }
+/* En escritorio la barra vive DENTRO del panel del documento, encima del
+   taller (owner, 23-sep). Ese panel es el 60 %: sin rótulos de grupo (los
+   filetes ya separan) y, si aun así no cabe, pasa a dos filas en vez de
+   esconder botones detrás de un desplazamiento lateral. */
+@media screen and (min-width:901px){
+  html.v4 #pane > .lw4-barra{
+    flex-wrap:wrap; row-gap:4px; overflow:visible; padding:8px 20px; min-height:52px;
+    border-bottom:1px solid var(--v4-borde);
+  }
+  html.v4 #pane > .lw4-barra .lw4-glab{ display:none; }
+  html.v4 #pane > .lw4-barra .lw4-grupo + .lw4-grupo{ padding-left:6px; margin-left:4px; }
+  html.v4 #pane > .lw4-barra .lw4-tb{ padding:0 8px !important; gap:5px; }
 }
 html.v4 .pane-form{ background:#F5F0E6; }
 html.v4 .pane-preview{ background:#E7E4DB; border-left:1px solid var(--v4-borde); }
