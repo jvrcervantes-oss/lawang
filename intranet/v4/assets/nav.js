@@ -184,7 +184,12 @@
        los días de gracia, las prórrogas, los techos, todo lo configurable»):
        la tabla `parametros`. Lo ve cualquier admin; escribir exige super admin
        en la base (parametro_set), como Cuentas. */
-    { path: 'ajustes',       icono: 'tune',             texto: 'Ajustes' }
+    { path: 'ajustes',       icono: 'tune',             texto: 'Ajustes' },
+    /* Comunicación (23-sep-2026, owner: «algo como "Comunicación" para
+       escribir yo las plantillas y que se manden a los agentes»): comunicados
+       por email al equipo. Admin; la puerta real es es_admin() en
+       comunicados/comunicado_encolar. */
+    { path: 'comunicacion',  icono: 'campaign',         texto: 'Comunicación' }
   ];
 
   /* La comision de administracion va aparte del resto del Panel de control:

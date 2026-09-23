@@ -127,6 +127,35 @@ $html     = (string)($in['html'] ?? '');
 // mandaría un PDF con pinta de definitivo que nadie ha firmado.
 $attach = ($in['attach'] ?? true) !== false;
 
+// Título dentro de la tarjeta (23-sep-2026, comunicados al equipo). Opcional:
+// sin él la tarjeta entra directa en el cuerpo, como hasta hoy.
+$encabezado = trim((string)($in['encabezado'] ?? ''));
+if (mb_strlen($encabezado) > 120) { fail('Encabezado demasiado largo'); }
+
+/* ---- vista previa (23-sep-2026, /intranet/v4/comunicacion/) ----------------
+   Devuelve el HTML que saldría, SIN enviar nada ni tocar SMTP. Existe para que
+   la pantalla enseñe el correo con la plantilla de verdad y no con una copia en
+   JS que divergiría (Regla 0 de suite_lawang.md). Solo con sesión de la suite
+   (vía 1): la vía 3 autoriza por destinatario y aquí no hay destinatario. El
+   botón pasa por la misma lista blanca que un envío real. */
+if (($in['preview'] ?? false) === true) {
+  if ($via !== 'sesion') { fail('La vista previa exige sesión de la suite', 401); }
+  if (mb_strlen($subject) > 200) { fail('Asunto demasiado largo'); }
+  if ($message === '' || mb_strlen($message) > 5000) { fail('El mensaje está vacío o es demasiado largo'); }
+  $pvUrl   = trim((string)($in['cta_url'] ?? ''));
+  $pvTexto = trim((string)($in['cta_texto'] ?? ''));
+  if ($pvUrl !== '' && !cta_permitida($pvUrl)) {
+    fail('cta_url no permitida: solo https hacia lawangproperties.com (o sus subdominios), mailto: y https://wa.me/');
+  }
+  if (mb_strlen($pvTexto) > 60) { fail('cta_texto demasiado largo'); }
+  require_once __DIR__ . '/lib/plantilla_correo.php';
+  echo json_encode(['ok' => true, 'html' => lw_plantilla_correo(
+    $message, $encabezado !== '' ? $encabezado : null,
+    ($pvUrl !== '' && $pvTexto !== '') ? ['url' => $pvUrl, 'texto' => $pvTexto] : null
+  )], JSON_UNESCAPED_UNICODE);
+  exit;
+}
+
 if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { fail('Destinatario no válido'); }
 if (mb_strlen($subject) > 200) { fail('Asunto demasiado largo'); }
 if (mb_strlen($message) > 5000) { fail('Mensaje demasiado largo'); }
@@ -297,7 +326,7 @@ $boundary = 'lwc_' . bin2hex(random_bytes(16));
 // formato de TODO correo de la intranet con el mismo diseño que ya usa el
 // email de acceso al portal). Antes esta parte era texto plano a secas.
 require_once __DIR__ . '/lib/plantilla_correo.php';
-$mensajeHtml = lw_plantilla_correo($message, null, $cta);
+$mensajeHtml = lw_plantilla_correo($message, $encabezado !== '' ? $encabezado : null, $cta);
 
 // multipart/mixed con una sola parte de HTML es correo válido, así que el
 // camino sin adjunto reusa la misma estructura (y el mismo SmtpMailer) en vez

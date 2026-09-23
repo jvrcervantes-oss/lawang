@@ -1,0 +1,17 @@
+-- ============================================================================
+-- Comunicados al equipo — 23-sep-2026 (PUNTERO)
+-- ----------------------------------------------------------------------------
+-- El owner escribe un comunicado en /intranet/v4/comunicacion/ y lo manda por
+-- email a usuarios de la intranet. El navegador solo ENCOLA; la Edge
+-- comunicados-envio (contracts/edge/comunicados-envio/) entrega vía
+-- contracts/api/send_email.php con la plantilla de marca.
+--
+-- Fuente única (texto íntegro con el porqué):
+--   supabase/migrations/20260923004359_comunicados.sql
+--     · comunicados, comunicado_envios (RLS es_admin(), grants por columna)
+--     · _comunicados_congela: congelado al encolar, no se borra lo enviado
+--     · comunicado_encolar(): la reserva ES el INSERT … ON CONFLICT
+--     · comunicado_prueba(): solo al email de quien la pide
+--     · comunicado_envios_reclamar(): FOR UPDATE SKIP LOCKED, solo service_role
+--     · _comunicados_despierta() + cron 'comunicados-envio' (*/10)
+-- ============================================================================
