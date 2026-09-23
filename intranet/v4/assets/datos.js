@@ -248,6 +248,42 @@
     pl.tbody.appendChild(tr);
   }
 
+  /* QUIÉN LO CREÓ — una sola forma de convertir el autor guardado en un nombre
+     (23-sep-2026, owner: «en toda la v4 quiero trazabilidad de qué agente ha
+     creado un contrato, un recibí, una factura o lo que sea»).
+     La base ya guarda el autor: como EMAIL en contratos/facturas/recibís
+     (`creado_por`, default auth.email()) y en `clients.propietario`; como
+     USER_ID en solicitudes_pago y comunicados. Este mapa resuelve las dos claves.
+     `usuarios` lo lee cualquier agente (policy «el equipo se ve entre si»,
+     es_agente()) y se piden también los DESACTIVADOS: un documento de quien ya
+     no está sigue siendo suyo. Sin nombre conocido se enseña el valor guardado
+     tal cual; sin valor, «sin registrar» (filas de antes de que la columna
+     tuviera default) — nunca se atribuye a nadie por aproximación. Corregir un
+     autor es cosa de LW_AUTORIA (super_admin, con rastro), no de aquí. */
+  var AUTORES_P = null;
+  function autores(sb) {
+    if (!AUTORES_P) AUTORES_P = Promise.resolve(sb.from('usuarios').select('user_id,email,nombre')).then(function (r) {
+      var m = {};
+      if (r && r.error) console.error('[v4 datos] autores:', r.error);
+      ((r && r.data) || []).forEach(function (u) {
+        var n = u.nombre || u.email;
+        if (u.email) m[String(u.email).toLowerCase()] = n;
+        if (u.user_id) m[String(u.user_id).toLowerCase()] = n;
+      });
+      return m;
+    }, function (e) { console.error('[v4 datos] autores:', e); return {}; });
+    return AUTORES_P;
+  }
+  function nombreAutor(mapa, v) { return v ? ((mapa && mapa[String(v).toLowerCase()]) || String(v)) : ''; }
+  function htmlAutor(mapa, v) {
+    var tr = function (x) { return (typeof lwT === 'function') ? lwT(x) : x; };
+    var n = nombreAutor(mapa, v);
+    return n ? '<span class="font-body-md" title="' + esc(v) + '">' + esc(n) + '</span>'
+      : '<span style="color:#BEB3A5" title="' + esc(tr('Documento anterior al registro de autor')) + '">' + esc(tr('sin registrar')) + '</span>';
+  }
+  window.LW_V4 = window.LW_V4 || {};
+  window.LW_V4.autores = autores; window.LW_V4.nombreAutor = nombreAutor;
+
   function fallo(donde, err, contenedor) {
     var code = err && (err.code || err.status) ? ' (' + (err.code || err.status) + ')' : '';
     console.error('[v4 datos] ' + donde + ' no cargó' + code, err);
@@ -1865,9 +1901,10 @@
       var miEmail = (window.LW_V4 && window.LW_V4.miEmail) || '';
       Promise.all([
         q(sb.rpc('contratos_equipo').select(CAMPOS_CONTRATO).order('created_at', { ascending: false }).limit(1000), 'contratos', t),
-        q(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado,expira_en').eq('estado', 'pendiente'), 'firmas pendientes')
+        q(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado,expira_en').eq('estado', 'pendiente'), 'firmas pendientes'),
+        autores(sb)
       ]).then(function (rr) {
-          var cs = rr[0];
+          var cs = rr[0], AUT = rr[2] || {};
           var firmaDe = {}; (rr[1] || []).forEach(function (x) { if (!firmaCaducada(x)) firmaDe[x.contrato_id] = x; });
           if (!cs) return;
           // firmado > en firma (hay firma viva pendiente: ya no es editable) > borrador
@@ -1923,8 +1960,9 @@
             tr.setAttribute('data-lw-tipo', c.tipo || '');
             tr.setAttribute('data-lw-estado', estadoC(c));
             tr.setAttribute('data-lw-mio', miEmail && c.creado_por === miEmail ? '1' : '0');
-            tr.setAttribute('data-lw-pajar', [c.numero, c.comprador_nombre, c.proyecto_nombre, c.creado_por, c.parcela_codigo, tipoC(c.tipo)].join(' ').toLowerCase());
+            tr.setAttribute('data-lw-pajar', [c.numero, c.comprador_nombre, c.proyecto_nombre, c.creado_por, nombreAutor(AUT, c.creado_por), c.parcela_codigo, tipoC(c.tipo)].join(' ').toLowerCase());
             var tds = tr.querySelectorAll('td');
+            if (tds[6]) tds[6].innerHTML = htmlAutor(AUT, c.creado_por);
             if (tds[7]) tds[7].innerHTML = pill(ETQ_C[estadoC(c)][0], ETQ_C[estadoC(c)][1]);
             if (tds[8]) tds[8].innerHTML = ABRIR;
             tr.style.cursor = 'pointer';
@@ -1973,9 +2011,10 @@
         // Cuánto lleva cobrada cada factura (22-sep-2026, owner): la misma
         // función que usa el recibí para saber qué puede saldar — nunca una
         // segunda forma de restar recibís a facturas.
-        vig(sb.rpc('facturas_pendiente_equipo')).then(function (r) { return r.error ? (fallo('pendiente de cobro', r.error), null) : (r.data || []); })
+        vig(sb.rpc('facturas_pendiente_equipo')).then(function (r) { return r.error ? (fallo('pendiente de cobro', r.error), null) : (r.data || []); }),
+        autores(sb)
       ]).then(function (rr) {
-          var fs = rr[0], hayPend = !!rr[1], pendPor = {};
+          var fs = rr[0], hayPend = !!rr[1], pendPor = {}, AUT = rr[2] || {};
           (rr[1] || []).forEach(function (x) { pendPor[x.factura_id] = Number(x.pendiente) || 0; });
           if (!fs) return;
           // 'cobrada' | 'parcial' | 'pendiente' | 'na' (proforma, anulada o sin dato)
@@ -2025,13 +2064,13 @@
             function pintaFilaDoc(f, grupo) {
               var est = estadoDoc(f);
               fila(pl, [f.numero, tipoDoc(f.tipo), f.cliente_nombre || '—', f.contrato_numero || '—', f.proyecto_nombre || '—',
-                fmt(f.total, f.moneda), '', fFecha(f.fecha_emision || f.created_at), '', '']);
+                fmt(f.total, f.moneda), '', fFecha(f.fecha_emision || f.created_at), '', '', '']);
               var tr = pl.tbody.lastElementChild;
               tr.setAttribute('data-lw-fila', ''); tr.setAttribute('data-lw-id', f.id);
               tr.setAttribute('data-lw-tipo', f.tipo === 'proforma' ? 'proforma' : 'factura');
               tr.setAttribute('data-lw-estado', f.anulada ? 'anulada' : (f.enviada ? 'enviada' : 'emitida'));
               var cobro = cobroDe(f); tr.setAttribute('data-lw-cobro', cobro);
-              tr.setAttribute('data-lw-pajar', [f.numero, f.cliente_nombre, f.contrato_numero, f.proyecto_nombre].join(' ').toLowerCase());
+              tr.setAttribute('data-lw-pajar', [f.numero, f.cliente_nombre, f.contrato_numero, f.proyecto_nombre, f.creado_por, nombreAutor(AUT, f.creado_por)].join(' ').toLowerCase());
               if (grupo) tr.setAttribute('data-lw-grupo', grupo);
               var tds = tr.querySelectorAll('td');
               if (tds[6]) {
@@ -2042,8 +2081,9 @@
                       esc(fmt(tot - pend, f.moneda)) + ' de ' + esc(fmt(tot, f.moneda)) + '</div>'
                   : '<span style="color:#BEB3A5">—</span>';
               }
-              if (tds[8]) tds[8].innerHTML = pill(est[0], est[1]);
-              if (tds[9]) tds[9].innerHTML = ABRIR;
+              if (tds[8]) tds[8].innerHTML = htmlAutor(AUT, f.creado_por);
+              if (tds[9]) tds[9].innerHTML = pill(est[0], est[1]);
+              if (tds[10]) tds[10].innerHTML = ABRIR;
               tr.style.cursor = 'pointer';
             }
             function pintaListado() { pl.tbody.innerHTML = ''; fs.forEach(function (f) { pintaFilaDoc(f); }); }
@@ -2075,7 +2115,7 @@
                 var sub = g.sinContrato ? (n + ' · no son un contrato: no se suman entre sí')
                   : ((g.cliente || 'sin cliente') + ' · ' + (g.proyecto || 'sin proyecto') + ' · ' + n);
                 pl.tbody.insertAdjacentHTML('beforeend',
-                  '<tr data-lw-grupo-cab="' + esc(k) + '" style="background:#F5F4EE"><td colspan="10" style="padding:9px 20px;font:700 12.5px \'Neue Kabel\',sans-serif;color:#104C4F">' +
+                  '<tr data-lw-grupo-cab="' + esc(k) + '" style="background:#F5F4EE"><td colspan="11" style="padding:9px 20px;font:700 12.5px \'Neue Kabel\',sans-serif;color:#104C4F">' +
                   esc(etiqueta) + ' <span style="margin-left:8px;font-weight:500;font-size:11.5px;color:#8A8474">' + esc(sub) + '</span></td></tr>');
                 g.docs.forEach(function (f) { pintaFilaDoc(f, k); });
               });
@@ -2166,9 +2206,11 @@
         // ser del documento y no estaba en la tabla. La RLS de
         // recibi_aplicaciones deja ver las de los recibís que uno ve.
         vig(sb.from('recibi_aplicaciones').select('recibi_id,factura_id,importe_aplicado')).then(function (r) { return r.error ? (fallo('facturas saldadas', r.error), []) : (r.data || []); }),
-        vig(sb.rpc('facturas_equipo').select('id,numero').eq('tipo', 'factura')).then(function (r) { return r.error ? [] : (r.data || []); })
+        vig(sb.rpc('facturas_equipo').select('id,numero').eq('tipo', 'factura')).then(function (r) { return r.error ? [] : (r.data || []); }),
+        autores(sb)
       ]).then(function (rr) {
           var rs = rr[0]; if (!rs) return;
+          var AUT = rr[3] || {};
           var numFac = {}; rr[2].forEach(function (x) { numFac[x.id] = x.numero; });
           var saldaDe = {}; rr[1].forEach(function (a) { (saldaDe[a.recibi_id] = saldaDe[a.recibi_id] || []).push(numFac[a.factura_id] || 'factura fuera de tu alcance'); });
           var justifDe = function (r) { return Array.isArray(r.justificantes) && r.justificantes.length ? r.justificantes : (r.justificante_path ? [{ path: r.justificante_path, nombre: '' }] : []); };
@@ -2194,19 +2236,20 @@
               var nj = nJust(r), est = estadoDoc(r);
               var salda = (saldaDe[r.id] || []).join(' · ');
               fila(pl, [r.numero, r.contrato_numero || '—', salda || '—', r.cliente_nombre || '—', r.proyecto_nombre || '—', fmt(r.total, r.moneda),
-                nj ? nj + ' adjunto' + (nj === 1 ? '' : 's') : 'sin justificante', fFecha(r.fecha_emision || r.created_at), '', '']);
+                nj ? nj + ' adjunto' + (nj === 1 ? '' : 's') : 'sin justificante', fFecha(r.fecha_emision || r.created_at), '', '', '']);
               var tr = pl.tbody.lastElementChild;
               tr.setAttribute('data-lw-fila', ''); tr.setAttribute('data-lw-id', r.id);
               tr.setAttribute('data-lw-moneda', m);
               tr.setAttribute('data-lw-estado', r.anulada ? 'anulado' : 'emitido');
               tr.setAttribute('data-lw-just', nj ? '1' : '0');
-              tr.setAttribute('data-lw-pajar', [r.numero, r.cliente_nombre, r.contrato_numero, r.proyecto_nombre, salda].join(' ').toLowerCase());
+              tr.setAttribute('data-lw-pajar', [r.numero, r.cliente_nombre, r.contrato_numero, r.proyecto_nombre, salda, r.creado_por, nombreAutor(AUT, r.creado_por)].join(' ').toLowerCase());
               var tds = tr.querySelectorAll('td');
               if (tds[6] && !nj && !r.anulada) tds[6].innerHTML = pill('sin justificante', 'espera');
-              if (tds[8]) tds[8].innerHTML = pill(r.anulada ? 'Anulado' : (r.enviada ? 'Enviado' : 'Emitido'), est[1]);
+              if (tds[8]) tds[8].innerHTML = htmlAutor(AUT, r.creado_por);
+              if (tds[9]) tds[9].innerHTML = pill(r.anulada ? 'Anulado' : (r.enviada ? 'Enviado' : 'Emitido'), est[1]);
               // «Ver el justificante desde la fila» (22-sep-2026, owner): con uno,
               // se abre; con varios, la ficha los lista todos.
-              if (tds[9]) tds[9].innerHTML = (nj ? '<span data-lw-ver-just="' + esc(r.id) + '" style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline;margin-right:12px">Justificante</span>' : '') + ABRIR;
+              if (tds[10]) tds[10].innerHTML = (nj ? '<span data-lw-ver-just="' + esc(r.id) + '" style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline;margin-right:12px">Justificante</span>' : '') + ABRIR;
               tr.style.cursor = 'pointer';
             });
             pl.tbody.addEventListener('click', function (ev) {
@@ -2275,7 +2318,7 @@
            `compradores_directorio()` devuelve la IDENTIDAD de todas, sin `notes`;
            lo del negocio de cada uno sigue filtrado por autor. Se piden solo las
            columnas que el LISTADO enseña (minimización, Seguridad 18-sep). */
-        q(sb.rpc('compradores_directorio').select('id,full_name,email,phone,nationality,tipo,kyc_status,created_at').order('created_at', { ascending: false }), 'compradores', t),
+        q(sb.rpc('compradores_directorio').select('id,full_name,email,phone,nationality,tipo,kyc_status,propietario,created_at').order('created_at', { ascending: false }), 'compradores', t),
         q(sb.rpc('contratos_equipo').select('id,numero,tipo,proyecto_nombre,fecha_firma,precio_total,moneda,bloqueado'), 'contratos'),
         q(sb.from('contrato_compradores').select('contrato_id,client_id,rol'), 'vinculos'),
         vig(sb.rpc('contratos_cobrado_equipo')).then(function (r) { return r.error ? (fallo('cobrado', r.error), null) : (r.data || []); }),
@@ -3025,9 +3068,13 @@
             d && d.inv ? fmt(d.inv, 'EUR') : (d && d.otras ? 'otra moneda' : '—'),
             d && d.inv ? fmt(d.pag, 'EUR') + ' · ' + Math.round(d.pag / d.inv * 100) + '%' : (d ? fmt(d.pag, 'EUR') : '—'),
             (KYC[c2.kyc_status || 'pending'] || [c2.kyc_status])[0],
+            '',
             ''
           ]);
           var tr = pl.tbody.lastElementChild;
+          // quién dio de alta la ficha (`propietario`, un email) — el mismo resolutor que el resto de la v4
+          var tdAlta = tr.querySelectorAll('td')[7];
+          if (tdAlta) tdAlta.innerHTML = htmlAutor(nombreEquipo, c2.propietario);
           tr.style.cursor = 'pointer';
           tr.setAttribute('data-id', c2.id);
           tr.setAttribute('data-tiene-contrato', d ? '1' : '0');
@@ -7687,9 +7734,14 @@
     function pon(k, v) { var e = document.querySelector('[data-lw="' + k + '"]'); if (e) e.textContent = v; }
     Promise.all([
       q(sb.rpc('reservas_vencimiento'), 'reservas por vencer', lista),
-      q(sb.from('parametros').select('clave,valor').eq('clave', 'reservas.dias_gracia'), 'días de gracia')
+      q(sb.from('parametros').select('clave,valor').eq('clave', 'reservas.dias_gracia'), 'días de gracia'),
+      // autor de cada Carta: `reservas_vencimiento()` no lo trae y no se
+      // amplía la función por esto — se lee del propio contrato (misma RLS).
+      vig(sb.rpc('contratos_equipo').select('id,creado_por')).then(function (x) { return x.error ? [] : (x.data || []); }),
+      autores(sb)
     ]).then(function (r) {
-      var filas = r[0];
+      var filas = r[0], AUT = r[3] || {}, autorDe = {};
+      (r[2] || []).forEach(function (x) { autorDe[x.id] = x.creado_por; });
       if (filas == null) return;
       var g = (r[1] || [])[0], gracia = (g && typeof g.valor === 'number' && isFinite(g.valor)) ? g.valor : 3;
       pon('rk-gracia-nota', T('Tras vencer, el sistema espera') + ' ' + gracia + ' ' + T('días (margen interno, no es plazo del comprador) antes de liberar la parcela. Prorrogar o liberar: desde la ficha de la operación.'));
@@ -7700,7 +7752,7 @@
         if (!c) {
           c = porC[x.contrato_id] = { id: x.contrato_id, numero: x.numero, tipo: x.tipo, comprador: x.comprador_nombre,
             proyecto: x.proyecto_nombre || x.proyecto, vence: x.vence_el ? String(x.vence_el).slice(0, 10) : null,
-            prorrogas: x.n_prorrogas || 0, parcelas: [] };
+            prorrogas: x.n_prorrogas || 0, parcelas: [], autor: autorDe[x.contrato_id] || null };
           orden.push(c);
         }
         if (x.codigo && c.parcelas.indexOf(x.codigo) === -1) c.parcelas.push(x.codigo);
@@ -7733,7 +7785,8 @@
           '<div class="lw-res-id"><span class="lw-res-num">' + esc(c.numero) + '</span>' +
             '<span class="lw-res-tipo">' + esc(tipoC(c.tipo)) + '</span></div>' +
           '<div class="lw-res-quien"><span class="lw-res-comp">' + esc(c.comprador || '—') + '</span>' +
-            '<span class="lw-res-proy">' + esc(c.proyecto || '—') + (c.parcelas.length ? ' · ' + esc(T(c.parcelas.length > 1 ? 'Parcelas' : 'Parcela')) + ' ' + esc(c.parcelas.join(', ')) : '') + '</span></div>' +
+            '<span class="lw-res-proy">' + esc(c.proyecto || '—') + (c.parcelas.length ? ' · ' + esc(T(c.parcelas.length > 1 ? 'Parcelas' : 'Parcela')) + ' ' + esc(c.parcelas.join(', ')) : '') + '</span>' +
+            '<span class="lw-res-proy">' + esc(T('Creado por')) + ' ' + htmlAutor(AUT, c.autor) + '</span></div>' +
           '<div class="lw-res-vence"><span class="lw-res-lbl">' + esc(T('Vence')) + '</span><span>' + esc(fecha(c.vence)) + '</span>' +
             (c.prorrogas ? '<span class="lw-res-lbl">' + c.prorrogas + ' ' + esc(T(c.prorrogas > 1 ? 'prórrogas' : 'prórroga')) + '</span>' : '') + '</div>' +
           '<div class="lw-res-est">' + estado(c) + (extra ? '<span class="lw-res-extra">' + esc(extra) + '</span>' : '') + '</div>' +
@@ -7748,7 +7801,7 @@
       function pinta() {
         var t = (buscar && buscar.value || '').trim().toLowerCase();
         var vis = !t ? orden : orden.filter(function (c) {
-          return [c.numero, c.comprador, c.proyecto, c.parcelas.join(' ')].join(' ').toLowerCase().indexOf(t) !== -1;
+          return [c.numero, c.comprador, c.proyecto, c.parcelas.join(' '), c.autor, nombreAutor(AUT, c.autor)].join(' ').toLowerCase().indexOf(t) !== -1;
         });
         if (!orden.length) { lista.innerHTML = '<p class="font-body-md text-body-md text-on-surface-variant">' + esc(T('No hay Cartas de Reserva vivas pendientes de Bloqueo.')) + '</p>'; return; }
         if (!vis.length) { lista.innerHTML = '<p class="font-body-md text-body-md text-on-surface-variant">' + esc(T('Nada coincide con la búsqueda.')) + '</p>'; return; }

@@ -1,8 +1,8 @@
 <!DOCTYPE html><html lang="es" style=""><head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/guard.js?v=1d256fc0" data-herramienta="recibos"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=7d9056e9" defer></script>
-<script src="/contracts/assets/dinero.js?v=a442e362" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=c76d3606" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="../assets/datos.js?v=254f0ccc" defer></script>
+<script src="/contracts/assets/i18n.js?v=319dd513" defer></script>
+<script src="/contracts/assets/dinero.js?v=a442e362" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=c76d3606" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="../assets/datos.js?v=e47f5a70" defer></script>
 <!-- 21-sep-2026: el editor nativo de facturas/recibí (editores.js) necesita
      estos cuatro — entities.js y compradores.js son los MISMOS que carga
      /intranet/facturas/ (mismo camino, ninguna copia); dialogo.js es
@@ -277,12 +277,13 @@
 <th class="py-3.5 px-4 font-semibold text-right">Importe Cobrado</th>
 <th class="py-3.5 px-4 font-semibold">Justificante</th>
 <th class="py-3.5 px-4 font-semibold">Fecha</th>
+<th class="py-3.5 px-4 font-semibold" data-lwt>Creado por</th>
 <th class="py-3.5 px-4 font-semibold text-center">Estado</th>
 <th class="py-3.5 px-5 font-semibold text-right">Acciones</th>
 </tr>
 </thead>
 <tbody class="text-on-surface font-body-sm text-body-sm">
-<tr><td class="py-8 px-5 text-center text-control-border" colspan="10">Trayendo los recibís…</td></tr>
+<tr><td class="py-8 px-5 text-center text-control-border" colspan="11">Trayendo los recibís…</td></tr>
 <tr class="hover:bg-surface-container-low/70 transition-colors border-t border-surface-container-high/40">
 <td class="py-4 px-5 font-label-md font-semibold text-deep-lagoon tracking-wide">—</td>
 <td class="py-4 px-4 font-label-md text-on-surface">—</td>
@@ -292,6 +293,7 @@
 <td class="py-4 px-4 text-right font-kpi-number font-semibold text-deep-lagoon text-[15px]">—</td>
 <td class="py-4 px-4 text-volcanic-ash">—</td>
 <td class="py-4 px-4 text-control-border">—</td>
+<td class="py-4 px-4 text-on-surface-variant">—</td>
 <td class="py-4 px-4 text-center">—</td>
 <td class="py-4 px-5 text-right">—</td>
 </tr>
