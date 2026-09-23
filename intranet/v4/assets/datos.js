@@ -4766,9 +4766,31 @@
         // «Sin catalogar» (S12, 22-sep-2026): view ya existente (migración
         // 20260907053801) que agrupa unidades cuyo texto libre `modelo` no
         // enlaza a ningún modelo_id — se enseña, no se «arregla» sola.
-        q(sb.from('modelos_sin_catalogar').select('*'), 'modelos sin catalogar')
+        q(sb.from('modelos_sin_catalogar').select('*'), 'modelos sin catalogar'),
+        /* LAW-273 (23-sep-2026): lo que hace falta para avisar de que la
+           «inversión base» de una previsión del deck se ha quedado vieja —
+           mismo cálculo que la clásica: suelo de la parcela más barata del
+           proyecto + construcción del modelo allí (modelos_villa, y si no, el
+           del catálogo). El aviso va en la FILA del proyecto, no dentro del
+           formulario: nadie abre doce fichas a comprobar. */
+        q(sb.from('deck_forecast').select('modelo_id,proyecto_id,inversion_base'), 'previsiones del deck'),
+        q(sb.from('modelos_villa').select('modelo_id,proyecto,precio_construccion'), 'precios por proyecto'),
+        q(sb.from('unidades').select('id,proyecto,precio_suelo').not('precio_suelo', 'is', null), 'suelo del inventario')
       ]).then(function (r) {
         var ms = r[0], us = r[1] || [], ds = r[2] || [], sinCat = r[3] || [];
+        var FC = r[4] || [], MV = r[5] || [], SUELO = r[6] || [];
+        window.LW_V4 = window.LW_V4 || {};
+        /* Compartida con el editor de la previsión (editores.js): una sola
+           cuenta de «lo que debería ser» la base, no dos. */
+        window.LW_V4.baseDeberia = function (m, proyectoNombre) {
+          var ps = SUELO.filter(function (u) { return u.proyecto === proyectoNombre; });
+          if (!ps.length) return null;
+          var ref = ps.reduce(function (a, u) { return Number(u.precio_suelo) < Number(a.precio_suelo) ? u : a; });
+          var mv = MV.filter(function (x) { return x.modelo_id === m.id && x.proyecto === proyectoNombre && x.precio_construccion != null; })[0];
+          var c = mv ? Number(mv.precio_construccion) : (m.precio_construccion != null ? Number(m.precio_construccion) : null);
+          if (c == null) return null;
+          return { valor: Number(ref.precio_suelo) + c, refId: ref.id };
+        };
         if (!ms) return;
 
         /* «Sin ficha tecnica» es el dato que de verdad manda en esta pantalla:
@@ -4965,6 +4987,17 @@
               // preguntar a la base solo para saber qué fila tocó.
               f.setAttribute('data-proyecto-nombre', k);
               if (idsPorProyecto[k]) f.setAttribute('data-proyecto-id', idsPorProyecto[k]);
+              // LAW-273: la base de la previsión frente a suelo + construcción de hoy
+              var fcRow = idsPorProyecto[k] && FC.filter(function (x) { return x.modelo_id === el.id && x.proyecto_id === idsPorProyecto[k]; })[0];
+              var deb = fcRow && fcRow.inversion_base != null ? window.LW_V4.baseDeberia(el, k) : null;
+              if (deb && Math.abs(Number(fcRow.inversion_base) - deb.valor) >= 1) {
+                var dif = Number(fcRow.inversion_base) - deb.valor;
+                var av = document.createElement('p');
+                av.style.cssText = 'margin:4px 0 0;flex-basis:100%;font:500 11.5px/1.4 sans-serif;color:#93000a';
+                av.textContent = 'Previsión del deck: la base (' + fmt(Number(fcRow.inversion_base), 'EUR') + ') no cuadra con construcción + la parcela más barata (' + fmt(deb.valor, 'EUR') + ') — ' + (dif > 0 ? '+' : '') + fmt(dif, 'EUR') + '. O es un precio de paquete pactado, o se ha quedado vieja.';
+                f.appendChild(av);
+                f.style.flexWrap = 'wrap';
+              }
               else {
                 // Sin proyecto_id (unidad antigua sin backfill): se retira el
                 // botón en vez de dejarlo abrir un editor que no sabría a qué

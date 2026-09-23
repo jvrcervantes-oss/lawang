@@ -3745,11 +3745,10 @@
          tirante, esto es el cinturón — evita ofrecer lo que va a fallar al
          guardar, y dice CUÁL es el motivo.
 
-         DEJADO FUERA A PROPÓSITO (LAW-273, contexto/pendientes.md): el aviso
-         de desfase de la clásica (inversión base vs. construcción + parcela
-         más barata del proyecto, `unidad_referencia_id`) no se porta aquí —
-         el alcance de esta pasada era la doble validación, no el detector de
-         envejecimiento. `unidad_referencia_id` no viaja en el payload. */
+         LAW-273 (portado 23-sep-2026): el aviso de desfase de la clásica —
+         inversión base vs. construcción + la parcela más barata del proyecto
+         (`window.LW_V4.baseDeberia`, la MISMA cuenta que pinta la fila del
+         proyecto en datos.js) — y `unidad_referencia_id` en el guardado. */
       function abrirPrevisionDeck(m, proyectoNombre, proyectoId) {
         Promise.all([
           sb.from('deck_forecast').select('adr_medio,adr_optimo,ocupacion_media,ocupacion_optima,inversion_base,destacado,publicado').eq('proyecto_id', proyectoId).eq('modelo_id', m.id).maybeSingle(),
@@ -3760,7 +3759,14 @@
           var f = (rs[0] && rs[0].data) || {};
           var cfg = (rs[1] && rs[1].data) || {};
           var pct = function (val, def) { return val == null ? def : Math.round(val * 1000) / 10; };
-          modal('Previsión del deck', [
+          var deb = window.LW_V4 && window.LW_V4.baseDeberia ? window.LW_V4.baseDeberia(m, proyectoNombre) : null;
+          var notaBase = !deb ? []
+            : f.inversion_base == null
+              ? [{ tipo: 'nota', label: 'Construcción + la parcela más barata de ' + proyectoNombre + ' suman ' + deb.valor + ' €: es la inversión base de referencia.' }]
+              : Math.abs(Number(f.inversion_base) - deb.valor) >= 1
+                ? [{ tipo: 'nota', label: 'Ojo: la base guardada (' + f.inversion_base + ' €) no cuadra con construcción + la parcela más barata (' + deb.valor + ' €). O es un precio de paquete pactado, o se ha quedado vieja.' }]
+                : [];
+          modal('Previsión del deck', notaBase.concat([
             { k: 'adr_medio', label: 'Precio medio/noche · escenario medio (€)', tipo: 'number', paso: '0.01', valor: f.adr_medio, medio: 1 },
             { k: 'adr_optimo', label: 'Precio medio/noche · óptimo (€)', tipo: 'number', paso: '0.01', valor: f.adr_optimo, medio: 1 },
             { k: 'ocupacion_media', label: 'Ocupación media (%)', tipo: 'number', paso: '0.1', valor: pct(f.ocupacion_media, ''), medio: 1 },
@@ -3775,7 +3781,7 @@
             { k: 'pct_impuesto', label: 'Impuesto de alquiler (%)', tipo: 'number', paso: '0.1', valor: pct(cfg.pct_impuesto, 10), medio: 1 },
             { k: 'contrato_vigente', label: 'Contrato de gestión que los fija', valor: cfg.contrato_vigente, medio: 1, ayuda: 'ej. CG-2026-01' },
             { k: 'publicado_proyecto', label: 'Publicar el forecast de este proyecto', tipo: 'check', valor: !!cfg.publicado, ayuda: 'si se apaga, el deck de este proyecto se queda sin bloque de previsión entero' }
-          ], 'Guardar', function (v) {
+          ]), 'Guardar', function (v) {
             var num = function (s) { var t = String(s == null ? '' : s).trim().replace(',', '.'); return t === '' ? null : Number(t); };
             var frac = function (s) { var n = num(s); return n == null ? null : n / 100; };
             var fila = {
@@ -3783,6 +3789,8 @@
               adr_medio: num(v.adr_medio), adr_optimo: num(v.adr_optimo),
               ocupacion_media: frac(v.ocupacion_media), ocupacion_optima: frac(v.ocupacion_optima),
               inversion_base: num(v.inversion_base),
+              // la parcela con la que se contrasta la base, como la clásica (LAW-273)
+              unidad_referencia_id: deb ? deb.refId : null,
               destacado: v.destacado, publicado: v.publicado,
               actualizado_en: new Date().toISOString()
             };
