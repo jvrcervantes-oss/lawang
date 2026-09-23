@@ -160,8 +160,6 @@ function tbT(s, h) { return window.lwT ? window.lwT(s, h) : s; }
 })();
 
 (function () {
-  var VENC_DIAS = 15;                                // se avisa desde 15 días antes
-  var LIMITE = 40;
 
   /* 🔴 La primera versión pedía `window.LW_AUTH` y se iba en silencio si no
      estaba. Resultado: la campana no salía en Contratos ni en Facturas, que son
@@ -206,7 +204,6 @@ function tbT(s, h) { return window.lwT ? window.lwT(s, h) : s; }
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
     });
   }
-  var dias = function (f) { return f ? Math.round((new Date(f) - new Date()) / 86400000) : null; };
 
   contexto().then(function (ctx) { cuandoHayaDOM(function () { montar(ctx); }); })
             .catch(function () { /* sin sesión no hay campana; guard.js ya redirige */ });
@@ -347,70 +344,23 @@ function tbT(s, h) { return window.lwT ? window.lwT(s, h) : s; }
         : '<p class="lw-campana-vacio">' + tb('nadaNuevo') + '</p>';
     }
 
+    /* Qué avisos hay lo decide `contracts/assets/avisos.js` (23-sep-2026): la
+       misma función la usa la campana de la intranet v4. Aquí solo se pinta.
+       Si la página no carga avisos.js, se DICE en la lista en vez de dejar la
+       campana vacía, que se leería como «nada nuevo» (avisos.test.js exige
+       además que toda página con topbar.js lo cargue). */
     function cargar() {
-      var q = sb.from('notificaciones')
-        .select('tipo,titulo,detalle,enlace,creado_en')
-        .order('creado_en', { ascending: false }).limit(LIMITE);
-
-      // Vencimientos: facturas con fecha puesta y sin anular. `venc` vive dentro
-      // del jsonb, igual que en Operaciones — no hay columna propia.
-      var qf = sb.from('facturas')
-        .select('id,numero,total,moneda,contrato_id,creado_por,anulada,tipo,venc:datos->fields->>fecha_vencimiento')
-        .limit(200);
-      var qs = sb.from('contrato_firmas')
-        .select('firmante_nombre,estado,expira_en,contrato_id,contratos(numero,creado_por)')
-        .eq('estado', 'pendiente').limit(100);
-      /* Lo que queda por cobrar de cada factura — 19-ago-2026. La campana avisaba
-         de facturas vencidas SIN mirar si ya estaban cobradas, y el detalle
-         decía «sin cobrar» aunque lo estuvieran. Al cargar facturas antiguas
-         (ya pagadas) la campana se llenaba de deudas que no existen, y una
-         campana que avisa de lo que no pasa se deja de mirar. */
-      var qp = sb.rpc('facturas_pendiente_equipo');
-
-      Promise.all([q, qf, qs, qp]).then(function (r) {
-        var avisos = (r[0].data || []).map(function (n) {
-          return { titulo: n.titulo, detalle: n.detalle, enlace: n.enlace, cuando: n.creado_en,
-                   nuevo: !vistoHasta || new Date(n.creado_en) > vistoHasta };
+      if (typeof lwAvisos !== 'function') {
+        console.error('[topbar] falta contracts/assets/avisos.js en esta página');
+        lista.innerHTML = '<p class="lw-campana-vacio">No se pudieron cargar los avisos.</p>';
+        return;
+      }
+      lwAvisos(sb, { esAdmin: esAdmin, email: email, vistoHasta: vistoHasta })
+        .then(function (out) { pintar(out.avisos, out.sinLeer); })
+        .catch(function (e) {
+          console.error('[topbar] avisos:', e);
+          lista.innerHTML = '<p class="lw-campana-vacio">No se pudieron cargar los avisos.</p>';
         });
-
-        var pendientes = {};
-        (r[3] && r[3].data || []).forEach(function (x) { pendientes[x.factura_id] = Number(x.pendiente) || 0; });
-
-        (r[1].data || []).forEach(function (f) {
-          if (f.anulada || f.tipo === 'proforma' || f.tipo === 'recibi' || !f.venc) return;
-          // ya cobrada: no es una deuda, y decir «sin cobrar» de algo cobrado
-          // es peor que no avisar (19-ago-2026)
-          var queda = pendientes[f.id] != null ? pendientes[f.id] : Number(f.total) || 0;
-          if (!(queda > 0.005)) return;
-          if (!esAdmin && f.creado_por !== email) return;   // la RLS aquí no filtra: deja leer todas
-          var d = dias(f.venc);
-          if (d === null || d > VENC_DIAS) return;
-          avisos.push({
-            titulo: 'Factura ' + (f.numero || 'sin nº') + (d < 0 ? ' vencida hace ' + (-d) + ' d'
-                    : d === 0 ? ' vence hoy' : ' vence en ' + d + ' d'),
-            detalle: (f.total || '') + ' ' + (f.moneda || '') + ' sin cobrar',
-            enlace: f.contrato_id ? '/intranet/operaciones/?contrato=' + f.contrato_id : '/intranet/facturas/',
-            cuando: f.venc, nuevo: d <= 5,
-          });
-        });
-
-        (r[2].data || []).forEach(function (s) {
-          var c = s.contratos || {};
-          if (!esAdmin && c.creado_por !== email) return;
-          var d = dias(s.expira_en);
-          if (d === null || d > VENC_DIAS) return;
-          avisos.push({
-            titulo: 'Enlace de firma de ' + (c.numero || 'un contrato') +
-                    (d < 0 ? ' caducado' : d === 0 ? ' caduca hoy' : ' caduca en ' + d + ' d'),
-            detalle: s.firmante_nombre || '',
-            enlace: '/intranet/operaciones/?contrato=' + s.contrato_id,
-            cuando: s.expira_en, nuevo: d <= 5,
-          });
-        });
-
-        avisos.sort(function (a, b) { return new Date(b.cuando) - new Date(a.cuando); });
-        pintar(avisos.slice(0, LIMITE), avisos.filter(function (a) { return a.nuevo; }).length);
-      });
     }
 
     cargar();

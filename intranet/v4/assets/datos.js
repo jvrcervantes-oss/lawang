@@ -542,6 +542,67 @@
     });
     return _cargaDialogo;
   }
+  /* ══════════════ la campana (S17, 23-sep-2026) ══════════════
+     Marcaba «18» en las 18 pantallas (un número de Stitch) y luego solo contaba
+     `notificaciones`. Ahora sale de `lwAvisos` (contracts/assets/avisos.js), la
+     MISMA función que usa la campana de las herramientas clásicas: hechos +
+     facturas por vencer + enlaces de firma por caducar, con sus mismos filtros
+     y su misma idea de «nuevo». Aquí solo se pinta: contador en el botón y la
+     lista en el cajón compartido. Abrirla da los hechos por vistos, como la
+     viva (`marcar_notificaciones_leidas`, sin parámetros: usa auth.uid()).
+     Los enlaces de Operaciones se quedan dentro de la v4 (su `?contrato=`
+     acepta el id desde hoy); el resto van a la herramienta de siempre. */
+  function campanaV4(aut, rol) {
+    var badges = document.querySelectorAll('[data-lw="k-avisos"]');
+    var boton = badges.length ? badges[0].closest('button') : null;
+    var ULTIMO = null;
+    function pintaContador(n) {
+      badges.forEach(function (e) {
+        e.textContent = n == null ? '—' : (n > 99 ? '99+' : String(n));
+        e.style.display = n === 0 ? 'none' : '';
+      });
+    }
+    function aV4(href) {
+      return href.indexOf('/intranet/operaciones/') === 0 ? '/intranet/v4/operaciones/' + href.slice('/intranet/operaciones/'.length) : href;
+    }
+    function carga() {
+      if (typeof lwAvisos !== 'function') { console.error('[v4 datos] falta contracts/assets/avisos.js'); pintaContador(null); return Promise.resolve(null); }
+      var ficha = aut.ficha || {};
+      var email = (aut.session && aut.session.user && aut.session.user.email) || '';
+      return lwAvisos(aut.sb, { esAdmin: rol === 'admin' || rol === 'super_admin', email: email, vistoHasta: ficha.notif_visto_hasta || null })
+        .then(function (out) { ULTIMO = out; pintaContador(out.sinLeer); return out; },
+              function (e) { console.error('[v4 datos] avisos:', e); pintaContador(null); return null; });
+    }
+    function abre() {
+      if (typeof window.lwCajon !== 'function') { toast('El panel aún no ha cargado — prueba de nuevo en un segundo.'); return; }
+      var H = window.lwCajonHtml;
+      var pinta = function (out) {
+        var cuerpo;
+        if (!out) cuerpo = H.nota('No se pudieron cargar los avisos. Prueba a recargar la página.');
+        else if (!out.avisos.length) cuerpo = '<p style="margin:0;font-size:13px;color:#8A8474">Nada nuevo.</p>';
+        else cuerpo = (out.fallos ? H.nota('Alguna de las consultas de avisos falló: la lista puede estar incompleta.') : '') +
+          '<div style="display:grid;gap:8px">' + out.avisos.map(function (a) {
+            return '<a href="' + esc(aV4(a.enlace)) + '" style="display:block;padding:10px 12px;border-radius:10px;border:1px solid #E4DCCB;background:' + (a.nuevo ? '#FBF3E4' : '#fff') + ';color:#1b1c19;text-decoration:none">' +
+              '<span style="display:block;font-weight:600;font-size:13px">' + esc(a.titulo) + '</span>' +
+              (a.detalle ? '<span style="display:block;font-size:12px;color:#44483f;margin-top:2px">' + esc(a.detalle) + '</span>' : '') +
+              '<span style="display:block;font-size:11px;color:#8A8474;margin-top:4px">' + esc(fFecha(a.cuando)) + '</span></a>';
+          }).join('') + '</div>';
+        window.lwCajon({ titulo: 'Avisos', sub: 'Lo que ha pasado y lo que vence en los próximos 15 días.', cuerpo: cuerpo });
+      };
+      // abrir = dar los hechos por vistos (las alertas de ≤5 días siguen contando, como en la viva)
+      if (ULTIMO && ULTIMO.sinLeer) {
+        aut.sb.rpc('marcar_notificaciones_leidas').then(function (r) { if (r && r.error) console.error('[v4 datos] marcar avisos:', r.error); });
+        pintaContador(0);
+      }
+      if (ULTIMO) pinta(ULTIMO); else carga().then(pinta);
+    }
+    if (boton) {
+      boton.setAttribute('data-real', '');   // maqueta.js deja en paz lo cableado
+      boton.addEventListener('click', function (ev) { ev.stopPropagation(); abre(); });
+    }
+    carga();
+  }
+
   function borrarOperacionV4(sb, c0) {
     var fam = 'id.eq.' + c0.id + ',contrato_padre_id.eq.' + c0.id;
     sb.rpc('contratos_equipo').select('id,numero').or(fam).then(function (rc) {
@@ -1066,7 +1127,7 @@
           // URL firmada de vida corta, como hace la herramienta viva; la policy del bucket decide quién la obtiene
           sb.storage.from('contratos-firmados').createSignedUrl(b.getAttribute('data-lw-pdf'), 300).then(function (u) {
             b.disabled = false; b.textContent = 'Ver PDF firmado';
-            if (u.error || !u.data) { toast('No se pudo abrir el PDF: ' + (u.error && u.error.message || 'sin URL')); return; }
+            if (u.error || !u.data) { toastMal('No se pudo abrir el PDF: ' + (u.error && u.error.message || 'sin URL')); return; }
             window.open(u.data.signedUrl, '_blank', 'noopener');
           });
         }
@@ -1374,7 +1435,7 @@
           ev.preventDefault(); b.disabled = true;
           sb.storage.from('justificantes').createSignedUrl(b.getAttribute('data-lw-just'), 300).then(function (u) {
             b.disabled = false;
-            if (u.error || !u.data) { toast('No se pudo abrir el justificante: ' + (u.error && u.error.message || 'sin URL')); return; }
+            if (u.error || !u.data) { toastMal('No se pudo abrir el justificante: ' + (u.error && u.error.message || 'sin URL')); return; }
             window.open(u.data.signedUrl, '_blank', 'noopener');
           });
         }
@@ -2122,7 +2183,7 @@
           sb.from('clients').select(CAMPOS_FICHA).eq('id', c0.id).maybeSingle().then(function (r) {
             if (r.error || !r.data) {
               console.error('[v4 datos] ficha de comprador', r.error);
-              toast('No se pudo leer la ficha completa: se enseña lo que hay en el listado.');
+              toastMal('No se pudo leer la ficha completa: se enseña lo que hay en el listado.');
               pintaFicha(c0);
             } else pintaFicha(r.data);
           });
@@ -2401,7 +2462,7 @@
                     b.disabled = true;
                     sb.storage.from('kyc').createSignedUrl(b.getAttribute('data-doc-path'), 300).then(function (ru) {
                       b.disabled = false;
-                      if (ru.error || !(ru.data && ru.data.signedUrl)) return toast('No se pudo abrir el documento' + (ru.error ? ': ' + ru.error.message : ''));
+                      if (ru.error || !(ru.data && ru.data.signedUrl)) return toastMal('No se pudo abrir el documento' + (ru.error ? ': ' + ru.error.message : ''));
                       window.open(ru.data.signedUrl, '_blank', 'noopener');
                     });
                   });
@@ -2906,7 +2967,8 @@
            Operaciones»), Vencimientos y el Home. */
         var pedido = new URLSearchParams(location.search).get('contrato');
         if (pedido) {
-          var el0 = OPS.filter(function (c) { return c.numero === pedido; })[0];
+          // por número o por id: los avisos de la campana (avisos.js) llevan el id
+          var el0 = OPS.filter(function (c) { return c.numero === pedido || c.id === pedido; })[0];
           if (el0) fichaContrato(sb, el0, { sinExpediente: true, cadena: cadena(el0) });
           else if (typeof toastMal === 'function') toastMal(T('No encuentro el contrato') + ' ' + pedido + ' ' + T('entre los cargados.'));
         }
@@ -4214,7 +4276,7 @@
           if (meta) meta.textContent = 'Abriendo…';
           sb.storage.from('documentacion').createSignedUrl(d2.path, 300).then(function (u) {
             if (meta) meta.textContent = metaOrig;
-            if (u.error || !u.data) { toast('No se pudo abrir: ' + (u.error && u.error.message || 'sin URL')); return; }
+            if (u.error || !u.data) { toastMal('No se pudo abrir: ' + (u.error && u.error.message || 'sin URL')); return; }
             window.open(u.data.signedUrl, '_blank', 'noopener');
           });
         });
@@ -6919,13 +6981,9 @@
     if (!window.LW_AUTH) { console.error('[v4 datos] sin guard: no se cablea nada'); quitaVelo(); return; }
     window.LW_AUTH.then(function (aut) {
       document.body.setAttribute('data-datos', 'reales');
-      var raiz = document.querySelector('script[src*="datos.js"]').src.replace(/assets\/datos\.js.*$/, '');
-      function ponBanner() {
-        var b = document.getElementById('lw-maqueta');
-        if (!b) { setTimeout(ponBanner, 250); return; }   // nav.js lo crea en DOMContentLoaded: puede llegar después
-        b.innerHTML = 'V4 · DATOS EN VIVO · <a href="' + raiz + '" style="color:#DFB376;text-decoration:underline">Hub</a>';
-      }
-      ponBanner();
+      /* El banderín «V4 · DATOS EN VIVO» se retiró con el de «Maqueta» de
+         nav.js (S17, 23-sep-2026): era un aviso de maqueta, y lo que queda
+         en pantalla ya son datos reales. */
 
       /* La topbar enseñaba un nombre REAL del equipo hardcodeado por Stitch
          (venía copiado de las capturas). El usuario de sesión se pinta aquí,
@@ -6962,19 +7020,7 @@
       var hoy = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
       document.querySelectorAll('[data-lw-hoy]').forEach(function (e) { e.textContent = hoy; });
 
-      /* La campana marcaba «18» en las 18 pantallas: un numero de Stitch. Aqui se
-         cuentan los HECHOS reales de `notificaciones` posteriores al ultimo visto.
-         La campana viva (topbar.js) suma ademas alertas derivadas de facturas y
-         firmas; NO se replican aqui — al graduar la v4 la barra se comparte, no se
-         copia (Regla 0 de contexto/suite_lawang.md). */
-      var desde = (aut.ficha && aut.ficha.notif_visto_hasta) || '1970-01-01T00:00:00Z';
-      aut.sb.from('notificaciones').select('id', { count: 'exact', head: true })
-        .gt('creado_en', desde)
-        .then(function (r) {
-          var v = r.error ? '—' : String(r.count || 0);
-          if (r.error) console.error('[v4 datos] avisos:', r.error);
-          document.querySelectorAll('[data-lw="k-avisos"]').forEach(function (e) { e.textContent = v; });
-        });
+      campanaV4(aut, rol);
       var fn = REG[seg];
       if (fn) {
         try { fn(aut.sb); } catch (e) { fallo('pantalla ' + seg, e); quitaVelo(); }

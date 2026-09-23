@@ -1,0 +1,90 @@
+/* node avisos.test.js — la campana (23-sep-2026, S17).
+   1) Lo que decide `lwAvisosArmar` (avisos.js), que comparten la campana de las
+      herramientas clásicas (topbar.js) y la de la intranet v4 (datos.js).
+   2) Que toda página que carga topbar.js cargue también avisos.js: sin él la
+      campana se queda muda sin ningún error visible. */
+const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
+const { lwAvisosArmar, lwAvisoEnlace } = require('./avisos.js');
+
+const AHORA = '2026-09-23T12:00:00Z';
+const dia = n => new Date(Date.parse(AHORA) + n * 86400000).toISOString().slice(0, 10);
+const ok = data => ({ data, error: null });
+const yo = 'agente@lawang.test';
+
+// --- enlaces: solo rutas del propio dominio ---
+assert.strictEqual(lwAvisoEnlace('/intranet/operaciones/?contrato=1'), '/intranet/operaciones/?contrato=1');
+assert.strictEqual(lwAvisoEnlace('javascript:alert(1)'), '#');
+assert.strictEqual(lwAvisoEnlace('//evil.example/x'), '#');
+assert.strictEqual(lwAvisoEnlace('/\\evil.example'), '#');
+assert.strictEqual(lwAvisoEnlace('https://evil.example'), '#');
+assert.strictEqual(lwAvisoEnlace(null), '#');
+
+const r = [
+  ok([
+    { titulo: 'Nuevo', enlace: 'javascript:x', creado_en: '2026-09-23T10:00:00Z' },
+    { titulo: 'Visto', enlace: '/intranet/', creado_en: '2026-09-01T10:00:00Z' },
+  ]),
+  ok([
+    { id: 'f1', numero: 'F1', total: 100, moneda: 'EUR', contrato_id: 'c1', creado_por: yo, tipo: 'factura', venc: dia(-3) },
+    { id: 'f2', numero: 'F2', total: 100, moneda: 'EUR', contrato_id: 'c2', creado_por: 'otro@lawang.test', tipo: 'factura', venc: dia(-3) },
+    { id: 'f3', numero: 'F3', total: 100, moneda: 'EUR', contrato_id: 'c3', creado_por: null, tipo: 'factura', venc: dia(-3) },
+    { id: 'f4', numero: 'F4', total: 100, moneda: 'EUR', contrato_id: 'c4', creado_por: yo, tipo: 'factura', venc: dia(2) },   // cobrada
+    { id: 'f5', numero: 'F5', total: 100, moneda: 'EUR', contrato_id: 'c5', creado_por: yo, tipo: 'proforma', venc: dia(1) },
+    { id: 'f6', numero: 'F6', total: 100, moneda: 'EUR', contrato_id: 'c6', creado_por: yo, tipo: 'factura', venc: dia(30) }, // lejos
+    { id: 'f7', numero: 'F7', total: 100, moneda: 'EUR', contrato_id: 'c7', creado_por: yo, tipo: 'factura', venc: dia(10), anulada: true },
+    { id: 'f8', numero: 'F8', total: 100, moneda: 'EUR', contrato_id: 'c8', creado_por: yo, tipo: 'factura', venc: dia(10) },
+  ]),
+  ok([
+    { firmante_nombre: 'Ana', expira_en: dia(1), contrato_id: 'c9', contratos: { numero: 'RP9', creado_por: yo } },
+    { firmante_nombre: 'Bea', expira_en: dia(1), contrato_id: 'c10', contratos: { numero: 'RP10', creado_por: 'otro@lawang.test' } },
+  ]),
+  ok([{ factura_id: 'f4', pendiente: 0 }]),
+];
+
+// --- agente: solo lo suyo; creado_por null NUNCA pasa (es_suyo(null)=TRUE en la base) ---
+const ag = lwAvisosArmar(r, { esAdmin: false, email: yo, vistoHasta: '2026-09-20T00:00:00Z', ahora: AHORA });
+const t = ag.avisos.map(a => a.titulo);
+assert.ok(t.includes('Factura F1 vencida hace 3 d'), t);
+assert.ok(!t.some(x => /F2|F3/.test(x)), 'facturas ajenas o sin autor fuera: ' + t);
+assert.ok(!t.some(x => /F4/.test(x)), 'factura ya cobrada fuera');
+assert.ok(!t.some(x => /F5|F6|F7/.test(x)), 'proforma, lejana y anulada fuera');
+assert.ok(t.includes('Factura F8 vence en 10 d'));
+assert.ok(t.includes('Enlace de firma de RP9 caduca en 1 d'));
+assert.ok(!t.some(x => /RP10/.test(x)), 'firma ajena fuera');
+// hechos: nuevo por vistoHasta; alertas: nuevo por d<=5 (F8 a 10 días no lo es)
+const nuevos = ag.avisos.filter(a => a.nuevo).map(a => a.titulo).sort();
+assert.deepStrictEqual(nuevos, ['Enlace de firma de RP9 caduca en 1 d', 'Factura F1 vencida hace 3 d', 'Nuevo']);
+assert.strictEqual(ag.sinLeer, 3);
+assert.strictEqual(ag.avisos.find(a => a.titulo === 'Nuevo').enlace, '#', 'enlace javascript: neutralizado');
+
+// --- admin: ve las de todos ---
+const ad = lwAvisosArmar(r, { esAdmin: true, email: 'jefe@lawang.test', ahora: AHORA });
+const ta = ad.avisos.map(a => a.titulo);
+assert.ok(ta.some(x => /F2/.test(x)) && ta.some(x => /F3/.test(x)) && ta.some(x => /RP10/.test(x)), ta);
+// sin vistoHasta todo hecho es nuevo
+assert.ok(ad.avisos.find(a => a.titulo === 'Visto').nuevo);
+
+// --- una consulta con error no rompe las demás ---
+const conFallo = lwAvisosArmar([{ data: null, error: { message: 'x' } }, r[1], r[2], r[3]], { esAdmin: false, email: yo, ahora: AHORA });
+assert.ok(conFallo.avisos.length > 0);
+
+// --- toda página con topbar.js carga avisos.js ---
+const RAIZ = path.resolve(__dirname, '..', '..');
+const SALTA = /(^|[\\/])(Backups|node_modules|\.git|_archive)([\\/]|$)/;
+const faltan = [];
+(function recorre(dir) {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name);
+    if (SALTA.test(p) || e.name.startsWith('_')) continue;   // _qa_*, _verify_*, _diag_*: pruebas locales
+    if (e.isDirectory()) recorre(p);
+    else if (/\.(html|php)$/.test(e.name)) {
+      const s = fs.readFileSync(p, 'utf8');
+      if (/<script[^>]+src="[^"]*assets\/topbar\.js/.test(s) && !/<script[^>]+src="[^"]*assets\/avisos\.js/.test(s)) faltan.push(path.relative(RAIZ, p));
+    }
+  }
+})(RAIZ);
+assert.deepStrictEqual(faltan, [], 'páginas con topbar.js sin avisos.js (campana muda): ' + faltan.join(', '));
+
+console.log('avisos.test.js OK');

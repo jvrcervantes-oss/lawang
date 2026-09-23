@@ -1,0 +1,123 @@
+/* Avisos de la campana — fuente única (23-sep-2026, S17 de
+   encargos/20260919_lawang_v4_paridad_lanzamiento.md).
+   ----------------------------------------------------------------------------
+   Vivían dentro de `topbar.js` (función `cargar()`), así que la intranet v4,
+   que no carga topbar.js, solo sabía contar `notificaciones` y se perdía las
+   facturas por vencer y los enlaces de firma por caducar. Copiarlos a la v4
+   habría sido la segunda lista que se separa de la primera al primer retoque
+   (Regla 0 de contexto/suite_lawang.md), así que se MUDAN aquí y las dos
+   campanas —la de las herramientas clásicas y la de la v4— llaman a lo mismo.
+
+   DOS ORÍGENES, a propósito (ver contracts/sql/notificaciones.sql):
+   · HECHOS — tabla `notificaciones`, escrita por disparadores.
+   · ALERTAS DERIVADAS — facturas con fecha de vencimiento y firmas pendientes
+     que caducan, calculadas aquí en cada carga.
+
+   QUIÉN VE QUÉ. La barrera de verdad es la RLS: `facturas` y `contrato_firmas`
+   ya filtran por `es_suyo(creado_por) OR es_manager_de(proyecto)` (verificado
+   en pg_policies el 23-sep-2026 — el comentario viejo de topbar.js que decía
+   «la RLS deja leer todas» ya no era cierto). El filtro por `creado_por` de
+   abajo se queda como defensa extra para quien no es admin, sobre todo por
+   `es_suyo(null) = TRUE`, que ya coló una vez avisos ajenos en esta campana.
+   Consecuencia conocida y aceptada al mudarlo (mismo comportamiento que antes):
+   a un manager no se le avisa de las facturas/firmas de su equipo aunque la
+   RLS se las deje ver.
+
+   `nuevo` NO significa lo mismo en los dos orígenes, y se conserva tal cual:
+   un hecho es nuevo si es posterior a `vistoHasta`; una factura o una firma lo
+   es mientras le queden 5 días o menos, aunque ya se haya abierto la campana.
+
+   ENLACES: solo rutas del propio dominio (`/…`, nunca `//…`). Hoy los escriben
+   solo disparadores, pero un `javascript:` en `notificaciones.enlace` se
+   ejecutaría al pulsar el aviso — se cambia por `#` antes de llegar a nadie.
+*/
+var LW_AVISOS_VENC_DIAS = 15;      // se avisa desde 15 días antes
+var LW_AVISOS_LIMITE = 40;
+
+function lwAvisoEnlace(e) {
+  e = String(e == null ? '' : e).trim();
+  return (e.charAt(0) === '/' && e.charAt(1) !== '/' && e.charAt(1) !== '\\') ? e : '#';
+}
+
+/* Pura: recibe las cuatro respuestas ya resueltas y devuelve los avisos. Aparte
+   de `lwAvisos` para poder probarla en node sin base de datos (avisos.test.js). */
+function lwAvisosArmar(r, opts) {
+  opts = opts || {};
+  var ahora = opts.ahora ? new Date(opts.ahora) : new Date();
+  var vistoHasta = opts.vistoHasta ? new Date(opts.vistoHasta) : null;
+  var esAdmin = !!opts.esAdmin, email = opts.email || '';
+  var dias = function (f) { return f ? Math.round((new Date(f) - ahora) / 86400000) : null; };
+  var datos = function (i) { return (r[i] && !r[i].error && r[i].data) || []; };
+
+  var avisos = datos(0).map(function (n) {
+    return { titulo: n.titulo, detalle: n.detalle, enlace: lwAvisoEnlace(n.enlace), cuando: n.creado_en,
+             nuevo: !vistoHasta || new Date(n.creado_en) > vistoHasta };
+  });
+
+  var pendientes = {};
+  datos(3).forEach(function (x) { pendientes[x.factura_id] = Number(x.pendiente) || 0; });
+
+  datos(1).forEach(function (f) {
+    if (f.anulada || f.tipo === 'proforma' || f.tipo === 'recibi' || !f.venc) return;
+    // ya cobrada: no es una deuda, y decir «sin cobrar» de algo cobrado
+    // es peor que no avisar (19-ago-2026)
+    var queda = pendientes[f.id] != null ? pendientes[f.id] : Number(f.total) || 0;
+    if (!(queda > 0.005)) return;
+    if (!esAdmin && f.creado_por !== email) return;   // defensa extra, ver cabecera
+    var d = dias(f.venc);
+    if (d === null || d > LW_AVISOS_VENC_DIAS) return;
+    avisos.push({
+      titulo: 'Factura ' + (f.numero || 'sin nº') + (d < 0 ? ' vencida hace ' + (-d) + ' d'
+              : d === 0 ? ' vence hoy' : ' vence en ' + d + ' d'),
+      detalle: (f.total || '') + ' ' + (f.moneda || '') + ' sin cobrar',
+      enlace: f.contrato_id ? '/intranet/operaciones/?contrato=' + encodeURIComponent(f.contrato_id) : '/intranet/facturas/',
+      cuando: f.venc, nuevo: d <= 5,
+    });
+  });
+
+  datos(2).forEach(function (s) {
+    var c = s.contratos || {};
+    if (!esAdmin && c.creado_por !== email) return;
+    var d = dias(s.expira_en);
+    if (d === null || d > LW_AVISOS_VENC_DIAS) return;
+    avisos.push({
+      titulo: 'Enlace de firma de ' + (c.numero || 'un contrato') +
+              (d < 0 ? ' caducado' : d === 0 ? ' caduca hoy' : ' caduca en ' + d + ' d'),
+      detalle: s.firmante_nombre || '',
+      enlace: '/intranet/operaciones/?contrato=' + encodeURIComponent(s.contrato_id),
+      cuando: s.expira_en, nuevo: d <= 5,
+    });
+  });
+
+  avisos.sort(function (a, b) { return new Date(b.cuando) - new Date(a.cuando); });
+  var lista = avisos.slice(0, LW_AVISOS_LIMITE);
+  return { avisos: lista, sinLeer: avisos.filter(function (a) { return a.nuevo; }).length };
+}
+
+/* Las cuatro consultas + el armado. Devuelve una promesa de
+   `{avisos, sinLeer, fallos}`; `fallos` cuenta las consultas que volvieron con
+   error, para que quien pinta no confunda «no hay avisos» con «no se pudieron
+   leer». */
+function lwAvisos(sb, opts) {
+  var q = sb.from('notificaciones')
+    .select('tipo,titulo,detalle,enlace,creado_en')
+    .order('creado_en', { ascending: false }).limit(LW_AVISOS_LIMITE);
+  // Vencimientos: facturas con fecha puesta y sin anular. `venc` vive dentro
+  // del jsonb, igual que en Operaciones — no hay columna propia.
+  var qf = sb.from('facturas')
+    .select('id,numero,total,moneda,contrato_id,creado_por,anulada,tipo,venc:datos->fields->>fecha_vencimiento')
+    .limit(200);
+  var qs = sb.from('contrato_firmas')
+    .select('firmante_nombre,estado,expira_en,contrato_id,contratos(numero,creado_por)')
+    .eq('estado', 'pendiente').limit(100);
+  /* Lo que queda por cobrar de cada factura — 19-ago-2026. La campana avisaba
+     de facturas vencidas SIN mirar si ya estaban cobradas. */
+  var qp = sb.rpc('facturas_pendiente_equipo');
+  return Promise.all([q, qf, qs, qp]).then(function (r) {
+    var out = lwAvisosArmar(r, opts);
+    out.fallos = r.filter(function (x) { return !x || x.error; }).length;
+    return out;
+  });
+}
+
+if (typeof module !== 'undefined') module.exports = { lwAvisosArmar: lwAvisosArmar, lwAvisoEnlace: lwAvisoEnlace };

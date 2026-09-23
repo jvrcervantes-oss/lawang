@@ -955,10 +955,11 @@
           carga();
         });
       } else if (act === 'borrar') {
-        var ir = (typeof lwConfirmar === 'function')
-          ? lwConfirmar({ titulo: 'Borrar esta foto', cuerpo: 'Se quita también del portal del comprador. Esto no se puede deshacer.', confirmar: 'Borrar', tono: 'peligro' })
-          : Promise.resolve(window.confirm('Borrar esta foto — se quita también del portal del comprador.'));
-        ir.then(function (seguro) { if (seguro) borra(f); });
+        // dialogo.js va en todas las páginas v4 desde S17 (23-sep-2026): sin el
+        // respaldo nativo de antes, que era una salida silenciosa al confirm() del navegador
+        if (typeof lwConfirmar !== 'function') return aviso('El diálogo aún no ha cargado — prueba de nuevo en un segundo.', '#8A6A34');
+        lwConfirmar({ titulo: 'Borrar esta foto', cuerpo: 'Se quita también del portal del comprador. Esto no se puede deshacer.', confirmar: 'Borrar', tono: 'peligro' })
+          .then(function (seguro) { if (seguro) borra(f); });
       }
     }
 
@@ -3972,10 +3973,10 @@
       var CATS_ENLACE = ['comercial', 'legal', 'tecnico', 'precios'];
 
       /* Candado de publicación (portal / dosier de inversores) — S10.4/S11.1:
-         antes eran `window.confirm()` en el alta y NADA en la edición (dos
+         antes eran el confirm() nativo del navegador en el alta y NADA en la edición (dos
          candados hubiera sido la Regla 0 al revés: uno se queda atrás). Ahora
          es una función, `lwConfirmar` (cargado bajo demanda), y S17 exige
-         `grep -c window.confirm = 0` en el gate — este es el único punto
+         que no quede ni un confirm() nativo en este fichero — este es el único punto
          donde se decide. Devuelve una promesa: { ok:true } o { ok:false, msg }. */
       function confirmaPublicacionDoc(v, nombreProyecto) {
         // El deck es PÚBLICO y sin login, así que su confirmación es más dura
@@ -5382,17 +5383,29 @@
           location.reload();
         });
       });
-      ata(/^Enviar respuesta$/i, function () {
+      ata(/^Enviar respuesta$/i, function (btn) {
         var ta = document.querySelector('textarea');
         var hilo = window.LW_V4 && window.LW_V4.hilo;
         var quien = window.LW_V4 && window.LW_V4.hiloCliente;
         if (!hilo) return aviso('El hilo aún no ha cargado.', '#8A6A34');
         var texto = ta ? ta.value.trim() : '';
         if (!texto) return aviso('Escribe la respuesta primero.', '#8A6A34');
-        if (!window.confirm('La respuesta se envía a ' + ((quien && quien.full_name) || 'el comprador') + ' y le llega TAMBIÉN por email real. ¿Enviar?')) return;
-        sb.rpc('portal_enviar_mensaje', { p_hilo_id: hilo.id, p_texto: texto }).then(function (r) {
-          if (r.error) return aviso('No se pudo enviar: ' + r.error.message, '#93000a');
-          location.reload();
+        if (typeof lwConfirmar !== 'function') return aviso('El diálogo aún no ha cargado — prueba de nuevo en un segundo.', '#8A6A34');
+        /* El botón se desactiva MIENTRAS el diálogo está abierto (revisión
+           previa S17): con el diálogo asíncrono se podía pulsar «Enviar» dos
+           veces y salían dos mensajes — y dos emails reales al comprador. */
+        btn.disabled = true;
+        var suelta = function () { btn.disabled = false; };
+        lwConfirmar({
+          titulo: 'Enviar la respuesta',
+          cuerpo: 'Le llega a ' + ((quien && quien.full_name) || 'el comprador') + ' en su área de clientes y TAMBIÉN por email real.',
+          confirmar: 'Enviar'
+        }).then(function (ok) {
+          if (!ok) return suelta();
+          sb.rpc('portal_enviar_mensaje', { p_hilo_id: hilo.id, p_texto: texto }).then(function (r) {
+            if (r.error) { suelta(); return aviso('No se pudo enviar: ' + r.error.message, '#93000a'); }
+            location.reload();
+          }, function (e) { suelta(); aviso('No se pudo enviar: ' + ((e && e.message) || e), '#93000a'); });
         });
       });
     },
@@ -6607,17 +6620,26 @@
           /* Freno al dedo gordo, no regla de negocio (la base acepta cualquier %
              entre 0 y 100 a proposito): 0,5 tecleado como 5 multiplica por diez
              la factura de un mes entero y nadie lo nota hasta emitirla. */
-          if (pct > 5 && !window.confirm('Vas a fijar la comision en ' + pct + '%.\n\n' +
-              (vigente ? 'La vigente es del ' + Number(vigente.pct) + '%. ' : '') +
-              'Se aplicara a todo el dinero que entre desde el ' + v.efectivo_desde + '.\n\nSeguro?')) {
-            return { error: { message: 'Cancelado: no se ha creado ninguna tarifa.' } };
-          }
-          return sb.from('comision_admin_tarifas').insert({
-            pct: pct,
-            efectivo_desde: v.efectivo_desde,
-            nota: (v.nota || '').trim() || null,
-            creado_por: (aut.session && aut.session.user && aut.session.user.email) || null
-          }).select('id').single();
+          var inserta = function () {
+            return sb.from('comision_admin_tarifas').insert({
+              pct: pct,
+              efectivo_desde: v.efectivo_desde,
+              nota: (v.nota || '').trim() || null,
+              creado_por: (aut.session && aut.session.user && aut.session.user.email) || null
+            }).select('id').single();
+          };
+          if (!(pct > 5)) return inserta();
+          // `modal()` espera promesa (Promise.resolve de lo que devuelve), así que el
+          // diálogo de la suite encaja sin más; sin dialogo.js no se crea nada
+          if (typeof lwConfirmar !== 'function') return { error: { message: 'El diálogo aún no ha cargado — prueba de nuevo en un segundo.' } };
+          return lwConfirmar({
+            titulo: 'Comisión del ' + pct + '%',
+            cuerpo: (vigente ? 'La vigente es del ' + Number(vigente.pct) + '%. ' : '') +
+              'Se aplicará a todo el dinero que entre desde el ' + v.efectivo_desde + '. ¿Seguro? Medio por ciento es 0,5 — no 5.',
+            confirmar: 'Crear tarifa', tono: 'peligro'
+          }).then(function (ok) {
+            return ok ? inserta() : { error: { message: 'Cancelado: no se ha creado ninguna tarifa.' } };
+          });
         });
       }
 
@@ -6645,14 +6667,20 @@
           if (!(pct >= 0) || pct > 100) {
             return { error: { message: 'El porcentaje va entre 0 y 100. Medio por ciento es 0,5 — no 50.' } };
           }
-          if (v.recalcular && pendientes && !window.confirm(
-              'Vas a reescribir ' + pendientes + ' comision(es) ya devengada(s) con el ' + pct + '%.\n\n' +
-              'Las facturadas y cobradas no se tocan. Seguro?')) {
-            return { error: { message: 'Cancelado: la tarifa no se ha tocado.' } };
-          }
-          return rpc('comision_admin_edita_tarifa', {
-            p_tarifa_id: id, p_pct: pct, p_efectivo_desde: v.efectivo_desde,
-            p_nota: (v.nota || '').trim() || null, p_recalcular: !!v.recalcular
+          var guarda = function () {
+            return rpc('comision_admin_edita_tarifa', {
+              p_tarifa_id: id, p_pct: pct, p_efectivo_desde: v.efectivo_desde,
+              p_nota: (v.nota || '').trim() || null, p_recalcular: !!v.recalcular
+            });
+          };
+          if (!(v.recalcular && pendientes)) return guarda();
+          if (typeof lwConfirmar !== 'function') return { error: { message: 'El diálogo aún no ha cargado — prueba de nuevo en un segundo.' } };
+          return lwConfirmar({
+            titulo: 'Recalcular ' + pendientes + ' comisión(es)',
+            cuerpo: 'Vas a reescribir ' + pendientes + ' comisión(es) ya devengada(s) con el ' + pct + '%. Las facturadas y cobradas no se tocan. ¿Seguro?',
+            confirmar: 'Recalcular', tono: 'peligro'
+          }).then(function (ok) {
+            return ok ? guarda() : { error: { message: 'Cancelado: la tarifa no se ha tocado.' } };
           });
         });
       };

@@ -197,6 +197,47 @@
     { path: 'sociedades',     icono: 'domain',             texto: 'Sociedades emisoras' }
   ];
 
+  /* MENÚ POR PERMISO (S17, 23-sep-2026). Hasta hoy la sidebar enseñaba las 17
+     herramientas a todo el mundo y la puerta la ponía guard.js al entrar: un
+     agente sin Compradores pulsaba «Compradores» y rebotaba al hub. Ahora el
+     menú solo ofrece lo que la página dejaría abrir.
+     · La regla es la de `lwPermitida` (contracts/assets/herramientas.js) y la
+       de guard.js: solo el super admin ve todo; admin y agente pasan por su
+       lista `ficha.herramientas`. Sin ficha (guard no la pudo leer) no se
+       poda nada, como lwPermitida — la RLS sigue protegiendo los datos.
+     · El mapa copia el `data-herramienta` que cada página v4 declara a guard.js
+       (y, en las que son redirección — leads, creatividades —, la clave de la
+       herramienta viva a la que llevan). `nav.test.js` falla si una página v4
+       y este mapa dejan de coincidir: no se sincroniza a ojo.
+     · Sin clave = sin poda: Home, y las del Panel de control que ya gobierna
+       el rol (equipos-venta, condiciones, ajustes, comision-admin,
+       sociedades). Usuarios y Cuentas SÍ llevan clave: además de admin, hace
+       falta tenerlas asignadas, como en el hub vivo. */
+  var CLAVE_MENU = {
+    leads: 'leads', operaciones: 'operaciones', soporte: 'soporte', vencimientos: 'vencimientos',
+    contratos: 'contratos', asistente: 'contratos', creatividades: ['dossier', 'creatividades'],
+    facturas: 'facturas', recibos: 'facturas', comisiones: 'operaciones',
+    proyectos: 'unidades', modelos: 'unidades', obra: 'obra', compradores: 'compradores',
+    usuarios: 'usuarios', cuentas: 'cuentas'
+  };
+  function puedeVer(path, ficha) {
+    var k = CLAVE_MENU[path];
+    if (!k || !ficha || ficha.rol === 'super_admin') return true;
+    return [].concat(k).some(function (h) { return (ficha.herramientas || []).indexOf(h) !== -1; });
+  }
+  function podaMenu(aside, ficha) {
+    aside.querySelectorAll('a[data-path]').forEach(function (a) {
+      if (!puedeVer(a.getAttribute('data-path'), ficha)) a.style.display = 'none';
+    });
+    // un grupo sin ningún enlace visible se va entero, cabecera incluida
+    aside.querySelectorAll('nav > div').forEach(function (g) {
+      var enlaces = g.querySelectorAll('a[data-path]');
+      if (!enlaces.length) return;
+      var alguno = Array.prototype.some.call(enlaces, function (a) { return a.style.display !== 'none'; });
+      g.style.display = alguno ? '' : 'none';
+    });
+  }
+
   /* Documentacion se fusiono dentro de Proyectos (owner, 8-sep): la pestana
      desaparece de la v4. Se oculta desde aqui — un solo fichero — en vez de
      editar 22 sidebars; el fichero de la pantalla queda como redireccion. */
@@ -287,16 +328,12 @@
       if (dp) {
         var ruta = dp === 'login' ? 'entrar/' : dp + '/';
         a.href = ROOT + ruta;
-        if (dp === 'login') { a.title = 'Maqueta — vuelve a la pantalla de acceso'; return; }
+        if (dp === 'login') { cableaSalir(a); return; }
         if (aqui.indexOf('/' + ruta) !== -1) marcaActiva(a);
         return;
       }
       var texto = normaliza(a.textContent);
-      if (/Cerrar Sesi|logout/i.test(texto)) {
-        a.href = ROOT + 'entrar/';
-        a.title = 'Maqueta — vuelve a la pantalla de acceso';
-        return;
-      }
+      if (/Cerrar Sesi|logout/i.test(texto)) { cableaSalir(a); return; }
       for (var i = 0; i < RUTAS.length; i++) {
         if (texto === RUTAS[i][0] || texto.slice(-RUTAS[i][0].length) === RUTAS[i][0]) {
           a.href = RUTAS[i][1].charAt(0) === '/' ? RUTAS[i][1] : ROOT + RUTAS[i][1];
@@ -327,23 +364,93 @@
     });
   }
 
-  function banner() {
-    if (document.getElementById('lw-maqueta')) return;
-    var d = document.createElement('div');
-    d.id = 'lw-maqueta';
-    d.setAttribute('role', 'note');
-    d.style.cssText = 'position:fixed;bottom:14px;right:14px;z-index:var(--z-banderin,300);' +
-      'background:#070907;color:#F5F0E6;border:1px solid #C89B5C;border-radius:4px;' +
-      'font:600 11px/1.4 Manrope,system-ui,sans-serif;letter-spacing:.08em;' +
-      'padding:7px 12px;opacity:.92;text-transform:uppercase';
-    d.innerHTML = T('Maqueta v4 · datos ficticios') + ' · <a href="' + ROOT +
-      '" style="color:#DFB376;text-decoration:underline">Hub</a>';
-    document.body.appendChild(d);
+  /* «Cerrar sesión» (S17, 23-sep-2026). Llevaba a `v4/entrar/`, que redirige
+     al login de la intranet… con la sesión VIVA: quien pulsaba «Cerrar sesión»
+     seguía dentro al volver. Ahora cierra la sesión de verdad y va a la puerta
+     única, igual que el panel de usuario de la intranet de siempre (topbar.js). */
+  function cableaSalir(a) {
+    a.href = '/intranet/';
+    a.title = T('Cerrar sesión');
+    if (a._lwSalir) return;
+    a._lwSalir = true;
+    a.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      var fuera = function () { location.replace('/intranet/'); };
+      if (!window.LW_AUTH || typeof window.LW_AUTH.then !== 'function') return fuera();
+      window.LW_AUTH.then(function (aut) { return aut.sb.auth.signOut(); }).then(fuera, fuera);
+    });
+  }
+
+  /* BUSCADOR DE HERRAMIENTAS (S17, 23-sep-2026). La lupa de la cabecera solo
+     avisaba «disponible en la fase de cableado». Busca entre los enlaces que
+     el menú lateral YA enseña a esta sesión (después de la poda por permiso):
+     no hay segunda lista, y nunca ofrece una herramienta que la puerta
+     rebotaría. Enter abre la primera; Escape o pulsar fuera cierra. Navega al
+     `href` del propio enlace, nunca a nada montado con lo tecleado. */
+  function cableaBuscador() {
+    var lupa = null;
+    document.querySelectorAll('header button[title="Buscar"]').forEach(function (b) { lupa = lupa || b; });
+    if (!lupa || lupa._lwBusca) return;
+    lupa._lwBusca = true;
+    lupa.setAttribute('data-real', '');
+    lupa.setAttribute('aria-label', T('Buscar herramienta'));
+    var caja = null;
+    function enlaces() {
+      var aside = document.querySelector('aside');
+      if (!aside) return [];
+      return Array.prototype.filter.call(aside.querySelectorAll('nav a[data-path]'), function (a) {
+        if (a.style.display === 'none') return false;
+        var g = a.parentElement; return !(g && g.style.display === 'none');
+      });
+    }
+    function nombre(a) { var s = a.querySelectorAll('span'); return normaliza((s[1] || a).textContent); }
+    function sinTildes(t) { return t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+    function cierra() { if (caja) { caja.remove(); caja = null; document.removeEventListener('click', fuera, true); } }
+    function fuera(ev) { if (caja && !caja.contains(ev.target) && !lupa.contains(ev.target)) cierra(); }
+    function abre() {
+      if (caja) { cierra(); return; }
+      caja = document.createElement('div');
+      caja.style.cssText = 'position:fixed;top:60px;right:24px;z-index:var(--z-modal,400);width:300px;max-width:calc(100vw - 32px);' +
+        'background:#fff;border:1px solid #c5c8bc;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:10px;font-family:\'Neue Kabel\',sans-serif';
+      var inp = document.createElement('input');
+      inp.type = 'search'; inp.placeholder = T('Buscar herramienta…');
+      inp.setAttribute('aria-label', T('Buscar herramienta'));
+      inp.style.cssText = 'width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #c5c8bc;border-radius:8px;font:inherit;font-size:14px';
+      var lista = document.createElement('div');
+      lista.style.cssText = 'display:grid;gap:2px;margin-top:8px;max-height:60vh;overflow-y:auto';
+      caja.appendChild(inp); caja.appendChild(lista);
+      function pinta() {
+        var q = sinTildes(inp.value.trim());
+        lista.innerHTML = '';
+        var hay = enlaces().filter(function (a) { return !q || sinTildes(nombre(a)).indexOf(q) !== -1; });
+        if (!hay.length) {
+          var p = document.createElement('p'); p.textContent = T('Ninguna herramienta con ese nombre.');
+          p.style.cssText = 'margin:4px 6px;font-size:13px;color:#8A8474'; lista.appendChild(p); return;
+        }
+        hay.forEach(function (a) {
+          var o = document.createElement('a');
+          o.href = a.href; o.textContent = nombre(a);
+          o.style.cssText = 'display:block;padding:7px 10px;border-radius:8px;color:#1b1c19;text-decoration:none;font-size:14px';
+          o.addEventListener('mouseenter', function () { o.style.background = '#f5f4ee'; });
+          o.addEventListener('mouseleave', function () { o.style.background = ''; });
+          lista.appendChild(o);
+        });
+      }
+      inp.addEventListener('input', pinta);
+      inp.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Escape') { cierra(); lupa.focus(); }
+        else if (ev.key === 'Enter') { var o = lista.querySelector('a'); if (o) location.href = o.href; }
+      });
+      document.body.appendChild(caja);
+      document.addEventListener('click', fuera, true);
+      pinta(); inp.focus();
+    }
+    lupa.addEventListener('click', function (ev) { ev.stopPropagation(); abre(); });
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () { recablea(); banner(); });
-  } else { recablea(); banner(); }
+    document.addEventListener('DOMContentLoaded', function () { recablea(); cableaBuscador(); });
+  } else { recablea(); cableaBuscador(); }
 
   /* Segundo pase, solo para "Panel de control": espera al rol de la sesion
      (guard.js) y entonces injerta la seccion entera — o no injerta nada, que
@@ -359,6 +466,8 @@
         // los 14-17 enlaces ya traducidos en cada carga con sesion no
         // cambia nada que ya no estuviera en ingles, solo trabajo de mas.
         var nuevoGrupo = injertaPanelControl(aside, aut && aut.ficha);
+        // DESPUÉS del Panel de control: Usuarios y Cuentas viven ahí dentro
+        podaMenu(aside, aut && aut.ficha);
         if (!nuevoGrupo || !window.lwT) return;
         var cabecera = nuevoGrupo.querySelector('span');
         if (cabecera) cabecera.textContent = T(normaliza(cabecera.textContent));
