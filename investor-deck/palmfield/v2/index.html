@@ -94,7 +94,7 @@
      las clases contra el build antes de escribir, no ir tapando huecos sobre la marcha
      — se hizo (163 de 285 clases de la ficha viva no estaban en el build congelado de
      /modelo/, por eso este es un build nuevo y no una extensión a mano). -->
-<link rel="stylesheet" href="v2.min.css?v=20260923f">
+<link rel="stylesheet" href="v2.min.css?v=20260923g">
 <style>
   /* Neue Kabel en TODA la pagina (23-sep-2026, owner: "usa la fuente Neue ... tambien
      para /modelo"). Regla general y no clase a clase: el CSS compilado mapea cada
@@ -167,11 +167,13 @@
   .lw-destello{animation:lwDestello 2s ease-out}
   @keyframes lwDestello{0%,30%{background:rgba(72,91,55,.32)}100%{background:rgba(143,155,122,.16)}}
   .lw-plano-activo{background:rgba(16,76,79,.55)!important}
-  .faq-item{border:1px solid #e4e2dd;border-radius:16px;background:#fbf9f4;overflow:hidden}
+  /* Seccion activa del menu (T3): la pinta el scroll-spy del final del <script>. */
+  #nav-principal a.lw-nav-activa,#menu-movil a.lw-nav-activa{background:#104c4f;color:#f5f0e6}
+  .faq-item{border:1px solid #beb3a5;border-radius:16px;background:#fffdf8;overflow:hidden}
   .faq-item + .faq-item{margin-top:8px}
   .faq-item summary{list-style:none;cursor:pointer;padding:14px 16px;display:flex;
     align-items:center;justify-content:space-between;gap:12px;
-    font-family:'Neue Kabel',system-ui,sans-serif;font-size:14px;font-weight:700;color:#314322;line-height:1.35}
+    font-family:'Neue Kabel',system-ui,sans-serif;font-size:14px;font-weight:700;color:#104c4f;line-height:1.35}
   .faq-item summary::-webkit-details-marker{display:none}
   .faq-item summary .mi{transition:transform .2s ease}
   .faq-item[open] summary .mi{transform:rotate(180deg)}
@@ -183,31 +185,34 @@
 <body class="bg-surface font-body-md text-body-md text-on-surface antialiased selection:bg-soft-canopy selection:text-surface-container-lowest">
 
 <!-- TOP BAR -->
-<header class="fixed top-0 left-0 right-0 z-50 bg-deep-lagoon shadow-[0_2px_16px_rgba(0,0,0,0.18)]">
+<!-- Barra T3 (23-sep, owner eligio T3 de 4 variantes con la paleta Lawang): Raw linen,
+     logo oscuro, menu en pildora Stone sand, enlaces Volcanic ash, seccion activa y
+     dosier en Deep lagoon. La misma barra que /modelo (alli por CSS propio). -->
+<header class="fixed top-0 left-0 right-0 z-50 bg-raw-linen shadow-[0_1px_0_#beb3a5]">
   <div class="h-[72px] w-full px-4 sm:px-6 md:px-margin-desktop flex items-center justify-between gap-3 sm:gap-4">
     <a class="flex items-center min-w-0 shrink-0" href="#vision" aria-label="Lawang Properties — Palm Field">
-      <img src="../../../assets/img/lawang-logo-v3.webp" alt="Lawang" class="h-5 sm:h-6 md:h-8 w-auto">
+      <img src="../../../assets/img/lawang-logo-v3-dark.webp" alt="Lawang" class="h-5 sm:h-6 md:h-8 w-auto">
     </a>
-    <nav id="nav-principal" class="hidden xl:flex items-center gap-1 bg-white/10 p-1.5 rounded-full border border-white/15">
-      <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-white/85 hover:text-deep-lagoon hover:bg-white transition-all" href="#vision">Project &amp; Photos</a>
-      <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-white/85 hover:text-deep-lagoon hover:bg-white transition-all" href="#modelos">Villa Models</a>
-      <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-white/85 hover:text-deep-lagoon hover:bg-white transition-all" href="#masterplan">Masterplan &amp; Plots</a>
-      <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-white/85 hover:text-deep-lagoon hover:bg-white transition-all" href="#rendimientos">Financial Forecast</a>
-      <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-white/85 hover:text-deep-lagoon hover:bg-white transition-all" href="#seguridad-notarial">Legal Security</a>
-      <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-white/85 hover:text-deep-lagoon hover:bg-white transition-all" href="#faq">FAQ</a>
+    <nav id="nav-principal" class="hidden xl:flex items-center gap-1 bg-stone-sand/20 p-1.5 rounded-full border border-stone-sand">
+      <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-volcanic-ash hover:text-raw-linen hover:bg-deep-lagoon transition-all" href="#vision">Project &amp; Photos</a>
+      <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-volcanic-ash hover:text-raw-linen hover:bg-deep-lagoon transition-all" href="#modelos">Villa Models</a>
+      <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-volcanic-ash hover:text-raw-linen hover:bg-deep-lagoon transition-all" href="#masterplan">Masterplan &amp; Plots</a>
+      <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-volcanic-ash hover:text-raw-linen hover:bg-deep-lagoon transition-all" href="#rendimientos">Financial Forecast</a>
+      <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-volcanic-ash hover:text-raw-linen hover:bg-deep-lagoon transition-all" href="#seguridad-notarial">Legal Security</a>
+      <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-volcanic-ash hover:text-raw-linen hover:bg-deep-lagoon transition-all" href="#faq">FAQ</a>
     </nav>
     <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
       <div class="flex items-center gap-1" id="deck-selectores" data-no-i18n
-           style="--lw-lang-ink:rgba(255,255,255,.92);--lw-lang-bg:#0c3c3f;--lw-lang-line:rgba(255,255,255,.18);--lw-lang-menu-ink:#F5F0E6;--lw-lang-hover:rgba(255,255,255,.12)"></div>
+           style="--lw-lang-ink:#2e3437;--lw-lang-bg:#f5f0e6;--lw-lang-line:#beb3a5;--lw-lang-menu-ink:#2e3437;--lw-lang-hover:rgba(190,179,165,.3)"></div>
       <!-- Nace OCULTO a proposito: solo se enciende si el proyecto tiene un documento
            marcado como publico en la intranet. Un boton "Descargar" que no descarga nada
            es peor que no tenerlo. -->
-      <a id="cta-dosier" aria-label="Download dossier" class="hidden max-sm:!hidden items-center gap-2 px-3 sm:px-5 py-2.5 rounded-full bg-white text-deep-lagoon font-label-md text-label-md hover:bg-soft-canopy hover:text-white transition-all shadow-sm whitespace-nowrap" href="#" target="_blank" rel="noopener">
+      <a id="cta-dosier" aria-label="Download dossier" class="hidden max-sm:!hidden items-center gap-2 px-3 sm:px-5 py-2.5 rounded-full bg-deep-lagoon text-raw-linen font-label-md text-label-md hover:bg-territorial-green transition-all shadow-sm whitespace-nowrap" href="#" target="_blank" rel="noopener">
         <span class="material-symbols-outlined text-[17px]">download</span>
         <span class="hidden sm:inline">Download dossier</span>
       </a>
       <button type="button" id="menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="menu-movil"
-        class="xl:hidden inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/10 border border-white/15 text-white hover:bg-white/20 transition-all">
+        class="xl:hidden inline-flex items-center justify-center w-10 h-10 rounded-full bg-stone-sand/20 border border-stone-sand text-volcanic-ash hover:bg-stone-sand/40 transition-all">
         <span class="material-symbols-outlined text-[22px]" id="menu-ico">menu</span>
       </button>
     </div>
@@ -215,7 +220,7 @@
   <!-- Menu por debajo de 1280px (22-sep, pedido del owner: "si se achata desaparece").
        Lo llena el JS clonando los enlaces de #nav-principal: una sola lista de
        secciones, no una segunda copia a mano que diverja. -->
-  <nav id="menu-movil" class="hidden xl:hidden flex-col gap-1 px-6 md:px-margin-desktop pb-5 pt-1 bg-deep-lagoon border-t border-white/10"></nav>
+  <nav id="menu-movil" class="hidden xl:hidden flex-col gap-1 px-6 md:px-margin-desktop pb-5 pt-1 bg-raw-linen border-t border-stone-sand/60"></nav>
 </header>
 
 <!-- WhatsApp flotante: sigue al visitante por toda la pagina (22-sep, pedido del
@@ -279,10 +284,12 @@
 
   <!-- Panel de due diligence, flotando sobre la foto desde 1024px (posicion en el
        <style>): cabecera con eyebrow+titulo+mini-grid, cuerpo que scrollea solo. -->
-  <aside id="faq" class="glass-panel shadow-2xl border border-surface-container-highest/80 flex flex-col overflow-hidden">
+  <!-- Panel P2 (23-sep, owner eligio P2 de 4): Raw linen casi opaco, etiqueta en
+     Territorial green, titulo Deep lagoon, rotulos Burnt earth, tarjetas #fffdf8. -->
+<aside id="faq" class="bg-raw-linen/[0.96] backdrop-blur-xl shadow-2xl border border-stone-sand flex flex-col overflow-hidden">
     <div class="p-5 pb-3 border-b border-surface-container-highest/70 flex flex-col gap-2 shrink-0">
-      <span class="px-3 py-0.5 rounded-full bg-soft-canopy/20 text-territorial-green font-label-md text-xs uppercase tracking-widest font-semibold self-start">Investor Deck · Due Diligence</span>
-      <h2 class="font-headline-md text-[24px] leading-[1.1] text-primary font-bold">
+      <span class="px-3 py-0.5 rounded-full bg-territorial-green text-raw-linen font-label-md text-xs uppercase tracking-widest font-semibold self-start">Investor Deck · Due Diligence</span>
+      <h2 class="font-headline-md text-[24px] leading-[1.1] text-deep-lagoon font-bold">
         A land-plot development in the <span class="italic font-light text-territorial-green">Balian river valley.</span>
       </h2>
       <p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Held under <b>Hak Sewa</b> with a notarial escrow account — not a security or investment product.</p>
@@ -306,7 +313,7 @@
            (flex-1, y el bloque de documentos sigue oculto). -->
       <div class="flex flex-col xl:flex-row gap-5 items-start">
       <div id="docs-bloque" class="hidden flex-col gap-3 w-full xl:flex-1 min-w-0">
-        <h3 class="font-body-md text-[11px] uppercase tracking-wider text-on-surface-variant font-bold m-0">Project documents</h3>
+        <h3 class="font-body-md text-[11px] uppercase tracking-wider text-burnt-earth font-bold m-0">Project documents</h3>
         <div id="docs-lista" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2"><!-- lo llena el JS --></div>
       </div>
 
@@ -319,7 +326,7 @@
            alli en un clic. El panel abre ahora con los papeles, que es lo que se venia
            a buscar. -->
       <div id="faq-bloque" class="flex flex-col gap-3 w-full xl:flex-1 min-w-0">
-        <h3 class="font-body-md text-[11px] uppercase tracking-wider text-on-surface-variant font-bold m-0">Frequently Asked Questions</h3>
+        <h3 class="font-body-md text-[11px] uppercase tracking-wider text-burnt-earth font-bold m-0">Frequently Asked Questions</h3>
         <!-- LAS PREGUNTAS YA NO VIVEN AQUI (11-sep-2026). Salen de `deck_faq` por
              `investor_deck_faq`, y se editan desde la intranet. El comentario de
              arriba que decia "La FAQ vive AQUI y en ningun otro sitio" describia el
@@ -900,7 +907,7 @@
       // con dos <a> dentro no es HTML valido -- ademas de dejar al inversor sin saber
       // cual de las dos cosas pasa al hacer clic en el hueco entre botones.
       var card = document.createElement('div');
-      card.className = 'flex flex-col gap-2 bg-surface-container-low/60 border border-[#D8D2C5] ' +
+      card.className = 'flex flex-col gap-2 bg-[#fffdf8] border border-stone-sand ' +
                        'rounded-xl px-4 py-3 hover:border-territorial-green transition-colors';
       var cab = document.createElement('div');
       cab.className = 'flex items-start gap-2 text-deep-lagoon';
@@ -1572,7 +1579,7 @@
       var c = document.createElement('a');
       c.href = a.getAttribute('href');
       c.textContent = a.textContent;
-      c.className = 'px-4 py-3 rounded-xl font-label-md text-body-md text-white/90 hover:bg-white/10 hover:text-white transition-all';
+      c.className = 'px-4 py-3 rounded-xl font-label-md text-body-md text-volcanic-ash hover:bg-stone-sand/25 hover:text-deep-lagoon transition-all';
       menu.appendChild(c);
     });
     function abre(si){
@@ -1585,6 +1592,24 @@
     menu.addEventListener('click', function(e){ if(e.target.closest('a')) abre(false); });
     document.addEventListener('keydown', function(e){ if(e.key === 'Escape') abre(false); });
     window.addEventListener('resize', function(){ if(window.innerWidth >= 1280) abre(false); });
+  })();
+
+  // ── seccion activa en el menu (23-sep, barra T3) ─────────────────────────
+  // Solo secciones reales: #faq es el panel DENTRO del hero y se pisaria con #vision.
+  (function(){
+    var ids = ['vision','modelos','masterplan','rendimientos','seguridad-notarial'];
+    var secs = ids.map(function(id){ return document.getElementById(id); }).filter(Boolean);
+    if(!secs.length || !('IntersectionObserver' in window)) return;
+    function marca(id){
+      document.querySelectorAll('#nav-principal a, #menu-movil a').forEach(function(a){
+        a.classList.toggle('lw-nav-activa', a.getAttribute('href') === '#' + id);
+      });
+    }
+    var io = new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(e.isIntersecting) marca(e.target.id); });
+    }, { rootMargin: '-45% 0px -50% 0px' });
+    secs.forEach(function(sct){ io.observe(sct); });
+    marca('vision');
   })();
 
   // ── selector de idioma / divisa ───────────────────────────────────────────

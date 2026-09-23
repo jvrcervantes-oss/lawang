@@ -422,13 +422,28 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 @media (min-width:1400px){
   #villa-divider{display:block}
   #villa-pill{display:flex}
+
+/* ── Barra T3 (23-sep-2026, owner eligio T3 de 4 variantes con la paleta Lawang, igual
+   que el investor deck): Raw linen, menu en pildora Stone sand, enlaces Volcanic ash,
+   hover y seccion activa en Deep lagoon. Por #id y no por clase: el CSS compilado es un
+   build congelado y un selector de id le gana sin !important. ──────────────────────── */
+#lw-topbar{background:#f5f0e6;-webkit-backdrop-filter:none;backdrop-filter:none;border-bottom-color:#beb3a5;box-shadow:none}
+#lw-topbar nav{background:rgba(190,179,165,.2);border-color:#beb3a5}
+#lw-topbar .nav__pill{color:#2e3437}
+#lw-topbar .nav__pill::before{background:#104c4f}
+#lw-topbar .nav__pill:hover{color:#f5f0e6}
+#lw-topbar .nav__pill.lw-nav-activa{background:#104c4f;color:#f5f0e6}
+#lw-topbar #villa-pill{background:#fffdf8;border-color:#beb3a5}
+#lw-topbar #villa-divider,#lw-topbar .border-l+div,#lw-topbar .h-8.w-px{background:#beb3a5}
+#lw-topbar .border-l{border-color:#beb3a5}
+#lw-topbar .lw-meta{background:rgba(190,179,165,.2);border-color:#beb3a5}
 }
 </style>
 </head>
 <body class="bg-surface font-body-md text-body-md text-on-surface antialiased selection:bg-soft-canopy selection:text-surface">
 
 <!-- ═══ HEADER ═══════════════════════════════════════════════════════════════════════ -->
-<header class="fixed top-0 left-0 w-full z-50 bg-surface/90 backdrop-blur-xl border-b border-surface-container-highest/60 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+<header id="lw-topbar" class="fixed top-0 left-0 w-full z-50 bg-surface/90 backdrop-blur-xl border-b border-surface-container-highest/60 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
 <div class="h-20 w-full px-4 md:px-margin-desktop flex items-center justify-between gap-4">
 <div class="flex items-center gap-5">
 <a class="flex items-center" href="/">
@@ -1142,6 +1157,21 @@ foreach ($incluido as $it):
     });
   });
 }());
+</script>
+<script>
+/* Seccion activa del menu (barra T3, 23-sep-2026) -- mismo mecanismo que el investor deck. */
+(function(){
+  var links = [].slice.call(document.querySelectorAll('#lw-topbar nav a[href^="#"]'));
+  var secs = links.map(function(a){ return document.getElementById(a.getAttribute('href').slice(1)); }).filter(Boolean);
+  if(!secs.length || !('IntersectionObserver' in window)) return;
+  var io = new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(!e.isIntersecting) return;
+      links.forEach(function(a){ a.classList.toggle('lw-nav-activa', a.getAttribute('href') === '#' + e.target.id); });
+    });
+  }, { rootMargin: '-45% 0px -50% 0px' });
+  secs.forEach(function(sct){ io.observe(sct); });
+})();
 </script>
 </body>
 </html>
