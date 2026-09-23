@@ -190,6 +190,7 @@
 
     /* — cabecera (22-sep): menú — */
     'Menu': { es: 'Menú', id: 'Menu' },
+    'Project:': { es: 'Proyecto:', id: 'Proyek:' },
 
     /* — pie (22-sep, calco de la estructura del pie de /modelo) — */
     'Collection': { es: 'Colección', id: 'Koleksi' },
