@@ -141,6 +141,25 @@
     #d-plano polygon.lw-oculta { fill-opacity: .12; }
     #d-plano .lw-plano-ley { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: #5E625A; }
     #d-plano .lw-plano-ley i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+    /* PLANO + LISTA fusionados (owner 23-sep-2026: «¿la vista Lista + Plano es fusionable?»
+       → el botón Plano abre las dos juntas). Plano fijo a la izquierda con el ancho de su
+       lámina, lista compacta a la derecha (Parcela · Comprador · Cobrado; Pactado y
+       Contrato se ven en la ficha). Enlazados: pasar por una fila ilumina su parcela y al
+       revés; pinchar una parcela lleva a su fila. Por debajo de 900 px, uno encima del otro. */
+    #d-parcelario.lw-con-plano { display: grid; grid-template-columns: minmax(0, min(50%, calc(var(--ar, 1) * 68vh))) minmax(0, 1fr); gap: 20px; align-items: start; }
+    #d-parcelario.lw-con-plano #d-plano { order: -1; position: sticky; top: 0; }
+    #d-parcelario.lw-con-plano .lw-plano-lienzo { max-width: none; }
+    #d-parcelario.lw-con-plano #d-unidades.lw-lista .lw-u,
+    #d-parcelario.lw-con-plano #d-unidades-cab.lw-lista { grid-template-columns: 150px minmax(0, 1fr) minmax(0, 1.3fr); }
+    #d-parcelario.lw-con-plano #d-unidades.lw-lista .lw-u-cifras,
+    #d-parcelario.lw-con-plano #d-unidades-cab.lw-lista > span:nth-child(3),
+    #d-parcelario.lw-con-plano #d-unidades-cab.lw-lista > span:nth-child(4) { display: none; }
+    #d-unidades .lw-u.lw-foco { box-shadow: inset 0 0 0 2px #104C4F; background: #FBF8F2; }
+    #d-plano polygon.lw-foco { fill-opacity: .9; stroke-width: 3; }
+    @media (max-width: 900px) {
+      #d-parcelario.lw-con-plano { grid-template-columns: minmax(0, 1fr); }
+      #d-parcelario.lw-con-plano #d-plano { position: static; }
+    }
     @keyframes lw-parcela-entra { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
     @media (prefers-reduced-motion: reduce) { #cajon-vista-parcela { animation: none; } }
   </style>
@@ -810,6 +829,8 @@
      cajón es de pantalla completa y la rejilla se auto-rellena; tarjeta mínima
      de 320 px (owner: «el parcelario ha quedado muy pequeño»). La cabecera de
      columnas solo se ve en vista Lista. -->
+<div id="d-parcelario">
+<div id="d-parcelario-lista">
 <div id="d-unidades-cab" aria-hidden="true"><span>Parcela</span><span>Comprador</span><span>Pactado</span><span>Contrato</span><span>Cobrado · suelo | obra</span></div>
 <div class="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-3 items-start" id="d-unidades">
 <!-- Plantilla clonada por unidad — «B · banda de estado» (23-sep-2026). Mismo
@@ -847,6 +868,7 @@
 </div>
 </div>
 
+</div><!-- /d-parcelario-lista -->
 <!-- Vista PLANO: el masterplan del investor deck con cada parcela del color de su estado.
      Solo existe en los proyectos que tienen masterplan (MASTERPLANES, abajo). -->
 <div id="d-plano" class="hidden space-y-3">
@@ -857,6 +879,7 @@
 <div class="lw-plano-lienzo"><img alt="" data-lw="plano-img"><svg viewBox="0 0 100 100" preserveAspectRatio="none" data-lw="plano-svg" role="group" aria-label="Parcelas del masterplan"></svg></div>
 <p class="text-[12px] text-on-surface-variant" data-lw="plano-pie"></p>
 </div>
+</div><!-- /d-parcelario -->
 </section>
 </div><!-- /cajon-vista-proyecto -->
 <script>
@@ -916,7 +939,7 @@
       var cod = (c.querySelector('[data-lw="u-codigo"]') || {}).textContent;
       if (!uid || !cod) return;   // la plantilla sin rellenar no cuenta
       var banda = c.querySelector('[data-lw="u-banda"]');
-      m[cod.trim()] = { uid: uid, estado: ((c.querySelector('[data-lw="u-nota"]') || {}).textContent || '').trim(),
+      m[cod.trim()] = { el: c, uid: uid, estado: ((c.querySelector('[data-lw="u-nota"]') || {}).textContent || '').trim(),
         color: banda ? getComputedStyle(banda).backgroundColor : '#75786e', oculta: c.classList.contains('hidden') };
     });
     return m;
@@ -941,7 +964,10 @@
     if (!pag) { pintando = false; return; }
     var img = q('plano-img');
     img.onload = function () {
-      if (img.naturalWidth && img.naturalHeight) img.parentNode.style.setProperty('--ar', (img.naturalWidth / img.naturalHeight).toFixed(4));
+      if (!img.naturalWidth || !img.naturalHeight) return;
+      var ar = (img.naturalWidth / img.naturalHeight).toFixed(4);
+      img.parentNode.style.setProperty('--ar', ar);
+      var w = document.getElementById('d-parcelario'); if (w) w.style.setProperty('--ar', ar);
     };
     if (img.getAttribute('src') !== pag.imagen) img.src = pag.imagen; else if (img.complete) img.onload();
     img.alt = 'Masterplan de ' + proyecto() + (pags.length > 1 ? ' — ' + (pag.etiqueta || '') : '');
@@ -953,6 +979,7 @@
       var pg = document.createElementNS(NS, 'polygon');
       pg.setAttribute('points', pts.map(function (xy) { return xy[0] + ',' + xy[1]; }).join(' '));
       pg.setAttribute('fill', u ? u.color : '#bdbdb5');
+      pg.setAttribute('data-cod', cod);
       var t = document.createElementNS(NS, 'title');
       t.textContent = cod + (u ? ' · ' + u.estado : ' · sin ficha en la base');
       pg.appendChild(t);
@@ -961,9 +988,10 @@
         if (u.oculta) pg.setAttribute('class', 'lw-oculta');
         pg.setAttribute('tabindex', '0'); pg.setAttribute('role', 'button');
         pg.setAttribute('aria-label', cod + ', ' + u.estado);
-        var abre = function () { if (window.LW_V4 && window.LW_V4.abrirDetalleUnidad) window.LW_V4.abrirDetalleUnidad(u.uid); };
-        pg.addEventListener('click', abre);
-        pg.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); abre(); } });
+        // Pinchar la parcela lleva a SU fila de la lista (la fila abre la ficha, como siempre).
+        var localiza = function () { enfoca(cod, true); };
+        pg.addEventListener('click', localiza);
+        pg.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); localiza(); } });
       }
       svg.appendChild(pg);
     });
@@ -978,13 +1006,33 @@
     pintando = false;
   }
   function enPlano() { return btn.getAttribute('aria-pressed') === 'true'; }
+  /* Enlace fila <-> parcela. `baja`: además, lleva la lista hasta la fila y la marca un
+     momento (al pinchar en el plano). */
+  var focoCod = null, focoT = null;
+  function enfoca(cod, baja) {
+    var prev = focoCod; focoCod = cod;
+    [prev, cod].forEach(function (k) {
+      if (!k) return;
+      var on = k === focoCod;
+      caja.querySelectorAll('polygon[data-cod="' + k.replace(/"/g, '') + '"]').forEach(function (pg) { pg.classList.toggle('lw-foco', on); });
+    });
+    var U = tarjetas();
+    Object.keys(U).forEach(function (k) { U[k].el.classList.toggle('lw-foco', k === cod); });
+    if (baja && U[cod]) {
+      U[cod].el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      clearTimeout(focoT); focoT = setTimeout(function () { if (focoCod === cod) enfoca(null); }, 2500);
+    }
+  }
   function muestra() {
     var on = enPlano();
     caja.classList.toggle('hidden', !on);
+    var w = document.getElementById('d-parcelario');
+    if (w) w.classList.toggle('lw-con-plano', on);
     var g = document.getElementById('d-unidades'), c = document.getElementById('d-unidades-cab');
-    if (g) g.style.display = on ? 'none' : '';
-    if (c) c.style.display = on ? 'none' : '';
+    // En modo Plano la lista va siempre en filas (la vista Lista), a la derecha del plano.
+    if (on) { if (g) g.classList.add('lw-lista'); if (c) c.classList.add('lw-lista'); }
     if (on) { if (proyectoPintado !== proyecto()) lamina = 0; pinta(); }
+    else enfoca(null);
   }
   function sincroniza() {
     var tiene = !!MASTERPLANES[proyecto()];
@@ -997,12 +1045,26 @@
     b.addEventListener('click', function () { setTimeout(muestra, 0); });
   });
   sel.addEventListener('change', function () { lamina = +sel.value || 0; pinta(); });
+  q('plano-svg').addEventListener('mouseover', function (ev) {
+    var pg = ev.target.closest && ev.target.closest('polygon[data-cod]'); if (pg) enfoca(pg.getAttribute('data-cod'));
+  });
+  q('plano-svg').addEventListener('mouseleave', function () { enfoca(null); });
+  var gU = document.getElementById('d-unidades');
+  if (gU) {
+    gU.addEventListener('mouseover', function (ev) {
+      if (!enPlano()) return;
+      var f = ev.target.closest('.lw-u'), cod = f && (f.querySelector('[data-lw="u-codigo"]') || {}).textContent;
+      if (cod && cod.trim() !== focoCod) enfoca(cod.trim());
+    });
+    gU.addEventListener('mouseleave', function () { if (enPlano()) enfoca(null); });
+  }
   // datos.js repinta #d-unidades al abrir otro proyecto y al buscar: el plano le sigue.
   var g = document.getElementById('d-unidades'), espera = null;
-  if (g) new MutationObserver(function () {
+  if (g) new MutationObserver(function (muts) {
     if (pintando) return;
+    if (muts.every(function (m) { return m.type === 'attributes' && m.target.classList && (m.target.classList.contains('lw-foco') !== (m.oldValue || '').split(' ').indexOf('lw-foco') > -1); })) return;
     clearTimeout(espera); espera = setTimeout(sincroniza, 60);
-  }).observe(g, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+  }).observe(g, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'], attributeOldValue: true });
   sincroniza();
 })();
 </script>
