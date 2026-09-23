@@ -704,9 +704,11 @@
 </select>
 </div>
 <!-- Rejilla, no pila (14-sep-2026, encargo del owner). Desde el 23-sep el
-     cajón es de pantalla completa y la rejilla se auto-rellena (una tarjeta
-     cada 240 px): en 1920 px caben 6 parcelas por fila, en 1440 unas 4. -->
-<div class="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-2 items-start" id="d-unidades">
+     cajón es de pantalla completa y la rejilla se auto-rellena. 23-sep por la
+     tarde (owner: «el parcelario ha quedado muy pequeño, hazlo más grande»):
+     tarjeta mínima de 320 px y letra un punto más grande en todo — en 1920 px
+     caben 5 por fila, en 1440 unas 3. Mismo contenido. -->
+<div class="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-3 items-start" id="d-unidades">
 <!-- Unidad 1 — plantilla clonada por unidad. Compactada el 14-sep-2026
      (encargo del owner) manteniendo TODO lo que enseñaba: código, modelo,
      estado, comprador, contrato, volumen, las dos barras de pago con sus
@@ -717,40 +719,40 @@
      lee al recorrer la rejilla sin pararse. Los dos colores los pone datos.js
      desde ESTADO_COLOR, que es la fuente única; aquí no hay ningún color de
      estado escrito. -->
-<div class="p-2.5 rounded-lg bg-surface-container-low border border-warm-border hover:bg-surface-container-lowest transition-colors flex flex-col gap-1.5 cursor-pointer" data-lw-accion="abrir-detalle-unidad">
+<div class="p-4 rounded-xl bg-surface-container-low border border-warm-border hover:bg-surface-container-lowest transition-colors flex flex-col gap-2.5 cursor-pointer" data-lw-accion="abrir-detalle-unidad">
 <div class="flex items-center justify-between gap-1.5">
 <div class="flex items-baseline gap-1.5 min-w-0">
-<span class="font-headline-sm text-[17px] font-bold text-deep-lagoon tracking-tight leading-none shrink-0" data-lw="u-codigo">—</span>
-<span class="text-[10px] font-semibold text-outline truncate shrink-0 max-w-[84px]" data-lw="u-tipo">—</span>
+<span class="font-headline-sm text-[21px] font-bold text-deep-lagoon tracking-tight leading-none shrink-0" data-lw="u-codigo">—</span>
+<span class="text-[12px] font-semibold text-outline truncate shrink-0 max-w-[110px]" data-lw="u-tipo">—</span>
 <!-- Agente que creó el contrato: destacado por POSICIÓN (fila superior,
      junto al código) y TAMAÑO (11px, igual que la fila comprador/contrato
      de abajo), nunca por negrita ni color de marca — el único acento de la
      tarjeta ya lo lleva el estado (u-nota, a la derecha). Decisión de
      Diseño en la revisión previa del 16-sep-2026. -->
-<span class="text-[11px] font-medium text-on-surface-variant truncate" data-lw="u-agente">—</span>
+<span class="text-[13px] font-medium text-on-surface-variant truncate" data-lw="u-agente">—</span>
 </div>
 <div class="flex items-center gap-1 shrink-0">
-<span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide text-white" data-lw="u-nota">—</span>
+<span class="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold uppercase tracking-wide text-white" data-lw="u-nota">—</span>
 <!-- Editar esta parcela (14-sep-2026, encargo del owner). El formulario lo
      abre editores.js con la fila que ya está pintada; el permiso real es la
      policy de `unidades` (es_agente + puede('unidades') + unidad_visible),
      no este botón — la página entera ya exige la herramienta «unidades» en
      guard.js, así que quien la ve puede intentarlo y la base decide. -->
 <button aria-label="Editar unidad" class="p-0.5 rounded text-outline hover:text-deep-lagoon hover:bg-surface-container transition-colors" data-lw-accion="editar-unidad" type="button">
-<span class="material-symbols-outlined text-[16px]">edit</span>
+<span class="material-symbols-outlined text-[18px]">edit</span>
 </button>
 </div>
 </div>
 <!-- Comprador y contrato en UNA fila: son el mismo hecho (quién la tiene y con
      qué papel), y separados ocupaban el doble sin decir más. -->
-<div class="flex items-baseline gap-1 text-[11px] min-w-0">
+<div class="flex items-baseline gap-1.5 text-[13px] min-w-0">
 <a class="font-label-md font-bold text-volcanic-ash hover:underline hover:text-deep-lagoon truncate" data-lw="u-comprador-link" href="#" rel="noopener">—</a>
 <span class="text-outline shrink-0">·</span>
 <a class="font-kpi-number font-bold text-deep-lagoon hover:underline truncate shrink-0" data-lw="u-contrato-link" href="#" rel="noopener">—</a>
 </div>
-<div class="flex items-baseline justify-between gap-2 pt-1 border-t border-warm-border/60">
-<span class="text-[10px] text-outline font-medium uppercase tracking-wider">Pactado</span>
-<span class="font-kpi-number text-[13px] font-bold text-volcanic-ash tabular-nums whitespace-nowrap" data-lw="u-total">—</span>
+<div class="flex items-baseline justify-between gap-2 pt-2 border-t border-warm-border/60">
+<span class="text-[11px] text-outline font-medium uppercase tracking-wider">Pactado</span>
+<span class="font-kpi-number text-[16px] font-bold text-volcanic-ash tabular-nums whitespace-nowrap" data-lw="u-total">—</span>
 </div>
 <!-- Recaudación de ESTA parcela, partida en suelo/construcción — mismo
      criterio de dos colores que la barra del proyecto (oscuro=cobrado,
@@ -758,22 +760,22 @@
      partidos desde la base (unidad_parte_cobrada_split), no se reparte
      aquí a mano. La cifra va AL LADO de la barra, no encima: ahorra una
      fila por familia sin perder el número. -->
-<div class="flex flex-col gap-1">
-<div class="flex items-center gap-1.5">
-<span class="text-[9px] text-outline font-semibold uppercase tracking-wider w-10 shrink-0">Suelo</span>
-<div class="flex-1 bg-surface-container-highest rounded-full h-1.5 overflow-hidden flex min-w-0">
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center gap-2">
+<span class="text-[11px] text-outline font-semibold uppercase tracking-wider w-12 shrink-0">Suelo</span>
+<div class="flex-1 bg-surface-container-highest rounded-full h-2 overflow-hidden flex min-w-0">
 <div class="bg-fiduciary-green h-full transition-all" data-barra="u-suelo-cobrado" style="width:0%"></div>
 <div class="bg-soft-canopy h-full transition-all" data-barra="u-suelo-firmado" style="width:0%"></div>
 </div>
-<span class="text-[9px] text-outline tabular-nums whitespace-nowrap shrink-0" data-lw="u-suelo-txt">—</span>
+<span class="text-[11px] text-outline tabular-nums whitespace-nowrap shrink-0" data-lw="u-suelo-txt">—</span>
 </div>
-<div class="flex items-center gap-1.5">
-<span class="text-[9px] text-outline font-semibold uppercase tracking-wider w-10 shrink-0">Obra</span>
-<div class="flex-1 bg-surface-container-highest rounded-full h-1.5 overflow-hidden flex min-w-0">
+<div class="flex items-center gap-2">
+<span class="text-[11px] text-outline font-semibold uppercase tracking-wider w-12 shrink-0">Obra</span>
+<div class="flex-1 bg-surface-container-highest rounded-full h-2 overflow-hidden flex min-w-0">
 <div class="bg-fiduciary-green h-full transition-all" data-barra="u-obra-cobrado" style="width:0%"></div>
 <div class="bg-soft-canopy h-full transition-all" data-barra="u-obra-firmado" style="width:0%"></div>
 </div>
-<span class="text-[9px] text-outline tabular-nums whitespace-nowrap shrink-0" data-lw="u-obra-txt">—</span>
+<span class="text-[11px] text-outline tabular-nums whitespace-nowrap shrink-0" data-lw="u-obra-txt">—</span>
 </div>
 </div>
 </div>
