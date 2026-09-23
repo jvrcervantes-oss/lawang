@@ -109,6 +109,30 @@
     }
     p.innerHTML = html;
   }
+  /* El aviso de cierre NACE EN MITAD DE LA PANTALLA y, a los 4 s, baja a su
+     sitio (owner, 23-sep: «ponlo en rojo en mitad de la pantalla y luego lo
+     mueves a la posición donde está»). Abajo solo, en una esquina de la
+     vista, se leía como un aviso más y se podía no ver. `top` se anima de 50%
+     a «100% menos el margen» porque los dos son longitudes que el navegador
+     sabe interpolar; `bottom:auto` hace falta para que no tire en contra.
+     Con «reducir movimiento» se salta la animación: el aviso sale abajo directo. */
+  function aterriza(p) {
+    if (!p) return;
+    var reducir = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reducir) return;
+    p.style.transition = 'none';
+    p.style.bottom = 'auto';
+    p.style.top = '50%';
+    p.style.transform = 'translate(-50%,-50%) scale(1.25)';
+    p.style.boxShadow = '0 22px 60px -18px rgba(158,47,38,.55),0 0 0 8px rgba(158,47,38,.13)';
+    p.offsetWidth;   // fija el punto de partida antes de animar
+    setTimeout(function () {
+      p.style.transition = 'top .7s cubic-bezier(.22,.8,.24,1),transform .7s cubic-bezier(.22,.8,.24,1),box-shadow .7s';
+      p.style.top = 'calc(100% - 18px)';
+      p.style.transform = 'translate(-50%,-100%)';
+      p.style.boxShadow = '0 8px 30px rgba(27,28,25,.2)';
+    }, 4000);
+  }
   function franjaAdmin(estado) {
     pastilla('lw-cierre-admin', (estado && estado.cerrada)
       ? esc(t('Intranet cerrada al equipo: solo entran admins.')) +
@@ -124,7 +148,8 @@
     if (estado.cerrada) {
       if (cuentaAtras || document.getElementById('lw-cierre')) return;
       pastilla('lw-cierre-aviso', esc(t('La intranet entra en mantenimiento en 3 minutos. Guarda lo que estés haciendo.')) +
-        (estado.motivo ? ' — ' + esc(estado.motivo) : ''));
+        (estado.motivo ? ' — ' + esc(estado.motivo) : ''), 'rojo');
+      aterriza(document.getElementById('lw-cierre-aviso'));
       cuentaAtras = setTimeout(function () {
         cuentaAtras = null;
         pastilla('lw-cierre-aviso', null);
