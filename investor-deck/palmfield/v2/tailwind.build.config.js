@@ -39,9 +39,9 @@ module.exports = {
       spacing: { "margin-mobile": "16px", "element-gap": "16px", "gutter": "24px", "margin-desktop": "48px" },
       fontFamily: {
         "label-md": ["Jost", "sans-serif"], "kpi-number": ["Instrument Sans", "sans-serif"],
-        "body-sm": ["Jost", "sans-serif"], "headline-md": ["Jost", "sans-serif"],
+        "body-sm": ["Jost", "sans-serif"], "headline-md": ["Cormorant Garamond", "serif"],
         "body-md": ["Jost", "sans-serif"], "body-lg": ["Jost", "sans-serif"],
-        "headline-lg": ["Jost", "sans-serif"], "headline-sm": ["Jost", "sans-serif"]
+        "headline-lg": ["Cormorant Garamond", "serif"], "headline-sm": ["Cormorant Garamond", "serif"]
       },
       fontSize: {
         "label-md": ["14px", { lineHeight: "20px", fontWeight: "600" }],

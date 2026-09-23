@@ -85,7 +85,7 @@
 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Jost:ital,wght@0,400;0,500;0,600;1,400&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Instrument+Sans:wght@400;500;600;700&family=Jost:ital,wght@0,400;0,500;0,600;1,400&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 <!-- 22-sep-2026: build COMPILADO propio (npx tailwindcss, ver v2/tailwind.build.config.js
      en este mismo directorio) — NUNCA el Play CDN que usaba la ficha viva (sin versión
      fija, sin SRI: prohibido por contexto/seguridad_2026.md, mismo motivo que ya evitó
@@ -93,10 +93,13 @@
      las clases contra el build antes de escribir, no ir tapando huecos sobre la marcha
      — se hizo (163 de 285 clases de la ficha viva no estaban en el build congelado de
      /modelo/, por eso este es un build nuevo y no una extensión a mano). -->
-<link rel="stylesheet" href="v2.min.css?v=20260923i">
+<link rel="stylesheet" href="v2.min.css?v=20260923j">
 <style>
-  /* Titulos en Jost desde el 23-sep (owner: "vuelve el investor-deck a la fuente antigua",
-     igual que /modelo, cuyos titulos salen en Jost). Ya no se cargan los .otf de Neue Kabel. */
+  /* Titulos en Cormorant Garamond (23-sep, owner): la misma fuente de titulos que /modelo
+     (dali-tesla-tw.min.css mapea font-headline-* a Cormorant). Texto en Jost, cifras en
+     Instrument Sans. La cargan Google Fonts en el <link> de arriba. */
+  /* Cormorant trae numeros de estilo antiguo: "Year-1" se leia "Year-ı". Cifras de caja alta. */
+  .font-headline-lg,.font-headline-md,.font-headline-sm{font-variant-numeric:lining-nums}
 
   @layer base {
     html, body { margin: 0; padding: 0; }
@@ -376,7 +379,7 @@
 <div class="lw-wide flex flex-col gap-8">
   <div class="flex flex-col gap-2 lw-prose">
     <span class="font-label-md text-xs uppercase tracking-widest text-territorial-green font-semibold">Catalog</span>
-    <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal">Villa Typologies</h2>
+    <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-bold">Villa Typologies</h2>
     <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">Prices below are <b>construction only</b> — land price depends on the plot chosen in the masterplan.</p>
   </div>
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch" id="modelos-grid"><!-- filled by JS --></div>
@@ -390,7 +393,7 @@
 <div class="lw-wide flex flex-col gap-8">
   <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
     <div class="flex flex-col gap-2 lw-prose">
-      <h2 class="font-headline-lg text-headline-lg text-burnt-earth font-normal">Masterplan &amp; Plot Availability</h2>
+      <h2 class="font-headline-lg text-headline-lg text-burnt-earth font-bold">Masterplan &amp; Plot Availability</h2>
       <p class="font-body-md text-body-md text-on-surface-variant">Individually cadastred plots. Live inventory read directly from Palm Field's records — sizes, prices and status are informational and confirmed at Plot Lock.</p>
     </div>
     <div class="flex items-center gap-4 bg-surface-container-low p-2.5 rounded-full border border-control-border/25 text-xs font-label-md">
@@ -468,7 +471,7 @@
     <!-- El titulo nombraba «Dali, Dune & Dream» a mano. Desde que los modelos del
          forecast salen de la intranet, esa lista se queda vieja el dia que se
          publique o se retire uno, y nadie se entera. La rellena el JS. -->
-    <h2 class="font-headline-lg text-headline-lg text-raw-linen font-normal" id="forecast-titulo">Year-1 Rental Forecast</h2>
+    <h2 class="font-headline-lg text-headline-lg text-raw-linen font-bold" id="forecast-titulo">Year-1 Rental Forecast</h2>
     <p class="font-body-md text-body-md text-raw-linen/80 leading-relaxed">A first-year operating forecast under two scenarios (Average / Optimal occupancy). This is a forecast, not a guarantee — actual results depend on the rental operator, market conditions and property management agreement in force.</p>
   </div>
 
@@ -482,7 +485,7 @@
 <section class="w-full px-6 md:px-margin-desktop py-14 bg-surface border-y border-control-border/20" id="seguridad-notarial">
 <div class="lw-wide flex flex-col gap-8">
   <div class="flex flex-col gap-2 lw-prose">
-    <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal">Hak Sewa With Notarial Escrow vs. Informal Leasehold</h2>
+    <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-bold">Hak Sewa With Notarial Escrow vs. Informal Leasehold</h2>
     <p class="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">
       Much of Bali's foreign-facing market runs on private, unregistered lease agreements with no escrow and no notarial oversight. Palm Field is structured as <strong>Hak Sewa</strong> (long-term Indonesian lease tenure) directly between the landowner and the buyer, with funds held in a <strong>notarial escrow account</strong> until the agreed conditions are met — not Hak Milik, which Indonesian law reserves for Indonesian citizens.
     </p>
@@ -545,7 +548,7 @@
 <section class="w-full px-6 md:px-margin-desktop py-14 bg-raw-linen border-t border-control-border/20" id="documentation">
 <div class="lw-wide flex flex-col gap-8">
   <div class="flex flex-col gap-2 lw-prose">
-    <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal">Site &amp; Delivered Villas</h2>
+    <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-bold">Site &amp; Delivered Villas</h2>
     <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">Plots, surrounding land and villa models already delivered on neighbouring phases.</p>
   </div>
   <!-- Carrusel, no rejilla: en movil las 15 fotos en columna eran quince pantallas de
