@@ -4930,23 +4930,35 @@ function puedeBorrar(r){
   if(MI_ROL === 'super_admin') return true;
   return !r.bloqueado && !!r.creado_por && r.creado_por === MI_EMAIL;
 }
+/* 23-sep-2026: el DELETE a pelo rompía en cuanto el contrato tenía una factura
+   viva posterior al 12-ago (el SET NULL de la FK choca con el CHECK
+   facturas_contrato_obligatorio), dejaba huérfanos sus anexos y fallaba con
+   comisiones devengadas (FK sin ON DELETE). Se borra por borrar_operacion(), la
+   misma RPC de /intranet/operaciones/: anula las facturas antes de soltarlas,
+   se lleva los anexos, purga comisiones y repite en la base la regla de quién
+   puede borrar. */
 async function borrarContrato(id){
   const r = (CP_ROWS || []).find(x => x.id === id) || {};
+  const [anx, fac] = await Promise.all([
+    sb.from('contratos').select('id', { count:'exact', head:true }).eq('contrato_padre_id', id),
+    sb.from('facturas').select('id', { count:'exact', head:true }).eq('contrato_id', id).eq('anulada', false),
+  ]);
+  const nAnx = anx.count || 0, nFac = fac.count || 0;
   const ok = await lwConfirmar({
     titulo: 'Borrar el contrato ' + (r.numero || 'sin nº'),
-    cuerpo: '<p>' + lwT('Se van con él') + ' <b>' + lwT('sus firmas y sus compradores enlazados') + '</b>.</p>'
-          + '<p>' + lwT('Las facturas y las unidades') + ' <b>no</b> ' + lwT('se borran: se quedan sin el vínculo.') + '</p>'
+    cuerpo: '<p>' + lwT('Se van con él') + ' <b>' + lwT('sus firmas y sus compradores enlazados') + '</b>'
+          + (nAnx ? ', ' + lwT('y sus anexos') + ' (<b>' + nAnx + '</b>)' : '') + '.</p>'
+          + (nFac ? '<p>' + lwT('Sus facturas') + ' (<b>' + nFac + '</b>) ' + lwT('no se borran: quedan') + ' <b>' + lwT('anuladas') + '</b>, ' + lwT('para no dejar huecos en la serie.') + '</p>' : '')
+          + '<p>' + lwT('Las unidades') + ' <b>no</b> ' + lwT('se borran: se quedan sin el vínculo.') + '</p>'
           + '<p>' + lwT('No hay papelera.') + '</p>',
     confirmar: 'Borrar ' + (r.numero || 'el contrato'),
     tono: 'peligro',
   });
   if(!ok) return;
   try{
-    const { data, error } = await sb.from('contratos').delete().eq('id', id).select('id');
+    const { data, error } = await sb.rpc('borrar_operacion', { p_contrato_id: id });
     if(error) throw error;
-    // La RLS no da error cuando no deja borrar: devuelve CERO filas. Sin esto,
-    // la app diría "borrado" y el contrato seguiría en la lista al recargar.
-    if(!data || !data.length) throw new Error('no tienes permiso para borrar este contrato');
+    if(!data || !data.contratos_borrados) throw new Error('no tienes permiso para borrar este contrato');
     if(SAVED_CONTRACT && SAVED_CONTRACT.id === id){ SAVED_CONTRACT = null; updateSaveButton(); }
     toast(lwT('Contrato ') + (r.numero || '') + ' borrado');
     await openContractsPanel();
