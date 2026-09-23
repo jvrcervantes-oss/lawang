@@ -89,6 +89,7 @@ Deno.serve(async (req) => {
           body: JSON.stringify({
             to: email,
             subject: 'Tu código de verificación — Lawang Investor Deck',
+            contacto: 'sales',   // pie con sales@: es tema de ventas (owner, 23-sep-2026)
             message:
               'Tu código de verificación es ' + codigo + '. Caduca en 10 minutos.\n\n' +
               'Your verification code is ' + codigo + '. It expires in 10 minutes.\n\n' +

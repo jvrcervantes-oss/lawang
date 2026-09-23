@@ -166,6 +166,9 @@ if (mb_strlen($encabezado) > 120) { fail('Encabezado demasiado largo'); }
 // «Lawang Properties». Los comunicados al equipo mandan «Comunicado al equipo».
 $etiqueta = trim((string)($in['etiqueta'] ?? ''));
 if (mb_strlen($etiqueta) > 40) { fail('Etiqueta demasiado larga'); }
+// Contacto del pie: admin@ por defecto; 'sales' solo lo pide lo de ventas de la
+// web (investor deck). Cualquier otro valor se ignora — nunca una dirección libre.
+$contacto = (($in['contacto'] ?? '') === 'sales') ? 'sales' : null;
 
 /* ---- vista previa (23-sep-2026, /intranet/v4/comunicacion/) ----------------
    Devuelve el HTML que saldría, SIN enviar nada ni tocar SMTP. Existe para que
@@ -370,7 +373,7 @@ $boundary = 'lwc_' . bin2hex(random_bytes(16));
 // formato de TODO correo de la intranet con el mismo diseño que ya usa el
 // email de acceso al portal). Antes esta parte era texto plano a secas.
 require_once __DIR__ . '/lib/plantilla_correo.php';
-$mensajeHtml = lw_plantilla_correo($message, $encabezado !== '' ? $encabezado : null, $cta, $etiqueta !== '' ? $etiqueta : null);
+$mensajeHtml = lw_plantilla_correo($message, $encabezado !== '' ? $encabezado : null, $cta, $etiqueta !== '' ? $etiqueta : null, $contacto);
 
 // multipart/mixed con una sola parte de HTML es correo válido, así que el
 // camino sin adjunto reusa la misma estructura (y el mismo SmtpMailer) en vez

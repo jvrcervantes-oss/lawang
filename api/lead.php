@@ -178,7 +178,8 @@ if ($name !== '' || $phone !== '') {
             $ctaLead = filter_var($email, FILTER_VALIDATE_EMAIL)
                 ? ['url' => 'mailto:' . $email, 'texto' => 'Responder al lead']
                 : null;
-            $cuerpoCorreo = lw_plantilla_correo($cuerpoLead, 'Nueva solicitud de llamada', $ctaLead);
+            // contacto 'sales': un lead de la web es tema de ventas (owner, 23-sep-2026)
+            $cuerpoCorreo = lw_plantilla_correo($cuerpoLead, 'Nueva solicitud de llamada', $ctaLead, null, 'sales');
             $tipoCorreo   = 'text/html';
         }
     }
