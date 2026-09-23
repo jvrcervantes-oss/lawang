@@ -7369,6 +7369,126 @@
      admin la ve; guardar pasa por `parametro_set` (super admin en la base, con
      el rango de cada ajuste). No se guarda casilla a casilla: un botón por
      fila, para que un valor a medio teclear no llegue a la base. */
+  /* RESERVAS POR VENCER (23-sep-2026, owner: «necesito una sección exclusiva
+     para reservas por vencer, alta prio»). Lee `reservas_vencimiento()`, la
+     MISMA función que usa el cron libera-reservas-vencidas: lo que se ve aquí
+     es lo que el automatismo va a hacer, sin aritmética propia de plazos
+     (vence = base + prórrogas lo calcula la base). La regla de días copia la
+     del cron: el día que vence ya cuenta como vencida, y se libera sola el
+     día vence + `reservas.dias_gracia`. SECURITY INVOKER: cada sesión ve solo
+     los contratos que su RLS le deja (agente los suyos, manager su proyecto,
+     admin todo). Solo lectura: prorrogar y liberar viven en la ficha de
+     Operaciones con sus candados — aquí no se duplican. */
+  REG['reservas'] = function (sb) {
+    var lista = document.getElementById('lw-res-lista');
+    var buscar = document.getElementById('lw-res-buscar');
+    if (!lista) return;
+    var T = function (x) { return (typeof lwT === 'function') ? lwT(x) : x; };
+    var hoy = new Date().toISOString().slice(0, 10);
+    function masDias(iso, n) { var d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
+    function entre(a, b) { return Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 864e5); }
+    function fecha(iso) { return iso ? new Date(iso + 'T00:00:00Z').toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : '—'; }
+    function pon(k, v) { var e = document.querySelector('[data-lw="' + k + '"]'); if (e) e.textContent = v; }
+    Promise.all([
+      q(sb.rpc('reservas_vencimiento'), 'reservas por vencer', lista),
+      q(sb.from('parametros').select('clave,valor').eq('clave', 'reservas.dias_gracia'), 'días de gracia')
+    ]).then(function (r) {
+      var filas = r[0];
+      if (filas == null) return;
+      var g = (r[1] || [])[0], gracia = (g && typeof g.valor === 'number' && isFinite(g.valor)) ? g.valor : 3;
+      pon('rk-gracia-nota', T('Tras vencer, cada reserva tiene') + ' ' + gracia + ' ' + T('días de gracia antes de liberarse sola. Prorrogar o liberar: desde la ficha de la operación.'));
+      // la función da una fila por PARCELA; aquí se lee por contrato
+      var porC = {}, orden = [];
+      filas.forEach(function (x) {
+        var c = porC[x.contrato_id];
+        if (!c) {
+          c = porC[x.contrato_id] = { id: x.contrato_id, numero: x.numero, tipo: x.tipo, comprador: x.comprador_nombre,
+            proyecto: x.proyecto_nombre || x.proyecto, vence: x.vence_el ? String(x.vence_el).slice(0, 10) : null,
+            prorrogas: x.n_prorrogas || 0, parcelas: [] };
+          orden.push(c);
+        }
+        if (x.codigo && c.parcelas.indexOf(x.codigo) === -1) c.parcelas.push(x.codigo);
+      });
+      orden.forEach(function (c) {
+        c.parcelas.sort(function (a, b) { return String(a).localeCompare(String(b), 'es', { numeric: true }); });
+        c.dias = c.vence ? entre(hoy, c.vence) : null;
+        c.liberaEl = c.vence ? masDias(c.vence, gracia) : null;
+        c.banda = c.vence == null ? 'sin' : c.dias <= 0 ? 'gracia' : c.dias <= 7 ? 'semana' : 'luego';
+      });
+      orden.sort(function (a, b) { return (a.vence || '9999') < (b.vence || '9999') ? -1 : (a.vence || '9999') > (b.vence || '9999') ? 1 : String(a.numero).localeCompare(String(b.numero)); });
+      pon('rk-gracia', orden.filter(function (c) { return c.banda === 'gracia'; }).length);
+      pon('rk-2d', orden.filter(function (c) { return c.dias != null && c.dias >= 1 && c.dias <= 2; }).length);
+      pon('rk-7d', orden.filter(function (c) { return c.banda === 'semana'; }).length);
+      pon('rk-total', orden.length);
+
+      function estado(c) {
+        if (c.dias == null) return pill(T('Sin fecha'), 'neutro');
+        if (c.dias < 0) return pill(T('Venció hace') + ' ' + (-c.dias) + ' d', 'mal');
+        if (c.dias === 0) return pill(T('Vence hoy'), 'mal');
+        if (c.dias === 1) return pill(T('Vence mañana'), 'mal');
+        return pill(c.dias + ' ' + T('días'), c.dias <= 2 ? 'mal' : c.dias <= 7 ? 'espera' : 'neutro');
+      }
+      function fila(c) {
+        var extra = c.banda === 'gracia'
+          ? (hoy >= c.liberaEl ? T('Se libera en la próxima pasada del sistema') : T('Se libera sola el') + ' ' + fecha(c.liberaEl))
+          : '';
+        var href = '/intranet/v4/operaciones/?contrato=' + encodeURIComponent(c.id);
+        return '<a href="' + esc(href) + '" class="lw-res-fila">' +
+          '<div class="lw-res-id"><span class="lw-res-num">' + esc(c.numero) + '</span>' +
+            '<span class="lw-res-tipo">' + esc(tipoC(c.tipo)) + '</span></div>' +
+          '<div class="lw-res-quien"><span class="lw-res-comp">' + esc(c.comprador || '—') + '</span>' +
+            '<span class="lw-res-proy">' + esc(c.proyecto || '—') + (c.parcelas.length ? ' · ' + esc(T(c.parcelas.length > 1 ? 'Parcelas' : 'Parcela')) + ' ' + esc(c.parcelas.join(', ')) : '') + '</span></div>' +
+          '<div class="lw-res-vence"><span class="lw-res-lbl">' + esc(T('Vence')) + '</span><span>' + esc(fecha(c.vence)) + '</span>' +
+            (c.prorrogas ? '<span class="lw-res-lbl">' + c.prorrogas + ' ' + esc(T(c.prorrogas > 1 ? 'prórrogas' : 'prórroga')) + '</span>' : '') + '</div>' +
+          '<div class="lw-res-est">' + estado(c) + (extra ? '<span class="lw-res-extra">' + esc(extra) + '</span>' : '') + '</div>' +
+          '<span class="lw-res-abrir">' + esc(T('Abrir')) + ' →</span></a>';
+      }
+      var BANDAS = [
+        ['gracia', 'Vencidas — en gracia', 'mal'],
+        ['semana', 'Vencen esta semana', 'espera'],
+        ['luego', 'Más adelante', 'neutro'],
+        ['sin', 'Sin fecha de vencimiento', 'neutro']
+      ];
+      function pinta() {
+        var t = (buscar && buscar.value || '').trim().toLowerCase();
+        var vis = !t ? orden : orden.filter(function (c) {
+          return [c.numero, c.comprador, c.proyecto, c.parcelas.join(' ')].join(' ').toLowerCase().indexOf(t) !== -1;
+        });
+        if (!orden.length) { lista.innerHTML = '<p class="font-body-md text-body-md text-on-surface-variant">' + esc(T('No hay Cartas de Reserva vivas pendientes de Bloqueo.')) + '</p>'; return; }
+        if (!vis.length) { lista.innerHTML = '<p class="font-body-md text-body-md text-on-surface-variant">' + esc(T('Nada coincide con la búsqueda.')) + '</p>'; return; }
+        lista.innerHTML = BANDAS.map(function (b) {
+          var cs = vis.filter(function (c) { return c.banda === b[0]; });
+          if (!cs.length) return '';
+          var tono = LW_TONOS[b[2]];
+          return '<div class="lw-res-banda"><h2 style="color:' + tono.tinta + '"><span class="lw-res-punto" style="background:' + tono.borde + '"></span>' +
+            esc(T(b[1])) + ' <span class="lw-res-cuenta">' + cs.length + '</span></h2>' + cs.map(fila).join('') + '</div>';
+        }).join('');
+      }
+      if (!document.getElementById('lw-res-css')) {
+        var st = document.createElement('style'); st.id = 'lw-res-css';
+        st.textContent =
+          '.lw-res-banda{display:flex;flex-direction:column;gap:8px}' +
+          '.lw-res-banda h2{display:flex;align-items:center;gap:8px;margin:0 0 4px;font:700 13px "Neue Kabel",sans-serif;letter-spacing:.06em;text-transform:uppercase}' +
+          '.lw-res-punto{width:8px;height:8px;border-radius:999px;display:inline-block}' +
+          '.lw-res-cuenta{font-weight:600;color:#8A8474}' +
+          '.lw-res-fila{display:grid;grid-template-columns:minmax(120px,.8fr) minmax(0,2fr) minmax(120px,.9fr) minmax(150px,1.1fr) auto;gap:16px;align-items:center;' +
+            'padding:14px 16px;border:1px solid #E4E0D6;border-radius:10px;background:#fff;text-decoration:none;color:#2E3437;font:500 13px "Neue Kabel",sans-serif;transition:background .15s,border-color .15s}' +
+          '.lw-res-fila:hover{background:#FAF8F3;border-color:#C9C3B4}' +
+          '.lw-res-id,.lw-res-quien,.lw-res-vence,.lw-res-est{display:flex;flex-direction:column;gap:3px;min-width:0}' +
+          '.lw-res-num{font-weight:700;color:#104C4F;font-size:14px}' +
+          '.lw-res-tipo,.lw-res-lbl,.lw-res-proy,.lw-res-extra{color:#8A8474;font-size:12px}' +
+          '.lw-res-comp{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+          '.lw-res-proy{overflow:hidden;text-overflow:ellipsis}' +
+          '.lw-res-est{align-items:flex-start}' +
+          '.lw-res-abrir{font-weight:600;font-size:12px;color:#104C4F;text-decoration:underline;white-space:nowrap}' +
+          '@media (max-width:900px){.lw-res-fila{grid-template-columns:1fr 1fr;gap:10px 14px}.lw-res-quien{grid-column:1/-1;order:-1}.lw-res-abrir{grid-column:1/-1}}';
+        document.head.appendChild(st);
+      }
+      pinta();
+      if (buscar) buscar.addEventListener('input', pinta);
+    });
+  };
+
   REG['ajustes'] = function (sb) {
     if (!(window.LW_V4 && window.LW_V4.esAdmin)) { notaSoloAdmin(); return; }
     var cuerpo = document.getElementById('lw-ajustes-lista');

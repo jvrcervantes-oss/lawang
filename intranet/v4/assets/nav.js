@@ -156,7 +156,10 @@
        code-review, 22-sep). Se deja dicho para que la próxima herramienta
        no se quede fuera. */
     { path: 'asistente',  tras: 'contratos', icono: 'smart_toy',     texto: 'Asistente' },
-    { path: 'comisiones', tras: 'recibos',  icono: 'request_quote',  texto: 'Comisiones' }
+    { path: 'comisiones', tras: 'recibos',  icono: 'request_quote',  texto: 'Comisiones' },
+    /* Reservas por vencer (23-sep-2026, owner, alta prioridad): Cartas de
+       Reserva vivas y cuándo vencen. En Seguimiento, tras Vencimientos. */
+    { path: 'reservas',   tras: 'vencimientos', icono: 'event_upcoming', texto: 'Reservas' }
   ];
 
   /* "Panel de control" (15-sep-2026, encargo del owner): seccion nueva del
@@ -221,7 +224,7 @@
   var CLAVE_MENU = {
     leads: 'leads', operaciones: 'operaciones', soporte: 'soporte', vencimientos: 'vencimientos',
     contratos: 'contratos', asistente: 'contratos', creatividades: ['dossier', 'creatividades'],
-    facturas: 'facturas', recibos: 'facturas', comisiones: 'operaciones',
+    facturas: 'facturas', recibos: 'facturas', comisiones: 'operaciones', reservas: 'operaciones',
     proyectos: 'unidades', modelos: 'unidades', obra: 'obra', compradores: 'compradores',
     usuarios: 'usuarios', cuentas: 'cuentas'
   };
