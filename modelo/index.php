@@ -1003,7 +1003,7 @@ foreach ($incluido as $it):
      data-cookies: esta pagina SI carga consent.js; el manejador de #lw-cookies sigue
      mas abajo, en el script inline (este JS va antes, sin defer, a proposito). -->
 <footer data-lw-pie data-cookies data-wa="<?= lw_e($WA_LINK) ?>"></footer>
-<script src="/assets/lawang-pie.js?v=20260923085544"></script>
+<script src="/assets/lawang-pie.js?v=20260923b"></script>
 
 <!-- consent.js: gate del banner de cookies Y de window.lwTrack/Meta Pixel — SIN esto,
      track('ViewContent') de mas abajo comprueba `typeof window.lwTrack==='function'`,
