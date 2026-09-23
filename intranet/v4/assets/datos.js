@@ -2249,7 +2249,7 @@
         pon2('cc-contrato', 'Con contrato (' + conContrato.length + ')');
         pon2('cc-firma', 'En firma (' + enFirma.length + ')');
         pon2('cc-prospectos', 'Sin contrato (' + (cs.length - conContrato.length) + ')');
-        pon2('k-lista-pie', cs.length > 200 ? 'Se enseñan 200 de ' + cs.length + ' compradores — usa el buscador para el resto' : cs.length + (cs.length === 1 ? ' comprador' : ' compradores') + ' · pulsa uno para abrir su ficha');
+        pon2('k-lista-pie', cs.length + (cs.length === 1 ? ' comprador' : ' compradores') + ' · pulsa uno para abrir su ficha');
 
         /* ================= LA FICHA (cajon compartido de editores.js) ================= */
         var KYC = { pending: ['Pendiente', 'espera'], submitted: ['En revisión', 'espera'], verified: ['Aprobado', 'ok'], rejected: ['Rechazado', 'mal'] };
@@ -2926,7 +2926,11 @@
 
         if (!t) return;
         var pl = plantillaFilas(t);
-        cs.slice(0, 200).forEach(function (c2) {
+        /* Sin tope de filas (23-sep-2026). Había `slice(0, 200)` con un pie que
+           decía «usa el buscador para el resto», pero el buscador filtra las
+           filas PINTADAS: la ficha 201 no la encontraba nadie. Con 197 fichas
+           ese día faltaban tres altas para que el buscador empezara a mentir. */
+        cs.forEach(function (c2) {
           var d = deCliente[c2.id];
           fila(pl, [
             c2.full_name,
@@ -2976,14 +2980,19 @@
             btn.classList.toggle('font-medium', !on);
           });
 
-        // el buscador de la cabecera: nombre, email, pasaporte o nacionalidad (sobre las filas pintadas)
+        /* El buscador de la cabecera: nombre, email, nacionalidad o teléfono.
+           El teléfono se compara por DÍGITOS (`telefonoCasa`, compradores.js):
+           el mismo móvil está guardado como «+34 687 95 95 09» y como
+           «+34687959509», y comparar el texto tal cual no encontraba al
+           comprador tecleando 687959509 (closer, 23-sep-2026). */
         var busca = document.getElementById('buyerSearch');
         if (busca) busca.addEventListener('input', function () {
           var qq = busca.value.trim().toLowerCase();
           pl.tbody.querySelectorAll('tr[data-id]').forEach(function (tr) {
             var c2 = porId[tr.getAttribute('data-id')] || {};
             var pajar = [c2.full_name, c2.email, c2.nationality, c2.phone].join(' ').toLowerCase();
-            tr.style.display = (!qq || pajar.indexOf(qq) !== -1) ? '' : 'none';
+            var casa = !qq || pajar.indexOf(qq) !== -1 || (typeof telefonoCasa === 'function' && telefonoCasa(c2.phone, qq));
+            tr.style.display = casa ? '' : 'none';
           });
         });
 

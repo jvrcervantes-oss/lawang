@@ -156,7 +156,7 @@
   <div class="sui-stage">
     <div class="sui-centro">
       <div class="sui-filtros">
-        <input class="sui-buscar" id="q" data-lwt-ph placeholder="Buscar nombre, email o pasaporte…">
+        <input class="sui-buscar" id="q" data-lwt-ph placeholder="Buscar nombre, email, teléfono o pasaporte…">
       </div>
       <div class="sui-tabla-caja" id="caja-tabla">
         <table class="sui-tabla" id="tabla">
@@ -199,7 +199,7 @@
 <!-- Qué campos exige un alta NO se decide aquí: la lista vive en
      `contracts/assets/compradores.js` porque la v4 crea `clients` por su cuenta
      (editores.js) y dos listas a mano divergen — ver el comentario de allí. -->
-<script src="/contracts/assets/compradores.js?v=7eb94ab0"></script>
+<script src="/contracts/assets/compradores.js?v=be8f79e8"></script>
 <script>
 /* ============================================================
    COMPRADORES — ficha y documentación KYC.
@@ -527,8 +527,12 @@ function PAGINADOR(){
 
 function pintarLista(){
   const q = $('#q').value.trim().toLowerCase();
+  /* El teléfono se busca por DÍGITOS (`telefonoCasa`, assets/compradores.js):
+     el mismo móvil está guardado como «+34 687 95 95 09» y como «+34687959509».
+     Hasta el 23-sep-2026 esta lista ni siquiera miraba el teléfono (closer:
+     «buscar comprador por teléfono no se puede»). */
   const vis = suiOrdenar(CLIENTES.filter(c =>
-    lwBuscaEn([c.full_name,c.email,c.passport_number], q)),
+    lwBuscaEn([c.full_name,c.email,c.passport_number,c.phone], q) || telefonoCasa(c.phone, q)),
     ORDEN, (c, campo) => c[campo]);
   $('#listaC').innerHTML = vis.length ? PAGINADOR().pagina(vis).map(c => {
     const a = alerta(c.id);
@@ -1407,6 +1411,21 @@ async function guardar(id){
     kyc_status:$('#f-kyc').value,
     notes:$('#f-notas').value.trim() || null,
   };
+  /* TELÉFONO REPETIDO — avisa, no bloquea (23-sep-2026). La regla y por qué no
+     es un UNIQUE: `fichasConMismoTelefono` en assets/compradores.js. CLIENTES
+     es el DIRECTORIO (todas las fichas, no solo las tuyas), así que ve también
+     la del compañero. Solo si el teléfono es nuevo o CAMBIA: una ficha antigua
+     que ya lo compartía se sigue editando sin preguntar cada vez. */
+  const antes = id ? CLIENTES.find(x => x.id === id) : null;
+  if(fila.phone && telefonoDigitos(fila.phone) !== telefonoDigitos(antes && antes.phone)){
+    const mismos = fichasConMismoTelefono(CLIENTES, fila.phone, id || null);
+    if(mismos.length && !await lwConfirmar({
+      titulo: lwT('Ese teléfono ya está en otra ficha'),
+      cuerpo: '<p>' + mismos.slice(0, 5).map(x => '<b>' + esc(x.full_name || 'Sin nombre') + '</b> (' + esc(x.phone || '') + ')').join('<br>') + '</p>'
+            + '<p>' + lwT('Si es la misma persona, no la crees otra vez: búscala en la lista por su teléfono y usa esa ficha.') + '</p>'
+            + '<p>' + lwT('Si de verdad comparten teléfono —un matrimonio que compra junto, una persona y su propia empresa— puedes seguir.') + '</p>',
+      confirmar: lwT('Guardar igualmente'), cancelar: lwT('No guardar') })) return;
+  }
   const btn=$('#btnGuardar'); btn.disabled=true; btn.textContent=lwT('Guardando…');
   try{
     const q = id ? SB.from('clients').update(fila).eq('id',id).select().single()

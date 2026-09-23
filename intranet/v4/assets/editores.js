@@ -6075,6 +6075,9 @@
           /* el alta la puede hacer cualquier agente; EDITAR una ficha ya creada
              es de administracion (policy es_admin) — asimetria deliberada de la
              suite (migracion 7-ago), que este editor respeta y no "arregla" */
+          var telAlta = v.prefijo ? v.prefijo + ' ' + v.telefono : (v.telefono || null);
+          return telefonoRepetidoSigue(telAlta, null).then(function (sigue) {
+          if (sigue !== true) return sigue;
           return sb.from('clients').insert({
             // MAYÚSCULAS, igual que ya hace el UPDATE de editar (línea de abajo):
             // el contrato y la factura enlazan esta ficha y la imprimen tal cual.
@@ -6087,6 +6090,7 @@
             rep_nombre: v.tipo === 'empresa' ? (v.rep_nombre || null) : null,
             rep_cargo: v.tipo === 'empresa' ? (v.rep_cargo || null) : null
           }).then(errorClienteHumano);
+          });
         });
         // Nacionalidad como picker de nombre completo, no texto libre — igual
         // que el resto de la suite (geo.js + dialogo.js, cargados en esta
@@ -6103,6 +6107,34 @@
          0 filas SIN error y sin eso el cajon diria «guardado». Al editar NO se
          exigen los seis datos del alta (decision explicita de la herramienta
          clasica: hay 200 fichas antiguas sin nacionalidad ni pasaporte). */
+      /* TELÉFONO REPETIDO — avisa, no bloquea (23-sep-2026, closer: «se ha podido
+         usar el mismo tlf en dos clientes»). La regla y por qué no es un UNIQUE
+         viven en contracts/assets/compradores.js (`fichasConMismoTelefono`).
+         Se mira el DIRECTORIO, no `clients`: la RLS solo deja ver las fichas
+         propias y el aviso no vería justo la del compañero.
+         Devuelve `true` para seguir, o un `{ error }` que `modal()` pinta en rojo
+         dejando el formulario abierto. Si el directorio no se puede leer se
+         sigue: el aviso es una ayuda, no un candado. */
+      function telefonoRepetidoSigue(tel, excluirId) {
+        if (typeof fichasConMismoTelefono !== 'function' || telefonoDigitos(tel).length < 7) return Promise.resolve(true);
+        return sb.rpc('compradores_directorio').select('id,full_name,phone').then(function (r) {
+          if (r.error || !r.data) return true;
+          var mismos = fichasConMismoTelefono(r.data, tel, excluirId);
+          if (!mismos.length) return true;
+          var lista = mismos.slice(0, 5).map(function (x) { return '<b>' + esc(x.full_name || 'Sin nombre') + '</b> (' + esc(x.phone || '') + ')'; }).join('<br>');
+          var pregunta = typeof lwConfirmar === 'function'
+            ? lwConfirmar({
+                titulo: 'Ese teléfono ya está en otra ficha',
+                cuerpo: '<p>' + lista + '</p>' +
+                  '<p>Si es la misma persona, no la crees otra vez: búscala en el directorio y usa esa ficha.</p>' +
+                  '<p>Si de verdad comparten teléfono —un matrimonio que compra junto, una persona y su propia empresa— puedes seguir.</p>',
+                confirmar: 'Guardar igualmente', cancelar: 'No guardar' })
+            : Promise.resolve(window.confirm('Ese teléfono ya está en: ' + mismos.map(function (x) { return x.full_name; }).join(', ') + '. ¿Guardar igualmente?'));
+          return Promise.resolve(pregunta).then(function (ok) {
+            return ok ? true : { error: { message: 'ese teléfono ya es de ' + mismos.map(function (x) { return x.full_name; }).join(', ') + '. Búscalo en el directorio por el teléfono.' } };
+          });
+        });
+      }
       /* Mismos mensajes que la viva para los tres rechazos de la base (auditoría
          19-sep-2026): el «duplicate key» crudo mandaba a mirar el correo cuando el
          choque era el pasaporte, y el 0-filas decía «tu sesión ha caducado». */
@@ -6172,7 +6204,12 @@
             rep_cargo: v.tipo === 'empresa' ? (v.rep_cargo.trim() || null) : null,
             notes: v.notes.trim() || null
           };
-          return sb.from('clients').update(patch).eq('id', c.id).select('id').then(unaFila).then(errorClienteHumano);
+          // Solo se avisa si el teléfono CAMBIA: una ficha antigua que ya lo compartía se sigue pudiendo editar sin preguntar cada vez.
+          var telCambia = typeof telefonoDigitos === 'function' && telefonoDigitos(patch.phone) !== telefonoDigitos(c.phone);
+          return (telCambia ? telefonoRepetidoSigue(patch.phone, c.id) : Promise.resolve(true)).then(function (sigue) {
+            if (sigue !== true) return sigue;
+            return sb.from('clients').update(patch).eq('id', c.id).select('id').then(unaFila).then(errorClienteHumano);
+          });
         });
         if (window.lwPicker && typeof NACIONALIDADES !== 'undefined') {
           window.lwPicker(document.querySelector('#lw-editor [data-k="nationality"]'), NACIONALIDADES, { titulo: 'Nacionalidad' });

@@ -77,6 +77,53 @@ function faltanDatosComprador(d){
   return faltan;
 }
 
+/* ── TELEFONO: BUSCAR Y AVISAR DE REPETIDOS — 23-sep-2026 ───────────────────
+   Un closer: «buscar comprador por telefono no se puede y se ha podido usar el
+   mismo tlf en dos clientes». Medido en la base ese dia: 197 fichas, el mismo
+   numero guardado de tres formas («+34 687 95 95 09», «+34 687959509»,
+   «+34687959509»). El buscador comparaba el texto tal cual, asi que tecleando
+   687959509 no aparecia la primera; y la clasica ni siquiera buscaba en el
+   telefono.
+
+   Se compara por DIGITOS. Y el repetido se compara por los 9 ULTIMOS digitos:
+   el mismo movil con y sin prefijo, o con un 0 delante, es el mismo movil.
+
+   Repetido AVISA, no bloquea — y por eso no hay UNIQUE en la base: de las 5
+   parejas de fichas con telefono compartido que habia ese dia, 3 eran legitimas
+   (matrimonio que compra junto, persona y su propia empresa: lo mismo que
+   `clients_email_tipo_key` ya permite a proposito con el correo). Un UNIQUE
+   ademas chocaria contra fichas que la RLS no deja ver al agente — el callejon
+   de las 17 altas rechazadas del 14-sep.
+
+   Vive aqui por lo mismo que `faltanDatosComprador`: lo usan las DOS pantallas
+   que buscan y crean `clients` (/intranet/compradores/ y la v4). */
+function telefonoDigitos(t){ return String(t == null ? '' : t).replace(/\D/g, ''); }
+
+// ¿La busqueda parece un telefono? Solo digitos y separadores, con 6 o mas digitos.
+function pareceTelefono(q){
+  const s = trim(q);
+  return /^[\d\s+\-().]+$/.test(s) && telefonoDigitos(s).length >= 6;
+}
+
+// ¿Casa el telefono guardado con lo que se ha tecleado? Sin el 0 inicial de marcacion nacional.
+function telefonoCasa(tel, q){
+  if(!pareceTelefono(q)) return false;
+  const aguja = telefonoDigitos(q).replace(/^0+/, '');
+  return aguja.length >= 6 && telefonoDigitos(tel).includes(aguja);
+}
+
+function mismoTelefono(a, b){
+  const da = telefonoDigitos(a), db = telefonoDigitos(b);
+  if(da.length < 7 || db.length < 7) return false;
+  const n = Math.min(9, da.length, db.length);
+  return da.slice(-n) === db.slice(-n);
+}
+
+// Las fichas de `lista` (el DIRECTORIO entero, no `clients` a pelo: la RLS esconde las de otros) con ese telefono.
+function fichasConMismoTelefono(lista, tel, excluirId){
+  return (lista || []).filter(c => c && c.id !== excluirId && mismoTelefono(c.phone, tel));
+}
+
 // La factura va a nombre de todos los que firman el contrato, no solo del primero.
 function nombresFactura(lista){ return (lista || []).map(c => c.nombre).join(' · '); }
 
@@ -97,4 +144,5 @@ function primerDato(lista, campo){
 }
 
 if(typeof module !== 'undefined') module.exports = { compradoresDeContrato, nombresFactura, documentosFactura, primerDato,
-  CAMPOS_ALTA_COMPRADOR, faltanDatosComprador };
+  CAMPOS_ALTA_COMPRADOR, faltanDatosComprador,
+  telefonoDigitos, pareceTelefono, telefonoCasa, mismoTelefono, fichasConMismoTelefono };
