@@ -491,6 +491,20 @@ Deno.serve(async (req) => {
     if (eUser || !quien?.user?.email) return json({ error: 'sesion_invalida' }, 401);
     const email = quien.user.email;
 
+    // ── ¿tiene la casilla «Asistente»? (23-sep-2026, owner) ──────────────
+    // Hasta hoy el Asistente colgaba de «Contratos» y esta función no miraba
+    // ninguna herramienta: quien no tuviera la casilla podía llamarla con su
+    // sesión y gastar crédito del modelo (consulta de deploy, Seguridad). Se
+    // pregunta a la base con SU jwt: `puede()` lee usuarios.herramientas y deja
+    // pasar siempre al super_admin. Antes del rate limit y del modelo: sin
+    // casilla no se gasta nada ni se registra nada.
+    {
+      const sbYo = createClient(URL_SB, ANON, { global: { headers: { Authorization: 'Bearer ' + jwt } } });
+      const { data: tiene, error: eP } = await sbYo.rpc('puede', { herramienta: 'asistente' });
+      if (eP) return json({ error: 'no_se_pudo_comprobar_permiso' }, 500);
+      if (tiene !== true) return json({ error: 'no_autorizado: te falta la herramienta «Asistente»' }, 403);
+    }
+
     // ── cuerpo ───────────────────────────────────────────────────────────
     const body = (await req.json().catch(() => null)) ?? {};
     // ── administración de FAQ: misma sesión, sin modelo ni contrato ──────
