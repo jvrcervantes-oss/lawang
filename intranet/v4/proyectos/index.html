@@ -129,7 +129,11 @@
     /* VISTA PLANO (23-sep-2026, owner: «¿hay forma de incorporar aquí el masterplan de
        los investor-decks?»). La imagen y los polígonos son los MISMOS ficheros del deck
        (investor-deck/masterplan/*.json): no hay una segunda copia del plano. */
-    #d-plano .lw-plano-lienzo { position: relative; border: 1px solid #E4DCCB; border-radius: 14px; overflow: hidden; background: #fff; }
+    /* Tamaño (owner 23-sep-2026: «el Plano es demasiado grande»): como mucho el 68 % del
+       alto de la ventana. El ancho sale de la proporción de CADA lámina (--ar, lo pone el
+       script al cargar la imagen), así la imagen y los polígonos nunca se deforman. */
+    #d-plano .lw-plano-lienzo { position: relative; border: 1px solid #E4DCCB; border-radius: 14px; overflow: hidden; background: #fff;
+      width: 100%; max-width: calc(var(--ar, 1) * 68vh); margin-inline: auto; }
     #d-plano img { display: block; width: 100%; height: auto; }
     #d-plano svg { position: absolute; inset: 0; width: 100%; height: 100%; }
     #d-plano polygon { stroke: #fff; stroke-width: 1; fill-opacity: .55; cursor: pointer; transition: fill-opacity .15s; vector-effect: non-scaling-stroke; }
@@ -935,7 +939,11 @@
     sel.innerHTML = pags.map(function (p, i) { return '<option value="' + i + '"' + (i === lamina ? ' selected' : '') + '>' + escH(p.etiqueta || ('Lámina ' + (i + 1))) + '</option>'; }).join('');
     var pag = pags[lamina];
     if (!pag) { pintando = false; return; }
-    var img = q('plano-img'); if (img.getAttribute('src') !== pag.imagen) img.src = pag.imagen;
+    var img = q('plano-img');
+    img.onload = function () {
+      if (img.naturalWidth && img.naturalHeight) img.parentNode.style.setProperty('--ar', (img.naturalWidth / img.naturalHeight).toFixed(4));
+    };
+    if (img.getAttribute('src') !== pag.imagen) img.src = pag.imagen; else if (img.complete) img.onload();
     img.alt = 'Masterplan de ' + proyecto() + (pags.length > 1 ? ' — ' + (pag.etiqueta || '') : '');
     var U = tarjetas(), svg = q('plano-svg'), NS = 'http://www.w3.org/2000/svg';
     while (svg.firstChild) svg.removeChild(svg.firstChild);
