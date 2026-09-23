@@ -833,9 +833,11 @@
 <option value="estado">Orden: estado</option>
 <option value="comprador">Orden: comprador</option>
 </select>
-<div class="flex items-center gap-0.5 bg-surface-container-low p-0.5 rounded-lg border border-warm-border/60" role="group" aria-label="Vista del parcelario">
+<!-- Dos vistas (owner 23-sep-2026: «elimina Listas, deja 2 sólo»): Tarjetas y Plano, que
+     ya lleva la lista en filas al lado del masterplan. Sin masterplan solo queda Tarjetas y
+     el conmutador entero se esconde (lo decide el script del Plano). -->
+<div class="flex items-center gap-0.5 bg-surface-container-low p-0.5 rounded-lg border border-warm-border/60" role="group" aria-label="Vista del parcelario" id="d-vistas" style="display:none">
 <button type="button" class="lw-vista-btn" data-lw-vista="tarjetas" aria-pressed="true">Tarjetas</button>
-<button type="button" class="lw-vista-btn" data-lw-vista="lista" aria-pressed="false">Lista</button>
 <button type="button" class="lw-vista-btn" data-lw-vista="plano" aria-pressed="false" hidden>Plano</button>
 </div>
 </div>
@@ -920,7 +922,9 @@
   });
   var guardada = null;
   try { guardada = localStorage.getItem(CLAVE); } catch (e) {}
-  aplica(guardada === 'lista' ? 'lista' : 'tarjetas');
+  // Sin vista «Lista» desde el 23-sep: se arranca en Tarjetas y, si lo guardado era
+  // «plano», el script del Plano lo reabre en cuanto el proyecto tenga masterplan.
+  aplica('tarjetas');
   window.LW_V4_VISTA = { aplica: aplica, guardada: guardada };
 })();
 
@@ -1051,6 +1055,8 @@
   function sincroniza() {
     var tiene = !!MASTERPLANES[proyecto()];
     btn.hidden = !tiene;
+    // style y no `hidden`: la clase `flex` del grupo le ganaría al atributo.
+    var grupo = document.getElementById('d-vistas'); if (grupo) grupo.style.display = tiene ? '' : 'none';
     if (!tiene && enPlano()) window.LW_V4_VISTA.aplica('tarjetas');
     else if (tiene && !enPlano() && window.LW_V4_VISTA.guardada === 'plano' && proyectoPintado === null) window.LW_V4_VISTA.aplica('plano');
     muestra();
