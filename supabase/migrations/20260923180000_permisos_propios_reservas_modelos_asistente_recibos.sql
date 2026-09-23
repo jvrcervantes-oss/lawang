@@ -17,11 +17,11 @@ select set_config('request.jwt.claims', json_build_object('sub',
   (select user_id from public.usuarios where email = 'jvr.cervantes@gmail.com' and rol = 'super_admin'),
   'role', 'authenticated')::text, true);
 
-update public.usuarios u set herramientas = (
+update public.usuarios u set herramientas = coalesce((
   select array_agg(distinct h order by h) from unnest(
     array_remove(u.herramientas, 'on')
     || case when 'contratos'   = any(u.herramientas) then array['asistente'] else '{}'::text[] end
     || case when 'facturas'    = any(u.herramientas) then array['recibos']   else '{}'::text[] end
     || case when 'unidades'    = any(u.herramientas) then array['modelos']   else '{}'::text[] end
-    || case when 'operaciones' = any(u.herramientas) then array['reservas']  else '{}'::text[] end) h)
+    || case when 'operaciones' = any(u.herramientas) then array['reservas']  else '{}'::text[] end) h), '{}'::text[])  -- coalesce: una fila con solo {'on'} quedaría NULL (Seguridad, consulta de deploy)
 where u.herramientas && array['contratos', 'facturas', 'unidades', 'operaciones', 'on'];
