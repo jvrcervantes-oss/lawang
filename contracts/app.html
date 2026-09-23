@@ -2901,7 +2901,7 @@ function collect(){
 // porque ningún documento imprime {{firmante}}, pero un vector de inyección HTML
 // listo para activarse en cuanto lo hiciera (hallazgo de Seguridad, deploy 10-ago).
 const CAMPOS_IMAGEN_CRUDA = new Set(['firma_adquiriente', 'hsn_apoderado_ktp', 'adq_apoderado_ktp']);
-function esc(v,k){ if(k && CAMPOS_IMAGEN_CRUDA.has(k)) return v; return v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function esc(v,k){ if(k && CAMPOS_IMAGEN_CRUDA.has(k)) return v; return v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }   // &quot;: ya se usa dentro de atributos (data-l="..."), auditoria 23-sep
 
 /* "Bonian Village by Balian Hills" volvió a ser dos campos el 7-ago (petición
    del cliente): proyecto_nombre imprime en mayúsculas como siempre, y el
