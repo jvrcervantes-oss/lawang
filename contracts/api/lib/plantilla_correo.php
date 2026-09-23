@@ -54,8 +54,12 @@ const LW_CORREO_LOGO_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAeAAAABDCAYAAABEK9ZhAABX6ElE
  *
  * Límites de un cliente de correo, que mandan sobre la maqueta:
  *  · tablas y estilos EN LÍNEA; nada de Tailwind ni sombras ni degradados;
- *  · Cormorant/Jost van en la pila con Georgia/Helvetica detrás: Apple Mail e
- *    iOS cargan la web font del <link>, Gmail y Outlook caen al respaldo;
+ *  · Cormorant/Jost van en la pila con Georgia/Helvetica detrás, SIN <link> a
+ *    Google Fonts (23-sep-2026, consulta de deploy de Legal): al cargarla, el
+ *    cliente de correo del comprador mandaba su IP a Google, una transferencia
+ *    que la política de privacidad no declara. Se ve Cormorant/Jost solo si
+ *    las tiene instaladas quien lee; el resto cae al respaldo, como ya hacían
+ *    Gmail y Outlook;
  *  · border-radius lo ignora Outlook de escritorio: queda cuadrado, no roto.
  *
  * El texto se escapa SIEMPRE (nunca se asume HTML de entrada). Dos marcas de
@@ -88,7 +92,9 @@ function lw_plantilla_correo(string $mensajeTexto, ?string $encabezado = null, ?
     };
     foreach ($lineas as $l) {
       $t = trim($l);
-      if (preg_match('/^[•·\-]\s+(.+)$/u', $t, $m)) {
+      // viñeta solo con «•» o «·»: el guion NO (23-sep-2026, Administración):
+      // «- 5.000.000 IDR» escrito a mano es un importe negativo y perdía el signo
+      if (preg_match('/^[•·]\s+(.+)$/u', $t, $m)) {
         $vuelca();
         $cuerpoHtml .= '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 10px;"><tr>'
           . '<td valign="top" style="width:18px;padding-top:10px;"><div style="width:6px;height:6px;border-radius:3px;background:#485B37;font-size:0;line-height:0;">&nbsp;</div></td>'
@@ -155,7 +161,6 @@ BTN;
 
   return <<<HTML
 <meta charset="UTF-8">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F4F1EA;margin:0;padding:32px 12px;">
   <tr>
     <td align="center">
