@@ -942,10 +942,11 @@ foreach ($incluido as $it):
 <p class="i-en">First a reservation contract on the plot. Then the PPJB — the Indonesian sale contract — and the construction contract. All three are the developer's own documents and are reviewed before signing.</p>
 </div>
 </details>
-<!-- «Who builds it?» reescrita el 23-sep-2026 (owner: «no queda claro así»; revisada por Legal
+<?php /* «Who builds it?» reescrita el 23-sep-2026 (owner: «no queda claro así»; revisada por Legal
      ese mismo día). Sin nombrar a la sociedad: la firmante varía por contrato (Tepi Sun Gai por
      defecto, SAN DAL WOODS en la reserva de Palm Field), de ahí «a Lawang company», no «the».
-     La identificación del responsable vive en /legal y en el propio contrato. -->
+     La identificación del responsable vive en /legal y en el propio contrato.
+     Comentario PHP, no HTML: un <!-- --> se sirve al navegador y aqui se nombra a las sociedades. */ ?>
 <details class="faq-item">
 <summary><span><?= lw_i18n('¿Quién construye?', 'Who builds it?') ?></span><span class="material-symbols-outlined mi text-on-surface-variant text-[20px]">expand_more</span></summary>
 <div class="faq-item__body">
