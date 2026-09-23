@@ -70,6 +70,14 @@ async function cargarTechosYExtras(modeloId, proyectoId){
       sb.rpc('modelo_techos_opciones', { p_modelo_id: modeloId, p_proyecto_id: proyectoId || null }),
       sb.rpc('modelo_extras_opciones', { p_modelo_id: modeloId }),
     ]);
+  }catch(err){
+    // Sin red el error sigue subiendo como antes (precio y moneda no cambian
+    // de conducta), pero el anexo automático estaba esperando a este RPC: si
+    // no se le avisa aquí, el contrato se queda sin anexo en silencio
+    // (Administración, consulta de deploy 23-sep-2026).
+    TECHO_CARGANDO = false;
+    if(typeof syncAutoAnnex === 'function') syncAutoAnnex();
+    throw err;
   }finally{ TECHO_CARGANDO = false; }
   TECHOS_OPCIONES = t.error ? [] : (t.data || []);
   EXTRAS_OPCIONES = e.error ? [] : (e.data || []);
