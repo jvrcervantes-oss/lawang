@@ -5482,9 +5482,21 @@
            rejilla al cargar): decide qué fila es alta y cuál actualiza. Tipos
            del catálogo `tipos_vivienda`, como la clásica; si no se puede leer,
            los cuatro de siempre. */
+        /* Paginado (hallazgo de Desarrollo, deploy 23-sep-2026): PostgREST corta
+           a 1.000 filas por petición aunque se pida más, y una unidad que no
+           llegara aquí se tomaría por «alta nueva» — con `moneda:'EUR'` por
+           defecto pisando su moneda real al hacer el upsert. Se lee de 1.000 en
+           1.000 hasta que una página vuelve incompleta. */
+        function todasLasUnidades(desde, acumulado) {
+          return sb.from('unidades').select('proyecto,codigo,contrato_id').order('id').range(desde, desde + 999).then(function (res) {
+            if (res.error) return res;
+            var todo = acumulado.concat(res.data || []);
+            return (res.data || []).length < 1000 ? { data: todo, error: null } : todasLasUnidades(desde + 1000, todo);
+          });
+        }
         Promise.all([
           file.text(),
-          sb.from('unidades').select('proyecto,codigo,contrato_id').limit(20000),
+          todasLasUnidades(0, []),
           sb.from('proyectos').select('nombre').eq('activo', true),
           sb.from('tipos_vivienda').select('clave')
         ]).then(function (rs) {
