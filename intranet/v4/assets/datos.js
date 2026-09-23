@@ -1204,6 +1204,24 @@
           return [esc(f.firmante_nombre || '—'), esc(f.firmante_rol || '—'), H.tag(cad ? 'caducada' : (f.estado || '—'), tono),
             esc(f.firmado_en ? fFecha(f.firmado_en) : (f.expira_en ? 'expira ' + fFecha(f.expira_en) : fFecha(f.creado_en)))];
         })));
+      /* COPIAR EL ENLACE DEL FIRMANTE PENDIENTE (23-sep-2026, owner, con el correo
+         caído): en una firma en cadena, cuando firma el primero, `firma-submit`
+         genera SOLO el enlace del siguiente y lo intenta mandar por correo. Si el
+         correo falla, el enlace existe igual (contrato_firmas.enlace_firma) pero
+         nadie lo veía: había que regenerarlo a mano. Aquí se copia tal cual, para
+         mandarlo por WhatsApp. El enlace NO viaja en la ficha: se pide al pulsar,
+         con la RLS de siempre (quien hizo el contrato o el manager del proyecto,
+         los mismos que pueden generarlo). */
+      var pendFirma = fi.filter(function (f) { return f.estado === 'pendiente' && !firmaCaducada(f); }).slice(-1)[0];
+      if (pendFirma) {
+        var hechasFirma = fi.filter(function (f) { return f.estado === 'firmado'; }).length;
+        cuerpo += H.seccion(hechasFirma ? 'Siguiente firmante' : 'Enlace de firma pendiente',
+          H.dato('Le toca a', (pendFirma.firmante_nombre || '—') + (pendFirma.firmante_rol ? ' · ' + pendFirma.firmante_rol.replace('adquiriente_', 'Adquiriente ') : '')) +
+          (hechasFirma ? H.dato('Ya han firmado', String(hechasFirma)) : '') +
+          (pendFirma.expira_en ? H.dato('El enlace caduca', fFecha(pendFirma.expira_en)) : '') +
+          '<button type="button" data-lw-copiar-firma="' + esc(id) + '" style="justify-self:start;padding:9px 16px;border-radius:10px;border:0;background:#104C4F;color:#fff;font:600 13px \'Neue Kabel\',sans-serif;cursor:pointer">Copiar enlace de firma</button>' +
+          H.nota('Mándaselo por WhatsApp o por el canal que uséis. Es personal: si lo abre otra persona, firmará en nombre de ' + (pendFirma.firmante_nombre || 'este firmante') + '.'));
+      }
 
       if (c.pdf_firmado_path) {
         cuerpo += H.seccion('Documento firmado',
@@ -1322,6 +1340,24 @@
       caj.cuerpo.addEventListener('click', function (ev) {
         var a = ev.target.closest && ev.target.closest('[data-lw-ficha-contrato]');
         if (a) { ev.preventDefault(); var x = porId[a.getAttribute('data-lw-ficha-contrato')]; if (x) fichaContrato(sb, x, opts); return; }
+        var bCf = ev.target.closest && ev.target.closest('[data-lw-copiar-firma]');
+        if (bCf) {
+          ev.preventDefault(); bCf.disabled = true; bCf.textContent = 'Buscando el enlace…';
+          sb.from('contrato_firmas').select('enlace_firma,firmante_nombre,expira_en')
+            .eq('contrato_id', bCf.getAttribute('data-lw-copiar-firma')).eq('estado', 'pendiente')
+            .order('creado_en', { ascending: false }).limit(1).maybeSingle()
+            .then(function (rf) {
+              bCf.disabled = false; bCf.textContent = 'Copiar enlace de firma';
+              if (rf.error) { toastMal('No se pudo leer el enlace: ' + rf.error.message); return; }
+              var enl = rf.data && rf.data.enlace_firma;
+              if (!enl) { toastMal('Este enlace no se guardó (es anterior al 1-sep): genéralo de nuevo desde «Enviar a firma» en la herramienta de contratos.'); return; }
+              var hecho = function () { bCf.textContent = '✓ Enlace copiado'; setTimeout(function () { bCf.textContent = 'Copiar enlace de firma'; }, 2500); };
+              if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(enl).then(hecho, function () { window.prompt('Copia el enlace:', enl); });
+              } else { window.prompt('Copia el enlace:', enl); }
+            });
+          return;
+        }
         var b = ev.target.closest && ev.target.closest('[data-lw-pdf]');
         if (b) {
           ev.preventDefault(); b.disabled = true; b.textContent = 'Abriendo…';
@@ -5102,10 +5138,19 @@
            formulario: nadie abre doce fichas a comprobar. */
         q(sb.from('deck_forecast').select('modelo_id,proyecto_id,inversion_base'), 'previsiones del deck'),
         q(sb.from('modelos_villa').select('modelo_id,proyecto,precio_construccion'), 'precios por proyecto'),
-        q(sb.from('unidades').select('id,proyecto,precio_suelo').not('precio_suelo', 'is', null), 'suelo del inventario')
+        q(sb.from('unidades').select('id,proyecto,precio_suelo').not('precio_suelo', 'is', null), 'suelo del inventario'),
+        /* Fotos del deck (23-sep-2026, owner: «no puedo ver sus fotos»): la
+           tarjeta y la ficha enseñan las que ya hay. Bucket `deck` PÚBLICO (lo
+           que se sube ahí ya está publicado, ver deck_fotos.js), así que la URL
+           pública es la correcta, no una firmada. Gestionarlas sigue siendo
+           «Fotos del deck» (pieza compartida, no se duplica aquí). */
+        q(sb.from('deck_fotos').select('modelo_id,path,uso,orden').eq('ambito', 'modelo').order('uso').order('orden'), 'fotos del deck')
       ]).then(function (r) {
         var ms = r[0], us = r[1] || [], ds = r[2] || [], sinCat = r[3] || [];
-        var FC = r[4] || [], MV = r[5] || [], SUELO = r[6] || [];
+        var FC = r[4] || [], MV = r[5] || [], SUELO = r[6] || [], FOTOS = r[7] || [];
+        var fotosModelo = {};
+        FOTOS.forEach(function (f) { if (f.modelo_id && f.path) (fotosModelo[f.modelo_id] = fotosModelo[f.modelo_id] || []).push(f); });
+        var urlFoto = function (path) { return sb.storage.from('deck').getPublicUrl(path).data.publicUrl; };
         window.LW_V4 = window.LW_V4 || {};
         /* Compartida con el editor de la previsión (editores.js): una sola
            cuenta de «lo que debería ser» la base, no dos. */
@@ -5217,8 +5262,36 @@
           // sin normalizar en cada tecla.
           c.setAttribute('data-nombre', (m.nombre || '').toLowerCase());
           c.setAttribute('data-slug', (m.slug || '').toLowerCase());
+          var fs = fotosModelo[m.id] || [];
+          var cab = c.firstElementChild;
+          if (fs.length && cab) {
+            cab.innerHTML = '';
+            cab.style.cssText = 'padding:0;overflow:hidden;position:relative';
+            var im = document.createElement('img');
+            im.src = urlFoto(fs[0].path); im.alt = m.nombre || ''; im.loading = 'lazy';
+            im.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
+            cab.appendChild(im);
+            var nf = document.createElement('span');
+            nf.textContent = fs.length + (fs.length === 1 ? ' foto' : ' fotos');
+            nf.style.cssText = 'position:absolute;right:10px;bottom:10px;padding:2px 10px;border-radius:999px;background:rgba(27,28,25,.62);color:#fff;font:600 11px/18px sans-serif';
+            cab.appendChild(nf);
+          }
+          c.setAttribute('data-modelo-id', m.id);
           c.style.cursor = 'pointer';
-          c.addEventListener('click', function () { location.search = '?modelo=' + encodeURIComponent(m.slug || m.nombre); });
+          /* Sin recargar (23-sep-2026, owner: «no está enganchada»): antes
+             `location.search=` recargaba la página ARRIBA del todo y la ficha
+             —con Editar, Fotos y Documentos— quedaba debajo de las 15
+             tarjetas: pinchar parecía no hacer nada. Ahora se pinta la ficha de
+             ese modelo y se baja a ella; la URL se actualiza para poder
+             compartirla o recargar. Los editores leen LW_V4.modelo al hacer
+             click, así que siguen al modelo elegido. */
+          c.addEventListener('click', function () {
+            try { history.replaceState(null, '', '?modelo=' + encodeURIComponent(m.slug || m.nombre)); } catch (e) {}
+            pintaFicha(m);
+            var sec = document.querySelector('[data-lw="d-nombre"]');
+            sec = sec && sec.closest('section');
+            if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          });
           grid.appendChild(c);
         });
 
@@ -5280,10 +5353,28 @@
 
         /* --- ficha: la de ?modelo= o la que mas unidades arrastra --- */
         var pedido = new URLSearchParams(location.search).get('modelo');
-        var el = ms.filter(function (m) { return m.slug === pedido || m.nombre === pedido; })[0] ||
+        var elInicial = ms.filter(function (m) { return m.slug === pedido || m.nombre === pedido; })[0] ||
                  ms.slice().sort(function (a, b) { return (porModelo[b.id] || 0) - (porModelo[a.id] || 0); })[0];
-        if (!el) return;
+        if (!elInicial) return;
+        pintaFicha(elInicial);
+        // Llegando con ?modelo= (enlace compartido): se baja directo a su ficha.
+        if (pedido) {
+          var secIni = document.querySelector('[data-lw="d-nombre"]');
+          secIni = secIni && secIni.closest('section');
+          if (secIni) secIni.scrollIntoView({ block: 'start' });
+        }
+
+        /* La ficha se pinta aquí y al pinchar una tarjeta (sin recargar). Los
+           moldes de filas se guardan la PRIMERA vez: después de pintar, el
+           contenedor ya no tiene el molde original. */
+        var moldeProy, moldeDoc;
+        function pintaFicha(el) {
         window.LW_V4 = window.LW_V4 || {}; window.LW_V4.modelo = el;
+        Array.prototype.forEach.call(grid.children, function (t) {
+          t.style.outline = t.getAttribute('data-modelo-id') === el.id ? '2px solid #104C4F' : '';
+          t.style.outlineOffset = '2px';
+        });
+        pintaGaleria(el);
         pon('d-nombre', el.nombre || '—');
         pon('d-slug', el.slug ? '/' + el.slug : 'sin slug');
         pon('d-estado', sinFicha(el) ? 'Sin ficha' : (el.publicado ? 'Publicado' : 'Borrador'));
@@ -5295,8 +5386,9 @@
         pon('d-desc', el.descripcion || 'Este modelo no tiene descripcion escrita. La web publica la toma de aqui, asi que mientras este vacia no hay nada que publicar.');
 
         var caja = document.getElementById('d-proyectos');
-        if (caja && caja.firstElementChild) {
-          var base = caja.firstElementChild.cloneNode(true);
+        if (caja && !moldeProy && caja.firstElementChild) moldeProy = caja.firstElementChild.cloneNode(true);
+        if (caja && moldeProy) {
+          var base = moldeProy;
           caja.innerHTML = '';
           var mapa = proyModelo[el.id] || {};
           var claves = Object.keys(mapa).sort(function (a, b) { return mapa[b] - mapa[a]; });
@@ -5325,10 +5417,12 @@
                 f.appendChild(av);
                 f.style.flexWrap = 'wrap';
               }
-              else {
+              if (!idsPorProyecto[k]) {
                 // Sin proyecto_id (unidad antigua sin backfill): se retira el
                 // botón en vez de dejarlo abrir un editor que no sabría a qué
-                // proyecto escribir.
+                // proyecto escribir. (23-sep: antes colgaba del `else` del
+                // aviso LAW-273 y quitaba el botón a TODAS las filas sin
+                // desfase — es decir, casi siempre.)
                 var bF = f.querySelector('[data-forecast-proyecto]');
                 if (bF) bF.remove();
               }
@@ -5338,8 +5432,9 @@
         }
 
         var cd = document.getElementById('d-docs');
-        if (cd && cd.firstElementChild) {
-          var moldeD = cd.firstElementChild.cloneNode(true);
+        if (cd && !moldeDoc && cd.firstElementChild) moldeDoc = cd.firstElementChild.cloneNode(true);
+        if (cd && moldeDoc) {
+          var moldeD = moldeDoc;
           cd.innerHTML = '';
           var dd = docsModelo[el.id] || [];
           if (!dd.length) {
@@ -5358,6 +5453,39 @@
               cd.appendChild(f);
             });
           }
+        }
+        }
+
+        /* Tira de fotos del deck en la ficha: solo mirar. Añadir, ordenar o
+           borrar es «Fotos del deck» (deck_fotos.js); al cerrarlo, recargar
+           la página trae lo nuevo. */
+        function pintaGaleria(el) {
+          var ancla = document.querySelector('[data-lw="d-dorm"]');
+          var rejilla = ancla && ancla.closest('.grid');
+          if (!rejilla) return;
+          var gal = document.getElementById('d-fotos');
+          if (!gal) {
+            gal = document.createElement('div');
+            gal.id = 'd-fotos';
+            gal.style.cssText = 'display:flex;gap:10px;overflow-x:auto;padding-bottom:4px';
+            rejilla.parentNode.insertBefore(gal, rejilla);
+          }
+          gal.innerHTML = '';
+          var fs = fotosModelo[el.id] || [];
+          if (!fs.length) {
+            gal.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Este modelo no tiene fotos en el deck. Súbelas con «Fotos del deck».</p>';
+            return;
+          }
+          fs.forEach(function (f) {
+            var a = document.createElement('a');
+            a.href = urlFoto(f.path); a.target = '_blank'; a.rel = 'noopener';
+            a.style.cssText = 'flex:0 0 auto;display:block;width:168px;height:112px;border-radius:12px;overflow:hidden;background:#efeee8';
+            var im = document.createElement('img');
+            im.src = a.href; im.alt = (el.nombre || '') + ' · ' + (f.uso || 'foto'); im.loading = 'lazy';
+            im.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
+            a.appendChild(im);
+            gal.appendChild(a);
+          });
         }
       });
     },
