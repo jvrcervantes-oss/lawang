@@ -163,7 +163,7 @@ $attach = ($in['attach'] ?? true) !== false;
 $encabezado = trim((string)($in['encabezado'] ?? ''));
 if (mb_strlen($encabezado) > 120) { fail('Encabezado demasiado largo'); }
 // Rótulo de la barra superior del diseño (23-sep-2026). Opcional; por defecto
-// «Lawang Estate». Los comunicados al equipo mandan «Comunicado al equipo».
+// «Lawang Properties». Los comunicados al equipo mandan «Comunicado al equipo».
 $etiqueta = trim((string)($in['etiqueta'] ?? ''));
 if (mb_strlen($etiqueta) > 40) { fail('Etiqueta demasiado larga'); }
 

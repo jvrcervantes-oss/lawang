@@ -71,7 +71,7 @@ const LW_CORREO_LOGO_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAeAAAABDCAYAAABEK9ZhAABX6ElE
  * $encabezado: titular opcional dentro de la tarjeta.
  * $cta: ['url' => …, 'texto' => …] — lo decide quien llama (send_email.php
  *   valida la lista blanca); aquí solo se pinta, con la URL también en claro.
- * $etiqueta: rótulo de la barra superior (por defecto «Lawang Estate»).
+ * $etiqueta: rótulo de la barra superior (por defecto «Lawang Properties», owner 23-sep).
  */
 function lw_plantilla_correo(string $mensajeTexto, ?string $encabezado = null, ?array $cta = null, ?string $etiqueta = null): string {
   $e = fn(string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
@@ -155,7 +155,7 @@ BTN;
   // ── barra superior: rótulo y fecha ────────────────────────────────────────
   $meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   $hoy = (int)date('j') . ' ' . $meses[(int)date('n') - 1] . ' ' . date('Y');
-  $rotulo = $e(trim((string)$etiqueta) !== '' ? trim((string)$etiqueta) : 'Lawang Estate');
+  $rotulo = $e(trim((string)$etiqueta) !== '' ? trim((string)$etiqueta) : 'Lawang Properties');
   $anio = date('Y');
   $logo = LW_CORREO_LOGO_B64;
 
@@ -183,7 +183,7 @@ BTN;
                  style="display:block;width:200px;height:28px;border:0;margin:0 auto;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:360px;margin:18px auto 0;"><tr>
               <td valign="middle"><div style="height:1px;background:#E4DFD5;font-size:0;line-height:0;">&nbsp;</div></td>
-              <td valign="middle" style="width:1%;white-space:nowrap;padding:0 14px;font-family:{$serif};font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#6A6E63;">Estate</td>
+              <td valign="middle" style="width:1%;white-space:nowrap;padding:0 14px;font-family:{$serif};font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#6A6E63;">Properties</td>
               <td valign="middle"><div style="height:1px;background:#E4DFD5;font-size:0;line-height:0;">&nbsp;</div></td>
             </tr></table>
           </td>
