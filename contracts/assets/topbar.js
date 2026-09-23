@@ -356,7 +356,12 @@ function tbT(s, h) { return window.lwT ? window.lwT(s, h) : s; }
         return;
       }
       lwAvisos(sb, { esAdmin: esAdmin, email: email, vistoHasta: vistoHasta })
-        .then(function (out) { pintar(out.avisos, out.sinLeer); })
+        .then(function (out) {
+          pintar(out.avisos, out.sinLeer);
+          // una consulta caída no se lee como «nada nuevo»: se dice
+          if (out.fallos) lista.insertAdjacentHTML('afterbegin', '<p class="lw-campana-vacio">' +
+            (out.cobroSinComprobar ? 'No se pudo comprobar lo cobrado: las facturas por vencer no se muestran.' : 'Algún aviso no se pudo cargar: la lista puede estar incompleta.') + '</p>');
+        })
         .catch(function (e) {
           console.error('[topbar] avisos:', e);
           lista.innerHTML = '<p class="lw-campana-vacio">No se pudieron cargar los avisos.</p>';

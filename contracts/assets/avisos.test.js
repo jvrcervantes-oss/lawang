@@ -70,6 +70,22 @@ assert.ok(ad.avisos.find(a => a.titulo === 'Visto').nuevo);
 const conFallo = lwAvisosArmar([{ data: null, error: { message: 'x' } }, r[1], r[2], r[3]], { esAdmin: false, email: yo, ahora: AHORA });
 assert.ok(conFallo.avisos.length > 0);
 
+// --- sin lo cobrado NO se avisa de facturas (con el total como pendiente, lo ya pagado salía «sin cobrar») ---
+const sinCobro = lwAvisosArmar([r[0], r[1], r[2], { data: null, error: { message: 'rpc caída' } }], { esAdmin: true, email: yo, ahora: AHORA });
+assert.ok(!sinCobro.avisos.some(a => /^Factura/.test(a.titulo)), 'sin rpc de cobrado, ninguna factura');
+assert.ok(sinCobro.avisos.some(a => /^Enlace de firma/.test(a.titulo)), 'las firmas no dependen de lo cobrado');
+assert.strictEqual(sinCobro.cobroSinComprobar, true);
+assert.strictEqual(ag.cobroSinComprobar, false);
+
+// --- el detalle dice lo que QUEDA, no el total (pago a cuenta) ---
+const parcial = lwAvisosArmar([ok([]), ok([{ id: 'p1', numero: 'P1', total: 1000, moneda: 'EUR', creado_por: yo, tipo: 'factura', venc: dia(1) }]), ok([]), ok([{ factura_id: 'p1', pendiente: 250.5 }])], { esAdmin: false, email: yo, ahora: AHORA });
+assert.strictEqual(parcial.avisos[0].detalle, '250.5 EUR sin cobrar');
+
+// --- enlaces con blancos o controles dentro: el navegador los quita y «/\t/x» sería «//x» ---
+assert.strictEqual(lwAvisoEnlace('/\t/evil.example'), '#');
+assert.strictEqual(lwAvisoEnlace('/\n/evil.example'), '#');
+assert.strictEqual(lwAvisoEnlace('/intranet/ x'), '#');
+
 // --- toda página con topbar.js carga avisos.js ---
 const RAIZ = path.resolve(__dirname, '..', '..');
 const SALTA = /(^|[\\/])(Backups|node_modules|\.git|_archive)([\\/]|$)/;

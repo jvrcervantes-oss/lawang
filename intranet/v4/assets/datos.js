@@ -578,9 +578,11 @@
       var H = window.lwCajonHtml;
       var pinta = function (out) {
         var cuerpo;
+        // una consulta caída no se lee como «nada nuevo»: la nota va antes que la lista, haya lista o no
+        var notaFallo = (out && out.fallos) ? H.nota(out.cobroSinComprobar ? 'No se pudo comprobar lo cobrado: las facturas por vencer no se muestran.' : 'Alguna de las consultas de avisos falló: la lista puede estar incompleta.') : '';
         if (!out) cuerpo = H.nota('No se pudieron cargar los avisos. Prueba a recargar la página.');
-        else if (!out.avisos.length) cuerpo = '<p style="margin:0;font-size:13px;color:#8A8474">Nada nuevo.</p>';
-        else cuerpo = (out.fallos ? H.nota('Alguna de las consultas de avisos falló: la lista puede estar incompleta.') : '') +
+        else if (!out.avisos.length) cuerpo = notaFallo + '<p style="margin:0;font-size:13px;color:#8A8474">Nada nuevo.</p>';
+        else cuerpo = notaFallo +
           '<div style="display:grid;gap:8px">' + out.avisos.map(function (a) {
             return '<a href="' + esc(aV4(a.enlace)) + '" style="display:block;padding:10px 12px;border-radius:10px;border:1px solid #E4DCCB;background:' + (a.nuevo ? '#FBF3E4' : '#fff') + ';color:#1b1c19;text-decoration:none">' +
               '<span style="display:block;font-weight:600;font-size:13px">' + esc(a.titulo) + '</span>' +

@@ -36,7 +36,10 @@ var LW_AVISOS_LIMITE = 40;
 
 function lwAvisoEnlace(e) {
   e = String(e == null ? '' : e).trim();
-  return (e.charAt(0) === '/' && e.charAt(1) !== '/' && e.charAt(1) !== '\\') ? e : '#';
+  // ni espacios ni controles ni barra invertida en ningún sitio: el navegador
+  // quita tabuladores y saltos de la URL, y «/\t/x» acabaría siendo «//x»
+  if (/[\u0000- \u007f\\]/.test(e)) return '#';
+  return (e.charAt(0) === '/' && e.charAt(1) !== '/') ? e : '#';
 }
 
 /* Pura: recibe las cuatro respuestas ya resueltas y devuelve los avisos. Aparte
@@ -56,8 +59,14 @@ function lwAvisosArmar(r, opts) {
 
   var pendientes = {};
   datos(3).forEach(function (x) { pendientes[x.factura_id] = Number(x.pendiente) || 0; });
+  /* Sin lo cobrado no hay avisos de facturas (Administración, 23-sep-2026): con
+     la RPC caída se tomaba el total como pendiente y las facturas YA pagadas
+     salían «sin cobrar» — el mismo fallo que se cerró el 19-ago, volviendo por
+     la puerta del error. Mejor callar esas y decir que falta un dato
+     (`cobroSinComprobar`) que avisar de deudas que no existen. */
+  var cobroSinComprobar = !r[3] || !!r[3].error;
 
-  datos(1).forEach(function (f) {
+  if (!cobroSinComprobar) datos(1).forEach(function (f) {
     if (f.anulada || f.tipo === 'proforma' || f.tipo === 'recibi' || !f.venc) return;
     // ya cobrada: no es una deuda, y decir «sin cobrar» de algo cobrado
     // es peor que no avisar (19-ago-2026)
@@ -69,7 +78,8 @@ function lwAvisosArmar(r, opts) {
     avisos.push({
       titulo: 'Factura ' + (f.numero || 'sin nº') + (d < 0 ? ' vencida hace ' + (-d) + ' d'
               : d === 0 ? ' vence hoy' : ' vence en ' + d + ' d'),
-      detalle: (f.total || '') + ' ' + (f.moneda || '') + ' sin cobrar',
+      // lo que QUEDA, no el total: con un pago a cuenta el total exageraba la deuda
+      detalle: (Math.round(queda * 100) / 100) + ' ' + (f.moneda || '') + ' sin cobrar',
       enlace: f.contrato_id ? '/intranet/operaciones/?contrato=' + encodeURIComponent(f.contrato_id) : '/intranet/facturas/',
       cuando: f.venc, nuevo: d <= 5,
     });
@@ -91,7 +101,7 @@ function lwAvisosArmar(r, opts) {
 
   avisos.sort(function (a, b) { return new Date(b.cuando) - new Date(a.cuando); });
   var lista = avisos.slice(0, LW_AVISOS_LIMITE);
-  return { avisos: lista, sinLeer: avisos.filter(function (a) { return a.nuevo; }).length };
+  return { avisos: lista, sinLeer: avisos.filter(function (a) { return a.nuevo; }).length, cobroSinComprobar: cobroSinComprobar };
 }
 
 /* Las cuatro consultas + el armado. Devuelve una promesa de
@@ -104,9 +114,19 @@ function lwAvisos(sb, opts) {
     .order('creado_en', { ascending: false }).limit(LW_AVISOS_LIMITE);
   // Vencimientos: facturas con fecha puesta y sin anular. `venc` vive dentro
   // del jsonb, igual que en Operaciones — no hay columna propia.
+  /* El filtro va EN la consulta (Administración, 23-sep-2026): antes era un
+     `.limit(200)` a pelo y el descarte de proformas/recibís/anuladas se hacía
+     después, en el navegador. Con 434 facturas, un admin recibía 200
+     cualesquiera y podía perder avisos de las que sí vencen. Se conserva la
+     misma regla (fuera proforma y recibí, fuera anuladas, con fecha puesta);
+     el filtro de abajo se queda igual como red. */
   var qf = sb.from('facturas')
     .select('id,numero,total,moneda,contrato_id,creado_por,anulada,tipo,venc:datos->fields->>fecha_vencimiento')
-    .limit(200);
+    .not('tipo', 'in', '(proforma,recibi)')
+    .eq('anulada', false)
+    .not('datos->fields->>fecha_vencimiento', 'is', null)
+    .order('datos->fields->>fecha_vencimiento', { ascending: true })
+    .limit(1000);
   var qs = sb.from('contrato_firmas')
     .select('firmante_nombre,estado,expira_en,contrato_id,contratos(numero,creado_por)')
     .eq('estado', 'pendiente').limit(100);
