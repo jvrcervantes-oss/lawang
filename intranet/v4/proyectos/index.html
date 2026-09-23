@@ -72,21 +72,19 @@
     .lw-u-lbl { font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #5E625A; }
     .lw-u-num { font-size: 16px; font-weight: 700; color: #1b1c19; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .lw-u-ct { font-size: 16px; font-weight: 700; color: #104C4F; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .lw-u-cobro { display: flex; flex-direction: column; gap: 5px; }
-    .lw-u-barra { display: flex; gap: 4px; height: 9px; }
-    .lw-u-fam { background: #EDE8DE; overflow: hidden; display: flex; }
-    .lw-u-fam.suelo { flex: 40 1 0; border-radius: 99px 0 0 99px; }
-    .lw-u-fam.obra { flex: 60 1 0; border-radius: 0 99px 99px 0; }
-    .lw-u-txt { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; font-size: 12px; color: #5E625A; }
-    .lw-u-txt b { font-weight: 700; color: #2E3437; letter-spacing: .06em; text-transform: uppercase; font-size: 10.5px; margin-right: 4px; }
+    .lw-u-cobro { display: flex; flex-direction: column; gap: 8px; }
+    /* Cada concepto con SU barra (owner 23-sep-2026: «ponle la barrita en su concepto»):
+       Suelo — cifras — su barra; Obra — cifras — su barra. Antes era una sola barra
+       partida 40/60 arriba y los textos debajo, sin que se viera qué tramo era de qué. */
+    .lw-u-fila { display: flex; flex-direction: column; gap: 4px; }
+    .lw-u-fam { height: 7px; border-radius: 99px; background: #EDE8DE; overflow: hidden; display: flex; }
     /* Suelo y Obra en DOS filas a todo el ancho (owner 23-sep-2026: «con muchos números
        se cortan: Suelo 2.000 EUR / 50.600 EUR»). En dos columnas cada cifra tenía la mitad
        de la tarjeta y el `truncate` la cortaba con «…». Ahora: etiqueta a la izquierda,
        cifras a la derecha, y si aun así no caben, bajan de línea en vez de cortarse. */
-    .lw-u-txt { display: flex; flex-direction: column; gap: 3px; }
-    .lw-u-txt > span.truncate { display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
-      white-space: normal; overflow: visible; text-overflow: clip; }
-    .lw-u-txt > span.truncate > span { text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .lw-u-linea { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 12px; color: #5E625A; }
+    .lw-u-linea b { font-weight: 700; color: #2E3437; letter-spacing: .06em; text-transform: uppercase; font-size: 10.5px; }
+    .lw-u-linea > span { text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
     /* VISTA LISTA (23-sep-2026, owner: «Lista densa puede ser una vista si el
        agente quiere»). La MISMA tarjeta recolocada en fila por CSS: el buscador,
        el orden, el editor y la ficha de parcela siguen funcionando igual, y no
@@ -832,11 +830,14 @@
 </div>
 <div class="lw-u-cobro">
 <span class="lw-u-lbl">Cobrado</span>
-<div class="lw-u-barra">
+<div class="lw-u-fila">
+<div class="lw-u-linea"><b>Suelo</b><span data-lw="u-suelo-txt">—</span></div>
 <div class="lw-u-fam suelo"><div class="bg-fiduciary-green h-full transition-all" data-barra="u-suelo-cobrado" style="width:0%"></div><div class="bg-soft-canopy h-full transition-all" data-barra="u-suelo-firmado" style="width:0%"></div></div>
+</div>
+<div class="lw-u-fila">
+<div class="lw-u-linea"><b>Obra</b><span data-lw="u-obra-txt">—</span></div>
 <div class="lw-u-fam obra"><div class="bg-deep-lagoon h-full transition-all" data-barra="u-obra-cobrado" style="width:0%"></div><div class="bg-soft-canopy h-full transition-all" data-barra="u-obra-firmado" style="width:0%"></div></div>
 </div>
-<div class="lw-u-txt"><span class="truncate"><b>Suelo</b><span data-lw="u-suelo-txt">—</span></span><span class="truncate"><b>Obra</b><span data-lw="u-obra-txt">—</span></span></div>
 </div>
 </div>
 </div>
