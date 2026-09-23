@@ -380,8 +380,13 @@ $mensajeHtml = lw_plantilla_correo($message, $encabezado !== '' ? $encabezado : 
 // de abrir una segunda forma de construir el mensaje.
 $body  = "--{$boundary}\r\n";
 $body .= "Content-Type: text/html; charset=UTF-8\r\n";
-$body .= "Content-Transfer-Encoding: 8bit\r\n\r\n";
-$body .= $mensajeHtml . "\r\n\r\n";
+// base64, no 8bit (23-sep-2026): la plantilla sale en líneas de miles de
+// caracteres y SMTP no admite más de 998 por línea, así que el servidor las
+// partía por donde caía. Un corte en «border-\n bottom» hizo que Gmail tirase
+// el estilo entero del rótulo 2 de un comunicado (y rompía la firma DKIM:
+// «body hash did not verify»). base64 en líneas de 76 no se puede cortar mal.
+$body .= "Content-Transfer-Encoding: base64\r\n\r\n";
+$body .= chunk_split(base64_encode($mensajeHtml)) . "\r\n";
 if ($pdfBytes !== null) {
   $body .= "--{$boundary}\r\n";
   $body .= "Content-Type: application/pdf; name=\"{$filename}\"\r\n";

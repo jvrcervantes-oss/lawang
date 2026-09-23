@@ -268,7 +268,7 @@
       if (!j || !j.ok || !j.html) { mal({ message: (j && j.error) || 'sin respuesta' }, 'No se pudo generar la vista previa'); return; }
       $('lw-com-previa-marco').srcdoc = j.html;
       $('lw-com-previa-caja').hidden = false;
-      $('lw-com-previa-caja').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      $('lw-com-previa-cerrar').focus();
     }).catch(function (err) { b.disabled = false; mal(err, 'No se pudo generar la vista previa'); });
   }
 
@@ -355,6 +355,11 @@
     $('lw-com-form').addEventListener('submit', function (ev) { ev.preventDefault(); guarda(); });
     campos.forEach(function (id) { $(id).addEventListener('input', function () { sucio = true; if (id === 'lw-com-cuerpo') cuenta(); }); });
     $('lw-com-previa').addEventListener('click', previa);
+    // popup de la vista previa: se cierra con la X, con Esc o pinchando fuera
+    function cierraPrevia() { $('lw-com-previa-caja').hidden = true; }
+    $('lw-com-previa-cerrar').addEventListener('click', cierraPrevia);
+    $('lw-com-previa-caja').addEventListener('click', function (ev) { if (ev.target.hasAttribute('data-cierra-previa')) cierraPrevia(); });
+    document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && !$('lw-com-previa-caja').hidden) cierraPrevia(); });
     $('lw-com-prueba').addEventListener('click', prueba);
     $('lw-com-enviar').addEventListener('click', envia);
     $('lw-com-duplicar').addEventListener('click', duplica);
