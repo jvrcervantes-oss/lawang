@@ -6184,7 +6184,7 @@
             };
           }
           // Quien cambió el importe no aprueba ni paga (la base lo exige igual).
-          if (x.estado === 'pendiente' && soyAdmin && !editeYo) acciones.push({ texto: 'Aprobar', tono: 'primario', onClick: llama('aprobarSolicitud') });
+          if (x.estado === 'pendiente' && soyAdmin && !editeYo && !cobroYo) acciones.push({ texto: 'Aprobar', tono: 'primario', onClick: llama('aprobarSolicitud') });
           if (x.estado === 'pendiente' && soyAdmin) acciones.push({ texto: 'Rechazar…', onClick: llama('rechazarSolicitud') });
           /* Editar: la tuya manual pendiente, o cualquier pendiente si eres admin y
              no la cobras tú (23-sep-2026, owner: «siempre permíteme editar o borrar»). */
@@ -6195,7 +6195,7 @@
               (x.estado === 'aprobada' && soyAdmin && !cobroYo)) {
             acciones.push({ texto: 'Anular', tono: 'peligro', onClick: llama('anularSolicitud') });
           }
-          if (x.estado === 'aprobada' && soyAdmin && !editeYo) acciones.push({ texto: 'Marcar pagada…', tono: 'primario', onClick: llama('pagarSolicitud') });
+          if (x.estado === 'aprobada' && soyAdmin && !editeYo && !cobroYo) acciones.push({ texto: 'Marcar pagada…', tono: 'primario', onClick: llama('pagarSolicitud') });
           if (auto && x.contrato_id && ['pendiente', 'anulada', 'rechazada'].indexOf(x.estado) !== -1 &&
               window.LW_V4.esSuperAdmin && !cobroYo) {
             acciones.push({ texto: 'Recalcular venta…', onClick: llama('recalcularComision') });
