@@ -121,15 +121,30 @@ function lwAvisosArmar(r, opts) {
   var yo = String(email || '').toLowerCase();
   var segundo = function (x) { return String(x || '').slice(0, 19); };
   var crudos = datos(0);
+  /* La clave es segundo + CÓDIGO DE LA PARCELA, no el segundo solo
+     (Desarrollo, consulta de deploy): varias parcelas cambian en la misma
+     transacción y comparten `now()`; y `no_disponible` no deja aviso general.
+     Con el segundo solo, el «Unidad Y — no_disponible» de una parcela se
+     escondía porque OTRA parcela tenía aviso general en ese segundo. Los dos
+     disparadores ponen el código en el título: «Parcela C4 …» (general) y
+     «Unidad C4 — …» (copia de manager). */
+  var codigoGeneral = function (t) {
+    var m = /^Parcela (.+?) (?:reservada|bloqueada|vendida|cobrada al 100%|vuelve a estar disponible)$/.exec(t || '');
+    return m ? m[1] : null;
+  };
+  var codigoCopia = function (t) { var m = /^Unidad (.+?) — /.exec(t || ''); return m ? m[1] : null; };
   var generalUnidad = {};
   crudos.forEach(function (n) {
-    if (/^unidad_/.test(n.tipo || '') && n.tipo !== 'unidad_estado') generalUnidad[segundo(n.creado_en)] = true;
+    if (!/^unidad_/.test(n.tipo || '') || n.tipo === 'unidad_estado') return;
+    var cod = codigoGeneral(n.titulo);
+    if (cod) generalUnidad[segundo(n.creado_en) + '|' + cod] = true;
   });
   var vistos = {};
   var avisos = [];
   crudos.forEach(function (n) {
     var seg = segundo(n.creado_en);
-    if (n.tipo === 'unidad_estado' && String(n.destinatario || '').toLowerCase() !== yo && generalUnidad[seg]) return;
+    if (n.tipo === 'unidad_estado' && String(n.destinatario || '').toLowerCase() !== yo &&
+        generalUnidad[seg + '|' + codigoCopia(n.titulo)]) return;
     var clave = (n.tipo || '') + '|' + (n.titulo || '') + '|' + seg;
     if (vistos[clave]) return;
     vistos[clave] = true;

@@ -95,6 +95,15 @@ const copias = lwAvisosArmar([ok([
 const tc = copias.avisos.map(a => a.titulo).sort();
 assert.deepStrictEqual(tc, ['Parcela C4 vuelve a estar disponible', 'Reserva CR00025 vence mañana', 'Unidad A3 — reservada', 'Unidad A3 — reservada'],
   'un cambio de parcela = 1 aviso; 3 copias de la reserva = 1; dos cambios reales en días distintos siguen siendo 2: ' + tc.join(' | '));
+// misma transacción, OTRA parcela: C4 pasa a disponible (con aviso general) y C2 a no_disponible
+// (sin aviso general) en el mismo segundo — la copia de C2 NO se esconde
+const mismaTx = lwAvisosArmar([ok([
+  { tipo: 'unidad_disponible', titulo: 'Parcela C4 vuelve a estar disponible', destinatario: null, creado_en: T0 },
+  { tipo: 'unidad_estado', titulo: 'Unidad C4 — disponible', destinatario: 'm1@x', creado_en: T0 },
+  { tipo: 'unidad_estado', titulo: 'Unidad C2 — no_disponible', destinatario: 'm1@x', creado_en: T0 },
+]), ok([]), ok([]), ok([])], { esAdmin: true, email: 'jefe@x', ahora: AHORA });
+assert.deepStrictEqual(mismaTx.avisos.map(a => a.titulo).sort(), ['Parcela C4 vuelve a estar disponible', 'Unidad C2 — no_disponible'],
+  'la copia de otra parcela del mismo segundo no desaparece');
 // un manager ve SU copia aunque exista el aviso general (la base solo le da la suya)
 const mgr = lwAvisosArmar([ok([
   { tipo: 'unidad_disponible', titulo: 'Parcela C4 vuelve a estar disponible', destinatario: null, creado_en: T0 },
