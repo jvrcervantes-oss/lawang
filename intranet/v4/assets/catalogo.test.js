@@ -66,6 +66,19 @@ for (const d of fs.readdirSync(V4, { withFileTypes: true })) {
   if (SOLO_SUPER.includes(d.name) && rol !== 'super_admin') errores.push(`${d.name}: el menú la enseña solo al super admin y la puerta pide «${rol || 'nada'}»`);
   else if (SOLO_ADMIN.includes(d.name) && rol !== 'admin' && rol !== 'super_admin') errores.push(`${d.name}: el menú la enseña solo a admin y la puerta pide «${rol || 'nada'}»`);
 }
+/* PUERTAS FIJAS — decisión del owner, no se tocan nunca. Condiciones es
+   solo de administración: el 23-sep-2026 una sesión le quitó el candado para
+   que entraran los Sales Managers y quedó abierta a cualquier ficha; el owner:
+   «vuelve a solo admin y esto no se mueve nunca». Va aparte de SOLO_ADMIN a
+   propósito: sacarla del Panel de control en nav.js no la libera de aquí. Si
+   un Sales Manager necesita configurar algo, va en otra pantalla. */
+const PUERTA_FIJA = { condiciones: 'admin' };
+Object.keys(PUERTA_FIJA).forEach(p => {
+  const f = path.join(V4, p, 'index.html');
+  const g = fs.existsSync(f) && fs.readFileSync(f, 'utf8').match(/<script[^>]+guard\.js[^>]*>/);
+  const rol = g ? ((g[0].match(/data-rol="([^"]+)"/) || [])[1] || '') : '(sin página)';
+  if (rol !== PUERTA_FIJA[p]) errores.push(`${p}: puerta FIJADA por el owner en data-rol="${PUERTA_FIJA[p]}" y pide «${rol || 'nada'}» — no se cambia`);
+});
 [...SOLO_ADMIN, ...SOLO_SUPER].forEach(p => {
   if (!fs.existsSync(path.join(V4, p, 'index.html'))) errores.push(`${p}: está en el Panel de control de nav.js y no hay intranet/v4/${p}/`);
 });
