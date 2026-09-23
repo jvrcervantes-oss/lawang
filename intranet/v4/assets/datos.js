@@ -4406,7 +4406,12 @@
         return {
           d: d, cob: cob, cobPct: cobPct, firmPct: firmPct,
           pctTxt: d.cartera ? Math.round(cob / d.cartera * 100) + '% cobrado' + (esMiProyecto(p) ? '' : ' (tuyo)') : 'sin cartera',
-          badge: d.t === 0 ? 'Sin inventario' : (d.disp ? 'Con disponibles' : 'Todo asignado')
+          badge: d.t === 0 ? 'Sin inventario' : (d.disp ? 'Con disponibles' : 'Todo asignado'),
+          /* Color de la etiqueta (owner 23-sep-2026: «todas tienen el mismo color»). La
+             plantilla traía bg-territorial-green fijo. Sale de la paleta única de estados
+             de parcela: con disponibles = disponible, todo asignado = vendida, sin
+             inventario = fuera de venta. */
+          badgeColor: d.t === 0 ? ESTADO_COLOR.no_disponible : (d.disp ? ESTADO_COLOR.disponible : ESTADO_COLOR.vendida)
         };
       }
       // Barra de dos colores (oscuro = cobrado, claro = firmado sin cobrar) en
@@ -4550,6 +4555,7 @@
             var e = $(x[0], c); if (e && x[1]) e.title = x[1];
           });
           pon('badge', cf.badge, c);
+          var eBadge = $('badge', c); if (eBadge) eBadge.style.backgroundColor = cf.badgeColor;
           pon('uds', String(d.t), c);
           pon('vendidas', d.vend + ' vendidas', c);
           pon('disp', d.disp + ' disp.', c);
