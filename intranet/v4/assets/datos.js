@@ -6288,6 +6288,20 @@
       var us = {}; usuariosRows.forEach(function (u) { us[u.user_id] = u; });
       var porEmail = {}; usuariosRows.forEach(function (u) { if (u.email) porEmail[u.email.toLowerCase()] = u; });
 
+      /* PAGOS DE LAWANG, SOLO LO SUYO (23-sep-2026, paso 2 del plan del owner:
+         «no todos ven lo de todos, sólo lo suyo»). Para quien no es admin, esta
+         pestaña es «tu comisión»: las solicitudes a su nombre o que creó él. La
+         base le deja leer además las de los proyectos que supervisa (rama
+         es_manager_de de la RLS, anterior a este plan); aquí no se enseñan. */
+      if (ss && !(window.LW_V4 && window.LW_V4.esAdmin)) {
+        var yoMail = ((window.LW_V4 && window.LW_V4.miEmail) || '').toLowerCase();
+        var yoId = (window.LW_V4 && window.LW_V4.miId) || '';
+        ss = ss.filter(function (x) {
+          return (x.beneficiario_email && x.beneficiario_email.toLowerCase() === yoMail) || (yoId && x.creado_por === yoId);
+        });
+        var subP = document.querySelector('main h1') && document.querySelector('main h1').parentNode.querySelector('p');
+        if (subP) subP.textContent = 'Tu comisión, venta a venta: lo que Lawang te debe y lo que ya te ha pagado. La aprueba y la paga Lawang.';
+      }
       if (ss) pintaLawang(ss);
       if (cd) pintaEquipo(cd, eqs, miembros);
 
