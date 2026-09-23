@@ -4362,12 +4362,16 @@
            detrás, en su sitio. Solo se sube el scroll del PANEL, no el del proyecto. */
         vd.classList.remove('hidden');
         vd.scrollTop = 0;
+        var niebla = document.getElementById('cajon-niebla-parcela');
+        if (niebla) niebla.classList.remove('hidden');
       }
       function volverAProyecto() {
         var vp = document.getElementById('cajon-vista-proyecto');
         var vd = document.getElementById('cajon-vista-parcela');
         if (vd) vd.classList.add('hidden');
         if (vp) vp.classList.remove('hidden');
+        var niebla = document.getElementById('cajon-niebla-parcela');
+        if (niebla) niebla.classList.add('hidden');
       }
       window.LW_V4.abrirDetalleUnidad = abrirDetalleUnidad;
       var cajaUnidadesClic = document.getElementById('d-unidades');
