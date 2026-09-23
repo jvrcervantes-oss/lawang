@@ -38,6 +38,24 @@
    la escalera vive entera en este fichero o no es una escalera. */
 #cajon-backdrop,#cajon-detalle{z-index:var(--z-cajon)}
 
+/* ═══ CON UN CAJON ABIERTO, LA PAGINA DE FONDO NO SE MUEVE (23-sep-2026) ═══
+   Owner: «cuando tengo el cajon lateral abierto, si hago scroll se mueve la
+   pagina de fondo». La rueda sobre el velo —o al llegar al final del cuerpo
+   del cajon— la recogia el documento. Se bloquea aqui, en CSS y en un solo
+   sitio, porque cajones hay varios y nacen de sitios distintos: la ficha
+   (`#lw-cajon`, editores.js), el editor (`#lw-editor`, mismo fichero), el de
+   proyecto (`#cajon-detalle`, abierto = sin `translate-x-full`), la vista
+   previa de /comunicacion/, los dialogos de dialogo.js y la navegacion movil.
+   Con `:has()` el bloqueo sigue a la pieza viva en el DOM: no hay un «quitar
+   el bloqueo» que un camino de cierre pueda olvidarse. `scrollbar-gutter`
+   guarda el hueco de la barra para que el contenido no salte de ancho. */
+html:has(#lw-cajon),
+html:has(#lw-editor),
+html:has(#cajon-detalle:not(.translate-x-full)),
+html:has(#lw-com-previa-caja:not([hidden])),
+html:has(.lw-dlg-fondo.abierto),
+html:has(body.v4-nav-abierta){overflow:hidden;scrollbar-gutter:stable}
+
 /* ---------- aviso: el de la suite, con la piel de la v4 ----------
    La v4 tenia DOS toasts propios —uno aqui y otro dentro de editores.js— y la
    suite viva ya tenia el suyo resuelto en `contracts/assets/suite-comun.js`
