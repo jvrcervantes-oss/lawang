@@ -6634,6 +6634,12 @@
            id y busca la etiqueta aquí. */
         window.LW_V4 = window.LW_V4 || {};
         window.LW_V4.comisionesPorId = {};
+        /* «MIS COMISIONES» (23-sep-2026, paso 3 del plan del owner): el closer —
+           ni admin ni manager de ningún equipo— ve sus totales, qué condición
+           se le aplica y quién le paga. La base ya solo le da sus filas; las
+           columnas «Closer» y «Equipo» sobran (serían siempre él y su equipo). */
+        if (opts.soloEquipo && !esAdminSesion && !miEquipoIds.length) pintaMio(cd, eqs, miembros);
+
         tablaEq.innerHTML = cd.slice(0, 150).map(function (x) {
           var email = x.beneficiario_email || '';
           var u = porEmail[email.toLowerCase()];
@@ -6674,6 +6680,84 @@
         }).join('');
 
         cablearFiltrosEquipo();
+      }
+
+      function pintaMio(cd, eqs, miembros) {
+        if (document.getElementById('lw-mis-comisiones')) return;
+        var hoyISO = new Date().toISOString().slice(0, 10);
+        var yo = ((window.LW_V4 && window.LW_V4.miEmail) || '').toLowerCase();
+        var anio = new Date().getFullYear();
+        function sumaPorMoneda(filas) {
+          var m = {};
+          filas.forEach(function (x) {
+            var v = x.importe_ajustado != null ? x.importe_ajustado : x.importe;
+            var k = x.moneda || 'EUR'; m[k] = (m[k] || 0) + (Number(v) || 0);
+          });
+          var ks = Object.keys(m).sort();
+          return ks.length ? ks.map(function (k) { return fmt(m[k], k); }).join(' · ') : fmt(0, 'EUR');
+        }
+        var pendientes = cd.filter(function (x) { return x.estado === 'pendiente'; });
+        var cobradas = cd.filter(function (x) { return x.estado === 'pagada' && x.pagado_en && new Date(x.pagado_en).getFullYear() === anio; });
+        // su equipo hoy y quién lo dirige (le paga el manager, no Lawang)
+        var eqHoy = null;
+        miembros.forEach(function (em) {
+          if ((em.closer_email || '').toLowerCase() === yo && miembroActivo(em, hoyISO)) {
+            eqHoy = eqs.filter(function (e) { return e.id === em.equipo_id; })[0] || eqHoy;
+          }
+        });
+        var manager = eqHoy && eqHoy.manager_email ? (porEmail[eqHoy.manager_email.toLowerCase()] || {}).nombre || eqHoy.manager_email : '';
+
+        var caja = document.createElement('section');
+        caja.id = 'lw-mis-comisiones';
+        caja.className = 'flex flex-col gap-4';
+        var kpi = function (t, v, pie) {
+          return '<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col gap-1">' +
+            '<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold">' + esc(t) + '</span>' +
+            '<span class="font-kpi-number text-[26px] text-volcanic-ash">' + esc(v) + '</span>' +
+            '<span class="font-body-sm text-body-sm text-outline" data-lw-mio-pie>' + esc(pie) + '</span></div>';
+        };
+        caja.innerHTML =
+          '<p class="font-body-md text-body-md text-on-surface-variant">' +
+            (eqHoy ? 'Estás en el equipo <b class="text-on-surface">' + esc(eqHoy.nombre) + '</b>' + (manager ? '. Te paga <b class="text-on-surface">' + esc(manager) + '</b>, tu manager — no Lawang.' : '.')
+                   : 'Ahora mismo no estás en ningún equipo de venta.') + '</p>' +
+          '<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">' +
+            kpi('Pendiente de cobrar', sumaPorMoneda(pendientes), pendientes.length === 1 ? '1 comisión' : pendientes.length + ' comisiones') +
+            kpi('Cobrado este año', sumaPorMoneda(cobradas), cobradas.length === 1 ? '1 pago' : cobradas.length + ' pagos') +
+            '<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col gap-1" id="lw-mi-condicion">' +
+              '<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold">Tu condición</span>' +
+              '<span class="font-body-md text-body-md text-outline">Trayendo…</span></div>' +
+          '</div>';
+        var barra = document.getElementById('lw-eq-buscar');
+        var ancla = barra && barra.closest('[data-lw-panel] > div');
+        if (ancla && ancla.parentNode) ancla.parentNode.insertBefore(caja, ancla); else if (tablaEq) tablaEq.closest('section, div').before(caja);
+
+        // columnas «Closer» y «Equipo» y el selector de equipos: sobran
+        var st = document.createElement('style');
+        st.textContent = '#lw-eq-equipo{display:none!important}' +
+          'table:has(#lw-filas-equipo) th:nth-child(-n+2),#lw-filas-equipo td:nth-child(-n+2){display:none}';
+        document.head.appendChild(st);
+
+        // su condición: la base solo le deja leer las que le aplican
+        Promise.all([
+          sb.from('condiciones_comision').select('proyecto_id,closer_email,pct_comision,importe_fijo,base_calculo,activo,equipo_id,nivel').eq('activo', true).eq('nivel', 'closer'),
+          sb.from('proyectos').select('id,nombre')
+        ]).then(function (rr) {
+          var conds = (rr[0] && rr[0].data) || [];
+          var nomP = {}; ((rr[1] && rr[1].data) || []).forEach(function (x) { nomP[x.id] = x.nombre; });
+          var el = document.getElementById('lw-mi-condicion');
+          if (!el) return;
+          if (rr[0] && rr[0].error) { el.lastChild.textContent = 'No se ha podido leer tu condición.'; return; }
+          if (!conds.length) { el.lastChild.textContent = 'Sin condición activa: pregunta a tu manager.'; return; }
+          var BASES = { precio_total: 'precio total', precio_suelo: 'precio de suelo', precio_construccion: 'precio de construcción' };
+          var txt = function (c) {
+            var v = c.importe_fijo != null ? fmt(c.importe_fijo, 'EUR') + ' fijos' : String(c.pct_comision).replace('.', ',') + ' % del ' + (BASES[c.base_calculo] || 'precio');
+            return v + (c.proyecto_id ? ' en ' + (nomP[c.proyecto_id] || 'un proyecto') : ' en todos los proyectos') + (c.closer_email ? ' (solo para ti)' : '');
+          };
+          // primero las personales y las de todos los proyectos
+          conds.sort(function (a, b) { return (b.closer_email ? 1 : 0) - (a.closer_email ? 1 : 0) || (a.proyecto_id ? 1 : 0) - (b.proyecto_id ? 1 : 0); });
+          el.lastChild.outerHTML = '<ul class="font-body-md text-body-md text-on-surface" style="margin:0;padding-left:18px">' +
+            conds.slice(0, 6).map(function (c) { return '<li>' + esc(txt(c)) + '</li>'; }).join('') + '</ul>';
+        });
       }
 
       /* ---------- filtro de la pestaña «Reparto de equipo» ----------
