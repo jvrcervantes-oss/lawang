@@ -183,6 +183,9 @@
     { path: 'cuentas',       icono: 'account_balance', texto: 'Cuentas' },
     { path: 'equipos-venta', icono: 'groups',           texto: 'Equipos de venta' },
     { path: 'condiciones',   icono: 'percent',          texto: 'Condiciones' },
+    /* Reparto de equipo (23-sep-2026, owner): lo generado para cada closer y qué
+       ha pagado el manager. Pantalla propia para el panel «Mi equipo». */
+    { path: 'reparto',       icono: 'payments',         texto: 'Reparto de equipo' },
     /* Ajustes (22-sep-2026, owner: «en el panel de control podemos controlar
        los días de gracia, las prórrogas, los techos, todo lo configurable»):
        la tabla `parametros`. Lo ve cualquier admin; escribir exige super admin
@@ -206,7 +209,7 @@
      `data-rol="admin sales_manager"` y la de los datos, la base (RPC
      equipo_miembro_* y policies «el manager configura a sus closers»).
      catalogo.test exige que cada una de estas páginas nombre sales_manager. */
-  var PANEL_MANAGER = ['equipos-venta', 'condiciones'];
+  var PANEL_MANAGER = ['equipos-venta', 'condiciones', 'reparto'];
 
   var PANEL_CONTROL_SUPER = [
     { path: 'comision-admin', icono: 'price_change',      texto: 'Comisión de administración' },

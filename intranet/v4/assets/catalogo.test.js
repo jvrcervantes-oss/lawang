@@ -76,7 +76,7 @@ for (const d of fs.readdirSync(V4, { withFileTypes: true })) {
 /* 23-sep-2026, misma tarde, el owner la amplía: «los sales manager deben tener
    acceso a dar de alta su equipo de ventas + condiciones a ellos». Sigue fijada:
    ahora es «admin sales_manager», y solo el owner la cambia. */
-const PUERTA_FIJA = { condiciones: 'admin sales_manager', 'equipos-venta': 'admin sales_manager' };
+const PUERTA_FIJA = { condiciones: 'admin sales_manager', 'equipos-venta': 'admin sales_manager', reparto: 'admin sales_manager' };
 Object.keys(PUERTA_FIJA).forEach(p => {
   const f = path.join(V4, p, 'index.html');
   const g = fs.existsSync(f) && fs.readFileSync(f, 'utf8').match(/<script[^>]+guard\.js[^>]*>/);

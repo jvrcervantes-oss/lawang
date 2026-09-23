@@ -7771,6 +7771,8 @@
   function arranca() {
     if (!window.LW_AUTH) return;
     window.LW_AUTH.then(function (aut) {
+      // «Reparto de equipo» (panel «Mi equipo») usa el editor de Comisiones: marcar pagada, ajustar, anular
+      if (!ED.reparto) ED.reparto = ED.comisiones;
       var fn = ED[seg];
       /* MUDO A PROPOSITO: si el editor de UNA seccion revienta al montarse, el
          resto de la pagina (listado, barra, navegacion) tiene que seguir en pie

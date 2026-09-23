@@ -6087,7 +6087,11 @@
 
   function miembroActivo(em, hoyISO) { return em.desde <= hoyISO && (!em.hasta || em.hasta >= hoyISO); }
 
-  REG.comisiones = function (sb) {
+  /* `opts.soloEquipo`: la pantalla «Reparto de equipo» del panel «Mi equipo»
+     (intranet/v4/reparto/, 23-sep-2026) — la misma pestaña, sin «A Lawang»:
+     no se consulta solicitudes_pago. */
+  REG.comisiones = function (sb, opts) {
+    opts = opts || {};
     var tabla = document.getElementById('lw-filas');
     var caja = tabla ? tabla.closest('section') : null;
     var tablaEq = document.getElementById('lw-filas-equipo');
@@ -6097,7 +6101,7 @@
       /* `id` y los campos de la ficha (vence_el, nota, resolución…): sin `id` cada fila
          salía con data-id="" y el clic no abría nada — no se podía editar ninguna
          (23-sep-2026). */
-      q(sb.from('solicitudes_pago').select('id,numero,concepto,importe,moneda,vence_el,nota,estado,motivo_rechazo,pago_referencia,creado_en,creado_por,resuelto_por,resuelto_en,pagado_por,pagado_en,beneficiario_email,origen,contrato_id,importe_editado_por,motivo_ajuste').order('creado_en', { ascending: false }), 'solicitudes de pago', caja),
+      opts.soloEquipo ? Promise.resolve(null) : q(sb.from('solicitudes_pago').select('id,numero,concepto,importe,moneda,vence_el,nota,estado,motivo_rechazo,pago_referencia,creado_en,creado_por,resuelto_por,resuelto_en,pagado_por,pagado_en,beneficiario_email,origen,contrato_id,importe_editado_por,motivo_ajuste').order('creado_en', { ascending: false }), 'solicitudes de pago', caja),
       q(sb.from('contratos').select('id,numero,tipo,proyecto_nombre,contrato_padre_id'), 'contratos'),
       /* Si la RLS de `usuarios` solo deja leer la propia ficha, el mapa se queda
          corto y el fallback pinta «—»: no es un fallo, es lo que esa sesion ve. */
@@ -7605,6 +7609,8 @@
       if (buscar) buscar.addEventListener('input', pinta);
     });
   };
+
+  REG.reparto = function (sb) { return REG.comisiones(sb, { soloEquipo: true }); };
 
   REG['ajustes'] = function (sb) {
     if (!(window.LW_V4 && window.LW_V4.esAdmin)) { notaSoloAdmin(); return; }
