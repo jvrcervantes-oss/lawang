@@ -163,6 +163,8 @@
   @keyframes lwDestello{0%,30%{background:rgba(72,91,55,.32)}100%{background:rgba(143,155,122,.16)}}
   .lw-plano-activo{background:rgba(16,76,79,.55)!important}
   /* Seccion activa del menu (T3): la pinta el scroll-spy del script del final. */
+  /* Selectores de idioma/divisa a 40px de alto en tactil (revision responsive 23-sep). */
+  @media (max-width:1023px){ header .lw-lang__btn{min-height:40px} }  /* header+clase: la hoja que inyecta el selector llega despues con min-height:24px */
   /* Menu: misma micro-animacion que /modelo (pildora que entra con scale+fade, texto sube 1px). */
   .nav__pill{position:relative;isolation:isolate;transition:color .18s ease,transform .18s ease}
   .nav__pill::before{content:'';position:absolute;inset:0;border-radius:999px;background:#104c4f;
@@ -194,7 +196,7 @@
 <header class="fixed top-0 left-0 right-0 z-50 bg-raw-linen border-b border-stone-sand">
   <div class="h-20 w-full px-4 md:px-margin-desktop flex items-center justify-between gap-4">
     <div class="flex items-center gap-5 shrink-0">
-      <a class="flex items-center" href="#vision" aria-label="Lawang Properties — Palm Field">
+      <a class="flex items-center py-2" href="#vision" aria-label="Lawang Properties — Palm Field">
         <img src="../../../assets/img/lawang-logo-v3-dark.webp" alt="Lawang" class="h-5 sm:h-6 md:h-8 w-auto">
       </a>
       <div class="h-8 w-px bg-stone-sand hidden 2xl:block"></div>
@@ -356,10 +358,10 @@
 
       <div class="flex flex-wrap gap-2 pt-1 border-t border-control-border/25">
         <span class="font-body-sm text-xs text-on-surface-variant w-full pt-2">The full detail, further down:</span>
-        <a class="px-3 py-1.5 rounded-full bg-surface-container-low hover:bg-deep-lagoon hover:text-white text-deep-lagoon text-xs font-label-md font-semibold transition-all border border-control-border/25" href="#modelos">Villa Models</a>
-        <a class="px-3 py-1.5 rounded-full bg-surface-container-low hover:bg-deep-lagoon hover:text-white text-deep-lagoon text-xs font-label-md font-semibold transition-all border border-control-border/25" href="#masterplan">Masterplan &amp; Plots</a>
-        <a class="px-3 py-1.5 rounded-full bg-surface-container-low hover:bg-deep-lagoon hover:text-white text-deep-lagoon text-xs font-label-md font-semibold transition-all border border-control-border/25" href="#rendimientos">Financial Forecast</a>
-        <a class="px-3 py-1.5 rounded-full bg-surface-container-low hover:bg-deep-lagoon hover:text-white text-deep-lagoon text-xs font-label-md font-semibold transition-all border border-control-border/25" href="#seguridad-notarial">Legal Security</a>
+        <a class="px-3 py-2.5 lg:py-1.5 rounded-full bg-surface-container-low hover:bg-deep-lagoon hover:text-white text-deep-lagoon text-xs font-label-md font-semibold transition-all border border-control-border/25" href="#modelos">Villa Models</a>
+        <a class="px-3 py-2.5 lg:py-1.5 rounded-full bg-surface-container-low hover:bg-deep-lagoon hover:text-white text-deep-lagoon text-xs font-label-md font-semibold transition-all border border-control-border/25" href="#masterplan">Masterplan &amp; Plots</a>
+        <a class="px-3 py-2.5 lg:py-1.5 rounded-full bg-surface-container-low hover:bg-deep-lagoon hover:text-white text-deep-lagoon text-xs font-label-md font-semibold transition-all border border-control-border/25" href="#rendimientos">Financial Forecast</a>
+        <a class="px-3 py-2.5 lg:py-1.5 rounded-full bg-surface-container-low hover:bg-deep-lagoon hover:text-white text-deep-lagoon text-xs font-label-md font-semibold transition-all border border-control-border/25" href="#seguridad-notarial">Legal Security</a>
       </div>
     </div>
   </aside>
@@ -579,7 +581,7 @@
 <footer data-lw-pie data-wa="https://wa.me/6281138319862">
   <span data-pie-nota>This page does not replace legal or financial advice. Nothing here is an offer to sell securities or a solicitation of investment.</span>
 </footer>
-<script src="../../../assets/lawang-pie.js?v=20260923093252"></script>
+<script src="../../../assets/lawang-pie.js?v=20260923153722"></script>
 
 <!-- MODAL DE RESERVA (sin cambios funcionales respecto a la version anterior; solo
      clases/colores Tesla-style — ids, name, type, autocomplete intactos porque el

@@ -431,6 +431,19 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 #lw-topbar .border-l{border-color:#beb3a5}
 #lw-topbar .lw-meta{background:rgba(190,179,165,.2);border-color:#beb3a5}
 
+/* ── Responsive (23-sep-2026, revision en 360/390/768): el logo se aplastaba en movil (el <img>
+   encogia de ancho por flex con la altura fija: 79x32 en vez de ~172x24). Por debajo de 640px
+   se oculta el "From" de la barra (el precio ya sale en el panel del configurador) para que
+   quepan logo + idioma/divisa. Selectores de idioma/divisa a 40px de alto (tactil) y el boton
+   "Back to configurator" en una linea. ──────────────────────────────────────────────── */
+#lw-topbar img{flex:none;width:auto}
+@media (max-width:639px){
+  #lw-topbar img{height:24px}
+  #lw-topbar div.border-l{display:none}
+}
+@media (max-width:1023px){ header .lw-lang__btn{min-height:40px} }  /* header+clase: la hoja que inyecta el selector llega despues con min-height:24px */
+#section-collection > div > div:first-child > a{white-space:nowrap}
+
 /* ── Colores de los bloques (23-sep-2026, owner eligio H3/Y3/R3/I3/C2 de la comparativa
    con la paleta Lawang): H3 cabecera del panel en Territorial green · Y3 tarjeta del contrato
    EPC destacada en Territorial green · R3 cuerpo de cada cubierta en el color de su precio ·
@@ -1069,7 +1082,7 @@ foreach ($incluido as $it):
      data-cookies: esta pagina SI carga consent.js; el manejador de #lw-cookies sigue
      mas abajo, en el script inline (este JS va antes, sin defer, a proposito). -->
 <footer data-lw-pie data-cookies data-wa="<?= lw_e($WA_LINK) ?>"></footer>
-<script src="/assets/lawang-pie.js?v=20260923093252"></script>
+<script src="/assets/lawang-pie.js?v=20260923153722"></script>
 
 <!-- consent.js: gate del banner de cookies Y de window.lwTrack/Meta Pixel — SIN esto,
      track('ViewContent') de mas abajo comprueba `typeof window.lwTrack==='function'`,

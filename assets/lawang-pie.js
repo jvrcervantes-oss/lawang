@@ -81,10 +81,12 @@
     '.lwpie__wa:hover{filter:brightness(.95);transform:translateY(-1px)}' +
     '.lwpie__wa svg{width:20px;height:20px;flex:none}' +
     '.lwpie__wa small{display:block;font-weight:500;font-size:11px;opacity:.8;line-height:1.2}' +
-    '.lwpie__lista{flex:1 1 140px;min-width:0}.lwpie__lista a{display:block;font-weight:600;color:#104C4F;overflow-wrap:anywhere}' +
+    // 180px y sin overflow-wrap:anywhere: a 390px el email se partia en "...properties.c / om"
+    // (revision responsive 23-sep). Si no caben dos columnas, cada lista va a su fila.
+    '.lwpie__lista{flex:1 1 180px;min-width:0}.lwpie__lista a{display:block;font-weight:600;color:#104C4F;padding:4px 0}' +
     '.lwpie__wa{flex:1 1 100%;justify-content:center}' +
     '.lwpie__bar{margin-top:20px;padding-top:14px;border-top:1px solid rgba(68,72,63,.15);display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;justify-content:space-between;font-size:11.5px;color:rgba(68,72,63,.85)}' +
-    '.lwpie__bar nav{display:flex;flex-wrap:wrap;gap:6px 16px}' +
+    '.lwpie__bar nav{display:flex;flex-wrap:wrap;gap:6px 16px}.lwpie__bar nav a{display:inline-block;padding:10px 0}' +
     '.lwpie__nota{flex-basis:100%;order:3;font-size:11px;line-height:1.5}' +
     '@media(min-width:900px){.lwpie{padding:28px 48px 28px}' +
       '.lwpie__top{grid-template-columns:minmax(0,1fr) auto}' +
