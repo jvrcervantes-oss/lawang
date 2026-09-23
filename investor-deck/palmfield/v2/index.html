@@ -93,7 +93,7 @@
      las clases contra el build antes de escribir, no ir tapando huecos sobre la marcha
      — se hizo (163 de 285 clases de la ficha viva no estaban en el build congelado de
      /modelo/, por eso este es un build nuevo y no una extensión a mano). -->
-<link rel="stylesheet" href="v2.min.css?v=1">
+<link rel="stylesheet" href="v2.min.css?v=20260923a">
 <style>
   /* Display de marca: Neue Kabel, los mismos ficheros que sirve la home.
      brand.css la fija como unica fuente (The Seasons eliminada) y el owner
@@ -105,6 +105,7 @@
   @font-face{font-family:'Neue Kabel';src:url('../../../assets/fonts/NeueKabel-Bold.otf') format('opentype');font-weight:700;font-style:normal;font-display:swap}
   @layer base {
     html, body { margin: 0; padding: 0; }
+    html { scroll-padding-top: 80px; }  /* las anclas no quedan bajo la cabecera fija de 72px */
     body { overscroll-behavior: none; }
     main > :first-child { margin-top: 0 !important; }
   }
@@ -146,7 +147,9 @@
      a pantalla completa, detras de todo) y el panel a absolute, flotando encima
      como una tarjeta -- nunca columna lado a lado. */
   #vision{height:auto}
-  #hero-visual{position:relative;inset:auto;width:100%;height:52vh;min-height:380px}
+  /* 60vh/460px (antes 52vh/380px): desde el 22-sep el titulo lleva debajo las cuatro
+     cifras de cabecera y en 375px no cabian sobre la foto. */
+  #hero-visual{position:relative;inset:auto;width:100%;height:60vh;min-height:460px}
   #vision aside{position:relative;top:auto;right:auto;bottom:auto;left:auto;
     width:100%;height:auto;max-height:none;margin:0;border-radius:0}
   @media (min-width:1024px){
@@ -154,9 +157,16 @@
     #hero-visual{position:absolute;inset:0;width:100%;height:100%}
     /* 40% del ancho total del hero, pedido del owner -- % y no px fijos, para
        que escale con la ventana en vez de saltar por breakpoints. */
-    #vision aside{position:absolute;top:2rem;right:2rem;bottom:2rem;left:auto;
+    /* bottom:auto (22-sep): el panel se ajusta a su contenido; con pestañas, la de
+       documentos es corta y un panel de alto fijo dejaba media tarjeta vacia. */
+    #vision aside{position:absolute;top:2rem;right:2rem;bottom:auto;left:auto;
       width:40%;min-width:380px;height:auto;max-height:calc(100% - 4rem);margin:0;border-radius:1rem}
   }
+  /* Parcela elegida en el plano (22-sep): fila marcada + destello, poligono resaltado */
+  .lw-fila-activa{background:rgba(143,155,122,.16)}
+  .lw-destello{animation:lwDestello 2s ease-out}
+  @keyframes lwDestello{0%,30%{background:rgba(72,91,55,.32)}100%{background:rgba(143,155,122,.16)}}
+  .lw-plano-activo{background:rgba(16,76,79,.55)!important}
   .faq-item{border:1px solid #e4e2dd;border-radius:16px;background:#fbf9f4;overflow:hidden}
   .faq-item + .faq-item{margin-top:14px}
   .faq-item summary{list-style:none;cursor:pointer;padding:20px;display:flex;
@@ -168,17 +178,17 @@
   .faq-item__body{padding:0 20px 20px;border-top:1px solid rgba(228,226,221,.6);
     padding-top:12px;font-family:'Jost',sans-serif;font-size:13.5px;line-height:1.6;color:#44483f}
 </style>
-<script src="i18n.js?v=20260914_docs2"></script>
+<script src="i18n.js?v=20260923a"></script>
 </head>
 <body class="bg-surface font-body-md text-body-md text-on-surface antialiased selection:bg-soft-canopy selection:text-surface-container-lowest">
 
 <!-- TOP BAR -->
 <header class="fixed top-0 left-0 right-0 z-50 bg-deep-lagoon shadow-[0_2px_16px_rgba(0,0,0,0.18)]">
-  <div class="h-[72px] w-full px-6 md:px-margin-desktop flex items-center justify-between gap-4">
+  <div class="h-[72px] w-full px-4 sm:px-6 md:px-margin-desktop flex items-center justify-between gap-3 sm:gap-4">
     <a class="flex items-center min-w-0 shrink-0" href="#vision" aria-label="Lawang Properties — Palm Field">
-      <img src="../../../assets/img/lawang-logo-v3.webp" alt="Lawang" class="h-6 md:h-8 w-auto">
+      <img src="../../../assets/img/lawang-logo-v3.webp" alt="Lawang" class="h-5 sm:h-6 md:h-8 w-auto">
     </a>
-    <nav class="hidden xl:flex items-center gap-1 bg-white/10 p-1.5 rounded-full border border-white/15">
+    <nav id="nav-principal" class="hidden xl:flex items-center gap-1 bg-white/10 p-1.5 rounded-full border border-white/15">
       <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-white/85 hover:text-deep-lagoon hover:bg-white transition-all" href="#vision">Project &amp; Photos</a>
       <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-white/85 hover:text-deep-lagoon hover:bg-white transition-all" href="#modelos">Villa Models</a>
       <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-white/85 hover:text-deep-lagoon hover:bg-white transition-all" href="#masterplan">Masterplan &amp; Plots</a>
@@ -186,23 +196,35 @@
       <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-white/85 hover:text-deep-lagoon hover:bg-white transition-all" href="#seguridad-notarial">Legal Security</a>
       <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-white/85 hover:text-deep-lagoon hover:bg-white transition-all" href="#faq">FAQ</a>
     </nav>
-    <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+    <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
       <div class="flex items-center gap-1" id="deck-selectores" data-no-i18n
            style="--lw-lang-ink:rgba(255,255,255,.92);--lw-lang-bg:#0c3c3f;--lw-lang-line:rgba(255,255,255,.18);--lw-lang-menu-ink:#F5F0E6;--lw-lang-hover:rgba(255,255,255,.12)"></div>
       <!-- Nace OCULTO a proposito: solo se enciende si el proyecto tiene un documento
            marcado como publico en la intranet. Un boton "Descargar" que no descarga nada
            es peor que no tenerlo. -->
-      <a id="cta-dosier" class="hidden items-center gap-2 px-4 sm:px-5 py-2.5 rounded-full bg-white text-deep-lagoon font-label-md text-label-md hover:bg-soft-canopy hover:text-white transition-all shadow-sm whitespace-nowrap" href="#" target="_blank" rel="noopener">
+      <a id="cta-dosier" aria-label="Download dossier" class="hidden max-sm:!hidden items-center gap-2 px-3 sm:px-5 py-2.5 rounded-full bg-white text-deep-lagoon font-label-md text-label-md hover:bg-soft-canopy hover:text-white transition-all shadow-sm whitespace-nowrap" href="#" target="_blank" rel="noopener">
         <span class="material-symbols-outlined text-[17px]">download</span>
-        <span class="hidden sm:inline">Download dossier</span><span class="sm:hidden">Dossier</span>
+        <span class="hidden sm:inline">Download dossier</span>
       </a>
-      <a id="cta-whatsapp" class="inline-flex items-center gap-2 px-3.5 sm:px-5 py-2.5 rounded-full bg-[#25D366] text-[#0b3d25] font-label-md text-label-md hover:brightness-95 transition-all shadow-sm whitespace-nowrap" href="https://wa.me/6281138319862?text=Hello%20LAWANG%2C%20I%27m%20looking%20at%20the%20Palm%20Field%20investor%20deck%20and%20I%20have%20a%20few%20questions." target="_blank" rel="noopener" aria-label="Ask about Palm Field on WhatsApp"><span class="hidden" data-wa-msg>Hello LAWANG, I’m looking at the Palm Field investor deck and I have a few questions.</span>
-        <svg viewBox="0 0 24 24" class="w-[17px] h-[17px] shrink-0" fill="currentColor" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.22 3.08.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.04 21.5h-.01a9.5 9.5 0 0 1-4.84-1.33l-.35-.2-3.6.94.96-3.51-.23-.36a9.49 9.49 0 0 1-1.45-5.05c0-5.24 4.27-9.5 9.52-9.5a9.46 9.46 0 0 1 9.51 9.51c0 5.24-4.27 9.5-9.51 9.5zM20.52 3.49A11.78 11.78 0 0 0 12.04 0C5.46 0 .1 5.36.1 11.94c0 2.1.55 4.16 1.6 5.98L0 24l6.25-1.64a11.92 11.92 0 0 0 5.79 1.47h.01c6.58 0 11.94-5.36 11.94-11.94a11.86 11.86 0 0 0-3.47-8.4z"/></svg>
-        <span class="hidden sm:inline">Questions? WhatsApp</span><span class="sm:hidden">WhatsApp</span>
-      </a>
+      <button type="button" id="menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="menu-movil"
+        class="xl:hidden inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/10 border border-white/15 text-white hover:bg-white/20 transition-all">
+        <span class="material-symbols-outlined text-[22px]" id="menu-ico">menu</span>
+      </button>
     </div>
   </div>
+  <!-- Menu por debajo de 1280px (22-sep, pedido del owner: "si se achata desaparece").
+       Lo llena el JS clonando los enlaces de #nav-principal: una sola lista de
+       secciones, no una segunda copia a mano que diverja. -->
+  <nav id="menu-movil" class="hidden xl:hidden flex-col gap-1 px-6 md:px-margin-desktop pb-5 pt-1 bg-deep-lagoon border-t border-white/10"></nav>
 </header>
+
+<!-- WhatsApp flotante: sigue al visitante por toda la pagina (22-sep, pedido del
+     owner). Antes vivia en la cabecera y en movil se salia del viewport. El id
+     se conserva: la IIFE del final arma el ?text= traducido desde [data-wa-msg]. -->
+<a id="cta-whatsapp" class="fixed bottom-5 right-5 z-40 inline-flex items-center gap-2 h-14 min-w-14 px-4 lg:px-5 rounded-full bg-[#25D366] text-[#0b3d25] font-label-md text-label-md font-semibold shadow-[0_8px_24px_rgba(0,0,0,0.25)] hover:brightness-95 hover:-translate-y-0.5 transition-all whitespace-nowrap" href="https://wa.me/6281138319862?text=Hello%20LAWANG%2C%20I%27m%20looking%20at%20the%20Palm%20Field%20investor%20deck%20and%20I%20have%20a%20few%20questions." target="_blank" rel="noopener" aria-label="Ask about Palm Field on WhatsApp"><span class="hidden" data-wa-msg>Hello LAWANG, I’m looking at the Palm Field investor deck and I have a few questions.</span>
+  <svg viewBox="0 0 24 24" class="w-6 h-6 shrink-0" fill="currentColor" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.22 3.08.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.04 21.5h-.01a9.5 9.5 0 0 1-4.84-1.33l-.35-.2-3.6.94.96-3.51-.23-.36a9.49 9.49 0 0 1-1.45-5.05c0-5.24 4.27-9.5 9.52-9.5a9.46 9.46 0 0 1 9.51 9.51c0 5.24-4.27 9.5-9.51 9.5zM20.52 3.49A11.78 11.78 0 0 0 12.04 0C5.46 0 .1 5.36.1 11.94c0 2.1.55 4.16 1.6 5.98L0 24l6.25-1.64a11.92 11.92 0 0 0 5.79 1.47h.01c6.58 0 11.94-5.36 11.94-11.94a11.86 11.86 0 0 0-3.47-8.4z"/></svg>
+  <span class="hidden lg:inline">Questions? WhatsApp</span>
+</a>
 
 <main class="w-full pt-[72px] bg-surface min-h-[calc(100vh-72px)]">
 <div class="flex flex-col w-full">
@@ -230,10 +252,19 @@
       class="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 items-center justify-center rounded-full glass-panel shadow-md text-volcanic-ash hover:bg-white transition-all disabled:opacity-0 disabled:pointer-events-none">
       <span class="material-symbols-outlined text-[20px]">chevron_right</span></button>
 
-    <!-- Nombre del proyecto, a la izquierda de la foto -->
-    <div class="absolute left-6 md:left-12 bottom-14 md:bottom-20 z-10 max-w-xl pr-20 md:pr-0">
+    <!-- Nombre del proyecto a la izquierda de la foto, y debajo las cuatro cifras de
+         cabecera (22-sep, pedido del owner: salen del panel, que se queda para los
+         papeles). Cifras confirmadas reales por el owner el 10-sep (ver ficha viva).
+         Ancho: calc(60% - 5rem) desde lg para no meterse nunca bajo el panel del 40%. -->
+    <div class="absolute left-6 right-6 md:left-12 md:right-auto bottom-12 md:bottom-16 z-10 md:max-w-xl lg:max-w-[calc(60%-5rem)]">
       <h1 class="text-white font-headline-lg text-[34px] md:text-[54px] leading-[1.02] font-bold tracking-tight uppercase">Palm Field</h1>
       <p class="text-white/85 font-body-lg text-lg md:text-xl italic font-light mt-1">by Lawang Properties</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4 md:mt-5">
+        <div class="bg-black/35 backdrop-blur-md px-3 py-2 rounded-xl border border-white/15 flex flex-col"><span class="text-[9px] text-white/70 uppercase tracking-wider">Land Managed</span><span class="font-kpi-number text-sm text-white font-bold whitespace-nowrap">500.000+ m²</span></div>
+        <div class="bg-black/35 backdrop-blur-md px-3 py-2 rounded-xl border border-white/15 flex flex-col"><span class="text-[9px] text-white/70 uppercase tracking-wider">Track Record</span><span class="font-kpi-number text-sm text-white font-bold whitespace-nowrap">6+ Years</span></div>
+        <div class="bg-black/35 backdrop-blur-md px-3 py-2 rounded-xl border border-white/15 flex flex-col"><span class="text-[9px] text-white/70 uppercase tracking-wider">Investors</span><span class="font-kpi-number text-sm text-white font-bold whitespace-nowrap">100+</span></div>
+        <div class="bg-territorial-green/70 backdrop-blur-md px-3 py-2 rounded-xl border border-white/20 flex flex-col"><span class="text-[9px] text-white/80 uppercase tracking-wider font-semibold">Permits</span><span class="font-kpi-number text-sm text-white font-bold whitespace-nowrap">100% PBG &amp; SLF</span></div>
+      </div>
     </div>
 
     <div id="hero-puntos" class="absolute left-6 md:left-12 bottom-6 z-10 flex gap-1.5"></div>
@@ -248,11 +279,16 @@
         A land-plot development in the <span class="italic font-light text-territorial-green">Balian river valley.</span>
       </h2>
       <p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Held under <b>Hak Sewa</b> with a notarial escrow account — not a security or investment product.</p>
-      <div class="grid grid-cols-2 gap-2 pt-1">
-        <div class="bg-surface-container/70 p-2 rounded-xl border border-surface-container-highest/50 flex flex-col"><span class="text-[9px] text-on-surface-variant uppercase tracking-wider">Land Managed</span><span class="font-kpi-number text-sm text-on-surface font-bold">500.000+ m²</span></div>
-        <div class="bg-surface-container/70 p-2 rounded-xl border border-surface-container-highest/50 flex flex-col"><span class="text-[9px] text-on-surface-variant uppercase tracking-wider">Track Record</span><span class="font-kpi-number text-sm text-on-surface font-bold">6+ Years</span></div>
-        <div class="bg-surface-container/70 p-2 rounded-xl border border-surface-container-highest/50 flex flex-col"><span class="text-[9px] text-on-surface-variant uppercase tracking-wider">Investors</span><span class="font-kpi-number text-sm text-on-surface font-bold">100+</span></div>
-        <div class="bg-primary/10 p-2 rounded-xl border border-primary/20 flex flex-col"><span class="text-[9px] text-primary uppercase tracking-wider font-semibold">Permits</span><span class="font-kpi-number text-sm text-territorial-green font-bold">100% PBG &amp; SLF</span></div>
+      <!-- Pestañas Documentos / FAQ (22-sep, pedido del owner: "separamos en 2
+           secciones por pestañas"). Nace SOLO con FAQ: la de Documentos la enciende
+           pintaDocs() si el proyecto tiene algo publicado -- una pestaña que abre un
+           hueco vacio es peor que no tenerla. Con documentos, se abre esa primero
+           (decision del 14-sep: el panel abre con los papeles). -->
+      <div role="tablist" aria-label="Documentation & FAQ" class="flex gap-1 bg-surface-container/80 p-1 rounded-full border border-surface-container-highest/60 mt-1 self-start">
+        <button type="button" role="tab" id="tab-docs" aria-controls="docs-bloque" aria-selected="false" data-tab="docs"
+          class="hidden px-4 py-1.5 rounded-full font-label-md text-xs font-semibold transition-all">Documents</button>
+        <button type="button" role="tab" id="tab-faq" aria-controls="faq-bloque" aria-selected="true" data-tab="faq"
+          class="px-4 py-1.5 rounded-full font-label-md text-xs font-semibold transition-all bg-deep-lagoon text-white shadow-sm">FAQ</button>
       </div>
     </div>
 
@@ -268,9 +304,8 @@
            son afirmaciones sobre ellos. -->
       <!-- Documentacion y FAQ en dos bloques propios (22-sep): el panel vuelve a ser
            una tarjeta flotante mas estrecha, asi que van apilados, no lado a lado. -->
-      <div id="docs-bloque" class="hidden flex-col gap-3 bg-surface-container-low/60 rounded-2xl border border-control-border/20 p-4">
-        <h3 class="font-body-md text-[11px] uppercase tracking-wider text-on-surface-variant font-bold m-0">Project documents</h3>
-        <div id="docs-lista" class="grid grid-cols-1 xl:grid-cols-2 gap-3"><!-- lo llena el JS --></div>
+      <div id="docs-bloque" role="tabpanel" aria-labelledby="tab-docs" class="hidden flex-col gap-3">
+        <div id="docs-lista" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3"><!-- lo llena el JS --></div>
       </div>
 
       <!-- AQUI HABIA SEIS TARJETAS DE GARANTIAS (escrow, plazo, permisos, zonificacion,
@@ -281,8 +316,7 @@
            dejado de decir dos veces. El chip "Legal Security" de este mismo panel lleva
            alli en un clic. El panel abre ahora con los papeles, que es lo que se venia
            a buscar. -->
-      <div class="flex flex-col gap-3 bg-surface-container-low/60 rounded-2xl border border-control-border/20 p-4">
-        <h3 class="font-body-md text-[11px] uppercase tracking-wider text-on-surface-variant font-bold m-0">Frequently Asked Questions</h3>
+      <div id="faq-bloque" role="tabpanel" aria-labelledby="tab-faq" class="flex flex-col gap-3">
         <!-- LAS PREGUNTAS YA NO VIVEN AQUI (11-sep-2026). Salen de `deck_faq` por
              `investor_deck_faq`, y se editan desde la intranet. El comentario de
              arriba que decia "La FAQ vive AQUI y en ningun otro sitio" describia el
@@ -359,16 +393,20 @@
         <img id="masterplan-img" src="" alt="Palm Field masterplan showing every plot code and surface area" loading="lazy" class="w-full rounded-xl border border-control-border/25 bg-surface-container object-contain block">
         <div class="absolute inset-0" id="plan-hotspots"></div>
       </div>
-      <p class="font-body-sm text-xs text-on-surface-variant">Tap an available plot to reserve it. Status is live; surface areas are confirmed by survey at Plot Lock.</p>
+      <p class="font-body-sm text-xs text-on-surface-variant">Tap a plot to find it in the live inventory. Status is live; surface areas are confirmed by survey at Plot Lock.</p>
     </div>
 
-    <div class="lg:col-span-5 flex flex-col gap-4 lg:sticky lg:top-24">
-      <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-control-border/25 overflow-hidden">
-        <div class="p-4 bg-surface-container-low border-b border-control-border/25 flex items-center justify-between">
-          <span class="font-label-md text-xs uppercase font-bold text-deep-lagoon tracking-wider">Live plot inventory</span>
-          <span class="text-xs font-body-sm text-territorial-green font-semibold" id="plots-count">Loading…</span>
+    <!-- Inventario (22-sep, pedido del owner: "haz mas visible esa tabla"): cabecera
+         en deep-lagoon, filas con franja de color por estado, y lista alta que acompaña
+         al plano (vertical, ~1000px) en vez de columna sticky de 520px. Cada fila lleva
+         id="plot-<codigo>": el clic en el plano la busca aqui (irAParcela). -->
+    <div class="lg:col-span-5 flex flex-col gap-4">
+      <div class="bg-surface-container-lowest rounded-2xl shadow-md border border-deep-lagoon/30 overflow-hidden">
+        <div class="px-5 py-4 bg-deep-lagoon text-white flex items-center justify-between gap-3">
+          <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-[#25D366] animate-pulse"></span><span class="font-headline-sm text-base sm:text-lg font-bold">Live plot inventory</span></span>
+          <span class="text-xs font-label-md font-semibold bg-white/15 px-3 py-1 rounded-full whitespace-nowrap" id="plots-count">Loading…</span>
         </div>
-        <div class="divide-y divide-control-border/15 max-h-[520px] overflow-y-auto" id="plots-wrap">
+        <div class="relative divide-y divide-control-border/15 max-h-[440px] lg:max-h-[720px] overflow-y-auto scroll-smooth" id="plots-wrap">
           <div class="p-6 text-sm text-on-surface-variant">Loading live plot data…</div>
         </div>
       </div>
@@ -418,48 +456,52 @@
     </p>
   </div>
 
+  <!-- Tabla bueno/malo (22-sep, pedido del owner: "remarca con colores bueno y
+       malo"): verde + check para Palm Field, rojo + cruz para el leasehold informal.
+       Las frases son LETRA POR LETRA las de antes (pasaron Legal el 9-sep): se ha
+       cambiado la jerarquia visual, no el texto. Abajo quedaban tres tarjetas; la
+       de "Regulated Escrow Account" repetia la fila "Payment security" y se retira
+       (mismo criterio del 14-sep: dejar de decir dos veces). Las otras dos dicen algo
+       que la tabla no dice (PPAT + poder notarial; sin nominee) y se quedan, en
+       formato compacto. -->
   <div class="w-full bg-surface-container-lowest rounded-2xl shadow-md overflow-hidden border border-control-border/25">
-    <div class="grid grid-cols-1 md:grid-cols-12 bg-surface-container-low text-deep-lagoon font-headline-sm text-body-lg p-6 border-b border-control-border/25">
-      <div class="md:col-span-4 font-bold text-deep-lagoon">Legal &amp; registry aspect</div>
-      <div class="md:col-span-4 font-bold text-territorial-green flex items-center gap-2"><span class="material-symbols-outlined text-[20px]">verified</span>Palm Field: Hak Sewa + escrow</div>
-      <div class="md:col-span-4 font-bold text-on-surface-variant flex items-center gap-2"><span class="material-symbols-outlined text-[20px]">warning</span>Common practice: informal lease</div>
+    <div class="hidden md:grid md:grid-cols-12 font-headline-sm text-body-md">
+      <div class="md:col-span-3 px-5 py-4 font-bold text-deep-lagoon bg-surface-container-low">Legal &amp; registry aspect</div>
+      <div class="md:col-span-5 px-5 py-4 font-bold text-white bg-territorial-green flex items-center gap-2"><span class="material-symbols-outlined text-[20px]">verified</span>Palm Field: Hak Sewa + escrow</div>
+      <div class="md:col-span-4 px-5 py-4 font-bold text-white bg-[#B3261E] flex items-center gap-2"><span class="material-symbols-outlined text-[20px]">warning</span>Common practice: informal lease</div>
     </div>
     <div class="divide-y divide-control-border/20">
-      <div class="grid grid-cols-1 md:grid-cols-12 p-6 hover:bg-surface-container-low/60 transition-colors gap-3">
-        <div class="md:col-span-4 flex flex-col"><span class="font-body-md text-body-md font-bold text-deep-lagoon">Payment security</span><span class="font-body-sm text-xs text-on-surface-variant">Notarial escrow (PPAT)</span></div>
-        <div class="md:col-span-4 font-body-md text-body-md text-territorial-green font-medium">Reservation and stage payments held in an escrow account managed by the notary, released against agreed conditions.</div>
-        <div class="md:col-span-4 font-body-md text-body-md text-on-surface-variant">Funds paid directly to a private landowner or intermediary, with no third-party custody.</div>
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-0 p-3 md:p-0">
+        <div class="md:col-span-3 md:px-5 md:py-4 flex flex-col justify-center"><span class="font-body-md text-body-md font-bold text-deep-lagoon">Payment security</span><span class="font-body-sm text-xs text-on-surface-variant">Notarial escrow (PPAT)</span></div>
+        <div class="md:col-span-5 px-4 py-3 md:px-5 md:py-4 flex gap-2.5 items-start bg-[#EEF3E6] rounded-xl md:rounded-none"><span class="material-symbols-outlined text-[20px] text-territorial-green shrink-0" aria-hidden="true">check_circle</span><div class="flex flex-col gap-0.5"><span class="md:hidden text-[10px] uppercase tracking-wider font-bold text-territorial-green">Palm Field: Hak Sewa + escrow</span><span class="font-body-sm text-body-sm text-[#2F4521] font-medium leading-relaxed">Reservation and stage payments held in an escrow account managed by the notary, released against agreed conditions.</span></div></div>
+        <div class="md:col-span-4 px-4 py-3 md:px-5 md:py-4 flex gap-2.5 items-start bg-[#B3261E]/[0.06] rounded-xl md:rounded-none"><span class="material-symbols-outlined text-[20px] text-[#B3261E] shrink-0" aria-hidden="true">cancel</span><div class="flex flex-col gap-0.5"><span class="md:hidden text-[10px] uppercase tracking-wider font-bold text-[#B3261E]">Common practice: informal lease</span><span class="font-body-sm text-body-sm text-[#7A2A22] leading-relaxed">Funds paid directly to a private landowner or intermediary, with no third-party custody.</span></div></div>
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-12 p-6 bg-surface-container-low/40 hover:bg-surface-container-low/70 transition-colors gap-3">
-        <div class="md:col-span-4 flex flex-col"><span class="font-body-md text-body-md font-bold text-deep-lagoon">Term &amp; registration</span><span class="font-body-sm text-xs text-on-surface-variant">Hak Sewa, Indonesian law</span></div>
-        <div class="md:col-span-4 font-body-md text-body-md text-territorial-green font-medium">Registered lease term (legal maximum 30 years per grant, renewable with a new term), transferable and heritable.</div>
-        <div class="md:col-span-4 font-body-md text-body-md text-on-surface-variant">Unregistered private agreement with no guaranteed renewal and limited transferability.</div>
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-0 p-3 md:p-0">
+        <div class="md:col-span-3 md:px-5 md:py-4 flex flex-col justify-center"><span class="font-body-md text-body-md font-bold text-deep-lagoon">Term &amp; registration</span><span class="font-body-sm text-xs text-on-surface-variant">Hak Sewa, Indonesian law</span></div>
+        <div class="md:col-span-5 px-4 py-3 md:px-5 md:py-4 flex gap-2.5 items-start bg-[#EEF3E6] rounded-xl md:rounded-none"><span class="material-symbols-outlined text-[20px] text-territorial-green shrink-0" aria-hidden="true">check_circle</span><div class="flex flex-col gap-0.5"><span class="md:hidden text-[10px] uppercase tracking-wider font-bold text-territorial-green">Palm Field: Hak Sewa + escrow</span><span class="font-body-sm text-body-sm text-[#2F4521] font-medium leading-relaxed">Registered lease term (legal maximum 30 years per grant, renewable with a new term), transferable and heritable.</span></div></div>
+        <div class="md:col-span-4 px-4 py-3 md:px-5 md:py-4 flex gap-2.5 items-start bg-[#B3261E]/[0.06] rounded-xl md:rounded-none"><span class="material-symbols-outlined text-[20px] text-[#B3261E] shrink-0" aria-hidden="true">cancel</span><div class="flex flex-col gap-0.5"><span class="md:hidden text-[10px] uppercase tracking-wider font-bold text-[#B3261E]">Common practice: informal lease</span><span class="font-body-sm text-body-sm text-[#7A2A22] leading-relaxed">Unregistered private agreement with no guaranteed renewal and limited transferability.</span></div></div>
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-12 p-6 hover:bg-surface-container-low/60 transition-colors gap-3">
-        <div class="md:col-span-4 flex flex-col"><span class="font-body-md text-body-md font-bold text-deep-lagoon">Building permits (PBG / SLF)</span><span class="font-body-sm text-xs text-on-surface-variant">Government portal (SIMBG)</span></div>
-        <div class="md:col-span-4 font-body-md text-body-md text-territorial-green font-medium">Approved ahead of construction, with occupancy certification (SLF) enabling legal short-term rental.</div>
-        <div class="md:col-span-4 font-body-md text-body-md text-on-surface-variant">Frequently started without permits or with permits pending, exposed to government closure.</div>
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-0 p-3 md:p-0">
+        <div class="md:col-span-3 md:px-5 md:py-4 flex flex-col justify-center"><span class="font-body-md text-body-md font-bold text-deep-lagoon">Building permits (PBG / SLF)</span><span class="font-body-sm text-xs text-on-surface-variant">Government portal (SIMBG)</span></div>
+        <div class="md:col-span-5 px-4 py-3 md:px-5 md:py-4 flex gap-2.5 items-start bg-[#EEF3E6] rounded-xl md:rounded-none"><span class="material-symbols-outlined text-[20px] text-territorial-green shrink-0" aria-hidden="true">check_circle</span><div class="flex flex-col gap-0.5"><span class="md:hidden text-[10px] uppercase tracking-wider font-bold text-territorial-green">Palm Field: Hak Sewa + escrow</span><span class="font-body-sm text-body-sm text-[#2F4521] font-medium leading-relaxed">Approved ahead of construction, with occupancy certification (SLF) enabling legal short-term rental.</span></div></div>
+        <div class="md:col-span-4 px-4 py-3 md:px-5 md:py-4 flex gap-2.5 items-start bg-[#B3261E]/[0.06] rounded-xl md:rounded-none"><span class="material-symbols-outlined text-[20px] text-[#B3261E] shrink-0" aria-hidden="true">cancel</span><div class="flex flex-col gap-0.5"><span class="md:hidden text-[10px] uppercase tracking-wider font-bold text-[#B3261E]">Common practice: informal lease</span><span class="font-body-sm text-body-sm text-[#7A2A22] leading-relaxed">Frequently started without permits or with permits pending, exposed to government closure.</span></div></div>
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-12 p-6 bg-surface-container-low/40 hover:bg-surface-container-low/70 transition-colors gap-3">
-        <div class="md:col-span-4 flex flex-col"><span class="font-body-md text-body-md font-bold text-deep-lagoon">Land zoning (RDTR)</span><span class="font-body-sm text-xs text-on-surface-variant">Official urban classification</span></div>
-        <div class="md:col-span-4 font-body-md text-body-md text-territorial-green font-medium">Zoned for tourism / residential use, legally enabled for short-stay rental income.</div>
-        <div class="md:col-span-4 font-body-md text-body-md text-on-surface-variant">Often sited on green or agricultural-protection land (LSD/LP2B), not legally buildable.</div>
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-0 p-3 md:p-0">
+        <div class="md:col-span-3 md:px-5 md:py-4 flex flex-col justify-center"><span class="font-body-md text-body-md font-bold text-deep-lagoon">Land zoning (RDTR)</span><span class="font-body-sm text-xs text-on-surface-variant">Official urban classification</span></div>
+        <div class="md:col-span-5 px-4 py-3 md:px-5 md:py-4 flex gap-2.5 items-start bg-[#EEF3E6] rounded-xl md:rounded-none"><span class="material-symbols-outlined text-[20px] text-territorial-green shrink-0" aria-hidden="true">check_circle</span><div class="flex flex-col gap-0.5"><span class="md:hidden text-[10px] uppercase tracking-wider font-bold text-territorial-green">Palm Field: Hak Sewa + escrow</span><span class="font-body-sm text-body-sm text-[#2F4521] font-medium leading-relaxed">Zoned for tourism / residential use, legally enabled for short-stay rental income.</span></div></div>
+        <div class="md:col-span-4 px-4 py-3 md:px-5 md:py-4 flex gap-2.5 items-start bg-[#B3261E]/[0.06] rounded-xl md:rounded-none"><span class="material-symbols-outlined text-[20px] text-[#B3261E] shrink-0" aria-hidden="true">cancel</span><div class="flex flex-col gap-0.5"><span class="md:hidden text-[10px] uppercase tracking-wider font-bold text-[#B3261E]">Common practice: informal lease</span><span class="font-body-sm text-body-sm text-[#7A2A22] leading-relaxed">Often sited on green or agricultural-protection land (LSD/LP2B), not legally buildable.</span></div></div>
       </div>
     </div>
   </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
-    <div class="bg-surface-container-low/70 p-6 rounded-xl flex flex-col gap-3 border border-control-border/25">
-      <div class="flex items-center gap-2 text-deep-lagoon font-headline-sm text-xl font-bold"><span class="material-symbols-outlined text-territorial-green">gavel</span><span>Official Notarial Signature (PPAT)</span></div>
-      <p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Each transfer is formalised before a state-appointed Land Deed Official (PPAT), with a Power of Attorney for the buyer's representative in Indonesia.</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+    <div class="flex gap-3 items-start bg-surface-container-low/70 px-5 py-4 rounded-xl border border-control-border/25">
+      <span class="material-symbols-outlined text-territorial-green text-[22px] shrink-0">gavel</span>
+      <div class="flex flex-col gap-1"><span class="font-body-md text-body-md font-bold text-deep-lagoon">Official Notarial Signature (PPAT)</span><span class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Each transfer is formalised before a state-appointed Land Deed Official (PPAT), with a Power of Attorney for the buyer's representative in Indonesia.</span></div>
     </div>
-    <div class="bg-surface-container-low/70 p-6 rounded-xl flex flex-col gap-3 border border-control-border/25">
-      <div class="flex items-center gap-2 text-deep-lagoon font-headline-sm text-xl font-bold"><span class="material-symbols-outlined text-territorial-green">account_balance</span><span>Regulated Escrow Account</span></div>
-      <p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Funds are held in an escrow account managed by the notary and released only against verified construction milestones.</p>
-    </div>
-    <div class="bg-surface-container-low/70 p-6 rounded-xl flex flex-col gap-3 border border-control-border/25">
-      <div class="flex items-center gap-2 text-deep-lagoon font-headline-sm text-xl font-bold"><span class="material-symbols-outlined text-territorial-green">handshake</span><span>Direct, Documented Transaction</span></div>
-      <p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">The lease is agreed directly between the landowner and the buyer — no nominee arrangement, no undisclosed intermediary holding title on your behalf.</p>
+    <div class="flex gap-3 items-start bg-surface-container-low/70 px-5 py-4 rounded-xl border border-control-border/25">
+      <span class="material-symbols-outlined text-territorial-green text-[22px] shrink-0">handshake</span>
+      <div class="flex flex-col gap-1"><span class="font-body-md text-body-md font-bold text-deep-lagoon">Direct, Documented Transaction</span><span class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">The lease is agreed directly between the landowner and the buyer — no nominee arrangement, no undisclosed intermediary holding title on your behalf.</span></div>
     </div>
   </div>
 </div>
@@ -495,21 +537,69 @@
   <p class="lw-wide font-body-sm text-xs text-on-surface-variant" id="fx-nota-txt"></p>
 </div>
 
-<footer class="w-full bg-surface-container-low py-10 border-t border-control-border/20">
-  <div class="lw-wide px-6 md:px-margin-desktop flex flex-col md:flex-row items-center justify-between gap-6">
-    <div class="flex items-center gap-4">
-      <div class="w-8 h-8 rounded-full bg-deep-lagoon flex items-center justify-center text-white text-sm font-bold">L</div>
-      <div class="flex flex-col">
-        <span class="font-headline-sm text-lg font-bold text-deep-lagoon">Lawang Properties — Palm Field</span>
-        <span class="font-body-sm text-xs text-on-surface-variant">Balian Hills, Bali. Developed by PT SAN DAL WOODS.</span>
+<!-- FOOTER (22-sep, pedido del owner: "el mismo que /modelo, para que este unificado,
+     pero que no ocupe tanto"). Se calca la PIEL del pie de modelo/index.php -- rejilla
+     5/4/3, logo oscuro, listas Collection/Information, tarjeta de WhatsApp, oficina y
+     lineas directas, barra de copyright -- con la mitad de aire (py-10 frente a
+     pt-20/pb-12, y oficina+lineas+legal en UNA barra en vez de dos).
+     El TEXTO no se calca: el de /modelo habla de villas (EPC a precio fijo, PPN
+     incluido) y este deck es de parcelas en Hak Sewa. Se conservan la promotora
+     (PT SAN DAL WOODS, grafia fija) y el aviso de que no es una oferta de valores.
+     Oficina, telefonos y email: mismos valores que $OFICINA/$TELEFONOS/$EMAIL de
+     modelo/index.php (22-sep). "Collection" la pinta el JS desde investor_deck_modelos:
+     ni una lista de villas a mano (precedente de los 404 del 10-sep).
+     Sin "Cookie preferences": este deck no carga consent.js, y un enlace que no
+     abre nada es peor que no tenerlo. -->
+<footer class="w-full bg-surface-alt border-t border-surface-container-highest pt-10 pb-24 px-6 md:px-margin-desktop text-on-surface">
+<div class="lw-wide space-y-8">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
+    <div class="lg:col-span-5 space-y-3">
+      <img class="h-8" src="../../../assets/img/lawang-logo-v3-dark.webp" alt="Lawang Tropical Properties">
+      <p class="font-body-md text-sm text-on-surface-variant leading-relaxed max-w-md"><span class="font-bold text-deep-lagoon">Lawang Properties — Palm Field</span><br>Balian Hills, Bali. Developed by PT SAN DAL WOODS.</p>
+      <div class="flex flex-wrap items-center gap-2 pt-1">
+        <span class="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">gavel</span> Hak Sewa</span>
+        <span class="px-3 py-1 rounded-full bg-deep-lagoon/10 text-deep-lagoon text-xs font-semibold flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">account_balance</span> Notarial escrow</span>
       </div>
     </div>
-    <div class="flex flex-wrap items-center gap-6 text-on-surface-variant font-body-sm text-xs text-center md:text-left">
-      <span>This page does not replace legal or financial advice. Nothing here is an offer to sell securities or a solicitation of investment.</span>
-      <a class="text-deep-lagoon underline whitespace-nowrap" href="mailto:sales@lawangproperties.com?subject=Palm%20Field%20%E2%80%94%20investor%20enquiry">sales@lawangproperties.com</a>
-      <a class="text-deep-lagoon underline whitespace-nowrap" href="/legal" target="_blank" rel="noopener">Privacy &amp; Terms</a>
+    <div class="lg:col-span-4 grid grid-cols-2 gap-8">
+      <div class="space-y-3">
+        <span class="font-label-md text-xs uppercase tracking-wider text-primary font-bold">Collection</span>
+        <ul class="space-y-2 text-xs font-body-sm text-on-surface-variant" id="footer-coleccion"><!-- lo llena el JS --></ul>
+      </div>
+      <div class="space-y-3">
+        <span class="font-label-md text-xs uppercase tracking-wider text-primary font-bold">Information</span>
+        <ul class="space-y-2 text-xs font-body-sm text-on-surface-variant">
+          <li><a class="hover:text-primary transition-colors" href="#masterplan">Masterplan &amp; Plots</a></li>
+          <li><a class="hover:text-primary transition-colors" href="#rendimientos">Financial Forecast</a></li>
+          <li><a class="hover:text-primary transition-colors" href="#seguridad-notarial">Legal Security</a></li>
+          <li><a class="hover:text-primary transition-colors" href="#faq">FAQ</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="lg:col-span-3 space-y-2 bg-surface p-5 rounded-2xl border border-surface-container-highest">
+      <span class="font-label-md text-xs uppercase tracking-wider text-primary font-bold">WhatsApp</span>
+      <p class="font-body-sm text-xs text-on-surface-variant">We reply during Bali hours (WITA).</p>
+      <a class="w-full py-2 rounded-xl bg-primary hover:bg-territorial-green text-white text-xs font-label-md font-semibold transition-all flex items-center justify-center" href="https://wa.me/6281138319862" target="_blank" rel="noopener" data-wa-enlace data-no-i18n>+62 811-3831-9862</a>
     </div>
   </div>
+  <div class="pt-6 border-t border-surface-container-highest/80 grid grid-cols-1 md:grid-cols-3 gap-5 text-xs text-on-surface-variant">
+    <div>
+      <span class="font-bold text-primary block mb-1">Bali Office</span>
+      <span data-no-i18n>Jl. Gn. Tangkuban Perahu No.145, 2nd Floor, Padangsambian Klod, Kec. Denpasar Bar., Kota Denpasar, Bali 80117</span>
+    </div>
+    <div>
+      <span class="font-bold text-primary block mb-1">Direct lines</span>
+      <span class="block" data-no-i18n><a class="hover:text-primary" href="tel:+6281138305240">+62 811-3830-5240</a></span>
+      <span class="block" data-no-i18n><a class="hover:text-primary" href="tel:+6281138305237">+62 811-3830-5237</a></span>
+      <span class="block" data-no-i18n><a class="hover:text-primary" href="mailto:sales@lawangproperties.com?subject=Palm%20Field%20%E2%80%94%20investor%20enquiry">sales@lawangproperties.com</a></span>
+    </div>
+    <div class="leading-relaxed">This page does not replace legal or financial advice. Nothing here is an offer to sell securities or a solicitation of investment.</div>
+  </div>
+  <div class="pt-5 border-t border-surface-container-highest/60 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-on-surface-variant/80">
+    <span>© 2026 Lawang Tropical Properties (PT Tepi Sun Gai). All rights reserved.</span>
+    <a class="hover:text-primary" href="/legal" target="_blank" rel="noopener">Privacy &amp; Terms</a>
+  </div>
+</div>
 </footer>
 
 <!-- MODAL DE RESERVA (sin cambios funcionales respecto a la version anterior; solo
@@ -898,11 +988,40 @@
       cont.appendChild(card);
       pintados++;
     });
-    if(!pintados) return;                       // nada publicable: el bloque sigue oculto
-    bloque.classList.remove('hidden');
-    bloque.classList.add('flex');
+    if(!pintados) return;                       // nada publicable: pestaña y bloque siguen ocultos
+    var tab = document.getElementById('tab-docs');
+    if(tab){ tab.classList.remove('hidden'); }
+    activaPestana('docs');                      // con papeles, el panel abre con ellos (14-sep)
     if(window.lwDeck) lwDeck.traduce(bloque);
   }
+
+  // ── pestañas del panel: Documentos / FAQ (22-sep) ─────────────────────────
+  // Clases literales (no montadas con '+'): el build de Tailwind de v2.min.css solo
+  // conoce las que aparecen escritas enteras en este fichero.
+  var TAB_ON  = ['bg-deep-lagoon', 'text-white', 'shadow-sm'];
+  var TAB_OFF = ['text-deep-lagoon', 'hover:bg-white/70'];
+  function activaPestana(nombre){
+    [['docs', 'docs-bloque'], ['faq', 'faq-bloque']].forEach(function(par){
+      var btn = document.getElementById('tab-' + par[0]);
+      var panel = document.getElementById(par[1]);
+      var on = par[0] === nombre;
+      if(btn){
+        btn.setAttribute('aria-selected', on ? 'true' : 'false');
+        TAB_ON.forEach(function(c){ btn.classList.toggle(c, on); });
+        TAB_OFF.forEach(function(c){ btn.classList.toggle(c, !on); });
+      }
+      if(panel){ panel.classList.toggle('hidden', !on); panel.classList.toggle('flex', on); }
+    });
+  }
+  document.querySelectorAll('[data-tab]').forEach(function(btn){
+    btn.addEventListener('click', function(){ activaPestana(btn.getAttribute('data-tab')); });
+  });
+  // El menu y el pie enlazan a #faq (el panel entero): quien pulsa "FAQ" viene a por
+  // las preguntas, asi que ese enlace abre la pestaña FAQ aunque hubiera documentos.
+  document.addEventListener('click', function(e){
+    var a = e.target.closest && e.target.closest('a[href="#faq"]');
+    if(a) activaPestana('faq');
+  });
 
   fetch(SB_URL + '/rest/v1/rpc/investor_deck_documentos', {
     method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
@@ -972,6 +1091,23 @@
     var ruta = propia || ('../../../assets/img/buildings/' + slug + '/web/' + slug + '.webp');
     return '<img src="' + esc(ruta) + '" alt="' + esc(nombre) + ' villa model" loading="lazy" ' +
       'class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" data-render>';
+  }
+
+  // Si el render no esta en disco, la caja de foto ([data-foto]) cae sola al estado
+  // honesto. Sale a funcion porque desde el 22-sep hay DOS tarjetas con foto de
+  // modelo (catalogo y forecast): copiar el onerror en cada una seria la segunda
+  // copia que diverge.
+  function enganchaSinRender(card){
+    var img = card.querySelector('[data-render]');
+    if(!img) return;
+    img.addEventListener('error', function(){
+      var caja = card.querySelector('[data-foto]');
+      if(!caja) return;
+      var tmp = document.createElement('div');
+      tmp.innerHTML = SIN_RENDER;
+      caja.replaceChild(tmp.firstChild, img);
+      if(window.lwDeck) lwDeck.traduce(caja);
+    });
   }
 
   // El precio solo entra en el conversor de divisa si de verdad viene en EUR:
@@ -1049,24 +1185,32 @@
           '</div>' +
         '</div>';
 
-      // Si el render no está en disco, la caja de foto se cae sola al estado
-      // honesto (SIN_RENDER trae ya su propio degradado/fondo, no hace falta
-      // reponer el gradiente aparte).
-      var img = card.querySelector('[data-render]');
-      if(img){
-        img.addEventListener('error', function(){
-          var caja = card.querySelector('[data-foto]');
-          if(!caja) return;
-          var tmp = document.createElement('div');
-          tmp.innerHTML = SIN_RENDER;
-          caja.replaceChild(tmp.firstChild, img);
-          if(window.lwDeck) lwDeck.traduce(caja);
-        });
-      }
+      // SIN_RENDER trae ya su propio degradado/fondo, no hace falta reponerlo.
+      enganchaSinRender(card);
       mg.appendChild(card);
     });
+    pintaColeccionPie(rows);
     if(window.lwDeck) lwDeck.traduce(document.getElementById('modelos'));
     if(window.lwRepintaDinero) lwRepintaDinero();
+  }
+
+  // Lista "Collection" del pie: las mismas filas del catalogo, enlazadas a su ficha
+  // /modelo/<slug> -- como el pie de /modelo, que lista la coleccion desde $CAT.
+  function pintaColeccionPie(rows){
+    var ul = document.getElementById('footer-coleccion');
+    if(!ul) return;
+    ul.innerHTML = '';
+    rows.forEach(function(m){
+      var slug = String(m.slug == null ? '' : m.slug);
+      if(!SLUG_OK.test(slug)) return;
+      var li = document.createElement('li');
+      var a = document.createElement('a');
+      a.className = 'hover:text-primary transition-colors';
+      a.href = '/modelo/' + slug;
+      a.setAttribute('data-no-i18n', '');
+      a.textContent = m.nombre || slug;
+      li.appendChild(a); ul.appendChild(li);
+    });
   }
 
   function modelosCaidos(){
@@ -1108,7 +1252,8 @@
   // calcula el ROI. El 11-sep se corrigio en la base: las de Dune y Dream estaban
   // POR DEBAJO de construccion mas la parcela mas barata del propio inventario,
   // que la pagina enseña dos secciones mas arriba.
-  function pintaForecast(filas){
+  function pintaForecast(filas, porModelo){
+    porModelo = porModelo || {};
     var fg = document.getElementById('forecast-grid');
     if(!fg) return;
     fg.innerHTML = '';
@@ -1166,17 +1311,28 @@
       // El nombre del modelo lo teclea una persona en la intranet y esto es una
       // pagina publica: pasa por esc() SIEMPRE (XSS almacenado ya cazado aqui).
       var dorm = m.dormitorios === 1 ? '1 bedroom' : (m.dormitorios || 0) + ' bedrooms';
+      // Foto del modelo arriba (22-sep, pedido del owner): la misma que su tarjeta
+      // del catalogo -- fotoModelo() con las fotos de `deck_fotos` de ese modelo, o el
+      // render del repo, o el estado "Renders in progress" si tampoco hay.
+      var slug = String(m.modelo_slug == null ? '' : m.modelo_slug);
       var card = document.createElement('div');
-      card.className = 'bg-surface-container-lowest rounded-3xl p-6 md:p-7 shadow-sm hover:shadow-xl transition-all relative border space-y-5' +
+      card.className = 'bg-surface-container-lowest rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all relative border flex flex-col group' +
         (m.destacado ? ' border-2 border-territorial-green' : ' border-control-border/25');
       card.innerHTML =
         (m.destacado ? '<span class="absolute top-3 right-3 z-10 bg-territorial-green text-white text-[10px] font-label-md font-bold px-3 py-0.5 rounded-full tracking-wider uppercase">Most requested</span>' : '') +
-        '<div class="border-b border-control-border/20 pb-4">' +
-          '<span class="font-label-md text-xs text-territorial-green uppercase tracking-widest font-semibold">Market forecast</span>' +
-          '<h3 class="font-headline-md text-2xl text-deep-lagoon font-bold">'+esc(m.modelo_nombre)+' · '+esc(dorm)+'</h3>' +
-          '<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Construction <b>'+eur(Number(m.precio_construccion))+'</b> · total investment (ROI base) '+eur(base)+'.</p>' +
+        '<div class="relative h-44 overflow-hidden bg-volcanic-ash" data-foto>' +
+          fotoModelo(slug, m.modelo_nombre, porModelo[slug]) +
+          '<div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/60 via-transparent to-transparent pointer-events-none"></div>' +
         '</div>' +
-        bloquesHtml;
+        '<div class="p-6 md:p-7 space-y-5">' +
+          '<div class="border-b border-control-border/20 pb-4">' +
+            '<span class="font-label-md text-xs text-territorial-green uppercase tracking-widest font-semibold">Market forecast</span>' +
+            '<h3 class="font-headline-md text-2xl text-deep-lagoon font-bold">'+esc(m.modelo_nombre)+' · '+esc(dorm)+'</h3>' +
+            '<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Construction <b>'+eur(Number(m.precio_construccion))+'</b> · total investment (ROI base) '+eur(base)+'.</p>' +
+          '</div>' +
+          bloquesHtml +
+        '</div>';
+      enganchaSinRender(card);
       fg.appendChild(card);
     });
     if(window.lwDeck) lwDeck.traduce(document.getElementById('rendimientos'));
@@ -1202,7 +1358,12 @@
   }).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
     // Cero filas llega como 200 con []: sin este guardia la seccion se queda vacia
     // y parece intencionada.
-    .then(function(rows){ if(!rows || !rows.length) throw new Error('vacio'); pintaForecast(rows); })
+    // Espera a `fotosListo` (nunca rechaza) para la foto de cada modelo, igual que
+    // el catalogo: pintar antes dejaria siempre el render fijo del repo.
+    .then(function(rows){
+      if(!rows || !rows.length) throw new Error('vacio');
+      return fotosListo.then(function(porModelo){ pintaForecast(rows, porModelo || {}); });
+    })
     .catch(forecastCaido);
 
   // ── FAQ: sale de `deck_faq`, no del HTML ──────────────────────────────────
@@ -1292,20 +1453,22 @@
     rows.forEach(function(row){
       var pts = ZONAS[row.codigo];
       if(!pts || pts.length < 3) return;
-      // Sin reserva de autoservicio (15-sep, aviso del owner): cada parcela
-      // disponible usa "Contact us" directo, igual que el resto de la suite.
+      // 22-sep (pedido del owner): TODA parcela del plano es clicable y lleva a su
+      // fila del inventario (irAParcela), tambien reservadas y vendidas -- quien
+      // pincha una vendida quiere ver su dato igual. El contacto vive en la fila
+      // (WhatsApp), no aqui: un solo sitio donde se actua sobre una parcela.
       var libre = row.estado === 'disponible';
-      var el = document.createElement(libre ? 'a' : 'div');
-      el.className = 'absolute inset-0 transition-all duration-200 ' +
-        (libre ? 'hover:bg-territorial-green/35 cursor-pointer' : 'bg-black/45');
+      var el = document.createElement('a');
+      el.href = '#plot-' + idParcela(row.codigo);
+      el.setAttribute('data-plano', idParcela(row.codigo));
+      el.className = 'absolute inset-0 transition-all duration-200 cursor-pointer ' +
+        (libre ? 'hover:bg-territorial-green/35' : 'bg-black/45 hover:bg-black/30');
       el.style.clipPath = 'polygon(' + pts.map(function(p){ return p[0]+'% '+p[1]+'%'; }).join(',') + ')';
       var precio = row.precio != null ? ' · ' + fmtMoney(row.precio, row.moneda) : '';
       el.title = row.codigo + ' · ' + esc(row.superficie_m2) + ' m2' + precio + ' · ' +
         ({disponible:'Available',reservada:'Reserved',bloqueada:'Sold',no_disponible:'Sold'}[row.estado] || row.estado);
-      if(libre){
-        el.href = 'mailto:sales@lawangproperties.com?subject=' + encodeURIComponent('Palm Field ' + row.codigo);
-        el.setAttribute('aria-label', 'Contact us about plot ' + row.codigo);
-      }
+      el.setAttribute('aria-label', el.title);
+      el.addEventListener('click', function(e){ e.preventDefault(); irAParcela(row.codigo); });
       wrap.appendChild(el);
       var sello = SELLO[row.estado];
       if(sello){
@@ -1317,6 +1480,44 @@
         wrap.appendChild(badge);
       }
     });
+  }
+
+  // El codigo de parcela lo teclea el equipo en la intranet: para usarlo en un id
+  // o en un href se queda solo con [A-Za-z0-9-].
+  function idParcela(codigo){ return String(codigo == null ? '' : codigo).replace(/[^A-Za-z0-9-]/g, ''); }
+
+  // Clic en el plano → su fila del inventario: centrada DENTRO de la lista (que
+  // scrollea sola en escritorio) y, si la fila queda fuera de pantalla (movil, lista
+  // debajo del plano), la pagina baja lo justo. Destello de 2 s para encontrarla.
+  // Ojo al verificar: `behavior:'smooth'` no anima en Edge headless.
+  function irAParcela(codigo){
+    var id = idParcela(codigo);
+    var fila = document.getElementById('plot-' + id);
+    if(!fila) return;
+    var lista = document.getElementById('plots-wrap');
+    if(lista && lista.scrollHeight > lista.clientHeight){
+      lista.scrollTo({ top: fila.offsetTop - lista.clientHeight / 2 + fila.offsetHeight / 2, behavior: 'smooth' });
+    }
+    var r = fila.getBoundingClientRect();
+    if(r.top < 80 || r.bottom > window.innerHeight){
+      fila.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+    document.querySelectorAll('[data-fila-parcela].lw-fila-activa').forEach(function(f){ f.classList.remove('lw-fila-activa'); });
+    document.querySelectorAll('[data-plano].lw-plano-activo').forEach(function(p){ p.classList.remove('lw-plano-activo'); });
+    fila.classList.add('lw-fila-activa');
+    var poli = document.querySelector('[data-plano="' + id + '"]');
+    if(poli) poli.classList.add('lw-plano-activo');
+    fila.classList.remove('lw-destello'); void fila.offsetWidth; fila.classList.add('lw-destello');
+  }
+
+  // WhatsApp por parcela, en el idioma del visitante. `lwT` devuelve null en ingles
+  // (no hay entrada `en` en el diccionario): de ahi el `|| txt`.
+  var WA_NUM = '6281138319862';
+  function enlaceWaParcela(codigo){
+    var txt = 'Hello LAWANG, I’m interested in plot ' + codigo + ' at Palm Field.';
+    var lang = window.lwLang ? lwLang() : 'en';
+    if(lang !== 'en' && window.lwT) txt = lwT(txt, lang) || txt;
+    return 'https://wa.me/' + WA_NUM + '?text=' + encodeURIComponent(txt);
   }
 
   var ULTIMAS_FILAS = null;
@@ -1345,21 +1546,29 @@
       plotsCount.textContent = disponibles + ' of ' + rows.length + ' plots available';
       plotsWrap.innerHTML = '';
       rows.forEach(function(row){
-        // Sin reserva de autoservicio (15-sep, aviso del owner): "Contact us"
-        // para cualquier parcela disponible, nunca el boton "Reserve".
+        // Sin reserva de autoservicio (15-sep, aviso del owner): nunca el boton
+        // "Reserve". Desde el 22-sep el contacto es WhatsApp ("hablanos por
+        // WhatsApp", pedido del owner), con la parcela ya escrita en el mensaje.
         var estadoLabel = { disponible:'Available', reservada:'Reserved', bloqueada:'Blocked', no_disponible:'Not available' }[row.estado] || row.estado;
         var pillClass = row.estado === 'disponible' ? 'bg-territorial-green/15 text-territorial-green' : (row.estado === 'reservada' ? 'bg-amber-100 text-amber-800' : 'bg-[#FBE9E7] text-[#B3261E]');
+        // Franja por estado con sombra interior y no con border-l: el divide-y de la
+        // lista pisa el color de todos los bordes de sus hijos (medido en captura).
+        var franja = row.estado === 'disponible' ? 'shadow-[inset_4px_0_0_#485B37]' : (row.estado === 'reservada' ? 'shadow-[inset_4px_0_0_#F59E0B]' : 'shadow-[inset_4px_0_0_#B3261E]');
         var row_ = document.createElement('div');
-        row_.className = 'p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-surface-container-low/50 transition-colors';
+        row_.id = 'plot-' + idParcela(row.codigo);
+        row_.setAttribute('data-fila-parcela', '');
+        row_.className = 'scroll-mt-24 pl-5 pr-4 py-3.5 ' + franja + ' flex flex-wrap items-center justify-between gap-3 hover:bg-surface-container-low/50 transition-colors' +
+          (row.estado === 'disponible' ? '' : ' opacity-75');
         var actionHtml;
         if(row.estado === 'disponible'){
-          actionHtml = '<a class="px-3.5 py-1.5 rounded-full bg-deep-lagoon hover:bg-territorial-green text-white text-xs font-label-md font-semibold transition-colors" href="mailto:sales@lawangproperties.com?subject=Palm%20Field%20'+encodeURIComponent(row.codigo)+'">Contact us</a>';
+          actionHtml = '<a class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#25D366] hover:brightness-95 text-[#0b3d25] text-xs font-label-md font-semibold transition-all whitespace-nowrap" target="_blank" rel="noopener" href="'+esc(enlaceWaParcela(row.codigo))+'" aria-label="Talk to us on WhatsApp about plot '+esc(row.codigo)+'">' +
+            '<span class="material-symbols-outlined text-[16px]">chat</span><span>Talk to us on WhatsApp</span></a>';
         } else {
           actionHtml = '<span class="text-xs font-label-md text-on-surface-variant bg-surface-container px-3 py-1.5 rounded-full">—</span>';
         }
-        row_.innerHTML = '<div class="flex flex-col"><div class="flex items-center gap-2"><span class="font-headline-sm text-lg font-bold text-deep-lagoon">'+esc(row.codigo)+'</span>' +
+        row_.innerHTML = '<div class="flex flex-col gap-0.5"><div class="flex items-center gap-2"><span class="font-headline-sm text-xl font-bold text-deep-lagoon">'+esc(row.codigo)+'</span>' +
           '<span class="px-2 py-0.5 rounded-full text-[11px] font-label-md font-semibold '+pillClass+'">'+esc(estadoLabel)+'</span></div>' +
-          '<span class="text-xs text-on-surface-variant font-body-sm">'+esc(row.superficie_m2)+' m² · Reference price '+fmtMoney(row.precio, row.moneda)+'</span></div>' +
+          '<span class="text-sm text-on-surface-variant font-body-sm">'+esc(row.superficie_m2)+' m² · Reference price '+fmtMoney(row.precio, row.moneda)+'</span></div>' +
           '<div>'+actionHtml+'</div>';
         plotsWrap.appendChild(row_);
       });
@@ -1448,6 +1657,34 @@
       .finally(function(){ btn.disabled = false; btn.textContent = 'Confirm reservation'; });
   });
 
+  // ── menu por debajo de 1280px (22-sep) ─────────────────────────────────────
+  // Clona los enlaces de #nav-principal ANTES de traducir, para que el walker de
+  // i18n traduzca las dos copias en la misma pasada. Una sola lista de secciones.
+  (function(){
+    var nav = document.getElementById('nav-principal');
+    var menu = document.getElementById('menu-movil');
+    var btn = document.getElementById('menu-btn');
+    var ico = document.getElementById('menu-ico');
+    if(!nav || !menu || !btn) return;
+    nav.querySelectorAll('a').forEach(function(a){
+      var c = document.createElement('a');
+      c.href = a.getAttribute('href');
+      c.textContent = a.textContent;
+      c.className = 'px-4 py-3 rounded-xl font-label-md text-body-md text-white/90 hover:bg-white/10 hover:text-white transition-all';
+      menu.appendChild(c);
+    });
+    function abre(si){
+      menu.classList.toggle('hidden', !si);
+      menu.classList.toggle('flex', si);
+      btn.setAttribute('aria-expanded', si ? 'true' : 'false');
+      if(ico) ico.textContent = si ? 'close' : 'menu';
+    }
+    btn.addEventListener('click', function(){ abre(menu.classList.contains('hidden')); });
+    menu.addEventListener('click', function(e){ if(e.target.closest('a')) abre(false); });
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape') abre(false); });
+    window.addEventListener('resize', function(){ if(window.innerWidth >= 1280) abre(false); });
+  })();
+
   // ── selector de idioma / divisa ───────────────────────────────────────────
   if(window.lwDeck){
     lwDeck.montaSelectores('#deck-selectores');
@@ -1464,7 +1701,11 @@
     var m = a.querySelector('[data-wa-msg]');
     if(!m) return;
     var txt = (m.textContent || '').trim();
-    if(txt) a.href = 'https://wa.me/6281138319862?text=' + encodeURIComponent(txt);
+    if(!txt) return;
+    var href = 'https://wa.me/' + WA_NUM + '?text=' + encodeURIComponent(txt);
+    a.href = href;
+    // El boton del pie lleva el mismo mensaje que el flotante.
+    document.querySelectorAll('[data-wa-enlace]').forEach(function(x){ x.href = href; });
   })();
   if(window.lwRepintaDinero) lwRepintaDinero();
 })();

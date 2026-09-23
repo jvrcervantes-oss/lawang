@@ -182,6 +182,26 @@
     'Hak Sewa deed and Power of Attorney before a PPAT notary.': { es: 'Escritura de Hak Sewa y poder notarial ante un notario PPAT.', id: 'Akta Hak Sewa dan Surat Kuasa di hadapan notaris PPAT.' },
     'Reserve': { es: 'Reservar', id: 'Pesan' },
     'Contact us': { es: 'Escríbenos', id: 'Hubungi kami' },
+    /* 22-sep: el plano lleva a la fila, y la fila contacta por WhatsApp */
+    'Tap a plot to find it in the live inventory. Status is live; surface areas are confirmed by survey at Plot Lock.':
+      { es: 'Toca una parcela para verla en el inventario en vivo. El estado es en vivo; las superficies se confirman por levantamiento topográfico en el Plot Lock.',
+        id: 'Ketuk kavling untuk melihatnya di daftar ketersediaan langsung. Status bersifat langsung; luas dikonfirmasi lewat survei saat Plot Lock.' },
+    'Talk to us on WhatsApp': { es: 'Háblanos por WhatsApp', id: 'Hubungi kami via WhatsApp' },
+
+    /* — cabecera y panel (22-sep): menú, pestañas — */
+    'Menu': { es: 'Menú', id: 'Menu' },
+    'Documents': { es: 'Documentos', id: 'Dokumen' },
+
+    /* — pie (22-sep, calco de la estructura del pie de /modelo) — */
+    'Collection': { es: 'Colección', id: 'Koleksi' },
+    'Information': { es: 'Información', id: 'Informasi' },
+    'We reply during Bali hours (WITA).': { es: 'Te respondemos en horario de Bali (WITA).', id: 'Kami membalas pada jam kerja Bali (WITA).' },
+    'Bali Office': { es: 'Oficina en Bali', id: 'Kantor Bali' },
+    'Direct lines': { es: 'Líneas directas', id: 'Saluran langsung' },
+    'Notarial escrow': { es: 'Escrow notarial', id: 'Escrow notaris' },
+    '© 2026 Lawang Tropical Properties (PT Tepi Sun Gai). All rights reserved.':
+      { es: '© 2026 Lawang Tropical Properties (PT Tepi Sun Gai). Todos los derechos reservados.',
+        id: '© 2026 Lawang Tropical Properties (PT Tepi Sun Gai). Hak cipta dilindungi.' },
 
     /* — previsión financiera — */
     'Average': { es: 'Medio', id: 'Rata-rata' },
@@ -426,6 +446,12 @@
     { re: /^Year-1 Rental Forecast — (.+)$/,
       es: 'Previsión de alquiler Año 1 — $1', id: 'Proyeksi Sewa Tahun ke-1 — $1' },
     { re: /^Reserve plot (\S+)$/, es: 'Reservar parcela $1', id: 'Pesan kavling $1' },
+    /* 22-sep: WhatsApp por parcela (mensaje prellenado y aria-label del boton) */
+    { re: /^Hello LAWANG, I’m interested in plot (\S+) at Palm Field\.$/,
+      es: 'Hola LAWANG, me interesa la parcela $1 de Palm Field.',
+      id: 'Halo LAWANG, saya tertarik dengan kavling $1 di Palm Field.' },
+    { re: /^Talk to us on WhatsApp about plot (\S+)$/,
+      es: 'Háblanos por WhatsApp sobre la parcela $1', id: 'Hubungi kami via WhatsApp tentang kavling $1' },
     { re: /^(\S+) villa model$/, es: 'Modelo de villa $1', id: 'Model villa $1' }
   ];
 
