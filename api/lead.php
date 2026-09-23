@@ -184,7 +184,9 @@ if ($name !== '' || $phone !== '') {
         }
     }
 
-    $enviado = @mail(
+    // Modo mantenimiento de envíos (23-sep-2026): en pausa no sale, se apunta 'NO'.
+    require_once __DIR__ . '/envios_pausados.php';
+    $enviado = !lw_envios_pausados() && @mail(
         'sales@lawangproperties.com',
         'Nueva solicitud de llamada - ' . ($property !== '' ? $property : 'web'),
         $cuerpoCorreo,

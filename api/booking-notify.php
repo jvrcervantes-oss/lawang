@@ -187,7 +187,9 @@ if ($fh === false) {
 // lawangproperties.com falla, así que el aviso cae en spam).
 // La cifra va ARRIBA del todo y etiquetada: el modo de fallo real de ventas es llegar a la
 // llamada citando un número distinto del que el lead tuvo delante en pantalla.
-$enviado = @mail(
+// Modo mantenimiento de envíos (23-sep-2026): en pausa no sale, se apunta 'NO'.
+require_once __DIR__ . '/envios_pausados.php';
+$enviado = !lw_envios_pausados() && @mail(
     'sales@lawangproperties.com',
     'Reserva sin verificar en Calendly - ' . ($modelo !== '' ? $modelo : 'web'),
     "CIFRA QUE VIO EL VISITANTE EN PANTALLA: $estTxt\n"
