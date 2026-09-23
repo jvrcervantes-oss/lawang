@@ -2,7 +2,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/guard.js?v=1d256fc0" data-herramienta="unidades"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
 <script src="/contracts/assets/i18n.js?v=7d9056e9" defer></script>
-<script src="/contracts/assets/dinero.js?v=a442e362" defer></script><script src="/intranet/facturas/totales.js" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=c76d3606" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1" defer></script><script src="/contracts/assets/proyectos_csv.js?v=e610515a" defer></script><script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="../assets/datos.js?v=a607c744" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/dinero.js?v=a442e362" defer></script><script src="/intranet/facturas/totales.js" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=c76d3606" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1" defer></script><script src="/contracts/assets/proyectos_csv.js?v=e610515a" defer></script><script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="../assets/datos.js?v=8f422221" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=0d7666c1" defer></script>
 <link href="../assets/shell.css?v=cadfe619" rel="stylesheet">
@@ -102,6 +102,18 @@
     #d-unidades-cab.lw-lista > span { padding: 0 14px; }
     .lw-vista-btn { padding: 5px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; color: #5E625A; }
     .lw-vista-btn[aria-pressed="true"] { background: #fff; color: #104C4F; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+    /* Ficha de UNA parcela = panel estrecho a la derecha, por ENCIMA del proyecto
+       (owner 23-sep-2026: «al abrir una parcela en detalle se abre entero y debería
+       abrirse un poquito»). El proyecto sigue a pantalla completa detrás, con el
+       parcelario a la vista: se pincha otra parcela y el panel cambia de ficha.
+       `fixed` dentro del cajón (que lleva transform) se ancla al cajón, que ocupa
+       toda la pantalla: a efectos prácticos, al borde derecho de la ventana. */
+    #cajon-vista-parcela { position: fixed; top: 0; right: 0; bottom: 0; width: min(440px, 92vw);
+      z-index: 5; overflow-y: auto; padding: 20px 24px 32px; background: #FBF8F2;
+      border-left: 1px solid #E4DCCB; box-shadow: -18px 0 40px -12px rgba(0,0,0,.22);
+      animation: lw-parcela-entra .22s ease-out; }
+    @keyframes lw-parcela-entra { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { #cajon-vista-parcela { animation: none; } }
   </style>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script id="tailwind-config">
@@ -838,7 +850,7 @@
 <div id="cajon-vista-parcela" class="hidden space-y-4">
 <button type="button" data-lw-accion="volver-a-proyecto" class="flex items-center gap-1 text-[13px] font-label-md font-semibold text-deep-lagoon hover:text-territorial-green transition-colors">
 <span class="material-symbols-outlined text-[18px]">chevron_left</span>
-<span>Volver a <span data-lw="dp-proyecto">este proyecto</span></span>
+<span>Cerrar · volver a <span data-lw="dp-proyecto">este proyecto</span></span>
 </button>
 <div class="flex items-center justify-between gap-3">
 <div class="flex items-center gap-2">

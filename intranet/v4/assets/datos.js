@@ -4357,10 +4357,11 @@
         pon('dp-suelo', u.precio_suelo != null ? fmt(u.precio_suelo, u.moneda || 'EUR') + (u.cobrado_suelo == null ? ' · cobro no visible' : ' · cobrado ' + fmt(u.cobrado_suelo, u.moneda || 'EUR')) : '—');
         pon('dp-suelo-m2', (u.precio_suelo != null && u.superficie_m2) ? fmt(u.precio_suelo / u.superficie_m2, u.moneda || 'EUR') + '/m²' : '—');
         pon('dp-obra', u.precio_construccion != null ? fmt(u.precio_construccion, u.moneda || 'EUR') + (u.cobrado_obra == null ? ' · cobro no visible' : ' · cobrado ' + fmt(u.cobrado_obra, u.moneda || 'EUR')) : 'sin construcción asociada');
-        vp.classList.add('hidden');
+        /* El proyecto NO se oculta (23-sep-2026, owner): la parcela abre en un panel
+           estrecho encima (estilo en proyectos/index.html) y el parcelario sigue
+           detrás, en su sitio. Solo se sube el scroll del PANEL, no el del proyecto. */
         vd.classList.remove('hidden');
-        var cuerpo = vd.closest('.overflow-y-auto');
-        if (cuerpo) cuerpo.scrollTop = 0;
+        vd.scrollTop = 0;
       }
       function volverAProyecto() {
         var vp = document.getElementById('cajon-vista-proyecto');
