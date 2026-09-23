@@ -64,7 +64,7 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=4ba5c662"></script>
+<script src="/contracts/assets/i18n.js?v=7d9056e9"></script>
 <script src="/contracts/assets/herramientas.js?v=03c51084"></script>
 <script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="/contracts/assets/topbar.js?v=8444fd68" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -358,7 +358,7 @@
       <header>
         <div>
           <h2 data-lwt="Cuentas GoHighLevel conectadas">Cuentas GoHighLevel conectadas</h2>
-          <p data-lwt="Solo lectura. Una cuenta nace apagada y no se enciende sin la fecha de la adenda firmada por el sales manager.">Solo lectura. Una cuenta nace apagada y no se enciende sin la fecha de la adenda firmada por el sales manager.</p>
+          <p data-lwt="Solo lectura: nunca se escribe en la cuenta del sales manager. Una cuenta nace apagada hasta que la actives.">Solo lectura: nunca se escribe en la cuenta del sales manager. Una cuenta nace apagada hasta que la actives.</p>
         </div>
       </header>
       <div class="tabla-scroll"><table class="tabla" id="tTrazaCuentas"></table></div>
@@ -366,7 +366,9 @@
         <summary class="btn pri" style="list-style:none"><i class="ph ph-plus"></i><span data-lwt>Nueva cuenta</span></summary>
         <div style="margin-top:12px">
           <div class="fila-campos">
-            <div class="campo"><label for="tzNombre" data-lwt="Sales manager">Sales manager</label><input type="text" id="tzNombre" autocomplete="off"></div>
+            <!-- Desplegable de los sales managers ya dados de alta en la intranet (owner, 23-sep): la cuenta
+                 apunta al usuario, y el nombre lo pone su ficha — nunca un texto escrito aquí. -->
+            <div class="campo"><label for="tzManager" data-lwt="Sales manager">Sales manager</label><select id="tzManager"><option value="" data-lwt="Elige uno…">Elige uno…</option></select></div>
             <div class="campo"><label for="tzLocation" data-lwt="Location ID">Location ID</label><input type="text" id="tzLocation" autocomplete="off"></div>
             <div class="campo"><label for="tzEtiqueta" data-lwt="Etiqueta de contactos Lawang">Etiqueta de contactos Lawang</label><input type="text" id="tzEtiqueta" autocomplete="off"></div>
           </div>
@@ -381,6 +383,6 @@
 
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
 <script src="/contracts/assets/suite-comun.js?v=24701ad2"></script>
-<script src="/intranet/leads/leads.js?v=17"></script>
+<script src="/intranet/leads/leads.js?v=18"></script>
 </body>
 </html>

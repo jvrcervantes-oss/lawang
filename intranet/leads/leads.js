@@ -2269,8 +2269,15 @@ function trazaPersonas(filas){
 }
 
 async function cargarTrazabilidad(){
-  const [c, k] = await Promise.all([SB.rpc('traza_coincidencias_listar'), SB.rpc('traza_cuentas_listar')]);
-  if(c.error || k.error){ toastMal(lwErrorHumano(c.error || k.error)); return; }
+  const [c, k, m] = await Promise.all([SB.rpc('traza_coincidencias_listar'), SB.rpc('traza_cuentas_listar'),
+                                        SB.rpc('traza_managers')]);
+  if(c.error || k.error || m.error){ toastMal(lwErrorHumano(c.error || k.error || m.error)); return; }
+  /* El desplegable sale de los usuarios sales_manager activos: si mañana se da de alta uno
+     nuevo en /usuarios/, aparece aquí solo. Se conserva la elección si ya había una. */
+  const sel = $('#tzManager'), previo = sel.value;
+  sel.innerHTML = `<option value="">${esc(lwT('Elige uno…'))}</option>` + (m.data || []).map(u =>
+    `<option value="${esc(u.user_id)}">${esc(u.nombre || u.email)}</option>`).join('');
+  sel.value = previo;
   TRAZA = trazaPersonas(c.data || []);
   TRAZA_CUENTAS = k.data || [];
   pintarTrazabilidad();
@@ -2306,17 +2313,16 @@ function pintarTrazabilidad(){
     : `<p class="vacio">${activas ? lwT('Nadie aparece en más de un funnel.') : lwT('Sin cuentas activas todavía: no hay nada que cruzar.')}</p>`;
 
   $('#tTrazaCuentas').innerHTML = `<thead><tr><th>${lwT('Sales manager')}</th><th>${lwT('Etiqueta')}</th>
-      <th>${lwT('Adenda firmada')}</th><th>${lwT('Última pasada')}</th><th></th></tr></thead><tbody>` +
+      <th>${lwT('Última pasada')}</th><th></th></tr></thead><tbody>` +
     (TRAZA_CUENTAS.map(x => {
       const r = x.ultimo_resultado || {};
       const estado = !x.ultima_sync ? '—' : r.ok
         ? lwT('%c contactos · %m con Lawang', { c: r.contactos ?? '—', m: r.huellas_con_lawang ?? '—' })
         : `<span class="chip rojo">${esc(r.error || lwT('falló'))}</span>`;
       return `<tr data-id="${esc(x.id)}">
-        <td><b>${esc(x.nombre)}</b><div class="sub">${esc(x.location_id)}</div>
+        <td><b>${esc(x.nombre || x.email)}</b><div class="sub">${esc(x.location_id)}</div>
           ${x.activo ? `<span class="chip verde">${lwT('Activa')}</span>` : `<span class="chip gris">${lwT('Apagada')}</span>`}</td>
         <td>${esc(x.etiqueta)}</td>
-        <td><div class="campo" style="margin:0"><input type="date" data-adenda value="${esc(x.adenda_firmada_en || '')}" aria-label="${esc(lwT('Adenda firmada'))}"></div></td>
         <td>${x.ultima_sync ? fechaHora(x.ultima_sync) + '<div class="sub">' + estado + '</div>' : '—'}</td>
         <td style="white-space:nowrap">
           <button type="button" class="btn mini" data-tz="probar">${lwT('Probar')}</button>
@@ -2324,7 +2330,7 @@ function pintarTrazabilidad(){
           <button type="button" class="btn mini" data-tz="token">${lwT('Cambiar token')}</button>
           <button type="button" class="btn mini" data-tz="borrar">${lwT('Borrar')}</button>
         </td></tr>`;
-    }).join('') || `<tr><td colspan="5" class="vacio">${lwT('Ninguna cuenta conectada.')}</td></tr>`) + '</tbody>';
+    }).join('') || `<tr><td colspan="4" class="vacio">${lwT('Ninguna cuenta conectada.')}</td></tr>`) + '</tbody>';
 }
 
 async function trazaAccion(e){
@@ -2344,14 +2350,12 @@ async function trazaAccion(e){
                    { c: res.contactos, m: res.huellas_con_lawang }) });
     }
     if(accion === 'estado'){
-      const adenda = fila.querySelector('[data-adenda]').value || null;
-      if(!cuenta.activo && !adenda){ toastMal(lwT('Pon primero la fecha de la adenda firmada.')); return; }
       if(cuenta.activo){
         const ok = await lwConfirmar({ titulo: lwT('Apagar la cuenta'), tono: 'peligro', confirmar: lwT('Apagar'),
           cuerpo: lwT('Se dejan de leer sus contactos y se borran sus coincidencias guardadas.') });
         if(!ok) return;
       }
-      const { error } = await SB.rpc('traza_cuenta_estado', { p_id: id, p_activo: !cuenta.activo, p_adenda: adenda });
+      const { error } = await SB.rpc('traza_cuenta_estado', { p_id: id, p_activo: !cuenta.activo });
       if(error) throw error;
       toast(cuenta.activo ? lwT('Cuenta apagada.') : lwT('Cuenta activada. Entra en la próxima sincronización.'));
     }
@@ -2382,14 +2386,14 @@ async function trazaAccion(e){
 
 async function trazaAlta(){
   const v = s => $(s).value.trim();
-  const cuerpo = { accion: 'alta', nombre: v('#tzNombre'), location_id: v('#tzLocation'), etiqueta: v('#tzEtiqueta'), token: v('#tzToken') };
-  if(!cuerpo.nombre || !cuerpo.location_id || !cuerpo.etiqueta || !cuerpo.token){
+  const cuerpo = { accion: 'alta', manager_id: v('#tzManager'), location_id: v('#tzLocation'), etiqueta: v('#tzEtiqueta'), token: v('#tzToken') };
+  if(!cuerpo.manager_id || !cuerpo.location_id || !cuerpo.etiqueta || !cuerpo.token){
     toastMal(lwT('Faltan datos: sales manager, Location ID, etiqueta y token.')); return;
   }
   const b = $('#btnTrazaAlta'); b.disabled = true;
   try {
     const r = await llamarTraza(cuerpo);
-    ['#tzNombre', '#tzLocation', '#tzEtiqueta', '#tzToken'].forEach(s => { $(s).value = ''; });
+    ['#tzManager', '#tzLocation', '#tzEtiqueta', '#tzToken'].forEach(s => { $(s).value = ''; });
     toast(lwT('Cuenta conectada (apagada). %c contactos con la etiqueta.', { c: r.contactos_con_etiqueta }));
     await cargarTrazabilidad();
   } catch(err){ toastMal(lwErrorHumano(err)); }
@@ -2401,7 +2405,7 @@ async function trazaSync(){
   toast(lwT('Sincronizando… puede tardar un minuto.'));
   try {
     const r = await llamarTraza({ accion: 'sincronizar' });
-    if(r.nada) toast(lwT('Ninguna cuenta activa: actívala con la fecha de la adenda firmada.'));
+    if(r.nada) toast(lwT('Ninguna cuenta activa.'));
     else if(r.conservada_pasada_anterior) toastMal(lwT('Alguna cuenta falló: se conserva la pasada anterior.'));
     else toast(lwT('Sincronizado.'));
     await cargarTrazabilidad();

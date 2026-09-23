@@ -17,8 +17,9 @@
 // Dos puertas (verify_jwt=false, la puerta está aquí dentro):
 //  · X-Cron-Secret (pg_cron, cada 6 h) → accion 'sincronizar' sobre las cuentas activas.
 //  · JWT de un super_admin (la pestaña Trazabilidad del CRM):
-//      'alta'        {nombre, location_id, etiqueta, token}  valida el token contra GHL y
-//                    da de alta la cuenta APAGADA. El token va a Vault como parámetro de
+//      'alta'        {manager_id, location_id, etiqueta, token}  valida el token contra GHL
+//                    y da de alta la cuenta APAGADA. manager_id = usuario sales_manager
+//                    de la intranet (desplegable, owner 23-sep). El token va a Vault como parámetro de
 //                    RPC, nunca como literal en SQL.
 //      'token'       {cuenta_id, token}                      cambia el token (rotación).
 //      'probar'      {cuenta_id}                             pasada en seco de UNA cuenta,
@@ -261,7 +262,7 @@ Deno.serve(async (req) => {
       } catch (e) { return json({ error: 'GHL no acepta el token con esa cuenta — ' + (e as Error).message }, 400); }
       if (accion === 'alta') {
         const { data: id, error } = await sb.rpc('traza_cuenta_alta', {
-          p_nombre: body.nombre, p_location_id: loc, p_etiqueta: etiqueta, p_token: token, p_creado_por: quien.user.id });
+          p_manager: body.manager_id, p_location_id: loc, p_etiqueta: etiqueta, p_token: token, p_creado_por: quien.user.id });
         if (error) return json({ error: error.message }, 400);
         return json({ ok: true, id, contactos_con_etiqueta: total });
       }
@@ -276,7 +277,7 @@ Deno.serve(async (req) => {
     }
     if (accion === 'sincronizar') {
       const cs = await cuentas(null);
-      if (!cs.length) return json({ ok: true, nada: 'Ninguna cuenta activa: actívala con la fecha de la adenda firmada' });
+      if (!cs.length) return json({ ok: true, nada: 'Ninguna cuenta activa' });
       return json(await pasada(cs, true));
     }
     return json({ error: 'accion desconocida' }, 400);
