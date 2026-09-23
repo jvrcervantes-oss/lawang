@@ -5278,20 +5278,13 @@
           }
           c.setAttribute('data-modelo-id', m.id);
           c.style.cursor = 'pointer';
-          /* Sin recargar (23-sep-2026, owner: «no está enganchada»): antes
-             `location.search=` recargaba la página ARRIBA del todo y la ficha
-             —con Editar, Fotos y Documentos— quedaba debajo de las 15
-             tarjetas: pinchar parecía no hacer nada. Ahora se pinta la ficha de
-             ese modelo y se baja a ella; la URL se actualiza para poder
-             compartirla o recargar. Los editores leen LW_V4.modelo al hacer
-             click, así que siguen al modelo elegido. */
-          c.addEventListener('click', function () {
-            try { history.replaceState(null, '', '?modelo=' + encodeURIComponent(m.slug || m.nombre)); } catch (e) {}
-            pintaFicha(m);
-            var sec = document.querySelector('[data-lw="d-nombre"]');
-            sec = sec && sec.closest('section');
-            if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          });
+          /* Mismo flujo que /v4/proyectos/ (23-sep-2026, owner): la tarjeta
+             —o su botón «Editar»— abre la FICHA DEL MODELO en el cajón
+             lateral, sin recargar; editar datos, fotos y documentos están en su
+             pie. La URL lleva ?modelo= para compartirla o recargar. Los
+             editores leen LW_V4.modelo al hacer click, así que siguen al
+             modelo abierto. */
+          c.addEventListener('click', function (ev) { ev.stopPropagation(); abrirFicha(m); });
           grid.appendChild(c);
         });
 
@@ -5357,12 +5350,38 @@
                  ms.slice().sort(function (a, b) { return (porModelo[b.id] || 0) - (porModelo[a.id] || 0); })[0];
         if (!elInicial) return;
         pintaFicha(elInicial);
-        // Llegando con ?modelo= (enlace compartido): se baja directo a su ficha.
-        if (pedido) {
-          var secIni = document.querySelector('[data-lw="d-nombre"]');
-          secIni = secIni && secIni.closest('section');
-          if (secIni) secIni.scrollIntoView({ block: 'start' });
+        // Llegando con ?modelo= (enlace compartido, o recarga tras guardar) se
+        // abre ESA ficha; una carga a secas deja el cajón cerrado, como Proyectos.
+        if (pedido && elInicial && (elInicial.slug === pedido || elInicial.nombre === pedido)) mueveCajon(true);
+
+        function mueveCajon(abrir) {
+          var cajon = document.getElementById('cajon-detalle'), velo = document.getElementById('cajon-backdrop');
+          if (cajon) cajon.classList.toggle('translate-x-full', !abrir);
+          if (velo) velo.classList.toggle('hidden', !abrir);
+          if (!abrir) { try { history.replaceState(null, '', location.pathname); } catch (e) {} }
         }
+        function abrirFicha(m) {
+          pintaFicha(m);
+          var cuerpo = document.getElementById('cajon-cuerpo'); if (cuerpo) cuerpo.scrollTop = 0;
+          try { history.replaceState(null, '', '?modelo=' + encodeURIComponent(m.slug || m.nombre)); } catch (e) {}
+          mueveCajon(true);
+        }
+        var btnCerrar = document.querySelector('[data-lw-cerrar-cajon]');
+        if (btnCerrar) btnCerrar.addEventListener('click', function (ev) { ev.stopPropagation(); mueveCajon(false); });
+        var veloFicha = document.getElementById('cajon-backdrop');
+        if (veloFicha) veloFicha.addEventListener('click', function () { mueveCajon(false); });
+        /* Escape cierra la ficha, salvo que haya algo abierto ENCIMA (el editor,
+           un diálogo o el gestor de fotos): ese Escape es suyo. */
+        document.addEventListener('keydown', function (ev) {
+          if (ev.key !== 'Escape' || ev.defaultPrevented) return;
+          // `lw-cajon` es el panel de «Fotos del deck» (editores.js): su propio
+          // Escape lo quita, por eso este listener va en CAPTURA — así se mira
+          // antes de que desaparezca y no se cierran los dos de un golpe.
+          if (document.getElementById('lw-editor') || document.getElementById('lw-cajon') || document.querySelector('.lw-dlg-fondo.abierto')) return;
+          var cajon = document.getElementById('cajon-detalle');
+          if (!cajon || cajon.classList.contains('translate-x-full')) return;
+          mueveCajon(false);
+        }, true);
 
         /* La ficha se pinta aquí y al pinchar una tarjeta (sin recargar). Los
            moldes de filas se guardan la PRIMERA vez: después de pintar, el
@@ -5370,10 +5389,6 @@
         var moldeProy, moldeDoc;
         function pintaFicha(el) {
         window.LW_V4 = window.LW_V4 || {}; window.LW_V4.modelo = el;
-        Array.prototype.forEach.call(grid.children, function (t) {
-          t.style.outline = t.getAttribute('data-modelo-id') === el.id ? '2px solid #104C4F' : '';
-          t.style.outlineOffset = '2px';
-        });
         pintaGaleria(el);
         pon('d-nombre', el.nombre || '—');
         pon('d-slug', el.slug ? '/' + el.slug : 'sin slug');

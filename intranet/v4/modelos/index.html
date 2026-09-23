@@ -2,7 +2,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/guard.js?v=1d256fc0" data-herramienta="modelos"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
 <script src="/contracts/assets/i18n.js?v=7d9056e9" defer></script>
-<script src="/contracts/assets/dinero.js?v=a442e362" defer></script><script src="/intranet/facturas/totales.js" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=c76d3606" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="../assets/datos.js?v=d667f1ca" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/dinero.js?v=a442e362" defer></script><script src="/intranet/facturas/totales.js" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=c76d3606" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="../assets/datos.js?v=49afbd74" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=e97ddd19" defer></script>
 <link href="../assets/shell.css?v=cadfe619" rel="stylesheet">
@@ -109,23 +109,39 @@
 </div>
 <span class="font-body-sm text-body-sm text-on-surface-variant text-right shrink-0" data-lw="m-unidades">—</span>
 </div>
+<!-- Mismo flujo que /v4/proyectos/ (23-sep-2026, owner): la tarjeta abre la
+     FICHA en el cajón lateral; editar, fotos y documentos viven en su pie. El
+     click lo pone datos.js por tarjeta (tiene que saber DE QUÉ modelo). -->
+<button class="w-full py-1.5 px-3 rounded-lg bg-deep-lagoon/10 hover:bg-deep-lagoon text-deep-lagoon hover:text-surface-bright transition-all font-label-md text-[12px] font-semibold flex items-center justify-center gap-1.5 group/btn" data-abrir-cajon data-real type="button">
+<span class="material-symbols-outlined text-[15px]">edit</span>
+<span class="">Editar</span>
+</button>
 </div>
 </article>
 </div>
-<section class="bg-surface-container-lowest rounded-xl p-8 shadow-sm flex flex-col gap-6">
-<div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4 pb-6 border-b border-outline-variant/40">
-<div class="flex flex-col gap-1 min-w-0">
+</div>
+</main></div>
+<!-- FICHA DEL MODELO en CAJÓN LATERAL (23-sep-2026, owner: «/modelos/ debe seguir
+     el mismo flujo de trabajo que /proyectos/ — Editar abre "Ficha del modelo"»).
+     Antes la ficha era una sección al pie de la rejilla. Mismos ganchos data-lw y
+     los mismos botones por texto (editores.js, ata()): solo cambia DÓNDE vive.
+     Arranca fuera de pantalla; datos.js lo abre (tarjeta o ?modelo=) y lo cierra
+     con la X, el velo o Escape. -->
+<div class="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-50 hidden" id="cajon-backdrop"></div>
+<aside class="sui-cajon fixed top-0 right-0 h-full w-full max-w-[1040px] bg-surface-container-lowest z-[60] shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out translate-x-full" id="cajon-detalle" role="dialog" aria-modal="true" aria-labelledby="cajon-titulo">
+<div class="px-6 py-3 bg-surface-container-low border-b border-outline-variant/40 flex items-center justify-between gap-4 shrink-0">
+<div class="flex flex-col gap-0.5 min-w-0">
 <span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">Ficha del modelo</span>
-<h2 class="font-headline-md text-headline-md text-deep-lagoon tracking-tight" data-lw="d-nombre">—</h2>
+<div class="flex items-center gap-3 min-w-0">
+<h2 class="font-headline-sm text-[24px] text-deep-lagoon font-bold leading-tight truncate" data-lw="d-nombre" id="cajon-titulo">—</h2>
+<span class="shrink-0 inline-flex items-center px-3 py-1 rounded-full bg-surface-container-high font-label-md text-[11px] uppercase tracking-wider" data-lw="d-estado">—</span>
+</div>
 <span class="font-body-sm text-body-sm text-stone-sand" data-lw="d-slug">—</span>
 </div>
-<div class="flex flex-wrap items-center gap-3">
-<span class="inline-flex items-center px-3 py-1 rounded-full bg-surface-container-high font-label-md text-[11px] uppercase tracking-wider" data-lw="d-estado">—</span>
-<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-label-md transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">edit</span>Editar datos</button>
-<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-label-md transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">photo_library</span>Fotos del deck</button>
-<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-deep-lagoon text-on-primary hover:bg-primary font-label-md text-label-md transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">attach_file</span>Añadir documento</button>
+<button class="w-8 h-8 rounded-full flex items-center justify-center text-outline hover:text-volcanic-ash hover:bg-surface-container transition-colors shrink-0" title="Cerrar (Esc)" aria-label="Cerrar" data-lw-cerrar-cajon data-real type="button"><span class="material-symbols-outlined text-[20px]">close</span></button>
 </div>
-</div>
+<div class="flex-1 min-h-0 overflow-y-auto px-6 py-5 flex flex-col gap-6" id="cajon-cuerpo">
+<div id="d-fotos" style="display:flex;gap:10px;overflow-x:auto;padding-bottom:4px"></div>
 <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
 <div class="bg-surface-container-low rounded-xl p-4 flex flex-col gap-1"><span class="font-label-md text-[11px] uppercase tracking-wider text-outline">Dormitorios</span><span class="font-kpi-number text-headline-sm text-on-surface" data-lw="d-dorm">—</span></div>
 <div class="bg-surface-container-low rounded-xl p-4 flex flex-col gap-1"><span class="font-label-md text-[11px] uppercase tracking-wider text-outline">Baños</span><span class="font-kpi-number text-headline-sm text-on-surface" data-lw="d-banos">—</span></div>
@@ -147,9 +163,13 @@
 <span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">Documentos del modelo</span>
 <div class="flex flex-col gap-2" id="d-docs"><div class="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-surface-container-low cursor-pointer" data-doc-abrir><span class="font-body-sm text-body-sm text-on-surface truncate" data-lw="doc-titulo">—</span><span class="font-body-sm text-[12px] text-outline shrink-0" data-lw="doc-meta">—</span></div></div>
 </div>
-</section>
 </div>
-</main></div>
+<div class="px-6 py-3 bg-surface-container-low border-t border-outline-variant/40 flex flex-wrap items-center justify-end gap-2 shrink-0">
+<button class="py-2 px-4 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-outline-variant/60 transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" type="button"><span class="material-symbols-outlined text-[16px]">photo_library</span>Fotos del deck</button>
+<button class="py-2 px-4 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-outline-variant/60 transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" type="button"><span class="material-symbols-outlined text-[16px]">attach_file</span>Añadir documento</button>
+<button class="py-2 px-4 rounded-lg bg-deep-lagoon text-surface-bright hover:bg-primary transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm" type="button"><span class="material-symbols-outlined text-[16px]">edit</span>Editar datos</button>
+</div>
+</aside>
 
 
 
