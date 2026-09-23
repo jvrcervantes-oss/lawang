@@ -1,8 +1,10 @@
 <!DOCTYPE html><html lang="es"><head><title>Reservas por vencer — Lawang Intranet</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/guard.js?v=1d256fc0" data-herramienta="reservas"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=51e67166" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
-<script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="../assets/datos.js?v=975541ae" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/i18n.js?v=51e67166" defer></script>
+<!-- 23-sep-2026: la fila abre la ficha del contrato en el cajón (fichaContrato), que necesita las mismas piezas que en /v4/contratos/. -->
+<script src="/contracts/assets/dinero.js?v=a442e362" defer></script><script src="/intranet/facturas/totales.js" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=c76d3606" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
+<script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="../assets/datos.js?v=0e17ac14" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=d0d12c47" defer></script>
 <link href="../assets/shell.css?v=d0a9140c" rel="stylesheet">
@@ -12,9 +14,9 @@
      para reservas por vencer, alta prio»). Las Cartas de Reserva vivas sin
      Bloqueo de Parcela detrás y cuándo vencen — la MISMA lista que usa el
      automatismo que las libera (`reservas_vencimiento()`), así que lo que se
-     ve aquí es lo que el sistema va a hacer. Solo lectura: prorrogar y liberar
-     viven en la ficha de la operación (Operaciones v4), con sus candados; aquí
-     no se duplican. Cableado en datos.js → REG.reservas. -->
+     ve aquí es lo que el sistema va a hacer. Prorrogar y liberar NO se duplican:
+     desde el 23-sep la fila abre la ficha del contrato en el cajón (la misma de
+     Contratos, con sus candados). Cableado en datos.js → REG.reservas. -->
 <div class="flex flex-col w-full gap-8">
 
 <div class="lw-cabecera flex flex-col lg:flex-row lg:items-end justify-between gap-6 bg-surface-container-lowest p-8 rounded-xl shadow-sm">
@@ -31,14 +33,25 @@
 <div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm"><div class="font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Reservas vivas</div><div class="font-kpi-number text-[34px] text-volcanic-ash" data-lw="rk-total">—</div></div>
 </div>
 
+<section class="bg-surface-container-lowest rounded-xl shadow-sm px-8 py-5 flex flex-col gap-3" id="lw-res-cal-caja" hidden>
+<h2 class="font-label-md text-label-md text-volcanic-ash" data-lwt>Próximos 30 días</h2>
+<div id="lw-res-cal"></div>
+</section>
+
 <section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
 <div class="px-8 pt-6 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-outline-variant/40">
 <p class="font-body-sm text-body-sm text-outline" data-lw="rk-gracia-nota">—</p>
 <input class="w-full md:w-72 px-3 py-2 bg-surface-container-low rounded-lg font-body-sm text-body-sm focus:outline-none" id="lw-res-buscar" placeholder="Buscar reserva, comprador o proyecto…" type="search">
 </div>
+<div class="px-4 md:px-8 pt-4 flex flex-wrap items-center gap-2" id="lw-res-agentes" hidden></div>
 <div class="px-4 md:px-8 py-6 flex flex-col gap-6" id="lw-res-lista">
 <p class="font-body-md text-body-md text-on-surface-variant" data-lwt>Trayendo las reservas…</p>
 </div>
+</section>
+
+<section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden" id="lw-res-act-caja" hidden>
+<div class="px-8 pt-6 pb-3 border-b border-outline-variant/40"><h2 class="font-label-md text-label-md text-volcanic-ash" data-lwt>Actividad de los últimos 14 días</h2><p class="font-body-sm text-body-sm text-outline" data-lwt>Prórrogas dadas y Cartas liberadas, para que nadie se entere por el comprador.</p></div>
+<div class="px-4 md:px-8 py-3" id="lw-res-act"></div>
 </section>
 
 </div>
