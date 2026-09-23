@@ -514,6 +514,10 @@
     ok:     { fondo: '#E4F0DA', tinta: '#3F5230', borde: '#3F5230', suave: '#F6FAF2', icono: 'check_circle' },
     espera: { fondo: '#FBF3E4', tinta: '#8A6A34', borde: '#C9892B', suave: '#FFFAF0', icono: 'schedule' },
     mal:    { fondo: '#FFDAD6', tinta: '#93000A', borde: '#BA1A1A', suave: '#FFF4F2', icono: 'error' },
+    // en curso (lago): trámite en marcha que ya no espera a nadie más que al último paso
+    // — p. ej. una solicitud APROBADA que falta pagar (23-sep-2026, owner: «diferencia
+    // los estados por colores» en Comisiones; con solo ámbar, pendiente y aprobada eran iguales)
+    curso:  { fondo: '#D9ECEC', tinta: '#104C4F', borde: '#104C4F', suave: '#F2F8F8', icono: 'sync' },
     neutro: { fondo: '#EAE8E2', tinta: '#2E3437', borde: '#B9B5A8', suave: '#FFFFFF', icono: 'info' }
   };
   function pill(texto, tono) {
@@ -6042,7 +6046,11 @@
   var RESUELTAS = ['pagada', 'rechazada', 'anulada'];
   var ETIQUETA = { pendiente: 'Pendiente', aprobada: 'Aprobada', rechazada: 'Rechazada', anulada: 'Anulada', pagada: 'Pagada' };
   var ETIQUETA_EQ = { pendiente: 'Pendiente', pagada: 'Pagada', en_disputa: 'En disputa', anulada: 'Anulada' };
-  var TAGCLASE_EQ = { pendiente: 'bg-error-container/60 text-error', pagada: 'bg-primary-container/30 text-territorial-green', en_disputa: 'bg-burnt-earth/15 text-burnt-earth', anulada: 'bg-surface-container-high text-outline' };
+  /* Un color por estado (23-sep-2026, owner), de la paleta única LW_TONOS.
+     Anulada va en gris y no en rojo: es «sin efecto» por decisión nuestra, y en
+     rojo se confundía con rechazada. */
+  var TONO_SP = { pendiente: 'espera', aprobada: 'curso', pagada: 'ok', rechazada: 'mal', anulada: 'neutro' };
+  var TONO_EQ = { pendiente: 'espera', pagada: 'ok', en_disputa: 'mal', anulada: 'neutro' };
 
   function miembroActivo(em, hoyISO) { return em.desde <= hoyISO && (!em.hasta || em.hasta >= hoyISO); }
 
@@ -6057,16 +6065,27 @@
          salía con data-id="" y el clic no abría nada — no se podía editar ninguna
          (23-sep-2026). */
       q(sb.from('solicitudes_pago').select('id,numero,concepto,importe,moneda,vence_el,nota,estado,motivo_rechazo,pago_referencia,creado_en,creado_por,resuelto_por,resuelto_en,pagado_por,pagado_en,beneficiario_email,origen,contrato_id,importe_editado_por,motivo_ajuste').order('creado_en', { ascending: false }), 'solicitudes de pago', caja),
-      q(sb.from('contratos').select('id,numero,tipo,proyecto_nombre'), 'contratos'),
+      q(sb.from('contratos').select('id,numero,tipo,proyecto_nombre,contrato_padre_id'), 'contratos'),
       /* Si la RLS de `usuarios` solo deja leer la propia ficha, el mapa se queda
          corto y el fallback pinta «—»: no es un fallo, es lo que esa sesion ve. */
       q(sb.from('usuarios').select('user_id,nombre,email'), 'usuarios'),
       q(sb.from('comisiones_devengadas').select('id,contrato_raiz_id,beneficiario_email,nivel,importe,importe_ajustado,ajuste_motivo,anulado_motivo,moneda,estado,disparado_en,pagado_por,pagado_en').eq('nivel', 'closer').order('disparado_en', { ascending: false }), 'reparto de equipo', cajaEq),
       q(sb.from('equipos_venta').select('id,nombre,manager_email,activo'), 'equipos de venta'),
-      q(sb.from('equipo_miembros').select('equipo_id,closer_email,desde,hasta'), 'miembros de equipo')
+      q(sb.from('equipo_miembros').select('equipo_id,closer_email,desde,hasta'), 'miembros de equipo'),
+      /* De qué parcela sale cada comisión (23-sep-2026, owner): las unidades cuelgan
+         de la RAÍZ de la venta (`unidades.contrato_id`), igual que las lee el motor. */
+      q(sb.from('unidades').select('codigo,codigo_orden,contrato_id').not('contrato_id', 'is', null), 'parcelas')
     ]).then(function (r) {
-      var ss = r[0], contratosRows = r[1] || [], usuariosRows = r[2] || [], cd = r[3], eqs = r[4] || [], miembros = r[5] || [];
+      var ss = r[0], contratosRows = r[1] || [], usuariosRows = r[2] || [], cd = r[3], eqs = r[4] || [], miembros = r[5] || [], unidadesRows = r[6] || [];
       var ct = {}; contratosRows.forEach(function (c) { ct[c.id] = c; });
+      var parcelasDe = {};
+      unidadesRows.slice().sort(function (a, b) { return String(a.codigo_orden || a.codigo || '').localeCompare(String(b.codigo_orden || b.codigo || '')); })
+        .forEach(function (u) { if (u.codigo) (parcelasDe[u.contrato_id] = parcelasDe[u.contrato_id] || []).push(u.codigo); });
+      // parcela(s) de una venta a partir de cualquier contrato de la cadena
+      function parcelas(contratoId) {
+        var c = ct[contratoId]; var raiz = c && c.contrato_padre_id ? c.contrato_padre_id : contratoId;
+        return (parcelasDe[raiz] || []).join(', ');
+      }
       var us = {}; usuariosRows.forEach(function (u) { us[u.user_id] = u; });
       var porEmail = {}; usuariosRows.forEach(function (u) { if (u.email) porEmail[u.email.toLowerCase()] = u; });
 
@@ -6148,6 +6167,7 @@
             H.dato('Importe', fmt(x.importe, x.moneda || 'EUR')) +
             (x.importe_editado_por ? H.dato('Importe cambiado a mano', ((us[x.importe_editado_por] && (us[x.importe_editado_por].nombre || us[x.importe_editado_por].email)) || '—') + (x.motivo_ajuste ? ' — ' + x.motivo_ajuste : '')) : '') +
             H.dato('De la venta', c ? [c.numero, tipoC(c.tipo), c.proyecto_nombre].filter(Boolean).join(' · ') : null) +
+            H.dato('Parcela', x.contrato_id ? (parcelas(x.contrato_id) || 'sin parcela asignada') : null) +
             H.dato('Fecha límite', x.vence_el ? fFecha(x.vence_el) : null) +
             H.dato('Nota', x.nota) +
             H.dato('Pedida', fFecha(x.creado_en)) +
@@ -6160,7 +6180,7 @@
                 : 'Comisión automática') : 'Manual'));
 
           if (x.estado !== 'pendiente') {
-            var tonoEstado = x.estado === 'pagada' ? 'ok' : x.estado === 'rechazada' ? 'mal' : x.estado === 'aprobada' ? 'espera' : null;
+            var tonoEstado = TONO_SP[x.estado];
             cuerpo += H.seccion('Resolución',
               H.dato('Estado', H.tag(ETIQUETA[x.estado] || x.estado, tonoEstado), { html: 1 }) +
               H.dato('Motivo', x.motivo_rechazo) +
@@ -6234,7 +6254,7 @@
                     H.nota('No se encuentra la fila de comisiones_devengadas de esta comisión automática (o tu sesión no puede verla) — no hay sincronización automática entre las dos: compruébalo a mano si hace falta.'));
                 } else {
                   var cd = rcd.data;
-                  var tonoCd = cd.estado === 'pagada' ? 'ok' : cd.estado === 'en_disputa' ? 'mal' : 'espera';
+                  var tonoCd = TONO_EQ[cd.estado] || 'espera';
                   var diverge = (x.estado === 'pagada') !== (cd.estado === 'pagada');
                   html = H.seccion('Comisión vinculada',
                     H.dato('Estado en comisiones_devengadas', H.tag(cd.estado, tonoCd), { html: 1 }) +
@@ -6253,7 +6273,7 @@
 
         if (!tabla) return;
         if (!ss.length) {
-          tabla.innerHTML = '<tr><td colspan="8" style="padding:18px;text-align:center;font:400 13px \'Neue Kabel\',sans-serif;color:#8A8474">Ninguna solicitud registrada.</td></tr>';
+          tabla.innerHTML = '<tr><td colspan="9" style="padding:18px;text-align:center;font:400 13px \'Neue Kabel\',sans-serif;color:#8A8474">Ninguna solicitud registrada.</td></tr>';
           return;
         }
         // TODAS las filas, como la viva (/intranet/solicitudes/): los chips contaban
@@ -6266,7 +6286,7 @@
             ? '<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;background:#104C4F;color:#fff;font:600 10.5px \'Neue Kabel\',sans-serif;text-transform:uppercase;letter-spacing:.04em"><span class="material-symbols-outlined" style="font-size:13px;line-height:1">bolt</span>Automática</span>'
             : '<span style="font:500 11px \'Neue Kabel\',sans-serif;color:#8A8474">Manual</span>';
           var venta = c ? [c.numero, tipoC(c.tipo), c.proyecto_nombre].filter(Boolean).join(' · ') : '';
-          var pajar = ['SP-' + x.numero, x.concepto, quienCobra(x), venta].join(' ').toLowerCase();
+          var pajar = ['SP-' + x.numero, x.concepto, quienCobra(x), venta, x.contrato_id ? parcelas(x.contrato_id) : ''].join(' ').toLowerCase();
           return '<tr class="border-b border-outline-variant/30" style="cursor:pointer" data-id="' + esc(x.id) + '" data-estado="' + esc(x.estado) + '" data-creado-por="' + esc(claveCobra(x)) + '" data-pajar="' + esc(pajar) + '">' +
             '<td class="px-5 py-4 font-label-md text-label-md text-on-surface whitespace-nowrap"><b>SP-' + esc(x.numero) + '</b></td>' +
             '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(quienCobra(x)) + '</td>' +
@@ -6274,7 +6294,8 @@
             '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(conceptoCorto(x)) + '</td>' +
             '<td class="px-5 py-4 font-label-md text-label-md text-on-surface whitespace-nowrap">' + esc(fmt(x.importe, x.moneda || 'EUR')) + '</td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(venta || '—') + '</td>' +
-            '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-surface-container-high font-label-md text-[11px] uppercase tracking-wider">' + esc(ETIQUETA[x.estado] || x.estado) + '</span></td>' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc((x.contrato_id && parcelas(x.contrato_id)) || '—') + '</td>' +
+            '<td class="px-5 py-4 whitespace-nowrap">' + pill(ETIQUETA[x.estado] || x.estado, TONO_SP[x.estado]) + '</td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline text-right">' + esc(fFecha(x.creado_en)) + ' · ' + diasDesde(x.creado_en) + ' d</td>' +
             '</tr>';
         }).join('');
@@ -6392,7 +6413,7 @@
 
         if (!tablaEq) return;
         if (!cd.length) {
-          tablaEq.innerHTML = '<tr><td colspan="7" style="padding:18px;text-align:center;font:400 13px \'Neue Kabel\',sans-serif;color:#8A8474">Nada que repartir todavía — aquí aparecerá cada comisión de closer en cuanto se devengue una.</td></tr>';
+          tablaEq.innerHTML = '<tr><td colspan="8" style="padding:18px;text-align:center;font:400 13px \'Neue Kabel\',sans-serif;color:#8A8474">Nada que repartir todavía — aquí aparecerá cada comisión de closer en cuanto se devengue una.</td></tr>';
           return;
         }
         /* El registro va por ID, nunca por nombre (esc() no basta contra comillas
@@ -6432,7 +6453,8 @@
             '<td class="px-5 py-4 font-label-md text-label-md text-on-surface whitespace-nowrap">' + esc(fmt(efectivo, x.moneda || 'EUR')) +
               (notaFila ? '<div style="font:500 11px \'Neue Kabel\',sans-serif;color:#8A8474;white-space:normal;max-width:220px">' + esc(notaFila) + '</div>' : '') + '</td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(c ? [c.numero, tipoC(c.tipo), c.proyecto_nombre].filter(Boolean).join(' · ') : '—') + '</td>' +
-            '<td class="px-5 py-4"><span class="inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' + (TAGCLASE_EQ[x.estado] || 'bg-surface-container-high') + '">' + esc(ETIQUETA_EQ[x.estado] || x.estado) + '</span></td>' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(parcelas(x.contrato_raiz_id) || '—') + '</td>' +
+            '<td class="px-5 py-4 whitespace-nowrap">' + pill(ETIQUETA_EQ[x.estado] || x.estado, TONO_EQ[x.estado]) + '</td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + fFecha(x.disparado_en) + '</td>' +
             '<td class="px-5 py-4 text-right">' + accion + '</td>' +
             '</tr>';
@@ -6902,7 +6924,12 @@
   };
 
   REG.condiciones = function (sb) {
-    if (!(window.LW_V4 && window.LW_V4.esAdmin)) { notaSoloAdmin(); return; }
+    /* 23-sep-2026 (owner): «damos de alta el equipo de un Sales Manager y le
+       asignamos comisión, y él configura en cada proyecto lo que quiera a sus
+       closers». Administración ve todo; un manager, solo su equipo (la RLS ya
+       lo recorta) y solo escribe el nivel closer — lo exige la base. */
+    var esAdmC = !!(window.LW_V4 && window.LW_V4.esAdmin);
+    var miEmailC = ((window.LW_V4 && window.LW_V4.miEmail) || '').toLowerCase();
     // vocabulario compartido con editores.js (montaTramos, el select de la base
     // de cálculo): una sola lista, aquí, leída por window.LW_V4 — Regla 0.
     window.LW_V4.DISPARADORES = [
@@ -6925,13 +6952,24 @@
 
     Promise.all([
       q(sb.from('condiciones_comision').select('id,equipo_id,proyecto_id,nivel,closer_email,pct_comision,base_calculo,importe_fijo,activo,vigente_desde,created_at').order('created_at', { ascending: false }), 'condiciones de comisión', cuerpo),
-      q(sb.from('equipos_venta').select('id,nombre'), 'equipos de venta'),
+      q(sb.from('equipos_venta').select('id,nombre,manager_email,activo'), 'equipos de venta'),
       q(sb.from('proyectos').select('id,nombre'), 'proyectos'),
       q(sb.from('condicion_tramos').select('id,condicion_id,orden,disparador_tipo,umbral,pct_tramo').order('orden'), 'tramos de comisión'),
       q(sb.from('usuarios').select('email,nombre,rol,activo'), 'usuarios')
     ]).then(function (r) {
       var conds = r[0], equipos = r[1] || [], proyectos = r[2] || [], tramos = r[3] || [], usuarios = r[4] || [];
       if (!conds) return;
+      if (!esAdmC) {
+        var mios = equipos.filter(function (e) { return e.activo && (e.manager_email || '').toLowerCase() === miEmailC; });
+        if (!mios.length) { notaSoloAdmin(); if (cuerpo) cuerpo.innerHTML = ''; return; }
+        var idsMios = mios.map(function (e) { return e.id; });
+        conds = conds.filter(function (c) { return c.equipo_id && idsMios.indexOf(c.equipo_id) !== -1; });
+        equipos = mios;
+        document.querySelectorAll('[data-lw-aviso-admin]').forEach(function (el) {
+          el.querySelector('p').innerHTML = 'Eres el manager de <b class="text-on-surface">' + esc(mios.map(function (e) { return e.nombre; }).join(', ')) +
+            '</b>: aquí configuras lo que pagas a tus closers — para todos los proyectos o para uno concreto, y si quieres a una persona en particular. Tu propia comisión la fija administración. Lo comprueba la base, no solo esta pantalla.';
+        });
+      }
       publicaUsuariosLista(usuarios);
       var equipoDe = {}; equipos.forEach(function (e) { equipoDe[e.id] = e.nombre; });
       var proyectoDe = {}; proyectos.forEach(function (p) { proyectoDe[p.id] = p.nombre; });
@@ -6946,7 +6984,7 @@
       pon2('k-cond-closer', String(conds.filter(function (c) { return c.nivel === 'closer'; }).length));
 
       if (selEquipo) selEquipo.innerHTML = '<option value="">Todos los equipos</option>' +
-        '<option value="__estandar__">Estándar de Lawang (sin equipo)</option>' +
+        (esAdmC ? '<option value="__estandar__">Estándar de Lawang (sin equipo)</option>' : '') +
         equipos.map(function (e) { return '<option value="' + esc(e.id) + '">' + esc(e.nombre) + '</option>'; }).join('');
       if (selProyecto) selProyecto.innerHTML = '<option value="">Todos los proyectos</option>' +
         proyectos.map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.nombre) + '</option>'; }).join('');
@@ -6956,8 +6994,8 @@
         var fe = selEquipo ? selEquipo.value : '', fp = selProyecto ? selProyecto.value : '';
         var lista = conds.filter(function (c) {
           var okEquipo = !fe || (fe === '__estandar__' ? !c.equipo_id : c.equipo_id === fe);
-          // una estándar «todos los proyectos» aplica también al proyecto filtrado
-          var okProyecto = !fp || c.proyecto_id === fp || (!c.equipo_id && !c.proyecto_id);
+          // una condición «todos los proyectos» aplica también al proyecto filtrado
+          var okProyecto = !fp || c.proyecto_id === fp || !c.proyecto_id;
           return okEquipo && okProyecto;
         });
         cuerpo.innerHTML = lista.length ? lista.map(function (c) {
@@ -6985,7 +7023,9 @@
             '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' +
               (c.activo ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-surface-container-high text-on-surface-variant') + '">' +
               (c.activo ? 'Activa' : 'Inactiva') + '</span></td>' +
-            '<td class="px-5 py-4 text-right"><div class="flex justify-end gap-2">' +
+            (!esAdmC && c.nivel !== 'closer'
+              ? '<td class="px-5 py-4 text-right font-body-sm text-body-sm text-outline">la fija administración</td></tr>'
+              : '<td class="px-5 py-4 text-right"><div class="flex justify-end gap-2">' +
               /* Editar (22-sep-2026, owner): %, base, importe fijo, override y —si
                  no ha devengado— los tramos. Equipo, proyecto y nivel no: son la
                  identidad de la condición. */
@@ -7001,7 +7041,7 @@
               (c.activo ? '' :
               '<button type="button" class="px-3 py-1 rounded-full text-error hover:bg-error-container/40 font-label-md text-[12px]" ' +
               'data-lw-borra-cond="' + esc(c.id) + '" data-lw-etq="' + esc((estandar ? 'Estándar de Lawang' : (equipoDe[c.equipo_id] || '')) + ' · ' + (c.proyecto_id ? (proyectoDe[c.proyecto_id] || '') : 'Todos los proyectos')) + '">Borrar</button>') +
-              '</div></td></tr>';
+              '</div></td></tr>');
         }).join('') : '<tr><td colspan="7" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Ninguna condición para este filtro.</td></tr>';
       }
       pinta();

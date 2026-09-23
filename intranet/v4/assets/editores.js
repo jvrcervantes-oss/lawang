@@ -6703,8 +6703,29 @@
     condiciones: function (aut) {
       var sb = aut.sb, admin = esAdmin(aut.ficha);
       window.LW_V4 = window.LW_V4 || {};
+      /* El manager configura el reparto de SUS closers (23-sep-2026, owner):
+         solo nivel closer, solo de un equipo activo que dirige, override solo a
+         un closer vigente de ese equipo, y desde hoy. La base lo exige todo
+         (policies «el manager configura a sus closers» + trigger); esto solo
+         evita ofrecer lo que la base rechazaría. */
+      var miEmailE = ((aut.session && aut.session.user && aut.session.user.email) || '').toLowerCase();
+      var misEquipos = [], misCloser = {};
+      var cargaMisEquipos = admin ? Promise.resolve() : Promise.all([
+        sb.from('equipos_venta').select('id,nombre,manager_email,activo').eq('activo', true),
+        sb.from('equipo_miembros').select('equipo_id,closer_email,desde,hasta')
+      ]).then(function (r) {
+        var hoy = new Date().toISOString().slice(0, 10);
+        misEquipos = ((r[0] && r[0].data) || []).filter(function (e) { return (e.manager_email || '').toLowerCase() === miEmailE; });
+        var ids = misEquipos.map(function (e) { return e.id; });
+        ((r[1] && r[1].data) || []).forEach(function (m) {
+          if (ids.indexOf(m.equipo_id) !== -1 && m.desde <= hoy && (!m.hasta || m.hasta >= hoy)) misCloser[(m.closer_email || '').toLowerCase()] = true;
+        });
+      });
+      function esMiCondicion(cond) {
+        return !!(cond && cond.nivel === 'closer' && cond.equipo_id && misEquipos.some(function (e) { return e.id === cond.equipo_id; }));
+      }
       var soloAdmin = function () {
-        return aviso('Las condiciones de comisión las da de alta solo administración (policy es_admin) — tu sesión es de ' +
+        return aviso('Esta condición solo la cambia administración: un manager configura únicamente lo que paga a los closers de su equipo — tu sesión es de ' +
           ((aut.ficha && aut.ficha.rol) || 'agente') + '.', '#8A6A34');
       };
 
@@ -6717,7 +6738,6 @@
         var err = function (m) { return { error: { message: m } }; };
         if (!v.nivel) return err('Falta el nivel.');
         if (!v.equipo_id && v.nivel !== 'closer') return err('La condición estándar (sin equipo) es siempre de quien cierra: nivel «Closer».');
-        if (v.equipo_id && !v.proyecto_id) return err('Una condición de equipo es por proyecto: «Todos los proyectos» solo vale para la estándar.');
         if (!v.vigente_desde || !/^\d{4}-\d{2}-\d{2}$/.test(String(v.vigente_desde))) return err('Falta la fecha «Vigente desde».');
         if (v.nivel === 'manager' && v.closer_email) return err('El override individual solo aplica con nivel «Closer».');
         if (!tramos.length) return err('Añade al menos un tramo de pago.');
@@ -6749,12 +6769,16 @@
       }
 
       ata(/^\+? ?Nueva condici[oó]n$/i, function () {
-        if (!admin) return soloAdmin();
+        cargaMisEquipos.then(function () {
+        if (!admin && !misEquipos.length) return soloAdmin();
         Promise.all([
-          sb.from('equipos_venta').select('id,nombre').eq('activo', true).order('nombre'),
+          admin ? sb.from('equipos_venta').select('id,nombre').eq('activo', true).order('nombre') : Promise.resolve({ data: misEquipos }),
           sb.from('proyectos').select('id,nombre').eq('activo', true).order('nombre')
         ]).then(function (r) {
           var equipos = (r[0] && r[0].data) || [], proyectos = (r[1] && r[1].data) || [];
+          var hoyC = new Date().toISOString().slice(0, 10);
+          var opsCloser = admin ? opsUsuarios('', '— todo el equipo —')
+            : opsUsuarios('', '— todo el equipo —').filter(function (o) { return !o[0] || misCloser[o[0]]; });
           if (!proyectos.length) return aviso('No hay proyectos activos.', '#8A6A34');
           var getTramos = null;
           /* ESTÁNDAR DE LAWANG (22-sep-2026, owner): equipo vacío = condición para
@@ -6762,21 +6786,24 @@
              agente). Solo entonces «Todos los proyectos» y solo nivel Closer (el
              nivel se esconde y se fija solo). Sin equipos activos también se
              puede crear: por eso ya no se corta arriba. */
-          modal('Nueva condición de comisión', [
+          modal(admin ? 'Nueva condición de comisión' : 'Nueva condición para tus closers', [
             { k: 'equipo_id', label: 'Equipo', tipo: 'select', medio: 1,
-              opciones: [['', '— Estándar de Lawang (quien cierre sin equipo) —']].concat(equipos.map(function (e) { return [e.id, e.nombre]; })) },
+              opciones: (admin ? [['', '— Estándar de Lawang (quien cierre sin equipo) —']] : []).concat(equipos.map(function (e) { return [e.id, e.nombre]; })) },
             { k: 'proyecto_id', label: 'Proyecto', tipo: 'select', medio: 1,
-              opciones: [['', '— Todos los proyectos (solo estándar) —']].concat(proyectos.map(function (p) { return [p.id, p.nombre]; })) },
-            { k: 'nivel', label: 'Nivel', tipo: 'select', medio: 1,
+              opciones: [['', '— Todos los proyectos —']].concat(proyectos.map(function (p) { return [p.id, p.nombre]; })),
+              ayuda: 'una condición para un proyecto concreto manda sobre la de «todos los proyectos»' },
+            admin ? { k: 'nivel', label: 'Nivel', tipo: 'select', medio: 1,
               opciones: [['manager', 'Manager'], ['closer', 'Closer']],
               visibleSi: { k: 'equipo_id', valores: equipos.map(function (e) { return e.id; }) },
-              ayuda: 'la estándar es siempre de quien cierra (Closer)' },
+              ayuda: 'la estándar es siempre de quien cierra (Closer)' }
+              : { tipo: 'nota', label: 'Es lo que TÚ pagas a tus closers (reparto de equipo). Tu comisión la fija administración.' },
             { k: 'vigente_desde', label: 'Vigente desde', tipo: 'date', req: 1, medio: 1,
-              valor: new Date().toISOString().slice(0, 10),
-              ayuda: 'solo cuentan las ventas (contrato raíz) creadas desde esta fecha: lo anterior no devenga' },
+              valor: hoyC,
+              ayuda: admin ? 'solo cuentan las ventas (contrato raíz) creadas desde esta fecha: lo anterior no devenga'
+                : 'desde hoy en adelante: solo cuentan las ventas creadas desde esta fecha' },
             { k: 'closer_email', label: 'Override individual', tipo: 'select', medio: 1,
-              opciones: opsUsuarios('', '— todo el equipo —'),
-              visibleSi: { k: 'nivel', valores: ['closer'] },
+              opciones: opsCloser,
+              visibleSi: admin ? { k: 'nivel', valores: ['closer'] } : undefined,
               ayuda: '«todo el equipo» aplica a cualquier closer del equipo; una persona concreta manda sobre eso' },
             { k: 'pct_comision', label: '% de comisión', tipo: 'number', paso: '0.01', req: 1, medio: 1 },
             { k: 'base_calculo', label: 'Base de cálculo', tipo: 'select', req: 1, medio: 1,
@@ -6788,7 +6815,9 @@
           ], 'Crear condición', function (v) {
             v.equipo_id = v.equipo_id || null;
             v.proyecto_id = v.proyecto_id || null;
-            if (!v.equipo_id) v.nivel = 'closer';   // la estándar es de quien cierra; el select iba oculto
+            if (!v.equipo_id || !admin) v.nivel = 'closer';   // estándar y manager: siempre closer
+            if (!admin && !v.equipo_id) return { error: { message: 'Elige tu equipo.' } };
+            if (!admin && v.vigente_desde < hoyC) return { error: { message: 'La fecha no puede ser anterior a hoy.' } };
             var tramos = getTramos ? getTramos() : [];
             var mal = validaCondicion(v, tramos);
             if (mal) return mal;
@@ -6823,6 +6852,7 @@
             });
           });
         });
+        });
       });
 
       /* BORRAR (18-sep-2026, owner: «permíteme borrar condiciones que no
@@ -6831,10 +6861,10 @@
          se mira antes y se dice en claro, en vez de dejar que salga el error
          de clave foranea. Sin papelera: por eso «Desactivar» sigue al lado. */
       window.LW_V4.abreBorraCondicion = function (b) {
-        if (!admin) return soloAdmin();
         var id = b.getAttribute('data-lw-borra-cond'), etq = b.getAttribute('data-lw-etq') || '';
         // el boton solo sale en filas desactivadas; esto es por si alguien lo llama a mano
         var cond = ((window.LW_V4.condicionesLista || {})[id]);
+        if (!admin && !esMiCondicion(cond)) return soloAdmin();
         if (cond && cond.activo) return aviso('Desactiva la condición antes de borrarla: una activa puede estar aplicándose a contratos firmados.', '#8A6A34');
         sb.from('comisiones_devengadas').select('id', { count: 'exact', head: true }).eq('condicion_id', id).then(function (r) {
           var n = r.error ? 0 : (r.count || 0);
@@ -6852,7 +6882,7 @@
       };
 
       window.LW_V4.abreToggleCondicion = function (condId, etiqueta, activoActual) {
-        if (!admin) return soloAdmin();
+        if (!admin && !esMiCondicion((window.LW_V4.condicionesLista || {})[condId])) return soloAdmin();
         var pasaA = !activoActual;
         modal((pasaA ? 'Reactivar' : 'Desactivar') + ' condición — ' + (etiqueta || ''), [
           { tipo: 'nota', label: pasaA
@@ -6872,10 +6902,10 @@
          reescribirlos reescribiría la historia. Con devengos se editan solo la
          cabecera y se dice por qué. */
       window.LW_V4.abreEditaCondicion = function (b) {
-        if (!admin) return soloAdmin();
         var id = b.getAttribute('data-lw-edita-cond'), etq = b.getAttribute('data-lw-etq') || '';
         var cond = (window.LW_V4.condicionesLista || {})[id];
         if (!cond) return aviso('No encuentro esa condición — recarga la página.', '#8A6A34');
+        if (!admin && !esMiCondicion(cond)) return soloAdmin();
         var tramosAct = ((window.LW_V4.tramosDe || {})[id] || []).slice().sort(function (x, y) { return x.orden - y.orden; });
         sb.from('comisiones_devengadas').select('id', { count: 'exact', head: true }).eq('condicion_id', id).then(function (r) {
           var n = r.error ? 0 : (r.count || 0);
@@ -6899,6 +6929,11 @@
             { k: 'importe_fijo', label: 'Importe fijo', tipo: 'number', paso: '0.01', medio: 1,
               valor: cond.importe_fijo == null ? '' : cond.importe_fijo,
               visibleSi: { k: 'base_calculo', valores: ['importe_fijo'] } });
+          if (n && !admin) {
+            return modal('Condición con comisiones — ' + etq, [
+              { tipo: 'nota', label: 'Esta condición ya ha generado ' + n + (n === 1 ? ' comisión' : ' comisiones') + ': no se cambian sus cifras. Desactívala y crea una nueva con las condiciones que quieras desde hoy.' }
+            ], 'Entendido', function () { return Promise.resolve({}); }, { sinRecarga: true });
+          }
           if (n) {
             campos.push({ tipo: 'nota', label: 'Esta condición ya ha devengado ' + n + (n === 1 ? ' comisión' : ' comisiones') +
               ': sus tramos no se tocan, porque cada devengo lleva su importe congelado sobre ellos. ' +
