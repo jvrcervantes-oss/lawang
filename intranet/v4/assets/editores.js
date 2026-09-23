@@ -5484,7 +5484,7 @@
            los cuatro de siempre. */
         Promise.all([
           file.text(),
-          sb.from('unidades').select('proyecto,codigo').limit(20000),
+          sb.from('unidades').select('proyecto,codigo,contrato_id').limit(20000),
           sb.from('proyectos').select('nombre').eq('activo', true),
           sb.from('tipos_vivienda').select('clave')
         ]).then(function (rs) {
@@ -5499,11 +5499,22 @@
             parseImporte: (typeof lwParseImporte === 'function') ? lwParseImporte : undefined
           });
           if (r.error) return aviso(r.error, '#ba1a1a');
-          abreVistaPreviaCsv(file.name, r);
+          var conContrato = {};
+          (ru.data || []).forEach(function (u) { if (u.contrato_id) conContrato[u.proyecto + ' ' + u.codigo] = true; });
+          abreVistaPreviaCsv(file.name, r, conContrato);
         }, function (e) { aviso('No se pudo leer el fichero: ' + (e && e.message || e), '#ba1a1a'); });
       }
-      function abreVistaPreviaCsv(nombre, r) {
+      function abreVistaPreviaCsv(nombre, r, conContrato) {
         var validas = r.validas || [];
+        /* Cambiar el precio de una unidad que YA tiene contrato no es inocuo
+           (hallazgo de Seguridad, deploy 23-sep-2026): el trigger
+           trg_revalua_unidad_por_precio recalcula lo cobrado contra el precio
+           nuevo y la unidad puede cambiar de estado. No se bloquea —corregir un
+           precio mal cargado es legítimo—, pero se dice fila a fila. */
+        var cp = r.camposPresentes || new Set();
+        var tocaPrecio = ['precio', 'precio_suelo', 'precio_construccion'].some(function (k) { return cp.has ? cp.has(k) : cp[k]; });
+        var ojoContrato = function (f) { return tocaPrecio && !f.esAlta && !(f.errores && f.errores.length) && conContrato && conContrato[f.proyecto + ' ' + f.codigo]; };
+        var nOjo = r.analizadas.filter(ojoContrato).length;
         var celda = 'padding:6px 8px;border-bottom:1px solid #E4DCCB;text-align:left;white-space:nowrap';
         var html =
           '<div style="display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13px;color:#2E3437;margin-bottom:10px">' +
@@ -5511,6 +5522,7 @@
             '<span><b>' + r.altas + '</b> altas nuevas</span>' +
             '<span><b>' + r.actualiza + '</b> actualizan una unidad existente</span>' +
             (r.conError ? '<span style="color:#9E2F26"><b>' + r.conError + '</b> con error, no se importan</span>' : '') +
+            (nOjo ? '<span style="color:#8C5E10"><b>' + nOjo + '</b> cambian el precio de una unidad con contrato</span>' : '') +
           '</div>' +
           (r.ignoradas.length ? '<p style="margin:0 0 10px;font-size:12px;color:#8A6A34">Columnas del CSV que no se importan: ' + r.ignoradas.map(esc).join(', ') + '</p>' : '') +
           '<p style="margin:0 0 10px;font-size:12px;color:#75786e">Las columnas <code>estado</code> y <code>contrato_id</code> nunca se importan: las lleva el contrato.</p>' +
@@ -5528,7 +5540,9 @@
               '<td style="' + celda + '">' + esc(f.tipo || '—') + '</td>' +
               '<td style="' + celda + '">' + (f.precio != null ? esc(lwFormatoImporte(f.precio, f.moneda || 'EUR', { decimales: 0 })) : '—') + '</td>' +
               '<td style="' + celda + ';white-space:normal;' + (err ? 'color:#9E2F26' : '') + '">' +
-                (err ? esc(f.errores.join('; ')) : (f.esAlta ? 'Alta nueva' : 'Actualiza')) + '</td>' +
+                (err ? esc(f.errores.join('; '))
+                  : ojoContrato(f) ? '<span style="color:#8C5E10">Actualiza · tiene contrato: el precio nuevo puede cambiarle el estado</span>'
+                  : (f.esAlta ? 'Alta nueva' : 'Actualiza')) + '</td>' +
             '</tr>';
           }).join('') +
           '</tbody></table></div>';
