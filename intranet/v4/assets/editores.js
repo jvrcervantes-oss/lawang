@@ -3904,6 +3904,31 @@
          rechaza). */
       window.LW_V4.abreAltaSolicitud = function (existente) {
         var x = existente || {};
+        var miId = (aut.session && aut.session.user && aut.session.user.id) || '';
+        /* 23-sep-2026 (owner: «siempre permíteme editar o borrar»): una automática
+           solo cambia importe, fecha y nota — concepto, venta y moneda salen del
+           motor y el trigger los congela. Cambiar el importe de una automática, o
+           de la solicitud de otra persona, exige motivo (queda en
+           comisiones_ajustes_log); quien lo cambia no podrá aprobarla ni pagarla. */
+        if (existente && x.origen === 'comision_automatica') {
+          modal('Editar SP-' + x.numero, [
+            { tipo: 'nota', label: 'Comisión automática: el concepto y la venta los fija el motor. Si cambias el importe, el cálculo original queda guardado aparte y otro administrador tendrá que aprobarla y pagarla.' },
+            { k: 'importe', label: 'Importe (' + (x.moneda || 'EUR') + ', bruto)', tipo: 'number', paso: '0.01', req: 1, valor: x.importe != null ? x.importe : '' },
+            { k: 'motivo', label: 'Motivo del cambio de importe — obligatorio si lo cambias', tipo: 'textarea', valor: '' },
+            { k: 'vence_el', label: 'Fecha límite', tipo: 'date', valor: x.vence_el || '' },
+            { k: 'nota', label: 'Nota para Administración', tipo: 'textarea', valor: x.nota || '' }
+          ], 'Guardar cambios', function (v) {
+            var importe = Number(String(v.importe).replace(',', '.'));
+            if (!(importe > 0)) return { error: { message: 'el importe no se entiende — escribe un número mayor que cero' } };
+            var cambia = Math.abs(importe - Number(x.importe)) > 0.0001;
+            if (cambia && !v.motivo.trim()) return { error: { message: 'para cambiar el importe escribe el motivo' } };
+            var fila = { importe: importe, vence_el: v.vence_el || null, nota: v.nota.trim() || null };
+            if (cambia) fila.motivo_ajuste = v.motivo.trim();
+            return sb.from('solicitudes_pago').update(fila).eq('id', x.id).select('id').then(unaFila);
+          });
+          return;
+        }
+        var ajena = !!(existente && x.creado_por && x.creado_por !== miId);
         sb.from('contratos').select('id,numero,tipo,proyecto_nombre').then(function (rc) {
           if (rc.error) aviso('No se pudo cargar el listado de contratos: se ofrece sin selector de venta.', '#8A6A34');
           var contratos = rc.error ? [] : (rc.data || []);
@@ -3917,15 +3942,19 @@
             { k: 'contrato_id', label: 'De qué venta viene, si viene de una', tipo: 'select', valor: x.contrato_id || '', opciones: opsContratos },
             { k: 'vence_el', label: 'Fecha límite', tipo: 'date', valor: x.vence_el || '' },
             { k: 'nota', label: 'Nota para Administración', tipo: 'textarea', valor: x.nota || '' }
-          ], existente ? 'Guardar cambios' : 'Crear solicitud', function (v) {
+          ].concat(ajena ? [{ k: 'motivo', label: 'Motivo, si cambias el importe de la solicitud de otra persona', tipo: 'textarea', valor: '' }] : []),
+          existente ? 'Guardar cambios' : 'Crear solicitud', function (v) {
             var importe = Number(String(v.importe).replace(',', '.'));
             if (!(importe > 0)) return { error: { message: 'el importe no se entiende — escribe un número mayor que cero' } };
+            var cambiaImporte = existente && Math.abs(importe - Number(x.importe)) > 0.0001;
+            if (ajena && cambiaImporte && !(v.motivo || '').trim()) return { error: { message: 'para cambiar el importe de la solicitud de otra persona escribe el motivo' } };
             var fila = {
               concepto: v.concepto.trim(), importe: importe, moneda: v.moneda,
               contrato_id: v.contrato_id || null,
               vence_el: v.vence_el || null,
               nota: v.nota.trim() || null
             };
+            if (ajena && cambiaImporte) fila.motivo_ajuste = v.motivo.trim();
             return (existente
               ? sb.from('solicitudes_pago').update(fila).eq('id', existente.id)
               : sb.from('solicitudes_pago').insert(fila)
@@ -3957,9 +3986,52 @@
         });
       };
       window.LW_V4.anularSolicitud = function (x) {
+        var miId = (aut.session && aut.session.user && aut.session.user.id) || '';
+        // «Borrar» es anular: el registro queda, sin efecto, y el motor no la vuelve
+        // a generar. Motivo obligatorio salvo que anules la tuya, manual y pendiente.
+        var pideMotivo = x.origen === 'comision_automatica' || x.creado_por !== miId || x.estado !== 'pendiente';
         modal('Anular SP-' + x.numero, [
-          { tipo: 'nota', label: 'SP-' + x.numero + ' quedará anulada. No se borra: el registro se queda, sin efecto. Solo quien la creó puede anularla (el trigger lo exige igual que este aviso).' }
-        ], 'Anular', function () { return resolverSolicitud(x, { estado: 'anulada' }); });
+          { tipo: 'nota', label: 'SP-' + x.numero + ' quedará anulada: no se paga y no vuelve a generarse sola. El registro se queda como rastro.' +
+            (x.estado === 'aprobada' ? ' Está APROBADA: asegúrate de que la transferencia no está en marcha.' : '') }
+        ].concat(pideMotivo ? [{ k: 'motivo', label: 'Motivo — queda registrado', tipo: 'textarea', req: 1 }] : []),
+        'Anular', function (v) {
+          var cambio = { estado: 'anulada' };
+          if (pideMotivo) cambio.motivo_ajuste = (v.motivo || '').trim();
+          return resolverSolicitud(x, cambio);
+        });
+      };
+      /* Borrar y recalcular (solo super_admin): para cuando se corrigió la
+         condición. Anula lo pendiente de ESA venta, borra sus devengos con copia
+         en el log y vuelve a pasar el motor. La base se niega si algo de la
+         venta está aprobado, pagado o en disputa. */
+      window.LW_V4.recalcularComision = function (x) {
+        modal('Recalcular comisiones de la venta', [
+          { tipo: 'nota', label: 'Se anulan las comisiones pendientes de esta venta y el motor las vuelve a calcular con las condiciones de hoy. Si alguna está aprobada, pagada o en disputa, la base no lo permite.' },
+          { k: 'motivo', label: 'Motivo — queda registrado', tipo: 'textarea', req: 1 }
+        ], 'Recalcular', function (v) {
+          return sb.rpc('comision_recalcular', { p_raiz: x.contrato_id, p_motivo: v.motivo.trim() });
+        });
+      };
+      /* Reparto de equipo (nivel closer): un admin que no la cobra ni la paga
+         ajusta el importe o la anula. RPC DEFINER con motivo obligatorio. */
+      window.LW_V4.ajustarComisionEquipo = function (id, etiqueta, importe, moneda) {
+        modal('Ajustar comisión — ' + (etiqueta || 'closer'), [
+          { tipo: 'nota', label: 'El cálculo del motor queda guardado; el nuevo importe es el que verá el manager para pagar.' },
+          { k: 'importe', label: 'Importe (' + (moneda || 'EUR') + ')', tipo: 'number', paso: '0.01', req: 1, valor: importe != null ? importe : '' },
+          { k: 'motivo', label: 'Motivo — queda registrado', tipo: 'textarea', req: 1 }
+        ], 'Guardar ajuste', function (v) {
+          var n = Number(String(v.importe).replace(',', '.'));
+          if (!(n > 0)) return { error: { message: 'el importe no se entiende — escribe un número mayor que cero' } };
+          return sb.rpc('comision_devengo_ajustar', { p_id: id, p_importe: n, p_motivo: v.motivo.trim() });
+        });
+      };
+      window.LW_V4.anularComisionEquipo = function (id, etiqueta) {
+        modal('Anular comisión — ' + (etiqueta || 'closer'), [
+          { tipo: 'nota', label: 'Queda anulada: no se paga y no vuelve a generarse sola.' },
+          { k: 'motivo', label: 'Motivo — queda registrado', tipo: 'textarea', req: 1 }
+        ], 'Anular', function (v) {
+          return sb.rpc('comision_devengo_anular', { p_id: id, p_motivo: v.motivo.trim() });
+        });
       };
       window.LW_V4.pagarSolicitud = function (x) {
         modal('Marcar pagada SP-' + x.numero, [

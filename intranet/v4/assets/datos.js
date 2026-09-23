@@ -6041,8 +6041,8 @@
         «su equipo» para decidir si pintar el botón. */
   var RESUELTAS = ['pagada', 'rechazada', 'anulada'];
   var ETIQUETA = { pendiente: 'Pendiente', aprobada: 'Aprobada', rechazada: 'Rechazada', anulada: 'Anulada', pagada: 'Pagada' };
-  var ETIQUETA_EQ = { pendiente: 'Pendiente', pagada: 'Pagada', en_disputa: 'En disputa' };
-  var TAGCLASE_EQ = { pendiente: 'bg-error-container/60 text-error', pagada: 'bg-primary-container/30 text-territorial-green', en_disputa: 'bg-burnt-earth/15 text-burnt-earth' };
+  var ETIQUETA_EQ = { pendiente: 'Pendiente', pagada: 'Pagada', en_disputa: 'En disputa', anulada: 'Anulada' };
+  var TAGCLASE_EQ = { pendiente: 'bg-error-container/60 text-error', pagada: 'bg-primary-container/30 text-territorial-green', en_disputa: 'bg-burnt-earth/15 text-burnt-earth', anulada: 'bg-surface-container-high text-outline' };
 
   function miembroActivo(em, hoyISO) { return em.desde <= hoyISO && (!em.hasta || em.hasta >= hoyISO); }
 
@@ -6056,12 +6056,12 @@
       /* `id` y los campos de la ficha (vence_el, nota, resolución…): sin `id` cada fila
          salía con data-id="" y el clic no abría nada — no se podía editar ninguna
          (23-sep-2026). */
-      q(sb.from('solicitudes_pago').select('id,numero,concepto,importe,moneda,vence_el,nota,estado,motivo_rechazo,pago_referencia,creado_en,creado_por,resuelto_por,resuelto_en,pagado_por,pagado_en,beneficiario_email,origen,contrato_id').order('creado_en', { ascending: false }), 'solicitudes de pago', caja),
+      q(sb.from('solicitudes_pago').select('id,numero,concepto,importe,moneda,vence_el,nota,estado,motivo_rechazo,pago_referencia,creado_en,creado_por,resuelto_por,resuelto_en,pagado_por,pagado_en,beneficiario_email,origen,contrato_id,importe_editado_por,motivo_ajuste').order('creado_en', { ascending: false }), 'solicitudes de pago', caja),
       q(sb.from('contratos').select('id,numero,tipo,proyecto_nombre'), 'contratos'),
       /* Si la RLS de `usuarios` solo deja leer la propia ficha, el mapa se queda
          corto y el fallback pinta «—»: no es un fallo, es lo que esa sesion ve. */
       q(sb.from('usuarios').select('user_id,nombre,email'), 'usuarios'),
-      q(sb.from('comisiones_devengadas').select('id,contrato_raiz_id,beneficiario_email,nivel,importe,moneda,estado,disparado_en,pagado_por,pagado_en').eq('nivel', 'closer').order('disparado_en', { ascending: false }), 'reparto de equipo', cajaEq),
+      q(sb.from('comisiones_devengadas').select('id,contrato_raiz_id,beneficiario_email,nivel,importe,importe_ajustado,ajuste_motivo,anulado_motivo,moneda,estado,disparado_en,pagado_por,pagado_en').eq('nivel', 'closer').order('disparado_en', { ascending: false }), 'reparto de equipo', cajaEq),
       q(sb.from('equipos_venta').select('id,nombre,manager_email,activo'), 'equipos de venta'),
       q(sb.from('equipo_miembros').select('equipo_id,closer_email,desde,hasta'), 'miembros de equipo')
     ]).then(function (r) {
@@ -6146,6 +6146,7 @@
             (x.origen === 'comision_automatica' && u ? H.dato('Disparada al registrar el cobro', u.nombre || u.email) : '') +
             H.dato('Concepto', x.concepto) +
             H.dato('Importe', fmt(x.importe, x.moneda || 'EUR')) +
+            (x.importe_editado_por ? H.dato('Importe cambiado a mano', ((us[x.importe_editado_por] && (us[x.importe_editado_por].nombre || us[x.importe_editado_por].email)) || '—') + (x.motivo_ajuste ? ' — ' + x.motivo_ajuste : '')) : '') +
             H.dato('De la venta', c ? [c.numero, tipoC(c.tipo), c.proyecto_nombre].filter(Boolean).join(' · ') : null) +
             H.dato('Fecha límite', x.vence_el ? fFecha(x.vence_el) : null) +
             H.dato('Nota', x.nota) +
@@ -6172,41 +6173,35 @@
           }
 
           var acciones = [];
-          if (x.estado === 'pendiente' && soyAdmin) {
-            acciones.push({ texto: 'Aprobar', tono: 'primario', onClick: function () {
-              if (window.LW_V4.aprobarSolicitud) window.LW_V4.aprobarSolicitud(x);
+          var miEmailF = ((window.LW_V4 && window.LW_V4.miEmail) || '').toLowerCase();
+          var cobroYo = !!(x.beneficiario_email && x.beneficiario_email.toLowerCase() === miEmailF);
+          var editeYo = !!(miId && x.importe_editado_por === miId);
+          var auto = x.origen === 'comision_automatica';
+          function llama(fn) {
+            return function () {
+              if (window.LW_V4[fn]) window.LW_V4[fn](x);
               else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
-            } });
-            acciones.push({ texto: 'Rechazar…', onClick: function () {
-              if (window.LW_V4.rechazarSolicitud) window.LW_V4.rechazarSolicitud(x);
-              else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
-            } });
+            };
           }
-          // «Editar» exige TAMBIÉN pendiente, no solo autoría (correccion #3): la
-          // policy real es `es_admin() OR (creado_por=auth.uid() AND estado=
-          // 'pendiente')` — ofrecer el boton sobre una resuelta fallaria con 22023
-          // en vez de no pintarse.
-          // Admin también edita una pendiente ajena: la policy de UPDATE es
-          // `es_admin() OR (suya AND pendiente)` y el trigger deja pendiente→pendiente
-          // a quien pase la RLS (en una automática congela importe/concepto/venta).
-          if (x.estado === 'pendiente' && (mia || soyAdmin)) {
-            acciones.push({ texto: 'Editar', onClick: function () {
-              if (window.LW_V4.abreAltaSolicitud) window.LW_V4.abreAltaSolicitud(x);
-              else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
-            } });
+          // Quien cambió el importe no aprueba ni paga (la base lo exige igual).
+          if (x.estado === 'pendiente' && soyAdmin && !editeYo) acciones.push({ texto: 'Aprobar', tono: 'primario', onClick: llama('aprobarSolicitud') });
+          if (x.estado === 'pendiente' && soyAdmin) acciones.push({ texto: 'Rechazar…', onClick: llama('rechazarSolicitud') });
+          /* Editar: la tuya manual pendiente, o cualquier pendiente si eres admin y
+             no la cobras tú (23-sep-2026, owner: «siempre permíteme editar o borrar»). */
+          if (x.estado === 'pendiente' && ((mia && !auto) || (soyAdmin && !cobroYo))) acciones.push({ texto: 'Editar', onClick: llama('abreAltaSolicitud') });
+          // Anular = borrar con rastro. Pendiente: la tuya manual, o admin que no la
+          // cobra. Aprobada: admin que no la cobra. Pagada: nunca.
+          if ((x.estado === 'pendiente' && ((mia && !auto) || (soyAdmin && !cobroYo))) ||
+              (x.estado === 'aprobada' && soyAdmin && !cobroYo)) {
+            acciones.push({ texto: 'Anular', tono: 'peligro', onClick: llama('anularSolicitud') });
           }
-          // Anular, solo quien la creó (el trigger lo exige, admin incluido).
-          if (x.estado === 'pendiente' && mia) {
-            acciones.push({ texto: 'Anular', tono: 'peligro', onClick: function () {
-              if (window.LW_V4.anularSolicitud) window.LW_V4.anularSolicitud(x);
-              else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
-            } });
+          if (x.estado === 'aprobada' && soyAdmin && !editeYo) acciones.push({ texto: 'Marcar pagada…', tono: 'primario', onClick: llama('pagarSolicitud') });
+          if (auto && x.contrato_id && ['pendiente', 'anulada', 'rechazada'].indexOf(x.estado) !== -1 &&
+              window.LW_V4.esSuperAdmin && !cobroYo) {
+            acciones.push({ texto: 'Recalcular venta…', onClick: llama('recalcularComision') });
           }
-          if (x.estado === 'aprobada' && soyAdmin) {
-            acciones.push({ texto: 'Marcar pagada…', tono: 'primario', onClick: function () {
-              if (window.LW_V4.pagarSolicitud) window.LW_V4.pagarSolicitud(x);
-              else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
-            } });
+          if (editeYo && (x.estado === 'pendiente' || x.estado === 'aprobada')) {
+            cuerpo += H.nota('Cambiaste tú el importe: la aprueba y la paga otro administrador.');
           }
           acciones.push({ texto: 'Cerrar', cerrar: true });
 
@@ -6228,7 +6223,7 @@
              solo se hace VISIBLE, y solo para las nacidas de una comision
              automatica (las manuales no tienen fila que vincular). */
           if (x.origen === 'comision_automatica' && cj && cj.cuerpo) {
-            sb.from('comisiones_devengadas').select('estado,pagado_en')
+            sb.from('comisiones_devengadas').select('estado,pagado_en,importe,importe_ajustado,moneda')
               // manager Y estándar (22-sep-2026): las dos las paga Lawang y llevan solicitud
               .eq('solicitud_id', x.id).in('nivel', ['manager', 'estandar']).maybeSingle()
               .then(function (rcd) {
@@ -6243,6 +6238,8 @@
                   var diverge = (x.estado === 'pagada') !== (cd.estado === 'pagada');
                   html = H.seccion('Comisión vinculada',
                     H.dato('Estado en comisiones_devengadas', H.tag(cd.estado, tonoCd), { html: 1 }) +
+                    H.dato('Calculado por el motor', fmt(cd.importe, cd.moneda || 'EUR')) +
+                    (cd.importe_ajustado != null ? H.dato('Ajustado a mano', fmt(cd.importe_ajustado, cd.moneda || 'EUR')) : '') +
                     (diverge
                       ? H.nota('⚠ Diverge de esta solicitud: nada sincroniza los dos estados automáticamente al marcar esta pagada. Si ya se pagó por un lado, revisa el otro a mano.')
                       : ''));
@@ -6410,16 +6407,32 @@
           var c = ct[x.contrato_raiz_id];
           var equipoNombre = equipoDe[email.toLowerCase()] || '—';
           window.LW_V4.comisionesPorId[x.id] = { etiqueta: etiqueta };
-          var puedeMarcar = x.estado === 'pendiente' && (esAdminSesion || misCloserEmails[email.toLowerCase()]);
-          var accion = puedeMarcar
-            ? '<button type="button" data-eq-pagar="' + esc(x.id) + '" style="padding:7px 16px;border-radius:999px;border:0;background:#104C4F;color:#fff;font:600 12px \'Neue Kabel\',sans-serif;cursor:pointer">Marcar pagada</button>'
+          var soyElCloser = email.toLowerCase() === miEmail;
+          var puedeMarcar = x.estado === 'pendiente' && !soyElCloser && (esAdminSesion || misCloserEmails[email.toLowerCase()]);
+          // ajustar/anular: admin que ni la cobra ni la paga (la RPC lo exige igual)
+          var puedeAjustar = x.estado === 'pendiente' && esAdminSesion && !soyElCloser && !misCloserEmails[email.toLowerCase()];
+          var efectivo = x.importe_ajustado != null ? x.importe_ajustado : x.importe;
+          window.LW_V4.comisionesPorId[x.id].importe = efectivo;
+          window.LW_V4.comisionesPorId[x.id].moneda = x.moneda || 'EUR';
+          var bEst = 'padding:7px 14px;border-radius:999px;font:600 12px \'Neue Kabel\',sans-serif;cursor:pointer;';
+          var botones = [];
+          if (puedeMarcar) botones.push('<button type="button" data-eq-pagar="' + esc(x.id) + '" style="' + bEst + 'border:0;background:#104C4F;color:#fff">Marcar pagada</button>');
+          if (puedeAjustar) {
+            botones.push('<button type="button" data-eq-ajustar="' + esc(x.id) + '" style="' + bEst + 'border:1px solid #8A8474;background:transparent;color:#1b1c19">Ajustar</button>');
+            botones.push('<button type="button" data-eq-anular="' + esc(x.id) + '" style="' + bEst + 'border:1px solid #ba1a1a;background:transparent;color:#ba1a1a">Anular</button>');
+          }
+          var accion = botones.length
+            ? '<span style="display:inline-flex;gap:6px;flex-wrap:nowrap;justify-content:flex-end;white-space:nowrap">' + botones.join('') + '</span>'
             : '<span style="font:500 12px \'Neue Kabel\',sans-serif;color:#8A8474">—</span>';
+          var notaFila = x.estado === 'anulada' && x.anulado_motivo ? x.anulado_motivo
+            : x.importe_ajustado != null ? 'Motor: ' + fmt(x.importe, x.moneda || 'EUR') + (x.ajuste_motivo ? ' · ' + x.ajuste_motivo : '') : '';
           return '<tr class="border-b border-outline-variant/30" data-eq-estado="' + esc(x.estado) + '" data-eq-equipo="' + esc(equipoNombre) + '">' +
-            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(etiqueta) + '</td>' +
-            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(equipoNombre) + '</td>' +
-            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface whitespace-nowrap">' + esc(fmt(x.importe, x.moneda || 'EUR')) + '</td>' +
+            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant whitespace-nowrap">' + esc(etiqueta) + '</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline whitespace-nowrap">' + esc(equipoNombre) + '</td>' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface whitespace-nowrap">' + esc(fmt(efectivo, x.moneda || 'EUR')) +
+              (notaFila ? '<div style="font:500 11px \'Neue Kabel\',sans-serif;color:#8A8474;white-space:normal;max-width:220px">' + esc(notaFila) + '</div>' : '') + '</td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(c ? [c.numero, tipoC(c.tipo), c.proyecto_nombre].filter(Boolean).join(' · ') : '—') + '</td>' +
-            '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' + (TAGCLASE_EQ[x.estado] || 'bg-surface-container-high') + '">' + esc(ETIQUETA_EQ[x.estado] || x.estado) + '</span></td>' +
+            '<td class="px-5 py-4"><span class="inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' + (TAGCLASE_EQ[x.estado] || 'bg-surface-container-high') + '">' + esc(ETIQUETA_EQ[x.estado] || x.estado) + '</span></td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + fFecha(x.disparado_en) + '</td>' +
             '<td class="px-5 py-4 text-right">' + accion + '</td>' +
             '</tr>';
@@ -6468,6 +6481,16 @@
         // clic en «Marcar pagada»: delega en editores.js (ED.comisiones), que es
         // quien tiene la sesión/policy para escribir. Aquí solo se localiza el id.
         tablaEq.addEventListener('click', function (ev) {
+          var bAj = ev.target.closest && ev.target.closest('[data-eq-ajustar],[data-eq-anular]');
+          if (bAj) {
+            ev.preventDefault(); ev.stopPropagation();
+            var idA = bAj.getAttribute('data-eq-ajustar') || bAj.getAttribute('data-eq-anular');
+            var infoA = (window.LW_V4.comisionesPorId && window.LW_V4.comisionesPorId[idA]) || {};
+            var fnA = bAj.hasAttribute('data-eq-ajustar') ? 'ajustarComisionEquipo' : 'anularComisionEquipo';
+            if (typeof window.LW_V4[fnA] === 'function') window.LW_V4[fnA](idA, infoA.etiqueta || '', infoA.importe, infoA.moneda);
+            else toast('El editor de comisiones aún no ha cargado — prueba de nuevo en un segundo.');
+            return;
+          }
           var b = ev.target.closest && ev.target.closest('[data-eq-pagar]');
           if (!b) return;
           ev.preventDefault(); ev.stopPropagation();
