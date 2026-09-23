@@ -6053,7 +6053,10 @@
     var cajaEq = tablaEq ? tablaEq.closest('section') : null;
 
     Promise.all([
-      q(sb.from('solicitudes_pago').select('numero,concepto,importe,moneda,estado,creado_en,creado_por,contrato_id,pagado_en,origen').order('creado_en', { ascending: false }), 'solicitudes de pago', caja),
+      /* `id` y los campos de la ficha (vence_el, nota, resolución…): sin `id` cada fila
+         salía con data-id="" y el clic no abría nada — no se podía editar ninguna
+         (23-sep-2026). */
+      q(sb.from('solicitudes_pago').select('id,numero,concepto,importe,moneda,vence_el,nota,estado,motivo_rechazo,pago_referencia,creado_en,creado_por,resuelto_por,resuelto_en,pagado_por,pagado_en,beneficiario_email,origen,contrato_id').order('creado_en', { ascending: false }), 'solicitudes de pago', caja),
       q(sb.from('contratos').select('id,numero,tipo,proyecto_nombre'), 'contratos'),
       /* Si la RLS de `usuarios` solo deja leer la propia ficha, el mapa se queda
          corto y el fallback pinta «—»: no es un fallo, es lo que esa sesion ve. */
@@ -6157,11 +6160,17 @@
           // policy real es `es_admin() OR (creado_por=auth.uid() AND estado=
           // 'pendiente')` — ofrecer el boton sobre una resuelta fallaria con 22023
           // en vez de no pintarse.
-          if (x.estado === 'pendiente' && mia) {
+          // Admin también edita una pendiente ajena: la policy de UPDATE es
+          // `es_admin() OR (suya AND pendiente)` y el trigger deja pendiente→pendiente
+          // a quien pase la RLS (en una automática congela importe/concepto/venta).
+          if (x.estado === 'pendiente' && (mia || soyAdmin)) {
             acciones.push({ texto: 'Editar', onClick: function () {
               if (window.LW_V4.abreAltaSolicitud) window.LW_V4.abreAltaSolicitud(x);
               else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
             } });
+          }
+          // Anular, solo quien la creó (el trigger lo exige, admin incluido).
+          if (x.estado === 'pendiente' && mia) {
             acciones.push({ texto: 'Anular', tono: 'peligro', onClick: function () {
               if (window.LW_V4.anularSolicitud) window.LW_V4.anularSolicitud(x);
               else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');

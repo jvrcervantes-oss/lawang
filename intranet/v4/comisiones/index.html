@@ -2,7 +2,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/guard.js?v=54b33acd" data-herramienta="operaciones"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
 <script src="/contracts/assets/i18n.js?v=53c8eec5" defer></script>
-<script src="/contracts/assets/dinero.js?v=a442e362" defer></script><script src="/intranet/facturas/totales.js" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=c76d3606" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/contracts/assets/avisos.js?v=8500ed8c" defer></script><script src="../assets/datos.js?v=bc756c22" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/dinero.js?v=a442e362" defer></script><script src="/intranet/facturas/totales.js" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=c76d3606" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/contracts/assets/avisos.js?v=8500ed8c" defer></script><script src="../assets/datos.js?v=09b1ac14" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=c7770938" defer></script>
 <link href="../assets/shell.css?v=bd0a56cb" rel="stylesheet">
@@ -87,7 +87,7 @@
 </div>
 <!-- Solo para admin: para un agente todas las filas ya son suyas, y el filtro
      sería una lista de una sola persona (mismo criterio que /intranet/solicitudes/). -->
-<select id="lw-fAgente" hidden class="px-4 py-2.5 rounded-full bg-surface-container-low border border-control-border/40 font-label-md text-[13px] text-on-surface-variant"></select>
+<select id="lw-fAgente" hidden class="pl-4 pr-10 py-2.5 rounded-full bg-surface-container-low border border-control-border/40 font-label-md text-[13px] text-on-surface-variant"></select>
 <div class="flex flex-wrap items-center gap-2">
 <button class="px-4 py-2 rounded-full bg-primary-container text-on-primary font-label-md text-[13px] font-medium shrink-0 flex items-center gap-1.5 transition-colors" type="button" data-chip-clave="todas"><span>Todas</span><span class="text-on-primary/70" data-lw="c-todas">—</span></button>
 <button class="px-4 py-2 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container font-label-md text-[13px] font-medium shrink-0 flex items-center gap-1.5 transition-colors" type="button" data-chip-clave="pendiente"><span class="w-2 h-2 rounded-full bg-error"></span><span>Pendientes</span><span class="text-outline" data-lw="c-pendiente">—</span></button>
@@ -130,7 +130,7 @@
 </div>
 
 <!-- ═══════════════ PESTAÑA: REPARTO DE EQUIPO (comisiones_devengadas, nivel=closer) ═══════════════ -->
-<div data-lw-panel="equipo" class="flex flex-col gap-8" hidden>
+<div data-lw-panel="equipo" class="flex flex-col gap-8 hidden" hidden>
 
 <!-- Aviso legal — SIEMPRE visible al abrir la pestaña, sin scroll ni acordeón: es la
      primera pieza del panel, antes de cualquier filtro o tabla (encargo del owner). -->
@@ -147,7 +147,7 @@
 <span class="material-symbols-outlined text-[20px] text-outline absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">search</span>
 <input id="lw-eq-buscar" class="w-full pl-10 pr-4 py-2.5 rounded-full bg-surface-container-low border border-control-border/40 font-body-md text-body-md text-on-surface placeholder:text-outline focus:border-primary-container focus:ring-0" placeholder="Buscar por closer, equipo o venta…" type="search"/>
 </div>
-<select id="lw-eq-equipo" class="px-4 py-2.5 rounded-full bg-surface-container-low border border-control-border/40 font-label-md text-[13px] text-on-surface-variant">
+<select id="lw-eq-equipo" class="pl-4 pr-10 py-2.5 rounded-full bg-surface-container-low border border-control-border/40 font-label-md text-[13px] text-on-surface-variant">
 <option value="">Todos los equipos</option>
 </select>
 <div class="flex flex-wrap items-center gap-2">
@@ -199,9 +199,16 @@
       b.classList.toggle('bg-primary-container', on);
       b.classList.toggle('text-on-primary', on);
       b.classList.toggle('text-on-surface-variant', !on);
+      // el hover claro pisaba el verde de la activa y dejaba texto blanco sobre crema
+      b.classList.toggle('hover:bg-surface-container', !on);
     });
+    // `hidden` Y la clase `hidden`: los paneles llevan `.flex`, que tiene la misma
+    // especificidad que `[hidden]` del reset y va después — el atributo solo no
+    // ocultaba nada y «Reparto de equipo» no cambiaba de panel (23-sep-2026).
     paneles.forEach(function (p) {
-      p.hidden = p.getAttribute('data-lw-panel') !== nombre;
+      var fuera = p.getAttribute('data-lw-panel') !== nombre;
+      p.hidden = fuera;
+      p.classList.toggle('hidden', fuera);
     });
   }
   botones.forEach(function (b) {

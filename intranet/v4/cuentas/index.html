@@ -11,7 +11,7 @@
      suelto o {es,en,id}): la misma conversión que usa /intranet/cuentas/, en un
      solo sitio. Dos copias divergen imprimiendo la nota en el idioma equivocado
      dentro de un contrato ya firmado. -->
-<script src="/contracts/assets/nota_cuenta.js?v=35dc9856" defer></script><script src="/contracts/assets/avisos.js?v=8500ed8c" defer></script><script src="../assets/datos.js?v=bc756c22" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/nota_cuenta.js?v=35dc9856" defer></script><script src="/contracts/assets/avisos.js?v=8500ed8c" defer></script><script src="../assets/datos.js?v=09b1ac14" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=c7770938" defer></script>
 <link href="../assets/shell.css?v=bd0a56cb" rel="stylesheet">
@@ -213,6 +213,8 @@
       b.classList.toggle('bg-primary-container', on);
       b.classList.toggle('text-on-primary', on);
       b.classList.toggle('text-on-surface-variant', !on);
+      // el hover claro pisaba el verde de la activa y dejaba texto blanco sobre crema
+      b.classList.toggle('hover:bg-surface-container', !on);
     });
     paneles.forEach(function (p) {
       p.hidden = p.getAttribute('data-lw-panel') !== nombre;
