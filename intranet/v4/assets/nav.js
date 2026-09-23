@@ -9,6 +9,11 @@
  * mapa de rutas existe una sola vez, aquí. */
 (function () {
   'use strict';
+  /* Fuera de /intranet/v4/ solo corre si la página lleva la cara v4 puesta
+     (`html.v4`, contracts/assets/piel.js). Hoy es el caso del generador de
+     contratos, que carga este fichero y en su cara clásica no puede tocarle
+     nada: ni rutas, ni idioma, ni el `preventDefault` de los href="#" (23-sep). */
+  if (location.pathname.indexOf('/intranet/v4/') === -1 && !document.documentElement.classList.contains('v4')) return;
 
   // <base> de la maqueta: carpeta v4/, deducida de la ruta de ESTE script.
   var self = document.currentScript || document.querySelector('script[src*="nav.js"]');

@@ -62,4 +62,16 @@
   if (!editor) { location.replace('/intranet/v4/contratos/'); return; }
 
   document.documentElement.classList.add('v4');
+
+  /* Fuentes de la v4, SOLO aquí: una hoja de Google puesta en la <head> de
+     app.html bloquearía el pintado de la cara clásica, que no las usa. */
+  [
+    'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap',
+    '/intranet/v4/assets/fonts/fonts.css'
+  ].forEach(function (href) {
+    var l = document.createElement('link');
+    l.rel = 'stylesheet';
+    l.href = href;
+    document.head.appendChild(l);
+  });
 })();

@@ -67,6 +67,13 @@
       enlace(['login', 'logout', 'Cerrar Sesión']) +
     '</div>';
 
+  /* La herramienta activa: nav.js la marca por la RUTA (/intranet/v4/<x>/), y
+     esta página vive fuera de la v4. La declara la propia página en el <html>
+     (`data-lw4-herramienta="contratos"` en app.html). */
+  var activa = html.getAttribute('data-lw4-herramienta');
+  var enlaceActivo = activa && aside.querySelector('[data-path="' + activa + '"]');
+  if (enlaceActivo) enlaceActivo.setAttribute('aria-current', 'page');
+
   var velo = document.createElement('div');
   velo.className = 'lw4-velo';
   velo.setAttribute('data-lw4-cerrar', '');

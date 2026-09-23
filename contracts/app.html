@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-lw4-herramienta="contratos">
 <head>
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
@@ -9,7 +9,7 @@
 <!-- Interruptor de la cara v4 (23-sep-2026). SÍNCRONO y antes de cualquier
      hoja: pone `html.v4` antes del primer pintado. Sin `?v4=1` en la pestaña
      no hace nada y esta página es la clásica de siempre. Ver assets/piel.js. -->
-<script src="/contracts/assets/piel.js?v=e4ef2826"></script>
+<script src="/contracts/assets/piel.js?v=f551d2d1"></script>
 <!-- preconnect: lo tenian las demas herramientas y esta no. Sin el, la
      primera peticion a la fuente abre conexion desde cero y el texto salta
      de la fuente del sistema a Jost a mitad de carga. -->
@@ -111,13 +111,14 @@
 <script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
 <!-- CARA v4 (23-sep-2026, owner: el generador en la v4 sin dejar obsoleta la
      clásica). Una sola página, dos caras: todo lo de aquí abajo pinta SOLO con
-     `html.v4` (assets/piel.js). Las dos fuentes solo declaran @font-face, así
-     que en la clásica no se descargan. Va AL FINAL de la PRIMERA cabecera, por
+     `html.v4` (assets/piel.js). Las fuentes de la v4 (Material Symbols y Neue
+     Kabel) NO van aquí: las cuelga piel.js solo con la v4 encendida, porque una
+     hoja de Google en la <head> bloquea el pintado de la clásica aunque no la
+     use (consulta de deploy, 23-sep). Va AL FINAL de la PRIMERA cabecera, por
      lo mismo que la v3: las otras cuatro son plantillas del documento impreso. -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap">
-<link rel="stylesheet" href="/intranet/v4/assets/fonts/fonts.css">
 <link rel="stylesheet" href="/contracts/assets/suite-v4-generador.css?v=8586b341">
-<script src="/intranet/v4/assets/nav-montaje.js?v=c55995c0" defer></script>
+<script src="/intranet/v4/assets/nav-montaje.js?v=8ecae65b" defer></script>
+<script src="/intranet/v4/assets/nav.js?v=d0d12c47" defer></script>
 </head>
 <body>
   <!-- Barra unificada de la suite: mismo orden y mismos componentes en
