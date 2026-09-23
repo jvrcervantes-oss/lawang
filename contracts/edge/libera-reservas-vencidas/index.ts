@@ -106,6 +106,21 @@ Deno.serve(async (req) => {
   const saltadas: string[] = [];
   let procesadas = 0;
 
+  /* UN AVISO PREVIO POR CONTRATO, no por parcela (23-sep-2026). `reservas_
+     vencimiento()` devuelve una fila por PARCELA, y una Carta de Reserva
+     puede reservar varias: CR00025 (3 parcelas) mandó el mismo «vence mañana»
+     tres veces a cada manager — y tres emails, porque `_avisar_managers` los
+     marca para correo. El aviso previo se da una vez por contrato, con todas
+     sus parcelas en el detalle. (El de gracia ya se deduplicaba por contrato
+     contra `notificaciones`; la liberación sigue siendo por parcela.) */
+  const parcelasDe = new Map<string, string[]>();
+  for (const c of ((cands ?? []) as Candidata[])) {
+    const l = parcelasDe.get(c.contrato_id) ?? [];
+    if (c.codigo && !l.includes(c.codigo)) l.push(c.codigo);
+    parcelasDe.set(c.contrato_id, l);
+  }
+  const avisoPrevioDado = new Set<string>();
+
   for (const c of ((cands ?? []) as Candidata[])) {
     const etiqueta = (c.numero || c.contrato_id) + ' · ' + c.proyecto + ' ' + c.codigo;
     const vence = c.vence_el ? String(c.vence_el).slice(0, 10) : null;
@@ -116,13 +131,16 @@ Deno.serve(async (req) => {
 
     if (diaAviso && vence === diaAviso) {
       // ── aviso previo (D-N, N configurable) — mismo canal que el resto de la suite ──
-      if (dry) { avisadas.push('[DRY D-' + AVISO_DIAS_ANTES + '] ' + etiqueta); continue; }
+      if (avisoPrevioDado.has(c.contrato_id)) continue;   // ya avisado por otra de sus parcelas
+      avisoPrevioDado.add(c.contrato_id);
+      const parcelas = (parcelasDe.get(c.contrato_id) ?? [c.codigo]).join(', ');
+      if (dry) { avisadas.push('[DRY D-' + AVISO_DIAS_ANTES + '] ' + etiqueta + ' (parcelas: ' + parcelas + ')'); continue; }
       const { error: eAv } = await sb.rpc('_avisar_managers', {
         p_proyecto_id: c.proyecto_id,
         p_tipo: 'reserva_por_vencer',
         p_titulo: 'Reserva ' + (c.numero || '') + (AVISO_DIAS_ANTES === 1 ? ' vence mañana' : ' vence el ' + fechaLarga(vence)),
         p_detalle: (c.comprador_nombre || 'Comprador') + ' · ' + (c.proyecto_nombre || c.proyecto) + ' ' +
-          c.codigo + prorrogas + ' · sin Bloqueo de Parcela detrás — vence el ' + fechaLarga(vence) + '; tras ' + DIAS_GRACIA +
+          parcelas + prorrogas + ' · sin Bloqueo de Parcela detrás — vence el ' + fechaLarga(vence) + '; tras ' + DIAS_GRACIA +
           ' día(s) de gracia se libera sola si nadie prorroga o libera',
         p_enlace: enlace,
         p_contrato_id: c.contrato_id,

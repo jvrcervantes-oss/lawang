@@ -79,6 +79,29 @@ assert.deepStrictEqual(lwAvisoTonoHecho('solicitud_pago', 'Solicitud de pago SP-
 assert.deepStrictEqual(lwAvisoTonoHecho('solicitud_pago', 'Tu solicitud SP-2 — aprobada'), ['atencion', 'Aprobada'], 'aprobada no es pagada');
 assert.deepStrictEqual(lwAvisoTonoHecho('tipo_nuevo_que_no_existe'), ['neutro', 'tipo nuevo que no existe'], 'un tipo sin clasificar no desaparece');
 
+// --- una vez por suceso: copias por manager y aviso general de parcela (23-sep-2026) ---
+const T0 = '2026-09-21T07:43:54.845606+00:00';
+const copias = lwAvisosArmar([ok([
+  { tipo: 'unidad_disponible', titulo: 'Parcela C4 vuelve a estar disponible', destinatario: null, creado_en: T0 },
+  { tipo: 'unidad_estado', titulo: 'Unidad C4 — disponible', destinatario: 'm1@x', creado_en: T0 },
+  { tipo: 'unidad_estado', titulo: 'Unidad C4 — disponible', destinatario: 'm2@x', creado_en: T0 },
+  { tipo: 'unidad_estado', titulo: 'Unidad C4 — disponible', destinatario: 'm3@x', creado_en: T0 },
+  { tipo: 'reserva_por_vencer', titulo: 'Reserva CR00025 vence mañana', destinatario: 'm1@x', creado_en: '2026-09-23T04:00:04.124956+00:00' },
+  { tipo: 'reserva_por_vencer', titulo: 'Reserva CR00025 vence mañana', destinatario: 'm1@x', creado_en: '2026-09-23T04:00:04.167858+00:00' },
+  { tipo: 'reserva_por_vencer', titulo: 'Reserva CR00025 vence mañana', destinatario: 'm2@x', creado_en: '2026-09-23T04:00:04.207311+00:00' },
+  { tipo: 'unidad_estado', titulo: 'Unidad A3 — reservada', destinatario: 'm1@x', creado_en: '2026-09-15T11:13:52+00:00' },
+  { tipo: 'unidad_estado', titulo: 'Unidad A3 — reservada', destinatario: 'm1@x', creado_en: '2026-09-16T09:00:00+00:00' },
+]), ok([]), ok([]), ok([])], { esAdmin: true, email: 'jefe@x', ahora: AHORA });
+const tc = copias.avisos.map(a => a.titulo).sort();
+assert.deepStrictEqual(tc, ['Parcela C4 vuelve a estar disponible', 'Reserva CR00025 vence mañana', 'Unidad A3 — reservada', 'Unidad A3 — reservada'],
+  'un cambio de parcela = 1 aviso; 3 copias de la reserva = 1; dos cambios reales en días distintos siguen siendo 2: ' + tc.join(' | '));
+// un manager ve SU copia aunque exista el aviso general (la base solo le da la suya)
+const mgr = lwAvisosArmar([ok([
+  { tipo: 'unidad_disponible', titulo: 'Parcela C4 vuelve a estar disponible', destinatario: null, creado_en: T0 },
+  { tipo: 'unidad_estado', titulo: 'Unidad C4 — disponible', destinatario: 'm1@x', creado_en: T0 },
+]), ok([]), ok([]), ok([])], { esAdmin: false, email: 'M1@x', ahora: AHORA });
+assert.ok(mgr.avisos.some(a => a.titulo === 'Unidad C4 — disponible'), 'la copia dirigida a quien mira no se oculta');
+
 // --- admin: ve las de todos ---
 const ad = lwAvisosArmar(r, { esAdmin: true, email: 'jefe@lawang.test', ahora: AHORA });
 const ta = ad.avisos.map(a => a.titulo);

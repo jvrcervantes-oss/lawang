@@ -34,7 +34,8 @@
    ejecutaría al pulsar el aviso — se cambia por `#` antes de llegar a nadie.
 */
 var LW_AVISOS_VENC_DIAS = 15;      // se avisa desde 15 días antes
-var LW_AVISOS_LIMITE = 40;
+var LW_AVISOS_LIMITE = 40;       // avisos que se enseñan
+var LW_AVISOS_FILAS = 400;       // filas crudas que se piden antes de agrupar
 
 /* TONO DE CADA AVISO (23-sep-2026, owner: «más claros con colores»). Se decide
    aquí, en la fuente única, y no en cada campana: así la clásica puede usarlo
@@ -109,11 +110,33 @@ function lwAvisosArmar(r, opts) {
   var dias = function (f) { return f ? Math.round((new Date(f) - ahora) / 86400000) : null; };
   var datos = function (i) { return (r[i] && !r[i].error && r[i].data) || []; };
 
-  var avisos = datos(0).map(function (n) {
+  /* UNA VEZ POR SUCESO (23-sep-2026, owner: «tengo muchísimas notificaciones
+     repetidas»). Un manager solo recibe de la base SU copia, pero un admin
+     las recibe TODAS: `_avisar_managers` guarda una por manager del proyecto
+     (7-8 por cambio) y un cambio de parcela además deja su aviso general
+     («Parcela C4 vuelve a estar disponible») junto a la copia de manager
+     («Unidad C4 — disponible»). Aquí se agrupan: mismo tipo + texto +
+     segundo = el mismo suceso; y la copia de manager de un cambio de parcela
+     que ya tiene su aviso general, si no va dirigida a quien mira, sobra. */
+  var yo = String(email || '').toLowerCase();
+  var segundo = function (x) { return String(x || '').slice(0, 19); };
+  var crudos = datos(0);
+  var generalUnidad = {};
+  crudos.forEach(function (n) {
+    if (/^unidad_/.test(n.tipo || '') && n.tipo !== 'unidad_estado') generalUnidad[segundo(n.creado_en)] = true;
+  });
+  var vistos = {};
+  var avisos = [];
+  crudos.forEach(function (n) {
+    var seg = segundo(n.creado_en);
+    if (n.tipo === 'unidad_estado' && String(n.destinatario || '').toLowerCase() !== yo && generalUnidad[seg]) return;
+    var clave = (n.tipo || '') + '|' + (n.titulo || '') + '|' + seg;
+    if (vistos[clave]) return;
+    vistos[clave] = true;
     var tono = lwAvisoTonoHecho(n.tipo, n.titulo);
-    return { titulo: n.titulo, detalle: n.detalle, enlace: lwAvisoEnlace(n.enlace), cuando: n.creado_en,
+    avisos.push({ titulo: n.titulo, detalle: n.detalle, enlace: lwAvisoEnlace(n.enlace), cuando: n.creado_en,
              nuevo: !vistoHasta || new Date(n.creado_en) > vistoHasta,
-             clase: 'hecho', nivel: tono[0], etiqueta: tono[1] };
+             clase: 'hecho', nivel: tono[0], etiqueta: tono[1] });
   });
 
   var pendientes = {};
@@ -168,9 +191,12 @@ function lwAvisosArmar(r, opts) {
    error, para que quien pinta no confunda «no hay avisos» con «no se pudieron
    leer». */
 function lwAvisos(sb, opts) {
+  /* Se piden más filas de las que se enseñan (LW_AVISOS_FILAS): un admin
+     recibe de la base una copia por manager de cada aviso, y se agrupan en
+     lwAvisosArmar — con 40 filas crudas apenas cabían 5 sucesos. */
   var q = sb.from('notificaciones')
-    .select('tipo,titulo,detalle,enlace,creado_en')
-    .order('creado_en', { ascending: false }).limit(LW_AVISOS_LIMITE);
+    .select('tipo,titulo,detalle,enlace,creado_en,destinatario')
+    .order('creado_en', { ascending: false }).limit(LW_AVISOS_FILAS);
   // Vencimientos: facturas con fecha puesta y sin anular. `venc` vive dentro
   // del jsonb, igual que en Operaciones — no hay columna propia.
   /* El filtro va EN la consulta (Administración, 23-sep-2026): antes era un
