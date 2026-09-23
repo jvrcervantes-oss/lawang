@@ -255,7 +255,7 @@ $deckEtiqueta = $deckEj['proyecto'] ?? '';
 <!-- Tipografia de marca: Neue Kabel (23-sep-2026), fuente unica compartida con el investor
      deck. Sustituye a Cormorant Garamond / Instrument Sans / Jost de Google Fonts: la regla
      general de abajo le gana al mapeo font-* del CSS compilado. -->
-<link rel="stylesheet" href="/assets/neue-kabel.css?v=20260923120837">
+<link rel="stylesheet" href="/assets/neue-kabel.css?v=20260923150655">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 <!-- Tailwind COMPILADO (npx tailwindcss sobre el mockup, mismo tailwind.config) — NUNCA
      el Play CDN: sin versión fija, sin SRI, y la CSP de seguridad_2026.md lo prohíbe. -->
