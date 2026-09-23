@@ -182,12 +182,16 @@
     var tb = $('lw-com-registro');
     if (!envios.length) { tb.innerHTML = '<tr><td colspan="3" class="px-4 py-6 text-center font-body-sm text-body-sm text-outline">Todavía no se ha enviado.</td></tr>'; }
     else tb.innerHTML = envios.map(function (e) {
-      var color = e.estado === 'ok' ? 'text-on-surface' : e.estado === 'error' ? 'text-error' : 'text-outline';
+      /* Un fallo que aún se va a reintentar también se enseña (23-sep-2026: Hostinger
+         cortó el SMTP a mitad de envío y la pantalla solo decía «En cola», sin motivo). */
+      var fallo = e.estado !== 'ok' && e.error;
+      var color = e.estado === 'ok' ? 'text-on-surface' : (e.estado === 'error' || fallo) ? 'text-error' : 'text-outline';
+      var txt = e.estado === 'pendiente' && fallo ? 'Falló · se reintenta (' + (e.intentos || 1) + ' de 3)' : (ESTADO_TXT[e.estado] || e.estado);
       return '<tr class="border-b border-outline-variant/30">' +
         '<td class="px-4 py-2.5"><div class="font-body-md text-body-md text-on-surface">' + esc(e.nombre || e.email) + (e.es_prueba ? ' <span class="text-[11px] font-label-md uppercase tracking-wider text-outline">prueba</span>' : '') + '</div>' +
           '<div class="font-body-sm text-[12px] text-outline">' + esc(e.email) + '</div></td>' +
-        '<td class="px-4 py-2.5 font-label-md text-label-md ' + color + '">' + esc(ESTADO_TXT[e.estado] || e.estado) +
-          (e.estado === 'error' && e.error ? '<div class="font-body-sm text-[12px] text-outline font-normal" title="' + esc(e.error) + '">' + esc(e.error.slice(0, 90)) + '</div>' : '') + '</td>' +
+        '<td class="px-4 py-2.5 font-label-md text-label-md ' + color + '">' + esc(txt) +
+          (fallo ? '<div class="font-body-sm text-[12px] text-outline font-normal" title="' + esc(e.error) + '">' + esc(e.error.slice(0, 90)) + '</div>' : '') + '</td>' +
         '<td class="px-4 py-2.5 font-body-sm text-body-sm text-outline">' + esc(fecha(e.enviado_en || e.encolado_en)) + '</td></tr>';
     }).join('');
     if (usuarios.length) pintaPersonas();
