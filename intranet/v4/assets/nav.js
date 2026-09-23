@@ -388,8 +388,14 @@
      rebotaría. Enter abre la primera; Escape o pulsar fuera cierra. Navega al
      `href` del propio enlace, nunca a nada montado con lo tecleado. */
   function cableaBuscador() {
+    /* Por el ICONO, no por el `title`: `traduceHeader()` corre antes y en
+       inglés lo cambia a «Search» — por el title la lupa quedaba sin cablear
+       justo en la sesión EN (Desarrollo, consulta de deploy S17). */
     var lupa = null;
-    document.querySelectorAll('header button[title="Buscar"]').forEach(function (b) { lupa = lupa || b; });
+    document.querySelectorAll('header button').forEach(function (b) {
+      var ic = b.querySelector('.material-symbols-outlined');
+      if (!lupa && ic && ic.textContent.trim() === 'search') lupa = b;
+    });
     if (!lupa || lupa._lwBusca) return;
     lupa._lwBusca = true;
     lupa.setAttribute('data-real', '');
