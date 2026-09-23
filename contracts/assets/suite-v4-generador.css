@@ -237,7 +237,12 @@ html.v4 .lw4-banda .lw4-tb:disabled{ display:none !important; }
 
 /* ── escenario: formulario | documento ────────────────────────────────── */
 @media screen and (min-width:901px){
-  html.v4 .stage{ grid-template-columns:minmax(380px,460px) 1fr; }
+  /* Mitad y mitad (owner, 23-sep: «la ventana del formulario habría que
+     hacerla más grande»). A 460 px los campos iban apretados y los de dos
+     columnas partían la etiqueta en dos líneas; el documento sigue cabiendo
+     entero porque su hoja no pasa de 820 px. */
+  html.v4 .stage{ grid-template-columns:minmax(420px,1fr) minmax(0,1fr); }
+  html.v4 .pane-form .inner{ max-width:760px; }
   /* «Cerrar» solo existe para la vista previa a pantalla completa del móvil */
   html.v4 #btnClose{ display:none !important; }
 }
