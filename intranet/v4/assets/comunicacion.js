@@ -2,8 +2,9 @@
  * «algo como "Comunicación" para poder escribir yo ahí las plantillas y que lo
  * mandes a los agentes de la intranet»).
  *
- * Vive en su carpeta y no como REG['comunicacion'] de datos.js: es la única
- * pantalla que lo usa, y datos.js ya pasa de 7.000 líneas.
+ * Fichero propio y no REG['comunicacion'] de datos.js: es la única pantalla
+ * que lo usa, y datos.js ya pasa de 7.000 líneas. Vive en v4/assets/ (no en
+ * la carpeta de la pantalla) para que sella_assets.py le ponga su ?v=.
  *
  * Lo que esta pantalla NO decide (revisión previa #47, Seguridad + Datos):
  *  · A quién llega: el navegador manda user_ids; el email lo pone la base
@@ -190,12 +191,20 @@
         '<td class="px-4 py-2.5 font-body-sm text-body-sm text-outline">' + esc(fecha(e.enviado_en || e.encolado_en)) + '</td></tr>';
     }).join('');
     if (usuarios.length) pintaPersonas();
-    // mientras quede algo en camino, se refresca solo (3 min como mucho)
+    /* Mientras quede algo en camino, se refresca solo: rápido el primer minuto
+       (el despertador entrega en segundos) y luego cada 20 s hasta 15 min,
+       porque un reintento lo recoge el cron de 10 min. Pasado eso, se dice. */
     var enCamino = envios.some(function (e) { return e.estado === 'pendiente' || e.estado === 'enviando'; });
     if (enCamino && !sondeo) {
-      var vueltas = 0;
+      var vueltas = 0, inicio = Date.now();
       sondeo = setInterval(function () {
-        if (++vueltas > 45) { clearInterval(sondeo); sondeo = null; return; }
+        vueltas++;
+        if (Date.now() - inicio > 15 * 60000) {
+          clearInterval(sondeo); sondeo = null;
+          $('lw-com-enviar-nota').textContent = 'El registro ha dejado de actualizarse solo: recarga la página para ver el estado.';
+          return;
+        }
+        if (vueltas > 15 && vueltas % 5) return;   // tras el 1.er minuto, una de cada cinco (20 s)
         cargaEnvios().then(function () {
           if (!envios.some(function (e) { return e.estado === 'pendiente' || e.estado === 'enviando'; })) {
             clearInterval(sondeo); sondeo = null; cargaLista();
@@ -310,7 +319,10 @@
   // ── duplicar / borrar ─────────────────────────────────────────────────────
   function duplica() {
     if (!actual || !actual.id) return;
-    var c = actual;
+    // con cambios sin guardar se copia lo que hay EN PANTALLA, no lo guardado:
+    // si no, la copia salía sin lo último escrito y abre() lo tiraba sin avisar
+    var c = sucio ? leeForm() : actual, e = sucio ? valida(c) : null;
+    if (e) { toastMal(e); return; }
     sb.from('comunicados').insert({
       asunto: c.asunto, encabezado: c.encabezado, cuerpo: c.cuerpo, cta_url: c.cta_url, cta_texto: c.cta_texto
     }).select().single().then(function (r) {

@@ -179,6 +179,14 @@ $interno = !$attach
   && preg_match('/@(.+)$/', $to, $md)
   && (strcasecmp($md[1], $DOMINIO) === 0 || str_ends_with(strtolower($md[1]), '.' . $DOMINIO));
 if (!$autorizado && $interno) { $autorizado = true; $via = 'aviso-interno'; }
+/* La vía 3 entra SIN credencial: se queda en texto plano, sin título ni botón
+   propios (Seguridad, consulta de deploy 23-sep-2026). Si no, cualquiera en
+   internet podía mandar a un buzón de casa un correo con la marca de Lawang y
+   un botón a `wa.me/<cualquiera>` o `mailto:<cualquiera>` — phishing interno.
+   Ningún llamante legítimo de esta vía (avisos de Postgres) usa ninguno de los
+   dos: se verificó por grep de `cta_url` antes de cerrarlo. El botón que le
+   toque se sigue deduciendo del propio mensaje, como hasta hoy. */
+if ($via === 'aviso-interno') { $encabezado = ''; unset($in['cta_url'], $in['cta_texto']); }
 
 if (!$autorizado) {
   // 401 y no 403: falta credencial, no es que la credencial no valga.
