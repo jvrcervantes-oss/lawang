@@ -35,7 +35,9 @@
     btnEditarFirmado: 'edit_note', btnDownloadSigned: 'download', btnDesbloquear: 'lock_open',
     btnClose: 'close'
   };
-  var GLIFO = /^[^\p{L}\p{N}(«"]+|[^\p{L}\p{N})»".]+$/gu;
+  // delante: cualquier símbolo; detrás: símbolos salvo cierre y puntos
+  // suspensivos («Guardando…», «Subiendo…» se quedan como están)
+  var GLIFO = /^[^\p{L}\p{N}(«"]+|[^\p{L}\p{N})»".…]+$/gu;
   function limpia(b) {
     b.childNodes.forEach(function (n) {
       if (n.nodeType === 3) { var t = n.nodeValue.replace(GLIFO, ''); if (t !== n.nodeValue) n.nodeValue = t; }

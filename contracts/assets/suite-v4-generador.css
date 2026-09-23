@@ -141,7 +141,15 @@ html.v4 .lw-topbar{
   border-bottom:1px solid var(--v4-borde); box-shadow:none; font-family:var(--v4-font);
 }
 html.v4 .lw-topbar .lw-spacer{ display:none; }
-html.v4 .lw4-cab-der{ margin-left:auto; display:flex; align-items:center; gap:10px; }
+/* `order` y no el orden del DOM: topbar.js cuelga el panel de usuario al final
+   de la barra DESPUÉS de autenticar, y «Guardar» tiene que seguir siendo lo
+   último (norma de la suite; consulta de deploy de e65b4ed4). */
+html.v4 .lw4-cab-der{ margin-left:auto; display:flex; align-items:center; gap:10px; order:99; }
+/* El listado de la v4 es /intranet/v4/contratos/ (piel.js redirige ahí), pero si
+   el listado clásico llegara a pintarse dentro de esta página, la barra y la
+   banda del editor —que ya no viven dentro de .stage— no pueden quedarse encima. */
+html.v4 body.modo-listado .lw4-barra, html.v4 body.modo-listado .lw4-banda,
+html.v4 body.modo-listado .lw4-estado{ display:none !important; }
 html.v4 .lw4-volver{
   border:0 !important; background:transparent !important; box-shadow:none !important;
   color:var(--v4-ink-2) !important; font-family:var(--v4-font) !important; font-size:13px !important;
