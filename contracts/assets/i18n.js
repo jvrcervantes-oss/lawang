@@ -2314,6 +2314,22 @@
     'Guarda el contrato antes de enviarlo': 'Save the contract before sending it',
     'Guarda el contrato antes de subir el firmado': 'Save the contract before uploading the signed copy',
     'Guarda el contrato para ver su registro': 'Save the contract to see its log',
+    /* Qué se ve y qué se apaga en el generador (pintaAcciones, 23-sep-2026):
+       el motivo que sale al pasar por encima de un botón apagado. */
+    'El contrato está firmado y bloqueado': 'The contract is signed and locked',
+    'Hay firmas en curso: anúlalas primero': 'Signatures are in progress: cancel them first',
+    'Guarda primero: para guardar hay que rellenarlo entero': 'Save first: to save, every field has to be filled in',
+    'Rellena el nombre del proyecto antes de guardar': 'Fill in the project name before saving',
+    'Descarga o envía el PDF primero: no se puede subir firmado algo que no ha salido':
+      'Download or send the PDF first: you cannot upload a signed copy of something that never went out',
+    'Aún no hay registro: el contrato no está guardado': 'No log yet: the contract is not saved',
+    'Aún no hay PDF firmado': 'No signed PDF yet',
+    'No hay firmas en curso que anular': 'There are no signatures in progress to cancel',
+    'Solo se desbloquea un contrato firmado': 'Only a signed contract can be unlocked',
+    'No se pudo comprobar si el PDF ya salió: «Subir firmado» queda apagado hasta descargarlo':
+      'Could not check whether the PDF has gone out: «Upload signed» stays off until you download it',
+    'El PDF se ha descargado, pero no se pudo apuntar en el registro':
+      'The PDF was downloaded, but it could not be recorded in the log',
     'Guarda primero: sin guardar no hay número, y el PDF saldría idéntico a uno emitido sin existir en la base.':
       'Save first: unsaved there is no number, and the PDF would look identical to one issued without existing in the database.',
     'No se pudo generar: ': 'Could not generate: ',

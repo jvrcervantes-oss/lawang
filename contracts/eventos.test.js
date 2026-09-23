@@ -47,6 +47,7 @@ const PERMITIDOS = new Set(bloque ? [...bloque[1].matchAll(/'([a-z0-9_]+)'/g)].m
 /* ── los que el código escribe ─────────────────────────────────────────────── */
 const FUENTES = ['sql/registro_eventos.sql', 'sql/super_admin_poderes.sql',
                  'sql/parcela_traspaso_carta_a_bloqueo.sql', 'sql/traspaso_mismo_comprador_y_enlace.sql',
+                 'sql/evento_pdf_descargado.sql',
                  'app.html'];
 const usados = new Map();   // evento → dónde
 FUENTES.forEach(rel => {

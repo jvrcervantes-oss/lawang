@@ -38,7 +38,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=319dd513"></script>
+<script src="/contracts/assets/i18n.js?v=459a062a"></script>
 <script src="/contracts/assets/herramientas.js?v=b5621b1e"></script>
 <script src="assets/avisos.js?v=38fd8c40" defer></script><script src="assets/topbar.js?v=8444fd68" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -3678,6 +3678,14 @@ async function downloadPdf(){
     return;
   }
   printPreview();
+  /* Se apunta en el registro del contrato (owner, 23-sep): es lo que enciende
+     «Subir firmado». Un fallo aquí no para la descarga —el PDF ya salió—, pero
+     se dice, porque sin la marca «Subir firmado» sigue apagado. */
+  if(sb){
+    const { error } = await sb.rpc('contrato_pdf_descargado', { p_contrato: SAVED_CONTRACT.id });
+    if(error){ console.error('pdf_descargado:', error.message); toastMal(lwT('El PDF se ha descargado, pero no se pudo apuntar en el registro')); return; }
+    PDF_SALIO = true; pintaAcciones(); ocultarGruposVacios();
+  }
 }
 
 /* ============================================================
@@ -3734,17 +3742,83 @@ function aplicarEstadoFirma(){
         + (EN_FIRMA.vivas ? ' · ' + EN_FIRMA.vivas + ' enlace(s) vivo(s)' : '')
       : 'Enviado a firma · ' + EN_FIRMA.vivas + (EN_FIRMA.vivas === 1 ? ' enlace vivo' : ' enlaces vivos'));
   }
-  const bE = $('#btnEditarFirmado'); if(bE) bE.style.display = activo ? '' : 'none';
-  // «Editar texto» también escribe en `datos` (los overrides del documento):
-  // mientras haya firmas vivas se esconde, o sería la misma puerta por detrás
-  const bT = $('#btnEdit'); if(bT && activo) bT.style.display = 'none';
-  const bD = $('#btnDesign'); if(bD && activo){ bD.style.display = 'none'; const pd=$('#designPanel'); if(pd) pd.hidden = true; }
-  const bS = $('#btnSave'); if(bS && activo) bS.style.display = 'none';
-  // «Subir firmado» también (auditoría 19-ago): cerrar a mano con un enlace
-  // vivo pisaba la firma en curso — el comprador podía firmar después contra
-  // un contrato ya bloqueado. Para subir a mano, primero se anula.
-  const bU = $('#btnLockUpload'); if(bU && activo) bU.style.display = 'none';
+  // Con firmas vivas: Editar texto, Diseño, Guardar y Subir firmado quedan
+  // APAGADOS (antes ocultos) — los decide pintaAcciones(), que es la última
+  // palabra. Los porqués de cada uno siguen valiendo: «Editar texto» escribe en
+  // `datos` por detrás; «Subir firmado» con un enlace vivo pisaba la firma en
+  // curso (auditoría 19-ago). El panel de diseño abierto sí se cierra.
+  if(activo){ const pd=$('#designPanel'); if(pd) pd.hidden = true; }
+  pintaAcciones();
   ocultarGruposVacios();
+}
+
+/* ═══ QUÉ SE VE, QUÉ SE APAGA Y POR QUÉ — 23-sep-2026, owner ═══════════════════
+   Hasta hoy cada botón decidía por su cuenta si esconderse, en tres sitios
+   (esta función, updateSaveButton y el style="display:none" del marcado). Al
+   llevar el generador a la v4, el owner fijó la regla:
+     · por el ESTADO del contrato nada se oculta: se APAGA, y al pasar por
+       encima dice por qué («prefiero que se vea como desactivado pero que no
+       esté oculto»). La barra tiene siempre la misma forma.
+     · por el ROL sí se oculta: al que nunca podrá usarlo no hay nada que
+       esperar (el taller del documento a un agente, Desbloquear a quien no es
+       super admin).
+   Y tres reglas nuevas del mismo día, para las dos caras (clásica y v4):
+     · Enviar por email y Copiar a otro contrato, solo guardado.
+     · Con firmas en curso, Enviar a firma no se ofrece hasta anularlas.
+     · Subir firmado, solo si el PDF ya salió (contrato_pdf_salio en la base,
+       sql/evento_pdf_descargado.sql: descargado, enviado por email, o contrato
+       anterior a la regla).
+   La base sigue siendo quien manda (triggers de firma y bloqueo): esto es la
+   mitad que evita ofrecer lo que va a fallar. */
+let PDF_SALIO = false;
+function pintaAcciones(){
+  const guardado = !!(SAVED_CONTRACT && SAVED_CONTRACT.numero);
+  const enFirma = (EN_FIRMA.vivas + EN_FIRMA.firmadas) > 0 && !LOCKED;
+  const cerrado = LOCKED ? lwT('El contrato está firmado y bloqueado')
+                : enFirma ? lwT('Hay firmas en curso: anúlalas primero') : '';
+  const sinGuardar = lwT('Guarda primero: para guardar hay que rellenarlo entero');
+  const tipo = CONTRACT_TIPO[CURRENT.slug];
+  const proyectoFalta = CURRENT.slug === 'ppjb_bonian_c2' && !SAVED_CONTRACT
+    && !(($('[name="proyecto_nombre"]')||{}).value||'').trim();
+  const pdfNoSalio = lwT('Descarga o envía el PDF primero: no se puede subir firmado algo que no ha salido');
+  // [id, se enseña por rol, motivo si está apagado ('' = se puede usar)]
+  const TABLA = [
+    ['btnSave',           !!tipo, cerrado || (proyectoFalta ? lwT('Rellena el nombre del proyecto antes de guardar') : '')],
+    ['btnEmail',          true,   guardado ? '' : sinGuardar],
+    ['btnDerivar',        true,   guardado ? '' : sinGuardar],
+    ['btnEnviarFirma',    !!tipo, guardado ? cerrado : sinGuardar],
+    ['btnLockUpload',     !!tipo, guardado ? (cerrado || (PDF_SALIO ? '' : pdfNoSalio)) : sinGuardar],
+    ['btnFacturar',       true,   guardado ? '' : sinGuardar],
+    ['btnRegistro',       true,   guardado ? '' : lwT('Aún no hay registro: el contrato no está guardado')],
+    ['btnDownloadSigned', true,   (LOCKED && LOCKED_PDF_PATH) ? '' : lwT('Aún no hay PDF firmado')],
+    ['btnEditarFirmado',  true,   enFirma ? '' : lwT('No hay firmas en curso que anular')],
+    ['btnEdit',           CAN_EDIT_TEXT, cerrado],
+    ['btnDesign',         CAN_EDIT_TEXT, cerrado],
+    ['btnDesbloquear',    ES_SUPER, (LOCKED && SAVED_CONTRACT) ? '' : lwT('Solo se desbloquea un contrato firmado')],
+    ['btnReset',          true,   cerrado],
+  ];
+  TABLA.forEach(([id, seVe, motivo]) => {
+    const b = document.getElementById(id); if(!b) return;
+    // el title original se guarda la primera vez: al volver a encenderse, vuelve
+    if(b.dataset.titulo === undefined) b.dataset.titulo = b.title || '';
+    b.style.display = seVe ? '' : 'none';
+    const apagado = !!motivo;
+    if(b.tagName === 'A'){
+      // un enlace no tiene `disabled`: se le quita el destino mientras esté apagado
+      if(b.getAttribute('href')) b.dataset.href = b.getAttribute('href');
+      if(apagado) b.removeAttribute('href'); else if(b.dataset.href) b.setAttribute('href', b.dataset.href);
+      b.setAttribute('aria-disabled', apagado ? 'true' : 'false');
+      b.style.opacity = apagado ? '.5' : '';
+      b.style.pointerEvents = apagado ? 'none' : '';
+    } else {
+      b.disabled = apagado;
+    }
+    b.title = apagado ? motivo : b.dataset.titulo;
+  });
+  // «Volver al original» solo existe tras editar el texto (lo enseña el
+  // editor); aquí solo se apaga si el contrato ya no admite cambios.
+  const rO = $('#btnEditReset');
+  if(rO){ rO.disabled = !!cerrado; if(cerrado) rO.title = cerrado; }
 }
 
 /* Relee el estado real de las firmas del contrato abierto. Se llama al abrirlo,
@@ -3753,7 +3827,14 @@ function aplicarEstadoFirma(){
    minutos. Si la lectura falla NO se finge que no hay firmas: se deja el candado
    como estaba, porque el trigger rechazaría el guardado de todas formas. */
 async function cargarEstadoFirma(){
-  if(!sb || !SAVED_CONTRACT){ EN_FIRMA = { vivas:0, firmadas:0, filas:[] }; aplicarEstadoFirma(); return; }
+  if(!sb || !SAVED_CONTRACT){ EN_FIRMA = { vivas:0, firmadas:0, filas:[] }; PDF_SALIO = false; aplicarEstadoFirma(); return; }
+  /* ¿Salió ya el PDF? (pintaAcciones: «Subir firmado»). La decisión es de la
+     base (contrato_pdf_salio). Si la consulta falla, queda apagado y se dice. */
+  sb.rpc('contrato_pdf_salio', { p_contrato: SAVED_CONTRACT.id }).then(({ data: salio, error: eS }) => {
+    if(eS){ console.error('pdf_salio:', eS.message); toastMal(lwT('No se pudo comprobar si el PDF ya salió: «Subir firmado» queda apagado hasta descargarlo')); }
+    PDF_SALIO = !eS && salio === true;
+    pintaAcciones(); ocultarGruposVacios();
+  });
   const { data, error } = await sb.rpc('contrato_firmas_equipo').eq('contrato_id', SAVED_CONTRACT.id);
   if(error){
     // el formulario queda como esté (normalmente editable, porque al abrir se
@@ -4027,14 +4108,9 @@ function updateSaveButton(){
   const tipo = CONTRACT_TIPO[CURRENT.slug];
   const form=$('#form'); if(form) form.classList.toggle('locked', LOCKED);
   const badge=$('#lockBadge'); if(badge) badge.style.display = LOCKED ? 'inline-flex' : 'none';
-  const dlBtn=$('#btnDownloadSigned'); if(dlBtn) dlBtn.style.display = (LOCKED && LOCKED_PDF_PATH) ? '' : 'none';
-  const editBtn=$('#btnEdit'); if(editBtn) editBtn.style.display = (CAN_EDIT_TEXT && !LOCKED) ? '' : 'none';
-  // «Diseño» va con la misma llave que «Editar texto»: los dos cambian cómo
-  // sale el documento impreso, y los dos son de admin (19-ago, owner)
-  // LAW-71: desbloquear solo se ofrece a quien de verdad puede, y solo cuando
-  // hay algo que desbloquear
-  const desBtn=$('#btnDesbloquear');
-  if(desBtn) desBtn.style.display = (ES_SUPER && LOCKED && SAVED_CONTRACT) ? '' : 'none';
+  // PDF firmado, Editar texto, Diseño (misma llave de admin: los dos cambian
+  // cómo sale el documento impreso, 19-ago) y Desbloquear (LAW-71, solo super
+  // admin): los decide pintaAcciones(), al final de aplicarEstadoFirma().
   /* «Descargar PDF» apagado mientras el contrato no exista en la base. Un botón
      que no puede funcionar dice por qué ANTES del clic, no falla después — es la
      misma regla que ya sigue Facturas. Un contrato bloqueado sí descarga: ahí lo
@@ -4050,15 +4126,13 @@ function updateSaveButton(){
   }
   const dsgBtn=$('#btnDesign');
   if(dsgBtn){
-    dsgBtn.style.display = (CAN_EDIT_TEXT && !LOCKED) ? '' : 'none';
     // buildForm() rehace el panel escondido: sin esto el botón se quedaría
     // marcado como abierto sobre un panel que ya no lo está
     const pd=$('#designPanel'); dsgBtn.classList.toggle('editing', !!(pd && !pd.hidden));
   }
-  if(LOCKED){ const r=$('#btnEditReset'); if(r) r.style.display='none'; }
 
   const lockBtn=$('#btnLockUpload'), firmaBtn=$('#btnEnviarFirma');
-  if(!tipo){ btn.style.display='none'; if(lockBtn) lockBtn.style.display='none'; if(firmaBtn) firmaBtn.style.display='none'; ocultarGruposVacios(); return; }
+  if(!tipo){ pintaAcciones(); ocultarGruposVacios(); return; }
   // El C2 de Bonian no tiene mas campo que el nombre del proyecto (el resto
   // del texto va escrito dentro, fijo): sin el, un contrato guardado seria
   // imposible de distinguir luego en el listado. Se guarda solo despues de
@@ -4066,11 +4140,10 @@ function updateSaveButton(){
   // comprador_nombre u otros campos que ya identifican la fila.
   const proyectoFalta = CURRENT.slug === 'ppjb_bonian_c2' && !SAVED_CONTRACT
     && !(($('[name="proyecto_nombre"]')||{}).value||'').trim();
-  btn.style.display = (LOCKED || proyectoFalta) ? 'none' : '';
-  const regBtn=$('#btnRegistro');
-  // También con el contrato BLOQUEADO: un contrato firmado es justo del que
-  // más veces hay que responder "¿a qué correo salió y cuándo?".
-  if(regBtn) regBtn.style.display = SAVED_CONTRACT ? '' : 'none';
+  // Guardar (el freno de `proyectoFalta` se repite allí), Registro (también
+  // con el contrato BLOQUEADO: de un firmado es del que más veces hay que
+  // responder «¿a qué correo salió y cuándo?») y el resto: pintaAcciones().
+  void proyectoFalta; void lockBtn; void firmaBtn;
   const facBtn=$('#btnFacturar');
   if(facBtn){
     /* Se enseña con el contrato guardado, esté bloqueado o no. El 19-ago-2026
@@ -4078,11 +4151,11 @@ function updateSaveButton(){
        estuviese bloqueado»— y el owner lo revirtió el mismo día: hay que poder
        facturar contratos sin bloquear. Queda escrito para que no se vuelva a
        "arreglar" dentro de tres meses. */
-    facBtn.style.display = SAVED_CONTRACT ? 'inline-flex' : 'none';
-    if(SAVED_CONTRACT) facBtn.href = '/intranet/facturas/?contrato=' + encodeURIComponent(SAVED_CONTRACT.id);
+    if(SAVED_CONTRACT){
+      facBtn.href = '/intranet/facturas/?contrato=' + encodeURIComponent(SAVED_CONTRACT.id);
+      facBtn.dataset.href = facBtn.getAttribute('href');
+    }
   }
-  if(lockBtn) lockBtn.style.display = (SAVED_CONTRACT && !LOCKED) ? '' : 'none';
-  if(firmaBtn) firmaBtn.style.display = (SAVED_CONTRACT && !LOCKED) ? '' : 'none';
   btn.textContent = SAVED_CONTRACT ? ('Actualizar ' + SAVED_CONTRACT.numero) : 'Guardar';
   // al final, y es quien tiene la última palabra sobre Guardar: un contrato
   // enviado a firma no se guarda hasta anular (llama a ocultarGruposVacios)
@@ -5410,6 +5483,9 @@ function actualizarAvisoDerivar(){
   av.hidden = !avisoCartaAplica($('#dvTpl').value);
 }
 function abrirDerivar(){
+  // Se copia de un contrato completo, no de un borrador a medias (owner, 23-sep).
+  // El botón ya sale apagado (pintaAcciones); esto es el segundo cerrojo.
+  if(!SAVED_CONTRACT || !SAVED_CONTRACT.numero){ toastMal(lwT('Guarda primero: para guardar hay que rellenarlo entero')); return; }
   const sel = $('#dvTpl');
   sel.innerHTML = plantillasOfrecidas()
     .map(t=>`<option value="${t.slug}" ${t.slug===CURRENT.slug?'selected':''}>${t.num?t.num+'. ':''}${L(t.name)}</option>`).join('');
@@ -5669,6 +5745,8 @@ function avisoCamposFaltantes(faltan){
     + '. ' + lwT('Guárdalo y complétalos antes de enviarlo.');
 }
 function openEmailModal(){
+  // El botón ya sale apagado (pintaAcciones); esto es el segundo cerrojo.
+  if(!SAVED_CONTRACT || !SAVED_CONTRACT.numero){ toastMal(lwT('Guarda primero: para guardar hay que rellenarlo entero')); return; }
   const numero = SAVED_CONTRACT ? SAVED_CONTRACT.numero : null;
   $('#emFile').value = '';
   const faltan = numero ? camposSinRellenar() : [];
@@ -5725,7 +5803,7 @@ async function enviarEmail(){
       headers:{ 'content-type':'application/json', authorization:'Bearer ' + (token || '') },
       body: JSON.stringify(payload) });
     const d = await r.json().catch(()=>({ ok:false, error:'Respuesta inválida del servidor' }));
-    if(d.ok){ toast(lwT('Email enviado a ') + to); $('#emOverlay').classList.remove('open'); }
+    if(d.ok){ toast(lwT('Email enviado a ') + to); $('#emOverlay').classList.remove('open'); PDF_SALIO = true; pintaAcciones(); ocultarGruposVacios(); }
     else{ toastMal(d.error || 'No se pudo enviar'); }
   }catch(err){ toastMal(lwT('Error: ') + (err.message || err)); }
   btn.disabled=false; btn.textContent='Enviar';
@@ -6032,7 +6110,8 @@ const REG_EVT = { creado:['Creado',''], editado:['Editado',''],
   tipo_cambiado:['Cambio de tipo',''], enviado_a_firma:['Enlace de firma generado','activo'],
   firma_abierta:['Enlace abierto por el firmante','activo'], firma_recogida:['Firma recogida','firmado'],
   firma_anulada:['Firma anulada','malo'], firmado_del_todo:['Contrato cerrado (firmado)','firmado'],
-  desbloqueado:['Contrato reabierto','malo'], traspaso:['Colgado de su Bloqueo',''] };
+  desbloqueado:['Contrato reabierto','malo'], traspaso:['Colgado de su Bloqueo',''],
+  pdf_descargado:['PDF descargado',''] };
 function regDetalleEvt(d){
   d = d || {}; const t = [];
   if(Array.isArray(d.campos) && d.campos.length)

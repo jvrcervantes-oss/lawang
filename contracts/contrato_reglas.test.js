@@ -95,8 +95,10 @@ afirma('no hay un segundo marcado `cli-pedir` a mano', literales === 1,
 afirma('el panel de Diseño solo se construye para admin',
   /if\(!CAN_EDIT_TEXT\) return '';/.test(app),
   'buildDesignPanel() tiene que salirse antes de pintar nada si no es admin');
+// Desde el 23-sep la visibilidad vive en la tabla de pintaAcciones(): por ROL
+// se oculta (CAN_EDIT_TEXT), por ESTADO se apaga. Las dos filas, misma llave.
 afirma('el botón de Diseño se enseña con la misma llave que «Editar texto»',
-  /dsgBtn\.style\.display = \(CAN_EDIT_TEXT && !LOCKED\)/.test(app));
+  /\['btnEdit',\s*CAN_EDIT_TEXT,/.test(app) && /\['btnDesign',\s*CAN_EDIT_TEXT,/.test(app));
 afirma('el panel nace escondido y lo abre el botón',
   app.includes('id="designPanel" hidden') && app.includes("$('#btnDesign').addEventListener"));
 

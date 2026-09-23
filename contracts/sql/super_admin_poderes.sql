@@ -116,7 +116,10 @@ alter table public.contrato_eventos add constraint contrato_eventos_evento_check
     'creado','editado','tipo_cambiado','enviado_a_firma','firma_abierta','firma_recogida',
     'firma_anulada','firmado_del_todo','desbloqueado','traspaso',
     'editado_estando_firmado','desbloqueado_estando_firmado','factura_sin_bloquear','cobro_a_factura_huerfana',
-    'cobro_a_otro_comprador','comprador_sin_ficha','factura_borrada','contrato_borrado'
+    'cobro_a_otro_comprador','comprador_sin_ficha','factura_borrada','contrato_borrado',
+    -- 22-sep (prorroga_reserva*, deshace_liberacion_reserva) y 23-sep (evento_pdf_descargado.sql):
+    -- estaban en la base y no aquí; esta lista se había quedado atrás de la viva
+    'reserva_liberada','reserva_prorrogada','reserva_liberacion_deshecha','pdf_descargado'
   ]));
 
 comment on constraint contrato_eventos_evento_check on public.contrato_eventos is
