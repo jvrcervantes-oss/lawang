@@ -605,6 +605,82 @@
     carga();
   }
 
+  /* ══════════════ FAQ del Investor Deck en el cajón de Proyectos (23-sep-2026) ══════════════
+     Decisión del owner («la pestaña de FAQ no se ve, replanteemos eso»): las
+     7 FAQ PÚBLICAS de cada proyecto viven en `deck_faq` ({es,en,id}) y hasta
+     hoy no se veían en ninguna pantalla de la intranet — el cajón solo leía
+     las preguntas internas de inversores. Leer: RLS `es_agente()`. Escribir
+     (editores.js): RLS `es_admin()`, con auditoría en `deck_publicaciones`.
+     Todo se pinta con textContent (revisión previa de Seguridad): la respuesta
+     la escribe un admin y la ve todo el equipo. */
+  var FAQ_DECK_PROYECTO = null;
+  function textoIdioma(o) {
+    o = o || {};
+    var l = window.LW_IDIOMA === 'en' ? 'en' : 'es';
+    return o[l] || o.es || o.en || o.id || '';
+  }
+  function pintaDeckFaq(sb, proyecto) {
+    var caja = document.getElementById('d-deckfaq');
+    if (!caja || !proyecto) return;
+    FAQ_DECK_PROYECTO = proyecto;
+    window.LW_V4 = window.LW_V4 || {};
+    window.LW_V4.deckFaqProyecto = proyecto;
+    window.LW_V4.repintaDeckFaq = function () { pintaDeckFaq(sb, FAQ_DECK_PROYECTO); };
+    caja.textContent = 'Cargando…';
+    if (!proyecto.id) { caja.textContent = 'Este proyecto no tiene id en el catálogo: no se pueden leer sus FAQ.'; return; }
+    sb.from('deck_faq').select('id,pregunta,respuesta,orden,publicado,actualizado_en')
+      .eq('proyecto_id', proyecto.id).order('orden', { ascending: true })
+      .then(function (r) {
+        if (FAQ_DECK_PROYECTO !== proyecto) return;          // se abrió otro proyecto mientras tanto
+        caja.textContent = '';
+        if (r.error) { caja.textContent = 'No se pudieron leer las FAQ del deck: ' + r.error.message; return; }
+        var filas = r.data || [];
+        var mapa = {}; filas.forEach(function (x) { mapa[x.id] = x; });
+        window.LW_V4.deckFaq = mapa;
+        var nPub = filas.filter(function (x) { return x.publicado; }).length;
+        var n = document.querySelector('[data-lw="dq-n"]');
+        if (n) n.textContent = filas.length ? '· ' + nPub + ' publicada' + (nPub === 1 ? '' : 's') + (filas.length > nPub ? ' de ' + filas.length : '') : '';
+        if (!filas.length) {
+          var vacio = document.createElement('p');
+          vacio.style.cssText = 'font:500 13px/1.5 sans-serif;color:#75786e;margin:0';
+          vacio.textContent = 'El deck de este proyecto no tiene preguntas frecuentes.';
+          caja.appendChild(vacio); return;
+        }
+        var admin = !!(window.LW_V4 && window.LW_V4.esAdmin);
+        filas.forEach(function (x) {
+          var fila = document.createElement('div');
+          fila.className = 'px-2.5 py-1.5 rounded-lg bg-surface-container-low';
+          fila.setAttribute('data-deckfaq-id', x.id);
+          var fl = document.createElement('div'); fl.className = 'flex items-start justify-between gap-2';
+          var det = document.createElement('details'); det.className = 'flex-1 min-w-0';
+          var sum = document.createElement('summary'); sum.className = 'font-body-sm text-body-sm text-on-surface cursor-pointer';
+          sum.textContent = textoIdioma(x.pregunta) || '(sin pregunta)';
+          var resp = document.createElement('p'); resp.className = 'font-body-sm text-body-sm text-on-surface-variant mt-1.5';
+          resp.style.whiteSpace = 'pre-line';
+          resp.textContent = textoIdioma(x.respuesta) || '—';
+          var meta = document.createElement('span');
+          meta.style.cssText = 'display:block;margin-top:4px;font-size:10.5px;color:#8A8474';
+          var faltan = ['en', 'id'].filter(function (l) { return !((x.pregunta || {})[l] && (x.respuesta || {})[l]); });
+          meta.textContent = (x.publicado ? 'Publicada' : 'No publicada — no sale en el deck') +
+            (faltan.length ? ' · falta ' + faltan.join('/').toUpperCase() : '') +
+            (x.actualizado_en ? ' · cambiada el ' + fFecha(x.actualizado_en) : '');
+          if (!x.publicado) meta.style.color = '#8A6A34';
+          det.appendChild(sum); det.appendChild(resp); det.appendChild(meta);
+          fl.appendChild(det);
+          if (admin) {
+            var ed = document.createElement('button');
+            ed.type = 'button'; ed.setAttribute('data-deckfaq-editar', ''); ed.setAttribute('data-real', '');
+            ed.title = 'Editar'; ed.setAttribute('aria-label', 'Editar pregunta del deck');
+            ed.className = 'p-1 rounded text-outline hover:text-deep-lagoon hover:bg-surface-container-lowest shrink-0';
+            var ic = document.createElement('span'); ic.className = 'material-symbols-outlined text-[15px]'; ic.textContent = 'edit';
+            ed.appendChild(ic); fl.appendChild(ed);
+          }
+          fila.appendChild(fl);
+          caja.appendChild(fila);
+        });
+      }, function (e) { caja.textContent = 'No se pudieron leer las FAQ del deck: ' + ((e && e.message) || e); });
+  }
+
   function borrarOperacionV4(sb, c0) {
     var fam = 'id.eq.' + c0.id + ',contrato_padre_id.eq.' + c0.id;
     sb.rpc('contratos_equipo').select('id,numero').or(fam).then(function (rc) {
@@ -3835,9 +3911,16 @@
             p3('fq-pregunta', d2.titulo || 'Pregunta');
             p3('fq-respuesta', d2.descripcion || '—');
             pintaAccionesDoc(f);
+            // Legal (revisión previa, 23-sep-2026): fuera de la caja de cuentas
+            // se ven más — cada una dice que es interna, y si falta respuesta
+            var marca = document.createElement('span');
+            marca.style.cssText = 'display:inline-block;margin-top:4px;font-size:10.5px;font-weight:600;letter-spacing:.04em;color:#8A6A34';
+            marca.textContent = (d2.descripcion ? '' : 'Sin responder · ') + 'Confidencial — interno, no compartir con compradores';
+            var det = f.querySelector('details'); if (det) det.appendChild(marca);
             cajaF.appendChild(f);
           });
         }
+        pintaDeckFaq(sb, elegido);
         pon('d-pendiente2', fmt(d.cartera - cob, 'EUR'));
         pon('d-presu', '—');
         // Anclado por data-lw, no por texto (11-sep-2026): hojaConTexto()

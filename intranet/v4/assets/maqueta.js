@@ -213,6 +213,9 @@
     var btn = ev.target.closest && ev.target.closest('button');
     if (btn) {
       if (btn.closest('#lw-editor')) return;            // la ventana gestiona los suyos
+      // y el diálogo de la suite (dialogo.js: lwConfirmar/lwElegir) también —
+      // desde S17 todas las confirmaciones de la v4 van por él (23-sep-2026)
+      if (btn.closest('.lw-dlg-fondo')) return;
       if (btn.hasAttribute('onclick')) return;          // comportamiento propio de Stitch
       if (btn.hasAttribute('data-real')) return;        // cableado por datos.js: no se toca
       // Sobre datos reales un chip que "se enciende" sin filtrar MIENTE: solo

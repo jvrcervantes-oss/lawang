@@ -4061,6 +4061,131 @@
         });
       }
 
+      /* ── FAQ del Investor Deck (23-sep-2026, decisión del owner) ──────────
+         `deck_faq` es PÚBLICA al instante: la lee el deck sin contraseña por
+         `investor_deck_faq()` (filtra `publicado`). Escribir exige es_admin()
+         en la RLS y queda auditado en `deck_publicaciones` (trigger
+         trg_deck_audita_faq). Revisión previa #48 (Legal + Seguridad):
+         · Legal: publicar un texto que CAMBIA y contiene una afirmación
+           jurídica/fiscal pide confirmar que Legal lo ha revisado; «nominee»,
+           «hak milik» o una rentabilidad «garantizada» que APARECEN NUEVAS se
+           bloquean (Lawang no ofrece Hak Milik ni rentabilidad: 17-sep y
+           project_lawang_estructura_parcelas). Si cambia la ES y EN/ID no, hay
+           que confirmarlo: pueden quedar contradiciéndola.
+         · Seguridad: el jsonb se construye solo con es/en/id, recortado y sin
+           claves vacías (el deck cae a `es` si falta un idioma). */
+      var esAdminDeck = !!ficha && (ficha.rol === 'admin' || ficha.rol === 'super_admin');
+      var LEG_JURIDICO = /hak\s*sewa|freehold|hak\s*milik|\bhgb\b|hak\s*guna|escrow|nominee|garantiz|guarante|dijamin|rentabilidad|\breturn|\byield|imbal\s*hasil|impuest|\btax|pajak|fiscal|inversi[oó]n|investment|investasi/i;
+      var LEG_PROHIBIDO = [
+        [/nominee/i, '«nominee»'],
+        [/hak\s*milik/i, '«Hak Milik» (Lawang no ofrece Hak Milik)'],
+        [/(garantizad|guaranteed?|dijamin)[\s\S]{0,40}(rentab|retorno|return|yield|imbal|beneficio|profit)|(rentab|retorno|return|yield|imbal|beneficio|profit)[\s\S]{0,40}(garantizad|guaranteed?|dijamin)/i, 'una rentabilidad garantizada']
+      ];
+      var IDIOMAS_DECK = [['es', 'Español'], ['en', 'Inglés'], ['id', 'Indonesio']];
+      function limpiaIdiomas(v, pref) {
+        var o = {};
+        IDIOMAS_DECK.forEach(function (l) { var t = String(v[pref + l[0]] || '').trim(); if (t) o[l[0]] = t; });
+        return o;
+      }
+      function abreDeckFaq(x) {
+        var pr = window.LW_V4 && window.LW_V4.deckFaqProyecto;
+        if (!pr || !pr.id) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
+        var ant = x || { pregunta: {}, respuesta: {}, orden: null, publicado: true };
+        var nuevo = !x;
+        var ordenSig = 0;
+        var mapa = (window.LW_V4 && window.LW_V4.deckFaq) || {};
+        Object.keys(mapa).forEach(function (k) { ordenSig = Math.max(ordenSig, (Number(mapa[k].orden) || 0) + 1); });
+        var ultimo = nuevo ? Promise.resolve(null)
+          : sb.from('deck_publicaciones').select('quien,cuando').eq('tabla', 'deck_faq').eq('fila_id', x.id)
+              .order('cuando', { ascending: false }).limit(1).then(function (r) { return (r.data && r.data[0]) || null; }, function () { return null; });
+        ultimo.then(function (u) {
+          var campos = [];
+          if (u) campos.push({ tipo: 'nota', label: 'Último cambio: ' + (u.quien || '—') + ' · ' + new Date(u.cuando).toLocaleString('es-ES') });
+          campos.push({ tipo: 'nota', label: 'Se publica en el Investor Deck de ' + pr.nombre + ', que ve cualquiera con el enlace. El español es el texto de referencia: el inglés y el indonesio tienen que decir lo mismo.' });
+          IDIOMAS_DECK.forEach(function (l) {
+            campos.push({ k: 'p_' + l[0], label: 'Pregunta · ' + l[1], req: l[0] === 'es' ? 1 : 0, valor: (ant.pregunta || {})[l[0]] || '' });
+            campos.push({ k: 'r_' + l[0], label: 'Respuesta · ' + l[1], tipo: 'textarea', req: l[0] === 'es' ? 1 : 0, valor: (ant.respuesta || {})[l[0]] || '' });
+          });
+          campos.push({ k: 'orden', label: 'Orden en el deck', tipo: 'number', medio: 1, valor: ant.orden != null ? ant.orden : ordenSig });
+          campos.push({ k: 'publicado', label: 'Publicada en el deck', tipo: 'check', medio: 1, valor: !!ant.publicado });
+          if (!nuevo) campos.push({ k: 'borrar', label: 'Borrar esta pregunta del deck', tipo: 'check', ayuda: 'se quita del deck público al guardar' });
+
+          modal(nuevo ? 'Nueva pregunta del deck · ' + pr.nombre : 'Pregunta del deck · ' + pr.nombre, campos, 'Guardar', function (v) {
+            if (typeof lwConfirmar !== 'function') return { error: { message: 'El diálogo aún no ha cargado — prueba de nuevo en un segundo.' } };
+            var hecho = function (r) {
+              r = unaFila(r);
+              if (!r.error && window.LW_V4.repintaDeckFaq) setTimeout(window.LW_V4.repintaDeckFaq, 0);
+              return r;
+            };
+            if (v.borrar) {
+              return lwConfirmar({ titulo: 'Borrar la pregunta del deck',
+                cuerpo: '<p>«' + esc((ant.pregunta || {}).es || '') + '» desaparece del Investor Deck público de ' + esc(pr.nombre) + '. No se puede deshacer (queda en el registro de cambios).</p>',
+                confirmar: 'Borrar', tono: 'peligro' }).then(function (ok) {
+                  if (!ok) return { error: { message: 'Cancelado: no se ha borrado nada.' } };
+                  return sb.from('deck_faq').delete().eq('id', x.id).select('id').then(hecho);
+                });
+            }
+            var preg = limpiaIdiomas(v, 'p_'), resp = limpiaIdiomas(v, 'r_');
+            if (!preg.es || !resp.es) return { error: { message: 'La pregunta y la respuesta en español son obligatorias: es el texto de referencia.' } };
+            var orden = Number(v.orden); if (!isFinite(orden)) orden = ordenSig;
+            var publica = !!v.publicado;
+
+            // qué cambió, idioma a idioma
+            var cambio = {}, bloqueos = [], juridicos = [];
+            IDIOMAS_DECK.forEach(function (l) {
+              var antes = ((ant.pregunta || {})[l[0]] || '') + '\n' + ((ant.respuesta || {})[l[0]] || '');
+              var ahora = (preg[l[0]] || '') + '\n' + (resp[l[0]] || '');
+              cambio[l[0]] = antes.trim() !== ahora.trim();
+              if (!cambio[l[0]]) return;
+              LEG_PROHIBIDO.forEach(function (p) { if (p[0].test(ahora) && !p[0].test(antes)) bloqueos.push(p[1] + ' en ' + l[1].toLowerCase()); });
+              if (LEG_JURIDICO.test(ahora)) juridicos.push(l[1].toLowerCase());
+            });
+            if (publica && bloqueos.length) {
+              return { error: { message: 'No se puede publicar: el texto introduce ' + bloqueos.join(', ') + '. Revisadlo con Legal; si hay que decirlo, guárdala sin publicar.' } };
+            }
+            var puntos = [];
+            if (publica) {
+              puntos.push('Se ve al instante en el Investor Deck público de ' + esc(pr.nombre) + ', sin contraseña.');
+              if (juridicos.length) puntos.push('<b>Contiene una afirmación jurídica o fiscal</b> (' + juridicos.join(', ') + '). ¿Está revisada por Legal?');
+              if (!nuevo && cambio.es && (!cambio.en || !cambio.id)) puntos.push('<b>Has cambiado el español pero no ' + [!cambio.en ? 'el inglés' : '', !cambio.id ? 'el indonesio' : ''].filter(Boolean).join(' ni ') + '</b>: pueden quedar diciendo otra cosa.');
+              var falta = ['en', 'id'].filter(function (l) { return !(preg[l] && resp[l]); });
+              if (falta.length) puntos.push('Falta el ' + falta.map(function (l) { return l === 'en' ? 'inglés' : 'indonesio'; }).join(' y el ') + ': en ese idioma el deck enseñará el español.');
+            }
+            var escribe = function () {
+              var fila = { pregunta: preg, respuesta: resp, orden: orden, publicado: publica };
+              if (nuevo) {
+                fila.proyecto_id = pr.id;
+                fila.creado_por = (aut.session && aut.session.user && aut.session.user.email) || null;
+                return sb.from('deck_faq').insert(fila).select('id').then(hecho);
+              }
+              return sb.from('deck_faq').update(fila).eq('id', x.id).select('id').then(hecho);
+            };
+            if (!puntos.length) return escribe();
+            return lwConfirmar({
+              titulo: juridicos.length ? 'Publicar en el deck · revisión de Legal' : 'Publicar en el deck',
+              cuerpo: '<ul style="margin:0;padding-left:18px">' + puntos.map(function (p) { return '<li style="margin:4px 0">' + p + '</li>'; }).join('') + '</ul>',
+              confirmar: juridicos.length ? 'Revisado: publicar' : 'Publicar', tono: juridicos.length ? 'peligro' : undefined
+            }).then(function (ok) { return ok ? escribe() : { error: { message: 'Cancelado: el deck no ha cambiado.' } }; });
+          }, { sinRecarga: true });
+        });
+      }
+      var bDeck = document.getElementById('btn-deckfaq');
+      if (esAdminDeck && bDeck) {
+        bDeck.classList.remove('hidden');
+        bDeck.setAttribute('data-real', '');
+        bDeck.addEventListener('click', function (ev) { ev.stopPropagation(); abreDeckFaq(null); });
+      }
+      var cajaDeck = document.getElementById('d-deckfaq');
+      if (cajaDeck) cajaDeck.addEventListener('click', function (ev) {
+        var b = ev.target.closest && ev.target.closest('[data-deckfaq-editar]');
+        if (!b) return;
+        ev.stopPropagation();
+        if (!esAdminDeck) return aviso('Editar las FAQ del deck exige ser administrador.', '#8A6A34');
+        var fila = b.closest('[data-deckfaq-id]');
+        var x = fila && window.LW_V4.deckFaq && window.LW_V4.deckFaq[fila.getAttribute('data-deckfaq-id')];
+        if (x) abreDeckFaq(x);
+      });
+
       // enlaces/FAQ exigen 'documentacion': gate LOCAL, ya no aborta toda la
       // pantalla — editar/borrar proyecto son otro permiso y siguen abajo.
       if (puedeH(ficha, 'documentacion')) {

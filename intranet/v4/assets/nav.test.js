@@ -22,6 +22,13 @@ for (const carpeta of fs.readdirSync(V4, { withFileTypes: true })) {
   const f = path.join(V4, carpeta.name, 'index.html');
   if (!fs.existsSync(f)) continue;
   const s = fs.readFileSync(f, 'utf8');
+  /* editores.js confirma con lwConfirmar (dialogo.js) desde S17: sin la
+     ETIQUETA real, el botón responde «el diálogo aún no ha cargado». Un
+     comentario que menciona dialogo.js no cuenta — así se coló en proyectos/
+     y modelos/ la primera vez (23-sep-2026). */
+  if (/<script[^>]+src="[^"]*editores\.js/.test(s) && !/<script[^>]+src="[^"]*dialogo\.js/.test(s)) {
+    errores.push(`${carpeta.name}: carga editores.js sin <script> de dialogo.js`);
+  }
   const g = s.match(/<script[^>]+guard\.js[^>]*>/);
   if (!g) continue;                                   // redirección o puerta: sin guard no hay clave que casar
   const d = g[0].match(/data-herramienta="([^"]*)"/);
