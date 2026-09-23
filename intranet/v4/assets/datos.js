@@ -5172,6 +5172,28 @@
         var sinFicha = function (m) {
           return m.dormitorios == null && m.banos == null && m.villa_m2 == null && m.terraza_m2 == null;
         };
+        /* Estado con COLOR PROPIO (23-sep-2026, owner: «haz diferencia entre
+           publicado, sin ficha, etc.»): antes los cuatro salían en la misma
+           pastilla gris. Se decide en este orden — lo que más bloquea primero:
+           inactivo (fuera del catálogo) > sin ficha (no puede heredar nada) >
+           publicado (lo ve el comprador) > borrador. Los colores son los de los
+           chips de filtro de arriba: lagoon = publicado, rojo = sin ficha. */
+        var ESTADOS = {
+          inactivo:  { t: 'Inactivo',  bg: 'transparent', fg: '#75786e', bd: '#c5c8bc' },
+          sinficha:  { t: 'Sin ficha', bg: '#ffdad6',     fg: '#93000a', bd: '#ffdad6' },
+          publicado: { t: 'Publicado', bg: '#104C4F',     fg: '#ffffff', bd: '#104C4F' },
+          borrador:  { t: 'Borrador',  bg: '#F1EBDD',     fg: '#6b5a3a', bd: '#E4DCCB' }
+        };
+        var estadoDe = function (m) {
+          return !m.activo ? 'inactivo' : sinFicha(m) ? 'sinficha' : m.publicado ? 'publicado' : 'borrador';
+        };
+        var pintaEstado = function (nodo, m) {
+          if (!nodo) return;
+          var e = ESTADOS[estadoDe(m)];
+          nodo.textContent = e.t;
+          nodo.style.background = e.bg; nodo.style.color = e.fg; nodo.style.border = '1px solid ' + e.bd;
+          if (m.renders_pendientes && estadoDe(m) !== 'inactivo') nodo.title = 'Además: renders pendientes';
+        };
         var porModelo = {}, proyModelo = {}, proyModeloId = {};
         us.forEach(function (u) {
           if (!u.modelo_id) return;
@@ -5241,7 +5263,7 @@
           var c = molde.cloneNode(true);
           pon('m-nombre', m.nombre || '—', c);
           pon('m-slug', m.slug ? '/' + m.slug : 'sin slug', c);
-          pon('m-estado', sinFicha(m) ? 'Sin ficha' : (m.publicado ? 'Publicado' : 'Borrador'), c);
+          pintaEstado($('m-estado', c), m);
           var sp = [];
           if (m.dormitorios != null) sp.push(m.dormitorios + ' dorm.');
           if (m.banos != null) sp.push(m.banos + ' banos');
@@ -5276,6 +5298,16 @@
             nf.style.cssText = 'position:absolute;right:10px;bottom:10px;padding:2px 10px;border-radius:999px;background:rgba(27,28,25,.62);color:#fff;font:600 11px/18px sans-serif';
             cab.appendChild(nf);
           }
+          /* «Sin render» se SOLAPA con los estados (un modelo puede estar
+             publicado y sin render a la vez): va aparte, sobre la imagen. */
+          if (m.renders_pendientes && cab) {
+            cab.style.position = 'relative';
+            var sr = document.createElement('span');
+            sr.textContent = 'Sin render';
+            sr.style.cssText = 'position:absolute;left:10px;top:10px;padding:2px 10px;border-radius:999px;background:#BEB3A5;color:#2E3437;font:600 11px/18px sans-serif';
+            cab.appendChild(sr);
+          }
+          if (!m.activo) c.style.opacity = '.6';   // fuera del catálogo: se ve, pero apagado
           c.setAttribute('data-modelo-id', m.id);
           c.style.cursor = 'pointer';
           /* Mismo flujo que /v4/proyectos/ (23-sep-2026, owner): la tarjeta
@@ -5392,7 +5424,7 @@
         pintaGaleria(el);
         pon('d-nombre', el.nombre || '—');
         pon('d-slug', el.slug ? '/' + el.slug : 'sin slug');
-        pon('d-estado', sinFicha(el) ? 'Sin ficha' : (el.publicado ? 'Publicado' : 'Borrador'));
+        pintaEstado($('d-estado'), el);
         pon('d-dorm', el.dormitorios != null ? String(el.dormitorios) : '—');
         pon('d-banos', el.banos != null ? String(el.banos) : '—');
         pon('d-villa', el.villa_m2 != null ? el.villa_m2 + ' m²' : '—');
