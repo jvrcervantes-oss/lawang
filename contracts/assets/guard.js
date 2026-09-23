@@ -74,6 +74,22 @@
   var propia = document.currentScript;
   var HERRAMIENTA = propia && propia.getAttribute('data-herramienta');
   var HERRAMIENTAS_REQ = HERRAMIENTA ? HERRAMIENTA.split(',') : null;
+  /* `data-rol` (23-sep-2026, LAW-275, decisión del owner): las pantallas del
+     Panel de control de la v4 no son una herramienta asignable sino de
+     dirección — Ajustes, Condiciones, Equipos de venta, Cuentas, Usuarios
+     (`admin`) y Comisión de administración, Sociedades (`super_admin`). Hasta
+     hoy el menú las escondía por rol pero la puerta dejaba pasar a cualquier
+     ficha activa que tecleara la URL (los datos ya los protegía la RLS; la
+     cáscara no). Se SUMA a `data-herramienta`, no la sustituye: con las dos,
+     hacen falta las dos. Sin ficha legible no se entra (al revés que la regla
+     general de abajo): una puerta de dirección no se abre por no poder mirar. */
+  var ROL_REQ = propia && propia.getAttribute('data-rol');
+  function rolBasta(ficha) {
+    if (!ROL_REQ) return true;
+    if (!ficha) return false;
+    if (ROL_REQ === 'super_admin') return ficha.rol === 'super_admin';
+    return ficha.rol === 'admin' || ficha.rol === 'super_admin';
+  }
 
   var raiz = document.documentElement;
   raiz.style.visibility = 'hidden';
@@ -165,11 +181,16 @@
               location.replace(HUB + '?sin_permiso=' + encodeURIComponent(HERRAMIENTA));
               return;
             }
+            if (!rolBasta(ficha)) {
+              location.replace(HUB + '?sin_permiso=' + encodeURIComponent('Panel de control'));
+              return;
+            }
             quitarCarga();
             raiz.style.visibility = '';
             resolve({ sb: sb, session: sesion, ficha: ficha });
           })
           .catch(function () {   // sin poder leer la ficha se entra igual: la RLS sigue protegiendo los datos
+            if (!rolBasta(null)) { location.replace(HUB + '?sin_permiso=' + encodeURIComponent('Panel de control')); return; }
             quitarCarga();
             raiz.style.visibility = '';
             resolve({ sb: sb, session: sesion, ficha: null });
