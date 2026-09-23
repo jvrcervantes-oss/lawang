@@ -126,6 +126,22 @@
       sb.auth.getSession().then(function (r) {
         var sesion = r && r.data && r.data.session;
         if (!sesion) { alLogin(); return; }
+        /* MODO MANTENIMIENTO (23-sep-2026): el estado se pide YA, en paralelo a
+           la ficha, para no sumar un viaje. La lógica vive en cierre.js (la
+           comparte el hub). Su lectura nunca rechaza —un fallo es `null` y se
+           pasa—, así que no puede tumbar la ficha si la base no contesta. */
+        var cierre = window.lwCierre;
+        if (!cierre) console.error('[guard] falta /contracts/assets/cierre.js antes de guard.js: el modo mantenimiento no se aplica en esta página');
+        var pEstado = cierre ? cierre.leer(sb) : Promise.resolve(null);
+        function entrar(ficha) {
+          var sigue = cierre ? cierre.puerta(sb, ficha, pEstado).catch(function () { return true; }) : Promise.resolve(true);
+          sigue.then(function (ok) {
+            quitarCarga();
+            if (!ok) return;          // pantalla de mantenimiento puesta: la herramienta no arranca
+            raiz.style.visibility = '';
+            resolve({ sb: sb, session: sesion, ficha: ficha });
+          });
+        }
         // la ficha manda qué herramientas ve. La RLS de `usuarios` ya limita
         // esta consulta a la fila propia (o a todas, si es admin).
         // `notif_visto_hasta` lo usa la campana de topbar.js para saber qué es
@@ -185,15 +201,11 @@
               location.replace(HUB + '?sin_permiso=' + encodeURIComponent('Panel de control'));
               return;
             }
-            quitarCarga();
-            raiz.style.visibility = '';
-            resolve({ sb: sb, session: sesion, ficha: ficha });
+            entrar(ficha);
           })
           .catch(function () {   // sin poder leer la ficha se entra igual: la RLS sigue protegiendo los datos
             if (!rolBasta(null)) { location.replace(HUB + '?sin_permiso=' + encodeURIComponent('Panel de control')); return; }
-            quitarCarga();
-            raiz.style.visibility = '';
-            resolve({ sb: sb, session: sesion, ficha: null });
+            entrar(null);         // …salvo con la intranet cerrada: sin ficha no se puede probar que sea admin
           });
       }).catch(alLogin);
     }

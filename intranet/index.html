@@ -921,6 +921,8 @@ sb.auth.getSession().then(async ({ data:{ session } }) => {
     location.replace('/intranet/?desactivado=1');
     return;
   }
+  // Modo mantenimiento (23-sep-2026): la misma puerta que guard.js, desde cierre.js
+  if(window.lwCierre && !(await window.lwCierre.puerta(sb, ficha).catch(() => true))) return;
   document.getElementById('loginGate').hidden = true;
   mostrarApp(true);
   FICHA = ficha || null;

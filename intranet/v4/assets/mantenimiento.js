@@ -70,11 +70,57 @@
     });
   }
 
+  /* Acceso del equipo a la intranet (23-sep-2026). La puerta vive en
+     contracts/assets/cierre.js; aquí solo el interruptor de /v4/ajustes/. */
+  function panelIntranet() {
+    var p = document.getElementById('lw-mant-intranet');
+    if (!p) return;
+    var cerrada = !!(estado && estado.intranet_cerrada);
+    p.innerHTML =
+      '<div class="flex flex-col gap-1">' +
+        '<span class="font-label-md text-label-md ' + (cerrada ? 'text-error' : 'text-on-surface') + '">' +
+          (cerrada ? 'CERRADA: solo entran los admins.' : 'Abierta: todo el equipo entra con normalidad.') + '</span>' +
+        (cerrada && estado.intranet_motivo ? '<span class="font-body-sm text-body-sm text-on-surface-variant">' + esc(estado.intranet_motivo) + '</span>' : '') +
+        '<span class="font-body-sm text-[12px] text-outline">Último cambio: ' + esc(fecha(estado && estado.intranet_cambiado_en)) + '</span>' +
+      '</div>' +
+      (cerrada
+        ? '<button type="button" id="lw-int-abrir" class="shrink-0 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md">Reabrir la intranet</button>'
+        : '<div class="flex flex-col md:flex-row gap-3 md:items-center">' +
+            '<input id="lw-int-motivo" maxlength="300" placeholder="Motivo (lo verá el equipo)" class="w-full md:w-80 rounded-lg border border-control-border/50 bg-surface-container-lowest px-3 py-2.5 font-body-md text-body-md">' +
+            '<button type="button" id="lw-int-cerrar" class="shrink-0 px-5 py-2.5 rounded-full bg-error text-on-error hover:opacity-90 font-label-md text-label-md">Cerrar al equipo</button>' +
+          '</div>');
+    var bc = document.getElementById('lw-int-cerrar'), ba = document.getElementById('lw-int-abrir');
+    var confirma = function (o) { return window.lwConfirmar ? window.lwConfirmar(o) : Promise.resolve(true); };
+    if (bc) bc.addEventListener('click', function () {
+      var motivo = (document.getElementById('lw-int-motivo').value || '').trim();
+      if (!motivo) { aviso('Escribe el motivo: es lo que verá el equipo.'); document.getElementById('lw-int-motivo').focus(); return; }
+      confirma({ titulo: 'Cerrar la intranet al equipo', tono: 'peligro',
+        cuerpo: 'Solo podrán entrar los admins. Quien esté dentro verá un aviso y se le cerrará en 3 minutos. ¿Cerrar ahora?', confirmar: 'Cerrar' })
+        .then(function (si) { if (si) cambiaIntranet(true, motivo, bc); });
+    });
+    if (ba) ba.addEventListener('click', function () {
+      confirma({ titulo: 'Reabrir la intranet', cuerpo: 'Todo el equipo vuelve a poder entrar. ¿Reabrir?', confirmar: 'Reabrir' })
+        .then(function (si) { if (si) cambiaIntranet(false, null, ba); });
+    });
+  }
+
+  function cambiaIntranet(cerrar, motivo, b) {
+    b.disabled = true;
+    sb.rpc('mantenimiento_intranet', { p_cerrar: cerrar, p_motivo: motivo }).then(function (r) {
+      b.disabled = false;
+      if (r.error) { aviso('No se pudo cambiar: ' + (r.error.message || 'sin detalle')); return; }
+      aviso(cerrar ? 'Intranet cerrada al equipo: solo entran los admins.' : 'Intranet reabierta al equipo.');
+      carga();
+      // la pastilla roja de admin (cierre.js) se refresca al instante, no a los 5 minutos
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+  }
+
   function carga() {
-    return sb.from('mantenimiento').select('envios_pausados,motivo,cambiado_en').eq('id', 1).maybeSingle().then(function (r) {
+    return sb.from('mantenimiento').select('envios_pausados,motivo,cambiado_en,intranet_cerrada,intranet_motivo,intranet_cambiado_en').eq('id', 1).maybeSingle().then(function (r) {
       if (r.error) { console.error('[mantenimiento]', r.error); return; }
       estado = r.data || { envios_pausados: false };
-      franja(); panel();
+      franja(); panel(); panelIntranet();
     });
   }
 
