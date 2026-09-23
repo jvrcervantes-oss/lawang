@@ -552,14 +552,73 @@
      viva (`marcar_notificaciones_leidas`, sin parámetros: usa auth.uid()).
      Los enlaces de Operaciones se quedan dentro de la v4 (su `?contrato=`
      acepta el id desde hoy); el resto van a la herramienta de siempre. */
+  /* COLORES DE LA CAMPANA (23-sep-2026, owner: «más claros con colores»).
+     El nivel y la etiqueta los decide avisos.js (fuente única); aquí solo se
+     pintan. Misma paleta que las etiquetas del cajón (H.tag): rojo = vencido o
+     caducado, ámbar = vence pronto, verde = buena noticia, lago = trámite en
+     marcha, gris = movimiento de inventario. Siempre con icono y palabra: el
+     color solo no basta. Lo que pide acción va arriba y aparte. */
+  var TONOS_AVISO = {
+    mal:      { borde: '#BA1A1A', fondo: '#FFF4F2', pill: '#FFDAD6', tinta: '#93000A', icono: 'error' },
+    atencion: { borde: '#C9892B', fondo: '#FFFAF0', pill: '#FBEBCB', tinta: '#7A5418', icono: 'schedule' },
+    ok:       { borde: '#3F5230', fondo: '#F6FAF2', pill: '#E4F0DA', tinta: '#3F5230', icono: 'check_circle' },
+    info:     { borde: '#104C4F', fondo: '#F3F8F8', pill: '#DCEBEC', tinta: '#104C4F', icono: 'description' },
+    neutro:   { borde: '#B9B5A8', fondo: '#FFFFFF', pill: '#EAE8E2', tinta: '#44483F', icono: 'home_work' }
+  };
+  function pintaAvisos(avisos, aV4) {
+    var alertas = avisos.filter(function (a) { return a.clase === 'alerta'; })
+      // lo más urgente primero: vencido antes que por vencer, y dentro, lo más antiguo
+      .sort(function (a, b) { return (a.nivel === 'mal' ? 0 : 1) - (b.nivel === 'mal' ? 0 : 1) || new Date(a.cuando) - new Date(b.cuando); });
+    var hechos = avisos.filter(function (a) { return a.clase !== 'alerta'; });
+    var nMal = alertas.filter(function (a) { return a.nivel === 'mal'; }).length;
+    var nAt = alertas.length - nMal;
+    var nNuevos = hechos.filter(function (a) { return a.nuevo; }).length;
+    var chip = function (n, texto, t) {
+      return n ? '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:' + t.pill + ';color:' + t.tinta + ';font-size:12px;font-weight:700">' +
+        '<span class="material-symbols-outlined" style="font-size:15px">' + t.icono + '</span>' + n + ' ' + esc(texto) + '</span>' : '';
+    };
+    var resumen = (nMal || nAt || nNuevos)
+      ? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">' +
+          chip(nMal, nMal === 1 ? 'vencido o caducado' : 'vencidos o caducados', TONOS_AVISO.mal) +
+          chip(nAt, 'por vencer', TONOS_AVISO.atencion) +
+          chip(nNuevos, nNuevos === 1 ? 'novedad' : 'novedades', TONOS_AVISO.info) + '</div>'
+      : '';
+    var tarjeta = function (a) {
+      var t = TONOS_AVISO[a.nivel] || TONOS_AVISO.neutro;
+      var fondo = (a.clase === 'alerta' || a.nuevo) ? t.fondo : '#FFFFFF';
+      return '<a href="' + esc(aV4(a.enlace)) + '" style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;border:1px solid #E4DCCB;border-left:4px solid ' + t.borde + ';background:' + fondo + ';color:#1b1c19;text-decoration:none">' +
+        '<span class="material-symbols-outlined" style="font-size:19px;color:' + t.borde + ';margin-top:1px">' + t.icono + '</span>' +
+        '<span style="flex:1;min-width:0">' +
+          '<span style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:3px">' +
+            '<span style="padding:1px 8px;border-radius:999px;background:' + t.pill + ';color:' + t.tinta + ';font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase">' + esc(a.etiqueta || 'Aviso') + '</span>' +
+            (a.nuevo && a.clase !== 'alerta' ? '<span style="padding:1px 8px;border-radius:999px;background:#104C4F;color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase">Nuevo</span>' : '') +
+          '</span>' +
+          '<span style="display:block;font-weight:' + (a.nuevo || a.clase === 'alerta' ? '700' : '500') + ';font-size:13px">' + esc(a.titulo) + '</span>' +
+          (a.detalle ? '<span style="display:block;font-size:12px;color:#44483f;margin-top:2px">' + esc(a.detalle) + '</span>' : '') +
+          '<span style="display:block;font-size:11px;color:#8A8474;margin-top:4px">' + esc(fFecha(a.cuando)) + '</span>' +
+        '</span></a>';
+    };
+    var bloque = function (titulo, lista) {
+      return lista.length ? '<h4 style="margin:14px 0 8px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#75786e">' + esc(titulo) + ' (' + lista.length + ')</h4>' +
+        '<div style="display:grid;gap:8px">' + lista.map(tarjeta).join('') + '</div>' : '';
+    };
+    return resumen + bloque('Requiere atención', alertas) + bloque('Actividad reciente', hechos);
+  }
+
   function campanaV4(aut, rol) {
     var badges = document.querySelectorAll('[data-lw="k-avisos"]');
     var boton = badges.length ? badges[0].closest('button') : null;
     var ULTIMO = null;
-    function pintaContador(n) {
+    function pintaContador(n, avisos) {
+      // el número toma el color de lo más grave que haya sin atender
+      var peor = (avisos || []).filter(function (a) { return a.nuevo; }).reduce(function (acc, a) {
+        return acc === 'mal' || a.nivel === 'mal' ? 'mal' : (acc === 'atencion' || a.nivel === 'atencion' ? 'atencion' : 'info');
+      }, null);
       badges.forEach(function (e) {
         e.textContent = n == null ? '—' : (n > 99 ? '99+' : String(n));
         e.style.display = n === 0 ? 'none' : '';
+        e.style.backgroundColor = peor ? TONOS_AVISO[peor].borde : '';
+        e.style.color = peor ? '#fff' : '';
       });
     }
     function aV4(href) {
@@ -570,7 +629,7 @@
       var ficha = aut.ficha || {};
       var email = (aut.session && aut.session.user && aut.session.user.email) || '';
       return lwAvisos(aut.sb, { esAdmin: rol === 'admin' || rol === 'super_admin', email: email, vistoHasta: ficha.notif_visto_hasta || null })
-        .then(function (out) { ULTIMO = out; pintaContador(out.sinLeer); return out; },
+        .then(function (out) { ULTIMO = out; pintaContador(out.sinLeer, out.avisos); return out; },
               function (e) { console.error('[v4 datos] avisos:', e); pintaContador(null); return null; });
     }
     function abre() {
@@ -582,13 +641,7 @@
         var notaFallo = (out && out.fallos) ? H.nota(out.cobroSinComprobar ? 'No se pudo comprobar lo cobrado: las facturas por vencer no se muestran.' : 'Alguna de las consultas de avisos falló: la lista puede estar incompleta.') : '';
         if (!out) cuerpo = H.nota('No se pudieron cargar los avisos. Prueba a recargar la página.');
         else if (!out.avisos.length) cuerpo = notaFallo + '<p style="margin:0;font-size:13px;color:#8A8474">Nada nuevo.</p>';
-        else cuerpo = notaFallo +
-          '<div style="display:grid;gap:8px">' + out.avisos.map(function (a) {
-            return '<a href="' + esc(aV4(a.enlace)) + '" style="display:block;padding:10px 12px;border-radius:10px;border:1px solid #E4DCCB;background:' + (a.nuevo ? '#FBF3E4' : '#fff') + ';color:#1b1c19;text-decoration:none">' +
-              '<span style="display:block;font-weight:600;font-size:13px">' + esc(a.titulo) + '</span>' +
-              (a.detalle ? '<span style="display:block;font-size:12px;color:#44483f;margin-top:2px">' + esc(a.detalle) + '</span>' : '') +
-              '<span style="display:block;font-size:11px;color:#8A8474;margin-top:4px">' + esc(fFecha(a.cuando)) + '</span></a>';
-          }).join('') + '</div>';
+        else cuerpo = notaFallo + pintaAvisos(out.avisos, aV4);
         window.lwCajon({ titulo: 'Avisos', sub: 'Lo que ha pasado y lo que vence en los próximos 15 días.', cuerpo: cuerpo });
       };
       // abrir = dar los hechos por vistos (las alertas de ≤5 días siguen contando, como en la viva)

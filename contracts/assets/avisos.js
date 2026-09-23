@@ -36,6 +36,41 @@
 var LW_AVISOS_VENC_DIAS = 15;      // se avisa desde 15 días antes
 var LW_AVISOS_LIMITE = 40;
 
+/* TONO DE CADA AVISO (23-sep-2026, owner: «más claros con colores»). Se decide
+   aquí, en la fuente única, y no en cada campana: así la clásica puede usarlo
+   el día que quiera sin volver a clasificar. Cada aviso lleva:
+   · `clase`: 'alerta' (pide hacer algo) o 'hecho' (algo que ya pasó);
+   · `nivel`: 'mal' (vencido/caducado) · 'atencion' (vence pronto) · 'ok'
+     (buena noticia: firma, cobro) · 'info' (trámite en marcha) · 'neutro'
+     (movimiento de inventario);
+   · `etiqueta`: la palabra corta que acompaña al color — el color solo no
+     basta (daltonismo, impresión en gris).
+   Un tipo de `notificaciones` que no esté en la lista cae en 'neutro' con su
+   nombre: nunca desaparece por no estar clasificado. */
+var LW_AVISOS_TONO_HECHO = {
+  contrato_firmado:   ['ok', 'Firmado'],
+  contrato_bloqueado: ['ok', 'Firmado'],
+  operacion_saldada:  ['ok', 'Saldado'],
+  unidad_cobrada:     ['ok', 'Cobrado'],
+  solicitud_pago:     ['info', 'Solicitud'],   // afinado por el título abajo
+  factura_emitida:    ['info', 'Factura'],
+  firma_enviada:      ['info', 'Firma enviada'],
+  unidad_reservada:   ['neutro', 'Inventario'],
+  unidad_bloqueada:   ['neutro', 'Inventario'],
+  unidad_vendida:     ['neutro', 'Inventario'],
+  unidad_disponible:  ['neutro', 'Inventario'],
+  unidad_estado:      ['neutro', 'Inventario']
+};
+function lwAvisoTonoHecho(tipo, titulo) {
+  // una solicitud de pago puede ser buena o mala noticia: lo dice su título
+  if (tipo === 'solicitud_pago') {
+    if (/rechazad/i.test(titulo || '')) return ['mal', 'Rechazada'];
+    if (/pagad/i.test(titulo || '')) return ['ok', 'Pagada'];
+    if (/aprobad/i.test(titulo || '')) return ['ok', 'Aprobada'];
+  }
+  return LW_AVISOS_TONO_HECHO[tipo] || ['neutro', String(tipo || 'Aviso').replace(/_/g, ' ')];
+}
+
 function lwAvisoEnlace(e) {
   e = String(e == null ? '' : e).trim();
   // ni espacios ni controles ni barra invertida en ningún sitio: el navegador
@@ -55,8 +90,10 @@ function lwAvisosArmar(r, opts) {
   var datos = function (i) { return (r[i] && !r[i].error && r[i].data) || []; };
 
   var avisos = datos(0).map(function (n) {
+    var tono = lwAvisoTonoHecho(n.tipo, n.titulo);
     return { titulo: n.titulo, detalle: n.detalle, enlace: lwAvisoEnlace(n.enlace), cuando: n.creado_en,
-             nuevo: !vistoHasta || new Date(n.creado_en) > vistoHasta };
+             nuevo: !vistoHasta || new Date(n.creado_en) > vistoHasta,
+             clase: 'hecho', nivel: tono[0], etiqueta: tono[1] };
   });
 
   var pendientes = {};
@@ -80,9 +117,10 @@ function lwAvisosArmar(r, opts) {
       titulo: 'Factura ' + (f.numero || 'sin nº') + (d < 0 ? ' vencida hace ' + (-d) + ' d'
               : d === 0 ? ' vence hoy' : ' vence en ' + d + ' d'),
       // lo que QUEDA, no el total: con un pago a cuenta el total exageraba la deuda
-      detalle: (Math.round(queda * 100) / 100) + ' ' + (f.moneda || '') + ' sin cobrar',
+      detalle: new Intl.NumberFormat('es-ES', { maximumFractionDigits: 2 }).format(Math.round(queda * 100) / 100) + ' ' + (f.moneda || '') + ' sin cobrar',
       enlace: f.contrato_id ? '/intranet/operaciones/?contrato=' + encodeURIComponent(f.contrato_id) : '/intranet/facturas/',
       cuando: f.venc, nuevo: d <= 5,
+      clase: 'alerta', nivel: d < 0 ? 'mal' : 'atencion', etiqueta: d < 0 ? 'Vencida' : (d === 0 ? 'Vence hoy' : 'Por vencer'),
     });
   });
 
@@ -96,6 +134,7 @@ function lwAvisosArmar(r, opts) {
       detalle: s.firmante_nombre || '',
       enlace: '/intranet/operaciones/?contrato=' + encodeURIComponent(s.contrato_id),
       cuando: s.expira_en, nuevo: d <= 5,
+      clase: 'alerta', nivel: d < 0 ? 'mal' : 'atencion', etiqueta: d < 0 ? 'Firma caducada' : 'Firma por caducar',
     });
   });
 
@@ -140,4 +179,4 @@ function lwAvisos(sb, opts) {
   });
 }
 
-if (typeof module !== 'undefined') module.exports = { lwAvisosArmar: lwAvisosArmar, lwAvisoEnlace: lwAvisoEnlace };
+if (typeof module !== 'undefined') module.exports = { lwAvisosArmar: lwAvisosArmar, lwAvisoEnlace: lwAvisoEnlace, lwAvisoTonoHecho: lwAvisoTonoHecho };

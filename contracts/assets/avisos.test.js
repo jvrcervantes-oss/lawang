@@ -60,6 +60,21 @@ assert.deepStrictEqual(nuevos, ['Enlace de firma de RP10 caduca en 1 d', 'Enlace
 assert.strictEqual(ag.sinLeer, 6);
 assert.strictEqual(ag.avisos.find(a => a.titulo === 'Nuevo').enlace, '#', 'enlace javascript: neutralizado');
 
+// --- tono de cada aviso (colores de la campana, 23-sep-2026) ---
+const tono = x => ag.avisos.find(a => a.titulo === x);
+assert.deepStrictEqual([tono('Factura F1 vencida hace 3 d').nivel, tono('Factura F1 vencida hace 3 d').etiqueta, tono('Factura F1 vencida hace 3 d').clase], ['mal', 'Vencida', 'alerta']);
+assert.deepStrictEqual([tono('Factura F8 vence en 10 d').nivel, tono('Factura F8 vence en 10 d').etiqueta], ['atencion', 'Por vencer']);
+assert.deepStrictEqual([tono('Enlace de firma de RP9 caduca en 1 d').nivel, tono('Enlace de firma de RP9 caduca en 1 d').etiqueta], ['atencion', 'Firma por caducar']);
+assert.strictEqual(tono('Nuevo').clase, 'hecho');
+const { lwAvisoTonoHecho } = require('./avisos.js');
+assert.deepStrictEqual(lwAvisoTonoHecho('contrato_firmado'), ['ok', 'Firmado']);
+assert.deepStrictEqual(lwAvisoTonoHecho('factura_emitida'), ['info', 'Factura']);
+assert.deepStrictEqual(lwAvisoTonoHecho('unidad_reservada'), ['neutro', 'Inventario']);
+assert.deepStrictEqual(lwAvisoTonoHecho('solicitud_pago', 'Tu solicitud SP-2 — rechazada'), ['mal', 'Rechazada']);
+assert.deepStrictEqual(lwAvisoTonoHecho('solicitud_pago', 'Tu solicitud SP-2 — pagada'), ['ok', 'Pagada']);
+assert.deepStrictEqual(lwAvisoTonoHecho('solicitud_pago', 'Solicitud de pago SP-8'), ['info', 'Solicitud']);
+assert.deepStrictEqual(lwAvisoTonoHecho('tipo_nuevo_que_no_existe'), ['neutro', 'tipo nuevo que no existe'], 'un tipo sin clasificar no desaparece');
+
 // --- admin: ve las de todos ---
 const ad = lwAvisosArmar(r, { esAdmin: true, email: 'jefe@lawang.test', ahora: AHORA });
 const ta = ad.avisos.map(a => a.titulo);
@@ -80,7 +95,9 @@ assert.strictEqual(ag.cobroSinComprobar, false);
 
 // --- el detalle dice lo que QUEDA, no el total (pago a cuenta) ---
 const parcial = lwAvisosArmar([ok([]), ok([{ id: 'p1', numero: 'P1', total: 1000, moneda: 'EUR', creado_por: yo, tipo: 'factura', venc: dia(1) }]), ok([]), ok([{ factura_id: 'p1', pendiente: 250.5 }])], { esAdmin: false, email: yo, ahora: AHORA });
-assert.strictEqual(parcial.avisos[0].detalle, '250.5 EUR sin cobrar');
+assert.strictEqual(parcial.avisos[0].detalle, '250,5 EUR sin cobrar');
+const grande = lwAvisosArmar([ok([]), ok([{ id: 'g1', numero: 'G1', total: 200000000, moneda: 'IDR', tipo: 'factura', venc: dia(1) }]), ok([]), ok([])], { ahora: AHORA });
+assert.strictEqual(grande.avisos[0].detalle, '200.000.000 IDR sin cobrar', 'importe con separador de miles');
 
 // --- enlaces con blancos o controles dentro: el navegador los quita y «/\t/x» sería «//x» ---
 assert.strictEqual(lwAvisoEnlace('/\t/evil.example'), '#');
