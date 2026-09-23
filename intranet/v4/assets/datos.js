@@ -933,11 +933,11 @@
       suave(sb.rpc('contratos_equipo').select('id,numero,comprador_nombre,bloqueado,liberado_en')),
       // Desde el 18-ago-2026, día en que se activó la factura automática: lo
       // anterior es alta de histórico y se revisa aparte.
-      suave(sb.from('contrato_vencimientos').select('contrato_id,descripcion,fecha,contratos!inner(numero,bloqueado,liberado_en)')
+      suave(sb.from('contrato_vencimientos').select('contrato_id,descripcion,fecha,monto,contratos!inner(numero,bloqueado,liberado_en)')
         .eq('contratos.bloqueado', true).is('contratos.liberado_en', null).is('factura_id', null).eq('no_facturar', false)
         .lt('fecha', hoy).gte('fecha', '2026-08-18').order('fecha')),
       suave(sb.rpc('facturas_pendiente_equipo')),
-      suave(sb.rpc('facturas_equipo').select('id,numero,tipo,total,moneda,anulada,cliente_nombre,justificantes,justificante_path,fecha_emision,created_at').in('tipo', ['factura', 'recibi']))
+      suave(sb.rpc('facturas_equipo').select('id,numero,tipo,total,moneda,anulada,cliente_nombre,contrato_id,justificantes,justificante_path,fecha_emision,created_at').in('tipo', ['factura', 'recibi']))
     ]).then(function (r) {
       var FILAS = [];
       var fila = function (tono, icono, titulo, detalle, n, href, cta) { FILAS.push({ tono: tono, icono: icono, titulo: titulo, detalle: detalle, n: n, href: href, cta: cta }); };
@@ -967,25 +967,55 @@
         pintaFirmasHome(Object.keys(vivas).length, cadL.length);
       } else pintaFirmasHome('—', 0);   // sin lectura: nunca dejar el dibujo de la maqueta como verdad
       // 4 · hitos vencidos sin factura
-      if (r[3] && r[3].length) {
-        var h0 = r[3][0];
-        fila('espera', 'receipt_long', T('Hitos vencidos sin factura'), T('La factura automática no cubre lo que llega tarde') + ' · ' + T('el más antiguo') + ': ' + (h0.contratos && h0.contratos.numero || '—') + ' · ' + (h0.descripcion || T('hito')) + ' · ' + fFecha(h0.fecha), r[3].length, '/intranet/v4/vencimientos/', T('Revisar'));
+      /* Consulta de deploy (Administración, 23-sep): muchas facturas se emitieron
+         sin enlazarse a su hito (`factura_id` vacío), y la fila avisaba de hitos
+         ya facturados e incluso cobrados. Mientras no se enlacen en la base, un
+         hito no sale si su contrato tiene una factura viva que lo cubre: se
+         reparte cada factura a un solo hito, del más antiguo al más nuevo, y un
+         hito sin importe se da por cubierto con cualquier factura libre. */
+      if (r[3] && r[3].length && r[5]) {
+        var facPorC = {};
+        r[5].forEach(function (f) { if (f.tipo === 'factura' && !f.anulada && f.contrato_id) (facPorC[f.contrato_id] = facPorC[f.contrato_id] || []).push(Number(f.total) || 0); });
+        Object.keys(facPorC).forEach(function (k) { facPorC[k].sort(function (a, b) { return a - b; }); });
+        var hitos = r[3].filter(function (h) {
+          var libres = facPorC[h.contrato_id] || [], m = Number(h.monto) || 0;
+          for (var i = 0; i < libres.length; i++) if (libres[i] >= m * 0.99) { libres.splice(i, 1); return false; }
+          return true;
+        });
+        if (hitos.length) {
+          var h0 = hitos[0];
+          fila('espera', 'receipt_long', T('Hitos vencidos sin factura'), T('La factura automática no cubre lo que llega tarde') + ' · ' + T('el más antiguo') + ': ' + (h0.contratos && h0.contratos.numero || '—') + ' · ' + (h0.descripcion || T('hito')) + ' · ' + fFecha(h0.fecha), hitos.length, '/intranet/v4/vencimientos/', T('Revisar'));
+        }
       }
       // 5 · facturas con saldo · 6 · recibís sin justificante
       if (r[5]) {
         if (r[4]) {
           var pend = {}; r[4].forEach(function (x) { pend[x.factura_id] = Number(x.pendiente) || 0; });
-          var con = r[5].filter(function (f) { return f.tipo === 'factura' && !f.anulada && pend[f.id] > 0.005; });
+          /* Solo facturas de contratos FIRMADOS y no liberados (consulta de deploy,
+             Administración, 23-sep): sin este filtro la cifra sumaba borradores,
+             reservas liberadas y facturas sueltas — 2,87 M€ donde lo firmado y
+             vivo era 0,35 M€. Sin la lista de contratos no se pinta la fila. */
+          var vivoFirmado = {};
+          (r[2] || []).forEach(function (c) { if (c.bloqueado && !c.liberado_en) vivoFirmado[c.id] = true; });
+          var con = !r[2] ? [] : r[5].filter(function (f) { return f.tipo === 'factura' && !f.anulada && pend[f.id] > 0.005 && vivoFirmado[f.contrato_id]; });
           if (con.length) {
             var eur = 0, otras = 0; con.forEach(function (f) { if ((f.moneda || 'EUR') === 'EUR') eur += pend[f.id]; else otras++; });
-            fila('espera', 'hourglass_bottom', T('Facturas con saldo pendiente'), fmt(eur, 'EUR') + (otras ? ' · +' + otras + ' ' + T('en otra moneda') : ''), con.length, '/intranet/v4/facturas/', T('Ver'));
+            fila('espera', 'hourglass_bottom', T('Facturas con saldo pendiente · contratos firmados'), fmt(eur, 'EUR') + (otras ? ' · +' + otras + ' ' + T('en otra moneda') : ''), con.length, '/intranet/v4/facturas/', T('Ver'));
           }
         }
         var sinJ = r[5].filter(function (f) { return f.tipo === 'recibi' && !f.anulada && !(Array.isArray(f.justificantes) && f.justificantes.length) && !f.justificante_path; });
         if (sinJ.length) fila('neutro', 'attach_file', T('Recibís sin justificante'), lista3(sinJ.map(function (f) { return f.numero + ' (' + (f.cliente_nombre || '—') + ')'; })), sinJ.length, '/intranet/v4/recibos/', T('Subir'));
       }
 
-      if (!FILAS.length) { caja.hidden = false; lista.innerHTML = '<p style="margin:0;padding:18px 24px;font:500 13px \'Neue Kabel\',sans-serif;color:#3F5230">' + esc(T('Nada pendiente en tus colas. Buen día.')) + '</p>'; pon2('k-hoy-n', '0'); return; }
+      // una consulta caída no es «0 pendientes» (consulta de deploy, Desarrollo, 23-sep)
+      var caidas = r.filter(function (x) { return x == null; }).length;
+      var avisoCaidas = caidas ? '<p style="margin:0;padding:12px 24px;border-top:1px solid #EFECE4;font:600 12.5px \'Neue Kabel\',sans-serif;color:#93000A">' +
+        esc(T('No se pudieron leer') + ' ' + caidas + ' ' + T('de') + ' ' + r.length + ' ' + T('colas: lo de arriba puede estar incompleto. Recarga o revisa la sesión.')) + '</p>' : '';
+      if (!FILAS.length) {
+        caja.hidden = false;
+        lista.innerHTML = caidas ? avisoCaidas : '<p style="margin:0;padding:18px 24px;font:500 13px \'Neue Kabel\',sans-serif;color:#3F5230">' + esc(T('Nada pendiente en tus colas. Buen día.')) + '</p>';
+        pon2('k-hoy-n', caidas ? '—' : '0'); return;
+      }
       var total = FILAS.reduce(function (a, x) { return a + x.n; }, 0);
       pon2('k-hoy-n', String(total));
       lista.innerHTML = FILAS.map(function (x) {
@@ -997,7 +1027,7 @@
           '<span style="display:block;font:500 12px \'Neue Kabel\',sans-serif;color:#75786e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(x.detalle) + '</span></span>' +
           '<span style="display:flex;align-items:center;gap:12px;white-space:nowrap"><span style="font:700 20px \'Neue Kabel\',sans-serif;color:#104C4F">' + x.n + '</span>' +
           '<span style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">' + esc(x.cta) + ' →</span></span></a>';
-      }).join('');
+      }).join('') + avisoCaidas;
       caja.hidden = false;
     });
   }
@@ -7881,14 +7911,15 @@
       /* Los contratos de la sesión (misma RLS): de aquí salen el autor de cada
          Carta (la función no lo trae), el objeto que abre la ficha en el cajón,
          el Bloqueo al que apunta la Carta y las Cartas liberadas hace poco. */
-      vig(sb.rpc('contratos_equipo').select(CAMPOS_CONTRATO)).then(function (x) { return x.error ? (fallo('contratos', x.error), []) : (x.data || []); }),
+      vig(sb.rpc('contratos_equipo').select(CAMPOS_CONTRATO)).then(function (x) { return x.error ? (fallo('contratos', x.error), null) : (x.data || []); }),
       autores(sb),
       vig(sb.rpc('contratos_cobrado_equipo')).then(function (x) { return x.error ? [] : (x.data || []); }),
       vig(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado,expira_en').eq('estado', 'pendiente')).then(function (x) { return x.error ? [] : (x.data || []); }),
-      vig(sb.from('contrato_prorrogas').select('contrato_id,n,dias,motivo,quien,creado_en').gte('creado_en', hace14).order('creado_en', { ascending: false })).then(function (x) { return x.error ? null : (x.data || []); })
+      vig(sb.from('contrato_prorrogas').select('contrato_id,n,dias,motivo,quien,creado_en,comunicado_al_comprador').gte('creado_en', hace14).order('creado_en', { ascending: false })).then(function (x) { return x.error ? null : (x.data || []); })
     ]).then(function (r) {
       var filas = r[0], AUT = r[3] || {};
       if (filas == null) return;
+      var contratosLeidos = r[2] != null;   // si falló, las señales dicen «no leído», nunca «Sin Bloqueo»
       var porIdC = {}; (r[2] || []).forEach(function (x) { porIdC[x.id] = x; });
       var cobrado = {}; (r[4] || []).forEach(function (x) { cobrado[x.contrato_id] = Number(x.cobrado) || 0; });
       var enFirma = {}; (r[5] || []).forEach(function (x) { if (!x.expira_en || new Date(x.expira_en) > new Date()) enFirma[x.contrato_id] = true; });
@@ -7933,7 +7964,8 @@
          nunca se calla como si no existiera. */
       function senales(c) {
         var s = [];
-        if (c.padre) {
+        if (!contratosLeidos) s.push(pill(T('Bloqueo: no leído'), 'neutro'));
+        else if (c.padre) {
           var b = porIdC[c.padre];
           s.push(b ? pill(T('Bloqueo') + ' ' + (b.numero || '') + ' · ' + (b.bloqueado ? T('firmado') : enFirma[b.id] ? T('en firma') : T('borrador')), b.bloqueado ? 'ok' : 'curso')
                    : pill(T('Bloqueo creado · no visible para ti'), 'neutro'));
@@ -7977,12 +8009,16 @@
           Object.keys(nAut).sort(function (a, b) { return (a.toLowerCase() === mio ? -1 : 0) - (b.toLowerCase() === mio ? -1 : 0) || nAut[b] - nAut[a]; })
             .map(function (k) { return chip(k, k ? (k.toLowerCase() === mio ? T('Mías') : nombreAutor(AUT, k)) : T('Sin autor'), nAut[k]); }).join('');
         cajaAg.hidden = false;
-        cajaAg.addEventListener('click', function (ev) {
-          var b = ev.target.closest && ev.target.closest('[data-ag]'); if (!b) return;
+        // REG.reservas se vuelve a llamar al cerrar la ficha: el listener se pone una vez y usa la pasada vigente
+        cajaAg._lwElige = function (b) {
           agente = b.getAttribute('data-ag');
           cajaAg.querySelectorAll('[data-ag]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
           pinta();
-        });
+        };
+        if (!cajaAg._lwOk) {
+          cajaAg._lwOk = true;
+          cajaAg.addEventListener('click', function (ev) { var b = ev.target.closest && ev.target.closest('[data-ag]'); if (b && cajaAg._lwElige) cajaAg._lwElige(b); });
+        }
       }
       function pinta() {
         var t = (buscar && buscar.value || '').trim().toLowerCase();
@@ -8002,14 +8038,26 @@
       }
       // la fila abre la ficha del contrato en el cajón: Prorrogar y Liberar viven
       // allí con sus candados (prorroga_reserva / libera_reserva), no se duplican
-      lista.addEventListener('click', function (ev) {
-        var a = ev.target.closest && ev.target.closest('[data-lw-res]'); if (!a) return;
-        if (ev.button !== 0 || ev.ctrlKey || ev.metaKey || ev.shiftKey) return;   // abrir en otra pestaña: se respeta
-        var k = porIdC[a.getAttribute('data-lw-res')];
-        if (!k) return;   // sin el contrato en memoria, que navegue a Operaciones como antes
-        ev.preventDefault();
-        fichaContrato(sb, k, { sinExpediente: false });
-      });
+      lista._lwPorId = porIdC;
+      if (!lista._lwOk) {
+        lista._lwOk = true;
+        lista.addEventListener('click', function (ev) {
+          var a = ev.target.closest && ev.target.closest('[data-lw-res]'); if (!a) return;
+          if (ev.button !== 0 || ev.ctrlKey || ev.metaKey || ev.shiftKey) return;   // abrir en otra pestaña: se respeta
+          var k = (lista._lwPorId || {})[a.getAttribute('data-lw-res')];
+          if (!k) return;   // sin el contrato en memoria, que navegue a Operaciones como antes
+          ev.preventDefault();
+          fichaContrato(sb, k, { sinExpediente: false });
+          /* Al cerrar la ficha se vuelve a leer la lista: una prórroga o una
+             liberación hecha dentro cambia la fecha, la banda y los KPIs
+             (consulta de deploy, Desarrollo, 23-sep). */
+          var obs = new MutationObserver(function () {
+            if (document.getElementById('lw-cajon')) return;
+            obs.disconnect(); REG['reservas'](sb);
+          });
+          obs.observe(document.body, { childList: true, subtree: true });
+        });
+      }
 
       // ── Próximos 30 días ──
       var calCaja = document.getElementById('lw-res-cal-caja'), cal = document.getElementById('lw-res-cal');
@@ -8034,7 +8082,7 @@
         var ev = [];
         (r[6] || []).forEach(function (p) {
           var k = porIdC[p.contrato_id] || {};
-          ev.push({ cuando: p.creado_en, html: '<b>' + esc(k.numero || '—') + '</b> · ' + esc(T('prórroga')) + ' ' + p.n + ' · +' + p.dias + ' ' + esc(T('días')) + (p.motivo ? ' · ' + esc(p.motivo) : '') + (p.quien ? ' · ' + htmlAutor(AUT, p.quien) : ''), tag: pill(T('Prórroga'), 'curso') });
+          ev.push({ cuando: p.creado_en, html: '<b>' + esc(k.numero || '—') + '</b> · ' + esc(T('prórroga')) + ' ' + p.n + ' · +' + p.dias + ' ' + esc(T('días')) + (p.motivo ? ' · ' + esc(p.motivo) : '') + (p.quien ? ' · ' + htmlAutor(AUT, p.quien) : '') + ' · ' + esc(p.comunicado_al_comprador ? T('comunicada al comprador') : T('no comunicada al comprador')), tag: pill(T('Prórroga'), 'curso') });
         });
         (r[2] || []).forEach(function (k) {
           if (!k.liberado_en || k.liberado_en < hace14 || !esPreliminar(k)) return;
@@ -8082,7 +8130,10 @@
         document.head.appendChild(st);
       }
       pinta();
-      if (buscar) buscar.addEventListener('input', pinta);
+      if (buscar) {
+        buscar._lwPinta = pinta;
+        if (!buscar._lwOk) { buscar._lwOk = true; buscar.addEventListener('input', function () { if (buscar._lwPinta) buscar._lwPinta(); }); }
+      }
     });
   };
 
