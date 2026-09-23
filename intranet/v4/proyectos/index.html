@@ -1,10 +1,10 @@
 <!DOCTYPE html><html lang="es" style=""><head>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/guard.js?v=23287069" data-herramienta="unidades"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/guard.js?v=1d256fc0" data-herramienta="unidades"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
 <script src="/contracts/assets/i18n.js?v=7d9056e9" defer></script>
-<script src="/contracts/assets/dinero.js?v=a442e362" defer></script><script src="/intranet/facturas/totales.js" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=c76d3606" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1" defer></script><script src="/contracts/assets/proyectos_csv.js?v=e610515a" defer></script><script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="../assets/datos.js?v=d2283190" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/dinero.js?v=a442e362" defer></script><script src="/intranet/facturas/totales.js" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=c76d3606" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1" defer></script><script src="/contracts/assets/proyectos_csv.js?v=e610515a" defer></script><script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="../assets/datos.js?v=a607c744" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
-<script src="../assets/nav.js?v=91594049" defer></script>
+<script src="../assets/nav.js?v=0d7666c1" defer></script>
 <link href="../assets/shell.css?v=cadfe619" rel="stylesheet">
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/editores.js?v=22256974" defer></script><script src="../assets/maqueta.js?v=b51f4a9a" defer></script>
 <!-- Fotos del Investor Deck (S10.2, 22-sep-2026): pieza COMPARTIDA de la suite
@@ -52,6 +52,56 @@
     #cajon-col-info { background: #F5F0E6; border-radius: 14px; padding: 18px 16px; }
     #cajon-col-info .bg-surface-container-low { background-color: #ffffff; }
     #cajon-col-info .bg-surface-container-lowest { background-color: #F5F0E6; }
+    /* TARJETA DE PARCELA «B · banda de estado» (23-sep-2026, owner eligió la B de
+       cuatro propuestas). La cabecera entera se pinta del color del estado
+       (datos.js, ESTADO_COLOR): al recorrer la rejilla se ve qué está libre y qué
+       vendido sin leer. Mismos ganchos data-lw de siempre. */
+    .lw-u { background: #fff; border: 1px solid #E4DCCB; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; cursor: pointer; transition: box-shadow .15s; }
+    .lw-u:hover { box-shadow: 0 2px 10px rgba(0,0,0,.07); }
+    .lw-u-banda { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: #75786e; color: #fff; }
+    .lw-u-cod { font-size: 23px; font-weight: 700; letter-spacing: -.01em; line-height: 1; }
+    .lw-u-est { margin-left: auto; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .lw-u-ed { padding: 4px; border-radius: 6px; color: rgba(255,255,255,.85); line-height: 0; }
+    .lw-u-ed:hover { background: rgba(255,255,255,.18); color: #fff; }
+    .lw-u-cuerpo { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+    .lw-u-quien { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .lw-u-comp { font-size: 16px; font-weight: 700; color: #1b1c19; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lw-u-meta { font-size: 13px; color: #5E625A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lw-u-cifras { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .lw-u-caja { background: #F5F0E6; border-radius: 10px; padding: 8px 11px; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .lw-u-lbl { font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #5E625A; }
+    .lw-u-num { font-size: 16px; font-weight: 700; color: #1b1c19; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lw-u-ct { font-size: 16px; font-weight: 700; color: #104C4F; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lw-u-cobro { display: flex; flex-direction: column; gap: 5px; }
+    .lw-u-barra { display: flex; gap: 4px; height: 9px; }
+    .lw-u-fam { background: #EDE8DE; overflow: hidden; display: flex; }
+    .lw-u-fam.suelo { flex: 40 1 0; border-radius: 99px 0 0 99px; }
+    .lw-u-fam.obra { flex: 60 1 0; border-radius: 0 99px 99px 0; }
+    .lw-u-txt { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; font-size: 12px; color: #5E625A; }
+    .lw-u-txt b { font-weight: 700; color: #2E3437; letter-spacing: .06em; text-transform: uppercase; font-size: 10.5px; margin-right: 4px; }
+    /* VISTA LISTA (23-sep-2026, owner: «Lista densa puede ser una vista si el
+       agente quiere»). La MISMA tarjeta recolocada en fila por CSS: el buscador,
+       el orden, el editor y la ficha de parcela siguen funcionando igual, y no
+       hay segunda consulta ni segundo pintado. */
+    #d-unidades.lw-lista { grid-template-columns: minmax(0, 1fr) !important; gap: 0 !important; border: 1px solid #E4DCCB; border-radius: 14px; overflow: hidden; }
+    #d-unidades.lw-lista .lw-u { display: grid; grid-template-columns: 180px minmax(0, 1.1fr) 125px 110px minmax(0, 1.9fr); align-items: stretch; border: 0; border-top: 1px solid #EFE8DA; border-radius: 0; }
+    #d-unidades.lw-lista .lw-u:first-child { border-top: 0; }
+    #d-unidades.lw-lista .lw-u-banda { padding: 10px 12px; }
+    #d-unidades.lw-lista .lw-u-cod { font-size: 18px; }
+    #d-unidades.lw-lista .lw-u-est { font-size: 10.5px; }
+    #d-unidades.lw-lista .lw-u-cuerpo { display: contents; }
+    #d-unidades.lw-lista .lw-u-quien, #d-unidades.lw-lista .lw-u-cobro { padding: 10px 14px; justify-content: center; }
+    #d-unidades.lw-lista .lw-u-cifras { display: contents; }
+    #d-unidades.lw-lista .lw-u-caja { background: none; border-radius: 0; padding: 10px 14px; justify-content: center; }
+    #d-unidades.lw-lista .lw-u-caja .lw-u-lbl { display: none; }
+    #d-unidades.lw-lista .lw-u-cobro > .lw-u-lbl { display: none; }
+    /* el buscador de parcelas oculta con la clase `hidden`: que gane también en vista Lista */
+    #d-unidades .lw-u.hidden { display: none !important; }
+    #d-unidades-cab { display: none; }
+    #d-unidades-cab.lw-lista { display: grid; grid-template-columns: 180px minmax(0, 1.1fr) 125px 110px minmax(0, 1.9fr); padding: 0 1px 6px; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #5E625A; }
+    #d-unidades-cab.lw-lista > span { padding: 0 14px; }
+    .lw-vista-btn { padding: 5px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; color: #5E625A; }
+    .lw-vista-btn[aria-pressed="true"] { background: #fff; color: #104C4F; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
   </style>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script id="tailwind-config">
@@ -709,80 +759,44 @@
 <option value="estado">Orden: estado</option>
 <option value="comprador">Orden: comprador</option>
 </select>
+<div class="flex items-center gap-0.5 bg-surface-container-low p-0.5 rounded-lg border border-warm-border/60" role="group" aria-label="Vista del parcelario">
+<button type="button" class="lw-vista-btn" data-lw-vista="tarjetas" aria-pressed="true">Tarjetas</button>
+<button type="button" class="lw-vista-btn" data-lw-vista="lista" aria-pressed="false">Lista</button>
+</div>
 </div>
 <!-- Rejilla, no pila (14-sep-2026, encargo del owner). Desde el 23-sep el
-     cajón es de pantalla completa y la rejilla se auto-rellena. 23-sep por la
-     tarde (owner: «el parcelario ha quedado muy pequeño, hazlo más grande»):
-     tarjeta mínima de 320 px y letra un punto más grande en todo — en 1920 px
-     caben 5 por fila, en 1440 unas 3. Mismo contenido. -->
+     cajón es de pantalla completa y la rejilla se auto-rellena; tarjeta mínima
+     de 320 px (owner: «el parcelario ha quedado muy pequeño»). La cabecera de
+     columnas solo se ve en vista Lista. -->
+<div id="d-unidades-cab" aria-hidden="true"><span>Parcela</span><span>Comprador</span><span>Pactado</span><span>Contrato</span><span>Cobrado · suelo | obra</span></div>
 <div class="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-3 items-start" id="d-unidades">
-<!-- Unidad 1 — plantilla clonada por unidad. Compactada el 14-sep-2026
-     (encargo del owner) manteniendo TODO lo que enseñaba: código, modelo,
-     estado, comprador, contrato, volumen, las dos barras de pago con sus
-     cifras y el agente. Lo que cambia es la densidad, no el contenido.
-
-     El estado se ve por partida doble a propósito y sin repetir texto: la
-     pastilla lo nombra y el filo izquierdo lo pinta — ese filo es lo que se
-     lee al recorrer la rejilla sin pararse. Los dos colores los pone datos.js
-     desde ESTADO_COLOR, que es la fuente única; aquí no hay ningún color de
-     estado escrito. -->
-<div class="p-4 rounded-xl bg-surface-container-low border border-warm-border hover:bg-surface-container-lowest transition-colors flex flex-col gap-2.5 cursor-pointer" data-lw-accion="abrir-detalle-unidad">
-<div class="flex items-center justify-between gap-1.5">
-<div class="flex items-baseline gap-1.5 min-w-0">
-<span class="font-headline-sm text-[21px] font-bold text-deep-lagoon tracking-tight leading-none shrink-0" data-lw="u-codigo">—</span>
-<span class="text-[12px] font-semibold text-outline truncate shrink-0 max-w-[110px]" data-lw="u-tipo">—</span>
-<!-- Agente que creó el contrato: destacado por POSICIÓN (fila superior,
-     junto al código) y TAMAÑO (11px, igual que la fila comprador/contrato
-     de abajo), nunca por negrita ni color de marca — el único acento de la
-     tarjeta ya lo lleva el estado (u-nota, a la derecha). Decisión de
-     Diseño en la revisión previa del 16-sep-2026. -->
-<span class="text-[13px] font-medium text-on-surface-variant truncate" data-lw="u-agente">—</span>
+<!-- Plantilla clonada por unidad — «B · banda de estado» (23-sep-2026). Mismo
+     contenido que siempre: código, estado, comprador, modelo, agente, pactado,
+     contrato y el cobro de suelo y obra (oscuro = cobrado, claro = firmado sin
+     cobrar). El color de la banda lo pone datos.js desde ESTADO_COLOR. -->
+<div class="lw-u" data-lw-accion="abrir-detalle-unidad">
+<div class="lw-u-banda" data-lw="u-banda">
+<span class="lw-u-cod" data-lw="u-codigo">—</span>
+<span class="lw-u-est" data-lw="u-nota">—</span>
+<!-- Editar esta parcela: el permiso real es la policy de `unidades`, no este botón. -->
+<button aria-label="Editar unidad" class="lw-u-ed" data-lw-accion="editar-unidad" type="button"><span class="material-symbols-outlined text-[18px]">edit</span></button>
 </div>
-<div class="flex items-center gap-1 shrink-0">
-<span class="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold uppercase tracking-wide text-white" data-lw="u-nota">—</span>
-<!-- Editar esta parcela (14-sep-2026, encargo del owner). El formulario lo
-     abre editores.js con la fila que ya está pintada; el permiso real es la
-     policy de `unidades` (es_agente + puede('unidades') + unidad_visible),
-     no este botón — la página entera ya exige la herramienta «unidades» en
-     guard.js, así que quien la ve puede intentarlo y la base decide. -->
-<button aria-label="Editar unidad" class="p-0.5 rounded text-outline hover:text-deep-lagoon hover:bg-surface-container transition-colors" data-lw-accion="editar-unidad" type="button">
-<span class="material-symbols-outlined text-[18px]">edit</span>
-</button>
+<div class="lw-u-cuerpo">
+<div class="lw-u-quien">
+<a class="lw-u-comp hover:underline" data-lw="u-comprador-link" href="#" rel="noopener">—</a>
+<span class="lw-u-meta"><span data-lw="u-tipo">—</span> · <span data-lw="u-agente">—</span></span>
 </div>
+<div class="lw-u-cifras">
+<div class="lw-u-caja"><span class="lw-u-lbl">Pactado</span><span class="lw-u-num tabular-nums" data-lw="u-total">—</span></div>
+<div class="lw-u-caja"><span class="lw-u-lbl">Contrato</span><a class="lw-u-ct hover:underline" data-lw="u-contrato-link" href="#" rel="noopener">—</a></div>
 </div>
-<!-- Comprador y contrato en UNA fila: son el mismo hecho (quién la tiene y con
-     qué papel), y separados ocupaban el doble sin decir más. -->
-<div class="flex items-baseline gap-1.5 text-[13px] min-w-0">
-<a class="font-label-md font-bold text-volcanic-ash hover:underline hover:text-deep-lagoon truncate" data-lw="u-comprador-link" href="#" rel="noopener">—</a>
-<span class="text-outline shrink-0">·</span>
-<a class="font-kpi-number font-bold text-deep-lagoon hover:underline truncate shrink-0" data-lw="u-contrato-link" href="#" rel="noopener">—</a>
+<div class="lw-u-cobro">
+<span class="lw-u-lbl">Cobrado</span>
+<div class="lw-u-barra">
+<div class="lw-u-fam suelo"><div class="bg-fiduciary-green h-full transition-all" data-barra="u-suelo-cobrado" style="width:0%"></div><div class="bg-soft-canopy h-full transition-all" data-barra="u-suelo-firmado" style="width:0%"></div></div>
+<div class="lw-u-fam obra"><div class="bg-deep-lagoon h-full transition-all" data-barra="u-obra-cobrado" style="width:0%"></div><div class="bg-soft-canopy h-full transition-all" data-barra="u-obra-firmado" style="width:0%"></div></div>
 </div>
-<div class="flex items-baseline justify-between gap-2 pt-2 border-t border-warm-border/60">
-<span class="text-[11px] text-outline font-medium uppercase tracking-wider">Pactado</span>
-<span class="font-kpi-number text-[16px] font-bold text-volcanic-ash tabular-nums whitespace-nowrap" data-lw="u-total">—</span>
-</div>
-<!-- Recaudación de ESTA parcela, partida en suelo/construcción — mismo
-     criterio de dos colores que la barra del proyecto (oscuro=cobrado,
-     claro=firmado sin cobrar). cobrado_suelo/cobrado_obra vienen ya
-     partidos desde la base (unidad_parte_cobrada_split), no se reparte
-     aquí a mano. La cifra va AL LADO de la barra, no encima: ahorra una
-     fila por familia sin perder el número. -->
-<div class="flex flex-col gap-1.5">
-<div class="flex items-center gap-2">
-<span class="text-[11px] text-outline font-semibold uppercase tracking-wider w-12 shrink-0">Suelo</span>
-<div class="flex-1 bg-surface-container-highest rounded-full h-2 overflow-hidden flex min-w-0">
-<div class="bg-fiduciary-green h-full transition-all" data-barra="u-suelo-cobrado" style="width:0%"></div>
-<div class="bg-soft-canopy h-full transition-all" data-barra="u-suelo-firmado" style="width:0%"></div>
-</div>
-<span class="text-[11px] text-outline tabular-nums whitespace-nowrap shrink-0" data-lw="u-suelo-txt">—</span>
-</div>
-<div class="flex items-center gap-2">
-<span class="text-[11px] text-outline font-semibold uppercase tracking-wider w-12 shrink-0">Obra</span>
-<div class="flex-1 bg-surface-container-highest rounded-full h-2 overflow-hidden flex min-w-0">
-<div class="bg-fiduciary-green h-full transition-all" data-barra="u-obra-cobrado" style="width:0%"></div>
-<div class="bg-soft-canopy h-full transition-all" data-barra="u-obra-firmado" style="width:0%"></div>
-</div>
-<span class="text-[11px] text-outline tabular-nums whitespace-nowrap shrink-0" data-lw="u-obra-txt">—</span>
+<div class="lw-u-txt"><span class="truncate"><b>Suelo</b><span data-lw="u-suelo-txt">—</span></span><span class="truncate"><b>Obra</b><span data-lw="u-obra-txt">—</span></span></div>
 </div>
 </div>
 </div>
@@ -790,6 +804,33 @@
 
 </section>
 </div><!-- /cajon-vista-proyecto -->
+<script>
+/* Vista del parcelario: Tarjetas (por defecto) o Lista. Solo alterna una clase;
+   la elección se recuerda en este navegador (comodidad de cada agente). */
+(function () {
+  var CLAVE = 'lw-v4-parcelario-vista';
+  function aplica(v) {
+    var lista = v === 'lista';
+    var g = document.getElementById('d-unidades'), c = document.getElementById('d-unidades-cab');
+    if (g) g.classList.toggle('lw-lista', lista);
+    if (c) c.classList.toggle('lw-lista', lista);
+    document.querySelectorAll('[data-lw-vista]').forEach(function (b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-lw-vista') === v ? 'true' : 'false');
+    });
+  }
+  document.querySelectorAll('[data-lw-vista]').forEach(function (b) {
+    b.addEventListener('click', function (ev) {
+      ev.stopPropagation();   // si no, maqueta.js lo ve pasar y avisa «sin cablear»
+      var v = b.getAttribute('data-lw-vista');
+      aplica(v);
+      try { localStorage.setItem(CLAVE, v); } catch (e) {}
+    });
+  });
+  var guardada = null;
+  try { guardada = localStorage.getItem(CLAVE); } catch (e) {}
+  aplica(guardada === 'lista' ? 'lista' : 'tarjetas');
+})();
+</script>
 <!-- Vista de detalle de UNA parcela — sustituye el contenido de arriba,
      nunca se apila encima. Rellenada por abrirDetalleUnidad() en datos.js
      a partir de la fila ya cacheada en UNIDADES_CAJON (misma consulta que

@@ -4244,11 +4244,13 @@
                  única de arriba, la misma que pinta el punto de los chips. */
               var estadoColor = colorEstado(u.estado);
               var nota = f.querySelector('[data-lw="u-nota"]');
-              if (nota) {
-                nota.textContent = etiquetaEstado(u.estado).toUpperCase();
-                nota.style.background = estadoColor;
-              }
-              f.style.borderLeft = '4px solid ' + estadoColor;
+              if (nota) nota.textContent = etiquetaEstado(u.estado).toUpperCase();
+              /* Tarjeta «B · banda de estado» (23-sep-2026, owner): el color del
+                 estado pinta la cabecera entera, no una pastilla + filo. Todos los
+                 colores de ESTADO_COLOR son oscuros: el texto blanco se lee. */
+              var banda = f.querySelector('[data-lw="u-banda"]');
+              if (banda) banda.style.background = estadoColor;
+              else f.style.borderLeft = '4px solid ' + estadoColor;
               /* La fila cruda se guarda para que el editor (editores.js) abra
                  con lo que ya está en pantalla, sin una segunda consulta que
                  podría traer otra cosa. `unidades_estado` ya trae las columnas
