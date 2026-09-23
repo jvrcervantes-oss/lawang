@@ -500,8 +500,24 @@
      cobran la señal: fuera de volúmenes y de «cobro pendiente» (Administración, 19-sep;
      tercera vez que este patrón reincide — `lwEsPreliminar` es la fuente única). */
   function esPreliminar(c) { return typeof lwEsPreliminar === 'function' && lwEsPreliminar(c.tipo); }
+  /* PALETA ÚNICA DE ESTADOS DE LA V4 (23-sep-2026, owner: «¿usamos los mismos
+     colores en toda la suite? que facturas tenga el mismo color en todos
+     lados»). Había dos copias idénticas (pill() aquí y H.tag en editores.js)
+     y la campana estrenó un ámbar y un azul propios. Ahora hay UNA, global,
+     que leen los listados, las fichas y la campana. Un color = un significado:
+       ok (verde)     hecho: firmado, cobrado, facturado, saldado, activo
+       espera (ámbar) pendiente de alguien: en firma, sin cobrar, por vencer
+       mal (rojo)     vencido, caducado, rechazado, anulado, liberado
+       neutro (gris)  informativo: borrador, sin firmar, emitida, inventario
+     `borde` e `icono` los usa la campana; `fondo`/`tinta` son la etiqueta. */
+  var LW_TONOS = window.LW_TONOS = {
+    ok:     { fondo: '#E4F0DA', tinta: '#3F5230', borde: '#3F5230', suave: '#F6FAF2', icono: 'check_circle' },
+    espera: { fondo: '#FBF3E4', tinta: '#8A6A34', borde: '#C9892B', suave: '#FFFAF0', icono: 'schedule' },
+    mal:    { fondo: '#FFDAD6', tinta: '#93000A', borde: '#BA1A1A', suave: '#FFF4F2', icono: 'error' },
+    neutro: { fondo: '#EAE8E2', tinta: '#2E3437', borde: '#B9B5A8', suave: '#FFFFFF', icono: 'info' }
+  };
   function pill(texto, tono) {
-    var c = { ok: ['#E4F0DA', '#3F5230'], espera: ['#FBF3E4', '#8A6A34'], mal: ['#FFDAD6', '#93000A'] }[tono] || ['#EAE8E2', '#2E3437'];
+    var t = LW_TONOS[tono] || LW_TONOS.neutro, c = [t.fondo, t.tinta];
     return '<span style="display:inline-block;padding:2px 9px;border-radius:999px;font:600 11px/1.5 \'Neue Kabel\',sans-serif;letter-spacing:.04em;text-transform:uppercase;background:' + c[0] + ';color:' + c[1] + '">' + esc(texto) + '</span>';
   }
   var ABRIR = '<span style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">Abrir</span>';
@@ -558,13 +574,14 @@
      caducado, ámbar = vence pronto, verde = buena noticia, lago = trámite en
      marcha, gris = movimiento de inventario. Siempre con icono y palabra: el
      color solo no basta. Lo que pide acción va arriba y aparte. */
-  var TONOS_AVISO = {
-    mal:      { borde: '#BA1A1A', fondo: '#FFF4F2', pill: '#FFDAD6', tinta: '#93000A', icono: 'error' },
-    atencion: { borde: '#C9892B', fondo: '#FFFAF0', pill: '#FBEBCB', tinta: '#7A5418', icono: 'schedule' },
-    ok:       { borde: '#3F5230', fondo: '#F6FAF2', pill: '#E4F0DA', tinta: '#3F5230', icono: 'check_circle' },
-    info:     { borde: '#104C4F', fondo: '#F3F8F8', pill: '#DCEBEC', tinta: '#104C4F', icono: 'description' },
-    neutro:   { borde: '#B9B5A8', fondo: '#FFFFFF', pill: '#EAE8E2', tinta: '#44483F', icono: 'home_work' }
-  };
+  // la paleta ÚNICA de la v4 (LW_TONOS, arriba): el nivel de avisos.js se traduce a ella
+  var NIVEL_A_TONO = { mal: 'mal', atencion: 'espera', ok: 'ok', neutro: 'neutro' };
+  function tonoAviso(nivel) { return LW_TONOS[NIVEL_A_TONO[nivel] || 'neutro']; }
+  /* VISTA DE FILAS (23-sep-2026, owner: «la información está concentrada y
+     muy vacía»). El cajón vuelve a su ancho de siempre y cada aviso es UNA
+     fila que reparte lo que dice por el ancho, como una tabla: estado ·
+     aviso · detalle · fecha. En móvil (menos de 720 px) la fila se apila en
+     dos líneas. Colores: los de la paleta única (LW_TONOS). */
   function pintaAvisos(avisos, aV4) {
     var alertas = avisos.filter(function (a) { return a.clase === 'alerta'; })
       // lo más urgente primero: vencido antes que por vencer, y dentro, lo más antiguo
@@ -574,20 +591,15 @@
     var nAt = alertas.length - nMal;
     var nNuevos = hechos.filter(function (a) { return a.nuevo; }).length;
     var chip = function (n, texto, t) {
-      return n ? '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:' + t.pill + ';color:' + t.tinta + ';font-size:12px;font-weight:700">' +
+      return n ? '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:' + t.fondo + ';color:' + t.tinta + ';font-size:12px;font-weight:700">' +
         '<span class="material-symbols-outlined" style="font-size:15px">' + t.icono + '</span>' + n + ' ' + esc(texto) + '</span>' : '';
     };
     var resumen = (nMal || nAt || nNuevos)
-      ? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px">' +
-          chip(nMal, nMal === 1 ? 'vencido o caducado' : 'vencidos o caducados', TONOS_AVISO.mal) +
-          chip(nAt, 'por vencer', TONOS_AVISO.atencion) +
-          chip(nNuevos, nNuevos === 1 ? 'novedad' : 'novedades', TONOS_AVISO.info) + '</div>'
+      ? '<div style="display:flex;flex-wrap:wrap;gap:6px">' +
+          chip(nMal, nMal === 1 ? 'vencido o caducado' : 'vencidos o caducados', LW_TONOS.mal) +
+          chip(nAt, 'por vencer', LW_TONOS.espera) +
+          chip(nNuevos, nNuevos === 1 ? 'novedad sin ver' : 'novedades sin ver', LW_TONOS.neutro) + '</div>'
       : '';
-    /* COMPACTA (23-sep-2026, owner: «tengo que hacer mucho scroll y las
-       tarjetas tienen el 70% del espacio vacío»): dos líneas en vez de
-       cuatro. Arriba, el título con la fecha corta a la derecha; abajo, la
-       etiqueta de color, «Nuevo» y el detalle, que se recorta con «…» si no
-       cabe (entero en el title al pasar el ratón). */
     var hoyAnio = new Date().getFullYear();
     var fechaCorta = function (x) {
       if (!x) return '';
@@ -595,28 +607,37 @@
       if (isNaN(d)) return String(x).slice(0, 10);
       return d.toLocaleDateString('es-ES', d.getFullYear() === hoyAnio ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' });
     };
-    var tarjeta = function (a) {
-      var t = TONOS_AVISO[a.nivel] || TONOS_AVISO.neutro;
-      var fondo = (a.clase === 'alerta' || a.nuevo) ? t.fondo : '#FFFFFF';
-      return '<a href="' + esc(aV4(a.enlace)) + '" title="' + esc(a.titulo + (a.detalle ? ' — ' + a.detalle : '')) + '" style="display:flex;gap:8px;align-items:flex-start;padding:7px 10px;border-radius:8px;border:1px solid #E4DCCB;border-left:3px solid ' + t.borde + ';background:' + fondo + ';color:#1b1c19;text-decoration:none">' +
-        '<span class="material-symbols-outlined" style="font-size:17px;color:' + t.borde + ';margin-top:1px">' + t.icono + '</span>' +
-        '<span style="flex:1;min-width:0">' +
-          '<span style="display:flex;align-items:baseline;gap:8px">' +
-            '<span style="flex:1;min-width:0;font-weight:' + (a.nuevo || a.clase === 'alerta' ? '700' : '500') + ';font-size:13px;line-height:1.3;overflow-wrap:anywhere">' + esc(a.titulo) + '</span>' +
-            '<span style="flex:none;font-size:11px;color:#8A8474;white-space:nowrap">' + esc(fechaCorta(a.cuando)) + '</span>' +
-          '</span>' +
-          '<span style="display:flex;align-items:center;gap:6px;margin-top:3px;min-width:0">' +
-            '<span style="flex:none;padding:0 7px;border-radius:999px;background:' + t.pill + ';color:' + t.tinta + ';font-size:10px;line-height:17px;font-weight:700;letter-spacing:.04em;text-transform:uppercase">' + esc(a.etiqueta || 'Aviso') + '</span>' +
-            (a.nuevo && a.clase !== 'alerta' ? '<span style="flex:none;padding:0 7px;border-radius:999px;background:#104C4F;color:#fff;font-size:10px;line-height:17px;font-weight:700;letter-spacing:.04em;text-transform:uppercase">Nuevo</span>' : '') +
-            (a.detalle ? '<span style="flex:1;min-width:0;font-size:11.5px;color:#44483f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(a.detalle) + '</span>' : '') +
-          '</span>' +
-        '</span></a>';
+    var css = '<style>' +
+      '.lw-av{display:grid;grid-template-columns:22px 170px minmax(0,1.35fr) minmax(0,1fr) 78px;align-items:center;gap:12px;padding:9px 14px;border-radius:10px;border:1px solid #E4DCCB;color:#1b1c19;text-decoration:none;transition:filter .15s}' +
+      '.lw-av:hover{filter:brightness(.97)}' +
+      '.lw-av-cab{display:grid;grid-template-columns:22px 170px minmax(0,1.35fr) minmax(0,1fr) 78px;gap:12px;padding:0 15px 2px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#8A8474}' +
+      '.lw-av-t{font-size:13px;line-height:1.35;overflow-wrap:anywhere}' +
+      '.lw-av-d{font-size:12px;color:#44483f;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+      '.lw-av-f{font-size:11.5px;color:#75786e;text-align:right;white-space:nowrap}' +
+      '@media (max-width:720px){.lw-av-cab{display:none}.lw-av{grid-template-columns:20px minmax(0,1fr) auto;gap:4px 10px}' +
+      '.lw-av .lw-av-e{grid-column:2;grid-row:2}.lw-av .lw-av-t{grid-column:2;grid-row:1}.lw-av .lw-av-d{grid-column:2 / 4;grid-row:3;white-space:normal}.lw-av .lw-av-f{grid-column:3;grid-row:1}}' +
+      '</style>';
+    var fila = function (a) {
+      var t = tonoAviso(a.nivel);
+      var fondo = (a.clase === 'alerta' || a.nuevo) ? t.suave : '#FFFFFF';
+      return '<a class="lw-av" href="' + esc(aV4(a.enlace)) + '" title="' + esc(a.titulo + (a.detalle ? ' — ' + a.detalle : '')) + '" style="border-left:4px solid ' + t.borde + ';background:' + fondo + '">' +
+        '<span class="material-symbols-outlined" style="font-size:19px;color:' + t.borde + '">' + t.icono + '</span>' +
+        '<span class="lw-av-e" style="display:flex;flex-wrap:wrap;gap:4px">' +
+          '<span style="padding:1px 8px;border-radius:999px;background:' + t.fondo + ';color:' + t.tinta + ';font-size:10.5px;line-height:18px;font-weight:700;letter-spacing:.04em;text-transform:uppercase">' + esc(a.etiqueta || 'Aviso') + '</span>' +
+          (a.nuevo && a.clase !== 'alerta' ? '<span style="padding:1px 8px;border-radius:999px;background:#2E3437;color:#fff;font-size:10.5px;line-height:18px;font-weight:700;letter-spacing:.04em;text-transform:uppercase">Nuevo</span>' : '') +
+        '</span>' +
+        '<span class="lw-av-t" style="font-weight:' + (a.nuevo || a.clase === 'alerta' ? '700' : '500') + '">' + esc(a.titulo) + '</span>' +
+        '<span class="lw-av-d">' + esc(a.detalle || '') + '</span>' +
+        '<span class="lw-av-f">' + esc(fechaCorta(a.cuando)) + '</span>' +
+      '</a>';
     };
     var bloque = function (titulo, lista) {
-      return lista.length ? '<h4 style="margin:12px 0 6px;font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#75786e">' + esc(titulo) + ' (' + lista.length + ')</h4>' +
-        '<div style="display:grid;gap:5px">' + lista.map(tarjeta).join('') + '</div>' : '';
+      return lista.length ? '<section style="display:grid;gap:6px">' +
+        '<h4 style="margin:6px 0 2px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#75786e">' + esc(titulo) + ' (' + lista.length + ')</h4>' +
+        '<div class="lw-av-cab"><span></span><span>Estado</span><span>Aviso</span><span>Detalle</span><span style="text-align:right">Fecha</span></div>' +
+        lista.map(fila).join('') + '</section>' : '';
     };
-    return resumen + bloque('Requiere atención', alertas) + bloque('Actividad reciente', hechos);
+    return css + resumen + bloque('Requiere atención', alertas) + bloque('Actividad reciente', hechos);
   }
 
   function campanaV4(aut, rol) {
@@ -626,12 +647,12 @@
     function pintaContador(n, avisos) {
       // el número toma el color de lo más grave que haya sin atender
       var peor = (avisos || []).filter(function (a) { return a.nuevo; }).reduce(function (acc, a) {
-        return acc === 'mal' || a.nivel === 'mal' ? 'mal' : (acc === 'atencion' || a.nivel === 'atencion' ? 'atencion' : 'info');
+        return acc === 'mal' || a.nivel === 'mal' ? 'mal' : (acc === 'atencion' || a.nivel === 'atencion' ? 'atencion' : 'neutro');
       }, null);
       badges.forEach(function (e) {
         e.textContent = n == null ? '—' : (n > 99 ? '99+' : String(n));
         e.style.display = n === 0 ? 'none' : '';
-        e.style.backgroundColor = peor ? TONOS_AVISO[peor].borde : '';
+        e.style.backgroundColor = !peor ? '' : (peor === 'neutro' ? '#2E3437' : tonoAviso(peor).borde);
         e.style.color = peor ? '#fff' : '';
       });
     }
@@ -656,8 +677,11 @@
         if (!out) cuerpo = H.nota('No se pudieron cargar los avisos. Prueba a recargar la página.');
         else if (!out.avisos.length) cuerpo = notaFallo + '<p style="margin:0;font-size:13px;color:#8A8474">Nada nuevo.</p>';
         else cuerpo = notaFallo + pintaAvisos(out.avisos, aV4);
-        // estrecho a propósito: es una lista de avisos, no una ficha con tablas
-        window.lwCajon({ titulo: 'Avisos', sub: 'Lo que ha pasado y lo que vence en los próximos 15 días.', cuerpo: cuerpo, ancho: 'min(460px,96vw)' });
+        // ancho de siempre (owner: «que fuese muy amplia nunca fue un problema»);
+        // `desde`: el cajón crece desde la campana y se recoge hacia ella
+        window.lwCajon({ titulo: 'Avisos', sub: 'Lo que ha pasado y lo que vence en los próximos 15 días.', cuerpo: cuerpo, desde: boton,
+          // el 60% de siempre en escritorio; en móvil casi toda la pantalla (el 60% eran ~230 px)
+          ancho: 'max(60vw, min(96vw, 560px))' });
       };
       // abrir = dar los hechos por vistos (las alertas de ≤5 días siguen contando, como en la viva)
       if (ULTIMO && ULTIMO.sinLeer) {
@@ -963,7 +987,7 @@
         if (x.bloqueado) return ['firmado', 'ok'];
         if ((x.firmas || []).some(function (f) { return f.estado === 'pendiente' && !firmaCaducada(f); })) return ['en firma', 'espera'];
         if (x.pdf_firmado_path) return ['reabierto', 'espera'];
-        return ['borrador', ''];
+        return ['borrador', 'neutro'];
       }
       var firmasVivas = fi.filter(function (f) { return f.estado === 'pendiente' && !firmaCaducada(f); });
       var sigPaso;
@@ -1012,7 +1036,8 @@
       }
       var dos = function (html) { return '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:0 24px">' + html + '</div>'; };
       cuerpo += H.seccion('Datos del contrato', dos(
-        H.dato('Estado', c.bloqueado ? H.tag('Firmado', 'ok') : (c.pdf_firmado_path ? H.tag('Reabierto', 'mal') : H.tag('Borrador', 'espera')), { html: 1 }) +
+        // mismos tonos que la tabla de la cadena de arriba (estadoPieza): reabierto = pendiente, borrador = informativo
+        H.dato('Estado', c.bloqueado ? H.tag('Firmado', 'ok') : (c.pdf_firmado_path ? H.tag('Reabierto', 'espera') : H.tag('Borrador', 'neutro')), { html: 1 }) +
         H.dato('Precio', c.precio_total != null ? fmt(c.precio_total, c.moneda) : null) +
         (c.nombre_contrato ? H.dato('Nombre', c.nombre_contrato) : '') +
         H.dato('Parcela', c.parcela_codigo) +
@@ -1135,7 +1160,7 @@
         (fs.length ? H.tabla(['Documento', 'Tipo', 'Importe', 'Fecha', 'Estado'], fs.map(function (f) {
           return [H.enlace(URL_FACTURA(f.id), f.numero), esc(tipoDoc(f.tipo)), esc(fmt(f.total, f.moneda)),
             esc(fFecha(f.fecha_emision || f.created_at)),
-            f.anulada ? H.tag('Anulada', 'mal') : (f.tipo === 'recibi' ? H.tag('Cobrado', 'ok') : H.tag('Emitida', ''))];
+            f.anulada ? H.tag('Anulada', 'mal') : (f.tipo === 'recibi' ? H.tag('Cobrado', 'ok') : H.tag('Emitida', 'neutro'))];
         })) : H.nota('Sin facturas ni recibís todavía.')));
 
       cuerpo += H.seccion('Calendario de pagos (' + vs.length + ')',
@@ -3591,7 +3616,7 @@
               + '<table class="w-full text-left mt-2"><tbody>' + personas.map(function (par2) {
                 var n = par2[0], v = par2[1];
                 return '<tr class="border-t border-surface-container-high/40">'
-                  + '<td class="py-2 px-2 text-body-sm">' + esc(n) + (v.firmados === 0 ? ' ' + pill('sin firmar', '') : '') + '</td>'
+                  + '<td class="py-2 px-2 text-body-sm">' + esc(n) + (v.firmados === 0 ? ' ' + pill('sin firmar', 'neutro') : '') + '</td>'
                   + '<td class="py-2 px-2 text-body-sm text-right">' + esc(fmt(v.precio, MONEDA)) + '</td>'
                   + '<td class="py-2 px-2 text-body-sm text-right">' + esc(fmt(v.cobrado, MONEDA)) + '</td>'
                   + '<td class="py-2 px-2 text-body-sm text-right font-semibold">' + (v.pendiente > 0.005 ? esc(fmt(v.pendiente, MONEDA)) : '<span class="text-control-border">Cobrado</span>') + '</td>'

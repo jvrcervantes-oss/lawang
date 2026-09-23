@@ -70,11 +70,12 @@ assert.deepStrictEqual([tono('Enlace de firma de RP9 caduca en 1 d').nivel, tono
 assert.strictEqual(tono('Nuevo').clase, 'hecho');
 const { lwAvisoTonoHecho } = require('./avisos.js');
 assert.deepStrictEqual(lwAvisoTonoHecho('contrato_firmado'), ['ok', 'Firmado']);
-assert.deepStrictEqual(lwAvisoTonoHecho('factura_emitida'), ['info', 'Factura']);
+assert.deepStrictEqual(lwAvisoTonoHecho('factura_emitida'), ['neutro', 'Emitida'], 'emitida: gris, como en listados y fichas');
+assert.deepStrictEqual(lwAvisoTonoHecho('firma_enviada'), ['atencion', 'En firma'], 'en firma: ámbar, como en listados y fichas');
 assert.deepStrictEqual(lwAvisoTonoHecho('unidad_reservada'), ['neutro', 'Inventario']);
 assert.deepStrictEqual(lwAvisoTonoHecho('solicitud_pago', 'Tu solicitud SP-2 — rechazada'), ['mal', 'Rechazada']);
 assert.deepStrictEqual(lwAvisoTonoHecho('solicitud_pago', 'Tu solicitud SP-2 — pagada'), ['ok', 'Pagada']);
-assert.deepStrictEqual(lwAvisoTonoHecho('solicitud_pago', 'Solicitud de pago SP-8'), ['info', 'Solicitud']);
+assert.deepStrictEqual(lwAvisoTonoHecho('solicitud_pago', 'Solicitud de pago SP-8'), ['atencion', 'Pendiente']);
 assert.deepStrictEqual(lwAvisoTonoHecho('tipo_nuevo_que_no_existe'), ['neutro', 'tipo nuevo que no existe'], 'un tipo sin clasificar no desaparece');
 
 // --- admin: ve las de todos ---

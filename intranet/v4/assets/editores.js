@@ -395,11 +395,13 @@
     var c = document.getElementById('lw-cajon');
     if (!c) return;
     var p = c.querySelector('[data-c="panel"]'), f = c.querySelector('[data-c="fondo"]');
-    if (p) p.style.transform = 'translateX(100%)';
+    // abierto desde un elemento (`desde`): se recoge hacia él; si no, se desliza como siempre
+    if (p && c._revela) { p.style.transition = 'clip-path .32s cubic-bezier(.4,0,.6,1)'; p.style.clipPath = 'circle(0px at ' + c._revela.cx + 'px ' + c._revela.cy + 'px)'; }
+    else if (p) p.style.transform = 'translateX(100%)';
     if (f) f.style.opacity = '0';
     if (c._teclas) document.removeEventListener('keydown', c._teclas);
     var alCerrar = c._alCerrar; c._alCerrar = null;
-    setTimeout(function () { if (c.parentNode) c.remove(); }, 260);
+    setTimeout(function () { if (c.parentNode) c.remove(); }, c._revela ? 340 : 260);
     if (typeof alCerrar === 'function') alCerrar();
   }
   function cajon(o) {
@@ -481,7 +483,28 @@
     document.addEventListener('keydown', w._teclas);
     document.body.appendChild(w);
     var panel = w.querySelector('[data-c="panel"]'), fondo = w.querySelector('[data-c="fondo"]');
-    requestAnimationFrame(function () {
+    /* `desde` (23-sep-2026, owner: «que se abra como creciendo desde la
+       campana y se cierre igual»): el panel se revela con un círculo que
+       nace en el centro del elemento que lo abrió y crece hasta cubrirlo;
+       al cerrar, el mismo círculo se recoge hacia ese punto (cierraCajon).
+       Sin `desde`, o con «reducir movimiento» activado en el sistema, el
+       deslizamiento lateral de siempre. */
+    var reducir = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (o.desde && o.desde.getBoundingClientRect && !reducir) {
+      panel.style.transition = 'none';
+      panel.style.transform = 'none';
+      var rp = panel.getBoundingClientRect(), rb = o.desde.getBoundingClientRect();
+      var cx = rb.left + rb.width / 2 - rp.left, cy = rb.top + rb.height / 2 - rp.top;
+      var radio = Math.ceil(Math.hypot(Math.max(cx, rp.width - cx), Math.max(cy, rp.height - cy)));
+      w._revela = { cx: cx, cy: cy, radio: radio };
+      panel.style.clipPath = 'circle(0px at ' + cx + 'px ' + cy + 'px)';
+      panel.offsetWidth;   // fija el punto de partida antes de animar
+      panel.style.transition = 'clip-path .42s cubic-bezier(.22,.8,.24,1)';
+      requestAnimationFrame(function () {
+        panel.style.clipPath = 'circle(' + radio + 'px at ' + cx + 'px ' + cy + 'px)';
+        fondo.style.opacity = '1';
+      });
+    } else requestAnimationFrame(function () {
       requestAnimationFrame(function () { panel.style.transform = 'translateX(0)'; fondo.style.opacity = '1'; });
     });
     return { el: w, cuerpo: w.querySelector('[data-c="cuerpo"]'), pie: pie, cierra: cierraCajon };
@@ -541,7 +564,9 @@
         '</tbody></table></div>';
     },
     tag: function (texto, tono) {
-      var c = { ok: ['#E4F0DA', '#3F5230'], espera: ['#FBF3E4', '#8A6A34'], mal: ['#FFDAD6', '#93000A'] }[tono] || ['#EAE8E2', CAJ.tinta];
+      // paleta ÚNICA de la v4 (window.LW_TONOS, datos.js) — antes era una copia aquí
+      var T = window.LW_TONOS || {}, t = T[tono] || T.neutro;
+      var c = t ? [t.fondo, t.tinta] : ['#EAE8E2', CAJ.tinta];
       return '<span style="display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;background:' + c[0] + ';color:' + c[1] + '">' + esc(texto) + '</span>';
     },
     chips: function (lista) {

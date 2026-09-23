@@ -40,9 +40,13 @@ var LW_AVISOS_LIMITE = 40;
    aquí, en la fuente única, y no en cada campana: así la clásica puede usarlo
    el día que quiera sin volver a clasificar. Cada aviso lleva:
    · `clase`: 'alerta' (pide hacer algo) o 'hecho' (algo que ya pasó);
-   · `nivel`: 'mal' (vencido/caducado) · 'atencion' (vence pronto) · 'ok'
-     (buena noticia: firma, cobro) · 'info' (trámite en marcha) · 'neutro'
-     (movimiento de inventario);
+   · `nivel`: 'mal' (vencido/caducado/rechazado) · 'atencion' (pendiente de
+     alguien: vence pronto, en firma) · 'ok' (hecho: firma, cobro) · 'neutro'
+     (informativo: factura emitida, inventario). Mismo significado que las
+     etiquetas de los listados y las fichas: una factura emitida es gris en
+     todas partes, un enlace de firma enviado es ámbar («En firma») en todas.
+     El azul de la primera versión se retiró (23-sep): no significaba nada
+     en el resto de la suite;
    · `etiqueta`: la palabra corta que acompaña al color — el color solo no
      basta (daltonismo, impresión en gris).
    Un tipo de `notificaciones` que no esté en la lista cae en 'neutro' con su
@@ -52,9 +56,9 @@ var LW_AVISOS_TONO_HECHO = {
   contrato_bloqueado: ['ok', 'Firmado'],
   operacion_saldada:  ['ok', 'Saldado'],
   unidad_cobrada:     ['ok', 'Cobrado'],
-  solicitud_pago:     ['info', 'Solicitud'],   // afinado por el título abajo
-  factura_emitida:    ['info', 'Factura'],
-  firma_enviada:      ['info', 'Firma enviada'],
+  solicitud_pago:     ['atencion', 'Pendiente'],   // afinado por el título abajo
+  factura_emitida:    ['neutro', 'Emitida'],
+  firma_enviada:      ['atencion', 'En firma'],
   unidad_reservada:   ['neutro', 'Inventario'],
   unidad_bloqueada:   ['neutro', 'Inventario'],
   unidad_vendida:     ['neutro', 'Inventario'],
