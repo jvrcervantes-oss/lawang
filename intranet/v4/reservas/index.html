@@ -2,7 +2,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/guard.js?v=54b33acd" data-herramienta="operaciones"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
 <script src="/contracts/assets/i18n.js?v=4ba5c662" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
-<script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="../assets/datos.js?v=976cad7e" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="../assets/datos.js?v=02321536" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=d9493be9" defer></script>
 <link href="../assets/shell.css?v=cadfe619" rel="stylesheet">
@@ -20,12 +20,12 @@
 <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 bg-surface-container-lowest p-8 rounded-xl shadow-sm">
 <div class="flex flex-col gap-2 max-w-3xl">
 <h1 class="font-headline-lg text-headline-lg text-deep-lagoon tracking-tight" data-lwt>Reservas por vencer</h1>
-<p class="font-body-md text-body-md text-on-surface-variant" data-lwt>Cartas de Reserva que aún no tienen su Bloqueo de Parcela. Si vence el plazo y nadie la prorroga ni firma el Bloqueo, la parcela vuelve a estar disponible sola tras los días de gracia.</p>
+<p class="font-body-md text-body-md text-on-surface-variant" data-lwt>Cartas de Reserva que aún no tienen su Bloqueo de Parcela. Si vence sin prórroga ni Bloqueo firmado, el comprador pierde el derecho de reserva ese mismo día; el sistema libera la parcela tras unos días de margen interno, que no son un plazo del comprador ni se le comunican.</p>
 </div>
 </div>
 
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="lw-res-kpis">
-<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm"><div class="font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Vencidas, en gracia</div><div class="font-kpi-number text-[34px] text-volcanic-ash" data-lw="rk-gracia">—</div></div>
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm"><div class="font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Vencidas, pendientes de liberar</div><div class="font-kpi-number text-[34px] text-volcanic-ash" data-lw="rk-gracia">—</div></div>
 <div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm"><div class="font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Vencen en 2 días</div><div class="font-kpi-number text-[34px] text-volcanic-ash" data-lw="rk-2d">—</div></div>
 <div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm"><div class="font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Vencen esta semana</div><div class="font-kpi-number text-[34px] text-volcanic-ash" data-lw="rk-7d">—</div></div>
 <div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm"><div class="font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Reservas vivas</div><div class="font-kpi-number text-[34px] text-volcanic-ash" data-lw="rk-total">—</div></div>

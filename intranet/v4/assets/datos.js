@@ -7396,7 +7396,7 @@
       var filas = r[0];
       if (filas == null) return;
       var g = (r[1] || [])[0], gracia = (g && typeof g.valor === 'number' && isFinite(g.valor)) ? g.valor : 3;
-      pon('rk-gracia-nota', T('Tras vencer, cada reserva tiene') + ' ' + gracia + ' ' + T('días de gracia antes de liberarse sola. Prorrogar o liberar: desde la ficha de la operación.'));
+      pon('rk-gracia-nota', T('Tras vencer, el sistema espera') + ' ' + gracia + ' ' + T('días (margen interno, no es plazo del comprador) antes de liberar la parcela. Prorrogar o liberar: desde la ficha de la operación.'));
       // la función da una fila por PARCELA; aquí se lee por contrato
       var porC = {}, orden = [];
       filas.forEach(function (x) {
@@ -7444,7 +7444,7 @@
           '<span class="lw-res-abrir">' + esc(T('Abrir')) + ' →</span></a>';
       }
       var BANDAS = [
-        ['gracia', 'Vencidas — en gracia', 'mal'],
+        ['gracia', 'Vencidas — pendientes de liberar', 'mal'],
         ['semana', 'Vencen esta semana', 'espera'],
         ['luego', 'Más adelante', 'neutro'],
         ['sin', 'Sin fecha de vencimiento', 'neutro']
