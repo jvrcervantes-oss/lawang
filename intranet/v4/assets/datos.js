@@ -2586,6 +2586,12 @@
              porque se vuelve a llamar tras subir/retirar — sin recargar toda la
              página, igual que hace el resto del cajon. */
           function cargaDocs() {
+            /* Con un contrato FIRMADO, su documentación KYC solo la retira un super
+               admin (trigger trg_documents_kyc_firmado, 23-sep-2026, Legal): no se
+               ofrece un botón que la base va a rechazar. Mira los contratos que
+               la sesión ve; la base mira todos. */
+            var puedeBorrarDoc = window.LW_V4.esSuperAdmin || (window.LW_V4.esAdmin &&
+              !vins.some(function (v) { return porC[v.contrato_id] && porC[v.contrato_id].bloqueado; }));
             sb.from('documents').select('id,doc_type,storage_path,uploaded_at,caduca_el').eq('client_id', c2.id).order('uploaded_at', { ascending: false })
               .then(function (rd) {
                 if (rd.error) return pinta('docs', H.nota('No se pudieron leer los documentos: ' + rd.error.message));
@@ -2598,7 +2604,7 @@
                     cad = dd < 0 ? H.tag('caducado hace ' + (-dd) + ' d', 'mal') : (dd <= 60 ? H.tag(fFecha(d.caduca_el), 'espera') : H.tag(fFecha(d.caduca_el), 'ok'));
                   }
                   var acciones2 = (d.storage_path ? '<button type="button" data-doc-path="' + esc(d.storage_path) + '" style="padding:4px 10px;border-radius:999px;border:1px solid #E4DCCB;background:#fff;font-size:12px;cursor:pointer;color:#104C4F;font-weight:600">Abrir</button>' : '') +
-                    (window.LW_V4.esAdmin ? '<button type="button" data-doc-borrar="' + esc(d.id) + '" style="margin-left:6px;padding:4px 10px;border-radius:999px;border:1px solid #9E2F26;background:#fff;font-size:12px;cursor:pointer;color:#9E2F26;font-weight:600">Borrar</button>' : '');
+                    (puedeBorrarDoc ? '<button type="button" data-doc-borrar="' + esc(d.id) + '" style="margin-left:6px;padding:4px 10px;border-radius:999px;border:1px solid #9E2F26;background:#fff;font-size:12px;cursor:pointer;color:#9E2F26;font-weight:600">Borrar</button>' : '');
                   return [esc(DOC_TIPO[d.doc_type] || d.doc_type || '—'), esc(fFecha(d.uploaded_at)), cad, acciones2];
                 })) : H.nota('Sin documentos todavía.');
                 var formSubida = '<div style="display:grid;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(228,220,203,.7)">' +
