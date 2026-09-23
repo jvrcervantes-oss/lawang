@@ -1778,7 +1778,7 @@ function limpiarOverrides(slug){
    DESIGN a propósito: ese sí es "por plantilla" de verdad (la marca/color del
    tipo de documento), no algo que deba reiniciarse por contrato. */
 function resetBorrador(slug){
-  SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null; PROYECTO_ABIERTO = '';
+  SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null; PROYECTO_ABIERTO = ''; PDF_SALIO = false;
   TECHO_LEGADO_SIN = false;
   /* HITOS también se reinicia (auditoría 19-ago): faltaba en esta lista y «+
      Nuevo contrato» heredaba el calendario de pagos del contrato ABIERTO — la
@@ -3830,7 +3830,10 @@ async function cargarEstadoFirma(){
   if(!sb || !SAVED_CONTRACT){ EN_FIRMA = { vivas:0, firmadas:0, filas:[] }; PDF_SALIO = false; aplicarEstadoFirma(); return; }
   /* ¿Salió ya el PDF? (pintaAcciones: «Subir firmado»). La decisión es de la
      base (contrato_pdf_salio). Si la consulta falla, queda apagado y se dice. */
-  sb.rpc('contrato_pdf_salio', { p_contrato: SAVED_CONTRACT.id }).then(({ data: salio, error: eS }) => {
+  const idPedido = SAVED_CONTRACT.id;
+  sb.rpc('contrato_pdf_salio', { p_contrato: idPedido }).then(({ data: salio, error: eS }) => {
+    // se cambió de contrato mientras llegaba: esta respuesta ya no es de este
+    if(!SAVED_CONTRACT || SAVED_CONTRACT.id !== idPedido) return;
     if(eS){ console.error('pdf_salio:', eS.message); toastMal(lwT('No se pudo comprobar si el PDF ya salió: «Subir firmado» queda apagado hasta descargarlo')); }
     PDF_SALIO = !eS && salio === true;
     pintaAcciones(); ocultarGruposVacios();
@@ -4197,7 +4200,10 @@ async function subirPdfFirmado(file){
     updateSaveButton();
     cerrado = true;
   }catch(err){ toastMal(lwT('No se pudo bloquear: ') + (err.message || err)); }
-  btn.disabled=false; btn.textContent='🔒 Subir firmado';
+  // Ni `disabled=false` a mano: con el contrato ya bloqueado eso volvía a
+  // ofrecer «Subir firmado» y un segundo clic pisaba el PDF firmado del bucket
+  // (consulta de deploy 74c1cdd6). Lo decide pintaAcciones(), como todo.
+  btn.textContent='🔒 Subir firmado'; pintaAcciones(); ocultarGruposVacios();
   /* FUERA del try, y no es cosmética: el contrato ya está bloqueado y su PDF
      guardado cuando se llega aquí. Dentro, cualquier fallo del diálogo (que
      `dialogo.js` no haya cargado, por ejemplo) caía en el `catch` de arriba y le
@@ -4620,12 +4626,14 @@ async function guardarContrato(){
     // reabría el contrato — y el snapshot que se firma sale de buildDoc() en
     // caliente, así que se podía firmar el calendario equivocado justo
     // después de guardar.
-    const q = (SAVED_CONTRACT && SAVED_CONTRACT.id)
+    const eraNuevo = !(SAVED_CONTRACT && SAVED_CONTRACT.id);
+    const q = !eraNuevo
       ? sb.from('contratos').update(payload).eq('id', SAVED_CONTRACT.id).select('id,numero,datos').single()
       : sb.from('contratos').insert(payload).select('id,numero,datos').single();
     const { data, error } = await q;
     if(error) throw error;
     SAVED_CONTRACT = { id:data.id, numero:data.numero };
+    if(eraNuevo) PDF_SALIO = false;   // un contrato recién creado no ha salido nunca
     const numEl = document.querySelector('[name="contrato_num"]');
     if(numEl){ numEl.value = data.numero; }
     /* Solo aplica al PRIMER guardado (esNuevo): el trigger calcula esto una
@@ -5046,7 +5054,7 @@ async function borrarContrato(id){
     const { data, error } = await sb.rpc('borrar_operacion', { p_contrato_id: id });
     if(error) throw error;
     if(!data || !data.contratos_borrados) throw new Error('no tienes permiso para borrar este contrato');
-    if(SAVED_CONTRACT && SAVED_CONTRACT.id === id){ SAVED_CONTRACT = null; updateSaveButton(); }
+    if(SAVED_CONTRACT && SAVED_CONTRACT.id === id){ SAVED_CONTRACT = null; PDF_SALIO = false; updateSaveButton(); }
     toast(lwT('Contrato ') + (r.numero || '') + ' borrado');
     await openContractsPanel();
   }catch(e){ toastMal(lwT('No se pudo borrar: ') + (e.message || e)); }
@@ -5324,6 +5332,7 @@ async function openSavedContract(id){
   await syncUnidadConstruccion();
   SAVED_CONTRACT = { id:data.id, numero:data.numero };
   LOCKED = !!data.bloqueado; LOCKED_PDF_PATH = data.pdf_firmado_path || null;
+  PDF_SALIO = false;   // lo relee cargarEstadoFirma(); nunca se hereda del contrato anterior
   // de cero: sin esto, abrir un contrato B justo después de uno A que estaba
   // a firma le pintaría a B el candado de A hasta que respondiera la lectura
   EN_FIRMA = { vivas:0, firmadas:0, filas:[] };
@@ -5571,7 +5580,7 @@ async function derivarContrato(slug){
 
   // se suelta el vínculo con la fila de origen ANTES de cargar: lo que viene es
   // un contrato nuevo sin guardar, no una edición del anterior
-  SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null; TECHO_LEGADO_SIN = false;
+  SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null; TECHO_LEGADO_SIN = false; PDF_SALIO = false;
   EN_FIRMA = { vivas:0, firmadas:0, filas:[] }; aplicarEstadoFirma();
   ADQ1_CLIENT = null; CAMPOS_HEREDADOS = {}; UNIDADES_RESERVA_VINCULADA = null; UNIDAD_ID_CONSTRUCCION = null;
   // El contrato derivado hereda datos, no ediciones de texto: el párrafo que
