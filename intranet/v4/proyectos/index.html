@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="es" style=""><head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/guard.js?v=23287069" data-herramienta="unidades"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=4ba5c662" defer></script>
+<script src="/contracts/assets/i18n.js?v=7d9056e9" defer></script>
 <script src="/contracts/assets/dinero.js?v=a442e362" defer></script><script src="/intranet/facturas/totales.js" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=c76d3606" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1" defer></script><script src="/contracts/assets/proyectos_csv.js?v=e610515a" defer></script><script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="../assets/datos.js?v=d2283190" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=91594049" defer></script>
@@ -322,60 +322,62 @@
 </div>
 <!-- REJILLA DE PROYECTOS — compactada el 23-sep-2026 (owner: «quiero ver más
      proyectos, comprime un poco las tarjetas» y «hay texto que se sale de las
-     tarjetas»). Mismos datos que antes; cambia la densidad: portada de 144 a
-     88 px, cuatro columnas desde 1280 px, y todo texto de longitud variable
+     tarjetas»). Mismos datos que antes; cambia la densidad: cuatro columnas
+     desde 1280 px y cinco desde 1536 (el 23-sep por la tarde el owner devolvió
+     el ALTO: «el alto no estaba mal, el ancho se puede reducir un poco» —
+     portada otra vez de 144 px y cifras a su tamaño; se estrecha con columnas), y todo texto de longitud variable
      con truncate + title (datos.js pone el title con el texto entero; la ficha
      completa sigue en el cajón). La «Parcela máster» pierde su caja propia: ya
      estaba repetida en el subtítulo de la portada. Los colores de «vendidas» y
      «disp.» son los de ESTADO_COLOR (vendida = deep lagoon, disponible = verde
      territorial): antes «vendidas» iba en ciruela, un tercer color que no era
      el de ningún estado. -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="projects-grid">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4" id="projects-grid">
 <div class="bg-surface-container-lowest rounded-xl border border-warm-border shadow-sm hover:shadow-md hover:border-territorial-green/70 transition-all flex flex-col overflow-hidden group min-w-0">
 <!-- Cabecera visual: textura arquitectónica por defecto, o la foto de portada
      que se suba desde "Editar proyecto" (datos.js le pone background-image y
      oculta la decoración de abajo cuando hay una). -->
-<div class="h-[88px] relative bg-gradient-to-br from-[#1b2b1a] via-[#2d3f27] to-[#104C4F] px-3 py-2.5 flex flex-col justify-between overflow-hidden bg-cover bg-center" data-lw="cover">
+<div class="h-36 relative bg-gradient-to-br from-[#1b2b1a] via-[#2d3f27] to-[#104C4F] p-4 flex flex-col justify-between overflow-hidden bg-cover bg-center" data-lw="cover">
 <div class="absolute -right-8 -top-8 w-36 h-36 rounded-full bg-primary-fixed/10 pointer-events-none blur-xl" data-lw-deco></div>
 <div class="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px] opacity-10" data-lw-deco></div>
 <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/10 pointer-events-none hidden" data-lw-cover-overlay></div>
 <div class="relative z-10 flex items-center justify-between gap-2 min-w-0">
-<span class="min-w-0 px-2 py-0.5 rounded-md bg-black/40 backdrop-blur-md text-[10px] font-label-md tracking-wider uppercase text-surface-bright flex items-center gap-1">
+<span class="min-w-0 px-2.5 py-1 rounded-md bg-black/40 backdrop-blur-md text-[11px] font-label-md tracking-wider uppercase text-surface-bright flex items-center gap-1">
 <span class="material-symbols-outlined text-[12px] text-primary-fixed shrink-0">location_on</span><span class="truncate" data-lw="sitio">—</span></span>
-<span class="shrink-0 px-2 py-0.5 rounded-md bg-territorial-green text-surface-bright text-[10px] font-label-md font-semibold tracking-wide uppercase whitespace-nowrap" data-lw="badge">—</span>
+<span class="shrink-0 px-2.5 py-1 rounded-md bg-territorial-green text-surface-bright text-[11px] font-label-md font-semibold tracking-wide uppercase whitespace-nowrap" data-lw="badge">—</span>
 </div>
 <div class="relative z-10 min-w-0">
-<h3 class="font-headline-md text-[18px] leading-tight text-surface-bright font-semibold tracking-tight truncate group-hover:text-primary-fixed transition-colors" data-lw="nombre">—</h3>
-<span class="block text-surface-bright/75 text-[11px] font-body-sm truncate" data-lw="sub">—</span>
+<h3 class="font-headline-md text-[22px] leading-tight text-surface-bright font-semibold tracking-tight truncate group-hover:text-primary-fixed transition-colors" data-lw="nombre">—</h3>
+<span class="block text-surface-bright/75 text-[12px] font-body-sm truncate mt-0.5" data-lw="sub">—</span>
 </div>
 </div>
 <!-- Métricas de inventario y estado financiero -->
-<div class="p-3.5 flex-1 flex flex-col gap-2.5 min-w-0">
-<div class="flex items-baseline justify-between gap-2 pb-2 border-b border-warm-border/60 min-w-0">
-<span class="text-[10px] text-outline font-semibold uppercase tracking-wider shrink-0">Parcelas</span>
-<span class="text-[12px] font-label-md font-semibold text-volcanic-ash truncate"><span data-lw="uds">—</span> uds · <span class="text-deep-lagoon" data-lw="vendidas">—</span> · <span class="text-territorial-green" data-lw="disp">—</span></span>
+<div class="p-5 flex-1 flex flex-col gap-4 min-w-0">
+<div class="flex items-baseline justify-between gap-2 pb-3 border-b border-warm-border/60 min-w-0">
+<span class="text-[11px] text-outline font-semibold uppercase tracking-wider shrink-0">Parcelas</span>
+<span class="text-[13px] font-label-md font-semibold text-volcanic-ash truncate"><span data-lw="uds">—</span> uds · <span class="text-deep-lagoon" data-lw="vendidas">—</span> · <span class="text-territorial-green" data-lw="disp">—</span></span>
 </div>
 <!-- Estado de cuentas y barra de recaudación. Dos colores en la MISMA barra
      (11-sep-2026, encargo del owner): oscuro = ya cobrado, claro = firmado
      pero pendiente de cobro. Los anchos los pone datos.js con FIRM_P/COB_P. -->
-<div class="flex flex-col gap-1.5">
+<div class="flex flex-col gap-2">
 <div class="flex items-baseline justify-between gap-2">
-<span class="text-[10px] font-semibold uppercase tracking-wider text-outline">Recaudación</span>
-<span class="text-[12px] font-kpi-number text-fiduciary-green font-bold whitespace-nowrap" data-lw="pct">—</span>
+<span class="text-[11px] font-semibold uppercase tracking-wider text-outline">Recaudación</span>
+<span class="text-[13px] font-kpi-number text-fiduciary-green font-bold whitespace-nowrap" data-lw="pct">—</span>
 </div>
-<div class="w-full bg-surface-container-high rounded-full h-1.5 overflow-hidden flex">
+<div class="w-full bg-surface-container-high rounded-full h-2 overflow-hidden flex">
 <div class="bg-fiduciary-green h-full transition-all" data-barra="cobrado" style="width:0%"></div>
 <div class="bg-soft-canopy h-full transition-all" data-barra="firmado" style="width:0%"></div>
 </div>
-<div class="flex items-end justify-between gap-3 pt-0.5 min-w-0">
+<div class="flex items-end justify-between gap-3 pt-1 min-w-0">
 <div class="flex flex-col min-w-0">
-<span class="text-[10px] text-outline uppercase font-medium">Cobrado</span>
-<span class="font-kpi-number text-[15px] leading-tight text-fiduciary-green font-bold tabular-nums truncate" data-lw="cobrado">—</span>
+<span class="text-[11px] text-outline uppercase font-medium">Cobrado</span>
+<span class="font-kpi-number text-[18px] leading-tight text-fiduciary-green font-bold tabular-nums truncate" data-lw="cobrado">—</span>
 </div>
 <div class="flex flex-col items-end text-right min-w-0">
-<span class="text-[10px] text-outline uppercase font-medium">Pendiente</span>
-<span class="font-kpi-number text-[13px] leading-tight text-on-surface-variant font-semibold tabular-nums truncate max-w-full" data-lw="pend">—</span>
-<span class="text-[10px] text-outline tabular-nums truncate max-w-full" data-lw="total">—</span>
+<span class="text-[11px] text-outline uppercase font-medium">Pendiente</span>
+<span class="font-kpi-number text-[14px] leading-tight text-on-surface-variant font-semibold tabular-nums truncate max-w-full" data-lw="pend">—</span>
+<span class="text-[11px] text-outline tabular-nums truncate max-w-full" data-lw="total">—</span>
 </div>
 </div>
 </div>
