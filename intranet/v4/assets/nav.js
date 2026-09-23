@@ -203,11 +203,9 @@
      pase sincrono — por eso corre en un segundo pase, igual que antes. */
   var PANEL_CONTROL = [
     { path: 'cuentas',       icono: 'account_balance', texto: 'Cuentas' },
-    { path: 'equipos-venta', icono: 'groups',           texto: 'Equipos de venta' },
-    { path: 'condiciones',   icono: 'percent',          texto: 'Condiciones' },
-    /* Reparto de equipo (23-sep-2026, owner): lo generado para cada closer y qué
-       ha pagado el manager. Pantalla propia para el panel «Mi equipo». */
-    { path: 'reparto',       icono: 'payments',         texto: 'Reparto de equipo' },
+    /* Equipos de venta, Condiciones y Reparto ya NO van aquí (23-sep-2026, plan
+       del owner: «agrupar y controlar lo que se ve por permisos»): son pestañas
+       de la entrada «Comisiones», ver PESTANAS_COMISIONES más abajo. */
     /* Ajustes (22-sep-2026, owner: «en el panel de control podemos controlar
        los días de gracia, las prórrogas, los techos, todo lo configurable»):
        la tabla `parametros`. Lo ve cualquier admin; escribir exige super admin
@@ -225,13 +223,20 @@
      abre lo que el estudio le cobra al cliente. Se configura aqui y no en
      «Comisiones» — aquella es la del equipo de ventas, y son dos cosas
      distintas que comparten palabra. */
-  /* Lo que un SALES MANAGER ve del Panel de control (23-sep-2026, owner: «los
-     sales manager deben tener acceso a dar de alta su equipo de ventas +
-     condiciones a ellos»). Solo su equipo: la puerta de la página es
-     `data-rol="admin sales_manager"` y la de los datos, la base (RPC
-     equipo_miembro_* y policies «el manager configura a sus closers»).
-     catalogo.test exige que cada una de estas páginas nombre sales_manager. */
-  var PANEL_MANAGER = ['equipos-venta', 'condiciones', 'reparto'];
+  /* COMISIONES: una entrada de menú y hasta cuatro pestañas (23-sep-2026, plan
+     aprobado por el owner). Cada pestaña es una página v4 con SU casilla en
+     Usuarios; la barra de pestañas se pinta aquí, igual en las cuatro, y solo
+     con las que la ficha tiene. La casilla decide si la pestaña aparece; lo que
+     se ve dentro lo decide el rol en la base (el closer lo suyo, el manager su
+     equipo). Sustituye al panel «Mi equipo» del Sales Manager, que duró una
+     tarde. `rotulo` cambia el nombre según el rol, no lo que enseña. */
+  var PESTANAS_COMISIONES = [
+    { path: 'comisiones',    clave: 'comisiones',             texto: 'Pagos de Lawang' },
+    { path: 'reparto',       clave: 'comisiones_reparto',     texto: 'Reparto a closers',
+      rotulo: { agente: 'Mis comisiones', project_manager: 'Mis comisiones' } },
+    { path: 'condiciones',   clave: 'comisiones_condiciones', texto: 'Condiciones' },
+    { path: 'equipos-venta', clave: 'comisiones_equipos',     texto: 'Equipos', rotulo: { sales_manager: 'Mi equipo' } }
+  ];
 
   var PANEL_CONTROL_SUPER = [
     { path: 'comision-admin', icono: 'price_change',      texto: 'Comisión de administración' },
@@ -257,7 +262,7 @@
   var CLAVE_MENU = {
     leads: 'leads', operaciones: 'operaciones', soporte: 'soporte', vencimientos: 'vencimientos',
     contratos: 'contratos', asistente: 'asistente', creatividades: ['dossier', 'creatividades'],
-    facturas: 'facturas', recibos: 'recibos', comisiones: 'comisiones', reservas: 'reservas',
+    facturas: 'facturas', recibos: 'recibos', comisiones: ['comisiones', 'comisiones_reparto', 'comisiones_condiciones', 'comisiones_equipos'], reservas: 'reservas', reparto: 'comisiones_reparto', condiciones: 'comisiones_condiciones', 'equipos-venta': 'comisiones_equipos',
     proyectos: 'unidades', modelos: 'modelos', obra: 'obra', compradores: 'compradores',
     usuarios: 'usuarios', cuentas: 'cuentas'
   };
@@ -266,6 +271,58 @@
     if (!k || !ficha || ficha.rol === 'super_admin') return true;
     return [].concat(k).some(function (h) { return (ficha.herramientas || []).indexOf(h) !== -1; });
   }
+  function pestanasComisionesDe(ficha) {
+    return PESTANAS_COMISIONES.filter(function (t) {
+      return !ficha || ficha.rol === 'super_admin' || (ficha.herramientas || []).indexOf(t.clave) !== -1;
+    });
+  }
+  /* La entrada «Comisiones» del menú lleva a la PRIMERA pestaña que la ficha
+     tiene (un closer solo tiene «Mis comisiones») y se marca activa en las
+     cuatro páginas. La barra se pinta una vez, justo bajo la cabecera. */
+  function cableaComisiones(aside, ficha) {
+    var mias = pestanasComisionesDe(ficha);
+    var aqui = location.pathname;
+    var enUna = PESTANAS_COMISIONES.filter(function (t) { return aqui.indexOf('/' + t.path + '/') !== -1; })[0];
+    var entrada = aside.querySelector('a[data-path="comisiones"]');
+    if (entrada && mias.length) {
+      entrada.href = ROOT + mias[0].path + '/';
+      if (enUna) marcaActiva(entrada);
+    }
+    if (!enUna || document.getElementById('lw-pestanas-comisiones')) return;
+    var main = document.querySelector('main');
+    if (!main || !mias.length) return;
+    var rol = (ficha && ficha.rol) || '';
+    var barra = document.createElement('nav');
+    barra.id = 'lw-pestanas-comisiones';
+    barra.setAttribute('aria-label', 'Comisiones');
+    barra.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;padding:6px;background:#fff;border-radius:999px;box-shadow:0 1px 3px rgba(0,0,0,.06);width:fit-content;max-width:100%;margin:0 0 24px';
+    mias.forEach(function (t) {
+      var a = document.createElement('a');
+      var on = t === enUna;
+      a.href = ROOT + t.path + '/';
+      a.textContent = T((t.rotulo && t.rotulo[rol]) || t.texto);
+      a.style.cssText = 'padding:9px 18px;border-radius:999px;font:600 14px/1 "Neue Kabel",sans-serif;text-decoration:none;white-space:nowrap;' +
+        (on ? 'background:#485B37;color:#fff' : 'color:#44483f');
+      if (on) a.setAttribute('aria-current', 'page');
+      barra.appendChild(a);
+    });
+    var cab = main.querySelector('.lw-cabecera');
+    if (cab && cab.parentNode) cab.parentNode.insertBefore(barra, cab.nextSibling);
+    else main.insertBefore(barra, main.firstChild);
+    /* Closer en «Mis comisiones»: es la misma pantalla que la del manager, solo
+       con sus filas. Se esconde lo que es del manager (configurar el reparto,
+       marcar pagada, ajustar, anular) — la base ya se lo impediría. */
+    if (enUna.path === 'reparto' && (rol === 'agente' || rol === 'project_manager')) {
+      var st = document.createElement('style');
+      st.textContent = 'main a[href="../condiciones/"],[data-eq-pagar],[data-eq-ajustar],[data-eq-anular]{display:none!important}';
+      document.head.appendChild(st);
+      var h1 = main.querySelector('h1');
+      if (h1) h1.textContent = T('Mis comisiones');
+      var sub = h1 && h1.parentNode && h1.parentNode.querySelector('p');
+      if (sub) sub.textContent = T('Lo que te toca por cada venta y si tu manager ya te lo ha pagado. Solo ves lo tuyo.');
+    }
+  }
+
   function podaMenu(aside, ficha) {
     aside.querySelectorAll('a[data-path]').forEach(function (a) {
       if (!puedeVer(a.getAttribute('data-path'), ficha)) a.style.display = 'none';
@@ -320,7 +377,6 @@
      luego perderlos. */
   function esAdminSesion(ficha) { return !!ficha && (ficha.rol === 'admin' || ficha.rol === 'super_admin'); }
   function esSuperSesion(ficha) { return !!ficha && ficha.rol === 'super_admin'; }
-  function esManagerVentas(ficha) { return !!ficha && ficha.rol === 'sales_manager'; }
 
   /* Construye la seccion "Panel de control" entera (cabecera + 3 enlaces) y
      la cuelga justo detras del grupo que contiene "Usuarios" ("Base de
@@ -328,8 +384,7 @@
      Equipos de venta/Condiciones antes del 15-sep, solo que ahora con
      cabecera propia en vez de ir sueltas dentro de ese grupo. */
   function injertaPanelControl(aside, ficha) {
-    var soloManager = !esAdminSesion(ficha) && esManagerVentas(ficha);
-    if (!esAdminSesion(ficha) && !soloManager) return;
+    if (!esAdminSesion(ficha)) return;
     if (aside.querySelector('[data-seccion="panel-control"]')) return;
     var ancla = aside.querySelector('[data-path="usuarios"]');
     var grupo = ancla && ancla.parentElement;
@@ -340,14 +395,11 @@
     var nuevoGrupo = grupo.cloneNode(false);      // mismo div vacio, mismas clases Tailwind
     nuevoGrupo.setAttribute('data-seccion', 'panel-control');
     var nuevaCabecera = cabecera.cloneNode(true);
-    // el sales manager ve «Mi equipo»: para él es su panel, no el de la empresa
-    nuevaCabecera.textContent = soloManager ? 'Mi equipo' : 'Panel de control';
+    nuevaCabecera.textContent = 'Panel de control';
     nuevoGrupo.appendChild(nuevaCabecera);
     nuevoGrupo.appendChild(ancla);                // appendChild MUEVE Usuarios: sale de "Base de Datos"
 
-    PANEL_CONTROL.concat(esSuperSesion(ficha) ? PANEL_CONTROL_SUPER : []).filter(function (spec) {
-      return !soloManager || PANEL_MANAGER.indexOf(spec.path) !== -1;
-    }).forEach(function (spec) {
+    PANEL_CONTROL.concat(esSuperSesion(ficha) ? PANEL_CONTROL_SUPER : []).forEach(function (spec) {
       var a = ancla.cloneNode(true);              // clon de "Usuarios": hereda las clases exactas
       a.setAttribute('data-path', spec.path);
       a.removeAttribute('aria-current');
@@ -518,6 +570,7 @@
         // los 14-17 enlaces ya traducidos en cada carga con sesion no
         // cambia nada que ya no estuviera en ingles, solo trabajo de mas.
         var nuevoGrupo = injertaPanelControl(aside, aut && aut.ficha);
+        cableaComisiones(aside, aut && aut.ficha);
         // DESPUÉS del Panel de control: Usuarios y Cuentas viven ahí dentro
         podaMenu(aside, aut && aut.ficha);
         if (!nuevoGrupo || !window.lwT) return;

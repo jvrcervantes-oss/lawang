@@ -84,7 +84,10 @@ const corsFor = (req: Request) => {
 // y no se podía quitar sin quitar Operaciones. Clave propia y, A PROPÓSITO, sin
 // concedérsela a nadie (al revés que 'vencimientos' el 18-ago): solo la ve un
 // super_admin, que `puede()` deja pasar siempre.
-const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte', 'leads', 'closers', 'ranking', 'reparto', 'cuentas', 'comisiones', 'reservas', 'modelos', 'asistente', 'recibos'];
+const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte', 'leads', 'closers', 'ranking', 'reparto', 'cuentas', 'comisiones', 'reservas', 'modelos', 'asistente', 'recibos', 'comisiones_reparto', 'comisiones_condiciones', 'comisiones_equipos'];
+// 'comisiones_reparto', 'comisiones_condiciones', 'comisiones_equipos' (23-sep-2026, plan
+// del owner): las pestañas de «Comisiones», una casilla cada una; 'comisiones' es
+// «Pagos de Lawang». Lo que se ve dentro lo decide el rol en la base.
 // 'reservas', 'modelos', 'asistente', 'recibos' (23-sep-2026, owner: «separa
 // todo»): colgaban de operaciones/unidades/contratos/facturas. Clave propia de
 // vista; la migración 20260923180500_permisos_propios se la dio a quien ya tenía la madre.

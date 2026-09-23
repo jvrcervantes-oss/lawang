@@ -34,6 +34,10 @@ for (const carpeta of fs.readdirSync(V4, { withFileTypes: true })) {
   const d = g[0].match(/data-herramienta="([^"]*)"/);
   const puerta = d ? norma(d[1].split(',')) : '';
   const menu = CLAVE_MENU[carpeta.name] ? norma(CLAVE_MENU[carpeta.name]) : '';
+  /* «Comisiones» es una entrada con cuatro pestañas (23-sep-2026): la entrada
+     se ve con CUALQUIERA de sus cuatro casillas y cada pestaña pide la suya.
+     Ahí basta con que la casilla de la página esté entre las de la entrada. */
+  if (carpeta.name === 'comisiones' && menu.split(',').indexOf(puerta) !== -1) continue;
   if (puerta !== menu) errores.push(`${carpeta.name}: guard.js pide «${puerta || '—'}», el menú «${menu || '—'}»`);
 }
 

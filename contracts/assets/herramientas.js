@@ -205,6 +205,25 @@ const LW_HERRAMIENTAS = [
     estado:d => d.solicitudesVivas == null ? null
       : [d.solicitudesVivas ? hT('%n por resolver o pagar', { n: d.solicitudesVivas }) : hT('Sin solicitudes en vuelo'),
          d.solicitudesVivas > 0] },
+  /* COMISIONES, UNA ENTRADA CON CUATRO PESTAÑAS (23-sep-2026, plan aprobado
+     por el owner: «Necesitamos agrupar y controlar lo que se ve por
+     permisos»). Cada pestaña es una casilla en Usuarios: 'comisiones' (arriba)
+     es «Pagos de Lawang», y estas tres son las otras. `soloPermiso`: casilla sí,
+     tarjeta propia en el hub no — la entrada del menú es una sola, «Comisiones»,
+     y la barra de pestañas la pinta nav.js. La casilla decide si la pestaña
+     aparece; lo que se ve dentro lo decide el ROL en la base (cada uno lo suyo). */
+  { grupo:'Administración', nombre:'Comisiones · Reparto a closers', icon:'ph-hand-coins', href:'/intranet/v4/reparto/', herr:'comisiones_reparto',
+    soloPermiso:true,
+    para:'Lo que le toca a cada closer y qué le ha pagado su manager. Un closer solo ve lo suyo.',
+    claves:'reparto closers comisiones equipo pagado manager mis comisiones team payout split' },
+  { grupo:'Administración', nombre:'Comisiones · Condiciones', icon:'ph-percent', href:'/intranet/v4/condiciones/', herr:'comisiones_condiciones',
+    soloPermiso:true,
+    para:'Cuánto cobra cada closer y cada manager. Un Sales Manager solo las de sus closers.',
+    claves:'condiciones comision porcentaje tramos closer manager conditions commission rate tiers' },
+  { grupo:'Administración', nombre:'Comisiones · Equipos', icon:'ph-users-four', href:'/intranet/v4/equipos-venta/', herr:'comisiones_equipos',
+    soloPermiso:true,
+    para:'Los equipos de venta, su manager y sus closers. Un Sales Manager solo ve el suyo.',
+    claves:'equipos venta manager closers miembros sales teams members' },
 
   /* «Comisión de administración» y «Sociedades emisoras» ya NO salen en este
      catálogo (owner, 22-sep-2026): son pantallas de la v4 y solo se llega a
@@ -350,7 +369,7 @@ const lwPermitida = (t, ficha) =>
 const LW_ETIQUETA_PROPIA = {
   dossier:       'Dossier',
   creatividades: 'Creatividades',
-  comisiones:    'Comisiones y solicitudes de pago',   // permiso propio desde el 23-sep-2026
+  comisiones:    'Comisiones · Pagos de Lawang',   // la pestaña «Pagos de Lawang» (23-sep-2026)
   usuarios:      'Usuarios (admin)',     // el «(admin)» avisa de que además exige rol
 };
 
@@ -397,11 +416,15 @@ const LW_PERMISOS_CRM = ['leads', 'ranking', 'reparto', 'closers'];
    emitir cualquier tipo de contrato desde el minuto uno — se rellena
    explícito para que la restricción sea real desde el alta. */
 const LW_HERR_POR_ROL = {
-  agente:          ['contratos','compradores','documentacion','unidades','facturas','operaciones','asistente','recibos','modelos','reservas'],
-  project_manager: ['contratos','compradores','documentacion','unidades','facturas','obra','operaciones','asistente','recibos','modelos','reservas'],
-  sales_manager:   ['contratos','compradores','documentacion','unidades','facturas','operaciones','asistente','recibos','modelos','reservas'],
-  admin:           ['contratos','compradores','documentacion','unidades','facturas','operaciones','asistente','recibos','modelos','reservas'],
-  super_admin:     ['contratos','compradores','documentacion','unidades','facturas','obra','operaciones','asistente','recibos','modelos','reservas'],
+  // Comisiones (23-sep-2026, plan del owner): el closer ve su reparto; el Sales
+  // Manager, reparto + condiciones + equipo («Pagos de Lawang» se le da a mano
+  // mientras esa pestaña no le filtre solo lo suyo); el admin gestiona
+  // condiciones y equipos sin ver importes.
+  agente:          ['contratos','compradores','documentacion','unidades','facturas','operaciones','asistente','recibos','modelos','reservas','comisiones_reparto'],
+  project_manager: ['contratos','compradores','documentacion','unidades','facturas','obra','operaciones','asistente','recibos','modelos','reservas','comisiones_reparto'],
+  sales_manager:   ['contratos','compradores','documentacion','unidades','facturas','operaciones','asistente','recibos','modelos','reservas','comisiones_reparto','comisiones_condiciones','comisiones_equipos'],
+  admin:           ['contratos','compradores','documentacion','unidades','facturas','operaciones','asistente','recibos','modelos','reservas','comisiones_condiciones','comisiones_equipos'],
+  super_admin:     ['contratos','compradores','documentacion','unidades','facturas','obra','operaciones','asistente','recibos','modelos','reservas','comisiones','comisiones_reparto','comisiones_condiciones','comisiones_equipos'],
 };
 const LW_TIPOS_POR_ROL = {
   agente:          ['carta_reserva','reserva_parcela','construccion'],

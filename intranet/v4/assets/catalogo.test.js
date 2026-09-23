@@ -73,23 +73,29 @@ for (const d of fs.readdirSync(V4, { withFileTypes: true })) {
    «vuelve a solo admin y esto no se mueve nunca». Va aparte de SOLO_ADMIN a
    propósito: sacarla del Panel de control en nav.js no la libera de aquí. Si
    un Sales Manager necesita configurar algo, va en otra pantalla. */
-/* 23-sep-2026, misma tarde, el owner la amplía: «los sales manager deben tener
-   acceso a dar de alta su equipo de ventas + condiciones a ellos». Sigue fijada:
-   ahora es «admin sales_manager», y solo el owner la cambia. */
-const PUERTA_FIJA = { condiciones: 'admin sales_manager', 'equipos-venta': 'admin sales_manager', reparto: 'admin sales_manager' };
+/* 23-sep-2026, misma tarde, el owner la amplía y luego lo agrupa todo bajo
+   «Comisiones» («Necesitamos agrupar y controlar lo que se ve por permisos»):
+   cada pestaña pide SU casilla, y Condiciones/Equipos además el rol admin o
+   sales_manager. Sigue fijado: solo el owner lo cambia. */
+const PUERTA_FIJA = {
+  comisiones:      { rol: '',                    herr: 'comisiones' },
+  reparto:         { rol: '',                    herr: 'comisiones_reparto' },
+  condiciones:     { rol: 'admin sales_manager', herr: 'comisiones_condiciones' },
+  'equipos-venta': { rol: 'admin sales_manager', herr: 'comisiones_equipos' }
+};
 Object.keys(PUERTA_FIJA).forEach(p => {
   const f = path.join(V4, p, 'index.html');
   const g = fs.existsSync(f) && fs.readFileSync(f, 'utf8').match(/<script[^>]+guard\.js[^>]*>/);
   const rol = g ? ((g[0].match(/data-rol="([^"]+)"/) || [])[1] || '') : '(sin página)';
-  if (rol !== PUERTA_FIJA[p]) errores.push(`${p}: puerta FIJADA por el owner en data-rol="${PUERTA_FIJA[p]}" y pide «${rol || 'nada'}» — no se cambia`);
+  const herr = g ? ((g[0].match(/data-herramienta="([^"]+)"/) || [])[1] || '') : '(sin página)';
+  const q = PUERTA_FIJA[p];
+  if (rol !== q.rol || herr !== q.herr) errores.push(`${p}: puerta FIJADA por el owner (rol «${q.rol || 'ninguno'}», casilla «${q.herr}») y pide rol «${rol || 'ninguno'}», casilla «${herr || 'ninguna'}» — no se cambia`);
 });
-// lo que el menú le enseña al sales manager tiene que dejarle entrar
-const PANEL_MANAGER = (nav.match(/var PANEL_MANAGER = \[([^\]]*)\]/) || ['', ''])[1].match(/'[^']+'/g) || [];
-PANEL_MANAGER.map(x => x.slice(1, -1)).forEach(p => {
-  const f = path.join(V4, p, 'index.html');
-  const g = fs.existsSync(f) && fs.readFileSync(f, 'utf8').match(/<script[^>]+guard\.js[^>]*>/);
-  const rol = g ? ((g[0].match(/data-rol="([^"]+)"/) || [])[1] || '') : '';
-  if (!rol.split(/\s+/).includes('sales_manager')) errores.push(`${p}: el menú se la enseña al sales manager y la puerta pide «${rol || 'nada'}»`);
+// cada pestaña de Comisiones que pinta nav.js pide la casilla con la que nav.js la enseña
+const PEST = [...(nav.match(/var PESTANAS_COMISIONES = \[([\s\S]*?)\];/) || ['', ''])[1].matchAll(/path:\s*'([^']+)',\s*clave:\s*'([^']+)'/g)];
+assert.ok(PEST.length === 4, 'nav.js ya no declara las 4 pestañas de PESTANAS_COMISIONES');
+PEST.forEach(([, p, clave]) => {
+  if (!PUERTA_FIJA[p] || PUERTA_FIJA[p].herr !== clave) errores.push(`${p}: nav.js la enseña con la casilla «${clave}» y la puerta fijada pide otra`);
 });
 [...SOLO_ADMIN, ...SOLO_SUPER].forEach(p => {
   if (!fs.existsSync(path.join(V4, p, 'index.html'))) errores.push(`${p}: está en el Panel de control de nav.js y no hay intranet/v4/${p}/`);
