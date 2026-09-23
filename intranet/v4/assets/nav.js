@@ -224,7 +224,7 @@
   var CLAVE_MENU = {
     leads: 'leads', operaciones: 'operaciones', soporte: 'soporte', vencimientos: 'vencimientos',
     contratos: 'contratos', asistente: 'contratos', creatividades: ['dossier', 'creatividades'],
-    facturas: 'facturas', recibos: 'facturas', comisiones: 'operaciones', reservas: 'operaciones',
+    facturas: 'facturas', recibos: 'facturas', comisiones: 'comisiones', reservas: 'operaciones',
     proyectos: 'unidades', modelos: 'unidades', obra: 'obra', compradores: 'compradores',
     usuarios: 'usuarios', cuentas: 'cuentas'
   };

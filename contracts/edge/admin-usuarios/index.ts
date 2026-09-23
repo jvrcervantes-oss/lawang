@@ -79,7 +79,12 @@ const corsFor = (req: Request) => {
 // la propia base, así que un admin con esta casilla marcada solo puede MIRAR el
 // reparto. Es deliberado — es el dato que decide adónde transfiere el comprador —
 // y se apunta aquí porque desde esta función parece un permiso normal.
-const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte', 'leads', 'closers', 'ranking', 'reparto', 'cuentas'];
+// 'comisiones' (23-sep-2026, owner: «comisiones no quiero que las vea nadie
+// ahora mismo»): la pantalla de comisiones/solicitudes colgaba de 'operaciones'
+// y no se podía quitar sin quitar Operaciones. Clave propia y, A PROPÓSITO, sin
+// concedérsela a nadie (al revés que 'vencimientos' el 18-ago): solo la ve un
+// super_admin, que `puede()` deja pasar siempre.
+const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte', 'leads', 'closers', 'ranking', 'reparto', 'cuentas', 'comisiones'];
 // 10-sep-2026: sales_manager/project_manager (encargados de proyecto: ven,
 // crean y corrigen contratos/facturas de cualquier agente en los proyectos
 // que supervisan — `usuarios.proyectos_supervisados`, distinta de `proyectos`)

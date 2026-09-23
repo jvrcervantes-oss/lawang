@@ -183,7 +183,10 @@ const LW_HERRAMIENTAS = [
      tarjetas, la etiqueta del permiso va en LW_ETIQUETA_PROPIA (abajo).
      La cifra cuenta pendientes + aprobadas sin pagar (lo que espera acción del
      admin) y hereda la RLS: el admin las cuenta todas, cada agente las suyas. */
-  { grupo:'Administración', nombre:'Solicitudes', icon:'ph-coins', href:'/intranet/solicitudes/', herr:'operaciones',
+  /* PERMISO PROPIO desde el 23-sep-2026 (owner: «comisiones no quiero que las
+     vea nadie ahora mismo»). Compartir 'operaciones' hacía imposible quitarla
+     sin quitar Operaciones. Nace concedida a NADIE: solo la ve un super_admin. */
+  { grupo:'Administración', nombre:'Solicitudes', icon:'ph-coins', href:'/intranet/solicitudes/', herr:'comisiones',
     para:'Pagos que piden los comerciales — comisiones y acordados: quién pide qué, y en qué quedó cada uno.',
     claves:'solicitudes pago pagos comisiones comerciales agentes pedir comision payment requests commissions agents reps payout',
     estado:d => d.solicitudesVivas == null ? null
@@ -331,7 +334,7 @@ const LW_ETIQUETA_PROPIA = {
   dossier:       'Dossier',
   creatividades: 'Creatividades',
   facturas:      'Facturas y recibís',   // dos tarjetas (Facturas y Recibos), un solo permiso
-  operaciones:   'Operaciones y solicitudes',   // dos tarjetas (Operaciones y Solicitudes), un solo permiso — 9-sep-2026
+  comisiones:    'Comisiones y solicitudes de pago',   // permiso propio desde el 23-sep-2026
   contratos:     'Contratos y asistente',       // dos tarjetas (Contratos y Asistente), un solo permiso — 22-sep-2026
   usuarios:      'Usuarios (admin)',     // el «(admin)» avisa de que además exige rol
 };
