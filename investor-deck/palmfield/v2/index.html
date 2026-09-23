@@ -86,6 +86,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<!-- Jost + Instrument Sans SOLO para la seccion Villa Typologies (#modelos): el owner la
+     quiso con la tipografia de antes (23-sep). El resto de la pagina va en Neue Kabel. -->
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@600;700&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../../assets/neue-kabel.css?v=20260923120837">
 <!-- 22-sep-2026: build COMPILADO propio (npx tailwindcss, ver v2/tailwind.build.config.js
      en este mismo directorio) — NUNCA el Play CDN que usaba la ficha viva (sin versión
@@ -168,6 +171,12 @@
   @keyframes lwDestello{0%,30%{background:rgba(72,91,55,.32)}100%{background:rgba(143,155,122,.16)}}
   .lw-plano-activo{background:rgba(16,76,79,.55)!important}
   /* Seccion activa del menu (T3): la pinta el scroll-spy del script del final. */
+  /* Seccion Villa Typologies con la tipografia de ANTES del 23-sep (pedido del owner:
+     "vuelve a la anterior aqui"): texto en Jost, cifras en Instrument Sans y titulos en
+     Neue Kabel, que es exactamente como se veia. #id (1,0,1) le gana a la regla general. */
+  #modelos, #modelos *:not(.material-symbols-outlined){font-family:'Jost',system-ui,sans-serif}
+  #modelos .font-headline-lg, #modelos .font-headline-sm{font-family:'Neue Kabel','Jost',sans-serif}
+  #modelos .font-kpi-number{font-family:'Instrument Sans','Jost',sans-serif}
   #nav-principal a.lw-nav-activa,#menu-movil a.lw-nav-activa{background:#104c4f;color:#f5f0e6}
   .faq-item{border:1px solid #beb3a5;border-radius:16px;background:#fffdf8;overflow:hidden}
   .faq-item + .faq-item{margin-top:8px}
