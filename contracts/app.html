@@ -6,6 +6,10 @@
 <link rel="icon" href="/favicon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Lawang · Generador de Contratos</title>
+<!-- Interruptor de la cara v4 (23-sep-2026). SÍNCRONO y antes de cualquier
+     hoja: pone `html.v4` antes del primer pintado. Sin `?v4=1` en la pestaña
+     no hace nada y esta página es la clásica de siempre. Ver assets/piel.js. -->
+<script src="/contracts/assets/piel.js?v=e4ef2826"></script>
 <!-- preconnect: lo tenian las demas herramientas y esta no. Sin el, la
      primera peticion a la fuente abre conexion desde cero y el texto salta
      de la fuente del sistema a Jost a mitad de carga. -->
@@ -34,8 +38,8 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=7d9056e9"></script>
-<script src="/contracts/assets/herramientas.js?v=939fc3bd"></script>
+<script src="/contracts/assets/i18n.js?v=319dd513"></script>
+<script src="/contracts/assets/herramientas.js?v=b5621b1e"></script>
 <script src="assets/avisos.js?v=38fd8c40" defer></script><script src="assets/topbar.js?v=8444fd68" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -104,7 +108,16 @@
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
 <script src="/contracts/assets/operaciones-cuentas.js?v=c76d3606"></script>
 <script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
-<script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
+<script src="/contracts/assets/movimiento-v3.js?v=254ce2b3"></script>
+<!-- CARA v4 (23-sep-2026, owner: el generador en la v4 sin dejar obsoleta la
+     clásica). Una sola página, dos caras: todo lo de aquí abajo pinta SOLO con
+     `html.v4` (assets/piel.js). Las dos fuentes solo declaran @font-face, así
+     que en la clásica no se descargan. Va AL FINAL de la PRIMERA cabecera, por
+     lo mismo que la v3: las otras cuatro son plantillas del documento impreso. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap">
+<link rel="stylesheet" href="/intranet/v4/assets/fonts/fonts.css">
+<link rel="stylesheet" href="/contracts/assets/suite-v4-generador.css?v=8586b341">
+<script src="/intranet/v4/assets/nav-montaje.js?v=c55995c0" defer></script>
 </head>
 <body>
   <!-- Barra unificada de la suite: mismo orden y mismos componentes en
@@ -4997,7 +5010,12 @@ function pantallaC(cual, params){
   }
   if(cual === 'listado') openContractsPanel();
 }
-$('#btnContracts').addEventListener('click', () => pantallaC('listado', ''));
+$('#btnContracts').addEventListener('click', () => {
+  // Con la cara v4 el listado es el de la v4, no el de aquí: dos listados es
+  // la duplicación que prohíbe el stub v4/generador-contratos/ (assets/piel.js).
+  if(window.LW_PIEL === 'v4'){ location.href = '/intranet/v4/contratos/'; return; }
+  pantallaC('listado', '');
+});
 // "+ Nuevo contrato" solo cambiaba de pantalla, sin reconstruir nada: si antes
 // se había abierto otro contrato, su formulario (adquirientes, anexos,
 // cláusulas, campos ya rellenados) se quedaba tal cual en pantalla, solo que

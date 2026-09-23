@@ -1,0 +1,99 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   suite-v4-generador.css — la cara v4 del generador de contratos (23-sep-2026)
+   ═══════════════════════════════════════════════════════════════════════════
+   TODO bajo `html.v4`. Sin `?v4=1` (ver assets/piel.js) no pinta nada, y
+   contracts/app.html queda exactamente como la clásica. Eso es lo que permite
+   tener una sola página con dos caras sin que la antigua se quede vieja.
+
+   ⚠️ Esta hoja va SOLO en la PRIMERA <head> de app.html. Las otras cuatro
+   cabeceras de ese fichero son plantillas JS de la ventana de impresión del
+   contrato: aquí dentro no puede llegar nada al PDF del cliente.
+
+   No se carga shell.css de la v4 a propósito (revisión previa #55): no está
+   acotada y cambiaría #toast, .lw-dlg y <main> de la clásica aunque la piel
+   estuviera apagada. Los valores de aquí son los de la v4 (tailwind.config de
+   /intranet/v4/proyectos/). La fase 3 los contrasta midiendo la página real.
+
+   Escalera de alturas, encajada en la de la clásica (lawang.css):
+     .cp-overlay 80 · velo del menú 90 · menú 95 · .toast 200            */
+
+html.v4{
+  --v4-surface:#fbf9f4; --v4-surface-low:#f5f4ee; --v4-surface-high:#e9e8e3;
+  --v4-ink:#1b1c19; --v4-ink-2:#44483f; --v4-outline:#75786e; --v4-outline-2:#c5c8bc;
+  --v4-lagoon:#104C4F; --v4-green:#485B37; --v4-primary-container:#485B37;
+  --v4-font:'Neue Kabel', 'Jost', sans-serif;
+}
+
+/* ─── ☰ provisional (fase 2): la fase 3 lo mete en la cabecera v4 ─── */
+.lw4-hamburguesa{ display:none; }
+html.v4 .lw4-hamburguesa{
+  display:inline-grid; place-items:center; width:36px; height:36px; flex:none;
+  border:0; border-radius:999px; background:transparent; color:var(--v4-ink-2); cursor:pointer;
+}
+html.v4 .lw4-hamburguesa:hover{ background:var(--v4-surface-high); }
+html.v4 .lw4-hamburguesa:focus-visible{ outline:2px solid var(--v4-lagoon); outline-offset:2px; }
+
+/* ─── Menú lateral montado por intranet/v4/assets/nav-montaje.js ─── */
+.lw4-sb, .lw4-velo{ display:none; }   /* por si nav-montaje corriera sin la piel */
+
+html.v4 .lw4-velo{
+  display:block; position:fixed; inset:0; z-index:90;
+  background:rgba(27,28,25,.28); opacity:0; pointer-events:none; transition:opacity .25s ease;
+}
+html.v4.lw4-sb-abierto .lw4-velo{ opacity:1; pointer-events:auto; }
+
+html.v4 .lw4-sb{
+  display:flex; flex-direction:column; justify-content:space-between; gap:16px;
+  position:fixed; top:0; left:0; bottom:0; z-index:95;
+  width:288px; max-width:calc(100vw - 48px); box-sizing:border-box;
+  padding:24px 16px; background:var(--v4-surface-low);
+  box-shadow:0 0 40px rgba(0,0,0,.12);
+  font-family:var(--v4-font); color:var(--v4-ink);
+  transform:translateX(-105%); visibility:hidden;
+  transition:transform .28s ease, visibility 0s linear .28s;
+}
+html.v4.lw4-sb-abierto .lw4-sb{ transform:none; visibility:visible; transition:transform .28s ease; }
+
+html.v4 .lw4-sb-arriba{ display:flex; flex-direction:column; gap:24px; min-height:0; }
+html.v4 .lw4-sb-marca{ display:flex; align-items:center; justify-content:space-between; padding:0 8px; }
+html.v4 .lw4-sb-marca > div{ display:flex; flex-direction:column; }
+html.v4 .lw4-sb-logo{ font-size:24px; font-weight:600; letter-spacing:.05em; line-height:1; color:var(--v4-lagoon); }
+html.v4 .lw4-sb-sub{ margin-top:4px; font-size:12px; letter-spacing:.1em; text-transform:uppercase; line-height:1; color:var(--v4-outline); }
+html.v4 .lw4-sb-cerrar{
+  width:32px; height:32px; display:grid; place-items:center; border:0; border-radius:999px;
+  background:transparent; color:var(--v4-ink-2); cursor:pointer;
+}
+html.v4 .lw4-sb-cerrar:hover{ background:var(--v4-surface-high); color:var(--v4-ink); }
+
+html.v4 .lw4-sb-nav{ display:flex; flex-direction:column; gap:20px; overflow-y:auto; max-height:calc(100vh - 220px); padding-right:4px; }
+html.v4 .lw4-sb-g{ display:flex; flex-direction:column; gap:4px; }
+html.v4 .lw4-sb-gt{ padding:0 12px; font-size:12px; letter-spacing:.05em; text-transform:uppercase; color:var(--v4-outline); }
+html.v4 .lw4-sb-a{
+  display:flex; align-items:center; gap:12px; padding:8px 12px; border-radius:12px;
+  font-size:15px; color:var(--v4-ink-2); text-decoration:none; transition:background .15s, color .15s;
+}
+html.v4 .lw4-sb-a:hover{ background:var(--v4-surface-high); color:var(--v4-ink); }
+html.v4 .lw4-sb-a:focus-visible{ outline:2px solid var(--v4-lagoon); outline-offset:-2px; }
+/* nav.js marca la activa con aria-current (y clases de Tailwind que aquí no existen) */
+html.v4 .lw4-sb-a[aria-current="page"]{ background:var(--v4-primary-container); color:#fff; font-weight:700; }
+
+html.v4 .lw4-sb .material-symbols-outlined{
+  font-family:'Material Symbols Outlined'; font-weight:normal; font-style:normal;
+  font-size:20px; line-height:1; letter-spacing:normal; text-transform:none; white-space:nowrap;
+  direction:ltr; -webkit-font-feature-settings:'liga'; font-feature-settings:'liga'; -webkit-font-smoothing:antialiased;
+}
+
+html.v4 .lw4-sb-pie{ display:flex; flex-direction:column; gap:12px; padding-top:16px; border-top:1px solid rgba(117,120,110,.2); }
+html.v4 .lw4-sb-idioma{ display:flex; align-items:center; justify-content:space-between; padding:0 12px; }
+html.v4 .lw4-sb-idioma > span{ font-size:12px; letter-spacing:.05em; text-transform:uppercase; color:var(--v4-outline); }
+html.v4 .lw4-sb-seg{ display:flex; align-items:center; gap:2px; padding:4px; border-radius:999px; background:#efeee8; }
+html.v4 .lw4-sb-seg button{
+  padding:2px 12px; border:0; border-radius:999px; background:transparent;
+  font:inherit; font-size:12px; color:var(--v4-ink-2); cursor:pointer;
+}
+/* nav.js marca el idioma activo con esta clase (wireIdiomaToggle) */
+html.v4 .lw4-sb-seg button.bg-deep-lagoon{ background:var(--v4-lagoon); color:#fff; }
+
+@media (prefers-reduced-motion: reduce){
+  html.v4 .lw4-sb, html.v4 .lw4-velo{ transition:none; }
+}
