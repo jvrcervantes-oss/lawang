@@ -511,9 +511,17 @@
 <span class="text-on-surface-variant font-medium">Plazos de cobro por fase:</span>
 <span class="font-kpi-number text-[13px] font-bold text-volcanic-ash text-right" data-lw="d-plazos">—</span>
 </div>
-<div class="flex items-center justify-between pt-2">
+<div class="flex items-center justify-between pb-2 border-b border-warm-border/60">
 <span class="text-on-surface-variant font-medium">Entrega estimada (proyecto):</span>
 <span class="font-kpi-number text-[13px] font-bold text-volcanic-ash text-right" data-lw="d-entrega">—</span>
+</div>
+<!-- Encargado del proyecto DENTRO del Expediente (23-sep-2026, owner: «puede
+     ser parte de expediente del proyecto»). Antes era una sección suelta al
+     fondo de la columna. Lectura; asignar vive en «Editar proyecto». #d-managers
+     SIN TOCAR: datos.js lo rellena por id. -->
+<div class="flex flex-col gap-1.5 pt-2">
+<span class="text-on-surface-variant font-medium">Encargado del proyecto:</span>
+<div class="flex flex-wrap gap-1.5 [&>span]:whitespace-nowrap" id="d-managers">—</div>
 </div>
 </div>
 </section>
@@ -609,14 +617,15 @@
      (btn-enlace/btn-faq): editores.js los busca por getElementById. -->
 <div class="pt-3 mt-1 border-t border-outline-variant/40">
 <div class="flex items-center gap-1 bg-surface-container-low p-1 rounded-lg border border-warm-border/60 w-fit mb-2" id="cajon-tabs-doc">
-<button class="px-3 py-1 rounded-md bg-surface-container-lowest text-deep-lagoon shadow-xs font-label-md text-[11px] font-semibold" data-tab-btn="enlaces" type="button">Enlaces del proyecto</button>
+<button class="px-3 py-1 rounded-md bg-surface-container-lowest text-deep-lagoon shadow-xs font-label-md text-[11px] font-semibold whitespace-nowrap" data-tab-btn="enlaces" type="button">Enlaces</button>
 <!-- Documentos (S11.5, 22-sep-2026): fila propia para lo que se subió como
      FICHERO (categoria con `path`, nunca `url`) — antes se mezclaban con
      "Enlaces" y salían sin forma de abrirse (sin href). La portada del
      proyecto (categoria='portada') queda excluida a propósito: ya se ve
      como fondo de la tarjeta y en el Expediente, listarla aquí sería
      duplicarla. -->
-<button class="px-3 py-1 rounded-md text-outline hover:text-on-surface font-label-md text-[11px] font-semibold" data-tab-btn="documentos" type="button">Documentos</button>
+<button class="px-3 py-1 rounded-md text-outline hover:text-on-surface font-label-md text-[11px] font-semibold whitespace-nowrap" data-tab-btn="documentos" type="button">Documentos</button>
+<button class="px-3 py-1 rounded-md text-outline hover:text-on-surface font-label-md text-[11px] font-semibold whitespace-nowrap" data-tab-btn="faq" type="button">Preguntas frecuentes</button>
 </div>
 <div data-tab-panel="enlaces">
 <div class="flex items-baseline justify-between gap-3 mb-1.5">
@@ -642,21 +651,12 @@
      nunca el bucket 'documentacion' hecho público. -->
 <div class="flex flex-col gap-1.5" id="d-documentos"><div class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors cursor-pointer" data-doc-fila data-doc-abrir><span class="material-symbols-outlined text-[16px] text-outline shrink-0">description</span><div class="flex-1 min-w-0 flex items-center justify-between gap-3"><span class="font-body-sm text-body-sm text-on-surface truncate" data-lw="dc-titulo">—</span><span class="font-body-sm text-[11px] text-outline shrink-0" data-lw="dc-meta">—</span></div></div></div>
 </div>
-</div>
-</section>
-<!-- 1a. PREGUNTAS FRECUENTES (23-sep-2026, decisión del owner: «la pestaña de
-     FAQ no se ve, replanteemos eso»). Era la 3ª pestaña escondida al fondo de
-     la caja de cuentas y solo leía las preguntas INTERNAS de inversores
-     (documentos_proyecto, 6 filas en toda la cartera) — así que en 26 de 28
-     proyectos salía vacía mientras las FAQ de verdad, las 7 públicas del
-     Investor Deck (`deck_faq`), no tenían ninguna pantalla. Ahora es sección
-     propia con los dos bloques, cada uno con su fuente. #d-faqs/#btn-faq SIN
-     TOCAR: editores.js los busca por id. -->
-<section class="space-y-3" id="sec-faq">
-<h4 class="text-xs font-bold uppercase tracking-wider text-outline flex items-center gap-1.5">
-<span class="material-symbols-outlined text-[16px] text-territorial-green">quiz</span>
-          Preguntas frecuentes
-        </h4>
+<!-- Preguntas frecuentes como 3ª pestaña, junto a Enlaces y Documentos
+     (23-sep-2026, owner). Dos bloques, cada uno con su fuente: las públicas del
+     Investor Deck (`deck_faq`) y las internas de inversores (documentos_proyecto).
+     #d-deckfaq/#btn-deckfaq/#d-faqs/#btn-faq SIN TOCAR: editores.js y datos.js
+     los buscan por id. -->
+<div class="hidden" data-tab-panel="faq">
 <div>
 <div class="flex items-baseline justify-between gap-3 mb-1.5">
 <span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">En el Investor Deck <span class="normal-case tracking-normal font-normal" data-lw="dq-n"></span></span>
@@ -673,16 +673,8 @@
 <p class="font-body-sm text-[11px] text-outline mb-1.5">Internas, solo el equipo: lo que han preguntado inversores y su respuesta.</p>
 <div class="flex flex-col gap-1.5" id="d-faqs"><div class="px-2.5 py-1.5 rounded-lg bg-surface-container-low" data-doc-fila><div class="flex items-start justify-between gap-2"><details class="flex-1 min-w-0"><summary class="font-body-sm text-body-sm text-on-surface cursor-pointer" data-lw="fq-pregunta">—</summary><p class="font-body-sm text-body-sm text-on-surface-variant mt-1.5" data-lw="fq-respuesta">—</p></details><div class="flex items-center gap-0.5 shrink-0"><button type="button" class="p-1 rounded text-outline hover:text-deep-lagoon hover:bg-surface-container-lowest" data-doc-editar aria-label="Editar pregunta" title="Editar"><span class="material-symbols-outlined text-[15px]">edit</span></button><button type="button" class="p-1 rounded text-outline hover:text-error hover:bg-error-container hidden" data-doc-borrar aria-label="Borrar pregunta" title="Borrar"><span class="material-symbols-outlined text-[15px]">delete</span></button></div></div></div></div>
 </div>
-</section>
-<!-- 1b. SALES MANAGER / PROJECT MANAGER DE ESTE PROYECTO (11-sep-2026) —
-     lectura aquí; asignar/desasignar es una escritura y vive en el modal de
-     "Editar proyecto" (editores.js), gateada a admin + herramienta usuarios. -->
-<section class="space-y-3">
-<h4 class="text-xs font-bold uppercase tracking-wider text-outline flex items-center gap-1.5">
-<span class="material-symbols-outlined text-[16px] text-territorial-green">supervisor_account</span>
-          Encargado del proyecto
-        </h4>
-<div class="flex flex-wrap gap-2" id="d-managers">—</div>
+</div>
+</div>
 </section>
 </div><!-- /cajon-col-info -->
 <!-- 2. DESGLOSE DE UNIDADES Y COMPRADORES VINCULADOS — la columna ancha -->
