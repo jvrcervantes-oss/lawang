@@ -22,7 +22,7 @@
      sustituye por la suya). Sube CORTINA_V al cambiar cortina.js: no la sella
      sella_assets, que solo recorre las etiquetas de los HTML. */
   var CORTINA = { 'comision-admin': 15 };
-  var CORTINA_V = '20260923a';
+  var CORTINA_V = '20260923b';
   (function () {
     var seg = location.pathname.replace(/\/(index\.html)?$/, '').split('/').pop();
     if (!CORTINA[seg]) return;

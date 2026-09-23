@@ -18,7 +18,11 @@
  * se está trabajando no se toca ni se renueva.
  *
  * La carga nav.js solo en las pantallas de su lista CORTINA, que también fija
- * los segundos (data-segundos en este <script>). */
+ * los segundos (data-segundos en este <script>).
+ *
+ * El menú lateral y la barra de arriba quedan LIBRES (owner, mismo día:
+ * «permíteme moverme por el menú por si quiero salir de ahí»): la cortina
+ * empieza donde acaban, y se recoloca al cambiar el tamaño de la ventana. */
 (function () {
   'use strict';
   var yo = document.currentScript;
@@ -27,8 +31,13 @@
 
   var css = document.createElement('style');
   css.textContent =
-    '#lw-cortina{position:fixed;inset:0;z-index:2147483000;background:#0F2E30;display:flex;align-items:center;justify-content:center;padding:16px;font-family:"Neue Kabel",system-ui,sans-serif}' +
+    /* z 45: por encima del contenido y por DEBAJO del menú lateral (z-50), que en
+       móvil se abre como cajón y tiene que poder usarse con la pantalla tapada.
+       Lo que se abre por encima de la página (cajón, editor, diálogos) se
+       esconde mientras está tapada: si no, quedaría a la vista sobre la cortina. */
+    '#lw-cortina{position:fixed;inset:0;z-index:45;background:#0F2E30;display:flex;align-items:center;justify-content:center;padding:16px;font-family:"Neue Kabel",system-ui,sans-serif}' +
     '#lw-cortina[hidden]{display:none}' +
+    'html.lw-tapada #lw-cajon,html.lw-tapada #lw-editor,html.lw-tapada .lw-dlg-fondo{visibility:hidden!important}' +
     '#lw-cortina form{width:100%;max-width:360px;background:#F5F0E6;border-radius:18px;padding:28px 26px;display:flex;flex-direction:column;gap:14px;box-shadow:0 20px 60px rgba(0,0,0,.35)}' +
     '#lw-cortina .ic{width:44px;height:44px;border-radius:999px;background:#104C4F;color:#F5F0E6;display:flex;align-items:center;justify-content:center;font-family:"Material Symbols Outlined";font-size:22px}' +
     '#lw-cortina h2{margin:0;font-size:20px;font-weight:700;color:#104C4F}' +
@@ -60,11 +69,33 @@
   chip.id = 'lw-cortina-chip';
   chip.hidden = true;
   chip.innerHTML = '<span>Se bloquea en</span><b id="lw-cortina-seg">' + SEGUNDOS + '</b><span>s</span><button type="button" id="lw-cortina-ya">Bloquear ya</button>';
+  /* Hueco para el menú y la barra: se mide lo que hay en pantalla. En móvil el
+     menú es un cajón fuera de pantalla (ancho 0 o a la izquierda del borde) y
+     solo queda libre la barra de arriba, que es la que lo abre. */
+  function recoloca() {
+    var izq = 0, arriba = 0;
+    var aside = document.querySelector('aside');
+    if (aside) {
+      var ra = aside.getBoundingClientRect();
+      if (ra.width > 0 && ra.left >= 0 && ra.right < window.innerWidth * 0.6 && getComputedStyle(aside).visibility !== 'hidden') izq = Math.round(ra.right);
+    }
+    var cab = document.querySelector('header');
+    if (cab) {
+      var rc = cab.getBoundingClientRect();
+      if (rc.height > 0 && rc.top <= 0 && rc.height < 140) arriba = Math.round(rc.bottom);
+    }
+    capa.style.left = izq + 'px';
+    capa.style.top = arriba + 'px';
+  }
+  window.addEventListener('resize', recoloca);
   function monta() {
     document.body.appendChild(capa); document.body.appendChild(chip);
+    recoloca();
+    setTimeout(recoloca, 400);   // la barra y el menú terminan de colocarse tras el guard
     var pre = document.getElementById('lw-cortina-pre');   // el fondo que puso nav.js
     if (pre) pre.remove();
   }
+  document.documentElement.classList.add('lw-tapada');
   if (document.body) monta(); else document.addEventListener('DOMContentLoaded', monta);
 
   var form = capa.querySelector('form');
@@ -78,6 +109,7 @@
   function cierra() {
     abierta = false;
     capa.hidden = false; chip.hidden = true;
+    document.documentElement.classList.add('lw-tapada');
     input.value = ''; err.textContent = '';
     if (reloj) { clearInterval(reloj); reloj = null; }
     setTimeout(function () { try { input.focus(); } catch (e) {} }, 30);
@@ -85,6 +117,7 @@
   function abre() {
     abierta = true; fallos = 0;
     capa.hidden = true; chip.hidden = false;
+    document.documentElement.classList.remove('lw-tapada');
     input.value = '';
     ultimo = Date.now();
     tic();
