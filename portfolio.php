@@ -23,7 +23,7 @@
 require __DIR__ . '/modelo/datos.php';
 $MODELOS = require __DIR__ . '/modelo/modelos.php';
 $CAT = lw_au_catalogo();
-// Escalera (23-sep, owner): de la villa mas pequena a la mas grande, de izquierda a derecha.
+// Orden de la villa mas pequena a la mas grande (superficie villa + terraza).
 uasort($CAT, function ($a, $b) { return ($a['villa_m2'] + $a['terraza_m2']) <=> ($b['villa_m2'] + $b['terraza_m2']); });
 
 $WA_LINK = 'https://wa.me/6281138319862?text=' . rawurlencode("Hi LAWANG, I'm looking at your villa models and I'd like to know more.");
@@ -119,23 +119,23 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--tg);outline-offset:
 .pf-hero p{max-width:40rem;margin:clamp(18px,2vw,26px) auto 0;font-size:15px;line-height:1.6;color:#5d625a}
 
 /* ── Rejilla de modelos: tarjetas .lw-prop de la home ── */
-/* ESCALERA (23-sep, owner: «5 tarjetas formando una escalera, que crezcan a la derecha y no
-   hacia abajo»): UNA fila, de la villa mas pequena a la mas grande, y cada tarjeta un escalon
-   (--paso) mas arriba que la anterior. La fila no se parte nunca: por debajo de 1200px se
-   desliza de lado (scroll-snap) manteniendo los escalones. */
-.pf-grid{--paso:clamp(28px,3.4vw,52px);max-width:1440px;margin:0 auto;padding:calc(var(--paso) * 4) var(--gut) clamp(64px,8vw,110px);
-  display:flex;align-items:flex-start;gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
-.pf-grid::-webkit-scrollbar{display:none}
-.pf-grid .lw-prop{flex:1 0 250px;min-width:0;scroll-snap-align:start;margin-top:calc(var(--paso) * (4 - var(--i)) - var(--paso) * 4)}
-.pf-grid .lw-prop:hover{transform:translateY(-6px)}
-/* Tarjeta estrecha: precio arriba y «View model» debajo, en vez de lado a lado. */
-.pf-grid .lw-prop-foot{flex-direction:column;align-items:flex-start;gap:6px}
-.pf-grid .lw-prop-price{font-size:25px}
-.pf-grid .lw-prop-title{font-size:25px}
-.pf-grid .lw-prop-meta{font-size:12.5px}
-.pf-grid .lw-prop > a{height:600px}
-.pf-paso{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.2em;color:var(--sc);margin-bottom:2px}
-@media(max-width:1199px){ .pf-grid{justify-content:flex-start;scroll-padding-inline:var(--gut)} .pf-grid .lw-prop{flex:0 0 min(78vw,300px)} }
+/* LISTA de tarjetas horizontales (23-sep, owner: «tarjetas de 2 columnas, izquierda foto y
+   derecha datos, y que vayan hacia abajo»). Sustituye a la escalera. Misma tarjeta .lw-prop de la
+   home, girada: foto 46% a la izquierda, datos a la derecha. Bajo 760px, foto arriba. */
+.pf-grid{max-width:1120px;margin:0 auto;padding:0 var(--gut) clamp(64px,8vw,110px);display:flex;flex-direction:column;gap:22px}
+.pf-grid .lw-prop > a{flex-direction:row;height:auto;min-height:340px}
+.pf-grid .lw-prop-media{flex:0 0 46%;margin:8px 0 8px 8px;min-height:320px}
+.pf-grid .lw-prop-body{padding:28px 34px 28px;gap:12px;justify-content:center}
+.pf-grid .lw-prop-pills{justify-content:flex-start}
+.pf-grid .lw-prop-title{font-size:clamp(26px,2.6vw,34px);min-height:0;-webkit-line-clamp:1}
+.pf-grid .lw-prop-sub{min-height:0;-webkit-line-clamp:3}
+.pf-grid .lw-prop-foot{justify-content:space-between;gap:12px}
+@media(max-width:760px){
+  .pf-grid .lw-prop > a{flex-direction:column}
+  .pf-grid .lw-prop-media{flex:0 0 240px;min-height:240px;margin:8px 8px 0}
+  .pf-grid .lw-prop-body{padding:18px 22px 22px}
+  .pf-grid .lw-prop-title{-webkit-line-clamp:2}
+}
 .pf-grid .lw-prop-loc{display:flex;align-items:center;gap:8px}
 .pf-grid .lw-prop-foot{justify-content:space-between;gap:12px}
 .pf-view{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--tg);
@@ -183,7 +183,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--tg);outline-offset:
     $precio = lw_precio_fmt(lw_modelo_precio_desde($m));
     $i++;
 ?>
-    <article class="lw-prop" style="--i:<?= $i - 1 ?>">
+    <article class="lw-prop">
       <a href="<?= lw_e($href) ?>">
         <div class="lw-prop-media ph-jungle">
 <?php if (!empty($v['thumb'])): ?>
