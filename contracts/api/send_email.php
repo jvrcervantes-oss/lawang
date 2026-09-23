@@ -195,6 +195,31 @@ if (($in['preview'] ?? false) === true) {
   exit;
 }
 
+/* MODO MANTENIMIENTO DE ENVÍOS (owner, 23-sep-2026, urgente). Todo correo de
+   la intranet pasa por aquí, venga del navegador o de una Edge, así que el
+   candado va aquí y no en cada pantalla. Se pregunta a la base en cada envío
+   (envios_pausados(), un booleano; se pausa y reanuda desde /v4/ajustes/).
+   Si no se puede preguntar, NO se envía: el owner pidió que nadie pueda
+   saltárselo, y un envío perdido se repite, uno de más no se deshace. */
+function envios_pausados(): bool {
+  $ch = curl_init(SUPA_URL . '/rest/v1/rpc/envios_pausados');
+  curl_setopt_array($ch, [
+    CURLOPT_POST => true,
+    CURLOPT_POSTFIELDS => '{}',
+    CURLOPT_HTTPHEADER => ['apikey: ' . SUPA_ANON, 'Content-Type: application/json'],
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_TIMEOUT => 6,
+  ]);
+  $resp = curl_exec($ch);
+  $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+  curl_close($ch);
+  if ($resp === false || $code !== 200) return true;
+  return trim((string) $resp) !== 'false';
+}
+if (envios_pausados()) {
+  fail('Los envíos de correo están en pausa (modo mantenimiento). No se ha enviado nada.', 503);
+}
+
 if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { fail('Destinatario no válido'); }
 if (mb_strlen($subject) > 200) { fail('Asunto demasiado largo'); }
 if (mb_strlen($message) > 5000) { fail('Mensaje demasiado largo'); }
