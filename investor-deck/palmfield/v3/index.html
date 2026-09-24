@@ -234,7 +234,7 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
 /* ── 3 · MASTERPLAN: cabecera "THE COLLECTION" + plano + inventario ── */
 .cab-fila{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap}
 .titulo.verde{color:var(--tg-dark)}
-.leyenda{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--sa);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ci2)}
+.leyenda{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin-top:6px;font-family:var(--sa);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ci2)}
 .leyenda i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px;vertical-align:1px}
 .mp-grid{display:grid;grid-template-columns:1fr;gap:clamp(20px,2.4vw,36px);margin-top:clamp(2rem,4.5vh,3rem);align-items:start}
 @media(min-width:1024px){.mp-grid{grid-template-columns:7fr 5fr}}
@@ -337,17 +337,27 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
 #faq h3{font-family:var(--sa);font-size:11px;font-weight:500;letter-spacing:.24em;text-transform:uppercase;color:var(--sc);margin:0 0 6px}
 .dd-cab{padding-bottom:22px;border-bottom:1px solid rgba(245,240,230,.16)}
 .dd-cuerpo{display:flex;flex-direction:column;gap:30px;padding-top:24px}
+/* Documentos | FAQ lado a lado desde 1280px (v2, owner 23-sep: las dos columnas a la
+   vista). Sin documentos publicados, la FAQ ocupa todo el ancho. */
+.dd-cols{display:flex;flex-direction:column;gap:30px}
+@media(min-width:1280px){
+  #vision{--pw:min(52%,760px)!important}
+  .dd-cols{flex-direction:row;align-items:flex-start;gap:28px}
+  .dd-cols > div{flex:1 1 0;min-width:0}
+  #docs-lista a{padding:6px 10px!important}
+}
 @media(min-width:1024px){
   #vision{height:100svh}
-  #faq{position:absolute;top:clamp(78px,11vh,96px);right:var(--cpd);bottom:clamp(22px,4vh,40px);width:min(40%,560px);min-width:400px;
+  #vision{--pw:min(40%,560px)}
+  #faq{position:absolute;top:clamp(78px,11vh,96px);right:var(--cpd);bottom:clamp(22px,4vh,40px);width:var(--pw);min-width:400px;
     padding:0;display:flex;flex-direction:column;overflow:hidden;border-radius:16px;
     background:rgba(12,14,10,.62);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
     border:1px solid rgba(190,179,165,.3);box-shadow:0 30px 70px -30px rgba(0,0,0,.7)}
   .dd-cab{padding:26px 28px 20px;flex:none}
   .dd-cuerpo{flex:1;min-height:0;overflow-y:auto;padding:20px 28px 26px;scrollbar-width:thin;scrollbar-color:rgba(245,240,230,.25) transparent}
-  .hero-texto,.hero-pie{right:calc(min(40%,560px) + var(--cpd) + 40px)}
-  #hero-next{right:calc(min(40%,560px) + var(--cpd) + 20px)}
-  #hero-puntos{left:calc((100% - min(40%,560px) - var(--cpd)) / 2)}
+  .hero-texto,.hero-pie{right:calc(var(--pw) + var(--cpd) + 40px)}
+  #hero-next{right:calc(var(--pw) + var(--cpd) + 20px)}
+  #hero-puntos{left:calc((100% - var(--pw) - var(--cpd)) / 2)}
   .hero-pie{flex-direction:column;align-items:flex-start;gap:22px}
   .hero-texto{bottom:clamp(170px,26vh,230px)}
 }
@@ -480,9 +490,9 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
 
   <div id="hero-puntos"></div>
 
-  <!-- Panel de due diligence DENTRO de la hero (24-sep, owner). Mismos ids que v2. FAQ
-       primero (es lo que se pidio en la hero) y los documentos debajo: los dos a la
-       vista, sin pestañas (owner, 23-sep). -->
+  <!-- Panel de due diligence DENTRO de la hero (24-sep, owner). Mismos ids que v2. Documentos
+       y FAQ en dos columnas desde 1280px, como v2 (owner, 24-sep); por debajo, uno
+       encima del otro. Sin pestañas (owner, 23-sep). -->
   <aside id="faq">
     <div class="dd-cab">
       <p class="kicker">Investor Deck · Due Diligence</p>
@@ -490,13 +500,15 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
       <p class="dd-lema">Held under <b>Hak Sewa</b> with a notarial escrow account — not a security or investment product.</p>
     </div>
     <div class="dd-cuerpo">
-      <div id="faq-bloque">
-        <h3>Frequently Asked Questions</h3>
-        <div id="faq-lista"><!-- lo llena el JS --></div>
-      </div>
-      <div id="docs-bloque" class="hidden">
-        <h3>Project documents</h3>
-        <div id="docs-lista"><!-- lo llena el JS --></div>
+      <div class="dd-cols">
+        <div id="docs-bloque" class="hidden">
+          <h3>Project documents</h3>
+          <div id="docs-lista"><!-- lo llena el JS --></div>
+        </div>
+        <div id="faq-bloque">
+          <h3>Frequently Asked Questions</h3>
+          <div id="faq-lista"><!-- lo llena el JS --></div>
+        </div>
       </div>
       <div class="dd-atajos">
         <a class="btn btn-hueso" href="#modelos">Villa Models</a>
@@ -525,11 +537,10 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
      leyenda a la derecha; plano e inventario en vivo como tarjetas de la home. -->
 <section class="sec" id="masterplan">
 <div class="wrap">
-  <div class="cab-fila reveal">
-    <div class="cab">
-      <h2 class="titulo verde">Masterplan &amp; Plot Availability</h2>
-      <p class="entrada">Individually cadastred plots. Live inventory read directly from Palm Field's records — sizes, prices and status are informational and confirmed at Plot Lock.</p>
-    </div>
+  <div class="cab center reveal">
+    <p class="kicker">Masterplan &amp; Plots</p>
+    <h2 class="titulo">Masterplan &amp; Plot Availability</h2>
+    <p class="entrada">Individually cadastred plots. Live inventory read directly from Palm Field's records — sizes, prices and status are informational and confirmed at Plot Lock.</p>
     <div class="leyenda">
       <span><i style="background:#485B37"></i>Available</span>
       <span><i style="background:#F59E0B"></i>Reserved</span>
@@ -588,7 +599,8 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
 <!-- 5 · LEGAL — mismo texto LETRA POR LETRA que v2 (paso Legal el 9-sep); solo piel. -->
 <section class="sec" id="seguridad-notarial">
 <div class="wrap">
-  <div class="cab reveal">
+  <div class="cab center reveal">
+    <p class="kicker">Legal Security</p>
     <h2 class="titulo">Hak Sewa With Notarial Escrow vs. Informal Leasehold</h2>
     <p class="entrada">
       Much of Bali's foreign-facing market runs on private, unregistered lease agreements with no escrow and no notarial oversight. Palm Field is structured as <strong>Hak Sewa</strong> (long-term Indonesian lease tenure) directly between the landowner and the buyer, with funds held in a <strong>notarial escrow account</strong> until the agreed conditions are met — not Hak Milik, which Indonesian law reserves for Indonesian citizens.
