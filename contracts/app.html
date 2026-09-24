@@ -5714,8 +5714,13 @@ function blobToBase64(blob){
    `adq1_registro` (20-sep-2026, encargo del owner): el Nº de registro
    mercantil solo aparece cuando el comprador es una empresa (CAMPOS_EMPRESA,
    más abajo), y no toda sociedad lo tiene a mano al redactar el contrato —
-   se completa después sin bloquear el envío. */
-const CAMPOS_OPCIONALES = new Set(['nombre_contrato', 'precio_total_letras', 'precio_reserva_letras', 'adq1_registro']);
+   se completa después sin bloquear el envío.
+   `descuento_comercial` + `_motivo` (24-sep-2026, owner: "es opcional, no
+   es obligatorio"): casi ningún contrato lleva descuento. Si se pone uno,
+   el guardado sigue exigiendo su motivo y el tope del 15% (ver
+   CAMPOS_DESCUENTO_COMERCIAL); lo que se quita es exigirlo vacío. */
+const CAMPOS_OPCIONALES = new Set(['nombre_contrato', 'precio_total_letras', 'precio_reserva_letras', 'adq1_registro',
+  'descuento_comercial', 'descuento_comercial_motivo']);
 const SECCIONES_OPCIONALES = new Set(['hs_segunda_parte']);
 const valorCampo = key => { const el = document.querySelector(`[name="${key}"]`); return el ? String(el.value||'').trim() : ''; };
 function camposSinRellenar(){
