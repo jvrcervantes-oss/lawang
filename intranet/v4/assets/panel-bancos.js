@@ -27,10 +27,15 @@
 
   var T = function (s) { return (typeof lwT === 'function') ? lwT(s) : s; };
   function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML.replace(/"/g, '&quot;'); }
+  /* CON CÉNTIMOS, a propósito (owner 24-sep-2026, opción A): la v4 enseña los
+     importes sin decimales (datos.js envuelve lwFormatoImporte y fuerza 0), pero
+     un extracto y su conciliación van al céntimo — sin ellos 1.000,90 salía
+     «1.001» y una diferencia de 0,80 salía «falta 1». Solo esta pantalla: los
+     decimales de cada moneda los da LW_DECIMALES (dinero.js; IDR sin decimales). */
   function fmt(n, m) {
     if (n == null) return '—';
-    if (typeof lwFormatoImporte === 'function') return lwFormatoImporte(n, m);
-    return new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(n) || 0) + (m ? ' ' + m : '');
+    var d = (typeof LW_DECIMALES !== 'undefined' && LW_DECIMALES[m] != null) ? LW_DECIMALES[m] : (m === 'IDR' ? 0 : 2);
+    return new Intl.NumberFormat('de-DE', { minimumFractionDigits: d, maximumFractionDigits: d }).format(Number(n) || 0) + (m ? ' ' + m : '');
   }
   function fmtS(n, m) { return (Number(n) < 0 ? '− ' : '+ ') + fmt(Math.abs(Number(n) || 0), m); }
   function hoyLocal() {
