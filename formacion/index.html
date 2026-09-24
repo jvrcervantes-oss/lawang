@@ -188,6 +188,12 @@ ul.lista li .ms{font-size:18px;color:var(--tg);margin-top:2px}
 .villa{display:flex;flex-direction:column;border-radius:16px;overflow:hidden;border:1px solid var(--stone);
   text-decoration:none;background:var(--paper);transition:transform .2s ease}
 .villa:hover{transform:translateY(-3px)}
+.villa{position:relative}
+.villa .ir{position:absolute;top:10px;right:10px;z-index:2;display:inline-flex;align-items:center;gap:3px;
+  background:rgba(251,249,244,.92);color:var(--dl);border-radius:999px;padding:4px 8px 4px 11px;
+  font-size:11.5px;font-weight:600;opacity:.92;transition:opacity .15s ease,background .15s ease}
+.villa .ir .ms{font-size:15px}
+.villa:hover .ir{opacity:1;background:var(--paper)}
 .villa .ph{aspect-ratio:4/3;background:var(--ash);overflow:hidden}
 .villa .ph img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease}
 .villa:hover .ph img{transform:scale(1.04)}
@@ -211,11 +217,7 @@ ul.lista li .ms{font-size:18px;color:var(--tg);margin-top:2px}
 .subhead h3{font-size:clamp(28px,3vw,36px);margin-top:6px}
 .proys{margin-top:0}
 @media (min-width:1200px){.proys{grid-template-columns:repeat(4,1fr)}}
-.proys .villa{cursor:default}
-.proys .villa:hover{transform:none}
 .proys .ph{aspect-ratio:16/10;position:relative}
-.proys .ph i{position:absolute;left:10px;top:10px;font-style:normal;font-size:10.5px;letter-spacing:.06em;
-  background:rgba(251,249,244,.9);color:var(--ash);border-radius:999px;padding:3px 9px}
 .proys .ph--sin{background:linear-gradient(135deg,#3a4146,#2e3437)}
 .proys .ph--sin{display:flex;align-items:center;justify-content:center}
 .proys .ph--sin::before{content:'landscape';font-family:'Material Symbols Outlined';font-size:56px;color:rgba(245,240,230,.14);-webkit-font-feature-settings:'liga'}
@@ -474,55 +476,23 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
   </div>
 
   <div class="villas reveal" aria-label="Catálogo de villas">
-    <a class="villa" href="/modelo/dali" target="_blank" rel="noopener"><div class="ph"><img loading="lazy" src="/assets/img/buildings/dali/web/dali.webp" alt="Villa Dali"></div><div class="b"><h3>Dali</h3><span>1 dorm.</span></div></a>
-    <a class="villa" href="/modelo/dune" target="_blank" rel="noopener"><div class="ph"><img loading="lazy" src="/assets/img/buildings/dune/web/dune.webp" alt="Villa Dune"></div><div class="b"><h3>Dune</h3><span>1 dorm.</span></div></a>
-    <a class="villa" href="/modelo/dream" target="_blank" rel="noopener"><div class="ph"><img loading="lazy" src="/assets/img/buildings/dream/web/dream.webp" alt="Villa Dream"></div><div class="b"><h3>Dream</h3><span>2 dorm.</span></div></a>
-    <a class="villa" href="/modelo/loftbung" target="_blank" rel="noopener"><div class="ph ph--sin">Fotos en su landing</div><div class="b"><h3>Loftbung</h3><span>2 dorm.</span></div></a>
-    <a class="villa" href="/modelo/trinity" target="_blank" rel="noopener"><div class="ph ph--sin">Fotos en su landing</div><div class="b"><h3>Trinity</h3><span>3 dorm.</span></div></a>
-    <a class="villa" href="/modelo/temple" target="_blank" rel="noopener"><div class="ph ph--sin">Fotos en su landing</div><div class="b"><h3>Temple</h3><span>4 dorm.</span></div></a>
+    <a class="villa" href="/modelo/dali" target="_blank" rel="noopener"><span class="ir">Landing<span class="ms">arrow_outward</span></span><div class="ph"><img loading="lazy" src="/assets/img/buildings/dali/web/dali.webp" alt="Villa Dali"></div><div class="b"><h3>Dali</h3><span>1 dorm.</span></div></a>
+    <a class="villa" href="/modelo/dune" target="_blank" rel="noopener"><span class="ir">Landing<span class="ms">arrow_outward</span></span><div class="ph"><img loading="lazy" src="/assets/img/buildings/dune/web/dune.webp" alt="Villa Dune"></div><div class="b"><h3>Dune</h3><span>1 dorm.</span></div></a>
+    <a class="villa" href="/modelo/dream" target="_blank" rel="noopener"><span class="ir">Landing<span class="ms">arrow_outward</span></span><div class="ph"><img loading="lazy" src="/assets/img/buildings/dream/web/dream.webp" alt="Villa Dream"></div><div class="b"><h3>Dream</h3><span>2 dorm.</span></div></a>
+    <a class="villa" href="/modelo/loftbung" target="_blank" rel="noopener"><span class="ir">Landing<span class="ms">arrow_outward</span></span><div class="ph ph--sin">Fotos en su landing</div><div class="b"><h3>Loftbung</h3><span>2 dorm.</span></div></a>
+    <a class="villa" href="/modelo/trinity" target="_blank" rel="noopener"><span class="ir">Landing<span class="ms">arrow_outward</span></span><div class="ph ph--sin">Fotos en su landing</div><div class="b"><h3>Trinity</h3><span>3 dorm.</span></div></a>
+    <a class="villa" href="/modelo/temple" target="_blank" rel="noopener"><span class="ir">Landing<span class="ms">arrow_outward</span></span><div class="ph ph--sin">Fotos en su landing</div><div class="b"><h3>Temple</h3><span>4 dorm.</span></div></a>
   </div>
 
   <div class="subhead reveal">
     <span class="lbl">Dónde construimos</span>
     <h3>Los proyectos</h3>
   </div>
-  <div class="villas proys reveal" aria-label="Proyectos">
-    <div class="villa"><div class="ph"><img loading="lazy" src="/assets/img/formacion/palm-field.webp" alt="Palm Field W5, visualización del masterplan"><i>Visualización</i></div><div class="b"><h3>Palm Field W5</h3><span>Balian · Bali</span></div></div>
-    <div class="villa"><div class="ph"><img loading="lazy" src="/assets/img/formacion/sumba-hills.webp" alt="Costa de Sumba Hills desde el aire"></div><div class="b"><h3>Sumba Hills</h3><span>Sumba</span></div></div>
-    <div class="villa"><div class="ph"><img loading="lazy" src="/assets/img/formacion/riverfront.webp" alt="Riverfront, render de una villa"><i>Render</i></div><div class="b"><h3>Riverfront I y II</h3><span>Kaba-Kaba · Bali</span></div></div>
-    <div class="villa"><div class="ph ph--sin"></div><div class="b"><h3>Bonian Village</h3><span>Bali</span></div></div>
-    <div class="villa"><div class="ph ph--sin"></div><div class="b"><h3>Tamarind Rise</h3><span>Bali</span></div></div>
-    <div class="villa"><div class="ph ph--sin"></div><div class="b"><h3>Inti Living W6</h3><span>Bali</span></div></div>
-    <div class="villa"><div class="ph ph--sin"></div><div class="b"><h3>Tangkuban Village</h3><span>Denpasar · Bali</span></div></div>
-    <div class="villa"><div class="ph ph--sin"></div><div class="b"><h3>Java Sunset S2</h3><span>Sumba</span></div></div>
-  </div>
-
-  <div class="subhead reveal">
-    <span class="lbl">Qué enseñar al cliente</span>
-    <h3>El material ya está hecho</h3>
-  </div>
-  <div class="grid g3 reveal">
-    <div class="mat">
-      <span class="ic ms">cottage</span>
-      <h3>Landing de la villa</h3>
-      <p>Una página por modelo: fotos, distribución, las cubiertas que se pueden elegir y un configurador que da el precio de la villa según lo que marque el cliente.</p>
-      <span class="uso">Cuándo: cuando ya sabes qué villa encaja con él. Mándale una, no las seis.</span>
-      <a class="ej" href="/modelo/dali" target="_blank" rel="noopener">Ejemplo: Villa Dali<span class="ms">arrow_outward</span></a>
-    </div>
-    <div class="mat">
-      <span class="ic ms">map</span>
-      <h3>Landing del proyecto</h3>
-      <p>El proyecto entero en una página: dónde está, cómo es el terreno, los tamaños de parcela y las villas que se pueden construir allí.</p>
-      <span class="uso">Cuándo: en el primer contacto, para que entienda el sitio antes que la casa.</span>
-      <a class="ej" href="/palmfield" target="_blank" rel="noopener">Ejemplo: Palm Field<span class="ms">arrow_outward</span></a>
-    </div>
-    <div class="mat">
-      <span class="ic ms">slideshow</span>
-      <h3>Investor deck</h3>
-      <p>La presentación completa del proyecto para quien lo mira como inversión: plano de parcelas, fotos y el ejemplo económico de una parcela concreta. Existe solo en los proyectos que lo tienen activado.</p>
-      <span class="uso">Cuándo: con el comprador que quiere alquilar, antes de la videollamada.</span>
-      <a class="ej" href="/investor-deck/palmfield/" target="_blank" rel="noopener">Ejemplo: deck de Palm Field<span class="ms">arrow_outward</span></a>
-    </div>
+  <div class="villas proys reveal" id="proyectos-lista" aria-label="Proyectos">
+    <!-- Una tarjeta por proyecto con investor deck. Foto y nombre salen EN VIVO de la
+         intranet (deck_config_publico + investor_deck_fotos, las mismas funciones públicas
+         que usa el propio deck): si allí cambian la foto, aquí cambia sola. Un deck
+         desactivado no pinta tarjeta. La lista de slugs está en el script de abajo. -->
   </div>
 </div>
 </section>
@@ -989,6 +959,56 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
       var txt = el.textContent.trim(), orig = b.lastChild.textContent;
       function ok() { b.lastChild.textContent = orig === 'Copy' ? 'Copied' : 'Copiado'; setTimeout(function () { b.lastChild.textContent = orig; }, 1600); }
       if (navigator.clipboard) navigator.clipboard.writeText(txt).then(ok, function () {});
+    });
+  });
+
+
+  // ── Proyectos con investor deck: foto y nombre en vivo desde la intranet ──
+  // Mismas funciones públicas (clave publicable, solo lectura) que usa /investor-deck/.
+  // Foto: la de portada del proyecto y, si no tiene, la primera de su galería. Nunca
+  // la de una villa: una villa no es el proyecto. Sin foto, bloque neutro hasta que
+  // alguien la suba en la intranet (Proyectos -> Fotos del deck).
+  var SB_URL = 'https://vtulllundrfennhjddhc.supabase.co';
+  var SB_KEY = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';
+  var FOTOS = SB_URL + '/storage/v1/object/public/deck/';
+  var DECKS = ['palmfield', 'bonian-village', 'sumbahills', 'horizon-s1'];
+  function rpc(fn, body) {
+    return fetch(SB_URL + '/rest/v1/rpc/' + fn, {
+      method: 'POST', body: JSON.stringify(body),
+      headers: { 'Content-Type': 'application/json', apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY }
+    }).then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); });
+  }
+  function portada(fotos) {
+    var pr = fotos.filter(function (f) { return !f.modelo_slug; });
+    var orden = function (a, b) { return (a.orden || 0) - (b.orden || 0); };
+    var hero = pr.filter(function (f) { return f.uso === 'hero'; }).sort(orden)[0];
+    var gal = pr.filter(function (f) { return f.uso === 'galeria'; }).sort(orden)[0];
+    var f = hero || gal || pr[0];
+    return f ? FOTOS + f.path : null;
+  }
+  var lista = document.getElementById('proyectos-lista');
+  Promise.all(DECKS.map(function (slug) {
+    return rpc('deck_config_publico', { p_slug: slug }).then(function (rows) {
+      if (!rows || !rows.length) return null;               // deck desactivado: sin tarjeta
+      var nombre = rows[0].proyecto;
+      return rpc('investor_deck_fotos', { p_proyecto: nombre })
+        .then(function (f) { return { slug: slug, nombre: nombre, foto: portada(f || []) }; },
+              function () { return { slug: slug, nombre: nombre, foto: null }; });
+    }, function () { return null; });
+  })).then(function (ps) {
+    ps.filter(Boolean).forEach(function (p) {
+      var a = document.createElement('a');
+      a.className = 'villa'; a.target = '_blank'; a.rel = 'noopener';
+      a.href = '/investor-deck/' + p.slug + '/';
+      a.innerHTML = '<span class="ir">Investor deck<span class="ms">arrow_outward</span></span>' +
+        '<div class="ph' + (p.foto ? '' : ' ph--sin') + '"></div><div class="b"><h3></h3></div>';
+      if (p.foto) {
+        var img = document.createElement('img');
+        img.loading = 'lazy'; img.src = p.foto; img.alt = p.nombre;
+        a.querySelector('.ph').appendChild(img);
+      }
+      a.querySelector('h3').textContent = p.nombre;
+      lista.appendChild(a);
     });
   });
 
