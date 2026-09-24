@@ -67,6 +67,19 @@ ok(lw_foto_por_pie('zeta', ['no existe este pie'], $catFake) === null,
 ok(lw_foto_por_pie('no-existe', ['top view'], $catFake) === null,
     'un modelo sin fotos en el catálogo no debe casar con nada');
 
+// 24-sep-2026: /modelo/dune enseñaba la foto "Bamboo Aerea" como planta y la planta como
+// techo de bambú — sus pies reales son "Dune Floor Plan" y "Dune Roof Bamboo", que no
+// casaban con 'top view' / 'bamboo exterior' y caían al respaldo por posición.
+$catDune = ['dune' => [
+    ['pie' => 'Dune Roof Bamboo',  'path' => 'modelo/techo.webp'],
+    ['pie' => 'Dune Floor Plan',   'path' => 'modelo/planta.webp'],
+    ['pie' => 'Dune Bamboo Aerea', 'path' => 'modelo/aerea.webp'],
+]];
+ok(lw_foto_por_pie('dune', ['top view', 'floor plan'], $catDune) === LW_SB_URL . '/storage/v1/object/public/deck/modelo/planta.webp',
+    'la planta se encuentra también por el pie "Floor Plan"');
+ok(lw_foto_por_pie('dune', ['bamboo'], ['dune' => array_reverse($catDune['dune'])], ['aerea', 'floor plan']) === LW_SB_URL . '/storage/v1/object/public/deck/modelo/techo.webp',
+    'el excluir salta "Bamboo Aerea" aunque vaya antes que el techo');
+
 // Un modelo NUEVO que no marque el flag sigue cayendo al catálogo si no tiene imágenes —
 // la excepción es por modelo, no un apagado general de la regla.
 $sinFlag = $M;

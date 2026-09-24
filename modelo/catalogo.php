@@ -304,12 +304,15 @@ function lw_fotos_urls($id, $cat = null) {
  * el orden de preferencia y el respaldo sin depender de qué haya subido nadie hoy a
  * /intranet/modelos/ (ni de tener red desde donde se corra el test).
  */
-function lw_foto_por_pie($id, array $patrones, $cat = null) {
+function lw_foto_por_pie($id, array $patrones, $cat = null, array $excluir = []) {
     $cat = $cat ?? lw_fotos_catalogo();
     if (empty($cat[$id]) || !is_array($cat[$id])) return null;
     foreach ($patrones as $patron) {
         foreach ($cat[$id] as $f) {
             if (empty($f['path']) || empty($f['pie'])) continue;
+            foreach ($excluir as $no) {
+                if (stripos($f['pie'], $no) !== false) continue 2;
+            }
             if (stripos($f['pie'], $patron) !== false) {
                 return LW_SB_URL . '/storage/v1/object/public/deck/' . $f['path'];
             }

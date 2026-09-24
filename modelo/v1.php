@@ -97,7 +97,7 @@ $portada = $g[0] ?? null;
  * (mismo criterio que $techosComp: nunca enseñar un hueco vacío como si fuera un dato).
  */
 $heroDay      = lw_foto_por_pie($m['id'], ['sirap', 'ulin exterior']) ?? $g[0] ?? null;
-$heroTechoAlt = lw_foto_por_pie($m['id'], ['bamboo exterior', 'bambu exterior']) ?? $g[2] ?? $g[1] ?? $g[0] ?? null;
+$heroTechoAlt = lw_foto_por_pie($m['id'], ['bamboo exterior', 'bambu exterior', 'roof bamboo', 'bamboo', 'bambu'], null, ['aerea', 'floor plan', 'top view']) ?? $g[2] ?? $g[1] ?? $g[0] ?? null;
 $heroInterior = lw_foto_por_pie($m['id'], ['living room', 'bedroom', 'interior']) ?? $g[6] ?? $g[1] ?? $g[0] ?? null;
 $heroKitchen  = lw_foto_por_pie($m['id'], ['kitchen']);
 $heroToilet   = lw_foto_por_pie($m['id'], ['toilet']);
@@ -107,7 +107,7 @@ $heroAerea    = lw_foto_por_pie($m['id'], ['bamboo aerea', 'aerea']);
 // otra foto exterior. Nunca mezclar `??`/`?:` sin parentesis (PHP lo rechaza como fatal
 // de sintaxis) — de ahi la variable intermedia en vez de encadenar todo en una línea.
 $ultimoImg    = $g ? end($g) : null;
-$layoutImg    = lw_foto_por_pie($m['id'], ['top view']) ?? $ultimoImg ?? $portada;
+$layoutImg    = lw_foto_por_pie($m['id'], ['top view', 'floor plan']) ?? $ultimoImg ?? $portada;
 
 $dormTxt  = $dorm . ' ' . ($dorm === 1 ? 'bedroom' : 'bedrooms');
 $sizeTxt  = $m['villa_m2'] . 'm² + ' . $m['terraza_m2'] . 'm² terrace';
