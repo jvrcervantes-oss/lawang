@@ -409,6 +409,55 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
 #fx-nota{padding:14px var(--cpd);background:var(--rl2)}
 #fx-nota p{max-width:var(--cmx);margin:0 auto;font-family:var(--sa);font-size:12px;color:var(--ci2)}
 /* Modal de reserva: mismo marcado que v2; solo la tipografia */
+/* ════ Masterplan y Legal con el lenguaje del resto de modulos (24-sep, owner) ═══════════
+   Fondo de lino con textura como Modelos/Galeria y todo el contenido en tarjetas oscuras
+   con filete interior, como las villas, el forecast y el panel de la hero. Los colores
+   bueno/malo de la tabla legal se conservan (owner 22-sep), adaptados a fondo oscuro. */
+.marco,.inv,.protocolo,.tabla,.clave{position:relative;background:#11150E;color:var(--rl);border-radius:16px;
+  box-shadow:0 30px 60px -30px rgba(20,26,17,.6);border:0}
+.marco::after,.protocolo::after,.clave::after{content:"";position:absolute;inset:8px;border:1px solid rgba(245,240,230,.16);border-radius:10px;pointer-events:none}
+.marco-pad{padding:18px}
+#masterplan-img{border-radius:8px}
+.mp-nota{color:rgba(245,240,230,.65);margin:14px 6px 4px}
+.inv{overflow:hidden}
+.inv-cab{background:transparent;border-bottom:1px solid rgba(245,240,230,.14);padding:20px 24px}
+#plots-wrap > div + div{border-top:1px solid rgba(245,240,230,.1)}
+#plots-wrap > div{background:transparent}
+#plots-wrap > div:hover{background:rgba(245,240,230,.04)!important}
+#plots-wrap .font-headline-sm,#plots-wrap .text-deep-lagoon{color:var(--rl)!important}
+#plots-wrap .text-on-surface-variant,#plots-wrap .text-sm{color:rgba(245,240,230,.68)!important}
+#plots-wrap [class*="bg-territorial-green/15"]{background:rgba(143,155,122,.2)!important;color:#C3D9A6!important}
+#plots-wrap [class*="bg-amber-100"]{background:rgba(245,158,11,.18)!important;color:#F4C979!important}
+#plots-wrap [class*="FBE9E7"]{background:rgba(179,38,30,.22)!important;color:#EFA39B!important}
+#plots-wrap [class*="bg-surface-container "],#plots-wrap span[class*="bg-surface-container px"]{background:rgba(245,240,230,.08)!important;color:rgba(245,240,230,.5)!important}
+#plots-wrap a[href*="wa.me"]{background:transparent!important;color:var(--rl)!important;border:1px solid rgba(37,211,102,.7);
+  font-family:var(--sa)!important;font-size:10.5px!important;letter-spacing:.14em;text-transform:uppercase;padding:9px 14px!important}
+#plots-wrap a[href*="wa.me"]:hover{background:#25D366!important;color:#0b3d25!important}
+#plots-wrap a[href*="wa.me"] .material-symbols-outlined{color:#25D366}
+#plots-wrap a[href*="wa.me"]:hover .material-symbols-outlined{color:#0b3d25}
+#plots-wrap .lw-fila-activa,.lw-fila-activa{background:rgba(143,155,122,.2)!important}
+#plots-wrap{scrollbar-width:thin;scrollbar-color:rgba(245,240,230,.25) transparent}
+.protocolo{margin-top:20px;padding:26px 26px 24px}
+.protocolo > span{color:var(--sc)}
+.protocolo ol{gap:0;margin-top:16px}
+.protocolo li{padding:12px 0;border-top:1px solid rgba(245,240,230,.12);color:rgba(245,240,230,.75)}
+.protocolo li strong{font-size:12px;letter-spacing:.16em;text-transform:uppercase}
+/* Tabla legal */
+.tabla{overflow:hidden}
+.t-fila + .t-fila{border-top:1px solid rgba(245,240,230,.1)}
+.t-cab > div:nth-child(1){color:var(--ss);background:rgba(245,240,230,.05)}
+.t-cab > div:nth-child(2){background:var(--tg)}
+.t-cab > div:nth-child(3){background:#7A241E}
+.t-asp strong{color:var(--rl)}
+.t-asp span{color:var(--ss)}
+.t-si{background:rgba(72,91,55,.28)} .t-no{background:rgba(142,42,34,.16)}
+.t-si p{color:#E3EDD6} .t-no p{color:#F0CFCB}
+.t-si .material-symbols-outlined,.t-si em{color:#A9C98A} .t-no .material-symbols-outlined,.t-no em{color:#E58C82}
+.claves{border-top:0;gap:clamp(18px,2vw,28px)}
+.clave{padding:30px 30px 28px!important;border-left:0!important}
+.clave strong{color:var(--rl)}
+.clave p{color:rgba(245,240,230,.72)}
+.clave .material-symbols-outlined{color:var(--sc)}
 #backdrop h3{font-family:var(--sa)!important;font-weight:500!important;letter-spacing:.06em;text-transform:uppercase}
 /* Escritorio: la hero vuelve a anclar texto/cifras/puntos al fondo de la seccion
    (en movil se anclan al pie de la FOTO, porque debajo va el panel en flujo). */
@@ -538,7 +587,7 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
 
 <!-- 3 · MASTERPLAN — patron "THE COLLECTION": titulo grande en verde a la izquierda,
      leyenda a la derecha; plano e inventario en vivo como tarjetas de la home. -->
-<section class="sec" id="masterplan">
+<section class="sec sec-lino" id="masterplan">
 <div class="wrap">
   <div class="cab center reveal">
     <p class="kicker">Masterplan &amp; Plots</p>
@@ -600,7 +649,7 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
 </section>
 
 <!-- 5 · LEGAL — mismo texto LETRA POR LETRA que v2 (paso Legal el 9-sep); solo piel. -->
-<section class="sec" id="seguridad-notarial">
+<section class="sec sec-lino" id="seguridad-notarial">
 <div class="wrap">
   <div class="cab center reveal">
     <p class="kicker">Legal Security</p>
