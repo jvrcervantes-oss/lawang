@@ -246,7 +246,13 @@
   function prepara() {
     var asides = document.querySelectorAll('aside');
     for (var i = 0; i < asides.length; i++) {
-      if (asides[i].textContent.indexOf('Cerrar Sesi') !== -1) { asides[i].classList.add('lw-aside'); break; }
+      /* Se reconoce por ESTRUCTURA (el enlace de salida, data-path="login"),
+         no por el texto «Cerrar Sesión»: en inglés i18n.js ya lo ha
+         traducido cuando esto corre, la sidebar se quedaba sin `lw-aside` y
+         en el móvil tapaba la pantalla entera en TODAS las páginas v4
+         (cazado el 24-sep con el arnés, al probar Finanzas en inglés). El
+         texto se queda como segunda vía por si una página no trae el data-path. */
+      if (asides[i].querySelector('a[data-path="login"]') || asides[i].textContent.indexOf('Cerrar Sesi') !== -1) { asides[i].classList.add('lw-aside'); break; }
     }
     var hdrs = document.querySelectorAll('header');
     for (var j = 0; j < hdrs.length; j++) {

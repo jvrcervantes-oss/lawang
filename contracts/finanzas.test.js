@@ -10,6 +10,9 @@ const RAIZ = path.join(__dirname, '..');
 global.lwParseImporte = require(path.join(RAIZ, 'contracts', 'assets', 'dinero.js')).lwParseImporte;
 const voc = fs.readFileSync(path.join(RAIZ, 'contracts', 'assets', 'vocabulario.js'), 'utf8');
 new Function(voc + '; globalThis.lwEsPreliminar = lwEsPreliminar;')();
+// entities.js: el resolver de sociedad (lwSociedadContrato) que usa el filtro por empresa
+const ent = fs.readFileSync(path.join(RAIZ, 'contracts', 'assets', 'entities.js'), 'utf8');
+new Function(ent + '; globalThis.lwSociedadContrato = lwSociedadContrato;')();
 const L = require(path.join(RAIZ, 'intranet', 'vencimientos', 'logica.js'));
 Object.assign(global, L);
 const F = require(path.join(RAIZ, 'contracts', 'assets', 'finanzas.js'));
@@ -191,6 +194,45 @@ caso('% cobrado de lo firmado usa SOLO lo cobrado de lo firmado (salía 122,9 %)
   const c = F.finCartera({ hoyISO: HOY, contratos: [bloqueo, borr], cobradoPorId: { b1: 30000, b5: 90000 }, vencimientos: hitosB }).EUR;
   assert.strictEqual(c.cobrado, 120000);        // caja real, incluye el borrador
   assert.strictEqual(c.cobradoFirmado, 30000);  // lo que cuenta contra lo firmado
+});
+
+caso('quién debe: solo quien debe, lo vencido primero, un comprador con dos contratos sale una vez', () => {
+  const b2 = { ...bloqueo, id: 'b6', comprador_nombre: 'Y', precio_total: 50000 };
+  const b3 = { ...bloqueo, id: 'b7', comprador_nombre: 'X', precio_total: 10000 };
+  const b4 = { ...bloqueo, id: 'b8', comprador_nombre: 'Z', precio_total: 1000 };
+  const h2 = [{ id: 'y1', contrato_id: 'b6', orden: 1, pct: 100, monto: null, fecha: '2027-01-01' }];
+  const m = F.finModelo({ hoyISO: HOY, contratos: [bloqueo, b2, b3, b4], cobradoPorId: { b1: 30000, b8: 1000 }, vencimientos: hitosB.concat(h2),
+    recibis: [], facturas: [], unidades: [], solicitudes: [], comisiones: [] });
+  const per = m.porMoneda.EUR.porProyecto.find(p => p.proyecto === 'P1').personas;
+  assert.deepStrictEqual(per.map(p => p.nombre), ['X', 'Y']);        // Z ya pagó todo: no sale
+  assert.strictEqual(per[0].pendiente, 80000);                      // X: 70.000 + 10.000, sumado
+  assert.strictEqual(per[0].vencido, 20000);
+  assert.strictEqual(per[1].vencido, 0);
+});
+
+caso('filtro por sociedad: la suma de las sociedades ES «Todas», y la Carta sigue a su Bloqueo', () => {
+  const a = { ...bloqueo, id: 's1', soc: 'tepi_sungai', proyecto_nombre: 'PA' };
+  const b = { ...bloqueo, id: 's2', soc: 'san_dal_woods', proyecto_nombre: 'PB', precio_total: 40000 };
+  const carta = { id: 's3', tipo: 'carta_reserva', precio_total: 40000, moneda: 'EUR', bloqueado: true, contrato_padre_id: 's2', soc: 'tepi_sungai', proyecto_nombre: 'PB' };
+  const e = { hoyISO: HOY, contratos: [a, b, carta], cobradoPorId: { s1: 1000, s2: 2000, s3: 500 }, vencimientos: [],
+    recibis: [{ total: 1000, moneda: 'EUR', fecha: HOY, sociedad: 'tepi_sungai', tipo: 'recibi' }, { total: 2500, moneda: 'EUR', fecha: HOY, sociedad: 'san_dal_woods', tipo: 'recibi' }],
+    facturas: [], unidades: [{ proyecto: 'PA', estado: 'disponible', precio: 1, moneda: 'EUR' }], solicitudes: [], comisiones: [] };
+  const todas = F.finModelo(e).porMoneda.EUR;
+  const t = F.finModelo(F.finFiltraEmpresa(e, 'tepi_sungai')).porMoneda.EUR;
+  const s = F.finModelo(F.finFiltraEmpresa(e, 'san_dal_woods')).porMoneda.EUR;
+  assert.strictEqual(t.cartera.cartera + s.cartera.cartera, todas.cartera.cartera);
+  assert.strictEqual(t.cartera.cobrado + s.cartera.cobrado, todas.cartera.cobrado);
+  assert.strictEqual(s.cartera.cobrado, 2500);                      // el de la Carta cuenta en SU Bloqueo
+  assert.strictEqual(t.cobros.mes + s.cobros.mes, todas.cobros.mes);
+  assert.strictEqual(t.stock, null);                                // el stock no se reparte a ojo
+  assert.strictEqual(t.salidas, null);
+});
+
+caso('incluir sin firmar: suma los borradores a la cartera; apagado por defecto', () => {
+  const borr = { ...bloqueo, id: 'b9', bloqueado: false };
+  const e = { hoyISO: HOY, contratos: [bloqueo, borr], cobradoPorId: {}, vencimientos: [] };
+  assert.strictEqual(F.finCartera(e).EUR.cartera, 100000);
+  assert.strictEqual(F.finCartera({ ...e, incluirSinFirmar: true }).EUR.cartera, 200000);
 });
 
 console.log('finanzas.test.js OK — ' + n + ' casos');

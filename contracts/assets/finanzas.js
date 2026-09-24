@@ -219,15 +219,29 @@ function finCartera(e){
     }
     vivos.push(c);
   }
-  const modelo = modeloFinanciero({ hoyISO: hoy, contratos: vivos, cobradoPorId: e.cobradoPorId || {}, vencimientos: e.vencimientos || [] });
+  /* `incluirSinFirmar`: el MISMO interruptor que Vencimientos (apagado por
+     defecto). Existe por el alta de histórico: mientras dure, «sin firmar»
+     significa a menudo «aún no marcado», y el owner puede querer verlo. */
+  const modelo = modeloFinanciero({ hoyISO: hoy, contratos: vivos, cobradoPorId: e.cobradoPorId || {}, vencimientos: e.vencimientos || [], incluirSinFirmar: !!e.incluirSinFirmar });
   const mesHoy = hoy.slice(0, 7);
   const porMoneda = {};
   for (const [mon, m] of Object.entries(modelo)){
     let futuro = 0, d30 = 0, d90 = 0, sinImporte = 0, nVencido = 0;
     const previstoPorMes = {};
+    /* Lo vencido de CADA comprador dentro de su proyecto, para «quién debe».
+       El modelo ya da lo pendiente por persona; lo vencido sale de las filas
+       de la cascada con las mismas claves que usa él (proyecto y nombre tal
+       como vienen en el contrato), para que casen sin segunda regla. */
+    const vencidoPorPersona = {};
     for (const f of m.filas){
       if (f.importe == null){ sinImporte++; continue; }
-      if (f.estado === 'vencido') nVencido++;
+      if (f.estado === 'vencido'){
+        nVencido++;
+        const proy = (f.contrato && f.contrato.proyecto_nombre) || 'Sin proyecto';
+        const quien = ((f.contrato && f.contrato.comprador_nombre) || '').trim() || 'Sin comprador';
+        const vp = vencidoPorPersona[proy] || (vencidoPorPersona[proy] = {});
+        vp[quien] = FIN_R((vp[quien] || 0) + (f.pendiente || 0));
+      }
       if (!(f.pendiente > 0) || !f.fecha || f.fecha < hoy) continue;
       futuro += f.pendiente;
       const dias = diasEntre(hoy, f.fecha);
@@ -257,6 +271,7 @@ function finCartera(e){
       mesHoy,
       trimestres: porTrimestre(m.filas, hoy, 4),
       porProyecto: m.porProyecto,
+      vencidoPorPersona,
       fuera: m.fuera,                  // sin firmar y Cartas, con su importe
       avisos: m.avisos,
       liberadas: liberadas[mon] || { n:0, precio:0 },
@@ -265,6 +280,20 @@ function finCartera(e){
   // una moneda que solo tiene liberadas también se dice
   for (const [mon, l] of Object.entries(liberadas)) if (!porMoneda[mon]) porMoneda[mon] = { moneda: mon, cartera:0, cobrado:0, pendiente:0, desglose:null, previstoPorMes:{}, mesHoy, trimestres:[], porProyecto:{}, fuera:null, avisos:[], liberadas:l };
   return porMoneda;
+}
+
+/* ── QUIÉN DEBE, dentro de un proyecto ─────────────────────────────────────
+   Owner (26-ago, en Vencimientos): «que le salgan las personas ahí con lo que
+   deben». Solo quien debe algo, ordenado por lo VENCIDO primero (es a quien
+   hay que llamar) y luego por lo pendiente. Un mismo comprador con dos
+   contratos en el proyecto sale una vez, sumado (así lo agrupa el modelo). */
+function finPersonas(c, vencidos){
+  if (!c || !c.personas) return [];
+  return Object.entries(c.personas)
+    .map(([nombre, x]) => ({ nombre, precio: FIN_R(x.precio), cobrado: FIN_R(x.cobrado), pendiente: FIN_R(x.pendiente),
+                            vencido: FIN_R(vencidos[nombre] || 0), firmados: x.firmados, sinFirmar: x.sinFirmar }))
+    .filter(x => x.pendiente > 0)
+    .sort((a, b) => (b.vencido - a.vencido) || (b.pendiente - a.pendiente) || a.nombre.localeCompare(b.nombre));
 }
 
 /* ── POR PROYECTO ──────────────────────────────────────────────────────────
@@ -290,9 +319,36 @@ function finPorProyecto(carteraM, stockM){
       vencido: c ? FIN_R(c.vencido) : 0,
       proximos90: c ? FIN_R(c.proximos90) : 0,
       stockN: s ? s.n : 0, stockValor: s ? s.valor : 0,
+      personas: finPersonas(c, (carteraM && carteraM.vencidoPorPersona && carteraM.vencidoPorPersona[p]) || {}),
     });
   }
   return filas.sort((a, b) => (b.cartera - a.cartera) || (b.stockValor - a.stockValor) || a.proyecto.localeCompare(b.proyecto));
+}
+
+/* ── UNA SOCIEDAD SOLA ─────────────────────────────────────────────────────
+   Cada sociedad es una empresa con su propia caja. El recorte se hace sobre
+   la ENTRADA y no sobre el modelo, igual que Vencimientos: los contratos con
+   `filtraEmpresa()` de logica.js (la Carta hereda la sociedad de su Bloqueo;
+   regla escrita allí una vez), y recibís y facturas por su propia columna
+   `sociedad` con el mismo resolver (`lwSociedadContrato`). Así la suma de las
+   sociedades ES «Todas» por construcción.
+   Lo que no es de ninguna sociedad no se reparte a ojo: el stock (una unidad
+   no tiene sociedad hasta que se vende) y las comisiones salen como
+   `null` + `noSeReparte`, y quien pinta lo dice. Los contratos necesitan el
+   campo `soc` (sociedad firmante del documento). */
+function finFiltraEmpresa(e, empresa){
+  if (!empresa || empresa === 'todas') return e;
+  const deEmpresa = x => lwSociedadContrato(x.sociedad, x.tipo) === empresa;
+  return {
+    ...e,
+    contratos: filtraEmpresa({ contratos: e.contratos || [] }, empresa).contratos,
+    recibis: (e.recibis || []).filter(deEmpresa),
+    facturas: (e.facturas || []).filter(deEmpresa),
+    unidades: null,
+    solicitudes: null,
+    comisiones: null,
+    noSeReparte: true,
+  };
 }
 
 /* ── EL MODELO ENTERO ──────────────────────────────────────────────────────
@@ -308,7 +364,7 @@ function finModelo(e){
   const hoy = e.hoyISO;
   const cobros = finCobros(e.recibis, hoy);
   const facturado = finFacturadoSinCobrar(e.facturas, hoy);
-  const stock = finStock(e.unidades);
+  const stock = e.unidades == null ? {} : finStock(e.unidades);
   const cartera = finCartera(e);
   const salidas = (e.solicitudes == null && e.comisiones == null) ? null : finSalidas(e.solicitudes, e.comisiones);
   const monedas = new Set([...Object.keys(cobros), ...Object.keys(facturado), ...Object.keys(stock), ...Object.keys(cartera), ...Object.keys(salidas || {})]);
@@ -329,7 +385,7 @@ function finModelo(e){
      ordenar, nunca para enseñar una cifra). */
   const peso = m => ((cartera[m] && cartera[m].cartera) || 0) + ((cobros[m] && cobros[m].anio) || 0);
   const orden = [...monedas].sort((a, b) => (a === 'EUR' ? -1 : b === 'EUR' ? 1 : peso(b) - peso(a)));
-  return { hoyISO: hoy, monedas: orden, porMoneda };
+  return { hoyISO: hoy, monedas: orden, porMoneda, noSeReparte: !!e.noSeReparte, incluirSinFirmar: !!e.incluirSinFirmar };
 }
 
 /* La serie del gráfico de caja: 12 meses cobrados + el mes en curso partido
@@ -350,4 +406,4 @@ function finSerieCaja(pm, hoyISO, atras, adelante){
 }
 
 if (typeof module !== 'undefined' && module.exports)
-  module.exports = { finMeses, finCobros, finFacturadoSinCobrar, finStock, finSalidas, finCartera, finPorProyecto, finModelo, finSerieCaja };
+  module.exports = { finMeses, finCobros, finFacturadoSinCobrar, finStock, finSalidas, finCartera, finPersonas, finPorProyecto, finFiltraEmpresa, finModelo, finSerieCaja };

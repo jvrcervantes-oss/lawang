@@ -67,6 +67,16 @@
      ========================================================================== */
   var EN = {
     /* ── Finanzas (/v4/finanzas/, 24-sep-2026) ── */
+    'Contratado por cobrar': 'Contracted, to collect',
+    'El stock no se reparte por sociedad: una unidad no tiene sociedad hasta que se vende. Quita el filtro para verlo.': 'Stock is not split by company: a unit has no company until it is sold. Remove the filter to see it.',
+    'El stock y las comisiones no se reparten por sociedad.': 'Stock and commissions are not split by company.',
+    'Incluye contratos SIN FIRMAR: la cartera y la previsión suman borradores, que todavía no son un compromiso. Útil mientras dure el alta de histórico.': 'Includes UNSIGNED contracts: the portfolio and forecast add drafts, which are not a commitment yet. Useful while the historical data is being loaded.',
+    'Las comisiones no se reparten por sociedad. Quita el filtro para verlas.': 'Commissions are not split by company. Remove the filter to see them.',
+    'No se pudo leer la sociedad de los contratos: el filtro no está disponible.': 'Could not read the company of the contracts: the filter is not available.',
+    'Solo contratos firmados. Un proyecto sin ventas firmadas aparece igual si tiene unidades disponibles. Pulsa un proyecto para ver quién debe.': 'Signed contracts only. A project with no signed sales still appears if it has available units. Click a project to see who owes.',
+    'Viendo solo': 'Showing only',
+    'contratados': 'contracted',
+    'más: la lista completa sale en el CSV.': 'more: the full list is in the CSV.',
     '% cobrado': '% collected',
     '(sin sociedad)': '(no company)',
     'Al día': 'Not yet due',
