@@ -500,6 +500,26 @@ html:not([data-lang="es"]) .i-es{display:none !important}
   .hero-texto,.hero-pie{right:calc(var(--pw) + var(--cpd) + 36px)}
 }
 @media(min-width:1280px){:root{--pw:460px}}
+/* Pantallas bajas (portátil 1366×768 con barras, ventana reducida): la cabecera de datos
+   grande dejaba la lista de opciones a 0 px — el configurador sin nada que elegir (24-sep-2026).
+   Aquí las tres cifras vuelven a una fila, sin línea secundaria, y .res tiene un mínimo: si ni
+   así cabe, el panel entero hace scroll en vez de esconder las opciones. */
+@media(min-width:1024px) and (max-height:860px){
+  #hero-configurator aside{overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(245,240,230,.25) transparent}
+  .cfg-cab{padding-top:14px;padding-bottom:10px}
+  .cfg-cab > .kicker{display:none}
+  .cfg-datos{grid-template-columns:1fr 1fr 1.15fr;margin-top:0}
+  .cfg-datos > div{padding:10px 10px 10px 0;gap:4px}
+  .cfg-datos > div + div{padding-left:12px}
+  .cfg-datos .dt-v{font-size:22px}
+  .cfg-datos .dt-sub{display:none}
+  .cfg-datos .desde{grid-column:auto;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:4px;border-top:0;border-left:1px solid rgba(245,240,230,.14)!important;padding-left:12px!important}
+  .cfg-datos .desde .dt-v{font-size:24px;white-space:normal}
+  #lw-paso-lb{margin-top:8px}
+  .res{min-height:190px;padding-top:14px;padding-bottom:14px;gap:12px}
+  .cfg-pie{padding-top:12px;padding-bottom:14px;gap:10px}
+  .resumen{display:none}
+}
 
 /* ── 01 · DISTRIBUCION ── */
 .lay-grid{display:grid;grid-template-columns:1fr;gap:clamp(20px,2.4vw,36px);margin-top:clamp(2.5rem,5vh,3.5rem);align-items:start}
