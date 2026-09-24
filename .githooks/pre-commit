@@ -27,6 +27,9 @@ fi
 # camino no existe, y cada bloque de abajo se saltaba en silencio: commit sin
 # sellar. El common-dir es siempre proyectos/Lawang/.git, este donde este el arbol.
 herr="$(git rev-parse --path-format=absolute --git-common-dir)/../../../tools"
+# Si no aparece, PARA: saltarse el sellado en silencio es el fallo que esto viene a evitar
+# (el CDN serviria 7 dias la version vieja). --path-format necesita git >= 2.31.
+[ -d "$herr" ] || { echo "[pre-commit] ⛔ no encuentro tools/ en $herr (actualiza git: --path-format necesita >= 2.31)"; exit 1; }
 
 # ── Un fichero NUEVO que el .gitignore ignora no entra (14-sep-2026) ─────────
 # El commit dbff891 del 11-sep se llevo 20 fotos que el cliente ya habia subido
