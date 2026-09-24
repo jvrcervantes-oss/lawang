@@ -367,21 +367,28 @@ Deno.serve(async (req) => {
     if (accion === 'reenviar_enlace') {
       const id = String(body.solicitud_id ?? '');
       const { data: sol } = await admin.from('solicitudes_colaborador')
-        .select('email, nombre, estado').eq('id', id).maybeSingle();
+        .select('email, nombre, estado, user_id').eq('id', id).maybeSingle();
       if (!sol || sol.estado !== 'activada') return json({ error: 'solicitud_no_activada' }, 409);
+      // una cuenta desactivada en Usuarios no recibe sesión de recuperación (Seguridad capa 1 #6)
+      const { data: vivo } = await admin.from('usuarios').select('activo').eq('user_id', sol.user_id).maybeSingle();
+      if (!vivo || !vivo.activo) return json({ error: 'usuario_inactivo' }, 409);
       const { data: link, error: eLink } = await admin.auth.admin.generateLink({ type: 'recovery', email: sol.email });
       const th = link?.properties?.hashed_token;
       if (eLink || !th) return json({ error: 'sin_enlace' }, 500);
       const url = 'https://lawangproperties.com/intranet/contrasena/?th=' + encodeURIComponent(th);
+      const acR = new AbortController();
+      const toR = setTimeout(() => acR.abort(), 8000);
       const r = await fetch('https://lawangproperties.com/contracts/api/send_email.php', {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'X-Suite-Token': jwt },
+        signal: acR.signal,
         body: JSON.stringify({
           to: sol.email, subject: 'Crea tu contraseña — Lawang',
           message: `Hola ${String(sol.nombre || '').split(' ')[0]},\n\nAquí tienes un enlace nuevo para crear tu contraseña de la intranet de Lawang.`,
           attach: false, cta_url: url, cta_texto: 'Crear mi contraseña',
         }),
       });
+      clearTimeout(toR);
       const t = await r.text();
       return json({ ok: r.ok && t.includes('"ok":true') });
     }

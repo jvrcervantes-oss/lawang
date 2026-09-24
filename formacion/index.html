@@ -1658,6 +1658,11 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
       if (f.consentimiento) d.consentimiento = f.consentimiento.checked;
       if (!/^\d{6}$/.test(d.codigo)) return aviso('Escribe el código de 6 dígitos que te hemos enviado.');
       if (!d.privacidad) return aviso(ERR.privacidad);
+      if (d.accion === 'referir') {
+        if ((d.cliente_nombre || '').trim().length < 2) return aviso(ERR.cliente_nombre);
+        if (!(d.cliente_email || '').trim() && (d.cliente_telefono || '').trim().length < 6) return aviso(ERR.cliente_contacto);
+        if (!d.consentimiento) return aviso(ERR.consentimiento);
+      }
       var b = f.querySelector('button[type=submit]'); b.disabled = true; aviso('Enviando…', true);
       post(d).then(function (r) {
         if (!r.ok) { b.disabled = false; return aviso(ERR[r.error] || 'No se ha podido enviar. Inténtalo en un rato o escríbenos por WhatsApp.'); }

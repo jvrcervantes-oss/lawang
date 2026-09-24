@@ -41,6 +41,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const MAX_CODIGOS_IP_HORA = 5;
 const MAX_CODIGOS_GLOBAL_HORA = 60;
 const MAX_REFERIDOS_DIA = 15;
+const MAX_CODIGOS_EMAIL_HORA = 3;
 
 async function sha256(s: string) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
@@ -52,7 +53,7 @@ function txt(v: unknown, max: number) {
 }
 function hace(min: number) { return new Date(Date.now() - min * 60_000).toISOString(); }
 
-async function enviar(to: string, subject: string, message: string) {
+async function enviar(to: string, subject: string, message: string, ctaUrl: string, ctaTexto: string) {
   if (!RENDER_SECRET) { console.error('alta-colaborador: RENDER_SECRET no configurado, no se envía a <' + to + '>'); return false; }
   try {
     const ac = new AbortController();
@@ -61,7 +62,7 @@ async function enviar(to: string, subject: string, message: string) {
       const r = await fetch(SITIO + '/contracts/api/send_email.php', {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'X-Render-Secret': RENDER_SECRET },
-        body: JSON.stringify({ to, subject, message, contacto: 'sales', attach: false }),   // sin attach:false, send_email.php exige PDF y da 400
+        body: JSON.stringify({ to, subject, message, contacto: 'sales', attach: false, cta_url: ctaUrl, cta_texto: ctaTexto }),   // sin attach:false, send_email.php exige PDF y da 400
         signal: ac.signal,
       });
       if (!r.ok) console.error('alta-colaborador send_email http ' + r.status + ' <' + to + '>');
@@ -73,20 +74,14 @@ async function enviar(to: string, subject: string, message: string) {
   }
 }
 
-// Comprueba el código: el último sin usar y sin caducar de ese email, 5 intentos.
+// Comprueba el código en la BASE, de forma atómica (RPC colaborador_verifica): compara
+// y suma el intento en una sola sentencia con FOR UPDATE, así que N peticiones en
+// paralelo no se saltan el tope de 5. Vale cualquiera de los 3 últimos códigos vigentes.
 async function verifica(email: string, codigo: string): Promise<boolean> {
   if (!/^\d{6}$/.test(codigo)) return false;
-  const { data: fila } = await admin.from('colaboradores_verificaciones')
-    .select('id, codigo_hash, intentos, expira_at')
-    .eq('email', email).eq('usado', false)
-    .order('creado_at', { ascending: false }).limit(1).maybeSingle();
-  if (!fila || new Date(fila.expira_at).getTime() < Date.now() || fila.intentos >= 5) return false;
-  if (fila.codigo_hash !== await sha256(codigo)) {
-    await admin.from('colaboradores_verificaciones').update({ intentos: fila.intentos + 1 }).eq('id', fila.id);
-    return false;
-  }
-  await admin.from('colaboradores_verificaciones').update({ usado: true }).eq('id', fila.id);
-  return true;
+  const { data, error } = await admin.rpc('colaborador_verifica', { p_email: email, p_hash: await sha256(codigo) });
+  if (error) { console.error('alta-colaborador verifica <' + email + '>: ' + error.message); return false; }
+  return data === true;
 }
 
 Deno.serve(async (req) => {
@@ -106,28 +101,33 @@ Deno.serve(async (req) => {
     if (String(body.web ?? '').trim()) return json({ ok: true });
     if (!EMAIL_RE.test(email)) return json({ ok: false, error: 'email' }, 400);
 
-    const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || 'sin-ip';
+    // cf-connecting-ip la pone el proxy y el cliente no la puede falsear; si falta, la
+    // ÚLTIMA entrada de x-forwarded-for (la añade el proxy), nunca la primera.
+    const xff = (req.headers.get('x-forwarded-for') ?? '').split(',').map((x) => x.trim()).filter(Boolean);
+    const ip = (req.headers.get('cf-connecting-ip') ?? '').trim() || xff[xff.length - 1] || 'sin-ip';
     const ipHash = await sha256('lawang-alta:' + ip);
 
     // ── 1. código ─────────────────────────────────────────────────────────
     if (accion === 'codigo') {
-      const [{ count: porIp }, { count: global }, { data: ultimo }] = await Promise.all([
+      const [{ count: porIp }, { count: global }, { data: ultimo }, { count: porEmail }] = await Promise.all([
         admin.from('colaboradores_verificaciones').select('id', { count: 'exact', head: true })
           .eq('ip_hash', ipHash).gte('creado_at', hace(60)),
         admin.from('colaboradores_verificaciones').select('id', { count: 'exact', head: true })
           .gte('creado_at', hace(60)),
         admin.from('colaboradores_verificaciones').select('creado_at').eq('email', email)
           .order('creado_at', { ascending: false }).limit(1).maybeSingle(),
+        admin.from('colaboradores_verificaciones').select('id', { count: 'exact', head: true })
+          .eq('email', email).gte('creado_at', hace(60)),
       ]);
       // Todos los frenos contestan lo mismo que el éxito: no delatan nada.
       if ((porIp ?? 0) >= MAX_CODIGOS_IP_HORA) return json({ ok: true });
+      if ((porEmail ?? 0) >= MAX_CODIGOS_EMAIL_HORA) return json({ ok: true });
       if ((global ?? 0) >= MAX_CODIGOS_GLOBAL_HORA) {
         console.error('alta-colaborador: tope global de códigos por hora alcanzado');
         return json({ ok: true });
       }
       if (ultimo && Date.now() - new Date(ultimo.creado_at).getTime() < 60_000) return json({ ok: true });
 
-      await admin.from('colaboradores_verificaciones').update({ usado: true }).eq('email', email).eq('usado', false);
       const codigo = String(100000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 900000));
       const { error } = await admin.from('colaboradores_verificaciones').insert({
         email, codigo_hash: await sha256(codigo), ip_hash: ipHash,
@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
       await enviar(email, 'Tu código de verificación — Lawang',
         'Tu código de verificación es ' + codigo + '. Caduca en 10 minutos.\n\n' +
         'Your verification code is ' + codigo + '. It expires in 10 minutes.\n\n' +
-        'Si no lo has pedido tú, ignora este correo. / If you did not request it, ignore this email.');
+        'Si no lo has pedido tú, ignora este correo. / If you did not request it, ignore this email.', SITIO + '/formacion/', 'Volver a la guía');
       return json({ ok: true });
     }
 
@@ -147,6 +147,22 @@ Deno.serve(async (req) => {
     const nombre = txt(body.nombre, 120);
     const telefono = txt(body.telefono, 40);
     if (nombre.length < 2) return json({ ok: false, error: 'nombre' }, 400);
+    // Referido: todo lo que se puede rechazar se comprueba ANTES de gastar el código;
+    // si no, un error de formulario obligaba a pedir otro (y gastaba cupo).
+    const clienteNombre = txt(body.cliente_nombre, 120);
+    const clienteEmail = String(body.cliente_email ?? '').trim().toLowerCase().slice(0, 160);
+    const clienteTel = txt(body.cliente_telefono, 40);
+    const clientePais = txt(body.cliente_pais, 60);
+    const interes = txt(body.interes, 600);
+    if (accion === 'referir') {
+      if (clienteNombre.length < 2) return json({ ok: false, error: 'cliente_nombre' }, 400);
+      if (clienteEmail && !EMAIL_RE.test(clienteEmail)) return json({ ok: false, error: 'cliente_email' }, 400);
+      if (!clienteEmail && clienteTel.length < 6) return json({ ok: false, error: 'cliente_contacto' }, 400);
+      if (body.consentimiento !== true) return json({ ok: false, error: 'consentimiento' }, 400);
+      const { count: hoy } = await admin.from('referidos_contactos').select('id', { count: 'exact', head: true })
+        .eq('referido_email', email).gte('creado_at', hace(24 * 60));
+      if ((hoy ?? 0) >= MAX_REFERIDOS_DIA) return json({ ok: false, error: 'limite' }, 429);
+    }
     if (!await verifica(email, String(body.codigo ?? '').trim())) return json({ ok: false, error: 'codigo' }, 400);
 
     // ── 2. solicitud de alta de comercial ─────────────────────────────────
@@ -170,29 +186,15 @@ Deno.serve(async (req) => {
         'Nombre: ' + nombre + '\nEmail (verificado): ' + email + '\nTeléfono: ' + (telefono || '—') +
         '\nPaís: ' + (pais || '—') + '\nMensaje: ' + (mensaje || '—') + '\n\n' +
         (nota ? nota + '\n\n' : '') +
-        'Actívala o descártala en la intranet → Usuarios → Solicitudes de alta:\n' + SITIO + '/intranet/v4/usuarios/');
+        'Actívala o descártala en la intranet → Usuarios → Solicitudes de alta.', SITIO + '/intranet/v4/usuarios/', 'Revisar en la intranet');
       if (!yaUsuario) await enviar(email, 'Hemos recibido tu solicitud — Lawang',
         'Hola ' + nombre.split(' ')[0] + ',\n\nHemos recibido tu solicitud para trabajar como comercial con Lawang. ' +
         'La revisamos y, cuando la activemos, te llegará un correo para crear tu contraseña y entrar en la intranet.\n\n' +
-        'We have received your request to work with Lawang as a sales associate. Once it is approved you will get an email to set your password.');
+        'We have received your request to work with Lawang as a sales associate. Once it is approved you will get an email to set your password.', SITIO + '/formacion/', 'Volver a la guía');
       return json({ ok: true });
     }
 
-    // ── 3. referido: registra un contacto suyo ────────────────────────────
-    const clienteNombre = txt(body.cliente_nombre, 120);
-    const clienteEmail = String(body.cliente_email ?? '').trim().toLowerCase().slice(0, 160);
-    const clienteTel = txt(body.cliente_telefono, 40);
-    const clientePais = txt(body.cliente_pais, 60);
-    const interes = txt(body.interes, 600);
-    if (clienteNombre.length < 2) return json({ ok: false, error: 'cliente_nombre' }, 400);
-    if (clienteEmail && !EMAIL_RE.test(clienteEmail)) return json({ ok: false, error: 'cliente_email' }, 400);
-    if (!clienteEmail && clienteTel.length < 6) return json({ ok: false, error: 'cliente_contacto' }, 400);
-    if (body.consentimiento !== true) return json({ ok: false, error: 'consentimiento' }, 400);
-
-    const { count: hoy } = await admin.from('referidos_contactos').select('id', { count: 'exact', head: true })
-      .eq('referido_email', email).gte('creado_at', hace(24 * 60));
-    if ((hoy ?? 0) >= MAX_REFERIDOS_DIA) return json({ ok: false, error: 'limite' }, 429);
-
+    // ── 3. referido: registra un contacto suyo (validado arriba) ──────────
     const { error } = await admin.from('referidos_contactos').insert({
       referido_email: email, referido_nombre: nombre, referido_telefono: telefono,
       cliente_nombre: clienteNombre, cliente_email: clienteEmail || null, cliente_telefono: clienteTel || null,
@@ -205,11 +207,11 @@ Deno.serve(async (req) => {
       'CLIENTE\nNombre: ' + clienteNombre + '\nEmail: ' + (clienteEmail || '—') + '\nTeléfono: ' + (clienteTel || '—') +
       '\nPaís: ' + (clientePais || '—') + '\nQué busca: ' + (interes || '—') + '\n\n' +
       'El referido declara que el cliente ha aceptado que Lawang le contacte.\n' +
-      'Lo tienes en la intranet → Usuarios → Contactos de referidos:\n' + SITIO + '/intranet/v4/usuarios/');
+      'Lo tienes en la intranet → Usuarios → Contactos de referidos.', SITIO + '/intranet/v4/usuarios/', 'Revisar en la intranet');
     await enviar(email, 'Contacto registrado — Lawang',
       'Hola ' + nombre.split(' ')[0] + ',\n\nHemos registrado a ' + clienteNombre + ' a tu nombre. ' +
       'Nuestro equipo se pondrá en contacto con él. Si compra, te escribiremos para tu comisión de referido.\n\n' +
-      'We have registered ' + clienteNombre + ' under your name. Our team will get in touch with them.');
+      'We have registered ' + clienteNombre + ' under your name. Our team will get in touch with them.', SITIO + '/formacion/', 'Volver a la guía');
     return json({ ok: true });
   } catch (e) {
     console.error('alta-colaborador excepcion <' + email + '>: ' + String((e as Error)?.message ?? e));

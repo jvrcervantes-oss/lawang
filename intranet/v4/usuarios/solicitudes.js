@@ -54,7 +54,9 @@
     sec2.id = 'lwReferidos';
     cont.appendChild(sec2);
     var proyectos = [];
-    sb.from('proyectos').select('id,nombre').eq('activo', true).order('nombre').then(function (r) { proyectos = r.data || []; pintaSolicitudes(); });
+    var errProy = '';
+    sb.from('proyectos').select('id,nombre').eq('activo', true).order('nombre').then(function (r) {
+      proyectos = r.data || []; errProy = r.error ? r.error.message : ''; pintaSolicitudes(); });
     pintaReferidos();
 
     function cabecera(host, titulo, sub) {
@@ -120,7 +122,9 @@
         });
         return g;
       }
-      form.appendChild(grupo('Proyectos que puede vender', proyectos.map(function (p) { return [p.id, p.nombre]; }), 'p_' + s.id, []));
+      if (errProy || !proyectos.length) form.appendChild(el('div', 'text-error font-body-sm text-body-sm',
+        'No se han podido cargar los proyectos' + (errProy ? ' (' + errProy + ')' : '') + '. Recarga la página antes de activar.'));
+      else form.appendChild(grupo('Proyectos que puede vender', proyectos.map(function (p) { return [p.id, p.nombre]; }), 'p_' + s.id, []));
       form.appendChild(grupo('Tipos de contrato', TIPOS, 't_' + s.id, TIPOS_DEF));
       form.appendChild(grupo('Herramientas', HERR_COMERCIAL, 'h_' + s.id, HERR_COMERCIAL.map(function (h) { return h[0]; })));
       c.appendChild(form);
@@ -136,6 +140,7 @@
 
       act.addEventListener('click', function () {
         if (!window.confirm('¿Activar a ' + s.nombre + ' (' + s.email + ')? Tendrá acceso a la intranet como comercial.')) return;
+        if (act.dataset.enCurso) return; act.dataset.enCurso = '1';
         act.disabled = des.disabled = true; aviso.textContent = 'Activando…'; aviso.className = 'font-body-sm text-body-sm text-on-surface-variant';
         llama(sb, { accion: 'activar_solicitud', solicitud_id: s.id, proyectos: marcados('p_' + s.id),
                     tipos_contrato: marcados('t_' + s.id), herramientas: marcados('h_' + s.id) }).then(function (x) {
@@ -144,7 +149,7 @@
             aviso.className = 'font-body-sm text-body-sm text-primary';
             setTimeout(pintaSolicitudes, 1800);
           } else {
-            act.disabled = des.disabled = false;
+            act.disabled = des.disabled = false; delete act.dataset.enCurso;
             aviso.textContent = TXT_ERR[x && x.error] || ('No se pudo activar: ' + (x && x.error || 'error'));
             aviso.className = 'font-body-sm text-body-sm text-error';
           }
@@ -153,7 +158,10 @@
       des.addEventListener('click', function () {
         if (!window.confirm('¿Descartar la solicitud de ' + s.nombre + '?')) return;
         act.disabled = des.disabled = true;
-        llama(sb, { accion: 'descartar_solicitud', solicitud_id: s.id }).then(function () { pintaSolicitudes(); });
+        llama(sb, { accion: 'descartar_solicitud', solicitud_id: s.id }).then(function (x) {
+          if (x && x.ok) return pintaSolicitudes();
+          act.disabled = des.disabled = false; aviso.textContent = 'No se pudo descartar: ' + (x && x.error || 'error'); aviso.className = 'font-body-sm text-body-sm text-error';
+        }).catch(function (e) { act.disabled = des.disabled = false; aviso.textContent = String(e.message || e); });
       });
       return c;
     }
@@ -182,11 +190,18 @@
           [['nuevo', 'Nuevo'], ['en_crm', 'Ya en el CRM'], ['descartado', 'Descartado']].forEach(function (o) {
             var op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; if (x.estado === o[0]) op.selected = true; sel.appendChild(op);
           });
+          var previo = x.estado;
+          var nota = el('span', 'font-body-sm text-body-sm text-error');
           sel.addEventListener('change', function () {
-            sel.disabled = true;
-            llama(sb, { accion: 'estado_referido', id: x.id, estado: sel.value }).then(function () { sel.disabled = false; });
+            sel.disabled = true; nota.textContent = '';
+            llama(sb, { accion: 'estado_referido', id: x.id, estado: sel.value }).then(function (res) {
+              sel.disabled = false;
+              if (res && res.ok) { previo = sel.value; return; }
+              sel.value = previo; nota.textContent = 'No se guardó: ' + (res && res.error || 'error');
+            }).catch(function (e) { sel.disabled = false; sel.value = previo; nota.textContent = String(e.message || e); });
           });
-          c.appendChild(cli); c.appendChild(ref); c.appendChild(sel);
+          var col = el('div', 'flex flex-col gap-1'); col.appendChild(sel); col.appendChild(nota);
+          c.appendChild(cli); c.appendChild(ref); c.appendChild(col);
           sec2.appendChild(c);
         });
       });

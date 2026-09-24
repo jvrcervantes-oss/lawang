@@ -59,16 +59,26 @@ button[disabled]{opacity:.6;cursor:default}
   var intro = document.getElementById('intro'), f = document.getElementById('f'), m = document.getElementById('m');
   function msg(t, ok) { m.textContent = t; m.className = 'msg ' + (ok ? 'ok' : 'err'); }
 
-  if (!th) { intro.textContent = 'Este enlace no es válido. Pide uno nuevo a Lawang.'; return; }
-  sb.auth.verifyOtp({ token_hash: th, type: 'recovery' }).then(function (r) {
-    if (r.error || !r.data || !r.data.session) {
-      intro.textContent = 'El enlace ha caducado o ya se ha usado. Pide uno nuevo a Lawang.';
-      return;
-    }
-    intro.textContent = 'Elige la contraseña con la que entrarás en la intranet: ' + (r.data.user && r.data.user.email || '');
+  function listo(email) {
+    intro.textContent = 'Elige la contraseña con la que entrarás en la intranet: ' + (email || '');
     f.hidden = false;
     document.getElementById('p1').focus();
-  });
+  }
+  function caducado() { intro.textContent = 'El enlace ha caducado o ya se ha usado. Pide uno nuevo a Lawang.'; }
+  if (!th) {
+    // Recargar tras canjear el enlace: el ?th= ya no está, pero la sesión de
+    // recuperación sí. Se sigue con ella en vez de dar el enlace por perdido.
+    sb.auth.getSession().then(function (r) {
+      var ses = r && r.data && r.data.session;
+      if (ses) listo(ses.user && ses.user.email);
+      else intro.textContent = 'Este enlace no es válido. Pide uno nuevo a Lawang.';
+    }, function () { intro.textContent = 'Este enlace no es válido. Pide uno nuevo a Lawang.'; });
+    return;
+  }
+  sb.auth.verifyOtp({ token_hash: th, type: 'recovery' }).then(function (r) {
+    if (r.error || !r.data || !r.data.session) return caducado();
+    listo(r.data.user && r.data.user.email);
+  }, caducado);
 
   f.addEventListener('submit', function (e) {
     e.preventDefault();
