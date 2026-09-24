@@ -171,6 +171,14 @@ RedirectMatch 404 (?i)/_diag_
   #    /investor-deck/palmfield/ (la anterior se guarda en v1/, la v2 sigue en v2/).
   RewriteRule ^investor-deck/palmfield/v3/?$ /investor-deck/palmfield/ [R=301,L]
 
+  # 3e-v1) 24-sep-2026 (owner: "v3 es el diseno estandar de todos los investor-deck"):
+  #    investor-deck/index.php pasa a la piel v3; la plantilla anterior queda archivada en
+  #    index_v1.php y se sirve en /investor-deck/v1/<slug> por si hay que restaurarla.
+  #    Va ANTES del RewriteCond de la 3e (un RewriteCond solo ata a la regla siguiente:
+  #    meterla en medio le robaria la condicion). "v1" no choca con ningun slug: la 3e
+  #    solo casa un segmento, y esta dos.
+  RewriteRule ^investor-deck/v1/([A-Za-z0-9-]+)/?$ /investor-deck/index_v1.php?slug=$1 [L,QSA]
+
   # 3e) Investor Deck multi-proyecto (15-sep-2026): /investor-deck/<slug> sirve
   #     investor-deck/index.php?slug=<slug> (mismo mecanismo que la 3 de arriba).
   #     El guard `!-d` es a proposito: investor-deck/palmfield/ es una carpeta

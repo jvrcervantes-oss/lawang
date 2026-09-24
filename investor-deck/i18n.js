@@ -78,6 +78,25 @@
     'More photos': { es: 'Más fotos', id: 'Foto lainnya' },
     'Dossier': { es: 'Dossier', id: 'Dosir' },
 
+    /* — v3 (24-sep-2026): cadenas nuevas de la composicion de la home que el deck
+       generico adopta como diseño estandar. Solo rotulos y navegacion; ninguna es
+       texto legal. El ES/ID sigue el mismo estado que el resto del fichero. — */
+    'Menu': { es: 'Menú', id: 'Menu' },
+    'Sections': { es: 'Secciones', id: 'Bagian' },
+    'by Lawang Properties': { es: 'por Lawang Properties', id: 'oleh Lawang Properties' },
+    'Catalog': { es: 'Catálogo', id: 'Katalog' },
+    'Investment': { es: 'Inversión', id: 'Investasi' },
+    'Market forecast': { es: 'Previsión de mercado', id: 'Proyeksi pasar' },
+    'View model': { es: 'Ver modelo', id: 'Lihat model' },
+    'Tap a plot to find it in the live inventory.':
+      { es: 'Toca una parcela para verla en el inventario en vivo.',
+        id: 'Ketuk kavling untuk melihatnya di daftar ketersediaan langsung.' },
+    /* Frase de la v1 que ya salia en ingles sin traducir; ⚠️ el ES/ID es nuevo y no ha
+       pasado por Legal (mismo PENDIENTE que la cabecera de este fichero). */
+    'Status is live; surface areas shown are project/design measurements, confirmed by survey at Plot Lock — not the registered legal area.':
+      { es: 'El estado es en vivo; las superficies son medidas de proyecto/diseño, que se confirman por levantamiento topográfico en el Plot Lock — no la superficie legal registrada.',
+        id: 'Status bersifat langsung; luas yang ditampilkan adalah ukuran proyek/desain, dikonfirmasi lewat survei saat Plot Lock — bukan luas legal yang terdaftar.' },
+
     /* — portada — */
     'Investor Deck · Due Diligence': { es: 'Dossier de inversión · Due diligence', id: 'Dosir Investor · Uji Tuntas' },
     'Not a security or investment product. Real documentation, live plot inventory and a Year-1 forecast, for your own due diligence — the land tenure structure for this specific project is confirmed by your Lawang contact.':
@@ -261,6 +280,19 @@
       es: '$1 m² · $2/m² de suelo', id: '$1 m² · $2/m² tanah' },
     { re: /^Land (.+) \+ Construction (.+) = (.+) total$/,
       es: 'Suelo $1 + Construcción $2 = $3 total', id: 'Tanah $1 + Konstruksi $2 = $3 total' },
+    /* v3 (24-sep): parcela sin precio de construccion → solo el suelo. Va DETRAS de la
+       de arriba (gana la primera que casa). Anclado a un importe (€, $, A$, Rp): un
+       "Land (.+)" suelto medio-traducia cualquier pie de foto o titulo que empezara por
+       "Land " ("Land clearing" → "Suelo clearing"; code-review 24-sep). */
+    { re: /^Land ((?:€|A?\$|Rp )[\d.,]+)$/, es: 'Suelo $1', id: 'Tanah $1' },
+    /* v3 (24-sep): frases armadas en JS con el nombre del proyecto dentro. Misma
+       traduccion que ya usa Palm Field para las suyas (palmfield/i18n.js). */
+    { re: /^Hello LAWANG, I’m looking at the (.+) investor deck and I have a few questions\.$/,
+      es: 'Hola LAWANG, estoy viendo el dosier de inversores de $1 y tengo algunas preguntas.',
+      id: 'Halo LAWANG, saya sedang melihat dosir investor $1 dan ada beberapa pertanyaan.' },
+    { re: /^Individually cadastred plots\. Live inventory read directly from (.+)'s records — sizes, prices and status are informational and confirmed at Plot Lock\.$/,
+      es: 'Parcelas catastradas una a una. El inventario se lee en vivo de los registros de $1 — superficies, precios y estado son orientativos y se confirman en el Plot Lock.',
+      id: 'Kavling tersertifikasi satu per satu. Ketersediaan dibaca langsung dari catatan $1 — luas, harga, dan status bersifat informatif dan dikonfirmasi saat Plot Lock.' },
     { re: /^Year-1 Rental Forecast — (.+)$/,
       es: 'Previsión de alquiler Año 1 — $1', id: 'Proyeksi Sewa Tahun ke-1 — $1' },
     { re: /^(\S+) villa model$/, es: 'Modelo de villa $1', id: 'Model villa $1' },
