@@ -6274,51 +6274,28 @@
       /* `btnAlta` se guarda para poder disparar el alta sola con `?nuevo=1`
          (paridad 21-sep-2026): la pantalla llega desde otro sitio de la suite
          que ya sabe que quiere dar de alta, sin obligar a buscar el botón. */
-      var btnAlta = ata(/Alta de comprador/i, function () {
-        /* Los SEIS datos que exige un alta (owner, 14-sep-2026) — y el telefono
-           partido en prefijo + numero, igual que en /intranet/compradores/, que
-           es lo que pidio. Cuales son NO se decide aqui: la lista vive en
-           `contracts/assets/compradores.js` (`faltanDatosComprador`), que esta
-           pantalla carga, porque si se escribiera tambien aqui las dos copias
-           divergirian y este editor seguiria dando de alta fichas a medias.
-           El `req: 1` de cada campo es lo que pinta el asterisco y da el aviso
-           en el sitio; el validador compartido es el que manda.
-           Los 5 campos de debajo (idioma + los 4 "solo empresa") se añaden
-           21-sep-2026 para igualar al formulario de EDITAR (abreEditaComprador
-           más abajo): antes el alta pedía 7 de las 13 columnas y el resto se
-           quedaba a medias hasta la primera edición. */
-        modal('Alta de comprador', [
-          { k: 'full_name', label: 'Nombre completo / razón social', req: 1 },
-          { k: 'email', label: 'Email', tipo: 'email', req: 1 },
-          { k: 'prefijo', label: 'Prefijo del teléfono', req: 1, medio: 1, ayuda: '+34, +62, +61…' },
-          { k: 'telefono', label: 'Teléfono', req: 1, medio: 1 },
-          { k: 'nationality', label: 'Nacionalidad', req: 1, ayuda: 'código de dos letras: ES, SG, AU…' },
-          { k: 'passport_number', label: 'Pasaporte / NPWP', req: 1, ayuda: 'Es lo que se imprime en el contrato.' },
-          { k: 'tipo', label: 'Tipo', tipo: 'select', opciones: [['persona', 'Persona física'], ['empresa', 'Empresa']], valor: 'persona' },
-          { k: 'idioma_comunicacion', label: 'Idioma de comunicación', tipo: 'select', valor: 'es',
-            opciones: [['es', 'Español'], ['en', 'English'], ['id', 'Bahasa Indonesia']] },
-          { k: 'forma_juridica', label: 'Forma jurídica (solo empresa)', medio: 1, ayuda: 'S.L., LLC, PT PMA, GmbH…' },
-          { k: 'registro_num', label: 'Nº de registro mercantil (solo empresa)', medio: 1 },
-          { k: 'rep_nombre', label: 'Representante legal (solo empresa)', medio: 1 },
-          { k: 'rep_cargo', label: 'Cargo del representante (solo empresa)', medio: 1 }
-        ], 'Dar de alta', function (v) {
-          if (typeof faltanDatosComprador === 'function') {
-            var faltan = faltanDatosComprador(v);
-            // Se devuelve con la forma de un error de Supabase: `modal()` ya
-            // sabe enseñar eso en su aviso rojo, sin tocar su flujo.
-            if (faltan.length) return { error: { message: 'faltan datos obligatorios — ' + faltan.join(', ') } };
-          }
-          /* el alta la puede hacer cualquier agente; EDITAR una ficha ya creada
-             es de administracion (policy es_admin) — asimetria deliberada de la
-             suite (migracion 7-ago), que este editor respeta y no "arregla" */
-          var telAlta = v.prefijo ? v.prefijo + ' ' + v.telefono : (v.telefono || null);
-          return telefonoRepetidoSigue(telAlta, null).then(function (sigue) {
+      var btnAlta = ata(/Alta de comprador/i, function () { abreAltaComprador(); });
+
+      /* GUARDAR EL ALTA — la lógica de siempre, sacada a su función para que la
+         use el cajón nuevo (24-sep-2026). Los SEIS datos que exige un alta
+         (owner, 14-sep-2026) NO se deciden aquí: la lista vive en
+         `contracts/assets/compradores.js` (`faltanDatosComprador`), porque si se
+         escribiera también aquí las dos copias divergirían. El alta la puede
+         hacer cualquier agente; EDITAR una ficha ya creada es de administración
+         (policy es_admin) — asimetría deliberada de la suite (migración 7-ago). */
+      function guardaAltaComprador(v) {
+        if (typeof faltanDatosComprador === 'function') {
+          var faltan = faltanDatosComprador(v);
+          if (faltan.length) return Promise.resolve({ error: { message: 'faltan datos obligatorios — ' + faltan.join(', ') } });
+        }
+        var telAlta = v.prefijo ? v.prefijo + ' ' + v.telefono : (v.telefono || null);
+        return telefonoRepetidoSigue(telAlta, null).then(function (sigue) {
           if (sigue !== true) return sigue;
           return sb.from('clients').insert({
-            // MAYÚSCULAS, igual que ya hace el UPDATE de editar (línea de abajo):
-            // el contrato y la factura enlazan esta ficha y la imprimen tal cual.
+            // MAYÚSCULAS, igual que el UPDATE de editar: el contrato y la
+            // factura enlazan esta ficha y la imprimen tal cual.
             full_name: v.full_name.trim().toUpperCase(), email: v.email || null,
-            phone: v.prefijo ? v.prefijo + ' ' + v.telefono : (v.telefono || null),
+            phone: telAlta,
             nationality: v.nationality || null, passport_number: v.passport_number || null,
             tipo: v.tipo, idioma_comunicacion: v.idioma_comunicacion || 'es',
             forma_juridica: v.tipo === 'empresa' ? (v.forma_juridica || null) : null,
@@ -6326,15 +6303,370 @@
             rep_nombre: v.tipo === 'empresa' ? (v.rep_nombre || null) : null,
             rep_cargo: v.tipo === 'empresa' ? (v.rep_cargo || null) : null
           }).then(errorClienteHumano);
+        });
+      }
+
+      /* ALTA DE COMPRADOR — cajón en dos columnas (24-sep-2026, diseño de Stitch
+         elegido por el owner: «Panel Lateral Split CRM»). Izquierda, la ficha tal
+         como va quedando; derecha, el formulario por bloques; abajo, la barra de
+         acciones. Se toma la PIEL del diseño y no su texto: lo que el generador
+         inventó (nº de expediente, requisitos notariales, «conexión cifrada con
+         notaría», autoguardado, idiomas que la base no admite) se sustituye por
+         hechos del propio sistema — ver memoria «mockup generado: piel sí, texto no».
+         Vive en `#lw-editor`, como `modal()`, para que `cierraModal()` y el
+         picker de nacionalidad lo encuentren igual. */
+      function abreAltaComprador() {
+        cierraModal();
+        cssAltaComprador();
+        var I = {   // iconos del diseño (trazo 2, 24×24)
+          user: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
+          empresa: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
+          nombre: 'M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+          mail: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
+          tel: 'M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z',
+          globo: 'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+          doc: 'M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2',
+          info: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+          flecha: 'M14 5l7 7m0 0l-7 7m7-7H3', x: 'M6 18L18 6M6 6l12 12', abajo: 'M19 9l-7 7-7-7'
+        };
+        var svg = function (d, cls) { return '<svg class="' + (cls || 'las-ico') + '" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="' + d + '" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>'; };
+        // Un campo: etiqueta en versalitas, icono a la izquierda si lo hay, ayuda debajo.
+        var campo = function (k, etq, o) {
+          o = o || {};
+          var id = 'las-' + k, idA = o.ayuda ? ' aria-describedby="' + id + '-a"' : '';
+          var ctl = o.select
+            ? '<div class="las-rel"><select id="' + id + '" data-k="' + k + '" class="las-in"' + idA + '>' + o.select + '</select><span class="las-ico-der">' + svg(I.abajo) + '</span></div>'
+            : '<div class="las-rel">' + (o.ico ? '<span class="las-ico-izq">' + svg(o.ico) + '</span>' : '') +
+              '<input id="' + id + '" data-k="' + k + '" type="' + (o.tipo || 'text') + '" class="las-in' + (o.ico ? ' las-con-ico' : '') + (o.mono ? ' las-mono' : '') + '"' +
+              (o.ph ? ' placeholder="' + esc(o.ph) + '"' : '') + (o.auto ? ' autocomplete="' + o.auto + '"' : '') + idA + '></div>';
+          return '<div class="las-campo' + (o.cls ? ' ' + o.cls : '') + '"' + (o.req ? ' data-req="' + k + '"' : '') + '>' +
+            '<label for="' + id + '" class="las-etq">' + esc(etq) + (o.req ? ' <span class="las-rojo">*</span>' : '') + (o.extra || '') + '</label>' + ctl +
+            (o.ayuda ? '<p id="' + id + '-a" class="las-ayuda">' + esc(o.ayuda) + '</p>' : '') +
+            '<p class="las-msg" role="alert"></p></div>';
+        };
+        var soloEmp = ' <span class="las-etq-sec">(Solo empresa)</span>';
+
+        var w = document.createElement('div');
+        w.id = 'lw-editor';
+        w.innerHTML =
+          '<div data-e="fondo" class="las-velo"></div>' +
+          '<div role="dialog" aria-modal="true" aria-labelledby="las-titulo" class="las-marco">' +
+          '<form data-e="form" data-lateral="1" class="las-panel" novalidate>' +
+          /* cabecera */
+          '<header class="las-cab"><div class="las-cab-izq"><span class="las-barra"></span><div>' +
+          '<div class="las-miga"><span>Base de datos • Compradores</span><span class="las-sep">/</span><span class="las-estado">Ficha nueva</span></div>' +
+          '<h1 id="las-titulo" class="las-h1">Alta de comprador</h1></div></div>' +
+          '<button type="button" data-e="cerrar" class="las-cerrar" title="Cerrar panel" aria-label="Cerrar">' + svg(I.x) + '</button></header>' +
+          '<div class="las-cuerpo">' +
+          /* columna izquierda: la ficha tal como va quedando */
+          '<button type="button" class="las-lado-btn" aria-expanded="false" aria-controls="las-lado">Resumen de la ficha ' + svg(I.abajo) + '</button>' +
+          '<section id="las-lado" class="las-lado" aria-label="Resumen de la ficha">' +
+          '<article class="las-card"><div class="las-card-cab"><span class="las-cinta">Ficha del comprador</span></div>' +
+          '<div class="las-quien"><div class="las-avatar" data-p="ini">--</div><div class="las-min0">' +
+          '<p class="las-nombre" data-p="nombre">Sin titular asignado</p><p class="las-sub" data-p="tipo">Persona física • Español</p></div></div>' +
+          '<div class="las-datos"><div><span class="las-dato-etq">Identificación</span><span class="las-dato las-mono" data-p="doc">—</span></div>' +
+          '<div class="las-min0"><span class="las-dato-etq">Contacto rápido</span><span class="las-dato las-trunca" data-p="tel">—</span></div></div></article>' +
+          '<article class="las-card"><h2 class="las-cinta las-card-h"><span>Documentos KYC</span><span class="las-fase">Después del alta</span></h2>' +
+          '<ul class="las-lista">' +
+          '<li><span class="las-num">1</span><div><p class="las-li-t">Pasaporte</p><p class="las-li-s">Se sube desde la ficha, una vez creada. Puede llevar fecha de caducidad.</p></div></li>' +
+          '<li><span class="las-num">2</span><div><p class="las-li-t">NPWP</p><p class="las-li-s">El número fiscal indonesio, si el comprador lo tiene.</p></div></li>' +
+          '<li><span class="las-num">3</span><div><p class="las-li-t">Justificante de fondos</p><p class="las-li-s">Si un documento caduca, la ficha avisa 60 días antes.</p></div></li>' +
+          '</ul></article>' +
+          '<article class="las-aviso">' + svg(I.info, 'las-ico-aviso') + '<div><span class="las-aviso-t">Lo que sale en los contratos</span>' +
+          'El <b>nombre</b> (se guarda en MAYÚSCULAS) y el <b>pasaporte / NPWP</b> se imprimen tal cual en los contratos y facturas que se hagan con esta ficha. Revísalos contra el documento antes de dar de alta.</div></article>' +
+          '<p class="las-pie-lado">Una vez creada, la ficha la corrigen su autor —mientras no cuelgue de un contrato firmado— o un administrador.</p>' +
+          '</section>' +
+          /* columna derecha: el formulario */
+          '<div class="las-derecha"><div class="las-scroll"><div class="las-form">' +
+          '<section class="las-bloque"><div class="las-bloque-cab"><div class="las-bloque-t"><span class="las-n">01</span><h3>Identificación &amp; contacto principal</h3></div>' +
+          '<span class="las-req-nota">* Campos requeridos</span></div>' +
+          '<div class="las-campo"><span class="las-etq" id="las-tipo-etq">Tipo de comprador</span>' +
+          '<input type="hidden" data-k="tipo" value="persona">' +
+          '<div class="las-pildoras" role="group" aria-labelledby="las-tipo-etq">' +
+          '<button type="button" class="las-pildora" data-tipo="persona" aria-pressed="true">' + svg(I.user) + '<span>Persona física</span></button>' +
+          '<button type="button" class="las-pildora" data-tipo="empresa" aria-pressed="false">' + svg(I.empresa) + '<span>Persona jurídica (Empresa)</span></button>' +
+          '</div></div>' +
+          campo('full_name', 'Nombre completo / Razón social', { req: 1, ico: I.nombre, ph: 'Nombre y apellidos, o razón social', auto: 'off' }) +
+          campo('email', 'Email', { req: 1, ico: I.mail, tipo: 'email', ph: 'nombre@dominio.com', auto: 'off' }) +
+          '<div class="las-fila las-fila-tel">' +
+          campo('prefijo', 'Prefijo', { req: 1, mono: 1, ph: '+34', ayuda: '+34, +62, +61…', auto: 'off' }) +
+          campo('telefono', 'Teléfono', { req: 1, ico: I.tel, tipo: 'tel', ph: 'Número sin prefijo', auto: 'off' }) +
+          '</div><div class="las-fila">' +
+          campo('nationality', 'Nacionalidad', { req: 1, ico: I.globo, ph: 'Elige el país', ayuda: 'Pulsa para elegir el país.' }) +
+          campo('passport_number', 'Pasaporte / NPWP', { req: 1, ico: I.doc, mono: 1, ph: 'Nº del documento', ayuda: 'Es lo que se imprime en el contrato.', auto: 'off' }) +
+          '</div>' +
+          campo('idioma_comunicacion', 'Idioma de comunicación', { select: '<option value="es">Español</option><option value="en">English</option><option value="id">Bahasa Indonesia</option>' }) +
+          '</section>' +
+          '<section class="las-bloque las-emp las-off" data-emp><div class="las-bloque-cab"><div class="las-bloque-t"><span class="las-n las-n-verde">02</span><div>' +
+          '<h3>Información mercantil &amp; representación</h3><p class="las-bloque-s">Solo se guarda si el comprador es una empresa.</p></div></div>' +
+          '<span class="las-insignia" data-p="emp">No aplica a persona física</span></div>' +
+          '<div class="las-fila">' +
+          campo('forma_juridica', 'Forma jurídica', { extra: soloEmp, ph: 'S.L., LLC, PT PMA, GmbH…', ayuda: 'S.L., LLC, PT PMA, GmbH…', auto: 'off' }) +
+          campo('registro_num', 'Nº de registro mercantil', { extra: soloEmp, ph: 'Número en el registro', auto: 'off' }) +
+          '</div><div class="las-fila">' +
+          campo('rep_nombre', 'Representante legal', { extra: soloEmp, ph: 'Nombre y apellidos', auto: 'off' }) +
+          campo('rep_cargo', 'Cargo del representante', { extra: soloEmp, ph: 'Administrador, director…', auto: 'off' }) +
+          '</div></section>' +
+          '<p data-e="error" role="alert" class="las-error" hidden></p>' +
+          '</div></div>' +
+          /* barra de acciones */
+          '<footer class="las-pie"><div class="las-pie-izq"><span class="las-punto" data-p="punto"></span><span data-p="faltan">Faltan 6 de 6 datos obligatorios</span></div>' +
+          '<div class="las-pie-der"><button type="button" data-e="cancelar" class="las-btn2">Cancelar</button>' +
+          '<button type="submit" data-e="guardar" class="las-btn1"><span class="las-txt">Dar de alta' + svg(I.flecha, 'las-ico las-flecha') + '</span>' +
+          '<span class="las-giro" aria-hidden="true"><i></i></span><span class="las-ok">Guardado ✓</span></button></div></footer>' +
+          '</div></div></form></div>';
+        document.body.appendChild(w);
+
+        var form = w.querySelector('[data-e="form"]'), fondo = w.querySelector('[data-e="fondo"]');
+        requestAnimationFrame(function () { requestAnimationFrame(function () { form.classList.add('las-dentro'); fondo.style.opacity = '1'; }); });
+        var $ = function (s) { return w.querySelector(s); };
+        var val = function (k) { var el = $('[data-k="' + k + '"]'); return el ? el.value.trim() : ''; };
+        var tipoInput = $('[data-k="tipo"]'), emp = $('[data-emp]');
+        var IDIOMA = { es: 'Español', en: 'English', id: 'Bahasa Indonesia' };
+        var OBLIG = (typeof CAMPOS_ALTA_COMPRADOR !== 'undefined' ? CAMPOS_ALTA_COMPRADOR.map(function (x) { return x[0]; })
+          : ['full_name', 'email', 'prefijo', 'telefono', 'nationality', 'passport_number']);
+
+        // La ficha de la izquierda se escribe sola mientras se rellena la derecha.
+        function resumen() {
+          var n = val('full_name').toUpperCase();
+          var ini = n.split(/\s+/).filter(Boolean).map(function (p) { return p[0]; }).slice(0, 2).join('');
+          $('[data-p="nombre"]').textContent = n || 'Sin titular asignado';
+          $('[data-p="ini"]').textContent = ini || '--';
+          $('[data-p="tipo"]').textContent = (tipoInput.value === 'empresa' ? 'Persona jurídica' : 'Persona física') + ' • ' + (IDIOMA[val('idioma_comunicacion')] || 'Español');
+          $('[data-p="doc"]').textContent = val('passport_number') || '—';
+          $('[data-p="tel"]').textContent = val('telefono') ? (val('prefijo') + ' ' + val('telefono')).trim() : '—';
+          var faltan = OBLIG.filter(function (k) { return !val(k); }).length;
+          $('[data-p="faltan"]').textContent = faltan ? 'Faltan ' + faltan + ' de ' + OBLIG.length + ' datos obligatorios' : 'Listo para dar de alta';
+          $('[data-p="punto"]').classList.toggle('las-listo', !faltan);
+        }
+        function ponTipo(t) {
+          tipoInput.value = t;
+          w.querySelectorAll('.las-pildora').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-tipo') === t)); });
+          var esEmp = t === 'empresa';
+          emp.classList.toggle('las-off', !esEmp);
+          emp.querySelectorAll('input').forEach(function (i) { i.tabIndex = esEmp ? 0 : -1; });
+          var ins = $('[data-p="emp"]');
+          ins.textContent = esEmp ? 'Aplica a esta empresa' : 'No aplica a persona física';
+          ins.classList.toggle('las-insignia-on', esEmp);
+          resumen();
+        }
+        w.querySelectorAll('.las-pildora').forEach(function (b) { b.addEventListener('click', function () { ponTipo(b.getAttribute('data-tipo')); }); });
+        ponTipo('persona');
+        form.addEventListener('input', function (e) {
+          resumen();
+          var c = e.target.closest && e.target.closest('.las-campo.las-mal');
+          if (c && e.target.value.trim()) c.classList.remove('las-mal');
+        });
+        form.addEventListener('change', resumen);
+        var lado = $('.las-lado'), ladoBtn = $('.las-lado-btn');
+        ladoBtn.addEventListener('click', function () {
+          var abierto = lado.classList.toggle('las-abierto');
+          ladoBtn.setAttribute('aria-expanded', String(abierto));
+        });
+
+        var cerrar = function () { document.removeEventListener('keydown', teclas); cierraModal(); };
+        var teclas = function (e) { if (e.key === 'Escape' && !document.querySelector('.lw-dlg, [data-lw-dialogo]')) cerrar(); };
+        document.addEventListener('keydown', teclas);
+        $('[data-e="cerrar"]').addEventListener('click', cerrar);
+        $('[data-e="cancelar"]').addEventListener('click', cerrar);
+        fondo.addEventListener('click', cerrar);
+
+        var btn = $('[data-e="guardar"]'), caja = $('[data-e="error"]');
+        var error = function (msg) { caja.textContent = msg; caja.hidden = false; caja.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); };
+        form.addEventListener('submit', function (ev) {
+          ev.preventDefault();
+          caja.hidden = true;
+          var v = {};
+          w.querySelectorAll('[data-k]').forEach(function (el) { v[el.getAttribute('data-k')] = el.value.trim(); });
+          // Los que faltan se marcan en su sitio: tiemblan, rojo y su mensaje debajo.
+          var malos = [];
+          OBLIG.forEach(function (k) { if (!v[k]) malos.push([k, 'Este dato hace falta para dar de alta.']); });
+          if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) malos.push(['email', 'No parece una dirección de correo válida.']);
+          w.querySelectorAll('.las-campo.las-mal').forEach(function (c) { c.classList.remove('las-mal'); });
+          if (malos.length) {
+            malos.forEach(function (m) {
+              var c = $('[data-req="' + m[0] + '"]'); if (!c) return;
+              c.querySelector('.las-msg').textContent = m[1];
+              c.classList.add('las-mal'); c.classList.remove('las-tiembla'); void c.offsetWidth; c.classList.add('las-tiembla');
+            });
+            var primero = $('[data-req="' + malos[0][0] + '"] .las-in');
+            if (primero) { primero.focus({ preventScroll: true }); primero.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+            return;
+          }
+          btn.classList.add('las-guardando'); btn.disabled = true;
+          Promise.resolve(guardaAltaComprador(v)).then(function (r) {
+            if (r && r.error) {
+              btn.classList.remove('las-guardando'); btn.disabled = false;
+              return error('No se pudo dar de alta: ' + (r.error.message || r.error) +
+                (/policy|permission|row-level/i.test(String(r.error.message)) ? ' — tu usuario no tiene ese permiso.' : ''));
+            }
+            btn.classList.remove('las-guardando'); btn.classList.add('las-hecho');
+            setTimeout(function () { cerrar(); location.reload(); }, 750);
+          }, function (e) {
+            btn.classList.remove('las-guardando'); btn.disabled = false;
+            error('No se pudo dar de alta: ' + (e && e.message || e));
           });
         });
-        // Nacionalidad como picker de nombre completo, no texto libre — igual
-        // que el resto de la suite (geo.js + dialogo.js, cargados en esta
-        // página). `modal()` ya construyó el DOM cuando esta línea corre.
+
+        // Nacionalidad como picker de nombre completo (geo.js + dialogo.js), igual que el resto de la suite.
         if (window.lwPicker && typeof NACIONALIDADES !== 'undefined') {
-          window.lwPicker(document.querySelector('#lw-editor [data-k="nationality"]'), NACIONALIDADES, { titulo: 'Nacionalidad' });
+          window.lwPicker($('[data-k="nationality"]'), NACIONALIDADES, { titulo: 'Nacionalidad' });
         }
-      });
+        setTimeout(function () { var p = $('[data-k="full_name"]'); if (p) p.focus({ preventScroll: true }); }, 420);
+      }
+
+      /* Hoja de estilo del cajón de alta, una vez por página. Medidas y colores
+         tomados del HTML de Stitch (Tailwind): cream #FBF9F4, borde #E7E4DC,
+         texto #1E2522, apagado #736B5E, lago #104C4F, lateral #F7F4EC. Títulos en
+         Cormorant Garamond y texto en Jost — el par que el owner eligió para la
+         web de Lawang (23-sep-2026) y el que pide la especificación. */
+      function cssAltaComprador() {
+        if (document.getElementById('las-css')) return;
+        var l = document.createElement('link');
+        l.rel = 'stylesheet';
+        l.href = 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@400;500;600&display=swap';
+        document.head.appendChild(l);
+        var s = document.createElement('style');
+        s.id = 'las-css';
+        s.textContent = [
+          '#lw-editor{--las-crema:#FBF9F4;--las-borde:#E7E4DC;--las-apagado:#736B5E;--las-tinta:#1E2522;--las-lago:#104C4F;--las-lago2:#0B3638;--las-lado:#F7F4EC;--las-sale:cubic-bezier(.23,1,.32,1);--las-cajon:cubic-bezier(.32,.72,0,1)}',
+          '.las-velo{position:fixed;inset:0;background:rgba(12,10,9,.45);backdrop-filter:blur(4px);z-index:calc(var(--z-modal,400) - 1);opacity:0;transition:opacity .3s ease}',
+          '.las-marco{position:fixed;inset:0;z-index:var(--z-modal,400);display:flex;justify-content:flex-end;pointer-events:none}',
+          '.las-panel{pointer-events:auto;position:relative;width:100%;max-width:1152px;height:100%;margin:0;background:var(--las-crema);border-left:1px solid var(--las-borde);box-shadow:0 25px 50px -12px rgba(0,0,0,.25);display:flex;flex-direction:column;overflow:hidden;font-family:Jost,"Neue Kabel",system-ui,sans-serif;color:var(--las-tinta);transform:translateX(100%);transition:transform .5s var(--las-cajon)}',
+          '.las-panel.las-dentro{transform:translateX(0)}',
+          '.las-panel *{box-sizing:border-box}',
+          '.las-cab{flex:none;display:flex;align-items:center;justify-content:space-between;padding:20px 32px;background:#fff;border-bottom:1px solid var(--las-borde)}',
+          '.las-cab-izq{display:flex;align-items:center;gap:16px;min-width:0}',
+          '.las-barra{width:10px;height:28px;border-radius:9999px;background:var(--las-lago);flex:none}',
+          '.las-miga{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--las-apagado)}',
+          '.las-sep{color:#d6d3d1;letter-spacing:0}',
+          '.las-estado{display:inline-flex;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500;letter-spacing:0;text-transform:none;background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0}',
+          '.las-h1{margin:2px 0 0;font:500 28px/1.15 "Cormorant Garamond",Georgia,serif;letter-spacing:-.01em;color:var(--las-tinta)}',
+          '.las-cerrar{width:36px;height:36px;flex:none;border-radius:9999px;border:1px solid var(--las-borde);background:#fafaf9;color:#78716c;display:grid;place-items:center;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.05);transition:background .15s,color .15s,transform .25s var(--las-sale)}',
+          '.las-cerrar:hover{background:#f5f5f4;color:#292524;transform:rotate(90deg)}',
+          '.las-ico{width:16px;height:16px;flex:none}',
+          '.las-cuerpo{flex:1;display:flex;min-height:0;margin:0;padding:0}',
+          /* shell.css da 16 px !important a todo div hijo de un cajón lateral en móvil (pensado para modal()); aquí el cuerpo va a sangre */
+          '#lw-editor form.las-panel > div.las-cuerpo{padding:0!important}',
+          '.las-lado-btn{display:none}',
+          '.las-lado{width:38%;flex:none;background:var(--las-lado);border-right:1px solid var(--las-borde);padding:28px;overflow-y:auto;display:flex;flex-direction:column;gap:24px}',
+          '.las-card{background:#fff;border:1px solid var(--las-borde);border-radius:12px;padding:20px;box-shadow:0 1px 2px rgba(0,0,0,.05)}',
+          '.las-card-cab{padding-bottom:12px;margin-bottom:16px;border-bottom:1px solid #f5f5f4}',
+          '.las-cinta{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#a8a29e}',
+          '.las-card-h{margin:0 0 12px;display:flex;align-items:center;justify-content:space-between}',
+          '.las-fase{font-size:10px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--las-lago);background:#f5f5f4;padding:2px 6px;border-radius:4px}',
+          '.las-quien{display:flex;align-items:center;gap:12px;margin-bottom:16px}',
+          '.las-avatar{width:48px;height:48px;flex:none;border-radius:9999px;background:#F5EFE6;border:1px solid rgba(197,168,128,.3);display:grid;place-items:center;color:var(--las-lago);font:600 18px "Cormorant Garamond",Georgia,serif;transition:transform .25s var(--las-sale)}',
+          '.las-min0{min-width:0}',
+          '.las-nombre{margin:0;font-weight:500;line-height:1.35;color:var(--las-tinta);overflow-wrap:anywhere}',
+          '.las-sub{margin:0;font-size:12px;color:var(--las-apagado)}',
+          '.las-datos{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-top:12px;border-top:1px solid #f5f5f4;font-size:12px}',
+          '.las-dato-etq{display:block;margin-bottom:2px;color:#a8a29e}',
+          '.las-dato{display:block;font-weight:500;color:#44403c;overflow-wrap:anywhere}',
+          '.las-trunca{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+          '.las-mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}',
+          '.las-lista{list-style:none;margin:0;padding:0;display:grid;gap:12px;font-size:12px}',
+          '.las-lista li{display:flex;align-items:flex-start;gap:10px;color:#57534e}',
+          '.las-num{width:16px;height:16px;flex:none;margin-top:2px;border-radius:9999px;border:1px solid #d6d3d1;display:grid;place-items:center;font-size:10px;color:#a8a29e}',
+          '.las-li-t{margin:0;font-weight:500;color:#292524}',
+          '.las-li-s{margin:0;font-size:11px;color:#a8a29e}',
+          '.las-aviso{display:flex;gap:12px;padding:16px;border-radius:12px;background:rgba(255,251,235,.7);border:1px solid rgba(253,230,138,.6);font-size:12px;line-height:1.6;color:#78350f}',
+          '.las-aviso b{font-weight:600}',
+          '.las-ico-aviso{width:20px;height:20px;flex:none;margin-top:2px;color:#b45309}',
+          '.las-aviso-t{display:block;margin-bottom:2px;font-weight:600}',
+          '.las-pie-lado{margin:auto 0 0;padding-top:8px;font-size:11px;line-height:1.5;text-align:center;color:var(--las-apagado)}',
+          '.las-derecha{width:62%;flex:1;display:flex;flex-direction:column;min-width:0;background:var(--las-crema)}',
+          '.las-scroll{flex:1;overflow-y:auto;padding:32px}',
+          '.las-form{display:grid;gap:24px}',
+          '.las-bloque{background:#fff;border:1px solid var(--las-borde);border-radius:12px;padding:24px;box-shadow:0 1px 2px rgba(0,0,0,.05);display:grid;gap:20px;transition:opacity .25s var(--las-sale)}',
+          '.las-bloque-cab{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;padding-bottom:12px;border-bottom:1px solid #f5f5f4}',
+          '.las-bloque-t{display:flex;align-items:center;gap:10px;min-width:0}',
+          '.las-bloque-t h3{margin:0;font-size:14px;font-weight:700;letter-spacing:.025em;text-transform:uppercase;color:#292524}',
+          '.las-bloque-s{margin:0;font-size:12px;color:var(--las-apagado)}',
+          '.las-n{width:24px;height:24px;flex:none;border-radius:6px;background:#f5f5f4;color:#44403c;display:grid;place-items:center;font:700 12px ui-monospace,Consolas,monospace}',
+          '.las-n-verde{background:#EEF3F0;color:var(--las-lago)}',
+          '.las-req-nota{font-size:12px;font-weight:500;color:#f43f5e;white-space:nowrap}',
+          '.las-insignia{font-size:11px;font-weight:500;padding:2px 8px;border-radius:4px;background:#f5f5f4;color:#57534e;white-space:nowrap;transition:background .2s,color .2s}',
+          '.las-insignia-on{background:#fef3c7;color:#92400e}',
+          '.las-emp.las-off .las-fila{opacity:.6;pointer-events:none}',
+          '.las-fila .las-campo, .las-fila > *{min-width:0}',
+          '.las-fila{display:grid;grid-template-columns:1fr 1fr;gap:16px;transition:opacity .25s var(--las-sale)}',
+          '.las-fila-tel{grid-template-columns:4fr 8fr;gap:12px}',
+          '.las-campo{display:grid;gap:4px;align-content:start}',
+          '.las-etq{display:block;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#44403c;transition:color .16s var(--las-sale)}',
+          '.las-etq-sec{font-weight:400;color:#a8a29e;text-transform:none;letter-spacing:0}',
+          '.las-rojo{color:#f43f5e}',
+          '.las-rel{position:relative}',
+          '.las-ico-izq,.las-ico-der{position:absolute;top:0;bottom:0;display:flex;align-items:center;pointer-events:none;color:#a8a29e}',
+          '.las-ico-izq{left:14px}.las-ico-der{right:14px;color:#78716c}',
+          '.las-in{width:100%;margin:0;padding:10px 14px;font:400 14px/1.43 Jost,"Neue Kabel",system-ui,sans-serif;color:#1c1917;background:rgba(250,250,249,.5);border:1px solid var(--las-borde);border-radius:8px;outline:none;box-shadow:none;transition:border-color .16s var(--las-sale),box-shadow .2s var(--las-sale),background-color .16s var(--las-sale)}',
+          '.las-in.las-con-ico{padding-left:40px}',
+          '.las-in.las-mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}',
+          'select.las-in{appearance:none;-webkit-appearance:none;padding-right:40px;cursor:pointer;background-image:none}',
+          '.las-in::placeholder{color:#a8a29e}',
+          '.las-in:hover{border-color:#d6cfc2}',
+          '.las-in:focus{background:#fff;border-color:var(--las-lago);box-shadow:0 0 0 2px var(--las-lago)}',
+          '.las-in[readonly]{cursor:pointer}',
+          '.las-campo:focus-within .las-etq{color:var(--las-lago)}',
+          '.las-ayuda{margin:0;font-size:10px;color:#a8a29e}',
+          '.las-msg{margin:0;font-size:11.5px;color:#be123c;display:none}',
+          '.las-mal .las-in{border-color:#e11d48;box-shadow:0 0 0 1px #e11d48}',
+          '.las-mal .las-etq{color:#be123c}',
+          '.las-mal .las-msg{display:block}',
+          '.las-tiembla{animation:las-tiembla .34s var(--las-sale)}',
+          '@keyframes las-tiembla{20%{transform:translateX(-5px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}',
+          '.las-pildoras{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:2px}',
+          '.las-pildora{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 16px;border-radius:8px;border:1px solid var(--las-borde);background:#fff;font:500 12px Jost,system-ui,sans-serif;color:#57534e;cursor:pointer;transition:border-color .18s var(--las-sale),background .18s,color .18s,box-shadow .18s,transform .12s var(--las-sale)}',
+          '.las-pildora:hover{background:#fafaf9}',
+          '.las-pildora:active{transform:scale(.98)}',
+          '.las-pildora[aria-pressed="true"]{border-color:var(--las-lago);box-shadow:inset 0 0 0 1px var(--las-lago);background:#fafaf9;color:var(--las-lago);font-weight:600}',
+          '.las-error{margin:0;padding:12px 14px;border-radius:8px;background:#9E2F26;color:#fff;font-weight:600;font-size:14px;line-height:1.4}',
+          '.las-pie{flex:none;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 32px;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);border-top:1px solid var(--las-borde)}',
+          '.las-pie-izq{display:flex;align-items:center;gap:8px;font-size:12px;color:#78716c;min-width:0}',
+          '.las-punto{width:8px;height:8px;flex:none;border-radius:9999px;background:#f59e0b;transition:background .2s}',
+          '.las-punto.las-listo{background:#10b981;animation:las-late 2s ease-in-out infinite}',
+          '@keyframes las-late{50%{opacity:.5}}',
+          '.las-pie-der{display:flex;align-items:center;gap:12px;flex:none}',
+          '.las-btn2{padding:10px 24px;border-radius:9999px;border:1px solid var(--las-borde);background:#fff;color:#44403c;font:500 14px Jost,system-ui,sans-serif;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.05);transition:background .15s,transform .12s var(--las-sale)}',
+          '.las-btn2:hover{background:#fafaf9}',
+          '.las-btn1{position:relative;overflow:hidden;min-width:160px;padding:10px 32px;border-radius:9999px;border:0;background:var(--las-lago);color:#fff;font:500 14px Jost,system-ui,sans-serif;letter-spacing:.025em;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.05);transition:background .18s,box-shadow .18s,transform .12s var(--las-sale)}',
+          '.las-btn1:hover{background:var(--las-lago2);box-shadow:0 4px 6px -1px rgba(0,0,0,.1)}',
+          '.las-btn1:active,.las-btn2:active{transform:scale(.97)}',
+          '.las-txt{display:inline-flex;align-items:center;gap:8px;transition:transform .22s var(--las-sale),opacity .16s}',
+          '.las-flecha{color:#a7f3d0;transition:transform .2s var(--las-sale)}',
+          '.las-btn1:hover .las-flecha{transform:translateX(3px)}',
+          '.las-giro,.las-ok{position:absolute;inset:0;display:grid;place-items:center;opacity:0;transform:translateY(10px);transition:transform .22s var(--las-sale),opacity .16s}',
+          '.las-giro i{width:16px;height:16px;border:1.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:las-giro .7s linear infinite}',
+          '@keyframes las-giro{to{transform:rotate(360deg)}}',
+          '.las-guardando .las-txt,.las-hecho .las-txt{opacity:0;transform:translateY(-10px)}',
+          '.las-guardando .las-giro,.las-hecho .las-ok{opacity:1;transform:none}',
+          '.las-btn1:disabled{cursor:default}',
+          '.las-panel :focus-visible{outline:2px solid #485B37;outline-offset:2px}',
+          '.las-panel .las-in:focus-visible{outline:none}',
+          /* entrada: los bloques llegan en cascada tras el cajón */
+          '.las-dentro .las-card,.las-dentro .las-aviso,.las-dentro .las-bloque{animation:las-entra .45s var(--las-sale) both}',
+          '.las-dentro .las-card:nth-child(2){animation-delay:.06s}.las-dentro .las-aviso{animation-delay:.12s}',
+          '.las-dentro .las-bloque{animation-delay:.1s}.las-dentro .las-bloque + .las-bloque{animation-delay:.18s}',
+          '@keyframes las-entra{from{opacity:0;transform:translateY(10px)}}',
+          '.las-dentro .las-emp.las-off{animation-name:las-entra-off}',
+          '@keyframes las-entra-off{from{opacity:0;transform:translateY(10px)}}',
+          /* menos de 1024 px: la ficha pasa a un desplegable encima del formulario */
+          '@media (max-width:1023px){',
+          '.las-cuerpo{flex-direction:column;overflow-y:auto}',
+          '.las-lado-btn{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0;padding:14px 20px;border:0;border-bottom:1px solid var(--las-borde);background:var(--las-lado);font:600 12px Jost,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--las-apagado);cursor:pointer}',
+          '.las-lado-btn[aria-expanded="true"] svg{transform:rotate(180deg)}',
+          '.las-lado{display:none;width:100%;border-right:0;border-bottom:1px solid var(--las-borde);padding:20px;overflow:visible}',
+          '.las-lado.las-abierto{display:flex}',
+          '.las-derecha{width:100%;flex:none}',
+          '.las-scroll{overflow:visible;padding:20px}',
+          '.las-cab{padding:16px 20px}',
+          '.las-pie{position:sticky;bottom:0;padding:14px 20px}',
+          '}',
+          '@media (max-width:640px){.las-sep{display:none}.las-bloque-t h3{font-size:13px}.las-fila,.las-fila-tel,.las-pildoras{grid-template-columns:1fr}.las-pie-izq{display:none}.las-pie{justify-content:flex-end}.las-bloque{padding:18px}}',
+          '@media (prefers-reduced-motion:reduce){.las-panel,.las-velo{transition:opacity .2s!important}.las-panel{transform:none}.las-panel:not(.las-dentro){opacity:0}.las-dentro *{animation:none!important}.las-tiembla{animation:none}.las-punto.las-listo{animation:none}}'
+        ].join('\n');
+        document.head.appendChild(s);
+      }
 
       /* EDITAR una ficha, desde su cajon (18-sep-2026). Quien puede lo decide la
          base, no esta pantalla: `admins actualizan clientes` (cualquier ficha) o
