@@ -7042,7 +7042,7 @@
            porque el editor de `editores.js` los rellena desde aqui, sin una
            segunda consulta. */
         q(sb.from('cuentas_bancarias')
-            .select('clave,label,titular,banco,cuenta,codigo,direccion,extra,orden,activa,es_escrow,actualizado_en')
+            .select('clave,label,titular,banco,cuenta,codigo,direccion,extra,orden,activa,es_escrow,es_propia,actualizado_en')
             .order('orden'), 'cuentas bancarias', cajaCu),
         q(sb.from('plantillas_contrato').select('slug,nombre,orden,cobra,archivada').order('orden'), 'tipos de contrato', cajaRep),
         q(sb.from('plantilla_cuentas').select('slug,clave,es_default'), 'reparto por contrato'),
@@ -7180,7 +7180,11 @@
           var u = USO && USO[c.clave];
           return '<tr class="border-b border-outline-variant/30' + (c.activa ? '' : ' opacity-60') + '">' +
             '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(c.label || c.clave) +
-              (c.es_escrow ? tag('escrow', 'text-burnt-earth') : '') + '</td>' +
+              (c.es_escrow ? tag('escrow', 'text-burnt-earth') : '') +
+              /* De quién es la cuenta (24-sep-2026, LAW-305): Finanzas solo cuenta
+                 como caja de la sociedad lo que entra en las PROPIAS. Sin marcar se
+                 dice, para que se vea lo que falta por clasificar. */
+              (c.es_escrow ? '' : c.es_propia === true ? tag('propia', 'text-territorial-green') : c.es_propia === false ? tag('de un tercero', 'text-outline') : tag('sin marcar', 'text-error')) + '</td>' +
             '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' +
               (usos ? esc(usos + (usos === 1 ? ' documento' : ' documentos')) : '<span class="text-outline">ninguno</span>') + '</td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + (c.activa ? 'activa' : 'de baja') + '</td>' +
@@ -7194,7 +7198,7 @@
       if (cajaCu) {
         cajaCu.innerHTML = cus.length
           ? cus.map(function (c) {
-              return itemPanel(esc(c.label || c.clave) + (c.es_escrow ? ' · escrow' : ''),
+              return itemPanel(esc(c.label || c.clave) + (c.es_escrow ? ' · escrow' : c.es_propia === true ? ' · propia' : c.es_propia === false ? ' · de un tercero' : ' · sin marcar'),
                                esc([c.banco, c.cuenta].filter(Boolean).join(' — ') || '—'),
                                c.activa ? 'activa' : 'de baja');
             }).join('')

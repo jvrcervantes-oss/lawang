@@ -85,11 +85,11 @@ const corsFor = (req: Request) => {
 // concedérsela a nadie (al revés que 'vencimientos' el 18-ago): solo la ve un
 // super_admin, que `puede()` deja pasar siempre.
 const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte', 'leads', 'closers', 'ranking', 'reparto', 'cuentas', 'comisiones', 'reservas', 'modelos', 'asistente', 'recibos', 'comisiones_reparto', 'comisiones_condiciones', 'comisiones_equipos', 'gastos'];
-// 'gastos' (24-sep-2026, módulo Gastos y proveedores): añadida en la FUENTE en el
-// mismo commit que el catálogo. ⚠️ El REDESPLIEGUE de esta función sigue
-// pendiente (LAW-304): en Windows `supabase/functions/admin-usuarios` es un
-// stub de texto y no se puede desplegar desde aquí. Hasta entonces la casilla
-// se marca a usuarios YA creados (Usuarios → editar), no en el alta.
+// 'gastos' (24-sep-2026, módulo Gastos y proveedores). Redesplegada el mismo día
+// (LAW-304) desde una carpeta temporal con COPIA REAL de este fichero: en
+// Windows `supabase/functions/admin-usuarios` es un stub de texto (symlink sin
+// materializar) y desplegarlo subiría el stub. Antes se descargó lo desplegado
+// y se comparó con el repo: idéntico salvo esta línea.
 // 'comisiones_reparto', 'comisiones_condiciones', 'comisiones_equipos' (23-sep-2026, plan
 // del owner): las pestañas de «Comisiones», una casilla cada una; 'comisiones' es
 // «Pagos de Lawang». Lo que se ve dentro lo decide el rol en la base.

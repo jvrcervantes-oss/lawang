@@ -7446,6 +7446,9 @@
           { tipo: 'nota', label: 'Si solo rellenas ES, se imprime ese texto en los tres idiomas. En cuanto pongas EN o ID, cada idioma imprime el suyo.' },
           { k: 'es_escrow', tipo: 'check', valor: c.es_escrow, label: 'Es una cuenta ESCROW (depósito en garantía)',
             ayuda: 'Añade o quita sola en el contrato la fila «Naturaleza de la cuenta — depósito en garantía». Va en los DOS sentidos y alcanza a lo ya emitido: al reimprimir un contrato firmado con esta cuenta, marcarla le mete una cláusula que no pactó y desmarcarla le quita una que sí pactó. Tócala solo si está mal puesta.' },
+          { k: 'es_propia', tipo: 'select', valor: c.es_propia === true ? 'si' : c.es_propia === false ? 'no' : '', label: '¿De quién es esta cuenta?',
+            opciones: [['', 'Sin marcar'], ['si', 'De la sociedad (caja propia)'], ['no', 'De un tercero (contratista, vendedor de suelo, notario)']],
+            ayuda: 'Finanzas solo cuenta como caja de la sociedad lo que entra en las cuentas propias; lo que el comprador paga a un tercero sale aparte. Un gasto solo se puede pagar desde una cuenta propia. Una cuenta escrow es siempre de un tercero.' },
           { k: 'activa', tipo: 'check', valor: c.activa, label: 'Activa',
             ayuda: '⚠️ Desactivarla la retira de todos los desplegables, y además los contratos y facturas ya emitidos con ella salen SIN el bloque de datos bancarios al reabrirlos o reimprimirlos, sin ningún aviso (verificado el 18-sep: entities.js carga solo las activas y la tabla se omite entera si falta la clave). La fila no se borra y reactivarla lo devuelve todo. Si la cuenta está en documentos emitidos, déjala activa y quítala del reparto.' },
           { tipo: 'custom', render: function (host) { leeRep = montaRepartoPorCuenta(host, d, clave); } }
@@ -7457,7 +7460,8 @@
               label: v.label, titular: v.titular, banco: v.banco, cuenta: v.cuenta,
               codigo: v.codigo, direccion: v.direccion,
               extra: lwNotaCuenta.aJson({ es: v.nota_es, en: v.nota_en, id: v.nota_id }),
-              es_escrow: !!v.es_escrow, activa: !!v.activa
+              es_escrow: !!v.es_escrow, activa: !!v.activa,
+              es_propia: v.es_propia === 'si' ? true : v.es_propia === 'no' ? false : null
             }).eq('clave', clave).select('clave'), 'No se pudo guardar la cuenta');
           }];
           if (leeRep) {
@@ -7501,6 +7505,8 @@
             { k: 'codigo', label: 'Código Swift / Routing', medio: 1 },
             { k: 'direccion', label: 'Domicilio del banco' },
             { k: 'es_escrow', label: 'Es una cuenta ESCROW (depósito en garantía)', tipo: 'check' },
+            { k: 'es_propia', tipo: 'select', valor: '', label: '¿De quién es esta cuenta?',
+              opciones: [['', 'Sin marcar'], ['si', 'De la sociedad (caja propia)'], ['no', 'De un tercero (contratista, vendedor de suelo, notario)']] },
             { tipo: 'nota', label: 'Nace desactivada y sin ningún contrato asignado: no puede aparecer en el desplegable de un contrato antes de que alguien compruebe el número. Se activa y se reparte después, con el botón «Editar» de su fila en «Por cuenta».' }
           ], 'Crear cuenta', function (v) {
             var clave = v.clave.trim().toLowerCase();
@@ -7516,7 +7522,8 @@
               clave: clave, label: v.label.trim(),
               titular: v.titular.trim(), banco: v.banco.trim(), cuenta: v.cuenta.trim(),
               codigo: v.codigo.trim(), direccion: v.direccion.trim(), extra: '',
-              es_escrow: !!v.es_escrow, activa: false, orden: siguienteOrden
+              es_escrow: !!v.es_escrow, activa: false, orden: siguienteOrden,
+              es_propia: v.es_propia === 'si' ? true : v.es_propia === 'no' ? false : null
             }).select('clave').single().then(function (rr) {
               if (rr && rr.error) return rr;
               recarga();

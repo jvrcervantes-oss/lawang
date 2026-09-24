@@ -294,4 +294,31 @@ caso('filtro por sociedad: los gastos se recortan por su columna sociedad', () =
   assert.strictEqual(F.finModelo(F.finFiltraEmpresa(e, 'san_dal_woods')).porMoneda.EUR.gastos.pendientePagar, 5);
 });
 
+caso('destino de los cobros: la caja es propia + sin clasificar; terceros y escrow fuera, y la suma cuadra (LAW-305)', () => {
+  const c = F.finCobros([
+    { total: 1000, moneda: 'EUR', fecha: '2026-09-02', destino: 'propia', proyecto_nombre: 'P1' },
+    { total: 700,  moneda: 'EUR', fecha: '2026-09-03', destino: 'tercero', proyecto_nombre: 'P1' },
+    { total: 300,  moneda: 'EUR', fecha: '2026-09-04', destino: 'escrow', proyecto_nombre: 'P1' },
+    { total: 200,  moneda: 'EUR', fecha: '2026-09-05', proyecto_nombre: 'P1' },   // sin dato = sin clasificar
+  ], HOY).EUR;
+  assert.strictEqual(c.anio, 2200);                 // cobrado: todo lo que pagó el comprador
+  assert.strictEqual(c.anioCaja, 1200);             // caja: propia + sin clasificar
+  assert.deepStrictEqual(c.porDestinoAnio, { propia: 1000, tercero: 700, escrow: 300, sin_clasificar: 200 });
+  const d = c.porDestinoAnio;
+  assert.strictEqual(d.propia + d.tercero + d.escrow + d.sin_clasificar, c.anio);
+  assert.strictEqual(c.porMesCaja['2026-09'], 1200);
+  assert.strictEqual(c.porMesTerceros['2026-09'], 1000);
+  assert.strictEqual(c.porProyectoCaja.P1, 1200);
+});
+
+caso('caja neta por proyecto y serie de caja NO cuentan lo cobrado en cuentas de terceros', () => {
+  const m = F.finModelo({ hoyISO: HOY, contratos: [bloqueo], cobradoPorId: {}, vencimientos: [], facturas: [], unidades: [], solicitudes: [], comisiones: [], gastos: [],
+    recibis: [{ total: 1000, moneda: 'EUR', fecha: '2026-09-05', proyecto_nombre: 'P1', destino: 'propia' },
+              { total: 5000, moneda: 'EUR', fecha: '2026-09-05', proyecto_nombre: 'P1', destino: 'tercero' }] }).porMoneda.EUR;
+  assert.strictEqual(m.porProyecto.find(p => p.proyecto === 'P1').cajaNeta, 1000);
+  const s = F.finSerieCaja(m, HOY, 12, 6).find(x => x.esHoy);
+  assert.strictEqual(s.cobrado, 1000);
+  assert.strictEqual(s.aTerceros, 5000);
+});
+
 console.log('finanzas.test.js OK — ' + n + ' casos');

@@ -72,7 +72,7 @@
       q(sb.from('proveedores').select('id,nombre,tipo,npwp,contacto,email,telefono,notas,activo').order('nombre'), 'proveedores'),
       q(sb.from('gasto_categorias').select('clave,nombre,grupo,orden,activa').order('orden'), 'categorías'),
       q(sb.from('proyectos').select('id,nombre,activo').order('nombre'), 'proyectos'),
-      q(sb.from('cuentas_bancarias').select('clave,label,banco,titular,es_escrow,activa').order('orden'), 'cuentas'),
+      q(sb.from('cuentas_bancarias').select('clave,label,banco,titular,es_escrow,es_propia,activa').order('orden'), 'cuentas'),
       (typeof cargarSociedades === 'function' ? cargarSociedades(sb).catch(function () { return null; }) : Promise.resolve(null)),
       sb.from('usuarios').select('user_id,nombre,email').then(function (r) { return r.error ? [] : (r.data || []); }, function () { return []; })
     ]).then(function (r) {
@@ -185,17 +185,21 @@
   function pintaTodo() { llenaFiltros(); pintaKpis(); pintaLista(); pintaProveedores(); if (typeof lwIdiomaAplicar === 'function') { try { lwIdiomaAplicar(); } catch (_) { /* traducir no tumba */ } } }
 
   /* ── FORMULARIOS ───────────────────────────────────────────────────────── */
-  /* «Pagado desde la cuenta» FUERA del formulario en v1 (24-sep-2026): la tabla
-     cuentas_bancarias mezcla cuentas propias con las del contratista, los
-     vendedores de suelo y los notarios (donde paga el comprador), y no hay
-     columna que diga cuál es de la sociedad. Ofrecerlas todas invita a apuntar
-     un pago «desde» la cuenta de un tercero. La columna `cuenta_pago` existe y
-     la base ya prohíbe las de escrow; vuelve al formulario cuando las cuentas
-     propias estén marcadas (pendiente en contexto/pendientes.md). */
+  /* «Pagado desde la cuenta»: solo cuentas marcadas como PROPIAS en Cuentas
+     (24-sep-2026, LAW-305). La tabla cuentas_bancarias mezcla las de la
+     sociedad con las del contratista, los vendedores de suelo y los notarios;
+     ofrecerlas todas invitaba a apuntar un pago «desde» la cuenta de un tercero.
+     La base lo exige igual (trigger _gastos_antes): propia y nunca escrow. */
   function opcionesCuentas(actual) {
     // Nunca una cuenta de escrow (también lo frena la base); ni desactivadas salvo la que ya tiene
-    return [['', T('— sin indicar —')]].concat(D.cuentas.filter(function (c) { return !c.es_escrow && (c.activa || c.clave === actual); })
+    return [['', T('— sin indicar —')]].concat(D.cuentas.filter(function (c) { return !c.es_escrow && c.es_propia === true && (c.activa || c.clave === actual); })
       .map(function (c) { return [c.clave, (c.label || c.clave) + (c.banco ? ' · ' + c.banco : '')]; }));
+  }
+  // El campo, o una nota si todavía no hay ninguna cuenta marcada como propia
+  function campoCuenta(actual, extra) {
+    var ops = opcionesCuentas(actual);
+    if (ops.length > 1) { var c = { k: 'cuenta_pago', label: T('Pagado desde la cuenta'), tipo: 'select', valor: actual || '', opciones: ops }; for (var k in (extra || {})) c[k] = extra[k]; return c; }
+    var n = { tipo: 'nota', label: T('Para indicar desde qué cuenta se paga, marca en Cuentas cuáles son de la sociedad.') }; if (extra && extra.visibleSi) n.visibleSi = extra.visibleSi; return n;
   }
   function camposGasto(g) {
     g = g || {};
@@ -251,12 +255,13 @@
     var campos = camposGasto().concat([
       { k: 'estado', label: T('¿Ya está pagado?'), tipo: 'select', medio: 1, valor: 'pendiente', opciones: [['pendiente', T('No, pendiente de pagar')], ['pagado', T('Sí, ya pagado')]] },
       { k: 'pagado_el', label: T('Pagado el'), tipo: 'date', medio: 1, valor: hoy, visibleSi: { k: 'estado', valores: ['pagado'] } },
+      campoCuenta('', { visibleSi: { k: 'estado', valores: ['pagado'] } }),
       { k: 'fichero', label: T('Justificante (PDF o imagen, máx. 10 MB)'), tipo: 'file', accept: 'application/pdf,image/jpeg,image/png,image/webp' }
     ]);
     window.lwVentana(T('Nuevo gasto'), campos, T('Guardar gasto'), function (v) {
       var pl = payloadDe(v); if (pl.error) return pl;
       pl.p.estado = v.estado === 'pagado' ? 'pagado' : 'pendiente';
-      if (pl.p.estado === 'pagado') pl.p.pagado_el = v.pagado_el || hoy;
+      if (pl.p.estado === 'pagado') { pl.p.pagado_el = v.pagado_el || hoy; pl.p.cuenta_pago = v.cuenta_pago || null; }
       return sb.from('gastos').insert(pl.p).select('id,justificantes').then(function (r) {
         r = verifica(r, T('No se pudo guardar el gasto')); if (r.error) return r;
         return subeJustificante(r.data[0], v.fichero).then(function (u) {
@@ -278,9 +283,10 @@
   function marcaPagado(g) {
     window.lwVentana(T('Marcar como pagado'), [
       { k: 'pagado_el', label: T('Pagado el'), tipo: 'date', req: true, medio: 1, valor: hoy },
+      campoCuenta(g.cuenta_pago, { medio: 1 }),
       { k: 'nota', tipo: 'nota', label: Number(g.pph_retenido) > 0 ? T('Al proveedor se le paga') + ' ' + fmt(Number(g.total) - Number(g.pph_retenido), g.moneda) + ' (' + T('total menos la retención') + ').' : T('Importe') + ': ' + fmt(g.total, g.moneda) }
     ], T('Marcar pagado'), function (v) {
-      return sb.from('gastos').update({ estado: 'pagado', pagado_el: v.pagado_el }).eq('id', g.id).select('id').then(function (r) { return verifica(r, T('No se pudo marcar como pagado')); });
+      return sb.from('gastos').update({ estado: 'pagado', pagado_el: v.pagado_el, cuenta_pago: v.cuenta_pago || null }).eq('id', g.id).select('id').then(function (r) { return verifica(r, T('No se pudo marcar como pagado')); });
     }, { sub: g.concepto });
   }
   function marcaPph(g) {

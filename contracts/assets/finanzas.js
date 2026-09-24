@@ -65,9 +65,18 @@ function _porMoneda(obj, m, nuevo){ return obj[m] || (obj[m] = nuevo()); }
 /* ── COBRADO: el dinero que ha entrado ─────────────────────────────────────
    Solo el recibí prueba dinero recibido (reforma del 11-ago: la factura es lo
    que se DEBE). Se cuenta por la fecha del recibí, que es la fecha de caja.
-   Entrada: [{ total, moneda, fecha:'YYYY-MM-DD', anulada, sociedad }].
+   Entrada: [{ total, moneda, fecha:'YYYY-MM-DD', anulada, sociedad, destino }].
+
+   DESTINO (24-sep-2026, LAW-305): a qué cuenta fue el dinero. `propia` (de la
+   sociedad), `tercero` (contratista, vendedor de suelo), `escrow` (notario) o
+   `sin_clasificar` (cuenta sin marcar o recibí sin cuenta; también si no viene
+   el dato). «Cobrado» es TODO lo que pagó el comprador; «caja» es solo lo que
+   entró en la sociedad: propia + sin clasificar. Lo sin clasificar va dentro
+   de la caja y se DICE, porque sacarlo daría una caja casi vacía hasta que se
+   marquen las cuentas, y eso tampoco sería verdad.
    «Año anterior» compara el MISMO tramo del año (1-ene → mismo día): comparar
    nueve meses contra doce da siempre una caída falsa. */
+const FIN_DESTINOS = ['propia', 'tercero', 'escrow', 'sin_clasificar'];
 function finCobros(recibis, hoyISO){
   const mesHoy = hoyISO.slice(0, 7);
   const [y] = hoyISO.split('-').map(Number);
@@ -78,16 +87,25 @@ function finCobros(recibis, hoyISO){
     if (r.anulada || !finEsISO(r.fecha)) continue;
     const imp = finImporte(r.total);
     if (imp == null) continue;
-    const m = _porMoneda(porMoneda, r.moneda || 'EUR', () => ({ mes:0, mesAnterior:0, anio:0, anioAnteriorMismoTramo:0, n:0, porMes:{}, porSociedadAnio:{}, porProyecto:{} }));
+    const m = _porMoneda(porMoneda, r.moneda || 'EUR', () => ({ mes:0, mesAnterior:0, anio:0, anioAnteriorMismoTramo:0, n:0, porMes:{}, porSociedadAnio:{}, porProyecto:{},
+      porMesCaja:{}, porMesTerceros:{}, porProyectoCaja:{}, anioCaja:0, porDestinoAnio:{ propia:0, tercero:0, escrow:0, sin_clasificar:0 } }));
+    const destino = FIN_DESTINOS.includes(r.destino) ? r.destino : 'sin_clasificar';
+    const esCaja = destino === 'propia' || destino === 'sin_clasificar';
     const mes = r.fecha.slice(0, 7), anio = Number(r.fecha.slice(0, 4));
     m.n++;
     m.porMes[mes] = FIN_R((m.porMes[mes] || 0) + imp);
     const pr = (r.proyecto_nombre || '').trim();
     if (pr) m.porProyecto[pr] = FIN_R((m.porProyecto[pr] || 0) + imp);
+    if (esCaja){
+      m.porMesCaja[mes] = FIN_R((m.porMesCaja[mes] || 0) + imp);
+      if (pr) m.porProyectoCaja[pr] = FIN_R((m.porProyectoCaja[pr] || 0) + imp);
+    } else m.porMesTerceros[mes] = FIN_R((m.porMesTerceros[mes] || 0) + imp);
     if (mes === mesHoy) m.mes += imp;
     if (mes === mesAnt) m.mesAnterior += imp;
     if (anio === y && r.fecha <= hoyISO){
       m.anio += imp;
+      m.porDestinoAnio[destino] = FIN_R(m.porDestinoAnio[destino] + imp);
+      if (esCaja) m.anioCaja += imp;
       const s = r.sociedad || '';
       m.porSociedadAnio[s] = FIN_R((m.porSociedadAnio[s] || 0) + imp);
     }
@@ -95,7 +113,7 @@ function finCobros(recibis, hoyISO){
   }
   for (const m of Object.values(porMoneda)){
     m.mes = FIN_R(m.mes); m.mesAnterior = FIN_R(m.mesAnterior);
-    m.anio = FIN_R(m.anio); m.anioAnteriorMismoTramo = FIN_R(m.anioAnteriorMismoTramo);
+    m.anio = FIN_R(m.anio); m.anioAnteriorMismoTramo = FIN_R(m.anioAnteriorMismoTramo); m.anioCaja = FIN_R(m.anioCaja);
   }
   return porMoneda;
 }
@@ -423,7 +441,7 @@ function finPorProyecto(carteraM, stockM, gastosM, comM, cobrosM){
          registrados pueden estar incompletos. */
       gastosBase: gastosM ? ((gastosM.porProyecto[p] && gastosM.porProyecto[p].base) || 0) : null,
       cajaNeta: (gastosM && cobrosM)
-        ? FIN_R(((cobrosM.porProyecto || {})[p] || 0) - ((gastosM.porProyecto[p] && gastosM.porProyecto[p].pagado) || 0) - ((comM && comM.porProyecto[p]) || 0))
+        ? FIN_R(((cobrosM.porProyectoCaja || cobrosM.porProyecto || {})[p] || 0) - ((gastosM.porProyecto[p] && gastosM.porProyecto[p].pagado) || 0) - ((comM && comM.porProyecto[p]) || 0))
         : null,
     });
   }
@@ -508,7 +526,9 @@ function finModelo(e){
 function finSerieCaja(pm, hoyISO, atras, adelante){
   const meses = finMeses(hoyISO, -(atras || 12), adelante == null ? 6 : adelante);
   const mesHoy = hoyISO.slice(0, 7);
-  const cob = (pm && pm.cobros && pm.cobros.porMes) || {};
+  // Lo que entró en la SOCIEDAD (propias + sin clasificar); lo pagado a terceros va aparte
+  const cob = (pm && pm.cobros && (pm.cobros.porMesCaja || pm.cobros.porMes)) || {};
+  const ter = (pm && pm.cobros && pm.cobros.porMesTerceros) || {};
   const prev = (pm && pm.cartera && pm.cartera.previstoPorMes) || {};
   /* Salidas (módulo `gastos`): lo pagado a proveedores y a la DJP, más las
      comisiones pagadas; y lo que vence por pagar. `null` si no hay datos de
@@ -521,6 +541,7 @@ function finSerieCaja(pm, hoyISO, atras, adelante){
     const pagado = conSalidas && mes <= mesHoy ? pag(mes) : null;
     return {
       mes, cobrado,
+      aTerceros: mes <= mesHoy ? FIN_R(ter[mes] || 0) : null,
       previsto: mes >= mesHoy ? FIN_R(prev[mes] || 0) : null,
       pagado,
       aPagar: conSalidas && mes >= mesHoy ? FIN_R((g.aPagarPorMes[mes]) || 0) : null,

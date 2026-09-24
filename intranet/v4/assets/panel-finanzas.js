@@ -96,7 +96,10 @@
       contratos: todas(function () { return sb.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,bloqueado,contrato_padre_id,created_at,liberado_en'); }, 'contratos'),
       cobrado: todas(function () { return sb.rpc('contratos_cobrado_equipo').select('contrato_id,cobrado'); }, 'cobrado por contrato', 'contrato_id'),
       vencimientos: todas(function () { return sb.from('contrato_vencimientos').select('id,contrato_id,orden,descripcion,pct,monto,fecha,no_facturar'); }, 'calendario de pagos'),
-      facturas: todas(function () { return sb.rpc('facturas_equipo').select('id,numero,tipo,sociedad,total,moneda,anulada,fecha_emision,created_at,contrato_id,proyecto_nombre,venc:datos->fields->>fecha_vencimiento'); }, 'facturas'),
+      facturas: todas(function () { return sb.rpc('facturas_equipo').select('id,numero,tipo,sociedad,total,moneda,anulada,fecha_emision,created_at,contrato_id,proyecto_nombre,cuenta:datos->fields->>cuenta,venc:datos->fields->>fecha_vencimiento'); }, 'facturas'),
+      /* De quién es cada cuenta (LAW-305): la lee cualquier sesión. Si falla,
+         todo recibí queda «sin clasificar» y se dice. */
+      cuentas: todas(function () { return sb.from('cuentas_bancarias').select('clave,es_propia,es_escrow'); }, 'cuentas bancarias', 'clave'),
       pendiente: todas(function () { return sb.rpc('facturas_pendiente_equipo').select('factura_id,pendiente'); }, 'pendiente por factura', 'factura_id'),
       unidades: todas(function () { return sb.from('unidades').select('id,proyecto,estado,precio,moneda'); }, 'unidades'),
       solicitudes: verSol ? todas(function () { return sb.from('solicitudes_pago').select('id,estado,importe,moneda'); }, 'solicitudes de pago') : Promise.resolve(null),
@@ -120,6 +123,14 @@
     var pend = {};
     (d.pendiente || []).forEach(function (x) { pend[x.factura_id] = Number(x.pendiente) || 0; });
     var facturas = d.facturas || [];
+    var cuentaDe = {};
+    (d.cuentas || []).forEach(function (c) { cuentaDe[c.clave] = c; });
+    var destinoDe = function (clave) {
+      var c = clave && cuentaDe[clave];
+      if (!c) return 'sin_clasificar';            // sin cuenta, «otros» o clave desconocida
+      if (c.es_escrow) return 'escrow';
+      return c.es_propia === true ? 'propia' : c.es_propia === false ? 'tercero' : 'sin_clasificar';
+    };
     // firmado = bloqueado, nunca fecha_firma (suite_lawang.md)
     var firmado = {};
     (d.contratos || []).forEach(function (c) { firmado[c.id] = !!c.bloqueado && !c.liberado_en; });
@@ -129,7 +140,7 @@
       cobradoPorId: cobradoPorId,
       vencimientos: d.vencimientos || [],
       recibis: facturas.filter(function (f) { return f.tipo === 'recibi'; }).map(function (f) {
-        return { tipo: 'recibi', total: f.total, moneda: f.moneda, anulada: f.anulada, sociedad: f.sociedad, proyecto_nombre: f.proyecto_nombre, fecha: f.fecha_emision || String(f.created_at || '').slice(0, 10) };
+        return { tipo: 'recibi', total: f.total, moneda: f.moneda, anulada: f.anulada, sociedad: f.sociedad, proyecto_nombre: f.proyecto_nombre, destino: destinoDe(f.cuenta), fecha: f.fecha_emision || String(f.created_at || '').slice(0, 10) };
       }),
       /* Sin la RPC de pendiente no se inventa: una factura sin su pendiente
          calculado NO entra (se diría que se debe el total de facturas ya
@@ -289,7 +300,8 @@
       var mostrar = function () {
         var s = SERIE[Number(r.getAttribute('data-i'))];
         var h = '<b>' + esc(etiquetaMes(s.mes, true)) + (s.esHoy ? ' · ' + esc(T('en curso')) : '') + '</b>';
-        if (s.cobrado != null) h += '<br>' + esc(T('Cobrado')) + ': ' + esc(fmt(s.cobrado, m));
+        if (s.cobrado != null) h += '<br>' + esc(T('Entró en la sociedad')) + ': ' + esc(fmt(s.cobrado, m));
+        if (s.aTerceros) h += '<br>' + esc(T('Cobrado en cuentas de terceros')) + ': ' + esc(fmt(s.aTerceros, m));
         if (s.previsto != null && !sinPrev) h += '<br>' + esc(T('Previsto')) + ': ' + esc(fmt(s.previsto, m));
         if (s.pagado != null) h += '<br>' + esc(T('Pagado')) + ': ' + esc(fmt(s.pagado, m));
         if (s.aPagar != null && s.aPagar) h += '<br>' + esc(T('A pagar')) + ': ' + esc(fmt(s.aPagar, m));
@@ -530,16 +542,23 @@
       var msg = T('Falta la casilla «Gastos y proveedores» en Usuarios: sin ella no se ve lo que sale.');
       vacio(el, msg); vacio(el2, msg); return;
     }
-    var g = pm.gastos, cp = pm.comPagadas, entr = (pm.cobros && pm.cobros.anio) || 0;
+    var g = pm.gastos, cp = pm.comPagadas, cob = pm.cobros || {};
+    var dest = cob.porDestinoAnio || { propia: 0, tercero: 0, escrow: 0, sin_clasificar: cob.anio || 0 };
+    var entr = cob.anioCaja != null ? cob.anioCaja : (cob.anio || 0);
     var com = cp ? cp.anio : null;
     var sal = g.pagadoAnio + (com || 0);
     var neto = Math.round((entr - sal) * 100) / 100;
     el.innerHTML = '<div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 mb-4"><span class="font-kpi-number text-kpi-number tracking-tight fin-num ' + (neto < 0 ? 'text-error' : 'text-on-surface') + '">' + esc(fmt(neto, m)) + '</span>' +
       '<span class="font-body-sm text-body-sm text-outline">' + esc(T('neto de caja en') + ' ' + anio) + '</span></div>' +
-      filaTramo('#104C4F', T('Entradas (recibís)'), entr, null, m, '', false) +
+      filaTramo('#104C4F', T('Entradas en cuentas de la sociedad'), dest.propia, null, m, '', false) +
+      (dest.sin_clasificar ? filaTramo('#9AC0C2', T('Entradas sin clasificar (cuenta sin marcar o recibí sin cuenta)'), dest.sin_clasificar, null, m, '', false) : '') +
       filaTramo('#B06A3B', T('Pagado a proveedores y retenciones'), g.pagadoAnio, null, m, '', false) +
       (com == null ? '<p class="mt-2 font-body-sm text-body-sm text-on-surface-variant">' + esc(T('Comisiones pagadas: falta la casilla «Reparto a closers»; no están restadas.')) + '</p>'
                    : filaTramo('#D8A984', T('Comisiones pagadas a closers'), com, null, m, '', false)) +
+      ((dest.tercero || dest.escrow) ? '<div class="mt-4 pt-3 border-t border-outline-variant/40"><p class="font-body-sm text-body-sm text-on-surface-variant mb-1">' + esc(T('No es caja de la sociedad (no entra en el neto):')) + '</p>' +
+        (dest.tercero ? filaTramo('#BEB3A5', T('Cobrado en cuentas de terceros (contratista, vendedor de suelo)'), dest.tercero, null, m, '', false) : '') +
+        (dest.escrow ? filaTramo('#BEB3A5', T('Cobrado en cuentas de escrow (notario)'), dest.escrow, null, m, '', false) : '') + '</div>' : '') +
+      (dest.sin_clasificar ? '<p class="mt-3 font-body-sm text-body-sm text-error">' + esc(T('Hay entradas sin clasificar: el neto las cuenta como de la sociedad. Marca en Cuentas de quién es cada cuenta para que la cifra sea exacta.')) + ' <a class="underline" href="../cuentas/">' + esc(T('Ir a Cuentas')) + '</a></p>' : '') +
       '<p class="mt-4 font-body-sm text-body-sm text-outline">' + esc(T('Es caja, no resultado: no descuenta amortizaciones ni lo que aún no se ha registrado en Gastos.')) + '</p>';
     var grupos = g.baseAnioPorGrupo || {}, NOM = { construccion: 'Construcción', comercial: 'Comercial', marketing: 'Marketing', personal: 'Personal', general: 'General', impuestos: 'Impuestos y tasas', financiero: 'Financiero' };
     var expl = Object.keys(grupos).filter(function (k) { return k !== 'suelo'; }).sort(function (a, b) { return grupos[b] - grupos[a]; });
