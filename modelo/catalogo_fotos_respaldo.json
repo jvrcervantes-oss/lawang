@@ -1,300 +1,348 @@
 {
   "dali": [
     {
-      "pie": "Dali Bamboo Exterior",
+      "pie": "Dali Bamboo & Ulin Shingle",
       "path": "modelo/a6054863-017f-4b8e-bc7d-801786669181.webp",
       "tipo": "render",
-      "orden": 0
+      "orden": 0,
+      "vista": "techo_bambu"
     },
     {
-      "pie": "Dali Ulin Exterior",
+      "pie": "Dali Sirap Ulin",
       "path": "modelo/7ee92303-8be0-4ebd-a6c2-38e806886aad.webp",
       "tipo": "render",
-      "orden": 1
+      "orden": 1,
+      "vista": "techo_sirap"
     },
     {
       "pie": "Dali Top View",
       "path": "modelo/abb8e405-432f-4563-a81c-684e7e3275ee.webp",
       "tipo": "render",
-      "orden": 3
+      "orden": 3,
+      "vista": "planta"
     },
     {
       "pie": "Dali Bedroom",
       "path": "modelo/1aedd08e-d17c-4e82-8179-719d7ff19e99.webp",
       "tipo": "render",
-      "orden": 4
+      "orden": 4,
+      "vista": null
     },
     {
       "pie": "Dali Kitchen",
       "path": "modelo/5a314b8a-2e32-4e42-be71-08b48968b7e8.webp",
       "tipo": "render",
-      "orden": 5
+      "orden": 5,
+      "vista": "cocina"
     },
     {
       "pie": "Dali Living Room",
       "path": "modelo/a099d3bc-124f-416b-8925-f9073cc6763d.webp",
       "tipo": "render",
-      "orden": 7
+      "orden": 7,
+      "vista": "interior"
     },
     {
       "pie": "Dali Toilet",
       "path": "modelo/f43a581f-7ac8-45b6-ab92-4cf322ceaa13.webp",
       "tipo": "render",
-      "orden": 8
+      "orden": 8,
+      "vista": "bano"
     },
     {
       "pie": "Dali Bamboo Aerea",
       "path": "modelo/39d8a9ec-088e-41a2-b7d4-9b731dd63842.webp",
       "tipo": "render",
-      "orden": 9
+      "orden": 9,
+      "vista": "aerea"
     }
   ],
   "dune": [
     {
-      "pie": "Dune Bamboo",
+      "pie": "Dune Bamboo & Ulin Shingle",
       "path": "modelo/7c2f1a1e-1241-4c70-a7dd-c0971cebff4c.webp",
       "tipo": "render",
-      "orden": 3
+      "orden": 3,
+      "vista": "techo_bambu"
     },
     {
-      "pie": "Dune Ulin",
+      "pie": "Dune Sirap Ulin",
       "path": "modelo/17a578dd-96ac-40b4-a0fb-df71c2b0dd1c.webp",
       "tipo": "render",
-      "orden": 4
+      "orden": 4,
+      "vista": "techo_sirap"
     },
     {
       "pie": "Dune Floor Plan",
       "path": "modelo/06ee1d0c-6e50-4b00-95b1-bb9b04f16cda.webp",
       "tipo": "render",
-      "orden": 5
+      "orden": 5,
+      "vista": "planta"
     },
     {
       "pie": "Dune Toilet",
       "path": "modelo/10af3d94-271d-4d7a-afe5-c0c507b904b7.webp",
       "tipo": "render",
-      "orden": 8
+      "orden": 8,
+      "vista": "bano"
     },
     {
       "pie": "Dune Kitchen",
       "path": "modelo/72252bf1-f115-458d-a3aa-f182b0812ef4.webp",
       "tipo": "render",
-      "orden": 9
+      "orden": 9,
+      "vista": "cocina"
     },
     {
       "pie": "Dune Living Room",
       "path": "modelo/ae27b735-a343-4af6-a59f-442c550e8382.webp",
       "tipo": "render",
-      "orden": 10
+      "orden": 10,
+      "vista": "interior"
     },
     {
       "pie": "Dune Room",
       "path": "modelo/3b0ca761-c830-4945-91ad-9cce3839a318.webp",
       "tipo": "render",
-      "orden": 11
+      "orden": 11,
+      "vista": null
     },
     {
       "pie": "Dune Bamboo Aerea",
       "path": "modelo/0e50f1e5-4c41-4e8a-9dca-a1545bba5fb8.webp",
       "tipo": "render",
-      "orden": 12
+      "orden": 12,
+      "vista": "aerea"
     }
   ],
   "dream": [
     {
-      "pie": "Dream Bamboo",
+      "pie": "Dream Bamboo & Ulin Shingle",
       "path": "modelo/fe451a6d-d802-4c1d-839a-84b5b835dfd1.webp",
       "tipo": "render",
-      "orden": 0
+      "orden": 0,
+      "vista": "techo_bambu"
     },
     {
-      "pie": "Dream Ulin",
+      "pie": "Dream Sirap Ulin",
       "path": "modelo/b570002d-55c6-4761-be61-830a45f0e439.webp",
       "tipo": "render",
-      "orden": 1
+      "orden": 1,
+      "vista": "techo_sirap"
     },
     {
       "pie": "Dream Floor Plan",
       "path": "modelo/64711ffc-b21c-4d42-b693-1e1e35d9e5f9.webp",
       "tipo": "render",
-      "orden": 2
+      "orden": 2,
+      "vista": "planta"
     },
     {
       "pie": "Dream Living Room",
       "path": "modelo/b2e984ce-b28d-401c-aa6b-37b4c325b454.webp",
       "tipo": "render",
-      "orden": 3
+      "orden": 3,
+      "vista": "interior"
     },
     {
       "pie": "Dream Room 1",
       "path": "modelo/b391e956-1a41-421f-9059-9262fb1c1c5b.webp",
       "tipo": "render",
-      "orden": 4
+      "orden": 4,
+      "vista": null
     },
     {
       "pie": "Dream Toilet",
       "path": "modelo/74547c54-728a-473e-ac85-0394d435833e.webp",
       "tipo": "render",
-      "orden": 5
+      "orden": 5,
+      "vista": "bano"
     },
     {
       "pie": "Dream Kitchen",
       "path": "modelo/5f2d9ea2-a569-466b-893b-d1b3c10194a4.webp",
       "tipo": "render",
-      "orden": 6
+      "orden": 6,
+      "vista": "cocina"
     },
     {
       "pie": "Dream Room 2",
       "path": "modelo/27de182d-30c3-4457-8571-0c7649552bdc.webp",
       "tipo": "render",
-      "orden": 7
+      "orden": 7,
+      "vista": null
     },
     {
       "pie": "Dream Toilet 2",
       "path": "modelo/cf35affd-ea87-4347-975c-b5e6acecc3c6.webp",
       "tipo": "render",
-      "orden": 8
+      "orden": 8,
+      "vista": null
     },
     {
       "pie": "Dream Bamboo Aerea",
       "path": "modelo/b112105e-0c35-498c-b5d1-2166a4061c45.webp",
       "tipo": "render",
-      "orden": 9
+      "orden": 9,
+      "vista": "aerea"
     }
   ],
   "temple": [
     {
-      "pie": "Temple Bamboo",
+      "pie": "Temple Bamboo & Ulin Shingle",
       "path": "modelo/9d236530-eebc-4b4b-9cc2-e1f16ff09082.webp",
       "tipo": "render",
-      "orden": 0
+      "orden": 0,
+      "vista": "techo_bambu"
     },
     {
-      "pie": "Temple Ulin",
+      "pie": "Temple Sirap Ulin",
       "path": "modelo/016bdfc8-1c06-4063-8e5c-d5a9f8a6c5d1.webp",
       "tipo": "render",
-      "orden": 1
+      "orden": 1,
+      "vista": "techo_sirap"
     },
     {
       "pie": "Temple Floor Plan",
       "path": "modelo/37778470-4c3d-45d7-bcf5-ac51e49b6652.webp",
       "tipo": "render",
-      "orden": 2
+      "orden": 2,
+      "vista": "planta"
     },
     {
       "pie": "Temple Living Room",
       "path": "modelo/d47fcad4-2ccd-4b30-86de-2175a7ba06ae.webp",
       "tipo": "render",
-      "orden": 3
+      "orden": 3,
+      "vista": "interior"
     },
     {
       "pie": "Temple Master Bedroom",
       "path": "modelo/e8cec470-d612-415d-9c5c-b33abdfbce73.webp",
       "tipo": "render",
-      "orden": 4
+      "orden": 4,
+      "vista": null
     },
     {
       "pie": "Temple Kitchen",
       "path": "modelo/50f01fbe-f606-48b8-a219-a006026a58ed.webp",
       "tipo": "render",
-      "orden": 5
+      "orden": 5,
+      "vista": "cocina"
     },
     {
       "pie": "Temple Bedroom 2",
       "path": "modelo/35275334-efc2-4931-b640-c1c6e9cdaf08.webp",
       "tipo": "render",
-      "orden": 6
+      "orden": 6,
+      "vista": null
     },
     {
       "pie": "Temple Toilet",
       "path": "modelo/76b06fa0-a6d4-408f-b9c5-fc558107f956.webp",
       "tipo": "render",
-      "orden": 7
+      "orden": 7,
+      "vista": "bano"
     },
     {
       "pie": "Temple Bedroom 3",
       "path": "modelo/bc871b3b-cdcd-40b2-9479-3a88cba04a24.webp",
       "tipo": "foto",
-      "orden": 8
+      "orden": 8,
+      "vista": null
     },
     {
       "pie": "Temple Master Toilet",
       "path": "modelo/6fcd7e29-195b-401e-8870-15c7de4dec28.webp",
       "tipo": "render",
-      "orden": 9
+      "orden": 9,
+      "vista": null
     },
     {
       "pie": "Temple Bamboo Aerea",
       "path": "modelo/63205535-e10c-4a90-8ea0-f7f231272e8c.webp",
       "tipo": "render",
-      "orden": 11
+      "orden": 11,
+      "vista": "aerea"
     }
   ],
   "trinity": [
     {
-      "pie": "Trinity Bamboo",
+      "pie": "Trinity Bamboo & Ulin Shingle",
       "path": "modelo/3d208bef-a6f4-44d1-9e25-550b76c0c132.webp",
       "tipo": "render",
-      "orden": 0
+      "orden": 0,
+      "vista": "techo_bambu"
     },
     {
-      "pie": "Trinity Ulin",
+      "pie": "Trinity Sirap Ulin",
       "path": "modelo/bc70462a-b4a4-4bc3-bb83-99d1ef371e97.webp",
       "tipo": "render",
-      "orden": 1
+      "orden": 1,
+      "vista": "techo_sirap"
     },
     {
       "pie": "Trinity Floor Plan",
       "path": "modelo/e3986cfe-6244-4607-b3f0-9d8e13cf5e09.webp",
       "tipo": "render",
-      "orden": 2
+      "orden": 2,
+      "vista": "planta"
     },
     {
       "pie": "Trinity Room 2",
       "path": "modelo/e0a2b94e-c313-4c25-85a5-3fa9bdbddc7f.webp",
       "tipo": "render",
-      "orden": 3
+      "orden": 3,
+      "vista": null
     },
     {
       "pie": "Trinity Toilet",
       "path": "modelo/71454c16-eed6-4536-98f6-c84b7c145b76.webp",
       "tipo": "render",
-      "orden": 4
+      "orden": 4,
+      "vista": "bano"
     },
     {
       "pie": "Trinity Master Bedroom",
       "path": "modelo/12293425-117a-415d-9291-bb0862e13905.webp",
       "tipo": "render",
-      "orden": 5
+      "orden": 5,
+      "vista": null
     },
     {
       "pie": "Trinity Kitchen",
       "path": "modelo/b1917356-bc49-4467-ac15-bc53585de568.webp",
       "tipo": "render",
-      "orden": 6
+      "orden": 6,
+      "vista": "cocina"
     },
     {
       "pie": "Trinity Living Room",
       "path": "modelo/d95ea620-4ea7-404a-8949-9ffc2be76b52.webp",
       "tipo": "render",
-      "orden": 7
+      "orden": 7,
+      "vista": "interior"
     },
     {
       "pie": "Trinity Room 3",
       "path": "modelo/d8eb6bf5-29d0-415f-9e90-822ab87b452f.webp",
       "tipo": "render",
-      "orden": 8
+      "orden": 8,
+      "vista": null
     },
     {
       "pie": "Trinity Toilet Master",
       "path": "modelo/2ccb3571-f59a-44d7-8538-99c26fcf8a2b.webp",
       "tipo": "render",
-      "orden": 10
+      "orden": 10,
+      "vista": null
     },
     {
       "pie": "Trinity Bamboo Aerea",
       "path": "modelo/6ed89466-9c67-4fc0-81c9-f4ec3dab231e.webp",
       "tipo": "render",
-      "orden": 11
+      "orden": 11,
+      "vista": "aerea"
     }
   ],
   "loftbung": [
@@ -302,13 +350,59 @@
       "pie": "Horizon 1",
       "path": "modelo/0b0d8434-350a-4a91-bd30-2e0e11850c0e.webp",
       "tipo": "render",
-      "orden": 1
+      "orden": 1,
+      "vista": null
     },
     {
       "pie": "Horizon 2",
       "path": "modelo/1705ef90-ae8e-49ed-8ffc-d13086ba5460.webp",
       "tipo": "render",
-      "orden": 2
+      "orden": 2,
+      "vista": null
+    }
+  ],
+  "tropical": [
+    {
+      "pie": "Tropical · Home",
+      "path": "modelo/9d4ff313-17c3-4d9f-9264-3e837714c32a.webp",
+      "tipo": "render",
+      "orden": 0,
+      "vista": null
+    },
+    {
+      "pie": "Tropical · Top View",
+      "path": "modelo/96fc0374-b940-4b37-a7b2-b78e9352e930.webp",
+      "tipo": "render",
+      "orden": 1,
+      "vista": "planta"
+    },
+    {
+      "pie": "Tropical · Bedroom",
+      "path": "modelo/cc36f21d-8a60-4f4d-a062-9809f5ee3812.webp",
+      "tipo": "render",
+      "orden": 2,
+      "vista": null
+    },
+    {
+      "pie": "Tropical · Bedroom 2",
+      "path": "modelo/6eed0aa2-26e0-48a4-b902-54a9dfc92824.webp",
+      "tipo": "render",
+      "orden": 3,
+      "vista": null
+    },
+    {
+      "pie": "Tropical · Desk",
+      "path": "modelo/8b242bbe-8274-4a19-b1cf-d1808f84ba78.webp",
+      "tipo": "render",
+      "orden": 4,
+      "vista": null
+    },
+    {
+      "pie": "Tropical · Bathroom",
+      "path": "modelo/b514a8cc-c13b-4acd-b203-be206aa06753.webp",
+      "tipo": "render",
+      "orden": 5,
+      "vista": "bano"
     }
   ],
   "_aviso": "FOTO GENERADA — no editar a mano. La fuente es `deck_fotos`, que se edita en /intranet/modelos/ -> \"Fotos del deck...\". Se regenera con `php modelo/catalogo.php --respaldo`."

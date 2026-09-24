@@ -39,6 +39,14 @@
   var LADO_MAX = 2000;       // px del lado mayor
   var CALIDAD = 0.86;
   var IDIOMAS = [['en', 'Inglés'], ['es', 'Español'], ['id', 'Bahasa']];
+  /* Qué vista es cada foto de un MODELO en su ficha pública /modelo/<slug>
+     (columna `deck_fotos.vista`, 24-sep-2026). Antes la ficha lo adivinaba por
+     el pie y en Dune enseñó la aérea como planta. Una foto por vista y modelo. */
+  var VISTAS = [
+    ['planta', 'Planta (floor plan)'], ['techo_bambu', 'Techo de bambú'],
+    ['techo_sirap', 'Techo sirap / ulin'], ['interior', 'Salón'],
+    ['cocina', 'Cocina'], ['bano', 'Baño'], ['aerea', 'Vista aérea']
+  ];
 
   function T(s) { return window.lwT ? lwT(s) : s; }
   function E(s) { return window.esc ? esc(s) : String(s == null ? '' : s); }
@@ -106,7 +114,14 @@
                  'style="width:104px;height:78px;object-fit:cover;border-radius:var(--r-p);border:1px solid var(--linea);flex:none">' +
             '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">' +
               '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
-                (esModelo ? '' :
+                (esModelo
+                  ? '<select class="sui-sel" data-vista="' + E(f.id) + '" style="max-width:190px" aria-label="' + T('Vista en la ficha') + '" title="' + T('Vista en la ficha') + '">' +
+                      '<option value="">' + T('— Sin vista en la ficha —') + '</option>' +
+                      VISTAS.map(function (v) {
+                        return '<option value="' + v[0] + '"' + (f.vista === v[0] ? ' selected' : '') + '>' + T(v[1]) + '</option>';
+                      }).join('') +
+                    '</select>'
+                  :
                   '<select class="sui-sel" data-campo="uso" data-id="' + E(f.id) + '" style="max-width:150px" aria-label="' + T('Dónde sale') + '">' +
                     '<option value="hero"' + (f.uso === 'hero' ? ' selected' : '') + '>' + T('Portada') + '</option>' +
                     '<option value="galeria"' + (f.uso === 'galeria' ? ' selected' : '') + '>' + T('Galería') + '</option>' +
@@ -138,7 +153,8 @@
         '<p class="sui-nota">' +
           T('Se convierten solas a WebP y se les quitan los datos ocultos de la cámara (incluida la ubicación GPS) antes de salir de este navegador. Se redimensionan a 2000 px de lado mayor.') +
           (esModelo
-            ? ' ' + T('Estas fotos son del MODELO, así que salen en el deck de todos los proyectos donde se construya.')
+            ? ' ' + T('Estas fotos son del MODELO, así que salen en el deck de todos los proyectos donde se construya.') +
+              ' ' + T('«Vista en la ficha» decide qué foto sale como planta, techo, salón, cocina, baño o vista aérea en la página pública del modelo. Cada vista la tiene una sola foto: al dársela a otra, la anterior la pierde.')
             : ' ' + T('«Portada» son las del carrusel de arriba del deck; «Galería», las de la sección de fotos.')) +
         '</p>' +
         '<p class="sui-nota">' +
@@ -179,6 +195,24 @@
           guarda(sel.getAttribute('data-id'), fila)
             .then(function () { aviso(T('Guardado')); return cargar(); }).then(repinta)
             .catch(function (e) { aviso(T('No se ha guardado: ') + (e.message || e)); });
+        };
+      });
+
+      // La vista va por RPC y no por guarda(): quitársela a la foto que la tenía
+      // y dársela a esta es UNA transacción. En dos llamadas, un fallo en la
+      // segunda dejaba el modelo sin planta en la web.
+      $$('#df-lista [data-vista]').forEach(function (sel) {
+        sel.onchange = function () {
+          SB.rpc('deck_foto_fijar_vista', { p_foto: sel.getAttribute('data-vista'), p_vista: sel.value || null })
+            .then(function (r) {
+              if (r.error) throw r.error;
+              aviso(T('Guardado'));
+              return cargar();
+            }).then(repinta)
+            .catch(function (e) {
+              aviso(T('No se ha guardado: ') + (e.message || e));
+              return cargar().then(repinta);
+            });
         };
       });
 

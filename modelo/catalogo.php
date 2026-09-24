@@ -321,6 +321,20 @@ function lw_foto_por_pie($id, array $patrones, $cat = null, array $excluir = [])
     return null;
 }
 
+/* La foto que alguien MARCÓ en la intranet como esta vista (columna `deck_fotos.vista`,
+   24-sep-2026). Manda sobre lw_foto_por_pie(): el pie es texto libre y se cruzó en
+   /modelo/dune. Null si ninguna foto del modelo tiene esa vista marcada. */
+function lw_foto_por_vista($id, $vista, $cat = null) {
+    $cat = $cat ?? lw_fotos_catalogo();
+    if (empty($cat[$id]) || !is_array($cat[$id])) return null;
+    foreach ($cat[$id] as $f) {
+        if (!empty($f['path']) && ($f['vista'] ?? null) === $vista) {
+            return LW_SB_URL . '/storage/v1/object/public/deck/' . $f['path'];
+        }
+    }
+    return null;
+}
+
 /* Regenerar los respaldos:  php modelo/catalogo.php --respaldo
    Solo CLI. Se corre cuando se cambia algo del catálogo que deba sobrevivir a un
    arranque en frío sin red; no hace falta en cada edición de precio o cada foto nueva. */

@@ -1530,7 +1530,7 @@
     // Fotos del Investor Deck (S10.2, 22-sep-2026) — pieza compartida de la
     // suite (Regla 0), usada hoy por Proyectos aquí y previsiblemente por
     // Modelos v4 más adelante; se carga bajo demanda igual que el resto.
-    deckFotos: { src: '/contracts/assets/deck_fotos.js?v=442fb967', listo: function () { return !!window.lwDeckFotos; } }
+    deckFotos: { src: '/contracts/assets/deck_fotos.js?v=5795bb76', listo: function () { return !!window.lwDeckFotos; } }
   };
   var modPromesasDoc = {};
   function cargaModuloDoc(nombre) {

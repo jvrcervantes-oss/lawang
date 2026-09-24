@@ -80,6 +80,19 @@ ok(lw_foto_por_pie('dune', ['top view', 'floor plan'], $catDune) === LW_SB_URL .
 ok(lw_foto_por_pie('dune', ['bamboo'], ['dune' => array_reverse($catDune['dune'])], ['aerea', 'floor plan']) === LW_SB_URL . '/storage/v1/object/public/deck/modelo/techo.webp',
     'el excluir salta "Bamboo Aerea" aunque vaya antes que el techo');
 
+// La vista marcada en la intranet manda sobre el pie, aunque el pie diga otra cosa.
+$catVista = ['dune' => [
+    ['pie' => 'Dune Floor Plan', 'path' => 'modelo/a.webp', 'vista' => 'aerea'],
+    ['pie' => 'Cualquier cosa',  'path' => 'modelo/b.webp', 'vista' => 'planta'],
+    ['pie' => 'Sin marcar',      'path' => 'modelo/c.webp'],
+]];
+ok(lw_foto_por_vista('dune', 'planta', $catVista) === LW_SB_URL . '/storage/v1/object/public/deck/modelo/b.webp',
+    'lw_foto_por_vista devuelve la foto marcada, no la que dice el pie');
+ok(lw_foto_por_vista('dune', 'cocina', $catVista) === null,
+    'sin foto marcada con esa vista, null — el pie decide después');
+ok(lw_foto_por_vista('no-existe', 'planta', $catVista) === null,
+    'un modelo sin fotos no tiene ninguna vista');
+
 // Un modelo NUEVO que no marque el flag sigue cayendo al catálogo si no tiene imágenes —
 // la excepción es por modelo, no un apagado general de la regla.
 $sinFlag = $M;
