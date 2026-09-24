@@ -6,17 +6,22 @@
 <!--
   THE SOUL — preview oculta (24-sep-2026), pedida por el owner con los PDF del cliente
   («4 primeros scrolls» p.4, «Servicios section» p.1-4, «Investor roadmap section»).
-  Modo calco: medidas sacadas del PDF (fitz: tamaños, colores y cajas de cada span y
-  cada trazo), no a ojo. Todo se escala con --u = 1px del lienzo de 1920 del diseño.
+
+  v2 (24-sep, owner): «ajusta los tamaños de las fuentes, usa el mismo menú que la landing
+  y 1 scroll = 1 sección». Por eso:
+   · Barra superior = la de index.html (#topbar: logo v3, pastilla de cristal, idioma,
+     «Ask Us Anything» con WhatsApp; fantasma sobre la foto y sólida al bajar). CSS copiado
+     de index.html con los mismos nombres de clase, para compararlas a simple vista.
+   · Escala tipográfica = la de la home medida en producción: títulos 60 px, subtítulos
+     27, cuerpo 18, etiquetas 13 (antes todo escalaba con el lienzo 1920 del PDF y salía
+     más grande que la home).
+   · Scroll = el de la home: contenedor .snap con scroll-snap mandatory, cada sección
+     ocupa exactamente una pantalla.
 
   OCULTA A PROPOSITO: noindex/nofollow, fuera del sitemap (lista fija en sitemap.php),
-  ninguna pagina enlaza aqui y el slug no se adivina. Sin pixel ni analitica: una
-  pagina de revision no debe contaminar las metricas de la campana.
-  Cuando el owner la apruebe: renombrar a thesoul.html, quitar el noindex, meterla en
-  sitemap.php y apuntar "The Soul" del menu de la home aqui.
-
-  COPY: es el del cliente tal cual (solo LETER->LETTER y ATORNEY->ATTORNEY). Legal
-  marco frases del roadmap que NO pueden salir en abierto asi — ver contexto/pendientes.md.
+  ninguna pagina enlaza aqui y el slug no se adivina. Sin pixel ni analitica.
+  Al aprobarla: ver LAW-301 en contexto/pendientes.md.
+  COPY: el del cliente (solo LETER->LETTER, ATORNEY->ATTORNEY). Legal: LAW-302.
 -->
 <meta name="robots" content="noindex, nofollow">
 <title>The Soul — Lawang</title>
@@ -26,6 +31,7 @@
 <link rel="preload" href="/assets/fonts/neue-kabel/NeueKabel-Bold.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/img/soul/soul-hero.webp" as="image">
 <style>
+@font-face{font-family:'NK';src:url('/assets/fonts/neue-kabel/NeueKabel-Light.woff2') format('woff2');font-weight:300;font-style:normal;font-display:swap}
 @font-face{font-family:'NK';src:url('/assets/fonts/neue-kabel/NeueKabel-Book.woff2') format('woff2');font-weight:350;font-style:normal;font-display:swap}
 @font-face{font-family:'NK';src:url('/assets/fonts/neue-kabel/NeueKabel.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
 @font-face{font-family:'NK';src:url('/assets/fonts/neue-kabel/NeueKabel-Medium.woff2') format('woff2');font-weight:500;font-style:normal;font-display:swap}
@@ -34,78 +40,129 @@
 @font-face{font-family:'NK';src:url('/assets/fonts/neue-kabel/NeueKabel-ExtraBold.woff2') format('woff2');font-weight:800;font-style:normal;font-display:swap}
 
 :root{
-  /* 1 px del lienzo 1920 del PDF */
-  --u: calc(100vw / 1920);
-  --bar: #f6f4ef;        /* barra superior */
-  --linen: #f5f3ee;      /* fondo del bloque de cifras */
-  --green: #5b7344;      /* borde de la pastilla + boton */
-  --green-ink: #3b5d2d;  /* enlaces del menu */
-  --green-deep: #1b3b05; /* ENGLISH */
-  --earth: #42210b;      /* subtitulo */
-  --stat: #603813;       /* cifras */
-  --cream: #f4efe5;      /* ALL-IN-ONE / THE SERVICES */
-  --chip: #fffaf5;
-  --nav-h: max(64px, calc(88 * var(--u)));
+  --tg:#485B37; --pg:#587040; --rl:#F5F0E6; --gold:#BEB3A5; --gold-light:#D8D0C4;
+  --menu-h:35px;
+  --linen:#f5f3ee; --earth:#42210b; --stat:#603813; --cream:#f4efe5; --chip:#fffaf5;
+  --top:clamp(64px,8vh,84px);           /* alto que ocupa la barra: el contenido empieza debajo */
+  --gut:clamp(20px,9.4vw,181px);        /* margen lateral del PDF (181 px a 1920) */
+  /* escala de la home (medida en lawangproperties.com a 1920) */
+  --fs-title:clamp(30px,3.15vw,60px);
+  --fs-sub:clamp(15px,1.4vw,27px);
+  --fs-body:clamp(14px,.94vw,18px);
+  --fs-label:13px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth;scroll-padding-top:var(--nav-h)}
-body{background:var(--linen);color:#1d1d1b;font-family:'NK','Jost',system-ui,sans-serif;font-weight:350;
-  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+html,body{height:100%;overflow:hidden;background:var(--linen)}
+body{color:#1d1d1b;font-family:'NK','Jost',system-ui,sans-serif;font-weight:350;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 img{display:block;max-width:100%}
 a{color:inherit;text-decoration:none}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .b{font-weight:700}
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-:focus-visible{outline:2px solid var(--green);outline-offset:3px}
+:focus-visible{outline:2px solid var(--pg);outline-offset:3px}
 
-/* ───────── Barra superior (medida en «4 primeros scrolls» p.4 y roadmap) ───────── */
-.top{position:fixed;inset:0 0 auto;height:var(--nav-h);background:var(--bar);z-index:50;
-  display:flex;align-items:center;padding:0 calc(70 * var(--u)) 0 calc(64 * var(--u))}
-.top .logo{color:var(--green);width:max(110px,calc(163 * var(--u)));flex:none}
-.top .logo svg{width:100%;height:auto;display:block}
-.pill{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-  height:calc(45 * var(--u));min-height:34px;padding:0 calc(40 * var(--u));
-  border:1px solid var(--green);border-radius:999px;display:flex;align-items:center;gap:calc(45 * var(--u))}
-.pill a{font-size:max(12px,calc(18.6 * var(--u)));color:var(--green-ink);letter-spacing:.02em;white-space:nowrap;
-  text-decoration:underline transparent;text-underline-offset:.28em;text-decoration-thickness:1px;transition:text-decoration-color .2s}
-.pill a:hover{text-decoration-color:currentColor}
-.pill a[aria-current]{font-weight:700;text-decoration-color:currentColor}
-.top .right{margin-left:auto;display:flex;align-items:center;gap:calc(63 * var(--u))}
-.lang{font-weight:700;font-size:max(12px,calc(18.6 * var(--u)));color:var(--green-deep);letter-spacing:.02em}
-.cta{display:inline-flex;align-items:center;justify-content:center;height:calc(45 * var(--u));min-height:34px;
-  width:calc(219 * var(--u));min-width:150px;border-radius:999px;background:var(--green);color:#fff;
-  font-size:max(11.5px,calc(18.3 * var(--u)));letter-spacing:.1em;white-space:nowrap;transition:background .2s}
-.cta:hover{background:#4a5f37}
-.menu-btn{display:none}
+/* ═══ 1 scroll = 1 sección (mismo mecanismo que index.html) ═══ */
+.snap{height:100vh;height:100dvh;overflow-y:scroll;overflow-x:hidden;-webkit-overflow-scrolling:touch;
+  scroll-snap-type:y mandatory;scroll-behavior:smooth;scrollbar-width:none}
+.snap::-webkit-scrollbar{display:none}
+.snap > section,.snap > footer{scroll-snap-align:start;scroll-snap-stop:always}
+.snap > section{position:relative;height:100vh;height:100dvh;overflow:hidden}
+@media(prefers-reduced-motion:reduce){.snap{scroll-behavior:auto;scroll-snap-type:y proximity}}
+@media(hover:none){.snap{scroll-behavior:auto}}
 
-/* ───────── 1 · THE SOUL (lienzo 1920×1080, contenido desde y=88) ───────── */
-.soul{position:relative;background:var(--linen);padding-top:var(--nav-h);overflow:hidden}
-.soul-hero{position:relative;margin-top:calc(16 * var(--u));height:calc(578 * var(--u))}
-.soul-hero img{width:100%;height:100%;object-fit:cover;object-position:50% 52%}
-.soul-hero h1{position:absolute;left:0;right:0;bottom:calc(-13 * var(--u));text-align:center;color:#f6f4f0;
-  font-size:calc(49.8 * var(--u));line-height:calc(62 * var(--u));font-weight:400;letter-spacing:.035em;white-space:nowrap}
+/* ═══ TOPBAR — copiada de index.html ═══ */
+#topbar{position:fixed;top:0;left:0;right:0;z-index:150;display:flex;align-items:center;justify-content:space-between;
+  padding:clamp(.68rem,1.65vh,1.05rem) clamp(1.4rem,4vw,3.4rem) clamp(.45rem,1.1vh,.7rem);
+  transition:background .3s,box-shadow .3s,padding .3s}
+#topbar.solid{background:rgba(247,244,239,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  box-shadow:0 1px 0 rgba(190,179,165,.3);padding-top:clamp(.57rem,1.4vh,.9rem);padding-bottom:clamp(.38rem,.94vh,.6rem)}
+#logo{flex:1 1 0;min-width:0}
+#logo-inner{display:flex;align-items:center}
+#logo-inner img{height:24px;width:auto;display:block}
+#logo-inner .ll-white{filter:drop-shadow(0 1px 6px rgba(0,0,0,.35))}
+#logo-inner .ll-dark{display:none;height:24px;width:172px;background-color:var(--pg);
+  -webkit-mask:url('/assets/img/lawang-logo-v3-dark.webp') left center/contain no-repeat;
+          mask:url('/assets/img/lawang-logo-v3-dark.webp') left center/contain no-repeat}
+#logo.dark .ll-white{display:none}
+#logo.dark .ll-dark{display:block}
+#nav{flex:none;display:flex;align-items:center;gap:clamp(1rem,1.9vw,1.9rem);
+  background:rgba(20,18,14,.22);border:1px solid rgba(190,179,165,.45);border-radius:40px;
+  height:var(--menu-h);padding:0 1.5rem;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);transition:background .3s,border-color .3s}
+#topbar.solid #nav{background:rgba(255,255,255,.5);border-color:rgba(72,91,55,.28)}
+.nav-link{position:relative;font-family:'NK','Jost',sans-serif;font-weight:300;font-size:.64rem;letter-spacing:.13em;
+  color:rgba(245,240,230,.92);text-transform:uppercase;cursor:pointer;transition:color .3s,letter-spacing .3s;
+  text-shadow:0 1px 8px rgba(0,0,0,.55);white-space:nowrap}
+.nav-link::after{content:"";position:absolute;left:0;right:0;bottom:-7px;height:1.5px;background:var(--gold);transform:scaleX(0);
+  transform-origin:center;transition:transform .32s cubic-bezier(.16,1,.3,1);box-shadow:0 0 8px rgba(190,179,165,.5)}
+.nav-link:hover{color:#fff;letter-spacing:.08em}
+.nav-link:hover::after,.nav-link.active::after{transform:scaleX(1)}
+#topbar.solid .nav-link{color:rgba(26,22,18,.72);text-shadow:none}
+#topbar.solid .nav-link:hover,#topbar.solid .nav-link.active{color:var(--pg)}
+#topbar.solid .nav-link::after{background:var(--pg);box-shadow:none}
+#nav-actions{display:flex;align-items:center;justify-content:flex-end;gap:clamp(1rem,2vw,1.7rem);flex:1 1 0;min-width:0}
+.nav-lang-wrap{position:relative}
+.nav-lang{display:inline-flex;align-items:center;gap:.5rem;font-family:'NK','Jost',sans-serif;font-weight:400;font-size:12px;letter-spacing:.16em;
+  text-transform:uppercase;color:rgba(245,240,230,.78);text-shadow:0 1px 8px rgba(0,0,0,.55);transition:color .3s;white-space:nowrap}
+.nav-lang .caret{font-size:.62rem;opacity:.7;transition:transform .28s cubic-bezier(.16,1,.3,1)}
+.nav-lang[aria-expanded="true"] .caret{transform:rotate(180deg)}
+.nav-lang:hover{color:#fff}
+#topbar.solid .nav-lang{color:rgba(26,22,18,.62);text-shadow:none}
+#topbar.solid .nav-lang:hover{color:var(--pg)}
+.lang-menu{position:absolute;top:calc(100% + 14px);right:0;min-width:158px;list-style:none;padding:6px;border-radius:14px;
+  background:rgba(18,16,12,.72);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(190,179,165,.38);
+  box-shadow:0 20px 44px -18px rgba(0,0,0,.7);opacity:0;visibility:hidden;transform:translateY(-8px) scale(.98);transform-origin:top right;
+  transition:opacity .24s ease,transform .24s cubic-bezier(.16,1,.3,1),visibility .24s;z-index:60}
+.lang-menu.open{opacity:1;visibility:visible;transform:none}
+.lang-menu li{display:flex;align-items:center;justify-content:space-between;gap:1rem;font-weight:400;font-size:.64rem;letter-spacing:.16em;
+  text-transform:uppercase;color:rgba(245,240,230,.8);padding:10px 13px;border-radius:9px;cursor:pointer}
+.lang-menu li.active{color:var(--gold-light)}
+.lang-menu li.active::after{content:'✓';font-size:.78rem;color:var(--gold)}
+#topbar.solid .lang-menu{background:rgba(255,255,255,.97);border-color:rgba(72,91,55,.2);box-shadow:0 20px 44px -18px rgba(72,91,55,.28)}
+#topbar.solid .lang-menu li,#topbar.solid .lang-menu li.active{color:var(--tg)}
+#topbar.solid .lang-menu li.active::after{color:var(--tg)}
+.nav-cta{display:inline-flex;align-items:center;gap:.5rem;border:1px solid rgba(245,240,230,.5);height:var(--menu-h);padding:0 18px 0 7px;
+  border-radius:30px;font-family:'NK','Jost',sans-serif;font-weight:400;font-size:12px;letter-spacing:.14em;color:var(--rl);
+  text-transform:uppercase;background:transparent;transition:all .35s;white-space:nowrap}
+.nav-cta .wa{width:22px;height:22px;border-radius:50%;background:#25D366;flex:none;display:flex;align-items:center;justify-content:center}
+.nav-cta .wa svg{width:14px;height:14px;display:block}
+.nav-cta:hover{background:rgba(245,240,230,.14);border-color:rgba(245,240,230,.78)}
+#topbar.scrolled .nav-cta,#topbar.solid .nav-cta{border-color:var(--pg);background:var(--pg)}
+#topbar.scrolled .nav-cta:hover,#topbar.solid .nav-cta:hover{background:#3a4a2c;border-color:#3a4a2c}
+.nav-burger{display:none;flex-direction:column;justify-content:center;gap:5px;width:38px;height:34px;padding:6px 8px;flex:none}
+.nav-burger span{display:block;height:1.5px;background:rgba(245,240,230,.92);transition:transform .3s,opacity .3s;box-shadow:0 1px 6px rgba(0,0,0,.4)}
+#topbar.solid .nav-burger span,#topbar.scrolled .nav-burger span{background:rgba(26,22,18,.8);box-shadow:none}
+#topbar.nav-open .nav-burger span:nth-child(1){transform:translateY(6.5px) rotate(45deg)}
+#topbar.nav-open .nav-burger span:nth-child(2){opacity:0}
+#topbar.nav-open .nav-burger span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg)}
+
+/* ═══ 1 · THE SOUL ═══ */
+.soul{display:grid;grid-template-rows:minmax(0,1fr) auto auto auto;background:var(--linen)}
+.soul-hero{position:relative;min-height:0}
+.soul-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 45%}
+.soul-hero::before{content:"";position:absolute;inset:0 0 auto;height:140px;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,0))}
+.soul-hero h1{position:absolute;z-index:2;left:0;right:0;bottom:-.24em;text-align:center;color:#f6f4f0;
+  font-size:clamp(26px,2.55vw,48px);line-height:1.2;font-weight:400;letter-spacing:.035em;white-space:nowrap}
 .soul-hero h1 .b{font-weight:500}
-.soul-sub{text-align:center;color:var(--earth);font-size:calc(33.5 * var(--u));font-weight:400;letter-spacing:.05em;
-  margin-top:calc(19 * var(--u));line-height:calc(42 * var(--u))}
+.soul-sub{position:relative;z-index:1;text-align:center;color:var(--earth);font-size:var(--fs-sub);font-weight:400;letter-spacing:.05em;
+  margin-top:clamp(8px,1.6vh,18px);line-height:1.3}
 .soul-sub .b{font-weight:500}
-.deco{position:absolute;pointer-events:none;opacity:.09}
-.deco.lamp{left:calc(48 * var(--u));top:calc(657 * var(--u));width:calc(287 * var(--u))}
-.deco.chair{left:calc(1507 * var(--u));top:calc(646 * var(--u));width:calc(366 * var(--u));opacity:.16}
-.stats{position:relative;display:grid;grid-template-columns:calc(482 * var(--u)) calc(548 * var(--u)) calc(473 * var(--u)) auto;
-  padding:calc(47 * var(--u)) 0 0 calc(209 * var(--u));height:calc(231 * var(--u));list-style:none}
+.deco{position:absolute;pointer-events:none;opacity:.09;z-index:0}
+.deco.lamp{left:2.5vw;bottom:5vh;height:30vh}
+.deco.chair{right:2.4vw;bottom:6vh;height:30vh;opacity:.14}
+.stats{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,auto);justify-content:space-between;
+  padding:clamp(14px,3.4vh,40px) calc(var(--gut) + 2vw) clamp(16px,3.6vh,42px);list-style:none}
 .stats li{color:var(--stat);font-weight:800;text-transform:uppercase}
-.stats .n{display:block;font-size:calc(77.7 * var(--u));line-height:calc(86 * var(--u));letter-spacing:.01em}
-.stats .l{display:block;font-size:calc(32.8 * var(--u));line-height:calc(40 * var(--u));letter-spacing:.02em}
-.tiles{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#fff;list-style:none}
-.tile{position:relative;height:calc(250 * var(--u));overflow:hidden;background:#000}
-.tile img{width:100%;height:100%;object-fit:cover;object-position:50% 92%;transition:transform 1.2s cubic-bezier(.2,.7,.2,1)}
+.stats .n{display:block;font-size:clamp(34px,3.15vw,60px);line-height:1.05;letter-spacing:.01em}
+.stats .l{display:block;font-size:clamp(13px,1.25vw,24px);line-height:1.2;letter-spacing:.03em}
+.tiles{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#fff;list-style:none}
+.tile{position:relative;height:clamp(90px,16vh,180px);overflow:hidden;background:#000}
+.tile img{width:100%;height:100%;object-fit:cover;object-position:50% 70%;transition:transform 1.2s cubic-bezier(.2,.7,.2,1)}
 .tile:hover img{transform:scale(1.04)}
-.tile::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,.28),rgba(0,0,0,0) 38%)}
-.tile h2{position:absolute;z-index:2;left:calc(68 * var(--u));top:calc(28 * var(--u));color:#fff;font-weight:700;font-style:italic;
-  font-size:calc(29.7 * var(--u));letter-spacing:.02em;text-transform:uppercase}
+.tile::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,.34),rgba(0,0,0,0) 55%)}
+.tile h2{position:absolute;z-index:2;left:clamp(14px,3.5vw,68px);top:clamp(10px,1.8vh,22px);color:#fff;font-weight:700;font-style:italic;
+  font-size:clamp(14px,1.25vw,24px);letter-spacing:.02em;text-transform:uppercase}
 
-/* ───────── 2 · SERVICES — un panel, 4 estados («Servicios section» p.1-4) ───────── */
-.svc{position:relative;height:calc(992 * var(--u));min-height:calc(100vh - var(--nav-h));color:#fff;overflow:hidden;background:#1a1f16}
+/* ═══ 2 · THE SERVICES — un panel, 4 estados ═══ */
+.svc{color:#fff;background:#1a1f16}
 .svc-bg{position:absolute;inset:0;opacity:0;transition:opacity .8s ease}
 .svc-bg.on{opacity:1}
 .svc-bg img{width:100%;height:100%;object-fit:cover}
@@ -116,185 +173,170 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .svc-bg[data-k=management]{--veil:rgba(0,0,0,.4)}
 .svc-bg[data-k=development] img{object-position:50% 0}
 .svc-bg[data-k=management] img{object-position:50% 64%}
-.svc-in{position:relative;display:grid;grid-template-columns:calc(922 * var(--u)) calc(669 * var(--u));height:100%;
-  padding:calc(151 * var(--u)) 0 0 calc(181 * var(--u))}
-.svc-left,.svc-right{position:relative}
+.svc-in{position:relative;height:100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,clamp(380px,35vw,669px));
+  column-gap:clamp(32px,4vw,90px);align-items:center;padding:var(--top) var(--gut) clamp(24px,5vh,60px)}
+.svc-left{position:relative;display:grid}
 .pane{transition:opacity .45s ease}
-.pane[hidden]{display:block;visibility:hidden;opacity:0;position:absolute;inset:0 auto auto 0;pointer-events:none}
-.kick{display:inline-flex;align-items:center;height:calc(45 * var(--u));padding:0 calc(20 * var(--u));border-radius:calc(7 * var(--u));
-  font-size:max(12px,calc(19.5 * var(--u)));font-weight:500;letter-spacing:.07em;text-transform:uppercase;background:var(--k)}
-.kick.wide{letter-spacing:.2em;font-weight:350}
-.svc h2{margin-top:calc(22 * var(--u));text-transform:uppercase;line-height:.92}
-.svc h2 .t1{display:block;font-weight:700;font-size:calc(var(--t1,65.7) * var(--u));letter-spacing:.07em}
-.svc h2 .t2{display:block;font-weight:var(--t2w,350);font-size:calc(var(--t2,82.9) * var(--u));letter-spacing:.06em}
-.svc h2 .and{font-weight:350;font-size:calc(66.6 * var(--u));letter-spacing:.06em}
-.svc h2.big .t1{font-size:calc(82.9 * var(--u))}
-.svc h2.big .t2{font-size:calc(76.8 * var(--u))}
-.stat{position:absolute;left:0;top:calc(var(--st,397) * var(--u));text-transform:uppercase;white-space:nowrap}
-.stat .n{font-weight:700;font-size:calc(var(--sn,72.1) * var(--u));letter-spacing:.03em}
-.stat .l{font-weight:350;font-size:calc(var(--sl,66.6) * var(--u));letter-spacing:.06em;margin-left:calc(14 * var(--u))}
-.rule{position:absolute;left:0;top:calc(var(--ru,513) * var(--u));width:calc(666 * var(--u));height:2px;background:#fff}
-.chips{position:absolute;left:0;top:calc(var(--ch,541) * var(--u));width:calc(690 * var(--u));display:flex;flex-wrap:wrap;
-  gap:calc(20 * var(--u)) calc(17 * var(--u));list-style:none}
-.chips li{height:calc(var(--chh,45) * var(--u));display:inline-flex;align-items:center;justify-content:center;padding:0 calc(14 * var(--u));
-  border:.75px solid var(--chip);border-radius:calc(8 * var(--u));font-size:max(12px,calc(20.9 * var(--u)));font-weight:500;letter-spacing:.06em;
-  text-transform:uppercase;white-space:nowrap}
-.chips.col{flex-direction:column;align-items:flex-start;gap:calc(23 * var(--u))}
-.chips.col li{padding:0 calc(19 * var(--u))}
-.chips.two{display:grid;grid-template-columns:calc(288 * var(--u)) calc(362 * var(--u));gap:calc(20 * var(--u)) calc(17 * var(--u))}
-.chips.two li{--chh:50}
-.svc-right{padding-top:0}
-.aio{border-left:4px solid #fff;
-  padding-left:calc(32 * var(--u));height:calc(232 * var(--u))}
-.aio .h{display:flex;align-items:center;gap:calc(20 * var(--u));padding-top:calc(20 * var(--u));color:var(--cream)}
-.aio .h svg{width:calc(40 * var(--u));height:auto;flex:none}
-.aio .h span{font-weight:700;font-size:calc(40.5 * var(--u));letter-spacing:.24em}
-.aio p{max-width:max(340px,calc(560 * var(--u)));margin-top:calc(34 * var(--u));font-size:max(12.5px,calc(21.6 * var(--u)));line-height:calc(33.4 * var(--u));letter-spacing:.1em;text-transform:uppercase}
-.svc-list-h{width:100%;display:flex;justify-content:flex-end;align-items:center;gap:calc(22 * var(--u));margin-top:calc(45 * var(--u));
-  padding-right:calc(10 * var(--u));color:var(--cream);font-size:max(12px,calc(20.8 * var(--u)));font-weight:500;letter-spacing:.02em}
-.svc-list-h svg.iso{width:calc(30 * var(--u));height:auto}
-.svc-list-h .chev{width:calc(14 * var(--u));transition:transform .3s}
+.svc-left .pane,.aio-txt .pane{grid-area:1/1}
+.aio-txt{display:grid}
+.pane[hidden]{display:block;visibility:hidden;opacity:0;pointer-events:none}
+.kick{display:inline-flex;align-items:center;min-height:34px;padding:6px 16px;border-radius:6px;background:var(--k);
+  font-size:var(--fs-label);font-weight:500;letter-spacing:.12em;text-transform:uppercase}
+.svc h2{margin-top:clamp(14px,2.2vh,24px);text-transform:uppercase;line-height:.95}
+.svc h2 .t1{display:block;font-weight:700;font-size:var(--fs-title);letter-spacing:.07em}
+.svc h2 .t2{display:block;font-weight:350;font-size:calc(var(--fs-title) * 1.12);letter-spacing:.06em}
+.svc h2 .and{font-weight:350;font-size:.82em;letter-spacing:.06em}
+.stat{margin-top:clamp(28px,9vh,120px);text-transform:uppercase;white-space:nowrap}
+.stat .n{font-weight:700;font-size:calc(var(--fs-title) * .95);letter-spacing:.03em}
+.stat .l{font-weight:350;font-size:calc(var(--fs-title) * .85);letter-spacing:.06em;margin-left:.2em}
+.rule{display:block;margin-top:clamp(14px,2.4vh,28px);width:min(100%,666px);height:2px;background:#fff}
+.chips{margin-top:clamp(16px,2.6vh,28px);max-width:666px;display:flex;flex-wrap:wrap;gap:12px;list-style:none}
+.chips.col{flex-direction:column;align-items:flex-start}
+.chips li{display:inline-flex;align-items:center;min-height:40px;padding:6px 16px;border:.75px solid var(--chip);border-radius:7px;
+  font-size:var(--fs-label);font-weight:500;letter-spacing:.08em;text-transform:uppercase}
+.aio{border-left:3px solid #fff;padding:6px 0 6px clamp(18px,1.7vw,32px)}
+.aio .h{display:flex;align-items:center;gap:16px;color:var(--cream)}
+.aio .h svg{width:clamp(26px,2vw,38px);height:auto;flex:none}
+.aio .h span{font-weight:700;font-size:clamp(20px,1.75vw,34px);letter-spacing:.24em}
+.aio p{margin-top:clamp(14px,2.4vh,26px);font-size:var(--fs-body);line-height:1.6;letter-spacing:.08em;text-transform:uppercase}
+.svc-list-h{width:100%;display:flex;justify-content:flex-end;align-items:center;gap:14px;margin-top:clamp(24px,4.5vh,48px);
+  color:var(--cream);font-size:var(--fs-label);font-weight:500;letter-spacing:.1em}
+.svc-list-h svg.iso{width:24px;height:auto}
+.svc-list-h .chev{width:12px;transition:transform .3s}
 .svc-list-h[aria-expanded=false] .chev{transform:rotate(-90deg)}
-.bands{list-style:none;margin-top:calc(31 * var(--u));display:grid;gap:calc(22 * var(--u));transition:opacity .3s}
+.bands{list-style:none;margin-top:clamp(12px,2.2vh,24px);display:grid;gap:clamp(10px,1.8vh,20px);transition:opacity .3s}
 .bands.closed{opacity:0;pointer-events:none}
-.band{position:relative;display:flex;align-items:center;width:100%;height:calc(93 * var(--u));overflow:hidden;text-align:left;
-  padding:0 calc(25 * var(--u)) 0 calc(44 * var(--u));font-size:max(13px,calc(27 * var(--u)));letter-spacing:.1em;text-transform:uppercase;color:#fff}
+.band{position:relative;display:flex;align-items:center;width:100%;height:clamp(58px,8.6vh,93px);overflow:hidden;text-align:left;
+  padding:0 22px 0 clamp(20px,2.3vw,44px);font-size:clamp(14px,1.05vw,20px);letter-spacing:.1em;text-transform:uppercase;color:#fff}
 .band img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .9s cubic-bezier(.2,.7,.2,1)}
 .band::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(90deg,rgba(0,0,0,.42),rgba(0,0,0,.12) 60%,rgba(0,0,0,0))}
 .band:hover img{transform:scale(1.05)}
 .band span,.band svg{position:relative;z-index:2}
 .band span .b{font-weight:700}
-.band svg{margin-left:auto;width:calc(56 * var(--u));height:auto}
+.band svg{margin-left:auto;width:clamp(36px,2.8vw,54px);height:auto}
 .band[data-k=territorial] img{object-position:50% 47%}
 .band[data-k=development] img{object-position:50% 81%}
 .band[data-k=legal] img{object-position:50% 55%}
 .band[data-k=management] img{object-position:50% 52%}
 
-/* ───────── 3 · INVESTOR ROADMAP («Investor roadmap section») ───────── */
-.road{position:relative;height:calc(992 * var(--u));min-height:calc(100vh - var(--nav-h));color:#fff;overflow:hidden}
+/* ═══ 3 · INVESTOR ROADMAP ═══ */
+.road{color:#fff}
 .road>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 83%}
-.road::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,22,32,0) 28%,rgba(0,22,32,.28) 40%,rgba(0,22,32,.28))}
-.road-in{position:relative;z-index:1}
-.frame{position:relative;margin:calc(91 * var(--u)) calc(114 * var(--u)) 0;height:calc(206 * var(--u));text-align:center}
-.frame::before{content:"";position:absolute;inset:0;border:3px solid rgba(255,255,255,.85);border-top:0;
+.road::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,22,32,0) 28%,rgba(0,22,32,.3) 42%,rgba(0,22,32,.3))}
+.road-in{position:relative;z-index:1;padding-top:calc(var(--top) + clamp(16px,3.5vh,44px))}
+.frame{position:relative;margin:0 clamp(16px,5.9vw,114px);padding:clamp(18px,3.6vh,40px) 16px clamp(34px,6vh,64px);text-align:center}
+.frame::before{content:"";position:absolute;inset:0;border:2px solid rgba(255,255,255,.85);border-top:0;
   -webkit-mask:linear-gradient(180deg,transparent,#000 22%);mask:linear-gradient(180deg,transparent,#000 22%)}
-.frame .k{display:block;padding-top:calc(10 * var(--u));font-size:max(12px,calc(21.6 * var(--u)));letter-spacing:.16em}
-.frame h2{margin-top:calc(8 * var(--u));font-size:calc(60 * var(--u));line-height:calc(75 * var(--u));font-weight:400;letter-spacing:.045em;text-transform:uppercase}
+.frame .k{display:block;font-size:var(--fs-label);letter-spacing:.2em}
+.frame h2{margin-top:10px;font-size:clamp(28px,2.6vw,50px);line-height:1.2;font-weight:400;letter-spacing:.045em;text-transform:uppercase}
 .frame h2 .b{font-weight:500}
-.frame .one{position:absolute;left:50%;bottom:0;transform:translate(-50%,50%);height:calc(41 * var(--u));padding:0 calc(23 * var(--u));
-  display:inline-flex;align-items:center;border-radius:999px;background:#fff;color:#1c4245;font-size:max(12px,calc(21.6 * var(--u)));letter-spacing:.1em;white-space:nowrap}
-.steps{list-style:none;display:grid;grid-template-columns:calc(277 * var(--u)) calc(312 * var(--u)) calc(329 * var(--u)) calc(318 * var(--u)) calc(281 * var(--u)) auto;margin:calc(46 * var(--u)) calc(60 * var(--u)) 0 calc(86 * var(--u))}
-.step{display:flex;flex-direction:column;align-items:flex-start}
-.step .box{display:flex;flex-direction:column;align-items:center}
-.step h3{position:relative;height:calc(42 * var(--u));display:inline-flex;align-items:center;padding:0 calc(17 * var(--u));
-  font-size:max(13px,calc(22.4 * var(--u)));font-weight:700;letter-spacing:.11em;white-space:nowrap}
+.frame .one{position:absolute;left:50%;bottom:0;transform:translate(-50%,50%);height:34px;padding:0 20px;display:inline-flex;align-items:center;
+  border-radius:999px;background:#fff;color:#1c4245;font-size:var(--fs-label);letter-spacing:.14em;white-space:nowrap}
+.steps{list-style:none;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:clamp(12px,1.4vw,28px);
+  margin:clamp(34px,6vh,64px) clamp(16px,4.5vw,86px) 0}
+.step .box{display:flex;flex-direction:column;align-items:flex-start}
+.step h3{position:relative;height:36px;display:inline-flex;align-items:center;padding:0 14px;margin-left:-14px;
+  font-size:clamp(12px,.9vw,17px);font-weight:700;letter-spacing:.11em;white-space:nowrap}
 .step h3::before{content:"";position:absolute;inset:0;border:1px solid rgba(255,255,255,.9);border-radius:999px;
   -webkit-mask:linear-gradient(90deg,transparent 4%,#000 45%);mask:linear-gradient(90deg,transparent 4%,#000 45%)}
-.step p{margin-top:calc(21 * var(--u));white-space:nowrap;font-size:max(12px,calc(15 * var(--u)));line-height:max(21px,calc(27 * var(--u)));letter-spacing:.06em;text-transform:uppercase}
+.step p{margin-top:14px;font-size:clamp(12px,.74vw,14px);line-height:1.8;letter-spacing:.06em;text-transform:uppercase}
+@media (max-width:1500px){ .step br.d{display:none} }
 
-/* pie compartido: lo pinta /assets/lawang-pie.js */
+/* pie compartido (lo pinta /assets/lawang-pie.js), última parada del scroll */
 
-/* portatil (901-1500px): con --u < 0.78 el texto pequeno del lienzo 1920 baja de 12px y
-   la Neue Kabel se deshace en pantallas 1x. Suelos de tamano arriba; aqui el roadmap y
-   los chips dejan de forzar los cortes de linea del lienzo y se reparten solos. */
-@media (min-width: 901px) and (max-width: 1500px){
-  .steps{grid-template-columns:repeat(6,minmax(0,1fr));gap:18px;margin-left:calc(60 * var(--u))}
-  .step .box{align-items:flex-start;max-width:100%}
-  .step h3{font-size:12.5px;padding:0 12px;letter-spacing:.08em}
-  .step p{white-space:normal}
-  .step br.d{display:none}
-  .chips.two{display:flex}
-}
-@media (min-width: 901px) and (max-width: 1150px){
-  .steps{gap:12px}
-  .step h3{font-size:11.5px;padding:0 9px;letter-spacing:.06em}
-}
+/* ═══ móvil / tablet vertical ═══ */
+@media (max-width:900px){
+  :root{--menu-h:18px;--gut:16px}
+  .snap{scroll-snap-type:y proximity}
+  .snap > section{height:auto;min-height:100vh;min-height:100dvh;overflow:visible}
+  #topbar{background:rgba(247,244,239,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 1px 0 rgba(190,179,165,.3)}
+  #logo-inner .ll-white{display:none}
+  #logo-inner .ll-dark{display:block;height:18px;width:129px}
+  .nav-burger span{background:rgba(26,22,18,.8);box-shadow:none}
+  .nav-lang{color:rgba(26,22,18,.62);text-shadow:none}
+  .nav-burger{display:flex}
+  #nav,#topbar.solid #nav{display:none;position:absolute;top:100%;left:0;right:0;flex-direction:column;align-items:flex-start;gap:0;
+    border-radius:0;padding:.4rem 0;height:auto;background:#f7f4ef;border:none;box-shadow:0 18px 30px -18px rgba(0,0,0,.35)}
+  #topbar.nav-open #nav{display:flex}
+  #nav .nav-link{width:100%;padding:14px clamp(1.4rem,4vw,3.4rem);font-size:.72rem;color:rgba(26,22,18,.8);text-shadow:none}
+  #nav .nav-link::after{display:none}
+  .nav-cta .cta-label{display:none}
+  .nav-cta,#topbar.scrolled .nav-cta,#topbar.solid .nav-cta{padding-right:7px;border-color:transparent;background:transparent}
+  .nav-cta .wa{width:30px;height:30px}.nav-cta .wa svg{width:17px;height:17px}
 
-/* ───────── movil / tablet vertical ───────── */
-@media (max-width: 900px){
-  :root{--u: calc(100vw / 780)}
-  .top{padding:0 16px}
-  .pill,.lang{display:none}
-  .top .right{gap:12px}
-  .cta{width:auto;padding:0 18px;font-size:12px;letter-spacing:.08em}
-  .menu-btn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border:1px solid var(--green);border-radius:50%;color:var(--green)}
-  .menu-btn svg{width:18px}
-  .top.open .pill{display:flex;flex-direction:column;align-items:flex-start;gap:14px;left:0;right:0;top:100%;transform:none;height:auto;
-    border-radius:0;border:0;border-top:1px solid #e3dfd4;background:var(--bar);padding:18px 16px 22px}
-  .top.open .pill a{font-size:15px}
-  .soul-hero{height:56vw;margin-top:0}
-  .soul-hero h1{font-size:6.2vw;line-height:1.2;white-space:normal;bottom:12px;padding:0 16px;text-shadow:0 1px 14px rgba(0,0,0,.45)}
-  .soul-sub{font-size:4.2vw;line-height:1.3;margin:18px 16px 0}
-  .stats{grid-template-columns:1fr 1fr;height:auto;gap:22px 16px;padding:32px 16px 36px;text-align:center}
-  .stats .n{font-size:13vw;line-height:1}
-  .stats .l{font-size:4.6vw;line-height:1.3}
+  .soul{display:block;padding-top:58px}
+  .soul-hero{height:56vw}
+  .soul-hero::before{display:none}
+  .soul-hero h1{font-size:6.2vw;white-space:normal;bottom:12px;padding:0 16px;text-shadow:0 1px 14px rgba(0,0,0,.45)}
+  .soul-sub{font-size:4.2vw;margin:18px 16px 0}
+  .stats{grid-template-columns:1fr 1fr;justify-content:stretch;gap:22px 16px;padding:28px 16px 32px;text-align:center}
+  .stats .n{font-size:13vw}.stats .l{font-size:4.6vw}
   .deco,br.d{display:none}
-  .chips.two{display:flex}
-  .chips li,.chips.col li{padding:8px 12px}
   .tiles{grid-template-columns:1fr 1fr}
   .tile{height:44vw}
   .tile h2{left:14px;top:12px;font-size:4.4vw}
-  .svc{height:auto;min-height:0}
-  .svc-in{display:block;padding:36px 16px 40px}
-  .kick{height:auto;min-height:34px;padding:6px 12px;font-size:12px;border-radius:6px}
-  .svc h2 .t1,.svc h2.big .t1{font-size:10vw}
-  .svc h2 .t2,.svc h2.big .t2,.svc h2 .and{font-size:10vw}
-  .stat,.rule,.chips{position:static}
-  .stat{margin-top:26px}
-  .stat .n{font-size:9vw}.stat .l{font-size:8vw}
-  .rule{width:100%;margin:18px 0}
-  .chips{width:auto;gap:10px}
-  .chips li{height:auto;min-height:38px;padding:8px 12px;font-size:12px;white-space:normal;border-radius:6px}
+  .svc-in{display:block;height:auto;padding:84px 16px 40px}
+  .svc h2 .t1,.svc h2 .t2{font-size:10vw}
+  .stat{margin-top:26px}.stat .n{font-size:9vw}.stat .l{font-size:8vw}
+  .rule{margin:18px 0}
+  .chips li{font-size:12px;min-height:36px;padding:6px 12px}
   .pane[hidden]{display:none}
-  .aio{margin:36px 0 0;height:auto;padding:0 0 4px 16px}
-  .aio .h svg{width:28px}
-  .aio .h span{font-size:6.4vw}
-  .aio p{font-size:13px;line-height:1.7;margin-top:14px}
-  .svc-list-h{justify-content:flex-start;margin-top:30px;font-size:13px;gap:12px}
-  .svc-list-h svg.iso{width:22px}.svc-list-h .chev{width:12px}
-  .bands{margin-top:14px;gap:10px}
+  .aio{margin-top:36px}
+  .aio p{font-size:13px}
+  .svc-list-h{justify-content:flex-start}
   .band{height:64px;font-size:14px;padding:0 16px}
-  .band svg{width:40px}
-  .road{height:auto;min-height:0;padding-bottom:40px}
+  .road{padding-bottom:40px}
   .road>img{object-position:50% 100%}
   .road::after{background:linear-gradient(180deg,rgba(0,22,32,.1),rgba(0,22,32,.55) 30%,rgba(0,22,32,.55))}
-  .frame{margin:40px 16px 0;height:auto;padding-bottom:40px}
-  .frame .k{font-size:12px;padding-top:6px}
-  .frame h2{font-size:8.4vw;line-height:1.15}
-  .frame .one{font-size:12px;height:32px;padding:0 16px}
-  .steps{grid-template-columns:1fr;gap:26px;margin:44px 16px 0}
-  .step,.step .box{align-items:flex-start}
-  .step h3{font-size:15px;height:36px}
+  .road-in{padding-top:84px}
+  .frame h2{font-size:8.4vw}
+  .frame .one{font-size:12px;height:32px}
+  .steps{grid-template-columns:1fr;gap:26px;margin:48px 16px 0}
+  .step h3{margin-left:0;font-size:14px}
   .step h3::before{-webkit-mask:none;mask:none}
-  .step p{font-size:12.5px;line-height:1.75;margin-top:10px;white-space:normal}
+  .step p{font-size:12.5px}
 }
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{transition:none!important;animation:none!important}
-  html{scroll-behavior:auto}
 }
 </style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="wordmark" viewBox="0 0 165.0 33.0" fill="currentColor"><path fill-rule="nonzero" d="M1.98 30.95L1.98 30.50C3.11 30.21 3.60 29.52 3.60 25.78L3.60 7.65C3.60 3.91 3.11 3.22 1.98 2.93L1.98 2.48L7.51 2.48L7.51 2.93C6.37 3.22 5.88 3.91 5.88 7.65L5.88 28.79C5.88 29.85 6.45 30.42 7.51 30.42L14.01 30.42C17.67 30.42 19.05 29.44 20.27 26.84L20.64 26.92L20.39 30.95L1.98 30.95Z"/><path fill-rule="nonzero" d="M41.57 19.52L35.67 5.25L29.94 19.52L41.57 19.52M23.19 30.50C24.20 30.21 25.18 29.64 26.60 26.15L35.06 5.25C35.30 4.64 35.26 4.19 34.98 3.62L34.73 3.09L36.81 2.20L46.69 26.19C48.11 29.64 48.97 30.21 49.78 30.50L49.78 30.95L44.66 30.95L44.66 30.50C45.79 30.21 45.75 29.64 44.33 26.19L41.81 20.09L29.69 20.09L27.25 26.15C26.20 28.71 26.20 30.21 27.62 30.50L27.62 30.95L23.19 30.95L23.19 30.50Z"/><path fill-rule="nonzero" d="M58.06 2.93L58.06 2.48L63.07 2.48L63.07 2.93C61.93 3.22 61.97 3.79 63.43 7.24L65.91 13.22L68.03 7.36C68.96 4.76 68.96 3.22 67.70 2.93L67.70 2.48L71.89 2.48L71.89 2.93C70.87 3.22 69.94 3.83 68.68 7.32L66.28 14.03L72.09 28.02L79.53 7.32C80.47 4.76 80.39 3.22 78.96 2.93L78.96 2.48L83.39 2.48L83.39 2.93C82.38 3.22 81.44 3.83 80.18 7.32L71.68 30.95L70.95 30.95L64.98 16.47L59.08 30.95L58.35 30.95L49.36 7.32C48.02 3.83 47.21 3.22 46.40 2.93L46.40 2.48L51.52 2.48L51.52 2.93C50.38 3.22 50.38 3.83 51.72 7.32L59.61 28.14L64.65 15.70L61.15 7.24C59.73 3.79 58.88 3.22 58.06 2.93Z"/><path fill-rule="nonzero" d="M98.21 19.52L92.32 5.25L86.59 19.52L98.21 19.52M79.84 30.50C80.85 30.21 81.83 29.64 83.25 26.15L91.71 5.25C91.95 4.64 91.91 4.19 91.63 3.62L91.38 3.09L93.46 2.20L103.34 26.19C104.76 29.64 105.61 30.21 106.43 30.50L106.43 30.95L101.30 30.95L101.30 30.50C102.44 30.21 102.40 29.64 100.98 26.19L98.46 20.09L86.34 20.09L83.90 26.15C82.85 28.71 82.85 30.21 84.27 30.50L84.27 30.95L79.84 30.95L79.84 30.50Z"/><path fill-rule="nonzero" d="M112.07 5.45L112.07 25.05C112.07 29.28 113.01 30.17 114.51 30.50L114.51 30.95L109.84 30.95L109.84 30.50C110.97 30.21 111.46 29.52 111.46 25.78L111.46 7.65C111.46 3.91 110.81 3.22 109.35 2.93L109.35 2.48L112.72 2.48L131.18 27.25L131.18 8.38C131.18 4.15 130.25 3.26 128.74 2.93L128.74 2.48L133.42 2.48L133.42 2.93C132.28 3.22 131.79 3.91 131.79 7.65L131.79 31.27L131.26 31.27L112.07 5.45Z"/><path fill-rule="nonzero" d="M137.46 17.24C137.46 8.66 143.52 2.20 151.73 2.20C156.53 2.20 160.07 3.79 161.08 4.44L161.25 8.62L160.92 8.71C159.58 5.90 156.41 2.89 150.92 2.89C144.50 2.89 139.74 7.36 139.66 15.01C139.58 22.69 144.58 30.70 153.20 30.70C156.73 30.70 159.78 28.51 160.80 26.47L160.72 21.80C160.68 20.01 160.43 19.20 158.65 18.83L158.65 18.38L162.91 18.38L162.91 26.19C161.33 28.75 156.94 31.35 152.06 31.35C143.24 31.35 137.46 25.82 137.46 17.24Z"/></symbol><symbol id="isotipo" viewBox="0 0 34.0 37.0" fill="currentColor"><path fill-rule="nonzero" d="M12.18 17.79C11.46 18.19 11.60 20.84 10.87 21.19C9.99 21.60 8.46 21.72 5.95 21.99L6.25 31.59C6.26 31.95 6.07 32.78 6.00 33.10C5.88 33.58 3.58 33.36 3.54 32.86L2.80 22.98C2.73 22.13 3.08 19.82 3.85 19.62L8.14 18.50L9.21 15.24L13.04 14.10C14.34 13.37 14.01 9.61 13.63 7.39L4.86 7.13C4.40 7.12 3.36 6.85 2.95 6.73C2.55 6.61 3.04 4.60 3.46 4.53C6.64 4.07 12.54 4.19 16.47 4.58L17.37 9.48C19.43 9.57 22.34 9.92 24.08 10.95L25.78 25.88C25.85 26.46 25.08 27.84 24.60 27.94C23.96 28.07 22.85 26.84 22.78 26.19L21.36 12.86C20.31 12.48 17.48 12.04 17.14 12.99L15.92 16.38C15.64 17.15 13.13 17.24 12.18 17.79Z"/><path fill-rule="nonzero" d="M14.62 18.54L17.02 18.25C18.12 18.12 16.53 16.71 19.05 14.54C19.44 14.21 20.54 15.86 20.55 16.37L20.70 28.94C23.40 29.17 25.27 29.19 28.24 29.09L27.56 7.24L18.97 6.89C18.43 6.87 17.04 5.69 17.42 5.34C20.05 2.92 27.44 3.53 30.01 5.88C31.33 14.63 31.41 22.59 30.63 31.42C26.41 32.55 22.88 32.50 18.64 31.70C18.08 29.41 17.75 26.83 17.59 24.40L17.44 21.93C17.36 20.67 14.24 22.47 12.69 19.92C12.39 19.44 14.05 18.61 14.62 18.54Z"/><path fill-rule="nonzero" d="M10.88 25.93L8.96 33.67C5.74 30.95 6.90 26.85 8.67 23.96C9.52 22.56 12.99 23.08 13.38 24.56C14.26 27.90 16.08 30.94 12.37 34.23L10.88 25.93Z"/><path fill-rule="nonzero" d="M9.36 12.64L7.20 16.52C6.73 17.37 2.99 16.81 3.21 15.90C4.31 14.11 5.66 12.41 6.29 11.07C7.39 8.76 10.62 7.90 12.54 10.06L9.36 12.64Z"/></symbol><symbol id="ico-territorial" viewBox="0 0 60.0 35.0" fill="currentColor"><path fill-rule="nonzero" d="M33.69 16.09C31.80 13.07 28.43 12.21 25.70 13.85C22.87 15.56 21.68 18.78 23.26 21.88C24.61 24.55 27.97 25.95 31.12 24.52C32.62 23.84 34.01 22.40 34.42 21.05C34.91 19.42 34.57 17.48 33.69 16.09M52.70 31.70L4.66 31.68L20.09 9.99C21.61 7.86 23.36 5.89 25.34 4.32C30.25 0.42 35.50 7.70 38.42 11.78L52.70 31.70Z"/></symbol><symbol id="ico-development" viewBox="0 0 62.0 32.0" fill="currentColor"><path fill-rule="nonzero" d="M33.56 18.71C33.38 17.94 32.64 16.74 31.69 16.46C30.99 16.37 30.03 17.57 29.65 18.19L30.51 19.90C29.98 20.96 28.82 21.65 27.54 21.68C22.70 21.81 18.06 21.96 13.08 21.61L25.58 11.48L29.70 8.44C30.97 7.86 32.12 7.71 33.40 8.30C34.63 9.13 35.84 9.92 37.01 10.86L50.30 21.55C45.13 22.03 40.44 21.81 35.54 21.65C34.46 21.61 33.47 20.91 32.90 20.12L33.56 18.71Z"/><path fill-rule="nonzero" d="M56.92 28.37L6.79 28.39C5.78 28.39 5.11 28.20 4.31 27.66L9.22 24.39L54.16 24.38L59.32 27.65C58.63 28.10 58.00 28.37 56.92 28.37Z"/></symbol><symbol id="ico-legal" viewBox="0 0 60.0 37.0" fill="currentColor"><path fill-rule="nonzero" d="M42.62 18.78C42.99 14.92 40.35 11.92 37.85 10.54C34.58 8.74 30.95 8.71 27.95 10.56C26.02 11.76 25.54 13.62 25.47 15.78C25.41 17.62 25.91 19.71 28.21 19.82L33.54 20.08C34.24 20.11 35.80 19.04 35.69 18.35C34.61 15.39 29.32 18.05 26.38 15.77C28.06 13.39 30.62 12.38 33.21 12.53C35.57 12.66 38.11 14.07 39.43 16.20C40.82 18.45 39.58 20.16 38.03 21.61C36.17 23.37 34.43 24.54 31.69 24.65C27.61 24.81 23.30 23.40 21.23 19.55C19.20 15.77 20.46 11.20 23.65 8.19C29.14 2.99 38.10 3.45 43.37 9.00C45.10 10.82 45.79 13.36 47.01 15.59C49.85 14.64 55.64 15.14 55.98 18.01C56.06 18.64 55.10 19.85 54.42 20.12C52.08 21.06 49.75 20.53 47.26 19.54C46.75 20.35 46.09 21.58 45.86 22.48C44.50 27.64 40.88 30.89 35.86 32.21C29.90 33.78 23.49 32.73 19.16 28.20C17.86 26.84 17.13 24.53 18.81 23.19C21.32 25.10 23.59 26.93 26.47 27.79C31.43 29.27 36.97 28.04 40.33 23.95C41.33 22.73 42.46 20.47 42.62 18.78Z"/><path fill-rule="nonzero" d="M16.85 25.62C15.98 27.55 14.51 25.95 13.54 25.57C10.02 24.17 6.56 22.89 3.65 20.12C7.65 18.84 11.15 19.52 15.15 19.92L16.85 25.62Z"/><path fill-rule="nonzero" d="M14.98 14.73C12.00 16.51 7.95 16.58 4.84 15.33C8.76 12.30 12.68 10.22 17.46 9.75C17.44 11.39 16.48 13.85 14.98 14.73Z"/></symbol><symbol id="ico-management" viewBox="0 0 50.0 30.0" fill="currentColor"><path fill-rule="nonzero" d="M14.81 26.48L4.20 26.68L5.18 6.95C5.28 4.89 7.31 3.83 9.15 3.84L17.24 3.92C16.10 8.57 15.77 12.70 15.45 17.26L14.81 26.48Z"/><path fill-rule="nonzero" d="M45.44 26.59C41.70 26.84 38.72 26.82 34.87 26.59L34.36 13.45C34.23 10.16 33.57 7.30 32.68 3.92L41.88 3.93C43.17 3.93 44.53 5.53 44.62 6.85C45.11 13.49 45.32 19.50 45.44 26.59Z"/><path fill-rule="nonzero" d="M30.32 24.75C30.36 25.43 30.20 26.20 29.92 26.37C29.64 26.54 28.71 26.86 28.24 26.85L19.63 26.67L21.31 4.09C23.73 3.88 26.18 3.82 28.38 3.89C28.74 4.36 29.25 5.52 29.28 6.06L30.32 24.75Z"/></symbol></svg>
 
-<header class="top" id="top">
-  <a class="logo" href="/" aria-label="Lawang — home"><svg viewBox="0 0 165 33" aria-hidden="true"><use href="#wordmark"/></svg></a>
-  <nav class="pill" id="menu" aria-label="Main">
-    <a href="/thecollection#land">THE LAND</a>
-    <a href="/thecollection#villas">THE VILLAS</a>
-    <a href="#soul" aria-current="page">THE SOUL</a>
-    <a href="/portfolio">THE PORTFOLIO</a>
+<!-- ════════ TOPBAR — la misma de index.html ════════ -->
+<header id="topbar">
+  <div id="logo">
+    <a id="logo-inner" href="/" aria-label="Lawang — home">
+      <img class="ll-white" src="/assets/img/lawang-logo-v3.webp" alt="Lawang Tropical Properties">
+      <span class="ll-dark" aria-hidden="true"></span>
+    </a>
+  </div>
+  <nav id="nav" aria-label="Main">
+    <a class="nav-link" href="/thecollection#land">The Land</a>
+    <a class="nav-link" href="/thecollection#villas">The Villas</a>
+    <a class="nav-link active" href="#soul" aria-current="page">The Soul</a>
+    <a class="nav-link" href="/portfolio">The Portfolio</a>
   </nav>
-  <div class="right">
-    <span class="lang">ENGLISH</span>
-    <a class="cta" id="cta" href="https://wa.me/6281138319862" target="_blank" rel="noopener">REQUEST DETAILS</a>
-    <button class="menu-btn" id="menu-btn" aria-controls="menu" aria-expanded="false"><span class="sr">Menu</span>
-      <svg viewBox="0 0 18 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M0 1h18M0 6h18M0 11h18"/></svg></button>
+  <div id="nav-actions">
+    <div class="nav-lang-wrap" id="langWrap">
+      <button class="nav-lang" id="langBtn" type="button" aria-haspopup="listbox" aria-expanded="false">
+        <span>English</span><span class="caret">▾</span>
+      </button>
+      <!-- Solo inglés: la página aún no está traducida (ES/ID pendiente, LAW-301). Ofrecer
+           Español/Bahasa aquí cambiaría la etiqueta y dejaría el texto en inglés. -->
+      <ul class="lang-menu" id="langMenu" role="listbox" aria-label="Language">
+        <li role="option" data-lang="en" class="active" aria-selected="true">English</li>
+      </ul>
+    </div>
+    <a class="nav-cta" id="cta" href="https://wa.me/6281138319862" target="_blank" rel="noopener" aria-label="Contact Lawang on WhatsApp"><span class="wa"><svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.22 3.08.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.04 21.5h-.01a9.5 9.5 0 0 1-4.84-1.33l-.35-.2-3.6.94.96-3.51-.23-.36a9.49 9.49 0 0 1-1.45-5.05c0-5.24 4.27-9.5 9.52-9.5a9.46 9.46 0 0 1 9.51 9.51c0 5.24-4.27 9.5-9.51 9.5zM20.52 3.49A11.78 11.78 0 0 0 12.04 0C5.46 0 .1 5.36.1 11.94c0 2.1.55 4.16 1.6 5.98L0 24l6.25-1.64a11.92 11.92 0 0 0 5.79 1.47h.01c6.58 0 11.94-5.36 11.94-11.94a11.86 11.86 0 0 0-3.47-8.4z"/></svg></span> <span class="cta-label">Ask Us Anything</span></a>
+    <button id="navBurger" class="nav-burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nav"><span></span><span></span><span></span></button>
   </div>
 </header>
 
-<main>
-<!-- ═════ 1 · THE SOUL ═════ -->
+<!-- ════════ SNAP — 1 pantalla = 1 sección ════════ -->
+<main class="snap" id="snap">
+
 <section class="soul" id="soul" aria-labelledby="soul-h">
   <div class="soul-hero">
     <img src="/assets/img/soul/soul-hero.webp" width="1711" height="919" alt="Living room of a Lawang villa with a floating timber staircase and an indoor garden" fetchpriority="high">
@@ -317,7 +359,6 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   </ul>
 </section>
 
-<!-- ═════ 2 · THE SERVICES ═════ -->
 <section class="svc" id="services" aria-label="The services">
   <div class="svc-bg on" data-k="territorial"><img src="/assets/img/soul/bg-territorial.webp" alt="" loading="lazy"></div>
   <div class="svc-bg" data-k="development"><img src="/assets/img/soul/bg-development.webp" alt="" loading="lazy"></div>
@@ -326,28 +367,28 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 
   <div class="svc-in">
     <div class="svc-left">
-      <div class="pane" data-k="territorial" id="pane-territorial" style="--st:397;--ru:513;--ch:541">
+      <div class="pane" data-k="territorial" id="pane-territorial">
         <span class="kick" style="--k:#22390f">Verified long-term areas.</span>
         <h2><span class="t1">Territorial</span><span class="t2">Sourcing</span></h2>
         <p class="stat"><span class="n">500K+</span><span class="l">SQM land</span></p>
         <span class="rule" aria-hidden="true"></span>
-        <ul class="chips two"><li>Zoning verification</li><li>Access and infrastructure</li><li>Market research</li><li>Direct-owner negotiation</li></ul>
+        <ul class="chips"><li>Zoning verification</li><li>Access and infrastructure</li><li>Market research</li><li>Direct-owner negotiation</li></ul>
       </div>
-      <div class="pane" data-k="development" id="pane-development" style="--t2:91;--t2w:400;--st:366;--ru:485;--ch:510" hidden>
-        <span class="kick wide" style="--k:#42200a">Structural integrity. Local knowledge.</span>
+      <div class="pane" data-k="development" id="pane-development" hidden>
+        <span class="kick" style="--k:#42200a">Structural integrity. Local knowledge.</span>
         <h2><span class="t1">Development</span><span class="t2">and build</span></h2>
         <p class="stat"><span class="n">80+</span><span class="l">Buildings</span></p>
         <span class="rule" aria-hidden="true"></span>
         <ul class="chips col"><li>International construction standards</li><li>Tropical-grade materials</li><li>Architectural and structural design</li></ul>
       </div>
-      <div class="pane" data-k="legal" id="pane-legal" style="--st:370;--ru:488;--ch:518" hidden>
-        <span class="kick wide" style="--k:#1b4245">Full fiscal clarity.</span>
-        <h2 class="big"><span class="t1">Legal <span class="and">and</span></span><span class="t2">Structure</span></h2>
+      <div class="pane" data-k="legal" id="pane-legal" hidden>
+        <span class="kick" style="--k:#1b4245">Full fiscal clarity.</span>
+        <h2><span class="t1">Legal <span class="and">and</span></span><span class="t2">Structure</span></h2>
         <p class="stat"><span class="n">100+</span><span class="l">Investors</span></p>
         <span class="rule" aria-hidden="true"></span>
         <ul class="chips"><li>For foreign ownership</li><li>Completion certification</li><li>Title verification and structure selection</li><li>Notary process, deed and permit filing</li></ul>
       </div>
-      <div class="pane" data-k="management" id="pane-management" style="--t1:71.2;--t2:74.6;--sn:101;--sl:57.2;--st:321;--ru:472;--ch:501" hidden>
+      <div class="pane" data-k="management" id="pane-management" hidden>
         <span class="kick" style="--k:#425b32">Curated local partners.</span>
         <h2><span class="t1">Management</span><span class="t2">and returns</span></h2>
         <p class="stat"><span class="n">6+</span><span class="l">Years</span></p>
@@ -360,10 +401,10 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
       <div class="aio">
         <div class="h"><svg aria-hidden="true" id="aio-ico" viewBox="0 0 60 35"><use href="#ico-territorial"/></svg><span>ALL-IN-ONE</span></div>
         <div class="aio-txt">
-          <p class="pane" data-k="territorial">We identify and secure land in<br class="d"> <span class="b">Indonesia's highest-potential<br class="d"> growth corridors.</span></p>
-          <p class="pane" data-k="development" hidden>We design and build with<br class="d"> <span class="b">tropical-grade materials</span><br class="d"> and strict on-site control.</p>
-          <p class="pane" data-k="legal" hidden>We structure every acquisition<br class="d"> <span class="b">title, company, and tax — for<br class="d"> full legal clarity from day one.</span></p>
-          <p class="pane" data-k="management" hidden><span class="b">Once built, our trusted local partners</span><br class="d"> manage the property and your returns.</p>
+          <p class="pane" data-k="territorial">We identify and secure land in <span class="b">Indonesia's highest-potential growth corridors.</span></p>
+          <p class="pane" data-k="development" hidden>We design and build with <span class="b">tropical-grade materials</span> and strict on-site control.</p>
+          <p class="pane" data-k="legal" hidden>We structure every acquisition <span class="b">title, company, and tax — for full legal clarity from day one.</span></p>
+          <p class="pane" data-k="management" hidden><span class="b">Once built, our trusted local partners</span> manage the property and your returns.</p>
         </div>
       </div>
       <button class="svc-list-h" id="svc-toggle" aria-expanded="true" aria-controls="bands">THE SERVICES
@@ -380,7 +421,6 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   </div>
 </section>
 
-<!-- ═════ 3 · INVESTOR ROADMAP ═════ -->
 <section class="road" id="roadmap" aria-labelledby="road-h">
   <img src="/assets/img/soul/bg-roadmap.webp" width="1684" height="934" loading="lazy" alt="Three people sitting on the sand watching the sea at sunset">
   <div class="road-in">
@@ -399,27 +439,56 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
     </ol>
   </div>
 </section>
-</main>
 
 <footer data-lw-pie data-wa="https://wa.me/6281138319862">
   <span data-pie-nota>All content — including prices, areas, renders, availability, delivery dates and projected returns — is indicative, may change without notice and does not constitute a binding offer, financial advice or a guarantee of return.</span>
 </footer>
 <script src="/assets/lawang-pie.js?v=20260923153722"></script>
+</main>
 
 <script>
 (function () {
   'use strict';
-  // Menu movil
-  var top = document.getElementById('top'), mb = document.getElementById('menu-btn');
-  mb.addEventListener('click', function () {
-    var abierto = top.classList.toggle('open');
-    mb.setAttribute('aria-expanded', abierto);
+  var snap = document.getElementById('snap'), tb = document.getElementById('topbar'),
+      logo = document.getElementById('logo'), bur = document.getElementById('navBurger');
+
+  // Barra: fantasma sobre la foto, sólida al salir de la primera pantalla (igual que la home)
+  function onScroll() {
+    var open = tb.classList.contains('nav-open'), past = snap.scrollTop > innerHeight * 0.6;
+    tb.classList.toggle('solid', past || open);
+    tb.classList.toggle('scrolled', snap.scrollTop > 8);
+    logo.classList.toggle('dark', past || open);
+  }
+  snap.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  // Burger móvil
+  bur.addEventListener('click', function () {
+    var open = tb.classList.toggle('nav-open');
+    bur.setAttribute('aria-expanded', open ? 'true' : 'false');
+    onScroll();
   });
-  document.getElementById('menu').addEventListener('click', function (e) {
-    if (e.target.closest('a')) { top.classList.remove('open'); mb.setAttribute('aria-expanded', 'false'); }
+  document.querySelectorAll('#nav .nav-link').forEach(function (a) {
+    a.addEventListener('click', function () { tb.classList.remove('nav-open'); bur.setAttribute('aria-expanded', 'false'); onScroll(); });
   });
 
-  // CTA: mismo mensaje prellenado que la home
+  // Anclas internas: se desplaza el contenedor .snap, no la ventana
+  document.querySelectorAll('a[href^="#"]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      var t = document.querySelector(a.getAttribute('href'));
+      if (t) { e.preventDefault(); snap.scrollTo({ top: t.offsetTop, behavior: 'smooth' }); }
+    });
+  });
+
+  // Idioma: mismo desplegable que la home (hoy solo English)
+  var lw = document.getElementById('langWrap'), lb = document.getElementById('langBtn'), lm = document.getElementById('langMenu');
+  function lclose() { lm.classList.remove('open'); lb.setAttribute('aria-expanded', 'false'); }
+  lb.addEventListener('click', function (e) { e.stopPropagation(); var o = !lm.classList.contains('open'); lm.classList.toggle('open', o); lb.setAttribute('aria-expanded', o); });
+  lm.addEventListener('click', lclose);
+  document.addEventListener('click', function (e) { if (!lw.contains(e.target)) lclose(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') lclose(); });
+
+  // CTA: mensaje prellenado
   var msg = "Hello LAWANG 🌿\n\nI'd like to request details about your projects and how you work, from land to legacy.";
   document.getElementById('cta').href = 'https://wa.me/6281138319862?text=' + encodeURIComponent(msg);
 
@@ -436,19 +505,15 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
     ico.querySelector('use').setAttribute('href', ICO[k][0]);
     svc.dataset.activo = k;
   }
-  svc.addEventListener('click', function (e) {
-    var b = e.target.closest('.band');
-    if (b) activa(b.dataset.k);
-  });
+  svc.addEventListener('click', function (e) { var b = e.target.closest('.band'); if (b) activa(b.dataset.k); });
   var tg = document.getElementById('svc-toggle'), bands = document.getElementById('bands');
   tg.addEventListener('click', function () {
     var abierto = tg.getAttribute('aria-expanded') !== 'true';
     tg.setAttribute('aria-expanded', abierto);
     bands.classList.toggle('closed', !abierto);
   });
-  // Permite abrir un servicio directo: #services-legal
   var h = location.hash.match(/^#services-(territorial|development|legal|management)$/);
-  if (h) { activa(h[1]); svc.scrollIntoView(); }
+  if (h) { activa(h[1]); snap.scrollTop = svc.offsetTop; }
 })();
 </script>
 </body>
