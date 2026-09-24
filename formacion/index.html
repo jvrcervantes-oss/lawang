@@ -355,6 +355,11 @@ ul.lista li .ms{font-size:18px;color:var(--tg);margin-top:2px}
 .fases{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
 .fases span{font-size:12px;font-weight:600;border-radius:999px;padding:5px 10px;background:rgba(245,240,230,.14);border:1px solid rgba(245,240,230,.25)}
 
+.ruta--apoyo ol.mini{margin:8px 0 8px;padding-left:20px;display:flex;flex-direction:column;gap:4px;font-size:14.5px;color:var(--muted)}
+.ruta--apoyo ol.mini li{display:list-item;padding:0;position:static}
+.ruta--apoyo ol.mini li::marker{color:var(--tg);font-weight:700}
+.ruta--apoyo .tu b{color:var(--ink);font-weight:600}
+
 /* Regla de oro */
 .oro{display:grid;gap:22px;border-radius:22px;background:var(--tg);color:var(--linen);padding:30px;margin-top:10px}
 @media (min-width:900px){.oro{grid-template-columns:auto 1fr;align-items:center;padding:40px 44px}}
@@ -692,13 +697,20 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
   </div>
   <ol class="ruta ruta--apoyo reveal">
     <li><div class="dot"><span class="ms">favorite</span></div><div class="box">
-      <div><span class="fase">Etapa 1</span><h3>Trabájate al cliente</h3><div class="herr"><a href="/intranet/leads/"><span class="ms">person_search</span>CRM · Leads</a></div></div>
-      <div class="tu"><span class="quien">Tú</span><p>Escúchale antes de venderle. Descubre qué sueña (alquilar, legado, vivir aquí) y qué le frena. Contacta el mismo día que entra el lead.</p></div>
+      <div><span class="fase">Etapa 1</span><h3>Trabájate al cliente</h3></div>
+      <div class="tu"><span class="quien">Tú</span><p>Escúchale antes de venderle. Descubre qué sueña (alquilar, legado, vivir aquí) y qué le frena.</p></div>
       <div class="apoyo"><span class="quien"><span class="ms">handshake</span>Nosotros, contigo</span><p>Material listo para mandar: la landing de cada villa y el investor deck de cada proyecto.</p></div>
     </div></li>
     <li><div class="dot"><span class="ms">verified_user</span></div><div class="box">
-      <div><span class="fase">Etapa 2</span><h3>Dale seguridad</h3></div>
-      <div class="tu"><span class="quien">Tú</span><p>Explícale quiénes somos y cómo funciona la compra, sin prisa. Una duda resuelta vale más que un descuento.</p></div>
+      <div><span class="fase">Etapa 2</span><h3>Dale seguridad</h3><div class="herr"><a href="#pagos"><span class="ms">account_balance_wallet</span>Los pagos, en orden</a></div></div>
+      <div class="tu"><span class="quien">Tú</span><p>Sin prisa, explícale dos cosas. <b>Quiénes somos:</b> el promotor que diseña y construye su villa, con un equipo detrás. <b>Cómo compra:</b></p>
+        <ol class="mini">
+          <li>Reserva su parcela con una Carta de Reserva.</li>
+          <li>Asegura la tierra: paga el suelo y firma su contrato de Hak Sewa ante notario.</li>
+          <li>Paga la villa por fases, cada una cuando está terminada y certificada.</li>
+          <li>Recibe las llaves.</li>
+        </ol>
+        <p>Una duda resuelta vale más que un descuento.</p></div>
       <div class="apoyo"><span class="quien"><span class="ms">handshake</span>Nosotros, contigo</span><p>Entramos en la llamada para explicar la estructura legal, la obra o la empresa. Y le organizamos la llamada con el notario.</p></div>
     </div></li>
     <li><div class="dot"><span class="ms">visibility</span></div><div class="box">
