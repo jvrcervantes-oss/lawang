@@ -177,6 +177,32 @@ main > .lw-cabecera + *{margin-top:32px !important}
   table{display:block;overflow-x:auto;max-width:100%}
 }
 
+/* ═══ EN MÓVIL NO HAY CAJONES LATERALES (24-sep-2026) ═══
+   Owner: «el diseño responsive no puede tener cajetines laterales en móvil,
+   un 30-40 % de la pantalla lateral es inmanejable». Medido a 390px: la ficha
+   (`lwCajon`, 60vw) salía de 234px y dejaba 156 de velo; el editor, con dos
+   campos por fila, los dejaba en 127px; el panel de parcela dejaba un 8 % y el
+   menú un 26 %. Por debajo de 768px todo cajón ocupa la pantalla entera y se
+   cierra con su × (el velo lateral no sirve si apenas se ve).
+   Aquí, una vez y con !important, porque los anchos son estilos en línea que
+   pasa cada llamada (`ancho:`): arreglarlo llamada a llamada ya dejó hermanas
+   sin cerrar —los avisos se habían parcheado solos en datos.js—.
+   Desde 768px sigue el ancho de escritorio: ahí la ficha ya mide 461px. */
+@media (max-width:767px){
+  #lw-cajon [data-c="panel"],
+  #lw-editor form[data-lateral],
+  #cajon-vista-parcela,
+  .lw-aside{width:100vw !important;max-width:100vw !important;border-left:0 !important;box-shadow:none !important}
+  /* un campo por fila: a media fila quedaban de 127px */
+  #lw-editor [data-e="campos"]{grid-template-columns:1fr !important}
+  /* el margen de 16px de la página, no los 24 de escritorio */
+  #lw-cajon [data-c="panel"] > div,
+  #lw-editor form[data-lateral] > div{padding-left:16px !important;padding-right:16px !important}
+  /* sin velo a la vista, la × es la salida: dedo de 44px, no un glifo de 20 */
+  #lw-cajon [data-c="cerrar"],
+  #lw-editor [data-e="cerrar"]{min-width:44px;min-height:44px;margin:-10px -12px -10px 0 !important}
+}
+
 /* ---------- velo de carga (14-sep-2026) ----------
    El PORQUE del mecanismo esta junto al codigo que lo levanta (`datos.js`,
    seccion «velo de carga»). Aqui vive solo su aspecto — capa compartida, como

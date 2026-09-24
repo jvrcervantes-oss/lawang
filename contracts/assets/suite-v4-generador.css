@@ -53,6 +53,12 @@ html.v4 .lw4-sb{
   transition:transform .28s ease, visibility 0s linear .28s;
 }
 html.v4.lw4-sb-abierto .lw4-sb{ transform:none; visibility:visible; transition:transform .28s ease; }
+/* En móvil el menú ocupa la pantalla entera, como el resto de cajones de la v4
+   (owner 24-sep-2026, regla en intranet/v4/assets/shell.css): una franja de
+   48px de velo no se deja tocar. Se cierra con su botón. */
+@media screen and (max-width:767px){
+  html.v4 .lw4-sb{ width:100vw; max-width:100vw; box-shadow:none; }
+}
 
 html.v4 .lw4-sb-arriba{ display:flex; flex-direction:column; gap:24px; min-height:0; }
 html.v4 .lw4-sb-marca{ display:flex; align-items:center; justify-content:space-between; padding:0 8px; }

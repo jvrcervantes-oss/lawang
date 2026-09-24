@@ -748,9 +748,9 @@
         else cuerpo = notaFallo + pintaAvisos(out.avisos, aV4);
         // ancho de siempre (owner: «que fuese muy amplia nunca fue un problema»);
         // `desde`: el cajón crece desde la campana y se recoge hacia ella
-        window.lwCajon({ titulo: 'Avisos', sub: 'Lo que ha pasado y lo que vence en los próximos 15 días.', cuerpo: cuerpo, desde: boton,
-          // el 60% de siempre en escritorio; en móvil casi toda la pantalla (el 60% eran ~230 px)
-          ancho: 'max(60vw, min(96vw, 560px))' });
+        // el 60% de siempre en escritorio; en móvil, pantalla entera como todo
+        // cajón (regla común en shell.css, 24-sep-2026 — antes se parcheaba aquí)
+        window.lwCajon({ titulo: 'Avisos', sub: 'Lo que ha pasado y lo que vence en los próximos 15 días.', cuerpo: cuerpo, desde: boton });
       };
       // abrir = dar los hechos por vistos (las alertas de ≤5 días siguen contando, como en la viva)
       if (ULTIMO && ULTIMO.sinLeer) {
