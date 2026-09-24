@@ -317,11 +317,11 @@
       '<a href="../home/" style="margin-top:6px;padding:10px 20px;border-radius:999px;background:#485b37;color:#fff;font-weight:600;font-size:13px;text-decoration:none">Volver al inicio</a></div>';
   }
 
-  function bandaNota(texto, color) {
-    var d = document.createElement('div');
-    d.style.cssText = 'position:sticky;top:0;z-index:60;background:' + (color || '#104C4F') + ';color:#F5F0E6;text-align:center;font:600 12px/1.4 "Neue Kabel",sans-serif;letter-spacing:.06em;padding:7px 12px';
-    d.textContent = texto;
-    document.body.prepend(d);
+  /* Antes pintaba una banda fija arriba del todo, sin cerrar. Retirada por el
+     owner (24-sep-2026: «quita todos los avisos de arriba que no se van»): el
+     texto va solo a consola para diagnóstico; ninguna pantalla lo enseña. */
+  function bandaNota(texto) {
+    console.warn('[v4 aviso] ' + texto);
   }
 
   /* Panel «DATOS EN VIVO» tras la cabecera: para pantallas cuya maqueta no usa
