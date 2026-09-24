@@ -244,7 +244,7 @@ async function lwOperacionesCargar(SB, avisar){
     // directo: desde que la RLS de SELECT filtra por autor, una lectura directa
     // dejaría a un agente normal viendo solo SUS contratos aquí — y Operaciones
     // existe justo para cruzar los de todo el equipo. Mismo dato, sin el filtro.
-    SB.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,parcela_codigo,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,contrato_padre_id,created_at,creado_por,liberado_en').order('created_at',{ascending:false}).limit(TOPE_CONTRATOS + 1),
+    SB.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,parcela_codigo,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,contrato_padre_id,created_at,creado_por,liberado_en' + (window.AXW_NUCLEO_OPERACION ? ',operacion_id' : '')).order('created_at',{ascending:false}).limit(TOPE_CONTRATOS + 1),
     // `created_at` va en el select aunque no se pinte: PostgREST exige que la
     // columna del `order` esté proyectada cuando el origen es una función (a
     // diferencia de una tabla/vista, donde ordenar por una columna no
@@ -363,6 +363,21 @@ async function lwOperacionesCargar(SB, avisar){
     const p = o.contrato_padre_id && porId[o.contrato_padre_id];
     if(p && p !== o){ o.padre = p; p.hijos.push(o); }
   });
+
+  /* AxisWorks ERP · la OPERACIÓN del núcleo (25-sep-2026, encargos/20260924_estudio_erp_modular.md). Cada fila
+     cuelga de su operación: referencia OP-AAAA-NNNN y estado (en borrador = falta el comprador principal).
+     SOLO con `window.AXW_NUCLEO_OPERACION`, que hoy enciende únicamente la demo del ERP: la base de Lawang aún no
+     tiene la tabla `operaciones`, y sin la bandera este bloque no existe — ni una petición de más. Si la lectura
+     falla, las filas se quedan como estaban: la operación es un dato de más, nunca una razón para no pintar. */
+  if(window.AXW_NUCLEO_OPERACION){
+    const ro = await SB.rpc('operaciones_equipo').select('id,referencia,estado,client_id,moneda');
+    if(ro.error){ avisar(ocT('No se pudieron leer las operaciones: ') + ro.error.message); }
+    else {
+      const porOp = {};
+      (ro.data || []).forEach(x => { porOp[x.id] = x; });
+      OPS.forEach(o => { o.operacion = (o.operacion_id && porOp[o.operacion_id]) || null; });
+    }
+  }
 
   return { ops:OPS, equipo:EQUIPO, porCliente:POR_CLIENTE, recortes:RECORTES, topes };
 }

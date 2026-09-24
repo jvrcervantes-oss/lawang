@@ -3413,12 +3413,19 @@
           }).join('');
           var avs = avisosDe(o);
           var firmada = firmadaAlguna(o);
+          /* AxisWorks ERP · la operación del núcleo (25-sep-2026): solo existe con window.AXW_NUCLEO_OPERACION
+             (hoy, la demo del ERP); en Lawang `o.operacion` no existe y la fila sale exactamente como antes. */
+          var op = o.operacion || null;
+          if (op && op.estado === 'borrador') avs = avs.concat([[T('Operación en borrador: falta el comprador principal'), 'espera']]);
           return '<tr data-lw-fila data-lw-id="' + esc(o.id) + '" data-lw-etapa="' + esc(e) + '" data-lw-firmada="' + (firmada ? 1 : 0) +
             '" data-lw-sinfactura="' + (firmada && !facturaViva(o) ? 1 : 0) + '" data-lw-faltaficha="' + (faltaFicha(o) ? 1 : 0) +
             '" data-lw-proyecto="' + esc(o.proyecto_nombre || '') +
-            '" data-lw-pajar="' + esc(piezas.map(function (c) { return [c.numero, c.comprador_nombre, c.proyecto_nombre, c.parcela_codigo, tipoC(c.tipo), c.creado_por, operadorDe(c)].join(' '); }).join(' ').toLowerCase()) +
+            '" data-lw-pajar="' + esc(((op ? op.referencia + ' ' : '') + piezas.map(function (c) { return [c.numero, c.comprador_nombre, c.proyecto_nombre, c.parcela_codigo, tipoC(c.tipo), c.creado_por, operadorDe(c)].join(' '); }).join(' ')).toLowerCase()) +
             '" class="hover:bg-surface-alt/50 transition-colors cursor-pointer align-top">' +
-            '<td class="py-3 px-4 font-label-md font-bold text-deep-lagoon whitespace-nowrap">' + esc(o.numero || T('sin nº')) + '</td>' +
+            (op
+              ? '<td class="py-3 px-4 font-label-md font-bold text-deep-lagoon whitespace-nowrap">' + esc(op.referencia) +
+                  '<div class="text-[11px] font-normal text-stone-sand">' + esc(o.numero || T('sin nº')) + '</div></td>'
+              : '<td class="py-3 px-4 font-label-md font-bold text-deep-lagoon whitespace-nowrap">' + esc(o.numero || T('sin nº')) + '</td>') +
             '<td class="py-3 px-4 font-label-md text-volcanic-ash font-semibold">' + esc(o.comprador_nombre || '—') +
               (avs.length ? '<div class="mt-1 flex flex-wrap gap-1">' + avs.map(function (a) { return pill(a[0], a[1]); }).join('') + '</div>' : '') + '</td>' +
             '<td class="py-3 px-4 text-volcanic-ash">' + esc(o.proyecto_nombre || '—') + (parcelas.length ? '<div class="text-[11px] text-stone-sand">' + esc(parcelas.join(', ')) + '</div>' : '') + '</td>' +
