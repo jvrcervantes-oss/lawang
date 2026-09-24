@@ -526,6 +526,54 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
 .reveal{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s cubic-bezier(.16,1,.3,1)}
 .reveal.in{opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}}
+
+/* ── Guía que acompaña: la tarjeta del hero, comprimida, en toda la página ─────────────
+   Aparece al salir del hero. Ancho: riel vertical a la derecha. Estrecho: barra abajo. */
+#guia{position:fixed;z-index:45;opacity:0;pointer-events:none;transition:opacity .3s ease,transform .3s ease}
+#guia.on{opacity:1;pointer-events:auto}
+#guia .g-cab{font-family:var(--ff-l);font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--stone)}
+#guia .g-bar{height:4px;border-radius:999px;background:rgba(245,240,230,.18);overflow:hidden}
+#guia .g-bar i{display:block;height:100%;width:0;background:#b8c99c;transition:width .5s cubic-bezier(.16,1,.3,1)}
+#guia ol{list-style:none;margin:0;padding:0;display:flex}
+#guia a{position:relative;display:flex;align-items:center;justify-content:center;text-decoration:none;
+  border-radius:50%;font:600 12px var(--ff-b);color:rgba(245,240,230,.75);border:1.5px solid rgba(245,240,230,.3);transition:all .2s ease}
+#guia a.leido{background:var(--tg);border-color:var(--tg);color:var(--linen)}
+#guia a.actual,#guia a.leido.actual{background:var(--linen);border-color:var(--linen);color:var(--dl);box-shadow:0 0 0 3px rgba(245,240,230,.22)}
+#guia a .g-tt{position:absolute;right:calc(100% + 12px);top:50%;transform:translate(6px,-50%);white-space:nowrap;
+  background:var(--ash);color:var(--linen);font:500 12.5px var(--ff-b);padding:6px 11px;border-radius:999px;opacity:0;
+  pointer-events:none;transition:opacity .15s ease,transform .15s ease}
+#guia a:hover .g-tt,#guia a:focus-visible .g-tt{opacity:1;transform:translate(0,-50%)}
+/* Ancho: riel vertical */
+@media (min-width:1360px){
+  #guia{right:18px;top:50%;transform:translate(8px,-50%);width:62px;padding:14px 0 12px;border-radius:22px;
+    background:rgba(16,76,79,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    box-shadow:0 14px 40px rgba(27,28,25,.22);display:flex;flex-direction:column;align-items:center;gap:10px}
+  #guia.on{transform:translate(0,-50%)}
+  #guia .g-cab{writing-mode:vertical-rl;transform:rotate(180deg);font-size:9px}
+  #guia .g-txt{display:none}
+  #guia .g-num{font-family:var(--ff-h);font-size:20px;font-weight:600;color:var(--linen);line-height:1}
+  #guia .g-bar{width:32px}
+  #guia ol{flex-direction:column;gap:7px}
+  #guia a{width:32px;height:32px}
+}
+/* Estrecho: barra abajo */
+@media (max-width:1359px){
+  #guia{left:12px;right:12px;bottom:12px;transform:translateY(12px);border-radius:18px;padding:10px 14px 12px;
+    background:rgba(16,76,79,.95);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    box-shadow:0 12px 34px rgba(27,28,25,.25);display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px 14px}
+  #guia.on{transform:none}
+  #guia .g-cab{grid-column:1}
+  #guia .g-num{display:none}
+  #guia .g-txt{grid-column:1;font-size:14px;font-weight:600;color:var(--linen);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #guia .g-txt b{color:#b8c99c;font-weight:600}
+  #guia ol{grid-column:2;grid-row:1/3;gap:5px}
+  #guia a{width:24px;height:24px;font-size:10.5px}
+  #guia a .g-tt{display:none}
+  #guia .g-bar{grid-column:1/-1}
+}
+@media (max-width:520px){#guia ol{display:none}#guia{grid-template-columns:1fr}}
+@media (max-width:1359px){body.guia-on footer{padding-bottom:90px}}
+@media (prefers-reduced-motion:reduce){#guia{transition:none}}
 </style>
 </head>
 <body>
@@ -588,6 +636,14 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     <div class="pie"><a class="btn btn--dl" href="#producto">Empezar por el paso 1<span class="ms" style="font-size:18px">arrow_downward</span></a></div>
   </aside>
 </section>
+
+<nav id="guia" aria-label="Tu progreso en la guía">
+  <span class="g-cab">Tu primera venta</span>
+  <span class="g-num" id="g-num">0/8</span>
+  <span class="g-txt" id="g-txt"></span>
+  <ol id="g-lista"></ol>
+  <div class="g-bar"><i id="g-barra"></i></div>
+</nav>
 
 <main>
 <!-- ═══ 1 · PRODUCTO ════════════════════════════════════════════════════════════════ -->
@@ -1145,6 +1201,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     });
     document.getElementById('barra').style.width = (n / PASOS.length * 100) + '%';
     document.getElementById('cuenta').textContent = n + ' de ' + PASOS.length;
+    pintaGuia(n);
   }
   document.querySelectorAll('[data-hecho]').forEach(function (b) {
     b.addEventListener('click', function () {
@@ -1158,6 +1215,80 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     c.addEventListener('change', function () { estado.chk[k] = c.checked; guarda(); });
   });
   pinta();
+
+  // ── Guía compacta: acompaña toda la página y marca como leído lo que ya pasaste ──
+  var TITULOS = {};
+  PASOS.forEach(function (p) {
+    var a = document.querySelector('#indice a[data-paso="' + p + '"] .t b');
+    TITULOS[p] = a ? a.textContent : p;
+  });
+  var gLista = document.getElementById('g-lista');
+  PASOS.forEach(function (p, i) {
+    var li = document.createElement('li');
+    var a = document.createElement('a');
+    a.href = '#' + p; a.setAttribute('data-g', p);
+    a.setAttribute('aria-label', 'Paso ' + (i + 1) + ': ' + TITULOS[p]);
+    a.textContent = String(i + 1);
+    var tt = document.createElement('span'); tt.className = 'g-tt'; tt.textContent = TITULOS[p];
+    a.appendChild(tt); li.appendChild(a); gLista.appendChild(li);
+  });
+  var actual = null;
+  function pintaGuia(n) {
+    if (!gLista) return;   // pinta() corre antes de montar la guía
+    if (n == null) n = PASOS.filter(function (p) { return estado.pasos[p]; }).length;
+    document.getElementById('g-num').textContent = n + '/' + PASOS.length;
+    document.getElementById('g-barra').style.width = (n / PASOS.length * 100) + '%';
+    PASOS.forEach(function (p) {
+      var a = gLista.querySelector('[data-g="' + p + '"]');
+      a.classList.toggle('leido', !!estado.pasos[p]);
+      a.classList.toggle('actual', p === actual);
+    });
+    var i = PASOS.indexOf(actual);
+    document.getElementById('g-txt').innerHTML = '';
+    if (i >= 0) {
+      var t = document.getElementById('g-txt');
+      var b = document.createElement('b'); b.textContent = 'Paso ' + (i + 1) + ' de ' + PASOS.length;
+      t.appendChild(b); t.appendChild(document.createTextNode(' · ' + TITULOS[actual]));
+    } else {
+      document.getElementById('g-txt').textContent = n + ' de ' + PASOS.length + ' pasos leídos';
+    }
+  }
+  // Cada scroll: qué paso tienes delante y cuáles has dejado atrás. Un paso cuenta como
+  // leído cuando su sección entera ha pasado por encima de la mitad superior de la pantalla.
+  // Solo se marca, nunca se desmarca solo: desmarcar es cosa del botón «Paso leído».
+  var guia = document.getElementById('guia'), hero = document.getElementById('hero');
+  var secs = PASOS.map(function (p) { return document.getElementById(p); });
+  var pendiente = false;
+  // Segundos que cada paso ha estado delante. Un salto (el enlace al glosario, el índice)
+  // cruza varias secciones de golpe: sin este mínimo, las daría todas por leídas.
+  var visto = {}, MIN_SEG = 5;
+  setInterval(function () {
+    if (actual && document.visibilityState === 'visible') visto[actual] = (visto[actual] || 0) + 1;
+  }, 1000);
+  function alScroll() {
+    pendiente = false;
+    var alto = window.innerHeight;
+    var fueraHero = hero.getBoundingClientRect().bottom < alto * 0.35;
+    guia.classList.toggle('on', fueraHero);
+    document.body.classList.toggle('guia-on', fueraHero);
+    var nuevo = null, cambio = false;
+    secs.forEach(function (sec, i) {
+      if (!sec) return;
+      var r = sec.getBoundingClientRect();
+      if (r.top < alto * 0.5) nuevo = PASOS[i];
+      if (r.bottom < alto * 0.3 && !estado.pasos[PASOS[i]] && (visto[PASOS[i]] || 0) >= MIN_SEG) { estado.pasos[PASOS[i]] = true; cambio = true; }
+    });
+    // Al llegar al final de la página, el último paso también cuenta como leído.
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) {
+      PASOS.forEach(function (p) { if (!estado.pasos[p] && (visto[p] || 0) >= MIN_SEG && document.getElementById(p).getBoundingClientRect().top < alto) { estado.pasos[p] = true; cambio = true; } });
+    }
+    if (nuevo !== actual || cambio) { actual = nuevo; if (cambio) guarda(); pinta(); }
+  }
+  window.addEventListener('scroll', function () {
+    if (!pendiente) { pendiente = true; requestAnimationFrame(alScroll); }
+  }, { passive: true });
+  window.addEventListener('resize', alScroll);
+  alScroll();
 
   // Copiar guion: el texto sin la etiqueta de idioma.
   document.querySelectorAll('[data-copia]').forEach(function (b) {
