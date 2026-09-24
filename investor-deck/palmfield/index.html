@@ -574,9 +574,7 @@
     ['07-balian-sunset.jpg','Balian sunset'],
     ['01-volcano-ocean.jpg','Volcano & ocean'],
     ['03-jungle-canopy.jpg','Jungle canopy'],
-    ['../../assets/img/buildings/dali/web/dali2.webp','Dali model'],
     ['14-dune-exterior.jpg','Dune model — exterior'],
-    ['../../assets/img/buildings/dune/web/dune2.webp','Dune model — interior'],
     ['15-dune-plan.jpg','Dune model — floor plan'],
     ['17-dream-evening.jpg','Dream model — evening'],
     ['18-dream-day.jpg','Dream model — day'],
@@ -715,9 +713,7 @@
       return { src: 'assets/gallery/' + it[0], pie: it[1], tipo: 'foto' };
     }));
     pintaGaleria(SEMILLA.map(function(it){
-      // Una entrada que empieza por '../' es ruta propia (renders de
-      // /assets/img/buildings/); el resto son ficheros de assets/gallery/.
-      return { src: it[0].indexOf('../') === 0 ? it[0] : 'assets/gallery/' + it[0], pie: it[1], tipo: 'foto' };
+      return { src: 'assets/gallery/' + it[0], pie: it[1], tipo: 'foto' };
     }));
   }
 
@@ -932,11 +928,14 @@
   // `fotosModelo`: las de ESE modelo desde `deck_fotos` (ambito=modelo), la razon
   // de ser de este cambio (14-sep, hallazgo del owner) — es lo que sube el equipo
   // desde Intranet → Modelos → <modelo> → «Fotos del deck…». Si aun no hay
-  // ninguna, cae al render fijo del repo, como siempre.
+  // ninguna, «Renders in progress» — igual que el deck general. Sin respaldo a
+  // /assets/img/buildings/ (carpeta retirada el 24-sep-2026: era una segunda fuente
+  // de fotos que nadie podía dar de alta desde la intranet).
   function fotoModelo(slug, nombre, fotosModelo){
     if(!SLUG_OK.test(slug)) return SIN_RENDER;
     var propia = (fotosModelo && fotosModelo.length) ? fotosModelo[0].src : null;
-    var ruta = propia || ('../../assets/img/buildings/' + slug + '/web/' + slug + '.webp');
+    if(!propia) return SIN_RENDER;
+    var ruta = propia;
     return '<div class="w-full aspect-[4/3] relative overflow-hidden bg-[#F0ECE1]" data-foto>' +
       '<img src="' + esc(ruta) + '" alt="' + esc(nombre) + ' villa model" loading="lazy" ' +
       'class="w-full h-full object-cover" data-render></div>';
