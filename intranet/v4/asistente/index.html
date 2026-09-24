@@ -44,6 +44,22 @@
 <div class="flex justify-end">
 <button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary disabled:opacity-60 disabled:cursor-wait font-label-md text-label-md transition-colors shadow-sm" id="sc-interpretar" type="button"><span class="material-symbols-outlined text-[18px]">smart_toy</span><span id="sc-interpretar-texto">Revisar mi petición</span></button>
 </div>
+<style>
+/* «Pensando» (25-sep-2026, owner): mientras la edge interpreta, que se vea que trabaja. */
+@keyframes sc-gira{to{transform:rotate(360deg)}}
+@keyframes sc-punto{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-4px)}}
+@keyframes sc-barrido{0%{background-position:-200% 0}100%{background-position:200% 0}}
+.sc-gira{animation:sc-gira 1s linear infinite}
+.sc-puntos span{display:inline-block;width:7px;height:7px;margin:0 2px;border-radius:999px;background:#104C4F;animation:sc-punto 1.2s ease-in-out infinite}
+.sc-puntos span:nth-child(2){animation-delay:.15s}.sc-puntos span:nth-child(3){animation-delay:.3s}
+.sc-barra{height:12px;border-radius:6px;background:linear-gradient(90deg,#e4e2dd 25%,#f5f4ee 50%,#e4e2dd 75%);background-size:200% 100%;animation:sc-barrido 1.4s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.sc-gira,.sc-puntos span,.sc-barra{animation:none}}
+</style>
+<div class="flex flex-col gap-3 hidden rounded-xl border-2 border-deep-lagoon/20 bg-surface-container-low p-5" hidden id="sc-pensando" role="status" aria-live="polite" style="scroll-margin-top:88px">
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">Paso 2 · Comprueba</span>
+<div class="flex items-center gap-3"><span class="sc-puntos" aria-hidden="true"><span></span><span></span><span></span></span><span class="font-body-md text-body-md text-on-surface" id="sc-pensando-texto">Leyendo tu petición…</span></div>
+<div class="sc-barra" style="width:92%"></div><div class="sc-barra" style="width:64%"></div>
+</div>
 <div class="flex flex-col gap-3 hidden rounded-xl border-2 border-deep-lagoon/40 bg-surface-container-low p-5" hidden id="sc-propuesta" style="scroll-margin-top:88px">
 <span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">Paso 2 · Comprueba</span>
 <p class="font-label-md text-label-md text-on-surface" id="sc-propuesta-titulo">Esto es lo que se va a pedir:</p>
@@ -133,9 +149,27 @@
       });
     }
 
+    var FRASES = ['Leyendo tu petición…', 'Buscando la ficha o el documento…', 'Comprobando qué se puede hacer…', 'Casi está…'];
+    var relojFrases = null;
     function ocupado(si) {
       $('sc-interpretar').disabled = si;
-      $('sc-interpretar-texto').textContent = si ? 'Leyendo…' : 'Revisar mi petición';
+      $('sc-interpretar-texto').textContent = si ? 'Pensando…' : 'Revisar mi petición';
+      var ico = $('sc-interpretar').querySelector('.material-symbols-outlined');
+      if (ico) { ico.textContent = si ? 'progress_activity' : 'smart_toy'; ico.classList.toggle('sc-gira', si); }
+      clearInterval(relojFrases);
+      if (si) {
+        var i = 0;
+        $('sc-pensando-texto').textContent = FRASES[0];
+        muestra($('sc-propuesta'), false);
+        muestra($('sc-pensando'), true);
+        $('sc-pensando').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        relojFrases = setInterval(function () {
+          i = Math.min(i + 1, FRASES.length - 1);
+          $('sc-pensando-texto').textContent = FRASES[i];
+        }, 1800);
+      } else {
+        muestra($('sc-pensando'), false);
+      }
     }
 
     function pintaPropuesta(p) {
