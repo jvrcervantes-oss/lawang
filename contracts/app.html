@@ -1678,7 +1678,19 @@ const COMPRADOR_FRASE = {
     en:(n,f)=>`<b>BUYER ${n}:</b> <span class="f">${f.nom}</span>, of <span class="f">${f.nac}</span> nationality, holder of passport no. <span class="f">${f.pas}</span>, telephone <span class="f">${f.tel}</span> and email <span class="f">${f.email}</span>, likewise acting in their own name together with the Second Party.`,
     id:(n,f)=>`<b>PEMBELI ${n}:</b> <span class="f">${f.nom}</span>, berkewarganegaraan <span class="f">${f.nac}</span>, pemegang paspor no. <span class="f">${f.pas}</span>, telepon <span class="f">${f.tel}</span> dan email <span class="f">${f.email}</span>, juga bertindak atas nama sendiri bersama Pihak Kedua.`,
   },
+  // Hak Sewa - Notario (24-sep-2026, owner: «no deja añadir más de un
+  // adquiriente»): la plantilla no traía los marcadores. Misma redacción que la
+  // Carta de Reserva, con el papel de este contrato (arrendatario, no comprador);
+  // `rol` pone ese mismo nombre en la cabecera y en la firma.
+  hak_sewa_notario: {
+    rol:{es:'Arrendatario', en:'Lessee', id:'Penyewa'},
+    es:(n,f)=>`<b>ARRENDATARIO ${n}:</b> <span class="f">${f.nom}</span>, de nacionalidad <span class="f">${f.nac}</span>, titular del pasaporte n.º <span class="f">${f.pas}</span>, teléfono <span class="f">${f.tel}</span> y email <span class="f">${f.email}</span>, actuando igualmente en nombre propio junto con la SEGUNDA PARTE (ARRENDATARIO).`,
+    en:(n,f)=>`<b>LESSEE ${n}:</b> <span class="f">${f.nom}</span>, of <span class="f">${f.nac}</span> nationality, holder of passport no. <span class="f">${f.pas}</span>, telephone <span class="f">${f.tel}</span> and email <span class="f">${f.email}</span>, likewise acting in their own name together with the SECOND PARTY (LESSEE).`,
+    id:(n,f)=>`<b>PENYEWA ${n}:</b> <span class="f">${f.nom}</span>, berkewarganegaraan <span class="f">${f.nac}</span>, pemegang paspor no. <span class="f">${f.pas}</span>, telepon <span class="f">${f.tel}</span> dan email <span class="f">${f.email}</span>, juga bertindak atas nama sendiri bersama PIHAK KEDUA (PENYEWA).`,
+  },
 };
+const ROL_COMPRADOR_EXTRA = {es:'Adquiriente', en:'Buyer', id:'Pembeli'};
+const rolCompradorExtra = () => (COMPRADOR_FRASE[CURRENT.slug] || {}).rol || ROL_COMPRADOR_EXTRA;
 /* lwT:fin */
 function compradorFields(c){ return { nom:esc(c.nombre||''), nac:esc(c.nacionalidad||''), pas:esc(c.pasaporte||''),
   tel:esc(c.telefono||''), email:esc(c.email||'') }; }
@@ -1686,11 +1698,12 @@ function compradorTieneDatos(c){ return !!(c.nombre||c.nacionalidad||c.pasaporte
 function compradoresExtraHTML(){
   const frase = COMPRADOR_FRASE[CURRENT.slug]; if(!frase) return '';
   let h='';
+  const rol = rolCompradorExtra();
   COMPRADORES.forEach((c,i)=>{
     if(!compradorTieneDatos(c)) return;   // vacío = no imprime, igual que el resto de opcionales
     const num=romano(i+2), f=compradorFields(c);
     h+=`<div class="party">
-      <div class="role"><span data-lang="es">Adquiriente ${num}</span><span data-lang="en">Buyer ${num}</span><span data-lang="id">Pembeli ${num}</span></div>
+      <div class="role"><span data-lang="es">${rol.es} ${num}</span><span data-lang="en">${rol.en} ${num}</span><span data-lang="id">${rol.id} ${num}</span></div>
       <p data-lang="es">${frase.es(num,f)}</p>
       <p data-lang="en">${frase.en(num,f)}</p>
       <p data-lang="id">${frase.id(num,f)}</p>
@@ -1704,6 +1717,7 @@ function compradoresExtraHTML(){
    Solo imprime los que tengan identidad (igual que compradoresExtraHTML). */
 function compradoresFirmasHTML(){
   let h='';
+  const rol = rolCompradorExtra();
   COMPRADORES.forEach((c,i)=>{
     if(!compradorTieneDatos(c)) return;
     const num=romano(i+2);
@@ -1712,7 +1726,7 @@ function compradoresFirmasHTML(){
     // del rol que firma y los demás esperan su turno en el snapshot
     const img = SIGN_MODE ? `<img src="%%FIRMA_ADQ_${i+2}%%" alt="" style="max-height:22mm;max-width:100%">` : '';
     h+=`<div style="margin-top:9mm">
-      <div class="role"><span data-lang="es">Adquiriente ${num}</span><span data-lang="en">Buyer ${num}</span><span data-lang="id">Pembeli ${num}</span></div>
+      <div class="role"><span data-lang="es">${rol.es} ${num}</span><span data-lang="en">${rol.en} ${num}</span><span data-lang="id">${rol.id} ${num}</span></div>
       <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5);display:flex;align-items:flex-end">${img}</div>
       <p style="margin-top:4px;font-size:9pt">${esc(c.nombre||'')}</p>
     </div>`;
