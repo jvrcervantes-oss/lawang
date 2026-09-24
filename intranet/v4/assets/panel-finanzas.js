@@ -84,7 +84,10 @@
   }
 
   function cargar(sb, ficha) {
-    var verSalidas = puede(ficha, 'comisiones') && puede(ficha, 'comisiones_reparto');
+    /* Cada tabla pide SU casilla (RLS): solicitudes → `comisiones`,
+       comisiones devengadas → `comisiones_reparto`. Se piden por separado: con
+       una sola casilla se ve media cifra, y el bloque dice cuál falta. */
+    var verSol = puede(ficha, 'comisiones'), verCom = puede(ficha, 'comisiones_reparto');
     var fuentes = {
       contratos: todas(function () { return sb.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,bloqueado,contrato_padre_id,created_at,liberado_en'); }, 'contratos'),
       cobrado: todas(function () { return sb.rpc('contratos_cobrado_equipo').select('contrato_id,cobrado'); }, 'cobrado por contrato', 'contrato_id'),
@@ -92,15 +95,15 @@
       facturas: todas(function () { return sb.rpc('facturas_equipo').select('id,numero,tipo,sociedad,total,moneda,anulada,fecha_emision,created_at,contrato_id,venc:datos->fields->>fecha_vencimiento'); }, 'facturas'),
       pendiente: todas(function () { return sb.rpc('facturas_pendiente_equipo').select('factura_id,pendiente'); }, 'pendiente por factura', 'factura_id'),
       unidades: todas(function () { return sb.from('unidades').select('id,proyecto,estado,precio,moneda'); }, 'unidades'),
-      solicitudes: verSalidas ? todas(function () { return sb.from('solicitudes_pago').select('id,estado,importe,moneda'); }, 'solicitudes de pago') : Promise.resolve(null),
-      comisiones: verSalidas ? todas(function () { return sb.from('comisiones_devengadas').select('id,estado,importe,importe_ajustado,moneda,solicitud_id'); }, 'comisiones devengadas') : Promise.resolve(null),
+      solicitudes: verSol ? todas(function () { return sb.from('solicitudes_pago').select('id,estado,importe,moneda'); }, 'solicitudes de pago') : Promise.resolve(null),
+      comisiones: verCom ? todas(function () { return sb.from('comisiones_devengadas').select('id,estado,importe,importe_ajustado,moneda,solicitud_id'); }, 'comisiones devengadas') : Promise.resolve(null),
       sociedades: (typeof cargarSociedades === 'function') ? cargarSociedades(sb).catch(function (e) { console.error('[finanzas] sociedades:', e); return null; }) : Promise.resolve(null)
     };
     var claves = Object.keys(fuentes);
     return Promise.all(claves.map(function (k) {
       return fuentes[k].then(function (v) { return { ok: true, v: v }; }, function (e) { return { ok: false, e: e }; });
     })).then(function (rs) {
-      var out = { fallos: {}, verSalidas: verSalidas };
+      var out = { fallos: {}, verSol: verSol, verCom: verCom };
       rs.forEach(function (r, i) { if (r.ok) out[claves[i]] = r.v; else out.fallos[claves[i]] = true; });
       return out;
     });
@@ -409,7 +412,7 @@
 
   function pintaSalidas(pm, d) {
     var el = $('lw-fin-salidas'); if (!el) return;
-    if (!d.verSalidas) {
+    if (!d.verSol && !d.verCom) {
       el.innerHTML = '<p class="py-4 font-body-md text-body-md text-on-surface-variant">' + esc(T('Sin permiso para ver esta cifra: hace falta tener asignadas «Pagos de Lawang» y «Reparto a closers» en Usuarios. No es que no se deba nada: es que esta sesión no lo puede ver.')) + '</p>';
       return;
     }
@@ -418,8 +421,9 @@
     if (!s || !s.total) { vacio(el, T('Nada pendiente de pagar en') + ' ' + m + '.'); return; }
     el.innerHTML = '<div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 mb-4"><span class="font-kpi-number text-kpi-number text-on-surface tracking-tight fin-num">' + esc(fmt(s.total, m)) + '</span>' +
       '<a class="font-label-md text-label-md text-deep-lagoon hover:underline" href="../comisiones/">' + esc(T('Ver en Comisiones')) + ' →</a></div>' +
-      filaTramo('#104C4F', T('Solicitudes de pago vivas'), s.solicitudes.importe, s.total, m, num(s.solicitudes.n), false) +
-      filaTramo('#9AC0C2', T('Comisiones sin solicitud todavía'), s.comisiones.importe, s.total, m, num(s.comisiones.n), false);
+      (d.verSol ? filaTramo('#104C4F', T('Solicitudes de pago vivas'), s.solicitudes.importe, s.total, m, num(s.solicitudes.n), false) : '') +
+      (d.verCom ? filaTramo('#9AC0C2', T('Comisiones sin solicitud todavía'), s.comisiones.importe, s.total, m, num(s.comisiones.n), false) : '') +
+      (d.verSol && d.verCom ? '' : '<p class="mt-4 font-body-sm text-body-sm text-on-surface-variant">' + esc(T(d.verSol ? 'Falta la casilla «Reparto a closers»: las comisiones sin solicitud no están sumadas.' : 'Falta la casilla «Pagos de Lawang»: las solicitudes de pago no están sumadas.')) + '</p>');
   }
 
   function pintaFuera(pm, d) {

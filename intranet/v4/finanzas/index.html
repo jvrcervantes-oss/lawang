@@ -1,8 +1,8 @@
 <!DOCTYPE html><html lang="es"><head><title>Finanzas — Lawang Intranet</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/guard.js?v=1d256fc0" data-rol="admin"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=51e67166" defer></script>
-<script src="/contracts/assets/dinero.js?v=a442e362" defer></script><script src="/intranet/facturas/totales.js" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/contracts/assets/entities.js?v=e015c66a" defer></script><script src="/intranet/vencimientos/logica.js?v=567781fe" defer></script><script src="/contracts/assets/finanzas.js?v=7a96b387" defer></script><script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="../assets/datos.js?v=0ed49958" defer></script><script src="../assets/panel-finanzas.js?v=e4c6ab21" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/i18n.js?v=bbb3a65b" defer></script>
+<script src="/contracts/assets/dinero.js?v=a442e362" defer></script><script src="/intranet/facturas/totales.js" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/contracts/assets/entities.js?v=e015c66a" defer></script><script src="/intranet/vencimientos/logica.js?v=567781fe" defer></script><script src="/contracts/assets/finanzas.js?v=7a96b387" defer></script><script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="../assets/datos.js?v=0ed49958" defer></script><script src="../assets/panel-finanzas.js?v=8ebe336e" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=255ffd5e" defer></script>
 <link href="../assets/shell.css?v=1a777d68" rel="stylesheet">
@@ -29,7 +29,7 @@
 <span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold" data-lwt>Cobrado este mes</span>
 <span class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-territorial-green"><span class="material-symbols-outlined text-[18px]">payments</span></span>
 </div>
-<div class="mt-4 font-kpi-number text-kpi-number text-on-surface tracking-tight leading-tight" data-fin="k-mes">—</div>
+<div class="mt-4 font-kpi-number text-kpi-number text-on-surface tracking-tight leading-tight fin-kpi" data-fin="k-mes">—</div>
 <p class="mt-2 pt-2 border-t border-outline-variant/30 font-body-sm text-body-sm text-outline" data-fin="k-mes-pie">—</p>
 </div>
 <div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col justify-between">
@@ -37,7 +37,7 @@
 <span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold" data-lwt>Cobrado en el año</span>
 <span class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-deep-lagoon"><span class="material-symbols-outlined text-[18px]">calendar_month</span></span>
 </div>
-<div class="mt-4 font-kpi-number text-kpi-number text-on-surface tracking-tight leading-tight" data-fin="k-anio">—</div>
+<div class="mt-4 font-kpi-number text-kpi-number text-on-surface tracking-tight leading-tight fin-kpi" data-fin="k-anio">—</div>
 <p class="mt-2 pt-2 border-t border-outline-variant/30 font-body-sm text-body-sm text-outline" data-fin="k-anio-pie">—</p>
 </div>
 <div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col justify-between">
@@ -45,7 +45,7 @@
 <span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold" data-lwt>Firmado por cobrar</span>
 <span class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-burnt-earth"><span class="material-symbols-outlined text-[18px]">account_balance_wallet</span></span>
 </div>
-<div class="mt-4 font-kpi-number text-kpi-number text-on-surface tracking-tight leading-tight" data-fin="k-pendiente">—</div>
+<div class="mt-4 font-kpi-number text-kpi-number text-on-surface tracking-tight leading-tight fin-kpi" data-fin="k-pendiente">—</div>
 <p class="mt-2 pt-2 border-t border-outline-variant/30 font-body-sm text-body-sm text-outline" data-fin="k-pendiente-pie">—</p>
 </div>
 <div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col justify-between">
@@ -53,7 +53,7 @@
 <span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold" data-lwt>Vencido sin cobrar</span>
 <span class="w-10 h-10 rounded-xl bg-error-container/60 flex items-center justify-center text-error"><span class="material-symbols-outlined text-[18px]">flag</span></span>
 </div>
-<div class="mt-4 font-kpi-number text-kpi-number text-on-surface tracking-tight leading-tight" data-fin="k-vencido">—</div>
+<div class="mt-4 font-kpi-number text-kpi-number text-on-surface tracking-tight leading-tight fin-kpi" data-fin="k-vencido">—</div>
 <p class="mt-2 pt-2 border-t border-outline-variant/30 font-body-sm text-body-sm text-outline" data-fin="k-vencido-pie">—</p>
 </div>
 </section>
@@ -180,6 +180,8 @@
 .fin-barra{height:8px;border-radius:999px;background:#efeee8;overflow:hidden;display:flex;gap:2px}
 .fin-barra>span{display:block;height:100%}
 .fin-num{font-variant-numeric:tabular-nums;white-space:nowrap}
+/* La cifra de una tarjeta no se parte: «2.094.780 EUR» en dos líneas se lee como dos números. Baja de tamaño con el ancho de la tarjeta. */
+.fin-kpi{white-space:nowrap;font-size:clamp(24px,2.1vw,36px);font-variant-numeric:tabular-nums}
 .fin-chip{padding:2px 12px;border-radius:999px;font:600 14px/20px "Neue Kabel",system-ui,sans-serif;color:#44483f}
 .fin-chip[aria-pressed="true"]{background:#104C4F;color:#fff}
 </style>
