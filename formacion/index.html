@@ -238,6 +238,10 @@ ul.lista li .ms{font-size:18px;color:var(--tg);margin-top:2px}
 .tenencia__cab .lbl{color:var(--stone)}
 .tenencia__cab h3{color:var(--linen);font-size:clamp(28px,3.4vw,40px);margin-top:8px}
 .tenencia__cab p{color:rgba(245,240,230,.85);margin-top:10px;max-width:760px;font-size:15.5px}
+.al-glosario{display:inline-flex;align-items:center;gap:8px;margin-top:16px;padding:9px 16px;border-radius:999px;
+  background:rgba(245,240,230,.12);border:1px solid rgba(245,240,230,.3);color:var(--linen);font-size:14px;font-weight:600;text-decoration:none}
+.al-glosario:hover{background:rgba(245,240,230,.2)}
+.al-glosario .ms{font-size:18px}
 .tenencia__grid{display:grid;gap:12px;margin-top:24px}
 @media (min-width:700px){.tenencia__grid{grid-template-columns:repeat(2,1fr)}}
 @media (min-width:1150px){.tenencia__grid{grid-template-columns:repeat(4,1fr)}}
@@ -459,6 +463,24 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
 .preguntas li small{display:block;margin-top:8px;font-size:12.5px;color:rgba(245,240,230,.7)}
 
 /* Comisiones, métricas, semana, glosario */
+.tabla-com{border-radius:20px;overflow:hidden;border:1px solid rgba(245,240,230,.25);margin-bottom:0}
+.tc{display:grid;grid-template-columns:1fr;gap:10px;padding:20px 22px;border-top:1px solid rgba(245,240,230,.18);background:rgba(245,240,230,.06)}
+@media (min-width:800px){.tc{grid-template-columns:220px 1fr 170px;align-items:center;gap:24px;padding:22px 28px}}
+.tc--cab{display:none}
+@media (min-width:800px){.tc--cab{display:grid;border-top:0;background:rgba(245,240,230,.12);padding:14px 28px}}
+@media (min-width:800px){.tc--cab span:last-child{text-align:right}}
+.tc--cab span{font-family:var(--ff-l);font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--stone)}
+.tc [role=cell]:first-child{display:flex;align-items:center;gap:12px}
+.tc [role=cell]:first-child .ms{font-size:26px;color:#e9e1cf}
+.tc [role=cell]:first-child b{font-family:var(--ff-h);font-size:28px;font-weight:600}
+.tc [role=cell]:nth-child(2){font-size:15px;color:rgba(245,240,230,.85);line-height:1.55}
+.tc .pct{display:flex;align-items:baseline;gap:8px}
+@media (min-width:800px){.tc .pct{justify-content:flex-end}}
+.tc .pct b{font-family:var(--ff-h);font-size:52px;font-weight:600;line-height:1;color:#e9e1cf}
+.tc .pct small{font-size:12.5px;color:rgba(245,240,230,.7)}
+.tc--top{background:var(--tg)}
+.tc-nota{margin:0;padding:14px 28px;font-size:13.5px;color:rgba(245,240,230,.75);border-top:1px solid rgba(245,240,230,.18)}
+
 .pasos-com{display:grid;gap:12px}
 @media (min-width:900px){.pasos-com{grid-template-columns:repeat(4,1fr)}}
 .pasos-com div{border-radius:16px;padding:20px;background:rgba(245,240,230,.08);border:1px solid rgba(245,240,230,.2)}
@@ -597,6 +619,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
       <span class="lbl">Antes de nada</span>
       <h3>Las cuatro palabras que tienes que dominar</h3>
       <p>El cliente te va a preguntar «¿de quién es la tierra?» en la primera llamada. Esto es lo que significa cada palabra. Qué figura usa cada proyecto lo dice su contrato.</p>
+      <a class="al-glosario" href="#glosario"><span class="ms">menu_book</span>Ver el glosario completo<span class="ms">arrow_downward</span></a>
     </div>
     <div class="tenencia__grid">
       <div class="t t--no"><span class="tag">No se ofrece</span><h4>Hak Milik</h4><p>La propiedad plena y para siempre de la tierra. <b>Solo la puede tener un ciudadano indonesio</b>: nunca un extranjero ni una sociedad con capital extranjero. Si alguien te la ofrece a un extranjero, es ilegal.</p></div>
@@ -1007,63 +1030,29 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     <div>
       <span class="lbl">Cómo cobras</span>
       <h2>Tus comisiones</h2>
-      <p class="lead">Tus comisiones se rigen por tu contrato de colaboración. La intranet las calcula sola cuando el cliente paga lo que marca tu condición, y en «Mis comisiones» ves el cálculo y el estado. Esa pantalla es informativa: si no coincide con tu contrato, manda el contrato. Tu porcentaje te lo explica tu manager.</p>
+      <p class="lead">Tus comisiones se rigen por tu contrato de colaboración. La intranet las calcula sola cuando el cliente paga lo que marca tu condición, y en «Mis comisiones» ves el cálculo y el estado. Esa pantalla es informativa: si no coincide con tu contrato, manda el contrato.</p>
     </div>
   </div>
-  <div class="pasos-com reveal">
+  <div class="tabla-com reveal" role="table" aria-label="Comisiones sobre el bruto">
+    <div class="tc tc--cab" role="row"><span role="columnheader">Cómo participas</span><span role="columnheader">Qué haces</span><span role="columnheader">Comisión</span></div>
+    <div class="tc" role="row">
+      <span role="cell"><span class="ms">person_add</span><b>Referido</b></span>
+      <span role="cell">Nos pasas el contacto de un cliente y nosotros llevamos la venta. Si ese cliente compra y Lawang cobra, te pagamos.</span>
+      <span role="cell" class="pct"><b>1&nbsp;%</b><small>del bruto</small></span>
+    </div>
+    <div class="tc tc--top" role="row">
+      <span role="cell"><span class="ms">handshake</span><b>Comercial</b></span>
+      <span role="cell">Gestionas toda la venta de principio a fin: las llamadas con tus clientes, las visitas, la generación de los contratos y el seguimiento hasta la firma.</span>
+      <span role="cell" class="pct"><b>5&nbsp;%</b><small>del bruto</small></span>
+    </div>
+    <p class="tc-nota">Siempre sobre el precio bruto de la venta. Lo que obliga es tu contrato de colaboración.</p>
+  </div>
+
+  <div class="pasos-com reveal" style="margin-top:22px">
     <div><span class="ms">edit_document</span><b>Tú haces el contrato</b><p>La venta se atribuye a quien hace el contrato en el Generador. Si lo hace otro, la comisión es de otro.</p></div>
     <div><span class="ms">account_balance</span><b>El cliente paga</b><p>Los cobros se registran en la intranet con su factura o recibí.</p></div>
     <div><span class="ms">bolt</span><b>Se genera sola</b><p>Cuando lo cobrado cruza el umbral de tu condición, aparece tu comisión con su importe.</p></div>
     <div><span class="ms">visibility</span><b>La ves en Mis comisiones</b><p>Pendiente, aprobada o pagada, venta a venta. Si algo no cuadra con tu contrato, díselo a tu manager.</p></div>
-  </div>
-</div>
-</section>
-
-<!-- ═══ TU SEMANA ═══════════════════════════════════════════════════════════════════ -->
-<section class="sec" id="semana">
-<div class="wrap">
-  <div class="shead reveal">
-    <div class="num"><span class="ms" style="font-size:inherit">checklist</span></div>
-    <div>
-      <span class="lbl">Tu primera semana</span>
-      <h2>Lista para los cinco primeros días</h2>
-      <p class="lead">Márcala a medida que avanzas. Se guarda en este navegador.</p>
-    </div>
-  </div>
-  <div class="semana reveal" id="semana-lista">
-    <div class="dia"><span class="lbl">Día 1</span><h3>Entra</h3>
-      <label><input type="checkbox" data-chk="d1a"><span>Entra en la intranet con tu usuario y abre Hoy toca.</span></label>
-      <label><input type="checkbox" data-chk="d1b"><span>Lee los pasos 1 a 3 de esta guía.</span></label>
-      <label><input type="checkbox" data-chk="d1c"><span>Pide a tu manager tu equipo, tus proyectos y tu condición de comisión.</span></label></div>
-    <div class="dia"><span class="lbl">Día 2</span><h3>Conoce el producto</h3>
-      <label><input type="checkbox" data-chk="d2a"><span>Recorre las seis landings de villa y juega con el configurador.</span></label>
-      <label><input type="checkbox" data-chk="d2b"><span>Lee el investor deck de un proyecto de principio a fin.</span></label>
-      <label><input type="checkbox" data-chk="d2c"><span>Mira en Proyectos qué parcelas hay libres hoy.</span></label></div>
-    <div class="dia"><span class="lbl">Día 3</span><h3>Las reglas</h3>
-      <label><input type="checkbox" data-chk="d3a"><span>Lee los pasos 5 y 6 dos veces.</span></label>
-      <label><input type="checkbox" data-chk="d3b"><span>Pide a tu manager un ejemplo de Carta de Reserva y de Contrato de Construcción y léelos enteros.</span></label>
-      <label><input type="checkbox" data-chk="d3c"><span>Prueba el Asistente con una pregunta de comprador inventada.</span></label></div>
-    <div class="dia"><span class="lbl">Día 4</span><h3>Practica</h3>
-      <label><input type="checkbox" data-chk="d4a"><span>Haz la llamada del paso 7 con tu manager haciendo de cliente.</span></label>
-      <label><input type="checkbox" data-chk="d4b"><span>Recorre el Generador de contratos de principio a fin sin guardar: un contrato guardado gasta un número de serie real.</span></label>
-      <label><input type="checkbox" data-chk="d4c"><span>Escucha o lee una conversación real de un compañero.</span></label></div>
-    <div class="dia"><span class="lbl">Día 5</span><h3>Tus clientes</h3>
-      <label><input type="checkbox" data-chk="d5a"><span>Haz la lista de tu gente: contactos e inversores que conoces, y a quién te pueden presentar.</span></label>
-      <label><input type="checkbox" data-chk="d5b"><span>Deja cada contacto apuntado en su ficha.</span></label>
-      <label><input type="checkbox" data-chk="d5c"><span>Agenda tu primera videollamada o visita.</span></label></div>
-  </div>
-
-  <div style="margin-top:56px" class="reveal">
-    <span class="lbl" style="color:var(--tg)">Cada semana</span>
-    <h3 style="font-size:28px;margin:8px 0 16px">Tus números, mirados por ti</h3>
-    <ul class="metricas">
-      <li><span class="ms">forum</span><div><b>Clientes en conversación</b><span>Con cuántos has hablado esta semana de la inversión, y cuántos son nuevos.</span></div></li>
-      <li><span class="ms">group_add</span><div><b>Referidos</b><span>A cuántas personas nuevas te han presentado tus clientes y tus contactos.</span></div></li>
-      <li><span class="ms">video_call</span><div><b>Reuniones</b><span>Llamadas y videollamadas en las que explicaste cómo funciona la compra.</span></div></li>
-      <li><span class="ms">directions_walk</span><div><b>Visitas al terreno</b><span>Clientes que han venido o tienen fecha para venir. «Si tienes 100.000 €, tienes 1.000 € para venir a verlo».</span></div></li>
-      <li><span class="ms">bookmark_added</span><div><b>Reservas firmadas</b><span>Cartas de Reserva o Bloqueos de Parcela de la semana.</span></div></li>
-      <li><span class="ms">hourglass_bottom</span><div><b>Clientes olvidados</b><span>Sin próximo paso con fecha, o más de 7 días sin hablar con ellos.</span></div></li>
-    </ul>
   </div>
 </div>
 </section>
