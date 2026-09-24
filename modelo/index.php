@@ -415,13 +415,20 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 .cam-btn:hover{background:rgba(245,240,230,.12);color:#fff}
 .cam-btn.bg-surface{background:rgba(245,240,230,.94);color:var(--ci)}
 .cam-btn .hidden{display:none}
+/* <1024 los hotspots caían encima del nombre de la villa y del subtítulo (la foto se recorta
+   distinto y el texto va sobre ella). Se ocultan y Cocina/Baño, que solo tenían hotspot,
+   pasan al dock. Por id y no por clase: lwSetView() reescribe className. (24-sep-2026) */
+@media(max-width:1023px){.hotspot{display:none!important}}
+@media(min-width:1024px){#cam-kitchen,#cam-toilet{display:none}}
 @media(min-width:768px){.cam-btn .md\:inline{display:inline}}
 .hero-cta{display:none;align-items:center;gap:10px;padding:11px 22px;border-radius:40px;white-space:nowrap;text-decoration:none;
   font-family:var(--sa);font-weight:500;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--rl);
   border:1px solid rgba(190,179,165,.55);background:rgba(72,91,55,.35) url('/assets/img/TexturasBotones.webp') center/cover;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:background-color .3s}
 .hero-cta:hover{background-color:rgba(72,91,55,.6)}
 .hero-cta .material-symbols-outlined{font-size:17px}
-@media(min-width:1280px){.hero-cta{display:inline-flex}}
+/* Desde 1440, no 1280: entre medias el CTA bajaba a una 2ª fila del pie y el subtítulo del hero
+   se montaba encima de los botones (1280×720, revisión responsive 24-sep-2026). */
+@media(min-width:1440px){.hero-cta{display:inline-flex}}
 
 /* Panel del configurador: cristal oscuro, como el panel de la hero del deck v3 */
 #hero-configurator aside{position:relative;z-index:40;display:flex;flex-direction:column;background:var(--ob);color:var(--rl)}
@@ -439,6 +446,8 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 .cfg-datos .dt-sub{font-family:var(--sa);font-size:12.5px;line-height:1.35;color:rgba(245,240,230,.82)}
 .cfg-datos .desde{grid-column:1 / -1;flex-direction:row;align-items:baseline;justify-content:space-between;gap:12px;border-left:0!important;padding-left:0!important;padding-right:0;border-top:1px solid rgba(245,240,230,.14)}
 .cfg-datos .desde .dt-v{font-size:40px;color:#C3D9A6}
+/* Móvil estrecho: «4 bedrooms, 3 bathrooms» repite la cifra grande y se partía en dos líneas. */
+@media(max-width:439px){.cfg-datos > div:nth-child(2) .dt-sub{display:none}.cfg-datos .dt-sub{font-size:11px}.cfg-datos > div + div{padding-left:12px}}
 #lw-paso-lb{display:block;margin-top:14px;font-family:var(--sa);font-size:10px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:rgba(245,240,230,.6)!important;text-align:center}
 .res{flex:1;min-height:0;overflow-y:auto;padding:22px var(--cpd);display:flex;flex-direction:column;gap:20px;scrollbar-width:thin;scrollbar-color:rgba(245,240,230,.25) transparent}
 .cfg__step{display:flex;flex-direction:column;gap:10px}
@@ -504,6 +513,14 @@ html:not([data-lang="es"]) .i-es{display:none !important}
    grande dejaba la lista de opciones a 0 px — el configurador sin nada que elegir (24-sep-2026).
    Aquí las tres cifras vuelven a una fila, sin línea secundaria, y .res tiene un mínimo: si ni
    así cabe, el panel entero hace scroll en vez de esconder las opciones. */
+/* 861–960 px de alto (1440×900): se mantiene la cabecera grande pero sin rótulo, sin línea
+   secundaria y sin resumen — las opciones quedaban a 196 px, Bamboo cortada. */
+@media(min-width:1024px) and (min-height:861px) and (max-height:960px){
+  .cfg-cab > .kicker{display:none}
+  .cfg-datos{margin-top:0}
+  .cfg-datos .dt-sub{display:none}
+  .resumen{display:none}
+}
 @media(min-width:1024px) and (max-height:860px){
   #hero-configurator aside{overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(245,240,230,.25) transparent}
   .cfg-cab{padding-top:14px;padding-bottom:10px}
@@ -714,6 +731,18 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 <span class="material-symbols-outlined">weekend</span>
 <span class="hidden md:inline"><?= lw_i18n('Salón', 'Living room') ?></span>
 </button>
+<?php if ($heroKitchen): ?>
+<button class="cam-btn" id="cam-kitchen" onclick="lwSetView('kitchen')" aria-label="Kitchen">
+<span class="material-symbols-outlined">kitchen</span>
+<span class="hidden md:inline"><?= lw_i18n('Cocina', 'Kitchen') ?></span>
+</button>
+<?php endif; ?>
+<?php if ($heroToilet): ?>
+<button class="cam-btn" id="cam-toilet" onclick="lwSetView('toilet')" aria-label="Bathroom">
+<span class="material-symbols-outlined">bathroom</span>
+<span class="hidden md:inline"><?= lw_i18n('Baño', 'Bathroom') ?></span>
+</button>
+<?php endif; ?>
 <?php if ($heroAerea): ?>
 <button class="cam-btn" id="cam-aerea" onclick="lwSetView('aerea')">
 <span class="material-symbols-outlined">flight</span>
@@ -1058,7 +1087,7 @@ foreach ($incluido as $it) {
      no lo encuentra, y no hace nada: la campana ES `es_ticket` apunta aqui y se quedaria
      sin pixel ni banner de consentimiento sin un solo error visible. Mismo fichero y
      mismo sello que /dali. -->
-<script src="/assets/consent.js?v=20260908111654" defer></script>
+<script src="/assets/consent.js?v=20260924165606" defer></script>
 <!-- Motor del configurador ANTES del script inline que lo invoca (window.lwAuCfgInit
      tiene que existir cuando se llama más abajo) — sin defer a propósito, o el inline
      que sigue se ejecutaría primero y fallaría "lwAuCfgInit is not a function". -->
@@ -1071,7 +1100,8 @@ foreach ($incluido as $it) {
   //    ni existe (PHP lo omite) y getElementById da null — lwSetView ya lo contempla. ──
   var LAYERS = {day: 'layer-day', roof: 'layer-roof', interior: 'layer-interior',
                 kitchen: 'layer-kitchen', toilet: 'layer-toilet', aerea: 'layer-aerea'};
-  var BTNS   = {day: 'cam-day', roof: 'cam-roof', interior: 'cam-interior', aerea: 'cam-aerea'};
+  var BTNS   = {day: 'cam-day', roof: 'cam-roof', interior: 'cam-interior', aerea: 'cam-aerea',
+                kitchen: 'cam-kitchen', toilet: 'cam-toilet'};  // estos dos solo se ven <1024
   window.lwSetView = function (key) {
     if (!LAYERS[key]) return;
     Object.keys(LAYERS).forEach(function (k) {

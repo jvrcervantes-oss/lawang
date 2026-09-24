@@ -1366,7 +1366,7 @@ span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
 </script>
 
 <!-- Aviso de cookies + Meta Pixel bajo consentimiento. El texto legal vive en /legal -->
-<script src="assets/consent.js?v=20260908111654" defer></script>
+<script src="assets/consent.js?v=20260924165606" defer></script>
 <script>
 // Clic al WhatsApp = intención alta. lwTrack no envía nada sin consentimiento.
 document.addEventListener('click', function(e){

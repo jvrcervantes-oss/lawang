@@ -1112,7 +1112,7 @@ foreach ($incluido as $it):
      no lo encuentra, y no hace nada: la campana ES `es_ticket` apunta aqui y se quedaria
      sin pixel ni banner de consentimiento sin un solo error visible. Mismo fichero y
      mismo sello que /dali. -->
-<script src="/assets/consent.js?v=20260908111654" defer></script>
+<script src="/assets/consent.js?v=20260924165606" defer></script>
 <!-- Motor del configurador ANTES del script inline que lo invoca (window.lwAuCfgInit
      tiene que existir cuando se llama más abajo) — sin defer a propósito, o el inline
      que sigue se ejecutaría primero y fallaría "lwAuCfgInit is not a function". -->

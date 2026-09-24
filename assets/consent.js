@@ -82,7 +82,7 @@
 
     var css = document.createElement('style');
     css.textContent =
-      '#lw-consent-bar{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:11000;' +
+      '#lw-consent-bar{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:11000;box-sizing:border-box;' +
       'width:min(680px,calc(100vw - 32px));background:#F5F0E6;color:#2E3437;border-radius:14px;' +
       'box-shadow:0 24px 60px -18px rgba(0,0,0,.5);padding:18px 20px;display:flex;gap:16px;' +
       'align-items:center;flex-wrap:wrap;font-family:Jost,system-ui,sans-serif;font-size:14px;line-height:1.6}' +

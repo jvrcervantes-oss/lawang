@@ -261,6 +261,6 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--tg);outline-offset:
   if (ck) ck.addEventListener('click', function (e) { e.preventDefault(); if (window.lwConsentReopen) window.lwConsentReopen(); });
 })();
 </script>
-<script src="/assets/consent.js?v=20260908111654" defer></script>
+<script src="/assets/consent.js?v=20260924165606" defer></script>
 </body>
 </html>

@@ -796,7 +796,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
   </a>
 </div>
 
-<script src="/assets/consent.js?v=20260908111654" defer></script>
+<script src="/assets/consent.js?v=20260924165606" defer></script>
 <script>
 (function () {
   'use strict';
