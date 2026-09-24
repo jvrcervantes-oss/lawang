@@ -84,7 +84,8 @@ const corsFor = (req: Request) => {
 // y no se podía quitar sin quitar Operaciones. Clave propia y, A PROPÓSITO, sin
 // concedérsela a nadie (al revés que 'vencimientos' el 18-ago): solo la ve un
 // super_admin, que `puede()` deja pasar siempre.
-const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte', 'leads', 'closers', 'ranking', 'reparto', 'cuentas', 'comisiones', 'reservas', 'modelos', 'asistente', 'recibos', 'comisiones_reparto', 'comisiones_condiciones', 'comisiones_equipos', 'gastos'];
+const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte', 'leads', 'closers', 'ranking', 'reparto', 'cuentas', 'comisiones', 'reservas', 'modelos', 'asistente', 'recibos', 'comisiones_reparto', 'comisiones_condiciones', 'comisiones_equipos', 'gastos', 'bancos'];
+// 'bancos' (24-sep-2026, módulo Bancos y conciliación), redesplegada con la misma receta.
 // 'gastos' (24-sep-2026, módulo Gastos y proveedores). Redesplegada el mismo día
 // (LAW-304) desde una carpeta temporal con COPIA REAL de este fichero: en
 // Windows `supabase/functions/admin-usuarios` es un stub de texto (symlink sin

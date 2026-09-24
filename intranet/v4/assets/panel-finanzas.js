@@ -111,6 +111,7 @@
       comisiones: verCom ? todas(function () { return sb.from('comisiones_devengadas').select('id,estado,importe,importe_ajustado,moneda,solicitud_id,pagado_en,anulado_en,contrato_raiz_id'); }, 'comisiones devengadas') : Promise.resolve(null),
       gastos: verGas ? todas(function () { return sb.from('gastos').select('id,estado,moneda,total,base,pph_retenido,pph_ingresado_el,fecha,vence_el,pagado_el,sociedad,proyectos(nombre),gasto_categorias(grupo)'); }, 'gastos') : Promise.resolve(null),
       closer: verCloser ? todas(function () { return sb.rpc('crm_contratos_para_atribuir', { p_solo_pendientes: false }).select('contrato_id,closer_email'); }, 'closers', 'contrato_id') : Promise.resolve(null),
+      bancos: sb.rpc('bancos_resumen', { p_anio: new Date().getFullYear() }).then(function (r) { if (r.error) { console.error('[finanzas] bancos:', r.error); throw new Error('bancos'); } return r.data; }),
       equipo: sb.from('usuarios').select('email,nombre').then(function (r) { return r.error ? [] : (r.data || []); }, function () { return []; }),
       sociedades: (typeof cargarSociedades === 'function') ? cargarSociedades(sb).catch(function (e) { console.error('[finanzas] sociedades:', e); return null; }) : Promise.resolve(null)
     };
@@ -536,6 +537,32 @@
       '<td class="px-5 py-3 text-right fin-num font-label-md text-label-md">' + esc(fmt(tot.cobradoAnio, m)) + '</td><td></td></tr>';
   }
 
+  /* Bancos (24-sep-2026): el saldo que da el propio banco en el último
+     extracto importado, por cuenta y moneda. `bancos_resumen` devuelve null sin
+     la casilla «Bancos» (nunca un 0 que parezca una cuenta vacía). Todas las
+     monedas a la vez: un saldo bancario no se convierte ni se suma entre monedas. */
+  function pintaBancos(d) {
+    var el = $('lw-fin-bancos'); if (!el) return;
+    if (d.fallos.bancos) { falloEn(el, T('los bancos')); return; }
+    if (d.bancos == null) { vacio(el, T('Falta la casilla «Bancos»: los saldos bancarios no se ven.')); return; }
+    if (!d.bancos.length) { vacio(el, T('Todavía no hay ningún extracto importado.')); return; }
+    var hoyD = new Date(), fF = function (x) { if (!x) return '—'; var t = new Date(String(x).slice(0, 10) + 'T12:00:00'); return isNaN(t) ? String(x) : t.toLocaleDateString(typeof lwLocale === 'function' ? lwLocale() : 'es-ES', { day: '2-digit', month: 'short', year: 'numeric' }); };
+    var th = function (t, der) { return '<th class="py-2 pr-4 font-label-md text-[11px] uppercase tracking-wider text-outline' + (der ? ' text-right' : '') + '">' + esc(T(t)) + '</th>'; };
+    el.innerHTML = '<table class="w-full text-left border-collapse" style="min-width:640px"><thead><tr class="border-b border-outline-variant/60">' +
+      th('Cuenta') + th('Saldo', 1) + th('Extracto hasta') + th('Entra en el año', 1) + th('Sale en el año', 1) + th('Por conciliar', 1) + '</tr></thead><tbody>' +
+      d.bancos.map(function (c) {
+        var viejo = c.ultimo && (hoyD - new Date(c.ultimo + 'T12:00:00')) / 86400000 > 7;
+        return '<tr class="border-b border-outline-variant/30">' +
+          '<td class="py-3 pr-4 font-label-md text-label-md text-on-surface">' + esc((c.label || c.cuenta) + ' · ' + c.moneda) + '</td>' +
+          '<td class="py-3 pr-4 text-right fin-num font-label-md text-label-md">' + (c.saldo != null ? esc(fmt(c.saldo, c.moneda)) : '<span class="text-outline">' + esc(T('sin saldo')) + '</span>') + '</td>' +
+          '<td class="py-3 pr-4 fin-num font-body-sm text-body-sm ' + (viejo ? 'text-error font-semibold' : 'text-on-surface-variant') + '">' + esc(fF(c.ultimo)) + '</td>' +
+          '<td class="py-3 pr-4 text-right fin-num font-body-sm text-body-sm">' + esc(fmt(Math.abs(Number(c.entradas) || 0), c.moneda)) + '</td>' +
+          '<td class="py-3 pr-4 text-right fin-num font-body-sm text-body-sm">' + esc(fmt(Math.abs(Number(c.salidas) || 0), c.moneda)) + '</td>' +
+          '<td class="py-3 text-right fin-num font-body-sm text-body-sm ' + (c.pendientes ? 'text-burnt-earth font-semibold' : 'text-on-surface-variant') + '">' + esc(String(c.pendientes || 0)) + '</td></tr>';
+      }).join('') + '</tbody></table>' +
+      '<p class="mt-4 font-body-sm text-body-sm text-outline">' + esc(T('Entradas y salidas sin contar los traspasos entre cuentas propias. En rojo, extractos de hace más de 7 días.')) + '</p>';
+  }
+
   function pintaSociedades(pm, d) {
     var el = $('lw-fin-sociedades'); if (!el) return;
     if (d.fallos.facturas) { falloEn(el, T('los recibís')); return; }
@@ -729,6 +756,7 @@
         pintaStock(pm, d);
         pintaProyectos(pm, d);
         pintaCloser(pm, d);
+        pintaBancos(d);
         pintaSociedades(pm, d);
         pintaSalidas(pm, d);
         pintaCajaAnio(pm, d, anio);

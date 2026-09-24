@@ -233,6 +233,14 @@ const LW_HERRAMIENTAS = [
     soloPermiso:true,
     para:'Lo que paga la empresa: facturas de proveedores, retenciones y su justificante.',
     claves:'gastos proveedores costes pagos facturas proveedor retencion pph expenses suppliers costs payables' },
+  /* Bancos y conciliación (24-sep-2026, owner: «Hazlo. Usan Statrys, bancos de
+     Hong Kong y Singapur»). Misma forma que Gastos: `soloPermiso`, se llega
+     desde el menú de la v4, y la puerta de verdad es la RLS y las RPC:
+     es_admin() Y puede('bancos'). Nace concedida a nadie. */
+  { grupo:'Finanzas', nombre:'Bancos y conciliación', icon:'ph-bank', href:'/intranet/v4/bancos/', herr:'bancos',
+    soloPermiso:true,
+    para:'Los extractos de las cuentas de la sociedad y qué documento explica cada movimiento.',
+    claves:'bancos extracto conciliacion conciliar statrys dbs ocbc hsbc saldo movimientos traspaso bank statement reconciliation balance' },
 
   /* «Comisión de administración» y «Sociedades emisoras» ya NO salen en este
      catálogo (owner, 22-sep-2026): son pantallas de la v4 y solo se llega a
