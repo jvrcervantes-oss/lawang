@@ -21,6 +21,13 @@ if [ -n "$rama" ]; then
   echo "[pre-commit] rama activa: $rama"
 fi
 
+# ── Donde estan las herramientas del estudio (24-sep-2026) ──────────────────
+# Se buscaban con "$raiz/../../tools", que solo vale si el repo esta a dos niveles
+# de Agencia. Desde un worktree de sesion (proyectos/_sesiones/<id>/Lawang) ese
+# camino no existe, y cada bloque de abajo se saltaba en silencio: commit sin
+# sellar. El common-dir es siempre proyectos/Lawang/.git, este donde este el arbol.
+herr="$(git rev-parse --path-format=absolute --git-common-dir)/../../../tools"
+
 # ── Un fichero NUEVO que el .gitignore ignora no entra (14-sep-2026) ─────────
 # El commit dbff891 del 11-sep se llevo 20 fotos que el cliente ya habia subido
 # desde el panel de admin. En el servidor esas rutas existen como ficheros sin
@@ -96,7 +103,7 @@ if [ -n "$suite" ]; then
   # paginas creerian estar al dia y servirian el CSS anterior, que es peor que
   # no sellar — un fallo que no se ve porque todo parece correcto. El orden de
   # estas dos llamadas ES la garantia.
-  empcss="$raiz/../../tools/empaqueta_css.py"
+  empcss="$herr/empaqueta_css.py"
   if [ -f "$empcss" ]; then
     py=$(command -v python || command -v python3)
     "$py" "$empcss" >/dev/null 2>&1 || true
@@ -114,7 +121,7 @@ if [ -n "$suite" ]; then
   # regla escrita que falla por segunda vez se promociona a comprobador. La
   # norma —16 px y ahí para, más `env(safe-area-inset)`— llevaba escrita desde
   # el 26-ago y aun así ninguna herramienta viva usaba el inset.
-  margenes="$raiz/../../tools/margenes_movil.py"
+  margenes="$herr/margenes_movil.py"
   if [ -f "$margenes" ]; then
     py=$(command -v python || command -v python3)
     "$py" "$margenes" 2>/dev/null | head -14
@@ -125,19 +132,19 @@ if [ -n "$suite" ]; then
   # por casualidad, porque un A4 mide menos de 860px y le entraba el bloque de
   # móvil. Al acotar ese bloque a `screen and` —necesario, un recibí salía en
   # blanco— se destapó. La casualidad no es un guardrail; esto sí.
-  imprime="$raiz/../../tools/imprime_limpio.py"
+  imprime="$herr/imprime_limpio.py"
   if [ -f "$imprime" ]; then
     py=$(command -v python || command -v python3)
     "$py" "$imprime" 2>/dev/null | head -16
   fi
 
-  muerto="$raiz/../../tools/css_muerto.py"
+  muerto="$herr/css_muerto.py"
   if [ -f "$muerto" ]; then
     py=$(command -v python || command -v python3)
     "$py" "$muerto" 2>/dev/null | head -20
   fi
 
-  sellador="$raiz/../../tools/sella_assets.py"
+  sellador="$herr/sella_assets.py"
   if [ -f "$sellador" ]; then
     py=$(command -v python || command -v python3)
     # 🔴 8-sep-2026 — «re-stagear SOLO las paginas que el sellador haya tocado»
@@ -185,7 +192,7 @@ fi
 paquete=$(git diff --cached --name-only | grep -E '^(contracts/assets/(dinero|vocabulario|entities)\.js|facturas/(totales|compradores|documento)\.js|vencimientos/logica\.js)$' || true)
 if [ -n "$paquete" ]; then
   raiz=$(git rev-parse --show-toplevel)
-  empaquetador="$raiz/../../tools/empaqueta_edge.py"
+  empaquetador="$herr/empaqueta_edge.py"
   if [ -f "$empaquetador" ]; then
     py=$(command -v python || command -v python3)
     "$py" "$empaquetador" >/dev/null 2>&1 || true

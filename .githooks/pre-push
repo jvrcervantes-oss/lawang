@@ -1,0 +1,29 @@
+#!/bin/sh
+# ── Solo main (y suite-v4) salen al remoto (24-sep-2026) ─────────────────────
+# Cada sesion de Claude trabaja en su worktree, en una rama `sesion/<id>` que es
+# SUYA y nunca se publica: ahi vive trabajo a medias y lo que espera el OK del
+# owner. Este repo es PUBLICO (github.com/jvrcervantes-oss/lawang): una rama de
+# sesion empujada una sola vez queda en GitHub para siempre. «Solo en local» en
+# prosa no frena nada; esto si. Versionado en .githooks/, asi que core.hooksPath
+# lo lleva a cada worktree y al Mac sin paso manual.
+# Encargo: encargos/20260924_estudio_worktree_por_sesion.md (hallazgo de Seguridad).
+# Para publicar una rama nueva a proposito: añadirla aqui, con su porque.
+permitidas="refs/heads/main refs/heads/suite-v4"
+malo=0
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ -z "$remote_ref" ] && continue
+  case "$remote_ref" in refs/tags/*) continue ;; esac
+  ok=0
+  for p in $permitidas; do
+    [ "$remote_ref" = "$p" ] && ok=1
+  done
+  if [ "$ok" -eq 0 ]; then
+    echo "[pre-push] ⛔ '$remote_ref' no se publica: este repo es publico y solo salen main y suite-v4." >&2
+    malo=1
+  fi
+done
+if [ "$malo" -eq 1 ]; then
+  echo "[pre-push]    Para llevar tu trabajo a produccion: python tools/aterriza.py lawang" >&2
+  exit 1
+fi
+exit 0
