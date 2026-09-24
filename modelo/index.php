@@ -123,7 +123,6 @@ $ultimoImg    = $g ? end($g) : null;
 $layoutImg    = lw_foto_por_pie($m['id'], ['top view']) ?? $ultimoImg ?? $portada;
 
 $dormTxt  = $dorm . ' ' . ($dorm === 1 ? 'bedroom' : 'bedrooms');
-$sizeTxt  = $m['villa_m2'] . 'm² + ' . $m['terraza_m2'] . 'm² terrace';
 
 $precioTxt = $precio !== null ? $precio : 'Upon request';
 $TITULO_SUFIJO = ' · Turnkey villa in Bali — Lawang Tropical Properties';
@@ -429,13 +428,17 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 .cfg-cab{padding:26px var(--cpd) 20px;border-bottom:1px solid rgba(245,240,230,.14)}
 .cfg-cab .kicker{color:var(--sc)} .cfg-cab .kicker::before{background:var(--sc)}
 .cfg-sub{font-family:var(--sa);font-size:13.5px;line-height:1.6;color:rgba(245,240,230,.75);margin:10px 0 0}
-.cfg-datos{display:grid;grid-template-columns:repeat(3,1fr);margin-top:18px;border-top:1px solid rgba(245,240,230,.14);border-bottom:1px solid rgba(245,240,230,.14)}
-.cfg-datos > div{display:flex;flex-direction:column;gap:4px;padding:12px 10px}
-.cfg-datos > div + div{border-left:1px solid rgba(245,240,230,.14)}
-.cfg-datos > div:first-child{padding-left:0}
-.cfg-datos span:first-child{font-family:var(--sa);font-size:9.5px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--ss)}
-.cfg-datos span:last-child{font-family:var(--sa);font-weight:300;font-size:14px;color:var(--rl)}
-.cfg-datos .desde span:last-child{color:#C3D9A6}
+/* Superficie + distribución en dos columnas y el precio en fila propia: los tres datos que
+   decide el comprador, en cifra grande (peso 300, nunca negrita) — 24-sep-2026, owner. */
+.cfg-datos{display:grid;grid-template-columns:1fr 1fr;margin-top:18px;border-top:1px solid rgba(245,240,230,.14);border-bottom:1px solid rgba(245,240,230,.14)}
+.cfg-datos > div{display:flex;flex-direction:column;gap:6px;padding:14px 14px 14px 0;min-width:0}
+.cfg-datos > div + div{border-left:1px solid rgba(245,240,230,.14);padding-left:16px}
+.cfg-datos .dt-lb{font-family:var(--sa);font-size:9.5px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--ss)}
+.cfg-datos .dt-v{font-family:var(--sa);font-weight:300;font-size:26px;line-height:1.05;letter-spacing:-.01em;color:var(--rl);white-space:nowrap}
+.cfg-datos .dt-v small{font-size:.55em;letter-spacing:.02em;margin-left:3px;opacity:.8}
+.cfg-datos .dt-sub{font-family:var(--sa);font-size:11.5px;line-height:1.35;color:rgba(245,240,230,.6)}
+.cfg-datos .desde{grid-column:1 / -1;flex-direction:row;align-items:baseline;justify-content:space-between;gap:12px;border-left:0!important;padding-left:0!important;padding-right:0;border-top:1px solid rgba(245,240,230,.14)}
+.cfg-datos .desde .dt-v{font-size:34px;color:#C3D9A6}
 #lw-paso-lb{display:block;margin-top:14px;font-family:var(--sa);font-size:10px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:rgba(245,240,230,.6)!important;text-align:center}
 .res{flex:1;min-height:0;overflow-y:auto;padding:22px var(--cpd);display:flex;flex-direction:column;gap:20px;scrollbar-width:thin;scrollbar-color:rgba(245,240,230,.25) transparent}
 .cfg__step{display:flex;flex-direction:column;gap:10px}
@@ -712,9 +715,9 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 <div class="cfg-cab">
 <p class="kicker">New build · Turnkey</p>
 <div class="cfg-datos">
-<div><span><?= lw_i18n('Superficie', 'Built area') ?></span><span><?= lw_e($sizeTxt) ?></span></div>
-<div><span><?= lw_i18n('Distribución', 'Layout') ?></span><span><?= lw_e($dorm . ' bed · ' . $banos . ' bath') ?></span></div>
-<div class="desde"><span><?= lw_i18n('Desde', 'From') ?></span><span<?= $precioValor !== null ? ' data-eur-fijo="' . (int) $precioValor . '"' : '' ?>><?= lw_e($precioTxt) ?></span></div>
+<div><span class="dt-lb"><?= lw_i18n('Superficie', 'Built area') ?></span><span class="dt-v"><?= (int) $m['villa_m2'] + (int) $m['terraza_m2'] ?><small>m²</small></span><span class="dt-sub"><?= (int) $m['villa_m2'] ?> m² interior + <?= (int) $m['terraza_m2'] ?> m² terrace</span></div>
+<div><span class="dt-lb"><?= lw_i18n('Distribución', 'Layout') ?></span><span class="dt-v"><?= (int) $dorm ?><small>bed</small> · <?= (int) $banos ?><small>bath</small></span><span class="dt-sub"><?= lw_e($dormTxt) ?>, <?= (int) $banos ?> <?= (int) $banos === 1 ? 'bathroom' : 'bathrooms' ?></span></div>
+<div class="desde"><span class="dt-lb"><?= lw_i18n('Desde', 'From') ?></span><span class="dt-v"<?= $precioValor !== null ? ' data-eur-fijo="' . (int) $precioValor . '"' : '' ?>><?= lw_e($precioTxt) ?></span></div>
 </div>
 <span id="lw-paso-lb">Step 1 of 4</span>
 </div>
