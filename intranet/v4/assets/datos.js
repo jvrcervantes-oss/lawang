@@ -4423,7 +4423,7 @@
            elegido. `unidades_estado` es la vista que ya trae el contrato, el
            comprador y el cobrado partido en suelo/obra (unidad_parte_cobrada_split,
            11-sep-2026) — no se vuelve a cruzar ni repartir aquí a mano. */
-        q(sb.from('unidades_estado').select('id,codigo,proyecto,tipo,modelo,estado,precio,precio_guardado,precio_suelo,precio_construccion,superficie_m2,moneda,notas,fase_masterplan,zona_masterplan,contrato_id,contrato_numero,comprador_nombre,contrato_firmado,cobrado_suelo,cobrado_obra,obra_firmada,contrato_creado_por')
+        q(sb.from('unidades_estado').select('id,codigo,proyecto,tipo,modelo,estado,precio,precio_guardado,precio_suelo,precio_construccion,superficie_m2,moneda,notas,fase_masterplan,zona_masterplan,contrato_id,contrato_numero,comprador_nombre,contrato_firmado,contrato_es_carta,cobrado_suelo,cobrado_obra,obra_firmada,contrato_creado_por')
             // `codigo_orden` (16-sep-2026): orden NATURAL calculado por la base (columna
             // generada de `unidades`). `.order('codigo')` era orden de texto —SH-10 antes
             // que SH-2— y con `.limit(60)` sobre 228 parcelas Postgres devolvía las 60
@@ -4453,8 +4453,15 @@
             // la base no da. El cobrado SÍ es la cifra exacta —
             // cobrado_suelo/cobrado_obra vienen partidos de
             // unidad_parte_cobrada_split, no se reparten aquí.
-            var barraUnidad = function (f, clave, cartera, cobrado, firmado, moneda) {
+            var barraUnidad = function (f, clave, cartera, cobrado, firmado, moneda, carta) {
               var firmPct = cartera ? (firmado ? 100 : 0) : 0;
+              /* Carta de Reserva firmada (24-sep-2026, owner, S1-H9 Horizon): el
+                 tramo «firmado» del suelo se encendía igual que con una
+                 compraventa, y una Carta es solo una retención. Se pinta con el
+                 ámbar de «Reservada» (ESTADO_COLOR, la misma fuente que la
+                 pastilla) y el texto lo dice. Qué es Carta lo decide la base
+                 (`contrato_es_carta`), no una lista aquí. */
+              var porCarta = !!carta && firmPct > 0;
               /* `cobrado_suelo`/`cobrado_obra` llegan NULL cuando el contrato no es
                  visible para quien consulta (migración 20260916093309, LAW-186
                  mitad B). Eso no es «0,00 cobrado»: es «no he podido mirar», y se
@@ -4465,7 +4472,11 @@
               var elCob = f.querySelector('[data-barra="u-' + clave + '-cobrado"]');
               var elFir = f.querySelector('[data-barra="u-' + clave + '-firmado"]');
               if (elCob) elCob.style.width = cobPct + '%';
-              if (elFir) elFir.style.width = Math.max(0, firmPct - cobPct) + '%';
+              if (elFir) {
+                elFir.style.width = Math.max(0, firmPct - cobPct) + '%';
+                elFir.style.backgroundColor = porCarta ? ESTADO_COLOR.reservada : '';
+                elFir.title = porCarta ? 'Reservada con Carta de Reserva firmada: aún no es compraventa' : '';
+              }
               /* 21-sep-2026: esto pintaba SIEMPRE "EUR" sin mirar `moneda` — las
                  diez parcelas de Riverfront (en IDR de verdad, ver migración
                  20260826124756) se leían como "2.759.500.000,00 EUR". Ahora se
@@ -4473,7 +4484,7 @@
                  € al lado (fmtConEstimado, arriba). */
               pon('u-' + clave + '-txt', !cartera ? 'sin cartera'
                 : noVisible ? 'cobro no visible · ' + fmtConEstimado(cartera, moneda)
-                : fmtConEstimado(cobrado, moneda) + ' / ' + fmtConEstimado(cartera, moneda), f);
+                : fmtConEstimado(cobrado, moneda) + ' / ' + fmtConEstimado(cartera, moneda) + (porCarta ? ' · con Carta' : ''), f);
             };
             uu.forEach(function (u, idxUnidad) {
               var f = base.cloneNode(true);
@@ -4530,7 +4541,7 @@
                 if (u.contrato_numero) { elK.href = '/intranet/v4/contratos/?contrato=' + encodeURIComponent(u.contrato_numero); elK.target = '_blank'; }
                 else { elK.removeAttribute('href'); elK.removeAttribute('target'); elK.style.cursor = 'default'; elK.style.textDecoration = 'none'; }
               }
-              barraUnidad(f, 'suelo', Number(u.precio_suelo) || 0, u.cobrado_suelo, !!u.contrato_firmado, u.moneda);
+              barraUnidad(f, 'suelo', Number(u.precio_suelo) || 0, u.cobrado_suelo, !!u.contrato_firmado, u.moneda, u.contrato_es_carta);
               barraUnidad(f, 'obra', Number(u.precio_construccion) || 0, u.cobrado_obra, !!u.obra_firmada, u.moneda);
               // Agente que creó el contrato (11-sep-2026, encargo del owner: ver
               // de un vistazo qué agente hizo el contrato de cada unidad). Sin
