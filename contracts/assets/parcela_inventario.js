@@ -607,6 +607,17 @@ function buildForm(){
         // propia Cantidad al momento, sin esperar a que cambie precio_total.
         if(typeof recalcularMontosHitos === 'function') recalcularMontosHitos();
         renderDebounced(); } });
+    /* Fecha imposible (24-sep-2026, RP00198: alguien tecleó 31/09). El <input
+       type="date"> la rechaza SIN avisar: value se queda en '' y el hito sale
+       sin vencimiento en el documento. Al salir del campo se dice, y el campo
+       queda marcado hasta que se corrija. */
+    form.addEventListener('focusout', e=>{
+      const el = e.target.closest('[data-hkey="fecha"]'); if(!el) return;
+      const mala = !!(el.validity && el.validity.badInput);
+      el.style.outline = mala ? '2px solid var(--be, #b3261e)' : '';
+      el.setAttribute('aria-invalid', String(mala));
+      if(mala) toastMal(lwT('Esa fecha no existe (¿31 de un mes de 30 días?): el hito se queda sin vencimiento hasta que la corrijas') + ' · ' + (+el.dataset.hi + 1));
+    });
     form.addEventListener('click', e=>{
       // ▸ EN·ID (17-sep-2026): abre/cierra la fila hermana con el concepto en
       // inglés y bahasa. Solo CSS + `hidden` — no hay estado que guardar, y
