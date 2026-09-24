@@ -278,6 +278,7 @@
     'Falta la casilla «Pagos de Lawang»: las solicitudes de pago no están sumadas.': 'The «Pagos de Lawang» permission is missing: payment requests are not included.',
     'Falta la casilla «Reparto a closers»: las comisiones sin solicitud no están sumadas.': 'The «Reparto a closers» permission is missing: commissions without a request are not included.',
     'Finanzas': 'Finance',
+    'Resumen': 'Overview',
     'Firmado por cobrar': 'Signed, to collect',
     'Firmado, cobrado y lo que queda por vender': 'Signed, collected and what is left to sell',
     'Gastos, costes de obra y saldos bancarios: la intranet todavía no los registra.': 'Expenses, construction costs and bank balances: the intranet does not record them yet.',
@@ -488,6 +489,8 @@
     'Seguimiento': 'Pipeline',
     'Administración': 'Administration',
     'Base de datos': 'Database',
+    'Base de Datos': 'Database',           // así la escribió Stitch en la cabecera de la sidebar v4
+    'Sociedades emisoras': 'Issuing companies',
     'Equipo': 'Team',
 
     /* ---------- herramientas.js: nombre de cada herramienta ---------- */

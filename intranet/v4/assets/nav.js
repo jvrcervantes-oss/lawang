@@ -211,7 +211,10 @@
        grupo porque es la que se mira, no la que se configura. Admin, como la
        puerta (`data-rol="admin"`); lo que ve cada cifra lo decide la RLS y el
        panel dice «sin permiso» donde la ficha no llega. Solo lectura. */
-    { path: 'finanzas',      icono: 'monitoring',       texto: 'Finanzas' },
+    /* Finanzas, Gastos, Cuentas y Sociedades nacen aquí (misma puerta de rol)
+       pero se MUDAN a la sección «Finanzas» (ORDEN_FINANZAS, más abajo). La
+       cabecera ya dice «Finanzas», así que la entrada del panel es «Resumen». */
+    { path: 'finanzas',      icono: 'monitoring',       texto: 'Resumen' },
     /* Gastos y proveedores (24-sep-2026): admin + casilla `gastos` (la poda la
        hace CLAVE_MENU; la puerta de verdad, la RLS). */
     { path: 'gastos',        icono: 'receipt_long',     texto: 'Gastos' },
@@ -378,6 +381,36 @@
     ancla.insertAdjacentElement('afterend', a);
   }
 
+  /* SECCIÓN «FINANZAS» (24-sep-2026, owner, opción A): todo lo que mueve
+     dinero en un solo grupo, en vez de repartido entre Seguimiento,
+     Administración y Panel de control. Es el grupo «Administración» que dibujó
+     Stitch, renombrado: no se editan las 22 sidebars. Cada entrada se MUEVE
+     (appendChild) con su data-path, su traducción y su marca de activo; la que
+     no está en la página (Resumen/Gastos/Cuentas sin rol admin, Sociedades sin
+     super) simplemente no aparece. Quién ve cada una lo siguen decidiendo su
+     casilla y la RLS: cambiar de grupo no cambia permisos.
+     Orden = cobros → pagos → tesorería. La sidebar tiene un solo nivel de
+     cabecera, así que esos tres bloques son solo orden, sin rótulo.
+     Se llama en el pase síncrono DESPUÉS de injertaNuevas (Reservas se injerta
+     `tras: 'vencimientos'`: moverla antes la metería en Finanzas) y ANTES de
+     traduceSidebar (la cabecera nueva tiene que pasar por T). */
+  var ORDEN_FINANZAS = ['finanzas', 'vencimientos', 'facturas', 'recibos', 'comisiones', 'gastos', 'cuentas', 'sociedades'];
+  function ordenaFinanzas(aside) {
+    var g = aside.querySelector('[data-seccion="finanzas"]');
+    if (!g) {
+      var ancla = aside.querySelector('nav a[data-path="facturas"]');
+      g = ancla && ancla.parentElement;
+      var cab = g && g.querySelector(':scope > span');
+      if (!g || !cab) return;                    // sin el grupo de Stitch no hay dónde
+      g.setAttribute('data-seccion', 'finanzas');
+      cab.textContent = 'Finanzas';
+    }
+    ORDEN_FINANZAS.forEach(function (p) {
+      var a = aside.querySelector('nav a[data-path="' + p + '"]');
+      if (a) g.appendChild(a);
+    });
+  }
+
   function injertaNuevas(aside) {
     injerta(aside, { path: 'modelos', tras: 'proyectos', icono: 'villa', texto: 'Modelos' });
     INJERTOS.forEach(function (spec) { injerta(aside, spec); });
@@ -433,6 +466,7 @@
     var aqui = location.pathname;
     document.querySelectorAll('aside').forEach(injertaNuevas);
     document.querySelectorAll('aside').forEach(retiraDocumentacion);
+    document.querySelectorAll('aside').forEach(ordenaFinanzas);
     document.querySelectorAll('aside a[href="#"], nav a[href="#"]').forEach(function (a) {
       // 1º por data-path (cáscara canónica); 2º por texto (páginas sin él)
       var dp = a.getAttribute('data-path');
@@ -583,13 +617,17 @@
         // los 14-17 enlaces ya traducidos en cada carga con sesion no
         // cambia nada que ya no estuviera en ingles, solo trabajo de mas.
         var nuevoGrupo = injertaPanelControl(aside, aut && aut.ficha);
+        // Traducir ANTES de mudar a Finanzas lo que nació aquí: después ya no
+        // está dentro de `nuevoGrupo` y se quedaría en español.
+        if (nuevoGrupo && window.lwT) {
+          var cabecera = nuevoGrupo.querySelector('span');
+          if (cabecera) cabecera.textContent = T(normaliza(cabecera.textContent));
+          traduceEnlaces(nuevoGrupo);
+        }
+        ordenaFinanzas(aside);
         cableaComisiones(aside, aut && aut.ficha);
-        // DESPUÉS del Panel de control: Usuarios y Cuentas viven ahí dentro
+        // DESPUÉS del Panel de control y de la mudanza: poda y grupos vacíos
         podaMenu(aside, aut && aut.ficha);
-        if (!nuevoGrupo || !window.lwT) return;
-        var cabecera = nuevoGrupo.querySelector('span');
-        if (cabecera) cabecera.textContent = T(normaliza(cabecera.textContent));
-        traduceEnlaces(nuevoGrupo);
       });
     });
   }

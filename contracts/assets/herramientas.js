@@ -108,19 +108,6 @@ const LW_HERRAMIENTAS = [
     estado:d => d.hilosAbiertos == null ? null
       : [d.hilosAbiertos ? hT(d.hilosAbiertos === 1 ? '%n ticket abierto' : '%n tickets abiertos', { n: d.hilosAbiertos }) : hT('Sin tickets abiertos'),
          d.hilosAbiertos > 0] },
-  { grupo:'Seguimiento', nombre:'Vencimientos', icon:'ph-calendar-check', href:'/intranet/vencimientos/', herr:'vencimientos',
-    para:'Qué dinero debe entrar, cuándo, y cuál se está retrasando: la caja de la empresa por fechas.',
-    claves:'vencimientos pagos hitos caja cashflow finanzas dinero calendario vencido dashboard payments due milestones cash finance money schedule overdue',
-    /* La cifra del hub es "sin fecha" y NO "vencidos", a propósito: saber si un
-       vencimiento pasado sigue debiéndose exige la cascada de cobros (la calcula
-       la propia herramienta), y un conteo crudo de fechas pasadas contaría
-       también lo ya pagado — un número que asusta de más se deja de mirar, que
-       es el mismo fallo que un cero falso. "Sin fecha" sí es exacto con un
-       count, y es además lo primero que hay que dejar a cero para que el
-       dashboard vigile de verdad. */
-    estado:d => d.vencSinFecha == null ? null
-      : [d.vencSinFecha ? hT('%n sin fecha que vigilar', { n: d.vencSinFecha }) : hT('Calendario al día'),
-         d.vencSinFecha > 0] },
   /* Reservas por vencer (23-sep-2026, owner): Cartas de Reserva vivas sin
      Bloqueo y cuándo vencen. Clave propia desde el primer día. */
   { grupo:'Seguimiento', nombre:'Reservas por vencer', icon:'ph-hourglass-medium', href:'/intranet/v4/reservas/', herr:'reservas',
@@ -170,7 +157,25 @@ const LW_HERRAMIENTAS = [
       : d.documentos === 0 ? [hT('Sin documentos todavía'), true]
       : [hT('%d documentos · %p proyectos', { d: d.documentos, p: d.proyectosConDocs }), false] },
 
-  { grupo:'Administración', nombre:'Facturas', icon:'ph-receipt', href:'/intranet/facturas/', herr:'facturas',
+  /* SECCIÓN «FINANZAS» (24-sep-2026, owner, opción A): lo que antes era
+     «Administración», más Vencimientos (venía de Seguimiento) y Cuentas bancarias
+     (venía de Equipo). Todo lo que mueve dinero, junto. Vencimientos va la
+     primera: es lo que toca cobrar. Mismo orden en la sidebar v4 (nav.js,
+     ORDEN_FINANZAS). Cambiar de grupo no cambia quién la ve: eso es `herr`. */
+  { grupo:'Finanzas', nombre:'Vencimientos', icon:'ph-calendar-check', href:'/intranet/vencimientos/', herr:'vencimientos',
+    para:'Qué dinero debe entrar, cuándo, y cuál se está retrasando: la caja de la empresa por fechas.',
+    claves:'vencimientos pagos hitos caja cashflow finanzas dinero calendario vencido dashboard payments due milestones cash finance money schedule overdue',
+    /* La cifra del hub es "sin fecha" y NO "vencidos", a propósito: saber si un
+       vencimiento pasado sigue debiéndose exige la cascada de cobros (la calcula
+       la propia herramienta), y un conteo crudo de fechas pasadas contaría
+       también lo ya pagado — un número que asusta de más se deja de mirar, que
+       es el mismo fallo que un cero falso. "Sin fecha" sí es exacto con un
+       count, y es además lo primero que hay que dejar a cero para que el
+       dashboard vigile de verdad. */
+    estado:d => d.vencSinFecha == null ? null
+      : [d.vencSinFecha ? hT('%n sin fecha que vigilar', { n: d.vencSinFecha }) : hT('Calendario al día'),
+         d.vencSinFecha > 0] },
+  { grupo:'Finanzas', nombre:'Facturas', icon:'ph-receipt', href:'/intranet/facturas/', herr:'facturas',
     para:'Facturas, proformas y recibís, cada tipo con su serie.',
     claves:'facturas proforma serie inv cobro impuesto invoices proforma series billing tax vat',
     estado:d => d.facturas == null ? null
@@ -179,7 +184,7 @@ const LW_HERRAMIENTAS = [
      desde usuarios como las demás» → «separa todo»). Clave propia de VISTA;
      guardar en la base sigue pidiendo el permiso de la herramienta madre.
      La migración 20260923180500_permisos_propios se la dio a quien ya tenía la madre. */
-  { grupo:'Administración', nombre:'Recibos', icon:'ph-hand-coins', href:'/intranet/facturas/?tipo=recibi', herr:'recibos',
+  { grupo:'Finanzas', nombre:'Recibos', icon:'ph-hand-coins', href:'/intranet/facturas/?tipo=recibi', herr:'recibos',
     para:'Justificantes de pago y señales.',
     claves:'recibi recibos justificante señal pago receipts proof of payment deposit',
     estado:d => d.recibis == null ? null : [hT('%n emitidos', { n: d.recibis }), false] },
@@ -199,7 +204,7 @@ const LW_HERRAMIENTAS = [
   /* PERMISO PROPIO desde el 23-sep-2026 (owner: «comisiones no quiero que las
      vea nadie ahora mismo»). Compartir 'operaciones' hacía imposible quitarla
      sin quitar Operaciones. Nace concedida a NADIE: solo la ve un super_admin. */
-  { grupo:'Administración', nombre:'Solicitudes', icon:'ph-coins', href:'/intranet/solicitudes/', herr:'comisiones',
+  { grupo:'Finanzas', nombre:'Solicitudes', icon:'ph-coins', href:'/intranet/solicitudes/', herr:'comisiones',
     para:'Pagos que piden los comerciales — comisiones y acordados: quién pide qué, y en qué quedó cada uno.',
     claves:'solicitudes pago pagos comisiones comerciales agentes pedir comision payment requests commissions agents reps payout',
     estado:d => d.solicitudesVivas == null ? null
@@ -212,15 +217,15 @@ const LW_HERRAMIENTAS = [
      tarjeta propia en el hub no — la entrada del menú es una sola, «Comisiones»,
      y la barra de pestañas la pinta nav.js. La casilla decide si la pestaña
      aparece; lo que se ve dentro lo decide el ROL en la base (cada uno lo suyo). */
-  { grupo:'Administración', nombre:'Comisiones · Reparto a closers', icon:'ph-hand-coins', href:'/intranet/v4/reparto/', herr:'comisiones_reparto',
+  { grupo:'Finanzas', nombre:'Comisiones · Reparto a closers', icon:'ph-hand-coins', href:'/intranet/v4/reparto/', herr:'comisiones_reparto',
     soloPermiso:true,
     para:'Lo que le toca a cada closer y qué le ha pagado su manager. Un closer solo ve lo suyo.',
     claves:'reparto closers comisiones equipo pagado manager mis comisiones team payout split' },
-  { grupo:'Administración', nombre:'Comisiones · Condiciones', icon:'ph-percent', href:'/intranet/v4/condiciones/', herr:'comisiones_condiciones',
+  { grupo:'Finanzas', nombre:'Comisiones · Condiciones', icon:'ph-percent', href:'/intranet/v4/condiciones/', herr:'comisiones_condiciones',
     soloPermiso:true,
     para:'Cuánto cobra cada closer y cada manager. Un Sales Manager solo las de sus closers.',
     claves:'condiciones comision porcentaje tramos closer manager conditions commission rate tiers' },
-  { grupo:'Administración', nombre:'Comisiones · Equipos', icon:'ph-users-four', href:'/intranet/v4/equipos-venta/', herr:'comisiones_equipos',
+  { grupo:'Finanzas', nombre:'Comisiones · Equipos', icon:'ph-users-four', href:'/intranet/v4/equipos-venta/', herr:'comisiones_equipos',
     soloPermiso:true,
     para:'Los equipos de venta, su manager y sus closers. Un Sales Manager solo ve el suyo.',
     claves:'equipos venta manager closers miembros sales teams members' },
@@ -230,7 +235,7 @@ const LW_HERRAMIENTAS = [
      en Usuarios, sin tarjeta en el hub — es pantalla de la v4 y se llega desde
      su Panel de control. La puerta de verdad es la RLS: es_admin() Y
      puede('gastos'); nace concedida a nadie (solo la ve un super_admin). */
-  { grupo:'Administración', nombre:'Gastos y proveedores', icon:'ph-receipt', href:'/intranet/v4/gastos/', herr:'gastos',
+  { grupo:'Finanzas', nombre:'Gastos y proveedores', icon:'ph-receipt', href:'/intranet/v4/gastos/', herr:'gastos',
     soloPermiso:true,
     para:'Lo que paga la empresa: facturas de proveedores, retenciones y su justificante.',
     claves:'gastos proveedores costes pagos facturas proveedor retencion pph expenses suppliers costs payables' },
@@ -301,14 +306,14 @@ const LW_HERRAMIENTAS = [
 
   /* Nueva 14-sep-2026 (encargo del owner: «tenemos muchas cuentas bancarias y
      no son editables ni marcables lo que quiero que aparezca en cada una»).
-     Va en «Equipo» junto a Usuarios porque es lo mismo que ella: una pantalla
-     de administración del sistema, no de trabajo diario con un expediente.
+     Iba en «Equipo» junto a Usuarios; desde el 24-sep-2026 va en «Finanzas»
+     (owner, opción A): es la tesorería, adónde entra el dinero.
      `soloAdmin` es la puerta del menú, pero la de verdad es la RLS: escribir
      estas dos tablas exige `es_super_admin()` en la base. Un admin normal que
      llegue por la URL puede MIRAR el reparto —le sirve para entender por qué un
      contrato ofrece las cuentas que ofrece— y no puede cambiar nada. Es el dato
      que decide adónde va el dinero de un comprador: ahí no hay delegación. */
-  { grupo:'Equipo', nombre:'Cuentas bancarias', icon:'ph-bank', href:'/intranet/cuentas/', herr:'cuentas', soloAdmin:true,
+  { grupo:'Finanzas', nombre:'Cuentas bancarias', icon:'ph-bank', href:'/intranet/cuentas/', herr:'cuentas', soloAdmin:true,
     para:'Las cuentas de cobro y qué cuenta se ofrece en cada tipo de contrato.',
     claves:'cuentas bancarias banco iban swift cobro pago escrow notario destino plantillas contratos bank accounts payment details escrow beneficiary',
     estado:d => d.cuentas == null ? null
