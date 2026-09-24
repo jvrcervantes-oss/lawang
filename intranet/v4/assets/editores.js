@@ -6296,7 +6296,7 @@
             // factura enlazan esta ficha y la imprimen tal cual.
             full_name: v.full_name.trim().toUpperCase(), email: v.email || null,
             phone: telAlta,
-            nationality: v.nationality || null, passport_number: v.passport_number || null,
+            nationality: v.nationality || null, passport_number: v.passport_number ? v.passport_number.toUpperCase() : null,
             tipo: v.tipo, idioma_comunicacion: v.idioma_comunicacion || 'es',
             forma_juridica: v.tipo === 'empresa' ? (v.forma_juridica || null) : null,
             registro_num: v.tipo === 'empresa' ? (v.registro_num || null) : null,
@@ -6393,20 +6393,20 @@
           campo('telefono', 'Teléfono', { req: 1, ico: I.tel, tipo: 'tel', ph: 'Número sin prefijo', auto: 'off' }) +
           '</div><div class="las-fila">' +
           campo('nationality', 'Nacionalidad', { req: 1, ico: I.globo, ph: 'Elige el país', ayuda: 'Pulsa para elegir el país.' }) +
-          campo('passport_number', 'Pasaporte / NPWP', { req: 1, ico: I.doc, mono: 1, ph: 'Nº del documento', ayuda: 'Es lo que se imprime en el contrato.', auto: 'off' }) +
+          campo('passport_number', 'Pasaporte / NPWP', { req: 1, ico: I.doc, mono: 1, cls: 'las-mayus', ph: 'Nº del documento', ayuda: 'Es lo que se imprime en el contrato.', auto: 'off' }) +
           '</div>' +
           campo('idioma_comunicacion', 'Idioma de comunicación', { select: '<option value="es">Español</option><option value="en">English</option><option value="id">Bahasa Indonesia</option>' }) +
           '</section>' +
-          '<section class="las-bloque las-emp las-off" data-emp><div class="las-bloque-cab"><div class="las-bloque-t"><span class="las-n las-n-verde">02</span><div>' +
+          '<div class="las-emp-caja" data-emp-caja><section class="las-bloque las-emp" data-emp><div class="las-bloque-cab"><div class="las-bloque-t"><span class="las-n las-n-verde">02</span><div>' +
           '<h3>Información mercantil &amp; representación</h3><p class="las-bloque-s">Solo se guarda si el comprador es una empresa.</p></div></div>' +
-          '<span class="las-insignia" data-p="emp">No aplica a persona física</span></div>' +
+          '<span class="las-insignia las-insignia-on">Solo empresa</span></div>' +
           '<div class="las-fila">' +
           campo('forma_juridica', 'Forma jurídica', { extra: soloEmp, ph: 'S.L., LLC, PT PMA, GmbH…', ayuda: 'S.L., LLC, PT PMA, GmbH…', auto: 'off' }) +
           campo('registro_num', 'Nº de registro mercantil', { extra: soloEmp, ph: 'Número en el registro', auto: 'off' }) +
           '</div><div class="las-fila">' +
           campo('rep_nombre', 'Representante legal', { extra: soloEmp, ph: 'Nombre y apellidos', auto: 'off' }) +
           campo('rep_cargo', 'Cargo del representante', { extra: soloEmp, ph: 'Administrador, director…', auto: 'off' }) +
-          '</div></section>' +
+          '</div></section></div>' +
           '<p data-e="error" role="alert" class="las-error" hidden></p>' +
           '</div></div>' +
           /* barra de acciones */
@@ -6421,7 +6421,7 @@
         requestAnimationFrame(function () { requestAnimationFrame(function () { form.classList.add('las-dentro'); fondo.style.opacity = '1'; }); });
         var $ = function (s) { return w.querySelector(s); };
         var val = function (k) { var el = $('[data-k="' + k + '"]'); return el ? el.value.trim() : ''; };
-        var tipoInput = $('[data-k="tipo"]'), emp = $('[data-emp]');
+        var tipoInput = $('[data-k="tipo"]'), emp = $('[data-emp]'), empCaja = $('[data-emp-caja]');
         var IDIOMA = { es: 'Español', en: 'English', id: 'Bahasa Indonesia' };
         var OBLIG = (typeof CAMPOS_ALTA_COMPRADOR !== 'undefined' ? CAMPOS_ALTA_COMPRADOR.map(function (x) { return x[0]; })
           : ['full_name', 'email', 'prefijo', 'telefono', 'nationality', 'passport_number']);
@@ -6433,7 +6433,7 @@
           $('[data-p="nombre"]').textContent = n || 'Sin titular asignado';
           $('[data-p="ini"]').textContent = ini || '--';
           $('[data-p="tipo"]').textContent = (tipoInput.value === 'empresa' ? 'Persona jurídica' : 'Persona física') + ' • ' + (IDIOMA[val('idioma_comunicacion')] || 'Español');
-          $('[data-p="doc"]').textContent = val('passport_number') || '—';
+          $('[data-p="doc"]').textContent = val('passport_number').toUpperCase() || '—';
           $('[data-p="tel"]').textContent = val('telefono') ? (val('prefijo') + ' ' + val('telefono')).trim() : '—';
           var faltan = OBLIG.filter(function (k) { return !val(k); }).length;
           $('[data-p="faltan"]').textContent = faltan ? 'Faltan ' + faltan + ' de ' + OBLIG.length + ' datos obligatorios' : 'Listo para dar de alta';
@@ -6443,11 +6443,12 @@
           tipoInput.value = t;
           w.querySelectorAll('.las-pildora').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-tipo') === t)); });
           var esEmp = t === 'empresa';
-          emp.classList.toggle('las-off', !esEmp);
-          emp.querySelectorAll('input').forEach(function (i) { i.tabIndex = esEmp ? 0 : -1; });
-          var ins = $('[data-p="emp"]');
-          ins.textContent = esEmp ? 'Aplica a esta empresa' : 'No aplica a persona física';
-          ins.classList.toggle('las-insignia-on', esEmp);
+          /* Persona física: el bloque de empresa no pinta nada, así que no está
+             (owner, 25-sep-2026). Se vacía al ocultarse: lo tecleado para una
+             empresa no debe quedarse escondido en el formulario. */
+          empCaja.classList.toggle('las-abierta', esEmp);
+          empCaja.setAttribute('aria-hidden', String(!esEmp));
+          emp.querySelectorAll('input').forEach(function (i) { i.tabIndex = esEmp ? 0 : -1; if (!esEmp) i.value = ''; });
           resumen();
         }
         w.querySelectorAll('.las-pildora').forEach(function (b) { b.addEventListener('click', function () { ponTipo(b.getAttribute('data-tipo')); }); });
@@ -6595,7 +6596,11 @@
           '.las-req-nota{font-size:12px;font-weight:500;color:#f43f5e;white-space:nowrap}',
           '.las-insignia{font-size:11px;font-weight:500;padding:2px 8px;border-radius:4px;background:#f5f5f4;color:#57534e;white-space:nowrap;transition:background .2s,color .2s}',
           '.las-insignia-on{background:#fef3c7;color:#92400e}',
-          '.las-emp.las-off .las-fila{opacity:.6;pointer-events:none}',
+          /* bloque 02: plegado a altura 0 y se despliega (filas de rejilla 0fr→1fr) */
+          '.las-emp-caja{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .32s var(--las-sale),opacity .22s var(--las-sale)}',
+          '.las-emp-caja > .las-bloque{overflow:hidden;min-height:0}',
+          '.las-emp-caja:not(.las-abierta){margin-top:-24px;visibility:hidden}',
+          '.las-emp-caja.las-abierta{grid-template-rows:1fr;opacity:1;visibility:visible}',
           '.las-fila .las-campo, .las-fila > *{min-width:0}',
           '.las-fila{display:grid;grid-template-columns:1fr 1fr;gap:16px;transition:opacity .25s var(--las-sale)}',
           '.las-fila-tel{grid-template-columns:4fr 8fr;gap:12px}',
@@ -6609,6 +6614,8 @@
           '.las-in{width:100%;margin:0;padding:10px 14px;font:400 14px/1.43 Jost,"Neue Kabel",system-ui,sans-serif;color:#1c1917;background:rgba(250,250,249,.5);border:1px solid var(--las-borde);border-radius:8px;outline:none;box-shadow:none;transition:border-color .16s var(--las-sale),box-shadow .2s var(--las-sale),background-color .16s var(--las-sale)}',
           '.las-in.las-con-ico{padding-left:40px}',
           '.las-in.las-mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}',
+          /* el dato se guarda en mayúsculas (se imprime en el contrato): se ve igual al teclearlo */
+          '.las-mayus .las-in{text-transform:uppercase}.las-mayus .las-in::placeholder{text-transform:none}',
           'select.las-in{appearance:none;-webkit-appearance:none;padding-right:40px;cursor:pointer;background-image:none}',
           '.las-in::placeholder{color:#a8a29e}',
           '.las-in:hover{border-color:#d6cfc2}',
@@ -6655,8 +6662,6 @@
           '.las-dentro .las-card:nth-child(2){animation-delay:.06s}.las-dentro .las-aviso{animation-delay:.12s}',
           '.las-dentro .las-bloque{animation-delay:.1s}.las-dentro .las-bloque + .las-bloque{animation-delay:.18s}',
           '@keyframes las-entra{from{opacity:0;transform:translateY(10px)}}',
-          '.las-dentro .las-emp.las-off{animation-name:las-entra-off}',
-          '@keyframes las-entra-off{from{opacity:0;transform:translateY(10px)}}',
           /* menos de 1024 px: la ficha pasa a un desplegable encima del formulario */
           '@media (max-width:1023px){',
           '.las-cuerpo{flex-direction:column;overflow-y:auto}',
@@ -6813,7 +6818,7 @@
             // el contrato y la factura enlazan esta ficha y la imprimen tal cual.
             full_name: v.full_name.trim().toUpperCase(), email: v.email.trim() || null,
             phone: v.telefono ? ((v.prefijo ? v.prefijo + ' ' : '') + v.telefono.trim()) : null,
-            nationality: v.nationality.trim() || null, passport_number: v.passport_number.trim() || null,
+            nationality: v.nationality.trim() || null, passport_number: v.passport_number.trim().toUpperCase() || null,
             idioma_comunicacion: v.idioma_comunicacion || 'es',
             forma_juridica: v.tipo === 'empresa' ? (v.forma_juridica.trim() || null) : null,
             registro_num: v.tipo === 'empresa' ? (v.registro_num.trim() || null) : null,
