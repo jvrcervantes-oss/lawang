@@ -187,7 +187,7 @@ ul.lista li .ms{font-size:18px;color:var(--tg);margin-top:2px}
 .pieza--res h3{color:var(--dl)} .pieza--res p{color:var(--muted)} .pieza--res .ms{color:var(--tg)}
 .villas{display:grid;gap:14px;margin-top:40px;grid-template-columns:repeat(2,1fr)}
 @media (min-width:768px){.villas{grid-template-columns:repeat(3,1fr)}}
-@media (min-width:1200px){.villas{grid-template-columns:repeat(6,1fr)}}
+@media (min-width:1200px){.villas{grid-template-columns:repeat(4,1fr)}}
 .villa{display:flex;flex-direction:column;border-radius:16px;overflow:hidden;border:1px solid var(--stone);
   text-decoration:none;background:var(--paper);transition:transform .2s ease}
 .villa:hover{transform:translateY(-3px)}
@@ -201,7 +201,7 @@ ul.lista li .ms{font-size:18px;color:var(--tg);margin-top:2px}
 .villa .ph img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease}
 .villa:hover .ph img{transform:scale(1.04)}
 .villa .ph--sin{display:flex;align-items:flex-end;padding:12px;color:rgba(245,240,230,.7);font-size:11px}
-.villa .b{padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--linen)}
+.villa .b{flex:1;padding:12px 14px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:4px 8px;color:var(--linen)}
 .villa .b h3{color:var(--linen);font-size:22px}
 .villa .b span{font-size:11.5px;opacity:.85;white-space:nowrap}
 .villa:nth-child(4n+1) .b{background:var(--tg)}.villa:nth-child(4n+2) .b{background:var(--dl)}
@@ -634,7 +634,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
 .alta p{font-size:15.5px;color:var(--muted)}
 .alta b{color:var(--ink);font-weight:600}
 .wa-link{color:inherit;font-weight:600;text-decoration:underline;text-underline-offset:3px;white-space:nowrap}
-.villa .b span{text-align:right;line-height:1.3;white-space:pre-line}
+.villa .b span{margin-left:auto;text-align:right;line-height:1.3;white-space:pre}
 .faq-nota{margin-top:16px;font-size:13px;color:var(--muted)}
 
 /* Formularios de alta (comercial) y de contacto (referido) */
