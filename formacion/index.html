@@ -60,7 +60,7 @@ p{margin:0}
 #top .tag b{color:var(--dl);font-weight:600}
 #top .tag i{width:8px;height:8px;border-radius:50%;background:var(--tg);animation:pulse 2s infinite}
 @keyframes pulse{50%{opacity:.35}}
-@media (min-width:1100px){#top .tag{display:flex}}
+@media (min-width:1560px){#top .tag{display:flex}}
 #top nav{display:none;gap:2px;padding:5px;border-radius:999px;background:rgba(190,179,165,.2);border:1px solid var(--stone)}
 @media (min-width:1280px){#top nav{display:flex}}
 .pill{position:relative;isolation:isolate;font-size:13px;font-weight:500;color:var(--ash);
@@ -123,6 +123,8 @@ p{margin:0}
 .indice a.hecho{background:rgba(49,67,34,.05);border-color:var(--primary)}
 .indice a.hecho .ok{color:var(--primary);font-variation-settings:'FILL' 1}
 #hero aside .pie{padding:14px;margin-top:auto}
+/* 8 pasos: en pantallas bajas el índice solo enseña el título de cada paso, para que quepan todos */
+@media (min-width:1024px) and (max-height:1000px){.indice .t span{display:none}.indice a{padding:9px 13px}}
 #hero aside .pie .btn{width:100%}
 /* Desde 1024px la foto ocupa el hero entero y la tarjeta flota ENCIMA, a la derecha
    (owner 24-sep). Por debajo se queda apilada: flotando taparía la foto en un móvil. */
@@ -346,7 +348,7 @@ ul.lista li .ms{font-size:18px;color:var(--tg);margin-top:2px}
 /* Pagos */
 .pagos{list-style:none;margin:0;padding:0;display:grid;gap:12px}
 @media (min-width:1000px){.pagos{grid-template-columns:.8fr 1.2fr 1.5fr .8fr}}
-.pago{position:relative;background:var(--linen);border:1px solid var(--stone);border-radius:18px;padding:24px 22px 22px}
+.pago{position:relative;background:var(--paper);border:1px solid var(--stone);border-radius:18px;padding:24px 22px 22px}
 .pago .ms{font-size:28px;color:var(--tg)}
 .pago__n{position:absolute;right:18px;top:12px;font-family:var(--ff-h);font-size:44px;font-weight:600;color:rgba(190,179,165,.7);line-height:1}
 .pago h3{font-size:25px;margin-top:10px}
@@ -538,7 +540,8 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
   <nav aria-label="Pasos">
     <a class="pill" href="#producto">Producto</a>
     <a class="pill" href="#comprador">Comprador</a>
-    <a class="pill" href="#venta">La venta</a>
+    <a class="pill" href="#venta">Apoyo</a>
+    <a class="pill" href="#recorrido">La venta</a>
     <a class="pill" href="#pagos">Pagos</a>
     <a class="pill" href="#herramientas">Herramientas</a>
     <a class="pill" href="#decir">Qué decir</a>
@@ -557,7 +560,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     <div class="cap">
       <span class="ante">Aprende a vender Lawang</span>
       <h1>«Si tienes 100.000&nbsp;€ para invertir, tienes <em>1.000&nbsp;€ para venir a verlo</em>.»</h1>
-      <p>Siete pasos para pasar de tu primer día a tu primera reserva: qué vendemos, a quién, cómo es una venta de principio a fin y qué no se dice nunca.</p>
+      <p>Ocho pasos para pasar de tu primer día a tu primera reserva: qué vendemos, a quién, cómo es una venta de principio a fin y qué no se dice nunca.</p>
     </div>
   </div>
   <aside aria-label="Índice del programa">
@@ -566,20 +569,21 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
       <h2>Tu primera venta, paso a paso</h2>
       <p>Léela entera la primera semana. Después úsala como consulta: cada paso enlaza a la herramienta de la intranet donde se hace.</p>
       <div class="kpis">
-        <div><small>Pasos</small><b>7</b></div>
+        <div><small>Pasos</small><b>8</b></div>
         <div><small>Villas</small><b id="kpi-villas">En catálogo</b></div>
         <div><small>Tu sitio</small><b>La intranet</b></div>
       </div>
-      <div class="prog"><div class="bar"><i id="barra"></i></div><span id="cuenta">0 de 7</span></div>
+      <div class="prog"><div class="bar"><i id="barra"></i></div><span id="cuenta">0 de 8</span></div>
     </div>
     <ol class="indice" id="indice">
       <li><a href="#producto" data-paso="producto"><span class="n">1</span><span class="t"><b>Lo que vendemos</b><span>Parcela + villa llave en mano</span></span><span class="ms ok">check_circle</span></a></li>
       <li><a href="#comprador" data-paso="comprador"><span class="n">2</span><span class="t"><b>A quién se lo vendemos</b><span>Cuatro perfiles de comprador</span></span><span class="ms ok">check_circle</span></a></li>
-      <li><a href="#venta" data-paso="venta"><span class="n">3</span><span class="t"><b>Cómo se vende</b><span>Nunca vendes solo</span></span><span class="ms ok">check_circle</span></a></li>
-      <li><a href="#herramientas" data-paso="herramientas"><span class="n">4</span><span class="t"><b>Tus herramientas</b><span>La intranet, pantalla a pantalla</span></span><span class="ms ok">check_circle</span></a></li>
-      <li><a href="#decir" data-paso="decir"><span class="n">5</span><span class="t"><b>Lo que se dice y lo que no</b><span>Las líneas rojas legales</span></span><span class="ms ok">check_circle</span></a></li>
-      <li><a href="#objeciones" data-paso="objeciones"><span class="n">6</span><span class="t"><b>Las objeciones de siempre</b><span>Y cómo responderlas</span></span><span class="ms ok">check_circle</span></a></li>
-      <li><a href="#guiones" data-paso="guiones"><span class="n">7</span><span class="t"><b>Tus guiones</b><span>Primer WhatsApp y primera llamada</span></span><span class="ms ok">check_circle</span></a></li>
+      <li><a href="#venta" data-paso="venta"><span class="n">3</span><span class="t"><b>Nunca vendes solo</b><span>El cliente, y cómo te apoyamos</span></span><span class="ms ok">check_circle</span></a></li>
+      <li><a href="#recorrido" data-paso="recorrido"><span class="n">4</span><span class="t"><b>La venta, etapa a etapa</b><span>De la primera conversación a las llaves</span></span><span class="ms ok">check_circle</span></a></li>
+      <li><a href="#herramientas" data-paso="herramientas"><span class="n">5</span><span class="t"><b>Tus herramientas</b><span>La intranet, pantalla a pantalla</span></span><span class="ms ok">check_circle</span></a></li>
+      <li><a href="#decir" data-paso="decir"><span class="n">6</span><span class="t"><b>Lo que se dice y lo que no</b><span>Las líneas rojas legales</span></span><span class="ms ok">check_circle</span></a></li>
+      <li><a href="#objeciones" data-paso="objeciones"><span class="n">7</span><span class="t"><b>Las objeciones de siempre</b><span>Y cómo responderlas</span></span><span class="ms ok">check_circle</span></a></li>
+      <li><a href="#guiones" data-paso="guiones"><span class="n">8</span><span class="t"><b>Tus guiones</b><span>Primer WhatsApp y primera llamada</span></span><span class="ms ok">check_circle</span></a></li>
     </ol>
     <div class="pie"><a class="btn btn--dl" href="#producto">Empezar por el paso 1<span class="ms" style="font-size:18px">arrow_downward</span></a></div>
   </aside>
@@ -666,7 +670,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
       <div class="top"><span class="ms">trending_up</span><h3>El que la quiere para alquilar</h3><p>Compra para que la villa se alquile cuando él no está.</p></div>
       <div class="dato dato--preo"><span class="et"><span class="ms">help</span>Qué le preocupa</span><p>Números, ocupación, quién gestiona el alquiler, qué pasa al final del plazo.</p></div>
       <div class="dato dato--ense"><span class="et"><span class="ms">visibility</span>Qué le enseñas</span><p>El investor deck y su ejemplo económico (un ejemplo, no una promesa), y que puede ceder la gestión: 20 % a éxito y sin cuotas mensuales.</p></div>
-      <div class="dato dato--cuid"><span class="et"><span class="ms">warning</span>Cuidado con</span><p>Prometer rentabilidad. Ver paso 5.</p></div>
+      <div class="dato dato--cuid"><span class="et"><span class="ms">warning</span>Cuidado con</span><p>Prometer rentabilidad. Ver paso 6.</p></div>
     </div>
     <div class="perfil">
       <div class="top"><span class="ms">family_restroom</span><h3>El que quiere construir legado</h3><p>Quiere algo propio en Bali o Sumba que dure y que pueda dejar a su familia.</p></div>
@@ -696,8 +700,8 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
   <div class="shead reveal">
     <div class="num">03</div>
     <div>
-      <span class="lbl">Paso 3 · El proceso</span>
-      <h2>Cómo se vende: nunca vendes solo</h2>
+      <span class="lbl">Paso 3 · Tu apoyo</span>
+      <h2>Nunca vendes solo</h2>
       <p class="lead">Vender aquí no es enseñar una casa. Es conseguir que alguien que vive a miles de kilómetros se fíe lo suficiente para invertir en algo que le ilusiona. Tu trabajo es ganarte al cliente y darle seguridad. El nuestro, estar detrás de ti en cada paso.</p>
     </div>
     <button class="hecho-btn" data-hecho="venta" aria-pressed="false"><span class="ms">check_circle</span>Paso leído</button>
@@ -733,19 +737,29 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     <span class="lbl">Lo que le da seguridad</span>
     <h3>Detrás de ti hay una promotora</h3>
   </div>
-  <div class="grid g3 reveal seguridad">
+  <div class="grid g2 reveal seguridad">
     <div><span class="ms">apartment</span><b>Somos el promotor</b><p>Diseñamos y construimos nosotros. El cliente no trata con intermediarios: habla con quien hace su casa.</p></div>
     <div><span class="ms">description</span><b>Contratos en su idioma</b><p>En español, inglés e indonesio, para que los lea con calma y los revise su propio abogado antes de firmar.</p></div>
     <div><span class="ms">account_balance</span><b>Notario y abogado</b><p>Antes de firmar puede resolver sus dudas con el notario. Se lo organizamos nosotros.</p></div>
-    <div><span class="ms">stairs</span><b>Paga por fases</b><p>La obra se paga por hitos, a medida que avanza, no todo por adelantado.</p></div>
-    <div><span class="ms">devices</span><b>Lo sigue desde casa</b><p>En su portal de comprador ve sus documentos y sus pagos cuando quiera.</p></div>
     <div><span class="ms">groups</span><b>Un equipo entero</b><p>Ventas, legal, obra y administración. Cuando el cliente pregunta, siempre hay alguien que sabe la respuesta.</p></div>
   </div>
 
-  <div class="subhead reveal">
-    <span class="lbl">El recorrido</span>
-    <h3>De la primera conversación a las llaves</h3>
+</div>
+</section>
+
+<!-- ═══ 4 · EL RECORRIDO ════════════════════════════════════════════════════════════ -->
+<section class="sec sec--paper" id="recorrido">
+<div class="wrap">
+  <div class="shead reveal">
+    <div class="num">04</div>
+    <div>
+      <span class="lbl">Paso 4 · El recorrido</span>
+      <h2>La venta, etapa a etapa</h2>
+      <p class="lead">Seis etapas, de la primera conversación a las llaves. En cada una, lo que haces tú y cómo te apoyamos nosotros.</p>
+    </div>
+    <button class="hecho-btn" data-hecho="recorrido" aria-pressed="false"><span class="ms">check_circle</span>Paso leído</button>
   </div>
+
   <ol class="ruta ruta--apoyo reveal">
     <li><div class="dot"><span class="ms">favorite</span></div><div class="box">
       <div><span class="fase">Etapa 1</span><h3>Trabájate al cliente</h3></div>
@@ -797,7 +811,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
 </section>
 
 <!-- ═══ PAGOS ═════════════════════════════════════════════════════════════════════ -->
-<section class="sec sec--paper" id="pagos">
+<section class="sec" id="pagos">
 <div class="wrap">
   <div class="shead reveal">
     <div class="num"><span class="ms" style="font-size:inherit">account_balance_wallet</span></div>
@@ -862,9 +876,9 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
 <section class="sec sec--paper" id="herramientas">
 <div class="wrap">
   <div class="shead reveal">
-    <div class="num">04</div>
+    <div class="num">05</div>
     <div>
-      <span class="lbl">Paso 4 · La intranet</span>
+      <span class="lbl">Paso 5 · La intranet</span>
       <h2>Tus herramientas</h2>
       <p class="lead">Todo lo que necesitas está en la intranet. Entras con tu usuario y ves lo tuyo: tus clientes, tus compradores, tus contratos y tus comisiones. Estas son las pantallas que vas a usar cada día.</p>
     </div>
@@ -888,9 +902,9 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
 <section class="sec sec--lagoon" id="decir">
 <div class="wrap">
   <div class="shead reveal">
-    <div class="num">05</div>
+    <div class="num">06</div>
     <div>
-      <span class="lbl">Paso 5 · Líneas rojas</span>
+      <span class="lbl">Paso 6 · Líneas rojas</span>
       <h2>Lo que se dice y lo que no</h2>
       <p class="lead">Lo que le dices a un cliente por WhatsApp o en una llamada puede obligar a la empresa igual que un contrato. Estas reglas no son de estilo: protegen al comprador, a Lawang y a ti.</p>
     </div>
@@ -927,9 +941,9 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
 <section class="sec" id="objeciones">
 <div class="wrap">
   <div class="shead reveal">
-    <div class="num">06</div>
+    <div class="num">07</div>
     <div>
-      <span class="lbl">Paso 6 · Objeciones</span>
+      <span class="lbl">Paso 7 · Objeciones</span>
       <h2>Las objeciones de siempre</h2>
       <p class="lead">Estas preguntas salen en casi todas las ventas. La respuesta modelo es un punto de partida seguro; dila con tus palabras, pero no le añadas promesas.</p>
     </div>
@@ -972,9 +986,9 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
 <section class="sec sec--paper" id="guiones">
 <div class="wrap">
   <div class="shead reveal">
-    <div class="num">07</div>
+    <div class="num">08</div>
     <div>
-      <span class="lbl">Paso 7 · Guiones</span>
+      <span class="lbl">Paso 8 · Guiones</span>
       <h2>Tus guiones</h2>
       <p class="lead">El primer mensaje, la primera llamada y las cinco preguntas que separan al curioso del comprador.</p>
     </div>
@@ -999,7 +1013,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
         <li><div><b>Descubre para qué la quiere</b><span>Alquilar, pasar temporadas o vivir. Decide el perfil del paso 2.</span></div></li>
         <li><div><b>Haz las preguntas de cualificación</b><span>Las cinco de abajo.</span></div></li>
         <li><div><b>Encaja un producto</b><span>Un proyecto, una parcela, un modelo. No el catálogo entero.</span></div></li>
-        <li><div><b>Responde la objeción principal</b><span>Con el paso 6. Titularidad, impuestos o rentabilidad: al notario o al abogado.</span></div></li>
+        <li><div><b>Responde la objeción principal</b><span>Con el paso 7. Titularidad, impuestos o rentabilidad: al notario o al abogado.</span></div></li>
         <li><div><b>Cierra un siguiente paso con fecha</b><span>Videollamada con plano, visita o envío del deck. Nunca «te mando info y ya me dices».</span></div></li>
         <li><div><b>Apúntalo en su ficha al colgar</b><span>Nota, próximo seguimiento y estado del tablero.</span></div></li>
       </ol>
@@ -1109,7 +1123,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
 (function () {
   'use strict';
   var CLAVE = 'lw-formacion-v1';
-  var PASOS = ['producto', 'comprador', 'venta', 'herramientas', 'decir', 'objeciones', 'guiones'];
+  var PASOS = ['producto', 'comprador', 'venta', 'recorrido', 'herramientas', 'decir', 'objeciones', 'guiones'];
   var estado = { pasos: {}, chk: {} };
   // El progreso es una comodidad de este navegador: si el almacenamiento falla
   // (privado, bloqueado) la página funciona igual, solo no recuerda.
