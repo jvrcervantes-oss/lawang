@@ -360,6 +360,28 @@ ul.lista li .ms{font-size:18px;color:var(--tg);margin-top:2px}
 .ruta--apoyo ol.mini li::marker{color:var(--tg);font-weight:700}
 .ruta--apoyo .tu b{color:var(--ink);font-weight:600}
 
+/* Por qué cuestan menos */
+.juntos{display:grid;gap:18px;margin-top:22px;border-radius:22px;background:var(--be);color:var(--linen);padding:28px}
+@media (min-width:900px){.juntos{grid-template-columns:auto 1fr;align-items:center;padding:36px 44px;gap:32px}}
+.juntos > .ms{font-size:56px;color:#e9e1cf}
+.juntos .lbl{color:var(--stone)}
+.juntos h3{color:var(--linen);font-size:clamp(26px,3.2vw,40px);margin-top:8px}
+.juntos p{color:rgba(245,240,230,.88);margin-top:10px;font-size:15.5px;max-width:900px}
+
+/* Gestión tras las llaves */
+.gestion{margin-top:22px;border-radius:22px;background:var(--dl);color:var(--linen);padding:28px;display:grid;gap:22px}
+@media (min-width:1000px){.gestion{grid-template-columns:1fr 1.1fr;padding:40px 44px;align-items:center;gap:40px}}
+.gestion .lbl{color:var(--stone)}
+.gestion h3{color:var(--linen);font-size:clamp(30px,3.6vw,46px);margin-top:8px}
+.gestion__txt p{color:rgba(245,240,230,.88);margin-top:12px;font-size:15.5px}
+.gestion__datos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.gestion__datos div{background:rgba(245,240,230,.09);border:1px solid rgba(245,240,230,.2);border-radius:16px;padding:18px 14px;text-align:center}
+.gestion__datos b{display:block;font-family:var(--ff-h);font-size:clamp(30px,3.4vw,44px);font-weight:600;line-height:1;color:#e9e1cf}
+.gestion__datos span{display:block;font-size:13px;color:rgba(245,240,230,.8);margin-top:8px;line-height:1.4}
+.gestion__ojo{grid-column:1/-1;display:flex;gap:10px;align-items:flex-start;font-size:13.5px;color:rgba(245,240,230,.75);
+  border-top:1px solid rgba(245,240,230,.18);padding-top:16px}
+.gestion__ojo .ms{font-size:18px;color:#e2b27a}
+
 /* Regla de oro */
 .oro{display:grid;gap:22px;border-radius:22px;background:var(--tg);color:var(--linen);padding:30px;margin-top:10px}
 @media (min-width:900px){.oro{grid-template-columns:auto 1fr;align-items:center;padding:40px 44px}}
@@ -561,6 +583,15 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     <div class="pieza pieza--res"><span class="ms">contract</span><h3>Precio cerrado</h3><p>Parcela + villa llave en mano. Lo calcula el Generador de contratos con los precios vigentes; tú no lo calculas a mano.</p></div>
   </div>
 
+  <div class="juntos reveal">
+    <span class="ms">diversity_3</span>
+    <div>
+      <span class="lbl">Por qué cuestan menos</span>
+      <h3>Construimos con los inversores. Vamos todos juntos, de la mano.</h3>
+      <p>Nuestras villas son más baratas porque las levantamos junto a quienes invierten en ellas: el cliente no compra una casa que otro ya ha terminado y encarecido, entra desde el principio y construye con nosotros. Es el primer argumento que tienes que dar cuando pregunte por el precio.</p>
+    </div>
+  </div>
+
   <div class="tenencia reveal">
     <div class="tenencia__cab">
       <span class="lbl">Antes de nada</span>
@@ -609,7 +640,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     <div class="perfil">
       <div class="top"><span class="ms">trending_up</span><h3>El que la quiere para alquilar</h3><p>Compra para que la villa se alquile cuando él no está.</p></div>
       <div class="dato dato--preo"><span class="et"><span class="ms">help</span>Qué le preocupa</span><p>Números, ocupación, quién gestiona el alquiler, qué pasa al final del plazo.</p></div>
-      <div class="dato dato--ense"><span class="et"><span class="ms">visibility</span>Qué le enseñas</span><p>El investor deck del proyecto y su ejemplo económico, explicado como lo que es: el ejemplo de una parcela concreta, no una promesa.</p></div>
+      <div class="dato dato--ense"><span class="et"><span class="ms">visibility</span>Qué le enseñas</span><p>El investor deck y su ejemplo económico (un ejemplo, no una promesa), y que puede ceder la gestión: 20 % a éxito y sin cuotas mensuales.</p></div>
       <div class="dato dato--cuid"><span class="et"><span class="ms">warning</span>Cuidado con</span><p>Prometer rentabilidad. Ver paso 5.</p></div>
     </div>
     <div class="perfil">
@@ -631,7 +662,6 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
       <div class="dato dato--cuid"><span class="et"><span class="ms">warning</span>Cuidado con</span><p>Dar consejo fiscal o prometer un ahorro de impuestos. Ni en su país ni en Indonesia: es lo que más compromete a Lawang.</p></div>
     </div>
   </div>
-  <div class="nota reveal"><span class="ms">campaign</span><span><b>Habla como habló el anuncio.</b> Los anuncios de Lawang venden tres ideas: la comparación de precio con la costa cara de Bali (misma isla, mismo océano, otra factura), que somos promotor (diseñamos y construimos nosotros) y que no es para todo el mundo. Si tu primera llamada cuenta otra cosa, el cliente nota el salto.</span></div>
 </div>
 </section>
 
@@ -785,6 +815,20 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     </li>
   </ol>
 
+  <div class="gestion reveal">
+    <div class="gestion__txt">
+      <span class="lbl">Y después de las llaves</span>
+      <h3>Puede olvidarse de todo</h3>
+      <p>Si quiere alquilarla, el cliente puede ceder la gestión de la villa a una empresa de gestión que se ocupa de todo: reservas, huéspedes, limpieza y mantenimiento. Él solo recibe lo que genera su villa.</p>
+    </div>
+    <div class="gestion__datos">
+      <div><b>20&nbsp;%</b><span>de lo que genera la villa, por gestionarlo todo</span></div>
+      <div><b>A éxito</b><span>solo cobra si la villa genera ingresos</span></div>
+      <div><b>0&nbsp;€</b><span>de cuotas mensuales</span></div>
+    </div>
+    <p class="gestion__ojo"><span class="ms">warning</span>Cuánto ingresará no se garantiza: depende de la ocupación. Enséñale el ejemplo económico del investor deck como lo que es, un ejemplo.</p>
+  </div>
+
   <div class="grid g3 reveal" style="margin-top:22px">
     <div class="card"><span class="lbl" style="color:var(--tg)">Cómo decirlo</span><p style="color:var(--ink);font-size:16px;margin-top:10px">«Primero aseguras tu tierra ante notario. Luego pagas tu casa a medida que la ves levantarse.»</p></div>
     <div class="card"><span class="lbl" style="color:var(--tg)">Por qué funciona</span><p>Responde al miedo del que está lejos: no adelanta dinero por algo que no existe todavía.</p></div>
@@ -801,13 +845,13 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     <div>
       <span class="lbl">Paso 4 · La intranet</span>
       <h2>Tus herramientas</h2>
-      <p class="lead">Todo lo que necesitas está en la intranet. Entras con tu usuario y ves lo tuyo: tus leads, tus compradores, tus contratos y tus comisiones. Estas son las pantallas que vas a usar cada día.</p>
+      <p class="lead">Todo lo que necesitas está en la intranet. Entras con tu usuario y ves lo tuyo: tus clientes, tus compradores, tus contratos y tus comisiones. Estas son las pantallas que vas a usar cada día.</p>
     </div>
     <button class="hecho-btn" data-hecho="herramientas" aria-pressed="false"><span class="ms">check_circle</span>Paso leído</button>
   </div>
   <div class="grid g4 reveal">
     <a class="herr-card" href="/intranet/v4/home/"><span class="ic ms">today</span><h3>Hoy toca</h3><p>La bandeja de lo que tienes pendiente hoy. Empieza el día aquí.</p><span class="cuando">Cada mañana</span></a>
-    <a class="herr-card" href="/intranet/leads/"><span class="ic ms">person_search</span><h3>CRM · Leads</h3><p>Tablero con tus leads por estado. Ficha, notas, próximos pasos y el chat de WhatsApp.</p><span class="cuando">Todo el día</span></a>
+    <a class="herr-card" href="/intranet/leads/"><span class="ic ms">person_search</span><h3>CRM · Clientes</h3><p>Da de alta a tus clientes y lleva cada uno por estado: notas y próximos pasos. Así el equipo sabe cómo ayudarte.</p><span class="cuando">Todo el día</span></a>
     <a class="herr-card" href="/intranet/v4/compradores/"><span class="ic ms">group</span><h3>Compradores</h3><p>La ficha del cliente cuando ya ha firmado: datos, contratos y pagos.</p><span class="cuando">Desde la reserva</span></a>
     <a class="herr-card" href="/intranet/v4/generador-contratos/"><span class="ic ms">edit_document</span><h3>Generador de contratos</h3><p>Reservas, bloqueos y contratos de construcción con los precios vigentes. Firma digital.</p><span class="cuando">Al cerrar</span></a>
     <a class="herr-card" href="/intranet/v4/reservas/"><span class="ic ms">event_upcoming</span><h3>Reservas</h3><p>Tus reservas vivas y cuándo vencen. Si una está a punto de caducar, habla con tu manager.</p><span class="cuando">Cada semana</span></a>
@@ -885,7 +929,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
       <p>No prometas fechas ni penalizaciones que no estén en ese contrato.</p></div></details>
     <details><summary>«¿Cuánto voy a ganar?»<span class="ms">expand_more</span></summary><div class="resp">
       <span class="lbl">Respuesta modelo</span>
-      <blockquote>No garantizamos rentabilidad. El ejemplo del investor deck está calculado para una parcela concreta, con supuestos de ocupación y precio por noche que pueden no cumplirse. Te lo enseño con esos supuestos para que los valores tú.</blockquote>
+      <blockquote>No garantizamos rentabilidad. El ejemplo del investor deck está calculado para una parcela concreta, con supuestos de ocupación y precio por noche que pueden no cumplirse. Lo que sí te digo es cómo funciona: puedes ceder la gestión a una empresa que cobra el 20 % de lo que genere la villa, solo si genera, y sin cuotas mensuales.</blockquote>
       <p>El ejemplo está en el investor deck del proyecto. Explica siempre que es un ejemplo.</p></div></details>
     <details><summary>«¿Por qué voy a pagar antes de ver la casa?»<span class="ms">expand_more</span></summary><div class="resp">
       <span class="lbl">Respuesta modelo</span>
@@ -893,8 +937,8 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
       <p>No afirmes que la reserva se devuelve: lo regula la carta. E invítale a la visita, que es la mejor respuesta.</p></div></details>
     <details><summary>«Es más barato que en Canggu o Uluwatu. ¿Dónde está la trampa?»<span class="ms">expand_more</span></summary><div class="resp">
       <span class="lbl">Respuesta modelo</span>
-      <blockquote>Es la costa oeste: misma isla, mismo océano, zona más tranquila y suelo menos caro. Diseñamos y construimos nosotros la villa. Ven a verlo.</blockquote>
-      <p>Es el mensaje de los anuncios. Úsalo, pero sin comparar rentabilidades.</p></div></details>
+      <blockquote>No hay trampa: la construimos contigo. Entras desde el principio y levantamos la villa juntos, en lugar de comprar una que otro ya ha terminado y encarecido. Y es la costa oeste: misma isla, mismo océano, más tranquila. Ven a verlo.</blockquote>
+      <p>Úsalo sin comparar rentabilidades con otras zonas.</p></div></details>
     <details><summary>«Me lo tengo que pensar.»<span class="ms">expand_more</span></summary><div class="resp">
       <span class="lbl">Respuesta modelo</span>
       <blockquote>Claro. ¿Qué es lo que te falta para decidir? Así te preparo justo eso para la próxima llamada. ¿Te va bien el jueves?</blockquote>
@@ -920,9 +964,9 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     <div>
       <span class="lbl" style="color:var(--tg)">Primer WhatsApp</span>
       <h3 style="font-size:28px;margin:8px 0 16px">El mensaje de presentación</h3>
-      <div class="burbuja" id="wa-es"><small>Español</small>Hola <mark>nombre</mark>, soy <mark>tu nombre</mark>, de Lawang. Hemos recibido tu solicitud sobre <mark>proyecto</mark>.<br>¿Te va bien una llamada de 10 minutos hoy o mañana? Te enseño las parcelas y el modelo de villa que mejor encaja con lo que buscas.<br>Si lo prefieres, antes te mando por aquí el vídeo del proyecto.</div>
+      <div class="burbuja" id="wa-es"><small>Español</small>Hola <mark>nombre</mark>, soy <mark>tu nombre</mark>. Estoy trabajando con Lawang, una promotora que construye villas en Bali junto a sus inversores, y me he acordado de ti <mark>(o: me ha pasado tu contacto X)</mark>.<br>¿Te va bien una llamada de 10 minutos esta semana? Te cuento cómo funciona y te enseño un proyecto que creo que te puede encajar.<br>Si lo prefieres, antes te mando por aquí el vídeo.</div>
       <button class="copiar" data-copia="wa-es"><span class="ms">content_copy</span>Copiar</button>
-      <div class="burbuja" id="wa-en" style="margin-top:14px"><small>English</small>Hi <mark>name</mark>, this is <mark>your name</mark> from Lawang. We got your enquiry about <mark>project</mark>.<br>Would a 10-minute call today or tomorrow suit you? I'll walk you through the plots and the villa model that best fits what you're after.<br>If you prefer, I can send you the project video here first.</div>
+      <div class="burbuja" id="wa-en" style="margin-top:14px"><small>English</small>Hi <mark>name</mark>, it's <mark>your name</mark>. I'm working with Lawang, a developer building villas in Bali together with its investors, and I thought of you <mark>(or: X gave me your contact)</mark>.<br>Would a 10-minute call this week suit you? I'll explain how it works and show you a project I think could fit.<br>If you prefer, I can send you the video here first.</div>
       <button class="copiar" data-copia="wa-en"><span class="ms">content_copy</span>Copy</button>
     </div>
     <div>
@@ -930,7 +974,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
       <h3 style="font-size:28px;margin:8px 0 16px">Ocho pasos, unos 10 minutos</h3>
       <ol class="llamada">
         <li><div><b>Preséntate y pide permiso</b><span>«¿Tienes 10 minutos ahora?». Si no, agenda la llamada en ese momento.</span></div></li>
-        <li><div><b>Confirma lo que ya contestó</b><span>«Me dijiste tal presupuesto y tal plazo, ¿sigue así?». No se lo vuelvas a preguntar.</span></div></li>
+        <li><div><b>Parte de lo que ya sabes de él</b><span>Si es alguien de tu entorno o un referido, recuérdale por qué te acordaste de él. No empieces por el producto.</span></div></li>
         <li><div><b>Descubre para qué la quiere</b><span>Alquilar, pasar temporadas o vivir. Decide el perfil del paso 2.</span></div></li>
         <li><div><b>Haz las preguntas de cualificación</b><span>Las cinco de abajo.</span></div></li>
         <li><div><b>Encaja un producto</b><span>Un proyecto, una parcela, un modelo. No el catálogo entero.</span></div></li>
@@ -1003,8 +1047,8 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
       <label><input type="checkbox" data-chk="d4a"><span>Haz la llamada del paso 7 con tu manager haciendo de cliente.</span></label>
       <label><input type="checkbox" data-chk="d4b"><span>Recorre el Generador de contratos de principio a fin sin guardar: un contrato guardado gasta un número de serie real.</span></label>
       <label><input type="checkbox" data-chk="d4c"><span>Escucha o lee una conversación real de un compañero.</span></label></div>
-    <div class="dia"><span class="lbl">Día 5</span><h3>Tus leads</h3>
-      <label><input type="checkbox" data-chk="d5a"><span>Contacta tus primeros leads el mismo día que entran.</span></label>
+    <div class="dia"><span class="lbl">Día 5</span><h3>Tus clientes</h3>
+      <label><input type="checkbox" data-chk="d5a"><span>Haz la lista de tu gente: contactos e inversores que conoces, y a quién te pueden presentar.</span></label>
       <label><input type="checkbox" data-chk="d5b"><span>Deja cada contacto apuntado en su ficha.</span></label>
       <label><input type="checkbox" data-chk="d5c"><span>Agenda tu primera videollamada o visita.</span></label></div>
   </div>
@@ -1013,12 +1057,12 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     <span class="lbl" style="color:var(--tg)">Cada semana</span>
     <h3 style="font-size:28px;margin:8px 0 16px">Tus números, mirados por ti</h3>
     <ul class="metricas">
-      <li><span class="ms">inbox</span><div><b>Leads sin tocar</b><span>Leads tuyos todavía en «nuevo» o sin ninguna acción. El objetivo es cero.</span></div></li>
-      <li><span class="ms">timer</span><div><b>Tiempo hasta el primer contacto</b><span>Cuántos de tus leads esperaron más de 24 horas.</span></div></li>
-      <li><span class="ms">call</span><div><b>De contacto a llamada</b><span>De los que contactaste, cuántos llegaron a una llamada o videollamada.</span></div></li>
-      <li><span class="ms">event</span><div><b>Siguientes pasos con fecha</b><span>Videollamadas, visitas y decks enviados en tu agenda.</span></div></li>
+      <li><span class="ms">forum</span><div><b>Clientes en conversación</b><span>Con cuántos has hablado esta semana de la inversión, y cuántos son nuevos.</span></div></li>
+      <li><span class="ms">group_add</span><div><b>Referidos</b><span>A cuántas personas nuevas te han presentado tus clientes y tus contactos.</span></div></li>
+      <li><span class="ms">video_call</span><div><b>Reuniones</b><span>Llamadas y videollamadas en las que explicaste cómo funciona la compra.</span></div></li>
+      <li><span class="ms">directions_walk</span><div><b>Visitas al terreno</b><span>Clientes que han venido o tienen fecha para venir. «Si tienes 100.000 €, tienes 1.000 € para venir a verlo».</span></div></li>
       <li><span class="ms">bookmark_added</span><div><b>Reservas firmadas</b><span>Cartas de Reserva o Bloqueos de Parcela de la semana.</span></div></li>
-      <li><span class="ms">hourglass_bottom</span><div><b>Leads olvidados</b><span>Sin próximo seguimiento, o más de 7 días sin contacto.</span></div></li>
+      <li><span class="ms">hourglass_bottom</span><div><b>Clientes olvidados</b><span>Sin próximo paso con fecha, o más de 7 días sin hablar con ellos.</span></div></li>
     </ul>
   </div>
 </div>
