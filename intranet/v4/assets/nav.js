@@ -207,6 +207,11 @@
      sesion tras `window.LW_AUTH` (guard.js), que resuelve DESPUES del primer
      pase sincrono — por eso corre en un segundo pase, igual que antes. */
   var PANEL_CONTROL = [
+    /* Finanzas (24-sep-2026, owner: «un dashboard financiero»): la primera del
+       grupo porque es la que se mira, no la que se configura. Admin, como la
+       puerta (`data-rol="admin"`); lo que ve cada cifra lo decide la RLS y el
+       panel dice «sin permiso» donde la ficha no llega. Solo lectura. */
+    { path: 'finanzas',      icono: 'monitoring',       texto: 'Finanzas' },
     { path: 'cuentas',       icono: 'account_balance', texto: 'Cuentas' },
     /* Equipos de venta, Condiciones y Reparto ya NO van aquí (23-sep-2026, plan
        del owner: «agrupar y controlar lo que se ve por permisos»): son pestañas
