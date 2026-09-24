@@ -109,6 +109,13 @@
     'A land-plot development in the': { es: 'Una promoción de parcelas en el', id: 'Pengembangan kavling tanah di' },
     'Balian river valley.': { es: 'valle del río Balian.', id: 'lembah sungai Balian.' },
     'Held under': { es: 'En régimen de', id: 'Dipegang dalam skema' },
+    // Dos rutas (owner, 24-sep-2026): con empresa Freehold (HGB) vía PT PMA, sin empresa Hak Sewa.
+    'Held as': { es: 'Con', id: 'Dipegang sebagai' },
+    'Freehold (HGB)': { es: 'Freehold (HGB)', id: 'Freehold (HGB)' },
+    'through a PT PMA, or': { es: 'a través de una PT PMA, o', id: 'melalui PT PMA, atau' },
+    'without a company, with a notarial escrow account — not a security or investment product.':
+      { es: 'sin sociedad, con cuenta escrow notarial — no es un valor ni un producto de inversión.',
+        id: 'tanpa perusahaan, dengan rekening escrow notaris — bukan efek maupun produk investasi.' },
     'Hak Sewa': { es: 'Hak Sewa', id: 'Hak Sewa' },
     'with a notarial escrow account — not a security or investment product. Real documentation, live plot inventory and a Year-1 forecast, for your own due diligence.':
       { es: 'con cuenta escrow notarial — no es un valor ni un producto de inversión. Documentación real, inventario de parcelas en vivo y una previsión de Año 1, para tu propia due diligence.',
@@ -179,7 +186,9 @@
     '2. 10-day validity': { es: '2. Validez de 10 días', id: '2. Berlaku 10 hari' },
     'Due-diligence window; refundable per the Letter of Reservation.': { es: 'Ventana de due diligence; reembolsable según la Carta de Reserva.', id: 'Jendela uji tuntas; dapat dikembalikan sesuai Surat Pemesanan.' },
     '3. Notarial signature': { es: '3. Firma notarial', id: '3. Penandatanganan notaris' },
-    'Hak Sewa deed and Power of Attorney before a PPAT notary.': { es: 'Escritura de Hak Sewa y poder notarial ante un notario PPAT.', id: 'Akta Hak Sewa dan Surat Kuasa di hadapan notaris PPAT.' },
+    'HGB deed to your PT PMA, or Hak Sewa deed without a company, with Power of Attorney, before a PPAT notary.':
+      { es: 'Escritura HGB a nombre de tu PT PMA, o de Hak Sewa sin sociedad, con poder notarial, ante un notario PPAT.',
+        id: 'Akta HGB atas nama PT PMA Anda, atau akta Hak Sewa tanpa perusahaan, dengan surat kuasa, di hadapan notaris PPAT.' },
     'Reserve': { es: 'Reservar', id: 'Pesan' },
     'Contact us': { es: 'Escríbenos', id: 'Hubungi kami' },
     /* 22-sep: el plano lleva a la fila, y la fila contacta por WhatsApp */
@@ -224,19 +233,22 @@
     'Investment (construction):': { es: 'Inversión (construcción):', id: 'Investasi (konstruksi):' },
 
     /* — seguridad jurídica — */
-    'Hak Sewa With Notarial Escrow vs. Informal Leasehold': { es: 'Hak Sewa con escrow notarial frente al leasehold informal', id: 'Hak Sewa dengan Escrow Notaris vs. Leasehold Informal' },
-    "Much of Bali's foreign-facing market runs on private, unregistered lease agreements with no escrow and no notarial oversight. Palm Field is structured as":
-      { es: 'Buena parte del mercado de Bali dirigido a extranjeros funciona con contratos de arrendamiento privados, sin registrar, sin escrow y sin control notarial. Palm Field se estructura como',
-        id: 'Sebagian besar pasar Bali yang menyasar orang asing berjalan dengan perjanjian sewa privat, tidak terdaftar, tanpa escrow dan tanpa pengawasan notaris. Palm Field disusun sebagai' },
-    '(long-term Indonesian lease tenure) directly between the landowner and the buyer, with funds held in a':
-      { es: '(arrendamiento de largo plazo del derecho indonesio) directamente entre el propietario del suelo y el comprador, con los fondos depositados en una',
-        id: '(hak sewa jangka panjang menurut hukum Indonesia) langsung antara pemilik tanah dan pembeli, dengan dana ditahan di' },
+    'Registered Title With Notarial Escrow vs. Informal Leasehold': { es: 'Título inscrito con escrow notarial frente al leasehold informal', id: 'Hak Terdaftar dengan Escrow Notaris vs. Leasehold Informal' },
+    "Much of Bali's foreign-facing market runs on private, unregistered lease agreements with no escrow and no notarial oversight. At Palm Field you choose between two registered routes:":
+      { es: 'Buena parte del mercado de Bali dirigido a extranjeros funciona con contratos de arrendamiento privados, sin registrar, sin escrow y sin control notarial. En Palm Field eliges entre dos vías inscritas:',
+        id: 'Sebagian besar pasar Bali yang menyasar orang asing berjalan dengan perjanjian sewa privat, tidak terdaftar, tanpa escrow dan tanpa pengawasan notaris. Di Palm Field Anda memilih antara dua jalur terdaftar:' },
+    'held through your own PT PMA (a foreign-owned Indonesian company), or':
+      { es: 'a través de tu propia PT PMA (sociedad indonesia de capital extranjero), o',
+        id: 'melalui PT PMA Anda sendiri (perusahaan Indonesia milik asing), atau' },
+    '(long-term Indonesian lease tenure) in your own name if you buy without a company. Funds are held in a':
+      { es: '(arrendamiento de largo plazo del derecho indonesio) a tu nombre si compras sin sociedad. Los fondos quedan depositados en una',
+        id: '(hak sewa jangka panjang menurut hukum Indonesia) atas nama Anda jika membeli tanpa perusahaan. Dana ditahan di' },
     'notarial escrow account': { es: 'cuenta escrow notarial', id: 'rekening escrow notaris' },
-    'until the agreed conditions are met — not Hak Milik, which Indonesian law reserves for Indonesian citizens.':
-      { es: 'hasta que se cumplen las condiciones pactadas — no Hak Milik, que la ley indonesia reserva a los ciudadanos indonesios.',
-        id: 'sampai syarat yang disepakati terpenuhi — bukan Hak Milik, yang oleh hukum Indonesia hanya untuk warga negara Indonesia.' },
+    'until the agreed conditions are met — and neither route is Hak Milik, which Indonesian law reserves for Indonesian citizens.':
+      { es: 'hasta que se cumplen las condiciones pactadas — y ninguna de las dos es Hak Milik, que la ley indonesia reserva a los ciudadanos indonesios.',
+        id: 'sampai syarat yang disepakati terpenuhi — dan tidak satu pun jalur tersebut adalah Hak Milik, yang oleh hukum Indonesia hanya untuk warga negara Indonesia.' },
     'Legal & registry aspect': { es: 'Aspecto jurídico y registral', id: 'Aspek hukum & pendaftaran' },
-    'Palm Field: Hak Sewa + escrow': { es: 'Palm Field: Hak Sewa + escrow', id: 'Palm Field: Hak Sewa + escrow' },
+    'Palm Field: registered title + escrow': { es: 'Palm Field: título inscrito + escrow', id: 'Palm Field: hak terdaftar + escrow' },
     'Common practice: informal lease': { es: 'Práctica habitual: arrendamiento informal', id: 'Praktik umum: sewa informal' },
     'Payment security': { es: 'Seguridad del pago', id: 'Keamanan pembayaran' },
     'Notarial escrow (PPAT)': { es: 'Escrow notarial (PPAT)', id: 'Escrow notaris (PPAT)' },
@@ -247,10 +259,10 @@
       { es: 'El dinero se paga directamente a un propietario particular o a un intermediario, sin custodia de un tercero.',
         id: 'Dana dibayarkan langsung ke pemilik tanah atau perantara, tanpa kustodian pihak ketiga.' },
     'Term & registration': { es: 'Plazo y registro', id: 'Jangka waktu & pendaftaran' },
-    'Hak Sewa, Indonesian law': { es: 'Hak Sewa, derecho indonesio', id: 'Hak Sewa, hukum Indonesia' },
-    'Registered lease term (legal maximum 30 years per grant, renewable with a new term), transferable and heritable.':
-      { es: 'Plazo de arrendamiento inscrito (máximo legal de 30 años por otorgamiento, renovable con un plazo nuevo), transmisible y heredable.',
-        id: 'Jangka sewa terdaftar (maksimum menurut hukum 30 tahun per pemberian, dapat diperpanjang dengan jangka baru), dapat dialihkan dan diwariskan.' },
+    'HGB or Hak Sewa, Indonesian law': { es: 'HGB o Hak Sewa, derecho indonesio', id: 'HGB atau Hak Sewa, hukum Indonesia' },
+    'Registered title: Freehold (HGB) through your PT PMA (30 years, extendable 20 and renewable 30), or Hak Sewa if you buy without a company (legal maximum 30 years per grant, renewable with a new term). Transferable and heritable.':
+      { es: 'Título inscrito: Freehold (HGB) a través de tu PT PMA (30 años, prorrogable 20 y renovable 30), o Hak Sewa si compras sin sociedad (máximo legal de 30 años por otorgamiento, renovable con un plazo nuevo). Transmisible y heredable.',
+        id: 'Hak terdaftar: Freehold (HGB) melalui PT PMA Anda (30 tahun, dapat diperpanjang 20 dan diperbarui 30), atau Hak Sewa jika membeli tanpa perusahaan (maksimum menurut hukum 30 tahun per pemberian, dapat diperpanjang dengan jangka baru). Dapat dialihkan dan diwariskan.' },
     'Unregistered private agreement with no guaranteed renewal and limited transferability.':
       { es: 'Acuerdo privado sin inscribir, sin renovación garantizada y con transmisibilidad limitada.',
         id: 'Perjanjian privat tanpa pendaftaran, tanpa jaminan perpanjangan dan dengan pengalihan terbatas.' },
@@ -279,9 +291,9 @@
       { es: 'Los fondos quedan en una cuenta escrow gestionada por el notario y solo se liberan contra hitos de obra verificados.',
         id: 'Dana ditahan di rekening escrow yang dikelola notaris dan hanya dilepas setelah tahapan konstruksi terverifikasi.' },
     'Direct, Documented Transaction': { es: 'Operación directa y documentada', id: 'Transaksi Langsung dan Terdokumentasi' },
-    'The lease is agreed directly between the landowner and the buyer — no nominee arrangement, no undisclosed intermediary holding title on your behalf.':
-      { es: 'El arrendamiento se pacta directamente entre el propietario del suelo y el comprador — sin figura de nominee, sin intermediario oculto que ostente el título en tu nombre.',
-        id: 'Sewa disepakati langsung antara pemilik tanah dan pembeli — tanpa skema nominee, tanpa perantara tersembunyi yang memegang hak atas nama Anda.' },
+    'The title is registered directly to your PT PMA, or the lease is agreed directly between the landowner and you — no nominee arrangement, no undisclosed intermediary holding title on your behalf.':
+      { es: 'El título se inscribe directamente a nombre de tu PT PMA, o el arrendamiento se pacta directamente entre el propietario del suelo y tú — sin figura de nominee, sin intermediario oculto que ostente el título en tu nombre.',
+        id: 'Hak didaftarkan langsung atas nama PT PMA Anda, atau sewa disepakati langsung antara pemilik tanah dan Anda — tanpa skema nominee, tanpa perantara tersembunyi yang memegang hak atas nama Anda.' },
 
     /* — documentos del proyecto (14-sep-2026) —
        Solo el rotulo de la seccion y las etiquetas de categoria, que son un valor

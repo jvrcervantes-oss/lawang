@@ -34,6 +34,11 @@
  * Sobre «freehold» y las cifras de rentabilidad: decisión expresa del owner, ver el
  * docblock de dali/index.php y LAW-122. El propio dossier del cliente titula una página
  * «Your own freehold villa», así que aquí se usa su misma terminología.
+ * 24-sep-2026, owner: «Palm Field es Hak Sewa o HGB vía PT PMA. Todos son así, edítalo
+ * donde corresponda». Cada «freehold» a secas pasa a nombrar LAS DOS rutas (con empresa,
+ * Freehold (HGB) vía PT PMA; sin empresa, Hak Sewa), como The Soul y el investor deck.
+ * Fuera también «100% perpetual title»: el HGB es de 30 años, prorrogable 20 y renovable
+ * 30 (PP 18/2021), no perpetuo.
  *
  * ── 7-sep-2026: el configurador vuelve a ser por PASOS, sin parcela ni isla ────────────
  * Encargo del owner: «restablécelo quitando la parte de Land e island, quiero que avance
@@ -208,12 +213,12 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 <script src="/assets/idioma-web.js?v=20260908113407"></script>
 <script src="/assets/i18n-landing.js?v=20260923093252" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Palm Field — Freehold Villas in Balian Hills, Bali | Lawang Tropical Properties</title>
-<meta name="description" content="Palm Field: freehold villa plots in Balian Hills, West Bali, five minutes from the beach. Land ready with power, water and permits. Five villa models, handover <?= lw_e($PF_ENTREGA) ?>. From <?= lw_e(lw_aud_fmt($desdeTotal)) ?>.">
+<title>Palm Field — Villas in Balian Hills, Bali · Freehold (HGB) or Hak Sewa | Lawang Tropical Properties</title>
+<meta name="description" content="Palm Field: villa plots in Balian Hills, West Bali, five minutes from the beach — Freehold (HGB) through a PT PMA, or Hak Sewa without a company. Land ready with power, water and permits. Five villa models, handover <?= lw_e($PF_ENTREGA) ?>. From <?= lw_e(lw_aud_fmt($desdeTotal)) ?>.">
 <link rel="canonical" href="https://lawangproperties.com/palmfield">
 <link rel="icon" href="/favicon.png">
-<meta property="og:title" content="Palm Field — Freehold Villas in Balian Hills, Bali">
-<meta property="og:description" content="Freehold plots five minutes from the beach, land ready, five villa models. From <?= lw_e(lw_aud_fmt($desdeTotal)) ?>.">
+<meta property="og:title" content="Palm Field — Villas in Balian Hills, Bali · Freehold (HGB) or Hak Sewa">
+<meta property="og:description" content="Plots five minutes from the beach — Freehold (HGB) via PT PMA or Hak Sewa. Land ready, five villa models. From <?= lw_e(lw_aud_fmt($desdeTotal)) ?>.">
 <meta property="og:url" content="https://lawangproperties.com/palmfield">
 <meta property="og:image" content="https://lawangproperties.com<?= lw_e($ogImg) ?>">
 <meta property="og:type" content="website">
@@ -267,7 +272,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
                aquí — es jerga, y lo mismo ya lo dice la sección del escritorio australiano
                al final. Las dos que quedan son las dos cosas que un comprador pregunta
                primero: qué compra y cuándo lo tiene. */ ?>
-      <span class="pill pill--verde"><span class="dot"></span> Freehold (HGB)</span>
+      <span class="pill pill--verde"><span class="dot"></span> Freehold (HGB) or Hak Sewa</span>
       <span class="pill pill--terra">Handover <?= lw_e($PF_ENTREGA) ?></span>
     </div>
 
@@ -296,7 +301,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
     <p class="hero__gancho">What could you own in Bali for the price of a Perth deposit?</p>
 
     <p class="hero__sub">Palm Field starts at
-      <b><?= lw_e(lw_aud_fmt($desdeTotal)) ?></b> with the freehold plot included — less than
+      <b><?= lw_e(lw_aud_fmt($desdeTotal)) ?></b> with the plot included — less than
       the <?= (int) round($PF_PERTH_ENTRADA * 100) ?>% deposit on a median Perth house
       ($<?= lw_e(number_format($pfEntradaPerth, 0, '.', ',')) ?> AUD).</p>
 
@@ -312,7 +317,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
       <div class="chip">
         <span class="chip__ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1L3 5v6c0 5.6 3.8 10.7 9 12 5.2-1.3 9-6.4 9-12V5l-9-4zm-1.2 15L7 12.2l1.4-1.4 2.4 2.4 5-5L17.2 9l-6.4 7z"/></svg></span>
         <span><span class="chip__lb">Tenure</span>
-              <span class="chip__vl">Freehold · HGB</span></span>
+              <span class="chip__vl">HGB or Hak Sewa</span></span>
       </div>
       <div class="chip">
         <span class="chip__ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg></span>
@@ -532,7 +537,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
         <div class="res__card">
           <div class="res__hd">
             <span class="res__tt">Your Palm Field figure</span>
-            <span class="pill pill--canopy">Freehold</span>
+            <span class="pill pill--canopy">HGB or Hak Sewa</span>
           </div>
           <div class="res__fila">
             <span><span class="res__lb" id="pf-r-villa">Villa</span>
@@ -550,7 +555,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
             <span class="res__vl">Included</span>
           </div>
           <div class="res__fila">
-            <span><span class="res__lb">Freehold plot</span>
+            <span><span class="res__lb">Plot</span>
                   <span class="res__sub"><?= lw_e(lw_precio_fmt($PF_TARIFA)) ?>/m² · sized on the call
                     <?php /* Tamaños en vivo (vivo.php), nunca el conteo de cuantas quedan —
                              decision del owner de no publicar escasez en trafico de pago.
@@ -620,7 +625,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
           <thead>
             <tr>
               <th>Australian City</th><th>Direct Flight Time</th><th>AU Median House</th>
-              <th>Palm Field Turnkey Freehold</th><th style="text-align:right">Capital Multiple</th>
+              <th>Palm Field Turnkey</th><th style="text-align:right">Capital Multiple</th>
             </tr>
           </thead>
           <tbody>
@@ -654,7 +659,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
                   <span class="cel-s" style="color:var(--secondary);font-weight:600"><?= lw_e($vv['villa']) ?> + <?= (int) $pfMin ?> m² plot</span></td>
               <td style="text-align:right">
                 <span class="pill <?= $destaca ? 'pill--verde' : 'pill--canopy' ?>"><?= lw_e($mult) ?></span>
-                <span class="cel-s" style="margin-top:4px"><?= $destaca ? 'Zero jetlag · weekend commute' : '100% perpetual title' ?></span>
+                <span class="cel-s" style="margin-top:4px"><?= $destaca ? 'Zero jetlag · weekend commute' : 'Registered title: HGB or Hak Sewa' ?></span>
               </td>
             </tr>
             <?php endforeach; ?>
@@ -663,7 +668,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
       </div>
       <div class="tabla-pie">
         <span>Australian figures: CoreLogic capital city median dwelling, 2024/25. Palm Field
-          includes the freehold plot (<?= (int) $pfMin ?> m², smallest available
+          includes the plot (<?= (int) $pfMin ?> m², smallest available
           <?= lw_e(LW_PF_TAMANO_MIN_PRECIO_FECHA) ?>) plus the turnkey build, at
           <?= lw_e(number_format(LW_AUD_TASA, 2)) ?> AUD/EUR
           (<?= lw_e(LW_AUD_FECHA) ?>).</span>
@@ -679,16 +684,16 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
     <div class="et" style="justify-content:center">
       <span class="pill pill--canopy">Zero Bureaucratic Risk</span>
     </div>
-    <h2 style="max-width:18ch;margin-inline:auto">We do the land. You own it freehold.</h2>
+    <h2 style="max-width:18ch;margin-inline:auto">We do the land. You choose how to hold it.</h2>
 
     <div class="pasos" style="text-align:left">
       <div class="paso">
         <span class="paso__ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1L3 5v6c0 5.6 3.8 10.7 9 12 5.2-1.3 9-6.4 9-12V5l-9-4zm-1.2 15L7 12.2l1.4-1.4 2.4 2.4 5-5L17.2 9l-6.4 7z"/></svg></span>
         <span class="paso__n">01 · Title Deed</span>
-        <h3>Clean Freehold Acquisition</h3>
-        <p>Bought outright, clean notary titles, subdivided and ready to transfer under PMA
-          custody.</p>
-        <span class="paso__pie">HGB</span>
+        <h3>Clean Title, Two Routes</h3>
+        <p>Bought outright with clean notary titles and subdivided. You hold it as Freehold
+          (HGB) through your own PT PMA, or as Hak Sewa in your own name without a company.</p>
+        <span class="paso__pie">HGB · Hak Sewa</span>
       </div>
       <div class="paso">
         <span class="paso__ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg></span>
@@ -727,7 +732,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
       <p>Thirty minutes: the plots still free, the notary deeds, drone footage of the site
         today, and your fixed turnkey cost in AUD.</p>
       <div class="cta__garantias">
-        <span class="cta__g"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg> Freehold title, transferred to you</span>
+        <span class="cta__g"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg> Registered title: HGB via your PT PMA, or Hak Sewa</span>
         <span class="cta__g"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg> Guaranteed fixed-price written EPC contract</span>
       </div>
     </div>
@@ -748,10 +753,10 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
       <div>
         <img class="pie__brand" src="/assets/img/lawang-logo-v3.webp" alt="Lawang Tropical Properties">
         <p style="margin:0">PT Tepi Sun Gai · Registered Developer &amp; Property Advisory.
-          Developing verified freehold parcels and turnkey architectural villas across
+          Developing verified land parcels and turnkey architectural villas across
           Tabanan, Uluwatu and Sumba for Australian investors.</p>
         <div class="pie__sellos">
-          <span class="sello">Freehold — PMA Foreign Legal Custody</span>
+          <span class="sello">Freehold (HGB) via PT PMA · Hak Sewa</span>
         </div>
       </div>
       <div>
@@ -771,15 +776,15 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
         <p style="margin:0">Every project operates under guaranteed fixed-price written
           agreements with progress audits at each construction milestone.</p>
         <div class="pie__sellos">
-          <span class="sello">Freehold</span>
+          <span class="sello">HGB · Hak Sewa</span>
           <span class="sello">Clean Deeds</span>
           <span class="sello">Australian Desk</span>
         </div>
       </div>
     </div>
     <div class="pie__legal">
-      <span>© 2026 Lawang Tropical Properties. Foreign freehold ownership
-        via registered PMA structure.</span>
+      <span>© 2026 Lawang Tropical Properties. Foreign buyers hold Freehold (HGB) through
+        a registered PT PMA, or Hak Sewa without a company.</span>
       <span><a href="/legal">Legal &amp; privacy</a> · <a href="#" id="lw-cookies">Cookie preferences</a></span>
     </div>
   </div>
