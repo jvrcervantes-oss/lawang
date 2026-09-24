@@ -87,7 +87,7 @@ const corsFor = (req: Request) => {
 const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte', 'leads', 'closers', 'ranking', 'reparto', 'cuentas', 'comisiones', 'reservas', 'modelos', 'asistente', 'recibos', 'comisiones_reparto', 'comisiones_condiciones', 'comisiones_equipos', 'gastos'];
 // 'gastos' (24-sep-2026, módulo Gastos y proveedores): añadida en la FUENTE en el
 // mismo commit que el catálogo. ⚠️ El REDESPLIEGUE de esta función sigue
-// pendiente (LAW-302): en Windows `supabase/functions/admin-usuarios` es un
+// pendiente (LAW-304): en Windows `supabase/functions/admin-usuarios` es un
 // stub de texto y no se puede desplegar desde aquí. Hasta entonces la casilla
 // se marca a usuarios YA creados (Usuarios → editar), no en el alta.
 // 'comisiones_reparto', 'comisiones_condiciones', 'comisiones_equipos' (23-sep-2026, plan
