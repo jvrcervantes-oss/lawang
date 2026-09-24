@@ -1,0 +1,1724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Palm Field — Investor Deck | Lawang Properties</title>
+<meta name="description" content="Palm Field, Balian Hills, Bali — project documentation, real plot inventory, financial forecast and FAQ for prospective investors. Request a plot reservation directly.">
+<meta name="robots" content="noindex, nofollow">
+<!--
+  v3 — 24-sep-2026. EXPLORACION pedida por el owner: el mismo deck de v2 con la piel y la
+  COMPOSICION de la home publica (lawangproperties.com), para verlo. No sustituye a v2 ni a
+  la ficha viva; noindex y sin enlazar desde ningun sitio, igual que v2.
+  Que se mantiene de v2, byte a byte: el <script> de datos (6 RPC investor_deck_*, Edge
+  Functions de reserva, esc()/urlSegura()), todos los ids y data-*, y TODO el texto visible
+  en ingles (i18n.js casa por texto completo, y Legal aprobo esas frases letra por letra).
+  Que cambia: la composicion. Topbar transparente→solida de la home, hero a sangre 100svh
+  con titular en The Seasons y cifras en fila con filetes, cabeceras kicker+titulo en
+  mayusculas Neue Kabel, tarjetas de villa altas con marco interior, forecast sobre foto a
+  sangre con columnas, y el panel de documentos+FAQ de la hero pasa a una seccion
+  obsidiana como "OWN ETERNITY" de la home (sigue todo a la vista, sin pestañas).
+  Lo que NO se calca de la home, y por que: el scroll-snap obligatorio (aqui hay secciones
+  largas de datos que no caben en una pantalla) y The Seasons fuera de "Palm Field" (es
+  DEMO y corrompe & - + 4, que salen en casi todos los titulos y cifras del deck).
+  El marcado que pinta el JS (tarjetas de villa y de forecast) cambia solo de clases; la
+  aritmetica, los textos y los escapes son los de v2.
+  Historial de v2 (revision previa #42, decisiones del owner 22/23-sep): ver v2/index.html.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Instrument+Sans:wght@400;500;600;700&family=Jost:ital,wght@0,400;0,500;0,600;1,400&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<!-- Build Tailwind de v2 (copia local): lo sigue necesitando el marcado que pinta el JS
+     (filas del inventario, docs, modal). La piel nueva va en el <style> de abajo. -->
+<link rel="stylesheet" href="v2.min.css?v=20260924a">
+<style>
+/* ════ v3 — piel de lawangproperties.com (home) sobre el deck ════════════════
+   Fuentes de marca self-hosted (mismas que index.html de la raiz). Rutas ABSOLUTAS:
+   la home las pide relativas a la raiz y desde /investor-deck/palmfield/v3/ darian 404.
+   ⚠️ The Seasons es DEMO y corrompe & - + 4: SOLO se usa en "Palm Field" y en los
+   titulos sin esos glifos. Cifras, precios y titulos con "&" van en Neue Kabel. */
+@font-face{font-family:'The Seasons';src:url('/assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-display:swap}
+@font-face{font-family:'The Seasons';src:url('/assets/fonts/TheSeasons-Regular.otf') format('opentype');font-weight:400;font-display:swap}
+@font-face{font-family:'The Seasons';src:url('/assets/fonts/TheSeasons-Italic.otf') format('opentype');font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('/assets/fonts/NeueKabel-ExtraLight.otf') format('opentype');font-weight:200;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('/assets/fonts/NeueKabel-Light.otf') format('opentype');font-weight:300;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('/assets/fonts/NeueKabel-Book.otf') format('opentype');font-weight:400;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('/assets/fonts/NeueKabel-Medium.otf') format('opentype');font-weight:500;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('/assets/fonts/NeueKabel-Bold.otf') format('opentype');font-weight:700;font-display:swap}
+
+:root{
+  /* Paleta de la home (index.html :root + #content-sections) */
+  --tg:#485B37; --pg:#587040; --tg-dark:#364429; --dl:#104C4F; --be:#42210B; --sc:#8F9B7A;
+  --va:#2E3437; --ss:#BEB3A5; --rl:#F5F0E6; --rl2:#EFE8DA; --cbr:#FBF8F1;
+  --ci:#2E3437; --ci2:#5A5048; --ci3:#8A7A6A; --cl:#DED5C3; --ob:#0A0C09;
+  --se:'The Seasons','Cormorant Garamond',Georgia,serif;
+  --sa:'Neue Kabel','Jost',system-ui,sans-serif;
+  --cpd:clamp(22px,5vw,72px); --cmx:1280px; --menu-h:35px;
+  --fs-display:clamp(56px,41.9px + 3.76vw,104px);
+  --fs-h-xl:clamp(36px,30px + 1.9vw,60px);
+  --fs-h-m:clamp(22px,20px + .6vw,30px);
+  --fs-body-l:clamp(16px,15.5px + .15vw,18px);
+  --fs-cap:clamp(11px,10.6px + .12vw,13px);
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+html,body{margin:0;padding:0}
+body{background:var(--rl);color:var(--ci);font-family:var(--sa);-webkit-font-smoothing:antialiased;overscroll-behavior:none}
+::-webkit-scrollbar{display:none}
+h1,h2{text-wrap:balance} p{text-wrap:pretty}
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24;vertical-align:middle}
+.lw-money{white-space:nowrap;font-variant-numeric:tabular-nums}
+.sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.wrap{max-width:var(--cmx);margin:0 auto;padding-inline:var(--cpd);width:100%;box-sizing:border-box}
+
+/* ── Topbar: calco de #topbar de la home. Transparente sobre la hero, solida al bajar ── */
+#topbar{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:1rem;
+  padding:clamp(.68rem,1.65vh,1.05rem) clamp(1.1rem,4vw,3.4rem);transition:background .3s,box-shadow .3s,padding .3s}
+#topbar.solid{background:rgba(247,244,239,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  box-shadow:0 1px 0 rgba(190,179,165,.3);padding-top:clamp(.5rem,1.2vh,.8rem);padding-bottom:clamp(.5rem,1.2vh,.8rem)}
+#logo{display:flex;align-items:center;flex:1 1 0;min-width:0}
+#logo img{height:28px;width:auto;display:block;transition:height .3s}
+#logo .lg-d{display:none}
+#topbar.solid #logo .lg-w{display:none}
+#topbar.solid #logo .lg-d{display:block}
+#topbar.solid #logo img{height:24px}
+#nav-principal{flex:none;display:none;align-items:center;gap:clamp(1rem,1.7vw,1.7rem);height:var(--menu-h);padding:0 1.5rem;
+  background:rgba(20,18,14,.22);border:1px solid rgba(190,179,165,.45);border-radius:40px;
+  backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);transition:background .3s,border-color .3s}
+@media(min-width:1180px){#nav-principal{display:flex}}
+#topbar.solid #nav-principal{background:rgba(255,255,255,.5);border-color:rgba(72,91,55,.28)}
+.nav-link{position:relative;font-family:var(--sa);font-weight:300;font-size:.64rem;letter-spacing:.13em;text-transform:uppercase;
+  color:rgba(245,240,230,.92);text-decoration:none;text-shadow:0 1px 8px rgba(0,0,0,.55);white-space:nowrap;transition:color .3s}
+.nav-link::after{content:"";position:absolute;left:0;right:0;bottom:-7px;height:1.5px;background:var(--ss);transform:scaleX(0);transition:transform .32s var(--ease)}
+.nav-link:hover{color:#fff}
+.nav-link:hover::after,.nav-link.lw-nav-activa::after{transform:scaleX(1)}
+#topbar.solid .nav-link{color:rgba(26,22,18,.72);text-shadow:none}
+#topbar.solid .nav-link:hover,#topbar.solid .nav-link.lw-nav-activa{color:var(--pg)}
+#topbar.solid .nav-link::after{background:var(--pg)}
+#acciones{display:flex;align-items:center;justify-content:flex-end;gap:clamp(.6rem,1.6vw,1.4rem);flex:1 1 0;min-width:0}
+/* Selector idioma/divisa (lo pinta i18n.js): texto de la home, sin caja */
+#deck-selectores{--lw-lang-ink:#f5f0e6;--lw-lang-bg:rgba(18,16,12,.85);--lw-lang-line:rgba(190,179,165,.38);--lw-lang-menu-ink:#f5f0e6;--lw-lang-hover:rgba(190,179,165,.18)}
+#deck-selectores{display:flex;align-items:center;gap:4px;flex-wrap:nowrap}
+#deck-selectores > *{flex:none}
+#deck-selectores *{font-family:var(--sa)!important;letter-spacing:.14em}
+#topbar:not(.solid) #deck-selectores{text-shadow:0 1px 8px rgba(0,0,0,.55)}
+#topbar.solid #deck-selectores{--lw-lang-ink:#2e3437;--lw-lang-bg:#fff;--lw-lang-line:rgba(72,91,55,.2);--lw-lang-menu-ink:#2e3437;--lw-lang-hover:rgba(72,91,55,.1)}
+@media (max-width:1023px){ #topbar .lw-lang__btn{min-height:40px} }
+/* CTA "Download dossier" = .nav-cta de la home: ghost sobre la foto, verde al bajar */
+#cta-dosier{align-items:center;gap:.45rem;height:var(--menu-h);padding:0 16px 0 12px;border-radius:30px;
+  border:1px solid rgba(245,240,230,.5);color:var(--rl);background:transparent;text-decoration:none;
+  font-family:var(--sa);font-weight:400;font-size:11px;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;transition:all .35s}
+#cta-dosier:hover{background:rgba(245,240,230,.14);border-color:rgba(245,240,230,.78)}
+#cta-dosier .material-symbols-outlined{font-size:16px}
+#topbar.solid #cta-dosier{background:var(--pg);border-color:var(--pg)}
+#topbar.solid #cta-dosier:hover{background:#3a4a2c;border-color:#3a4a2c}
+@media(max-width:640px){#cta-dosier{display:none!important}}
+/* Entre 1180 y 1560px el menu completo no deja sitio al texto del CTA: se queda el icono. */
+@media(min-width:1180px) and (max-width:1560px){#cta-dosier span:not(.material-symbols-outlined){display:none}#cta-dosier{padding:0 10px}}
+#menu-btn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;cursor:pointer;
+  background:transparent;border:1px solid rgba(245,240,230,.5);color:var(--rl);transition:all .3s}
+#topbar.solid #menu-btn{border-color:rgba(72,91,55,.3);color:var(--ci)}
+@media(min-width:1180px){#menu-btn{display:none}}
+#menu-movil{position:fixed;top:64px;left:12px;right:12px;z-index:49;flex-direction:column;gap:2px;padding:10px;border-radius:18px;
+  background:rgba(18,16,12,.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(190,179,165,.38)}
+#menu-movil a{font-family:var(--sa)!important;font-size:12px!important;font-weight:300;letter-spacing:.18em;text-transform:uppercase;
+  color:rgba(245,240,230,.88)!important;padding:14px 16px!important;border-radius:10px;text-decoration:none}
+#menu-movil a:hover,#menu-movil a.lw-nav-activa{background:rgba(190,179,165,.18)!important;color:#fff!important}
+
+/* WhatsApp flotante: circulo verde de la home */
+#cta-whatsapp{position:fixed;right:clamp(16px,2.5vw,28px);bottom:clamp(16px,2.5vw,28px);z-index:40;width:58px;height:58px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;background:#25D366;color:#fff;box-shadow:0 10px 30px rgba(0,0,0,.28);
+  transition:transform .25s var(--ease)}
+#cta-whatsapp:hover{transform:translateY(-2px) scale(1.04)}
+#cta-whatsapp svg{width:30px;height:30px}
+
+/* ── Titulares compartidos: .lw-kicker / .lw-title de la home ── */
+.kicker{display:inline-flex;align-items:center;gap:12px;font-family:var(--sa);font-size:var(--fs-cap);font-weight:500;
+  letter-spacing:.26em;text-transform:uppercase;color:var(--tg);margin:0}
+.kicker::before{content:"";width:30px;height:1px;background:currentColor;opacity:.5}
+.center .kicker::before{display:none}
+.titulo{font-family:var(--sa);font-weight:700;text-transform:uppercase;line-height:1.02;letter-spacing:.005em;color:var(--ci);
+  font-size:var(--fs-h-xl);margin:0}
+.titulo.fino{font-weight:200}
+.titulo.serif{font-family:var(--se);font-weight:400}
+.entrada{font-family:var(--sa);font-size:var(--fs-body-l);line-height:1.75;color:var(--ci2);max-width:56ch;margin:0}
+.cab{display:flex;flex-direction:column;gap:14px}
+.cab.center{align-items:center;text-align:center;margin-inline:auto;max-width:860px}
+.cab.center .entrada{margin-inline:auto}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 28px;border-radius:40px;font-family:var(--sa);font-size:11px;font-weight:500;
+  letter-spacing:.14em;text-transform:uppercase;text-decoration:none;border:1px solid transparent;cursor:pointer;
+  transition:transform .16s cubic-bezier(.23,1,.32,1),background .22s,color .22s,border-color .22s}
+.btn:active{transform:scale(.97)}
+.btn-tierra{background:var(--be);color:var(--rl)} .btn-tierra:hover{background:#2d1607}
+.btn-verde{background:var(--tg);color:var(--rl)} .btn-verde:hover{background:var(--tg-dark)}
+.btn-hueso{border-color:rgba(245,240,230,.5);color:var(--rl);background:rgba(245,240,230,.06)} .btn-hueso:hover{background:rgba(245,240,230,.14)}
+.btn-linea{border-color:rgba(46,52,55,.35);color:var(--ci)} .btn-linea:hover{border-color:var(--tg);color:var(--tg)}
+.reveal{opacity:0;transform:translateY(28px);filter:blur(4px);transition:opacity .85s var(--ease),transform .85s var(--ease),filter .85s var(--ease)}
+.reveal.in{opacity:1;transform:none;filter:none}
+@media(prefers-reduced-motion:reduce){.reveal{transform:none;filter:none;transition:opacity .4s}}
+
+/* ── 1 · HERO a pantalla completa (patron .hero-panel de la home) ── */
+#vision{position:relative;height:100svh;min-height:600px;overflow:hidden;background:var(--ob);color:var(--rl)}
+#hero-visual{position:absolute;inset:0}
+#hero-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;width:100%;height:100%;scrollbar-width:none}
+#hero-track figure{margin:0;flex:none;width:100%;height:100%;scroll-snap-align:center}
+#hero-track img{width:100%;height:100%;object-fit:cover;display:block}
+.hero-velo{position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(to top,rgba(10,12,9,.86) 0%,rgba(10,12,9,.45) 38%,rgba(10,12,9,.08) 62%,rgba(10,12,9,.38) 100%)}
+.hero-flecha{position:absolute;top:50%;transform:translateY(-50%);z-index:5;width:46px;height:46px;border-radius:50%;display:none;align-items:center;justify-content:center;
+  border:1px solid rgba(245,240,230,.45);background:rgba(20,18,14,.22);color:var(--rl);cursor:pointer;backdrop-filter:blur(6px);transition:all .3s}
+.hero-flecha:hover{background:rgba(245,240,230,.16)}
+.hero-flecha:disabled{opacity:0;pointer-events:none}
+@media(min-width:768px){.hero-flecha{display:flex}}
+#hero-prev{left:clamp(14px,2.5vw,36px)} #hero-next{right:clamp(14px,2.5vw,36px)}
+.hero-texto{position:absolute;z-index:4;left:var(--cpd);right:var(--cpd);bottom:clamp(96px,17vh,170px);max-width:1100px}
+.hero-texto .kicker{color:var(--ss)}
+.hero-texto .kicker::before{background:var(--ss)}
+#vision h1{font-family:var(--se);font-weight:400;font-size:var(--fs-display);line-height:.92;letter-spacing:.01em;text-transform:uppercase;margin:.35em 0 0;color:var(--rl)}
+.hero-sub{font-family:var(--sa);font-weight:500;font-size:clamp(13px,1.05vw,17px);letter-spacing:.12em;text-transform:uppercase;color:rgba(245,240,230,.9);margin:18px 0 0}
+.hero-sub i{font-style:normal;font-weight:300;opacity:.85}
+.hero-pie{position:absolute;z-index:4;left:var(--cpd);right:var(--cpd);bottom:clamp(22px,4vh,40px);display:flex;align-items:flex-end;justify-content:space-between;gap:24px}
+.cifras{display:grid;grid-template-columns:repeat(4,auto);gap:0;border-top:1px solid rgba(245,240,230,.28);padding-top:14px}
+.cifra{display:flex;flex-direction:column;gap:4px;padding:0 clamp(14px,2.2vw,34px);border-left:1px solid rgba(245,240,230,.28)}
+.cifra:first-child{padding-left:0;border-left:0}
+.cifra b{font-family:var(--sa);font-weight:200;font-size:clamp(20px,1.6vw + 8px,34px);line-height:1;color:var(--rl);white-space:nowrap;letter-spacing:.01em}
+.cifra span{font-family:var(--sa);font-weight:500;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ss)}
+.hero-cta{display:inline-flex;align-items:center;gap:12px;padding:14px 26px;border-radius:40px;white-space:nowrap;text-decoration:none;
+  font-family:var(--sa);font-weight:500;font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:var(--rl);
+  border:1px solid rgba(190,179,165,.55);background:rgba(72,91,55,.35) url('../../../assets/img/TexturasBotones.webp') center/cover;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:background-color .3s,transform .2s}
+.hero-cta:hover{background-color:rgba(72,91,55,.6);transform:translateY(-1px)}
+#hero-puntos{position:absolute;z-index:4;left:50%;transform:translateX(-50%);bottom:clamp(8px,1.6vh,14px);display:flex;gap:6px}
+@media(max-width:900px){
+  .hero-pie{flex-direction:column;align-items:flex-start}
+  .cifras{grid-template-columns:repeat(2,auto);row-gap:14px}
+  .cifra:nth-child(3){padding-left:0;border-left:0}
+  .hero-texto{bottom:clamp(250px,36vh,300px)}
+}
+
+/* ── 2 · MODELOS: "FOUR WAYS, ONE LEGACY" — tarjetas altas con marco interior ── */
+.sec{position:relative;padding:clamp(4.5rem,11vh,8rem) 0}
+.sec-lino{background:var(--rl) url('../../../assets/img/bg-ecosystem.webp?v=2') center/cover}
+.sec-lino::before{content:"";position:absolute;inset:0;background:rgba(245,240,230,.72);pointer-events:none}
+.sec > .wrap{position:relative}
+#modelos-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:clamp(18px,2.2vw,32px);margin-top:clamp(2.5rem,5vh,3.5rem)}
+.villa{position:relative;display:block;aspect-ratio:3/4.4;border-radius:14px;overflow:hidden;background:var(--va);color:var(--rl);text-decoration:none;
+  box-shadow:0 30px 60px -30px rgba(20,26,17,.55);transition:transform .5s var(--ease)}
+.villa:hover{transform:translateY(-6px)}
+.villa [data-foto]{position:absolute;inset:0}
+.villa [data-foto] img{width:100%;height:100%;object-fit:cover;transition:transform 1.2s var(--ease)}
+.villa:hover [data-foto] img{transform:scale(1.05)}
+.villa [data-foto] > div{height:100%!important}
+.villa::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(to top,rgba(14,17,12,.92) 0%,rgba(14,17,12,.55) 36%,rgba(14,17,12,0) 60%)}
+.villa::after{content:"";position:absolute;inset:14px;z-index:2;border:1px solid rgba(245,240,230,.38);border-radius:8px;pointer-events:none}
+.villa-cuerpo{position:absolute;z-index:3;left:28px;right:28px;bottom:28px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px}
+.villa-nombre{font-family:var(--sa);font-weight:500;font-size:clamp(24px,1.3vw + 12px,30px);letter-spacing:.06em;text-transform:uppercase;line-height:1}
+.villa-precio{font-family:var(--sa);font-weight:500;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--ss)}
+.villa-precio .font-kpi-number,.villa-precio span{color:var(--rl)!important;font-family:var(--sa)!important;font-size:inherit!important;font-weight:inherit!important;letter-spacing:.14em}
+.villa-stats{display:grid;grid-template-columns:repeat(4,1fr);width:100%;border-top:1px solid rgba(245,240,230,.25);border-bottom:1px solid rgba(245,240,230,.25)}
+.villa-stats div{display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 2px}
+.villa-stats div + div{border-left:1px solid rgba(245,240,230,.18)}
+.villa-stats b{font-family:var(--sa);font-weight:300;font-size:16px;white-space:nowrap}
+.villa-stats span{font-family:var(--sa);font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:rgba(245,240,230,.7)}
+.villa-nota{font-family:var(--sa);font-size:11px;line-height:1.5;color:rgba(245,240,230,.78)}
+.villa-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 18px;border-radius:40px;
+  border:1px solid rgba(245,240,230,.55);font-family:var(--sa);font-size:11px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;transition:background .3s,color .3s}
+.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
+.villa-sello{position:absolute;z-index:3;top:26px;left:50%;transform:translateX(-50%);font-family:var(--sa);font-size:10px;font-weight:500;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--rl);padding:6px 14px;border-radius:30px;background:rgba(72,91,55,.85);white-space:nowrap}
+
+/* ── 3 · MASTERPLAN: cabecera "THE COLLECTION" + plano + inventario ── */
+.cab-fila{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.titulo.verde{color:var(--tg-dark)}
+.leyenda{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--sa);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ci2)}
+.leyenda i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px;vertical-align:1px}
+.mp-grid{display:grid;grid-template-columns:1fr;gap:clamp(20px,2.4vw,36px);margin-top:clamp(2rem,4.5vh,3rem);align-items:start}
+@media(min-width:1024px){.mp-grid{grid-template-columns:7fr 5fr}}
+.marco{position:relative;border-radius:14px;overflow:hidden;background:var(--cbr);box-shadow:0 30px 60px -34px rgba(20,26,17,.5)}
+.marco-pad{padding:14px}
+#masterplan-img{width:100%;display:block;border-radius:8px}
+.mp-nota{font-family:var(--sa);font-size:12px;color:var(--ci3);margin:12px 4px 2px}
+.inv{border-radius:14px;overflow:hidden;background:var(--cbr);box-shadow:0 30px 60px -34px rgba(20,26,17,.5)}
+.inv-cab{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 22px;background:var(--ob);color:var(--rl)}
+.inv-cab strong{font-family:var(--sa);font-weight:500;font-size:12px;letter-spacing:.22em;text-transform:uppercase;display:flex;align-items:center;gap:10px}
+.inv-cab strong::before{content:"";width:7px;height:7px;border-radius:50%;background:#25D366;box-shadow:0 0 0 4px rgba(37,211,102,.18)}
+#plots-count{font-family:var(--sa);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ss);white-space:nowrap}
+#plots-wrap{max-height:440px;overflow-y:auto;scroll-behavior:smooth;position:relative}
+@media(min-width:1024px){#plots-wrap{max-height:680px}}
+#plots-wrap > div + div{border-top:1px solid rgba(190,179,165,.35)}
+#plots-wrap .font-headline-sm{font-family:var(--sa)!important;font-weight:500!important;letter-spacing:.06em;color:var(--ci)!important}
+#plots-wrap .font-body-sm,#plots-wrap .text-sm{font-family:var(--sa)!important}
+.lw-fila-activa{background:rgba(143,155,122,.16)}
+.lw-destello{animation:lwDestello 2s ease-out}
+@keyframes lwDestello{0%,30%{background:rgba(72,91,55,.32)}100%{background:rgba(143,155,122,.16)}}
+.lw-plano-activo{background:rgba(16,76,79,.55)!important}
+.protocolo{margin-top:18px;padding:22px;border-radius:14px;background:var(--dl);color:var(--rl)}
+.protocolo > span{font-family:var(--sa);font-size:11px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:var(--ss)}
+.protocolo ol{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:12px}
+.protocolo li{display:flex;flex-direction:column;gap:3px;font-family:var(--sa);font-size:13px;line-height:1.5;color:rgba(245,240,230,.8)}
+.protocolo li strong{font-weight:500;color:var(--rl);letter-spacing:.04em}
+
+/* ── 4 · FORECAST: "FROM LAND TO LEGACY" — foto a sangre + columnas con filete ── */
+.sec-foto{color:var(--rl);background:var(--ob) url('../assets/gallery/08-resort-night.jpg') center/cover}
+.sec-foto::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(10,12,9,.62),rgba(10,12,9,.78) 45%,rgba(14,20,11,.94))}
+.sec-foto .kicker{color:var(--ss)}
+.sec-foto .titulo{color:var(--rl)}
+.sec-foto .entrada{color:rgba(245,240,230,.82)}
+#forecast-grid{display:grid;grid-template-columns:1fr;margin-top:clamp(2.5rem,6vh,4rem)}
+@media(min-width:900px){#forecast-grid{grid-template-columns:repeat(3,1fr)}}
+.prev{position:relative;padding:6px clamp(18px,2.4vw,36px) 10px;border-top:1px solid rgba(245,240,230,.22)}
+@media(min-width:900px){.prev{border-top:0;border-left:1px solid rgba(245,240,230,.25)}.prev:first-child{border-left:0;padding-left:0}}
+@media(max-width:899px){.prev{padding:28px 0}.prev:first-child{border-top:0}}
+.prev-foto{position:relative;height:150px;border-radius:10px;overflow:hidden;margin-bottom:22px;background:var(--va)}
+.prev-foto img{width:100%;height:100%;object-fit:cover}
+.prev-foto > div{height:100%!important}
+.prev .kicker{font-size:10px;color:var(--ss)}
+.prev h3{font-family:var(--sa);font-weight:500;font-size:clamp(20px,1vw + 12px,26px);letter-spacing:.08em;text-transform:uppercase;margin:10px 0 8px;color:var(--rl)}
+.prev-base{font-family:var(--sa);font-size:13px;line-height:1.6;color:rgba(245,240,230,.75);margin:0 0 18px}
+.prev-base b{color:var(--rl);font-weight:500}
+.esc{padding:14px 0;border-top:1px solid rgba(245,240,230,.16)}
+.esc-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.esc-top > span{font-family:var(--sa);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ss)}
+.esc-top b{font-family:var(--sa);font-weight:200;font-size:clamp(22px,1.1vw + 12px,28px);color:var(--rl);white-space:nowrap}
+.esc p{font-family:var(--sa);font-size:11.5px;line-height:1.6;color:rgba(245,240,230,.72);margin:6px 0 0}
+.esc p b{color:#cfe0b8;font-weight:500}
+#forecast-nota{font-family:var(--sa);font-size:12px;line-height:1.7;color:rgba(245,240,230,.72);max-width:74ch;margin:clamp(2rem,4vh,3rem) 0 0;padding-top:18px;border-top:1px solid rgba(245,240,230,.2)}
+
+/* ── 5 · LEGAL: tabla bueno/malo en tokens de la home ── */
+.tabla{margin-top:clamp(2rem,5vh,3rem);border-radius:14px;overflow:hidden;background:var(--cbr);box-shadow:0 30px 60px -34px rgba(20,26,17,.45)}
+.t-fila{display:grid;grid-template-columns:1fr;gap:8px;padding:16px}
+.t-fila + .t-fila{border-top:1px solid rgba(190,179,165,.4)}
+.t-cab{display:none}
+@media(min-width:900px){
+  .t-fila{grid-template-columns:3fr 5fr 4fr;gap:0;padding:0}
+  .t-fila > div{padding:18px 22px}
+  .t-cab{display:grid}
+}
+.t-cab > div{font-family:var(--sa);font-size:11px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.t-cab > div:nth-child(1){color:var(--ci2);background:var(--rl2)}
+.t-cab > div:nth-child(2){color:var(--rl);background:var(--tg)}
+.t-cab > div:nth-child(3){color:var(--rl);background:#8E2A22}
+.t-asp{display:flex;flex-direction:column;justify-content:center;gap:2px}
+.t-asp strong{font-family:var(--sa);font-weight:500;font-size:14px;letter-spacing:.04em;color:var(--ci)}
+.t-asp span{font-family:var(--sa);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ci3)}
+.t-si,.t-no{display:flex;gap:10px;align-items:flex-start;border-radius:10px;padding:12px 14px}
+@media(min-width:900px){.t-si,.t-no{border-radius:0}}
+.t-si{background:#EEF3E6} .t-no{background:rgba(142,42,34,.06)}
+.t-si .material-symbols-outlined{color:var(--tg)} .t-no .material-symbols-outlined{color:#8E2A22}
+.t-si p,.t-no p{margin:0;font-family:var(--sa);font-size:13.5px;line-height:1.6}
+.t-si p{color:#2F4521} .t-no p{color:#6E2A22}
+.t-si em,.t-no em{display:block;font-style:normal;font-family:var(--sa);font-size:10px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;margin-bottom:3px}
+.t-si em{color:var(--tg)} .t-no em{color:#8E2A22}
+@media(min-width:900px){.t-si em,.t-no em{display:none}}
+.claves{display:grid;grid-template-columns:1fr;gap:0;margin-top:clamp(2rem,4vh,3rem);border-top:1px solid rgba(46,52,55,.18)}
+@media(min-width:900px){.claves{grid-template-columns:1fr 1fr}}
+.clave{display:flex;gap:14px;align-items:flex-start;padding:22px 0}
+@media(min-width:900px){.clave + .clave{border-left:1px solid rgba(46,52,55,.18);padding-left:32px}.clave:first-child{padding-right:32px}}
+.clave .material-symbols-outlined{color:var(--tg);font-size:26px}
+.clave strong{display:block;font-family:var(--sa);font-weight:500;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--ci);margin-bottom:6px}
+.clave p{margin:0;font-family:var(--sa);font-size:14px;line-height:1.7;color:var(--ci2)}
+
+/* ── 6 · DUE DILIGENCE: calco de la seccion "OWN ETERNITY" (obsidiana, FAQ en lineas) ── */
+.sec-ob{background:var(--ob);color:var(--rl);overflow:hidden}
+.sec-ob .kicker{color:var(--sc)}
+.dd{display:grid;grid-template-columns:1fr;gap:clamp(2.5rem,5vw,5rem)}
+@media(min-width:1024px){.dd{grid-template-columns:5fr 7fr}}
+.dd h2{font-family:var(--sa);font-weight:200;font-size:clamp(34px,2.4vw + 18px,56px);line-height:1.02;text-transform:uppercase;margin:14px 0 0;color:var(--rl)}
+.dd h2 em{font-family:var(--se);font-weight:400;font-style:italic;text-transform:none;color:var(--ss)}
+.dd-lema{font-family:var(--sa);font-size:15px;line-height:1.75;color:rgba(245,240,230,.72);margin:20px 0 0;max-width:46ch}
+.dd-lema b{color:var(--rl);font-weight:500}
+.dd h3{font-family:var(--sa);font-size:11px;font-weight:500;letter-spacing:.24em;text-transform:uppercase;color:var(--sc);margin:0 0 14px}
+#docs-bloque{margin-top:clamp(2rem,4vh,2.75rem);flex-direction:column}
+#docs-lista{display:grid;grid-template-columns:1fr;gap:0}
+#docs-lista > div{background:transparent!important;border:0!important;border-top:1px solid rgba(245,240,230,.16)!important;border-radius:0!important;padding:14px 0!important}
+#docs-lista > div:last-child{border-bottom:1px solid rgba(245,240,230,.16)!important}
+#docs-lista .text-deep-lagoon,#docs-lista .font-bold{color:var(--rl)!important;font-family:var(--sa)!important;font-weight:500!important;letter-spacing:.04em}
+#docs-lista .text-territorial-green{color:var(--sc)!important}
+#docs-lista .uppercase{color:var(--ss)!important;font-family:var(--sa)!important;letter-spacing:.2em}
+#docs-lista a{font-family:var(--sa)!important;font-size:10.5px!important;letter-spacing:.16em;text-transform:uppercase;border:1px solid rgba(245,240,230,.4)!important;
+  background:transparent!important;color:var(--rl)!important}
+#docs-lista a:hover{background:rgba(245,240,230,.12)!important}
+.faq-item{border:0;border-top:1px solid rgba(245,240,230,.18);border-radius:0;background:transparent}
+.faq-item:last-child{border-bottom:1px solid rgba(245,240,230,.18)}
+.faq-item + .faq-item{margin-top:0}
+.faq-item summary{list-style:none;cursor:pointer;padding:18px 0;display:flex;align-items:center;justify-content:space-between;gap:16px;
+  font-family:var(--sa);font-size:14px;font-weight:500;letter-spacing:.03em;text-transform:uppercase;color:var(--rl);line-height:1.4}
+.faq-item summary::-webkit-details-marker{display:none}
+.faq-item summary .mi{font-size:0!important;width:14px;height:14px;position:relative;flex:none;transition:transform .3s var(--ease)}
+.faq-item summary .mi::before,.faq-item summary .mi::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(245,240,230,.8)}
+.faq-item summary .mi::after{transform:rotate(90deg);transition:transform .3s var(--ease)}
+.faq-item[open] summary .mi::after{transform:rotate(0)}
+.faq-item__body{padding:0 0 20px;font-family:var(--sa);font-size:14px;line-height:1.75;color:rgba(245,240,230,.72);max-width:64ch}
+#faq-lista{display:flex;flex-direction:column}
+#faq-lista p{color:rgba(245,240,230,.7)}
+.dd-atajos{display:flex;flex-wrap:wrap;gap:10px;margin-top:clamp(1.75rem,4vh,2.5rem)}
+
+/* ── 7 · GALERIA ── */
+#gallery{display:flex;gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;padding-bottom:6px;scrollbar-width:none;margin-top:clamp(2rem,4.5vh,3rem)}
+#gallery figure{margin:0;flex:none;width:82vw;scroll-snap-align:start;position:relative;border-radius:14px;overflow:hidden;background:var(--va)!important;border:0!important;box-shadow:none!important}
+@media(min-width:640px){#gallery figure{width:46vw}}
+@media(min-width:1024px){#gallery figure{width:31%}}
+#gallery figure > div{aspect-ratio:4/5!important}
+#gallery figcaption{position:absolute;left:0;right:0;bottom:0;padding:40px 18px 16px!important;background:linear-gradient(to top,rgba(10,12,9,.8),rgba(10,12,9,0))!important;
+  color:var(--rl)!important;font-family:var(--sa)!important;font-size:11px!important;letter-spacing:.18em;text-transform:uppercase}
+#gallery figure::after{content:"";position:absolute;inset:12px;border:1px solid rgba(245,240,230,.3);border-radius:8px;pointer-events:none}
+.gal-flechas{display:flex;gap:10px}
+.gal-flechas button{width:46px;height:46px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
+  border:1px solid rgba(46,52,55,.3);background:transparent;color:var(--ci);transition:all .3s}
+.gal-flechas button:hover{background:var(--ci);color:var(--rl)}
+.gal-flechas button:disabled{opacity:.3;pointer-events:none}
+
+#fx-nota{padding:14px var(--cpd);background:var(--rl2)}
+#fx-nota p{max-width:var(--cmx);margin:0 auto;font-family:var(--sa);font-size:12px;color:var(--ci2)}
+/* Modal de reserva: mismo marcado que v2; solo la tipografia */
+#backdrop h3{font-family:var(--sa)!important;font-weight:500!important;letter-spacing:.06em;text-transform:uppercase}
+</style>
+
+<script src="i18n.js?v=20260924a"></script>
+</head>
+<body>
+
+<!-- TOP BAR — calco de #topbar de lawangproperties.com: transparente sobre la foto
+     (logo blanco, menu en pildora de cristal, texto con sombra) y solida en lino al
+     bajar (logo oscuro, enlaces verdes). La clase .solid la pone el script del final. -->
+<header id="topbar">
+  <a id="logo" href="#vision" aria-label="Lawang Properties — Palm Field">
+    <img class="lg-w" src="../../../assets/img/lawang-logo-v3.webp" alt="Lawang">
+    <img class="lg-d" src="../../../assets/img/lawang-logo-v3-dark.webp" alt="" aria-hidden="true">
+  </a>
+  <nav id="nav-principal" aria-label="Sections">
+    <a class="nav-link" href="#vision">Project &amp; Photos</a>
+    <a class="nav-link" href="#modelos">Villa Models</a>
+    <a class="nav-link" href="#masterplan">Masterplan &amp; Plots</a>
+    <a class="nav-link" href="#rendimientos">Financial Forecast</a>
+    <a class="nav-link" href="#seguridad-notarial">Legal Security</a>
+    <a class="nav-link" href="#faq">FAQ</a>
+  </nav>
+  <div id="acciones">
+    <!-- Nace OCULTO: solo se enciende si el proyecto tiene un dosier publico (mismo JS que v2). -->
+    <a id="cta-dosier" aria-label="Download dossier" class="hidden" href="#" target="_blank" rel="noopener">
+      <span class="material-symbols-outlined">download</span>
+      <span>Download dossier</span>
+    </a>
+    <div id="deck-selectores" data-no-i18n></div>
+    <button type="button" id="menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="menu-movil">
+      <span class="material-symbols-outlined" id="menu-ico">menu</span>
+    </button>
+  </div>
+</header>
+<nav id="menu-movil" class="hidden"></nav>
+
+<!-- WhatsApp flotante: el circulo verde de la home. El texto se conserva (oculto a la
+     vista, legible por lector de pantalla) porque i18n.js y el ?text= salen de aqui. -->
+<a id="cta-whatsapp" href="https://wa.me/6281138319862?text=Hello%20LAWANG%2C%20I%27m%20looking%20at%20the%20Palm%20Field%20investor%20deck%20and%20I%20have%20a%20few%20questions." target="_blank" rel="noopener" aria-label="Ask about Palm Field on WhatsApp"><span class="hidden" data-wa-msg>Hello LAWANG, I’m looking at the Palm Field investor deck and I have a few questions.</span>
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.22 3.08.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.04 21.5h-.01a9.5 9.5 0 0 1-4.84-1.33l-.35-.2-3.6.94.96-3.51-.23-.36a9.49 9.49 0 0 1-1.45-5.05c0-5.24 4.27-9.5 9.52-9.5a9.46 9.46 0 0 1 9.51 9.51c0 5.24-4.27 9.5-9.51 9.5zM20.52 3.49A11.78 11.78 0 0 0 12.04 0C5.46 0 .1 5.36.1 11.94c0 2.1.55 4.16 1.6 5.98L0 24l6.25-1.64a11.92 11.92 0 0 0 5.79 1.47h.01c6.58 0 11.94-5.36 11.94-11.94a11.86 11.86 0 0 0-3.47-8.4z"/></svg>
+  <span class="sr">Questions? WhatsApp</span>
+</a>
+
+<main>
+
+<!-- 1 · HERO — patron .hero-panel de la home: foto a sangre 100svh con velo desde abajo,
+     titular enorme abajo a la izquierda, cifras en una fila con filetes y CTA en
+     pildora texturada a la derecha. El carrusel de fotos reales es el mismo de v2. -->
+<section id="vision">
+  <div id="hero-visual">
+    <div id="hero-track" class="lw-carrusel"><!-- lo llena el JS --></div>
+    <div class="hero-velo"></div>
+    <button type="button" id="hero-prev" class="hero-flecha" aria-label="Previous photos"><span class="material-symbols-outlined">chevron_left</span></button>
+    <button type="button" id="hero-next" class="hero-flecha" aria-label="More photos"><span class="material-symbols-outlined">chevron_right</span></button>
+  </div>
+
+  <div class="hero-texto">
+    <h1>Palm Field</h1>
+    <p class="hero-sub">by Lawang Properties</p>
+  </div>
+
+  <div class="hero-pie">
+    <!-- Cifras confirmadas reales por el owner el 10-sep (ver ficha viva). En Neue Kabel
+         200 como .lw-stat-n de la home: The Seasons corrompe + y 4. -->
+    <div class="cifras">
+      <div class="cifra"><b>500.000+ m²</b><span>Land Managed</span></div>
+      <div class="cifra"><b>6+ Years</b><span>Track Record</span></div>
+      <div class="cifra"><b>100+</b><span>Investors</span></div>
+      <div class="cifra"><b>100% PBG &amp; SLF</b><span>Permits</span></div>
+    </div>
+    <a class="hero-cta" href="#masterplan"><span class="material-symbols-outlined" aria-hidden="true">south</span><span>Masterplan &amp; Plots</span></a>
+  </div>
+
+  <div id="hero-puntos"></div>
+</section>
+
+<!-- 2 · MODELOS — patron "FOUR WAYS, ONE LEGACY": kicker centrado, titulo en mayusculas,
+     tarjetas altas a foto completa con marco interior y boton en pildora. -->
+<section class="sec sec-lino" id="modelos">
+<div class="wrap">
+  <div class="cab center reveal">
+    <p class="kicker">Catalog</p>
+    <h2 class="titulo">Villa Typologies</h2>
+    <p class="entrada">Prices below are <b>construction only</b> — land price depends on the plot chosen in the masterplan.</p>
+  </div>
+  <div id="modelos-grid"><!-- filled by JS --></div>
+</div>
+</section>
+
+<!-- 3 · MASTERPLAN — patron "THE COLLECTION": titulo grande en verde a la izquierda,
+     leyenda a la derecha; plano e inventario en vivo como tarjetas de la home. -->
+<section class="sec" id="masterplan">
+<div class="wrap">
+  <div class="cab-fila reveal">
+    <div class="cab">
+      <h2 class="titulo verde">Masterplan &amp; Plot Availability</h2>
+      <p class="entrada">Individually cadastred plots. Live inventory read directly from Palm Field's records — sizes, prices and status are informational and confirmed at Plot Lock.</p>
+    </div>
+    <div class="leyenda">
+      <span><i style="background:#485B37"></i>Available</span>
+      <span><i style="background:#F59E0B"></i>Reserved</span>
+      <span><i style="background:#B3261E"></i>Sold / Blocked</span>
+    </div>
+  </div>
+
+  <div class="mp-grid">
+    <div class="marco marco-pad">
+      <!-- Poligonos reales en % (manifiesto ../../masterplan/palmfield.json), mismo JS que v2. -->
+      <div class="relative w-full select-none" id="plan-wrap">
+        <img id="masterplan-img" src="" alt="Palm Field masterplan showing every plot code and surface area" loading="lazy">
+        <div class="absolute inset-0" id="plan-hotspots"></div>
+      </div>
+      <p class="mp-nota">Tap a plot to find it in the live inventory. Status is live; surface areas are confirmed by survey at Plot Lock.</p>
+    </div>
+
+    <div>
+      <div class="inv">
+        <div class="inv-cab">
+          <strong>Live plot inventory</strong>
+          <span id="plots-count">Loading…</span>
+        </div>
+        <div id="plots-wrap">
+          <div class="p-6 text-sm text-on-surface-variant">Loading live plot data…</div>
+        </div>
+      </div>
+      <div class="protocolo">
+        <span>Reservation Protocol</span>
+        <ol>
+          <li><strong>1. Reservation deposit</strong><span>Formal plot lock with <span data-eur="3000">€3,000</span> in the notary's escrow account.</span></li>
+          <li><strong>2. 10-day validity</strong><span>Due-diligence window; refundable per the Letter of Reservation.</span></li>
+          <li><strong>3. Notarial signature</strong><span>Hak Sewa deed and Power of Attorney before a PPAT notary.</span></li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- 4 · FORECAST — patron "FROM LAND TO LEGACY": foto a sangre con velo, cabecera
+     centrada y tres columnas separadas por filete. La nota legal va pegada a las cifras. -->
+<section class="sec sec-foto" id="rendimientos">
+<div class="wrap">
+  <div class="cab center reveal">
+    <p class="kicker">Investment</p>
+    <!-- Lo rellena el JS con los modelos publicados (regex de i18n.js). -->
+    <h2 class="titulo" id="forecast-titulo">Year-1 Rental Forecast</h2>
+    <p class="entrada">A first-year operating forecast under two scenarios (Average / Optimal occupancy). This is a forecast, not a guarantee — actual results depend on the rental operator, market conditions and property management agreement in force.</p>
+  </div>
+  <div id="forecast-grid"><!-- filled by JS --></div>
+  <p id="forecast-nota">Figures shown are a Year-1 operating forecast provided by Lawang, not a guaranteed or historical return. ROI is calculated on the total investment (construction plus land) stated on each card; the land figure depends on the plot chosen. Management fee, maintenance and rental tax percentages are indicative and are confirmed in the rental-management agreement you sign; they may change.</p>
+</div>
+</section>
+
+<!-- 5 · LEGAL — mismo texto LETRA POR LETRA que v2 (paso Legal el 9-sep); solo piel. -->
+<section class="sec" id="seguridad-notarial">
+<div class="wrap">
+  <div class="cab reveal">
+    <h2 class="titulo">Hak Sewa With Notarial Escrow vs. Informal Leasehold</h2>
+    <p class="entrada">
+      Much of Bali's foreign-facing market runs on private, unregistered lease agreements with no escrow and no notarial oversight. Palm Field is structured as <strong>Hak Sewa</strong> (long-term Indonesian lease tenure) directly between the landowner and the buyer, with funds held in a <strong>notarial escrow account</strong> until the agreed conditions are met — not Hak Milik, which Indonesian law reserves for Indonesian citizens.
+    </p>
+  </div>
+
+  <div class="tabla">
+    <div class="t-fila t-cab">
+      <div>Legal &amp; registry aspect</div>
+      <div><span class="material-symbols-outlined">verified</span>Palm Field: Hak Sewa + escrow</div>
+      <div><span class="material-symbols-outlined">warning</span>Common practice: informal lease</div>
+    </div>
+    <div class="t-fila">
+      <div class="t-asp"><strong>Payment security</strong><span>Notarial escrow (PPAT)</span></div>
+      <div class="t-si"><span class="material-symbols-outlined" aria-hidden="true">check_circle</span><p><em>Palm Field: Hak Sewa + escrow</em>Reservation and stage payments held in an escrow account managed by the notary, released against agreed conditions.</p></div>
+      <div class="t-no"><span class="material-symbols-outlined" aria-hidden="true">cancel</span><p><em>Common practice: informal lease</em>Funds paid directly to a private landowner or intermediary, with no third-party custody.</p></div>
+    </div>
+    <div class="t-fila">
+      <div class="t-asp"><strong>Term &amp; registration</strong><span>Hak Sewa, Indonesian law</span></div>
+      <div class="t-si"><span class="material-symbols-outlined" aria-hidden="true">check_circle</span><p><em>Palm Field: Hak Sewa + escrow</em>Registered lease term (legal maximum 30 years per grant, renewable with a new term), transferable and heritable.</p></div>
+      <div class="t-no"><span class="material-symbols-outlined" aria-hidden="true">cancel</span><p><em>Common practice: informal lease</em>Unregistered private agreement with no guaranteed renewal and limited transferability.</p></div>
+    </div>
+    <div class="t-fila">
+      <div class="t-asp"><strong>Building permits (PBG / SLF)</strong><span>Government portal (SIMBG)</span></div>
+      <div class="t-si"><span class="material-symbols-outlined" aria-hidden="true">check_circle</span><p><em>Palm Field: Hak Sewa + escrow</em>Approved ahead of construction, with occupancy certification (SLF) enabling legal short-term rental.</p></div>
+      <div class="t-no"><span class="material-symbols-outlined" aria-hidden="true">cancel</span><p><em>Common practice: informal lease</em>Frequently started without permits or with permits pending, exposed to government closure.</p></div>
+    </div>
+    <div class="t-fila">
+      <div class="t-asp"><strong>Land zoning (RDTR)</strong><span>Official urban classification</span></div>
+      <div class="t-si"><span class="material-symbols-outlined" aria-hidden="true">check_circle</span><p><em>Palm Field: Hak Sewa + escrow</em>Zoned for tourism / residential use, legally enabled for short-stay rental income.</p></div>
+      <div class="t-no"><span class="material-symbols-outlined" aria-hidden="true">cancel</span><p><em>Common practice: informal lease</em>Often sited on green or agricultural-protection land (LSD/LP2B), not legally buildable.</p></div>
+    </div>
+  </div>
+
+  <div class="claves">
+    <div class="clave"><span class="material-symbols-outlined">gavel</span><div><strong>Official Notarial Signature (PPAT)</strong><p>Each transfer is formalised before a state-appointed Land Deed Official (PPAT), with a Power of Attorney for the buyer's representative in Indonesia.</p></div></div>
+    <div class="clave"><span class="material-symbols-outlined">handshake</span><div><strong>Direct, Documented Transaction</strong><p>The lease is agreed directly between the landowner and the buyer — no nominee arrangement, no undisclosed intermediary holding title on your behalf.</p></div></div>
+  </div>
+</div>
+</section>
+
+<!-- 6 · DUE DILIGENCE — en v2 era el panel flotante del 40% sobre la hero. La home no
+     tiene nada parecido; su equivalente es la seccion obsidiana "OWN ETERNITY" (texto a
+     la izquierda, preguntas en lineas con + a la derecha). Documentos y FAQ siguen LOS
+     DOS a la vista (pedido del owner 23-sep: nada de pestañas). Mismos ids que v2. -->
+<section class="sec sec-ob" id="faq">
+<div class="wrap dd">
+  <div class="reveal">
+    <p class="kicker">Investor Deck · Due Diligence</p>
+    <h2>A land-plot development in the <em>Balian river valley.</em></h2>
+    <p class="dd-lema">Held under <b>Hak Sewa</b> with a notarial escrow account — not a security or investment product.</p>
+    <div id="docs-bloque" class="hidden">
+      <h3>Project documents</h3>
+      <div id="docs-lista"><!-- lo llena el JS --></div>
+    </div>
+  </div>
+  <div id="faq-bloque" class="reveal">
+    <h3>Frequently Asked Questions</h3>
+    <div id="faq-lista"><!-- lo llena el JS --></div>
+    <div class="dd-atajos">
+      <a class="btn btn-hueso" href="#modelos">Villa Models</a>
+      <a class="btn btn-hueso" href="#masterplan">Masterplan &amp; Plots</a>
+      <a class="btn btn-hueso" href="#rendimientos">Financial Forecast</a>
+      <a class="btn btn-hueso" href="#seguridad-notarial">Legal Security</a>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- 7 · GALERIA — fotos verticales con marco interior, como las tarjetas de la home. -->
+<section class="sec sec-lino" id="documentation">
+<div class="wrap">
+  <div class="cab-fila reveal">
+    <div class="cab">
+      <h2 class="titulo">Site &amp; Delivered Villas</h2>
+      <p class="entrada">Plots, surrounding land and villa models already delivered on neighbouring phases.</p>
+    </div>
+    <div class="gal-flechas">
+      <button type="button" id="gal-prev" aria-label="Previous photos"><span class="material-symbols-outlined">chevron_left</span></button>
+      <button type="button" id="gal-next" aria-label="More photos"><span class="material-symbols-outlined">chevron_right</span></button>
+    </div>
+  </div>
+  <div id="gallery" class="lw-carrusel"><!-- filled by JS --></div>
+</div>
+</section>
+
+</main>
+
+
+<div id="fx-nota" class="w-full px-6 md:px-margin-desktop py-3 bg-surface-container-low border-t border-control-border/20" style="display:none">
+  <p class="lw-wide font-body-sm text-xs text-on-surface-variant" id="fx-nota-txt"></p>
+</div>
+
+<!-- FOOTER compartido con /modelo (23-sep, pedido del owner: "que ya sirva para
+     /modelo e /investor-deck, comprimido, contacto bien destacado"). Lo pinta
+     /assets/lawang-pie.js, una sola fuente con sus tres idiomas. Aqui solo va lo
+     propio del deck: el aviso de que no es una oferta de valores (lo traduce el
+     walker de i18n.js, como antes). El boton de WhatsApp del pie lleva
+     data-wa-enlace, asi que la IIFE del final le pone el mismo mensaje traducido
+     que al flotante. -->
+<footer data-lw-pie data-wa="https://wa.me/6281138319862">
+  <span data-pie-nota>This page does not replace legal or financial advice. Nothing here is an offer to sell securities or a solicitation of investment.</span>
+</footer>
+<script src="../../../assets/lawang-pie.js?v=20260923153722"></script>
+
+<!-- MODAL DE RESERVA (sin cambios funcionales respecto a la version anterior; solo
+     clases/colores Tesla-style — ids, name, type, autocomplete intactos porque el
+     <script> de abajo (investor-deck-codigo/-reservar) los referencia por id). -->
+<div class="fixed inset-0 bg-[rgba(20,20,18,.6)] backdrop-blur-sm z-[60] items-center justify-center p-5 hidden" id="backdrop">
+  <div class="bg-surface-container-lowest max-w-[480px] w-full rounded-2xl p-7 max-h-[90vh] overflow-auto shadow-2xl border border-control-border/20">
+    <div id="step-request">
+      <h3 class="font-headline-sm text-2xl text-deep-lagoon font-bold mb-1">Reserve plot <span id="plot-code-label"></span></h3>
+      <div class="text-sm text-on-surface-variant mb-4">We'll email you a one-time verification code before anything is issued.</div>
+      <div id="msg-area"></div>
+      <div class="flex flex-col gap-3">
+        <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-nombre">Full name</label><input id="f-nombre" class="w-full px-3 py-2 border border-control-border/40 rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-territorial-green/40 focus:border-territorial-green transition-all" autocomplete="name"></div>
+        <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-pasaporte">Passport number</label><input id="f-pasaporte" class="w-full px-3 py-2 border border-control-border/40 rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-territorial-green/40 focus:border-territorial-green transition-all"></div>
+        <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-email">Email</label><input id="f-email" type="email" class="w-full px-3 py-2 border border-control-border/40 rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-territorial-green/40 focus:border-territorial-green transition-all" autocomplete="email"></div>
+        <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-telefono">Phone</label><input id="f-telefono" class="w-full px-3 py-2 border border-control-border/40 rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-territorial-green/40 focus:border-territorial-green transition-all" autocomplete="tel"></div>
+        <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-nacionalidad">Nationality</label><input id="f-nacionalidad" class="w-full px-3 py-2 border border-control-border/40 rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-territorial-green/40 focus:border-territorial-green transition-all"></div>
+        <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-domicilio">Address</label><input id="f-domicilio" class="w-full px-3 py-2 border border-control-border/40 rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-territorial-green/40 focus:border-territorial-green transition-all"></div>
+      </div>
+      <label class="flex gap-2 text-xs items-start my-4"><input type="checkbox" id="f-consent" class="mt-0.5 accent-territorial-green"> I have read and agree to the reservation terms and Lawang's privacy policy, and consent to my data being processed to manage this reservation.</label>
+      <!-- El texto de arriba citaba "Lawang's privacy policy" sin enlazarla a ninguna
+           parte. Un consentimiento que remite a un documento que el usuario no puede
+           abrir no es informado (RGPD art. 7/13, UU PDP). Va aparte y no dentro de la
+           frase porque el i18n casa por texto ingles completo: un <a> dentro la
+           partiria en trozos que ya no traducirian. -->
+      <p class="text-xs -mt-2 mb-4"><a class="text-deep-lagoon underline" href="/legal" target="_blank" rel="noopener">Read Lawang&rsquo;s Privacy &amp; Terms</a></p>
+      <div class="flex gap-3 justify-end mt-2">
+        <button class="border border-control-border/40 px-4 py-2 rounded-lg font-label-md text-body-sm hover:bg-surface-container-low transition-colors" id="btn-cancel" type="button">Cancel</button>
+        <button class="bg-deep-lagoon hover:bg-territorial-green text-white px-4 py-2 rounded-lg font-semibold font-label-md text-body-sm transition-colors" id="btn-send-code" type="button">Send verification code</button>
+      </div>
+    </div>
+    <div id="step-verify" class="hidden">
+      <h3 class="font-headline-sm text-2xl text-deep-lagoon font-bold mb-1">Enter your code</h3>
+      <div class="text-sm text-on-surface-variant mb-4">We sent a 6-digit code to your email. It expires in 10 minutes.</div>
+      <div id="msg-area-2"></div>
+      <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-codigo">Verification code</label><input id="f-codigo" inputmode="numeric" maxlength="6" class="w-full px-3 py-2 border border-control-border/40 rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-territorial-green/40 focus:border-territorial-green transition-all tracking-[0.3em] text-center font-semibold"></div>
+      <div class="flex gap-3 justify-end mt-4">
+        <button class="border border-control-border/40 px-4 py-2 rounded-lg font-label-md text-body-sm hover:bg-surface-container-low transition-colors" id="btn-back" type="button">Back</button>
+        <button class="bg-deep-lagoon hover:bg-territorial-green text-white px-4 py-2 rounded-lg font-semibold font-label-md text-body-sm transition-colors" id="btn-confirm" type="button">Confirm reservation</button>
+      </div>
+    </div>
+    <div id="step-done" class="hidden">
+      <h3 class="font-headline-sm text-2xl text-deep-lagoon font-bold mb-1" id="done-title"></h3>
+      <div id="done-body" class="text-sm text-on-surface-variant"></div>
+      <div class="flex justify-end mt-4"><button class="bg-deep-lagoon hover:bg-territorial-green text-white px-4 py-2 rounded-lg font-semibold font-label-md text-body-sm transition-colors" id="btn-close" type="button">Close</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var SB_URL = 'https://vtulllundrfennhjddhc.supabase.co';
+  // LAW-264 (22-sep-2026): era la clave LEGACY anon (JWT), publicada tal cual en
+  // este HTML servido por CDN. Verificado por Datos: es la mitad anon/publicable
+  // (no service_role), pero se cambia por la clave `sb_publishable_...` moderna,
+  // rotable de forma independiente sin tocar el resto del proyecto Supabase.
+  var SB_KEY = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';
+  var PROYECTO = 'Palm Field W5';
+
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  // El RPC devuelve EUR (row.moneda). Se convierte a la divisa elegida; el
+  // contrato sigue siendo en EUR (ver nota al pie).
+  function fmtMoney(n, cur){ if(n==null) return '—'; return window.lwMoney ? lwMoney(n) : ((cur||'EUR') + ' ' + Number(n).toLocaleString('en-GB')); }
+
+  // ── fotos: la intranet manda, el repo es solo el suelo bajo los pies ──────
+  // Antes habia aqui un array de 15 rutas escrito a mano, y la hero era UNA foto
+  // fija. Ahora las dos galerias salen de `deck_fotos` (RPC investor_deck_fotos)
+  // y el equipo las gestiona desde la ficha del proyecto en la intranet.
+  //
+  // 14-sep-2026, hallazgo del owner: `investor_deck_fotos` trae en la misma lista
+  // las fotos DEL PROYECTO (ambito=proyecto, sitio real) y las de CADA MODELO que
+  // el proyecto usa (ambito=modelo, renders de villa) — el RPC las mezcla a
+  // proposito para el deck en conjunto, pero el hero/galeria del SITIO no debe
+  // fabricarse solo con renders de Dali y Dune. Aqui se separan: `proyecto` (sin
+  // `modelo_slug`) alimenta hero+galeria; lo de cada modelo se guarda en
+  // `porModelo[slug]` y lo usa `fotoModelo()` en la tarjeta de esa villa, mas
+  // abajo — cada foto vive donde hace referencia al modelo, no al sitio.
+  //
+  // SEMILLA: mientras no haya ni una foto DE PROYECTO subida se siguen viendo las
+  // del repo. No son "dos fuentes": es el suelo del que se levanta esto, y se
+  // retira solo — en cuanto la intranet tiene una foto de proyecto, el array deja
+  // de mirarse. Cuando el owner confirme que ya las subio, ESTE BLOQUE SE BORRA
+  // (queda en git).
+  var SEMILLA = [
+    ['10-plot-aerial.jpg','Plot — aerial view'],
+    ['09-the-plot.jpg','The plot'],
+    ['09-the-view.jpg','The view'],
+    ['13-resort-river.jpg','The villas — Balian river'],
+    ['06-balian-coast.jpg','Balian coast'],
+    ['07-balian-sunset.jpg','Balian sunset'],
+    ['01-volcano-ocean.jpg','Volcano & ocean'],
+    ['03-jungle-canopy.jpg','Jungle canopy'],
+    ['14-dune-exterior.jpg','Dune model — exterior'],
+    ['15-dune-plan.jpg','Dune model — floor plan'],
+    ['17-dream-evening.jpg','Dream model — evening'],
+    ['18-dream-day.jpg','Dream model — day'],
+    ['19-dream-plan.jpg','Dream model — floor plan']
+  ];
+  // Seis y no una: con una sola foto el carrusel de la hero no seria un carrusel,
+  // y el encargo era justamente que lo fuera. Son fotos del SITIO (no planos ni
+  // renders), que es lo que tiene sentido en la portada. Sus pies ya estan en el
+  // diccionario de i18n.js, asi que siguen traduciendose en los tres idiomas.
+  var SEMILLA_HERO = [
+    ['08-resort-night.jpg','Delivered villas on a neighbouring phase, Balian river valley, southwest Bali.'],
+    ['13-resort-river.jpg','The villas — Balian river'],
+    ['09-the-view.jpg','The view'],
+    ['07-balian-sunset.jpg','Balian sunset'],
+    ['10-plot-aerial.jpg','Plot — aerial view'],
+    ['06-balian-coast.jpg','Balian coast']
+  ];
+
+  var BUCKET = SB_URL + '/storage/v1/object/public/deck/';
+
+  // Texto multiidioma venido de la base. NO pasa por i18n.js, que casa por texto
+  // ingles del HTML y no puede tocar lo que pinta el JS desde la base: cada fila
+  // trae sus tres idiomas dentro. Si falta el del visitante cae al ingles, que el
+  // CHECK de la tabla garantiza que existe.
+  function lwTxt(campo){
+    if(!campo) return '';
+    var lang = window.lwLang ? lwLang() : 'en';
+    return String(campo[lang] || campo.en || '');
+  }
+
+  // Un render de una villa que aun no existe no puede pasar por fotografia: en la
+  // UE el render publicado integra la oferta, y Permendag 19/2026 obliga a
+  // declarar la imagen generada. Lo declara quien sube y sale a la vista.
+  function etiquetaTipo(tipo){
+    if(tipo === 'render') return ' · Render';
+    if(tipo === 'ia')     return ' · AI-generated image';
+    return '';
+  }
+
+  // Flechas de un carrusel con scroll-snap. Sale a funcion porque ahora hay DOS
+  // carruseles en la pagina —la hero y la galeria— y copiarlo habria sido la
+  // segunda copia que diverge en cuanto se toque una.
+  function montaFlechas(track, prev, next, puntos){
+    if(!track || !prev || !next) return;
+    function paso(){
+      var f = track.firstElementChild;
+      return f ? f.getBoundingClientRect().width + 16 : track.clientWidth * 0.8;
+    }
+    function pinta(){
+      // Tolerancia de 8px y no de 1: el px-1 del contenedor deja el carrusel en
+      // scrollLeft 4 estando al principio, y con margen de 1 la flecha izquierda
+      // no se apagaba nunca en la primera foto (medido, no supuesto).
+      var fin = track.scrollWidth - track.clientWidth;
+      prev.disabled = track.scrollLeft <= 8;
+      next.disabled = track.scrollLeft >= fin - 8;
+      if(puntos && puntos.children.length){
+        var n = Math.round(track.scrollLeft / Math.max(1, paso()));
+        for(var i = 0; i < puntos.children.length; i++){
+          puntos.children[i].className = 'w-1.5 h-1.5 rounded-full transition-all ' +
+            (i === n ? 'bg-white w-4' : 'bg-white/50');
+        }
+      }
+    }
+    prev.addEventListener('click', function(){ track.scrollBy({ left: -paso(), behavior: 'smooth' }); });
+    next.addEventListener('click', function(){ track.scrollBy({ left:  paso(), behavior: 'smooth' }); });
+    // `behavior:'smooth'` no anima en Edge headless pero si en un navegador real:
+    // no confundir una cosa con la otra al verificar (gotcha ya registrado).
+    track.addEventListener('scroll', pinta);
+    window.addEventListener('resize', pinta);
+    pinta();
+  }
+
+  // ── Hero: carrusel simple de fotos reales, sin iconos sueltos sobre la foto
+  // (pedido del owner, 22-sep: "quita los iconitos y añade el carrusel de
+  // imagenes"). Reemplaza la mecanica de /modelo (capas crossfade + hotspots +
+  // dock) -- aqui no hay nada que "explorar" sobre la foto, solo el nombre del
+  // proyecto (HTML fijo, ver arriba) y las fotos reales deslizandose. Misma
+  // mecanica exacta que el carrusel de «Site & Delivered Villas» de mas abajo
+  // (montaFlechas es la misma funcion, sin segunda copia que diverja).
+  function pintaHero(fotos){
+    var track  = document.getElementById('hero-track');
+    var puntos = document.getElementById('hero-puntos');
+    if(!track) return;
+    track.innerHTML = '';
+    if(puntos) puntos.innerHTML = '';
+    fotos.forEach(function(f, i){
+      var fig = document.createElement('figure');
+      fig.className = 'm-0 relative shrink-0 snap-center w-full h-full';
+      var img = document.createElement('img');
+      img.src = f.src;
+      img.alt = f.pie;
+      img.className = 'w-full h-full object-cover';
+      // Solo la primera es LCP. Marcarlas todas con prioridad alta es lo mismo que
+      // no marcar ninguna, y encima le pelean el ancho de banda.
+      if(i === 0) img.setAttribute('fetchpriority', 'high');
+      else img.loading = 'lazy';
+      fig.appendChild(img);
+      track.appendChild(fig);
+      if(puntos && fotos.length > 1){
+        var d = document.createElement('span');
+        d.className = 'w-1.5 h-1.5 rounded-full transition-all ' + (i === 0 ? 'bg-white w-4' : 'bg-white/50');
+        puntos.appendChild(d);
+      }
+    });
+    montaFlechas(track, document.getElementById('hero-prev'), document.getElementById('hero-next'), puntos);
+    if(window.lwDeck) lwDeck.traduce(track);
+  }
+
+  function pintaGaleria(fotos){
+    var g = document.getElementById('gallery');
+    if(!g) return;
+    g.innerHTML = '';
+    fotos.forEach(function(f){
+      var fig = document.createElement('figure');
+      // Ancho fijo por foto + snap: el carrusel para en foto entera, no a medias.
+      // En movil ocupa casi toda la pantalla (82vw) para que se lea; en escritorio
+      // caben tres y pico, que insinua que hay mas a la derecha.
+      fig.className = 'm-0 shrink-0 snap-start relative overflow-hidden rounded-xl border border-stone-sand shadow-sm hover:shadow-lg transition-shadow ' +
+        'w-[82vw] sm:w-[46vw] lg:w-[31%] flex flex-col bg-[#fffdf8] group';
+      var marco = document.createElement('div');
+      marco.className = 'aspect-[4/3] overflow-hidden bg-surface-container';
+      var img = document.createElement('img');
+      img.src = f.src; img.alt = f.pie; img.loading = 'lazy';
+      img.className = 'w-full h-full object-cover transition-transform duration-500 group-hover:scale-105';
+      var cap = document.createElement('figcaption');
+      cap.className = 'px-4 py-2.5 bg-[#fffdf8] text-volcanic-ash font-body-sm text-body-sm';
+      // textContent y NUNCA innerHTML: este pie lo escribe una persona en la
+      // intranet y se pinta en una pagina publica. Por ahi entra un XSS
+      // almacenado, y ese mismo patron ya se cazo en este deck el 11-sep.
+      cap.textContent = f.pie + etiquetaTipo(f.tipo);
+      marco.appendChild(img); fig.appendChild(marco); fig.appendChild(cap);
+      g.appendChild(fig);
+    });
+    montaFlechas(g, document.getElementById('gal-prev'), document.getElementById('gal-next'), null);
+    if(window.lwDeck) lwDeck.traduce(g);
+  }
+
+  function fotosDeSemilla(){
+    pintaHero(SEMILLA_HERO.map(function(it){
+      return { src: '../assets/gallery/' + it[0], pie: it[1], tipo: 'foto' };
+    }));
+    pintaGaleria(SEMILLA.map(function(it){
+      // v2/ vive un nivel mas hondo que el vivo: prefijo con un '../' extra.
+      return { src: '../assets/gallery/' + it[0], pie: it[1], tipo: 'foto' };
+    }));
+  }
+
+  // Resuelve siempre (nunca rechaza): un fallo aqui no puede tumbar el bloque de
+  // modelos, que espera este mismo resultado para saber la foto de cada villa.
+  var fotosListo = fetch(SB_URL + '/rest/v1/rpc/investor_deck_fotos', {
+    method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
+    body: JSON.stringify({ p_proyecto: PROYECTO })
+  }).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+    .then(function(rows){
+      var porModelo = {};
+      var proyecto = [];
+      (rows || []).forEach(function(r){
+        var f = { uso:r.uso, tipo:r.tipo, src: BUCKET + r.path, pie: lwTxt(r.pie) };
+        if(r.modelo_slug){ (porModelo[r.modelo_slug] = porModelo[r.modelo_slug] || []).push(f); }
+        else { proyecto.push(f); }
+      });
+      if(!proyecto.length){ fotosDeSemilla(); return porModelo; }
+      var hero = proyecto.filter(function(f){ return f.uso === 'hero'; });
+      var gal  = proyecto.filter(function(f){ return f.uso === 'galeria'; });
+      // Sin ninguna marcada como hero, la portada tira de las de galeria en vez de
+      // quedarse en blanco: un hueco vacio en lo primero que se ve es peor que una
+      // foto que alguien no llego a clasificar.
+      pintaHero(hero.length ? hero : gal.slice(0, 6));
+      pintaGaleria(gal.length ? gal : hero);
+      return porModelo;
+    })
+    .catch(function(){ fotosDeSemilla(); return {}; });
+
+  // ── documentacion del proyecto: sale de la intranet, o no sale ─────────────
+  // El owner decidio (11-sep) que lo descargable del deck es la documentacion
+  // adjunta al proyecto en la intranet, y que si no hay nada publicado NO se
+  // enseñe nada. Por eso tanto el boton de cabecera como el bloque del panel de
+  // due diligence nacen ocultos en el HTML: solo los enciende esta respuesta.
+  // No se cuelga de `confidencial` ni de `visible_portal` -- ninguno de los dos
+  // significa "publico": el segundo es para compradores CON CONTRATO, lo dice la
+  // propia pantalla de Documentacion. Lleva su opt-in explicito, como las parcelas.
+  //
+  // UNA SOLA LLAMADA para las dos cosas (14-sep): el boton de cabecera es un atajo
+  // al dosier comercial y la lista es el data room entero. Pedirlo dos veces habria
+  // sido la segunda copia que diverge en cuanto se toque una.
+
+  // Ligaduras de Material Symbols, no texto: i18n.js ya se las salta sola.
+  var DOC_ICONO = {
+    comercial:'description', legal:'gavel', tecnico:'architecture',
+    precios:'payments', portada:'image', otros:'draft'
+  };
+  // Etiqueta de la categoria. En ingles a proposito: SI pasa por i18n.js (es un
+  // valor cerrado que escribe el estudio), al reves que el titulo del documento,
+  // que lo teclea una persona en la intranet y va marcado data-no-i18n.
+  var DOC_ETIQUETA = {
+    comercial:'Commercial', legal:'Legal', tecnico:'Technical',
+    precios:'Plots & pricing', portada:'Image', otros:'Document'
+  };
+
+  // El `url` lo teclea una persona en la intranet y esto es una pagina publica sin
+  // login: un `javascript:` pegado ahi se ejecutaria al hacer clic. Solo http(s).
+  function urlSegura(u){
+    if(!u) return '';
+    try{
+      var p = new URL(String(u), location.href);
+      return (p.protocol === 'http:' || p.protocol === 'https:') ? p.href : '';
+    }catch(_){ return ''; }
+  }
+
+  // Los documentos viven en Drive, y un enlace /file/d/<id>/view ABRE el visor: no
+  // descarga. Para el inversor que quiere el PDF en su disco, Drive tiene su propia
+  // ruta de descarga directa (`uc?export=download`), que devuelve el fichero con su
+  // nombre real en Content-Disposition -- verificado el 14-sep sobre los tres.
+  // Si el enlace no es de Drive (manana puede ser un S3, un PDF del propio dominio),
+  // no se inventa una ruta de descarga: la tarjeta se queda solo con "View", que es
+  // lo unico que se puede prometer sin mentir.
+  function enlaceDescarga(href){
+    var m = /drive\.google\.com\/file\/d\/([^/?#]+)/.exec(href) ||
+            /drive\.google\.com\/open\?id=([^&#]+)/.exec(href);
+    return m ? 'https://drive.google.com/uc?export=download&id=' + m[1] : '';
+  }
+
+  // Boton pequeño de accion dentro de una tarjeta de documento.
+  function accionDoc(href, icono, etiqueta, primaria){
+    var a = document.createElement('a');
+    a.href = href; a.target = '_blank'; a.rel = 'noopener';
+    a.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full no-underline ' +
+      'font-label-md text-[12px] transition-all ' +
+      (primaria ? 'bg-deep-lagoon text-white hover:bg-territorial-green'
+                : 'border border-[#D8D2C5] text-deep-lagoon hover:border-territorial-green hover:bg-[#E4DFD5]/60');
+    var i = document.createElement('span');
+    i.className = 'material-symbols-outlined text-[16px]';
+    i.textContent = icono;
+    var t = document.createElement('span');
+    t.textContent = etiqueta;
+    a.appendChild(i); a.appendChild(t);
+    return a;
+  }
+
+  function pintaDocs(docs){
+    var bloque = document.getElementById('docs-bloque');
+    var cont   = document.getElementById('docs-lista');
+    if(!bloque || !cont) return;
+    cont.innerHTML = '';
+    var pintados = 0;
+    docs.forEach(function(d){
+      var href = urlSegura(d.url);
+      if(!href) return;
+      // La tarjeta ya NO es un enlace: lleva dos acciones distintas dentro, y un <a>
+      // con dos <a> dentro no es HTML valido -- ademas de dejar al inversor sin saber
+      // cual de las dos cosas pasa al hacer clic en el hueco entre botones.
+      var card = document.createElement('div');
+      card.className = 'flex flex-col gap-2 bg-[#fffdf8] border border-stone-sand ' +
+                       'rounded-xl px-4 py-3 hover:border-territorial-green transition-colors';
+      var cab = document.createElement('div');
+      cab.className = 'flex items-start gap-2 text-deep-lagoon';
+      var ico = document.createElement('span');
+      ico.className = 'material-symbols-outlined text-[18px] shrink-0 text-territorial-green';
+      ico.textContent = DOC_ICONO[d.categoria] || DOC_ICONO.otros;
+      var texto = document.createElement('div');
+      texto.className = 'flex flex-col min-w-0 grow';
+      var tit = document.createElement('span');
+      // textContent y data-no-i18n: es un nombre propio escrito por el equipo. Traducirlo
+      // por coincidencia de palabras convertiria "ITR" o "SITE PLAN" en otra cosa.
+      // Sin `truncate`: a dos columnas el panel es estrecho y cortar el nombre de un
+      // documento oficial a mitad es peor que dejarlo envolver en dos lineas.
+      tit.className = 'font-body-md text-body-sm font-bold text-deep-lagoon break-words';
+      tit.setAttribute('data-no-i18n', '');
+      tit.textContent = d.titulo || '';
+      texto.appendChild(tit);
+      var sub = document.createElement('span');
+      sub.className = 'font-body-sm text-[11px] uppercase tracking-wider text-[#5F6257]';
+      sub.textContent = DOC_ETIQUETA[d.categoria] || DOC_ETIQUETA.otros;
+      texto.appendChild(sub);
+      if(d.descripcion){
+        var des = document.createElement('span');
+        des.className = 'font-body-sm text-xs text-[#44483f] leading-relaxed mt-1';
+        des.setAttribute('data-no-i18n', '');
+        des.textContent = d.descripcion;
+        texto.appendChild(des);
+      }
+      cab.appendChild(ico); cab.appendChild(texto);
+      var acciones = document.createElement('div');
+      acciones.className = 'flex flex-wrap items-center gap-2 mt-auto pt-1';
+      acciones.appendChild(accionDoc(href, 'visibility', 'View', true));
+      var bajar = enlaceDescarga(href);
+      if(bajar) acciones.appendChild(accionDoc(bajar, 'download', 'Download', false));
+      card.appendChild(cab); card.appendChild(acciones);
+      cont.appendChild(card);
+      pintados++;
+    });
+    if(!pintados) return;                       // nada publicable: el bloque sigue oculto
+    bloque.classList.remove('hidden');
+    bloque.classList.add('flex');
+    if(window.lwDeck) lwDeck.traduce(bloque);
+  }
+
+  fetch(SB_URL + '/rest/v1/rpc/investor_deck_documentos', {
+    method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
+    body: JSON.stringify({ p_proyecto: PROYECTO })
+  }).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+    .then(function(docs){
+      if(!docs || !docs.length) return;          // sin nada publicado, ni boton ni bloque
+      pintaDocs(docs);
+      // El boton de cabecera dice "Download dossier", asi que solo puede apuntar al
+      // dosier. Antes cogia `docs[0]` y el RPC ordena por `creado_en desc`: en cuanto
+      // hay mas de un documento publicado, el boton pasa a bajar el ultimo que alguien
+      // subio -- un plano topografico bajo la promesa de un dosier. Se ata a la
+      // categoria, que es lo que de verdad significa "dosier".
+      var d = docs.filter(function(x){ return x.categoria === 'comercial' && urlSegura(x.url); })[0];
+      if(!d) return;
+      var cta = document.getElementById('cta-dosier');
+      if(!cta) return;
+      cta.href = urlSegura(d.url);
+      cta.classList.remove('hidden');
+      cta.classList.add('inline-flex');
+      if(d.titulo) cta.setAttribute('title', d.titulo);
+    })
+    .catch(function(){ /* MUDO A PROPOSITO: el estado de reposo de las dos piezas ya es
+         'oculto', asi que un fallo aqui deja exactamente lo mismo que el caso normal de
+         'este proyecto no tiene nada publicado'. No hay nada que avisarle al inversor:
+         no se le promete ninguna descarga que luego falle, y un aviso de error sobre un
+         bloque que nunca vio solo seria ruido. Lo que si tiene que verse en pantalla
+         (modelos, parcelas) tiene su propio aviso. */ });
+
+  // ── tipologías de villa: se leen de la intranet, no se escriben a mano ────
+  // Aquí había un array MODELOS clavado a mano con Dali/Dune/Dream y un comentario
+  // que juraba que Temple "NO está asignado a este proyecto". La intranet decía
+  // otra cosa: Palm Field W5 tiene CUATRO modelos asignados (`modelos_villa`), y de
+  // paso la terraza de Dali (16 → 17 m²) y la de Dune (29 → 30) llevaban tiempo
+  // mal. Es la familia de «el dato tiene un dueño»: si el dato tiene fuente, se lee
+  // de la fuente — una copia a mano solo espera a derivar.
+  //
+  // El RPC `investor_deck_modelos` devuelve solo proyectos con el opt-in
+  // `publicado_investor_deck` (hoy, solo este), nunca `notas`, y resuelve precio y
+  // moneda SIEMPRE en el mismo nivel de la cascada. Ver su migración.
+  //
+  // Renders: se piden solo si el slug es limpio, y si el fichero no está el propio
+  // `onerror` cambia la tarjeta al estado "Renders in progress" — el mismo que ya
+  // usa /modelo/<slug>. NI una lista de slugs a mano (que es justo el bug de los 404
+  // del 10-sep) NI la flag `renders_pendientes`, que hoy miente: Temple la tiene en
+  // false y no existe assets/img/buildings/temple/ en disco.
+  var SLUG_OK = /^[a-z0-9-]+$/;
+  var DESTACADO = 'dream';   // "Most requested" es decisión comercial, no dato de BD.
+
+  // Estado sin render: mismo dibujo y mismo texto que /modelo/ (Diseño, 2-sep),
+  // adaptado a la caja fija h-60 de la tarjeta "collection" (antes aspect-[4/3]).
+  var SIN_RENDER =
+    '<div class="w-full h-60 relative overflow-hidden bg-[#E4DFD5] flex flex-col items-center justify-center gap-2 text-deep-lagoon/70">' +
+      '<svg viewBox="0 0 120 90" aria-hidden="true" class="w-20 h-auto">' +
+        '<path d="M10 48 L60 12 L110 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>' +
+        '<rect x="24" y="48" width="72" height="34" fill="none" stroke="currentColor" stroke-width="2.5"/>' +
+        '<path d="M48 82 V58 H72 V82" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>' +
+      '<p class="font-label-md text-label-md m-0">Renders in progress</p></div>';
+
+  // `fotosModelo`: las de ESE modelo desde `deck_fotos` (ambito=modelo), la razon
+  // de ser de este cambio (14-sep, hallazgo del owner) — es lo que sube el equipo
+  // desde Intranet → Modelos → <modelo> → «Fotos del deck…». Si aun no hay
+  // ninguna, «Renders in progress» — igual que el deck general. Sin respaldo a
+  // /assets/img/buildings/ (carpeta retirada el 24-sep-2026: era una segunda fuente
+  // de fotos que nadie podía dar de alta desde la intranet).
+  function fotoModelo(slug, nombre, fotosModelo){
+    if(!SLUG_OK.test(slug)) return SIN_RENDER;
+    var propia = (fotosModelo && fotosModelo.length) ? fotosModelo[0].src : null;
+    if(!propia) return SIN_RENDER;
+    var ruta = propia;
+    return '<img src="' + esc(ruta) + '" alt="' + esc(nombre) + ' villa model" loading="lazy" ' +
+      'class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" data-render>';
+  }
+
+  // Si el render no esta en disco, la caja de foto ([data-foto]) cae sola al estado
+  // honesto. Sale a funcion porque desde el 22-sep hay DOS tarjetas con foto de
+  // modelo (catalogo y forecast): copiar el onerror en cada una seria la segunda
+  // copia que diverge.
+  function enganchaSinRender(card){
+    var img = card.querySelector('[data-render]');
+    if(!img) return;
+    img.addEventListener('error', function(){
+      var caja = card.querySelector('[data-foto]');
+      if(!caja) return;
+      var tmp = document.createElement('div');
+      tmp.innerHTML = SIN_RENDER;
+      caja.replaceChild(tmp.firstChild, img);
+      if(window.lwDeck) lwDeck.traduce(caja);
+    });
+  }
+
+  // El precio solo entra en el conversor de divisa si de verdad viene en EUR:
+  // `data-eur` le dice al selector "esto son euros". Etiquetar como EUR un importe
+  // que la intranet guardó en otra moneda sería publicar una cifra falsa.
+  // `claseColor`: en la ficha (fondo claro) va text-deep-lagoon; superpuesto sobre
+  // la foto (tarjeta "collection", calcada de /modelo) va claro para leerse sobre
+  // el degradado oscuro.
+  function precioModelo(precio, moneda, claseColor){
+    var color = claseColor || 'text-deep-lagoon';
+    if(precio == null) return '<span class="font-kpi-number text-lg font-bold ' + color + '">Upon request</span>';
+    var n = Number(precio);
+    if(!isFinite(n)) return '<span class="font-kpi-number text-lg font-bold ' + color + '">Upon request</span>';
+    if((moneda || 'EUR') === 'EUR'){
+      return '<span class="font-kpi-number text-lg font-bold ' + color + ' lw-money" data-eur="' + n + '">' + lwMoney(n) + '</span>';
+    }
+    return '<span class="font-kpi-number text-lg font-bold ' + color + '">' +
+      esc(moneda) + ' ' + n.toLocaleString('en-GB') + '</span>';
+  }
+
+  function num(v){ var n = Number(v); return isFinite(n) ? n : '—'; }
+
+  var mg = document.getElementById('modelos-grid');
+  // Un tono de la paleta Lawang por ficha, en el orden en que llegan (M4, 23-sep). Clases
+  // literales para que el build de Tailwind las vea.
+  var TONOS_VILLA = ['bg-territorial-green', 'bg-deep-lagoon', 'bg-burnt-earth', 'bg-volcanic-ash'];
+
+  // Tarjeta calcada de "More from the collection" (#section-collection en
+  // /modelo/index.php), pedido del owner 22-sep: foto a toda anchura con
+  // degradado + nombre/precio superpuestos abajo, cuerpo con specs en una
+  // linea y CTA "View model" — en vez de la caja de specs 2x2 de antes.
+  // Enlaza a la ficha real de la villa (misma URL que usa /modelo entre si
+  // mismo, /modelo/<slug>), que ya esta en produccion.
+  function pintaModelos(rows, porModelo){
+    mg.innerHTML = '';
+    // Ficha tecnica esquematica: icono + cifra + etiqueta, mismo lenguaje visual
+    // que las 4 tarjetas KPI del hero (icono en territorial-green, numero grande,
+    // etiqueta en mayusculas) — pedido del owner (22-sep) en vez de la frase en
+    // texto corrido que habia antes.
+    var STATS_ICONOS = [
+      ['straighten',  function(m){ return num(m.villa_m2) + ' m²'; },   'Built'],
+      ['deck',        function(m){ return '+' + num(m.terraza_m2) + ' m²'; }, 'Terrace & pool'],
+      ['king_bed',    function(m){ return num(m.dormitorios); },        'Bedrooms'],
+      ['bathroom',    function(m){ return num(m.banos); },              'Bathrooms']
+    ];
+    rows.forEach(function(m, i){
+      var slug = String(m.slug == null ? '' : m.slug);
+      var destacado = slug === DESTACADO;
+      var tono = TONOS_VILLA[i % TONOS_VILLA.length];
+      var statsHtml = STATS_ICONOS.map(function(s){
+        return '<div><b>'+esc(s[1](m))+'</b><span>'+s[2]+'</span></div>';
+      }).join('');
+
+      var card = document.createElement(SLUG_OK.test(slug) ? 'a' : 'div');
+      if(SLUG_OK.test(slug)) card.href = '/modelo/' + slug;
+      // v3: tarjeta alta a foto completa con marco interior, patron de las tarjetas
+      // "FOUR WAYS, ONE LEGACY" de la home. Mismos textos y mismos escapes que v2.
+      card.className = 'villa reveal';
+      card.innerHTML =
+        (destacado ? '<span class="villa-sello">Most requested</span>' : '') +
+        '<div data-foto>' + fotoModelo(slug, m.nombre, porModelo[slug]) + '</div>' +
+        '<div class="villa-cuerpo">' +
+          '<span class="villa-nombre">' + esc(m.nombre) + '</span>' +
+          '<span class="villa-precio">' + precioModelo(m.precio, m.moneda, 'text-raw-linen') + '</span>' +
+          '<div class="villa-stats">' + statsHtml + '</div>' +
+          '<span class="villa-nota">Construction only — land price depends on the plot chosen below.</span>' +
+          '<span class="villa-btn"><span>View model</span><span class="material-symbols-outlined text-[15px]">arrow_outward</span></span>' +
+        '</div>';
+
+      // SIN_RENDER trae ya su propio degradado/fondo, no hace falta reponerlo.
+      enganchaSinRender(card);
+      mg.appendChild(card);
+    });
+    if(window.lwDeck) lwDeck.traduce(document.getElementById('modelos'));
+    if(window.lwRepintaDinero) lwRepintaDinero();
+  }
+
+  function modelosCaidos(){
+    mg.innerHTML = '<div class="col-span-full p-6 rounded-2xl border border-control-border/25 bg-surface-container-lowest text-sm text-on-surface-variant">' +
+      'We could not load the villa models right now. Please contact ' +
+      '<a class="text-deep-lagoon underline" href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a>.</div>';
+    if(window.lwDeck) lwDeck.traduce(mg);
+  }
+
+  fetch(SB_URL + '/rest/v1/rpc/investor_deck_modelos', {
+    method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
+    body: JSON.stringify({ p_proyecto: PROYECTO })
+  }).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+    // Cero filas llega como 200 con []: sin este guardia la sección se queda vacía y
+    // parece intencionada. Un proyecto renombrado en la intranet da exactamente eso.
+    .then(function(rows){
+      if(!rows || !rows.length) throw new Error('vacio');
+      // Espera a `fotosListo` (nunca rechaza) para saber la foto propia de cada
+      // modelo antes de pintar las tarjetas — si se pinta antes, siempre cae al
+      // render fijo del repo aunque la intranet ya tenga una foto mejor.
+      return fotosListo.then(function(porModelo){ pintaModelos(rows, porModelo || {}); });
+    })
+    .catch(modelosCaidos);
+
+  // ── previsión de alquiler, Año 1 ──────────────────────────────────────────
+  // Los numeros ya no viven aqui: salen de `deck_forecast` (por modelo y proyecto)
+  // y `deck_forecast_proyecto` (los tres porcentajes, que son del contrato de
+  // gestion de alquiler y no del modelo), via `investor_deck_forecast`.
+  //
+  // ⚠️ EL CALCULO SIGUE VIVIENDO EN UN SOLO SITIO: aqui. El RPC devuelve los
+  // DATOS, no el resultado. Repartir la aritmetica del dinero entre SQL y JS es
+  // como acaban dos pantallas dando cifras distintas de la misma villa.
+  //
+  // ⚠️ Cada escenario usa SU propia ocupacion. Hasta el 11-sep la columna
+  // "Average" de Dune y Dream calculaba el bruto con la ocupacion OPTIMA, lo que
+  // inflaba el escenario conservador ~12%.
+  //
+  // `inversion_base` es la inversion TOTAL (construccion + suelo) sobre la que se
+  // calcula el ROI. El 11-sep se corrigio en la base: las de Dune y Dream estaban
+  // POR DEBAJO de construccion mas la parcela mas barata del propio inventario,
+  // que la pagina enseña dos secciones mas arriba.
+  function pintaForecast(filas, porModelo){
+    porModelo = porModelo || {};
+    var fg = document.getElementById('forecast-grid');
+    if(!fg) return;
+    fg.innerHTML = '';
+
+    var f0 = filas[0];
+    var GASTOS = [
+      ['Management fee', Number(f0.pct_gestion)],
+      ['Maintenance',    Number(f0.pct_mantenimiento)],
+      ['Rental tax',     Number(f0.pct_impuesto)]
+    ];
+    var retencion = GASTOS.reduce(function(a, g){ return a + g[1]; }, 0);
+
+    // El titulo nombraba «Dali, Dune & Dream» a mano. Ahora lo dicen los datos,
+    // asi que publicar o retirar un modelo no deja el encabezado mintiendo.
+    // Se escribe en el formato que la regla por regex de i18n.js ya sabe traducir
+    // (`^Year-1 Rental Forecast — (.+)$`), en vez de inventar otra clave.
+    var tit = document.getElementById('forecast-titulo');
+    if(tit){
+      var nombres = filas.map(function(r){ return r.modelo_nombre; });
+      var lista = nombres.length > 1
+        ? nombres.slice(0, -1).join(', ') + ' & ' + nombres[nombres.length - 1]
+        : nombres[0];
+      tit.textContent = 'Year-1 Rental Forecast — ' + lista;
+    }
+
+    filas.forEach(function(m){
+      var adr = [Number(m.adr_medio), Number(m.adr_optimo)];
+      var occ = [Number(m.ocupacion_media), Number(m.ocupacion_optima)];
+      var base = Number(m.inversion_base);
+      var bruto = [0,1].map(function(i){ return adr[i] * 365 * occ[i]; });
+      var neto  = bruto.map(function(g){ return g * (1 - retencion); });
+
+      // Diseño calcado de la tarjeta de forecast de /modelo (03 · Investment):
+      // un bloque por escenario con la cifra neta en grande, no una tabla de
+      // filas. El ROI se suma a la linea de detalle (modelo no lo muestra en
+      // esta tarjeta, pero es un dato ya aprobado — ver revision previa) en
+      // vez de anadir una fila mas. La aritmetica (retencion, bruto, neto,
+      // ROI) NO se toca: sigue viviendo aqui y solo aqui.
+      var ESCENARIOS = [
+        ['Average', 0, 'territorial-green'],
+        ['Optimal', 1, 'deep-lagoon']
+      ];
+      var bloquesHtml = ESCENARIOS.map(function(e){
+        var label = e[0], i = e[1], color = e[2];
+        var costes = bruto[i] - neto[i];
+        return '<div class="esc">' +
+          '<div class="esc-top"><span>'+label+'</span><b>'+eur(neto[i])+'/yr net</b></div>' +
+          '<p>'+eur(adr[i])+' ADR × '+Math.round(occ[i]*100)+'% occupancy — gross '+eur(bruto[i])+', minus management + maintenance + tax ('+eur(costes)+') · <b>'+(neto[i]/base*100).toFixed(1)+'% ROI</b></p>' +
+        '</div>';
+      }).join('');
+
+      // El nombre del modelo lo teclea una persona en la intranet y esto es una
+      // pagina publica: pasa por esc() SIEMPRE (XSS almacenado ya cazado aqui).
+      var dorm = m.dormitorios === 1 ? '1 bedroom' : (m.dormitorios || 0) + ' bedrooms';
+      // Foto del modelo arriba (22-sep, pedido del owner): la misma que su tarjeta
+      // del catalogo -- fotoModelo() con las fotos de `deck_fotos` de ese modelo, o el
+      // render del repo, o el estado "Renders in progress" si tampoco hay.
+      var slug = String(m.modelo_slug == null ? '' : m.modelo_slug);
+      var card = document.createElement('div');
+      // v3: columna con filete sobre foto a sangre ("FROM LAND TO LEGACY" de la home).
+      card.className = 'prev reveal';
+      card.innerHTML =
+        '<div class="prev-foto" data-foto>' + fotoModelo(slug, m.modelo_nombre, porModelo[slug]) + '</div>' +
+        (m.destacado ? '<span class="villa-sello" style="top:18px">Most requested</span>' : '') +
+        '<p class="kicker">Market forecast</p>' +
+        '<h3>'+esc(m.modelo_nombre)+' · '+esc(dorm)+'</h3>' +
+        '<p class="prev-base">Construction <b>'+eur(Number(m.precio_construccion))+'</b> · total investment (ROI base) '+eur(base)+'.</p>' +
+        bloquesHtml;
+      enganchaSinRender(card);
+      fg.appendChild(card);
+    });
+    if(window.lwDeck) lwDeck.traduce(document.getElementById('rendimientos'));
+    if(window.lwRepintaDinero) lwRepintaDinero();
+  }
+
+  function forecastCaido(){
+    var fg = document.getElementById('forecast-grid');
+    if(!fg) return;
+    // Nunca un hueco en blanco en una pagina de inversores: un vacio se lee como
+    // «no hay previsión», que es una afirmacion, y ademas no da salida a nadie.
+    fg.innerHTML = '<div class="col-span-full p-6 rounded-2xl border border-control-border/25 bg-surface-container-lowest text-sm text-on-surface-variant">' +
+      'We could not load the rental forecast right now. Please contact ' +
+      '<a class="text-deep-lagoon underline" href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a>.</div>';
+    if(window.lwDeck) lwDeck.traduce(fg);
+  }
+
+  function eur(v){ return '<span data-eur="'+Math.round(v)+'">'+(window.lwMoney?lwMoney(v):'€'+Math.round(v).toLocaleString('en-GB'))+'</span>'; }
+
+  fetch(SB_URL + '/rest/v1/rpc/investor_deck_forecast', {
+    method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
+    body: JSON.stringify({ p_proyecto: PROYECTO })
+  }).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+    // Cero filas llega como 200 con []: sin este guardia la seccion se queda vacia
+    // y parece intencionada.
+    // Espera a `fotosListo` (nunca rechaza) para la foto de cada modelo, igual que
+    // el catalogo: pintar antes dejaria siempre el render fijo del repo.
+    .then(function(rows){
+      if(!rows || !rows.length) throw new Error('vacio');
+      return fotosListo.then(function(porModelo){ pintaForecast(rows, porModelo || {}); });
+    })
+    .catch(forecastCaido);
+
+  // ── FAQ: sale de `deck_faq`, no del HTML ──────────────────────────────────
+  // Las siete preguntas vivian clavadas en el marcado. Ahora las edita el equipo
+  // desde la intranet y se publican una a una. El texto sembrado es LETRA POR
+  // LETRA el que paso la consulta legal del 9-sep-2026.
+  //
+  // ⚠️ La respuesta se pinta con textContent, NUNCA con innerHTML: la escribe una
+  // persona en la intranet y esto es una pagina publica sin login. Se pierde el
+  // <b> que llevaban dos respuestas —«Hak Sewa» y «not» en negrita—; son las
+  // PALABRAS las que pasaron revision legal, no el peso de la fuente.
+  function pintaFaq(filas){
+    var cont = document.getElementById('faq-lista');
+    if(!cont) return;
+    cont.innerHTML = '';
+    filas.forEach(function(q, i){
+      var d = document.createElement('details');
+      d.className = 'faq-item';
+      if(i === 0) d.open = true;   // la primera abierta, como estaba
+      var sum = document.createElement('summary');
+      var txt = document.createElement('span');
+      txt.textContent = lwTxt(q.pregunta);
+      var ico = document.createElement('span');
+      ico.className = 'material-symbols-outlined mi';
+      ico.textContent = 'expand_more';
+      sum.appendChild(txt); sum.appendChild(ico);
+      var cuerpo = document.createElement('div');
+      cuerpo.className = 'faq-item__body';
+      cuerpo.textContent = lwTxt(q.respuesta);
+      d.appendChild(sum); d.appendChild(cuerpo);
+      cont.appendChild(d);
+    });
+  }
+
+  function faqCaida(){
+    var cont = document.getElementById('faq-lista');
+    if(!cont) return;
+    cont.innerHTML = '<p class="font-body-sm text-body-sm text-on-surface-variant m-0">' +
+      'We could not load the questions right now. Please contact ' +
+      '<a class="text-deep-lagoon underline" href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a>.</p>';
+    if(window.lwDeck) lwDeck.traduce(cont);
+  }
+
+  fetch(SB_URL + '/rest/v1/rpc/investor_deck_faq', {
+    method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
+    body: JSON.stringify({ p_proyecto: PROYECTO })
+  }).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+    .then(function(rows){ if(!rows || !rows.length) throw new Error('vacio'); pintaFaq(rows); })
+    .catch(faqCaida);
+
+  // ── masterplan interactivo ────────────────────────────────────────────────
+  // Rectangulos en % sobre 12-masterplan.jpg (1690x2200). Medidos sobre la
+  // propia imagen; al ir en % no dependen del tamano al que se muestre.
+  // Poligonos reales en % (nunca rectangulos): manifiesto en
+  // ../../masterplan/palmfield.json (v2/ vive un nivel mas hondo que la ficha
+  // viva, de ahi el ../ extra), medido el 15-sep-2026 sobre la propia
+  // imagen (24-masterplan-plots.webp, ahora vive en ../../masterplan/palmfield.webp,
+  // mismo sitio/convencion que el resto de manifiestos de masterplan de la
+  // suite). Watershed (skimage) sembrado en el centro de las 34 parcelas
+  // sobre la mascara de "lo blanco" de la imagen -- las lineas blancas SON el
+  // limite real de cada parcela (confirmado por el owner, 15-sep), asi que un
+  // poligono real encaja en las esquinas irregulares (A1, A9, B1, B9, B16,
+  // C1, C8) donde el rectangulo de antes solo aproximaba. Antes de esto:
+  // rectangulos medidos a mano, recalibrados el mismo dia por desalineacion
+  // frente al PDF original del dosier.
+  var ZONAS = null;
+
+  // El cartel que se estampa encima. 'reservada' NO se marca SOLD: la leyenda y
+  // la lista de al lado las distinguen, y decir SOLD de una reservada
+  // contradiria los propios datos de la pagina.
+  var SELLO = {
+    disponible:    null,
+    reservada:     ['RESERVED', 'bg-amber-500/90'],
+    bloqueada:     ['SOLD',     'bg-[#B3261E]/95'],
+    no_disponible: ['SOLD',     'bg-[#B3261E]/95']
+  };
+
+  function centroide(pts){
+    var x=0,y=0; pts.forEach(function(p){ x+=p[0]; y+=p[1]; });
+    return [x/pts.length, y/pts.length];
+  }
+
+  function pintaPlano(rows){
+    var wrap = document.getElementById('plan-hotspots');
+    if(!wrap || !ZONAS) return;
+    wrap.innerHTML = '';
+    rows.forEach(function(row){
+      var pts = ZONAS[row.codigo];
+      if(!pts || pts.length < 3) return;
+      // 22-sep (pedido del owner): TODA parcela del plano es clicable y lleva a su
+      // fila del inventario (irAParcela), tambien reservadas y vendidas -- quien
+      // pincha una vendida quiere ver su dato igual. El contacto vive en la fila
+      // (WhatsApp), no aqui: un solo sitio donde se actua sobre una parcela.
+      var libre = row.estado === 'disponible';
+      var el = document.createElement('a');
+      el.href = '#plot-' + idParcela(row.codigo);
+      el.setAttribute('data-plano', idParcela(row.codigo));
+      el.className = 'absolute inset-0 transition-all duration-200 cursor-pointer ' +
+        (libre ? 'hover:bg-territorial-green/35' : 'bg-black/45 hover:bg-black/30');
+      el.style.clipPath = 'polygon(' + pts.map(function(p){ return p[0]+'% '+p[1]+'%'; }).join(',') + ')';
+      var precio = row.precio != null ? ' · ' + fmtMoney(row.precio, row.moneda) : '';
+      el.title = row.codigo + ' · ' + esc(row.superficie_m2) + ' m2' + precio + ' · ' +
+        ({disponible:'Available',reservada:'Reserved',bloqueada:'Sold',no_disponible:'Sold'}[row.estado] || row.estado);
+      el.setAttribute('aria-label', el.title);
+      el.addEventListener('click', function(e){ e.preventDefault(); irAParcela(row.codigo); });
+      wrap.appendChild(el);
+      var sello = SELLO[row.estado];
+      if(sello){
+        var c = centroide(pts);
+        var badge = document.createElement('span');
+        badge.className = 'absolute pointer-events-none ' + sello[1] + ' text-white font-label-md font-bold tracking-widest text-[9px] sm:text-[11px] px-2 py-0.5 rounded-sm shadow';
+        badge.style.left = c[0]+'%'; badge.style.top = c[1]+'%'; badge.style.transform = 'translate(-50%,-50%)';
+        badge.textContent = sello[0];
+        wrap.appendChild(badge);
+      }
+    });
+  }
+
+  // El codigo de parcela lo teclea el equipo en la intranet: para usarlo en un id
+  // o en un href se queda solo con [A-Za-z0-9-].
+  function idParcela(codigo){ return String(codigo == null ? '' : codigo).replace(/[^A-Za-z0-9-]/g, ''); }
+
+  // Clic en el plano → su fila del inventario: centrada DENTRO de la lista (que
+  // scrollea sola en escritorio) y, si la fila queda fuera de pantalla (movil, lista
+  // debajo del plano), la pagina baja lo justo. Destello de 2 s para encontrarla.
+  // Ojo al verificar: `behavior:'smooth'` no anima en Edge headless.
+  function irAParcela(codigo){
+    var id = idParcela(codigo);
+    var fila = document.getElementById('plot-' + id);
+    if(!fila) return;
+    var lista = document.getElementById('plots-wrap');
+    if(lista && lista.scrollHeight > lista.clientHeight){
+      lista.scrollTo({ top: fila.offsetTop - lista.clientHeight / 2 + fila.offsetHeight / 2, behavior: 'smooth' });
+    }
+    var r = fila.getBoundingClientRect();
+    if(r.top < 80 || r.bottom > window.innerHeight){
+      fila.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+    document.querySelectorAll('[data-fila-parcela].lw-fila-activa').forEach(function(f){ f.classList.remove('lw-fila-activa'); });
+    document.querySelectorAll('[data-plano].lw-plano-activo').forEach(function(p){ p.classList.remove('lw-plano-activo'); });
+    fila.classList.add('lw-fila-activa');
+    var poli = document.querySelector('[data-plano="' + id + '"]');
+    if(poli) poli.classList.add('lw-plano-activo');
+    fila.classList.remove('lw-destello'); void fila.offsetWidth; fila.classList.add('lw-destello');
+  }
+
+  // WhatsApp por parcela, en el idioma del visitante. `lwT` devuelve null en ingles
+  // (no hay entrada `en` en el diccionario): de ahi el `|| txt`.
+  var WA_NUM = '6281138319862';
+  function enlaceWaParcela(codigo){
+    var txt = 'Hello LAWANG, I’m interested in plot ' + codigo + ' at Palm Field.';
+    var lang = window.lwLang ? lwLang() : 'en';
+    if(lang !== 'en' && window.lwT) txt = lwT(txt, lang) || txt;
+    return 'https://wa.me/' + WA_NUM + '?text=' + encodeURIComponent(txt);
+  }
+
+  var ULTIMAS_FILAS = null;
+  fetch('../../masterplan/palmfield.json').then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+    .then(function(manifest){
+      var pag = manifest && manifest.paginas && manifest.paginas[0];
+      if(!pag) throw new Error('manifiesto_vacio');
+      document.getElementById('masterplan-img').src = pag.imagen;
+      ZONAS = pag.zonas || null;
+      if(ULTIMAS_FILAS) pintaPlano(ULTIMAS_FILAS);
+    })
+    .catch(function(){ ZONAS = null; });
+
+  // ── masterplan / inventario en vivo ───────────────────────────────────────
+  var plotsWrap = document.getElementById('plots-wrap');
+  var plotsCount = document.getElementById('plots-count');
+  fetch(SB_URL + '/rest/v1/rpc/investor_deck_parcelas', {
+    method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
+    body: JSON.stringify({ p_proyecto: PROYECTO })
+  }).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+    .then(function(rows){
+      if(!rows || !rows.length){ plotsWrap.innerHTML = '<div class="p-6 text-sm text-on-surface-variant">No plots published yet.</div>'; plotsCount.textContent=''; return; }
+      ULTIMAS_FILAS = rows;
+      if(ZONAS) pintaPlano(rows);
+      var disponibles = rows.filter(function(r){ return r.estado === 'disponible'; }).length;
+      plotsCount.textContent = disponibles + ' of ' + rows.length + ' plots available';
+      plotsWrap.innerHTML = '';
+      rows.forEach(function(row){
+        // Sin reserva de autoservicio (15-sep, aviso del owner): nunca el boton
+        // "Reserve". Desde el 22-sep el contacto es WhatsApp ("hablanos por
+        // WhatsApp", pedido del owner), con la parcela ya escrita en el mensaje.
+        var estadoLabel = { disponible:'Available', reservada:'Reserved', bloqueada:'Blocked', no_disponible:'Not available' }[row.estado] || row.estado;
+        var pillClass = row.estado === 'disponible' ? 'bg-territorial-green/15 text-territorial-green' : (row.estado === 'reservada' ? 'bg-amber-100 text-amber-800' : 'bg-[#FBE9E7] text-[#B3261E]');
+        // Franja por estado con sombra interior y no con border-l: el divide-y de la
+        // lista pisa el color de todos los bordes de sus hijos (medido en captura).
+        var franja = row.estado === 'disponible' ? 'shadow-[inset_4px_0_0_#485B37]' : (row.estado === 'reservada' ? 'shadow-[inset_4px_0_0_#F59E0B]' : 'shadow-[inset_4px_0_0_#B3261E]');
+        var row_ = document.createElement('div');
+        row_.id = 'plot-' + idParcela(row.codigo);
+        row_.setAttribute('data-fila-parcela', '');
+        row_.className = 'scroll-mt-24 pl-5 pr-4 py-3.5 ' + franja + ' flex flex-wrap items-center justify-between gap-3 hover:bg-surface-container-low/50 transition-colors' +
+          (row.estado === 'disponible' ? '' : ' opacity-75');
+        var actionHtml;
+        if(row.estado === 'disponible'){
+          actionHtml = '<a class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#25D366] hover:brightness-95 text-[#0b3d25] text-xs font-label-md font-semibold transition-all whitespace-nowrap" target="_blank" rel="noopener" href="'+esc(enlaceWaParcela(row.codigo))+'" aria-label="Talk to us on WhatsApp about plot '+esc(row.codigo)+'">' +
+            '<span class="material-symbols-outlined text-[16px]">chat</span><span>Talk to us on WhatsApp</span></a>';
+        } else {
+          actionHtml = '<span class="text-xs font-label-md text-on-surface-variant bg-surface-container px-3 py-1.5 rounded-full">—</span>';
+        }
+        row_.innerHTML = '<div class="flex flex-col gap-0.5"><div class="flex items-center gap-2"><span class="font-headline-sm text-xl font-bold text-deep-lagoon">'+esc(row.codigo)+'</span>' +
+          '<span class="px-2 py-0.5 rounded-full text-[11px] font-label-md font-semibold '+pillClass+'">'+esc(estadoLabel)+'</span></div>' +
+          '<span class="text-sm text-on-surface-variant font-body-sm">'+esc(row.superficie_m2)+' m² · Reference price '+fmtMoney(row.precio, row.moneda)+'</span></div>' +
+          '<div>'+actionHtml+'</div>';
+        plotsWrap.appendChild(row_);
+      });
+      if(window.lwDeck){ lwDeck.traduce(document.getElementById('masterplan')); }
+      if(window.lwRepintaDinero) lwRepintaDinero();
+    })
+    .catch(function(){
+      plotsWrap.innerHTML = '<div class="p-6 text-sm text-on-surface-variant">We could not load live plot data right now. Please contact <a class="text-deep-lagoon underline" href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a>.</div>';
+      plotsCount.textContent = '';
+    });
+
+  // ── flujo de reserva (sin cambios funcionales) ─────────────────────────
+  var EDGE_BASE = SB_URL + '/functions/v1/';
+  var backdrop = document.getElementById('backdrop');
+  var stepRequest = document.getElementById('step-request');
+  var stepVerify = document.getElementById('step-verify');
+  var stepDone = document.getElementById('step-done');
+  var currentPlot = null;
+
+  function openModal(codigo){
+    currentPlot = codigo;
+    document.getElementById('plot-code-label').textContent = codigo;
+    stepRequest.classList.remove('hidden'); stepVerify.classList.add('hidden'); stepDone.classList.add('hidden');
+    document.getElementById('msg-area').innerHTML = '';
+    backdrop.classList.remove('hidden'); backdrop.classList.add('flex');
+  }
+  function closeModal(){ backdrop.classList.add('hidden'); backdrop.classList.remove('flex'); currentPlot = null; }
+  document.getElementById('btn-cancel').addEventListener('click', closeModal);
+  document.getElementById('btn-close').addEventListener('click', closeModal);
+  document.getElementById('btn-back').addEventListener('click', function(){ stepVerify.classList.add('hidden'); stepRequest.classList.remove('hidden'); });
+
+  function msg(elId, text, cls){
+    document.getElementById(elId).innerHTML = '<div class="text-sm px-3 py-2.5 rounded-lg mb-3 '+(cls==='err' ? 'bg-[#fbe9e7] text-[#a13b2a]' : 'bg-territorial-green/10 text-territorial-green')+'">'+esc(text)+'</div>';
+  }
+
+  document.getElementById('btn-send-code').addEventListener('click', function(){
+    var email = document.getElementById('f-email').value.trim();
+    var nombre = document.getElementById('f-nombre').value.trim();
+    var pasaporte = document.getElementById('f-pasaporte').value.trim();
+    var consent = document.getElementById('f-consent').checked;
+    if(!nombre || !pasaporte || !email){ msg('msg-area','Please fill in your name, passport number and email.','err'); return; }
+    if(!consent){ msg('msg-area','Please accept the reservation terms and privacy policy to continue.','err'); return; }
+    var btn = document.getElementById('btn-send-code');
+    btn.disabled = true; btn.textContent = 'Sending…';
+    fetch(EDGE_BASE + 'investor-deck-codigo', {
+      method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
+      body: JSON.stringify({ email: email })
+    }).then(function(r){ return r.json().catch(function(){ return {}; }); })
+      .then(function(){ stepRequest.classList.add('hidden'); stepVerify.classList.remove('hidden'); document.getElementById('msg-area-2').innerHTML = ''; })
+      .catch(function(){ msg('msg-area', 'We could not reach the server. Please try again in a moment or email sales@lawangproperties.com directly.', 'err'); })
+      .finally(function(){ btn.disabled = false; btn.textContent = 'Send verification code'; });
+  });
+
+  document.getElementById('btn-confirm').addEventListener('click', function(){
+    var codigo = document.getElementById('f-codigo').value.trim();
+    if(!codigo){ msg('msg-area-2','Enter the code we emailed you.','err'); return; }
+    var btn = document.getElementById('btn-confirm');
+    btn.disabled = true; btn.textContent = 'Confirming…';
+    fetch(EDGE_BASE + 'investor-deck-reservar', {
+      method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
+      body: JSON.stringify({
+        email: document.getElementById('f-email').value.trim(), codigo: codigo,
+        consentimiento: document.getElementById('f-consent').checked, proyecto: PROYECTO, parcela_codigo: currentPlot,
+        nombre: document.getElementById('f-nombre').value.trim(), pasaporte: document.getElementById('f-pasaporte').value.trim(),
+        telefono: document.getElementById('f-telefono').value.trim(), nacionalidad: document.getElementById('f-nacionalidad').value.trim(),
+        domicilio: document.getElementById('f-domicilio').value.trim()
+      })
+    }).then(function(r){ return r.json().catch(function(){ return {ok:false}; }); })
+      .then(function(res){
+        if(res && res.ok){
+          stepVerify.classList.add('hidden'); stepDone.classList.remove('hidden');
+          document.getElementById('done-title').textContent = 'Reservation confirmed';
+          document.getElementById('done-body').innerHTML = 'Your reservation number is <b>'+esc(res.numero)+'</b>. You will receive the Letter of Reservation and payment instructions by email shortly.';
+        } else {
+          var motivos = {
+            codigo_invalido: 'That code is invalid or has expired. Please go back and request a new one.',
+            no_disponible: 'This plot is no longer available. Please choose another one.',
+            reserva_no_configurada: 'Online reservation is not yet enabled for this plot — please contact sales@lawangproperties.com.',
+            falta_consentimiento: 'Please accept the reservation terms to continue.',
+            datos_incompletos: 'Some required information is missing.',
+            espera_un_momento: 'Please wait a moment before trying again.'
+          };
+          msg('msg-area-2', motivos[(res&&res.motivo)] || 'We could not complete the reservation. Please try again or contact sales@lawangproperties.com.', 'err');
+        }
+      }).catch(function(){ msg('msg-area-2', 'We could not reach the server. Please try again in a moment.', 'err'); })
+      .finally(function(){ btn.disabled = false; btn.textContent = 'Confirm reservation'; });
+  });
+
+  // ── menu por debajo de 1280px (22-sep) ─────────────────────────────────────
+  // Clona los enlaces de #nav-principal ANTES de traducir, para que el walker de
+  // i18n traduzca las dos copias en la misma pasada. Una sola lista de secciones.
+  (function(){
+    var nav = document.getElementById('nav-principal');
+    var menu = document.getElementById('menu-movil');
+    var btn = document.getElementById('menu-btn');
+    var ico = document.getElementById('menu-ico');
+    if(!nav || !menu || !btn) return;
+    nav.querySelectorAll('a').forEach(function(a){
+      var c = document.createElement('a');
+      c.href = a.getAttribute('href');
+      c.textContent = a.textContent;
+      c.className = 'px-4 py-3 rounded-xl font-label-md text-body-md text-volcanic-ash hover:bg-stone-sand/25 hover:text-deep-lagoon transition-all';
+      menu.appendChild(c);
+    });
+    function abre(si){
+      menu.classList.toggle('hidden', !si);
+      menu.classList.toggle('flex', si);
+      btn.setAttribute('aria-expanded', si ? 'true' : 'false');
+      if(ico) ico.textContent = si ? 'close' : 'menu';
+    }
+    btn.addEventListener('click', function(){ abre(menu.classList.contains('hidden')); });
+    menu.addEventListener('click', function(e){ if(e.target.closest('a')) abre(false); });
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape') abre(false); });
+    window.addEventListener('resize', function(){ if(window.innerWidth >= 1280) abre(false); });
+  })();
+
+  // ── seccion activa en el menu (23-sep, barra T3) ─────────────────────────
+  // Solo secciones reales: #faq es el panel DENTRO del hero y se pisaria con #vision.
+  (function(){
+    var ids = ['vision','modelos','masterplan','rendimientos','seguridad-notarial','faq'];
+    var secs = ids.map(function(id){ return document.getElementById(id); }).filter(Boolean);
+    if(!secs.length || !('IntersectionObserver' in window)) return;
+    function marca(id){
+      document.querySelectorAll('#nav-principal a, #menu-movil a').forEach(function(a){
+        a.classList.toggle('lw-nav-activa', a.getAttribute('href') === '#' + id);
+      });
+    }
+    var io = new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(e.isIntersecting) marca(e.target.id); });
+    }, { rootMargin: '-45% 0px -50% 0px' });
+    secs.forEach(function(sct){ io.observe(sct); });
+    marca('vision');
+  })();
+
+  // ── selector de idioma / divisa ───────────────────────────────────────────
+  if(window.lwDeck){
+    lwDeck.montaSelectores('#deck-selectores');
+    lwDeck.traduce(document.body);
+  }
+
+  // El mensaje prellenado de WhatsApp se arma DESPUES de traducir: el <span>
+  // oculto de dentro del enlace ya viene en el idioma del visitante, y de ahi
+  // sale el ?text=. Antes iba fijo en ingles aunque el deck se sirviera en ES o
+  // ID (hallazgo de Marketing en la consulta de deploy del 11-sep).
+  (function(){
+    var a = document.getElementById('cta-whatsapp');
+    if(!a) return;
+    var m = a.querySelector('[data-wa-msg]');
+    if(!m) return;
+    var txt = (m.textContent || '').trim();
+    if(!txt) return;
+    var href = 'https://wa.me/' + WA_NUM + '?text=' + encodeURIComponent(txt);
+    a.href = href;
+    // El boton del pie lleva el mismo mensaje que el flotante.
+    document.querySelectorAll('[data-wa-enlace]').forEach(function(x){ x.href = href; });
+  })();
+  if(window.lwRepintaDinero) lwRepintaDinero();
+})();
+</script>
+<script>
+// v3: la barra es transparente sobre la hero y se vuelve solida al salir de ella, y los
+// bloques .reveal entran con el mismo fundido que la home. Presentacion pura.
+(function(){
+  var bar = document.getElementById('topbar');
+  var hero = document.getElementById('vision');
+  function pinta(){ bar.classList.toggle('solid', window.scrollY > 60); }
+  window.addEventListener('scroll', pinta, { passive: true });
+  window.addEventListener('resize', pinta);
+  pinta();
+  // El menu movil se abre sobre la foto: con la barra transparente se leeria mal.
+  var btn = document.getElementById('menu-btn');
+  if(btn) btn.addEventListener('click', function(){ setTimeout(function(){
+    if(btn.getAttribute('aria-expanded') === 'true') bar.classList.add('solid'); else pinta();
+  }, 0); });
+  if(!('IntersectionObserver' in window)){ document.querySelectorAll('.reveal').forEach(function(e){ e.classList.add('in'); }); return; }
+  var io = new IntersectionObserver(function(es){
+    es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { rootMargin: '0px 0px -8% 0px' });
+  function observa(){ document.querySelectorAll('.reveal:not(.in)').forEach(function(e){ io.observe(e); }); }
+  observa();
+  // Las tarjetas las pinta el JS de datos mas tarde: se vuelven a observar al llegar.
+  new MutationObserver(observa).observe(document.querySelector('main'), { childList: true, subtree: true });
+})();
+</script>
+</body>
+</html>
