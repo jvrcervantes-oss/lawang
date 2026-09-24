@@ -6281,8 +6281,8 @@
          (owner, 14-sep-2026) NO se deciden aquí: la lista vive en
          `contracts/assets/compradores.js` (`faltanDatosComprador`), porque si se
          escribiera también aquí las dos copias divergirían. El alta la puede
-         hacer cualquier agente; EDITAR una ficha ya creada es de administración
-         (policy es_admin) — asimetría deliberada de la suite (migración 7-ago). */
+         hacer cualquier agente; EDITAR una ficha ya creada lo hace su autor mientras
+         no cuelgue de un contrato firmado, o administración (policies de 14-sep). */
       function guardaAltaComprador(v) {
         if (typeof faltanDatosComprador === 'function') {
           var faltan = faltanDatosComprador(v);
@@ -6368,9 +6368,9 @@
           '<div class="las-min0"><span class="las-dato-etq">Contacto rápido</span><span class="las-dato las-trunca" data-p="tel">—</span></div></div></article>' +
           '<article class="las-card"><h2 class="las-cinta las-card-h"><span>Documentos KYC</span><span class="las-fase">Después del alta</span></h2>' +
           '<ul class="las-lista">' +
-          '<li><span class="las-num">1</span><div><p class="las-li-t">Pasaporte</p><p class="las-li-s">Se sube desde la ficha, una vez creada. Puede llevar fecha de caducidad.</p></div></li>' +
+          '<li><span class="las-num">1</span><div><p class="las-li-t">Pasaporte</p><p class="las-li-s">Se sube desde la ficha, una vez creada. Si caduca, la ficha avisa 60 días antes.</p></div></li>' +
           '<li><span class="las-num">2</span><div><p class="las-li-t">NPWP</p><p class="las-li-s">El número fiscal indonesio, si el comprador lo tiene.</p></div></li>' +
-          '<li><span class="las-num">3</span><div><p class="las-li-t">Justificante de fondos</p><p class="las-li-s">Si un documento caduca, la ficha avisa 60 días antes.</p></div></li>' +
+          '<li><span class="las-num">3</span><div><p class="las-li-t">Justificante de fondos</p><p class="las-li-s">Origen del dinero de la compra. Tiene que estar en la ficha antes de firmar.</p></div></li>' +
           '</ul></article>' +
           '<article class="las-aviso">' + svg(I.info, 'las-ico-aviso') + '<div><span class="las-aviso-t">Lo que sale en los contratos</span>' +
           'El <b>nombre</b> (se guarda en MAYÚSCULAS) y el <b>pasaporte / NPWP</b> se imprimen tal cual en los contratos y facturas que se hagan con esta ficha. Revísalos contra el documento antes de dar de alta.</div></article>' +
@@ -6464,9 +6464,16 @@
           ladoBtn.setAttribute('aria-expanded', String(abierto));
         });
 
-        var cerrar = function () { document.removeEventListener('keydown', teclas); cierraModal(); };
-        var teclas = function (e) { if (e.key === 'Escape' && !document.querySelector('.lw-dlg, [data-lw-dialogo]')) cerrar(); };
+        /* Escape cierra. Sin mirar si hay un diálogo abierto: dialogo.js corta su
+           Escape en fase de captura (stopPropagation), así que aquí no llega; y su
+           .lw-dlg se queda en el DOM para siempre, de modo que preguntar por él
+           dejaba Escape muerto tras el primer picker. El listener se suelta en
+           w._alCerrar, que cierraModal() ejecuta en TODAS las salidas (también si
+           otro editor lo cierra) — si no, un Escape posterior tiraría ese otro. */
+        var teclas = function (e) { if (e.key === 'Escape') cierraModal(); };
+        var cerrar = function () { cierraModal(); };
         document.addEventListener('keydown', teclas);
+        w._alCerrar = function () { document.removeEventListener('keydown', teclas); };
         $('[data-e="cerrar"]').addEventListener('click', cerrar);
         $('[data-e="cancelar"]').addEventListener('click', cerrar);
         fondo.addEventListener('click', cerrar);
