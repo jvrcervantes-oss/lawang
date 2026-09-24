@@ -279,6 +279,40 @@ ul.lista li .ms{font-size:18px;color:var(--tg);margin-top:2px}
 .hitos div:nth-child(2){background:var(--dl)}.hitos div:nth-child(3){background:var(--be)}.hitos div:nth-child(4){background:var(--ash)}.hitos div:nth-child(5){background:var(--canopy)}
 .hitos-ley{font-size:12px;color:var(--muted);margin-top:6px}
 
+/* Paso 3: nunca vendes solo */
+.solo{display:grid;gap:24px;border-radius:22px;background:var(--dl);color:var(--linen);padding:30px}
+@media (min-width:1000px){.solo{grid-template-columns:1fr 1fr;padding:44px 48px;gap:48px;align-items:center}}
+.solo .lbl{color:var(--stone)}
+.solo h3{color:var(--linen);font-size:clamp(34px,4vw,50px);margin-top:10px}
+.solo__txt p{color:rgba(245,240,230,.88);margin-top:14px;font-size:16px}
+.solo__lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.solo__lista li{display:flex;gap:14px;align-items:center;background:rgba(245,240,230,.09);border:1px solid rgba(245,240,230,.18);
+  border-radius:14px;padding:13px 16px;font-size:15px;line-height:1.45}
+.solo__lista .ms{color:#e9e1cf;font-size:24px}
+.duda{background:var(--paper);border:1px solid var(--stone);border-radius:18px;padding:24px}
+.duda .ms{font-size:30px;color:var(--be)}
+.duda h3{font-size:26px;margin-top:10px}
+.duda p{font-size:15px;color:var(--muted);margin-top:8px}
+.duda b{color:var(--ink);font-weight:600}
+.formula-venta{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:14px;margin-top:22px;
+  font-family:var(--ff-h);font-size:clamp(26px,3vw,38px);font-weight:600;color:var(--dl)}
+.formula-venta i{font-style:normal;color:var(--stone)}
+.formula-venta span{padding:6px 22px;border-radius:999px;border:1px solid var(--stone);background:var(--paper)}
+.formula-venta .fin{background:var(--tg);border-color:var(--tg);color:var(--linen)}
+.seguridad > div{background:var(--paper);border:1px solid var(--stone);border-radius:16px;padding:20px 22px}
+.seguridad .ms{font-size:26px;color:var(--tg)}
+.seguridad b{display:block;font-weight:600;font-size:16px;margin-top:10px}
+.seguridad p{font-size:14.5px;color:var(--muted);margin-top:4px}
+@media (min-width:900px){.ruta--apoyo .box{grid-template-columns:1fr 1.25fr 1.25fr}}
+.ruta--apoyo .box .herr{margin-top:10px}
+.ruta--apoyo .quien{display:inline-flex;align-items:center;gap:6px;font-family:var(--ff-l);font-size:10.5px;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--dl)}
+.ruta--apoyo .quien .ms{font-size:16px}
+.ruta--apoyo .tu p,.ruta--apoyo .apoyo p{margin-top:5px}
+.ruta--apoyo .apoyo{background:rgba(72,91,55,.09);border-radius:12px;padding:12px 14px}
+.ruta--apoyo .apoyo .quien{color:var(--tg)}
+.ruta--apoyo .apoyo p{color:var(--ink)}
+
 /* Regla de oro */
 .oro{display:grid;gap:22px;border-radius:22px;background:var(--tg);color:var(--linen);padding:30px;margin-top:10px}
 @media (min-width:900px){.oro{grid-template-columns:auto 1fr;align-items:center;padding:40px 44px}}
@@ -435,7 +469,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
       <p>Léela entera la primera semana. Después úsala como consulta: cada paso enlaza a la herramienta de la intranet donde se hace.</p>
       <div class="kpis">
         <div><small>Pasos</small><b>7</b></div>
-        <div><small>Villas</small><b>6 modelos</b></div>
+        <div><small>Villas</small><b id="kpi-villas">En catálogo</b></div>
         <div><small>Tu sitio</small><b>La intranet</b></div>
       </div>
       <div class="prog"><div class="bar"><i id="barra"></i></div><span id="cuenta">0 de 7</span></div>
@@ -443,7 +477,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     <ol class="indice" id="indice">
       <li><a href="#producto" data-paso="producto"><span class="n">1</span><span class="t"><b>Lo que vendemos</b><span>Parcela + villa llave en mano</span></span><span class="ms ok">check_circle</span></a></li>
       <li><a href="#comprador" data-paso="comprador"><span class="n">2</span><span class="t"><b>A quién se lo vendemos</b><span>Cuatro perfiles de comprador</span></span><span class="ms ok">check_circle</span></a></li>
-      <li><a href="#venta" data-paso="venta"><span class="n">3</span><span class="t"><b>Cómo es una venta</b><span>Del lead a la entrega de llaves</span></span><span class="ms ok">check_circle</span></a></li>
+      <li><a href="#venta" data-paso="venta"><span class="n">3</span><span class="t"><b>Cómo se vende</b><span>Nunca vendes solo</span></span><span class="ms ok">check_circle</span></a></li>
       <li><a href="#herramientas" data-paso="herramientas"><span class="n">4</span><span class="t"><b>Tus herramientas</b><span>La intranet, pantalla a pantalla</span></span><span class="ms ok">check_circle</span></a></li>
       <li><a href="#decir" data-paso="decir"><span class="n">5</span><span class="t"><b>Lo que se dice y lo que no</b><span>Las líneas rojas legales</span></span><span class="ms ok">check_circle</span></a></li>
       <li><a href="#objeciones" data-paso="objeciones"><span class="n">6</span><span class="t"><b>Las objeciones de siempre</b><span>Y cómo responderlas</span></span><span class="ms ok">check_circle</span></a></li>
@@ -470,18 +504,14 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
   <div class="formula reveal">
     <div class="pieza pieza--tg"><span class="ms">landscape</span><h3>La parcela</h3><p>Un derecho sobre ella (arrendamiento Hak Sewa o HGB, según el proyecto), no la propiedad de la tierra. Cada proyecto tiene su plano, sus tamaños y su contrato.</p></div>
     <div class="op">+</div>
-    <div class="pieza pieza--dl"><span class="ms">cottage</span><h3>La villa</h3><p>Uno de los seis modelos del catálogo, de 1 a 4 dormitorios, con la cubierta y los extras que elija el cliente.</p></div>
+    <div class="pieza pieza--dl"><span class="ms">cottage</span><h3>La villa</h3><p>Uno de los modelos del catálogo, con la cubierta y los extras que elija el cliente.</p></div>
     <div class="op">=</div>
     <div class="pieza pieza--res"><span class="ms">contract</span><h3>Precio cerrado</h3><p>Parcela + villa llave en mano. Lo calcula el Generador de contratos con los precios vigentes; tú no lo calculas a mano.</p></div>
   </div>
 
-  <div class="villas reveal" aria-label="Catálogo de villas">
-    <a class="villa" href="/modelo/dali" target="_blank" rel="noopener"><span class="ir">Landing<span class="ms">arrow_outward</span></span><div class="ph"><img loading="lazy" src="/assets/img/buildings/dali/web/dali.webp" alt="Villa Dali"></div><div class="b"><h3>Dali</h3><span>1 dorm.</span></div></a>
-    <a class="villa" href="/modelo/dune" target="_blank" rel="noopener"><span class="ir">Landing<span class="ms">arrow_outward</span></span><div class="ph"><img loading="lazy" src="/assets/img/buildings/dune/web/dune.webp" alt="Villa Dune"></div><div class="b"><h3>Dune</h3><span>1 dorm.</span></div></a>
-    <a class="villa" href="/modelo/dream" target="_blank" rel="noopener"><span class="ir">Landing<span class="ms">arrow_outward</span></span><div class="ph"><img loading="lazy" src="/assets/img/buildings/dream/web/dream.webp" alt="Villa Dream"></div><div class="b"><h3>Dream</h3><span>2 dorm.</span></div></a>
-    <a class="villa" href="/modelo/loftbung" target="_blank" rel="noopener"><span class="ir">Landing<span class="ms">arrow_outward</span></span><div class="ph ph--sin">Fotos en su landing</div><div class="b"><h3>Loftbung</h3><span>2 dorm.</span></div></a>
-    <a class="villa" href="/modelo/trinity" target="_blank" rel="noopener"><span class="ir">Landing<span class="ms">arrow_outward</span></span><div class="ph ph--sin">Fotos en su landing</div><div class="b"><h3>Trinity</h3><span>3 dorm.</span></div></a>
-    <a class="villa" href="/modelo/temple" target="_blank" rel="noopener"><span class="ir">Landing<span class="ms">arrow_outward</span></span><div class="ph ph--sin">Fotos en su landing</div><div class="b"><h3>Temple</h3><span>4 dorm.</span></div></a>
+  <div class="villas reveal" id="villas-lista" aria-label="Catálogo de villas">
+    <!-- Una tarjeta por villa PUBLICADA en la intranet (catalogo_publico), con su primera
+         foto dada de alta allí (modelo_fotos_publico), nunca un fichero del repo. -->
   </div>
 
   <div class="subhead reveal">
@@ -546,56 +576,93 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     <div class="num">03</div>
     <div>
       <span class="lbl">Paso 3 · El proceso</span>
-      <h2>Cómo es una venta, de principio a fin</h2>
-      <p class="lead">Siete etapas. En cada una, lo que haces tú y la pantalla de la intranet donde se hace. Si una etapa no queda registrada en la intranet, para Lawang no ha pasado.</p>
+      <h2>Cómo se vende: nunca vendes solo</h2>
+      <p class="lead">Vender aquí no es enseñar una casa. Es conseguir que alguien que vive a miles de kilómetros se fíe lo suficiente para invertir en algo que le ilusiona. Tu trabajo es ganarte al cliente y darle seguridad. El nuestro, estar detrás de ti en cada paso.</p>
     </div>
     <button class="hecho-btn" data-hecho="venta" aria-pressed="false"><span class="ms">check_circle</span>Paso leído</button>
   </div>
 
-  <ol class="ruta reveal">
-    <li><div class="dot"><span class="ms">person_add</span></div><div class="box">
-      <div><span class="fase">Etapa 1</span><h3>Entra el lead</h3></div>
-      <p>El formulario de Meta baja solo al CRM. El lead ya trae respuestas: presupuesto y plazo de compra. <b>Léelas antes de contactar</b> y no se las vuelvas a preguntar.</p>
-      <div class="herr"><a href="/intranet/leads/"><span class="ms">person_search</span>CRM · Leads</a></div>
+  <div class="solo reveal">
+    <div class="solo__txt">
+      <span class="lbl">Lo primero que tienes que saber</span>
+      <h3>No estás solo. Llámanos.</h3>
+      <p>Tu manager y el equipo de Lawang están para acompañarte en cualquier momento de la venta, no solo al final. Cuanto antes nos metas en la conversación, más fácil es cerrar. Pedir ayuda no resta: un cliente que ve a un equipo entero detrás de su comercial se siente más seguro.</p>
+    </div>
+    <ul class="solo__lista">
+      <li><span class="ms">video_call</span><span>Una videollamada a tres con el cliente para explicarle cómo funciona la compra.</span></li>
+      <li><span class="ms">gavel</span><span>Sus dudas legales: cómo está montado su proyecto y qué firma. Le organizamos la llamada con el notario.</span></li>
+      <li><span class="ms">directions_walk</span><span>Acompañarte en la visita al terreno.</span></li>
+      <li><span class="ms">construction</span><span>Preguntas de obra, materiales, plazos o acabados que no sepas responder.</span></li>
+      <li><span class="ms">rate_review</span><span>Revisar contigo un mensaje o una propuesta antes de mandarla.</span></li>
+    </ul>
+  </div>
+
+  <div class="subhead reveal">
+    <span class="lbl">Entiende al cliente</span>
+    <h3>Por qué duda, y por qué compra</h3>
+  </div>
+  <div class="grid g3 reveal">
+    <div class="duda"><span class="ms">flight_takeoff</span><h3>Está muy lejos de casa</h3><p>No puede pasarse por la obra un sábado ni conocer al notario en persona. Todo lo que no ve le genera desconfianza, así que <b>hazle ver</b>: fotos, vídeos, videollamadas y, si puede, la visita.</p></div>
+    <div class="duda"><span class="ms">auto_awesome</span><h3>Es una compra que le ilusiona</h3><p>No compra metros cuadrados: compra una vida en Bali o Sumba, un refugio o algo que dejar a los suyos. <b>Juega con eso</b>: habla del sitio, de cómo será su día allí, de la villa terminada.</p></div>
+    <div class="duda"><span class="ms">help</span><h3>Y tiene muchas dudas</h3><p>Otro país, otra ley, otro idioma y otra moneda. Cada duda sin resolver es una razón para no firmar. <b>Resuélvelas una a una</b>, y las que no sepas, con nosotros.</p></div>
+  </div>
+  <div class="formula-venta reveal"><span>Ilusión</span><i>+</i><span>Seguridad</span><i>=</i><span class="fin">Venta</span></div>
+
+  <div class="subhead reveal">
+    <span class="lbl">Lo que le da seguridad</span>
+    <h3>Detrás de ti hay una promotora</h3>
+  </div>
+  <div class="grid g3 reveal seguridad">
+    <div><span class="ms">apartment</span><b>Somos el promotor</b><p>Diseñamos y construimos nosotros. El cliente no trata con intermediarios: habla con quien hace su casa.</p></div>
+    <div><span class="ms">description</span><b>Contratos en su idioma</b><p>En español, inglés e indonesio, para que los lea con calma y los revise su propio abogado antes de firmar.</p></div>
+    <div><span class="ms">account_balance</span><b>Notario y abogado</b><p>Antes de firmar puede resolver sus dudas con el notario. Se lo organizamos nosotros.</p></div>
+    <div><span class="ms">stairs</span><b>Paga por fases</b><p>La obra se paga por hitos, a medida que avanza, no todo por adelantado.</p></div>
+    <div><span class="ms">devices</span><b>Lo sigue desde casa</b><p>En su portal de comprador ve sus documentos y sus pagos cuando quiera.</p></div>
+    <div><span class="ms">groups</span><b>Un equipo entero</b><p>Ventas, legal, obra y administración. Cuando el cliente pregunta, siempre hay alguien que sabe la respuesta.</p></div>
+  </div>
+
+  <div class="subhead reveal">
+    <span class="lbl">El recorrido</span>
+    <h3>De la primera conversación a las llaves</h3>
+  </div>
+  <ol class="ruta ruta--apoyo reveal">
+    <li><div class="dot"><span class="ms">favorite</span></div><div class="box">
+      <div><span class="fase">Etapa 1</span><h3>Trabájate al cliente</h3><div class="herr"><a href="/intranet/leads/"><span class="ms">person_search</span>CRM · Leads</a></div></div>
+      <div class="tu"><span class="quien">Tú</span><p>Escúchale antes de venderle. Descubre qué sueña (alquilar, legado, vivir aquí) y qué le frena. Contacta el mismo día que entra el lead.</p></div>
+      <div class="apoyo"><span class="quien"><span class="ms">handshake</span>Nosotros, contigo</span><p>Material listo para mandar: la landing de cada villa y el investor deck de cada proyecto.</p></div>
     </div></li>
-    <li><div class="dot"><span class="ms">chat</span></div><div class="box">
-      <div><span class="fase">Etapa 2</span><h3>Primer contacto, el mismo día</h3></div>
-      <p>Escribe por WhatsApp desde la intranet, no desde tu móvil. Norma interna: el lead que entra hoy se contacta hoy. Cada lead cuesta dinero de verdad y hay pocos al día para todo el equipo.</p>
-      <div class="herr"><a href="/intranet/leads/#setter"><span class="ms">forum</span>CRM · Setter (WhatsApp)</a></div>
+    <li><div class="dot"><span class="ms">verified_user</span></div><div class="box">
+      <div><span class="fase">Etapa 2</span><h3>Dale seguridad</h3></div>
+      <div class="tu"><span class="quien">Tú</span><p>Explícale quiénes somos y cómo funciona la compra, sin prisa. Una duda resuelta vale más que un descuento.</p></div>
+      <div class="apoyo"><span class="quien"><span class="ms">handshake</span>Nosotros, contigo</span><p>Entramos en la llamada para explicar la estructura legal, la obra o la empresa. Y le organizamos la llamada con el notario.</p></div>
     </div></li>
-    <li><div class="dot"><span class="ms">fact_check</span></div><div class="box">
-      <div><span class="fase">Etapa 3</span><h3>Cualificar</h3></div>
-      <p>Una llamada corta con las cinco preguntas del paso 7. Sales sabiendo para qué quiere la villa, cuándo, con qué dinero y quién más decide.</p>
-      <div class="herr"><span><span class="ms">edit_note</span>Nota + estado en su ficha</span></div>
-    </div></li>
-    <li><div class="dot"><span class="ms">co_present</span></div><div class="box">
-      <div><span class="fase">Etapa 4</span><h3>Presentar</h3></div>
-      <p>Una villa y un proyecto, no el catálogo. Videollamada con el plano, la landing del modelo, el investor deck o, mejor, la visita al terreno. Cierra siempre con un siguiente paso con fecha.</p>
-      <div class="herr"><a href="/modelo/dali" target="_blank" rel="noopener"><span class="ms">cottage</span>Landing del modelo</a><a href="/investor-deck/palmfield/" target="_blank" rel="noopener"><span class="ms">slideshow</span>Investor deck</a></div>
+    <li><div class="dot"><span class="ms">visibility</span></div><div class="box">
+      <div><span class="fase">Etapa 3</span><h3>Que lo vea</h3><div class="herr"><a href="/investor-deck/palmfield/" target="_blank" rel="noopener"><span class="ms">slideshow</span>Investor deck</a></div></div>
+      <div class="tu"><span class="quien">Tú</span><p>Propón la visita al terreno o, si está lejos, una videollamada con el plano y las villas.</p></div>
+      <div class="apoyo"><span class="quien"><span class="ms">handshake</span>Nosotros, contigo</span><p>Te acompañamos en la visita y le enseñamos obra hecha.</p></div>
     </div></li>
     <li><div class="dot"><span class="ms">bookmark_added</span></div><div class="box">
-      <div><span class="fase">Etapa 5</span><h3>Reservar la parcela</h3></div>
-      <p>Carta de Reserva o Bloqueo de Parcela, según el proyecto, generado en el Generador de contratos y firmado en digital. La reserva tiene fecha de vencimiento. <b>Solo tu manager puede prorrogarla</b>: no la prometas tú.</p>
-      <div class="herr"><a href="/intranet/v4/generador-contratos/"><span class="ms">edit_document</span>Generador de contratos</a><a href="/intranet/v4/reservas/"><span class="ms">event_upcoming</span>Reservas</a></div>
+      <div><span class="fase">Etapa 4</span><h3>Reserva la parcela</h3><div class="herr"><a href="/intranet/v4/generador-contratos/"><span class="ms">edit_document</span>Generador de contratos</a></div></div>
+      <div class="tu"><span class="quien">Tú</span><p>Cuando esté listo, genera la Carta de Reserva o el Bloqueo de Parcela y mándasela a firmar en digital.</p></div>
+      <div class="apoyo"><span class="quien"><span class="ms">handshake</span>Nosotros, contigo</span><p>Revisamos contigo el contrato antes de enviarlo. Si necesita más tiempo, tu manager decide la prórroga.</p></div>
     </div></li>
     <li><div class="dot"><span class="ms">construction</span></div><div class="box">
-      <div><span class="fase">Etapa 6</span><h3>Contrato de Construcción</h3></div>
-      <div><p>Se vincula a la reserva y fija el modelo, la cubierta y los extras. El pago va por hitos ligados a las fases de la obra. Los importes de cada operación se leen en su contrato generado, no se recitan de memoria, y tú no los cambias.</p>
-        <div class="hitos" aria-hidden="true"><div>Terreno</div><div>Estructura</div><div>Instalaciones</div><div>Acabados</div><div>Entrega</div></div></div>
-      <div class="herr"><a href="/intranet/v4/generador-contratos/"><span class="ms">edit_document</span>Generador de contratos</a><a href="/intranet/v4/operaciones/"><span class="ms">account_tree</span>Operaciones</a></div>
+      <div><span class="fase">Etapa 5</span><h3>Firma la construcción</h3></div>
+      <div class="tu"><span class="quien">Tú</span><p>El Contrato de Construcción fija la villa, la cubierta, los extras y los pagos por fases de obra.</p></div>
+      <div class="apoyo"><span class="quien"><span class="ms">handshake</span>Nosotros, contigo</span><p>Le explicamos la obra, los hitos y los plazos, con el contrato delante.</p></div>
     </div></li>
     <li><div class="dot"><span class="ms">key</span></div><div class="box">
-      <div><span class="fase">Etapa 7</span><h3>Acompañar hasta la entrega</h3></div>
-      <p>El comprador ve sus documentos y pagos en su portal. Tú sigues siendo su persona de contacto: un cliente bien acompañado es el que te trae al siguiente.</p>
-      <div class="herr"><a href="/intranet/v4/compradores/"><span class="ms">group</span>Compradores</a><a href="/intranet/v4/obra/"><span class="ms">engineering</span>Obra</a></div>
+      <div><span class="fase">Etapa 6</span><h3>Acompáñale hasta las llaves</h3><div class="herr"><a href="/intranet/v4/compradores/"><span class="ms">group</span>Compradores</a></div></div>
+      <div class="tu"><span class="quien">Tú</span><p>Sigue siendo su persona de contacto durante la obra. Un cliente bien acompañado es el que te trae al siguiente.</p></div>
+      <div class="apoyo"><span class="quien"><span class="ms">handshake</span>Nosotros, contigo</span><p>Llevamos la obra, los pagos y los documentos, y te tenemos al día para que tú se lo cuentes.</p></div>
     </div></li>
   </ol>
 
   <div class="oro reveal">
-    <span class="ms">verified</span>
+    <span class="ms">edit_note</span>
     <div>
-      <h3>Regla de oro: cada contacto queda en la ficha del lead</h3>
-      <p>Llamada, mensaje, visita, próximo seguimiento: todo en el CRM, en el momento. No es burocracia. Con esos datos Lawang sabe qué campañas traen compradores y cuáles solo traen curiosos, y reparte el presupuesto de anuncios en consecuencia. Un lead que trabajas por tu WhatsApp personal no cuenta, y además deja a la empresa sin rastro de lo que se le prometió.</p>
+      <h3>Apúntalo todo en el CRM: así podemos ayudarte</h3>
+      <p>Cada llamada, mensaje, visita y próximo paso, en la ficha del cliente y en el momento. Si nos pides ayuda, sabremos dónde está la venta sin que tengas que contárnoslo todo otra vez. Y lo que se le ha dicho al cliente queda por escrito.</p>
     </div>
   </div>
 </div>
@@ -1009,6 +1076,36 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
       }
       a.querySelector('h3').textContent = p.nombre;
       lista.appendChild(a);
+    });
+  });
+
+  // ── Villas: las publicadas en la intranet, con su primera foto dada de alta allí ──
+  // Nunca un plano ni una vista cenital como portada: se salta lo que el pie diga que es plano.
+  var villas = document.getElementById('villas-lista');
+  Promise.all([rpc('catalogo_publico', {}), rpc('modelo_fotos_publico', {})]).then(function (r) {
+    var cat = r[0] || {}, fotos = r[1] || {};
+    var ids = Object.keys(cat).sort(function (a, b) {
+      return (cat[a].dormitorios || 0) - (cat[b].dormitorios || 0) || String(cat[a].nombre).localeCompare(cat[b].nombre);
+    });
+    var kpi = document.getElementById('kpi-villas');
+    if (kpi && ids.length) kpi.textContent = ids.length + ' modelos';
+    ids.forEach(function (id) {
+      var m = cat[id];
+      var fs = (fotos[id] || []).slice().sort(function (a, b) { return (a.orden || 0) - (b.orden || 0); });
+      var f = fs.filter(function (x) { return !/plan|plano|top view|cenital/i.test(x.pie || ''); })[0] || null;
+      var a = document.createElement('a');
+      a.className = 'villa'; a.target = '_blank'; a.rel = 'noopener';
+      a.href = '/modelo/' + encodeURIComponent(id);
+      a.innerHTML = '<span class="ir">Landing<span class="ms">arrow_outward</span></span>' +
+        '<div class="ph' + (f ? '' : ' ph--sin') + '"></div><div class="b"><h3></h3><span></span></div>';
+      if (f) {
+        var img = document.createElement('img');
+        img.loading = 'lazy'; img.src = FOTOS + f.path; img.alt = m.nombre;
+        a.querySelector('.ph').appendChild(img);
+      }
+      a.querySelector('h3').textContent = m.nombre;
+      if (m.dormitorios) a.querySelector('.b span').textContent = m.dormitorios + ' dorm.';
+      villas.appendChild(a);
     });
   });
 
