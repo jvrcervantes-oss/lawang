@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Crea tu contraseña · Lawang</title>
+<link rel="icon" href="/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- Llega aquí desde el correo «Crea tu contraseña» (admin-usuarios, activar_solicitud /
+     reenviar_enlace). ?th= es el token HASHEADO de un enlace de recuperación de Auth: se
+     canjea con verifyOtp (sesión de recuperación) y con esa sesión se fija la contraseña.
+     No depende de la lista de redirecciones de Auth. El token se borra de la URL al leerlo:
+     no debe quedar en el historial ni viajar como referrer. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<style>
+:root{--linen:#f5f0e6;--paper:#fffdf8;--stone:#beb3a5;--tg:#485b37;--dl:#104c4f;--ink:#1b1c19;--muted:#44483f;--be:#42210b}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--linen);
+  font-family:'Jost',system-ui,sans-serif;color:var(--ink)}
+.card{width:100%;max-width:420px;background:var(--paper);border:1px solid var(--stone);border-radius:22px;padding:32px 28px}
+img{height:28px;width:auto;display:block;margin-bottom:22px}
+h1{font-family:'Cormorant Garamond',Georgia,serif;font-weight:700;font-size:34px;color:var(--dl);margin:0 0 6px}
+p{margin:0 0 18px;color:var(--muted);font-size:15px;line-height:1.5}
+label{display:block;font-size:13px;font-weight:600;margin:14px 0 6px}
+input{width:100%;padding:12px 14px;border:1px solid var(--stone);border-radius:12px;font:inherit;font-size:16px;background:#fff}
+input:focus{outline:2px solid var(--tg);outline-offset:1px}
+button{width:100%;margin-top:20px;padding:13px;border:0;border-radius:999px;background:var(--dl);color:var(--linen);font:600 15px 'Jost',sans-serif;cursor:pointer}
+button[disabled]{opacity:.6;cursor:default}
+.msg{margin-top:14px;font-size:14px;min-height:20px}
+.msg.err{color:#b5462f}.msg.ok{color:var(--tg)}
+</style>
+</head>
+<body>
+<main class="card">
+  <img src="/assets/img/lawang-logo-v3-dark.webp" alt="Lawang">
+  <h1>Crea tu contraseña</h1>
+  <p id="intro">Comprobando tu enlace…</p>
+  <form id="f" hidden>
+    <label for="p1">Contraseña nueva (mínimo 10 caracteres)</label>
+    <input id="p1" type="password" autocomplete="new-password" minlength="10" required>
+    <label for="p2">Repítela</label>
+    <input id="p2" type="password" autocomplete="new-password" minlength="10" required>
+    <button id="b" type="submit">Guardar y entrar</button>
+  </form>
+  <div class="msg" id="m" role="status"></div>
+</main>
+<script>
+(function () {
+  'use strict';
+  var sb = window.supabase.createClient(
+    'https://vtulllundrfennhjddhc.supabase.co',
+    'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg',
+    { auth: { detectSessionInUrl: false, persistSession: true } }
+  );
+  var th = new URLSearchParams(location.search).get('th') || '';
+  history.replaceState(null, '', location.pathname);   // el token fuera de la URL
+  var intro = document.getElementById('intro'), f = document.getElementById('f'), m = document.getElementById('m');
+  function msg(t, ok) { m.textContent = t; m.className = 'msg ' + (ok ? 'ok' : 'err'); }
+
+  if (!th) { intro.textContent = 'Este enlace no es válido. Pide uno nuevo a Lawang.'; return; }
+  sb.auth.verifyOtp({ token_hash: th, type: 'recovery' }).then(function (r) {
+    if (r.error || !r.data || !r.data.session) {
+      intro.textContent = 'El enlace ha caducado o ya se ha usado. Pide uno nuevo a Lawang.';
+      return;
+    }
+    intro.textContent = 'Elige la contraseña con la que entrarás en la intranet: ' + (r.data.user && r.data.user.email || '');
+    f.hidden = false;
+    document.getElementById('p1').focus();
+  });
+
+  f.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var p1 = document.getElementById('p1').value, p2 = document.getElementById('p2').value;
+    if (p1.length < 10) return msg('Necesita al menos 10 caracteres.');
+    if (p1 !== p2) return msg('Las dos contraseñas no coinciden.');
+    var b = document.getElementById('b'); b.disabled = true; msg('');
+    sb.auth.updateUser({ password: p1 }).then(function (r) {
+      if (r.error) { b.disabled = false; return msg('No se ha podido guardar: ' + r.error.message); }
+      msg('Contraseña guardada. Entrando…', true);
+      setTimeout(function () { location.href = '/intranet/'; }, 900);
+    });
+  });
+})();
+</script>
+</body>
+</html>

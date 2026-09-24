@@ -636,6 +636,34 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
 .wa-link{color:inherit;font-weight:600;text-decoration:underline;text-underline-offset:3px;white-space:nowrap}
 .villa .b span{text-align:right;line-height:1.3;white-space:pre-line}
 .faq-nota{margin-top:16px;font-size:13px;color:var(--muted)}
+
+/* Formularios de alta (comercial) y de contacto (referido) */
+.camino__cta{margin-top:10px;align-self:flex-start;display:inline-flex;align-items:center;gap:8px;border:0;cursor:pointer;
+  background:var(--linen);color:var(--ink);border-radius:999px;padding:11px 18px;font:600 14px var(--ff-b)}
+.camino__cta:hover{background:#fff}
+.camino__cta .ms{font-size:19px;color:var(--dl)}
+.forms-alta{margin-top:16px}
+.falta{background:var(--linen);border:1px solid var(--stone);border-radius:22px;padding:24px}
+.falta__cab{display:flex;gap:14px;align-items:flex-start}
+.falta__cab > .ms{font-size:32px;color:var(--tg)}
+.falta__cab h3{font-size:26px}
+.falta__cab p{font-size:14.5px;color:var(--muted);margin-top:4px}
+.falta__x{margin-left:auto;background:none;border:0;cursor:pointer;color:var(--muted)}
+.falta h4{font-family:var(--ff-h);font-size:21px;color:var(--dl);margin:16px 0 0}
+.falta label{display:block;font-size:13.5px;font-weight:600;color:var(--ink);margin-top:12px}
+.falta input:not([type=checkbox]),.falta textarea{display:block;width:100%;margin-top:6px;padding:11px 13px;border:1px solid var(--stone);
+  border-radius:12px;font:500 15px var(--ff-b);background:var(--paper);color:var(--ink)}
+.falta input:focus,.falta textarea:focus{outline:2px solid var(--tg);outline-offset:1px}
+.falta__grid{display:grid;gap:0 14px}
+@media (min-width:700px){.falta__grid{grid-template-columns:repeat(2,1fr)}}
+.falta__check{display:flex!important;gap:10px;align-items:flex-start;font-weight:500!important;color:var(--muted)!important;line-height:1.45}
+.falta__check input{margin-top:3px;accent-color:var(--tg);width:17px;height:17px;flex:none}
+.falta__check a{color:var(--dl)}
+.falta .btn{margin-top:16px}
+.falta__nota{font-size:14px;color:var(--muted);margin-top:14px}
+.falta__msg{margin-top:12px;font-size:14.5px;min-height:20px}
+.falta__msg.err{color:#b5462f}.falta__msg.ok{color:var(--tg);font-weight:600}
+.hp{position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;opacity:0}
 </style>
 </head>
 <body>
@@ -716,17 +744,18 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
   <h2>¿Cómo vas a trabajar con nosotros?</h2>
   <div class="alta">
     <span class="ms">how_to_reg</span>
-    <p><b>Para empezar:</b> firmas el contrato de colaboración con Lawang y Javier te da de alta en la intranet. Escríbele por WhatsApp y te lo prepara.</p>
-    <a class="btn btn--dl" href="https://wa.me/34601170044" target="_blank" rel="noopener"><span class="ms" style="font-size:18px">chat</span>+34&nbsp;601&nbsp;170&nbsp;044</a>
+    <p><b>Para empezar</b>, elige tu camino aquí abajo y rellena el formulario. ¿Dudas antes? Escribe a Javier por WhatsApp.</p>
+    <a class="btn btn--ghost" href="https://wa.me/34601170044" target="_blank" rel="noopener"><span class="ms" style="font-size:18px">chat</span>+34&nbsp;601&nbsp;170&nbsp;044</a>
   </div>
   <div class="caminos__grid">
     <div class="camino camino--ref">
       <span class="ms">person_add</span>
       <span class="camino__pct">1&nbsp;%</span>
       <h3>Solo quiero pasar contactos</h3>
-      <p>Conoces a gente con dinero para invertir. Das de alta a tu contacto en el CRM de la intranet, así queda a tu nombre; nosotros llevamos la venta y, si compra, cobras el 1&nbsp;% del bruto.</p>
+      <p>Conoces a gente con dinero para invertir. Registras a tu contacto con un formulario, sin cuenta ni intranet, y queda a tu nombre; nosotros llevamos la venta y, si compra, cobras el 1&nbsp;% del bruto.</p>
       <p class="camino__lee">Lee esto (unos 10 minutos):</p>
       <div class="camino__links"><a href="#producto">1 · Lo que vendemos</a><a href="#decir">6 · Lo que se dice y lo que no</a><a href="#comisiones">Tus comisiones</a></div>
+      <button type="button" class="camino__cta" data-abre="f-referido"><span class="ms">person_add</span>Registrar un contacto</button>
     </div>
     <div class="camino camino--com">
       <span class="ms">handshake</span>
@@ -735,7 +764,64 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
       <p>Llevas la venta de principio a fin: tus clientes, las llamadas, las visitas y los contratos, con el equipo detrás. Cobras el 5&nbsp;% del bruto.</p>
       <p class="camino__lee">Lee la guía entera, en orden:</p>
       <div class="camino__links"><a href="#producto">Empezar por el paso 1<span class="ms">arrow_downward</span></a></div>
+      <button type="button" class="camino__cta" data-abre="f-comercial"><span class="ms">how_to_reg</span>Solicitar mi alta</button>
     </div>
+  </div>
+  <div class="forms-alta">
+  <form class="falta" id="f-comercial" hidden novalidate data-accion="solicitud">
+    <div class="falta__cab"><span class="ms">how_to_reg</span><div><h3>Solicitar mi alta como comercial</h3>
+      <p>Verificamos tu email, Javier revisa tu solicitud y, cuando la active, te llega un correo para crear tu contraseña de la intranet.</p></div>
+      <button type="button" class="falta__x" data-cierra aria-label="Cerrar"><span class="ms">close</span></button></div>
+    <div class="falta__paso" data-paso="1">
+      <label>Tu email<input type="email" name="email" autocomplete="email" required maxlength="160"></label>
+      <input type="text" name="web" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <button type="button" class="btn btn--dl" data-codigo>Enviarme el código</button>
+    </div>
+    <div class="falta__paso" data-paso="2" hidden>
+      <p class="falta__nota">Te hemos enviado un código de 6 dígitos a <b data-email></b>. Caduca en 10 minutos.</p>
+      <label>Código<input name="codigo" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="one-time-code"></label>
+      <div class="falta__grid">
+        <label>Nombre y apellidos<input name="nombre" required maxlength="120" autocomplete="name"></label>
+        <label>Teléfono / WhatsApp<input name="telefono" maxlength="40" autocomplete="tel"></label>
+        <label>País<input name="pais" maxlength="60" autocomplete="country-name"></label>
+      </div>
+      <label>¿Algo que quieras contarnos? (opcional)<textarea name="mensaje" maxlength="600" rows="3"></textarea></label>
+      <label class="falta__check"><input type="checkbox" name="privacidad" required><span>He leído el aviso: Tus datos los trata PT TEPI SUN GAI (Lawang) solo para gestionar tu solicitud y, si se acepta, tu colaboración. Más información en la <a href="/legal-es.html" target="_blank" rel="noopener">política de privacidad</a>.</span></label>
+      <button type="submit" class="btn btn--dl">Enviar solicitud</button>
+    </div>
+    <div class="falta__msg" role="status"></div>
+  </form>
+
+  <form class="falta" id="f-referido" hidden novalidate data-accion="referir">
+    <div class="falta__cab"><span class="ms">person_add</span><div><h3>Registrar un contacto</h3>
+      <p>Sin cuenta ni intranet. Verificamos tu email y el contacto queda a tu nombre. Nuestro equipo se pone en contacto con él.</p></div>
+      <button type="button" class="falta__x" data-cierra aria-label="Cerrar"><span class="ms">close</span></button></div>
+    <div class="falta__paso" data-paso="1">
+      <label>Tu email<input type="email" name="email" autocomplete="email" required maxlength="160"></label>
+      <input type="text" name="web" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <button type="button" class="btn btn--dl" data-codigo>Enviarme el código</button>
+    </div>
+    <div class="falta__paso" data-paso="2" hidden>
+      <p class="falta__nota">Te hemos enviado un código de 6 dígitos a <b data-email></b>. Caduca en 10 minutos.</p>
+      <label>Código<input name="codigo" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="one-time-code"></label>
+      <div class="falta__grid">
+        <label>Tu nombre<input name="nombre" required maxlength="120" autocomplete="name"></label>
+        <label>Tu teléfono<input name="telefono" maxlength="40" autocomplete="tel"></label>
+      </div>
+      <h4>Tu contacto</h4>
+      <div class="falta__grid">
+        <label>Nombre<input name="cliente_nombre" required maxlength="120"></label>
+        <label>Email<input type="email" name="cliente_email" maxlength="160"></label>
+        <label>Teléfono / WhatsApp<input name="cliente_telefono" maxlength="40"></label>
+        <label>País<input name="cliente_pais" maxlength="60"></label>
+      </div>
+      <label>¿Qué busca? (opcional)<textarea name="interes" maxlength="600" rows="3" placeholder="Presupuesto, para qué la quiere, plazos…"></textarea></label>
+      <label class="falta__check"><input type="checkbox" name="consentimiento" required><span>Mi contacto ha aceptado que Lawang le escriba o le llame.</span></label>
+      <label class="falta__check"><input type="checkbox" name="privacidad" required><span>He leído el aviso: Tus datos los trata PT TEPI SUN GAI (Lawang) solo para gestionar tu solicitud y, si se acepta, tu colaboración. Más información en la <a href="/legal-es.html" target="_blank" rel="noopener">política de privacidad</a>.</span></label>
+      <button type="submit" class="btn btn--dl">Registrar contacto</button>
+    </div>
+    <div class="falta__msg" role="status"></div>
+  </form>
   </div>
 </div>
 </section>
@@ -1228,7 +1314,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     <div class="tc tc--cab" role="row"><span role="columnheader">Cómo participas</span><span role="columnheader">Qué haces</span><span role="columnheader">Comisión</span></div>
     <div class="tc tc--ref" role="row">
       <span role="cell"><span class="ms">person_add</span><b>Referido</b></span>
-      <span role="cell">Das de alta a tu contacto en el CRM, así queda a tu nombre, y nosotros llevamos la venta. Si ese cliente compra, te pagamos.</span>
+      <span role="cell">Registras a tu contacto con el formulario de la guía, así queda a tu nombre, y nosotros llevamos la venta. Si ese cliente compra, te pagamos.</span>
       <span role="cell" class="pct"><b>1&nbsp;%</b><small>del bruto</small></span>
     </div>
     <div class="tc tc--top" role="row">
@@ -1526,6 +1612,62 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     capa.addEventListener('click', function (e) { if (e.target === capa) cierra(); });
     document.addEventListener('keydown', tecla);
   }
+
+  // ── Formularios de alta: código por email y envío a la edge alta-colaborador ──
+  var ALTA = 'https://vtulllundrfennhjddhc.supabase.co/functions/v1/alta-colaborador';
+  var ERR = { codigo: 'El código no es correcto o ha caducado. Pide uno nuevo.', email: 'Revisa tu email.',
+    nombre: 'Escribe tu nombre.', privacidad: 'Marca que has leído el aviso de privacidad.',
+    cliente_nombre: 'Escribe el nombre de tu contacto.', cliente_email: 'El email de tu contacto no es válido.',
+    cliente_contacto: 'Pon el email o el teléfono de tu contacto.', consentimiento: 'Confirma que tu contacto ha aceptado que le escribamos.',
+    limite: 'Has registrado muchos contactos hoy. Escríbenos por WhatsApp.' };
+  function post(cuerpo) {
+    return fetch(ALTA, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg' },
+      body: JSON.stringify(cuerpo) }).then(function (r) { return r.json().catch(function () { return { ok: false }; }); });
+  }
+  document.querySelectorAll('[data-abre]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('form.falta').forEach(function (f) { f.hidden = f.id !== b.getAttribute('data-abre'); });
+      var f = document.getElementById(b.getAttribute('data-abre'));
+      f.scrollIntoView({ behavior: SIN_MOV ? 'auto' : 'smooth', block: 'start' });
+      setTimeout(function () { f.querySelector('input[name=email]').focus(); }, 400);
+    });
+  });
+  document.querySelectorAll('form.falta').forEach(function (f) {
+    var msg = f.querySelector('.falta__msg');
+    function aviso(t, ok) { msg.textContent = t; msg.className = 'falta__msg ' + (ok ? 'ok' : 'err'); }
+    f.querySelector('[data-cierra]').addEventListener('click', function () { f.hidden = true; });
+    f.querySelector('[data-codigo]').addEventListener('click', function () {
+      var email = f.email.value.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return aviso(ERR.email);
+      var b = this; b.disabled = true; aviso('');
+      post({ accion: 'codigo', email: email, web: f.web.value }).then(function (r) {
+        b.disabled = false;
+        if (!r.ok) return aviso(ERR[r.error] || 'Ahora mismo no se puede. Inténtalo en un rato o escríbenos por WhatsApp.');
+        f.querySelector('[data-email]').textContent = email;
+        f.querySelector('[data-paso="2"]').hidden = false;
+        f.email.readOnly = true;
+        f.codigo.focus();
+      }, function () { b.disabled = false; aviso('Sin conexión. Inténtalo de nuevo.'); });
+    });
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var d = { accion: f.getAttribute('data-accion'), email: f.email.value.trim(), web: f.web.value,
+                codigo: f.codigo.value.trim(), privacidad: f.privacidad.checked };
+      ['nombre', 'telefono', 'pais', 'mensaje', 'cliente_nombre', 'cliente_email', 'cliente_telefono', 'cliente_pais', 'interes']
+        .forEach(function (k) { if (f[k]) d[k] = f[k].value; });
+      if (f.consentimiento) d.consentimiento = f.consentimiento.checked;
+      if (!/^\d{6}$/.test(d.codigo)) return aviso('Escribe el código de 6 dígitos que te hemos enviado.');
+      if (!d.privacidad) return aviso(ERR.privacidad);
+      var b = f.querySelector('button[type=submit]'); b.disabled = true; aviso('Enviando…', true);
+      post(d).then(function (r) {
+        if (!r.ok) { b.disabled = false; return aviso(ERR[r.error] || 'No se ha podido enviar. Inténtalo en un rato o escríbenos por WhatsApp.'); }
+        f.querySelectorAll('.falta__paso').forEach(function (x) { x.hidden = true; });
+        aviso(d.accion === 'solicitud'
+          ? '¡Solicitud enviada! Te hemos mandado un correo de confirmación. Cuando Javier la active, te llegará otro para crear tu contraseña.'
+          : '¡Contacto registrado a tu nombre! Te hemos mandado un correo de confirmación. Puedes registrar otro recargando la página.', true);
+      }, function () { b.disabled = false; aviso('Sin conexión. Inténtalo de nuevo.'); });
+    });
+  });
 
   // Copiar guion: el texto sin la etiqueta de idioma.
   document.querySelectorAll('[data-copia]').forEach(function (b) {

@@ -103,8 +103,9 @@ const ROLES = ['super_admin', 'admin', 'agente', 'sales_manager', 'project_manag
 // Mismos valores que LW_TIPO_CONTRATO en contracts/assets/vocabulario.js —
 // duplicado A PROPÓSITO, mismo motivo que HERRAMIENTAS de arriba: una edge que
 // se descarga código del sitio para ejecutarlo es lo que hay que evitar.
-// `tipos_contrato` vacío en la tabla significa "TODOS" (al revés que
-// `proyectos`), así que aquí SÍ se filtra en vez de rechazar lo desconocido:
+// ⚠️ 24-sep-2026: `tipos_contrato` vacío YA NO significa "TODOS": el trigger
+// contratos_tipo_permitido BLOQUEA a un agente sin tipos (verificado en la base).
+// Aquí SÍ se filtra en vez de rechazar lo desconocido:
 // un tipo nuevo que aún no esté en esta lista simplemente no se preselecciona,
 // no bloquea el alta de nadie.
 const TIPOS_CONTRATO = [
@@ -249,6 +250,140 @@ Deno.serve(async (req) => {
       // el panel avisa con email_error para que el admin le diga la contraseña
       // a mano, como hasta ahora.
       return json({ ok: true, user_id: creado.user.id, email, email_enviado: emailEnviado, email_error: emailError });
+    }
+
+    // ── solicitudes de alta desde /formacion/ (24-sep-2026) ──────────────
+    // La edge pública `alta-colaborador` solo deja una fila en
+    // `solicitudes_colaborador`; la cuenta nace AQUÍ, con el clic de un admin.
+    // Revisión previa #61: cualquier fila activa de `usuarios` pasa es_agente()
+    // y puede LEER el directorio de compradores, así que esta es la puerta.
+    if (accion === 'activar_solicitud') {
+      const id = String(body.solicitud_id ?? '');
+      const { data: sol } = await admin.from('solicitudes_colaborador')
+        .select('id, email, nombre, estado').eq('id', id).maybeSingle();
+      if (!sol) return json({ error: 'solicitud_no_encontrada' }, 404);
+      if (sol.estado !== 'pendiente') return json({ error: 'solicitud_ya_' + sol.estado }, 409);
+      const email = String(sol.email).trim().toLowerCase();
+
+      // Herramientas del comercial (5 %). Lista cerrada aquí, no del body: el
+      // panel puede quitar alguna, nunca añadir fuera de esta lista.
+      const BASE_COMERCIAL = ['leads', 'contratos', 'compradores', 'reservas', 'comisiones_reparto'];
+      const pedidas: string[] = Array.isArray(body.herramientas) ? body.herramientas.map(String) : BASE_COMERCIAL;
+      const herramientas = pedidas.filter((h) => BASE_COMERCIAL.includes(h));
+      const tipos_contrato: string[] = (Array.isArray(body.tipos_contrato) ? body.tipos_contrato.map(String) : [])
+        .filter((t: string) => TIPOS_CONTRATO.includes(t));
+      // `tipos_contrato` vacío BLOQUEA a un agente (trigger contratos_tipo_permitido,
+      // verificado 24-sep) y `proyectos` vacío = ninguno: sin los dos, no trabaja.
+      if (!tipos_contrato.length) return json({ error: 'elige_tipos_de_contrato' }, 400);
+      const pedidosProy: string[] = Array.isArray(body.proyectos) ? body.proyectos.map(String) : [];
+      const { data: proyOk } = pedidosProy.length
+        ? await admin.from('proyectos').select('id').in('id', pedidosProy)
+        : { data: [] as { id: string }[] };
+      const proyectos = (proyOk ?? []).map((p: { id: string }) => p.id);
+      if (!proyectos.length) return json({ error: 'elige_proyectos' }, 400);
+
+      const { data: ya } = await admin.from('usuarios').select('user_id').eq('email', email).maybeSingle();
+      if (ya) return json({ error: 'ya_es_usuario' }, 409);
+
+      // Sin app_metadata.agente (Seguridad #61-7): si un día se borra la fila de
+      // `usuarios`, la cuenta NO debe seguir siendo agente por el claim.
+      // Si el email ya existe en Auth (p. ej. un comprador del /portal/),
+      // createUser falla y NO se reutiliza esa cuenta: eso convertiría a un
+      // comprador en agente con acceso a los datos de los demás.
+      const { data: creado, error: eCrear } = await admin.auth.admin.createUser({ email, email_confirm: true });
+      if (eCrear || !creado?.user) {
+        const existe = /already|registered|exists/i.test(eCrear?.message ?? '');
+        return json({ error: existe ? 'email_ya_existe_en_auth' : (eCrear?.message ?? 'no_se_pudo_crear') }, existe ? 409 : 400);
+      }
+      const { error: eFila } = await admin.from('usuarios').insert({
+        user_id: creado.user.id, email, nombre: sol.nombre, rol: 'agente', herramientas, tipos_contrato,
+        proyectos, activo: true, creado_por: quien.user.email ?? null,
+      });
+      if (eFila) {
+        await admin.auth.admin.deleteUser(creado.user.id);
+        return json({ error: 'no_se_pudo_registrar: ' + eFila.message }, 500);
+      }
+      await admin.from('solicitudes_colaborador').update({
+        estado: 'activada', user_id: creado.user.id, revisado_por: quien.user.email ?? null, revisado_en: new Date().toISOString(),
+      }).eq('id', sol.id);
+
+      // Enlace para crear la contraseña: SOLO viaja por email al buzón ya
+      // verificado; nunca en la respuesta ni en logs (Seguridad #61-8). Se
+      // construye con el token hasheado: la página lo canjea con verifyOtp, sin
+      // depender de la lista de redirecciones de Auth.
+      let emailEnviado = false;
+      try {
+        const { data: link, error: eLink } = await admin.auth.admin.generateLink({ type: 'recovery', email });
+        const th = link?.properties?.hashed_token;
+        if (eLink || !th) throw new Error('sin_enlace');
+        const url = 'https://lawangproperties.com/intranet/contrasena/?th=' + encodeURIComponent(th);
+        const saludo = String(sol.nombre || email).split(' ')[0];
+        const ac = new AbortController();
+        const to_ = setTimeout(() => ac.abort(), 8000);
+        try {
+          const r = await fetch('https://lawangproperties.com/contracts/api/send_email.php', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', 'X-Suite-Token': jwt },
+            body: JSON.stringify({
+              to: email, subject: 'Ya eres comercial de Lawang: crea tu contraseña',
+              message: `Hola ${saludo},\n\nHemos activado tu acceso a la intranet de Lawang.\n\n`
+                + `Usuario: ${email}\n\nPulsa el botón para crear tu contraseña. El enlace caduca pronto y solo sirve una vez; `
+                + `si caduca, pídenos otro.\n\nYour access to the Lawang intranet is active. Use the button to set your password.`,
+              attach: false, cta_url: url, cta_texto: 'Crear mi contraseña',
+            }),
+            signal: ac.signal,
+          });
+          const t = await r.text();
+          emailEnviado = r.ok && t.includes('"ok":true');
+          if (!emailEnviado) console.error('admin-usuarios activar: fallo email a ' + email + ': ' + t.slice(0, 200));
+        } finally { clearTimeout(to_); }
+      } catch (e) {
+        console.error('admin-usuarios activar: sin enlace/email para ' + email + ': ' + String((e as Error)?.message ?? e));
+      }
+      return json({ ok: true, user_id: creado.user.id, email, email_enviado: emailEnviado });
+    }
+
+    if (accion === 'descartar_solicitud') {
+      const id = String(body.solicitud_id ?? '');
+      const { error } = await admin.from('solicitudes_colaborador').update({
+        estado: 'descartada', revisado_por: quien.user.email ?? null, revisado_en: new Date().toISOString(),
+      }).eq('id', id).eq('estado', 'pendiente');
+      if (error) return json({ error: error.message }, 400);
+      return json({ ok: true });
+    }
+
+    if (accion === 'estado_referido') {
+      const id = String(body.id ?? '');
+      const estado = String(body.estado ?? '');
+      if (!['nuevo', 'en_crm', 'descartado'].includes(estado)) return json({ error: 'estado_invalido' }, 400);
+      const { error } = await admin.from('referidos_contactos').update({
+        estado, revisado_por: quien.user.email ?? null, revisado_en: new Date().toISOString(),
+      }).eq('id', id);
+      if (error) return json({ error: error.message }, 400);
+      return json({ ok: true });
+    }
+
+    // ── reenviar enlace de contraseña a un usuario ya activado ───────────
+    if (accion === 'reenviar_enlace') {
+      const id = String(body.solicitud_id ?? '');
+      const { data: sol } = await admin.from('solicitudes_colaborador')
+        .select('email, nombre, estado').eq('id', id).maybeSingle();
+      if (!sol || sol.estado !== 'activada') return json({ error: 'solicitud_no_activada' }, 409);
+      const { data: link, error: eLink } = await admin.auth.admin.generateLink({ type: 'recovery', email: sol.email });
+      const th = link?.properties?.hashed_token;
+      if (eLink || !th) return json({ error: 'sin_enlace' }, 500);
+      const url = 'https://lawangproperties.com/intranet/contrasena/?th=' + encodeURIComponent(th);
+      const r = await fetch('https://lawangproperties.com/contracts/api/send_email.php', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'X-Suite-Token': jwt },
+        body: JSON.stringify({
+          to: sol.email, subject: 'Crea tu contraseña — Lawang',
+          message: `Hola ${String(sol.nombre || '').split(' ')[0]},\n\nAquí tienes un enlace nuevo para crear tu contraseña de la intranet de Lawang.`,
+          attach: false, cta_url: url, cta_texto: 'Crear mi contraseña',
+        }),
+      });
+      const t = await r.text();
+      return json({ ok: r.ok && t.includes('"ok":true') });
     }
 
     // ── cambiar contraseña ───────────────────────────────────────────────
