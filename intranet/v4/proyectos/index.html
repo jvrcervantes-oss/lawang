@@ -2,11 +2,11 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/guard.js?v=1d256fc0" data-herramienta="unidades"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
 <script src="/contracts/assets/i18n.js?v=ad64dfba" defer></script>
-<script src="/contracts/assets/dinero.js?v=a442e362" defer></script><script src="/intranet/facturas/totales.js" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=c76d3606" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1" defer></script><script src="/contracts/assets/proyectos_csv.js?v=e610515a" defer></script><script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="../assets/datos.js?v=8987dee0" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/dinero.js?v=a442e362" defer></script><script src="/intranet/facturas/totales.js" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=c76d3606" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1" defer></script><script src="/contracts/assets/proyectos_csv.js?v=e610515a" defer></script><script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="../assets/datos.js?v=8ae2b72e" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=6777337a" defer></script>
 <link href="../assets/shell.css?v=1a777d68" rel="stylesheet">
-<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/editores.js?v=53dda9c3" defer></script><script src="../assets/maqueta.js?v=ad84f3c7" defer></script>
+<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/editores.js?v=0e339de8" defer></script><script src="../assets/maqueta.js?v=ad84f3c7" defer></script>
 <!-- Fotos del Investor Deck (S10.2, 22-sep-2026): pieza COMPARTIDA de la suite
      (Regla 0, contexto/suite_lawang.md) — la usan /proyectos/ y /modelos/
      clásicos, aquí solo se engancha, nunca se reescribe. Depende de
@@ -774,13 +774,15 @@
 <div class="hidden" data-tab-panel="documentos">
 <div class="flex items-baseline justify-between gap-3 mb-1.5">
 <span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">Documentos</span>
+<button class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-[12px] transition-colors hidden" id="btn-doc-subir" type="button">+ Subir documento</button>
 </div>
-<!-- Sin alta desde aquí a propósito (S11 no la pide): estos ficheros los sube
-     hoy la herramienta clásica o "Editar proyecto" (solo portada). Abrir un
-     documento pide su URL firmada al vuelo (createSignedUrl, TTL corto) —
-     mismo patrón que ya usa datos.js para las portadas de la rejilla,
-     nunca el bucket 'documentacion' hecho público. -->
-<div class="flex flex-col gap-1.5" id="d-documentos"><div class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors cursor-pointer" data-doc-fila data-doc-abrir><span class="material-symbols-outlined text-[16px] text-outline shrink-0">description</span><div class="flex-1 min-w-0 flex items-center justify-between gap-3"><span class="font-body-sm text-body-sm text-on-surface truncate" data-lw="dc-titulo">—</span><span class="font-body-sm text-[11px] text-outline shrink-0" data-lw="dc-meta">—</span></div></div></div>
+<!-- Alta de fichero desde aquí (24-sep-2026, owner: «necesito poder subir
+     documentación desde la v4»): editores.js cablea #btn-doc-subir con la
+     misma llave que Enlaces (puede('documentacion')). Va al bucket privado
+     'documentacion' con la ruta de la portada (proyectos/<id>/<uuid>.ext).
+     Abrir un documento pide su URL firmada al vuelo (createSignedUrl, TTL
+     corto) — nunca el bucket hecho público. -->
+<div class="flex flex-col gap-1.5" id="d-documentos"><div class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors cursor-pointer" data-doc-fila data-doc-abrir><span class="material-symbols-outlined text-[16px] text-outline shrink-0">description</span><div class="flex-1 min-w-0 flex items-center justify-between gap-3"><span class="font-body-sm text-body-sm text-on-surface truncate" data-lw="dc-titulo">—</span><span class="font-body-sm text-[11px] text-outline shrink-0" data-lw="dc-meta">—</span></div><div class="flex items-center gap-0.5 shrink-0"><button type="button" class="p-1 rounded text-outline hover:text-deep-lagoon hover:bg-surface-container-lowest hidden" data-doc-editar aria-label="Editar documento" title="Editar"><span class="material-symbols-outlined text-[15px]">edit</span></button><button type="button" class="p-1 rounded text-outline hover:text-error hover:bg-error-container hidden" data-doc-borrar aria-label="Borrar documento" title="Borrar"><span class="material-symbols-outlined text-[15px]">delete</span></button></div></div></div>
 </div>
 <!-- Preguntas frecuentes como 3ª pestaña, junto a Enlaces y Documentos
      (23-sep-2026, owner). Dos bloques, cada uno con su fuente: las públicas del

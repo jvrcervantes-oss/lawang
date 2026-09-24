@@ -4365,10 +4365,9 @@
             cajaE.appendChild(f);
           });
         }
-        /* Documentos SUBIDOS como fichero (S11.2/S11.5): sin edición/borrado
-           desde aquí a propósito (fuera del alcance de S11 — hoy no hay alta
-           de fichero suelto en v4, solo la portada del proyecto), pero SÍ con
-           forma de abrirse: `createSignedUrl` al pulsar, TTL corto, mismo
+        /* Documentos SUBIDOS como fichero (S11.2/S11.5; alta, edición y
+           borrado desde aquí el 24-sep-2026 — cableado en editores.js, mismas
+           llaves que Enlaces). Se abren con `createSignedUrl` al pulsar, TTL corto, mismo
            patrón que ya usa esta pantalla para las portadas de la rejilla
            (createSignedUrls en lote, más abajo). El bucket 'documentacion' es
            privado — nunca se marca público para "arreglar" un 403. */
@@ -4384,7 +4383,8 @@
             var p3 = function (k, v2) { var e = f.querySelector('[data-lw="' + k + '"]'); if (e) e.textContent = v2; };
             p3('dc-titulo', d2.titulo || 'Documento');
             var tam = (typeof d2.bytes === 'number' && d2.bytes > 0) ? ' · ' + Math.round(d2.bytes / 1024) + ' KB' : '';
-            p3('dc-meta', (d2.categoria || '—') + tam + (d2.confidencial ? ' · confidencial' : ''));
+            p3('dc-meta', (d2.categoria || '—') + tam + (d2.visible_portal ? ' · visible al comprador' : '') + (d2.confidencial ? ' · confidencial' : ''));
+            pintaAccionesDoc(f);
             cajaD.appendChild(f);
           });
         }
@@ -4986,6 +4986,9 @@
         var caja = document.getElementById('d-documentos');
         if (!caja) return;
         caja.addEventListener('click', function (ev) {
+          // Editar/borrar (24-sep) viven DENTRO de la fila: su clic lo atiende
+          // editores.js, aquí no debe abrir además el fichero.
+          if (ev.target.closest && ev.target.closest('[data-doc-editar],[data-doc-borrar]')) return;
           var f = ev.target.closest && ev.target.closest('[data-doc-abrir]');
           if (!f) return;
           var id = f.getAttribute('data-doc-id');

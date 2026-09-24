@@ -4294,7 +4294,7 @@
       // enlaces/FAQ exigen 'documentacion': gate LOCAL, ya no aborta toda la
       // pantalla — editar/borrar proyecto son otro permiso y siguen abajo.
       if (puedeH(ficha, 'documentacion')) {
-        ['btn-enlace', 'btn-faq'].forEach(function (id) {
+        ['btn-enlace', 'btn-faq', 'btn-doc-subir'].forEach(function (id) {
           var b = document.getElementById(id); if (b) b.classList.remove('hidden');
         });
         var proyecto = function () { var p = proyectoObj(); return p && p.nombre; };
@@ -4347,6 +4347,65 @@
             return sb.from('documentos_proyecto').insert({
               proyecto: p, titulo: v.titulo, descripcion: v.descripcion.trim() || null,
               categoria: 'faq', carpeta: 'Preguntas frecuentes', confidencial: true, visible_portal: false
+            });
+          });
+        });
+
+        /* Subir un documento como FICHERO (24-sep-2026, owner: «necesito poder
+           subir documentación desde la v4»). La clásica pasó a solo-enlaces el
+           31-jul por el cupo de 1 GB del plan Free; desde el 17-sep el owner
+           está en Pro (100 GB) y la nota de la clásica dejaba esta puerta a su
+           decisión. Nada nuevo en la base: mismo bucket privado
+           'documentacion' (tope 50 MB por fichero, lo pone el bucket), misma
+           ruta que la portada (proyectos/<id>/<uuid>.ext), misma tabla y mismas
+           casillas que un enlace. Si la fila no entra, se intenta retirar el
+           fichero del bucket; ⚠️ la policy DELETE de storage exige super admin,
+           así que para cualquier otro queda un objeto huérfano (nadie lo abre:
+           la lectura casa por `documentos_proyecto.path`, pero ocupa cupo).
+           Mismo defecto que ya tenía la portada.
+           Lista blanca de extensiones: documentos de oficina, imagen, plano y
+           zip — nada que un navegador ejecute (html, svg, js). */
+        var CATS_FICHERO = ['legal', 'planos', 'precios', 'comercial', 'tecnico', 'fotos', 'otros'];
+        var MAX_FICHERO = 50 * 1024 * 1024;
+        var EXT_FICHERO = ['.pdf', '.jpg', '.jpeg', '.png', '.webp', '.doc', '.docx', '.xls', '.xlsx', '.csv', '.ppt', '.pptx', '.dwg', '.dxf', '.zip'];
+        var bs = document.getElementById('btn-doc-subir');
+        if (bs) bs.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          var po = proyectoObj(); var p = po && po.nombre;
+          if (!p || !po.id) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
+          modal('Subir documento · ' + p, [
+            { k: 'file', label: 'Fichero', tipo: 'file', req: 1, accept: EXT_FICHERO.join(','), ayuda: 'Hasta 50 MB. PDF, imagen, Word, Excel, PowerPoint, CAD o ZIP.' },
+            { k: 'titulo', label: 'Título (opcional)', ayuda: 'En blanco = el nombre del fichero.' },
+            { k: 'categoria', label: 'Categoría', tipo: 'select', opciones: CATS_FICHERO, valor: 'legal' },
+            { k: 'carpeta', label: 'Carpeta (opcional)', ayuda: 'Para agrupar en la vista de la clásica. Ej. "Legal", "Planos".' },
+            { k: 'descripcion', label: 'Descripción (opcional)', tipo: 'textarea' },
+            { k: 'visible_portal', label: 'Visible para el comprador', tipo: 'check', ayuda: 'lo verán TODOS los compradores de ' + p + ' en su portal' },
+            { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check', valor: 1 },
+            { k: 'publicado_investor_deck', label: 'Publicar en el dosier de inversores', tipo: 'check', ayuda: 'PÚBLICO: lo ve cualquiera que abra el enlace del deck, sin contraseña y sin contrato' }
+          ], 'Subir', function (v) {
+            var file = v.file;
+            if (!file) return { error: { message: 'elige un fichero' } };
+            if (file.size > MAX_FICHERO) return { error: { message: 'el fichero pasa de 50 MB (' + (file.size / 1048576).toFixed(1) + ' MB) — súbelo a Drive y guárdalo como enlace' } };
+            var extF = (file.name.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
+            if (EXT_FICHERO.indexOf(extF) === -1) return { error: { message: 'ese tipo de fichero no se admite (' + (extF || 'sin extensión') + ') — PDF, imagen, Office, CAD o ZIP' } };
+            var titulo = (v.titulo || '').trim() || file.name.replace(/\.[^.]+$/, '');
+            return confirmaPublicacionDoc({ titulo: titulo, confidencial: v.confidencial, visible_portal: v.visible_portal, publicado_investor_deck: v.publicado_investor_deck }, p).then(function (c) {
+              if (!c.ok) return { error: { message: c.msg } };
+              var path = 'proyectos/' + po.id + '/' + crypto.randomUUID() + extF;
+              return sb.storage.from('documentacion').upload(path, file, { contentType: file.type || undefined }).then(function (up) {
+                if (up.error) return { error: { message: 'no se pudo subir el fichero: ' + up.error.message } };
+                return sb.from('documentos_proyecto').insert({
+                  proyecto: p, titulo: titulo, path: path, mime: file.type || null, bytes: file.size,
+                  categoria: v.categoria, carpeta: (v.carpeta || '').trim() || null,
+                  descripcion: (v.descripcion || '').trim() || null,
+                  visible_portal: v.visible_portal, confidencial: v.confidencial,
+                  publicado_investor_deck: !!v.publicado_investor_deck && !v.confidencial
+                }).select('id').then(function (ri) {
+                  var u2 = unaFila(ri);
+                  if (u2.error) sb.storage.from('documentacion').remove([path]);
+                  return u2;
+                });
+              });
             });
           });
         });
@@ -4439,13 +4498,44 @@
             sb.from('documentos_proyecto').delete().eq('id', d2.id).select('id').then(function (r) {
               var u2 = unaFila(r);
               if (u2.error) return aviso('No se pudo borrar: ' + u2.error.message, '#ba1a1a');
-              aviso('Borrado');
-              location.reload();
+              // Fichero subido (24-sep): fila primero, objeto después — si el
+              // objeto no sale, queda un huérfano que no abre nadie, nunca una
+              // fila que apunta a un fichero inexistente.
+              var fin = function () { aviso('Borrado'); location.reload(); };
+              if (!d2.path) return fin();
+              sb.storage.from('documentacion').remove([d2.path]).then(fin, fin);
             });
           });
         }
 
-        [document.getElementById('d-enlaces'), document.getElementById('d-faqs')].forEach(function (caja) {
+        /* Editar un documento SUBIDO (24-sep): solo su ficha — el fichero en sí
+           no se cambia; para otra versión se sube de nuevo y se borra el viejo.
+           Mismas casillas y mismo candado de publicación que un enlace. */
+        function abreEditarDocumento(d2) {
+          var p = proyecto() || d2.proyecto || '';
+          var catsAquí = CATS_FICHERO.indexOf(d2.categoria) !== -1 ? CATS_FICHERO : CATS_FICHERO.concat([d2.categoria]);
+          modal('Editar documento', [
+            { k: 'titulo', label: 'Título', req: 1, valor: d2.titulo || '' },
+            { k: 'categoria', label: 'Categoría', tipo: 'select', opciones: catsAquí, valor: d2.categoria || 'otros' },
+            { k: 'carpeta', label: 'Carpeta (opcional)', valor: d2.carpeta || '' },
+            { k: 'descripcion', label: 'Descripción (opcional)', tipo: 'textarea', valor: d2.descripcion || '' },
+            { k: 'visible_portal', label: 'Visible para el comprador', tipo: 'check', valor: !!d2.visible_portal, ayuda: 'lo verán TODOS los compradores de ' + p + ' en su portal' },
+            { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check', valor: !!d2.confidencial },
+            { k: 'publicado_investor_deck', label: 'Publicar en el dosier de inversores', tipo: 'check', valor: !!d2.publicado_investor_deck, ayuda: 'PÚBLICO: lo ve cualquiera que abra el enlace del deck, sin contraseña y sin contrato' }
+          ], 'Guardar cambios', function (v) {
+            return confirmaPublicacionDocEdicion(v, d2, p).then(function (c) {
+              if (!c.ok) return { error: { message: c.msg } };
+              return sb.from('documentos_proyecto').update({
+                titulo: v.titulo, categoria: v.categoria,
+                carpeta: v.carpeta.trim() || null, descripcion: v.descripcion.trim() || null,
+                visible_portal: v.visible_portal, confidencial: v.confidencial,
+                publicado_investor_deck: !!v.publicado_investor_deck && !v.confidencial
+              }).eq('id', d2.id).select('id').then(unaFila);
+            });
+          });
+        }
+
+        [document.getElementById('d-enlaces'), document.getElementById('d-faqs'), document.getElementById('d-documentos')].forEach(function (caja) {
           if (!caja) return;
           caja.addEventListener('click', function (ev) {
             var bEditar = ev.target.closest && ev.target.closest('[data-doc-editar]');
@@ -4456,8 +4546,8 @@
             if (!fila) return;
             var d2 = documentoDe(fila);
             if (!d2) return aviso('Este elemento ya no está en pantalla — vuelve a abrir el proyecto.', '#8A6A34');
-            if (bEditar) { if (d2.categoria === 'faq') abreEditarFaq(d2); else abreEditarEnlace(d2); return; }
-            borraDocumento(d2, d2.categoria === 'faq' ? 'esta pregunta' : 'este enlace');
+            if (bEditar) { if (d2.categoria === 'faq') abreEditarFaq(d2); else if (d2.path) abreEditarDocumento(d2); else abreEditarEnlace(d2); return; }
+            borraDocumento(d2, d2.categoria === 'faq' ? 'esta pregunta' : d2.path ? 'este documento' : 'este enlace');
           });
         });
       }

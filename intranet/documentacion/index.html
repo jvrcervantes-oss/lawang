@@ -185,6 +185,10 @@
    que ahora sí caben aquí, esto es lo que hay que revisar primero.) En Drive
    el espacio ya está pagado. Aquí queda la ficha, que es lo que hace que el
    documento se encuentre.
+   24-sep-2026: el owner decidió que SÍ se vuelvan a subir ficheros, desde la
+   v4 (/intranet/v4/proyectos/ → cajón → Documentos → «+ Subir documento»,
+   tope 50 MB del bucket). Esta herramienta sigue solo-enlaces; los ficheros
+   subidos desde la v4 se ven y se abren aquí igual que los antiguos.
    Lo que se subió antes de este cambio SE SIGUE ABRIENDO con enlace firmado:
    quitarle la salida a un archivo que ya está dentro no libera nada y pierde el
    documento.
@@ -267,8 +271,8 @@ const T = {
   noSalePortal: { es:'No sale en el portal del comprador', en:'Not shown in the buyer portal' },
   viveFuera: { es:'El documento vive fuera de aquí, así que <b>quién puede abrirlo lo decide Drive</b>, no esta herramienta. Compruébalo allí.',
                en:'The document lives outside this tool, so <b>who can open it is decided by Drive</b>, not by this tool. Check it there.' },
-  archivoViejo: { es:'Archivo subido antes de que la herramienta pasara a enlaces. Se abre con un enlace temporal de 15 minutos.',
-                  en:'File uploaded before this tool switched to links. It opens with a 15-minute temporary link.' },
+  archivoViejo: { es:'Archivo subido al almacén de la intranet. Se abre con un enlace temporal de 15 minutos.',
+                  en:'File uploaded to the intranet storage. It opens with a 15-minute temporary link.' },
   soloSuperAdmin: { es:'Quitar documentación está reservado al super admin.', en:'Removing documentation is reserved to the super admin.' },
   abrir: { es:'Abrir', en:'Open' },
   enDrive: { es:' en Drive', en:' in Drive' },
