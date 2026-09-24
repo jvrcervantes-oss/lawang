@@ -278,6 +278,18 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .c-l .ok,.c-n .ko{font-weight:700;margin-right:6px}
 .lg-right .subh{margin-top:0;margin-bottom:clamp(10px,1.8vh,18px)}
 
+.routes{margin-top:clamp(10px,1.8vh,18px);display:grid;gap:clamp(10px,1.8vh,16px)}
+.r-start{display:flex;flex-direction:column;justify-content:center;min-height:clamp(48px,6.6vh,64px);padding:8px 20px;
+  border:1px solid rgba(72,91,55,.35);border-radius:8px;background:rgba(255,255,255,.35)}
+.r-start strong{font-size:clamp(14px,1vw,18px);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.r-start span{margin-top:3px;font-size:13px;color:#5a5a52}
+.route{position:relative;padding-left:26px}
+.route::before{content:"";position:absolute;left:10px;top:-10px;bottom:50%;border-left:1px solid rgba(72,91,55,.5);border-bottom:1px solid rgba(72,91,55,.5);width:12px}
+.r-lab{display:block;margin-bottom:6px;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--pg)}
+.flow-h{margin-top:0;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:26px}
+.flow-h li + li::before{content:"→";left:auto;right:calc(100% + 7px);bottom:auto;top:50%;transform:translateY(-50%);font-size:13px}
+.flow-h li{min-height:clamp(52px,7vh,68px)}
+
 /* ═══ 5 · EL COLOR DEL SUELO ═══ */
 .zn-in{height:100%;display:flex;flex-direction:column;justify-content:center;padding:var(--top) var(--gut) clamp(24px,5vh,60px)}
 .zn-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:clamp(32px,4.5vw,96px);align-items:end}
@@ -317,6 +329,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   .lg-in,.zn-head{display:block}
   .lg-in,.zn-in,.in-in{height:auto;padding:84px 16px 44px}
   .lg-right{margin-top:34px}
+  .flow-h{grid-auto-flow:row}
+  .flow-h li + li::before{content:"↓";right:auto;left:24px;top:auto;bottom:calc(100% + 2px);transform:none}
   .cmp-row{grid-template-columns:1fr}
   .cmp-h{display:none}
   .cmp-row:not(.cmp-h) .c-a{background:#ebe6db}
@@ -522,7 +536,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
     <ol class="steps">
       <li class="step"><div class="box"><h3 data-i18n-html="s1.h">RESERVE</h3><p data-i18n-html="s1.p"><span class="b">Deposit locks your plot,</span><br class="d"> held in the notary's<br class="d"> escrow account.</p></div></li>
       <li class="step"><div class="box"><h3 data-i18n-html="s2.h">DUE DILIGENCE</h3><p data-i18n-html="s2.p"><span class="b">10-day validity window,</span><br class="d"> refundable per the<br class="d"> Letter of Reservation.</p></div></li>
-      <li class="step"><div class="box"><h3 data-i18n-html="s3.h">NOTARIAL SIGNATURE</h3><p data-i18n-html="s3.p"><span class="b">Hak Sewa deed</span> and power<br class="d"> of attorney, signed before<br class="d"> a PPAT <span class="b">notary.</span></p></div></li>
+      <li class="step"><div class="box"><h3 data-i18n-html="s3.h">NOTARIAL SIGNATURE</h3><p data-i18n-html="s3.p"><span class="b">HGB deed</span> to your PT PMA,<br class="d"> or <span class="b">Hak Sewa</span> without a company,<br class="d"> signed before a PPAT <span class="b">notary</span><br class="d"> or by power of attorney.</p></div></li>
       <li class="step"><div class="box"><h3 data-i18n-html="s4.h">CONSTRUCTION</h3><p data-i18n-html="s4.p"><span class="b">Licensed contractors,</span> on-site<br class="d"> QC, tropical-grade materials<br class="d"> and standards.</p></div></li>
       <li class="step"><div class="box"><h3 data-i18n-html="s5.h">DELIVERY</h3><p data-i18n-html="s5.p"><span class="b">Completion certification</span><br class="d"> (SLF) the building is<br class="d"> legally fit for use.</p></div></li>
       <li class="step"><div class="box"><h3 data-i18n-html="s6.h">MANAGEMENT</h3><p data-i18n-html="s6.p"><span class="b">Our local partner network</span><br class="d"> runs the rental and reports<br class="d"> your returns.</p></div></li>
@@ -537,18 +551,31 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
       <h2 class="ttl" id="lg-h" data-i18n-html="lg.h">What you'll <span class="b">hold</span>, what it <span class="b">costs</span>, and where you can <span class="b">build</span>.</h2>
       <p class="intro" data-i18n-html="lg.p">Three plain questions: is the title real, is the money protected, and where is building actually allowed.</p>
       <p class="subh" data-i18n-html="lg.flow">How a foreign investor holds Bali real estate</p>
-      <ol class="flow">
-        <li><strong data-i18n-html="fl.1">Foreign investor</strong><span data-i18n-html="fl.1s">You, the buyer</span></li>
-        <li><strong>PT PMA</strong><span data-i18n-html="fl.2s">Foreign-owned Indonesian company</span></li>
-        <li class="fin"><strong>Freehold HGB</strong><span data-i18n-html="fl.3s">What you end up holding — 30 years, then extendable 20 + 30</span></li>
-      </ol>
+      <!-- Dos rutas (owner, 24-sep): con empresa, Freehold HGB via PT PMA; sin empresa, Hak Sewa.
+           Misma regla en la tabla (plazo y registro) y en el paso 3 del roadmap. -->
+      <div class="routes">
+        <div class="r-start"><strong data-i18n-html="fl.1">Foreign investor</strong><span data-i18n-html="fl.1s">You, the buyer</span></div>
+        <div class="route">
+          <span class="r-lab" data-i18n-html="rt.a">With a company</span>
+          <ol class="flow flow-h">
+            <li><strong>PT PMA</strong><span data-i18n-html="fl.2s">Foreign-owned Indonesian company</span></li>
+            <li class="fin"><strong>Freehold HGB</strong><span data-i18n-html="fl.3s">30 years, then extendable 20 + 30</span></li>
+          </ol>
+        </div>
+        <div class="route">
+          <span class="r-lab" data-i18n-html="rt.b">Without a company</span>
+          <ol class="flow flow-h">
+            <li class="fin"><strong>Hak Sewa</strong><span data-i18n-html="fl.4s">Registered lease — up to 30 years per grant, renewable</span></li>
+          </ol>
+        </div>
+      </div>
     </div>
     <div class="lg-right">
-      <p class="subh" data-i18n-html="cm.t">Hak Sewa with notarial escrow vs. informal leasehold</p>
+      <p class="subh" data-i18n-html="cm.t">Registered title with notarial escrow vs. informal leasehold</p>
       <div class="cmp" role="table" aria-labelledby="lg-h">
         <div class="cmp-row cmp-h" role="row"><div class="c-a" role="columnheader" data-i18n-html="cm.h1">Aspect</div><div class="c-l" role="columnheader">Lawang</div><div class="c-n" role="columnheader" data-i18n-html="cm.h3">Common practice</div></div>
         <div class="cmp-row" role="row"><div class="c-a" role="cell"><strong data-i18n-html="cm.1a">Payment security</strong><span data-i18n-html="cm.1b">Notarial escrow (PPAT)</span></div><div class="c-l" role="cell"><span class="ok" aria-hidden="true">✓</span><span data-i18n-html="cm.1l">Reservation and stage payments held in an escrow account managed by the notary, released against agreed conditions.</span></div><div class="c-n" role="cell"><span class="ko" aria-hidden="true">✕</span><span data-i18n-html="cm.1n">Funds paid directly to a private landowner or intermediary, with no third-party custody.</span></div></div>
-        <div class="cmp-row" role="row"><div class="c-a" role="cell"><strong data-i18n-html="cm.2a">Term &amp; registration</strong><span data-i18n-html="cm.2b">Hak Sewa, Indonesian law</span></div><div class="c-l" role="cell"><span class="ok" aria-hidden="true">✓</span><span data-i18n-html="cm.2l">Registered lease term (legal maximum 30 years per grant, renewable with a new term), transferable and heritable.</span></div><div class="c-n" role="cell"><span class="ko" aria-hidden="true">✕</span><span data-i18n-html="cm.2n">Unregistered private agreement with no guaranteed renewal and limited transferability.</span></div></div>
+        <div class="cmp-row" role="row"><div class="c-a" role="cell"><strong data-i18n-html="cm.2a">Term &amp; registration</strong><span data-i18n-html="cm.2b">HGB or Hak Sewa, Indonesian law</span></div><div class="c-l" role="cell"><span class="ok" aria-hidden="true">✓</span><span data-i18n-html="cm.2l">Registered title: Freehold HGB through your PT PMA, or Hak Sewa if you buy without a company. Transferable and heritable.</span></div><div class="c-n" role="cell"><span class="ko" aria-hidden="true">✕</span><span data-i18n-html="cm.2n">Unregistered private agreement with no guaranteed renewal and limited transferability.</span></div></div>
         <div class="cmp-row" role="row"><div class="c-a" role="cell"><strong data-i18n-html="cm.3a">Building permits (PBG / SLF)</strong><span data-i18n-html="cm.3b">Government portal (SIMBG)</span></div><div class="c-l" role="cell"><span class="ok" aria-hidden="true">✓</span><span data-i18n-html="cm.3l">Approved ahead of construction, with occupancy certification (SLF) enabling legal short-term rental.</span></div><div class="c-n" role="cell"><span class="ko" aria-hidden="true">✕</span><span data-i18n-html="cm.3n">Frequently started without permits or with permits pending, exposed to government closure.</span></div></div>
         <div class="cmp-row" role="row"><div class="c-a" role="cell"><strong data-i18n-html="cm.4a">Land zoning (RDTR)</strong><span data-i18n-html="cm.4b">Official urban classification</span></div><div class="c-l" role="cell"><span class="ok" aria-hidden="true">✓</span><span data-i18n-html="cm.4l">Zoned for tourism / residential use, legally enabled for short-stay rental income.</span></div><div class="c-n" role="cell"><span class="ko" aria-hidden="true">✕</span><span data-i18n-html="cm.4n">Often sited on green or agricultural-protection land (LSD/LP2B), not legally buildable.</span></div></div>
       </div>
@@ -860,9 +887,9 @@ var SOUL_I18N = {
 "id": "<span class=\"b\">Masa berlaku 10 hari,</span> dapat dikembalikan sesuai Surat Reservasi."
 },
 "s3.p": {
-"en": "<span class=\"b\">Hak Sewa deed</span> and power<br class=\"d\"> of attorney, signed before<br class=\"d\"> a PPAT <span class=\"b\">notary.</span>",
-"es": "Escritura de <span class=\"b\">Hak Sewa</span> y poder notarial, firmados ante un <span class=\"b\">notario</span> PPAT.",
-"id": "<span class=\"b\">Akta Hak Sewa</span> dan surat kuasa, ditandatangani di hadapan <span class=\"b\">notaris</span> PPAT."
+"en": "<span class=\"b\">HGB deed</span> to your PT PMA,<br class=\"d\"> or <span class=\"b\">Hak Sewa</span> without a company,<br class=\"d\"> signed before a PPAT <span class=\"b\">notary</span><br class=\"d\"> or by power of attorney.",
+"es": "<span class=\"b\">Escritura HGB</span> a nombre de tu PT PMA, o <span class=\"b\">Hak Sewa</span> sin sociedad, firmada ante un <span class=\"b\">notario</span> PPAT o por poder notarial.",
+"id": "<span class=\"b\">Akta HGB</span> atas nama PT PMA Anda, atau <span class=\"b\">Hak Sewa</span> tanpa perusahaan, ditandatangani di hadapan <span class=\"b\">notaris</span> PPAT atau melalui surat kuasa."
 },
 "s4.p": {
 "en": "<span class=\"b\">Licensed contractors,</span> on-site<br class=\"d\"> QC, tropical-grade materials<br class=\"d\"> and standards.",
@@ -950,14 +977,14 @@ var SOUL_I18N = {
 "id": "Perusahaan Indonesia bermodal asing"
 },
 "fl.3s": {
-"en": "What you end up holding — 30 years, then extendable 20 + 30",
-"es": "Lo que acabas teniendo: 30 años, prorrogables 20 + 30",
-"id": "Yang akhirnya Anda pegang — 30 tahun, lalu dapat diperpanjang 20 + 30"
+"en": "30 years, then extendable 20 + 30",
+"es": "30 años, prorrogables 20 + 30",
+"id": "30 tahun, lalu dapat diperpanjang 20 + 30"
 },
 "cm.t": {
-"en": "Hak Sewa with notarial escrow vs. informal leasehold",
-"es": "Hak Sewa con escrow notarial frente al leasehold informal",
-"id": "Hak Sewa dengan escrow notaris vs. leasehold informal"
+"en": "Registered title with notarial escrow vs. informal leasehold",
+"es": "Título inscrito con escrow notarial frente al leasehold informal",
+"id": "Hak terdaftar dengan escrow notaris vs. leasehold informal"
 },
 "cm.h1": {
 "en": "Aspect",
@@ -995,14 +1022,14 @@ var SOUL_I18N = {
 "id": "Jangka waktu &amp; pendaftaran"
 },
 "cm.2b": {
-"en": "Hak Sewa, Indonesian law",
-"es": "Hak Sewa, derecho indonesio",
-"id": "Hak Sewa, hukum Indonesia"
+"en": "HGB or Hak Sewa, Indonesian law",
+"es": "HGB o Hak Sewa, derecho indonesio",
+"id": "HGB atau Hak Sewa, hukum Indonesia"
 },
 "cm.2l": {
-"en": "Registered lease term (legal maximum 30 years per grant, renewable with a new term), transferable and heritable.",
-"es": "Plazo de arrendamiento inscrito (máximo legal de 30 años por otorgamiento, renovable con un plazo nuevo), transmisible y heredable.",
-"id": "Jangka sewa terdaftar (maksimum menurut hukum 30 tahun per pemberian, dapat diperpanjang dengan jangka baru), dapat dialihkan dan diwariskan."
+"en": "Registered title: Freehold HGB through your PT PMA, or Hak Sewa if you buy without a company. Transferable and heritable.",
+"es": "Título inscrito: Freehold HGB a través de tu PT PMA, o Hak Sewa si compras sin sociedad. Transmisible y heredable.",
+"id": "Hak terdaftar: Freehold HGB melalui PT PMA Anda, atau Hak Sewa jika membeli tanpa perusahaan. Dapat dialihkan dan diwariskan."
 },
 "cm.2n": {
 "en": "Unregistered private agreement with no guaranteed renewal and limited transferability.",
@@ -1208,6 +1235,21 @@ var SOUL_I18N = {
 "en": "Islands",
 "es": "Islas",
 "id": "Pulau"
+},
+"rt.a": {
+"en": "With a company",
+"es": "Con sociedad",
+"id": "Dengan perusahaan"
+},
+"rt.b": {
+"en": "Without a company",
+"es": "Sin sociedad",
+"id": "Tanpa perusahaan"
+},
+"fl.4s": {
+"en": "Registered lease — up to 30 years per grant, renewable",
+"es": "Arrendamiento inscrito: hasta 30 años por otorgamiento, renovable",
+"id": "Sewa terdaftar — hingga 30 tahun per pemberian, dapat diperpanjang"
 }
 };
 window.lwLangInit(SOUL_I18N, { despues: function () {
