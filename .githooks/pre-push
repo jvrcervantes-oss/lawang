@@ -23,7 +23,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   fi
 done
 if [ "$malo" -eq 1 ]; then
-  echo "[pre-push]    Para llevar tu trabajo a produccion: python tools/aterriza.py lawang" >&2
+  echo "[pre-push]    Para llevar tu trabajo a produccion: python tools/aterriza.py <id>  (ids: python tools/sesion.py lista)" >&2
   exit 1
 fi
 exit 0
