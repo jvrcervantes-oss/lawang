@@ -1,0 +1,1251 @@
+<?php
+/**
+ * ARCHIVADA 24-sep-2026 (owner): era modelo/index.php. Se sirve en /modelo/v1/<id> solo
+ * para poder restaurarla; noindex y canonica a la ficha publicada. No enlazar.
+ *
+ * Landing de modelo de villa — /modelo/<id> (regla de reescritura en .htaccess).
+ *
+ * ── 21-sep-2026 · RECONSTRUCCIÓN DESDE CERO (v6, sustituye 352d9943/4c2312c5/c7287cb3) ──
+ * Los tres restyles anteriores solo cambiaron CONTENIDO dentro del lenguaje visual de
+ * siempre (chips, `.op`, tarjetas de texto) — el owner los vio en producción y ninguno
+ * calcaba de verdad el mockup Tesla-style (`stitch_tesla_style_villa_configurator/…/
+ * code.html` + `screen.png`). Esta vez: HTML/clases del mockup TAL CUAL, sección por
+ * sección, sobre `assets/dali-tesla-tw.min.css` (Tailwind compilado con el
+ * `tailwind.config` exacto del mockup — NUNCA el Play CDN de Tailwind, sin versión ni SRI).
+ * El bloque de datos de abajo (precio, techos, extras, catálogo, snapshot financiero,
+ * cross-sell) NO se reescribe: es el mismo que ya calculaba correctamente el restyle
+ * anterior — la reconstrucción es de MARKUP, no de los datos que ya estaban bien.
+ *
+ * Lo que cambia de fondo frente al mockup (contenido inventado → real, decisiones ya
+ * tomadas, no reabrir sin pasar otra vez por Legal):
+ *   · Drawer de 6 pasos ficticios (Terreno/Estructura/Piscina/Interior/Domótica/ROI) →
+ *     3 pasos reales: villa → techo → extras, con el motor YA VIVO en
+ *     assets/au-landing-cfg.js (compartido con /dali) SIN TOCAR una línea. Los pasos 2 y 3
+ *     los pinta ese JS con `class="op"`; el estilo de esas tarjetas vive en el <style> de
+ *     abajo, calcado en valores (no en nombre de clase) del mismo `tailwind.config`.
+ *   · Sin tab-bar de 6 botones sincronizado a mano: el motor solo mueve
+ *     `#lw-paso-lb` + `#lw-puntos` (puntitos), así que la navegación de pasos usa ESO en
+ *     vez de fabricar una barra de pestañas que el JS no sincroniza (fallo silencioso
+ *     que solo se ve al hacer clic).
+ *   · HUD/clima en vivo, audio ambiente, "Hak Pakai 80 Años", ROI 14,8%, escrow, PwC,
+ *     Jakarta/Sumba/Londres/Madrid, Tesla Powerwall, Lutron, depósito reembolsable de
+ *     2.500 €, plano CAD descargable: todo fuera — no hay fuente para ninguno en el
+ *     proyecto (verificado, no supuesto) o directamente contradice Legal/lo que el
+ *     estudio vende aquí. Detalle de cada sustitución en el encargo original
+ *     (`encargos/20260921_*_modelo_dali_rebuild.md` si existe, o el historial del chat).
+ *   · Modal de reserva del mockup (simula depósito + formulario propio) → NO se
+ *     construye: el CTA final del drawer ("Completar Reserva & Dossier" en el mockup) es
+ *     directamente el enlace de WhatsApp ya vivo (`$WA_LINK`), sin paso intermedio. Menos
+ *     superficie que duplicar precio/resumen en un segundo sitio del DOM sin que el motor
+ *     JS lo alimente — habría sido un dato estático that could drift from the real total.
+ *   · FAQ: mismo contenido EXACTO ya aprobado por Legal (bloques `.i-en`/`.i-es`), dentro
+ *     de tarjetas bordeadas individuales como pide el mockup pero con `<details>` nativo
+ *     en vez de JS a mano — mismo aspecto, cero superficie de script nueva.
+ *   · Sin el hack de `--sbw`/100vw breakout de la versión anterior: el mockup no rompe el
+ *     ancho de ningún contenedor (todo vive dentro de `max-w-7xl` con gutter fijo), así
+ *     que ese problema (y su arreglo) ya no aplica — no se traslada "por si acaso".
+ *
+ * ── 11-sep-2026: estas fichas NO agendan llamadas ─────────────────────────────────────
+ * La conversión es WhatsApp (`ViewContent` al cargar; `Lead`/`AbrioCalendario` no existen
+ * aquí — no hay calendario). Si se quiere medir conversión, el camino es CTWA, no
+ * reetiquetar un clic a WhatsApp como `Lead`.
+ */
+require __DIR__ . '/datos.php';
+$MODELOS = require __DIR__ . '/modelos.php';
+
+$m = lw_modelo_get(isset($_GET['m']) ? $_GET['m'] : '', $MODELOS);
+if (!$m) {
+    header('Location: /thecollection', true, 302);
+    exit;
+}
+
+// Sin renders todavía (Trinity/Temple): la plantilla degrada el hero cinemático a un
+// único fondo estático ("renders en camino") y esconde dock de cámara y hotspots —
+// nunca un placeholder de foto rota. Ver más abajo, sección HERO.
+$sinRender = empty($m['imgs']);
+
+$precioValor = lw_modelo_precio_desde($m);
+$precio   = lw_precio_fmt($precioValor);
+// Solo se anuncia la subida de 2027 MIENTRAS sigue vigente el precio de ahora — pasado el
+// corte, el precio activo ya es el nuevo y no hay nada que anunciar. Restaurada 21-sep-2026
+// (hallazgo de Administración en la consulta de deploy): el rebuild la habia dejado caer
+// sin querer al limpiar una variable que parecia sin uso.
+$antes2027 = lw_antes_del_corte_2027();
+$nombre   = $m['nombre'];
+$villa    = 'Villa ' . $nombre;
+$dorm     = (int) $m['dormitorios'];
+$banos    = (int) $m['banos'];
+
+$g       = $m['imgs'];
+$portada = $g[0] ?? null;
+
+/**
+ * Vistas del hero cinemático + la foto de la sección "Distribución": buscadas por el
+ * PIE real de cada foto (21-sep-2026, `lw_foto_por_pie()` en catalogo.php), no por
+ * posición en el array — desde que las fotos vienen de `deck_fotos` (subidas y
+ * reordenables desde /intranet/modelos/) un índice fijo se desincroniza en cuanto alguien
+ * añade o reordena una foto ahí. Con respaldo posicional para el modelo que no tenga
+ * pies que casen con estos patrones (uno nuevo, subido sin etiquetar bien).
+ *
+ * 22-sep-2026: $heroInterior pasa a priorizar "living room" sobre "bedroom" — Dune y
+ * Dream ya resolvían así de facto (no tienen foto con pie "bedroom" literal, solo
+ * "Room 1"/"Room 2"), Dali era la única que enseñaba el dormitorio en vez del salón
+ * completo. Ahora las tres son consistentes: el hotspot "Interior" enseña el espacio
+ * de estar, no solo la cama. Kitchen/Toilet/Bamboo Aerea son fotos reales nuevas
+ * (mismo pie en las 3 fichas, comprobado en Supabase antes de escribir esto), sin
+ * respaldo posicional — si un modelo no las tiene aún, el hotspot/vista no aparece
+ * (mismo criterio que $techosComp: nunca enseñar un hueco vacío como si fuera un dato).
+ */
+$heroDay      = lw_foto_por_pie($m['id'], ['sirap', 'ulin exterior']) ?? $g[0] ?? null;
+$heroTechoAlt = lw_foto_por_pie($m['id'], ['bamboo exterior', 'bambu exterior']) ?? $g[2] ?? $g[1] ?? $g[0] ?? null;
+$heroInterior = lw_foto_por_pie($m['id'], ['living room', 'bedroom', 'interior']) ?? $g[6] ?? $g[1] ?? $g[0] ?? null;
+$heroKitchen  = lw_foto_por_pie($m['id'], ['kitchen']);
+$heroToilet   = lw_foto_por_pie($m['id'], ['toilet']);
+$heroAerea    = lw_foto_por_pie($m['id'], ['bamboo aerea', 'aerea']);
+// "Top View" es la planta cenital real ya renderizada por el estudio (no un CAD que haya
+// que inventar) — encaja mejor con lo que pide la sección "Distribución" que cualquier
+// otra foto exterior. Nunca mezclar `??`/`?:` sin parentesis (PHP lo rechaza como fatal
+// de sintaxis) — de ahi la variable intermedia en vez de encadenar todo en una línea.
+$ultimoImg    = $g ? end($g) : null;
+$layoutImg    = lw_foto_por_pie($m['id'], ['top view']) ?? $ultimoImg ?? $portada;
+
+$dormTxt  = $dorm . ' ' . ($dorm === 1 ? 'bedroom' : 'bedrooms');
+$sizeTxt  = $m['villa_m2'] . 'm² + ' . $m['terraza_m2'] . 'm² terrace';
+
+$precioTxt = $precio !== null ? $precio : 'Upon request';
+$TITULO_SUFIJO = ' · Turnkey villa in Bali — Lawang Tropical Properties';
+
+// ── Configurador villa → techo → extras — motor compartido, SIN TOCAR ────────────────
+$CAT = lw_au_catalogo();
+$cfgJs = ['divisas' => lw_divisas(), 'divFecha' => LW_DIV_FECHA, 'modelos' => []];
+foreach ($CAT as $cmId => $v) {
+    $cfgJs['modelos'][$cmId] = [
+        'villa'  => $v['villa'],
+        'specs'  => $v['specs'],
+        'thumb'  => $v['thumb'],
+        'techos' => [
+            'sirap' => ['nombre' => $v['techos']['sirap']['nombre'], 'eur' => $v['techos']['sirap']['eur']],
+            'bambu' => ['nombre' => $v['techos']['bambu']['nombre'], 'eur' => $v['techos']['bambu']['eur']],
+        ],
+        'extras' => $v['extras'],
+    ];
+}
+
+// ── Comparativa de cubiertas: solo si ESTE modelo tiene los dos techos resueltos ─────
+$techosComp = (!empty($m['techos']['sirap']) && !empty($m['techos']['bambu'])) ? $m['techos'] : null;
+
+// ── Snapshot financiero ───────────────────────────────────────────────────────────
+// 22-sep-2026: Dali, Dune (1 dormitorio) y Dream (2 dormitorios) pasan del ejemplo de
+// UNA parcela real (Palm Field W5) al forecast de MERCADO que calcula la propia
+// empresa por tamaño de vivienda (hoja "Forecast Alquiler Tabanan/Balian", tablas
+// "Scenario 1 BR"/"Scenario 2 BR" en EUR — fuentes AirROI + informe NF Group Bali
+// Q3 2025). La hoja trae DOS bases de inversión para el escenario 1BR (60.000€ arriba
+// vs 80.000€ en "G2 Tabanan"); el owner confirmó la de 60.000€ — vale para Dali Y Dune
+// por ser el mismo tamaño, no se volvió a preguntar. 2BR no tiene ese conflicto (una
+// sola tabla en la hoja). Números tal cual los da la empresa (no recalculados aquí):
+// Total Villa Income - las tres comisiones = Net Income, cuadra en todos los casos.
+$LW_FORECAST_MERCADO = [
+    'dali' => [
+        'deckEj'  => ['proyecto' => 'Tabanan / Balian', 'mercado' => true, 'moneda' => 'EUR',
+            'adr_medio' => 81, 'adr_optimo' => 94, 'ocupacion_media' => 0.59, 'ocupacion_optima' => 0.66,
+            'inversion_base' => 60000],
+        'finCalc' => [
+            'average' => ['adr' => 81, 'ocup' => 0.59, 'bruto' => 19521, 'costes' => 6832, 'neto' => 12689],
+            'optimal' => ['adr' => 94, 'ocup' => 0.66, 'bruto' => 22654, 'costes' => 7929, 'neto' => 14725],
+        ],
+    ],
+    'dune' => [
+        // Mismo tamaño (1 dormitorio) que Dali → misma tabla "Scenario 1 BR" de la hoja.
+        'deckEj'  => ['proyecto' => 'Tabanan / Balian', 'mercado' => true, 'moneda' => 'EUR',
+            'adr_medio' => 81, 'adr_optimo' => 94, 'ocupacion_media' => 0.59, 'ocupacion_optima' => 0.66,
+            'inversion_base' => 60000],
+        'finCalc' => [
+            'average' => ['adr' => 81, 'ocup' => 0.59, 'bruto' => 19521, 'costes' => 6832, 'neto' => 12689],
+            'optimal' => ['adr' => 94, 'ocup' => 0.66, 'bruto' => 22654, 'costes' => 7929, 'neto' => 14725],
+        ],
+    ],
+    'dream' => [
+        // 2 dormitorios → tabla "Scenario 2 BR" de la misma hoja, sin tabla alternativa.
+        'deckEj'  => ['proyecto' => 'Tabanan / Balian', 'mercado' => true, 'moneda' => 'EUR',
+            'adr_medio' => 115, 'adr_optimo' => 132, 'ocupacion_media' => 0.48, 'ocupacion_optima' => 0.54,
+            'inversion_base' => 85000],
+        'finCalc' => [
+            'average' => ['adr' => 115, 'ocup' => 0.48, 'bruto' => 22655, 'costes' => 7930, 'neto' => 14725],
+            'optimal' => ['adr' => 132, 'ocup' => 0.54, 'bruto' => 26004, 'costes' => 9101, 'neto' => 16903],
+        ],
+    ],
+];
+if (isset($LW_FORECAST_MERCADO[$m['id']])) {
+    $deckEj  = $LW_FORECAST_MERCADO[$m['id']]['deckEj'];
+    $finCalc = $LW_FORECAST_MERCADO[$m['id']]['finCalc'];
+} else {
+    // lw_deck_forecast_ejemplo() devuelve el mapa de TODOS los modelos con ejemplo
+    // confirmado — se extrae el de ESTE modelo. Un modelo sin entrada (Loftbung,
+    // Temple, Trinity) da null y la sección se oculta para él, nunca cae al ejemplo
+    // de otro.
+    $deckEj = lw_deck_forecast_ejemplo()[$m['id']] ?? null;
+    $finCalc = null;
+    if ($deckEj) {
+        $clavesReq = ['proyecto', 'moneda', 'adr_medio', 'adr_optimo', 'ocupacion_media',
+                      'ocupacion_optima', 'inversion_base', 'pct_gestion', 'pct_mantenimiento', 'pct_impuesto'];
+        $completo = true;
+        foreach ($clavesReq as $k) {
+            if (!array_key_exists($k, $deckEj)) { $completo = false; break; }
+        }
+        if ($completo && $deckEj['moneda'] === 'EUR') {
+            $costesPct = (float) $deckEj['pct_gestion'] + (float) $deckEj['pct_mantenimiento'] + (float) $deckEj['pct_impuesto'];
+            $finCalc = [];
+            foreach (['average' => ['adr_medio', 'ocupacion_media'], 'optimal' => ['adr_optimo', 'ocupacion_optima']] as $caso => $claves) {
+                $adr  = (float) $deckEj[$claves[0]];
+                $ocup = (float) $deckEj[$claves[1]];
+                $bruto  = (int) round($adr * 365 * $ocup);
+                $costes = (int) round($bruto * $costesPct);
+                $finCalc[$caso] = [
+                    'adr' => $adr, 'ocup' => $ocup, 'bruto' => $bruto,
+                    'costes' => $costes, 'neto' => $bruto - $costes,
+                ];
+            }
+        }
+    }
+    if (!$finCalc) $deckEj = null;
+}
+
+// ── "More from the collection" — reutiliza $CAT, mismo criterio "sin render no se enseña" ──
+$otrosModelos = [];
+foreach ($CAT as $ocId => $ov) {
+    if ($ocId === $m['id'] || $ov['sinRender']) continue;
+    $otrosModelos[$ocId] = $ov;
+}
+
+$WA_NUM   = '6281138319862';
+$WA_LINK  = 'https://wa.me/' . $WA_NUM . '?text=' . rawurlencode("Hi, I'm interested in the " . $villa . ' from Lawang Tropical Properties.');
+// Telefonos, email y oficina ya NO viven aqui (23-sep-2026): solo los usaba el pie, que
+// ahora es /assets/lawang-pie.js, compartido con /investor-deck. Fuente unica: ese fichero.
+// 21-sep-2026: $portada YA es una URL absoluta (bucket público de Supabase) desde que las
+// fotos dejaron el disco — solo el respaldo sin foto ('/assets/img/lugar/costa.webp') sigue
+// siendo una ruta relativa del propio sitio. Sin esta rama, el prefijo de dominio de abajo
+// duplicaba el esquema ("lawangproperties.comhttps://...supabase.co/..."), un og:image roto.
+$ogImg = $portada ?? '/assets/img/lugar/costa.webp';
+$ogImgAbs = (strpos($ogImg, 'http') === 0) ? $ogImg : 'https://lawangproperties.com' . $ogImg;
+$slugPath = lw_modelo_url_path($m['id']);
+
+// Etiqueta real del snapshot financiero (nombre del proyecto de ejemplo, nunca "este modelo").
+$deckEtiqueta = $deckEj['proyecto'] ?? '';
+?><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script src="/assets/idioma-web.js?v=20260908113407"></script>
+<script src="/assets/i18n-landing.js?v=20260923093252" defer></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><?= lw_e($villa . $TITULO_SUFIJO) ?></title>
+<meta name="description" content="<?= lw_e($villa) ?>: a new-build <?= lw_e($dormTxt) ?> villa, built on the plot you choose. Finishes, scope of works and price, configured live.">
+<?php if (!$precio): ?>
+<meta name="robots" content="noindex, nofollow">
+<?php endif; ?>
+<link rel="canonical" href="https://lawangproperties.com/<?= lw_e($slugPath) ?>">
+<link rel="icon" href="/favicon.png">
+<meta property="og:title" content="<?= lw_e($villa) ?> · Turnkey villa in Bali">
+<meta property="og:description" content="Turnkey new build, <?= lw_e($dormTxt) ?>. You choose the plot and finish; the price is locked in writing before you sign.">
+<meta property="og:url" content="https://lawangproperties.com/<?= lw_e($slugPath) ?>">
+<meta property="og:image" content="<?= lw_e($ogImgAbs) ?>">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preload" as="image" href="<?= lw_e($ogImg) ?>" fetchpriority="high">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Fuentes del mockup TAL CUAL (Cormorant Garamond / Instrument Sans / Jost): el CSS
+     compilado abajo mapea font-headline-*/font-kpi-number/font-body-*/font-label-md a
+     estas familias exactas — cambiarlas rompería la tipografía sin tocar una clase. -->
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Instrument+Sans:wght@400;500;600;700&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<!-- Tailwind COMPILADO (npx tailwindcss sobre el mockup, mismo tailwind.config) — NUNCA
+     el Play CDN: sin versión fija, sin SRI, y la CSP de seguridad_2026.md lo prohíbe. -->
+<link rel="stylesheet" href="/assets/dali-tesla-tw.min.css?v=20260921164216">
+<style>
+/* Material Symbols Outlined: el link de Google Fonts trae el glifo, pero NO esta clase —
+   sin ella el navegador pinta el nombre del icono como texto plano ("roofing"), no el
+   icono. Verificado: no existe en dali-tesla-tw.min.css (Tailwind no genera CSS para una
+   clase que no reconoce como utilidad), así que va aquí, el snippet estándar de Google. */
+.material-symbols-outlined{font-family:'Material Symbols Outlined';font-weight:normal;
+  font-style:normal;font-size:24px;line-height:1;letter-spacing:normal;text-transform:none;
+  display:inline-block;white-space:nowrap;word-wrap:normal;direction:ltr;
+  -webkit-font-feature-settings:'liga';-webkit-font-smoothing:antialiased}
+/* Reset mínimo que el mockup traía inline (scrollbar fina + glass-panel/glass-dock/
+   corner-accent) — estas tres NO las genera Tailwind (son CSS de autor en el <style> del
+   propio code.html), así que se copian aquí literal, no desde el .min.css. */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-thumb{background:rgba(143,155,122,.5);border-radius:4px}
+::-webkit-scrollbar-track{background:#f5f4ee}
+.glass-panel{background:rgba(251,249,244,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.glass-dock{background:rgba(46,52,55,.85);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.corner-accent::before{content:'';position:absolute;width:14px;height:14px;border-top:2px solid #485B37;border-left:2px solid #485B37;top:14px;left:14px}
+.corner-accent::after{content:'';position:absolute;width:14px;height:14px;border-bottom:2px solid #485B37;border-right:2px solid #485B37;bottom:14px;right:14px}
+
+/* ── Idioma: EN/ES/ID, igual que el resto de landings (idioma-web.js/i18n-landing.js) ── */
+html[data-lang="es"] .i-en{display:none !important}
+html:not([data-lang="es"]) .i-es{display:none !important}
+
+/* ── Selector de divisa: la misma regla que traía au-landing.css (`.lw-cur{position:
+   relative}`), que esta página ya NO carga (usa dali-tesla-tw.min.css en su lugar). Sin
+   esto el `.lw-lang__menu` (position:absolute, inyectado por idioma-web.js) calculaba su
+   ancla contra el <header> entero en vez de contra el botón — el desplegable se abría
+   fuera del viewport, a la derecha del todo. `.lw-lang` (idioma) no lo sufre porque
+   idioma-web.js SÍ se pone su propio position:relative; `.lw-cur` es un clon deliberado
+   que no usa esa clase (guarda de idempotencia de montaSelector), así que necesita la
+   regla aparte. */
+.lw-cur{position:relative;display:inline-flex;flex:none}
+
+/* ── Grupo "moneda + idioma": una mini-sección propia, separada del precio y del CTA de
+   WhatsApp (antes los 4 elementos iban sueltos en la misma fila, sin agrupar). `.lw-meta`
+   es también `.nav__cta` a propósito: es el selector que i18n-landing.js busca para
+   montar el idioma (`querySelector('.nav__cta')`, primer match del documento) — así el
+   idioma aterriza DENTRO de esta píldora, junto a la divisa, sin tocar el script. */
+.lw-meta{display:flex;align-items:center;gap:10px;padding:6px 12px;border-radius:999px;
+  background:rgba(239,238,232,.7);border:1px solid #e4e2dd}
+.lw-meta .lw-cur,.lw-meta .lw-lang{display:flex}
+
+/* ── Micro-animación al pasar por encima de los botones del menú: la píldora de fondo
+   entra con un scale+fade desde el centro (no un bounce, easing suave) y el texto sube
+   1px — legible como intención, no como decoración. ─────────────────────────────────── */
+.nav__pill{position:relative;isolation:isolate;transition:color .18s ease,transform .18s ease}
+.nav__pill::before{content:'';position:absolute;inset:0;border-radius:999px;
+  background:rgba(49,67,34,.08);transform:scale(.85);opacity:0;z-index:-1;
+  transition:transform .18s cubic-bezier(.16,1,.3,1),opacity .18s ease}
+.nav__pill:hover{transform:translateY(-1px)}
+.nav__pill:hover::before{transform:scale(1);opacity:1}
+
+/* ── Tarjetas de opción (pasos del configurador): valores EXACTOS del tailwind.config
+   del mockup (primary #314322, on-surface #1b1c19, on-surface-variant #44483f,
+   surface-container-low #f5f4ee, surface-container-highest #e4e2dd), no nombres de clase
+   Tailwind — el paso 1 (villa) SÍ usa las clases Tailwind reales sobre `.vcard`; los
+   pasos 2 y 3 los pinta assets/au-landing-cfg.js con `class="op"` a pelo (motor
+   compartido, sin tocar), así que su aspecto vive aquí como CSS plano con los mismos
+   valores, para que las tres tarjetas salgan indistinguibles a ojo. */
+.vcard:has(input:checked),.op:has(input:checked){
+  background:rgba(49,67,34,.05);border-color:#314322;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.op{cursor:pointer;display:flex;align-items:center;gap:12px;padding:12px 14px;
+  border-radius:12px;border:1px solid #e4e2dd;background:#f5f4ee;
+  transition:border-color .15s ease,background .15s ease}
+.op:hover{border-color:rgba(49,67,34,.5)}
+.op input{width:16px;height:16px;accent-color:#314322;flex:none;margin:2px 0 0}
+.op>span:nth-child(2){display:flex;flex-direction:column;flex:1;min-width:0}
+.op__nb{font-family:'Jost',sans-serif;font-size:14px;font-weight:600;color:#1b1c19}
+.op__sp{font-family:'Jost',sans-serif;font-size:11px;color:#44483f;margin-top:2px}
+.op__pr{text-align:right;flex:none}
+.op__pr b{font-family:'Jost',sans-serif;font-size:12px;font-weight:700;color:#314322;
+  white-space:nowrap;display:block}
+.op__pr i{font-style:normal;font-size:10px;color:#44483f;white-space:nowrap}
+.op__th{width:44px;height:36px;border-radius:8px;object-fit:cover;background:#e4e2dd;flex:none}
+
+/* ── Paginación de pasos (puntitos + "Step N of 3") — el motor solo mueve ESTO, no una
+   barra de pestañas de 6 botones como el mockup: sincronizar una barra propia habría
+   sido JS nuevo sobre un motor que ya funciona, con riesgo de desincronizarse en
+   silencio (justo el fallo que este mismo proyecto ya sufrió con marcado a medias). */
+.punto{width:6px;height:6px;border-radius:50%;background:#c5c8bc}
+.punto.is-on{background:#314322;width:16px;border-radius:999px}
+.cfg__step[hidden]{display:none}
+
+/* ── Hero cinemático: capas cross-fade (día / techo bambú / interior) ──────────────── */
+.view-layer{transition:opacity .7s ease-out,transform .7s ease-out}
+/* 22-sep-2026: los hotspots se ocultan fuera de la vista 'day' (JS, más abajo) — esta
+   transición evita el corte brusco; sustituye a `transition-transform` de Tailwind
+   (que solo animaba el hover) sin perder ese efecto. */
+.hotspot{transition:opacity .3s ease,transform .15s ease}
+
+/* ── FAQ: acordeón de tarjetas bordeadas con <details> nativo (mismo aspecto que el
+   mockup, sin JS propio — menos superficie, misma jerarquía visual). ────────────────── */
+.faq-item{border:1px solid #e4e2dd;border-radius:16px;background:#fbf9f4;overflow:hidden}
+.faq-item + .faq-item{margin-top:14px}
+.faq-item summary{list-style:none;cursor:pointer;padding:20px;display:flex;
+  align-items:center;justify-content:space-between;gap:16px;
+  font-family:'Jost',sans-serif;font-size:15px;font-weight:700;color:#314322}
+.faq-item summary::-webkit-details-marker{display:none}
+.faq-item summary .mi{transition:transform .2s ease}
+.faq-item[open] summary .mi{transform:rotate(180deg)}
+.faq-item__body{padding:0 20px 20px;border-top:1px solid rgba(228,226,221,.6);
+  padding-top:12px;font-family:'Jost',sans-serif;font-size:13.5px;line-height:1.6;color:#44483f}
+
+/* ── 22-sep-2026: dali-tesla-tw.min.css es un build CONGELADO (npx tailwindcss sobre
+   el mockup, ver cabecera del <link>) — no lleva compiladas combinaciones de clases
+   nuevas que no estuvieran ya en el HTML el día del build. Lo que sigue no existe en
+   ese .min.css (comprobado contra el propio fichero), así que va aquí a mano, mismo
+   criterio que el resto de este <style>: NUNCA Play CDN, y sin re-generar el build
+   (no hay tailwind.config en el repo para reproducirlo con seguridad). ────────────── */
+
+/* ── Hero responsive: rehecho el 22-sep-2026 ─────────────────────────────────────────
+   Por debajo de 1024px el configurador FLOTABA encima de la foto (z-40 sobre z-30,
+   hasta el 92% del ancho) tapando el dock de cámara entero — hit-test verificado con
+   Playwright: el click en "Day" caía sobre el CTA de WhatsApp de la tarjeta, no sobre
+   el botón. En cuanto se cambiaba de vista (un hotspot, "Bamboo") no había manera de
+   volver a la foto de día: ni el dock ni los hotspots (también debajo de la tarjeta)
+   eran alcanzables. Ahora, por debajo de 1024px, la foto va arriba (altura fija,
+   dock y hotspots siempre alcanzables) y el configurador debajo en flujo normal, a
+   todo el ancho — nada se superpone. Desde 1024px sigue exactamente como estaba
+   (columnas lado a lado, tarjeta de ancho fijo). */
+#hero-configurator{height:auto}
+#hero-configurator > .relative.w-full.h-full{display:flex;flex-direction:column;height:auto}
+#hero-visual{position:relative;inset:auto;width:100%;height:56vh;flex:none}
+#hero-configurator aside{position:relative;top:auto;right:auto;bottom:auto;left:auto;
+  width:100%;height:auto;max-height:none;margin:0;border-radius:0}
+@media (min-width:1024px){
+  #hero-configurator{height:100vh}
+  #hero-configurator > .relative.w-full.h-full{flex-direction:row;height:100%}
+  #hero-visual{width:auto;flex:1 1 auto;height:100%}
+  #hero-configurator aside{position:static;width:420px;height:calc(100% - 4rem);
+    margin:2rem 2rem 2rem 0;border-radius:1rem;flex:none}
+}
+@media (min-width:1280px){
+  #hero-configurator aside{width:460px}
+}
+
+/* Catálogo "More from the collection": 4 en fila desde 1024px (son 5 modelos, uno es
+   el actual → caben los otros 4 sin partir fila). Por debajo, 2 columnas desde 640px. */
+@media (min-width:640px){
+  #section-collection .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (min-width:1024px){
+  #section-collection .grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+
+/* Píldora "Villa: <nombre>" de la cabecera: oculta hasta que haya sitio de verdad.
+   md:768px la dejaba a mitad de camino (sin el nav, que aparece en xl:1280px, ya
+   competía con precio+WhatsApp+divisa); a 1280px exacto, con el nav ya sumado,
+   volvía a partirse en dos líneas. 1400px es el primer punto medido sin ninguno
+   de los dos aprietos. */
+@media (min-width:1400px){
+  #villa-divider{display:block}
+  #villa-pill{display:flex}
+}
+
+/* ── Barra T3 (23-sep-2026, owner eligio T3 de 4 variantes con la paleta Lawang, igual
+   que el investor deck): Raw linen, menu en pildora Stone sand, enlaces Volcanic ash,
+   hover y seccion activa en Deep lagoon. Por #id y no por clase: el CSS compilado es un
+   build congelado y un selector de id le gana sin !important. ──────────────────────── */
+#lw-topbar{background:#f5f0e6;-webkit-backdrop-filter:none;backdrop-filter:none;border-bottom-color:#beb3a5;box-shadow:none}
+#lw-topbar nav{background:rgba(190,179,165,.2);border-color:#beb3a5}
+#lw-topbar .nav__pill{color:#2e3437}
+#lw-topbar .nav__pill::before{background:#104c4f}
+#lw-topbar .nav__pill:hover{color:#f5f0e6}
+#lw-topbar .nav__pill.lw-nav-activa{background:#104c4f;color:#f5f0e6}
+#lw-topbar #villa-pill{background:#fffdf8;border-color:#beb3a5}
+#lw-topbar #villa-divider,#lw-topbar .border-l+div,#lw-topbar .h-8.w-px{background:#beb3a5}
+#lw-topbar .border-l{border-color:#beb3a5}
+#lw-topbar .lw-meta{background:rgba(190,179,165,.2);border-color:#beb3a5}
+
+/* ── Responsive (23-sep-2026, revision en 360/390/768): el logo se aplastaba en movil (el <img>
+   encogia de ancho por flex con la altura fija: 79x32 en vez de ~172x24). Por debajo de 640px
+   se oculta el "From" de la barra (el precio ya sale en el panel del configurador) para que
+   quepan logo + idioma/divisa. Selectores de idioma/divisa a 40px de alto (tactil) y el boton
+   "Back to configurator" en una linea. ──────────────────────────────────────────────── */
+#lw-topbar img{flex:none;width:auto}
+@media (max-width:639px){
+  #lw-topbar img{height:24px}
+  #lw-topbar div.border-l{display:none}
+}
+@media (max-width:1023px){ header .lw-lang__btn{min-height:40px} }  /* header+clase: la hoja que inyecta el selector llega despues con min-height:24px */
+#section-collection > div > div:first-child > a{white-space:nowrap}
+/* Caja de la imagen de «Bioclimatic layout» CUADRADA en todos los anchos (23-sep-2026):
+   - en movil tomaba la altura de la foto recortada (~250px) y «Total area» tapaba el plano;
+   - en escritorio se estiraba a la altura de la columna derecha, y en las villas sin lista de
+     alcance (hoy todas menos Dali) la foto medía >1000px de alto con la columna casi vacia.
+   Fuera tambien las escuadras .corner-accent del mockup: sobre la foto parecian un fallo. */
+#section-layout [class~="lg:col-span-7"]{height:auto}
+#section-layout [class~="lg:col-span-7"] > div{aspect-ratio:1/1;height:auto}
+#section-layout .corner-accent::before,#section-layout .corner-accent::after{display:none}
+
+/* ── Colores de los bloques (23-sep-2026, owner eligio H3/Y3/R3/I3/C2 de la comparativa
+   con la paleta Lawang): H3 cabecera del panel en Territorial green · Y3 tarjeta del contrato
+   EPC destacada en Territorial green · R3 cuerpo de cada cubierta en el color de su precio ·
+   I3 forecast en bloque Deep lagoon, FAQ en blanco calido · C2 un tono por villa en la
+   coleccion (mismo criterio que el investor deck). Con !important porque el CSS compilado es
+   un build congelado y varias utilidades llevan la misma especificidad. ─────────────────── */
+/* H3 */
+#hero-configurator aside{background:rgba(245,240,230,.96)!important;border-color:#beb3a5!important}
+#hero-configurator .lw-cfg-cab{background:#485b37!important;border-color:#485b37!important}
+#hero-configurator .lw-cfg-cab span.rounded-full{background:rgba(245,240,230,.16)!important;color:#f5f0e6!important}
+#hero-configurator .lw-cfg-cab h1{color:#f5f0e6!important}
+#hero-configurator .lw-cfg-cab p{color:rgba(245,240,230,.85)!important}
+#hero-configurator .lw-cfg-cab .grid > div{background:rgba(245,240,230,.12)!important;border-color:rgba(245,240,230,.25)!important}
+#hero-configurator .lw-cfg-cab .grid > div *{color:#f5f0e6!important}
+/* Y3 */
+#section-layout{background:#f5f0e6!important}
+/* Solo las FILAS de la lista (antes "> div" pintaba tambien los contenedores de la lista y del
+   boton: rectangulos blancos de esquina recta detras de las tarjetas redondeadas, 23-sep). */
+#section-layout .lg\:col-span-5 .space-y-3\.5 > div{background:#fffdf8!important;border-color:#beb3a5!important}
+#section-layout .lg\:col-span-5 > div:first-child{background:#485b37!important;border-color:#485b37!important}
+#section-layout .lg\:col-span-5 > div:first-child *{color:#f5f0e6!important}
+#section-layout .lg\:col-span-5 > div:first-child .material-symbols-outlined, #section-layout .lg\:col-span-5 > div:first-child .uppercase{color:#beb3a5!important}
+/* R3 */
+#section-cubiertas{background:#f5f0e6!important}
+#section-cubiertas h2{color:#104c4f!important}
+#section-cubiertas .grid > div:nth-child(1) > div:last-child{background:#485b37}
+#section-cubiertas .grid > div:nth-child(2) > div:last-child{background:#104c4f}
+#section-cubiertas .grid > div > div:last-child *{color:#f5f0e6!important}
+#section-cubiertas .grid > div > div:last-child .text-\[11px\], #section-cubiertas .grid > div > div:last-child p:last-child{color:rgba(245,240,230,.75)!important}
+/* I3 */
+#section-financial{background:#f5f0e6!important}
+#section-financial .lg\:col-span-6:first-child > div:first-child{background:#104c4f!important;border-color:#104c4f!important}
+#section-financial .lg\:col-span-6:first-child > div:first-child *{color:#f5f0e6!important}
+#section-financial .lg\:col-span-6:first-child > div:first-child .uppercase{color:#beb3a5!important}
+#section-financial .lg\:col-span-6:first-child > div:first-child .rounded-2xl{background:rgba(245,240,230,.1)!important;border-color:rgba(245,240,230,.2)!important}
+#section-financial .faq-item{background:#fffdf8!important;border-color:#beb3a5!important}
+#section-financial .lg\:col-span-6:last-child h3{color:#104c4f!important}
+/* C2 */
+#section-collection{background:#f5f0e6!important}
+#section-collection h2{color:#104c4f!important}
+#section-collection .grid > a:nth-child(4n+1) > div:last-child{background:#485b37}
+#section-collection .grid > a:nth-child(4n+2) > div:last-child{background:#104c4f}
+#section-collection .grid > a:nth-child(4n+3) > div:last-child{background:#42210b}
+#section-collection .grid > a:nth-child(4n+4) > div:last-child{background:#2e3437}
+#section-collection .grid > a > div:last-child p{color:rgba(245,240,230,.85)!important}
+#section-collection .grid > a > div:last-child > span{background:#f5f0e6!important;border-color:#f5f0e6!important;color:#2e3437!important}
+#lw-paso-lb{color:rgba(245,240,230,.75)!important}
+</style>
+</head>
+<body class="bg-surface font-body-md text-body-md text-on-surface antialiased selection:bg-soft-canopy selection:text-surface">
+
+<!-- ═══ HEADER ═══════════════════════════════════════════════════════════════════════ -->
+<header id="lw-topbar" class="fixed top-0 left-0 w-full z-50 bg-surface/90 backdrop-blur-xl border-b border-surface-container-highest/60 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+<div class="h-20 w-full px-4 md:px-margin-desktop flex items-center justify-between gap-4">
+<div class="flex items-center gap-5">
+<a class="flex items-center" href="/">
+<img class="h-8" src="/assets/img/lawang-logo-v3-dark.webp" alt="Lawang Tropical Properties">
+</a>
+<!-- 22-sep-2026: de md (768px) a lg (1024px) — entre medias, con el nav ya oculto
+     (xl) pero esta píldora aún visible, no cabía junto al precio+WhatsApp+divisa y
+     "Villa Dali" partía en dos líneas dentro de una píldora redonda. `lg:block`/
+     `lg:flex` no existen en dali-tesla-tw.min.css (build congelado) — el override
+     real va en el <style>, esto solo deja el estado por defecto (oculto). -->
+<div class="h-8 w-px bg-surface-container-highest hidden" id="villa-divider"></div>
+<div class="hidden items-center gap-2 bg-surface-container-low/90 border border-surface-container-highest px-3.5 py-1.5 rounded-full shadow-sm" id="villa-pill">
+<span class="w-2 h-2 rounded-full bg-territorial-green animate-pulse"></span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Villa:</span>
+<span class="font-label-md text-label-md text-deep-lagoon font-semibold tracking-wide"><?= lw_e($villa) ?></span>
+</div>
+</div>
+<nav class="hidden xl:flex items-center gap-1 bg-surface-container-low/90 p-1.5 rounded-full border border-surface-container-highest">
+<a class="nav__pill px-3.5 py-1.5 rounded-full text-on-surface-variant hover:text-primary font-label-md text-body-sm" href="#section-layout"><?= lw_i18n('Distribución', 'Layout') ?></a>
+<a class="nav__pill px-3.5 py-1.5 rounded-full text-on-surface-variant hover:text-primary font-label-md text-body-sm" href="#section-cubiertas"><?= lw_i18n('Cubiertas', 'Roofs') ?></a>
+<a class="nav__pill px-3.5 py-1.5 rounded-full text-on-surface-variant hover:text-primary font-label-md text-body-sm" href="#section-financial"><?= lw_i18n('Rentabilidad', 'Returns & FAQ') ?></a>
+<a class="nav__pill px-3.5 py-1.5 rounded-full text-on-surface-variant hover:text-primary font-label-md text-body-sm" href="#section-collection"><?= lw_i18n('Colección', 'Collection') ?></a>
+</nav>
+<!-- CTA: precio + WhatsApp, separados de la píldora de moneda/idioma (antes iban los 4
+     sueltos en la misma fila). El grupo moneda+idioma vive en `.lw-meta` más abajo. -->
+<div class="flex items-center gap-3 md:gap-element-gap">
+<div class="flex flex-col text-right pl-2 border-l border-surface-container-highest">
+<span class="font-body-sm text-[11px] text-on-surface-variant uppercase tracking-wider"><?= lw_i18n('Desde', 'From') ?></span>
+<span class="font-kpi-number text-lg md:text-headline-sm text-primary tracking-tight font-bold"<?= $precioValor !== null ? ' data-eur-fijo="' . (int) $precioValor . '"' : '' ?>><?= lw_e($precioTxt) ?></span>
+</div>
+<a class="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-full bg-deep-lagoon hover:bg-secondary text-on-secondary font-label-md text-xs font-semibold shadow-sm transition-all" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer">
+<span class="material-symbols-outlined text-[16px]">support_agent</span>
+<span><?= lw_i18n('Escríbenos', 'WhatsApp') ?></span>
+</a>
+<div class="h-8 w-px bg-surface-container-highest hidden md:block"></div>
+<!-- nav__cta: hook de i18n-landing.js (monta aquí el selector EN/ES/ID), junto a la
+     divisa, dentro de la misma píldora `.lw-meta`. -->
+<div class="lw-meta nav__cta">
+<div class="lw-cur" id="lw-div-sel" data-no-i18n></div>
+</div>
+</div>
+</div>
+</header>
+
+<!-- ═══ HERO: CONFIGURADOR A PANTALLA COMPLETA ══════════════════════════════════════ -->
+<section class="w-full h-screen pt-20 relative overflow-hidden bg-volcanic-ash" id="hero-configurator">
+<div class="relative w-full h-full">
+<!-- Columna visual: la foto a la izquierda. Desde 1024px es dueña de su propio ancho
+     (ver @media en el <style> — dali-tesla-tw.min.css no lleva esta combinación
+     compilada); por debajo sigue siendo el fondo a pantalla completa de siempre. -->
+<div class="absolute inset-0 w-full h-full overflow-hidden" id="hero-visual">
+<?php if ($sinRender): ?>
+<!-- Sin renders: fondo estático "en camino", sin dock de cámara ni hotspots — nunca una
+     foto rota ni un hueco vacío con el mismo peso visual que una foto real. -->
+<div class="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-3 text-center px-6">
+  <span class="material-symbols-outlined text-soft-canopy" style="font-size:52px">architecture</span>
+  <p class="font-headline-md text-2xl text-white font-bold">Renders in progress</p>
+  <p class="font-body-sm text-body-sm text-white/70 max-w-md">Reserve before they exist — the roof price is confirmed by the developer today.</p>
+</div>
+<?php else: ?>
+<div class="absolute inset-0 w-full h-full overflow-hidden select-none" id="viewport-canvas">
+<div class="view-layer absolute inset-0 w-full h-full bg-cover bg-center opacity-100 scale-100" id="layer-day" style="background-image:url('<?= lw_e($heroDay) ?>')">
+<div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/80 via-transparent to-volcanic-ash/35"></div>
+</div>
+<div class="view-layer absolute inset-0 w-full h-full bg-cover bg-center opacity-0 scale-105 pointer-events-none" id="layer-roof" style="background-image:url('<?= lw_e($heroTechoAlt) ?>')">
+<div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/80 via-transparent to-volcanic-ash/30"></div>
+</div>
+<div class="view-layer absolute inset-0 w-full h-full bg-cover bg-center opacity-0 scale-105 pointer-events-none" id="layer-interior" style="background-image:url('<?= lw_e($heroInterior) ?>')">
+<div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/80 via-transparent to-volcanic-ash/30"></div>
+</div>
+<?php if ($heroKitchen): ?>
+<div class="view-layer absolute inset-0 w-full h-full bg-cover bg-center opacity-0 scale-105 pointer-events-none" id="layer-kitchen" style="background-image:url('<?= lw_e($heroKitchen) ?>')">
+<div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/80 via-transparent to-volcanic-ash/30"></div>
+</div>
+<?php endif; ?>
+<?php if ($heroToilet): ?>
+<div class="view-layer absolute inset-0 w-full h-full bg-cover bg-center opacity-0 scale-105 pointer-events-none" id="layer-toilet" style="background-image:url('<?= lw_e($heroToilet) ?>')">
+<div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/80 via-transparent to-volcanic-ash/30"></div>
+</div>
+<?php endif; ?>
+<?php if ($heroAerea): ?>
+<div class="view-layer absolute inset-0 w-full h-full bg-cover bg-center opacity-0 scale-105 pointer-events-none" id="layer-aerea" style="background-image:url('<?= lw_e($heroAerea) ?>')">
+<div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/80 via-transparent to-volcanic-ash/30"></div>
+</div>
+<?php endif; ?>
+
+<!-- Hotspots: reposicionados SOBRE la foto real (heroDay), no los % del mockup —
+     22-sep-2026: fuera Roof/Pool/Garden (pedido del owner: redundantes con el dock o
+     ya no aportaban); Interior pasa a "Living Room" (ver $heroInterior arriba); nuevos
+     Kitchen y Toilet con fotos reales propias. -->
+<div class="hotspot group absolute z-20 -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110" id="hotspot-interior" style="top:48%;left:48%" onclick="lwSetView('interior')">
+<span class="absolute -inset-2.5 rounded-full bg-tertiary-fixed/30 animate-ping"></span>
+<span class="relative flex items-center justify-center w-8 h-8 rounded-full bg-surface/95 text-primary shadow-xl border border-surface-container-highest">
+<span class="material-symbols-outlined text-[16px]">weekend</span>
+</span>
+<div class="absolute left-10 top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col bg-surface/95 text-on-surface backdrop-blur-md px-3.5 py-1.5 rounded-xl shadow-xl pointer-events-none whitespace-nowrap min-w-[150px] border border-surface-container-highest">
+<span class="text-[10px] uppercase tracking-wider text-on-surface-variant font-medium"><?= lw_i18n('Salón', 'Living room') ?></span>
+<span class="font-label-md text-body-sm text-primary font-semibold">AC &amp; hot water included</span>
+</div>
+</div>
+<div class="hotspot group absolute z-20 -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110" id="hotspot-terraza" style="top:79%;left:63%" onclick="lwSetView('day')">
+<span class="absolute -inset-2.5 rounded-full bg-surface/30 animate-ping"></span>
+<span class="relative flex items-center justify-center w-8 h-8 rounded-full bg-surface/95 text-territorial-green shadow-xl border border-surface-container-highest">
+<span class="material-symbols-outlined text-[16px]">deck</span>
+</span>
+<div class="absolute left-10 top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col bg-surface/95 text-on-surface backdrop-blur-md px-3.5 py-1.5 rounded-xl shadow-xl pointer-events-none whitespace-nowrap min-w-[150px] border border-surface-container-highest">
+<span class="text-[10px] uppercase tracking-wider text-on-surface-variant font-medium"><?= lw_i18n('Terraza', 'Terrace') ?></span>
+<span class="font-label-md text-body-sm text-territorial-green font-semibold">Exterior terrace, included</span>
+</div>
+</div>
+<?php if ($heroKitchen): ?>
+<div class="hotspot group absolute z-20 -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110" id="hotspot-kitchen" style="top:50%;left:58%" onclick="lwSetView('kitchen')">
+<span class="absolute -inset-2.5 rounded-full bg-secondary-fixed/40 animate-ping"></span>
+<span class="relative flex items-center justify-center w-8 h-8 rounded-full bg-deep-lagoon text-on-secondary shadow-xl border border-white/20">
+<span class="material-symbols-outlined text-[16px]">kitchen</span>
+</span>
+<div class="absolute left-10 top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col bg-surface/95 text-on-surface backdrop-blur-md px-3.5 py-1.5 rounded-xl shadow-xl pointer-events-none whitespace-nowrap min-w-[150px] border border-surface-container-highest">
+<span class="text-[10px] uppercase tracking-wider text-on-surface-variant font-medium"><?= lw_i18n('Cocina', 'Kitchen') ?></span>
+<span class="font-label-md text-body-sm text-deep-lagoon font-semibold">Kitchenette, see photo</span>
+</div>
+</div>
+<?php endif; ?>
+<?php if ($heroToilet): ?>
+<div class="hotspot group absolute z-20 -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110" id="hotspot-toilet" style="top:58%;left:37%" onclick="lwSetView('toilet')">
+<span class="absolute -inset-2.5 rounded-full bg-surface/30 animate-ping"></span>
+<span class="relative flex items-center justify-center w-8 h-8 rounded-full bg-surface/95 text-territorial-green shadow-xl border border-surface-container-highest">
+<span class="material-symbols-outlined text-[16px]">bathroom</span>
+</span>
+<div class="absolute left-10 top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col bg-surface/95 text-on-surface backdrop-blur-md px-3.5 py-1.5 rounded-xl shadow-xl pointer-events-none whitespace-nowrap min-w-[150px] border border-surface-container-highest">
+<span class="text-[10px] uppercase tracking-wider text-on-surface-variant font-medium"><?= lw_i18n('Baño', 'Bathroom') ?></span>
+<span class="font-label-md text-body-sm text-territorial-green font-semibold">En-suite bathroom, see photo</span>
+</div>
+</div>
+<?php endif; ?>
+</div>
+
+<!-- HUD superior: real y estático, sin clima en vivo ni audio inventado -->
+<div class="absolute top-4 left-6 md:left-margin-desktop z-30 flex items-center gap-3">
+<div class="glass-panel px-4 py-2 rounded-full shadow-md flex items-center gap-2.5 border border-surface-container-highest/80">
+<span class="w-2.5 h-2.5 rounded-full bg-territorial-green animate-pulse"></span>
+<span class="font-label-md text-body-sm text-primary font-semibold"><?= lw_e($villa) ?></span>
+<span class="text-stone-sand text-xs">|</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant"><?= lw_i18n('Costa oeste de Bali', "Bali's west coast") ?></span>
+</div>
+</div>
+
+<!-- Dock de cámara: solo las 3 vistas reales -->
+<div class="absolute bottom-8 md:bottom-10 left-6 md:left-margin-desktop z-30 flex items-center gap-3">
+<div class="glass-dock p-1.5 rounded-full shadow-2xl flex items-center gap-1 border border-white/10">
+<button class="cam-btn flex items-center gap-2 px-3.5 py-1.5 rounded-full font-label-md text-body-sm bg-surface text-primary shadow-sm font-semibold transition-all" id="cam-day" onclick="lwSetView('day')">
+<span class="material-symbols-outlined text-[17px]">wb_sunny</span>
+<span class="hidden md:inline"><?= lw_i18n('Día', 'Day') ?></span>
+</button>
+<button class="cam-btn flex items-center gap-2 px-3.5 py-1.5 rounded-full font-label-md text-body-sm text-white/90 hover:text-white hover:bg-white/10 transition-all" id="cam-roof" onclick="lwSetView('roof')">
+<span class="material-symbols-outlined text-[17px]">roofing</span>
+<span class="hidden md:inline"><?= lw_i18n('Techo firma', 'Signature roof') ?></span>
+</button>
+<button class="cam-btn flex items-center gap-2 px-3.5 py-1.5 rounded-full font-label-md text-body-sm text-white/90 hover:text-white hover:bg-white/10 transition-all" id="cam-interior" onclick="lwSetView('interior')">
+<span class="material-symbols-outlined text-[17px]">weekend</span>
+<span class="hidden md:inline"><?= lw_i18n('Salón', 'Living room') ?></span>
+</button>
+<?php if ($heroAerea): ?>
+<button class="cam-btn flex items-center gap-2 px-3.5 py-1.5 rounded-full font-label-md text-body-sm text-white/90 hover:text-white hover:bg-white/10 transition-all" id="cam-aerea" onclick="lwSetView('aerea')">
+<span class="material-symbols-outlined text-[17px]">flight</span>
+<span class="hidden md:inline"><?= lw_i18n('Aérea', 'Aerial') ?></span>
+</button>
+<?php endif; ?>
+</div>
+<a class="hidden xl:flex items-center gap-2 glass-panel px-4 py-2 rounded-full shadow-md border border-surface-container-highest/80 text-primary hover:text-deep-lagoon hover:bg-white transition-all group" href="#section-layout">
+<span class="text-xs font-label-md font-semibold tracking-wider uppercase"><?= lw_i18n('Explorar proyecto', 'Explore project') ?></span>
+<span class="material-symbols-outlined text-[18px] group-hover:translate-y-0.5 transition-transform">arrow_downward</span>
+</a>
+</div>
+<?php endif; ?>
+</div>
+
+<!-- ═══ CAJÓN DEL CONFIGURADOR: villa → techo → extras (motor real, sin tocar). Por
+     debajo de 1024px sigue flotando sobre la foto (igual que antes); desde 1024px
+     pasa a columna propia que ya no la tapa (regla en el <style>, mismo motivo). ══ -->
+<aside class="absolute top-4 right-4 md:right-8 bottom-8 md:bottom-10 z-40 w-[92vw] sm:w-[460px] glass-panel rounded-2xl shadow-2xl border border-surface-container-highest/80 flex flex-col overflow-hidden">
+<div class="lw-cfg-cab p-5 pb-3 border-b border-surface-container-highest/70 flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="px-3 py-0.5 rounded-full bg-soft-canopy/20 text-territorial-green font-label-md text-xs uppercase tracking-widest font-semibold">New build · Turnkey</span>
+</div>
+<div class="flex items-baseline justify-between">
+<div>
+<h1 class="font-headline-md text-[28px] leading-tight text-primary font-bold"><?= lw_e($villa) ?></h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant"><?= lw_e($m['sub_en'] ?? '') ?></p>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-2 pt-1">
+<div class="bg-surface-container/70 p-2 rounded-xl border border-surface-container-highest/50 flex flex-col">
+<span class="text-[10px] text-on-surface-variant uppercase tracking-wider"><?= lw_i18n('Superficie', 'Built area') ?></span>
+<span class="font-kpi-number text-sm text-on-surface font-bold"><?= lw_e($sizeTxt) ?></span>
+</div>
+<div class="bg-surface-container/70 p-2 rounded-xl border border-surface-container-highest/50 flex flex-col">
+<span class="text-[10px] text-on-surface-variant uppercase tracking-wider"><?= lw_i18n('Distribución', 'Layout') ?></span>
+<span class="font-kpi-number text-sm text-on-surface font-bold"><?= lw_e($dorm . ' bed · ' . $banos . ' bath') ?></span>
+</div>
+<div class="bg-primary/10 p-2 rounded-xl border border-primary/20 flex flex-col">
+<span class="text-[10px] text-primary uppercase tracking-wider font-semibold"><?= lw_i18n('Desde', 'From') ?></span>
+<span class="font-kpi-number text-sm text-territorial-green font-bold"<?= $precioValor !== null ? ' data-eur-fijo="' . (int) $precioValor . '"' : '' ?>><?= lw_e($precioTxt) ?></span>
+</div>
+</div>
+<div class="flex items-center justify-center gap-1.5 pt-2">
+<span class="font-label-md text-xs text-on-surface-variant font-semibold" id="lw-paso-lb">Step 1 of 4</span>
+</div>
+</div>
+
+<!-- Cuerpo scrollable: paso 1 villa (server-render, clases Tailwind reales) + paso 2/3
+     (contenedores vacíos, los pinta assets/au-landing-cfg.js con class="op") -->
+<div class="flex-1 overflow-y-auto p-5 space-y-5 res">
+<!-- 22-sep-2026: "¿Qué villa?" no aplica en una ficha de UN modelo — cambiar de villa
+     ya vive en "More from the collection"/el nav. Oculto siempre (ocultarVilla:true en
+     lwAuCfgInit, más abajo); el motor arranca directo en "Which roof?". No se toca en
+     /dali (motor compartido, esa página no pasa la opción). -->
+<div class="cfg__step space-y-3" data-paso="1" hidden>
+<div class="flex flex-col mb-1">
+<span class="font-headline-sm text-headline-sm text-primary font-semibold"><?= lw_i18n('¿Qué villa?', 'Which villa?') ?></span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Same construction system across the range — only the size changes the price.</p>
+</div>
+<?php foreach ($CAT as $cmId => $v): ?>
+<label class="vcard cursor-pointer p-3.5 rounded-xl border-2 border-surface-container-highest bg-surface-container-low transition-all flex items-start justify-between gap-3 hover:border-primary/50">
+<div class="flex items-start gap-3">
+<input type="radio" name="lw-villa" value="<?= lw_e($cmId) ?>"<?= $cmId === $m['id'] ? ' checked' : '' ?> class="mt-1 text-primary focus:ring-primary h-4 w-4">
+<?php if ($v['thumb']): ?><img class="op__th" src="<?= lw_e($v['thumb']) ?>" alt="" loading="lazy"><?php endif; ?>
+<div class="flex flex-col">
+<span class="font-label-md text-body-md text-on-surface font-semibold"><?= lw_e($v['villa']) ?></span>
+<span class="font-body-sm text-xs text-on-surface-variant"><?= lw_e($v['specs']) ?></span>
+</div>
+</div>
+<span class="font-label-md text-xs text-primary font-bold whitespace-nowrap"><?= lw_e(lw_precio_fmt($v['desde_eur'])) ?></span>
+</label>
+<?php endforeach; ?>
+</div>
+
+<div class="cfg__step space-y-2" data-paso="2" hidden>
+<div class="flex flex-col mb-1">
+<span class="font-headline-sm text-headline-sm text-primary font-semibold"><?= lw_i18n('¿Qué techo?', 'Which roof?') ?></span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Two complete villa prices, not an add-on — the roof you choose is the price of the villa.</p>
+</div>
+<div id="lw-techos" class="space-y-2"></div>
+</div>
+
+<!-- 22-sep-2026: isla, ubicación de parcela y extras pasan a SER TRES PASOS propios
+     (antes iban los tres apretados dentro de "Any extras?") — pedido del owner: Step 1
+     Roof, Step 2 Island, Step 3 Plot location, Step 4 Extras. La parcela se sigue
+     cotizando aparte del total configurado (villa+techo+extras) — decisión ya tomada
+     en /palmfield el 7-sep-2026, ver su docblock: no se bundlea con el precio de la
+     villa. Solo deja ver la tarifa real por m² (lw_parcela_tarifa_m2(), modelo/lib.php)
+     según isla y ubicación; el tamaño se concreta en la llamada, nunca aquí. -->
+<div class="cfg__step space-y-2.5" data-paso="3" hidden>
+<div class="flex flex-col mb-1">
+<span class="font-headline-sm text-headline-sm text-primary font-semibold"><?= lw_i18n('¿Qué isla?', 'Which island?') ?></span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">The plot is priced separately, sized on the call.</p>
+</div>
+<label class="op"><input type="radio" name="lw-isla" value="bali" checked><span><span class="op__nb">Bali</span><span class="op__sp">Cliff, ricefield, riverfront or beachfront</span></span></label>
+<label class="op"><input type="radio" name="lw-isla" value="sumba"><span><span class="op__nb">Sumba</span><span class="op__sp">Beachfront only</span></span></label>
+</div>
+
+<div class="cfg__step space-y-2.5" data-paso="4" hidden>
+<div class="flex flex-col mb-1">
+<span class="font-headline-sm text-headline-sm text-primary font-semibold"><?= lw_i18n('Ubicación de la parcela', 'Plot location') ?></span>
+</div>
+<!-- Bali elige ubicación; Sumba tiene una única opción real hoy (Beachfront, dentro de
+     Sumba Hills — el resort se llamó "SandalWoods" hasta el 27-ago-2026, ver
+     supabase/migrations/20260827020601), así que no hay nada que radio-seleccionar,
+     solo mostrarla. -->
+<div id="lw-zona-wrap" class="space-y-2.5">
+<label class="op"><input type="radio" name="lw-zona" value="otras" checked><span><span class="op__nb">Cliff · Ricefield · Riverfront</span></span><span class="op__pr"><b>€<?= lw_e((string) lw_parcela_tarifa_m2('otras')) ?>/m²</b></span></label>
+<label class="op"><input type="radio" name="lw-zona" value="beachfront"><span><span class="op__nb">Beachfront</span></span><span class="op__pr"><b>€<?= lw_e((string) lw_parcela_tarifa_m2('beachfront')) ?>/m²</b></span></label>
+</div>
+<div id="lw-zona-sumba-wrap" class="space-y-2.5" hidden>
+<!-- Sin <input>: `.op>span:nth-child(2)` (CSS del <style>) espera el input como 1er
+     hijo para poner el 2o en columna — aquí no hay input, así que el wrapper de
+     nombre+descripción lleva el mismo flex a mano, o "Beachfront" y su descripción
+     salen pegados en la misma línea. -->
+<div class="op" style="cursor:default"><span style="display:flex;flex-direction:column;flex:1;min-width:0"><span class="op__nb">Beachfront</span><span class="op__sp">Inside Sumba Hills — the only plot on offer today</span></span><span class="op__pr"><b>€<?= lw_e((string) lw_parcela_tarifa_m2('sumba')) ?>/m²</b></span></div>
+</div>
+<p class="text-[11px] text-on-surface-variant" id="lw-parcela-nota"></p>
+</div>
+
+<div class="cfg__step space-y-2" data-paso="5" hidden>
+<div class="flex flex-col mb-1">
+<span class="font-headline-sm text-headline-sm text-primary font-semibold"><?= lw_i18n('¿Algún extra?', 'Any extras?') ?></span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Optional — none of them is needed to move in.</p>
+</div>
+<div id="lw-extras" class="space-y-2"></div>
+</div>
+</div>
+
+<!-- Pie: navegación de pasos + resumen + precio en vivo + CTA WhatsApp directo (sin
+     modal). El resumen vivía debajo de la tabla de pasos (fuera de vista sin
+     scrollear); ahora va aquí, junto al total, siempre visible. -->
+<div class="p-4 md:p-5 border-t border-surface-container-highest/80 bg-surface/95 flex flex-col gap-3">
+<!-- Resumen — lo escribe recalcular() en au-landing-cfg.js -->
+<div class="pb-3 border-b border-surface-container-highest/70 space-y-2 text-xs text-on-surface-variant">
+<div class="flex justify-between gap-3"><span id="lw-r-villa" class="font-semibold text-on-surface"></span><span id="lw-r-villa-pr" class="font-kpi-number text-primary"></span></div>
+<div id="lw-r-villa-sub"></div>
+<div class="flex justify-between gap-3"><span id="lw-r-extras" class="font-semibold text-on-surface"></span><span id="lw-r-extras-pr" class="font-kpi-number text-primary"></span></div>
+<div id="lw-r-extras-sub"></div>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-[10px] text-on-surface-variant uppercase tracking-wider font-semibold"><?= lw_i18n('Total configurado', 'Configured total') ?></span>
+<span class="font-kpi-number text-2xl text-primary font-bold" id="lw-total"></span>
+<span class="text-[11px] text-on-surface-variant" id="lw-total-alt"></span>
+</div>
+<div class="flex items-center gap-2">
+<button class="w-9 h-9 rounded-full bg-surface-container hover:bg-surface-container-high border border-surface-container-highest flex items-center justify-center text-on-surface disabled:opacity-40 disabled:pointer-events-none transition-all" id="lw-atras" hidden>
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<button class="px-4 py-2 rounded-full bg-primary hover:bg-territorial-green text-on-primary font-label-md text-xs font-semibold shadow-md transition-all flex items-center gap-1" id="lw-siguiente"><span>Next </span><span class="material-symbols-outlined text-[15px]">chevron_right</span></button>
+</div>
+</div>
+<div class="flex items-center justify-center gap-1.5" id="lw-puntos"></div>
+<a class="w-full py-3 rounded-full bg-deep-lagoon hover:bg-secondary text-on-secondary font-label-md text-body-sm font-semibold shadow-lg transition-all flex items-center justify-center gap-2" id="lw-wa-cta" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer">
+<span class="material-symbols-outlined text-[17px]">chat</span>
+<span><?= lw_i18n('Escribir por WhatsApp', 'Message us on WhatsApp') ?></span>
+</a>
+</div>
+</aside>
+</div>
+</section>
+
+<!-- ═══ 1 · DISTRIBUCIÓN ═════════════════════════════════════════════════════════════ -->
+<section class="py-24 px-6 md:px-margin-desktop bg-surface relative border-b border-surface-container-highest/80" id="section-layout">
+<div class="max-w-7xl mx-auto">
+<div class="flex items-center gap-2 mb-3">
+<span class="w-2.5 h-2.5 rounded-full bg-territorial-green"></span>
+<span class="font-label-md text-xs uppercase tracking-widest text-primary font-semibold">01 · <?= lw_i18n('Distribución', 'Layout') ?></span>
+</div>
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
+<div>
+<h2 class="font-headline-lg text-3xl md:text-[44px] text-primary leading-tight font-bold"><?= lw_i18n('Distribución bioclimática', 'Bioclimatic layout') ?></h2>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-stretch">
+<div class="lg:col-span-7 relative group h-full">
+<div class="relative h-full rounded-3xl overflow-hidden shadow-2xl bg-surface-container-high border border-surface-container-highest/90 corner-accent">
+<?php if ($layoutImg): ?>
+<img alt="<?= lw_e($villa) ?> floor plan" class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700" src="<?= lw_e($layoutImg) ?>" loading="lazy">
+<?php endif; ?>
+<div class="absolute top-6 right-6 glass-panel px-4 py-2 rounded-2xl shadow-xl border border-surface-container-highest flex flex-col items-end">
+<span class="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant"><?= lw_i18n('Superficie total', 'Total area') ?></span>
+<span class="font-kpi-number text-xl text-primary font-bold"><?= (int) $m['villa_m2'] + (int) $m['terraza_m2'] ?> m²</span>
+<span class="text-[11px] text-territorial-green font-medium"><?= (int) $m['villa_m2'] ?> m² interior + <?= (int) $m['terraza_m2'] ?> m² deck</span>
+</div>
+</div>
+</div>
+<div class="lg:col-span-5 flex flex-col space-y-6">
+<div class="bg-surface-container-low p-6 rounded-2xl border border-surface-container-highest space-y-3">
+<div class="flex items-center gap-2 text-territorial-green text-xs font-bold uppercase tracking-wider">
+<span class="material-symbols-outlined text-[17px]">eco</span>
+<span><?= lw_i18n('Diseño pasivo', 'Passive design') ?></span>
+</div>
+<h3 class="font-headline-md text-2xl text-primary font-bold">Turnkey EPC, fixed price</h3>
+<p class="font-body-md text-on-surface-variant leading-relaxed">Every project runs on a guaranteed fixed-price written EPC contract — Indonesian VAT (PPN) included, closing costs quoted separately and detailed before you sign.</p>
+</div>
+<!-- Specs desde el alcance real de obra ($m['alcance']['incluido']), no la poesía del mockup -->
+<div class="space-y-3.5">
+<?php
+// Icono segun LO QUE DICE la linea, no segun su posicion (23-sep-2026): antes se ciclaba una
+// lista fija de 6 iconos, asi que con 7 lineas la ultima repetia la cama y «Exterior terrace»
+// salia con viento, «Air conditioning» con un rayo y «PLN» con un obrero. Primer patron que casa.
+$specIcons = [
+    '/pool|piscina/i'                                   => 'pool',
+    '/roof|techo|cubierta|atap/i'                       => 'roofing',
+    '/terrace|terraza|deck|teras/i'                     => 'deck',
+    '/air.?con|aire acond|hot water|agua caliente|AC\b/i' => 'ac_unit',
+    '/electric|el[eé]ctric|PLN|\d+\s*W\b|listrik/i'      => 'bolt',
+    '/structure|estructura|architect|arquitect|install|instalac/i' => 'architecture',
+    '/main building|edificio|building|bangunan/i'       => 'home',
+];
+$incluido  = (array) ($m['alcance']['incluido'] ?? []);
+foreach ($incluido as $it):
+    $txt = is_array($it) ? ($it['en'] ?? $it['es'] ?? '') : (string) $it;
+    if ($txt === '') continue;
+    $ic = 'check_circle';
+    foreach ($specIcons as $re => $icono) { if (preg_match($re, $txt)) { $ic = $icono; break; } }
+?>
+<div class="flex items-start gap-3.5 p-3.5 rounded-xl bg-surface-container/60 border border-surface-container-highest hover:bg-surface-container transition-colors">
+<span class="w-8 h-8 rounded-full bg-territorial-green/10 text-territorial-green flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[18px]"><?= lw_e($ic) ?></span>
+</span>
+<span class="font-label-md text-body-md text-primary font-semibold"><?= lw_e($txt) ?></span>
+</div>
+<?php endforeach; ?>
+</div>
+<!-- Sin PDF publico (modelo_documentos.visible_portal=false para Dali) — CTA a WhatsApp -->
+<div class="pt-2">
+<a class="w-full py-3 px-5 rounded-full border border-primary text-primary hover:bg-primary hover:text-on-primary transition-all font-label-md text-body-sm font-semibold flex items-center justify-center gap-2" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer">
+<span class="material-symbols-outlined text-[18px]">description</span>
+<span><?= lw_i18n('Solicitar el dossier completo', 'Request the full dossier') ?></span>
+</a>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<?php if ($techosComp): ?>
+<!-- ═══ 2 · CUBIERTAS ════════════════════════════════════════════════════════════════ -->
+<section class="py-24 px-6 md:px-margin-desktop bg-surface-container-low relative border-b border-surface-container-highest/80" id="section-cubiertas">
+<div class="max-w-7xl mx-auto">
+<div class="text-center max-w-3xl mx-auto mb-16 space-y-3">
+<div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-soft-canopy/15 border border-soft-canopy/30 text-territorial-green text-xs font-semibold uppercase tracking-widest">
+<span><?= lw_i18n('Materialidad', 'Craft & materiality') ?></span>
+</div>
+<h2 class="font-headline-lg text-3xl md:text-[44px] text-primary font-bold leading-tight">Roof finishes</h2>
+<p class="font-body-lg text-on-surface-variant leading-relaxed">Two complete villa prices, not an add-on — the roof you choose is the price of the villa.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10">
+<div class="bg-surface rounded-3xl overflow-hidden border border-surface-container-highest/90 shadow-xl flex flex-col group hover:-translate-y-1.5 transition-all duration-300">
+<div class="relative h-72 lg:h-80 overflow-hidden bg-volcanic-ash">
+<?php if ($heroDay): ?><img alt="<?= lw_e($techosComp['sirap']['nombre']) ?>" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" src="<?= lw_e($heroDay) ?>" loading="lazy"><?php endif; ?>
+<div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/70 via-transparent to-transparent"></div>
+<div class="absolute bottom-4 left-4 right-4 flex items-end justify-between">
+<span class="font-headline-md text-2xl text-white font-bold"><?= lw_e($techosComp['sirap']['nombre']) ?></span>
+<span class="font-kpi-number text-lg text-surface font-bold bg-primary/80 px-3 py-1 rounded-lg backdrop-blur-sm"><?= lw_e(lw_precio_fmt($techosComp['sirap']['now'] ?? null)) ?></span>
+</div>
+</div>
+<div class="p-6 md:p-8 flex flex-col justify-between flex-1 space-y-6">
+<div class="space-y-3">
+<h3 class="font-headline-sm text-2xl text-primary font-bold"><?= lw_e($techosComp['sirap']['nombre']) ?></h3>
+<p class="font-body-md text-on-surface-variant leading-relaxed"><?= lw_e($techosComp['sirap']['desc'] ?? '') ?></p>
+<?php if ($antes2027 && !empty($techosComp['sirap']['y2027'])): ?>
+<p class="text-[11px] text-on-surface-variant">2026 price shown. From 2027: <?= lw_e(lw_precio_fmt($techosComp['sirap']['y2027'])) ?>.</p>
+<?php endif; ?>
+</div>
+</div>
+</div>
+<div class="bg-surface rounded-3xl overflow-hidden border-2 border-primary/40 shadow-xl flex flex-col group hover:-translate-y-1.5 transition-all duration-300 relative">
+<div class="relative h-72 lg:h-80 overflow-hidden bg-volcanic-ash">
+<?php if ($heroTechoAlt): ?><img alt="<?= lw_e($techosComp['bambu']['nombre']) ?>" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" src="<?= lw_e($heroTechoAlt) ?>" loading="lazy"><?php endif; ?>
+<div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/70 via-transparent to-transparent"></div>
+<div class="absolute bottom-4 left-4 right-4 flex items-end justify-between">
+<span class="font-headline-md text-2xl text-white font-bold"><?= lw_e($techosComp['bambu']['nombre']) ?></span>
+<span class="font-kpi-number text-lg text-white font-bold bg-deep-lagoon/90 px-3 py-1 rounded-lg backdrop-blur-sm"><?= lw_e(lw_precio_fmt($techosComp['bambu']['now'] ?? null)) ?></span>
+</div>
+</div>
+<div class="p-6 md:p-8 flex flex-col justify-between flex-1 space-y-6">
+<div class="space-y-3">
+<h3 class="font-headline-sm text-2xl text-primary font-bold"><?= lw_e($techosComp['bambu']['nombre']) ?></h3>
+<p class="font-body-md text-on-surface-variant leading-relaxed"><?= lw_e($techosComp['bambu']['desc'] ?? '') ?></p>
+<?php if ($antes2027 && !empty($techosComp['bambu']['y2027'])): ?>
+<p class="text-[11px] text-on-surface-variant">2026 price shown. From 2027: <?= lw_e(lw_precio_fmt($techosComp['bambu']['y2027'])) ?>.</p>
+<?php endif; ?>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<?php endif; ?>
+
+<!-- ═══ 3 · SNAPSHOT FINANCIERO + FAQ ════════════════════════════════════════════════ -->
+<section class="py-24 px-6 md:px-margin-desktop bg-surface relative border-b border-surface-container-highest/80" id="section-financial">
+<div class="max-w-7xl mx-auto">
+<div class="flex items-center gap-2 mb-3">
+<span class="w-2.5 h-2.5 rounded-full bg-territorial-green"></span>
+<span class="font-label-md text-xs uppercase tracking-widest text-primary font-semibold">03 · <?= lw_i18n('Inversión', 'Investment') ?></span>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
+<div class="lg:col-span-6 space-y-4">
+<?php if ($finCalc): ?>
+<div class="bg-surface-container-low rounded-3xl p-6 md:p-8 border border-surface-container-highest shadow-xl space-y-6">
+<div class="border-b border-surface-container-highest/80 pb-4">
+<?php if (!empty($deckEj['mercado'])): ?>
+<span class="font-label-md text-xs text-territorial-green uppercase tracking-widest font-semibold"><?= lw_i18n('Previsión de mercado', 'Market forecast') ?></span>
+<h3 class="font-headline-md text-2xl md:text-3xl text-primary font-bold"><?= lw_e($deckEtiqueta) ?></h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Rental forecast for a <?= $dorm ?>-bedroom villa in this area — not tied to a specific plot, and never a promise of yield. Source: internal market analysis (AirROI + NF Group Bali market report, Q3 2025), reviewed September 2026.</p>
+<?php else: ?>
+<span class="font-label-md text-xs text-territorial-green uppercase tracking-widest font-semibold"><?= lw_i18n('Ejemplo real', 'Real example') ?></span>
+<h3 class="font-headline-md text-2xl md:text-3xl text-primary font-bold"><?= lw_e($deckEtiqueta) ?></h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Economics of one specific plot at <?= lw_e($deckEtiqueta) ?> — figures vary by plot and are confirmed on the call, never a promise of yield.</p>
+<?php endif; ?>
+</div>
+<?php foreach ($finCalc as $caso => $f): $label = $caso === 'average' ? 'Average' : 'Optimal'; ?>
+<div class="bg-surface p-4 rounded-2xl border border-surface-container-highest space-y-2">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-xs uppercase tracking-wider text-on-surface-variant font-semibold"><?= lw_e($label) ?></span>
+<span class="font-kpi-number text-lg <?= $caso === 'optimal' ? 'text-deep-lagoon' : 'text-territorial-green' ?> font-bold"><?= lw_e(lw_precio_fmt($f['neto'])) ?>/yr net</span>
+</div>
+<div class="text-[11px] text-on-surface-variant"><?= lw_e(lw_precio_fmt($f['adr'])) ?> ADR × <?= (int) round($f['ocup'] * 100) ?>% occupancy — gross <?= lw_e(lw_precio_fmt($f['bruto'])) ?>, minus management + maintenance + tax (<?= lw_e(lw_precio_fmt($f['costes'])) ?>)</div>
+</div>
+<?php endforeach; ?>
+<p class="text-[11px] text-on-surface-variant leading-relaxed"><?= !empty($deckEj['mercado']) ? 'Investment base used in this forecast (company estimate for this scenario)' : 'Total investment used in this example' ?>: <?= lw_e(lw_precio_fmt($deckEj['inversion_base'])) ?>. Indicative only, not a quote or financial advice — actual rental income depends on the plot, the season and how the villa is managed.</p>
+</div>
+<?php endif; ?>
+</div>
+<div class="lg:col-span-6 space-y-4">
+<div>
+<span class="font-label-md text-xs text-territorial-green uppercase tracking-widest font-semibold"><?= lw_i18n('Dudas legales', 'Legal & practical') ?></span>
+<h3 class="font-headline-md text-2xl md:text-3xl text-primary font-bold mb-2"><?= lw_i18n('Preguntas frecuentes', 'Frequently asked questions') ?></h3>
+</div>
+<details class="faq-item">
+<summary><span><?= lw_i18n('¿Qué compro exactamente y en qué régimen?', 'What exactly am I buying, and under what title?') ?></span><span class="material-symbols-outlined mi text-on-surface-variant text-[20px]">expand_more</span></summary>
+<div class="faq-item__body">
+<p class="i-es">La villa construida y el derecho sobre la parcela en la que se levanta. En Indonesia ese derecho no funciona como la propiedad española y no todas las parcelas están en el mismo régimen ni con el mismo plazo. Es la primera cosa que repasamos en la llamada, parcela por parcela y con el documento delante, antes de hablar de dinero.</p>
+<p class="i-en">The built villa and the right over the plot it stands on. In Indonesia that right doesn't work like Spanish-style ownership, and not every plot sits under the same scheme or term. We review it plot by plot on the call, document in hand, before talking numbers.</p>
+</div>
+</details>
+<details class="faq-item">
+<summary><span><?= lw_i18n('¿Qué incluye el precio?', "What's included in the price?") ?></span><span class="material-symbols-outlined mi text-on-surface-variant text-[20px]">expand_more</span></summary>
+<div class="faq-item__body">
+<p class="i-es">La obra completa según el pliego del contratista, con el acabado de cubierta que elijas. El precio de la villa ya incluye el IVA indonesio (PPN). La parcela y los gastos de compraventa (impuesto de transmisión, notaría y licencias) se presupuestan aparte y se detallan por escrito antes de firmar nada.</p>
+<p class="i-en">The full build with the roof finish you choose. The villa price already includes Indonesian VAT (PPN). The plot, and the closing costs on the purchase (transfer tax, notary and permits), are quoted separately and detailed in writing before you sign.</p>
+</div>
+</details>
+<details class="faq-item">
+<summary><span><?= lw_i18n('¿Puedo elegir dónde se construye?', 'Can I choose where it gets built?') ?></span><span class="material-symbols-outlined mi text-on-surface-variant text-[20px]">expand_more</span></summary>
+<div class="faq-item__body">
+<p class="i-es">Sí. El modelo es el mismo y se levanta sobre la parcela que elijas del catálogo. Cambian la vista, la orientación y el precio del terreno. No todas las parcelas admiten cualquier modelo: eso se concreta en la llamada.</p>
+<p class="i-en">Yes. The model stays the same and is built on the plot you choose from the catalog. The view, orientation, and land price change. Not every plot takes every model — that's confirmed on the call.</p>
+</div>
+</details>
+<details class="faq-item">
+<summary><span><?= lw_i18n('¿En qué moneda se firma?', 'What currency is the contract in?') ?></span><span class="material-symbols-outlined mi text-on-surface-variant text-[20px]">expand_more</span></summary>
+<div class="faq-item__body">
+<p class="i-es">El contrato se formaliza en rupias indonesias, como exige la ley indonesia para operaciones dentro del país. La equivalencia en euros se incluye a título informativo con el tipo de cambio de la fecha.</p>
+<p class="i-en">The contract is executed in Indonesian rupiah, as required by Indonesian law for transactions inside the country. Other-currency equivalents are given for reference only, at the exchange rate on the date.</p>
+</div>
+</details>
+<details class="faq-item">
+<summary><span><?= lw_i18n('¿Cómo se formaliza la compra?', 'How is the purchase formalized?') ?></span><span class="material-symbols-outlined mi text-on-surface-variant text-[20px]">expand_more</span></summary>
+<div class="faq-item__body">
+<p class="i-es">Primero un contrato de reserva sobre la parcela. Después el PPJB, que es el contrato de compraventa indonesio, y el contrato de construcción. Los tres son documentos propios del promotor y se revisan antes de firmar.</p>
+<p class="i-en">First a reservation contract on the plot. Then the PPJB — the Indonesian sale contract — and the construction contract. All three are the developer's own documents and are reviewed before signing.</p>
+</div>
+</details>
+<?php /* «Who builds it?» reescrita el 23-sep-2026 (owner: «no queda claro así»; revisada por Legal
+     ese mismo día). Sin nombrar a la sociedad: la firmante varía por contrato (Tepi Sun Gai por
+     defecto, SAN DAL WOODS en la reserva de Palm Field), de ahí «a Lawang company», no «the».
+     La identificación del responsable vive en /legal y en el propio contrato.
+     Comentario PHP, no HTML: un <!-- --> se sirve al navegador y aqui se nombra a las sociedades. */ ?>
+<details class="faq-item">
+<summary><span><?= lw_i18n('¿Quién construye?', 'Who builds it?') ?></span><span class="material-symbols-outlined mi text-on-surface-variant text-[20px]">expand_more</span></summary>
+<div class="faq-item__body">
+<p class="i-es">Lawang construye tu villa. El contrato de construcción se firma con una sociedad de Lawang registrada en Indonesia; su denominación legal completa y sus datos registrales figuran en el contrato, que revisas antes de firmar. En la llamada te enseñamos obras entregadas y las que están en marcha ahora mismo.</p>
+<p class="i-en">Lawang builds your villa. The construction contract is signed with a Lawang company registered in Indonesia; its full legal name and registration details are written in the contract, which you review before signing. On the call we show you delivered projects and the ones underway right now.</p>
+</div>
+</details>
+</div>
+</div>
+</div>
+</section>
+
+<?php if ($otrosModelos): ?>
+<!-- ═══ 4 · COLECCIÓN (CROSS-SELL) ═══════════════════════════════════════════════════ -->
+<section class="py-24 px-6 md:px-margin-desktop bg-surface-container-low relative" id="section-collection">
+<div class="max-w-7xl mx-auto">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-14">
+<div>
+<span class="font-label-md text-xs uppercase tracking-widest text-territorial-green font-semibold"><?= lw_i18n('Catálogo', 'Catalog') ?></span>
+<h2 class="font-headline-lg text-3xl md:text-[44px] text-primary font-bold leading-tight mt-1">More from the collection</h2>
+<p class="font-body-lg text-on-surface-variant max-w-2xl mt-2">Same construction system and roof choice across the range — only the size changes the price.</p>
+</div>
+<a class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-primary text-primary hover:bg-primary hover:text-on-primary font-label-md text-body-sm font-semibold transition-all" href="#hero-configurator">
+<span><?= lw_i18n('Volver al configurador', 'Back to configurator') ?></span>
+<span class="material-symbols-outlined text-[17px]">north</span>
+</a>
+</div>
+<div class="grid grid-cols-1 gap-6">
+<?php foreach ($otrosModelos as $ocId => $ov): ?>
+<a class="bg-surface rounded-3xl overflow-hidden border border-surface-container-highest shadow-lg flex flex-col group hover:-translate-y-2 transition-all duration-300" href="/<?= lw_e(lw_modelo_url_path($ocId)) ?>">
+<div class="relative h-60 overflow-hidden bg-volcanic-ash">
+<?php if ($ov['thumb']): ?><img alt="<?= lw_e($ov['villa']) ?>" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" src="<?= lw_e($ov['thumb']) ?>" loading="lazy"><?php endif; ?>
+<div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/80 via-transparent to-transparent"></div>
+<div class="absolute bottom-4 left-4 right-4 flex justify-between items-end">
+<span class="text-white font-headline-sm text-xl font-bold"><?= lw_e($ov['villa']) ?></span>
+<span class="text-surface-container-lowest font-kpi-number text-lg font-bold"><?= lw_e(lw_precio_fmt($ov['desde_eur'])) ?></span>
+</div>
+</div>
+<div class="p-6 flex-1 flex flex-col justify-between space-y-4">
+<p class="font-body-sm text-xs text-on-surface-variant leading-relaxed"><?= lw_e($ov['specs']) ?></p>
+<span class="w-full py-2.5 rounded-full bg-surface-container hover:bg-primary hover:text-on-primary text-primary font-label-md text-xs font-semibold tracking-wide border border-surface-container-highest transition-all flex items-center justify-center gap-1.5">
+<span><?= lw_i18n('Ver ficha', 'View model') ?></span>
+<span class="material-symbols-outlined text-[15px]">arrow_outward</span>
+</span>
+</div>
+</a>
+<?php endforeach; ?>
+</div>
+</div>
+</section>
+<?php endif; ?>
+
+<!-- ═══ FOOTER ═══════════════════════════════════════════════════════════════════════ -->
+<!-- Pie COMPARTIDO con /investor-deck (23-sep-2026, pedido del owner: comprimido y con el
+     contacto bien destacado). Lo pinta /assets/lawang-pie.js: una sola fuente para los
+     telefonos, la oficina y el aviso legal. Antes este pie ocupaba ~700px con columnas
+     Collection/Information que repetian el menu y la seccion "More from the collection".
+     data-wa: el enlace de siempre, con el nombre de esta villa en el mensaje.
+     data-cookies: esta pagina SI carga consent.js; el manejador de #lw-cookies sigue
+     mas abajo, en el script inline (este JS va antes, sin defer, a proposito). -->
+<footer data-lw-pie data-cookies data-wa="<?= lw_e($WA_LINK) ?>"></footer>
+<script src="/assets/lawang-pie.js?v=20260923153722"></script>
+
+<!-- consent.js: gate del banner de cookies Y de window.lwTrack/Meta Pixel — SIN esto,
+     track('ViewContent') de mas abajo comprueba `typeof window.lwTrack==='function'`,
+     no lo encuentra, y no hace nada: la campana ES `es_ticket` apunta aqui y se quedaria
+     sin pixel ni banner de consentimiento sin un solo error visible. Mismo fichero y
+     mismo sello que /dali. -->
+<script src="/assets/consent.js?v=20260908111654" defer></script>
+<!-- Motor del configurador ANTES del script inline que lo invoca (window.lwAuCfgInit
+     tiene que existir cuando se llama más abajo) — sin defer a propósito, o el inline
+     que sigue se ejecutaría primero y fallaría "lwAuCfgInit is not a function". -->
+<script src="/assets/au-landing-cfg.js?v=20260922203350"></script>
+<script>
+(function () {
+  'use strict';
+  // ── Crossfade + dock de cámara del hero. Kitchen/Toilet no tienen botón en el dock
+  //    (se llega por su hotspot); si el modelo no tiene esa foto, el <div id="layer-...">
+  //    ni existe (PHP lo omite) y getElementById da null — lwSetView ya lo contempla. ──
+  var LAYERS = {day: 'layer-day', roof: 'layer-roof', interior: 'layer-interior',
+                kitchen: 'layer-kitchen', toilet: 'layer-toilet', aerea: 'layer-aerea'};
+  var BTNS   = {day: 'cam-day', roof: 'cam-roof', interior: 'cam-interior', aerea: 'cam-aerea'};
+  window.lwSetView = function (key) {
+    if (!LAYERS[key]) return;
+    Object.keys(LAYERS).forEach(function (k) {
+      var layer = document.getElementById(LAYERS[k]);
+      var btn   = document.getElementById(BTNS[k]);
+      if (!layer) return;
+      if (k === key) {
+        layer.classList.remove('opacity-0', 'scale-105', 'pointer-events-none');
+        layer.classList.add('opacity-100', 'scale-100');
+        if (btn) btn.className = 'cam-btn flex items-center gap-2 px-3.5 py-1.5 rounded-full font-label-md text-body-sm bg-surface text-primary shadow-sm font-semibold transition-all';
+      } else {
+        layer.classList.remove('opacity-100', 'scale-100');
+        layer.classList.add('opacity-0', 'scale-105', 'pointer-events-none');
+        if (btn) btn.className = 'cam-btn flex items-center gap-2 px-3.5 py-1.5 rounded-full font-label-md text-body-sm text-white/90 hover:text-white hover:bg-white/10 transition-all';
+      }
+    });
+    // 22-sep-2026: los hotspots estan calibrados a ojo sobre la foto de DIA — en
+    // cualquier otra vista (techo, cocina, bano, salon, aerea) no senalan nada real
+    // de esa foto, asi que solo se ven cuando la vista activa es 'day'. El propio
+    // hotspot que se acaba de pulsar (p.ej. Kitchen) se oculta con el resto: para
+    // volver a verlos hay que volver a 'Day' desde el dock.
+    document.querySelectorAll('.hotspot').forEach(function (h) {
+      var enDia = key === 'day';
+      h.style.opacity = enDia ? '' : '0';
+      h.style.pointerEvents = enDia ? '' : 'none';
+    });
+  };
+
+  var MODELO = <?= json_encode($m['id'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+  var CFG    = <?= json_encode($cfgJs, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+  var WA_NUM = <?= json_encode($WA_NUM, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+
+  // ── Píxel: ViewContent al cargar, con value/currency cuando hay precio cerrado ────
+  function track(ev, extra) {
+    if (typeof window.lwTrack !== 'function') return;
+    var p = Object.assign({content_ids: [MODELO], content_type: 'product', content_name: 'modelo-' + MODELO}, extra || {});
+    var v = <?= json_encode($precioValor) ?>;
+    if (v !== null && !('value' in p)) { p.value = v; p.currency = 'EUR'; }
+    window.lwTrack(ev, p);
+  }
+  if (typeof window.lwTrack === 'function') track('ViewContent');
+  else window.addEventListener('load', function () { track('ViewContent'); });
+
+  // ── Configurador villa → techo → extras: motor compartido con /dali. La única opción
+  //    propia de esta página es ocultarVilla (22-sep-2026, ver el paso data-paso="1" más
+  //    arriba) — el resto del motor sigue sin tocarse. ─────────────────────────────────
+  window.lwAuCfgInit({
+    cfg: CFG,
+    waNum: WA_NUM,
+    urlBase: '/<?= lw_e($slugPath) ?>',
+    villaDefault: MODELO,
+    waIntro: "Hi, I'm interested in the ",
+    ocultarVilla: true
+  });
+
+  // ── Parcela: isla + ubicación → tarifa real por m² (lw_parcela_tarifa_m2(), modelo/
+  //    lib.php — misma fuente que /palmfield, nunca un número copiado a mano). Solo
+  //    informativo: no entra en "Total configurado" (decisión ya tomada en /palmfield
+  //    el 7-sep-2026, ver su docblock) ni en el mensaje de WhatsApp. ──────────────────
+  (function () {
+    var TARIFAS = <?= json_encode([
+        'beachfront' => lw_parcela_tarifa_m2('beachfront'),
+        'otras'      => lw_parcela_tarifa_m2('otras'),
+        'sumba'      => lw_parcela_tarifa_m2('sumba'),
+    ]) ?>;
+    var zonaWrap      = document.getElementById('lw-zona-wrap');
+    var zonaSumbaWrap = document.getElementById('lw-zona-sumba-wrap');
+    var nota          = document.getElementById('lw-parcela-nota');
+    if (!zonaWrap || !nota) return;
+    function refresca() {
+      var isla = document.querySelector('input[name="lw-isla"]:checked');
+      var esSumba = !!isla && isla.value === 'sumba';
+      zonaWrap.hidden = esSumba;
+      if (zonaSumbaWrap) zonaSumbaWrap.hidden = !esSumba;
+      var tarifa;
+      if (esSumba) {
+        tarifa = TARIFAS.sumba;
+      } else {
+        var zona = document.querySelector('input[name="lw-zona"]:checked');
+        tarifa = TARIFAS[zona ? zona.value : 'otras'];
+      }
+      nota.textContent = 'Plot rate for this selection: €' + tarifa + '/m² — size confirmed on the call, not included in the total above.';
+    }
+    // 22-sep-2026: isla y ubicación ahora son cada una su propio paso (como villa/techo
+    // ya hacían) — elegir una avanza sola al siguiente, reutilizando el botón "Next" del
+    // motor compartido (no expone un avanza() propio, así que se simula el click).
+    document.querySelectorAll('input[name="lw-isla"], input[name="lw-zona"]').forEach(function (r) {
+      r.addEventListener('change', function () {
+        refresca();
+        var siguiente = document.getElementById('lw-siguiente');
+        if (siguiente) siguiente.click();
+      });
+    });
+    refresca();
+  }());
+
+  // ── Cookies: reabrir el aviso de consent.js ───────────────────────────────────────
+  ['lw-cookies', 'lw-cookies-en'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (window.lwConsentReopen) window.lwConsentReopen();
+    });
+  });
+}());
+</script>
+<script>
+/* Seccion activa del menu (barra T3, 23-sep-2026) -- mismo mecanismo que el investor deck. */
+(function(){
+  var links = [].slice.call(document.querySelectorAll('#lw-topbar nav a[href^="#"]'));
+  var secs = links.map(function(a){ return document.getElementById(a.getAttribute('href').slice(1)); }).filter(Boolean);
+  if(!secs.length || !('IntersectionObserver' in window)) return;
+  var io = new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(!e.isIntersecting) return;
+      links.forEach(function(a){ a.classList.toggle('lw-nav-activa', a.getAttribute('href') === '#' + e.target.id); });
+    });
+  }, { rootMargin: '-45% 0px -50% 0px' });
+  secs.forEach(function(sct){ io.observe(sct); });
+})();
+</script>
+</body>
+</html>

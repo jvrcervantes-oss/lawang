@@ -7,483 +7,729 @@
 <meta name="description" content="Palm Field, Balian Hills, Bali — project documentation, real plot inventory, financial forecast and FAQ for prospective investors. Request a plot reservation directly.">
 <meta name="robots" content="noindex, nofollow">
 <!--
-  Investor Deck / data room público — Palm Field (piloto), 10-sep-2026.
-  Rediseño 10-sep-2026 (mismo día): piel del mockup de Stitch
-  "stitch_portal_inmobiliario_y_gestion_promotora (1)" (DESIGN.md/code.html),
-  contenido reescrito y auditado contra fuentes reales — ver memoria
-  feedback_mockup_generado_piel_si_texto_no: un mockup generado trae piel Y
-  texto/cifras, y el generador no sabe qué está prohibido para este cliente.
-
-  Cambios de CONTENIDO frente al mockup, cada uno con motivo (Regla 0 bis /
-  Modo calco — se dice qué no se calca, no se aproxima):
-  1. Estructura legal del suelo: el mockup describía "HGB sobre PT PMA 100%
-     del inversor". Eso NO es la estructura validada — consulta legal
-     9-sep-2026 (project_lawang_estructura_parcelas_corretaje_escrow): Hak
-     Sewa directo campesino→cliente + escrow notarial; PT PMA solo para el
-     margen de OBRA, nunca para titular el suelo. Sección "Seguridad
-     Jurídica" y FAQ legal reescritas enteras a Hak Sewa + escrow notarial.
-     Nunca "Freehold (Hak Milik)" — ver reference_lawang_freehold_no_es_hak_milik.
-  2. Catálogo: precios y specs reales de la tabla `modelos` (Supabase), no
-     los inventados del mockup. Nunca se bundlea suelo+construcción en una
-     cifra (revisión previa Seguridad+Administración, 2-sep-2026).
-  2b. CORRECCIÓN 10-sep-2026 (aviso del owner): el catálogo mostraba los 5
-      modelos del catálogo general (incluidos Trinity y Temple), pero Palm
-      Field W5 solo tiene 3 asignados en la intranet (`modelos_villa`,
-      proyecto_id de Palm Field): Dali, Dune, Dream. Trinity/Temple existen
-      para OTROS proyectos — se retiraron de este deck entero (catálogo,
-      dropdown del formulario, disclaimer financiero), no solo su render.
-  3. KPIs de cabecera (500.000+ m², 6+ años, 100+ inversores, 100% PBG&SLF):
-     confirmados reales por el owner 10-sep, se mantienen tal cual.
-  4. "Bank Mandiri" / "SIMBG" del mockup: no confirmados → sustituidos por
-     "cuenta escrow gestionada por el notario (PPAT)" (decisión del owner).
-  5. Sección financiera: el mockup traía TIR 18.5-24.2% / yield 11.8% /
-     "garantizando" inventados — misma familia de reclamo que Legal ya tumbó
-     el 30-jul-2026 (ASIC) para esta cartera. Sustituido por el forecast real
-     que dio el owner (Dune/Dream, escenarios Average/Optimal, desglose
-     completo). Sin proyección a 5 años: no hay ese dato.
-  6. Disponibilidad ("4 Parcelas Libres" fijo en el mockup) → cuenta real en
-     vivo desde investor_deck_parcelas() (23 disponibles de 34 a 10-sep).
-  7. CTA "Solicitar Asignación": el mockup era un <form onsubmit="alert(...)">
-     de mentira. Aquí escribe de verdad en la tabla `leads` ya existente
-     (CRM de Lawang, Regla 0: no se crea tabla nueva) vía su policy
-     "anon can insert leads" ya revisada — sin Edge Function nueva.
-
-  Lo que SÍ es del mockup, calcado: tokens de color/tipografía/espaciado/
-  radio (DESIGN.md), estructura de secciones, componentes visuales.
-
-  Sigue igual que la versión anterior: masterplan en vivo desde
-  investor_deck_parcelas(), fotografía real del dossier, FAQ.
-  RETIRADO 24-sep-2026 (owner): la reserva de autoservicio (modal con código
-  por email + Edge Functions investor-deck-codigo/-reservar). Ya estaba sin
-  botón que la abriera desde el 15-sep; el deck es público y cada parcela
-  lleva a contacto/WhatsApp.
+  VERSION PUBLICADA desde el 24-sep-2026 (owner): era /investor-deck/palmfield/v3/; la
+  anterior vive en v1/ y la v2 sigue en v2/, las dos por si hay que restaurarlas.
+  v3 — 24-sep-2026. EXPLORACION pedida por el owner: el mismo deck de v2 con la piel y la
+  COMPOSICION de la home publica (lawangproperties.com), para verlo. No sustituye a v2 ni a
+  la ficha viva; noindex y sin enlazar desde ningun sitio, igual que v2.
+  Que se mantiene de v2, byte a byte: el <script> de datos (6 RPC investor_deck_*, Edge
+  Functions de reserva, esc()/urlSegura()), todos los ids y data-*, y TODO el texto visible
+  en ingles (i18n.js casa por texto completo, y Legal aprobo esas frases letra por letra).
+  Que cambia: la composicion. Topbar transparente→solida de la home, hero a sangre 100svh
+  con titular en The Seasons y cifras en fila con filetes, cabeceras kicker+titulo en
+  mayusculas Neue Kabel, tarjetas de villa altas con marco interior, forecast sobre foto a
+  sangre con columnas, y el panel de documentos+FAQ de la hero pasa a una seccion
+  obsidiana como "OWN ETERNITY" de la home (sigue todo a la vista, sin pestañas).
+  24-sep (owner): ese bloque VUELVE a la hero como panel de cristal oscuro a la derecha,
+  con la FAQ; y The Seasons sin cursiva en toda la pagina.
+  Lo que NO se calca de la home, y por que: el scroll-snap obligatorio (aqui hay secciones
+  largas de datos que no caben en una pantalla) y The Seasons fuera de "Palm Field" (es
+  DEMO y corrompe & - + 4, que salen en casi todos los titulos y cifras del deck).
+  El marcado que pinta el JS (tarjetas de villa y de forecast) cambia solo de clases; la
+  aritmetica, los textos y los escapes son los de v2.
+  Historial de v2 (revision previa #42, decisiones del owner 22/23-sep): ver v2/index.html.
 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Jost:ital,wght@0,400;0,500;0,600;1,400&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Instrument+Sans:wght@400;500;600;700&family=Jost:ital,wght@0,400;0,500;0,600;1,400&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<!-- Build Tailwind de v2 (copia local): lo sigue necesitando el marcado que pinta el JS
+     (filas del inventario, docs, modal). La piel nueva va en el <style> de abajo. -->
+<link rel="stylesheet" href="v2.min.css?v=20260924a">
 <style>
-  /* Display de marca: Neue Kabel, los mismos ficheros que sirve la home.
-     brand.css la fija como unica fuente (The Seasons eliminada) y el owner
-     descarto Cormorant Garamond el 11-ago-2026. Jost queda de fallback. */
-  @font-face{font-family:'Neue Kabel';src:url('../../assets/fonts/NeueKabel-ExtraLight.otf') format('opentype');font-weight:200;font-style:normal;font-display:swap}
-  @font-face{font-family:'Neue Kabel';src:url('../../assets/fonts/NeueKabel-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
-  @font-face{font-family:'Neue Kabel';src:url('../../assets/fonts/NeueKabel-Book.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}
-  @font-face{font-family:'Neue Kabel';src:url('../../assets/fonts/NeueKabel-Medium.otf') format('opentype');font-weight:500;font-style:normal;font-display:swap}
-  @font-face{font-family:'Neue Kabel';src:url('../../assets/fonts/NeueKabel-Bold.otf') format('opentype');font-weight:700;font-style:normal;font-display:swap}
-  @layer base {
-    html, body { margin: 0; padding: 0; }
-    body { overscroll-behavior: none; }
-    main > :first-child { margin-top: 0 !important; }
-  }
-  ::-webkit-scrollbar { display: none; }
-  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; vertical-align: middle; }
-  .lw-money { white-space: nowrap; font-variant-numeric: tabular-nums; }
-  /* Anchuras: la imagen se lleva el margen muerto de los lados, el texto NO.
-     Una columna de prosa a 1400px es ilegible; una foto a 1280px se queda pequeña. */
-  .lw-wide  { max-width: 1400px; margin-inline: auto; width: 100%; }
-  .lw-prose { max-width: 46rem; }
-  h1, h2 { text-wrap: balance; }
-  p { text-wrap: pretty; }
-  .lw-fade-in { animation: lwFadeIn .35s ease both; }
-  @keyframes lwFadeIn { from { opacity:0; transform:translateY(4px);} to { opacity:1; transform:none;} }
-</style>
-<script src="i18n.js?v=20260914_docs2"></script>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<script>
-  tailwind.config = {
-    theme: {
-      extend: {
-        colors: {
-          "territorial-green": "#485B37",
-          "deep-lagoon": "#104C4F",
-          "burnt-earth": "#42210B",
-          "soft-canopy": "#8F9B7A",
-          "volcanic-ash": "#2E3437",
-          "stone-sand": "#BEB3A5",
-          "raw-linen": "#F5F0E6",
-          "surface": "#fbf9f4",
-          "surface-alt": "#F1EBDD",
-          "surface-container-low": "#f5f4ee",
-          "surface-container": "#efeee8",
-          "surface-container-lowest": "#ffffff",
-          "on-surface": "#1b1c19",
-          "on-surface-variant": "#44483f",
-          "control-border": "#8A8474"
-        },
-        borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
-        spacing: { "margin-mobile": "16px", "element-gap": "16px", "gutter": "24px", "margin-desktop": "48px" },
-        fontFamily: {
-          "label-md": ["Jost", "sans-serif"], "kpi-number": ["Instrument Sans", "sans-serif"],
-          "body-sm": ["Jost", "sans-serif"], "headline-md": ["Neue Kabel", "Jost", "sans-serif"],
-          "body-md": ["Jost", "sans-serif"], "body-lg": ["Jost", "sans-serif"],
-          "headline-lg": ["Neue Kabel", "Jost", "sans-serif"], "headline-sm": ["Neue Kabel", "Jost", "sans-serif"]
-        },
-        fontSize: {
-          "label-md": ["14px", { lineHeight: "20px", fontWeight: "600" }],
-          "kpi-number": ["36px", { lineHeight: "40px", fontWeight: "600" }],
-          "body-sm": ["13px", { lineHeight: "20px", fontWeight: "500" }],
-          "body-md": ["15px", { lineHeight: "24px", fontWeight: "500" }],
-          "body-lg": ["18px", { lineHeight: "28px", fontWeight: "500" }],
-          "headline-lg": ["40px", { lineHeight: "48px", fontWeight: "600" }],
-          "headline-sm": ["24px", { lineHeight: "32px", fontWeight: "600" }]
-        }
-      }
-    }
-  };
-</script>
-</head>
-<body class="bg-surface font-body-md text-body-md text-on-surface antialiased selection:bg-soft-canopy selection:text-surface-container-lowest">
+/* ════ v3 — piel de lawangproperties.com (home) sobre el deck ════════════════
+   Fuentes de marca self-hosted (mismas que index.html de la raiz). Rutas ABSOLUTAS:
+   la home las pide relativas a la raiz y desde /investor-deck/palmfield/v3/ darian 404.
+   ⚠️ The Seasons es DEMO y corrompe & - + 4: SOLO se usa en "Palm Field" y en los
+   titulos sin esos glifos. Cifras, precios y titulos con "&" van en Neue Kabel. */
+@font-face{font-family:'The Seasons';src:url('/assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-display:swap}
+@font-face{font-family:'The Seasons';src:url('/assets/fonts/TheSeasons-Regular.otf') format('opentype');font-weight:400;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('/assets/fonts/NeueKabel-ExtraLight.otf') format('opentype');font-weight:200;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('/assets/fonts/NeueKabel-Light.otf') format('opentype');font-weight:300;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('/assets/fonts/NeueKabel-Book.otf') format('opentype');font-weight:400;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('/assets/fonts/NeueKabel-Medium.otf') format('opentype');font-weight:500;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('/assets/fonts/NeueKabel-Bold.otf') format('opentype');font-weight:700;font-display:swap}
 
-<!-- TOP BAR -->
-<header class="fixed top-0 left-0 right-0 z-50 bg-deep-lagoon shadow-[0_2px_16px_rgba(0,0,0,0.18)]">
-  <div class="h-[72px] w-full px-6 md:px-margin-desktop flex items-center justify-between gap-4">
-    <a class="flex items-center min-w-0 shrink-0" href="#vision" aria-label="Lawang Properties — Palm Field">
-      <img src="../../assets/img/lawang-logo-v3.webp" alt="Lawang" class="h-6 md:h-8 w-auto">
+:root{
+  /* Paleta de la home (index.html :root + #content-sections) */
+  --tg:#485B37; --pg:#587040; --tg-dark:#364429; --dl:#104C4F; --be:#42210B; --sc:#8F9B7A;
+  --va:#2E3437; --ss:#BEB3A5; --rl:#F5F0E6; --rl2:#EFE8DA; --cbr:#FBF8F1;
+  --ci:#2E3437; --ci2:#5A5048; --ci3:#8A7A6A; --cl:#DED5C3; --ob:#0A0C09;
+  --se:'The Seasons','Cormorant Garamond',Georgia,serif;
+  --sa:'Neue Kabel','Jost',system-ui,sans-serif;
+  --cpd:clamp(22px,5vw,72px); --cmx:1280px; --menu-h:35px;
+  --fs-display:clamp(56px,41.9px + 3.76vw,104px);
+  --fs-h-xl:clamp(36px,30px + 1.9vw,60px);
+  --fs-h-m:clamp(22px,20px + .6vw,30px);
+  --fs-body-l:clamp(16px,15.5px + .15vw,18px);
+  --fs-cap:clamp(11px,10.6px + .12vw,13px);
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+html,body{margin:0;padding:0}
+body{background:var(--rl);color:var(--ci);font-family:var(--sa);-webkit-font-smoothing:antialiased;overscroll-behavior:none}
+::-webkit-scrollbar{display:none}
+h1,h2{text-wrap:balance} p{text-wrap:pretty}
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24;vertical-align:middle}
+.lw-money{white-space:nowrap;font-variant-numeric:tabular-nums}
+.sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.wrap{max-width:var(--cmx);margin:0 auto;padding-inline:var(--cpd);width:100%;box-sizing:border-box}
+
+/* ── Topbar: calco de #topbar de la home. Transparente sobre la hero, solida al bajar ── */
+#topbar{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:1rem;
+  padding:clamp(.68rem,1.65vh,1.05rem) clamp(1.1rem,4vw,3.4rem);transition:background .3s,box-shadow .3s,padding .3s}
+#topbar.solid{background:rgba(247,244,239,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  box-shadow:0 1px 0 rgba(190,179,165,.3);padding-top:clamp(.5rem,1.2vh,.8rem);padding-bottom:clamp(.5rem,1.2vh,.8rem)}
+#logo{display:flex;align-items:center;flex:1 1 0;min-width:0}
+#logo img{height:28px;width:auto;display:block;transition:height .3s}
+#logo .lg-d{display:none}
+#topbar.solid #logo .lg-w{display:none}
+#topbar.solid #logo .lg-d{display:block}
+#topbar.solid #logo img{height:24px}
+#nav-principal{flex:none;display:none;align-items:center;gap:clamp(1rem,1.7vw,1.7rem);height:var(--menu-h);padding:0 1.5rem;
+  background:rgba(20,18,14,.22);border:1px solid rgba(190,179,165,.45);border-radius:40px;
+  backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);transition:background .3s,border-color .3s}
+@media(min-width:1180px){#nav-principal{display:flex}}
+#topbar.solid #nav-principal{background:rgba(255,255,255,.5);border-color:rgba(72,91,55,.28)}
+.nav-link{position:relative;font-family:var(--sa);font-weight:300;font-size:.64rem;letter-spacing:.13em;text-transform:uppercase;
+  color:rgba(245,240,230,.92);text-decoration:none;text-shadow:0 1px 8px rgba(0,0,0,.55);white-space:nowrap;transition:color .3s}
+.nav-link::after{content:"";position:absolute;left:0;right:0;bottom:-7px;height:1.5px;background:var(--ss);transform:scaleX(0);transition:transform .32s var(--ease)}
+.nav-link:hover{color:#fff}
+.nav-link:hover::after,.nav-link.lw-nav-activa::after{transform:scaleX(1)}
+#topbar.solid .nav-link{color:rgba(26,22,18,.72);text-shadow:none}
+#topbar.solid .nav-link:hover,#topbar.solid .nav-link.lw-nav-activa{color:var(--pg)}
+#topbar.solid .nav-link::after{background:var(--pg)}
+#acciones{display:flex;align-items:center;justify-content:flex-end;gap:clamp(.6rem,1.6vw,1.4rem);flex:1 1 0;min-width:0}
+/* Selector idioma/divisa (lo pinta i18n.js): texto de la home, sin caja */
+#deck-selectores{--lw-lang-ink:#f5f0e6;--lw-lang-bg:rgba(18,16,12,.85);--lw-lang-line:rgba(190,179,165,.38);--lw-lang-menu-ink:#f5f0e6;--lw-lang-hover:rgba(190,179,165,.18)}
+#deck-selectores{display:flex;align-items:center;gap:4px;flex-wrap:nowrap}
+#deck-selectores > *{flex:none}
+#deck-selectores *{font-family:var(--sa)!important;letter-spacing:.14em}
+#topbar:not(.solid) #deck-selectores{text-shadow:0 1px 8px rgba(0,0,0,.55)}
+#topbar.solid #deck-selectores{--lw-lang-ink:#2e3437;--lw-lang-bg:#fff;--lw-lang-line:rgba(72,91,55,.2);--lw-lang-menu-ink:#2e3437;--lw-lang-hover:rgba(72,91,55,.1)}
+@media (max-width:1023px){ #topbar .lw-lang__btn{min-height:40px} }
+/* CTA "Download dossier" = .nav-cta de la home: ghost sobre la foto, verde al bajar */
+#cta-dosier{align-items:center;gap:.45rem;height:var(--menu-h);padding:0 16px 0 12px;border-radius:30px;
+  border:1px solid rgba(245,240,230,.5);color:var(--rl);background:transparent;text-decoration:none;
+  font-family:var(--sa);font-weight:400;font-size:11px;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;transition:all .35s}
+#cta-dosier:hover{background:rgba(245,240,230,.14);border-color:rgba(245,240,230,.78)}
+#cta-dosier .material-symbols-outlined{font-size:16px}
+#topbar.solid #cta-dosier{background:var(--pg);border-color:var(--pg)}
+#topbar.solid #cta-dosier:hover{background:#3a4a2c;border-color:#3a4a2c}
+@media(max-width:640px){#cta-dosier{display:none!important}}
+/* Entre 1180 y 1560px el menu completo no deja sitio al texto del CTA: se queda el icono. */
+@media(min-width:1180px) and (max-width:1560px){#cta-dosier span:not(.material-symbols-outlined){display:none}#cta-dosier{padding:0 10px}}
+#menu-btn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;cursor:pointer;
+  background:transparent;border:1px solid rgba(245,240,230,.5);color:var(--rl);transition:all .3s}
+#topbar.solid #menu-btn{border-color:rgba(72,91,55,.3);color:var(--ci)}
+@media(min-width:1180px){#menu-btn{display:none}}
+#menu-movil{position:fixed;top:64px;left:12px;right:12px;z-index:49;flex-direction:column;gap:2px;padding:10px;border-radius:18px;
+  background:rgba(18,16,12,.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(190,179,165,.38)}
+#menu-movil a{font-family:var(--sa)!important;font-size:12px!important;font-weight:300;letter-spacing:.18em;text-transform:uppercase;
+  color:rgba(245,240,230,.88)!important;padding:14px 16px!important;border-radius:10px;text-decoration:none}
+#menu-movil a:hover,#menu-movil a.lw-nav-activa{background:rgba(190,179,165,.18)!important;color:#fff!important}
+
+/* WhatsApp flotante: circulo verde de la home */
+#cta-whatsapp{position:fixed;right:clamp(16px,2.5vw,28px);bottom:clamp(16px,2.5vw,28px);z-index:40;width:58px;height:58px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;background:#25D366;color:#fff;box-shadow:0 10px 30px rgba(0,0,0,.28);
+  transition:transform .25s var(--ease)}
+#cta-whatsapp:hover{transform:translateY(-2px) scale(1.04)}
+#cta-whatsapp svg{width:30px;height:30px}
+
+/* ── Titulares compartidos: .lw-kicker / .lw-title de la home ── */
+.kicker{display:inline-flex;align-items:center;gap:12px;font-family:var(--sa);font-size:var(--fs-cap);font-weight:500;
+  letter-spacing:.26em;text-transform:uppercase;color:var(--tg);margin:0}
+.kicker::before{content:"";width:30px;height:1px;background:currentColor;opacity:.5}
+.center .kicker::before{display:none}
+.titulo{font-family:var(--sa);font-weight:700;text-transform:uppercase;line-height:1.02;letter-spacing:.005em;color:var(--ci);
+  font-size:var(--fs-h-xl);margin:0}
+.titulo.fino{font-weight:200}
+.titulo.serif{font-family:var(--se);font-weight:400}
+.entrada{font-family:var(--sa);font-size:var(--fs-body-l);line-height:1.75;color:var(--ci2);max-width:56ch;margin:0}
+.cab{display:flex;flex-direction:column;gap:14px}
+.cab.center{align-items:center;text-align:center;margin-inline:auto;max-width:860px}
+.cab.center .entrada{margin-inline:auto}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 28px;border-radius:40px;font-family:var(--sa);font-size:11px;font-weight:500;
+  letter-spacing:.14em;text-transform:uppercase;text-decoration:none;border:1px solid transparent;cursor:pointer;
+  transition:transform .16s cubic-bezier(.23,1,.32,1),background .22s,color .22s,border-color .22s}
+.btn:active{transform:scale(.97)}
+.btn-tierra{background:var(--be);color:var(--rl)} .btn-tierra:hover{background:#2d1607}
+.btn-verde{background:var(--tg);color:var(--rl)} .btn-verde:hover{background:var(--tg-dark)}
+.btn-hueso{border-color:rgba(245,240,230,.5);color:var(--rl);background:rgba(245,240,230,.06)} .btn-hueso:hover{background:rgba(245,240,230,.14)}
+.btn-linea{border-color:rgba(46,52,55,.35);color:var(--ci)} .btn-linea:hover{border-color:var(--tg);color:var(--tg)}
+.reveal{opacity:0;transform:translateY(28px);filter:blur(4px);transition:opacity .85s var(--ease),transform .85s var(--ease),filter .85s var(--ease)}
+.reveal.in{opacity:1;transform:none;filter:none}
+@media(prefers-reduced-motion:reduce){.reveal{transform:none;filter:none;transition:opacity .4s}}
+
+/* ── 1 · HERO a pantalla completa (patron .hero-panel de la home) ── */
+#vision{position:relative;min-height:600px;background:var(--ob);color:var(--rl)}
+#hero-visual{position:relative;height:100svh;min-height:600px}
+@media(min-width:1024px){#hero-visual{position:absolute;inset:0;height:auto}}
+#hero-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;width:100%;height:100%;scrollbar-width:none}
+#hero-track figure{margin:0;flex:none;width:100%;height:100%;scroll-snap-align:center}
+#hero-track img{width:100%;height:100%;object-fit:cover;display:block}
+.hero-velo{position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(to top,rgba(10,12,9,.86) 0%,rgba(10,12,9,.45) 38%,rgba(10,12,9,.08) 62%,rgba(10,12,9,.38) 100%)}
+.hero-flecha{position:absolute;top:50%;transform:translateY(-50%);z-index:5;width:46px;height:46px;border-radius:50%;display:none;align-items:center;justify-content:center;
+  border:1px solid rgba(245,240,230,.45);background:rgba(20,18,14,.22);color:var(--rl);cursor:pointer;backdrop-filter:blur(6px);transition:all .3s}
+.hero-flecha:hover{background:rgba(245,240,230,.16)}
+.hero-flecha:disabled{opacity:0;pointer-events:none}
+@media(min-width:768px){.hero-flecha{display:flex}}
+#hero-prev{left:clamp(14px,2.5vw,36px)} #hero-next{right:clamp(14px,2.5vw,36px)}
+.hero-texto{position:absolute;z-index:4;left:var(--cpd);right:var(--cpd);top:calc(100svh - clamp(96px,17vh,170px));transform:translateY(-100%);max-width:1100px}
+@media(min-width:1024px){.hero-texto{top:auto;transform:none}.hero-pie{top:auto;bottom:clamp(22px,4vh,40px);transform:none}}
+.hero-texto .kicker{color:var(--ss)}
+.hero-texto .kicker::before{background:var(--ss)}
+#vision h1{font-family:var(--se);font-weight:400;font-size:var(--fs-display);line-height:.92;letter-spacing:.01em;text-transform:uppercase;margin:.35em 0 0;color:var(--rl)}
+.hero-sub{font-family:var(--sa);font-weight:500;font-size:clamp(13px,1.05vw,17px);letter-spacing:.12em;text-transform:uppercase;color:rgba(245,240,230,.9);margin:18px 0 0}
+.hero-sub i{font-style:normal;font-weight:300;opacity:.85}
+.hero-pie{position:absolute;z-index:4;left:var(--cpd);right:var(--cpd);top:calc(100svh - clamp(22px,4vh,40px));transform:translateY(-100%);display:flex;align-items:flex-end;justify-content:space-between;gap:24px}
+.cifras{display:grid;grid-template-columns:repeat(4,auto);gap:0;border-top:1px solid rgba(245,240,230,.28);padding-top:14px}
+.cifra{display:flex;flex-direction:column;gap:4px;padding:0 clamp(14px,2.2vw,34px);border-left:1px solid rgba(245,240,230,.28)}
+.cifra:first-child{padding-left:0;border-left:0}
+.cifra b{font-family:var(--sa);font-weight:200;font-size:clamp(20px,1.6vw + 8px,34px);line-height:1;color:var(--rl);white-space:nowrap;letter-spacing:.01em}
+.cifra span{font-family:var(--sa);font-weight:500;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ss)}
+.hero-cta{display:inline-flex;align-items:center;gap:12px;padding:14px 26px;border-radius:40px;white-space:nowrap;text-decoration:none;
+  font-family:var(--sa);font-weight:500;font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:var(--rl);
+  border:1px solid rgba(190,179,165,.55);background:rgba(72,91,55,.35) url('../../assets/img/TexturasBotones.webp') center/cover;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:background-color .3s,transform .2s}
+.hero-cta:hover{background-color:rgba(72,91,55,.6);transform:translateY(-1px)}
+#hero-puntos{position:absolute;z-index:4;left:50%;transform:translateX(-50%);top:calc(100svh - 20px);display:flex;gap:6px}
+@media(max-width:900px){
+  .hero-pie{flex-direction:column;align-items:flex-start}
+  .cifras{grid-template-columns:repeat(2,auto);row-gap:14px}
+  .cifra:nth-child(3){padding-left:0;border-left:0}
+  .hero-texto{top:calc(100svh - clamp(250px,36vh,300px))}
+}
+
+/* ── 2 · MODELOS: "FOUR WAYS, ONE LEGACY" — tarjetas altas con marco interior ── */
+.sec{position:relative;padding:clamp(4.5rem,11vh,8rem) 0}
+.sec-lino{background:var(--rl) url('../../assets/img/bg-ecosystem.webp?v=2') center/cover}
+.sec-lino::before{content:"";position:absolute;inset:0;background:rgba(245,240,230,.72);pointer-events:none}
+.sec > .wrap{position:relative}
+#modelos-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:clamp(18px,2.2vw,32px);margin-top:clamp(2.5rem,5vh,3.5rem)}
+.villa{position:relative;display:block;aspect-ratio:3/4.4;border-radius:14px;overflow:hidden;background:var(--va);color:var(--rl);text-decoration:none;
+  box-shadow:0 30px 60px -30px rgba(20,26,17,.55);transition:transform .5s var(--ease)}
+.villa:hover{transform:translateY(-6px)}
+.villa [data-foto]{position:absolute;inset:0}
+.villa [data-foto] img{width:100%;height:100%;object-fit:cover;transition:transform 1.2s var(--ease)}
+.villa:hover [data-foto] img{transform:scale(1.05)}
+.villa [data-foto] > div{height:100%!important}
+.villa::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(to top,rgba(14,17,12,.92) 0%,rgba(14,17,12,.55) 36%,rgba(14,17,12,0) 60%)}
+.villa::after{content:"";position:absolute;inset:14px;z-index:2;border:1px solid rgba(245,240,230,.38);border-radius:8px;pointer-events:none}
+.villa-cuerpo{position:absolute;z-index:3;left:28px;right:28px;bottom:28px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px}
+.villa-nombre{font-family:var(--sa);font-weight:500;font-size:clamp(24px,1.3vw + 12px,30px);letter-spacing:.06em;text-transform:uppercase;line-height:1}
+.villa-precio{font-family:var(--sa);font-weight:500;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--ss)}
+.villa-precio .font-kpi-number,.villa-precio span{color:var(--rl)!important;font-family:var(--sa)!important;font-size:inherit!important;font-weight:inherit!important;letter-spacing:.14em}
+.villa-stats{display:grid;grid-template-columns:repeat(4,1fr);width:100%;border-top:1px solid rgba(245,240,230,.25);border-bottom:1px solid rgba(245,240,230,.25)}
+.villa-stats div{display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 2px}
+.villa-stats div + div{border-left:1px solid rgba(245,240,230,.18)}
+.villa-stats b{font-family:var(--sa);font-weight:300;font-size:16px;white-space:nowrap}
+.villa-stats span{font-family:var(--sa);font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:rgba(245,240,230,.7)}
+.villa-nota{font-family:var(--sa);font-size:11px;line-height:1.5;color:rgba(245,240,230,.78)}
+.villa-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 18px;border-radius:40px;
+  border:1px solid rgba(245,240,230,.55);font-family:var(--sa);font-size:11px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;transition:background .3s,color .3s}
+.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
+.villa-sello{position:absolute;z-index:3;top:26px;left:50%;transform:translateX(-50%);font-family:var(--sa);font-size:10px;font-weight:500;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--rl);padding:6px 14px;border-radius:30px;background:rgba(72,91,55,.85);white-space:nowrap}
+
+/* ── 3 · MASTERPLAN: cabecera "THE COLLECTION" + plano + inventario ── */
+.cab-fila{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.titulo.verde{color:var(--tg-dark)}
+.leyenda{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin-top:6px;font-family:var(--sa);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ci2)}
+.leyenda i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px;vertical-align:1px}
+.mp-grid{display:grid;grid-template-columns:1fr;gap:clamp(20px,2.4vw,36px);margin-top:clamp(2rem,4.5vh,3rem);align-items:start}
+@media(min-width:1024px){.mp-grid{grid-template-columns:7fr 5fr}}
+.marco{position:relative;border-radius:14px;overflow:hidden;background:var(--cbr);box-shadow:0 30px 60px -34px rgba(20,26,17,.5)}
+.marco-pad{padding:14px}
+#masterplan-img{width:100%;display:block;border-radius:8px}
+.mp-nota{font-family:var(--sa);font-size:12px;color:var(--ci3);margin:12px 4px 2px}
+.inv{border-radius:14px;overflow:hidden;background:var(--cbr);box-shadow:0 30px 60px -34px rgba(20,26,17,.5)}
+.inv-cab{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 22px;background:var(--ob);color:var(--rl)}
+.inv-cab strong{font-family:var(--sa);font-weight:500;font-size:12px;letter-spacing:.22em;text-transform:uppercase;display:flex;align-items:center;gap:10px}
+.inv-cab strong::before{content:"";width:7px;height:7px;border-radius:50%;background:#25D366;box-shadow:0 0 0 4px rgba(37,211,102,.18)}
+#plots-count{font-family:var(--sa);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ss);white-space:nowrap}
+#plots-wrap{max-height:440px;overflow-y:auto;scroll-behavior:smooth;position:relative}
+@media(min-width:1024px){#plots-wrap{max-height:680px}}
+#plots-wrap > div + div{border-top:1px solid rgba(190,179,165,.35)}
+#plots-wrap .font-headline-sm{font-family:var(--sa)!important;font-weight:500!important;letter-spacing:.06em;color:var(--ci)!important}
+#plots-wrap .font-body-sm,#plots-wrap .text-sm{font-family:var(--sa)!important}
+.lw-fila-activa{background:rgba(143,155,122,.16)}
+.lw-destello{animation:lwDestello 2s ease-out}
+@keyframes lwDestello{0%,30%{background:rgba(72,91,55,.32)}100%{background:rgba(143,155,122,.16)}}
+.lw-plano-activo{background:rgba(16,76,79,.55)!important}
+.protocolo{margin-top:18px;padding:22px;border-radius:14px;background:var(--dl);color:var(--rl)}
+.protocolo > span{font-family:var(--sa);font-size:11px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:var(--ss)}
+.protocolo ol{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:12px}
+.protocolo li{display:flex;flex-direction:column;gap:3px;font-family:var(--sa);font-size:13px;line-height:1.5;color:rgba(245,240,230,.8)}
+.protocolo li strong{font-weight:500;color:var(--rl);letter-spacing:.04em}
+
+/* ── 4 · FORECAST: "FROM LAND TO LEGACY" — foto a sangre + columnas con filete ── */
+.sec-foto{color:var(--rl);background:var(--ob) url('assets/gallery/08-resort-night.jpg') center/cover}
+.sec-foto::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(10,12,9,.62),rgba(10,12,9,.78) 45%,rgba(14,20,11,.94))}
+.sec-foto .kicker{color:var(--ss)}
+.sec-foto .titulo{color:var(--rl)}
+.sec-foto .entrada{color:rgba(245,240,230,.82)}
+#forecast-grid{display:grid;grid-template-columns:1fr;gap:clamp(18px,2vw,28px);margin-top:clamp(2.5rem,6vh,4rem)}
+@media(min-width:900px){#forecast-grid{grid-template-columns:repeat(3,1fr)}}
+/* Tarjetas (24-sep, owner: "en cards para hacerlo mas legible"): cristal oscuro casi opaco
+   como el panel de la hero, para que las cifras no compitan con la foto de fondo. */
+.prev{position:relative;padding:14px 14px 18px;border-radius:16px;
+  background:rgba(12,14,10,.78);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border:1px solid rgba(190,179,165,.3);box-shadow:0 30px 60px -30px rgba(0,0,0,.7)}
+.prev > :not(.prev-foto):not(.villa-sello){margin-left:10px;margin-right:10px}
+.prev-foto{position:relative;height:170px;border-radius:10px;overflow:hidden;margin-bottom:22px;background:var(--va)}
+.prev-foto img{width:100%;height:100%;object-fit:cover}
+.prev-foto > div{height:100%!important}
+.prev .kicker{font-size:10px;color:var(--ss)}
+.prev h3{font-family:var(--sa);font-weight:500;font-size:clamp(20px,1vw + 12px,26px);letter-spacing:.08em;text-transform:uppercase;margin:10px 0 8px;color:var(--rl)}
+.prev-base{font-family:var(--sa);font-size:13px;line-height:1.6;color:rgba(245,240,230,.85);margin:0 0 18px}
+.prev-base b{color:var(--rl);font-weight:500}
+.esc{padding:14px 0;border-top:1px solid rgba(245,240,230,.16)}
+.esc-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.esc-top > span{font-family:var(--sa);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ss)}
+.esc-top b{font-family:var(--sa);font-weight:200;font-size:clamp(22px,1.1vw + 12px,28px);color:var(--rl);white-space:nowrap}
+.esc p{font-family:var(--sa);font-size:12px;line-height:1.6;color:rgba(245,240,230,.82);margin:6px 0 0}
+.esc p b{color:#cfe0b8;font-weight:500}
+#forecast-nota{font-family:var(--sa);font-size:12px;line-height:1.7;color:rgba(245,240,230,.72);max-width:74ch;margin:clamp(2rem,4vh,3rem) 0 0;padding-top:18px;border-top:1px solid rgba(245,240,230,.2)}
+
+/* ── 5 · LEGAL: tabla bueno/malo en tokens de la home ── */
+.tabla{margin-top:clamp(2rem,5vh,3rem);border-radius:14px;overflow:hidden;background:var(--cbr);box-shadow:0 30px 60px -34px rgba(20,26,17,.45)}
+.t-fila{display:grid;grid-template-columns:1fr;gap:8px;padding:16px}
+.t-fila + .t-fila{border-top:1px solid rgba(190,179,165,.4)}
+.t-cab{display:none}
+@media(min-width:900px){
+  .t-fila{grid-template-columns:3fr 5fr 4fr;gap:0;padding:0}
+  .t-fila > div{padding:18px 22px}
+  .t-cab{display:grid}
+}
+.t-cab > div{font-family:var(--sa);font-size:11px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.t-cab > div:nth-child(1){color:var(--ci2);background:var(--rl2)}
+.t-cab > div:nth-child(2){color:var(--rl);background:var(--tg)}
+.t-cab > div:nth-child(3){color:var(--rl);background:#8E2A22}
+.t-asp{display:flex;flex-direction:column;justify-content:center;gap:2px}
+.t-asp strong{font-family:var(--sa);font-weight:500;font-size:14px;letter-spacing:.04em;color:var(--ci)}
+.t-asp span{font-family:var(--sa);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ci3)}
+.t-si,.t-no{display:flex;gap:10px;align-items:flex-start;border-radius:10px;padding:12px 14px}
+@media(min-width:900px){.t-si,.t-no{border-radius:0}}
+.t-si{background:#EEF3E6} .t-no{background:rgba(142,42,34,.06)}
+.t-si .material-symbols-outlined{color:var(--tg)} .t-no .material-symbols-outlined{color:#8E2A22}
+.t-si p,.t-no p{margin:0;font-family:var(--sa);font-size:13.5px;line-height:1.6}
+.t-si p{color:#2F4521} .t-no p{color:#6E2A22}
+.t-si em,.t-no em{display:block;font-style:normal;font-family:var(--sa);font-size:10px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;margin-bottom:3px}
+.t-si em{color:var(--tg)} .t-no em{color:#8E2A22}
+@media(min-width:900px){.t-si em,.t-no em{display:none}}
+.claves{display:grid;grid-template-columns:1fr;gap:0;margin-top:clamp(2rem,4vh,3rem);border-top:1px solid rgba(46,52,55,.18)}
+@media(min-width:900px){.claves{grid-template-columns:1fr 1fr}}
+.clave{display:flex;gap:14px;align-items:flex-start;padding:22px 0}
+@media(min-width:900px){.clave + .clave{border-left:1px solid rgba(46,52,55,.18);padding-left:32px}.clave:first-child{padding-right:32px}}
+.clave .material-symbols-outlined{color:var(--tg);font-size:26px}
+.clave strong{display:block;font-family:var(--sa);font-weight:500;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--ci);margin-bottom:6px}
+.clave p{margin:0;font-family:var(--sa);font-size:14px;line-height:1.7;color:var(--ci2)}
+
+/* ── 1b · PANEL DE LA HERO (24-sep, owner: "A land-plot development… con el FAQ en la
+   hero"). Movil: debajo de la foto, en flujo, a todo el ancho (leccion de v2: un panel
+   largo superpuesto en pantalla pequeña es un callejon sin salida). Desde 1024px flota
+   a la derecha sobre la foto, en cristal oscuro como el desplegable de idioma de la home. */
+#faq{position:relative;z-index:6;background:var(--ob);color:var(--rl);padding:40px var(--cpd) 48px}
+#faq .kicker{color:var(--sc)}
+#faq .kicker::before{background:var(--sc)}
+#faq h2{font-family:var(--sa);font-weight:200;font-size:clamp(28px,1.4vw + 16px,40px);line-height:1.05;text-transform:uppercase;margin:12px 0 0;color:var(--rl)}
+#faq h2 em{font-family:var(--se);font-weight:400;font-style:normal;color:var(--ss)}
+.dd-lema{font-family:var(--sa);font-size:14px;line-height:1.7;color:rgba(245,240,230,.75);margin:14px 0 0}
+.dd-lema b{color:var(--rl);font-weight:500}
+#faq h3{font-family:var(--sa);font-size:11px;font-weight:500;letter-spacing:.24em;text-transform:uppercase;color:var(--sc);margin:0 0 6px}
+.dd-cab{padding-bottom:22px;border-bottom:1px solid rgba(245,240,230,.16)}
+.dd-cuerpo{display:flex;flex-direction:column;gap:30px;padding-top:24px}
+/* Documentos | FAQ lado a lado desde 1280px (v2, owner 23-sep: las dos columnas a la
+   vista). Sin documentos publicados, la FAQ ocupa todo el ancho. */
+.dd-cols{display:flex;flex-direction:column;gap:30px}
+@media(min-width:1280px){
+  #vision{--pw:min(52%,760px)!important}
+  .dd-cols{flex-direction:row;align-items:flex-start;gap:28px}
+  .dd-cols > div{flex:1 1 0;min-width:0}
+  #docs-lista a{padding:6px 10px!important}
+}
+@media(min-width:1024px){
+  #vision{height:100svh}
+  #vision{--pw:min(40%,560px)}
+  #faq{position:absolute;top:clamp(78px,11vh,96px);right:var(--cpd);bottom:clamp(22px,4vh,40px);width:var(--pw);min-width:400px;
+    padding:0;display:flex;flex-direction:column;overflow:hidden;border-radius:16px;
+    background:rgba(12,14,10,.62);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    border:1px solid rgba(190,179,165,.3);box-shadow:0 30px 70px -30px rgba(0,0,0,.7)}
+  .dd-cab{padding:26px 28px 20px;flex:none}
+  .dd-cuerpo{flex:1;min-height:0;overflow-y:auto;padding:20px 28px 26px;scrollbar-width:thin;scrollbar-color:rgba(245,240,230,.25) transparent}
+  .hero-texto,.hero-pie{right:calc(var(--pw) + var(--cpd) + 40px)}
+  #hero-next{right:calc(var(--pw) + var(--cpd) + 20px)}
+  #hero-puntos{left:calc((100% - var(--pw) - var(--cpd)) / 2)}
+  .hero-pie{flex-direction:column;align-items:flex-start;gap:22px}
+  .hero-texto{bottom:clamp(170px,26vh,230px)}
+}
+@media(min-width:1024px) and (max-width:1640px){ .cifras{grid-template-columns:repeat(2,auto);row-gap:14px} .cifra:nth-child(3){padding-left:0;border-left:0} .hero-texto{bottom:clamp(220px,32vh,280px)} }
+#docs-bloque{flex-direction:column}
+#docs-lista{display:grid;grid-template-columns:1fr;gap:0}
+#docs-lista > div{background:transparent!important;border:0!important;border-top:1px solid rgba(245,240,230,.16)!important;border-radius:0!important;padding:14px 0!important}
+#docs-lista > div:last-child{border-bottom:1px solid rgba(245,240,230,.16)!important}
+#docs-lista .text-deep-lagoon,#docs-lista .font-bold{color:var(--rl)!important;font-family:var(--sa)!important;font-weight:500!important;letter-spacing:.04em}
+#docs-lista .text-territorial-green{color:var(--sc)!important}
+#docs-lista .uppercase{color:var(--ss)!important;font-family:var(--sa)!important;letter-spacing:.2em}
+#docs-lista a{font-family:var(--sa)!important;font-size:10.5px!important;letter-spacing:.16em;text-transform:uppercase;border:1px solid rgba(245,240,230,.4)!important;
+  background:transparent!important;color:var(--rl)!important}
+#docs-lista a:hover{background:rgba(245,240,230,.12)!important}
+.faq-item{border:0;border-top:1px solid rgba(245,240,230,.18);border-radius:0;background:transparent}
+.faq-item:last-child{border-bottom:1px solid rgba(245,240,230,.18)}
+.faq-item + .faq-item{margin-top:0}
+.faq-item summary{list-style:none;cursor:pointer;padding:15px 0;display:flex;align-items:center;justify-content:space-between;gap:16px;
+  font-family:var(--sa);font-size:13px;font-weight:500;letter-spacing:.03em;text-transform:uppercase;color:var(--rl);line-height:1.4}
+.faq-item summary::-webkit-details-marker{display:none}
+.faq-item summary .mi{font-size:0!important;width:14px;height:14px;position:relative;flex:none;transition:transform .3s var(--ease)}
+.faq-item summary .mi::before,.faq-item summary .mi::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(245,240,230,.8)}
+.faq-item summary .mi::after{transform:rotate(90deg);transition:transform .3s var(--ease)}
+.faq-item[open] summary .mi::after{transform:rotate(0)}
+.faq-item__body{padding:0 0 20px;font-family:var(--sa);font-size:14px;line-height:1.75;color:rgba(245,240,230,.72);max-width:64ch}
+#faq-lista{display:flex;flex-direction:column}
+#faq-lista p{color:rgba(245,240,230,.7)}
+.dd-atajos{display:flex;flex-wrap:wrap;gap:8px;padding-top:4px}
+.dd-atajos .btn{padding:10px 16px;font-size:10px}
+
+/* ── 7 · GALERIA ── */
+#gallery{display:flex;gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;padding-bottom:6px;scrollbar-width:none;margin-top:clamp(2rem,4.5vh,3rem)}
+#gallery figure{margin:0;flex:none;width:82vw;scroll-snap-align:start;position:relative;border-radius:14px;overflow:hidden;background:var(--va)!important;border:0!important;box-shadow:none!important}
+@media(min-width:640px){#gallery figure{width:46vw}}
+@media(min-width:1024px){#gallery figure{width:31%}}
+#gallery figure > div{aspect-ratio:4/5!important}
+#gallery figcaption{position:absolute;left:0;right:0;bottom:0;padding:40px 18px 16px!important;background:linear-gradient(to top,rgba(10,12,9,.8),rgba(10,12,9,0))!important;
+  color:var(--rl)!important;font-family:var(--sa)!important;font-size:11px!important;letter-spacing:.18em;text-transform:uppercase}
+#gallery figure::after{content:"";position:absolute;inset:12px;border:1px solid rgba(245,240,230,.3);border-radius:8px;pointer-events:none}
+.gal-flechas{display:flex;gap:10px}
+.gal-flechas button{width:46px;height:46px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
+  border:1px solid rgba(46,52,55,.3);background:transparent;color:var(--ci);transition:all .3s}
+.gal-flechas button:hover{background:var(--ci);color:var(--rl)}
+.gal-flechas button:disabled{opacity:.3;pointer-events:none}
+
+#fx-nota{padding:14px var(--cpd);background:var(--rl2)}
+#fx-nota p{max-width:var(--cmx);margin:0 auto;font-family:var(--sa);font-size:12px;color:var(--ci2)}
+/* Modal de reserva: mismo marcado que v2; solo la tipografia */
+/* ════ Masterplan y Legal con el lenguaje del resto de modulos (24-sep, owner) ═══════════
+   Fondo de lino con textura como Modelos/Galeria y todo el contenido en tarjetas oscuras
+   con filete interior, como las villas, el forecast y el panel de la hero. Los colores
+   bueno/malo de la tabla legal se conservan (owner 22-sep), adaptados a fondo oscuro. */
+.marco,.inv,.protocolo,.tabla,.clave{position:relative;background:#11150E;color:var(--rl);border-radius:16px;
+  box-shadow:0 30px 60px -30px rgba(20,26,17,.6);border:0}
+.marco::after,.protocolo::after,.clave::after{content:"";position:absolute;inset:8px;border:1px solid rgba(245,240,230,.16);border-radius:10px;pointer-events:none}
+.marco-pad{padding:18px}
+#masterplan-img{border-radius:8px}
+.mp-nota{color:rgba(245,240,230,.65);margin:14px 6px 4px}
+.inv{overflow:hidden}
+.inv-cab{background:transparent;border-bottom:1px solid rgba(245,240,230,.14);padding:20px 24px}
+#plots-wrap > div + div{border-top:1px solid rgba(245,240,230,.1)}
+#plots-wrap > div{background:transparent}
+#plots-wrap > div:hover{background:rgba(245,240,230,.04)!important}
+#plots-wrap .font-headline-sm,#plots-wrap .text-deep-lagoon{color:var(--rl)!important}
+#plots-wrap .text-on-surface-variant,#plots-wrap .text-sm{color:rgba(245,240,230,.68)!important}
+#plots-wrap [class*="bg-territorial-green/15"]{background:rgba(143,155,122,.2)!important;color:#C3D9A6!important}
+#plots-wrap [class*="bg-amber-100"]{background:rgba(245,158,11,.18)!important;color:#F4C979!important}
+#plots-wrap [class*="FBE9E7"]{background:rgba(179,38,30,.22)!important;color:#EFA39B!important}
+#plots-wrap [class*="bg-surface-container "],#plots-wrap span[class*="bg-surface-container px"]{background:rgba(245,240,230,.08)!important;color:rgba(245,240,230,.5)!important}
+#plots-wrap a[href*="wa.me"]{background:transparent!important;color:var(--rl)!important;border:1px solid rgba(37,211,102,.7);
+  font-family:var(--sa)!important;font-size:10.5px!important;letter-spacing:.14em;text-transform:uppercase;padding:9px 14px!important}
+#plots-wrap a[href*="wa.me"]:hover{background:#25D366!important;color:#0b3d25!important}
+#plots-wrap a[href*="wa.me"] .material-symbols-outlined{color:#25D366}
+#plots-wrap a[href*="wa.me"]:hover .material-symbols-outlined{color:#0b3d25}
+#plots-wrap .lw-fila-activa,.lw-fila-activa{background:rgba(143,155,122,.2)!important}
+#plots-wrap{scrollbar-width:thin;scrollbar-color:rgba(245,240,230,.25) transparent}
+.protocolo{margin-top:20px;padding:26px 26px 24px}
+.protocolo > span{color:var(--sc)}
+.protocolo ol{gap:0;margin-top:16px}
+.protocolo li{padding:12px 0;border-top:1px solid rgba(245,240,230,.12);color:rgba(245,240,230,.75)}
+.protocolo li strong{font-size:12px;letter-spacing:.16em;text-transform:uppercase}
+/* Tabla legal */
+.tabla{overflow:hidden}
+.t-fila + .t-fila{border-top:1px solid rgba(245,240,230,.1)}
+.t-cab > div:nth-child(1){color:var(--ss);background:rgba(245,240,230,.05)}
+.t-cab > div:nth-child(2){background:var(--tg)}
+.t-cab > div:nth-child(3){background:#7A241E}
+.t-asp strong{color:var(--rl)}
+.t-asp span{color:var(--ss)}
+.t-si{background:rgba(72,91,55,.28)} .t-no{background:rgba(142,42,34,.16)}
+.t-si p{color:#E3EDD6} .t-no p{color:#F0CFCB}
+.t-si .material-symbols-outlined,.t-si em{color:#A9C98A} .t-no .material-symbols-outlined,.t-no em{color:#E58C82}
+.claves{border-top:0;gap:clamp(18px,2vw,28px)}
+.clave{padding:30px 30px 28px!important;border-left:0!important}
+.clave strong{color:var(--rl)}
+.clave p{color:rgba(245,240,230,.72)}
+.clave .material-symbols-outlined{color:var(--sc)}
+/* Escritorio: la hero vuelve a anclar texto/cifras/puntos al fondo de la seccion
+   (en movil se anclan al pie de la FOTO, porque debajo va el panel en flujo). */
+@media(min-width:1024px){
+  .hero-texto{top:auto;transform:none;bottom:clamp(170px,26vh,230px)}
+  .hero-pie{top:auto;transform:none;bottom:clamp(22px,4vh,40px)}
+  #hero-puntos{top:auto;bottom:clamp(8px,1.6vh,14px);transform:translateX(-50%)}
+}
+@media(min-width:1024px) and (max-width:1640px){ .hero-texto{bottom:clamp(220px,32vh,280px)} }
+</style>
+
+<script src="i18n.js?v=20260924a"></script>
+</head>
+<body>
+
+<!-- TOP BAR — calco de #topbar de lawangproperties.com: transparente sobre la foto
+     (logo blanco, menu en pildora de cristal, texto con sombra) y solida en lino al
+     bajar (logo oscuro, enlaces verdes). La clase .solid la pone el script del final. -->
+<header id="topbar">
+  <a id="logo" href="#vision" aria-label="Lawang Properties — Palm Field">
+    <img class="lg-w" src="../../assets/img/lawang-logo-v3.webp" alt="Lawang">
+    <img class="lg-d" src="../../assets/img/lawang-logo-v3-dark.webp" alt="" aria-hidden="true">
+  </a>
+  <nav id="nav-principal" aria-label="Sections">
+    <a class="nav-link" href="#vision">Project &amp; Photos</a>
+    <a class="nav-link" href="#modelos">Villa Models</a>
+    <a class="nav-link" href="#masterplan">Masterplan &amp; Plots</a>
+    <a class="nav-link" href="#rendimientos">Financial Forecast</a>
+    <a class="nav-link" href="#seguridad-notarial">Legal Security</a>
+    <a class="nav-link" href="#faq">FAQ</a>
+  </nav>
+  <div id="acciones">
+    <!-- Nace OCULTO: solo se enciende si el proyecto tiene un dosier publico (mismo JS que v2). -->
+    <a id="cta-dosier" aria-label="Download dossier" class="hidden" href="#" target="_blank" rel="noopener">
+      <span class="material-symbols-outlined">download</span>
+      <span>Download dossier</span>
     </a>
-    <nav class="hidden xl:flex items-center gap-1 bg-white/10 p-1.5 rounded-full border border-white/15">
-      <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-white/85 hover:text-deep-lagoon hover:bg-white transition-all" href="#vision">Project &amp; Photos</a>
-      <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-white/85 hover:text-deep-lagoon hover:bg-white transition-all" href="#modelos">Villa Models</a>
-      <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-white/85 hover:text-deep-lagoon hover:bg-white transition-all" href="#masterplan">Masterplan &amp; Plots</a>
-      <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-white/85 hover:text-deep-lagoon hover:bg-white transition-all" href="#rendimientos">Financial Forecast</a>
-      <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-white/85 hover:text-deep-lagoon hover:bg-white transition-all" href="#seguridad-notarial">Legal Security</a>
-      <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-white/85 hover:text-deep-lagoon hover:bg-white transition-all" href="#faq">FAQ</a>
-    </nav>
-    <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-      <div class="flex items-center gap-1" id="deck-selectores" data-no-i18n
-           style="--lw-lang-ink:rgba(255,255,255,.92);--lw-lang-bg:#0c3c3f;--lw-lang-line:rgba(255,255,255,.18);--lw-lang-menu-ink:#F5F0E6;--lw-lang-hover:rgba(255,255,255,.12)"></div>
-      <!-- Nace OCULTO a proposito: solo se enciende si el proyecto tiene un documento
-           marcado como publico en la intranet. Un boton "Descargar" que no descarga nada
-           es peor que no tenerlo. -->
-      <a id="cta-dosier" class="hidden items-center gap-2 px-4 sm:px-5 py-2.5 rounded-full bg-white text-deep-lagoon font-label-md text-label-md hover:bg-soft-canopy hover:text-white transition-all shadow-sm whitespace-nowrap" href="#" target="_blank" rel="noopener">
-        <span class="material-symbols-outlined text-[17px]">download</span>
-        <span class="hidden sm:inline">Download dossier</span><span class="sm:hidden">Dossier</span>
-      </a>
-      <a id="cta-whatsapp" class="inline-flex items-center gap-2 px-3.5 sm:px-5 py-2.5 rounded-full bg-[#25D366] text-[#0b3d25] font-label-md text-label-md hover:brightness-95 transition-all shadow-sm whitespace-nowrap" href="https://wa.me/6281138319862?text=Hello%20LAWANG%2C%20I%27m%20looking%20at%20the%20Palm%20Field%20investor%20deck%20and%20I%20have%20a%20few%20questions." target="_blank" rel="noopener" aria-label="Ask about Palm Field on WhatsApp"><span class="hidden" data-wa-msg>Hello LAWANG, I’m looking at the Palm Field investor deck and I have a few questions.</span>
-        <svg viewBox="0 0 24 24" class="w-[17px] h-[17px] shrink-0" fill="currentColor" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.22 3.08.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.04 21.5h-.01a9.5 9.5 0 0 1-4.84-1.33l-.35-.2-3.6.94.96-3.51-.23-.36a9.49 9.49 0 0 1-1.45-5.05c0-5.24 4.27-9.5 9.52-9.5a9.46 9.46 0 0 1 9.51 9.51c0 5.24-4.27 9.5-9.51 9.5zM20.52 3.49A11.78 11.78 0 0 0 12.04 0C5.46 0 .1 5.36.1 11.94c0 2.1.55 4.16 1.6 5.98L0 24l6.25-1.64a11.92 11.92 0 0 0 5.79 1.47h.01c6.58 0 11.94-5.36 11.94-11.94a11.86 11.86 0 0 0-3.47-8.4z"/></svg>
-        <span class="hidden sm:inline">Questions? WhatsApp</span><span class="sm:hidden">WhatsApp</span>
-      </a>
-    </div>
+    <div id="deck-selectores" data-no-i18n></div>
+    <button type="button" id="menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="menu-movil">
+      <span class="material-symbols-outlined" id="menu-ico">menu</span>
+    </button>
   </div>
 </header>
+<nav id="menu-movil" class="hidden"></nav>
 
-<main class="w-full pt-[72px] bg-surface min-h-[calc(100vh-72px)]">
-<div class="flex flex-col w-full">
+<!-- WhatsApp flotante: el circulo verde de la home. El texto se conserva (oculto a la
+     vista, legible por lector de pantalla) porque i18n.js y el ?text= salen de aqui. -->
+<a id="cta-whatsapp" href="https://wa.me/6281138319862?text=Hello%20LAWANG%2C%20I%27m%20looking%20at%20the%20Palm%20Field%20investor%20deck%20and%20I%20have%20a%20few%20questions." target="_blank" rel="noopener" aria-label="Ask about Palm Field on WhatsApp"><span class="hidden" data-wa-msg>Hello LAWANG, I’m looking at the Palm Field investor deck and I have a few questions.</span>
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.22 3.08.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.04 21.5h-.01a9.5 9.5 0 0 1-4.84-1.33l-.35-.2-3.6.94.96-3.51-.23-.36a9.49 9.49 0 0 1-1.45-5.05c0-5.24 4.27-9.5 9.52-9.5a9.46 9.46 0 0 1 9.51 9.51c0 5.24-4.27 9.5-9.51 9.5zM20.52 3.49A11.78 11.78 0 0 0 12.04 0C5.46 0 .1 5.36.1 11.94c0 2.1.55 4.16 1.6 5.98L0 24l6.25-1.64a11.92 11.92 0 0 0 5.79 1.47h.01c6.58 0 11.94-5.36 11.94-11.94a11.86 11.86 0 0 0-3.47-8.4z"/></svg>
+  <span class="sr">Questions? WhatsApp</span>
+</a>
 
-<!-- SECCIÓN 1: HERO -->
-<!-- Dos columnas desde lg: a la izquierda el proyecto, a la derecha la due diligence ENTERA
-     (hechos verificados + las 7 preguntas). La columna derecha scrollea SOLA (min-h-0 +
-     overflow-y-auto dentro de una caja con max-h) para que quien abre el deck tenga la
-     documentación delante sin mover la página — que es lo que hace un inversor en los
-     primeros veinte segundos. La FAQ vive AQUÍ y en ningún otro sitio: dos copias derivan,
-     y este texto es el que pasó la consulta legal del 9-sep-2026. -->
-<section class="w-full px-6 md:px-margin-desktop pt-6 pb-10 relative overflow-hidden" id="vision">
-<div class="lw-wide flex flex-col gap-6">
+<main>
 
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-
-    <!-- Izquierda: el sitio -->
-    <div class="flex flex-col gap-4">
-    <div class="flex flex-col gap-3">
-      <div class="flex flex-wrap items-center gap-3">
-        <span class="px-3 py-1 rounded-full bg-[#E4DFD5] text-[#2E3437] border border-[#D8D2C5] font-label-md text-body-sm tracking-wider uppercase font-semibold">Investor Deck · Due Diligence</span>
-        <span class="text-[#5F6257] text-xs hidden sm:inline">•</span>
-        <span class="font-body-sm text-body-sm text-territorial-green font-semibold">Balian Hills · Bali</span>
-        <!-- Fuera «Palm Field, by PT SAN DAL WOODS» (11-sep-2026, owner): la sociedad
-             promotora ya figura en el pie de página, y en el primer renglón del deck
-             solo añadía ruido antes del titular. Su par de traducción se retiró de
-             i18n.js en el mismo commit — una clave huérfana no molesta, pero engaña
-             al siguiente que busque dónde se usa. -->
-      </div>
-      <h1 class="font-headline-lg text-[32px] md:text-[42px] leading-[1.06] text-deep-lagoon tracking-tight font-normal">
-        A land-plot development in the <span class="italic font-light text-territorial-green">Balian river valley.</span>
-      </h1>
-      <p class="font-body-md text-body-md text-[#44483f] lw-prose leading-relaxed">
-        Held under <b>Hak Sewa</b> with a notarial escrow account — not a security or investment product. Real documentation, live plot inventory and a Year-1 forecast, for your own due diligence.
-      </p>
-    </div>
-
-      <!-- Era UNA foto fija. Ahora es un carrusel que se llena de `deck_fotos`
-           (uso='hero') por `investor_deck_fotos`, y el equipo lo gestiona desde la
-           ficha del proyecto en la intranet. Misma mecanica exacta que el carrusel
-           de «Site & Delivered Villas» de mas abajo —scroll-snap, flechas solo con
-           raton, arrastre en tactil— para no inventar un segundo comportamiento en
-           la misma pagina. Las dos pastillas son del sitio, no de la foto: se
-           quedan fijas encima y no viajan con las diapositivas. -->
-      <div class="m-0 relative rounded-2xl overflow-hidden shadow-lg" id="hero-carrusel">
-        <div id="hero-track" class="flex overflow-x-auto snap-x snap-mandatory scroll-smooth lw-carrusel h-[32vh] min-h-[220px] lg:h-[34vh] lg:max-h-[330px] bg-[#E4DFD5]"><!-- lo llena el JS --></div>
-        <div class="absolute inset-x-0 top-0 p-4 md:p-5 flex justify-between items-start gap-2 pointer-events-none z-10">
-          <span class="bg-surface/95 backdrop-blur-md px-3.5 py-1 rounded-full text-deep-lagoon font-label-md text-body-sm shadow-sm border border-[#D8D2C5]">Palm Field · Balian Hills</span>
-          <span class="bg-territorial-green text-white px-3 py-1 rounded-full text-[11px] font-label-md uppercase tracking-wider font-semibold">Hak Sewa · Notarial Escrow</span>
-        </div>
-        <button type="button" id="hero-prev" aria-label="Previous photos"
-          class="hidden md:flex absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 items-center justify-center rounded-full bg-surface/90 backdrop-blur-md border border-[#D8D2C5] shadow-md text-deep-lagoon hover:bg-deep-lagoon hover:text-white transition-all disabled:opacity-0 disabled:pointer-events-none">
-          <span class="material-symbols-outlined text-[20px]">chevron_left</span></button>
-        <button type="button" id="hero-next" aria-label="More photos"
-          class="hidden md:flex absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 items-center justify-center rounded-full bg-surface/90 backdrop-blur-md border border-[#D8D2C5] shadow-md text-deep-lagoon hover:bg-deep-lagoon hover:text-white transition-all disabled:opacity-0 disabled:pointer-events-none">
-          <span class="material-symbols-outlined text-[20px]">chevron_right</span></button>
-        <div id="hero-puntos" class="absolute right-4 bottom-3.5 z-20 flex gap-1.5"></div>
-      </div>
-
-      <div class="grid grid-cols-2 gap-3">
-        <div class="bg-surface-container-lowest p-4 rounded-xl flex flex-col gap-0.5 shadow-sm border border-[#D8D2C5]"><div class="flex items-center gap-2 text-territorial-green"><span class="material-symbols-outlined text-[18px]">landscape</span><span class="font-body-sm text-[11px] font-semibold tracking-wider uppercase text-[#44483f]">Land Managed</span></div><span class="font-kpi-number text-[26px] leading-tight text-deep-lagoon">500.000+</span><span class="font-body-sm text-xs text-[#44483f]">m² under segregable title management</span></div>
-        <div class="bg-surface-container-lowest p-4 rounded-xl flex flex-col gap-0.5 shadow-sm border border-[#D8D2C5]"><div class="flex items-center gap-2 text-territorial-green"><span class="material-symbols-outlined text-[18px]">history_edu</span><span class="font-body-sm text-[11px] font-semibold tracking-wider uppercase text-[#44483f]">Track Record</span></div><span class="font-kpi-number text-[26px] leading-tight text-deep-lagoon">6+ Years</span><span class="font-body-sm text-xs text-[#44483f]">Continuous operation in Indonesia</span></div>
-        <div class="bg-surface-container-lowest p-4 rounded-xl flex flex-col gap-0.5 shadow-sm border border-[#D8D2C5]"><div class="flex items-center gap-2 text-territorial-green"><span class="material-symbols-outlined text-[18px]">shield_person</span><span class="font-body-sm text-[11px] font-semibold tracking-wider uppercase text-[#44483f]">Investors</span></div><span class="font-kpi-number text-[26px] leading-tight text-deep-lagoon">100+</span><span class="font-body-sm text-xs text-[#44483f]">International owners across the portfolio</span></div>
-        <div class="bg-surface-container-lowest p-4 rounded-xl flex flex-col gap-0.5 shadow-sm border border-[#D8D2C5]"><div class="flex items-center gap-2 text-territorial-green"><span class="material-symbols-outlined text-[18px]">verified</span><span class="font-body-sm text-[11px] font-semibold tracking-wider uppercase text-[#44483f]">Permits</span></div><span class="font-kpi-number text-[26px] leading-tight text-deep-lagoon">100%</span><span class="font-body-sm text-xs text-[#44483f]">PBG &amp; SLF occupancy certification in order</span></div>
-      </div>
-    </div>
-
-    <!-- Derecha: la due diligence, sin scrollear la página -->
-    <aside id="faq" class="flex flex-col rounded-2xl border border-[#D8D2C5] bg-surface-container-lowest shadow-lg overflow-hidden lg:max-h-[calc(100vh-112px)]">
-      <div class="shrink-0 px-5 py-3.5 bg-[#E4DFD5] border-b border-[#D8D2C5] flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <h2 class="font-headline-sm text-xl text-deep-lagoon font-semibold m-0">Documentation &amp; FAQ</h2>
-        <span class="font-body-sm text-xs text-[#5F6257]">Everything you need to start your due diligence, on this screen.</span>
-      </div>
-
-      <div class="min-h-0 overflow-y-auto px-5 py-4 flex flex-col gap-5">
-        <!-- DOCUMENTOS DEL PROYECTO (14-sep-2026). Salen de la documentación adjunta al
-             proyecto en la intranet (/intranet/Documentacion/), no de aquí: es la misma
-             fuente única que ya alimenta fotos, modelos, parcelas y FAQ. Cada fila se
-             publica una a una con el opt-in `publicado_investor_deck`, y el RPC exige
-             además `confidencial = false` — ver migración 20260911174500.
-             Nace OCULTO a propósito: una sección "Documentos" vacía en un data room dice
-             que no hay nada que enseñar, que es peor que no tenerla. Lo enciende el JS.
-             Va DELANTE de las garantías de abajo porque esto son los papeles y aquello
-             son afirmaciones sobre ellos. -->
-        <div id="docs-bloque" class="hidden flex-col gap-2">
-          <h3 class="font-body-md text-[11px] uppercase tracking-wider text-[#5F6257] font-bold m-0">Project documents</h3>
-          <div id="docs-lista" class="grid grid-cols-1 sm:grid-cols-2 gap-3"><!-- lo llena el JS --></div>
-        </div>
-
-        <!-- AQUI HABIA SEIS TARJETAS DE GARANTIAS (escrow, plazo, permisos, zonificacion,
-             firma notarial, transaccion directa). Retiradas el 14-sep-2026: estaban LETRA
-             POR LETRA en la seccion "Legal Security" (#seguridad-notarial), que ademas las
-             pone en contraste con el leasehold informal -- la version de aqui era la misma
-             afirmacion sin el contraste. No se ha suprimido ni una frase del deck: se ha
-             dejado de decir dos veces. El chip "Legal Security" de este mismo panel lleva
-             alli en un clic. El panel abre ahora con los papeles, que es lo que se venia
-             a buscar. -->
-        <div class="flex flex-col gap-2">
-          <h3 class="font-body-md text-[11px] uppercase tracking-wider text-[#5F6257] font-bold m-0">Frequently Asked Questions</h3>
-          <!-- LAS PREGUNTAS YA NO VIVEN AQUI (11-sep-2026). Salen de `deck_faq` por
-               `investor_deck_faq`, y se editan desde la intranet. El comentario de
-               arriba que decia "La FAQ vive AQUI y en ningun otro sitio" describia el
-               estado anterior y ya no es cierto: la fuente unica es ahora la base.
-               El texto sembrado es LETRA POR LETRA el que paso la consulta legal del
-               9-sep-2026 -- esto movio donde vive el dato, no lo reescribio.
-               ⚠️ Lo que sale de la base NO pasa por i18n.js (que casa por texto
-               ingles): cada fila trae sus tres idiomas dentro. -->
-          <div id="faq-lista" class="flex flex-col gap-2"><!-- lo llena el JS --></div>
-        </div>
-
-        <div class="flex flex-wrap gap-2 pt-1 border-t border-[#D8D2C5]">
-          <span class="font-body-sm text-xs text-[#5F6257] w-full pt-2">The full detail, further down:</span>
-          <a class="px-3 py-1.5 rounded-full bg-[#E4DFD5] hover:bg-deep-lagoon hover:text-white text-deep-lagoon text-xs font-label-md font-semibold transition-all border border-[#D8D2C5]" href="#modelos">Villa Models</a>
-          <a class="px-3 py-1.5 rounded-full bg-[#E4DFD5] hover:bg-deep-lagoon hover:text-white text-deep-lagoon text-xs font-label-md font-semibold transition-all border border-[#D8D2C5]" href="#masterplan">Masterplan &amp; Plots</a>
-          <a class="px-3 py-1.5 rounded-full bg-[#E4DFD5] hover:bg-deep-lagoon hover:text-white text-deep-lagoon text-xs font-label-md font-semibold transition-all border border-[#D8D2C5]" href="#rendimientos">Financial Forecast</a>
-          <a class="px-3 py-1.5 rounded-full bg-[#E4DFD5] hover:bg-deep-lagoon hover:text-white text-deep-lagoon text-xs font-label-md font-semibold transition-all border border-[#D8D2C5]" href="#seguridad-notarial">Legal Security</a>
-        </div>
-      </div>
-    </aside>
-
+<!-- 1 · HERO — patron .hero-panel de la home: foto a sangre 100svh con velo desde abajo,
+     titular enorme abajo a la izquierda, cifras en una fila con filetes y CTA en
+     pildora texturada a la derecha. El carrusel de fotos reales es el mismo de v2. -->
+<section id="vision">
+  <div id="hero-visual">
+    <div id="hero-track" class="lw-carrusel"><!-- lo llena el JS --></div>
+    <div class="hero-velo"></div>
+    <button type="button" id="hero-prev" class="hero-flecha" aria-label="Previous photos"><span class="material-symbols-outlined">chevron_left</span></button>
+    <button type="button" id="hero-next" class="hero-flecha" aria-label="More photos"><span class="material-symbols-outlined">chevron_right</span></button>
   </div>
+
+  <div class="hero-texto">
+    <h1>Palm Field</h1>
+    <p class="hero-sub">by Lawang Properties</p>
+  </div>
+
+  <div class="hero-pie">
+    <!-- Cifras confirmadas reales por el owner el 10-sep (ver ficha viva). En Neue Kabel
+         200 como .lw-stat-n de la home: The Seasons corrompe + y 4. -->
+    <div class="cifras">
+      <div class="cifra"><b>500.000+ m²</b><span>Land Managed</span></div>
+      <div class="cifra"><b>6+ Years</b><span>Track Record</span></div>
+      <div class="cifra"><b>100+</b><span>Investors</span></div>
+      <div class="cifra"><b>100% PBG &amp; SLF</b><span>Permits</span></div>
+    </div>
+    <a class="hero-cta" href="#masterplan"><span class="material-symbols-outlined" aria-hidden="true">south</span><span>Masterplan &amp; Plots</span></a>
+  </div>
+
+  <div id="hero-puntos"></div>
+
+  <!-- Panel de due diligence DENTRO de la hero (24-sep, owner). Mismos ids que v2. Documentos
+       y FAQ en dos columnas desde 1280px, como v2 (owner, 24-sep); por debajo, uno
+       encima del otro. Sin pestañas (owner, 23-sep). -->
+  <aside id="faq">
+    <div class="dd-cab">
+      <p class="kicker">Investor Deck · Due Diligence</p>
+      <h2>A land-plot development in the <em>Balian river valley.</em></h2>
+      <p class="dd-lema">Held under <b>Hak Sewa</b> with a notarial escrow account — not a security or investment product.</p>
+    </div>
+    <div class="dd-cuerpo">
+      <div class="dd-cols">
+        <div id="docs-bloque" class="hidden">
+          <h3>Project documents</h3>
+          <div id="docs-lista"><!-- lo llena el JS --></div>
+        </div>
+        <div id="faq-bloque">
+          <h3>Frequently Asked Questions</h3>
+          <div id="faq-lista"><!-- lo llena el JS --></div>
+        </div>
+      </div>
+      <div class="dd-atajos">
+        <a class="btn btn-hueso" href="#modelos">Villa Models</a>
+        <a class="btn btn-hueso" href="#masterplan">Masterplan &amp; Plots</a>
+        <a class="btn btn-hueso" href="#rendimientos">Financial Forecast</a>
+        <a class="btn btn-hueso" href="#seguridad-notarial">Legal Security</a>
+      </div>
+    </div>
+  </aside>
+</section>
+
+<!-- 2 · MODELOS — patron "FOUR WAYS, ONE LEGACY": kicker centrado, titulo en mayusculas,
+     tarjetas altas a foto completa con marco interior y boton en pildora. -->
+<section class="sec sec-lino" id="modelos">
+<div class="wrap">
+  <div class="cab center reveal">
+    <p class="kicker">Catalog</p>
+    <h2 class="titulo">Villa Typologies</h2>
+    <p class="entrada">Prices below are <b>construction only</b> — land price depends on the plot chosen in the masterplan.</p>
+  </div>
+  <div id="modelos-grid"><!-- filled by JS --></div>
 </div>
 </section>
 
-<!-- SECCIÓN 2: MODELOS -->
-<section class="w-full px-6 md:px-margin-desktop py-14 bg-[#DFD7C6] border-y border-[#C9BFA9]" id="modelos">
-<div class="lw-wide flex flex-col gap-8">
-  <div class="flex flex-col gap-2 lw-prose">
-    <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal">Villa Typologies</h2>
-    <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">Prices below are <b>construction only</b> — land price depends on the plot chosen in the masterplan.</p>
-  </div>
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch" id="modelos-grid"><!-- filled by JS --></div>
-</div>
-</section>
-
-<!-- SECCIÓN 3: MASTERPLAN & DISPONIBILIDAD -->
-<section class="w-full px-6 md:px-margin-desktop py-14 bg-surface border-y border-[#D8D2C5]" id="masterplan">
-<div class="lw-wide flex flex-col gap-8">
-  <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
-    <div class="flex flex-col gap-2 lw-prose">
-      <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal">Masterplan &amp; Plot Availability</h2>
-      <p class="font-body-md text-body-md text-on-surface-variant">Individually cadastred plots. Live inventory read directly from Palm Field's records — sizes, prices and status are informational and confirmed at Plot Lock.</p>
-    </div>
-    <div class="flex items-center gap-4 bg-surface-container-low p-2.5 rounded-full border border-[#D8D2C5] text-xs font-label-md">
-      <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-territorial-green"></span><span class="text-on-surface font-semibold">Available</span></div>
-      <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500"></span><span class="text-on-surface font-semibold">Reserved</span></div>
-      <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#B3261E]"></span><span class="text-on-surface-variant">Sold / Blocked</span></div>
+<!-- 3 · MASTERPLAN — patron "THE COLLECTION": titulo grande en verde a la izquierda,
+     leyenda a la derecha; plano e inventario en vivo como tarjetas de la home. -->
+<section class="sec sec-lino" id="masterplan">
+<div class="wrap">
+  <div class="cab center reveal">
+    <p class="kicker">Masterplan &amp; Plots</p>
+    <h2 class="titulo">Masterplan &amp; Plot Availability</h2>
+    <p class="entrada">Individually cadastred plots. Live inventory read directly from Palm Field's records — sizes, prices and status are informational and confirmed at Plot Lock.</p>
+    <div class="leyenda">
+      <span><i style="background:#485B37"></i>Available</span>
+      <span><i style="background:#F59E0B"></i>Reserved</span>
+      <span><i style="background:#B3261E"></i>Sold / Blocked</span>
     </div>
   </div>
 
-  <!-- Aéreo a todo el ancho del contenedor: antes iba a media columna con max-height:420px. -->
-  
-
-  <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-start">
-    <!-- Plano de parcelas: 1690×2200 (vertical). object-contain para no recortar códigos de parcela. -->
-    <div class="lg:col-span-7 bg-surface-container-lowest p-5 rounded-2xl shadow-md border border-[#D8D2C5] flex flex-col gap-3">
-      <div class="flex items-center justify-between gap-3 flex-wrap">
-        <span class="font-headline-sm text-lg font-bold text-deep-lagoon">Masterplan</span>
-        <div class="flex items-center gap-3 text-[11px] font-label-md">
-          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-territorial-green"></span>Available</span>
-          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>Reserved</span>
-          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#B3261E]"></span>Sold</span>
-        </div>
-      </div>
-      <!-- Plano interactivo: las zonas se pintan por JS con el estado en vivo
-           del MISMO RPC que alimenta la lista de al lado, para que no puedan
-           contradecirse. Poligonos reales en % (manifiesto
-           ../masterplan/palmfield.json), no rectangulos -- ver ZONAS mas abajo. -->
+  <div class="mp-grid">
+    <div class="marco marco-pad">
+      <!-- Poligonos reales en % (manifiesto ../masterplan/palmfield.json), mismo JS que v2. -->
       <div class="relative w-full select-none" id="plan-wrap">
-        <img id="masterplan-img" src="" alt="Palm Field masterplan showing every plot code and surface area" loading="lazy" class="w-full rounded-xl border border-[#D8D2C5] bg-[#F0ECE1] object-contain block">
+        <img id="masterplan-img" src="" alt="Palm Field masterplan showing every plot code and surface area" loading="lazy">
         <div class="absolute inset-0" id="plan-hotspots"></div>
       </div>
-      <p class="font-body-sm text-xs text-[#5F6257]">Tap an available plot to reserve it. Status is live; surface areas are confirmed by survey at Plot Lock.</p>
+      <p class="mp-nota">Tap a plot to find it in the live inventory. Status is live; surface areas are confirmed by survey at Plot Lock.</p>
     </div>
 
-    <div class="lg:col-span-5 flex flex-col gap-4 lg:sticky lg:top-24">
-      <div class="bg-surface-container-lowest rounded-2xl shadow-md border border-[#D8D2C5] overflow-hidden">
-        <div class="p-4 bg-[#E4DFD5] border-b border-[#D8D2C5] flex items-center justify-between">
-          <span class="font-label-md text-xs uppercase font-bold text-deep-lagoon tracking-wider">Live plot inventory</span>
-          <span class="text-xs font-body-sm text-territorial-green font-semibold" id="plots-count">Loading…</span>
+    <div>
+      <div class="inv">
+        <div class="inv-cab">
+          <strong>Live plot inventory</strong>
+          <span id="plots-count">Loading…</span>
         </div>
-        <div class="divide-y divide-[#D8D2C5]/70 max-h-[520px] overflow-y-auto" id="plots-wrap">
-          <div class="p-6 text-sm text-[#5F6257]">Loading live plot data…</div>
+        <div id="plots-wrap">
+          <div class="p-6 text-sm text-on-surface-variant">Loading live plot data…</div>
         </div>
       </div>
-
-      <div class="bg-[#E4DFD5]/70 p-5 rounded-xl border border-[#D8D2C5] flex flex-col gap-3">
-        <span class="font-label-md text-xs uppercase tracking-wider text-burnt-earth font-bold">Reservation Protocol</span>
-        <div class="grid grid-cols-1 gap-3 text-xs">
-          <div class="flex flex-col gap-1"><strong class="text-deep-lagoon font-semibold">1. Reservation deposit</strong><span class="text-[#44483f]">Formal plot lock with <span data-eur="3000">€3,000</span> in the notary's escrow account.</span></div>
-          <div class="flex flex-col gap-1"><strong class="text-deep-lagoon font-semibold">2. 10-day validity</strong><span class="text-[#44483f]">Due-diligence window; refundable per the Letter of Reservation.</span></div>
-          <div class="flex flex-col gap-1"><strong class="text-deep-lagoon font-semibold">3. Notarial signature</strong><span class="text-[#44483f]">Hak Sewa deed and Power of Attorney before a PPAT notary.</span></div>
-        </div>
+      <div class="protocolo">
+        <span>Reservation Protocol</span>
+        <ol>
+          <li><strong>1. Reservation deposit</strong><span>Formal plot lock with <span data-eur="3000">€3,000</span> in the notary's escrow account.</span></li>
+          <li><strong>2. 10-day validity</strong><span>Due-diligence window; refundable per the Letter of Reservation.</span></li>
+          <li><strong>3. Notarial signature</strong><span>Hak Sewa deed and Power of Attorney before a PPAT notary.</span></li>
+        </ol>
       </div>
     </div>
   </div>
 </div>
 </section>
 
-<!-- SECCIÓN 4: FINANCIAL FORECAST (real) -->
-<section class="w-full px-6 md:px-margin-desktop py-14 bg-[#DFD7C6] border-y border-[#C9BFA9]" id="rendimientos">
-<div class="lw-wide flex flex-col gap-8">
-  <div class="flex flex-col gap-2 lw-prose">
-    <!-- El titulo nombraba «Dali, Dune & Dream» a mano. Desde que los modelos del
-         forecast salen de la intranet, esa lista se queda vieja el dia que se
-         publique o se retire uno, y nadie se entera. La rellena el JS. -->
-    <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal" id="forecast-titulo">Year-1 Rental Forecast</h2>
-    <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">A first-year operating forecast under two scenarios (Average / Optimal occupancy). This is a forecast, not a guarantee — actual results depend on the rental operator, market conditions and property management agreement in force.</p>
+<!-- 4 · FORECAST — patron "FROM LAND TO LEGACY": foto a sangre con velo, cabecera
+     centrada y tres columnas separadas por filete. La nota legal va pegada a las cifras. -->
+<section class="sec sec-foto" id="rendimientos">
+<div class="wrap">
+  <div class="cab center reveal">
+    <p class="kicker">Investment</p>
+    <!-- Lo rellena el JS con los modelos publicados (regex de i18n.js). -->
+    <h2 class="titulo" id="forecast-titulo">Year-1 Rental Forecast</h2>
+    <p class="entrada">A first-year operating forecast under two scenarios (Average / Optimal occupancy). This is a forecast, not a guarantee — actual results depend on the rental operator, market conditions and property management agreement in force.</p>
   </div>
-
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="forecast-grid"><!-- filled by JS --></div>
-
-  <p id="forecast-nota" class="font-body-sm text-xs text-[#5F6257] lw-prose">Figures shown are a Year-1 operating forecast provided by Lawang, not a guaranteed or historical return. ROI is calculated on the total investment (construction plus land) stated on each card; the land figure depends on the plot chosen. Management fee, maintenance and rental tax percentages are indicative and are confirmed in the rental-management agreement you sign; they may change.</p>
+  <div id="forecast-grid"><!-- filled by JS --></div>
+  <p id="forecast-nota">Figures shown are a Year-1 operating forecast provided by Lawang, not a guaranteed or historical return. ROI is calculated on the total investment (construction plus land) stated on each card; the land figure depends on the plot chosen. Management fee, maintenance and rental tax percentages are indicative and are confirmed in the rental-management agreement you sign; they may change.</p>
 </div>
 </section>
 
-<!-- SECCIÓN 5: SEGURIDAD JURÍDICA — HAK SEWA + ESCROW (reescrito) -->
-<section class="w-full px-6 md:px-margin-desktop py-14 bg-surface border-y border-[#D8D2C5]" id="seguridad-notarial">
-<div class="lw-wide flex flex-col gap-8">
-  <div class="flex flex-col gap-2 lw-prose">
-    <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal">Hak Sewa With Notarial Escrow vs. Informal Leasehold</h2>
-    <p class="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">
+<!-- 5 · LEGAL — mismo texto LETRA POR LETRA que v2 (paso Legal el 9-sep); solo piel. -->
+<section class="sec sec-lino" id="seguridad-notarial">
+<div class="wrap">
+  <div class="cab center reveal">
+    <p class="kicker">Legal Security</p>
+    <h2 class="titulo">Hak Sewa With Notarial Escrow vs. Informal Leasehold</h2>
+    <p class="entrada">
       Much of Bali's foreign-facing market runs on private, unregistered lease agreements with no escrow and no notarial oversight. Palm Field is structured as <strong>Hak Sewa</strong> (long-term Indonesian lease tenure) directly between the landowner and the buyer, with funds held in a <strong>notarial escrow account</strong> until the agreed conditions are met — not Hak Milik, which Indonesian law reserves for Indonesian citizens.
     </p>
   </div>
 
-  <div class="w-full bg-surface-container-lowest rounded-2xl shadow-lg overflow-hidden border border-[#D8D2C5]">
-    <div class="grid grid-cols-1 md:grid-cols-12 bg-[#E4DFD5] text-deep-lagoon font-headline-sm text-body-lg p-6 border-b border-[#D8D2C5]">
-      <div class="md:col-span-4 font-bold text-deep-lagoon">Legal &amp; registry aspect</div>
-      <div class="md:col-span-4 font-bold text-territorial-green flex items-center gap-2"><span class="material-symbols-outlined text-[20px]">verified</span>Palm Field: Hak Sewa + escrow</div>
-      <div class="md:col-span-4 font-bold text-[#5F6257] flex items-center gap-2"><span class="material-symbols-outlined text-[20px]">warning</span>Common practice: informal lease</div>
+  <div class="tabla">
+    <div class="t-fila t-cab">
+      <div>Legal &amp; registry aspect</div>
+      <div><span class="material-symbols-outlined">verified</span>Palm Field: Hak Sewa + escrow</div>
+      <div><span class="material-symbols-outlined">warning</span>Common practice: informal lease</div>
     </div>
-    <div class="divide-y divide-[#D8D2C5]">
-      <div class="grid grid-cols-1 md:grid-cols-12 p-6 hover:bg-[#E4DFD5]/30 transition-colors gap-3">
-        <div class="md:col-span-4 flex flex-col"><span class="font-body-md text-body-md font-bold text-deep-lagoon">Payment security</span><span class="font-body-sm text-xs text-[#5F6257]">Notarial escrow (PPAT)</span></div>
-        <div class="md:col-span-4 font-body-md text-body-md text-territorial-green font-medium">Reservation and stage payments held in an escrow account managed by the notary, released against agreed conditions.</div>
-        <div class="md:col-span-4 font-body-md text-body-md text-[#44483f]">Funds paid directly to a private landowner or intermediary, with no third-party custody.</div>
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-12 p-6 bg-[#E4DFD5]/30 hover:bg-[#E4DFD5]/60 transition-colors gap-3">
-        <div class="md:col-span-4 flex flex-col"><span class="font-body-md text-body-md font-bold text-deep-lagoon">Term &amp; registration</span><span class="font-body-sm text-xs text-[#5F6257]">Hak Sewa, Indonesian law</span></div>
-        <div class="md:col-span-4 font-body-md text-body-md text-territorial-green font-medium">Registered lease term (legal maximum 30 years per grant, renewable with a new term), transferable and heritable.</div>
-        <div class="md:col-span-4 font-body-md text-body-md text-[#44483f]">Unregistered private agreement with no guaranteed renewal and limited transferability.</div>
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-12 p-6 hover:bg-[#E4DFD5]/30 transition-colors gap-3">
-        <div class="md:col-span-4 flex flex-col"><span class="font-body-md text-body-md font-bold text-deep-lagoon">Building permits (PBG / SLF)</span><span class="font-body-sm text-xs text-[#5F6257]">Government portal (SIMBG)</span></div>
-        <div class="md:col-span-4 font-body-md text-body-md text-territorial-green font-medium">Approved ahead of construction, with occupancy certification (SLF) enabling legal short-term rental.</div>
-        <div class="md:col-span-4 font-body-md text-body-md text-[#44483f]">Frequently started without permits or with permits pending, exposed to government closure.</div>
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-12 p-6 bg-[#E4DFD5]/30 hover:bg-[#E4DFD5]/60 transition-colors gap-3">
-        <div class="md:col-span-4 flex flex-col"><span class="font-body-md text-body-md font-bold text-deep-lagoon">Land zoning (RDTR)</span><span class="font-body-sm text-xs text-[#5F6257]">Official urban classification</span></div>
-        <div class="md:col-span-4 font-body-md text-body-md text-territorial-green font-medium">Zoned for tourism / residential use, legally enabled for short-stay rental income.</div>
-        <div class="md:col-span-4 font-body-md text-body-md text-[#44483f]">Often sited on green or agricultural-protection land (LSD/LP2B), not legally buildable.</div>
-      </div>
+    <div class="t-fila">
+      <div class="t-asp"><strong>Payment security</strong><span>Notarial escrow (PPAT)</span></div>
+      <div class="t-si"><span class="material-symbols-outlined" aria-hidden="true">check_circle</span><p><em>Palm Field: Hak Sewa + escrow</em>Reservation and stage payments held in an escrow account managed by the notary, released against agreed conditions.</p></div>
+      <div class="t-no"><span class="material-symbols-outlined" aria-hidden="true">cancel</span><p><em>Common practice: informal lease</em>Funds paid directly to a private landowner or intermediary, with no third-party custody.</p></div>
+    </div>
+    <div class="t-fila">
+      <div class="t-asp"><strong>Term &amp; registration</strong><span>Hak Sewa, Indonesian law</span></div>
+      <div class="t-si"><span class="material-symbols-outlined" aria-hidden="true">check_circle</span><p><em>Palm Field: Hak Sewa + escrow</em>Registered lease term (legal maximum 30 years per grant, renewable with a new term), transferable and heritable.</p></div>
+      <div class="t-no"><span class="material-symbols-outlined" aria-hidden="true">cancel</span><p><em>Common practice: informal lease</em>Unregistered private agreement with no guaranteed renewal and limited transferability.</p></div>
+    </div>
+    <div class="t-fila">
+      <div class="t-asp"><strong>Building permits (PBG / SLF)</strong><span>Government portal (SIMBG)</span></div>
+      <div class="t-si"><span class="material-symbols-outlined" aria-hidden="true">check_circle</span><p><em>Palm Field: Hak Sewa + escrow</em>Approved ahead of construction, with occupancy certification (SLF) enabling legal short-term rental.</p></div>
+      <div class="t-no"><span class="material-symbols-outlined" aria-hidden="true">cancel</span><p><em>Common practice: informal lease</em>Frequently started without permits or with permits pending, exposed to government closure.</p></div>
+    </div>
+    <div class="t-fila">
+      <div class="t-asp"><strong>Land zoning (RDTR)</strong><span>Official urban classification</span></div>
+      <div class="t-si"><span class="material-symbols-outlined" aria-hidden="true">check_circle</span><p><em>Palm Field: Hak Sewa + escrow</em>Zoned for tourism / residential use, legally enabled for short-stay rental income.</p></div>
+      <div class="t-no"><span class="material-symbols-outlined" aria-hidden="true">cancel</span><p><em>Common practice: informal lease</em>Often sited on green or agricultural-protection land (LSD/LP2B), not legally buildable.</p></div>
     </div>
   </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
-    <div class="bg-[#E4DFD5]/70 p-6 rounded-xl flex flex-col gap-3 border border-[#D8D2C5]">
-      <div class="flex items-center gap-2 text-deep-lagoon font-headline-sm text-xl font-bold"><span class="material-symbols-outlined text-territorial-green">gavel</span><span>Official Notarial Signature (PPAT)</span></div>
-      <p class="font-body-sm text-body-sm text-[#44483f] leading-relaxed">Each transfer is formalised before a state-appointed Land Deed Official (PPAT), with a Power of Attorney for the buyer's representative in Indonesia.</p>
-    </div>
-    <div class="bg-[#E4DFD5]/70 p-6 rounded-xl flex flex-col gap-3 border border-[#D8D2C5]">
-      <div class="flex items-center gap-2 text-deep-lagoon font-headline-sm text-xl font-bold"><span class="material-symbols-outlined text-territorial-green">account_balance</span><span>Regulated Escrow Account</span></div>
-      <p class="font-body-sm text-body-sm text-[#44483f] leading-relaxed">Funds are held in an escrow account managed by the notary and released only against verified construction milestones.</p>
-    </div>
-    <div class="bg-[#E4DFD5]/70 p-6 rounded-xl flex flex-col gap-3 border border-[#D8D2C5]">
-      <div class="flex items-center gap-2 text-deep-lagoon font-headline-sm text-xl font-bold"><span class="material-symbols-outlined text-territorial-green">handshake</span><span>Direct, Documented Transaction</span></div>
-      <p class="font-body-sm text-body-sm text-[#44483f] leading-relaxed">The lease is agreed directly between the landowner and the buyer — no nominee arrangement, no undisclosed intermediary holding title on your behalf.</p>
-    </div>
+  <div class="claves">
+    <div class="clave"><span class="material-symbols-outlined">gavel</span><div><strong>Official Notarial Signature (PPAT)</strong><p>Each transfer is formalised before a state-appointed Land Deed Official (PPAT), with a Power of Attorney for the buyer's representative in Indonesia.</p></div></div>
+    <div class="clave"><span class="material-symbols-outlined">handshake</span><div><strong>Direct, Documented Transaction</strong><p>The lease is agreed directly between the landowner and the buyer — no nominee arrangement, no undisclosed intermediary holding title on your behalf.</p></div></div>
   </div>
 </div>
 </section>
 
-<!-- SECCIÓN 7: DOCUMENTATION (galería real) -->
-<section class="w-full px-6 md:px-margin-desktop py-14 bg-surface border-t border-[#D8D2C5]" id="documentation">
-<div class="lw-wide flex flex-col gap-8">
-  <div class="flex flex-col gap-2 lw-prose">
-    <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal">Site &amp; Delivered Villas</h2>
-    <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">Plots, surrounding land and villa models already delivered on neighbouring phases.</p>
+<!-- 7 · GALERIA — fotos verticales con marco interior, como las tarjetas de la home. -->
+<section class="sec sec-lino" id="documentation">
+<div class="wrap">
+  <div class="cab-fila reveal">
+    <div class="cab">
+      <h2 class="titulo">Site &amp; Delivered Villas</h2>
+      <p class="entrada">Plots, surrounding land and villa models already delivered on neighbouring phases.</p>
+    </div>
+    <div class="gal-flechas">
+      <button type="button" id="gal-prev" aria-label="Previous photos"><span class="material-symbols-outlined">chevron_left</span></button>
+      <button type="button" id="gal-next" aria-label="More photos"><span class="material-symbols-outlined">chevron_right</span></button>
+    </div>
   </div>
-  <!-- Carrusel, no rejilla: en movil las 15 fotos en columna eran quince pantallas de
-       scroll antes de llegar al final de la pagina. Ahora es una fila que se arrastra de
-       lado, con scroll-snap para que pare en foto entera. Las flechas solo aparecen donde
-       hay raton; en tactil se arrastra, que es el gesto natural. -->
-  <div class="relative">
-    <div id="gallery" class="flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-3 -mx-1 px-1 lw-carrusel"><!-- filled by JS --></div>
-    <button type="button" id="gal-prev" aria-label="Previous photos"
-      class="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 w-11 h-11 items-center justify-center rounded-full bg-surface-container-lowest border border-[#D8D2C5] shadow-md text-deep-lagoon hover:bg-deep-lagoon hover:text-white transition-all disabled:opacity-0 disabled:pointer-events-none">
-      <span class="material-symbols-outlined">chevron_left</span></button>
-    <button type="button" id="gal-next" aria-label="More photos"
-      class="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-10 w-11 h-11 items-center justify-center rounded-full bg-surface-container-lowest border border-[#D8D2C5] shadow-md text-deep-lagoon hover:bg-deep-lagoon hover:text-white transition-all disabled:opacity-0 disabled:pointer-events-none">
-      <span class="material-symbols-outlined">chevron_right</span></button>
-  </div>
+  <div id="gallery" class="lw-carrusel"><!-- filled by JS --></div>
 </div>
 </section>
 
-</div>
 </main>
 
-<div id="fx-nota" class="w-full px-6 md:px-margin-desktop py-3 bg-[#E9E3D6] border-t border-[#D8D2C5]" style="display:none">
-  <p class="lw-wide font-body-sm text-xs text-[#5F6257]" id="fx-nota-txt"></p>
+
+<div id="fx-nota" class="w-full px-6 md:px-margin-desktop py-3 bg-surface-container-low border-t border-control-border/20" style="display:none">
+  <p class="lw-wide font-body-sm text-xs text-on-surface-variant" id="fx-nota-txt"></p>
 </div>
 
-<footer class="w-full bg-surface-container-low py-10 border-t border-[#D8D2C5]">
-  <div class="lw-wide px-6 md:px-margin-desktop flex flex-col md:flex-row items-center justify-between gap-6">
-    <div class="flex items-center gap-4">
-      <div class="w-8 h-8 rounded-full bg-deep-lagoon flex items-center justify-center text-white text-sm font-bold">L</div>
-      <div class="flex flex-col">
-        <span class="font-headline-sm text-lg font-bold text-deep-lagoon">Lawang Properties — Palm Field</span>
-        <span class="font-body-sm text-xs text-on-surface-variant">Balian Hills, Bali. Developed by PT SAN DAL WOODS.</span>
-      </div>
-    </div>
-    <div class="flex flex-wrap items-center gap-6 text-on-surface-variant font-body-sm text-xs text-center md:text-left">
-      <span>This page does not replace legal or financial advice. Nothing here is an offer to sell securities or a solicitation of investment.</span>
-      <a class="text-deep-lagoon underline whitespace-nowrap" href="mailto:sales@lawangproperties.com?subject=Palm%20Field%20%E2%80%94%20investor%20enquiry">sales@lawangproperties.com</a>
-      <a class="text-deep-lagoon underline whitespace-nowrap" href="/legal" target="_blank" rel="noopener">Privacy &amp; Terms</a>
-    </div>
-  </div>
+<!-- FOOTER compartido con /modelo (23-sep, pedido del owner: "que ya sirva para
+     /modelo e /investor-deck, comprimido, contacto bien destacado"). Lo pinta
+     /assets/lawang-pie.js, una sola fuente con sus tres idiomas. Aqui solo va lo
+     propio del deck: el aviso de que no es una oferta de valores (lo traduce el
+     walker de i18n.js, como antes). El boton de WhatsApp del pie lleva
+     data-wa-enlace, asi que la IIFE del final le pone el mismo mensaje traducido
+     que al flotante. -->
+<footer data-lw-pie data-wa="https://wa.me/6281138319862">
+  <span data-pie-nota>This page does not replace legal or financial advice. Nothing here is an offer to sell securities or a solicitation of investment.</span>
 </footer>
+<script src="../../assets/lawang-pie.js?v=20260923153722"></script>
 
 <script>
 (function(){
@@ -602,6 +848,13 @@
     pinta();
   }
 
+  // ── Hero: carrusel simple de fotos reales, sin iconos sueltos sobre la foto
+  // (pedido del owner, 22-sep: "quita los iconitos y añade el carrusel de
+  // imagenes"). Reemplaza la mecanica de /modelo (capas crossfade + hotspots +
+  // dock) -- aqui no hay nada que "explorar" sobre la foto, solo el nombre del
+  // proyecto (HTML fijo, ver arriba) y las fotos reales deslizandose. Misma
+  // mecanica exacta que el carrusel de «Site & Delivered Villas» de mas abajo
+  // (montaFlechas es la misma funcion, sin segunda copia que diverja).
   function pintaHero(fotos){
     var track  = document.getElementById('hero-track');
     var puntos = document.getElementById('hero-puntos');
@@ -619,11 +872,7 @@
       // no marcar ninguna, y encima le pelean el ancho de banda.
       if(i === 0) img.setAttribute('fetchpriority', 'high');
       else img.loading = 'lazy';
-      var cap = document.createElement('figcaption');
-      cap.className = 'absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent ' +
-                      'text-stone-sand font-body-sm text-xs px-5 pt-10 pb-4 pr-24';
-      cap.textContent = f.pie + etiquetaTipo(f.tipo);
-      fig.appendChild(img); fig.appendChild(cap);
+      fig.appendChild(img);
       track.appendChild(fig);
       if(puntos && fotos.length > 1){
         var d = document.createElement('span');
@@ -644,19 +893,20 @@
       // Ancho fijo por foto + snap: el carrusel para en foto entera, no a medias.
       // En movil ocupa casi toda la pantalla (82vw) para que se lea; en escritorio
       // caben tres y pico, que insinua que hay mas a la derecha.
-      fig.className = 'm-0 shrink-0 snap-start relative overflow-hidden rounded-xl border border-[#D8D2C5] ' +
-        'w-[82vw] sm:w-[46vw] lg:w-[31%] aspect-[4/3] bg-[#F0ECE1] group';
+      fig.className = 'm-0 shrink-0 snap-start relative overflow-hidden rounded-xl border border-stone-sand shadow-sm hover:shadow-lg transition-shadow ' +
+        'w-[82vw] sm:w-[46vw] lg:w-[31%] flex flex-col bg-[#fffdf8] group';
+      var marco = document.createElement('div');
+      marco.className = 'aspect-[4/3] overflow-hidden bg-surface-container';
       var img = document.createElement('img');
       img.src = f.src; img.alt = f.pie; img.loading = 'lazy';
       img.className = 'w-full h-full object-cover transition-transform duration-500 group-hover:scale-105';
       var cap = document.createElement('figcaption');
-      cap.className = 'absolute left-0 right-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent ' +
-                      'text-white font-body-sm text-body-sm px-4 pt-10 pb-3';
+      cap.className = 'px-4 py-2.5 bg-[#fffdf8] text-volcanic-ash font-body-sm text-body-sm';
       // textContent y NUNCA innerHTML: este pie lo escribe una persona en la
       // intranet y se pinta en una pagina publica. Por ahi entra un XSS
       // almacenado, y ese mismo patron ya se cazo en este deck el 11-sep.
       cap.textContent = f.pie + etiquetaTipo(f.tipo);
-      fig.appendChild(img); fig.appendChild(cap);
+      marco.appendChild(img); fig.appendChild(marco); fig.appendChild(cap);
       g.appendChild(fig);
     });
     montaFlechas(g, document.getElementById('gal-prev'), document.getElementById('gal-next'), null);
@@ -668,6 +918,7 @@
       return { src: 'assets/gallery/' + it[0], pie: it[1], tipo: 'foto' };
     }));
     pintaGaleria(SEMILLA.map(function(it){
+      // v2/ vive un nivel mas hondo que el vivo: prefijo con un '../' extra.
       return { src: 'assets/gallery/' + it[0], pie: it[1], tipo: 'foto' };
     }));
   }
@@ -777,7 +1028,7 @@
       // con dos <a> dentro no es HTML valido -- ademas de dejar al inversor sin saber
       // cual de las dos cosas pasa al hacer clic en el hueco entre botones.
       var card = document.createElement('div');
-      card.className = 'flex flex-col gap-2 bg-surface-container-low/60 border border-[#D8D2C5] ' +
+      card.className = 'flex flex-col gap-2 bg-[#fffdf8] border border-stone-sand ' +
                        'rounded-xl px-4 py-3 hover:border-territorial-green transition-colors';
       var cab = document.createElement('div');
       cab.className = 'flex items-start gap-2 text-deep-lagoon';
@@ -870,10 +1121,10 @@
   var SLUG_OK = /^[a-z0-9-]+$/;
   var DESTACADO = 'dream';   // "Most requested" es decisión comercial, no dato de BD.
 
-  // Estado sin render: mismo dibujo y mismo texto que /modelo/ (Diseño, 2-sep).
-  // Nunca un gris muerto ni un icono de imagen rota.
+  // Estado sin render: mismo dibujo y mismo texto que /modelo/ (Diseño, 2-sep),
+  // adaptado a la caja fija h-60 de la tarjeta "collection" (antes aspect-[4/3]).
   var SIN_RENDER =
-    '<div class="w-full aspect-[4/3] relative overflow-hidden bg-[#E4DFD5] flex flex-col items-center justify-center gap-2 text-deep-lagoon/70">' +
+    '<div class="w-full h-60 relative overflow-hidden bg-[#E4DFD5] flex flex-col items-center justify-center gap-2 text-deep-lagoon/70">' +
       '<svg viewBox="0 0 120 90" aria-hidden="true" class="w-20 h-auto">' +
         '<path d="M10 48 L60 12 L110 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>' +
         '<rect x="24" y="48" width="72" height="34" fill="none" stroke="currentColor" stroke-width="2.5"/>' +
@@ -891,74 +1142,96 @@
     var propia = (fotosModelo && fotosModelo.length) ? fotosModelo[0].src : null;
     if(!propia) return SIN_RENDER;
     var ruta = propia;
-    return '<div class="w-full aspect-[4/3] relative overflow-hidden bg-[#F0ECE1]" data-foto>' +
-      '<img src="' + esc(ruta) + '" alt="' + esc(nombre) + ' villa model" loading="lazy" ' +
-      'class="w-full h-full object-cover" data-render></div>';
+    return '<img src="' + esc(ruta) + '" alt="' + esc(nombre) + ' villa model" loading="lazy" ' +
+      'class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" data-render>';
+  }
+
+  // Si el render no esta en disco, la caja de foto ([data-foto]) cae sola al estado
+  // honesto. Sale a funcion porque desde el 22-sep hay DOS tarjetas con foto de
+  // modelo (catalogo y forecast): copiar el onerror en cada una seria la segunda
+  // copia que diverge.
+  function enganchaSinRender(card){
+    var img = card.querySelector('[data-render]');
+    if(!img) return;
+    img.addEventListener('error', function(){
+      var caja = card.querySelector('[data-foto]');
+      if(!caja) return;
+      var tmp = document.createElement('div');
+      tmp.innerHTML = SIN_RENDER;
+      caja.replaceChild(tmp.firstChild, img);
+      if(window.lwDeck) lwDeck.traduce(caja);
+    });
   }
 
   // El precio solo entra en el conversor de divisa si de verdad viene en EUR:
   // `data-eur` le dice al selector "esto son euros". Etiquetar como EUR un importe
   // que la intranet guardó en otra moneda sería publicar una cifra falsa.
-  function precioModelo(precio, moneda){
-    if(precio == null) return '<span class="font-headline-sm text-xl font-bold text-deep-lagoon">Upon request</span>';
+  // `claseColor`: en la ficha (fondo claro) va text-deep-lagoon; superpuesto sobre
+  // la foto (tarjeta "collection", calcada de /modelo) va claro para leerse sobre
+  // el degradado oscuro.
+  function precioModelo(precio, moneda, claseColor){
+    var color = claseColor || 'text-deep-lagoon';
+    if(precio == null) return '<span class="font-kpi-number text-lg font-bold ' + color + '">Upon request</span>';
     var n = Number(precio);
-    if(!isFinite(n)) return '<span class="font-headline-sm text-xl font-bold text-deep-lagoon">Upon request</span>';
+    if(!isFinite(n)) return '<span class="font-kpi-number text-lg font-bold ' + color + '">Upon request</span>';
     if((moneda || 'EUR') === 'EUR'){
-      return '<span class="font-headline-sm text-xl font-bold text-deep-lagoon lw-money" data-eur="' + n + '">' + lwMoney(n) + '</span>';
+      return '<span class="font-kpi-number text-lg font-bold ' + color + ' lw-money" data-eur="' + n + '">' + lwMoney(n) + '</span>';
     }
-    return '<span class="font-headline-sm text-xl font-bold text-deep-lagoon">' +
+    return '<span class="font-kpi-number text-lg font-bold ' + color + '">' +
       esc(moneda) + ' ' + n.toLocaleString('en-GB') + '</span>';
   }
 
   function num(v){ var n = Number(v); return isFinite(n) ? n : '—'; }
 
   var mg = document.getElementById('modelos-grid');
+  // Un tono de la paleta Lawang por ficha, en el orden en que llegan (M4, 23-sep). Clases
+  // literales para que el build de Tailwind las vea.
+  var TONOS_VILLA = ['bg-territorial-green', 'bg-deep-lagoon', 'bg-burnt-earth', 'bg-volcanic-ash'];
 
+  // Tarjeta calcada de "More from the collection" (#section-collection en
+  // /modelo/index.php), pedido del owner 22-sep: foto a toda anchura con
+  // degradado + nombre/precio superpuestos abajo, cuerpo con specs en una
+  // linea y CTA "View model" — en vez de la caja de specs 2x2 de antes.
+  // Enlaza a la ficha real de la villa (misma URL que usa /modelo entre si
+  // mismo, /modelo/<slug>), que ya esta en produccion.
   function pintaModelos(rows, porModelo){
     mg.innerHTML = '';
+    // Ficha tecnica esquematica: icono + cifra + etiqueta, mismo lenguaje visual
+    // que las 4 tarjetas KPI del hero (icono en territorial-green, numero grande,
+    // etiqueta en mayusculas) — pedido del owner (22-sep) en vez de la frase en
+    // texto corrido que habia antes.
+    var STATS_ICONOS = [
+      ['straighten',  function(m){ return num(m.villa_m2) + ' m²'; },   'Built'],
+      ['deck',        function(m){ return '+' + num(m.terraza_m2) + ' m²'; }, 'Terrace & pool'],
+      ['king_bed',    function(m){ return num(m.dormitorios); },        'Bedrooms'],
+      ['bathroom',    function(m){ return num(m.banos); },              'Bathrooms']
+    ];
     rows.forEach(function(m, i){
       var slug = String(m.slug == null ? '' : m.slug);
       var destacado = slug === DESTACADO;
-      var tag = 'Type ' + (i + 1 < 10 ? '0' : '') + (i + 1);
+      var tono = TONOS_VILLA[i % TONOS_VILLA.length];
+      var statsHtml = STATS_ICONOS.map(function(s){
+        return '<div><b>'+esc(s[1](m))+'</b><span>'+s[2]+'</span></div>';
+      }).join('');
 
-      var card = document.createElement('div');
-      card.className = 'bg-surface-container-lowest rounded-2xl overflow-hidden flex flex-col justify-between shadow-md hover:-translate-y-1 transition-all border' +
-        (destacado ? ' border-2 border-territorial-green relative' : ' border-[#D8D2C5]');
+      var card = document.createElement(SLUG_OK.test(slug) ? 'a' : 'div');
+      if(SLUG_OK.test(slug)) card.href = '/modelo/' + slug;
+      // v3: tarjeta alta a foto completa con marco interior, patron de las tarjetas
+      // "FOUR WAYS, ONE LEGACY" de la home. Mismos textos y mismos escapes que v2.
+      card.className = 'villa reveal';
       card.innerHTML =
-        (destacado ? '<span class="absolute top-3 right-3 z-10 bg-territorial-green text-white text-[10px] font-label-md font-bold px-3 py-0.5 rounded-full tracking-wider uppercase">Most requested</span>' : '') +
-        fotoModelo(slug, m.nombre, porModelo[slug]) +
-        '<span class="absolute top-3 left-3 bg-deep-lagoon text-white px-2.5 py-0.5 rounded-full text-xs font-label-md uppercase font-semibold" data-tag>' + esc(tag) + '</span>' +
-        '<div class="flex flex-col gap-4 p-6">' +
-          '<h3 class="font-headline-sm text-2xl font-bold text-deep-lagoon">' + esc(m.nombre) + '</h3>' +
-          '<div class="grid grid-cols-2 gap-2 text-xs font-body-sm text-[#44483f] bg-surface-container-low p-3 rounded-lg border border-[#D8D2C5]">' +
-            '<div><strong>Built</strong><br>' + num(m.villa_m2) + ' m²</div>' +
-            '<div><strong>Terrace &amp; pool</strong><br>+' + num(m.terraza_m2) + ' m²</div>' +
-            '<div><strong>Bedrooms</strong><br>' + num(m.dormitorios) + '</div>' +
-            '<div><strong>Bathrooms</strong><br>' + num(m.banos) + '</div></div></div>' +
-        '<div class="px-6 pb-6 pt-5 border-t border-[#D8D2C5] flex flex-col gap-3">' +
-          '<div class="flex items-baseline justify-between gap-3"><span class="text-xs text-[#5F6257] font-body-sm uppercase">Construction from</span>' + precioModelo(m.precio, m.moneda) + '</div>' +
-          '<span class="text-[11px] text-[#5F6257]">+ land price, per plot chosen below</span>' +
+        (destacado ? '<span class="villa-sello">Most requested</span>' : '') +
+        '<div data-foto>' + fotoModelo(slug, m.nombre, porModelo[slug]) + '</div>' +
+        '<div class="villa-cuerpo">' +
+          '<span class="villa-nombre">' + esc(m.nombre) + '</span>' +
+          '<span class="villa-precio">' + precioModelo(m.precio, m.moneda, 'text-raw-linen') + '</span>' +
+          '<div class="villa-stats">' + statsHtml + '</div>' +
+          '<span class="villa-nota">Construction only — land price depends on the plot chosen below.</span>' +
+          '<span class="villa-btn"><span>View model</span><span class="material-symbols-outlined text-[15px]">arrow_outward</span></span>' +
         '</div>';
 
-      // La etiqueta "Type NN" va dentro del marco de la foto, exista render o no.
-      var marco = card.querySelector('[data-foto]') || card.firstElementChild;
-      var tagEl = card.querySelector('[data-tag]');
-      if(marco && tagEl && marco !== tagEl) marco.appendChild(tagEl);
-
-      // Si el render no está en disco, la tarjeta se cae sola al estado honesto.
-      var img = card.querySelector('[data-render]');
-      if(img){
-        img.addEventListener('error', function(){
-          var caja = img.parentNode;
-          if(!caja || !caja.parentNode) return;
-          var tmp = document.createElement('div');
-          tmp.innerHTML = SIN_RENDER;
-          var nuevo = tmp.firstChild;
-          if(tagEl) nuevo.appendChild(tagEl);
-          caja.parentNode.replaceChild(nuevo, caja);
-          if(window.lwDeck) lwDeck.traduce(nuevo);
-        });
-      }
+      // SIN_RENDER trae ya su propio degradado/fondo, no hace falta reponerlo.
+      enganchaSinRender(card);
       mg.appendChild(card);
     });
     if(window.lwDeck) lwDeck.traduce(document.getElementById('modelos'));
@@ -966,7 +1239,7 @@
   }
 
   function modelosCaidos(){
-    mg.innerHTML = '<div class="col-span-full p-6 rounded-2xl border border-[#D8D2C5] bg-surface-container-lowest text-sm text-[#5F6257]">' +
+    mg.innerHTML = '<div class="col-span-full p-6 rounded-2xl border border-control-border/25 bg-surface-container-lowest text-sm text-on-surface-variant">' +
       'We could not load the villa models right now. Please contact ' +
       '<a class="text-deep-lagoon underline" href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a>.</div>';
     if(window.lwDeck) lwDeck.traduce(mg);
@@ -1004,7 +1277,8 @@
   // calcula el ROI. El 11-sep se corrigio en la base: las de Dune y Dream estaban
   // POR DEBAJO de construccion mas la parcela mas barata del propio inventario,
   // que la pagina enseña dos secciones mas arriba.
-  function pintaForecast(filas){
+  function pintaForecast(filas, porModelo){
+    porModelo = porModelo || {};
     var fg = document.getElementById('forecast-grid');
     if(!fg) return;
     fg.innerHTML = '';
@@ -1037,39 +1311,43 @@
       var bruto = [0,1].map(function(i){ return adr[i] * 365 * occ[i]; });
       var neto  = bruto.map(function(g){ return g * (1 - retencion); });
 
-      var filasHtml = '';
-      filasHtml += '<tr><td>ADR</td><td class="text-right lw-money">'+eur(adr[0])+'</td><td class="text-right lw-money">'+eur(adr[1])+'</td></tr>';
-      filasHtml += '<tr><td>Occupancy</td><td class="text-right lw-money">'+Math.round(occ[0]*100)+'%</td><td class="text-right lw-money">'+Math.round(occ[1]*100)+'%</td></tr>';
-      filasHtml += '<tr><td>Gross villa income</td><td class="text-right lw-money">'+eur(bruto[0])+'</td><td class="text-right lw-money">'+eur(bruto[1])+'</td></tr>';
-      GASTOS.forEach(function(g){
-        // La palabra y el porcentaje van en NODOS DE TEXTO distintos a proposito:
-        // el % lo fija la intranet, y si viajara dentro de la clave de traduccion
-        // («Management fee (20%)») el dia que alguien ponga 18% la fila se
-        // quedaria en ingles sin que nadie lo notara.
-        filasHtml += '<tr><td><span>'+esc(g[0])+'</span> ('+Math.round(g[1]*100)+'%)</td>' +
-          '<td class="text-right lw-money">'+eur(-bruto[0]*g[1])+'</td>' +
-          '<td class="text-right lw-money">'+eur(-bruto[1]*g[1])+'</td></tr>';
-      });
-      filasHtml += '<tr class="font-semibold text-deep-lagoon border-t-2 border-[#D8D2C5]"><td>Net income</td><td class="text-right lw-money">'+eur(neto[0])+'</td><td class="text-right lw-money">'+eur(neto[1])+'</td></tr>';
-      filasHtml += '<tr class="font-bold text-territorial-green text-base"><td>ROI</td><td class="text-right lw-money">'+(neto[0]/base*100).toFixed(1)+'%</td><td class="text-right lw-money">'+(neto[1]/base*100).toFixed(1)+'%</td></tr>';
+      // Diseño calcado de la tarjeta de forecast de /modelo (03 · Investment):
+      // un bloque por escenario con la cifra neta en grande, no una tabla de
+      // filas. El ROI se suma a la linea de detalle (modelo no lo muestra en
+      // esta tarjeta, pero es un dato ya aprobado — ver revision previa) en
+      // vez de anadir una fila mas. La aritmetica (retencion, bruto, neto,
+      // ROI) NO se toca: sigue viviendo aqui y solo aqui.
+      var ESCENARIOS = [
+        ['Average', 0, 'territorial-green'],
+        ['Optimal', 1, 'deep-lagoon']
+      ];
+      var bloquesHtml = ESCENARIOS.map(function(e){
+        var label = e[0], i = e[1], color = e[2];
+        var costes = bruto[i] - neto[i];
+        return '<div class="esc">' +
+          '<div class="esc-top"><span>'+label+'</span><b>'+eur(neto[i])+'/yr net</b></div>' +
+          '<p>'+eur(adr[i])+' ADR × '+Math.round(occ[i]*100)+'% occupancy — gross '+eur(bruto[i])+', minus management + maintenance + tax ('+eur(costes)+') · <b>'+(neto[i]/base*100).toFixed(1)+'% ROI</b></p>' +
+        '</div>';
+      }).join('');
 
       // El nombre del modelo lo teclea una persona en la intranet y esto es una
       // pagina publica: pasa por esc() SIEMPRE (XSS almacenado ya cazado aqui).
       var dorm = m.dormitorios === 1 ? '1 bedroom' : (m.dormitorios || 0) + ' bedrooms';
+      // Foto del modelo arriba (22-sep, pedido del owner): la misma que su tarjeta
+      // del catalogo -- fotoModelo() con las fotos de `deck_fotos` de ese modelo, o el
+      // render del repo, o el estado "Renders in progress" si tampoco hay.
+      var slug = String(m.modelo_slug == null ? '' : m.modelo_slug);
       var card = document.createElement('div');
-      card.className = 'bg-surface-container-lowest rounded-2xl shadow-md overflow-hidden relative border' +
-        (m.destacado ? '-2 border-territorial-green' : ' border-[#D8D2C5]');
+      // v3: columna con filete sobre foto a sangre ("FROM LAND TO LEGACY" de la home).
+      card.className = 'prev reveal';
       card.innerHTML =
-        (m.destacado ? '<span class="absolute top-3 right-3 z-10 bg-territorial-green text-white text-[10px] font-label-md font-bold px-3 py-0.5 rounded-full tracking-wider uppercase">Most requested</span>' : '') +
-        '<div class="p-5 bg-[#E4DFD5] border-b border-[#D8D2C5]">' +
-          '<span class="font-headline-sm text-xl font-bold text-deep-lagoon">'+esc(m.modelo_nombre)+' · '+esc(dorm)+'</span>' +
-          '<div class="text-xs text-[#44483f] font-body-sm mt-1"><span>Construction:</span> <b>'+eur(Number(m.precio_construccion))+'</b></div>' +
-          '<div class="text-xs text-[#5F6257] font-body-sm"><span>Total investment (ROI base):</span> '+eur(base)+'</div>' +
-        '</div>' +
-        '<table class="w-full text-sm"><thead><tr class="text-[11px] uppercase tracking-wide text-[#5F6257] font-label-md">' +
-          '<th class="text-left font-medium px-5 pt-4 pb-2"></th><th class="text-right font-medium px-5 pt-4 pb-2">Average</th>' +
-          '<th class="text-right font-medium px-5 pt-4 pb-2">Optimal</th></tr></thead>' +
-          '<tbody class="[&_td]:px-5 [&_td]:py-2 [&_tr]:border-t [&_tr]:border-[#EFEAE0]">'+filasHtml+'</tbody></table>';
+        '<div class="prev-foto" data-foto>' + fotoModelo(slug, m.modelo_nombre, porModelo[slug]) + '</div>' +
+        (m.destacado ? '<span class="villa-sello" style="top:18px">Most requested</span>' : '') +
+        '<p class="kicker">Market forecast</p>' +
+        '<h3>'+esc(m.modelo_nombre)+' · '+esc(dorm)+'</h3>' +
+        '<p class="prev-base">Construction <b>'+eur(Number(m.precio_construccion))+'</b> · total investment (ROI base) '+eur(base)+'.</p>' +
+        bloquesHtml;
+      enganchaSinRender(card);
       fg.appendChild(card);
     });
     if(window.lwDeck) lwDeck.traduce(document.getElementById('rendimientos'));
@@ -1081,7 +1359,7 @@
     if(!fg) return;
     // Nunca un hueco en blanco en una pagina de inversores: un vacio se lee como
     // «no hay previsión», que es una afirmacion, y ademas no da salida a nadie.
-    fg.innerHTML = '<div class="col-span-full p-6 rounded-2xl border border-[#D8D2C5] bg-surface-container-lowest text-sm text-[#5F6257]">' +
+    fg.innerHTML = '<div class="col-span-full p-6 rounded-2xl border border-control-border/25 bg-surface-container-lowest text-sm text-on-surface-variant">' +
       'We could not load the rental forecast right now. Please contact ' +
       '<a class="text-deep-lagoon underline" href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a>.</div>';
     if(window.lwDeck) lwDeck.traduce(fg);
@@ -1095,7 +1373,12 @@
   }).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
     // Cero filas llega como 200 con []: sin este guardia la seccion se queda vacia
     // y parece intencionada.
-    .then(function(rows){ if(!rows || !rows.length) throw new Error('vacio'); pintaForecast(rows); })
+    // Espera a `fotosListo` (nunca rechaza) para la foto de cada modelo, igual que
+    // el catalogo: pintar antes dejaria siempre el render fijo del repo.
+    .then(function(rows){
+      if(!rows || !rows.length) throw new Error('vacio');
+      return fotosListo.then(function(porModelo){ pintaForecast(rows, porModelo || {}); });
+    })
     .catch(forecastCaido);
 
   // ── FAQ: sale de `deck_faq`, no del HTML ──────────────────────────────────
@@ -1113,18 +1396,17 @@
     cont.innerHTML = '';
     filas.forEach(function(q, i){
       var d = document.createElement('details');
-      d.className = 'group bg-surface-container-low/60 px-4 py-3 rounded-xl border border-[#D8D2C5] transition-all open:bg-surface-container-lowest';
+      d.className = 'faq-item';
       if(i === 0) d.open = true;   // la primera abierta, como estaba
       var sum = document.createElement('summary');
-      sum.className = 'flex items-start gap-3 justify-between cursor-pointer list-none text-deep-lagoon font-body-md text-body-md font-semibold';
       var txt = document.createElement('span');
       txt.textContent = lwTxt(q.pregunta);
       var ico = document.createElement('span');
-      ico.className = 'material-symbols-outlined text-[20px] shrink-0 text-territorial-green transition-transform group-open:rotate-180';
+      ico.className = 'material-symbols-outlined mi';
       ico.textContent = 'expand_more';
       sum.appendChild(txt); sum.appendChild(ico);
       var cuerpo = document.createElement('div');
-      cuerpo.className = 'pt-3 font-body-sm text-body-sm text-[#44483f] leading-relaxed border-t border-[#D8D2C5] mt-3';
+      cuerpo.className = 'faq-item__body';
       cuerpo.textContent = lwTxt(q.respuesta);
       d.appendChild(sum); d.appendChild(cuerpo);
       cont.appendChild(d);
@@ -1134,7 +1416,7 @@
   function faqCaida(){
     var cont = document.getElementById('faq-lista');
     if(!cont) return;
-    cont.innerHTML = '<p class="font-body-sm text-body-sm text-[#5F6257] m-0">' +
+    cont.innerHTML = '<p class="font-body-sm text-body-sm text-on-surface-variant m-0">' +
       'We could not load the questions right now. Please contact ' +
       '<a class="text-deep-lagoon underline" href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a>.</p>';
     if(window.lwDeck) lwDeck.traduce(cont);
@@ -1151,7 +1433,8 @@
   // Rectangulos en % sobre 12-masterplan.jpg (1690x2200). Medidos sobre la
   // propia imagen; al ir en % no dependen del tamano al que se muestre.
   // Poligonos reales en % (nunca rectangulos): manifiesto en
-  // ../masterplan/palmfield.json, medido el 15-sep-2026 sobre la propia
+  // ../masterplan/palmfield.json (v2/ vive un nivel mas hondo que la ficha
+  // viva, de ahi el ../ extra), medido el 15-sep-2026 sobre la propia
   // imagen (24-masterplan-plots.webp, ahora vive en ../masterplan/palmfield.webp,
   // mismo sitio/convencion que el resto de manifiestos de masterplan de la
   // suite). Watershed (skimage) sembrado en el centro de las 34 parcelas
@@ -1170,9 +1453,7 @@
     disponible:    null,
     reservada:     ['RESERVED', 'bg-amber-500/90'],
     bloqueada:     ['SOLD',     'bg-[#B3261E]/95'],
-    no_disponible: ['SOLD',     'bg-[#B3261E]/95'],
-    vendida:       ['SOLD',     'bg-[#B3261E]/95'],
-    cobrada:       ['SOLD',     'bg-[#B3261E]/95']
+    no_disponible: ['SOLD',     'bg-[#B3261E]/95']
   };
 
   function centroide(pts){
@@ -1187,20 +1468,22 @@
     rows.forEach(function(row){
       var pts = ZONAS[row.codigo];
       if(!pts || pts.length < 3) return;
-      // Sin reserva de autoservicio (15-sep, aviso del owner): cada parcela
-      // disponible usa "Contact us" directo, igual que el resto de la suite.
+      // 22-sep (pedido del owner): TODA parcela del plano es clicable y lleva a su
+      // fila del inventario (irAParcela), tambien reservadas y vendidas -- quien
+      // pincha una vendida quiere ver su dato igual. El contacto vive en la fila
+      // (WhatsApp), no aqui: un solo sitio donde se actua sobre una parcela.
       var libre = row.estado === 'disponible';
-      var el = document.createElement(libre ? 'a' : 'div');
-      el.className = 'absolute inset-0 transition-all duration-200 ' +
-        (libre ? 'hover:bg-territorial-green/35 cursor-pointer' : 'bg-black/45');
+      var el = document.createElement('a');
+      el.href = '#plot-' + idParcela(row.codigo);
+      el.setAttribute('data-plano', idParcela(row.codigo));
+      el.className = 'absolute inset-0 transition-all duration-200 cursor-pointer ' +
+        (libre ? 'hover:bg-territorial-green/35' : 'bg-black/45 hover:bg-black/30');
       el.style.clipPath = 'polygon(' + pts.map(function(p){ return p[0]+'% '+p[1]+'%'; }).join(',') + ')';
       var precio = row.precio != null ? ' · ' + fmtMoney(row.precio, row.moneda) : '';
       el.title = row.codigo + ' · ' + esc(row.superficie_m2) + ' m2' + precio + ' · ' +
-        ({disponible:'Available',reservada:'Reserved',bloqueada:'Sold',no_disponible:'Sold',vendida:'Sold',cobrada:'Sold'}[row.estado] || row.estado);
-      if(libre){
-        el.href = 'mailto:sales@lawangproperties.com?subject=' + encodeURIComponent('Palm Field ' + row.codigo);
-        el.setAttribute('aria-label', 'Contact us about plot ' + row.codigo);
-      }
+        ({disponible:'Available',reservada:'Reserved',bloqueada:'Sold',no_disponible:'Sold'}[row.estado] || row.estado);
+      el.setAttribute('aria-label', el.title);
+      el.addEventListener('click', function(e){ e.preventDefault(); irAParcela(row.codigo); });
       wrap.appendChild(el);
       var sello = SELLO[row.estado];
       if(sello){
@@ -1212,6 +1495,44 @@
         wrap.appendChild(badge);
       }
     });
+  }
+
+  // El codigo de parcela lo teclea el equipo en la intranet: para usarlo en un id
+  // o en un href se queda solo con [A-Za-z0-9-].
+  function idParcela(codigo){ return String(codigo == null ? '' : codigo).replace(/[^A-Za-z0-9-]/g, ''); }
+
+  // Clic en el plano → su fila del inventario: centrada DENTRO de la lista (que
+  // scrollea sola en escritorio) y, si la fila queda fuera de pantalla (movil, lista
+  // debajo del plano), la pagina baja lo justo. Destello de 2 s para encontrarla.
+  // Ojo al verificar: `behavior:'smooth'` no anima en Edge headless.
+  function irAParcela(codigo){
+    var id = idParcela(codigo);
+    var fila = document.getElementById('plot-' + id);
+    if(!fila) return;
+    var lista = document.getElementById('plots-wrap');
+    if(lista && lista.scrollHeight > lista.clientHeight){
+      lista.scrollTo({ top: fila.offsetTop - lista.clientHeight / 2 + fila.offsetHeight / 2, behavior: 'smooth' });
+    }
+    var r = fila.getBoundingClientRect();
+    if(r.top < 80 || r.bottom > window.innerHeight){
+      fila.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+    document.querySelectorAll('[data-fila-parcela].lw-fila-activa').forEach(function(f){ f.classList.remove('lw-fila-activa'); });
+    document.querySelectorAll('[data-plano].lw-plano-activo').forEach(function(p){ p.classList.remove('lw-plano-activo'); });
+    fila.classList.add('lw-fila-activa');
+    var poli = document.querySelector('[data-plano="' + id + '"]');
+    if(poli) poli.classList.add('lw-plano-activo');
+    fila.classList.remove('lw-destello'); void fila.offsetWidth; fila.classList.add('lw-destello');
+  }
+
+  // WhatsApp por parcela, en el idioma del visitante. `lwT` devuelve null en ingles
+  // (no hay entrada `en` en el diccionario): de ahi el `|| txt`.
+  var WA_NUM = '6281138319862';
+  function enlaceWaParcela(codigo){
+    var txt = 'Hello LAWANG, I’m interested in plot ' + codigo + ' at Palm Field.';
+    var lang = window.lwLang ? lwLang() : 'en';
+    if(lang !== 'en' && window.lwT) txt = lwT(txt, lang) || txt;
+    return 'https://wa.me/' + WA_NUM + '?text=' + encodeURIComponent(txt);
   }
 
   var ULTIMAS_FILAS = null;
@@ -1233,28 +1554,36 @@
     body: JSON.stringify({ p_proyecto: PROYECTO })
   }).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
     .then(function(rows){
-      if(!rows || !rows.length){ plotsWrap.innerHTML = '<div class="p-6 text-sm text-[#5F6257]">No plots published yet.</div>'; plotsCount.textContent=''; return; }
+      if(!rows || !rows.length){ plotsWrap.innerHTML = '<div class="p-6 text-sm text-on-surface-variant">No plots published yet.</div>'; plotsCount.textContent=''; return; }
       ULTIMAS_FILAS = rows;
       if(ZONAS) pintaPlano(rows);
       var disponibles = rows.filter(function(r){ return r.estado === 'disponible'; }).length;
       plotsCount.textContent = disponibles + ' of ' + rows.length + ' plots available';
       plotsWrap.innerHTML = '';
       rows.forEach(function(row){
-        // Sin reserva de autoservicio (15-sep, aviso del owner): "Contact us"
-        // para cualquier parcela disponible, nunca el boton "Reserve".
-        var estadoLabel = { disponible:'Available', reservada:'Reserved', bloqueada:'Blocked', no_disponible:'Not available', vendida:'Sold', cobrada:'Sold' }[row.estado] || row.estado;
+        // Sin reserva de autoservicio (15-sep, aviso del owner): nunca el boton
+        // "Reserve". Desde el 22-sep el contacto es WhatsApp ("hablanos por
+        // WhatsApp", pedido del owner), con la parcela ya escrita en el mensaje.
+        var estadoLabel = { disponible:'Available', reservada:'Reserved', bloqueada:'Blocked', no_disponible:'Not available' }[row.estado] || row.estado;
         var pillClass = row.estado === 'disponible' ? 'bg-territorial-green/15 text-territorial-green' : (row.estado === 'reservada' ? 'bg-amber-100 text-amber-800' : 'bg-[#FBE9E7] text-[#B3261E]');
+        // Franja por estado con sombra interior y no con border-l: el divide-y de la
+        // lista pisa el color de todos los bordes de sus hijos (medido en captura).
+        var franja = row.estado === 'disponible' ? 'shadow-[inset_4px_0_0_#485B37]' : (row.estado === 'reservada' ? 'shadow-[inset_4px_0_0_#F59E0B]' : 'shadow-[inset_4px_0_0_#B3261E]');
         var row_ = document.createElement('div');
-        row_.className = 'p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#E4DFD5]/30 transition-colors';
+        row_.id = 'plot-' + idParcela(row.codigo);
+        row_.setAttribute('data-fila-parcela', '');
+        row_.className = 'scroll-mt-24 pl-5 pr-4 py-3.5 ' + franja + ' flex flex-wrap items-center justify-between gap-3 hover:bg-surface-container-low/50 transition-colors' +
+          (row.estado === 'disponible' ? '' : ' opacity-75');
         var actionHtml;
         if(row.estado === 'disponible'){
-          actionHtml = '<a class="px-3.5 py-1.5 rounded-full bg-deep-lagoon hover:bg-territorial-green text-white text-xs font-label-md font-semibold transition-colors" href="mailto:sales@lawangproperties.com?subject=Palm%20Field%20'+encodeURIComponent(row.codigo)+'">Contact us</a>';
+          actionHtml = '<a class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#25D366] hover:brightness-95 text-[#0b3d25] text-xs font-label-md font-semibold transition-all whitespace-nowrap" target="_blank" rel="noopener" href="'+esc(enlaceWaParcela(row.codigo))+'" aria-label="Talk to us on WhatsApp about plot '+esc(row.codigo)+'">' +
+            '<span class="material-symbols-outlined text-[16px]">chat</span><span>Talk to us on WhatsApp</span></a>';
         } else {
-          actionHtml = '<span class="text-xs font-label-md text-[#5F6257] bg-[#F0ECE1] px-3 py-1.5 rounded-full">—</span>';
+          actionHtml = '<span class="text-xs font-label-md text-on-surface-variant bg-surface-container px-3 py-1.5 rounded-full">—</span>';
         }
-        row_.innerHTML = '<div class="flex flex-col"><div class="flex items-center gap-2"><span class="font-headline-sm text-lg font-bold text-deep-lagoon">'+esc(row.codigo)+'</span>' +
+        row_.innerHTML = '<div class="flex flex-col gap-0.5"><div class="flex items-center gap-2"><span class="font-headline-sm text-xl font-bold text-deep-lagoon">'+esc(row.codigo)+'</span>' +
           '<span class="px-2 py-0.5 rounded-full text-[11px] font-label-md font-semibold '+pillClass+'">'+esc(estadoLabel)+'</span></div>' +
-          '<span class="text-xs text-[#44483f] font-body-sm">'+esc(row.superficie_m2)+' m² · Reference price '+fmtMoney(row.precio, row.moneda)+'</span></div>' +
+          '<span class="text-sm text-on-surface-variant font-body-sm">'+esc(row.superficie_m2)+' m² · Reference price '+fmtMoney(row.precio, row.moneda)+'</span></div>' +
           '<div>'+actionHtml+'</div>';
         plotsWrap.appendChild(row_);
       });
@@ -1262,9 +1591,55 @@
       if(window.lwRepintaDinero) lwRepintaDinero();
     })
     .catch(function(){
-      plotsWrap.innerHTML = '<div class="p-6 text-sm text-[#5F6257]">We could not load live plot data right now. Please contact <a class="text-deep-lagoon underline" href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a>.</div>';
+      plotsWrap.innerHTML = '<div class="p-6 text-sm text-on-surface-variant">We could not load live plot data right now. Please contact <a class="text-deep-lagoon underline" href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a>.</div>';
       plotsCount.textContent = '';
     });
+
+  // ── menu por debajo de 1280px (22-sep) ─────────────────────────────────────
+  // Clona los enlaces de #nav-principal ANTES de traducir, para que el walker de
+  // i18n traduzca las dos copias en la misma pasada. Una sola lista de secciones.
+  (function(){
+    var nav = document.getElementById('nav-principal');
+    var menu = document.getElementById('menu-movil');
+    var btn = document.getElementById('menu-btn');
+    var ico = document.getElementById('menu-ico');
+    if(!nav || !menu || !btn) return;
+    nav.querySelectorAll('a').forEach(function(a){
+      var c = document.createElement('a');
+      c.href = a.getAttribute('href');
+      c.textContent = a.textContent;
+      c.className = 'px-4 py-3 rounded-xl font-label-md text-body-md text-volcanic-ash hover:bg-stone-sand/25 hover:text-deep-lagoon transition-all';
+      menu.appendChild(c);
+    });
+    function abre(si){
+      menu.classList.toggle('hidden', !si);
+      menu.classList.toggle('flex', si);
+      btn.setAttribute('aria-expanded', si ? 'true' : 'false');
+      if(ico) ico.textContent = si ? 'close' : 'menu';
+    }
+    btn.addEventListener('click', function(){ abre(menu.classList.contains('hidden')); });
+    menu.addEventListener('click', function(e){ if(e.target.closest('a')) abre(false); });
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape') abre(false); });
+    window.addEventListener('resize', function(){ if(window.innerWidth >= 1280) abre(false); });
+  })();
+
+  // ── seccion activa en el menu (23-sep, barra T3) ─────────────────────────
+  // Solo secciones reales: #faq es el panel DENTRO del hero y se pisaria con #vision.
+  (function(){
+    var ids = ['vision','modelos','masterplan','rendimientos','seguridad-notarial'];
+    var secs = ids.map(function(id){ return document.getElementById(id); }).filter(Boolean);
+    if(!secs.length || !('IntersectionObserver' in window)) return;
+    function marca(id){
+      document.querySelectorAll('#nav-principal a, #menu-movil a').forEach(function(a){
+        a.classList.toggle('lw-nav-activa', a.getAttribute('href') === '#' + id);
+      });
+    }
+    var io = new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(e.isIntersecting) marca(e.target.id); });
+    }, { rootMargin: '-45% 0px -50% 0px' });
+    secs.forEach(function(sct){ io.observe(sct); });
+    marca('vision');
+  })();
 
   // ── selector de idioma / divisa ───────────────────────────────────────────
   if(window.lwDeck){
@@ -1282,9 +1657,38 @@
     var m = a.querySelector('[data-wa-msg]');
     if(!m) return;
     var txt = (m.textContent || '').trim();
-    if(txt) a.href = 'https://wa.me/6281138319862?text=' + encodeURIComponent(txt);
+    if(!txt) return;
+    var href = 'https://wa.me/' + WA_NUM + '?text=' + encodeURIComponent(txt);
+    a.href = href;
+    // El boton del pie lleva el mismo mensaje que el flotante.
+    document.querySelectorAll('[data-wa-enlace]').forEach(function(x){ x.href = href; });
   })();
   if(window.lwRepintaDinero) lwRepintaDinero();
+})();
+</script>
+<script>
+// v3: la barra es transparente sobre la hero y se vuelve solida al salir de ella, y los
+// bloques .reveal entran con el mismo fundido que la home. Presentacion pura.
+(function(){
+  var bar = document.getElementById('topbar');
+  var hero = document.getElementById('vision');
+  function pinta(){ bar.classList.toggle('solid', window.scrollY > 60); }
+  window.addEventListener('scroll', pinta, { passive: true });
+  window.addEventListener('resize', pinta);
+  pinta();
+  // El menu movil se abre sobre la foto: con la barra transparente se leeria mal.
+  var btn = document.getElementById('menu-btn');
+  if(btn) btn.addEventListener('click', function(){ setTimeout(function(){
+    if(btn.getAttribute('aria-expanded') === 'true') bar.classList.add('solid'); else pinta();
+  }, 0); });
+  if(!('IntersectionObserver' in window)){ document.querySelectorAll('.reveal').forEach(function(e){ e.classList.add('in'); }); return; }
+  var io = new IntersectionObserver(function(es){
+    es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { rootMargin: '0px 0px -8% 0px' });
+  function observa(){ document.querySelectorAll('.reveal:not(.in)').forEach(function(e){ io.observe(e); }); }
+  observa();
+  // Las tarjetas las pinta el JS de datos mas tarde: se vuelven a observar al llegar.
+  new MutationObserver(observa).observe(document.querySelector('main'), { childList: true, subtree: true });
 })();
 </script>
 </body>

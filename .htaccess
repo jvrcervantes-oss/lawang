@@ -140,9 +140,12 @@ RedirectMatch 404 (?i)/_diag_
   # 3) Landings de modelo: /modelo/dali sirve modelo/index.php?m=dali. Va DESPUES de las
   #    reglas de raiz a proposito: aquellas solo casan rutas sin barra, asi que no se comen
   #    esta. Un modelo inexistente o sin renders lo manda index.php a /thecollection.
-  # 3-v2) Piel nueva de prueba (24-sep-2026, noindex, sin enlazar): /modelo/v2/dali sirve
-  #    modelo/v2.php?m=dali. Dos segmentos, asi que la regla 3 nunca la casa.
-  RewriteRule ^modelo/v2/([A-Za-z0-9-]+)/?$ /modelo/v2.php?m=$1 [L,QSA]
+  # 3-v2) 24-sep-2026 (owner): la v2 de prueba pasa a ser la ficha publicada (modelo/index.php)
+  #    y /modelo/v2/<id> redirige a ella. La anterior se guarda en modelo/v1.php, servida en
+  #    /modelo/v1/<id> (noindex, sin enlazar) por si hay que restaurarla. Dos segmentos, asi
+  #    que la regla 3 nunca casa ninguna de las dos.
+  RewriteRule ^modelo/v2/([A-Za-z0-9-]+)/?$ /modelo/$1 [R=301,L]
+  RewriteRule ^modelo/v1/([A-Za-z0-9-]+)/?$ /modelo/v1.php?m=$1 [L,QSA]
   RewriteRule ^modelo/([A-Za-z0-9-]+)/?$ /modelo/index.php?m=$1 [L,QSA]
 
   # 3b) Ficha de propiedad: /property/<slug> sirve thecollection.php?property=<slug> (mismo
@@ -163,6 +166,10 @@ RedirectMatch 404 (?i)/_diag_
   #     proyecto y no a un modelo de villa. Comparte piel (assets/au-landing.css) y datos
   #     (modelo/datos.php) con /dali; /dali se queda publicada y con su propio canonical.
   RewriteRule ^palmfield/?$ /palmfield/index.php [L,QSA]
+
+  # 3d-bis) 24-sep-2026 (owner): la v3 del deck de Palm Field pasa a ser la publicada en
+  #    /investor-deck/palmfield/ (la anterior se guarda en v1/, la v2 sigue en v2/).
+  RewriteRule ^investor-deck/palmfield/v3/?$ /investor-deck/palmfield/ [R=301,L]
 
   # 3e) Investor Deck multi-proyecto (15-sep-2026): /investor-deck/<slug> sirve
   #     investor-deck/index.php?slug=<slug> (mismo mecanismo que la 3 de arriba).

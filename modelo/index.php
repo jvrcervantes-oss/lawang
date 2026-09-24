@@ -1,5 +1,21 @@
 <?php
 /**
+ * FICHA PUBLICADA de modelo — /modelo/<id>. Desde el 24-sep-2026 (owner) es la antigua v2
+ * (/modelo/v2/<id>, ahora 301 aqui); la anterior se guarda en modelo/v1.php (/modelo/v1/<id>).
+ * Al publicarla se deshicieron las tres diferencias de prueba de abajo: urlBase y enlaces de
+ * la coleccion van a /modelo/<id> y ViewContent vuelve a dispararse.
+ * --- historia de la v2 ---
+ * 24-sep-2026, pedido del owner: "haz lo mismo para /modelos/" — misma piel y composicion que
+ * el investor deck v3 (home de lawangproperties.com). NO sustituye a modelo/index.php.
+ * Identico a index.php: todo el bloque PHP de datos de abajo, el motor del configurador
+ * (assets/au-landing-cfg.js, compartido con /dali, sin tocar) con los mismos ids/names/data-paso,
+ * y todo el texto visible (i18n-landing.js casa por texto; FAQ aprobada por Legal).
+ * Cambia: la piel, y tres cosas deliberadas del <script> — urlBase apunta a /modelo/v2/<id>
+ * (el motor hace replaceState sobre esa ruta), NO se dispara ViewContent (una pagina de prueba
+ * no debe contaminar las metricas de la campaña) y la barra se vuelve solida al bajar.
+ * SEO: noindex SIEMPRE y la canonica apunta a la ficha de verdad (/modelo/<id>).
+ *
+ * --- docblock original de index.php ---
  * Landing de modelo de villa — /modelo/<id> (regla de reescritura en .htaccess).
  *
  * ── 21-sep-2026 · RECONSTRUCCIÓN DESDE CERO (v6, sustituye 352d9943/4c2312c5/c7287cb3) ──
@@ -237,9 +253,7 @@ $deckEtiqueta = $deckEj['proyecto'] ?? '';
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= lw_e($villa . $TITULO_SUFIJO) ?></title>
 <meta name="description" content="<?= lw_e($villa) ?>: a new-build <?= lw_e($dormTxt) ?> villa, built on the plot you choose. Finishes, scope of works and price, configured live.">
-<?php if (!$precio): ?>
 <meta name="robots" content="noindex, nofollow">
-<?php endif; ?>
 <link rel="canonical" href="https://lawangproperties.com/<?= lw_e($slugPath) ?>">
 <link rel="icon" href="/favicon.png">
 <meta property="og:title" content="<?= lw_e($villa) ?> · Turnkey villa in Bali">
@@ -257,619 +271,570 @@ $deckEtiqueta = $deckEj['proyecto'] ?? '';
      estas familias exactas — cambiarlas rompería la tipografía sin tocar una clase. -->
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Instrument+Sans:wght@400;500;600;700&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
-<!-- Tailwind COMPILADO (npx tailwindcss sobre el mockup, mismo tailwind.config) — NUNCA
-     el Play CDN: sin versión fija, sin SRI, y la CSP de seguridad_2026.md lo prohíbe. -->
-<link rel="stylesheet" href="/assets/dali-tesla-tw.min.css?v=20260921164216">
 <style>
-/* Material Symbols Outlined: el link de Google Fonts trae el glifo, pero NO esta clase —
-   sin ella el navegador pinta el nombre del icono como texto plano ("roofing"), no el
-   icono. Verificado: no existe en dali-tesla-tw.min.css (Tailwind no genera CSS para una
-   clase que no reconoce como utilidad), así que va aquí, el snippet estándar de Google. */
-.material-symbols-outlined{font-family:'Material Symbols Outlined';font-weight:normal;
-  font-style:normal;font-size:24px;line-height:1;letter-spacing:normal;text-transform:none;
-  display:inline-block;white-space:nowrap;word-wrap:normal;direction:ltr;
-  -webkit-font-feature-settings:'liga';-webkit-font-smoothing:antialiased}
-/* Reset mínimo que el mockup traía inline (scrollbar fina + glass-panel/glass-dock/
-   corner-accent) — estas tres NO las genera Tailwind (son CSS de autor en el <style> del
-   propio code.html), así que se copian aquí literal, no desde el .min.css. */
-::-webkit-scrollbar{width:6px;height:6px}
-::-webkit-scrollbar-thumb{background:rgba(143,155,122,.5);border-radius:4px}
-::-webkit-scrollbar-track{background:#f5f4ee}
-.glass-panel{background:rgba(251,249,244,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
-.glass-dock{background:rgba(46,52,55,.85);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
-.corner-accent::before{content:'';position:absolute;width:14px;height:14px;border-top:2px solid #485B37;border-left:2px solid #485B37;top:14px;left:14px}
-.corner-accent::after{content:'';position:absolute;width:14px;height:14px;border-bottom:2px solid #485B37;border-right:2px solid #485B37;bottom:14px;right:14px}
-
-/* ── Idioma: EN/ES/ID, igual que el resto de landings (idioma-web.js/i18n-landing.js) ── */
+/* ════ /modelo v2 — piel de lawangproperties.com (home), mismo lenguaje que el investor
+   deck v3 (24-sep, owner). Fuentes de marca self-hosted; The Seasons es DEMO y corrompe
+   & - + 4: solo en el nombre de la villa y titulos sin esos glifos. ═══════════════════ */
+@font-face{font-family:'The Seasons';src:url('/assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-display:swap}
+@font-face{font-family:'The Seasons';src:url('/assets/fonts/TheSeasons-Regular.otf') format('opentype');font-weight:400;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('/assets/fonts/NeueKabel-ExtraLight.otf') format('opentype');font-weight:200;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('/assets/fonts/NeueKabel-Light.otf') format('opentype');font-weight:300;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('/assets/fonts/NeueKabel-Book.otf') format('opentype');font-weight:400;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('/assets/fonts/NeueKabel-Medium.otf') format('opentype');font-weight:500;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('/assets/fonts/NeueKabel-Bold.otf') format('opentype');font-weight:700;font-display:swap}
+:root{
+  --tg:#485B37; --pg:#587040; --tg-dark:#364429; --dl:#104C4F; --be:#42210B; --sc:#8F9B7A;
+  --va:#2E3437; --ss:#BEB3A5; --rl:#F5F0E6; --rl2:#EFE8DA; --cbr:#FBF8F1; --card:#11150E;
+  --ci:#2E3437; --ci2:#5A5048; --ci3:#8A7A6A; --ob:#0A0C09;
+  --se:'The Seasons','Cormorant Garamond',Georgia,serif;
+  --sa:'Neue Kabel','Jost',system-ui,sans-serif;
+  --cpd:clamp(22px,5vw,72px); --cmx:1280px; --menu-h:35px;
+  --fs-display:clamp(52px,38px + 3.6vw,100px);
+  --fs-h-xl:clamp(34px,28px + 1.9vw,58px);
+  --fs-body-l:clamp(16px,15.5px + .15vw,18px);
+  --fs-cap:clamp(11px,10.6px + .12vw,13px);
+  --ease:cubic-bezier(.16,1,.3,1);
+  --pw:420px;
+}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+html,body{margin:0;padding:0}
+body{background:var(--rl)!important;color:var(--ci);font-family:var(--sa)!important;-webkit-font-smoothing:antialiased}
+h1,h2{text-wrap:balance} p{text-wrap:pretty}
+.material-symbols-outlined{font-family:'Material Symbols Outlined';font-weight:normal;font-style:normal;font-size:24px;line-height:1;letter-spacing:normal;
+  text-transform:none;display:inline-block;white-space:nowrap;word-wrap:normal;direction:ltr;-webkit-font-feature-settings:'liga';-webkit-font-smoothing:antialiased;
+  font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24}
 html[data-lang="es"] .i-en{display:none !important}
 html:not([data-lang="es"]) .i-es{display:none !important}
+.wrap{max-width:var(--cmx);margin:0 auto;padding-inline:var(--cpd);width:100%;box-sizing:border-box}
 
-/* ── Selector de divisa: la misma regla que traía au-landing.css (`.lw-cur{position:
-   relative}`), que esta página ya NO carga (usa dali-tesla-tw.min.css en su lugar). Sin
-   esto el `.lw-lang__menu` (position:absolute, inyectado por idioma-web.js) calculaba su
-   ancla contra el <header> entero en vez de contra el botón — el desplegable se abría
-   fuera del viewport, a la derecha del todo. `.lw-lang` (idioma) no lo sufre porque
-   idioma-web.js SÍ se pone su propio position:relative; `.lw-cur` es un clon deliberado
-   que no usa esa clase (guarda de idempotencia de montaSelector), así que necesita la
-   regla aparte. */
+/* ── Topbar: #topbar de la home. Transparente sobre la foto, solida al bajar ── */
+#lw-topbar{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:1rem;
+  padding:clamp(.68rem,1.65vh,1.05rem) clamp(1.1rem,4vw,3.4rem);transition:background .3s,box-shadow .3s,padding .3s}
+#lw-topbar.solid{background:rgba(247,244,239,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  box-shadow:0 1px 0 rgba(190,179,165,.3);padding-top:clamp(.5rem,1.2vh,.8rem);padding-bottom:clamp(.5rem,1.2vh,.8rem)}
+#logo{display:flex;align-items:center;flex:1 1 0;min-width:0}
+#logo img{height:28px;width:auto;display:block;flex:none}
+#logo .lg-d{display:none}
+#lw-topbar.solid #logo .lg-w{display:none}
+#lw-topbar.solid #logo .lg-d{display:block}
+#lw-topbar.solid #logo img{height:24px}
+@media(max-width:640px){#logo img{height:22px}#lw-topbar.solid #logo img{height:20px}}
+#lw-topbar nav{flex:none;display:none;align-items:center;gap:clamp(1rem,1.9vw,1.9rem);height:var(--menu-h);padding:0 1.5rem;
+  background:rgba(20,18,14,.22);border:1px solid rgba(190,179,165,.45);border-radius:40px;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);transition:background .3s,border-color .3s}
+@media(min-width:1180px){#lw-topbar nav{display:flex}}
+#lw-topbar.solid nav{background:rgba(255,255,255,.5);border-color:rgba(72,91,55,.28)}
+.nav-link{position:relative;font-family:var(--sa);font-weight:300;font-size:.64rem;letter-spacing:.13em;text-transform:uppercase;
+  color:rgba(245,240,230,.92);text-decoration:none;text-shadow:0 1px 8px rgba(0,0,0,.55);white-space:nowrap;transition:color .3s}
+.nav-link::after{content:"";position:absolute;left:0;right:0;bottom:-7px;height:1.5px;background:var(--ss);transform:scaleX(0);transition:transform .32s var(--ease)}
+.nav-link:hover{color:#fff}
+.nav-link:hover::after,.nav-link.lw-nav-activa::after{transform:scaleX(1)}
+#lw-topbar.solid .nav-link{color:rgba(26,22,18,.72);text-shadow:none}
+#lw-topbar.solid .nav-link:hover,#lw-topbar.solid .nav-link.lw-nav-activa{color:var(--pg)}
+#lw-topbar.solid .nav-link::after{background:var(--pg)}
+#acciones{display:flex;align-items:center;justify-content:flex-end;gap:clamp(.7rem,1.6vw,1.4rem);flex:1 1 0;min-width:0}
+.tb-precio{display:flex;flex-direction:column;align-items:flex-end;line-height:1.1;color:var(--rl);text-shadow:0 1px 8px rgba(0,0,0,.55)}
+.tb-precio span:first-child{font-family:var(--sa);font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;opacity:.8}
+.tb-precio span:last-child{font-family:var(--sa);font-weight:300;font-size:17px;letter-spacing:.02em;white-space:nowrap}
+#lw-topbar.solid .tb-precio{color:var(--ci);text-shadow:none}
+@media(max-width:639px){.tb-precio{display:none}}
+.tb-wa{display:inline-flex;align-items:center;gap:.5rem;text-decoration:none;height:var(--menu-h);padding:0 16px 0 7px;border-radius:30px;
+  border:1px solid rgba(245,240,230,.5);color:var(--rl);font-family:var(--sa);font-weight:400;font-size:11px;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;transition:all .35s}
+.tb-wa .wa{width:22px;height:22px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;color:#fff;flex:none}
+.tb-wa .wa .material-symbols-outlined{font-size:14px}
+.tb-wa:hover{background:rgba(245,240,230,.14)}
+#lw-topbar.solid .tb-wa{background:var(--pg);border-color:var(--pg)}
+#lw-topbar.solid .tb-wa:hover{background:#3a4a2c}
+@media(max-width:820px){.tb-wa{display:none}}
+/* idioma (i18n-landing.js lo monta en .nav__cta) + divisa: texto como la home, sin caja */
 .lw-cur{position:relative;display:inline-flex;flex:none}
-
-/* ── Grupo "moneda + idioma": una mini-sección propia, separada del precio y del CTA de
-   WhatsApp (antes los 4 elementos iban sueltos en la misma fila, sin agrupar). `.lw-meta`
-   es también `.nav__cta` a propósito: es el selector que i18n-landing.js busca para
-   montar el idioma (`querySelector('.nav__cta')`, primer match del documento) — así el
-   idioma aterriza DENTRO de esta píldora, junto a la divisa, sin tocar el script. */
-.lw-meta{display:flex;align-items:center;gap:10px;padding:6px 12px;border-radius:999px;
-  background:rgba(239,238,232,.7);border:1px solid #e4e2dd}
+.lw-meta{display:flex;align-items:center;gap:6px;--lw-lang-ink:#f5f0e6;--lw-lang-bg:rgba(18,16,12,.88);--lw-lang-line:rgba(190,179,165,.38);--lw-lang-menu-ink:#f5f0e6;--lw-lang-hover:rgba(190,179,165,.18)}
 .lw-meta .lw-cur,.lw-meta .lw-lang{display:flex}
+.lw-meta *{font-family:var(--sa)!important;letter-spacing:.14em}
+#lw-topbar:not(.solid) .lw-meta{text-shadow:0 1px 8px rgba(0,0,0,.55)}
+#lw-topbar.solid .lw-meta{--lw-lang-ink:#2e3437;--lw-lang-bg:#fff;--lw-lang-line:rgba(72,91,55,.2);--lw-lang-menu-ink:#2e3437;--lw-lang-hover:rgba(72,91,55,.1)}
+@media (max-width:1023px){ header .lw-lang__btn{min-height:40px} }
 
-/* ── Micro-animación al pasar por encima de los botones del menú: la píldora de fondo
-   entra con un scale+fade desde el centro (no un bounce, easing suave) y el texto sube
-   1px — legible como intención, no como decoración. ─────────────────────────────────── */
-.nav__pill{position:relative;isolation:isolate;transition:color .18s ease,transform .18s ease}
-.nav__pill::before{content:'';position:absolute;inset:0;border-radius:999px;
-  background:rgba(49,67,34,.08);transform:scale(.85);opacity:0;z-index:-1;
-  transition:transform .18s cubic-bezier(.16,1,.3,1),opacity .18s ease}
-.nav__pill:hover{transform:translateY(-1px)}
-.nav__pill:hover::before{transform:scale(1);opacity:1}
+/* ── Titulares y botones de la home ── */
+.kicker{display:inline-flex;align-items:center;gap:12px;font-family:var(--sa);font-size:var(--fs-cap);font-weight:500;letter-spacing:.26em;text-transform:uppercase;color:var(--tg);margin:0}
+.kicker::before{content:"";width:30px;height:1px;background:currentColor;opacity:.5}
+.center .kicker::before{display:none}
+.titulo{font-family:var(--sa);font-weight:700;text-transform:uppercase;line-height:1.02;letter-spacing:.005em;color:var(--ci);font-size:var(--fs-h-xl);margin:0}
+.entrada{font-family:var(--sa);font-size:var(--fs-body-l);line-height:1.75;color:var(--ci2);max-width:60ch;margin:0}
+.cab{display:flex;flex-direction:column;gap:14px}
+.cab.center{align-items:center;text-align:center;margin-inline:auto;max-width:860px}
+.cab.center .entrada{margin-inline:auto}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:14px 28px;border-radius:40px;font-family:var(--sa);font-size:11px;font-weight:500;
+  letter-spacing:.14em;text-transform:uppercase;text-decoration:none;border:1px solid transparent;cursor:pointer;transition:transform .16s cubic-bezier(.23,1,.32,1),background .22s,color .22s,border-color .22s}
+.btn:active{transform:scale(.97)}
+.btn-hueso{border-color:rgba(245,240,230,.5);color:var(--rl);background:rgba(245,240,230,.06)} .btn-hueso:hover{background:rgba(245,240,230,.14)}
+.btn-linea{border-color:rgba(46,52,55,.35);color:var(--ci)} .btn-linea:hover{border-color:var(--tg);color:var(--tg)}
+.reveal{opacity:0;transform:translateY(28px);filter:blur(4px);transition:opacity .85s var(--ease),transform .85s var(--ease),filter .85s var(--ease)}
+.reveal.in{opacity:1;transform:none;filter:none}
+@media(prefers-reduced-motion:reduce){.reveal{transform:none;filter:none;transition:opacity .4s}}
+.sec{position:relative;padding:clamp(4.5rem,11vh,8rem) 0}
+.sec > .wrap{position:relative}
+.sec-lino{background:var(--rl) url('/assets/img/bg-ecosystem.webp?v=2') center/cover}
+.sec-lino::before{content:"";position:absolute;inset:0;background:rgba(245,240,230,.72);pointer-events:none}
+.oscura{position:relative;background:var(--card);color:var(--rl);border-radius:16px;box-shadow:0 30px 60px -30px rgba(20,26,17,.6)}
+.oscura.marco::after{content:"";position:absolute;inset:8px;border:1px solid rgba(245,240,230,.16);border-radius:10px;pointer-events:none}
 
-/* ── Tarjetas de opción (pasos del configurador): valores EXACTOS del tailwind.config
-   del mockup (primary #314322, on-surface #1b1c19, on-surface-variant #44483f,
-   surface-container-low #f5f4ee, surface-container-highest #e4e2dd), no nombres de clase
-   Tailwind — el paso 1 (villa) SÍ usa las clases Tailwind reales sobre `.vcard`; los
-   pasos 2 y 3 los pinta assets/au-landing-cfg.js con `class="op"` a pelo (motor
-   compartido, sin tocar), así que su aspecto vive aquí como CSS plano con los mismos
-   valores, para que las tres tarjetas salgan indistinguibles a ojo. */
-.vcard:has(input:checked),.op:has(input:checked){
-  background:rgba(49,67,34,.05);border-color:#314322;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-.op{cursor:pointer;display:flex;align-items:center;gap:12px;padding:12px 14px;
-  border-radius:12px;border:1px solid #e4e2dd;background:#f5f4ee;
-  transition:border-color .15s ease,background .15s ease}
-.op:hover{border-color:rgba(49,67,34,.5)}
-.op input{width:16px;height:16px;accent-color:#314322;flex:none;margin:2px 0 0}
-.op>span:nth-child(2){display:flex;flex-direction:column;flex:1;min-width:0}
-.op__nb{font-family:'Jost',sans-serif;font-size:14px;font-weight:600;color:#1b1c19}
-.op__sp{font-family:'Jost',sans-serif;font-size:11px;color:#44483f;margin-top:2px}
-.op__pr{text-align:right;flex:none}
-.op__pr b{font-family:'Jost',sans-serif;font-size:12px;font-weight:700;color:#314322;
-  white-space:nowrap;display:block}
-.op__pr i{font-style:normal;font-size:10px;color:#44483f;white-space:nowrap}
-.op__th{width:44px;height:36px;border-radius:8px;object-fit:cover;background:#e4e2dd;flex:none}
+/* ── HERO + CONFIGURADOR. Movil: foto arriba (alto fijo, dock y hotspots alcanzables) y
+   panel debajo en flujo (leccion del 22-sep: nada se superpone en pantalla pequeña).
+   Desde 1024px: foto a sangre 100svh y el panel de cristal oscuro flotando a la derecha. ── */
+#hero-configurator{position:relative;background:var(--ob);color:var(--rl)}
+#hero-visual{position:relative;width:100%;height:78svh;min-height:520px;overflow:hidden}
+#viewport-canvas{position:absolute;inset:0;overflow:hidden;user-select:none}
+.view-layer{position:absolute;inset:0;background-size:cover;background-position:center;transition:opacity .7s ease-out,transform .7s ease-out}
+.view-layer.opacity-0{opacity:0}.view-layer.opacity-100{opacity:1}
+.view-layer.scale-105{transform:scale(1.05)}.view-layer.scale-100{transform:scale(1)}
+.view-layer.pointer-events-none{pointer-events:none}
+.view-layer > div{position:absolute;inset:0;background:linear-gradient(to top,rgba(10,12,9,.86) 0%,rgba(10,12,9,.35) 40%,rgba(10,12,9,.05) 62%,rgba(10,12,9,.4) 100%)}
+.hotspot{position:absolute;z-index:20;transform:translate(-50%,-50%);cursor:pointer;transition:opacity .3s ease,transform .15s ease}
+.hotspot:hover{transform:translate(-50%,-50%) scale(1.1)}
+.hs-pulso{position:absolute;inset:-10px;border-radius:50%;background:rgba(245,240,230,.25);animation:hsPing 2s cubic-bezier(0,0,.2,1) infinite}
+@keyframes hsPing{75%,100%{transform:scale(1.8);opacity:0}}
+.hs-punto{position:relative;display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;
+  background:rgba(12,14,10,.55);border:1px solid rgba(245,240,230,.6);color:var(--rl);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.hs-punto .material-symbols-outlined{font-size:16px}
+.hs-tip{position:absolute;left:44px;top:50%;transform:translateY(-50%);display:none;flex-direction:column;gap:2px;white-space:nowrap;min-width:150px;padding:8px 14px;border-radius:12px;
+  background:rgba(12,14,10,.8);border:1px solid rgba(190,179,165,.35);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);pointer-events:none}
+.hotspot:hover .hs-tip{display:flex}
+.hs-tip span:first-child{font-family:var(--sa);font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ss)}
+.hs-tip span:last-child{font-family:var(--sa);font-size:13px;color:var(--rl)}
+.sin-render{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:0 24px}
+.sin-render p:first-of-type{font-family:var(--sa);font-weight:500;font-size:22px;letter-spacing:.08em;text-transform:uppercase;margin:0}
+.sin-render p:last-of-type{font-family:var(--sa);font-size:14px;color:rgba(245,240,230,.72);max-width:28rem;margin:0}
+.hero-texto{position:absolute;z-index:25;left:var(--cpd);right:var(--cpd);bottom:clamp(96px,15vh,150px);pointer-events:none}
+.hero-texto .kicker{color:var(--ss)} .hero-texto .kicker::before{background:var(--ss)}
+.hero-texto h1{font-family:var(--se);font-weight:400;font-size:var(--fs-display);line-height:.92;letter-spacing:.01em;text-transform:uppercase;margin:.3em 0 0;color:var(--rl)}
+.hero-texto .hero-sub{font-family:var(--sa);font-weight:500;font-size:clamp(12px,1vw,15px);letter-spacing:.14em;text-transform:uppercase;color:rgba(245,240,230,.88);margin:16px 0 0}
+.hero-pie{position:absolute;z-index:30;left:var(--cpd);right:var(--cpd);bottom:clamp(22px,4vh,40px);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.dock{display:flex;align-items:center;gap:2px;padding:4px;border-radius:40px;background:rgba(20,18,14,.35);border:1px solid rgba(190,179,165,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.cam-btn{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:40px;border:0;cursor:pointer;background:transparent;color:rgba(245,240,230,.88);
+  font-family:var(--sa);font-size:10.5px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;transition:all .25s}
+.cam-btn .material-symbols-outlined{font-size:17px}
+.cam-btn:hover{background:rgba(245,240,230,.12);color:#fff}
+.cam-btn.bg-surface{background:rgba(245,240,230,.94);color:var(--ci)}
+.cam-btn .hidden{display:none}
+@media(min-width:768px){.cam-btn .md\:inline{display:inline}}
+.hero-cta{display:none;align-items:center;gap:10px;padding:11px 22px;border-radius:40px;white-space:nowrap;text-decoration:none;
+  font-family:var(--sa);font-weight:500;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--rl);
+  border:1px solid rgba(190,179,165,.55);background:rgba(72,91,55,.35) url('/assets/img/TexturasBotones.webp') center/cover;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:background-color .3s}
+.hero-cta:hover{background-color:rgba(72,91,55,.6)}
+.hero-cta .material-symbols-outlined{font-size:17px}
+@media(min-width:1280px){.hero-cta{display:inline-flex}}
 
-/* ── Paginación de pasos (puntitos + "Step N of 3") — el motor solo mueve ESTO, no una
-   barra de pestañas de 6 botones como el mockup: sincronizar una barra propia habría
-   sido JS nuevo sobre un motor que ya funciona, con riesgo de desincronizarse en
-   silencio (justo el fallo que este mismo proyecto ya sufrió con marcado a medias). */
-.punto{width:6px;height:6px;border-radius:50%;background:#c5c8bc}
-.punto.is-on{background:#314322;width:16px;border-radius:999px}
+/* Panel del configurador: cristal oscuro, como el panel de la hero del deck v3 */
+#hero-configurator aside{position:relative;z-index:40;display:flex;flex-direction:column;background:var(--ob);color:var(--rl)}
+.cfg-cab{padding:26px var(--cpd) 20px;border-bottom:1px solid rgba(245,240,230,.14)}
+.cfg-cab .kicker{color:var(--sc)} .cfg-cab .kicker::before{background:var(--sc)}
+.cfg-sub{font-family:var(--sa);font-size:13.5px;line-height:1.6;color:rgba(245,240,230,.75);margin:10px 0 0}
+.cfg-datos{display:grid;grid-template-columns:repeat(3,1fr);margin-top:18px;border-top:1px solid rgba(245,240,230,.14);border-bottom:1px solid rgba(245,240,230,.14)}
+.cfg-datos > div{display:flex;flex-direction:column;gap:4px;padding:12px 10px}
+.cfg-datos > div + div{border-left:1px solid rgba(245,240,230,.14)}
+.cfg-datos > div:first-child{padding-left:0}
+.cfg-datos span:first-child{font-family:var(--sa);font-size:9.5px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--ss)}
+.cfg-datos span:last-child{font-family:var(--sa);font-weight:300;font-size:14px;color:var(--rl)}
+.cfg-datos .desde span:last-child{color:#C3D9A6}
+#lw-paso-lb{display:block;margin-top:14px;font-family:var(--sa);font-size:10px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:rgba(245,240,230,.6)!important;text-align:center}
+.res{flex:1;min-height:0;overflow-y:auto;padding:22px var(--cpd);display:flex;flex-direction:column;gap:20px;scrollbar-width:thin;scrollbar-color:rgba(245,240,230,.25) transparent}
+.cfg__step{display:flex;flex-direction:column;gap:10px}
 .cfg__step[hidden]{display:none}
+.lista{display:flex;flex-direction:column;gap:10px}
+.lista[hidden]{display:none}
+.paso-tit{font-family:var(--sa);font-weight:500;font-size:15px;letter-spacing:.12em;text-transform:uppercase;color:var(--rl)}
+.paso-txt{font-family:var(--sa);font-size:13px;line-height:1.55;color:rgba(245,240,230,.68);margin:4px 0 4px}
+.op,.vcard{cursor:pointer;display:flex;align-items:center;gap:12px;padding:13px 15px;border-radius:12px;border:1px solid rgba(245,240,230,.16);background:rgba(245,240,230,.04);transition:border-color .15s,background .15s}
+.vcard{justify-content:space-between}
+.op:hover,.vcard:hover{border-color:rgba(245,240,230,.4)}
+.op:has(input:checked),.vcard:has(input:checked){background:rgba(143,155,122,.16);border-color:var(--sc)}
+.op input,.vcard input{width:16px;height:16px;accent-color:#8F9B7A;flex:none;margin:2px 0 0}
+.op>span:nth-child(2){display:flex;flex-direction:column;flex:1;min-width:0}
+.op__nb{font-family:var(--sa);font-size:14px;font-weight:500;letter-spacing:.03em;color:var(--rl)}
+.op__sp{font-family:var(--sa);font-size:11.5px;color:rgba(245,240,230,.62);margin-top:2px}
+.op__pr{text-align:right;flex:none}
+.op__pr b{font-family:var(--sa);font-size:13px;font-weight:500;color:#C3D9A6;white-space:nowrap;display:block}
+.op__pr i{font-style:normal;font-size:10px;color:rgba(245,240,230,.55);white-space:nowrap}
+.op__th{width:44px;height:36px;border-radius:8px;object-fit:cover;background:#222;flex:none}
+.vcard-izq{display:flex;align-items:flex-start;gap:12px}
+.vcard-izq > div{display:flex;flex-direction:column}
+.vcard-nb{font-family:var(--sa);font-size:14px;font-weight:500;color:var(--rl)}
+.vcard-sp{font-family:var(--sa);font-size:11.5px;color:rgba(245,240,230,.62)}
+.vcard-pr{font-family:var(--sa);font-size:12px;font-weight:500;color:#C3D9A6;white-space:nowrap}
+#lw-parcela-nota{font-family:var(--sa);font-size:11.5px;color:rgba(245,240,230,.62);margin:2px 0 0}
+.cfg-pie{padding:18px var(--cpd) 22px;border-top:1px solid rgba(245,240,230,.14);display:flex;flex-direction:column;gap:14px}
+.resumen{padding-bottom:12px;border-bottom:1px solid rgba(245,240,230,.12);display:flex;flex-direction:column;gap:6px;font-family:var(--sa);font-size:12px;color:rgba(245,240,230,.65)}
+.resumen .fila{display:flex;justify-content:space-between;gap:12px}
+.resumen .fila span:first-child{color:var(--rl);font-weight:500}
+.resumen .fila span:last-child{color:#C3D9A6}
+.total-fila{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.total-fila > div:first-child{display:flex;flex-direction:column}
+.total-lb{font-family:var(--sa);font-size:9.5px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:var(--ss)}
+#lw-total{font-family:var(--sa);font-weight:200;font-size:30px;line-height:1.1;color:var(--rl)}
+#lw-total-alt{font-family:var(--sa);font-size:11px;color:rgba(245,240,230,.55)}
+.nav-pasos{display:flex;align-items:center;gap:8px}
+#lw-atras{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;background:transparent;border:1px solid rgba(245,240,230,.4);color:var(--rl)}
+#lw-atras[hidden]{display:none}
+#lw-atras:disabled{opacity:.4;pointer-events:none}
+#lw-siguiente{display:inline-flex;align-items:center;gap:4px;padding:10px 18px;border-radius:40px;cursor:pointer;border:1px solid var(--rl);background:var(--rl);color:var(--ci);
+  font-family:var(--sa);font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;transition:background .2s}
+#lw-siguiente:hover{background:#fff}
+#lw-siguiente .material-symbols-outlined,#lw-atras .material-symbols-outlined{font-size:17px}
+#lw-puntos{display:flex;align-items:center;justify-content:center;gap:6px}
+.punto{width:6px;height:6px;border-radius:50%;background:rgba(245,240,230,.3)}
+.punto.is-on{background:var(--rl);width:18px;border-radius:999px}
+#lw-wa-cta{display:flex;align-items:center;justify-content:center;gap:10px;padding:14px 20px;border-radius:40px;background:#25D366;color:#0b3d25;text-decoration:none;
+  font-family:var(--sa);font-size:11.5px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;transition:filter .2s}
+#lw-wa-cta:hover{filter:brightness(.95)}
+#lw-wa-cta .material-symbols-outlined{font-size:18px}
+@media(min-width:1024px){
+  #hero-configurator{height:100svh;min-height:640px;overflow:hidden}
+  #hero-visual{position:absolute;inset:0;height:auto;min-height:0}
+  #hero-configurator aside{position:absolute;top:clamp(76px,10vh,92px);right:var(--cpd);bottom:clamp(22px,4vh,40px);width:var(--pw);
+    border-radius:16px;overflow:hidden;background:rgba(12,14,10,.66);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    border:1px solid rgba(190,179,165,.3);box-shadow:0 30px 70px -30px rgba(0,0,0,.7)}
+  .cfg-cab,.res,.cfg-pie{padding-left:26px;padding-right:26px}
+  .hero-texto,.hero-pie{right:calc(var(--pw) + var(--cpd) + 36px)}
+}
+@media(min-width:1280px){:root{--pw:460px}}
 
-/* ── Hero cinemático: capas cross-fade (día / techo bambú / interior) ──────────────── */
-.view-layer{transition:opacity .7s ease-out,transform .7s ease-out}
-/* 22-sep-2026: los hotspots se ocultan fuera de la vista 'day' (JS, más abajo) — esta
-   transición evita el corte brusco; sustituye a `transition-transform` de Tailwind
-   (que solo animaba el hover) sin perder ese efecto. */
-.hotspot{transition:opacity .3s ease,transform .15s ease}
+/* ── 01 · DISTRIBUCION ── */
+.lay-grid{display:grid;grid-template-columns:1fr;gap:clamp(20px,2.4vw,36px);margin-top:clamp(2.5rem,5vh,3.5rem);align-items:start}
+@media(min-width:1024px){.lay-grid{grid-template-columns:7fr 5fr}}
+.lay-foto{padding:14px}
+.lay-foto .caja{position:relative;aspect-ratio:1/1;border-radius:10px;overflow:hidden;background:var(--va)}
+.lay-foto img{width:100%;height:100%;object-fit:cover;transition:transform 1.2s var(--ease)}
+.lay-foto:hover img{transform:scale(1.04)}
+.area{position:absolute;top:18px;right:18px;display:flex;flex-direction:column;align-items:flex-end;gap:2px;padding:10px 16px;border-radius:12px;
+  background:rgba(12,14,10,.72);border:1px solid rgba(190,179,165,.35);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.area span:nth-child(1){font-family:var(--sa);font-size:9.5px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:var(--ss)}
+.area span:nth-child(2){font-family:var(--sa);font-weight:200;font-size:26px;line-height:1.1;color:var(--rl)}
+.area span:nth-child(3){font-family:var(--sa);font-size:11px;color:#C3D9A6}
+.lay-der{display:flex;flex-direction:column;gap:18px}
+.epc{padding:28px 28px 26px}
+.epc .kicker{color:var(--sc);font-size:11px}
+.epc .kicker .material-symbols-outlined{font-size:17px}
+.epc .kicker::before{display:none}
+.epc h3{font-family:var(--sa);font-weight:500;font-size:clamp(20px,1vw + 12px,26px);letter-spacing:.08em;text-transform:uppercase;margin:12px 0 10px;color:var(--rl)}
+.epc p{font-family:var(--sa);font-size:14px;line-height:1.7;color:rgba(245,240,230,.75);margin:0}
+.specs{padding:8px 24px}
+.spec{display:flex;align-items:center;gap:14px;padding:14px 0;font-family:var(--sa);font-size:14px;color:var(--rl)}
+.spec + .spec{border-top:1px solid rgba(245,240,230,.1)}
+.spec .material-symbols-outlined{font-size:20px;color:var(--sc);flex:none}
+.lay-der .btn{width:100%;box-sizing:border-box}
+.lay-der .btn .material-symbols-outlined{font-size:18px}
 
-/* ── FAQ: acordeón de tarjetas bordeadas con <details> nativo (mismo aspecto que el
-   mockup, sin JS propio — menos superficie, misma jerarquía visual). ────────────────── */
-.faq-item{border:1px solid #e4e2dd;border-radius:16px;background:#fbf9f4;overflow:hidden}
-.faq-item + .faq-item{margin-top:14px}
-.faq-item summary{list-style:none;cursor:pointer;padding:20px;display:flex;
-  align-items:center;justify-content:space-between;gap:16px;
-  font-family:'Jost',sans-serif;font-size:15px;font-weight:700;color:#314322}
+/* ── 02 · CUBIERTAS: tarjetas altas a foto completa con marco interior (como las villas) ── */
+.techos{display:grid;grid-template-columns:1fr;gap:clamp(18px,2.2vw,32px);margin-top:clamp(2.5rem,5vh,3.5rem)}
+@media(min-width:768px){.techos{grid-template-columns:1fr 1fr}}
+.tcard{position:relative;display:block;min-height:clamp(460px,62vh,600px);border-radius:14px;overflow:hidden;background:var(--va);color:var(--rl);box-shadow:0 30px 60px -30px rgba(20,26,17,.55);transition:transform .5s var(--ease)}
+.tcard:hover{transform:translateY(-6px)}
+.tcard > img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform 1.2s var(--ease)}
+.tcard:hover > img{transform:scale(1.05)}
+.tcard::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(to top,rgba(14,17,12,.94) 0%,rgba(14,17,12,.6) 38%,rgba(14,17,12,0) 64%)}
+.tcard::after{content:"";position:absolute;inset:14px;z-index:2;border:1px solid rgba(245,240,230,.38);border-radius:8px;pointer-events:none}
+.tcard-cuerpo{position:absolute;z-index:3;left:32px;right:32px;bottom:32px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px}
+.tcard-nb{font-family:var(--sa);font-weight:500;font-size:clamp(22px,1.2vw + 12px,30px);letter-spacing:.06em;text-transform:uppercase;line-height:1.05}
+.tcard-pr{font-family:var(--sa);font-weight:500;font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--ss);padding:6px 16px;border-radius:30px;border:1px solid rgba(190,179,165,.5)}
+.tcard-cuerpo p{font-family:var(--sa);font-size:13.5px;line-height:1.65;color:rgba(245,240,230,.82);margin:0;max-width:46ch}
+.tcard-cuerpo p.y27{font-size:11.5px;color:rgba(245,240,230,.6)}
+
+/* ── 03 · INVERSION + FAQ: foto a sangre con tarjetas de cristal oscuro (forecast del deck) ── */
+.sec-foto{color:var(--rl);background:var(--ob) url('<?= lw_e($heroDay ?: '/assets/img/lugar/costa.webp') ?>') center/cover}
+.sec-foto::before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(to bottom,rgba(10,12,9,.7),rgba(10,12,9,.82) 45%,rgba(14,20,11,.95))}
+.sec-foto .kicker{color:var(--ss)} .sec-foto .titulo{color:var(--rl)}
+.fin-grid{display:grid;grid-template-columns:1fr;gap:clamp(18px,2vw,28px);margin-top:clamp(2.5rem,6vh,4rem);align-items:start}
+@media(min-width:1024px){.fin-grid{grid-template-columns:1fr 1fr}}
+.cristal{position:relative;padding:28px 28px 24px;border-radius:16px;background:rgba(12,14,10,.78);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border:1px solid rgba(190,179,165,.3);box-shadow:0 30px 60px -30px rgba(0,0,0,.7)}
+.cristal .kicker{font-size:10.5px;color:var(--ss)}
+.cristal h3{font-family:var(--sa);font-weight:500;font-size:clamp(20px,1vw + 12px,26px);letter-spacing:.08em;text-transform:uppercase;margin:10px 0 8px;color:var(--rl)}
+.cristal .nota{font-family:var(--sa);font-size:13px;line-height:1.65;color:rgba(245,240,230,.78);margin:0 0 16px}
+.esc{padding:14px 0;border-top:1px solid rgba(245,240,230,.16)}
+.esc-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.esc-top > span{font-family:var(--sa);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ss)}
+.esc-top b{font-family:var(--sa);font-weight:200;font-size:clamp(22px,1.1vw + 12px,28px);color:var(--rl);white-space:nowrap}
+.esc p{font-family:var(--sa);font-size:12px;line-height:1.6;color:rgba(245,240,230,.8);margin:6px 0 0}
+.cristal .base{font-family:var(--sa);font-size:12px;line-height:1.65;color:rgba(245,240,230,.72);margin:6px 0 0;padding-top:14px;border-top:1px solid rgba(245,240,230,.16)}
+.faq-item{border:0;border-top:1px solid rgba(245,240,230,.18);border-radius:0;background:transparent}
+.faq-item:last-child{border-bottom:1px solid rgba(245,240,230,.18)}
+.faq-item summary{list-style:none;cursor:pointer;padding:16px 0;display:flex;align-items:center;justify-content:space-between;gap:16px;
+  font-family:var(--sa);font-size:13px;font-weight:500;letter-spacing:.03em;text-transform:uppercase;color:var(--rl);line-height:1.4}
 .faq-item summary::-webkit-details-marker{display:none}
-.faq-item summary .mi{transition:transform .2s ease}
-.faq-item[open] summary .mi{transform:rotate(180deg)}
-.faq-item__body{padding:0 20px 20px;border-top:1px solid rgba(228,226,221,.6);
-  padding-top:12px;font-family:'Jost',sans-serif;font-size:13.5px;line-height:1.6;color:#44483f}
+.faq-item summary .mi{font-size:0!important;width:14px;height:14px;position:relative;flex:none}
+.faq-item summary .mi::before,.faq-item summary .mi::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(245,240,230,.8)}
+.faq-item summary .mi::after{transform:rotate(90deg);transition:transform .3s var(--ease)}
+.faq-item[open] summary .mi::after{transform:rotate(0)}
+.faq-item__body{padding:0 0 18px;font-family:var(--sa);font-size:14px;line-height:1.75;color:rgba(245,240,230,.75)}
+.faq-item__body p{margin:0}
+.faq-lista{margin-top:14px}
 
-/* ── 22-sep-2026: dali-tesla-tw.min.css es un build CONGELADO (npx tailwindcss sobre
-   el mockup, ver cabecera del <link>) — no lleva compiladas combinaciones de clases
-   nuevas que no estuvieran ya en el HTML el día del build. Lo que sigue no existe en
-   ese .min.css (comprobado contra el propio fichero), así que va aquí a mano, mismo
-   criterio que el resto de este <style>: NUNCA Play CDN, y sin re-generar el build
-   (no hay tailwind.config en el repo para reproducirlo con seguridad). ────────────── */
-
-/* ── Hero responsive: rehecho el 22-sep-2026 ─────────────────────────────────────────
-   Por debajo de 1024px el configurador FLOTABA encima de la foto (z-40 sobre z-30,
-   hasta el 92% del ancho) tapando el dock de cámara entero — hit-test verificado con
-   Playwright: el click en "Day" caía sobre el CTA de WhatsApp de la tarjeta, no sobre
-   el botón. En cuanto se cambiaba de vista (un hotspot, "Bamboo") no había manera de
-   volver a la foto de día: ni el dock ni los hotspots (también debajo de la tarjeta)
-   eran alcanzables. Ahora, por debajo de 1024px, la foto va arriba (altura fija,
-   dock y hotspots siempre alcanzables) y el configurador debajo en flujo normal, a
-   todo el ancho — nada se superpone. Desde 1024px sigue exactamente como estaba
-   (columnas lado a lado, tarjeta de ancho fijo). */
-#hero-configurator{height:auto}
-#hero-configurator > .relative.w-full.h-full{display:flex;flex-direction:column;height:auto}
-#hero-visual{position:relative;inset:auto;width:100%;height:56vh;flex:none}
-#hero-configurator aside{position:relative;top:auto;right:auto;bottom:auto;left:auto;
-  width:100%;height:auto;max-height:none;margin:0;border-radius:0}
-@media (min-width:1024px){
-  #hero-configurator{height:100vh}
-  #hero-configurator > .relative.w-full.h-full{flex-direction:row;height:100%}
-  #hero-visual{width:auto;flex:1 1 auto;height:100%}
-  #hero-configurator aside{position:static;width:420px;height:calc(100% - 4rem);
-    margin:2rem 2rem 2rem 0;border-radius:1rem;flex:none}
-}
-@media (min-width:1280px){
-  #hero-configurator aside{width:460px}
-}
-
-/* Catálogo "More from the collection": 4 en fila desde 1024px (son 5 modelos, uno es
-   el actual → caben los otros 4 sin partir fila). Por debajo, 2 columnas desde 640px. */
-@media (min-width:640px){
-  #section-collection .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-}
-@media (min-width:1024px){
-  #section-collection .grid{grid-template-columns:repeat(4,minmax(0,1fr))}
-}
-
-/* Píldora "Villa: <nombre>" de la cabecera: oculta hasta que haya sitio de verdad.
-   md:768px la dejaba a mitad de camino (sin el nav, que aparece en xl:1280px, ya
-   competía con precio+WhatsApp+divisa); a 1280px exacto, con el nav ya sumado,
-   volvía a partirse en dos líneas. 1400px es el primer punto medido sin ninguno
-   de los dos aprietos. */
-@media (min-width:1400px){
-  #villa-divider{display:block}
-  #villa-pill{display:flex}
-}
-
-/* ── Barra T3 (23-sep-2026, owner eligio T3 de 4 variantes con la paleta Lawang, igual
-   que el investor deck): Raw linen, menu en pildora Stone sand, enlaces Volcanic ash,
-   hover y seccion activa en Deep lagoon. Por #id y no por clase: el CSS compilado es un
-   build congelado y un selector de id le gana sin !important. ──────────────────────── */
-#lw-topbar{background:#f5f0e6;-webkit-backdrop-filter:none;backdrop-filter:none;border-bottom-color:#beb3a5;box-shadow:none}
-#lw-topbar nav{background:rgba(190,179,165,.2);border-color:#beb3a5}
-#lw-topbar .nav__pill{color:#2e3437}
-#lw-topbar .nav__pill::before{background:#104c4f}
-#lw-topbar .nav__pill:hover{color:#f5f0e6}
-#lw-topbar .nav__pill.lw-nav-activa{background:#104c4f;color:#f5f0e6}
-#lw-topbar #villa-pill{background:#fffdf8;border-color:#beb3a5}
-#lw-topbar #villa-divider,#lw-topbar .border-l+div,#lw-topbar .h-8.w-px{background:#beb3a5}
-#lw-topbar .border-l{border-color:#beb3a5}
-#lw-topbar .lw-meta{background:rgba(190,179,165,.2);border-color:#beb3a5}
-
-/* ── Responsive (23-sep-2026, revision en 360/390/768): el logo se aplastaba en movil (el <img>
-   encogia de ancho por flex con la altura fija: 79x32 en vez de ~172x24). Por debajo de 640px
-   se oculta el "From" de la barra (el precio ya sale en el panel del configurador) para que
-   quepan logo + idioma/divisa. Selectores de idioma/divisa a 40px de alto (tactil) y el boton
-   "Back to configurator" en una linea. ──────────────────────────────────────────────── */
-#lw-topbar img{flex:none;width:auto}
-@media (max-width:639px){
-  #lw-topbar img{height:24px}
-  #lw-topbar div.border-l{display:none}
-}
-@media (max-width:1023px){ header .lw-lang__btn{min-height:40px} }  /* header+clase: la hoja que inyecta el selector llega despues con min-height:24px */
-#section-collection > div > div:first-child > a{white-space:nowrap}
-/* Caja de la imagen de «Bioclimatic layout» CUADRADA en todos los anchos (23-sep-2026):
-   - en movil tomaba la altura de la foto recortada (~250px) y «Total area» tapaba el plano;
-   - en escritorio se estiraba a la altura de la columna derecha, y en las villas sin lista de
-     alcance (hoy todas menos Dali) la foto medía >1000px de alto con la columna casi vacia.
-   Fuera tambien las escuadras .corner-accent del mockup: sobre la foto parecian un fallo. */
-#section-layout [class~="lg:col-span-7"]{height:auto}
-#section-layout [class~="lg:col-span-7"] > div{aspect-ratio:1/1;height:auto}
-#section-layout .corner-accent::before,#section-layout .corner-accent::after{display:none}
-
-/* ── Colores de los bloques (23-sep-2026, owner eligio H3/Y3/R3/I3/C2 de la comparativa
-   con la paleta Lawang): H3 cabecera del panel en Territorial green · Y3 tarjeta del contrato
-   EPC destacada en Territorial green · R3 cuerpo de cada cubierta en el color de su precio ·
-   I3 forecast en bloque Deep lagoon, FAQ en blanco calido · C2 un tono por villa en la
-   coleccion (mismo criterio que el investor deck). Con !important porque el CSS compilado es
-   un build congelado y varias utilidades llevan la misma especificidad. ─────────────────── */
-/* H3 */
-#hero-configurator aside{background:rgba(245,240,230,.96)!important;border-color:#beb3a5!important}
-#hero-configurator .lw-cfg-cab{background:#485b37!important;border-color:#485b37!important}
-#hero-configurator .lw-cfg-cab span.rounded-full{background:rgba(245,240,230,.16)!important;color:#f5f0e6!important}
-#hero-configurator .lw-cfg-cab h1{color:#f5f0e6!important}
-#hero-configurator .lw-cfg-cab p{color:rgba(245,240,230,.85)!important}
-#hero-configurator .lw-cfg-cab .grid > div{background:rgba(245,240,230,.12)!important;border-color:rgba(245,240,230,.25)!important}
-#hero-configurator .lw-cfg-cab .grid > div *{color:#f5f0e6!important}
-/* Y3 */
-#section-layout{background:#f5f0e6!important}
-/* Solo las FILAS de la lista (antes "> div" pintaba tambien los contenedores de la lista y del
-   boton: rectangulos blancos de esquina recta detras de las tarjetas redondeadas, 23-sep). */
-#section-layout .lg\:col-span-5 .space-y-3\.5 > div{background:#fffdf8!important;border-color:#beb3a5!important}
-#section-layout .lg\:col-span-5 > div:first-child{background:#485b37!important;border-color:#485b37!important}
-#section-layout .lg\:col-span-5 > div:first-child *{color:#f5f0e6!important}
-#section-layout .lg\:col-span-5 > div:first-child .material-symbols-outlined, #section-layout .lg\:col-span-5 > div:first-child .uppercase{color:#beb3a5!important}
-/* R3 */
-#section-cubiertas{background:#f5f0e6!important}
-#section-cubiertas h2{color:#104c4f!important}
-#section-cubiertas .grid > div:nth-child(1) > div:last-child{background:#485b37}
-#section-cubiertas .grid > div:nth-child(2) > div:last-child{background:#104c4f}
-#section-cubiertas .grid > div > div:last-child *{color:#f5f0e6!important}
-#section-cubiertas .grid > div > div:last-child .text-\[11px\], #section-cubiertas .grid > div > div:last-child p:last-child{color:rgba(245,240,230,.75)!important}
-/* I3 */
-#section-financial{background:#f5f0e6!important}
-#section-financial .lg\:col-span-6:first-child > div:first-child{background:#104c4f!important;border-color:#104c4f!important}
-#section-financial .lg\:col-span-6:first-child > div:first-child *{color:#f5f0e6!important}
-#section-financial .lg\:col-span-6:first-child > div:first-child .uppercase{color:#beb3a5!important}
-#section-financial .lg\:col-span-6:first-child > div:first-child .rounded-2xl{background:rgba(245,240,230,.1)!important;border-color:rgba(245,240,230,.2)!important}
-#section-financial .faq-item{background:#fffdf8!important;border-color:#beb3a5!important}
-#section-financial .lg\:col-span-6:last-child h3{color:#104c4f!important}
-/* C2 */
-#section-collection{background:#f5f0e6!important}
-#section-collection h2{color:#104c4f!important}
-#section-collection .grid > a:nth-child(4n+1) > div:last-child{background:#485b37}
-#section-collection .grid > a:nth-child(4n+2) > div:last-child{background:#104c4f}
-#section-collection .grid > a:nth-child(4n+3) > div:last-child{background:#42210b}
-#section-collection .grid > a:nth-child(4n+4) > div:last-child{background:#2e3437}
-#section-collection .grid > a > div:last-child p{color:rgba(245,240,230,.85)!important}
-#section-collection .grid > a > div:last-child > span{background:#f5f0e6!important;border-color:#f5f0e6!important;color:#2e3437!important}
-#lw-paso-lb{color:rgba(245,240,230,.75)!important}
+/* ── 04 · COLECCION: tarjetas altas de villa (como Villa Typologies del deck) ── */
+.col-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:clamp(18px,2vw,28px);margin-top:clamp(2.5rem,5vh,3.5rem)}
+.villa{position:relative;display:block;aspect-ratio:3/4.3;border-radius:14px;overflow:hidden;background:var(--va);color:var(--rl);text-decoration:none;box-shadow:0 30px 60px -30px rgba(20,26,17,.55);transition:transform .5s var(--ease)}
+.villa:hover{transform:translateY(-6px)}
+.villa > img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform 1.2s var(--ease)}
+.villa:hover > img{transform:scale(1.05)}
+.villa::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(to top,rgba(14,17,12,.92) 0%,rgba(14,17,12,.5) 36%,rgba(14,17,12,0) 60%)}
+.villa::after{content:"";position:absolute;inset:12px;z-index:2;border:1px solid rgba(245,240,230,.38);border-radius:8px;pointer-events:none}
+.villa-cuerpo{position:absolute;z-index:3;left:24px;right:24px;bottom:24px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
+.villa-nombre{font-family:var(--sa);font-weight:500;font-size:clamp(20px,1vw + 12px,26px);letter-spacing:.06em;text-transform:uppercase;line-height:1}
+.villa-precio{font-family:var(--sa);font-weight:500;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--ss)}
+.villa-sp{font-family:var(--sa);font-size:11.5px;line-height:1.5;color:rgba(245,240,230,.78)}
+.villa-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 16px;border-radius:40px;box-sizing:border-box;
+  border:1px solid rgba(245,240,230,.55);font-family:var(--sa);font-size:10.5px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;transition:background .3s,color .3s}
+.villa-btn .material-symbols-outlined{font-size:15px}
+.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
+.col-volver{display:flex;justify-content:center;margin-top:clamp(2rem,4vh,3rem)}
+.col-volver .material-symbols-outlined{font-size:17px}
 </style>
-</head>
-<body class="bg-surface font-body-md text-body-md text-on-surface antialiased selection:bg-soft-canopy selection:text-surface">
 
-<!-- ═══ HEADER ═══════════════════════════════════════════════════════════════════════ -->
-<header id="lw-topbar" class="fixed top-0 left-0 w-full z-50 bg-surface/90 backdrop-blur-xl border-b border-surface-container-highest/60 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
-<div class="h-20 w-full px-4 md:px-margin-desktop flex items-center justify-between gap-4">
-<div class="flex items-center gap-5">
-<a class="flex items-center" href="/">
-<img class="h-8" src="/assets/img/lawang-logo-v3-dark.webp" alt="Lawang Tropical Properties">
+</head>
+<body>
+
+<!-- ═══ HEADER — #topbar de la home: transparente sobre la foto, solida al bajar ═══════ -->
+<header id="lw-topbar">
+<a id="logo" href="/" aria-label="Lawang Tropical Properties">
+<img class="lg-w" src="/assets/img/lawang-logo-v3.webp" alt="Lawang Tropical Properties">
+<img class="lg-d" src="/assets/img/lawang-logo-v3-dark.webp" alt="" aria-hidden="true">
 </a>
-<!-- 22-sep-2026: de md (768px) a lg (1024px) — entre medias, con el nav ya oculto
-     (xl) pero esta píldora aún visible, no cabía junto al precio+WhatsApp+divisa y
-     "Villa Dali" partía en dos líneas dentro de una píldora redonda. `lg:block`/
-     `lg:flex` no existen en dali-tesla-tw.min.css (build congelado) — el override
-     real va en el <style>, esto solo deja el estado por defecto (oculto). -->
-<div class="h-8 w-px bg-surface-container-highest hidden" id="villa-divider"></div>
-<div class="hidden items-center gap-2 bg-surface-container-low/90 border border-surface-container-highest px-3.5 py-1.5 rounded-full shadow-sm" id="villa-pill">
-<span class="w-2 h-2 rounded-full bg-territorial-green animate-pulse"></span>
-<span class="font-body-sm text-body-sm text-on-surface-variant">Villa:</span>
-<span class="font-label-md text-label-md text-deep-lagoon font-semibold tracking-wide"><?= lw_e($villa) ?></span>
-</div>
-</div>
-<nav class="hidden xl:flex items-center gap-1 bg-surface-container-low/90 p-1.5 rounded-full border border-surface-container-highest">
-<a class="nav__pill px-3.5 py-1.5 rounded-full text-on-surface-variant hover:text-primary font-label-md text-body-sm" href="#section-layout"><?= lw_i18n('Distribución', 'Layout') ?></a>
-<a class="nav__pill px-3.5 py-1.5 rounded-full text-on-surface-variant hover:text-primary font-label-md text-body-sm" href="#section-cubiertas"><?= lw_i18n('Cubiertas', 'Roofs') ?></a>
-<a class="nav__pill px-3.5 py-1.5 rounded-full text-on-surface-variant hover:text-primary font-label-md text-body-sm" href="#section-financial"><?= lw_i18n('Rentabilidad', 'Returns & FAQ') ?></a>
-<a class="nav__pill px-3.5 py-1.5 rounded-full text-on-surface-variant hover:text-primary font-label-md text-body-sm" href="#section-collection"><?= lw_i18n('Colección', 'Collection') ?></a>
+<nav aria-label="Sections">
+<a class="nav-link" href="#section-layout"><?= lw_i18n('Distribución', 'Layout') ?></a>
+<a class="nav-link" href="#section-cubiertas"><?= lw_i18n('Cubiertas', 'Roofs') ?></a>
+<a class="nav-link" href="#section-financial"><?= lw_i18n('Rentabilidad', 'Returns & FAQ') ?></a>
+<a class="nav-link" href="#section-collection"><?= lw_i18n('Colección', 'Collection') ?></a>
 </nav>
-<!-- CTA: precio + WhatsApp, separados de la píldora de moneda/idioma (antes iban los 4
-     sueltos en la misma fila). El grupo moneda+idioma vive en `.lw-meta` más abajo. -->
-<div class="flex items-center gap-3 md:gap-element-gap">
-<div class="flex flex-col text-right pl-2 border-l border-surface-container-highest">
-<span class="font-body-sm text-[11px] text-on-surface-variant uppercase tracking-wider"><?= lw_i18n('Desde', 'From') ?></span>
-<span class="font-kpi-number text-lg md:text-headline-sm text-primary tracking-tight font-bold"<?= $precioValor !== null ? ' data-eur-fijo="' . (int) $precioValor . '"' : '' ?>><?= lw_e($precioTxt) ?></span>
+<div id="acciones">
+<div class="tb-precio">
+<span><?= lw_i18n('Desde', 'From') ?></span>
+<span<?= $precioValor !== null ? ' data-eur-fijo="' . (int) $precioValor . '"' : '' ?>><?= lw_e($precioTxt) ?></span>
 </div>
-<a class="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-full bg-deep-lagoon hover:bg-secondary text-on-secondary font-label-md text-xs font-semibold shadow-sm transition-all" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer">
-<span class="material-symbols-outlined text-[16px]">support_agent</span>
+<a class="tb-wa" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer">
+<span class="wa"><span class="material-symbols-outlined">support_agent</span></span>
 <span><?= lw_i18n('Escríbenos', 'WhatsApp') ?></span>
 </a>
-<div class="h-8 w-px bg-surface-container-highest hidden md:block"></div>
-<!-- nav__cta: hook de i18n-landing.js (monta aquí el selector EN/ES/ID), junto a la
-     divisa, dentro de la misma píldora `.lw-meta`. -->
+<!-- nav__cta: hook de i18n-landing.js (monta aqui el selector EN/ES/ID), junto a la divisa. -->
 <div class="lw-meta nav__cta">
 <div class="lw-cur" id="lw-div-sel" data-no-i18n></div>
 </div>
 </div>
-</div>
 </header>
 
-<!-- ═══ HERO: CONFIGURADOR A PANTALLA COMPLETA ══════════════════════════════════════ -->
-<section class="w-full h-screen pt-20 relative overflow-hidden bg-volcanic-ash" id="hero-configurator">
-<div class="relative w-full h-full">
-<!-- Columna visual: la foto a la izquierda. Desde 1024px es dueña de su propio ancho
-     (ver @media en el <style> — dali-tesla-tw.min.css no lleva esta combinación
-     compilada); por debajo sigue siendo el fondo a pantalla completa de siempre. -->
-<div class="absolute inset-0 w-full h-full overflow-hidden" id="hero-visual">
+<!-- ═══ HERO: foto a sangre + configurador en panel de cristal oscuro ═════════════════ -->
+<section id="hero-configurator">
+<div id="hero-visual">
 <?php if ($sinRender): ?>
-<!-- Sin renders: fondo estático "en camino", sin dock de cámara ni hotspots — nunca una
-     foto rota ni un hueco vacío con el mismo peso visual que una foto real. -->
-<div class="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-3 text-center px-6">
-  <span class="material-symbols-outlined text-soft-canopy" style="font-size:52px">architecture</span>
-  <p class="font-headline-md text-2xl text-white font-bold">Renders in progress</p>
-  <p class="font-body-sm text-body-sm text-white/70 max-w-md">Reserve before they exist — the roof price is confirmed by the developer today.</p>
+<div class="sin-render">
+  <span class="material-symbols-outlined" style="font-size:52px;color:#8F9B7A">architecture</span>
+  <p>Renders in progress</p>
+  <p>Reserve before they exist — the roof price is confirmed by the developer today.</p>
 </div>
 <?php else: ?>
-<div class="absolute inset-0 w-full h-full overflow-hidden select-none" id="viewport-canvas">
-<div class="view-layer absolute inset-0 w-full h-full bg-cover bg-center opacity-100 scale-100" id="layer-day" style="background-image:url('<?= lw_e($heroDay) ?>')">
-<div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/80 via-transparent to-volcanic-ash/35"></div>
-</div>
-<div class="view-layer absolute inset-0 w-full h-full bg-cover bg-center opacity-0 scale-105 pointer-events-none" id="layer-roof" style="background-image:url('<?= lw_e($heroTechoAlt) ?>')">
-<div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/80 via-transparent to-volcanic-ash/30"></div>
-</div>
-<div class="view-layer absolute inset-0 w-full h-full bg-cover bg-center opacity-0 scale-105 pointer-events-none" id="layer-interior" style="background-image:url('<?= lw_e($heroInterior) ?>')">
-<div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/80 via-transparent to-volcanic-ash/30"></div>
-</div>
+<div id="viewport-canvas">
+<div class="view-layer opacity-100 scale-100" id="layer-day" style="background-image:url('<?= lw_e($heroDay) ?>')"><div></div></div>
+<div class="view-layer opacity-0 scale-105 pointer-events-none" id="layer-roof" style="background-image:url('<?= lw_e($heroTechoAlt) ?>')"><div></div></div>
+<div class="view-layer opacity-0 scale-105 pointer-events-none" id="layer-interior" style="background-image:url('<?= lw_e($heroInterior) ?>')"><div></div></div>
 <?php if ($heroKitchen): ?>
-<div class="view-layer absolute inset-0 w-full h-full bg-cover bg-center opacity-0 scale-105 pointer-events-none" id="layer-kitchen" style="background-image:url('<?= lw_e($heroKitchen) ?>')">
-<div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/80 via-transparent to-volcanic-ash/30"></div>
-</div>
+<div class="view-layer opacity-0 scale-105 pointer-events-none" id="layer-kitchen" style="background-image:url('<?= lw_e($heroKitchen) ?>')"><div></div></div>
 <?php endif; ?>
 <?php if ($heroToilet): ?>
-<div class="view-layer absolute inset-0 w-full h-full bg-cover bg-center opacity-0 scale-105 pointer-events-none" id="layer-toilet" style="background-image:url('<?= lw_e($heroToilet) ?>')">
-<div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/80 via-transparent to-volcanic-ash/30"></div>
-</div>
+<div class="view-layer opacity-0 scale-105 pointer-events-none" id="layer-toilet" style="background-image:url('<?= lw_e($heroToilet) ?>')"><div></div></div>
 <?php endif; ?>
 <?php if ($heroAerea): ?>
-<div class="view-layer absolute inset-0 w-full h-full bg-cover bg-center opacity-0 scale-105 pointer-events-none" id="layer-aerea" style="background-image:url('<?= lw_e($heroAerea) ?>')">
-<div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/80 via-transparent to-volcanic-ash/30"></div>
-</div>
+<div class="view-layer opacity-0 scale-105 pointer-events-none" id="layer-aerea" style="background-image:url('<?= lw_e($heroAerea) ?>')"><div></div></div>
 <?php endif; ?>
 
-<!-- Hotspots: reposicionados SOBRE la foto real (heroDay), no los % del mockup —
-     22-sep-2026: fuera Roof/Pool/Garden (pedido del owner: redundantes con el dock o
-     ya no aportaban); Interior pasa a "Living Room" (ver $heroInterior arriba); nuevos
-     Kitchen y Toilet con fotos reales propias. -->
-<div class="hotspot group absolute z-20 -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110" id="hotspot-interior" style="top:48%;left:48%" onclick="lwSetView('interior')">
-<span class="absolute -inset-2.5 rounded-full bg-tertiary-fixed/30 animate-ping"></span>
-<span class="relative flex items-center justify-center w-8 h-8 rounded-full bg-surface/95 text-primary shadow-xl border border-surface-container-highest">
-<span class="material-symbols-outlined text-[16px]">weekend</span>
-</span>
-<div class="absolute left-10 top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col bg-surface/95 text-on-surface backdrop-blur-md px-3.5 py-1.5 rounded-xl shadow-xl pointer-events-none whitespace-nowrap min-w-[150px] border border-surface-container-highest">
-<span class="text-[10px] uppercase tracking-wider text-on-surface-variant font-medium"><?= lw_i18n('Salón', 'Living room') ?></span>
-<span class="font-label-md text-body-sm text-primary font-semibold">AC &amp; hot water included</span>
+<!-- Hotspots: mismas posiciones y textos que v1, calibrados sobre la foto de dia. -->
+<div class="hotspot" id="hotspot-interior" style="top:48%;left:48%" onclick="lwSetView('interior')">
+<span class="hs-pulso"></span><span class="hs-punto"><span class="material-symbols-outlined">weekend</span></span>
+<div class="hs-tip"><span><?= lw_i18n('Salón', 'Living room') ?></span><span>AC &amp; hot water included</span></div>
 </div>
-</div>
-<div class="hotspot group absolute z-20 -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110" id="hotspot-terraza" style="top:79%;left:63%" onclick="lwSetView('day')">
-<span class="absolute -inset-2.5 rounded-full bg-surface/30 animate-ping"></span>
-<span class="relative flex items-center justify-center w-8 h-8 rounded-full bg-surface/95 text-territorial-green shadow-xl border border-surface-container-highest">
-<span class="material-symbols-outlined text-[16px]">deck</span>
-</span>
-<div class="absolute left-10 top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col bg-surface/95 text-on-surface backdrop-blur-md px-3.5 py-1.5 rounded-xl shadow-xl pointer-events-none whitespace-nowrap min-w-[150px] border border-surface-container-highest">
-<span class="text-[10px] uppercase tracking-wider text-on-surface-variant font-medium"><?= lw_i18n('Terraza', 'Terrace') ?></span>
-<span class="font-label-md text-body-sm text-territorial-green font-semibold">Exterior terrace, included</span>
-</div>
+<div class="hotspot" id="hotspot-terraza" style="top:79%;left:63%" onclick="lwSetView('day')">
+<span class="hs-pulso"></span><span class="hs-punto"><span class="material-symbols-outlined">deck</span></span>
+<div class="hs-tip"><span><?= lw_i18n('Terraza', 'Terrace') ?></span><span>Exterior terrace, included</span></div>
 </div>
 <?php if ($heroKitchen): ?>
-<div class="hotspot group absolute z-20 -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110" id="hotspot-kitchen" style="top:50%;left:58%" onclick="lwSetView('kitchen')">
-<span class="absolute -inset-2.5 rounded-full bg-secondary-fixed/40 animate-ping"></span>
-<span class="relative flex items-center justify-center w-8 h-8 rounded-full bg-deep-lagoon text-on-secondary shadow-xl border border-white/20">
-<span class="material-symbols-outlined text-[16px]">kitchen</span>
-</span>
-<div class="absolute left-10 top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col bg-surface/95 text-on-surface backdrop-blur-md px-3.5 py-1.5 rounded-xl shadow-xl pointer-events-none whitespace-nowrap min-w-[150px] border border-surface-container-highest">
-<span class="text-[10px] uppercase tracking-wider text-on-surface-variant font-medium"><?= lw_i18n('Cocina', 'Kitchen') ?></span>
-<span class="font-label-md text-body-sm text-deep-lagoon font-semibold">Kitchenette, see photo</span>
-</div>
+<div class="hotspot" id="hotspot-kitchen" style="top:50%;left:58%" onclick="lwSetView('kitchen')">
+<span class="hs-pulso"></span><span class="hs-punto"><span class="material-symbols-outlined">kitchen</span></span>
+<div class="hs-tip"><span><?= lw_i18n('Cocina', 'Kitchen') ?></span><span>Kitchenette, see photo</span></div>
 </div>
 <?php endif; ?>
 <?php if ($heroToilet): ?>
-<div class="hotspot group absolute z-20 -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110" id="hotspot-toilet" style="top:58%;left:37%" onclick="lwSetView('toilet')">
-<span class="absolute -inset-2.5 rounded-full bg-surface/30 animate-ping"></span>
-<span class="relative flex items-center justify-center w-8 h-8 rounded-full bg-surface/95 text-territorial-green shadow-xl border border-surface-container-highest">
-<span class="material-symbols-outlined text-[16px]">bathroom</span>
-</span>
-<div class="absolute left-10 top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col bg-surface/95 text-on-surface backdrop-blur-md px-3.5 py-1.5 rounded-xl shadow-xl pointer-events-none whitespace-nowrap min-w-[150px] border border-surface-container-highest">
-<span class="text-[10px] uppercase tracking-wider text-on-surface-variant font-medium"><?= lw_i18n('Baño', 'Bathroom') ?></span>
-<span class="font-label-md text-body-sm text-territorial-green font-semibold">En-suite bathroom, see photo</span>
-</div>
+<div class="hotspot" id="hotspot-toilet" style="top:58%;left:37%" onclick="lwSetView('toilet')">
+<span class="hs-pulso"></span><span class="hs-punto"><span class="material-symbols-outlined">bathroom</span></span>
+<div class="hs-tip"><span><?= lw_i18n('Baño', 'Bathroom') ?></span><span>En-suite bathroom, see photo</span></div>
 </div>
 <?php endif; ?>
 </div>
+<?php endif; ?>
 
-<!-- HUD superior: real y estático, sin clima en vivo ni audio inventado -->
-<div class="absolute top-4 left-6 md:left-margin-desktop z-30 flex items-center gap-3">
-<div class="glass-panel px-4 py-2 rounded-full shadow-md flex items-center gap-2.5 border border-surface-container-highest/80">
-<span class="w-2.5 h-2.5 rounded-full bg-territorial-green animate-pulse"></span>
-<span class="font-label-md text-body-sm text-primary font-semibold"><?= lw_e($villa) ?></span>
-<span class="text-stone-sand text-xs">|</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant"><?= lw_i18n('Costa oeste de Bali', "Bali's west coast") ?></span>
-</div>
+<!-- Nombre de la villa sobre la foto (patron hero de la home), en The Seasons. -->
+<div class="hero-texto">
+<p class="kicker"><?= lw_i18n('Costa oeste de Bali', "Bali's west coast") ?></p>
+<h1><?= lw_e($villa) ?></h1>
+<p class="hero-sub"><?= lw_e($m['sub_en'] ?? '') ?></p>
 </div>
 
-<!-- Dock de cámara: solo las 3 vistas reales -->
-<div class="absolute bottom-8 md:bottom-10 left-6 md:left-margin-desktop z-30 flex items-center gap-3">
-<div class="glass-dock p-1.5 rounded-full shadow-2xl flex items-center gap-1 border border-white/10">
-<button class="cam-btn flex items-center gap-2 px-3.5 py-1.5 rounded-full font-label-md text-body-sm bg-surface text-primary shadow-sm font-semibold transition-all" id="cam-day" onclick="lwSetView('day')">
-<span class="material-symbols-outlined text-[17px]">wb_sunny</span>
+<?php if (!$sinRender): ?>
+<!-- Dock de camara: las mismas vistas reales, en pildora de cristal como el menu de la home -->
+<div class="hero-pie">
+<div class="dock">
+<button class="cam-btn bg-surface" id="cam-day" onclick="lwSetView('day')">
+<span class="material-symbols-outlined">wb_sunny</span>
 <span class="hidden md:inline"><?= lw_i18n('Día', 'Day') ?></span>
 </button>
-<button class="cam-btn flex items-center gap-2 px-3.5 py-1.5 rounded-full font-label-md text-body-sm text-white/90 hover:text-white hover:bg-white/10 transition-all" id="cam-roof" onclick="lwSetView('roof')">
-<span class="material-symbols-outlined text-[17px]">roofing</span>
+<button class="cam-btn" id="cam-roof" onclick="lwSetView('roof')">
+<span class="material-symbols-outlined">roofing</span>
 <span class="hidden md:inline"><?= lw_i18n('Techo firma', 'Signature roof') ?></span>
 </button>
-<button class="cam-btn flex items-center gap-2 px-3.5 py-1.5 rounded-full font-label-md text-body-sm text-white/90 hover:text-white hover:bg-white/10 transition-all" id="cam-interior" onclick="lwSetView('interior')">
-<span class="material-symbols-outlined text-[17px]">weekend</span>
+<button class="cam-btn" id="cam-interior" onclick="lwSetView('interior')">
+<span class="material-symbols-outlined">weekend</span>
 <span class="hidden md:inline"><?= lw_i18n('Salón', 'Living room') ?></span>
 </button>
 <?php if ($heroAerea): ?>
-<button class="cam-btn flex items-center gap-2 px-3.5 py-1.5 rounded-full font-label-md text-body-sm text-white/90 hover:text-white hover:bg-white/10 transition-all" id="cam-aerea" onclick="lwSetView('aerea')">
-<span class="material-symbols-outlined text-[17px]">flight</span>
+<button class="cam-btn" id="cam-aerea" onclick="lwSetView('aerea')">
+<span class="material-symbols-outlined">flight</span>
 <span class="hidden md:inline"><?= lw_i18n('Aérea', 'Aerial') ?></span>
 </button>
 <?php endif; ?>
 </div>
-<a class="hidden xl:flex items-center gap-2 glass-panel px-4 py-2 rounded-full shadow-md border border-surface-container-highest/80 text-primary hover:text-deep-lagoon hover:bg-white transition-all group" href="#section-layout">
-<span class="text-xs font-label-md font-semibold tracking-wider uppercase"><?= lw_i18n('Explorar proyecto', 'Explore project') ?></span>
-<span class="material-symbols-outlined text-[18px] group-hover:translate-y-0.5 transition-transform">arrow_downward</span>
+<a class="hero-cta" href="#section-layout">
+<span><?= lw_i18n('Explorar proyecto', 'Explore project') ?></span>
+<span class="material-symbols-outlined">arrow_downward</span>
 </a>
 </div>
 <?php endif; ?>
 </div>
 
-<!-- ═══ CAJÓN DEL CONFIGURADOR: villa → techo → extras (motor real, sin tocar). Por
-     debajo de 1024px sigue flotando sobre la foto (igual que antes); desde 1024px
-     pasa a columna propia que ya no la tapa (regla en el <style>, mismo motivo). ══ -->
-<aside class="absolute top-4 right-4 md:right-8 bottom-8 md:bottom-10 z-40 w-[92vw] sm:w-[460px] glass-panel rounded-2xl shadow-2xl border border-surface-container-highest/80 flex flex-col overflow-hidden">
-<div class="lw-cfg-cab p-5 pb-3 border-b border-surface-container-highest/70 flex flex-col gap-2">
-<div class="flex items-center justify-between">
-<span class="px-3 py-0.5 rounded-full bg-soft-canopy/20 text-territorial-green font-label-md text-xs uppercase tracking-widest font-semibold">New build · Turnkey</span>
+<!-- ═══ CONFIGURADOR villa → techo → isla → parcela → extras. Motor real
+     (assets/au-landing-cfg.js), mismos ids/names/data-paso que v1: solo cambia la piel. ═══ -->
+<aside>
+<div class="cfg-cab">
+<p class="kicker">New build · Turnkey</p>
+<div class="cfg-datos">
+<div><span><?= lw_i18n('Superficie', 'Built area') ?></span><span><?= lw_e($sizeTxt) ?></span></div>
+<div><span><?= lw_i18n('Distribución', 'Layout') ?></span><span><?= lw_e($dorm . ' bed · ' . $banos . ' bath') ?></span></div>
+<div class="desde"><span><?= lw_i18n('Desde', 'From') ?></span><span<?= $precioValor !== null ? ' data-eur-fijo="' . (int) $precioValor . '"' : '' ?>><?= lw_e($precioTxt) ?></span></div>
 </div>
-<div class="flex items-baseline justify-between">
-<div>
-<h1 class="font-headline-md text-[28px] leading-tight text-primary font-bold"><?= lw_e($villa) ?></h1>
-<p class="font-body-sm text-body-sm text-on-surface-variant"><?= lw_e($m['sub_en'] ?? '') ?></p>
-</div>
-</div>
-<div class="grid grid-cols-3 gap-2 pt-1">
-<div class="bg-surface-container/70 p-2 rounded-xl border border-surface-container-highest/50 flex flex-col">
-<span class="text-[10px] text-on-surface-variant uppercase tracking-wider"><?= lw_i18n('Superficie', 'Built area') ?></span>
-<span class="font-kpi-number text-sm text-on-surface font-bold"><?= lw_e($sizeTxt) ?></span>
-</div>
-<div class="bg-surface-container/70 p-2 rounded-xl border border-surface-container-highest/50 flex flex-col">
-<span class="text-[10px] text-on-surface-variant uppercase tracking-wider"><?= lw_i18n('Distribución', 'Layout') ?></span>
-<span class="font-kpi-number text-sm text-on-surface font-bold"><?= lw_e($dorm . ' bed · ' . $banos . ' bath') ?></span>
-</div>
-<div class="bg-primary/10 p-2 rounded-xl border border-primary/20 flex flex-col">
-<span class="text-[10px] text-primary uppercase tracking-wider font-semibold"><?= lw_i18n('Desde', 'From') ?></span>
-<span class="font-kpi-number text-sm text-territorial-green font-bold"<?= $precioValor !== null ? ' data-eur-fijo="' . (int) $precioValor . '"' : '' ?>><?= lw_e($precioTxt) ?></span>
-</div>
-</div>
-<div class="flex items-center justify-center gap-1.5 pt-2">
-<span class="font-label-md text-xs text-on-surface-variant font-semibold" id="lw-paso-lb">Step 1 of 4</span>
-</div>
+<span id="lw-paso-lb">Step 1 of 4</span>
 </div>
 
-<!-- Cuerpo scrollable: paso 1 villa (server-render, clases Tailwind reales) + paso 2/3
-     (contenedores vacíos, los pinta assets/au-landing-cfg.js con class="op") -->
-<div class="flex-1 overflow-y-auto p-5 space-y-5 res">
-<!-- 22-sep-2026: "¿Qué villa?" no aplica en una ficha de UN modelo — cambiar de villa
-     ya vive en "More from the collection"/el nav. Oculto siempre (ocultarVilla:true en
-     lwAuCfgInit, más abajo); el motor arranca directo en "Which roof?". No se toca en
-     /dali (motor compartido, esa página no pasa la opción). -->
-<div class="cfg__step space-y-3" data-paso="1" hidden>
-<div class="flex flex-col mb-1">
-<span class="font-headline-sm text-headline-sm text-primary font-semibold"><?= lw_i18n('¿Qué villa?', 'Which villa?') ?></span>
-<p class="font-body-sm text-body-sm text-on-surface-variant">Same construction system across the range — only the size changes the price.</p>
+<div class="res">
+<div class="cfg__step" data-paso="1" hidden>
+<div>
+<span class="paso-tit"><?= lw_i18n('¿Qué villa?', 'Which villa?') ?></span>
+<p class="paso-txt">Same construction system across the range — only the size changes the price.</p>
 </div>
 <?php foreach ($CAT as $cmId => $v): ?>
-<label class="vcard cursor-pointer p-3.5 rounded-xl border-2 border-surface-container-highest bg-surface-container-low transition-all flex items-start justify-between gap-3 hover:border-primary/50">
-<div class="flex items-start gap-3">
-<input type="radio" name="lw-villa" value="<?= lw_e($cmId) ?>"<?= $cmId === $m['id'] ? ' checked' : '' ?> class="mt-1 text-primary focus:ring-primary h-4 w-4">
+<label class="vcard">
+<div class="vcard-izq">
+<input type="radio" name="lw-villa" value="<?= lw_e($cmId) ?>"<?= $cmId === $m['id'] ? ' checked' : '' ?>>
 <?php if ($v['thumb']): ?><img class="op__th" src="<?= lw_e($v['thumb']) ?>" alt="" loading="lazy"><?php endif; ?>
-<div class="flex flex-col">
-<span class="font-label-md text-body-md text-on-surface font-semibold"><?= lw_e($v['villa']) ?></span>
-<span class="font-body-sm text-xs text-on-surface-variant"><?= lw_e($v['specs']) ?></span>
+<div>
+<span class="vcard-nb"><?= lw_e($v['villa']) ?></span>
+<span class="vcard-sp"><?= lw_e($v['specs']) ?></span>
 </div>
 </div>
-<span class="font-label-md text-xs text-primary font-bold whitespace-nowrap"><?= lw_e(lw_precio_fmt($v['desde_eur'])) ?></span>
+<span class="vcard-pr"><?= lw_e(lw_precio_fmt($v['desde_eur'])) ?></span>
 </label>
 <?php endforeach; ?>
 </div>
 
-<div class="cfg__step space-y-2" data-paso="2" hidden>
-<div class="flex flex-col mb-1">
-<span class="font-headline-sm text-headline-sm text-primary font-semibold"><?= lw_i18n('¿Qué techo?', 'Which roof?') ?></span>
-<p class="font-body-sm text-body-sm text-on-surface-variant">Two complete villa prices, not an add-on — the roof you choose is the price of the villa.</p>
+<div class="cfg__step" data-paso="2" hidden>
+<div>
+<span class="paso-tit"><?= lw_i18n('¿Qué techo?', 'Which roof?') ?></span>
+<p class="paso-txt">Two complete villa prices, not an add-on — the roof you choose is the price of the villa.</p>
 </div>
-<div id="lw-techos" class="space-y-2"></div>
+<div id="lw-techos" class="lista"></div>
 </div>
 
-<!-- 22-sep-2026: isla, ubicación de parcela y extras pasan a SER TRES PASOS propios
-     (antes iban los tres apretados dentro de "Any extras?") — pedido del owner: Step 1
-     Roof, Step 2 Island, Step 3 Plot location, Step 4 Extras. La parcela se sigue
-     cotizando aparte del total configurado (villa+techo+extras) — decisión ya tomada
-     en /palmfield el 7-sep-2026, ver su docblock: no se bundlea con el precio de la
-     villa. Solo deja ver la tarifa real por m² (lw_parcela_tarifa_m2(), modelo/lib.php)
-     según isla y ubicación; el tamaño se concreta en la llamada, nunca aquí. -->
-<div class="cfg__step space-y-2.5" data-paso="3" hidden>
-<div class="flex flex-col mb-1">
-<span class="font-headline-sm text-headline-sm text-primary font-semibold"><?= lw_i18n('¿Qué isla?', 'Which island?') ?></span>
-<p class="font-body-sm text-body-sm text-on-surface-variant">The plot is priced separately, sized on the call.</p>
+<div class="cfg__step" data-paso="3" hidden>
+<div>
+<span class="paso-tit"><?= lw_i18n('¿Qué isla?', 'Which island?') ?></span>
+<p class="paso-txt">The plot is priced separately, sized on the call.</p>
 </div>
 <label class="op"><input type="radio" name="lw-isla" value="bali" checked><span><span class="op__nb">Bali</span><span class="op__sp">Cliff, ricefield, riverfront or beachfront</span></span></label>
 <label class="op"><input type="radio" name="lw-isla" value="sumba"><span><span class="op__nb">Sumba</span><span class="op__sp">Beachfront only</span></span></label>
 </div>
 
-<div class="cfg__step space-y-2.5" data-paso="4" hidden>
-<div class="flex flex-col mb-1">
-<span class="font-headline-sm text-headline-sm text-primary font-semibold"><?= lw_i18n('Ubicación de la parcela', 'Plot location') ?></span>
+<div class="cfg__step" data-paso="4" hidden>
+<div>
+<span class="paso-tit"><?= lw_i18n('Ubicación de la parcela', 'Plot location') ?></span>
 </div>
-<!-- Bali elige ubicación; Sumba tiene una única opción real hoy (Beachfront, dentro de
-     Sumba Hills — el resort se llamó "SandalWoods" hasta el 27-ago-2026, ver
-     supabase/migrations/20260827020601), así que no hay nada que radio-seleccionar,
-     solo mostrarla. -->
-<div id="lw-zona-wrap" class="space-y-2.5">
+<div id="lw-zona-wrap" class="lista">
 <label class="op"><input type="radio" name="lw-zona" value="otras" checked><span><span class="op__nb">Cliff · Ricefield · Riverfront</span></span><span class="op__pr"><b>€<?= lw_e((string) lw_parcela_tarifa_m2('otras')) ?>/m²</b></span></label>
 <label class="op"><input type="radio" name="lw-zona" value="beachfront"><span><span class="op__nb">Beachfront</span></span><span class="op__pr"><b>€<?= lw_e((string) lw_parcela_tarifa_m2('beachfront')) ?>/m²</b></span></label>
 </div>
-<div id="lw-zona-sumba-wrap" class="space-y-2.5" hidden>
-<!-- Sin <input>: `.op>span:nth-child(2)` (CSS del <style>) espera el input como 1er
-     hijo para poner el 2o en columna — aquí no hay input, así que el wrapper de
-     nombre+descripción lleva el mismo flex a mano, o "Beachfront" y su descripción
-     salen pegados en la misma línea. -->
+<div id="lw-zona-sumba-wrap" class="lista" hidden>
 <div class="op" style="cursor:default"><span style="display:flex;flex-direction:column;flex:1;min-width:0"><span class="op__nb">Beachfront</span><span class="op__sp">Inside Sumba Hills — the only plot on offer today</span></span><span class="op__pr"><b>€<?= lw_e((string) lw_parcela_tarifa_m2('sumba')) ?>/m²</b></span></div>
 </div>
-<p class="text-[11px] text-on-surface-variant" id="lw-parcela-nota"></p>
+<p id="lw-parcela-nota"></p>
 </div>
 
-<div class="cfg__step space-y-2" data-paso="5" hidden>
-<div class="flex flex-col mb-1">
-<span class="font-headline-sm text-headline-sm text-primary font-semibold"><?= lw_i18n('¿Algún extra?', 'Any extras?') ?></span>
-<p class="font-body-sm text-body-sm text-on-surface-variant">Optional — none of them is needed to move in.</p>
+<div class="cfg__step" data-paso="5" hidden>
+<div>
+<span class="paso-tit"><?= lw_i18n('¿Algún extra?', 'Any extras?') ?></span>
+<p class="paso-txt">Optional — none of them is needed to move in.</p>
 </div>
-<div id="lw-extras" class="space-y-2"></div>
+<div id="lw-extras" class="lista"></div>
 </div>
 </div>
 
-<!-- Pie: navegación de pasos + resumen + precio en vivo + CTA WhatsApp directo (sin
-     modal). El resumen vivía debajo de la tabla de pasos (fuera de vista sin
-     scrollear); ahora va aquí, junto al total, siempre visible. -->
-<div class="p-4 md:p-5 border-t border-surface-container-highest/80 bg-surface/95 flex flex-col gap-3">
-<!-- Resumen — lo escribe recalcular() en au-landing-cfg.js -->
-<div class="pb-3 border-b border-surface-container-highest/70 space-y-2 text-xs text-on-surface-variant">
-<div class="flex justify-between gap-3"><span id="lw-r-villa" class="font-semibold text-on-surface"></span><span id="lw-r-villa-pr" class="font-kpi-number text-primary"></span></div>
+<div class="cfg-pie">
+<div class="resumen">
+<div class="fila"><span id="lw-r-villa"></span><span id="lw-r-villa-pr"></span></div>
 <div id="lw-r-villa-sub"></div>
-<div class="flex justify-between gap-3"><span id="lw-r-extras" class="font-semibold text-on-surface"></span><span id="lw-r-extras-pr" class="font-kpi-number text-primary"></span></div>
+<div class="fila"><span id="lw-r-extras"></span><span id="lw-r-extras-pr"></span></div>
 <div id="lw-r-extras-sub"></div>
 </div>
-<div class="flex items-center justify-between">
-<div class="flex flex-col">
-<span class="text-[10px] text-on-surface-variant uppercase tracking-wider font-semibold"><?= lw_i18n('Total configurado', 'Configured total') ?></span>
-<span class="font-kpi-number text-2xl text-primary font-bold" id="lw-total"></span>
-<span class="text-[11px] text-on-surface-variant" id="lw-total-alt"></span>
+<div class="total-fila">
+<div>
+<span class="total-lb"><?= lw_i18n('Total configurado', 'Configured total') ?></span>
+<span id="lw-total"></span>
+<span id="lw-total-alt"></span>
 </div>
-<div class="flex items-center gap-2">
-<button class="w-9 h-9 rounded-full bg-surface-container hover:bg-surface-container-high border border-surface-container-highest flex items-center justify-center text-on-surface disabled:opacity-40 disabled:pointer-events-none transition-all" id="lw-atras" hidden>
-<span class="material-symbols-outlined text-[18px]">chevron_left</span>
-</button>
-<button class="px-4 py-2 rounded-full bg-primary hover:bg-territorial-green text-on-primary font-label-md text-xs font-semibold shadow-md transition-all flex items-center gap-1" id="lw-siguiente"><span>Next </span><span class="material-symbols-outlined text-[15px]">chevron_right</span></button>
+<div class="nav-pasos">
+<button id="lw-atras" hidden><span class="material-symbols-outlined">chevron_left</span></button>
+<button id="lw-siguiente"><span>Next </span><span class="material-symbols-outlined">chevron_right</span></button>
 </div>
 </div>
-<div class="flex items-center justify-center gap-1.5" id="lw-puntos"></div>
-<a class="w-full py-3 rounded-full bg-deep-lagoon hover:bg-secondary text-on-secondary font-label-md text-body-sm font-semibold shadow-lg transition-all flex items-center justify-center gap-2" id="lw-wa-cta" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer">
-<span class="material-symbols-outlined text-[17px]">chat</span>
+<div id="lw-puntos"></div>
+<a id="lw-wa-cta" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer">
+<span class="material-symbols-outlined">chat</span>
 <span><?= lw_i18n('Escribir por WhatsApp', 'Message us on WhatsApp') ?></span>
 </a>
 </div>
 </aside>
-</div>
 </section>
 
-<!-- ═══ 1 · DISTRIBUCIÓN ═════════════════════════════════════════════════════════════ -->
-<section class="py-24 px-6 md:px-margin-desktop bg-surface relative border-b border-surface-container-highest/80" id="section-layout">
-<div class="max-w-7xl mx-auto">
-<div class="flex items-center gap-2 mb-3">
-<span class="w-2.5 h-2.5 rounded-full bg-territorial-green"></span>
-<span class="font-label-md text-xs uppercase tracking-widest text-primary font-semibold">01 · <?= lw_i18n('Distribución', 'Layout') ?></span>
+<!-- ═══ 01 · DISTRIBUCION — lino + tarjetas oscuras con filete (como el resto de modulos) ═══ -->
+<section class="sec sec-lino" id="section-layout">
+<div class="wrap">
+<div class="cab center reveal">
+<p class="kicker">01 · <?= lw_i18n('Distribución', 'Layout') ?></p>
+<h2 class="titulo"><?= lw_i18n('Distribución bioclimática', 'Bioclimatic layout') ?></h2>
 </div>
-<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
-<div>
-<h2 class="font-headline-lg text-3xl md:text-[44px] text-primary leading-tight font-bold"><?= lw_i18n('Distribución bioclimática', 'Bioclimatic layout') ?></h2>
-</div>
-</div>
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-stretch">
-<div class="lg:col-span-7 relative group h-full">
-<div class="relative h-full rounded-3xl overflow-hidden shadow-2xl bg-surface-container-high border border-surface-container-highest/90 corner-accent">
+<div class="lay-grid">
+<div class="oscura marco lay-foto">
+<div class="caja">
 <?php if ($layoutImg): ?>
-<img alt="<?= lw_e($villa) ?> floor plan" class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700" src="<?= lw_e($layoutImg) ?>" loading="lazy">
+<img alt="<?= lw_e($villa) ?> floor plan" src="<?= lw_e($layoutImg) ?>" loading="lazy">
 <?php endif; ?>
-<div class="absolute top-6 right-6 glass-panel px-4 py-2 rounded-2xl shadow-xl border border-surface-container-highest flex flex-col items-end">
-<span class="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant"><?= lw_i18n('Superficie total', 'Total area') ?></span>
-<span class="font-kpi-number text-xl text-primary font-bold"><?= (int) $m['villa_m2'] + (int) $m['terraza_m2'] ?> m²</span>
-<span class="text-[11px] text-territorial-green font-medium"><?= (int) $m['villa_m2'] ?> m² interior + <?= (int) $m['terraza_m2'] ?> m² deck</span>
+<div class="area">
+<span><?= lw_i18n('Superficie total', 'Total area') ?></span>
+<span><?= (int) $m['villa_m2'] + (int) $m['terraza_m2'] ?> m²</span>
+<span><?= (int) $m['villa_m2'] ?> m² interior + <?= (int) $m['terraza_m2'] ?> m² deck</span>
 </div>
 </div>
 </div>
-<div class="lg:col-span-5 flex flex-col space-y-6">
-<div class="bg-surface-container-low p-6 rounded-2xl border border-surface-container-highest space-y-3">
-<div class="flex items-center gap-2 text-territorial-green text-xs font-bold uppercase tracking-wider">
-<span class="material-symbols-outlined text-[17px]">eco</span>
-<span><?= lw_i18n('Diseño pasivo', 'Passive design') ?></span>
+<div class="lay-der">
+<div class="oscura marco epc">
+<p class="kicker"><span class="material-symbols-outlined">eco</span><span><?= lw_i18n('Diseño pasivo', 'Passive design') ?></span></p>
+<h3>Turnkey EPC, fixed price</h3>
+<p>Every project runs on a guaranteed fixed-price written EPC contract — Indonesian VAT (PPN) included, closing costs quoted separately and detailed before you sign.</p>
 </div>
-<h3 class="font-headline-md text-2xl text-primary font-bold">Turnkey EPC, fixed price</h3>
-<p class="font-body-md text-on-surface-variant leading-relaxed">Every project runs on a guaranteed fixed-price written EPC contract — Indonesian VAT (PPN) included, closing costs quoted separately and detailed before you sign.</p>
-</div>
-<!-- Specs desde el alcance real de obra ($m['alcance']['incluido']), no la poesía del mockup -->
-<div class="space-y-3.5">
 <?php
-// Icono segun LO QUE DICE la linea, no segun su posicion (23-sep-2026): antes se ciclaba una
-// lista fija de 6 iconos, asi que con 7 lineas la ultima repetia la cama y «Exterior terrace»
-// salia con viento, «Air conditioning» con un rayo y «PLN» con un obrero. Primer patron que casa.
+// Icono segun LO QUE DICE la linea, no segun su posicion (23-sep-2026, igual que v1).
 $specIcons = [
     '/pool|piscina/i'                                   => 'pool',
     '/roof|techo|cubierta|atap/i'                       => 'roofing',
@@ -879,81 +844,62 @@ $specIcons = [
     '/structure|estructura|architect|arquitect|install|instalac/i' => 'architecture',
     '/main building|edificio|building|bangunan/i'       => 'home',
 ];
-$incluido  = (array) ($m['alcance']['incluido'] ?? []);
-foreach ($incluido as $it):
+$incluido = (array) ($m['alcance']['incluido'] ?? []);
+$filas = [];
+foreach ($incluido as $it) {
     $txt = is_array($it) ? ($it['en'] ?? $it['es'] ?? '') : (string) $it;
     if ($txt === '') continue;
     $ic = 'check_circle';
     foreach ($specIcons as $re => $icono) { if (preg_match($re, $txt)) { $ic = $icono; break; } }
+    $filas[] = [$ic, $txt];
+}
 ?>
-<div class="flex items-start gap-3.5 p-3.5 rounded-xl bg-surface-container/60 border border-surface-container-highest hover:bg-surface-container transition-colors">
-<span class="w-8 h-8 rounded-full bg-territorial-green/10 text-territorial-green flex items-center justify-center shrink-0 mt-0.5">
-<span class="material-symbols-outlined text-[18px]"><?= lw_e($ic) ?></span>
-</span>
-<span class="font-label-md text-body-md text-primary font-semibold"><?= lw_e($txt) ?></span>
-</div>
+<?php if ($filas): ?>
+<div class="oscura specs">
+<?php foreach ($filas as $f): ?>
+<div class="spec"><span class="material-symbols-outlined"><?= lw_e($f[0]) ?></span><span><?= lw_e($f[1]) ?></span></div>
 <?php endforeach; ?>
 </div>
-<!-- Sin PDF publico (modelo_documentos.visible_portal=false para Dali) — CTA a WhatsApp -->
-<div class="pt-2">
-<a class="w-full py-3 px-5 rounded-full border border-primary text-primary hover:bg-primary hover:text-on-primary transition-all font-label-md text-body-sm font-semibold flex items-center justify-center gap-2" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer">
-<span class="material-symbols-outlined text-[18px]">description</span>
+<?php endif; ?>
+<a class="btn btn-linea" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer">
+<span class="material-symbols-outlined">description</span>
 <span><?= lw_i18n('Solicitar el dossier completo', 'Request the full dossier') ?></span>
 </a>
-</div>
 </div>
 </div>
 </div>
 </section>
 
 <?php if ($techosComp): ?>
-<!-- ═══ 2 · CUBIERTAS ════════════════════════════════════════════════════════════════ -->
-<section class="py-24 px-6 md:px-margin-desktop bg-surface-container-low relative border-b border-surface-container-highest/80" id="section-cubiertas">
-<div class="max-w-7xl mx-auto">
-<div class="text-center max-w-3xl mx-auto mb-16 space-y-3">
-<div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-soft-canopy/15 border border-soft-canopy/30 text-territorial-green text-xs font-semibold uppercase tracking-widest">
-<span><?= lw_i18n('Materialidad', 'Craft & materiality') ?></span>
+<!-- ═══ 02 · CUBIERTAS — tarjetas altas a foto completa con marco interior ════════════ -->
+<section class="sec sec-lino" id="section-cubiertas">
+<div class="wrap">
+<div class="cab center reveal">
+<p class="kicker"><?= lw_i18n('Materialidad', 'Craft & materiality') ?></p>
+<h2 class="titulo">Roof finishes</h2>
+<p class="entrada">Two complete villa prices, not an add-on — the roof you choose is the price of the villa.</p>
 </div>
-<h2 class="font-headline-lg text-3xl md:text-[44px] text-primary font-bold leading-tight">Roof finishes</h2>
-<p class="font-body-lg text-on-surface-variant leading-relaxed">Two complete villa prices, not an add-on — the roof you choose is the price of the villa.</p>
-</div>
-<div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10">
-<div class="bg-surface rounded-3xl overflow-hidden border border-surface-container-highest/90 shadow-xl flex flex-col group hover:-translate-y-1.5 transition-all duration-300">
-<div class="relative h-72 lg:h-80 overflow-hidden bg-volcanic-ash">
-<?php if ($heroDay): ?><img alt="<?= lw_e($techosComp['sirap']['nombre']) ?>" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" src="<?= lw_e($heroDay) ?>" loading="lazy"><?php endif; ?>
-<div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/70 via-transparent to-transparent"></div>
-<div class="absolute bottom-4 left-4 right-4 flex items-end justify-between">
-<span class="font-headline-md text-2xl text-white font-bold"><?= lw_e($techosComp['sirap']['nombre']) ?></span>
-<span class="font-kpi-number text-lg text-surface font-bold bg-primary/80 px-3 py-1 rounded-lg backdrop-blur-sm"><?= lw_e(lw_precio_fmt($techosComp['sirap']['now'] ?? null)) ?></span>
-</div>
-</div>
-<div class="p-6 md:p-8 flex flex-col justify-between flex-1 space-y-6">
-<div class="space-y-3">
-<h3 class="font-headline-sm text-2xl text-primary font-bold"><?= lw_e($techosComp['sirap']['nombre']) ?></h3>
-<p class="font-body-md text-on-surface-variant leading-relaxed"><?= lw_e($techosComp['sirap']['desc'] ?? '') ?></p>
+<div class="techos">
+<div class="tcard reveal">
+<?php if ($heroDay): ?><img alt="<?= lw_e($techosComp['sirap']['nombre']) ?>" src="<?= lw_e($heroDay) ?>" loading="lazy"><?php endif; ?>
+<div class="tcard-cuerpo">
+<span class="tcard-nb"><?= lw_e($techosComp['sirap']['nombre']) ?></span>
+<span class="tcard-pr"><?= lw_e(lw_precio_fmt($techosComp['sirap']['now'] ?? null)) ?></span>
+<p><?= lw_e($techosComp['sirap']['desc'] ?? '') ?></p>
 <?php if ($antes2027 && !empty($techosComp['sirap']['y2027'])): ?>
-<p class="text-[11px] text-on-surface-variant">2026 price shown. From 2027: <?= lw_e(lw_precio_fmt($techosComp['sirap']['y2027'])) ?>.</p>
+<p class="y27">2026 price shown. From 2027: <?= lw_e(lw_precio_fmt($techosComp['sirap']['y2027'])) ?>.</p>
 <?php endif; ?>
 </div>
 </div>
-</div>
-<div class="bg-surface rounded-3xl overflow-hidden border-2 border-primary/40 shadow-xl flex flex-col group hover:-translate-y-1.5 transition-all duration-300 relative">
-<div class="relative h-72 lg:h-80 overflow-hidden bg-volcanic-ash">
-<?php if ($heroTechoAlt): ?><img alt="<?= lw_e($techosComp['bambu']['nombre']) ?>" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" src="<?= lw_e($heroTechoAlt) ?>" loading="lazy"><?php endif; ?>
-<div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/70 via-transparent to-transparent"></div>
-<div class="absolute bottom-4 left-4 right-4 flex items-end justify-between">
-<span class="font-headline-md text-2xl text-white font-bold"><?= lw_e($techosComp['bambu']['nombre']) ?></span>
-<span class="font-kpi-number text-lg text-white font-bold bg-deep-lagoon/90 px-3 py-1 rounded-lg backdrop-blur-sm"><?= lw_e(lw_precio_fmt($techosComp['bambu']['now'] ?? null)) ?></span>
-</div>
-</div>
-<div class="p-6 md:p-8 flex flex-col justify-between flex-1 space-y-6">
-<div class="space-y-3">
-<h3 class="font-headline-sm text-2xl text-primary font-bold"><?= lw_e($techosComp['bambu']['nombre']) ?></h3>
-<p class="font-body-md text-on-surface-variant leading-relaxed"><?= lw_e($techosComp['bambu']['desc'] ?? '') ?></p>
+<div class="tcard reveal">
+<?php if ($heroTechoAlt): ?><img alt="<?= lw_e($techosComp['bambu']['nombre']) ?>" src="<?= lw_e($heroTechoAlt) ?>" loading="lazy"><?php endif; ?>
+<div class="tcard-cuerpo">
+<span class="tcard-nb"><?= lw_e($techosComp['bambu']['nombre']) ?></span>
+<span class="tcard-pr"><?= lw_e(lw_precio_fmt($techosComp['bambu']['now'] ?? null)) ?></span>
+<p><?= lw_e($techosComp['bambu']['desc'] ?? '') ?></p>
 <?php if ($antes2027 && !empty($techosComp['bambu']['y2027'])): ?>
-<p class="text-[11px] text-on-surface-variant">2026 price shown. From 2027: <?= lw_e(lw_precio_fmt($techosComp['bambu']['y2027'])) ?>.</p>
+<p class="y27">2026 price shown. From 2027: <?= lw_e(lw_precio_fmt($techosComp['bambu']['y2027'])) ?>.</p>
 <?php endif; ?>
-</div>
 </div>
 </div>
 </div>
@@ -961,88 +907,75 @@ foreach ($incluido as $it):
 </section>
 <?php endif; ?>
 
-<!-- ═══ 3 · SNAPSHOT FINANCIERO + FAQ ════════════════════════════════════════════════ -->
-<section class="py-24 px-6 md:px-margin-desktop bg-surface relative border-b border-surface-container-highest/80" id="section-financial">
-<div class="max-w-7xl mx-auto">
-<div class="flex items-center gap-2 mb-3">
-<span class="w-2.5 h-2.5 rounded-full bg-territorial-green"></span>
-<span class="font-label-md text-xs uppercase tracking-widest text-primary font-semibold">03 · <?= lw_i18n('Inversión', 'Investment') ?></span>
+<!-- ═══ 03 · INVERSION + FAQ — foto a sangre y tarjetas de cristal (forecast del deck v3) ═══ -->
+<section class="sec sec-foto" id="section-financial">
+<div class="wrap">
+<div class="cab center reveal">
+<p class="kicker">03 · <?= lw_i18n('Inversión', 'Investment') ?></p>
 </div>
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
-<div class="lg:col-span-6 space-y-4">
+<div class="fin-grid">
 <?php if ($finCalc): ?>
-<div class="bg-surface-container-low rounded-3xl p-6 md:p-8 border border-surface-container-highest shadow-xl space-y-6">
-<div class="border-b border-surface-container-highest/80 pb-4">
+<div class="cristal reveal">
 <?php if (!empty($deckEj['mercado'])): ?>
-<span class="font-label-md text-xs text-territorial-green uppercase tracking-widest font-semibold"><?= lw_i18n('Previsión de mercado', 'Market forecast') ?></span>
-<h3 class="font-headline-md text-2xl md:text-3xl text-primary font-bold"><?= lw_e($deckEtiqueta) ?></h3>
-<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Rental forecast for a <?= $dorm ?>-bedroom villa in this area — not tied to a specific plot, and never a promise of yield. Source: internal market analysis (AirROI + NF Group Bali market report, Q3 2025), reviewed September 2026.</p>
+<p class="kicker"><?= lw_i18n('Previsión de mercado', 'Market forecast') ?></p>
+<h3><?= lw_e($deckEtiqueta) ?></h3>
+<p class="nota">Rental forecast for a <?= $dorm ?>-bedroom villa in this area — not tied to a specific plot, and never a promise of yield. Source: internal market analysis (AirROI + NF Group Bali market report, Q3 2025), reviewed September 2026.</p>
 <?php else: ?>
-<span class="font-label-md text-xs text-territorial-green uppercase tracking-widest font-semibold"><?= lw_i18n('Ejemplo real', 'Real example') ?></span>
-<h3 class="font-headline-md text-2xl md:text-3xl text-primary font-bold"><?= lw_e($deckEtiqueta) ?></h3>
-<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Economics of one specific plot at <?= lw_e($deckEtiqueta) ?> — figures vary by plot and are confirmed on the call, never a promise of yield.</p>
+<p class="kicker"><?= lw_i18n('Ejemplo real', 'Real example') ?></p>
+<h3><?= lw_e($deckEtiqueta) ?></h3>
+<p class="nota">Economics of one specific plot at <?= lw_e($deckEtiqueta) ?> — figures vary by plot and are confirmed on the call, never a promise of yield.</p>
 <?php endif; ?>
-</div>
 <?php foreach ($finCalc as $caso => $f): $label = $caso === 'average' ? 'Average' : 'Optimal'; ?>
-<div class="bg-surface p-4 rounded-2xl border border-surface-container-highest space-y-2">
-<div class="flex items-center justify-between">
-<span class="font-label-md text-xs uppercase tracking-wider text-on-surface-variant font-semibold"><?= lw_e($label) ?></span>
-<span class="font-kpi-number text-lg <?= $caso === 'optimal' ? 'text-deep-lagoon' : 'text-territorial-green' ?> font-bold"><?= lw_e(lw_precio_fmt($f['neto'])) ?>/yr net</span>
-</div>
-<div class="text-[11px] text-on-surface-variant"><?= lw_e(lw_precio_fmt($f['adr'])) ?> ADR × <?= (int) round($f['ocup'] * 100) ?>% occupancy — gross <?= lw_e(lw_precio_fmt($f['bruto'])) ?>, minus management + maintenance + tax (<?= lw_e(lw_precio_fmt($f['costes'])) ?>)</div>
+<div class="esc">
+<div class="esc-top"><span><?= lw_e($label) ?></span><b><?= lw_e(lw_precio_fmt($f['neto'])) ?>/yr net</b></div>
+<p><?= lw_e(lw_precio_fmt($f['adr'])) ?> ADR × <?= (int) round($f['ocup'] * 100) ?>% occupancy — gross <?= lw_e(lw_precio_fmt($f['bruto'])) ?>, minus management + maintenance + tax (<?= lw_e(lw_precio_fmt($f['costes'])) ?>)</p>
 </div>
 <?php endforeach; ?>
-<p class="text-[11px] text-on-surface-variant leading-relaxed"><?= !empty($deckEj['mercado']) ? 'Investment base used in this forecast (company estimate for this scenario)' : 'Total investment used in this example' ?>: <?= lw_e(lw_precio_fmt($deckEj['inversion_base'])) ?>. Indicative only, not a quote or financial advice — actual rental income depends on the plot, the season and how the villa is managed.</p>
+<p class="base"><?= !empty($deckEj['mercado']) ? 'Investment base used in this forecast (company estimate for this scenario)' : 'Total investment used in this example' ?>: <?= lw_e(lw_precio_fmt($deckEj['inversion_base'])) ?>. Indicative only, not a quote or financial advice — actual rental income depends on the plot, the season and how the villa is managed.</p>
 </div>
 <?php endif; ?>
-</div>
-<div class="lg:col-span-6 space-y-4">
-<div>
-<span class="font-label-md text-xs text-territorial-green uppercase tracking-widest font-semibold"><?= lw_i18n('Dudas legales', 'Legal & practical') ?></span>
-<h3 class="font-headline-md text-2xl md:text-3xl text-primary font-bold mb-2"><?= lw_i18n('Preguntas frecuentes', 'Frequently asked questions') ?></h3>
-</div>
+<div class="cristal reveal">
+<p class="kicker"><?= lw_i18n('Dudas legales', 'Legal & practical') ?></p>
+<h3><?= lw_i18n('Preguntas frecuentes', 'Frequently asked questions') ?></h3>
+<div class="faq-lista">
 <details class="faq-item">
-<summary><span><?= lw_i18n('¿Qué compro exactamente y en qué régimen?', 'What exactly am I buying, and under what title?') ?></span><span class="material-symbols-outlined mi text-on-surface-variant text-[20px]">expand_more</span></summary>
+<summary><span><?= lw_i18n('¿Qué compro exactamente y en qué régimen?', 'What exactly am I buying, and under what title?') ?></span><span class="material-symbols-outlined mi">expand_more</span></summary>
 <div class="faq-item__body">
 <p class="i-es">La villa construida y el derecho sobre la parcela en la que se levanta. En Indonesia ese derecho no funciona como la propiedad española y no todas las parcelas están en el mismo régimen ni con el mismo plazo. Es la primera cosa que repasamos en la llamada, parcela por parcela y con el documento delante, antes de hablar de dinero.</p>
 <p class="i-en">The built villa and the right over the plot it stands on. In Indonesia that right doesn't work like Spanish-style ownership, and not every plot sits under the same scheme or term. We review it plot by plot on the call, document in hand, before talking numbers.</p>
 </div>
 </details>
 <details class="faq-item">
-<summary><span><?= lw_i18n('¿Qué incluye el precio?', "What's included in the price?") ?></span><span class="material-symbols-outlined mi text-on-surface-variant text-[20px]">expand_more</span></summary>
+<summary><span><?= lw_i18n('¿Qué incluye el precio?', "What's included in the price?") ?></span><span class="material-symbols-outlined mi">expand_more</span></summary>
 <div class="faq-item__body">
 <p class="i-es">La obra completa según el pliego del contratista, con el acabado de cubierta que elijas. El precio de la villa ya incluye el IVA indonesio (PPN). La parcela y los gastos de compraventa (impuesto de transmisión, notaría y licencias) se presupuestan aparte y se detallan por escrito antes de firmar nada.</p>
 <p class="i-en">The full build with the roof finish you choose. The villa price already includes Indonesian VAT (PPN). The plot, and the closing costs on the purchase (transfer tax, notary and permits), are quoted separately and detailed in writing before you sign.</p>
 </div>
 </details>
 <details class="faq-item">
-<summary><span><?= lw_i18n('¿Puedo elegir dónde se construye?', 'Can I choose where it gets built?') ?></span><span class="material-symbols-outlined mi text-on-surface-variant text-[20px]">expand_more</span></summary>
+<summary><span><?= lw_i18n('¿Puedo elegir dónde se construye?', 'Can I choose where it gets built?') ?></span><span class="material-symbols-outlined mi">expand_more</span></summary>
 <div class="faq-item__body">
 <p class="i-es">Sí. El modelo es el mismo y se levanta sobre la parcela que elijas del catálogo. Cambian la vista, la orientación y el precio del terreno. No todas las parcelas admiten cualquier modelo: eso se concreta en la llamada.</p>
 <p class="i-en">Yes. The model stays the same and is built on the plot you choose from the catalog. The view, orientation, and land price change. Not every plot takes every model — that's confirmed on the call.</p>
 </div>
 </details>
 <details class="faq-item">
-<summary><span><?= lw_i18n('¿En qué moneda se firma?', 'What currency is the contract in?') ?></span><span class="material-symbols-outlined mi text-on-surface-variant text-[20px]">expand_more</span></summary>
+<summary><span><?= lw_i18n('¿En qué moneda se firma?', 'What currency is the contract in?') ?></span><span class="material-symbols-outlined mi">expand_more</span></summary>
 <div class="faq-item__body">
 <p class="i-es">El contrato se formaliza en rupias indonesias, como exige la ley indonesia para operaciones dentro del país. La equivalencia en euros se incluye a título informativo con el tipo de cambio de la fecha.</p>
 <p class="i-en">The contract is executed in Indonesian rupiah, as required by Indonesian law for transactions inside the country. Other-currency equivalents are given for reference only, at the exchange rate on the date.</p>
 </div>
 </details>
 <details class="faq-item">
-<summary><span><?= lw_i18n('¿Cómo se formaliza la compra?', 'How is the purchase formalized?') ?></span><span class="material-symbols-outlined mi text-on-surface-variant text-[20px]">expand_more</span></summary>
+<summary><span><?= lw_i18n('¿Cómo se formaliza la compra?', 'How is the purchase formalized?') ?></span><span class="material-symbols-outlined mi">expand_more</span></summary>
 <div class="faq-item__body">
 <p class="i-es">Primero un contrato de reserva sobre la parcela. Después el PPJB, que es el contrato de compraventa indonesio, y el contrato de construcción. Los tres son documentos propios del promotor y se revisan antes de firmar.</p>
 <p class="i-en">First a reservation contract on the plot. Then the PPJB — the Indonesian sale contract — and the construction contract. All three are the developer's own documents and are reviewed before signing.</p>
 </div>
 </details>
-<?php /* «Who builds it?» reescrita el 23-sep-2026 (owner: «no queda claro así»; revisada por Legal
-     ese mismo día). Sin nombrar a la sociedad: la firmante varía por contrato (Tepi Sun Gai por
-     defecto, SAN DAL WOODS en la reserva de Palm Field), de ahí «a Lawang company», no «the».
-     La identificación del responsable vive en /legal y en el propio contrato.
-     Comentario PHP, no HTML: un <!-- --> se sirve al navegador y aqui se nombra a las sociedades. */ ?>
+<?php /* «Who builds it?» — texto revisado por Legal el 23-sep-2026, copiado tal cual de v1. */ ?>
 <details class="faq-item">
-<summary><span><?= lw_i18n('¿Quién construye?', 'Who builds it?') ?></span><span class="material-symbols-outlined mi text-on-surface-variant text-[20px]">expand_more</span></summary>
+<summary><span><?= lw_i18n('¿Quién construye?', 'Who builds it?') ?></span><span class="material-symbols-outlined mi">expand_more</span></summary>
 <div class="faq-item__body">
 <p class="i-es">Lawang construye tu villa. El contrato de construcción se firma con una sociedad de Lawang registrada en Indonesia; su denominación legal completa y sus datos registrales figuran en el contrato, que revisas antes de firmar. En la llamada te enseñamos obras entregadas y las que están en marcha ahora mismo.</p>
 <p class="i-en">Lawang builds your villa. The construction contract is signed with a Lawang company registered in Indonesia; its full legal name and registration details are written in the contract, which you review before signing. On the call we show you delivered projects and the ones underway right now.</p>
@@ -1051,43 +984,36 @@ foreach ($incluido as $it):
 </div>
 </div>
 </div>
+</div>
 </section>
 
 <?php if ($otrosModelos): ?>
-<!-- ═══ 4 · COLECCIÓN (CROSS-SELL) ═══════════════════════════════════════════════════ -->
-<section class="py-24 px-6 md:px-margin-desktop bg-surface-container-low relative" id="section-collection">
-<div class="max-w-7xl mx-auto">
-<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-14">
-<div>
-<span class="font-label-md text-xs uppercase tracking-widest text-territorial-green font-semibold"><?= lw_i18n('Catálogo', 'Catalog') ?></span>
-<h2 class="font-headline-lg text-3xl md:text-[44px] text-primary font-bold leading-tight mt-1">More from the collection</h2>
-<p class="font-body-lg text-on-surface-variant max-w-2xl mt-2">Same construction system and roof choice across the range — only the size changes the price.</p>
+<!-- ═══ 04 · COLECCION — tarjetas altas de villa, enlazan a la v2 de cada una ═════════ -->
+<section class="sec sec-lino" id="section-collection">
+<div class="wrap">
+<div class="cab center reveal">
+<p class="kicker"><?= lw_i18n('Catálogo', 'Catalog') ?></p>
+<h2 class="titulo">More from the collection</h2>
+<p class="entrada">Same construction system and roof choice across the range — only the size changes the price.</p>
 </div>
-<a class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-primary text-primary hover:bg-primary hover:text-on-primary font-label-md text-body-sm font-semibold transition-all" href="#hero-configurator">
-<span><?= lw_i18n('Volver al configurador', 'Back to configurator') ?></span>
-<span class="material-symbols-outlined text-[17px]">north</span>
-</a>
-</div>
-<div class="grid grid-cols-1 gap-6">
+<div class="col-grid">
 <?php foreach ($otrosModelos as $ocId => $ov): ?>
-<a class="bg-surface rounded-3xl overflow-hidden border border-surface-container-highest shadow-lg flex flex-col group hover:-translate-y-2 transition-all duration-300" href="/<?= lw_e(lw_modelo_url_path($ocId)) ?>">
-<div class="relative h-60 overflow-hidden bg-volcanic-ash">
-<?php if ($ov['thumb']): ?><img alt="<?= lw_e($ov['villa']) ?>" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" src="<?= lw_e($ov['thumb']) ?>" loading="lazy"><?php endif; ?>
-<div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/80 via-transparent to-transparent"></div>
-<div class="absolute bottom-4 left-4 right-4 flex justify-between items-end">
-<span class="text-white font-headline-sm text-xl font-bold"><?= lw_e($ov['villa']) ?></span>
-<span class="text-surface-container-lowest font-kpi-number text-lg font-bold"><?= lw_e(lw_precio_fmt($ov['desde_eur'])) ?></span>
-</div>
-</div>
-<div class="p-6 flex-1 flex flex-col justify-between space-y-4">
-<p class="font-body-sm text-xs text-on-surface-variant leading-relaxed"><?= lw_e($ov['specs']) ?></p>
-<span class="w-full py-2.5 rounded-full bg-surface-container hover:bg-primary hover:text-on-primary text-primary font-label-md text-xs font-semibold tracking-wide border border-surface-container-highest transition-all flex items-center justify-center gap-1.5">
-<span><?= lw_i18n('Ver ficha', 'View model') ?></span>
-<span class="material-symbols-outlined text-[15px]">arrow_outward</span>
-</span>
+<a class="villa reveal" href="/<?= lw_e(lw_modelo_url_path($ocId)) ?>">
+<?php if ($ov['thumb']): ?><img alt="<?= lw_e($ov['villa']) ?>" src="<?= lw_e($ov['thumb']) ?>" loading="lazy"><?php endif; ?>
+<div class="villa-cuerpo">
+<span class="villa-nombre"><?= lw_e($ov['villa']) ?></span>
+<span class="villa-precio"><?= lw_e(lw_precio_fmt($ov['desde_eur'])) ?></span>
+<span class="villa-sp"><?= lw_e($ov['specs']) ?></span>
+<span class="villa-btn"><span><?= lw_i18n('Ver ficha', 'View model') ?></span><span class="material-symbols-outlined">arrow_outward</span></span>
 </div>
 </a>
 <?php endforeach; ?>
+</div>
+<div class="col-volver">
+<a class="btn btn-linea" href="#hero-configurator">
+<span><?= lw_i18n('Volver al configurador', 'Back to configurator') ?></span>
+<span class="material-symbols-outlined">north</span>
+</a>
 </div>
 </div>
 </section>
@@ -1242,6 +1168,17 @@ foreach ($incluido as $it):
     });
   }, { rootMargin: '-45% 0px -50% 0px' });
   secs.forEach(function(sct){ io.observe(sct); });
+})();
+</script>
+<script>
+/* v2: barra transparente sobre la foto y solida al bajar (como la home), y fundido .reveal. */
+(function(){
+  var bar = document.getElementById('lw-topbar');
+  function pinta(){ bar.classList.toggle('solid', window.scrollY > 60); }
+  window.addEventListener('scroll', pinta, { passive: true }); pinta();
+  if(!('IntersectionObserver' in window)){ document.querySelectorAll('.reveal').forEach(function(e){ e.classList.add('in'); }); return; }
+  var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } }); }, { rootMargin: '0px 0px -8% 0px' });
+  document.querySelectorAll('.reveal').forEach(function(e){ io.observe(e); });
 })();
 </script>
 </body>
