@@ -235,4 +235,63 @@ caso('incluir sin firmar: suma los borradores a la cartera; apagado por defecto'
   assert.strictEqual(F.finCartera({ ...e, incluirSinFirmar: true }).EUR.cartera, 200000);
 });
 
+caso('gastos: al proveedor total − PPh; la retención es salida aparte hasta ingresarse; anulado fuera (#64)', () => {
+  const g = F.finGastos([
+    { estado: 'pagado', moneda: 'EUR', total: 1100, base: 1000, pph_retenido: 20, pagado_el: '2026-09-10', fecha: '2026-09-01', proyecto_nombre: 'P1', grupo: 'construccion' },
+    { estado: 'pendiente', moneda: 'EUR', total: 500, base: 500, pph_retenido: 0, vence_el: '2026-09-01', fecha: '2026-08-01', proyecto_nombre: 'P1', grupo: 'general' },
+    { estado: 'pendiente', moneda: 'EUR', total: 300, base: 300, pph_retenido: 0, vence_el: '2026-10-15', fecha: '2026-09-20', grupo: 'suelo' },
+    { estado: 'anulado',  moneda: 'EUR', total: 9999, base: 9999, pph_retenido: 0, fecha: '2026-09-01' },
+  ], HOY).EUR;
+  assert.strictEqual(g.pagadoMes, 1080);            // al proveedor, sin la retención
+  assert.strictEqual(g.pphPorIngresar, 20);         // la retención, pendiente hacia la DJP
+  assert.strictEqual(g.pendientePagar, 800);
+  assert.strictEqual(g.vencidoPagar, 500);
+  assert.strictEqual(g.aPagarPorMes['2026-10'], 300);
+  assert.strictEqual(g.porProyecto['General (sin proyecto)'].pendiente, 300);
+  assert.strictEqual(g.baseAnioPorGrupo.suelo, 300); // el suelo va en su propio grupo
+});
+
+caso('gastos: al ingresar la retención pasa a caja de ese mes y deja de estar pendiente', () => {
+  const g = F.finGastos([{ estado: 'pagado', moneda: 'EUR', total: 1000, base: 1000, pph_retenido: 20, pagado_el: '2026-08-10', pph_ingresado_el: '2026-09-05', fecha: '2026-08-01' }], HOY).EUR;
+  assert.strictEqual(g.pphPorIngresar, 0);
+  assert.strictEqual(g.pagadoPorMes['2026-08'], 980);
+  assert.strictEqual(g.pagadoPorMes['2026-09'], 20);
+});
+
+caso('comisiones pagadas: pagadas y no anuladas, importe ajustado, proyecto por su contrato raíz', () => {
+  const c = F.finComisionesPagadas([
+    { pagado_en: '2026-09-02T10:00:00Z', importe: 1000, importe_ajustado: 900, moneda: 'EUR', contrato_raiz_id: 'b1' },
+    { pagado_en: '2026-09-02T10:00:00Z', anulado_en: '2026-09-03', importe: 500, moneda: 'EUR', contrato_raiz_id: 'b1' },
+    { pagado_en: null, importe: 700, moneda: 'EUR' },
+    { pagado_en: '2026-09-04', importe: 100, moneda: 'EUR', contrato_raiz_id: 'zz' },
+  ], { b1: 'P1' }, HOY).EUR;
+  assert.strictEqual(c.mes, 1000);
+  assert.strictEqual(c.porProyecto.P1, 900);
+  assert.strictEqual(c.porProyecto['Comisiones sin proyecto'], 100);
+});
+
+caso('caja neta por proyecto = recibís − gastos pagados − comisiones pagadas; sin permiso de gastos = null', () => {
+  const base = { hoyISO: HOY, contratos: [bloqueo], cobradoPorId: { b1: 30000 }, vencimientos: hitosB, facturas: [], unidades: [], solicitudes: [],
+    recibis: [{ tipo: 'recibi', total: 30000, moneda: 'EUR', fecha: '2026-09-05', proyecto_nombre: 'P1' }],
+    comisiones: [{ estado: 'pagada', pagado_en: '2026-09-06', importe: 1000, moneda: 'EUR', contrato_raiz_id: 'b1' }] };
+  const con = F.finModelo({ ...base, gastos: [{ estado: 'pagado', moneda: 'EUR', total: 5000, base: 5000, pph_retenido: 0, pagado_el: '2026-09-07', fecha: '2026-09-07', proyecto_nombre: 'P1' }] }).porMoneda.EUR;
+  const p1 = con.porProyecto.find(p => p.proyecto === 'P1');
+  assert.strictEqual(p1.cajaNeta, 24000);
+  assert.strictEqual(p1.gastosBase, 5000);
+  const serie = F.finSerieCaja(con, HOY, 12, 6).find(x => x.esHoy);
+  assert.strictEqual(serie.pagado, 6000);
+  assert.strictEqual(serie.neto, 24000);
+  const sin = F.finModelo({ ...base, gastos: null }).porMoneda.EUR;
+  assert.strictEqual(sin.gastos, null);
+  assert.strictEqual(sin.porProyecto.find(p => p.proyecto === 'P1').cajaNeta, null);
+  assert.strictEqual(F.finSerieCaja(sin, HOY, 12, 6).find(x => x.esHoy).pagado, null);
+});
+
+caso('filtro por sociedad: los gastos se recortan por su columna sociedad', () => {
+  const e = { hoyISO: HOY, contratos: [], cobradoPorId: {}, vencimientos: [], recibis: [], facturas: [], unidades: [], solicitudes: [], comisiones: [],
+    gastos: [{ sociedad: 'tepi_sungai', estado: 'pendiente', moneda: 'EUR', total: 10, base: 10, pph_retenido: 0 },
+             { sociedad: 'san_dal_woods', estado: 'pendiente', moneda: 'EUR', total: 5, base: 5, pph_retenido: 0 }] };
+  assert.strictEqual(F.finModelo(F.finFiltraEmpresa(e, 'san_dal_woods')).porMoneda.EUR.gastos.pendientePagar, 5);
+});
+
 console.log('finanzas.test.js OK — ' + n + ' casos');

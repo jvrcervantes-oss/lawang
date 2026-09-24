@@ -78,10 +78,12 @@ function finCobros(recibis, hoyISO){
     if (r.anulada || !finEsISO(r.fecha)) continue;
     const imp = finImporte(r.total);
     if (imp == null) continue;
-    const m = _porMoneda(porMoneda, r.moneda || 'EUR', () => ({ mes:0, mesAnterior:0, anio:0, anioAnteriorMismoTramo:0, n:0, porMes:{}, porSociedadAnio:{} }));
+    const m = _porMoneda(porMoneda, r.moneda || 'EUR', () => ({ mes:0, mesAnterior:0, anio:0, anioAnteriorMismoTramo:0, n:0, porMes:{}, porSociedadAnio:{}, porProyecto:{} }));
     const mes = r.fecha.slice(0, 7), anio = Number(r.fecha.slice(0, 4));
     m.n++;
     m.porMes[mes] = FIN_R((m.porMes[mes] || 0) + imp);
+    const pr = (r.proyecto_nombre || '').trim();
+    if (pr) m.porProyecto[pr] = FIN_R((m.porProyecto[pr] || 0) + imp);
     if (mes === mesHoy) m.mes += imp;
     if (mes === mesAnt) m.mesAnterior += imp;
     if (anio === y && r.fecha <= hoyISO){
@@ -187,6 +189,99 @@ function finSalidas(solicitudes, comisiones){
     const m = de(c.moneda); m.comisiones.n++; m.comisiones.importe = FIN_R(m.comisiones.importe + imp);
   }
   for (const m of Object.values(porMoneda)) m.total = FIN_R(m.solicitudes.importe + m.comisiones.importe);
+  return porMoneda;
+}
+
+/* ── GASTOS: el dinero que SALE (módulo `gastos`, 24-sep-2026) ─────────────
+   Revisión previa #64 (Administración), cada regla con su porqué:
+   · Lo que se paga AL PROVEEDOR es total − PPh retenido; la retención se paga
+     aparte a la DJP cuando se ingresa (`pph_ingresado_el`). Por eso la caja
+     sale en DOS momentos, y lo pendiente también son dos cosas.
+   · Anulado no cuenta en nada.
+   · El suelo es INVERSIÓN (existencias), no gasto de explotación: sale de caja
+     igual, pero se agrupa aparte (`grupo === 'suelo'`) para no leerlo como coste.
+   · La base (sin impuesto) va aparte del total: el PPN soportado se compensa y
+     no es coste; en caja sí sale.
+   Entrada: [{ estado, moneda, total, base, pph_retenido, pph_ingresado_el,
+               fecha, vence_el, pagado_el, proyecto_nombre, grupo }]. */
+// Una moneda sin gastos pero CON el módulo visible: ceros de verdad, no null.
+function finGastosVacio(){
+  return { pendientePagar: 0, nPendientes: 0, vencidoPagar: 0, nVencidos: 0, pphPorIngresar: 0,
+           pagadoMes: 0, pagadoAnio: 0, pagadoPorMes: {}, aPagarPorMes: {},
+           porProyecto: {}, baseAnioPorGrupo: {}, n: 0 };
+}
+function finGastos(gastos, hoyISO){
+  const mesHoy = hoyISO.slice(0, 7), anio = hoyISO.slice(0, 4);
+  const porMoneda = {};
+  const de = m => _porMoneda(porMoneda, m || 'EUR', finGastosVacio);
+  const suma = (obj, k, v) => { obj[k] = FIN_R((obj[k] || 0) + v); };
+  for (const g of gastos || []){
+    if (!g || g.estado === 'anulado') continue;
+    const total = finImporte(g.total), pph = finImporte(g.pph_retenido) || 0, base = finImporte(g.base);
+    if (total == null) continue;
+    const m = de(g.moneda); m.n++;
+    const alProveedor = FIN_R(total - pph);
+    const proy = (g.proyecto_nombre || '').trim() || 'General (sin proyecto)';
+    const pp = m.porProyecto[proy] || (m.porProyecto[proy] = { pagado: 0, pendiente: 0, base: 0 });
+    if (base != null) pp.base = FIN_R(pp.base + base);
+    if (base != null && finEsISO(g.fecha) && g.fecha.slice(0, 4) === anio) suma(m.baseAnioPorGrupo, g.grupo || 'general', base);
+    if (g.estado === 'pagado' && finEsISO(g.pagado_el)){
+      const mes = g.pagado_el.slice(0, 7);
+      suma(m.pagadoPorMes, mes, alProveedor);
+      if (mes === mesHoy) m.pagadoMes += alProveedor;
+      if (g.pagado_el.slice(0, 4) === anio) m.pagadoAnio += alProveedor;
+      pp.pagado = FIN_R(pp.pagado + alProveedor);
+    } else if (g.estado === 'pendiente'){
+      m.pendientePagar += alProveedor; m.nPendientes++;
+      pp.pendiente = FIN_R(pp.pendiente + alProveedor);
+      const cuando = finEsISO(g.vence_el) ? g.vence_el.slice(0, 10) : null;
+      if (cuando && cuando < hoyISO){ m.vencidoPagar += alProveedor; m.nVencidos++; }
+      // lo que vence este mes o después va al gráfico como «a pagar»; lo ya
+      // vencido no (está en su cifra), igual que en los cobros
+      if (cuando && cuando >= hoyISO) suma(m.aPagarPorMes, cuando.slice(0, 7), alProveedor);
+    }
+    // La retención: pendiente hasta que se ingresa; al ingresarse es caja de ese mes
+    if (pph > 0){
+      if (finEsISO(g.pph_ingresado_el)){
+        const mes = g.pph_ingresado_el.slice(0, 7);
+        suma(m.pagadoPorMes, mes, pph);
+        if (mes === mesHoy) m.pagadoMes += pph;
+        if (g.pph_ingresado_el.slice(0, 4) === anio) m.pagadoAnio += pph;
+        pp.pagado = FIN_R(pp.pagado + pph);
+      } else {
+        m.pphPorIngresar += pph;
+        pp.pendiente = FIN_R(pp.pendiente + pph);
+      }
+    }
+  }
+  for (const m of Object.values(porMoneda)){
+    ['pendientePagar', 'vencidoPagar', 'pphPorIngresar', 'pagadoMes', 'pagadoAnio'].forEach(k => { m[k] = FIN_R(m[k]); });
+  }
+  return porMoneda;
+}
+
+/* ── COMISIONES YA PAGADAS: también es caja que sale ───────────────────────
+   Se leen de `comisiones_devengadas` y NUNCA se apuntan en `gastos` (#64):
+   pagadas (`pagado_en`), no anuladas, por el importe ajustado si lo hay. No
+   llevan sociedad ni proyecto: el proyecto sale de su contrato raíz; sin él,
+   van a su propia fila, nunca repartidas a ojo.
+   Entrada: comisiones [{ pagado_en, anulado_en, importe, importe_ajustado,
+   moneda, contrato_raiz_id }], proyectoDe {contrato_id: nombre}. */
+function finComisionesPagadas(comisiones, proyectoDe, hoyISO){
+  const mesHoy = hoyISO.slice(0, 7), anio = hoyISO.slice(0, 4);
+  const porMoneda = {};
+  for (const c of comisiones || []){
+    if (!c || !c.pagado_en || c.anulado_en) continue;
+    const imp = finImporte(c.importe_ajustado != null ? c.importe_ajustado : c.importe);
+    if (imp == null) continue;
+    const m = _porMoneda(porMoneda, c.moneda || 'EUR', () => ({ porMes: {}, porProyecto: {}, mes: 0, anio: 0 }));
+    const f = String(c.pagado_en).slice(0, 10), mes = f.slice(0, 7);
+    m.porMes[mes] = FIN_R((m.porMes[mes] || 0) + imp);
+    if (mes === mesHoy) m.mes = FIN_R(m.mes + imp);
+    if (f.slice(0, 4) === anio) m.anio = FIN_R(m.anio + imp);
+    const proy = (proyectoDe && proyectoDe[c.contrato_raiz_id]) || 'Comisiones sin proyecto';
+    m.porProyecto[proy] = FIN_R((m.porProyecto[proy] || 0) + imp);
+  }
   return porMoneda;
 }
 
@@ -302,10 +397,11 @@ function finPersonas(c, vencidos){
    firmadas pero con stock tiene que salir — es justo el que falta por vender
    («una vista derivada solo enseña lo que hay en aquello de lo que deriva»,
    suite_lawang.md, Regla 0 bis). */
-function finPorProyecto(carteraM, stockM){
+function finPorProyecto(carteraM, stockM, gastosM, comM, cobrosM){
   const nombres = new Set([
     ...Object.keys((carteraM && carteraM.porProyecto) || {}),
     ...Object.keys((stockM && stockM.porProyecto) || {}),
+    ...Object.keys((gastosM && gastosM.porProyecto) || {}),
   ]);
   const filas = [];
   for (const p of nombres){
@@ -320,6 +416,15 @@ function finPorProyecto(carteraM, stockM){
       proximos90: c ? FIN_R(c.proximos90) : 0,
       stockN: s ? s.n : 0, stockValor: s ? s.valor : 0,
       personas: finPersonas(c, (carteraM && carteraM.vencidoPorPersona && carteraM.vencidoPorPersona[p]) || {}),
+      /* Gastos y caja neta (módulo `gastos`). `null` = no se sabe (sin permiso o
+         sin el módulo), que no es lo mismo que 0. La caja neta es lo que ha
+         ENTRADO por recibís de ese proyecto (todo el histórico, firmado o no)
+         menos lo PAGADO: gastos + comisiones. No es margen: los costes
+         registrados pueden estar incompletos. */
+      gastosBase: gastosM ? ((gastosM.porProyecto[p] && gastosM.porProyecto[p].base) || 0) : null,
+      cajaNeta: (gastosM && cobrosM)
+        ? FIN_R(((cobrosM.porProyecto || {})[p] || 0) - ((gastosM.porProyecto[p] && gastosM.porProyecto[p].pagado) || 0) - ((comM && comM.porProyecto[p]) || 0))
+        : null,
     });
   }
   return filas.sort((a, b) => (b.cartera - a.cartera) || (b.stockValor - a.stockValor) || a.proyecto.localeCompare(b.proyecto));
@@ -344,6 +449,7 @@ function finFiltraEmpresa(e, empresa){
     contratos: filtraEmpresa({ contratos: e.contratos || [] }, empresa).contratos,
     recibis: (e.recibis || []).filter(deEmpresa),
     facturas: (e.facturas || []).filter(deEmpresa),
+    gastos: e.gastos == null ? null : e.gastos.filter(g => g.sociedad === empresa),
     unidades: null,
     solicitudes: null,
     comisiones: null,
@@ -367,7 +473,11 @@ function finModelo(e){
   const stock = e.unidades == null ? {} : finStock(e.unidades);
   const cartera = finCartera(e);
   const salidas = (e.solicitudes == null && e.comisiones == null) ? null : finSalidas(e.solicitudes, e.comisiones);
-  const monedas = new Set([...Object.keys(cobros), ...Object.keys(facturado), ...Object.keys(stock), ...Object.keys(cartera), ...Object.keys(salidas || {})]);
+  // null = sin permiso / sin el módulo: se dice, nunca se pinta 0
+  const gastos = e.gastos == null ? null : finGastos(e.gastos, hoy);
+  const proyectoDe = {}; (e.contratos || []).forEach(c => { proyectoDe[c.id] = c.proyecto_nombre; });
+  const comPagadas = e.comisiones == null ? null : finComisionesPagadas(e.comisiones, proyectoDe, hoy);
+  const monedas = new Set([...Object.keys(cobros), ...Object.keys(facturado), ...Object.keys(stock), ...Object.keys(cartera), ...Object.keys(salidas || {}), ...Object.keys(gastos || {})]);
   const porMoneda = {};
   for (const m of monedas){
     const car = cartera[m] || null, sto = stock[m] || null;
@@ -378,14 +488,17 @@ function finModelo(e){
       stock: sto,
       cartera: car,
       salidas: salidas ? (salidas[m] || { solicitudes:{ n:0, importe:0 }, comisiones:{ n:0, importe:0 }, total:0 }) : null,
-      porProyecto: finPorProyecto(car, sto),
+      gastos: gastos ? (gastos[m] || finGastosVacio()) : null,
+      comPagadas: comPagadas ? (comPagadas[m] || { porMes: {}, porProyecto: {}, mes: 0, anio: 0 }) : null,
+      porProyecto: finPorProyecto(car, sto, gastos ? (gastos[m] || { porProyecto: {} }) : null,
+                                  comPagadas ? (comPagadas[m] || null) : null, cobros[m] || { porProyecto: {} }),
     };
   }
   /* Orden de monedas: la de más cartera primero (mezcla monedas SOLO para
      ordenar, nunca para enseñar una cifra). */
   const peso = m => ((cartera[m] && cartera[m].cartera) || 0) + ((cobros[m] && cobros[m].anio) || 0);
   const orden = [...monedas].sort((a, b) => (a === 'EUR' ? -1 : b === 'EUR' ? 1 : peso(b) - peso(a)));
-  return { hoyISO: hoy, monedas: orden, porMoneda, noSeReparte: !!e.noSeReparte, incluirSinFirmar: !!e.incluirSinFirmar };
+  return { hoyISO: hoy, monedas: orden, porMoneda, noSeReparte: !!e.noSeReparte, incluirSinFirmar: !!e.incluirSinFirmar, conGastos: gastos != null };
 }
 
 /* La serie del gráfico de caja: 12 meses cobrados + el mes en curso partido
@@ -397,13 +510,25 @@ function finSerieCaja(pm, hoyISO, atras, adelante){
   const mesHoy = hoyISO.slice(0, 7);
   const cob = (pm && pm.cobros && pm.cobros.porMes) || {};
   const prev = (pm && pm.cartera && pm.cartera.previstoPorMes) || {};
-  return meses.map(mes => ({
-    mes,
-    cobrado: mes <= mesHoy ? FIN_R(cob[mes] || 0) : null,
-    previsto: mes >= mesHoy ? FIN_R(prev[mes] || 0) : null,
-    esHoy: mes === mesHoy,
-  }));
+  /* Salidas (módulo `gastos`): lo pagado a proveedores y a la DJP, más las
+     comisiones pagadas; y lo que vence por pagar. `null` si no hay datos de
+     salidas (sin permiso): el gráfico entonces enseña solo entradas y lo dice. */
+  const g = pm && pm.gastos, cp = pm && pm.comPagadas;
+  const conSalidas = !!g;
+  const pag = mes => FIN_R(((g && g.pagadoPorMes[mes]) || 0) + ((cp && cp.porMes[mes]) || 0));
+  return meses.map(mes => {
+    const cobrado = mes <= mesHoy ? FIN_R(cob[mes] || 0) : null;
+    const pagado = conSalidas && mes <= mesHoy ? pag(mes) : null;
+    return {
+      mes, cobrado,
+      previsto: mes >= mesHoy ? FIN_R(prev[mes] || 0) : null,
+      pagado,
+      aPagar: conSalidas && mes >= mesHoy ? FIN_R((g.aPagarPorMes[mes]) || 0) : null,
+      neto: cobrado != null && pagado != null ? FIN_R(cobrado - pagado) : null,
+      esHoy: mes === mesHoy,
+    };
+  });
 }
 
 if (typeof module !== 'undefined' && module.exports)
-  module.exports = { finMeses, finCobros, finFacturadoSinCobrar, finStock, finSalidas, finCartera, finPersonas, finPorProyecto, finFiltraEmpresa, finModelo, finSerieCaja };
+  module.exports = { finMeses, finCobros, finFacturadoSinCobrar, finStock, finSalidas, finGastos, finComisionesPagadas, finCartera, finPersonas, finPorProyecto, finFiltraEmpresa, finModelo, finSerieCaja };

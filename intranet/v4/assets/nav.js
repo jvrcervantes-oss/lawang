@@ -212,6 +212,9 @@
        puerta (`data-rol="admin"`); lo que ve cada cifra lo decide la RLS y el
        panel dice «sin permiso» donde la ficha no llega. Solo lectura. */
     { path: 'finanzas',      icono: 'monitoring',       texto: 'Finanzas' },
+    /* Gastos y proveedores (24-sep-2026): admin + casilla `gastos` (la poda la
+       hace CLAVE_MENU; la puerta de verdad, la RLS). */
+    { path: 'gastos',        icono: 'receipt_long',     texto: 'Gastos' },
     { path: 'cuentas',       icono: 'account_balance', texto: 'Cuentas' },
     /* Equipos de venta, Condiciones y Reparto ya NO van aquí (23-sep-2026, plan
        del owner: «agrupar y controlar lo que se ve por permisos»): son pestañas
@@ -274,7 +277,7 @@
     contratos: 'contratos', asistente: 'asistente', creatividades: ['dossier', 'creatividades'],
     facturas: 'facturas', recibos: 'recibos', comisiones: ['comisiones', 'comisiones_reparto', 'comisiones_condiciones', 'comisiones_equipos'], reservas: 'reservas', reparto: 'comisiones_reparto', condiciones: 'comisiones_condiciones', 'equipos-venta': 'comisiones_equipos',
     proyectos: 'unidades', modelos: 'modelos', obra: 'obra', compradores: 'compradores',
-    usuarios: 'usuarios', cuentas: 'cuentas'
+    usuarios: 'usuarios', cuentas: 'cuentas', gastos: 'gastos'
   };
   function puedeVer(path, ficha) {
     var k = CLAVE_MENU[path];

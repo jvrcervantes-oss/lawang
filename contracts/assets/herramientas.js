@@ -225,6 +225,16 @@ const LW_HERRAMIENTAS = [
     para:'Los equipos de venta, su manager y sus closers. Un Sales Manager solo ve el suyo.',
     claves:'equipos venta manager closers miembros sales teams members' },
 
+  /* Gastos y proveedores (24-sep-2026, owner: «Hazlo», módulo 1.º de la tabla B
+     de encargos/20260924_lawang_dashboard_finanzas.md). `soloPermiso`: casilla
+     en Usuarios, sin tarjeta en el hub — es pantalla de la v4 y se llega desde
+     su Panel de control. La puerta de verdad es la RLS: es_admin() Y
+     puede('gastos'); nace concedida a nadie (solo la ve un super_admin). */
+  { grupo:'Administración', nombre:'Gastos y proveedores', icon:'ph-receipt', href:'/intranet/v4/gastos/', herr:'gastos',
+    soloPermiso:true,
+    para:'Lo que paga la empresa: facturas de proveedores, retenciones y su justificante.',
+    claves:'gastos proveedores costes pagos facturas proveedor retencion pph expenses suppliers costs payables' },
+
   /* «Comisión de administración» y «Sociedades emisoras» ya NO salen en este
      catálogo (owner, 22-sep-2026): son pantallas de la v4 y solo se llega a
      ellas desde su «Panel de control» (`intranet/v4/assets/nav.js`,
