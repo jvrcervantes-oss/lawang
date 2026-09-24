@@ -2724,6 +2724,13 @@
           /* Borrar: SOLO super_admin, calcado de la clásica — la puerta real es
              `borrar_comprador()` en la base (es_super_admin() + bloqueos por
              contrato/portal), esto solo evita ofrecer lo que fallaría. */
+          if (!window.LW_V4.esSuperAdmin) {
+            // quien no puede borrar lo PIDE (solicitudes de cambio, 24-sep-2026)
+            acciones.push({ texto: 'Pedir borrado', onClick: function () {
+              if (window.LW_V4.pideBorradoComprador) window.LW_V4.pideBorradoComprador(c2);
+              else toast('El editor aún no ha cargado — prueba de nuevo en un segundo.');
+            } });
+          }
           if (window.LW_V4.esSuperAdmin) {
             acciones.push({ texto: 'Borrar la ficha', tono: 'peligro', onClick: function () {
               lwConfirmar({

@@ -6389,6 +6389,28 @@
         return m ? { error: { message: m } } : r;
       }
       var miEmailC = ((aut.session && aut.session.user && aut.session.user.email) || '').toLowerCase();
+      var pideCambio = function (c, accion, nuevos, motivo) {
+        var fila = { tabla: 'clients', fila_id: c.id, accion: accion, motivo: String(motivo || '').trim() };
+        if (accion === 'editar') fila.nuevos = nuevos;
+        return sb.from('solicitudes_cambio').insert(fila).select('numero').then(function (r) {
+          if (r.error) return { error: { message: r.error.message } };
+          var n = r.data && r.data[0] && r.data[0].numero;
+          toast('Enviado para aprobar' + (n ? ' (SC-' + n + ')' : '') + '. Te llegará la respuesta a la campana.');
+          return r;
+        });
+      };
+      /* «Pedir borrado» para quien no es super_admin: la base solo lo ejecuta si
+         nada cuelga de la ficha (contratos, facturas, KYC, portal…) — si algo
+         cuelga, el owner lo ve en el aviso y la solicitud vuelve como «no se pudo». */
+      window.LW_V4.pideBorradoComprador = function (c) {
+        if (!c) return aviso('La ficha aún no ha cargado.', '#8A6A34');
+        modal('Pedir borrado — ' + (c.full_name || ''), [
+          { tipo: 'nota', label: 'Se enviará al administrador para que lo apruebe. Solo se borra si la ficha no tiene nada enlazado (contratos, facturas, documentos KYC, portal). Te llegará la respuesta a la campana.' },
+          { k: 'motivo', label: 'Por qué hay que borrarla', tipo: 'textarea', req: 1, valor: '' }
+        ], 'Enviar para aprobar', function (v) {
+          return pideCambio(c, 'borrar', null, v.motivo);
+        }, { sinRecarga: true });
+      };
       window.LW_V4.abreEditaComprador = function (c) {
         if (!c) return aviso('La ficha aún no ha cargado.', '#8A6A34');
         /* Mismo gate de pantalla que la viva (`soloLectura`): editar es de
@@ -6397,12 +6419,23 @@
            sigue siendo la policy — si la ficha cuelga de un contrato firmado la
            base la rechaza y se dice con el mensaje de arriba. */
         var mia = !!c.propietario && String(c.propietario).toLowerCase() === miEmailC;
-        if (!esAdmin(aut.ficha) && !mia) {
-          return aviso('Esta ficha la dio de alta otra persona: solo un administrador (o quien la creó) puede editarla.', '#8A6A34');
-        }
+        if (esAdmin(aut.ficha)) return abreForm(c, false);
+        if (!mia) return abreForm(c, true);
+        /* Suya pero firmada: la policy la rechazaría. Se pregunta ANTES para que
+           el formulario salga ya en modo «pedir», no tras un «no se ha guardado». */
+        sb.rpc('cliente_con_contrato_firmado', { p_client_id: c.id }).then(function (r) {
+          abreForm(c, !r.error && r.data === true);
+        }, function () { abreForm(c, false); });
+      };
+      /* Solicitudes de cambio (24-sep-2026, encargo 20260924_lawang_solicitudes_
+         cambio_telegram.md): lo que la base no deja tocar ya no es un callejón
+         — el mismo formulario se ENVÍA al owner, que aprueba en Telegram, y la
+         base lo aplica (resolver_solicitud_cambio). Aquí solo se pide: el
+         «antes», el nombre de la ficha y la validación los pone la base. */
+      var abreForm = function (c, pedir) {
         var tel = /^(\+\d{1,4})\s*(.*)$/.exec(String(c.phone || '').trim());
         var esEmpresa = c.tipo === 'empresa';
-        modal('Editar datos — ' + (c.full_name || ''), [
+        var camposForm = [
           { k: 'tipo', label: 'Tipo de comprador', tipo: 'select', medio: 1, valor: c.tipo || 'persona',
             opciones: [['persona', 'Persona física'], ['empresa', 'Empresa']] },
           { k: 'kyc_status', label: 'Estado KYC', tipo: 'select', medio: 1, valor: c.kyc_status || 'pending',
@@ -6423,7 +6456,15 @@
           { k: 'rep_cargo', label: 'Cargo del representante (solo empresa)', medio: 1, valor: c.rep_cargo || '' },
           { k: 'notes', label: 'Notas', tipo: 'textarea', valor: c.notes || '' },
           { tipo: 'nota', label: 'Si esta ficha cuelga de un contrato ya FIRMADO, su pasaporte y domicilio están impresos en ese documento y la base rechazará el cambio: es cosa de un administrador.' }
-        ], 'Guardar datos', function (v) {
+        ];
+        if (pedir) {
+          camposForm.pop();
+          camposForm.unshift(
+            { tipo: 'nota', label: 'No puedes editar esta ficha directamente (no la diste de alta tú, o ya cuelga de un contrato firmado). Cambia lo que haga falta y se enviará al administrador para que lo apruebe; te llegará la respuesta a la campana.' },
+            { k: 'motivo', label: 'Por qué hace falta el cambio', tipo: 'textarea', req: 1, valor: '' });
+        }
+        modal((pedir ? 'Pedir cambio — ' : 'Editar datos — ') + (c.full_name || ''), camposForm,
+          pedir ? 'Enviar para aprobar' : 'Guardar datos', function (v) {
           if (v.prefijo && !/^\+\d{1,4}$/.test(v.prefijo)) return { error: { message: 'El prefijo va con «+» y solo dígitos: +34, +62…' } };
           if (v.full_name.trim().length < 2) return { error: { message: 'Falta el nombre' } };
           var patch = {
@@ -6444,9 +6485,23 @@
           var telCambia = typeof telefonoDigitos === 'function' && telefonoDigitos(patch.phone) !== telefonoDigitos(c.phone);
           return (telCambia ? telefonoRepetidoSigue(patch.phone, c.id) : Promise.resolve(true)).then(function (sigue) {
             if (sigue !== true) return sigue;
+            if (pedir) {
+              /* Solo lo que la persona CAMBIÓ y la ficha trae: la que se ve desde
+                 el directorio no lleva `notes`, y mandar el formulario entero
+                 pediría vaciarlas sin que nadie lo haya querido. */
+              var pedido = {};
+              Object.keys(patch).forEach(function (k) {
+                if (!(k in c)) return;
+                if (k === 'phone' && typeof telefonoDigitos === 'function' && c.phone && patch.phone &&
+                    telefonoDigitos(c.phone) === telefonoDigitos(patch.phone)) return;
+                if ((c[k] == null ? null : String(c[k])) !== patch[k]) pedido[k] = patch[k];
+              });
+              if (!Object.keys(pedido).length) return { error: { message: 'No has cambiado nada respecto a la ficha.' } };
+              return pideCambio(c, 'editar', pedido, v.motivo);
+            }
             return sb.from('clients').update(patch).eq('id', c.id).select('id').then(unaFila).then(errorClienteHumano);
           });
-        });
+        }, pedir ? { sinRecarga: true } : undefined);
         if (window.lwPicker && typeof NACIONALIDADES !== 'undefined') {
           window.lwPicker(document.querySelector('#lw-editor [data-k="nationality"]'), NACIONALIDADES, { titulo: 'Nacionalidad' });
         }
