@@ -627,6 +627,15 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
 .en-det summary .ms{font-size:16px}
 .en-det[open] summary{margin-bottom:12px}
 .preguntas li i.en{display:block;font-style:italic;font-size:13px;color:rgba(245,240,230,.72);margin-top:8px}
+
+.alta{display:grid;gap:14px;align-items:center;margin-top:20px;padding:18px 22px;border-radius:18px;background:var(--linen);border:1px solid var(--stone)}
+@media (min-width:860px){.alta{grid-template-columns:auto 1fr auto}}
+.alta > .ms{font-size:30px;color:var(--tg)}
+.alta p{font-size:15.5px;color:var(--muted)}
+.alta b{color:var(--ink);font-weight:600}
+.wa-link{color:inherit;font-weight:600;text-decoration:underline;text-underline-offset:3px;white-space:nowrap}
+.villa .b span{text-align:right;line-height:1.3;white-space:pre-line}
+.faq-nota{margin-top:16px;font-size:13px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -704,12 +713,17 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
 <div class="wrap">
   <span class="lbl">Antes de empezar</span>
   <h2>¿Cómo vas a trabajar con nosotros?</h2>
+  <div class="alta">
+    <span class="ms">how_to_reg</span>
+    <p><b>Para empezar:</b> firmas el contrato de colaboración con Lawang y Javier te da de alta en la intranet. Escríbele por WhatsApp y te lo prepara.</p>
+    <a class="btn btn--dl" href="https://wa.me/34601170044" target="_blank" rel="noopener"><span class="ms" style="font-size:18px">chat</span>+34&nbsp;601&nbsp;170&nbsp;044</a>
+  </div>
   <div class="caminos__grid">
     <div class="camino camino--ref">
       <span class="ms">person_add</span>
       <span class="camino__pct">1&nbsp;%</span>
       <h3>Solo quiero pasar contactos</h3>
-      <p>Conoces a gente con dinero para invertir. Nos pasas el contacto, nosotros llevamos la venta y, si compra, cobras el 1&nbsp;% del bruto.</p>
+      <p>Conoces a gente con dinero para invertir. Das de alta a tu contacto en el CRM de la intranet, así queda a tu nombre; nosotros llevamos la venta y, si compra, cobras el 1&nbsp;% del bruto.</p>
       <p class="camino__lee">Lee esto (unos 10 minutos):</p>
       <div class="camino__links"><a href="#producto">1 · Lo que vendemos</a><a href="#decir">6 · Lo que se dice y lo que no</a><a href="#comisiones">Tus comisiones</a></div>
     </div>
@@ -739,7 +753,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
   </div>
 
   <div class="formula reveal">
-    <div class="pieza pieza--tg"><span class="ms">landscape</span><h3>La parcela</h3><p>Un derecho sobre ella (arrendamiento Hak Sewa o HGB, según el proyecto), no la propiedad de la tierra. Cada proyecto tiene su plano, sus tamaños y su contrato.</p></div>
+    <div class="pieza pieza--tg"><span class="ms">landscape</span><h3>La parcela</h3><p>Un derecho sobre ella, no la propiedad de la tierra: Hak Sewa si el cliente compra a su nombre, HGB si abre su propia sociedad. Cada proyecto tiene su plano, sus tamaños y su contrato.</p></div>
     <div class="op">+</div>
     <div class="pieza pieza--dl"><span class="ms">cottage</span><h3>La villa</h3><p>Uno de los modelos del catálogo, con la cubierta y los extras que elija el cliente.</p></div>
     <div class="op">=</div>
@@ -759,7 +773,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     <div class="tenencia__cab">
       <span class="lbl">Antes de nada</span>
       <h3>Las cuatro palabras que tienes que dominar</h3>
-      <p>El cliente te va a preguntar «¿de quién es la tierra?» en la primera llamada. Esto es lo que significa cada palabra. Qué figura usa cada proyecto lo dice su contrato.</p>
+      <p>El cliente te va a preguntar «¿de quién es la tierra?» en la primera llamada. Esto es lo que significa cada palabra. <b>La regla es sencilla: si el cliente compra a su nombre, es Hak Sewa; si abre su propia sociedad (PT PMA), es HGB.</b></p>
       <a class="al-glosario" href="#glosario"><span class="ms">menu_book</span>Ver el glosario completo<span class="ms">arrow_downward</span></a>
     </div>
     <div class="tenencia__grid">
@@ -804,7 +818,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     <div class="perfil">
       <div class="top"><span class="ms">trending_up</span><h3>El que la quiere para alquilar</h3><p>Compra para que la villa se alquile cuando él no está.</p></div>
       <div class="dato dato--preo"><span class="et"><span class="ms">help</span>Qué le preocupa</span><p>Números, ocupación, quién gestiona el alquiler, qué pasa al final del plazo.</p></div>
-      <div class="dato dato--ense"><span class="et"><span class="ms">visibility</span>Qué le enseñas</span><p>El investor deck y su ejemplo económico (un ejemplo, no una promesa), y que puede ceder la gestión: 20 % a éxito y sin cuotas mensuales.</p></div>
+      <div class="dato dato--ense"><span class="et"><span class="ms">visibility</span>Qué le enseñas</span><p>El investor deck y su ejemplo económico (un ejemplo, no una promesa), y que puede ceder la gestión a Betterplace: 20 % a éxito y sin cuotas mensuales.</p></div>
       <div class="dato dato--cuid"><span class="et"><span class="ms">warning</span>Cuidado con</span><p>Prometer rentabilidad. Ver paso 6.</p></div>
     </div>
     <div class="perfil">
@@ -846,7 +860,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     <div class="solo__txt">
       <span class="lbl">Lo primero que tienes que saber</span>
       <h3>No estás solo. Llámanos.</h3>
-      <p>Tu manager y el equipo de Lawang están para acompañarte en cualquier momento de la venta, no solo al final. Cuanto antes nos metas en la conversación, más fácil es cerrar. Pedir ayuda no resta: un cliente que ve a un equipo entero detrás de su comercial se siente más seguro.</p>
+      <p>Javier y el equipo de Lawang están para acompañarte en cualquier momento de la venta, no solo al final. Escríbele directamente por WhatsApp al <a class="wa-link" href="https://wa.me/34601170044" target="_blank" rel="noopener">+34&nbsp;601&nbsp;170&nbsp;044</a>. Cuanto antes nos metas en la conversación, más fácil es cerrar. Pedir ayuda no resta: un cliente que ve a un equipo entero detrás de su comercial se siente más seguro.</p>
     </div>
     <ul class="solo__lista">
       <li><span class="ms">video_call</span><span>Una videollamada a tres con el cliente para explicarle cómo funciona la compra.</span></li>
@@ -906,7 +920,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
       <div class="tu"><span class="quien">Tú</span><p>Sin prisa, explícale dos cosas. <b>Quiénes somos:</b> el promotor que diseña y construye su villa, con un equipo detrás. <b>Cómo compra:</b></p>
         <ol class="mini">
           <li>Reserva su parcela con una Carta de Reserva.</li>
-          <li>Asegura la tierra: paga el suelo y firma ante notario el contrato de su derecho sobre la parcela (Hak Sewa o HGB, según el proyecto).</li>
+          <li>Asegura la tierra: paga el suelo y firma ante notario el contrato de su derecho sobre la parcela: Hak Sewa si compra a su nombre, HGB si abre su sociedad.</li>
           <li>Paga la villa por fases, cada una cuando está terminada y certificada.</li>
           <li>Recibe las llaves.</li>
         </ol>
@@ -968,7 +982,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
       <span class="pago__n">2</span>
       <span class="ms">gavel</span>
       <h3>La tierra, lo primero</h3>
-      <p>Se paga el suelo y se firma <b>ante notario el contrato de su derecho sobre la parcela</b> (Hak Sewa o HGB, según el proyecto). Antes de que empiece la obra, su derecho ya está firmado.</p>
+      <p>Se paga el suelo y se firma <b>ante notario el contrato de su derecho sobre la parcela</b>: Hak Sewa si compra a su nombre, HGB si abre su sociedad. Antes de que empiece la obra, su derecho ya está firmado.</p>
     </li>
     <li class="pago pago--obra">
       <span class="pago__n">3</span>
@@ -989,7 +1003,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     <div class="gestion__txt">
       <span class="lbl">Y después de las llaves</span>
       <h3>Puede olvidarse de todo</h3>
-      <p>Si quiere alquilarla, el cliente puede ceder la gestión de la villa a una empresa de gestión que se ocupa de todo: reservas, huéspedes, limpieza y mantenimiento. Él solo recibe lo que genera su villa.</p>
+      <p>Si quiere alquilarla, el cliente puede ceder la gestión de la villa a Betterplace, la empresa de gestión, que se ocupa de todo: reservas, huéspedes, limpieza y mantenimiento. Él solo recibe lo que genera su villa.</p>
     </div>
     <div class="gestion__datos">
       <div><b>20&nbsp;%</b><span>de lo que genera la villa, por gestionarlo todo</span></div>
@@ -1061,7 +1075,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     <div class="col si">
       <h3><span class="ms" style="color:var(--tg)">check_circle</span>Sí puedes decir</h3>
       <ul>
-        <li><b>«Cada proyecto tiene su estructura legal, y está escrita en su contrato».</b>La tenencia cambia de un proyecto a otro. Se lee en el contrato de ESE proyecto, no se generaliza.</li>
+        <li><b>«Depende de cómo compres: a tu nombre es Hak Sewa; con tu propia sociedad, HGB».</b>Y el detalle de cada uno está escrito en su contrato.</li>
         <li><b>«Este es el ejemplo económico de una parcela concreta».</b>El forecast del investor deck es eso: un ejemplo, con sus supuestos. No un resultado prometido.</li>
         <li><b>«El precio queda cerrado por escrito antes de firmar».</b>Es verdad y es de lo que más tranquiliza.</li>
         <li><b>«Los importes en euros son orientativos».</b>La cifra que obliga está en rupias (IDR), con el tipo de cambio y el momento de conversión que fija el contrato.</li>
@@ -1087,23 +1101,33 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
   <div class="faq reveal" id="faq">
     <details><summary>«¿Es legal que un extranjero compre en Indonesia?»<span class="ms">expand_more</span></summary><div class="resp">
       <span class="lbl">Respuesta modelo</span>
-      <blockquote>Un extranjero no puede tener Hak Milik, la propiedad plena, que está reservada a ciudadanos indonesios. Lo que ofrecemos es un derecho que la ley sí permite a extranjeros: un arrendamiento Hak Sewa ante notario o un HGB a través de una sociedad de inversión extranjera, según el proyecto. Tu contrato dice cuál, y te recomendamos que lo revise tu propio abogado.</blockquote>
-      <blockquote class="en" lang="en"><small>In English</small>A foreigner can't hold Hak Milik, full ownership of the land, which is reserved for Indonesian citizens. What we offer is a right the law does allow foreigners to hold: a notarised Hak Sewa lease or an HGB right through a foreign-owned Indonesian company, depending on the project. Your contract states which one, and we recommend your own lawyer reviews it.</blockquote>
+      <blockquote>Un extranjero no puede tener Hak Milik, la propiedad plena, que está reservada a ciudadanos indonesios. Lo que ofrecemos es un derecho que la ley sí permite a extranjeros: si compras a tu nombre, un arrendamiento Hak Sewa ante notario; si abres tu propia sociedad de inversión extranjera, un HGB. Tu contrato lo recoge, y te recomendamos que lo revise tu propio abogado.</blockquote>
+      <blockquote class="en" lang="en"><small>In English</small>A foreigner can't hold Hak Milik, full ownership of the land, which is reserved for Indonesian citizens. What we offer is a right the law does allow foreigners to hold: if you buy in your own name, a notarised Hak Sewa lease; if you set up your own foreign-owned company, an HGB right. Your contract sets it out, and we recommend your own lawyer reviews it.</blockquote>
       <p>No entres en el detalle de la figura de memoria: enséñale el contrato de ese proyecto.</p></div></details>
     <details><summary>«¿Qué pasa cuando se acaba el plazo?»<span class="ms">expand_more</span></summary><div class="resp">
       <span class="lbl">Respuesta modelo</span>
-      <blockquote>Depende del derecho de tu proyecto. Si es HGB, dura 30 años, se puede prorrogar 20 y renovar otros 30, pero hay que solicitarlo y cumplir los requisitos. Si es Hak Sewa, la duración, la prórroga y qué pasa con la casa al vencer están en las cláusulas de tu contrato, y las repasamos contigo antes de firmar.</blockquote>
-      <blockquote class="en" lang="en"><small>In English</small>It depends on the right in your project. HGB runs for 30 years, extendable by 20 and renewable for another 30, but it has to be applied for and the requirements met. For Hak Sewa, the term, the extension and what happens to the house at the end are in your contract, and we go through them with you before you sign.</blockquote>
+      <blockquote>Depende de cómo compres. Si lo haces con tu sociedad, es HGB: dura 30 años, se puede prorrogar 20 y renovar otros 30, pero hay que solicitarlo y cumplir los requisitos. Si compras a tu nombre, es Hak Sewa: la duración, la prórroga y qué pasa con la casa al vencer están en las cláusulas de tu contrato, y las repasamos contigo antes de firmar.</blockquote>
+      <blockquote class="en" lang="en"><small>In English</small>It depends on how you buy. Through your own company it is HGB: it runs for 30 years, extendable by 20 and renewable for another 30, but it has to be applied for and the requirements met. In your own name it is Hak Sewa: the term, the extension and what happens to the house at the end are in your contract, and we go through them with you before you sign.</blockquote>
       <p>Nunca digas que la renovación es automática o está garantizada.</p></div></details>
     <details><summary>«¿Y si la obra se retrasa?»<span class="ms">expand_more</span></summary><div class="resp">
       <span class="lbl">Respuesta modelo</span>
       <blockquote>El contrato de construcción fija el plazo y qué retrasos lo amplían y cuáles no (fuerza mayor, permisos, decisiones o pagos del cliente). Pagas por hitos de obra ejecutada, no el total por adelantado, y ves el avance en tu portal de comprador.</blockquote>
       <blockquote class="en" lang="en"><small>In English</small>The construction contract sets the timeline and which delays extend it and which don't (force majeure, permits, the client's own decisions or payments). You pay for completed construction milestones, not the full amount upfront, and you can follow progress in your buyer portal.</blockquote>
       <p>No prometas fechas ni penalizaciones que no estén en ese contrato.</p></div></details>
+    <details><summary>«¿Y si quebráis a mitad de obra?»<span class="ms">expand_more</span></summary><div class="resp">
+      <span class="lbl">Respuesta modelo</span>
+      <blockquote>Nunca pagas por delante de la obra. La villa se paga por fases y cada fase se paga cuando está terminada y certificada. Tu derecho sobre la parcela queda firmado ante notario antes de empezar a construir: arrendamiento (Hak Sewa) a tu nombre o HGB a nombre de tu sociedad. Si la obra se parara, lo que has pagado ya está construido en tu parcela y tu derecho sobre el suelo sigue en pie durante todo el plazo firmado.</blockquote>
+      <blockquote class="en" lang="en"><small>In English</small>You never pay ahead of the build. The villa is paid in stages, and each stage is paid once it is finished and certified. Your right to the plot is signed before a notary before construction starts: a lease (Hak Sewa) in your name, or HGB held by your company. If construction ever stopped, what you've paid for is already built on your plot, and your land right stays in force for the full signed term.</blockquote>
+      <p>Nunca digas «la tierra es tuya» ni «eres propietario» a quien va por Hak Sewa: es un arrendamiento con plazo. Y qué pasa con una obra a medias (quién la termina, devoluciones) lo dice el contrato, no tú.</p></div></details>
+    <details><summary>«¿Puedo venderla después?»<span class="ms">expand_more</span></summary><div class="resp">
+      <span class="lbl">Respuesta modelo</span>
+      <blockquote>Sí. Puedes vender, traspasar o alquilar tu derecho sobre la parcela y la villa durante el plazo que te quede. Las condiciones del traspaso las fija tu contrato y el notario te explica el trámite. Si lo tienes a través de tu sociedad, normalmente se vende la sociedad o se transmite el HGB.</blockquote>
+      <blockquote class="en" lang="en"><small>In English</small>Yes. You can sell, transfer or rent out your right to the plot and the villa for the remaining term. The transfer conditions are set in your contract, and the notary walks you through the process. If you hold it through your company, the usual route is selling the company or transferring the HGB.</blockquote>
+      <p>Nada de «libertad total»: quien compra un Hak Sewa hereda los años que quedan, y la cesión puede necesitar el consentimiento del dueño del suelo. Antes de prometer, mira la cláusula de cesión de ese contrato.</p></div></details>
     <details><summary>«¿Cuánto voy a ganar?»<span class="ms">expand_more</span></summary><div class="resp">
       <span class="lbl">Respuesta modelo</span>
-      <blockquote>No garantizamos rentabilidad. El ejemplo del investor deck está calculado para una parcela concreta, con supuestos de ocupación y precio por noche que pueden no cumplirse. Lo que sí te digo es cómo funciona: puedes ceder la gestión a una empresa que cobra el 20 % de lo que genere la villa, solo si genera, y sin cuotas mensuales.</blockquote>
-      <blockquote class="en" lang="en"><small>In English</small>We don't guarantee returns. The example in the investor deck is calculated for one specific plot, with occupancy and nightly-rate assumptions that may not be met. What I can tell you is how it works: you can hand the management over to a company that charges 20% of what the villa earns, only if it earns, with no monthly fees.</blockquote>
+      <blockquote>No garantizamos rentabilidad. El ejemplo del investor deck está calculado para una parcela concreta, con supuestos de ocupación y precio por noche que pueden no cumplirse. Lo que sí te digo es cómo funciona: puedes ceder la gestión a Betterplace, que cobra el 20 % de lo que genere la villa, solo si genera, y sin cuotas mensuales.</blockquote>
+      <blockquote class="en" lang="en"><small>In English</small>We don't guarantee returns. The example in the investor deck is calculated for one specific plot, with occupancy and nightly-rate assumptions that may not be met. What I can tell you is how it works: you can hand the management over to Betterplace, which charges 20% of what the villa earns, only if it earns, with no monthly fees.</blockquote>
       <p>El ejemplo está en el investor deck del proyecto. Explica siempre que es un ejemplo.</p></div></details>
     <details><summary>«¿Por qué voy a pagar antes de ver la casa?»<span class="ms">expand_more</span></summary><div class="resp">
       <span class="lbl">Respuesta modelo</span>
@@ -1121,6 +1145,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
       <blockquote class="en" lang="en"><small>In English</small>Of course. What's missing for you to decide? I'll prepare exactly that for our next call. Does Thursday work for you?</blockquote>
       <p>No cuelgues sin fecha para el siguiente paso, y apúntala en su ficha.</p></div></details>
   </div>
+  <p class="faq-nota">Respuestas de información general para el comercial: las condiciones exactas de cada cliente están en su contrato.</p>
 </div>
 </section>
 
@@ -1202,7 +1227,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     <div class="tc tc--cab" role="row"><span role="columnheader">Cómo participas</span><span role="columnheader">Qué haces</span><span role="columnheader">Comisión</span></div>
     <div class="tc tc--ref" role="row">
       <span role="cell"><span class="ms">person_add</span><b>Referido</b></span>
-      <span role="cell">Nos pasas el contacto de un cliente y nosotros llevamos la venta. Si ese cliente compra y Lawang cobra, te pagamos.</span>
+      <span role="cell">Das de alta a tu contacto en el CRM, así queda a tu nombre, y nosotros llevamos la venta. Si ese cliente compra, te pagamos.</span>
       <span role="cell" class="pct"><b>1&nbsp;%</b><small>del bruto</small></span>
     </div>
     <div class="tc tc--top" role="row">
@@ -1210,13 +1235,13 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
       <span role="cell">Gestionas toda la venta de principio a fin: las llamadas con tus clientes, las visitas, la generación de los contratos y el seguimiento hasta la firma.</span>
       <span role="cell" class="pct"><b>5&nbsp;%</b><small>del bruto</small></span>
     </div>
-    <p class="tc-nota">Siempre sobre el precio bruto de la venta. Lo que obliga es tu contrato de colaboración.</p>
+    <p class="tc-nota"><b>Ejemplo:</b> en una venta de 150.000&nbsp;€ brutos, el comercial cobra 7.500&nbsp;€ y el referido 1.500&nbsp;€, en cuanto el cliente ha pagado la mitad del suelo. Siempre sobre el precio bruto; lo que obliga es tu contrato de colaboración.</p>
   </div>
 
   <div class="pasos-com reveal" style="margin-top:22px">
     <div><span class="ms">edit_document</span><b>Quién hace el contrato</b><p>Si llevas tú la venta, la comisión es de quien hace el contrato en el Generador: tú. Si eres referido, el contrato lo hacemos nosotros.</p></div>
     <div><span class="ms">account_balance</span><b>El cliente paga</b><p>Los cobros se registran en la intranet con su factura o recibí.</p></div>
-    <div><span class="ms">bolt</span><b>Se genera sola</b><p>Cuando lo cobrado cruza el umbral de tu condición, aparece tu comisión con su importe.</p></div>
+    <div><span class="ms">bolt</span><b>Se genera sola</b><p>Entera, cuando el cliente ha pagado el 50&nbsp;% del suelo. Aparece en tu pantalla con su importe.</p></div>
     <div><span class="ms">visibility</span><b>La ves en Mis comisiones</b><p>Pendiente, aprobada o pagada, venta a venta. Si algo no cuadra con tu contrato, díselo a tu manager.</p></div>
   </div>
 </div>
@@ -1245,7 +1270,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     <div><dt>Contrato de Construcción</dt><dd>El contrato de la villa llave en mano, con modelo, cubierta, extras e hitos de pago.</dd></div>
     <div><dt>Hitos y certificación</dt><dd>La obra se paga por fases (hitos). Cada pago llega cuando esa fase está terminada y certificada.</dd></div>
     <div><dt>Bruto</dt><dd>El precio total de la venta sobre el que se calcula tu comisión.</dd></div>
-    <div><dt>Condición de comisión</dt><dd>Las reglas de tu comisión: el porcentaje, sobre qué se calcula y en qué momento del cobro se genera. Vienen en tu contrato de colaboración.</dd></div>
+    <div><dt>Condición de comisión</dt><dd>Las reglas de tu comisión: el porcentaje (1&nbsp;% referido, 5&nbsp;% comercial), sobre el bruto, y cuándo se genera (al cobrar el 50&nbsp;% del suelo). Vienen en tu contrato de colaboración.</dd></div>
     <div><dt>IDR</dt><dd>Rupias indonesias, la moneda en la que se fija la cifra que obliga en los contratos.</dd></div>
     <div><dt>Escrow</dt><dd>Una cuenta en la que un tercero guarda el dinero hasta que se cumplen unas condiciones. <em>Solo lo menciones si el contrato de esa operación lo dice.</em></dd></div>
   </dl>
@@ -1278,7 +1303,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
   <img src="/assets/img/palm-field-aerial.webp" alt="" loading="lazy">
   <div class="wrap">
     <h2>Ahora, a por tu<br><em>primera reserva</em></h2>
-    <p>Si algo de esta guía no te cuadra con lo que ves en la intranet o en un contrato, manda el contrato. Y pregúntale a tu manager.</p>
+    <p>Si algo de esta guía no te cuadra con lo que ves en la intranet o en un contrato, manda el contrato. Y cualquier duda, a Javier: <a class="wa-link" href="https://wa.me/34601170044" target="_blank" rel="noopener">+34&nbsp;601&nbsp;170&nbsp;044</a>.</p>
     <div class="acc">
       <a class="btn btn--linen" href="/intranet/">Abrir la intranet<span class="ms" style="font-size:18px">arrow_forward</span></a>
       <a class="btn btn--ghost" style="color:var(--linen);border-color:rgba(245,240,230,.4)" href="#top">Volver al índice</a>
@@ -1588,7 +1613,14 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
         a.querySelector('.ph').appendChild(img);
       }
       a.querySelector('h3').textContent = m.nombre;
-      if (m.dormitorios) a.querySelector('.b span').textContent = m.dormitorios + ' dorm.';
+      var etiqueta = m.dormitorios ? m.dormitorios + ' dorm.' : '';
+      if (m.desde) {
+        var fmt;
+        try { fmt = new Intl.NumberFormat('es-ES', { style: 'currency', currency: m.moneda || 'EUR', maximumFractionDigits: 0 }).format(m.desde); }
+        catch (e) { fmt = m.desde + ' ' + (m.moneda || ''); }
+        etiqueta = (etiqueta ? etiqueta + '\n' : '') + 'desde ' + fmt;
+      }
+      a.querySelector('.b span').textContent = etiqueta;
       villas.appendChild(a);
     });
   });
