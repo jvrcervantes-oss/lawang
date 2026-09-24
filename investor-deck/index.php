@@ -695,7 +695,9 @@ if ($slug === '') { http_response_code(404); exit; }
     disponible:    null,
     reservada:     ['RESERVED', 'bg-amber-500/90'],
     bloqueada:     ['SOLD',     'bg-[#B3261E]/95'],
-    no_disponible: ['SOLD',     'bg-[#B3261E]/95']
+    no_disponible: ['SOLD',     'bg-[#B3261E]/95'],
+    vendida:       ['SOLD',     'bg-[#B3261E]/95'],
+    cobrada:       ['SOLD',     'bg-[#B3261E]/95']
   };
 
   function centroide(pts){
@@ -719,7 +721,7 @@ if ($slug === '') { http_response_code(404); exit; }
       el.style.clipPath = 'polygon(' + pts.map(function(p){ return p[0]+'% '+p[1]+'%'; }).join(',') + ')';
       var precio = row.precio != null ? ' · ' + fmtMoney(row.precio, row.moneda) : '';
       el.title = row.codigo + ' · ' + esc(row.superficie_m2) + ' m2 (project measurement)' + precio + ' · ' +
-        ({disponible:'Available',reservada:'Reserved',bloqueada:'Sold',no_disponible:'Sold'}[row.estado] || row.estado);
+        ({disponible:'Available',reservada:'Reserved',bloqueada:'Sold',no_disponible:'Sold',vendida:'Sold',cobrada:'Sold'}[row.estado] || row.estado);
       if(libre){ el.href = 'mailto:sales@lawangproperties.com?subject=' + encodeURIComponent(PROYECTO + ' ' + row.codigo); el.setAttribute('aria-label', 'Contact us about plot ' + row.codigo); }
       wrap.appendChild(el);
       var sello = SELLO[row.estado];
@@ -759,7 +761,7 @@ if ($slug === '') { http_response_code(404); exit; }
     plotsCount.textContent = disponibles + ' of ' + rows.length + ' plots available';
     plotsWrap.innerHTML = '';
     rows.forEach(function(row){
-      var estadoLabel = { disponible:'Available', reservada:'Reserved', bloqueada:'Blocked', no_disponible:'Not available' }[row.estado] || row.estado;
+      var estadoLabel = { disponible:'Available', reservada:'Reserved', bloqueada:'Blocked', no_disponible:'Not available', vendida:'Sold', cobrada:'Sold' }[row.estado] || row.estado;
       var pillClass = row.estado === 'disponible' ? 'bg-territorial-green/15 text-territorial-green' : (row.estado === 'reservada' ? 'bg-amber-100 text-amber-800' : 'bg-[#FBE9E7] text-[#B3261E]');
       var row_ = document.createElement('div');
       row_.className = 'p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#E4DFD5]/30 transition-colors';
