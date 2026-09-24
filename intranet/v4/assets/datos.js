@@ -6413,6 +6413,8 @@
      rojo se confundía con rechazada. */
   var TONO_SP = { pendiente: 'espera', aprobada: 'curso', pagada: 'ok', rechazada: 'mal', anulada: 'neutro' };
   var TONO_EQ = { pendiente: 'espera', pagada: 'ok', en_disputa: 'mal', anulada: 'neutro' };
+  // roles de equipo que cobran del manager (24-sep-2026: Setter y Team Lead se suman al Closer)
+  var ROL_EQ = { closer: 'Closer', setter: 'Setter', team_lead: 'Team Lead' };
 
   function miembroActivo(em, hoyISO) { return em.desde <= hoyISO && (!em.hasta || em.hasta >= hoyISO); }
 
@@ -6435,7 +6437,7 @@
       /* Si la RLS de `usuarios` solo deja leer la propia ficha, el mapa se queda
          corto y el fallback pinta «—»: no es un fallo, es lo que esa sesion ve. */
       q(sb.from('usuarios').select('user_id,nombre,email'), 'usuarios'),
-      q(sb.from('comisiones_devengadas').select('id,contrato_raiz_id,beneficiario_email,nivel,importe,importe_ajustado,ajuste_motivo,anulado_motivo,moneda,estado,disparado_en,pagado_por,pagado_en').eq('nivel', 'closer').order('disparado_en', { ascending: false }), 'reparto de equipo', cajaEq),
+      q(sb.from('comisiones_devengadas').select('id,contrato_raiz_id,beneficiario_email,nivel,importe,importe_ajustado,ajuste_motivo,anulado_motivo,moneda,estado,disparado_en,pagado_por,pagado_en,disparado_por_snapshot').in('nivel', ['closer', 'setter', 'team_lead']).order('disparado_en', { ascending: false }), 'reparto de equipo', cajaEq),
       q(sb.from('equipos_venta').select('id,nombre,manager_email,activo'), 'equipos de venta'),
       q(sb.from('equipo_miembros').select('equipo_id,closer_email,desde,hasta'), 'miembros de equipo'),
       /* De qué parcela sale cada comisión (23-sep-2026, owner): las unidades cuelgan
@@ -6514,11 +6516,11 @@
            tramo 1 (pct_cobrado_suelo 50%) — 2,5% s/ precio total… — importe BRUTO…»).
            En la tabla va el titular; en la ficha, entero. */
         function tipoAuto(x) {
-          var m = x.origen === 'comision_automatica' && /^Comisión (manager|estándar)/.exec(x.concepto || '');
+          var m = x.origen === 'comision_automatica' && /^Comisión (manager|estándar|venta propia)/.exec(x.concepto || '');
           return m ? m[1] : null;
         }
         function conceptoCorto(x) {
-          var m = x.origen === 'comision_automatica' && /^(Comisión \S+) — tramo (\d+)/.exec(x.concepto || '');
+          var m = x.origen === 'comision_automatica' && /^(Comisión (?:venta propia|\S+)) — tramo (\d+)/.exec(x.concepto || '');
           return m ? m[1] + ' · tramo ' + m[2] : (x.concepto || '—');
         }
         function claveCobra(x) { return (x.beneficiario_email || '').toLowerCase() || x.creado_por || ''; }
@@ -6556,6 +6558,7 @@
             // aqui solo se ENSEÑAN, no hay campo editable para ninguno de los dos.
             H.dato('Origen', x.origen === 'comision_automatica'
               ? (tipoAuto(x) === 'manager' ? 'Comisión automática de manager'
+                : tipoAuto(x) === 'venta propia' ? 'Comisión automática de venta propia (aprobada por su manager)'
                 : tipoAuto(x) === 'estándar' ? 'Comisión automática estándar (agente sin equipo)'
                 : 'Comisión automática') : 'Manual'));
 
@@ -6625,7 +6628,7 @@
           if (x.origen === 'comision_automatica' && cj && cj.cuerpo) {
             sb.from('comisiones_devengadas').select('estado,pagado_en,importe,importe_ajustado,moneda')
               // manager Y estándar (22-sep-2026): las dos las paga Lawang y llevan solicitud
-              .eq('solicitud_id', x.id).in('nivel', ['manager', 'estandar']).maybeSingle()
+              .eq('solicitud_id', x.id).in('nivel', ['manager', 'estandar', 'propia']).maybeSingle()
               .then(function (rcd) {
                 if (!cj.cuerpo.isConnected) return;   // el cajon ya se cerro
                 var html;
@@ -6817,10 +6820,17 @@
           var soyElCloser = email.toLowerCase() === miEmail;
           var puedeMarcar = x.estado === 'pendiente' && !soyElCloser && (esAdminSesion || misCloserEmails[email.toLowerCase()]);
           // ajustar/anular: admin que ni la cobra ni la paga (la RPC lo exige igual)
-          var puedeAjustar = x.estado === 'pendiente' && esAdminSesion && !soyElCloser && !misCloserEmails[email.toLowerCase()];
+          /* 24-sep-2026 (owner): el manager ajusta lo que paga él (closer, setter, team lead
+             de su equipo). La RPC decide si de verdad es su equipo; aquí solo se enseña. */
+          var puedeAjustar = x.estado === 'pendiente' && !soyElCloser && (esAdminSesion || miEquipoIds.length > 0);
           var efectivo = x.importe_ajustado != null ? x.importe_ajustado : x.importe;
           window.LW_V4.comisionesPorId[x.id].importe = efectivo;
           window.LW_V4.comisionesPorId[x.id].moneda = x.moneda || 'EUR';
+          // para ajustar por % (base y tramo con los que el motor calculó)
+          var snap = x.disparado_por_snapshot || {};
+          window.LW_V4.comisionesPorId[x.id].base = snap.base_valor != null ? Number(snap.base_valor) : null;
+          window.LW_V4.comisionesPorId[x.id].pctTramo = snap.pct_tramo != null ? Number(snap.pct_tramo) : 100;
+          window.LW_V4.comisionesPorId[x.id].pct = snap.pct_comision != null ? Number(snap.pct_comision) : null;
           var bEst = 'padding:7px 14px;border-radius:999px;font:600 12px \'Neue Kabel\',sans-serif;cursor:pointer;';
           var botones = [];
           if (puedeMarcar) botones.push('<button type="button" data-eq-pagar="' + esc(x.id) + '" style="' + bEst + 'border:0;background:#104C4F;color:#fff">Marcar pagada</button>');
@@ -6834,7 +6844,8 @@
           var notaFila = x.estado === 'anulada' && x.anulado_motivo ? x.anulado_motivo
             : x.importe_ajustado != null ? 'Motor: ' + fmt(x.importe, x.moneda || 'EUR') + (x.ajuste_motivo ? ' · ' + x.ajuste_motivo : '') : '';
           return '<tr class="border-b border-outline-variant/30" data-eq-estado="' + esc(x.estado) + '" data-eq-equipo="' + esc(equipoNombre) + '">' +
-            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant whitespace-nowrap">' + esc(etiqueta) + '</td>' +
+            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant whitespace-nowrap">' + esc(etiqueta) +
+              '<div style="font:600 10.5px \'Neue Kabel\',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#8A8474">' + esc(ROL_EQ[x.nivel] || x.nivel) + '</div></td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline whitespace-nowrap">' + esc(equipoNombre) + '</td>' +
             '<td class="px-5 py-4 font-label-md text-label-md text-on-surface whitespace-nowrap">' + esc(fmt(efectivo, x.moneda || 'EUR')) +
               (notaFila ? '<div style="font:500 11px \'Neue Kabel\',sans-serif;color:#8A8474;white-space:normal;max-width:220px">' + esc(notaFila) + '</div>' : '') + '</td>' +
@@ -6906,7 +6917,7 @@
 
         // su condición: la base solo le deja leer las que le aplican
         Promise.all([
-          sb.from('condiciones_comision').select('proyecto_id,closer_email,pct_comision,importe_fijo,base_calculo,activo,equipo_id,nivel').eq('activo', true).eq('nivel', 'closer'),
+          sb.from('condiciones_comision').select('proyecto_id,closer_email,pct_comision,importe_fijo,base_calculo,activo,equipo_id,nivel').eq('activo', true).in('nivel', ['closer', 'setter', 'team_lead']),
           sb.from('proyectos').select('id,nombre')
         ]).then(function (rr) {
           var conds = (rr[0] && rr[0].data) || [];
@@ -7470,7 +7481,8 @@
       pon2('k-cond-activas', String(conds.filter(function (c) { return c.activo; }).length));
       pon2('k-cond-total', String(conds.length));
       pon2('k-cond-manager', String(conds.filter(function (c) { return c.nivel === 'manager'; }).length));
-      pon2('k-cond-closer', String(conds.filter(function (c) { return c.nivel === 'closer'; }).length));
+      // «de equipo» = lo que paga el manager: closer, setter y team lead (24-sep-2026)
+      pon2('k-cond-closer', String(conds.filter(function (c) { return c.nivel !== 'manager' && c.equipo_id; }).length));
 
       if (selEquipo) selEquipo.innerHTML = '<option value="">Todos los equipos</option>' +
         (esAdmC ? '<option value="__estandar__">Estándar de Lawang (sin equipo)</option>' : '') +
@@ -7497,8 +7509,9 @@
           var estandar = !c.equipo_id;
           var quien = estandar
             ? (c.closer_email ? esc(nombrePorEmail[c.closer_email.toLowerCase()] || c.closer_email) + ' (override)' : 'quien cierre sin equipo · paga Lawang')
-            : c.nivel === 'closer'
-              ? (c.closer_email ? esc(nombrePorEmail[c.closer_email.toLowerCase()] || c.closer_email) + ' (override)' : 'todo el equipo · closer')
+            : c.nivel !== 'manager'
+              ? (c.closer_email ? esc(nombrePorEmail[c.closer_email.toLowerCase()] || c.closer_email) + ' (override) · ' + esc(ROL_EQ[c.nivel] || c.nivel)
+                               : 'todo el equipo · ' + esc(ROL_EQ[c.nivel] || c.nivel))
               : 'manager';
           var importeOBase = c.base_calculo === 'importe_fijo' ? fmt(c.importe_fijo, 'EUR') : (c.pct_comision + '%');
           var vigencia = c.vigente_desde && c.vigente_desde > '1900-01-01' ? '<br><span class="text-outline text-[11px]">desde ' + esc(fFecha(c.vigente_desde)) + '</span>' : '';
@@ -7512,7 +7525,7 @@
             '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' +
               (c.activo ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-surface-container-high text-on-surface-variant') + '">' +
               (c.activo ? 'Activa' : 'Inactiva') + '</span></td>' +
-            (!esAdmC && c.nivel !== 'closer'
+            (!esAdmC && c.nivel === 'manager'
               ? '<td class="px-5 py-4 text-right font-body-sm text-body-sm text-outline">la fija administración</td></tr>'
               : '<td class="px-5 py-4 text-right"><div class="flex justify-end gap-2">' +
               /* Editar (22-sep-2026, owner): %, base, importe fijo, override y —si

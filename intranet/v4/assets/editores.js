@@ -4014,15 +4014,31 @@
       };
       /* Reparto de equipo (nivel closer): un admin que no la cobra ni la paga
          ajusta el importe o la anula. RPC DEFINER con motivo obligatorio. */
+      /* 24-sep-2026 (owner): también el manager que la paga (bonus o recorte), por
+         importe o por %. El % se convierte aquí con la misma base y tramo que usó el
+         motor; en la base solo se guarda el importe, y el % queda en el motivo. */
       window.LW_V4.ajustarComisionEquipo = function (id, etiqueta, importe, moneda) {
-        modal('Ajustar comisión — ' + (etiqueta || 'closer'), [
-          { tipo: 'nota', label: 'El cálculo del motor queda guardado; el nuevo importe es el que verá el manager para pagar.' },
-          { k: 'importe', label: 'Importe (' + (moneda || 'EUR') + ')', tipo: 'number', paso: '0.01', req: 1, valor: importe != null ? importe : '' },
+        var info = (window.LW_V4.comisionesPorId || {})[id] || {};
+        var conBase = info.base != null && info.base > 0;
+        modal('Ajustar comisión — ' + (etiqueta || 'equipo'), [
+          { tipo: 'nota', label: 'El cálculo del motor queda guardado y quien la cobra ve el ajuste con su motivo.' +
+            (conBase ? ' Base de la venta: ' + ((typeof lwFormatoImporte === 'function') ? lwFormatoImporte(info.base, moneda || 'EUR') : info.base + ' ' + (moneda || 'EUR')) + (info.pct != null ? ' · hoy al ' + String(info.pct).replace('.', ',') + ' %' : '') + '.' : '') +
+            ' Para dejarla en cero, anúlala.' },
+          conBase ? { k: 'pct', label: 'Nuevo % sobre la base (opcional — si lo rellenas, manda sobre el importe)', tipo: 'number', paso: '0.01', valor: '' } : null,
+          { k: 'importe', label: 'Importe (' + (moneda || 'EUR') + ')', tipo: 'number', paso: '0.01', valor: importe != null ? importe : '' },
           { k: 'motivo', label: 'Motivo — queda registrado', tipo: 'textarea', req: 1 }
-        ], 'Guardar ajuste', function (v) {
-          var n = Number(String(v.importe).replace(',', '.'));
+        ].filter(Boolean), 'Guardar ajuste', function (v) {
+          var pct = v.pct != null && String(v.pct).trim() !== '' ? Number(String(v.pct).replace(',', '.')) : null;
+          var n;
+          if (pct != null) {
+            if (!(pct > 0)) return { error: { message: 'el % no se entiende — escribe un número mayor que cero' } };
+            n = Math.round(info.base * pct / 100 * (info.pctTramo != null ? info.pctTramo : 100) / 100 * 100) / 100;
+          } else {
+            n = Number(String(v.importe).replace(',', '.'));
+          }
           if (!(n > 0)) return { error: { message: 'el importe no se entiende — escribe un número mayor que cero' } };
-          return sb.rpc('comision_devengo_ajustar', { p_id: id, p_importe: n, p_motivo: v.motivo.trim() });
+          var motivo = v.motivo.trim() + (pct != null ? ' (' + String(pct).replace('.', ',') + ' %)' : '');
+          return sb.rpc('comision_devengo_ajustar', { p_id: id, p_importe: n, p_motivo: motivo });
         });
       };
       window.LW_V4.anularComisionEquipo = function (id, etiqueta) {
@@ -6811,11 +6827,14 @@
           if (ids.indexOf(m.equipo_id) !== -1 && m.desde <= hoy && (!m.hasta || m.hasta >= hoy)) misCloser[(m.closer_email || '').toLowerCase()] = true;
         });
       });
+      // roles que paga el manager de su bolsillo (24-sep-2026: Setter y Team Lead se suman al Closer)
+      var ROLES_EQUIPO_C = ['closer', 'setter', 'team_lead'];
+      var NOMBRE_NIVEL = { manager: 'Manager', closer: 'Closer', setter: 'Setter', team_lead: 'Team Lead' };
       function esMiCondicion(cond) {
-        return !!(cond && cond.nivel === 'closer' && cond.equipo_id && misEquipos.some(function (e) { return e.id === cond.equipo_id; }));
+        return !!(cond && ROLES_EQUIPO_C.indexOf(cond.nivel) !== -1 && cond.equipo_id && misEquipos.some(function (e) { return e.id === cond.equipo_id; }));
       }
       var soloAdmin = function () {
-        return aviso('Esta condición solo la cambia administración: un manager configura únicamente lo que paga a los closers de su equipo — tu sesión es de ' +
+        return aviso('Esta condición solo la cambia administración: un manager configura únicamente lo que paga a su equipo (closer, setter, team lead) — tu sesión es de ' +
           ((aut.ficha && aut.ficha.rol) || 'agente') + '.', '#8A6A34');
       };
 
@@ -6883,18 +6902,20 @@
               opciones: [['', '— Todos los proyectos —']].concat(proyectos.map(function (p) { return [p.id, p.nombre]; })),
               ayuda: 'una condición para un proyecto concreto manda sobre la de «todos los proyectos»' },
             admin ? { k: 'nivel', label: 'Nivel', tipo: 'select', medio: 1,
-              opciones: [['manager', 'Manager'], ['closer', 'Closer']],
+              opciones: [['manager', 'Manager'], ['closer', 'Closer'], ['setter', 'Setter'], ['team_lead', 'Team Lead']],
               visibleSi: { k: 'equipo_id', valores: equipos.map(function (e) { return e.id; }) },
-              ayuda: 'la estándar es siempre de quien cierra (Closer)' }
-              : { tipo: 'nota', label: 'Es lo que TÚ pagas a tus closers (reparto de equipo). Tu comisión la fija administración.' },
+              ayuda: 'la estándar es siempre de quien cierra (Closer). Setter y Team Lead los paga el manager, como al closer' }
+              : { k: 'nivel', label: 'Rol', tipo: 'select', medio: 1,
+                  opciones: [['closer', 'Closer'], ['setter', 'Setter'], ['team_lead', 'Team Lead']],
+                  ayuda: 'es lo que TÚ pagas a tu equipo en cada venta; tu comisión la fija administración' },
             { k: 'vigente_desde', label: 'Vigente desde', tipo: 'date', req: 1, medio: 1,
               valor: hoyC,
               ayuda: admin ? 'solo cuentan las ventas (contrato raíz) creadas desde esta fecha: lo anterior no devenga'
                 : 'desde hoy en adelante: solo cuentan las ventas creadas desde esta fecha' },
             { k: 'closer_email', label: 'Override individual', tipo: 'select', medio: 1,
               opciones: opsCloser,
-              visibleSi: admin ? { k: 'nivel', valores: ['closer'] } : undefined,
-              ayuda: '«todo el equipo» aplica a cualquier closer del equipo; una persona concreta manda sobre eso' },
+              visibleSi: admin ? { k: 'nivel', valores: ROLES_EQUIPO_C } : undefined,
+              ayuda: '«todo el equipo» aplica a cualquiera del equipo en ese rol; una persona concreta manda sobre eso' },
             { k: 'pct_comision', label: '% de comisión', tipo: 'number', paso: '0.01', req: 1, medio: 1 },
             { k: 'base_calculo', label: 'Base de cálculo', tipo: 'select', req: 1, medio: 1,
               opciones: (window.LW_V4.BASES_CALCULO || BASES_CALCULO_FALLBACK) },
@@ -6905,7 +6926,8 @@
           ], 'Crear condición', function (v) {
             v.equipo_id = v.equipo_id || null;
             v.proyecto_id = v.proyecto_id || null;
-            if (!v.equipo_id || !admin) v.nivel = 'closer';   // estándar y manager: siempre closer
+            if (!v.equipo_id) v.nivel = 'closer';   // la estándar: siempre quien cierra
+            if (!admin && ROLES_EQUIPO_C.indexOf(v.nivel) === -1) v.nivel = 'closer';   // un manager: solo roles de su equipo
             if (!admin && !v.equipo_id) return { error: { message: 'Elige tu equipo.' } };
             if (!admin && v.vigente_desde < hoyC) return { error: { message: 'La fecha no puede ser anterior a hoy.' } };
             var tramos = getTramos ? getTramos() : [];
@@ -6924,7 +6946,7 @@
             var condId = crypto.randomUUID();
             return sb.from('condiciones_comision').insert({
               id: condId, equipo_id: v.equipo_id, proyecto_id: v.proyecto_id, nivel: v.nivel,
-              closer_email: v.nivel === 'closer' ? (v.closer_email ? v.closer_email.trim().toLowerCase() : null) : null,
+              closer_email: ROLES_EQUIPO_C.indexOf(v.nivel) !== -1 ? (v.closer_email ? v.closer_email.trim().toLowerCase() : null) : null,
               pct_comision: Number(v.pct_comision), base_calculo: v.base_calculo,
               importe_fijo: v.base_calculo === 'importe_fijo' ? Number(v.importe_fijo) : null,
               vigente_desde: v.vigente_desde
@@ -7002,9 +7024,9 @@
           var getTramos = null;
           var campos = [
             { tipo: 'lectura', label: 'Equipo · proyecto', valor: etq },
-            { tipo: 'lectura', label: 'Nivel', valor: !cond.equipo_id ? 'Estándar (quien cierra, paga Lawang)' : cond.nivel === 'closer' ? 'Closer' : 'Manager', medio: 1 }
+            { tipo: 'lectura', label: 'Nivel', valor: !cond.equipo_id ? 'Estándar (quien cierra, paga Lawang)' : (NOMBRE_NIVEL[cond.nivel] || cond.nivel), medio: 1 }
           ];
-          if (cond.nivel === 'closer') {
+          if (ROLES_EQUIPO_C.indexOf(cond.nivel) !== -1) {
             campos.push({ k: 'closer_email', label: 'Override individual', tipo: 'select', medio: 1,
               valor: cond.closer_email || '', opciones: opsUsuarios(cond.closer_email || '', '— todo el equipo —'),
               ayuda: '«todo el equipo» aplica a cualquier closer del equipo; una persona concreta manda sobre eso' });
@@ -7043,7 +7065,7 @@
               importe_fijo: v.base_calculo === 'importe_fijo' ? Number(v.importe_fijo) : null,
               vigente_desde: v.vigente_desde
             };
-            if (cond.nivel === 'closer') patch.closer_email = v.closer_email ? v.closer_email.trim().toLowerCase() : null;
+            if (ROLES_EQUIPO_C.indexOf(cond.nivel) !== -1) patch.closer_email = v.closer_email ? v.closer_email.trim().toLowerCase() : null;
             return sb.from('condiciones_comision').update(patch).eq('id', id).select('id').then(unaFila).then(function (r1) {
               if (r1.error || n) return r1;
               /* Sin devengos nadie cita estos tramos: se sustituyen enteros. En
