@@ -182,6 +182,10 @@
        data-path y recablea() lo resuelve por esa rama, nunca por texto —
        code-review, 22-sep). Se deja dicho para que la próxima herramienta
        no se quede fuera. */
+    /* 25-sep-2026: /asistente/ pasa a ser el sitio de PETICIONES (cambiar un dato, anular o
+       borrar un documento, borrar una operación — aprueba dirección por Telegram). El asistente
+       de respuestas a compradores sigue en /asistente-correos/, sin entrada en el menú, hasta
+       que se termine (owner). */
     { path: 'asistente',  tras: 'contratos', icono: 'smart_toy',     texto: 'Asistente' },
     { path: 'comisiones', tras: 'recibos',  icono: 'request_quote',  texto: 'Comisiones' },
     /* Reservas por vencer (23-sep-2026, owner, alta prioridad): Cartas de
@@ -283,7 +287,7 @@
        falta tenerlas asignadas, como en el hub vivo. */
   var CLAVE_MENU = {
     leads: 'leads', operaciones: 'operaciones', soporte: 'soporte', vencimientos: 'vencimientos',
-    contratos: 'contratos', asistente: 'asistente', creatividades: ['dossier', 'creatividades', 'creatividades_ver'],
+    contratos: 'contratos', asistente: 'asistente', 'asistente-correos': 'asistente', creatividades: ['dossier', 'creatividades', 'creatividades_ver'],
     facturas: 'facturas', recibos: 'recibos', comisiones: ['comisiones', 'comisiones_reparto', 'comisiones_condiciones', 'comisiones_equipos'], reservas: 'reservas', reparto: 'comisiones_reparto', condiciones: 'comisiones_condiciones', 'equipos-venta': 'comisiones_equipos',
     proyectos: 'unidades', modelos: 'modelos', obra: 'obra', compradores: 'compradores',
     usuarios: 'usuarios', cuentas: 'cuentas', gastos: 'gastos', bancos: 'bancos'

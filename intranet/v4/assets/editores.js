@@ -6390,8 +6390,9 @@
       }
       var miEmailC = ((aut.session && aut.session.user && aut.session.user.email) || '').toLowerCase();
       var pideCambio = function (c, accion, nuevos, motivo) {
-        var fila = { tabla: 'clients', fila_id: c.id, accion: accion, motivo: String(motivo || '').trim() };
-        if (accion === 'editar') fila.nuevos = nuevos;
+        // `tabla` la deriva la base de la acción (v2 del 25-sep, /asistente/): no se manda
+        var fila = { fila_id: c.id, accion: accion, motivo: String(motivo || '').trim() };
+        if (accion === 'editar_comprador') fila.nuevos = nuevos;
         return sb.from('solicitudes_cambio').insert(fila).select('numero').then(function (r) {
           if (r.error) return { error: { message: r.error.message } };
           var n = r.data && r.data[0] && r.data[0].numero;
@@ -6408,7 +6409,7 @@
           { tipo: 'nota', label: 'Se enviará al administrador para que lo apruebe. Solo se borra si la ficha no tiene nada enlazado (contratos, facturas, documentos KYC, portal). Te llegará la respuesta a la campana.' },
           { k: 'motivo', label: 'Por qué hay que borrarla', tipo: 'textarea', req: 1, valor: '' }
         ], 'Enviar para aprobar', function (v) {
-          return pideCambio(c, 'borrar', null, v.motivo);
+          return pideCambio(c, 'borrar_comprador', null, v.motivo);
         }, { sinRecarga: true });
       };
       window.LW_V4.abreEditaComprador = function (c) {
@@ -6497,7 +6498,7 @@
                 if ((c[k] == null ? null : String(c[k])) !== patch[k]) pedido[k] = patch[k];
               });
               if (!Object.keys(pedido).length) return { error: { message: 'No has cambiado nada respecto a la ficha.' } };
-              return pideCambio(c, 'editar', pedido, v.motivo);
+              return pideCambio(c, 'editar_comprador', pedido, v.motivo);
             }
             return sb.from('clients').update(patch).eq('id', c.id).select('id').then(unaFila).then(errorClienteHumano);
           });

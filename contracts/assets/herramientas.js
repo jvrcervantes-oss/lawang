@@ -133,8 +133,8 @@ const LW_HERRAMIENTAS = [
      guardar en la base sigue pidiendo el permiso de la herramienta madre.
      La migración 20260923180500_permisos_propios se la dio a quien ya tenía la madre. */
   { grupo:'Documentación', nombre:'Asistente', icon:'ph-robot', href:'/intranet/v4/asistente/', herr:'asistente',
-    para:'Un borrador de respuesta a la duda de un comprador, citando solo su contrato. Lo revisas y lo mandas tú.',
-    claves:'asistente bot ia inteligencia artificial borrador respuesta comprador pregunta duda contrato clausula pendiente assistant ai draft reply buyer question doubt contract clause pending' },
+    para:'Pide lo que no puedes hacer tú: cambiar un dato, anular o borrar un documento, borrar una operación. Lo aprueba dirección.',
+    claves:'asistente peticion pedir solicitud cambiar dato borrar anular factura recibi operacion contrato comprador aprobar request change delete cancel invoice approval' },
   // Dossier y Creatividades, unificadas en UNA tarjeta (7-ago-2026): antes
   // eran dos entradas sueltas para dos herramientas de producción de
   // contenido que casi siempre se usan seguidas. `herr` como ARRAY = ve la
