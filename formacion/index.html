@@ -232,6 +232,24 @@ ul.lista li .ms{font-size:18px;color:var(--tg);margin-top:2px}
 .mat .ej .ms{font-size:16px}
 .mat .ej:hover{text-decoration:underline}
 
+/* Paso 1: tenencia */
+.tenencia{margin-top:28px;border-radius:22px;background:var(--dl);color:var(--linen);padding:28px}
+@media (min-width:900px){.tenencia{padding:38px 40px}}
+.tenencia__cab .lbl{color:var(--stone)}
+.tenencia__cab h3{color:var(--linen);font-size:clamp(28px,3.4vw,40px);margin-top:8px}
+.tenencia__cab p{color:rgba(245,240,230,.85);margin-top:10px;max-width:760px;font-size:15.5px}
+.tenencia__grid{display:grid;gap:12px;margin-top:24px}
+@media (min-width:700px){.tenencia__grid{grid-template-columns:repeat(2,1fr)}}
+@media (min-width:1150px){.tenencia__grid{grid-template-columns:repeat(4,1fr)}}
+.tenencia .t{background:var(--paper);color:var(--ink);border-radius:16px;padding:20px;border-top:4px solid var(--tg)}
+.tenencia .t--no{border-top-color:#b5462f}
+.tenencia .t--ojo{border-top-color:#c9913a}
+.tenencia .tag{font-family:var(--ff-l);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tg)}
+.tenencia .t--no .tag{color:#b5462f}.tenencia .t--ojo .tag{color:#a8741f}
+.tenencia h4{font-family:var(--ff-h);font-size:28px;font-weight:700;color:var(--dl);margin:6px 0 0;line-height:1.1}
+.tenencia .t p{font-size:14px;color:var(--muted);margin-top:8px;line-height:1.55}
+.tenencia .t b{color:var(--ink);font-weight:600}
+
 /* Paso 2: perfiles. Subgrid: la cabecera y cada bloque ocupan la misma fila en las cuatro
    tarjetas, así todas las cabeceras miden lo mismo aunque el texto sea más largo en una. */
 .perfiles{display:grid;gap:16px}
@@ -337,13 +355,17 @@ ul.lista li .ms{font-size:18px;color:var(--tg);margin-top:2px}
 /* Paso 5: sí / no (bloque Deep lagoon como el forecast de /modelo/) */
 .sino{display:grid;gap:16px}
 @media (min-width:900px){.sino{grid-template-columns:1fr 1fr}}
-.sino .col{border-radius:18px;padding:24px;background:rgba(245,240,230,.08);border:1px solid rgba(245,240,230,.2)}
+.sino .col{border-radius:18px;padding:26px}
+.sino .no{background:var(--be);border:1px solid var(--be)}
+.sino .si{background:var(--linen);border:1px solid var(--linen)}
+.sino .si h3{color:var(--dl)}
 .sino .col h3{display:flex;align-items:center;gap:10px;font-size:26px}
 .sino ul{list-style:none;margin:16px 0 0;padding:0;display:flex;flex-direction:column;gap:14px}
 .sino li{font-size:14.5px;line-height:1.5;color:rgba(245,240,230,.9);padding-left:14px;border-left:2px solid rgba(245,240,230,.25)}
 .sino li b{color:var(--linen);font-weight:600;display:block;margin-bottom:2px}
-.sino .no li{border-left-color:#c98b6a}
-.sino .si li{border-left-color:#a9b98f}
+.sino .no li{border-left-color:#d9956f}
+.sino .si li{border-left-color:var(--tg);color:var(--muted)}
+.sino .si li b{color:var(--ink)}
 .derivar{margin-top:18px;border-radius:18px;background:var(--linen);color:var(--ink);padding:22px 24px;display:grid;gap:10px}
 @media (min-width:900px){.derivar{grid-template-columns:auto 1fr;align-items:center;gap:22px}}
 .derivar .ms{font-size:36px;color:var(--dl)}
@@ -507,6 +529,20 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     <div class="pieza pieza--dl"><span class="ms">cottage</span><h3>La villa</h3><p>Uno de los modelos del catálogo, con la cubierta y los extras que elija el cliente.</p></div>
     <div class="op">=</div>
     <div class="pieza pieza--res"><span class="ms">contract</span><h3>Precio cerrado</h3><p>Parcela + villa llave en mano. Lo calcula el Generador de contratos con los precios vigentes; tú no lo calculas a mano.</p></div>
+  </div>
+
+  <div class="tenencia reveal">
+    <div class="tenencia__cab">
+      <span class="lbl">Antes de nada</span>
+      <h3>Las cuatro palabras que tienes que dominar</h3>
+      <p>El cliente te va a preguntar «¿de quién es la tierra?» en la primera llamada. Esto es lo que significa cada palabra. Qué figura usa cada proyecto lo dice su contrato.</p>
+    </div>
+    <div class="tenencia__grid">
+      <div class="t t--no"><span class="tag">No se ofrece</span><h4>Hak Milik</h4><p>La propiedad plena y para siempre de la tierra. <b>Solo la puede tener un ciudadano indonesio</b>: nunca un extranjero ni una sociedad con capital extranjero. Si alguien te la ofrece a un extranjero, es ilegal.</p></div>
+      <div class="t"><span class="tag">Derecho real</span><h4>HGB</h4><p>Hak Guna Bangunan: el derecho a construir y tener edificios sobre un suelo. Lo tiene una sociedad indonesia con capital extranjero (PT PMA). Dura 30 años, prorrogables 20 y renovables otros 30, <b>siempre que se solicite</b>: no es automático.</p></div>
+      <div class="t"><span class="tag">Arrendamiento</span><h4>Hak Sewa</h4><p>El arrendamiento del suelo, pactado por contrato con su dueño. El plazo, las prórrogas y qué pasa con la casa al final son los que diga ese contrato.</p></div>
+      <div class="t t--ojo"><span class="tag">Palabra de mercado</span><h4>Freehold</h4><p>No es una figura de la ley indonesia: es como el mercado de Bali llama a muchas cosas distintas, y el cliente entiende «es mío». <b>No la uses tú.</b> Si la dice él, contesta con el nombre exacto de lo que compra (Hak Sewa o HGB).</p></div>
+    </div>
   </div>
 
   <div class="villas reveal" id="villas-lista" aria-label="Catálogo de villas">
@@ -691,26 +727,6 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     <a class="herr-card" href="/intranet/v4/reparto/"><span class="ic ms">request_quote</span><h3>Mis comisiones</h3><p>Lo que has generado, lo pendiente y lo pagado, venta a venta.</p><span class="cuando">Cuando quieras</span></a>
   </div>
 
-  <div class="wa reveal">
-    <div class="card">
-      <span class="lbl" style="color:var(--tg)">WhatsApp desde la intranet</span>
-      <h3 style="margin-top:8px">La ventana de 24 horas</h3>
-      <ul class="lista">
-        <li><span class="ms">schedule</span><span>Si el lead te ha escrito en las últimas 24 h, la ventana está abierta y puedes escribir texto libre.</span></li>
-        <li><span class="ms">lock_clock</span><span>Si no, solo puedes mandar una <b>plantilla aprobada</b>. La intranet te dice en qué caso estás.</span></li>
-        <li><span class="ms">description</span><span>Un lead de formulario que nunca te ha escrito no tiene ventana: su primer mensaje siempre es plantilla.</span></li>
-      </ul>
-    </div>
-    <div class="card">
-      <span class="lbl" style="color:var(--be)">Bajas</span>
-      <h3 style="margin-top:8px">Si el lead escribe STOP</h3>
-      <ul class="lista">
-        <li><span class="ms" style="color:var(--be)">block</span><span>Queda bloqueado y ya no se le puede escribir. No insistas por otra vía.</span></li>
-        <li><span class="ms" style="color:var(--be)">event_busy</span><span>«Cancelar» no es una baja: casi siempre quiere anular una cita. Pregúntale si quiere cambiarla.</span></li>
-        <li><span class="ms" style="color:var(--be)">smartphone</span><span>¿Por qué no desde tu móvil? Porque el mensaje sale con la identidad de Lawang, queda registrado y protege el número de la empresa.</span></li>
-      </ul>
-    </div>
-  </div>
 </div>
 </section>
 
@@ -740,7 +756,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
       </ul>
     </div>
     <div class="col si">
-      <h3><span class="ms" style="color:#b8c99c">check_circle</span>Sí puedes decir</h3>
+      <h3><span class="ms" style="color:var(--tg)">check_circle</span>Sí puedes decir</h3>
       <ul>
         <li><b>«Cada proyecto tiene su estructura legal, y está escrita en su contrato».</b>La tenencia cambia de un proyecto a otro. Se lee en el contrato de ESE proyecto, no se generaliza.</li>
         <li><b>«Este es el ejemplo económico de una parcela concreta».</b>El forecast del investor deck es eso: un ejemplo, con sus supuestos. No un resultado prometido.</li>
@@ -748,13 +764,6 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
         <li><b>«Los importes en euros son orientativos».</b>La cifra que obliga está en rupias (IDR), con el tipo de cambio y el momento de conversión que fija el contrato.</li>
         <li><b>«Lo consulto y te lo confirmo por escrito».</b>Siempre vale más que improvisar.</li>
       </ul>
-    </div>
-  </div>
-  <div class="derivar reveal">
-    <span class="ms">gavel</span>
-    <div>
-      <p>Cuando te pregunten por titularidad, impuestos, herencia o qué pasa al final del plazo, la respuesta es siempre la misma:</p>
-      <q>Eso te lo explica el notario o el abogado con el contrato delante. Te organizo esa llamada.</q>
     </div>
   </div>
 </div>
@@ -826,7 +835,6 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
       <button class="copiar" data-copia="wa-es"><span class="ms">content_copy</span>Copiar</button>
       <div class="burbuja" id="wa-en" style="margin-top:14px"><small>English</small>Hi <mark>name</mark>, this is <mark>your name</mark> from Lawang. We got your enquiry about <mark>project</mark>.<br>Would a 10-minute call today or tomorrow suit you? I'll walk you through the plots and the villa model that best fits what you're after.<br>If you prefer, I can send you the project video here first.</div>
       <button class="copiar" data-copia="wa-en"><span class="ms">content_copy</span>Copy</button>
-      <div class="nota"><span class="ms">info</span><span>Este texto es para cuando la ventana está abierta. Si el lead nunca te ha escrito, la intranet solo deja mandar la <b>plantilla aprobada</b> (paso 4): úsala, y guarda este mensaje para cuando conteste.</span></div>
     </div>
     <div>
       <span class="lbl" style="color:var(--tg)">Primera llamada</span>
