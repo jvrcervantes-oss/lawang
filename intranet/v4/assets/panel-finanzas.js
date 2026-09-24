@@ -126,8 +126,13 @@
     var cuentaDe = {};
     (d.cuentas || []).forEach(function (c) { cuentaDe[c.clave] = c; });
     var destinoDe = function (clave) {
-      var c = clave && cuentaDe[clave];
-      if (!c) return 'sin_clasificar';            // sin cuenta, «otros» o clave desconocida
+      /* Recibí SIN cuenta o con «otros»: caja de la sociedad (owner, 24-sep-2026:
+         «Todo cuenta», sobre los 16 recibís de 2026 que no dicen cuenta,
+         478.600 €). Una clave que NO está en la tabla (cuenta borrada o mal
+         escrita) sigue «sin clasificar»: esa sí hay que mirarla. */
+      if (!clave || clave === 'otros') return 'propia';
+      var c = cuentaDe[clave];
+      if (!c) return 'sin_clasificar';
       if (c.es_escrow) return 'escrow';
       return c.es_propia === true ? 'propia' : c.es_propia === false ? 'tercero' : 'sin_clasificar';
     };
