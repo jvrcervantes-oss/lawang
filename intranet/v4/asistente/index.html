@@ -36,21 +36,23 @@
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
 <section class="bg-surface-container-lowest rounded-xl p-8 shadow-sm flex flex-col gap-5">
 <div class="flex flex-col gap-1 pb-4 border-b border-outline-variant/40">
-<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">Nueva petición</span>
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">Paso 1 · Escribe</span>
 <h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight">¿Qué necesitas?</h2>
 </div>
 <textarea class="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:border-deep-lagoon" id="sc-texto" maxlength="2000" rows="5" placeholder="Por ejemplo: «Ponle el teléfono +34 600 000 000 a Juan García», «Anula la factura INV00160, el importe está mal», «Borra la operación RP00026, el cliente se echó atrás»."></textarea>
 <p class="font-body-sm text-body-sm text-outline">Di siempre de qué se trata (el nombre del comprador, el número de factura o de contrato) y por qué. Lo que escribes lo lee dirección tal cual.</p>
 <div class="flex justify-end">
-<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary disabled:opacity-60 disabled:cursor-wait font-label-md text-label-md transition-colors shadow-sm" id="sc-interpretar" type="button"><span class="material-symbols-outlined text-[18px]">smart_toy</span><span id="sc-interpretar-texto">Continuar</span></button>
+<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary disabled:opacity-60 disabled:cursor-wait font-label-md text-label-md transition-colors shadow-sm" id="sc-interpretar" type="button"><span class="material-symbols-outlined text-[18px]">smart_toy</span><span id="sc-interpretar-texto">Revisar mi petición</span></button>
 </div>
-<div class="flex flex-col gap-3 hidden" hidden id="sc-propuesta">
-<p class="font-label-md text-label-md text-on-surface" id="sc-propuesta-titulo">Entiendo que pides:</p>
+<div class="flex flex-col gap-3 hidden rounded-xl border-2 border-deep-lagoon/40 bg-surface-container-low p-5" hidden id="sc-propuesta" style="scroll-margin-top:88px">
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">Paso 2 · Comprueba</span>
+<p class="font-label-md text-label-md text-on-surface" id="sc-propuesta-titulo">Esto es lo que se va a pedir:</p>
 <div class="flex flex-col gap-2" id="sc-opciones"></div>
+<p class="font-body-sm text-body-sm text-on-surface-variant" id="sc-propuesta-ayuda">Si es correcto, pulsa «Sí, enviar para aprobar». Si no, corrige el texto de arriba y vuelve a pulsar «Revisar mi petición», o envía tu texto tal cual para que dirección lo lea.</p>
 <p class="font-body-sm text-body-sm text-burnt-earth hidden" hidden id="sc-aviso"></p>
 <div class="flex flex-wrap gap-3 justify-end">
-<button class="flex items-center gap-2 px-4 py-2.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-label-md transition-colors shadow-sm" id="sc-manual" type="button"><span class="material-symbols-outlined text-[18px]">forum</span><span>No es eso: mandarlo tal cual</span></button>
-<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary disabled:opacity-60 font-label-md text-label-md transition-colors shadow-sm" id="sc-enviar" type="button"><span class="material-symbols-outlined text-[18px]">send</span><span>Enviar para aprobar</span></button>
+<button class="flex items-center gap-2 px-4 py-2.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-label-md transition-colors shadow-sm" id="sc-manual" type="button"><span class="material-symbols-outlined text-[18px]">forum</span><span>No es esto: enviar mi texto tal cual</span></button>
+<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary disabled:opacity-60 font-label-md text-label-md transition-colors shadow-sm" id="sc-enviar" type="button"><span class="material-symbols-outlined text-[18px]">send</span><span>Sí, enviar para aprobar</span></button>
 </div>
 </div>
 </section>
@@ -133,7 +135,7 @@
 
     function ocupado(si) {
       $('sc-interpretar').disabled = si;
-      $('sc-interpretar-texto').textContent = si ? 'Leyendo…' : 'Continuar';
+      $('sc-interpretar-texto').textContent = si ? 'Leyendo…' : 'Revisar mi petición';
     }
 
     function pintaPropuesta(p) {
@@ -142,12 +144,15 @@
       muestra($('sc-aviso'), false);
       $('sc-enviar').disabled = false;
       if (p.tipo === 'manual') {
-        $('sc-propuesta-titulo').textContent = 'No es una de las acciones que se hacen solas: se enviará tal cual a dirección, que lo hará a mano.';
+        $('sc-propuesta-titulo').textContent = 'Esto no se puede hacer solo: se enviará tu texto tal cual a dirección, que lo hará a mano.';
+        $('sc-propuesta-ayuda').textContent = 'Pulsa «Sí, enviar para aprobar» para mandarlo.';
       } else if (p.tipo === 'no_encontrado') {
         $('sc-propuesta-titulo').textContent = p.mensaje || 'No encuentro a qué te refieres.';
+        $('sc-propuesta-ayuda').textContent = 'Corrige el texto de arriba (el nombre, el número de factura o de contrato) y vuelve a pulsar «Revisar mi petición», o envía tu texto tal cual.';
         $('sc-enviar').disabled = true;
       } else {
-        $('sc-propuesta-titulo').textContent = p.tipo === 'elegir' ? 'Hay varias posibilidades: elige cuál.' : 'Entiendo que pides:';
+        $('sc-propuesta-titulo').textContent = p.tipo === 'elegir' ? 'He encontrado varias: marca la correcta.' : 'Esto es lo que se va a pedir:';
+        $('sc-propuesta-ayuda').textContent = 'Si es correcto, pulsa «Sí, enviar para aprobar». Si no, corrige el texto de arriba y vuelve a pulsar «Revisar mi petición», o envía tu texto tal cual para que dirección lo lea.';
         (p.opciones || []).forEach(function (o, i) {
           var id = 'sc-op-' + i;
           var l = document.createElement('label');
@@ -160,6 +165,7 @@
         if ((p.opciones || []).length === 1) ELEGIDA = p.opciones[0].fila_id;
       }
       muestra($('sc-propuesta'), true);
+      $('sc-propuesta').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     function inserta(fila) {
