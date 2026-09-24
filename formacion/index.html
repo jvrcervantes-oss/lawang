@@ -230,16 +230,30 @@ ul.lista li .ms{font-size:18px;color:var(--tg);margin-top:2px}
 .mat .ej .ms{font-size:16px}
 .mat .ej:hover{text-decoration:underline}
 
-/* Paso 2: perfiles */
-.perfil{border-radius:18px;overflow:hidden;border:1px solid var(--stone);background:var(--paper);display:flex;flex-direction:column}
-.perfil .top{padding:22px;color:var(--linen)}
+/* Paso 2: perfiles. Subgrid: la cabecera y cada bloque ocupan la misma fila en las cuatro
+   tarjetas, así todas las cabeceras miden lo mismo aunque el texto sea más largo en una. */
+.perfiles{display:grid;gap:16px}
+@media (min-width:768px){.perfiles{grid-template-columns:repeat(2,1fr)}}
+@media (min-width:1200px){.perfiles{grid-template-columns:repeat(4,1fr)}}
+.perfil{display:grid;grid-template-rows:subgrid;grid-row:span 4;row-gap:0;border-radius:18px;overflow:hidden;
+  border:1px solid var(--stone);background:var(--paper)}
+.perfil .top{padding:22px;color:var(--linen);display:flex;flex-direction:column}
 .perfil .top .ms{font-size:30px}
-.perfil .top h3{color:var(--linen);font-size:28px;margin-top:10px}
+.perfil .top h3{color:var(--linen);font-size:27px;margin-top:10px}
 .perfil .top p{color:rgba(245,240,230,.85);font-size:14px;margin-top:6px}
-.perfil .cuerpo{padding:18px 22px 22px}
-.perfil .cuerpo .lbl{color:var(--tg);font-size:10px}
-.perfil .cuerpo p{font-size:14.5px;color:var(--muted);margin:4px 0 12px}
-.perfil:nth-child(1) .top{background:var(--tg)}.perfil:nth-child(2) .top{background:var(--dl)}.perfil:nth-child(3) .top{background:var(--be)}
+.perfil:nth-child(1) .top{background:var(--tg)}.perfil:nth-child(2) .top{background:var(--dl)}
+.perfil:nth-child(3) .top{background:var(--be)}.perfil:nth-child(4) .top{background:var(--ash)}
+.dato{margin:0 14px;padding:14px 14px 16px;border-radius:14px}
+.top + .dato{margin-top:14px}
+.dato + .dato{margin-top:10px}
+.dato:last-child{margin-bottom:14px}
+.dato .et{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 11px 5px 8px;
+  font-family:var(--ff-l);font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--linen)}
+.dato .et .ms{font-size:15px}
+.dato p{font-size:14.5px;line-height:1.5;color:var(--ink);margin-top:9px}
+.dato--preo{background:rgba(16,76,79,.07)}.dato--preo .et{background:var(--dl)}
+.dato--ense{background:rgba(72,91,55,.1)}.dato--ense .et{background:var(--tg)}
+.dato--cuid{background:rgba(66,33,11,.07)}.dato--cuid .et{background:var(--be)}
 
 /* Paso 3: recorrido */
 .ruta{list-style:none;margin:0;padding:0;position:relative}
@@ -426,7 +440,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     </div>
     <ol class="indice" id="indice">
       <li><a href="#producto" data-paso="producto"><span class="n">1</span><span class="t"><b>Lo que vendemos</b><span>Parcela + villa llave en mano</span></span><span class="ms ok">check_circle</span></a></li>
-      <li><a href="#comprador" data-paso="comprador"><span class="n">2</span><span class="t"><b>A quién se lo vendemos</b><span>Tres perfiles de comprador</span></span><span class="ms ok">check_circle</span></a></li>
+      <li><a href="#comprador" data-paso="comprador"><span class="n">2</span><span class="t"><b>A quién se lo vendemos</b><span>Cuatro perfiles de comprador</span></span><span class="ms ok">check_circle</span></a></li>
       <li><a href="#venta" data-paso="venta"><span class="n">3</span><span class="t"><b>Cómo es una venta</b><span>Del lead a la entrega de llaves</span></span><span class="ms ok">check_circle</span></a></li>
       <li><a href="#herramientas" data-paso="herramientas"><span class="n">4</span><span class="t"><b>Tus herramientas</b><span>La intranet, pantalla a pantalla</span></span><span class="ms ok">check_circle</span></a></li>
       <li><a href="#decir" data-paso="decir"><span class="n">5</span><span class="t"><b>Lo que se dice y lo que no</b><span>Las líneas rojas legales</span></span><span class="ms ok">check_circle</span></a></li>
@@ -521,38 +535,37 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     <div>
       <span class="lbl">Paso 2 · El comprador</span>
       <h2>A quién se lo vendemos</h2>
-      <p class="lead">Casi todos los compradores entran por uno de estos tres motivos. Averigua cuál es en la primera llamada: de eso depende qué villa le enseñas, qué material le mandas y qué le preocupa.</p>
+      <p class="lead">Casi todos los compradores entran por uno de estos cuatro motivos. Averigua cuál es en la primera llamada: de eso depende qué villa le enseñas, qué material le mandas y qué le preocupa.</p>
     </div>
     <button class="hecho-btn" data-hecho="comprador" aria-pressed="false"><span class="ms">check_circle</span>Paso leído</button>
   </div>
-  <div class="grid g3 reveal">
+  <div class="perfiles reveal">
     <div class="perfil">
       <div class="top"><span class="ms">trending_up</span><h3>El que la quiere para alquilar</h3><p>Compra para que la villa se alquile cuando él no está.</p></div>
-      <div class="cuerpo">
-        <span class="lbl">Qué le preocupa</span><p>Números, ocupación, quién gestiona el alquiler, qué pasa al final del plazo.</p>
-        <span class="lbl">Qué le enseñas</span><p>El investor deck del proyecto y su ejemplo económico, explicado como lo que es: el ejemplo de una parcela concreta, no una promesa.</p>
-        <span class="lbl">Cuidado con</span><p>Prometer rentabilidad. Ver paso 5.</p>
-      </div>
+      <div class="dato dato--preo"><span class="et"><span class="ms">help</span>Qué le preocupa</span><p>Números, ocupación, quién gestiona el alquiler, qué pasa al final del plazo.</p></div>
+      <div class="dato dato--ense"><span class="et"><span class="ms">visibility</span>Qué le enseñas</span><p>El investor deck del proyecto y su ejemplo económico, explicado como lo que es: el ejemplo de una parcela concreta, no una promesa.</p></div>
+      <div class="dato dato--cuid"><span class="et"><span class="ms">warning</span>Cuidado con</span><p>Prometer rentabilidad. Ver paso 5.</p></div>
     </div>
     <div class="perfil">
-      <div class="top"><span class="ms">beach_access</span><h3>El de segunda residencia</h3><p>Quiere pasar temporadas en Bali o Sumba y alquilarla el resto del año.</p></div>
-      <div class="cuerpo">
-        <span class="lbl">Qué le preocupa</span><p>El sitio, la villa, los acabados y que la obra se haga bien sin estar allí.</p>
-        <span class="lbl">Qué le enseñas</span><p>La landing del modelo, las fotos reales del terreno y el plan de obra por hitos.</p>
-        <span class="lbl">Cuidado con</span><p>Enseñarle el catálogo entero. Elige una villa para él.</p>
-      </div>
+      <div class="top"><span class="ms">family_restroom</span><h3>El que quiere construir legado</h3><p>Quiere algo propio en Bali o Sumba que dure y que pueda dejar a su familia.</p></div>
+      <div class="dato dato--preo"><span class="et"><span class="ms">help</span>Qué le preocupa</span><p>Cuánto dura su derecho, qué pasa al final del plazo, qué ocurre si él falta y la calidad de la obra.</p></div>
+      <div class="dato dato--ense"><span class="et"><span class="ms">visibility</span>Qué le enseñas</span><p>El contrato de su proyecto, con el plazo y la renovación, y la landing de la villa con sus acabados.</p></div>
+      <div class="dato dato--cuid"><span class="et"><span class="ms">warning</span>Cuidado con</span><p>Decir «para siempre» o «lo heredan tus hijos». Plazos, renovación y herencia los explica el notario con el contrato delante.</p></div>
     </div>
     <div class="perfil">
       <div class="top"><span class="ms">home_pin</span><h3>El expat que ya vive aquí</h3><p>Vive en Bali y quiere dejar de pagar alquiler o tener algo suyo.</p></div>
-      <div class="cuerpo">
-        <span class="lbl">Qué le preocupa</span><p>Conoce el mercado y los precios de la zona. Compara y pregunta por la estructura legal.</p>
-        <span class="lbl">Qué le enseñas</span><p>La visita al terreno: puede venir, así que invítale en la primera llamada.</p>
-        <span class="lbl">Cuidado con</span><p>Improvisar sobre tenencia o impuestos: lo sabe y lo nota.</p>
-      </div>
+      <div class="dato dato--preo"><span class="et"><span class="ms">help</span>Qué le preocupa</span><p>Conoce el mercado y los precios de la zona. Compara y pregunta por la estructura legal.</p></div>
+      <div class="dato dato--ense"><span class="et"><span class="ms">visibility</span>Qué le enseñas</span><p>La visita al terreno: puede venir, así que invítale en la primera llamada.</p></div>
+      <div class="dato dato--cuid"><span class="et"><span class="ms">warning</span>Cuidado con</span><p>Improvisar sobre tenencia o impuestos: lo sabe y lo nota.</p></div>
+    </div>
+    <div class="perfil">
+      <div class="top"><span class="ms">business_center</span><h3>El empresario que busca optimización fiscal</h3><p>Tiene empresa o patrimonio y mira Indonesia también por cómo tributará la inversión.</p></div>
+      <div class="dato dato--preo"><span class="et"><span class="ms">help</span>Qué le preocupa</span><p>La estructura: a nombre de quién va cada cosa, si puede comprar con su sociedad y cómo tributan las rentas y la venta.</p></div>
+      <div class="dato dato--ense"><span class="et"><span class="ms">visibility</span>Qué le enseñas</span><p>Cómo está montado su proyecto según el contrato, y ofrécele una llamada con el notario. La parte fiscal la ve con su asesor.</p></div>
+      <div class="dato dato--cuid"><span class="et"><span class="ms">warning</span>Cuidado con</span><p>Dar consejo fiscal o prometer un ahorro de impuestos. Ni en su país ni en Indonesia: es lo que más compromete a Lawang.</p></div>
     </div>
   </div>
   <div class="nota reveal"><span class="ms">campaign</span><span><b>Habla como habló el anuncio.</b> Los anuncios de Lawang venden tres ideas: la comparación de precio con la costa cara de Bali (misma isla, mismo océano, otra factura), que somos promotor (diseñamos y construimos nosotros) y que no es para todo el mundo. Si tu primera llamada cuenta otra cosa, el cliente nota el salto.</span></div>
-  <div class="nota reveal"><span class="ms">translate</span><span><b>Muchos leads llegan en inglés.</b> Hay campañas para Australia, para extranjeros que viven en Bali y para Sumba Hills. Contesta en el idioma en el que te escribe el cliente; los guiones del paso 7 están en español y en inglés.</span></div>
 </div>
 </section>
 
