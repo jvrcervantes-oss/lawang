@@ -458,7 +458,6 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
 .clave strong{color:var(--rl)}
 .clave p{color:rgba(245,240,230,.72)}
 .clave .material-symbols-outlined{color:var(--sc)}
-#backdrop h3{font-family:var(--sa)!important;font-weight:500!important;letter-spacing:.06em;text-transform:uppercase}
 /* Escritorio: la hero vuelve a anclar texto/cifras/puntos al fondo de la seccion
    (en movil se anclan al pie de la FOTO, porque debajo va el panel en flujo). */
 @media(min-width:1024px){
@@ -729,53 +728,6 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
   <span data-pie-nota>This page does not replace legal or financial advice. Nothing here is an offer to sell securities or a solicitation of investment.</span>
 </footer>
 <script src="../../../assets/lawang-pie.js?v=20260923153722"></script>
-
-<!-- MODAL DE RESERVA (sin cambios funcionales respecto a la version anterior; solo
-     clases/colores Tesla-style — ids, name, type, autocomplete intactos porque el
-     <script> de abajo (investor-deck-codigo/-reservar) los referencia por id). -->
-<div class="fixed inset-0 bg-[rgba(20,20,18,.6)] backdrop-blur-sm z-[60] items-center justify-center p-5 hidden" id="backdrop">
-  <div class="bg-surface-container-lowest max-w-[480px] w-full rounded-2xl p-7 max-h-[90vh] overflow-auto shadow-2xl border border-control-border/20">
-    <div id="step-request">
-      <h3 class="font-headline-sm text-2xl text-deep-lagoon font-bold mb-1">Reserve plot <span id="plot-code-label"></span></h3>
-      <div class="text-sm text-on-surface-variant mb-4">We'll email you a one-time verification code before anything is issued.</div>
-      <div id="msg-area"></div>
-      <div class="flex flex-col gap-3">
-        <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-nombre">Full name</label><input id="f-nombre" class="w-full px-3 py-2 border border-control-border/40 rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-territorial-green/40 focus:border-territorial-green transition-all" autocomplete="name"></div>
-        <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-pasaporte">Passport number</label><input id="f-pasaporte" class="w-full px-3 py-2 border border-control-border/40 rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-territorial-green/40 focus:border-territorial-green transition-all"></div>
-        <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-email">Email</label><input id="f-email" type="email" class="w-full px-3 py-2 border border-control-border/40 rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-territorial-green/40 focus:border-territorial-green transition-all" autocomplete="email"></div>
-        <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-telefono">Phone</label><input id="f-telefono" class="w-full px-3 py-2 border border-control-border/40 rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-territorial-green/40 focus:border-territorial-green transition-all" autocomplete="tel"></div>
-        <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-nacionalidad">Nationality</label><input id="f-nacionalidad" class="w-full px-3 py-2 border border-control-border/40 rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-territorial-green/40 focus:border-territorial-green transition-all"></div>
-        <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-domicilio">Address</label><input id="f-domicilio" class="w-full px-3 py-2 border border-control-border/40 rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-territorial-green/40 focus:border-territorial-green transition-all"></div>
-      </div>
-      <label class="flex gap-2 text-xs items-start my-4"><input type="checkbox" id="f-consent" class="mt-0.5 accent-territorial-green"> I have read and agree to the reservation terms and Lawang's privacy policy, and consent to my data being processed to manage this reservation.</label>
-      <!-- El texto de arriba citaba "Lawang's privacy policy" sin enlazarla a ninguna
-           parte. Un consentimiento que remite a un documento que el usuario no puede
-           abrir no es informado (RGPD art. 7/13, UU PDP). Va aparte y no dentro de la
-           frase porque el i18n casa por texto ingles completo: un <a> dentro la
-           partiria en trozos que ya no traducirian. -->
-      <p class="text-xs -mt-2 mb-4"><a class="text-deep-lagoon underline" href="/legal" target="_blank" rel="noopener">Read Lawang&rsquo;s Privacy &amp; Terms</a></p>
-      <div class="flex gap-3 justify-end mt-2">
-        <button class="border border-control-border/40 px-4 py-2 rounded-lg font-label-md text-body-sm hover:bg-surface-container-low transition-colors" id="btn-cancel" type="button">Cancel</button>
-        <button class="bg-deep-lagoon hover:bg-territorial-green text-white px-4 py-2 rounded-lg font-semibold font-label-md text-body-sm transition-colors" id="btn-send-code" type="button">Send verification code</button>
-      </div>
-    </div>
-    <div id="step-verify" class="hidden">
-      <h3 class="font-headline-sm text-2xl text-deep-lagoon font-bold mb-1">Enter your code</h3>
-      <div class="text-sm text-on-surface-variant mb-4">We sent a 6-digit code to your email. It expires in 10 minutes.</div>
-      <div id="msg-area-2"></div>
-      <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-codigo">Verification code</label><input id="f-codigo" inputmode="numeric" maxlength="6" class="w-full px-3 py-2 border border-control-border/40 rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-territorial-green/40 focus:border-territorial-green transition-all tracking-[0.3em] text-center font-semibold"></div>
-      <div class="flex gap-3 justify-end mt-4">
-        <button class="border border-control-border/40 px-4 py-2 rounded-lg font-label-md text-body-sm hover:bg-surface-container-low transition-colors" id="btn-back" type="button">Back</button>
-        <button class="bg-deep-lagoon hover:bg-territorial-green text-white px-4 py-2 rounded-lg font-semibold font-label-md text-body-sm transition-colors" id="btn-confirm" type="button">Confirm reservation</button>
-      </div>
-    </div>
-    <div id="step-done" class="hidden">
-      <h3 class="font-headline-sm text-2xl text-deep-lagoon font-bold mb-1" id="done-title"></h3>
-      <div id="done-body" class="text-sm text-on-surface-variant"></div>
-      <div class="flex justify-end mt-4"><button class="bg-deep-lagoon hover:bg-territorial-green text-white px-4 py-2 rounded-lg font-semibold font-label-md text-body-sm transition-colors" id="btn-close" type="button">Close</button></div>
-    </div>
-  </div>
-</div>
 
 <script>
 (function(){
@@ -1640,83 +1592,6 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
       plotsWrap.innerHTML = '<div class="p-6 text-sm text-on-surface-variant">We could not load live plot data right now. Please contact <a class="text-deep-lagoon underline" href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a>.</div>';
       plotsCount.textContent = '';
     });
-
-  // ── flujo de reserva (sin cambios funcionales) ─────────────────────────
-  var EDGE_BASE = SB_URL + '/functions/v1/';
-  var backdrop = document.getElementById('backdrop');
-  var stepRequest = document.getElementById('step-request');
-  var stepVerify = document.getElementById('step-verify');
-  var stepDone = document.getElementById('step-done');
-  var currentPlot = null;
-
-  function openModal(codigo){
-    currentPlot = codigo;
-    document.getElementById('plot-code-label').textContent = codigo;
-    stepRequest.classList.remove('hidden'); stepVerify.classList.add('hidden'); stepDone.classList.add('hidden');
-    document.getElementById('msg-area').innerHTML = '';
-    backdrop.classList.remove('hidden'); backdrop.classList.add('flex');
-  }
-  function closeModal(){ backdrop.classList.add('hidden'); backdrop.classList.remove('flex'); currentPlot = null; }
-  document.getElementById('btn-cancel').addEventListener('click', closeModal);
-  document.getElementById('btn-close').addEventListener('click', closeModal);
-  document.getElementById('btn-back').addEventListener('click', function(){ stepVerify.classList.add('hidden'); stepRequest.classList.remove('hidden'); });
-
-  function msg(elId, text, cls){
-    document.getElementById(elId).innerHTML = '<div class="text-sm px-3 py-2.5 rounded-lg mb-3 '+(cls==='err' ? 'bg-[#fbe9e7] text-[#a13b2a]' : 'bg-territorial-green/10 text-territorial-green')+'">'+esc(text)+'</div>';
-  }
-
-  document.getElementById('btn-send-code').addEventListener('click', function(){
-    var email = document.getElementById('f-email').value.trim();
-    var nombre = document.getElementById('f-nombre').value.trim();
-    var pasaporte = document.getElementById('f-pasaporte').value.trim();
-    var consent = document.getElementById('f-consent').checked;
-    if(!nombre || !pasaporte || !email){ msg('msg-area','Please fill in your name, passport number and email.','err'); return; }
-    if(!consent){ msg('msg-area','Please accept the reservation terms and privacy policy to continue.','err'); return; }
-    var btn = document.getElementById('btn-send-code');
-    btn.disabled = true; btn.textContent = 'Sending…';
-    fetch(EDGE_BASE + 'investor-deck-codigo', {
-      method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
-      body: JSON.stringify({ email: email })
-    }).then(function(r){ return r.json().catch(function(){ return {}; }); })
-      .then(function(){ stepRequest.classList.add('hidden'); stepVerify.classList.remove('hidden'); document.getElementById('msg-area-2').innerHTML = ''; })
-      .catch(function(){ msg('msg-area', 'We could not reach the server. Please try again in a moment or email sales@lawangproperties.com directly.', 'err'); })
-      .finally(function(){ btn.disabled = false; btn.textContent = 'Send verification code'; });
-  });
-
-  document.getElementById('btn-confirm').addEventListener('click', function(){
-    var codigo = document.getElementById('f-codigo').value.trim();
-    if(!codigo){ msg('msg-area-2','Enter the code we emailed you.','err'); return; }
-    var btn = document.getElementById('btn-confirm');
-    btn.disabled = true; btn.textContent = 'Confirming…';
-    fetch(EDGE_BASE + 'investor-deck-reservar', {
-      method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
-      body: JSON.stringify({
-        email: document.getElementById('f-email').value.trim(), codigo: codigo,
-        consentimiento: document.getElementById('f-consent').checked, proyecto: PROYECTO, parcela_codigo: currentPlot,
-        nombre: document.getElementById('f-nombre').value.trim(), pasaporte: document.getElementById('f-pasaporte').value.trim(),
-        telefono: document.getElementById('f-telefono').value.trim(), nacionalidad: document.getElementById('f-nacionalidad').value.trim(),
-        domicilio: document.getElementById('f-domicilio').value.trim()
-      })
-    }).then(function(r){ return r.json().catch(function(){ return {ok:false}; }); })
-      .then(function(res){
-        if(res && res.ok){
-          stepVerify.classList.add('hidden'); stepDone.classList.remove('hidden');
-          document.getElementById('done-title').textContent = 'Reservation confirmed';
-          document.getElementById('done-body').innerHTML = 'Your reservation number is <b>'+esc(res.numero)+'</b>. You will receive the Letter of Reservation and payment instructions by email shortly.';
-        } else {
-          var motivos = {
-            codigo_invalido: 'That code is invalid or has expired. Please go back and request a new one.',
-            no_disponible: 'This plot is no longer available. Please choose another one.',
-            reserva_no_configurada: 'Online reservation is not yet enabled for this plot — please contact sales@lawangproperties.com.',
-            falta_consentimiento: 'Please accept the reservation terms to continue.',
-            datos_incompletos: 'Some required information is missing.',
-            espera_un_momento: 'Please wait a moment before trying again.'
-          };
-          msg('msg-area-2', motivos[(res&&res.motivo)] || 'We could not complete the reservation. Please try again or contact sales@lawangproperties.com.', 'err');
-        }
-      }).catch(function(){ msg('msg-area-2', 'We could not reach the server. Please try again in a moment.', 'err'); })
-      .finally(function(){ btn.disabled = false; btn.textContent = 'Confirm reservation'; });
-  });
 
   // ── menu por debajo de 1280px (22-sep) ─────────────────────────────────────
   // Clona los enlaces de #nav-principal ANTES de traducir, para que el walker de
