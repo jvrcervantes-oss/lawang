@@ -331,6 +331,30 @@ ul.lista li .ms{font-size:18px;color:var(--tg);margin-top:2px}
 .ruta--apoyo .apoyo .quien{color:var(--tg)}
 .ruta--apoyo .apoyo p{color:var(--ink)}
 
+/* Frase de la casa */
+.frase{margin:30px 0 0;border-radius:22px;background:var(--be);color:var(--linen);padding:40px 28px;text-align:center;position:relative;overflow:hidden}
+@media (min-width:900px){.frase{padding:56px 64px}}
+.frase::before{content:'\201C';position:absolute;left:24px;top:-18px;font-family:var(--ff-h);font-size:180px;line-height:1;color:rgba(245,240,230,.12)}
+.frase blockquote{margin:0;font-family:var(--ff-h);font-weight:600;font-size:clamp(30px,4.2vw,56px);line-height:1.12;color:var(--linen);position:relative}
+.frase figcaption{margin:18px auto 0;max-width:620px;font-size:15px;color:rgba(245,240,230,.8)}
+
+/* Pagos */
+.pagos{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+@media (min-width:1000px){.pagos{grid-template-columns:.8fr 1.2fr 1.5fr .8fr}}
+.pago{position:relative;background:var(--linen);border:1px solid var(--stone);border-radius:18px;padding:24px 22px 22px}
+.pago .ms{font-size:28px;color:var(--tg)}
+.pago__n{position:absolute;right:18px;top:12px;font-family:var(--ff-h);font-size:44px;font-weight:600;color:rgba(190,179,165,.7);line-height:1}
+.pago h3{font-size:25px;margin-top:10px}
+.pago p{font-size:14.5px;color:var(--muted);margin-top:8px}
+.pago b{color:var(--ink);font-weight:600}
+.pago--suelo{background:var(--tg);border-color:var(--tg)}
+.pago--obra{background:var(--dl);border-color:var(--dl)}
+.pago--suelo *,.pago--obra *{color:var(--linen)!important}
+.pago--suelo p,.pago--obra p{color:rgba(245,240,230,.88)!important}
+.pago--suelo .pago__n,.pago--obra .pago__n{color:rgba(245,240,230,.25)!important}
+.fases{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.fases span{font-size:12px;font-weight:600;border-radius:999px;padding:5px 10px;background:rgba(245,240,230,.14);border:1px solid rgba(245,240,230,.25)}
+
 /* Regla de oro */
 .oro{display:grid;gap:22px;border-radius:22px;background:var(--tg);color:var(--linen);padding:30px;margin-top:10px}
 @media (min-width:900px){.oro{grid-template-columns:auto 1fr;align-items:center;padding:40px 44px}}
@@ -465,6 +489,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     <a class="pill" href="#producto">Producto</a>
     <a class="pill" href="#comprador">Comprador</a>
     <a class="pill" href="#venta">La venta</a>
+    <a class="pill" href="#pagos">Pagos</a>
     <a class="pill" href="#herramientas">Herramientas</a>
     <a class="pill" href="#decir">Qué decir</a>
     <a class="pill" href="#objeciones">Objeciones</a>
@@ -642,6 +667,10 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     <div class="duda"><span class="ms">auto_awesome</span><h3>Es una compra que le ilusiona</h3><p>No compra metros cuadrados: compra una vida en Bali o Sumba, un refugio o algo que dejar a los suyos. <b>Juega con eso</b>: habla del sitio, de cómo será su día allí, de la villa terminada.</p></div>
     <div class="duda"><span class="ms">help</span><h3>Y tiene muchas dudas</h3><p>Otro país, otra ley, otro idioma y otra moneda. Cada duda sin resolver es una razón para no firmar. <b>Resuélvelas una a una</b>, y las que no sepas, con nosotros.</p></div>
   </div>
+  <figure class="frase reveal">
+    <blockquote>Si tienes 100.000&nbsp;€ para invertir, tienes 1.000&nbsp;€ para venir a verlo.</blockquote>
+    <figcaption>Úsala cuando el cliente dude sin haber pisado el terreno. Invítale a venir: la visita es lo que más ventas cierra.</figcaption>
+  </figure>
   <div class="formula-venta reveal"><span>Ilusión</span><i>+</i><span>Seguridad</span><i>=</i><span class="fin">Venta</span></div>
 
   <div class="subhead reveal">
@@ -700,6 +729,54 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
       <h3>Apúntalo todo en el CRM: así podemos ayudarte</h3>
       <p>Cada llamada, mensaje, visita y próximo paso, en la ficha del cliente y en el momento. Si nos pides ayuda, sabremos dónde está la venta sin que tengas que contárnoslo todo otra vez. Y lo que se le ha dicho al cliente queda por escrito.</p>
     </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ PAGOS ═════════════════════════════════════════════════════════════════════ -->
+<section class="sec sec--paper" id="pagos">
+<div class="wrap">
+  <div class="shead reveal">
+    <div class="num"><span class="ms" style="font-size:inherit">account_balance_wallet</span></div>
+    <div>
+      <span class="lbl">Cómo paga el cliente</span>
+      <h2>Los pagos, en orden</h2>
+      <p class="lead">El cliente nunca paga algo que no tenga ya firmado o construido. Primero asegura la tierra ante notario y después paga la obra fase a fase, cuando cada fase está certificada. Explícaselo así: es de lo que más tranquiliza.</p>
+    </div>
+  </div>
+
+  <ol class="pagos reveal">
+    <li class="pago">
+      <span class="pago__n">1</span>
+      <span class="ms">bookmark_added</span>
+      <h3>Reserva</h3>
+      <p>Aparta la parcela con la Carta de Reserva o el Bloqueo de Parcela, firmados en digital.</p>
+    </li>
+    <li class="pago pago--suelo">
+      <span class="pago__n">2</span>
+      <span class="ms">gavel</span>
+      <h3>La tierra, lo primero</h3>
+      <p>Se paga el suelo y se firma el <b>contrato de Hak Sewa ante notario</b>, que pasa al cliente el derecho de uso de su parcela. Antes de que empiece la obra, su derecho ya está firmado.</p>
+    </li>
+    <li class="pago pago--obra">
+      <span class="pago__n">3</span>
+      <span class="ms">construction</span>
+      <h3>La obra, por certificación</h3>
+      <p>La villa se paga por fases. Cada pago llega <b>cuando la fase está terminada y certificada</b>, nunca por adelantado.</p>
+      <div class="fases" aria-label="Fases de obra"><span>Terreno</span><span>Estructura</span><span>Instalaciones</span><span>Acabados</span><span>Entrega</span></div>
+    </li>
+    <li class="pago">
+      <span class="pago__n">4</span>
+      <span class="ms">key</span>
+      <h3>Llaves</h3>
+      <p>Con la última fase certificada, se entrega la villa terminada.</p>
+    </li>
+  </ol>
+
+  <div class="grid g3 reveal" style="margin-top:22px">
+    <div class="card"><span class="lbl" style="color:var(--tg)">Cómo decirlo</span><p style="color:var(--ink);font-size:16px;margin-top:10px">«Primero aseguras tu tierra ante notario. Luego pagas tu casa a medida que la ves levantarse.»</p></div>
+    <div class="card"><span class="lbl" style="color:var(--tg)">Por qué funciona</span><p>Responde al miedo del que está lejos: no adelanta dinero por algo que no existe todavía.</p></div>
+    <div class="card"><span class="lbl" style="color:var(--be)">Cuidado con</span><p>Los importes, las fechas y a quién se paga cada cosa. Eso lo dice el contrato de cada operación: no lo recites de memoria.</p></div>
   </div>
 </div>
 </section>
@@ -800,7 +877,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
       <p>El ejemplo está en el investor deck del proyecto. Explica siempre que es un ejemplo.</p></div></details>
     <details><summary>«¿Por qué voy a pagar antes de ver la casa?»<span class="ms">expand_more</span></summary><div class="resp">
       <span class="lbl">Respuesta modelo</span>
-      <blockquote>Porque la villa se construye para ti, sobre plano. Pagas una reserva que aparta tu parcela y después la obra por hitos, cada uno contra un avance que puedes comprobar. Las condiciones de la reserva, incluido si se devuelve o no, están en la carta que firmas. Y puedes venir a ver el terreno.</blockquote>
+      <blockquote>Porque la villa se construye para ti, sobre plano. Pagas una reserva que aparta tu parcela, después aseguras la tierra con tu contrato de Hak Sewa ante notario y la obra la pagas por fases, cada una cuando está terminada y certificada. Las condiciones de la reserva, incluido si se devuelve o no, están en la carta que firmas. Y puedes venir a ver el terreno.</blockquote>
       <p>No afirmes que la reserva se devuelve: lo regula la carta. E invítale a la visita, que es la mejor respuesta.</p></div></details>
     <details><summary>«Es más barato que en Canggu o Uluwatu. ¿Dónde está la trampa?»<span class="ms">expand_more</span></summary><div class="resp">
       <span class="lbl">Respuesta modelo</span>
