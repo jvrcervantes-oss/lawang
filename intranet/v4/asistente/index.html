@@ -34,42 +34,83 @@
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-<section class="bg-surface-container-lowest rounded-xl p-8 shadow-sm flex flex-col gap-5">
-<div class="flex flex-col gap-1 pb-4 border-b border-outline-variant/40">
-<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">Paso 1 · Escribe</span>
-<h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight">¿Qué necesitas?</h2>
-</div>
-<textarea class="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:border-deep-lagoon" id="sc-texto" maxlength="2000" rows="5" placeholder="Por ejemplo: «Ponle el teléfono +34 600 000 000 a Juan García», «Anula la factura INV00160, el importe está mal», «Borra la operación RP00026, el cliente se echó atrás»."></textarea>
-<p class="font-body-sm text-body-sm text-outline">Di siempre de qué se trata (el nombre del comprador, el número de factura o de contrato) y por qué. Lo que escribes lo lee dirección tal cual.</p>
-<div class="flex justify-end">
-<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary disabled:opacity-60 disabled:cursor-wait font-label-md text-label-md transition-colors shadow-sm" id="sc-interpretar" type="button"><span class="material-symbols-outlined text-[18px]">smart_toy</span><span id="sc-interpretar-texto">Revisar mi petición</span></button>
-</div>
+<section class="bg-surface-container-lowest rounded-xl p-8 shadow-sm flex flex-col gap-6" id="sc-tarjeta" style="scroll-margin-top:88px">
 <style>
-/* «Pensando» (25-sep-2026, owner): mientras la edge interpreta, que se vea que trabaja. */
+/* Una sola tarjeta que AVANZA (owner, 25-sep-2026: «que el paso 1 avance, quedaría más claro»):
+   Escribe → Comprueba → Enviado. Cada paso entra con un deslizamiento corto; «pensando»
+   mientras la edge interpreta. Todo respeta prefers-reduced-motion. */
 @keyframes sc-gira{to{transform:rotate(360deg)}}
 @keyframes sc-punto{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-4px)}}
 @keyframes sc-barrido{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes sc-entra{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+@keyframes sc-vuelve{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:none}}
 .sc-gira{animation:sc-gira 1s linear infinite}
 .sc-puntos span{display:inline-block;width:7px;height:7px;margin:0 2px;border-radius:999px;background:#104C4F;animation:sc-punto 1.2s ease-in-out infinite}
 .sc-puntos span:nth-child(2){animation-delay:.15s}.sc-puntos span:nth-child(3){animation-delay:.3s}
 .sc-barra{height:12px;border-radius:6px;background:linear-gradient(90deg,#e4e2dd 25%,#f5f4ee 50%,#e4e2dd 75%);background-size:200% 100%;animation:sc-barrido 1.4s ease-in-out infinite}
-@media (prefers-reduced-motion:reduce){.sc-gira,.sc-puntos span,.sc-barra{animation:none}}
+.sc-entra{animation:sc-entra .28s ease-out both}.sc-vuelve{animation:sc-vuelve .28s ease-out both}
+.sc-paso-n{width:24px;height:24px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:#e4e2dd;color:#75786e;transition:background .2s,color .2s}
+.sc-paso[data-estado="activo"] .sc-paso-n{background:#104C4F;color:#fff}
+.sc-paso[data-estado="hecho"] .sc-paso-n{background:#485B37;color:#fff}
+.sc-paso[data-estado="pendiente"] .sc-paso-t{color:#75786e}
+@media (prefers-reduced-motion:reduce){.sc-gira,.sc-puntos span,.sc-barra,.sc-entra,.sc-vuelve{animation:none}}
 </style>
-<div class="flex flex-col gap-3 hidden rounded-xl border-2 border-deep-lagoon/20 bg-surface-container-low p-5" hidden id="sc-pensando" role="status" aria-live="polite" style="scroll-margin-top:88px">
-<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">Paso 2 · Comprueba</span>
-<div class="flex items-center gap-3"><span class="sc-puntos" aria-hidden="true"><span></span><span></span><span></span></span><span class="font-body-md text-body-md text-on-surface" id="sc-pensando-texto">Leyendo tu petición…</span></div>
+
+<!-- indicador de pasos -->
+<ol class="flex items-center gap-2 font-label-md text-label-md" aria-label="Pasos">
+<li class="sc-paso flex items-center gap-2" data-paso="1" data-estado="activo"><span class="sc-paso-n">1</span><span class="sc-paso-t">Escribe</span></li>
+<li class="flex-1 h-px bg-outline-variant" aria-hidden="true"></li>
+<li class="sc-paso flex items-center gap-2" data-paso="2" data-estado="pendiente"><span class="sc-paso-n">2</span><span class="sc-paso-t">Comprueba</span></li>
+<li class="flex-1 h-px bg-outline-variant" aria-hidden="true"></li>
+<li class="sc-paso flex items-center gap-2" data-paso="3" data-estado="pendiente"><span class="sc-paso-n">3</span><span class="sc-paso-t">Enviado</span></li>
+</ol>
+
+<!-- PASO 1 · Escribe -->
+<div class="flex flex-col gap-5" id="sc-paso1">
+<h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight">¿Qué necesitas?</h2>
+<textarea class="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:border-deep-lagoon" id="sc-texto" maxlength="2000" rows="5" placeholder="Por ejemplo: «Ponle el teléfono +34 600 000 000 a Juan García», «Anula la factura INV00160, el importe está mal», «Borra la operación RP00026, el cliente se echó atrás»."></textarea>
+<p class="font-body-sm text-body-sm text-outline">Di siempre de qué se trata (el nombre del comprador, el número de factura o de contrato) y por qué. Lo que escribes lo lee dirección tal cual.</p>
+<div class="flex justify-end">
+<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary disabled:opacity-60 disabled:cursor-wait font-label-md text-label-md transition-colors shadow-sm" id="sc-interpretar" type="button"><span class="material-symbols-outlined text-[18px]">arrow_forward</span><span>Siguiente</span></button>
+</div>
+</div>
+
+<!-- PASO 2 · Comprueba -->
+<div class="flex flex-col gap-5 hidden" hidden id="sc-paso2">
+<div class="flex flex-col gap-2 rounded-lg bg-surface-container-low px-4 py-3">
+<div class="flex items-center justify-between gap-3">
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">Tu petición</span>
+<button class="flex items-center gap-1 font-body-sm text-body-sm text-deep-lagoon hover:underline" id="sc-cambiar" type="button"><span class="material-symbols-outlined text-[16px]">edit</span><span>Cambiar el texto</span></button>
+</div>
+<p class="font-body-md text-body-md text-on-surface whitespace-pre-line" id="sc-cita"></p>
+</div>
+
+<div class="flex flex-col gap-3" id="sc-pensando" role="status" aria-live="polite">
+<div class="flex items-center gap-3"><span class="sc-puntos" aria-hidden="true"><span></span><span></span><span></span></span>
+<span class="font-body-md text-body-md text-on-surface" id="sc-pensando-texto">Leyendo tu petición…</span></div>
 <div class="sc-barra" style="width:92%"></div><div class="sc-barra" style="width:64%"></div>
 </div>
-<div class="flex flex-col gap-3 hidden rounded-xl border-2 border-deep-lagoon/40 bg-surface-container-low p-5" hidden id="sc-propuesta" style="scroll-margin-top:88px">
-<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">Paso 2 · Comprueba</span>
-<p class="font-label-md text-label-md text-on-surface" id="sc-propuesta-titulo">Esto es lo que se va a pedir:</p>
+
+<div class="flex flex-col gap-4 hidden" hidden id="sc-propuesta">
+<h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight" id="sc-propuesta-titulo">Esto es lo que se va a pedir</h2>
 <div class="flex flex-col gap-2" id="sc-opciones"></div>
-<p class="font-body-sm text-body-sm text-on-surface-variant" id="sc-propuesta-ayuda">Si es correcto, pulsa «Sí, enviar para aprobar». Si no, corrige el texto de arriba y vuelve a pulsar «Revisar mi petición», o envía tu texto tal cual para que dirección lo lea.</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant" id="sc-propuesta-ayuda"></p>
 <p class="font-body-sm text-body-sm text-burnt-earth hidden" hidden id="sc-aviso"></p>
-<div class="flex flex-wrap gap-3 justify-end">
-<button class="flex items-center gap-2 px-4 py-2.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-label-md transition-colors shadow-sm" id="sc-manual" type="button"><span class="material-symbols-outlined text-[18px]">forum</span><span>No es esto: enviar mi texto tal cual</span></button>
-<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary disabled:opacity-60 font-label-md text-label-md transition-colors shadow-sm" id="sc-enviar" type="button"><span class="material-symbols-outlined text-[18px]">send</span><span>Sí, enviar para aprobar</span></button>
+<div class="flex flex-wrap gap-3 justify-between items-center">
+<button class="flex items-center gap-2 px-4 py-2.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-label-md transition-colors" id="sc-manual" type="button"><span class="material-symbols-outlined text-[18px]">forum</span><span>No es esto: enviar mi texto tal cual</span></button>
+<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary disabled:opacity-60 font-label-md text-label-md transition-colors shadow-sm" id="sc-enviar" type="button"><span class="material-symbols-outlined text-[18px]">send</span><span id="sc-enviar-texto">Sí, enviar para aprobar</span></button>
 </div>
+</div>
+</div>
+
+<!-- PASO 3 · Enviado -->
+<div class="flex flex-col gap-5 items-start hidden" hidden id="sc-paso3">
+<div class="flex items-center gap-3">
+<span class="w-11 h-11 rounded-full bg-primary-container text-on-primary flex items-center justify-center"><span class="material-symbols-outlined">check</span></span>
+<h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight" id="sc-enviado-titulo">Enviado para aprobar</h2>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">Dirección lo verá ahora mismo. Cuando lo apruebe (o lo rechace) te llegará el aviso a la campana, y aquí al lado verás cómo va.</p>
+<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md transition-colors shadow-sm" id="sc-otra" type="button"><span class="material-symbols-outlined text-[18px]">add</span><span>Hacer otra petición</span></button>
 </div>
 </section>
 
@@ -149,49 +190,65 @@
       });
     }
 
+    /* ── Una tarjeta que avanza: 1 Escribe → 2 Comprueba → 3 Enviado ── */
+    var PASO = 1;
+    function irA(n) {
+      var atras = n < PASO;
+      PASO = n;
+      [1, 2, 3].forEach(function (k) {
+        var el = $('sc-paso' + k);
+        muestra(el, k === n);
+        if (k === n) { el.classList.remove('sc-entra', 'sc-vuelve'); void el.offsetWidth; el.classList.add(atras ? 'sc-vuelve' : 'sc-entra'); }
+      });
+      document.querySelectorAll('.sc-paso').forEach(function (li) {
+        var k = +li.getAttribute('data-paso');
+        li.setAttribute('data-estado', k < n || (n === 3 && k === 3) ? 'hecho' : k === n ? 'activo' : 'pendiente');
+      });
+      $('sc-tarjeta').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      if (n === 1) $('sc-texto').focus();
+    }
+
     var FRASES = ['Leyendo tu petición…', 'Buscando la ficha o el documento…', 'Comprobando qué se puede hacer…', 'Casi está…'];
     var relojFrases = null;
-    function ocupado(si) {
+    function pensando(si) {
       $('sc-interpretar').disabled = si;
-      $('sc-interpretar-texto').textContent = si ? 'Pensando…' : 'Revisar mi petición';
-      var ico = $('sc-interpretar').querySelector('.material-symbols-outlined');
-      if (ico) { ico.textContent = si ? 'progress_activity' : 'smart_toy'; ico.classList.toggle('sc-gira', si); }
       clearInterval(relojFrases);
+      muestra($('sc-pensando'), si);
       if (si) {
         var i = 0;
         $('sc-pensando-texto').textContent = FRASES[0];
         muestra($('sc-propuesta'), false);
-        muestra($('sc-pensando'), true);
-        $('sc-pensando').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         relojFrases = setInterval(function () {
           i = Math.min(i + 1, FRASES.length - 1);
           $('sc-pensando-texto').textContent = FRASES[i];
         }, 1800);
-      } else {
-        muestra($('sc-pensando'), false);
       }
     }
 
     function pintaPropuesta(p) {
+      pensando(false);
       PROP = p; ELEGIDA = null;
       var cont = $('sc-opciones'); cont.innerHTML = '';
       muestra($('sc-aviso'), false);
       $('sc-enviar').disabled = false;
+      muestra($('sc-enviar'), true);
       if (p.tipo === 'manual') {
-        $('sc-propuesta-titulo').textContent = 'Esto no se puede hacer solo: se enviará tu texto tal cual a dirección, que lo hará a mano.';
-        $('sc-propuesta-ayuda').textContent = 'Pulsa «Sí, enviar para aprobar» para mandarlo.';
+        $('sc-propuesta-titulo').textContent = 'Esto lo hará dirección a mano';
+        $('sc-propuesta-ayuda').textContent = 'No es una de las cosas que se hacen solas, así que se enviará tu texto tal cual. Si te parece bien, pulsa «Sí, enviar para aprobar».';
+        muestra($('sc-manual'), false);
       } else if (p.tipo === 'no_encontrado') {
-        $('sc-propuesta-titulo').textContent = p.mensaje || 'No encuentro a qué te refieres.';
-        $('sc-propuesta-ayuda').textContent = 'Corrige el texto de arriba (el nombre, el número de factura o de contrato) y vuelve a pulsar «Revisar mi petición», o envía tu texto tal cual.';
-        $('sc-enviar').disabled = true;
+        $('sc-propuesta-titulo').textContent = 'No encuentro a qué te refieres';
+        $('sc-propuesta-ayuda').textContent = (p.mensaje ? p.mensaje + ' ' : '') + 'Pulsa «Cambiar el texto» y añade el nombre, el número de factura o de contrato. O envía tu texto tal cual para que lo lea dirección.';
+        muestra($('sc-enviar'), false);
+        muestra($('sc-manual'), true);
       } else {
-        $('sc-propuesta-titulo').textContent = p.tipo === 'elegir' ? 'He encontrado varias: marca la correcta.' : 'Esto es lo que se va a pedir:';
-        $('sc-propuesta-ayuda').textContent = 'Si es correcto, pulsa «Sí, enviar para aprobar». Si no, corrige el texto de arriba y vuelve a pulsar «Revisar mi petición», o envía tu texto tal cual para que dirección lo lea.';
+        $('sc-propuesta-titulo').textContent = p.tipo === 'elegir' ? 'He encontrado varias: marca la correcta' : 'Esto es lo que se va a pedir';
+        $('sc-propuesta-ayuda').textContent = 'Si es correcto, pulsa «Sí, enviar para aprobar». Si no, pulsa «Cambiar el texto» o envía tu texto tal cual para que lo lea dirección.';
+        muestra($('sc-manual'), true);
         (p.opciones || []).forEach(function (o, i) {
-          var id = 'sc-op-' + i;
           var l = document.createElement('label');
-          l.className = 'flex items-start gap-3 rounded-lg border border-outline-variant px-4 py-3 cursor-pointer hover:bg-surface-container-low';
-          l.innerHTML = '<input type="radio" name="sc-op" class="mt-1" id="' + id + '"' + (p.opciones.length === 1 ? ' checked' : '') + '>' +
+          l.className = 'flex items-start gap-3 rounded-lg border-2 border-deep-lagoon/30 bg-surface-container-lowest px-4 py-3 cursor-pointer hover:border-deep-lagoon';
+          l.innerHTML = '<input type="radio" name="sc-op" class="mt-1" id="sc-op-' + i + '"' + (p.opciones.length === 1 ? ' checked' : '') + '>' +
                         '<span class="font-body-md text-body-md text-on-surface">' + esc(o.titulo) + '</span>';
           l.querySelector('input').addEventListener('change', function () { ELEGIDA = o.fila_id; });
           cont.appendChild(l);
@@ -199,58 +256,76 @@
         if ((p.opciones || []).length === 1) ELEGIDA = p.opciones[0].fila_id;
       }
       muestra($('sc-propuesta'), true);
-      $('sc-propuesta').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      $('sc-propuesta').classList.remove('sc-entra'); void $('sc-propuesta').offsetWidth; $('sc-propuesta').classList.add('sc-entra');
     }
 
     function inserta(fila) {
-      $('sc-enviar').disabled = true;
+      $('sc-enviar').disabled = true; $('sc-manual').disabled = true;
       return sb.from('solicitudes_cambio').insert(fila).select('numero').then(function (r) {
+        $('sc-enviar').disabled = false; $('sc-manual').disabled = false;
         if (r.error) {
-          $('sc-enviar').disabled = false;
-          /* La base explica por qué no (enviada, firmada, cobros…). Si el
-             motivo es que va como petición manual, se ofrece con un botón. */
+          /* La base explica por qué no (enviada, firmada, cobros…): se dice y se ofrece
+             mandarlo tal cual, que siempre se puede. */
           var a = $('sc-aviso');
-          a.textContent = 'No se puede pedir así: ' + r.error.message + '. Puedes mandarlo tal cual con «No es eso: mandarlo tal cual».';
+          a.textContent = 'Así no se puede pedir: ' + r.error.message + '. Puedes enviar tu texto tal cual para que lo resuelva dirección.';
           muestra(a, true);
+          muestra($('sc-manual'), true);
           return;
         }
         var n = r.data && r.data[0] && r.data[0].numero;
-        ok('Enviado para aprobar' + (n ? ' (SC-' + n + ')' : '') + '. Te llegará la respuesta a la campana.');
-        $('sc-texto').value = ''; muestra($('sc-propuesta'), false); PROP = null;
+        $('sc-enviado-titulo').textContent = 'Enviado para aprobar' + (n ? ' · SC-' + n : '');
+        $('sc-texto').value = ''; PROP = null;
+        irA(3);
         carga();
-      }, function (e) { $('sc-enviar').disabled = false; mal('No se ha enviado: ' + ((e && e.message) || e)); });
+      }, function (e) {
+        $('sc-enviar').disabled = false; $('sc-manual').disabled = false;
+        mal('No se ha enviado: ' + ((e && e.message) || e));
+      });
     }
 
+    var TURNO = 0;
     $('sc-interpretar').addEventListener('click', function () {
+      var mio = ++TURNO;
       var texto = $('sc-texto').value.trim();
-      if (!texto) { mal(ERRORES.texto_requerido); return; }
-      ocupado(true);
+      if (!texto) { mal(ERRORES.texto_requerido); $('sc-texto').focus(); return; }
+      $('sc-cita').textContent = texto;
+      irA(2);
+      pensando(true);
       llamaEdge({ texto: texto }).then(function (r) {
-        ocupado(false);
+        if (mio !== TURNO || PASO !== 2) return;   // ya volvió a escribir: esta respuesta no vale
         if (r.status !== 200 || r.cuerpo.error) {
+          pensando(false);
           mal(ERRORES[r.cuerpo.error] || ('No se pudo leer la petición (' + (r.cuerpo.error || r.status) + ')'));
-          /* Si el que falla es el intérprete (no la sesión ni el límite), la petición no
-             se pierde: se ofrece mandarla tal cual, como petición libre. */
+          /* Si falla el intérprete (no la sesión ni el límite), la petición no se pierde:
+             se ofrece mandarla tal cual. Si es sesión o límite, se vuelve a escribir. */
           if ([401, 403, 429].indexOf(r.status) === -1) pintaPropuesta({ tipo: 'manual' });
+          else irA(1);
           return;
         }
         pintaPropuesta(r.cuerpo);
-      }, function (e) { ocupado(false); mal('Sin conexión con el asistente: ' + ((e && e.message) || e)); pintaPropuesta({ tipo: 'manual' }); });
+      }, function (e) {
+        if (mio !== TURNO || PASO !== 2) return;
+        mal('Sin conexión con el asistente: ' + ((e && e.message) || e));
+        pintaPropuesta({ tipo: 'manual' });
+      });
     });
 
+    $('sc-cambiar').addEventListener('click', function () { TURNO++; pensando(false); irA(1); });
+    $('sc-otra').addEventListener('click', function () { irA(1); });
+
     $('sc-enviar').addEventListener('click', function () {
-      var texto = $('sc-texto').value.trim();
+      var texto = $('sc-cita').textContent.trim();
       if (!PROP || !texto) return;
       if (PROP.tipo === 'manual') return inserta({ accion: 'manual', texto: texto });
-      if (!ELEGIDA) { mal('Elige una de las opciones.'); return; }
+      if (!ELEGIDA) { mal('Marca una de las opciones.'); return; }
       var fila = { accion: PROP.accion, fila_id: ELEGIDA, texto: texto, motivo: texto };
       if (PROP.accion === 'editar_comprador') fila.nuevos = PROP.nuevos;
       inserta(fila);
     });
 
     $('sc-manual').addEventListener('click', function () {
-      var texto = $('sc-texto').value.trim();
-      if (!texto) { mal(ERRORES.texto_requerido); return; }
+      var texto = $('sc-cita').textContent.trim();
+      if (!texto) return;
       inserta({ accion: 'manual', texto: texto });
     });
 
