@@ -28,6 +28,9 @@
 <meta name="description" content="Lawang Tropical Properties: all-in-one business, from land to legacy.">
 <script src="/assets/idioma-web.js?v=20260908113407"></script>
 <link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="preload" href="/assets/fonts/neue-kabel/NeueKabel-Book.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/neue-kabel/NeueKabel-Bold.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/img/soul/soul-hero.webp" as="image">
@@ -244,65 +247,75 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 @media (max-width:1500px){ .step br.d{display:none} }
 @media (min-width:901px) and (max-width:1200px){ .steps{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:clamp(18px,3.4vh,34px)} }
 
-/* ═══ 4 · LEGAL & FISCAL (24-sep, 1.jpeg del cliente, en la piel de The Soul) ═══
-   Textos: los ya revisados por Legal — tabla del deck de Palm Field
-   (investor-deck/palmfield/i18n.js) y FAQ de HGB / colores del suelo de la home
-   (assets/i18n-home.js faq.2 / faq.3), con sus ES/ID. */
-.legal,.zone{background:var(--linen);color:#1d1d1b}
-.lg-in{height:100%;display:grid;grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr);column-gap:clamp(32px,4.5vw,96px);
-  align-items:center;padding:var(--top) var(--gut) clamp(24px,5vh,60px)}
+/* ═══ 4 · LEGAL & FISCAL y 5 · COLOR DEL SUELO — CALCO de 1.jpeg del cliente (24-sep) ═══
+   El owner pidió replicar el diseño de la captura en estas dos pantallas (no la piel de
+   The Soul). Medido sobre 1.jpeg (1288 px de ancho): crema #f6eee1, titulares en serifa
+   (Fraunces) con palabras en tierra #6f4424, texto Jost, tarjetas #f9f5ea con borde
+   #d6d0c2 y radio 12, tabla con cabecera verde #406b33 / teja #9c3c26 y celdas
+   #e6efde / #f4e1da. --px = 1 px de la captura, limitado para que cada pantalla quepa
+   entera (1 scroll = 1 sección). Dos rutas (owner): HGB vía PT PMA / Hak Sewa sin empresa. */
+.cx{--px:min(calc(100vw / 1288), calc((100vh - 96px) / 730), 1.45px);
+  background:#f6eee1;color:#2a2419;font-family:'Jost','NK',sans-serif}
+.cx-in{height:100%;display:flex;flex-direction:column;justify-content:center;
+  max-width:calc(1226 * var(--px));margin:0 auto;padding:calc(var(--top) + 6px) 0 calc(18 * var(--px));
+  width:calc(100% - 2 * max(16px, calc(31 * var(--px))))}
+.cx-k{font-size:calc(11 * var(--px));letter-spacing:.14em;text-transform:uppercase;color:#4b4538}
+.cx-h{margin-top:calc(8 * var(--px));font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:calc(38 * var(--px));
+  line-height:1.14;letter-spacing:-.005em;color:#2a2419;max-width:calc(560 * var(--px))}
+.cx-h .b{font-weight:600;color:#6f4424}
+.cx-p{margin-top:calc(10 * var(--px));max-width:calc(560 * var(--px));font-size:calc(13 * var(--px));line-height:1.6;color:#6b6356}
+.cx-s{margin-top:calc(26 * var(--px));font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:calc(17 * var(--px));color:#2a2419}
+
+/* recorrido: inversor a la izquierda, dos rutas a la derecha */
+.cx-flow{margin-top:calc(14 * var(--px));display:grid;
+  grid-template-columns:minmax(0,1fr) calc(44 * var(--px)) minmax(0,1fr) calc(44 * var(--px)) minmax(0,1fr);
+  grid-template-rows:auto auto;row-gap:calc(10 * var(--px));align-items:stretch}
+.cx-card{display:flex;flex-direction:column;justify-content:center;min-height:calc(72 * var(--px));padding:calc(10 * var(--px)) calc(18 * var(--px));
+  background:#f9f5ea;border:1px solid #d6d0c2;border-radius:calc(12 * var(--px))}
+.cx-card strong{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:calc(16.5 * var(--px));color:#2a2419}
+.cx-card span{margin-top:calc(3 * var(--px));font-size:calc(11 * var(--px));color:#6b6356}
+.cx-card.dark{background:#565c38;border-color:#565c38}
+.cx-card.dark strong{color:#fbf8ee}.cx-card.dark span{color:#e9e7d6}
+.cx-card.inv{grid-row:1 / span 2;grid-column:1}
+.cx-card.lab{grid-column:3;background:transparent;border-style:dashed;min-height:calc(56 * var(--px))}
+.cx-card.lab strong{font-size:calc(14 * var(--px))}
+.cx-flow .r2{min-height:calc(56 * var(--px))}
+.cx-flow .c2{grid-column:2}.cx-flow .c4{grid-column:4}.cx-flow .c5{grid-column:5}
+.cx-arr{display:flex;align-items:center;justify-content:center;font-size:calc(18 * var(--px));color:#5c5744}
+.cx-tag{display:block;font-size:calc(9.5 * var(--px));letter-spacing:.14em;text-transform:uppercase;color:#6f4424;margin-bottom:calc(2 * var(--px))}
+
+/* tabla */
+.cx-tbl{margin-top:calc(14 * var(--px));border:1px solid #d7cfc2;border-radius:calc(12 * var(--px));overflow:hidden;background:#f9f5ea}
+.cx-tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.cx-tr + .cx-tr{border-top:1px solid #dcd3c4}
+.cx-tr > div{padding:calc(12 * var(--px)) calc(16 * var(--px));font-size:calc(12 * var(--px));line-height:1.55}
+.cx-th > div{padding-top:calc(13 * var(--px));padding-bottom:calc(13 * var(--px));font-size:calc(10.5 * var(--px));font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+.cx-th .a{color:#2a2419}
+.cx-th .l{background:#406b33;color:#fff}
+.cx-th .n{background:#9c3c26;color:#fff}
+.cx-tr:not(.cx-th) .a strong{display:block;font-weight:600;font-size:calc(12.5 * var(--px));color:#2a2419}
+.cx-tr:not(.cx-th) .a span{display:block;margin-top:calc(2 * var(--px));font-size:calc(10 * var(--px));color:#7a7264}
+.cx-tr:not(.cx-th) .l{background:#e6efde;color:#3d6b33}
+.cx-tr:not(.cx-th) .n{background:#f4e1da;color:#9c3c26}
+.cx-tr .ok,.cx-tr .ko{margin-right:5px}
+
+/* color del suelo */
+.cx-zones{list-style:none;margin-top:calc(24 * var(--px));display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:calc(16 * var(--px))}
+.cx-zc{display:flex;flex-direction:column;min-height:calc(300 * var(--px));padding:calc(20 * var(--px)) calc(20 * var(--px)) calc(22 * var(--px));
+  border-radius:calc(16 * var(--px));background:var(--z);color:#fff}
+.cx-zc .tag{align-self:flex-start;padding:calc(4 * var(--px)) calc(11 * var(--px));border-radius:999px;background:rgba(255,255,255,.28);
+  font-size:calc(10 * var(--px));font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+.cx-zc h3{margin-top:calc(26 * var(--px));font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:calc(24 * var(--px));line-height:1.15}
+.cx-zc p{margin-top:calc(10 * var(--px));font-size:calc(13 * var(--px));line-height:1.6;color:rgba(255,255,255,.9)}
+.cx-zc .v{margin-top:auto;padding-top:calc(14 * var(--px));border-top:1px solid rgba(255,255,255,.32);font-size:calc(11 * var(--px));font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+.cx-note{margin-top:calc(18 * var(--px));max-width:calc(760 * var(--px));font-size:calc(13 * var(--px));line-height:1.6;color:#6b6356}
+.cx-note .b{font-weight:600;color:#406b33}
+
+/* base compartida con 6 · INDONESIA (piel The Soul) */
 .kick-l{display:block;font-size:var(--fs-label);letter-spacing:.2em;text-transform:uppercase;color:var(--pg)}
 .ttl{margin-top:clamp(10px,1.6vh,16px);font-size:clamp(26px,2.5vw,48px);line-height:1.12;font-weight:350;letter-spacing:.04em;text-transform:uppercase}
 .ttl .b{color:var(--stat)}
 .intro{margin-top:clamp(12px,2vh,20px);max-width:52ch;font-size:var(--fs-body);line-height:1.6;color:#4a4a44}
-.subh{margin-top:clamp(20px,4vh,44px);font-size:var(--fs-label);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#2a2a26}
-.flow{list-style:none;margin-top:clamp(10px,1.8vh,18px);display:grid;gap:clamp(16px,2.4vh,22px)}
-.flow li{position:relative;display:flex;flex-direction:column;justify-content:center;min-height:clamp(52px,7.4vh,72px);
-  padding:8px 20px;border:1px solid rgba(72,91,55,.35);border-radius:8px;background:rgba(255,255,255,.35)}
-.flow li + li::before{content:"↓";position:absolute;left:24px;bottom:calc(100% + 2px);font-size:12px;color:var(--pg);line-height:1}
-.flow strong{font-size:clamp(14px,1vw,18px);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
-.flow span{margin-top:3px;font-size:13px;color:#5a5a52}
-.flow li.fin{background:var(--tg);border-color:var(--tg);color:var(--rl)}
-.flow li.fin span{color:rgba(245,240,230,.82)}
-.cmp{border:1px solid rgba(72,91,55,.28);border-radius:8px;overflow:hidden;background:rgba(255,255,255,.3)}
-.cmp-row{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.1fr) minmax(0,1.1fr)}
-.cmp-row + .cmp-row{border-top:1px solid rgba(72,91,55,.18)}
-.cmp-row > div{padding:clamp(10px,1.8vh,18px) clamp(12px,1.2vw,20px);font-size:clamp(12.5px,.8vw,15px);line-height:1.5}
-.cmp-h > div{font-size:var(--fs-label)!important;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding-top:14px!important;padding-bottom:14px!important}
-.cmp-h .c-l{background:var(--tg);color:var(--rl)}
-.cmp-h .c-n{background:#7a3a1f;color:#fbeee7}
-.c-a strong{display:block;font-size:clamp(13px,.84vw,15px);font-weight:700;letter-spacing:.04em}
-.c-a span{display:block;margin-top:2px;font-size:12px;color:#6a6a62}
-.cmp-row:not(.cmp-h) .c-l{background:#e6ebdd;color:#2f3f22}
-.cmp-row:not(.cmp-h) .c-n{background:#f3e5dd;color:#7a3a1f}
-.c-l .ok,.c-n .ko{font-weight:700;margin-right:6px}
-.lg-right .subh{margin-top:0;margin-bottom:clamp(10px,1.8vh,18px)}
-
-.routes{margin-top:clamp(10px,1.8vh,18px);display:grid;gap:clamp(10px,1.8vh,16px)}
-.r-start{display:flex;flex-direction:column;justify-content:center;min-height:clamp(48px,6.6vh,64px);padding:8px 20px;
-  border:1px solid rgba(72,91,55,.35);border-radius:8px;background:rgba(255,255,255,.35)}
-.r-start strong{font-size:clamp(14px,1vw,18px);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
-.r-start span{margin-top:3px;font-size:13px;color:#5a5a52}
-.route{position:relative;padding-left:26px}
-.route::before{content:"";position:absolute;left:10px;top:-10px;bottom:50%;border-left:1px solid rgba(72,91,55,.5);border-bottom:1px solid rgba(72,91,55,.5);width:12px}
-.r-lab{display:block;margin-bottom:6px;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--pg)}
-.flow-h{margin-top:0;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:26px}
-.flow-h li + li::before{content:"→";left:auto;right:calc(100% + 7px);bottom:auto;top:50%;transform:translateY(-50%);font-size:13px}
-.flow-h li{min-height:clamp(52px,7vh,68px)}
-
-/* ═══ 5 · EL COLOR DEL SUELO ═══ */
-.zn-in{height:100%;display:flex;flex-direction:column;justify-content:center;padding:var(--top) var(--gut) clamp(24px,5vh,60px)}
-.zn-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:clamp(32px,4.5vw,96px);align-items:end}
-.zn-head .intro{margin-top:0}
-.zones{list-style:none;margin-top:clamp(22px,4.5vh,52px);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(12px,1.4vw,28px)}
-.zc{display:flex;flex-direction:column;min-height:clamp(230px,40vh,420px);padding:clamp(18px,2.6vh,30px) clamp(18px,1.6vw,30px);
-  border-radius:8px;color:var(--rl);background:var(--z)}
-.zc .tag{align-self:flex-start;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.2);font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
-.zc h3{margin-top:clamp(18px,4vh,48px);font-size:clamp(20px,1.7vw,32px);font-weight:700;letter-spacing:.05em;line-height:1.1;text-transform:uppercase}
-.zc p{margin-top:12px;font-size:clamp(13px,.84vw,16px);line-height:1.6;color:rgba(245,240,230,.9)}
-.zc .v{margin-top:auto;padding-top:16px;border-top:1px solid rgba(245,240,230,.35);font-size:var(--fs-label);font-weight:700;letter-spacing:.14em;text-transform:uppercase}
-.zn-note{margin-top:clamp(16px,3vh,32px);max-width:90ch;font-size:var(--fs-body);line-height:1.6;color:#3b3b36}
-.zn-note .b{color:var(--tg)}
 
 /* ═══ 6 · INDONESIA (2.jpeg del cliente) ═══ */
 .indo{color:var(--rl);background:#1c2416}
@@ -326,19 +339,27 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .band4 .l{display:block;margin-top:6px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:rgba(245,240,230,.8)}
 
 @media (max-width:900px){
-  .lg-in,.zn-head{display:block}
-  .lg-in,.zn-in,.in-in{height:auto;padding:84px 16px 44px}
-  .lg-right{margin-top:34px}
-  .flow-h{grid-auto-flow:row}
-  .flow-h li + li::before{content:"↓";right:auto;left:24px;top:auto;bottom:calc(100% + 2px);transform:none}
-  .cmp-row{grid-template-columns:1fr}
-  .cmp-h{display:none}
-  .cmp-row:not(.cmp-h) .c-a{background:#ebe6db}
-  .zn-head .intro{margin-top:14px}
-  .zones,.cards3{grid-template-columns:1fr}
-  .zc{min-height:0}
-  .zc h3{margin-top:18px}
-  .zc .v{margin-top:18px}
+  .cx{--px:1px}
+  .cx-in{height:auto;width:auto;margin:0;padding:84px 16px 44px}
+  .cx-h{font-size:30px}
+  .cx-p,.cx-note{font-size:14px}
+  .cx-flow{grid-template-columns:1fr;grid-template-rows:none;row-gap:8px}
+  .cx-flow > *{grid-row:auto!important;grid-column:auto!important}
+  .cx-flow .c2{display:none}
+  .cx-card.lab{margin-top:18px}
+  .cx-h{max-width:none}
+  .cx-arr{transform:rotate(90deg);height:18px}
+  .cx-card strong{font-size:17px}.cx-card span{font-size:12.5px}
+  .cx-tr{grid-template-columns:1fr}
+  .cx-th{display:none}
+  .cx-tr > div{font-size:13px}
+  .cx-tr:not(.cx-th) .a strong{font-size:14px}.cx-tr:not(.cx-th) .a span{font-size:12px}
+  .cx-zones{grid-template-columns:1fr}
+  .cx-zc{min-height:0}
+  .cx-zc h3{font-size:22px}.cx-zc p{font-size:14px}
+  .cx-zc .tag,.cx-zc .v,.cx-k,.cx-th > div{font-size:11px}
+  .in-in{height:auto;padding:84px 16px 44px}
+  .cards3{grid-template-columns:1fr}
   .band4{grid-template-columns:1fr 1fr}
   .band4 li:nth-child(3){border-left:0}
   .band4 li:nth-child(n+3){border-top:1px solid rgba(245,240,230,.22)}
@@ -544,60 +565,48 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   </div>
 </section>
 
-<section class="legal" id="legal" aria-labelledby="lg-h">
-  <div class="lg-in">
-    <div class="lg-left">
-      <span class="kick-l" data-i18n-html="lg.k">Legal &amp; fiscal</span>
-      <h2 class="ttl" id="lg-h" data-i18n-html="lg.h">What you'll <span class="b">hold</span>, what it <span class="b">costs</span>, and where you can <span class="b">build</span>.</h2>
-      <p class="intro" data-i18n-html="lg.p">Three plain questions: is the title real, is the money protected, and where is building actually allowed.</p>
-      <p class="subh" data-i18n-html="lg.flow">How a foreign investor holds Bali real estate</p>
-      <!-- Dos rutas (owner, 24-sep): con empresa, Freehold HGB via PT PMA; sin empresa, Hak Sewa.
-           Misma regla en la tabla (plazo y registro) y en el paso 3 del roadmap. -->
-      <div class="routes">
-        <div class="r-start"><strong data-i18n-html="fl.1">Foreign investor</strong><span data-i18n-html="fl.1s">You, the buyer</span></div>
-        <div class="route">
-          <span class="r-lab" data-i18n-html="rt.a">With a company</span>
-          <ol class="flow flow-h">
-            <li><strong>PT PMA</strong><span data-i18n-html="fl.2s">Foreign-owned Indonesian company</span></li>
-            <li class="fin"><strong>Freehold HGB</strong><span data-i18n-html="fl.3s">30 years, then extendable 20 + 30</span></li>
-          </ol>
-        </div>
-        <div class="route">
-          <span class="r-lab" data-i18n-html="rt.b">Without a company</span>
-          <ol class="flow flow-h">
-            <li class="fin"><strong>Hak Sewa</strong><span data-i18n-html="fl.4s">Registered lease — up to 30 years per grant, renewable</span></li>
-          </ol>
-        </div>
-      </div>
+<section class="legal cx" id="legal" aria-labelledby="lg-h">
+  <div class="cx-in">
+    <span class="cx-k" data-i18n-html="lg.k">Legal &amp; fiscal</span>
+    <h2 class="cx-h" id="lg-h" data-i18n-html="lg.h">What you'll <span class="b">hold</span>, what it <span class="b">costs</span>, and where you can <span class="b">build</span>.</h2>
+    <p class="cx-p" data-i18n-html="lg.p">Three plain questions: is the title real, is the money protected, and where is building actually allowed.</p>
+
+    <h3 class="cx-s" data-i18n-html="lg.flow">How a foreign investor holds Bali real estate</h3>
+    <!-- Dos rutas (owner, 24-sep): con empresa, Freehold HGB via PT PMA; sin empresa, Hak Sewa. -->
+    <div class="cx-flow">
+      <div class="cx-card inv"><strong data-i18n-html="fl.1">Foreign investor</strong><span data-i18n-html="fl.1s">You, the buyer</span></div>
+      <div class="cx-arr" aria-hidden="true">→</div>
+      <div class="cx-card"><span class="cx-tag" data-i18n-html="rt.a">With a company</span><strong>PT PMA</strong><span data-i18n-html="fl.2s">Foreign-owned Indonesian company</span></div>
+      <div class="cx-arr" aria-hidden="true">→</div>
+      <div class="cx-card dark"><strong>Freehold HGB</strong><span data-i18n-html="fl.3s">30 years, then extendable 20 + 30</span></div>
+      <div class="cx-arr r2 c2" aria-hidden="true">→</div>
+      <div class="cx-card lab r2"><strong data-i18n-html="rt.b">Without a company</strong></div>
+      <div class="cx-arr r2 c4" aria-hidden="true">→</div>
+      <div class="cx-card dark r2 c5"><strong>Hak Sewa</strong><span data-i18n-html="fl.4s">Registered lease — up to 30 years per grant, renewable</span></div>
     </div>
-    <div class="lg-right">
-      <p class="subh" data-i18n-html="cm.t">Registered title with notarial escrow vs. informal leasehold</p>
-      <div class="cmp" role="table" aria-labelledby="lg-h">
-        <div class="cmp-row cmp-h" role="row"><div class="c-a" role="columnheader" data-i18n-html="cm.h1">Aspect</div><div class="c-l" role="columnheader">Lawang</div><div class="c-n" role="columnheader" data-i18n-html="cm.h3">Common practice</div></div>
-        <div class="cmp-row" role="row"><div class="c-a" role="cell"><strong data-i18n-html="cm.1a">Payment security</strong><span data-i18n-html="cm.1b">Notarial escrow (PPAT)</span></div><div class="c-l" role="cell"><span class="ok" aria-hidden="true">✓</span><span data-i18n-html="cm.1l">Reservation and stage payments held in an escrow account managed by the notary, released against agreed conditions.</span></div><div class="c-n" role="cell"><span class="ko" aria-hidden="true">✕</span><span data-i18n-html="cm.1n">Funds paid directly to a private landowner or intermediary, with no third-party custody.</span></div></div>
-        <div class="cmp-row" role="row"><div class="c-a" role="cell"><strong data-i18n-html="cm.2a">Term &amp; registration</strong><span data-i18n-html="cm.2b">HGB or Hak Sewa, Indonesian law</span></div><div class="c-l" role="cell"><span class="ok" aria-hidden="true">✓</span><span data-i18n-html="cm.2l">Registered title: Freehold HGB through your PT PMA, or Hak Sewa if you buy without a company. Transferable and heritable.</span></div><div class="c-n" role="cell"><span class="ko" aria-hidden="true">✕</span><span data-i18n-html="cm.2n">Unregistered private agreement with no guaranteed renewal and limited transferability.</span></div></div>
-        <div class="cmp-row" role="row"><div class="c-a" role="cell"><strong data-i18n-html="cm.3a">Building permits (PBG / SLF)</strong><span data-i18n-html="cm.3b">Government portal (SIMBG)</span></div><div class="c-l" role="cell"><span class="ok" aria-hidden="true">✓</span><span data-i18n-html="cm.3l">Approved ahead of construction, with occupancy certification (SLF) enabling legal short-term rental.</span></div><div class="c-n" role="cell"><span class="ko" aria-hidden="true">✕</span><span data-i18n-html="cm.3n">Frequently started without permits or with permits pending, exposed to government closure.</span></div></div>
-        <div class="cmp-row" role="row"><div class="c-a" role="cell"><strong data-i18n-html="cm.4a">Land zoning (RDTR)</strong><span data-i18n-html="cm.4b">Official urban classification</span></div><div class="c-l" role="cell"><span class="ok" aria-hidden="true">✓</span><span data-i18n-html="cm.4l">Zoned for tourism / residential use, legally enabled for short-stay rental income.</span></div><div class="c-n" role="cell"><span class="ko" aria-hidden="true">✕</span><span data-i18n-html="cm.4n">Often sited on green or agricultural-protection land (LSD/LP2B), not legally buildable.</span></div></div>
-      </div>
+
+    <h3 class="cx-s" data-i18n-html="cm.t">Registered title with notarial escrow vs. informal leasehold</h3>
+    <div class="cx-tbl" role="table" aria-labelledby="lg-h">
+      <div class="cx-tr cx-th" role="row"><div class="a" role="columnheader" data-i18n-html="cm.h1">Aspect</div><div class="l" role="columnheader">Lawang</div><div class="n" role="columnheader" data-i18n-html="cm.h3">Common practice</div></div>
+      <div class="cx-tr" role="row"><div class="a" role="cell"><strong data-i18n-html="cm.1a">Payment security</strong><span data-i18n-html="cm.1b">Notarial escrow (PPAT)</span></div><div class="l" role="cell"><span class="ok" aria-hidden="true">✓</span><span data-i18n-html="cm.1l">Reservation and stage payments held in an escrow account managed by the notary, released against agreed conditions.</span></div><div class="n" role="cell"><span class="ko" aria-hidden="true">✕</span><span data-i18n-html="cm.1n">Funds paid directly to a private landowner or intermediary, with no third-party custody.</span></div></div>
+      <div class="cx-tr" role="row"><div class="a" role="cell"><strong data-i18n-html="cm.2a">Term &amp; registration</strong><span data-i18n-html="cm.2b">HGB or Hak Sewa, Indonesian law</span></div><div class="l" role="cell"><span class="ok" aria-hidden="true">✓</span><span data-i18n-html="cm.2l">Registered title: Freehold HGB through your PT PMA, or Hak Sewa if you buy without a company. Transferable and heritable.</span></div><div class="n" role="cell"><span class="ko" aria-hidden="true">✕</span><span data-i18n-html="cm.2n">Unregistered private agreement with no guaranteed renewal and limited transferability.</span></div></div>
+      <div class="cx-tr" role="row"><div class="a" role="cell"><strong data-i18n-html="cm.3a">Building permits (PBG / SLF)</strong><span data-i18n-html="cm.3b">Government portal (SIMBG)</span></div><div class="l" role="cell"><span class="ok" aria-hidden="true">✓</span><span data-i18n-html="cm.3l">Approved ahead of construction, with occupancy certification (SLF) enabling legal short-term rental.</span></div><div class="n" role="cell"><span class="ko" aria-hidden="true">✕</span><span data-i18n-html="cm.3n">Frequently started without permits or with permits pending, exposed to government closure.</span></div></div>
+      <div class="cx-tr" role="row"><div class="a" role="cell"><strong data-i18n-html="cm.4a">Land zoning (RDTR)</strong><span data-i18n-html="cm.4b">Official urban classification</span></div><div class="l" role="cell"><span class="ok" aria-hidden="true">✓</span><span data-i18n-html="cm.4l">Zoned for tourism / residential use, legally enabled for short-stay rental income.</span></div><div class="n" role="cell"><span class="ko" aria-hidden="true">✕</span><span data-i18n-html="cm.4n">Often sited on green or agricultural-protection land (LSD/LP2B), not legally buildable.</span></div></div>
     </div>
   </div>
 </section>
 
-<section class="zone" id="zoning" aria-labelledby="zn-h">
-  <div class="zn-in">
-    <div class="zn-head">
-      <div>
-        <span class="kick-l" data-i18n-html="zn.k">Land zoning · RDTR</span>
-        <h2 class="ttl" id="zn-h" data-i18n-html="zn.h">What the land's <span class="b">colour</span> actually means</h2>
-      </div>
-      <p class="intro" data-i18n-html="zn.p">Every plot in Indonesia is classified on the official RDTR zoning map. The colour decides whether it's legally buildable — and whether a PBG can be issued at all.</p>
-    </div>
-    <ul class="zones">
-      <li class="zc" style="--z:#a57b22"><span class="tag" data-i18n-html="z1.t">Yellow</span><h3 data-i18n-html="z1.h">Residential</h3><p data-i18n-html="z1.p">Areas zoned for housing. Construction is allowed within the approved use.</p><span class="v" data-i18n-html="z.ok">✓ Buildable</span></li>
-      <li class="zc" style="--z:#104C4F"><span class="tag" data-i18n-html="z2.t">Tourism / commercial</span><h3 data-i18n-html="z2.h">Dedicated zones</h3><p data-i18n-html="z2.p">Zones set aside for tourism and commercial use.</p><span class="v" data-i18n-html="z.ok">✓ Buildable</span></li>
-      <li class="zc" style="--z:#485B37"><span class="tag" data-i18n-html="z3.t">Green</span><h3 data-i18n-html="z3.h">Protected agricultural land</h3><p data-i18n-html="z3.p">Building is prohibited and no PBG can be issued.</p><span class="v" data-i18n-html="z.ko">✕ Not buildable</span></li>
+<section class="zone cx" id="zoning" aria-labelledby="zn-h">
+  <div class="cx-in">
+    <span class="cx-k" data-i18n-html="zn.k">Land zoning · RDTR</span>
+    <h2 class="cx-h" id="zn-h" data-i18n-html="zn.h">What the land's <span class="b">colour</span> actually means</h2>
+    <p class="cx-p" data-i18n-html="zn.p">Every plot in Indonesia is classified on the official RDTR zoning map. The colour decides whether it's legally buildable — and whether a PBG can be issued at all.</p>
+    <ul class="cx-zones">
+      <li class="cx-zc" style="--z:#c8992d"><span class="tag" data-i18n-html="z1.t">Yellow</span><h3 data-i18n-html="z1.h">Residential</h3><p data-i18n-html="z1.p">Areas zoned for housing. Construction is allowed within the approved use.</p><span class="v" data-i18n-html="z.ok">✓ Buildable</span></li>
+      <li class="cx-zc" style="--z:#2f6a8c"><span class="tag" data-i18n-html="z2.t">Tourism / commercial</span><h3 data-i18n-html="z2.h">Dedicated zones</h3><p data-i18n-html="z2.p">Zones set aside for tourism and commercial use.</p><span class="v" data-i18n-html="z.ok">✓ Buildable</span></li>
+      <li class="cx-zc" style="--z:#406b33"><span class="tag" data-i18n-html="z3.t">Green</span><h3 data-i18n-html="z3.h">Protected agricultural land</h3><p data-i18n-html="z3.p">Building is prohibited and no PBG can be issued.</p><span class="v" data-i18n-html="z.ko">✕ Not buildable</span></li>
     </ul>
-    <p class="zn-note" data-i18n-html="zn.n">We only acquire and develop land that is correctly zoned for construction — <span class="b">never green / agricultural</span> — and we verify the zoning before anything else.</p>
+    <p class="cx-note" data-i18n-html="zn.n">We only acquire and develop land that is correctly zoned for construction — <span class="b">never green / agricultural</span> — and we verify the zoning before anything else.</p>
   </div>
 </section>
 
