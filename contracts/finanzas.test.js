@@ -321,4 +321,29 @@ caso('caja neta por proyecto y serie de caja NO cuentan lo cobrado en cuentas de
   assert.strictEqual(s.aTerceros, 5000);
 });
 
+caso('por closer: la raíz decide el closer, la Carta no suma precio y la suma de filas ES el cobrado del año', () => {
+  const raizA = { id: 'r1', tipo: 'reserva_parcela', precio_total: 100000, moneda: 'EUR', bloqueado: true, contrato_padre_id: null };
+  const hijoA = { id: 'h1', tipo: 'construccion', precio_total: 200000, moneda: 'EUR', bloqueado: true, contrato_padre_id: 'r1' };
+  const cartaA = { id: 'c1', tipo: 'carta_reserva', precio_total: 100000, moneda: 'EUR', bloqueado: true, contrato_padre_id: 'r1' };
+  const raizB = { id: 'r2', tipo: 'reserva_parcela', precio_total: 50000, moneda: 'EUR', bloqueado: true, contrato_padre_id: null };
+  const sinFirmar = { id: 'r3', tipo: 'reserva_parcela', precio_total: 80000, moneda: 'EUR', bloqueado: false, contrato_padre_id: null };
+  const rec = [
+    { contrato_id: 'h1', total: 20000, moneda: 'EUR', fecha: '2026-09-01' },
+    { contrato_id: 'c1', total: 5000,  moneda: 'EUR', fecha: '2026-08-01' },
+    { contrato_id: 'r2', total: 7000,  moneda: 'EUR', fecha: '2026-07-01' },
+    { contrato_id: null, total: 1000,  moneda: 'EUR', fecha: '2026-07-01' },
+    { contrato_id: 'r1', total: 9999,  moneda: 'EUR', fecha: '2025-12-01' },   // año anterior: solo total
+  ];
+  const f = F.finPorCloser([raizA, hijoA, cartaA, raizB, sinFirmar], rec, { r1: 'ana@x' }, HOY).EUR;
+  const ana = f.find(x => x.closer === 'ana@x'), sin = f.find(x => x.closer === '');
+  assert.strictEqual(ana.firmado, 300000);          // raíz + construcción; la Carta no suma
+  assert.strictEqual(ana.operaciones, 1);
+  assert.strictEqual(ana.cobradoAnio, 25000);       // lo de la Carta y la Construcción sube a su raíz
+  assert.strictEqual(sin.firmado, 50000);           // r2 sin closer; r3 sin firmar no cuenta
+  assert.strictEqual(sin.cobradoAnio, 8000);
+  assert.strictEqual(f[f.length - 1].closer, '');   // «sin atribuir» al final
+  const cob = F.finCobros(rec.map(r => ({ ...r })), HOY).EUR;
+  assert.strictEqual(f.reduce((a, x) => a + x.cobradoAnio, 0), cob.anio);
+});
+
 console.log('finanzas.test.js OK — ' + n + ' casos');

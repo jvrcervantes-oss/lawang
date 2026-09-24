@@ -303,6 +303,54 @@ function finComisionesPagadas(comisiones, proyectoDe, hoyISO){
   return porMoneda;
 }
 
+/* ── POR CLOSER: lo vendido y lo cobrado de cada uno ───────────────────────
+   El closer se atribuye a la RAÍZ de la operación (contrato_closer, lo mismo
+   que lee el motor de comisiones); sus piezas (Carta, Bloqueo, Construcción)
+   heredan el closer de su raíz. Por eso cada contrato y cada recibí se suben
+   por `contrato_padre_id` hasta la raíz antes de mirar quién la cerró.
+   · Firmado: precio de las piezas firmadas, no liberadas y no preliminares
+     (la Carta no suma precio: la regla de siempre).
+   · Cobrado: todo lo que pagó el comprador en el año, vaya a la cuenta que
+     vaya: aquí se mide la venta, no la caja.
+   · Lo que no tiene closer va a la fila «sin atribuir» (clave ''), así la suma
+     de todas las filas ES el total cobrado del año, por construcción.
+   Entrada: contratos [{id, contrato_padre_id, tipo, precio_total, moneda,
+   bloqueado, liberado_en}], recibis [{contrato_id, total, moneda, fecha,
+   anulada}], closerDe {contrato_id: email}. */
+function finPorCloser(contratos, recibis, closerDe, hoyISO){
+  const anio = hoyISO.slice(0, 4);
+  const porId = {}; (contratos || []).forEach(c => { porId[c.id] = c; });
+  const raiz = id => { let c = porId[id], n = 0; while (c && c.contrato_padre_id && porId[c.contrato_padre_id] && n++ < 10) c = porId[c.contrato_padre_id]; return c; };
+  const quien = id => { const r = raiz(id); return (r && closerDe && closerDe[r.id]) || ''; };
+  const porMoneda = {};
+  const fila = (m, k) => {
+    const pm = porMoneda[m] || (porMoneda[m] = {});
+    return pm[k] || (pm[k] = { closer: k, ops: new Set(), firmado: 0, cobradoAnio: 0, cobradoTotal: 0 });
+  };
+  for (const c of contratos || []){
+    if (!c.bloqueado || c.liberado_en || lwEsPreliminar(c.tipo)) continue;
+    const precio = finImporte(c.precio_total); if (!precio) continue;
+    const f = fila(c.moneda || 'EUR', quien(c.id));
+    f.firmado = FIN_R(f.firmado + precio);
+    const r = raiz(c.id); if (r) f.ops.add(r.id);
+  }
+  for (const r of recibis || []){
+    if (r.anulada || !finEsISO(r.fecha)) continue;
+    const imp = finImporte(r.total); if (imp == null) continue;
+    const f = fila(r.moneda || 'EUR', r.contrato_id ? quien(r.contrato_id) : '');
+    f.cobradoTotal = FIN_R(f.cobradoTotal + imp);
+    if (r.fecha.slice(0, 4) === anio && r.fecha <= hoyISO) f.cobradoAnio = FIN_R(f.cobradoAnio + imp);
+  }
+  const out = {};
+  for (const [m, filas] of Object.entries(porMoneda)){
+    out[m] = Object.values(filas).map(f => ({ closer: f.closer, operaciones: f.ops.size, firmado: f.firmado, cobradoAnio: f.cobradoAnio, cobradoTotal: f.cobradoTotal,
+        pctCobrado: f.firmado > 0 ? Math.round(Math.min(f.cobradoTotal, f.firmado) / f.firmado * 1000) / 10 : null }))
+      // los atribuidos por lo firmado; «sin atribuir» siempre al final
+      .sort((a, b) => (a.closer === '') - (b.closer === '') || (b.firmado - a.firmado) || (b.cobradoAnio - a.cobradoAnio));
+  }
+  return out;
+}
+
 /* ── CARTERA: lo firmado que falta por cobrar ──────────────────────────────
    `modeloFinanciero()` tal cual (solo contratos firmados, Carta fuera del
    precio, cobrado de la Carta al Bloqueo, cascada por fecha). Lo único que se
@@ -495,6 +543,8 @@ function finModelo(e){
   const gastos = e.gastos == null ? null : finGastos(e.gastos, hoy);
   const proyectoDe = {}; (e.contratos || []).forEach(c => { proyectoDe[c.id] = c.proyecto_nombre; });
   const comPagadas = e.comisiones == null ? null : finComisionesPagadas(e.comisiones, proyectoDe, hoy);
+  // null = sin permiso ('ranking'): se dice, no se pinta una tabla vacía
+  const porCloser = e.closerDe == null ? null : finPorCloser(e.contratos, e.recibis, e.closerDe, hoy);
   const monedas = new Set([...Object.keys(cobros), ...Object.keys(facturado), ...Object.keys(stock), ...Object.keys(cartera), ...Object.keys(salidas || {}), ...Object.keys(gastos || {})]);
   const porMoneda = {};
   for (const m of monedas){
@@ -508,6 +558,7 @@ function finModelo(e){
       salidas: salidas ? (salidas[m] || { solicitudes:{ n:0, importe:0 }, comisiones:{ n:0, importe:0 }, total:0 }) : null,
       gastos: gastos ? (gastos[m] || finGastosVacio()) : null,
       comPagadas: comPagadas ? (comPagadas[m] || { porMes: {}, porProyecto: {}, mes: 0, anio: 0 }) : null,
+      porCloser: porCloser ? (porCloser[m] || []) : null,
       porProyecto: finPorProyecto(car, sto, gastos ? (gastos[m] || { porProyecto: {} }) : null,
                                   comPagadas ? (comPagadas[m] || null) : null, cobros[m] || { porProyecto: {} }),
     };
@@ -552,4 +603,4 @@ function finSerieCaja(pm, hoyISO, atras, adelante){
 }
 
 if (typeof module !== 'undefined' && module.exports)
-  module.exports = { finMeses, finCobros, finFacturadoSinCobrar, finStock, finSalidas, finGastos, finComisionesPagadas, finCartera, finPersonas, finPorProyecto, finFiltraEmpresa, finModelo, finSerieCaja };
+  module.exports = { finMeses, finCobros, finFacturadoSinCobrar, finStock, finSalidas, finGastos, finComisionesPagadas, finPorCloser, finCartera, finPersonas, finPorProyecto, finFiltraEmpresa, finModelo, finSerieCaja };

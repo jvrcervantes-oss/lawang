@@ -92,6 +92,11 @@
        sin ella se devolverían 0 filas sin error. Se decide aquí y el panel dice
        «sin permiso», nunca «0 € de gastos». */
     var verGas = puede(ficha, 'gastos');
+    /* Quién cerró cada venta: MISMO candado que el resto de la suite
+       ('ranking' o super_admin, nunca 'admin' a secas: closerPuede() en
+       datos.js). La RPC ya filtra por puede('ranking'); sin la casilla
+       devolvería 0 filas y la tabla diría «nadie ha vendido nada». */
+    var verCloser = puede(ficha, 'ranking');
     var fuentes = {
       contratos: todas(function () { return sb.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,bloqueado,contrato_padre_id,created_at,liberado_en'); }, 'contratos'),
       cobrado: todas(function () { return sb.rpc('contratos_cobrado_equipo').select('contrato_id,cobrado'); }, 'cobrado por contrato', 'contrato_id'),
@@ -105,13 +110,15 @@
       solicitudes: verSol ? todas(function () { return sb.from('solicitudes_pago').select('id,estado,importe,moneda'); }, 'solicitudes de pago') : Promise.resolve(null),
       comisiones: verCom ? todas(function () { return sb.from('comisiones_devengadas').select('id,estado,importe,importe_ajustado,moneda,solicitud_id,pagado_en,anulado_en,contrato_raiz_id'); }, 'comisiones devengadas') : Promise.resolve(null),
       gastos: verGas ? todas(function () { return sb.from('gastos').select('id,estado,moneda,total,base,pph_retenido,pph_ingresado_el,fecha,vence_el,pagado_el,sociedad,proyectos(nombre),gasto_categorias(grupo)'); }, 'gastos') : Promise.resolve(null),
+      closer: verCloser ? todas(function () { return sb.rpc('crm_contratos_para_atribuir', { p_solo_pendientes: false }).select('contrato_id,closer_email'); }, 'closers', 'contrato_id') : Promise.resolve(null),
+      equipo: sb.from('usuarios').select('email,nombre').then(function (r) { return r.error ? [] : (r.data || []); }, function () { return []; }),
       sociedades: (typeof cargarSociedades === 'function') ? cargarSociedades(sb).catch(function (e) { console.error('[finanzas] sociedades:', e); return null; }) : Promise.resolve(null)
     };
     var claves = Object.keys(fuentes);
     return Promise.all(claves.map(function (k) {
       return fuentes[k].then(function (v) { return { ok: true, v: v }; }, function (e) { return { ok: false, e: e }; });
     })).then(function (rs) {
-      var out = { fallos: {}, verSol: verSol, verCom: verCom, verGas: verGas };
+      var out = { fallos: {}, verSol: verSol, verCom: verCom, verGas: verGas, verCloser: verCloser };
       rs.forEach(function (r, i) { if (r.ok) out[claves[i]] = r.v; else out.fallos[claves[i]] = true; });
       return out;
     });
@@ -145,7 +152,7 @@
       cobradoPorId: cobradoPorId,
       vencimientos: d.vencimientos || [],
       recibis: facturas.filter(function (f) { return f.tipo === 'recibi'; }).map(function (f) {
-        return { tipo: 'recibi', total: f.total, moneda: f.moneda, anulada: f.anulada, sociedad: f.sociedad, proyecto_nombre: f.proyecto_nombre, destino: destinoDe(f.cuenta), fecha: f.fecha_emision || String(f.created_at || '').slice(0, 10) };
+        return { tipo: 'recibi', contrato_id: f.contrato_id, total: f.total, moneda: f.moneda, anulada: f.anulada, sociedad: f.sociedad, proyecto_nombre: f.proyecto_nombre, destino: destinoDe(f.cuenta), fecha: f.fecha_emision || String(f.created_at || '').slice(0, 10) };
       }),
       /* Sin la RPC de pendiente no se inventa: una factura sin su pendiente
          calculado NO entra (se diría que se debe el total de facturas ya
@@ -157,6 +164,7 @@
       unidades: d.unidades || [],
       solicitudes: d.solicitudes == null ? null : d.solicitudes,
       comisiones: d.comisiones == null ? null : d.comisiones,
+      closerDe: (d.closer == null || d.fallos.closer) ? null : (function () { var m = {}; d.closer.forEach(function (x) { if (x.closer_email) m[x.contrato_id] = x.closer_email; }); return m; })(),
       gastos: (d.gastos == null || d.fallos.gastos) ? null : d.gastos.map(function (g) {
         return { estado: g.estado, moneda: g.moneda, total: g.total, base: g.base, pph_retenido: g.pph_retenido, pph_ingresado_el: g.pph_ingresado_el,
                  fecha: g.fecha, vence_el: g.vence_el, pagado_el: g.pagado_el, sociedad: g.sociedad,
@@ -500,6 +508,34 @@
     return h;
   }
 
+  /* Por closer: firmado y cobrado de las operaciones que cerró cada uno. */
+  function pintaCloser(pm, d) {
+    var tb = $('lw-fin-closer'); if (!tb) return;
+    var m = pm.moneda;
+    if (!d.verCloser) { tb.innerHTML = '<tr><td colspan="5" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">' + esc(T('Sin permiso: ver quién cierra cada venta exige la casilla «Ranking» en Usuarios.')) + '</td></tr>'; return; }
+    if (d.fallos.closer) { tb.innerHTML = '<tr><td colspan="5" class="px-5 py-8 text-center text-error">' + esc(T('No se pudo leer quién cerró cada venta.')) + '</td></tr>'; return; }
+    var filas = pm.porCloser || [];
+    if (!filas.length) { tb.innerHTML = '<tr><td colspan="5" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">' + esc(T('Ninguna venta firmada en') + ' ' + m + '.') + '</td></tr>'; return; }
+    var nombre = {}; (d.equipo || []).forEach(function (u) { if (u.email) nombre[u.email.toLowerCase()] = u.nombre || u.email; });
+    var tot = { firmado: 0, cobradoAnio: 0, operaciones: 0 };
+    tb.innerHTML = filas.map(function (f) {
+      tot.firmado += f.firmado; tot.cobradoAnio += f.cobradoAnio; tot.operaciones += f.operaciones;
+      var quien = f.closer ? (nombre[f.closer.toLowerCase()] || f.closer) : T('Sin atribuir');
+      var barra = f.pctCobrado == null ? '<span class="text-outline">—</span>' :
+        '<span class="flex items-center gap-2"><span class="w-20 h-1.5 rounded-full bg-surface-container overflow-hidden"><span class="block h-full" style="width:' + Math.min(100, f.pctCobrado) + '%;background:#104C4F"></span></span><span class="fin-num">' + esc(String(f.pctCobrado).replace('.', ',')) + ' %</span></span>';
+      return '<tr class="border-b border-outline-variant/30' + (f.closer ? '' : ' text-on-surface-variant') + '">' +
+        '<td class="px-5 py-3 font-label-md text-label-md">' + esc(quien) + '</td>' +
+        '<td class="px-5 py-3 text-right fin-num">' + num(f.operaciones) + '</td>' +
+        '<td class="px-5 py-3 text-right fin-num font-label-md text-label-md">' + esc(fmt(f.firmado, m)) + '</td>' +
+        '<td class="px-5 py-3 text-right fin-num">' + esc(fmt(f.cobradoAnio, m)) + '</td>' +
+        '<td class="px-5 py-3 font-body-sm text-body-sm">' + barra + '</td></tr>';
+    }).join('') +
+      '<tr class="bg-surface-container-low"><td class="px-5 py-3 font-label-md text-label-md">' + esc(T('Total')) + '</td>' +
+      '<td class="px-5 py-3 text-right fin-num font-label-md text-label-md">' + num(tot.operaciones) + '</td>' +
+      '<td class="px-5 py-3 text-right fin-num font-label-md text-label-md">' + esc(fmt(tot.firmado, m)) + '</td>' +
+      '<td class="px-5 py-3 text-right fin-num font-label-md text-label-md">' + esc(fmt(tot.cobradoAnio, m)) + '</td><td></td></tr>';
+  }
+
   function pintaSociedades(pm, d) {
     var el = $('lw-fin-sociedades'); if (!el) return;
     if (d.fallos.facturas) { falloEn(el, T('los recibís')); return; }
@@ -692,6 +728,7 @@
         pintaTrimestres(pm, d);
         pintaStock(pm, d);
         pintaProyectos(pm, d);
+        pintaCloser(pm, d);
         pintaSociedades(pm, d);
         pintaSalidas(pm, d);
         pintaCajaAnio(pm, d, anio);
@@ -724,6 +761,12 @@
         b.setAttribute('aria-expanded', String(abrir));
         if (fila) fila.hidden = !abrir;
         ABIERTOS[b.getAttribute('data-fin-p')] = abrir;
+      });
+      var bImp = $('lw-fin-imprimir');
+      if (bImp) bImp.addEventListener('click', function () {
+        var cab = $('lw-fin-cab-impresa');
+        if (cab) cab.textContent = T('Informe de finanzas') + ' · ' + hoy + ' · ' + MON + (SOC_LISTA && EMPRESA !== 'todas' ? ' · ' + nombreSociedad(EMPRESA) : '') + (SIN_FIRMAR ? ' · ' + T('incluye sin firmar') : '');
+        window.print();
       });
       var bCsv = $('lw-fin-csv');
       if (bCsv) bCsv.addEventListener('click', function () { exportaCSV(MODELO.porMoneda[MON] || { moneda: MON }, hoy); });
