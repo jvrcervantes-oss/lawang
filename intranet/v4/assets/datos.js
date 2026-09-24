@@ -2159,14 +2159,23 @@
          sigue en la herramienta viva (numeración por secuencia de la base). */
       var t = tablaPor([/DOCUMENTO|N[ºU°]/, /CLIENTE/, /TIPO|ESTADO/]);
       Promise.all([
-        q(sb.rpc('facturas_equipo').select(CAMPOS_FACTURA).neq('tipo', 'recibi').order('created_at', { ascending: false }).limit(2000), 'facturas', t),
+        q(sb.rpc('facturas_equipo').select(CAMPOS_FACTURA + (window.AXW_NUCLEO_OPERACION ? ',operacion_id' : '')).neq('tipo', 'recibi').order('created_at', { ascending: false }).limit(2000), 'facturas', t),
         // Cuánto lleva cobrada cada factura (22-sep-2026, owner): la misma
         // función que usa el recibí para saber qué puede saldar — nunca una
         // segunda forma de restar recibís a facturas.
         vig(sb.rpc('facturas_pendiente_equipo')).then(function (r) { return r.error ? (fallo('pendiente de cobro', r.error), null) : (r.data || []); }),
-        autores(sb)
+        autores(sb),
+        /* AxisWorks ERP · operación del núcleo (25-sep-2026): solo con window.AXW_NUCLEO_OPERACION (hoy, la demo);
+           en Lawang esto es `null` y la pantalla sale exactamente como antes. */
+        window.AXW_NUCLEO_OPERACION
+          ? vig(sb.rpc('operaciones_equipo').select('id,referencia,estado')).then(function (r) { return r.error ? (fallo('operaciones', r.error), null) : (r.data || []); })
+          : Promise.resolve(null)
       ]).then(function (rr) {
           var fs = rr[0], hayPend = !!rr[1], pendPor = {}, AUT = rr[2] || {};
+          var OPS = null;
+          if (rr[3]) { OPS = {}; rr[3].forEach(function (o) { OPS[o.id] = o; }); }
+          function opDe(f) { return OPS && f.operacion_id ? OPS[f.operacion_id] || null : null; }
+          if (OPS) { var bVista = document.querySelector('[data-lw-vista-btn="contrato"]'); if (bVista) bVista.textContent = 'Por operación'; }
           (rr[1] || []).forEach(function (x) { pendPor[x.factura_id] = Number(x.pendiente) || 0; });
           if (!fs) return;
           // 'cobrada' | 'parcial' | 'pendiente' | 'na' (proforma, anulada o sin dato)
@@ -2215,14 +2224,17 @@
             // cabecera le queda alguna fila visible tras filtrar/buscar.
             function pintaFilaDoc(f, grupo) {
               var est = estadoDoc(f);
-              fila(pl, [f.numero, tipoDoc(f.tipo), f.cliente_nombre || '—', f.contrato_numero || '—', f.proyecto_nombre || '—',
+              var op = opDe(f);
+              fila(pl, [f.numero, tipoDoc(f.tipo), f.cliente_nombre || '—',
+                op ? op.referencia + (f.contrato_numero ? ' · ' + f.contrato_numero : '') : (OPS && !f.contrato_id ? 'Venta suelta' : (f.contrato_numero || '—')),
+                f.proyecto_nombre || '—',
                 fmt(f.total, f.moneda), '', fFecha(f.fecha_emision || f.created_at), '', '', '']);
               var tr = pl.tbody.lastElementChild;
               tr.setAttribute('data-lw-fila', ''); tr.setAttribute('data-lw-id', f.id);
               tr.setAttribute('data-lw-tipo', f.tipo === 'proforma' ? 'proforma' : 'factura');
               tr.setAttribute('data-lw-estado', f.anulada ? 'anulada' : (f.enviada ? 'enviada' : 'emitida'));
               var cobro = cobroDe(f); tr.setAttribute('data-lw-cobro', cobro);
-              tr.setAttribute('data-lw-pajar', [f.numero, f.cliente_nombre, f.contrato_numero, f.proyecto_nombre, f.creado_por, nombreAutor(AUT, f.creado_por)].join(' ').toLowerCase());
+              tr.setAttribute('data-lw-pajar', [op ? op.referencia : '', f.numero, f.cliente_nombre, f.contrato_numero, f.proyecto_nombre, f.creado_por, nombreAutor(AUT, f.creado_por)].join(' ').toLowerCase());
               if (grupo) tr.setAttribute('data-lw-grupo', grupo);
               var tds = tr.querySelectorAll('td');
               if (tds[6]) {
@@ -2253,9 +2265,12 @@
               pl.tbody.innerHTML = '';
               var grupos = {}, orden = [];
               fs.forEach(function (f) {
-                var clave = f.contrato_id || '__sin_contrato__';
+                // Con la operación del núcleo se agrupa por OPERACIÓN (la venta), no por contrato suelto: las
+                // facturas de la reserva y de la construcción de una misma venta salen juntas.
+                var op = opDe(f);
+                var clave = op ? 'op:' + op.id : (f.contrato_id || '__sin_contrato__');
                 if (!grupos[clave]) {
-                  grupos[clave] = { sinContrato: !f.contrato_id, numero: f.contrato_numero, cliente: f.cliente_nombre, proyecto: f.proyecto_nombre, docs: [] };
+                  grupos[clave] = { sinContrato: !op && !f.contrato_id, numero: op ? op.referencia : f.contrato_numero, cliente: f.cliente_nombre, proyecto: f.proyecto_nombre, docs: [] };
                   orden.push(clave);
                 }
                 grupos[clave].docs.push(f);
@@ -2263,8 +2278,8 @@
               orden.forEach(function (k) {
                 var g = grupos[k];
                 var n = g.docs.length + (g.docs.length === 1 ? ' documento' : ' documentos');
-                var etiqueta = g.sinContrato ? 'Sin contrato' : (g.numero || '—');
-                var sub = g.sinContrato ? (n + ' · no son un contrato: no se suman entre sí')
+                var etiqueta = g.sinContrato ? (OPS ? 'Ventas sueltas' : 'Sin contrato') : (g.numero || '—');
+                var sub = g.sinContrato ? (n + (OPS ? ' · sin operación: cada una es su propia venta' : ' · no son un contrato: no se suman entre sí'))
                   : ((g.cliente || 'sin cliente') + ' · ' + (g.proyecto || 'sin proyecto') + ' · ' + n);
                 pl.tbody.insertAdjacentHTML('beforeend',
                   '<tr data-lw-grupo-cab="' + esc(k) + '" style="background:#F5F4EE"><td colspan="11" style="padding:9px 20px;font:700 12.5px \'Neue Kabel\',sans-serif;color:#104C4F">' +
