@@ -6083,9 +6083,15 @@ $('#fmMail').addEventListener('click', async ()=>{
   if(!FIRMA_ENVIO){ toastMal(lwT('Genera primero el enlace')); return; }
   const msg = firmaMensaje(); if(!msg) return;
   const btn=$('#fmMail'); btn.disabled=true; btn.textContent='Enviando…';
+  // Asunto con el número del documento (24-sep-2026): salían 67 correos con el
+  // MISMO asunto y Hostinger, tras bloquear admin@ por spam, pide expresamente
+  // no repetir asuntos entre envíos.
+  const num = SAVED_CONTRACT && SAVED_CONTRACT.numero;
+  const asunto = num ? 'Documento ' + num + ' listo para firmar — Lawang Tropical Properties'
+                     : 'Firma de documento — Lawang Tropical Properties';
   try{
     const r = await fetch('api/send_email.php', { method:'POST', headers: await cabecerasCorreo(),
-      body: JSON.stringify({ to:FIRMA_ENVIO.to, subject:'Firma de documento — Lawang Tropical Properties',
+      body: JSON.stringify({ to:FIRMA_ENVIO.to, subject:asunto,
                              message:msg, attach:false }) });
     const d = await r.json().catch(()=>({ ok:false, error:'Respuesta inválida del servidor' }));
     if(d.ok){
@@ -6097,7 +6103,7 @@ $('#fmMail').addEventListener('click', async ()=>{
       if(SAVED_CONTRACT && SAVED_CONTRACT.id){
         const { error:eLog } = await sb.from('correos_enviados').insert({
           contrato_id: SAVED_CONTRACT.id, para: FIRMA_ENVIO.to,
-          asunto: 'Firma de documento — Lawang Tropical Properties',
+          asunto: asunto,
           via: 'enlace_firma', enviado_por: MI_EMAIL });
         if(eLog) console.error('correos_enviados: ' + eLog.message);
       }

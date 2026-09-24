@@ -76,6 +76,8 @@
     if (/^\s*(re|fw|fwd|rv)\s*:/i.test(a)) return 'El asunto no puede empezar por «Re:» ni «Fwd:»: los filtros de spam lo castigan.';
     var letras = a.replace(/[^\p{L}]/gu, '');
     if (letras.length >= 4 && letras === letras.toUpperCase()) return 'El asunto no puede ir todo en mayúsculas: los filtros de spam lo castigan.';
+    // Hostinger, 24-sep: «no utilice una sola palabra ("HOLA", "PRUEBA") como asunto»
+    if ((a.match(/[\p{L}\p{N}]+/gu) || []).length < 2) return 'El asunto no puede ser una sola palabra («Hola», «Novedades»): los filtros de spam lo castigan.';
     return null;
   }
   function avisosAsunto(f) {
@@ -83,7 +85,8 @@
     var vistas = PALABRAS_SPAM.filter(function (p) { return bajo.indexOf(' ' + p + ' ') >= 0; });
     if (vistas.length) avisos.push('El asunto lleva palabras que los filtros de spam vigilan: «' + vistas.join('», «') + '».');
     var simbolos = (f.asunto.match(/[\[\]{}<>%^!?$€*#|~_=+]/g) || []).length;
-    if (simbolos >= 2) avisos.push('El asunto lleva muchos símbolos (corchetes, %, !, >…). Mejor solo palabras.');
+    if (/[!?¡¿.]{2,}/.test(f.asunto.replace(/\.{3}|…/g, ''))) avisos.push('Nada de puntuación repetida en el asunto («!!», «??»).');
+    else if (simbolos >= 2) avisos.push('El asunto lleva muchos símbolos (corchetes, %, !, >…). Mejor solo palabras.');
     var mayus = (f.asunto.match(/\b\p{Lu}{4,}\b/gu) || []);
     if (mayus.length) avisos.push('Mejor sin palabras enteras en mayúsculas en el asunto: «' + mayus.join('», «') + '».');
     if (ACORTADORES.test(f.cuerpo + ' ' + (f.cta_url || ''))) avisos.push('Hay un enlace acortado (bit.ly y similares): pon la dirección completa.');
