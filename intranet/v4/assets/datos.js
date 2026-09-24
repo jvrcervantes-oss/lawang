@@ -1697,6 +1697,25 @@
       });
     });
   }
+  /* Reactivar (24-sep-2026, owner, tras anular INV00165 por despiste): una
+     anulada es inmutable salvo esto — solo super_admin, solo si nunca se
+     envió, y solo el paso anulada→activa. La regla vive en la base
+     (factura_anulada_solo_cambia_autor), que también rechaza si ya hay una
+     copia viva que la sustituya y deja el rastro en «Frenos saltados». */
+  function reactivarDocumento(sb, f0) {
+    lwConfirmar({ titulo: 'Reactivar ' + (f0.numero || 'el documento'),
+      cuerpo: '<p>Vuelve a estar activa con su mismo número, como si no se hubiera anulado. Queda registrado quién la reactivó.</p>',
+      confirmar: 'Reactivar' }).then(function (ok) {
+      if (!ok) return;
+      sb.from('facturas').update({ anulada: false }).eq('id', f0.id).select('id').then(function (r) {
+        var u = (window.LW_V4 && window.LW_V4.unaFila) ? window.LW_V4.unaFila(r) : r;
+        if (u.error) { toastMal(lwErrorHumano(u.error, 'No se pudo reactivar')); return; }
+        toast('Documento reactivado');
+        if (window.lwCierraCajon) window.lwCierraCajon();
+        location.reload();
+      });
+    });
+  }
   function borrarDocumento(sb, f0) {
     lwConfirmar({
       titulo: 'Borrar ' + (f0.numero || 'el documento'),
@@ -1767,6 +1786,7 @@
     // que de verdad decide (autor o admin, con la herramienta 'facturas');
     // esto solo evita ofrecerlo sobre algo que ya no se puede tocar.
     if (!f0.anulada) acciones.push({ texto: 'Anular', tono: 'peligro', onClick: function () { anularDocumento(sb, f0); } });
+    if (f0.anulada && !f0.enviada && !f0.fecha_envio && V4.esSuperAdmin) acciones.push({ texto: 'Reactivar', onClick: function () { reactivarDocumento(sb, f0); } });
     // Borrar (S14): desde el 21-sep NI SIQUIERA super_admin borra un documento
     // ya enviado — coincide con la policy que Datos aplica en paralelo
     // (contracts/sql/facturas_enviada_no_se_borra.sql). super_admin lo ve
@@ -6067,7 +6087,8 @@
               factura_sin_bloquear: 'facturó un contrato sin firmar',
               cobro_a_otro_comprador: 'aplicó un cobro al comprador de otro contrato',
               cobro_a_factura_huerfana: 'aplicó un cobro a una factura sin contrato',
-              comprador_sin_ficha: 'guardó un contrato sin ficha de comprador'
+              comprador_sin_ficha: 'guardó un contrato sin ficha de comprador',
+              factura_reactivada: 'reactivó una factura anulada'
             };
             var cabecera = '<div class="flex items-center justify-between mb-2">' +
               '<span class="text-[11px] tracking-[0.12em] uppercase text-on-surface-variant font-bold">Registro</span>' +
