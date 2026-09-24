@@ -88,14 +88,16 @@
     'Investment': { es: 'Inversión', id: 'Investasi' },
     'Market forecast': { es: 'Previsión de mercado', id: 'Proyeksi pasar' },
     'View model': { es: 'Ver modelo', id: 'Lihat model' },
+    'Talk to us on WhatsApp': { es: 'Háblanos por WhatsApp', id: 'Hubungi kami via WhatsApp' },
     'Tap a plot to find it in the live inventory.':
       { es: 'Toca una parcela para verla en el inventario en vivo.',
         id: 'Ketuk kavling untuk melihatnya di daftar ketersediaan langsung.' },
-    /* Frase de la v1 que ya salia en ingles sin traducir; ⚠️ el ES/ID es nuevo y no ha
-       pasado por Legal (mismo PENDIENTE que la cabecera de este fichero). */
+    /* Frase de la v1 que ya salia en ingles sin traducir. ES e ID con la redaccion de
+       Legal (consulta de deploy capa 1, 24-sep-2026). ⚠️ PENDIENTE: el ID lo tiene que
+       revisar un hablante nativo antes de darlo por cerrado. */
     'Status is live; surface areas shown are project/design measurements, confirmed by survey at Plot Lock — not the registered legal area.':
-      { es: 'El estado es en vivo; las superficies son medidas de proyecto/diseño, que se confirman por levantamiento topográfico en el Plot Lock — no la superficie legal registrada.',
-        id: 'Status bersifat langsung; luas yang ditampilkan adalah ukuran proyek/desain, dikonfirmasi lewat survei saat Plot Lock — bukan luas legal yang terdaftar.' },
+      { es: 'El estado se actualiza en tiempo real; las superficies indicadas son medidas de proyecto/diseño, que se confirman por levantamiento topográfico en el Plot Lock, y no son la superficie legal registrada.',
+        id: 'Status diperbarui secara langsung; luas yang ditampilkan adalah ukuran proyek/desain, dikonfirmasi lewat survei saat Plot Lock — bukan luas resmi yang tercatat dalam sertifikat tanah.' },
 
     /* — portada — */
     'Investor Deck · Due Diligence': { es: 'Dossier de inversión · Due diligence', id: 'Dosir Investor · Uji Tuntas' },
@@ -287,12 +289,21 @@
     { re: /^Land ((?:€|A?\$|Rp )[\d.,]+)$/, es: 'Suelo $1', id: 'Tanah $1' },
     /* v3 (24-sep): frases armadas en JS con el nombre del proyecto dentro. Misma
        traduccion que ya usa Palm Field para las suyas (palmfield/i18n.js). */
+    /* WhatsApp por parcela (v3, 24-sep: mensaje prellenado y aria-label del boton). El
+       codigo va perezoso (.+?) porque puede llevar espacios ("S1 - H1"). */
+    { re: /^Hello LAWANG, I’m interested in plot (.+?) at (.+)\.$/,
+      es: 'Hola LAWANG, me interesa la parcela $1 de $2.',
+      id: 'Halo LAWANG, saya tertarik dengan kavling $1 di $2.' },
+    { re: /^Talk to us on WhatsApp about plot (.+)$/,
+      es: 'Háblanos por WhatsApp sobre la parcela $1', id: 'Hubungi kami via WhatsApp tentang kavling $1' },
     { re: /^Hello LAWANG, I’m looking at the (.+) investor deck and I have a few questions\.$/,
       es: 'Hola LAWANG, estoy viendo el dosier de inversores de $1 y tengo algunas preguntas.',
       id: 'Halo LAWANG, saya sedang melihat dosir investor $1 dan ada beberapa pertanyaan.' },
+    /* ID de «Individually cadastred plots» corregido por Legal (24-sep): «tersertifikasi»
+       afirmaba titulos ya emitidos. ⚠️ PENDIENTE revision de hablante nativo del ID. */
     { re: /^Individually cadastred plots\. Live inventory read directly from (.+)'s records — sizes, prices and status are informational and confirmed at Plot Lock\.$/,
       es: 'Parcelas catastradas una a una. El inventario se lee en vivo de los registros de $1 — superficies, precios y estado son orientativos y se confirman en el Plot Lock.',
-      id: 'Kavling tersertifikasi satu per satu. Ketersediaan dibaca langsung dari catatan $1 — luas, harga, dan status bersifat informatif dan dikonfirmasi saat Plot Lock.' },
+      id: 'Kavling diukur dan dipetakan secara kadastral satu per satu. Ketersediaan dibaca langsung dari catatan $1 — luas, harga, dan status bersifat informatif dan dikonfirmasi saat Plot Lock.' },
     { re: /^Year-1 Rental Forecast — (.+)$/,
       es: 'Previsión de alquiler Año 1 — $1', id: 'Proyeksi Sewa Tahun ke-1 — $1' },
     { re: /^(\S+) villa model$/, es: 'Modelo de villa $1', id: 'Model villa $1' },

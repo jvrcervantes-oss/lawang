@@ -38,8 +38,12 @@
       por proyecto habría emitido Cartas de Reserva con los términos del
       primer proyecto activado para todos los demás (hallazgo de Datos). El
       owner decidió (15-sep) resolverlo quitando la reserva de autoservicio
-      del deck genérico entero: cada parcela usa "Contact us"
-      (mailto:sales@lawangproperties.com).
+      del deck genérico entero. SIGUE EN PIE: nunca un botón "Reserve".
+      Lo único que cambia (24-sep-2026, owner: «v3 es el diseño estándar»;
+      consulta de deploy capa 1, Marketing) es el CANAL de contacto: cada
+      parcela disponible lleva "Talk to us on WhatsApp" con el proyecto y el
+      código ya escritos en el mensaje, como la v3 de Palm Field desde el
+      22-sep; antes era "Contact us" (mailto:sales@lawangproperties.com).
    2. SIN plano interactivo por defecto. Las coordenadas de un masterplan se
       miden a mano sobre la imagen concreta de CADA proyecto — no es derivable
       de una plantilla. Gate `config.masterplan_activo`: si es false, la lista
@@ -66,7 +70,10 @@ if ($slug === '') { http_response_code(404); exit; }
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
-<!-- Build Tailwind de la v3 (preflight + las pocas utilidades de posicion del plano).
+<!-- Build Tailwind de la v3: de aqui SOLO sale el reset (preflight). Las 4 reglas de
+     posicion del plano que antes se tomaban de sus utilidades viven ya en el <style> de
+     abajo (#plan-wrap/#plan-hotspots, consulta de deploy capa 1, 24-sep), para que el
+     deck generico no dependa de que el build del piloto siga teniendolas.
      Ruta ABSOLUTA: esta pagina se sirve en /investor-deck/<slug>. -->
 <link rel="stylesheet" href="/investor-deck/palmfield/v2.min.css?v=20260924a">
 <style>
@@ -271,6 +278,12 @@ a.enlace{color:inherit;text-decoration:underline}
   #vision.sin-cifras .hero-texto{bottom:clamp(110px,16vh,140px)}
 }
 @media(min-width:1280px){ #vision{--pw:min(52%,760px)} }
+/* Sin panel (ni documentos ni FAQ): el texto y las flechas recuperan el ancho entero */
+@media(min-width:1024px){
+  #vision.sin-panel .hero-texto,#vision.sin-panel .hero-pie{right:var(--cpd)}
+  #vision.sin-panel #hero-next{right:clamp(14px,2.5vw,36px)}
+  #vision.sin-panel #hero-puntos{left:50%}
+}
 @media(min-width:1024px) and (max-width:1640px){
   .cifras{grid-template-columns:repeat(2,auto);row-gap:14px} .cifra:nth-child(3){padding-left:0;border-left:0}
   #vision:not(.sin-cifras) .hero-texto{bottom:clamp(220px,32vh,280px)}
@@ -362,6 +375,8 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
   background:transparent;color:rgba(245,240,230,.8);border:1px solid rgba(190,179,165,.45);transition:all .25s}
 .plan-pagina-btn:hover{border-color:var(--rl);color:var(--rl)}
 .plan-pagina-btn.on{background:var(--tg);border-color:var(--tg);color:var(--rl)}
+#plan-wrap{position:relative;width:100%;-webkit-user-select:none;user-select:none}
+#plan-hotspots{position:absolute;inset:0}
 #masterplan-img{width:100%;display:block;border-radius:8px;background:#1B1F18}
 .mp-nota{font-family:var(--sa);font-size:12px;line-height:1.6;color:rgba(245,240,230,.65);margin:14px 6px 4px}
 .hs{position:absolute;inset:0;cursor:pointer;transition:background .2s}
@@ -397,6 +412,11 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
 .fila-btn{display:inline-flex;align-items:center;padding:9px 16px;border-radius:30px;text-decoration:none;white-space:nowrap;
   font-size:10.5px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--rl);border:1px solid rgba(245,240,230,.55);transition:all .25s}
 .fila-btn:hover{background:var(--rl);color:var(--ci)}
+/* WhatsApp por parcela: mismo aspecto que la v3 (#plots-wrap a[href*="wa.me"] de palmfield) */
+.fila-wa{gap:6px;border-color:rgba(37,211,102,.7);padding:9px 14px}
+.fila-wa .material-symbols-outlined{font-size:16px;color:#25D366}
+.fila-wa:hover{background:#25D366;color:#0b3d25}
+.fila-wa:hover .material-symbols-outlined{color:#0b3d25}
 .fila-guion{font-size:12px;color:rgba(245,240,230,.4);padding:6px 12px}
 .lw-fila-activa{background:rgba(143,155,122,.2)!important}
 .lw-destello{animation:lwDestello 2s ease-out}
@@ -534,9 +554,9 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
 
   <div id="hero-puntos"></div>
 
-  <!-- Panel de due diligence DENTRO de la hero, como la v3. La cabecera de Palm Field
+  <?php /* Panel de due diligence DENTRO de la hero, como la v3. La cabecera de Palm Field
        ("A land-plot development in the Balian river valley" + la linea de Hak Sewa) es
-       de ESE proyecto: aqui va el titulo y la advertencia genericos ya aprobados de la v1. -->
+       de ESE proyecto: aqui va el titulo y la advertencia genericos ya aprobados de la v1. */ ?>
   <aside id="faq">
     <div class="dd-cab">
       <p class="kicker">Investor Deck · Due Diligence</p>
@@ -577,10 +597,10 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
 </div>
 </section>
 
-<!-- 3 · MASTERPLAN — cabecera centrada, plano (solo si config.masterplan_activo, con
+<?php /* 3 · MASTERPLAN — cabecera centrada, plano (solo si config.masterplan_activo, con
      pestañas si el manifiesto trae varias hojas) e inventario en vivo. El "Reservation
      Protocol" de la v3 (deposito de 3.000 €, 10 dias, Hak Sewa) son condiciones de Palm
-     Field: no entra. -->
+     Field: no entra. */ ?>
 <section class="sec sec-lino" id="masterplan">
 <div class="wrap">
   <div class="cab center reveal">
@@ -597,10 +617,10 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
   <div class="mp-grid sin-plano" id="mp-grid">
     <div class="marco" id="masterplan-imagen-bloque" hidden>
       <div id="plan-paginas" hidden></div>
-      <div class="relative w-full select-none" id="plan-wrap">
+      <div id="plan-wrap">
         <!-- Sin src en el HTML: un src="" pide la propia pagina como imagen. Lo pone el JS. -->
         <img id="masterplan-img" alt="Masterplan showing every plot code and surface area" loading="lazy">
-        <div class="absolute inset-0" id="plan-hotspots"></div>
+        <div id="plan-hotspots"></div>
       </div>
       <p class="mp-nota"><span>Tap a plot to find it in the live inventory.</span> <span>Status is live; surface areas shown are project/design measurements, confirmed by survey at Plot Lock — not the registered legal area.</span></p>
     </div>
@@ -633,13 +653,13 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
 </div>
 </section>
 
-<!-- 5 · SEGURIDAD JURÍDICA — retirada 15-sep-2026 (hallazgo Legal en la consulta de
+<?php /* 5 · SEGURIDAD JURÍDICA — retirada 15-sep-2026 (hallazgo Legal en la consulta de
      deploy capa 1) y sigue fuera en la v3: afirmaba Hak Sewa + escrow notarial como un
      HECHO fijo para cualquier proyecto que use esta plantilla. Esa es la estructura real
      de Palm Field (consulta legal 9-sep-2026), no algo que se pueda asumir por plantilla
      para el resto de la cartera. Mientras no exista un campo de tenencia por proyecto en
      deck_config_proyecto, esta seccion se omite entera. Palm Field mantiene la suya en
-     investor-deck/palmfield/index.html, fuera de este sistema. -->
+     investor-deck/palmfield/index.html, fuera de este sistema. */ ?>
 
 <!-- 6 · SITE & DELIVERED VILLAS — galeria de fotos de proyecto con marco interior. -->
 <section class="sec sec-lino" id="documentation">
@@ -693,7 +713,8 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
 
   function $(id){ return document.getElementById(id); }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
-  function fmtMoney(n, cur){ if(n==null) return '—'; return window.lwMoney ? lwMoney(n) : ((cur||'EUR') + ' ' + Number(n).toLocaleString('en-GB')); }
+  // esc() sobre la moneda: viene de la base y el resultado acaba en innerHTML (Seguridad, capa 1).
+  function fmtMoney(n, cur){ if(n==null) return '—'; return window.lwMoney ? lwMoney(n) : (esc(cur||'EUR') + ' ' + Number(n).toLocaleString('en-GB')); }
   function eur(v){ return '<span data-eur="'+Math.round(v)+'">'+(window.lwMoney?lwMoney(v):'€'+Math.round(v).toLocaleString('en-GB'))+'</span>'; }
   function num(v){ var n = Number(v); return isFinite(n) ? n : '—'; }
   // Texto multiidioma venido de la base: cada fila trae sus idiomas dentro, cae al ingles.
@@ -1137,6 +1158,13 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
     if(ULTIMAS_FILAS) pintaPlano(ULTIMAS_FILAS);
   }
 
+  // WhatsApp por parcela (calco de enlaceWaParcela de palmfield/index.html), con el
+  // proyecto dentro. Traducido con el mismo patron de i18n.js que el boton flotante.
+  function enlaceWaParcela(codigo){
+    var txt = traduceFrase('Hello LAWANG, I’m interested in plot ' + codigo + ' at ' + PROYECTO + '.');
+    return 'https://wa.me/' + WA_NUM + '?text=' + encodeURIComponent(txt);
+  }
+
   function pintaListaParcelas(rows){
     var plotsWrap = $('plots-wrap'), plotsCount = $('plots-count');
     ULTIMAS_FILAS = rows;
@@ -1155,10 +1183,13 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
       var fila = document.createElement('div');
       fila.id = 'plot-' + idParcela(row.codigo);
       fila.className = 'fila fila-' + tono;
-      // Sin reserva de autoservicio (decision 1): la parcela libre lleva "Contact us" por
-      // email con el proyecto y el codigo ya en el asunto; las demas, un guion.
+      // Sin reserva de autoservicio (decision 1, sigue en pie): la parcela libre lleva
+      // WhatsApp con el proyecto y el codigo ya escritos, en el idioma del visitante
+      // (v3, 24-sep; antes mailto "Contact us"); las demas, un guion.
       var accion = row.estado === 'disponible'
-        ? '<a class="fila-btn" href="mailto:sales@lawangproperties.com?subject=' + encodeURIComponent(PROYECTO + ' ' + row.codigo) + '">Contact us</a>'
+        ? '<a class="fila-btn fila-wa" target="_blank" rel="noopener" href="' + esc(enlaceWaParcela(row.codigo)) + '"' +
+            ' aria-label="Talk to us on WhatsApp about plot ' + esc(row.codigo) + '">' +
+            '<span class="material-symbols-outlined" aria-hidden="true">chat</span><span>Talk to us on WhatsApp</span></a>'
         : '<span class="fila-guion">—</span>';
       var precioM2 = (row.precio_suelo != null && row.superficie_m2) ? row.precio_suelo / row.superficie_m2 : null;
       var linea1 = precioM2 != null
@@ -1318,7 +1349,7 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
         })
         .catch(function(){ fotosVacias(); return {}; });
 
-      rpc('investor_deck_documentos', { p_proyecto: PROYECTO })
+      var docsListo = rpc('investor_deck_documentos', { p_proyecto: PROYECTO })
         .then(function(docs){
           if(!docs || !docs.length) return;          // sin nada publicado, ni boton ni bloque
           pintaDocs(docs);
@@ -1349,12 +1380,26 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
         })
         .catch(forecastCaido);
 
-      rpc('investor_deck_faq', { p_proyecto: PROYECTO })
+      var faqListo = rpc('investor_deck_faq', { p_proyecto: PROYECTO })
         .then(function(rows){
-          if(!rows || !rows.length){ $('faq-bloque').hidden = true; return; }   // sin preguntas publicadas
+          if(!rows || !rows.length){
+            // Sin preguntas publicadas: fuera el bloque y el enlace «FAQ» del menu (y su
+            // clon del menu movil), que si no llevaria a un panel sin preguntas.
+            $('faq-bloque').hidden = true;
+            Array.prototype.forEach.call(document.querySelectorAll('#nav-principal a[href="#faq"], #menu-movil a[href="#faq"]'), function(a){ a.hidden = true; });
+            return;
+          }
           pintaFaq(rows);
         })
-        .catch(faqCaida);
+        .catch(faqCaida);   // un fallo SI se ve (aviso dentro del panel): no es lo mismo que "no hay"
+
+      // Ni documentos ni FAQ: fuera el panel de cristal entero en vez de una caja vacia
+      // (consulta de deploy capa 1, 24-sep). Las dos promesas resuelven siempre.
+      Promise.all([docsListo, faqListo]).then(function(){
+        if(!$('docs-bloque').hidden || !$('faq-bloque').hidden) return;
+        ocultaSeccion('faq');
+        $('vision').classList.add('sin-panel');
+      });
 
       rpc('investor_deck_parcelas', { p_proyecto: PROYECTO })
         .then(pintaListaParcelas)
