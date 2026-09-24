@@ -123,14 +123,19 @@ p{margin:0}
 .indice a.hecho .ok{color:var(--primary);font-variation-settings:'FILL' 1}
 #hero aside .pie{padding:14px;margin-top:auto}
 #hero aside .pie .btn{width:100%}
+/* Desde 1024px la foto ocupa el hero entero y la tarjeta flota ENCIMA, a la derecha
+   (owner 24-sep). Por debajo se queda apilada: flotando taparía la foto en un móvil. */
 @media (min-width:1024px){
-  #hero{flex-direction:row;height:100vh;min-height:760px}
-  #hero .foto{flex:1 1 auto;height:auto}
-  #hero .cap{left:40px;bottom:44px}
-  #hero aside{width:440px;flex:none;margin:24px 28px 24px 0;border-radius:18px;overflow:hidden auto;border:1px solid var(--stone)}
+  #hero{display:block;height:100vh;min-height:760px}
+  #hero .foto{position:absolute;inset:80px 0 0 0;height:auto;min-height:0}
+  #hero .cap{left:40px;right:540px;bottom:44px}
+  #hero aside{position:absolute;top:104px;right:28px;bottom:24px;width:440px;margin:0;border-radius:18px;
+    overflow:hidden auto;border:1px solid rgba(190,179,165,.7);z-index:3;
+    background:rgba(245,240,230,.93);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    box-shadow:0 20px 50px rgba(27,28,25,.28)}
   #hero .chip{left:40px;top:28px}
 }
-@media (min-width:1280px){#hero aside{width:470px}}
+@media (min-width:1280px){#hero aside{width:470px}#hero .cap{right:570px}}
 
 /* ── Secciones ──────────────────────────────────────────────────────────────────── */
 .sec{padding:88px 0;border-bottom:1px solid rgba(190,179,165,.6)}
