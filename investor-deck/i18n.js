@@ -147,6 +147,10 @@
     'Blocked': { es: 'Bloqueada', id: 'Diblokir' },
     'Not available': { es: 'No disponible', id: 'Tidak tersedia' },
     'Live plot inventory': { es: 'Inventario en vivo', id: 'Ketersediaan Langsung' },
+    // Ubicación (24-sep-2026)
+    'Location': { es: 'Ubicación', id: 'Lokasi' },
+    'Where the Project Is': { es: 'Dónde está el proyecto', id: 'Lokasi Proyek' },
+    'Open in Google Maps': { es: 'Abrir en Google Maps', id: 'Buka di Google Maps' },
     'Contact us': { es: 'Escríbenos', id: 'Hubungi kami' },
     'No plots published yet.': { es: 'Todavía no hay parcelas publicadas.', id: 'Belum ada kavling yang dipublikasikan.' },
 

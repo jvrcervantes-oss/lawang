@@ -174,6 +174,10 @@
       { es: 'Toca una parcela disponible para reservarla. El estado es en vivo; las superficies se confirman por levantamiento topográfico en el Plot Lock.',
         id: 'Ketuk kavling yang tersedia untuk memesannya. Status bersifat langsung; luas dikonfirmasi lewat survei saat Plot Lock.' },
     'Live plot inventory': { es: 'Inventario en vivo', id: 'Ketersediaan Langsung' },
+    // Ubicación (24-sep-2026)
+    'Location': { es: 'Ubicación', id: 'Lokasi' },
+    'Where the Project Is': { es: 'Dónde está el proyecto', id: 'Lokasi Proyek' },
+    'Open in Google Maps': { es: 'Abrir en Google Maps', id: 'Buka di Google Maps' },
     'Reservation Protocol': { es: 'Protocolo de reserva', id: 'Protokol Pemesanan' },
     '1. Reservation deposit': { es: '1. Depósito de reserva', id: '1. Deposit pemesanan' },
     '2. 10-day validity': { es: '2. Validez de 10 días', id: '2. Berlaku 10 hari' },

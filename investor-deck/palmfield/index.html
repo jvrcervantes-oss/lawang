@@ -468,9 +468,13 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
   #hero-puntos{top:auto;bottom:clamp(8px,1.6vh,14px);transform:translateX(-50%)}
 }
 @media(min-width:1024px) and (max-width:1640px){ .hero-texto{bottom:clamp(220px,32vh,280px)} }
+/* Ubicación (24-sep-2026) */
+.ubic-marco{margin-top:clamp(28px,4vw,48px);border-radius:14px;overflow:hidden;box-shadow:0 30px 60px -34px rgba(20,26,17,.5);background:#e9e4d8}
+.ubic-marco iframe{display:block;width:100%;height:min(62vh,520px);border:0}
+.ubic-pie{display:flex;justify-content:center;margin-top:28px}
 </style>
 
-<script src="i18n.js?v=20260924a"></script>
+<script src="i18n.js?v=20260924u"></script>
 </head>
 <body>
 
@@ -631,6 +635,20 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
       </div>
     </div>
   </div>
+</div>
+</section>
+
+<!-- 3b · UBICACIÓN (24-sep-2026, owner: «muéstrala en los investor-decks»). Sale de
+     proyectos.ubicacion_maps por deck_ubicacion_publica() — misma puerta que el resto del
+     deck. Oculta entera si el proyecto no la tiene: nunca un mapa aproximado. -->
+<section class="sec sec-lino" id="ubicacion" hidden>
+<div class="wrap">
+  <div class="cab center">
+    <p class="kicker">Location</p>
+    <h2 class="titulo">Where the Project Is</h2>
+  </div>
+  <div class="ubic-marco" id="ubic-marco" hidden><iframe id="ubic-mapa" title="Project location on Google Maps" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>
+  <p class="ubic-pie"><a class="btn btn-verde" id="ubic-abrir" target="_blank" rel="noopener" href="#"><span class="material-symbols-outlined" aria-hidden="true">location_on</span><span>Open in Google Maps</span></a></p>
 </div>
 </section>
 
@@ -922,6 +940,31 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
       return { src: 'assets/gallery/' + it[0], pie: it[1], tipo: 'foto' };
     }));
   }
+
+  /* Ubicación (24-sep-2026): mapa incrustado si hay coordenadas; con un enlace corto de
+     Maps (no trae coordenadas y el navegador no puede seguirlo) solo el botón. Mismos
+     patrones que el cajón de la intranet (mapaProyecto en intranet/v4/assets/datos.js). */
+  function ubicMapa(t){
+    t = (t || '').trim(); if(!t) return null;
+    var m = t.match(/^(-?\d{1,2}(?:\.\d+)?)\s*[,;]\s*(-?\d{1,3}(?:\.\d+)?)$/);
+    if(m) return { abrir: 'https://www.google.com/maps?q=' + m[1] + ',' + m[2], embed: 'https://maps.google.com/maps?q=' + m[1] + ',' + m[2] + '&z=14&output=embed' };
+    if(!/^https:\/\/([a-z0-9-]+\.)*(google\.[a-z.]+|goo\.gl)\//i.test(t)) return null;
+    var c = t.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || t.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) ||
+            t.match(/[?&](?:q|ll|query|center)=(-?\d+\.\d+)(?:,|%2C)\s*(-?\d+\.\d+)/i);
+    return { abrir: t, embed: c ? 'https://maps.google.com/maps?q=' + c[1] + ',' + c[2] + '&z=14&output=embed' : null };
+  }
+  function pintaUbicacion(valor){
+    var u = ubicMapa(typeof valor === 'string' ? valor : '');
+    var sec = document.getElementById('ubicacion');
+    if(!u || !sec) return;
+    document.getElementById('ubic-abrir').href = u.abrir;
+    if(u.embed){ document.getElementById('ubic-mapa').src = u.embed; document.getElementById('ubic-marco').hidden = false; }
+    sec.hidden = false;
+  }
+  fetch(SB_URL + '/rest/v1/rpc/deck_ubicacion_publica', {
+    method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
+    body: JSON.stringify({ p_proyecto: PROYECTO })
+  }).then(function(r){ return r.ok ? r.json() : null; }).then(pintaUbicacion, function(){});
 
   // Resuelve siempre (nunca rechaza): un fallo aqui no puede tumbar el bloque de
   // modelos, que espera este mismo resultado para saber la foto de cada villa.

@@ -193,6 +193,7 @@ a.enlace{color:inherit;text-decoration:underline}
   transition:transform .16s cubic-bezier(.23,1,.32,1),background .22s,color .22s,border-color .22s}
 .btn:active{transform:scale(.97)}
 .btn-hueso{border-color:rgba(245,240,230,.5);color:var(--rl);background:rgba(245,240,230,.06)} .btn-hueso:hover{background:rgba(245,240,230,.14)}
+.btn-verde{background:var(--tg);color:var(--rl)} .btn-verde:hover{background:var(--tg-dark)}
 .reveal{opacity:0;transform:translateY(28px);filter:blur(4px);transition:opacity .85s var(--ease),transform .85s var(--ease),filter .85s var(--ease)}
 .reveal.in{opacity:1;transform:none;filter:none}
 @media(prefers-reduced-motion:reduce){.reveal{transform:none;filter:none;transition:opacity .4s}}
@@ -473,8 +474,12 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
 
 #fx-nota{padding:14px var(--cpd);background:var(--rl2)}
 #fx-nota p{max-width:var(--cmx);margin:0 auto;font-family:var(--sa);font-size:12px;color:var(--ci2)}
+/* Ubicación (24-sep-2026) */
+.ubic-marco{margin-top:clamp(28px,4vw,48px);border-radius:14px;overflow:hidden;box-shadow:0 30px 60px -34px rgba(20,26,17,.5);background:#e9e4d8}
+.ubic-marco iframe{display:block;width:100%;height:min(62vh,520px);border:0}
+.ubic-pie{display:flex;justify-content:center;margin-top:28px}
 </style>
-<script src="/investor-deck/i18n.js?v=20260924"></script>
+<script src="/investor-deck/i18n.js?v=20260924u"></script>
 </head>
 <body>
 
@@ -635,6 +640,20 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
       </div>
     </div>
   </div>
+</div>
+</section>
+
+<!-- 3b · UBICACIÓN (24-sep-2026, owner: «muéstrala en los investor-decks»). Sale de
+     proyectos.ubicacion_maps por deck_ubicacion_publica() — misma puerta que el resto del
+     deck. Oculta entera si el proyecto no la tiene: nunca un mapa aproximado. -->
+<section class="sec sec-lino" id="ubicacion" hidden>
+<div class="wrap">
+  <div class="cab center">
+    <p class="kicker">Location</p>
+    <h2 class="titulo">Where the Project Is</h2>
+  </div>
+  <div class="ubic-marco" id="ubic-marco" hidden><iframe id="ubic-mapa" title="Project location on Google Maps" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>
+  <p class="ubic-pie"><a class="btn btn-verde" id="ubic-abrir" target="_blank" rel="noopener" href="#"><span class="material-symbols-outlined" aria-hidden="true">location_on</span><span>Open in Google Maps</span></a></p>
 </div>
 </section>
 
@@ -1326,6 +1345,28 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
                plano), que es un estado valido y completo; el inventario en vivo, que es
                el dato, tiene su propio aviso si falla. */ ZONAS = null; });
       }
+
+  /* Ubicación (24-sep-2026): mapa incrustado si hay coordenadas; con un enlace corto de
+     Maps (no trae coordenadas y el navegador no puede seguirlo) solo el botón. Mismos
+     patrones que el cajón de la intranet (mapaProyecto en intranet/v4/assets/datos.js). */
+  function ubicMapa(t){
+    t = (t || '').trim(); if(!t) return null;
+    var m = t.match(/^(-?\d{1,2}(?:\.\d+)?)\s*[,;]\s*(-?\d{1,3}(?:\.\d+)?)$/);
+    if(m) return { abrir: 'https://www.google.com/maps?q=' + m[1] + ',' + m[2], embed: 'https://maps.google.com/maps?q=' + m[1] + ',' + m[2] + '&z=14&output=embed' };
+    if(!/^https:\/\/([a-z0-9-]+\.)*(google\.[a-z.]+|goo\.gl)\//i.test(t)) return null;
+    var c = t.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || t.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) ||
+            t.match(/[?&](?:q|ll|query|center)=(-?\d+\.\d+)(?:,|%2C)\s*(-?\d+\.\d+)/i);
+    return { abrir: t, embed: c ? 'https://maps.google.com/maps?q=' + c[1] + ',' + c[2] + '&z=14&output=embed' : null };
+  }
+  function pintaUbicacion(valor){
+    var u = ubicMapa(typeof valor === 'string' ? valor : '');
+    var sec = document.getElementById('ubicacion');
+    if(!u || !sec) return;
+    document.getElementById('ubic-abrir').href = u.abrir;
+    if(u.embed){ document.getElementById('ubic-mapa').src = u.embed; document.getElementById('ubic-marco').hidden = false; }
+    sec.hidden = false;
+  }
+      rpc('deck_ubicacion_publica', { p_proyecto: PROYECTO }).then(pintaUbicacion, function(){});
 
       // Resuelve siempre (nunca rechaza): modelos y forecast esperan este resultado
       // para saber la foto de cada villa, y un fallo aqui no puede tumbarlos.
