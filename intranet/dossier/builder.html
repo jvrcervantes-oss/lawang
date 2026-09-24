@@ -24,14 +24,14 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=b8d710c2"></script>
+<script src="/contracts/assets/i18n.js?v=4f559273"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
 <script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/guard.js?v=1d256fc0" data-herramienta="dossier,creatividades_ver"></script>
 <!-- Creatividades v4 (24-sep-2026): DOMPurify limpia TODO dossier que no hizo esta
      pestaña (biblioteca, fichero) antes de pintarlo — revisión previa #68, Seguridad #3. -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.6/purify.min.js" integrity="sha384-JEyTNhjM6R1ElGoJns4U2Ln4ofPcqzSsynQkmEc/KGy6336qAZl70tDLufbkla+3" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/frases_vetadas.js?v=7dbfcf0a"></script>
-<script src="/contracts/assets/creatividades.js?v=4b0b5b5e"></script>
+<script src="/contracts/assets/creatividades.js?v=a7403a10"></script>
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
 <script src="/contracts/assets/herramientas.js?v=c209502e"></script>
 <script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="/contracts/assets/topbar.js?v=8444fd68" defer></script>
@@ -84,7 +84,37 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 .pitem .acts button:hover{border-color:var(--dl);color:var(--dl)}
 #addpage{width:100%;font:600 14px var(--sans);border:1.5px dashed #c9c1ad;background:transparent;border-radius:10px;padding:12px;cursor:pointer;color:#8a8474;transition:.15s}
 #addpage:hover{border-color:var(--dl);color:var(--dl)}
-#stage{margin:var(--tbh) 0 0 250px;padding:26px 30px 80px;min-height:100vh}
+#stage{margin:var(--tbh) 280px 0 250px;padding:26px 30px 80px;min-height:100vh;background:#eceae3}
+/* ── Rediseño A (24-sep-2026): miniaturas reales, revisión a la derecha ── */
+body{background:#eceae3}
+#seltools{right:280px}
+.pthumb{position:relative;overflow:hidden;border-radius:4px;background:#fff;margin-bottom:6px;pointer-events:none}
+.pthumb .page{position:absolute;left:0;top:0;transform-origin:0 0;box-shadow:none!important}
+.pitem{padding:8px}
+.pitem .pt{font-size:11px}
+.pitem .pn{font-size:12.5px;font-weight:500}
+#revision{position:fixed;top:var(--tbh);right:0;bottom:0;width:280px;background:var(--card);border-left:1px solid var(--line);overflow-y:auto;padding:16px 18px;z-index:40}
+#revision h3{font-size:11px;letter-spacing:1.6px;text-transform:uppercase;color:#6b6c66;margin:0 0 12px}
+.rev-l{display:flex;gap:10px;align-items:baseline;font-size:13.5px;line-height:1.4;padding:7px 0;border-top:1px solid var(--line)}
+.rev-l:first-child{border-top:0}
+.rev-l b{flex:none;font-weight:600;font-size:12px;letter-spacing:.02em}
+.rev-l.bien b{color:#3F5230}.rev-l.mal b{color:#9E2F26}.rev-l.nota b{color:#6b6c66}
+.rev-nota{font-size:12px;line-height:1.5;color:#6b6c66;margin:14px 0 0}
+.estado-chip{display:inline-flex;align-items:center;padding:4px 11px;border-radius:999px;font-size:12.5px;background:#efeee8;color:#44483f;white-space:nowrap}
+.estado-chip:empty{display:none}
+.estado-chip.pendiente{background:#fbeedd;color:#6b3a08}.estado-chip.aprobada{background:#dfeccf;color:#2f4a1f}
+.estado-chip.publicada{background:#dbe9ea;color:#104C4F}.estado-chip.archivada{background:#f1ebdd;color:#6b5a3f}
+/* Tabla de parcelas del dossier montado desde la base: letra de leer, no de presupuesto
+   de obra (la tabla BOQ va a 6,4 pt porque tiene cientos de filas; esta tiene 16). */
+.pg-tabla.grande .tbl-head .t1{font-size:15pt}
+.pg-tabla.grande .tbl-head .t2{font-size:9pt}
+.pg-tabla.grande .tbl-head .sec{font-size:10.5pt}
+.pg-tabla.grande .tbl-th{font-size:9pt;padding:2.6mm 3mm}
+.pg-tabla.grande .tbl-th .c1,.pg-tabla.grande .trow .c1{width:40mm;text-align:left}
+.pg-tabla.grande .tbl-th .c2{text-align:left}
+.pg-tabla.grande .tbl-body{font-size:11.5pt;line-height:1.3}
+.pg-tabla.grande .trow .c1,.pg-tabla.grande .trow .c2{padding:2.4mm 3mm}
+.pg-tabla.grande .trow{border-bottom:.25mm solid #E4EAE8}
 #pages{zoom:var(--zoom)}
 .sheetwrap{margin:0 auto 46px;width:var(--pw)}
 .sheetwrap .plabel{font-size:22px;color:#a49c8c;margin:0 0 8px 4px;letter-spacing:1px;display:flex;align-items:center;gap:14px}
@@ -301,8 +331,9 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 /* ============ impresión ============ */
 @media print{
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-  #topbar,#sidebar,#modal,#pmodal,#toast,#seltools,.plabel,.slot .rm,.slot .up,.free .rs,.guides,.rtools{display:none!important}
-  #stage{margin:0;padding:0}
+  #topbar,#sidebar,#revision,#modal,#pmodal,#toast,#seltools,.plabel,.slot .rm,.slot .up,.free .rs,.guides,.rtools{display:none!important}
+  #stage{margin:0;padding:0;background:none}
+  body{background:none}
   #pages{zoom:1}
   .sheetwrap{margin:0;width:auto}
   .page{box-shadow:none!important;page-break-after:always;break-after:page}
@@ -322,6 +353,7 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
      que había en fila pasan a tres desplegables por sección; fuera queda solo la
      acción final, Exportar PDF. -->
 <div id="topbar" class="lw-topbar" data-titulo="Dossier">
+  <a class="lw-btn" href="/intranet/v4/creatividades/" data-lwt="Biblioteca">Biblioteca</a>
   <span class="lw-sep"></span>
   <input id="ptitle" class="lw-input" value="Dossier" spellcheck="false" data-lwt-title title="Nombre del dossier (también nombra el PDF)">
 
@@ -331,6 +363,7 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
       <button class="lw-btn" onclick="addFree('text')">+ Texto</button>
       <button class="lw-btn" onclick="addFree('img')">+ Imagen</button>
       <button class="lw-btn" onclick="addFree('rect')">+ Bloque</button>
+      <button class="lw-btn" data-crea onclick="insertarComoSeCompra()" data-lwt="+ «Cómo se compra»">+ «Cómo se compra»</button>
     </div>
   </details>
 
@@ -350,24 +383,20 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
   <details class="lw-menu">
     <summary class="lw-btn">Archivo ▾</summary>
     <div class="lw-menu-list left">
-      <button class="lw-btn" onclick="loadJSON()" data-lwt="Cargar">Cargar</button>
-      <button class="lw-btn" onclick="saveJSON()" data-lwt="Guardar">Guardar</button>
+      <button class="lw-btn" onclick="loadJSON()" data-lwt="Abrir un fichero…">Abrir un fichero…</button>
+      <button class="lw-btn" onclick="saveJSON()" data-lwt="Descargar como fichero">Descargar como fichero</button>
     </div>
   </details>
 
-  <!-- Creatividades v4 (24-sep-2026): montar desde la base y la biblioteca. -->
-  <details class="lw-menu" id="menuCreat">
-    <summary class="lw-btn" data-lwt="Creatividades ▾">Creatividades ▾</summary>
-    <div class="lw-menu-list left">
-      <button class="lw-btn" data-crea onclick="abrirMontar()" data-lwt="Montar desde la base…">Montar desde la base…</button>
-      <button class="lw-btn" data-crea onclick="insertarComoSeCompra()" data-lwt="Añadir «Cómo se compra»">Añadir «Cómo se compra»</button>
-      <button class="lw-btn" data-crea onclick="guardarEnCreatividades()" data-lwt="Guardar en Creatividades">Guardar en Creatividades</button>
-      <a class="lw-btn" href="/intranet/v4/creatividades/" data-lwt="Ir a la biblioteca">Ir a la biblioteca</a>
-    </div>
-  </details>
-  <span id="creatEstado" class="lw-chip" style="font-size:12px;opacity:.85"></span>
+  <!-- Rediseño A (24-sep-2026): montar, guardar y enviar, a la vista. Antes vivían
+       en un cuarto desplegable «Creatividades ▾» y «Montar desde la base» —la forma
+       buena de empezar un dossier— no se encontraba. -->
+  <button class="lw-btn" data-crea onclick="abrirMontar()" data-lwt="Montar desde la base">Montar desde la base</button>
+  <span id="creatEstado" class="estado-chip"></span>
 
   <div class="lw-spacer"></div>
+  <button class="lw-btn" data-crea id="btnGuardarD" onclick="guardarEnCreatividades()" data-lwt="Guardar">Guardar</button>
+  <button class="lw-btn" data-crea id="btnEnviarD" onclick="enviarDossier()" data-lwt="Enviar a aprobar">Enviar a aprobar</button>
   <button class="lw-btn primary" onclick="exportPDF()" data-lwt="Exportar PDF">Exportar PDF</button>
 </div>
 
@@ -412,6 +441,14 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 </div>
 
 <div id="stage"><div id="pages"></div></div>
+
+<!-- Revisión en vivo (rediseño A): lo que antes solo se sabía al pulsar Guardar o
+     Exportar. Lo mismo que bloquea (dossierBloqueado), a la vista mientras se edita. -->
+<aside id="revision" aria-label="Revisión">
+  <h3 data-lwt="Revisión">Revisión</h3>
+  <div id="revLista"></div>
+  <p class="rev-nota" data-lwt="Lo que sale en rojo bloquea guardar y exportar. Las páginas de Legal no se revisan: nombran lo prohibido para negarlo.">Lo que sale en rojo bloquea guardar y exportar. Las páginas de Legal no se revisan: nombran lo prohibido para negarlo.</p>
+</aside>
 
 <div id="modal" onclick="if(event.target===this)closeModal()">
   <div class="box">
@@ -690,7 +727,7 @@ function render(){
     bgIn.value=p.bg||PAGE_BG_DEFAULT[p.type]||'#F5F0E6';
     bgIn.oninput=()=>{p.bg=bgIn.value;page.style.background=p.bg;persist();};
     label.appendChild(bgIn);
-    const page=document.createElement('div');page.className='page pg-'+p.type;page.dataset.id=p.id;
+    const page=document.createElement('div');page.className='page pg-'+p.type+(p.grande?' grande':'');page.dataset.id=p.id;
     page.innerHTML=TYPES[p.type].tpl(p);
     if(p.bg)page.style.background=p.bg;
     // textos de plantilla
@@ -812,13 +849,14 @@ function fitTables(){
   });
 }
 
-function renderList(){
+function renderList(forzar){
   $plist.innerHTML='';
   state.pages.forEach((p,idx)=>{
     const t=TYPES[p.type];
     const div=document.createElement('div');div.className='pitem';div.dataset.id=p.id;
     const firstText=Object.values(p.d)[Object.keys(p.d).findIndex(k=>['title','name','big','sec','contact'].includes(k))]??Object.values(p.d)[0]??'';
     div.innerHTML=`<div class="pt">${idx+1} · ${t.name}</div><div class="pn">${String(firstText).replace(/<[^>]*>/g,' ')||'—'}</div>`;
+    div.insertBefore(miniPagina(p,forzar!==false),div.firstChild);
     const acts=document.createElement('div');acts.className='acts';
     [['↑','Subir',()=>move(idx,-1)],['↓','Bajar',()=>move(idx,1)],['⧉','Duplicar',()=>dup(idx)],['✕','Eliminar',()=>del(idx)]]
       .forEach(([txt,tip,fn])=>{const b=document.createElement('button');b.textContent=txt;b.title=tip;b.onclick=e=>{e.stopPropagation();fn();};acts.appendChild(b);});
@@ -826,6 +864,35 @@ function renderList(){
     div.onclick=()=>{setCur(p.id);document.getElementById('wrap_'+p.id).scrollIntoView({behavior:'smooth',block:'start'});};
     $plist.appendChild(div);
   });
+}
+/* Miniatura de la página (rediseño A): una copia de la página YA pintada, escalada.
+   Sin data-id (markCur y el resto buscan `.page[data-id]`), sin controles de edición
+   y sin eventos. Se rehace en cada render(); al escribir, `revisaDossier` la refresca. */
+const MINIS={};
+function miniPagina(p,forzar){
+  if(!forzar&&MINIS[p.id])return MINIS[p.id];
+  const caja=document.createElement('div');caja.className='pthumb';MINIS[p.id]=caja;
+  const src=document.querySelector('.page[data-id="'+p.id+'"]');
+  if(!src)return caja;
+  // En px de la hoja SIN el zoom de #pages: el tamaño sale del estado, no del DOM.
+  const W=((state.size&&state.size.w)||297)*MM, H=((state.size&&state.size.h)||210)*MM, ancho=206, k=ancho/W;
+  caja.style.width=ancho+'px';caja.style.height=Math.round(H*k)+'px';
+  const c=src.cloneNode(true);
+  c.removeAttribute('data-id');c.classList.remove('cur');
+  c.querySelectorAll('[contenteditable]').forEach(n=>n.removeAttribute('contenteditable'));
+  c.querySelectorAll('.rm,.up,.rs,.rtools,.guides').forEach(n=>n.remove());
+  c.style.transform='scale('+k+')';
+  caja.appendChild(c);
+  return caja;
+}
+// Al escribir: solo la miniatura de ESA página, y con pausa (no en cada tecla).
+let _miniT=null;
+function refrescaMini(p){
+  clearTimeout(_miniT);
+  _miniT=setTimeout(()=>{
+    const vieja=document.querySelector('.pitem[data-id="'+p.id+'"] .pthumb');
+    if(vieja)vieja.replaceWith(miniPagina(p,true));
+  },500);
 }
 function setCur(id){curPage=id;markCur();}
 function markCur(){
@@ -850,7 +917,7 @@ $pages.addEventListener('input',e=>{
   const el=e.target.closest('[data-e]');
   if(el){
     const page=el.closest('.page');const p=state.pages.find(x=>x.id===page.dataset.id);
-    if(p){p.d[el.dataset.e]=el.innerHTML;persist();renderList();markCur();}
+    if(p){p.d[el.dataset.e]=el.innerHTML;persist();renderList(false);markCur();refrescaMini(p);}
     return;
   }
   const fEl=e.target.closest('.free.kind-text');
@@ -1211,6 +1278,7 @@ function snapshot(){state.title=document.getElementById('ptitle').value.trim()||
 function persist(){
   try{localStorage.setItem(LS_KEY,JSON.stringify(snapshot()));}
   catch(_){/* cuota llena (muchas imágenes): el autosave deja de cubrir — usar Guardar */}
+  if(window.revisaDossierPronto)revisaDossierPronto();
 }
 function saveJSON(){
   const s=snapshot();
@@ -1418,7 +1486,7 @@ async function dossierBloqueado(accion){
   const faltaLegal = lwFrases.hablaDeTenencia(textosDossier()) && !(state.pages||[]).some(p => p.legal === 'como_se_compra');
   if (!hall.length && !faltaLegal) return false;
   const li = hall.map(h => '<li><b>«' + escD(h.frase) + '»</b>: ' + escD(lwT(h.motivo)) + '</li>');
-  if (faltaLegal) li.push('<li>' + escD(lwT('El dossier habla de la titularidad: añade la página «Cómo se compra» (menú Creatividades), que explica las dos rutas.')) + '</li>');
+  if (faltaLegal) li.push('<li>' + escD(lwT('El dossier habla de la titularidad: añade la página «Cómo se compra» (menú Insertar), que explica las dos rutas.')) + '</li>');
   await lwConfirmar({ titulo: lwT('Este dossier no se puede ') + accion,
     cuerpo: '<ul>' + li.join('') + '</ul><p>' + escD(lwT('Corrígelo y vuelve a intentarlo.')) + '</p>',
     confirmar: lwT('Entendido'), tono: 'peligro' });
@@ -1498,6 +1566,7 @@ async function montarDesdeBase(){
     // Parcelas disponibles: código y superficie, SIN precio (owner, 24-sep). Fecha en la cabecera (Legal #4).
     trozos(D.parcelas, 16).forEach(tr => {
       const pg = newPage('tabla');
+      pg.grande = true; pg.tc = '#104C4F'; pg.bc = '#DCE7E4'; pg.hc = '#EEF3F1';   // rediseño A: legible
       pg.d = { t1: ES ? 'PARCELAS DISPONIBLES' : 'AVAILABLE PLOTS', t2: escD(D.proyecto.nombre),
                sec: (ES ? 'Disponibilidad a ' : 'Availability as of ') + fechaTxt,
                h1: ES ? 'Parcela' : 'Plot', h2: ES ? 'Superficie' : 'Area', fl:'', fr:'' };
@@ -1572,21 +1641,81 @@ async function insertarComoSeCompra(){
 /* ---------- biblioteca ---------- */
 function pintaCreat(){
   const el = document.getElementById('creatEstado');
-  el.textContent = CREAT.id ? (lwT('Biblioteca') + ': ' + lwT(lwCreatividades.ESTADOS[CREAT.estado] || CREAT.estado)) : '';
+  el.className = 'estado-chip' + (CREAT.estado ? ' ' + CREAT.estado : '');
+  el.textContent = CREAT.id ? lwT(lwCreatividades.ESTADOS[CREAT.estado] || CREAT.estado) : '';
+  const congelado = !!CREAT.estado && CREAT.estado !== 'borrador';
+  const g = document.getElementById('btnGuardarD'), e = document.getElementById('btnEnviarD');
+  if (g) g.textContent = lwT(congelado ? 'Guardar como copia' : 'Guardar');
+  if (e) e.hidden = congelado;
 }
+
+/* Portada para la biblioteca: la imagen de fondo de la primera página que tenga una,
+   recortada a 640×452. Si no se puede leer (una URL sin CORS), el dossier se guarda
+   igual, sin miniatura: la biblioteca pinta entonces una portada tipográfica. */
+async function portadaDossier(){
+  try {
+    const p = (state.pages || []).find(x => x.img && x.img.bg);
+    if (!p) return null;
+    const r = await fetch(p.img.bg); if (!r.ok) return null;
+    const bmp = await createImageBitmap(await r.blob());
+    const W = 640, H = 452, c = document.createElement('canvas'); c.width = W; c.height = H;
+    const k = Math.max(W / bmp.width, H / bmp.height), dw = bmp.width * k, dh = bmp.height * k;
+    c.getContext('2d').drawImage(bmp, (W - dw) / 2, (H - dh) / 2, dw, dh);
+    return await new Promise(res => c.toBlob(res, 'image/png'));
+  } catch(_) { return null; }
+}
+
+async function enviarDossier(){
+  if (CREAT.estado && CREAT.estado !== 'borrador') return;
+  if (!(await lwConfirmar({ titulo: lwT('¿Enviar a aprobar?'),
+        cuerpo: '<p>' + escD(lwT('Se guarda tal como está y un admin lo revisa. Mientras espera no se puede editar; si hay que cambiar algo, te lo devuelve.')) + '</p>',
+        confirmar: lwT('Enviar') }))) return;
+  const fila = await guardarEnCreatividades();
+  if (!fila) return;
+  try {
+    const r = await lwCreatividades.cambiarEstado(fila.id, 'pendiente');
+    CREAT.estado = (r && r.estado) || 'pendiente'; pintaCreat();
+    toast(lwT('Enviado a aprobar ✓'));
+  } catch(e){ toastMal(lwT('No se pudo enviar: ') + ((e && e.message) || e)); }
+}
+
+/* Revisión en vivo: las MISMAS dos reglas que bloquean (dossierBloqueado) y, como nota,
+   si hay precios sin su pie con fecha. */
+function revisaDossier(){
+  const caja = document.getElementById('revLista'); if (!caja || !state) return;
+  const t = textosDossier();
+  const hall = lwFrases.revisa(t);
+  const tenencia = lwFrases.hablaDeTenencia(t);
+  const conLegal = (state.pages || []).some(p => p.legal === 'como_se_compra');
+  const filas = [];
+  const fila = (cls, et, txt) => filas.push('<div class="rev-l ' + cls + '"><b>' + escD(lwT(et)) + '</b><span>' + txt + '</span></div>');
+  if (hall.length) hall.forEach(h => fila('mal', 'Falta', '«' + escD(h.frase) + '»: ' + escD(lwT(h.motivo))));
+  else fila('bien', 'Bien', escD(lwT('Sin frases que Legal no deja')));
+  if (tenencia && !conLegal) fila('mal', 'Falta', escD(lwT('Habla de la titularidad: añade «Cómo se compra» (menú Insertar).')));
+  else if (conLegal) fila('bien', 'Bien', escD(lwT('«Cómo se compra» incluida')));
+  else fila('nota', 'Nota', escD(lwT('Sin «Cómo se compra»: no hace falta mientras no hable de la titularidad.')));
+  const hayPrecio = (state.pages || []).some(p => p.type === 'villa' && p.d && String(p.d.price || '').trim());
+  const hayPie = (state.pages || []).some(p => /\d{4}/.test(String((p.d && p.d.legal) || '')) && /precio|price/i.test(String((p.d && p.d.legal) || '')));
+  if (hayPrecio) fila(hayPie ? 'bien' : 'mal', hayPie ? 'Bien' : 'Falta', escD(lwT(hayPie ? 'Pie de precios con fecha' : 'Hay precios sin el pie de precios con fecha (contraportada)')));
+  caja.innerHTML = filas.join('');
+}
+let _revT = null;
+function revisaDossierPronto(){ clearTimeout(_revT); _revT = setTimeout(revisaDossier, 400); }
+window.revisaDossierPronto = revisaDossierPronto;
 async function guardarEnCreatividades(){
-  if (await dossierBloqueado(lwT('guardar'))) return;
+  if (await dossierBloqueado(lwT('guardar'))) return null;
   try {
     const s = snapshot();
     const meta = s.meta || {};
     const id = CREAT.estado && CREAT.estado !== 'borrador' ? null : CREAT.id;   // aprobado = copia nueva
     const fila = await lwCreatividades.guardar({ id: id, tipo:'dossier', titulo: s.title,
       proyecto_id: meta.proyecto_id || null, formato: s.sizeKey || null, precios_a: meta.precios_a || null,
-      estado: s, fotoIds: meta.foto_ids || [], modeloIds: meta.modelo_ids || [] });
+      estado: s, portada: await portadaDossier(), fotoIds: meta.foto_ids || [], modeloIds: meta.modelo_ids || [] });
     CREAT = { id: fila.id, estado: fila.estado }; pintaCreat();
     history.replaceState(null, '', location.pathname + '?id=' + encodeURIComponent(fila.id));
     toast(lwT(id ? 'Borrador actualizado ✓' : 'Guardado en Creatividades ✓'));
-  } catch(e){ toastMal(lwT('No se pudo guardar: ') + ((e && e.message) || e)); }
+    return fila;
+  } catch(e){ toastMal(lwT('No se pudo guardar: ') + ((e && e.message) || e)); return null; }
 }
 async function reabrirDeCreatividades(id){
   try {
@@ -1595,7 +1724,7 @@ async function reabrirDeCreatividades(id){
     state = migrate(limpiaDossier(estado)); uid = maxUid(state); curPage = null;
     CREAT = { id: fila.id, estado: fila.estado }; pintaCreat();
     document.getElementById('ptitle').value = state.title || 'Dossier';
-    syncSizeSel(); applySize(); render();
+    syncSizeSel(); applySize(); render(); revisaDossier();
     if (fila.estado !== 'borrador') toast(lwT('En la biblioteca: ') + lwT(lwCreatividades.ESTADOS[fila.estado]).toLowerCase() + lwT('. Al guardar se crea una copia.'));
   } catch(e){ toastMal(lwT('No se pudo abrir el dossier: ') + ((e && e.message) || e)); }
 }
@@ -1605,6 +1734,7 @@ async function reabrirDeCreatividades(id){
   const f = a && a.ficha;
   const hace = f && (f.rol === 'super_admin' || (f.herramientas||[]).indexOf('dossier') >= 0);
   if (!hace) document.querySelectorAll('[data-crea]').forEach(b => b.remove());
+  pintaCreat(); revisaDossier();
   const id = new URLSearchParams(location.search).get('id');
   if (id && /^[0-9a-f-]{36}$/i.test(id)) reabrirDeCreatividades(id);
 });

@@ -62,7 +62,7 @@
 
   /* Guarda (crea o actualiza un BORRADOR). `o`:
      { id?, tipo:'pieza'|'dossier', titulo, proyecto_id?, formato?, arquetipo?, precios_a?,
-       estado: <objeto del editor>, png?: Blob, fotoIds?: [uuid], modeloIds?: [uuid] }
+       estado: <objeto del editor>, png?: Blob, portada?: Blob, fotoIds?: [uuid], modeloIds?: [uuid] }
      Devuelve la fila guardada. */
   async function guardar(o) {
     var c = await sb();
@@ -86,6 +86,12 @@
     if (o.png) {
       cambios.path = id + '/pieza-' + ts + '.png';
       falla(await c.storage.from(BUCKET).upload(cambios.path, o.png, { contentType: 'image/png', upsert: false }));
+    }
+    // Miniatura de la portada de un dossier (rediseño A, 24-sep): la biblioteca la
+    // enseña en vez de una caja gris. Una pieza no la necesita: su PNG ya es la imagen.
+    if (o.portada) {
+      cambios.portada_path = id + '/portada-' + ts + '.png';
+      falla(await c.storage.from(BUCKET).upload(cambios.portada_path, o.portada, { contentType: 'image/png', upsert: false }));
     }
     var fila = falla(await c.from('creatividades').update(cambios).eq('id', id).select('*').single());
     // Enlaces: se reponen enteros. La base rechaza tocarlos si ya no es borrador.
@@ -120,7 +126,7 @@
   async function listar(filtro) {
     var c = await sb();
     var q = c.from('creatividades')
-      .select('id, tipo, titulo, proyecto_id, formato, arquetipo, estado, path, estado_path, lleva_render, precios_a, origen, creado_por, creado_en, actualizado_en, aprobada_en, publicada_en, archivada_en')
+      .select('id, tipo, titulo, proyecto_id, formato, arquetipo, estado, path, estado_path, portada_path, lleva_render, precios_a, origen, creado_por, creado_en, actualizado_en, enviada_por, enviada_en, aprobada_en, publicada_en, archivada_en')
       .order('creado_en', { ascending: false }).limit(500);
     if (filtro && filtro.tipo) q = q.eq('tipo', filtro.tipo);
     if (filtro && filtro.estado) q = q.eq('estado', filtro.estado);
@@ -181,7 +187,10 @@
     return (r && r[0]) || null;
   }
 
-  var ESTADOS = { borrador: 'Borrador', aprobada: 'Aprobada', publicada: 'Publicada', archivada: 'Archivada' };
+  /* `pendiente` = «para aprobar» (rediseño A, 24-sep): quien hace la pieza la envía
+     y un admin la aprueba o la devuelve. Congelada como cualquier estado que no es
+     borrador: lo que se aprueba es lo que se envió. */
+  var ESTADOS = { borrador: 'Borrador', pendiente: 'Para aprobar', aprobada: 'Aprobada', publicada: 'Publicada', archivada: 'Archivada' };
 
   window.lwCreatividades = {
     guardar: guardar, abrir: abrir, listar: listar, cambiarEstado: cambiarEstado,
