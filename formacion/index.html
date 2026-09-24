@@ -173,7 +173,7 @@ ul.lista li .ms{font-size:18px;color:var(--tg);margin-top:2px}
 
 /* Paso 1: la fórmula del producto */
 .formula{display:grid;gap:12px;align-items:stretch}
-@media (min-width:1024px){.formula{grid-template-columns:1fr auto 1fr auto 1fr auto 1.1fr}}
+@media (min-width:1024px){.formula{grid-template-columns:1fr auto 1fr auto 1fr}}
 .formula .op{display:flex;align-items:center;justify-content:center;font-family:var(--ff-h);font-size:40px;color:var(--stone)}
 .pieza{border-radius:18px;padding:22px;color:var(--linen);display:flex;flex-direction:column;gap:6px;min-height:190px}
 .pieza .ms{font-size:28px;opacity:.9}
@@ -205,6 +205,30 @@ ul.lista li .ms{font-size:18px;color:var(--tg);margin-top:2px}
 .nota--ro .ms{color:var(--be)}
 .proyectos{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 .proyectos span{border:1px solid var(--stone);background:var(--linen);border-radius:999px;padding:6px 12px;font-size:13px;color:var(--ash)}
+
+.subhead{margin:56px 0 18px}
+.subhead .lbl{color:var(--tg)}
+.subhead h3{font-size:clamp(28px,3vw,36px);margin-top:6px}
+.proys{margin-top:0}
+@media (min-width:1200px){.proys{grid-template-columns:repeat(4,1fr)}}
+.proys .villa{cursor:default}
+.proys .villa:hover{transform:none}
+.proys .ph{aspect-ratio:16/10;position:relative}
+.proys .ph i{position:absolute;left:10px;top:10px;font-style:normal;font-size:10.5px;letter-spacing:.06em;
+  background:rgba(251,249,244,.9);color:var(--ash);border-radius:999px;padding:3px 9px}
+.proys .ph--sin{background:linear-gradient(135deg,#3a4146,#2e3437)}
+.proys .ph--sin{display:flex;align-items:center;justify-content:center}
+.proys .ph--sin::before{content:'landscape';font-family:'Material Symbols Outlined';font-size:56px;color:rgba(245,240,230,.14);-webkit-font-feature-settings:'liga'}
+.proys .villa .b h3{font-size:21px}
+.mat{display:flex;flex-direction:column;gap:8px;background:var(--paper);border:1px solid var(--stone);border-radius:18px;padding:24px}
+.mat .ic{width:44px;height:44px;border-radius:12px;background:rgba(16,76,79,.08);color:var(--dl);display:flex;align-items:center;justify-content:center}
+.mat h3{font-size:25px;margin-top:6px}
+.mat p{font-size:14.5px;color:var(--muted)}
+.mat .uso{font-size:13.5px;color:var(--tg);font-weight:500;margin-top:2px}
+.mat .ej{margin-top:auto;padding-top:14px;border-top:1px solid rgba(190,179,165,.5);display:inline-flex;align-items:center;gap:6px;
+  font-size:13px;font-weight:600;color:var(--dl);text-decoration:none}
+.mat .ej .ms{font-size:16px}
+.mat .ej:hover{text-decoration:underline}
 
 /* Paso 2: perfiles */
 .perfil{border-radius:18px;overflow:hidden;border:1px solid var(--stone);background:var(--paper);display:flex;flex-direction:column}
@@ -422,7 +446,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     <div>
       <span class="lbl">Paso 1 · El producto</span>
       <h2>Lo que vendemos</h2>
-      <p class="lead">No vendemos casas terminadas. Ofrecemos un derecho sobre una parcela en uno de nuestros proyectos y la construcción, llave en mano, de una villa nueva sobre ella. Son tres decisiones que el cliente toma contigo, y juntas dan un precio que queda por escrito antes de firmar.</p>
+      <p class="lead">No vendemos casas terminadas. Ofrecemos un derecho sobre una parcela en uno de nuestros proyectos y la construcción, llave en mano, de una villa nueva sobre ella. Son dos decisiones que el cliente toma contigo, y juntas dan un precio que queda por escrito antes de firmar.</p>
     </div>
     <button class="hecho-btn" data-hecho="producto" aria-pressed="false"><span class="ms">check_circle</span>Paso leído</button>
   </div>
@@ -430,9 +454,7 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
   <div class="formula reveal">
     <div class="pieza pieza--tg"><span class="ms">landscape</span><h3>La parcela</h3><p>Un derecho sobre ella (arrendamiento Hak Sewa o HGB, según el proyecto), no la propiedad de la tierra. Cada proyecto tiene su plano, sus tamaños y su contrato.</p></div>
     <div class="op">+</div>
-    <div class="pieza pieza--dl"><span class="ms">cottage</span><h3>El modelo de villa</h3><p>Uno de los seis del catálogo, de 1 a 4 dormitorios. Cada uno tiene su propia landing con fotos, planos y configurador.</p></div>
-    <div class="op">+</div>
-    <div class="pieza pieza--be"><span class="ms">roofing</span><h3>Cubierta y extras</h3><p>La cubierta cambia el precio de la villa. Los extras (piscina, amueblado…) se suman aparte.</p></div>
+    <div class="pieza pieza--dl"><span class="ms">cottage</span><h3>La villa</h3><p>Uno de los seis modelos del catálogo, de 1 a 4 dormitorios, con la cubierta y los extras que elija el cliente.</p></div>
     <div class="op">=</div>
     <div class="pieza pieza--res"><span class="ms">contract</span><h3>Precio cerrado</h3><p>Parcela + villa llave en mano. Lo calcula el Generador de contratos con los precios vigentes; tú no lo calculas a mano.</p></div>
   </div>
@@ -446,28 +468,48 @@ ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
     <a class="villa" href="/modelo/temple" target="_blank" rel="noopener"><div class="ph ph--sin">Fotos en su landing</div><div class="b"><h3>Temple</h3><span>4 dorm.</span></div></a>
   </div>
 
-  <div class="grid g2 reveal" style="margin-top:28px">
-    <div class="card">
-      <span class="lbl" style="color:var(--tg)">Proyectos con parcelas a la venta</span>
-      <h3 style="margin-top:8px">Dónde construimos</h3>
-      <div class="proyectos">
-        <span>Palm Field W5</span><span>Bonian Village</span><span>Tamarind Rise</span><span>Sumba Hills</span>
-        <span>Inti Living W6</span><span>Java Sunset S2</span><span>Tangkuban Village</span><span>Riverfront I y II</span>
-      </div>
-      <p style="margin-top:14px">Quién firma cada parte, la parcela y la obra, lo dice el contrato de cada proyecto. Lista a 24-sep-2026. Qué parcela queda libre cambia cada semana: <b>míralo siempre en Proyectos de la intranet</b> antes de ofrecer una, nunca de memoria ni en una captura vieja.</p>
-    </div>
-    <div class="card">
-      <span class="lbl" style="color:var(--tg)">Qué enseñar al cliente</span>
-      <h3 style="margin-top:8px">El material ya está hecho</h3>
-      <ul class="lista">
-        <li><span class="ms">link</span><span><b>Landing de cada villa</b> (<code>/modelo/dali</code>, <code>/modelo/dream</code>…): fotos, distribución, cubiertas y un configurador con precio.</span></li>
-        <li><span class="ms">link</span><span><b>Landing de proyecto</b> como <code>/palmfield</code>: el proyecto entero, con tamaños de parcela.</span></li>
-        <li><span class="ms">link</span><span><b>Investor deck</b> del proyecto, si está activado (<code>/investor-deck/palmfield/</code>, <code>/investor-deck/bonian-village/</code>…).</span></li>
-      </ul>
-    </div>
+  <div class="subhead reveal">
+    <span class="lbl">Dónde construimos</span>
+    <h3>Los proyectos</h3>
+  </div>
+  <div class="villas proys reveal" aria-label="Proyectos">
+    <div class="villa"><div class="ph"><img loading="lazy" src="/assets/img/formacion/palm-field.webp" alt="Palm Field W5, visualización del masterplan"><i>Visualización</i></div><div class="b"><h3>Palm Field W5</h3><span>Balian · Bali</span></div></div>
+    <div class="villa"><div class="ph"><img loading="lazy" src="/assets/img/formacion/sumba-hills.webp" alt="Costa de Sumba Hills desde el aire"></div><div class="b"><h3>Sumba Hills</h3><span>Sumba</span></div></div>
+    <div class="villa"><div class="ph"><img loading="lazy" src="/assets/img/formacion/riverfront.webp" alt="Riverfront, render de una villa"><i>Render</i></div><div class="b"><h3>Riverfront I y II</h3><span>Kaba-Kaba · Bali</span></div></div>
+    <div class="villa"><div class="ph ph--sin"></div><div class="b"><h3>Bonian Village</h3><span>Bali</span></div></div>
+    <div class="villa"><div class="ph ph--sin"></div><div class="b"><h3>Tamarind Rise</h3><span>Bali</span></div></div>
+    <div class="villa"><div class="ph ph--sin"></div><div class="b"><h3>Inti Living W6</h3><span>Bali</span></div></div>
+    <div class="villa"><div class="ph ph--sin"></div><div class="b"><h3>Tangkuban Village</h3><span>Denpasar · Bali</span></div></div>
+    <div class="villa"><div class="ph ph--sin"></div><div class="b"><h3>Java Sunset S2</h3><span>Sumba</span></div></div>
   </div>
 
-  <div class="nota reveal"><span class="ms">info</span><span><b>Los precios no están en esta guía a propósito.</b> Cambian (hay un corte de precios al pasar a 2027) y un precio copiado en un PDF viejo es justo el que acaba en un contrato equivocado. El precio bueno es el que da la intranet ese día.</span></div>
+  <div class="subhead reveal">
+    <span class="lbl">Qué enseñar al cliente</span>
+    <h3>El material ya está hecho</h3>
+  </div>
+  <div class="grid g3 reveal">
+    <div class="mat">
+      <span class="ic ms">cottage</span>
+      <h3>Landing de la villa</h3>
+      <p>Una página por modelo: fotos, distribución, las cubiertas que se pueden elegir y un configurador que da el precio de la villa según lo que marque el cliente.</p>
+      <span class="uso">Cuándo: cuando ya sabes qué villa encaja con él. Mándale una, no las seis.</span>
+      <a class="ej" href="/modelo/dali" target="_blank" rel="noopener">Ejemplo: Villa Dali<span class="ms">arrow_outward</span></a>
+    </div>
+    <div class="mat">
+      <span class="ic ms">map</span>
+      <h3>Landing del proyecto</h3>
+      <p>El proyecto entero en una página: dónde está, cómo es el terreno, los tamaños de parcela y las villas que se pueden construir allí.</p>
+      <span class="uso">Cuándo: en el primer contacto, para que entienda el sitio antes que la casa.</span>
+      <a class="ej" href="/palmfield" target="_blank" rel="noopener">Ejemplo: Palm Field<span class="ms">arrow_outward</span></a>
+    </div>
+    <div class="mat">
+      <span class="ic ms">slideshow</span>
+      <h3>Investor deck</h3>
+      <p>La presentación completa del proyecto para quien lo mira como inversión: plano de parcelas, fotos y el ejemplo económico de una parcela concreta. Existe solo en los proyectos que lo tienen activado.</p>
+      <span class="uso">Cuándo: con el comprador que quiere alquilar, antes de la videollamada.</span>
+      <a class="ej" href="/investor-deck/palmfield/" target="_blank" rel="noopener">Ejemplo: deck de Palm Field<span class="ms">arrow_outward</span></a>
+    </div>
+  </div>
 </div>
 </section>
 
