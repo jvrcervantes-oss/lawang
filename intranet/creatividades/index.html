@@ -21,14 +21,14 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=9fb756b3"></script>
-<script src="/contracts/assets/herramientas.js?v=5bbcb0d0"></script>
+<script src="/contracts/assets/i18n.js?v=c90707f3"></script>
+<script src="/contracts/assets/herramientas.js?v=c209502e"></script>
 <script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="/contracts/assets/topbar.js?v=8444fd68" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- Con las DOS herramientas, comas: entra quien tenga cualquiera de las dos
      (guard.js, 7-ago-2026). Bloquearlo a una sola dejaría fuera a quien solo
      tiene la otra. -->
-<script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/guard.js?v=1d256fc0" data-herramienta="dossier,creatividades"></script>
+<script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/guard.js?v=1d256fc0" data-herramienta="dossier,creatividades,creatividades_ver"></script>
 <style>
   /* ============================================================================
      Creatividades — visor de la sección unificada (7-ago-2026)
@@ -114,6 +114,14 @@
       </div>
 
       <div class="destinos">
+        <!-- Biblioteca (24-sep-2026, Creatividades v4): lo guardado y su estado. Es la
+             portada de la v4; aquí se enlaza para que la clásica no se quede sin ella. -->
+        <a class="destino" href="/intranet/v4/creatividades/">
+          <i class="ph ph-books ic" aria-hidden="true"></i>
+          <h2 data-lwt="Biblioteca">Biblioteca</h2>
+          <p data-lwt="Las piezas y los dossiers guardados, con su estado. Lo aprobado lo descargan los comerciales.">Las piezas y los dossiers guardados, con su estado. Lo aprobado lo descargan los comerciales.</p>
+          <span class="ir"><span data-lwt="Abrir la biblioteca">Abrir la biblioteca</span> <i class="ph ph-arrow-right" aria-hidden="true"></i></span>
+        </a>
         <a class="destino" href="/intranet/dossier/builder.html">
           <i class="ph ph-book-open ic" aria-hidden="true"></i>
           <h2 data-lwt="Dossiers">Dossiers</h2>

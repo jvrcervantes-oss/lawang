@@ -84,7 +84,10 @@ const corsFor = (req: Request) => {
 // y no se podía quitar sin quitar Operaciones. Clave propia y, A PROPÓSITO, sin
 // concedérsela a nadie (al revés que 'vencimientos' el 18-ago): solo la ve un
 // super_admin, que `puede()` deja pasar siempre.
-const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte', 'leads', 'closers', 'ranking', 'reparto', 'cuentas', 'comisiones', 'reservas', 'modelos', 'asistente', 'recibos', 'comisiones_reparto', 'comisiones_condiciones', 'comisiones_equipos', 'gastos', 'bancos'];
+const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte', 'leads', 'closers', 'ranking', 'reparto', 'cuentas', 'comisiones', 'reservas', 'modelos', 'asistente', 'recibos', 'comisiones_reparto', 'comisiones_condiciones', 'comisiones_equipos', 'gastos', 'bancos', 'creatividades_ver'];
+// 'creatividades_ver' (24-sep-2026, encargo Creatividades v4, D2): el comercial VE y
+// descarga las piezas y dossiers APROBADOS. No escribe en ninguna tabla ni bucket: lo
+// garantiza la RLS de `creatividades` y de storage (revisión previa #68, Seguridad).
 // 'bancos' (24-sep-2026, módulo Bancos y conciliación), redesplegada con la misma receta.
 // 'gastos' (24-sep-2026, módulo Gastos y proveedores). Redesplegada el mismo día
 // (LAW-304) desde una carpeta temporal con COPIA REAL de este fichero: en

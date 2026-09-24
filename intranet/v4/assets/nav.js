@@ -283,7 +283,7 @@
        falta tenerlas asignadas, como en el hub vivo. */
   var CLAVE_MENU = {
     leads: 'leads', operaciones: 'operaciones', soporte: 'soporte', vencimientos: 'vencimientos',
-    contratos: 'contratos', asistente: 'asistente', creatividades: ['dossier', 'creatividades'],
+    contratos: 'contratos', asistente: 'asistente', creatividades: ['dossier', 'creatividades', 'creatividades_ver'],
     facturas: 'facturas', recibos: 'recibos', comisiones: ['comisiones', 'comisiones_reparto', 'comisiones_condiciones', 'comisiones_equipos'], reservas: 'reservas', reparto: 'comisiones_reparto', condiciones: 'comisiones_condiciones', 'equipos-venta': 'comisiones_equipos',
     proyectos: 'unidades', modelos: 'modelos', obra: 'obra', compradores: 'compradores',
     usuarios: 'usuarios', cuentas: 'cuentas', gastos: 'gastos', bancos: 'bancos'

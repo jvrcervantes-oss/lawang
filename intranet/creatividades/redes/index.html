@@ -19,12 +19,15 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=9fb756b3"></script>
+<script src="/contracts/assets/i18n.js?v=c90707f3"></script>
 <script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="/contracts/assets/topbar.js?v=8444fd68" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/guard.js?v=1d256fc0" data-herramienta="creatividades"></script>
 <script src="/contracts/assets/suite-comun.js?v=24701ad2"></script>
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
+<!-- Creatividades v4 (24-sep-2026): la lista de Legal y la biblioteca, compartidas con el dossier. -->
+<script src="/contracts/assets/frases_vetadas.js?v=7dbfcf0a"></script>
+<script src="/contracts/assets/creatividades.js?v=4b0b5b5e"></script>
 
 <!-- ═══════════════════════════════════════════════════════════════════════════════
      CREATIVIDADES — editor visual de piezas de pauta (Instagram/Facebook).
@@ -76,6 +79,49 @@
   .foto img{ position:absolute; display:block; max-width:none }
   .velo-top{ position:absolute; left:0; right:0; top:0; pointer-events:none }
   .velo-bot{ position:absolute; left:0; right:0; bottom:0; pointer-events:none }
+
+  /* ── Tipos de pieza (24-sep-2026, Creatividades v4) ─────────────────────────
+     «Anuncio» es la pieza de siempre. Los otros cuatro salen del feed real de
+     Lawang (memoria creatividades_v4): foto a sangre y texto encima, sin botón.
+     Son CONFIGURACIONES de los mismos bloques, no otra maqueta: el guardrail de
+     legibilidad mide igual todo lo que lleve data-check. */
+  .foto2{ position:absolute; left:0; right:0; bottom:0; height:50%; overflow:hidden; display:none;
+          border-top:4px solid #fff }
+  .foto2 img{ width:100%; height:100%; object-fit:cover; display:block; filter:grayscale(1) contrast(1.05) }
+  .pieza[data-arq=partida] .foto2{ display:block }
+  .pieza[data-arq=partida] .foto{ bottom:50% }
+  .logo-top{ position:absolute; z-index:5; display:none }
+  .pieza:not([data-arq=anuncio]) .logo-top.on{ display:block }
+  .pieza:not([data-arq=anuncio]) #bAbajo{ display:none }
+  .hoy{ position:absolute; z-index:5; font-weight:500; letter-spacing:.16em; display:none;
+        background:#141414; color:#F5F0E6; border-radius:6px; padding:6px 14px }
+  .pieza[data-arq=partida] .hoy{ display:block }
+  /* Etiquetas legales GRABADAS en la pieza (Legal #2): pastilla opaca para que el
+     contraste no dependa de la foto. No llevan data-check a propósito: su tamaño lo
+     fija Legal/Diseño y el guardrail no puede proponer quitarlas. */
+  .etiqueta{ position:absolute; z-index:6; background:#141414; color:#F5F0E6; font-weight:400;
+             letter-spacing:.02em; border-radius:6px; padding:8px 14px; display:none; max-width:56% }
+  .etiqueta.on{ display:block }
+  .rutas{ font-weight:400; line-height:1.3; margin-top:18px; display:none }
+  .rutas.on{ display:block }
+  .pie-precios{ font-weight:400; line-height:1.35; opacity:.85; text-align:center; display:none; margin-top:14px }
+  .pie-precios.on{ display:block }
+  .poligono{ position:absolute; inset:0; z-index:3; display:none; pointer-events:none }
+  .pieza[data-arq=plano] .poligono{ display:block }
+  .asa{ position:absolute; z-index:7; width:34px; height:34px; margin:-17px 0 0 -17px; border-radius:50%;
+        background:#F5F0E6; border:3px solid #104C4F; cursor:grab; display:none; touch-action:none }
+  .pieza[data-arq=plano] .asa{ display:block }
+  .fotos-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; max-height:260px; overflow-y:auto; margin-top:8px }
+  .fotos-grid button{ padding:3px; border:2px solid transparent; border-radius:8px; background:#fff; cursor:pointer; text-align:left; font:inherit }
+  .fotos-grid button[aria-pressed=true]{ border-color:#104C4F }
+  .fotos-grid img{ width:100%; height:62px; object-fit:cover; display:block; border-radius:5px }
+  .fotos-grid .ft-tipo{ display:inline-block; margin:3px 2px 0; font-size:10.5px; padding:1px 6px; border-radius:4px }
+  .fotos-grid .ft-tipo.es-foto{ background:#dfeccf; color:#2f4a1f } .fotos-grid .ft-tipo.es-render{ background:#fbe9d4; color:#6b3a08 }
+  .arq-grid{ display:grid; grid-template-columns:1fr 1fr; gap:6px }
+  .arq-grid button{ text-align:left; padding:8px 10px; border:1px solid var(--linea,#E3DED2); border-radius:8px; background:#fff; cursor:pointer; font:inherit; font-size:13px }
+  .arq-grid button[aria-pressed=true]{ background:#104C4F; border-color:#104C4F; color:#fff }
+  .arq-grid small{ display:block; font-size:11.5px; opacity:.8; margin-top:2px }
+  .guardado{ font-size:12.5px; margin-top:8px; line-height:1.45 }
 
   .arriba,.abajo{ position:absolute; z-index:4 }
   .sitio{ display:inline-block; font-weight:500; letter-spacing:.09em;
@@ -151,12 +197,21 @@
     <div class="marco" id="marco">
       <div class="pieza" id="pieza">
         <div class="foto"><img id="fotoImg" alt=""></div>
+        <div class="foto2"><img id="fotoImg2" alt=""></div>
+        <svg class="poligono" id="poligono" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+          <polygon id="poliForma" fill="rgba(245,240,230,.16)" stroke="#F5F0E6" stroke-width="5" stroke-linejoin="round"></polygon>
+        </svg>
         <div class="velo-top" id="veloTop"></div>
         <div class="velo-bot" id="veloBot"></div>
+        <img class="logo-top" id="elLogoTop" src="/assets/img/lawang-logo-v3.webp" alt="">
+        <div class="hoy" id="elHoy" data-check="hoy" data-min="38" data-fondo="#141414"></div>
+        <div class="etiqueta" id="elEtRender"></div>
+        <div class="etiqueta" id="elEtPlano"></div>
         <div class="arriba" id="bArriba">
           <div class="sitio" id="elSitio" data-check="lugar" data-min="38"></div>
           <h1 id="elTit" data-check="titular"></h1>
           <div class="sub" id="elSub" data-check="subtítulo"></div>
+          <div class="rutas" id="elRutas" data-check="dos rutas" data-min="38"></div>
         </div>
         <div class="abajo" id="bAbajo">
           <div class="contacto">
@@ -173,7 +228,10 @@
             <img id="elLogo" src="/assets/img/lawang-logo-v3.webp" alt="">
             <span class="web" id="elWeb" data-check="dominio" data-min="38"></span>
           </div>
+          <div class="pie-precios" id="elPiePrecios"></div>
         </div>
+        <span class="asa" id="asa0"></span><span class="asa" id="asa1"></span>
+        <span class="asa" id="asa2"></span><span class="asa" id="asa3"></span>
         <div class="zona-segura" id="zonaSegura"></div>
       </div>
     </div>
@@ -186,8 +244,17 @@
         <button class="btn" id="f45" aria-pressed="true" data-lwt="Feed 4:5">Feed 4:5</button>
         <button class="btn" id="f916" aria-pressed="false" data-lwt="Story 9:16">Story 9:16</button>
       </div>
+      <!-- Foto de la intranet (24-sep-2026): la foto sale de las dadas de alta en cada
+           proyecto (`deck_fotos`), con su etiqueta de foto real o render. Subir un
+           fichero sigue funcionando para descargar, pero no se puede GUARDAR en la
+           biblioteca: de un fichero suelto no se sabe de qué proyecto es (Legal #2). -->
       <div class="campo">
-        <label for="archivo" data-lwt="Imagen de fondo">Imagen de fondo</label>
+        <label for="selProyecto" data-lwt="Foto de la intranet">Foto de la intranet</label>
+        <select id="selProyecto"><option value="" data-lwt="Elige un proyecto…">Elige un proyecto…</option></select>
+        <div class="fotos-grid" id="fotosGrid"></div>
+      </div>
+      <div class="campo">
+        <label for="archivo" data-lwt="O sube una imagen (solo para descargar)">O sube una imagen (solo para descargar)</label>
         <input type="file" id="archivo" accept="image/*">
       </div>
       <div class="fila2">
@@ -203,6 +270,22 @@
       <p class="aviso" data-lwt="Arrastra el bloque de texto o el de contacto en la pieza para colocarlos. Los velos se recalculan solos: no son un degradado fijo, se dimensionan con el texto que tienen que sostener.">Arrastra el bloque de texto o el de contacto en la pieza para
         colocarlos. Los velos se recalculan solos: no son un degradado fijo, se dimensionan
         con el texto que tienen que sostener.</p>
+    </div>
+
+    <div class="bloque">
+      <h3 data-lwt="Tipo de pieza">Tipo de pieza</h3>
+      <div class="arq-grid" id="arqGrid" role="group">
+        <button type="button" data-arq="anuncio" aria-pressed="true"><span data-lwt="Anuncio">Anuncio</span><small data-lwt="Titular, precio y botón de WhatsApp">Titular, precio y botón de WhatsApp</small></button>
+        <button type="button" data-arq="doc" aria-pressed="false"><span data-lwt="Foto y una línea">Foto y una línea</span><small data-lwt="El 70 % del feed de Lawang">El 70 % del feed de Lawang</small></button>
+        <button type="button" data-arq="portada" aria-pressed="false"><span data-lwt="Portada">Portada</span><small data-lwt="Titular grande sobre la foto">Titular grande sobre la foto</small></button>
+        <button type="button" data-arq="partida" aria-pressed="false"><span data-lwt="Hoy y proyecto">Hoy y proyecto</span><small data-lwt="Foto real arriba, render abajo">Foto real arriba, render abajo</small></button>
+        <button type="button" data-arq="plano" aria-pressed="false"><span data-lwt="Plano anotado">Plano anotado</span><small data-lwt="Parcela marcada sobre la aérea">Parcela marcada sobre la aérea</small></button>
+      </div>
+      <div class="campo" style="margin-top:10px">
+        <label for="idiomaPieza" data-lwt="Idioma de las etiquetas legales">Idioma de las etiquetas legales</label>
+        <select id="idiomaPieza"><option value="en">English</option><option value="es">Español</option></select>
+      </div>
+      <p class="aviso" id="avisoArq"></p>
     </div>
 
     <div class="bloque">
@@ -252,7 +335,9 @@
 
     <div class="bloque">
       <h3 data-lwt="Exportar">Exportar</h3>
+      <button class="btn" id="btnGuardar" style="width:100%;margin-bottom:8px" data-lwt="Guardar en Creatividades">Guardar en Creatividades</button>
       <button class="btn primary" id="btnPng" style="width:100%" data-lwt="Descargar PNG">Descargar PNG</button>
+      <div class="guardado" id="guardado" role="status"></div>
       <p class="aviso" id="avisoExp" data-lwt="Sale a 1080 px de ancho, el tamaño que pide Meta, con el grano de marca aplicado.">Sale a 1080 px de ancho, el tamaño que pide Meta,
         con el grano de marca aplicado.</p>
     </div>
@@ -284,19 +369,36 @@ const pieza = $('#pieza');
 const E = {
   fmt:'4x5', src:null, foco:45, zoom:100,
   arriba:{ x:5.9, y:8.9 }, abajo:{ x:5.9, y:null },   // y null = anclado abajo
-  precio:true, logo:true
+  precio:true, logo:true,
+  /* Creatividades v4 (24-sep-2026). `fotoId` = la foto de la intranet (deck_fotos);
+     null si la imagen se subió a mano, y entonces no se puede guardar. `foto2*` es el
+     render de «Hoy y proyecto», siempre del MISMO proyecto. `poligono` en % de la pieza. */
+  arq:'anuncio', idioma:'en',
+  fotoId:null, fotoTipo:null, fotoProyecto:null, fotoPie:'',
+  foto2Id:null, src2:null,
+  poligono:[[28,34],[62,29],[71,56],[36,62]],
+  creatId:null, creatEstado:null
 };
+// Dónde nace el bloque de texto en cada tipo: el anuncio arriba; el resto, anclado abajo (y null).
+const ARRIBA_INICIAL = { anuncio:{ x:5.9, y:8.9 }, doc:{ x:5.9, y:null }, portada:{ x:5.9, y:null },
+                         partida:{ x:5.9, y:null }, plano:{ x:5.9, y:null } };
 
 /* ── Medidas por formato ───────────────────────────────────────────────────────
    Los cuerpos son los que validó el owner pieza a pieza. `min` declarado = excepción
    explícita: el guardrail los sigue midiendo y no deja bajar de 38 px (14 pt reales). */
 function T(){
   const s = E.fmt === '9x16';
-  return {
+  const t = {
     m: 64, mder: s ? 124 : 64, ybajo: s ? 330 : 58,
     h1: s ? 84 : 78, sitio:38, sub:44, cta:46, web:38,
     preet:44, pren: s ? 92 : 88, logo: s ? 210 : 195, g:16, gpre: s ? 24 : 20
   };
+  // Tipos del feed: texto encima de la foto, más pequeño que el del anuncio salvo la portada.
+  if (E.arq === 'doc' || E.arq === 'plano') t.h1 = s ? 64 : 60;
+  if (E.arq === 'partida') { t.h1 = s ? 66 : 62; t.ybajo = s ? 330 : 54; }
+  if (E.arq === 'portada') t.h1 = s ? 124 : 112;
+  t.etiqueta = 28; t.rutas = 38; t.piePrecios = 24; t.logoTop = s ? 190 : 170;
+  return t;
 }
 
 const ICONO_WA = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 004.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0012.04 2zm0 18.15h-.01a8.2 8.2 0 01-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.22 8.22 0 01-1.26-4.38c0-4.54 3.7-8.23 8.25-8.23a8.2 8.2 0 015.83 2.42 8.18 8.18 0 012.41 5.82c0 4.54-3.7 8.23-8.24 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.24-.64.8-.78.97-.14.16-.29.18-.54.06-.25-.13-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.38-1.72-.15-.25-.02-.38.11-.5.11-.11.25-.29.37-.44.13-.15.17-.25.25-.42.08-.16.04-.31-.02-.44-.06-.12-.56-1.35-.77-1.85-.2-.48-.4-.42-.56-.43h-.47c-.16 0-.42.06-.64.31-.22.25-.84.82-.84 2s.86 2.32.98 2.48c.12.16 1.69 2.58 4.1 3.62.57.25 1.02.39 1.37.5.58.18 1.1.16 1.51.1.46-.07 1.47-.6 1.68-1.18.21-.58.21-1.08.14-1.18-.06-.1-.22-.16-.47-.28z"/></svg>';
@@ -341,9 +443,11 @@ function pinta(){
     img.style.left  = E.crop.dx+'px'; img.style.top    = E.crop.dy+'px';
   }
 
+  pieza.dataset.arq = E.arq;
   const a = $('#bArriba');
   a.style.left = (E.arriba.x/100*W) + 'px';
-  a.style.top  = (E.arriba.y/100*H) + 'px';
+  if (E.arriba.y === null){ a.style.top = 'auto'; a.style.bottom = t.ybajo + 'px'; }
+  else { a.style.bottom = 'auto'; a.style.top = (E.arriba.y/100*H) + 'px'; }
   a.style.width = (W - t.m - t.mder) + 'px';
 
   const b = $('#bAbajo');
@@ -379,9 +483,89 @@ function pinta(){
   $('#elWeb').style.fontSize = t.web+'px';
   $('#elPie').style.marginTop = t.gpre+'px';
 
+  pintaV4(W, H, t);
   velos();
   encaja();
   diagnostico();
+}
+
+/* ── Lo nuevo de la v4 (24-sep-2026) ───────────────────────────────────────────
+   Tipos de pieza, segunda foto, logo arriba, polígono del plano y las etiquetas
+   legales GRABADAS (Legal #2: render «no contractual», plano «orientativo», las dos
+   rutas si se habla de tenencia, y el pie de precios si hay precio). */
+function textosPieza(){
+  return ['tSitio','tTit','tSub','tCta','tWeb','tPreEt','tPreN'].map(id => $('#'+id).value);
+}
+function pintaV4(W, H, t){
+  const s = E.fmt === '9x16', feed = E.arq !== 'anuncio';
+  const der = s ? SEGURO.der + 10 : 48, arr = s ? SEGURO.arriba + 20 : 44;
+
+  // Sin texto, fuera: una pastilla vacía se vería como un borrón.
+  $('#elSitio').style.display = $('#tSitio').value.trim() && (E.arq === 'anuncio' || E.arq === 'portada') ? '' : 'none';
+  $('#elSub').style.display = $('#tSub').value.trim() ? '' : 'none';
+
+  const lt = $('#elLogoTop');
+  lt.classList.toggle('on', feed && E.logo);
+  lt.style.width = t.logoTop + 'px'; lt.style.left = t.m + 'px'; lt.style.top = arr + 'px';
+
+  const hoy = $('#elHoy');
+  hoy.textContent = E.idioma === 'es' ? 'HOY' : 'TODAY';
+  hoy.style.fontSize = '38px'; hoy.style.left = t.m + 'px'; hoy.style.top = (arr + (E.logo ? 90 : 0)) + 'px';
+
+  // Render: la etiqueta va en cuanto haya una imagen que no es foto real. En
+  // «Hoy y proyecto» siempre (la mitad de abajo es render), anclada a esa mitad.
+  const er = $('#elEtRender');
+  const conRender = E.arq === 'partida' || (E.fotoTipo && E.fotoTipo !== 'foto');
+  er.textContent = lwFrases.etiqueta('render', E.idioma);
+  er.classList.toggle('on', !!conRender);
+  er.style.fontSize = t.etiqueta + 'px'; er.style.right = der + 'px';
+  er.style.top = E.arq === 'partida' ? (H/2 + 24) + 'px' : arr + 'px';
+
+  const ep = $('#elEtPlano');
+  ep.textContent = lwFrases.etiqueta('plano', E.idioma);
+  ep.classList.toggle('on', E.arq === 'plano');
+  ep.style.fontSize = t.etiqueta + 'px'; ep.style.right = der + 'px';
+  ep.style.top = (arr + (conRender ? 70 : 0)) + 'px';
+
+  // Dos rutas: por construcción (Legal #1), no por lista. Si el texto habla de tenencia, va.
+  const ru = $('#elRutas');
+  ru.textContent = lwFrases.etiqueta('dosRutas', E.idioma);
+  ru.classList.toggle('on', lwFrases.hablaDeTenencia(textosPieza()));
+  ru.style.fontSize = t.rutas + 'px';
+
+  // Con precio, su pie obligatorio con la fecha de hoy (Legal #4). El precio solo existe en «Anuncio».
+  const pp = $('#elPiePrecios');
+  const conPrecio = E.arq === 'anuncio' && E.precio && $('#tPreN').value.trim();
+  pp.textContent = lwFrases.etiqueta('precios', E.idioma, new Date().toLocaleDateString(E.idioma === 'es' ? 'es-ES' : 'en-GB'));
+  pp.classList.toggle('on', !!conPrecio);
+  pp.style.fontSize = t.piePrecios + 'px';
+
+  const f2 = $('#fotoImg2');
+  if (f2.getAttribute('src') !== (E.src2 || '')) f2.src = E.src2 || '';
+  // En «Hoy y proyecto» la foto real ocupa la mitad de arriba: cover centrado, la
+  // MISMA cuenta que `cubre()` usa para medir el contraste.
+  const f1 = $('#fotoImg');
+  if (E.arq === 'partida' && f1.naturalWidth){
+    const k = Math.max(W/f1.naturalWidth, (H/2)/f1.naturalHeight);
+    const dw = f1.naturalWidth*k, dh = f1.naturalHeight*k;
+    f1.style.width = dw+'px'; f1.style.height = dh+'px';
+    f1.style.left = ((W-dw)/2)+'px'; f1.style.top = ((H/2-dh)/2)+'px';
+  }
+
+  // Polígono del plano: dibujado a mano sobre la aérea, sin m² inventados (el m² va en el
+  // texto, de la ficha de la parcela). Las asas son del editor y no salen en el PNG.
+  const pg = $('#poligono');
+  pg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  pg.style.width = W + 'px'; pg.style.height = H + 'px';
+  $('#poliForma').setAttribute('points', E.poligono.map(p => (p[0]/100*W).toFixed(1) + ',' + (p[1]/100*H).toFixed(1)).join(' '));
+  E.poligono.forEach((p, i) => { const h = $('#asa'+i); h.style.left = (p[0]/100*W) + 'px'; h.style.top = (p[1]/100*H) + 'px'; });
+
+  const av = { anuncio:'La pieza de siempre: titular, subtítulo, precio opcional y botón de WhatsApp.',
+    doc:'Foto a sangre con una línea encima, sin botón: en un anuncio el botón lo pone Meta debajo.',
+    portada:'Titular grande. El «Lugar» sale encima como antetítulo.',
+    partida:'Arriba la foto real; abajo, en gris, el render del MISMO proyecto, marcado como ilustrativo.',
+    plano:'Arrastra los cuatro puntos para marcar la parcela. Sale con «plano orientativo, no a escala».' };
+  $('#avisoArq').textContent = lwT(av[E.arq]);
 }
 
 /* ── Velos ─────────────────────────────────────────────────────────────────────
@@ -402,6 +586,23 @@ function paradas(f){
 function velos(){
   const H = FORMATOS[E.fmt][1];
   const arr = $('#bArriba'), ab = $('#bAbajo');
+  if (E.arq !== 'anuncio'){
+    /* Tipos del feed: el bloque de abajo no existe, así que el velo de abajo se
+       dimensiona con el de TEXTO (que va anclado abajo), y el de arriba es solo una
+       sombra suave para el logo. Con la fórmula del anuncio el velo de arriba se
+       calcularía hasta el fondo del texto y oscurecería la foto entera. */
+    const alto = 320, y0 = 0;
+    E.veloTop = { alto:alto, y0:y0, max: E.logo ? .42 : 0 };
+    $('#veloTop').style.height = alto+'px';
+    $('#veloTop').style.background = 'linear-gradient(to bottom,'
+      + paradas(x => E.veloTop.max*(1-ss(x))) + ')';
+    const A = arr.offsetTop, T0 = Math.max(0, Math.round(A-360)), plena = Math.min(H, A+60);
+    E.veloBot = { T:T0, plena:plena, max:.72, H:H };
+    $('#veloBot').style.top = T0+'px';
+    $('#veloBot').style.background = 'linear-gradient(to bottom,'
+      + paradas(x => .72*ss(x*(H-T0)/(plena-T0))) + ')';
+    return;
+  }
   const B = arr.offsetTop + arr.offsetHeight + 24;
   const alto = Math.round(B*1.51), y0 = .45;
   E.veloTop = { alto:alto, y0:y0, max:.78 };
@@ -457,8 +658,23 @@ function pintaFondo(){
   // construcción, lo que se ve. No hay una segunda fórmula que pueda desincronizarse.
   if (!E.crop) return;
   ctx.clearRect(0,0,W,H);
-  ctx.drawImage($('#fotoImg'), E.crop.dx, E.crop.dy, E.crop.dw, E.crop.dh);
+  if (E.arq === 'partida'){
+    /* Dos imágenes, cada una en su mitad y con `object-fit:cover` centrado, que es lo
+       que pinta el CSS: se replica la cuenta de cover aquí para medir lo que se ve.
+       La de abajo va en gris, como en la pieza. */
+    cubre($('#fotoImg'), 0, 0, W, H/2);
+    const f2 = $('#fotoImg2');
+    if (E.src2 && f2.naturalWidth){ ctx.filter = 'grayscale(1)'; cubre(f2, 0, H/2, W, H/2); ctx.filter = 'none'; }
+  } else {
+    ctx.drawImage($('#fotoImg'), E.crop.dx, E.crop.dy, E.crop.dw, E.crop.dh);
+  }
   fondoListo = true;
+}
+function cubre(img, x, y, w, h){
+  if (!img.naturalWidth) return;
+  const k = Math.max(w/img.naturalWidth, h/img.naturalHeight);
+  const sw = w/k, sh = h/k, sx = (img.naturalWidth-sw)/2, sy = (img.naturalHeight-sh)/2;
+  ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
 }
 
 const lin = c => { c/=255; return c<=.04045 ? c/12.92 : Math.pow((c+.055)/1.055, 2.4); };
@@ -563,6 +779,17 @@ function diagnostico(){
       + 'los dos: encima de la foto puede no verse, pero el texto queda ilegible.', dato:'se solapan' });
   }
 
+  /* Frases que Legal no deja (24-sep-2026, revisión previa #68). Estas BLOQUEAN
+     (`bloquea:true`): la legibilidad es criterio y se puede discutir, esto no. */
+  lwFrases.revisa(textosPieza()).forEach(h => fallos.push({ chequeo:'frases', bloquea:true,
+    txt:'<b>«' + esc(h.frase) + '»</b>: ' + esc(lwT(h.motivo)), dato:'«' + h.frase + '»' }));
+  if (E.arq === 'partida'){
+    if (E.fotoTipo && E.fotoTipo !== 'foto')
+      fallos.push({ chequeo:'par', bloquea:true, txt:lwT('Arriba va la foto REAL del proyecto: elige una foto, no un render.'), dato:'arriba es render' });
+    else if (!E.src2)
+      fallos.push({ chequeo:'par', bloquea:true, txt:lwT('Este proyecto no tiene ningún render dado de alta: «Hoy y proyecto» necesita los dos.'), dato:'sin render' });
+  }
+
   E.fallos = fallos;
   const d = $('#diag');
   if (!E.src){
@@ -588,6 +815,8 @@ function diagnostico(){
     + fila('Tamaño mínimo de texto', 'cuerpo')
     + (soloNueveDieciseis ? fila('Zona segura (safe area)', 'zona') : '')
     + (de('solape').length ? fila('Bloques superpuestos', 'solape') : '')
+    + fila(lwT('Frases que Legal no deja'), 'frases')
+    + (E.arq === 'partida' ? fila(lwT('Foto real y render del mismo proyecto'), 'par') : '')
     + (fallos.length
         ? '<div class="rev-por">' + fallos.map(x => '<p>'+x.txt+'</p>').join('') + '</div>'
         : '');
@@ -650,7 +879,19 @@ function grano(c, sigma){
   d.putImageData(im, 0, 0);
 }
 
+/* Lo que BLOQUEA (frases de Legal, pareja foto/render) no admite «descargar
+   igualmente»: se dice qué y se para. Devuelve true si se puede seguir. */
+async function pasaBloqueos(accion){
+  const duros = (E.fallos || []).filter(f => f.bloquea);
+  if (!duros.length) return true;
+  await lwConfirmar({ titulo: lwT('Esta pieza no se puede ') + accion,
+    cuerpo: '<ul>' + duros.map(f => '<li>' + f.txt + '</li>').join('') + '</ul><p>' + esc(lwT('Corrígelo y vuelve a intentarlo.')) + '</p>',
+    confirmar: lwT('Entendido'), tono: 'peligro' });
+  return false;
+}
+
 async function exportar(){
+  if (!(await pasaBloqueos(lwT('descargar')))) return;
   /* El guardrail avisa, pero descargar no puede ser un acto inocente: la tarjeta del hub
      anuncia esta herramienta como "con la revisión incorporada", así que un PNG bajado sin
      más se lee como validado. En la versión de Python la pieza directamente FALLABA; aquí
@@ -672,13 +913,33 @@ async function exportar(){
   btn.textContent = 'Montando…';
   try {
     const [W,H] = FORMATOS[E.fmt];
+    const blob = await generarPNG();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'lawang_' + E.fmt + '_' + Date.now() + '.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    if (window.toast) toast(lwT('Descargada a ') + W + '×' + H);
+  } catch(err){
+    if (window.toast) toastMal(lwT('No se pudo exportar: ') + err.message);
+    else alert('No se pudo exportar: ' + err.message);
+  } finally { btn.disabled = false; btn.textContent = antes; }
+}
+
+/* El PNG de la pieza, tal cual se ve. Lo usan «Descargar PNG» y «Guardar en
+   Creatividades»: una sola forma de montar la pieza. */
+async function generarPNG(){
+    const [W,H] = FORMATOS[E.fmt];
     const fuentes = await Promise.all(FUENTES.map(async ([u,w]) =>
       '@font-face{font-family:Kabel;font-weight:'+w+';src:url('+await aB64(u)+')}'));
     const logoB64 = E.logo ? await aB64(LOGO_URL) : '';
 
     const copia = pieza.cloneNode(true);
     copia.querySelector('#zonaSegura').remove();
+    copia.querySelectorAll('.asa').forEach(n => n.remove());      // asas del plano: editor, no pieza
     if (E.logo) copia.querySelector('#elLogo').setAttribute('src', logoB64);
+    if (E.logo) copia.querySelector('#elLogoTop').setAttribute('src', logoB64);
+    if (E.src2) copia.querySelector('#fotoImg2').setAttribute('src', E.src2);
     copia.style.transform = 'none';
 
     const hojas = [...document.querySelectorAll('style')].map(s => s.textContent).join('\n');
@@ -702,26 +963,180 @@ async function exportar(){
     cd.drawImage(img, 0, 0, W, H);
     grano(c, 3);
 
-    const blob = await new Promise(r => c.toBlob(r, 'image/png'));
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'lawang_' + E.fmt + '_' + Date.now() + '.png';
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-    if (window.toast) toast(lwT('Descargada a ') + W + '×' + H);
+    return await new Promise(r => c.toBlob(r, 'image/png'));
+}
+
+// ── Guardar en Creatividades (24-sep-2026) ────────────────────────────────────
+/* Lo que se guarda para reabrir: solo DATOS, ni HTML ni URLs. La foto viaja por su
+   id de `deck_fotos` (Seguridad #4): al reabrir, la URL se vuelve a componer. */
+function estadoEditor(){
+  const txt = {};
+  ['tSitio','tTit','tSub','tPreEt','tPreN','tCta','tWeb'].forEach(id => txt[id] = $('#'+id).value);
+  return { v:1, fmt:E.fmt, arq:E.arq, idioma:E.idioma, foco:E.foco, zoom:E.zoom,
+    arriba:E.arriba, abajo:E.abajo, poligono:E.poligono, usaPrecio:$('#usaPrecio').checked,
+    usaLogo:$('#usaLogo').checked, fotoId:E.fotoId, foto2Id:E.foto2Id, textos:txt };
+}
+async function guardar(){
+  if (!E.fotoId){
+    await lwConfirmar({ titulo: lwT('Elige la foto de la intranet'),
+      cuerpo: '<p>' + esc(lwT('Una imagen subida a mano se puede descargar, pero no guardar: de un fichero suelto no se sabe de qué proyecto es. Elige la foto en «Foto de la intranet».')) + '</p>',
+      confirmar: lwT('Entendido') });
+    return;
+  }
+  if (!(await pasaBloqueos(lwT('guardar')))) return;
+  const btn = $('#btnGuardar'); btn.disabled = true; const antes = btn.textContent;
+  btn.textContent = lwT('Guardando…');
+  try {
+    const titulo = $('#tTit').value.replace(/\*/g, '').trim() || $('#tSitio').value.trim();
+    // Una pieza que ya no es borrador no se toca: se guarda como copia nueva.
+    const id = E.creatEstado && E.creatEstado !== 'borrador' ? null : E.creatId;
+    const fila = await lwCreatividades.guardar({
+      id: id, tipo:'pieza', titulo: titulo, proyecto_id: E.fotoProyecto,
+      formato: E.fmt, arquetipo: E.arq, estado: estadoEditor(), png: await generarPNG(),
+      fotoIds: [E.fotoId, E.arq === 'partida' ? E.foto2Id : null]
+    });
+    E.creatId = fila.id; E.creatEstado = fila.estado;
+    history.replaceState(null, '', location.pathname + '?id=' + encodeURIComponent(fila.id));
+    $('#guardado').innerHTML = esc(lwT(id ? 'Borrador actualizado.' : 'Guardada como borrador.')) + ' '
+      + '<a href="/intranet/v4/creatividades/">' + esc(lwT('Ver en Creatividades')) + '</a>';
+    if (window.toast) toast(lwT('Guardada en Creatividades'));
   } catch(err){
-    if (window.toast) toastMal(lwT('No se pudo exportar: ') + err.message);
-    else alert('No se pudo exportar: ' + err.message);
+    const m = (err && err.message) || String(err);
+    if (window.toastMal) toastMal(lwT('No se pudo guardar: ') + m); else alert('No se pudo guardar: ' + m);
   } finally { btn.disabled = false; btn.textContent = antes; }
 }
 
+// ── Fotos de la intranet ──────────────────────────────────────────────────────
+let FOTOS = [];
+async function cargaProyectos(){
+  try {
+    const { sb } = await window.LW_AUTH;
+    const r = await sb.from('proyectos').select('id, nombre').order('nombre');
+    const sel = $('#selProyecto');
+    (r.data || []).forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = p.nombre; sel.appendChild(o); });
+  } catch(e){
+    // Sin proyectos no hay fotos de la intranet: se dice en pantalla (subir una imagen sigue funcionando).
+    if (window.toastMal) toastMal(lwT('No se pudieron cargar los proyectos: ') + ((e && e.message) || e));
+  }
+}
+async function cargaFotos(proyectoId){
+  const g = $('#fotosGrid'); g.innerHTML = '';
+  if (!proyectoId) { FOTOS = []; return; }
+  FOTOS = await lwCreatividades.fotos({ proyecto_id: proyectoId, ambito:'proyecto' });
+  if (!FOTOS.length){ g.innerHTML = '<p class="aviso">' + esc(lwT('Este proyecto no tiene fotos dadas de alta. Súbelas desde Proyectos.')) + '</p>'; return; }
+  FOTOS.forEach(f => {
+    const b = document.createElement('button'); b.type = 'button';
+    b.setAttribute('aria-pressed', String(f.id === E.fotoId));
+    b.setAttribute('aria-label', (f.rotulo || '') + ' · ' + (f.esRender ? 'render' : lwT('foto real')));
+    const im = document.createElement('img'); im.src = f.url; im.alt = ''; im.loading = 'lazy';
+    const t = document.createElement('span'); t.className = 'ft-tipo ' + (f.esRender ? 'es-render' : 'es-foto');
+    t.textContent = f.esRender ? (f.tipo === 'ia' ? 'IA' : 'Render') : lwT('Foto real');
+    b.appendChild(im); b.appendChild(t);
+    b.onclick = () => eligeFoto(f);
+    g.appendChild(b);
+  });
+}
+/* La imagen entra como data: URL: el PNG se monta dentro de un SVG, que no pide
+   nada a la red, y el lienzo del guardrail necesita píxeles legibles. */
+async function eligeFoto(f, sinPintar){
+  E.src = await aB64(f.url);
+  E.fotoId = f.id; E.fotoTipo = f.tipo; E.fotoProyecto = f.proyecto_id; E.fotoPie = f.rotulo;
+  $('#archivo').value = '';
+  await buscaRender();
+  $('#fotosGrid').querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-pressed', String(FOTOS[i] && FOTOS[i].id === f.id)));
+  if (sinPintar) return;
+  const im = $('#fotoImg');
+  im.onload = () => { pinta(); im.onload = null; };
+  pinta();
+}
+// «Hoy y proyecto»: el render sale del MISMO proyecto que la foto (Legal #2).
+async function buscaRender(preferido){
+  E.src2 = null; E.foto2Id = null;
+  if (!E.fotoProyecto) return;
+  const del = FOTOS.length && FOTOS[0].proyecto_id === E.fotoProyecto ? FOTOS
+    : await lwCreatividades.fotos({ proyecto_id: E.fotoProyecto, ambito:'proyecto' });
+  const r = del.find(x => x.id === preferido && x.esRender) || del.find(x => x.esRender && x.uso === 'hero') || del.find(x => x.esRender);
+  if (!r) return;
+  E.src2 = await aB64(r.url); E.foto2Id = r.id;
+  const im2 = $('#fotoImg2'); im2.onload = () => { pinta(); im2.onload = null; };
+}
+
+function eligeArq(arq){
+  if (arq === E.arq) return;
+  E.arq = arq;
+  E.arriba = Object.assign({}, ARRIBA_INICIAL[arq]);
+  $('#arqGrid').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.arq === arq)));
+  pinta();
+}
+
+// Asas del plano: se arrastran en píxeles de pieza (se divide por la escala, como los bloques).
+[0,1,2,3].forEach(i => {
+  const h = $('#asa'+i);
+  h.addEventListener('pointerdown', ev => {
+    ev.preventDefault(); h.setPointerCapture(ev.pointerId);
+    const [W,H] = FORMATOS[E.fmt];
+    const mover = e2 => {
+      const r = pieza.getBoundingClientRect();
+      E.poligono[i] = [ Math.max(0, Math.min(100, (e2.clientX - r.left)/E.k/W*100)),
+                        Math.max(0, Math.min(100, (e2.clientY - r.top)/E.k/H*100)) ];
+      pinta();
+    };
+    const soltar = () => { h.removeEventListener('pointermove', mover); h.removeEventListener('pointerup', soltar); };
+    h.addEventListener('pointermove', mover); h.addEventListener('pointerup', soltar);
+  });
+});
+
+/* Reabrir (?id=): el estado es de OTRA persona quizá, así que solo se aceptan los
+   tipos esperados; los textos van a `.value` (nunca a innerHTML) y la foto por id. */
+async function reabre(id){
+  try {
+    const { fila, estado } = await lwCreatividades.abrir(id);
+    E.creatId = fila.id; E.creatEstado = fila.estado;
+    const s = estado || {};
+    if (FORMATOS[s.fmt]) E.fmt = s.fmt;
+    if (ARRIBA_INICIAL[s.arq]) E.arq = s.arq;
+    if (s.idioma === 'es' || s.idioma === 'en') E.idioma = s.idioma;
+    const num = (v, d) => (typeof v === 'number' && isFinite(v)) ? v : d;
+    E.foco = num(s.foco, 45); E.zoom = num(s.zoom, 100);
+    const pos = (p, d) => p && typeof p === 'object' ? { x:num(p.x, d.x), y: p.y === null ? null : num(p.y, d.y) } : d;
+    E.arriba = pos(s.arriba, ARRIBA_INICIAL[E.arq]); E.abajo = pos(s.abajo, { x:5.9, y:null });
+    if (Array.isArray(s.poligono) && s.poligono.length === 4) E.poligono = s.poligono.map(p => [num(p[0], 50), num(p[1], 50)]);
+    const txt = s.textos || {};
+    ['tSitio','tTit','tSub','tPreEt','tPreN','tCta','tWeb'].forEach(k => { if (typeof txt[k] === 'string') $('#'+k).value = txt[k]; });
+    $('#usaPrecio').checked = !!s.usaPrecio; $('#usaLogo').checked = s.usaLogo !== false;
+    $('#idiomaPieza').value = E.idioma;
+    $('#foco').value = E.foco; $('#zoom').value = E.zoom;
+    $('#vFoco').textContent = E.foco+'%'; $('#vZoom').textContent = (E.zoom/100).toFixed(2)+'×';
+    $('#f45').setAttribute('aria-pressed', E.fmt === '4x5'); $('#f916').setAttribute('aria-pressed', E.fmt === '9x16');
+    $('#arqGrid').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.arq === E.arq)));
+    if (fila.proyecto_id){ $('#selProyecto').value = fila.proyecto_id; await cargaFotos(fila.proyecto_id); }
+    const f = FOTOS.find(x => x.id === s.fotoId);
+    if (f){ await eligeFoto(f, true); if (s.foto2Id) await buscaRender(s.foto2Id); }
+    const im = $('#fotoImg'); im.onload = () => { pinta(); im.onload = null; };
+    $('#guardado').textContent = fila.estado === 'borrador' ? lwT('Borrador abierto.')
+      : lwT('Esta pieza ya está ') + lwT(lwCreatividades.ESTADOS[fila.estado] || fila.estado).toLowerCase() + lwT(': al guardar se crea una copia nueva.');
+    pinta();
+  } catch(err){
+    if (window.toastMal) toastMal(lwT('No se pudo abrir la pieza: ') + ((err && err.message) || err));
+  }
+}
+
 // ── Cableado ──────────────────────────────────────────────────────────────────
+$('#selProyecto').addEventListener('change', e => cargaFotos(e.target.value).catch(err => {
+  if (window.toastMal) toastMal(lwT('No se pudieron cargar las fotos: ') + ((err && err.message) || err));
+}));
+$('#arqGrid').querySelectorAll('button').forEach(b => b.onclick = () => eligeArq(b.dataset.arq));
+$('#idiomaPieza').addEventListener('change', e => { E.idioma = e.target.value; pinta(); });
+$('#btnGuardar').onclick = guardar;
 $('#archivo').addEventListener('change', ev => {
   const f = ev.target.files && ev.target.files[0];
   if (!f) return;
   const fr = new FileReader();
   fr.onload = () => {
     E.src = fr.result;
+    // Imagen suelta: no se sabe de qué proyecto es ni si es render. Se puede descargar, no guardar.
+    E.fotoId = null; E.fotoTipo = null; E.fotoProyecto = null; E.src2 = null; E.foto2Id = null;
+    $('#fotosGrid').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', 'false'));
     const im = $('#fotoImg');
     im.onload = () => { pinta(); im.onload = null; };
     pinta();
@@ -757,6 +1172,12 @@ $('#vZoom').textContent = '1.00×';
 (document.fonts ? document.fonts.load('700 78px Kabel')
     .then(() => document.fonts.load('400 78px Kabel')) : Promise.resolve())
   .then(pinta).catch(pinta);
+
+// Proyectos para elegir foto y, si viene ?id=, la pieza guardada.
+cargaProyectos().then(() => {
+  const id = new URLSearchParams(location.search).get('id');
+  if (id && /^[0-9a-f-]{36}$/i.test(id)) return reabre(id);
+});
 })();
 </script>
 </body>

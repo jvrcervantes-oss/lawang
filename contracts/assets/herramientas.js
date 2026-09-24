@@ -141,8 +141,11 @@ const LW_HERRAMIENTAS = [
   // tarjeta quien tenga cualquiera de las dos (ver `puede()` más abajo);
   // dentro, el visor de /intranet/creatividades/ reparte a cada herramienta, que
   // sigue exigiendo SU permiso propio para entrar de verdad.
-  { grupo:'Documentación', nombre:'Creatividades', icon:'ph-image-square', href:'/intranet/creatividades/', herr:['dossier','creatividades'],
-    para:'Dossiers de producto y piezas de pauta para Instagram y Facebook, con la revisión de legibilidad incorporada.',
+  // 24-sep-2026 (encargo Creatividades v4): tercera llave 'creatividades_ver' — el
+  // comercial VE y descarga lo aprobado, sin crear nada (la RLS lo garantiza). La
+  // tarjeta lleva a la portada v4, que es la biblioteca y reparte a cada herramienta.
+  { grupo:'Documentación', nombre:'Creatividades', icon:'ph-image-square', href:'/intranet/v4/creatividades/', herr:['dossier','creatividades','creatividades_ver'],
+    para:'Piezas para redes y dossiers de cada proyecto, con las fotos de la intranet, su revisión y la biblioteca de lo aprobado.',
     claves:'creatividades dossier anuncios pauta instagram facebook meta ads imagen story feed pdf maqueta producto creative assets brochure ads artwork image story feed mockup product' },   // sin `estado`: ninguna de las dos vive en la base de datos
   { grupo:'Documentación', nombre:'Documentación', icon:'ph-folders', href:'/intranet/documentacion/', herr:'documentacion',
     para:'Precios, planos y material de cada proyecto, en el almacén privado.',
@@ -397,6 +400,7 @@ const lwPermitida = (t, ficha) =>
 const LW_ETIQUETA_PROPIA = {
   dossier:       'Dossier',
   creatividades: 'Creatividades',
+  creatividades_ver: 'Creatividades · ver y descargar lo aprobado',
   comisiones:    'Comisiones · Pagos de Lawang',   // la pestaña «Pagos de Lawang» (23-sep-2026)
   usuarios:      'Usuarios (admin)',     // el «(admin)» avisa de que además exige rol
 };
@@ -448,9 +452,9 @@ const LW_HERR_POR_ROL = {
   // Manager, reparto + condiciones + equipo («Pagos de Lawang» se le da a mano
   // mientras esa pestaña no le filtre solo lo suyo); el admin gestiona
   // condiciones y equipos sin ver importes.
-  agente:          ['contratos','compradores','documentacion','unidades','facturas','operaciones','asistente','recibos','modelos','reservas','comisiones_reparto'],
-  project_manager: ['contratos','compradores','documentacion','unidades','facturas','obra','operaciones','asistente','recibos','modelos','reservas','comisiones_reparto'],
-  sales_manager:   ['contratos','compradores','documentacion','unidades','facturas','operaciones','asistente','recibos','modelos','reservas','comisiones_reparto','comisiones_condiciones','comisiones_equipos'],
+  agente:          ['contratos','compradores','documentacion','unidades','facturas','operaciones','asistente','recibos','modelos','reservas','comisiones_reparto','creatividades_ver'],
+  project_manager: ['contratos','compradores','documentacion','unidades','facturas','obra','operaciones','asistente','recibos','modelos','reservas','comisiones_reparto','creatividades_ver'],
+  sales_manager:   ['contratos','compradores','documentacion','unidades','facturas','operaciones','asistente','recibos','modelos','reservas','comisiones_reparto','comisiones_condiciones','comisiones_equipos','creatividades_ver'],
   admin:           ['contratos','compradores','documentacion','unidades','facturas','operaciones','asistente','recibos','modelos','reservas','comisiones_condiciones','comisiones_equipos'],
   super_admin:     ['contratos','compradores','documentacion','unidades','facturas','obra','operaciones','asistente','recibos','modelos','reservas','comisiones','comisiones_reparto','comisiones_condiciones','comisiones_equipos'],
 };

@@ -219,17 +219,17 @@
    }
   },
   {
-   "nombre": "Villa en propiedad (freehold)",
+   "nombre": "Villa sobre la parcela (dos rutas)",
    "grupo": "El proyecto",
-   "resumen": "Your own freehold villa",
+   "resumen": "Your own villa · Freehold (HGB) or Hak Sewa",
    "tipo": "feature",
    "pagina": {
     "type": "feature",
     "d": {
      "kick": "MASTERPLAN VIEW",
-     "title": "Your own<br>freehold villa",
+     "title": "Your own<br>villa",
      "body": "Lifestyle based on safety &amp; comfort, on gentle natural slopes.<br>Coordinates · X: 275,641.995 | Y: 9,061,555.039",
-     "c1": "FREEHOLD",
+     "c1": "FREEHOLD (HGB) OR HAK SEWA",
      "c2": "PRIVATE PARKING",
      "c3": "GENTLE NATURAL SLOPES"
     },

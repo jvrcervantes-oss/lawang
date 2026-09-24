@@ -5880,9 +5880,10 @@
     },
     /* documentacion/: fusionada en Proyectos el 8-sep (decision del owner).
        La pagina es una redireccion; no queda nada que cablear aqui. */
-    creatividades: function () {
-      bandaNota('Creatividades y dossiers no viven en la base de datos: el catálogo real está en /intranet/creatividades/ — los botones de esta pantalla te llevan allí', '#485B37');
-    },
+    /* creatividades/: desde el 24-sep-2026 es una pantalla real (biblioteca en la
+       tabla `creatividades`, panel-creatividades.js). La banda de «no viven en la
+       base de datos» se retira: ya no es verdad. */
+    creatividades: function () {},
 
     usuarios: function (sb) {
       /* Listado, FICHA EN CAJON y auditoria reales. La ficha sale de

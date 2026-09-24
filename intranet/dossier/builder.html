@@ -24,11 +24,16 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=9fb756b3"></script>
+<script src="/contracts/assets/i18n.js?v=c90707f3"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/guard.js?v=1d256fc0" data-herramienta="dossier"></script>
+<script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/guard.js?v=1d256fc0" data-herramienta="dossier,creatividades_ver"></script>
+<!-- Creatividades v4 (24-sep-2026): DOMPurify limpia TODO dossier que no hizo esta
+     pestaña (biblioteca, fichero) antes de pintarlo — revisión previa #68, Seguridad #3. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.6/purify.min.js" integrity="sha384-JEyTNhjM6R1ElGoJns4U2Ln4ofPcqzSsynQkmEc/KGy6336qAZl70tDLufbkla+3" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="/contracts/assets/frases_vetadas.js?v=7dbfcf0a"></script>
+<script src="/contracts/assets/creatividades.js?v=4b0b5b5e"></script>
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
-<script src="/contracts/assets/herramientas.js?v=5bbcb0d0"></script>
+<script src="/contracts/assets/herramientas.js?v=c209502e"></script>
 <script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="/contracts/assets/topbar.js?v=8444fd68" defer></script>
 <style>
 /* ============ tokens de marca (mismos que contracts/assets/brand.css) ============ */
@@ -108,6 +113,18 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 .libgrid .tt{font-size:14px}
 .libgrid .td{font-size:11.5px;margin-top:2px}
 .libgrid .tg{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--tg);margin-top:6px}
+/* ============ modal «Montar desde la base» (Creatividades v4, 24-sep-2026) ============ */
+#bmodal{position:fixed;inset:0;background:rgba(32,36,31,.55);display:none;place-items:center;z-index:61}
+#bmodal.on{display:grid}
+#bmodal .box{background:var(--card);border-radius:18px;padding:26px 28px;width:min(620px,92vw);max-height:84vh;overflow:auto}
+#bmodal h2{margin:0 0 8px}
+#bmodal p{font-size:13.5px;color:var(--mut);line-height:1.5;margin:0 0 14px}
+#bmodal .bm-l{display:block;font:600 11px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+#bmodal select{width:100%;min-height:40px}
+.bm-mods{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px}
+.bm-mods label{display:flex;align-items:center;gap:8px;font-size:13.5px;padding:7px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;cursor:pointer}
+.bm-mods small{color:var(--mut)}
+#bmodal .pact{display:flex;justify-content:flex-end;gap:8px;margin-top:22px}
 /* ============ modal de exportación ============ */
 #pmodal{position:fixed;inset:0;background:rgba(32,36,31,.55);display:none;place-items:center;z-index:61}
 #pmodal.on{display:grid}
@@ -338,6 +355,18 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
     </div>
   </details>
 
+  <!-- Creatividades v4 (24-sep-2026): montar desde la base y la biblioteca. -->
+  <details class="lw-menu" id="menuCreat">
+    <summary class="lw-btn" data-lwt="Creatividades ▾">Creatividades ▾</summary>
+    <div class="lw-menu-list left">
+      <button class="lw-btn" data-crea onclick="abrirMontar()" data-lwt="Montar desde la base…">Montar desde la base…</button>
+      <button class="lw-btn" data-crea onclick="insertarComoSeCompra()" data-lwt="Añadir «Cómo se compra»">Añadir «Cómo se compra»</button>
+      <button class="lw-btn" data-crea onclick="guardarEnCreatividades()" data-lwt="Guardar en Creatividades">Guardar en Creatividades</button>
+      <a class="lw-btn" href="/intranet/v4/creatividades/" data-lwt="Ir a la biblioteca">Ir a la biblioteca</a>
+    </div>
+  </details>
+  <span id="creatEstado" class="lw-chip" style="font-size:12px;opacity:.85"></span>
+
   <div class="lw-spacer"></div>
   <button class="lw-btn primary" onclick="exportPDF()" data-lwt="Exportar PDF">Exportar PDF</button>
 </div>
@@ -390,6 +419,23 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
     <p>Elige un punto de partida. Nada queda fijo: los textos se editan con clic, las imágenes se cambian en su hueco, y cualquier elemento de la maqueta —incluido el logo— se saca de ella con <b>✥ Liberar</b> para moverlo, girarlo y redimensionarlo a mano. Encima puedes añadir textos, imágenes y bloques libres. La «Blanca» es lienzo puro.</p>
     <div id="typegrid"></div>
     <div id="libs"></div>
+  </div>
+</div>
+
+<div id="bmodal" onclick="if(event.target===this)cerrarMontar()">
+  <div class="box">
+    <h2 data-lwt="Montar desde la base">Montar desde la base</h2>
+    <p data-lwt="Las páginas salen de lo dado de alta en la intranet: fotos del proyecto, parcelas disponibles, modelos con su precio «desde» y la página «Cómo se compra» de Legal. Sustituye el dossier abierto.">Las páginas salen de lo dado de alta en la intranet: fotos del proyecto, parcelas disponibles, modelos con su precio «desde» y la página «Cómo se compra» de Legal. Sustituye el dossier abierto.</p>
+    <label class="bm-l" for="bmProyecto" data-lwt="Proyecto">Proyecto</label>
+    <select id="bmProyecto" class="lw-select"></select>
+    <div class="bm-l" data-lwt="Modelos que se ofrecen">Modelos que se ofrecen</div>
+    <div id="bmModelos" class="bm-mods"></div>
+    <label class="bm-l" for="bmIdioma" data-lwt="Idioma del dossier">Idioma del dossier</label>
+    <select id="bmIdioma" class="lw-select"><option value="en">English</option><option value="es">Español</option></select>
+    <div class="pact">
+      <button class="mbtn" onclick="cerrarMontar()" data-lwt="Cancelar">Cancelar</button>
+      <button class="mbtn primary" id="bmIr" onclick="montarDesdeBase()" data-lwt="Montar">Montar</button>
+    </div>
   </div>
 </div>
 
@@ -546,6 +592,29 @@ const TBL_COLS=[['tc','Tabla','#42210B'],['bc','Bandas','#D9C7B6'],['hc','Resalt
 /* ---------- estado ---------- */
 let state=null, uid=1, curPage=null, sel=null; /* sel={p,f,node} */
 const LS_KEY='lawang_dossier_builder';
+
+/* ---------- lo que entra de fuera se limpia (24-sep-2026, revisión previa #68) ----------
+   Un dossier puede venir de la biblioteca (lo guardó OTRA persona) o de un fichero.
+   Este motor pinta sus textos con innerHTML, así que todo HTML pasa por la lista blanca
+   de `lwCreatividades.limpia` (DOMPurify) y toda imagen tiene que ser de un origen
+   conocido: una URL libre en un estado ajeno es un píxel espía o algo peor. */
+const DECK_PUBLICO='https://vtulllundrfennhjddhc.supabase.co/storage/v1/object/public/deck/';
+function imgSegura(v){
+  if(!v)return true; v=String(v);
+  return /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(v)
+    || v.indexOf(DECK_PUBLICO)===0
+    || /^\/contracts\/assets\/brand\/[\w.-]+$/.test(v)
+    || /^[a-z0-9_-]+\/[\w.-]+\.(jpe?g|png|webp)$/i.test(v);   // rutas de los dossiers del repo (hasta D3)
+}
+function limpiaDossier(s){
+  if(!s||typeof s!=='object')return s;
+  if(window.lwCreatividades)s=lwCreatividades.limpiaEstado(s);
+  (s.pages||[]).forEach(p=>{
+    Object.keys(p.img||{}).forEach(k=>{ if(!imgSegura(p.img[k]))p.img[k]=''; });
+    (p.free||[]).forEach(f=>{ if(f.src&&!imgSegura(f.src))f.src=''; });
+  });
+  return s;
+}
 
 function newPage(type){
   const p={id:'p'+(uid++), type, d:JSON.parse(JSON.stringify(TYPES[type].d)), img:{}, free:[],
@@ -1155,7 +1224,7 @@ function loadJSON(){$jsonfile.value='';$jsonfile.click();}
 $jsonfile.onchange=()=>{
   const f=$jsonfile.files[0];if(!f)return;
   f.text().then(txt=>{
-    const s=JSON.parse(txt);
+    const s=limpiaDossier(JSON.parse(txt));
     if(!s||!Array.isArray(s.pages))throw 0;
     state=migrate(s);uid=maxUid(state);curPage=null;
     document.getElementById('ptitle').value=state.title||'Dossier';
@@ -1170,7 +1239,9 @@ document.getElementById('ptitle').addEventListener('input',persist);
    degradaría el deck. Lo que sí se arregla es el fallo real: los tres ajustes que,
    mal puestos, sacaban el PDF con márgenes o sin fondos. */
 const PRINT_TIP_KEY='lawang_dossier_printtip';
-function exportPDF(){
+async function exportPDF(){
+  // Creatividades v4: lo que Legal no deja no sale ni en PDF (revisión previa #68, Legal #1).
+  if(window.dossierBloqueado && await dossierBloqueado('exportar'))return;
   deselect();
   let skip=false; try{skip=localStorage.getItem(PRINT_TIP_KEY)==='off';}catch(_){}
   if(skip)return doPrint();
@@ -1310,12 +1381,234 @@ function toastMal(msg){
 }
 
 /* ---------- init ---------- */
-try{state=migrate(JSON.parse(localStorage.getItem(LS_KEY)));}catch(_){state=null;}
+try{state=migrate(limpiaDossier(JSON.parse(localStorage.getItem(LS_KEY))));}catch(_){state=null;}
 if(!state||!Array.isArray(state.pages)||!state.pages.length)state=defaultProject();
 uid=maxUid(state);
 document.getElementById('ptitle').value=state.title||'Dossier';
 syncSizeSel();applySize();render();
 cargarBibliotecas();   // el modal se llena solo; si falla, quedan los tipos en blanco
 </script>
+<script>
+/* =================================================================
+   CREATIVIDADES v4 en el constructor — 24-sep-2026
+   encargos/20260924_lawang_creatividades_v4.md · revisión previa #68
+   · «Montar desde la base»: las páginas salen de la intranet (RPC
+     dossier_datos): fotos del proyecto, parcelas DISPONIBLES sin precio,
+     modelos con su «desde» (owner: solo «desde»), «Cómo se compra» de
+     Legal (bloque versionado en la base) y el pie de precios de Legal.
+   · Guardar / reabrir en la biblioteca (lwCreatividades).
+   · Revisión de frases de Legal: BLOQUEA guardar y exportar. Las páginas
+     de Legal (`p.legal`) no se revisan: nombran Hak Milik para negarlo.
+   ================================================================= */
+let CREAT = { id:null, estado:null };
+
+function textosDossier(){
+  const t = [document.getElementById('ptitle').value];
+  (state.pages||[]).forEach(p => {
+    if (p.legal) return;
+    Object.values(p.d||{}).forEach(v => t.push(v));
+    (p.rows||[]).forEach(r => { t.push(r.ref); t.push(r.desc); });
+    (p.free||[]).forEach(f => { if (f.html) t.push(f.html); });
+  });
+  return t;
+}
+function escD(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+async function dossierBloqueado(accion){
+  const hall = lwFrases.revisa(textosDossier());
+  const faltaLegal = lwFrases.hablaDeTenencia(textosDossier()) && !(state.pages||[]).some(p => p.legal === 'como_se_compra');
+  if (!hall.length && !faltaLegal) return false;
+  const li = hall.map(h => '<li><b>«' + escD(h.frase) + '»</b>: ' + escD(lwT(h.motivo)) + '</li>');
+  if (faltaLegal) li.push('<li>' + escD(lwT('El dossier habla de la titularidad: añade la página «Cómo se compra» (menú Creatividades), que explica las dos rutas.')) + '</li>');
+  await lwConfirmar({ titulo: lwT('Este dossier no se puede ') + accion,
+    cuerpo: '<ul>' + li.join('') + '</ul><p>' + escD(lwT('Corrígelo y vuelve a intentarlo.')) + '</p>',
+    confirmar: lwT('Entendido'), tono: 'peligro' });
+  return true;
+}
+
+/* ---------- montar desde la base ---------- */
+async function abrirMontar(){
+  document.getElementById('bmodal').classList.add('on');
+  const { sb } = await window.LW_AUTH;
+  const selP = document.getElementById('bmProyecto');
+  if (!selP.options.length){
+    const r = await sb.from('proyectos').select('id, nombre').order('nombre');
+    (r.data||[]).forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = p.nombre; selP.appendChild(o); });
+    if (state.meta && state.meta.proyecto_id) selP.value = state.meta.proyecto_id;
+  }
+  const caja = document.getElementById('bmModelos');
+  if (!caja.childElementCount){
+    const r = await sb.from('modelos').select('id, nombre, publicado, orden').eq('activo', true).order('orden', { nullsFirst:false });
+    (r.data||[]).forEach(m => {
+      const l = document.createElement('label');
+      const c = document.createElement('input'); c.type = 'checkbox'; c.value = m.id;
+      c.checked = !!(state.meta && (state.meta.modelo_ids||[]).indexOf(m.id) >= 0);
+      l.appendChild(c); l.appendChild(document.createTextNode(' ' + m.nombre));
+      if (!m.publicado){ const sm = document.createElement('small'); sm.textContent = ' · ' + lwT('sin ficha'); l.appendChild(sm); }
+      caja.appendChild(l);
+    });
+  }
+}
+function cerrarMontar(){ document.getElementById('bmodal').classList.remove('on'); }
+
+function cadaTres(a){ const o = []; for (let i = 0; i + 3 <= a.length; i += 3) o.push(a.slice(i, i+3)); return o; }
+function trozos(a, n){ const o = []; for (let i = 0; i < a.length; i += n) o.push(a.slice(i, i+n)); return o; }
+
+async function montarDesdeBase(){
+  const proy = document.getElementById('bmProyecto').value;
+  const mods = [...document.querySelectorAll('#bmModelos input:checked')].map(c => c.value);
+  const idi = document.getElementById('bmIdioma').value === 'es' ? 'es' : 'en';
+  if (!proy){ toastMal(lwT('Elige un proyecto.')); return; }
+  const hay = state.pages && state.pages.length > 1;
+  if (hay && !(await lwConfirmar({ titulo: lwT('¿Sustituir el dossier abierto?'),
+      cuerpo: '<p>' + escD(lwT('Las páginas actuales se reemplazan por las que salen de la base. Si quieres conservarlas, guárdalo antes.')) + '</p>',
+      confirmar: lwT('Sustituir'), tono: 'peligro' }))) return;
+  const btn = document.getElementById('bmIr'); btn.disabled = true;
+  try {
+    const { sb } = await window.LW_AUTH;
+    const r = await sb.rpc('dossier_datos', { p_proyecto: proy, p_modelos: mods });
+    if (r.error) throw r.error;
+    const D = r.data, ES = idi === 'es';
+    const fechaTxt = new Date(D.precios_a + 'T00:00:00').toLocaleDateString(ES ? 'es-ES' : 'en-GB', { day:'numeric', month:'long', year:'numeric' });
+    const url = f => DECK_PUBLICO + f.path;
+    const etR = lwFrases.etiqueta('render', idi);
+    const fotosP = D.fotos.filter(f => f.ambito === 'proyecto');
+    const heroe = fotosP.find(f => f.uso === 'hero') || fotosP.find(f => f.tipo === 'foto') || fotosP[0];
+    const usadas = [];
+    const paginas = [];
+    const anio = new Date().getFullYear();
+
+    const cov = newPage('cover');
+    cov.d = { kick:'LAWANG PROPERTIES', title: escD(D.proyecto.nombre), claim:'',
+              foot: anio + ' · LAWANG TROPICAL PROPERTIES' + (heroe && heroe.tipo !== 'foto' ? ' · ' + etR : '') };
+    if (heroe){ cov.img.bg = url(heroe); usadas.push(heroe.id); }
+    paginas.push(cov);
+
+    // Galerías de tres, con el pie de cada foto y la etiqueta si es render.
+    cadaTres(fotosP.filter(f => !heroe || f.id !== heroe.id)).slice(0, 3).forEach(g => {
+      const pg = newPage('gallery');
+      pg.d = { kick: ES ? 'EL PROYECTO' : 'THE PROJECT', title: escD(D.proyecto.nombre) };
+      g.forEach((f, i) => {
+        const pie = escD((f.pie && (f.pie[idi] || f.pie.en)) || '');
+        pg.d['cap' + (i+1)] = f.tipo === 'foto' ? pie : (pie ? pie + ' · ' : '') + etR;
+        pg.img['g' + (i+1)] = url(f); usadas.push(f.id);
+      });
+      paginas.push(pg);
+    });
+
+    // Parcelas disponibles: código y superficie, SIN precio (owner, 24-sep). Fecha en la cabecera (Legal #4).
+    trozos(D.parcelas, 16).forEach(tr => {
+      const pg = newPage('tabla');
+      pg.d = { t1: ES ? 'PARCELAS DISPONIBLES' : 'AVAILABLE PLOTS', t2: escD(D.proyecto.nombre),
+               sec: (ES ? 'Disponibilidad a ' : 'Availability as of ') + fechaTxt,
+               h1: ES ? 'Parcela' : 'Plot', h2: ES ? 'Superficie' : 'Area', fl:'', fr:'' };
+      pg.rows = tr.map(u => ({ ref: escD(u.codigo || ''), desc: u.superficie_m2 ? Number(u.superficie_m2).toLocaleString(ES ? 'es-ES' : 'en-GB') + ' m²' : '', k:'' }))
+        .concat([{ ref:'', desc:'', k:'close' }]);
+      paginas.push(pg);
+    });
+
+    // Un modelo por página: su «desde» (techo más barato de la lista) y sus renders.
+    D.modelos.forEach(m => {
+      const pg = newPage('villa');
+      const desde = m.desde != null
+        ? new Intl.NumberFormat(ES ? 'es-ES' : 'en-GB', { style:'currency', currency: m.moneda || 'EUR', maximumFractionDigits:0 }).format(m.desde) : '';
+      const areas = [];
+      if (m.villa_m2) areas.push('VILLA · ' + m.villa_m2 + ' m²');
+      if (m.terraza_m2) areas.push((ES ? 'TERRAZA · ' : 'TERRACE · ') + m.terraza_m2 + ' m²');
+      const rs = D.fotos.filter(f => f.ambito === 'modelo' && f.modelo_id === m.id);
+      if (rs.slice(0, 2).some(f => f.tipo !== 'foto')) areas.push(etR);
+      pg.d = { kick: ES ? 'MODELO DE VILLA' : 'VILLA MODEL', name: escD(String(m.nombre||'').toUpperCase()),
+               invfrom: desde ? (ES ? 'Construcción desde' : 'Construction from') : '', price: desde,
+               areas: areas.join('<br>'),
+               s1: m.dormitorios != null ? String(m.dormitorios) : '', t1: m.dormitorios != null ? (ES ? 'Dormitorios' : 'Bedrooms') : '',
+               s2: m.banos != null ? String(m.banos) : '', t2: m.banos != null ? (ES ? 'Baños' : 'Bathrooms') : '',
+               s3:'', t3:'', s4:'', t4:'' };
+      if (rs[0]){ pg.img.main = url(rs[0]); usadas.push(rs[0].id); }
+      if (rs[1]){ pg.img.sec = url(rs[1]); usadas.push(rs[1].id); }
+      paginas.push(pg);
+    });
+
+    paginas.push(await paginaComoSeCompra(idi));
+
+    const back = newPage('back');
+    back.d = { contact: TYPES.back.d.contact,
+               legal: (D.modelos.some(m => m.desde != null) ? lwFrases.etiqueta('precios', idi, fechaTxt) + '<br>' : '') + '© ' + anio + ' LAWANG TROPICAL PROPERTIES' };
+    paginas.push(back);
+
+    state = migrate({ title: D.proyecto.nombre + ' · dossier', sizeKey:'a4l', size:{ w:297, h:210 }, pages: paginas,
+      meta: { desdeBase:true, proyecto_id: proy, modelo_ids: mods, foto_ids: usadas, precios_a: D.precios_a, idioma: idi } });
+    uid = maxUid(state); curPage = null;
+    CREAT = { id:null, estado:null }; pintaCreat();
+    document.getElementById('ptitle').value = state.title;
+    syncSizeSel(); applySize(); render(); persist();
+    cerrarMontar();
+    toast(lwT('Dossier montado desde la base ✓'));
+  } catch(e){
+    toastMal(lwT('No se pudo montar: ') + ((e && e.message) || e));
+  } finally { btn.disabled = false; }
+}
+
+async function paginaComoSeCompra(idi){
+  const b = await lwCreatividades.bloqueLegal('como_se_compra', idi);
+  if (!b) throw new Error(lwT('Falta el texto de Legal «Cómo se compra» en la base.'));
+  const pg = newPage('text');
+  pg.legal = 'como_se_compra';          // página de Legal: no pasa por la lista de frases
+  pg.d = { kick: idi === 'es' ? 'CÓMO SE COMPRA' : 'HOW TO BUY',
+           title: idi === 'es' ? 'Dos vías' : 'Two routes',
+           body: lwCreatividades.limpia(b.texto) };
+  return pg;
+}
+async function insertarComoSeCompra(){
+  try {
+    if ((state.pages||[]).some(p => p.legal === 'como_se_compra')){ toast(lwT('Ya tiene la página «Cómo se compra».')); return; }
+    const idi = (state.meta && state.meta.idioma) || 'en';
+    const pg = await paginaComoSeCompra(idi);
+    const i = state.pages.findIndex(p => p.type === 'back');
+    state.pages.splice(i >= 0 ? i : state.pages.length, 0, pg);
+    uid = maxUid(state); render(); persist();
+    toast(lwT('Página «Cómo se compra» añadida ✓'));
+  } catch(e){ toastMal((e && e.message) || String(e)); }
+}
+
+/* ---------- biblioteca ---------- */
+function pintaCreat(){
+  const el = document.getElementById('creatEstado');
+  el.textContent = CREAT.id ? (lwT('Biblioteca') + ': ' + lwT(lwCreatividades.ESTADOS[CREAT.estado] || CREAT.estado)) : '';
+}
+async function guardarEnCreatividades(){
+  if (await dossierBloqueado(lwT('guardar'))) return;
+  try {
+    const s = snapshot();
+    const meta = s.meta || {};
+    const id = CREAT.estado && CREAT.estado !== 'borrador' ? null : CREAT.id;   // aprobado = copia nueva
+    const fila = await lwCreatividades.guardar({ id: id, tipo:'dossier', titulo: s.title,
+      proyecto_id: meta.proyecto_id || null, formato: s.sizeKey || null, precios_a: meta.precios_a || null,
+      estado: s, fotoIds: meta.foto_ids || [], modeloIds: meta.modelo_ids || [] });
+    CREAT = { id: fila.id, estado: fila.estado }; pintaCreat();
+    history.replaceState(null, '', location.pathname + '?id=' + encodeURIComponent(fila.id));
+    toast(lwT(id ? 'Borrador actualizado ✓' : 'Guardado en Creatividades ✓'));
+  } catch(e){ toastMal(lwT('No se pudo guardar: ') + ((e && e.message) || e)); }
+}
+async function reabrirDeCreatividades(id){
+  try {
+    const { fila, estado } = await lwCreatividades.abrir(id);
+    if (!estado || !Array.isArray(estado.pages)) throw new Error(lwT('Ese dossier no tiene páginas.'));
+    state = migrate(limpiaDossier(estado)); uid = maxUid(state); curPage = null;
+    CREAT = { id: fila.id, estado: fila.estado }; pintaCreat();
+    document.getElementById('ptitle').value = state.title || 'Dossier';
+    syncSizeSel(); applySize(); render();
+    if (fila.estado !== 'borrador') toast(lwT('En la biblioteca: ') + lwT(lwCreatividades.ESTADOS[fila.estado]).toLowerCase() + lwT('. Al guardar se crea una copia.'));
+  } catch(e){ toastMal(lwT('No se pudo abrir el dossier: ') + ((e && e.message) || e)); }
+}
+
+// Quien solo VE (comerciales) no monta ni guarda: se le quitan esos botones. La RLS lo impide igual.
+(window.LW_AUTH ? window.LW_AUTH : Promise.resolve(null)).then(a => {
+  const f = a && a.ficha;
+  const hace = f && (f.rol === 'super_admin' || (f.herramientas||[]).indexOf('dossier') >= 0);
+  if (!hace) document.querySelectorAll('[data-crea]').forEach(b => b.remove());
+  const id = new URLSearchParams(location.search).get('id');
+  if (id && /^[0-9a-f-]{36}$/i.test(id)) reabrirDeCreatividades(id);
+});
+</script>
+
 </body>
 </html>
