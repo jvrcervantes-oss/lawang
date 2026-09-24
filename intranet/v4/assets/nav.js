@@ -230,8 +230,11 @@
     /* Comunicación (23-sep-2026, owner: «algo como "Comunicación" para
        escribir yo las plantillas y que se manden a los agentes»): comunicados
        por email al equipo. Admin; la puerta real es es_admin() en
-       comunicados/comunicado_encolar. */
-    { path: 'comunicacion',  icono: 'campaign',         texto: 'Comunicación' }
+       comunicados/comunicado_encolar. Nace aquí por la puerta de rol, pero se
+       MUDA a su propia sección (owner, 24-sep: «Comunicación necesita su
+       sección, no en panel de control que no pega nada») — ver
+       ordenaComunicacion. La cabecera ya dice «Comunicación»: el enlace, «Comunicados». */
+    { path: 'comunicacion',  icono: 'campaign',         texto: 'Comunicados' }
   ];
 
   /* La comision de administracion va aparte del resto del Panel de control:
@@ -411,6 +414,35 @@
     });
   }
 
+  /* SECCIÓN «COMUNICACIÓN» (24-sep-2026, owner). Comunicados al equipo (admin)
+     + Soporte, que son los tickets de los compradores: lo que se habla con la
+     gente, dentro y fuera. Stitch no la dibujó, así que se CREA clonando el
+     grupo de Finanzas vacío (mismas clases) y va justo detrás. Mismo contrato
+     que ordenaFinanzas: pase síncrono (Soporte ya está en la página) y
+     segundo pase (Comunicados solo existe tras saber el rol). Sin ningún
+     enlace se esconde entera: podaMenu no toca un grupo sin enlaces. */
+  var ORDEN_COMUNICACION = ['comunicacion', 'soporte'];
+  function ordenaComunicacion(aside) {
+    var g = aside.querySelector('[data-seccion="comunicacion"]');
+    if (!g) {
+      var fin = aside.querySelector('[data-seccion="finanzas"]');
+      var cab = fin && fin.querySelector(':scope > span');
+      if (!fin || !cab) return;
+      g = fin.cloneNode(false);
+      g.removeAttribute('style');
+      g.setAttribute('data-seccion', 'comunicacion');
+      var c = cab.cloneNode(true);
+      c.textContent = T('Comunicación');
+      g.appendChild(c);
+      fin.insertAdjacentElement('afterend', g);
+    }
+    ORDEN_COMUNICACION.forEach(function (p) {
+      var a = aside.querySelector('nav a[data-path="' + p + '"]');
+      if (a) g.appendChild(a);
+    });
+    g.style.display = g.querySelector('a[data-path]') ? '' : 'none';
+  }
+
   function injertaNuevas(aside) {
     injerta(aside, { path: 'modelos', tras: 'proyectos', icono: 'villa', texto: 'Modelos' });
     INJERTOS.forEach(function (spec) { injerta(aside, spec); });
@@ -467,6 +499,7 @@
     document.querySelectorAll('aside').forEach(injertaNuevas);
     document.querySelectorAll('aside').forEach(retiraDocumentacion);
     document.querySelectorAll('aside').forEach(ordenaFinanzas);
+    document.querySelectorAll('aside').forEach(ordenaComunicacion);
     document.querySelectorAll('aside a[href="#"], nav a[href="#"]').forEach(function (a) {
       // 1º por data-path (cáscara canónica); 2º por texto (páginas sin él)
       var dp = a.getAttribute('data-path');
@@ -625,6 +658,7 @@
           traduceEnlaces(nuevoGrupo);
         }
         ordenaFinanzas(aside);
+        ordenaComunicacion(aside);
         cableaComisiones(aside, aut && aut.ficha);
         // DESPUÉS del Panel de control y de la mudanza: poda y grupos vacíos
         podaMenu(aside, aut && aut.ficha);

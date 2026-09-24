@@ -102,12 +102,6 @@ const LW_HERRAMIENTAS = [
      concreta, y el owner los veía como la misma cosa duplicada. Unificado
      en un hilo único (1-sep mañana) y, esa misma tarde, corregido a
      TICKETS por comprador — con su propia bandeja en las dos versiones. */
-  { grupo:'Seguimiento', nombre:'Soporte', icon:'ph-headset', href:'/intranet/soporte/', herr:'soporte',
-    para:'Los tickets de los compradores desde su área de clientes, en una bandeja.',
-    claves:'soporte mensajes tickets chat compradores atencion consultas support messages tickets chat buyers enquiries inbox',
-    estado:d => d.hilosAbiertos == null ? null
-      : [d.hilosAbiertos ? hT(d.hilosAbiertos === 1 ? '%n ticket abierto' : '%n tickets abiertos', { n: d.hilosAbiertos }) : hT('Sin tickets abiertos'),
-         d.hilosAbiertos > 0] },
   /* Reservas por vencer (23-sep-2026, owner): Cartas de Reserva vivas sin
      Bloqueo y cuándo vencen. Clave propia desde el primer día. */
   { grupo:'Seguimiento', nombre:'Reservas por vencer', icon:'ph-hourglass-medium', href:'/intranet/v4/reservas/', herr:'reservas',
@@ -245,6 +239,17 @@ const LW_HERRAMIENTAS = [
      ellas desde su «Panel de control» (`intranet/v4/assets/nav.js`,
      PANEL_CONTROL_SUPER), solo super admin. La puerta de verdad sigue siendo la
      RLS (`es_super_admin()`), no este menú. */
+
+  /* SECCIÓN «COMUNICACIÓN» (24-sep-2026, owner: «Comunicación necesita su sección»):
+     Soporte (tickets de compradores) sale de Seguimiento. Los comunicados al equipo
+     son de la v4 y no tienen tarjeta aquí. Mismo orden en la sidebar v4 (nav.js,
+     ORDEN_COMUNICACION). Lo que se ve lo sigue decidiendo `herr`. */
+  { grupo:'Comunicación', nombre:'Soporte', icon:'ph-headset', href:'/intranet/soporte/', herr:'soporte',
+    para:'Los tickets de los compradores desde su área de clientes, en una bandeja.',
+    claves:'soporte mensajes tickets chat compradores atencion consultas support messages tickets chat buyers enquiries inbox',
+    estado:d => d.hilosAbiertos == null ? null
+      : [d.hilosAbiertos ? hT(d.hilosAbiertos === 1 ? '%n ticket abierto' : '%n tickets abiertos', { n: d.hilosAbiertos }) : hT('Sin tickets abiertos'),
+         d.hilosAbiertos > 0] },
 
   { grupo:'Base de datos', nombre:'Proyectos', icon:'ph-buildings', href:'/intranet/proyectos/', herr:'unidades',
     para:'Inventario de parcelas y villas con su estado de venta, por proyecto.',
