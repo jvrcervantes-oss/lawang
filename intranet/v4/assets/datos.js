@@ -4225,6 +4225,26 @@
           else { imgCover.removeAttribute('src'); imgCover.classList.add('hidden'); }
         }
 
+        /* Ubicación en Google Maps (24-sep-2026): mapa incrustado si hay coordenadas,
+           y siempre el enlace para abrirlo. Sin ubicación, la fila lo dice y ya. */
+        var cajaMapa = document.querySelector('[data-lw="d-mapa"]');
+        if (cajaMapa) {
+          var mp = window.LW_V4.mapaProyecto ? window.LW_V4.mapaProyecto(elegido) : null;
+          if (!mp) {
+            cajaMapa.innerHTML = '<div class="flex items-center justify-between pb-2 border-b border-warm-border/60">' +
+              '<span class="text-on-surface-variant font-medium">Ubicación:</span>' +
+              '<span class="text-outline">sin ubicación — se añade en «Editar proyecto»</span></div>';
+          } else {
+            cajaMapa.innerHTML = (mp.embed
+              ? '<iframe class="w-full h-40 rounded-lg border border-warm-border" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="' + esc(mp.embed) + '" title="Mapa del proyecto"></iframe>'
+              : '') +
+              '<div class="flex items-center justify-between pb-2 border-b border-warm-border/60' + (mp.embed ? ' mt-2' : '') + '">' +
+              '<span class="text-on-surface-variant font-medium">Ubicación:</span>' +
+              '<a class="inline-flex items-center gap-1 font-semibold text-deep-lagoon hover:underline" target="_blank" rel="noopener" href="' + esc(mp.abrir) + '">' +
+              '<span class="material-symbols-outlined text-[15px]">location_on</span>Abrir en Google Maps</a></div>';
+          }
+        }
+
         /* Recaudación por familia (11-sep-2026) — ver comentario largo en el
            Promise.all de arriba. `d.suelo`/`d.obra` son la cartera REAL de
            `unidades` (catálogo, venda o no); `fam.parcela/obra` son lo firmado
@@ -4667,6 +4687,32 @@
          (rejilla, tabla, carpetas). Un solo sitio que las calcula: si la tabla
          las sacara por su cuenta, el día que cambie el criterio de la rejilla
          las dos dirían cosas distintas del mismo proyecto. */
+      /* Ubicación del proyecto (24-sep-2026, owner). `proyectos.ubicacion_maps` guarda lo
+         que se pegó: enlace de Google Maps o «lat, lng». De ahí salen dos cosas: `abrir`
+         (siempre que haya algo) y `embed` (solo si se pueden sacar coordenadas o un
+         nombre de sitio — el enlace corto maps.app.goo.gl no las trae y el navegador no
+         puede seguirlo: ese se queda en el botón). Mismos patrones que la web pública
+         (assets/portfolio-app.js, mapEmbedUrl). */
+      function mapaProyecto(p) {
+        var t = ((p && p.ubicacion_maps) || '').trim();
+        if (!t) return null;
+        var m = t.match(/^\s*(-?\d{1,2}(?:\.\d+)?)\s*[,;]\s*(-?\d{1,3}(?:\.\d+)?)\s*$/);
+        if (m) {
+          var q = m[1] + ',' + m[2];
+          return { abrir: 'https://www.google.com/maps?q=' + q, embed: 'https://maps.google.com/maps?q=' + q + '&z=15&output=embed' };
+        }
+        if (!/^https:\/\/([a-z0-9-]+\.)*(google\.[a-z.]+|goo\.gl)\//i.test(t)) return null;
+        var c = t.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || t.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) ||
+                t.match(/[?&](?:q|ll|query|center)=(-?\d+\.\d+)(?:,|%2C)\s*(-?\d+\.\d+)/i);
+        if (c) return { abrir: t, embed: 'https://maps.google.com/maps?q=' + c[1] + ',' + c[2] + '&z=15&output=embed' };
+        var pl = t.match(/\/maps\/place\/([^/@?]+)/);
+        if (pl) {
+          try { return { abrir: t, embed: 'https://maps.google.com/maps?q=' + encodeURIComponent(decodeURIComponent(pl[1].replace(/\+/g, ' '))) + '&z=15&output=embed' }; } catch (e) {}
+        }
+        return { abrir: t, embed: null };
+      }
+      window.LW_V4.mapaProyecto = mapaProyecto;
+
       function cifrasProyecto(p) {
         var d = POR_P[p.nombre] || { t: 0, disp: 0, vend: 0, cartera: 0, porEstado: {} };
         var cob = COB_P[p.nombre] || 0;
@@ -4680,8 +4726,11 @@
           /* Color de la etiqueta (owner 23-sep-2026: «todas tienen el mismo color»). La
              plantilla traía bg-territorial-green fijo. Sale de la paleta única de estados
              de parcela: con disponibles = disponible, todo asignado = vendida, sin
-             inventario = fuera de venta. */
-          badgeColor: d.t === 0 ? ESTADO_COLOR.no_disponible : (d.disp ? ESTADO_COLOR.disponible : ESTADO_COLOR.vendida)
+             inventario = fuera de venta.
+             «Todo asignado» en #42210b (24-sep-2026, owner): es el sold out, y tiene
+             que leerse de un vistazo — junto con la portada desaturada (renderizar()). */
+          agotado: d.t > 0 && !d.disp,
+          badgeColor: d.t === 0 ? ESTADO_COLOR.no_disponible : (d.disp ? ESTADO_COLOR.disponible : '#42210b')
         };
       }
       // Barra de dos colores (oscuro = cobrado, claro = firmado sin cobrar) en
@@ -4824,6 +4873,15 @@
           [['nombre', p.nombre], ['sitio', p.resort || ''], ['sub', sub]].forEach(function (x) {
             var e = $(x[0], c); if (e && x[1]) e.title = x[1];
           });
+          // Chip de ubicación → Google Maps (24-sep-2026), si el proyecto la tiene.
+          // stopPropagation: el clic en la tarjeta abre el cajón, este no.
+          var mpC = mapaProyecto(p), eSitio = $('sitio', c);
+          if (mpC && eSitio && eSitio.parentElement) {
+            var chip = eSitio.parentElement;
+            chip.style.cursor = 'pointer';
+            chip.title = 'Abrir ' + (p.resort || p.nombre) + ' en Google Maps';
+            chip.addEventListener('click', function (ev) { ev.stopPropagation(); window.open(mpC.abrir, '_blank', 'noopener'); });
+          }
           pon('badge', cf.badge, c);
           var eBadge = $('badge', c); if (eBadge) eBadge.style.backgroundColor = cf.badgeColor;
           pon('uds', String(d.t), c);
@@ -4850,7 +4908,14 @@
           if (cover && coverUrl) {
             cover.style.backgroundImage = 'url(' + coverUrl.replace(/'/g, '%27') + ')';
             c.querySelectorAll('[data-lw-deco]').forEach(function (x) { x.style.display = 'none'; });
-            var ov = c.querySelector('[data-lw-cover-overlay]'); if (ov) ov.classList.remove('hidden');
+            var ov = c.querySelector('[data-lw-cover-overlay]');
+            if (ov) {
+              ov.classList.remove('hidden');
+              // Sold out (24-sep-2026, owner): la foto a -50 % de saturación. Con
+              // backdrop-filter en el velo y NO filter en la cabecera: la etiqueta y
+              // el nombre son hijos de la cabecera y se volverían grises con ella.
+              if (cf.agotado) { ov.style.backdropFilter = 'saturate(.5)'; ov.style.webkitBackdropFilter = 'saturate(.5)'; }
+            }
           }
           c.style.cursor = 'pointer';
           var abre = function (ev) { if (ev) ev.stopPropagation(); abrirCajon(p.nombre, { mostrar: true }); };
@@ -5080,7 +5145,7 @@
         // `slug` (22-sep-2026, S10.3): lo lee y lo escribe el editor nativo del
         // Investor Deck — sin él "Investor Deck" no podría mostrar la URL
         // pública ni ofrecer cambiarlo.
-        q(sb.from('proyectos').select('id,nombre,slug,resort,parcela_master,parcela_master_m2,fecha_entrega_estimada_proyecto,fecha_entrega_estimada_fijada_en,estado,pct_minimo_inicio').eq('activo', true).order('nombre'), 'proyectos'),
+        q(sb.from('proyectos').select('id,nombre,slug,resort,ubicacion_maps,parcela_master,parcela_master_m2,fecha_entrega_estimada_proyecto,fecha_entrega_estimada_fijada_en,estado,pct_minimo_inicio').eq('activo', true).order('nombre'), 'proyectos'),
         q(sb.from('unidades').select('proyecto,estado,moneda,precio,precio_suelo,precio_construccion'), 'unidades'),
         /* La RPC de EQUIPO, nunca `.from('facturas')`. `facturas` tiene RLS por
            agente (`es_suyo`), así que una lectura directa devuelve solo «lo mío»

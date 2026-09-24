@@ -62,6 +62,27 @@
      el editor se abre ENCIMA de el, no en su lugar, para no perder de vista el
      proyecto del que cuelga la parcela. */
   var FUENTE = "font-family:'Neue Kabel','Jost',sans-serif";
+
+  /* Portada de proyecto → WebP de 1600 px de ancho como mucho, calidad .82
+     (24-sep-2026). Promesa que SIEMPRE resuelve con un File: el comprimido si
+     sale más pequeño, o el original si no se puede decodificar/comprimir. */
+  function lwPortadaLigera(file) {
+    return new Promise(function (ok) {
+      if (!/^image\/(jpeg|png|webp)$/i.test(file.type || '') || !window.createImageBitmap) return ok(file);
+      createImageBitmap(file).then(function (bmp) {
+        var k = Math.min(1, 1600 / bmp.width);
+        var cv = document.createElement('canvas');
+        cv.width = Math.round(bmp.width * k); cv.height = Math.round(bmp.height * k);
+        cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
+        if (bmp.close) bmp.close();
+        cv.toBlob(function (b) {
+          if (!b || b.type !== 'image/webp' || b.size >= file.size) return ok(file);
+          ok(new File([b], file.name.replace(/\.[a-z0-9]+$/i, '') + '.webp', { type: 'image/webp' }));
+        }, 'image/webp', 0.82);
+      }).catch(function () { ok(file); });
+    });
+  }
+
   function cierraModal() {
     var m = document.getElementById('lw-editor');
     if (!m) return;
@@ -4733,6 +4754,10 @@
             { k: 'nombre', label: 'Nombre', req: 1, valor: p.nombre,
               ayuda: 'Cuidado: renombrar aquí toca unidades, contratos, facturas, documentación y modelos de este proyecto — se confirma con el radio de impacto antes de guardar.' },
             { k: 'resort', label: 'Resort', valor: p.resort || '' },
+            // Ubicación en Google Maps (24-sep-2026, owner). Texto tal cual se pega;
+            // lo interpreta mapaProyecto() de datos.js al pintar.
+            { k: 'ubicacion_maps', label: 'Ubicación (Google Maps)', valor: p.ubicacion_maps || '',
+              ayuda: 'Pega las coordenadas (en Google Maps, clic derecho sobre el punto y clic en «-8.48…, 114.96…» para copiarlas) o el enlace. Con coordenadas se ve el mapa en la ficha; el enlace corto maps.app.goo.gl solo da el botón «Abrir».' },
             { k: 'parcela_master', label: 'Parcela máster (código)', valor: p.parcela_master || '' },
             // Fecha de entrega ESTIMADA del PROYECTO (16-sep-2026, encargo del
             // owner) — agregada, para el deck/marketing. Distinta a propósito
@@ -4804,6 +4829,7 @@
             var cambioFecha = nuevaFecha !== (p.fecha_entrega_estimada_proyecto || null);
             var payloadProyecto = {
               resort: (v.resort || '').trim() || null,
+              ubicacion_maps: (v.ubicacion_maps || '').trim() || null,
               parcela_master: (v.parcela_master || '').trim() || null,
               fecha_entrega_estimada_proyecto: nuevaFecha,
             };
@@ -4860,28 +4886,35 @@
                 }
                 if (v.imagen) {
                   var file = v.imagen;
-                  if (file.size > 8 * 1024 * 1024) {
-                    aviso('La ficha sí, la foto no: pasa de 8 MB.', '#ba1a1a');
-                  } else {
-                    var ext = (file.name.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
-                    var path = 'proyectos/' + p.id + '/' + crypto.randomUUID() + ext;
-                    trabajos.push(
-                      sb.storage.from('documentacion').upload(path, file, { contentType: file.type || undefined }).then(function (up) {
-                        if (up.error) { aviso('La ficha sí, la foto no: ' + up.error.message, '#ba1a1a'); return; }
-                        return sb.from('documentos_proyecto').insert({
-                          proyecto: nombreEfectivo, categoria: 'portada', titulo: 'Portada',
-                          path: path, mime: file.type || null, bytes: file.size, confidencial: true
-                        }).then(function (ri) {
-                          if (ri.error) {
-                            // fichero huérfano en el bucket sin fila: se retira,
-                            // igual que hace subirDoc() en /intranet/modelos/.
-                            sb.storage.from('documentacion').remove([path]);
-                            aviso('La ficha sí, la foto no: ' + ri.error.message, '#ba1a1a');
-                          }
-                        });
-                      })
-                    );
-                  }
+                  var path;
+                  trabajos.push(
+                    // Portada comprimida a WebP ≤1600 px ANTES de subirla (24-sep-2026,
+                    // owner: «que carguen al toque»): llegaban PNG de 2-8 MB para una
+                    // cabecera de 144 px de alto. Si el navegador no sabe decodificarla
+                    // (HEIC del iPhone) se sube el original, como antes.
+                    lwPortadaLigera(file).then(function (f2) {
+                      file = f2;
+                      // El tope de 8 MB se mide DESPUÉS de comprimir: un PNG de 12 MB
+                      // que queda en 400 KB de WebP ya no tiene por qué rechazarse.
+                      if (file.size > 8 * 1024 * 1024) return { error: { message: 'pasa de 8 MB' } };
+                      var ext = (file.name.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
+                      path = 'proyectos/' + p.id + '/' + crypto.randomUUID() + ext;
+                      return sb.storage.from('documentacion').upload(path, file, { contentType: file.type || undefined });
+                    }).then(function (up) {
+                      if (up.error) { aviso('La ficha sí, la foto no: ' + up.error.message, '#ba1a1a'); return; }
+                      return sb.from('documentos_proyecto').insert({
+                        proyecto: nombreEfectivo, categoria: 'portada', titulo: 'Portada',
+                        path: path, mime: file.type || null, bytes: file.size, confidencial: true
+                      }).then(function (ri) {
+                        if (ri.error) {
+                          // fichero huérfano en el bucket sin fila: se retira,
+                          // igual que hace subirDoc() en /intranet/modelos/.
+                          sb.storage.from('documentacion').remove([path]);
+                          aviso('La ficha sí, la foto no: ' + ri.error.message, '#ba1a1a');
+                        }
+                      });
+                    })
+                  );
                 }
                 return Promise.all(trabajos).then(function () {
                   // Navegación manual en vez del reload por defecto de modal()
