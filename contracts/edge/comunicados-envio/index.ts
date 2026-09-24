@@ -47,13 +47,30 @@ type Comunicado = {
   cta_url: string | null; cta_texto: string | null;
 };
 
-async function enviarEmail(to: string, c: Comunicado, prueba: boolean) {
+// Asunto por destinatario (24-sep-2026). Hostinger bloqueó admin@ por «Content
+// Spam» tras 17 copias con el MISMO asunto, y su guía pide no repetirlo entre
+// envíos: cada persona recibe «Nombre, <asunto>». La primera letra del asunto
+// solo baja a minúscula si es una palabra normal («Novedades» → «novedades»);
+// «LAWANG» o «[…]» se quedan como están.
+// La copia de prueba iba con «[PRUEBA]»: mayúsculas, corchetes y la palabra que
+// Hostinger lista («Tes»). Ahora «Borrador: ».
+function asuntoPara(asunto: string, nombre: string | null, prueba: boolean): string {
+  const pila = (nombre || '').trim().split(/\s+/)[0] || '';
+  let a = asunto.trim();
+  if (pila) {
+    if (/^\p{Lu}\p{Ll}/u.test(a)) a = a.charAt(0).toLocaleLowerCase('es') + a.slice(1);
+    a = pila + ', ' + a;
+  }
+  return (prueba ? 'Borrador: ' : '') + a;
+}
+
+async function enviarEmail(to: string, nombre: string | null, c: Comunicado, prueba: boolean) {
   const r = await fetch(SITIO + '/contracts/api/send_email.php', {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'X-Render-Secret': RENDER_SECRET },
     body: JSON.stringify({
       to,
-      subject: (prueba ? '[PRUEBA] ' : '') + c.asunto,
+      subject: asuntoPara(c.asunto, nombre, prueba),
       encabezado: c.encabezado || '',
       etiqueta: 'Comunicado al equipo',
       message: c.cuerpo,
@@ -86,10 +103,12 @@ Deno.serve(async (req) => {
   if (eCom) return json({ error: eCom.message }, 500);
   const porId = new Map((coms ?? []).map((c: Comunicado) => [c.id, c]));
 
-  // es_prueba no viene en el reclamo: se lee aparte, una consulta para toda la tanda
+  // es_prueba y nombre no vienen en el reclamo: se leen aparte, una consulta para toda la tanda
   const { data: flags } = await sb.from('comunicado_envios')
-    .select('id, es_prueba').in('id', tanda.map((t: { id: string }) => t.id));
-  const esPrueba = new Map((flags ?? []).map((f: { id: string; es_prueba: boolean }) => [f.id, f.es_prueba]));
+    .select('id, es_prueba, nombre').in('id', tanda.map((t: { id: string }) => t.id));
+  type Flag = { id: string; es_prueba: boolean; nombre: string | null };
+  const esPrueba = new Map((flags ?? []).map((f: Flag) => [f.id, f.es_prueba]));
+  const nombreDe = new Map((flags ?? []).map((f: Flag) => [f.id, f.nombre]));
 
   let enviadas = 0, fallidas = 0;
   const filas = tanda as { id: string; comunicado_id: string; email: string; intentos: number }[];
@@ -99,7 +118,7 @@ Deno.serve(async (req) => {
     const c = porId.get(e.comunicado_id);
     try {
       if (!c) throw new Error('el comunicado ya no existe');
-      await enviarEmail(e.email, c, esPrueba.get(e.id) === true);
+      await enviarEmail(e.email, nombreDe.get(e.id) ?? null, c, esPrueba.get(e.id) === true);
       await sb.from('comunicado_envios')
         .update({ estado: 'ok', error: null, enviado_en: new Date().toISOString() }).eq('id', e.id);
       enviadas++;

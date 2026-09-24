@@ -313,3 +313,25 @@ BTN;
 </table>
 HTML;
 }
+
+/**
+ * Versión en texto plano del MISMO correo (24-sep-2026). Hostinger bloqueó el
+ * SMTP de admin@ por «Content Spam» y los filtros puntúan peor un correo que
+ * solo trae HTML: send_email.php manda ahora multipart/alternative con esta
+ * parte delante de la HTML. Sale de los mismos datos que lw_plantilla_correo(),
+ * no del HTML ya montado, para que las dos versiones digan lo mismo.
+ */
+function lw_texto_plano_correo(string $mensajeTexto, ?string $encabezado = null, ?array $cta = null, ?string $contacto = null): string {
+  $partes = [];
+  if ($encabezado !== null && trim($encabezado) !== '') { $partes[] = trim($encabezado); }
+  // las viñetas «•»/«·» y los rótulos «1. TÍTULO» ya se leen bien en plano
+  $partes[] = trim(str_replace("\r\n", "\n", $mensajeTexto));
+  $ctaUrl   = is_array($cta) ? trim((string)($cta['url'] ?? '')) : '';
+  $ctaTexto = is_array($cta) ? trim((string)($cta['texto'] ?? '')) : '';
+  if ($ctaUrl !== '' && $ctaTexto !== '') {
+    $partes[] = $ctaTexto . ': ' . preg_replace('/^mailto:/i', '', $ctaUrl);
+  }
+  $mail = ($contacto === 'sales' ? 'sales' : 'admin') . '@lawangproperties.com';
+  $partes[] = "--\nLawang Tropical Properties\n{$mail} - https://lawangproperties.com";
+  return implode("\n\n", $partes) . "\n";
+}

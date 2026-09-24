@@ -399,19 +399,31 @@ $boundary = 'lwc_' . bin2hex(random_bytes(16));
 // email de acceso al portal). Antes esta parte era texto plano a secas.
 require_once __DIR__ . '/lib/plantilla_correo.php';
 $mensajeHtml = lw_plantilla_correo($message, $encabezado !== '' ? $encabezado : null, $cta, $etiqueta !== '' ? $etiqueta : null, $contacto);
+$mensajePlano = lw_texto_plano_correo($message, $encabezado !== '' ? $encabezado : null, $cta, $contacto);
 
-// multipart/mixed con una sola parte de HTML es correo válido, así que el
+// multipart/mixed con una sola parte de cuerpo es correo válido, así que el
 // camino sin adjunto reusa la misma estructura (y el mismo SmtpMailer) en vez
 // de abrir una segunda forma de construir el mensaje.
-$body  = "--{$boundary}\r\n";
-$body .= "Content-Type: text/html; charset=UTF-8\r\n";
+// Esa parte de cuerpo es multipart/alternative (24-sep-2026): texto plano
+// primero y HTML después — el cliente pinta la última que entienda. Solo HTML
+// puntuaba peor en el filtro «Content Spam» que bloqueó el SMTP de admin@.
 // base64, no 8bit (23-sep-2026): la plantilla sale en líneas de miles de
 // caracteres y SMTP no admite más de 998 por línea, así que el servidor las
 // partía por donde caía. Un corte en «border-\n bottom» hizo que Gmail tirase
 // el estilo entero del rótulo 2 de un comunicado (y rompía la firma DKIM:
 // «body hash did not verify»). base64 en líneas de 76 no se puede cortar mal.
+$alt = 'lwa_' . bin2hex(random_bytes(16));
+$body  = "--{$boundary}\r\n";
+$body .= "Content-Type: multipart/alternative; boundary=\"{$alt}\"\r\n\r\n";
+$body .= "--{$alt}\r\n";
+$body .= "Content-Type: text/plain; charset=UTF-8\r\n";
+$body .= "Content-Transfer-Encoding: base64\r\n\r\n";
+$body .= chunk_split(base64_encode($mensajePlano)) . "\r\n";
+$body .= "--{$alt}\r\n";
+$body .= "Content-Type: text/html; charset=UTF-8\r\n";
 $body .= "Content-Transfer-Encoding: base64\r\n\r\n";
 $body .= chunk_split(base64_encode($mensajeHtml)) . "\r\n";
+$body .= "--{$alt}--\r\n";
 if ($pdfBytes !== null) {
   $body .= "--{$boundary}\r\n";
   $body .= "Content-Type: application/pdf; name=\"{$filename}\"\r\n";

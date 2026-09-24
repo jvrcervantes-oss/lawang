@@ -64,7 +64,13 @@ final class SmtpMailer
             $this->cmd($fp, 'DATA', 354);
 
             $encodedSubject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
-            $headers = "From: {$fromName} <{$fromEmail}>\r\n"
+            // Date y Message-ID (24-sep-2026): sin ellos los filtros suman puntos
+            // de spam (MISSING_DATE / MISSING_MID) y Hostinger ya bloqueó admin@
+            // por «Content Spam». El dominio del id es el del remitente.
+            $dominio = substr(strrchr($fromEmail, '@') ?: '@lawangproperties.com', 1);
+            $headers = "Date: " . date(DATE_RFC2822) . "\r\n"
+                . "Message-ID: <" . bin2hex(random_bytes(12)) . '.' . time() . "@{$dominio}>\r\n"
+                . "From: {$fromName} <{$fromEmail}>\r\n"
                 . "To: <{$to}>\r\n"
                 . "Subject: {$encodedSubject}\r\n"
                 . "MIME-Version: 1.0\r\n"

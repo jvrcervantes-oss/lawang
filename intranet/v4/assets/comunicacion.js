@@ -60,8 +60,39 @@
       cta_url: v('lw-com-cta-url') || null
     };
   }
+  /* Revisión del asunto (24-sep-2026). Hostinger bloqueó el correo de admin@ por
+     «Content Spam» y mandó su guía: asunto nunca vacío ni todo en mayúsculas,
+     sin «Re:», sin palabras-reclamo, sin exceso de símbolos, sin acortadores.
+     Lo que el filtro castiga seguro BLOQUEA (valida); lo dudoso solo AVISA y se
+     enseña al guardar y en la confirmación de envío. El asunto que sale lleva
+     además el nombre de cada destinatario delante (Edge comunicados-envio). */
+  var PALABRAS_SPAM = ['gratis', 'free', 'sin coste', 'sin costo', 'no cost', 'tanpa biaya', 'urgente', 'urgent',
+    'ganador', 'winner', 'pemenang', 'hadiah', 'regalo', 'gift', 'dinero', 'money', 'uang', 'precio más bajo',
+    'lowest price', 'harga terendah', 'prueba', 'test', 'tes', 'check', 'periksa', 'read me', 'léeme',
+    'open this letter', 'abre esta carta', 'oferta', 'offer'];
+  var ACORTADORES = /\b(bit\.ly|tinyurl\.com|t\.co|goo\.gl|ow\.ly|is\.gd|buff\.ly|cutt\.ly|rebrand\.ly|s\.id)\//i;
+  function erroresAsunto(a) {
+    if (!a) return 'Falta el asunto.';
+    if (/^\s*(re|fw|fwd|rv)\s*:/i.test(a)) return 'El asunto no puede empezar por «Re:» ni «Fwd:»: los filtros de spam lo castigan.';
+    var letras = a.replace(/[^\p{L}]/gu, '');
+    if (letras.length >= 4 && letras === letras.toUpperCase()) return 'El asunto no puede ir todo en mayúsculas: los filtros de spam lo castigan.';
+    return null;
+  }
+  function avisosAsunto(f) {
+    var avisos = [], bajo = ' ' + f.asunto.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ') + ' ';
+    var vistas = PALABRAS_SPAM.filter(function (p) { return bajo.indexOf(' ' + p + ' ') >= 0; });
+    if (vistas.length) avisos.push('El asunto lleva palabras que los filtros de spam vigilan: «' + vistas.join('», «') + '».');
+    var simbolos = (f.asunto.match(/[\[\]{}<>%^!?$€*#|~_=+]/g) || []).length;
+    if (simbolos >= 2) avisos.push('El asunto lleva muchos símbolos (corchetes, %, !, >…). Mejor solo palabras.');
+    var mayus = (f.asunto.match(/\b\p{Lu}{4,}\b/gu) || []);
+    if (mayus.length) avisos.push('Mejor sin palabras enteras en mayúsculas en el asunto: «' + mayus.join('», «') + '».');
+    if (ACORTADORES.test(f.cuerpo + ' ' + (f.cta_url || ''))) avisos.push('Hay un enlace acortado (bit.ly y similares): pon la dirección completa.');
+    return avisos;
+  }
+
   function valida(f) {
-    if (!f.asunto) return 'Falta el asunto.';
+    var ea = erroresAsunto(f.asunto);
+    if (ea) return ea;
     if (!f.cuerpo.trim()) return 'Falta el texto.';
     if (!!f.cta_url !== !!f.cta_texto) return 'El botón necesita texto y enlace, o ninguno de los dos.';
     if (f.cta_url && !/^(https:\/\/([a-z0-9-]+\.)*lawangproperties\.com(\/\S*)?|mailto:\S+@\S+|https:\/\/wa\.me\/\d{6,20})$/i.test(f.cta_url))
@@ -241,7 +272,9 @@
     return p.then(function (r) {
       b.disabled = false;
       if (r.error) { mal(r.error, 'No se guardó'); return null; }
-      actual = r.data; pintaForm(); bien('Comunicado guardado.'); cargaLista();
+      actual = r.data; pintaForm(); cargaLista();
+      var av = avisosAsunto(f);
+      if (av.length) toastMal('Guardado, pero revisa: ' + av.join(' ')); else bien('Comunicado guardado.');
       return actual;
     }, function (err) { b.disabled = false; mal(err, 'No se guardó'); return null; });
   }
@@ -284,7 +317,7 @@
       return sb.rpc('comunicado_prueba', { p_comunicado: c.id }).then(function (r) {
         b.disabled = false;
         if (r.error) { mal(r.error, 'No se mandó la prueba'); return; }
-        bien('Prueba en camino a ' + r.data + '. Llega con «[PRUEBA]» en el asunto.');
+        bien('Prueba en camino a ' + r.data + '. Llega con «Borrador:» y tu nombre delante del asunto.');
         cargaEnvios();
       });
     }).catch(function (err) { b.disabled = false; mal(err, 'No se mandó la prueba'); });
@@ -299,7 +332,10 @@
     var nombres = lista.slice(0, 8).map(function (u) { return esc(u.nombre || u.email); }).join(', ') + (lista.length > 8 ? ' y ' + (lista.length - 8) + ' más' : '');
     window.lwConfirmar({
       titulo: 'Enviar a ' + lista.length + (lista.length === 1 ? ' persona' : ' personas'),
-      cuerpo: '<p><b>' + esc(f.asunto) + '</b></p><p>' + nombres + '.</p>' +
+      cuerpo: '<p><b>' + esc(f.asunto) + '</b></p>' +
+        '<p>Cada persona lo recibe con su nombre delante (por ejemplo «' + esc(((lista[0].nombre || '').split(/\s+/)[0] || 'Nombre') + ', …') + '»), para que el asunto no salga repetido.</p>' +
+        avisosAsunto(f).map(function (a) { return '<p><b>Ojo:</b> ' + esc(a) + '</p>'; }).join('') +
+        '<p>' + nombres + '.</p>' +
         '<p>Sale por email ahora mismo. Desde este momento el comunicado ya no se puede cambiar.</p>',
       confirmar: 'Enviar'
     }).then(function (si) {
