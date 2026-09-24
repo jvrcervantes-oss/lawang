@@ -218,7 +218,7 @@ async function lwOperacionesCargar(SB, avisar){
      muere en «Assignment to constant variable» y la tabla dice «No se
      pudieron cargar» sin más pista. */
   let RECORTES = [], POR_CLIENTE = {}, EQUIPO = {}, OPS = [];
-  const [c, f, s, cc, dc, eq, cb, pe] = await Promise.all([
+  const [c, f, s, cc, dc, eq, cb, pe, ro] = await Promise.all([
     /* ⚠️ NADA QUE SALGA DE `datos` EN ESTA CONSULTA. Medido el 24-ago-2026
        sobre la tabla real: pedir `hitos:datos->hitos` la deja en **3.852 ms**;
        la misma consulta sin tocar `datos`, en **0,37 ms**. Diez mil veces.
@@ -279,6 +279,9 @@ async function lwOperacionesCargar(SB, avisar){
     // una sola fuente para "cuánto queda de esta factura", no una segunda
     // resta a mano aquí.
     SB.rpc('facturas_pendiente_equipo'),
+    // Operación del núcleo (ver más abajo): en paralelo con lo demás, no en una vuelta de red más.
+    window.AXW_NUCLEO_OPERACION ? SB.rpc('operaciones_equipo').select('id,referencia,estado,client_id,moneda')
+                                : Promise.resolve({ data: null, error: null }),
   ]);
   if(c.error) throw c.error;
 
@@ -370,7 +373,6 @@ async function lwOperacionesCargar(SB, avisar){
      tiene la tabla `operaciones`, y sin la bandera este bloque no existe — ni una petición de más. Si la lectura
      falla, las filas se quedan como estaban: la operación es un dato de más, nunca una razón para no pintar. */
   if(window.AXW_NUCLEO_OPERACION){
-    const ro = await SB.rpc('operaciones_equipo').select('id,referencia,estado,client_id,moneda');
     if(ro.error){ avisar(ocT('No se pudieron leer las operaciones: ') + ro.error.message); }
     else {
       const porOp = {};

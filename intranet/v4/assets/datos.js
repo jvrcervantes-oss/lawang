@@ -2173,9 +2173,10 @@
       ]).then(function (rr) {
           var fs = rr[0], hayPend = !!rr[1], pendPor = {}, AUT = rr[2] || {};
           var OPS = null;
+          var T = function (x) { return (typeof lwT === 'function') ? lwT(x) : x; };   // aquí no había traductor a mano
           if (rr[3]) { OPS = {}; rr[3].forEach(function (o) { OPS[o.id] = o; }); }
           function opDe(f) { return OPS && f.operacion_id ? OPS[f.operacion_id] || null : null; }
-          if (OPS) { var bVista = document.querySelector('[data-lw-vista-btn="contrato"]'); if (bVista) bVista.textContent = 'Por operación'; }
+          if (OPS) { var bVista = document.querySelector('[data-lw-vista-btn="contrato"]'); if (bVista) bVista.textContent = T('Por operación'); }
           (rr[1] || []).forEach(function (x) { pendPor[x.factura_id] = Number(x.pendiente) || 0; });
           if (!fs) return;
           // 'cobrada' | 'parcial' | 'pendiente' | 'na' (proforma, anulada o sin dato)
@@ -2226,7 +2227,7 @@
               var est = estadoDoc(f);
               var op = opDe(f);
               fila(pl, [f.numero, tipoDoc(f.tipo), f.cliente_nombre || '—',
-                op ? op.referencia + (f.contrato_numero ? ' · ' + f.contrato_numero : '') : (OPS && !f.contrato_id ? 'Venta suelta' : (f.contrato_numero || '—')),
+                op ? op.referencia + (f.contrato_numero ? ' · ' + f.contrato_numero : '') : (OPS && !f.contrato_id ? T('Venta suelta') : (f.contrato_numero || '—')),
                 f.proyecto_nombre || '—',
                 fmt(f.total, f.moneda), '', fFecha(f.fecha_emision || f.created_at), '', '', '']);
               var tr = pl.tbody.lastElementChild;
@@ -2278,8 +2279,8 @@
               orden.forEach(function (k) {
                 var g = grupos[k];
                 var n = g.docs.length + (g.docs.length === 1 ? ' documento' : ' documentos');
-                var etiqueta = g.sinContrato ? (OPS ? 'Ventas sueltas' : 'Sin contrato') : (g.numero || '—');
-                var sub = g.sinContrato ? (n + (OPS ? ' · sin operación: cada una es su propia venta' : ' · no son un contrato: no se suman entre sí'))
+                var etiqueta = g.sinContrato ? (OPS ? T('Ventas sueltas') : 'Sin contrato') : (g.numero || '—');
+                var sub = g.sinContrato ? (n + (OPS ? ' · ' + T('sin operación: cada una es su propia venta') : ' · no son un contrato: no se suman entre sí'))
                   : ((g.cliente || 'sin cliente') + ' · ' + (g.proyecto || 'sin proyecto') + ' · ' + n);
                 pl.tbody.insertAdjacentHTML('beforeend',
                   '<tr data-lw-grupo-cab="' + esc(k) + '" style="background:#F5F4EE"><td colspan="11" style="padding:9px 20px;font:700 12.5px \'Neue Kabel\',sans-serif;color:#104C4F">' +
