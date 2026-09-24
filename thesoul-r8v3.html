@@ -122,7 +122,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .pane{transition:opacity .45s ease}
 .pane[hidden]{display:block;visibility:hidden;opacity:0;position:absolute;inset:0 auto auto 0;pointer-events:none}
 .kick{display:inline-flex;align-items:center;height:calc(45 * var(--u));padding:0 calc(20 * var(--u));border-radius:calc(7 * var(--u));
-  font-size:calc(19.5 * var(--u));font-weight:500;letter-spacing:.07em;text-transform:uppercase;background:var(--k)}
+  font-size:max(12px,calc(19.5 * var(--u)));font-weight:500;letter-spacing:.07em;text-transform:uppercase;background:var(--k)}
 .kick.wide{letter-spacing:.2em;font-weight:350}
 .svc h2{margin-top:calc(22 * var(--u));text-transform:uppercase;line-height:.92}
 .svc h2 .t1{display:block;font-weight:700;font-size:calc(var(--t1,65.7) * var(--u));letter-spacing:.07em}
@@ -137,7 +137,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .chips{position:absolute;left:0;top:calc(var(--ch,541) * var(--u));width:calc(690 * var(--u));display:flex;flex-wrap:wrap;
   gap:calc(20 * var(--u)) calc(17 * var(--u));list-style:none}
 .chips li{height:calc(var(--chh,45) * var(--u));display:inline-flex;align-items:center;justify-content:center;padding:0 calc(14 * var(--u));
-  border:.75px solid var(--chip);border-radius:calc(8 * var(--u));font-size:calc(20.9 * var(--u));font-weight:500;letter-spacing:.06em;
+  border:.75px solid var(--chip);border-radius:calc(8 * var(--u));font-size:max(12px,calc(20.9 * var(--u)));font-weight:500;letter-spacing:.06em;
   text-transform:uppercase;white-space:nowrap}
 .chips.col{flex-direction:column;align-items:flex-start;gap:calc(23 * var(--u))}
 .chips.col li{padding:0 calc(19 * var(--u))}
@@ -149,16 +149,16 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .aio .h{display:flex;align-items:center;gap:calc(20 * var(--u));padding-top:calc(20 * var(--u));color:var(--cream)}
 .aio .h svg{width:calc(40 * var(--u));height:auto;flex:none}
 .aio .h span{font-weight:700;font-size:calc(40.5 * var(--u));letter-spacing:.24em}
-.aio p{max-width:calc(560 * var(--u));margin-top:calc(34 * var(--u));font-size:calc(21.6 * var(--u));line-height:calc(33.4 * var(--u));letter-spacing:.1em;text-transform:uppercase}
+.aio p{max-width:max(340px,calc(560 * var(--u)));margin-top:calc(34 * var(--u));font-size:max(12.5px,calc(21.6 * var(--u)));line-height:calc(33.4 * var(--u));letter-spacing:.1em;text-transform:uppercase}
 .svc-list-h{width:100%;display:flex;justify-content:flex-end;align-items:center;gap:calc(22 * var(--u));margin-top:calc(45 * var(--u));
-  padding-right:calc(10 * var(--u));color:var(--cream);font-size:calc(20.8 * var(--u));font-weight:500;letter-spacing:.02em}
+  padding-right:calc(10 * var(--u));color:var(--cream);font-size:max(12px,calc(20.8 * var(--u)));font-weight:500;letter-spacing:.02em}
 .svc-list-h svg.iso{width:calc(30 * var(--u));height:auto}
 .svc-list-h .chev{width:calc(14 * var(--u));transition:transform .3s}
 .svc-list-h[aria-expanded=false] .chev{transform:rotate(-90deg)}
 .bands{list-style:none;margin-top:calc(31 * var(--u));display:grid;gap:calc(22 * var(--u));transition:opacity .3s}
 .bands.closed{opacity:0;pointer-events:none}
 .band{position:relative;display:flex;align-items:center;width:100%;height:calc(93 * var(--u));overflow:hidden;text-align:left;
-  padding:0 calc(25 * var(--u)) 0 calc(44 * var(--u));font-size:calc(27 * var(--u));letter-spacing:.1em;text-transform:uppercase;color:#fff}
+  padding:0 calc(25 * var(--u)) 0 calc(44 * var(--u));font-size:max(13px,calc(27 * var(--u)));letter-spacing:.1em;text-transform:uppercase;color:#fff}
 .band img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .9s cubic-bezier(.2,.7,.2,1)}
 .band::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(90deg,rgba(0,0,0,.42),rgba(0,0,0,.12) 60%,rgba(0,0,0,0))}
 .band:hover img{transform:scale(1.05)}
@@ -178,21 +178,37 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .frame{position:relative;margin:calc(91 * var(--u)) calc(114 * var(--u)) 0;height:calc(206 * var(--u));text-align:center}
 .frame::before{content:"";position:absolute;inset:0;border:3px solid rgba(255,255,255,.85);border-top:0;
   -webkit-mask:linear-gradient(180deg,transparent,#000 22%);mask:linear-gradient(180deg,transparent,#000 22%)}
-.frame .k{display:block;padding-top:calc(10 * var(--u));font-size:calc(21.6 * var(--u));letter-spacing:.16em}
+.frame .k{display:block;padding-top:calc(10 * var(--u));font-size:max(12px,calc(21.6 * var(--u)));letter-spacing:.16em}
 .frame h2{margin-top:calc(8 * var(--u));font-size:calc(60 * var(--u));line-height:calc(75 * var(--u));font-weight:400;letter-spacing:.045em;text-transform:uppercase}
 .frame h2 .b{font-weight:500}
 .frame .one{position:absolute;left:50%;bottom:0;transform:translate(-50%,50%);height:calc(41 * var(--u));padding:0 calc(23 * var(--u));
-  display:inline-flex;align-items:center;border-radius:999px;background:#fff;color:#1c4245;font-size:calc(21.6 * var(--u));letter-spacing:.1em;white-space:nowrap}
+  display:inline-flex;align-items:center;border-radius:999px;background:#fff;color:#1c4245;font-size:max(12px,calc(21.6 * var(--u)));letter-spacing:.1em;white-space:nowrap}
 .steps{list-style:none;display:grid;grid-template-columns:calc(277 * var(--u)) calc(312 * var(--u)) calc(329 * var(--u)) calc(318 * var(--u)) calc(281 * var(--u)) auto;margin:calc(46 * var(--u)) calc(60 * var(--u)) 0 calc(86 * var(--u))}
 .step{display:flex;flex-direction:column;align-items:flex-start}
 .step .box{display:flex;flex-direction:column;align-items:center}
 .step h3{position:relative;height:calc(42 * var(--u));display:inline-flex;align-items:center;padding:0 calc(17 * var(--u));
-  font-size:calc(22.4 * var(--u));font-weight:700;letter-spacing:.11em;white-space:nowrap}
+  font-size:max(13px,calc(22.4 * var(--u)));font-weight:700;letter-spacing:.11em;white-space:nowrap}
 .step h3::before{content:"";position:absolute;inset:0;border:1px solid rgba(255,255,255,.9);border-radius:999px;
   -webkit-mask:linear-gradient(90deg,transparent 4%,#000 45%);mask:linear-gradient(90deg,transparent 4%,#000 45%)}
-.step p{margin-top:calc(21 * var(--u));white-space:nowrap;font-size:calc(15 * var(--u));line-height:calc(27 * var(--u));letter-spacing:.06em;text-transform:uppercase}
+.step p{margin-top:calc(21 * var(--u));white-space:nowrap;font-size:max(12px,calc(15 * var(--u)));line-height:max(21px,calc(27 * var(--u)));letter-spacing:.06em;text-transform:uppercase}
 
 /* pie compartido: lo pinta /assets/lawang-pie.js */
+
+/* portatil (901-1500px): con --u < 0.78 el texto pequeno del lienzo 1920 baja de 12px y
+   la Neue Kabel se deshace en pantallas 1x. Suelos de tamano arriba; aqui el roadmap y
+   los chips dejan de forzar los cortes de linea del lienzo y se reparten solos. */
+@media (min-width: 901px) and (max-width: 1500px){
+  .steps{grid-template-columns:repeat(6,minmax(0,1fr));gap:18px;margin-left:calc(60 * var(--u))}
+  .step .box{align-items:flex-start;max-width:100%}
+  .step h3{font-size:12.5px;padding:0 12px;letter-spacing:.08em}
+  .step p{white-space:normal}
+  .step br.d{display:none}
+  .chips.two{display:flex}
+}
+@media (min-width: 901px) and (max-width: 1150px){
+  .steps{gap:12px}
+  .step h3{font-size:11.5px;padding:0 9px;letter-spacing:.06em}
+}
 
 /* ───────── movil / tablet vertical ───────── */
 @media (max-width: 900px){
