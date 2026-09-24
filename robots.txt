@@ -1,20 +1,28 @@
 User-agent: *
 Allow: /
 Disallow: /admin
+# Guia interna del equipo comercial: fuera de buscadores y de respuestas de IA
+Disallow: /formacion/
 
 # AI / LLM crawlers — explicitly allowed so the brand can appear in
 # ChatGPT, Gemini, Perplexity and Claude answers.
 User-agent: GPTBot
 Allow: /
+Disallow: /formacion/
 User-agent: OAI-SearchBot
 Allow: /
+Disallow: /formacion/
 User-agent: ChatGPT-User
 Allow: /
+Disallow: /formacion/
 User-agent: Google-Extended
 Allow: /
+Disallow: /formacion/
 User-agent: PerplexityBot
 Allow: /
+Disallow: /formacion/
 User-agent: ClaudeBot
 Allow: /
+Disallow: /formacion/
 
 Sitemap: https://lawangproperties.com/sitemap.xml

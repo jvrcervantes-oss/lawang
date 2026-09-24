@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Formación comercial · Lawang</title>
+<!-- Guía interna para comerciales. Sin login, pero fuera de buscadores: noindex aquí +
+     Disallow en robots.txt (Googlebot y bots de IA). No es seguridad —el repo es público—,
+     es no regalar el guion a la competencia. Por eso NO lleva precios, disponibilidad,
+     % de comisión ni cifras internas del embudo: todo eso vive en la intranet y cambia. -->
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="description" content="Guía paso a paso para empezar a vender Lawang: producto, comprador, proceso de venta, herramientas, qué decir y qué no.">
+<link rel="icon" href="/favicon.png">
+<link rel="preload" as="image" href="/assets/img/lugar/costa.webp" fetchpriority="high">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Misma tipografía que /modelo/: Cormorant Garamond (titulares), Instrument Sans
+     (rótulos), Jost (texto). CSS propio y plano en vez del Tailwind congelado de
+     /modelo/ (dali-tesla-tw.min.css): ese build no trae compiladas clases nuevas. -->
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Instrument+Sans:wght@500;600;700&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@300..500,0..1&display=swap" rel="stylesheet">
+<style>
+/* ── Tokens: paleta Lawang tal cual la usa /modelo/ (T3 + bloques H3/Y3/R3/I3/C2) ── */
+:root{
+  --linen:#f5f0e6; --paper:#fffdf8; --warm:#fbf9f4; --low:#f5f4ee; --line:#e4e2dd;
+  --stone:#beb3a5; --tg:#485b37; --primary:#314322; --dl:#104c4f; --be:#42210b;
+  --ash:#2e3437; --ink:#1b1c19; --muted:#44483f; --canopy:#8f9b7a;
+  --ff-h:'Cormorant Garamond',Georgia,serif; --ff-l:'Instrument Sans',system-ui,sans-serif;
+  --ff-b:'Jost',system-ui,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:96px}
+body{margin:0;background:var(--linen);color:var(--ink);font-family:var(--ff-b);font-size:16px;
+  line-height:1.6;-webkit-font-smoothing:antialiased}
+::selection{background:var(--canopy);color:var(--paper)}
+img{max-width:100%;display:block}
+a{color:inherit}
+body{font-variant-numeric:lining-nums}
+h1,h2,h3{font-family:var(--ff-h);font-weight:700;line-height:1.08;margin:0;color:var(--dl)}
+p{margin:0}
+.ms{font-family:'Material Symbols Outlined';font-weight:normal;font-style:normal;font-size:22px;
+  line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;
+  direction:ltr;-webkit-font-feature-settings:'liga';-webkit-font-smoothing:antialiased;flex:none}
+.lbl{font-family:var(--ff-l);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.wrap{max-width:1240px;margin:0 auto;padding:0 20px}
+@media (min-width:768px){.wrap{padding:0 40px}}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-thumb{background:rgba(143,155,122,.5);border-radius:4px}
+::-webkit-scrollbar-track{background:var(--low)}
+
+/* ── Barra superior T3 ─────────────────────────────────────────────────────────── */
+#top{position:fixed;inset:0 0 auto 0;z-index:50;background:var(--linen);border-bottom:1px solid var(--stone)}
+#top .in{height:72px;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 16px}
+@media (min-width:768px){#top .in{height:80px;padding:0 40px}}
+#top .logo{display:flex;align-items:center;gap:14px;text-decoration:none}
+#top .logo img{height:26px;width:auto}
+@media (min-width:640px){#top .logo img{height:32px}}
+#top .tag{display:none;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--stone);
+  border-radius:999px;padding:6px 14px;font-size:13px;color:var(--muted)}
+#top .tag b{color:var(--dl);font-weight:600}
+#top .tag i{width:8px;height:8px;border-radius:50%;background:var(--tg);animation:pulse 2s infinite}
+@keyframes pulse{50%{opacity:.35}}
+@media (min-width:1100px){#top .tag{display:flex}}
+#top nav{display:none;gap:2px;padding:5px;border-radius:999px;background:rgba(190,179,165,.2);border:1px solid var(--stone)}
+@media (min-width:1280px){#top nav{display:flex}}
+.pill{position:relative;isolation:isolate;font-size:13px;font-weight:500;color:var(--ash);
+  text-decoration:none;padding:7px 14px;border-radius:999px;transition:color .18s ease,transform .18s ease}
+.pill::before{content:'';position:absolute;inset:0;border-radius:999px;background:var(--dl);
+  transform:scale(.85);opacity:0;z-index:-1;transition:transform .18s cubic-bezier(.16,1,.3,1),opacity .18s ease}
+.pill:hover{color:var(--linen);transform:translateY(-1px)}
+.pill:hover::before{transform:scale(1);opacity:1}
+.pill.on{background:var(--dl);color:var(--linen)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;
+  font-family:var(--ff-b);font-weight:600;font-size:14px;text-decoration:none;cursor:pointer;
+  border:1px solid transparent;padding:11px 20px;transition:transform .15s ease,background .15s ease}
+.btn:hover{transform:translateY(-1px)}
+.btn--dl{background:var(--dl);color:var(--linen)}
+.btn--dl:hover{background:#0b3a3c}
+.btn--ghost{background:transparent;border-color:var(--stone);color:var(--ash)}
+.btn--ghost:hover{background:var(--paper)}
+.btn--linen{background:var(--linen);color:var(--ash)}
+#top .btn{padding:9px 16px;font-size:13px}
+@media (max-width:479px){#top .btn span.t{display:none}}
+
+/* ── Hero: foto a sangre + panel lateral (misma composición que el configurador) ── */
+#hero{position:relative;background:var(--ash);padding-top:72px;display:flex;flex-direction:column}
+@media (min-width:768px){#hero{padding-top:80px}}
+#hero .foto{position:relative;height:58vh;min-height:360px;overflow:hidden}
+#hero .foto img{width:100%;height:100%;object-fit:cover}
+#hero .foto::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(46,52,55,.15) 0%,rgba(46,52,55,.05) 40%,rgba(27,28,25,.72) 100%)}
+#hero .chip{position:absolute;top:18px;left:18px;z-index:2;display:flex;align-items:center;gap:8px;
+  background:rgba(251,249,244,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-radius:999px;padding:7px 14px;font-size:12px;color:var(--ash)}
+#hero .chip i{width:7px;height:7px;border-radius:50%;background:var(--ash)}
+#hero .chip s{text-decoration:none;color:var(--stone)}
+#hero .cap{position:absolute;left:20px;right:20px;bottom:26px;z-index:2;color:var(--linen)}
+#hero .cap h1{color:var(--linen);font-size:clamp(44px,8vw,104px);letter-spacing:-.01em;font-weight:600}
+#hero .cap h1 em{font-style:italic;font-weight:500;color:#e9e1cf}
+#hero .cap p{margin-top:12px;max-width:560px;font-size:16px;color:rgba(245,240,230,.88)}
+#hero aside{background:rgba(245,240,230,.97);display:flex;flex-direction:column}
+.cab{background:var(--tg);color:var(--linen);padding:22px 22px 18px}
+.cab .lbl{display:inline-block;background:rgba(245,240,230,.16);border-radius:999px;padding:5px 11px;font-size:10px}
+.cab h2{color:var(--linen);font-size:30px;margin-top:12px}
+.cab p{color:rgba(245,240,230,.85);font-size:13.5px;margin-top:6px;line-height:1.5}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
+.kpis div{border:1px solid rgba(245,240,230,.25);background:rgba(245,240,230,.12);border-radius:12px;padding:10px 11px}
+.kpis small{display:block;font-family:var(--ff-l);font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;opacity:.8}
+.kpis b{display:block;font-size:15px;margin-top:3px;font-weight:600;line-height:1.25}
+.prog{margin-top:16px;display:flex;align-items:center;gap:10px;font-size:12px;color:rgba(245,240,230,.8)}
+.prog .bar{flex:1;height:5px;border-radius:999px;background:rgba(245,240,230,.2);overflow:hidden}
+.prog .bar i{display:block;height:100%;width:0;background:var(--linen);border-radius:999px;transition:width .5s cubic-bezier(.16,1,.3,1)}
+.indice{list-style:none;margin:0;padding:14px 14px 4px;display:flex;flex-direction:column;gap:6px}
+.indice a{display:flex;align-items:center;gap:12px;padding:9px 13px;border-radius:12px;border:1px solid var(--line);
+  background:var(--low);text-decoration:none;transition:border-color .15s ease,background .15s ease}
+.indice a:hover{border-color:rgba(49,67,34,.5)}
+.indice .n{font-family:var(--ff-b);font-size:15px;font-weight:600;color:var(--tg);width:22px;text-align:center}
+.indice .t{flex:1;min-width:0}
+.indice .t b{display:block;font-size:14px;font-weight:600;color:var(--ink)}
+.indice .t span{display:block;font-size:11.5px;color:var(--muted);margin-top:1px}
+.indice .ok{color:var(--stone);font-size:20px}
+.indice a.hecho{background:rgba(49,67,34,.05);border-color:var(--primary)}
+.indice a.hecho .ok{color:var(--primary);font-variation-settings:'FILL' 1}
+#hero aside .pie{padding:14px;margin-top:auto}
+#hero aside .pie .btn{width:100%}
+@media (min-width:1024px){
+  #hero{flex-direction:row;height:100vh;min-height:760px}
+  #hero .foto{flex:1 1 auto;height:auto}
+  #hero .cap{left:40px;bottom:44px}
+  #hero aside{width:440px;flex:none;margin:24px 28px 24px 0;border-radius:18px;overflow:hidden auto;border:1px solid var(--stone)}
+  #hero .chip{left:40px;top:28px}
+}
+@media (min-width:1280px){#hero aside{width:470px}}
+
+/* ── Secciones ──────────────────────────────────────────────────────────────────── */
+.sec{padding:88px 0;border-bottom:1px solid rgba(190,179,165,.6)}
+@media (min-width:768px){.sec{padding:112px 0}}
+.sec--paper{background:var(--paper)}
+.sec--lagoon{background:var(--dl);color:var(--linen);border-bottom:0}
+.sec--lagoon h2,.sec--lagoon h3{color:var(--linen)}
+.shead{display:grid;gap:18px;margin-bottom:44px}
+@media (min-width:1024px){.shead{grid-template-columns:auto 1fr auto;align-items:end;gap:36px}}
+.shead .num{font-family:var(--ff-h);font-size:clamp(72px,10vw,128px);font-weight:600;line-height:.8;color:var(--stone)}
+.sec--lagoon .shead .num{color:rgba(245,240,230,.28)}
+.shead .lbl{color:var(--tg)}
+.sec--lagoon .shead .lbl{color:var(--stone)}
+.shead h2{font-size:clamp(34px,4.6vw,56px);margin-top:8px}
+.shead p.lead{margin-top:14px;max-width:680px;color:var(--muted);font-size:16.5px}
+.sec--lagoon .shead p.lead{color:rgba(245,240,230,.82)}
+.hecho-btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--stone);background:var(--paper);
+  color:var(--ash);border-radius:999px;padding:10px 16px;font:600 13px var(--ff-b);cursor:pointer;white-space:nowrap}
+.hecho-btn:hover{border-color:var(--primary)}
+.hecho-btn[aria-pressed="true"]{background:var(--primary);border-color:var(--primary);color:var(--linen)}
+.hecho-btn[aria-pressed="true"] .ms{font-variation-settings:'FILL' 1}
+.sec--lagoon .hecho-btn{background:rgba(245,240,230,.1);border-color:rgba(245,240,230,.35);color:var(--linen)}
+.sec--lagoon .hecho-btn[aria-pressed="true"]{background:var(--linen);color:var(--dl)}
+
+.card{background:var(--paper);border:1px solid var(--stone);border-radius:18px;padding:24px}
+.card h3{font-size:26px}
+.card p{color:var(--muted);font-size:15px;margin-top:8px}
+.grid{display:grid;gap:16px}
+@media (min-width:768px){.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}}
+@media (min-width:1024px){.g4{grid-template-columns:repeat(4,1fr)}.g3l{grid-template-columns:repeat(3,1fr)}}
+@media (min-width:640px) and (max-width:1023px){.g4{grid-template-columns:repeat(2,1fr)}}
+ul.lista{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:9px}
+ul.lista li{display:flex;gap:10px;font-size:14.5px;color:var(--muted);line-height:1.5}
+ul.lista li .ms{font-size:18px;color:var(--tg);margin-top:2px}
+
+/* Paso 1: la fórmula del producto */
+.formula{display:grid;gap:12px;align-items:stretch}
+@media (min-width:1024px){.formula{grid-template-columns:1fr auto 1fr auto 1fr auto 1.1fr}}
+.formula .op{display:flex;align-items:center;justify-content:center;font-family:var(--ff-h);font-size:40px;color:var(--stone)}
+.pieza{border-radius:18px;padding:22px;color:var(--linen);display:flex;flex-direction:column;gap:6px;min-height:190px}
+.pieza .ms{font-size:28px;opacity:.9}
+.pieza h3{color:var(--linen);font-size:26px;margin-top:6px}
+.pieza p{font-size:14px;color:rgba(245,240,230,.85)}
+.pieza--tg{background:var(--tg)}.pieza--dl{background:var(--dl)}.pieza--be{background:var(--be)}
+.pieza--res{background:var(--paper);color:var(--ink);border:1px solid var(--stone)}
+.pieza--res h3{color:var(--dl)} .pieza--res p{color:var(--muted)} .pieza--res .ms{color:var(--tg)}
+.villas{display:grid;gap:14px;margin-top:40px;grid-template-columns:repeat(2,1fr)}
+@media (min-width:768px){.villas{grid-template-columns:repeat(3,1fr)}}
+@media (min-width:1200px){.villas{grid-template-columns:repeat(6,1fr)}}
+.villa{display:flex;flex-direction:column;border-radius:16px;overflow:hidden;border:1px solid var(--stone);
+  text-decoration:none;background:var(--paper);transition:transform .2s ease}
+.villa:hover{transform:translateY(-3px)}
+.villa .ph{aspect-ratio:4/3;background:var(--ash);overflow:hidden}
+.villa .ph img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease}
+.villa:hover .ph img{transform:scale(1.04)}
+.villa .ph--sin{display:flex;align-items:flex-end;padding:12px;color:rgba(245,240,230,.7);font-size:11px}
+.villa .b{padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--linen)}
+.villa .b h3{color:var(--linen);font-size:22px}
+.villa .b span{font-size:11.5px;opacity:.85;white-space:nowrap}
+.villa:nth-child(4n+1) .b{background:var(--tg)}.villa:nth-child(4n+2) .b{background:var(--dl)}
+.villa:nth-child(4n+3) .b{background:var(--be)}.villa:nth-child(4n+4) .b{background:var(--ash)}
+.nota{display:flex;gap:12px;align-items:flex-start;margin-top:22px;padding:16px 18px;border-radius:14px;
+  background:rgba(72,91,55,.08);border:1px solid rgba(72,91,55,.25);font-size:14.5px;color:var(--muted)}
+.nota .ms{color:var(--tg)}
+.nota b{color:var(--ink);font-weight:600}
+.nota--ro{background:rgba(66,33,11,.06);border-color:rgba(66,33,11,.25)}
+.nota--ro .ms{color:var(--be)}
+.proyectos{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.proyectos span{border:1px solid var(--stone);background:var(--linen);border-radius:999px;padding:6px 12px;font-size:13px;color:var(--ash)}
+
+/* Paso 2: perfiles */
+.perfil{border-radius:18px;overflow:hidden;border:1px solid var(--stone);background:var(--paper);display:flex;flex-direction:column}
+.perfil .top{padding:22px;color:var(--linen)}
+.perfil .top .ms{font-size:30px}
+.perfil .top h3{color:var(--linen);font-size:28px;margin-top:10px}
+.perfil .top p{color:rgba(245,240,230,.85);font-size:14px;margin-top:6px}
+.perfil .cuerpo{padding:18px 22px 22px}
+.perfil .cuerpo .lbl{color:var(--tg);font-size:10px}
+.perfil .cuerpo p{font-size:14.5px;color:var(--muted);margin:4px 0 12px}
+.perfil:nth-child(1) .top{background:var(--tg)}.perfil:nth-child(2) .top{background:var(--dl)}.perfil:nth-child(3) .top{background:var(--be)}
+
+/* Paso 3: recorrido */
+.ruta{list-style:none;margin:0;padding:0;position:relative}
+.ruta::before{content:'';position:absolute;left:23px;top:8px;bottom:8px;width:2px;background:var(--stone)}
+.ruta li{position:relative;display:grid;grid-template-columns:48px 1fr;gap:18px;padding-bottom:22px}
+.ruta .dot{width:48px;height:48px;border-radius:50%;background:var(--paper);border:2px solid var(--tg);
+  display:flex;align-items:center;justify-content:center;color:var(--tg);position:relative;z-index:1}
+.ruta li:nth-child(even) .dot{border-color:var(--dl);color:var(--dl)}
+.ruta .box{background:var(--paper);border:1px solid var(--stone);border-radius:16px;padding:18px 20px;display:grid;gap:14px}
+@media (min-width:900px){.ruta .box{grid-template-columns:1.1fr 1.4fr 1fr;align-items:start}}
+.ruta .box h3{font-size:24px}
+.ruta .box .fase{font-family:var(--ff-l);font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--tg)}
+.ruta .box p{font-size:14.5px;color:var(--muted)}
+.ruta .herr{display:flex;flex-direction:column;gap:6px}
+.ruta .herr a,.ruta .herr span{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--dl);
+  text-decoration:none;background:rgba(16,76,79,.07);border-radius:999px;padding:5px 11px;width:fit-content}
+.ruta .herr a:hover{background:rgba(16,76,79,.14)}
+.ruta .herr .ms{font-size:16px}
+.hitos{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin-top:10px;border-radius:10px;overflow:hidden}
+.hitos div{background:var(--tg);color:var(--linen);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;text-align:center;padding:7px 4px}
+.hitos div:nth-child(2){background:var(--dl)}.hitos div:nth-child(3){background:var(--be)}.hitos div:nth-child(4){background:var(--ash)}.hitos div:nth-child(5){background:var(--canopy)}
+.hitos-ley{font-size:12px;color:var(--muted);margin-top:6px}
+
+/* Regla de oro */
+.oro{display:grid;gap:22px;border-radius:22px;background:var(--tg);color:var(--linen);padding:30px;margin-top:10px}
+@media (min-width:900px){.oro{grid-template-columns:auto 1fr;align-items:center;padding:40px 44px}}
+.oro .ms{font-size:52px;color:#e9e1cf}
+.oro h3{color:var(--linen);font-size:clamp(26px,3vw,36px)}
+.oro p{color:rgba(245,240,230,.88);margin-top:8px;font-size:15.5px;max-width:820px}
+
+/* Paso 4: herramientas */
+.herr-card{display:flex;flex-direction:column;gap:8px;text-decoration:none;background:var(--paper);border:1px solid var(--stone);
+  border-radius:16px;padding:20px;transition:border-color .15s ease,transform .15s ease}
+.herr-card:hover{border-color:var(--dl);transform:translateY(-2px)}
+.herr-card .ic{width:42px;height:42px;border-radius:12px;background:rgba(16,76,79,.08);color:var(--dl);display:flex;align-items:center;justify-content:center}
+.herr-card h3{font-size:23px;margin-top:4px}
+.herr-card p{font-size:14px;color:var(--muted)}
+.herr-card .cuando{font-size:12.5px;color:var(--tg);font-weight:600;margin-top:auto;padding-top:6px}
+
+/* WhatsApp: reglas de la ventana */
+.wa{display:grid;gap:16px;margin-top:28px}
+@media (min-width:900px){.wa{grid-template-columns:1fr 1fr}}
+.wa .card{background:var(--linen)}
+
+/* Paso 5: sí / no (bloque Deep lagoon como el forecast de /modelo/) */
+.sino{display:grid;gap:16px}
+@media (min-width:900px){.sino{grid-template-columns:1fr 1fr}}
+.sino .col{border-radius:18px;padding:24px;background:rgba(245,240,230,.08);border:1px solid rgba(245,240,230,.2)}
+.sino .col h3{display:flex;align-items:center;gap:10px;font-size:26px}
+.sino ul{list-style:none;margin:16px 0 0;padding:0;display:flex;flex-direction:column;gap:14px}
+.sino li{font-size:14.5px;line-height:1.5;color:rgba(245,240,230,.9);padding-left:14px;border-left:2px solid rgba(245,240,230,.25)}
+.sino li b{color:var(--linen);font-weight:600;display:block;margin-bottom:2px}
+.sino .no li{border-left-color:#c98b6a}
+.sino .si li{border-left-color:#a9b98f}
+.derivar{margin-top:18px;border-radius:18px;background:var(--linen);color:var(--ink);padding:22px 24px;display:grid;gap:10px}
+@media (min-width:900px){.derivar{grid-template-columns:auto 1fr;align-items:center;gap:22px}}
+.derivar .ms{font-size:36px;color:var(--dl)}
+.derivar p{color:var(--muted);font-size:15px}
+.derivar q{font-family:var(--ff-h);font-size:24px;font-weight:600;color:var(--dl);quotes:'«' '»'}
+
+/* Paso 6: objeciones (acordeón de /modelo/) */
+.faq{display:flex;flex-direction:column;gap:12px}
+.faq details{border:1px solid var(--stone);border-radius:16px;background:var(--paper);overflow:hidden}
+.faq summary{list-style:none;cursor:pointer;padding:20px 22px;display:flex;align-items:center;justify-content:space-between;
+  gap:16px;font-family:var(--ff-b);font-size:16px;font-weight:600;color:var(--primary)}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary .ms{transition:transform .2s ease;color:var(--tg)}
+.faq details[open] summary .ms{transform:rotate(180deg)}
+.faq .resp{padding:14px 22px 22px;border-top:1px solid rgba(190,179,165,.5);font-size:15px;color:var(--muted);display:grid;gap:10px}
+.faq .resp .lbl{color:var(--tg);font-size:10px}
+.faq .resp blockquote{margin:0;padding:12px 16px;border-radius:12px;background:var(--linen);color:var(--ink);font-size:15px}
+
+/* Paso 7: guiones */
+.guion{display:grid;gap:16px}
+@media (min-width:1024px){.guion{grid-template-columns:1fr 1.2fr}}
+.burbuja{background:#e7f0dc;border-radius:16px 16px 16px 4px;padding:16px 18px;font-size:15px;color:var(--ink);line-height:1.55;
+  box-shadow:0 1px 1px rgba(0,0,0,.05)}
+.burbuja + .burbuja{margin-top:10px}
+.burbuja small{display:block;font-family:var(--ff-l);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--tg);margin-bottom:6px}
+.burbuja mark{background:rgba(72,91,55,.18);color:var(--primary);border-radius:4px;padding:0 4px}
+.copiar{margin-top:10px;display:inline-flex;align-items:center;gap:6px;background:none;border:0;color:var(--dl);
+  font:600 13px var(--ff-b);cursor:pointer;padding:4px 0}
+.copiar .ms{font-size:17px}
+ol.llamada{list-style:none;margin:0;padding:0;counter-reset:p;display:flex;flex-direction:column;gap:10px}
+ol.llamada li{counter-increment:p;display:grid;grid-template-columns:36px 1fr;gap:12px;align-items:start;
+  background:var(--paper);border:1px solid var(--stone);border-radius:14px;padding:14px 16px}
+ol.llamada li::before{content:counter(p);font-family:var(--ff-h);font-size:26px;font-weight:700;color:var(--tg);line-height:1}
+ol.llamada b{display:block;font-weight:600;font-size:15px}
+ol.llamada span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
+.preguntas{counter-reset:q;list-style:none;padding:0;margin:0;display:grid;gap:10px}
+@media (min-width:900px){.preguntas{grid-template-columns:repeat(5,1fr)}}
+.preguntas li{counter-increment:q;background:var(--dl);color:var(--linen);border-radius:16px;padding:18px;font-size:15px;line-height:1.45}
+.preguntas li::before{content:'0' counter(q);display:block;font-family:var(--ff-h);font-size:30px;font-weight:600;color:rgba(245,240,230,.45);margin-bottom:8px}
+.preguntas li small{display:block;margin-top:8px;font-size:12.5px;color:rgba(245,240,230,.7)}
+
+/* Comisiones, métricas, semana, glosario */
+.pasos-com{display:grid;gap:12px}
+@media (min-width:900px){.pasos-com{grid-template-columns:repeat(4,1fr)}}
+.pasos-com div{border-radius:16px;padding:20px;background:rgba(245,240,230,.08);border:1px solid rgba(245,240,230,.2)}
+.pasos-com .ms{font-size:28px;color:#e9e1cf}
+.pasos-com b{display:block;font-size:16px;margin-top:10px;font-weight:600}
+.pasos-com p{font-size:14px;color:rgba(245,240,230,.8);margin-top:4px}
+.metricas{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+@media (min-width:768px){.metricas{grid-template-columns:repeat(2,1fr)}}
+@media (min-width:1100px){.metricas{grid-template-columns:repeat(3,1fr)}}
+.metricas li{display:flex;gap:14px;align-items:flex-start;background:var(--paper);border:1px solid var(--stone);border-radius:14px;padding:16px 18px}
+.metricas .ms{color:var(--dl);font-size:26px}
+.metricas b{display:block;font-weight:600;font-size:15px}
+.metricas span{display:block;font-size:13.5px;color:var(--muted);margin-top:2px}
+.semana{display:grid;gap:14px}
+@media (min-width:900px){.semana{grid-template-columns:repeat(5,1fr)}}
+.dia{background:var(--paper);border:1px solid var(--stone);border-radius:16px;padding:18px}
+.dia h3{font-size:24px}
+.dia .lbl{color:var(--tg);font-size:10px}
+.dia label{display:flex;gap:10px;align-items:flex-start;margin-top:12px;font-size:14px;color:var(--muted);cursor:pointer;line-height:1.45}
+.dia input{width:17px;height:17px;accent-color:var(--primary);flex:none;margin-top:2px}
+.dia input:checked + span{color:var(--ink);text-decoration:line-through;text-decoration-color:var(--stone)}
+.glosario{display:grid;gap:10px}
+@media (min-width:768px){.glosario{grid-template-columns:repeat(2,1fr)}}
+@media (min-width:1100px){.glosario{grid-template-columns:repeat(3,1fr)}}
+.glosario div{background:var(--paper);border:1px solid var(--stone);border-radius:14px;padding:16px 18px}
+.glosario dt{font-family:var(--ff-h);font-size:22px;font-weight:700;color:var(--dl)}
+.glosario dd{margin:4px 0 0;font-size:14px;color:var(--muted);line-height:1.5}
+.glosario dd em{font-style:normal;color:var(--be);font-weight:600}
+
+/* Cierre */
+.cierre{position:relative;overflow:hidden;background:var(--ash);color:var(--linen)}
+.cierre img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.35}
+.cierre .wrap{position:relative;padding-top:110px;padding-bottom:110px;text-align:center}
+.cierre h2{color:var(--linen);font-size:clamp(38px,5.5vw,72px);font-weight:600}
+.cierre h2 em{font-style:italic;font-weight:500}
+.cierre p{max-width:620px;margin:16px auto 0;color:rgba(245,240,230,.85)}
+.cierre .acc{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:28px}
+.fecha{font-size:12px;color:var(--muted);margin-top:18px}
+
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s cubic-bezier(.16,1,.3,1)}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<!-- ═══ BARRA ═══════════════════════════════════════════════════════════════════════ -->
+<header id="top">
+<div class="in">
+  <div style="display:flex;align-items:center;gap:18px">
+    <a class="logo" href="/"><img src="/assets/img/lawang-logo-v3-dark.webp" alt="Lawang Tropical Properties"></a>
+    <div class="tag"><i></i>Formación<span style="color:var(--stone)">|</span><b>Equipo comercial</b></div>
+  </div>
+  <nav aria-label="Pasos">
+    <a class="pill" href="#producto">Producto</a>
+    <a class="pill" href="#comprador">Comprador</a>
+    <a class="pill" href="#venta">La venta</a>
+    <a class="pill" href="#herramientas">Herramientas</a>
+    <a class="pill" href="#decir">Qué decir</a>
+    <a class="pill" href="#objeciones">Objeciones</a>
+    <a class="pill" href="#guiones">Guiones</a>
+  </nav>
+  <a class="btn btn--dl" href="/intranet/"><span class="ms" style="font-size:18px">login</span><span class="t">Abrir la intranet</span></a>
+</div>
+</header>
+
+<!-- ═══ HERO ════════════════════════════════════════════════════════════════════════ -->
+<section id="hero">
+  <div class="foto">
+    <img src="/assets/img/lugar/costa.webp" alt="Costa oeste de Bali desde el aire" fetchpriority="high">
+    <div class="chip"><i></i>Programa comercial <s>|</s> Bali y Sumba</div>
+    <div class="cap">
+      <h1>Aprende a vender<br><em>Lawang</em></h1>
+      <p>Siete pasos para pasar de tu primer día a tu primera reserva: qué vendemos, a quién, cómo es una venta de principio a fin y qué no se dice nunca.</p>
+    </div>
+  </div>
+  <aside aria-label="Índice del programa">
+    <div class="cab">
+      <span class="lbl">Guía interna · Comerciales</span>
+      <h2>Tu primera venta, paso a paso</h2>
+      <p>Léela entera la primera semana. Después úsala como consulta: cada paso enlaza a la herramienta de la intranet donde se hace.</p>
+      <div class="kpis">
+        <div><small>Pasos</small><b>7</b></div>
+        <div><small>Villas</small><b>6 modelos</b></div>
+        <div><small>Tu sitio</small><b>La intranet</b></div>
+      </div>
+      <div class="prog"><div class="bar"><i id="barra"></i></div><span id="cuenta">0 de 7</span></div>
+    </div>
+    <ol class="indice" id="indice">
+      <li><a href="#producto" data-paso="producto"><span class="n">1</span><span class="t"><b>Lo que vendemos</b><span>Parcela + villa llave en mano</span></span><span class="ms ok">check_circle</span></a></li>
+      <li><a href="#comprador" data-paso="comprador"><span class="n">2</span><span class="t"><b>A quién se lo vendemos</b><span>Tres perfiles de comprador</span></span><span class="ms ok">check_circle</span></a></li>
+      <li><a href="#venta" data-paso="venta"><span class="n">3</span><span class="t"><b>Cómo es una venta</b><span>Del lead a la entrega de llaves</span></span><span class="ms ok">check_circle</span></a></li>
+      <li><a href="#herramientas" data-paso="herramientas"><span class="n">4</span><span class="t"><b>Tus herramientas</b><span>La intranet, pantalla a pantalla</span></span><span class="ms ok">check_circle</span></a></li>
+      <li><a href="#decir" data-paso="decir"><span class="n">5</span><span class="t"><b>Lo que se dice y lo que no</b><span>Las líneas rojas legales</span></span><span class="ms ok">check_circle</span></a></li>
+      <li><a href="#objeciones" data-paso="objeciones"><span class="n">6</span><span class="t"><b>Las objeciones de siempre</b><span>Y cómo responderlas</span></span><span class="ms ok">check_circle</span></a></li>
+      <li><a href="#guiones" data-paso="guiones"><span class="n">7</span><span class="t"><b>Tus guiones</b><span>Primer WhatsApp y primera llamada</span></span><span class="ms ok">check_circle</span></a></li>
+    </ol>
+    <div class="pie"><a class="btn btn--dl" href="#producto">Empezar por el paso 1<span class="ms" style="font-size:18px">arrow_downward</span></a></div>
+  </aside>
+</section>
+
+<main>
+<!-- ═══ 1 · PRODUCTO ════════════════════════════════════════════════════════════════ -->
+<section class="sec" id="producto">
+<div class="wrap">
+  <div class="shead reveal">
+    <div class="num">01</div>
+    <div>
+      <span class="lbl">Paso 1 · El producto</span>
+      <h2>Lo que vendemos</h2>
+      <p class="lead">No vendemos casas terminadas. Ofrecemos un derecho sobre una parcela en uno de nuestros proyectos y la construcción, llave en mano, de una villa nueva sobre ella. Son tres decisiones que el cliente toma contigo, y juntas dan un precio que queda por escrito antes de firmar.</p>
+    </div>
+    <button class="hecho-btn" data-hecho="producto" aria-pressed="false"><span class="ms">check_circle</span>Paso leído</button>
+  </div>
+
+  <div class="formula reveal">
+    <div class="pieza pieza--tg"><span class="ms">landscape</span><h3>La parcela</h3><p>Un derecho sobre ella (arrendamiento Hak Sewa o HGB, según el proyecto), no la propiedad de la tierra. Cada proyecto tiene su plano, sus tamaños y su contrato.</p></div>
+    <div class="op">+</div>
+    <div class="pieza pieza--dl"><span class="ms">cottage</span><h3>El modelo de villa</h3><p>Uno de los seis del catálogo, de 1 a 4 dormitorios. Cada uno tiene su propia landing con fotos, planos y configurador.</p></div>
+    <div class="op">+</div>
+    <div class="pieza pieza--be"><span class="ms">roofing</span><h3>Cubierta y extras</h3><p>La cubierta cambia el precio de la villa. Los extras (piscina, amueblado…) se suman aparte.</p></div>
+    <div class="op">=</div>
+    <div class="pieza pieza--res"><span class="ms">contract</span><h3>Precio cerrado</h3><p>Parcela + villa llave en mano. Lo calcula el Generador de contratos con los precios vigentes; tú no lo calculas a mano.</p></div>
+  </div>
+
+  <div class="villas reveal" aria-label="Catálogo de villas">
+    <a class="villa" href="/modelo/dali" target="_blank" rel="noopener"><div class="ph"><img loading="lazy" src="/assets/img/buildings/dali/web/dali.webp" alt="Villa Dali"></div><div class="b"><h3>Dali</h3><span>1 dorm.</span></div></a>
+    <a class="villa" href="/modelo/dune" target="_blank" rel="noopener"><div class="ph"><img loading="lazy" src="/assets/img/buildings/dune/web/dune.webp" alt="Villa Dune"></div><div class="b"><h3>Dune</h3><span>1 dorm.</span></div></a>
+    <a class="villa" href="/modelo/dream" target="_blank" rel="noopener"><div class="ph"><img loading="lazy" src="/assets/img/buildings/dream/web/dream.webp" alt="Villa Dream"></div><div class="b"><h3>Dream</h3><span>2 dorm.</span></div></a>
+    <a class="villa" href="/modelo/loftbung" target="_blank" rel="noopener"><div class="ph ph--sin">Fotos en su landing</div><div class="b"><h3>Loftbung</h3><span>2 dorm.</span></div></a>
+    <a class="villa" href="/modelo/trinity" target="_blank" rel="noopener"><div class="ph ph--sin">Fotos en su landing</div><div class="b"><h3>Trinity</h3><span>3 dorm.</span></div></a>
+    <a class="villa" href="/modelo/temple" target="_blank" rel="noopener"><div class="ph ph--sin">Fotos en su landing</div><div class="b"><h3>Temple</h3><span>4 dorm.</span></div></a>
+  </div>
+
+  <div class="grid g2 reveal" style="margin-top:28px">
+    <div class="card">
+      <span class="lbl" style="color:var(--tg)">Proyectos con parcelas a la venta</span>
+      <h3 style="margin-top:8px">Dónde construimos</h3>
+      <div class="proyectos">
+        <span>Palm Field W5</span><span>Bonian Village</span><span>Tamarind Rise</span><span>Sumba Hills</span>
+        <span>Inti Living W6</span><span>Java Sunset S2</span><span>Tangkuban Village</span><span>Riverfront I y II</span>
+      </div>
+      <p style="margin-top:14px">Quién firma cada parte, la parcela y la obra, lo dice el contrato de cada proyecto. Lista a 24-sep-2026. Qué parcela queda libre cambia cada semana: <b>míralo siempre en Proyectos de la intranet</b> antes de ofrecer una, nunca de memoria ni en una captura vieja.</p>
+    </div>
+    <div class="card">
+      <span class="lbl" style="color:var(--tg)">Qué enseñar al cliente</span>
+      <h3 style="margin-top:8px">El material ya está hecho</h3>
+      <ul class="lista">
+        <li><span class="ms">link</span><span><b>Landing de cada villa</b> (<code>/modelo/dali</code>, <code>/modelo/dream</code>…): fotos, distribución, cubiertas y un configurador con precio.</span></li>
+        <li><span class="ms">link</span><span><b>Landing de proyecto</b> como <code>/palmfield</code>: el proyecto entero, con tamaños de parcela.</span></li>
+        <li><span class="ms">link</span><span><b>Investor deck</b> del proyecto, si está activado (<code>/investor-deck/palmfield/</code>, <code>/investor-deck/bonian-village/</code>…).</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="nota reveal"><span class="ms">info</span><span><b>Los precios no están en esta guía a propósito.</b> Cambian (hay un corte de precios al pasar a 2027) y un precio copiado en un PDF viejo es justo el que acaba en un contrato equivocado. El precio bueno es el que da la intranet ese día.</span></div>
+</div>
+</section>
+
+<!-- ═══ 2 · COMPRADOR ═══════════════════════════════════════════════════════════════ -->
+<section class="sec sec--paper" id="comprador">
+<div class="wrap">
+  <div class="shead reveal">
+    <div class="num">02</div>
+    <div>
+      <span class="lbl">Paso 2 · El comprador</span>
+      <h2>A quién se lo vendemos</h2>
+      <p class="lead">Casi todos los compradores entran por uno de estos tres motivos. Averigua cuál es en la primera llamada: de eso depende qué villa le enseñas, qué material le mandas y qué le preocupa.</p>
+    </div>
+    <button class="hecho-btn" data-hecho="comprador" aria-pressed="false"><span class="ms">check_circle</span>Paso leído</button>
+  </div>
+  <div class="grid g3 reveal">
+    <div class="perfil">
+      <div class="top"><span class="ms">trending_up</span><h3>El que la quiere para alquilar</h3><p>Compra para que la villa se alquile cuando él no está.</p></div>
+      <div class="cuerpo">
+        <span class="lbl">Qué le preocupa</span><p>Números, ocupación, quién gestiona el alquiler, qué pasa al final del plazo.</p>
+        <span class="lbl">Qué le enseñas</span><p>El investor deck del proyecto y su ejemplo económico, explicado como lo que es: el ejemplo de una parcela concreta, no una promesa.</p>
+        <span class="lbl">Cuidado con</span><p>Prometer rentabilidad. Ver paso 5.</p>
+      </div>
+    </div>
+    <div class="perfil">
+      <div class="top"><span class="ms">beach_access</span><h3>El de segunda residencia</h3><p>Quiere pasar temporadas en Bali o Sumba y alquilarla el resto del año.</p></div>
+      <div class="cuerpo">
+        <span class="lbl">Qué le preocupa</span><p>El sitio, la villa, los acabados y que la obra se haga bien sin estar allí.</p>
+        <span class="lbl">Qué le enseñas</span><p>La landing del modelo, las fotos reales del terreno y el plan de obra por hitos.</p>
+        <span class="lbl">Cuidado con</span><p>Enseñarle el catálogo entero. Elige una villa para él.</p>
+      </div>
+    </div>
+    <div class="perfil">
+      <div class="top"><span class="ms">home_pin</span><h3>El expat que ya vive aquí</h3><p>Vive en Bali y quiere dejar de pagar alquiler o tener algo suyo.</p></div>
+      <div class="cuerpo">
+        <span class="lbl">Qué le preocupa</span><p>Conoce el mercado y los precios de la zona. Compara y pregunta por la estructura legal.</p>
+        <span class="lbl">Qué le enseñas</span><p>La visita al terreno: puede venir, así que invítale en la primera llamada.</p>
+        <span class="lbl">Cuidado con</span><p>Improvisar sobre tenencia o impuestos: lo sabe y lo nota.</p>
+      </div>
+    </div>
+  </div>
+  <div class="nota reveal"><span class="ms">campaign</span><span><b>Habla como habló el anuncio.</b> Los anuncios de Lawang venden tres ideas: la comparación de precio con la costa cara de Bali (misma isla, mismo océano, otra factura), que somos promotor (diseñamos y construimos nosotros) y que no es para todo el mundo. Si tu primera llamada cuenta otra cosa, el cliente nota el salto.</span></div>
+  <div class="nota reveal"><span class="ms">translate</span><span><b>Muchos leads llegan en inglés.</b> Hay campañas para Australia, para extranjeros que viven en Bali y para Sumba Hills. Contesta en el idioma en el que te escribe el cliente; los guiones del paso 7 están en español y en inglés.</span></div>
+</div>
+</section>
+
+<!-- ═══ 3 · LA VENTA ════════════════════════════════════════════════════════════════ -->
+<section class="sec" id="venta">
+<div class="wrap">
+  <div class="shead reveal">
+    <div class="num">03</div>
+    <div>
+      <span class="lbl">Paso 3 · El proceso</span>
+      <h2>Cómo es una venta, de principio a fin</h2>
+      <p class="lead">Siete etapas. En cada una, lo que haces tú y la pantalla de la intranet donde se hace. Si una etapa no queda registrada en la intranet, para Lawang no ha pasado.</p>
+    </div>
+    <button class="hecho-btn" data-hecho="venta" aria-pressed="false"><span class="ms">check_circle</span>Paso leído</button>
+  </div>
+
+  <ol class="ruta reveal">
+    <li><div class="dot"><span class="ms">person_add</span></div><div class="box">
+      <div><span class="fase">Etapa 1</span><h3>Entra el lead</h3></div>
+      <p>El formulario de Meta baja solo al CRM. El lead ya trae respuestas: presupuesto y plazo de compra. <b>Léelas antes de contactar</b> y no se las vuelvas a preguntar.</p>
+      <div class="herr"><a href="/intranet/leads/"><span class="ms">person_search</span>CRM · Leads</a></div>
+    </div></li>
+    <li><div class="dot"><span class="ms">chat</span></div><div class="box">
+      <div><span class="fase">Etapa 2</span><h3>Primer contacto, el mismo día</h3></div>
+      <p>Escribe por WhatsApp desde la intranet, no desde tu móvil. Norma interna: el lead que entra hoy se contacta hoy. Cada lead cuesta dinero de verdad y hay pocos al día para todo el equipo.</p>
+      <div class="herr"><a href="/intranet/leads/#setter"><span class="ms">forum</span>CRM · Setter (WhatsApp)</a></div>
+    </div></li>
+    <li><div class="dot"><span class="ms">fact_check</span></div><div class="box">
+      <div><span class="fase">Etapa 3</span><h3>Cualificar</h3></div>
+      <p>Una llamada corta con las cinco preguntas del paso 7. Sales sabiendo para qué quiere la villa, cuándo, con qué dinero y quién más decide.</p>
+      <div class="herr"><span><span class="ms">edit_note</span>Nota + estado en su ficha</span></div>
+    </div></li>
+    <li><div class="dot"><span class="ms">co_present</span></div><div class="box">
+      <div><span class="fase">Etapa 4</span><h3>Presentar</h3></div>
+      <p>Una villa y un proyecto, no el catálogo. Videollamada con el plano, la landing del modelo, el investor deck o, mejor, la visita al terreno. Cierra siempre con un siguiente paso con fecha.</p>
+      <div class="herr"><a href="/modelo/dali" target="_blank" rel="noopener"><span class="ms">cottage</span>Landing del modelo</a><a href="/investor-deck/palmfield/" target="_blank" rel="noopener"><span class="ms">slideshow</span>Investor deck</a></div>
+    </div></li>
+    <li><div class="dot"><span class="ms">bookmark_added</span></div><div class="box">
+      <div><span class="fase">Etapa 5</span><h3>Reservar la parcela</h3></div>
+      <p>Carta de Reserva o Bloqueo de Parcela, según el proyecto, generado en el Generador de contratos y firmado en digital. La reserva tiene fecha de vencimiento. <b>Solo tu manager puede prorrogarla</b>: no la prometas tú.</p>
+      <div class="herr"><a href="/intranet/v4/generador-contratos/"><span class="ms">edit_document</span>Generador de contratos</a><a href="/intranet/v4/reservas/"><span class="ms">event_upcoming</span>Reservas</a></div>
+    </div></li>
+    <li><div class="dot"><span class="ms">construction</span></div><div class="box">
+      <div><span class="fase">Etapa 6</span><h3>Contrato de Construcción</h3></div>
+      <div><p>Se vincula a la reserva y fija el modelo, la cubierta y los extras. El pago va por hitos ligados a las fases de la obra. Los importes de cada operación se leen en su contrato generado, no se recitan de memoria, y tú no los cambias.</p>
+        <div class="hitos" aria-hidden="true"><div>Terreno</div><div>Estructura</div><div>Instalaciones</div><div>Acabados</div><div>Entrega</div></div></div>
+      <div class="herr"><a href="/intranet/v4/generador-contratos/"><span class="ms">edit_document</span>Generador de contratos</a><a href="/intranet/v4/operaciones/"><span class="ms">account_tree</span>Operaciones</a></div>
+    </div></li>
+    <li><div class="dot"><span class="ms">key</span></div><div class="box">
+      <div><span class="fase">Etapa 7</span><h3>Acompañar hasta la entrega</h3></div>
+      <p>El comprador ve sus documentos y pagos en su portal. Tú sigues siendo su persona de contacto: un cliente bien acompañado es el que te trae al siguiente.</p>
+      <div class="herr"><a href="/intranet/v4/compradores/"><span class="ms">group</span>Compradores</a><a href="/intranet/v4/obra/"><span class="ms">engineering</span>Obra</a></div>
+    </div></li>
+  </ol>
+
+  <div class="oro reveal">
+    <span class="ms">verified</span>
+    <div>
+      <h3>Regla de oro: cada contacto queda en la ficha del lead</h3>
+      <p>Llamada, mensaje, visita, próximo seguimiento: todo en el CRM, en el momento. No es burocracia. Con esos datos Lawang sabe qué campañas traen compradores y cuáles solo traen curiosos, y reparte el presupuesto de anuncios en consecuencia. Un lead que trabajas por tu WhatsApp personal no cuenta, y además deja a la empresa sin rastro de lo que se le prometió.</p>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ 4 · HERRAMIENTAS ════════════════════════════════════════════════════════════ -->
+<section class="sec sec--paper" id="herramientas">
+<div class="wrap">
+  <div class="shead reveal">
+    <div class="num">04</div>
+    <div>
+      <span class="lbl">Paso 4 · La intranet</span>
+      <h2>Tus herramientas</h2>
+      <p class="lead">Todo lo que necesitas está en la intranet. Entras con tu usuario y ves lo tuyo: tus leads, tus compradores, tus contratos y tus comisiones. Estas son las pantallas que vas a usar cada día.</p>
+    </div>
+    <button class="hecho-btn" data-hecho="herramientas" aria-pressed="false"><span class="ms">check_circle</span>Paso leído</button>
+  </div>
+  <div class="grid g4 reveal">
+    <a class="herr-card" href="/intranet/v4/home/"><span class="ic ms">today</span><h3>Hoy toca</h3><p>La bandeja de lo que tienes pendiente hoy. Empieza el día aquí.</p><span class="cuando">Cada mañana</span></a>
+    <a class="herr-card" href="/intranet/leads/"><span class="ic ms">person_search</span><h3>CRM · Leads</h3><p>Tablero con tus leads por estado. Ficha, notas, próximos pasos y el chat de WhatsApp.</p><span class="cuando">Todo el día</span></a>
+    <a class="herr-card" href="/intranet/v4/compradores/"><span class="ic ms">group</span><h3>Compradores</h3><p>La ficha del cliente cuando ya ha firmado: datos, contratos y pagos.</p><span class="cuando">Desde la reserva</span></a>
+    <a class="herr-card" href="/intranet/v4/generador-contratos/"><span class="ic ms">edit_document</span><h3>Generador de contratos</h3><p>Reservas, bloqueos y contratos de construcción con los precios vigentes. Firma digital.</p><span class="cuando">Al cerrar</span></a>
+    <a class="herr-card" href="/intranet/v4/reservas/"><span class="ic ms">event_upcoming</span><h3>Reservas</h3><p>Tus reservas vivas y cuándo vencen. Si una está a punto de caducar, habla con tu manager.</p><span class="cuando">Cada semana</span></a>
+    <a class="herr-card" href="/intranet/v4/operaciones/"><span class="ic ms">account_tree</span><h3>Operaciones</h3><p>Cada venta como una sola operación: la reserva y la obra juntas, con lo cobrado.</p><span class="cuando">Seguimiento</span></a>
+    <a class="herr-card" href="/intranet/v4/asistente/"><span class="ic ms">smart_toy</span><h3>Asistente</h3><p>Pega la pregunta del comprador y te prepara un borrador con lo que dice su contrato. Tú lo revisas y lo copias: nunca se envía solo.</p><span class="cuando">Dudas del comprador</span></a>
+    <a class="herr-card" href="/intranet/v4/reparto/"><span class="ic ms">request_quote</span><h3>Mis comisiones</h3><p>Lo que has generado, lo pendiente y lo pagado, venta a venta.</p><span class="cuando">Cuando quieras</span></a>
+  </div>
+
+  <div class="wa reveal">
+    <div class="card">
+      <span class="lbl" style="color:var(--tg)">WhatsApp desde la intranet</span>
+      <h3 style="margin-top:8px">La ventana de 24 horas</h3>
+      <ul class="lista">
+        <li><span class="ms">schedule</span><span>Si el lead te ha escrito en las últimas 24 h, la ventana está abierta y puedes escribir texto libre.</span></li>
+        <li><span class="ms">lock_clock</span><span>Si no, solo puedes mandar una <b>plantilla aprobada</b>. La intranet te dice en qué caso estás.</span></li>
+        <li><span class="ms">description</span><span>Un lead de formulario que nunca te ha escrito no tiene ventana: su primer mensaje siempre es plantilla.</span></li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="lbl" style="color:var(--be)">Bajas</span>
+      <h3 style="margin-top:8px">Si el lead escribe STOP</h3>
+      <ul class="lista">
+        <li><span class="ms" style="color:var(--be)">block</span><span>Queda bloqueado y ya no se le puede escribir. No insistas por otra vía.</span></li>
+        <li><span class="ms" style="color:var(--be)">event_busy</span><span>«Cancelar» no es una baja: casi siempre quiere anular una cita. Pregúntale si quiere cambiarla.</span></li>
+        <li><span class="ms" style="color:var(--be)">smartphone</span><span>¿Por qué no desde tu móvil? Porque el mensaje sale con la identidad de Lawang, queda registrado y protege el número de la empresa.</span></li>
+      </ul>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ 5 · QUÉ DECIR ═══════════════════════════════════════════════════════════════ -->
+<section class="sec sec--lagoon" id="decir">
+<div class="wrap">
+  <div class="shead reveal">
+    <div class="num">05</div>
+    <div>
+      <span class="lbl">Paso 5 · Líneas rojas</span>
+      <h2>Lo que se dice y lo que no</h2>
+      <p class="lead">Lo que le dices a un cliente por WhatsApp o en una llamada puede obligar a la empresa igual que un contrato. Estas reglas no son de estilo: protegen al comprador, a Lawang y a ti.</p>
+    </div>
+    <button class="hecho-btn" data-hecho="decir" aria-pressed="false"><span class="ms">check_circle</span>Paso leído</button>
+  </div>
+  <div class="sino reveal" id="sino">
+    <div class="col no">
+      <h3><span class="ms" style="color:#e2a384">block</span>Nunca digas</h3>
+      <ul>
+        <li><b>«Hak Milik», «propiedad plena», «a tu nombre para siempre».</b>Un extranjero no puede tener Hak Milik en Indonesia. Decirlo, y más en bahasa, describe justo lo que la ley prohíbe.</li>
+        <li><b>Nada que suene a poner el suelo a nombre de otra persona.</b>El suelo nunca se pone a nombre de un tercero. Si un cliente lo propone, la respuesta es no.</li>
+        <li><b>«Freehold».</b>En Bali se usa con muchos sentidos y el cliente entiende propiedad. Si lo dice él, contesta con el nombre exacto del derecho de su proyecto (Hak Sewa o HGB) y enséñale el contrato.</li>
+        <li><b>«Vas a ganar un X %», «se revaloriza seguro», «rentabilidad garantizada».</b>Ninguna cifra de rentabilidad está garantizada.</li>
+        <li><b>A dónde va el dinero, de memoria.</b>Ni «va a una cuenta escrow» ni «nos lo pagas a nosotros»: a dónde va cada pago (la sociedad, el notario, el dueño del suelo) lo dice el contrato de esa operación. Si no lo sabes, pregúntale a tu manager.</li>
+        <li><b>«Te lo prorrogo», «te hago un descuento», «cambiamos los hitos», «te la entregan en tal mes».</b>Eso lo decide tu manager y se pone por escrito. Una promesa tuya por WhatsApp compromete a la empresa.</li>
+        <li><b>Consejos fiscales</b> sobre lo que pagará el cliente en su país o en Indonesia.</li>
+      </ul>
+    </div>
+    <div class="col si">
+      <h3><span class="ms" style="color:#b8c99c">check_circle</span>Sí puedes decir</h3>
+      <ul>
+        <li><b>«Cada proyecto tiene su estructura legal, y está escrita en su contrato».</b>La tenencia cambia de un proyecto a otro. Se lee en el contrato de ESE proyecto, no se generaliza.</li>
+        <li><b>«Este es el ejemplo económico de una parcela concreta».</b>El forecast del investor deck es eso: un ejemplo, con sus supuestos. No un resultado prometido.</li>
+        <li><b>«El precio queda cerrado por escrito antes de firmar».</b>Es verdad y es de lo que más tranquiliza.</li>
+        <li><b>«Los importes en euros son orientativos».</b>La cifra que obliga está en rupias (IDR), con el tipo de cambio y el momento de conversión que fija el contrato.</li>
+        <li><b>«Lo consulto y te lo confirmo por escrito».</b>Siempre vale más que improvisar.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="derivar reveal">
+    <span class="ms">gavel</span>
+    <div>
+      <p>Cuando te pregunten por titularidad, impuestos, herencia o qué pasa al final del plazo, la respuesta es siempre la misma:</p>
+      <q>Eso te lo explica el notario o el abogado con el contrato delante. Te organizo esa llamada.</q>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ 6 · OBJECIONES ══════════════════════════════════════════════════════════════ -->
+<section class="sec" id="objeciones">
+<div class="wrap">
+  <div class="shead reveal">
+    <div class="num">06</div>
+    <div>
+      <span class="lbl">Paso 6 · Objeciones</span>
+      <h2>Las objeciones de siempre</h2>
+      <p class="lead">Estas preguntas salen en casi todas las ventas. La respuesta modelo es un punto de partida seguro; dila con tus palabras, pero no le añadas promesas.</p>
+    </div>
+    <button class="hecho-btn" data-hecho="objeciones" aria-pressed="false"><span class="ms">check_circle</span>Paso leído</button>
+  </div>
+  <div class="faq reveal" id="faq">
+    <details><summary>«¿Es legal que un extranjero compre en Indonesia?»<span class="ms">expand_more</span></summary><div class="resp">
+      <span class="lbl">Respuesta modelo</span>
+      <blockquote>Un extranjero no puede tener Hak Milik, la propiedad plena, que está reservada a ciudadanos indonesios. Lo que ofrecemos es un derecho que la ley sí permite a extranjeros: un arrendamiento Hak Sewa ante notario o un HGB a través de una sociedad de inversión extranjera, según el proyecto. Tu contrato dice cuál, y te recomendamos que lo revise tu propio abogado.</blockquote>
+      <p>No entres en el detalle de la figura de memoria: enséñale el contrato de ese proyecto.</p></div></details>
+    <details><summary>«¿Qué pasa cuando se acaba el plazo?»<span class="ms">expand_more</span></summary><div class="resp">
+      <span class="lbl">Respuesta modelo</span>
+      <blockquote>Depende del derecho de tu proyecto. Si es HGB, dura 30 años, se puede prorrogar 20 y renovar otros 30, pero hay que solicitarlo y cumplir los requisitos. Si es Hak Sewa, la duración, la prórroga y qué pasa con la casa al vencer están en las cláusulas de tu contrato, y las repasamos contigo antes de firmar.</blockquote>
+      <p>Nunca digas que la renovación es automática o está garantizada.</p></div></details>
+    <details><summary>«¿Y si la obra se retrasa?»<span class="ms">expand_more</span></summary><div class="resp">
+      <span class="lbl">Respuesta modelo</span>
+      <blockquote>El contrato de construcción fija el plazo y qué retrasos lo amplían y cuáles no (fuerza mayor, permisos, decisiones o pagos del cliente). Pagas por hitos de obra ejecutada, no el total por adelantado, y ves el avance en tu portal de comprador.</blockquote>
+      <p>No prometas fechas ni penalizaciones que no estén en ese contrato.</p></div></details>
+    <details><summary>«¿Cuánto voy a ganar?»<span class="ms">expand_more</span></summary><div class="resp">
+      <span class="lbl">Respuesta modelo</span>
+      <blockquote>No garantizamos rentabilidad. El ejemplo del investor deck está calculado para una parcela concreta, con supuestos de ocupación y precio por noche que pueden no cumplirse. Te lo enseño con esos supuestos para que los valores tú.</blockquote>
+      <p>El ejemplo está en el investor deck del proyecto. Explica siempre que es un ejemplo.</p></div></details>
+    <details><summary>«¿Por qué voy a pagar antes de ver la casa?»<span class="ms">expand_more</span></summary><div class="resp">
+      <span class="lbl">Respuesta modelo</span>
+      <blockquote>Porque la villa se construye para ti, sobre plano. Pagas una reserva que aparta tu parcela y después la obra por hitos, cada uno contra un avance que puedes comprobar. Las condiciones de la reserva, incluido si se devuelve o no, están en la carta que firmas. Y puedes venir a ver el terreno.</blockquote>
+      <p>No afirmes que la reserva se devuelve: lo regula la carta. E invítale a la visita, que es la mejor respuesta.</p></div></details>
+    <details><summary>«Es más barato que en Canggu o Uluwatu. ¿Dónde está la trampa?»<span class="ms">expand_more</span></summary><div class="resp">
+      <span class="lbl">Respuesta modelo</span>
+      <blockquote>Es la costa oeste: misma isla, mismo océano, zona más tranquila y suelo menos caro. Diseñamos y construimos nosotros la villa. Ven a verlo.</blockquote>
+      <p>Es el mensaje de los anuncios. Úsalo, pero sin comparar rentabilidades.</p></div></details>
+    <details><summary>«Me lo tengo que pensar.»<span class="ms">expand_more</span></summary><div class="resp">
+      <span class="lbl">Respuesta modelo</span>
+      <blockquote>Claro. ¿Qué es lo que te falta para decidir? Así te preparo justo eso para la próxima llamada. ¿Te va bien el jueves?</blockquote>
+      <p>No cuelgues sin fecha para el siguiente paso, y apúntala en su ficha.</p></div></details>
+  </div>
+</div>
+</section>
+
+<!-- ═══ 7 · GUIONES ═════════════════════════════════════════════════════════════════ -->
+<section class="sec sec--paper" id="guiones">
+<div class="wrap">
+  <div class="shead reveal">
+    <div class="num">07</div>
+    <div>
+      <span class="lbl">Paso 7 · Guiones</span>
+      <h2>Tus guiones</h2>
+      <p class="lead">El primer mensaje, la primera llamada y las cinco preguntas que separan al curioso del comprador.</p>
+    </div>
+    <button class="hecho-btn" data-hecho="guiones" aria-pressed="false"><span class="ms">check_circle</span>Paso leído</button>
+  </div>
+
+  <div class="guion reveal">
+    <div>
+      <span class="lbl" style="color:var(--tg)">Primer WhatsApp</span>
+      <h3 style="font-size:28px;margin:8px 0 16px">El mensaje de presentación</h3>
+      <div class="burbuja" id="wa-es"><small>Español</small>Hola <mark>nombre</mark>, soy <mark>tu nombre</mark>, de Lawang. Hemos recibido tu solicitud sobre <mark>proyecto</mark>.<br>¿Te va bien una llamada de 10 minutos hoy o mañana? Te enseño las parcelas y el modelo de villa que mejor encaja con lo que buscas.<br>Si lo prefieres, antes te mando por aquí el vídeo del proyecto.</div>
+      <button class="copiar" data-copia="wa-es"><span class="ms">content_copy</span>Copiar</button>
+      <div class="burbuja" id="wa-en" style="margin-top:14px"><small>English</small>Hi <mark>name</mark>, this is <mark>your name</mark> from Lawang. We got your enquiry about <mark>project</mark>.<br>Would a 10-minute call today or tomorrow suit you? I'll walk you through the plots and the villa model that best fits what you're after.<br>If you prefer, I can send you the project video here first.</div>
+      <button class="copiar" data-copia="wa-en"><span class="ms">content_copy</span>Copy</button>
+      <div class="nota"><span class="ms">info</span><span>Este texto es para cuando la ventana está abierta. Si el lead nunca te ha escrito, la intranet solo deja mandar la <b>plantilla aprobada</b> (paso 4): úsala, y guarda este mensaje para cuando conteste.</span></div>
+    </div>
+    <div>
+      <span class="lbl" style="color:var(--tg)">Primera llamada</span>
+      <h3 style="font-size:28px;margin:8px 0 16px">Ocho pasos, unos 10 minutos</h3>
+      <ol class="llamada">
+        <li><div><b>Preséntate y pide permiso</b><span>«¿Tienes 10 minutos ahora?». Si no, agenda la llamada en ese momento.</span></div></li>
+        <li><div><b>Confirma lo que ya contestó</b><span>«Me dijiste tal presupuesto y tal plazo, ¿sigue así?». No se lo vuelvas a preguntar.</span></div></li>
+        <li><div><b>Descubre para qué la quiere</b><span>Alquilar, pasar temporadas o vivir. Decide el perfil del paso 2.</span></div></li>
+        <li><div><b>Haz las preguntas de cualificación</b><span>Las cinco de abajo.</span></div></li>
+        <li><div><b>Encaja un producto</b><span>Un proyecto, una parcela, un modelo. No el catálogo entero.</span></div></li>
+        <li><div><b>Responde la objeción principal</b><span>Con el paso 6. Titularidad, impuestos o rentabilidad: al notario o al abogado.</span></div></li>
+        <li><div><b>Cierra un siguiente paso con fecha</b><span>Videollamada con plano, visita o envío del deck. Nunca «te mando info y ya me dices».</span></div></li>
+        <li><div><b>Apúntalo en su ficha al colgar</b><span>Nota, próximo seguimiento y estado del tablero.</span></div></li>
+      </ol>
+    </div>
+  </div>
+
+  <div style="margin-top:48px" class="reveal">
+    <span class="lbl" style="color:var(--tg)">Cualificar</span>
+    <h3 style="font-size:28px;margin:8px 0 16px">Las cinco preguntas</h3>
+    <ol class="preguntas">
+      <li>¿Qué uso le vas a dar: alquilarla, pasar temporadas o vivir en ella?</li>
+      <li>¿Para cuándo la querrías terminada?</li>
+      <li>¿Tienes el dinero disponible o depende de vender algo o de financiarte?<small>Separa al curioso del comprador.</small></li>
+      <li>¿Quién más decide contigo? ¿Puede estar en la próxima llamada?<small>Separa al curioso del comprador.</small></li>
+      <li>¿Conoces Bali o Sumba? ¿Has mirado otros proyectos?<small>Te dice contra quién compites.</small></li>
+    </ol>
+  </div>
+</div>
+</section>
+
+<!-- ═══ COMISIONES ══════════════════════════════════════════════════════════════════ -->
+<section class="sec sec--lagoon" id="comisiones">
+<div class="wrap">
+  <div class="shead reveal">
+    <div class="num"><span class="ms" style="font-size:inherit">payments</span></div>
+    <div>
+      <span class="lbl">Cómo cobras</span>
+      <h2>Tus comisiones</h2>
+      <p class="lead">Tus comisiones se rigen por tu contrato de colaboración. La intranet las calcula sola cuando el cliente paga lo que marca tu condición, y en «Mis comisiones» ves el cálculo y el estado. Esa pantalla es informativa: si no coincide con tu contrato, manda el contrato. Tu porcentaje te lo explica tu manager.</p>
+    </div>
+  </div>
+  <div class="pasos-com reveal">
+    <div><span class="ms">edit_document</span><b>Tú haces el contrato</b><p>La venta se atribuye a quien hace el contrato en el Generador. Si lo hace otro, la comisión es de otro.</p></div>
+    <div><span class="ms">account_balance</span><b>El cliente paga</b><p>Los cobros se registran en la intranet con su factura o recibí.</p></div>
+    <div><span class="ms">bolt</span><b>Se genera sola</b><p>Cuando lo cobrado cruza el umbral de tu condición, aparece tu comisión con su importe.</p></div>
+    <div><span class="ms">visibility</span><b>La ves en Mis comisiones</b><p>Pendiente, aprobada o pagada, venta a venta. Si algo no cuadra con tu contrato, díselo a tu manager.</p></div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ TU SEMANA ═══════════════════════════════════════════════════════════════════ -->
+<section class="sec" id="semana">
+<div class="wrap">
+  <div class="shead reveal">
+    <div class="num"><span class="ms" style="font-size:inherit">checklist</span></div>
+    <div>
+      <span class="lbl">Tu primera semana</span>
+      <h2>Lista para los cinco primeros días</h2>
+      <p class="lead">Márcala a medida que avanzas. Se guarda en este navegador.</p>
+    </div>
+  </div>
+  <div class="semana reveal" id="semana-lista">
+    <div class="dia"><span class="lbl">Día 1</span><h3>Entra</h3>
+      <label><input type="checkbox" data-chk="d1a"><span>Entra en la intranet con tu usuario y abre Hoy toca.</span></label>
+      <label><input type="checkbox" data-chk="d1b"><span>Lee los pasos 1 a 3 de esta guía.</span></label>
+      <label><input type="checkbox" data-chk="d1c"><span>Pide a tu manager tu equipo, tus proyectos y tu condición de comisión.</span></label></div>
+    <div class="dia"><span class="lbl">Día 2</span><h3>Conoce el producto</h3>
+      <label><input type="checkbox" data-chk="d2a"><span>Recorre las seis landings de villa y juega con el configurador.</span></label>
+      <label><input type="checkbox" data-chk="d2b"><span>Lee el investor deck de un proyecto de principio a fin.</span></label>
+      <label><input type="checkbox" data-chk="d2c"><span>Mira en Proyectos qué parcelas hay libres hoy.</span></label></div>
+    <div class="dia"><span class="lbl">Día 3</span><h3>Las reglas</h3>
+      <label><input type="checkbox" data-chk="d3a"><span>Lee los pasos 5 y 6 dos veces.</span></label>
+      <label><input type="checkbox" data-chk="d3b"><span>Pide a tu manager un ejemplo de Carta de Reserva y de Contrato de Construcción y léelos enteros.</span></label>
+      <label><input type="checkbox" data-chk="d3c"><span>Prueba el Asistente con una pregunta de comprador inventada.</span></label></div>
+    <div class="dia"><span class="lbl">Día 4</span><h3>Practica</h3>
+      <label><input type="checkbox" data-chk="d4a"><span>Haz la llamada del paso 7 con tu manager haciendo de cliente.</span></label>
+      <label><input type="checkbox" data-chk="d4b"><span>Recorre el Generador de contratos de principio a fin sin guardar: un contrato guardado gasta un número de serie real.</span></label>
+      <label><input type="checkbox" data-chk="d4c"><span>Escucha o lee una conversación real de un compañero.</span></label></div>
+    <div class="dia"><span class="lbl">Día 5</span><h3>Tus leads</h3>
+      <label><input type="checkbox" data-chk="d5a"><span>Contacta tus primeros leads el mismo día que entran.</span></label>
+      <label><input type="checkbox" data-chk="d5b"><span>Deja cada contacto apuntado en su ficha.</span></label>
+      <label><input type="checkbox" data-chk="d5c"><span>Agenda tu primera videollamada o visita.</span></label></div>
+  </div>
+
+  <div style="margin-top:56px" class="reveal">
+    <span class="lbl" style="color:var(--tg)">Cada semana</span>
+    <h3 style="font-size:28px;margin:8px 0 16px">Tus números, mirados por ti</h3>
+    <ul class="metricas">
+      <li><span class="ms">inbox</span><div><b>Leads sin tocar</b><span>Leads tuyos todavía en «nuevo» o sin ninguna acción. El objetivo es cero.</span></div></li>
+      <li><span class="ms">timer</span><div><b>Tiempo hasta el primer contacto</b><span>Cuántos de tus leads esperaron más de 24 horas.</span></div></li>
+      <li><span class="ms">call</span><div><b>De contacto a llamada</b><span>De los que contactaste, cuántos llegaron a una llamada o videollamada.</span></div></li>
+      <li><span class="ms">event</span><div><b>Siguientes pasos con fecha</b><span>Videollamadas, visitas y decks enviados en tu agenda.</span></div></li>
+      <li><span class="ms">bookmark_added</span><div><b>Reservas firmadas</b><span>Cartas de Reserva o Bloqueos de Parcela de la semana.</span></div></li>
+      <li><span class="ms">hourglass_bottom</span><div><b>Leads olvidados</b><span>Sin próximo seguimiento, o más de 7 días sin contacto.</span></div></li>
+    </ul>
+  </div>
+</div>
+</section>
+
+<!-- ═══ GLOSARIO ════════════════════════════════════════════════════════════════════ -->
+<section class="sec sec--paper" id="glosario">
+<div class="wrap">
+  <div class="shead reveal">
+    <div class="num"><span class="ms" style="font-size:inherit">menu_book</span></div>
+    <div>
+      <span class="lbl">Glosario</span>
+      <h2>Las palabras que vas a oír</h2>
+      <p class="lead">Para entenderlas, no para explicarlas tú al cliente: el detalle legal lo da el notario o el abogado.</p>
+    </div>
+  </div>
+  <dl class="glosario reveal" id="glosario-lista">
+    <div><dt>Hak Milik</dt><dd>Propiedad plena y perpetua. <em>Solo para ciudadanos indonesios</em>: nunca a nombre de un extranjero ni de una PT PMA.</dd></div>
+    <div><dt>HGB</dt><dd>Hak Guna Bangunan: derecho a construir y tener edificios sobre un suelo. Lo puede tener una PT PMA. 30 años, prorrogable 20 y renovable 30, siempre bajo solicitud: <em>no es automático</em>.</dd></div>
+    <div><dt>Hak Pakai</dt><dd>Derecho de uso registrado. Es la única vía directa para un extranjero con permiso de residencia (KITAS/KITAP).</dd></div>
+    <div><dt>Hak Sewa</dt><dd>Arrendamiento del suelo por contrato con su titular. Duración y prórrogas, las que diga el contrato.</dd></div>
+    <div><dt>PT PMA</dt><dd>Sociedad indonesia con capital extranjero. Es el vehículo legal para invertir desde fuera o tener un HGB.</dd></div>
+    <div><dt>Nominee</dt><dd>Testaferro. <em>Ilegal en Indonesia.</em> Lawang no trabaja así: el suelo nunca se pone a nombre de un tercero.</dd></div>
+    <div><dt>PPJB</dt><dd>Acuerdo preliminar vinculante de compraventa. Da un derecho personal, pero no transmite el título.</dd></div>
+    <div><dt>AJB</dt><dd>Escritura que transmite un derecho de tierra, firmada ante PPAT e inscrita en el BPN. Aplica a HGB; en Hak Sewa el documento es el contrato de arrendamiento notarial.</dd></div>
+    <div><dt>PPAT</dt><dd>Funcionario autorizado para las escrituras sobre tierra. No es un notario cualquiera.</dd></div>
+    <div><dt>BPN</dt><dd>Registro nacional de tierras, donde se inscribe el derecho.</dd></div>
+    <div><dt>BPHTB</dt><dd>Impuesto de adquisición de un derecho de tierra, a cargo del comprador. En Hak Sewa no aplica igual: lo confirma el notario.</dd></div>
+    <div><dt>PBG</dt><dd>Licencia de edificación vigente desde 2021.</dd></div>
+    <div><dt>IMB</dt><dd>La licencia antigua, sustituida por el PBG. No se usa para obra nueva: no digas que la villa «tendrá IMB».</dd></div>
+    <div><dt>Carta de Reserva</dt><dd>Documento con el que el cliente aparta una parcela antes del contrato. Tiene fecha de vencimiento.</dd></div>
+    <div><dt>Bloqueo de Parcela</dt><dd>Contrato de reserva de parcela con su calendario de pagos.</dd></div>
+    <div><dt>Contrato de Construcción</dt><dd>El contrato de la villa llave en mano, con modelo, cubierta, extras e hitos de pago.</dd></div>
+    <div><dt>Hitos</dt><dd>Los pagos de la obra ligados a sus fases. Los de cada operación están en su contrato.</dd></div>
+  </dl>
+</div>
+</section>
+</main>
+
+<!-- ═══ CIERRE ══════════════════════════════════════════════════════════════════════ -->
+<section class="cierre">
+  <img src="/assets/img/palm-field-aerial.webp" alt="" loading="lazy">
+  <div class="wrap">
+    <h2>Ahora, a por tu<br><em>primera reserva</em></h2>
+    <p>Si algo de esta guía no te cuadra con lo que ves en la intranet o en un contrato, manda el contrato. Y pregúntale a tu manager.</p>
+    <div class="acc">
+      <a class="btn btn--linen" href="/intranet/">Abrir la intranet<span class="ms" style="font-size:18px">arrow_forward</span></a>
+      <a class="btn btn--ghost" style="color:var(--linen);border-color:rgba(245,240,230,.4)" href="#top">Volver al índice</a>
+    </div>
+  </div>
+</section>
+
+<footer data-lw-pie data-wa="https://wa.me/6281138319862"><span data-pie-nota>Guía interna para el equipo comercial de Lawang. No es una oferta ni un documento contractual: lo que obliga es el contrato firmado. Actualizada el 24-sep-2026.</span></footer>
+<script src="/assets/lawang-pie.js?v=20260923153722"></script>
+
+<script>
+(function () {
+  'use strict';
+  var CLAVE = 'lw-formacion-v1';
+  var PASOS = ['producto', 'comprador', 'venta', 'herramientas', 'decir', 'objeciones', 'guiones'];
+  var estado = { pasos: {}, chk: {} };
+  // El progreso es una comodidad de este navegador: si el almacenamiento falla
+  // (privado, bloqueado) la página funciona igual, solo no recuerda.
+  try { var g = JSON.parse(localStorage.getItem(CLAVE) || 'null'); if (g && g.pasos) estado = g; } catch (e) {}
+  estado.chk = estado.chk || {};
+  function guarda() { try { localStorage.setItem(CLAVE, JSON.stringify(estado)); } catch (e) {} }
+
+  function pinta() {
+    var n = 0;
+    PASOS.forEach(function (p) {
+      var on = !!estado.pasos[p]; if (on) n++;
+      var a = document.querySelector('#indice a[data-paso="' + p + '"]');
+      if (a) a.classList.toggle('hecho', on);
+      var b = document.querySelector('[data-hecho="' + p + '"]');
+      if (b) {
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        b.lastChild.textContent = on ? 'Leído' : 'Paso leído';
+      }
+    });
+    document.getElementById('barra').style.width = (n / PASOS.length * 100) + '%';
+    document.getElementById('cuenta').textContent = n + ' de ' + PASOS.length;
+  }
+  document.querySelectorAll('[data-hecho]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var p = b.getAttribute('data-hecho');
+      estado.pasos[p] = !estado.pasos[p]; guarda(); pinta();
+    });
+  });
+  document.querySelectorAll('[data-chk]').forEach(function (c) {
+    var k = c.getAttribute('data-chk');
+    c.checked = !!estado.chk[k];
+    c.addEventListener('change', function () { estado.chk[k] = c.checked; guarda(); });
+  });
+  pinta();
+
+  // Copiar guion: el texto sin la etiqueta de idioma.
+  document.querySelectorAll('[data-copia]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var el = document.getElementById(b.getAttribute('data-copia')).cloneNode(true);
+      var s = el.querySelector('small'); if (s) s.remove();
+      el.querySelectorAll('br').forEach(function (br) { br.replaceWith('\n'); });
+      var txt = el.textContent.trim(), orig = b.lastChild.textContent;
+      function ok() { b.lastChild.textContent = orig === 'Copy' ? 'Copied' : 'Copiado'; setTimeout(function () { b.lastChild.textContent = orig; }, 1600); }
+      if (navigator.clipboard) navigator.clipboard.writeText(txt).then(ok, function () {});
+    });
+  });
+
+  // Píldora activa del menú según la sección visible.
+  var pills = {};
+  document.querySelectorAll('#top nav a').forEach(function (a) { pills[a.getAttribute('href').slice(1)] = a; });
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        Object.keys(pills).forEach(function (k) { pills[k].classList.toggle('on', k === e.target.id); });
+      });
+    }, { rootMargin: '-45% 0px -50% 0px' });
+    Object.keys(pills).forEach(function (k) { var s = document.getElementById(k); if (s) io.observe(s); });
+    var rv = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); rv.unobserve(e.target); } });
+    }, { rootMargin: '0px 0px -8% 0px' });
+    document.querySelectorAll('.reveal').forEach(function (el) { rv.observe(el); });
+  } else {
+    document.querySelectorAll('.reveal').forEach(function (el) { el.classList.add('in'); });
+  }
+})();
+</script>
+</body>
+</html>
