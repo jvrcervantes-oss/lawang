@@ -162,6 +162,10 @@ function documentoHTML(d, opts){
     // plantilla, ver TIPOS_DOC.recibi arriba). El input ya había salido del
     // formulario el 24-ago; esto es lo que faltaba para que tampoco se
     // imprimiera desde una factura vieja que aún lo tuviera guardado.
+    // AxisWorks ERP (25-sep-2026, owner: «para los módulos sí, para Lawang no»): vuelve SOLO si el propio
+    // documento dice que se emitió con domicilio (`imprime_domicilio`, lo pone el editor cuando la empresa
+    // tiene `factura_imprime_domicilio`). Una factura vieja de Lawang con domicilio guardado sigue sin él.
+    (d.imprime_domicilio && d.cliente_domicilio ? escDoc(d.cliente_domicilio).replace(/\n/g, '<br>') + '<br>' : '') +
     (d.cliente_email ? escDoc(d.cliente_email) : '') +
     (d.proyecto_nombre ? '<div style="margin-top:2mm">Proyecto · Project: <b>' + escDoc(d.proyecto_nombre) + '</b></div>' : '') +
   '</div>' +

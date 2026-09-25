@@ -2286,18 +2286,26 @@
      Lawang. Con ella, quien decide es la base (`factura_exige_contrato()`, la misma función que usa
      el trigger): la pantalla nunca guarda su propia copia de la regla. Si no se puede leer, se dice
      y se exige contrato — el lado seguro. */
+  /* `domicilio` (25-sep-2026, owner: «para los módulos sí, para Lawang no»): si la empresa imprime el
+     domicilio del cliente en la factura (`factura_imprime_domicilio()`, ausente = no). Mismo lado seguro:
+     si no se puede leer, no se pide ni se imprime, y se dice. */
   function reglaContratoDoc(sb) {
-    if (!window.AXW_NUCLEO_OPERACION) return Promise.resolve({ sinContrato: false, nota: '' });
-    return sb.rpc('factura_exige_contrato').then(function (r) {
-      if (r.error) {
-        console.error('[facturas] regla de contrato:', r.error);
-        return { sinContrato: false, nota: 'No se ha podido saber si esta empresa permite documentos sin contrato: de momento se exige contrato.' };
-      }
-      return { sinContrato: r.data === false, nota: '' };
-    }, function (e) {
-      console.error('[facturas] regla de contrato:', e);
-      return { sinContrato: false, nota: 'No se ha podido saber si esta empresa permite documentos sin contrato: de momento se exige contrato.' };
-    });
+    if (!window.AXW_NUCLEO_OPERACION) return Promise.resolve({ sinContrato: false, domicilio: false, nota: '' });
+    var NO_CONTRATO = 'No se ha podido saber si esta empresa permite documentos sin contrato: de momento se exige contrato.';
+    var NO_DOMICILIO = 'No se ha podido saber si esta empresa imprime el domicilio del cliente: de momento no se imprime.';
+    function lee(fn, etq) {
+      return sb.rpc(fn).then(function (r) {
+        if (r.error) { console.error('[facturas] ' + etq + ':', r.error); return null; }
+        return r.data;
+      }, function (e) { console.error('[facturas] ' + etq + ':', e); return null; });
+    }
+    return Promise.all([lee('factura_exige_contrato', 'regla de contrato'), lee('factura_imprime_domicilio', 'regla de domicilio')])
+      .then(function (rs) {
+        var notas = [];
+        if (rs[0] === null) notas.push(NO_CONTRATO);
+        if (rs[1] === null) notas.push(NO_DOMICILIO);
+        return { sinContrato: rs[0] === false, domicilio: rs[1] === true, nota: notas.join(' ') };
+      });
   }
   var SIN_CONTRATO_DOC = '__sin_contrato__';
   /* Elegir cliente: la lista trae SOLO id y nombre, y de `clients` con la RLS de quien emite
@@ -2313,10 +2321,10 @@
         opciones: cs.map(function (c) { return { valor: c.id, texto: c.full_name }; }) })
         .then(function (id) {
           if (!id) return null;
-          return sb.from('clients').select('id,full_name,email,passport_number,registro_num').eq('id', id).maybeSingle().then(function (rc) {
+          return sb.from('clients').select('id,full_name,email,passport_number,registro_num,address').eq('id', id).maybeSingle().then(function (rc) {
             if (rc.error || !rc.data) { toastMal(lwErrorHumano(rc.error || { message: 'cliente no encontrado' }, 'No se pudo cargar el cliente')); return null; }
             var c = rc.data;
-            return { id: c.id, nombre: c.full_name || '', documento: c.passport_number || c.registro_num || '', email: c.email || '' };
+            return { id: c.id, nombre: c.full_name || '', documento: c.passport_number || c.registro_num || '', email: c.email || '', domicilio: c.address || '' };
           });
         });
     });
@@ -3488,6 +3496,8 @@
             // (documentoHTML). El clásico lo lleva en un input oculto; aquí no
             // hay campo, así que se pone aquí — sin esto la línea no salía.
             vals.contrato_numero = estadoContrato.numero || '';
+            // El papel imprime el domicilio solo si el documento lo dice (documento.js); solo donde la empresa lo usa.
+            if (regla.domicilio) vals.imprime_domicilio = true;
             return vals;
           }
           var repasaBarra = null, delC = null;
@@ -3547,6 +3557,7 @@
                 estadoContrato.clienteId = c.id;
                 btnCli.textContent = c.nombre;
                 ponCampoDoc('cliente_nombre', c.nombre); ponCampoDoc('cliente_documento', c.documento); ponCampoDoc('cliente_email', c.email);
+                if (regla.domicilio) ponCampoDoc('cliente_domicilio', c.domicilio);
                 repintaPreview();
               });
             });
@@ -3556,7 +3567,7 @@
             // Lo que trajo el contrato anterior se suelta y se vacía: el cliente se elige de nuevo.
             estadoContrato.id = null; estadoContrato.numero = ''; estadoContrato.clienteId = null; estadoContrato.sinContrato = true;
             sueltaCamposDoc();
-            ['cliente_nombre', 'cliente_documento', 'cliente_email', 'proyecto_nombre'].forEach(function (k) { ponCampoDoc(k, ''); });
+            ['cliente_nombre', 'cliente_documento', 'cliente_email', 'cliente_domicilio', 'proyecto_nombre'].forEach(function (k) { ponCampoDoc(k, ''); });
             if (delC) delC.limpia();
             btnC.textContent = '— sin contrato —'; btnCli.textContent = '— elige el cliente —';
             notaC.textContent = 'El documento irá a nombre del cliente que elijas, sin contrato.';
@@ -3569,6 +3580,14 @@
             pintaModoContrato();
             repintaPreview();
             delC.pon(res).then(repintaPreview);
+            // El contrato no trae el domicilio: sale de la ficha de su comprador principal, si el campo está vacío.
+            var campoDom = regla.domicilio ? campoDeDoc('cliente_domicilio') : null;
+            if (campoDom && !campoDom.value && res.clienteId) {
+              sb.from('clients').select('address').eq('id', res.clienteId).maybeSingle().then(function (rd) {
+                if (rd.error) { console.error('[facturas] domicilio del comprador:', rd.error); return; }
+                if (rd.data && rd.data.address && !campoDom.value) { campoDom.value = rd.data.address; repintaPreview(); }
+              });
+            }
           }
           btnC.addEventListener('click', function () {
             var ops = opcionesContratoPickerDoc(contratosLigeros);
@@ -3641,6 +3660,7 @@
           var secCliente = seccionPlegableDoc(host, 'Cliente', true, { resumen: resumenClienteDoc });
           campoSimpleDoc(secCliente, { k: 'cliente_nombre', label: 'Nombre o razón social', req: 1, valor: f0.cliente_nombre || '' });
           campoSimpleDoc(secCliente, { k: 'cliente_documento', label: 'Pasaporte / NPWP / NIF', valor: f0.cliente_documento || '' });
+          if (regla.domicilio) campoSimpleDoc(secCliente, { k: 'cliente_domicilio', label: 'Domicilio', tipo: 'textarea', req: 1, valor: f0.cliente_domicilio || '' });
           campoSimpleDoc(secCliente, { k: 'cliente_email', label: 'Email', tipo: 'email', valor: f0.cliente_email || '' });
           campoSimpleDoc(secCliente, { k: 'proyecto_nombre', label: 'Proyecto / unidad', valor: f0.proyecto_nombre || '', placeholder: 'Ej. Palm Field — Cabana 2BR S2' });
 
@@ -3681,6 +3701,8 @@
             if (!v.cliente_nombre) return { error: { message: 'Falta «Nombre o razón social».' } };
             // Sin contrato, el documento del cliente no llega de ningún sitio: se pide (Administración #79.3).
             if (sinContrato && !String(v.cliente_documento || '').trim()) return { error: { message: 'Falta el documento del cliente (pasaporte, NPWP o NIF).' } };
+            if (regla.domicilio && !String(v.cliente_domicilio || '').trim()) return { error: { message: 'Falta el domicilio del cliente.' } };
+            if (regla.domicilio) v.imprime_domicilio = true;
             var lineas = getLineas ? getLineas() : [];
             var d = v; d.lineas = lineas;
             d.contrato_numero = estadoContrato.numero || '';   // lo que imprime el papel, como el input oculto del clásico
