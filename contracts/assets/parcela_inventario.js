@@ -477,6 +477,46 @@ function pintarSelectorUnidadConstruccion(lista){
     s.addEventListener('change', ()=>{ UNIDAD_ID_CONSTRUCCION = s.value || null; updateSaveButton(); });
   }
 }
+/* Base del descuento comercial del Bloqueo de Parcela (25-sep-2026, owner:
+   "como hacemos en construcción"): el SUELO de inventario de las parcelas
+   elegidas, sumado — el equivalente a baseTechoExtras() de Construcción, y la
+   ÚNICA función para ese cálculo (la usan syncDatosDeUnidad, collect() y la
+   validación de guardarContrato). `null` si no es un Bloqueo o si alguna
+   parcela elegida no está en el inventario: con la suma incompleta no hay
+   precio de lista del que restar, y el campo ni se enseña (updateSaveButton),
+   igual que Construcción sin techo elegido. */
+function baseSuelo(){
+  if(CONTRACT_TIPO[CURRENT.slug] !== 'reserva_parcela') return null;
+  const sel = document.querySelector('[name="parcela_codigo"]');
+  const cods = sel ? String(sel.value||'').split(',').map(x=>x.trim()).filter(Boolean) : [];
+  if(!cods.length) return null;
+  const us = cods.map(c => (UNIDADES_PROY.lista || []).find(x => x.codigo === c));
+  if(us.some(u => !u || u.precio_suelo == null)) return null;
+  const suelo = us.reduce((t,u)=>t+Number(u.precio_suelo), 0);
+  return suelo > 0 ? suelo : null;
+}
+/* Descuento tecleado, recortado a [0, base] — mismo clamp que
+   syncPrecioTechoExtras(): un valor fuera del 15% no se corrige aquí (lo
+   bloquea guardarContrato), pero tampoco se deja un precio negativo en
+   pantalla mientras se teclea. */
+function descuentoComercialSobre(base){
+  const el = document.querySelector('[name="descuento_comercial"]');
+  return el ? Math.min(Math.max(parseImporte(el.value) || 0, 0), base) : 0;
+}
+/* El descuento lo teclea dirección a propósito: el precio pasa a lista −
+   descuento sin el aviso de "he corregido el precio" (ese aviso es para cuando
+   el inventario pisa una cifra que vino de fuera). Sin lista de suelo no hace
+   nada — el campo ni se enseña en ese caso. */
+function aplicarDescuentoSuelo(){
+  const lista = baseSuelo();
+  const el = document.querySelector('[name="precio_total"]');
+  if(lista == null || !el) return;
+  const nuevo = fmtImporte(lista - descuentoComercialSobre(lista));
+  AUTO_UNIDAD['_lista_suelo'] = lista;
+  if(String(el.value||'').trim() === nuevo) return;
+  el.value = nuevo; AUTO_UNIDAD['precio_total'] = nuevo;
+  el.dispatchEvent(new Event('input', { bubbles:true }));
+}
 function syncDatosDeUnidad(){
   const sel = document.querySelector('[name="parcela_codigo"]');
   if(!sel) return;
@@ -509,8 +549,28 @@ function syncDatosDeUnidad(){
      aviso solo cuando conocemos TODAS las parcelas elegidas: con una fuera del
      inventario la suma está incompleta y forzar sería imponer una cifra mal. */
   const tipoDoc = CONTRACT_TIPO[CURRENT.slug];
+  /* Descuento comercial del Bloqueo (25-sep-2026): el suelo es el precio de
+     LISTA y el descuento resta de él — igual que techo+extras en
+     Construcción. Un descuento negociado sobre el suelo de A4 no significa
+     nada sobre el de A5 (mismo motivo que syncTipologiaModelos() vacía el de
+     Construcción al cambiar de modelo): si la lista que puso este automatismo
+     cambia, se suelta. `_lista_suelo` solo existe tras un primer cálculo en
+     esta sesión de formulario, así que cargar un Bloqueo guardado no lo
+     borra. */
+  const listaSuelo = tipoDoc === 'reserva_parcela' && completas ? baseSuelo() : null;
+  if(tipoDoc === 'reserva_parcela'){
+    const listaAntes = AUTO_UNIDAD['_lista_suelo'];
+    if(listaAntes != null && listaAntes !== listaSuelo){
+      ['descuento_comercial', 'descuento_comercial_motivo'].forEach(k=>{
+        const el = document.querySelector('[name="' + k + '"]');
+        if(el && el.value){ el.value = ''; }
+      });
+    }
+    AUTO_UNIDAD['_lista_suelo'] = listaSuelo;
+  }
+  const descuentoSuelo = listaSuelo != null ? descuentoComercialSobre(listaSuelo) : 0;
   const precioSegunTipo =
-      tipoDoc === 'reserva_parcela' ? suelo
+      tipoDoc === 'reserva_parcela' ? (suelo != null ? suelo - descuentoSuelo : null)
     : tipoDoc === 'construccion'    ? ((villa != null && suelo != null) ? villa - suelo : null)
     : villa;
   /* Con techo elegido el precio de Construcción lo manda techo+extras
@@ -717,7 +777,14 @@ function buildForm(){
          nota grande junto a esa función): en 'input' ese modal saltaría en CADA
          dígito mientras se teclea el importe. */
       const elDescuento = e.target.closest('[name="descuento_comercial"]');
-      if(elDescuento){ syncPrecioTechoExtras(); renderDebounced(); }
+      if(elDescuento){
+        // Bloqueo de Parcela (25-sep-2026): el precio es suelo − descuento
+        // (aplicarDescuentoSuelo); syncPrecioTechoExtras() no hace nada fuera
+        // de Construcción.
+        if(CONTRACT_TIPO[CURRENT.slug] === 'reserva_parcela') aplicarDescuentoSuelo();
+        else syncPrecioTechoExtras();
+        renderDebounced();
+      }
     });
   }
   // flecha de salto: clic en la etiqueta de un campo → ese punto del contrato

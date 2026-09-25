@@ -82,7 +82,7 @@
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
 <script src="assets/documento_diseno.js?v=15c225ba"></script>
 <script src="assets/documento_anexos.js?v=37e0d82f"></script>
-<script src="assets/parcela_inventario.js?v=4117eae1"></script>
+<script src="assets/parcela_inventario.js?v=5dac599d"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
 <script src="assets/modelos_catalogo.js?v=4e4fdee1"></script>
@@ -2877,6 +2877,23 @@ function collect(){
      función), esto es la defensa por si algún camino se les escapa. */
   if(CONTRACT_TIPO[CURRENT.slug] === 'construccion')
     data.descuento_comercial_aplica = (TECHO_ELEGIDO && (parseImporte(data.descuento_comercial) || 0) > 0) ? 'si' : 'no';
+  /* Bloqueo de Parcela (25-sep-2026, owner: "como hacemos en construcción"):
+     mismo 'si'/'no', con el suelo de inventario (baseSuelo(), en
+     parcela_inventario.js) en el papel del techo — sin lista de suelo no hay
+     de qué restar y la cláusula no se imprime aunque quede un valor huérfano
+     en el campo. `precio_lista_suelo` es el equivalente de
+     `precio_lista_construccion`: la cifra antes del descuento, congelada en
+     datos.fields para que el contrato guardado la siga imprimiendo aunque el
+     inventario cambie, y la que usa el trigger de la base para comprobar el
+     15% y que el precio cuadre. */
+  if(CONTRACT_TIPO[CURRENT.slug] === 'reserva_parcela' && typeof baseSuelo === 'function'){
+    const lista = baseSuelo();
+    data.descuento_comercial_aplica = (lista && (parseImporte(data.descuento_comercial) || 0) > 0) ? 'si' : 'no';
+    data.precio_lista_suelo = lista > 0 ? fmtImporte(lista) : '';
+    // Sin lista el campo está oculto: un valor huérfano no viaja al guardado
+    // (el trigger lo rechazaría con un error que el agente no puede ver).
+    if(!lista){ data.descuento_comercial = ''; data.descuento_comercial_motivo = ''; }
+  }
   /* `cuenta_es_escrow` (22-sep-2026, revisión previa #41): 'si'|'no' según la
      cuenta elegida (`cuentas_bancarias.es_escrow`). La plantilla del Bloqueo lo
      usa en <!--if:cuenta_es_escrow=si--> / =no para imprimir la cláusula de
@@ -3360,6 +3377,7 @@ function deriveSections(){
      de "Otros campos" con su nombre en crudo. */
   inDoc.delete('descuento_comercial_aplica');
   inDoc.delete('precio_lista_construccion');   // idem: lo calcula collect() (22-sep-2026)
+  inDoc.delete('precio_lista_suelo');          // idem, su gemelo del Bloqueo de Parcela (25-sep-2026)
   SECTIONS = src.map(s=>({ ...s, fields: s.fields.filter(f=>inDoc.has(f[0])) }))
                 .filter(s=>s.fields.length);
   const relabel = ETIQUETAS_POR_PLANTILLA[CURRENT.slug];
@@ -4094,7 +4112,11 @@ function updateSaveButton(){
   // (misma razón que fijadoPrecioConstruccion, unas líneas arriba): elegir o
   // quitar techo solo dispara updateSaveButton(), nunca el wiring genérico.
   {
-    const muestraDescuento = CONTRACT_TIPO[CURRENT.slug] === 'construccion' && !!TECHO_ELEGIDO;
+    // Bloqueo de Parcela (25-sep-2026): se enseña con la lista de suelo del
+    // inventario conocida (baseSuelo), su equivalente de "techo elegido".
+    const esBloqueo = CONTRACT_TIPO[CURRENT.slug] === 'reserva_parcela';
+    const muestraDescuento = (CONTRACT_TIPO[CURRENT.slug] === 'construccion' && !!TECHO_ELEGIDO)
+      || (esBloqueo && typeof baseSuelo === 'function' && baseSuelo() != null);
     const abreDescuento = puedeHitosFijos();
     CAMPOS_DESCUENTO_COMERCIAL.forEach(k=>{
       const caja = document.querySelector('.field[data-key="' + k + '"]');
@@ -4104,7 +4126,8 @@ function updateSaveButton(){
       el.readOnly = !abreDescuento;
       el.classList.toggle('dato-fijo', !abreDescuento);
       el.title = abreDescuento
-        ? 'Descuento comercial sobre el precio de techo+extras — máx. 15%. Necesita motivo.'
+        ? (esBloqueo ? 'Descuento comercial sobre el precio del suelo — máx. 15%. Necesita motivo.'
+                     : 'Descuento comercial sobre el precio de techo+extras — máx. 15%. Necesita motivo.')
         : 'Solo lo cambian dirección (admin/super admin): quien negocia el precio con el comprador no puede bajarlo él mismo.';
     });
   }
@@ -4549,6 +4572,31 @@ async function guardarContrato(){
       avisoNoGuardado(lwT('Un descuento comercial necesita su motivo.'));
       if(elDCMotivo){ elDCMotivo.focus(); elDCMotivo.scrollIntoView({behavior:'smooth', block:'center'}); }
       return;
+    }
+  }
+  /* Descuento comercial del Bloqueo de Parcela (25-sep-2026, owner: "como
+     hacemos en construcción") — las mismas tres comprobaciones, con el suelo
+     de inventario (baseSuelo) como lista, y una cuarta que Construcción no
+     necesita: allí precio_total está bajo candado (lo calcula la fórmula),
+     aquí sigue siendo editable a mano ("el inventario es el punto de partida
+     de una negociación"). Con descuento, el precio TIENE que ser lista −
+     descuento: si no, el documento imprimiría "lista 100, descuento 10,
+     total 95". Sin descuento nada cambia. El trigger de la base
+     (descuento_comercial_valido) repite las cuatro. */
+  if(tipo === 'reserva_parcela' && typeof baseSuelo === 'function'){
+    const base = baseSuelo();
+    const elDC = document.querySelector('[name="descuento_comercial"]');
+    const elDCMotivo = document.querySelector('[name="descuento_comercial_motivo"]');
+    const dc = (base != null && elDC) ? (parseImporte(elDC.value) || 0) : 0;
+    const motivo = elDCMotivo ? String(elDCMotivo.value || '').trim() : '';
+    const elPT = document.querySelector('[name="precio_total"]');
+    const foco = el => { if(el){ el.focus(); el.scrollIntoView({behavior:'smooth', block:'center'}); } };
+    if(dc < 0){ avisoNoGuardado(lwT('El descuento comercial no puede ser negativo.')); foco(elDC); return; }
+    if(dc > base * 0.15){ avisoNoGuardado(lwT('El descuento comercial no puede superar el 15% del precio del suelo.')); foco(elDC); return; }
+    if(dc > 0 && !motivo){ avisoNoGuardado(lwT('Un descuento comercial necesita su motivo.')); foco(elDCMotivo); return; }
+    if(dc > 0 && elPT && Math.abs((parseImporte(elPT.value) || 0) - (base - dc)) > 0.01){
+      avisoNoGuardado(lwT('Con descuento comercial, el precio total tiene que ser el precio del suelo menos el descuento.'));
+      foco(elPT); return;
     }
   }
   const esNuevo = !(SAVED_CONTRACT && SAVED_CONTRACT.id);
