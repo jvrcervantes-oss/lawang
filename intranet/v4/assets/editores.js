@@ -4646,8 +4646,10 @@
            Documentación: fila primero, objeto después — si el objeto no sale
            queda un huérfano privado, nunca una fila que apunta a la nada. El
            anexo lo trae documento_anexos.js al abrir el contrato en el
-           generador: borrar el plano afecta a lo que se genere o reabra desde
-           ahora, no a los PDF ya emitidos. */
+           generador: borrar el plano cambia el anexo de lo que se genere o reabra
+           desde ahora (cae al genérico o al PDF del repo; con techo, a
+           ninguno), no el de los PDF ya emitidos — Legal, consulta de deploy
+           25-sep-2026. */
         function borraDocModelo(id) {
           if (!id) return;
           var doc = null;
@@ -4659,7 +4661,8 @@
             return lwConfirmar({
               titulo: 'Borrar documento',
               cuerpo: '<p>«' + esc(doc.nombre || 'Documento') + '» se borra del modelo. No se puede deshacer.</p>' +
-                (doc.tipo === 'plano' ? '<p>Es el <b>plano</b>: los contratos de Construcción que se generen, o se reabran en el generador, a partir de ahora ya no lo adjuntarán (los PDF ya emitidos no cambian).</p>' : ''),
+                (doc.tipo === 'plano' ? '<p>Es el <b>plano</b>: los contratos de Construcción que se generen o se reabran a partir de ahora llevarán otro anexo (el plano general del modelo o el PDF de siempre), o ninguno si tienen techo elegido. Los PDF ya emitidos no cambian.</p>' +
+                 '<p>Revisa el anexo de los contratos en curso antes de enviarlos a firma.</p>' : ''),
               confirmar: 'Borrar', tono: 'peligro'
             });
           }).then(function (ok) {
