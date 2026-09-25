@@ -38,7 +38,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=88f4ee6f"></script>
+<script src="/contracts/assets/i18n.js?v=097bd998"></script>
 <script src="/contracts/assets/herramientas.js?v=898d23ca"></script>
 <script src="assets/avisos.js?v=38fd8c40" defer></script><script src="assets/topbar.js?v=8444fd68" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -3091,7 +3091,8 @@ function idrEquiv(html, data){
       return `${ini}${valEnvuelto}${fin}${monEnvuelto} <span class="idr-eq">(≈ ${Math.round(n*tasa).toLocaleString('es-ES')} IDR)</span>`;
     });
 }
-let BORRADOR_MODE=false;   // true solo mientras imprimirBorrador() construye la copia para el comprador: sello, aviso, sin firmas ni cuentas
+let BORRADOR_MODE=false;
+let BORRADOR_BLANCO=false;   // además: plantilla vacía, sin nada de lo escrito en el formulario (borrador de un tipo de contrato sin contrato)   // true solo mientras imprimirBorrador() construye la copia para el comprador: sello, aviso, sin firmas ni cuentas
 let SIGN_MODE=false;   // true solo al construir el snapshot para firma remota → el hueco de firma sale como centinela %%FIRMA_ADQUIRIENTE%% que firma-submit rellena con la firma real
 /* Campos que un campo NUEVO sustituye. Mientras convivan —los documentos
    antiguos guardaron el viejo y no se tocan—, hay que impedir que se impriman
@@ -3113,7 +3114,18 @@ const SUSTITUYE_A = {
 };
 
 function buildDoc(){
-  const data=collect();
+  /* En blanco: NADA de lo tecleado. Solo sobreviven las claves con las que la
+     plantilla ELIGE cláusula (<!--if:clave=valor-->: persona/empresa, régimen
+     de tenencia…) — sin ellas desaparecía el bloque del comprador entero. Son
+     estructura del documento, no datos de nadie. La sociedad firmante la pone
+     applyPromotor con el default de la plantilla. */
+  const data = collect();
+  if(BORRADOR_BLANCO){
+    const eligen = new Set([...templateHTML.matchAll(/<!--if:([a-z0-9_]+)=/g)].map(m => m[1]));
+    Object.keys(data).forEach(k => { if(!eligen.has(k)) data[k] = ''; });
+    delete data.sociedad_firmante;
+  }
+  const nada = fn => BORRADOR_BLANCO ? '' : fn();   // listas dinámicas: vacías en blanco
   // Un borrador nunca lleva una firma pintada, tampoco la del vendedor.
   if(BORRADOR_MODE){ data.firma_adquiriente=''; data.firma_promotor=''; }
   Object.entries(SUSTITUYE_A).forEach(([nuevo, viejo]) => {
@@ -3125,15 +3137,15 @@ function buildDoc(){
   let html=injectBrandAndCover(applyEditsAndTag(templateHTML), data);
   // Sin hitos no se imprime el cronograma entero (rótulo + tabla): una tabla de
   // pagos con la cabecera y ni una fila parece un contrato a medio rellenar.
-  html=html.replace(/<!--seccion-hitos-->([\s\S]*?)<!--\/seccion-hitos-->/g, (m,dentro)=> HITOS.length ? dentro : '');
-  html=html.replace('<!--hitos-->', hitosRowsHTML());   // tabla de pagos dinámica
+  html=html.replace(/<!--seccion-hitos-->([\s\S]*?)<!--\/seccion-hitos-->/g, (m,dentro)=> (HITOS.length && !BORRADOR_BLANCO) ? dentro : '');
+  html=html.replace('<!--hitos-->', nada(hitosRowsHTML));   // tabla de pagos dinámica
   // Extras del techo/modelo elegidos (16-sep-2026): sin ninguno no se imprime
   // ni el título ni la tabla — mismo criterio que hitos, arriba.
   html=html.replace(/<!--seccion-extras-construccion-->([\s\S]*?)<!--\/seccion-extras-construccion-->/g,
-    (m,dentro)=> (EXTRAS_ELEGIDOS && EXTRAS_ELEGIDOS.length) ? dentro : '');
+    (m,dentro)=> (EXTRAS_ELEGIDOS && EXTRAS_ELEGIDOS.length && !BORRADOR_BLANCO) ? dentro : '');
   html=html.replace('<!--extras-construccion-->', extrasConstruccionRowsHTML());
-  html=html.replace('<!--compradores-extra-->', compradoresExtraHTML());   // Adquiriente II, III, IV… sin tope
-  html=html.replace('<!--firmas-adquirientes-->', compradoresFirmasHTML());   // firmas de esos adquirientes extra
+  html=html.replace('<!--compradores-extra-->', nada(compradoresExtraHTML));   // Adquiriente II, III, IV… sin tope
+  html=html.replace('<!--firmas-adquirientes-->', nada(compradoresFirmasHTML));   // firmas de esos adquirientes extra
   /* Borrador: SIN cuentas (Legal, 25-sep-2026). Quien paga sobre un borrador
      se cree reservado sin contrato, y un PDF que corre por WhatsApp se retoca
      para cambiar la cuenta. Importes y calendario sí salen. */
@@ -3156,7 +3168,7 @@ function buildDoc(){
      nada — igual que el select, nunca una cuenta adivinada. */
   html=html.replace(/<!--cuenta:([a-z0-9_]+)-->/g,
     (_m, clave) => tablaCuentaHTML(clave, { titulo:false, escrow:false, clase:'pays kv' }));
-  html=html.replace('<!--extra-clauses-->', clausesHTML());   // cláusulas adicionales propias
+  html=html.replace('<!--extra-clauses-->', nada(clausesHTML));   // cláusulas adicionales propias
   // dimensionar cada hueco según su tipo de dato (añade .f-xs/sm/md/lg), salvo
   // que la plantilla ya traiga su propio tamaño escrito (ej. "f f-lg"). Ya no
   // marca data-campo aquí: eso lo hace ahora la sustitución genérica de abajo,
@@ -3185,7 +3197,7 @@ function buildDoc(){
   });
   html=idrEquiv(html, data);   // "79.000 EUR" → "79.000 EUR (≈ 1.343.000.000 IDR)"
   // anexos incluidos → páginas al final del contrato
-  const ax=annexHTML();
+  const ax=nada(annexHTML);
   if(ax) html = html.includes('</body>') ? html.replace('</body>', ax+'</body>') : html+ax;
   if(BORRADOR_MODE) html=marcaBorrador(html);
   return html;
@@ -3662,7 +3674,16 @@ $('#btnPdf').addEventListener('click', downloadPdf);
    guardado. Abre ese mismo contrato recién leído de la base con ?borrador=1,
    que es el camino de la v4: lo que ve el comprador es siempre lo guardado. */
 $('#btnBorrador').addEventListener('click', () => {
-  if(!SAVED_CONTRACT || !SAVED_CONTRACT.id || LOCKED){ imprimirBorrador(); return; }   // mismos avisos que ya da
+  if(LOCKED){ imprimirBorrador(); return; }   // da el firmado
+  if(!SAVED_CONTRACT || !SAVED_CONTRACT.id){
+    /* Sin guardar = borrador EN BLANCO del tipo elegido (owner, 25-sep-2026:
+       enseñar un tipo de contrato antes de que exista). Nunca con lo tecleado:
+       un PDF con datos del comprador que no está en la base es lo que el
+       9-sep se cerró. */
+    imprimirBorrador({ blanco:true });
+    toast(lwT('Borrador en blanco: solo el texto del tipo de contrato, sin lo que hayas escrito'));
+    return;
+  }
   window.open('/contracts/app.html?contrato=' + encodeURIComponent(SAVED_CONTRACT.id) + '&borrador=1', '_blank', 'noopener');
   toast(lwT('El borrador sale con lo guardado: lo que no hayas guardado no entra'));
 });
@@ -3802,21 +3823,24 @@ function marcaBorrador(html){
   html = html.includes('</head>') ? html.replace('</head>', css + '</head>') : css + html;
   return /<body[^>]*>/.test(html) ? html.replace(/<body[^>]*>/, m => m + marca) : marca + html;
 }
-function imprimirBorrador(){
-  if(LOCKED){
+function imprimirBorrador(o){
+  const blanco = !!(o && o.blanco);
+  if(LOCKED && !blanco){
     // firmado: lo que se entrega es el PDF firmado, nunca una reconstrucción
     if(sb && LOCKED_PDF_PATH) return abrirPdfFirmado();
     toastMal(lwT('El contrato está firmado: ya no hay borrador, descarga el PDF firmado')); return;
   }
-  if(!SAVED_CONTRACT || !SAVED_CONTRACT.numero){
+  if(!blanco && (!SAVED_CONTRACT || !SAVED_CONTRACT.numero)){
     toastMal(lwT('Guarda primero: sin guardar no hay número, y el PDF saldría idéntico a uno emitido sin existir en la base.'));
     return;
   }
   let html;
-  BORRADOR_MODE = true;
-  try{ html = buildDoc(); } finally{ BORRADOR_MODE = false; }
+  BORRADOR_MODE = true; BORRADOR_BLANCO = blanco;
+  try{ html = buildDoc(); } finally{ BORRADOR_MODE = false; BORRADOR_BLANCO = false; }
   const ymd = new Date().toISOString().slice(0, 10);
-  const fname = 'BORRADOR_' + pdfFilename().replace(/\.PDF$/, '_' + ymd + '.PDF');
+  const tipoN = sanitizeFilenamePart((CURRENT.name && CURRENT.name.es) || '').replace(/\s+/g,'+').toUpperCase();
+  const fname = blanco ? ('BORRADOR_EN_BLANCO_' + tipoN + '_' + ymd + '.PDF')
+                       : 'BORRADOR_' + pdfFilename().replace(/\.PDF$/, '_' + ymd + '.PDF');
   const viejo = document.getElementById('lwBorradorFrame'); if(viejo) viejo.remove();
   const fr = document.createElement('iframe');
   fr.id = 'lwBorradorFrame'; fr.setAttribute('aria-hidden', 'true'); fr.tabIndex = -1;
@@ -3938,7 +3962,7 @@ function pintaAcciones(){
   const TABLA = [
     ['btnSave',           !!tipo, cerrado || (proyectoFalta ? lwT('Rellena el nombre del proyecto antes de guardar') : '')],
     ['btnEmail',          true,   guardado ? '' : sinGuardar],
-    ['btnBorrador',       true,   LOCKED ? lwT('El contrato está firmado: ya no hay borrador, descarga el PDF firmado') : (guardado ? '' : sinGuardar)],
+    ['btnBorrador',       true,   LOCKED ? lwT('El contrato está firmado: ya no hay borrador, descarga el PDF firmado') : ''],   // sin guardar sale EN BLANCO
     ['btnDerivar',        true,   guardado ? '' : sinGuardar],
     // Solo en una Carta, y solo si este rol puede emitir el Bloqueo (25-sep-2026).
     ['btnPasarBloqueo',   String(tipo || '').startsWith('carta_reserva')
@@ -6896,6 +6920,11 @@ async function init(){
        Si alguien llega aquí con `?lead=` a pelo, esto solo apunta el origen. */
     LEAD_ID = par.get('lead') || null;
     pantallaC('editor');
+    // «Borrador en blanco» de /v4/contratos/ (25-sep-2026): se elige el tipo y se descarga
+    if(par.get('borrador') === 'blanco'){
+      const bb = $('#btnBorrador'); if(bb) bb.classList.add('primary');
+      toast(lwT('Elige el tipo de contrato arriba y pulsa «Descargar borrador»'));
+    }
   } else {
     pantallaC('listado');
   }

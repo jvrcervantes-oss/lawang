@@ -735,6 +735,8 @@
     'Descargar': 'Download',
     'Descargar PDF': 'Download PDF',
     'Descargar borrador': 'Download draft',
+    'Borrador en blanco: solo el texto del tipo de contrato, sin lo que hayas escrito': 'Blank draft: only the text of the contract type, without what you typed',
+    'Elige el tipo de contrato arriba y pulsa «Descargar borrador»': 'Choose the contract type above and press «Download draft»',
     'El borrador sale con lo guardado: lo que no hayas guardado no entra': 'The draft uses the saved version: unsaved changes are not included',
     'No se pudo abrir la impresión del borrador': 'Could not open the draft print dialog',
     'PDF para que el comprador lo revise: sello de borrador, sin firmas ni datos bancarios': 'PDF for the buyer to review: draft stamp, no signatures or bank details',
