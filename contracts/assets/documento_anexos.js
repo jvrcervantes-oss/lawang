@@ -213,17 +213,45 @@ async function bufferDelAnexo(tip, techo){
     }catch(e){
       // Solo se avisa si HABÍA algo que traerse. Que un modelo no tenga plano en
       // Modelos es lo normal hoy (la tabla está vacía) y no es un fallo.
-      if(doc) toastMal('El plano de ' + tip + ' está en Modelos pero no se ha podido leer ('
-                    + ((e && e.message) || 'error') + '). Se usa el PDF de siempre.');
+      if(doc) toastMal('El Anexo Maestro de ' + tip + ' está en Modelos pero no se ha podido leer ('
+                    + ((e && e.message) || 'error') + '). Recarga la página antes de seguir.');
     }
   }
-  /* Con un techo real elegido NO se cae al PDF del repo: no dice de qué techo
-     es, y el Anexo Maestro es el Apéndice A del contrato (Legal, consulta de
-     deploy 23-sep-2026). Mejor sin anexo y avisado que con otro tejado. */
-  if(techo) throw new Error('sin plano para el techo ' + techo);
-  const r = await fetch('assets/anexos/'+encodeURIComponent(tip)+'.pdf');
-  if(!r.ok) throw new Error(r.status);
-  return { buf: await r.arrayBuffer(), techo: '' };
+  /* SIN RED DEL REPO — 25-sep-2026, decisión del owner: «el Anexo Maestro es
+     el ÚNICO documento que debe cargarse en el contrato de Construcción».
+     Hasta hoy, sin plano en Modelos se caía a `assets/anexos/<Tipología>.pdf`
+     (Dali.pdf y Tropical.pdf, fichas comerciales de julio). Ya no: sin Anexo
+     Maestro no hay anexo, se avisa, y el envío a firma se bloquea (Legal,
+     revisión previa #86: la plantilla remite al «Anexo Especificaciones
+     Técnicas»). Los PDF de `assets/anexos/` quedan sin lector. */
+  throw new Error(techo ? 'sin Anexo Maestro para el techo ' + techo : 'sin Anexo Maestro en Modelos');
+}
+
+/* El contrato de Construcción es el que tiene Tipología. Solo ahí manda la
+   regla del anexo único; el resto de plantillas siguen admitiendo anexos a mano. */
+function esContratoConstruccion(){
+  return (typeof templateHTML === 'string' && templateHTML.includes('{{tipologia_construccion}}'))
+      || !!document.querySelector('[name="tipologia_construccion"]');
+}
+
+/* Un borrador de Construcción guardado antes del 25-sep puede traer un anexo
+   subido a mano (CC00024, CC00081, CC00097 y CC00098 lo traían). Se retira de
+   los DATOS, no solo de la vista: así el próximo guardado lo quita de la fila,
+   y mientras no se guarde el envío a firma se bloquea (Legal, revisión previa
+   #86: que lo guardado y lo firmado no diverjan). Un contrato bloqueado o con
+   firma en curso no se toca: se archiva lo que se firmó. */
+let ANEXO_MANUAL_RETIRADO = false;
+function retiraAnexosManualesConstruccion(){
+  if(!esContratoConstruccion()) return;
+  if(typeof LOCKED !== 'undefined' && LOCKED) return;
+  if(typeof EN_FIRMA !== 'undefined' && EN_FIRMA && (EN_FIRMA.vivas || EN_FIRMA.firmadas)) return;
+  const manuales = ANNEXES.filter(a => !a.auto);
+  if(!manuales.length) return;
+  ANNEXES = ANNEXES.filter(a => a.auto);
+  ANEXO_MANUAL_RETIRADO = true;
+  saveAnnexes();
+  toastMal('Se ha retirado ' + (manuales.length === 1 ? 'el anexo subido a mano' : 'los ' + manuales.length + ' anexos subidos a mano')
+    + ' («' + manuales.map(a => a.title).join('», «') + '»): en Construcción solo va el Anexo Maestro. Guarda el contrato para aplicarlo.');
 }
 
 /* Techo que decide el anexo: el elegido en el contrato (techo_extras.js). El
@@ -242,6 +270,7 @@ async function syncAutoAnnex(){
      del repo) para tirarlo un segundo después. cargarTechosYExtras() vuelve a
      llamar aquí al terminar. */
   if(tip && typeof TECHO_CARGANDO !== 'undefined' && TECHO_CARGANDO && !techoDelAnexo()) return;
+  retiraAnexosManualesConstruccion();
   const techo = tip ? techoDelAnexo() : '';
   const clave = tip ? tip + '§' + techo : '';
   if(clave === AUTO_ANX) return;
@@ -277,8 +306,7 @@ async function syncAutoAnnex(){
     else toast('Anexo de '+tip+' adjuntado ('+pages.length+' pág.)');
   }catch(_){
     if(AUTO_ANX === clave){
-      if(techo) toastMal('Sin Anexo Maestro de '+tip+' con el techo elegido: súbelo en Modelos (tipo Plano, con su techo) o añádelo a mano');
-      else toast('Sin anexo automático para '+tip+' — súbelo a mano si lo necesitas');
+      toastMal('Sin Anexo Maestro de '+tip+(techo ? ' con el techo elegido' : '')+': sin él no se puede enviar a firma. Pídeselo a administración (Modelos → Documentos, tipo Plano'+(techo ? ', con su techo' : '')+').');
     }
   }
   if(AUTO_CARGA === tip && AUTO_ANX === clave) AUTO_CARGA = '';
@@ -308,17 +336,22 @@ function buildAnnexPanel(){
       <div class="dz-row"><label class="switch"><input type="checkbox" data-anxon="${a.id}" ${a.on?'checked':''}><span class="slider"></span></label>
         <span>Incluir en el contrato</span></div>
     </div>`).join('') || `<div class="dz" style="color:var(--muted);font-size:12.5px">Aún no hay anexos. Sube un PDF o imágenes para definirlos.</div>`;
+  // Construcción: solo el Anexo Maestro (25-sep-2026). Sin botón de subida.
+  const subir = esContratoConstruccion()
+    ? `<div class="dz" style="color:var(--muted);font-size:12.5px">En el contrato de Construcción el único anexo es el Anexo Maestro del modelo y techo elegidos. Se carga solo desde Modelos.</div>`
+    : `<div class="dz"><label class="up" id="anxUpLabel">+ Añadir anexo (PDF o imágenes)<input type="file" id="anxFile" accept="application/pdf,image/*" multiple></label></div>`;
   return `<section class="section design collapsed" id="annexPanel">
     <header data-acc><span class="num">📎</span><h2>Anexos</h2><span class="chev">▾</span></header>
     <div class="body">
       ${rows}
-      <div class="dz"><label class="up" id="anxUpLabel">+ Añadir anexo (PDF o imágenes)<input type="file" id="anxFile" accept="application/pdf,image/*" multiple></label></div>
+      ${subir}
     </div>
   </section>`;
 }
 function wireAnnexPanel(){
   const p=$('#annexPanel'); if(!p) return;
-  $('#anxFile').addEventListener('change', async e=>{
+  const inp=$('#anxFile');
+  if(inp) inp.addEventListener('change', async e=>{
     const files=[...e.target.files]; if(!files.length) return;
     const lbl=$('#anxUpLabel'); const t0=lbl.textContent; lbl.textContent='Procesando…';
     for(const f of files){

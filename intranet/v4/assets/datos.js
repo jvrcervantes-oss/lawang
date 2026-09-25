@@ -4133,6 +4133,7 @@
         var d = POR_P[elegido.nombre] || { t: 0, cartera: 0 }, cob = COB_P[elegido.nombre] || 0;
         pon('d-cartera', fmt(d.cartera, 'EUR'));
         pon('d-cobrado', fmt(cob, 'EUR'));
+        pintaAnexosMaestros(elegido);
         pon('d-pct', d.cartera ? '(' + Math.round(cob / d.cartera * 100) + '%)' : '(—)');
         // LAW-186: ver el porqué en el comentario de esMiProyecto() más arriba.
         // `vePropio` se calcula SIEMPRE, no solo si existe la nota — si dependiera
@@ -5077,6 +5078,88 @@
          contenedor ESTÁTICO (`#d-documentos`): datos.js reemplaza sus filas
          en cada apertura del cajón, así que un listener por fila se perdería
          al abrir el siguiente proyecto. */
+      /* Anexos Maestros del proyecto (25-sep-2026, encargo del owner: «añádelo
+         como documentación»). Los de los modelos que se construyen AQUÍ
+         (`modelos_villa`), leídos de Modelos en cada apertura: ni copia de
+         fichero ni fila nueva en `documentos_proyecto` — el Anexo Maestro tiene
+         un solo dueño, y dos copias acabarían diciendo cosas distintas.
+         Abrir = URL firmada del bucket privado `modelos` (TTL 5 min), el mismo
+         camino que usa el contrato. `turno` descarta la respuesta de un cajón
+         que ya se cerró para abrir otro proyecto. */
+      var TURNO_ANEXOS = 0;
+      function pintaAnexosMaestros(elegido) {
+        var caja = document.getElementById('d-anexos-maestros');
+        if (!caja || !elegido) return;
+        var turno = ++TURNO_ANEXOS;
+        var nota = function (t) { caja.innerHTML = ''; var p = document.createElement('p'); p.style.cssText = 'font:500 13px/1.5 sans-serif;color:#75786e;margin:0'; p.textContent = t; caja.appendChild(p); };
+        nota('Cargando…');
+        sb.from('modelos_villa').select('modelo_id,proyecto,proyecto_id').then(function (rv) {
+          if (turno !== TURNO_ANEXOS) return;
+          if (rv.error) return nota('No se han podido leer los modelos del proyecto.');
+          var ids = [];
+          (rv.data || []).forEach(function (v) {
+            var suyo = elegido.id ? v.proyecto_id === elegido.id || (!v.proyecto_id && v.proyecto === elegido.nombre) : v.proyecto === elegido.nombre;
+            if (suyo && v.modelo_id && ids.indexOf(v.modelo_id) === -1) ids.push(v.modelo_id);
+          });
+          if (!ids.length) return nota('Este proyecto no tiene modelos declarados. Se declaran en Modelos.');
+          return Promise.all([
+            sb.from('modelo_documentos').select('id,modelo_id,nombre,path,techo_clave,tamano_bytes').eq('tipo', 'plano').in('modelo_id', ids),
+            sb.from('modelos').select('id,nombre,orden').in('id', ids),
+            sb.from('modelo_techos').select('modelo_id,clave,nombre,orden').in('modelo_id', ids)
+          ]).then(function (r) {
+            if (turno !== TURNO_ANEXOS) return;
+            if (r[0].error || r[1].error) return nota('No se han podido leer los Anexos Maestros.');
+            var mods = r[1].data || [], techos = r[2].data || [];
+            var nombreModelo = {}, ordenModelo = {};
+            mods.forEach(function (m) { nombreModelo[m.id] = m.nombre; ordenModelo[m.id] = m.orden == null ? 999 : m.orden; });
+            var nombreTecho = function (d) {
+              if (!d.techo_clave) return 'Todos los techos';
+              var t = techos.filter(function (x) { return x.modelo_id === d.modelo_id && x.clave === d.techo_clave; })[0];
+              return t ? t.nombre : d.techo_clave;
+            };
+            var docs = (r[0].data || []).slice().sort(function (a, b) {
+              return (ordenModelo[a.modelo_id] - ordenModelo[b.modelo_id])
+                || String(nombreModelo[a.modelo_id] || '').localeCompare(String(nombreModelo[b.modelo_id] || ''))
+                || nombreTecho(a).localeCompare(nombreTecho(b));
+            });
+            var sinAnexo = ids.filter(function (id) { return !docs.some(function (d) { return d.modelo_id === id; }); });
+            caja.innerHTML = '';
+            docs.forEach(function (d) {
+              var f = document.createElement('div');
+              f.className = 'flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors cursor-pointer';
+              f.setAttribute('role', 'button'); f.tabIndex = 0;
+              var ic = document.createElement('span'); ic.className = 'material-symbols-outlined text-[16px] text-outline shrink-0'; ic.textContent = 'architecture';
+              var cuerpo = document.createElement('div'); cuerpo.className = 'flex-1 min-w-0 flex items-center justify-between gap-3';
+              var tit = document.createElement('span'); tit.className = 'font-body-sm text-body-sm text-on-surface truncate';
+              tit.textContent = (nombreModelo[d.modelo_id] || 'Modelo') + ' · ' + nombreTecho(d);
+              tit.title = d.nombre || '';
+              var meta = document.createElement('span'); meta.className = 'font-body-sm text-[11px] text-outline shrink-0';
+              var mb = (typeof d.tamano_bytes === 'number' && d.tamano_bytes > 0) ? ' · ' + (d.tamano_bytes / 1048576).toFixed(1).replace('.', ',') + ' MB' : '';
+              meta.textContent = 'PDF' + mb;
+              cuerpo.appendChild(tit); cuerpo.appendChild(meta);
+              f.appendChild(ic); f.appendChild(cuerpo);
+              var abrir = function () {
+                var orig = meta.textContent; meta.textContent = 'Abriendo…';
+                sb.storage.from('modelos').createSignedUrl(d.path, 300).then(function (u) {
+                  meta.textContent = orig;
+                  if (u.error || !u.data) { if (typeof toastMal === 'function') toastMal('No se pudo abrir: ' + (u.error && u.error.message || 'sin URL')); return; }
+                  window.open(u.data.signedUrl, '_blank', 'noopener');
+                });
+              };
+              f.addEventListener('click', abrir);
+              f.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); abrir(); } });
+              caja.appendChild(f);
+            });
+            if (sinAnexo.length) {
+              var p = document.createElement('p'); p.style.cssText = 'font:500 12px/1.5 sans-serif;color:#8A6A34;margin:' + (docs.length ? '4px 0 0' : '0');
+              p.textContent = 'Sin Anexo Maestro en Modelos: ' + sinAnexo.map(function (id) { return nombreModelo[id] || 'modelo'; }).join(', ')
+                + '. Sus contratos de Construcción no se podrán enviar a firma hasta que administración lo suba.';
+              caja.appendChild(p);
+            }
+          });
+        });
+      }
+
       function wireDocumentosAbrir(sb) {
         var caja = document.getElementById('d-documentos');
         if (!caja) return;

@@ -3011,6 +3011,10 @@
     'Avisado': 'Notified',
     'Aviso:': 'Notice:',
     'Reabre el modal de firma': 'Reopen the signing dialog',
+    'Guarda el contrato antes de enviarlo a firma: se ha retirado un anexo subido a mano':
+      'Save the contract before sending it for signature: a manually uploaded annex has been removed',
+    'Sin el Anexo Maestro no se puede enviar a firma. Pídeselo a administración (Modelos → Documentos, tipo Plano) o actívalo en Anexos.':
+      'It cannot be sent for signature without the Master Annex. Ask administration for it (Models → Documents, type Plan) or switch it on in Annexes.',
     'Este contrato está': 'This contract is',
     'firmado y cerrado': 'signed and closed',
     'Queda registrado en el historial del contrato:': 'It is recorded in the contract’s history:',

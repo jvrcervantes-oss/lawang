@@ -607,14 +607,22 @@
   }
 
   function bDocs(col, m, h, ctx) {
-    // Policy `modelo_docs: escribir` es es_agente(): cualquiera del equipo puede
-    // cambiar el tipo, igual que ya puede subir. No se restringe aquí a admin.
+    // Policy `modelo_docs: escribir` (25-sep-2026): cualquiera del equipo sube y
+    // retipa documentos, SALVO el plano (Anexo Maestro), que es solo de admin.
     var b = bloque(col, 'docs', 'Documentos', { puede: true, textoEditar: h.techos.length ? 'Cambiar tipo o techo' : 'Cambiar tipo', editar: h.docs.length ? function (host) {
       var ins = h.docs.map(function (d) {
         var f = document.createElement('div'); f.style.cssText = 'display:grid;grid-template-columns:minmax(0,1fr) 210px' + (h.techos.length ? ' 150px' : '') + ';gap:10px;align-items:center';
         var n = document.createElement('span'); n.textContent = d.nombre || 'Documento'; n.style.cssText = 'font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
         var s = document.createElement('select'); s.className = 'fm-in';
-        TIPOS_DOC.forEach(function (t) { var o = document.createElement('option'); o.value = t[0]; o.textContent = t[1]; if (d.tipo === t[0]) o.selected = true; s.appendChild(o); });
+        /* El plano (Anexo Maestro) solo lo decide administración (25-sep-2026,
+           policy `modelo_docs: escribir`): un agente no convierte otro documento
+           en plano ni toca el que ya lo es. */
+        var bloqueado = !EST.admin && d.tipo === 'plano';
+        TIPOS_DOC.forEach(function (t) {
+          if (t[0] === 'plano' && !EST.admin && !bloqueado) return;
+          var o = document.createElement('option'); o.value = t[0]; o.textContent = t[1]; if (d.tipo === t[0]) o.selected = true; s.appendChild(o);
+        });
+        if (bloqueado) { s.disabled = true; s.title = 'El Anexo Maestro solo lo cambia administración'; }
         f.appendChild(n); f.appendChild(s);
         // Techo del documento (23-sep-2026): el Anexo Maestro viene uno por
         // techo y el contrato adjunta el del techo elegido. «Todos» = NULL.
@@ -624,6 +632,7 @@
           [['', 'Todos los techos']].concat(h.techos.map(function (x) { return [x.clave, x.nombre]; })).forEach(function (o) {
             var e = document.createElement('option'); e.value = o[0]; e.textContent = o[1]; if ((d.techo_clave || '') === o[0]) e.selected = true; t.appendChild(e);
           });
+          if (bloqueado) t.disabled = true;
           f.appendChild(t);
         }
         host.appendChild(f);
@@ -634,6 +643,7 @@
         var p = Promise.resolve();
         ins.forEach(function (r) {
           var cambio = {};
+          if (r.s.disabled) return;
           if (r.s.value !== r.d.tipo) cambio.tipo = r.s.value;
           if (r.t && r.t.value !== (r.d.techo_clave || '')) cambio.techo_clave = r.t.value || null;
           if (!Object.keys(cambio).length) return;
@@ -797,7 +807,7 @@
     bIdentidad(der, m, ctx);
     if (!EST.admin) {
       var p = document.createElement('p'); p.className = 'fm-nota'; p.style.gridColumn = '1 / -1';
-      p.textContent = 'Los datos del modelo los edita administración. Tú puedes subir documentos y cambiar su tipo.';
+      p.textContent = 'Los datos del modelo y su Anexo Maestro los edita administración. Tú puedes subir los demás documentos y cambiar su tipo.';
       raiz.insertBefore(p, raiz.firstChild);
     }
   }

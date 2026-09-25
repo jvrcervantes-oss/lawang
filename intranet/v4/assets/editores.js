@@ -4558,12 +4558,13 @@
         var m = window.LW_V4 && window.LW_V4.modelo;
         if (!m) return aviso('La ficha del modelo aún no ha cargado.', '#8A6A34');
         modal('Añadir documento · ' + m.nombre, [
-          { k: 'tipo', label: 'Tipo', tipo: 'select', opciones: [
-              ['plano', 'Plano · anexo del contrato'], ['calidades', 'Memoria de calidades'],
-              ['ficha', 'Ficha'], ['render', 'Render'], ['otro', 'Otro']
-            ], valor: 'otro' },
+          // «Plano» = el Anexo Maestro, único anexo del contrato de Construcción:
+          // solo lo sube administración (policy `modelo_docs: escribir`, 25-sep-2026).
+          { k: 'tipo', label: 'Tipo', tipo: 'select', opciones: (admin ? [['plano', 'Plano · anexo del contrato']] : []).concat([
+              ['calidades', 'Memoria de calidades'], ['ficha', 'Ficha'], ['render', 'Render'], ['otro', 'Otro']
+            ]), valor: 'otro' },
           { k: 'file', label: 'Fichero', tipo: 'file', req: 1, accept: 'application/pdf,image/jpeg,image/png,image/webp',
-            ayuda: 'PDF o imagen, hasta 50 MB. Nace privado; el de tipo «plano» es el que el contrato de Construcción adjunta al elegir este modelo.' }
+            ayuda: 'PDF o imagen, hasta 50 MB. Nace privado. El de tipo «plano» es el Anexo Maestro: el único anexo que lleva el contrato de Construcción de este modelo' + (admin ? '.' : ', y solo lo sube administración.') }
         ], 'Subir', function (v) {
           var file = v.file;
           if (!file) return { error: { message: 'elige un fichero' } };

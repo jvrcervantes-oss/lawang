@@ -38,7 +38,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=4f559273"></script>
+<script src="/contracts/assets/i18n.js?v=b2c2eb6c"></script>
 <script src="/contracts/assets/herramientas.js?v=898d23ca"></script>
 <script src="assets/avisos.js?v=38fd8c40" defer></script><script src="assets/topbar.js?v=8444fd68" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -81,7 +81,7 @@
      bloque de abajo, y hay constantes que se calculan al cargar. El orden es
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
 <script src="assets/documento_diseno.js?v=15c225ba"></script>
-<script src="assets/documento_anexos.js?v=db83b61f"></script>
+<script src="assets/documento_anexos.js?v=37e0d82f"></script>
 <script src="assets/parcela_inventario.js?v=4117eae1"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
@@ -1794,6 +1794,7 @@ function limpiarOverrides(slug){
    tipo de documento), no algo que deba reiniciarse por contrato. */
 function resetBorrador(slug){
   SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null; PROYECTO_ABIERTO = ''; PDF_SALIO = false;
+  ANEXO_MANUAL_RETIRADO = false;
   TECHO_LEGADO_SIN = false;
   /* HITOS también se reinicia (auditoría 19-ago): faltaba en esta lista y «+
      Nuevo contrato» heredaba el calendario de pagos del contrato ABIERTO — la
@@ -4652,6 +4653,7 @@ async function guardarContrato(){
     const { data, error } = await q;
     if(error) throw error;
     SAVED_CONTRACT = { id:data.id, numero:data.numero };
+    ANEXO_MANUAL_RETIRADO = false;   // lo retirado ya está fuera de la fila
     if(eraNuevo) PDF_SALIO = false;   // un contrato recién creado no ha salido nunca
     const numEl = document.querySelector('[name="contrato_num"]');
     if(numEl){ numEl.value = data.numero; }
@@ -6007,15 +6009,15 @@ $('#fmGen').addEventListener('click', async ()=>{
      decidir (Dream/Dune/Trinity/Temple se suben a mano y eso es legítimo). */
   if(AUTO_CARGA){ toastMal(lwT('Espera: se está preparando el anexo de ')+AUTO_CARGA); return; }
   const tipSel = (document.querySelector('[name="tipologia_construccion"]')||{}).value;
-  if(tipSel && !ANNEXES.some(a=>a.on && a.pages && a.pages.length)){
-    const ok = await lwConfirmar({
-      titulo: 'Este contrato va sin ningún anexo',
-      cuerpo: '<p>' + lwT('Es de tipología') + ' <b>' + escAttr(tipSel) + '</b> ' + lwT('y no lleva anexos adjuntos.') + '</p>'
-            + '<p>' + lwT('Los Artículos 2 y 3 remiten a los Apéndices (planos y especificaciones), así que el comprador firmaría un contrato que se refiere a documentos que no están.') + '</p>',
-      confirmar: 'Generar el enlace igualmente',
-      cancelar: 'Volver y adjuntar',
-    });
-    if(!ok) return;
+  /* 25-sep-2026 (owner + Legal, revisión previa #86): en Construcción el Anexo
+     Maestro es el ÚNICO anexo y la plantilla remite a él («Anexo Especificaciones
+     Técnicas»). Antes un aviso dejaba seguir sin él; ya no: sin él, no
+     sale a firma. Y si se acaba de retirar un anexo subido a mano, primero se
+     guarda, para que lo firmado y lo guardado digan lo mismo. */
+  if(tipSel && ANEXO_MANUAL_RETIRADO){ toastMal(lwT('Guarda el contrato antes de enviarlo a firma: se ha retirado un anexo subido a mano')); return; }
+  if(tipSel && !ANNEXES.some(a=>a.auto && a.on && a.pages && a.pages.length)){
+    toastMal(lwT('Sin el Anexo Maestro no se puede enviar a firma. Pídeselo a administración (Modelos → Documentos, tipo Plano) o actívalo en Anexos.'));
+    return;
   }
   const btn=$('#fmGen'); btn.disabled=true; btn.textContent='Generando…';
   const ROL = FIRMA_NEXT.rol;

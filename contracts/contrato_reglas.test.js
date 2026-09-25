@@ -180,6 +180,27 @@ afirma('el panel nace escondido y lo abre el botón',
     /fraccionClara\(cv\) >= CLARO_PLANO\) cv = await pintarPagina\(page, Math\.min\(ANCHO_PLANO\/base\.width, 4\)\)/.test(anexos)
     && (anexos.match(/toDataURL\('image\/jpeg'/g) || []).length === 2);
 
+  /* 25-sep-2026, decisión del owner: en Construcción el Anexo Maestro (Modelos,
+     tipo plano) es el ÚNICO anexo. Revisión previa #86 (Legal): sin él no sale a
+     firma, y lo retirado se quita de los datos, no solo de la vista. */
+  afirma('el anexo automático ya no cae al PDF del repo (assets/anexos/)',
+    !/fetch\(\s*'assets\/anexos\//.test(anexos),
+    'Dali.pdf y Tropical.pdf son fichas comerciales de julio: volverían a entrar en contratos de Construcción');
+  afirma('en Construcción no se ofrece subir anexos a mano',
+    /const subir = esContratoConstruccion\(\)\s*\?[\s\S]{0,200}?único anexo es el Anexo Maestro/.test(anexos)
+    && /if\(inp\) inp\.addEventListener\('change'/.test(anexos),
+    'el botón «+ Añadir anexo» tiene que desaparecer solo en esta plantilla');
+  afirma('un anexo manual se retira de ANNEXES (los datos), y nunca en un contrato bloqueado o en firma',
+    /function retiraAnexosManualesConstruccion\(\)\{[\s\S]{0,400}?LOCKED[\s\S]{0,200}?EN_FIRMA[\s\S]{0,300}?ANNEXES = ANNEXES\.filter\(a => a\.auto\)/.test(anexos),
+    'filtrarlo solo al pintar haría que lo guardado y lo firmado dijeran cosas distintas');
+  afirma('sin Anexo Maestro el envío a firma se bloquea, sin «Generar el enlace igualmente»',
+    !/Generar el enlace igualmente/.test(app)
+    && /if\(tipSel && !ANNEXES\.some\(a=>a\.auto && a\.on && a\.pages && a\.pages\.length\)\)\{\s*toastMal\([\s\S]{0,300}?return;/.test(app)
+    && /if\(tipSel && ANEXO_MANUAL_RETIRADO\)\{ toastMal\([^;]+\); return; \}/.test(app),
+    'la plantilla remite al «Anexo Especificaciones Técnicas»: firmarla sin él deja una cláusula colgando');
+  afirma('guardar limpia la marca de anexo retirado',
+    /SAVED_CONTRACT = \{ id:data\.id, numero:data\.numero \};\s*ANEXO_MANUAL_RETIRADO = false;/.test(app));
+
   const firmas = require('fs').readFileSync(path.join(__dirname, 'firmar.html'), 'utf8');
   afirma('la firma del comprador se guarda en PNG, nunca en JPEG',
     /toDataURL\('image\/png'\)/.test(firmas) && !/toDataURL\('image\/jpeg'/.test(firmas),
