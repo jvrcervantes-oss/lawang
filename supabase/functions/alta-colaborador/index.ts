@@ -53,55 +53,6 @@ function txt(v: unknown, max: number) {
 }
 function hace(min: number) { return new Date(Date.now() - min * 60_000).toISOString(); }
 
-// Idioma de los correos AL COLABORADOR (25-sep-2026): la guía existe en /formacion/ (es),
-// /formacion/en/ y /formacion/fr/, y cada copia manda el suyo. Lista blanca; cualquier otra
-// cosa es 'es'. Los correos al owner siguen en español. El 'es' conserva la línea en inglés
-// que ya llevaba.
-type Idioma = 'es' | 'en' | 'fr';
-const idiomaDe = (v: unknown): Idioma => (v === 'en' || v === 'fr' ? v : 'es');
-const guiaUrl = (l: Idioma) => SITIO + '/formacion/' + (l === 'es' ? '' : l + '/');
-const MSG = {
-  es: {
-    volver: 'Volver a la guía',
-    codigoAsunto: 'Tu código de verificación — Lawang',
-    codigo: (c: string) => 'Tu código de verificación es ' + c + '. Caduca en 10 minutos.\n\n' +
-      'Your verification code is ' + c + '. It expires in 10 minutes.\n\n' +
-      'Si no lo has pedido tú, ignora este correo. / If you did not request it, ignore this email.',
-    solicitudAsunto: 'Hemos recibido tu solicitud — Lawang',
-    solicitud: (n: string) => 'Hola ' + n + ',\n\nHemos recibido tu solicitud para trabajar como comercial con Lawang. ' +
-      'La revisamos y, cuando la activemos, te llegará un correo para crear tu contraseña y entrar en la intranet.\n\n' +
-      'We have received your request to work with Lawang as a sales associate. Once it is approved you will get an email to set your password.',
-    referidoAsunto: 'Contacto registrado — Lawang',
-    referido: (n: string, c: string) => 'Hola ' + n + ',\n\nHemos registrado a ' + c + ' a tu nombre. ' +
-      'Nuestro equipo se pondrá en contacto con él. Si compra, te escribiremos para tu comisión de referido.\n\n' +
-      'We have registered ' + c + ' under your name. Our team will get in touch with them.',
-  },
-  en: {
-    volver: 'Back to the guide',
-    codigoAsunto: 'Your verification code — Lawang',
-    codigo: (c: string) => 'Your verification code is ' + c + '. It expires in 10 minutes.\n\n' +
-      'If you did not request it, ignore this email.',
-    solicitudAsunto: 'We have received your request — Lawang',
-    solicitud: (n: string) => 'Hi ' + n + ',\n\nWe have received your request to work with Lawang as a sales associate. ' +
-      'We will review it and, once it is approved, you will get an email to set your password and log in to the intranet.',
-    referidoAsunto: 'Contact registered — Lawang',
-    referido: (n: string, c: string) => 'Hi ' + n + ',\n\nWe have registered ' + c + ' under your name. ' +
-      'Our team will get in touch with them. If they buy, we will write to you about your referral commission.',
-  },
-  fr: {
-    volver: 'Retour au guide',
-    codigoAsunto: 'Votre code de vérification — Lawang',
-    codigo: (c: string) => 'Votre code de vérification est ' + c + '. Il expire dans 10 minutes.\n\n' +
-      "Si vous ne l'avez pas demandé, ignorez cet e-mail.",
-    solicitudAsunto: 'Nous avons bien reçu votre demande — Lawang',
-    solicitud: (n: string) => 'Bonjour ' + n + ',\n\nNous avons bien reçu votre demande pour travailler comme commercial avec Lawang. ' +
-      "Nous allons l'examiner et, dès qu'elle sera validée, vous recevrez un e-mail pour créer votre mot de passe et accéder à l'intranet.",
-    referidoAsunto: 'Contact enregistré — Lawang',
-    referido: (n: string, c: string) => 'Bonjour ' + n + ',\n\nNous avons enregistré ' + c + ' à votre nom. ' +
-      "Notre équipe va prendre contact avec cette personne. Si elle achète, nous vous écrirons au sujet de votre commission d'apporteur.",
-  },
-} as const;
-
 async function enviar(to: string, subject: string, message: string, ctaUrl: string, ctaTexto: string) {
   if (!RENDER_SECRET) { console.error('alta-colaborador: RENDER_SECRET no configurado, no se envía a <' + to + '>'); return false; }
   try {
@@ -144,8 +95,6 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const accion = String(body.accion ?? '');
-    const idioma = idiomaDe(body.idioma);
-    const m = MSG[idioma];
     email = String(body.email ?? '').trim().toLowerCase().slice(0, 160);
     // honeypot: un campo que una persona no ve; si viene relleno, se contesta
     // «ok» sin hacer nada (no le decimos al bot que lo hemos cazado)
@@ -185,7 +134,10 @@ Deno.serve(async (req) => {
         expira_at: new Date(Date.now() + 10 * 60_000).toISOString(),
       });
       if (error) { console.error('alta-colaborador insert codigo <' + email + '>: ' + error.message); return json({ ok: false, error: 'no_disponible' }, 500); }
-      await enviar(email, m.codigoAsunto, m.codigo(codigo), guiaUrl(idioma), m.volver);
+      await enviar(email, 'Tu código de verificación — Lawang',
+        'Tu código de verificación es ' + codigo + '. Caduca en 10 minutos.\n\n' +
+        'Your verification code is ' + codigo + '. It expires in 10 minutes.\n\n' +
+        'Si no lo has pedido tú, ignora este correo. / If you did not request it, ignore this email.', SITIO + '/formacion/', 'Volver a la guía');
       return json({ ok: true });
     }
 
@@ -232,10 +184,13 @@ Deno.serve(async (req) => {
       await enviar(OWNER, 'Nueva solicitud de comercial — ' + nombre,
         'Ha llegado una solicitud de alta como COMERCIAL (5 %) desde la guía de formación.\n\n' +
         'Nombre: ' + nombre + '\nEmail (verificado): ' + email + '\nTeléfono: ' + (telefono || '—') +
-        '\nPaís: ' + (pais || '—') + '\nIdioma de la guía: ' + idioma + '\nMensaje: ' + (mensaje || '—') + '\n\n' +
+        '\nPaís: ' + (pais || '—') + '\nMensaje: ' + (mensaje || '—') + '\n\n' +
         (nota ? nota + '\n\n' : '') +
         'Actívala o descártala en la intranet → Usuarios → Solicitudes de alta.', SITIO + '/intranet/v4/usuarios/', 'Revisar en la intranet');
-      if (!yaUsuario) await enviar(email, m.solicitudAsunto, m.solicitud(nombre.split(' ')[0]), guiaUrl(idioma), m.volver);
+      if (!yaUsuario) await enviar(email, 'Hemos recibido tu solicitud — Lawang',
+        'Hola ' + nombre.split(' ')[0] + ',\n\nHemos recibido tu solicitud para trabajar como comercial con Lawang. ' +
+        'La revisamos y, cuando la activemos, te llegará un correo para crear tu contraseña y entrar en la intranet.\n\n' +
+        'We have received your request to work with Lawang as a sales associate. Once it is approved you will get an email to set your password.', SITIO + '/formacion/', 'Volver a la guía');
       return json({ ok: true });
     }
 
@@ -253,7 +208,10 @@ Deno.serve(async (req) => {
       '\nPaís: ' + (clientePais || '—') + '\nQué busca: ' + (interes || '—') + '\n\n' +
       'El referido declara que el cliente ha aceptado que Lawang le contacte.\n' +
       'Lo tienes en la intranet → Usuarios → Contactos de referidos.', SITIO + '/intranet/v4/usuarios/', 'Revisar en la intranet');
-    await enviar(email, m.referidoAsunto, m.referido(nombre.split(' ')[0], clienteNombre), guiaUrl(idioma), m.volver);
+    await enviar(email, 'Contacto registrado — Lawang',
+      'Hola ' + nombre.split(' ')[0] + ',\n\nHemos registrado a ' + clienteNombre + ' a tu nombre. ' +
+      'Nuestro equipo se pondrá en contacto con él. Si compra, te escribiremos para tu comisión de referido.\n\n' +
+      'We have registered ' + clienteNombre + ' under your name. Our team will get in touch with them.', SITIO + '/formacion/', 'Volver a la guía');
     return json({ ok: true });
   } catch (e) {
     console.error('alta-colaborador excepcion <' + email + '>: ' + String((e as Error)?.message ?? e));
