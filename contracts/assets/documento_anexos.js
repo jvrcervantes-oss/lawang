@@ -48,6 +48,69 @@ if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.clou
    ni se puede tocar: se archiva exactamente lo que el comprador firmó. */
 const CALIDAD_ANEXO = 0.55;
 
+/* LOS PLANOS VAN A MÁS RESOLUCIÓN — 25-sep-2026, decisión del owner.
+   ═══════════════════════════════════════════════════════════════════════════
+   El día que llegó ese plano técnico (los Anexos Maestros del 23-sep) se
+   volvió a mirar, como pedía el comentario de arriba. Una página A4 salía a
+   1.190 px (el tope `2` de la escala manda antes que los 1.400) y las cotas
+   de los alzados de Dali Bambú no se leían: «FFL +5.207» salía emborronado.
+
+   Se midió con ESTE codificador (pdf.js 3.11 + canvas del navegador) sobre la
+   página 2 de Dali Bambú (alzados acotados):
+     1.190 px  q0.55 (lo de antes) .. 104 kB   cotas borrosas
+     2.000 px  q0.55 ................ 220 kB   se leen todas
+     2.000 px  q0.72 ................ 263 kB   igual que la anterior
+     2.400 px  q0.72 ................ 336 kB   igual que la anterior
+   Lo que hacía falta era RESOLUCIÓN, no calidad: CALIDAD_ANEXO no se toca.
+
+   Y solo en las páginas que lo necesitan. Subir TODO el anexo a 2.000 px
+   llevaba el de Dali de 4,3 a 9,4 MB (en base64), y eso engorda el PDF firmado,
+   la tanda de correos de firma-submit y el render. Qué página es un plano se
+   decide mirando la página ya pintada, no el PDF por dentro: en Dali los planos
+   son vectoriales (25.000 trazos) y en Trinity, Temple y Dream son una foto
+   incrustada con 3 trazos, así que contar trazos no sirve. Lo que sí comparten
+   es el papel: fondo claro y sin color.
+
+   Medido en los 11 planos de Modelos (% de la página casi blanca y gris):
+     planos ............................ 67–99   (el más bajo, Dune Sirap p6)
+     tablas de especificaciones ........ 66–93
+     tabla con foto .................... 41–63
+     fotos, portadas y renders ......... 0–47    (Extras, 66)
+   Planos y tablas se solapan (67 frente a 66), así que no se puede separar
+   uno de otro. Pero equivocarse hacia arriba solo cuesta peso, y hacia abajo
+   deja una cota ilegible en un contrato. Por eso el corte va en 60, con margen
+   por debajo del plano más pálido: entran todos los planos y también las
+   tablas, que llevan letra pequeña y también ganan. Las fotos se quedan como
+   estaban, byte a byte.
+
+   Afecta también a un PDF subido a mano (pasa por la misma función). Una
+   imagen suelta (compressImage) no cambia. */
+const ANCHO_PLANO = 2000;
+const CLARO_PLANO = 0.60;
+
+/* Fracción de la página que es papel: casi blanca (el canal más oscuro ≥ 200)
+   y sin color (canales a ≤ 24 entre sí). Se mide sobre una miniatura de 120 px.
+   La proporción no depende del tamaño y es mucho más barato que leer 2 Mpx. */
+function fraccionClara(cv){
+  const w = 120, h = Math.max(1, Math.round(cv.height * w / cv.width));
+  const m = document.createElement('canvas'); m.width = w; m.height = h;
+  const cx = m.getContext('2d'); cx.drawImage(cv, 0, 0, w, h);
+  const d = cx.getImageData(0, 0, w, h).data;
+  let claro = 0;
+  for(let k = 0; k < d.length; k += 4){
+    const mx = Math.max(d[k], d[k+1], d[k+2]), mn = Math.min(d[k], d[k+1], d[k+2]);
+    if(mn >= 200 && mx - mn <= 24) claro++;
+  }
+  return claro / (d.length / 4);
+}
+
+async function pintarPagina(page, escala){
+  const vp = page.getViewport({scale: escala});
+  const cv = document.createElement('canvas'); cv.width=vp.width; cv.height=vp.height;
+  await page.render({canvasContext:cv.getContext('2d'), viewport:vp}).promise;
+  return cv;
+}
+
 async function pdfToImages(file){
   // acepta File/Blob o un ArrayBuffer ya leído (el anexo automático necesita el
   // buffer aparte para calcular su hash antes de que pdf.js se lo quede)
@@ -57,9 +120,9 @@ async function pdfToImages(file){
   for(let i=1;i<=pdf.numPages;i++){
     const page = await pdf.getPage(i);
     const base = page.getViewport({scale:1});
-    const vp = page.getViewport({scale: Math.min(1400/base.width, 2)});
-    const cv = document.createElement('canvas'); cv.width=vp.width; cv.height=vp.height;
-    await page.render({canvasContext:cv.getContext('2d'), viewport:vp}).promise;
+    let cv = await pintarPagina(page, Math.min(1400/base.width, 2));
+    // Tope 4×: una página diminuta no se convierte en un lienzo gigante.
+    if(fraccionClara(cv) >= CLARO_PLANO) cv = await pintarPagina(page, Math.min(ANCHO_PLANO/base.width, 4));
     out.push(cv.toDataURL('image/jpeg', CALIDAD_ANEXO));
   }
   return out;

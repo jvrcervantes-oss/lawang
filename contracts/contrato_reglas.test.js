@@ -162,6 +162,24 @@ afirma('el panel nace escondido y lo abre el botón',
   afirma('ninguna página de anexo se codifica con una calidad escrita a mano',
     sueltas.length === 0, sueltas.join(' · '));
 
+  /* 25-sep-2026: los planos suben a 2.000 px porque las cotas no se leían. Las
+     fotos se quedan en la escala de siempre: son las que más pesan, y a ellas
+     no les hacía falta. Ver el comentario en documento_anexos.js. */
+  const ancho = /const ANCHO_PLANO = (\d+);/.exec(anexos);
+  const corte = /const CLARO_PLANO = ([\d.]+);/.exec(anexos);
+  afirma('el ancho y el corte de los planos están declarados en UN solo sitio',
+    !!ancho && !!corte && (anexos.match(/ANCHO_PLANO\s*=/g) || []).length === 1
+      && (anexos.match(/CLARO_PLANO\s*=/g) || []).length === 1);
+  afirma('el corte deja margen por debajo del plano más pálido medido (0.67)',
+    corte && Number(corte[1]) <= 0.62,
+    corte ? 'ahora vale ' + corte[1] + ': por encima de 0.67 hay planos (Dune Sirap p6) que vuelven a 1.190 px' : '');
+  afirma('las páginas de foto siguen con la escala de siempre (tope 2×)',
+    /pintarPagina\(page, Math\.min\(1400\/base\.width, 2\)\)/.test(anexos),
+    'cambiar esto engorda todos los contratos, no solo los que llevan planos');
+  afirma('los planos se pintan con la misma CALIDAD_ANEXO: lo que sube es la resolución',
+    /fraccionClara\(cv\) >= CLARO_PLANO\) cv = await pintarPagina\(page, Math\.min\(ANCHO_PLANO\/base\.width, 4\)\)/.test(anexos)
+    && (anexos.match(/toDataURL\('image\/jpeg'/g) || []).length === 2);
+
   const firmas = require('fs').readFileSync(path.join(__dirname, 'firmar.html'), 'utf8');
   afirma('la firma del comprador se guarda en PNG, nunca en JPEG',
     /toDataURL\('image\/png'\)/.test(firmas) && !/toDataURL\('image\/jpeg'/.test(firmas),
