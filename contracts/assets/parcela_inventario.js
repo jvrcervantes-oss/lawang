@@ -142,6 +142,12 @@ async function cargarUnidadesDelProyecto(proyecto){
     }
   }catch(e){ UNIDADES_PROY.fallo = UNIDADES_PROY.fallo || (e && e.message) || 'no se ha podido leer'; }
   pintarSelectorParcela();
+  /* El inventario llega tarde (async): lo que depende del suelo de la parcela
+     —el campo de descuento comercial del Bloqueo, que solo se enseña con
+     lista conocida— se decide en updateSaveButton(), y hay que volver a
+     llamarla aquí. Sin esto, al REABRIR un Bloqueo guardado el campo no
+     aparecía nunca (25-sep-2026, owner: «me ha desaparecido el descuento»). */
+  if(typeof updateSaveButton === 'function') updateSaveButton();
 }
 function pintarSelectorParcela(){
   /* MULTI-PARCELA — 18-ago-2026 (encargo del owner): un mismo Bloqueo o una
@@ -326,8 +332,10 @@ function wireCampoParcela(){
   const oculto = caja.querySelector('input[name="parcela_codigo"]');
   if(oculto && !oculto._wired){
     oculto._wired = true;
-    oculto.addEventListener('input',  ()=>{ syncDatosDeUnidad(); aplicarReglasCampos(); renderDebounced(); });
-    oculto.addEventListener('change', ()=>{ syncDatosDeUnidad(); aplicarReglasCampos(); render(); });
+    // updateSaveButton(): cambiar de parcela cambia la lista de suelo, que
+    // decide si se enseña el descuento comercial (25-sep-2026).
+    oculto.addEventListener('input',  ()=>{ syncDatosDeUnidad(); aplicarReglasCampos(); renderDebounced(); updateSaveButton(); });
+    oculto.addEventListener('change', ()=>{ syncDatosDeUnidad(); aplicarReglasCampos(); render(); updateSaveButton(); });
   }
   if(caja._multiWired) return;
   caja._multiWired = true;
