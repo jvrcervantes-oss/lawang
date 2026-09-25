@@ -61,7 +61,7 @@ const admin = createClient(URL_SB, SERVICE);
 
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
 const MODELO = 'claude-sonnet-5';     // decisión CEO 22-sep-2026
-const MAX_TOKENS = 1500;              // tope del owner; es TOTAL (razonamiento + texto)
+const MAX_TOKENS = 4000;              // tope del owner (subido 25-sep con adaptive+low); es TOTAL (razonamiento + texto)
 const TOPE_HORA = 30;
 const TOPE_DIA = 200;
 const TOPE_PREGUNTA = 4000;
@@ -759,13 +759,14 @@ Deno.serve(async (req) => {
     // Sin tool-use. Sin `temperature`: claude-sonnet-5 devuelve 400 con
     // cualquier valor distinto del default (skill claude-api, 22-sep-2026),
     // así que la "temperatura baja" de la decisión se traduce en omitirla.
-    // `thinking` apagado a propósito: max_tokens es el total (razonamiento
-    // + texto) y con 1.500 de tope un razonamiento largo dejaría el
-    // borrador cortado; la tarea es clasificar y citar, no deducir.
+    // `thinking` adaptativo con effort bajo (prompt-audit 25-sep): es lo que
+    // la guía de Sonnet 5 recomienda antes que apagarlo. max_tokens es el
+    // total (razonamiento + texto); un corte sale como respuesta_truncada.
     const peticion = {
       model: MODELO,
       max_tokens: MAX_TOKENS,
-      thinking: { type: 'disabled' },
+      thinking: { type: 'adaptive' },
+      output_config: { effort: 'low' },
       system: fuente.data.texto,
       messages: [{ role: 'user', content: turnoUser }],
     };
