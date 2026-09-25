@@ -42,7 +42,7 @@
      consultarla) NO se exige el permiso de emitir. Guard aporta lo otro:
      sesion, cuenta activa y UN SOLO cliente publicado en `LW_SB`. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/guard.js?v=d506f183"></script>
+<script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/instancia.js?v=0fddafcb"></script><script src="/contracts/assets/guard.js?v=935970cf"></script>
 <!-- Los dialogos de esta herramienta usan `lwConfirmar` (assets/dialogo.js),
      el unico de la suite desde el 15-ago-2026. Antes convivian dos: este
      fichero llamaba a `suiConfirmar` de suite.js en dos sitios y a lwConfirmar
@@ -986,8 +986,8 @@ lwIdiomaAplicar();   // traduce la HTML de arriba; en espanol no toca el DOM
    cliente por pagina: dos sobre el mismo almacenamiento de sesion se pisan al
    refrescar el token. */
 const sb = window.LW_SB || window.supabase.createClient(
-  'https://vtulllundrfennhjddhc.supabase.co',
-  'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg'
+  window.LW_SB_URL,
+  window.LW_SB_KEY
 );
 window.LW_SB = sb;
 /* Igual que Contratos: esta herramienta tampoco pasa por guard.js. Se publica el
@@ -1918,7 +1918,7 @@ $('#mailSend').onclick = async () => {
        (fuera del WAF) y llama a send_email.php ya solo con el PDF. */
     const ses = await sb.auth.getSession();
     const tok = ses && ses.data && ses.data.session && ses.data.session.access_token;
-    const r = await fetch('https://vtulllundrfennhjddhc.supabase.co/functions/v1/send-contract-email', {
+    const r = await fetch(window.lwEdge('send-contract-email'), {
       method:'POST', headers: { 'content-type':'application/json', authorization:'Bearer ' + (tok || '') },
       body: JSON.stringify({ to, subject:$('#mailSubject').value, message:$('#mailMsg').value,
         filename: `${SAVED.numero}_${limpiaNombre(d.cliente_nombre) || 'CLIENTE'}.pdf`.toUpperCase(),

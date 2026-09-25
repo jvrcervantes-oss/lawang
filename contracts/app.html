@@ -54,7 +54,7 @@
      de Supabase publicado en `LW_SB`, que es lo que hacia falta para que la
      barra compartida funcione tambien aqui. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/guard.js?v=d506f183"></script>
+<script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/instancia.js?v=0fddafcb"></script><script src="/contracts/assets/guard.js?v=935970cf"></script>
 <!-- Identidad de las sociedades y cuentas de cobro: fuente única compartida con
      /facturas (define CUENTAS_BANCARIAS y SOCIEDADES). -->
 <!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
@@ -602,8 +602,8 @@ const pads = {};
    (RPXXXXX/CCXXXXX/…) lo asigna un trigger en Postgres con una secuencia por
    prefijo — no hay condición de carrera aunque varias personas guarden a la
    vez (nextval() es atómico a nivel de motor). */
-const SUPABASE_URL = 'https://vtulllundrfennhjddhc.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';
+const SUPABASE_URL = window.LW_SB_URL;
+const SUPABASE_KEY = window.LW_SB_KEY;
 /* El cliente lo crea guard.js y lo publica en `LW_SB` (4-ago-2026): esta
    herramienta ya no se monta el suyo. Dos clientes de supabase-js sobre el mismo
    almacenamiento de sesión se pisan al refrescar el token. El `||` es solo por

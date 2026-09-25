@@ -26,7 +26,7 @@
 <script src="/contracts/assets/visor.js?v=28038adb" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/guard.js?v=d506f183" data-herramienta="compradores"></script>
+<script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/instancia.js?v=0fddafcb"></script><script src="/contracts/assets/guard.js?v=935970cf" data-herramienta="compradores"></script>
 <script src="/contracts/assets/suite.js?v=3cf4a63a"></script>
 <script src="/contracts/assets/geo.js?v=cc6b09b2"></script>
 <style>
@@ -1582,7 +1582,7 @@ const motivoPortal = e => MOTIVOS_PORTAL[e] || e;
 
 async function llamaPortal(body){
   const { data } = await SB.auth.getSession();
-  const r = await fetch('https://vtulllundrfennhjddhc.supabase.co/functions/v1/portal-invitar', {
+  const r = await fetch(window.lwEdge('portal-invitar'), {
     method:'POST',
     headers:{ 'content-type':'application/json', authorization:'Bearer ' + data.session.access_token },
     body: JSON.stringify(body),

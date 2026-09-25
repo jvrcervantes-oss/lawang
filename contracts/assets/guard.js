@@ -49,8 +49,13 @@
      (editores.js, datos.js, asistente…) las lee de window.LW_SB_URL / LW_SB_KEY en vez de escribirlas otra vez:
      cinco copias a mano eran cinco sitios que una instancia nueva del ERP tenía que acordarse de cambiar. Van
      ANTES del modo QA para que existan también con el doble local. */
-  var URL_SB = 'https://vtulllundrfennhjddhc.supabase.co';
-  var KEY_SB = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';   // publicable: el candado es la RLS
+  var FICHA = window.LW_INSTANCIA;
+  if (!FICHA || !/^https:\/\/[a-z0-9]+\.supabase\.co$/.test(FICHA.sb_url || '')) {
+    // sin ficha no hay base: se para aquí (la página no carga nada, igual que si faltara guard.js)
+    throw new Error('[guard] falta /contracts/assets/instancia.js antes de guard.js');
+  }
+  var URL_SB = FICHA.sb_url;
+  var KEY_SB = FICHA.sb_key;   // publicable: el candado es la RLS
   /* Solo lectura, y las edges se piden SOLO con window.lwEdge(nombre) (consulta de deploy 21c54a71, Seguridad): si
      guard.js no llegara (404, CDN viejo), llamar a lwEdge lanza ANTES de construir la petición, así que el token de
      la sesión nunca sale hacia una ruta relativa de la propia web; y un elemento con id="lwEdge"/"LW_SB_URL" inyectado
