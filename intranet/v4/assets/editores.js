@@ -3034,7 +3034,7 @@
       toast('Enviando a ' + para + '…');
       sb.auth.getSession().then(function (r) {
         var tok = r && r.data && r.data.session && r.data.session.access_token;
-        return fetch('https://vtulllundrfennhjddhc.supabase.co/functions/v1/send-contract-email', {
+        return fetch(window.LW_SB_URL + '/functions/v1/send-contract-email', {
           method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (tok || '') },
           body: JSON.stringify({
             to: para, subject: asunto, message: msg,
@@ -7776,12 +7776,12 @@
           return sb.auth.getSession().then(function (r) {
             var token = r && r.data && r.data.session && r.data.session.access_token;
             if (!token) return { error: { message: 'sesión no encontrada' } };
-            return fetch('https://vtulllundrfennhjddhc.supabase.co/functions/v1/admin-usuarios', {
+            return fetch(window.LW_SB_URL + '/functions/v1/admin-usuarios', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + token,
-                'apikey': 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg'
+                'apikey': window.LW_SB_KEY
               },
               body: JSON.stringify({
                 // `v.rol` explícito (soySuperAlta) o `rolInicial` ('agente':
@@ -7957,12 +7957,12 @@
         sb.auth.getSession().then(function (r) {
           var token = r && r.data && r.data.session && r.data.session.access_token;
           if (!token) return aviso('No se pudo: sesión no encontrada.', '#93000a');
-          fetch('https://vtulllundrfennhjddhc.supabase.co/functions/v1/admin-usuarios', {
+          fetch(window.LW_SB_URL + '/functions/v1/admin-usuarios', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer ' + token,
-              'apikey': 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg'
+              'apikey': window.LW_SB_KEY
             },
             body: JSON.stringify({ accion: 'password', user_id: u.user_id, password: p })
           }).then(function (resp) { return resp.json().catch(function () { return { error: 'respuesta ilegible del servidor' }; }); })

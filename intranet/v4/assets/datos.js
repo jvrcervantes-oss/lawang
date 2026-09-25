@@ -2588,7 +2588,7 @@
             if (!(s && s.data && s.data.session && s.data.session.access_token)) {
               return { error: 'sin_sesion' };
             }
-            return fetch('https://vtulllundrfennhjddhc.supabase.co/functions/v1/portal-invitar', {
+            return fetch(window.LW_SB_URL + '/functions/v1/portal-invitar', {
               method: 'POST',
               headers: { 'content-type': 'application/json', authorization: 'Bearer ' + s.data.session.access_token },
               body: JSON.stringify(body)

@@ -14,8 +14,8 @@
  */
 (function () {
   'use strict';
-  var EDGE = 'https://vtulllundrfennhjddhc.supabase.co/functions/v1/admin-usuarios';
-  var KEY = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';
+  var EDGE = window.LW_SB_URL + '/functions/v1/admin-usuarios';   // la base de la instancia la fija guard.js (ERP F3)
+  var KEY = window.LW_SB_KEY;
   var HERR_COMERCIAL = [['leads', 'CRM'], ['contratos', 'Generador de contratos'], ['compradores', 'Compradores'],
                         ['reservas', 'Reservas'], ['comisiones_reparto', 'Mis comisiones']];
   var TIPOS = [['carta_reserva', 'Carta de Reserva'], ['reserva_parcela', 'Bloqueo de Parcela'],
