@@ -120,6 +120,8 @@
        LISTADO (app.html: `par.has('nuevo')`; facturas: `par.has('nueva')`) y el
        agente tenía que volver a pulsar «Nueva». Ahora aterrizan en el formulario. */
     [/nuevo contrato|nueva operaci/i, '/contracts/app.html?nuevo=1'],
+    // «Borrador en blanco» (25-sep-2026): el generador con el tipo por elegir y el borrador a un clic
+    [/borrador en blanco/i, '/contracts/app.html?nuevo=1&borrador=blanco'],
     /* «Nuevo documento» (/v4/facturas/) y «+ Emitir recibí de cobro»
        (/v4/recibos/) YA NO redirigen a /intranet/facturas/ (21-sep-2026):
        editores.js los cablea con `ata()` — se ata en directo al botón con
