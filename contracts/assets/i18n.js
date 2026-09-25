@@ -3469,6 +3469,32 @@
       '«%p» is available again when creating a contract',
     'No se pudo cambiar: ': 'Could not change: ',
 
+    /* ---------- El Asistente acoplado en toda la v4 (intranet/v4/assets/mascota.js, 25-sep-2026) ----------
+       Se presenta una vez y luego se queda en la esquina. Habla en primera
+       persona; «Assistant» y no un nombre propio: ponerle nombre es decisión
+       de marca del owner. */
+    'Abrir el Asistente': 'Open the Assistant',
+    'Hola, %nombre. Soy el Asistente.': 'Hi %nombre, I\'m the Assistant.',
+    'Hola. Soy el Asistente.': 'Hi, I\'m the Assistant.',
+    'Desde hoy te acompaño por toda la intranet, aquí abajo en la esquina. Cuando necesites algo, tócame.':
+      'From today I\'ll be with you across the whole intranet, down here in the corner. Whenever you need something, tap me.',
+    'Lo que ya sé hacer': 'What I can do today',
+    'Pídeme lo que la intranet no te deja hacer: cambiar un dato de un comprador, anular o borrar una factura o un recibí, borrar una operación. Dirección lo aprueba y se hace solo.':
+      'Ask me for what the intranet won\'t let you do: change a buyer\'s details, void or delete an invoice or a receipt, delete an operation. Management approves it and it\'s done automatically.',
+    'Y lo que viene': 'And what\'s coming',
+    'Voy a ir aprendiendo a hacer más cosas por ti. Si me pides algo que aún no sé hacer, también le llega a dirección.':
+      'I\'ll keep learning to do more for you. If you ask for something I can\'t do yet, it still reaches management.',
+    'Paso %n de %t': 'Step %n of %t',
+    'Entendido': 'Got it',
+    'Pedirle algo': 'Ask for something',
+    'Por ejemplo: «Anula la factura INV00160, el importe está mal».': 'For example: “Void invoice INV00160, the amount is wrong”.',
+    'Seguir en el Asistente': 'Continue in the Assistant',
+    '¿Qué sabes hacer?': 'What can you do?',
+    'Esconder hasta mañana': 'Hide until tomorrow',
+    '¿Qué necesitas?': 'What do you need?',
+    'Dime de qué se trata —el comprador, la factura o el contrato— y por qué. Lo revisas en el Asistente antes de enviarlo.':
+      'Tell me what it\'s about — the buyer, the invoice or the contract — and why. You\'ll review it in the Assistant before sending.',
+
     /* ---------- Asistente de respuestas (/intranet/v4/asistente/, 22-sep-2026) ----------
        Un BORRADOR de respuesta a la pregunta de un comprador citando su contrato
        (encargos/20260922_lawang_bot_apoyo_agentes.md, S5). «Draft» y no
