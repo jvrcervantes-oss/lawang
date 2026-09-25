@@ -1450,7 +1450,7 @@
     'Texto normal: los saltos de línea se respetan tal cual. Para listas, empieza la línea con «•».': 'Plain text: line breaks are kept as they are. For lists, start the line with “•”.',
     'Texto del botón': 'Button text',
     'Enlace del botón': 'Button link',
-    'El botón solo puede llevar a lawangproperties.com, a un email o a WhatsApp. Si lo dejas vacío, lleva a la intranet.': 'The button can only point to lawangproperties.com, an email or WhatsApp. If left empty, it points to the intranet.',
+    'El botón solo puede llevar a %dominio, a un email o a WhatsApp. Si lo dejas vacío, lleva a la intranet.': 'The button can only point to %dominio, an email or WhatsApp. If left empty, it points to the intranet.',
     'Enviarme una prueba': 'Send me a test',
     'Borrar borrador': 'Delete draft',
     'Así lo verá quien lo reciba': 'This is how recipients will see it',

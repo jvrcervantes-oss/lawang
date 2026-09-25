@@ -19,7 +19,18 @@
 (function () {
   'use strict';
 
-  var CTA_DEFECTO = { url: 'https://lawangproperties.com/intranet/', texto: 'Abrir la intranet' };
+  /* El dominio de la instancia es el de esta página (ERP F3, 25-sep-2026): el botón por defecto, la validación y la
+     ayuda lo toman de aquí, no de un literal. En Lawang es lawangproperties.com y se ve igual que antes; el
+     servidor aplica la misma regla con config_instancia.dominio_web (cta_dominio_permitido). */
+  var DOMINIO = location.hostname.replace(/^www\./, '');
+  var DOMINIO_RX = DOMINIO.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  var CTA_DEFECTO = { url: location.origin + '/intranet/', texto: 'Abrir la intranet' };
+  function pintaAyudaCta() {
+    var el = document.querySelector('[data-lw-cta-ayuda]');
+    if (el) el.textContent = window.lwT ? window.lwT('El botón solo puede llevar a %dominio, a un email o a WhatsApp. Si lo dejas vacío, lleva a la intranet.', { dominio: DOMINIO })
+                                          : 'El botón solo puede llevar a %dominio, a un email o a WhatsApp. Si lo dejas vacío, lleva a la intranet.'.replace('%dominio', DOMINIO);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', pintaAyudaCta); else pintaAyudaCta();
   var ROLES = [
     { k: 'agente', t: 'Agentes' },
     { k: 'sales_manager', t: 'Sales managers' },
@@ -98,8 +109,8 @@
     if (ea) return ea;
     if (!f.cuerpo.trim()) return 'Falta el texto.';
     if (!!f.cta_url !== !!f.cta_texto) return 'El botón necesita texto y enlace, o ninguno de los dos.';
-    if (f.cta_url && !/^(https:\/\/([a-z0-9-]+\.)*lawangproperties\.com(\/\S*)?|mailto:\S+@\S+|https:\/\/wa\.me\/\d{6,20})$/i.test(f.cta_url))
-      return 'El enlace del botón solo puede ir a lawangproperties.com, a un email (mailto:) o a WhatsApp (https://wa.me/…).';
+    if (f.cta_url && !new RegExp('^(https://([a-z0-9-]+\\.)*' + DOMINIO_RX + '(/\\S*)?|mailto:\\S+@\\S+|https://wa\\.me/\\d{6,20})$', 'i').test(f.cta_url))
+      return 'El enlace del botón solo puede ir a ' + DOMINIO + ', a un email (mailto:) o a WhatsApp (https://wa.me/…).';
     return null;
   }
 

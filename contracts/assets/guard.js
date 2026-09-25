@@ -45,6 +45,14 @@
    dos — bloquearlo a una sola dejaría fuera a quien solo tiene la otra.
    Con un solo valor se comporta exactamente igual que antes. */
 (function () {
+  /* Base de la instancia (ERP F3, 25-sep-2026): ÚNICA fuente del host y la clave publicable. El resto de la suite
+     (editores.js, datos.js, asistente…) las lee de window.LW_SB_URL / LW_SB_KEY en vez de escribirlas otra vez:
+     cinco copias a mano eran cinco sitios que una instancia nueva del ERP tenía que acordarse de cambiar. Van
+     ANTES del modo QA para que existan también con el doble local. */
+  var URL_SB = 'https://vtulllundrfennhjddhc.supabase.co';
+  var KEY_SB = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';   // publicable: el candado es la RLS
+  window.LW_SB_URL = URL_SB;
+  window.LW_SB_KEY = KEY_SB;
   /* MODO QA (28-ago-2026) — revisión previa: Desarrollo + Datos + Seguridad,
      CEO/revisiones/estado.json. Único punto de entrada para las herramientas
      que cargan guard.js: nunca se copia este `if` en cada index.html (los
@@ -62,8 +70,6 @@
     }
   } catch (e) { /* si algo falla aquí, se sigue por el camino real de abajo */ }
 
-  var URL_SB = 'https://vtulllundrfennhjddhc.supabase.co';
-  var KEY_SB = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';   // publicable: el candado es la RLS
   /* 1-sep-2026: /intranet/ tiene login propio (antes /entrar/, puerta
      compartida con el portal del cliente, retirada como punto de entrada
      — sigue viva por si algo externo aún apunta ahí, pero nada del estudio
