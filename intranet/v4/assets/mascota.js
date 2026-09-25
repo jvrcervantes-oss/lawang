@@ -32,6 +32,19 @@
  * diálogo o el menú móvil abiertos se esconde con `visibility:hidden` (no
  * solo tapada: así tampoco se llega a ella con el tabulador).
  *
+ * AVISAR DE UN FALLO (ampliación del 25-sep, owner: «¿puede detectar si ha
+ * habido un fallo y que mande el feedback, o un botón para mandarlo y que me
+ * llegue a Telegram?»). nav.js apunta en `window.__lwFallos` los errores de
+ * código y los avisos rojos que ve la persona. La mascota se marca con un punto
+ * rojo y, ante un error de CÓDIGO, ofrece una vez por página «¿Aviso al
+ * estudio?». Nunca envía sola: cada error a Telegram lo inundaría y llegaría sin
+ * contexto. El aviso es una petición libre de `solicitudes_cambio` —la misma vía
+ * que /asistente/—, que panel-web lleva a Telegram con «Hecho / Rechazar / Al
+ * estudio». Revisión previa #93 (Seguridad): solo el mensaje, NUNCA el stack; se
+ * limpian en cliente las mismas marcas de PII que tapa panel-web (email, 9+
+ * cifras, enlaces) y lo citado entre comillas en los avisos, que es donde van
+ * los nombres. El tope de 5 al día es de cortesía, no de seguridad.
+ *
  * Se sella a mano con MASCOTA_V en nav.js, como cortina.js: sella_assets solo
  * recorre las etiquetas de los HTML y este fichero no tiene ninguna.
  */
@@ -123,6 +136,11 @@
     '#lw-masc .lwm-link{font:inherit;font-size:12.5px;border:0;background:none;padding:4px 0;color:#316669;cursor:pointer;text-decoration:underline;text-underline-offset:3px}' +
     '#lw-masc .lwm-campo{display:block;width:calc(100% - 55px);margin:12px 20px 0 35px;min-height:78px;resize:vertical;border:1px solid #c5c8bc;border-radius:8px;padding:10px 12px;font:inherit;font-size:14px;line-height:1.45;color:#1b1c19;background:#fbf9f4}' +
     '#lw-masc .lwm-campo:focus{outline:none;border-color:#104C4F;background:#fff}' +
+    '#lw-masc .lwm-yo{position:relative}' +
+    '#lw-masc .lwm-bur > .lwm-cab:last-child{padding-bottom:20px}' +
+    '#lw-masc .lwm-punto{position:absolute;top:5px;right:5px;width:12px;height:12px;border-radius:999px;background:#9E2F26;border:2px solid #fbf9f4;pointer-events:none}' +
+    '#lw-masc .lwm-err{margin:8px 20px 0 35px;font-size:13px;color:#9E2F26}' +
+    '#lw-masc .lwm-err[hidden]{display:none}' +
     '#lw-masc .lwm-extra{display:flex;gap:14px;flex-wrap:wrap;padding:0 20px 16px 35px;margin-top:-6px}' +
     /* se esconde con cualquier cajón/diálogo/menú móvil (mismos selectores que el bloqueo de scroll de shell.css) */
     'html:has(#lw-cajon) #lw-masc,html:has(#lw-editor) #lw-masc,html:has(#cajon-detalle:not(.translate-x-full)) #lw-masc,' +
@@ -292,14 +310,142 @@
         if (!QUIETO && raiz.animate) raiz.animate([{ opacity: 1 }, { opacity: 0, transform: 'translateY(16px)' }], { duration: 220, fill: 'forwards' }).onfinish = function () { raiz.remove(); };
         else raiz.remove();
       });
+      var fallo = el('button', 'lwm-link', T('Avisar de un fallo'));
+      fallo.type = 'button';
+      fallo.addEventListener('click', function () { avisaFallo(false); });
       extra.appendChild(queSabes);
+      extra.appendChild(fallo);
       extra.appendChild(esconde);
       abre([cabecera(T('¿Qué necesitas?'), T('Dime de qué se trata —el comprador, la factura o el contrato— y por qué. Lo revisas en el Asistente antes de enviarlo.')), campo, pie, extra], campo);
     }
 
+    /* ── Avisar de un fallo ─────────────────────────────────────────── */
+    var K_FALLOS = 'lw-mascota:fallos:' + email;
+    var MAX_FALLOS_DIA = 5;
+    var punto = null, ofrecido = false, vistoHasta = 0, apagaPunto = null;
+    function pendientes() { return (window.__lwFallos || []).filter(function (f) { return f.t > vistoHasta; }); }
+    function usados() { var v = (lee(K_FALLOS) || '').split('|'); return v[0] === hoy() ? (+v[1] || 0) : 0; }
+    function marca(on) {
+      if (on && !punto) {
+        punto = el('span', 'lwm-punto');
+        yo.appendChild(punto);
+        yo.setAttribute('aria-label', T('Abrir el Asistente: ha notado un fallo'));
+      } else if (!on && punto) {
+        punto.remove(); punto = null;
+        yo.setAttribute('aria-label', T('Abrir el Asistente'));
+      }
+    }
+    /* La misma red que panel-web (VIGILA_LEADS_PII y SC_URL): si algo de esto
+       llegara, Telegram taparía el aviso entero y quitaría «Al estudio». */
+    function limpia(x) {
+      return String(x || '')
+        .replace(/(https?:\/\/|www\.|t\.me\/)\S*/gi, '[enlace]')
+        .replace(/[\w.+-]+@[\w-]+\.[\w.]{2,}/g, '[email]')
+        .replace(/(^|[^\d])\+?\d[\d ()./-]{7,}\d(?!\d)/g, '$1[número]');
+    }
+    function sinCitas(x) {
+      return String(x || '').replace(/«[^»]*»/g, '«…»').replace(/“[^”]*”/g, '“…”').replace(/"[^"]*"/g, '"…"');
+    }
+    function hace(t) {
+      var sg = Math.max(0, Math.round((Date.now() - t) / 1000));
+      return sg < 90 ? 'hace ' + sg + ' s' : 'hace ' + Math.round(sg / 60) + ' min';
+    }
+    function navegador() {
+      var ua = navigator.userAgent || '', m;
+      var n = (m = ua.match(/Edg\/(\d+)/)) ? 'Edge ' + m[1] : (m = ua.match(/Firefox\/(\d+)/)) ? 'Firefox ' + m[1]
+        : (m = ua.match(/Chrome\/(\d+)/)) ? 'Chrome ' + m[1] : (m = ua.match(/Version\/(\d+).*Safari/)) ? 'Safari ' + m[1] : 'otro';
+      var so = /Windows/.test(ua) ? 'Windows' : /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS'
+        : /Mac OS/.test(ua) ? 'Mac' : /Linux/.test(ua) ? 'Linux' : '?';
+      return n + ' · ' + so + ' · ventana ' + window.innerWidth + ' px · ' + (window.LW_IDIOMA === 'en' ? 'EN' : 'ES');
+    }
+    /* Lo lee dirección en Telegram: siempre en español, sea cual sea el idioma de la interfaz. */
+    function componer(comentario, lista) {
+      var herr = String(document.title || '').split(/\s[—·|-]\s/)[0] || 'Intranet';
+      var L = ['🐞 FALLO EN LA INTRANET (aviso desde el Asistente)',
+        'Herramienta: ' + limpia(herr) + ' (' + location.pathname + ')',
+        'Qué hacía: ' + (comentario ? limpia(comentario).slice(0, 800) : '(no lo ha dicho)')];
+      if (lista.length) {
+        L.push('Lo que notó la intranet:');
+        lista.slice(-3).forEach(function (f) {
+          var msg = f.tipo === 'aviso' ? sinCitas(f.msg) : f.msg;
+          L.push('· ' + (f.tipo === 'aviso' ? 'Aviso en pantalla: ' : 'Error de código: ') + limpia(msg).slice(0, 200) + ' (' + hace(f.t) + ')');
+        });
+      } else {
+        L.push('La intranet no registró ningún error: lo ha notado la persona.');
+      }
+      L.push('Navegador: ' + navegador());
+      return L.join('\n').slice(0, 2000);
+    }
+    function avisaFallo(auto) {
+      var lista = pendientes();
+      if (usados() >= MAX_FALLOS_DIA) {
+        var pie0 = el('div', 'lwm-pie');
+        pie0.appendChild(el('span', 'lwm-puntos'));
+        pie0.appendChild(boton(T('Ir al Asistente'), true, function () { irAlAsistente(''); }));
+        abre([cabecera(T('Hoy ya me has avisado de varios fallos'), T('Para no llenarle el Telegram a dirección, por hoy no mando más avisos. Si es urgente, pídelo en el Asistente.')), pie0], null);
+        return;
+      }
+      var campo = el('textarea', 'lwm-campo');
+      campo.maxLength = 800;
+      campo.rows = 3;
+      campo.placeholder = lista.length ? T('¿Qué estabas haciendo? (opcional)') : T('¿Qué ha pasado? Por ejemplo: «al guardar la factura no hace nada».');
+      campo.setAttribute('aria-label', lista.length ? T('¿Qué estabas haciendo? (opcional)') : T('¿Qué ha pasado?'));
+      var err = el('p', 'lwm-err');
+      err.hidden = true;
+      err.setAttribute('role', 'alert');
+      var pie = el('div', 'lwm-pie');
+      pie.appendChild(el('span', 'lwm-puntos'));
+      if (auto) pie.appendChild(boton(T('No hace falta'), false, function () { vistoHasta = Date.now(); marca(false); cierra(); }));
+      var enviar = boton(T('Avisar al estudio'), true, function () {
+        var c = campo.value.trim();
+        if (!lista.length && !c) { err.textContent = T('Cuéntame qué ha pasado para poder avisar.'); err.hidden = false; campo.focus(); return; }
+        enviar.disabled = true;
+        enviar.textContent = T('Enviando…');
+        err.hidden = true;
+        aut.sb.from('solicitudes_cambio').insert({ accion: 'manual', texto: componer(c, lista) }).select('numero').then(function (r) {
+          if (!r || r.error) throw (r && r.error) || new Error('sin respuesta');
+          var n = r.data && r.data[0] && r.data[0].numero;
+          guarda(K_FALLOS, hoy() + '|' + (usados() + 1));
+          vistoHasta = Date.now();
+          marca(false);
+          abre([cabecera(T('Aviso enviado'), n ? T('Gracias. Le llega a dirección por Telegram como SC-%n y, si hace falta, pasa al estudio.', { n: n }) : T('Gracias. Le llega a dirección por Telegram y, si hace falta, pasa al estudio.'))], null);
+        }).catch(function (e) {
+          console.warn('[mascota] aviso de fallo:', e);
+          enviar.disabled = false;
+          enviar.textContent = T('Avisar al estudio');
+          err.textContent = T('No se pudo enviar el aviso. Prueba otra vez en un momento.');
+          err.hidden = false;
+        });
+      });
+      pie.appendChild(enviar);
+      abre([cabecera(lista.length ? T('Algo ha fallado') : T('Avisar de un fallo'),
+        lista.length ? T('Si no ha hecho lo que esperabas, avísame y se lo paso al estudio con los detalles técnicos. Le llega a dirección por Telegram.')
+                     : T('Cuéntame qué ha pasado y se lo paso al estudio. Le llega a dirección por Telegram.')), campo, err, pie], auto ? null : campo);
+    }
+    /* Un error de CÓDIGO abre el bocadillo una vez por página; un aviso rojo solo
+       marca el punto (muchos son validaciones: «escribe qué necesitas») y el punto
+       se apaga solo a los 90 s si no hubo nada peor. */
+    function alFallo(f, alArrancar) {
+      marca(true);
+      clearTimeout(apagaPunto);
+      if (!pendientes().some(function (x) { return x.tipo === 'codigo'; })) {
+        apagaPunto = setTimeout(function () { if (bur.hidden) { vistoHasta = Date.now(); marca(false); } }, 90000);
+      }
+      if (f.tipo === 'codigo' && !ofrecido && !alArrancar) {
+        ofrecido = true;
+        setTimeout(function () { if (bur.hidden && !hayVentana() && raiz.style.visibility !== 'hidden') avisaFallo(true); }, 1200);
+      } else {
+        baila();
+      }
+    }
+    document.addEventListener('lw:fallo', function (ev) { alFallo(ev.detail || {}, false); });
+    // lo apuntado antes de que llegara la mascota: punto, sin bocadillo (la persona ya siguió)
+    if (pendientes().length) alFallo(pendientes()[pendientes().length - 1], true);
+
     yo.addEventListener('click', function (ev) {
       ev.stopPropagation();
       if (!bur.hidden) { cierra(); return; }
+      if (punto) { avisaFallo(false); return; }
       if (EN_ASISTENTE) { presenta(1, false); return; }
       pideAlgo();
     });
