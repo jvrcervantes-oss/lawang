@@ -75,6 +75,13 @@ function identificadoresDelFormulario(){
    existe para evitar (LAW-51, 14-ago-2026). */
 function estadoTraspaso(u){
   if(CONTRACT_TIPO[CURRENT.slug] !== 'reserva_parcela') return 'no';
+  /* Ocupante que este usuario NO puede leer (la Carta la hizo otro agente,
+     25-sep-2026): lo que dijo la base al elegirla, si fue con los mismos
+     compradores que hay ahora en el formulario; si no, aún no se sabe. */
+  if(u.ocupanteOculto){
+    const r = u.traspasoRemoto;
+    return (r && r.clave === identificadoresDelFormulario().join('|')) ? r.estado : 'por_comprobar';
+  }
   if(!u.ocupante || !TIPOS_CEDEN_PARCELA.includes(u.ocupante.tipo)) return 'no';
   const mios = identificadoresDelFormulario(), suyos = identificadoresOcupante(u.ocupante);
   if(!mios.length || !suyos.length) return 'sin_datos';
@@ -119,11 +126,19 @@ async function cargarUnidadesDelProyecto(proyecto){
       // pasaporte/email del ocupante: hacen falta para saber si el traspaso es
       // al MISMO comprador (estadoTraspaso). Sin esto el selector ofrecería
       // parcelas de otro cliente que el trigger rechaza al guardar.
-      const { data: cs } = await sb.from('contratos')
+      const { data: cs, error: csError } = await sb.from('contratos')
         .select('id,tipo,numero,adq1_pasaporte:datos->fields->>adq1_pasaporte,'
               + 'adq1_email:datos->fields->>adq1_email,extras:datos->compradores').in('id', ids);
       const porId = Object.fromEntries((cs||[]).map(c=>[c.id, c]));
-      UNIDADES_PROY.lista.forEach(u=>{ u.ocupante = u.contrato_id ? porId[u.contrato_id] || null : null; });
+      // Si la consulta de ocupantes FALLA no se sabe cuáles son ilegibles:
+      // todas quedan bloqueadas, como hasta hoy (no se abre nada a ciegas).
+      const cs_fallo = !!csError;
+      UNIDADES_PROY.lista.forEach(u=>{
+        u.ocupante = u.contrato_id ? porId[u.contrato_id] || null : null;
+        // Ocupada por un contrato que la RLS no deja leer (de otro agente):
+        // se pregunta a la base al elegirla (comprobarTraspasoRemoto).
+        u.ocupanteOculto = !!u.contrato_id && !porId[u.contrato_id] && !cs_fallo;
+      });
     }
   }catch(e){ UNIDADES_PROY.fallo = UNIDADES_PROY.fallo || (e && e.message) || 'no se ha podido leer'; }
   pintarSelectorParcela();
@@ -202,8 +217,10 @@ function pintarSelectorParcela(){
     const tomada = u.contrato_id && u.contrato_id !== mio;
     const modo = tomada ? estadoTraspaso(u) : 'no';
     const traspaso = modo === 'ok';
-    const suNum = (u.ocupante && u.ocupante.numero) || 'una Carta de Reserva';
-    const nota = traspaso        ? 'reservada en ' + suNum + ' · se traspasa a este contrato'
+    const suNum = (u.ocupante && u.ocupante.numero)
+      || (u.traspasoRemoto && u.traspasoRemoto.numero) || 'una Carta de Reserva';
+    const nota = modo === 'por_comprobar' ? 'ocupada por un contrato de otro agente · se comprueba al elegirla'
+               : traspaso        ? 'reservada en ' + suNum + ' · se traspasa a este contrato'
                : modo === 'otro' ? 'reservada en ' + suNum + ' · de otro comprador'
                : modo === 'sin_datos' ? 'reservada en ' + suNum + ' · falta pasaporte o email para traspasarla'
                : tomada ? 'ya asignada' : (u.estado !== 'disponible' ? u.estado : '');
@@ -215,7 +232,7 @@ function pintarSelectorParcela(){
        Proyectos como bloqueada/no disponible sin contrato detrás se ofrecía
        igual, con la nota puesta pero seleccionable — la nota se veía, el freno
        no estaba. */
-    const bloqueadaOpcion = tomada ? !traspaso : u.estado !== 'disponible';
+    const bloqueadaOpcion = tomada ? !(traspaso || modo === 'por_comprobar') : u.estado !== 'disponible';
     return `<option value="${escAttr(u.codigo)}" ${bloqueadaOpcion?'disabled':''}>${
       escAttr(partes.filter(Boolean).join(' · '))}</option>`;
   }).join('');
@@ -265,6 +282,41 @@ function pintarSelectorParcela(){
 /* El campo se rehace en el DOM: se le devuelven sus oyentes. El dato vive en el
    OCULTO; chips y añadidor solo lo reescriben y disparan `input` sobre él, que
    es donde escuchan sync/preview (patrón del teléfono). */
+/* Carta de Reserva de OTRO agente (25-sep-2026, owner; revisión previa #91,
+   Seguridad): el navegador no puede leerla, así que se pregunta a la base por
+   ESA parcela (parcela_traspaso_estado) si el comprador del formulario es el
+   de la Carta. Responde número + estado, ningún dato personal, y usa la misma
+   regla que el trigger al guardar (traspaso_carta_estado): lo que aquí se deja
+   elegir es lo que la base va a aceptar. Devuelve true si se puede traspasar. */
+async function comprobarTraspasoRemoto(u){
+  const ids = identificadoresDelFormulario();
+  const clave = ids.join('|');
+  let d = null;
+  try{
+    const { data, error } = await sb.rpc('parcela_traspaso_estado',
+      { p_proyecto: UNIDADES_PROY.proyecto, p_codigo: u.codigo, p_ids: ids });
+    if(error) throw error;
+    d = data;
+  }catch(err){
+    toastMal(lwT('No se ha podido comprobar la parcela: ') + ((err && err.message) || ''));
+    return false;
+  }
+  if(!d){
+    // No la ocupa una Carta: es de otro Bloqueo/Construcción — no se traspasa.
+    u.ocupanteOculto = false; u.ocupante = null;
+    toastMal(lwT('La parcela ') + u.codigo + lwT(' ya está asignada a otro contrato.'));
+    return false;
+  }
+  u.traspasoRemoto = { numero: d.numero, estado: d.estado, clave };
+  if(d.estado === 'ok'){
+    toast(lwT('Reservada en ') + d.numero + lwT(' para este comprador: se traspasa a este Bloqueo al guardar.'));
+    return true;
+  }
+  toastMal(d.estado === 'sin_datos'
+    ? lwT('Rellena primero el pasaporte o el email del comprador: con eso se comprueba que la Carta ') + d.numero + lwT(' es suya.')
+    : lwT('La parcela está reservada en ') + d.numero + lwT(' a nombre de otro comprador. Solo pasa a un Bloqueo del mismo comprador (pasaporte o email).'));
+  return false;
+}
 function wireCampoParcela(){
   const caja = document.querySelector('.field[data-key="parcela_codigo"]');
   if(!caja) return;
@@ -279,12 +331,23 @@ function wireCampoParcela(){
   }
   if(caja._multiWired) return;
   caja._multiWired = true;
-  caja.addEventListener('change', e => {
+  caja.addEventListener('change', async e => {
     const add = e.target.closest('.parcela-add');
     if(!add || !add.value) return;
+    // El código se fija ANTES del await y el desplegable se congela mientras
+    // la base contesta: si no, un cambio a mitad colaba otra parcela sin
+    // comprobar (consulta de deploy de Desarrollo, 25-sep-2026).
+    const codigo = add.value;
+    const u = (UNIDADES_PROY.lista || []).find(x => x.codigo === codigo);
+    if(u && estadoTraspaso(u) === 'por_comprobar'){
+      add.disabled = true;
+      let ok = false;
+      try{ ok = await comprobarTraspasoRemoto(u); } finally { add.disabled = false; }
+      if(!ok){ add.value = ''; pintarSelectorParcela(); return; }
+    }
     const el = caja.querySelector('input[name="parcela_codigo"]');
     const lista = el.value.split(',').map(x=>x.trim()).filter(Boolean);
-    if(!lista.includes(add.value)) lista.push(add.value);
+    if(!lista.includes(codigo)) lista.push(codigo);
     el.value = lista.join(', ');
     el.dispatchEvent(new Event('input', { bubbles:true }));
     pintarSelectorParcela();
@@ -495,6 +558,20 @@ function baseSuelo(){
   const suelo = us.reduce((t,u)=>t+Number(u.precio_suelo), 0);
   return suelo > 0 ? suelo : null;
 }
+/* Lista VIGENTE del contrato (25-sep-2026, consulta de deploy de Desarrollo):
+   la que se guardó con él (`precio_lista_suelo`, vuelve en CAMPOS_HEREDADOS
+   porque no es un campo del formulario) mientras no se cambie de parcela en
+   esta sesión; si no hay guardada, o se cambió de parcela, la del inventario
+   vivo. Así un contrato reabierto imprime la misma lista con la que se
+   pactó el descuento aunque el inventario cambie después, y no depende de
+   que el inventario (asíncrono) haya cargado para conservar su descuento. */
+function listaSueloVigente(){
+  if(CONTRACT_TIPO[CURRENT.slug] !== 'reserva_parcela') return null;
+  const guardada = (typeof CAMPOS_HEREDADOS !== 'undefined' && CAMPOS_HEREDADOS)
+    ? (parseImporte(CAMPOS_HEREDADOS.precio_lista_suelo) || 0) : 0;
+  if(guardada > 0 && !AUTO_UNIDAD['_parcela_cambiada']) return guardada;
+  return baseSuelo();
+}
 /* Descuento tecleado, recortado a [0, base] — mismo clamp que
    syncPrecioTechoExtras(): un valor fuera del 15% no se corrige aquí (lo
    bloquea guardarContrato), pero tampoco se deja un precio negativo en
@@ -508,11 +585,10 @@ function descuentoComercialSobre(base){
    el inventario pisa una cifra que vino de fuera). Sin lista de suelo no hace
    nada — el campo ni se enseña en ese caso. */
 function aplicarDescuentoSuelo(){
-  const lista = baseSuelo();
+  const lista = listaSueloVigente();
   const el = document.querySelector('[name="precio_total"]');
   if(lista == null || !el) return;
   const nuevo = fmtImporte(lista - descuentoComercialSobre(lista));
-  AUTO_UNIDAD['_lista_suelo'] = lista;
   if(String(el.value||'').trim() === nuevo) return;
   el.value = nuevo; AUTO_UNIDAD['precio_total'] = nuevo;
   el.dispatchEvent(new Event('input', { bubbles:true }));
@@ -553,24 +629,28 @@ function syncDatosDeUnidad(){
      LISTA y el descuento resta de él — igual que techo+extras en
      Construcción. Un descuento negociado sobre el suelo de A4 no significa
      nada sobre el de A5 (mismo motivo que syncTipologiaModelos() vacía el de
-     Construcción al cambiar de modelo): si la lista que puso este automatismo
-     cambia, se suelta. `_lista_suelo` solo existe tras un primer cálculo en
-     esta sesión de formulario, así que cargar un Bloqueo guardado no lo
-     borra. */
-  const listaSuelo = tipoDoc === 'reserva_parcela' && completas ? baseSuelo() : null;
+     Construcción al cambiar de modelo): si se cambia de parcela, se suelta.
+     `_cods_suelo` solo existe tras un primer cálculo en esta sesión de
+     formulario, así que cargar un Bloqueo guardado no lo borra. */
   if(tipoDoc === 'reserva_parcela'){
-    const listaAntes = AUTO_UNIDAD['_lista_suelo'];
-    if(listaAntes != null && listaAntes !== listaSuelo){
+    // Se compara la PARCELA elegida, no la cifra: que el inventario cambie
+    // el suelo no debe borrar un descuento ya pactado (queda la lista
+    // guardada, ver listaSueloVigente); cambiar de parcela, sí.
+    const codsTxt = cods.join(',');
+    const codsAntes = AUTO_UNIDAD['_cods_suelo'];
+    if(codsAntes != null && codsAntes !== codsTxt){
+      AUTO_UNIDAD['_parcela_cambiada'] = true;
       ['descuento_comercial', 'descuento_comercial_motivo'].forEach(k=>{
         const el = document.querySelector('[name="' + k + '"]');
         if(el && el.value){ el.value = ''; }
       });
     }
-    AUTO_UNIDAD['_lista_suelo'] = listaSuelo;
+    AUTO_UNIDAD['_cods_suelo'] = codsTxt;
   }
+  const listaSuelo = tipoDoc === 'reserva_parcela' && completas ? listaSueloVigente() : null;
   const descuentoSuelo = listaSuelo != null ? descuentoComercialSobre(listaSuelo) : 0;
   const precioSegunTipo =
-      tipoDoc === 'reserva_parcela' ? (suelo != null ? suelo - descuentoSuelo : null)
+      tipoDoc === 'reserva_parcela' ? (descuentoSuelo > 0 ? listaSuelo - descuentoSuelo : suelo)
     : tipoDoc === 'construccion'    ? ((villa != null && suelo != null) ? villa - suelo : null)
     : villa;
   /* Con techo elegido el precio de Construcción lo manda techo+extras

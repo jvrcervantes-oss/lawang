@@ -28,6 +28,8 @@
      sella_assets, que solo recorre las etiquetas de los HTML. */
   var CORTINA = { 'comision-admin': 15 };
   var CORTINA_V = '20260923b';
+  /* mascota.js (el Asistente acoplado) tampoco lo sella sella_assets: sube MASCOTA_V al cambiarlo. */
+  var MASCOTA_V = '20260925a';
   (function () {
     var seg = location.pathname.replace(/\/(index\.html)?$/, '').split('/').pop();
     if (!CORTINA[seg]) return;
@@ -670,6 +672,17 @@
         // DESPUÉS del Panel de control y de la mudanza: poda y grupos vacíos
         podaMenu(aside, aut && aut.ficha);
       });
+      /* El Asistente acoplado en la esquina (25-sep-2026, mascota.js): solo
+         para quien puede abrir /asistente/ — la misma regla del menú, que vive
+         aquí y no se copia allí. Sin ficha no sale: puedeVer() deja pasar a
+         quien no tiene ficha (no poda), y la mascota llevaría a una página que
+         guard.js rebota. Se sella con MASCOTA_V, como cortina.js. */
+      if (aut && aut.ficha && puedeVer('asistente', aut.ficha) &&
+          location.pathname.indexOf('/intranet/v4/') !== -1) {
+        var sm = document.createElement('script');
+        sm.src = ROOT + 'assets/mascota.js?v=' + MASCOTA_V;
+        document.head.appendChild(sm);
+      }
     });
   }
 })();

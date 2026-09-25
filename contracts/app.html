@@ -38,7 +38,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=b2c2eb6c"></script>
+<script src="/contracts/assets/i18n.js?v=3ed33022"></script>
 <script src="/contracts/assets/herramientas.js?v=898d23ca"></script>
 <script src="assets/avisos.js?v=38fd8c40" defer></script><script src="assets/topbar.js?v=8444fd68" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -82,7 +82,7 @@
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
 <script src="assets/documento_diseno.js?v=15c225ba"></script>
 <script src="assets/documento_anexos.js?v=37e0d82f"></script>
-<script src="assets/parcela_inventario.js?v=5dac599d"></script>
+<script src="assets/parcela_inventario.js?v=ce45c847"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
 <script src="assets/modelos_catalogo.js?v=4e4fdee1"></script>
@@ -119,7 +119,7 @@
 <link rel="stylesheet" href="/contracts/assets/suite-v4-generador.css?v=e2e8cc0f">
 <script src="/intranet/v4/assets/nav-montaje.js?v=8ecae65b" defer></script>
 <script src="/contracts/assets/generador-v4.js?v=55abc3f7" defer></script>
-<script src="/intranet/v4/assets/nav.js?v=32feb36f" defer></script>
+<script src="/intranet/v4/assets/nav.js?v=8411f022" defer></script>
 </head>
 <body>
   <!-- Barra unificada de la suite: mismo orden y mismos componentes en
@@ -199,6 +199,11 @@
           <button class="btn ghost" id="btnDesign" data-lwt-title title="Color de portada, logo y marca de agua" style="display:none">🎨 Diseño</button>
           <button class="btn ghost" id="btnEditReset" data-lwt-title title="Restaurar texto original de la plantilla" style="display:none">↺ Original</button>
           <button class="btn ghost" id="btnDerivar" data-lwt-title title="Genera otro contrato reutilizando estos datos">⎘ Copiar datos</button>
+          <!-- 25-sep-2026, owner: «algún tipo de promocionar» la Carta a su
+               Bloqueo. Atajo de «Copiar datos» → Bloqueo de Parcela (mismo
+               derivarContrato): comprador, proyecto y parcela viajan, y la
+               parcela se traspasa al guardar si el comprador coincide. -->
+          <button class="btn ghost" id="btnPasarBloqueo" data-lwt-title title="Abre el Bloqueo de Parcela de esta Carta, ya relleno" style="display:none">→ Pasar a Bloqueo de Parcela</button>
         </div>
         <!-- 2. guardar: ni flujo de firma ni papel, es la base de datos -->
         <div class="pv-grupo" role="group" data-lwt-aria aria-label="Base de datos">
@@ -2878,7 +2883,7 @@ function collect(){
   if(CONTRACT_TIPO[CURRENT.slug] === 'construccion')
     data.descuento_comercial_aplica = (TECHO_ELEGIDO && (parseImporte(data.descuento_comercial) || 0) > 0) ? 'si' : 'no';
   /* Bloqueo de Parcela (25-sep-2026, owner: "como hacemos en construcción"):
-     mismo 'si'/'no', con el suelo de inventario (baseSuelo(), en
+     mismo 'si'/'no', con la lista de suelo (listaSueloVigente(), en
      parcela_inventario.js) en el papel del techo — sin lista de suelo no hay
      de qué restar y la cláusula no se imprime aunque quede un valor huérfano
      en el campo. `precio_lista_suelo` es el equivalente de
@@ -2886,13 +2891,10 @@ function collect(){
      datos.fields para que el contrato guardado la siga imprimiendo aunque el
      inventario cambie, y la que usa el trigger de la base para comprobar el
      15% y que el precio cuadre. */
-  if(CONTRACT_TIPO[CURRENT.slug] === 'reserva_parcela' && typeof baseSuelo === 'function'){
-    const lista = baseSuelo();
+  if(CONTRACT_TIPO[CURRENT.slug] === 'reserva_parcela' && typeof listaSueloVigente === 'function'){
+    const lista = listaSueloVigente();
     data.descuento_comercial_aplica = (lista && (parseImporte(data.descuento_comercial) || 0) > 0) ? 'si' : 'no';
     data.precio_lista_suelo = lista > 0 ? fmtImporte(lista) : '';
-    // Sin lista el campo está oculto: un valor huérfano no viaja al guardado
-    // (el trigger lo rechazaría con un error que el agente no puede ver).
-    if(!lista){ data.descuento_comercial = ''; data.descuento_comercial_motivo = ''; }
   }
   /* `cuenta_es_escrow` (22-sep-2026, revisión previa #41): 'si'|'no' según la
      cuenta elegida (`cuentas_bancarias.es_escrow`). La plantilla del Bloqueo lo
@@ -3824,6 +3826,10 @@ function pintaAcciones(){
     ['btnSave',           !!tipo, cerrado || (proyectoFalta ? lwT('Rellena el nombre del proyecto antes de guardar') : '')],
     ['btnEmail',          true,   guardado ? '' : sinGuardar],
     ['btnDerivar',        true,   guardado ? '' : sinGuardar],
+    // Solo en una Carta, y solo si este rol puede emitir el Bloqueo (25-sep-2026).
+    ['btnPasarBloqueo',   String(tipo || '').startsWith('carta_reserva')
+                            && plantillasOfrecidas().some(t => t.slug === 'ppjb_parcela'),
+                          guardado ? '' : sinGuardar],
     ['btnEnviarFirma',    !!tipo, guardado ? cerrado : sinGuardar],
     ['btnLockUpload',     !!tipo, guardado ? (cerrado || (PDF_SALIO ? '' : pdfNoSalio)) : sinGuardar],
     ['btnFacturar',       true,   guardado ? '' : sinGuardar],
@@ -4116,7 +4122,7 @@ function updateSaveButton(){
     // inventario conocida (baseSuelo), su equivalente de "techo elegido".
     const esBloqueo = CONTRACT_TIPO[CURRENT.slug] === 'reserva_parcela';
     const muestraDescuento = (CONTRACT_TIPO[CURRENT.slug] === 'construccion' && !!TECHO_ELEGIDO)
-      || (esBloqueo && typeof baseSuelo === 'function' && baseSuelo() != null);
+      || (esBloqueo && typeof listaSueloVigente === 'function' && listaSueloVigente() != null);
     const abreDescuento = puedeHitosFijos();
     CAMPOS_DESCUENTO_COMERCIAL.forEach(k=>{
       const caja = document.querySelector('.field[data-key="' + k + '"]');
@@ -4583,11 +4589,20 @@ async function guardarContrato(){
      descuento: si no, el documento imprimiría "lista 100, descuento 10,
      total 95". Sin descuento nada cambia. El trigger de la base
      (descuento_comercial_valido) repite las cuatro. */
-  if(tipo === 'reserva_parcela' && typeof baseSuelo === 'function'){
-    const base = baseSuelo();
+  if(tipo === 'reserva_parcela' && typeof listaSueloVigente === 'function'){
+    const base = listaSueloVigente();
     const elDC = document.querySelector('[name="descuento_comercial"]');
     const elDCMotivo = document.querySelector('[name="descuento_comercial_motivo"]');
-    const dc = (base != null && elDC) ? (parseImporte(elDC.value) || 0) : 0;
+    const dc = elDC ? (parseImporte(elDC.value) || 0) : 0;
+    /* Hay descuento y no hay lista contra la que medirlo (inventario sin
+       cargar o parcela fuera de él): se para, nunca se vacía en silencio —
+       vaciarlo dejaba el precio rebajado sin la cláusula que lo explica
+       (consulta de deploy de Desarrollo, 25-sep-2026). */
+    if(dc > 0 && base == null){
+      avisoNoGuardado(lwT('No se puede comprobar el descuento comercial: falta el precio del suelo de la parcela en el inventario. Recarga la página o quita el descuento.'));
+      if(elDC){ elDC.focus(); elDC.scrollIntoView({behavior:'smooth', block:'center'}); }
+      return;
+    }
     const motivo = elDCMotivo ? String(elDCMotivo.value || '').trim() : '';
     const elPT = document.querySelector('[name="precio_total"]');
     const foco = el => { if(el){ el.focus(); el.scrollIntoView({behavior:'smooth', block:'center'}); } };
@@ -4694,12 +4709,16 @@ async function guardarContrato(){
     // reabría el contrato — y el snapshot que se firma sale de buildDoc() en
     // caliente, así que se podía firmar el calendario equivocado justo
     // después de guardar.
+    // Solo las dos ramas que se releen, nunca `datos` entero (LAW-78, 25-sep-2026):
+    // devolvía en cada guardado la portada y los anexos en base64, hasta varios MB.
     const eraNuevo = !(SAVED_CONTRACT && SAVED_CONTRACT.id);
+    const COLS_RELEE = 'id,numero,datos_fields:datos->fields,datos_hitos:datos->hitos';
     const q = !eraNuevo
-      ? sb.from('contratos').update(payload).eq('id', SAVED_CONTRACT.id).select('id,numero,datos').single()
-      : sb.from('contratos').insert(payload).select('id,numero,datos').single();
-    const { data, error } = await q;
+      ? sb.from('contratos').update(payload).eq('id', SAVED_CONTRACT.id).select(COLS_RELEE).single()
+      : sb.from('contratos').insert(payload).select(COLS_RELEE).single();
+    const { data: fila, error } = await q;
     if(error) throw error;
+    const data = { id:fila.id, numero:fila.numero, datos:{ fields:fila.datos_fields, hitos:fila.datos_hitos } };
     SAVED_CONTRACT = { id:data.id, numero:data.numero };
     ANEXO_MANUAL_RETIRADO = false;   // lo retirado ya está fuera de la fila
     if(eraNuevo) PDF_SALIO = false;   // un contrato recién creado no ha salido nunca
@@ -5731,6 +5750,14 @@ async function derivarContrato(slug){
   toast(lwT('Contrato nuevo con los datos de ') + origen + ' · sin número hasta que lo guardes');
 }
 $('#btnDerivar').addEventListener('click', abrirDerivar);
+$('#btnPasarBloqueo').addEventListener('click', async ()=>{
+  if(!SAVED_CONTRACT || !SAVED_CONTRACT.numero){ toastMal(lwT('Guarda primero: para guardar hay que rellenarlo entero')); return; }
+  const origen = SAVED_CONTRACT.numero;
+  await derivarContrato('ppjb_parcela');
+  // Mismo aviso fijo que enseña «Copiar datos» Carta → Bloqueo (avisoCartaAplica).
+  toast(lwT('Bloqueo de Parcela con los datos de ') + origen
+    + lwT(' · el abono ya pagado en la Carta se descontará al guardar.'));
+});
 $('#dvClose').addEventListener('click', ()=> $('#dvOverlay').classList.remove('open'));
 $('#dvOverlay').addEventListener('click', e=>{ if(e.target===$('#dvOverlay')) $('#dvOverlay').classList.remove('open'); });
 $('#dvGo').addEventListener('click', ()=> derivarContrato($('#dvTpl').value));

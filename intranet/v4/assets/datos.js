@@ -7887,6 +7887,42 @@
         ? 'el recibí cambió después de facturarse, o desapareció'
         : 'ninguna línea pide una mirada');
 
+      /* Previsión (25-sep-2026, owner): tarifa vigente × lo que falta por
+         cobrar de los contratos firmados + en firma. La calcula la base
+         (comision_admin_prevision) — Cartas de Reserva fuera (su precio es la
+         villa entera, ya cubierta por Bloqueo + Construcción) y lo que la
+         Carta ya cobró descontado (ya devengó en su recibí). Llamada APARTE y
+         con rama de rechazo: si falla, la casilla lo dice y el libro sigue. */
+      sb.rpc('comision_admin_prevision').then(function (rp) {
+        var d = rp && !rp.error ? rp.data : null;
+        if (!d) {
+          pon2('k-prevision', '—');
+          pon2('k-prevision-pie', 'No se ha podido calcular la previsión. Recarga la página.');
+          return;
+        }
+        var ms = d.monedas || [];
+        if (d.pct == null) {
+          pon2('k-prevision', '—');
+          pon2('k-prevision-pie', 'Sin tarifa vigente no hay nada que prever.');
+          return;
+        }
+        if (!ms.length) {
+          pon2('k-prevision', '—');
+          pon2('k-prevision-pie', 'No hay contratos firmados ni en firma pendientes de cobro.');
+          return;
+        }
+        pon2('k-prevision', ms.map(function (m) { return fmt(Number(m.comision), m.moneda); }).join(' · '));
+        pon2('k-prevision-pie', Number(d.pct) + '% sobre lo que falta por cobrar de los contratos firmados y en firma: '
+          + ms.map(function (m) {
+              return fmt(Number(m.pendiente), m.moneda) + ' (' + m.n_firmados + ' firmados, '
+                + fmt(Number(m.comision_firmados), m.moneda) + ' de comisión · ' + m.n_en_firma + ' en firma)';
+            }).join(' · ')
+          + '. No cuenta las Cartas de Reserva ni lo que ya se ha cobrado.');
+      }, function () {
+        pon2('k-prevision', '—');
+        pon2('k-prevision-pie', 'No se ha podido calcular la previsión. Recarga la página.');
+      });
+
       /* El banco de pruebas del silencio: el disparador traga sus propios fallos
          a propósito (un error calculando la comisión no puede impedir que se
          registre un cobro), así que lo que se perdería sin esto es dinero sin

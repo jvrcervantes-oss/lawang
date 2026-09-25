@@ -24,6 +24,7 @@
    la pantalla que dice que no hay sesion. */
 :root{
   --z-cajon:100;     /* panel lateral de proyecto */
+  --z-mascota:150;   /* el Asistente acoplado (mascota.js): sobre el contenido, bajo el velo; con un cajon abierto se esconde */
   --z-velo:200;      /* velo de carga */
   --z-banderin:300;  /* banderin de estado, permanente */
   --z-modal:400;     /* cualquier ventana, y el cajon de navegacion */
