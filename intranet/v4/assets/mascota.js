@@ -386,7 +386,7 @@
         var pie0 = el('div', 'lwm-pie');
         pie0.appendChild(el('span', 'lwm-puntos'));
         pie0.appendChild(boton(T('Ir al Asistente'), true, function () { irAlAsistente(''); }));
-        abre([cabecera(T('Hoy ya me has avisado de varios fallos'), T('Para no llenarle el Telegram a dirección, por hoy no mando más avisos. Si es urgente, pídelo en el Asistente.')), pie0], null);
+        abre([cabecera(T('Hoy ya me has avisado de varios fallos'), T('Por hoy no mando más avisos. Si es urgente, pídelo en el Asistente.')), pie0], null);
         return;
       }
       var campo = el('textarea', 'lwm-campo');
@@ -412,7 +412,7 @@
           guarda(K_FALLOS, hoy() + '|' + (usados() + 1));
           vistoHasta = Date.now();
           marca(false);
-          abre([cabecera(T('Aviso enviado'), n ? T('Gracias. Le llega a dirección por Telegram como SC-%n y, si hace falta, pasa al estudio.', { n: n }) : T('Gracias. Le llega a dirección por Telegram y, si hace falta, pasa al estudio.'))], null);
+          abre([cabecera(T('Aviso enviado'), n ? T('Gracias. Queda avisado como SC-%n.', { n: n }) : T('Gracias. Queda avisado.'))], null);
         }).catch(function (e) {
           console.warn('[mascota] aviso de fallo:', e);
           enviar.disabled = false;
@@ -423,8 +423,8 @@
       });
       pie.appendChild(enviar);
       abre([cabecera(lista.length ? T('Algo ha fallado') : T('Avisar de un fallo'),
-        lista.length ? T('Si no ha hecho lo que esperabas, avísame y se lo paso al estudio con los detalles técnicos. Le llega a dirección por Telegram.')
-                     : T('Cuéntame qué ha pasado y se lo paso al estudio. Le llega a dirección por Telegram.')), campo, err, pie], auto ? null : campo);
+        lista.length ? T('Si no ha hecho lo que esperabas, avísame y se lo paso al estudio con los detalles técnicos.')
+                     : T('Cuéntame qué ha pasado y se lo paso al estudio.')), campo, err, pie], auto ? null : campo);
     }
     /* Un error de CÓDIGO abre el bocadillo una vez por página; un aviso rojo solo
        marca el punto (muchos son validaciones: «escribe qué necesitas») y el punto

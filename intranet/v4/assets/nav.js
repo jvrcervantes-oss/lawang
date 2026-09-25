@@ -81,7 +81,7 @@
   var CORTINA = { 'comision-admin': 15 };
   var CORTINA_V = '20260923b';
   /* mascota.js (el Asistente acoplado) tampoco lo sella sella_assets: sube MASCOTA_V al cambiarlo. */
-  var MASCOTA_V = '20260925c';
+  var MASCOTA_V = '20260925d';
   (function () {
     var seg = location.pathname.replace(/\/(index\.html)?$/, '').split('/').pop();
     if (!CORTINA[seg]) return;
