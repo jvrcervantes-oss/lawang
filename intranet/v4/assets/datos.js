@@ -1063,6 +1063,13 @@
     var acciones = [
       { texto: c0.bloqueado ? 'Ver en el generador' : 'Editar en el generador', href: '/contracts/app.html?contrato=' + encodeURIComponent(c0.id), tono: 'primario' }
     ];
+    /* Borrador para el comprador (25-sep-2026, owner: «hay gente que quiere
+       verlos antes de nada»). Solo sin firmar: firmado, lo que vale es el PDF
+       firmado de la sección «Documento firmado». El generador lo imprime con
+       sello, aviso de no vinculante, firmas tachadas y sin cuentas bancarias
+       (ver imprimirBorrador en contracts/app.html). Pestaña nueva: la ficha
+       sigue abierta aquí. */
+    if (!c0.bloqueado) acciones.push({ texto: 'Descargar borrador', href: '/contracts/app.html?contrato=' + encodeURIComponent(c0.id) + '&borrador=1', nuevaPestana: true });
     // «Ver en Operaciones» (antes «Expediente», 22-sep-2026): la fila de la
     // operación entera —cadena y dinero de toda ella— con esta ficha abierta.
     if (!opts.sinExpediente) acciones.push({ texto: 'Ver en Operaciones', href: '/intranet/v4/operaciones/?contrato=' + encodeURIComponent(num) });

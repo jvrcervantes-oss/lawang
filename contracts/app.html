@@ -38,7 +38,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=2b721a48"></script>
+<script src="/contracts/assets/i18n.js?v=1ce13971"></script>
 <script src="/contracts/assets/herramientas.js?v=898d23ca"></script>
 <script src="assets/avisos.js?v=38fd8c40" defer></script><script src="assets/topbar.js?v=8444fd68" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -228,6 +228,7 @@
              paso lo das tú. -->
         <div class="pv-grupo" role="group" data-lwt-aria aria-label="PDF a mano">
           <span class="g">A mano</span>
+          <button class="btn ghost" id="btnBorrador" data-lwt="Descargar borrador" data-lwt-title title="PDF para que el comprador lo revise: sello de borrador, sin firmas ni datos bancarios">Descargar borrador</button>
           <button class="btn ghost" id="btnPdf" data-lwt="Descargar PDF">Descargar PDF</button>
           <button class="btn ghost" id="btnEmail">✉ Email</button>
           <button class="btn ghost" id="btnLockUpload" style="display:none" data-lwt-title title="Sube el PDF firmado y bloquea el contrato">🔒 Subir firmado</button>
@@ -3083,6 +3084,7 @@ function idrEquiv(html, data){
       return `${ini}${valEnvuelto}${fin}${monEnvuelto} <span class="idr-eq">(≈ ${Math.round(n*tasa).toLocaleString('es-ES')} IDR)</span>`;
     });
 }
+let BORRADOR_MODE=false;   // true solo mientras imprimirBorrador() construye la copia para el comprador: sello, aviso, sin firmas ni cuentas
 let SIGN_MODE=false;   // true solo al construir el snapshot para firma remota → el hueco de firma sale como centinela %%FIRMA_ADQUIRIENTE%% que firma-submit rellena con la firma real
 /* Campos que un campo NUEVO sustituye. Mientras convivan —los documentos
    antiguos guardaron el viejo y no se tocan—, hay que impedir que se impriman
@@ -3105,6 +3107,8 @@ const SUSTITUYE_A = {
 
 function buildDoc(){
   const data=collect();
+  // Un borrador nunca lleva una firma pintada, tampoco la del vendedor.
+  if(BORRADOR_MODE){ data.firma_adquiriente=''; data.firma_promotor=''; }
   Object.entries(SUSTITUYE_A).forEach(([nuevo, viejo]) => {
     if(String(data[nuevo] || '').trim()) data[viejo] = '';
   });
@@ -3123,6 +3127,11 @@ function buildDoc(){
   html=html.replace('<!--extras-construccion-->', extrasConstruccionRowsHTML());
   html=html.replace('<!--compradores-extra-->', compradoresExtraHTML());   // Adquiriente II, III, IV… sin tope
   html=html.replace('<!--firmas-adquirientes-->', compradoresFirmasHTML());   // firmas de esos adquirientes extra
+  /* Borrador: SIN cuentas (Legal, 25-sep-2026). Quien paga sobre un borrador
+     se cree reservado sin contrato, y un PDF que corre por WhatsApp se retoca
+     para cambiar la cuenta. Importes y calendario sí salen. */
+  if(BORRADOR_MODE) html=html.replace(/<!--datos-bancarios(-sin-titulo)?-->|<!--cuenta:[a-z0-9_]+-->/g,
+    m => avisoCuentaBorrador(m === '<!--datos-bancarios-->'));
   html=html.replace('<!--datos-bancarios-->', datosBancariosHTML());   // tabla de la cuenta bancaria elegida
   // variante sin título "Datos bancarios": para plantillas que ya traen su propio
   // epígrafe numerado justo encima (cc00014_timon: "ARTICLE 5 — BANK DETAILS")
@@ -3171,6 +3180,7 @@ function buildDoc(){
   // anexos incluidos → páginas al final del contrato
   const ax=annexHTML();
   if(ax) html = html.includes('</body>') ? html.replace('</body>', ax+'</body>') : html+ax;
+  if(BORRADOR_MODE) html=marcaBorrador(html);
   return html;
 }
 /* re-render de la preview viva (siempre visible). En modo edición NO se
@@ -3639,6 +3649,7 @@ $('#btnEditReset').addEventListener('click', resetOverrides);
 
 /* ---------- PDF / backend ---------- */
 $('#btnPdf').addEventListener('click', downloadPdf);
+$('#btnBorrador').addEventListener('click', imprimirBorrador);
 $('#btnReset').addEventListener('click', async ()=>{
   const n = [...document.querySelectorAll('#form input, #form select, #form textarea')]
               .filter(e => String(e.value||'').trim()).length;
@@ -3722,6 +3733,87 @@ async function downloadPdf(){
     if(error){ console.error('pdf_descargado:', error.message); toastMal(lwT('El PDF se ha descargado, pero no se pudo apuntar en el registro')); return; }
     PDF_SALIO = true; pintaAcciones(); ocultarGruposVacios();
   }
+}
+
+/* ═══ BORRADOR PARA EL COMPRADOR — 25-sep-2026, owner ═════════════════════════
+   «Hay gente que quiere verlos antes de nada.» Es el mismo documento que
+   «Descargar PDF», con lo que Legal pidió para que no se confunda con uno
+   emitido (revisión previa #94):
+     · sello diagonal en ES/EN/ID en TODAS las páginas, portada incluida
+       (z-index sobre la portada, que es opaca y tapa la marca de agua normal);
+     · aviso de «no vinculante» en el pie de cada página: el sello se recorta,
+       la línea deja sin argumento el «era una oferta y la acepté»;
+     · firmas tachadas y SIN datos bancarios (ver buildDoc).
+   NO llama a `contrato_pdf_descargado`: esa marca significa «salió el que se
+   firma» y enciende «Subir firmado»; un borrador no se puede firmar.
+   Se imprime en un iframe propio, no en #pvFrame: la vista previa se repinta
+   con cada cambio (renderDebounced) y podría pisar el documento con sello
+   entre la carga y el diálogo de impresión. */
+const BORRADOR_SELLO = ['BORRADOR — SIN VALIDEZ CONTRACTUAL', 'DRAFT — NOT A BINDING CONTRACT', 'DRAF — TIDAK MENGIKAT'];
+const BORRADOR_AVISO = [
+  'Documento informativo. Sujeto a cambios. No constituye oferta vinculante ni reserva de unidad. Solo tiene efectos el contrato firmado por ambas partes.',
+  'For information only. Subject to change. Not a binding offer nor a reservation of any unit. Only the contract signed by both parties is effective.',
+  'Dokumen informasi. Dapat berubah. Bukan penawaran yang mengikat maupun pemesanan unit. Hanya perjanjian yang ditandatangani kedua pihak yang berlaku.'
+];
+/* Va en el hueco de la tabla de la cuenta y con SU forma (h2 + table.pays con
+   data-lang): un <p> suelto rompía las columnas de idioma de langCSS. */
+function avisoCuentaBorrador(conTitulo){
+  const titulo = conTitulo
+    ? '<h2><span data-lang="es">Datos bancarios</span><span data-lang="en">Bank details</span><span data-lang="id">Rincian bank</span></h2>' : '';
+  return titulo + '<table class="pays lw-borrador-cuenta"><tbody><tr><td>'
+    + '<span data-lang="es">Los datos de pago se facilitan únicamente con el contrato firmado.</span>'
+    + '<span data-lang="en">Payment details are provided only with the signed contract.</span>'
+    + '<span data-lang="id">Rincian pembayaran hanya diberikan bersama perjanjian yang telah ditandatangani.</span>'
+    + '</td></tr></tbody></table>';
+}
+function marcaBorrador(html){
+  const css = '<style>'
+    + '.lw-borrador-sello{position:fixed;inset:0;z-index:60;pointer-events:none;display:flex;align-items:center;justify-content:center}'
+    + '.lw-borrador-sello div{transform:rotate(-35deg);text-align:center;white-space:nowrap;color:rgba(150,32,24,.17);font:700 19pt/1.35 "Jost",sans-serif;letter-spacing:.05em}'
+    + '.lw-borrador-aviso{position:fixed;left:14mm;right:14mm;bottom:3.5mm;z-index:61;text-align:center;font:500 6.3pt/1.35 "Jost",sans-serif;color:#7a2418;background:rgba(255,255,255,.88);padding:1.2mm 3mm;border-radius:2mm}'
+    + 'table.lw-borrador-cuenta td{color:#7a2418;font-weight:600}'
+    // En la portada (oscura, opaca) el sello translúcido casi no se ve: sello propio, blanco y macizo.
+    + '.lwcov::after{content:"BORRADOR · DRAFT · DRAF";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-12deg);z-index:5;padding:4mm 8mm;border:1mm solid rgba(255,255,255,.9);color:rgba(255,255,255,.95);font:700 22pt "Jost",sans-serif;letter-spacing:.14em;white-space:nowrap}'
+    + 'table.sigs,.sig-grid{position:relative}'
+    + 'table.sigs::after,.sig-grid::after{content:"— BORRADOR · DRAFT · DRAF —";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.7);color:#7a2418;font:700 11pt "Jost",sans-serif;letter-spacing:.12em}'
+    + '</style>';
+  const marca = '<div class="lw-borrador-sello" aria-hidden="true"><div>' + BORRADOR_SELLO.join('<br>') + '</div></div>'
+    + '<div class="lw-borrador-aviso">' + BORRADOR_AVISO.join('<br>') + '</div>';
+  html = html.includes('</head>') ? html.replace('</head>', css + '</head>') : css + html;
+  return /<body[^>]*>/.test(html) ? html.replace(/<body[^>]*>/, m => m + marca) : marca + html;
+}
+function imprimirBorrador(){
+  if(LOCKED){
+    // firmado: lo que se entrega es el PDF firmado, nunca una reconstrucción
+    if(sb && LOCKED_PDF_PATH) return abrirPdfFirmado();
+    toastMal(lwT('El contrato está firmado: ya no hay borrador, descarga el PDF firmado')); return;
+  }
+  if(!SAVED_CONTRACT || !SAVED_CONTRACT.numero){
+    toastMal(lwT('Guarda primero: sin guardar no hay número, y el PDF saldría idéntico a uno emitido sin existir en la base.'));
+    return;
+  }
+  let html;
+  BORRADOR_MODE = true;
+  try{ html = buildDoc(); } finally{ BORRADOR_MODE = false; }
+  const fname = 'BORRADOR_' + pdfFilename();
+  const viejo = document.getElementById('lwBorradorFrame'); if(viejo) viejo.remove();
+  const fr = document.createElement('iframe');
+  fr.id = 'lwBorradorFrame'; fr.setAttribute('aria-hidden', 'true'); fr.tabIndex = -1;
+  fr.style.cssText = 'position:fixed;left:-10000px;top:0;width:210mm;height:297mm;border:0';
+  fr.addEventListener('load', () => {
+    const w = fr.contentWindow, d = fr.contentDocument;
+    d.title = fname;
+    const prevTitle = document.title;   // mismo truco de nombre sugerido que printPreview()
+    document.title = fname;
+    const imgs = [...d.images].filter(i => !i.complete).map(i => new Promise(r => { i.onload = i.onerror = r; }));
+    const fonts = (d.fonts && d.fonts.ready) ? d.fonts.ready : Promise.resolve();
+    Promise.all([fonts, ...imgs]).then(() => setTimeout(() => {
+      try{ w.focus(); w.print(); }catch(_){}
+      document.title = prevTitle;
+    }, 200));
+  }, { once:true });
+  document.body.appendChild(fr);
+  fr.srcdoc = html;
 }
 
 /* ============================================================
@@ -3825,6 +3917,7 @@ function pintaAcciones(){
   const TABLA = [
     ['btnSave',           !!tipo, cerrado || (proyectoFalta ? lwT('Rellena el nombre del proyecto antes de guardar') : '')],
     ['btnEmail',          true,   guardado ? '' : sinGuardar],
+    ['btnBorrador',       true,   LOCKED ? lwT('El contrato está firmado: ya no hay borrador, descarga el PDF firmado') : (guardado ? '' : sinGuardar)],
     ['btnDerivar',        true,   guardado ? '' : sinGuardar],
     // Solo en una Carta, y solo si este rol puede emitir el Bloqueo (25-sep-2026).
     ['btnPasarBloqueo',   String(tipo || '').startsWith('carta_reserva')
@@ -6737,6 +6830,14 @@ async function init(){
   if(pedido){
     pantallaC('editor');
     await openSavedContract(pedido);
+    /* ?borrador=1 — «Descargar borrador» de la ficha de la v4 (25-sep-2026):
+       abre el contrato y saca el diálogo de impresión del borrador. Se quita
+       de la barra en el acto para que un F5 no vuelva a imprimir. */
+    if(par.get('borrador') === '1'){
+      par.delete('borrador');
+      try{ history.replaceState(null, '', location.pathname + '?' + par.toString()); }catch(_){}
+      if(SAVED_CONTRACT) imprimirBorrador();
+    }
   } else if(par.has('nuevo') || par.has('cliente') || par.has('lead')){
     // recargar esta URL directamente (F5, o entrar por ella a pelo) es una
     // ejecución nueva del script, pero COMPRADORES/ANNEXES/CLAUSES se leen de
