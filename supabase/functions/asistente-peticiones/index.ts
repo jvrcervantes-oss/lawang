@@ -108,12 +108,16 @@ Deno.serve(async (req) => {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({
-        model: MODELO, max_tokens: 600, system: SISTEMA, tools: HERRAMIENTAS, tool_choice: { type: 'any' },
+        // Clasificador de una llamada: thinking apagado a propósito. En Sonnet 5, omitirlo = adaptativo,
+        // y max_tokens es el total (razonamiento + tool_use): con 600 podía cortarse sin herramienta.
+        model: MODELO, max_tokens: 600, thinking: { type: 'disabled' }, system: SISTEMA, tools: HERRAMIENTAS, tool_choice: { type: 'any' },
         messages: [{ role: 'user', content: '<peticion>\n' + texto.replace(/<\/?peticion>/gi, '') + '\n</peticion>' }],
       }),
     });
     if (!r.ok) return json({ error: 'modelo_no_disponible' }, 502);
     const out = await r.json();
+    // Un corte o un rechazo no es una petición "manual": sin esto se devolvía manual en silencio.
+    if (out.stop_reason === 'max_tokens' || out.stop_reason === 'refusal') return json({ error: 'modelo_no_disponible' }, 502);
     const uso = (out.content ?? []).find((b: Json) => b.type === 'tool_use') as Json | undefined;
     if (!uso) return json({ tipo: 'manual', accion: 'manual', resumen: '' });
     const accion = String(uso.name);
