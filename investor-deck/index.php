@@ -711,7 +711,7 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
 <footer data-lw-pie data-wa="https://wa.me/6281138319862">
   <span data-pie-nota>This page does not replace legal or financial advice. Nothing here is an offer to sell securities or a solicitation of investment.</span>
 </footer>
-<script src="/assets/lawang-pie.js?v=20260923153722"></script>
+<script src="/assets/lawang-pie.js?v=20260925145309"></script>
 
 </div><!-- /#deck-contenido -->
 

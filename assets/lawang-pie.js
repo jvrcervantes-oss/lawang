@@ -62,11 +62,17 @@
           horario: 'Kami membalas pada jam kerja Bali (WITA).',
           lineas: 'Saluran langsung', oficina: 'Kantor Bali',
           legal: 'Legal & privasi', cookies: 'Preferensi cookie',
-          copy: '© 2026 Lawang Tropical Properties. Hak cipta dilindungi.' }
+          copy: '© 2026 Lawang Tropical Properties. Hak cipta dilindungi.' },
+    // fr: solo lo usa /formacion/fr/ (25-sep-2026). Sin aviso legal en francés: cae al inglés.
+    fr: { marca: 'Promoteur enregistré et conseil immobilier à Bali.',
+          horario: 'Nous répondons aux heures de Bali (WITA).',
+          lineas: 'Lignes directes', oficina: 'Bureau à Bali',
+          legal: 'Mentions légales et confidentialité', cookies: 'Préférences cookies',
+          copy: '© 2026 Lawang Tropical Properties. Tous droits réservés.' }
   };
   // Aviso legal por idioma: /legal-es existe; en bahasa NO se hereda el español
   // (LAW-247), cae al inglés.
-  var LEGAL_URL = { en: '/legal', es: '/legal-es', id: '/legal' };
+  var LEGAL_URL = { en: '/legal', es: '/legal-es', id: '/legal', fr: '/legal' };
 
   var CSS =
     '.lwpie{background:#F1EBDD;border-top:1px solid #e4e2dd;color:#44483f;font-size:13px;line-height:1.5;padding:28px 24px 96px}' +
