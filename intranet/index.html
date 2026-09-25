@@ -538,8 +538,10 @@ document.addEventListener('mousemove', e => {
    una tabla para este usuario, esa fila se queda sin cifra y las demás
    siguen. Un `Promise.all` que revienta dejaría el panel entero sin datos. */
 async function contar(sb){
-  // `select('*')` con head:true no trae columnas: es el idioma de PostgREST para
-  // contar, y sirve igual en `usuarios`, cuya clave no se llama `id`.
+  // `select('*')` con head:true sirve igual en `usuarios`, cuya clave no se llama
+  // `id` — pero NO sale gratis: PostgREST mete `contratos.*` en la subconsulta y
+  // descomprime `datos` (anexos en base64, 156 MB). En contratos eran 3,2 s por
+  // conteo (pg_stat_statements, 25-sep-2026): ahí se cuenta por `id`.
   // `cols` opcional (18-ago-2026): el conteo de vencimientos necesita un embed
   // `contratos!inner(id)` para filtrar por firmados, y eso va en las COLUMNAS
   // del select — no en el filtro. Un `.select()` dentro del filtro pisaría el
@@ -555,8 +557,8 @@ async function contar(sb){
          recibis, unidades, unidadesLibres, obraActivas, compradores, usuarios, usuariosInactivos,
          documentos, vencSinFecha, hilosAbiertos,
          modelos, modelosPublicados, modelosSinPrecio, solicitudesVivas] = await Promise.all([
-    n('contratos'),
-    n('contratos', q => q.eq('bloqueado', false)),
+    n('contratos', null, 'id'),
+    n('contratos', q => q.eq('bloqueado', false), 'id'),
     n('facturas', q => q.eq('anulada', false)),
     n('facturas', q => q.eq('anulada', true)),
     n('facturas', q => q.eq('tipo', 'recibi').eq('anulada', false)),
