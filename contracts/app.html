@@ -82,7 +82,7 @@
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
 <script src="assets/documento_diseno.js?v=15c225ba"></script>
 <script src="assets/documento_anexos.js?v=37e0d82f"></script>
-<script src="assets/parcela_inventario.js?v=5dac599d"></script>
+<script src="assets/parcela_inventario.js?v=19676ca3"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
 <script src="assets/modelos_catalogo.js?v=4e4fdee1"></script>
@@ -2878,7 +2878,7 @@ function collect(){
   if(CONTRACT_TIPO[CURRENT.slug] === 'construccion')
     data.descuento_comercial_aplica = (TECHO_ELEGIDO && (parseImporte(data.descuento_comercial) || 0) > 0) ? 'si' : 'no';
   /* Bloqueo de Parcela (25-sep-2026, owner: "como hacemos en construcción"):
-     mismo 'si'/'no', con el suelo de inventario (baseSuelo(), en
+     mismo 'si'/'no', con la lista de suelo (listaSueloVigente(), en
      parcela_inventario.js) en el papel del techo — sin lista de suelo no hay
      de qué restar y la cláusula no se imprime aunque quede un valor huérfano
      en el campo. `precio_lista_suelo` es el equivalente de
@@ -2886,13 +2886,10 @@ function collect(){
      datos.fields para que el contrato guardado la siga imprimiendo aunque el
      inventario cambie, y la que usa el trigger de la base para comprobar el
      15% y que el precio cuadre. */
-  if(CONTRACT_TIPO[CURRENT.slug] === 'reserva_parcela' && typeof baseSuelo === 'function'){
-    const lista = baseSuelo();
+  if(CONTRACT_TIPO[CURRENT.slug] === 'reserva_parcela' && typeof listaSueloVigente === 'function'){
+    const lista = listaSueloVigente();
     data.descuento_comercial_aplica = (lista && (parseImporte(data.descuento_comercial) || 0) > 0) ? 'si' : 'no';
     data.precio_lista_suelo = lista > 0 ? fmtImporte(lista) : '';
-    // Sin lista el campo está oculto: un valor huérfano no viaja al guardado
-    // (el trigger lo rechazaría con un error que el agente no puede ver).
-    if(!lista){ data.descuento_comercial = ''; data.descuento_comercial_motivo = ''; }
   }
   /* `cuenta_es_escrow` (22-sep-2026, revisión previa #41): 'si'|'no' según la
      cuenta elegida (`cuentas_bancarias.es_escrow`). La plantilla del Bloqueo lo
@@ -4116,7 +4113,7 @@ function updateSaveButton(){
     // inventario conocida (baseSuelo), su equivalente de "techo elegido".
     const esBloqueo = CONTRACT_TIPO[CURRENT.slug] === 'reserva_parcela';
     const muestraDescuento = (CONTRACT_TIPO[CURRENT.slug] === 'construccion' && !!TECHO_ELEGIDO)
-      || (esBloqueo && typeof baseSuelo === 'function' && baseSuelo() != null);
+      || (esBloqueo && typeof listaSueloVigente === 'function' && listaSueloVigente() != null);
     const abreDescuento = puedeHitosFijos();
     CAMPOS_DESCUENTO_COMERCIAL.forEach(k=>{
       const caja = document.querySelector('.field[data-key="' + k + '"]');
@@ -4583,11 +4580,20 @@ async function guardarContrato(){
      descuento: si no, el documento imprimiría "lista 100, descuento 10,
      total 95". Sin descuento nada cambia. El trigger de la base
      (descuento_comercial_valido) repite las cuatro. */
-  if(tipo === 'reserva_parcela' && typeof baseSuelo === 'function'){
-    const base = baseSuelo();
+  if(tipo === 'reserva_parcela' && typeof listaSueloVigente === 'function'){
+    const base = listaSueloVigente();
     const elDC = document.querySelector('[name="descuento_comercial"]');
     const elDCMotivo = document.querySelector('[name="descuento_comercial_motivo"]');
-    const dc = (base != null && elDC) ? (parseImporte(elDC.value) || 0) : 0;
+    const dc = elDC ? (parseImporte(elDC.value) || 0) : 0;
+    /* Hay descuento y no hay lista contra la que medirlo (inventario sin
+       cargar o parcela fuera de él): se para, nunca se vacía en silencio —
+       vaciarlo dejaba el precio rebajado sin la cláusula que lo explica
+       (consulta de deploy de Desarrollo, 25-sep-2026). */
+    if(dc > 0 && base == null){
+      avisoNoGuardado(lwT('No se puede comprobar el descuento comercial: falta el precio del suelo de la parcela en el inventario. Recarga la página o quita el descuento.'));
+      if(elDC){ elDC.focus(); elDC.scrollIntoView({behavior:'smooth', block:'center'}); }
+      return;
+    }
     const motivo = elDCMotivo ? String(elDCMotivo.value || '').trim() : '';
     const elPT = document.querySelector('[name="precio_total"]');
     const foco = el => { if(el){ el.focus(); el.scrollIntoView({behavior:'smooth', block:'center'}); } };
