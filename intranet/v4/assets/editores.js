@@ -697,7 +697,7 @@
     var cont = w.querySelector('[data-e="campos"]'), notasLado = w.querySelector('[data-e="notas"]');
     // Bloques por clase de campo; dentro de cada uno, el orden de la llamada.
     var GRUPOS = [
-      { t: 'Datos', f: function (c) { return !/^(check|multicheck|file)$/.test(c.tipo) && !(split && esNota(c)); } },
+      { t: 'Datos', f: function (c) { return !/^(check|multicheck|file)$/.test(c.tipo); } },
       { t: 'Opciones', f: function (c) { return c.tipo === 'check' || c.tipo === 'multicheck'; } },
       { t: 'Documento', f: function (c) { return c.tipo === 'file'; } }
     ];
@@ -784,7 +784,9 @@
           ' value="' + esc(c.valor == null ? '' : c.valor) + '"' + (c.paso ? ' step="' + esc(c.paso) + '"' : '') + '></div>' + ayuda + msg;
       }
       tarjetas.push(d);
-      if (split && esNota(c)) { notasLado.appendChild(d); return; }
+      // Las notas se quedan en su sitio del formulario, no en la columna del
+      // resumen: por debajo de 1024 px esa columna va plegada y el aviso no se
+      // vería (revisión de Desarrollo, 25-sep-2026).
       for (var r = 0; r < rejillas.length; r++) if (rejillas[r].f(c)) { rejillas[r].el.appendChild(d); return; }
     });
     if (!campos.length) cont.innerHTML = '';
@@ -837,6 +839,7 @@
     }
     w._recuenta = recuenta;
     form.addEventListener('input', function (e) {
+      w._tocado = true;   // con algo tecleado, Escape ya no cierra
       var c = e.target.closest && e.target.closest('.las-campo.las-mal');
       if (c && (e.target.type === 'checkbox' ? e.target.checked : String(e.target.value).trim())) c.classList.remove('las-mal');
       recuenta();
@@ -883,7 +886,7 @@
         faltan.forEach(function (c) {
           var card = w.querySelector('[data-req="' + c.k + '"]');
           if (!card || card.classList.contains('las-oculto')) return;
-          card.querySelector('.las-msg').textContent = 'Este dato hace falta para guardar.';
+          var m = card.querySelector('.las-msg'); if (m) m.textContent = 'Este dato hace falta para guardar.';
           card.classList.add('las-mal'); card.classList.remove('las-tiembla'); void card.offsetWidth; card.classList.add('las-tiembla');
           if (!primero) primero = card;
         });
@@ -905,7 +908,14 @@
         btn.classList.remove('las-guardando'); btn.classList.add('las-hecho');
         /* Recargar es lo correcto para un editor que acaba de escribir en la
            base; no para quien no guarda nada (opts.sinRecarga). */
-        setTimeout(function () { cierraModal(); if (!opts.sinRecarga) location.reload(); }, 450);
+        /* Si onGuardar ya abrió el SIGUIENTE formulario (Registrar avance →
+           paso 2, Parte de trabajo → confirmar), no se toca: cierraModal()
+           cerraría el nuevo. Solo se cierra si sigue siendo este editor. */
+        if (document.getElementById('lw-editor') !== w) { if (!opts.sinRecarga) location.reload(); return; }
+        setTimeout(function () {
+          if (document.getElementById('lw-editor') === w) cierraModal();
+          if (!opts.sinRecarga) location.reload();
+        }, 450);
       }, function (e) {
         suelta();
         muestraError('No se pudo guardar: ' + (e && e.message || e));
@@ -1061,12 +1071,19 @@
       if (hit) { if (!abierto) selAbre(rel); selMarca(lista, hit); }
     }
   });
-  // Escape cierra el formulario genérico (el alta tiene el suyo). dialogo.js
-  // corta su propio Escape en captura, así que un diálogo encima no llega aquí.
+  // Escape en el formulario genérico (el alta tiene el suyo). dialogo.js corta
+  // su propio Escape en captura, así que un diálogo encima no llega aquí.
+  //  · con una lista abierta (también si se abrió con el ratón y el foco no
+  //    está en su botón), Escape cierra la lista y nada más;
+  //  · el formulario solo se cierra si no se ha tocado nada y no está
+  //    guardando: con datos tecleados, un Escape perdería el trabajo
+  //    (revisión de Desarrollo, 25-sep-2026).
   document.addEventListener('keydown', function (e) {
-    if (e.key !== 'Escape' || selAbierto) return;
+    if (e.key !== 'Escape') return;
+    if (selAbierto) { e.preventDefault(); selCierra(selAbierto, true); return; }
     var ed = document.getElementById('lw-editor');
-    if (ed && ed.querySelector('form.las-gen')) cierraModal();
+    var f = ed && ed.querySelector('form.las-gen');
+    if (f && !ed._tocado && !f.querySelector('.las-guardando, .las-hecho')) cierraModal();
   });
 
   /* ---------- CAJON DE FICHA: para MIRAR, y desde ahi editar (18-sep-2026) ----------
