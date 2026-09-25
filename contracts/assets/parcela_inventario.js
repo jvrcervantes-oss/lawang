@@ -495,6 +495,20 @@ function baseSuelo(){
   const suelo = us.reduce((t,u)=>t+Number(u.precio_suelo), 0);
   return suelo > 0 ? suelo : null;
 }
+/* Lista VIGENTE del contrato (25-sep-2026, consulta de deploy de Desarrollo):
+   la que se guardó con él (`precio_lista_suelo`, vuelve en CAMPOS_HEREDADOS
+   porque no es un campo del formulario) mientras no se cambie de parcela en
+   esta sesión; si no hay guardada, o se cambió de parcela, la del inventario
+   vivo. Así un contrato reabierto imprime la misma lista con la que se
+   pactó el descuento aunque el inventario cambie después, y no depende de
+   que el inventario (asíncrono) haya cargado para conservar su descuento. */
+function listaSueloVigente(){
+  if(CONTRACT_TIPO[CURRENT.slug] !== 'reserva_parcela') return null;
+  const guardada = (typeof CAMPOS_HEREDADOS !== 'undefined' && CAMPOS_HEREDADOS)
+    ? (parseImporte(CAMPOS_HEREDADOS.precio_lista_suelo) || 0) : 0;
+  if(guardada > 0 && !AUTO_UNIDAD['_parcela_cambiada']) return guardada;
+  return baseSuelo();
+}
 /* Descuento tecleado, recortado a [0, base] — mismo clamp que
    syncPrecioTechoExtras(): un valor fuera del 15% no se corrige aquí (lo
    bloquea guardarContrato), pero tampoco se deja un precio negativo en
@@ -508,11 +522,10 @@ function descuentoComercialSobre(base){
    el inventario pisa una cifra que vino de fuera). Sin lista de suelo no hace
    nada — el campo ni se enseña en ese caso. */
 function aplicarDescuentoSuelo(){
-  const lista = baseSuelo();
+  const lista = listaSueloVigente();
   const el = document.querySelector('[name="precio_total"]');
   if(lista == null || !el) return;
   const nuevo = fmtImporte(lista - descuentoComercialSobre(lista));
-  AUTO_UNIDAD['_lista_suelo'] = lista;
   if(String(el.value||'').trim() === nuevo) return;
   el.value = nuevo; AUTO_UNIDAD['precio_total'] = nuevo;
   el.dispatchEvent(new Event('input', { bubbles:true }));
@@ -553,24 +566,28 @@ function syncDatosDeUnidad(){
      LISTA y el descuento resta de él — igual que techo+extras en
      Construcción. Un descuento negociado sobre el suelo de A4 no significa
      nada sobre el de A5 (mismo motivo que syncTipologiaModelos() vacía el de
-     Construcción al cambiar de modelo): si la lista que puso este automatismo
-     cambia, se suelta. `_lista_suelo` solo existe tras un primer cálculo en
-     esta sesión de formulario, así que cargar un Bloqueo guardado no lo
-     borra. */
-  const listaSuelo = tipoDoc === 'reserva_parcela' && completas ? baseSuelo() : null;
+     Construcción al cambiar de modelo): si se cambia de parcela, se suelta.
+     `_cods_suelo` solo existe tras un primer cálculo en esta sesión de
+     formulario, así que cargar un Bloqueo guardado no lo borra. */
   if(tipoDoc === 'reserva_parcela'){
-    const listaAntes = AUTO_UNIDAD['_lista_suelo'];
-    if(listaAntes != null && listaAntes !== listaSuelo){
+    // Se compara la PARCELA elegida, no la cifra: que el inventario cambie
+    // el suelo no debe borrar un descuento ya pactado (queda la lista
+    // guardada, ver listaSueloVigente); cambiar de parcela, sí.
+    const codsTxt = cods.join(',');
+    const codsAntes = AUTO_UNIDAD['_cods_suelo'];
+    if(codsAntes != null && codsAntes !== codsTxt){
+      AUTO_UNIDAD['_parcela_cambiada'] = true;
       ['descuento_comercial', 'descuento_comercial_motivo'].forEach(k=>{
         const el = document.querySelector('[name="' + k + '"]');
         if(el && el.value){ el.value = ''; }
       });
     }
-    AUTO_UNIDAD['_lista_suelo'] = listaSuelo;
+    AUTO_UNIDAD['_cods_suelo'] = codsTxt;
   }
+  const listaSuelo = tipoDoc === 'reserva_parcela' && completas ? listaSueloVigente() : null;
   const descuentoSuelo = listaSuelo != null ? descuentoComercialSobre(listaSuelo) : 0;
   const precioSegunTipo =
-      tipoDoc === 'reserva_parcela' ? (suelo != null ? suelo - descuentoSuelo : null)
+      tipoDoc === 'reserva_parcela' ? (descuentoSuelo > 0 ? listaSuelo - descuentoSuelo : suelo)
     : tipoDoc === 'construccion'    ? ((villa != null && suelo != null) ? villa - suelo : null)
     : villa;
   /* Con techo elegido el precio de Construcción lo manda techo+extras
