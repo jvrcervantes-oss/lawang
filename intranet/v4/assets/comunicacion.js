@@ -20,8 +20,10 @@
   'use strict';
 
   /* El dominio de la instancia es el de esta página (ERP F3, 25-sep-2026): el botón por defecto, la validación y la
-     ayuda lo toman de aquí, no de un literal. En Lawang es lawangproperties.com y se ve igual que antes; el
-     servidor aplica la misma regla con config_instancia.dominio_web (cta_dominio_permitido). */
+     ayuda lo toman de aquí, no de un literal. En Lawang se ve igual que antes. Esto es solo la comprobación de la
+     pantalla; manda el servidor, con la CHECK `comunicados_cta_lista_blanca`: en el producto (erp/linea_base) llama a
+     cta_dominio_permitido() con config_instancia.dominio_web; en la base de Lawang aún lleva su dominio escrito en el
+     patrón, hasta que reciba el núcleo del ERP (consulta de deploy 21c54a71, Seguridad). */
   var DOMINIO = location.hostname.replace(/^www\./, '');
   var DOMINIO_RX = DOMINIO.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   var CTA_DEFECTO = { url: location.origin + '/intranet/', texto: 'Abrir la intranet' };

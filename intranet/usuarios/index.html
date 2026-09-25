@@ -35,7 +35,7 @@
 <script src="/contracts/assets/herramientas.js?v=898d23ca"></script>
 <script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="/contracts/assets/topbar.js?v=8444fd68" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/guard.js?v=afa52db4" data-herramienta="usuarios"></script>
+<script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/instancia.js?v=0fddafcb"></script><script src="/contracts/assets/guard.js?v=935970cf" data-herramienta="usuarios"></script>
 <style>
   :root{ --line:#E4DCCB; --card:#FFFFFF; --rl2:#F1EBDD; --texto-2:#4A5052; --tbh:64px; }
   *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }
@@ -431,12 +431,12 @@ async function guardar(){
 
 async function llamarAdmin(payload){
   const { data:{ session } } = await SB.auth.getSession();
-  const r = await fetch('https://vtulllundrfennhjddhc.supabase.co/functions/v1/admin-usuarios', {
+  const r = await fetch(window.lwEdge('admin-usuarios'), {
     method:'POST',
     headers:{ 'Content-Type':'application/json',
       // el token de sesión ES la credencial: la función decide con él, no con el body
       'Authorization':'Bearer ' + session.access_token,
-      'apikey':'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg' },
+      'apikey':window.LW_SB_KEY },
     body: JSON.stringify(payload),
   });
   return r.json().catch(() => ({ error:lwT('respuesta ilegible del servidor') }));

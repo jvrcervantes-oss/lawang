@@ -13,7 +13,7 @@
      canjea con verifyOtp (sesión de recuperación) y con esa sesión se fija la contraseña.
      No depende de la lista de redirecciones de Auth. El token se borra de la URL al leerlo:
      no debe quedar en el historial ni viajar como referrer. -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/instancia.js"></script>
 <style>
 :root{--linen:#f5f0e6;--paper:#fffdf8;--stone:#beb3a5;--tg:#485b37;--dl:#104c4f;--ink:#1b1c19;--muted:#44483f;--be:#42210b}
 *{box-sizing:border-box}
@@ -50,8 +50,8 @@ button[disabled]{opacity:.6;cursor:default}
 (function () {
   'use strict';
   var sb = window.supabase.createClient(
-    'https://vtulllundrfennhjddhc.supabase.co',
-    'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg',
+    window.LW_INSTANCIA.sb_url,
+    window.LW_INSTANCIA.sb_key,
     { auth: { detectSessionInUrl: false, persistSession: true } }
   );
   var th = new URLSearchParams(location.search).get('th') || '';

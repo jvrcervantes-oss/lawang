@@ -8,6 +8,8 @@ const path = require('path');
 const vm = require('vm');
 
 const CODIGO = fs.readFileSync(path.join(__dirname, 'guard.js'), 'utf8');
+// La ficha de la instancia va antes de guard.js en cada página (ERP F3): el test hace lo mismo, con la real.
+const INSTANCIA = fs.readFileSync(path.join(__dirname, 'instancia.js'), 'utf8');
 
 function puerta(attrs, ficha, opts) {
   opts = opts || {};
@@ -34,7 +36,8 @@ function puerta(attrs, ficha, opts) {
   };
   ctx.supabase = { createClient: () => sb };
   vm.createContext(ctx);
-  vm.runInContext(CODIGO, ctx);
+  if (!opts.sinFicha) vm.runInContext(INSTANCIA, ctx);
+  try { vm.runInContext(CODIGO, ctx); } catch (e) { if (!opts.sinFicha) throw e; return Promise.resolve({ entra: false, salidas, error: e.message }); }
   let entra = false;
   ctx.LW_AUTH.then(() => { entra = true; });
   return new Promise(r => setTimeout(() => r({ entra, salidas }), 30));
@@ -96,6 +99,10 @@ const SUPER = { rol: 'super_admin', activo: true, herramientas: [] };
   assert.ok(!r.entra && /sin_permiso=obra/.test(r.salidas[0] || ''), 'herramienta no asignada rebota como siempre');
   r = await puerta({ 'data-herramienta': 'cuentas' }, AGENTE);
   assert.ok(r.entra, 'herramienta asignada entra como siempre');
+
+  // ERP F3: sin la ficha de la instancia, guard.js se para y nadie entra (ni se crea cliente contra ninguna base)
+  r = await puerta({ 'data-herramienta': 'cuentas' }, SUPER, { sinFicha: true });
+  assert.ok(!r.entra && /instancia\.js/.test(r.error || ''), 'sin instancia.js, guard.js para y no deja entrar');
 
   console.log('guard.test.js OK');
 })().catch(e => { console.error(e); process.exit(1); });

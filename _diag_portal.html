@@ -264,11 +264,12 @@ window.supabase = {
 
 <div class="toast" id="toast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#2E3437;color:#fff;padding:11px 20px;border-radius:999px;font-size:13px;z-index:200;opacity:0;transition:opacity .2s;pointer-events:none"></div>
 
+<script src="/contracts/assets/instancia.js?v=0fddafcb"></script>
 <script>
 (function(){
   'use strict';
-  var URL_SB = 'https://vtulllundrfennhjddhc.supabase.co';
-  var KEY_SB = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';   // publicable: el candado es la RLS y la RPC
+  var URL_SB = window.LW_INSTANCIA.sb_url;
+  var KEY_SB = window.LW_INSTANCIA.sb_key;   // publicable: el candado es la RLS y la RPC
   var sb = supabase.createClient(URL_SB, KEY_SB);
 
   /* ── idioma ───────────────────────────────────────────────────────── */

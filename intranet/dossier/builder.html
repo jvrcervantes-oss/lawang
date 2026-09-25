@@ -26,7 +26,7 @@
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/i18n.js?v=fea67e7e"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/guard.js?v=afa52db4" data-herramienta="dossier,creatividades_ver"></script>
+<script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/instancia.js?v=0fddafcb"></script><script src="/contracts/assets/guard.js?v=935970cf" data-herramienta="dossier,creatividades_ver"></script>
 <!-- Creatividades v4 (24-sep-2026): DOMPurify limpia TODO dossier que no hizo esta
      pestaña (biblioteca, fichero) antes de pintarlo — revisión previa #68, Seguridad #3. -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.6/purify.min.js" integrity="sha384-JEyTNhjM6R1ElGoJns4U2Ln4ofPcqzSsynQkmEc/KGy6336qAZl70tDLufbkla+3" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -635,7 +635,7 @@ const LS_KEY='lawang_dossier_builder';
    Este motor pinta sus textos con innerHTML, así que todo HTML pasa por la lista blanca
    de `lwCreatividades.limpia` (DOMPurify) y toda imagen tiene que ser de un origen
    conocido: una URL libre en un estado ajeno es un píxel espía o algo peor. */
-const DECK_PUBLICO='https://vtulllundrfennhjddhc.supabase.co/storage/v1/object/public/deck/';
+const DECK_PUBLICO=window.LW_SB_URL+'/storage/v1/object/public/deck/';
 function imgSegura(v){
   if(!v)return true; v=String(v);
   return /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(v)

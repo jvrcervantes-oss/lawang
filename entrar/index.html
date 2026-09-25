@@ -27,7 +27,7 @@
      en ingles tiene que poder leer el formulario con el que entra. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
 <script src="/contracts/assets/i18n.js?v=fea67e7e"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/instancia.js?v=0fddafcb"></script>
 <style>
   /* Filete unificado a #E4DCCB, el mismo valor que `--linea` de suite.css: esta
      pantalla tenía #e4ddcf, unos puntos de hex por detrás, y es la única de la
@@ -129,8 +129,8 @@ const $=s=>document.querySelector(s);
 // misma key publicable que app.html — no es secreta, el control real vive en
 // las políticas RLS de Supabase (exigen role authenticated desde jul-2026).
 const sb = window.supabase.createClient(
-  'https://vtulllundrfennhjddhc.supabase.co',
-  'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg'
+  window.LW_INSTANCIA.sb_url,
+  window.LW_INSTANCIA.sb_key
 );
 // destino tras entrar: ?next=/ruta/ (solo rutas internas, nunca URL externa)
 // Sin `next`, se entra por la INTRANET y no por Contratos: la suite ya son

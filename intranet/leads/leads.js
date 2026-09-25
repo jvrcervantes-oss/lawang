@@ -1658,7 +1658,7 @@ function pintarAutomatismos(){
 async function llamarBot(accion, extra){
   const { data: ses } = await SB.auth.getSession();
   const token = ses && ses.session && ses.session.access_token;
-  const r = await fetch('https://vtulllundrfennhjddhc.supabase.co/functions/v1/lawang-bot-proxy', {
+  const r = await fetch(window.lwEdge('lawang-bot-proxy'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || '') },
     body: JSON.stringify(Object.assign({ accion }, extra || {})),
@@ -2227,7 +2227,7 @@ let TRAZA = [], TRAZA_CUENTAS = [];
 async function llamarTraza(cuerpo){
   const { data: ses } = await SB.auth.getSession();
   const token = ses && ses.session && ses.session.access_token;
-  const r = await fetch('https://vtulllundrfennhjddhc.supabase.co/functions/v1/trazabilidad-ghl', {
+  const r = await fetch(window.lwEdge('trazabilidad-ghl'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || '') },
     body: JSON.stringify(cuerpo),

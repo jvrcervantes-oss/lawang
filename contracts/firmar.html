@@ -104,9 +104,10 @@
 </div>
 <div class="toast" id="toast"></div>
 
+<script src="/contracts/assets/instancia.js"></script>
 <script>
-const SUPABASE_URL = 'https://vtulllundrfennhjddhc.supabase.co';
-const ANON = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';
+const SUPABASE_URL = window.LW_INSTANCIA.sb_url;
+const ANON = window.LW_INSTANCIA.sb_key;
 const FN = SUPABASE_URL + '/functions/v1/';
 const TOKEN = new URLSearchParams(location.search).get('t') || '';
 

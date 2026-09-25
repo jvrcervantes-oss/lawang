@@ -23,7 +23,7 @@
      false pese a que el .css sí cargaba. El portal es la cara del CLIENTE,
      no la del equipo: aquí el icono tiene que funcionar siempre, sin
      depender de qué bloqueador traiga instalado quien lo abra. -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/instancia.js?v=0fddafcb"></script>
 <!-- EL DOCUMENTO DE VERDAD, sin tocar (ver la nota que ya llevaba este
      fichero): `documento.js` es la fuente única de la maquetación de una
      factura, la misma que usan la herramienta de Facturas y la Edge que
@@ -403,8 +403,8 @@
 <script>
 (function(){
   'use strict';
-  var URL_SB = 'https://vtulllundrfennhjddhc.supabase.co';
-  var KEY_SB = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';   // publicable: el candado es la RLS y la RPC
+  var URL_SB = window.LW_INSTANCIA.sb_url;
+  var KEY_SB = window.LW_INSTANCIA.sb_key;   // publicable: el candado es la RLS y la RPC
   /* Sesión propia, aislada de la del equipo (1-sep-2026). El resto de la
      suite (intranet, guard.js) usa la clave de almacenamiento POR DEFECTO
      de supabase-js, a propósito: es lo que deja a un agente moverse entre

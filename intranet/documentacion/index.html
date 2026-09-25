@@ -26,7 +26,7 @@
 <script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="/contracts/assets/topbar.js?v=8444fd68" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/guard.js?v=afa52db4" data-herramienta="documentacion"></script>
+<script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/instancia.js?v=0fddafcb"></script><script src="/contracts/assets/guard.js?v=935970cf" data-herramienta="documentacion"></script>
 <script src="/contracts/assets/suite.js?v=3cf4a63a"></script>
 <style>
   *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }
@@ -198,8 +198,8 @@
    dónde está un documento. Contrapartida, dicha en voz alta: una carpeta existe
    mientras tenga algo dentro, y se crea escribiendo su ruta al añadir.
    ========================================================================== */
-const SB_URL = 'https://vtulllundrfennhjddhc.supabase.co';
-const SB_KEY = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';   // publicable: el candado es la RLS
+const SB_URL = window.LW_SB_URL;
+const SB_KEY = window.LW_SB_KEY;   // publicable: el candado es la RLS
 const BUCKET = 'documentacion';
 
 /* ---------- idioma de interfaz (12-ago-2026) ----------

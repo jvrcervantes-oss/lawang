@@ -49,10 +49,25 @@
      (editores.js, datos.js, asistente…) las lee de window.LW_SB_URL / LW_SB_KEY en vez de escribirlas otra vez:
      cinco copias a mano eran cinco sitios que una instancia nueva del ERP tenía que acordarse de cambiar. Van
      ANTES del modo QA para que existan también con el doble local. */
-  var URL_SB = 'https://vtulllundrfennhjddhc.supabase.co';
-  var KEY_SB = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';   // publicable: el candado es la RLS
-  window.LW_SB_URL = URL_SB;
-  window.LW_SB_KEY = KEY_SB;
+  var FICHA = window.LW_INSTANCIA;
+  if (!FICHA || !/^https:\/\/[a-z0-9]+\.supabase\.co$/.test(FICHA.sb_url || '')) {
+    // sin ficha no hay base: se para aquí (la página no carga nada, igual que si faltara guard.js)
+    throw new Error('[guard] falta /contracts/assets/instancia.js antes de guard.js');
+  }
+  var URL_SB = FICHA.sb_url;
+  var KEY_SB = FICHA.sb_key;   // publicable: el candado es la RLS
+  /* Solo lectura, y las edges se piden SOLO con window.lwEdge(nombre) (consulta de deploy 21c54a71, Seguridad): si
+     guard.js no llegara (404, CDN viejo), llamar a lwEdge lanza ANTES de construir la petición, así que el token de
+     la sesión nunca sale hacia una ruta relativa de la propia web; y un elemento con id="lwEdge"/"LW_SB_URL" inyectado
+     en el HTML no se puede llamar ni pisa estas propiedades. try: si la página cargara guard.js dos veces, la segunda
+     no revienta (la primera ya fijó los mismos valores). */
+  function fija(k, v) { try { Object.defineProperty(window, k, { value: v, writable: false, configurable: false, enumerable: true }); } catch (e) {} }
+  fija('LW_SB_URL', URL_SB);
+  fija('LW_SB_KEY', KEY_SB);
+  fija('lwEdge', function (nombre) {
+    if (!/^[a-z0-9-]+$/.test(String(nombre))) throw new Error('lwEdge: nombre de edge no válido');
+    return URL_SB + '/functions/v1/' + nombre;
+  });
   /* MODO QA (28-ago-2026) — revisión previa: Desarrollo + Datos + Seguridad,
      CEO/revisiones/estado.json. Único punto de entrada para las herramientas
      que cargan guard.js: nunca se copia este `if` en cada index.html (los
