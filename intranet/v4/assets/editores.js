@@ -1581,17 +1581,60 @@
      elegido, todas»). En cuanto se elige una factura, el contrato — y por
      tanto el comprador — ya se sabe, y las siguientes cargas usan
      `contratos_del_mismo_comprador` para acotar, igual que siempre. */
-  function cargaTodasAbiertasRecibiDoc(sb, moneda) {
+  /* `sinContrato` (AxisWorks ERP, 25-sep-2026): donde la empresa no exige contrato, también las
+     facturas sueltas de un cliente — si no, una factura sin contrato no se podría cobrar nunca. */
+  function cargaTodasAbiertasRecibiDoc(sb, moneda, sinContrato) {
     return Promise.all([
-      sb.rpc('facturas_equipo').select('id,numero,contrato_id,contrato_numero,cliente_nombre,total,tipo,anulada,moneda'),
+      sb.rpc('facturas_equipo').select('id,numero,contrato_id,contrato_numero,client_id,cliente_nombre,total,tipo,anulada,moneda'),
       sb.rpc('facturas_pendiente_equipo')
     ]).then(function (rs) {
       if (rs[0].error || rs[1].error) return [];
       var pend = {}; (rs[1].data || []).forEach(function (x) { pend[x.factura_id] = Number(x.pendiente) || 0; });
       return (rs[0].data || [])
-        .filter(function (x) { return x.tipo === 'factura' && !x.anulada && (pend[x.id] || 0) > 0.005 && x.contrato_id; })
+        .filter(function (x) { return x.tipo === 'factura' && !x.anulada && (pend[x.id] || 0) > 0.005 && (x.contrato_id || (sinContrato && x.client_id)); })
         .filter(function (x) { return (x.moneda || 'EUR') === moneda; })
-        .map(function (x) { return { id: x.id, numero: x.numero, contrato_id: x.contrato_id, contrato_numero: x.contrato_numero, cliente_nombre: x.cliente_nombre, pendiente: pend[x.id], moneda: x.moneda }; });
+        .map(function (x) { return { id: x.id, numero: x.numero, contrato_id: x.contrato_id, contrato_numero: x.contrato_numero, client_id: x.client_id, cliente_nombre: x.cliente_nombre, pendiente: pend[x.id], moneda: x.moneda }; });
+    });
+  }
+  /* ═══ AxisWorks ERP · factura y recibí SIN contrato (25-sep-2026, revisión previa #79)
+     Solo con window.AXW_NUCLEO_OPERACION (hoy, la demo del ERP). Sin la bandera, reglaContratoDoc
+     resuelve «exige contrato» sin preguntar nada a la base y los dos editores quedan idénticos a
+     Lawang. Con ella, quien decide es la base (`factura_exige_contrato()`, la misma función que usa
+     el trigger): la pantalla nunca guarda su propia copia de la regla. Si no se puede leer, se dice
+     y se exige contrato — el lado seguro. */
+  function reglaContratoDoc(sb) {
+    if (!window.AXW_NUCLEO_OPERACION) return Promise.resolve({ sinContrato: false, nota: '' });
+    return sb.rpc('factura_exige_contrato').then(function (r) {
+      if (r.error) {
+        console.error('[facturas] regla de contrato:', r.error);
+        return { sinContrato: false, nota: 'No se ha podido saber si esta empresa permite documentos sin contrato: de momento se exige contrato.' };
+      }
+      return { sinContrato: r.data === false, nota: '' };
+    }, function (e) {
+      console.error('[facturas] regla de contrato:', e);
+      return { sinContrato: false, nota: 'No se ha podido saber si esta empresa permite documentos sin contrato: de momento se exige contrato.' };
+    });
+  }
+  var SIN_CONTRATO_DOC = '__sin_contrato__';
+  /* Elegir cliente: la lista trae SOLO id y nombre, y de `clients` con la RLS de quien emite
+     (Seguridad #79.4 y #79.5): ni pasaportes ni emails de todo el directorio en memoria, y nunca
+     `compradores_directorio` (DEFINER, lista a todos) — ofrecería clientes que la base luego
+     rechaza. Documento y email se piden al elegir, uno solo. Resuelve null si se cancela. */
+  function eligeClienteDoc(sb, actual) {
+    return sb.from('clients').select('id,full_name').order('full_name').then(function (r) {
+      if (r.error) { toastMal(lwErrorHumano(r.error, 'No se pudo cargar la lista de clientes')); return null; }
+      var cs = (r.data || []).filter(function (c) { return c.full_name; });
+      if (!cs.length) { toastMal('No tienes ningún cliente todavía: da de alta su ficha en Compradores.'); return null; }
+      return lwElegir({ titulo: 'Elige el cliente', buscarPh: 'Nombre del cliente…', valor: actual || null,
+        opciones: cs.map(function (c) { return { valor: c.id, texto: c.full_name }; }) })
+        .then(function (id) {
+          if (!id) return null;
+          return sb.from('clients').select('id,full_name,email,passport_number,registro_num').eq('id', id).maybeSingle().then(function (rc) {
+            if (rc.error || !rc.data) { toastMal(lwErrorHumano(rc.error || { message: 'cliente no encontrado' }, 'No se pudo cargar el cliente')); return null; }
+            var c = rc.data;
+            return { id: c.id, nombre: c.full_name || '', documento: c.passport_number || c.registro_num || '', email: c.email || '' };
+          });
+        });
     });
   }
   function opcionesSociedadDoc() {
@@ -2675,6 +2718,7 @@
         return aviso('Emitir facturas exige la herramienta «Facturas» — pídesela a un administrador.', '#8A6A34');
       }
       var esEdicion = !!pre.id;
+      var regla = { sinContrato: false, nota: '' };
       aseguraModulosDoc(['entities', 'compradores', 'totales', 'dialogo', 'documento']).then(function () {
         return Promise.all([
           cargarSociedades(sb).then(function () { return true; }, function () { return false; }),
@@ -2685,11 +2729,13 @@
             : pre.copia_de
               // la anulada pudo emitirla otro del equipo: facturas_equipo, rpc + eq, sin order
               ? sb.rpc('facturas_equipo').select('id,numero,tipo,contrato_id,contrato_numero,client_id,datos').eq('id', pre.copia_de).maybeSingle()
-              : Promise.resolve({ data: null })
+              : Promise.resolve({ data: null }),
+          reglaContratoDoc(sb)
         ]);
       }).then(function (r) {
         var sociedadesOk = r[0], cuentasOk = r[1];
         var contratos = r[2].data || [];
+        regla = r[4];
         var existente = esEdicion ? r[3].data : null;
         if (esEdicion && !existente) return aviso('No se encontró ese documento.', '#93000a');
         var copia = (!esEdicion && pre.copia_de) ? r[3].data : null;
@@ -2724,12 +2770,15 @@
         var estadoContrato = {
           id: origen ? origen.contrato_id : (pre.contrato_id || null),
           numero: (origen && origen.contrato_numero) || '',
-          clienteId: (origen && origen.client_id) || null
+          clienteId: (origen && origen.client_id) || null,
+          // Documento guardado SIN contrato (solo existe donde la empresa lo permite): se reabre en ese modo.
+          sinContrato: !!(regla.sinContrato && origen && !origen.contrato_id)
         };
         var getLineas = null;
 
         var campos = [];
         if (motivoLectura) campos.push({ tipo: 'nota', label: motivoLectura });
+        if (regla.nota) campos.push({ tipo: 'nota', label: regla.nota });
         if (!sociedadesOk) campos.push({ tipo: 'nota', label: 'No se ha podido cargar el catálogo de sociedades — recarga antes de emitir.' });
         if (!cuentasOk) campos.push({ tipo: 'nota', label: 'No se han podido cargar las cuentas de cobro — recarga antes de emitir.' });
         campos.push({ tipo: 'custom', label: 'Formulario', render: function (hostRaiz) {
@@ -2794,20 +2843,56 @@
           var btnC = document.createElement('button'); btnC.type = 'button'; btnC.setAttribute('data-lw-lectura-inerte', '1');
           btnC.style.cssText = 'width:100%;text-align:left;padding:9px 12px;border:1px solid ' + CAJ.borde +
             ';border-radius:8px;font-weight:500;font-size:14px;color:' + CAJ.tinta + ';background-color:' + CAJ.papel + ';cursor:pointer';
-          btnC.textContent = estadoContrato.numero ? estadoContrato.numero : '— elige un contrato —';
+          btnC.textContent = estadoContrato.numero ? estadoContrato.numero : estadoContrato.sinContrato ? '— sin contrato —' : '— elige un contrato —';
           var notaC = document.createElement('p'); notaC.style.cssText = 'margin:0;font-size:12px;color:' + CAJ.apagado;
           secDoc.appendChild(lblC); secDoc.appendChild(btnC); secDoc.appendChild(notaC);
+          /* Sin contrato (AxisWorks ERP, 25-sep-2026): el documento va a nombre de un CLIENTE que
+             se elige aquí. Solo se monta si la empresa lo permite (reglaContratoDoc). */
+          var filaCli = null, btnCli = null;
+          if (regla.sinContrato) {
+            filaCli = document.createElement('div'); filaCli.style.cssText = 'display:grid;gap:6px';
+            var lblCli = document.createElement('div'); lblCli.textContent = 'Cliente';
+            lblCli.style.cssText = 'font-size:12px;color:' + CAJ.apagado;
+            btnCli = document.createElement('button'); btnCli.type = 'button'; btnCli.setAttribute('data-lw-lectura-inerte', '1');
+            btnCli.style.cssText = btnC.style.cssText;
+            btnCli.textContent = (estadoContrato.sinContrato && f0.cliente_nombre) || '— elige el cliente —';
+            filaCli.appendChild(lblCli); filaCli.appendChild(btnCli); secDoc.appendChild(filaCli);
+            btnCli.addEventListener('click', function () {
+              eligeClienteDoc(sb, estadoContrato.clienteId).then(function (c) {
+                if (!c) return;
+                estadoContrato.clienteId = c.id;
+                btnCli.textContent = c.nombre;
+                ponCampoDoc('cliente_nombre', c.nombre); ponCampoDoc('cliente_documento', c.documento); ponCampoDoc('cliente_email', c.email);
+                repintaPreview();
+              });
+            });
+          }
+          function pintaModoContrato() { if (filaCli) filaCli.style.display = estadoContrato.sinContrato ? 'grid' : 'none'; }
+          function pasaASinContrato() {
+            // Lo que trajo el contrato anterior se suelta y se vacía: el cliente se elige de nuevo.
+            estadoContrato.id = null; estadoContrato.numero = ''; estadoContrato.clienteId = null; estadoContrato.sinContrato = true;
+            sueltaCamposDoc();
+            ['cliente_nombre', 'cliente_documento', 'cliente_email', 'proyecto_nombre'].forEach(function (k) { ponCampoDoc(k, ''); });
+            if (delC) delC.limpia();
+            btnC.textContent = '— sin contrato —'; btnCli.textContent = '— elige el cliente —';
+            notaC.textContent = 'El documento irá a nombre del cliente que elijas, sin contrato.';
+            pintaModoContrato(); repintaPreview();
+          }
           function contratoCargado(id, res) {
-            estadoContrato.id = id; estadoContrato.numero = res.numero; estadoContrato.clienteId = res.clienteId;
+            estadoContrato.id = id; estadoContrato.numero = res.numero; estadoContrato.clienteId = res.clienteId; estadoContrato.sinContrato = false;
             btnC.textContent = res.numero + ' · ' + (res.comprador || '—');
             notaC.textContent = '';
+            pintaModoContrato();
             repintaPreview();
             delC.pon(res).then(repintaPreview);
           }
           btnC.addEventListener('click', function () {
-            lwElegir({ titulo: 'Elige un contrato', buscarPh: 'Número, comprador o proyecto…', opciones: opcionesContratoPickerDoc(contratosLigeros), valor: estadoContrato.id })
+            var ops = opcionesContratoPickerDoc(contratosLigeros);
+            if (regla.sinContrato) ops = [{ valor: SIN_CONTRATO_DOC, texto: '— sin contrato —', nota: 'A nombre de un cliente, sin contrato' }].concat(ops);
+            lwElegir({ titulo: 'Elige un contrato', buscarPh: 'Número, comprador o proyecto…', opciones: ops, valor: estadoContrato.sinContrato ? SIN_CONTRATO_DOC : estadoContrato.id })
               .then(function (id) {
                 if (id === null) return;
+                if (id === SIN_CONTRATO_DOC) { pasaASinContrato(); return; }
                 var antes = btnC.textContent; btnC.disabled = true; btnC.textContent = 'Cargando…';
                 aplicaContratoDoc(sb, id).then(function (res) {
                   btnC.disabled = false;
@@ -2889,6 +2974,7 @@
           var secNotas = seccionPlegableDoc(host, 'Notas (opcional)', !!f0.notas);
           campoSimpleDoc(secNotas, { k: 'notas', label: 'Notas', tipo: 'textarea', valor: f0.notas || '' });
 
+          pintaModoContrato();
           repintaPreview();
           // En modo lectura NO se recarga el contrato: se enseña lo GUARDADO
           // tal cual, no lo que el contrato diga hoy.
@@ -2904,9 +2990,13 @@
         modal(pre.soloLectura ? (existente.numero || 'Documento') : existente ? 'Editar ' + (existente.numero || 'documento') : (copia ? 'Nuevo documento — copia de ' + (copia.numero || '') : 'Nuevo documento'), campos,
           existente ? 'Guardar cambios' : 'Emitir', function (v) {
             if (pre.soloLectura) return { error: { message: 'Este documento se abre solo para consultarlo.' } };
-            if (!estadoContrato.id) return { error: { message: 'Elige el contrato al que corresponde este documento.' } };
+            var sinContrato = !estadoContrato.id && estadoContrato.sinContrato && regla.sinContrato;
+            if (!estadoContrato.id && !sinContrato) return { error: { message: 'Elige el contrato al que corresponde este documento.' } };
+            if (sinContrato && !estadoContrato.clienteId) return { error: { message: 'Elige el cliente al que va este documento.' } };
             if (!v.sociedad) return { error: { message: 'Falta «Sociedad que factura».' } };
             if (!v.cliente_nombre) return { error: { message: 'Falta «Nombre o razón social».' } };
+            // Sin contrato, el documento del cliente no llega de ningún sitio: se pide (Administración #79.3).
+            if (sinContrato && !String(v.cliente_documento || '').trim()) return { error: { message: 'Falta el documento del cliente (pasaporte, NPWP o NIF).' } };
             var lineas = getLineas ? getLineas() : [];
             var d = v; d.lineas = lineas;
             d.contrato_numero = estadoContrato.numero || '';   // lo que imprime el papel, como el input oculto del clásico
@@ -2919,6 +3009,10 @@
               total: t.total, moneda: d.moneda || null, fecha_emision: d.fecha_emision || null,
               justificantes: [], datos: { fields: d, lineas: lineas, totales: t }
             };
+            /* Sin contrato, la operación se suelta EXPLÍCITAMENTE (Seguridad #79.1): una que se quedara
+               puesta de cuando tenía contrato haría que la policy no mirase si el cliente es visible.
+               Solo con la bandera: en Lawang la columna no existe. */
+            if (sinContrato && window.AXW_NUCLEO_OPERACION) payload.operacion_id = null;
             var q = existente
               ? sb.from('facturas').update(payload).eq('id', existente.id).select('id,numero').single()
               : sb.from('facturas').insert(payload).select('id,numero').single();
@@ -2948,6 +3042,7 @@
         return aviso('Emitir recibís exige la herramienta «Facturas» — pídesela a un administrador.', '#8A6A34');
       }
       var esEdicion = !!pre.id;
+      var regla = { sinContrato: false, nota: '' };
       aseguraModulosDoc(['entities', 'compradores', 'totales', 'dialogo', 'documento', 'facturasContratos']).then(function () {
         return Promise.all([
           cargarSociedades(sb).then(function () { return true; }, function () { return false; }),
@@ -2955,10 +3050,12 @@
           listaContratosLigeraDoc(sb),
           esEdicion
             ? sb.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,client_id,creado_por,anulada,enviada,datos,justificantes').eq('id', pre.id).eq('tipo', 'recibi').maybeSingle()
-            : Promise.resolve({ data: null })
+            : Promise.resolve({ data: null }),
+          reglaContratoDoc(sb)
         ]);
       }).then(function (r) {
         var sociedadesOk = r[0], cuentasOk = r[1], contratos = r[2].data || [];
+        regla = r[4];
         var existente = esEdicion ? r[3].data : null;
         if (esEdicion && !existente) return aviso('No se encontró ese recibí.', '#93000a');
         // Un solo modelo (22-sep-2026): abrir es editar; si no admite cambios,
@@ -2982,8 +3079,13 @@
           clienteId: (existente && existente.client_id) || null,
           moneda: f0.moneda || 'EUR',
           clienteNombre: f0.cliente_nombre || '', clienteDocumento: f0.cliente_documento || '',
-          clienteEmail: f0.cliente_email || '', proyectoNombre: f0.proyecto_nombre || ''
+          clienteEmail: f0.cliente_email || '', proyectoNombre: f0.proyecto_nombre || '',
+          // Recibí de un CLIENTE sin contrato (AxisWorks ERP, 25-sep-2026): solo donde la empresa lo permite.
+          // Lo decide la primera factura elegida: suelta → cliente; con contrato → contrato, como siempre.
+          sinContrato: !!(regla.sinContrato && existente && !existente.contrato_id && existente.client_id)
         };
+        // ¿Ya se sabe de quién es el cobro? Por contrato, o por cliente en el modo sin contrato.
+        function hayOrigen() { return !!(estadoContrato.id || (estadoContrato.sinContrato && estadoContrato.clienteId)); }
         var aplicaciones = [];   // [{factura_id, numero, pendiente, importe}]
         var facturasAbiertasCache = [], facturasOtraMoneda = 0, delC = null;
         var getJustificantes = null;
@@ -3001,6 +3103,14 @@
         // se conoce. Mismo camino que cargarFacturasAbiertas() del clásico
         // cuando CONTRATO_ID ya está fijado.
         function cargaAbiertas() {
+          if (!estadoContrato.id && hayOrigen()) {
+            // Sin contrato: las pendientes de ESE cliente (con contrato o sueltas) — la misma regla que
+            // aplica guardar_recibi en la base.
+            return cargaTodasAbiertasRecibiDoc(sb, estadoContrato.moneda, true).then(function (abs) {
+              facturasOtraMoneda = 0;   // esta vía ya filtra por moneda y no cuenta las demás
+              return abs.filter(function (x) { return x.client_id === estadoContrato.clienteId; });
+            });
+          }
           if (!estadoContrato.id) return Promise.resolve([]);
           return Promise.all([
             sb.rpc('facturas_equipo').select('id,numero,contrato_id,contrato_numero,cliente_nombre,total,tipo,anulada,moneda'),
@@ -3110,7 +3220,43 @@
 
           // Aplica una factura YA ELEGIDA: el contrato, el comprador y el
           // pendiente salen de ella — mismo camino que aplicarFacturaAlRecibi().
+          /* Primera factura SUELTA (sin contrato) en una empresa que lo permite: el recibí pasa a ser
+             de su cliente. Los datos del cliente salen de su ficha, uno solo, con la RLS de quien emite. */
+          function pasaACliente(f) {
+            return sb.from('clients').select('id,full_name,email,passport_number,registro_num').eq('id', f.client_id).maybeSingle().then(function (rc) {
+              if (rc.error || !rc.data) { toastMal(lwErrorHumano(rc.error || { message: 'cliente no encontrado' }, 'No se pudo cargar el cliente de esa factura')); return false; }
+              var c = rc.data;
+              estadoContrato.id = null; estadoContrato.numero = ''; estadoContrato.sinContrato = true; estadoContrato.clienteId = c.id;
+              estadoContrato.clienteNombre = c.full_name || f.cliente_nombre || '';
+              estadoContrato.clienteDocumento = c.passport_number || c.registro_num || '';
+              estadoContrato.clienteEmail = c.email || ''; estadoContrato.proyectoNombre = '';
+              sueltaCamposDoc();
+              ponCampoDoc('cliente_nombre', estadoContrato.clienteNombre); ponCampoDoc('cliente_documento', estadoContrato.clienteDocumento);
+              ponCampoDoc('cliente_email', estadoContrato.clienteEmail);
+              if (delC) delC.limpia();
+              return true;
+            });
+          }
           function aplicaFactura(f) {
+            // Ya en modo cliente, una factura CON contrato de ese mismo cliente sigue en modo cliente
+            // (guardar_recibi sin contrato acepta cualquier factura del cliente): no se cambia de vía a mitad.
+            // Solo donde la empresa lo permite, y solo si la factura trae `contrato_id` de verdad a null: las
+            // de cargaAbiertas() por contrato NO traen el campo (code-review 25-sep: con `!f.contrato_id` a
+            // secas, en Lawang «+ Añadir otra factura» y los atajos desde contrato/factura caían aquí).
+            if (regla.sinContrato && (estadoContrato.sinContrato || ('contrato_id' in f && !f.contrato_id))) {
+              if (!regla.sinContrato || !f.client_id) { toastMal('Esa factura no cuelga de ningún contrato: no se le puede aplicar un cobro.'); return; }
+              var mismo = estadoContrato.sinContrato && estadoContrato.clienteId === f.client_id;
+              (mismo ? Promise.resolve(true) : pasaACliente(f)).then(function (ok) {
+                if (!ok) return;
+                cargaAbiertas().then(function (abs) {
+                  facturasAbiertasCache = abs;
+                  aplicaciones.push({ factura_id: f.id, numero: f.numero, pendiente: f.pendiente, importe: '' });
+                  pintaBtnF(); repintaAplic();
+                  toast('Factura ' + f.numero + ' — escribe cuánto se ha cobrado');
+                });
+              });
+              return;
+            }
             var cambioContrato = f.contrato_id && f.contrato_id !== estadoContrato.id;
             (cambioContrato ? aplicaContratoDoc(sb, f.contrato_id).then(function (res) {
               if (res.error) { toastMal(lwErrorHumano(res.error, 'No se pudo cargar el contrato de esa factura')); return; }
@@ -3130,9 +3276,9 @@
 
           function abreBuscador() {
             var yaElegidas = {}; aplicaciones.forEach(function (a) { yaElegidas[a.factura_id] = 1; });
-            var fuente = estadoContrato.id ? cargaAbiertas() : cargaTodasAbiertasRecibiDoc(sb, estadoContrato.moneda);
+            var fuente = hayOrigen() ? cargaAbiertas() : cargaTodasAbiertasRecibiDoc(sb, estadoContrato.moneda, regla.sinContrato);
             fuente.then(function (abs) {
-              if (estadoContrato.id) facturasAbiertasCache = abs;
+              if (hayOrigen()) facturasAbiertasCache = abs;
               var libres = abs.filter(function (x) { return !yaElegidas[x.id]; });
               if (!libres.length) { toastMal(abs.length ? 'Todas las facturas pendientes ya están en este recibí.' : 'No hay ninguna factura pendiente de cobro.'); return; }
               lwElegir({
@@ -3156,7 +3302,8 @@
             btnF.textContent = 'Cargando…';
             // En modo lectura se enseña lo GUARDADO: no se recarga el contrato,
             // solo se restauran las facturas que este recibí saldó.
-            (pre.soloLectura ? Promise.resolve({ error: null, omitido: true }) : aplicaContratoDoc(sb, estadoContrato.id)).then(function (res) {
+            // Recibí sin contrato: no hay contrato que recargar; sus datos son los guardados y el cliente es su client_id.
+            (pre.soloLectura || estadoContrato.sinContrato ? Promise.resolve({ error: null, omitido: true }) : aplicaContratoDoc(sb, estadoContrato.id)).then(function (res) {
               if (!res.error && !res.omitido) {
                 estadoContrato.numero = res.numero; estadoContrato.clienteId = res.clienteId;
                 estadoContrato.moneda = res.moneda || estadoContrato.moneda;
@@ -3221,7 +3368,7 @@
           // clásico): la base rechaza mezclar monedas (recibi_no_mezcla_moneda).
           selMonedaR.addEventListener('change', function () {
             estadoContrato.moneda = selMonedaR.value || 'EUR';
-            if (!estadoContrato.id) return;
+            if (!hayOrigen()) return;
             cargaAbiertas().then(function (abs) {
               facturasAbiertasCache = abs;
               var validas = {}; abs.forEach(function (x) { validas[x.id] = 1; });
@@ -3286,8 +3433,9 @@
           function repinta() {
             var usadas = {}; aplicaciones.forEach(function (a) { usadas[a.factura_id] = 1; });
             var libres = facturasAbiertasCache.filter(function (x) { return !usadas[x.id]; });
-            btnAdd.hidden = !estadoContrato.id;
-            avisoAplic.textContent = !estadoContrato.id ? 'Elige arriba la factura que se cobra.'
+            btnAdd.hidden = !hayOrigen();
+            avisoAplic.textContent = !hayOrigen() ? 'Elige arriba la factura que se cobra.'
+              : libres.length && estadoContrato.sinContrato ? 'Hay ' + libres.length + ' factura' + (libres.length === 1 ? '' : 's') + ' pendiente' + (libres.length === 1 ? '' : 's') + ' más de este cliente.'
               : libres.length ? 'Hay ' + libres.length + ' factura' + (libres.length === 1 ? '' : 's') + ' pendiente' + (libres.length === 1 ? '' : 's') + ' más de este comprador, incluidas las de sus otros contratos.'
               : facturasOtraMoneda ? 'Este comprador tiene ' + facturasOtraMoneda + ' factura' + (facturasOtraMoneda === 1 ? '' : 's') + ' pendiente' + (facturasOtraMoneda === 1 ? '' : 's') + ', pero en otra moneda — un recibí no puede saldar una factura en una moneda distinta a la suya.'
               : 'No le queda ninguna otra factura pendiente a este comprador.';
@@ -3346,7 +3494,7 @@
         modal(pre.soloLectura ? (existente.numero || 'Recibí') : existente ? 'Editar ' + (existente.numero || 'recibí') : 'Emitir recibí de cobro', campos,
           existente ? 'Guardar cambios' : 'Emitir recibí', function (v) {
             if (pre.soloLectura) return { error: { message: 'Este recibí se abre solo para consultarlo.' } };
-            if (!estadoContrato.id) return { error: { message: 'Elige la factura que se cobra.' } };
+            if (!hayOrigen()) return { error: { message: 'Elige la factura que se cobra.' } };
             if (!aplicaciones.length) return { error: { message: 'Elige al menos una factura que salde este recibí.' } };
             if (!v.sociedad) return { error: { message: 'Falta «Sociedad que cobra».' } };
             var justificantes = getJustificantes ? getJustificantes() : [];
@@ -3370,6 +3518,8 @@
               total: t.total, moneda: d.moneda || null, fecha_emision: d.fecha_emision || null,
               justificantes: justificantes, datos: { fields: d, lineas: lineas, totales: t }
             };
+            // Sin contrato, el recibí va a nombre del cliente; guardar_recibi comprueba que quien lo emite lo ve.
+            if (!estadoContrato.id) pFactura.client_id = estadoContrato.clienteId;
             var pAplicaciones = aplicaciones.map(function (a) { return { factura_id: a.factura_id, importe: lwParseImporte(a.importe) }; });
             return sb.rpc('guardar_recibi', { p_id: (existente && existente.id) || null, p_factura: pFactura, p_aplicaciones: pAplicaciones })
               .then(function (res) {
@@ -3396,7 +3546,7 @@
             estadoContrato.moneda = selMonedaWire.value || 'EUR';
             aplicaciones = [];
             pintaBtnF();
-            if (estadoContrato.id) cargaAbiertas().then(function (abs) { facturasAbiertasCache = abs; repintaAplic(); });
+            if (hayOrigen()) cargaAbiertas().then(function (abs) { facturasAbiertasCache = abs; repintaAplic(); });
             else repintaAplic();
           });
         }
