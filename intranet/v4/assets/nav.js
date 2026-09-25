@@ -15,6 +15,58 @@
      nada: ni rutas, ni idioma, ni el `preventDefault` de los href="#" (23-sep). */
   if (location.pathname.indexOf('/intranet/v4/') === -1 && !document.documentElement.classList.contains('v4')) return;
 
+  /* FALLOS QUE VE LA PERSONA (25-sep-2026, owner: «¿puede detectar si ha habido un
+     fallo y que mande el feedback, o un botón para mandarlo y que me llegue a
+     Telegram?»). Se apuntan aquí, lo antes posible y en todas las páginas v4,
+     para que el Asistente (mascota.js, que llega tarde: espera a LW_AUTH) pueda
+     ofrecer «Avisar al estudio» con los detalles. Solo se APUNTA: nada sale de
+     aquí sin que la persona lo pida. Tres fuentes:
+     · error de código sin capturar, solo de ficheros del propio dominio (el
+       «Script error.» de un CDN no dice nada y no es nuestro);
+     · promesa rechazada sin `catch`;
+     · el aviso rojo (`#toastMal` de suite-comun.js), lo que la persona LEE. Es
+       una constante de aquel fichero y no se puede envolver: se vigila su nodo.
+     Tope 8, sin repetir el mismo texto en 3 s. Encargo:
+     encargos/20260925_lawang_asistente_mascota.md → «Ampliación». */
+  (function () {
+    if (window.__lwFallos || location.pathname.indexOf('/intranet/v4/') === -1) return;
+    var B = window.__lwFallos = [];
+    function apunta(tipo, msg) {
+      msg = String(msg == null ? '' : msg).replace(/\s+/g, ' ').trim().slice(0, 300);
+      if (!msg) return;
+      var u = B[B.length - 1];
+      if (u && u.msg === msg && Date.now() - u.t < 3000) return;
+      B.push({ tipo: tipo, msg: msg, t: Date.now() });
+      if (B.length > 8) B.shift();
+      try { document.dispatchEvent(new CustomEvent('lw:fallo', { detail: B[B.length - 1] })); } catch (e) { /* MUDO A PROPÓSITO: navegador sin CustomEvent, queda apuntado igual */ }
+    }
+    window.addEventListener('error', function (ev) {
+      var f = (ev && ev.filename) || '';
+      if (!ev || !ev.message || ev.message === 'Script error.' || (f && f.indexOf(location.origin) !== 0)) return;
+      apunta('codigo', ev.message + (f ? ' (' + f.slice(location.origin.length).split('?')[0] + ':' + ev.lineno + ')' : ''));
+    });
+    window.addEventListener('unhandledrejection', function (ev) {
+      var r = ev && ev.reason;
+      apunta('codigo', r && r.message ? r.message : r);
+    });
+    function vigila(n) {
+      new MutationObserver(function () {
+        if (n.classList.contains('show')) apunta('aviso', n.textContent);
+      }).observe(n, { attributes: true, attributeFilter: ['class'] });
+    }
+    function empieza() {
+      var n = document.getElementById('toastMal');
+      if (n) return vigila(n);
+      // suite-comun.js lo crea al primer aviso, colgado de <body>: solo hijos directos
+      var mo = new MutationObserver(function () {
+        var t = document.getElementById('toastMal');
+        if (t) { mo.disconnect(); vigila(t); if (t.classList.contains('show')) apunta('aviso', t.textContent); }
+      });
+      mo.observe(document.body, { childList: true });
+    }
+    if (document.body) empieza(); else document.addEventListener('DOMContentLoaded', empieza);
+  })();
+
   // <base> de la maqueta: carpeta v4/, deducida de la ruta de ESTE script.
   var self = document.currentScript || document.querySelector('script[src*="nav.js"]');
   var ROOT = self ? self.src.replace(/assets\/nav\.js.*$/, '') : '../';
@@ -29,7 +81,7 @@
   var CORTINA = { 'comision-admin': 15 };
   var CORTINA_V = '20260923b';
   /* mascota.js (el Asistente acoplado) tampoco lo sella sella_assets: sube MASCOTA_V al cambiarlo. */
-  var MASCOTA_V = '20260925a';
+  var MASCOTA_V = '20260925b';
   (function () {
     var seg = location.pathname.replace(/\/(index\.html)?$/, '').split('/').pop();
     if (!CORTINA[seg]) return;
