@@ -750,7 +750,7 @@
         // `desde`: el cajón crece desde la campana y se recoge hacia ella
         // el 60% de siempre en escritorio; en móvil, pantalla entera como todo
         // cajón (regla común en shell.css, 24-sep-2026 — antes se parcheaba aquí)
-        window.lwCajon({ titulo: 'Avisos', sub: 'Lo que ha pasado y lo que vence en los próximos 15 días.', cuerpo: cuerpo, desde: boton });
+        window.lwCajon({ titulo: 'Avisos', bajoTitulo: 'Lo que ha pasado y lo que vence en los próximos 15 días.', cuerpo: cuerpo, desde: boton });
       };
       // abrir = dar los hechos por vistos (las alertas de ≤5 días siguen contando, como en la viva)
       if (ULTIMO && ULTIMO.sinLeer) {
@@ -1088,7 +1088,9 @@
                       location.pathname.indexOf('/v4/operaciones/') !== -1;   // Operaciones también abre por ?contrato= (22-sep)
     if (enContratos && num) { try { history.replaceState(null, '', '?contrato=' + encodeURIComponent(num)); } catch (e) { /* sin historial (iframe, file:) */ } }
     var caj = window.lwCajon({
-      sub: tipoC(c0.tipo) + (c0.bloqueado ? ' · firmado' : (c0.pdf_firmado_path ? ' · reabierto' : ' · borrador')),
+      sub: 'Contratos · ' + tipoC(c0.tipo),
+      estado: c0.bloqueado ? ['Firmado', 'ok'] : (c0.pdf_firmado_path ? ['Reabierto', 'espera'] : ['Borrador', 'neutro']),
+      lado: ['resumen'],
       titulo: num,
       bajoTitulo: (c0.comprador_nombre || '—') + (c0.proyecto_nombre ? ' · ' + c0.proyecto_nombre : '') + (c0.parcela_codigo ? ' · Parcela ' + c0.parcela_codigo : ''),
       cuerpo: '<p style="margin:0;font-size:13px;color:#8A8474">Trayendo la ficha…</p>',
@@ -1219,21 +1221,18 @@
         else sigPaso = 'Firmado sin precio: no hay nada que cobrar registrado.';
       }
       var precioR = cg ? cg.precio : c.precio_total, cobradoR = cg ? cg.facturado : cobrado, pendR = cg ? cg.pendiente : pend;
-      var cajita = function (etq, val, sub) {
-        return '<div style="background:#fff;border:1px solid #E4DCCB;border-radius:10px;padding:10px 12px;min-width:0"><div style="font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#75786e">' + esc(etq) + '</div>' +
-          '<div style="margin-top:4px;font:700 18px/1.2 \'Neue Kabel\',sans-serif;color:#104C4F;overflow-wrap:anywhere">' + val + '</div>' +
-          (sub ? '<div style="font-size:11px;color:#8A8474;margin-top:2px">' + esc(sub) + '</div>' : '') + '</div>';
-      };
+      // piel del alta (25-sep-2026): cifras y siguiente paso con las piezas de lwCajonHtml
+      var cajita = function (etq, val, sub) { return [etq, val, sub]; };
       var sub = hayCadena ? 'de la venta completa (' + piezas.length + ' contratos)' : '';
       cuerpo += H.seccion('Resumen de la venta',
-        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">' +
-          cajita('Situación', etapaV ? H.tag(ETQ2[etapaV] || etapaV, TONO2[etapaV] || '') : H.tag(c.bloqueado ? 'Firmado' : 'Borrador', c.bloqueado ? 'ok' : 'espera'), sub) +
-          cajita('Precio', precioR != null ? esc(fmt(precioR, c.moneda)) : '<span style="color:#8A8474;font-size:14px">sin fijar</span>', hayCadena ? 'suma de la cadena; la Carta no suma' : (esPreliminar(c) ? 'el de la casa entera; aquí solo se cobra la señal' : '')) +
-          cajita('Cobrado', cobradoR != null ? esc(fmt(cobradoR, c.moneda)) : '—', 'por recibís') +
-          ((cg && cg.soloPreliminar) ? cajita('Pendiente', '—', 'una reserva no debe el precio de la casa')
-                                     : cajita('Pendiente', pendR != null ? esc(fmt(pendR, c.moneda)) : '—', '')) +
-        '</div>' +
-        '<div style="margin-top:8px;font-size:13px;color:#2E3437"><span style="font-weight:700;color:#75786e;font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin-right:8px">Siguiente paso</span>' + esc(sigPaso) + '</div>');
+        H.cifras([
+          cajita('Situación', etapaV ? H.tag(ETQ2[etapaV] || etapaV, TONO2[etapaV] || '') : H.tag(c.bloqueado ? 'Firmado' : 'Borrador', c.bloqueado ? 'ok' : 'espera'), sub),
+          cajita('Precio', precioR != null ? esc(fmt(precioR, c.moneda)) : '<span class="lwc-apagado" style="font-size:14px">sin fijar</span>', hayCadena ? 'suma de la cadena; la Carta no suma' : (esPreliminar(c) ? 'el de la casa entera; aquí solo se cobra la señal' : '')),
+          cajita('Cobrado', cobradoR != null ? esc(fmt(cobradoR, c.moneda)) : '—', 'por recibís'),
+          (cg && cg.soloPreliminar) ? cajita('Pendiente', '—', 'una reserva no debe el precio de la casa')
+                                    : cajita('Pendiente', pendR != null ? esc(fmt(pendR, c.moneda)) : '—', '')
+        ]) +
+        H.paso('Siguiente paso', sigPaso), 'resumen');
       if (hayCadena) {
         cuerpo += H.seccion('Contratos de esta venta (' + piezas.length + ')',
           H.tabla(['Contrato', 'Tipo', 'Estado', 'Precio', 'Cobrado'], piezas.map(function (x) {
@@ -1245,7 +1244,7 @@
               esc(fmt(cobradoPorId[x.id] || 0, x.moneda))];
           })));
       }
-      var dos = function (html) { return '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:0 24px">' + html + '</div>'; };
+      var dos = function (html) { return '<div class="lwc-dos">' + html + '</div>'; };
       cuerpo += H.seccion('Datos del contrato', dos(
         // mismos tonos que la tabla de la cadena de arriba (estadoPieza): reabierto = pendiente, borrador = informativo
         H.dato('Estado', c.bloqueado ? H.tag('Firmado', 'ok') : (c.pdf_firmado_path ? H.tag('Reabierto', 'espera') : H.tag('Borrador', 'neutro')), { html: 1 }) +
@@ -1805,7 +1804,8 @@
     if (!f0.enviada && V4.esSuperAdmin) acciones.push({ texto: 'Borrar', tono: 'peligro', onClick: function () { borrarDocumento(sb, f0); } });
     acciones.push({ texto: 'Cerrar', cerrar: true });
     var caj = window.lwCajon({
-      sub: tipoDoc(f0.tipo) + (f0.anulada ? ' · anulada' : ''),
+      sub: tipoDoc(f0.tipo),
+      estado: f0.anulada ? ['Anulada', 'mal'] : null,
       titulo: f0.numero || '',
       bajoTitulo: (f0.cliente_nombre || '—') + (f0.contrato_numero ? ' · ' + f0.contrato_numero : ''),
       cuerpo: '<p style="margin:0;font-size:13px;color:#8A8474">Trayendo la ficha…</p>',
@@ -1820,7 +1820,7 @@
         if (!document.getElementById('lw-cajon')) return;             // la cerraron antes de que llegara
         if (r.error || (r.data && r.data.length)) return;              // referenciado, o no se pudo comprobar: no se ofrece
         var b = document.createElement('button'); b.type = 'button'; b.textContent = 'Borrar';
-        b.style.cssText = 'padding:11px 18px;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;border:1px solid #9E2F26;background:#ffffff;color:#9E2F26;margin-left:auto';
+        b.className = 'las-btn2 lwc-peligro';
         b.addEventListener('click', function () { borrarDocumento(sb, f0); });
         caj.pie.appendChild(b);
       });
@@ -2640,13 +2640,12 @@
                 return [esc(k), esc(fmt(p.precio, moneda)), esc(fmt(p.cobrado, moneda)), esc(fmt(p.precio - p.cobrado, moneda))];
               })) + '</div>'
             : '';
-          return '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center">' +
-            ['Precio pactado', 'Cobrado', 'Pendiente'].map(function (etq, i) {
+          // cifras con la pieza del cajón (25-sep-2026); cobrado en verde, lo que se debe en rojo
+          return H.cifras(['Precio pactado', 'Cobrado', 'Pendiente'].map(function (etq, i) {
               var v = [precio, cobrado, pendiente][i];
-              var color = i === 1 ? '#3F5230' : (i === 2 && pendiente > 0 ? '#9E2F26' : '#2E3437');
-              return '<div><div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#75786e">' + etq + '</div>' +
-                '<div style="font-size:18px;font-weight:700;color:' + color + '">' + esc(fmt(v, moneda)) + '</div></div>';
-            }).join('') + '</div>' +
+              var color = i === 1 ? '#3F5230' : (i === 2 && pendiente > 0 ? '#9E2F26' : '');
+              return [etq, color ? '<span style="color:' + color + '">' + esc(fmt(v, moneda)) + '</span>' : esc(fmt(v, moneda))];
+            })) +
             '<p style="margin:6px 0 0;font-size:11.5px;color:#75786e">Solo cuenta como cobrado el recibí — una factura o proforma es lo que se debe, no lo pagado.' +
             (sumables.length !== suyos.length ? ' El precio no cuenta las Cartas de Reserva.' : '') + '</p>' + tablaProy;
         }
@@ -2780,6 +2779,7 @@
           }
           acciones.push({ texto: 'Cerrar', cerrar: true });
           var cj = window.lwCajon({ sub: esEmpresa ? 'Ficha de empresa compradora' : 'Ficha de comprador', titulo: c2.full_name || 'Sin nombre',
+            estado: ['KYC · ' + kyc[0], kyc[1]], lado: ['cuentas'],
             bajoTitulo: [c2.nationality, c2.passport_number].filter(Boolean).join(' · ') || 'sin identificación',
             cuerpo: cuerpo, acciones: acciones, alCerrar: quitaId });
           var u2 = new URL(location.href);
