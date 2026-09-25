@@ -5,8 +5,10 @@
 --
 -- POR QUE. `subirPdfFirmado()` (contracts/app.html) sube `<numero>_manual.pdf`
 -- con `upsert:true` y DESPUES apunta `contratos.pdf_firmado_path` a ese fichero.
--- Con upsert, storage-api hace INSERT … ON CONFLICT DO UPDATE … RETURNING, y
--- Postgres exige que la fila nueva pase tambien la policy de SELECT. La de
+-- Con upsert, la escritura de storage-api exige que la fila nueva pase tambien
+-- la policy de SELECT (verificado por efecto: logs de hoy + este arreglo; la
+-- sentencia exacta de storage-api no se ha visto). Sin upsert no muerde:
+-- justificantes siguio entrando desde agentes tras el 18-sep. La de
 -- `contratos-firmados` (20260918021400) solo reconoce un PDF cuando un contrato
 -- ya apunta a el: en el momento de subir no apunta nadie → rechazo. Los admins
 -- no lo veian porque `es_admin()` les abre la lectura entera. Los snapshots de
@@ -18,7 +20,7 @@
 --      de un contrato que el agente ya puede ver (misma guarda de propiedad).
 --      Los huerfanos siguen invisibles: sin contrato con ese numero no casa nada.
 --   2. Reintento: si el PDF subio pero el UPDATE del contrato fallo, el fichero
---      ya existe y el siguiente upsert toma la rama DO UPDATE, que solo tenia
+--      ya existe y el siguiente upsert lo reescribe (UPDATE), que solo tenia
 --      policy para `pendientes/`. Se abre para el `_manual.pdf` de un contrato
 --      propio y SIN bloquear: uno firmado no se reescribe (ademas su hash queda
 --      en `contratos.pdf_firmado_hash`).
