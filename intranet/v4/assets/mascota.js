@@ -341,7 +341,11 @@
       return String(x || '')
         .replace(/(https?:\/\/|www\.|t\.me\/)\S*/gi, '[enlace]')
         .replace(/[\w.+-]+@[\w-]+\.[\w.]{2,}/g, '[email]')
-        .replace(/(^|[^\d])\+?\d[\d ()./-]{7,}\d(?!\d)/g, '$1[número]');
+        .replace(/(^|[^\d])\+?\d[\d ()./-]{7,}\d(?!\d)/g, '$1[número]')
+        /* DNI/NIE/pasaporte: 6+ cifras pegadas a letras («12345678Z», «X1234567L»,
+           «AB1234567»). La red de panel-web exige acabar en cifra y se los dejaría
+           pasar (consulta de deploy, Legal, 25-sep). */
+        .replace(/\b[A-Za-z]{0,3}\d{6,}[A-Za-z]?\b/g, '[documento]');
     }
     function sinCitas(x) {
       return String(x || '').replace(/«[^»]*»/g, '«…»').replace(/“[^”]*”/g, '“…”').replace(/"[^"]*"/g, '"…"');
@@ -367,7 +371,7 @@
       if (lista.length) {
         L.push('Lo que notó la intranet:');
         lista.slice(-3).forEach(function (f) {
-          var msg = f.tipo === 'aviso' ? sinCitas(f.msg) : f.msg;
+          var msg = sinCitas(f.msg);   // también en errores de código: un throw puede citar un nombre (Legal, 25-sep)
           L.push('· ' + (f.tipo === 'aviso' ? 'Aviso en pantalla: ' : 'Error de código: ') + limpia(msg).slice(0, 200) + ' (' + hace(f.t) + ')');
         });
       } else {
