@@ -334,14 +334,20 @@ function wireCampoParcela(){
   caja.addEventListener('change', async e => {
     const add = e.target.closest('.parcela-add');
     if(!add || !add.value) return;
-    const u = (UNIDADES_PROY.lista || []).find(x => x.codigo === add.value);
+    // El código se fija ANTES del await y el desplegable se congela mientras
+    // la base contesta: si no, un cambio a mitad colaba otra parcela sin
+    // comprobar (consulta de deploy de Desarrollo, 25-sep-2026).
+    const codigo = add.value;
+    const u = (UNIDADES_PROY.lista || []).find(x => x.codigo === codigo);
     if(u && estadoTraspaso(u) === 'por_comprobar'){
-      const ok = await comprobarTraspasoRemoto(u);
+      add.disabled = true;
+      let ok = false;
+      try{ ok = await comprobarTraspasoRemoto(u); } finally { add.disabled = false; }
       if(!ok){ add.value = ''; pintarSelectorParcela(); return; }
     }
     const el = caja.querySelector('input[name="parcela_codigo"]');
     const lista = el.value.split(',').map(x=>x.trim()).filter(Boolean);
-    if(!lista.includes(add.value)) lista.push(add.value);
+    if(!lista.includes(codigo)) lista.push(codigo);
     el.value = lista.join(', ');
     el.dispatchEvent(new Event('input', { bubbles:true }));
     pintarSelectorParcela();
