@@ -538,7 +538,7 @@ Deno.serve(async (req) => {
       // Ramas de `datos` una a una, nunca `datos` entero: `design` lleva la
       // portada en base64 (~600 kB) y no la usa nadie aquí (LAW-78, 25-sep-2026).
       .select('id, numero, tipo, nombre_contrato, comprador_nombre, proyecto_nombre, precio_total, moneda, fecha_firma, bloqueado, unidad_id, proyecto_id, contrato_padre_id, '
-        + 'fields:datos->fields, hitos:datos->hitos, techo:datos->techo, clauses:datos->clauses, extras:datos->extras, annexes:datos->annexes, lang:datos->>lang')
+        + 'fields:datos->fields, hitos:datos->hitos, techo:datos->techo, clauses:datos->clauses, extras:datos->extras, annexes:datos->annexes, lang:datos->>lang, adq1_client_id:datos->>adq1_client_id')
       .eq('id', contrato_id)
       .maybeSingle();
     if (eC) return json({ error: 'no_se_pudo_leer_contrato' }, 500);
@@ -558,6 +558,9 @@ Deno.serve(async (req) => {
     const datos: Record<string, unknown> = {
       fields: contrato.fields, hitos: contrato.hitos, techo: contrato.techo,
       clauses: contrato.clauses, extras: contrato.extras, annexes, lang: contrato.lang,
+      // Enlaza la consulta con la ficha del comprador (bot_consultas.client_id).
+      // Faltó en la v17 y se guardó null unas horas (consulta de deploy de Seguridad).
+      adq1_client_id: contrato.adq1_client_id,
     };
     const fields = (datos.fields ?? {}) as Record<string, unknown>;
     const claveCuenta = typeof fields.cuenta_bancaria === 'string' ? fields.cuenta_bancaria : '';
