@@ -2309,7 +2309,7 @@
   function reglaContratoDoc(sb) {
     if (!window.AXW_NUCLEO_OPERACION) return Promise.resolve({ sinContrato: false, domicilio: false, nota: '' });
     var NO_CONTRATO = 'No se ha podido saber si esta empresa permite documentos sin contrato: de momento se exige contrato.';
-    var NO_DOMICILIO = 'No se ha podido saber si esta empresa imprime el domicilio del cliente: de momento no se imprime.';
+    var NO_DOMICILIO = 'No se ha podido saber si esta empresa imprime el domicilio del cliente: recarga la página antes de emitir una factura.';
     function lee(fn, etq) {
       return sb.rpc(fn).then(function (r) {
         if (r.error) { console.error('[facturas] ' + etq + ':', r.error); return null; }
@@ -2321,7 +2321,7 @@
         var notas = [];
         if (rs[0] === null) notas.push(NO_CONTRATO);
         if (rs[1] === null) notas.push(NO_DOMICILIO);
-        return { sinContrato: rs[0] === false, domicilio: rs[1] === true, nota: notas.join(' ') };
+        return { sinContrato: rs[0] === false, domicilio: rs[1] === true, domicilioIlegible: rs[1] === null, nota: notas.join(' ') };
       });
   }
   var SIN_CONTRATO_DOC = '__sin_contrato__';
@@ -3590,20 +3590,26 @@
             notaC.textContent = 'El documento irá a nombre del cliente que elijas, sin contrato.';
             pintaModoContrato(); repintaPreview();
           }
-          function contratoCargado(id, res) {
+          // `inicial`: la carga del documento ya guardado al reabrirlo — ahí se respeta el domicilio guardado.
+          function contratoCargado(id, res, inicial) {
             estadoContrato.id = id; estadoContrato.numero = res.numero; estadoContrato.clienteId = res.clienteId; estadoContrato.sinContrato = false;
             btnC.textContent = res.numero + ' · ' + (res.comprador || '—');
             notaC.textContent = '';
             pintaModoContrato();
             repintaPreview();
             delC.pon(res).then(repintaPreview);
-            // El contrato no trae el domicilio: sale de la ficha de su comprador principal, si el campo está vacío.
+            // El contrato no trae el domicilio: sale de la ficha de su comprador principal. Al CAMBIAR de contrato
+            // se vacía y se vuelve a traer (Administración, consulta de deploy 25-sep: si no, una factura al
+            // cliente B salía con la dirección de A y el campo obligatorio no lo cazaba porque no estaba vacío).
             var campoDom = regla.domicilio ? campoDeDoc('cliente_domicilio') : null;
-            if (campoDom && !campoDom.value && res.clienteId) {
-              sb.from('clients').select('address').eq('id', res.clienteId).maybeSingle().then(function (rd) {
-                if (rd.error) { console.error('[facturas] domicilio del comprador:', rd.error); return; }
-                if (rd.data && rd.data.address && !campoDom.value) { campoDom.value = rd.data.address; repintaPreview(); }
-              });
+            if (campoDom && !(inicial && campoDom.value)) {
+              campoDom.value = ''; repintaPreview();
+              if (res.clienteId) {
+                sb.from('clients').select('address').eq('id', res.clienteId).maybeSingle().then(function (rd) {
+                  if (rd.error) { console.error('[facturas] domicilio del comprador:', rd.error); toastMal(lwErrorHumano(rd.error, 'No se pudo traer el domicilio del comprador: escríbelo a mano')); return; }
+                  if (rd.data && rd.data.address && estadoContrato.id === id) { campoDom.value = rd.data.address; repintaPreview(); }
+                });
+              }
             }
           }
           btnC.addEventListener('click', function () {
@@ -3703,7 +3709,7 @@
             btnC.textContent = 'Cargando…';
             aplicaContratoDoc(sb, contratoInicial).then(function (res) {
               if (res.error) { btnC.textContent = estadoContrato.numero || '— elige un contrato —'; toastMal(lwErrorHumano(res.error, 'No se pudo cargar el contrato')); return; }
-              contratoCargado(contratoInicial, res);
+              contratoCargado(contratoInicial, res, true);
             });
           }
         } });
@@ -3718,6 +3724,8 @@
             if (!v.cliente_nombre) return { error: { message: 'Falta «Nombre o razón social».' } };
             // Sin contrato, el documento del cliente no llega de ningún sitio: se pide (Administración #79.3).
             if (sinContrato && !String(v.cliente_documento || '').trim()) return { error: { message: 'Falta el documento del cliente (pasaporte, NPWP o NIF).' } };
+            // Regla ilegible: ni se emite sin domicilio donde quizá es obligatorio, ni se imprime donde quizá no toca.
+            if (regla.domicilioIlegible) return { error: { message: 'No se ha podido comprobar si esta empresa imprime el domicilio del cliente: recarga la página antes de emitir.' } };
             if (regla.domicilio && !String(v.cliente_domicilio || '').trim()) return { error: { message: 'Falta el domicilio del cliente.' } };
             if (regla.domicilio) v.imprime_domicilio = true;
             var lineas = getLineas ? getLineas() : [];
