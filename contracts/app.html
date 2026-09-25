@@ -3134,6 +3134,12 @@ function buildDoc(){
   applyPromotor(data);   // rellena prom_* según la sociedad firmante elegida (default Tepi Sun Gai)
   applyApoderado(data);   // rellena hsn_apoderado_ktp con la signed URL ya resuelta (POA)
   applyRepresentanteComprador(data);   // adq2_firmante_nombre: apoderado del comprador si lo hay, si no el propio comprador
+  /* En blanco circula sin contrato detrás (Legal, capa 1, 25-sep-2026): fuera
+     el documento y los números fiscales del director y de la sociedad, y el
+     KTP de los apoderados — minimización (UU PDP/RGPD) y nada con que
+     suplantar a la sociedad. Razón social y domicilio sí se quedan. */
+  if(BORRADOR_BLANCO) ['prom_cred_es','prom_cred_en','prom_cred_id','prom_rep_npwp','prom_npwp','prom_nib',
+    'hsn_apoderado_ktp','adq_apoderado_ktp'].forEach(k => { data[k] = ''; });
   let html=injectBrandAndCover(applyEditsAndTag(templateHTML), data);
   // Sin hitos no se imprime el cronograma entero (rótulo + tabla): una tabla de
   // pagos con la cabecera y ni una fila parece un contrato a medio rellenar.
@@ -3819,6 +3825,10 @@ function marcaBorrador(html){
   const hoy = new Date().toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric' });
   const marca = '<div class="lw-borrador-sello" aria-hidden="true"><div>' + BORRADOR_SELLO.join('<br>') + '</div></div>'
     + '<div class="lw-borrador-aviso">' + BORRADOR_AVISO.join('<br>')
+    // Plantilla en blanco: las cláusulas que dependen de una elección (régimen de tenencia, persona/empresa) salen con la de fábrica
+    + (BORRADOR_BLANCO ? '<br>Plantilla de ejemplo: régimen de tenencia y cláusulas mostrados a modo de ejemplo; el contrato definitivo depende del comprador. / '
+        + 'Sample template: tenure regime and clauses shown as an example; the final contract depends on the buyer. / '
+        + 'Contoh templat: rezim hak dan klausul ditampilkan sebagai contoh; perjanjian final bergantung pada pembeli.' : '')
     + '<br><b>Borrador generado el / Draft generated on / Draf dibuat pada ' + hoy + '</b></div>';
   html = html.includes('</head>') ? html.replace('</head>', css + '</head>') : css + html;
   return /<body[^>]*>/.test(html) ? html.replace(/<body[^>]*>/, m => m + marca) : marca + html;
