@@ -82,7 +82,7 @@
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
 <script src="assets/documento_diseno.js?v=15c225ba"></script>
 <script src="assets/documento_anexos.js?v=37e0d82f"></script>
-<script src="assets/parcela_inventario.js?v=19676ca3"></script>
+<script src="assets/parcela_inventario.js?v=2b1cb5c7"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
 <script src="assets/modelos_catalogo.js?v=4e4fdee1"></script>
@@ -199,6 +199,11 @@
           <button class="btn ghost" id="btnDesign" data-lwt-title title="Color de portada, logo y marca de agua" style="display:none">🎨 Diseño</button>
           <button class="btn ghost" id="btnEditReset" data-lwt-title title="Restaurar texto original de la plantilla" style="display:none">↺ Original</button>
           <button class="btn ghost" id="btnDerivar" data-lwt-title title="Genera otro contrato reutilizando estos datos">⎘ Copiar datos</button>
+          <!-- 25-sep-2026, owner: «algún tipo de promocionar» la Carta a su
+               Bloqueo. Atajo de «Copiar datos» → Bloqueo de Parcela (mismo
+               derivarContrato): comprador, proyecto y parcela viajan, y la
+               parcela se traspasa al guardar si el comprador coincide. -->
+          <button class="btn ghost" id="btnPasarBloqueo" data-lwt-title title="Abre el Bloqueo de Parcela de esta Carta, ya relleno" style="display:none">→ Pasar a Bloqueo de Parcela</button>
         </div>
         <!-- 2. guardar: ni flujo de firma ni papel, es la base de datos -->
         <div class="pv-grupo" role="group" data-lwt-aria aria-label="Base de datos">
@@ -3821,6 +3826,10 @@ function pintaAcciones(){
     ['btnSave',           !!tipo, cerrado || (proyectoFalta ? lwT('Rellena el nombre del proyecto antes de guardar') : '')],
     ['btnEmail',          true,   guardado ? '' : sinGuardar],
     ['btnDerivar',        true,   guardado ? '' : sinGuardar],
+    // Solo en una Carta, y solo si este rol puede emitir el Bloqueo (25-sep-2026).
+    ['btnPasarBloqueo',   String(tipo || '').startsWith('carta_reserva')
+                            && plantillasOfrecidas().some(t => t.slug === 'ppjb_parcela'),
+                          guardado ? '' : sinGuardar],
     ['btnEnviarFirma',    !!tipo, guardado ? cerrado : sinGuardar],
     ['btnLockUpload',     !!tipo, guardado ? (cerrado || (PDF_SALIO ? '' : pdfNoSalio)) : sinGuardar],
     ['btnFacturar',       true,   guardado ? '' : sinGuardar],
@@ -5741,6 +5750,14 @@ async function derivarContrato(slug){
   toast(lwT('Contrato nuevo con los datos de ') + origen + ' · sin número hasta que lo guardes');
 }
 $('#btnDerivar').addEventListener('click', abrirDerivar);
+$('#btnPasarBloqueo').addEventListener('click', async ()=>{
+  if(!SAVED_CONTRACT || !SAVED_CONTRACT.numero){ toastMal(lwT('Guarda primero: para guardar hay que rellenarlo entero')); return; }
+  const origen = SAVED_CONTRACT.numero;
+  await derivarContrato('ppjb_parcela');
+  // Mismo aviso fijo que enseña «Copiar datos» Carta → Bloqueo (avisoCartaAplica).
+  toast(lwT('Bloqueo de Parcela con los datos de ') + origen
+    + lwT(' · el abono ya pagado en la Carta se descontará al guardar.'));
+});
 $('#dvClose').addEventListener('click', ()=> $('#dvOverlay').classList.remove('open'));
 $('#dvOverlay').addEventListener('click', e=>{ if(e.target===$('#dvOverlay')) $('#dvOverlay').classList.remove('open'); });
 $('#dvGo').addEventListener('click', ()=> derivarContrato($('#dvTpl').value));

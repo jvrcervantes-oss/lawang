@@ -75,6 +75,13 @@ function identificadoresDelFormulario(){
    existe para evitar (LAW-51, 14-ago-2026). */
 function estadoTraspaso(u){
   if(CONTRACT_TIPO[CURRENT.slug] !== 'reserva_parcela') return 'no';
+  /* Ocupante que este usuario NO puede leer (la Carta la hizo otro agente,
+     25-sep-2026): lo que dijo la base al elegirla, si fue con los mismos
+     compradores que hay ahora en el formulario; si no, aún no se sabe. */
+  if(u.ocupanteOculto){
+    const r = u.traspasoRemoto;
+    return (r && r.clave === identificadoresDelFormulario().join('|')) ? r.estado : 'por_comprobar';
+  }
   if(!u.ocupante || !TIPOS_CEDEN_PARCELA.includes(u.ocupante.tipo)) return 'no';
   const mios = identificadoresDelFormulario(), suyos = identificadoresOcupante(u.ocupante);
   if(!mios.length || !suyos.length) return 'sin_datos';
@@ -119,11 +126,19 @@ async function cargarUnidadesDelProyecto(proyecto){
       // pasaporte/email del ocupante: hacen falta para saber si el traspaso es
       // al MISMO comprador (estadoTraspaso). Sin esto el selector ofrecería
       // parcelas de otro cliente que el trigger rechaza al guardar.
-      const { data: cs } = await sb.from('contratos')
+      const { data: cs, error: csError } = await sb.from('contratos')
         .select('id,tipo,numero,adq1_pasaporte:datos->fields->>adq1_pasaporte,'
               + 'adq1_email:datos->fields->>adq1_email,extras:datos->compradores').in('id', ids);
       const porId = Object.fromEntries((cs||[]).map(c=>[c.id, c]));
-      UNIDADES_PROY.lista.forEach(u=>{ u.ocupante = u.contrato_id ? porId[u.contrato_id] || null : null; });
+      // Si la consulta de ocupantes FALLA no se sabe cuáles son ilegibles:
+      // todas quedan bloqueadas, como hasta hoy (no se abre nada a ciegas).
+      const cs_fallo = !!csError;
+      UNIDADES_PROY.lista.forEach(u=>{
+        u.ocupante = u.contrato_id ? porId[u.contrato_id] || null : null;
+        // Ocupada por un contrato que la RLS no deja leer (de otro agente):
+        // se pregunta a la base al elegirla (comprobarTraspasoRemoto).
+        u.ocupanteOculto = !!u.contrato_id && !porId[u.contrato_id] && !cs_fallo;
+      });
     }
   }catch(e){ UNIDADES_PROY.fallo = UNIDADES_PROY.fallo || (e && e.message) || 'no se ha podido leer'; }
   pintarSelectorParcela();
@@ -202,8 +217,10 @@ function pintarSelectorParcela(){
     const tomada = u.contrato_id && u.contrato_id !== mio;
     const modo = tomada ? estadoTraspaso(u) : 'no';
     const traspaso = modo === 'ok';
-    const suNum = (u.ocupante && u.ocupante.numero) || 'una Carta de Reserva';
-    const nota = traspaso        ? 'reservada en ' + suNum + ' · se traspasa a este contrato'
+    const suNum = (u.ocupante && u.ocupante.numero)
+      || (u.traspasoRemoto && u.traspasoRemoto.numero) || 'una Carta de Reserva';
+    const nota = modo === 'por_comprobar' ? 'ocupada por un contrato de otro agente · se comprueba al elegirla'
+               : traspaso        ? 'reservada en ' + suNum + ' · se traspasa a este contrato'
                : modo === 'otro' ? 'reservada en ' + suNum + ' · de otro comprador'
                : modo === 'sin_datos' ? 'reservada en ' + suNum + ' · falta pasaporte o email para traspasarla'
                : tomada ? 'ya asignada' : (u.estado !== 'disponible' ? u.estado : '');
@@ -215,7 +232,7 @@ function pintarSelectorParcela(){
        Proyectos como bloqueada/no disponible sin contrato detrás se ofrecía
        igual, con la nota puesta pero seleccionable — la nota se veía, el freno
        no estaba. */
-    const bloqueadaOpcion = tomada ? !traspaso : u.estado !== 'disponible';
+    const bloqueadaOpcion = tomada ? !(traspaso || modo === 'por_comprobar') : u.estado !== 'disponible';
     return `<option value="${escAttr(u.codigo)}" ${bloqueadaOpcion?'disabled':''}>${
       escAttr(partes.filter(Boolean).join(' · '))}</option>`;
   }).join('');
@@ -265,6 +282,41 @@ function pintarSelectorParcela(){
 /* El campo se rehace en el DOM: se le devuelven sus oyentes. El dato vive en el
    OCULTO; chips y añadidor solo lo reescriben y disparan `input` sobre él, que
    es donde escuchan sync/preview (patrón del teléfono). */
+/* Carta de Reserva de OTRO agente (25-sep-2026, owner; revisión previa #91,
+   Seguridad): el navegador no puede leerla, así que se pregunta a la base por
+   ESA parcela (parcela_traspaso_estado) si el comprador del formulario es el
+   de la Carta. Responde número + estado, ningún dato personal, y usa la misma
+   regla que el trigger al guardar (traspaso_carta_estado): lo que aquí se deja
+   elegir es lo que la base va a aceptar. Devuelve true si se puede traspasar. */
+async function comprobarTraspasoRemoto(u){
+  const ids = identificadoresDelFormulario();
+  const clave = ids.join('|');
+  let d = null;
+  try{
+    const { data, error } = await sb.rpc('parcela_traspaso_estado',
+      { p_proyecto: UNIDADES_PROY.proyecto, p_codigo: u.codigo, p_ids: ids });
+    if(error) throw error;
+    d = data;
+  }catch(err){
+    toastMal(lwT('No se ha podido comprobar la parcela: ') + ((err && err.message) || ''));
+    return false;
+  }
+  if(!d){
+    // No la ocupa una Carta: es de otro Bloqueo/Construcción — no se traspasa.
+    u.ocupanteOculto = false; u.ocupante = null;
+    toastMal(lwT('La parcela ') + u.codigo + lwT(' ya está asignada a otro contrato.'));
+    return false;
+  }
+  u.traspasoRemoto = { numero: d.numero, estado: d.estado, clave };
+  if(d.estado === 'ok'){
+    toast(lwT('Reservada en ') + d.numero + lwT(' para este comprador: se traspasa a este Bloqueo al guardar.'));
+    return true;
+  }
+  toastMal(d.estado === 'sin_datos'
+    ? lwT('Rellena primero el pasaporte o el email del comprador: con eso se comprueba que la Carta ') + d.numero + lwT(' es suya.')
+    : lwT('La parcela está reservada en ') + d.numero + lwT(' a nombre de otro comprador. Solo pasa a un Bloqueo del mismo comprador (pasaporte o email).'));
+  return false;
+}
 function wireCampoParcela(){
   const caja = document.querySelector('.field[data-key="parcela_codigo"]');
   if(!caja) return;
@@ -279,9 +331,14 @@ function wireCampoParcela(){
   }
   if(caja._multiWired) return;
   caja._multiWired = true;
-  caja.addEventListener('change', e => {
+  caja.addEventListener('change', async e => {
     const add = e.target.closest('.parcela-add');
     if(!add || !add.value) return;
+    const u = (UNIDADES_PROY.lista || []).find(x => x.codigo === add.value);
+    if(u && estadoTraspaso(u) === 'por_comprobar'){
+      const ok = await comprobarTraspasoRemoto(u);
+      if(!ok){ add.value = ''; pintarSelectorParcela(); return; }
+    }
     const el = caja.querySelector('input[name="parcela_codigo"]');
     const lista = el.value.split(',').map(x=>x.trim()).filter(Boolean);
     if(!lista.includes(add.value)) lista.push(add.value);
