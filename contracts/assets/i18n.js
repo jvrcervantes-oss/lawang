@@ -735,6 +735,7 @@
     'Descargar': 'Download',
     'Descargar PDF': 'Download PDF',
     'Descargar borrador': 'Download draft',
+    'El borrador sale con lo guardado: lo que no hayas guardado no entra': 'The draft uses the saved version: unsaved changes are not included',
     'No se pudo abrir la impresión del borrador': 'Could not open the draft print dialog',
     'PDF para que el comprador lo revise: sello de borrador, sin firmas ni datos bancarios': 'PDF for the buyer to review: draft stamp, no signatures or bank details',
     'El contrato está firmado: ya no hay borrador, descarga el PDF firmado': 'The contract is signed: there is no draft any more, download the signed PDF',
