@@ -401,6 +401,33 @@
     var s = document.createElement('style');
     s.id = 'las-css';
     s.textContent = [
+      /* PIEZAS A MANO dentro de un formulario (tramos, trimestre, fotos de
+         obra, techos/extras/precios del modelo, reparto de cuentas) — 26-sep-2026,
+         owner. Clases propias `lwp-*` y NO `las-in`: mejoraSelects() convierte
+         todo select.las-in en el desplegable propio al montar, y estas piezas
+         crean filas y selects DESPUÉS (+ Añadir tramo) que quedarían a medias.
+         Mismos valores que .las-in / .las-etq / .las-btn2. */
+      '.lwp-in{width:100%;box-sizing:border-box;margin:0;padding:10px 14px;font:400 14px/1.43 Jost,system-ui,sans-serif;color:#1c1917;background-color:rgba(250,250,249,.5);border:1px solid #E7E4DC;border-radius:8px;outline:none;transition:border-color .16s,box-shadow .2s,background-color .16s}',
+      '.lwp-in:hover{border-color:#d6cfc2}',
+      '.lwp-in:focus{background-color:#fff;border-color:#104C4F;box-shadow:0 0 0 2px #104C4F}',
+      '.lwp-in.lwp-comp{padding:8px 10px;font-size:13.5px}',
+      'select.lwp-in{appearance:none;-webkit-appearance:none;padding-right:34px;cursor:pointer;background-image:url("data:image/svg+xml;charset=utf8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%2378716c%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M19 9l-7 7-7-7%27/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:16px}',
+      '.lwp-etq{display:block;font:700 12px/1.4 Jost,system-ui,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:#44403c}',
+      '.lwp-col{font:600 11px/1.4 Jost,system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#a8a29e}',
+      '.lwp-nom{font:500 14px/1.35 Jost,system-ui,sans-serif;color:#1E2522}',
+      '.lwp-nota{margin:0;font:400 12px/1.45 Jost,system-ui,sans-serif;color:#736B5E}',
+      '.lwp-mas{justify-self:start;padding:7px 16px;border-radius:9999px;border:1px solid #E7E4DC;background:#fff;color:#104C4F;font:500 13px Jost,system-ui,sans-serif;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.05);transition:background .15s,transform .12s cubic-bezier(.23,1,.32,1)}',
+      '.lwp-mas:hover{background:#fafaf9}.lwp-mas:active{transform:scale(.97)}',
+      '.lwp-tramo{display:grid;grid-template-columns:minmax(0,1fr) 100px 92px 26px;gap:8px;align-items:center}',
+      '@media (max-width:640px){.lwp-tramo{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 26px}.lwp-tramo > select{grid-column:1/-1}}',
+      '.lwp-quita{border:0;background:none;color:#9E2F26;font-size:20px;line-height:1;cursor:pointer;border-radius:9999px;width:26px;height:26px;display:grid;place-items:center}',
+      '.lwp-quita:hover{background:#FFF4F2}',
+      '.lwp-subir{padding:14px 12px;border:1px dashed #d6cfc2;border-radius:12px;background:rgba(250,250,249,.5);color:#104C4F;font:500 13px Jost,system-ui,sans-serif;cursor:pointer;text-align:center;transition:border-color .16s,background-color .16s}',
+      '.lwp-subir:hover{border-color:#104C4F;background:#fff}',
+      '.lwp-foto{display:grid;gap:6px;border:1px solid #E7E4DC;border-radius:12px;padding:6px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.05)}',
+      '.lwp-foto-b{padding:3px 10px;border-radius:9999px;border:1px solid #E7E4DC;background:#fff;color:#44403c;font:500 11px Jost,system-ui,sans-serif;cursor:pointer}',
+      '.lwp-foto-b:hover{background:#fafaf9}',
+      '.lwp-caja{background:#FBF9F4;border:1px solid #E7E4DC;border-radius:12px;padding:16px 18px;font-family:Jost,system-ui,sans-serif}',
       '#lw-editor,#lw-cajon{--las-crema:#FBF9F4;--las-borde:#E7E4DC;--las-apagado:#736B5E;--las-tinta:#1E2522;--las-lago:#104C4F;--las-lago2:#0B3638;--las-lado:#F7F4EC;--las-sale:cubic-bezier(.23,1,.32,1);--las-cajon:cubic-bezier(.32,.72,0,1)}',
       '.las-velo{position:fixed;inset:0;background:rgba(12,10,9,.45);backdrop-filter:blur(4px);z-index:calc(var(--z-modal,400) - 1);opacity:0;transition:opacity .3s ease}',
       '.las-marco{position:fixed;inset:0;z-index:var(--z-modal,400);display:flex;justify-content:flex-end;pointer-events:none}',
@@ -468,7 +495,7 @@
       '.las-fila .las-campo, .las-fila > *{min-width:0}',
       '.las-fila{display:grid;grid-template-columns:1fr 1fr;gap:16px;transition:opacity .25s var(--las-sale)}',
       '.las-fila-tel{grid-template-columns:4fr 8fr;gap:12px}',
-      '.las-campo{display:grid;gap:4px;align-content:start}',
+      '.las-campo{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;align-content:start}'   /* minmax(0,…): una opción larga («— Estándar de Lawang (quien cierre sin equipo) —») ensanchaba la columna y el desplegable pisaba el campo de al lado (26-sep-2026) */,
       '.las-etq{display:block;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#44403c;transition:color .16s var(--las-sale)}',
       '.las-etq-sec{font-weight:400;color:#a8a29e;text-transform:none;letter-spacing:0}',
       '.las-rojo{color:#f43f5e}',
@@ -1529,23 +1556,22 @@
     cab.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px';
     var tituloCab = document.createElement('span');
     tituloCab.textContent = 'Qué dispara cada pago, y qué % le toca';
-    tituloCab.style.cssText = 'font-weight:500;font-size:12px;color:' + CAJ.apagado;
+    tituloCab.className = 'lwp-etq';
     var sumaBadge = document.createElement('span');
-    sumaBadge.style.cssText = 'font-weight:700;font-size:12.5px;white-space:nowrap';
+    sumaBadge.style.cssText = 'font:600 13px Jost,system-ui,sans-serif;white-space:nowrap';
     cab.appendChild(tituloCab); cab.appendChild(sumaBadge);
     wrap.appendChild(cab);
     var lista = document.createElement('div');
     lista.style.cssText = 'display:grid;gap:6px';
     wrap.appendChild(lista);
     var errLinea = document.createElement('p');
-    errLinea.style.cssText = 'margin:0;font-size:11.5px;color:' + CAJ.apagado;
+    errLinea.className = 'lwp-nota';
     errLinea.textContent = 'El umbral (%) solo aplica a los disparadores «% cobrado…».';
     wrap.appendChild(errLinea);
     var btnAdd = document.createElement('button');
     btnAdd.type = 'button';
     btnAdd.textContent = '+ Añadir tramo';
-    btnAdd.style.cssText = 'justify-self:start;padding:7px 12px;border-radius:8px;border:1px dashed ' +
-      CAJ.hoja + ';background:transparent;color:' + CAJ.lago + ';font-weight:600;font-size:12.5px;cursor:pointer';
+    btnAdd.className = 'lwp-mas';
     wrap.appendChild(btnAdd);
     host.appendChild(wrap);
 
@@ -1566,23 +1592,21 @@
 
     function nuevaFila(valores) {
       var el = document.createElement('div');
-      el.style.cssText = 'display:grid;grid-template-columns:1fr 92px 84px 22px;gap:6px;align-items:center';
-      var campoEstilo = 'padding:7px 8px;border:1px solid ' + CAJ.borde + ';border-radius:6px;font-size:12.5px;' +
-        'color:' + CAJ.tinta + ';background-color:' + CAJ.papel + ';box-sizing:border-box;width:100%';
+      el.className = 'lwp-tramo';
       var selDisp = document.createElement('select');
-      selDisp.style.cssText = campoEstilo + flechaSelect;
+      selDisp.className = 'lwp-in lwp-comp';
       opciones.forEach(function (o) {
         var op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; selDisp.appendChild(op);
       });
       var inpUmbral = document.createElement('input');
       inpUmbral.type = 'number'; inpUmbral.step = '0.01'; inpUmbral.min = '0'; inpUmbral.max = '100';
-      inpUmbral.placeholder = 'umbral %'; inpUmbral.style.cssText = campoEstilo;
+      inpUmbral.placeholder = 'umbral %'; inpUmbral.className = 'lwp-in lwp-comp';
       var inpPct = document.createElement('input');
       inpPct.type = 'number'; inpPct.step = '0.01'; inpPct.min = '0'; inpPct.max = '100';
-      inpPct.placeholder = '% tramo'; inpPct.style.cssText = campoEstilo;
+      inpPct.placeholder = '% tramo'; inpPct.className = 'lwp-in lwp-comp';
       var btnDel = document.createElement('button');
       btnDel.type = 'button'; btnDel.textContent = '×'; btnDel.title = 'Quitar tramo';
-      btnDel.style.cssText = 'border:0;background:none;color:#9E2F26;font-size:19px;line-height:1;cursor:pointer';
+      btnDel.className = 'lwp-quita';
 
       var fila = { el: el, disp: selDisp, umbral: inpUmbral, pct: inpPct };
       // el botón «+ Añadir tramo» llama a nuevaFila con el evento: no es un tramo
@@ -1631,15 +1655,13 @@
   function montaTrimestre(host, valorFecha) {
     var wrap = document.createElement('div');
     wrap.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px';
-    var campoEstilo = 'padding:9px 12px;border:1px solid ' + CAJ.borde + ';border-radius:8px;' +
-      'font-weight:500;font-size:14px;color:' + CAJ.tinta + ';background-color:' + CAJ.papel + ';box-sizing:border-box;width:100%';
     var selQ = document.createElement('select');
-    selQ.style.cssText = campoEstilo + flechaSelect;
+    selQ.className = 'lwp-in';
     [['', 'Trimestre'], ['1', 'Q1'], ['2', 'Q2'], ['3', 'Q3'], ['4', 'Q4']].forEach(function (o) {
       var op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; selQ.appendChild(op);
     });
     var selA = document.createElement('select');
-    selA.style.cssText = campoEstilo + flechaSelect;
+    selA.className = 'lwp-in';
     var opBlank = document.createElement('option'); opBlank.value = ''; opBlank.textContent = 'Año'; selA.appendChild(opBlank);
     var hoyAnio = new Date().getFullYear();
     var anioValor = null, qValor = null;
@@ -1679,7 +1701,7 @@
     var wrap = document.createElement('div');
     wrap.style.cssText = 'display:grid;gap:8px';
     var etiqueta = document.createElement('div');
-    etiqueta.style.cssText = 'font-weight:500;font-size:12px;color:' + CAJ.apagado;
+    etiqueta.className = 'lwp-etq';
     etiqueta.textContent = 'Fotos';
     wrap.appendChild(etiqueta);
     var grid = document.createElement('div');
@@ -1687,8 +1709,7 @@
     wrap.appendChild(grid);
     var caja = document.createElement('div');
     caja.textContent = '+ Subir fotos — se optimizan solas a tamaño web';
-    caja.style.cssText = 'padding:10px 12px;border:1px dashed ' + CAJ.hoja + ';border-radius:8px;color:' + CAJ.lago +
-      ';font-weight:600;font-size:12.5px;cursor:pointer;text-align:center';
+    caja.className = 'lwp-subir';
     var input = document.createElement('input');
     input.type = 'file'; input.accept = 'image/*'; input.multiple = true; input.hidden = true;
     wrap.appendChild(caja); wrap.appendChild(input);
@@ -1716,25 +1737,23 @@
       grid.innerHTML = '';
       fotos.forEach(function (f) {
         var it = document.createElement('div');
-        it.style.cssText = 'display:grid;gap:4px;border:1px solid ' + CAJ.borde + ';border-radius:8px;padding:6px;' +
-          'background:' + CAJ.papel + (f.visible ? '' : ';opacity:.5');
+        it.className = 'lwp-foto'; if (!f.visible) it.style.opacity = '.5';
         var img = document.createElement('img');
-        img.style.cssText = 'width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;background:' + CAJ.banda;
+        img.style.cssText = 'width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;background:#F7F4EC';
         it.appendChild(img);
         sb.storage.from('obra').createSignedUrl(f.path, 1800).then(function (r) {
           if (r.data && r.data.signedUrl) img.src = r.data.signedUrl;
         });
         var titu = document.createElement('div');
         titu.textContent = f.titulo || 'Sin título';
-        titu.style.cssText = 'font-size:10.5px;font-weight:600;color:' + CAJ.tinta + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+        titu.style.cssText = 'font:500 11.5px Jost,system-ui,sans-serif;color:#1E2522;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
         it.appendChild(titu);
         var acts = document.createElement('div');
         acts.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap';
         [['Título', 'titulo'], [f.visible ? 'Ocultar' : 'Mostrar', 'visible'], ['Borrar', 'borrar']].forEach(function (par) {
           var b = document.createElement('button');
           b.type = 'button'; b.textContent = par[0];
-          b.style.cssText = 'padding:2px 6px;border-radius:6px;border:1px solid ' + CAJ.borde + ';background:' + CAJ.banda +
-            ';color:' + CAJ.tinta + ';font-size:10px;cursor:pointer';
+          b.className = 'lwp-foto-b';
           b.addEventListener('click', function () { accion(f, par[1]); });
           acts.appendChild(b);
         });
@@ -1830,20 +1849,20 @@
      escribe todas seguidas, igual que guardar() en /intranet/modelos/. */
   function fila3(host) {
     var f = document.createElement('div');
-    f.style.cssText = 'display:grid;grid-template-columns:1fr 100px 100px;gap:6px;align-items:center;margin-bottom:6px';
+    f.style.cssText = 'display:grid;grid-template-columns:1fr 120px 120px;gap:8px;align-items:center;margin-bottom:8px';
     host.appendChild(f);
     return f;
   }
   function numIn(placeholder) {
     var i = document.createElement('input');
     i.type = 'number'; i.step = '0.01'; if (placeholder) i.placeholder = placeholder;
-    i.style.cssText = 'width:100%;padding:6px 8px;border:1px solid ' + CAJ.borde + ';border-radius:6px;font-size:12.5px';
+    i.className = 'lwp-in lwp-comp';
     return i;
   }
   function montaTechosModelo(host, techos) {
     if (!techos.length) {
       var p = document.createElement('p');
-      p.style.cssText = 'margin:0;font-size:12px;color:' + CAJ.apagado;
+      p.className = 'lwp-nota';
       p.textContent = 'Este modelo no tiene variantes de techo.';
       host.appendChild(p);
       return function () { return []; };
@@ -1851,12 +1870,12 @@
     var cab = fila3(host);
     ['', 'Ahora', 'Desde 2027'].forEach(function (t) {
       var s = document.createElement('span'); s.textContent = t;
-      s.style.cssText = 'font-size:10.5px;font-weight:700;color:' + CAJ.apagado + ';text-transform:uppercase;letter-spacing:.06em';
+      s.className = 'lwp-col';
       cab.appendChild(s);
     });
     var filas = techos.map(function (t) {
       var f = fila3(host);
-      var nom = document.createElement('span'); nom.textContent = t.nombre; nom.style.cssText = 'font-size:13px;font-weight:600;color:' + CAJ.tinta;
+      var nom = document.createElement('span'); nom.textContent = t.nombre; nom.className = 'lwp-nom';
       var ahora = numIn(); ahora.value = t.precio_ahora == null ? '' : t.precio_ahora;
       var y27 = numIn(); y27.value = t.precio_2027 == null ? '' : t.precio_2027;
       f.appendChild(nom); f.appendChild(ahora); f.appendChild(y27);
@@ -1871,7 +1890,7 @@
   function montaExtrasModelo(host, extras, existentes) {
     if (!extras.length) {
       var p = document.createElement('p');
-      p.style.cssText = 'margin:0;font-size:12px;color:' + CAJ.apagado;
+      p.className = 'lwp-nota';
       p.textContent = 'No hay extras dados de alta en el catálogo.';
       host.appendChild(p);
       return function () { return []; };
@@ -1879,11 +1898,11 @@
     var filas = extras.map(function (e) {
       var existente = existentes.filter(function (x) { return x.extra_id === e.id; })[0] || null;
       var f = document.createElement('div');
-      f.style.cssText = 'display:grid;grid-template-columns:1fr 100px auto;gap:6px;align-items:center;margin-bottom:6px';
-      var nom = document.createElement('span'); nom.textContent = e.nombre; nom.style.cssText = 'font-size:13px;font-weight:600;color:' + CAJ.tinta;
+      f.style.cssText = 'display:grid;grid-template-columns:1fr 120px auto;gap:8px;align-items:center;margin-bottom:8px';
+      var nom = document.createElement('span'); nom.textContent = e.nombre; nom.className = 'lwp-nom';
       var precio = numIn(); precio.value = (existente && existente.precio != null) ? existente.precio : '';
       var lab = document.createElement('label');
-      lab.style.cssText = 'display:flex;align-items:center;gap:5px;font-size:11.5px;color:' + CAJ.apagado + ';white-space:nowrap';
+      lab.style.cssText = 'display:flex;align-items:center;gap:6px;font:400 12.5px Jost,system-ui,sans-serif;color:#736B5E;white-space:nowrap';
       var chk = document.createElement('input'); chk.type = 'checkbox';
       chk.checked = !existente || existente.disponible !== false;   // sin fila = se ofrece, igual que en vivo
       lab.appendChild(chk); lab.appendChild(document.createTextNode('se ofrece'));
@@ -1902,14 +1921,14 @@
     host.appendChild(lista);
     if (!filasExistentes.length) {
       var p = document.createElement('p');
-      p.style.cssText = 'margin:0 0 6px;font-size:12px;color:' + CAJ.apagado;
+      p.className = 'lwp-nota'; p.style.marginBottom = '8px';
       p.textContent = 'Este modelo no está declarado en ningún proyecto.';
       lista.appendChild(p);
     }
     var filas = filasExistentes.map(function (r) {
       var f = document.createElement('div');
-      f.style.cssText = 'display:grid;grid-template-columns:1fr 120px;gap:6px;align-items:center;margin-bottom:6px';
-      var nom = document.createElement('span'); nom.textContent = r.proyecto; nom.style.cssText = 'font-size:13px;font-weight:600;color:' + CAJ.tinta;
+      f.style.cssText = 'display:grid;grid-template-columns:1fr 140px;gap:8px;align-items:center;margin-bottom:8px';
+      var nom = document.createElement('span'); nom.textContent = r.proyecto; nom.className = 'lwp-nom';
       var precio = numIn(precioDeCatalogo != null ? 'hereda ' + precioDeCatalogo : 'hereda —');
       precio.value = r.precio_construccion == null ? '' : r.precio_construccion;
       f.appendChild(nom); f.appendChild(precio);
@@ -1917,7 +1936,7 @@
       return { id: r.id, precio: precio };
     });
     var sel = document.createElement('select');
-    sel.style.cssText = 'width:100%;padding:7px 9px;border:1px solid ' + CAJ.borde + ';border-radius:8px;font-size:12.5px;margin-top:4px' + flechaSelect;
+    sel.className = 'lwp-in'; sel.style.marginTop = '4px';
     var opBlank = document.createElement('option'); opBlank.value = ''; opBlank.textContent = 'Añadir a un proyecto…';
     sel.appendChild(opBlank);
     proyectosLibres.forEach(function (nombre) {
@@ -1978,8 +1997,7 @@
     opts = opts || {};
     var grupo = 'lwrep' + (++REPARTO_N);
     var caja = document.createElement('div');
-    caja.style.cssText = 'background:' + CAJ.banda + ';border:1px solid ' + CAJ.borde +
-      ';border-radius:12px;padding:12px 14px;margin:0 0 10px';
+    caja.className = 'lwp-caja'; caja.style.margin = '0 0 10px';
     var cab = '';
     if (opts.titulo) {
       cab = '<div style="font-weight:600;font-size:13px;color:' + CAJ.tinta + ';margin-bottom:2px">' + esc(opts.titulo) + '</div>';
@@ -2155,8 +2173,7 @@
       return (p.cobra && !p.archivada) || marcada;
     });
     var caja = document.createElement('div');
-    caja.style.cssText = 'background:' + CAJ.banda + ';border:1px solid ' + CAJ.borde +
-      ';border-radius:12px;padding:12px 14px;margin:0';
+    caja.className = 'lwp-caja';
     var etqDe = function (cl) {
       var c = d.cuentas.filter(function (x) { return x.clave === cl; })[0];
       return c ? (c.label || c.clave) : cl;

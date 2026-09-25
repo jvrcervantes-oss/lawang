@@ -459,33 +459,42 @@ input.lw-elegible:disabled{ cursor:default; opacity:1; }
    banda #f5f4ee, papel #fff, lago #104C4F, tinta #2E3437, apagado #75786e)
    para que el cajón de fotos se lea como el resto de la v4. Solo lo que
    `deck_fotos.js` pinta de verdad — no es una copia de suite.css entera. */
+/* 26-sep-2026 (owner): con la piel del alta — mismos valores que .las-aviso,
+   .las-etq, .las-in y .las-btn1/.las-btn2 de editores.js. El marco ya es el
+   cajón del alta (lwCajon); esto es lo de dentro y el «Cerrar» del pie. */
 .sui-aviso{
-  margin:0 0 12px; padding:11px 14px; border-radius:12px;
-  background:#FBF3E4; border:1px solid #EBDCB4; color:#8A6A34;
-  font-size:12.5px; line-height:1.5;
+  display:block; margin:0 0 14px; padding:14px 16px; border-radius:12px;
+  background:rgba(255,251,235,.7); border:1px solid rgba(253,230,138,.6); color:#78350f;
+  font:400 13px/1.6 Jost,system-ui,sans-serif;
 }
-.sui-nota{ margin:0 0 10px; font-size:12px; line-height:1.5; color:#75786e; }
+.sui-nota{ margin:0 0 12px; font:400 12.5px/1.5 Jost,system-ui,sans-serif; color:#736B5E; }
 .sui-bloque{
-  display:flex; gap:12px; align-items:flex-start; padding:10px 0;
-  border-bottom:1px solid #E4DCCB;
+  display:flex; gap:14px; align-items:flex-start; padding:12px 0;
+  border-bottom:1px solid #f5f5f4; font-family:Jost,system-ui,sans-serif;
 }
 .sui-sel{
-  padding:7px 10px; border:1px solid #E4DCCB; border-radius:8px;
-  font:500 12.5px 'Neue Kabel','Jost',sans-serif; color:#2E3437; background:#fff;
+  padding:8px 34px 8px 12px; border:1px solid #E7E4DC; border-radius:8px;
+  font:400 13.5px Jost,system-ui,sans-serif; color:#1c1917; background-color:rgba(250,250,249,.5);
+  appearance:none; -webkit-appearance:none; cursor:pointer;
+  background-image:url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2378716c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 10px center; background-size:16px;
 }
+.sui-sel:focus{ outline:none; background-color:#fff; border-color:#104C4F; box-shadow:0 0 0 2px #104C4F; }
 .sui-btn{
-  padding:7px 12px; border-radius:8px; border:1px solid #E4DCCB; background:#fff;
-  color:#2E3437; font:600 12.5px 'Neue Kabel','Jost',sans-serif; cursor:pointer;
+  padding:8px 18px; border-radius:9999px; border:1px solid #E7E4DC; background:#fff;
+  color:#44403c; font:500 13px Jost,system-ui,sans-serif; cursor:pointer;
+  box-shadow:0 1px 2px rgba(0,0,0,.05); transition:background .15s, transform .12s cubic-bezier(.23,1,.32,1);
 }
-.sui-btn:hover{ border-color:#104C4F; }
-.sui-btn.primario{ background:#104C4F; border-color:#104C4F; color:#fff; }
-.sui-btn.primario:hover{ background:#0d5b5f; }
-.sui-btn:disabled{ opacity:.5; cursor:default; }
+.sui-btn:hover{ background:#fafaf9; }
+.sui-btn:active{ transform:scale(.97); }
+.sui-btn.primario{ background:#104C4F; border-color:#104C4F; color:#fff; letter-spacing:.025em; }
+.sui-btn.primario:hover{ background:#0B3638; }
+.sui-btn:disabled{ opacity:.5; cursor:default; transform:none; }
 .campo{ margin:0; }
-.campo label,.mini{ display:block; font-size:11.5px; font-weight:600; color:#75786e; margin:0 0 4px; }
+.campo label,.mini{ display:block; font:700 12px/1.4 Jost,system-ui,sans-serif; letter-spacing:.05em; text-transform:uppercase; color:#44403c; margin:0 0 4px; }
 .campo input{
-  width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #E4DCCB;
-  border-radius:8px; font:500 12.5px 'Neue Kabel','Jost',sans-serif; color:#2E3437;
+  width:100%; box-sizing:border-box; padding:10px 14px; border:1px solid #E7E4DC;
+  border-radius:8px; font:400 14px/1.43 Jost,system-ui,sans-serif; color:#1c1917; background:rgba(250,250,249,.5);
 }
-.campo input:focus{ outline:none; border-color:#104C4F; box-shadow:0 0 0 3px rgba(16,76,79,.12); }
+.campo input:focus{ outline:none; background:#fff; border-color:#104C4F; box-shadow:0 0 0 2px #104C4F; }
 .flojo{ color:#8A8474; font-weight:500; }
