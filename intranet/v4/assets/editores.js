@@ -401,7 +401,7 @@
     var s = document.createElement('style');
     s.id = 'las-css';
     s.textContent = [
-      '#lw-editor{--las-crema:#FBF9F4;--las-borde:#E7E4DC;--las-apagado:#736B5E;--las-tinta:#1E2522;--las-lago:#104C4F;--las-lago2:#0B3638;--las-lado:#F7F4EC;--las-sale:cubic-bezier(.23,1,.32,1);--las-cajon:cubic-bezier(.32,.72,0,1)}',
+      '#lw-editor,#lw-cajon{--las-crema:#FBF9F4;--las-borde:#E7E4DC;--las-apagado:#736B5E;--las-tinta:#1E2522;--las-lago:#104C4F;--las-lago2:#0B3638;--las-lado:#F7F4EC;--las-sale:cubic-bezier(.23,1,.32,1);--las-cajon:cubic-bezier(.32,.72,0,1)}',
       '.las-velo{position:fixed;inset:0;background:rgba(12,10,9,.45);backdrop-filter:blur(4px);z-index:calc(var(--z-modal,400) - 1);opacity:0;transition:opacity .3s ease}',
       '.las-marco{position:fixed;inset:0;z-index:var(--z-modal,400);display:flex;justify-content:flex-end;pointer-events:none}',
       '.las-panel{pointer-events:auto;position:relative;width:100%;max-width:1152px;height:100%;margin:0;background:var(--las-crema);border-left:1px solid var(--las-borde);box-shadow:0 25px 50px -12px rgba(0,0,0,.25);display:flex;flex-direction:column;overflow:hidden;font-family:Jost,"Neue Kabel",system-ui,sans-serif;color:var(--las-tinta);transform:translateX(100%);transition:transform .5s var(--las-cajon)}',
@@ -602,7 +602,68 @@
       '.las-pie{position:sticky;bottom:0;padding:14px 20px}',
       '}',
       '@media (max-width:640px){.las-sep{display:none}.las-bloque-t h3{font-size:13px}.las-fila,.las-fila-tel,.las-pildoras{grid-template-columns:1fr}.las-pie-izq{display:none}.las-pie{justify-content:flex-end}.las-bloque{padding:18px}}',
-      '@media (prefers-reduced-motion:reduce){.las-panel,.las-velo{transition:opacity .2s!important}.las-panel{transform:none}.las-panel:not(.las-dentro){opacity:0}.las-dentro *{animation:none!important}.las-tiembla{animation:none}.las-punto.las-listo{animation:none}}'
+      '@media (prefers-reduced-motion:reduce){.las-panel,.las-velo{transition:opacity .2s!important}.las-panel{transform:none}.las-panel:not(.las-dentro){opacity:0}.las-dentro *{animation:none!important}.las-tiembla{animation:none}.las-punto.las-listo{animation:none}}',
+      /* CAJÓN DE FICHA con la piel del alta (25-sep-2026, owner: «Aplícalas»,
+         tras verlo en el catálogo v11). Solo lo que el alta no tiene: sección
+         de solo lectura (h4 + div, los ganchos `> h4` y `> div` de datos.js),
+         pares dato/valor, tabla, etiqueta de estado, cifras del resumen y la
+         columna lateral (`lado`). El número de cada bloque es un contador:
+         `seccion()` no sabe en qué orden la pintan. */
+      '#lw-cajon .las-panel{max-width:none;border-radius:0}',
+      '#lw-cajon .las-h1{font:600 24px/1.2 Jost,system-ui,sans-serif;letter-spacing:-.01em}',
+      '#lw-cajon .lwc-bajo{margin:4px 0 0;font-size:13px;color:var(--las-apagado);overflow-wrap:anywhere}',
+      '#lw-cajon .las-estado{border:0}',
+      '.lwc-cuerpo{flex:1;min-height:0;overflow-y:auto;padding:28px 32px;display:grid;gap:20px;align-content:start;counter-reset:lwc;background:var(--las-crema)}',
+      '.lwc-cuerpo > p{margin:0;font-size:13px;color:var(--las-apagado)}',
+      '.lwc-sec{counter-increment:lwc;display:grid;gap:16px;min-width:0;padding:24px}',
+      '.lwc-sec > h4{display:flex;align-items:center;gap:10px;margin:0;padding-bottom:12px;border-bottom:1px solid #f5f5f4;font:700 15px/1.3 Jost,system-ui,sans-serif;letter-spacing:.025em;text-transform:uppercase;color:var(--las-lago)}',
+      '.lwc-sec > h4::before{content:counter(lwc,decimal-leading-zero);width:24px;height:24px;flex:none;border-radius:6px;background:#EEF3F0;color:var(--las-lago);display:grid;place-items:center;font:700 12px ui-monospace,Consolas,monospace;letter-spacing:0}',
+      '.lwc-sec > div{display:grid;grid-template-columns:1fr 1fr;gap:16px 24px;min-width:0;align-content:start}',
+      '.lwc-sec > div > :not(.lwc-dato){grid-column:1/-1}',
+      '.lwc-dato{min-width:0}',
+      '.lwc-dos{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px 24px}',
+      '.lwc-dato .las-etq{margin-bottom:4px;font-weight:600;color:#a8a29e}',
+      '.lwc-val{display:block;font-size:15px;font-weight:500;line-height:1.4;color:var(--las-tinta);overflow-wrap:anywhere}',
+      '.lwc-val .lwc-apagado{color:#a8a29e}',
+      '.lwc-tag{display:inline-block;white-space:nowrap;padding:2px 10px;border-radius:9999px;font-size:12px;font-weight:500;line-height:1.5}',
+      '.lwc-tag::first-letter{text-transform:uppercase}',
+      '.lwc-link{color:var(--las-lago);font-weight:500;text-decoration:underline;text-decoration-color:rgba(16,76,79,.35);text-underline-offset:3px}',
+      '.lwc-link:hover{text-decoration-color:var(--las-lago)}',
+      '.lwc-tabla-caja{overflow-x:auto;margin:0 -4px}',
+      '.lwc-tabla{width:100%;border-collapse:collapse;font-size:14px}',
+      '.lwc-tabla th{text-align:left;padding:0 10px 10px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#a8a29e;white-space:nowrap}',
+      '.lwc-tabla td{padding:11px 10px;border-top:1px solid #f5f5f4;color:#44403c;vertical-align:middle}',
+      '.lwc-tabla tbody tr:hover td{background:#FBF9F4}',
+      '.lwc-chips{display:flex;flex-wrap:wrap;gap:8px}',
+      '.lwc-chips span{font-size:13px;padding:4px 12px;border-radius:9999px;background:#F3F0E8;color:#44403c}',
+      '#lw-cajon .las-aviso{padding:12px 14px}',
+      '.lwc-cifras{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:18px 16px}',
+      '.lwc-cifra{min-width:0}',
+      '.lwc-cifra b{display:block;margin-top:2px;font:600 20px/1.2 Jost,system-ui,sans-serif;color:var(--las-lago);overflow-wrap:anywhere}',
+      '.lwc-cifra b .lwc-tag{font-size:13px}',
+      '.lwc-cifra small{display:block;margin-top:2px;font-size:11px;color:#a8a29e}',
+      '.lwc-paso{background:#F2F8F8;border-color:#CFE3E3;color:#104C4F}',
+      '.lwc-paso .las-ico-aviso{color:#104C4F}',
+      /* pie: lo que borra a la izquierda, secundarias y la principal al final (orden del alta) */
+      '#lw-cajon .las-pie{flex-wrap:wrap;justify-content:flex-end;gap:10px}',
+      '#lw-cajon .las-pie > *{order:2;text-decoration:none;display:inline-flex;align-items:center;gap:8px}',
+      '#lw-cajon .las-pie > .lwc-peligro{order:0;margin-right:auto;color:#9E2F26;border-color:#E9C9C5}',
+      '#lw-cajon .las-pie > .lwc-peligro:hover{background:#FFF4F2}',
+      '#lw-cajon .las-pie > .lwc-cerrar{order:1}',
+      '#lw-cajon .las-pie > .las-btn1{order:3;min-width:0;justify-content:center}',
+      '#lw-cajon .las-pie > :disabled{opacity:.5;cursor:default}',
+      /* controles pintados a mano por cada ficha (con estilo en línea): la letra
+         y la forma del alta sin tocar sus colores, que ya son lago o rojo */
+      '#lw-cajon .lwc-cuerpo button{font-family:Jost,system-ui,sans-serif!important;font-weight:500!important;border-radius:9999px!important}',
+      '#lw-cajon .lwc-cuerpo select,#lw-cajon .lwc-cuerpo input,#lw-cajon .lwc-cuerpo textarea{font-family:Jost,system-ui,sans-serif!important;border-radius:10px!important;border-color:var(--las-borde)!important}',
+      '#lw-cajon .lwc-cuerpo [style*="Neue Kabel"]{font-family:Jost,system-ui,sans-serif!important}',
+      /* columna lateral: una ficha larga pasa su resumen a la izquierda, como el alta */
+      '.lwc-split{grid-template-columns:minmax(260px,34%) minmax(0,1fr);grid-template-rows:repeat(var(--lwc-filas,1),auto)}',
+      '.lwc-split > *{grid-column:2}',
+      '.lwc-split > .lwc-ladocol{grid-column:1;grid-row:1/-1;align-self:start;position:sticky;top:0;display:grid;gap:20px;min-width:0}',
+      '.lwc-ladocol .lwc-sec > div{grid-template-columns:1fr}',
+      '@media (max-width:1279px){.lwc-split{grid-template-columns:minmax(0,1fr);grid-template-rows:none}.lwc-split > *,.lwc-split > .lwc-ladocol{grid-column:auto;grid-row:auto;position:static}}',
+      '@media (max-width:640px){.lwc-cuerpo{padding:20px}.lwc-sec{padding:18px}.lwc-sec > div{grid-template-columns:1fr}#lw-cajon .las-pie > .lwc-peligro{margin-right:0}}'
     ].join('\n');
     document.head.appendChild(s);
   }
@@ -1133,31 +1194,41 @@
     var w = document.createElement('div');
     w.id = 'lw-cajon';
     var z = 'calc(var(--z-modal,400) - 10)';
-    var cajaPanel = 'position:fixed;top:0;right:0;height:100%;width:' + (o.ancho || 'min(60vw,96vw)') + ';' +
-      'background:' + CAJ.papel + ';border-left:1px solid ' + CAJ.borde + ';z-index:' + z + ';' +
-      'box-shadow:0 25px 50px -12px rgba(0,0,0,.25);display:flex;flex-direction:column;' +
-      'transform:translateX(100%);transition:transform .3s ease-in-out;' + FUENTE;
-    var cajaCabecera = 'display:flex;justify-content:space-between;align-items:flex-start;gap:16px;' +
-      'padding:20px 24px;background:' + CAJ.banda + ';border-bottom:1px solid ' + CAJ.borde + ';flex-shrink:0';
-    var cajaCuerpo = 'flex:1;overflow:auto;padding:20px 24px;min-height:0;display:grid;gap:14px;align-content:start';
-    var cajaPie = 'display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px 24px;' +
-      'border-top:1px solid ' + CAJ.borde + ';background:' + CAJ.banda + ';flex-shrink:0';
-    var estiloBoton = function (a) {
-      var base = 'padding:11px 18px;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;';
-      if (a.tono === 'primario') return base + 'flex:1;justify-content:center;border:0;background:' + CAJ.lago + ';color:#fff;letter-spacing:.02em';
-      if (a.tono === 'peligro') return base + 'border:1px solid #9E2F26;background:' + CAJ.papel + ';color:#9E2F26;margin-left:auto';
-      return base + 'border:1px solid ' + CAJ.borde + ';background:' + CAJ.papel + ';color:' + CAJ.tinta;
-    };
+    cssAltaComprador();   // la piel del cajón es la del alta (25-sep-2026)
+    /* Cabecera del alta: miga (`sub`) con la etiqueta de estado opcional
+       (`estado: [texto, tono]`, tonos de LW_TONOS), título en Jost y la
+       línea de contexto (`bajoTitulo`) debajo. Posición, z-index y
+       animación siguen en línea: son del cajón, no de la piel. */
+    var T0 = window.LW_TONOS || {}, tEst = o.estado ? (T0[o.estado[1]] || T0.neutro || { fondo: '#EAE8E2', tinta: '#2E3437' }) : null;
     w.innerHTML =
-      '<div data-c="fondo" style="position:fixed;inset:0;background:rgba(0,0,0,.3);backdrop-filter:blur(2px);z-index:calc(' + z + ' - 1);transition:opacity .3s ease-in-out;opacity:0"></div>' +
-      '<aside role="dialog" aria-modal="true" aria-label="' + esc(o.titulo || 'Ficha') + '" data-c="panel" style="' + cajaPanel + '">' +
-      '<div style="' + cajaCabecera + '"><div style="min-width:0">' +
-      (o.sub ? '<p style="margin:0 0 5px;font-weight:600;font-size:11px;line-height:1.3;letter-spacing:.12em;text-transform:uppercase;color:' + CAJ.hoja + '">' + esc(o.sub) + '</p>' : '') +
-      "<h3 style=\"margin:0;font:700 25px/1.2 'Neue Kabel',sans-serif;letter-spacing:-.01em;color:" + CAJ.lago + ";overflow-wrap:anywhere\">" + esc(o.titulo || '') + '</h3>' +
-      (o.bajoTitulo ? '<p style="margin:6px 0 0;font-size:13px;color:' + CAJ.apagado + '">' + esc(o.bajoTitulo) + '</p>' : '') +
-      '</div><button type="button" data-c="cerrar" aria-label="Cerrar" style="border:0;background:none;font-size:22px;cursor:pointer;color:#75786e;line-height:1">×</button></div>' +
-      '<div data-c="cuerpo" style="' + cajaCuerpo + '">' + (o.cuerpo || '') + '</div>' +
-      '<div data-c="pie" style="' + cajaPie + '"></div></aside>';
+      '<div data-c="fondo" class="las-velo" style="z-index:calc(' + z + ' - 1)"></div>' +
+      '<aside role="dialog" aria-modal="true" aria-label="' + esc(o.titulo || 'Ficha') + '" data-c="panel" class="las-panel" style="position:fixed;top:0;right:0;height:100%;width:' + (o.ancho || 'min(60vw,96vw)') + ';z-index:' + z + ';transform:translateX(100%);transition:transform .3s ease-in-out">' +
+      '<header class="las-cab"><div class="las-cab-izq"><span class="las-barra"></span><div class="las-min0">' +
+      (o.sub || tEst ? '<div class="las-miga">' + (o.sub ? '<span>' + esc(o.sub) + '</span>' : '') +
+        (tEst ? (o.sub ? '<span class="las-sep">/</span>' : '') + '<span class="las-estado" style="background:' + tEst.fondo + ';color:' + tEst.tinta + '">' + esc(o.estado[0]) + '</span>' : '') + '</div>' : '') +
+      '<h1 class="las-h1">' + esc(o.titulo || '') + '</h1>' +
+      (o.bajoTitulo ? '<p class="lwc-bajo">' + esc(o.bajoTitulo) + '</p>' : '') +
+      '</div></div><button type="button" data-c="cerrar" class="las-cerrar" title="Cerrar" aria-label="Cerrar">' + icoBase(ICO_BASE.x) + '</button></header>' +
+      '<div data-c="cuerpo" class="lwc-cuerpo' + (o.lado ? ' lwc-split' : '') + '">' + (o.cuerpo || '') + '</div>' +
+      '<footer data-c="pie" class="las-pie"></footer></aside>';
+    /* `lado` (lista de ids de `seccion()`): esas secciones pasan a la columna
+       de la izquierda, como el resumen del alta. Las pantallas reescriben el
+       cuerpo entero cuando llegan los datos, así que se recoloca cada vez. */
+    if (o.lado) {
+      var cuerpoL = w.querySelector('[data-c="cuerpo"]');
+      var recoloca = function () {
+        var sueltas = Array.prototype.filter.call(cuerpoL.children, function (x) { return o.lado.indexOf(x.getAttribute('data-cajon-sec')) !== -1; });
+        var col = cuerpoL.querySelector(':scope > .lwc-ladocol');
+        if (sueltas.length) {
+          if (!col) { col = document.createElement('div'); col.className = 'lwc-ladocol'; cuerpoL.insertBefore(col, cuerpoL.firstChild); }
+          sueltas.forEach(function (x) { col.appendChild(x); });
+        }
+        var n = cuerpoL.children.length - (col ? 1 : 0);
+        cuerpoL.style.setProperty('--lwc-filas', String(Math.max(1, n)));
+      };
+      new MutationObserver(recoloca).observe(cuerpoL, { childList: true });
+      recoloca();
+    }
     var pie = w.querySelector('[data-c="pie"]');
     (o.acciones || []).forEach(function (a) {
       var b;
@@ -1165,15 +1236,17 @@
         b = document.createElement('a'); b.href = a.href;
         if (a.nuevaPestana) { b.target = '_blank'; b.rel = 'noopener'; }
       } else { b = document.createElement('button'); b.type = 'button'; }
-      b.textContent = a.texto;
-      b.style.cssText = estiloBoton(a);
+      // Clases del alta: principal rellena con flecha, el resto contorno; la que
+      // borra va a la izquierda en rojo (el orden lo pone el CSS, no el array).
+      if (a.tono === 'primario') { b.className = 'las-btn1'; b.innerHTML = '<span>' + esc(a.texto) + '</span>' + icoBase(ICO_BASE.flecha, 'las-ico las-flecha'); }
+      else { b.className = 'las-btn2' + (a.tono === 'peligro' ? ' lwc-peligro' : ''); b.textContent = a.texto; }
       // `disabled`/`title` (22-sep-2026, S10.3): el botón «Activar deck» nace
       // deshabilitado sin título guardado — mismo criterio que la clásica
       // (nunca activar un deck vacío), y `title` dice por qué sin un tooltip
       // aparte.
-      if (a.disabled) { b.disabled = true; if (b.tagName === 'BUTTON') b.style.opacity = '.5'; }
+      if (a.disabled) b.disabled = true;
       if (a.title) b.title = a.title;
-      if (a.cerrar) b.addEventListener('click', cierraCajon);
+      if (a.cerrar) { b.classList.add('lwc-cerrar'); b.addEventListener('click', cierraCajon); }
       else if (typeof a.onClick === 'function') b.addEventListener('click', function (ev) { a.onClick(ev, w); });
       pie.appendChild(b);
     });
@@ -1182,7 +1255,7 @@
     // shim de suiAbrirCajon/deck_fotos.js) ya trae el suyo — no se duplica.
     if (!o.pieExtra && !(o.acciones || []).some(function (a) { return a.cerrar; })) {
       var bc = document.createElement('button'); bc.type = 'button'; bc.textContent = 'Cerrar';
-      bc.style.cssText = estiloBoton({}); bc.addEventListener('click', cierraCajon); pie.appendChild(bc);
+      bc.className = 'las-btn2 lwc-cerrar'; bc.addEventListener('click', cierraCajon); pie.appendChild(bc);
     }
     /* `pieExtra` — puente para código que compone su PROPIO pie como HTML
        crudo en vez del array `acciones` (hoy solo deck_fotos.js, vía el shim
@@ -1225,9 +1298,10 @@
       requestAnimationFrame(function () {
         panel.style.clipPath = 'circle(' + radio + 'px at ' + cx + 'px ' + cy + 'px)';
         fondo.style.opacity = '1';
+        panel.classList.add('las-dentro');
       });
     } else requestAnimationFrame(function () {
-      requestAnimationFrame(function () { panel.style.transform = 'translateX(0)'; fondo.style.opacity = '1'; });
+      requestAnimationFrame(function () { panel.style.transform = 'translateX(0)'; fondo.style.opacity = '1'; panel.classList.add('las-dentro'); });
     });
     return { el: w, cuerpo: w.querySelector('[data-c="cuerpo"]'), pie: pie, cierra: cierraCajon };
   }
@@ -1267,40 +1341,45 @@
      es la unica puerta para meter marcado (una etiqueta de estado, un
      enlace), y quien la usa escapa el mismo. */
   var CAJON_HTML = {
+    // Bloque del alta. `> h4` y `> div` son ganchos de datos.js (retitular,
+    // rellenar después): la estructura section > h4 + div no se cambia.
     seccion: function (titulo, inner, id) {
-      return '<section' + (id ? ' data-cajon-sec="' + esc(id) + '"' : '') + ' style="background:' + CAJ.banda + ';border:1px solid ' + CAJ.borde + ';border-radius:12px;padding:12px 14px">' +
-        '<h4 style="margin:0 0 8px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:' + CAJ.hoja + '">' + esc(titulo) + '</h4>' +
-        '<div style="display:grid;gap:6px">' + (inner || '') + '</div></section>';
+      return '<section class="las-bloque lwc-sec"' + (id ? ' data-cajon-sec="' + esc(id) + '"' : '') + '>' +
+        '<h4>' + esc(titulo) + '</h4><div>' + (inner || '') + '</div></section>';
     },
     dato: function (etq, valor, opts) {
-      var v = (valor == null || valor === '') ? '<span style="color:' + CAJ.apagado + '">—</span>' : ((opts && opts.html) ? valor : esc(valor));
-      return '<div style="display:flex;justify-content:space-between;gap:14px;padding:6px 0;border-bottom:1px solid rgba(228,220,203,.7);font-size:13px">' +
-        '<span style="color:' + CAJ.apagado + ';font-weight:500;flex:0 0 38%">' + esc(etq) + '</span>' +
-        '<span style="color:' + CAJ.tinta + ';font-weight:500;text-align:right;overflow-wrap:anywhere;min-width:0">' + v + '</span></div>';
+      var v = (valor == null || valor === '') ? '<span class="lwc-apagado">—</span>' : ((opts && opts.html) ? valor : esc(valor));
+      return '<div class="lwc-dato"><span class="las-etq">' + esc(etq) + '</span><span class="lwc-val">' + v + '</span></div>';
     },
     tabla: function (cabeceras, filas) {
-      return '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr>' +
-        cabeceras.map(function (h) { return '<th style="text-align:left;padding:6px 8px;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:' + CAJ.apagado + ';border-bottom:1px solid ' + CAJ.borde + '">' + esc(h) + '</th>'; }).join('') +
-        '</tr></thead><tbody>' +
-        filas.map(function (f) { return '<tr>' + f.map(function (c) { return '<td style="padding:7px 8px;border-bottom:1px solid rgba(228,220,203,.7);color:' + CAJ.tinta + ';vertical-align:top">' + c + '</td>'; }).join('') + '</tr>'; }).join('') +
+      return '<div class="lwc-tabla-caja"><table class="lwc-tabla"><thead><tr>' +
+        cabeceras.map(function (h) { return '<th>' + esc(h) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+        filas.map(function (f) { return '<tr>' + f.map(function (c) { return '<td>' + c + '</td>'; }).join('') + '</tr>'; }).join('') +
         '</tbody></table></div>';
     },
     tag: function (texto, tono) {
       // paleta ÚNICA de la v4 (window.LW_TONOS, datos.js) — antes era una copia aquí
       var T = window.LW_TONOS || {}, t = T[tono] || T.neutro;
-      var c = t ? [t.fondo, t.tinta] : ['#EAE8E2', CAJ.tinta];
-      return '<span style="display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;background:' + c[0] + ';color:' + c[1] + '">' + esc(texto) + '</span>';
+      var c = t ? [t.fondo, t.tinta] : ['#EAE8E2', '#2E3437'];
+      return '<span class="lwc-tag" style="background:' + c[0] + ';color:' + c[1] + '">' + esc(texto) + '</span>';
     },
     chips: function (lista) {
-      return '<div style="display:flex;flex-wrap:wrap;gap:6px">' + lista.map(function (x) {
-        return '<span style="padding:3px 10px;border-radius:999px;background:' + CAJ.papel + ';border:1px solid ' + CAJ.borde + ';font-size:12px;color:' + CAJ.tinta + '">' + esc(x) + '</span>';
-      }).join('') + '</div>';
+      return '<div class="lwc-chips">' + lista.map(function (x) { return '<span>' + esc(x) + '</span>'; }).join('') + '</div>';
     },
     nota: function (texto, html) {
-      return '<p style="margin:0;font-size:12.5px;line-height:1.5;color:#8A6A34;background:#FBF3E4;border:1px solid #EBDCB4;border-radius:10px;padding:9px 12px">' + (html ? texto : esc(texto)) + '</p>';
+      return '<article class="las-aviso">' + icoBase(ICO_BASE.info, 'las-ico-aviso') + '<div class="las-min0">' + (html ? texto : esc(texto)) + '</div></article>';
     },
     enlace: function (href, texto, nuevaPestana) {
-      return '<a href="' + esc(href) + '"' + (nuevaPestana ? ' target="_blank" rel="noopener"' : '') + ' style="color:' + CAJ.lago + ';font-weight:600;text-decoration:underline">' + esc(texto) + '</a>';
+      return '<a class="lwc-link" href="' + esc(href) + '"' + (nuevaPestana ? ' target="_blank" rel="noopener"' : '') + '>' + esc(texto) + '</a>';
+    },
+    // Cifras del resumen (precio, cobrado…). `valor` llega ya escapado/HTML.
+    cifras: function (lista) {
+      return '<div class="lwc-cifras">' + lista.map(function (x) {
+        return '<div class="lwc-cifra"><span class="las-etq">' + esc(x[0]) + '</span><b>' + x[1] + '</b>' + (x[2] ? '<small>' + esc(x[2]) + '</small>' : '') + '</div>';
+      }).join('') + '</div>';
+    },
+    paso: function (titulo, texto) {
+      return '<article class="las-aviso lwc-paso">' + icoBase(ICO_BASE.flecha, 'las-ico-aviso') + '<div class="las-min0"><span class="las-aviso-t">' + esc(titulo) + '</span>' + esc(texto) + '</div></article>';
     }
   };
   window.lwCajon = cajon;
