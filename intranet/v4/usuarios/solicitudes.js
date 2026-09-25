@@ -14,7 +14,7 @@
  */
 (function () {
   'use strict';
-  var EDGE = window.LW_SB_URL + '/functions/v1/admin-usuarios';   // la base de la instancia la fija guard.js (ERP F3)
+  // la base de la instancia la fija guard.js (ERP F3): la URL se pide al llamar, nunca se guarda al cargar
   var KEY = window.LW_SB_KEY;
   var HERR_COMERCIAL = [['leads', 'CRM'], ['contratos', 'Generador de contratos'], ['compradores', 'Compradores'],
                         ['reservas', 'Reservas'], ['comisiones_reparto', 'Mis comisiones']];
@@ -35,7 +35,7 @@
     return sb.auth.getSession().then(function (r) {
       var t = r && r.data && r.data.session && r.data.session.access_token;
       if (!t) throw new Error('sesión no encontrada');
-      return fetch(EDGE, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t, apikey: KEY },
+      return fetch(window.lwEdge('admin-usuarios'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t, apikey: KEY },
                            body: JSON.stringify(cuerpo) }).then(function (x) { return x.json(); });
     });
   }
