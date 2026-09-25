@@ -209,6 +209,16 @@
     a.classList.add('bg-primary-container', 'text-on-primary', 'font-bold');
   }
 
+  /* Inversa de marcaActiva, para los CLONES (25-sep-2026). injertaPanelControl
+     corre en el segundo pase y clona «Usuarios», que en /usuarios/ ya salió
+     marcado del primero: quitar solo aria-current dejaba la píldora verde en
+     Resumen, Gastos, Bancos, Cuentas, Ajustes y Comunicados a la vez. */
+  function desmarca(a) {
+    a.removeAttribute('aria-current');
+    a.classList.remove('bg-primary-container', 'text-on-primary', 'font-bold');
+    a.classList.add('text-on-surface-variant');
+  }
+
   /* Herramientas que NO existen en el diseno de Stitch: nacieron despues de la
      descarga (Modelos el 7-sep; CRM y Solicitudes/Comisiones ya estaban vivas
      en /intranet/ y la maqueta se habia quedado atras). Sus items de menu se
@@ -433,7 +443,7 @@
     if (!ancla) return;                       // sin el vecino no hay donde colgarlo
     var a = ancla.cloneNode(true);            // clon: hereda las clases exactas
     a.setAttribute('data-path', spec.path);
-    a.removeAttribute('aria-current');
+    desmarca(a);
     var spans = a.querySelectorAll('span');
     if (spans.length < 2) return;
     spans[0].textContent = spec.icono;        // ligadura de material-symbols
@@ -541,7 +551,7 @@
     PANEL_CONTROL.concat(esSuperSesion(ficha) ? PANEL_CONTROL_SUPER : []).forEach(function (spec) {
       var a = ancla.cloneNode(true);              // clon de "Usuarios": hereda las clases exactas
       a.setAttribute('data-path', spec.path);
-      a.removeAttribute('aria-current');
+      desmarca(a);
       var spans = a.querySelectorAll('span');
       if (spans.length < 2) return;
       spans[0].textContent = spec.icono;
