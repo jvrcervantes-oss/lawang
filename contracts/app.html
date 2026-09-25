@@ -2215,7 +2215,7 @@ function fieldHTML(f){
   /* Descuento comercial (21-sep-2026, ver CAMPOS_DESCUENTO_COMERCIAL): se
      pinta SIEMPRE bloqueado, igual que FIJOS_ESTUDIO — el rol todavía no se
      conoce en este punto de buildForm(). updateSaveButton() lo abre para
-     ROLES_HITOS_FIJOS en cuanto MI_ROL ya está resuelto. */
+     ROLES_FIJOS_ESTUDIO en cuanto MI_ROL ya está resuelto. */
   const fijadoDescuentoComercial = typeof CAMPOS_DESCUENTO_COMERCIAL !== 'undefined'
     && CAMPOS_DESCUENTO_COMERCIAL.includes(key);
   const marca = fijado ? ' readonly data-fijo-super class="dato-fijo"' +
@@ -2223,7 +2223,7 @@ function fieldHTML(f){
     : fijadoPrecioConstruccion ? ' readonly data-fijo-techo class="dato-fijo"' +
     ' title="Lo calcula el techo y los extras elegidos — no se edita a mano"'
     : fijadoDescuentoComercial ? ' readonly data-fijo-descuento class="dato-fijo"' +
-    ' title="Solo lo cambian dirección (admin/super admin)"' : marcaTecho;
+    ' title="Solo lo cambian dirección y los sales managers"' : marcaTecho;
   const avisoPrecioConstruccion = fijadoPrecioConstruccion
     ? `<p class="mini">🔒 ${L({es:'Lo calcula el techo y los extras elegidos. No se edita a mano.',en:'Set by the chosen roof and extras. Not editable by hand.',id:'Dihitung dari atap dan ekstra yang dipilih. Tidak bisa diubah manual.'})}</p>`
     : '';
@@ -2275,6 +2275,13 @@ const puedeHitosFijos = () => ROLES_HITOS_FIJOS.includes(MI_ROL);
    (super_admin/admin) y el mismo motivo que ya cerró precio_total — quien
    negocia el precio con el comprador (sales_manager) es precisamente a quien
    no se le puede dejar bajar su propio precio negociado. */
+/* 25-sep-2026, owner («2» sobre tres salidas): se abre también a
+   sales_manager — ROLES_FIJOS_ESTUDIO en vez de ROLES_HITOS_FIJOS. El equipo
+   no podía poner descuentos sin pasar por dirección. Se asume a sabiendas lo
+   de arriba (quien negocia puede rebajar su precio): lo acotan el tope del
+   15%, el motivo obligatorio y el trigger `descuento_comercial_rol` de la
+   base, que rechaza el cambio a cualquier otro rol. precio_total y los hitos
+   de fábrica siguen en admin/super_admin. */
 const CAMPOS_DESCUENTO_COMERCIAL = ['descuento_comercial', 'descuento_comercial_motivo'];
 /* Mínimo pactado por el estudio para la reserva (11-sep-2026). Va junto a lo
    anterior para que nadie cambie el default sin ver el mínimo. */
@@ -4219,8 +4226,8 @@ function updateSaveButton(){
   // dos condiciones independientes, no una — SOLO se enseña cuando el techo
   // manda el precio (sin TECHO_ELEGIDO no hay fórmula de la que restar nada:
   // mismo criterio que fijadoPrecioConstruccion arriba) y, cuando se enseña,
-  // SOLO lo edita ROLES_HITOS_FIJOS (mismo rol y mismo motivo que precio_total
-  // y los hitos de fábrica — ver la nota junto a CAMPOS_DESCUENTO_COMERCIAL).
+  // SOLO lo edita ROLES_FIJOS_ESTUDIO (desde el 25-sep-2026 — ver la nota
+  // junto a CAMPOS_DESCUENTO_COMERCIAL).
   // Va aquí y no en aplicarReglasCampos() porque #techoSel no tiene `name`
   // (misma razón que fijadoPrecioConstruccion, unas líneas arriba): elegir o
   // quitar techo solo dispara updateSaveButton(), nunca el wiring genérico.
@@ -4230,18 +4237,26 @@ function updateSaveButton(){
     const esBloqueo = CONTRACT_TIPO[CURRENT.slug] === 'reserva_parcela';
     const muestraDescuento = (CONTRACT_TIPO[CURRENT.slug] === 'construccion' && !!TECHO_ELEGIDO)
       || (esBloqueo && typeof listaSueloVigente === 'function' && listaSueloVigente() != null);
-    const abreDescuento = puedeHitosFijos();
+    const abreDescuento = puedeFijosEstudio();
     CAMPOS_DESCUENTO_COMERCIAL.forEach(k=>{
       const caja = document.querySelector('.field[data-key="' + k + '"]');
       if(caja) caja.style.display = muestraDescuento ? '' : 'none';
       const el = document.querySelector('[data-fijo-descuento][name="' + k + '"]');
       if(!el) return;
+      /* Contrato sin guardar (copia de otro) en manos de quien no puede
+         tocar el descuento: se suelta. El campo le sale bloqueado y el
+         trigger descuento_comercial_rol rechazaría el guardado — se quedaría
+         sin poder guardar ni vaciarlo. Uno ya guardado lo conserva. Solo con
+         MI_ROL ya resuelto: antes vale null y vaciaría el de un sales manager. */
+      if(MI_ROL && !abreDescuento && !(SAVED_CONTRACT && SAVED_CONTRACT.id) && el.value){
+        el.value = ''; el.dispatchEvent(new Event('input', { bubbles:true }));
+      }
       el.readOnly = !abreDescuento;
       el.classList.toggle('dato-fijo', !abreDescuento);
       el.title = abreDescuento
         ? (esBloqueo ? 'Descuento comercial sobre el precio del suelo — máx. 15%. Necesita motivo.'
                      : 'Descuento comercial sobre el precio de techo+extras — máx. 15%. Necesita motivo.')
-        : 'Solo lo cambian dirección (admin/super admin): quien negocia el precio con el comprador no puede bajarlo él mismo.';
+        : 'Solo lo cambian dirección y los sales managers.';
     });
   }
   // Hitos de fábrica del Contrato de Construcción (16-sep-2026): mismo
