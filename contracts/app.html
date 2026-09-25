@@ -5345,6 +5345,12 @@ async function openSavedContract(id){
   const f = { ...(d.fields || {}) };
   if(f.cuota_reserva_eur && !f.precio_reserva) f.precio_reserva = f.cuota_reserva_eur;
   if(f.plazo_meses && !f.plazo_pago_final_meses && slug==='ppjb_parcela') f.plazo_pago_final_meses = f.plazo_meses;
+  /* Nº de contrato (25-sep-2026, owner: «RP00202 su número no sale en la
+     casilla»): lo asigna la base DESPUÉS del primer guardado, así que el
+     jsonb suele traer `contrato_num` vacío (166 contratos). El documento no
+     sufría —collect() imprime SAVED_CONTRACT.numero— pero la casilla se
+     pintaba desde el jsonb y salía en blanco. La columna manda. */
+  if(data.numero) f.contrato_num = data.numero;
   populateForm(f);
   /* Lo que este contrato guardó y la plantilla de hoy ya no pregunta se queda
      en memoria y vuelve a salir en collect() (19-ago-2026). El caso real es la
