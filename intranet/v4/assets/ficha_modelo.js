@@ -653,6 +653,17 @@
       var techo = d.techo_clave ? (h.techos.filter(function (t) { return t.clave === d.techo_clave; })[0] || { nombre: d.techo_clave }).nombre : '';
       f.innerHTML = '<span data-lw="doc-titulo" style="font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(d.nombre || 'Documento') + '</span>' +
         '<span data-lw="doc-meta" style="font-size:12px;color:' + C.apagado + ';white-space:nowrap">' + esc(tipo + (techo ? ' · ' + techo : '') + ' · ' + ctx.fFecha(d.subido_en) + (d.visible_portal ? ' · visible al comprador' : '')) + '</span>';
+      // Borrar (25-sep-2026, SC-21: «no me deja borrar documentos dados de alta»):
+      // no existía ni aquí ni en la clásica. Solo admin porque «modelos bucket:
+      // borrar» es es_admin() — a un agente se le borraría la fila y el fichero
+      // quedaría huérfano. El click lo delega editores.js en #d-docs.
+      if (EST.admin) {
+        var bb = document.createElement('button'); bb.type = 'button'; bb.setAttribute('data-real', '');
+        bb.setAttribute('data-doc-borrar', ''); bb.setAttribute('data-doc-id', d.id);
+        bb.style.cssText = 'flex:none;border:0;background:none;padding:0;font-weight:600;font-size:11.5px;font-family:inherit;color:' + C.rojo + ';text-decoration:underline;cursor:pointer';
+        bb.textContent = 'Borrar';
+        f.appendChild(bb);
+      }
       caja.appendChild(f);
     });
   }
