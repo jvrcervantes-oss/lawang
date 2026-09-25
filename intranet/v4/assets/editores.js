@@ -4625,6 +4625,8 @@
         var caja = document.getElementById('d-docs');
         if (!caja) return;
         caja.addEventListener('click', function (ev) {
+          var bBorrar = ev.target.closest && ev.target.closest('[data-doc-borrar]');
+          if (bBorrar) { ev.preventDefault(); ev.stopPropagation(); return borraDocModelo(bBorrar.getAttribute('data-doc-id')); }
           var f = ev.target.closest && ev.target.closest('[data-doc-abrir]');
           if (!f) return;
           var path = f.getAttribute('data-doc-path');
@@ -4638,6 +4640,39 @@
             window.open(u.data.signedUrl, '_blank', 'noopener');
           });
         });
+
+        /* Borrar (25-sep-2026, SC-21): la fila se relee de la base (nombre,
+           tipo y path no se fían del DOM). Mismo orden que borraDocumento de
+           Documentación: fila primero, objeto después — si el objeto no sale
+           queda un huérfano privado, nunca una fila que apunta a la nada. El
+           anexo lo trae documento_anexos.js al abrir el contrato en el
+           generador: borrar el plano afecta a lo que se genere o reabra desde
+           ahora, no a los PDF ya emitidos. */
+        function borraDocModelo(id) {
+          if (!id) return;
+          var doc = null;
+          sb.from('modelo_documentos').select('id,nombre,tipo,path').eq('id', id).maybeSingle().then(function (r) {
+            if (r.error || !r.data) throw new Error((r.error && r.error.message) || 'el documento ya no existe — recarga la página');
+            doc = r.data;
+            return aseguraModulosDoc(['dialogo']);
+          }).then(function () {
+            return lwConfirmar({
+              titulo: 'Borrar documento',
+              cuerpo: '<p>«' + esc(doc.nombre || 'Documento') + '» se borra del modelo. No se puede deshacer.</p>' +
+                (doc.tipo === 'plano' ? '<p>Es el <b>plano</b>: los contratos de Construcción que se generen, o se reabran en el generador, a partir de ahora ya no lo adjuntarán (los PDF ya emitidos no cambian).</p>' : ''),
+              confirmar: 'Borrar', tono: 'peligro'
+            });
+          }).then(function (ok) {
+            if (!ok) return;
+            return sb.from('modelo_documentos').delete().eq('id', doc.id).select('id').then(function (r) {
+              var u2 = unaFila(r);
+              if (u2.error) return aviso('No se pudo borrar: ' + u2.error.message, '#ba1a1a');
+              var fin = function () { aviso('Borrado'); location.reload(); };
+              if (!doc.path) return fin();
+              sb.storage.from('modelos').remove([doc.path]).then(fin, fin);
+            });
+          }).catch(function (e) { aviso('No se pudo borrar: ' + (e && e.message || e), '#ba1a1a'); });
+        }
       })();
 
       /* Previsión del deck (S12, 22-sep-2026): editor de `deck_forecast`
