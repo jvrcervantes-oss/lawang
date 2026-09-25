@@ -535,7 +535,10 @@ Deno.serve(async (req) => {
 
     const { data: contrato, error: eC } = await sb
       .from('contratos')
-      .select('id, numero, tipo, nombre_contrato, comprador_nombre, proyecto_nombre, precio_total, moneda, fecha_firma, bloqueado, datos, unidad_id, proyecto_id, contrato_padre_id')
+      // Ramas de `datos` una a una, nunca `datos` entero: `design` lleva la
+      // portada en base64 (~600 kB) y no la usa nadie aquí (LAW-78, 25-sep-2026).
+      .select('id, numero, tipo, nombre_contrato, comprador_nombre, proyecto_nombre, precio_total, moneda, fecha_firma, bloqueado, unidad_id, proyecto_id, contrato_padre_id, '
+        + 'fields:datos->fields, hitos:datos->hitos, techo:datos->techo, clauses:datos->clauses, extras:datos->extras, annexes:datos->annexes, lang:datos->>lang')
       .eq('id', contrato_id)
       .maybeSingle();
     if (eC) return json({ error: 'no_se_pudo_leer_contrato' }, 500);
@@ -543,7 +546,19 @@ Deno.serve(async (req) => {
     // y sin llamar al modelo ni registrar nada.
     if (!contrato) return json({ error: 'no_autorizado' }, 403);
 
-    const datos = (contrato.datos ?? {}) as Record<string, unknown>;
+    // Los anexos llegan con sus páginas como imágenes base64 (hasta 7 MB): al
+    // modelo solo le sirve qué anexos lleva el contrato. Antes iban enteros y
+    // reventaban TOPE_CONTEXTO, que entonces tiraba también clauses y extras.
+    const annexes = Array.isArray(contrato.annexes)
+      ? (contrato.annexes as Record<string, unknown>[]).map((a) => ({
+          title: a?.title ?? null, on: a?.on ?? null,
+          paginas: Array.isArray(a?.pages) ? (a.pages as unknown[]).length : 0,
+        }))
+      : null;
+    const datos: Record<string, unknown> = {
+      fields: contrato.fields, hitos: contrato.hitos, techo: contrato.techo,
+      clauses: contrato.clauses, extras: contrato.extras, annexes, lang: contrato.lang,
+    };
     const fields = (datos.fields ?? {}) as Record<string, unknown>;
     const claveCuenta = typeof fields.cuenta_bancaria === 'string' ? fields.cuenta_bancaria : '';
     const claveSociedad = typeof fields.sociedad_firmante === 'string' ? fields.sociedad_firmante : '';

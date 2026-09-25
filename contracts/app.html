@@ -4646,12 +4646,16 @@ async function guardarContrato(){
     // reabría el contrato — y el snapshot que se firma sale de buildDoc() en
     // caliente, así que se podía firmar el calendario equivocado justo
     // después de guardar.
+    // Solo las dos ramas que se releen, nunca `datos` entero (LAW-78, 25-sep-2026):
+    // devolvía en cada guardado la portada y los anexos en base64, hasta varios MB.
     const eraNuevo = !(SAVED_CONTRACT && SAVED_CONTRACT.id);
+    const COLS_RELEE = 'id,numero,datos_fields:datos->fields,datos_hitos:datos->hitos';
     const q = !eraNuevo
-      ? sb.from('contratos').update(payload).eq('id', SAVED_CONTRACT.id).select('id,numero,datos').single()
-      : sb.from('contratos').insert(payload).select('id,numero,datos').single();
-    const { data, error } = await q;
+      ? sb.from('contratos').update(payload).eq('id', SAVED_CONTRACT.id).select(COLS_RELEE).single()
+      : sb.from('contratos').insert(payload).select(COLS_RELEE).single();
+    const { data: fila, error } = await q;
     if(error) throw error;
+    const data = { id:fila.id, numero:fila.numero, datos:{ fields:fila.datos_fields, hitos:fila.datos_hitos } };
     SAVED_CONTRACT = { id:data.id, numero:data.numero };
     ANEXO_MANUAL_RETIRADO = false;   // lo retirado ya está fuera de la fila
     if(eraNuevo) PDF_SALIO = false;   // un contrato recién creado no ha salido nunca
