@@ -183,7 +183,7 @@ function modeloFinanciero(o){
     {
       const proyP = c.proyecto_nombre || vT('Sin proyecto');
       const pp = m.porProyecto[proyP] || (m.porProyecto[proyP] = { cartera:0, cobrado:0, vencido:0, proximos90:0, personas:{} });
-      const quien = (c.comprador_nombre || '').trim() || vT('Sin comprador');   // 26-sep: sigue «comprador» a proposito — este fichero va empaquetado en la edge factura-vencimiento (tools/empaqueta_edge.py); cambiarlo exige redesplegarla
+      const quien = (c.comprador_nombre || '').trim() || vT('Sin comprador');
       const per = pp.personas[quien] || (pp.personas[quien] = { precio:0, cobrado:0, pendiente:0, firmados:0, sinFirmar:0 });
       per.precio += precio; per.cobrado += cobrado;
       per.pendiente += Math.max(0, precio - cobrado);
