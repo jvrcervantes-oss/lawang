@@ -148,6 +148,16 @@ begin
     if v_motivo is null or length(v_motivo) < 10 then
       raise exception 'Esta condición ya ha generado comisiones: escribe por qué cambias sus cifras (queda registrado)' using errcode = '22023';
     end if;
+    -- Consulta de deploy de Administración (26-sep): con devengos, adelantar la vigencia deja fuera las ventas
+    -- a medias (comisiones_evaluar_contrato ya no elige esta condición) y sus tramos pendientes no se devengan
+    -- nunca, sin aviso; cambiar la base mezclaría dos bases en una misma venta. Se editan %, importe fijo,
+    -- override y retrasar la vigencia.
+    if v_desde > v_old.vigente_desde then
+      raise exception 'Esta condición ya ha generado comisiones: su fecha de vigencia no se puede adelantar (dejaría sin cobrar los tramos pendientes de ventas ya empezadas)' using errcode = '22023';
+    end if;
+    if v_base is distinct from v_old.base_calculo then
+      raise exception 'Esta condición ya ha generado comisiones: su base de cálculo no se cambia. Desactívala y crea una nueva.' using errcode = '22023';
+    end if;
   end if;
   if not v_admin then
     if v_desde is distinct from v_old.vigente_desde and v_desde < current_date then
@@ -165,8 +175,13 @@ begin
   if v_n = 0 then
     perform public._condicion_tramos_pone(p_id, p_tramos);   -- con devengos, los tramos no se tocan
   end if;
+  -- con devengos, cuántas ventas en curso cobrarán sus tramos pendientes con la cifra nueva
   insert into public.condiciones_comision_log (condicion_id, antes, despues, con_devengos, motivo)
-  select p_id, to_jsonb(v_old), to_jsonb(c), v_n > 0, v_motivo from public.condiciones_comision c where c.id = p_id;
+  select p_id, to_jsonb(v_old),
+         to_jsonb(c) || jsonb_build_object('ventas_con_devengos',
+           (select count(distinct d.contrato_raiz_id) from public.comisiones_devengadas d where d.condicion_id = p_id)),
+         v_n > 0, v_motivo
+    from public.condiciones_comision c where c.id = p_id;
   return p_id;
 end $$;
 revoke all on function public.condicion_comision_guarda(uuid, jsonb, jsonb, text) from public, anon;
@@ -324,10 +339,11 @@ begin
     raise exception 'Estado no válido' using errcode = '22023';
   end if;
   if p_estado is distinct from v.estado then
-    v_avanza := (v.estado = 'pendiente' and p_estado in ('facturada', 'cobrada', 'exenta'))
+    -- exenta = no se factura nunca: decisión fiscal, siempre con motivo (Administración, consulta de deploy)
+    v_avanza := (v.estado = 'pendiente' and p_estado in ('facturada', 'cobrada'))
              or (v.estado = 'facturada' and p_estado = 'cobrada');
     if not v_avanza and (v_motivo is null or length(v_motivo) < 5) then
-      raise exception 'Volver de «%» a «%» necesita un motivo (queda registrado)', v.estado, p_estado using errcode = '22023';
+      raise exception 'Pasar de «%» a «%» necesita un motivo (queda registrado)', v.estado, p_estado using errcode = '22023';
     end if;
     insert into public.comision_admin_lineas_log (linea_id, estado_antes, estado_despues, motivo)
     values (p_id, v.estado, p_estado, v_motivo);

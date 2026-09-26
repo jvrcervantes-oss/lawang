@@ -8363,7 +8363,7 @@
                devengos, pero con motivo, que queda registrado — y «Recalcular» una venta reescribe lo
                devengado con estas cifras nuevas. */
             campos.push({ k: 'motivo', label: 'Por qué cambias las cifras (queda registrado)', req: 1,
-              ayuda: 'ojo: si luego recalculas una venta, lo ya devengado se rehace con estas cifras' });
+              ayuda: 'ojo: los tramos pendientes de las ventas ya empezadas se cobrarán con la cifra nueva, y si recalculas una venta se rehace lo devengado. Con devengos no se cambia la base ni se adelanta la vigencia' });
             campos.push({ tipo: 'nota', label: 'Esta condición ya ha devengado ' + n + (n === 1 ? ' comisión' : ' comisiones') +
               ': sus tramos no se tocan, porque cada devengo lleva su importe congelado sobre ellos. ' +
               'Para otro calendario de pago, desactívala y crea una nueva. Tramos actuales: ' +
@@ -8486,8 +8486,12 @@
               p_pct: pct, p_efectivo_desde: v.efectivo_desde, p_nota: (v.nota || '').trim() || null
             }).then(function (r) {
               var n = r.data && r.data.lineas_con_tarifa_anterior;
-              if (!r.error && n) aviso(n + ' comisión(es) desde esa fecha se quedan con la tarifa anterior: una tarifa nueva no reescribe lo ya devengado.', '#8A6A34');
-              return r;
+              // el diálogo va ANTES de devolver: modal() recarga la página al recibir la respuesta y se
+              // llevaría un aviso suelto antes de leerlo (consulta de deploy de Desarrollo)
+              if (r.error || !n || typeof lwConfirmar !== 'function') return r;
+              return lwConfirmar({ titulo: 'Tarifa creada',
+                cuerpo: n + ' comisión(es) desde esa fecha se quedan con la tarifa anterior: una tarifa nueva no reescribe lo ya devengado. Si quieres cambiarlas, edita la tarifa anterior con «Recalcular».',
+                confirmar: 'Entendido', cancelar: false }).then(function () { return r; });
             });
           };
           if (!(pct > 5)) return inserta();
@@ -8642,7 +8646,7 @@
           { k: 'nota', label: 'Nota', valor: notaActual,
             ayuda: notaActual ? 'lo que hay escrito lo puso el sistema al detectar un cambio — borrarlo pierde el porque de esta linea' : '' },
           { k: 'motivo', label: 'Motivo (solo si vuelves a un estado anterior)',
-            ayuda: 'pendiente → facturada → cobrada (o exenta) avanza solo; volver atrás necesita motivo y queda registrado' },
+            ayuda: 'pendiente → facturada → cobrada avanza solo; volver atrás o marcarla exenta necesita motivo y queda registrado' },
           { k: 'revisar', label: 'Dejar de marcarla para revisar', tipo: 'check',
             ayuda: 'solo la bandera; si el descuadre es real sigue saliendo en el aviso de arriba, que se recalcula desde la base' },
           { tipo: 'nota', label: 'El importe, la base y el % no se tocan desde aqui: los calcula la base sobre el recibi. «Exenta» deja la linea sin cobrar sin anularla — util para una correccion, pero ojo: la tarifa acordada es sobre TODO el dinero que entra, asi que exonerar una linea es salirse de ella.' }
