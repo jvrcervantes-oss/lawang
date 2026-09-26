@@ -90,10 +90,16 @@
 <div class="font-kpi-number text-[26px] text-on-surface tracking-tight leading-tight sm:text-right whitespace-pre-line" data-lw="k-deben">—</div>
 </section>
 
-<!-- Previsión (25-sep-2026, owner): «lo que cobraré si se paga todo lo que hay
+<!-- Previsiones agrupadas (26-sep-2026, owner): las dos previsiones en una sola
+     tarjeta — arriba la de la tarifa vigente, debajo el simulador.
+     Previsión (25-sep-2026, owner): «lo que cobraré si se paga todo lo que hay
      lanzado» = contratos firmados + en firma. La calcula la base
-     (comision_admin_prevision), no esta pantalla. Una línea por moneda. -->
-<section class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+     (comision_admin_prevision), no esta pantalla. Una línea por moneda.
+     Simulador (26-sep-2026, owner): «previsión si cambio la tarifa, al % que yo
+     quiera». Solo pantalla: no guarda nada ni toca la tarifa. Recalcula sobre el
+     mismo `pendiente` que devuelve comision_admin_prevision(). -->
+<section class="bg-surface-container-lowest rounded-xl shadow-sm flex flex-col">
+<div class="p-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 <div class="flex items-start gap-3">
 <span class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-deep-lagoon shrink-0"><span class="material-symbols-outlined text-[18px]">trending_up</span></span>
 <div class="flex flex-col gap-1">
@@ -102,12 +108,8 @@
 </div>
 </div>
 <div class="font-kpi-number text-kpi-number text-on-surface tracking-tight leading-tight sm:text-right" data-lw="k-prevision">—</div>
-</section>
-
-<!-- Simulador (26-sep-2026, owner): «previsión si cambio la tarifa, al % que yo
-     quiera». Solo pantalla: no guarda nada ni toca la tarifa. Recalcula sobre el
-     mismo `pendiente` que devuelve comision_admin_prevision(). -->
-<section class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between" id="lw-ca-simula" hidden>
+</div>
+<div class="p-5 border-t border-outline-variant/40 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between" id="lw-ca-simula" hidden>
 <div class="flex items-start gap-3">
 <span class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-burnt-earth shrink-0"><span class="material-symbols-outlined text-[18px]">tune</span></span>
 <div class="flex flex-col gap-2">
@@ -121,6 +123,7 @@
 </div>
 </div>
 <div class="font-kpi-number text-kpi-number text-on-surface tracking-tight leading-tight lg:text-right" data-lw="k-simula">—</div>
+</div>
 </section>
 
 <section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
