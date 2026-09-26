@@ -2499,10 +2499,16 @@
         vig(sb.rpc('contratos_cobrado_equipo')).then(function (r) { return r.error ? (fallo('cobrado', r.error), null) : (r.data || []); }),
         q(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado').eq('estado', 'pendiente'), 'firmas'),
         // nombre del agente que dio de alta cada ficha (`clients.propietario` es un email)
-        q(sb.from('usuarios').select('email,nombre'), 'equipo')
+        q(sb.from('usuarios').select('email,nombre'), 'equipo'),
+        /* Nº de cliente (CLI-00042, 26-sep-2026, owner). Lo pone la base al dar de alta y no cambia nunca
+           (trg_clients_numero_cliente). Sale de su propia RPC porque `compradores_directorio()` no se toca
+           (cambiar lo que devuelve exige borrarla). Si falla, la lista se pinta igual, sin número. */
+        vig(sb.rpc('compradores_numeros')).then(function (r) { return r.error ? (fallo('números de cliente', r.error), []) : (r.data || []); })
       ]).then(function (r) {
-        var cs = r[0], cts = r[1] || [], vin = r[2] || [], cob = r[3] || [], fir = r[4] || [], eq = r[5] || [];
+        var cs = r[0], cts = r[1] || [], vin = r[2] || [], cob = r[3] || [], fir = r[4] || [], eq = r[5] || [], nums = r[6] || [];
         if (!cs) return;
+        var numDe = {}; nums.forEach(function (x) { numDe[x.id] = x.numero_cliente; });
+        cs.forEach(function (c2) { if (numDe[c2.id]) c2.numero_cliente = numDe[c2.id]; });
         var esPre = function (tp) { return (typeof lwEsPreliminar === 'function') && lwEsPreliminar(tp); };
         var porC = {}; cts.forEach(function (c2) { porC[c2.id] = c2; });
         var cobId = {}; cob.forEach(function (x) { cobId[x.contrato_id] = Number(x.cobrado) || 0; });
@@ -2652,7 +2658,7 @@
         /* La ficha COMPLETA se pide al abrir, y solo la de ese comprador. Si
            la consulta falla se pinta con lo que el listado ya sabe y se avisa:
            una ficha a medias sin decirlo es la familia de LAW-186. */
-        var CAMPOS_FICHA = 'id,full_name,email,phone,nationality,passport_number,tipo,forma_juridica,registro_num,rep_nombre,rep_cargo,kyc_status,idioma_comunicacion,notes,propietario,created_at';
+        var CAMPOS_FICHA = 'id,numero_cliente,full_name,email,phone,nationality,passport_number,tipo,forma_juridica,registro_num,rep_nombre,rep_cargo,kyc_status,idioma_comunicacion,notes,propietario,created_at';
         function abreFicha(c0) {
           var H = window.lwCajonHtml;
           if (!(window.lwCajon && H)) { toast('La ficha aún no ha cargado — prueba de nuevo en un segundo.'); return; }
@@ -2671,6 +2677,7 @@
           var vins = vin.filter(function (v) { return v.client_id === c2.id && porC[v.contrato_id]; });
           var kyc = KYC[c2.kyc_status || 'pending'] || [c2.kyc_status, 'neutro'];
           var identidad =
+            H.dato('Nº de cliente', c2.numero_cliente) +
             H.dato('Tipo', esEmpresa ? 'Empresa' : 'Persona física') +
             H.dato('Email', c2.email) +
             H.dato('Teléfono', c2.phone ? H.enlace('https://wa.me/' + String(c2.phone).replace(/[^0-9]/g, ''), c2.phone, true) : null, { html: 1 }) +
@@ -2780,7 +2787,7 @@
           acciones.push({ texto: 'Cerrar', cerrar: true });
           var cj = window.lwCajon({ sub: esEmpresa ? 'Ficha de empresa compradora' : 'Ficha de comprador', titulo: c2.full_name || 'Sin nombre',
             estado: ['KYC · ' + kyc[0], kyc[1]], lado: ['cuentas'],
-            bajoTitulo: [c2.nationality, c2.passport_number].filter(Boolean).join(' · ') || 'sin identificación',
+            bajoTitulo: [c2.numero_cliente, c2.nationality, c2.passport_number].filter(Boolean).join(' · ') || 'sin identificación',
             cuerpo: cuerpo, acciones: acciones, alCerrar: quitaId });
           var u2 = new URL(location.href);
           u2.searchParams.set('id', c2.id);
@@ -3254,6 +3261,8 @@
             ''
           ]);
           var tr = pl.tbody.lastElementChild;
+          var td0 = tr.querySelector('td');
+          if (td0 && c2.numero_cliente) td0.insertAdjacentHTML('beforeend', '<div style="font-size:11px;color:#75786e;letter-spacing:.02em">' + esc(c2.numero_cliente) + '</div>');
           // quién dio de alta la ficha (`propietario`, un email) — el mismo resolutor que el resto de la v4
           var tdAlta = tr.querySelectorAll('td')[7];
           if (tdAlta) tdAlta.innerHTML = htmlAutor(nombreEquipo, c2.propietario);
@@ -3294,7 +3303,7 @@
             btn.classList.toggle('font-medium', !on);
           });
 
-        /* El buscador de la cabecera: nombre, email, nacionalidad o teléfono.
+        /* El buscador de la cabecera: nombre, email, nacionalidad, teléfono o nº de cliente (CLI-00042).
            El teléfono se compara por DÍGITOS (`telefonoCasa`, compradores.js):
            el mismo móvil está guardado como «+34 687 95 95 09» y como
            «+34687959509», y comparar el texto tal cual no encontraba al
@@ -3304,7 +3313,7 @@
           var qq = busca.value.trim().toLowerCase();
           pl.tbody.querySelectorAll('tr[data-id]').forEach(function (tr) {
             var c2 = porId[tr.getAttribute('data-id')] || {};
-            var pajar = [c2.full_name, c2.email, c2.nationality, c2.phone].join(' ').toLowerCase();
+            var pajar = [c2.full_name, c2.email, c2.nationality, c2.phone, c2.numero_cliente].join(' ').toLowerCase();
             var casa = !qq || pajar.indexOf(qq) !== -1 || (typeof telefonoCasa === 'function' && telefonoCasa(c2.phone, qq));
             tr.style.display = casa ? '' : 'none';
           });
