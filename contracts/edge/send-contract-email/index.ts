@@ -90,13 +90,17 @@ Deno.serve(async (req) => {
     const { data: esAgente, error: eAg } = await usuario.rpc('es_agente');
     if (eAg || esAgente !== true) return json({ ok: false, error: 'solo_equipo' }, 403);
 
-    const ahora = Date.now();
-    const previo = ultimoEnvio.get(quien.user.id) ?? 0;
-    if (ahora - previo < COOLDOWN_MS) return json({ ok: false, error: 'espera_un_momento' }, 429);
-    ultimoEnvio.set(quien.user.id, ahora);
-
     const body = await req.json().catch(() => ({}));
     const to = String(body.to ?? '').trim();
+
+    // Clave usuario+destinatario (26-sep-2026): el aviso de anulación y las copias del
+    // firmado van a VARIOS firmantes seguidos, y con la clave solo por usuario el segundo
+    // correo caía en 429. Sigue frenando el doble clic sobre el mismo destinatario.
+    const ahora = Date.now();
+    const claveCd = quien.user.id + '|' + to.toLowerCase();
+    const previo = ultimoEnvio.get(claveCd) ?? 0;
+    if (ahora - previo < COOLDOWN_MS) return json({ ok: false, error: 'espera_un_momento' }, 429);
+    ultimoEnvio.set(claveCd, ahora);
     const subject = String(body.subject ?? '');
     const message = String(body.message ?? '');
     const filename = String(body.filename ?? 'contrato.pdf');
@@ -108,8 +112,18 @@ Deno.serve(async (req) => {
     const esUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
     const contratoId = esUuid(String(body.contrato_id ?? '')) ? String(body.contrato_id) : null;
     const facturaId  = esUuid(String(body.factura_id ?? ''))  ? String(body.factura_id)  : null;
+    // Correo de SOLO TEXTO (`attach:false`) y `via` (26-sep-2026, LAW-336 pieza 5, paso E):
+    // el enlace de firma, el aviso de anulación y la copia del firmado sin PDF salían del
+    // navegador directo a send_email.php y era el navegador quien escribía la fila de
+    // `correos_enviados` — podía apuntar un envío que no salió. Ahora pasan por aquí y la
+    // fila la escribe el servidor tras el envío real. Solo con contrato: un correo de
+    // texto libre sin documento al que colgarse no tiene por qué salir por esta puerta.
+    const VIAS = ['enlace_firma', 'aviso_anulacion', 'firma'];
+    const via = VIAS.includes(String(body.via ?? '')) ? String(body.via) : null;
+    const soloTexto = body.attach === false;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return json({ ok: false, error: 'destinatario_invalido' }, 400);
-    if (!html && !pdfManual) return json({ ok: false, error: 'falta_html_o_pdf' }, 400);
+    if (soloTexto && (!contratoId || !message.trim())) return json({ ok: false, error: 'texto_sin_contrato_o_mensaje' }, 400);
+    if (!soloTexto && !html && !pdfManual) return json({ ok: false, error: 'falta_html_o_pdf' }, 400);
     // La factura tiene que ser SUYA (visible por RLS) ANTES de enviar: más abajo se
     // apunta el envío y se marca `enviada` con ese id, y `enviada=true` congela número
     // y emisor y veta el borrado — no puede hacerlo quien no puede ver la factura.
@@ -126,7 +140,9 @@ Deno.serve(async (req) => {
     }
 
     let pdfB64 = '';
-    if (html) {
+    if (soloTexto) {
+      // nada que renderizar
+    } else if (html) {
       if (!RENDER_SECRET) return json({ ok: false, error: 'render_no_configurado' }, 500);
       try {
         const rr = await fetch(RENDER_URL.replace(/\/$/, '') + '/render-pdf', {
@@ -151,7 +167,8 @@ Deno.serve(async (req) => {
     const r = await fetch(SITIO + '/contracts/api/send_email.php', {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'X-Render-Secret': RENDER_SECRET },
-      body: JSON.stringify({ to, subject, message, filename, pdf_base64: pdfB64 }),
+      body: JSON.stringify(soloTexto ? { to, subject, message, attach: false }
+                                     : { to, subject, message, filename, pdf_base64: pdfB64 }),
     });
     const t = await r.text();
     if (!r.ok || !t.includes('"ok":true')) return json({ ok: false, error: 'send_email: ' + t.slice(0, 300) }, 502);
@@ -159,13 +176,17 @@ Deno.serve(async (req) => {
     // Registro de envíos (correos_enviados): el correo YA salió — si el log
     // falla se anota en consola y se devuelve ok igualmente, porque devolver
     // error aquí haría que el usuario lo reenviara por duplicado.
+    // `registrado:false` se devuelve (no error) para que la pantalla lo DIGA: esta tabla se
+    // lee como «quién lo tiene», y una fila que falta acaba en un reenvío duplicado.
+    let registrado: boolean | undefined;
     if (contratoId || facturaId) {
       const { error: eLog } = await admin.from('correos_enviados').insert({
         contrato_id: contratoId, factura_id: facturaId,
         para: to, asunto: subject,
-        via: facturaId ? 'factura' : 'manual',
+        via: facturaId ? 'factura' : (via ?? 'manual'),
         enviado_por: quien.user.email ?? null,
       });
+      registrado = !eLog;
       if (eLog) console.error('correos_enviados: ' + eLog.message);
     }
     // Marcar la factura como enviada AQUÍ, en el servidor y justo tras el envío
@@ -189,7 +210,7 @@ Deno.serve(async (req) => {
       marcada = !eM && m === true;
       if (!marcada) console.error('factura ' + facturaId + ' enviada pero SIN marcar: ' + (eM?.message ?? 'la RPC devolvió ' + String(m)));
     }
-    return json({ ok: true, marcada });
+    return json({ ok: true, marcada, registrado });
   } catch (e) {
     return json({ ok: false, error: String((e as Error)?.message ?? e) }, 500);
   }

@@ -812,33 +812,22 @@ async function cargarPoderes(){
 async function cubrirConEstePoder(poderId, poderNumero){
   if(!sb) return;
   try{
+    /* Por el servidor desde el 26-sep-2026 (frontera frontend/backend, LAW-336 pieza 5):
+       antes la pantalla buscaba los contratos del otorgante y les ponía `poder_id` con una
+       lista de ids decidida aquí. Ahora `contrato_poder_vincula` busca ella misma, con el
+       mismo criterio (pasaporte o email del Adquiriente I, leídos de `datos_fields`, sin
+       abrir el jsonb entero: los 4 s de antes desaparecen), y solo toca los contratos que
+       quien guarda podía editar. Devuelve los números que ha enlazado. */
     const f = collect();
-    const ids = [String(f.adq1_pasaporte||'').trim().toLowerCase(),
-                 String(f.adq1_email||'').trim().toLowerCase()].filter(Boolean);
-    if(!ids.length){
+    if(!String(f.adq1_pasaporte||'').trim() && !String(f.adq1_email||'').trim()){
       toastMal(lwT('El poder se guarda, pero sin pasaporte ni email del otorgante no se puede saber qué contratos cubre'));
       return;
     }
-    /* ⚠️ ESTA SÍ ABRE EL JSONB, Y SE QUEDA ASÍ A PROPÓSITO (24-ago-2026).
-       Cuesta ~4 s por lo mismo que el resto (TOAST de `datos`), y la tentación
-       era resolverlo con `contrato_compradores ⋈ clients`, que es barato. No se
-       hace: ese camino solo encuentra a quien YA tiene ficha, y
-       `sincronizar_compradores` no crea fichas — solo enlaza si el cliente ya
-       existe. Un contrato cuyo comprador aún no está fichado se quedaría FUERA
-       del poder sin que nadie lo note, y esto decide qué documentos cubre un
-       poder notarial. Cuatro segundos en una acción que se hace al guardar un
-       poder —rara— valen menos que un enlace legal que falta en silencio.
-       Se revisará cuando los anexos salgan del jsonb (LAW-78). */
-    const { data, error } = await sb.from('contratos')
-      .select('id,numero,poder_id,pas:datos->fields->>adq1_pasaporte,mail:datos->fields->>adq1_email')
-      .neq('tipo','poa').limit(500);
-    if(error || !data) return;
-    const suyos = data.filter(c => !c.poder_id && ids.some(i =>
-      i === String(c.pas||'').trim().toLowerCase() || i === String(c.mail||'').trim().toLowerCase()));
-    if(!suyos.length) return;
-    const r = await sb.from('contratos').update({ poder_id: poderId }).in('id', suyos.map(c=>c.id)).select('numero');
-    const n = (r.data||[]).length;
-    if(n) toast(poderNumero + ' pasa a cubrir ' + n + (n===1?' contrato: ':' contratos: ') + (r.data||[]).map(c=>c.numero).join(', '));
+    const { data, error } = await sb.rpc('contrato_poder_vincula', { p_poder: poderId });
+    if(error) return;
+    const nums = data || [];
+    const n = nums.length;
+    if(n) toast(poderNumero + ' pasa a cubrir ' + n + (n===1?' contrato: ':' contratos: ') + nums.join(', '));
   }catch(_){ /* MUDO A PROPOSITO: el poder ya esta guardado; que esto falle no
                 puede tumbarlo, y lo que se pierde se recalcula al abrirlo. */ }
 }
@@ -4068,7 +4057,7 @@ async function cargarEstadoFirma(){
 
 /* El aviso al comprador (owner, 18-ago). Al anular, el firmante se queda con un
    correo cuyo enlace deja de funcionar; hasta hoy lo descubría pinchándolo. Va
-   por el mismo api/send_email.php que el resto de la app, con `attach:false`:
+   por la Edge send-contract-email (correoContrato), con `attach:false`:
    texto suelto, sin PDF. Se manda DESPUÉS de anular y nunca condiciona la
    anulación — si el correo falla, el enlace ya está muerto igual, que es lo que
    importa; el fallo se dice en un toast y queda en el registro por omisión. */
@@ -4100,16 +4089,11 @@ async function avisaAnulacion(filas, numero){
   for(const [em, f] of porEmail){
     const asunto = 'Actualización del documento ' + numero + ' — Lawang Tropical Properties';
     try{
-      const r = await fetch('api/send_email.php', { method:'POST', headers: await cabecerasCorreo(),
-        body: JSON.stringify({ to: em, subject: asunto,
-                               message: mensajeAnulacion(f, numero, f.estado === 'firmado'), attach:false }) });
-      const d = await r.json().catch(()=>({ ok:false }));
+      const d = await correoContrato({ to: em, subject: asunto, attach:false, via:'aviso_anulacion',
+                                       message: mensajeAnulacion(f, numero, f.estado === 'firmado') });
       if(!d.ok) throw new Error(d.error || 'envío rechazado');
       bien++;
-      const { error: eLog } = await sb.from('correos_enviados').insert({
-        contrato_id: SAVED_CONTRACT.id, para: em, asunto,
-        via: 'aviso_anulacion', enviado_por: MI_EMAIL });
-      if(eLog) console.error('correos_enviados: ' + eLog.message);
+      if(d.registrado === false) console.error('aviso de anulación a ' + em + ' enviado pero sin anotar en el registro');
     }catch(err){ fallos.push(em); console.error('aviso de anulación a', em, err); }
   }
   return { bien, fallos };
@@ -4128,6 +4112,14 @@ async function anularFirmasYEditar(){
   const vivas    = EN_FIRMA.filas.filter(f => f.estado === 'pendiente');
   const conEmail = EN_FIRMA.filas.filter(f => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(f.firmante_email||'').trim()));
   const nDest    = new Set(conEmail.map(f => f.firmante_email.trim())).size;
+
+  /* Legal (revisión previa #120, 26-sep-2026): una firma ya DADA no se anula para editar —
+     se firmó sobre ese texto y el cambio va por adenda. Solo un super admin puede. La base lo
+     impone igual (contrato_firmas_anula); aquí se dice antes de abrir el diálogo. */
+  if(firmadas.length && !ES_SUPER){
+    toastMal(firmadas.map(quien).join(', ') + ' ' + lwT('ya lo ha firmado: el cambio va por adenda, o pide a un super admin que lo reabra'));
+    return;
+  }
 
   const ok = await lwConfirmar({
     titulo: firmadas.length ? 'Este contrato ya lo ha firmado alguien' : 'Este contrato está enviado a firma',
@@ -4159,8 +4151,8 @@ async function anularFirmasYEditar(){
   const avisar = !!(document.getElementById('anulAviso') || {}).checked;
 
   const filasAnuladas = EN_FIRMA.filas.slice();
-  const { error: eAnu } = await sb.from('contrato_firmas').update({ estado:'anulado' })
-    .eq('contrato_id', SAVED_CONTRACT.id).in('estado', ['pendiente','firmado']);
+  const { error: eAnu } = await sb.rpc('contrato_firmas_anula',
+    { p_contrato: SAVED_CONTRACT.id, p_motivo: 'editar', p_incluir_firmadas: firmadas.length > 0 });
   if(eAnu){ toastMal(lwT('No se pudieron anular las firmas: ') + eAnu.message); return; }
 
   await cargarEstadoFirma();   // relee: el formulario se abre solo si de verdad no quedan
@@ -4409,10 +4401,9 @@ async function subirPdfFirmado(file){
     // enlace vivo tras un cierre manual dejaría al comprador firmar contra un
     // contrato ya bloqueado. Si el barrido falla no se corta el cierre: se avisa.
     if(!updErr){
-      const barr = await sb.from('contrato_firmas').update({ estado:'anulado' })
-        .eq('contrato_id', SAVED_CONTRACT.id).in('estado', ['pendiente','en_proceso']).select('id');
+      const barr = await sb.rpc('contrato_firmas_anula', { p_contrato: SAVED_CONTRACT.id, p_motivo: 'cierre_manual' });
       if(barr.error) toastMal(lwT('Cerrado, pero no se pudieron anular los enlaces de firma vivos: ') + barr.error.message);
-      else if((barr.data||[]).length) toast(lwT('Enlace(s) de firma pendientes anulados al cerrar'));
+      else if(barr.data) toast(lwT('Enlace(s) de firma pendientes anulados al cerrar'));
       await cargarEstadoFirma();
     }
     if(updErr) throw updErr;   // si esto falla, el PDF ya subió pero el contrato sigue editable — se puede reintentar sin duplicar (upsert)
@@ -6128,20 +6119,19 @@ $('#emSend').addEventListener('click', enviarEmail);
    la Edge Function firma-submit renderiza el PDF (contract-pdf) y lo mete
    bloqueado en la BD. El token crudo va SOLO en la URL; en la tabla se guarda su
    hash SHA-256 (no reconstruible). */
-/* Cabeceras para api/send_email.php. Desde el 6-ago-2026 ese endpoint EXIGE
-   credencial: antes le bastaba con `Origin`, que un curl sin esa cabecera se
-   salta, así que cualquiera podía mandar correo con la marca de Lawang. Se manda
-   el access token de la sesión que el agente ya tiene; el servidor lo valida
-   contra /auth/v1/user. Sin token la respuesta es 401 y el aviso lo ve el
-   agente, que es lo correcto: significa que su sesión ha caducado. */
-async function cabecerasCorreo(){
-  const h = { 'Content-Type':'application/json' };
+/* Correos de un contrato por la Edge send-contract-email (26-sep-2026, LAW-336 pieza 5, paso E).
+   El enlace de firma, el aviso de anulación y la copia del firmado salían directo a
+   send_email.php y era ESTA pantalla la que apuntaba el envío en `correos_enviados` — podía
+   dejar escrito un envío que no salió. Ahora la fila la escribe el servidor después del envío
+   real. `attach:false` = solo texto. Devuelve la respuesta de la Edge; `registrado:false`
+   significa que el correo SALIÓ pero no quedó anotado. */
+async function correoContrato(payload){
   const s = await sb.auth.getSession();
-  const t = s && s.data && s.data.session && s.data.session.access_token;
-  // `X-Suite-Token` y no `Authorization`: Apache no siempre entrega esa última a
-  // PHP (depende del SAPI) y el fallo sería un 401 al mandar un contrato.
-  if(t) h['X-Suite-Token'] = t;
-  return h;
+  const token = s && s.data && s.data.session && s.data.session.access_token;
+  const r = await fetch(SUPABASE_URL + '/functions/v1/send-contract-email', { method:'POST',
+    headers:{ 'content-type':'application/json', authorization:'Bearer ' + (token || '') },
+    body: JSON.stringify(Object.assign({ contrato_id: SAVED_CONTRACT && SAVED_CONTRACT.id }, payload)) });
+  return r.json().catch(()=>({ ok:false, error:'Respuesta inválida del servidor' }));
 }
 
 function buildSnapshot(){ SIGN_MODE=true; try{ return buildDoc(); } finally{ SIGN_MODE=false; } }
@@ -6321,13 +6311,9 @@ $('#fmGen').addEventListener('click', async ()=>{
       if(up.error) throw up.error;
     }
 
-    const anul = await sb.from('contrato_firmas')
-      .update({ estado:'anulado' })
-      .eq('contrato_id', SAVED_CONTRACT.id)
-      .eq('estado', 'pendiente')
-      .select('id');
+    const anul = await sb.rpc('contrato_firmas_anula', { p_contrato: SAVED_CONTRACT.id, p_motivo: 'nuevo_enlace' });
     if(anul.error) throw anul.error;
-    const anulados = (anul.data || []).length;
+    const anulados = anul.data || 0;
 
     const token=randToken();
     const hash=await sha256hex(token);
@@ -6360,8 +6346,8 @@ $('#fmGen').addEventListener('click', async ()=>{
 $('#fmCopy').addEventListener('click', ()=>{ const i=$('#fmLink'); i.select();
   (navigator.clipboard?navigator.clipboard.writeText(i.value):Promise.reject()).then(()=>toast(lwT('Enlace copiado')),()=>toastMal(lwT('Selecciona y copia a mano'))); });
 
-/* Envío del enlace de firma por correo, por el mismo api/send_email.php que el
-   resto de la app pero con `attach:false`: va SOLO el enlace, sin PDF. Adjuntar
+/* Envío del enlace de firma por correo, por la Edge send-contract-email (correoContrato)
+   con `attach:false`: va SOLO el enlace, sin PDF. Adjuntar
    el contrato aquí mandaría un documento sin firmar con aspecto de definitivo, y
    el comprador ya lo lee en el navegador antes de firmar. */
 let FIRMA_ENVIO = null;
@@ -6387,23 +6373,11 @@ $('#fmMail').addEventListener('click', async ()=>{
   const asunto = num ? 'Documento ' + num + ' listo para firmar — Lawang Tropical Properties'
                      : 'Firma de documento — Lawang Tropical Properties';
   try{
-    const r = await fetch('api/send_email.php', { method:'POST', headers: await cabecerasCorreo(),
-      body: JSON.stringify({ to:FIRMA_ENVIO.to, subject:asunto,
-                             message:msg, attach:false }) });
-    const d = await r.json().catch(()=>({ ok:false, error:'Respuesta inválida del servidor' }));
+    // por la Edge: la fila del registro de envíos la escribe el servidor (correoContrato)
+    const d = await correoContrato({ to:FIRMA_ENVIO.to, subject:asunto, message:msg, attach:false, via:'enlace_firma' });
     if(d.ok){
       toast(lwT('Enlace enviado a ') + FIRMA_ENVIO.to);
-      // registro de envíos: este es el ÚNICO correo de la suite que sale del
-      // navegador directo a send_email.php (los demás pasan por una Edge que
-      // ya registra), así que la fila la inserta el propio navegador. El correo
-      // ya salió: si el log falla se avisa en consola y no se molesta al agente.
-      if(SAVED_CONTRACT && SAVED_CONTRACT.id){
-        const { error:eLog } = await sb.from('correos_enviados').insert({
-          contrato_id: SAVED_CONTRACT.id, para: FIRMA_ENVIO.to,
-          asunto: asunto,
-          via: 'enlace_firma', enviado_por: MI_EMAIL });
-        if(eLog) console.error('correos_enviados: ' + eLog.message);
-      }
+      if(d.registrado === false) console.error('enlace de firma enviado pero sin anotar en el registro');
     }
     else toastMal(d.error || 'No se pudo enviar');
   }catch(err){ toastMal(lwT('Error: ') + (err.message || err)); }
@@ -6704,34 +6678,18 @@ function copiaMensaje(nombre, doc){
 async function copiaEnviarA(d, doc){
   const asunto = 'Tu contrato firmado · ' + ((SAVED_CONTRACT && SAVED_CONTRACT.numero) || '');
   const mensaje = copiaMensaje(d.nombre, doc);
-  if(doc.pdf_base64){
-    const s = await sb.auth.getSession();
-    const token = s && s.data && s.data.session && s.data.session.access_token;
-    /* SIN `contrato_id`: con él, la Edge deja la fila del registro como vía
-       «manual». La fila la escribe este navegador con vía «firma», que es el
-       hecho real —la copia del firmado salió a este firmante— y es lo que miran
-       esta tabla y el vigilante. Quién lo hizo ya lo distingue la columna
-       «Quién»: el circuito automático la deja vacía. */
-    const r = await fetch(SUPABASE_URL + '/functions/v1/send-contract-email', { method:'POST',
-      headers:{ 'content-type':'application/json', authorization:'Bearer ' + (token || '') },
-      body: JSON.stringify({ to:d.email, subject:asunto, message:mensaje,
-                             filename:doc.filename, pdf_base64:doc.pdf_base64 }) });
-    const j = await r.json().catch(()=>({ ok:false, error:'respuesta inválida del servidor' }));
-    if(!j.ok) throw new Error(j.error || 'no se pudo enviar');
-  } else {
-    // solo texto + enlace: cabe de sobra por el camino directo
-    const r = await fetch('api/send_email.php', { method:'POST', headers: await cabecerasCorreo(),
-      body: JSON.stringify({ to:d.email, subject:asunto, message:mensaje, attach:false }) });
-    const j = await r.json().catch(()=>({ ok:false, error:'respuesta inválida del servidor' }));
-    if(!j.ok) throw new Error(j.error || 'no se pudo enviar');
-  }
-  const { error:eLog } = await sb.from('correos_enviados').insert({
-    contrato_id: SAVED_CONTRACT.id, para: d.email, asunto, via: 'firma', enviado_por: MI_EMAIL });
+  /* Por la Edge en los dos casos, con `via:'firma'` (26-sep-2026, LAW-336 pieza 5): la fila
+     del registro la escribe el servidor tras el envío real — antes la escribía esta pantalla.
+     Con PDF va adjunto; sin él, solo texto + enlace. */
+  const j = await correoContrato(doc.pdf_base64
+    ? { to:d.email, subject:asunto, message:mensaje, filename:doc.filename, pdf_base64:doc.pdf_base64, via:'firma' }
+    : { to:d.email, subject:asunto, message:mensaje, attach:false, via:'firma' });
+  if(!j.ok) throw new Error(j.error || 'no se pudo enviar');
   /* El correo YA salió. Si el registro falla se dice EN PANTALLA y no solo en
      la consola: esta tabla se lee como «quién la tiene», así que una fila que
      falta se leería como una copia que no se envió, y alguien la mandaría dos
      veces al mismo cliente. */
-  if(eLog) toastMal(lwT('Enviada a ') + d.email + ', pero NO se pudo anotar en el registro: ' + eLog.message);
+  if(j.registrado === false) toastMal(lwT('Enviada a ') + d.email + ', pero NO se pudo anotar en el registro');
 }
 
 /* El envío va detrás de una confirmación con nombres y direcciones a la vista:
