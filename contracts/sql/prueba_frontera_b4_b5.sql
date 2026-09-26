@@ -74,6 +74,27 @@ begin
   raise exception 'RES: %', r;
 end $$;
 
+-- 1b. Documentos «general» de la sociedad desde la clásica (revisor de código, 27-sep; arreglado en 20260927151500).
+-- Ejecutada el 27-sep: «1 admin edita un documento general desde la clásica ok (Lawang (general), proyecto_id sigue
+-- null); 2 ok; 3 ok».
+do $$
+declare r text := ''; g record;
+  ADM text := '{"sub":"24257595-aee2-4daa-8170-d268f46b9981","email":"p@pabloglobal.es","role":"authenticated"}';
+  A text := '{"sub":"1cd031f2-c7da-455e-975f-c4e8708e36fb","email":"dortegag@gmail.com","role":"authenticated"}';
+begin
+  select * into g from documentos_proyecto where general limit 1;
+  perform set_config('request.jwt.claims', ADM, true);
+  set local role authenticated;
+  perform documento_proyecto_guarda(g.id, jsonb_build_object('proyecto', g.proyecto, 'titulo', g.titulo || ' (editado)', 'publicado_investor_deck', g.publicado_investor_deck, 'confidencial', g.confidencial));
+  r := r || '1 admin edita un documento general desde la clásica ok (' || g.proyecto || ', proyecto_id sigue ' || coalesce((select proyecto_id::text from documentos_proyecto where id = g.id), 'null') || '); ';
+  reset role;
+  perform set_config('request.jwt.claims', A, true);
+  set local role authenticated;
+  begin perform documento_proyecto_guarda(g.id, jsonb_build_object('proyecto', g.proyecto, 'titulo', 'x')); r := r || '2 FALLO agente edita un documento general; '; exception when others then r := r || '2 ok; '; end;
+  begin perform documento_proyecto_guarda(null, jsonb_build_object('proyecto', g.proyecto, 'titulo', 'x', 'url', 'https://x.io')); r := r || '3 FALLO alta con nombre general inexistente; '; exception when others then r := r || '3 ok; '; end;
+  raise exception 'RES: %', r;
+end $$;
+
 -- 2. OBRA (agente con la herramienta obra acotado a UN proyecto; otro agente sin la herramienta)
 do $$
 declare r text := ''; p1 uuid; p2 uuid; u1 uuid; u2 uuid; pth text; f uuid; fajena uuid;
