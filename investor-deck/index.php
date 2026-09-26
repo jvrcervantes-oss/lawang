@@ -327,14 +327,12 @@ a.enlace{color:inherit;text-decoration:underline}
 .sec > .wrap{position:relative}
 /* Tope de 400px por tarjeta y centrado: con 1 o 2 modelos (Horizon S1 tiene uno) el 1fr
    de Palm Field estiraba la tarjeta a todo el ancho y a 3/4.4 salia de 1.700px de alto. */
-/* Catalog compacto (owner 26-sep, «ocupa demasiado»): UNA fila, tarjetas de 220-300px; si no
-   caben (movil, o muchos modelos) la fila se desliza en horizontal con snap, en vez de
-   apilar 3 filas de tarjetas de 525px. `safe center` centra 1-2 modelos sin cortar el 1º. */
-#modelos-grid{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(188px,270px);justify-content:safe center;gap:clamp(14px,1.6vw,22px);
-  margin-top:clamp(2rem,4vh,3rem);overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 2px 18px;scrollbar-width:thin}
-#modelos-grid > *{scroll-snap-align:start}
-@media(max-width:640px){#modelos-grid{grid-auto-columns:74vw}}
-.villa{position:relative;display:block;aspect-ratio:3/4.6;border-radius:14px;overflow:hidden;background:var(--va);color:var(--rl);text-decoration:none;
+/* Catalog (owner 26-sep): tarjetas a tamano completo pero en 3 columnas (5 modelos = 3+2) en vez
+   de 2 (3 filas de 525px). En movil, una fila que se desliza con snap en vez de 5 tarjetas apiladas. */
+#modelos-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),340px));justify-content:center;gap:clamp(18px,2.2vw,32px);margin-top:clamp(2.5rem,5vh,3.5rem)}
+@media(max-width:640px){#modelos-grid{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:80vw;justify-content:start;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 2px 18px}
+  #modelos-grid > *{scroll-snap-align:center}}
+.villa{position:relative;display:block;aspect-ratio:3/4.2;border-radius:14px;overflow:hidden;background:var(--va);color:var(--rl);text-decoration:none;
   box-shadow:0 30px 60px -30px rgba(20,26,17,.55);transition:transform .5s var(--ease)}
 /* .villa pisa el `transition` de .reveal (misma especificidad, va despues): sin esta
    linea la tarjeta entraba de golpe, sin el fundido ni el desenfoque (code-review 24-sep). */
@@ -346,17 +344,18 @@ a.villa:hover [data-foto] img{transform:scale(1.05)}
 .villa::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
   background:linear-gradient(to top,rgba(14,17,12,.92) 0%,rgba(14,17,12,.55) 36%,rgba(14,17,12,0) 60%)}
 .villa::after{content:"";position:absolute;inset:14px;z-index:2;border:1px solid rgba(245,240,230,.38);border-radius:8px;pointer-events:none}
-.villa-cuerpo{position:absolute;z-index:3;left:22px;right:22px;bottom:22px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
-.villa-nombre{font-family:var(--sa);font-weight:500;font-size:clamp(20px,.9vw + 10px,26px);letter-spacing:.06em;text-transform:uppercase;line-height:1}
-.villa-precio{font-family:var(--sa);font-weight:500;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ss)}
+.villa-cuerpo{position:absolute;z-index:3;left:28px;right:28px;bottom:28px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px}
+.villa-nombre{font-family:var(--sa);font-weight:500;font-size:clamp(24px,1.3vw + 12px,30px);letter-spacing:.06em;text-transform:uppercase;line-height:1}
+.villa-precio{font-family:var(--sa);font-weight:500;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--ss)}
 .villa-precio b{color:var(--rl);font-weight:500;letter-spacing:.14em}
-.villa-stats{display:grid;grid-template-columns:repeat(2,1fr);width:100%;border-top:1px solid rgba(245,240,230,.25);border-bottom:1px solid rgba(245,240,230,.25)}
-.villa-stats div{display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 2px}
-.villa-stats div:nth-child(even){border-left:1px solid rgba(245,240,230,.18)} .villa-stats div:nth-child(n+3){border-top:1px solid rgba(245,240,230,.18)}
-.villa-stats b{font-family:var(--sa);font-weight:300;font-size:14px;white-space:nowrap}
-.villa-stats span{font-family:var(--sa);font-size:7.5px;letter-spacing:.12em;text-transform:uppercase;color:rgba(245,240,230,.7)}
+.villa-precio > span:last-child{white-space:nowrap}
+.villa-stats{display:grid;grid-template-columns:repeat(4,1fr);width:100%;border-top:1px solid rgba(245,240,230,.25);border-bottom:1px solid rgba(245,240,230,.25)}
+.villa-stats div{display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 2px}
+.villa-stats div + div{border-left:1px solid rgba(245,240,230,.18)}
+.villa-stats b{font-family:var(--sa);font-weight:300;font-size:16px;white-space:nowrap}
+.villa-stats span{font-family:var(--sa);font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:rgba(245,240,230,.7)}
 .villa-nota{font-family:var(--sa);font-size:11px;line-height:1.5;color:rgba(245,240,230,.78)}
-.villa-btn{width:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:8px;padding:9px 14px;border-radius:40px;
+.villa-btn{width:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 18px;border-radius:40px;
   border:1px solid rgba(245,240,230,.55);font-family:var(--sa);font-size:11px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;transition:background .3s,color .3s}
 .villa-btn .material-symbols-outlined{font-size:15px}
 a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
