@@ -433,14 +433,28 @@ async function syncPrecioObraVinculada(){
   const el  = document.querySelector('[name="precio_total"]');
   if(!sel || !el) return;
   if(!sel.value){ OBRA_VINCULO_HECHO = null; return; }
-  if(sel.value === OBRA_VINCULO_HECHO) return;
-  OBRA_VINCULO_HECHO = sel.value;                    // se marca ANTES de esperar, o dos teclas seguidas lanzan dos avisos
   const padre = (VINCULABLES||[]).find(c => c.numero === sel.value);
   if(!padre || !padre.parcela_codigo || !padre.proyecto_nombre) return;
-  /* El Bloqueo vinculado puede llevar VARIAS parcelas (18-ago): se suman las
-     obras (villa − suelo) de todas. Si alguna no está en el inventario o le
-     faltan precios, mejor no tocar nada que precargar una obra a medias. */
-  const codsPadre = String(padre.parcela_codigo).split(',').map(x=>x.trim()).filter(Boolean);
+  let codsPadre = String(padre.parcela_codigo).split(',').map(x=>x.trim()).filter(Boolean);
+  /* Bloqueo con VARIAS parcelas: la obra es la de la parcela elegida, no la suma
+     (26-sep-2026). La práctica real es una Construcción por parcela — RP00069
+     tiene CC00030 (C1, 93.000) y CC00031 (C2, 95.000) —, y hasta hoy se
+     precargaba la obra de TODAS en cada una. Sin parcela elegida no se precarga
+     nada; al elegirla (selector de syncUnidadConstruccion) se vuelve a llamar. */
+  let unidadElegida = '';
+  if(codsPadre.length > 1){
+    if(!UNIDAD_ID_CONSTRUCCION) return;
+    const { data:ue } = await sb.from('unidades').select('codigo,contrato_id')
+      .eq('id', UNIDAD_ID_CONSTRUCCION).maybeSingle();
+    if(!ue || ue.contrato_id !== padre.id) return;
+    codsPadre = [ue.codigo];
+    unidadElegida = UNIDAD_ID_CONSTRUCCION;
+  }
+  const clave = sel.value + '|' + unidadElegida;
+  if(clave === OBRA_VINCULO_HECHO) return;
+  OBRA_VINCULO_HECHO = clave;                        // se marca ANTES de esperar, o dos teclas seguidas lanzan dos avisos
+  /* Si la parcela no está en el inventario o le faltan precios, mejor no tocar
+     nada que precargar una obra a medias. */
   const { data:us, error } = await sb.from('unidades')
     .select('codigo,precio,precio_suelo,moneda')
     .eq('proyecto', padre.proyecto_nombre).in('codigo', codsPadre);
@@ -545,7 +559,8 @@ function pintarSelectorUnidadConstruccion(lista){
   const s = caja.querySelector('#selUnidadConstruccion');
   if(!s._wired){
     s._wired = true;
-    s.addEventListener('change', ()=>{ UNIDAD_ID_CONSTRUCCION = s.value || null; updateSaveButton(); });
+    // al elegir la parcela, la obra se precarga de ESA parcela (syncPrecioObraVinculada)
+    s.addEventListener('change', ()=>{ UNIDAD_ID_CONSTRUCCION = s.value || null; updateSaveButton(); syncPrecioObraVinculada(); });
   }
 }
 /* Base del descuento comercial del Bloqueo de Parcela (25-sep-2026, owner:
