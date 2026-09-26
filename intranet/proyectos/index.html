@@ -122,7 +122,7 @@
      tabla. Se añaden donde faltaban (12 de 15 páginas). -->
 <script src="/contracts/assets/dinero.js?v=a442e362"></script>
 <script src="/intranet/facturas/totales.js?v=7d5789c6"></script>
-<script src="/contracts/assets/proyectos_csv.js?v=e610515a"></script>
+<script src="/contracts/assets/proyectos_csv.js?v=1358ced5"></script>
 <!-- El catalogo de modelos y que se construye en cada proyecto (8-sep-2026),
      compartido con contracts/app.html e intranet/modelos/. -->
 <script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1"></script>
@@ -1613,14 +1613,11 @@ $('#btnCsvConfirmar').addEventListener('click', async () => {
   const filasSrv = CSV_FILAS_VALIDAS.map(f => Object.assign(lwCsvFilaParaGuardar(f, CSV_CAMPOS_PRESENTES || new Set()), { fila: f.fila }));
   filasSrv.forEach(f => { delete f.precio; });   // el total lo calcula siempre la base
   const total = filasSrv.length;
-  let escritas = 0;
+  let escritas = 0, rechazadas = [];
   const lotes = [filasSrv];
   for(const lote of lotes){
     const { data: resImp, error } = await SB.rpc('unidades_importa', { p_filas: lote });
-    if(!error && resImp && resImp.rechazadas && resImp.rechazadas.length){
-      toastMal(lwT('Importado, pero ') + resImp.rechazadas.length + lwT(' fila(s) de parcelas con contrato no cambian precio: ') +
-        resImp.rechazadas.map(x => x.codigo).join(', '));
-    }
+    if(!error && resImp && resImp.rechazadas) rechazadas = resImp.rechazadas;
     if(error){
       /* Se dice CUÁNTAS entraron, no solo que falló: los lotes se mandan uno a
          uno y lo ya escrito está escrito. Y se recarga igual, para que la
@@ -1632,7 +1629,9 @@ $('#btnCsvConfirmar').addEventListener('click', async () => {
     }
     escritas += lote.length;
   }
-  toast(`Importadas ${escritas} unidades`);
+  // un solo aviso: si hubo rechazadas, el de éxito las tapaba (consulta de deploy de Desarrollo)
+  if(rechazadas.length) toastMal(`Importadas ${escritas} unidades · ${rechazadas.length} con contrato no cambian precio: ${rechazadas.map(x => x.codigo).join(', ')}`);
+  else toast(`Importadas ${escritas} unidades`);
   cerrarImportCsv();
   await cargar();
 });

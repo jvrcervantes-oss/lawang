@@ -5892,15 +5892,9 @@
               // por el servidor (LAW-336 pieza 8): «fijada en» lo pone la base si la fecha cambia
               delete payloadProyecto.fecha_entrega_estimada_fijada_en;
               return sb.rpc('proyecto_guarda', { p_id: p.id, p_cambios: payloadProyecto }).then(function (r) {
+                // proyecto_guarda (27-sep) no devuelve filas: si quien guarda no es admin, LANZA el error,
+                // así que aquí ya no hay «0 filas en silencio» que vigilar (consulta de deploy de Desarrollo)
                 if (r.error) return r;
-                // La RLS de `proyectos` exige es_admin() para UPDATE: un no-admin
-                // no da error, da 0 filas (mismo aviso que /proyectos/ desde el
-                // 12-ago). Sin este chequeo la ficha no se guarda y aun así se
-                // cierra el modal como si hubiera ido bien — un fallo silencioso
-                // (hallazgo de Desarrollo en la revisión de este mismo despliegue).
-                if (!r.data || !r.data.length) {
-                  return { error: { message: 'no tienes permiso para editar la ficha del proyecto (solo admin)' } };
-                }
                 var trabajos = [];
                 if (esAdminP && catalogo.length) {
                   trabajos.push(lwDeclaraModelosEnProyecto(sb, nombreEfectivo, v.modelos || [], {
@@ -6828,7 +6822,7 @@
               '<td style="' + celda + '">' + (f.precio != null ? esc(lwFormatoImporte(f.precio, f.moneda || 'EUR', { decimales: 0 })) : '—') + '</td>' +
               '<td style="' + celda + ';white-space:normal;' + (err ? 'color:#9E2F26' : '') + '">' +
                 (err ? esc(f.errores.join('; '))
-                  : ojoContrato(f) ? '<span style="color:#8C5E10">Actualiza · tiene contrato: el precio nuevo puede cambiarle el estado</span>'
+                  : ojoContrato(f) ? '<span style="color:#8C5E10">Actualiza · tiene contrato: su precio, superficie y moneda no se cambian por CSV</span>'
                   : (f.esAlta ? 'Alta nueva' : 'Actualiza')) + '</td>' +
             '</tr>';
           }).join('') +

@@ -159,7 +159,9 @@ function lwCsvAnaliza(texto, ctx){
       modelo: d.modelo ? lwCsvAntiFormula(d.modelo) : null,
       superficie_m2: num(d.superficie_m2), precio_suelo: precioSuelo,
       precio_construccion: precioConstruccion, precio,
-      moneda: (d.moneda || 'EUR').toUpperCase(),
+      // celda vacía = no se toca (27-sep, Administración): antes pasaba a EUR y una parcela en IDR
+      // se leía en euros. En un alta sin moneda, EUR lo pone lwCsvFilaParaGuardar.
+      moneda: d.moneda ? String(d.moneda).trim().toUpperCase() : null,
       notas: d.notas ? lwCsvAntiFormula(d.notas) : null,
       fase_masterplan: d.fase_masterplan ? lwCsvAntiFormula(d.fase_masterplan) : null,
       zona_masterplan: d.zona_masterplan ? lwCsvAntiFormula(d.zona_masterplan) : null,
@@ -203,7 +205,7 @@ function lwCsvFilaParaGuardar(f, presentes){
   const fila = { codigo: f.codigo, proyecto: f.proyecto };
   if(presentes.has('tipo') || f.esAlta) fila.tipo = f.tipo;
   LW_CSV_ESCRIBIBLES.forEach(k => { if(presentes.has(k)) fila[k] = f[k]; });
-  if(presentes.has('moneda')) fila.moneda = f.moneda;
+  if(presentes.has('moneda') && f.moneda) fila.moneda = f.moneda;
   else if(f.esAlta) fila.moneda = 'EUR';
   return fila;
 }
