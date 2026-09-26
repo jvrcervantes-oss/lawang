@@ -32,8 +32,8 @@
 <link rel="stylesheet" href="documento.css?v=20260731">
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=65ea4669"></script>
-<script src="/contracts/assets/herramientas.js?v=7c7f1b58"></script>
+<script src="/contracts/assets/i18n.js?v=d63090e1"></script>
+<script src="/contracts/assets/herramientas.js?v=cec22c65"></script>
 <script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="/contracts/assets/topbar.js?v=8444fd68" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- La MISMA puerta que las otras (4-ago-2026), pero SIN `data-herramienta`:
@@ -645,7 +645,7 @@
 <script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
 <script src="/contracts/assets/operaciones-cuentas.js?v=38a59c8c"></script>
 <script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
-<script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
+<script src="/contracts/assets/movimiento-v3.js?v=c88bae43"></script>
 </head>
 <body hidden>
   <!-- Barra unificada de la suite (assets/topbar.css). Mismo orden que en
@@ -1370,7 +1370,7 @@ async function refrescarAplicablesDelRecibi(){
   if(fuera.length){
     APLICACIONES = APLICACIONES.filter(a => validas.has(a.factura_id));
     toast(lwT('Quitad') + (fuera.length===1?'a ':'as ') + fuera.length + ' factura' + (fuera.length===1?'':'s') +
-          ' que no son de este comprador: ' + fuera.map(a => a.numero).join(', '));
+          ' que no son de este cliente: ' + fuera.map(a => a.numero).join(', '));
     pintarAplicaciones(); sincronizarLineasDesdeAplicaciones();
   }
   pintarSelectFacturaAplicar();
@@ -1388,9 +1388,9 @@ function pintarSelectFacturaAplicar(){
   const aviso = $('#aplicAmbito'); if(!aviso) return;
   aviso.textContent = !APLICACIONES.length
     ? 'Elige arriba la factura que se cobra.'
-    : libres.length ? 'Hay ' + libres.length + ' factura' + (libres.length===1?'':'s') + ' pendiente' + (libres.length===1?'':'s') + ' más de este comprador, incluidas las de sus otros contratos.'
-    : FACTURAS_OTRA_MONEDA ? 'Este comprador tiene ' + FACTURAS_OTRA_MONEDA + ' factura' + (FACTURAS_OTRA_MONEDA===1?'':'s') + ' pendiente' + (FACTURAS_OTRA_MONEDA===1?'':'s') + ', pero en otra moneda — un recibí no puede saldar una factura en una moneda distinta a la suya.'
-    : 'No le queda ninguna otra factura pendiente a este comprador.';
+    : libres.length ? 'Hay ' + libres.length + ' factura' + (libres.length===1?'':'s') + ' pendiente' + (libres.length===1?'':'s') + ' más de este cliente, incluidas las de sus otros contratos.'
+    : FACTURAS_OTRA_MONEDA ? 'Este cliente tiene ' + FACTURAS_OTRA_MONEDA + ' factura' + (FACTURAS_OTRA_MONEDA===1?'':'s') + ' pendiente' + (FACTURAS_OTRA_MONEDA===1?'':'s') + ', pero en otra moneda — un recibí no puede saldar una factura en una moneda distinta a la suya.'
+    : 'No le queda ninguna otra factura pendiente a este cliente.';
 }
 /* Enganchar una factura YA ELEGIDA a este recibí — el contrato, el comprador
    y el pendiente salen todos de ella. Extraído de elegirFacturaDelRecibi()
@@ -1437,7 +1437,7 @@ async function elegirFacturaDelRecibi(){
   }
   const elegido = await lwElegir({
     titulo: 'Factura que se cobra',
-    buscarPh: 'Número, comprador o contrato…',
+    buscarPh: 'Número, cliente o contrato…',
     opciones: libres.map(f => ({
       valor: f.id,
       texto: (f.numero || 'sin nº') + ' — ' + (f.cliente_nombre || 'sin nombre'),
@@ -1791,7 +1791,7 @@ function estadoDelFormulario(d){
   repasaPlegables();
   razon($('#btnMail'), total > 0 && !!(SAVED && SAVED.numero),
         !(total > 0) ? 'Todavía no hay ningún importe que cobrar.'
-                     : 'Guarda primero: sin guardar no hay número, y el comprador recibiría un documento que no existe en la base.');
+                     : 'Guarda primero: sin guardar no hay número, y el cliente recibiría un documento que no existe en la base.');
   // "Crear recibí" (31-ago-2026): solo tiene sentido sobre una FACTURA ya
   // guardada — de una proforma o de un recibí no se deriva otro recibí.
   razon($('#btnRecibiDeFactura'), d.tipo === 'factura' && !!(SAVED && SAVED.numero),
@@ -2029,7 +2029,7 @@ async function cargarContratos(){
     if($('#selTipo').value === 'recibi'){ await elegirFacturaDelRecibi(); return; }
     const elegido = await lwElegir({
       titulo: 'Contrato que se factura',
-      buscarPh: 'Número, comprador o proyecto…',
+      buscarPh: 'Número, cliente o proyecto…',
       opciones: [{ valor:'', texto:'— sin contrato —' }].concat(CONTRATOS.map(c => ({
         valor: c.id,
         texto: (c.numero || 'sin nº') + ' — ' + (c.comprador_nombre || 'sin nombre'),
@@ -2494,7 +2494,7 @@ async function pintarVinculados(idPrincipal, padreId, sociedadPrincipal, monedaP
       if(conCosas && !await lwConfirmar({
         titulo: 'Facturar la unidad completa',
         cuerpo: '<p>' + lwT('Sustituye los conceptos por') + ' <b>' + lwT('dos líneas') + '</b>' + lwT(': el precio total de cada uno de los dos contratos.') + '</p>'
-              + '<p>' + lwT('Dos líneas y no una a propósito: son dos relaciones jurídicas con el mismo comprador, y fundirlas borra a qué contrato corresponde cada euro.') + '</p>',
+              + '<p>' + lwT('Dos líneas y no una a propósito: son dos relaciones jurídicas con el mismo cliente, y fundirlas borra a qué contrato corresponde cada euro.') + '</p>',
         confirmar: 'Sustituir por los dos', cancelar: 'Dejarlo como está' })) return;
       LINEAS = [
         { descripcion: DESC_UNIDAD, importe: String(PRECIO_PRINCIPAL).replace('.', ',') },

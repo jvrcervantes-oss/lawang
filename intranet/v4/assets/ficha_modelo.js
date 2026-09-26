@@ -665,7 +665,7 @@
       var tipo = (TIPOS_DOC.filter(function (t) { return t[0] === d.tipo; })[0] || [d.tipo, d.tipo || '—'])[1];
       var techo = d.techo_clave ? (h.techos.filter(function (t) { return t.clave === d.techo_clave; })[0] || { nombre: d.techo_clave }).nombre : '';
       f.innerHTML = '<span data-lw="doc-titulo" style="font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(d.nombre || 'Documento') + '</span>' +
-        '<span data-lw="doc-meta" style="font-size:12px;color:' + C.apagado + ';white-space:nowrap">' + esc(tipo + (techo ? ' · ' + techo : '') + ' · ' + ctx.fFecha(d.subido_en) + (d.visible_portal ? ' · visible al comprador' : '')) + '</span>';
+        '<span data-lw="doc-meta" style="font-size:12px;color:' + C.apagado + ';white-space:nowrap">' + esc(tipo + (techo ? ' · ' + techo : '') + ' · ' + ctx.fFecha(d.subido_en) + (d.visible_portal ? ' · visible al cliente' : '')) + '</span>';
       // Borrar (25-sep-2026, SC-21: «no me deja borrar documentos dados de alta»):
       // no existía ni aquí ni en la clásica. Solo admin porque «modelos bucket:
       // borrar» es es_admin() — a un agente se le borraría la fila y el fichero

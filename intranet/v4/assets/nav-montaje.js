@@ -38,7 +38,7 @@
                        ['documentacion', 'folder', 'Documentación']]],
     ['Administración', [['facturas', 'receipt_long', 'Facturas'], ['recibos', 'payments', 'Recibos']]],
     ['Base de Datos', [['proyectos', 'apartment', 'Proyectos'], ['obra', 'foundation', 'Obra'],
-                       ['compradores', 'badge', 'Compradores'], ['usuarios', 'group', 'Usuarios']]]
+                       ['compradores', 'badge', 'Clientes'], ['usuarios', 'group', 'Usuarios']]]
   ];
 
   function enlace(p) {

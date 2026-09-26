@@ -853,7 +853,7 @@ function saldosEnTabla(tabla){
   if(ponNombre && !th.querySelector('[data-v3-nombre]')){
     const c = document.createElement('th');
     c.setAttribute('data-v3-nombre', '1');
-    c.textContent = 'Comprador';
+    c.textContent = 'Cliente';
     th.appendChild(c);
   }
   if(ponSaldo && !th.querySelector('[data-v3-saldo]')){

@@ -109,7 +109,7 @@
     ['Proyectos', 'proyectos/'],
     ['Modelos', 'modelos/'],
     ['Obra', 'obra/'],
-    ['Compradores', 'compradores/'],
+    ['Clientes', 'compradores/'],
     ['Usuarios', 'usuarios/'],
     /* Las tres que Stitch no dibujo nunca: nacieron despues de la descarga.
        Se enlazan aqui igual que las demas y se INJERTAN abajo (INJERTOS).

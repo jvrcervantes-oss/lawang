@@ -876,7 +876,7 @@
         detalle.push('La parcela vinculada vuelve a estar disponible.');
         aseguraDialogoV4().then(function () {
           return lwConfirmar({
-            titulo: 'Borrar la operación de ' + (c0.comprador_nombre || 'sin comprador'),
+            titulo: 'Borrar la operación de ' + (c0.comprador_nombre || 'sin cliente'),
             cuerpo: '<p>Se borra ' + detalle[0] + '.</p>' +
               (detalle.length > 1 ? '<ul style="margin:0 0 10px;padding-left:18px">' + detalle.slice(1).map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>' : '') +
               '<p>No hay papelera. Si hay una comisión ya pagada (de closer o de manager), el sistema para el borrado entero y hay que resolverlo a mano.</p>',
@@ -1042,7 +1042,7 @@
     if (!card) return;
     card.innerHTML = '<p style="font:600 18px \'Neue Kabel\',sans-serif;margin:0 0 10px">Firmas pendientes</p>' +
       '<p style="font:700 30px \'Neue Kabel\',sans-serif;margin:0">' + vivas + '</p>' +
-      '<p style="font:400 12px \'Neue Kabel\',sans-serif;color:#8A8474;margin:2px 0 ' + (caducadas ? '4px' : '10px') + '">contratos esperando la firma del comprador</p>' +
+      '<p style="font:400 12px \'Neue Kabel\',sans-serif;color:#8A8474;margin:2px 0 ' + (caducadas ? '4px' : '10px') + '">contratos esperando la firma del cliente</p>' +
       (caducadas ? '<p style="font:600 12px \'Neue Kabel\',sans-serif;color:#93000A;margin:0 0 10px">+' + caducadas + ' con el enlace caducado: ya no cuentan como «en firma»</p>' : '') +
       '<a href="/intranet/v4/operaciones/?filtro=firma" style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">Verlos en Operaciones →</a>';
   }
@@ -1207,7 +1207,7 @@
       var firmasVivas = fi.filter(function (f) { return f.estado === 'pendiente' && !firmaCaducada(f); });
       var sigPaso;
       if (c.liberado_en) {
-        sigPaso = 'Reserva liberada el ' + fFecha(c.liberado_en) + (c.liberado_motivo === 'desistida' ? ' (el comprador desistió)' : ' (plazo vencido)') + '. No queda nada exigible.';
+        sigPaso = 'Reserva liberada el ' + fFecha(c.liberado_en) + (c.liberado_motivo === 'desistida' ? ' (el cliente desistió)' : ' (plazo vencido)') + '. No queda nada exigible.';
       } else if (!c.bloqueado) {
         if (firmasVivas.length) sigPaso = 'Esperando la firma de ' + firmasVivas.map(function (f) { return f.firmante_nombre || f.firmante_rol || 'firmante'; }).join(', ') + (firmasVivas[0].expira_en ? ' · caduca el ' + fFecha(firmasVivas[0].expira_en) : '') + '.';
         else if (c.pdf_firmado_path) sigPaso = 'Se reabrió después de firmarse: hay que volver a enviarlo a firma.';
@@ -1261,7 +1261,7 @@
         /* Liberación (21-sep-2026): eje aparte del Estado de arriba — un CR
            firmado puede liberarse igual que uno en borrador (el RPC no exige
            lo contrario), así que es un dato propio y no un tag más de Estado. */
-        (c.liberado_en ? H.dato('Reserva', H.tag(c.liberado_motivo === 'desistida' ? 'Liberada · comprador desistió' : 'Liberada · plazo vencido', 'mal') +
+        (c.liberado_en ? H.dato('Reserva', H.tag(c.liberado_motivo === 'desistida' ? 'Liberada · cliente desistió' : 'Liberada · plazo vencido', 'mal') +
           '<br><span style="font-size:11.5px;color:#8A8474">' + esc(fFecha(c.liberado_en)) + '</span>', { html: 1 }) : '') +
         /* «Vence el» (22-sep-2026): solo Cartas vivas. Tras el vencimiento hay 3
            días de gracia antes de que el cron libere (aviso a managers el día
@@ -1272,7 +1272,7 @@
             ? esc(fFecha(venceEl)) + (venceEl < hoyISO ? ' ' + H.tag('Vencida · se libera el ' + fFecha(masDias(venceEl, diasGracia)), 'mal') : (venceEl === hoyISO ? ' ' + H.tag('Vence hoy', 'espera') : ''))
             : '<span style="color:#8A8474">sin plazo (falta fecha de pago o validez en la Carta)</span>') +
           (prorrogas.length ? '<br><span style="font-size:11.5px;color:#8A8474">' + prorrogas.length + ' prórroga(s): ' +
-            esc(prorrogas.map(function (x) { return '+' + x.dias + 'd hasta ' + fFecha(x.hasta) + ' (' + (x.quien || '—') + (x.comunicado_al_comprador ? ', comunicada al comprador' : '') + ')'; }).join(' · ')) + '</span>' : ''),
+            esc(prorrogas.map(function (x) { return '+' + x.dias + 'd hasta ' + fFecha(x.hasta) + ' (' + (x.quien || '—') + (x.comunicado_al_comprador ? ', comunicada al cliente' : '') + ')'; }).join(' · ')) + '</span>' : ''),
           { html: 1 }) : '')));
 
       /* Closer (21-sep-2026): SIEMPRE sobre la raíz de la cadena, nunca sobre
@@ -1314,7 +1314,7 @@
             : (topeAlcanzado ? H.nota('Ya tiene ' + prorrogas.length + ' prórroga(s): la siguiente solo la puede dar un admin.') : ''));
       }
       if (puedeVerBoton && esCartaReserva && !c.liberado_en && unidadesReservadas.length === 1) {
-        colLiberar = H.nota('El comprador desiste: la parcela vuelve a disponible. El contrato queda sellado como liberado y el recibí ya cobrado (no reembolsable) no se toca.') +
+        colLiberar = H.nota('El cliente desiste: la parcela vuelve a disponible. El contrato queda sellado como liberado y el recibí ya cobrado (no reembolsable) no se toca.') +
           unidadesReservadas.map(function (u) {
             return '<button type="button" data-lw-liberar="' + esc(u.id) + '" style="justify-self:start;margin-top:4px;padding:9px 16px;border-radius:10px;border:1px solid #9E2F26;background:#fff;color:#9E2F26;font:600 13px \'Neue Kabel\',sans-serif;cursor:pointer">Liberar reserva — Parcela ' + esc(u.codigo || '—') + '</button>';
           }).join('<br>');
@@ -1345,7 +1345,7 @@
          mismo acto para que no vuelva a estar vencida. */
       if ((rolSesion === 'admin' || rolSesion === 'super_admin') && esCartaReserva && c.liberado_en) {
         cuerpo += H.seccion('Deshacer liberación',
-          H.nota('La reserva se liberó (' + esc(c.liberado_motivo === 'desistida' ? 'el comprador desistió' : 'plazo vencido') + ', ' + esc(fFecha(c.liberado_en)) + '). Si el comprador sigue en ello, esto devuelve la Carta a viva, vuelve a enganchar su parcela y la prorroga en el mismo acto. Solo si ninguna otra operación ocupa ya la parcela.') +
+          H.nota('La reserva se liberó (' + esc(c.liberado_motivo === 'desistida' ? 'el cliente desistió' : 'plazo vencido') + ', ' + esc(fFecha(c.liberado_en)) + '). Si el cliente sigue en ello, esto devuelve la Carta a viva, vuelve a enganchar su parcela y la prorroga en el mismo acto. Solo si ninguna otra operación ocupa ya la parcela.') +
           '<button type="button" data-lw-deshacer="1" style="justify-self:start;margin-top:4px;padding:9px 16px;border-radius:10px;border:1px solid #2F5D9E;background:#fff;color:#2F5D9E;font:600 13px \'Neue Kabel\',system-ui;cursor:pointer">Deshacer liberación</button>');
       }
 
@@ -1356,10 +1356,10 @@
       /* Comprador en lenguaje llano (owner, 22-sep): la persona con su ficha
          y su KYC; el nombre congelado del documento solo se enseña si NO
          coincide con la ficha. El rol técnico (adquiriente_1) no se imprime. */
-      cuerpo += H.seccion('Comprador' + (vins.length > 1 ? 'es' : ''),
-        H.dato('Comprador', c.comprador_nombre) +
-        (vins.length ? '<p style="margin:0;font-size:12px;color:#8A8474">Trayendo la ficha de comprador…</p>'
-                     : H.nota('Sin ficha de comprador enlazada: solo consta el nombre del documento. Se enlaza desde el generador (pasaporte + email).')), 'compradores');
+      cuerpo += H.seccion('Cliente' + (vins.length > 1 ? 's' : ''),
+        H.dato('Cliente', c.comprador_nombre) +
+        (vins.length ? '<p style="margin:0;font-size:12px;color:#8A8474">Trayendo la ficha de cliente…</p>'
+                     : H.nota('Sin ficha de cliente enlazada: solo consta el nombre del documento. Se enlaza desde el generador (pasaporte + email).')), 'compradores');
       // Documentación KYC: desde el 22-sep (owner) ya no es una sección con
       // tabla — el pasaporte es de la persona, no de la venta. Queda como UNA
       // línea dentro de Comprador (cuántos documentos y la caducidad más
@@ -1487,7 +1487,7 @@
         if (sec && !vins.length) ponDocs();
         if (sec && vins.length) {
           if (rc.error) {
-            sec.innerHTML = H.dato('Comprador', c.comprador_nombre) + H.nota('No se pudo leer la ficha de comprador.');
+            sec.innerHTML = H.dato('Cliente', c.comprador_nombre) + H.nota('No se pudo leer la ficha de cliente.');
             ponDocs();
           } else {
             var otrosIds = {};
@@ -1506,8 +1506,8 @@
                 var kycTono = k.kyc_status === 'verified' ? 'ok' : (k.kyc_status === 'rejected' ? 'mal' : 'espera');
                 var kycTx = KYC_ES[k.kyc_status] || (k.kyc_status || 'pendiente');
                 var otros = (otrosIds[v.client_id] || []).map(function (oid) { return porIdOtros[oid]; }).filter(Boolean);
-                return H.dato(vins.length > 1 ? 'Comprador ' + (i + 1) : 'Comprador',
-                  H.enlace('/intranet/v4/compradores/?id=' + encodeURIComponent(v.client_id), k.full_name || 'Ficha de comprador') +
+                return H.dato(vins.length > 1 ? 'Cliente ' + (i + 1) : 'Cliente',
+                  H.enlace('/intranet/v4/compradores/?id=' + encodeURIComponent(v.client_id), k.full_name || 'Ficha de cliente') +
                   ' ' + H.tag('KYC ' + kycTx, kycTono) +
                   (difiere ? '<br><span style="font-size:11.5px;color:#8A6A34">En el documento figura como «' + esc(nombreDoc) + '»</span>' : '') +
                   (otros.length ? '<br><span style="font-size:11.5px;color:#8A8474">Sus otros contratos: ' +
@@ -1563,8 +1563,8 @@
           window.lwVentana('Deshacer liberación — ' + num, [
             { k: '_intro', tipo: 'nota', label: 'La Carta vuelve a viva y su parcela vuelve a "reservada" a su nombre. Como el plazo ya venció, se prorroga en el mismo acto: sin eso el automatismo la liberaría otra vez tras la gracia.' },
             { k: 'dias', label: 'Días de prórroga desde el vencimiento', tipo: 'number', valor: diasDefecto, req: 1, medio: 1, ayuda: 'Un admin puede dar hasta ' + maxDiasAdmin + '.' },
-            { k: 'motivo', label: 'Motivo', tipo: 'textarea', req: 1, ayuda: 'Obligatorio: por qué se deshace (el comprador sigue en ello, se liberó por error…).' },
-            { k: 'comunicado', label: 'Se lo he comunicado al comprador', tipo: 'check', valor: false }
+            { k: 'motivo', label: 'Motivo', tipo: 'textarea', req: 1, ayuda: 'Obligatorio: por qué se deshace (el cliente sigue en ello, se liberó por error…).' },
+            { k: 'comunicado', label: 'Se lo he comunicado al cliente', tipo: 'check', valor: false }
           ], 'Deshacer liberación', function (vals) {
             var dias = parseInt(vals.dias, 10);
             var motivo = (vals.motivo || '').trim();
@@ -1588,8 +1588,8 @@
           window.lwVentana('Prorrogar reserva — ' + num, [
             { k: '_intro', tipo: 'nota', label: 'La reserva vence el ' + fFecha(venceEl) + '. Los días se suman a esa fecha. El contrato no se toca: la prórroga queda registrada aparte y el automatismo la respeta.' },
             { k: 'dias', label: 'Días de prórroga', tipo: 'number', valor: diasDefecto, req: 1, medio: 1, ayuda: 'De 1 a ' + maxDiasManager + ' (un admin, hasta ' + maxDiasAdmin + ').' },
-            { k: 'motivo', label: 'Motivo', tipo: 'textarea', req: 1, ayuda: 'Obligatorio: por qué se alarga (el comprador está en ello, espera transferencia…), para el histórico del contrato.' },
-            { k: 'comunicado', label: 'Se lo he comunicado al comprador', tipo: 'check', valor: false, ayuda: 'Solo constancia. El sistema no avisa al comprador: la prórroga va a su favor y no necesita su firma.' }
+            { k: 'motivo', label: 'Motivo', tipo: 'textarea', req: 1, ayuda: 'Obligatorio: por qué se alarga (el cliente está en ello, espera transferencia…), para el histórico del contrato.' },
+            { k: 'comunicado', label: 'Se lo he comunicado al cliente', tipo: 'check', valor: false, ayuda: 'Solo constancia. El sistema no avisa al cliente: la prórroga va a su favor y no necesita su firma.' }
           ], 'Prorrogar', function (vals) {
             var dias = parseInt(vals.dias, 10);
             var motivo = (vals.motivo || '').trim();
@@ -1614,7 +1614,7 @@
           if (!uu) return;
           if (typeof window.lwVentana !== 'function') { toast('El formulario aún no ha cargado — prueba de nuevo en un segundo.'); return; }
           window.lwVentana('Liberar reserva — Parcela ' + (uu.codigo || '—'), [
-            { k: '_intro', tipo: 'nota', label: 'El comprador desiste: la parcela ' + (uu.codigo || '') + ' vuelve a «disponible». El contrato ' + num + ' no se borra ni se edita — solo queda sellado como liberado. Esto no tiene botón para deshacerlo.' },
+            { k: '_intro', tipo: 'nota', label: 'El cliente desiste: la parcela ' + (uu.codigo || '') + ' vuelve a «disponible». El contrato ' + num + ' no se borra ni se edita — solo queda sellado como liberado. Esto no tiene botón para deshacerlo.' },
             { k: 'nota', label: 'Motivo del desistimiento', tipo: 'textarea', req: 1, ayuda: 'Obligatorio: qué ha pasado, para el histórico del contrato.' }
           ], 'Liberar reserva', function (vals) {
             var nota = (vals.nota || '').trim();
@@ -1629,7 +1629,7 @@
               fichaContrato(sb, c, opts);
               return {};
             });
-          }, { sinRecarga: true, sub: 'Liberación manual · comprador desiste' });
+          }, { sinRecarga: true, sub: 'Liberación manual · cliente desiste' });
           return;
         }
       });
@@ -1692,7 +1692,7 @@
     var avisoEnviado = !!f0.enviada && (f0.tipo === 'factura' || f0.tipo === 'recibi');
     var avisoPeriodo = periodoFiscalTranscurrido(f0.fecha_emision);
     var cuerpo = '<p>El número no se reutiliza y ya no se podrá editar. La factura queda en el registro marcada como anulada.</p>';
-    if (avisoEnviado) cuerpo += '<p><b>Este documento ya se envió</b> — recuerda avisar al comprador de que queda anulado.</p>';
+    if (avisoEnviado) cuerpo += '<p><b>Este documento ya se envió</b> — recuerda avisar al cliente de que queda anulado.</p>';
     if (avisoPeriodo) cuerpo += '<p>La fecha de emisión cae en un periodo fiscal ya transcurrido (PPN mensual / LKPM trimestral puede estar ya declarado): conviene avisarlo a Administración.</p>';
     lwConfirmar({ titulo: 'Anular ' + (f0.numero || 'el documento'), cuerpo: cuerpo, confirmar: 'Anular', tono: 'peligro' }).then(function (ok) {
       if (!ok) return;
@@ -1853,7 +1853,7 @@
       // una fila anulada — al revés de lo que decía el plan original).
       if (window.LW_AUTORIA && window.LW_AUTORIA.puede(V4.ficha)) cuerpo += '<div data-lw-autoria-host style="justify-self:start"></div>';
       cuerpo += H.seccion('Cliente y contrato',
-        H.dato('Cliente', f.client_id ? H.enlace('/intranet/v4/compradores/?id=' + encodeURIComponent(f.client_id), f.cliente_nombre || 'Ficha de comprador') : f.cliente_nombre, { html: !!f.client_id }) +
+        H.dato('Cliente', f.client_id ? H.enlace('/intranet/v4/compradores/?id=' + encodeURIComponent(f.client_id), f.cliente_nombre || 'Ficha de cliente') : f.cliente_nombre, { html: !!f.client_id }) +
         H.dato('Proyecto', f.proyecto_nombre) +
         H.dato('Contrato', c ? enlaceFichaContrato(c) : (f.contrato_numero || null), { html: !!c }) +
         (c && c.precio_total != null ? H.dato('Precio del contrato', fmt(c.precio_total, c.moneda)) : ''));
@@ -2560,7 +2560,7 @@
         pon2('cc-contrato', 'Con contrato (' + conContrato.length + ')');
         pon2('cc-firma', 'En firma (' + enFirma.length + ')');
         pon2('cc-prospectos', 'Sin contrato (' + (cs.length - conContrato.length) + ')');
-        pon2('k-lista-pie', cs.length + (cs.length === 1 ? ' comprador' : ' compradores') + ' · pulsa uno para abrir su ficha');
+        pon2('k-lista-pie', cs.length + (cs.length === 1 ? ' cliente' : ' clientes') + ' · pulsa uno para abrir su ficha');
 
         /* ================= LA FICHA (cajon compartido de editores.js) ================= */
         var KYC = { pending: ['Pendiente', 'espera'], submitted: ['En revisión', 'espera'], verified: ['Aprobado', 'ok'], rejected: ['Rechazado', 'mal'] };
@@ -2809,7 +2809,7 @@
           if (window.LW_V4.esSuperAdmin) {
             acciones.push({ texto: 'Borrar la ficha', tono: 'peligro', onClick: function () {
               lwConfirmar({
-                titulo: 'Borrar la ficha de ' + (c2.full_name || 'este comprador'),
+                titulo: 'Borrar la ficha de ' + (c2.full_name || 'este cliente'),
                 cuerpo: '<p>Se borra la ficha y sus documentos KYC del archivo privado, si los tuviera.</p>' +
                   '<p>Si estuviera vinculada a un contrato o tuviera acceso al portal, el sistema lo impide y te dice cuál — esta acción es para <b>duplicados sueltos</b>.</p>' +
                   '<p>No hay papelera.</p>',
@@ -2822,7 +2822,7 @@
                   var limpia = rutas.length ? sb.storage.from('kyc').remove(rutas) : Promise.resolve({});
                   limpia.then(function (rs) {
                     if (rs && rs.error) toastMal('Ficha borrada, pero ' + rutas.length + ' fichero(s) KYC no se pudieron quitar del bucket: ' + rs.error.message);
-                    toast('Ficha de ' + ((r.data && r.data.nombre) || 'comprador') + ' borrada' + (rutas.length ? ' · ' + rutas.length + ' documento(s) retirados' : ''));
+                    toast('Ficha de ' + ((r.data && r.data.nombre) || 'cliente') + ' borrada' + (rutas.length ? ' · ' + rutas.length + ' documento(s) retirados' : ''));
                     cj.cierra();
                     location.reload();
                   });
@@ -2831,7 +2831,7 @@
             } });
           }
           acciones.push({ texto: 'Cerrar', cerrar: true });
-          var cj = window.lwCajon({ sub: esEmpresa ? 'Ficha de empresa compradora' : 'Ficha de comprador', titulo: c2.full_name || 'Sin nombre',
+          var cj = window.lwCajon({ sub: esEmpresa ? 'Ficha de empresa cliente' : 'Ficha de cliente', titulo: c2.full_name || 'Sin nombre',
             estado: ['KYC · ' + kyc[0], kyc[1]], lado: ['cuentas'],
             bajoTitulo: [c2.numero_cliente, c2.nationality, c2.passport_number].filter(Boolean).join(' · ') || 'sin identificación',
             cuerpo: cuerpo, acciones: acciones, alCerrar: quitaId });
@@ -3009,7 +3009,7 @@
             pinta('soporte',
               '<p style="margin:0 0 6px;font-size:12.5px">' + (abiertos ? H.tag(abiertos + (abiertos === 1 ? ' abierto' : ' abiertos'), 'espera') : H.tag('Todo resuelto', 'ok')) +
               ' <span style="color:#75786e;margin-left:6px">' + hilos.length + ' ticket' + (hilos.length === 1 ? '' : 's') + ' en total' + (ultimo ? ' · último mensaje ' + esc(fFecha(ultimo.creado_en)) : '') + '</span></p>' +
-              (ultimo ? '<p style="margin:0 0 8px;font-size:13px;color:#2E3437">' + esc((ultimo.de === 'equipo' ? 'Equipo: ' : 'Comprador: ') + ultimo.texto) + '</p>' : '') +
+              (ultimo ? '<p style="margin:0 0 8px;font-size:13px;color:#2E3437">' + esc((ultimo.de === 'equipo' ? 'Equipo: ' : 'Cliente: ') + ultimo.texto) + '</p>' : '') +
               H.enlace('/intranet/v4/soporte/?id=' + encodeURIComponent(c2.id), 'Ver sus tickets en Soporte →'));
           });
 
@@ -3308,7 +3308,7 @@
               })) : H.nota('Sin documentos.');
               lwConfirmar({
                 titulo: 'Vista previa del portal — ' + (c2.full_name || ''),
-                cuerpo: H.nota('Esto es lo que este comprador ve ahora mismo en /portal/. No se ha abierto ninguna sesión suya: se lee con tu permiso de equipo.') +
+                cuerpo: H.nota('Esto es lo que este cliente ve ahora mismo en /portal/. No se ha abierto ninguna sesión suya: se lee con tu permiso de equipo.') +
                   '<h4 style="margin:14px 0 6px;font-size:13px;color:#104C4F">Contratos</h4>' + tContratos +
                   '<h4 style="margin:14px 0 6px;font-size:13px;color:#104C4F">Facturas</h4>' + tFacturas +
                   '<h4 style="margin:14px 0 6px;font-size:13px;color:#104C4F">Documentos</h4>' + tDocs,
@@ -3412,7 +3412,7 @@
         sb.from('documentos_desactualizados').select('congelado,diferencias').limit(1000).then(function (rv) {
           if (rv.error) { console.error('[v4 datos] ficha≠', rv.error); return; }
           var difN = (rv.data || []).filter(function (x) { return x.diferencias && x.diferencias.length; }).length;
-          if (difN) bandaNota('Ficha ≠: ' + difN + ' documento(s) emitidos difieren de la ficha del comprador — el detalle vive en la herramienta clásica (/intranet/compradores/).', '#C06C47');
+          if (difN) bandaNota('Ficha ≠: ' + difN + ' documento(s) emitidos difieren de la ficha del cliente — el detalle vive en la herramienta clásica (/intranet/compradores/).', '#C06C47');
         });
       });
     },
@@ -3530,7 +3530,7 @@
           /* AxisWorks ERP · la operación del núcleo (25-sep-2026): solo existe con window.AXW_NUCLEO_OPERACION
              (hoy, la demo del ERP); en Lawang `o.operacion` no existe y la fila sale exactamente como antes. */
           var op = o.operacion || null;
-          if (op && op.estado === 'borrador') avs = avs.concat([[T('Operación en borrador: falta el comprador principal'), 'espera']]);
+          if (op && op.estado === 'borrador') avs = avs.concat([[T('Operación en borrador: falta el cliente principal'), 'espera']]);
           return '<tr data-lw-fila data-lw-id="' + esc(o.id) + '" data-lw-etapa="' + esc(e) + '" data-lw-firmada="' + (firmada ? 1 : 0) +
             '" data-lw-sinfactura="' + (firmada && !facturaViva(o) ? 1 : 0) + '" data-lw-faltaficha="' + (faltaFicha(o) ? 1 : 0) +
             '" data-lw-proyecto="' + esc(o.proyecto_nombre || '') +
@@ -3737,7 +3737,7 @@
                   return [f.fecha || 'sin fecha', f.descripcion || 'Hito', f.contrato.numero, tipoC(f.contrato.tipo), f.contrato.proyecto_nombre || '', f.contrato.comprador_nombre || '',
                     f.importe != null ? f.importe : '', f.pendiente != null ? f.pendiente : '', MONEDA, f.estado, f.contrato.bloqueado ? 'firmado' : 'borrador'];
                 });
-              exportaCSV('prevision_caja_' + hoy + '.csv', ['Fecha', 'Hito', 'Contrato', 'Tipo', 'Proyecto', 'Comprador', 'Importe', 'Pendiente', 'Moneda', 'Estado', 'Contrato firmado'], filas);
+              exportaCSV('prevision_caja_' + hoy + '.csv', ['Fecha', 'Hito', 'Contrato', 'Tipo', 'Proyecto', 'Cliente', 'Importe', 'Pendiente', 'Moneda', 'Estado', 'Contrato firmado'], filas);
             });
           }
         })
@@ -3999,7 +3999,7 @@
           if (personas.length) {
             html += '<tr class="border-t border-surface-container-high/40"><td colspan="5" class="p-0 bg-surface-container">'
               + '<details class="px-5 py-2.5"><summary class="cursor-pointer text-body-sm font-body-sm text-control-border select-none">'
-              + personas.length + (personas.length === 1 ? ' comprador' : ' compradores') + ' · quién debe qué</summary>'
+              + personas.length + (personas.length === 1 ? ' cliente' : ' clientes') + ' · quién debe qué</summary>'
               + '<table class="w-full text-left mt-2"><tbody>' + personas.map(function (par2) {
                 var n = par2[0], v = par2[1];
                 return '<tr class="border-t border-surface-container-high/40">'
@@ -4507,7 +4507,7 @@
             f.setAttribute('data-doc-id', d2.id);
             var p3 = function (k, v2) { var e = f.querySelector('[data-lw="' + k + '"]'); if (e) e.textContent = v2; };
             p3('en-titulo', d2.titulo || 'Enlace');
-            p3('en-meta', (d2.categoria || '—') + (d2.visible_portal ? ' · visible al comprador' : '') + (d2.confidencial ? ' · confidencial' : ''));
+            p3('en-meta', (d2.categoria || '—') + (d2.visible_portal ? ' · visible al cliente' : '') + (d2.confidencial ? ' · confidencial' : ''));
             var a2 = f.querySelector('a');
             if (a2) { if (d2.url) a2.href = d2.url; else { a2.removeAttribute('href'); a2.style.cursor = 'default'; } }
             pintaAccionesDoc(f);
@@ -4532,7 +4532,7 @@
             var p3 = function (k, v2) { var e = f.querySelector('[data-lw="' + k + '"]'); if (e) e.textContent = v2; };
             p3('dc-titulo', d2.titulo || 'Documento');
             var tam = (typeof d2.bytes === 'number' && d2.bytes > 0) ? ' · ' + Math.round(d2.bytes / 1024) + ' KB' : '';
-            p3('dc-meta', (d2.categoria || '—') + tam + (d2.visible_portal ? ' · visible al comprador' : '') + (d2.confidencial ? ' · confidencial' : ''));
+            p3('dc-meta', (d2.categoria || '—') + tam + (d2.visible_portal ? ' · visible al cliente' : '') + (d2.confidencial ? ' · confidencial' : ''));
             pintaAccionesDoc(f);
             cajaD.appendChild(f);
           });
@@ -4554,7 +4554,7 @@
             // se ven más — cada una dice que es interna, y si falta respuesta
             var marca = document.createElement('span');
             marca.style.cssText = 'display:inline-block;margin-top:4px;font-size:10.5px;font-weight:600;letter-spacing:.04em;color:#8A6A34';
-            marca.textContent = (d2.descripcion ? '' : 'Sin responder · ') + 'Confidencial — interno, no compartir con compradores';
+            marca.textContent = (d2.descripcion ? '' : 'Sin responder · ') + 'Confidencial — interno, no compartir con clientes';
             var det = f.querySelector('details'); if (det) det.appendChild(marca);
             cajaF.appendChild(f);
           });
@@ -5724,7 +5724,7 @@
         pon('k-total', String(ms.length));
         pon('k-activos-pie', enlazadas + ' unidades enlazadas a un modelo');
         pon('k-publicados', String(publicados));
-        pon('k-publicados-pie', publicados ? 'los unicos que ve un comprador en la web' : 'ninguno visible fuera');
+        pon('k-publicados-pie', publicados ? 'los unicos que ve un cliente en la web' : 'ninguno visible fuera');
         pon('k-sinficha', String(faltan));
         pon('k-sinficha-pie', faltan ? 'sin dormitorios, banos ni superficie: no pueden heredar nada' : 'todos con ficha completa');
         pon('k-sinrender', String(sinRender));
@@ -5984,7 +5984,7 @@
             panelReal('Unidades de ' + nombre + (pedido ? '' : ' (primer proyecto por orden — abre otro con ?proyecto=)'),
               us.map(function (u) {
                 return itemPanel(esc(u.codigo) + ' · ' + esc(u.modelo || '—'),
-                  (u.contrato_numero ? esc(u.contrato_numero) + ' · ' : '') + esc(u.comprador_nombre || 'sin comprador'),
+                  (u.contrato_numero ? esc(u.contrato_numero) + ' · ' : '') + esc(u.comprador_nombre || 'sin cliente'),
                   (u.estado || '—').toUpperCase());
               }),
               us.map(function () { return '/intranet/v4/proyectos/?proyecto=' + encodeURIComponent(nombre); }),
@@ -6066,7 +6066,7 @@
           var nf = nFotos == null ? null : (nFotos[u.id] || 0);
           return itemPanel(esc(u.codigo) + ' · ' + esc(u.proyecto || '—'),
             esc(u.modelo || '—') + ' · ' +
-            (u.contrato_numero ? esc(u.contrato_numero) + ' · ' + esc(u.comprador_nombre || 'sin comprador') : 'sin contrato') +
+            (u.contrato_numero ? esc(u.contrato_numero) + ' · ' + esc(u.comprador_nombre || 'sin cliente') : 'sin contrato') +
             ' · ' + (nf == null ? '? fotos' : nf === 1 ? '1 foto' : nf + ' fotos') +
             ' · entrega ' + (u.obra_fecha_entrega ? fFecha(u.obra_fecha_entrega) : 'sin fecha') +
             ' · actualizado ' + (u.obra_actualizado ? fFecha(u.obra_actualizado) : '—'),
@@ -6382,9 +6382,9 @@
               desbloqueado: 'desbloqueó un contrato firmado',
               editado_estando_firmado: 'editó un contrato firmado',
               factura_sin_bloquear: 'facturó un contrato sin firmar',
-              cobro_a_otro_comprador: 'aplicó un cobro al comprador de otro contrato',
+              cobro_a_otro_comprador: 'aplicó un cobro al cliente de otro contrato',
               cobro_a_factura_huerfana: 'aplicó un cobro a una factura sin contrato',
-              comprador_sin_ficha: 'guardó un contrato sin ficha de comprador',
+              comprador_sin_ficha: 'guardó un contrato sin ficha de cliente',
               factura_reactivada: 'reactivó una factura anulada'
             };
             var cabecera = '<div class="flex items-center justify-between mb-2">' +
@@ -6468,9 +6468,9 @@
           return h.estado === 'abierto' && u && u.de !== 'equipo';   // el último mensaje lo escribió el comprador
         });
         pon2('k-compradores', String(nComp));
-        pon2('k-compradores-pie', nComp ? 'un comprador puede tener varios tickets a la vez' : 'ningún comprador tiene un ticket abierto');
+        pon2('k-compradores-pie', nComp ? 'un cliente puede tener varios tickets a la vez' : 'ningún cliente tiene un ticket abierto');
         pon2('k-sinresp', String(sinResp.length));
-        pon2('k-sinresp-pie', sinResp.length ? 'abiertos cuyo último mensaje es del comprador' : 'ningún hilo abierto espera respuesta del equipo');
+        pon2('k-sinresp-pie', sinResp.length ? 'abiertos cuyo último mensaje es del cliente' : 'ningún hilo abierto espera respuesta del equipo');
         pon2('k-resueltos', String(resueltos.length));
         pon2('k-resueltos-pie', 'de ' + hs.length + ' hilos en total');
         pon2('c-todos', 'Todos (' + hs.length + ')');
@@ -6497,7 +6497,7 @@
         if (!el && pedidoCli) {
           el = hs.filter(function (h) { return String(h.client_id) === pedidoCli; })[0] || null;
           if (el) buscaCli = (cli[el.client_id] || {}).full_name || '';
-          else toast('Ese comprador no tiene ningún ticket de soporte.');
+          else toast('Ese cliente no tiene ningún ticket de soporte.');
         }
         if (!el) el = abiertos[0] || hs[0];
         /* Arranca en «Abiertos», como la viva. La única excepción: un ticket
@@ -6522,7 +6522,7 @@
           pon3('t-estado', (h.estado || '—').replace(/_/g, ' ').toUpperCase());
           pon3('t-asunto', u ? u.texto : 'Sin mensajes en el hilo');
           pon3('t-cat', h.categoria || 'general');
-          pon3('t-quien', u ? (u.de === 'equipo' ? 'Equipo' : 'Comprador') : '—');
+          pon3('t-quien', u ? (u.de === 'equipo' ? 'Equipo' : 'Cliente') : '—');
           pon3('t-fecha', fFecha(h.actualizado_en));
           f.setAttribute('data-estado-hilo', h.estado || '');
           f.setAttribute('data-ts', h.actualizado_en || '');
@@ -6612,7 +6612,7 @@
         pon2('cv-cat', 'Categoría: ' + (el.categoria || 'general'));
         pon2('h-toggle-estado', el.estado === 'abierto' ? 'Marcar resuelto' : 'Reabrir');
         var ta = document.querySelector('textarea');
-        if (ta) ta.placeholder = 'Escribe la respuesta para ' + (c.full_name || 'el comprador') + '… (se envía desde la herramienta: cada mensaje manda un email real)';
+        if (ta) ta.placeholder = 'Escribe la respuesta para ' + (c.full_name || 'el cliente') + '… (se envía desde la herramienta: cada mensaje manda un email real)';
         // «Ver perfil» → la ficha real; «WhatsApp» solo si hay teléfono (norma wa.me)
         var enlaces = document.querySelectorAll('a[href="#"]');
         for (var i2 = 0; i2 < enlaces.length; i2++) {
@@ -6646,7 +6646,7 @@
           var burbuja = f.querySelector('[class*="rounded-2xl"]');
           if (burbuja) burbuja.textContent = msg.texto;     // pisa tambien los adjuntos mock
           var hora = f.querySelector('span[class*="text-[11px]"]');
-          if (hora) hora.textContent = fFecha(msg.creado_en) + ' · ' + (esEquipo ? (msg.autor || 'Equipo') : 'Comprador');
+          if (hora) hora.textContent = fFecha(msg.creado_en) + ' · ' + (esEquipo ? (msg.autor || 'Equipo') : 'Cliente');
           var avatar = f.querySelector('div[class*="rounded-full"]');
           if (avatar && !esEquipo) avatar.textContent = iniciales;
           convo.appendChild(f);
@@ -8459,7 +8459,7 @@
       var cobrado = {}; (r[4] || []).forEach(function (x) { cobrado[x.contrato_id] = Number(x.cobrado) || 0; });
       var enFirma = {}; (r[5] || []).forEach(function (x) { if (!x.expira_en || new Date(x.expira_en) > new Date()) enFirma[x.contrato_id] = true; });
       var g = (r[1] || [])[0], gracia = (g && typeof g.valor === 'number' && isFinite(g.valor)) ? g.valor : 3;
-      pon('rk-gracia-nota', T('Tras vencer, el sistema espera') + ' ' + gracia + ' ' + T('días (margen interno, no es plazo del comprador) antes de liberar la parcela. Prorrogar o liberar: pulsa la reserva y se abre su ficha.'));
+      pon('rk-gracia-nota', T('Tras vencer, el sistema espera') + ' ' + gracia + ' ' + T('días (margen interno, no es plazo del cliente) antes de liberar la parcela. Prorrogar o liberar: pulsa la reserva y se abre su ficha.'));
       // la función da una fila por PARCELA; aquí se lee por contrato
       var porC = {}, orden = [];
       filas.forEach(function (x) {
@@ -8617,7 +8617,7 @@
         var ev = [];
         (r[6] || []).forEach(function (p) {
           var k = porIdC[p.contrato_id] || {};
-          ev.push({ cuando: p.creado_en, html: '<b>' + esc(k.numero || '—') + '</b> · ' + esc(T('prórroga')) + ' ' + p.n + ' · +' + p.dias + ' ' + esc(T('días')) + (p.motivo ? ' · ' + esc(p.motivo) : '') + (p.quien ? ' · ' + htmlAutor(AUT, p.quien) : '') + ' · ' + esc(p.comunicado_al_comprador ? T('comunicada al comprador') : T('no comunicada al comprador')), tag: pill(T('Prórroga'), 'curso') });
+          ev.push({ cuando: p.creado_en, html: '<b>' + esc(k.numero || '—') + '</b> · ' + esc(T('prórroga')) + ' ' + p.n + ' · +' + p.dias + ' ' + esc(T('días')) + (p.motivo ? ' · ' + esc(p.motivo) : '') + (p.quien ? ' · ' + htmlAutor(AUT, p.quien) : '') + ' · ' + esc(p.comunicado_al_comprador ? T('comunicada al cliente') : T('no comunicada al cliente')), tag: pill(T('Prórroga'), 'curso') });
         });
         (r[2] || []).forEach(function (k) {
           if (!k.liberado_en || k.liberado_en < hace14 || !esPreliminar(k)) return;

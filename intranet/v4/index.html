@@ -3,9 +3,9 @@
 <head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=c5c926ae"></script><script src="/contracts/assets/guard.js?v=935970cf"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=65ea4669" defer></script>
+<script src="/contracts/assets/i18n.js?v=d63090e1" defer></script>
 <meta name="robots" content="noindex">
-<script src="assets/nav.js?v=fc429770" defer></script>
+<script src="assets/nav.js?v=42716639" defer></script>
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>Intranet Lawang v4 — Hub (maqueta)</title>
@@ -59,7 +59,7 @@ tailwind.config = {
     <a href="proyectos/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">apartment</span>Proyectos</a>
     <a href="modelos/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">villa</span>Modelos</a>
     <a href="obra/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">engineering</span>Obra</a>
-    <a href="compradores/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">badge</span>Compradores</a>
+    <a href="compradores/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">badge</span>Clientes</a>
     <a href="usuarios/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">manage_accounts</span>Usuarios</a>
     <a href="cuentas/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">account_balance</span>Cuentas</a>
   </nav>
@@ -90,7 +90,7 @@ tailwind.config = {
       <a href="/intranet/leads/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">person_search</span><p class="font-display text-xl font-semibold mt-2">CRM</p><p class="text-sm text-volcanic-ash/70 mt-1">Leads de Meta y web &middot; pipeline y closers</p></a>
       <a href="modelos/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">villa</span><p class="font-display text-xl font-semibold mt-2">Modelos</p><p class="text-sm text-volcanic-ash/70 mt-1">Catálogo de vivienda &amp; ficha técnica</p></a>
       <a href="proyectos/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">account_tree</span><p class="font-display text-xl font-semibold mt-2">Proyectos &middot; Inventario &amp; Cuentas</p><p class="text-sm text-volcanic-ash/70 mt-1">Cartera, parcelas por desarrollo y estado de cuentas</p></a>
-      <a href="compradores/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">badge</span><p class="font-display text-xl font-semibold mt-2">Compradores</p><p class="text-sm text-volcanic-ash/70 mt-1">Directorio de compradores &amp; inversores</p></a>
+      <a href="compradores/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">badge</span><p class="font-display text-xl font-semibold mt-2">Clientes</p><p class="text-sm text-volcanic-ash/70 mt-1">Directorio de clientes &amp; inversores</p></a>
       <a href="operaciones/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">sync_alt</span><p class="font-display text-xl font-semibold mt-2">Operaciones</p><p class="text-sm text-volcanic-ash/70 mt-1">Trazabilidad de cada operación</p></a>
     </div>
   </section>
@@ -111,7 +111,7 @@ tailwind.config = {
       <a href="recibos/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">payments</span><p class="font-display text-xl font-semibold mt-2">Recibos</p><p class="text-sm text-volcanic-ash/70 mt-1">Recibos &amp; justificantes de cobro</p></a>
       <a href="vencimientos/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">event_upcoming</span><p class="font-display text-xl font-semibold mt-2">Vencimientos</p><p class="text-sm text-volcanic-ash/70 mt-1">Vencimientos &amp; tesorería</p></a>
       <a href="comisiones/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">request_quote</span><p class="font-display text-xl font-semibold mt-2">Comisiones</p><p class="text-sm text-volcanic-ash/70 mt-1">Lo que el equipo pide cobrar a Lawang, y el reparto interno de cada equipo</p></a>
-      <a href="cuentas/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">account_balance</span><p class="font-display text-xl font-semibold mt-2">Cuentas de cobro</p><p class="text-sm text-volcanic-ash/70 mt-1">A d&oacute;nde transfiere el comprador, documento a documento</p></a>
+      <a href="cuentas/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">account_balance</span><p class="font-display text-xl font-semibold mt-2">Cuentas de cobro</p><p class="text-sm text-volcanic-ash/70 mt-1">A d&oacute;nde transfiere el cliente, documento a documento</p></a>
       <a href="sociedades/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">domain</span><p class="font-display text-xl font-semibold mt-2">Sociedades emisoras</p><p class="text-sm text-volcanic-ash/70 mt-1">Identidad fiscal de cada sociedad que emite un documento — solo super_admin</p></a>
     </div>
   </section>
@@ -129,7 +129,7 @@ tailwind.config = {
   <section class="mb-10">
     <h2 class="font-ui text-[11px] uppercase tracking-[0.2em] text-control-border border-b border-outline-variant pb-2 mb-5">Cara al cliente</h2>
     <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
-      <a href="/portal/" target="_blank" rel="noopener" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-deep-lagoon transition-colors"><span class="material-symbols-outlined text-deep-lagoon">verified_user</span><p class="font-display text-xl font-semibold mt-2">Portal del Inversor</p><p class="text-sm text-volcanic-ash/70 mt-1">El área privada real del comprador, con su propio acceso</p></a>
+      <a href="/portal/" target="_blank" rel="noopener" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-deep-lagoon transition-colors"><span class="material-symbols-outlined text-deep-lagoon">verified_user</span><p class="font-display text-xl font-semibold mt-2">Portal del Inversor</p><p class="text-sm text-volcanic-ash/70 mt-1">El área privada real del cliente, con su propio acceso</p></a>
     </div>
   </section>
 

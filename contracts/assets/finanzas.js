@@ -399,7 +399,7 @@ function finCartera(e){
       if (f.estado === 'vencido'){
         nVencido++;
         const proy = (f.contrato && f.contrato.proyecto_nombre) || 'Sin proyecto';
-        const quien = ((f.contrato && f.contrato.comprador_nombre) || '').trim() || 'Sin comprador';
+        const quien = ((f.contrato && f.contrato.comprador_nombre) || '').trim() || 'Sin cliente';
         const vp = vencidoPorPersona[proy] || (vencidoPorPersona[proy] = {});
         vp[quien] = FIN_R((vp[quien] || 0) + (f.pendiente || 0));
       }

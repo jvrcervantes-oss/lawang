@@ -31,8 +31,8 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=65ea4669"></script>
-<script src="/contracts/assets/herramientas.js?v=7c7f1b58"></script>
+<script src="/contracts/assets/i18n.js?v=d63090e1"></script>
+<script src="/contracts/assets/herramientas.js?v=cec22c65"></script>
 <script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="/contracts/assets/topbar.js?v=8444fd68" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=c5c926ae"></script><script src="/contracts/assets/guard.js?v=935970cf" data-herramienta="usuarios"></script>
@@ -127,7 +127,7 @@
 <script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
 <script src="/contracts/assets/operaciones-cuentas.js?v=38a59c8c"></script>
 <script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
-<script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
+<script src="/contracts/assets/movimiento-v3.js?v=c88bae43"></script>
 </head>
 <body>
   <header class="lw-topbar" data-titulo="Usuarios">
@@ -618,9 +618,9 @@ async function pintarPrivilegios(){
     desbloqueado:            lwT('desbloqueó un contrato firmado'),
     editado_estando_firmado: lwT('editó un contrato firmado'),
     factura_sin_bloquear:    lwT('facturó un contrato sin firmar'),
-    cobro_a_otro_comprador:  lwT('aplicó un cobro al comprador de otro contrato'),
+    cobro_a_otro_comprador:  lwT('aplicó un cobro al cliente de otro contrato'),
     cobro_a_factura_huerfana:lwT('aplicó un cobro a una factura sin contrato'),
-    comprador_sin_ficha:     lwT('guardó un contrato sin ficha de comprador'),
+    comprador_sin_ficha:     lwT('guardó un contrato sin ficha de cliente'),
     factura_reactivada:      lwT('reactivó una factura anulada'),
   };
   const dia = s => new Date(s).toLocaleString(lwLocale(), { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });

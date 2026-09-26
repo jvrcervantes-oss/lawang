@@ -181,7 +181,7 @@
     // 4) crear / registrar / editar → modal con formulario
     if (/^(\+ )?(nuev[oa]|alta|emitir|registrar|invitar|subir|añadir|importar|crear)/i.test(tl)) {
       var f = /factur|recib|hito|importe|proforma/i.test(tl) ? FORM_DINERO
-            : /comprador|miembro|usuario|invitar/i.test(tl) ? FORM_PERSONA : FORM_BASICO;
+            : /comprador|cliente|miembro|usuario|invitar/i.test(tl) ? FORM_PERSONA : FORM_BASICO;
       ventana(t, f, 'Guardar'); return true;
     }
     if (/^(editar|reasignar|actualizar|traer los conceptos|corregir)/i.test(tl)) { ventana(t, FORM_BASICO, 'Aplicar'); return true; }

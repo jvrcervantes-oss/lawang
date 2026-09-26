@@ -22,7 +22,7 @@
      "esta pagina no carga Phosphor" se refiere a un caso concreto de emoji y
      ya no describe el fichero entero. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<script src="/contracts/assets/herramientas.js?v=7c7f1b58"></script>
+<script src="/contracts/assets/herramientas.js?v=cec22c65"></script>
 <script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="/contracts/assets/topbar.js?v=8444fd68" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
@@ -119,7 +119,7 @@
 <script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
 <script src="/contracts/assets/operaciones-cuentas.js?v=38a59c8c"></script>
 <script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
-<script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
+<script src="/contracts/assets/movimiento-v3.js?v=c88bae43"></script>
 </head>
 <body>
   <header class="lw-topbar" data-titulo="Documentación">
@@ -267,7 +267,7 @@ const T = {
   confidencialTexto: { es:'Confidencial — no compartir fuera del estudio', en:'Confidential — do not share outside the studio' },
   compartibleCliente: { es:'Compartible con el cliente', en:'Shareable with the client' },
   dtPortal: { es:'Portal', en:'Portal' },
-  loVenCompradores: { es:'Lo ven los compradores de ', en:'Visible to buyers of ' },
+  loVenCompradores: { es:'Lo ven los clientes de ', en:'Visible to clients of ' },
   noSalePortal: { es:'No sale en el portal del comprador', en:'Not shown in the buyer portal' },
   viveFuera: { es:'El documento vive fuera de aquí, así que <b>quién puede abrirlo lo decide Drive</b>, no esta herramienta. Compruébalo allí.',
                en:'The document lives outside this tool, so <b>who can open it is decided by Drive</b>, not by this tool. Check it there.' },
@@ -296,8 +296,8 @@ const T = {
   lblDescripcion: { es:'Descripción (opcional)', en:'Description (optional)' },
   ckConfidencial: { es:'Confidencial — no compartir fuera del estudio', en:'Confidential — do not share outside the studio' },
   ckPortal: { es:'Visible en el portal del comprador', en:'Visible in the buyer portal' },
-  notaPortal: { es:'Lo verán los compradores <b>con contrato en esa promoción</b>, no todos. Es una decisión aparte de «confidencial»: que se pueda enseñar dentro del estudio no significa que deba salir en el portal de un cliente. Un archivo subido se sirve con enlace temporal; un enlace de Drive lo abre Drive, así que <b>compruébalo allí antes de marcarlo</b>.',
-              en:'Only buyers <b>with a contract in that project</b> will see it, not everyone. It’s a separate decision from "confidential": that it can be shown inside the studio doesn’t mean it should go into a client’s portal. An uploaded file is served with a temporary link; a Drive link is opened by Drive, so <b>check it there before marking it</b>.' },
+  notaPortal: { es:'Lo verán los clientes <b>con contrato en esa promoción</b>, no todos. Es una decisión aparte de «confidencial»: que se pueda enseñar dentro del estudio no significa que deba salir en el portal de un cliente. Un archivo subido se sirve con enlace temporal; un enlace de Drive lo abre Drive, así que <b>compruébalo allí antes de marcarlo</b>.',
+              en:'Only clients <b>with a contract in that project</b> will see it, not everyone. It’s a separate decision from "confidential": that it can be shown inside the studio doesn’t mean it should go into a client’s portal. An uploaded file is served with a temporary link; a Drive link is opened by Drive, so <b>check it there before marking it</b>.' },
   notaDrivePermiso: { es:'<b>Comprueba en Drive con quién está compartido.</b> Aquí se guarda el enlace; el permiso para abrirlo lo pone Drive.',
                       en:'<b>Check in Drive who it’s shared with.</b> This only stores the link; the permission to open it is set in Drive.' },
   ckDeck: { es:'Publicar en el dosier de inversores', en:'Publish in the investor deck' },

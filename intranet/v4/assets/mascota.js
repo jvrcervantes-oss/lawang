@@ -259,7 +259,7 @@
       { t: nombre ? T('Hola, %nombre. Soy el Asistente.', { nombre: nombre }) : T('Hola. Soy el Asistente.'),
         x: T('Desde hoy te acompaño por toda la intranet, aquí abajo en la esquina. Cuando necesites algo, tócame.') },
       { t: T('Lo que ya sé hacer'),
-        x: T('Pídeme lo que la intranet no te deja hacer: cambiar un dato de un comprador, anular o borrar una factura o un recibí, borrar una operación. Dirección lo aprueba y se hace solo.') },
+        x: T('Pídeme lo que la intranet no te deja hacer: cambiar un dato de un cliente, anular o borrar una factura o un recibí, borrar una operación. Dirección lo aprueba y se hace solo.') },
       { t: T('Y lo que viene'),
         x: T('Voy a ir aprendiendo a hacer más cosas por ti. Si me pides algo que aún no sé hacer, también le llega a dirección.') }
     ];
@@ -316,7 +316,7 @@
       extra.appendChild(queSabes);
       extra.appendChild(fallo);
       extra.appendChild(esconde);
-      abre([cabecera(T('¿Qué necesitas?'), T('Dime de qué se trata —el comprador, la factura o el contrato— y por qué. Lo revisas en el Asistente antes de enviarlo.')), campo, pie, extra], campo);
+      abre([cabecera(T('¿Qué necesitas?'), T('Dime de qué se trata —el cliente, la factura o el contrato— y por qué. Lo revisas en el Asistente antes de enviarlo.')), campo, pie, extra], campo);
     }
 
     /* ── Avisar de un fallo ─────────────────────────────────────────── */

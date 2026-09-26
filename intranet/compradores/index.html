@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
-<title>Lawang · Compradores</title>
+<title>Lawang · Clientes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
@@ -20,8 +20,8 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=65ea4669"></script>
-<script src="/contracts/assets/herramientas.js?v=7c7f1b58"></script>
+<script src="/contracts/assets/i18n.js?v=d63090e1"></script>
+<script src="/contracts/assets/herramientas.js?v=cec22c65"></script>
 <script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="/contracts/assets/topbar.js?v=8444fd68" defer></script>
 <script src="/contracts/assets/visor.js?v=28038adb" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -143,14 +143,14 @@
      tabla. Se añaden donde faltaban (12 de 15 páginas). -->
 <script src="/contracts/assets/operaciones-cuentas.js?v=38a59c8c"></script>
 <script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
-<script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
+<script src="/contracts/assets/movimiento-v3.js?v=c88bae43"></script>
 </head>
 <body>
-  <header class="lw-topbar" data-titulo="Compradores">
+  <header class="lw-topbar" data-titulo="Clientes">
     <div class="lw-spacer"></div>
     <!-- ACCION PRINCIPAL: ultima de la barra. La convencion, con su porque,
          esta en assets/topbar.css junto a `.lw-btn.primary`. -->
-    <button type="button" class="lw-btn primary" id="btnNuevo"><i class="ph ph-plus"></i>Nuevo comprador</button>
+    <button type="button" class="lw-btn primary" id="btnNuevo"><i class="ph ph-plus"></i>Nuevo cliente</button>
   </header>
 
   <div class="sui-stage">
@@ -161,7 +161,7 @@
       <div class="sui-tabla-caja" id="caja-tabla">
         <table class="sui-tabla" id="tabla">
           <thead><tr>
-            <th data-orden="full_name" data-lwt="Comprador">Comprador</th>
+            <th data-orden="full_name" data-lwt="Cliente">Cliente</th>
             <th data-orden="email" data-lwt="Contacto">Contacto</th>
             <th data-orden="nationality" data-lwt="Nacionalidad">Nacionalidad</th>
             <th data-orden="passport_number" data-lwt="Pasaporte">Pasaporte</th>
@@ -320,7 +320,7 @@ async function cargar(){
     // Sin directorio (migración aún no aplicada, o RPC caída) la pantalla no se
     // queda en blanco: vuelve a ser lo de antes, solo lo tuyo. Y se dice.
     CLIENTES = mias;
-    if(dir && dir.error) toastMal(lwErrorHumano(dir.error, lwT('No se pudo leer el directorio de compradores: ')));
+    if(dir && dir.error) toastMal(lwErrorHumano(dir.error, lwT('No se pudo leer el directorio de clientes: ')));
   }
   DOCUMENTOS = d.error ? [] : (d.data || []);
   VINCULOS = v.error ? [] : (v.data || []);
@@ -553,8 +553,8 @@ function pintarLista(){
       <td>${esc(nombreDe(c.propietario) || '—')}</td>
     </tr>`;
   }).join('')
-  : `<tr><td colspan="7"><div class="sui-nada"><b>${CLIENTES.length ? 'Nadie coincide' : 'Todavía no hay compradores'}</b>${
-      CLIENTES.length ? 'Prueba con otra búsqueda.' : 'Créalo con «+ Nuevo comprador».'}</div></td></tr>`;
+  : `<tr><td colspan="7"><div class="sui-nada"><b>${CLIENTES.length ? 'Nadie coincide' : 'Todavía no hay clientes'}</b>${
+      CLIENTES.length ? 'Prueba con otra búsqueda.' : 'Créalo con «+ Nuevo cliente».'}</div></td></tr>`;
 }
 
 // partirTelefono() sale de geo.js — ver nota junto a NACIONALIDADES, arriba.
@@ -691,7 +691,7 @@ function pintarFicha(){
         : firmada
           ? '<p class="nota">' + lwT('Esta ficha cuelga de un contrato ya FIRMADO: su pasaporte y su domicilio están impresos dentro de ese documento, así que no se cambian desde aquí. Si hay un error real en el documento, es cosa de un administrador.') + '</p>'
         : '<p class="nota">' + lwT('Solo un administrador puede editar estos datos. Puedes consultarlos y gestionar la documentación de más abajo.') + '</p>'}
-      <label for="f-tipo">${lwT('Tipo de comprador')}</label>
+      <label for="f-tipo">${lwT('Tipo de cliente')}</label>
       <select class="sui-sel" id="f-tipo" ${dis}>
         <option value="persona" ${(c.tipo||'persona')==='persona'?'selected':''}>${lwT('Persona física')}</option>
         <option value="empresa" ${c.tipo==='empresa'?'selected':''}>${lwT('Empresa')}</option>
@@ -958,7 +958,7 @@ function pintarFicha(){
     <fieldset>
       <legend>${lwT('Portal del comprador')}</legend>
       ${soloDirectorio ? '' : `<button type="button" class="btn" id="btnPreviewPortal" style="margin-bottom:10px">${lwT('Vista previa del portal')}</button>
-      <p class="nota">${lwT('Enseña lo mismo que ve el comprador en /portal/ (contratos, cobrado, facturas, documentos), leído con tu permiso de equipo. No abre una sesión suya.')}</p>`}
+      <p class="nota">${lwT('Enseña lo mismo que ve el cliente en /portal/ (contratos, cobrado, facturas, documentos), leído con tu permiso de equipo. No abre una sesión suya.')}</p>`}
       ${(() => {
         const suyos = ACCESOS.filter(x => x.client_id === c.id);
         const activos = suyos.filter(x => x.activo);
@@ -994,7 +994,7 @@ function pintarFicha(){
         <p class="nota">La invitación vincula ESTA ficha a ese email y le envía un enlace de entrada.
         Para una familia que comparte correo, invita el mismo email desde cada ficha: verá todo lo de
         todas. Además del enlace, se le puede poner una contraseña para entrar directamente — el
-        comprador también puede cambiarla él mismo desde dentro del portal.</p>`;
+        cliente también puede cambiarla él mismo desde dentro del portal.</p>`;
       })()}
     </fieldset>
     ${nuevo ? '' : `
@@ -1033,7 +1033,7 @@ function pintarFicha(){
     </fieldset>`}`;
 
   suiAbrirCajon({
-    titulo: nuevo ? 'Nuevo comprador' : esc(c.full_name || 'Sin nombre'),
+    titulo: nuevo ? 'Nuevo cliente' : esc(c.full_name || 'Sin nombre'),
     sub: nuevo ? 'Los campos con * son obligatorios: sin ellos la ficha no se crea.'
                : esc([c.nationality, c.passport_number].filter(Boolean).join(' · ') || 'sin identificación'),
     cuerpo: cuerpoFicha,
@@ -1057,8 +1057,8 @@ function pintarFicha(){
              (es_super_admin() + bloqueos por contrato/portal); este botón solo
              evita ofrecer lo que fallaría — la regla de guard.js de siempre. */
           (YO && YO.rol === 'super_admin'
-            ? `<button class="sui-btn peligro" id="btnBorrarComprador" style="margin-left:auto">${lwT('Borrar comprador')}</button>` : '')
-        : `<button class="sui-btn primario" id="btnGuardar">${lwT('Crear comprador')}</button>
+            ? `<button class="sui-btn peligro" id="btnBorrarComprador" style="margin-left:auto">${lwT('Borrar cliente')}</button>` : '')
+        : `<button class="sui-btn primario" id="btnGuardar">${lwT('Crear cliente')}</button>
            <button class="sui-btn" id="btnCerrar">${lwT('Cerrar')}</button>`,
     onCerrar: () => { SEL = null; pintarLista(); },
   });
@@ -1214,7 +1214,7 @@ async function borrarDocumento(id, btn){
 async function borrarComprador(c){
   const misDocs = DOCUMENTOS.filter(d => d.client_id === c.id);
   const ok = await lwConfirmar({
-    titulo: lwT('Borrar la ficha de %c', { c: c.full_name || lwT('este comprador') }),
+    titulo: lwT('Borrar la ficha de %c', { c: c.full_name || lwT('este cliente') }),
     cuerpo: '<p>Se borra la ficha' + (misDocs.length
         ? ' ' + lwT('y sus') + ' <b>' + lwT(misDocs.length === 1 ? '%n documento KYC' : '%n documentos KYC', { n: misDocs.length }) + '</b> ' + lwT('del archivo privado') : '') + '.</p>'
       + '<p>Si estuviera vinculada a un contrato o tuviera acceso al portal, el sistema lo impide '
@@ -1229,7 +1229,7 @@ async function borrarComprador(c){
   const { data, error } = await SB.rpc('borrar_comprador', { p_client_id: c.id });
   if(error){
     toastMal(lwErrorHumano(error));
-    if(btn){ btn.disabled = false; btn.textContent = lwT('Borrar comprador'); }
+    if(btn){ btn.disabled = false; btn.textContent = lwT('Borrar cliente'); }
     return;
   }
   // los ficheros del bucket, con la sesion del super_admin. Si fallara, la ficha
@@ -1239,7 +1239,7 @@ async function borrarComprador(c){
     const { error: eSt } = await SB.storage.from('kyc').remove(rutas);
     if(eSt) toastMal(lwT('Ficha borrada, pero ') + rutas.length + ' fichero(s) KYC no se pudieron quitar del bucket: ' + eSt.message);
   }
-  toast(lwT('Ficha de ') + ((data && data.nombre) || 'comprador') + ' borrada'
+  toast(lwT('Ficha de ') + ((data && data.nombre) || 'cliente') + ' borrada'
     + (rutas.length ? ' · ' + rutas.length + ' documento(s) retirados' : ''));
   SEL = null;
   suiCerrarCajon();
@@ -1385,7 +1385,7 @@ async function guardar(id){
     });
     if(faltan.length){
       toastMal(lwT('No se puede crear la ficha, falta: ') + faltan.join(', ') +
-               lwT('. Son los datos que el contrato imprime y con los que el comprador entra a su portal — si no los tienes todavía, pídeselos antes de darlo de alta.'));
+               lwT('. Son los datos que el contrato imprime y con los que el cliente entra a su portal — si no los tienes todavía, pídeselos antes de darlo de alta.'));
       /* Y se marca EN EL CAMPO, no sólo en el aviso: el aviso se va en siete
          segundos y con seis campos en pantalla hay que poder volver a mirar
          cuál era. El foco va al primero que falta. */
@@ -1434,7 +1434,7 @@ async function guardar(id){
     if(error) throw error;
     await cargar(); SEL = data.id;
     pintarLista(); pintarFicha();
-    toast(lwT(id ? 'Ficha actualizada' : 'Comprador creado'));
+    toast(lwT(id ? 'Ficha actualizada' : 'Cliente creado'));
   }catch(err){
     /* `clients.email` es UNIQUE y una familia comparte correo: el 409 de
        Postgres llegaba crudo («duplicate key value violates unique constraint»)
@@ -1454,7 +1454,7 @@ async function guardar(id){
        importa — lo específico ANTES del comodín. */
     const msg = String(err.message || '');
     const m = /clients_pasaporte_uniq/.test(msg)
-      ? lwT('Ese pasaporte / NPWP ya está en otra ficha (el correo no tiene nada que ver con este aviso). Desde el 11-sep cada uno ve solo los compradores que dio de alta, así que esa ficha puede existir y NO aparecerte en la lista: no crees una segunda: pide a un administrador que te la traspase o que la enlace a tu contrato.')
+      ? lwT('Ese pasaporte / NPWP ya está en otra ficha (el correo no tiene nada que ver con este aviso). Desde el 11-sep cada uno ve solo los clientes que dio de alta, así que esa ficha puede existir y NO aparecerte en la lista: no crees una segunda: pide a un administrador que te la traspase o que la enlace a tu contrato.')
       : /clients_email_tipo_key|clients_email_key/.test(msg)
       /* ⚠️ 14-sep-2026: este texto decía «si es una familia que comparte buzón,
          deja el correo en una sola e identifica a las demás por su pasaporte».
@@ -1480,7 +1480,7 @@ async function guardar(id){
       ? lwT('Tu sesión ha caducado a mitad de guardar. Recarga la página, entra de nuevo y repite el cambio — no se ha guardado.')
       : 'No se pudo guardar: ' + (err.message || err);
     toastMal(m);
-    btn.disabled=false; btn.textContent = lwT(id ? 'Guardar cambios' : 'Crear comprador');
+    btn.disabled=false; btn.textContent = lwT(id ? 'Guardar cambios' : 'Crear cliente');
   }
 }
 
@@ -1543,7 +1543,7 @@ function abrirPreviewPortal(c){
     ? `<table><thead><tr>${cols.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${filas.join('')}</tbody></table>`
     : `<p class="nota">${vacio}</p>`;
   const cuerpo = `
-    <p class="nota">${lwT('Esto es lo que este comprador ve ahora mismo en /portal/. No se ha abierto ninguna sesión suya: se lee con tu permiso de equipo.')}</p>
+    <p class="nota">${lwT('Esto es lo que este cliente ve ahora mismo en /portal/. No se ha abierto ninguna sesión suya: se lee con tu permiso de equipo.')}</p>
     <h3 style="margin:16px 0 6px;font-size:15px">${lwT('Contratos')}</h3>
     ${tabla([lwT('Nº'), lwT('Tipo'), lwT('Estado'), lwT('Precio'), lwT('Cobrado')], contratos.map(filaContrato), lwT('Sin contratos.'))}
     <h3 style="margin:16px 0 6px;font-size:15px">${lwT('Facturas')}</h3>
@@ -1647,7 +1647,7 @@ async function abrir(path){
   if(error || !data){ toastMal(lwT('No se pudo generar el enlace')); return; }
   // visor compartido de la suite: el documento se consulta en un pop-up sin
   // salir de la ficha (regla 29-jul: nunca pestaña nueva para consultar)
-  LW_VISOR.abrir(data.signedUrl, lwT('Documento del comprador'));
+  LW_VISOR.abrir(data.signedUrl, lwT('Documento del cliente'));
 }
 
 $('#listaC').addEventListener('click', e => {
@@ -1689,7 +1689,7 @@ window.LW_AUTH.then(async ({ sb, session, ficha }) => {
       SEL = 'nuevo';
       pintarLista(); pintarFicha();
     }else{
-      if(pedido) toastMal(lwT('Ese comprador ya no existe'));
+      if(pedido) toastMal(lwT('Ese cliente ya no existe'));
       pintarLista();
     }
   }
