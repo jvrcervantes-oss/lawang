@@ -145,7 +145,8 @@
         llama(sb, { accion: 'activar_solicitud', solicitud_id: s.id, proyectos: marcados('p_' + s.id),
                     tipos_contrato: marcados('t_' + s.id), herramientas: marcados('h_' + s.id) }).then(function (x) {
           if (x && x.ok) {
-            aviso.textContent = x.email_enviado ? 'Activado. Le ha llegado el correo para crear su contraseña.' : 'Activado, pero el correo no salió: usa «Reenviar enlace».';
+            aviso.textContent = (x.email_enviado ? 'Activado. Le ha llegado el correo para crear su contraseña.' : 'Activado, pero el correo no salió: usa «Reenviar enlace».') +
+              (x.herramientas_no_dadas && x.herramientas_no_dadas.length ? ' Sin ' + x.herramientas_no_dadas.join(', ') + ': no las tienes tú; pídeselas a un super admin.' : '');
             aviso.className = 'font-body-sm text-body-sm text-primary';
             setTimeout(pintaSolicitudes, 1800);
           } else {

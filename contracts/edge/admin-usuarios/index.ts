@@ -171,6 +171,15 @@ Deno.serve(async (req) => {
       if (desconocidas.length)
         return json({ error: 'herramienta_desconocida', detalle: desconocidas,
                       ayuda: 'Esta función no conoce esa herramienta. Si es nueva, añádela a HERRAMIENTAS en admin-usuarios y redespliega.' }, 400);
+      // Un admin solo reparte herramientas que ÉL tiene (LAW-343, 27-sep-2026): el trigger
+      // usuarios_bloquea_cambio_rol_herramientas ya exige super admin para cambiarlas después, pero
+      // el alta pasaba por aquí con service role y dejaba regalar, p. ej., «Comisiones».
+      if (!soySuper) {
+        const mias = new Set((ficha.herramientas ?? []).map(String));
+        const ajenas = pedidas.filter((h) => !mias.has(h));
+        if (ajenas.length) return json({ error: 'herramienta_que_no_tienes', detalle: ajenas,
+                                         ayuda: 'Solo puedes dar herramientas que tienes tú. Pide a un super admin el resto.' }, 403);
+      }
       const herramientas: string[] = pedidas;
       const tipos_contrato: string[] = (Array.isArray(body.tipos_contrato) ? body.tipos_contrato.map(String) : [])
         .filter((t: string) => TIPOS_CONTRATO.includes(t));
@@ -278,7 +287,12 @@ Deno.serve(async (req) => {
       // panel puede quitar alguna, nunca añadir fuera de esta lista.
       const BASE_COMERCIAL = ['leads', 'contratos', 'compradores', 'reservas', 'comisiones_reparto'];
       const pedidas: string[] = Array.isArray(body.herramientas) ? body.herramientas.map(String) : BASE_COMERCIAL;
-      const herramientas = pedidas.filter((h) => BASE_COMERCIAL.includes(h));
+      // Un admin solo da lo que tiene (LAW-343, 27-sep-2026). Aquí se quita y se DEVUELVE en
+      // `herramientas_no_dadas` (no 403): la lista base la propone el sistema, no el admin, y la
+      // solicitud del comercial no debe quedarse atascada por una casilla que el admin no puede dar.
+      const mias = new Set((ficha.herramientas ?? []).map(String));
+      const herramientas_no_dadas = soySuper ? [] : pedidas.filter((h) => BASE_COMERCIAL.includes(h) && !mias.has(h));
+      const herramientas = pedidas.filter((h) => BASE_COMERCIAL.includes(h) && (soySuper || mias.has(h)));
       const tipos_contrato: string[] = (Array.isArray(body.tipos_contrato) ? body.tipos_contrato.map(String) : [])
         .filter((t: string) => TIPOS_CONTRATO.includes(t));
       // `tipos_contrato` vacío BLOQUEA a un agente (trigger contratos_tipo_permitido,
@@ -349,7 +363,7 @@ Deno.serve(async (req) => {
       } catch (e) {
         console.error('admin-usuarios activar: sin enlace/email para ' + email + ': ' + String((e as Error)?.message ?? e));
       }
-      return json({ ok: true, user_id: creado.user.id, email, email_enviado: emailEnviado });
+      return json({ ok: true, user_id: creado.user.id, email, email_enviado: emailEnviado, herramientas_no_dadas });
     }
 
     if (accion === 'descartar_solicitud') {
@@ -413,10 +427,18 @@ Deno.serve(async (req) => {
       // `usuarios` (un comprador del portal) no se toca desde aquí — antes `destino` nulo
       // pasaba. Y un admin solo con las de rango inferior: ni super_admin ni otro admin
       // (sí la suya propia). El super_admin puede con cualquiera del equipo.
-      const { data: destino } = await admin.from('usuarios').select('rol').eq('user_id', user_id).maybeSingle();
+      const { data: destino } = await admin.from('usuarios').select('rol, herramientas').eq('user_id', user_id).maybeSingle();
       if (!destino) return json({ error: 'no_es_cuenta_del_equipo' }, 403);
       if (!soySuper && user_id !== quien.user.id && ['super_admin', 'admin'].includes(destino.rol))
         return json({ error: 'no_autorizado' }, 403);
+      // LAW-343 (27-sep-2026, Seguridad): poner la contraseña de una cuenta con herramientas que tú no tienes
+      // es usarlas entrando con ella. Un admin no-super solo la cambia si todas las de esa cuenta son suyas.
+      if (!soySuper && user_id !== quien.user.id) {
+        const mias = new Set((ficha.herramientas ?? []).map(String));
+        const ajenas = ((destino.herramientas ?? []) as string[]).map(String).filter((h) => !mias.has(h));
+        if (ajenas.length) return json({ error: 'cuenta_con_herramientas_que_no_tienes', detalle: ajenas,
+                                         ayuda: 'Esta contraseña la cambia un super admin.' }, 403);
+      }
       const { error } = await admin.auth.admin.updateUserById(user_id, { password });
       if (error) return json({ error: error.message }, 400);
       return json({ ok: true });

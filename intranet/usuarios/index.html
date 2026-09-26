@@ -204,6 +204,9 @@ const HERRAMIENTAS = LW_PERMISOS;
 const ES_CRM  = ([v]) => LW_PERMISOS_CRM.includes(v);
 const HERR_CRM  = HERRAMIENTAS.filter(ES_CRM);
 const HERR_RESTO = HERRAMIENTAS.filter(h => !ES_CRM(h));
+/* Un admin solo da las herramientas que tiene (LAW-343, 27-sep-2026, lo exige admin-usuarios): el alta
+   ofrece solo esas. Se evalúa al pintar el formulario, cuando YO ya está cargado. */
+const PUEDO_DAR = ([v]) => !YO || YO.rol === 'super_admin' || (YO.herramientas || []).includes(v);
 /* Qué abre cada una, en una línea. Sin esto, «Reparto de leads» y «Ranking de
    closers» se leen como lo mismo y se marcan juntas. */
 const CRM_PISTA = {
@@ -477,7 +480,7 @@ function nuevoUsuario(){
     </fieldset>
     <fieldset><legend>${lwT('CRM de leads')}</legend>
       <div class="herr">
-        ${HERR_CRM.map(([v,l]) => `<label title="${esc(CRM_PISTA[v]||'')}"><input type="checkbox" value="${v}"
+        ${HERR_CRM.filter(PUEDO_DAR).map(([v,l]) => `<label title="${esc(CRM_PISTA[v]||'')}"><input type="checkbox" value="${v}"
           ${(LW_HERR_POR_ROL.agente || []).includes(v)?'checked':''}> ${l}</label>`).join('')}
       </div>
       <p class="nota">${lwT('De salida no viene marcada ninguna, y es deliberado:')} <b>${lwT('Leads')}</b> ${lwT('abre los datos de contacto de personas reales y eso se decide una a una, nunca de regalo con el rol.')}</p>
@@ -485,7 +488,7 @@ function nuevoUsuario(){
 
     <fieldset><legend>${lwT('Herramientas que verá')}</legend>
       <div class="herr">
-        ${HERR_RESTO.map(([v,l]) => `<label><input type="checkbox" value="${v}"
+        ${HERR_RESTO.filter(PUEDO_DAR).map(([v,l]) => `<label><input type="checkbox" value="${v}"
           ${(LW_HERR_POR_ROL.agente || []).includes(v)?'checked':''}> ${l}</label>`).join('')}
       </div>
       <p class="nota">${lwT('Preselección según el rol elegido arriba — sigue siendo editable.')}</p>
@@ -532,7 +535,7 @@ async function crear(){
     tipos_contrato: [...document.querySelectorAll('.tipos input:checked')].map(i => i.value),
   });
   btn.disabled = false; btn.textContent = lwT('Crear usuario');
-  if(!d.ok){ toastMal(lwT('No se pudo crear: ') + (d.error || '')); return; }
+  if(!d.ok){ toastMal(lwT('No se pudo crear: ') + (d.error || '') + (Array.isArray(d.detalle) && d.detalle.length ? ': ' + d.detalle.join(', ') : '')); return; }
   // El correo solo avisa del alta (nunca lleva la contraseña, ver admin-usuarios):
   // si falla, la cuenta ya existe igual — solo falta decirle la contraseña a mano.
   // Confirmación explícita en los dos sentidos (17-sep-2026): antes el éxito
