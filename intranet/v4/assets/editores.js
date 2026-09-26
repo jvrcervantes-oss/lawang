@@ -8939,20 +8939,25 @@
           { tipo: 'lectura', label: 'Banco', valor: c.banco, medio: 1 },
           { tipo: 'lectura', label: 'Número de cuenta', valor: c.cuenta, medio: 1 },
           { tipo: 'lectura', label: 'Código Swift / Routing', valor: c.codigo, medio: 1 },
-          { tipo: 'nota', label: 'Esta cuenta ya se ha usado: su titular, banco, número y Swift no se cambian, porque los contratos firmados la reimprimen. Para otro número, crea una cuenta nueva y cámbiala en el reparto.' }
+          { tipo: 'lectura', label: 'Domicilio del banco', valor: c.direccion },
+          { tipo: 'lectura', label: 'Nota que se imprime — ES', valor: nota.es },
+          { tipo: 'lectura', label: 'Nota — EN', valor: nota.en, medio: 1 },
+          { tipo: 'lectura', label: 'Nota — ID', valor: nota.id, medio: 1 },
+          { tipo: 'lectura', label: 'Cuenta ESCROW (depósito en garantía)', valor: c.es_escrow ? 'Sí' : 'No' },
+          { tipo: 'nota', label: 'Esta cuenta ya se ha usado: lo que imprime el contrato (titular, banco, número, Swift, domicilio, nota y ESCROW) no se cambia, porque los contratos firmados la reimprimen. Para cambiar algo de eso, crea una cuenta nueva y cámbiala en el reparto.' }
         ] : [
           { k: 'titular', label: 'Titular', valor: c.titular, medio: 1 },
           { k: 'banco', label: 'Banco', valor: c.banco, medio: 1 },
           { k: 'cuenta', label: 'Número de cuenta', valor: c.cuenta, medio: 1 },
-          { k: 'codigo', label: 'Código Swift / Routing', valor: c.codigo, medio: 1 }
-        ]).concat([
+          { k: 'codigo', label: 'Código Swift / Routing', valor: c.codigo, medio: 1 },
           { k: 'direccion', label: 'Domicilio del banco', valor: c.direccion },
           { k: 'nota_es', tipo: 'textarea', valor: nota.es, label: 'Nota que se imprime en el contrato — ES' },
           { k: 'nota_en', tipo: 'textarea', valor: nota.en, label: 'Nota — EN', medio: 1 },
           { k: 'nota_id', tipo: 'textarea', valor: nota.id, label: 'Nota — ID', medio: 1 },
           { tipo: 'nota', label: 'Si solo rellenas ES, se imprime ese texto en los tres idiomas. En cuanto pongas EN o ID, cada idioma imprime el suyo.' },
           { k: 'es_escrow', tipo: 'check', valor: c.es_escrow, label: 'Es una cuenta ESCROW (depósito en garantía)',
-            ayuda: 'Añade o quita sola en el contrato la fila «Naturaleza de la cuenta — depósito en garantía». Va en los DOS sentidos y alcanza a lo ya emitido: al reimprimir un contrato firmado con esta cuenta, marcarla le mete una cláusula que no pactó y desmarcarla le quita una que sí pactó. Tócala solo si está mal puesta.' },
+            ayuda: 'Añade sola en el contrato la fila «Naturaleza de la cuenta — depósito en garantía». En cuanto la cuenta se active ya no se puede cambiar.' }
+        ]).concat([
           { k: 'es_propia', tipo: 'select', valor: c.es_propia === true ? 'si' : c.es_propia === false ? 'no' : '', label: '¿De quién es esta cuenta?',
             opciones: [['', 'Sin marcar'], ['si', 'De la sociedad (caja propia)'], ['no', 'De un tercero (contratista, vendedor de suelo, notario)']],
             ayuda: 'Finanzas solo cuenta como caja de la sociedad lo que entra en las cuentas propias; lo que el cliente paga a un tercero sale aparte. Un gasto solo se puede pagar desde una cuenta propia. Una cuenta escrow es siempre de un tercero.' },
@@ -8968,12 +8973,13 @@
           }).filter(Boolean) : [];
           return Promise.resolve(sb.rpc('cuenta_bancaria_guarda', {
             p_clave: clave, p_nueva: false,
+            // LAW-342: lo que imprime el contrato solo viaja si la cuenta nunca se activó
             p_datos: Object.assign(c.verificada_en ? {} : {
-              titular: v.titular, banco: v.banco, cuenta: v.cuenta, codigo: v.codigo
-            }, {
-              label: v.label, direccion: v.direccion,
+              titular: v.titular, banco: v.banco, cuenta: v.cuenta, codigo: v.codigo, direccion: v.direccion,
               extra: lwNotaCuenta.aJson({ es: v.nota_es, en: v.nota_en, id: v.nota_id }),
-              es_escrow: !!v.es_escrow, activa: !!v.activa,
+              es_escrow: !!v.es_escrow
+            }, {
+              label: v.label, activa: !!v.activa,
               es_propia: v.es_propia === 'si' ? true : v.es_propia === 'no' ? false : null
             }),
             p_reparto: niveles.length ? niveles : null

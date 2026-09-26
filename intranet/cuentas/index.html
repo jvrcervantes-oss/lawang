@@ -678,19 +678,19 @@ function pintarFichaCuenta(){
         + campo('banco',    lwT('Banco'),    c.banco,   roBanco)
         + campo('cuenta',   lwT('Número de cuenta'), c.cuenta, roBanco)
         + campo('codigo',   lwT('Código Swift / Routing'), c.codigo, roBanco)
-        + (c.verificada_en ? '<p class="nota f-full">' + lwT('Esta cuenta ya se ha usado: su titular, banco, número y Swift no se cambian, porque los contratos firmados la reimprimen. Para otro número, crea una cuenta nueva y cámbiala en el reparto.') + '</p>' : '')
-        + campo('direccion',lwT('Domicilio del banco'), c.direccion, ro, true)
+        + (c.verificada_en ? '<p class="nota f-full">' + lwT('Esta cuenta ya se ha usado: lo que imprime el contrato (titular, banco, número, Swift, domicilio, nota y ESCROW) no se cambia, porque los contratos firmados la reimprimen. Para cambiar algo de eso, crea una cuenta nueva y cámbiala en el reparto.') + '</p>' : '')
+        + campo('direccion',lwT('Domicilio del banco'), c.direccion, roBanco, true)
         + '<div class="f-full"><label class="f">' + lwT('Nota que se imprime en el contrato (opcional)') + '</label>'
           + '<div class="par">'
-            + '<div><label class="f">ES</label><textarea id="nota_es"' + ro + '>' + esc(nota.es) + '</textarea></div>'
-            + '<div><label class="f">EN</label><textarea id="nota_en"' + ro + '>' + esc(nota.en) + '</textarea></div>'
-            + '<div class="f-full"><label class="f">ID</label><textarea id="nota_id"' + ro + '>' + esc(nota.id) + '</textarea></div>'
+            + '<div><label class="f">ES</label><textarea id="nota_es"' + roBanco + '>' + esc(nota.es) + '</textarea></div>'
+            + '<div><label class="f">EN</label><textarea id="nota_en"' + roBanco + '>' + esc(nota.en) + '</textarea></div>'
+            + '<div class="f-full"><label class="f">ID</label><textarea id="nota_id"' + roBanco + '>' + esc(nota.id) + '</textarea></div>'
           + '</div>'
           + '<p class="nota">' + lwT('Si solo rellenas ES, se imprime ese texto en los tres idiomas. En cuanto pongas EN o ID, cada idioma imprime el suyo.') + '</p>'
         + '</div>'
       + '</div>'
       + '<div class="acciones">'
-        + '<label class="op"><input type="checkbox" id="f_escrow"' + (c.es_escrow ? ' checked' : '') + ro + '><span class="et">'
+        + '<label class="op"><input type="checkbox" id="f_escrow"' + (c.es_escrow ? ' checked' : '') + roBanco + '><span class="et">'
           + lwT('Es una cuenta ESCROW (depósito en garantía)') + '</span></label>'
         + '<label class="op"><input type="checkbox" id="f_activa"' + (c.activa ? ' checked' : '') + ro + '><span class="et">'
           + lwT('Activa') + '</span></label>'
@@ -881,16 +881,16 @@ async function guardarCuenta(clave){
   if(!label){ toastMal(lwT('La etiqueta no puede quedar vacía: es lo que se lee en el desplegable del contrato.')); return; }
   const cambios = {
     label:     label,
-    direccion: val('direccion').trim(),
-    extra:     lwNotaCuenta.aJson({ es: nota.es.trim(), en: nota.en.trim(), id: nota.id.trim() }),
-    es_escrow: !!($('#f_escrow') || {}).checked,
     activa:    !!($('#f_activa') || {}).checked,
   };
-  // los datos bancarios solo viajan si la cuenta nunca se ha activado (LAW-342)
+  // lo que imprime el contrato solo viaja si la cuenta nunca se ha activado (LAW-342)
   const c = CUENTAS.find(x => x.clave === clave);
   if(!(c && c.verificada_en)){
     cambios.titular = val('titular').trim(); cambios.banco  = val('banco').trim();
     cambios.cuenta  = val('cuenta').trim();  cambios.codigo = val('codigo').trim();
+    cambios.direccion = val('direccion').trim();
+    cambios.extra     = lwNotaCuenta.aJson({ es: nota.es.trim(), en: nota.en.trim(), id: nota.id.trim() });
+    cambios.es_escrow = !!($('#f_escrow') || {}).checked;
   }
   /* `clave` no se cambia nunca: va guardada dentro de cada contrato emitido; el
      servidor solo la usa para encontrar la fila. Por el servidor
