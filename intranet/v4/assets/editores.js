@@ -1294,7 +1294,9 @@
     w.querySelector('[data-c="fondo"]').addEventListener('click', cierraCajon);
     // Parar aqui lo que ya se atendio dentro (ver cabecera del bloque).
     w.addEventListener('click', function (ev) {
-      if (ev.target.closest && ev.target.closest('button, a')) ev.stopPropagation();
+      // Menos el desplegable propio (.las-sel): lo abre y cierra la delegación en
+      // document de mejoraSelects, y parado aquí no se abría (ficha de comprador, 26-sep-2026).
+      if (ev.target.closest && ev.target.closest('button, a') && !ev.target.closest('.las-sel')) ev.stopPropagation();
     });
     w._alCerrar = o.alCerrar || null;
     w._teclas = function (ev) {
@@ -1410,6 +1412,8 @@
     }
   };
   window.lwCajon = cajon;
+  // el desplegable propio para piezas que se pintan DESPUÉS de abrir un cajón (ficha de comprador, 26-sep)
+  window.lwMejoraSelects = mejoraSelects;
   window.lwCierraCajon = cierraCajon;
   window.lwCajonHtml = CAJON_HTML;
   /* Un UPDATE o un DELETE que la policy filtra no da error: devuelve 0 filas y

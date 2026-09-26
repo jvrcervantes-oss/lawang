@@ -155,6 +155,8 @@
     var d = new Date(); if (n) d.setDate(d.getDate() + n);
     return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
   }
+  // fecha + hora (hh:mm) en una línea: el registro de envíos (26-sep-2026, owner)
+  function fFechaHoraCorta(x) { if (!x) return '—'; var d = new Date(x); return isNaN(d) ? String(x) : fFecha(x) + ' · ' + d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }); }
   function fFecha(x) { if (!x) return '—'; var d = new Date(x); return isNaN(d) ? String(x).slice(0, 10) : d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }); }
   /* Entrega estimada del PROYECTO en trimestres (16-sep-2026, encargo del
      owner: "Q1 de 2027 es para el primer trimestre de 2027") -- se guarda
@@ -2494,7 +2496,7 @@
            lo del negocio de cada uno sigue filtrado por autor. Se piden solo las
            columnas que el LISTADO enseña (minimización, Seguridad 18-sep). */
         q(sb.rpc('compradores_directorio').select('id,full_name,email,phone,nationality,tipo,kyc_status,propietario,created_at').order('created_at', { ascending: false }), 'compradores', t),
-        q(sb.rpc('contratos_equipo').select('id,numero,tipo,proyecto_nombre,fecha_firma,precio_total,moneda,bloqueado'), 'contratos'),
+        q(sb.rpc('contratos_equipo').select('id,numero,tipo,proyecto_nombre,parcela_codigo,fecha_firma,precio_total,moneda,bloqueado'), 'contratos'),
         q(sb.from('contrato_compradores').select('contrato_id,client_id,rol'), 'vinculos'),
         vig(sb.rpc('contratos_cobrado_equipo')).then(function (r) { return r.error ? (fallo('cobrado', r.error), null) : (r.data || []); }),
         q(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado').eq('estado', 'pendiente'), 'firmas'),
@@ -2691,44 +2693,51 @@
             H.dato('KYC', H.tag(kyc[0], kyc[1]), { html: 1 }) +
             H.dato('Alta en la suite', fFecha(c2.created_at)) +
             (c2.notes ? H.dato('Notas', c2.notes) : '');
-          var quienAlta = c2.propietario
-            ? 'La dio de alta <b>' + esc(nombreEquipo[String(c2.propietario).toLowerCase()] || c2.propietario) + '</b>' +
-              ((window.LW_V4.miEmail || '').toLowerCase() === String(c2.propietario).toLowerCase() ? ' (tú)' : '') + '.'
-            : '<b>Nadie.</b> Ficha antigua sin autor: hoy solo la corrige un administrador.';
+          var autorAlta = c2.propietario
+            ? esc(nombreEquipo[String(c2.propietario).toLowerCase()] || c2.propietario) +
+              ((window.LW_V4.miEmail || '').toLowerCase() === String(c2.propietario).toLowerCase() ? ' <span class="lwc-apagado">(tú)</span>' : '')
+            : '<span class="lwc-apagado">Nadie · ficha antigua, solo la corrige un administrador</span>';
           /* Traspasar la ficha (14-sep en la clásica, paridad 21-sep). Sin RPC
              por defecto: la policy «admins actualizan clientes» ya deja a un
              admin escribir `propietario` — solo con la casilla de arrastrar
-             contratos/facturas entra `traspasar_cliente_con_documentos`. */
+             contratos/facturas entra `traspasar_cliente_con_documentos`.
+             Compacta (26-sep-2026, owner: «ocupa mucho»): autor en una línea,
+             desplegable y botón en una fila, la explicación en una sola frase.
+             El desplegable es el propio de la v4 (lwMejoraSelects, editores.js). */
           function seccionResponsable() {
-            var base = H.nota(quienAlta, true);
+            var base = H.dato('Dada de alta por', autorAlta, { html: 1 });
             if (!window.LW_V4.esAdmin) return base;
             var opciones = eq.map(function (u) {
               return '<option value="' + esc(u.email) + '"' + (String(c2.propietario || '').toLowerCase() === String(u.email).toLowerCase() ? ' selected' : '') + '>' + esc(u.nombre || u.email) + '</option>';
             }).join('');
-            var controles = '<div style="display:grid;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(228,220,203,.7)">' +
-              '<div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">' +
-              '<label style="display:grid;gap:4px;font-size:11.5px;color:#75786e;flex:1;min-width:160px">Pasar la ficha a<select data-tr-sel style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #E4DCCB;border-radius:8px;font-size:13px;color:#2E3437;background:#fff">' + opciones + '</select></label>' +
-              '<button type="button" data-tr-btn style="padding:9px 16px;border-radius:8px;border:0;background:#104C4F;color:#fff;font-weight:600;font-size:13px;cursor:pointer">Traspasar</button>' +
+            var idSel = 'lwtr-' + esc(c2.id);
+            var controles = '<div style="display:grid;gap:10px">' +
+              '<div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">' +
+              '<div class="las-campo" style="flex:1;min-width:180px"><label class="las-etq" for="' + idSel + '">Pasar la ficha a</label>' +
+              '<div class="las-rel"><select id="' + idSel + '" data-tr-sel class="las-in">' + opciones + '</select></div></div>' +
+              '<button type="button" data-tr-btn class="las-btn1" style="min-width:0;padding:10px 22px">Traspasar</button>' +
               '</div>';
             if (window.LW_V4.esSuperAdmin) {
-              controles += '<label style="display:flex;gap:8px;align-items:flex-start;font-size:12px;color:#2E3437;margin-top:2px">' +
-                '<input type="checkbox" data-tr-chk style="margin-top:2px">' +
-                '<span>Arrastrar también sus contratos y facturas (solo los que sean de ' + esc(nombreEquipo[String(c2.propietario || '').toLowerCase()] || c2.propietario || '—') + ')</span></label>' +
-                '<div data-tr-caja hidden style="display:grid;gap:4px">' +
-                '<label style="font-size:11.5px;color:#75786e">Motivo<input type="text" data-tr-motivo maxlength="180" placeholder="Ej. Ana deja el equipo, sus clientes pasan a Carmen" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #E4DCCB;border-radius:8px;font-size:13px;color:#2E3437;background:#fff"></label></div>';
+              controles += '<label style="display:flex;gap:8px;align-items:center;font-size:12.5px;color:#44403c;cursor:pointer">' +
+                '<input type="checkbox" data-tr-chk style="accent-color:#104C4F">' +
+                '<span>Arrastrar también sus contratos y facturas (solo los de ' + esc(nombreEquipo[String(c2.propietario || '').toLowerCase()] || c2.propietario || '—') + ')</span></label>' +
+                // `hidden` en un envoltorio sin clase: .las-campo pone display:grid y lo anularía
+                '<div data-tr-caja hidden><div class="las-campo"><label class="las-etq" for="' + idSel + '-m">Motivo</label>' +
+                '<input type="text" id="' + idSel + '-m" data-tr-motivo maxlength="180" class="las-in" placeholder="Ej. Ana deja el equipo, sus clientes pasan a Carmen"></div></div>';
             }
-            controles += '<p style="margin:8px 0 0;font-size:11.5px;color:#75786e">Quien la reciba podrá abrirla y corregirla (mientras no cuelgue de un contrato firmado); los demás la seguirán viendo en el directorio, solo de consulta. Sin marcar la casilla, los contratos y las facturas NO se mueven: el traspaso es solo de la ficha.</p></div>';
+            controles += '<p style="margin:0;font-size:11.5px;color:#a8a29e">Solo pasa la ficha: contratos y facturas no se mueven sin la casilla.</p></div>';
             return base + controles;
           }
           var contratos = vins.length
-            ? H.tabla(['Contrato', 'Proyecto', 'Rol', 'Estado'], vins.map(function (v) {
+            ? H.tabla(['Contrato', 'Proyecto', 'Parcela', 'Estado'], vins.map(function (v) {
                 var k = porC[v.contrato_id];
                 return [
                   (k.numero ? H.enlace('/intranet/v4/contratos/?contrato=' + encodeURIComponent(k.numero), k.numero) : 'sin nº') +
                     '<div style="font-size:11px;color:#75786e">' + esc(tipoC(k.tipo)) + '</div>',
                   esc(k.proyecto_nombre || '—'),
-                  esc(String(v.rol || '').replace('adquiriente_', 'Adquiriente ')),
-                  k.bloqueado ? H.tag('Firmado', 'ok') : (firmaPend[k.id] ? H.tag('En firma', 'espera') : H.tag('Sin firmar', 'neutro'))
+                  // la(s) parcela(s) que dice el contrato (columna generada de datos.fields; «A4, A5» si son varias)
+                  esc(k.parcela_codigo || '—'),
+                  k.bloqueado ? H.tag('Firmado', 'ok') : (firmaPend[k.id] ? H.tag('En firma', 'espera') : H.tag('Sin firmar', 'mal'))
                 ];
               }))
             : H.nota('Ninguno enlazado todavía. El enlace se crea solo al guardar un contrato con su pasaporte o su email.');
@@ -2789,6 +2798,7 @@
             estado: ['KYC · ' + kyc[0], kyc[1]], lado: ['cuentas'],
             bajoTitulo: [c2.numero_cliente, c2.nationality, c2.passport_number].filter(Boolean).join(' · ') || 'sin identificación',
             cuerpo: cuerpo, acciones: acciones, alCerrar: quitaId });
+          if (window.lwMejoraSelects && cj.cuerpo) window.lwMejoraSelects(cj.cuerpo);   // «Pasar la ficha a»
           var u2 = new URL(location.href);
           u2.searchParams.set('id', c2.id);
           history.replaceState(null, '', u2.href);
@@ -2922,7 +2932,7 @@
                 var via = function (v) { return typeof lwViaCorreo === 'function' ? lwViaCorreo(v) : (v || '—'); };
                 pinta('envios', H.tabla(['Cuándo', 'Contrato', 'Para', 'Vía', 'Quién'], filas.map(function (x) {
                   var k = porC[x.contrato_id];
-                  return [esc(fFecha(x.enviado_en)), esc((k && k.numero) || '—') + (x.factura_id ? '<div style="font-size:11px;color:#75786e">con factura</div>' : ''),
+                  return [esc(fFechaHoraCorta(x.enviado_en)), esc((k && k.numero) || '—') + (x.factura_id ? '<div style="font-size:11px;color:#75786e">con factura</div>' : ''),
                     esc(x.para || '—'), esc(via(x.via)), esc(x.enviado_por || 'Automático')];
                 })));
               });
@@ -2998,16 +3008,19 @@
                     (puedeBorrarDoc ? '<button type="button" data-doc-borrar="' + esc(d.id) + '" style="margin-left:6px;padding:4px 10px;border-radius:999px;border:1px solid #9E2F26;background:#fff;font-size:12px;cursor:pointer;color:#9E2F26;font-weight:600">Borrar</button>' : '');
                   return [esc(DOC_TIPO[d.doc_type] || d.doc_type || '—'), esc(fFecha(d.uploaded_at)), cad, acciones2];
                 })) : H.nota('Sin documentos todavía.');
-                var formSubida = '<div style="display:grid;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(228,220,203,.7)">' +
-                  '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
-                  '<label style="display:grid;gap:4px;font-size:11.5px;color:#75786e">Tipo<select data-doc-tipo style="padding:7px 9px;border:1px solid #E4DCCB;border-radius:8px;font-size:13px;color:#2E3437;background:#fff">' +
+                /* Piel del alta (26-sep-2026, owner): desplegable propio de la v4
+                   (lwMejoraSelects tras pintar) y campos .las-in. */
+                var idDocF = 'lwdoc-' + esc(c2.id);
+                var formSubida = '<div style="display:grid;gap:12px;margin-top:4px;padding-top:16px;border-top:1px solid #f5f5f4">' +
+                  '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">' +
+                  '<div class="las-campo"><label class="las-etq" for="' + idDocF + '-t">Tipo</label><div class="las-rel"><select id="' + idDocF + '-t" data-doc-tipo class="las-in">' +
                   Object.keys(DOC_TIPO).map(function (k) { return '<option value="' + esc(k) + '">' + esc(DOC_TIPO[k]) + '</option>'; }).join('') +
-                  '</select></label>' +
-                  '<label style="display:grid;gap:4px;font-size:11.5px;color:#75786e">Caduca el (opcional)<input type="date" data-doc-caduca style="padding:7px 9px;border:1px solid #E4DCCB;border-radius:8px;font-size:13px;color:#2E3437;background:#fff"></label>' +
+                  '</select></div></div>' +
+                  '<div class="las-campo"><label class="las-etq" for="' + idDocF + '-c">Caduca el (opcional)</label><input type="date" id="' + idDocF + '-c" data-doc-caduca class="las-in"></div>' +
                   '</div>' +
-                  '<label style="display:grid;gap:4px;font-size:11.5px;color:#75786e">Fichero<input type="file" data-doc-file accept="application/pdf,image/*" style="font-size:13px"></label>' +
-                  '<button type="button" data-doc-subir style="align-self:start;padding:9px 16px;border-radius:8px;border:0;background:#104C4F;color:#fff;font-weight:600;font-size:13px;cursor:pointer">Subir documento</button>' +
-                  '<p style="margin:0;font-size:11px;color:#75786e">Van a un bucket privado. Al abrirlos se genera un enlace temporal de 5 minutos, no una URL fija.</p>' +
+                  '<div class="las-campo"><label class="las-etq" for="' + idDocF + '-f">Fichero</label><input type="file" id="' + idDocF + '-f" data-doc-file accept="application/pdf,image/*" class="las-in" style="padding:8px 12px"></div>' +
+                  '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><button type="button" data-doc-subir class="las-btn1" style="min-width:0;padding:10px 22px">Subir documento</button>' +
+                  '<p style="margin:0;font-size:11.5px;color:#a8a29e;flex:1;min-width:200px">Van a un archivo privado: al abrirlos se genera un enlace de 5 minutos.</p></div>' +
                   '</div>';
                 /* Alerta KYC (paridad S6, 23-sep-2026) — misma regla que
                    `alerta()` de la clásica: el PEOR documento con caducidad
@@ -3023,6 +3036,7 @@
                   : peor <= 60 ? H.nota('Un documento caduca en ' + peor + ' día' + (peor === 1 ? '' : 's') + ': conviene pedir el nuevo ya.')
                   : '';
                 pinta('docs', alertaKyc + tablaDocs + formSubida);
+                if (window.lwMejoraSelects) window.lwMejoraSelects(cj.cuerpo);
 
                 /* Bucket privado: enlace temporal de 5 minutos, nunca una URL fija
                    — igual que la herramienta clásica. */

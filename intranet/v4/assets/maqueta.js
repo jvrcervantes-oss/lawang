@@ -222,7 +222,9 @@
       // y el diálogo de la suite (dialogo.js: lwConfirmar/lwElegir) también —
       // desde S17 todas las confirmaciones de la v4 van por él (23-sep-2026)
       if (btn.closest('.lw-dlg-fondo')) return;
-      if (btn.hasAttribute('onclick')) return;          // comportamiento propio de Stitch
+      // el desplegable propio (editores.js) dentro de un cajón: lo atiende su delegación en document (26-sep-2026)
+      if (btn.closest('.las-sel')) return;
+      if (btn.hasAttribute('onclick')) return;         // comportamiento propio de Stitch
       if (btn.hasAttribute('data-real')) return;        // cableado por datos.js: no se toca
       // Sobre datos reales un chip que "se enciende" sin filtrar MIENTE: solo
       // conmutan los chips en pantallas aún de maqueta, o los que datos.js
