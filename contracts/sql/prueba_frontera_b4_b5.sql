@@ -298,3 +298,21 @@ end $$;
 -- solicitudes_cambio, bot_respuestas_copiadas, bancos_perfiles y correcciones_datos falla (privilegio o policy), y
 -- subir/borrar en los buckets documentacion, obra, creatividades y gastos también. Mirar `relacl` Y
 -- `information_schema.column_privileges` (hay grants por columna) de cada tabla: authenticated solo con SELECT.
+
+-- 7. (consulta de Seguridad, 27-sep) Un documento YA publicado en el dosier público no lo cambia un agente
+do $$
+declare r text := ''; d record; u record; su uuid;
+begin
+  select user_id into su from usuarios where rol='super_admin' and activo limit 1;
+  perform set_config('request.jwt.claims', json_build_object('sub',su,'role','authenticated')::text, true);
+  select dp.id, dp.proyecto, dp.proyecto_id, dp.titulo into d from documentos_proyecto dp where dp.publicado_investor_deck and not dp.general limit 1;
+  select us.user_id, us.email into u from usuarios us where us.activo and us.rol='agente' limit 1;
+  update usuarios set herramientas = array_append(herramientas,'documentacion'), proyectos = array[d.proyecto_id] where user_id=u.user_id;
+  perform set_config('request.jwt.claims', json_build_object('sub',u.user_id,'email',u.email,'role','authenticated')::text, true);
+  set local role authenticated;
+  begin perform public.documento_proyecto_guarda(d.id, jsonb_build_object('titulo', d.titulo || ' X')); r := r||'1 FALLO agente cambia un publicado; ';
+  exception when others then r := r||'1 ok; '; end;
+  begin perform public.documento_proyecto_guarda(d.id, jsonb_build_object('visible_portal', true)); r := r||'2 ok (lo no público sigue); ';
+  exception when others then r := r||'2 FALLO: '||left(sqlerrm,60)||'; '; end;
+  raise exception 'RES: %', r;
+end $$;
