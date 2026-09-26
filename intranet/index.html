@@ -885,9 +885,16 @@ window.LW_SB = sb;   // el panel de usuario de topbar.js reusa este cliente
 // puerta vieja): una ruta que empiece por UNA sola barra, nunca `//host`
 // (protocol-relative) ni un esquema `http(s):` colado en el valor de `next`.
 function rutaValida(r){ return /^\/[^/\\]/.test(r || ''); }
+/* Dónde se entra (AxisWorks ERP, 26-sep-2026): la ficha de la instancia puede
+   fijar `inicio` (el estándar del producto es la Home de la v4). Sin `inicio`,
+   este panel clásico sigue siendo la portada, como hasta hoy. */
+function inicioInstancia(){
+  const i = (window.LW_INSTANCIA || {}).inicio;
+  return rutaValida(i) && i !== '/intranet/' ? i : '';
+}
 function siguiente(){
   const n = new URLSearchParams(location.search).get('next');
-  return rutaValida(n) ? n : '/intranet/';
+  return rutaValida(n) ? n : (inicioInstancia() || '/intranet/');
 }
 function mostrarApp(mostrar){
   // header/main/footer SIN envoltorio (1-sep-2026): topbar.css los selecciona
@@ -925,6 +932,12 @@ sb.auth.getSession().then(async ({ data:{ session } }) => {
   }
   // Modo mantenimiento (23-sep-2026): la misma puerta que guard.js, desde cierre.js
   if(window.lwCierre && !(await window.lwCierre.puerta(sb, ficha).catch(() => true))) return;
+  // Con `inicio` en la ficha, el panel clásico no es la portada: se va a ella
+  // (salvo que traiga un aviso de «sin permiso», que se enseña aquí).
+  if(inicioInstancia() && !new URLSearchParams(location.search).get('sin_permiso')){
+    location.replace(siguiente());
+    return;
+  }
   document.getElementById('loginGate').hidden = true;
   mostrarApp(true);
   FICHA = ficha || null;
