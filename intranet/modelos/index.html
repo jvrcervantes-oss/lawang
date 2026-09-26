@@ -43,7 +43,7 @@
 <script src="/contracts/assets/herramientas.js?v=a7d8d3cc"></script>
 <script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="/contracts/assets/topbar.js?v=8444fd68" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=c5c926ae"></script><script src="/contracts/assets/guard.js?v=68b35794" data-herramienta="modelos"></script>
+<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=c5c926ae"></script><script src="/contracts/assets/guard.js?v=fbb1cf54" data-herramienta="modelos"></script>
 <script src="/contracts/assets/suite.js?v=3cf4a63a"></script>
 <script src="/contracts/assets/dinero.js?v=a442e362"></script>
 <style>
@@ -125,7 +125,7 @@
 <!-- Fotos publicas del investor deck. Compartida con la otra herramienta que
      las gestiona (Regla 0 de la suite): nace en contracts/assets/, no dentro de
      una pantalla. Depende de suite-comun (esc/toast) y dialogo (lwConfirmar). -->
-<script src="/contracts/assets/deck_fotos.js?v=5795bb76"></script>
+<script src="/contracts/assets/deck_fotos.js?v=45d4eb93"></script>
 <!-- vocabulario.js: aqui solo por lwBusca/lwBuscaEn — el buscador sin tildes (8-sep-2026) -->
 <script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
 <script>
@@ -605,15 +605,19 @@ async function guardar(m){
       if(!ok){ btn.disabled = false; return; }
     }
 
-    const parche = {
+    /* TODO en UNA transacción por el servidor (27-sep-2026, LAW-336 bloque 3):
+       `modelo_ficha_guarda` guarda la ficha, el precio (moviendo los techos con la
+       base, que calcula la base), los techos que se hayan tocado a mano y los
+       extras. Antes eran hasta cinco tipos de escritura seguidas desde aquí: un
+       fallo a mitad dejaba la base nueva con los techos viejos. */
+    const numOk = (v, etq) => { if(v != null && !isFinite(v)) throw new Error(etq + ': ' + lwT('no es un número')); return v; };
+    const ficha = {
       nombre, slug,
-      dormitorios: num(document.getElementById('e-dorm').value),
-      banos:       num(document.getElementById('e-banos').value),
-      villa_m2:    num(document.getElementById('e-villa').value),
-      terraza_m2:  num(document.getElementById('e-terraza').value),
+      dormitorios: numOk(num(document.getElementById('e-dorm').value), lwT('Dormitorios')),
+      banos:       numOk(num(document.getElementById('e-banos').value), lwT('Baños')),
+      villa_m2:    numOk(num(document.getElementById('e-villa').value), lwT('Villa')),
+      terraza_m2:  numOk(num(document.getElementById('e-terraza').value), lwT('Terraza')),
       descripcion: (document.getElementById('e-desc').value || '').trim() || null,
-      precio_construccion: num(document.getElementById('e-precio').value),
-      moneda:      document.getElementById('e-moneda').value,
       publicado:   document.getElementById('e-publicado').checked,
       renders_pendientes: document.getElementById('e-renders').checked,
       activo:      document.getElementById('e-activo').checked,
@@ -622,53 +626,63 @@ async function guardar(m){
          guarda `null` y no un objeto con dos arrays vacíos: la ficha pública
          pregunta por `!empty($m['alcance'])`, y un objeto vacío es «truthy» —
          imprimiría los dos titulares «Included» y «Not included» sin una sola
-         línea debajo. Vacío tiene que significar vacío hasta el final. */
+         línea debajo. Vacío tiene que significar vacío hasta el final (la base
+         lo vuelve a normalizar igual). */
       alcance:     (function(){
         const li = lineas('e-incluido'), ln = lineas('e-noincluido');
         return (li.length || ln.length) ? { incluido:li, no_incluido:ln } : null;
       })(),
-      // Nadie actualizaba esta columna: sin esto, «actualizado_en» sería la
-      // fecha de alta disfrazada de fecha de cambio, que es peor que no tenerla.
-      actualizado_en: new Date().toISOString(),
     };
-    const r = await SB.from('modelos').update(parche).eq('id', m.id);
-    if(r.error) throw r.error;
 
-    for(const fila of document.querySelectorAll('[data-techo]')){
-      const p = {};
-      fila.querySelectorAll('input[data-campo]').forEach(i => {
-        p[i.dataset.campo === 'ahora' ? 'precio_ahora' : 'precio_2027'] = num(i.value); });
-      const e = await SB.from('modelo_techos').update(p).eq('id', fila.dataset.techo);
-      if(e.error) throw e.error;
-    }
-
-    for(const fila of document.querySelectorAll('[data-extra]')){
-      const extraId = fila.dataset.extra;
-      const precio  = num(fila.querySelector('[data-campo=precio]').value);
-      const disp    = fila.querySelector('[data-campo=disponible]').checked;
-      const ya = extraDe(m.id, extraId);
-      const e = ya
-        ? await SB.from('modelo_extras').update({ precio, disponible:disp, moneda:parche.moneda }).eq('id', ya.id)
-        : await SB.from('modelo_extras').insert({ modelo_id:m.id, extra_id:extraId, precio, disponible:disp, moneda:parche.moneda });
-      if(e.error) throw e.error;
-    }
-
+    // Precio: solo lo que cambia. La moneda no se cambia si el modelo ya tiene filas que cuelgan de él
+    // (lo decide la base); la de los precios por proyecto y los extras es SIEMPRE la del modelo.
+    const precios = {};
+    const base = numOk(num(document.getElementById('e-precio').value), lwT('Construcción'));
+    if(base !== (m.precio_construccion == null ? null : Number(m.precio_construccion))) precios.base = base;
+    const moneda = document.getElementById('e-moneda').value;
+    if(moneda !== (m.moneda || 'EUR')) precios.moneda = moneda;
+    const villas = [];
     for(const fila of document.querySelectorAll('[data-precio]')){
-      const e = await SB.from('modelos_villa')
-        .update({ precio_construccion: num(fila.querySelector('[data-campo=precio]').value) })
-        .eq('id', fila.dataset.precio);
-      if(e.error) throw e.error;
+      const antes = PRECIOS.find(x => x.id === fila.dataset.precio);
+      const p = numOk(num(fila.querySelector('[data-campo=precio]').value), (antes && antes.proyecto) || lwT('Precio por proyecto'));
+      if(p !== (antes && antes.precio_construccion != null ? Number(antes.precio_construccion) : null))
+        villas.push({ id: fila.dataset.precio, precio: p });
     }
-
+    if(villas.length) precios.villas = villas;
     const nuevo = document.getElementById('e-nuevoProy');
     if(nuevo && nuevo.value){
       const p = PROYECTOS.find(x => x.nombre === nuevo.value);
-      const e = await SB.from('modelos_villa').insert({
-        proyecto: nuevo.value, proyecto_id: p ? p.id : null,
-        modelo: nombre, modelo_id: m.id, precio_construccion: null, moneda: parche.moneda,
-        notas: 'Declarado desde la herramienta de Modelos el ' + new Date().toISOString().slice(0,10) + '. Hereda el precio de catálogo.' });
-      if(e.error) throw e.error;
+      if(!p || !p.id) throw new Error(lwT('Ese proyecto no tiene ficha: no se puede declarar desde aquí'));
+      precios.altas = [{ proyecto_id: p.id, precio: null }];   // hereda el precio de catálogo
     }
+
+    // Techos: solo los que se han tocado a mano (mandan sobre el desplazamiento con la base)
+    const techos = [];
+    for(const fila of document.querySelectorAll('[data-techo]')){
+      const t = TECHOS.find(x => x.id === fila.dataset.techo) || {};
+      const ahora = numOk(num(fila.querySelector('[data-campo=ahora]').value), t.nombre || lwT('Techo'));
+      const y2027 = numOk(num(fila.querySelector('[data-campo=y2027]').value), t.nombre || lwT('Techo'));
+      if(ahora !== (t.precio_ahora == null ? null : Number(t.precio_ahora)) || y2027 !== (t.precio_2027 == null ? null : Number(t.precio_2027)))
+        techos.push({ id: fila.dataset.techo, precio_ahora: ahora, precio_2027: y2027 });
+    }
+
+    // Extras: sin fila = «se ofrece, sin precio propio»; solo se escribe lo que cambia o tiene algo que decir
+    const extras = [];
+    for(const fila of document.querySelectorAll('[data-extra]')){
+      const extraId = fila.dataset.extra;
+      const precio  = numOk(num(fila.querySelector('[data-campo=precio]').value), lwT('Extra'));
+      const disp    = fila.querySelector('[data-campo=disponible]').checked;
+      const ya = extraDe(m.id, extraId);
+      if(ya ? (precio !== (ya.precio == null ? null : Number(ya.precio)) || disp !== (ya.disponible !== false)) : (precio != null || !disp))
+        extras.push({ extra_id: extraId, precio, disponible: disp });
+    }
+
+    const r = await SB.rpc('modelo_ficha_guarda', { p_id: m.id, p_cambios: ficha, p_precios: precios, p_techos: techos, p_extras: extras });
+    if(r.error) throw r.error;
+    // Los contratos NO firmados conservan el precio con el que se generaron (no se recalculan solos)
+    const nSin = r.data && r.data.contratos_no_firmados_min;
+    if('base' in precios && nSin)
+      toast(lwT('Precio guardado. Al menos %n contrato(s) sin firmar usan este modelo y conservan su precio: regenéralos si deben llevar el nuevo.', { n: nSin }));
 
     EDITANDO = false;
     await cargar();
@@ -809,11 +823,13 @@ function editarForecast(m, proyectoNombre){
 
     const b = document.getElementById('fc-guardar'); b.disabled = true;
     try{
-      const r1 = await SB.from('deck_forecast').upsert(fila, { onConflict: 'proyecto_id,modelo_id' }).select('id');
+      // UNA transacción por el servidor (LAW-336 bloque 3): previsión y gastos juntos, validados otra vez en la base
+      if([fila.adr_medio, fila.adr_optimo, fila.ocupacion_media, fila.ocupacion_optima, fila.inversion_base, cf.pct_gestion, cf.pct_mantenimiento, cf.pct_impuesto]
+           .some(x => x != null && !isFinite(x))) throw new Error(lwT('Hay un número que no es un número.'));
+      const { proyecto_id: _p1, modelo_id: _m1, actualizado_en: _a1, ...prevision } = fila;
+      const { proyecto_id: _p2, actualizado_en: _a2, ...gastos } = cf;
+      const r1 = await SB.rpc('deck_prevision_guarda', { p_proyecto_id: py.id, p_modelo_id: m.id, p_forecast: prevision, p_gastos: gastos });
       if(r1.error) throw r1.error;
-      if(!r1.data || !r1.data.length) throw new Error(lwT('No tienes permiso (solo administrador).'));
-      const r2 = await SB.from('deck_forecast_proyecto').upsert(cf, { onConflict: 'proyecto_id' }).select('proyecto_id');
-      if(r2.error) throw r2.error;
       await cargar();
       SEL = MODELOS.find(x => x.id === m.id) || null;
       suiCerrarCajon();
@@ -837,19 +853,14 @@ function editarForecast(m, proyectoNombre){
 async function subirDoc(m, file, tipo){
   if(!file) return;
   if(file.size > 52428800){ toastMal(lwT('El fichero pasa de 50 MB')); return; }
-  const ext  = (file.name.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
-  const path = m.id + '/' + crypto.randomUUID() + ext;
   toast(lwT('Subiendo…'));
-  const up = await SB.storage.from('modelos').upload(path, file, { contentType:file.type || undefined });
-  if(up.error){ toastMal(lwT('No se ha subido: ') + up.error.message); return; }
-  const r = await SB.from('modelo_documentos').insert({
-    modelo_id:m.id, nombre:file.name, path, tipo:(tipo || 'otro'),
-    tamano_bytes:file.size, subido_por:(YO && YO.id) || null });
-  if(r.error){
-    /* Si la fila no entra, el fichero que acaba de subir se queda huérfano en el
-       bucket. Se retira: un objeto sin fila no lo ve nadie y no lo borra nadie. */
-    await SB.storage.from('modelos').remove([path]);
-    toastMal(lwT('No se ha guardado la ficha del documento: ') + r.error.message);
+  /* Por la edge `ficheros` (27-sep-2026, LAW-336 bloque 3): la ruta la decide el
+     servidor, el plano se comprueba de admin antes de subir, se leen los primeros
+     bytes y, si la ficha no entra, el servidor retira el fichero él mismo. */
+  try{
+    await lwFicheroSube(SB, 'modelo_documento', file, { modelo_id: m.id, tipo: tipo || 'otro' });
+  }catch(e){
+    toastMal(lwT('No se ha subido: ') + ((e && e.message) || e));
     return;
   }
   await cargar();
@@ -926,10 +937,8 @@ async function crear(){
   if(!nombre || !slug){ toastMal(lwT('Hacen falta el nombre y la dirección')); btn.disabled = false; return; }
   if(!/^[a-z0-9-]+$/.test(slug)){ toastMal(lwT('La dirección solo admite minúsculas, números y guiones')); btn.disabled = false; return; }
   if(MODELOS.some(m => m.slug === slug)){ toastMal(lwT('Ya hay un modelo en esa dirección')); btn.disabled = false; return; }
-  const r = await SB.from('modelos')
-    .insert({ nombre, slug, moneda, publicado:false, activo:true,
-              orden:(MODELOS.reduce((a,m) => Math.max(a, m.orden || 0), 0) + 1) })
-    .select().single();
+  // por el servidor (LAW-336 bloque 3): modelo_guarda exige admin, valida la dirección y pone el orden
+  const r = await SB.rpc('modelo_guarda', { p_id: null, p_cambios: { nombre, slug, moneda, publicado:false, activo:true } });
   if(r.error){
     const msg = r.error.message || '';
     toastMal(/policy|permission|denied|row-level/i.test(msg)
@@ -938,7 +947,7 @@ async function crear(){
     btn.disabled = false; return;
   }
   await cargar();
-  SEL = MODELOS.find(m => m.id === r.data.id) || null;
+  SEL = MODELOS.find(m => m.id === r.data) || null;
   EDITANDO = true;
   if(SEL) render();
   toast(lwT('Modelo creado. Ahora sus datos.'));

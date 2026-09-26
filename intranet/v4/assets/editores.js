@@ -1870,115 +1870,6 @@
     carga();
   }
 
-  /* ---------- sub-tablas de «Editar datos» en Modelos ----------
-     Las tres viven en el MISMO «Guardar» que el resto de la ficha — a
-     diferencia de las fotos de obra, aquí no hay acción que se confirme sola:
-     se recogen con un getter (mismo patrón que montaTramos) y `onGuardar` las
-     escribe todas seguidas, igual que guardar() en /intranet/modelos/. */
-  function fila3(host) {
-    var f = document.createElement('div');
-    f.style.cssText = 'display:grid;grid-template-columns:1fr 120px 120px;gap:8px;align-items:center;margin-bottom:8px';
-    host.appendChild(f);
-    return f;
-  }
-  function numIn(placeholder) {
-    var i = document.createElement('input');
-    i.type = 'number'; i.step = '0.01'; if (placeholder) i.placeholder = placeholder;
-    i.className = 'lwp-in lwp-comp';
-    return i;
-  }
-  function montaTechosModelo(host, techos) {
-    if (!techos.length) {
-      var p = document.createElement('p');
-      p.className = 'lwp-nota';
-      p.textContent = 'Este modelo no tiene variantes de techo.';
-      host.appendChild(p);
-      return function () { return []; };
-    }
-    var cab = fila3(host);
-    ['', 'Ahora', 'Desde 2027'].forEach(function (t) {
-      var s = document.createElement('span'); s.textContent = t;
-      s.className = 'lwp-col';
-      cab.appendChild(s);
-    });
-    var filas = techos.map(function (t) {
-      var f = fila3(host);
-      var nom = document.createElement('span'); nom.textContent = t.nombre; nom.className = 'lwp-nom';
-      var ahora = numIn(); ahora.value = t.precio_ahora == null ? '' : t.precio_ahora;
-      var y27 = numIn(); y27.value = t.precio_2027 == null ? '' : t.precio_2027;
-      f.appendChild(nom); f.appendChild(ahora); f.appendChild(y27);
-      return { id: t.id, ahora: ahora, y27: y27 };
-    });
-    return function () {
-      return filas.map(function (f) {
-        return { id: f.id, precio_ahora: f.ahora.value === '' ? null : Number(f.ahora.value), precio_2027: f.y27.value === '' ? null : Number(f.y27.value) };
-      });
-    };
-  }
-  function montaExtrasModelo(host, extras, existentes) {
-    if (!extras.length) {
-      var p = document.createElement('p');
-      p.className = 'lwp-nota';
-      p.textContent = 'No hay extras dados de alta en el catálogo.';
-      host.appendChild(p);
-      return function () { return []; };
-    }
-    var filas = extras.map(function (e) {
-      var existente = existentes.filter(function (x) { return x.extra_id === e.id; })[0] || null;
-      var f = document.createElement('div');
-      f.style.cssText = 'display:grid;grid-template-columns:1fr 120px auto;gap:8px;align-items:center;margin-bottom:8px';
-      var nom = document.createElement('span'); nom.textContent = e.nombre; nom.className = 'lwp-nom';
-      var precio = numIn(); precio.value = (existente && existente.precio != null) ? existente.precio : '';
-      var lab = document.createElement('label');
-      lab.style.cssText = 'display:flex;align-items:center;gap:6px;font:400 12.5px Jost,system-ui,sans-serif;color:#736B5E;white-space:nowrap';
-      var chk = document.createElement('input'); chk.type = 'checkbox';
-      chk.checked = !existente || existente.disponible !== false;   // sin fila = se ofrece, igual que en vivo
-      lab.appendChild(chk); lab.appendChild(document.createTextNode('se ofrece'));
-      f.appendChild(nom); f.appendChild(precio); f.appendChild(lab);
-      host.appendChild(f);
-      return { extraId: e.id, existenteId: existente ? existente.id : null, precio: precio, chk: chk };
-    });
-    return function () {
-      return filas.map(function (f) {
-        return { extraId: f.extraId, existenteId: f.existenteId, precio: f.precio.value === '' ? null : Number(f.precio.value), disponible: f.chk.checked };
-      });
-    };
-  }
-  function montaPreciosProyecto(host, filasExistentes, proyectosLibres, precioDeCatalogo) {
-    var lista = document.createElement('div');
-    host.appendChild(lista);
-    if (!filasExistentes.length) {
-      var p = document.createElement('p');
-      p.className = 'lwp-nota'; p.style.marginBottom = '8px';
-      p.textContent = 'Este modelo no está declarado en ningún proyecto.';
-      lista.appendChild(p);
-    }
-    var filas = filasExistentes.map(function (r) {
-      var f = document.createElement('div');
-      f.style.cssText = 'display:grid;grid-template-columns:1fr 140px;gap:8px;align-items:center;margin-bottom:8px';
-      var nom = document.createElement('span'); nom.textContent = r.proyecto; nom.className = 'lwp-nom';
-      var precio = numIn(precioDeCatalogo != null ? 'hereda ' + precioDeCatalogo : 'hereda —');
-      precio.value = r.precio_construccion == null ? '' : r.precio_construccion;
-      f.appendChild(nom); f.appendChild(precio);
-      lista.appendChild(f);
-      return { id: r.id, precio: precio };
-    });
-    var sel = document.createElement('select');
-    sel.className = 'lwp-in'; sel.style.marginTop = '4px';
-    var opBlank = document.createElement('option'); opBlank.value = ''; opBlank.textContent = 'Añadir a un proyecto…';
-    sel.appendChild(opBlank);
-    proyectosLibres.forEach(function (nombre) {
-      var o = document.createElement('option'); o.value = nombre; o.textContent = nombre; sel.appendChild(o);
-    });
-    host.appendChild(sel);
-    return function () {
-      return {
-        filas: filas.map(function (f) { return { id: f.id, precio: f.precio.value === '' ? null : Number(f.precio.value) }; }),
-        nuevoProyecto: sel.value
-      };
-    };
-  }
-
   /* Paso 2 de «Registrar avance técnico»: fase (del catálogo obra_fases, no
      texto libre — antes se podia escribir cualquier cosa) + fecha, ya con el
      valor ACTUAL de la unidad elegida, más su gestor de fotos. «Guardar» solo
@@ -4434,236 +4325,19 @@
           if (!SLUG_VALIDO.test(slug)) {
             return { error: { message: 'el slug solo admite minúsculas, números y guiones' } };
           }
-          return sb.from('modelos').insert({
-            nombre: v.nombre, slug: slug, moneda: v.moneda,
-            precio_construccion: v.precio === '' ? null : Number(v.precio),
-            activo: true, publicado: false
-          }).then(function (r) {
-            var msg = (r.error && r.error.message) || '';
-            if (r.error && /duplicate key|unique constraint/i.test(msg) && /slug/i.test(msg)) {
-              return { error: { message: 'Ya hay un modelo en esa dirección (' + slug + ') — elige otra.' } };
-            }
-            return r;
-          });
+          var precioNuevo = v.precio === '' ? null : Number(v.precio);
+          if (precioNuevo != null && !isFinite(precioNuevo)) return { error: { message: 'el precio de construcción no es un número' } };
+          // por el servidor (LAW-336 bloque 3): modelo_guarda valida y traduce la dirección repetida
+          return sb.rpc('modelo_guarda', { p_id: null, p_cambios: {
+            nombre: v.nombre, slug: slug, moneda: v.moneda, precio_construccion: precioNuevo, activo: true, publicado: false
+          } });
         });
       });
-      /* «Editar datos» carga primero las CUATRO tablas hijas de la ficha
-         (techos, extras del catálogo + los del modelo, precio por proyecto y
-         los proyectos aún libres) y las monta como campos `custom` del MISMO
-         formulario — un solo «Guardar cambios» escribe la ficha y las tres
-         sub-tablas seguidas, igual que condiciones+tramos de arriba. Sin esto
-         el modal solo tocaba los 9 campos planos y las funciones montaX()
-         quedaban sin ningún sitio que las llamara. */
-      // Evita el doble-fetch de un doble-click mientras las 5 consultas de
-      // abajo siguen en vuelo — ata() no debounda y el click no da feedback.
-      var cargandoFichaModelo = false;
-      ata(/^Editar datos$/i, function () {
-        if (!admin) return soloAdmin();
-        if (cargandoFichaModelo) return;
-        var m = window.LW_V4 && window.LW_V4.modelo;
-        if (!m) return aviso('La ficha del modelo aún no ha cargado.', '#8A6A34');
-        cargandoFichaModelo = true;
-        Promise.all([
-          sb.from('modelo_techos').select('id,nombre,precio_ahora,precio_2027').eq('modelo_id', m.id).order('orden', { ascending: true, nullsFirst: false }),
-          sb.from('extras').select('id,nombre').eq('activo', true).order('orden', { ascending: true, nullsFirst: false }),
-          // `moneda` en el SELECT (S12, 22-sep-2026, regresión corregida): sin
-          // ella una fila de extra escrita desde aquí quedaba sin moneda —
-          // modelo_extras.moneda existe y la clásica ya la lee y la escribe
-          // (intranet/modelos/index.html:651-652).
-          sb.from('modelo_extras').select('id,extra_id,precio,moneda,disponible').eq('modelo_id', m.id),
-          sb.from('modelos_villa').select('id,proyecto,precio_construccion').eq('modelo_id', m.id).order('proyecto'),
-          sb.from('proyectos').select('id,nombre').eq('activo', true).order('nombre')
-        ]).then(function (r) {
-          cargandoFichaModelo = false;
-          // Una lectura fallida NO se trata como «sin filas»: con las tablas
-          // vacías por error, proyectosLibres podría ofrecer un proyecto que
-          // YA tiene fila (el unique(proyecto,modelo) de modelos_villa lo
-          // rechazaría con un error crudo) y techos/extras se verían vacíos
-          // aunque sí tengan datos — mejor decir que no se pudo leer.
-          var falloLectura = r.filter(function (x) { return x && x.error; })[0];
-          if (falloLectura) {
-            return aviso('No se pudo abrir «Editar datos»: ' + falloLectura.error.message, '#93000a');
-          }
-          var techos = r[0].data || [];
-          var extras = r[1].data || [];
-          var extrasExistentes = r[2].data || [];
-          var villaFilas = r[3].data || [];
-          var proyectos = r[4].data || [];
-          var usados = {}; villaFilas.forEach(function (f) { usados[f.proyecto] = 1; });
-          var proyectosLibres = proyectos.filter(function (p) { return !usados[p.nombre]; }).map(function (p) { return p.nombre; });
-          var idPorProyecto = {}; proyectos.forEach(function (p) { idPorProyecto[p.nombre] = p.id; });
-
-          var subtitulo = function (d, texto) {
-            var t = document.createElement('p');
-            t.style.cssText = 'margin:0 0 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:' + CAJ.apagado;
-            t.textContent = texto;
-            d.appendChild(t);
-          };
-          var getTechos = null, getExtras = null, getPrecios = null;
-          var incluidoActual = (m.alcance && m.alcance.incluido) || [];
-          var noIncluidoActual = (m.alcance && m.alcance.no_incluido) || [];
-
-          modal('Editar «' + m.nombre + '»', [
-            /* Nombre/slug/moneda (S12, 22-sep-2026): antes no estaban en este
-               modal. Mismo orden que la clásica (intranet/modelos/index.html:
-               608-620): ficha primero, specs después. */
-            { k: 'nombre', label: 'Nombre', req: 1, valor: m.nombre, medio: 1 },
-            { k: 'slug', label: 'Slug', req: 1, valor: m.slug, medio: 1, ayuda: '/modelo/<slug> — solo minúsculas, números y guiones; cambiarlo rompe los enlaces ya publicados' },
-            { k: 'moneda', label: 'Moneda', tipo: 'select', opciones: ['EUR', 'IDR'], valor: m.moneda || 'EUR', medio: 1 },
-            { k: 'dormitorios', label: 'Dormitorios', tipo: 'number', valor: m.dormitorios },
-            { k: 'banos', label: 'Baños', tipo: 'number', valor: m.banos },
-            { k: 'villa_m2', label: 'Villa (m²)', tipo: 'number', paso: '0.01', valor: m.villa_m2 },
-            { k: 'terraza_m2', label: 'Terraza (m²)', tipo: 'number', paso: '0.01', valor: m.terraza_m2 },
-            { k: 'precio', label: 'Precio de construcción (' + (m.moneda || 'EUR') + ')', tipo: 'number', paso: '0.01', valor: m.precio_construccion },
-            { k: 'descripcion', label: 'Descripción (la publica la web)', tipo: 'textarea', valor: m.descripcion },
-            { k: 'publicado', label: 'Publicado en la web', tipo: 'check', valor: m.publicado, ayuda: 'al marcarlo, la web pública lo enseña con esta ficha y este precio' },
-            { k: 'renders_pendientes', label: 'Renders pendientes', tipo: 'check', valor: m.renders_pendientes },
-            { k: 'activo', label: 'Activo en el catálogo', tipo: 'check', valor: m.activo },
-            { k: 'notas', label: 'Notas internas', tipo: 'textarea', valor: m.notas, ayuda: 'nunca las ve la web' },
-            { k: 'alcance_incluido', label: 'La obra incluye (una línea por punto)', tipo: 'textarea', valor: incluidoActual.join('\n'),
-              ayuda: 'solo lo verificado en el anexo de obra de ESTE modelo — copiarlo de otro es inventarse un contrato' },
-            { k: 'alcance_no_incluido', label: 'La obra NO incluye (una línea por punto)', tipo: 'textarea', valor: noIncluidoActual.join('\n') },
-            { tipo: 'custom', render: function (d) { subtitulo(d, 'Techos — precio completo con esa variante'); getTechos = montaTechosModelo(d, techos); } },
-            { tipo: 'custom', render: function (d) { subtitulo(d, 'Extras del catálogo'); getExtras = montaExtrasModelo(d, extras, extrasExistentes); } },
-            { tipo: 'custom', render: function (d) { subtitulo(d, 'Precio de construcción por proyecto'); getPrecios = montaPreciosProyecto(d, villaFilas, proyectosLibres, m.precio_construccion); } }
-          ], 'Guardar cambios', function (v) {
-            var lineas = function (s) { return String(s || '').split('\n').map(function (x) { return x.trim(); }).filter(Boolean); };
-            var incluido = lineas(v.alcance_incluido), noIncluido = lineas(v.alcance_no_incluido);
-            var alcance = (incluido.length || noIncluido.length) ? { incluido: incluido, no_incluido: noIncluido } : null;
-
-            var nombreNuevo = (v.nombre || '').trim();
-            var slugNuevo = (v.slug || '').trim().toLowerCase();
-            var monedaNueva = v.moneda || m.moneda || 'EUR';
-            if (!nombreNuevo) return Promise.resolve({ error: { message: 'el nombre no puede quedar vacío' } });
-            if (!SLUG_VALIDO.test(slugNuevo)) return Promise.resolve({ error: { message: 'el slug solo admite minúsculas, números y guiones' } });
-
-            // Valores de ANTES de este guardado — si la ficha se actualiza pero
-            // alguna sub-tabla falla, se restauran para no dejar la ficha a
-            // medias mientras el aviso dice «no se pudo guardar» (mismo
-            // espíritu que «Nueva condición» borrando la fila huérfana cuando
-            // fallan sus tramos, más arriba en este mismo fichero).
-            var previo = {
-              nombre: m.nombre, slug: m.slug, moneda: m.moneda,
-              dormitorios: m.dormitorios, banos: m.banos, villa_m2: m.villa_m2, terraza_m2: m.terraza_m2,
-              precio_construccion: m.precio_construccion, descripcion: m.descripcion, notas: m.notas,
-              alcance: m.alcance, publicado: m.publicado, renders_pendientes: m.renders_pendientes, activo: m.activo
-            };
-
-            /* Renombrar (S12, 22-sep-2026): `trg_modelo_renombrado` (AFTER
-               UPDATE OF nombre) propaga el nombre nuevo a `unidades.modelo` y
-               `modelos_villa.modelo` — el aviso PREVIO dice a cuántas filas,
-               mismo criterio que la clásica (intranet/modelos/index.html:
-               596-608): «se avisa de cuántas filas se van a mover ANTES».
-               Nunca se pregunta si el nombre no cambia. */
-            var pasoRenombrar = (nombreNuevo === m.nombre)
-              ? Promise.resolve(true)
-              : aseguraModulosDoc(['dialogo']).then(function () {
-                  return Promise.all([
-                    sb.from('unidades').select('id', { count: 'exact', head: true }).eq('modelo_id', m.id),
-                    sb.from('modelos_villa').select('id', { count: 'exact', head: true }).eq('modelo_id', m.id)
-                  ]);
-                }).then(function (rs) {
-                  var falloConteo = (rs[0] && rs[0].error) || (rs[1] && rs[1].error);
-                  if (falloConteo) {
-                    // Hallazgo de la autorevisión (22-sep-2026): sin este
-                    // chequeo, un conteo fallido caía a 0 en silencio y el
-                    // aviso decía «ninguna fila todavía» aunque el rename SÍ
-                    // fuera a mover filas — mentir en el aviso previo es peor
-                    // que no preguntar. Se para aquí, antes de confirmar nada.
-                    return Promise.reject(new Error('no se ha podido calcular a cuántas filas afecta el renombrado: ' + falloConteo.message));
-                  }
-                  var nUd = (rs[0] && rs[0].count) || 0, nMv = (rs[1] && rs[1].count) || 0;
-                  var radio = [nUd ? nUd + ' unidad(es)' : '', nMv ? nMv + ' precio(s) por proyecto' : ''].filter(Boolean).join(' y ');
-                  return lwConfirmar({
-                    titulo: 'Renombrar «' + m.nombre + '» a «' + nombreNuevo + '»',
-                    cuerpo: '<p>El nombre nuevo se propaga solo a <b>' + (radio || 'ninguna fila todavía') +
-                      '</b>. Lo ya impreso en un documento firmado no se toca.</p>',
-                    confirmar: 'Renombrar'
-                  });
-                });
-
-            return pasoRenombrar.then(function (ok) {
-              if (!ok) return { error: { message: 'Cancelado: el modelo conserva su nombre.' } };
-              // `.select('id')` + `verifica()` (hallazgo de la autorevisión, 22-sep-2026;
-              // corregido tras probarlo en el navegador real — `unaFila()` espera un
-              // resultado YA resuelto, no una promesa; `verifica()` es la que envuelve
-              // la consulta, mismo patrón que ya usa `abrirPrevisionDeck()` más abajo):
-              // sin esto un UPDATE denegado por RLS con 0 filas se leía como éxito. De
-              // paso, parar AQUÍ si la ficha no se guardó deja de tocar las sub-tablas —
-              // el rollback de `previo` de abajo ya no hace falta para esta rama, solo
-              // para cuando la ficha SÍ se guarda pero una sub-tabla falla después.
-              return verifica(sb.from('modelos').update({
-                nombre: nombreNuevo, slug: slugNuevo, moneda: monedaNueva,
-                dormitorios: v.dormitorios === '' ? null : Number(v.dormitorios),
-                banos: v.banos === '' ? null : Number(v.banos),
-                villa_m2: v.villa_m2 === '' ? null : Number(v.villa_m2),
-                terraza_m2: v.terraza_m2 === '' ? null : Number(v.terraza_m2),
-                precio_construccion: v.precio === '' ? null : Number(v.precio),
-                descripcion: v.descripcion || null,
-                notas: v.notas || null,
-                alcance: alcance,
-                publicado: v.publicado, renders_pendientes: v.renders_pendientes, activo: v.activo,
-                actualizado_en: new Date().toISOString()
-              }).eq('id', m.id).select('id'), 'No se ha guardado la ficha del modelo').then(function (r0) {
-                if (r0.error) {
-                  var msg = r0.error.message || '';
-                  if (/duplicate key|unique constraint/i.test(msg) && /slug/i.test(msg)) {
-                    return { error: { message: 'Ya hay un modelo en esa dirección (' + slugNuevo + ') — elige otra.' } };
-                  }
-                  return r0;
-                }
-                var tareas = [];
-                (getTechos ? getTechos() : []).forEach(function (t) {
-                  tareas.push(verifica(sb.from('modelo_techos').update({ precio_ahora: t.precio_ahora, precio_2027: t.precio_2027 }).eq('id', t.id).select('id'), 'No se ha guardado un techo'));
-                });
-                (getExtras ? getExtras() : []).forEach(function (e) {
-                  if (e.existenteId) {
-                    tareas.push(verifica(sb.from('modelo_extras').update({ precio: e.precio, moneda: monedaNueva, disponible: e.disponible }).eq('id', e.existenteId).select('id'), 'No se ha guardado un extra'));
-                  } else if (e.precio != null || !e.disponible) {
-                    // sin fila = «se ofrece, precio de catálogo» (montaExtrasModelo); solo se
-                    // crea fila cuando hay algo que decir que el default no cubre.
-                    // `moneda` (S12, 22-sep-2026): regresión corregida — sin ella una fila
-                    // nueva de modelo_extras quedaba sin moneda (default 'EUR' de la base,
-                    // que miente si el modelo es IDR).
-                    tareas.push(verifica(sb.from('modelo_extras').insert({ modelo_id: m.id, extra_id: e.extraId, precio: e.precio, moneda: monedaNueva, disponible: e.disponible }).select('id'), 'No se ha guardado un extra'));
-                  }
-                });
-                var precios = getPrecios ? getPrecios() : { filas: [], nuevoProyecto: '' };
-                precios.filas.forEach(function (f) {
-                  tareas.push(verifica(sb.from('modelos_villa').update({ precio_construccion: f.precio }).eq('id', f.id).select('id'), 'No se ha guardado el precio por proyecto'));
-                });
-                if (precios.nuevoProyecto) {
-                  // solo `modelo_id`: trg_espejo_modelo rellena el texto `modelo` espejo
-                  // antes del INSERT (dispara en todo INSERT, la lista de columnas del
-                  // trigger solo acota los UPDATE — verificado contra la migración).
-                  tareas.push(verifica(sb.from('modelos_villa').insert({
-                    proyecto: precios.nuevoProyecto, proyecto_id: idPorProyecto[precios.nuevoProyecto] || null,
-                    modelo_id: m.id, precio_construccion: null, moneda: monedaNueva
-                  }).select('id'), 'No se ha guardado el precio por proyecto'));
-                }
-                return Promise.all(tareas).then(function (rs) {
-                  var conError = rs.filter(function (x) { return x && x.error; })[0];
-                  if (!conError) return { error: null };
-                  return sb.from('modelos').update(previo).eq('id', m.id).then(function () {
-                    return { error: conError.error };
-                  });
-                });
-              });
-            });
-          });
-        }, function (e) {
-          cargandoFichaModelo = false;
-          aviso('No se pudo abrir «Editar datos»: ' + (e && e.message || e), '#93000a');
-        });
-      });
-      /* Subir/descargar documento (S12, 22-sep-2026): antes esta pantalla
-         solo LEÍA `modelo_documentos` (datos.js) y el botón redirigía a la
-         clásica «porque hace falta el bucket». El bucket ya existe
-         (`modelos`, privado, migración 20260907053801) y la policy de
-         escritura es `es_agente()` — mismo patrón de subida que `subirDoc()`
-         de intranet/modelos/index.html: recodificar NO hace falta aquí (no
-         es una imagen del deck), solo subir el fichero tal cual y anotar la
-         fila; si la fila falla, el fichero huérfano se retira. */
+      /* Subir documento (27-sep-2026, LAW-336 bloque 3): por la edge `ficheros`
+         (clase modelo_documento) — la ruta la decide el servidor, el plano
+         (Anexo Maestro) se comprueba de admin ANTES de subir, se leen los
+         primeros bytes al registrar y, si el registro falla, el servidor
+         retira el fichero (antes un agente no podía limpiar su huérfano). */
       ata(/^Añadir documento$/i, function () {
         var m = window.LW_V4 && window.LW_V4.modelo;
         if (!m) return aviso('La ficha del modelo aún no ha cargado.', '#8A6A34');
@@ -4679,34 +4353,9 @@
           var file = v.file;
           if (!file) return { error: { message: 'elige un fichero' } };
           if (file.size > 52428800) return { error: { message: 'el fichero pasa de 50 MB' } };
-          var ext = (file.name.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
-          var path = m.id + '/' + crypto.randomUUID() + ext;
-          return sb.storage.from('modelos').upload(path, file, { contentType: file.type || undefined }).then(function (up) {
-            if (up.error) return { error: up.error };
-            return sb.from('modelo_documentos').insert({
-              modelo_id: m.id, nombre: file.name, path: path, tipo: v.tipo || 'otro', tamano_bytes: file.size,
-              // `subido_por` (hallazgo de la autorevisión, 22-sep-2026): la clásica lo manda
-              // (YO.id) — sin él, la columna (nullable) se queda sin quién subió el fichero.
-              subido_por: (aut.session && aut.session.user && aut.session.user.id) || null
-            }).then(function (r) {
-              if (r.error) {
-                // fichero huérfano en el bucket sin fila: se retira, igual que
-                // subirDoc() en /intranet/modelos/ — un objeto sin fila no lo
-                // ve nadie y no lo borra nadie.
-                // LÍMITE CONOCIDO (hallazgo de la autorevisión, 22-sep-2026,
-                // ya presente en subirDoc() de la clásica, no una regresión
-                // de aquí): «modelos bucket: subir» es es_agente() pero
-                // «modelos bucket: borrar» es es_admin() — un agente no-admin
-                // cuyo INSERT falle no puede limpiar su propio huérfano; el
-                // remove() se deniega en silencio y el fichero se queda en el
-                // bucket PRIVADO (no expuesto, solo desaprovechando espacio).
-                // Arreglarlo de raíz es tocar la policy de borrado, fuera del
-                // alcance de esta pantalla.
-                sb.storage.from('modelos').remove([path]);
-              }
-              return r;
-            });
-          });
+          if (typeof window.lwFicheroSube !== 'function') return { error: { message: 'Falta guard.js actualizado: recarga la página' } };
+          return window.lwFicheroSube(sb, 'modelo_documento', file, { modelo_id: m.id, tipo: v.tipo || 'otro' })
+            .then(function () { return { error: null }; }, function (e) { return { error: { message: (e && e.message) || String(e) } }; });
         });
       });
 
@@ -4752,10 +4401,10 @@
           });
         });
 
-        /* Borrar (25-sep-2026, SC-21): la fila se relee de la base (nombre,
-           tipo y path no se fían del DOM). Mismo orden que borraDocumento de
-           Documentación: fila primero, objeto después — si el objeto no sale
-           queda un huérfano privado, nunca una fila que apunta a la nada. El
+        /* Borrar (25-sep-2026, SC-21): la fila se relee de la base (nombre y
+           tipo no se fían del DOM) para el aviso. Borra la edge `ficheros`
+           (27-sep-2026, LAW-336 bloque 3): permiso de admin en la base, luego
+           el objeto y después la fila, en el mismo flujo. El
            anexo lo trae documento_anexos.js al abrir el contrato en el
            generador: borrar el plano cambia el anexo de lo que se genere o reabra
            desde ahora (cae al genérico o al PDF del repo; con techo, a
@@ -4778,12 +4427,8 @@
             });
           }).then(function (ok) {
             if (!ok) return;
-            return sb.from('modelo_documentos').delete().eq('id', doc.id).select('id').then(function (r) {
-              var u2 = unaFila(r);
-              if (u2.error) return aviso('No se pudo borrar: ' + u2.error.message, '#ba1a1a');
-              var fin = function () { aviso('Borrado'); location.reload(); };
-              if (!doc.path) return fin();
-              sb.storage.from('modelos').remove([doc.path]).then(fin, fin);
+            return window.lwFichero(sb, 'modelo_documento', 'borra', { id: doc.id }).then(function () {
+              aviso('Borrado'); location.reload();
             });
           }).catch(function (e) { aviso('No se pudo borrar: ' + (e && e.message || e), '#ba1a1a'); });
         }
@@ -4893,24 +4538,13 @@
             if (cf.pct_gestion + cf.pct_mantenimiento + cf.pct_impuesto >= 1) {
               return { error: { message: 'Los tres porcentajes juntos se comen el ingreso entero: el neto saldría negativo.' } };
             }
-            // `verifica()` da un mensaje de RLS escrito para sus llamadas de
-            // siempre («el gate es la policy es_super_admin») — deck_forecast
-            // y deck_forecast_proyecto los escribe cualquier es_admin(), no
-            // solo super_admin (hallazgo de la autorevisión, 22-sep-2026): se
-            // corrige el texto aquí para no mandar a un admin real a buscar
-            // un permiso que ya tiene.
-            var verificaAdmin = function (p, queNoPaso) {
-              return verifica(p, queNoPaso).then(function (r) {
-                if (r && r.error && r.error.message) {
-                  r.error.message = r.error.message.replace('es_super_admin', 'es_admin');
-                }
-                return r;
-              });
-            };
-            return verificaAdmin(sb.from('deck_forecast').upsert(fila, { onConflict: 'proyecto_id,modelo_id' }).select('id'), 'No se ha guardado la previsión').then(function (r1) {
-              if (r1.error) return r1;
-              return verificaAdmin(sb.from('deck_forecast_proyecto').upsert(cf, { onConflict: 'proyecto_id' }).select('proyecto_id'), 'La previsión sí, los gastos del proyecto no');
-            });
+            // UNA transacción por el servidor (LAW-336 bloque 3): la previsión y los gastos del proyecto
+            // van juntos, y la base vuelve a validar rangos y moneda (antes: dos upserts sueltos).
+            if ([fila.adr_medio, fila.adr_optimo, fila.ocupacion_media, fila.ocupacion_optima, fila.inversion_base, cf.pct_gestion, cf.pct_mantenimiento, cf.pct_impuesto]
+                  .some(function (x) { return x != null && !isFinite(x); })) return { error: { message: 'Hay un número que no es un número.' } };
+            delete fila.proyecto_id; delete fila.modelo_id; delete fila.actualizado_en;
+            delete cf.proyecto_id; delete cf.actualizado_en;
+            return sb.rpc('deck_prevision_guarda', { p_proyecto_id: proyectoId, p_modelo_id: m.id, p_forecast: fila, p_gastos: cf });
           }, { sub: m.nombre + ' · ' + proyectoNombre });
         }, function (e) { aviso('No se pudo abrir la previsión: ' + (e && e.message || e), '#ba1a1a'); });
       }
@@ -5289,8 +4923,9 @@
 
           modal(nuevo ? 'Nueva pregunta del deck · ' + pr.nombre : 'Pregunta del deck · ' + pr.nombre, campos, 'Guardar', function (v) {
             if (typeof lwConfirmar !== 'function') return { error: { message: 'El diálogo aún no ha cargado — prueba de nuevo en un segundo.' } };
+            // por el servidor (LAW-336 bloque 3): deck_faq_guarda / deck_faq_borra LANZAN si no guardan
+            // (admin, lista blanca, y el freno de Legal de abajo repetido en la base)
             var hecho = function (r) {
-              r = unaFila(r);
               if (!r.error && window.LW_V4.repintaDeckFaq) setTimeout(window.LW_V4.repintaDeckFaq, 0);
               return r;
             };
@@ -5299,7 +4934,7 @@
                 cuerpo: '<p>«' + esc((ant.pregunta || {}).es || '') + '» desaparece del Investor Deck público de ' + esc(pr.nombre) + '. No se puede deshacer (queda en el registro de cambios).</p>',
                 confirmar: 'Borrar', tono: 'peligro' }).then(function (ok) {
                   if (!ok) return { error: { message: 'Cancelado: no se ha borrado nada.' } };
-                  return sb.from('deck_faq').delete().eq('id', x.id).select('id').then(hecho);
+                  return sb.rpc('deck_faq_borra', { p_id: x.id }).then(hecho);
                 });
             }
             var preg = limpiaIdiomas(v, 'p_'), resp = limpiaIdiomas(v, 'r_');
@@ -5330,12 +4965,8 @@
             }
             var escribe = function () {
               var fila = { pregunta: preg, respuesta: resp, orden: orden, publicado: publica };
-              if (nuevo) {
-                fila.proyecto_id = pr.id;
-                fila.creado_por = (aut.session && aut.session.user && aut.session.user.email) || null;
-                return sb.from('deck_faq').insert(fila).select('id').then(hecho);
-              }
-              return sb.from('deck_faq').update(fila).eq('id', x.id).select('id').then(hecho);
+              // quién la crea lo sella el servidor
+              return sb.rpc('deck_faq_guarda', { p_id: nuevo ? null : x.id, p_proyecto_id: pr.id, p_datos: fila }).then(hecho);
             };
             if (!puntos.length) return escribe();
             return lwConfirmar({
@@ -6105,15 +5736,11 @@
           if (slug && slug !== (p.slug || '')) {
             tareas.push(sb.rpc('proyecto_guarda', { p_id: p.id, p_cambios: { slug: slug } }));   // valida formato y unicidad (LAW-336 pieza 8)
           }
-          // `.select().then(unaFila)` (hallazgo de code-review, 22-sep-2026):
-          // sin esto, un upsert que la RLS deniega en silencio (`for all using
-          // (es_admin())`, sesión caducada, lo que sea) devuelve sin `.error`
-          // y el código seguía derecho a "Guardado" + reload — el mismo fallo
-          // silencioso que este fichero ya avisa y evita en el UPDATE de
-          // `proyectos` de más arriba.
-          tareas.push(sb.from('deck_config_proyecto').upsert({
-            proyecto_id: p.id, titulo: { en: tEn }, meta_desc: { en: mEn }, modelo_destacado_id: destId
-          }, { onConflict: 'proyecto_id' }).select('proyecto_id').then(unaFila));
+          // por el servidor (LAW-336 bloque 3): deck_config_guarda exige admin, LANZA si no guarda y
+          // MEZCLA el título por idioma (el upsert de antes pisaba el español y el indonesio)
+          tareas.push(sb.rpc('deck_config_guarda', { p_proyecto_id: p.id, p_cambios: {
+            titulo: { en: tEn }, meta_desc: { en: mEn }, modelo_destacado_id: destId
+          } }));
           Promise.all(tareas).then(function (rr) {
             var err = rr.filter(function (r) { return r && r.error; })[0];
             if (err) return aviso('No se pudo guardar: ' + (err.error.message || 'la base no ha cambiado nada — puede que el slug ya lo use otro proyecto, o que tu sesión no tenga permiso.'), '#ba1a1a');

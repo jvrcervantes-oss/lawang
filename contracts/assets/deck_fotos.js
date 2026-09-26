@@ -177,13 +177,14 @@
       ata();
     }
 
+    /* Toda escritura por el servidor (27-sep-2026, LAW-336 bloque 3): RPC con el
+       permiso de admin dentro que LANZA si no guarda; subir y quitar, por la edge
+       `ficheros` (clase deck_foto). */
+    function llama(fn, args) {
+      return SB.rpc(fn, args).then(function (r) { if (r.error) throw r.error; return r.data; });
+    }
     function guarda(id, fila) {
-      return SB.from('deck_fotos').update(fila).eq('id', id).select('id').then(function (r) {
-        if (r.error) throw r.error;
-        // Sin fila devuelta no es "guardado": es que la policy no dejó. La suite
-        // ya se comió una vez un "Guardado" que no había guardado nada.
-        if (!r.data || !r.data.length) throw new Error(T('No tienes permiso (solo administrador).'));
-      });
+      return llama('deck_foto_cambia', { p_id: id, p_cambios: fila });
     }
 
     function ata() {
@@ -203,9 +204,8 @@
       // segunda dejaba el modelo sin planta en la web.
       $$('#df-lista [data-vista]').forEach(function (sel) {
         sel.onchange = function () {
-          SB.rpc('deck_foto_fijar_vista', { p_foto: sel.getAttribute('data-vista'), p_vista: sel.value || null })
-            .then(function (r) {
-              if (r.error) throw r.error;
+          llama('deck_foto_fijar_vista', { p_foto: sel.getAttribute('data-vista'), p_vista: sel.value || null })
+            .then(function () {
               aviso(T('Guardado'));
               return cargar();
             }).then(repinta)
@@ -237,17 +237,12 @@
         };
       });
 
-      // Reordenar intercambiando el `orden` con el vecino DENTRO de su mismo uso:
-      // portada y galería son dos listas, y moverse entre ellas se hace con el
-      // desplegable, no con las flechas.
+      // Reordenar DENTRO de su mismo uso: portada y galería son dos listas, y
+      // moverse entre ellas se hace con el desplegable, no con las flechas. El
+      // intercambio lo hace el servidor en UNA transacción (antes, dos updates
+      // sueltos podían dejar dos fotos con el mismo orden).
       function mueve(id, delta) {
-        var f = FOTOS.filter(function (x) { return x.id === id; })[0];
-        if (!f) return;
-        var hermanas = FOTOS.filter(function (x) { return x.uso === f.uso; });
-        var i = hermanas.indexOf(f);
-        var otra = hermanas[i + delta];
-        if (!otra) return;
-        Promise.all([guarda(f.id, { orden: otra.orden }), guarda(otra.id, { orden: f.orden })])
+        llama('deck_foto_mueve', { p_id: id, p_delta: delta })
           .then(cargar).then(repinta)
           .catch(function (e) { aviso(T('No se ha podido mover: ') + (e.message || e)); });
       }
@@ -269,12 +264,9 @@
             /* PRIMERO EL FICHERO Y DESPUÉS LA FILA, y aquí importa más que en el
                resto de la suite: al revés, un fallo al borrar el objeto dejaría
                una imagen que el deck ya no lista pero que sigue siendo PÚBLICA
-               en su dirección, y sin ninguna fila que diga que está ahí. */
-            return SB.storage.from(BUCKET).remove([f.path]).then(function (r) {
-              if (r.error) throw r.error;
-              return SB.from('deck_fotos').delete().eq('id', id);
-            }).then(function (r) {
-              if (r && r.error) throw r.error;
+               en su dirección, y sin ninguna fila que diga que está ahí. Ese
+               orden lo sigue la edge `ficheros`, con el permiso comprobado antes. */
+            return window.lwFichero(SB, 'deck_foto', 'borra', { id: id }).then(function () {
               aviso(T('Foto quitada'));
               return cargar();
             }).then(repinta);
@@ -294,7 +286,6 @@
       if (!files.length) return;
       var estado = document.getElementById('df-estado');
       var hechas = 0, fallos = [];
-      var base = FOTOS.reduce(function (a, f) { return Math.max(a, f.orden); }, -1) + 1;
 
       function siguiente(i) {
         if (i >= files.length) {
@@ -305,31 +296,17 @@
         }
         if (estado) estado.textContent = T('Preparando ') + (i + 1) + '/' + files.length + '…';
         return aWebp(files[i]).then(function (blob) {
-          var path = opts.ambito + '/' + crypto.randomUUID() + '.webp';
-          return SB.storage.from(BUCKET).upload(path, blob, { contentType: 'image/webp' })
-            .then(function (up) {
-              if (up.error) throw up.error;
-              var fila = {
-                ambito: opts.ambito, uso: esModelo ? 'galeria' : 'galeria',
-                tipo: 'foto', path: path, orden: base + i,
-                // Nace con el nombre del fichero como pie en inglés: el CHECK de
-                // la tabla exige `en`, y dejar que la subida falle por un campo
-                // que el usuario aún no ha podido escribir sería absurdo. Es un
-                // punto de partida para corregir, no un placeholder inventado:
-                // sale del nombre que la persona le puso a su propio fichero.
-                pie: { en: files[i].name.replace(/\.[a-z0-9]+$/i, '').replace(/[_-]+/g, ' ').trim() || 'Photo' }
-              };
-              if (esModelo) fila.modelo_id = opts.modeloId; else fila.proyecto_id = opts.proyectoId;
-              return SB.from('deck_fotos').insert(fila).select('id');
-            })
-            .then(function (r) {
-              if (r.error) {
-                /* Si la fila no entra, el fichero que acaba de subirse se queda
-                   huérfano EN UN BUCKET PÚBLICO. Se retira sin preguntar. */
-                return SB.storage.from(BUCKET).remove([path]).then(function () { throw r.error; });
-              }
-              hechas++;
-            });
+          /* Por la edge `ficheros` (clase deck_foto): la ruta la decide el
+             servidor, comprueba que eres admin ANTES de firmar la subida, lee
+             los primeros bytes (tiene que ser WebP) y, si la fila no entra,
+             retira el fichero él mismo — en un bucket PÚBLICO no puede quedar
+             un huérfano. La foto nace con el nombre del fichero como pie en
+             inglés (el CHECK exige `en`): punto de partida para corregir, sale
+             del nombre que la persona le puso a su propio fichero. */
+          return window.lwFicheroSube(SB, 'deck_foto', blob, {
+            ambito: opts.ambito, ref_id: esModelo ? opts.modeloId : opts.proyectoId,
+            nombre: files[i].name, ext: '.webp'
+          }).then(function () { hechas++; });
         }).catch(function (e) {
           fallos.push(files[i].name + ' (' + (e.message || e) + ')');
         }).then(function () { return siguiente(i + 1); });

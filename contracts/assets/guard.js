@@ -130,6 +130,50 @@
       });
     });
   });
+  /* Ficheros por CLASE por la edge `ficheros` (27-sep-2026, LAW-336 bloque 3): documentos de modelo (bucket
+     `modelos`) y fotos del Investor Deck (bucket público `deck`); en el bloque 4 se suman documentación, obra,
+     creatividades y gastos como clases nuevas, con el mismo helper. La ruta la decide el servidor, el permiso
+     se comprueba antes de firmar la subida y al registrar se leen los primeros bytes. Lanza un Error con el
+     texto para la persona (y `.code` = el de Postgres, si lo hubo). */
+  var FICH_ERR = Object.assign({}, KYC_ERR, {
+    clase_desconocida: 'Petición no válida: recarga la página', id_invalido: 'Ese fichero no es válido: recarga la página',
+    tipo_de_fichero_no_admitido: 'Ese tipo de fichero no se admite aquí',
+    modelo_invalido: 'Ese modelo no es válido: recarga la página', modelo_no_visible: 'No encuentro ese modelo: recarga la página',
+    tipo_de_documento_invalido: 'Tipo de documento no válido',
+    plano_solo_admin: 'El plano (Anexo Maestro del contrato) solo lo sube administración',
+    destino_invalido: 'Destino de la foto no válido: recarga la página', destino_no_visible: 'No encuentro ese proyecto o modelo: recarga la página',
+    solo_admin: 'Esto solo lo hace un administrador',
+    fila_no_borrada: 'El fichero se ha quitado, pero su ficha no: vuelve a pulsar «Borrar»',
+    fichero_no_borrado: 'El fichero no se pudo quitar del archivo: no se ha borrado nada, prueba otra vez'
+  });
+  fija('lwFichero', function (sb, clase, accion, datos) {
+    return sb.auth.getSession().then(function (s) {
+      var t = s && s.data && s.data.session && s.data.session.access_token;
+      return fetch(URL_SB + '/functions/v1/ficheros', { method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (t || '') },
+        body: JSON.stringify(Object.assign({}, datos || {}, { accion: accion, clase: clase })) });
+    }).then(function (r) {
+      return r.json().catch(function () { return { ok: false, error: 'Respuesta inválida del servidor' }; });
+    }).then(function (d) {
+      if (!d.ok) { var e = new Error(FICH_ERR[d.error] || d.error || 'error del servidor'); e.code = d.code; throw e; }
+      return d;
+    });
+  });
+  /* Subir un fichero de una clase: pedir la ruta → subir con el content-type que dice el servidor → registrarlo.
+     `f` es un File o un Blob (las fotos del deck llegan ya recodificadas a WebP: se pasa `nombre` aparte). */
+  fija('lwFicheroSube', function (sb, clase, f, datos) {
+    var nombre = (datos && datos.nombre) || f.name || '';
+    var ext = (datos && datos.ext) || (String(nombre).match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
+    var base = Object.assign({}, datos || {}); delete base.ext;
+    return window.lwFichero(sb, clase, 'subida_url', Object.assign({}, base, { ext: ext })).then(function (u) {
+      // Con un File, supabase-js manda el tipo QUE TRAE EL FICHERO e ignora `contentType` (ver lwKycSube)
+      var conTipo = new File([f], nombre || ('fichero' + ext), { type: u.content_type });
+      return sb.storage.from(u.bucket).uploadToSignedUrl(u.path, u.token, conTipo, { contentType: u.content_type }).then(function (up) {
+        if (up.error) throw up.error;
+        return window.lwFichero(sb, clase, 'registra', Object.assign({}, base, { path: u.path, nombre: nombre }));
+      });
+    });
+  });
   /* MODO QA (28-ago-2026) — revisión previa: Desarrollo + Datos + Seguridad,
      CEO/revisiones/estado.json. Único punto de entrada para las herramientas
      que cargan guard.js: nunca se copia este `if` en cada index.html (los
