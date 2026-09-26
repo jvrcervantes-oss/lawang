@@ -26,4 +26,29 @@ if [ "$malo" -eq 1 ]; then
   echo "[pre-push]    Para llevar tu trabajo a produccion: python tools/aterriza.py <id>  (ids: python tools/sesion.py lista)" >&2
   exit 1
 fi
+
+# ── El navegador no escribe en la base (26-sep-2026) ──────────────────────────
+# Norma del owner: contexto/patrones_tecnicos.md -> «Frontera frontend / backend» del
+# estudio. El mismo trinquete corre en el gate de las sesiones de Claude; aqui cubre el
+# push hecho a mano desde una terminal (o el Mac), que no pasa por ese gate. Busca
+# tools/escrituras_front.py subiendo desde el repo, porque Lawang vive en
+# proyectos/Lawang y en proyectos/_sesiones/<id>/Lawang segun quien empuje.
+raiz=$(git rev-parse --show-toplevel)
+dir="$raiz"
+check=""
+while [ "$dir" != "/" ] && [ -n "$dir" ] && [ "$dir" != "." ]; do
+  if [ -f "$dir/tools/escrituras_front.py" ]; then check="$dir/tools/escrituras_front.py"; break; fi
+  padre=$(dirname "$dir"); [ "$padre" = "$dir" ] && break; dir="$padre"
+done
+py=$(command -v python3 || command -v python)
+if [ -z "$check" ] || [ -z "$py" ]; then
+  # Sin el estudio al lado no hay con que medir. Se dice, no se calla: un check que no ha
+  # podido mirar tiene que decirlo (departamentos/desarrollo/prompt.md).
+  echo "[pre-push] ⚠ no se ha podido comprobar que el navegador no escriba en la base (falta tools/escrituras_front.py o python)." >&2
+  exit 0
+fi
+if ! "$py" "$check" --gate --repo "$raiz" >&2; then
+  echo "[pre-push] ⛔ push parado: hay escrituras NUEVAS a la base desde el navegador." >&2
+  exit 1
+fi
 exit 0
