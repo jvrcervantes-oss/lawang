@@ -1,0 +1,31 @@
+/* motion-generador.css — ENSAYO (26-sep-2026). Solo lo carga contracts/appv2.html.
+   Transiciones de color que el motor dispara al cambiar de estado; el resto del
+   movimiento es de motion-generador.js. Todo bajo html.v4, como la piel. */
+html.v4{ --lw4m-ease:cubic-bezier(.23,1,.32,1); }
+
+/* Guardar se enciende: de gris a laguna por color, sin escalar */
+html.v4 #btnSave, html.v4 #btnDownloadSigned{ transition:background-color .24s var(--lw4m-ease), color .24s var(--lw4m-ease); }
+
+/* herramientas: apagado → tinta por color; y un anillo que se abre al encenderse */
+html.v4 .lw4-tb{ position:relative; transition:color .28s var(--lw4m-ease), background-color .15s; }
+html.v4 .lw4-tb::before{ transition:color .28s var(--lw4m-ease); }
+html.v4 .lw4-tb.lw4m-on::after{
+  content:""; position:absolute; inset:3px; border-radius:6px; pointer-events:none;
+  box-shadow:0 0 0 1px rgba(16,76,79,.4); animation:lw4m-enciende .9s var(--lw4m-ease) forwards;
+}
+@keyframes lw4m-enciende{ from{ opacity:1; transform:scale(.94); } to{ opacity:0; transform:scale(1.05); } }
+
+/* chip y banda: el color cambia con transición (de ámbar a laguna al firmarse) */
+html.v4 .lw4-estado{ transition:color .32s var(--lw4m-ease), background-color .32s var(--lw4m-ease); }
+html.v4 .lw4-banda{ transition:color .32s var(--lw4m-ease), background-color .32s var(--lw4m-ease); }
+
+/* campos: el paso a solo lectura se funde, no salta */
+html.v4 .field input, html.v4 .field textarea, html.v4 .field select{
+  transition:border-color .2s var(--lw4m-ease), background-color .32s var(--lw4m-ease), box-shadow .2s var(--lw4m-ease), color .32s var(--lw4m-ease);
+}
+
+@media (prefers-reduced-motion: reduce){
+  html.v4 #btnSave, html.v4 .lw4-tb, html.v4 .lw4-tb::before, html.v4 .lw4-estado, html.v4 .lw4-banda,
+  html.v4 .field input, html.v4 .field textarea, html.v4 .field select{ transition:none; }
+  html.v4 .lw4-tb.lw4m-on::after{ animation:none; display:none; }
+}

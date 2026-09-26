@@ -5,7 +5,7 @@
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Lawang · Generador de Contratos</title>
+<title>Lawang · Generador de Contratos · ensayo de movimiento</title>
 <!-- Interruptor de la cara v4 (23-sep-2026). SÍNCRONO y antes de cualquier
      hoja: pone `html.v4` antes del primer pintado. Sin `?v4=1` en la pestaña
      no hace nada y esta página es la clásica de siempre. Ver assets/piel.js. -->
@@ -82,7 +82,7 @@
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
 <script src="assets/documento_diseno.js?v=15c225ba"></script>
 <script src="assets/documento_anexos.js?v=37e0d82f"></script>
-<script src="assets/parcela_inventario.js?v=9f3c3d2d"></script>
+<script src="assets/parcela_inventario.js?v=1567ef46"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
 <script src="assets/modelos_catalogo.js?v=4e4fdee1"></script>
@@ -120,6 +120,9 @@
 <script src="/intranet/v4/assets/nav-montaje.js?v=ee405ac8" defer></script>
 <script src="/contracts/assets/generador-v4.js?v=55abc3f7" defer></script>
 <script src="/intranet/v4/assets/nav.js?v=27a5b430" defer></script>
+<!-- ENSAYO de movimiento (26-sep-2026): SOLO en appv2.html, copia de app.html para verlo en vivo. app.html no lo carga. -->
+<link rel="stylesheet" href="/contracts/assets/motion-generador.css?v=7deec7a1">
+<script src="/contracts/assets/motion-generador.js?v=c361c8b1" defer></script>
 </head>
 <body>
   <!-- Barra unificada de la suite: mismo orden y mismos componentes en
@@ -204,11 +207,6 @@
                derivarContrato): comprador, proyecto y parcela viajan, y la
                parcela se traspasa al guardar si el comprador coincide. -->
           <button class="btn ghost" id="btnPasarBloqueo" data-lwt-title title="Abre el Bloqueo de Parcela de esta Carta, ya relleno" style="display:none">→ Pasar a Bloqueo de Parcela</button>
-          <!-- 26-sep-2026, owner: el paso siguiente de la venta (Carta → Bloqueo →
-               Construcción) desde el propio contrato. Mismo derivarContrato que
-               «Copiar datos» → Construcción: deja puesto el Bloqueo vinculado y,
-               si tiene varias parcelas, pide cuál (una Construcción por parcela). -->
-          <button class="btn ghost" id="btnPasarConstruccion" data-lwt-title title="Abre el Contrato de Construcción de este Bloqueo, ya relleno" style="display:none">→ Añadir Contrato de Construcción</button>
         </div>
         <!-- 2. guardar: ni flujo de firma ni papel, es la base de datos -->
         <div class="pv-grupo" role="group" data-lwt-aria aria-label="Base de datos">
@@ -3978,20 +3976,10 @@ function pintaAcciones(){
     ['btnSave',           !!tipo, cerrado || (proyectoFalta ? lwT('Rellena el nombre del proyecto antes de guardar') : '')],
     ['btnEmail',          true,   guardado ? '' : sinGuardar],
     ['btnBorrador',       true,   LOCKED ? lwT('El contrato está firmado: ya no hay borrador, descarga el PDF firmado') : ''],   // sin guardar sale EN BLANCO
-    // Una Carta FIRMADA solo avanza a su Bloqueo (26-sep-2026, owner): «Copiar
-    // datos» desde ella abría cualquier otro contrato con su parcela, que al
-    // guardar choca con la base («ya está asignada») o con el candado de
-    // parcela — un camino que va a fallar compitiendo con el bueno. Fuera de
-    // ese caso sigue igual (desde un Bloqueo también se saca el Poder Notarial).
-    ['btnDerivar',        !(LOCKED && String(tipo || '').startsWith('carta_reserva')),
-                          guardado ? '' : sinGuardar],
+    ['btnDerivar',        true,   guardado ? '' : sinGuardar],
     // Solo en una Carta, y solo si este rol puede emitir el Bloqueo (25-sep-2026).
     ['btnPasarBloqueo',   String(tipo || '').startsWith('carta_reserva')
                             && plantillasOfrecidas().some(t => t.slug === 'ppjb_parcela'),
-                          guardado ? '' : sinGuardar],
-    // Solo en un Bloqueo, y solo si este rol puede emitir la Construcción (26-sep-2026).
-    ['btnPasarConstruccion', tipo === 'reserva_parcela'
-                            && plantillasOfrecidas().some(t => t.slug === 'ppjb_construccion'),
                           guardado ? '' : sinGuardar],
     ['btnEnviarFirma',    !!tipo, guardado ? cerrado : sinGuardar],
     ['btnLockUpload',     !!tipo, guardado ? (cerrado || (PDF_SALIO ? '' : pdfNoSalio)) : sinGuardar],
@@ -5883,10 +5871,6 @@ async function derivarContrato(slug){
      derivar" (ver más arriba); estos son guardas internas, no datos. */
   Object.keys(AUTO_UNIDAD).forEach(k=>delete AUTO_UNIDAD[k]);
   AUTO_APODERADO = {}; AUTO_POA = {}; avisoMismoApoderado = null;
-  // La lista de Bloqueos vinculables es caché de sesión y no se refrescaba: el
-  // Bloqueo recién guardado no estaba en el desplegable si antes se había abierto
-  // otra Construcción, y la derivada se quedaba sin vínculo (26-sep-2026).
-  if(slug === 'ppjb_construccion') VINCULABLES = null;
   await loadTemplate(slug);
   $('#tplPick').value = slug;
   buildForm();
@@ -5938,16 +5922,6 @@ $('#btnPasarBloqueo').addEventListener('click', async ()=>{
   // Mismo aviso fijo que enseña «Copiar datos» Carta → Bloqueo (avisoCartaAplica).
   toast(lwT('Bloqueo de Parcela con los datos de ') + origen
     + lwT(' · el abono ya pagado en la Carta se descontará al guardar.'));
-});
-$('#btnPasarConstruccion').addEventListener('click', async ()=>{
-  if(!SAVED_CONTRACT || !SAVED_CONTRACT.numero){ toastMal(lwT('Guarda primero: para guardar hay que rellenarlo entero')); return; }
-  const origen = SAVED_CONTRACT.numero;
-  await derivarContrato('ppjb_construccion');
-  // Con varias parcelas en el Bloqueo, syncUnidadConstruccion ya pintó el
-  // selector obligatorio; el precio de la obra sale de la parcela elegida.
-  toast(lwT('Contrato de Construcción vinculado a ') + origen
-    + ((UNIDADES_RESERVA_VINCULADA && UNIDADES_RESERVA_VINCULADA.lista.length > 1)
-        ? lwT(' · elige la parcela de esta construcción (una por parcela).') : '.'));
 });
 $('#dvClose').addEventListener('click', ()=> $('#dvOverlay').classList.remove('open'));
 $('#dvOverlay').addEventListener('click', e=>{ if(e.target===$('#dvOverlay')) $('#dvOverlay').classList.remove('open'); });
