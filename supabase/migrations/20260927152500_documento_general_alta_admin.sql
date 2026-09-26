@@ -2,7 +2,8 @@
 -- con «Ese proyecto no existe» (no son filas de `proyectos`; hoy hay 19 documentos así, con proyecto_id null) y la
 -- documentación clásica los ofrece los primeros (lista cerrada: la misma GENERALES de la pantalla). Un ADMIN puede dar de alta en esos nombres «(general)»; nadie más.
 -- Y la comprobación de 152000 (documento publicado) comparaba la descripción sin normalizar: '' frente a null
--- contaba como cambio. Parche con marca sobre la función viva (idempotente, falla si cambió).
+-- contaba como cambio. El documento nace general=true: la lectura de un agente lo decide la FILA (general), no el
+-- nombre (precedente 20260918144841); con general=false nadie salvo admin lo vería. Parche con marca sobre la función viva (idempotente, falla si cambió).
 do $$
 declare v_def text; v_nuevo text;
 begin
@@ -15,7 +16,7 @@ begin
     '    select p.id, p.nombre into v_pid, v_nombre from public.proyectos p where p.nombre = btrim(coalesce(p_datos->>''proyecto'', ''''));
     -- B4 general alta admin: «<Marca> (general)» no es un proyecto; solo un admin archiva ahí
     if v_pid is null and v_admin and btrim(coalesce(p_datos->>''proyecto'', '''')) in (''Lawang (general)'', ''Sumba (general)'') then
-      v.proyecto := btrim(p_datos->>''proyecto''); v.proyecto_id := null;
+      v.proyecto := btrim(p_datos->>''proyecto''); v.proyecto_id := null; v.general := true;
     else
       if v_pid is null then raise exception ''Ese proyecto no existe'' using errcode = ''22023''; end if;
       v.proyecto := v_nombre; v.proyecto_id := v_pid;

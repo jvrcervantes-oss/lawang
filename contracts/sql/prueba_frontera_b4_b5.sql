@@ -316,3 +316,24 @@ begin
   exception when others then r := r||'2 FALLO: '||left(sqlerrm,60)||'; '; end;
   raise exception 'RES: %', r;
 end $$;
+
+-- 8. (revisor, 27-sep) Un admin da de alta en «Lawang (general)»: nace general=true y un agente con documentación lo lee
+do $$
+declare r text := ''; v uuid; a record; ag record; su uuid; n int;
+begin
+  select user_id, email into a from usuarios where rol='admin' and activo and 'documentacion' = any(herramientas) limit 1;
+  perform set_config('request.jwt.claims', json_build_object('sub',a.user_id,'email',a.email,'role','authenticated')::text, true);
+  set local role authenticated;
+  v := public.documento_proyecto_guarda(null, '{"proyecto":"Lawang (general)","titulo":"prueba general","url":"https://example.com/x"}');
+  reset role;
+  r := r || '1 general=' || (select general::text from documentos_proyecto where id=v) || ' (true = ok); ';
+  select user_id into su from usuarios where rol='super_admin' and activo limit 1;
+  select user_id, email into ag from usuarios where activo and rol='agente' limit 1;
+  perform set_config('request.jwt.claims', json_build_object('sub',su,'role','authenticated')::text, true);
+  update usuarios set herramientas = array_append(herramientas,'documentacion') where user_id=ag.user_id and not ('documentacion' = any(herramientas));
+  perform set_config('request.jwt.claims', json_build_object('sub',ag.user_id,'email',ag.email,'role','authenticated')::text, true);
+  set local role authenticated;
+  select count(*) into n from documentos_proyecto where id=v;
+  r := r || '2 agente lo lee=' || n || ' (1 = ok)';
+  raise exception 'RES: %', r;
+end $$;
