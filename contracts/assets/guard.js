@@ -144,7 +144,21 @@
     destino_invalido: 'Destino de la foto no válido: recarga la página', destino_no_visible: 'No encuentro ese proyecto o modelo: recarga la página',
     solo_admin: 'Esto solo lo hace un administrador',
     fila_no_borrada: 'El fichero se ha quitado, pero su ficha no: vuelve a pulsar «Borrar»',
-    fichero_no_borrado: 'El fichero no se pudo quitar del archivo: no se ha borrado nada, prueba otra vez'
+    fichero_no_borrado: 'El fichero no se pudo quitar del archivo: no se ha borrado nada, prueba otra vez',
+    // bloque 4 (27-sep-2026): documentación, obra, justificantes de gasto y creatividades
+    proyecto_invalido: 'Ese proyecto no es válido: recarga la página',
+    proyecto_no_permitido: 'No puedes subir documentación a ese proyecto (no es de los tuyos o te falta la herramienta «Documentación»)',
+    unidad_invalida: 'Esa parcela no es válida: recarga la página',
+    obra_no_permitida: 'No puedes subir fotos de obra a esa parcela (no es de tus proyectos o te falta la herramienta «Obra»)',
+    gasto_invalido: 'Ese gasto no es válido: recarga la página', gasto_no_visible: 'No encuentro ese gasto: recarga la página',
+    gasto_anulado: 'Ese gasto está anulado: no admite justificantes',
+    creatividad_invalida: 'Esa creatividad no es válida: recarga la página',
+    tipo_de_creatividad_invalido: 'Tipo de creatividad no válido: recarga la página',
+    sin_permiso_creatividades: 'No tienes permiso para hacer creatividades (te falta la herramienta «Creatividades»): pídeselo a administración',
+    sin_permiso_dossier: 'No tienes permiso para hacer dossiers (te falta la herramienta «Dossier»): pídeselo a administración',
+    creatividad_no_borrador: 'Esta creatividad ya no es un borrador: guárdala como copia para seguir cambiándola',
+    rol_invalido: 'Ese fichero no va en este tipo de creatividad', falta_el_estado: 'Falta el contenido de la creatividad: vuelve a guardar',
+    estado_no_valido: 'El contenido de la creatividad no se ha podido leer: no se ha guardado, prueba otra vez'
   });
   fija('lwFichero', function (sb, clase, accion, datos) {
     return sb.auth.getSession().then(function (s) {

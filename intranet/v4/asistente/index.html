@@ -1,10 +1,10 @@
 <!DOCTYPE html><html lang="es"><head><title data-lw-titulo>Asistente</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=c5c926ae"></script><script src="/contracts/assets/guard.js?v=fbb1cf54" data-herramienta="asistente"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=c5c926ae"></script><script src="/contracts/assets/guard.js?v=a6e64190" data-herramienta="asistente"></script>
 <!-- idioma.js e i18n.js SIN defer, los dos y en este orden (contexto/suite_lawang.md →
      «La forma de una herramienta»): el script propio de esta página llama a lwT() al
      arrancar y tiene que encontrarlo ya definido. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=9559c614"></script>
+<script src="/contracts/assets/i18n.js?v=1c48d767"></script>
 <!-- toast()/toastMal() (suite-comun.js) y lwPicker() (dialogo.js): el selector de
      contrato es una lista cerrada y larga —un agente puede tener decenas— y la suite
      no monta un <select> ni un <datalist> para eso. vocabulario.js da el nombre
@@ -262,7 +262,9 @@
 
     function inserta(fila) {
       $('sc-enviar').disabled = true; $('sc-manual').disabled = true;
-      return sb.from('solicitudes_cambio').insert(fila).select('numero').then(function (r) {
+      // por el servidor (27-sep-2026, frontera bloque 5): quién pide lo pone la base, y solo sobre lo que se ve
+      return sb.rpc('solicitud_cambio_pide', { p_accion: fila.accion, p_fila_id: fila.fila_id || null,
+        p_nuevos: fila.nuevos || null, p_motivo: fila.motivo || null, p_texto: fila.texto || null }).then(function (r) {
         $('sc-enviar').disabled = false; $('sc-manual').disabled = false;
         if (r.error) {
           /* La base explica por qué no (enviada, firmada, cobros…): se dice y se ofrece
@@ -273,7 +275,7 @@
           muestra($('sc-manual'), true);
           return;
         }
-        var n = r.data && r.data[0] && r.data[0].numero;
+        var n = r.data;
         $('sc-enviado-titulo').textContent = 'Enviado para aprobar' + (n ? ' · SC-' + n : '');
         $('sc-texto').value = ''; PROP = null;
         irA(3);

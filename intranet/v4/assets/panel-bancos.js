@@ -345,11 +345,9 @@
     if (boton) { boton.disabled = true; boton.textContent = T('Importando…'); }
     var mapeoLimpio = {}; ['cabecera', 'fecha', 'fechaValor', 'concepto', 'referencia', 'importe', 'cargo', 'abono', 'saldo', 'moneda', 'formatoFecha', 'monedaFija'].forEach(function (k) { mapeoLimpio[k] = perfil[k] == null ? null : perfil[k]; });
     // El perfil es comodidad: si no se guarda, la importación sigue igual.
-    // Insert o update a mano: un upsert reescribe la clave, y el GRANT de update es solo de `mapeo`.
-    var guardaPerfil = (D.perfiles[cuenta]
-      ? sb.from('bancos_perfiles').update({ mapeo: mapeoLimpio }).eq('cuenta_clave', cuenta).select('cuenta_clave')
-      : sb.from('bancos_perfiles').insert({ cuenta_clave: cuenta, mapeo: mapeoLimpio }).select('cuenta_clave')
-    ).then(function (x) { return !(x.error || !x.data || !x.data.length); }, function () { return false; });
+    // Por el servidor (27-sep-2026, frontera bloque 5): la RPC exige admin + bancos y valida la forma del mapeo.
+    var guardaPerfil = sb.rpc('banco_perfil_guarda', { p_cuenta: cuenta, p_mapeo: mapeoLimpio })
+      .then(function (x) { return !x.error; }, function () { return false; });
     var carga = r.movimientos.map(function (m) { return { fecha: m.fecha, fecha_valor: m.fecha_valor, concepto: m.concepto, referencia: m.referencia, importe: m.importe, moneda: m.moneda, saldo: m.saldo, orden: m.linea, huella: m.huella }; });
     guardaPerfil.then(function (perfilOk) {
       return sb.rpc('bancos_importar', { p_cuenta: cuenta, p_fichero: nombre, p_filas: carga }).then(function (res) {

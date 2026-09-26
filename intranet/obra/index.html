@@ -25,11 +25,11 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=9559c614"></script>
+<script src="/contracts/assets/i18n.js?v=1c48d767"></script>
 <script src="/contracts/assets/herramientas.js?v=a7d8d3cc"></script>
 <script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="/contracts/assets/topbar.js?v=8444fd68" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=c5c926ae"></script><script src="/contracts/assets/guard.js?v=fbb1cf54" data-herramienta="obra"></script>
+<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=c5c926ae"></script><script src="/contracts/assets/guard.js?v=a6e64190" data-herramienta="obra"></script>
 <script src="/contracts/assets/suite.js?v=3cf4a63a"></script>
 <style>
   *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }
@@ -342,13 +342,10 @@ async function subir(u, files){
   for(const f of files){
     try{
       const blob = await optimiza(f);
-      const nombre = Date.now() + '_' + f.name.replace(/[^a-z0-9._-]/gi, '_').replace(/\.[^.]+$/, '') + '.jpg';
-      const path = u.id + '/' + nombre;
-      const up = await SB.storage.from('obra').upload(path, blob, { contentType:'image/jpeg' });
-      if(up.error) throw up.error;
-      const ins = await SB.from('obra_fotos').insert({ unidad_id: u.id, path }).select('id');
-      if(ins.error) throw ins.error;
-      if(!ins.data || !ins.data.length) throw new Error(lwT('sin permiso para la herramienta Obra'));
+      /* Por el servidor (27-sep-2026, frontera bloque 4): la edge `ficheros` comprueba la herramienta Obra y
+         que la parcela sea de un proyecto tuyo ANTES de firmar la subida, pone la ruta y registra la foto. */
+      if(typeof window.lwFicheroSube !== 'function') throw new Error(lwT('falta guard.js actualizado: recarga la página'));
+      await window.lwFicheroSube(SB, 'obra_foto', blob, { unidad_id: u.id, nombre: f.name.replace(/\.[^.]+$/, '') + '.jpg', ext: '.jpg' });
       ok++;
     }catch(e){ toastMal(lwErrorHumano(e, '«' + f.name + '»')); }
   }
@@ -361,7 +358,7 @@ async function subir(u, files){
 async function accionFoto(u, act, fid){
   const f = (FOTOS[u.id] || []).find(x => x.id === fid); if(!f) return;
   if(act === 'visible'){
-    const { error } = await SB.from('obra_fotos').update({ visible: !f.visible }).eq('id', fid);
+    const { error } = await SB.rpc('obra_foto_cambia', { p_id: fid, p_cambios: { visible: !f.visible } });
     if(error){ toastMal(lwErrorHumano(error)); return; }
   }
   if(act === 'titulo'){
@@ -369,7 +366,7 @@ async function accionFoto(u, act, fid){
        renombra a `titulo` para no taparlo dentro de este bloque. */
     const titulo = prompt(lwT('Título de la foto (lo ve el cliente):'), f.titulo || '');
     if(titulo === null) return;
-    const { error } = await SB.from('obra_fotos').update({ titulo: titulo.trim() || null }).eq('id', fid);
+    const { error } = await SB.rpc('obra_foto_cambia', { p_id: fid, p_cambios: { titulo: titulo.trim() || null } });
     if(error){ toastMal(lwErrorHumano(error)); return; }
   }
   if(act === 'borrar'){
@@ -382,9 +379,9 @@ async function accionFoto(u, act, fid){
       confirmar: lwT('Borrar'), tono: 'peligro',
     });
     if(!seguro) return;
-    const { error } = await SB.from('obra_fotos').delete().eq('id', fid);
-    if(error){ toastMal(lwErrorHumano(error)); return; }
-    await SB.storage.from('obra').remove([f.path]);   // si falla queda huérfano en el bucket, no en el portal
+    // la edge quita el fichero y después la fila, con el mismo permiso que para subir
+    try{ await window.lwFichero(SB, 'obra_foto', 'borra', { id: fid }); }
+    catch(e){ toastMal(lwErrorHumano(e)); return; }
   }
   await cargar();
   abrir(u.id);

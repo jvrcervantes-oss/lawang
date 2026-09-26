@@ -1014,7 +1014,7 @@
     'Mostrar': 'Show',
     'no se pudo convertir': 'could not be converted',
     'imagen ilegible': 'unreadable image',
-    'sin permiso para la herramienta Obra': 'no permission for the Construction tool',
+    'falta guard.js actualizado: recarga la página': 'guard.js is out of date: reload the page',
     '%n foto subida': '%n photo uploaded',
     '%n fotos subidas': '%n photos uploaded',
     'Título de la foto (lo ve el cliente):': 'Photo title (the client sees it):',

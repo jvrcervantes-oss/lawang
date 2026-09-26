@@ -406,9 +406,10 @@
         enviar.disabled = true;
         enviar.textContent = T('Enviando…');
         err.hidden = true;
-        aut.sb.from('solicitudes_cambio').insert({ accion: 'manual', texto: componer(c, lista) }).select('numero').then(function (r) {
+        // por el servidor (27-sep-2026, frontera bloque 5): quién avisa lo pone la base
+        aut.sb.rpc('solicitud_cambio_pide', { p_accion: 'manual', p_fila_id: null, p_nuevos: null, p_motivo: null, p_texto: componer(c, lista) }).then(function (r) {
           if (!r || r.error) throw (r && r.error) || new Error('sin respuesta');
-          var n = r.data && r.data[0] && r.data[0].numero;
+          var n = r.data;
           guarda(K_FALLOS, hoy() + '|' + (usados() + 1));
           vistoHasta = Date.now();
           marca(false);

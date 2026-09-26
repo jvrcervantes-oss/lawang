@@ -26,7 +26,7 @@
 <script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="/contracts/assets/topbar.js?v=8444fd68" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=c5c926ae"></script><script src="/contracts/assets/guard.js?v=fbb1cf54" data-herramienta="documentacion"></script>
+<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=c5c926ae"></script><script src="/contracts/assets/guard.js?v=a6e64190" data-herramienta="documentacion"></script>
 <script src="/contracts/assets/suite.js?v=3cf4a63a"></script>
 <style>
   *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }
@@ -320,10 +320,6 @@ const T = {
   cancelar: { es:'Cancelar', en:'Cancel' },
   ponTitulo: { es:'Ponle un título', en:'Give it a title' },
   enlaceHttp: { es:'El enlace tiene que empezar por http:// o https://', en:'The link has to start with http:// or https://' },
-  sinPermisoAccion: { es:'no tienes permiso para ', en:'you don’t have permission to ' },
-  editarV: { es:'editar', en:'edit' },
-  anadirV: { es:'añadir', en:'add' },
-  documentacionN: { es:' documentación', en:' documentation' },
   guardado: { es:'Guardado', en:'Saved' },
   enlaceGuardado: { es:'Enlace guardado', en:'Link saved' },
   noSePudoGuardar: { es:'No se pudo guardar: ', en:'Could not save: ' },
@@ -338,14 +334,11 @@ const T = {
   guardarPregunta: { es:'Guardar pregunta', en:'Save question' },
   escribePregunta: { es:'Escribe la pregunta', en:'Write the question' },
   preguntaGuardada: { es:'Pregunta guardada', en:'Question saved' },
-  sinPermisoFaq: { es:'no tienes permiso para ', en:'you don’t have permission to ' },
-  preguntasFrecuentesN: { es:' preguntas frecuentes', en:' frequent questions' },
   noSePudoAbrir: { es:'No se pudo abrir: ', en:'Could not open: ' },
   quitarIndice: { es:'» del índice?\n\nEl archivo SIGUE en Drive: aquí solo se borra el enlace.', en:'" from the index?\n\nThe file STAYS in Drive: this only removes the link.' },
   quitarIndicePre: { es:'¿Quitar «', en:'Remove "' },
   borrarPre: { es:'¿Borrar «', en:'Delete "' },
   borrarPost: { es:'»?\n\nSe borra el archivo y su ficha. No hay papelera.', en:'"?\n\nThe file and its record are deleted. There is no trash bin.' },
-  sinPermisoQuitar: { es:'no tienes permiso para quitar documentación', en:'you don’t have permission to remove documentation' },
   quitado: { es:'Quitado', en:'Removed' },
   noSePudoQuitar: { es:'No se pudo quitar: ', en:'Could not remove: ' },
   almacenamientoTitulo: { es:'Almacenamiento del sistema', en:'System storage' },
@@ -709,13 +702,11 @@ async function guardarDoc(d){
       publicado_investor_deck: deck && !conf,
     };
     if(campoUrl) fila.url = url;   // un archivo subido conserva su `path` intacto
-    const q = editando
-      ? SB.from('documentos_proyecto').update(fila).eq('id', d.id).select('id')
-      : SB.from('documentos_proyecto').insert(fila).select('id');
-    const { data, error } = await q;
+    /* Por el servidor (27-sep-2026, frontera bloque 4): la RPC comprueba la herramienta, el proyecto de
+       origen y el de destino, y que el dosier de inversores y «general» solo los cambie administración.
+       Si no deja, LANZA con el motivo: ya no hay «0 filas» silenciosas que vigilar. */
+    const { error } = await SB.rpc('documento_proyecto_guarda', { p_id: editando ? d.id : null, p_datos: fila });
     if(error) throw error;
-    // La RLS no da error al denegar: devuelve CERO filas.
-    if(!data || !data.length) throw new Error(t('sinPermisoAccion') + (editando ? t('editarV') : t('anadirV')) + t('documentacionN'));
     // 🔴 Bug (7-ago-2026): esto forzaba el filtro global de proyecto al del
     // documento recién guardado. Si se guardaba estando en «Todos los
     // proyectos», el árbol se reducía de golpe a esa única promoción y el
@@ -774,12 +765,8 @@ async function guardarFaq(d){
       // Material interno para entrenar al equipo, nunca cara al cliente.
       confidencial: true, visible_portal: false,
     };
-    const q = editando
-      ? SB.from('documentos_proyecto').update(fila).eq('id', d.id).select('id')
-      : SB.from('documentos_proyecto').insert(fila).select('id');
-    const { data, error } = await q;
+    const { error } = await SB.rpc('documento_proyecto_guarda', { p_id: editando ? d.id : null, p_datos: fila });
     if(error) throw error;
-    if(!data || !data.length) throw new Error(t('sinPermisoFaq') + (editando ? t('editarV') : t('anadirV')) + t('preguntasFrecuentesN'));
     await cargar();
     if(editando){ SEL = d.id; abrirFaq({ ...d, ...fila }); } else { suiCerrarCajon(); }
     toast(editando ? t('guardado') : t('preguntaGuardada'));
@@ -807,17 +794,11 @@ async function borrar(d){
     : t('borrarPre') + d.titulo + t('borrarPost');
   if(!(await lwConfirmar({ cuerpo: esc(aviso), tono: 'peligro' }))) return;
   try{
-    // Primero el archivo y después la fila: al revés, un fallo al borrar el
-    // objeto dejaría un fichero huérfano ocupando sitio y sin nadie que lo liste.
-    if(d.path){
-      const { error } = await SB.storage.from(BUCKET).remove([d.path]);
-      if(error) throw error;
-    }
-    const { data, error } = await SB.from('documentos_proyecto').delete().eq('id', d.id).select('id');
-    if(error) throw error;
-    // La RLS no da error al denegar: devuelve CERO filas. Sin este control la
-    // herramienta diría "quitado" y el documento seguiría ahí.
-    if(!data || !data.length) throw new Error(t('sinPermisoQuitar'));
+    // Por el servidor (27-sep-2026, frontera bloque 4): la edge `ficheros` comprueba el permiso (super
+    // admin), quita PRIMERO el archivo y después la fila — al revés, un fallo dejaría un fichero huérfano
+    // ocupando sitio y sin nadie que lo liste. Si no deja, lanza con el motivo.
+    if(typeof window.lwFichero !== 'function') throw new Error('falta guard.js actualizado: recarga la página');
+    await window.lwFichero(SB, 'documento_proyecto', 'borra', { id: d.id });
     if(d.path) FIRMADAS.delete(d.path);
     suiCerrarCajon();
     await cargar();

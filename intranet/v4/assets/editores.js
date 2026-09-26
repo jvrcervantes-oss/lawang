@@ -1798,35 +1798,26 @@
         });
     }
 
+    /* Por el servidor (27-sep-2026, frontera bloque 4): la edge `ficheros` (clase obra_foto) comprueba la
+       herramienta Obra y el proyecto de la parcela, quita el fichero y después la fila. */
     function borra(f) {
-      sb.from('obra_fotos').delete().eq('id', f.id).then(function (r) {
+      window.lwFichero(sb, 'obra_foto', 'borra', { id: f.id }).then(function () { carga(); },
+        function (e) { aviso((e && e.message) || String(e), '#93000a'); });
+    }
+    function cambia(f, cambios) {
+      sb.rpc('obra_foto_cambia', { p_id: f.id, p_cambios: cambios }).then(function (r) {
         if (r.error) return aviso(r.error.message, '#93000a');
-        // mismo tradeoff aceptado que accionFoto('borrar') en /intranet/obra/
-        sb.storage.from('obra').remove([f.path]).catch(function (e) {
-          /* MUDO A PROPOSITO: la fila ya se borró de obra_fotos (lo que decide
-             qué ve el portal); si esto falla el blob queda huérfano en un
-             bucket privado, sin efecto para nadie — solo se deja constancia
-             en consola para quien audite el bucket, no hace falta interrumpir
-             al agente por un archivo que ya dejó de mostrarse. */
-          console.error('[v4 obra] fallo al borrar del bucket:', e);
-        });
         carga();
       });
     }
 
     function accion(f, act) {
       if (act === 'visible') {
-        sb.from('obra_fotos').update({ visible: !f.visible }).eq('id', f.id).then(function (r) {
-          if (r.error) return aviso(r.error.message, '#93000a');
-          carga();
-        });
+        cambia(f, { visible: !f.visible });
       } else if (act === 'titulo') {
         var t = window.prompt('Título de la foto (lo ve el cliente):', f.titulo || '');
         if (t === null) return;
-        sb.from('obra_fotos').update({ titulo: t.trim() || null }).eq('id', f.id).then(function (r) {
-          if (r.error) return aviso(r.error.message, '#93000a');
-          carga();
-        });
+        cambia(f, { titulo: t.trim() || null });
       } else if (act === 'borrar') {
         // dialogo.js va en todas las páginas v4 desde S17 (23-sep-2026): sin el
         // respaldo nativo de antes, que era una salida silenciosa al confirm() del navegador
@@ -1844,14 +1835,10 @@
       var ok = 0, pend = files.length;
       files.forEach(function (file) {
         optimiza(file).then(function (blob) {
-          var nombre = Date.now() + '_' + file.name.replace(/[^a-z0-9._-]/gi, '_').replace(/\.[^.]+$/, '') + '.jpg';
-          var path = unidadId + '/' + nombre;
-          return sb.storage.from('obra').upload(path, blob, { contentType: 'image/jpeg' }).then(function (up) {
-            if (up.error) throw up.error;
-            return sb.from('obra_fotos').insert({ unidad_id: unidadId, path: path }).select('id');
-          });
-        }).then(function (ins) {
-          if (ins && ins.error) throw ins.error;
+          // la ruta y el registro los pone el servidor (edge `ficheros`, clase obra_foto)
+          if (typeof window.lwFicheroSube !== 'function') throw new Error('Falta guard.js actualizado: recarga la página');
+          return window.lwFicheroSube(sb, 'obra_foto', blob, { unidad_id: unidadId, nombre: file.name.replace(/\.[^.]+$/, '') + '.jpg', ext: '.jpg' });
+        }).then(function () {
           ok++;
         }).catch(function (e) {
           aviso('«' + file.name + '»: ' + (e && e.message || e), '#93000a');
@@ -5014,21 +5001,16 @@
             { k: 'carpeta', label: 'Carpeta (opcional)', ayuda: 'Para agrupar en la vista de la clásica. Ej. "Legal", "Planos".' },
             { k: 'descripcion', label: 'Descripción (opcional)', tipo: 'textarea' },
             { k: 'visible_portal', label: 'Visible para el cliente', tipo: 'check', ayuda: 'lo verán TODOS los clientes de ' + p + ' en su portal' },
-            { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check', valor: 1 },  // nace MARCADA: la tabla se diseño con default true y el formulario mandaba false explicito, asi que todo documento nuevo nacia no-confidencial y el 'cinturon y tirantes' del RPC no protegia nada
-            { k: 'publicado_investor_deck', label: 'Publicar en el dosier de inversores', tipo: 'check', ayuda: 'PÚBLICO: lo ve cualquiera que abra el enlace del deck, sin contraseña y sin contrato' }
-          ], 'Guardar enlace', function (v) {
+            { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check', valor: 1 }  // nace MARCADA: la tabla se diseño con default true y el formulario mandaba false explicito, asi que todo documento nuevo nacia no-confidencial y el 'cinturon y tirantes' del RPC no protegia nada
+          ].concat(campoDeck(false)), 'Guardar enlace', function (v) {
             if (!/^https?:\/\//.test(v.url)) return { error: { message: 'la URL tiene que empezar por http:// o https://' } };
             return confirmaPublicacionDoc(v, p).then(function (c) {
               if (!c.ok) return { error: { message: c.msg } };
-              return sb.from('documentos_proyecto').insert({
+              return guardaDoc(null, conDeck({
                 proyecto: p, titulo: v.titulo, url: v.url, categoria: v.categoria,
-                carpeta: v.carpeta.trim() || null, descripcion: v.descripcion.trim() || null,
-                visible_portal: v.visible_portal, confidencial: v.confidencial,
-                // Confidencial MANDA sobre publicado. La misma regla vive también en el
-                // RPC `investor_deck_documentos` a propósito: una casilla del navegador
-                // no es un permiso.
-                publicado_investor_deck: !!v.publicado_investor_deck && !v.confidencial
-              });
+                carpeta: v.carpeta.trim(), descripcion: v.descripcion.trim() || null,
+                visible_portal: v.visible_portal, confidencial: v.confidencial
+              }, v));
             });
           });
         });
@@ -5047,7 +5029,7 @@
             { k: 'descripcion', label: 'Respuesta (opcional)', tipo: 'textarea' }
           ], 'Guardar pregunta', function (v) {
             // como las seis existentes: categoria faq, solo equipo
-            return sb.from('documentos_proyecto').insert({
+            return guardaDoc(null, {
               proyecto: p, titulo: v.titulo, descripcion: v.descripcion.trim() || null,
               categoria: 'faq', carpeta: 'Preguntas frecuentes', confidencial: true, visible_portal: false
             });
@@ -5083,9 +5065,8 @@
             { k: 'carpeta', label: 'Carpeta (opcional)', ayuda: 'Para agrupar en la vista de la clásica. Ej. "Legal", "Planos".' },
             { k: 'descripcion', label: 'Descripción (opcional)', tipo: 'textarea' },
             { k: 'visible_portal', label: 'Visible para el cliente', tipo: 'check', ayuda: 'lo verán TODOS los clientes de ' + p + ' en su portal' },
-            { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check', valor: 1 },
-            { k: 'publicado_investor_deck', label: 'Publicar en el dosier de inversores', tipo: 'check', ayuda: 'PÚBLICO: lo ve cualquiera que abra el enlace del deck, sin contraseña y sin contrato' }
-          ], 'Subir', function (v) {
+            { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check', valor: 1 }
+          ].concat(campoDeck(false)), 'Subir', function (v) {
             var file = v.file;
             if (!file) return { error: { message: 'elige un fichero' } };
             if (file.size > MAX_FICHERO) return { error: { message: 'el fichero pasa de 50 MB (' + (file.size / 1048576).toFixed(1) + ' MB) — súbelo a Drive y guárdalo como enlace' } };
@@ -5094,21 +5075,18 @@
             var titulo = (v.titulo || '').trim() || file.name.replace(/\.[^.]+$/, '');
             return confirmaPublicacionDoc({ titulo: titulo, confidencial: v.confidencial, visible_portal: v.visible_portal, publicado_investor_deck: v.publicado_investor_deck }, p).then(function (c) {
               if (!c.ok) return { error: { message: c.msg } };
-              var path = 'proyectos/' + po.id + '/' + crypto.randomUUID() + extF;
-              return sb.storage.from('documentacion').upload(path, file, { contentType: file.type || undefined }).then(function (up) {
-                if (up.error) return { error: { message: 'no se pudo subir el fichero: ' + up.error.message } };
-                return sb.from('documentos_proyecto').insert({
-                  proyecto: p, titulo: titulo, path: path, mime: file.type || null, bytes: file.size,
-                  categoria: v.categoria, carpeta: (v.carpeta || '').trim() || null,
+              /* Por el servidor (27-sep-2026, frontera bloque 4): la edge `ficheros` (clase documento_proyecto)
+                 comprueba la herramienta y el proyecto ANTES de firmar la subida, pone la ruta, lee los primeros
+                 bytes y registra la ficha; si algo falla, el fichero no se queda suelto en el bucket. */
+              if (typeof window.lwFicheroSube !== 'function') return { error: { message: 'Falta guard.js actualizado: recarga la página' } };
+              return window.lwFicheroSube(sb, 'documento_proyecto', file, {
+                proyecto_id: po.id,
+                datos: conDeck({
+                  titulo: titulo, categoria: v.categoria, carpeta: (v.carpeta || '').trim(),
                   descripcion: (v.descripcion || '').trim() || null,
-                  visible_portal: v.visible_portal, confidencial: v.confidencial,
-                  publicado_investor_deck: !!v.publicado_investor_deck && !v.confidencial
-                }).select('id').then(function (ri) {
-                  var u2 = unaFila(ri);
-                  if (u2.error) sb.storage.from('documentacion').remove([path]);
-                  return u2;
-                });
-              });
+                  visible_portal: v.visible_portal, confidencial: v.confidencial
+                }, v)
+              }).then(function () { return {}; }, function (e) { return { error: { message: (e && e.message) || String(e) } }; });
             });
           });
         });
@@ -5119,6 +5097,22 @@
            perdería al abrir el siguiente proyecto. `window.LW_V4.documentos`
            lo llena datos.js al pintar (DOCUMENTOS_CAJON), mismo patrón que
            `window.LW_V4.unidades` para "Editar unidad". */
+        /* Documentación por el servidor (27-sep-2026, frontera bloque 4): altas y cambios por la RPC
+           `documento_proyecto_guarda` (herramienta, proyecto de origen y de destino, y el dosier de inversores
+           solo lo cambia administración); borrar por la edge `ficheros`. La casilla del dosier solo se le
+           enseña a un admin: a los demás la base se la rechazaría, así que no se la ofrecemos. */
+        function campoDeck(valor) {
+          return esAdminP ? [{ k: 'publicado_investor_deck', label: 'Publicar en el dosier de inversores', tipo: 'check', valor: !!valor, ayuda: 'PÚBLICO: lo ve cualquiera que abra el enlace del deck, sin contraseña y sin contrato' }] : [];
+        }
+        // Confidencial MANDA sobre publicado (también en la RPC y en `investor_deck_documentos`): una casilla del
+        // navegador no es un permiso. Sin casilla (no admin) la clave no viaja: el servidor deja el valor que había.
+        function conDeck(fila, v) {
+          if (esAdminP) fila.publicado_investor_deck = !!v.publicado_investor_deck && !v.confidencial;
+          return fila;
+        }
+        function guardaDoc(id, fila) {
+          return sb.rpc('documento_proyecto_guarda', { p_id: id, p_datos: fila }).then(function (r) { return r.error ? { error: r.error } : {}; });
+        }
         function documentoDe(fila) {
           var id = fila.getAttribute('data-doc-id');
           return (window.LW_V4 && window.LW_V4.documentos && window.LW_V4.documentos[id]) || null;
@@ -5157,18 +5151,17 @@
             { k: 'carpeta', label: 'Carpeta (opcional)', valor: d2.carpeta || '' },
             { k: 'descripcion', label: 'Descripción (opcional)', tipo: 'textarea', valor: d2.descripcion || '' },
             { k: 'visible_portal', label: 'Visible para el cliente', tipo: 'check', valor: !!d2.visible_portal, ayuda: 'lo verán TODOS los clientes de ' + p + ' en su portal' },
-            { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check', valor: !!d2.confidencial },
-            { k: 'publicado_investor_deck', label: 'Publicar en el dosier de inversores', tipo: 'check', valor: !!d2.publicado_investor_deck, ayuda: 'PÚBLICO: lo ve cualquiera que abra el enlace del deck, sin contraseña y sin contrato' }
-          ], 'Guardar cambios', function (v) {
+            { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check', valor: !!d2.confidencial }
+          ].concat(campoDeck(d2.publicado_investor_deck)), 'Guardar cambios', function (v) {
             if (!/^https?:\/\//.test(v.url)) return { error: { message: 'la URL tiene que empezar por http:// o https://' } };
+            if (!esAdminP) v.publicado_investor_deck = !!d2.publicado_investor_deck;   // sin casilla: lo que había
             return confirmaPublicacionDocEdicion(v, d2, p).then(function (c) {
               if (!c.ok) return { error: { message: c.msg } };
-              return sb.from('documentos_proyecto').update({
+              return guardaDoc(d2.id, conDeck({
                 titulo: v.titulo, url: v.url, categoria: v.categoria,
-                carpeta: v.carpeta.trim() || null, descripcion: v.descripcion.trim() || null,
-                visible_portal: v.visible_portal, confidencial: v.confidencial,
-                publicado_investor_deck: !!v.publicado_investor_deck && !v.confidencial
-              }).eq('id', d2.id).select('id').then(unaFila);
+                carpeta: v.carpeta.trim(), descripcion: v.descripcion.trim() || null,
+                visible_portal: v.visible_portal, confidencial: v.confidencial
+              }, v));
             });
           });
         }
@@ -5178,9 +5171,7 @@
             { k: 'titulo', label: 'Pregunta', req: 1, valor: d2.titulo || '' },
             { k: 'descripcion', label: 'Respuesta (opcional)', tipo: 'textarea', valor: d2.descripcion || '' }
           ], 'Guardar cambios', function (v) {
-            return sb.from('documentos_proyecto').update({
-              titulo: v.titulo, descripcion: v.descripcion.trim() || null
-            }).eq('id', d2.id).select('id').then(unaFila);
+            return guardaDoc(d2.id, { titulo: v.titulo, descripcion: v.descripcion.trim() || null });
           });
         }
 
@@ -5198,16 +5189,10 @@
             });
           }).then(function (ok) {
             if (!ok) return;
-            sb.from('documentos_proyecto').delete().eq('id', d2.id).select('id').then(function (r) {
-              var u2 = unaFila(r);
-              if (u2.error) return aviso('No se pudo borrar: ' + u2.error.message, '#ba1a1a');
-              // Fichero subido (24-sep): fila primero, objeto después — si el
-              // objeto no sale, queda un huérfano que no abre nadie, nunca una
-              // fila que apunta a un fichero inexistente.
-              var fin = function () { aviso('Borrado'); location.reload(); };
-              if (!d2.path) return fin();
-              sb.storage.from('documentacion').remove([d2.path]).then(fin, fin);
-            });
+            // Por el servidor (27-sep): la edge comprueba el permiso (super admin) y quita fichero y ficha juntos.
+            window.lwFichero(sb, 'documento_proyecto', 'borra', { id: d2.id }).then(function () {
+              aviso('Borrado'); location.reload();
+            }, function (e) { aviso('No se pudo borrar: ' + ((e && e.message) || e), '#ba1a1a'); });
           });
         }
 
@@ -5223,17 +5208,16 @@
             { k: 'carpeta', label: 'Carpeta (opcional)', valor: d2.carpeta || '' },
             { k: 'descripcion', label: 'Descripción (opcional)', tipo: 'textarea', valor: d2.descripcion || '' },
             { k: 'visible_portal', label: 'Visible para el cliente', tipo: 'check', valor: !!d2.visible_portal, ayuda: 'lo verán TODOS los clientes de ' + p + ' en su portal' },
-            { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check', valor: !!d2.confidencial },
-            { k: 'publicado_investor_deck', label: 'Publicar en el dosier de inversores', tipo: 'check', valor: !!d2.publicado_investor_deck, ayuda: 'PÚBLICO: lo ve cualquiera que abra el enlace del deck, sin contraseña y sin contrato' }
-          ], 'Guardar cambios', function (v) {
+            { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check', valor: !!d2.confidencial }
+          ].concat(campoDeck(d2.publicado_investor_deck)), 'Guardar cambios', function (v) {
+            if (!esAdminP) v.publicado_investor_deck = !!d2.publicado_investor_deck;   // sin casilla: lo que había
             return confirmaPublicacionDocEdicion(v, d2, p).then(function (c) {
               if (!c.ok) return { error: { message: c.msg } };
-              return sb.from('documentos_proyecto').update({
+              return guardaDoc(d2.id, conDeck({
                 titulo: v.titulo, categoria: v.categoria,
-                carpeta: v.carpeta.trim() || null, descripcion: v.descripcion.trim() || null,
-                visible_portal: v.visible_portal, confidencial: v.confidencial,
-                publicado_investor_deck: !!v.publicado_investor_deck && !v.confidencial
-              }).eq('id', d2.id).select('id').then(unaFila);
+                carpeta: v.carpeta.trim(), descripcion: v.descripcion.trim() || null,
+                visible_portal: v.visible_portal, confidencial: v.confidencial
+              }, v));
             });
           });
         }
@@ -5547,7 +5531,6 @@
                 }
                 if (v.imagen) {
                   var file = v.imagen;
-                  var path;
                   trabajos.push(
                     // Portada comprimida a WebP ≤1600 px ANTES de subirla (24-sep-2026,
                     // owner: «que carguen al toque»): llegaban PNG de 2-8 MB para una
@@ -5558,22 +5541,15 @@
                       // El tope de 8 MB se mide DESPUÉS de comprimir: un PNG de 12 MB
                       // que queda en 400 KB de WebP ya no tiene por qué rechazarse.
                       if (file.size > 8 * 1024 * 1024) return { error: { message: 'pasa de 8 MB' } };
-                      var ext = (file.name.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
-                      path = 'proyectos/' + p.id + '/' + crypto.randomUUID() + ext;
-                      return sb.storage.from('documentacion').upload(path, file, { contentType: file.type || undefined });
+                      /* Por el servidor (27-sep-2026, frontera bloque 4): la edge `ficheros` pone la ruta
+                         (proyectos/<id>/<uuid>.<ext>, la de siempre), mira los bytes y registra la portada;
+                         si algo falla, retira el fichero ella misma. */
+                      if (typeof window.lwFicheroSube !== 'function') return { error: { message: 'falta guard.js actualizado: recarga la página' } };
+                      return window.lwFicheroSube(sb, 'documento_proyecto', file, {
+                        proyecto_id: p.id, datos: { categoria: 'portada', titulo: 'Portada', confidencial: true }
+                      }).then(function () { return {}; }, function (e) { return { error: { message: (e && e.message) || String(e) } }; });
                     }).then(function (up) {
-                      if (up.error) { aviso('La ficha sí, la foto no: ' + up.error.message, '#ba1a1a'); return; }
-                      return sb.from('documentos_proyecto').insert({
-                        proyecto: nombreEfectivo, categoria: 'portada', titulo: 'Portada',
-                        path: path, mime: file.type || null, bytes: file.size, confidencial: true
-                      }).then(function (ri) {
-                        if (ri.error) {
-                          // fichero huérfano en el bucket sin fila: se retira,
-                          // igual que hace subirDoc() en /intranet/modelos/.
-                          sb.storage.from('documentacion').remove([path]);
-                          aviso('La ficha sí, la foto no: ' + ri.error.message, '#ba1a1a');
-                        }
-                      });
+                      if (up && up.error) aviso('La ficha sí, la foto no: ' + up.error.message, '#ba1a1a');
                     })
                   );
                 }
@@ -6544,12 +6520,13 @@
 
     soporte: function (aut) {
       var sb = aut.sb;
-      // mismo UPDATE directo que toggleEstado() en /intranet/soporte/ — RLS ya lo deja
+      // por el servidor (27-sep-2026, frontera bloque 5), igual que toggleEstado() en /intranet/soporte/: estado
+      // de una lista cerrada y solo quien ve a ese comprador
       ata(/^(Marcar resuelto|Reabrir)$/i, function () {
         var hilo = window.LW_V4 && window.LW_V4.hilo;
         if (!hilo) return aviso('El hilo aún no ha cargado.', '#8A6A34');
         var nuevo = hilo.estado === 'abierto' ? 'resuelto' : 'abierto';
-        sb.from('hilo_soporte').update({ estado: nuevo, actualizado_en: new Date().toISOString() }).eq('id', hilo.id).then(function (r) {
+        sb.rpc('hilo_soporte_estado', { p_id: hilo.id, p_estado: nuevo }).then(function (r) {
           if (r.error) return aviso('No se pudo cambiar el estado: ' + r.error.message, '#93000a');
           location.reload();
         });
@@ -7249,11 +7226,11 @@
       var miEmailC = ((aut.session && aut.session.user && aut.session.user.email) || '').toLowerCase();
       var pideCambio = function (c, accion, nuevos, motivo) {
         // `tabla` la deriva la base de la acción (v2 del 25-sep, /asistente/): no se manda
-        var fila = { fila_id: c.id, accion: accion, motivo: String(motivo || '').trim() };
-        if (accion === 'editar_comprador') fila.nuevos = nuevos;
-        return sb.from('solicitudes_cambio').insert(fila).select('numero').then(function (r) {
+        // por el servidor (27-sep-2026, frontera bloque 5): quién pide lo pone la base, y solo se pide sobre lo que se ve
+        return sb.rpc('solicitud_cambio_pide', { p_accion: accion, p_fila_id: c.id,
+          p_nuevos: accion === 'editar_comprador' ? nuevos : null, p_motivo: String(motivo || '').trim(), p_texto: null }).then(function (r) {
           if (r.error) return { error: { message: r.error.message } };
-          var n = r.data && r.data[0] && r.data[0].numero;
+          var n = r.data;
           toast('Enviado para aprobar' + (n ? ' (SC-' + n + ')' : '') + '. Te llegará la respuesta a la campana.');
           return r;
         });

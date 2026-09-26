@@ -282,9 +282,8 @@
     var f = leeForm(), e = valida(f);
     if (e) { toastMal(e); return Promise.resolve(null); }
     var b = $('lw-com-guardar'); b.disabled = true;
-    var p = actual && actual.id
-      ? sb.from('comunicados').update(f).eq('id', actual.id).select().single()
-      : sb.from('comunicados').insert(f).select().single();
+    // por el servidor (27-sep-2026, frontera bloque 5): la RPC exige admin y devuelve la fila guardada
+    var p = sb.rpc('comunicado_guarda', { p_id: actual && actual.id ? actual.id : null, p_datos: f });
     return p.then(function (r) {
       b.disabled = false;
       if (r.error) { mal(r.error, 'No se guardó'); return null; }
@@ -379,9 +378,9 @@
     // si no, la copia salía sin lo último escrito y abre() lo tiraba sin avisar
     var c = sucio ? leeForm() : actual, e = sucio ? valida(c) : null;
     if (e) { toastMal(e); return; }
-    sb.from('comunicados').insert({
+    sb.rpc('comunicado_guarda', { p_id: null, p_datos: {
       asunto: c.asunto, encabezado: c.encabezado, cuerpo: c.cuerpo, cta_url: c.cta_url, cta_texto: c.cta_texto
-    }).select().single().then(function (r) {
+    } }).then(function (r) {
       if (r.error) { mal(r.error, 'No se duplicó'); return; }
       bien('Copia creada como borrador: cámbiala y envíala cuando quieras.');
       abre(r.data);
@@ -391,7 +390,7 @@
     if (!actual || !actual.id || actual.enviado_en) return;
     window.lwConfirmar({ titulo: 'Borrar este borrador', cuerpo: esc(actual.asunto), confirmar: 'Borrar', tono: 'peligro' }).then(function (si) {
       if (!si) return;
-      sb.from('comunicados').delete().eq('id', actual.id).then(function (r) {
+      sb.rpc('comunicado_borra', { p_id: actual.id }).then(function (r) {
         if (r.error) { mal(r.error, 'No se borró'); return; }
         bien('Borrador borrado.');
         abre(null);

@@ -26,11 +26,11 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=9559c614"></script>
+<script src="/contracts/assets/i18n.js?v=1c48d767"></script>
 <script src="/contracts/assets/herramientas.js?v=a7d8d3cc"></script>
 <script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="/contracts/assets/topbar.js?v=8444fd68" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=c5c926ae"></script><script src="/contracts/assets/guard.js?v=fbb1cf54" data-herramienta="soporte"></script>
+<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=c5c926ae"></script><script src="/contracts/assets/guard.js?v=a6e64190" data-herramienta="soporte"></script>
 <script src="/contracts/assets/suite.js?v=3cf4a63a"></script>
 <style>
   *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }
@@ -222,7 +222,8 @@ async function responder(hid){
 
 async function toggleEstado(hid, actual){
   const nuevo = actual === 'abierto' ? 'resuelto' : 'abierto';
-  const { error } = await SB.from('hilo_soporte').update({ estado: nuevo, actualizado_en: new Date().toISOString() }).eq('id', hid);
+  // por el servidor (27-sep-2026, frontera bloque 5): estado de lista cerrada y solo quien ve a ese comprador
+  const { error } = await SB.rpc('hilo_soporte_estado', { p_id: hid, p_estado: nuevo });
   if(error){ toastMal(lwT('No se pudo cambiar el estado: ') + error.message); return; }
   await cargar();
   toast(lwT(nuevo === 'resuelto' ? 'Marcado como resuelto' : 'Reabierto'));

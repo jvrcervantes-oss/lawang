@@ -58,55 +58,50 @@
     return v;
   }
 
-  function sello() { return Date.now(); }
-
   /* Guarda (crea o actualiza un BORRADOR). `o`:
      { id?, tipo:'pieza'|'dossier', titulo, proyecto_id?, formato?, arquetipo?, precios_a?,
        estado: <objeto del editor>, png?: Blob, portada?: Blob, fotoIds?: [uuid], modeloIds?: [uuid] }
      Devuelve la fila guardada. */
+  /* Frontera frontend/backend, bloque 4 (27-sep-2026, LAW-336; revisión previa #127 de Marketing): el navegador ya
+     no escribe en la base ni elige la ruta de los ficheros. Cada fichero se sube por URL firmada que da la edge
+     `ficheros` (clase `creatividad`: el servidor compone `<id>/{estado|pieza|portada}-<n>.<ext>`, la convención
+     que exigen los CHECK), y al final UNA llamada `guarda` valida lo subido (el estado es un JSON: la edge lo lee
+     entero) y guarda metadatos, ficheros, fotos y modelos en una sola transacción. Antes eran 5-8 escrituras
+     sueltas: un fallo a mitad dejaba la fila nueva con los enlaces viejos. Misma firma y mismo resultado (la fila
+     guardada, con `lleva_render` recalculado): la usan redes, el constructor de dossiers y «Enviar a aprobar». */
+  function subeCreatividad(c, id, tipo, rol, blob) {
+    return window.lwFichero(c, 'creatividad', 'subida_url', { creatividad_id: id || null, tipo: tipo, rol: rol }).then(function (u) {
+      var f = new File([blob], rol + (rol === 'estado' ? '.json' : '.png'), { type: u.content_type });
+      return c.storage.from(u.bucket).uploadToSignedUrl(u.path, u.token, f, { contentType: u.content_type }).then(function (up) {
+        if (up.error) throw new Error('No se pudo subir el fichero: ' + (up.error.message || up.error));
+        return u;
+      });
+    });
+  }
   async function guardar(o) {
+    if (typeof window.lwFichero !== 'function') throw new Error('Falta guard.js actualizado: recarga la página');
     var c = await sb();
-    var base = {
+    var datos = {
       titulo: String(o.titulo || '').trim().slice(0, 200) || 'Sin título',
       proyecto_id: o.proyecto_id || null,
       formato: o.formato || null,
       arquetipo: o.arquetipo || null,
       precios_a: o.precios_a || null
     };
-    var id = o.id;
-    if (!id) {
-      var nueva = falla(await c.from('creatividades').insert(Object.assign({ tipo: o.tipo }, base)).select('id').single());
-      id = nueva.id;
-    }
-    var ts = sello(), cambios = Object.assign({}, base);
-    cambios.estado_path = id + '/estado-' + ts + '.json';
-    falla(await c.storage.from(BUCKET).upload(cambios.estado_path,
-      new Blob([JSON.stringify(o.estado || {})], { type: 'application/json' }),
-      { contentType: 'application/json', upsert: false }));
-    if (o.png) {
-      cambios.path = id + '/pieza-' + ts + '.png';
-      falla(await c.storage.from(BUCKET).upload(cambios.path, o.png, { contentType: 'image/png', upsert: false }));
-    }
+    // El estado primero: en una creatividad nueva, su subida es la que recibe el id del servidor.
+    var est = await subeCreatividad(c, o.id, o.tipo, 'estado',
+      new Blob([JSON.stringify(o.estado || {})], { type: 'application/json' }));
+    var id = est.creatividad_id;
+    var cuerpo = { creatividad_id: id, tipo: o.tipo, datos: datos, estado_path: est.path };
+    if (o.png) cuerpo.path = (await subeCreatividad(c, id, o.tipo, 'pieza', o.png)).path;
     // Miniatura de la portada de un dossier (rediseño A, 24-sep): la biblioteca la
     // enseña en vez de una caja gris. Una pieza no la necesita: su PNG ya es la imagen.
-    if (o.portada) {
-      cambios.portada_path = id + '/portada-' + ts + '.png';
-      falla(await c.storage.from(BUCKET).upload(cambios.portada_path, o.portada, { contentType: 'image/png', upsert: false }));
-    }
-    var fila = falla(await c.from('creatividades').update(cambios).eq('id', id).select('*').single());
-    // Enlaces: se reponen enteros. La base rechaza tocarlos si ya no es borrador.
-    if (o.fotoIds) {
-      falla(await c.from('creatividad_fotos').delete().eq('creatividad_id', id));
-      var fotos = uniq(o.fotoIds).map(function (f) { return { creatividad_id: id, foto_id: f }; });
-      if (fotos.length) falla(await c.from('creatividad_fotos').insert(fotos));
-    }
-    if (o.modeloIds) {
-      falla(await c.from('creatividad_modelos').delete().eq('creatividad_id', id));
-      var mods = uniq(o.modeloIds).map(function (m) { return { creatividad_id: id, modelo_id: m }; });
-      if (mods.length) falla(await c.from('creatividad_modelos').insert(mods));
-    }
-    // `lleva_render` lo ha recalculado el trigger: se relee la fila.
-    return falla(await c.from('creatividades').select('*').eq('id', id).single());
+    if (o.portada) cuerpo.portada_path = (await subeCreatividad(c, id, o.tipo, 'portada', o.portada)).path;
+    // Enlaces: se reponen enteros (null = no se tocan). La base rechaza tocarlos si ya no es borrador.
+    if (o.fotoIds) cuerpo.foto_ids = uniq(o.fotoIds);
+    if (o.modeloIds) cuerpo.modelo_ids = uniq(o.modeloIds);
+    var r = await window.lwFichero(c, 'creatividad', 'guarda', cuerpo);
+    return r.fila;
   }
   function uniq(a) { return (a || []).filter(function (x, i, t) { return x && t.indexOf(x) === i; }); }
 

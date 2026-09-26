@@ -12,17 +12,18 @@
    reatribuir un documento es un acto de administración de personas, no de
    documentos, así que el botón se le muestra a un rol y no a dos.
 
-   RASTRO: cada cambio escribe una fila en `correcciones_datos` ANTES de tocar
-   la tabla (esa es la convención de la tabla: el rastro sobrevive aunque el
-   update se caiga a medias). Si el update falla se escribe una segunda fila que
-   anula la primera — un rastro que miente es peor que no tenerlo.
+   RASTRO Y CAMBIO, EN EL SERVIDOR (27-sep-2026, frontera frontend/backend, bloque 5):
+   el botón estaba ROTO desde el 26-sep — contratos y facturas ya no admiten
+   update desde el navegador — y además cualquier agente podía escribir filas
+   falsas en `correcciones_datos`. Ahora es UNA llamada a la RPC `reasigna_autor`
+   (super admin, solo contratos/facturas, el nuevo autor un usuario ACTIVO): la
+   traza y el cambio van en la misma transacción, así que ya no hace falta la
+   fila que «anula» una traza cuando el cambio fallaba.
 
-   LÍMITE HEREDADO DE LA RLS, no de este código: la policy de UPDATE exige
-   `bloqueado = false` (contratos) y `anulada = false` (facturas). Un contrato
-   ya firmado o una factura anulada NO se pueden reatribuir sin ampliar la
-   policy — ver `contracts/sql/reasignar_autor_bloqueados.sql`, que está escrito
-   y SIN aplicar porque toca la inmutabilidad de lo firmado y eso lo decide el
-   dueño. Aquí se dice por qué no se puede, en vez de dejar un botón que falla. */
+   LÍMITE: un contrato bloqueado (firmado y sellado) NO se reatribuye — ampliarlo
+   es decisión del dueño (`contracts/sql/reasignar_autor_bloqueados.sql`, escrito
+   y SIN aplicar). Una factura anulada sí (LAW-71). Aquí se dice por qué no se
+   puede, en vez de dejar un botón que falla. */
 (function () {
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
 
@@ -30,7 +31,8 @@
 
   async function equipo(sb) {
     if (EQUIPO) return EQUIPO;
-    const { data } = await sb.from('usuarios').select('email, nombre, activo').order('email');
+    // solo activos: la base rechaza reasignar a una cuenta desactivada
+    const { data } = await sb.from('usuarios').select('email, nombre, activo').eq('activo', true).order('email');
     EQUIPO = data || [];
     return EQUIPO;
   }
@@ -50,17 +52,8 @@
     if (nuevo === actual) return { error: 'Ese ya es el autor.' };
     if (!motivo || motivo.trim().length < 3) return { error: 'Escribe el motivo: es lo que explica el cambio dentro de un año.' };
 
-    const traza = { tabla, fila_id: filaId, campo: 'creado_por',
-                    valor_anterior: actual || null, valor_nuevo: nuevo, motivo: motivo.trim() };
-    const { error: eTraza } = await sb.from('correcciones_datos').insert(traza);
-    if (eTraza) return { error: 'No se pudo dejar rastro del cambio, así que no se cambia nada: ' + eTraza.message };
-
-    const { data, error } = await sb.from(tabla).update({ creado_por: nuevo }).eq('id', filaId).select('id').maybeSingle();
-    if (error || !data) {
-      await sb.from('correcciones_datos').insert({ ...traza, valor_anterior: nuevo, valor_nuevo: actual || null,
-        motivo: 'ANULA la corrección anterior: el update no se aplicó (' + ((error && error.message) || 'sin filas afectadas, probablemente la RLS') + ')' });
-      return { error: 'La base de datos rechazó el cambio: ' + ((error && error.message) || 'la RLS no dejó actualizar esta fila') };
-    }
+    const { error } = await sb.rpc('reasigna_autor', { p_tabla: tabla, p_fila: filaId, p_nuevo: nuevo, p_motivo: motivo.trim() });
+    if (error) return { error: 'No se ha cambiado nada: ' + error.message };
     return { ok: true };
   }
 
@@ -83,7 +76,7 @@
       abrir.disabled = false;
 
       const opciones = lista.filter(u => u.email !== actual)
-        .map(u => `<option value="${esc(u.email)}">${esc(u.nombre || u.email)}${u.activo ? '' : ' (desactivado)'}</option>`).join('');
+        .map(u => `<option value="${esc(u.email)}">${esc(u.nombre || u.email)}</option>`).join('');
 
       const caja = document.createElement('div');
       caja.className = 'lw-autoria-caja';

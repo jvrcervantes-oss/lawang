@@ -56,7 +56,6 @@
   var MONEDAS = [['EUR', 'EUR'], ['IDR', 'IDR'], ['USD', 'USD']];
   function pill(estado) { var e = ESTADO[estado] || [estado, '']; return '<span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide ' + e[1] + '">' + esc(T(e[0])) + '</span>'; }
   function estadoVisible(g, hoy) { return g.estado === 'pendiente' && g.vence_el && g.vence_el < hoy ? 'vencido' : g.estado; }
-  function limpiaNombre(n) { return String(n || 'fichero').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9._-]+/g, '_').slice(-80); }
 
   var sb, hoy = hoyLocal(), D = { gastos: [], proveedores: [], categorias: [], proyectos: [], cuentas: [], usuarios: {} };
   var catPorClave = {}, provPorId = {}, proyPorId = {};
@@ -242,12 +241,12 @@
   function subeJustificante(g, fichero) {
     if (!fichero) return Promise.resolve(null);
     if (fichero.size > 10 * 1024 * 1024) return Promise.resolve({ error: { message: T('El fichero pasa de 10 MB.') } });
-    var ruta = g.id + '/' + Date.now() + '_' + limpiaNombre(fichero.name);
-    return sb.storage.from('gastos').upload(ruta, fichero, { upsert: false, contentType: fichero.type || 'application/octet-stream' }).then(function (up) {
-      if (up.error) return { error: { message: T('No se pudo subir el justificante') + ': ' + up.error.message } };
-      // La entrada de la lista la construye el servidor, que comprueba que el fichero existe en la carpeta de ESTE gasto.
-      return sb.rpc('gasto_anade_justificante', { p_id: g.id, p_ruta: ruta, p_nombre: fichero.name }).then(function (r) { return rpcOk(r, T('No se pudo anotar el justificante')); });
-    });
+    /* Por el servidor (27-sep-2026, frontera bloque 4): la edge `ficheros` (clase gasto_justificante) comprueba
+       admin + gastos y que el gasto no esté anulado ANTES de firmar la subida, pone la ruta, lee los primeros bytes
+       y anota el justificante en la ficha; si algo falla, el fichero no se queda suelto. */
+    if (typeof window.lwFicheroSube !== 'function') return Promise.resolve({ error: { message: T('No se pudo subir el justificante') + ': guard.js' } });
+    return window.lwFicheroSube(sb, 'gasto_justificante', fichero, { gasto_id: g.id }).then(function () { return {}; },
+      function (e) { return { error: { message: T('No se pudo subir el justificante') + ': ' + ((e && e.message) || e) } }; });
   }
   function nuevoGasto() {
     var campos = camposGasto().concat([
