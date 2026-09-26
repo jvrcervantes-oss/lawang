@@ -4139,7 +4139,7 @@ async function anularFirmasYEditar(){
       /* Legal (consulta de deploy, 26-sep-2026): revocar una firma ya dada exige decir por qué,
          y queda en el registro de la firma; y el firmante se entera siempre. */
       + (firmadas.length
-          ? '<p style="margin-top:12px"><label style="display:block;font-size:13px">' + lwT('Por qué se anula (queda en el registro):')
+          ? '<p style="margin-top:12px"><label style="display:block;font-size:13px">' + lwT('Por qué se anula — se le envía al firmante en el aviso y queda en el registro:')
             + '<textarea id="anulJust" rows="3" style="width:100%;margin-top:6px"></textarea></label></p>'
           : '')
       + (nDest
