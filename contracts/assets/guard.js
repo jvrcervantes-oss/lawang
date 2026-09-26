@@ -114,7 +114,11 @@
   fija('lwKycSube', function (sb, clientId, f, tipoDoc, caduca) {
     var ext = (String(f.name).match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
     return window.lwKyc(sb, 'subida_url', { client_id: clientId, ext: ext }).then(function (u) {
-      return sb.storage.from('kyc').uploadToSignedUrl(u.path, u.token, f, { contentType: u.content_type }).then(function (up) {
+      /* Con un File, supabase-js manda el tipo QUE TRAE EL FICHERO e ignora `contentType` (storage-js,
+         uploadToSignedUrl): un HEIC llega sin tipo y el bucket lo rechazaría. Se sube una copia con el
+         tipo que ha decidido el servidor por la extensión. */
+      var conTipo = new File([f], f.name, { type: u.content_type });
+      return sb.storage.from('kyc').uploadToSignedUrl(u.path, u.token, conTipo, { contentType: u.content_type }).then(function (up) {
         if (up.error) throw up.error;
         return window.lwKyc(sb, 'registra', { client_id: clientId, path: u.path, doc_type: tipoDoc, caduca_el: caduca || null });
       });

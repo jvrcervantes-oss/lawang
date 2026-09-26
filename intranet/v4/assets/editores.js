@@ -7714,6 +7714,9 @@
             rep_cargo: v.tipo === 'empresa' ? (v.rep_cargo.trim() || null) : null,
             notes: v.notes.trim() || null
           };
+          // La ficha abierta desde el directorio no trae `notes`: mandarla vacía las borraría sin que nadie
+          // lo haya querido. cliente_guarda solo toca las claves que llegan.
+          if (!('notes' in c)) delete patch.notes;
           // Solo se avisa si el teléfono CAMBIA: una ficha antigua que ya lo compartía se sigue pudiendo editar sin preguntar cada vez.
           var telCambia = typeof telefonoDigitos === 'function' && telefonoDigitos(patch.phone) !== telefonoDigitos(c.phone);
           return (telCambia ? telefonoRepetidoSigue(patch.phone, c.id) : Promise.resolve(true)).then(function (sigue) {

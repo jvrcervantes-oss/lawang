@@ -6,7 +6,8 @@
 // la ruta que quisiera (así un agente podía apuntar su comprador al pasaporte de otro y leerlo) y borraba
 // cualquier fichero del bucket. Ahora:
 //   · la RUTA la decide esta función (`<client_id>/<uuid>.<ext>`) y la subida va por URL firmada, sin upsert;
-//   · al registrar se leen los primeros bytes del fichero subido: si no es lo que dice ser, se borra;
+//   · al registrar se leen los primeros bytes del fichero subido: si no es lo que dice ser, o no se puede
+//     registrar, se borra; el registro solo lo hace esta función (la RPC no la llama el navegador);
 //   · el permiso lo decide la base con la SESIÓN del usuario (RPC/RLS); el service role solo mueve bytes.
 //
 // Acciones (POST JSON, `accion`):
@@ -42,24 +43,9 @@ const corsFor = (req: Request) => {
 };
 
 const esUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
-// Extensión → content-type. El navegador suele mandar un HEIC sin tipo, y el bucket solo admite estos:
-// la pantalla sube con el que devuelve subida_url, no con el que ella crea.
-const TIPOS: Record<string, string> = {
-  '.pdf': 'application/pdf', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
-  '.webp': 'image/webp', '.heic': 'image/heic', '.heif': 'image/heif',
-};
-// ¿Los primeros bytes son de verdad lo que dice la extensión?
-function bytesCuadran(ext: string, b: Uint8Array): boolean {
-  const asc = (i: number, n: number) => new TextDecoder().decode(b.subarray(i, i + n));
-  switch (ext) {
-    case '.pdf': return asc(0, 5) === '%PDF-';
-    case '.jpg': case '.jpeg': return b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
-    case '.png': return b[0] === 0x89 && asc(1, 3) === 'PNG';
-    case '.webp': return asc(0, 4) === 'RIFF' && asc(8, 4) === 'WEBP';
-    case '.heic': case '.heif': return asc(4, 4) === 'ftyp';
-    default: return false;
-  }
-}
+// Tipos admitidos y comprobación de bytes: firma.mjs (función pura, con su test).
+import { TIPOS, bytesCuadran } from './firma.mjs';
+const TIPOS_: Record<string, string> = TIPOS;
 // Solo los primeros bytes, sin caché (la CDN de Storage puede servir una versión vieja ~60 s).
 async function cabecera(path: string): Promise<Uint8Array | null> {
   const r = await fetch(`${URL_SB}/storage/v1/object/authenticated/${BUCKET}/${path}?v=${crypto.randomUUID()}`, {
@@ -153,7 +139,7 @@ Deno.serve(async (req) => {
     // ── preparar la subida ───────────────────────────────────────────────
     if (accion === 'subida_url') {
       const ext = String(body.ext ?? '').toLowerCase();
-      const tipo = TIPOS[ext];
+      const tipo = TIPOS_[ext];
       if (!tipo) return json({ ok: false, error: 'tipo_de_fichero_no_admitido' }, 400);
       const path = `${clientId}/${crypto.randomUUID()}${ext}`;
       const { data, error } = await admin.storage.from(BUCKET).createSignedUploadUrl(path);
@@ -165,7 +151,7 @@ Deno.serve(async (req) => {
     if (accion === 'registra') {
       const path = String(body.path ?? '');
       const m = new RegExp('^' + clientId + '/[0-9a-f-]{36}(\\.[a-z]+)$', 'i').exec(path);
-      if (!m || !TIPOS[m[1].toLowerCase()]) return json({ ok: false, error: 'ruta_invalida' }, 400);
+      if (!m || !TIPOS_[m[1].toLowerCase()]) return json({ ok: false, error: 'ruta_invalida' }, 400);
       const cab = await cabecera(path);
       if (!cab) return json({ ok: false, error: 'el_fichero_no_ha_llegado' }, 409);
       if (!bytesCuadran(m[1].toLowerCase(), cab)) {
@@ -176,10 +162,18 @@ Deno.serve(async (req) => {
       }
       const caduca = body.caduca_el ? String(body.caduca_el) : null;
       if (caduca && !/^\d{4}-\d{2}-\d{2}$/.test(caduca)) return json({ ok: false, error: 'fecha_de_caducidad_invalida' }, 400);
-      const { data: id, error } = await usuario.rpc('documento_kyc_registra', {
-        p_client: clientId, p_path: path, p_tipo: String(body.doc_type ?? ''), p_caduca: caduca,
+      // Con service role y el usuario de la sesión: la RPC ya no la puede llamar el navegador, así que
+      // nadie registra un fichero sin pasar por la comprobación de bytes de aquí arriba. El permiso lo
+      // sigue decidiendo la base, como ese usuario.
+      const { data: id, error } = await admin.rpc('documento_kyc_registra', {
+        p_uid: quien.user.id, p_client: clientId, p_path: path, p_tipo: String(body.doc_type ?? ''), p_caduca: caduca,
       });
-      if (error) return errRpc(error);
+      if (error) {
+        // lo subido y no registrado no se queda suelto en el bucket
+        const { data: ya } = await admin.from('documents').select('id').eq('storage_path', path).maybeSingle();
+        if (!ya) await admin.storage.from(BUCKET).remove([path]);
+        return errRpc(error);
+      }
       return json({ ok: true, id });
     }
 
