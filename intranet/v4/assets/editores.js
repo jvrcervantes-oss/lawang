@@ -5000,7 +5000,8 @@
             if (cambia && !v.motivo.trim()) return { error: { message: 'para cambiar el importe escribe el motivo' } };
             var fila = { importe: importe, vence_el: v.vence_el || null, nota: v.nota.trim() || null };
             if (cambia) fila.motivo_ajuste = v.motivo.trim();
-            return sb.from('solicitudes_pago').update(fila).eq('id', x.id).select('id').then(unaFila);
+            // Por el servidor (frontera frontend/backend, 26-sep-2026): la RPC valida y el trigger decide.
+            return sb.rpc('solicitud_pago_guarda', { p_id: x.id, p_datos: fila }).then(function (r) { return r.error ? { error: r.error } : {}; });
           });
           return;
         }
@@ -5032,19 +5033,23 @@
             };
             if (ajena && cambiaImporte) fila.motivo_ajuste = v.motivo.trim();
             return (existente
-              ? sb.from('solicitudes_pago').update(fila).eq('id', existente.id)
-              : sb.from('solicitudes_pago').insert(fila)
-            ).select('id').then(unaFila);
+              ? sb.rpc('solicitud_pago_guarda', { p_id: existente.id, p_datos: fila })
+              : sb.rpc('solicitud_pago_guarda', { p_id: null, p_datos: fila })
+            ).then(function (r) { return r.error ? { error: r.error } : {}; });
           });
         });
       };
 
       /* ---------- aprobar / rechazar / anular / marcar pagada ----------
-         Cada una es un UPDATE directo de estado; el trigger decide si cuaja.
-         `.select('id')` + unaFila: la policy filtra sin dar error, 0 filas
-         seria un «guardado» mentiroso sobre nada. */
+         Por el servidor desde el 26-sep-2026 (frontera frontend/backend): la RPC
+         exige el permiso y el trigger de transicion decide si el paso cuaja; si no,
+         da error — ya no hay «0 filas» silenciosas que contar aqui. */
       function resolverSolicitud(x, cambio) {
-        return sb.from('solicitudes_pago').update(cambio).eq('id', x.id).select('id').then(unaFila);
+        return sb.rpc('solicitud_pago_resuelve', {
+          p_id: x.id, p_estado: cambio.estado,
+          p_motivo: cambio.motivo_rechazo || cambio.motivo_ajuste || null,
+          p_referencia: cambio.pago_referencia || null
+        }).then(function (r) { return r.error ? { error: r.error } : {}; });
       }
       window.LW_V4.aprobarSolicitud = function (x) {
         modal('Aprobar SP-' + x.numero, [
@@ -6922,7 +6927,8 @@
             { k: 'fecha', label: 'Fecha', tipo: 'date', ayuda: 'Vacía = vuelve a «Sin fecha».' },
             { tipo: 'nota', label: 'Solo contratos firmados y hitos aún sin facturar (uno facturado se corrige anulando y reemitiendo desde Facturas). El importe y la nota no se editan por pantalla (decisión del 15-sep-2026, igual que en la herramienta clásica).' }
           ], 'Guardar ajuste', function (v) {
-            return sb.from('contrato_vencimientos').update({ fecha: v.fecha || null, ajustado: true }).eq('id', v.id).select('id').then(unaFila);
+            // El servidor exige contrato firmado e hito sin facturar (antes solo lo filtraba esta pantalla).
+            return sb.rpc('vencimiento_ajusta_fecha', { p_id: v.id, p_fecha: v.fecha || null }).then(function (r) { return r.error ? { error: r.error } : {}; });
           });
         });
       });
