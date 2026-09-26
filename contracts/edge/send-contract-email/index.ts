@@ -107,8 +107,9 @@ Deno.serve(async (req) => {
     const html = String(body.html ?? '');
     const pdfManual = String(body.pdf_base64 ?? '');
     // ancla para el registro de envíos (correos_enviados): el que llama dice de
-    // qué contrato/factura sale el correo. Solo uuids válidos — cualquier otra
-    // cosa se ignora y el envío sigue: el log nunca puede vetar un correo.
+    // qué contrato/factura sale el correo. Solo uuids válidos. Desde el 27-sep (LAW-343)
+    // un envío SIN ancla se rechaza más abajo; un fallo al escribir el registro, en cambio,
+    // nunca veta un correo que ya salió (se devuelve `registrado:false`).
     const esUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
     const contratoId = esUuid(String(body.contrato_id ?? '')) ? String(body.contrato_id) : null;
     const facturaId  = esUuid(String(body.factura_id ?? ''))  ? String(body.factura_id)  : null;
@@ -165,7 +166,10 @@ Deno.serve(async (req) => {
         // adjunto y sin avisar sería peor que el 403 — el usuario creería que
         // el contrato salió y no salió nada.
         if (pdfManual) { pdfB64 = pdfManual; }
-        else return json({ ok: false, error: 'no_se_pudo_generar_el_pdf: ' + String((e as Error)?.message ?? e) }, 502);
+        else {
+          console.error('render: ' + String((e as Error)?.message ?? e));
+          return json({ ok: false, error: 'no_se_pudo_generar_el_pdf' }, 502);
+        }
       }
     } else {
       pdfB64 = pdfManual;
@@ -178,7 +182,11 @@ Deno.serve(async (req) => {
                                      : { to, subject, message, filename, pdf_base64: pdfB64 }),
     });
     const t = await r.text();
-    if (!r.ok || !t.includes('"ok":true')) return json({ ok: false, error: 'send_email: ' + t.slice(0, 300) }, 502);
+    // el detalle (puede llevar host o usuario SMTP) va al log del servidor, no al navegador
+    if (!r.ok || !t.includes('"ok":true')) {
+      console.error('send_email.php: ' + t.slice(0, 500));
+      return json({ ok: false, error: 'no_se_pudo_enviar_el_correo' }, 502);
+    }
 
     // Registro de envíos (correos_enviados): el correo YA salió — si el log
     // falla se anota en consola y se devuelve ok igualmente, porque devolver

@@ -287,7 +287,12 @@ Deno.serve(async (req) => {
       // panel puede quitar alguna, nunca añadir fuera de esta lista.
       const BASE_COMERCIAL = ['leads', 'contratos', 'compradores', 'reservas', 'comisiones_reparto'];
       const pedidas: string[] = Array.isArray(body.herramientas) ? body.herramientas.map(String) : BASE_COMERCIAL;
-      const herramientas = pedidas.filter((h) => BASE_COMERCIAL.includes(h));
+      // Un admin solo da lo que tiene (LAW-343, 27-sep-2026). Aquí se quita y se DEVUELVE en
+      // `herramientas_no_dadas` (no 403): la lista base la propone el sistema, no el admin, y la
+      // solicitud del comercial no debe quedarse atascada por una casilla que el admin no puede dar.
+      const mias = new Set((ficha.herramientas ?? []).map(String));
+      const herramientas_no_dadas = soySuper ? [] : pedidas.filter((h) => BASE_COMERCIAL.includes(h) && !mias.has(h));
+      const herramientas = pedidas.filter((h) => BASE_COMERCIAL.includes(h) && (soySuper || mias.has(h)));
       const tipos_contrato: string[] = (Array.isArray(body.tipos_contrato) ? body.tipos_contrato.map(String) : [])
         .filter((t: string) => TIPOS_CONTRATO.includes(t));
       // `tipos_contrato` vacío BLOQUEA a un agente (trigger contratos_tipo_permitido,
@@ -358,7 +363,7 @@ Deno.serve(async (req) => {
       } catch (e) {
         console.error('admin-usuarios activar: sin enlace/email para ' + email + ': ' + String((e as Error)?.message ?? e));
       }
-      return json({ ok: true, user_id: creado.user.id, email, email_enviado: emailEnviado });
+      return json({ ok: true, user_id: creado.user.id, email, email_enviado: emailEnviado, herramientas_no_dadas });
     }
 
     if (accion === 'descartar_solicitud') {

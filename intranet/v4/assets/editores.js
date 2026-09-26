@@ -7775,6 +7775,12 @@
       var esCrmAlta = function (p) { return (typeof LW_PERMISOS_CRM !== 'undefined') && LW_PERMISOS_CRM.indexOf(p[0]) !== -1; };
       var herrCrmAlta = (typeof LW_PERMISOS !== 'undefined') ? LW_PERMISOS.filter(esCrmAlta) : [];
       var herrRestoAlta = (typeof LW_PERMISOS !== 'undefined') ? LW_PERMISOS.filter(function (p) { return !esCrmAlta(p); }) : [];
+      /* Un admin solo da las herramientas que tiene (LAW-343, 27-sep-2026, lo exige admin-usuarios):
+         se ofrecen y se premarcan solo esas, en vez de dejar que el alta falle al guardar. */
+      var misHerrAlta = (aut.ficha && aut.ficha.rol === 'super_admin') ? null : ((aut.ficha && aut.ficha.herramientas) || []);
+      var puedoDarAlta = function (h) { return !misHerrAlta || misHerrAlta.indexOf(h) !== -1; };
+      herrCrmAlta = herrCrmAlta.filter(function (p) { return puedoDarAlta(p[0]); });
+      herrRestoAlta = herrRestoAlta.filter(function (p) { return puedoDarAlta(p[0]); });
       var tiposCatAlta = (typeof LW_TIPO_CONTRATO === 'object' && LW_TIPO_CONTRATO)
         ? Object.keys(LW_TIPO_CONTRATO).map(function (k) { return [k, LW_TIPO_CONTRATO[k]]; }) : [];
 
@@ -7814,7 +7820,8 @@
           { k: 'herr_crm', label: 'CRM de leads', tipo: 'multicheck', opciones: herrCrmAlta, valor: [],
             ayuda: 'Nunca preseleccionada: Leads abre datos de contacto de personas reales y se decide una a una, nunca de regalo con el rol.' },
           { k: 'herr_resto', label: 'Herramientas que verá', tipo: 'multicheck', opciones: herrRestoAlta,
-            valor: (typeof LW_HERR_POR_ROL === 'object' && LW_HERR_POR_ROL[rolInicial]) || [], ayuda: 'Preselección según el rol elegido arriba — editable.' },
+            valor: ((typeof LW_HERR_POR_ROL === 'object' && LW_HERR_POR_ROL[rolInicial]) || []).filter(puedoDarAlta),
+            ayuda: 'Preselección según el rol elegido arriba — editable. Solo aparecen las herramientas que tienes tú.' },
           { k: 'tipos_contrato', label: 'Contratos que puede hacer', tipo: 'multicheck', opciones: tiposCatAlta,
             valor: (typeof LW_TIPOS_POR_ROL === 'object' && LW_TIPOS_POR_ROL[rolInicial]) || [], ayuda: 'Preselección según el rol — vacío marcado del todo equivale a "todos".' }
         ], 'Crear usuario', function (v) {
@@ -7846,7 +7853,7 @@
             }).then(function (resp) {
               return resp.json().catch(function () { return { error: 'respuesta ilegible del servidor' }; });
             }).then(function (d) {
-              if (!d || !d.ok) return { error: { message: (d && d.error) || 'no se pudo crear' } };
+              if (!d || !d.ok) return { error: { message: ((d && d.error) || 'no se pudo crear') + (d && Array.isArray(d.detalle) && d.detalle.length ? ': ' + d.detalle.join(', ') : '') } };
               // Confirmación en los DOS sentidos (17-sep-2026 en la clásica,
               // misma regla aquí): el éxito también habla, no solo el fallo —
               // sin esto quien da de alta no sabe si el correo salió o no.
