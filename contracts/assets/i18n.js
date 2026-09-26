@@ -929,8 +929,9 @@
     'Con un': 'At',
     'Importe al mes': 'Amount per month',
     'La cuota de cada mes, aparte del porcentaje': 'The monthly fee, on top of the percentage',
-    'Cada mes el panel apunta en el libro una línea «Fee» por sociedad, con su estado de cobro como cualquier otra. Para cambiar el fee se da de alta otro con su fecha; con importe 0 se deja de cobrar.':
-      'Every month the panel records a «Fee» line per company in the ledger, with its own payment status like any other. To change the fee, add a new one with its date; an amount of 0 stops charging it.',
+    'Puede haber varios a la vez, cada uno con su concepto y su beneficiario. Cada mes el panel apunta en el libro una línea por fee, con su estado de cobro como cualquier otra. «Cambiar» guarda el importe nuevo desde una fecha; con 0 se deja de cobrar.':
+      'There can be several at once, each with its own concept and beneficiary. Every month the panel records one ledger line per fee, with its own payment status like any other. «Change» saves the new amount from a date; 0 stops charging it.',
+    'Concepto': 'Concept',
     'Trayendo los fees…': 'Loading the fees…',
     'Tarifa vigente': 'Current rate',
     'Devengado este mes': 'Accrued this month',

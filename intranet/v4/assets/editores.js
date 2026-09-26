@@ -8511,8 +8511,9 @@
           }
           var vig = (window.LW_V4 && window.LW_V4.caFeesVigentes) || {};
           var ya = Object.keys(vig).filter(function (k) { return Number(vig[k].importe) > 0; });
-          var etq = {}; r.data.forEach(function (s) { etq[s.clave] = s.label; });
-          modal('Fee fijo mensual', [
+          modal('Nuevo fee fijo', [
+            { k: 'concepto', label: 'Concepto', req: 1, ayuda: 'p. ej. «Salario», «Gestión»' },
+            { k: 'beneficiario', label: 'Para quién', ayuda: 'opcional: de quién es este fee' },
             { k: 'sociedad', label: 'Sociedad a la que se le cobra', tipo: 'select', req: 1, valor: '',
               opciones: [['', '— elige —']].concat(r.data.map(function (s) { return [s.clave, s.label]; })) },
             { k: 'importe', label: 'Importe al mes', tipo: 'number', paso: '0.01', req: 1, medio: 1,
@@ -8523,22 +8524,53 @@
               valor: new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Makassar' }) },
             { k: 'nota', label: 'Nota' },
             { tipo: 'nota', label: (ya.length
-                ? 'Ahora mismo hay fee en ' + ya.map(function (k) { return vig[k].importe + ' ' + vig[k].moneda + ' a ' + (etq[k] || k); }).join(', ') + '. '
+                ? 'Esto AÑADE un fee más; los ' + ya.length + ' vigentes siguen igual. Para cambiar el importe de uno, usa «Cambiar» en su fila. '
                 : 'Todavía no hay ningún fee. ') +
               'Se cobra el mes ENTERO, sin prorratear: el fee de un mes es el que rige el último día de ese mes. ' +
               'Una fecha hacia atrás crea también los meses pasados, como pendientes. Si un mes ya estaba facturado o cobrado, no se toca: se marca para revisar.' }
           ], 'Guardar fee', function (v) {
             var imp = Number(String(v.importe).replace(',', '.'));
+            if (!(v.concepto || '').trim()) return { error: { message: 'Ponle un concepto: es lo que distingue este fee de los demás.' } };
             if (!v.sociedad) return { error: { message: 'Elige la sociedad: cada una es un deudor distinto y se le factura por separado.' } };
             if (!(imp >= 0)) return { error: { message: 'El importe tiene que ser un número igual o mayor que 0.' } };
-            // `creado_por` lo pone la base (default auth.email()): mandarlo null lo rompía
+            // `creado_por` lo pone la base (default auth.email()): mandarlo null lo rompía.
+            // Sin serie_id: la base le da una nueva, así que es un fee aparte.
             return sb.from('comision_admin_fees').insert({
+              concepto: v.concepto.trim(), beneficiario: (v.beneficiario || '').trim() || null,
               sociedad: v.sociedad, importe: imp, moneda: v.moneda || 'EUR',
               efectivo_desde: v.efectivo_desde, nota: (v.nota || '').trim() || null
             }).select('id').single();
           });
         });
       });
+
+      // ── Cambiar un fee que ya existe (misma serie) ──────────────────────────
+      /* Fila nueva con el MISMO serie_id: la base le copia sociedad, concepto y
+         beneficiario de la serie (disparador), asi que aqui solo se pide lo que
+         cambia. Lo anterior no se borra: queda como historico en la tabla. */
+      window.LW_V4.abreCambiaFeeComisionAdmin = function (btn) {
+        if (!superAdmin) return soloSuper();
+        var f = (window.LW_V4.caFeePorId || {})[btn.getAttribute('data-lw-ca-fee')];
+        if (!f) return aviso('No encuentro ese fee en la pantalla. Recarga y prueba otra vez.', '#9E2F26');
+        modal('Cambiar fee: ' + f.concepto, [
+          { k: 'importe', label: 'Importe al mes', tipo: 'number', paso: '0.01', req: 1, medio: 1, valor: Number(f.importe),
+            ayuda: 'bruto. 0 = dejar de cobrarlo' },
+          { k: 'moneda', label: 'Moneda', tipo: 'select', req: 1, medio: 1, valor: f.moneda, opciones: ['EUR', 'USD', 'IDR'] },
+          { k: 'efectivo_desde', label: 'Rige desde', tipo: 'date', req: 1, medio: 1,
+            valor: new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Makassar' }) },
+          { k: 'nota', label: 'Por qué cambia' },
+          { tipo: 'nota', label: f.concepto + (f.beneficiario ? ' · ' + f.beneficiario : '') + '. Ahora: ' + f.importe + ' ' + f.moneda +
+              ' desde el ' + f.efectivo_desde + '. Lo anterior no se borra. Si el mes ya estaba facturado o cobrado no se toca: se marca para revisar.' }
+        ], 'Guardar cambio', function (v) {
+          var imp = Number(String(v.importe).replace(',', '.'));
+          if (!(imp >= 0)) return { error: { message: 'El importe tiene que ser un número igual o mayor que 0.' } };
+          return sb.from('comision_admin_fees').insert({
+            serie_id: f.serie_id, concepto: f.concepto, sociedad: f.sociedad,
+            importe: imp, moneda: v.moneda || f.moneda, efectivo_desde: v.efectivo_desde,
+            nota: (v.nota || '').trim() || null
+          }).select('id').single();
+        });
+      };
 
       // ── Editar una tarifa que ya existe ─────────────────────────────────────
       window.LW_V4.abreEditaTarifaComisionAdmin = function (btn) {
