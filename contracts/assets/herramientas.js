@@ -346,6 +346,21 @@ const LW_HERRAMIENTAS = [
 
 ];
 
+/* PRODUCTOS (AxisWorks ERP, 26-sep-2026 — encargos/20260926_estudio_erp_clientes_contratos_productos.md,
+   subtarea 3). Catálogo de lo que se factura por líneas. SOLO existe donde el build de la instancia enciende
+   `window.AXW_NUCLEO_OPERACION` (lo antepone a guard.js, que carga síncrono antes que este fichero en la v4):
+   la base de Lawang no tiene la tabla `productos`, y una tarjeta o una casilla de permiso que llevara a una
+   pantalla sin tabla sería un error rojo. Sin la bandera no se añade NADA — ni tarjeta en el hub, ni entrada en
+   el menú clásico, ni casilla en Usuarios (LW_PERMISOS se deriva de este array más abajo). Va detrás de Recibos:
+   es de lo que se hace una factura. Permiso propio: leer lo lee cualquiera con sesión (la factura lo lista),
+   escribir lo decide la RLS (es_admin()). */
+if (typeof window !== 'undefined' && window.AXW_NUCLEO_OPERACION) {
+  LW_HERRAMIENTAS.splice(LW_HERRAMIENTAS.findIndex(t => t.herr === 'recibos') + 1, 0,
+    { grupo:'Finanzas', nombre:'Productos', icon:'ph-package', href:'/intranet/v4/productos/', herr:'productos',
+      para:'El catálogo de productos y servicios que se facturan por líneas, con su precio y su impuesto por defecto.',
+      claves:'productos servicios catalogo articulos precio tarifa referencia unidad impuesto products services catalogue items price rate reference unit tax' });
+}
+
 /* Quién ve qué. `soloAdmin` es la puerta dura; si no, basta con tener la
    herramienta en la ficha. Un admin lo ve todo, y una herramienta sin `herr`
    declarado es de todos. Se acepta la ficha por parámetro (y no una global)

@@ -254,7 +254,11 @@
     { path: 'comisiones', tras: 'recibos',  icono: 'request_quote',  texto: 'Comisiones' },
     /* Reservas por vencer (23-sep-2026, owner, alta prioridad): Cartas de
        Reserva vivas y cuándo vencen. En Seguimiento, tras Vencimientos. */
-    { path: 'reservas',   tras: 'vencimientos', icono: 'event_upcoming', texto: 'Reservas' }
+    { path: 'reservas',   tras: 'vencimientos', icono: 'event_upcoming', texto: 'Reservas' },
+    /* Productos (AxisWorks ERP, 26-sep-2026): catálogo de lo que se factura por líneas. `nucleo`: SOLO con
+       `window.AXW_NUCLEO_OPERACION` (la enciende el build de las instancias del ERP) — la base de Lawang no
+       tiene la tabla y el enlace llevaría a una pantalla vacía. Tras Recibos; ORDEN_FINANZAS la deja ahí. */
+    { path: 'productos',  tras: 'recibos',  icono: 'inventory_2',    texto: 'Productos', nucleo: true }
   ];
 
   /* "Panel de control" (15-sep-2026, encargo del owner): seccion nueva del
@@ -354,7 +358,7 @@
     contratos: 'contratos', asistente: 'asistente', 'asistente-correos': 'asistente', creatividades: ['dossier', 'creatividades', 'creatividades_ver'],
     facturas: 'facturas', recibos: 'recibos', comisiones: ['comisiones', 'comisiones_reparto', 'comisiones_condiciones', 'comisiones_equipos'], reservas: 'reservas', reparto: 'comisiones_reparto', condiciones: 'comisiones_condiciones', 'equipos-venta': 'comisiones_equipos',
     proyectos: 'unidades', modelos: 'modelos', obra: 'obra', compradores: 'compradores',
-    usuarios: 'usuarios', cuentas: 'cuentas', gastos: 'gastos', bancos: 'bancos'
+    usuarios: 'usuarios', cuentas: 'cuentas', gastos: 'gastos', bancos: 'bancos', productos: 'productos'
   };
   function puedeVer(path, ficha) {
     var k = CLAVE_MENU[path];
@@ -468,7 +472,7 @@
      Se llama en el pase síncrono DESPUÉS de injertaNuevas (Reservas se injerta
      `tras: 'vencimientos'`: moverla antes la metería en Finanzas) y ANTES de
      traduceSidebar (la cabecera nueva tiene que pasar por T). */
-  var ORDEN_FINANZAS = ['finanzas', 'vencimientos', 'facturas', 'recibos', 'comisiones', 'gastos', 'bancos', 'cuentas', 'sociedades'];
+  var ORDEN_FINANZAS = ['finanzas', 'vencimientos', 'facturas', 'recibos', 'productos', 'comisiones', 'gastos', 'bancos', 'cuentas', 'sociedades'];
   function ordenaFinanzas(aside) {
     var g = aside.querySelector('[data-seccion="finanzas"]');
     if (!g) {
@@ -516,7 +520,7 @@
 
   function injertaNuevas(aside) {
     injerta(aside, { path: 'modelos', tras: 'proyectos', icono: 'villa', texto: 'Modelos' });
-    INJERTOS.forEach(function (spec) { injerta(aside, spec); });
+    INJERTOS.forEach(function (spec) { if (!spec.nucleo || window.AXW_NUCLEO_OPERACION) injerta(aside, spec); });
   }
 
   /* Rol de la sesion -> se enteran solo cuando `window.LW_AUTH` resuelve, que
