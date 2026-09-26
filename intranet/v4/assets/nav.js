@@ -690,11 +690,13 @@
       if (caja) { cierra(); return; }
       caja = document.createElement('div');
       caja.style.cssText = 'position:fixed;top:60px;right:24px;z-index:var(--z-modal,400);width:300px;max-width:calc(100vw - 32px);' +
-        'background:#fff;border:1px solid #c5c8bc;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:10px;font-family:\'Neue Kabel\',sans-serif';
+        'background:#fff;border:1px solid #E7E4DC;border-radius:12px;box-shadow:0 18px 40px -12px rgba(30,37,34,.22),0 2px 6px rgba(30,37,34,.06);padding:8px;font-family:Jost,system-ui,sans-serif';   // piel del desplegable del alta (26-sep-2026)
       var inp = document.createElement('input');
       inp.type = 'search'; inp.placeholder = T('Buscar herramienta…');
       inp.setAttribute('aria-label', T('Buscar herramienta'));
-      inp.style.cssText = 'width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #c5c8bc;border-radius:8px;font:inherit;font-size:14px';
+      inp.style.cssText = 'width:100%;box-sizing:border-box;padding:10px 14px;border:1px solid #E7E4DC;border-radius:8px;font:400 14px/1.43 Jost,system-ui,sans-serif;color:#1c1917;background:rgba(250,250,249,.5);outline:none';
+      inp.addEventListener('focus', function () { inp.style.borderColor = '#104C4F'; inp.style.boxShadow = '0 0 0 2px #104C4F'; inp.style.background = '#fff'; });
+      inp.addEventListener('blur', function () { inp.style.borderColor = '#E7E4DC'; inp.style.boxShadow = 'none'; inp.style.background = 'rgba(250,250,249,.5)'; });
       var lista = document.createElement('div');
       lista.style.cssText = 'display:grid;gap:2px;margin-top:8px;max-height:60vh;overflow-y:auto';
       caja.appendChild(inp); caja.appendChild(lista);
@@ -704,13 +706,13 @@
         var hay = enlaces().filter(function (a) { return !q || sinTildes(nombre(a)).indexOf(q) !== -1; });
         if (!hay.length) {
           var p = document.createElement('p'); p.textContent = T('Ninguna herramienta con ese nombre.');
-          p.style.cssText = 'margin:4px 6px;font-size:13px;color:#8A8474'; lista.appendChild(p); return;
+          p.style.cssText = 'margin:6px 8px;font:400 13px Jost,system-ui,sans-serif;color:#a8a29e;font-style:italic'; lista.appendChild(p); return;
         }
         hay.forEach(function (a) {
           var o = document.createElement('a');
           o.href = a.href; o.textContent = nombre(a);
-          o.style.cssText = 'display:block;padding:7px 10px;border-radius:8px;color:#1b1c19;text-decoration:none;font-size:14px';
-          o.addEventListener('mouseenter', function () { o.style.background = '#f5f4ee'; });
+          o.style.cssText = 'display:block;padding:9px 12px;border-radius:8px;color:#292524;text-decoration:none;font:500 14px/1.35 Jost,system-ui,sans-serif';
+          o.addEventListener('mouseenter', function () { o.style.background = '#F3F0E8'; });
           o.addEventListener('mouseleave', function () { o.style.background = ''; });
           lista.appendChild(o);
         });

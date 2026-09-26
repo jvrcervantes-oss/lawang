@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&display=swap');
 /* ═══════════════════════════════════════════════════════════════════════════
    suite-v4-generador.css — la cara v4 del generador de contratos (23-sep-2026)
    ═══════════════════════════════════════════════════════════════════════════
@@ -305,3 +306,29 @@ html.v4 .field input:focus, html.v4 .field textarea:focus, html.v4 .field select
   html.v4 .lw4-barra .lw4-tb::before{ font-size:20px; }
   html.v4 .lang-hint{ display:none; }
 }
+
+/* ── VENTANAS (.cp-modal) con la piel del alta — 26-sep-2026, owner ─────────
+   Solo en la v4 y fuera del modo listado (#cpOverlay a pantalla completa).
+   La letra del generador sigue siendo Neue Kabel (decisión del 23-sep); estas
+   ventanas usan Jost como el resto de diálogos de la v4. Mismos valores que
+   las-* de editores.js: cabecera blanca con barra, cuerpo crema, campos .las-in,
+   botón principal pastilla, «Cerrar» redondo. */
+html.v4 body:not(.modo-listado) .cp-overlay{ background:rgba(12,10,9,.45); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); }
+html.v4 body:not(.modo-listado) .cp-modal{ border-radius:16px; border:1px solid #E7E4DC; background:#FBF9F4; box-shadow:0 25px 50px -12px rgba(0,0,0,.25); font-family:Jost,system-ui,sans-serif; }
+html.v4 body:not(.modo-listado) .cp-head{ background:#fff; border-bottom:1px solid #E7E4DC; padding:18px 24px; gap:14px; }
+html.v4 body:not(.modo-listado) .cp-head b{ position:relative; padding-left:24px; font:600 20px/1.25 Jost,system-ui,sans-serif; letter-spacing:-.01em; text-transform:none; color:#1E2522; }
+html.v4 body:not(.modo-listado) .cp-head b::before{ content:""; position:absolute; left:0; top:50%; width:10px; height:28px; margin-top:-14px; border-radius:9999px; background:#104C4F; }
+html.v4 body:not(.modo-listado) .cp-head .tb-link{ padding:8px 18px; border-radius:9999px; border:1px solid #E7E4DC; background:#fff; color:#44403c; font:500 13px Jost,system-ui,sans-serif; text-decoration:none; box-shadow:0 1px 2px rgba(0,0,0,.05); }
+html.v4 body:not(.modo-listado) .cp-head .tb-link:hover{ background:#fafaf9; }
+html.v4 body:not(.modo-listado) .em-body{ padding:20px 24px 24px; gap:16px; }
+html.v4 body:not(.modo-listado) .em-note{ font:400 13.5px/1.55 Jost,system-ui,sans-serif; color:#57534e; }
+html.v4 body:not(.modo-listado) .em-body label{ font:700 12px/1.4 Jost,system-ui,sans-serif; letter-spacing:.05em; color:#44403c; gap:6px; }
+html.v4 body:not(.modo-listado) .em-body input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+html.v4 body:not(.modo-listado) .em-body textarea,
+html.v4 body:not(.modo-listado) .cp-modal .sui-buscar{ padding:10px 14px; border:1px solid #E7E4DC; border-radius:8px; background:rgba(250,250,249,.5); font:400 14px/1.43 Jost,system-ui,sans-serif; color:#1c1917; }
+html.v4 body:not(.modo-listado) .em-body input:focus,
+html.v4 body:not(.modo-listado) .em-body textarea:focus,
+html.v4 body:not(.modo-listado) .cp-modal .sui-buscar:focus{ outline:none; background:#fff; border-color:#104C4F; box-shadow:0 0 0 2px #104C4F; }
+html.v4 body:not(.modo-listado) .cp-modal .btn{ justify-content:center; text-align:center; border-radius:9999px; font:500 14px Jost,system-ui,sans-serif; padding:10px 24px; box-shadow:0 1px 2px rgba(0,0,0,.05); }
+html.v4 body:not(.modo-listado) .cp-modal .btn.primary{ background:#104C4F; border-color:#104C4F; color:#fff; letter-spacing:.025em; }
+html.v4 body:not(.modo-listado) .cp-modal .btn.primary:hover:not(:disabled){ background:#0B3638; }
