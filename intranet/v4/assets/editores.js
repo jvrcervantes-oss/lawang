@@ -3875,13 +3875,17 @@
                puesta de cuando tenía contrato haría que la policy no mirase si el cliente es visible.
                Solo con la bandera: en Lawang la columna no existe. */
             if (sinContrato && window.AXW_NUCLEO_OPERACION) payload.operacion_id = null;
-            var q = existente
-              ? sb.from('facturas').update(payload).eq('id', existente.id).select('id,numero').single()
-              : sb.from('facturas').insert(payload).select('id,numero').single();
+            /* Por el servidor (frontera frontend/backend, 26-sep-2026, LAW-336): la RPC
+               comprueba el permiso (y que el contrato sea visible), RECALCULA el total desde
+               las líneas y rechaza si no coincide con el que se ve aquí. `total` viaja solo
+               para esa comparación. */
+            var q = sb.rpc('factura_guarda', { p_id: existente ? existente.id : null, p_factura: payload });
             return q.then(function (res) {
               if (res.error) return { error: res.error };
-              toast((existente ? 'Actualizada como ' : 'Guardada como ') + res.data.numero);
-              abreDocumentoViewerDoc(res.data.id, function () { location.reload(); });
+              var fila = Array.isArray(res.data) ? res.data[0] : res.data;
+              if (!fila || !fila.id) return { error: { message: 'El servidor no ha devuelto el documento guardado.' } };
+              toast((existente ? 'Actualizada como ' : 'Guardada como ') + fila.numero);
+              abreDocumentoViewerDoc(fila.id, function () { location.reload(); });
               return {};
             });
           /* `ancho:'100vw'` (22-sep-2026, owner): el editor de factura ocupa la

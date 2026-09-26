@@ -1701,8 +1701,9 @@
     if (avisoPeriodo) cuerpo += '<p>La fecha de emisión cae en un periodo fiscal ya transcurrido (PPN mensual / LKPM trimestral puede estar ya declarado): conviene avisarlo a Administración.</p>';
     lwConfirmar({ titulo: 'Anular ' + (f0.numero || 'el documento'), cuerpo: cuerpo, confirmar: 'Anular', tono: 'peligro' }).then(function (ok) {
       if (!ok) return;
-      sb.from('facturas').update({ anulada: true }).eq('id', f0.id).select('id').then(function (r) {
-        var u = (window.LW_V4 && window.LW_V4.unaFila) ? window.LW_V4.unaFila(r) : r;
+      // Por el servidor (frontera frontend/backend, 26-sep-2026): la RPC comprueba el
+      // permiso y da error si no anula nada — ya no hace falta contar filas aquí.
+      sb.rpc('factura_anula', { p_id: f0.id }).then(function (u) {
         if (u.error) { toastMal(lwErrorHumano(u.error, 'No se pudo anular')); return; }
         toast('Documento anulado');
         if (window.lwCierraCajon) window.lwCierraCajon();
@@ -1720,8 +1721,7 @@
       cuerpo: '<p>Vuelve a estar activa con su mismo número, como si no se hubiera anulado. Queda registrado quién la reactivó.</p>',
       confirmar: 'Reactivar' }).then(function (ok) {
       if (!ok) return;
-      sb.from('facturas').update({ anulada: false }).eq('id', f0.id).select('id').then(function (r) {
-        var u = (window.LW_V4 && window.LW_V4.unaFila) ? window.LW_V4.unaFila(r) : r;
+      sb.rpc('factura_reactiva', { p_id: f0.id }).then(function (u) {
         if (u.error) { toastMal(lwErrorHumano(u.error, 'No se pudo reactivar')); return; }
         toast('Documento reactivado');
         if (window.lwCierraCajon) window.lwCierraCajon();
@@ -1737,8 +1737,7 @@
       confirmar: 'Borrar de todos modos', cancelar: 'Mejor anularla', tono: 'peligro'
     }).then(function (ok) {
       if (!ok) return;
-      sb.from('facturas').delete().eq('id', f0.id).select('id').then(function (r) {
-        var u = (window.LW_V4 && window.LW_V4.unaFila) ? window.LW_V4.unaFila(r) : r;
+      sb.rpc('factura_borra', { p_id: f0.id }).then(function (u) {
         if (u.error) { toastMal(lwErrorHumano(u.error, 'No se pudo borrar')); return; }
         toast('Documento borrado');
         if (window.lwCierraCajon) window.lwCierraCajon();

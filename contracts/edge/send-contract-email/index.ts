@@ -178,17 +178,16 @@ Deno.serve(async (req) => {
     // para plazos y reclamaciones de cobro, y un reenvío no la mueve. Por eso el update
     // solo toca facturas aún sin enviar, y un reenvío (0 filas) que encuentra la factura
     // ya marcada cuenta como marcada.
+    // Desde el 26-sep-2026 (frontera frontend/backend, LAW-336) la marca va por la RPC
+    // `factura_marca_enviada`: `authenticated` deja de poder escribir en `facturas`
+    // directamente, y un update con la sesión del usuario dejaría de marcar SIN que nadie
+    // lo notara (rev. previa #119, Datos). La RPC aplica la misma regla de edición, no
+    // mueve la fecha de un reenvío y devuelve true si la factura queda marcada.
     let marcada: boolean | undefined;
     if (facturaId) {
-      const { data: m, error: eM } = await usuario.from('facturas')
-        .update({ enviada: true, fecha_envio: new Date().toISOString() })
-        .eq('id', facturaId).eq('enviada', false).select('id');
-      marcada = !eM && (m?.length ?? 0) === 1;
-      if (!eM && !marcada) {
-        const { data: ya } = await usuario.from('facturas').select('enviada').eq('id', facturaId).maybeSingle();
-        marcada = ya?.enviada === true;
-      }
-      if (!marcada) console.error('factura ' + facturaId + ' enviada pero SIN marcar: ' + (eM?.message ?? '0 filas'));
+      const { data: m, error: eM } = await usuario.rpc('factura_marca_enviada', { p_id: facturaId });
+      marcada = !eM && m === true;
+      if (!marcada) console.error('factura ' + facturaId + ' enviada pero SIN marcar: ' + (eM?.message ?? 'la RPC devolvió ' + String(m)));
     }
     return json({ ok: true, marcada });
   } catch (e) {

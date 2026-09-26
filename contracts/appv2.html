@@ -4598,7 +4598,9 @@ async function crearProformaAutomatica(contratoId, numero, payload){
   const sociedad = lwSociedadContrato(socElegida, payload.tipo);
   const moneda = payload.moneda || 'EUR';
   try{
-    const { error } = await sb.from('facturas').insert({
+    /* Por el servidor (frontera frontend/backend, 26-sep-2026, LAW-336): la RPC comprueba
+       el permiso y que el contrato sea visible, y recalcula el total desde la línea. */
+    const { error } = await sb.rpc('factura_guarda', { p_id: null, p_factura: {
       tipo:'proforma', sociedad, moneda,
       cliente_nombre: payload.comprador_nombre || null,
       proyecto_nombre: payload.proyecto_nombre || null,
@@ -4610,7 +4612,7 @@ async function crearProformaAutomatica(contratoId, numero, payload){
                           fecha_emision: hoyLocalISO(),
                           notas: 'Total del proyecto contratado en ' + numero + '. Documento informativo, sin validez fiscal.' },
                lineas: [{ descripcion:'Total del proyecto', importe:String(precio) }] },
-    });
+    } });
     if(error) throw error;
   }catch(e){
     console.error('proforma automática no creada para', numero, ':', e.message || e);

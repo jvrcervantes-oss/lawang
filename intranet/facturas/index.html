@@ -2606,10 +2606,16 @@ $('#btnSave').onclick = async () => {
       if(error) throw error;
       data = rpcData;
     }else{
-      const q = (SAVED && SAVED.id)
-        ? sb.from('facturas').update(payload()).eq('id', SAVED.id).select('id,numero,datos').single()
-        : sb.from('facturas').insert(payload()).select('id,numero,datos').single();
-      const r = await q;
+      /* Por el servidor (frontera frontend/backend, 26-sep-2026, LAW-336): la RPC
+         comprueba el permiso y que el contrato sea visible, RECALCULA el total desde las
+         líneas y rechaza si no coincide con el de esta pantalla. Devuelve id y número;
+         `datos` (con el emisor que congela la base) se lee después — leer sigue siendo
+         de la pantalla. */
+      const g = await sb.rpc('factura_guarda', { p_id: (SAVED && SAVED.id) || null, p_factura: payload() });
+      if(g.error) throw g.error;
+      const guardada = Array.isArray(g.data) ? g.data[0] : g.data;
+      if(!guardada || !guardada.id) throw new Error(lwT('El servidor no ha devuelto el documento guardado'));
+      const r = await sb.from('facturas').select('id,numero,datos').eq('id', guardada.id).single();
       if(r.error) throw r.error;
       data = r.data;
     }
@@ -3128,12 +3134,10 @@ function pintarListado(){
         cuerpo:'<p>' + lwT('El número') + ' <b>' + lwT('no se reutiliza') + '</b> ' + lwT('y ya no se podrá editar.') + '</p>'
              + '<p>' + lwT('La factura se queda en el registro marcada como anulada, así que el rastro no se pierde.') + '</p>',
         confirmar:'Anular la factura', tono:'peligro' })) return;
-      const { data: fue, error } = await sb.from('facturas').update({ anulada:true }).eq('id', an.dataset.anular).select('id');
-      // mismo patrón que el borrar de aquí abajo (auditoría 19-ago): la RLS no
-      // da error al denegar, devuelve CERO filas — sin mirarlas, esto decía
-      // «Factura anulada» y la factura seguía viva
+      // Por el servidor (26-sep-2026): la RPC da error si no puede anular, en vez de
+      // devolver cero filas en silencio como hacía la RLS (auditoría 19-ago).
+      const { error } = await sb.rpc('factura_anula', { p_id: an.dataset.anular });
       if(error) toastMal(lwT('No se pudo anular: ') + error.message);
-      else if(!fue || !fue.length) toastMal(lwT('No se pudo anular: no es tuya o ya está anulada'));
       else toast(lwT('Factura anulada'));
       recargarListado(); return;
     }
@@ -3149,11 +3153,10 @@ function pintarListado(){
         cuerpo:'<p>' + lwT('Lo normal es') + ' <b>anularla</b>' + lwT(': así queda el rastro y la serie no pierde un número.') + '</p>'
              + '<p>' + lwT('Borrarla deja un') + ' <b>' + lwT('hueco en la numeración') + '</b> ' + lwT('que habrá que explicarle a un contable. No hay papelera.') + '</p>',
         confirmar:'Borrar de todos modos', cancelar:'Mejor anularla', tono:'peligro' })) return;
-      const { data: fue, error } = await sb.from('facturas').delete().eq('id', bo.dataset.borrar).select('id');
-      // La RLS no da error al denegar: devuelve cero filas. Sin comprobarlo, la
-      // herramienta diría "borrada" y la factura seguiría ahí.
+      // Por el servidor (26-sep-2026): la RPC aplica la regla de borrado y da error si
+      // no borra, en vez de las cero filas silenciosas de la RLS.
+      const { error } = await sb.rpc('factura_borra', { p_id: bo.dataset.borrar });
       if(error) toastMal(lwT('No se pudo borrar: ') + error.message);
-      else if(!fue || !fue.length) toastMal(lwT('No tienes permiso para borrar facturas'));
       else { toast(lwT('Factura borrada')); if(SAVED && SAVED.id === bo.dataset.borrar) SAVED = null; }
       recargarListado(); return;
     }
