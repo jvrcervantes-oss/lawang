@@ -643,7 +643,7 @@ Deno.serve(async (req) => {
     // Lectura SIN caché (consulta de deploy C+D, Desarrollo): la CDN de Storage puede servir la versión
     // anterior del documento hasta ~60 s tras reescribirlo, y el hash no cuadraría con el enlace nuevo.
     const rDoc = await fetch(`${Deno.env.get('SUPABASE_URL')}/storage/v1/object/authenticated/contratos-firmados/${claimed.snapshot_path}?v=${crypto.randomUUID()}`,
-      { headers: { Authorization: 'Bearer ' + Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'), 'cache-control': 'no-cache' } });
+      { headers: { Authorization: 'Bearer ' + Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'), apikey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, 'cache-control': 'no-cache' } });
     if (!rDoc.ok) throw new Error('snapshot no disponible');
     let html = await rDoc.text();
 

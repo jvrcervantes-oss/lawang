@@ -57,7 +57,7 @@ const EXT_JUSTIF = ['.pdf', '.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif'];
 // reescritura, y un hash calculado sobre esa versión rompería el enlace (consulta C+D, Desarrollo).
 async function leeFresco(bucket: string, path: string): Promise<Response> {
   return await fetch(`${URL_SB}/storage/v1/object/authenticated/${bucket}/${path}?v=${crypto.randomUUID()}`,
-    { headers: { Authorization: 'Bearer ' + SERVICE, 'cache-control': 'no-cache' } });
+    { headers: { Authorization: 'Bearer ' + SERVICE, apikey: SERVICE, 'cache-control': 'no-cache' } });
 }
 
 Deno.serve(async (req) => {

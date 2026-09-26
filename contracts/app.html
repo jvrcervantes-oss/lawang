@@ -4890,7 +4890,8 @@ async function guardarContrato(){
     /* Por el servidor desde el 26-sep-2026 (LAW-336 pieza 5, paso A): `contrato_guarda` recibe el
        tipo, el contenido (`datos`) y la parcela de una Construcción, y deriva ÉL precio_total,
        comprador_nombre, proyecto_nombre, moneda, fecha y contrato padre de `datos.fields` — con las
-       mismas reglas que contractPayload(), que ya no manda esas columnas. El precio de un contrato
+       mismas reglas que contractPayload() (que las sigue calculando solo para la proforma de abajo, y
+       esta toma precio y moneda de lo que devuelve el servidor). El precio de un contrato
        firmado no se recalcula (decisión del owner). Devuelve id, número, fields, hitos y el precio
        que quedó guardado, que es el que usa la proforma de abajo. */
     const envio = { tipo: payload.tipo, datos: payload.datos };
@@ -4899,6 +4900,8 @@ async function guardarContrato(){
       { p_id: eraNuevo ? null : SAVED_CONTRACT.id, p_contrato: envio });
     if(error) throw error;
     payload.precio_total = fila.precio_total == null ? null : Number(fila.precio_total);
+    // la moneda que quedó guardada (la fija el trigger desde la parcela: RP00169/CC00096 guardan IDR con EUR en el formulario)
+    if(fila.moneda) payload.moneda = fila.moneda;
     const data = { id:fila.id, numero:fila.numero, datos:{ fields:fila.fields, hitos:fila.hitos } };
     SAVED_CONTRACT = { id:data.id, numero:data.numero };
     ANEXO_MANUAL_RETIRADO = false;   // lo retirado ya está fuera de la fila

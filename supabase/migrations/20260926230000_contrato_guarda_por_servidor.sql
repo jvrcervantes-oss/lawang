@@ -134,6 +134,10 @@ begin
   else
     select * into v_old from public.contratos c where c.id = p_id for update;
     if not found then raise exception 'Ese contrato ya no existe' using errcode = 'P0002'; end if;
+    -- mismo mensaje que el trigger contrato_no_editable_en_firma: el agente sabe qué hacer
+    if not public.es_super_admin() and (coalesce(v_old.bloqueado, false) or public.contrato_firma_viva(v_old.id)) then
+      raise exception 'Contrato enviado a firma: usa «Editar (anula la firma)» para guardar cambios.' using errcode = '23514';
+    end if;
     -- USING de la policy de UPDATE, con la fila de antes
     if not (public.es_super_admin()
             or (coalesce(v_old.bloqueado, false) = false and not public.contrato_firma_viva(v_old.id)
@@ -169,7 +173,7 @@ begin
     end if;
   end if;
 
-  return jsonb_build_object('id', v_row.id, 'numero', v_row.numero, 'precio_total', v_row.precio_total,
+  return jsonb_build_object('id', v_row.id, 'numero', v_row.numero, 'precio_total', v_row.precio_total, 'moneda', v_row.moneda,
                             'fields', v_row.datos->'fields', 'hitos', v_row.datos->'hitos');
 end $$;
 revoke all on function public.contrato_guarda(uuid, jsonb) from public, anon;
