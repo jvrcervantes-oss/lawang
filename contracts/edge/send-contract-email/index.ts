@@ -174,11 +174,20 @@ Deno.serve(async (req) => {
     // sesión del usuario: su RLS y los guardarraíles de facturas (que se apartan con
     // auth.uid() nulo) se aplican igual que antes. Si no se puede marcar, se DICE
     // (`marcada:false`) sin devolver error: el correo ya salió y reenviarlo sería peor.
+    // La fecha es la del PRIMER envío (Administración, 26-sep-2026): es la que cuenta
+    // para plazos y reclamaciones de cobro, y un reenvío no la mueve. Por eso el update
+    // solo toca facturas aún sin enviar, y un reenvío (0 filas) que encuentra la factura
+    // ya marcada cuenta como marcada.
     let marcada: boolean | undefined;
     if (facturaId) {
       const { data: m, error: eM } = await usuario.from('facturas')
-        .update({ enviada: true, fecha_envio: new Date().toISOString() }).eq('id', facturaId).select('id');
+        .update({ enviada: true, fecha_envio: new Date().toISOString() })
+        .eq('id', facturaId).eq('enviada', false).select('id');
       marcada = !eM && (m?.length ?? 0) === 1;
+      if (!eM && !marcada) {
+        const { data: ya } = await usuario.from('facturas').select('enviada').eq('id', facturaId).maybeSingle();
+        marcada = ya?.enviada === true;
+      }
       if (!marcada) console.error('factura ' + facturaId + ' enviada pero SIN marcar: ' + (eM?.message ?? '0 filas'));
     }
     return json({ ok: true, marcada });
