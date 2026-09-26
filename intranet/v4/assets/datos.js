@@ -2725,7 +2725,7 @@
                 '<div data-tr-caja hidden><div class="las-campo"><label class="las-etq" for="' + idSel + '-m">Motivo</label>' +
                 '<input type="text" id="' + idSel + '-m" data-tr-motivo maxlength="180" class="las-in" placeholder="Ej. Ana deja el equipo, sus clientes pasan a Carmen"></div></div>';
             }
-            controles += '<p style="margin:0;font-size:11.5px;color:#a8a29e">Solo pasa la ficha: contratos y facturas no se mueven sin la casilla.</p></div>';
+            controles += '<p style="margin:0;font-size:11.5px;color:#a8a29e">Quien la reciba podrá editarla. Contratos y facturas no se mueven sin la casilla.</p></div>';
             return base + controles;
           }
           var contratos = vins.length
