@@ -82,7 +82,7 @@
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
 <script src="assets/documento_diseno.js?v=15c225ba"></script>
 <script src="assets/documento_anexos.js?v=37e0d82f"></script>
-<script src="assets/parcela_inventario.js?v=9f3c3d2d"></script>
+<script src="assets/parcela_inventario.js?v=f70c3cac"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
 <script src="assets/modelos_catalogo.js?v=4e4fdee1"></script>
@@ -1805,6 +1805,7 @@ function limpiarOverrides(slug){
    tipo de documento), no algo que deba reiniciarse por contrato. */
 function resetBorrador(slug){
   SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null; PROYECTO_ABIERTO = ''; PDF_SALIO = false;
+  OBRA_ES_GUARDADA = false; OBRA_VINCULO_HECHO = null;   // borrador nuevo: su obra sí se precarga
   ANEXO_MANUAL_RETIRADO = false;
   TECHO_LEGADO_SIN = false;
   /* HITOS también se reinicia (auditoría 19-ago): faltaba en esta lista y «+
@@ -5456,6 +5457,7 @@ async function openSavedContract(id){
   if(error || !data){ if(stage) stage.classList.remove('cargando'); toastMal(lwT('No se pudo abrir el contrato')); return; }
   const slug = TIPO_SLUG[data.tipo];
   if(!slug){ if(stage) stage.classList.remove('cargando'); toastMal(lwT('Tipo de contrato desconocido')); return; }
+  OBRA_ES_GUARDADA = true;   // su precio ya está pactado: syncPrecioObraVinculada no lo precarga
   // antes de loadTemplate: deriveSections() monta el desplegable ahí dentro
   PROYECTO_ABIERTO = String((data.datos && data.datos.fields && data.datos.fields.proyecto_nombre)
                             || data.proyecto_nombre || '').trim();
@@ -5846,6 +5848,7 @@ async function derivarContrato(slug){
   // se suelta el vínculo con la fila de origen ANTES de cargar: lo que viene es
   // un contrato nuevo sin guardar, no una edición del anterior
   SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null; TECHO_LEGADO_SIN = false; PDF_SALIO = false;
+  OBRA_ES_GUARDADA = false; OBRA_VINCULO_HECHO = null;   // el derivado es nuevo: su obra sí se precarga
   EN_FIRMA = { vivas:0, firmadas:0, filas:[] }; aplicarEstadoFirma();
   ADQ1_CLIENT = null; CAMPOS_HEREDADOS = {}; UNIDADES_RESERVA_VINCULADA = null; UNIDAD_ID_CONSTRUCCION = null;
   // El contrato derivado hereda datos, no ediciones de texto: el párrafo que

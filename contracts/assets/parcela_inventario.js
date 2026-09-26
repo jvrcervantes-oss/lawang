@@ -422,6 +422,7 @@ async function avisaPrecioForzado({ antes, nuevo, tipoDoc, unidad, suelo, villa,
    el Bloqueo, con la opcion de dejar el precio que hubiera: puede estar
    negociado. */
 let OBRA_VINCULO_HECHO = null;   // numero del Bloqueo ya resuelto, para no repreguntar en cada tecla
+let OBRA_ES_GUARDADA = false;    // true mientras el contrato abierto viene de la base (openSavedContract); false en uno nuevo o derivado
 async function syncPrecioObraVinculada(){
   if(CONTRACT_TIPO[CURRENT.slug] !== 'construccion' || !sb) return;
   // El techo elegido (16-sep-2026, assets/techo_extras.js) manda sobre la
@@ -429,6 +430,13 @@ async function syncPrecioObraVinculada(){
   // owner). Sin techo elegido (modelo sin variantes, o contrato antiguo) esta
   // función sigue mandando exactamente como hasta ahora.
   if(typeof TECHO_ELEGIDO !== 'undefined' && TECHO_ELEGIDO) return;
+  /* Solo en una Construcción NUEVA (26-sep-2026, consulta de deploy de
+     Administración): al reabrir una guardada, su precio ya está pactado y la
+     precarga proponía cambiarlo por el del inventario (CC00030 93.000 → 89.000,
+     CC00081 90.000 → 109.000). Si alguien aceptaba el aviso, se guardaba. */
+  // OBRA_ES_GUARDADA cubre la apertura: openSavedContract() corre buildForm()
+  // (y con él esta función) ANTES de asignar SAVED_CONTRACT.
+  if(OBRA_ES_GUARDADA || (typeof SAVED_CONTRACT !== 'undefined' && SAVED_CONTRACT && SAVED_CONTRACT.id)) return;
   const sel = document.querySelector('[name="num_reserva_vinculada"]');
   const el  = document.querySelector('[name="precio_total"]');
   if(!sel || !el) return;
