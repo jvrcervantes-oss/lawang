@@ -94,6 +94,12 @@
     el_fichero_no_ha_llegado: 'El fichero no ha llegado al archivo: vuelve a subirlo',
     el_fichero_no_es_lo_que_dice_ser: 'El fichero no es lo que dice ser (su contenido no cuadra con la extensión): no se ha guardado',
     solo_super_admin: 'Esto solo lo hace un super admin',
+    ruta_invalida: 'La subida no es válida: vuelve a elegir el fichero',
+    fecha_de_caducidad_invalida: 'La fecha de caducidad no es válida',
+    documento_invalido: 'Ese documento no es válido: recarga la ficha', comprador_invalido: 'Ese comprador no es válido: recarga la ficha',
+    no_se_pudo_preparar_la_subida: 'No se pudo preparar la subida: prueba otra vez en un momento',
+    fichero_no_borrado: 'El fichero no se pudo quitar del archivo', error_interno: 'Error del servidor: prueba otra vez en un momento',
+    accion_desconocida: 'Petición no válida: recarga la página', metodo: 'Petición no válida: recarga la página',
     solo_equipo: 'Tu usuario no es del equipo',
     sin_sesion: 'Tu sesión ha caducado: vuelve a entrar', sesion_invalida: 'Tu sesión ha caducado: vuelve a entrar'
   };

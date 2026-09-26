@@ -7701,7 +7701,7 @@
           if (v.prefijo && !/^\+\d{1,4}$/.test(v.prefijo)) return { error: { message: 'El prefijo va con «+» y solo dígitos: +34, +62…' } };
           if (v.full_name.trim().length < 2) return { error: { message: 'Falta el nombre' } };
           var patch = {
-            tipo: v.tipo, kyc_status: v.kyc_status,
+            tipo: v.tipo,
             // MAYÚSCULAS como la viva («el único sitio que escribe clients.full_name»):
             // el contrato y la factura enlazan esta ficha y la imprimen tal cual.
             full_name: v.full_name.trim().toUpperCase(), email: v.email.trim() || null,
@@ -7717,6 +7717,10 @@
           // La ficha abierta desde el directorio no trae `notes`: mandarla vacía las borraría sin que nadie
           // lo haya querido. cliente_guarda solo toca las claves que llegan.
           if (!('notes' in c)) delete patch.notes;
+          // El estado KYC solo viaja si la persona lo CAMBIÓ en el formulario: con el objeto de la ficha
+          // abierta (que no se recarga tras retirar un documento) un admin re-aprobaba sin querer al
+          // guardar otra cosa (consulta de deploy, Desarrollo, 27-sep-2026).
+          if (v.kyc_status && v.kyc_status !== (c.kyc_status || 'pending')) patch.kyc_status = v.kyc_status;
           // Solo se avisa si el teléfono CAMBIA: una ficha antigua que ya lo compartía se sigue pudiendo editar sin preguntar cada vez.
           var telCambia = typeof telefonoDigitos === 'function' && telefonoDigitos(patch.phone) !== telefonoDigitos(c.phone);
           return (telCambia ? telefonoRepetidoSigue(patch.phone, c.id) : Promise.resolve(true)).then(function (sigue) {

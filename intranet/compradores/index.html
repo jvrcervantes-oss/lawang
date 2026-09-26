@@ -26,7 +26,7 @@
 <script src="/contracts/assets/visor.js?v=28038adb" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=c5c926ae"></script><script src="/contracts/assets/guard.js?v=d6bcca17" data-herramienta="compradores"></script>
+<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=c5c926ae"></script><script src="/contracts/assets/guard.js?v=68b35794" data-herramienta="compradores"></script>
 <script src="/contracts/assets/suite.js?v=3cf4a63a"></script>
 <script src="/contracts/assets/geo.js?v=cc6b09b2"></script>
 <style>
@@ -1024,7 +1024,7 @@ function pintarFicha(){
           <div><label for="d-tipo">${lwT('Tipo')}</label><select class="sui-sel" id="d-tipo">${DOCS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select></div>
           <div><label for="d-caduca">${lwT('Caduca el (opcional)')}</label><input id="d-caduca" type="date"></div>
         </div>
-        <label for="d-file">${lwT('Fichero')}</label><input id="d-file" type="file" accept="application/pdf,image/*">
+        <label for="d-file">${lwT('Fichero')}</label><input id="d-file" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif">
         <div class="acciones" style="margin-top:10px">
           <button class="btn primary" id="btnSubir">${lwT('Subir documento')}</button>
         </div>
@@ -1176,9 +1176,8 @@ async function borrarDocumento(id, btn){
   if(!await lwConfirmar({
     titulo: 'Retirar ' + nombre,
     cuerpo: '<p>' + lwT('Se retira') + ' <b>' + esc(nombre) + '</b>' + (d.uploaded_at ? ' (subido el ' + esc(fFecha(d.uploaded_at)) + ')' : '')
-          + ' ' + lwT('de la ficha, y su fichero del archivo privado.') + '</p>'
-          + '<p>' + lwT('No hay papelera: si el documento sigue haciendo falta habrá que volver a subirlo.') + '</p>'
-          + '<p>' + lwT('Si el comprador tiene un contrato firmado, el fichero NO se destruye: queda archivado, lo retira solo un super admin y hay que escribir el motivo.') + '</p>'
+          + ' ' + lwT('de la ficha.') + '</p>'
+          + '<p>' + lwT('Si el comprador tiene contratos o pagos a su nombre, el fichero se conserva archivado (lo retira solo un super admin, con motivo). Si no, se borra del archivo privado y no hay papelera.') + '</p>'
           + '<label for="kyc-retira-motivo">' + lwT('Motivo') + '</label>'
           + '<input id="kyc-retira-motivo" type="text" maxlength="300">',
     confirmar: lwT('Retirar el documento'), cancelar: lwT('Dejarlo') })) return;

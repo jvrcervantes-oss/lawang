@@ -14,7 +14,7 @@ const b = (...xs) => {
   return out;
 };
 
-import(pathToFileURL(path.join(__dirname, 'firma.mjs')).href).then(({ TIPOS, bytesCuadran }) => {
+import(pathToFileURL(path.join(__dirname, 'firma.mjs')).href).then(({ TIPOS, bytesCuadran, esAdmisible }) => {
   const pdf = b('%PDF-1.7');
   const jpg = b(0xff, 0xd8, 0xff, 0xe0);
   const png = b(0x89, 'PNG', 0x0d, 0x0a, 0x1a, 0x0a);
@@ -34,8 +34,19 @@ import(pathToFileURL(path.join(__dirname, 'firma.mjs')).href).then(({ TIPOS, byt
   assert.ok(!bytesCuadran('.png', jpg));
   assert.ok(!bytesCuadran('.webp', b('RIFF', 0, 0, 0, 0, 'WAVE')), 'un RIFF que no es WEBP no pasa');
   assert.ok(!bytesCuadran('.exe', pdf), 'extensión fuera de la lista no pasa');
+  assert.ok(!bytesCuadran('.heic', b(0, 0, 0, 0x18, 'ftypisom')), 'un MP4 con extensión .heic no pasa');
+  assert.ok(!bytesCuadran('.heif', b(0, 0, 0, 0x14, 'ftypqt  ')), 'un MOV con extensión .heif no pasa');
+  assert.ok(bytesCuadran('.heif', b(0, 0, 0, 0x18, 'ftypmif1')), 'HEIF genérico (mif1) pasa');
   assert.ok(!bytesCuadran('.pdf', new Uint8Array(3)), 'un fichero de 3 bytes no pasa');
   assert.ok(!bytesCuadran('.pdf', null));
+
+  // extensión mal puesta: una imagen admitida pasa como imagen; un PDF tiene que ser PDF
+  assert.ok(esAdmisible('.jpg', png), 'captura PNG guardada como .jpg pasa');
+  assert.ok(esAdmisible('.png', jpg));
+  assert.ok(!esAdmisible('.pdf', jpg), 'una foto con extensión .pdf no pasa');
+  assert.ok(!esAdmisible('.jpg', pdf), 'un PDF con extensión .jpg no pasa');
+  assert.ok(!esAdmisible('.jpg', html));
+  assert.ok(!esAdmisible('.heic', b(0, 0, 0, 0x18, 'ftypisom')), 'un MP4 no pasa ni como imagen');
 
   // cada extensión admitida tiene su tipo, y el bucket admite exactamente esos tipos
   assert.deepStrictEqual(Object.keys(TIPOS).sort(), ['.heic', '.heif', '.jpeg', '.jpg', '.pdf', '.png', '.webp']);

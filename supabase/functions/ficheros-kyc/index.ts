@@ -44,7 +44,7 @@ const corsFor = (req: Request) => {
 
 const esUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 // Tipos admitidos y comprobación de bytes: firma.mjs (función pura, con su test).
-import { TIPOS, bytesCuadran } from './firma.mjs';
+import { TIPOS, esAdmisible } from './firma.mjs';
 const TIPOS_: Record<string, string> = TIPOS;
 // Solo los primeros bytes, sin caché (la CDN de Storage puede servir una versión vieja ~60 s).
 async function cabecera(path: string): Promise<Uint8Array | null> {
@@ -86,8 +86,10 @@ Deno.serve(async (req) => {
     if (accion === 'retira') {
       const docId = String(body.document_id ?? '');
       if (!esUuid(docId)) return json({ ok: false, error: 'documento_invalido' }, 400);
-      const { data: r, error } = await usuario.rpc('documento_kyc_retira', {
-        p_id: docId, p_motivo: body.motivo == null ? null : String(body.motivo),
+      // service role + el usuario de la sesión: la RPC ya no la llama el navegador (así no queda un fichero
+      // suelto por una retirada que se salta esta función); el permiso lo decide la base como ese usuario
+      const { data: r, error } = await admin.rpc('documento_kyc_retira', {
+        p_uid: quien.user.id, p_id: docId, p_motivo: body.motivo == null ? null : String(body.motivo),
       });
       if (error) return errRpc(error);
       const res = r as { conservado: boolean; borrar_fichero: boolean; path: string | null; kyc_vuelve_a_revision: boolean };
@@ -106,7 +108,7 @@ Deno.serve(async (req) => {
     // La RPC (super admin dentro) devuelve las rutas: se borran servidor a servidor, nunca las que mande
     // la pantalla.
     if (accion === 'borra_comprador') {
-      const { data: r, error } = await usuario.rpc('borrar_comprador', { p_client_id: clientId });
+      const { data: r, error } = await admin.rpc('borrar_comprador_edge', { p_uid: quien.user.id, p_client_id: clientId });
       if (error) return errRpc(error);
       const res = r as { rutas_kyc?: string[] } & Record<string, unknown>;
       const rutas = (res.rutas_kyc ?? []).filter((p) => typeof p === 'string');
@@ -154,7 +156,7 @@ Deno.serve(async (req) => {
       if (!m || !TIPOS_[m[1].toLowerCase()]) return json({ ok: false, error: 'ruta_invalida' }, 400);
       const cab = await cabecera(path);
       if (!cab) return json({ ok: false, error: 'el_fichero_no_ha_llegado' }, 409);
-      if (!bytesCuadran(m[1].toLowerCase(), cab)) {
+      if (!esAdmisible(m[1].toLowerCase(), cab)) {
         // Solo se borra si nadie lo registró ya (una ruta registrada no se toca desde aquí).
         const { data: ya } = await admin.from('documents').select('id').eq('storage_path', path).maybeSingle();
         if (!ya) await admin.storage.from(BUCKET).remove([path]);
@@ -179,6 +181,7 @@ Deno.serve(async (req) => {
 
     return json({ ok: false, error: 'accion_desconocida' }, 400);
   } catch (e) {
-    return json({ ok: false, error: String((e as Error)?.message ?? e) }, 500);
+    console.error('ficheros-kyc error interno: ' + String((e as Error)?.stack ?? e));
+    return json({ ok: false, error: 'error_interno' }, 500);
   }
 });

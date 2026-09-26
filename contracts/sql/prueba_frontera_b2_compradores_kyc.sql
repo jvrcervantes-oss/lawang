@@ -25,7 +25,7 @@ begin
   select '3 dueño=' || propietario || (case when propietario='dortegag@gmail.com' then ' ok; ' else ' FALLO; ' end) into v_t from clients where id=v_new; r := r || v_t;
   begin perform public.cliente_guarda(fd.client_id, '{"notes":"ataque"}'); r := r || '4 FALLO edita ficha ajena; ';
   exception when others then r := r || '4 ok; '; end;
-  begin perform public.documento_kyc_retira(fd.id); r := r || '5 FALLO agente retira; ';
+  begin perform public.documento_kyc_retira('1cd031f2-c7da-455e-975f-c4e8708e36fb', fd.id); r := r || '5 FALLO el navegador llama a retirar; ';
   exception when others then r := r || '5 ok; '; end;
   begin perform public.cliente_traspasa(v_new, 'p@pabloglobal.es'); r := r || '6 FALLO agente traspasa; ';
   exception when others then r := r || '6 ok; '; end;
@@ -34,10 +34,14 @@ begin
   perform set_config('request.jwt.claims', ADM, true);
   perform public.cliente_guarda(v_new, '{"kyc_status":"verified"}');
   select '9 admin aprueba, sello=' || coalesce(kyc_verificado_por,'FALLO') || '; ' into v_t from clients where id=v_new; r := r || v_t;
+  reset role;
+  set local role service_role;   -- retirar solo lo llama la edge, como el usuario de la sesión
   if sd.id is not null then
-    begin perform public.documento_kyc_retira(sd.id, 'motivo largo de prueba'); r := r || '10 FALLO admin retira firmado; ';
+    begin perform public.documento_kyc_retira('24257595-aee2-4daa-8170-d268f46b9981', sd.id, 'motivo largo de prueba'); r := r || '10 FALLO admin retira con contrato; ';
     exception when others then r := r || '10 ok; '; end;
   end if;
+  begin perform public.documento_kyc_retira('1cd031f2-c7da-455e-975f-c4e8708e36fb', fd.id); r := r || '11 FALLO agente retira; ';
+  exception when others then r := r || '11 ok; '; end;
   raise exception 'RES: %', r;
 end $$;
 
@@ -66,17 +70,16 @@ begin
   raise exception 'RES: %', r;
 end $$;
 
--- 3. Super admin: lo firmado se conserva
+-- 3. Super admin: lo de un comprador con contrato o pagos se conserva
 do $$
 declare r text := ''; sd record; v_j jsonb; su record;
 begin
   select user_id, email into su from usuarios where rol='super_admin' and activo and user_id is not null limit 1;
-  select d.id into sd from documents d where public.cliente_con_contrato_firmado(d.client_id) and d.retirado_el is null limit 1;
-  perform set_config('request.jwt.claims', json_build_object('sub',su.user_id,'email',su.email,'role','authenticated')::text, true);
-  set local role authenticated;
-  begin perform public.documento_kyc_retira(sd.id, 'corto'); r := r || '1 FALLO sin motivo; ';
+  select d.id into sd from documents d where exists (select 1 from contrato_compradores cc where cc.client_id = d.client_id) and d.retirado_el is null limit 1;
+  set local role service_role;
+  begin perform public.documento_kyc_retira(su.user_id, sd.id, 'corto'); r := r || '1 FALLO sin motivo; ';
   exception when others then r := r || '1 ok; '; end;
-  v_j := public.documento_kyc_retira(sd.id, 'pasaporte caducado, se sustituye por el nuevo');
+  v_j := public.documento_kyc_retira(su.user_id, sd.id, 'pasaporte caducado, se sustituye por el nuevo');
   r := r || '2 conservado=' || (v_j->>'conservado');
   reset role;
   r := r || ' fila_sigue=' || (select count(*) from public.documents where id=sd.id and retirado_el is not null);

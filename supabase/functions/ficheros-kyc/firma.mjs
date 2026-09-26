@@ -8,6 +8,8 @@ export const TIPOS = {
   '.webp': 'image/webp', '.heic': 'image/heic', '.heif': 'image/heif',
 };
 
+const MARCAS_HEIF = ['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'mif1', 'msf1'];
+
 // Los primeros bytes (bastan 12) casan con la firma de su formato.
 export function bytesCuadran(ext, b) {
   if (!b || b.length < 12) return false;
@@ -17,7 +19,17 @@ export function bytesCuadran(ext, b) {
     case '.jpg': case '.jpeg': return b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
     case '.png': return b[0] === 0x89 && asc(1, 3) === 'PNG';
     case '.webp': return asc(0, 4) === 'RIFF' && asc(8, 4) === 'WEBP';
-    case '.heic': case '.heif': return asc(4, 4) === 'ftyp';
+    // ISO-BMFF: `ftyp` y la MARCA de imagen (sin ella pasaría un MP4/MOV, que es el mismo contenedor)
+    case '.heic': case '.heif': return asc(4, 4) === 'ftyp' && MARCAS_HEIF.includes(asc(8, 4));
     default: return false;
   }
+}
+
+// ¿Se admite? Lo que dice la extensión, o —si es una imagen— cualquier imagen admitida: una captura PNG
+// guardada como .jpg (WhatsApp, capturas) es un fichero legítimo con la extensión mal puesta. Un PDF tiene
+// que ser un PDF (consulta de deploy, Desarrollo, 27-sep-2026).
+export function esAdmisible(ext, b) {
+  if (bytesCuadran(ext, b)) return true;
+  if (ext === '.pdf' || !TIPOS[ext]) return false;
+  return ['.jpg', '.png', '.webp', '.heic'].some((e) => bytesCuadran(e, b));
 }

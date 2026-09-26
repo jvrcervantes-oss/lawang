@@ -2823,7 +2823,7 @@
                   toast('Ficha de ' + (d.nombre || 'cliente') + ' borrada' + (d.ficheros_quitados ? ' · ' + d.ficheros_quitados + ' documento(s) retirados' : ''));
                   cj.cierra();
                   location.reload();
-                }, function (e) { toastMal(e.message || String(e)); });
+                }, function (e) { toastMal(lwErrorHumano(e, 'No se pudo borrar la ficha')); });
               });
             } });
           }
@@ -3058,8 +3058,14 @@
                la sesión ve; la base mira todos. */
             var puedeBorrarDoc = window.LW_V4.esSuperAdmin || (window.LW_V4.esAdmin &&
               !vins.some(function (v) { return porC[v.contrato_id] && porC[v.contrato_id].bloqueado; }));
-            sb.from('documents').select('id,doc_type,storage_path,uploaded_at,caduca_el').eq('client_id', c2.id).order('uploaded_at', { ascending: false })
-              .then(function (rd) {
+            /* ¿Ves esta ficha? La del directorio puede ser de un compañero: sus documentos no se leen (policy
+               del 27-sep) y «Sin documentos todavía» mentiría e invitaría a subir uno que el servidor rechaza. */
+            Promise.all([
+              sb.from('clients').select('id').eq('id', c2.id).maybeSingle(),
+              sb.from('documents').select('id,doc_type,storage_path,uploaded_at,caduca_el').eq('client_id', c2.id).order('uploaded_at', { ascending: false })
+            ]).then(function (rr) {
+                if (!rr[0].error && !rr[0].data) return pinta('docs', H.nota('Los documentos de este comprador solo los ven quien lo dio de alta, su manager y administración.'));
+                var rd = rr[1];
                 if (rd.error) return pinta('docs', H.nota('No se pudieron leer los documentos: ' + rd.error.message));
                 var ds = rd.data || [];
                 var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
@@ -3083,7 +3089,7 @@
                   '</select></div></div>' +
                   '<div class="las-campo"><label class="las-etq" for="' + idDocF + '-c">Caduca el (opcional)</label><input type="date" id="' + idDocF + '-c" data-doc-caduca class="las-in"></div>' +
                   '</div>' +
-                  '<div class="las-campo"><label class="las-etq" for="' + idDocF + '-f">Fichero</label><input type="file" id="' + idDocF + '-f" data-doc-file accept="application/pdf,image/*" class="las-in" style="padding:8px 12px"></div>' +
+                  '<div class="las-campo"><label class="las-etq" for="' + idDocF + '-f">Fichero</label><input type="file" id="' + idDocF + '-f" data-doc-file accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif" class="las-in" style="padding:8px 12px"></div>' +
                   '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><button type="button" data-doc-subir class="las-btn1" style="min-width:0;padding:10px 22px">Subir documento</button>' +
                   '<p style="margin:0;font-size:11.5px;color:#a8a29e;flex:1;min-width:200px">Van a un archivo privado: al abrirlos se genera un enlace de 5 minutos.</p></div>' +
                   '</div>';
@@ -3126,8 +3132,8 @@
                     var nombreDoc = DOC_TIPO[d.doc_type] || d.doc_type || 'documento';
                     lwConfirmar({
                       titulo: 'Retirar ' + nombreDoc,
-                      cuerpo: '<p>Se retira <b>' + esc(nombreDoc) + '</b>' + (d.uploaded_at ? ' (subido el ' + esc(fFecha(d.uploaded_at)) + ')' : '') + ' de la ficha, y su fichero del archivo privado.</p><p>No hay papelera: si el documento sigue haciendo falta habrá que volver a subirlo.</p>' +
-                        '<p>Si el comprador tiene un contrato firmado, el fichero NO se destruye: queda archivado, lo retira solo un super admin y hay que escribir el motivo.</p>' +
+                      cuerpo: '<p>Se retira <b>' + esc(nombreDoc) + '</b>' + (d.uploaded_at ? ' (subido el ' + esc(fFecha(d.uploaded_at)) + ')' : '') + ' de la ficha.</p>' +
+                        '<p>Si el comprador tiene contratos o pagos a su nombre, el fichero se conserva archivado (lo retira solo un super admin, con motivo). Si no, se borra del archivo privado y no hay papelera.</p>' +
                         '<label for="kyc-retira-motivo">Motivo</label><input id="kyc-retira-motivo" type="text" maxlength="300" class="las-in">',
                       confirmar: 'Retirar el documento', tono: 'peligro'
                     }).then(function (ok) {
@@ -3139,12 +3145,13 @@
                       // fichero se borra o se conserva (contrato firmado, decisión del owner)
                       window.lwKyc(sb, 'retira', { document_id: idDoc, motivo: motivoDoc || null }).then(function (r) {
                         if (r.aviso) toastMal('Documento retirado de la ficha, pero su fichero sigue en el archivo: avisa a Datos.');
+                        if (r.kyc_vuelve_a_revision) c2.kyc_status = 'submitted';
                         toast(nombreDoc + (r.conservado ? ' retirado (el fichero queda archivado)' : ' retirado') +
                               (r.kyc_vuelve_a_revision ? ' · el KYC vuelve a «En revisión»' : ''));
                         cargaDocs();
                       }, function (e) {
                         b.disabled = false; b.textContent = 'Borrar';
-                        toastMal('No se pudo retirar: ' + (e.message || e));
+                        toastMal(lwErrorHumano(e, 'No se pudo retirar'));
                       });
                     });
                   });
