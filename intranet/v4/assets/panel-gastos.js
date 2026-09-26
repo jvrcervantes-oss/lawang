@@ -42,11 +42,9 @@
   }
   var errorHumano = function (e, pre) { return (window.lwErrorHumano ? window.lwErrorHumano(e, pre) : (pre + ': ' + (e && e.message || e))); };
   /* 0 filas sin error = la RLS denegó (o la fila ya no estaba). Se dice. */
-  function verifica(r, que) {
-    if (r && r.error) return r;
-    if (!r || !r.data || !r.data.length) return { error: { message: que + ': tu usuario no tiene permiso (hace falta ser admin y tener «Gastos y proveedores» en Usuarios) o el registro ya no existe.' } };
-    return r;
-  }
+  /* Por el servidor (frontera frontend/backend, 26-sep-2026): las RPCs de gastos comprueban el
+     permiso y dan error si no pueden; no devuelven filas que contar. */
+  function rpcOk(r, que) { return (r && r.error) ? { error: { message: que + ': ' + (r.error.message || r.error) } } : {}; }
   function nombreSociedad(clave) {
     try { var s = (typeof SOCIEDADES !== 'undefined') && SOCIEDADES[clave]; if (s && (s.razon || s.marca)) return s.razon || s.marca; } catch (e) { /* entities.js aún no cargó */ }
     return String(clave || '').replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
@@ -247,8 +245,8 @@
     var ruta = g.id + '/' + Date.now() + '_' + limpiaNombre(fichero.name);
     return sb.storage.from('gastos').upload(ruta, fichero, { upsert: false, contentType: fichero.type || 'application/octet-stream' }).then(function (up) {
       if (up.error) return { error: { message: T('No se pudo subir el justificante') + ': ' + up.error.message } };
-      var lista = (g.justificantes || []).concat([{ path: ruta, nombre: fichero.name, subido_en: new Date().toISOString() }]);
-      return sb.from('gastos').update({ justificantes: lista }).eq('id', g.id).select('id').then(function (r) { return verifica(r, T('No se pudo anotar el justificante')); });
+      // La entrada de la lista la construye el servidor, que comprueba que el fichero existe en la carpeta de ESTE gasto.
+      return sb.rpc('gasto_anade_justificante', { p_id: g.id, p_ruta: ruta, p_nombre: fichero.name }).then(function (r) { return rpcOk(r, T('No se pudo anotar el justificante')); });
     });
   }
   function nuevoGasto() {
@@ -262,9 +260,9 @@
       var pl = payloadDe(v); if (pl.error) return pl;
       pl.p.estado = v.estado === 'pagado' ? 'pagado' : 'pendiente';
       if (pl.p.estado === 'pagado') { pl.p.pagado_el = v.pagado_el || hoy; pl.p.cuenta_pago = v.cuenta_pago || null; }
-      return sb.from('gastos').insert(pl.p).select('id,justificantes').then(function (r) {
-        r = verifica(r, T('No se pudo guardar el gasto')); if (r.error) return r;
-        return subeJustificante(r.data[0], v.fichero).then(function (u) {
+      return sb.rpc('gasto_guarda', { p_id: null, p_datos: pl.p }).then(function (r) {
+        if (r.error || !r.data) return rpcOk(r.error ? r : { error: { message: '—' } }, T('No se pudo guardar el gasto'));
+        return subeJustificante({ id: r.data, justificantes: [] }, v.fichero).then(function (u) {
           // el gasto YA está guardado aunque falle el fichero: se dice y se sigue
           /* La pantalla se recarga al guardar: el aviso viaja en sessionStorage
              y se enseña al volver (nunca alert(): congela la extensión de Chrome). */
@@ -277,7 +275,7 @@
   function editaGasto(g) {
     window.lwVentana(T('Editar gasto'), camposGasto(g), T('Guardar cambios'), function (v) {
       var pl = payloadDe(v); if (pl.error) return pl;
-      return sb.from('gastos').update(pl.p).eq('id', g.id).select('id').then(function (r) { return verifica(r, T('No se pudo guardar')); });
+      return sb.rpc('gasto_guarda', { p_id: g.id, p_datos: pl.p }).then(function (r) { return rpcOk(r, T('No se pudo guardar')); });
     }, { sub: g.concepto });
   }
   function marcaPagado(g) {
@@ -286,7 +284,7 @@
       campoCuenta(g.cuenta_pago, { medio: 1 }),
       { k: 'nota', tipo: 'nota', label: Number(g.pph_retenido) > 0 ? T('Al proveedor se le paga') + ' ' + fmt(Number(g.total) - Number(g.pph_retenido), g.moneda) + ' (' + T('total menos la retención') + ').' : T('Importe') + ': ' + fmt(g.total, g.moneda) }
     ], T('Marcar pagado'), function (v) {
-      return sb.from('gastos').update({ estado: 'pagado', pagado_el: v.pagado_el, cuenta_pago: v.cuenta_pago || null }).eq('id', g.id).select('id').then(function (r) { return verifica(r, T('No se pudo marcar como pagado')); });
+      return sb.rpc('gasto_marca_pagado', { p_id: g.id, p_pagado_el: v.pagado_el, p_cuenta: v.cuenta_pago || null }).then(function (r) { return rpcOk(r, T('No se pudo marcar como pagado')); });
     }, { sub: g.concepto });
   }
   function marcaPph(g) {
@@ -294,7 +292,7 @@
       { k: 'pph_ingresado_el', label: T('Ingresada el'), tipo: 'date', req: true, valor: hoy },
       { k: 'nota', tipo: 'nota', label: T('No crees otro gasto por este ingreso: ya cuenta aquí.') }
     ], T('Guardar'), function (v) {
-      return sb.from('gastos').update({ pph_ingresado_el: v.pph_ingresado_el }).eq('id', g.id).select('id').then(function (r) { return verifica(r, T('No se pudo guardar')); });
+      return sb.rpc('gasto_pph_ingresado', { p_id: g.id, p_fecha: v.pph_ingresado_el }).then(function (r) { return rpcOk(r, T('No se pudo guardar')); });
     }, { sub: g.concepto });
   }
   function anula(g) {
@@ -304,7 +302,7 @@
     ], T('Anular'), function (v) {
       return lwConfirmar({ titulo: T('Anular este gasto'), cuerpo: T('No se puede deshacer.'), confirmar: T('Anular'), tono: 'peligro' }).then(function (ok) {
         if (!ok) return { error: { message: T('Cancelado.') } };
-        return sb.from('gastos').update({ estado: 'anulado', anulado_motivo: v.motivo }).eq('id', g.id).select('id').then(function (r) { return verifica(r, T('No se pudo anular')); });
+        return sb.rpc('gasto_anula', { p_id: g.id, p_motivo: v.motivo }).then(function (r) { return rpcOk(r, T('No se pudo anular')); });
       });
     }, { sub: g.concepto });
   }
@@ -386,10 +384,10 @@
     window.lwVentana(nuevo ? T('Nuevo proveedor') : T('Editar proveedor'), campos, T('Guardar'), function (v) {
       var pl = { nombre: v.nombre, tipo: v.tipo, npwp: v.npwp || null, contacto: v.contacto || null, telefono: v.telefono || null, email: v.email || null, notas: v.notas || null };
       if (!nuevo) pl.activo = !!v.activo;
-      var op = nuevo ? sb.from('proveedores').insert(pl).select('id') : sb.from('proveedores').update(pl).eq('id', p.id).select('id');
-      return op.then(function (r) {
+      // Por el servidor (frontera frontend/backend, 26-sep-2026).
+      return sb.rpc('proveedor_guarda', { p_id: nuevo ? null : p.id, p_datos: pl }).then(function (r) {
         if (r.error && /duplicate|unique|23505/i.test(r.error.message + ' ' + r.error.code)) return { error: { message: T('Ya existe un proveedor con ese nombre.') } };
-        return verifica(r, T('No se pudo guardar el proveedor'));
+        return rpcOk(r, T('No se pudo guardar el proveedor'));
       });
     }, { sub: T('Proveedores') });
   }
