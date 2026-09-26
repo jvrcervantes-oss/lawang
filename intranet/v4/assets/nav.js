@@ -89,8 +89,8 @@
      Si la pantalla ya está destapada no hay nada que retener: sin marca, y
      motion.js anima el primer lote que pinte su script (modo tardío). Con
      «reducir movimiento» en el sistema, ni marca ni motion.js. MOTION_V = 8 primeros del sha1 de
-     motion.js: nav.test.js falla si no casan, porque sella_assets no lo sella. */
-  var MOTION_V = 'd69a0b00';
+     motion.js con fin de línea LF (lo desplegado): nav.test.js falla si no casan, porque sella_assets no lo sella. */
+  var MOTION_V = '80e9d418';
   (function () {
     try {
       if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;

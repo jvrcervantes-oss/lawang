@@ -20,7 +20,7 @@ const CLAVE_MENU = Function('return ' + m[1])();
 {
   const mv = nav.match(/var MOTION_V = '([0-9a-f]{8})'/);
   assert.ok(mv, 'nav.js ya no declara MOTION_V como hash de 8');
-  const sha = require('crypto').createHash('sha1').update(fs.readFileSync(path.join(__dirname, 'motion.js'))).digest('hex').slice(0, 8);
+  const sha = require('crypto').createHash('sha1').update(fs.readFileSync(path.join(__dirname, 'motion.js'), 'utf8').replace(/\r\n/g, '\n')).digest('hex').slice(0, 8);
   assert.strictEqual(mv[1], sha, `MOTION_V (${mv[1]}) no es el sha1 de motion.js (${sha}): súbelo en nav.js`);
 }
 

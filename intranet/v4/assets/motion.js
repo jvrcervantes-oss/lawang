@@ -214,6 +214,11 @@
     /* A los 12 s el CSS destapa `main` solo (lw-rescate): lo de dentro ya se
        estaba viendo, no se toca. */
     if (performance.now() > 11500) { R.estado = 'tras-rescate'; suelta(); return; }
+    /* Si motion.js llegó después de los 600 ms de lw-mov-rescate (primera carga
+       tras un deploy, red lenta), `main` ya se está viendo: animarlo lo
+       apagaría y lo volvería a encender. Se suelta sin animar (capa 1, 26-sep). */
+    var mn = document.querySelector('main');
+    if (mn && getComputedStyle(mn).visibility === 'visible') { R.estado = 'tras-rescate-corto'; suelta(); return; }
     try { entra(); } catch (e) { R.estado = 'fallo: ' + e.message; }
     suelta();                                           // en el mismo frame que las animaciones: sin destello
   }
