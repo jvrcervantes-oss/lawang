@@ -10,14 +10,14 @@
      fmtMoneda de esa misma pantalla, para que el `datos.fields`/`lineas`/
      `totales` que se guarda tenga EXACTAMENTE la forma que lee documento.js.
      Van ANTES de editores.js y con `defer`, igual que el resto de la suite. -->
-<script src="/contracts/assets/entities.js?v=e015c66a" defer></script><script src="/contracts/assets/compradores.js?v=be8f79e8" defer></script><script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="/intranet/facturas/totales.js" defer></script>
+<script src="/contracts/assets/entities.js?v=e015c66a" defer></script><script src="/contracts/assets/compradores.js?v=be8f79e8" defer></script><script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="/intranet/facturas/totales.js?v=7d5789c6" defer></script>
 <!-- 22-sep-2026: split en vivo (calco estructural, paso 2) — el ASPECTO del
      documento es el mismo documento.css del clásico, con las MISMAS clases
      (.doc/.sheet), no una copia. documento.js se carga bajo demanda desde
      editores.js (MODULOS_DOC) porque solo hace falta cuando se abre el
      editor; el CSS va aquí porque, a diferencia del JS, no hay un punto
      limpio para inyectarlo sin parpadeo cuando el editor ya está abierto. -->
-<link rel="stylesheet" href="/intranet/facturas/documento.css">
+<link rel="stylesheet" href="/intranet/facturas/documento.css?v=5337c601">
 <!-- S14 (21-sep-2026): reasignar autor -- MISMO módulo que /contracts y
      /intranet/facturas/, nunca una copia (ver contracts/assets/autoria.js). -->
 <script src="/contracts/assets/autoria.js?v=4e47fa06" defer></script>
