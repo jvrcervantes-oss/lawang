@@ -1,5 +1,7 @@
 // ¿Un fichero KYC es lo que dice su extensión? Función pura, aparte de la edge para poder probarla sin
 // Deno ni base: firma.test.js (27-sep-2026, LAW-336 bloque 2, revisor de código).
+// ⚠ La importa TAMBIÉN la edge `ficheros` (bloque 3, 27-sep-2026): si cambias este fichero, redespliega
+// las DOS edges (ficheros-kyc y ficheros), o una se queda con la versión vieja.
 
 // Extensión → content-type. El navegador suele mandar un HEIC sin tipo y el bucket solo admite estos:
 // la pantalla sube con el que devuelve la edge, no con el que trae el fichero.
