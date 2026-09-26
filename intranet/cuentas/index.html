@@ -17,8 +17,8 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que `lwT`
      exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=65ea4669"></script>
-<script src="/contracts/assets/herramientas.js?v=7c7f1b58"></script>
+<script src="/contracts/assets/i18n.js?v=d63090e1"></script>
+<script src="/contracts/assets/herramientas.js?v=cec22c65"></script>
 <script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="/contracts/assets/topbar.js?v=8444fd68" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=c5c926ae"></script><script src="/contracts/assets/guard.js?v=935970cf" data-herramienta="cuentas"></script>
@@ -418,7 +418,7 @@ function pintarFichaProyecto(){
   const ro = PUEDO_ESCRIBIR ? '' : ' disabled';
   const mias = EXCEPCION.filter(r => r.proyecto_id === p.id);
   const aviso = PUEDO_ESCRIBIR ? '' :
-    '<p class="aviso">' + lwT('Estás viendo el reparto, no puedes cambiarlo: solo un super admin edita cuentas de cobro. Es el dato que decide adónde transfiere el comprador.') + '</p>';
+    '<p class="aviso">' + lwT('Estás viendo el reparto, no puedes cambiarlo: solo un super admin edita cuentas de cobro. Es el dato que decide adónde transfiere el cliente.') + '</p>';
 
   // «cualquier contrato» primero, y luego un bloque por tipo que cobra
   const bloques = [{ slug: TODOS, nombre: lwT('Cualquier contrato de este proyecto') }]
@@ -531,7 +531,7 @@ function pintarFichaContrato(){
   const ro     = PUEDO_ESCRIBIR ? '' : ' disabled';
 
   const aviso = PUEDO_ESCRIBIR ? '' :
-    '<p class="aviso">' + lwT('Estás viendo el reparto, no puedes cambiarlo: solo un super admin edita cuentas de cobro. Es el dato que decide adónde transfiere el comprador.') + '</p>';
+    '<p class="aviso">' + lwT('Estás viendo el reparto, no puedes cambiarlo: solo un super admin edita cuentas de cobro. Es el dato que decide adónde transfiere el cliente.') + '</p>';
   // solo alarma donde hay desplegable que llenar: los 12 documentos que no cobran
   // no tienen ninguno
   const sinNinguna = (!p.cobra || filas.length) ? '' :
@@ -638,7 +638,7 @@ function pintarFichaCuenta(){
   const nota = lwNotaCuenta.lee(c.extra);
 
   const aviso = PUEDO_ESCRIBIR ? '' :
-    '<p class="aviso">' + lwT('Estás viendo el reparto, no puedes cambiarlo: solo un super admin edita cuentas de cobro. Es el dato que decide adónde transfiere el comprador.') + '</p>';
+    '<p class="aviso">' + lwT('Estás viendo el reparto, no puedes cambiarlo: solo un super admin edita cuentas de cobro. Es el dato que decide adónde transfiere el cliente.') + '</p>';
 
   $('#ficha').innerHTML = aviso
     + '<h2 class="t">' + esc(c.label) + '</h2>'
@@ -789,7 +789,7 @@ function nuevaCuenta(){
       + '</div>'
       + '<p class="nota">'
         + lwT('La clave va en minúsculas, sin espacios ni acentos (por ejemplo «notario_ayu_bali»). Queda dentro de cada contrato y cada factura que se emitan con esta cuenta, así que no se renombra nunca.') + '<br>'
-        + lwT('Titular, banco y número son lo que el comprador va a leer en su contrato. Cópialos del justificante del banco, no de memoria.')
+        + lwT('Titular, banco y número son lo que el cliente va a leer en su contrato. Cópialos del justificante del banco, no de memoria.')
       + '</p>'
       + '<div class="acciones">'
         + '<button class="btn primary" id="btnCrear">' + lwT('Crear cuenta') + '</button>'
@@ -820,7 +820,7 @@ async function crearCuenta(){
   }
   if(!label){ toastMal(lwT('La etiqueta no puede quedar vacía: es lo que se lee en el desplegable del contrato.')); return; }
   if(!val('nTitular') || !val('nCuenta')){
-    toastMal(lwT('Hacen falta al menos el titular y el número de cuenta: son lo que el comprador usa para transferir.')); return;
+    toastMal(lwT('Hacen falta al menos el titular y el número de cuenta: son lo que el cliente usa para transferir.')); return;
   }
   const fila = {
     clave: clave, label: label,

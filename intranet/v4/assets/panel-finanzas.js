@@ -494,7 +494,7 @@
     var top = personas.slice(0, 10);
     var th = function (t, der) { return '<th class="py-2 pr-4 font-label-md text-[11px] uppercase tracking-wider text-outline' + (der ? ' text-right' : '') + '">' + esc(T(t)) + '</th>'; };
     var h = '<table class="w-full text-left border-collapse"><thead><tr>' +
-      th('Comprador') + th('Contratos') + th('Cobrado', true) + th('Por cobrar', true) + th('Vencido', true) + '</tr></thead><tbody>';
+      th('Cliente') + th('Contratos') + th('Cobrado', true) + th('Por cobrar', true) + th('Vencido', true) + '</tr></thead><tbody>';
     h += top.map(function (x) {
       var cs = [];
       if (x.firmados) cs.push(x.firmados + ' ' + T(x.firmados === 1 ? 'firmado' : 'firmados'));
@@ -671,7 +671,7 @@
       ['Pagado a proveedores en el año', pm.gastos ? pm.gastos.pagadoAnio : 'sin permiso'], ['Comisiones pagadas en el año', pm.comPagadas ? pm.comPagadas.anio : 'sin permiso'], [],
       ['Proyecto', 'Firmado', 'Cobrado', '% cobrado', 'Por cobrar', 'Vencido', 'Próximos 90 días', 'Gastos (base)', 'Caja neta', 'Stock disponible (valor)', 'Stock disponible (unidades)']]
       .concat((pm.porProyecto || []).map(function (p) { return [p.proyecto, p.cartera, p.cobrado, p.pctCobrado, p.pendiente, p.vencido, p.proximos90, p.gastosBase, p.cajaNeta, p.stockValor, p.stockN]; }))
-      .concat([[], ['Quién debe'], ['Proyecto', 'Comprador', 'Firmados', 'Sin firmar', 'Cobrado', 'Por cobrar', 'Vencido']])
+      .concat([[], ['Quién debe'], ['Proyecto', 'Cliente', 'Firmados', 'Sin firmar', 'Cobrado', 'Por cobrar', 'Vencido']])
       .concat([].concat.apply([], (pm.porProyecto || []).map(function (p) {
         return (p.personas || []).map(function (x) { return [p.proyecto, x.nombre, x.firmados, x.sinFirmar, x.cobrado, x.pendiente, x.vencido]; });
       })));

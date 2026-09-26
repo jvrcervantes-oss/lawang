@@ -256,7 +256,7 @@ const LW_HERRAMIENTAS = [
      son de la v4 y no tienen tarjeta aquí. Mismo orden en la sidebar v4 (nav.js,
      ORDEN_COMUNICACION). Lo que se ve lo sigue decidiendo `herr`. */
   { grupo:'Comunicación', nombre:'Soporte', icon:'ph-headset', href:'/intranet/soporte/', herr:'soporte',
-    para:'Los tickets de los compradores desde su área de clientes, en una bandeja.',
+    para:'Los tickets de los clientes desde su área de clientes, en una bandeja.',
     claves:'soporte mensajes tickets chat compradores atencion consultas support messages tickets chat buyers enquiries inbox',
     estado:d => d.hilosAbiertos == null ? null
       : [d.hilosAbiertos ? hT(d.hilosAbiertos === 1 ? '%n ticket abierto' : '%n tickets abiertos', { n: d.hilosAbiertos }) : hT('Sin tickets abiertos'),
@@ -304,13 +304,13 @@ const LW_HERRAMIENTAS = [
       : d.modelosSinPrecio ? [hT('%n sin precio de catalogo', { n: d.modelosSinPrecio }), true]
       : [hT('%m modelos · %p en la web', { m: d.modelos, p: d.modelosPublicados }), false] },
   { grupo:'Base de datos', nombre:'Obra', icon:'ph-crane-tower', href:'/intranet/obra/', herr:'obra',
-    para:'Fase, fecha de entrega y fotos de cada unidad — lo que ve el comprador en su portal.',
+    para:'Fase, fecha de entrega y fotos de cada unidad — lo que ve el cliente en su portal.',
     claves:'obra construccion fases fotos avance portal entrega construction site stages photos progress handover',
     estado:d => d.obraActivas == null ? null
       : d.obraActivas === 0 ? [hT('Sin unidades en obra'), true]
       : [hT('%n en obra', { n: d.obraActivas }), false] },
-  { grupo:'Base de datos', nombre:'Compradores', icon:'ph-identification-card', href:'/intranet/compradores/', herr:'compradores',
-    para:'Ficha del comprador y documentación KYC, con caducidades.',
+  { grupo:'Base de datos', nombre:'Clientes', icon:'ph-identification-card', href:'/intranet/compradores/', herr:'compradores',
+    para:'Ficha del cliente y documentación KYC, con caducidades.',
     claves:'compradores kyc pasaporte fichas clientes caducidad buyers kyc passport records clients expiry',
     estado:d => d.compradores == null ? null : [hT('%n fichas', { n: d.compradores }), false] },
 

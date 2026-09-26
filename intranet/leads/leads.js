@@ -1210,7 +1210,7 @@ function pintarHaciaContrato(l){
   }
   caja.innerHTML = `<button class="btn pri" id="haciaContratoBtn"><i class="ph ph-file-plus"></i>${lwT('Crear contrato para este lead')}</button>
     <p style="font-size:12.5px;color:var(--mist);margin:9px 0 0">
-      ${lwT('Se abre su ficha de comprador (con los datos que dejó él) y de ahí el contrato.')}</p>`;
+      ${lwT('Se abre su ficha de cliente (con los datos que dejó él) y de ahí el contrato.')}</p>`;
   caja.querySelector('#haciaContratoBtn').onclick = () => dialogoHaciaContrato(l);
 }
 
@@ -1233,7 +1233,7 @@ async function dialogoHaciaContrato(l){
      ${lwT('Puede que sea la misma persona duplicada.')}</div>`);
   if(!d.email) avisos.push(
     `<div class="aviso rojo" style="margin:0 0 10px"><b>${lwT('Este lead no dejó email.')}</b>
-     ${lwT('Una ficha de comprador necesita un identificador, así que hay que darla de alta a mano en')} <a href="/intranet/compradores/?nuevo=1" target="_blank" rel="noopener">${lwT('Compradores')}</a>.</div>`);
+     ${lwT('Una ficha de cliente necesita un identificador, así que hay que darla de alta a mano en')} <a href="/intranet/compradores/?nuevo=1" target="_blank" rel="noopener">${lwT('Clientes')}</a>.</div>`);
 
   caja.innerHTML = avisos.join('') + `
     <div class="dato"><span>${lwT('Nombre')}</span><b>${esc(d.nombre || 'sin nombre')}</b></div>
@@ -2290,8 +2290,8 @@ function pintarTrazabilidad(){
   $('#kpis-traza').innerHTML = `
     <div class="kpi fuerte"><div class="rot">${lwT('En más de un funnel')}<i class="ph ph-git-merge"></i></div>
       <p class="cifra">${TRAZA.length}</p><p class="pie">${lwT('personas')}</p></div>
-    <div class="kpi"><div class="rot">${lwT('Ya compradores')}<i class="ph ph-handshake"></i></div>
-      <p class="cifra">${compradores}</p><p class="pie">${lwT('con ficha de comprador en %marca')}</p></div>
+    <div class="kpi"><div class="rot">${lwT('Ya clientes')}<i class="ph ph-handshake"></i></div>
+      <p class="cifra">${compradores}</p><p class="pie">${lwT('con ficha de cliente en %marca')}</p></div>
     <div class="kpi"><div class="rot">${lwT('En dos sales managers')}<i class="ph ph-users-three"></i></div>
       <p class="cifra oro">${dosGhl}</p><p class="pie">${lwT('en las cuentas de dos o más')}</p></div>
     <div class="kpi"><div class="rot">${lwT('Cuentas activas')}<i class="ph ph-plug"></i></div>
@@ -2304,7 +2304,7 @@ function pintarTrazabilidad(){
   $('#tTraza').innerHTML = TRAZA.length ? TRAZA.map(p => `
     <article class="cita${p.cuentasGhl >= 2 ? ' urge' : ''}">
       <div class="cuerpo">
-        <div class="quien">${esc(p.nombre)} ${p.comprador ? `<span class="chip verde">${lwT('Comprador')}</span>` : ''}
+        <div class="quien">${esc(p.nombre)} ${p.comprador ? `<span class="chip verde">${lwT('Cliente')}</span>` : ''}
           <span class="chip gris">${p.tipos.map(t => t === 'tel' ? lwT('teléfono') : 'email').join(' + ')}</span></div>
         ${p.ap.map(a => `<div class="sub"><b>${esc(a.funnel)}</b> · ${esc(a.fuente || '—')} · ${a.alta ? fecha(a.alta) : '—'}</div>`).join('')}
       </div>
@@ -2346,7 +2346,7 @@ async function trazaAccion(e){
       const res = (r.resultados || {})[id] || {};
       if(!res.ok) throw new Error(res.error || lwT('falló'));
       await lwConfirmar({ titulo: lwT('Prueba en seco'), confirmar: lwT('Entendido'), cancelar: false,
-        cuerpo: lwT('%c contactos leídos con la etiqueta. %m coinciden con leads o compradores de %marca. No se ha guardado nada.',
+        cuerpo: lwT('%c contactos leídos con la etiqueta. %m coinciden con leads o clientes de %marca. No se ha guardado nada.',
                    { c: res.contactos, m: res.huellas_con_lawang }) });
     }
     if(accion === 'estado'){

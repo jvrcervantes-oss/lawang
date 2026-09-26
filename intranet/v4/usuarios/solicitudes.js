@@ -16,7 +16,7 @@
   'use strict';
   // la base de la instancia la fija guard.js (ERP F3): la URL se pide al llamar, nunca se guarda al cargar
   var KEY = window.LW_SB_KEY;
-  var HERR_COMERCIAL = [['leads', 'CRM'], ['contratos', 'Generador de contratos'], ['compradores', 'Compradores'],
+  var HERR_COMERCIAL = [['leads', 'CRM'], ['contratos', 'Generador de contratos'], ['compradores', 'Clientes'],
                         ['reservas', 'Reservas'], ['comisiones_reparto', 'Mis comisiones']];
   var TIPOS = [['carta_reserva', 'Carta de Reserva'], ['reserva_parcela', 'Bloqueo de Parcela'],
                ['construccion', 'Construcción'], ['carta_reserva_hak_sewa', 'Carta de Reserva (Hak Sewa)'],
@@ -42,7 +42,7 @@
   var TXT_ERR = {
     elige_tipos_de_contrato: 'Marca al menos un tipo de contrato.', elige_proyectos: 'Marca al menos un proyecto.',
     ya_es_usuario: 'Ese email ya es usuario de la intranet.',
-    email_ya_existe_en_auth: 'Ese email ya tiene una cuenta (por ejemplo, de comprador en el portal). No se convierte en agente: dale de alta a mano con otro email.',
+    email_ya_existe_en_auth: 'Ese email ya tiene una cuenta (por ejemplo, de cliente en el portal). No se convierte en agente: dale de alta a mano con otro email.',
   };
 
   espera(function (sb) {

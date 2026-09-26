@@ -382,7 +382,7 @@
     '— sin indicar —': '— not specified —',
     '— sin proveedor —': '— no supplier —',
     /* ── Finanzas (/v4/finanzas/, 24-sep-2026) ── */
-    'El closer se asigna a la operación entera: su Carta, su Bloqueo y su Construcción cuentan para quien la cerró. Cobrado es todo lo que pagaron sus compradores en el año, vaya a la cuenta que vaya.': 'The closer is assigned to the whole deal: its Reservation Letter, Plot Block and Construction count for whoever closed it. Collected is everything their buyers paid this year, whichever account it went to.',
+    'El closer se asigna a la operación entera: su Carta, su Bloqueo y su Construcción cuentan para quien la cerró. Cobrado es todo lo que pagaron sus clientes en el año, vaya a la cuenta que vaya.': 'The closer is assigned to the whole deal: its Reservation Letter, Plot Block and Construction count for whoever closed it. Collected is everything their clients paid this year, whichever account it went to.',
     'Imprimir / PDF': 'Print / PDF',
     'Informe de finanzas': 'Finance report',
     'Lo que ha cerrado cada uno y lo cobrado': 'What each one closed and what was collected',
@@ -768,6 +768,7 @@
     'Unidad': 'Unit',
     'Comprador': 'Buyer',
     'Compradores': 'Buyers',
+    'Clientes': 'Clients',
     'Contrato': 'Contract',
     'Contratos': 'Contracts',
     'Notas': 'Notes',
@@ -783,6 +784,7 @@
     'sin fecha': 'no date',
     'sin proyecto': 'no project',
     'sin comprador': 'no buyer',
+    'sin cliente': 'no client',
     'sin nº': 'no number',
     'no se sabe': 'unknown',
     'Cargando…': 'Loading…',
@@ -883,11 +885,11 @@
     'Cerrar Sesión': 'Log out',
     'Notificaciones': 'Notifications',
     /* ---------- v4/operaciones/ rehecha (22-sep-2026): una fila por operación ---------- */
-    'Una fila por venta: la Carta de Reserva, el Bloqueo de Parcela y la Construcción del mismo comprador van juntas, con el dinero de toda la cadena. Pulsa una fila para abrir su ficha.':
-      'One row per sale: the Reservation Letter, the Plot Blocking and the Construction contract of the same buyer go together, with the money of the whole chain. Click a row to open its sheet.',
+    'Una fila por venta: la Carta de Reserva, el Bloqueo de Parcela y la Construcción del mismo cliente van juntas, con el dinero de toda la cadena. Pulsa una fila para abrir su ficha.':
+      'One row per sale: the Reservation Letter, the Plot Blocking and the Construction contract of the same client go together, with the money of the whole chain. Click a row to open its sheet.',
     'Nueva operación': 'New deal',
     'Pendiente de cobro': 'Outstanding',
-    'Buscar comprador, nº de contrato, proyecto o parcela…': 'Search buyer, contract no., project or plot…',
+    'Buscar cliente, nº de contrato, proyecto o parcela…': 'Search client, contract no., project or plot…',
     'Trayendo las operaciones…': 'Loading the operations…',
     'Mostrando': 'Showing',
     'de': 'of',
@@ -966,7 +968,7 @@
       'Amounts are gross, before any withholding. A credit (negative amount) is the reversal of a commission whose receipt was voided or deleted; an adjustment is the difference when the receipt changed amount after being invoiced.',
 
     /* ---------- Soporte ---------- */
-    'Buscar comprador…': 'Search buyer…',
+    'Buscar cliente…': 'Search client…',
     'Ticket': 'Ticket',
     'Último mensaje': 'Last message',
     'No se pudieron leer los tickets: ': 'Could not load the tickets: ',
@@ -998,14 +1000,14 @@
     'sin empezar': 'not started',
     '— sin empezar —': '— not started —',
     'Contrato %n': 'Contract %n',
-    'Lo que marques aquí lo ve el comprador en su portal.':
-      'Whatever you set here is what the buyer sees in their portal.',
-    'Sin contrato vinculado: aún no lo ve ningún comprador.':
-      'No contract linked: no buyer can see this yet.',
+    'Lo que marques aquí lo ve el cliente en su portal.':
+      'Whatever you set here is what the client sees in their portal.',
+    'Sin contrato vinculado: aún no lo ve ningún cliente.':
+      'No contract linked: no client can see this yet.',
     'Subir fotos — se optimizan solas a tamaño web':
       'Upload photos — they are resized for web automatically',
-    'Puedes documentar la obra igualmente: cuando la unidad se vincule a un contrato, el comprador verá el histórico completo.':
-      'You can document the work anyway: once the unit is linked to a contract, the buyer will see the full history.',
+    'Puedes documentar la obra igualmente: cuando la unidad se vincule a un contrato, el cliente verá el histórico completo.':
+      'You can document the work anyway: once the unit is linked to a contract, the client will see the full history.',
     'Sin título': 'Untitled',
     'Título': 'Title',
     'Ocultar': 'Hide',
@@ -1015,7 +1017,7 @@
     'sin permiso para la herramienta Obra': 'no permission for the Construction tool',
     '%n foto subida': '%n photo uploaded',
     '%n fotos subidas': '%n photos uploaded',
-    'Título de la foto (lo ve el comprador):': 'Photo title (the buyer sees it):',
+    'Título de la foto (lo ve el cliente):': 'Photo title (the client sees it):',
     'Borrar esta foto': 'Delete this photo',
     'Se quita también del portal del comprador. Esto no se puede deshacer.':
       'It is removed from the buyer portal too. This cannot be undone.',
@@ -1194,7 +1196,7 @@
     'Es el nivel 1 de la cascada: lo heredan todos los proyectos que no tengan precio propio, y es lo que publica la web como «desde».':
       'This is level 1 of the cascade: every project without its own price inherits it, and it is what the website publishes as “from”.',
     'Documentos': 'Documents',
-    'visible para el comprador': 'visible to the buyer',
+    'visible para el cliente': 'visible to the client',
     'Sin planos ni memoria de calidades todavía.':
       'No floor plans or specification sheets yet.',
     'Tipo de documento': 'Document type',
@@ -1203,8 +1205,8 @@
     'Render': 'Render',
     'Otro': 'Other',
     'Añadir documento': 'Add document',
-    'PDF o imagen, hasta 50 MB. Nace privado: que lo vea el comprador se decide fichero a fichero.':
-      'PDF or image, up to 50 MB. Private by default: whether the buyer sees it is decided file by file.',
+    'PDF o imagen, hasta 50 MB. Nace privado: que lo vea el cliente se decide fichero a fichero.':
+      'PDF or image, up to 50 MB. Private by default: whether the client sees it is decided file by file.',
     'El de tipo': 'The one of type',
     'es el que el contrato de Construcción adjunta solo al elegir este modelo (el más reciente si hay varios). Sin ninguno, se sigue usando el PDF que el estudio tenga en el repo.':
       'is the one the Construction contract attaches automatically when this model is chosen (the most recent one if there are several). With none, the PDF held in the studio repo is used instead.',
@@ -1404,9 +1406,9 @@
     'desbloqueó un contrato firmado': 'unlocked a signed contract',
     'editó un contrato firmado': 'edited a signed contract',
     'facturó un contrato sin firmar': 'invoiced an unsigned contract',
-    'aplicó un cobro al comprador de otro contrato': 'applied a payment to another contract’s buyer',
+    'aplicó un cobro al cliente de otro contrato': 'applied a payment to another contract’s client',
     'aplicó un cobro a una factura sin contrato': 'applied a payment to an invoice with no contract',
-    'guardó un contrato sin ficha de comprador': 'saved a contract with no buyer record',
+    'guardó un contrato sin ficha de cliente': 'saved a contract with no client record',
     'caja negra: no se ha podido leer': 'black box: could not be read',
     '%n documento borrado guardado en la caja negra': '%n deleted document kept in the black box',
     '%n documentos borrados guardados en la caja negra': '%n deleted documents kept in the black box',
@@ -1424,6 +1426,7 @@
        `logica.js`, que llama al diccionario por su propio puente `vT`. */
     'Sin proyecto': 'No project',
     'Sin comprador': 'No buyer',
+    'Sin cliente': 'No client',
     '1–30 días': '1–30 days',
     '31–60 días': '31–60 days',
     '61–90 días': '61–90 days',
@@ -1576,7 +1579,7 @@
     'Entra por el área de clientes →': 'Go to the client area →',
     /* cifras del hub */
     'Firmas esperando': 'Signatures waiting',
-    'pendientes de que el comprador firme': 'waiting on the buyer to sign',
+    'pendientes de que el cliente firme': 'waiting on the client to sign',
     'ninguna pendiente': 'none pending',
     '%n aún editables': '%n still editable',
     'Facturas emitidas': 'Invoices issued',
@@ -1655,8 +1658,8 @@
       'The closer’s sales-call calendar, inside the CRM.',
     'Cómo va cada venta: estado de cuenta, documentos, firmas y vencimientos.':
       'How each sale is going: statement of account, documents, signatures and payments.',
-    'Los tickets de los compradores desde su área de clientes, en una bandeja.':
-      'Buyer tickets from their client area, in one inbox.',
+    'Los tickets de los clientes desde su área de clientes, en una bandeja.':
+      'Client tickets from their client area, in one inbox.',
     'Qué dinero debe entrar, cuándo, y cuál se está retrasando: la caja de la empresa por fechas.':
       'What money is due, when, and what is running late: the company’s cash by date.',
     'Reservas, PPJB, construcción y anexos.': 'Reservations, PPJB, construction and annexes.',
@@ -1675,17 +1678,17 @@
       'The same plot and villa data, as cards per project with the account status. Under test alongside Projects.',
     'Que se puede construir: habitaciones, metros, precio, techos, extras y planos de cada tipo de vivienda.':
       'What can be built: rooms, square metres, price, roof types, add-ons and floor plans for each house model.',
-    'Fase, fecha de entrega y fotos de cada unidad — lo que ve el comprador en su portal.':
-      'Stage, handover date and photos for each unit — what the buyer sees in their portal.',
-    'Ficha del comprador y documentación KYC, con caducidades.':
-      'Buyer record and KYC documents, with expiry dates.',
+    'Fase, fecha de entrega y fotos de cada unidad — lo que ve el cliente en su portal.':
+      'Stage, handover date and photos for each unit — what the client sees in their portal.',
+    'Ficha del cliente y documentación KYC, con caducidades.':
+      'Client record and KYC documents, with expiry dates.',
     'Quién entra, con qué rol y qué herramientas ve cada uno.':
       'Who logs in, with what role, and which tools each of them sees.',
 
     /* ---------- Operaciones (el seguimiento de cada venta) ----------
        «Operación» aquí es UNA VENTA con todo lo que cuelga de ella: contrato,
        facturas, firmas y obra. En inglés es «deal», no «operation». */
-    'Buscar comprador, proyecto, operador o nº…': 'Search buyer, project, agent or no.…',
+    'Buscar cliente, proyecto, operador o nº…': 'Search client, project, agent or no.…',
     'Tabla': 'Table',
     'Embudo': 'Funnel',
     'Operador': 'Agent',
@@ -1705,7 +1708,7 @@
     'Contratos y facturación de esta venta, juntos.': 'Contracts and invoicing for this sale, together.',
     'Contratos de la operación': 'Contracts on this deal',
     'Documentos de la operación': 'Documents on this deal',
-    'Documentación del comprador': 'Buyer documentation',
+    'Documentación del cliente': 'Client documentation',
     'Hito de pago': 'Payment milestone',
     'Cargando los hitos de pago…': 'Loading the payment milestones…',
     'El contrato no fijó hitos de pago.': 'The contract set no payment milestones.',
@@ -1753,10 +1756,10 @@
     'El pasaporte y el KYC son de la': 'The passport and the KYC belong to the',
     ', no de una venta: salen en todas sus operaciones. Se suben desde':
       ', not to a sale: they show up on all of their deals. They are uploaded from',
-    'Ningún documento subido todavía para este comprador.': 'No document uploaded yet for this buyer.',
-    'Ningún documento subido todavía para estos compradores.': 'No document uploaded yet for these buyers.',
-    'Sin ficha de comprador enlazada no hay documentación que mostrar.':
-      'With no buyer record linked there is no documentation to show.',
+    'Ningún documento subido todavía para este cliente.': 'No document uploaded yet for this client.',
+    'Ningún documento subido todavía para estos clientes.': 'No document uploaded yet for these clients.',
+    'Sin ficha de cliente enlazada no hay documentación que mostrar.':
+      'With no client record linked there is no documentation to show.',
     'Pulsa un nombre para abrir su ficha y su documentación.':
       'Click a name to open their record and their documents.',
     'Pulsa un número de contrato para ver su operación completa.':
@@ -1764,7 +1767,7 @@
     'Sus otros contratos': 'Their other contracts',
     'Adquiriente': 'Buyer',
     'sin pasaporte': 'no passport',
-    'siempre que el comprador tenga pasaporte o email.': 'as long as the buyer has a passport or an email.',
+    'siempre que el cliente tenga pasaporte o email.': 'as long as the client has a passport or an email.',
     '(abierta)': '(open)',
     'firmado y bloqueado': 'signed and locked',
     'Borrar operación': 'Delete deal',
@@ -1792,7 +1795,7 @@
     'Español': 'Spanish',
     'Bahasa Indonesia': 'Indonesian',
     'Identidad': 'Identity',
-    'Tipo de comprador': 'Buyer type',
+    'Tipo de cliente': 'Client type',
     'Persona física': 'Individual',
     'Empresa': 'Company',
     'Nombre completo': 'Full name',
@@ -1825,7 +1828,7 @@
     'Documento subido': 'Document uploaded',
     'No se pudo subir:': 'Could not upload:',
     'No se pudieron leer los documentos:': 'Could not load the documents:',
-    'Documento del comprador': 'Buyer document',
+    'Documento del cliente': 'Client document',
     'Se retira': 'Removing',
     'de la ficha, y su fichero del archivo privado.': 'from the record, and its file from the private archive.',
     'No hay papelera: si el documento sigue haciendo falta habrá que volver a subirlo.':
@@ -1840,7 +1843,7 @@
       'Document removed from the record, but its file is still in the archive (',
     'No se han retirado': 'Not removed',
     'Borrar la ficha de %c': 'Delete %c’s record',
-    'este comprador': 'this buyer',
+    'este cliente': 'this client',
     'y sus': 'and its',
     '%n documento KYC': '%n KYC document',
     '%n documentos KYC': '%n KYC documents',
@@ -1849,24 +1852,24 @@
     'duplicados sueltos': 'stray duplicates',
     'Borrar la ficha': 'Delete the record',
     'Borrando…': 'Deleting…',
-    'Borrar comprador': 'Delete buyer',
+    'Borrar cliente': 'Delete client',
     'Ficha borrada, pero': 'Record deleted, but',
-    'Ese comprador ya no existe': 'That buyer no longer exists',
+    'Ese cliente ya no existe': 'That client no longer exists',
     'Ficha de': 'Record of',
     'Ficha actualizada': 'Record updated',
-    'Comprador creado': 'Buyer created',
+    'Cliente creado': 'Client created',
     'Ese teléfono ya está en otra ficha': 'That phone number is already on another record',
     'Si es la misma persona, no la crees otra vez: búscala en la lista por su teléfono y usa esa ficha.': 'If it is the same person, do not create them again: search the list by phone number and use that record.',
     'Si de verdad comparten teléfono —un matrimonio que compra junto, una persona y su propia empresa— puedes seguir.': 'If they really share a phone —a couple buying together, a person and their own company— you can go ahead.',
     'Guardar igualmente': 'Save anyway',
     'No guardar': 'Don’t save',
-    'Ese pasaporte / NPWP ya está en otra ficha (el correo no tiene nada que ver con este aviso). Desde el 11-sep cada uno ve solo los compradores que dio de alta, así que esa ficha puede existir y NO aparecerte en la lista: no crees una segunda: pide a un administrador que te la traspase o que la enlace a tu contrato.':
-      'That passport / NPWP is already on another record (this warning has nothing to do with the email). Since 11 Sep each person only sees the buyers they created, so that record may exist and NOT show up in your list: do not create a second one: ask an administrator to transfer it to you or to link it to your contract.',
+    'Ese pasaporte / NPWP ya está en otra ficha (el correo no tiene nada que ver con este aviso). Desde el 11-sep cada uno ve solo los clientes que dio de alta, así que esa ficha puede existir y NO aparecerte en la lista: no crees una segunda: pide a un administrador que te la traspase o que la enlace a tu contrato.':
+      'That passport / NPWP is already on another record (this warning has nothing to do with the email). Since 11 Sep each person only sees the clients they created, so that record may exist and NOT show up in your list: do not create a second one: ask an administrator to transfer it to you or to link it to your contract.',
     'Ya hay otra ficha DEL MISMO TIPO con ese correo. Una persona y su empresa sí pueden compartirlo, pero dos personas (o dos empresas) no. Ojo: esa otra ficha puede ser de un compañero y no aparecerte en la lista — si es la misma persona, pide que te la traspasen en vez de crearla otra vez; si es una familia que comparte buzón, deja el correo en una sola e identifica a las demás por su pasaporte.':
       'Another record OF THE SAME TYPE already uses that email. A person and their company may share one, but two people (or two companies) may not. Careful: that other record may belong to a colleague and not show up in your list — if it is the same person, ask for it to be transferred to you instead of creating it again; if it is a family sharing one mailbox, keep the email on a single record and identify the others by passport.',
     'Ese dato ya está en otra ficha: ': 'That value is already on another record: ',
     /* Directorio de compradores + el autor corrige lo suyo (14-sep-2026). */
-    'No se pudo leer el directorio de compradores: ': 'Could not read the buyer directory: ',
+    'No se pudo leer el directorio de clientes: ': 'Could not read the client directory: ',
     'Su actividad': 'Their activity',
     /* Traspaso de ficha de comprador (14-sep-2026). */
     'Responsable de la ficha': 'Who owns this record',
@@ -1910,7 +1913,7 @@
       'This record hangs off an already SIGNED contract: its passport and address are printed inside that document, so they are not changed from here. If there is a real error in the document, that is for an administrator.',
     'No se ha guardado: la base no te deja editar esta ficha. Suele ser porque no la diste de alta tú, o porque ya cuelga de un contrato firmado. Habla con un administrador — recargar no lo arregla.':
       'Not saved: the database will not let you edit this record. Usually because you did not create it, or because it already hangs off a signed contract. Talk to an administrator — reloading will not fix it.',
-    'Crear comprador': 'Create buyer',
+    'Crear cliente': 'Create client',
     'Guardando…': 'Saving…',
     'Subiendo…': 'Uploading…',
     'Subir documento': 'Upload document',
@@ -2270,8 +2273,8 @@
     'todo el contrato': 'the whole contract',
     'La venta está en dos contratos:': 'The sale sits across two contracts:',
     ': el precio total de cada uno de los dos contratos.': ': the total price of each of the two contracts.',
-    'Dos líneas y no una a propósito: son dos relaciones jurídicas con el mismo comprador, y fundirlas borra a qué contrato corresponde cada euro.':
-      'Two lines and not one, on purpose: they are two legal relationships with the same buyer, and merging them erases which contract each euro belongs to.',
+    'Dos líneas y no una a propósito: son dos relaciones jurídicas con el mismo cliente, y fundirlas borra a qué contrato corresponde cada euro.':
+      'Two lines and not one, on purpose: they are two legal relationships with the same client, and merging them erases which contract each euro belongs to.',
     'dos líneas': 'two lines',
     'no son un contrato: no se suman entre sí': 'are not a contract: they do not add up together',
     'Se hace así a propósito: dejar los dos cobraría el total':
@@ -2470,10 +2473,10 @@
     'Este lead está enlazado a su contrato de verdad, no por parecido de correo.':
       'This lead is linked to its real contract, not by a similar-looking email.',
     'Crear contrato para este lead': 'Create a contract for this lead',
-    'Se abre su ficha de comprador (con los datos que dejó él) y de ahí el contrato.':
-      'Their buyer record opens (with the details they left) and the contract from there.',
-    'Una ficha de comprador necesita un identificador, así que hay que darla de alta a mano en':
-      'A buyer record needs an identifier, so it has to be created by hand in',
+    'Se abre su ficha de cliente (con los datos que dejó él) y de ahí el contrato.':
+      'Their client record opens (with the details they left) and the contract from there.',
+    'Una ficha de cliente necesita un identificador, así que hay que darla de alta a mano en':
+      'A client record needs an identifier, so it has to be created by hand in',
     'Ya existe una ficha con ese correo: ': 'A record with that email already exists: ',
     'No se pudieron leer los leads: ': 'Could not load the leads: ',
     'No se pudo abrir la ficha.': 'Could not open the record.',
@@ -2704,8 +2707,8 @@
     'Sin ficha en %marca': "No %marca record",
     'En más de un funnel': "In more than one funnel",
     'personas': "people",
-    'Ya compradores': "Already buyers",
-    'con ficha de comprador en %marca': "with a %marca buyer record",
+    'Ya clientes': "Already clients",
+    'con ficha de cliente en %marca': "with a %marca client record",
     'En dos sales managers': "With two sales managers",
     'en las cuentas de dos o más': "in the accounts of two or more",
     'Cuentas activas': "Active accounts",
@@ -2727,7 +2730,7 @@
     'Ninguna cuenta conectada.': "No accounts connected.",
     'Leyendo la cuenta… puede tardar un minuto.': "Reading the account… this may take a minute.",
     'Prueba en seco': "Dry run",
-    '%c contactos leídos con la etiqueta. %m coinciden con leads o compradores de %marca. No se ha guardado nada.': "%c contacts read with the tag. %m match %marca leads or buyers. Nothing was saved.",
+    '%c contactos leídos con la etiqueta. %m coinciden con leads o clientes de %marca. No se ha guardado nada.': "%c contacts read with the tag. %m match %marca leads or clients. Nothing was saved.",
     'Apagar la cuenta': "Switch off the account",
     'Se dejan de leer sus contactos y se borran sus coincidencias guardadas.': "Its contacts stop being read and its saved matches are deleted.",
     'Cuenta apagada.': "Account switched off.",
@@ -3366,8 +3369,8 @@
       'A contract ALREADY SAVED keeps the account it was made with, even if you untick it here. Nothing already issued is rewritten.',
     'Este contrato no ofrece NINGUNA cuenta. Quien lo abra se encuentra el desplegable de destino de pago vacío — marca al menos una.':
       'This contract offers NO account at all. Whoever opens it finds the payment destination dropdown empty — tick at least one.',
-    'Estás viendo el reparto, no puedes cambiarlo: solo un super admin edita cuentas de cobro. Es el dato que decide adónde transfiere el comprador.':
-      'You are viewing the allocation, not changing it: only a super admin edits payment accounts. This is the data that decides where the buyer transfers to.',
+    'Estás viendo el reparto, no puedes cambiarlo: solo un super admin edita cuentas de cobro. Es el dato que decide adónde transfiere el cliente.':
+      'You are viewing the allocation, not changing it: only a super admin edits payment accounts. This is the data that decides where the client transfers to.',
     'No hay ningún tipo de contrato que cobre. Nada que repartir.': 'There is no contract type that collects payment. Nothing to allocate.',
     'No se ha podido leer el catálogo de contratos. Recarga la página.': 'The contract catalogue could not be read. Reload the page.',
     'No se ha podido leer el reparto. Recarga la página.': 'The allocation could not be read. Reload the page.',
@@ -3412,10 +3415,10 @@
       'The key must be lowercase letters, numbers and underscores, at least 3 characters. No spaces or accents.',
     'La clave va en minúsculas, sin espacios ni acentos (por ejemplo «notario_ayu_bali»). Queda dentro de cada contrato y cada factura que se emitan con esta cuenta, así que no se renombra nunca.':
       'The key is lowercase, with no spaces or accents (for example «notario_ayu_bali»). It is stored inside every contract and every invoice issued with this account, so it is never renamed.',
-    'Titular, banco y número son lo que el comprador va a leer en su contrato. Cópialos del justificante del banco, no de memoria.':
-      'Holder, bank and number are what the buyer will read on their contract. Copy them from the bank statement, not from memory.',
-    'Hacen falta al menos el titular y el número de cuenta: son lo que el comprador usa para transferir.':
-      'At least the account holder and the account number are required: they are what the buyer uses to transfer.',
+    'Titular, banco y número son lo que el cliente va a leer en su contrato. Cópialos del justificante del banco, no de memoria.':
+      'Holder, bank and number are what the client will read on their contract. Copy them from the bank statement, not from memory.',
+    'Hacen falta al menos el titular y el número de cuenta: son lo que el cliente usa para transferir.':
+      'At least the account holder and the account number are required: they are what the client uses to transfer.',
     'Ya existe una cuenta con la clave «%k».': 'An account with key «%k» already exists.',
     /* el aviso de lo ya emitido con esta cuenta (hallazgo de la consulta de deploy) */
     'Esta cuenta está en %n contratos, ninguno firmado todavía.':
@@ -3497,8 +3500,8 @@
     'Desde hoy te acompaño por toda la intranet, aquí abajo en la esquina. Cuando necesites algo, tócame.':
       'From today I\'ll be with you across the whole intranet, down here in the corner. Whenever you need something, tap me.',
     'Lo que ya sé hacer': 'What I can do today',
-    'Pídeme lo que la intranet no te deja hacer: cambiar un dato de un comprador, anular o borrar una factura o un recibí, borrar una operación. Dirección lo aprueba y se hace solo.':
-      'Ask me for what the intranet won\'t let you do: change a buyer\'s details, void or delete an invoice or a receipt, delete an operation. Management approves it and it\'s done automatically.',
+    'Pídeme lo que la intranet no te deja hacer: cambiar un dato de un cliente, anular o borrar una factura o un recibí, borrar una operación. Dirección lo aprueba y se hace solo.':
+      'Ask me for what the intranet won\'t let you do: change a client\'s details, void or delete an invoice or a receipt, delete an operation. Management approves it and it\'s done automatically.',
     'Y lo que viene': 'And what\'s coming',
     'Voy a ir aprendiendo a hacer más cosas por ti. Si me pides algo que aún no sé hacer, también le llega a dirección.':
       'I\'ll keep learning to do more for you. If you ask for something I can\'t do yet, it still reaches management.',
@@ -3529,8 +3532,8 @@
     'Algo ha fallado': 'Something went wrong',
     'Si no ha hecho lo que esperabas, avísame y se lo paso al estudio con los detalles técnicos.': 'If it didn\'t do what you expected, tell me and I\'ll pass it to the studio with the technical details.',
     'Cuéntame qué ha pasado y se lo paso al estudio.': 'Tell me what happened and I\'ll pass it to the studio.',
-    'Dime de qué se trata —el comprador, la factura o el contrato— y por qué. Lo revisas en el Asistente antes de enviarlo.':
-      'Tell me what it\'s about — the buyer, the invoice or the contract — and why. You\'ll review it in the Assistant before sending.',
+    'Dime de qué se trata —el cliente, la factura o el contrato— y por qué. Lo revisas en el Asistente antes de enviarlo.':
+      'Tell me what it\'s about — the client, the invoice or the contract — and why. You\'ll review it in the Assistant before sending.',
 
     /* ---------- Asistente de respuestas (/intranet/v4/asistente/, 22-sep-2026) ----------
        Un BORRADOR de respuesta a la pregunta de un comprador citando su contrato
@@ -3544,14 +3547,14 @@
     'Asistente de respuestas': 'Reply assistant',
     'Un borrador de respuesta a la duda de un comprador, citando solo su contrato. Lo revisas y lo mandas tú.':
       'A draft reply to a buyer\'s question, citing only their contract. You review it and send it yourself.',
-    'Redacta un BORRADOR de respuesta a la pregunta de un comprador citando solo su contrato. Tú lo revisas, lo corriges si hace falta y se lo reenvías: desde aquí no se envía nada.':
-      'It drafts a DRAFT reply to a buyer\'s question citing only their contract. You review it, fix it if needed and forward it yourself: nothing is sent from here.',
+    'Redacta un BORRADOR de respuesta a la pregunta de un cliente citando solo su contrato. Tú lo revisas, lo corriges si hace falta y se lo reenvías: desde aquí no se envía nada.':
+      'It drafts a DRAFT reply to a client\'s question citing only their contract. You review it, fix it if needed and forward it yourself: nothing is sent from here.',
     'Cita solo el ejemplar del contrato elegido. Lo que no esté en él lo marca como pendiente, y una contraoferta comercial la deja para el promotor: no rellenes ninguno de los dos huecos con algo plausible.':
       'It cites only the chosen contract. Anything not in it is flagged as pending, and a commercial counter-offer is left to the developer: do not fill either gap with something plausible.',
     'Consulta': 'Query',
     'Qué contrato y qué pregunta': 'Which contract and which question',
-    'Elige el contrato del comprador': 'Pick the buyer\'s contract',
-    'Contrato del comprador': 'Buyer\'s contract',
+    'Elige el contrato del cliente': 'Pick the client\'s contract',
+    'Contrato del cliente': 'Client\'s contract',
     'Cargando tus contratos…': 'Loading your contracts…',
     'No tienes ningún contrato a la vista: sin contrato no hay nada que citar.':
       'You have no contract in sight: without a contract there is nothing to cite.',
@@ -3560,13 +3563,13 @@
     '1 contrato a tu alcance': '1 contract within your reach',
     '%n contratos a tu alcance': '%n contracts within your reach',
     'firmado': 'signed',
-    'Pregunta del comprador (pégala tal cual)': 'Buyer\'s question (paste it as is)',
-    'Pega aquí el mensaje del comprador, sin resumirlo ni corregirlo.': 'Paste the buyer\'s message here, without summarising or correcting it.',
+    'Pregunta del cliente (pégala tal cual)': 'Client\'s question (paste it as is)',
+    'Pega aquí el mensaje del cliente, sin resumirlo ni corregirlo.': 'Paste the client\'s message here, without summarising or correcting it.',
     '%n / %m': '%n / %m',
     'Redactar borrador': 'Write draft',
     'Redactando…': 'Drafting…',
-    'Elige primero el contrato del comprador.': 'Pick the buyer\'s contract first.',
-    'Pega la pregunta del comprador antes de redactar.': 'Paste the buyer\'s question before drafting.',
+    'Elige primero el contrato del cliente.': 'Pick the client\'s contract first.',
+    'Pega la pregunta del cliente antes de redactar.': 'Paste the client\'s question before drafting.',
     'Resultado': 'Result',
     'Borrador para revisar': 'Draft to review',
     'Punto pendiente: ': 'Pending point: ',
@@ -3592,7 +3595,7 @@
     'Historial': 'History',
     'Consultas anteriores': 'Previous queries',
     'Las consultas se guardan 90 días: cada agente ve las de los contratos a su alcance.': 'Queries are kept for 90 days: each agent sees those of the contracts within their reach.',
-    'Buscar por contrato, comprador o texto': 'Search by contract, buyer or text',
+    'Buscar por contrato, cliente o texto': 'Search by contract, client or text',
     'Actualizar': 'Refresh',
     'Cargando el historial…': 'Loading history…',
     'No se ha podido cargar el historial: ': 'Could not load the history: ',
@@ -3646,11 +3649,11 @@
     '%n respuestas aprobadas que el asistente ha tenido en cuenta': '%n approved replies the assistant took into account',
     '(respuesta no cargada: vuelve a elegir el contrato)': '(reply not loaded: pick the contract again)',
     'No se han podido leer las respuestas aprobadas': 'Could not read the approved replies',
-    'Borrador para el comprador (editable)': 'Draft for the buyer (editable)',
+    'Borrador para el cliente (editable)': 'Draft for the client (editable)',
     'Solo los puntos que el asistente ha podido contestar. Corrígelo aquí si hace falta: «Copiar» se lleva lo que quede escrito.':
       'Only the points the assistant could answer. Fix it here if needed: "Copy" takes whatever is written.',
-    'Todos los puntos han quedado pendientes: no hay texto que mandar al comprador todavía.':
-      'Every point is pending: there is no text for the buyer yet.',
+    'Todos los puntos han quedado pendientes: no hay texto que mandar al cliente todavía.':
+      'Every point is pending: there is no text for the client yet.',
     'No se ha guardado la copia': 'The copy was not saved',
     'Copiada': 'Copied',
     'Texto copiado el %f': 'Text copied on %f',
@@ -3664,8 +3667,8 @@
     // Temas frecuentes
     'Temas': 'Topics',
     'Temas frecuentes': 'Frequent topics',
-    'Qué preguntan los compradores, por tema, y en cuántas consultas el asistente tuvo que retirar un punto o descartar el borrador.':
-      'What buyers ask, by topic, and in how many queries the assistant had to withdraw a point or discard the draft.',
+    'Qué preguntan los clientes, por tema, y en cuántas consultas el asistente tuvo que retirar un punto o descartar el borrador.':
+      'What clients ask, by topic, and in how many queries the assistant had to withdraw a point or discard the draft.',
     'Ventana de días': 'Day window',
     '30 días': '30 days',
     '90 días': '90 days',
@@ -3689,11 +3692,11 @@
     'Cualquier proyecto': 'Any project',
     'Tipo de contrato (opcional)': 'Contract type (optional)',
     'Cualquier tipo': 'Any type',
-    'Pregunta (como la haría el comprador)': 'Question (as the buyer would ask it)',
+    'Pregunta (como la haría el cliente)': 'Question (as the client would ask it)',
     '¿Qué documentos recibo al firmar?': 'Which documents do I get on signing?',
     'Respuesta aprobada': 'Approved reply',
-    'Lo que el asistente puede dar por bueno. Sin cifras largas ni datos de un comprador concreto.':
-      'What the assistant may take as given. No long figures and no data of a specific buyer.',
+    'Lo que el asistente puede dar por bueno. Sin cifras largas ni datos de un cliente concreto.':
+      'What the assistant may take as given. No long figures and no data of a specific client.',
     'Limpiar': 'Clear',
     'Guardar respuesta aprobada': 'Save approved reply',
     'Respuestas vigentes': 'Current replies',
@@ -3712,7 +3715,7 @@
     'Elige el tema de la respuesta aprobada.': 'Pick the topic of the approved reply.',
     'Ese tema está frenado por el asistente: es un hueco del contrato y se resuelve con adenda, no con una respuesta aprobada.':
       'That topic is braked by the assistant: it is a gap in the contract and is solved with an addendum, not with an approved reply.',
-    'Escribe la pregunta tal y como la haría el comprador.': 'Write the question as the buyer would ask it.',
+    'Escribe la pregunta tal y como la haría el cliente.': 'Write the question as the client would ask it.',
     'Escribe la respuesta aprobada.': 'Write the approved reply.',
     'Ese proyecto no está en la lista: elígelo del desplegable.': 'That project is not on the list: pick it from the dropdown.',
     'Ese tipo de contrato no está en la lista: elígelo del desplegable.': 'That contract type is not on the list: pick it from the dropdown.',

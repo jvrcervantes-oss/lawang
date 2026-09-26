@@ -41,7 +41,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=65ea4669"></script>
+<script src="/contracts/assets/i18n.js?v=d63090e1"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script><script src="/contracts/assets/cierre.js?v=7471481b"></script>
 <script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="/contracts/assets/topbar.js?v=8444fd68" defer></script>
 <style>
@@ -320,7 +320,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
 <script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
 <script src="/contracts/assets/operaciones-cuentas.js?v=38a59c8c"></script>
 <script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
-<script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
+<script src="/contracts/assets/movimiento-v3.js?v=c88bae43"></script>
 </head>
 <body hidden>
   <!-- Puerta de acceso propia (1-sep-2026): antes /intranet/ sin sesión
@@ -427,7 +427,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
      pre-commit; el valor de aqui es solo el punto de partida. -->
 <script src="/contracts/assets/dinero.js?v=a442e362"></script>
 <script src="/intranet/facturas/totales.js"></script>
-<script src="/contracts/assets/herramientas.js?v=7c7f1b58"></script>
+<script src="/contracts/assets/herramientas.js?v=cec22c65"></script>
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
 <script src="/contracts/assets/suite-comun.js?v=24701ad2"></script>
 <script>
@@ -647,7 +647,7 @@ function pintarKpis(d, ficha){
        rojo lo que urge, verde lo que va bien, gris lo neutro. En la 1ª pasada todos
        los pies eran grises y la tarjeta no decía si el número era bueno o malo. */
     { rot:lwT('Firmas esperando'), v:d.firmasPendientes, href:'/intranet/operaciones/?filtro=firma_viva', herr:'operaciones',
-      pie:n => lwT(n ? 'pendientes de que el comprador firme' : 'ninguna pendiente'),
+      pie:n => lwT(n ? 'pendientes de que el cliente firme' : 'ninguna pendiente'),
       tono:n => n ? 'mal' : 'bien', urge:n => n > 0 },
     { rot:'Contratos', v:d.contratos, href:'/contracts/', herr:'contratos',
       pie:() => d.contratosEditables == null ? '' : lwT('%n aún editables', { n: d.contratosEditables }),
@@ -777,7 +777,7 @@ async function pintarRail(sb, ficha){
     const avisos   = (anom || []).filter(a => a.severidad !== 'critica');
     if(criticas.length || avisos.length){
       const fila = a => `<div class="railFila ${a.severidad === 'critica' ? 'tarde' : ''}">
-        <span><b>${esc(a.contrato || lwT('sin nº'))}</b> · ${esc(a.comprador || lwT('sin comprador'))}${
+        <span><b>${esc(a.contrato || lwT('sin nº'))}</b> · ${esc(a.comprador || lwT('sin cliente'))}${
           a.desde ? ' · ' + (dias(a.desde) <= -1 ? 'hace ' + (-dias(a.desde)) + ' días' : 'hoy') : ''}</span>
         <span class="v ${a.severidad === 'critica' ? 'mal' : 'espera'}">${
           a.tipo === 'cadena_parada' ? lwT('Cadena parada')

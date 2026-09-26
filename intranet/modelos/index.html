@@ -39,8 +39,8 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=65ea4669"></script>
-<script src="/contracts/assets/herramientas.js?v=7c7f1b58"></script>
+<script src="/contracts/assets/i18n.js?v=d63090e1"></script>
+<script src="/contracts/assets/herramientas.js?v=cec22c65"></script>
 <script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="/contracts/assets/topbar.js?v=8444fd68" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=c5c926ae"></script><script src="/contracts/assets/guard.js?v=935970cf" data-herramienta="modelos"></script>
@@ -426,7 +426,7 @@ function cuerpoLectura(m){
   <div class="bloque">
     <h3>${lwT('Documentos')}</h3>
     ${dc.length ? dc.map(d => `<div class="dato"><span>${esc(d.nombre)}
-        <span class="casc">· ${esc(d.tipo)}${d.visible_portal ? ' · ' + lwT('visible para el comprador') : ''}</span></span>
+        <span class="casc">· ${esc(d.tipo)}${d.visible_portal ? ' · ' + lwT('visible para el cliente') : ''}</span></span>
       <b><button type="button" class="sui-btn" data-desc="${esc(d.id)}">${lwT('Abrir')}</button></b></div>`).join('')
       : '<p class="mini">' + lwT('Sin planos ni memoria de calidades todavía.') + '</p>'}
     <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -439,7 +439,7 @@ function cuerpoLectura(m){
         <option value="otro" selected>${lwT('Otro')}</option>
       </select>
       <button type="button" class="sui-btn" id="bSubir">${lwT('Añadir documento')}</button>
-      <span class="mini">${lwT('PDF o imagen, hasta 50 MB. Nace privado: que lo vea el comprador se decide fichero a fichero.')}</span>
+      <span class="mini">${lwT('PDF o imagen, hasta 50 MB. Nace privado: que lo vea el cliente se decide fichero a fichero.')}</span>
     </div>
     <p class="mini" style="margin-top:6px">${lwT('El de tipo')} <b>plano</b> ${lwT('es el que el contrato de Construcción adjunta solo al elegir este modelo (el más reciente si hay varios). Sin ninguno, se sigue usando el PDF que el estudio tenga en el repo.')}</p>
   </div>`;

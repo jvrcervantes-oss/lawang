@@ -1805,7 +1805,7 @@
           carga();
         });
       } else if (act === 'titulo') {
-        var t = window.prompt('Título de la foto (lo ve el comprador):', f.titulo || '');
+        var t = window.prompt('Título de la foto (lo ve el cliente):', f.titulo || '');
         if (t === null) return;
         sb.from('obra_fotos').update({ titulo: t.trim() || null }).eq('id', f.id).then(function (r) {
           if (r.error) return aviso(r.error.message, '#93000a');
@@ -2441,7 +2441,7 @@
     return sb.from('clients').select('id,full_name').order('full_name').then(function (r) {
       if (r.error) { toastMal(lwErrorHumano(r.error, 'No se pudo cargar la lista de clientes')); return null; }
       var cs = (r.data || []).filter(function (c) { return c.full_name; });
-      if (!cs.length) { toastMal('No tienes ningún cliente todavía: da de alta su ficha en Compradores.'); return null; }
+      if (!cs.length) { toastMal('No tienes ningún cliente todavía: da de alta su ficha en Clientes.'); return null; }
       return lwElegir({ titulo: 'Elige el cliente', buscarPh: 'Nombre del cliente…', valor: actual || null,
         opciones: cs.map(function (c) { return { valor: c.id, texto: c.full_name }; }) })
         .then(function (id) {
@@ -2790,7 +2790,7 @@
             var sigue = enBlanco() ? Promise.resolve(true) : lwConfirmar({
               titulo: 'Facturar la unidad completa',
               cuerpo: '<p>Sustituye los conceptos por <b>dos líneas</b>: el precio total de cada uno de los dos contratos.</p>' +
-                '<p>Dos líneas y no una a propósito: son dos relaciones jurídicas con el mismo comprador, y fundirlas borra a qué contrato corresponde cada euro.</p>',
+                '<p>Dos líneas y no una a propósito: son dos relaciones jurídicas con el mismo cliente, y fundirlas borra a qué contrato corresponde cada euro.</p>',
               confirmar: 'Sustituir por los dos', cancelar: 'Dejarlo como está' });
             sigue.then(function (ok) {
               if (!ok) return;
@@ -3177,7 +3177,7 @@
       razon(bPdf, total > 0 && num, !(total > 0) ? 'Todavía no hay ningún importe: el PDF saldría con el total a cero.'
         : 'Guarda primero: sin guardar no hay número, y el PDF saldría idéntico a uno emitido sin existir en la base.');
       razon(bMail, total > 0 && num, !(total > 0) ? 'Todavía no hay ningún importe que cobrar.'
-        : 'Guarda primero: sin guardar no hay número, y el comprador recibiría un documento que no existe en la base.');
+        : 'Guarda primero: sin guardar no hay número, y el cliente recibiría un documento que no existe en la base.');
       razon(bRec, vals.tipo === 'factura' && num, vals.tipo !== 'factura' ? 'Solo se crea un recibí a partir de una factura.' : 'Guarda primero esta factura.');
       bReg.style.display = (ctx.saved && ctx.saved.id) ? '' : 'none';
     }
@@ -3721,7 +3721,7 @@
               campoDom.value = ''; repintaPreview();
               if (res.clienteId) {
                 sb.from('clients').select('address').eq('id', res.clienteId).maybeSingle().then(function (rd) {
-                  if (rd.error) { console.error('[facturas] domicilio del comprador:', rd.error); toastMal(lwErrorHumano(rd.error, 'No se pudo traer el domicilio del comprador: escríbelo a mano')); return; }
+                  if (rd.error) { console.error('[facturas] domicilio del comprador:', rd.error); toastMal(lwErrorHumano(rd.error, 'No se pudo traer el domicilio del cliente: escríbelo a mano')); return; }
                   if (rd.data && rd.data.address && estadoContrato.id === id) { campoDom.value = rd.data.address; repintaPreview(); }
                 });
               }
@@ -3730,7 +3730,7 @@
           btnC.addEventListener('click', function () {
             var ops = opcionesContratoPickerDoc(contratosLigeros);
             if (regla.sinContrato) ops = [{ valor: SIN_CONTRATO_DOC, texto: '— sin contrato —', nota: 'A nombre de un cliente, sin contrato' }].concat(ops);
-            lwElegir({ titulo: 'Elige un contrato', buscarPh: 'Número, comprador o proyecto…', opciones: ops, valor: estadoContrato.sinContrato ? SIN_CONTRATO_DOC : estadoContrato.id })
+            lwElegir({ titulo: 'Elige un contrato', buscarPh: 'Número, cliente o proyecto…', opciones: ops, valor: estadoContrato.sinContrato ? SIN_CONTRATO_DOC : estadoContrato.id })
               .then(function (id) {
                 if (id === null) return;
                 if (id === SIN_CONTRATO_DOC) { pasaASinContrato(); return; }
@@ -4128,7 +4128,7 @@
               var libres = abs.filter(function (x) { return !yaElegidas[x.id]; });
               if (!libres.length) { toastMal(abs.length ? 'Todas las facturas pendientes ya están en este recibí.' : 'No hay ninguna factura pendiente de cobro.'); return; }
               lwElegir({
-                titulo: 'Factura que se cobra', buscarPh: 'Número, comprador o contrato…',
+                titulo: 'Factura que se cobra', buscarPh: 'Número, cliente o contrato…',
                 opciones: libres.map(function (f) {
                   return { valor: f.id, texto: (f.numero || 'sin nº') + ' — ' + (f.cliente_nombre || 'sin nombre'),
                     nota: 'pendiente ' + fmtMoneda(f.pendiente, f.moneda || estadoContrato.moneda) + (f.contrato_numero ? ' · ' + f.contrato_numero : '') };
@@ -4282,9 +4282,9 @@
             btnAdd.hidden = !hayOrigen();
             avisoAplic.textContent = !hayOrigen() ? 'Elige arriba la factura que se cobra.'
               : libres.length && estadoContrato.sinContrato ? 'Hay ' + libres.length + ' factura' + (libres.length === 1 ? '' : 's') + ' pendiente' + (libres.length === 1 ? '' : 's') + ' más de este cliente.'
-              : libres.length ? 'Hay ' + libres.length + ' factura' + (libres.length === 1 ? '' : 's') + ' pendiente' + (libres.length === 1 ? '' : 's') + ' más de este comprador, incluidas las de sus otros contratos.'
-              : facturasOtraMoneda ? 'Este comprador tiene ' + facturasOtraMoneda + ' factura' + (facturasOtraMoneda === 1 ? '' : 's') + ' pendiente' + (facturasOtraMoneda === 1 ? '' : 's') + ', pero en otra moneda — un recibí no puede saldar una factura en una moneda distinta a la suya.'
-              : 'No le queda ninguna otra factura pendiente a este comprador.';
+              : libres.length ? 'Hay ' + libres.length + ' factura' + (libres.length === 1 ? '' : 's') + ' pendiente' + (libres.length === 1 ? '' : 's') + ' más de este cliente, incluidas las de sus otros contratos.'
+              : facturasOtraMoneda ? 'Este cliente tiene ' + facturasOtraMoneda + ' factura' + (facturasOtraMoneda === 1 ? '' : 's') + ' pendiente' + (facturasOtraMoneda === 1 ? '' : 's') + ', pero en otra moneda — un recibí no puede saldar una factura en una moneda distinta a la suya.'
+              : 'No le queda ninguna otra factura pendiente a este cliente.';
             var suma = aplicaciones.reduce(function (s, a) { return s + (lwParseImporte(a.importe) || 0); }, 0);
             totalAplic.style.display = aplicaciones.length ? 'flex' : 'none';
             totalAplic.innerHTML = '<span style="font-size:12.5px;font-weight:600;color:' + CAJ.tinta + '">Total del recibí <span style="font-weight:500;color:' + CAJ.apagado + '">· ' +
@@ -5171,7 +5171,7 @@
               if (!ok) return false;
               return lwConfirmar({
                 titulo: 'Publicar al portal',
-                cuerpo: '<p>«' + esc(v.titulo) + '» quedará visible para TODOS los compradores de ' + esc(nombreProyecto) + ' en su portal.</p>',
+                cuerpo: '<p>«' + esc(v.titulo) + '» quedará visible para TODOS los clientes de ' + esc(nombreProyecto) + ' en su portal.</p>',
                 confirmar: 'Publicar'
               });
             });
@@ -5382,7 +5382,7 @@
             // datos.js ya la traía) — solo faltaba el wiring del formulario.
             { k: 'carpeta', label: 'Carpeta (opcional)', ayuda: 'Para agrupar en la vista de la clásica. Ej. "Legal", "Planos".' },
             { k: 'descripcion', label: 'Descripción (opcional)', tipo: 'textarea' },
-            { k: 'visible_portal', label: 'Visible para el comprador', tipo: 'check', ayuda: 'lo verán TODOS los compradores de ' + p + ' en su portal' },
+            { k: 'visible_portal', label: 'Visible para el cliente', tipo: 'check', ayuda: 'lo verán TODOS los clientes de ' + p + ' en su portal' },
             { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check', valor: 1 },  // nace MARCADA: la tabla se diseño con default true y el formulario mandaba false explicito, asi que todo documento nuevo nacia no-confidencial y el 'cinturon y tirantes' del RPC no protegia nada
             { k: 'publicado_investor_deck', label: 'Publicar en el dosier de inversores', tipo: 'check', ayuda: 'PÚBLICO: lo ve cualquiera que abra el enlace del deck, sin contraseña y sin contrato' }
           ], 'Guardar enlace', function (v) {
@@ -5451,7 +5451,7 @@
             { k: 'categoria', label: 'Categoría', tipo: 'select', opciones: CATS_FICHERO, valor: 'legal' },
             { k: 'carpeta', label: 'Carpeta (opcional)', ayuda: 'Para agrupar en la vista de la clásica. Ej. "Legal", "Planos".' },
             { k: 'descripcion', label: 'Descripción (opcional)', tipo: 'textarea' },
-            { k: 'visible_portal', label: 'Visible para el comprador', tipo: 'check', ayuda: 'lo verán TODOS los compradores de ' + p + ' en su portal' },
+            { k: 'visible_portal', label: 'Visible para el cliente', tipo: 'check', ayuda: 'lo verán TODOS los clientes de ' + p + ' en su portal' },
             { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check', valor: 1 },
             { k: 'publicado_investor_deck', label: 'Publicar en el dosier de inversores', tipo: 'check', ayuda: 'PÚBLICO: lo ve cualquiera que abra el enlace del deck, sin contraseña y sin contrato' }
           ], 'Subir', function (v) {
@@ -5525,7 +5525,7 @@
             { k: 'categoria', label: 'Categoría', tipo: 'select', opciones: catsAquí, valor: d2.categoria || CATS_ENLACE[0] },
             { k: 'carpeta', label: 'Carpeta (opcional)', valor: d2.carpeta || '' },
             { k: 'descripcion', label: 'Descripción (opcional)', tipo: 'textarea', valor: d2.descripcion || '' },
-            { k: 'visible_portal', label: 'Visible para el comprador', tipo: 'check', valor: !!d2.visible_portal, ayuda: 'lo verán TODOS los compradores de ' + p + ' en su portal' },
+            { k: 'visible_portal', label: 'Visible para el cliente', tipo: 'check', valor: !!d2.visible_portal, ayuda: 'lo verán TODOS los clientes de ' + p + ' en su portal' },
             { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check', valor: !!d2.confidencial },
             { k: 'publicado_investor_deck', label: 'Publicar en el dosier de inversores', tipo: 'check', valor: !!d2.publicado_investor_deck, ayuda: 'PÚBLICO: lo ve cualquiera que abra el enlace del deck, sin contraseña y sin contrato' }
           ], 'Guardar cambios', function (v) {
@@ -5591,7 +5591,7 @@
             { k: 'categoria', label: 'Categoría', tipo: 'select', opciones: catsAquí, valor: d2.categoria || 'otros' },
             { k: 'carpeta', label: 'Carpeta (opcional)', valor: d2.carpeta || '' },
             { k: 'descripcion', label: 'Descripción (opcional)', tipo: 'textarea', valor: d2.descripcion || '' },
-            { k: 'visible_portal', label: 'Visible para el comprador', tipo: 'check', valor: !!d2.visible_portal, ayuda: 'lo verán TODOS los compradores de ' + p + ' en su portal' },
+            { k: 'visible_portal', label: 'Visible para el cliente', tipo: 'check', valor: !!d2.visible_portal, ayuda: 'lo verán TODOS los clientes de ' + p + ' en su portal' },
             { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check', valor: !!d2.confidencial },
             { k: 'publicado_investor_deck', label: 'Publicar en el dosier de inversores', tipo: 'check', valor: !!d2.publicado_investor_deck, ayuda: 'PÚBLICO: lo ve cualquiera que abra el enlace del deck, sin contraseña y sin contrato' }
           ], 'Guardar cambios', function (v) {
@@ -6455,7 +6455,7 @@
           if (vinculada) {
             var dentroOp = fila('Contrato', esc(u.contrato_numero || 'vinculado') +
                   ' <span style="color:#75786e;font-weight:500">· ' + (u.contrato_firmado ? 'firmado' : 'sin firmar') + '</span>') +
-              (u.comprador_nombre ? fila('Comprador', esc(u.comprador_nombre)) : '') +
+              (u.comprador_nombre ? fila('Cliente', esc(u.comprador_nombre)) : '') +
               (u.contrato_creado_por ? fila('Agente', esc(
                  ((window.LW_V4 && window.LW_V4.equipoNombre) || {})[u.contrato_creado_por] || u.contrato_creado_por)) : '') +
               fila('Cobrado de esta parcela', esc(fmtM(cob, u.moneda)) +
@@ -6703,7 +6703,7 @@
               return [u.codigo, u.modelo || '', u.estado || '', u.precio != null ? u.precio : '', u.moneda || '', u.contrato_numero || '', u.comprador_nombre || ''];
             });
             descargaCsv(slugDe(lwMarca('%marca')) + '-' + slugDe(p.nombre) + '-cuentas.csv',
-              ['Código', 'Modelo', 'Estado', 'Precio', 'Moneda', 'Contrato', 'Comprador'], filas);
+              ['Código', 'Modelo', 'Estado', 'Precio', 'Moneda', 'Contrato', 'Cliente'], filas);
           });
       });
 
@@ -6935,7 +6935,7 @@
         var suelta = function () { btn.disabled = false; };
         lwConfirmar({
           titulo: 'Enviar la respuesta',
-          cuerpo: 'Le llega a ' + ((quien && quien.full_name) || 'el comprador') + ' en su área de clientes y TAMBIÉN por email real.',
+          cuerpo: 'Le llega a ' + ((quien && quien.full_name) || 'el cliente') + ' en su área de clientes y TAMBIÉN por email real.',
           confirmar: 'Enviar'
         }).then(function (ok) {
           if (!ok) return suelta();
@@ -7193,7 +7193,7 @@
                     // Lo que pasa DESPUÉS, dicho: a partir de aquí no hay persona.
                     var av = document.createElement('div');
                     av.style.cssText = 'margin-top:8px;padding-top:8px;border-top:1px solid ' + CAJ.borde + ';color:#8A6A34';
-                    av.textContent = 'Al vencer, cada contrato recibe su factura y el aviso al comprador de forma automática: a partir de aquí no hay revisión humana.';
+                    av.textContent = 'Al vencer, cada contrato recibe su factura y el aviso al cliente de forma automática: a partir de aquí no hay revisión humana.';
                     h.appendChild(av);
                   }
                   d.appendChild(h);
@@ -7389,14 +7389,14 @@
           '<form data-e="form" data-lateral="1" class="las-panel" novalidate>' +
           /* cabecera */
           '<header class="las-cab"><div class="las-cab-izq"><span class="las-barra"></span><div>' +
-          '<div class="las-miga"><span>Base de datos • Compradores</span><span class="las-sep">/</span><span class="las-estado">Ficha nueva</span></div>' +
-          '<h1 id="las-titulo" class="las-h1">Alta de comprador</h1></div></div>' +
+          '<div class="las-miga"><span>Base de datos • Clientes</span><span class="las-sep">/</span><span class="las-estado">Ficha nueva</span></div>' +
+          '<h1 id="las-titulo" class="las-h1">Alta de cliente</h1></div></div>' +
           '<button type="button" data-e="cerrar" class="las-cerrar" title="Cerrar panel" aria-label="Cerrar">' + svg(I.x) + '</button></header>' +
           '<div class="las-cuerpo">' +
           /* columna izquierda: la ficha tal como va quedando */
           '<button type="button" class="las-lado-btn" aria-expanded="false" aria-controls="las-lado">Resumen de la ficha ' + svg(I.abajo) + '</button>' +
           '<section id="las-lado" class="las-lado" aria-label="Resumen de la ficha">' +
-          '<article class="las-card"><div class="las-card-cab"><span class="las-cinta">Ficha del comprador</span></div>' +
+          '<article class="las-card"><div class="las-card-cab"><span class="las-cinta">Ficha del cliente</span></div>' +
           '<div class="las-quien"><div class="las-avatar" data-p="ini">--</div><div class="las-min0">' +
           '<p class="las-nombre" data-p="nombre">Sin titular asignado</p><p class="las-sub" data-p="tipo">Persona física • Español</p></div></div>' +
           '<div class="las-datos"><div><span class="las-dato-etq">Identificación</span><span class="las-dato las-mono" data-p="doc">—</span></div>' +
@@ -7404,7 +7404,7 @@
           '<article class="las-card"><h2 class="las-cinta las-card-h"><span>Documentos KYC</span><span class="las-fase">Después del alta</span></h2>' +
           '<ul class="las-lista">' +
           '<li><span class="las-num">1</span><div><p class="las-li-t">Pasaporte</p><p class="las-li-s">Se sube desde la ficha, una vez creada. Si caduca, la ficha avisa 60 días antes.</p></div></li>' +
-          '<li><span class="las-num">2</span><div><p class="las-li-t">NPWP</p><p class="las-li-s">El número fiscal indonesio, si el comprador lo tiene.</p></div></li>' +
+          '<li><span class="las-num">2</span><div><p class="las-li-t">NPWP</p><p class="las-li-s">El número fiscal indonesio, si el cliente lo tiene.</p></div></li>' +
           '<li><span class="las-num">3</span><div><p class="las-li-t">Justificante de fondos</p><p class="las-li-s">Origen del dinero de la compra. Tiene que estar en la ficha antes de firmar.</p></div></li>' +
           '</ul></article>' +
           '<article class="las-aviso">' + svg(I.info, 'las-ico-aviso') + '<div><span class="las-aviso-t">Lo que sale en los contratos</span>' +
@@ -7415,7 +7415,7 @@
           '<div class="las-derecha"><div class="las-scroll"><div class="las-form">' +
           '<section class="las-bloque"><div class="las-bloque-cab"><div class="las-bloque-t"><span class="las-n">01</span><h3>Identificación &amp; contacto principal</h3></div>' +
           '<span class="las-req-nota">* Campos requeridos</span></div>' +
-          '<div class="las-campo"><span class="las-etq" id="las-tipo-etq">Tipo de comprador</span>' +
+          '<div class="las-campo"><span class="las-etq" id="las-tipo-etq">Tipo de cliente</span>' +
           '<input type="hidden" data-k="tipo" value="persona">' +
           '<div class="las-pildoras" role="group" aria-labelledby="las-tipo-etq">' +
           '<button type="button" class="las-pildora" data-tipo="persona" aria-pressed="true">' + svg(I.user) + '<span>Persona física</span></button>' +
@@ -7433,7 +7433,7 @@
           campo('idioma_comunicacion', 'Idioma de comunicación', { select: '<option value="es">Español</option><option value="en">English</option><option value="id">Bahasa Indonesia</option>' }) +
           '</section>' +
           '<div class="las-emp-caja" data-emp-caja><section class="las-bloque las-emp" data-emp><div class="las-bloque-cab"><div class="las-bloque-t"><span class="las-n las-n-verde">02</span><div>' +
-          '<h3>Información mercantil &amp; representación</h3><p class="las-bloque-s">Solo se guarda si el comprador es una empresa.</p></div></div>' +
+          '<h3>Información mercantil &amp; representación</h3><p class="las-bloque-s">Solo se guarda si el cliente es una empresa.</p></div></div>' +
           '<span class="las-insignia las-insignia-on">Solo empresa</span></div>' +
           '<div class="las-fila">' +
           campo('forma_juridica', 'Forma jurídica', { extra: soloEmp, ph: 'S.L., LLC, PT PMA, GmbH…', ayuda: 'S.L., LLC, PT PMA, GmbH…', auto: 'off' }) +
@@ -7661,7 +7661,7 @@
         var tel = /^(\+\d{1,4})\s*(.*)$/.exec(String(c.phone || '').trim());
         var esEmpresa = c.tipo === 'empresa';
         var camposForm = [
-          { k: 'tipo', label: 'Tipo de comprador', tipo: 'select', medio: 1, valor: c.tipo || 'persona',
+          { k: 'tipo', label: 'Tipo de cliente', tipo: 'select', medio: 1, valor: c.tipo || 'persona',
             opciones: [['persona', 'Persona física'], ['empresa', 'Empresa']] },
           { k: 'kyc_status', label: 'Estado KYC', tipo: 'select', medio: 1, valor: c.kyc_status || 'pending',
             opciones: [['pending', 'Pendiente'], ['submitted', 'En revisión'], ['verified', 'Aprobado'], ['rejected', 'Rechazado']] },
@@ -8950,7 +8950,7 @@
             ayuda: 'Añade o quita sola en el contrato la fila «Naturaleza de la cuenta — depósito en garantía». Va en los DOS sentidos y alcanza a lo ya emitido: al reimprimir un contrato firmado con esta cuenta, marcarla le mete una cláusula que no pactó y desmarcarla le quita una que sí pactó. Tócala solo si está mal puesta.' },
           { k: 'es_propia', tipo: 'select', valor: c.es_propia === true ? 'si' : c.es_propia === false ? 'no' : '', label: '¿De quién es esta cuenta?',
             opciones: [['', 'Sin marcar'], ['si', 'De la sociedad (caja propia)'], ['no', 'De un tercero (contratista, vendedor de suelo, notario)']],
-            ayuda: 'Finanzas solo cuenta como caja de la sociedad lo que entra en las cuentas propias; lo que el comprador paga a un tercero sale aparte. Un gasto solo se puede pagar desde una cuenta propia. Una cuenta escrow es siempre de un tercero.' },
+            ayuda: 'Finanzas solo cuenta como caja de la sociedad lo que entra en las cuentas propias; lo que el cliente paga a un tercero sale aparte. Un gasto solo se puede pagar desde una cuenta propia. Una cuenta escrow es siempre de un tercero.' },
           { k: 'activa', tipo: 'check', valor: c.activa, label: 'Activa',
             ayuda: '⚠️ Desactivarla la retira de todos los desplegables, y además los contratos y facturas ya emitidos con ella salen SIN el bloque de datos bancarios al reabrirlos o reimprimirlos, sin ningún aviso (verificado el 18-sep: entities.js carga solo las activas y la tabla se omite entera si falta la clave). La fila no se borra y reactivarla lo devuelve todo. Si la cuenta está en documentos emitidos, déjala activa y quítala del reparto.' },
           { tipo: 'custom', render: function (host) { leeRep = montaRepartoPorCuenta(host, d, clave); } }
