@@ -4600,18 +4600,23 @@ async function crearProformaAutomatica(contratoId, numero, payload){
   try{
     /* Por el servidor (frontera frontend/backend, 26-sep-2026, LAW-336): la RPC comprueba
        el permiso y que el contrato sea visible, y recalcula el total desde la línea. */
+    /* El precio viaja ya redondeado a los decimales de SU moneda, como texto sin
+       ambigüedad: `String(1234.125)` lo leía `lwParseImporte` como miles (1.234.125) y
+       la RPC rechaza un total con más decimales que la moneda (capa 1, 26-sep-2026). */
+    const decs = (typeof LW_DECIMALES !== 'undefined' && LW_DECIMALES[moneda] != null) ? LW_DECIMALES[moneda] : 2;
+    const precioTxt = Number(precio).toFixed(decs);
     const { error } = await sb.rpc('factura_guarda', { p_id: null, p_factura: {
       tipo:'proforma', sociedad, moneda,
       cliente_nombre: payload.comprador_nombre || null,
       proyecto_nombre: payload.proyecto_nombre || null,
       contrato_numero: numero, contrato_id: contratoId,
-      total: precio, fecha_emision: hoyLocalISO(),
+      total: precioTxt, fecha_emision: hoyLocalISO(),
       datos: { fields: { tipo:'proforma', sociedad, moneda, contrato_numero:numero,
                           cliente_nombre: payload.comprador_nombre || '',
                           proyecto_nombre: payload.proyecto_nombre || '',
                           fecha_emision: hoyLocalISO(),
                           notas: 'Total del proyecto contratado en ' + numero + '. Documento informativo, sin validez fiscal.' },
-               lineas: [{ descripcion:'Total del proyecto', importe:String(precio) }] },
+               lineas: [{ descripcion:'Total del proyecto', importe:precioTxt }] },
     } });
     if(error) throw error;
   }catch(e){

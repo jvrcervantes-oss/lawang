@@ -78,12 +78,18 @@ function parseImporte(v){
   return _LW().lwParseImporte(v) ?? 0;
 }
 
-// Redondeo a los decimales de la moneda, en enteros para no arrastrar
-// el error binario de coma flotante (0.1+0.2 y compañía).
+// Redondeo a los decimales de la moneda, half-up ALEJÁNDOSE de cero — igual que
+// `round(numeric)` de Postgres, que es quien manda desde el 26-sep-2026 (el servidor
+// recalcula el total y rechaza la factura si no coincide con el de la pantalla).
+// Se desplaza la coma en TEXTO (`n + 'e' + d`) y no multiplicando: `36.245 * 100` en
+// coma flotante da 3624.4999… y `Math.round(x + EPSILON)` redondeaba hacia abajo
+// (329,50 € al 11 % salía 36,24 aquí y 36,25 en el servidor: 1.945 casos de 1,7 M,
+// medido por Desarrollo en la capa 1 del deploy). Y `Math.round(-2.5)` da -2, no -3.
 function redondear(n, moneda){
   const d = DECIMALES[moneda] != null ? DECIMALES[moneda] : 2;
-  const f = Math.pow(10, d);
-  return Math.round((n + Number.EPSILON) * f) / f;
+  const x = Number(n) || 0;
+  const r = Math.round(Number(Math.abs(x) + 'e' + d));
+  return (x < 0 ? -1 : 1) * Number(r + 'e-' + d);
 }
 
 /* Totales de la factura. `lineas` = [{descripcion, importe}], `impuesto` =
@@ -92,8 +98,24 @@ function redondear(n, moneda){
 function calcTotales(lineas, moneda, impuesto){
   const subtotal = redondear((lineas || []).reduce((a, l) => a + parseImporte(l.importe), 0), moneda);
   const pct = impuesto ? parseImporte(impuesto.pct) : 0;
-  const imp = pct ? redondear(subtotal * pct / 100, moneda) : 0;
+  const imp = pct ? impuestoExacto(subtotal, pct, moneda) : 0;
   return { subtotal, pct, impuesto: imp, total: redondear(subtotal + imp, moneda) };
+}
+
+/* subtotal × pct / 100 en ENTEROS (BigInt), half-up alejándose de cero: lo mismo que
+   calcula Postgres en numeric. En coma flotante `8.20 * 7.5 / 100` da 0.61499999… y
+   redondeaba a 0,61 donde el servidor dice 0,62 (26-sep-2026). */
+function impuestoExacto(subtotal, pct, moneda){
+  const d = DECIMALES[moneda] != null ? DECIMALES[moneda] : 2;
+  const decs = v => { const t = String(v).split('e')[0].split('.')[1]; return t ? t.length : 0; };
+  const pd = decs(Math.abs(pct));
+  const s = BigInt(Math.round(Number(Math.abs(subtotal) + 'e' + d)));   // subtotal en unidades mínimas
+  const q = BigInt(Math.round(Number(Math.abs(pct) + 'e' + pd)));        // pct sin coma
+  const den = 100n * 10n ** BigInt(pd);
+  let u = (s * q) / den;
+  if (((s * q) % den) * 2n >= den) u += 1n;
+  const signo = (subtotal < 0) !== (pct < 0) ? -1 : 1;
+  return signo * Number(u.toString() + 'e-' + d);
 }
 
 /* Alias de `lwFormatoImporte`. Se conserva el nombre porque lo llaman
