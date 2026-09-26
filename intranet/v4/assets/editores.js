@@ -9120,13 +9120,17 @@
           { k: 'motivo_legal', label: 'Motivo legal (se imprime en la factura)', tipo: 'textarea', valor: x.motivo_legal,
             ayuda: 'Obligatorio en exenta, no sujeta, inversión del sujeto pasivo y en cualquier impuesto al 0 %.' },
           { k: 'recargo_de', label: 'Es recargo de equivalencia de', tipo: 'select', valor: x.recargo_de || '',
-            opciones: [['', '— no es un recargo —']].concat(todos.filter(function (i) { return i.clase === 'suma' && i.id !== x.id && !i.recargo_de; })
+            // El enlace actual SIEMPRE se ofrece: si no estuviera en la lista, el select caería a «no es un recargo»
+            // y guardar por cambiar el orden borraría el enlace en silencio (code-review, 26-sep).
+            opciones: [['', '— no es un recargo —']].concat(todos.filter(function (i) { return i.id === x.recargo_de || (i.clase === 'suma' && i.id !== x.id && !i.recargo_de); })
               .map(function (i) { return [i.id, i.numero_impuesto + ' · ' + i.nombre + ' (' + i.pais + ')']; })) }
         );
         if (socs) {
           campos.push({ k: 'sociedad_clave', label: 'Sociedad', tipo: 'select', medio: 1, valor: x.sociedad_clave || '',
             opciones: [['', 'Todas las del país']].concat(socs.filter(function (s) { return s.activa !== false || s.clave === x.sociedad_clave; })
-              .map(function (s) { return [s.clave, s.razon || s.label || s.clave]; })),
+              .map(function (s) { return [s.clave, s.razon || s.label || s.clave]; }))
+              // la sociedad actual aunque ya no esté en el catálogo: vaciarla cambiaría el ámbito en silencio
+              .concat(x.sociedad_clave && !socs.some(function (s) { return s.clave === x.sociedad_clave; }) ? [[x.sociedad_clave, x.sociedad_clave]] : []),
             ayuda: 'Vacío = vale para cualquier sociedad de ese país.' });
         } else {
           // Sin la lista no se ofrece el campo, y al guardar NO se toca: vaciarlo en silencio cambiaría el ámbito.
@@ -9164,6 +9168,9 @@
           };
           if (socs) fila.sociedad_clave = v.sociedad_clave || null;
           fila.activo = nuevo ? true : !!v.activo;   // explícito: nace activo (el default de la base, dicho aquí)
+          // Desactivado deja de ser el por defecto, igual que el botón «Desactivar»: si no, al reactivarlo
+          // chocaría con el que lo sustituya (impuestos_un_defecto cuenta solo los activos) — code-review, 26-sep.
+          if (!fila.activo) fila.por_defecto = false;
           var p = nuevo ? sb.from('impuestos').insert(fila).select('id,numero_impuesto').single()
                         : sb.from('impuestos').update(fila).eq('id', x.id).select('id').single();
           return Promise.resolve(p).then(function (r) {
