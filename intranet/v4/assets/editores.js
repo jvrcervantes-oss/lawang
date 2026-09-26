@@ -5722,8 +5722,7 @@
             if (isFinite(nuevoUmbral) && nuevoUmbral !== umbral) {
               // El umbral sí es una columna normal de `proyectos` (no tiene
               // reglas propias), así que va por UPDATE como el resto de la ficha.
-              tareas.push(sb.from('proyectos').update({ pct_minimo_inicio: nuevoUmbral })
-                .eq('id', p.id).select('id'));
+              tareas.push(sb.rpc('proyecto_guarda', { p_id: p.id, p_cambios: { pct_minimo_inicio: nuevoUmbral } }));   // LAW-336 pieza 8
             }
 
             for (var j = 1; j <= 5; j++) {
@@ -5890,7 +5889,9 @@
 
             return pasoRenombrar.then(function (rr) {
               if (rr && rr.error) return rr;
-              return sb.from('proyectos').update(payloadProyecto).eq('id', p.id).select('id').then(function (r) {
+              // por el servidor (LAW-336 pieza 8): «fijada en» lo pone la base si la fecha cambia
+              delete payloadProyecto.fecha_entrega_estimada_fijada_en;
+              return sb.rpc('proyecto_guarda', { p_id: p.id, p_cambios: payloadProyecto }).then(function (r) {
                 if (r.error) return r;
                 // La RLS de `proyectos` exige es_admin() para UPDATE: un no-admin
                 // no da error, da 0 filas (mismo aviso que /proyectos/ desde el
@@ -6108,7 +6109,7 @@
           var destId = document.getElementById('id-destacado').value || null;
           var tareas = [];
           if (slug && slug !== (p.slug || '')) {
-            tareas.push(sb.from('proyectos').update({ slug: slug }).eq('id', p.id).select('id').then(unaFila));
+            tareas.push(sb.rpc('proyecto_guarda', { p_id: p.id, p_cambios: { slug: slug } }));   // valida formato y unicidad (LAW-336 pieza 8)
           }
           // `.select().then(unaFila)` (hallazgo de code-review, 22-sep-2026):
           // sin esto, un upsert que la RLS deniega en silencio (`for all using
@@ -6165,7 +6166,7 @@
         ], 'Crear proyecto', function (v) {
           var nombre = v.nombre.trim();
           if (!nombre) return { error: { message: 'el nombre no puede quedar vacío' } };
-          return sb.from('proyectos').insert({ nombre: nombre }).then(function (r) {
+          return sb.rpc('proyecto_alta', { p_nombre: nombre }).then(function (r) {   // por el servidor (LAW-336 pieza 8)
             if (r.error && /duplicate key|proyectos_nombre_key/.test(r.error.message || '')) {
               return { error: { message: 'ya existe un proyecto con ese nombre' } };
             }
@@ -6251,7 +6252,7 @@
             };
             if (v.fase_masterplan) fila.fase_masterplan = v.fase_masterplan.trim();
             if (v.zona_masterplan) fila.zona_masterplan = v.zona_masterplan.trim();
-            return sb.from('unidades').insert(fila);
+            return sb.rpc('unidad_guarda', { p_id: null, p_datos: fila });   // por el servidor (LAW-336 pieza 8)
           });
           var cm2N = document.querySelector('#lw-editor [data-k="precio_m2"]');
           var csupN = document.querySelector('#lw-editor [data-k="superficie_m2"]');
@@ -6406,6 +6407,8 @@
             { k: 'moneda', label: 'Moneda', tipo: 'select', medio: 1, opciones: ['EUR', 'USD', 'AUD', 'IDR'], valor: u.moneda || 'EUR' }
           );
           if (vinculada) {
+            if (esAdminP) campos.push({ k: 'motivo', label: 'Motivo, si cambias precio, moneda, superficie, código o proyecto',
+              ayuda: 'esta parcela tiene contrato: esos datos alimentan comisiones y cobros, y el cambio queda registrado' });
             campos.push(
               { tipo: 'lectura', label: 'Estado', medio: 1, valor: etiq(u.estado) + ' · lo lleva el contrato' },
               { tipo: 'lectura', label: 'Contrato asociado', medio: 1, valor: u.contrato_numero || 'vinculado' },
@@ -6413,11 +6416,11 @@
             );
           } else {
             campos.push(
-              { k: 'estado', label: 'Estado', tipo: 'select', medio: 1, opciones: estados, valor: u.estado || 'disponible' },
-              { k: 'contrato_id', label: 'Contrato asociado', tipo: 'select', valor: '',
-                opciones: [['', '— sin contrato —']].concat(contratos.map(function (c) {
-                  return [c.id, (c.numero || 'sin nº') + ' — ' + (c.comprador_nombre || 'sin nombre')];
-                })) },
+              // a mano solo disponible / no disponible / bloqueada (+ el que ya tiene); el contrato lo pone el
+              // contrato — el selector se quitó (owner, 27-sep-2026)
+              { k: 'estado', label: 'Estado', tipo: 'select', medio: 1, valor: u.estado || 'disponible',
+                opciones: estados.filter(function (e) { return ['disponible', 'no_disponible', 'bloqueada'].indexOf(e[0]) !== -1 || e[0] === (u.estado || 'disponible'); }),
+                ayuda: 'Reservada, vendida y cobrada las pone el contrato al guardarse con esta parcela.' },
               // `avisoEstado` (S10.6, 22-sep-2026): porta el aviso de
               // /intranet/proyectos/index.html:1450-1459 — el guardia que dice
               // en voz alta lo que la base no puede saber sola (que ESTA
@@ -6505,8 +6508,9 @@
             if (tocoSuelo) fila.precio_suelo = (supGuardar && pm2Usar != null) ? Math.round(supGuardar * pm2Usar * 100) / 100 : null;
             if ('fase_masterplan' in v) fila.fase_masterplan = txt(v.fase_masterplan);
             if ('zona_masterplan' in v) fila.zona_masterplan = txt(v.zona_masterplan);
-            if (!vinculada) { fila.estado = v.estado; fila.contrato_id = v.contrato_id || null; }
-            return sb.from('unidades').update(fila).eq('id', u.id).select('id').then(function (r) {
+            if (!vinculada) fila.estado = v.estado;
+            // por el servidor (LAW-336 pieza 8)
+            return sb.rpc('unidad_guarda', { p_id: u.id, p_datos: fila, p_motivo: (v.motivo || '').trim() || null }).then(function (r) {
               if (r.error) {
                 // El codigo es unico POR PROYECTO: decirlo con esas palabras evita
                 // el "duplicate key value violates unique constraint".
@@ -6834,8 +6838,13 @@
           validas.length ? 'Confirmar importación (' + validas.length + ')' : 'Nada que importar',
           function () {
             if (!validas.length) return { error: { message: 'No hay ninguna fila válida que importar.' } };
-            var lotes = lwCsvLotesParaGuardar(validas, r.camposPresentes);
-            var total = lotes.reduce(function (n, l) { return n + l.length; }, 0);
+            /* Por el servidor desde el 27-sep-2026 (LAW-336 pieza 8): toda la importación en UNA transacción;
+               las filas de parcelas con contrato no cambian dinero y vuelven en «rechazadas». */
+            var filasSrv = validas.map(function (f) {
+              var x = lwCsvFilaParaGuardar(f, r.camposPresentes || new Set()); delete x.precio; x.fila = f.fila; return x;
+            });
+            var lotes = [filasSrv];
+            var total = filasSrv.length;
             var escritas = 0;
             /* Lote a lote y en orden: lo ya escrito queda escrito, así que si
                uno falla se dice CUÁNTAS entraron, no solo que falló. Con
@@ -6843,9 +6852,12 @@
                contarlas el import diría «hecho» sobre nada. */
             var paso = lotes.reduce(function (prom, lote) {
               return prom.then(function () {
-                return sb.from('unidades').upsert(lote, { onConflict: 'proyecto,codigo' }).select('id').then(function (res) {
+                return sb.rpc('unidades_importa', { p_filas: lote }).then(function (res) {
                   if (res.error) throw new Error(res.error.message);
-                  var n = (res.data || []).length;
+                  var d = res.data || {};
+                  if (d.rechazadas && d.rechazadas.length) aviso(d.rechazadas.length + ' fila(s) de parcelas con contrato no cambian precio: ' +
+                    d.rechazadas.map(function (x) { return x.codigo; }).join(', '), '#8A6A34');
+                  var n = (d.creadas || 0) + (d.actualizadas || 0);
                   escritas += n;
                   if (n < lote.length) throw new Error('la base aceptó ' + n + ' de ' + lote.length + ' filas de un lote — tu usuario no tiene permiso sobre alguna unidad o proyecto');
                 });

@@ -231,6 +231,8 @@
 const $ = s => document.querySelector(s);
 lwIdiomaAplicar();   // traduce la HTML de arriba; en espanol no toca el DOM
 
+// Estados que se ponen A MANO en una parcela sin contrato (owner, 27-sep-2026): el resto lo decide el contrato
+const ESTADOS_MANUALES = ['disponible', 'no_disponible', 'bloqueada'];
 const ESTADOS = [
   ['disponible','Disponible'], ['reservada','Reservada'], ['bloqueada','Bloqueada'],
   ['vendida','Vendida'], ['cobrada','Cobrada'], ['no_disponible','No disponible'],
@@ -464,7 +466,7 @@ async function altaProyecto(nombreCrudo){
      dispara el botón antes de que se sepa el rol—. Uno solo de los tres sin
      tapar deja al agente delante del error crudo de la base. */
   if(!ES_ADMIN) return { ok:false, error:'Dar de alta un proyecto es cosa de un administrador. Pídeselo a dirección.' };
-  const { error } = await SB.from('proyectos').insert({ nombre });
+  const { error } = await SB.rpc('proyecto_alta', { p_nombre: nombre });   // por el servidor (LAW-336 pieza 8)
   if(error){
     const msg = /duplicate key|proyectos_nombre_key/.test(error.message||'')
       ? 'Ya existe un proyecto con ese nombre.' : error.message;
@@ -482,7 +484,7 @@ async function altaTipo(etiquetaCrudo){
   const clave = etiqueta.normalize('NFD').replace(/[̀-ͯ]/g,'')
     .toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
   if(!clave) return { ok:false, error:'Ese nombre no da una clave válida' };
-  const { error } = await SB.from('tipos_vivienda').insert({ clave, etiqueta });
+  const { error } = await SB.rpc('tipo_vivienda_alta', { p_clave: clave, p_etiqueta: etiqueta });   // por el servidor (LAW-336 pieza 8)
   if(error){
     const msg = /duplicate key|tipos_vivienda_pkey/.test(error.message||'')
       ? 'Ya existe un tipo con esa clave.' : error.message;
@@ -835,9 +837,10 @@ function editarProyecto(nombre){
       parcela_master: $('#fp-master').value.trim() || null,
     };
     const btn = $('#btnGuardarFicha'); btn.disabled = true;
-    const { data, error } = await SB.from('proyectos').update(fila).eq('nombre', nombre).select('id');
+    // por el servidor y por id (LAW-336 pieza 8): proyecto_guarda exige admin y valida la ficha
+    if(!ficha.id){ btn.disabled = false; toastMal(lwT('Este proyecto no tiene ficha en la tabla `proyectos`.')); return; }
+    const { error } = await SB.rpc('proyecto_guarda', { p_id: ficha.id, p_cambios: fila });
     if(error){ btn.disabled = false; toastMal(lwErrorHumano(error, lwT('No se pudo guardar: '))); return; }
-    if(!data || !data.length){ btn.disabled = false; toastMal(lwT('No tienes permiso para editar la ficha del proyecto (solo admin).')); return; }
     /* La selección de modelos va en el MISMO botón: para quien la usa es una
        sola ficha. Se escribe después de la ficha y solo si el usuario es admin
        (la policy de `modelos_villa` exige es_admin, igual que la de `proyectos`). */
@@ -948,7 +951,7 @@ function abrirInvestorDeck(nombre, proyectoId){
     const destacadoId = $('#id-destacado').value || null;
     const btn = $('#btnGuardarDeck'); btn.disabled = true;
     if(slug && slug !== (ficha.slug || '')){
-      const { error: eSlug } = await SB.from('proyectos').update({ slug }).eq('id', proyectoId);
+      const { error: eSlug } = await SB.rpc('proyecto_guarda', { p_id: proyectoId, p_cambios: { slug } });   // valida formato y que no lo use otro
       if(eSlug){ btn.disabled = false; toastMal(lwErrorHumano(eSlug, lwT('No se pudo guardar el slug (¿ya lo usa otro proyecto?): '))); return; }
     }
     const { error: eCfg } = await SB.from('deck_config_proyecto').upsert({
@@ -1271,12 +1274,10 @@ function abrirUnidad(id){
           <b>${lwT('no se tocan desde aquí')}</b>${lwT(': los lleva el contrato. Para soltarla, quítale la parcela al contrato o bórralo, y volverá a estar disponible sola.')}</p>`
       : `
         <div class="campo"><label for="f-estado">${lwT('Estado')}</label>
-          <select class="sui-sel" id="f-estado">${ESTADOS.map(([v,l])=>`<option value="${v}" ${u.estado===v?'selected':''}>${l}</option>`).join('')}</select></div>
-        <div class="campo"><label for="f-contrato">${lwT('Contrato asociado')}</label>
-          <select class="sui-sel" id="f-contrato"><option value="">${lwT('— sin contrato —')}</option>
-            ${CONTRATOS.map(c=>`<option value="${esc(c.id)}" ${u.contrato_id===c.id?'selected':''}>${esc(c.numero||lwT('sin nº'))} — ${esc(c.comprador_nombre||lwT('sin nombre'))}</option>`).join('')}
-          </select></div>
+          <select class="sui-sel" id="f-estado">${ESTADOS.filter(([v]) => ESTADOS_MANUALES.includes(v) || v === (u.estado||'disponible')).map(([v,l])=>`<option value="${v}" ${(u.estado||'disponible')===v?'selected':''}>${l}</option>`).join('')}</select></div>
+        <p class="hint">${lwT('Reservada, vendida y cobrada no se ponen a mano: las pone el contrato al guardarse con esta parcela.')}</p>
         <div id="avisoEstado"></div>`}
+      ${(u.contrato_id && ES_ADMIN) ? `<div class="campo"><label for="f-motivo">${lwT('Motivo, si cambias precio, moneda, superficie, código o proyecto (queda registrado)')}</label><input class="sui-inp" id="f-motivo"></div>` : ''}
       <div class="campo"><label for="f-notas">${lwT('Notas')}</label><textarea id="f-notas">${esc(u.notas||'')}</textarea></div>`,
     pie: `<button class="sui-btn primario" id="btnGuardar">${lwT(nueva ? 'Crear unidad' : 'Guardar cambios')}</button>
           ${(!nueva && ES_SUPER_ADMIN) ? '<button class="sui-btn peligro" id="btnBorrarUnidad">' + lwT('Borrar') + '</button>' : ''}
@@ -1318,7 +1319,7 @@ function abrirUnidad(id){
   if($('#f-estado')){
     avisoEstado();
     $('#f-estado').addEventListener('change', avisoEstado);
-    $('#f-contrato').addEventListener('change', avisoEstado);
+    if($('#f-contrato')) $('#f-contrato').addEventListener('change', avisoEstado);   // el selector se quitó (27-sep)
   }
   // El total ya no se puede escribir a mano (28-ago-2026): lo fija SIEMPRE un
   // trigger en la base, suelo + construcción, sin excepción — esto solo
@@ -1488,15 +1489,17 @@ async function guardar(id){
      parcela vendida volvía a aparecer libre por haberle corregido un importe.
      Desde que el vínculo lo pone el contrato (trigger `sincroniza_unidad_
      contrato`), estos dos campos tienen UN dueño, y no es esta pantalla. */
-  const est = $('#f-estado'), ctr = $('#f-contrato');
+  const est = $('#f-estado');
   if(est) fila.estado = est.value;
-  if(ctr) fila.contrato_id = ctr.value || null;
   const b = $('#btnGuardar'); b.disabled = true;
   try{
-    const q = id ? SB.from('unidades').update(fila).eq('id', id).select('id')
-                 : SB.from('unidades').insert(fila).select('id');
-    const { data, error } = await q;
+    /* Por el servidor desde el 27-sep-2026 (LAW-336 pieza 8): unidad_guarda resuelve el proyecto, no deja
+       tocar precio/moneda/código de una parcela con contrato salvo a un admin con motivo, y el contrato lo
+       pone solo el contrato (el selector de contrato se quitó, owner 27-sep). */
+    const { data: nuevoId, error } = await SB.rpc('unidad_guarda', { p_id: id || null, p_datos: fila,
+      p_motivo: ($('#f-motivo') && $('#f-motivo').value.trim()) || null });
     if(error) throw error;
+    const data = nuevoId ? [{ id: nuevoId }] : [];
     // La RLS no da error al denegar: devuelve cero filas.
     if(!data || !data.length) throw new Error(lwT('no tienes permiso para guardar unidades'));
     toast(lwT(id ? 'Guardado' : 'Unidad creada'));
@@ -1605,11 +1608,19 @@ $('#btnCsvConfirmar').addEventListener('click', async () => {
      rellena con NULL las que a una fila le faltan. Mezclar altas (que llevan
      `tipo`, NOT NULL) con actualizaciones (que a propósito no lo llevan) hacía
      que la base rechazara el import ENTERO. El porqué largo, en la pieza. */
-  const lotes = lwCsvLotesParaGuardar(CSV_FILAS_VALIDAS, CSV_CAMPOS_PRESENTES);
-  const total = lotes.reduce((n, l) => n + l.length, 0);
+  /* Por el servidor desde el 27-sep-2026 (LAW-336 pieza 8): TODA la importación en una transacción
+     (unidades_importa); las filas de parcelas con contrato no cambian dinero y vuelven en «rechazadas». */
+  const filasSrv = CSV_FILAS_VALIDAS.map(f => Object.assign(lwCsvFilaParaGuardar(f, CSV_CAMPOS_PRESENTES || new Set()), { fila: f.fila }));
+  filasSrv.forEach(f => { delete f.precio; });   // el total lo calcula siempre la base
+  const total = filasSrv.length;
   let escritas = 0;
+  const lotes = [filasSrv];
   for(const lote of lotes){
-    const { error } = await SB.from('unidades').upsert(lote, { onConflict: 'proyecto,codigo' });
+    const { data: resImp, error } = await SB.rpc('unidades_importa', { p_filas: lote });
+    if(!error && resImp && resImp.rechazadas && resImp.rechazadas.length){
+      toastMal(lwT('Importado, pero ') + resImp.rechazadas.length + lwT(' fila(s) de parcelas con contrato no cambian precio: ') +
+        resImp.rechazadas.map(x => x.codigo).join(', '));
+    }
     if(error){
       /* Se dice CUÁNTAS entraron, no solo que falló: los lotes se mandan uno a
          uno y lo ya escrito está escrito. Y se recarga igual, para que la
