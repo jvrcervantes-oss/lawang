@@ -123,6 +123,10 @@ Deno.serve(async (req) => {
     const soloTexto = body.attach === false;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return json({ ok: false, error: 'destinatario_invalido' }, 400);
     if (soloTexto && (!contratoId || !message.trim())) return json({ ok: false, error: 'texto_sin_contrato_o_mensaje' }, 400);
+    // LAW-343 (27-sep-2026): nada sale por aquí sin un contrato o una factura que quien envía pueda ver,
+    // y todo envío queda en correos_enviados. Antes, un PDF sin ancla (HTML libre renderizado en servidor,
+    // a cualquier dirección, con el correo de Lawang) salía sin registro.
+    if (!contratoId && !facturaId) return json({ ok: false, error: 'envio_sin_contrato_ni_factura' }, 400);
     // Una factura va SIEMPRE con su PDF: marcarla enviada fija número, emisor y la fecha que cuenta
     // para plazos de cobro — no puede hacerlo un correo que no la llevaba (Administración, capa 1, 26-sep).
     if (soloTexto && facturaId) return json({ ok: false, error: 'factura_requiere_pdf' }, 400);
@@ -215,6 +219,7 @@ Deno.serve(async (req) => {
     }
     return json({ ok: true, marcada, registrado });
   } catch (e) {
-    return json({ ok: false, error: String((e as Error)?.message ?? e) }, 500);
+    console.error('send-contract-email error interno: ' + String((e as Error)?.stack ?? e));
+    return json({ ok: false, error: 'error_interno' }, 500);
   }
 });

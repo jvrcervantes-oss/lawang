@@ -171,6 +171,15 @@ Deno.serve(async (req) => {
       if (desconocidas.length)
         return json({ error: 'herramienta_desconocida', detalle: desconocidas,
                       ayuda: 'Esta función no conoce esa herramienta. Si es nueva, añádela a HERRAMIENTAS en admin-usuarios y redespliega.' }, 400);
+      // Un admin solo reparte herramientas que ÉL tiene (LAW-343, 27-sep-2026): el trigger
+      // usuarios_bloquea_cambio_rol_herramientas ya exige super admin para cambiarlas después, pero
+      // el alta pasaba por aquí con service role y dejaba regalar, p. ej., «Comisiones».
+      if (!soySuper) {
+        const mias = new Set((ficha.herramientas ?? []).map(String));
+        const ajenas = pedidas.filter((h) => !mias.has(h));
+        if (ajenas.length) return json({ error: 'herramienta_que_no_tienes', detalle: ajenas,
+                                         ayuda: 'Solo puedes dar herramientas que tienes tú. Pide a un super admin el resto.' }, 403);
+      }
       const herramientas: string[] = pedidas;
       const tipos_contrato: string[] = (Array.isArray(body.tipos_contrato) ? body.tipos_contrato.map(String) : [])
         .filter((t: string) => TIPOS_CONTRATO.includes(t));
