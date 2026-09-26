@@ -122,7 +122,7 @@ html:has(body.v4-nav-abierta){overflow:hidden;scrollbar-gutter:stable}
    ids son los que usa comunicacion.js: no se cambia ninguno. */
 #lw-com-previa-caja [data-cierra-previa]{ background:rgba(12,10,9,.45) !important; -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); }
 #lw-com-previa-caja [data-cierra-previa] > div{ border-radius:16px !important; border:1px solid #E7E4DC; background:#FBF9F4 !important; box-shadow:0 25px 50px -12px rgba(0,0,0,.25) !important; }
-#lw-com-previa-caja [data-cierra-previa] > div > div:first-child{ background:#fff; border-bottom:1px solid #E7E4DC !important; padding:18px 24px !important; }
+#lw-com-previa-caja [data-previa-cabeza]{ background:#fff; border-bottom:1px solid #E7E4DC !important; padding:18px 24px !important; }
 #lw-com-previa-rotulo{ position:relative; padding-left:24px; font:600 12px/1.4 Jost,system-ui,sans-serif !important; letter-spacing:.1em !important; color:#736B5E !important; }
 #lw-com-previa-rotulo::before{ content:""; position:absolute; left:0; top:50%; width:10px; height:28px; margin-top:-14px; border-radius:9999px; background:#104C4F; }
 #lw-com-previa-cerrar{ border:1px solid #E7E4DC; background:#fafaf9; color:#78716c; box-shadow:0 1px 2px rgba(0,0,0,.05); transition:background .15s, color .15s, transform .25s cubic-bezier(.23,1,.32,1); }

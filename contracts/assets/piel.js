@@ -81,6 +81,9 @@
      app.html bloquearía el pintado de la cara clásica, que no las usa. */
   [
     'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap',
+    // Jost de las ventanas del generador con la piel del alta (27-sep-2026): aquí y no con un @import en
+    // suite-v4-generador.css, que se enlaza también en la clásica y le bloquearía el pintado (revisor, 27-sep)
+    'https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&display=swap',
     '/intranet/v4/assets/fonts/fonts.css'
   ].forEach(function (href) {
     var l = document.createElement('link');
