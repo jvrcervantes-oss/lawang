@@ -3038,10 +3038,10 @@
     };
     var cuerpo = '<p style="margin:0 0 12px;font-size:12.5px;line-height:1.5;color:#8A6A34">Se adjunta ' + esc(saved.numero) + ' en PDF, tal y como se ve en la vista previa.</p>' +
       campo('lw-mail-para', 'Para', 'input', 'type="email" autocomplete="off" placeholder="cliente@email.com"', vals.cliente_email || '') +
-      campo('lw-mail-asunto', 'Asunto', 'input', 'type="text"', tipo + ' ' + saved.numero + ' — ' + lwMarca('%razon_social')) +
+      campo('lw-mail-asunto', 'Asunto', 'input', 'type="text"', tipo + ' ' + saved.numero + ' — ' + lwMarca('%firma_correo')) +
       // Firmante del CORREO: siempre la marca, nunca la sociedad emisora (owner, 8-sep-2026)
       campo('lw-mail-msg', 'Mensaje', 'textarea', 'rows="6"', 'Buenos días' + (vals.cliente_nombre ? ' ' + vals.cliente_nombre : '') + ',\n\n' +
-        'Adjunto ' + tipo.toLowerCase() + ' ' + saved.numero + ' para su revisión.\n\nUn saludo,\n' + lwMarca('%razon_social'));
+        'Adjunto ' + tipo.toLowerCase() + ' ' + saved.numero + ' para su revisión.\n\nUn saludo,\n' + lwMarca('%firma_correo'));
     lwConfirmar({ titulo: 'Enviar por email — ' + saved.numero, cuerpo: cuerpo, confirmar: 'Enviar' }).then(function (ok) {
       if (!ok) return;
       var v = function (id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; };

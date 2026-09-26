@@ -3790,7 +3790,7 @@
      LA MARCA DE LA INSTANCIA EN EL TEXTO (AxisWorks ERP, F3 lote 2b, 26-sep-2026)
 
      El núcleo no escribe el nombre del cliente: escribe `%marca` (o
-     `%razon_social`, `%titulo`…) y el valor sale de la ficha de la instancia,
+     `%firma_correo`, `%titulo`…) y el valor sale de la ficha de la instancia,
      `window.LW_INSTANCIA` (`/contracts/assets/instancia.js`). Así la frase
      «lo paga %marca» es la MISMA clave del diccionario en todas las
      instancias, y cambiar de cliente es cambiar la ficha, no el código.
@@ -3804,7 +3804,7 @@
      Sin ficha, el hueco se queda escrito: «%marca» en pantalla es un fallo
      que se ve; un nombre de cliente por defecto sería el de OTRO cliente.
      ========================================================================== */
-  var CAMPOS_FICHA = ['razon_social', 'subcabecera', 'cabecera', 'titulo', 'marca'];
+  var CAMPOS_FICHA = ['firma_correo', 'subcabecera', 'cabecera', 'titulo', 'marca'];
   function conFicha(t) {
     var f = window.LW_INSTANCIA;
     if (!f || t.indexOf('%') === -1) return t;

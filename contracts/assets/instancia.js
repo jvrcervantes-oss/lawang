@@ -16,7 +16,8 @@
     cabecera: 'LAWANG',                                          // barra lateral, en grande
     subcabecera: 'PROPERTIES & SUITE',                           // barra lateral, debajo
     titulo: 'Lawang Intranet',                                   // pestaña del navegador: «Facturas — Lawang Intranet»
-    razon_social: 'Lawang Tropical Properties'                   // firma de los correos
+    firma_correo: 'Lawang Tropical Properties'                   // firma de los correos: la MARCA, nunca la sociedad
+                                                                 // emisora (owner, 8-sep-2026: cada factura la emite una distinta)
   });
   try { Object.defineProperty(window, 'LW_INSTANCIA', { value: ficha, writable: false, configurable: false, enumerable: true }); }
   catch (e) { /* cargado dos veces: la primera ya fijó la misma ficha */ }

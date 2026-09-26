@@ -110,12 +110,12 @@ assert.strictEqual(tipo(''), '—');
    cosas que se rompen sin avisar: (a) si se rellena ANTES de buscar la
    traducción, la clave deja de casar y el inglés cae al español; (b) `%marca`
    empieza por `%m`, y un hueco `m` del llamante la partiría en «Xarca». */
-win.LW_INSTANCIA = { marca: 'Acme', razon_social: 'Acme S.L.', titulo: 'Acme ERP' };
+win.LW_INSTANCIA = { marca: 'Acme', firma_correo: 'Acme Homes', titulo: 'Acme ERP' };
 win.LW_IDIOMA = 'es';
 assert.strictEqual(lwT('Sin ficha en %marca'), 'Sin ficha en Acme');
 assert.strictEqual(lwT('%c contactos · %m con %marca', { c: 4, m: 2 }), '4 contactos · 2 con Acme',
   'el hueco %m del llamante no puede comerse %marca');
-assert.strictEqual(win.lwMarca('Un saludo, %razon_social'), 'Un saludo, Acme S.L.');
+assert.strictEqual(win.lwMarca('Un saludo, %firma_correo'), 'Un saludo, Acme Homes');
 win.LW_IDIOMA = 'en';
 assert.strictEqual(lwT('Sin ficha en %marca'), 'No Acme record',
   'la clave con %marca tiene que seguir casando con el diccionario');
