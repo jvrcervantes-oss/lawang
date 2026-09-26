@@ -40,6 +40,16 @@
    la escalera vive entera en este fichero o no es una escalera. */
 #cajon-backdrop,#cajon-detalle{z-index:var(--z-cajon)}
 
+/* ═══════════════ MOVIMIENTO (26-sep-2026, owner) ═══════════════
+   Una sola curva para todo lo que entra y se asienta. La leen este fichero,
+   motion.js (la entrada de cada pantalla) y los formularios de editores.js
+   (--las-sale). Antes estaba escrita a mano en cinco reglas de aquí y en
+   editores.js: la misma curva en seis sitios es seis sitios que divergen.
+   Qué perfil lleva cada pantalla lo decide motion.js, no el CSS. */
+:root{
+  --lw-ease:cubic-bezier(.23,1,.32,1);
+}
+
 /* ═══ CON UN CAJON ABIERTO, LA PAGINA DE FONDO NO SE MUEVE (23-sep-2026) ═══
    Owner: «cuando tengo el cajon lateral abierto, si hago scroll se mueve la
    pagina de fondo». La rueda sobre el velo —o al llegar al final del cuerpo
@@ -92,6 +102,20 @@ html:has(body.v4-nav-abierta){overflow:hidden;scrollbar-gutter:stable}
   max-width:min(88vw,560px);background:#9E2F26;color:#fff;border-radius:12px;
   font-weight:600;font-size:15px;line-height:1.35;padding:18px 26px;text-align:center;
   box-shadow:0 22px 60px -18px rgba(158,47,38,.55),0 0 0 6px rgba(158,47,38,.13)}
+
+/* Entrada de los avisos (26-sep-2026). `translate` y `scale` como propiedades
+   SUELTAS: se suman al `transform` que los centra (-50%). Con `transform` en los
+   keyframes el aviso aparecía desplazado y saltaba al centro. suite-comun.js ya
+   fuerza el reflujo entre dos avisos, así que el segundo también entra.
+   El fallo late UNA vez: un halo latiendo 7 s se lee como alarma. */
+#toast.show,#toast.on{animation:lw-aviso-entra .26s var(--lw-ease) both}
+#toastMal.show,#toastMal.on{animation:lw-fallo-entra .36s var(--lw-ease) both,lw-fallo-halo .9s .2s ease-out}
+@keyframes lw-aviso-entra{from{opacity:0;translate:0 14px;scale:.98}to{opacity:1;translate:0 0;scale:1}}
+@keyframes lw-fallo-entra{0%{opacity:0;scale:.9}55%{opacity:1;scale:1.02}100%{opacity:1;scale:1}}
+@keyframes lw-fallo-halo{
+  from{box-shadow:0 22px 60px -18px rgba(158,47,38,.55),0 0 0 6px rgba(158,47,38,.13),0 0 0 6px rgba(158,47,38,.3)}
+  to{box-shadow:0 22px 60px -18px rgba(158,47,38,.55),0 0 0 6px rgba(158,47,38,.13),0 0 0 22px rgba(158,47,38,0)}}
+@media (prefers-reduced-motion:reduce){ #toast.show,#toast.on,#toastMal.show,#toastMal.on{animation:none} }
 
 /* ---------- modal: ya no vive aqui ----------
    `#lw-modal` y sus `.lw-campo`/`.lw-btn-*` se retiran (14-sep-2026): la v4
@@ -230,6 +254,14 @@ main > .lw-cabecera + *{margin-top:32px !important}
 main{animation:lw-rescate 12s step-end forwards}
 @keyframes lw-rescate{from{visibility:hidden}to{visibility:visible}}
 body.lw-listo main{animation:none;visibility:visible}
+/* Con movimiento (nav.js marca `html.lw-mov` antes de que vuelva ninguna
+   consulta), `main` espera tras `lw-listo` a que motion.js lance la entrada y
+   quite la marca, en el mismo frame. Si motion.js no llega, este rescate la
+   suelta a los 600 ms: el CSS no depende de que el JS siga vivo. */
+html.lw-mov body.lw-listo main{animation:lw-rescate .6s step-end forwards}
+/* La entrada empieza donde acababa el velo: con su fundido de 180 ms encima,
+   la subida de los bloques pasaba debajo y solo se veía un fundido cruzado. */
+html.lw-mov-entra #lw-cargando{display:none}
 
 #lw-cargando{position:fixed;inset:0 0 0 288px;z-index:var(--z-velo);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
@@ -305,7 +337,7 @@ body.v4-nav-plegada #lw-cargando{left:0}
   width:min(480px,100%); background:#FBF9F4; color:#1E2522;
   border:1px solid #E7E4DC; border-radius:16px;
   box-shadow:0 25px 50px -12px rgba(0,0,0,.25); overflow:hidden;
-  animation:lwDlgEntraV4 220ms cubic-bezier(.23,1,.32,1);
+  animation:lwDlgEntraV4 220ms var(--lw-ease);
   font-family:Jost,system-ui,sans-serif;
 }
 .lw-dlg-cab{ padding:22px 24px 18px; display:flex; gap:14px; align-items:center; background:#fff; border-bottom:1px solid #E7E4DC; }
@@ -323,7 +355,7 @@ body.v4-nav-plegada #lw-cargando{left:0}
 .lw-dlg-pie .btn{
   padding:10px 24px; border-radius:9999px; font:500 14px Jost,system-ui,sans-serif;
   cursor:pointer; border:1px solid #E7E4DC; background:#fff; color:#44403c;
-  box-shadow:0 1px 2px rgba(0,0,0,.05); transition:background .15s, transform .12s cubic-bezier(.23,1,.32,1);
+  box-shadow:0 1px 2px rgba(0,0,0,.05); transition:background .15s, transform .12s var(--lw-ease);
 }
 .lw-dlg-pie .btn:hover{ background:#fafaf9; }
 .lw-dlg-pie .btn:active{ transform:scale(.97); }
@@ -395,7 +427,7 @@ aside#cajon-detalle.sui-cajon #cajon-titulo{
 }
 aside#cajon-detalle.sui-cajon [data-lw-cerrar-cajon]{
   width:36px !important; height:36px !important; border:1px solid #E7E4DC; background:#fafaf9 !important;
-  color:#78716c !important; box-shadow:0 1px 2px rgba(0,0,0,.05); transition:background .15s, color .15s, transform .25s cubic-bezier(.23,1,.32,1);
+  color:#78716c !important; box-shadow:0 1px 2px rgba(0,0,0,.05); transition:background .15s, color .15s, transform .25s var(--lw-ease);
 }
 aside#cajon-detalle.sui-cajon [data-lw-cerrar-cajon]:hover{ background:#f5f5f4 !important; color:#292524 !important; transform:rotate(90deg); }
 /* el cuerpo conserva su margen: el parcelario de /v4/proyectos/ se mide en columnas (owner 23-sep: el máximo posible de una pasada) */
@@ -419,7 +451,7 @@ aside#cajon-detalle.sui-cajon > div:last-child button,
 aside#cajon-detalle.sui-cajon > div:last-child a{
   border-radius:9999px !important; font:500 14px Jost,system-ui,sans-serif !important;
   padding:10px 20px !important; box-shadow:0 1px 2px rgba(0,0,0,.05);
-  transition:background .15s, transform .12s cubic-bezier(.23,1,.32,1);
+  transition:background .15s, transform .12s var(--lw-ease);
 }
 aside#cajon-detalle.sui-cajon > div:last-child button:active,
 aside#cajon-detalle.sui-cajon > div:last-child a:active{ transform:scale(.97); }
@@ -483,7 +515,7 @@ input.lw-elegible:disabled{ cursor:default; opacity:1; }
 .sui-btn{
   padding:8px 18px; border-radius:9999px; border:1px solid #E7E4DC; background:#fff;
   color:#44403c; font:500 13px Jost,system-ui,sans-serif; cursor:pointer;
-  box-shadow:0 1px 2px rgba(0,0,0,.05); transition:background .15s, transform .12s cubic-bezier(.23,1,.32,1);
+  box-shadow:0 1px 2px rgba(0,0,0,.05); transition:background .15s, transform .12s var(--lw-ease);
 }
 .sui-btn:hover{ background:#fafaf9; }
 .sui-btn:active{ transform:scale(.97); }
