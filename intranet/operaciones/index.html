@@ -30,7 +30,7 @@
 <script src="/contracts/assets/visor.js?v=28038adb" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=c5c926ae"></script><script src="/contracts/assets/guard.js?v=935970cf" data-herramienta="operaciones"></script>
+<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=c5c926ae"></script><script src="/contracts/assets/guard.js?v=c0fd5a8b" data-herramienta="operaciones"></script>
 <script src="/contracts/assets/suite.js?v=3cf4a63a"></script>
 <!-- aritmética y formato de dinero: el MISMO que emite las facturas, no una copia -->
 <!-- dinero.js ANTES de totales.js (17-ago-2026): esta pantalla llamaba a
@@ -1010,12 +1010,6 @@ async function borrarOperacion(op){
      dónde vive cada snapshot ya no existen.
      Solo `pendientes/`: el PDF firmado es el documento, y no se toca ni aunque
      la operación se borre. */
-  const rutas = [...new Set(
-    [op, ...(op.hijos || [])].flatMap(x =>
-      ['pendientes/' + x.id + '.html', ...((x.firmas || []).map(f => f.snapshot_path))]
-    ).filter(r => r && r.startsWith('pendientes/'))
-  )];
-
   const b = $('#btnBorrarOp'); if(b) b.disabled = true;
   try{
     const { data, error } = await SB.rpc('borrar_operacion', { p_contrato_id: op.id });
@@ -1025,12 +1019,11 @@ async function borrarOperacion(op){
     // enlace de firma tiene que seguir encontrando su documento. Es la misma
     // lección del 30-jul con RP00021, cuando anular antes de subir dejó un
     // contrato sin ningún enlace vivo.
-    if(rutas.length){
-      const { error: eSt } = await SB.storage.from('contratos-firmados').remove(rutas);
-      // no se reintenta ni se para: la operación YA está borrada y un fichero
-      // suelto en el bucket es basura, no un fallo que el operador deba resolver
-      if(eSt) console.warn('Operación borrada; sus borradores de firma siguen en el almacenamiento:', eSt.message);
-    }
+    // Desde el 26-sep-2026 (LAW-336 pieza 5) los borra el SERVIDOR: la pantalla ya no manda rutas,
+    // la edge borra solo los `pendientes/<id>.html` cuyo contrato ya no existe. No se reintenta ni
+    // se para: la operación YA está borrada y un fichero suelto es basura, no un fallo del operador.
+    window.lwFicheros(SB, 'limpia_borradores').catch(e =>
+      console.warn('Operación borrada; sus borradores de firma siguen en el almacenamiento:', e.message));
     suiCerrarCajon();
     SEL = null;
     await cargar();

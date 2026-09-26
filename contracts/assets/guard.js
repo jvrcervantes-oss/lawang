@@ -68,6 +68,22 @@
     if (!/^[a-z0-9-]+$/.test(String(nombre))) throw new Error('lwEdge: nombre de edge no válido');
     return URL_SB + '/functions/v1/' + nombre;
   });
+  /* Ficheros de contratos y cobros por la edge ficheros-contrato (26-sep-2026, LAW-336 pieza 5): la ruta
+     la decide el servidor y la subida va por URL firmada; borrar borradores de firma, también el servidor.
+     Una sola copia para toda la suite (facturas, operaciones, v4). Devuelve la respuesta o lanza con el error. */
+  fija('lwFicheros', function (sb, accion, datos) {
+    return sb.auth.getSession().then(function (s) {
+      var t = s && s.data && s.data.session && s.data.session.access_token;
+      return fetch(URL_SB + '/functions/v1/ficheros-contrato', { method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (t || '') },
+        body: JSON.stringify(Object.assign({ accion: accion }, datos || {})) });
+    }).then(function (r) {
+      return r.json().catch(function () { return { ok: false, error: 'Respuesta inválida del servidor' }; });
+    }).then(function (d) {
+      if (!d.ok) throw new Error(d.error || 'error del servidor');
+      return d;
+    });
+  });
   /* MODO QA (28-ago-2026) — revisión previa: Desarrollo + Datos + Seguridad,
      CEO/revisiones/estado.json. Único punto de entrada para las herramientas
      que cargan guard.js: nunca se copia este `if` en cada index.html (los

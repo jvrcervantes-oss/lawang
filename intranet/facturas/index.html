@@ -42,7 +42,7 @@
      consultarla) NO se exige el permiso de emitir. Guard aporta lo otro:
      sesion, cuenta activa y UN SOLO cliente publicado en `LW_SB`. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=c5c926ae"></script><script src="/contracts/assets/guard.js?v=935970cf"></script>
+<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=c5c926ae"></script><script src="/contracts/assets/guard.js?v=c0fd5a8b"></script>
 <!-- Los dialogos de esta herramienta usan `lwConfirmar` (assets/dialogo.js),
      el unico de la suite desde el 15-ago-2026. Antes convivian dos: este
      fichero llamaba a `suiConfirmar` de suite.js en dos sitios y a lwConfirmar
@@ -1596,13 +1596,14 @@ $('#fJustificante').addEventListener('change', async () => {
   for(const [i, f] of elegidos.entries()){
     if(f.size > 10*1024*1024){ toastMal(f.name + ' supera los 10 MB: no se ha subido'); continue; }
     const ext = (f.name.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
-    const path = crypto.randomUUID() + ext;
     if(caja) caja.insertAdjacentHTML('beforeend',
       '<p class="hint" data-subiendo="' + i + '">Subiendo ' + esc(f.name) + '…</p>');
     try{
-      const up = await sb.storage.from('justificantes').upload(path, f, { upsert:false, contentType:f.type || 'application/octet-stream' });
+      // la ruta la decide el servidor y la subida va por URL firmada (26-sep-2026, LAW-336 pieza 5)
+      const u = await window.lwFicheros(sb, 'justificante_url', { ext });
+      const up = await sb.storage.from('justificantes').uploadToSignedUrl(u.path, u.token, f, { contentType:f.type || 'application/octet-stream' });
       if(up.error) throw up.error;
-      JUSTIFICANTES.push({ path, nombre: f.name, subido_en: new Date().toISOString() });
+      JUSTIFICANTES.push({ path: u.path, nombre: f.name, subido_en: new Date().toISOString() });
     }catch(err){
       toastMal(lwT('No se pudo subir ') + f.name + ': ' + (err.message || err));
     }

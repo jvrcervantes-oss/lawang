@@ -123,6 +123,9 @@ Deno.serve(async (req) => {
     const soloTexto = body.attach === false;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return json({ ok: false, error: 'destinatario_invalido' }, 400);
     if (soloTexto && (!contratoId || !message.trim())) return json({ ok: false, error: 'texto_sin_contrato_o_mensaje' }, 400);
+    // Una factura va SIEMPRE con su PDF: marcarla enviada fija número, emisor y la fecha que cuenta
+    // para plazos de cobro — no puede hacerlo un correo que no la llevaba (Administración, capa 1, 26-sep).
+    if (soloTexto && facturaId) return json({ ok: false, error: 'factura_requiere_pdf' }, 400);
     if (!soloTexto && !html && !pdfManual) return json({ ok: false, error: 'falta_html_o_pdf' }, 400);
     // La factura tiene que ser SUYA (visible por RLS) ANTES de enviar: más abajo se
     // apunta el envío y se marca `enviada` con ese id, y `enviada=true` congela número

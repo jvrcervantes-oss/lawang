@@ -626,7 +626,7 @@ Deno.serve(async (req) => {
       .update({ estado: 'procesando' })
       .eq('token_hash', hash)
       .eq('estado', 'pendiente')
-      .select('id, contrato_id, expira_en, snapshot_path, firmante_nombre, firmante_email, firmante_rol, contratos(numero)')
+      .select('id, contrato_id, expira_en, snapshot_path, snapshot_hash, firmante_nombre, firmante_email, firmante_rol, contratos(numero)')
       .maybeSingle();
     if (!claimed) return json({ error: 'no_disponible' }, 409); // no existe, ya usado, o en proceso
     claimedId = claimed.id;
@@ -643,6 +643,19 @@ Deno.serve(async (req) => {
     const { data: file, error: dlErr } = await sb.storage.from('contratos-firmados').download(claimed.snapshot_path);
     if (dlErr || !file) throw new Error('snapshot no disponible');
     let html = await file.text();
+
+    // ── El documento es el que se mandó a firmar (26-sep-2026, Legal #120) ──
+    // `snapshot_hash` lo guarda la base al crear el enlace, calculado por el servidor sobre el
+    // fichero del bucket. Si el documento ha cambiado desde entonces, el comprador firmaría algo
+    // distinto de lo que se le envió: se para y el enlace vuelve a pendiente. Excepción: un
+    // REINTENTO tras un fallo a mitad ya lleva estampada ESTA firma (su id), y eso cambia el hash.
+    // Enlaces de antes de esta fecha no tienen hash: se firman como hasta hoy.
+    if (claimed.snapshot_hash && !html.includes(claimed.id) && (await sha256hex(html)) !== claimed.snapshot_hash) {
+      await sb.from('contrato_firmas').update({ estado: 'pendiente' }).eq('id', claimed.id);
+      claimedId = null;
+      console.error('documento_alterado', claimed.contrato_id, claimed.id);
+      return json({ error: 'documento_alterado' }, 409);
+    }
 
     // ── Firma en cadena: cada rol tiene SU centinela ────────────────────
     // adquiriente_1 → %%FIRMA_ADQUIRIENTE%% (histórico) · adquiriente_N → %%FIRMA_ADQ_N%%
@@ -770,6 +783,9 @@ Deno.serve(async (req) => {
             firmante_nombre: siguiente.nombre, firmante_email: siguiente.email,
             firmante_rol: siguiente.rol, orden, snapshot_path: snapPath,
             enlace_firma: link,
+            // el siguiente firma el documento CON las firmas anteriores: su hash es el de lo
+            // que se acaba de guardar en el bucket (misma comprobación de arriba en su turno)
+            snapshot_hash: await sha256hex(html),
           });
           if (insSig.error) throw new Error(insSig.error.message);
           // sin pdfB64: enviarEmail() ya manda `attach:false` cuando no se le da

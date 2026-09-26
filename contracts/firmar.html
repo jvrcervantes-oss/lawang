@@ -143,6 +143,8 @@ const ERR = {
   expirado:['Enlace caducado','Este enlace ha caducado. Pide uno nuevo. / This link has expired. Please request a new one.'],
   ya_firmado:['Ya firmado','Este documento ya fue firmado. / This document was already signed.'],
   no_disponible:['No disponible','Este enlace ya no está disponible. / This link is no longer available.'],
+  // 26-sep-2026: el documento cambió desde que se envió el enlace — no se firma algo distinto de lo enviado
+  documento_alterado:['Documento cambiado','Este documento ha cambiado desde que se te envió. Pide un enlace nuevo. / This document changed after it was sent to you. Please request a new link.'],
   /* Un fallo del lado del servicio, no del firmante. Antes esto caía en el
      `toast` genérico de más abajo —«No se pudo firmar. Inténtalo de nuevo»—,
      que para un fallo PERMANENTE es una invitación a reintentar sin fin: es lo

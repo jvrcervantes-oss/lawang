@@ -892,26 +892,22 @@
           return false;
         }).then(function (ok) {
           if (!ok) return;
-          var rutas = [];
-          ids.forEach(function (cid) { rutas.push('pendientes/' + cid + '.html'); });
-          firmasVivas.forEach(function (f) { if (f.snapshot_path) rutas.push(f.snapshot_path); });
-          rutas = rutas.filter(function (x, i, a) { return x && x.indexOf('pendientes/') === 0 && a.indexOf(x) === i; });
           sb.rpc('borrar_operacion', { p_contrato_id: c0.id }).then(function (rr) {
             if (rr.error) { toastMal(lwErrorHumano(rr.error, 'No se pudo borrar')); return; }
             // Los borradores de firma del ALMACENAMIENTO no los borra el RPC (no
             // alcanza a un bucket): se limpian aparte, DESPUÉS de que el borrado
             // haya ido bien — un fallo aquí es basura huérfana, no un motivo para
             // parar (mismo criterio que la clásica).
-            if (rutas.length) {
-              sb.storage.from('contratos-firmados').remove(rutas).then(function (rs) {
-                if (rs.error) console.warn('Operación borrada; sus borradores de firma siguen en el almacenamiento:', rs.error.message);
-              });
-            }
+            // Desde el 26-sep-2026 (LAW-336 pieza 5) los borra el SERVIDOR: solo los de contratos que ya no existen.
+            // la recarga espera a la limpieza: recargar antes cortaría la petición a medias
+            var limpia = window.lwFicheros(sb, 'limpia_borradores').catch(function (e) {
+              console.warn('Operación borrada; sus borradores de firma siguen en el almacenamiento:', e.message);
+            });
             var d = rr.data || {};
             toast('Operación borrada · ' + (d.contratos_borrados || 0) + ' contrato(s), ' + (d.facturas_anuladas || 0) + ' factura(s) anulada(s)' +
               (d.comisiones_purgadas ? ', ' + d.comisiones_purgadas + ' comisión(es) purgada(s)' : ''));
             if (window.lwCierraCajon) window.lwCierraCajon();
-            location.reload();
+            limpia.then(function () { location.reload(); });
           });
         });
       });

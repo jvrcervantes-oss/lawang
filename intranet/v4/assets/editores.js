@@ -2950,12 +2950,14 @@
         return p.then(function () {
           if (f.size > 10 * 1024 * 1024) { toastMal(f.name + ' supera los 10 MB: no se ha subido'); return; }
           var ext = (f.name.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
-          var path = crypto.randomUUID() + ext;
-          return sb.storage.from('justificantes').upload(path, f, { upsert: false, contentType: f.type || 'application/octet-stream' })
-            .then(function (up) {
-              if (up.error) { toastMal(lwErrorHumano(up.error, 'No se pudo subir ' + f.name)); return; }
-              lista.push({ path: path, nombre: f.name, subido_en: new Date().toISOString() }); repinta();
-            });
+          // la ruta la decide el servidor y la subida va por URL firmada (26-sep-2026, LAW-336 pieza 5)
+          return window.lwFicheros(sb, 'justificante_url', { ext: ext }).then(function (u) {
+            return sb.storage.from('justificantes').uploadToSignedUrl(u.path, u.token, f, { contentType: f.type || 'application/octet-stream' })
+              .then(function (up) {
+                if (up.error) { toastMal(lwErrorHumano(up.error, 'No se pudo subir ' + f.name)); return; }
+                lista.push({ path: u.path, nombre: f.name, subido_en: new Date().toISOString() }); repinta();
+              });
+          }, function (e) { toastMal('No se pudo subir ' + f.name + ': ' + (e.message || e)); });
         });
       }, Promise.resolve());
     });
