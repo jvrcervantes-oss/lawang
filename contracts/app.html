@@ -4061,12 +4061,14 @@ async function cargarEstadoFirma(){
    texto suelto, sin PDF. Se manda DESPUÉS de anular y nunca condiciona la
    anulación — si el correo falla, el enlace ya está muerto igual, que es lo que
    importa; el fallo se dice en un toast y queda en el registro por omisión. */
-function mensajeAnulacion(f, numero, yaFirmo){
+function mensajeAnulacion(f, numero, yaFirmo, motivo){
   const nom = String(f.firmante_nombre || '').trim().split(/\s+/)[0] || '';
   return 'Hola' + (nom ? ' ' + nom : '') + ',\n\n'
     + (yaFirmo
         ? 'Vamos a actualizar el documento ' + numero + ' que firmaste. Como el texto cambia, la firma '
           + 'que diste sobre la versión anterior deja de ser válida y el enlace que recibiste ya no está activo.\n\n'
+          // el porqué que quedó en el registro (Legal, 26-sep-2026): quien firmó tiene derecho a saberlo
+          + (motivo ? 'Motivo: ' + motivo + '\n\n' : '')
           + 'En cuanto la nueva versión esté lista te enviaremos un enlace nuevo para que puedas firmarla. '
           + 'Sentimos la molestia.'
         : 'Vamos a actualizar el documento ' + numero + ' que te enviamos para firmar, así que el enlace '
@@ -4075,7 +4077,7 @@ function mensajeAnulacion(f, numero, yaFirmo){
     + '\n\nNo tienes que hacer nada por ahora.\n\nLawang Tropical Properties';
 }
 
-async function avisaAnulacion(filas, numero){
+async function avisaAnulacion(filas, numero, motivo){
   // uno por dirección: dos roles del mismo comprador no son dos correos
   const porEmail = new Map();
   filas.forEach(f => {
@@ -4090,7 +4092,7 @@ async function avisaAnulacion(filas, numero){
     const asunto = 'Actualización del documento ' + numero + ' — Lawang Tropical Properties';
     try{
       const d = await correoContrato({ to: em, subject: asunto, attach:false, via:'aviso_anulacion',
-                                       message: mensajeAnulacion(f, numero, f.estado === 'firmado') });
+                                       message: mensajeAnulacion(f, numero, f.estado === 'firmado', motivo) });
       if(!d.ok) throw new Error(d.error || 'envío rechazado');
       bien++;
       if(d.registrado === false) console.error('aviso de anulación a ' + em + ' enviado pero sin anotar en el registro');
@@ -4169,7 +4171,7 @@ async function anularFirmasYEditar(){
   toast(lwT('Firmas anuladas · ya puedes editar'));
 
   if(avisar && nDest){
-    const { bien, fallos } = await avisaAnulacion(filasAnuladas, SAVED_CONTRACT.numero || '');
+    const { bien, fallos } = await avisaAnulacion(filasAnuladas, SAVED_CONTRACT.numero || '', justificacion);
     if(fallos.length) toastMal(lwT('Aviso enviado a ') + bien + ', falló con: ' + fallos.join(', '));
     else if(bien)     toast(lwT('Avisado') + (bien > 1 ? 's ' + bien + ' firmantes' : ' el firmante') + ' por email');
   }
@@ -4194,8 +4196,8 @@ $('#btnDesbloquear').addEventListener('click', async ()=>{
     cancelar: 'Dejarlo firmado',
   });
   if(!ok) return;
-  const { error } = await sb.from('contratos').update({ bloqueado:false })
-    .eq('id', SAVED_CONTRACT.id).select('id').single();
+  // por el servidor desde el 26-sep-2026 (LAW-336 pieza 5): contrato_desbloquea exige super admin
+  const { error } = await sb.rpc('contrato_desbloquea', { p_id: SAVED_CONTRACT.id });
   if(error){ toastMal(lwT('No se pudo desbloquear: ') + error.message); return; }
   LOCKED = false; LOCKED_PDF_PATH = null;
   updateSaveButton(); render();
@@ -4885,13 +4887,19 @@ async function guardarContrato(){
     // Solo las dos ramas que se releen, nunca `datos` entero (LAW-78, 25-sep-2026):
     // devolvía en cada guardado la portada y los anexos en base64, hasta varios MB.
     const eraNuevo = !(SAVED_CONTRACT && SAVED_CONTRACT.id);
-    const COLS_RELEE = 'id,numero,datos_fields:datos->fields,datos_hitos:datos->hitos';
-    const q = !eraNuevo
-      ? sb.from('contratos').update(payload).eq('id', SAVED_CONTRACT.id).select(COLS_RELEE).single()
-      : sb.from('contratos').insert(payload).select(COLS_RELEE).single();
-    const { data: fila, error } = await q;
+    /* Por el servidor desde el 26-sep-2026 (LAW-336 pieza 5, paso A): `contrato_guarda` recibe el
+       tipo, el contenido (`datos`) y la parcela de una Construcción, y deriva ÉL precio_total,
+       comprador_nombre, proyecto_nombre, moneda, fecha y contrato padre de `datos.fields` — con las
+       mismas reglas que contractPayload(), que ya no manda esas columnas. El precio de un contrato
+       firmado no se recalcula (decisión del owner). Devuelve id, número, fields, hitos y el precio
+       que quedó guardado, que es el que usa la proforma de abajo. */
+    const envio = { tipo: payload.tipo, datos: payload.datos };
+    if('unidad_id' in payload) envio.unidad_id = payload.unidad_id;
+    const { data: fila, error } = await sb.rpc('contrato_guarda',
+      { p_id: eraNuevo ? null : SAVED_CONTRACT.id, p_contrato: envio });
     if(error) throw error;
-    const data = { id:fila.id, numero:fila.numero, datos:{ fields:fila.datos_fields, hitos:fila.datos_hitos } };
+    payload.precio_total = fila.precio_total == null ? null : Number(fila.precio_total);
+    const data = { id:fila.id, numero:fila.numero, datos:{ fields:fila.fields, hitos:fila.hitos } };
     SAVED_CONTRACT = { id:data.id, numero:data.numero };
     ANEXO_MANUAL_RETIRADO = false;   // lo retirado ya está fuera de la fila
     if(eraNuevo) PDF_SALIO = false;   // un contrato recién creado no ha salido nunca

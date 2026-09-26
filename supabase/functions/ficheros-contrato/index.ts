@@ -53,6 +53,12 @@ async function sha256hex(s: string | Uint8Array): Promise<string> {
 }
 // extensiones que admite un justificante (lo mismo que suben hoy: transferencias en PDF o foto)
 const EXT_JUSTIF = ['.pdf', '.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif'];
+// Lee un objeto SIN caché: la CDN de Storage puede servir la versión anterior hasta ~60 s tras una
+// reescritura, y un hash calculado sobre esa versión rompería el enlace (consulta C+D, Desarrollo).
+async function leeFresco(bucket: string, path: string): Promise<Response> {
+  return await fetch(`${URL_SB}/storage/v1/object/authenticated/${bucket}/${path}?v=${crypto.randomUUID()}`,
+    { headers: { Authorization: 'Bearer ' + SERVICE, 'cache-control': 'no-cache' } });
+}
 
 Deno.serve(async (req) => {
   const cors = corsFor(req);
@@ -135,9 +141,9 @@ Deno.serve(async (req) => {
         return json({ ok: true, path, token: data.token });
       }
       // envia_firma: el hash del documento lo calcula el servidor sobre lo que hay en el bucket
-      const { data: file, error: eDl } = await admin.storage.from(BUCKET_FIRMAS).download(path);
-      if (eDl || !file) return json({ ok: false, error: 'falta_el_documento_a_firmar' }, 409);
-      const hash = await sha256hex(await file.text());
+      const rDoc = await leeFresco(BUCKET_FIRMAS, path);
+      if (!rDoc.ok) return json({ ok: false, error: 'falta_el_documento_a_firmar' }, 409);
+      const hash = await sha256hex(await rDoc.text());
       const { data: r, error: eEnv } = await usuario.rpc('contrato_envia_firma', {
         p_contrato: contratoId,
         p_nombre: String(body.nombre ?? ''), p_email: String(body.email ?? ''),
@@ -167,9 +173,9 @@ Deno.serve(async (req) => {
         if (error || !data) return json({ ok: false, error: 'no_se_pudo_preparar_la_subida' }, 500);
         return json({ ok: true, path, token: data.token });
       }
-      const { data: file, error: eDl } = await admin.storage.from(BUCKET_FIRMAS).download(path);
-      if (eDl || !file) return json({ ok: false, error: 'falta_el_pdf' }, 409);
-      const bytes = new Uint8Array(await file.arrayBuffer());
+      const rPdf = await leeFresco(BUCKET_FIRMAS, path);
+      if (!rPdf.ok) return json({ ok: false, error: 'falta_el_pdf' }, 409);
+      const bytes = new Uint8Array(await rPdf.arrayBuffer());
       if (bytes.length < 5 || new TextDecoder().decode(bytes.subarray(0, 5)) !== '%PDF-')
         return json({ ok: false, error: 'no_es_un_pdf' }, 400);
       const hash = await sha256hex(bytes);

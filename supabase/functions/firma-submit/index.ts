@@ -626,7 +626,7 @@ Deno.serve(async (req) => {
       .update({ estado: 'procesando' })
       .eq('token_hash', hash)
       .eq('estado', 'pendiente')
-      .select('id, contrato_id, expira_en, snapshot_path, snapshot_hash, firmante_nombre, firmante_email, firmante_rol, contratos(numero)')
+      .select('id, contrato_id, expira_en, snapshot_path, snapshot_hash, estampado_en, firmante_nombre, firmante_email, firmante_rol, contratos(numero)')
       .maybeSingle();
     if (!claimed) return json({ error: 'no_disponible' }, 409); // no existe, ya usado, o en proceso
     claimedId = claimed.id;
@@ -640,17 +640,23 @@ Deno.serve(async (req) => {
     const ua = (req.headers.get('user-agent') || '').slice(0, 400);
     const numero = (claimed as any).contratos?.numero || '';
 
-    const { data: file, error: dlErr } = await sb.storage.from('contratos-firmados').download(claimed.snapshot_path);
-    if (dlErr || !file) throw new Error('snapshot no disponible');
-    let html = await file.text();
+    // Lectura SIN caché (consulta de deploy C+D, Desarrollo): la CDN de Storage puede servir la versión
+    // anterior del documento hasta ~60 s tras reescribirlo, y el hash no cuadraría con el enlace nuevo.
+    const rDoc = await fetch(`${Deno.env.get('SUPABASE_URL')}/storage/v1/object/authenticated/contratos-firmados/${claimed.snapshot_path}?v=${crypto.randomUUID()}`,
+      { headers: { Authorization: 'Bearer ' + Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'), 'cache-control': 'no-cache' } });
+    if (!rDoc.ok) throw new Error('snapshot no disponible');
+    let html = await rDoc.text();
 
     // ── El documento es el que se mandó a firmar (26-sep-2026, Legal #120) ──
     // `snapshot_hash` lo guarda la base al crear el enlace, calculado por el servidor sobre el
     // fichero del bucket. Si el documento ha cambiado desde entonces, el comprador firmaría algo
     // distinto de lo que se le envió: se para y el enlace vuelve a pendiente. Excepción: un
-    // REINTENTO tras un fallo a mitad ya lleva estampada ESTA firma (su id), y eso cambia el hash.
+    // REINTENTO tras un fallo a mitad ya lleva estampada ESTA firma, y eso cambia el hash: lo reconoce
+    // `estampado_en`, que pone SOLO esta función antes de guardar el documento firmado (no el id dentro
+    // del HTML, que un agente podía escribir a mano — Seguridad, consulta C+D).
     // Enlaces de antes de esta fecha no tienen hash: se firman como hasta hoy.
-    if (claimed.snapshot_hash && !html.includes(claimed.id) && (await sha256hex(html)) !== claimed.snapshot_hash) {
+    const esReintento = !!claimed.estampado_en && html.includes(claimed.id);
+    if (claimed.snapshot_hash && !esReintento && (await sha256hex(html)) !== claimed.snapshot_hash) {
       await sb.from('contrato_firmas').update({ estado: 'pendiente' }).eq('id', claimed.id);
       claimedId = null;
       console.error('documento_alterado', claimed.contrato_id, claimed.id);
@@ -728,6 +734,9 @@ Deno.serve(async (req) => {
       //    marca como el peor). El catch devuelve el token a pendiente y el
       //    reintento es limpio (el snapshot original sigue intacto).
       const snapPath = `pendientes/${claimed.contrato_id}.html`;
+      // marca de reintento: ANTES de reescribir el documento (ver la comprobación del hash, arriba)
+      const marca = await sb.from('contrato_firmas').update({ estampado_en: new Date().toISOString() }).eq('id', claimed.id);
+      if (marca.error) throw new Error('no se pudo marcar la firma: ' + marca.error.message);
       const save = await sb.storage.from('contratos-firmados')
         .upload(snapPath, new Blob([html], { type: 'text/html' }), { contentType: 'text/html', upsert: true });
       if (save.error) throw new Error('no se pudo guardar el documento firmado: ' + save.error.message);
