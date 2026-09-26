@@ -3067,11 +3067,18 @@
       }).then(function (r) { return r.json().catch(function () { return { ok: false, error: 'Respuesta inválida del servidor' }; }); })
         .then(function (res) {
           if (!(res && res.ok)) { toastMal((res && res.error) || 'No se pudo enviar'); return; }
-          return sb.from('facturas').update({ enviada: true, fecha_envio: new Date().toISOString() }).eq('id', saved.id).then(function (m) {
-            if (m.error) console.error('factura', saved.numero, 'enviada pero SIN marcar enviada=true:', m.error.message);
+          /* `enviada` la marca la edge en el servidor, justo tras el envío y con TU
+             sesión (26-sep-2026, «Operaciones atómicas»): antes la marcaba esta pantalla
+             en una segunda llamada, y si fallaba la factura seguía como no enviada y se
+             podía mandar dos veces. Si la edge no pudo marcarla, se dice — el correo
+             SÍ salió, y eso no se puede callar. `!== true`, no `=== false`: una edge
+             sin desplegar devuelve ok sin `marcada`, y eso NO es «marcada». */
+          if (res.marcada !== true) {
+            toastMal('Enviado a ' + para + ', pero NO se ha podido marcar como enviada: no la reenvíes, avisa al administrador.');
+          } else {
             toast('Enviado a ' + para);
-            if (alEnviado) alEnviado();
-          });
+          }
+          if (alEnviado) alEnviado();
         }, function (err) { toastMal('Error: ' + (err && err.message || err)); });
     });
   }

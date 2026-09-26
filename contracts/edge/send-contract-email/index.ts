@@ -25,6 +25,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const URL_SB = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const ANON = Deno.env.get('SUPABASE_ANON_KEY')!;
 const admin = createClient(URL_SB, SERVICE);
 
 // Mismo secreto de proyecto que ya usa firma-submit — no se duplica.
@@ -77,6 +78,18 @@ Deno.serve(async (req) => {
     const { data: quien, error: eUser } = await admin.auth.getUser(jwt);
     if (eUser || !quien?.user) return json({ ok: false, error: 'sesion_invalida' }, 401);
 
+    // Cliente CON LA SESIÓN DEL USUARIO (26-sep-2026, revisión previa #106, Seguridad):
+    // lo que decide si puede es la RLS, igual que si lo hiciera desde su pantalla.
+    // `admin` (service role) queda solo para el registro de envíos.
+    const usuario = createClient(URL_SB, ANON, {
+      global: { headers: { Authorization: 'Bearer ' + jwt } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    // Solo el equipo: un comprador del portal también tiene sesión de Supabase, y sin
+    // esto podía mandar cualquier HTML/PDF a cualquier dirección con el correo de Lawang.
+    const { data: esAgente, error: eAg } = await usuario.rpc('es_agente');
+    if (eAg || esAgente !== true) return json({ ok: false, error: 'solo_equipo' }, 403);
+
     const ahora = Date.now();
     const previo = ultimoEnvio.get(quien.user.id) ?? 0;
     if (ahora - previo < COOLDOWN_MS) return json({ ok: false, error: 'espera_un_momento' }, 429);
@@ -97,6 +110,20 @@ Deno.serve(async (req) => {
     const facturaId  = esUuid(String(body.factura_id ?? ''))  ? String(body.factura_id)  : null;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return json({ ok: false, error: 'destinatario_invalido' }, 400);
     if (!html && !pdfManual) return json({ ok: false, error: 'falta_html_o_pdf' }, 400);
+    // La factura tiene que ser SUYA (visible por RLS) ANTES de enviar: más abajo se
+    // apunta el envío y se marca `enviada` con ese id, y `enviada=true` congela número
+    // y emisor y veta el borrado — no puede hacerlo quien no puede ver la factura.
+    if (facturaId) {
+      const { data: fv, error: eF } = await usuario.from('facturas').select('id').eq('id', facturaId).maybeSingle();
+      if (eF || !fv) return json({ ok: false, error: 'factura_no_visible' }, 403);
+    }
+    // Y el contrato igual: el registro de envíos se lee como «quién lo tiene» y lo
+    // escribe el service role — sin esto, cualquiera del equipo dejaba un envío falso
+    // en un contrato que no puede ver (code-review, 26-sep-2026).
+    if (contratoId) {
+      const { data: cv, error: eC } = await usuario.from('contratos').select('id').eq('id', contratoId).maybeSingle();
+      if (eC || !cv) return json({ ok: false, error: 'contrato_no_visible' }, 403);
+    }
 
     let pdfB64 = '';
     if (html) {
@@ -141,7 +168,20 @@ Deno.serve(async (req) => {
       });
       if (eLog) console.error('correos_enviados: ' + eLog.message);
     }
-    return json({ ok: true });
+    // Marcar la factura como enviada AQUÍ, en el servidor y justo tras el envío
+    // (26-sep-2026, «Operaciones atómicas»): antes lo hacía la pantalla en una segunda
+    // llamada y, si fallaba, la factura seguía «sin enviar» y se reenviaba. Va con la
+    // sesión del usuario: su RLS y los guardarraíles de facturas (que se apartan con
+    // auth.uid() nulo) se aplican igual que antes. Si no se puede marcar, se DICE
+    // (`marcada:false`) sin devolver error: el correo ya salió y reenviarlo sería peor.
+    let marcada: boolean | undefined;
+    if (facturaId) {
+      const { data: m, error: eM } = await usuario.from('facturas')
+        .update({ enviada: true, fecha_envio: new Date().toISOString() }).eq('id', facturaId).select('id');
+      marcada = !eM && (m?.length ?? 0) === 1;
+      if (!marcada) console.error('factura ' + facturaId + ' enviada pero SIN marcar: ' + (eM?.message ?? '0 filas'));
+    }
+    return json({ ok: true, marcada });
   } catch (e) {
     return json({ ok: false, error: String((e as Error)?.message ?? e) }, 500);
   }

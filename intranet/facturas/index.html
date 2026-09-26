@@ -1928,16 +1928,16 @@ $('#mailSend').onclick = async () => {
         html: paginaParaEmail() }) });
     const res = await r.json().catch(() => ({ ok:false, error:'Respuesta inválida del servidor' }));
     if(res.ok){
-      // 11-ago (Administración, hallazgo ALTA): sin esto `facturas.enviada` se
-      // quedaba en false para siempre en el envío manual — el único camino que
-      // la marcaba era el automático de firma-submit (proformas). Sin la
-      // columna al día, el guard "no tocar el JSONB de una factura ya enviada"
-      // de renombrar_proyecto.sql no protegía la factura normal, que es la
-      // mayoría. No bloquea el aviso de "Enviado" si falla: el email ya salió.
-      const marca = await sb.from('facturas').update({ enviada:true, fecha_envio: new Date().toISOString() }).eq('id', SAVED.id);
-      if(marca.error) console.error('factura', SAVED.numero, 'enviada pero SIN marcar enviada=true:', marca.error.message);
+      // `facturas.enviada` la marca la edge en el servidor, justo tras el envío y
+      // con la sesión del usuario (26-sep-2026, «Operaciones atómicas»). Antes la
+      // marcaba esta pantalla en una segunda llamada (11-ago) y, si fallaba, la
+      // factura seguía como no enviada y se podía mandar dos veces. Si la edge no
+      // pudo marcarla se DICE: el correo sí salió.
       LDOCS = null;   // que el listado enseñe el estado «enviada» al volver
-      toast(lwT('Enviado a ') + to); cerrarMail();
+      if(res.marcada !== true)   // sin `marcada` (edge sin desplegar) tampoco es «marcada»
+        toastMal(lwT('Enviado a ') + to + ' — pero NO se ha podido marcar como enviada: no la reenvíes, avisa al administrador.');
+      else toast(lwT('Enviado a ') + to);
+      cerrarMail();
     }
     else toastMal(res.error || 'No se pudo enviar');
   }catch(err){ toastMal(lwT('Error: ') + (err.message || err)); }
