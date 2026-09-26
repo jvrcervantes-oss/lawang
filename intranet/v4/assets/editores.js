@@ -4939,9 +4939,9 @@
             ' POR TU CUENTA, como manager del equipo — ' + esc(lwMarca('%marca')) + ' no interviene en este pago ni lo tramita. ' +
             'Quedará registrado como pagado, con tu email y la fecha de hoy.' }
         ], 'Confirmar: pagada', function () {
-          return sb.from('comisiones_devengadas').update({
-            estado: 'pagada', pagado_por: miEmail, pagado_en: new Date().toISOString()
-          }).eq('id', id).select('id').then(unaFila);   // 0 filas = la policy no deja (19-sep-2026)
+          // por el servidor (26-sep-2026, LAW-336 pieza 6): estado, quién y cuándo los pone la base,
+          // una sola vez y nunca a tu propio nombre
+          return sb.rpc('comision_marca_pagada', { p_id: id });
         });
       };
 
@@ -8190,6 +8190,12 @@
           };
         });
       }
+      // los tramos como los pide el servidor (condicion_comision_guarda): sin id de condición
+      function tramosParaServidor(tramos) {
+        return filasTramos('00000000-0000-0000-0000-000000000000', tramos).map(function (f) {
+          return { disparador_tipo: f.disparador_tipo, umbral: f.umbral, pct_tramo: f.pct_tramo };
+        });
+      }
 
       ata(/^\+? ?Nueva condici[oó]n$/i, function () {
         cargaMisEquipos.then(function () {
@@ -8254,27 +8260,19 @@
             // error de cast confuso en vez de uno claro — mejor decirlo aquí.
             // `crypto.randomUUID` ya lo usa el resto de la v4 (proyectos/) sin
             // comprobar `window.crypto` antes: mismo contrato de navegador.
-            if (!(window.crypto && crypto.randomUUID)) {
-              return { error: { message: 'Este navegador no soporta crypto.randomUUID() — actualiza el navegador para crear condiciones.' } };
-            }
-            var condId = crypto.randomUUID();
-            return sb.from('condiciones_comision').insert({
-              id: condId, equipo_id: v.equipo_id, proyecto_id: v.proyecto_id, nivel: v.nivel,
-              closer_email: ROLES_EQUIPO_C.indexOf(v.nivel) !== -1 ? (v.closer_email ? v.closer_email.trim().toLowerCase() : null) : null,
-              pct_comision: Number(v.pct_comision), base_calculo: v.base_calculo,
-              importe_fijo: v.base_calculo === 'importe_fijo' ? Number(v.importe_fijo) : null,
-              vigente_desde: v.vigente_desde
-            }).then(function (r) {
-              if (r.error) return r;
-              return sb.from('condicion_tramos').insert(filasTramos(condId, tramos)).then(function (r2) {
-                if (r2.error) {
-                  // condición huérfana sin tramos: se limpia sola — solo llega
-                  // hasta aquí quien ya es admin, así que el DELETE no tropieza
-                  // con una policy nueva.
-                  return sb.from('condiciones_comision').delete().eq('id', condId).then(function () { return r2; });
-                }
-                return r2;
-              });
+            /* Condición y tramos por el servidor, en UNA transacción (26-sep-2026, LAW-336 pieza 6):
+               antes eran un insert, otro insert y un delete de compensación si fallaba el segundo.
+               El id, el autor y el permiso los decide la base (condicion_comision_guarda). */
+            return sb.rpc('condicion_comision_guarda', {
+              p_id: null,
+              p_cond: {
+                equipo_id: v.equipo_id, proyecto_id: v.proyecto_id, nivel: v.nivel,
+                closer_email: ROLES_EQUIPO_C.indexOf(v.nivel) !== -1 ? (v.closer_email ? v.closer_email.trim().toLowerCase() : null) : null,
+                pct_comision: Number(v.pct_comision), base_calculo: v.base_calculo,
+                importe_fijo: v.base_calculo === 'importe_fijo' ? Number(v.importe_fijo) : null,
+                vigente_desde: v.vigente_desde
+              },
+              p_tramos: tramosParaServidor(tramos)
             });
           });
         });
@@ -8302,7 +8300,7 @@
           modal('Borrar condición — ' + etq, [
             { tipo: 'nota', label: 'Se borra la condición con sus tramos. No hay papelera: si la vuelves a necesitar habrá que crearla de nuevo. Si solo quieres que deje de aplicarse, usa «Desactivar».' }
           ], 'Borrar definitivamente', function () {
-            return sb.from('condiciones_comision').delete().eq('id', id).select('id').then(unaFila);
+            return sb.rpc('condicion_comision_borra', { p_id: id });   // por el servidor (LAW-336 pieza 6)
           });
         });
       };
@@ -8315,7 +8313,7 @@
               ? 'Vuelve a aplicarse a las comisiones que se disparen desde ahora.'
               : 'Deja de aplicarse a comisiones nuevas. Lo ya devengado no cambia.' }
         ], pasaA ? 'Reactivar' : 'Desactivar', function () {
-          return sb.from('condiciones_comision').update({ activo: pasaA }).eq('id', condId).select('id').then(unaFila);
+          return sb.rpc('condicion_comision_activa', { p_id: condId, p_activo: pasaA });   // por el servidor (LAW-336 pieza 6)
         });
       };
 
@@ -8361,6 +8359,11 @@
             ], 'Entendido', function () { return Promise.resolve({}); }, { sinRecarga: true });
           }
           if (n) {
+            /* Decisión del owner (26-sep-2026): el admin puede cambiar las cifras de una condición con
+               devengos, pero con motivo, que queda registrado — y «Recalcular» una venta reescribe lo
+               devengado con estas cifras nuevas. */
+            campos.push({ k: 'motivo', label: 'Por qué cambias las cifras (queda registrado)', req: 1,
+              ayuda: 'ojo: si luego recalculas una venta, lo ya devengado se rehace con estas cifras' });
             campos.push({ tipo: 'nota', label: 'Esta condición ya ha devengado ' + n + (n === 1 ? ' comisión' : ' comisiones') +
               ': sus tramos no se tocan, porque cada devengo lleva su importe congelado sobre ellos. ' +
               'Para otro calendario de pago, desactívala y crea una nueva. Tramos actuales: ' +
@@ -8374,23 +8377,19 @@
             var tramos = n ? tramosAct : (getTramos ? getTramos() : []);
             var mal = validaCondicion(v, tramos);
             if (mal) return mal;
-            var patch = {
-              pct_comision: Number(v.pct_comision), base_calculo: v.base_calculo,
-              importe_fijo: v.base_calculo === 'importe_fijo' ? Number(v.importe_fijo) : null,
-              vigente_desde: v.vigente_desde
-            };
-            if (ROLES_EQUIPO_C.indexOf(cond.nivel) !== -1) patch.closer_email = v.closer_email ? v.closer_email.trim().toLowerCase() : null;
-            return sb.from('condiciones_comision').update(patch).eq('id', id).select('id').then(unaFila).then(function (r1) {
-              if (r1.error || n) return r1;
-              /* Sin devengos nadie cita estos tramos: se sustituyen enteros. En
-                 UNA transacción (RPC): el trigger de suma 100 es DEFERRED y por
-                 REST un DELETE suelto moriría al cerrar con los tramos a 0. */
-              return sb.rpc('condicion_tramos_reemplaza', {
-                p_condicion: id,
-                p_tramos: filasTramos(id, tramos).map(function (f) {
-                  return { disparador_tipo: f.disparador_tipo, umbral: f.umbral, pct_tramo: f.pct_tramo };
-                })
-              });
+            /* Cabecera y tramos por el servidor en UNA transacción (26-sep-2026, LAW-336 pieza 6):
+               condicion_comision_guarda decide con la fila guardada (equipo, nivel), no toca los tramos
+               si hay devengos y exige el motivo en ese caso. */
+            return sb.rpc('condicion_comision_guarda', {
+              p_id: id,
+              p_cond: {
+                pct_comision: Number(v.pct_comision), base_calculo: v.base_calculo,
+                importe_fijo: v.base_calculo === 'importe_fijo' ? Number(v.importe_fijo) : null,
+                vigente_desde: v.vigente_desde,
+                closer_email: ROLES_EQUIPO_C.indexOf(cond.nivel) !== -1 ? (v.closer_email ? v.closer_email.trim().toLowerCase() : null) : cond.closer_email
+              },
+              p_tramos: tramosParaServidor(tramos),
+              p_motivo: (v.motivo || '').trim() || null
             });
           });
         });
@@ -8481,13 +8480,15 @@
           /* Freno al dedo gordo, no regla de negocio (la base acepta cualquier %
              entre 0 y 100 a proposito): 0,5 tecleado como 5 multiplica por diez
              la factura de un mes entero y nadie lo nota hasta emitirla. */
+          // por el servidor (LAW-336 pieza 6): autor de la sesión, fecha única, % entre 0 y 100
           var inserta = function () {
-            return sb.from('comision_admin_tarifas').insert({
-              pct: pct,
-              efectivo_desde: v.efectivo_desde,
-              nota: (v.nota || '').trim() || null,
-              creado_por: (aut.session && aut.session.user && aut.session.user.email) || null
-            }).select('id').single();
+            return sb.rpc('comision_admin_tarifa_crea', {
+              p_pct: pct, p_efectivo_desde: v.efectivo_desde, p_nota: (v.nota || '').trim() || null
+            }).then(function (r) {
+              var n = r.data && r.data.lineas_con_tarifa_anterior;
+              if (!r.error && n) aviso(n + ' comisión(es) desde esa fecha se quedan con la tarifa anterior: una tarifa nueva no reescribe lo ya devengado.', '#8A6A34');
+              return r;
+            });
           };
           if (!(pct > 5)) return inserta();
           // `modal()` espera promesa (Promise.resolve de lo que devuelve), así que el
@@ -8544,11 +8545,11 @@
             if (!(imp >= 0)) return { error: { message: 'El importe tiene que ser un número igual o mayor que 0.' } };
             // `creado_por` lo pone la base (default auth.email()): mandarlo null lo rompía.
             // Sin serie_id: la base le da una nueva, así que es un fee aparte.
-            return sb.from('comision_admin_fees').insert({
+            return sb.rpc('comision_admin_fee_guarda', { p_serie: null, p_datos: {   // por el servidor (LAW-336 pieza 6)
               concepto: v.concepto.trim(), beneficiario: (v.beneficiario || '').trim() || null,
               sociedad: v.sociedad, importe: imp, moneda: v.moneda || 'EUR',
               efectivo_desde: v.efectivo_desde, nota: (v.nota || '').trim() || null
-            }).select('id').single();
+            } });
           });
         });
       });
@@ -8573,11 +8574,11 @@
         ], 'Guardar cambio', function (v) {
           var imp = Number(String(v.importe).replace(',', '.'));
           if (!(imp >= 0)) return { error: { message: 'El importe tiene que ser un número igual o mayor que 0.' } };
-          return sb.from('comision_admin_fees').insert({
-            serie_id: f.serie_id, concepto: f.concepto, sociedad: f.sociedad,
+          // la serie la valida el servidor y concepto/sociedad/beneficiario salen de ella, no de la pantalla
+          return sb.rpc('comision_admin_fee_guarda', { p_serie: f.serie_id, p_datos: {
             importe: imp, moneda: v.moneda || f.moneda, efectivo_desde: v.efectivo_desde,
             nota: (v.nota || '').trim() || null
-          }).select('id').single();
+          } });
         });
       };
 
@@ -8640,17 +8641,19 @@
                        ['cobrada', 'Cobrada'], ['exenta', 'Exenta (no se cobra)']] },
           { k: 'nota', label: 'Nota', valor: notaActual,
             ayuda: notaActual ? 'lo que hay escrito lo puso el sistema al detectar un cambio — borrarlo pierde el porque de esta linea' : '' },
+          { k: 'motivo', label: 'Motivo (solo si vuelves a un estado anterior)',
+            ayuda: 'pendiente → facturada → cobrada (o exenta) avanza solo; volver atrás necesita motivo y queda registrado' },
           { k: 'revisar', label: 'Dejar de marcarla para revisar', tipo: 'check',
             ayuda: 'solo la bandera; si el descuadre es real sigue saliendo en el aviso de arriba, que se recalcula desde la base' },
           { tipo: 'nota', label: 'El importe, la base y el % no se tocan desde aqui: los calcula la base sobre el recibi. «Exenta» deja la linea sin cobrar sin anularla — util para una correccion, pero ojo: la tarifa acordada es sobre TODO el dinero que entra, asi que exonerar una linea es salirse de ella.' }
         ], 'Guardar', function (v) {
-          var parche = { estado: v.estado };
-          if ((v.nota || '').trim() !== notaActual.trim()) parche.nota = (v.nota || '').trim() || null;
-          if (v.revisar) parche.revisar = false;
-          /* `.select()` detras del UPDATE: un UPDATE que no toca ninguna fila NO
-             da error en PostgREST, asi que sin esto una sesion sin permiso veria
-             «guardado» y no habria guardado nada. */
-          return sb.from('comision_admin_lineas').update(parche).eq('id', id).select('id,estado').single();
+          // por el servidor (26-sep-2026, LAW-336 pieza 6): el estado solo avanza, volver atrás pide
+          // motivo, y cada cambio queda con quién y cuándo (la fecha de facturación/cobro que cuenta)
+          return sb.rpc('comision_admin_linea_estado', {
+            p_id: id, p_estado: v.estado,
+            p_nota: (v.nota || '').trim() || null, p_toca_nota: (v.nota || '').trim() !== notaActual.trim(),
+            p_quitar_revisar: !!v.revisar, p_motivo: (v.motivo || '').trim() || null
+          });
         });
       };
 
