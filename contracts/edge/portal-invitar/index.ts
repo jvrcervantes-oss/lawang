@@ -54,10 +54,29 @@ Deno.serve(async (req) => {
     const { data: quien, error: eUser } = await admin.auth.getUser(jwt);
     if (eUser || !quien?.user) return json({ error: 'sesion_invalida' }, 401);
     const { data: ficha, error: eFicha } = await admin
-      .from('usuarios').select('rol, activo').eq('user_id', quien.user.id).maybeSingle();
+      .from('usuarios').select('rol, activo, herramientas').eq('user_id', quien.user.id).maybeSingle();
     if (eFicha) return json({ error: 'no_se_pudo_comprobar_permiso' }, 500);
     if (!ficha || !ficha.activo || !['super_admin', 'admin'].includes(ficha.rol))
       return json({ error: 'no_autorizado' }, 403);
+    // 26-sep-2026 (revisión de las edges con service_role): ser admin no basta. El portal
+    // se da desde «Compradores», y desde el 18-ago los admin van limitados por sus
+    // herramientas; esta función se salta la RLS, así que sin esto era la puerta de
+    // servicio para dar acceso a fichas que el admin no tiene ni en su pantalla.
+    if (ficha.rol !== 'super_admin' && !(ficha.herramientas ?? []).includes('compradores'))
+      return json({ error: 'no_autorizado: te falta la herramienta «compradores»' }, 403);
+    // Cliente CON LA SESIÓN de quien llama: lo que puede ver lo decide la RLS de `clients`,
+    // igual que en su pantalla (mismo patrón que send-contract-email, rev. previa #106).
+    const usuario = createClient(URL_SB, ANON, {
+      global: { headers: { Authorization: 'Bearer ' + jwt } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    // true si quien llama ve TODAS esas fichas; nunca se vincula ni se toca lo que no ve
+    const veTodas = async (ids: string[]) => {
+      const unicos = [...new Set(ids)];
+      if (!unicos.length) return true;
+      const { data, error } = await usuario.from('clients').select('id').in('id', unicos);
+      return !error && (data ?? []).length === unicos.length;
+    };
 
     const body = await req.json().catch(() => ({}));
     const accion = String(body.accion ?? '');
@@ -87,6 +106,10 @@ Deno.serve(async (req) => {
       const user = (lista?.users ?? []).find((u) => (u.email ?? '').toLowerCase() === email) ?? null;
       if (!user || !(user.app_metadata as Record<string, unknown> | null)?.portal)
         return json({ error: 'no_es_cuenta_de_portal' }, 400);
+      // Poner contraseña es quedarse con la cuenta: solo sobre un comprador cuyas fichas ves.
+      const { data: acc } = await admin.from('portal_accesos').select('client_id').eq('email', email);
+      if (!(await veTodas((acc ?? []).map((a: { client_id: string }) => a.client_id))))
+        return json({ error: 'ficha_no_visible' }, 403);
       const { error } = await admin.auth.admin.updateUserById(user.id, { password });
       if (error) return json({ error: error.message }, 400);
       return json({ ok: true });
@@ -120,6 +143,7 @@ Deno.serve(async (req) => {
     if (accion === 'invitar') {
       const ids: string[] = Array.isArray(body.client_ids) ? body.client_ids.map(String) : [];
       if (!ids.length) return json({ error: 'sin_fichas' }, 400);
+      if (!(await veTodas(ids))) return json({ error: 'ficha_no_visible' }, 403);
       const filas = ids.map((client_id) => ({
         email, client_id, activo: true, creado_por: quien.user.email ?? null,
       }));

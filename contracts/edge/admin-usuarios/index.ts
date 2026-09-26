@@ -408,10 +408,14 @@ Deno.serve(async (req) => {
       const password = String(body.password ?? '');
       if (!user_id) return json({ error: 'falta_usuario' }, 400);
       if (password.length < 10) return json({ error: 'password_corta' }, 400);
-      // un admin no resetea la contraseña de un super_admin (sería apoderarse
-      // de su cuenta); el super_admin sí puede con cualquiera
+      // Poner la contraseña de otro es quedarse con su cuenta (26-sep-2026, revisión de las
+      // edges con service_role). Solo cuentas del EQUIPO: una cuenta de Auth sin ficha en
+      // `usuarios` (un comprador del portal) no se toca desde aquí — antes `destino` nulo
+      // pasaba. Y un admin solo con las de rango inferior: ni super_admin ni otro admin
+      // (sí la suya propia). El super_admin puede con cualquiera del equipo.
       const { data: destino } = await admin.from('usuarios').select('rol').eq('user_id', user_id).maybeSingle();
-      if (destino && destino.rol === 'super_admin' && !soySuper)
+      if (!destino) return json({ error: 'no_es_cuenta_del_equipo' }, 403);
+      if (!soySuper && user_id !== quien.user.id && ['super_admin', 'admin'].includes(destino.rol))
         return json({ error: 'no_autorizado' }, 403);
       const { error } = await admin.auth.admin.updateUserById(user_id, { password });
       if (error) return json({ error: error.message }, 400);
