@@ -24,6 +24,11 @@
      v4 desde `contracts/assets/nota_cuenta.js`. Si divergen, un contrato en
      inglés imprime la nota en español.
 
+   Desde el 26-sep-2026 (LAW-336 pieza 4) la pantalla ya no escribe: manda cada
+   nivel entero a `reparto_cuentas_guarda` y el servidor lo aplica en una
+   transacción. Lo que queda en el navegador es `nivelReparto`, que decide QUÉ
+   se manda — y eso es lo que se prueba aquí (el servidor, en la migración).
+
    Se extraen las funciones REALES de `intranet/v4/assets/editores.js` y se evalúan
    con un cliente de Supabase de mentira que apunta lo que se le pide. Probar una
    copia no probaría nada. Corre SIN RED y SIN DOM: estas cuatro no tocan ninguno. */
@@ -49,119 +54,61 @@ function extrae(nombre) {
 }
 
 const ctx = {};
-new Function('exports', extrae('verifica') + extrae('enCadena') + extrae('guardaReparto') +
-  'exports.verifica=verifica;exports.enCadena=enCadena;exports.guardaReparto=guardaReparto;')(ctx);
+new Function('exports', extrae('nivelReparto') + 'exports.nivelReparto=nivelReparto;')(ctx);
 
 const win = {};
 new Function('window', NOTA)(win);
 const nota = win.lwNotaCuenta;
-
-/* Cliente de mentira: apunta cada escritura y devuelve las filas que se le digan.
-   `filas: []` es el caso que importa — la RLS denegando en silencio. */
-function clienteFalso(filas) {
-  const log = [];
-  return {
-    log,
-    from(tabla) {
-      const q = { _t: tabla, _f: {}, _op: null, _d: null };
-      q.select = () => q;
-      q.eq = (k, v) => { q._f[k] = v; return q; };
-      q.insert = d => { q._op = 'insert'; q._d = d; return q; };
-      q.update = d => { q._op = 'update'; q._d = d; return q; };
-      q.delete = () => { q._op = 'delete'; return q; };
-      q.then = ok => {
-        log.push({ tabla, op: q._op, filtro: q._f, datos: q._d });
-        return Promise.resolve(ok({ data: filas === undefined ? [{ clave: 'x' }] : filas, error: null }));
-      };
-      return q;
-    }
-  };
-}
-const resumen = l => l.map(x => x.op + ':' + (x.datos && x.datos.clave || x.filtro.clave || '') +
-  (x.op === 'update' ? '(' + JSON.stringify(x.datos) + ')' : '')).join(' ');
 
 (async function () {
   const ANTES = [
     { slug: 'carta_reserva', clave: 'tepi_sungai', es_default: true },
     { slug: 'carta_reserva', clave: 'land_balian', es_default: false }
   ];
+  const nivel = ctx.nivelReparto;
 
-  // 1 — no tocar nada no escribe nada. Un cajón abierto y cerrado con «Guardar»
+  // 1 — no tocar nada no manda nada. Un cajón abierto y cerrado con «Guardar»
   //     no puede dejar rastro en una tabla que decide el destino del dinero.
-  let sb = clienteFalso();
-  assert.strictEqual(await ctx.guardaReparto(sb, 'plantilla_cuentas', { slug: 'carta_reserva' },
-    ANTES, { claves: ['tepi_sungai', 'land_balian'], def: 'tepi_sungai' }), null);
-  assert.strictEqual(sb.log.length, 0, 'escribió sin que cambiara nada: ' + resumen(sb.log));
-  console.log('✓ sin cambios no se escribe nada');
+  assert.strictEqual(nivel({ slug: 'carta_reserva' }, ANTES,
+    { claves: ['land_balian', 'tepi_sungai'], def: 'tepi_sungai' }), null,
+    'el mismo conjunto en otro orden se tomó por un cambio');
+  console.log('✓ sin cambios no se manda nada (el orden no cuenta)');
 
-  // 2 — añadir una y quitar otra: exactamente un insert y un delete
-  sb = clienteFalso();
-  await ctx.guardaReparto(sb, 'plantilla_cuentas', { slug: 'carta_reserva' },
-    ANTES, { claves: ['tepi_sungai', 'notario_ayu'], def: 'tepi_sungai' });
-  assert.strictEqual(sb.log.length, 2, 'escrituras de más o de menos: ' + resumen(sb.log));
-  const del = sb.log.find(x => x.op === 'delete'), ins = sb.log.find(x => x.op === 'insert');
-  assert.strictEqual(del.filtro.clave, 'land_balian');
-  assert.strictEqual(del.filtro.slug, 'carta_reserva', 'el borrado no se acotó a este contrato');
-  assert.strictEqual(ins.datos.clave, 'notario_ayu');
-  assert.strictEqual(ins.datos.slug, 'carta_reserva');
-  console.log('✓ un insert y un delete, y los dos acotados a su contrato');
+  // 2 — se manda el conjunto ENTERO tras el cambio, no el diff: el servidor lo
+  //     aplica en una transacción y no queda un reparto a medias.
+  let n = nivel({ slug: 'carta_reserva' }, ANTES, { claves: ['tepi_sungai', 'notario_ayu'], def: 'tepi_sungai' });
+  assert.deepStrictEqual(n.claves, ['tepi_sungai', 'notario_ayu']);
+  assert.strictEqual(n.slug, 'carta_reserva');
+  assert.strictEqual(n.proyecto_id, undefined, 'la regla general no lleva proyecto');
+  console.log('✓ se manda el conjunto entero del nivel');
 
-  // 3 — cambiar la precargada es UN update. El trigger `un_solo_default_por_plantilla`
-  //     desmarca sola a la anterior: dos sentencias en orden serían una carrera.
-  sb = clienteFalso();
-  await ctx.guardaReparto(sb, 'plantilla_cuentas', { slug: 'carta_reserva' },
-    ANTES, { claves: ['tepi_sungai', 'land_balian'], def: 'land_balian' });
-  assert.strictEqual(sb.log.length, 1, resumen(sb.log));
-  assert.strictEqual(sb.log[0].op, 'update');
-  assert.strictEqual(sb.log[0].datos.es_default, true);
-  assert.strictEqual(sb.log[0].filtro.clave, 'land_balian');
-  console.log('✓ cambiar la precargada es un solo update (lo demás lo hace el trigger)');
+  // 3 — `antes` viaja siempre: con él el servidor para si alguien cambió el
+  //     reparto mientras el cajón estaba abierto, en vez de pisarlo.
+  assert.deepStrictEqual(n.antes, ['tepi_sungai', 'land_balian']);
+  console.log('✓ viaja lo que había, para que el servidor detecte un cambio ajeno');
 
-  // 4 — «ninguna precargada» va explícita y ACOTADA al contrato: no hay trigger
-  //     que desmarque, y sin el `.eq(slug)` dejaría sin precarga a los otros 7.
-  sb = clienteFalso();
-  await ctx.guardaReparto(sb, 'plantilla_cuentas', { slug: 'carta_reserva' },
-    ANTES, { claves: ['tepi_sungai', 'land_balian'], def: null });
-  assert.strictEqual(sb.log.length, 1, resumen(sb.log));
-  assert.strictEqual(sb.log[0].datos.es_default, false);
-  assert.strictEqual(sb.log[0].filtro.slug, 'carta_reserva', 'desmarcó la precarga de TODA la tabla');
-  assert.strictEqual(sb.log[0].filtro.es_default, true);
-  console.log('✓ «ninguna precargada» se acota a su contrato');
+  // 4 — cambiar solo la precargada también es un cambio
+  n = nivel({ slug: 'carta_reserva' }, ANTES, { claves: ['tepi_sungai', 'land_balian'], def: 'land_balian' });
+  assert.ok(n && n.def === 'land_balian', 'cambiar la precargada no se mandó');
+  console.log('✓ cambiar la precargada se manda');
 
-  // 5 — si la precargada se QUITA del reparto, no queda update huérfano: la fila
-  //     ya no existe y el update daría cero filas, que aquí significa «denegado».
-  sb = clienteFalso();
-  await ctx.guardaReparto(sb, 'plantilla_cuentas', { slug: 'carta_reserva' },
-    ANTES, { claves: ['land_balian'], def: null });
-  assert.ok(!sb.log.some(x => x.op === 'update'),
-    'dejó un update contra la fila que acababa de borrar: ' + resumen(sb.log));
-  assert.strictEqual(sb.log.length, 1, resumen(sb.log));
-  console.log('✓ quitar la precargada no deja un update contra una fila borrada');
+  // 5 — «ninguna precargada» es def null explícito, no «sin cambios»
+  n = nivel({ slug: 'carta_reserva' }, ANTES, { claves: ['tepi_sungai', 'land_balian'], def: undefined });
+  assert.ok(n && n.def === null, 'quitar la precarga no se mandó como null');
+  console.log('✓ «ninguna precargada» se manda como null');
 
-  // 6 — el nivel de proyecto lleva DOS columnas en el filtro y en el insert, y
-  //     salen de la misma definición: dos listas a mano acabarían separándose.
-  sb = clienteFalso();
-  await ctx.guardaReparto(sb, 'proyecto_cuentas', { proyecto_id: 'p1', slug: '*' },
-    [], { claves: ['notario_wiryasa'], def: null });
-  assert.strictEqual(sb.log[0].datos.proyecto_id, 'p1');
-  assert.strictEqual(sb.log[0].datos.slug, '*');
-  console.log('✓ la excepción por proyecto escribe proyecto_id y slug');
+  // 6 — el nivel de proyecto lleva proyecto_id y slug de la misma definición
+  n = nivel({ proyecto_id: 'p1', slug: '*' }, [], { claves: ['notario_wiryasa'], def: null });
+  assert.strictEqual(n.proyecto_id, 'p1');
+  assert.strictEqual(n.slug, '*');
+  console.log('✓ la excepción por proyecto lleva proyecto_id y slug');
 
-  // 7 — CERO FILAS SIN ERROR = LA RLS LO PARÓ. Nunca «guardado».
-  sb = clienteFalso([]);
-  const r = await ctx.guardaReparto(sb, 'plantilla_cuentas', { slug: 'carta_reserva' },
-    ANTES, { claves: ['tepi_sungai', 'land_balian', 'notario_ayu'], def: 'tepi_sungai' });
-  assert.ok(r && r.error, 'un insert de CERO filas se dio por bueno');
-  assert.ok(/no tienes permiso/.test(r.error.message), r.error.message);
-  console.log('✓ 0 filas sin error se lee como denegado');
-
-  // 8 — y la cadena se PARA en la primera que falla: no sigue escribiendo detrás
-  //     de una denegación, que dejaría el reparto a medias.
-  sb = clienteFalso([]);
-  await ctx.guardaReparto(sb, 'plantilla_cuentas', { slug: 'carta_reserva' },
-    ANTES, { claves: ['notario_ayu'], def: 'notario_ayu' });
-  assert.strictEqual(sb.log.length, 1, 'siguió escribiendo tras una denegación: ' + resumen(sb.log));
-  console.log('✓ la cadena se para en la primera escritura denegada');
+  // 7 — no comparte el array de la pantalla: mutarlo después no cambia lo enviado
+  const ahora = { claves: ['a1'], def: null };
+  n = nivel({ slug: 's' }, [], ahora);
+  ahora.claves.push('a2');
+  assert.deepStrictEqual(n.claves, ['a1']);
+  console.log('✓ lo enviado es una copia');
 
   // 9 — la nota del contrato: las tres formas que de verdad hay en la base
   assert.strictEqual(nota.aJson({ es: '', en: '', id: '' }), '',

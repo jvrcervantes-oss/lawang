@@ -2133,54 +2133,27 @@
     }, Promise.resolve(null));
   }
 
-  /* El DIFF de un reparto contra lo que hay en la base. `base` son las columnas
-     que identifican el nivel (`{slug}` para plantilla_cuentas, `{proyecto_id,
-     slug}` para proyecto_cuentas) y se reusan tal cual en el filtro y en el
-     insert — una sola definicion, no dos listas a mano que puedan separarse. */
-  function guardaReparto(sb, tabla, base, antes, ahora) {
+  /* Un NIVEL de reparto tal como lo pide el servidor (LAW-336 pieza 4, 26-sep):
+     el conjunto ENTERO de cuentas y la precargada, no una lista de inserts y
+     deletes sueltos — `_reparto_aplica` lo aplica en una transacción, así que
+     un fallo a media cadena ya no deja el reparto a medias. `antes` viaja para
+     que el servidor pare si alguien lo cambió mientras el cajón estaba abierto.
+     `base` es `{slug}` (regla general) o `{proyecto_id, slug}` (excepción).
+     Devuelve null si no cambia nada: abrir y cerrar un cajón no escribe. */
+  function nivelReparto(base, antes, ahora) {
     var antesClaves = antes.map(function (x) { return x.clave; });
     var antesDef = (antes.filter(function (x) { return x.es_default; })[0] || {}).clave || null;
-    var quitar = antesClaves.filter(function (c) { return ahora.claves.indexOf(c) === -1; });
-    var poner = ahora.claves.filter(function (c) { return antesClaves.indexOf(c) === -1; });
-    var filtro = function (qq) {
-      Object.keys(base).forEach(function (k) { qq = qq.eq(k, base[k]); });
-      return qq;
-    };
-    var pasos = [];
-    quitar.forEach(function (c) {
-      pasos.push(function () {
-        return verifica(filtro(sb.from(tabla).delete()).eq('clave', c).select('clave'),
-                        'No se pudo quitar «' + c + '»');
-      });
-    });
-    poner.forEach(function (c) {
-      var fila = { clave: c };
-      Object.keys(base).forEach(function (k) { fila[k] = base[k]; });
-      pasos.push(function () {
-        return verifica(sb.from(tabla).insert(fila).select('clave'), 'No se pudo añadir «' + c + '»');
-      });
-    });
-    if (ahora.def && ahora.def !== antesDef) {
-      /* El trigger (`un_solo_default_por_plantilla` / `..._por_proyecto`)
-         desmarca sola a la anterior: por eso aqui no hay dos sentencias en
-         orden, y por eso la garantia es un trigger y no un indice unico parcial
-         (que no sirve para ON CONFLICT, 42P10). */
-      pasos.push(function () {
-        return verifica(filtro(sb.from(tabla).update({ es_default: true })).eq('clave', ahora.def).select('clave'),
-                        'No se pudo marcar la precargada');
-      });
-    } else if (!ahora.def && antesDef && ahora.claves.indexOf(antesDef) !== -1) {
-      /* «Ninguna precargada» va explicita y acotada a este nivel: no hay trigger
-         que desmarque —el trigger solo garantiza que no haya dos—. Si la que
-         estaba precargada se ha QUITADO del reparto, ya no hay fila que
-         desmarcar y este paso sobra (de ahi el tercer condicional). */
-      pasos.push(function () {
-        return verifica(filtro(sb.from(tabla).update({ es_default: false })).eq('es_default', true).select('clave'),
-                        'No se pudo quitar la precarga');
-      });
-    }
-    if (!pasos.length) return Promise.resolve(null);
-    return enCadena(pasos);
+    var def = ahora.def || null;
+    var mismas = antesClaves.length === ahora.claves.length &&
+      ahora.claves.every(function (c) { return antesClaves.indexOf(c) !== -1; });
+    if (mismas && def === antesDef) return null;
+    var n = { slug: base.slug, claves: ahora.claves.slice(), def: def, antes: antesClaves };
+    if (base.proyecto_id) n.proyecto_id = base.proyecto_id;
+    return n;
+  }
+  // `{data, error}` de una RPC → lo que espera `modal`: null si fue bien
+  function trasRpc(r) {
+    return (r && r.error) ? { error: { message: r.error.message } } : null;
   }
 
   /* El mismo reparto visto DESDE LA CUENTA: aqui lo fijo es la cuenta y lo que
@@ -2189,8 +2162,8 @@
      que se toque esto, y ademas aqui «precargada» es una casilla y no un radio
      (cada contrato tiene la suya, no compiten entre si).
 
-     Devuelve SOLO los contratos en los que algo cambia, ya en la forma que
-     `guardaReparto` espera. */
+     Devuelve SOLO los contratos en los que algo cambia, como `{slug, antes,
+     ahora}` — lo que `nivelReparto` convierte en el nivel que va al servidor. */
   function montaRepartoPorCuenta(host, d, clave) {
     var filasDe = function (slug) { return d.reparto.filter(function (x) { return x.slug === slug; }); };
     /* Los que cobran y se siguen ofreciendo, mas cualquiera donde esta cuenta ya
@@ -3875,13 +3848,17 @@
                puesta de cuando tenía contrato haría que la policy no mirase si el cliente es visible.
                Solo con la bandera: en Lawang la columna no existe. */
             if (sinContrato && window.AXW_NUCLEO_OPERACION) payload.operacion_id = null;
-            var q = existente
-              ? sb.from('facturas').update(payload).eq('id', existente.id).select('id,numero').single()
-              : sb.from('facturas').insert(payload).select('id,numero').single();
+            /* Por el servidor (frontera frontend/backend, 26-sep-2026, LAW-336): la RPC
+               comprueba el permiso (y que el contrato sea visible), RECALCULA el total desde
+               las líneas y rechaza si no coincide con el que se ve aquí. `total` viaja solo
+               para esa comparación. */
+            var q = sb.rpc('factura_guarda', { p_id: existente ? existente.id : null, p_factura: payload });
             return q.then(function (res) {
               if (res.error) return { error: res.error };
-              toast((existente ? 'Actualizada como ' : 'Guardada como ') + res.data.numero);
-              abreDocumentoViewerDoc(res.data.id, function () { location.reload(); });
+              var fila = Array.isArray(res.data) ? res.data[0] : res.data;
+              if (!fila || !fila.id) return { error: { message: 'El servidor no ha devuelto el documento guardado.' } };
+              toast((existente ? 'Actualizada como ' : 'Guardada como ') + fila.numero);
+              abreDocumentoViewerDoc(fila.id, function () { location.reload(); });
               return {};
             });
           /* `ancho:'100vw'` (22-sep-2026, owner): el editor de factura ocupa la
@@ -4996,7 +4973,8 @@
             if (cambia && !v.motivo.trim()) return { error: { message: 'para cambiar el importe escribe el motivo' } };
             var fila = { importe: importe, vence_el: v.vence_el || null, nota: v.nota.trim() || null };
             if (cambia) fila.motivo_ajuste = v.motivo.trim();
-            return sb.from('solicitudes_pago').update(fila).eq('id', x.id).select('id').then(unaFila);
+            // Por el servidor (frontera frontend/backend, 26-sep-2026): la RPC valida y el trigger decide.
+            return sb.rpc('solicitud_pago_guarda', { p_id: x.id, p_datos: fila }).then(function (r) { return r.error ? { error: r.error } : {}; });
           });
           return;
         }
@@ -5028,19 +5006,23 @@
             };
             if (ajena && cambiaImporte) fila.motivo_ajuste = v.motivo.trim();
             return (existente
-              ? sb.from('solicitudes_pago').update(fila).eq('id', existente.id)
-              : sb.from('solicitudes_pago').insert(fila)
-            ).select('id').then(unaFila);
+              ? sb.rpc('solicitud_pago_guarda', { p_id: existente.id, p_datos: fila })
+              : sb.rpc('solicitud_pago_guarda', { p_id: null, p_datos: fila })
+            ).then(function (r) { return r.error ? { error: r.error } : {}; });
           });
         });
       };
 
       /* ---------- aprobar / rechazar / anular / marcar pagada ----------
-         Cada una es un UPDATE directo de estado; el trigger decide si cuaja.
-         `.select('id')` + unaFila: la policy filtra sin dar error, 0 filas
-         seria un «guardado» mentiroso sobre nada. */
+         Por el servidor desde el 26-sep-2026 (frontera frontend/backend): la RPC
+         exige el permiso y el trigger de transicion decide si el paso cuaja; si no,
+         da error — ya no hay «0 filas» silenciosas que contar aqui. */
       function resolverSolicitud(x, cambio) {
-        return sb.from('solicitudes_pago').update(cambio).eq('id', x.id).select('id').then(unaFila);
+        return sb.rpc('solicitud_pago_resuelve', {
+          p_id: x.id, p_estado: cambio.estado,
+          p_motivo: cambio.motivo_rechazo || cambio.motivo_ajuste || null,
+          p_referencia: cambio.pago_referencia || null
+        }).then(function (r) { return r.error ? { error: r.error } : {}; });
       }
       window.LW_V4.aprobarSolicitud = function (x) {
         modal('Aprobar SP-' + x.numero, [
@@ -6918,7 +6900,8 @@
             { k: 'fecha', label: 'Fecha', tipo: 'date', ayuda: 'Vacía = vuelve a «Sin fecha».' },
             { tipo: 'nota', label: 'Solo contratos firmados y hitos aún sin facturar (uno facturado se corrige anulando y reemitiendo desde Facturas). El importe y la nota no se editan por pantalla (decisión del 15-sep-2026, igual que en la herramienta clásica).' }
           ], 'Guardar ajuste', function (v) {
-            return sb.from('contrato_vencimientos').update({ fecha: v.fecha || null, ajustado: true }).eq('id', v.id).select('id').then(unaFila);
+            // El servidor exige contrato firmado e hito sin facturar (antes solo lo filtraba esta pantalla).
+            return sb.rpc('vencimiento_ajusta_fecha', { p_id: v.id, p_fecha: v.fecha || null }).then(function (r) { return r.error ? { error: r.error } : {}; });
           });
         });
       });
@@ -8808,24 +8791,19 @@
         }
 
         modal(p.nombre || slug, campos, 'Guardar', function (v) {
-          var pasos = [];
-          if (!!v.archivada !== !!p.archivada) {
-            pasos.push(function () {
-              return verifica(sb.from('plantillas_contrato').update({ archivada: !!v.archivada })
-                .eq('slug', slug).select('slug'), 'No se pudo cambiar el archivado');
-            });
-          }
-          if (p.cobra && lee) {
-            var ahora = lee();
-            pasos.push(function () { return guardaReparto(sb, 'plantilla_cuentas', { slug: slug }, filas, ahora); });
-          }
-          /* `recarga()` va en las DOS ramas. Si solo fuera en la buena, tras un
-             fallo a media cadena el cajon seguiria diffeando contra los datos de
-             antes, y el segundo intento borraria una fila ya borrada — cero filas,
-             que se leeria como «no tienes permiso». */
-          return enCadena(pasos).then(function (r) {
+          /* Archivado y reparto van en UNA llamada y una transacción
+             (`plantilla_contrato_guarda`): el servidor solo deja tocar `archivada`
+             de la plantilla, y comprueba super_admin él mismo. */
+          var archivar = (!!v.archivada !== !!p.archivada) ? !!v.archivada : null;
+          var nivel = (p.cobra && lee) ? nivelReparto({ slug: slug }, filas, lee()) : null;
+          if (archivar === null && !nivel) return null;
+          /* `recarga()` va en las DOS ramas: tras un fallo el cajon tiene que
+             volver a leer lo que hay, no seguir con los datos de antes. */
+          return Promise.resolve(sb.rpc('plantilla_contrato_guarda', {
+            p_slug: slug, p_archivada: archivar, p_reparto: nivel ? [nivel] : null
+          })).then(function (r) {
             recarga();
-            return (r && r.error) ? r : null;
+            return trasRpc(r);
           });
         }, { sub: 'Reparto por contrato', encabezado: encabezado, sinRecarga: true });
       };
@@ -8905,13 +8883,14 @@
 
           return Promise.resolve(previo).then(function (sigo) {
             if (!sigo) return { error: { message: 'Cancelado: no se ha guardado nada. Una cuenta de escrow en «cualquier contrato» hay que confirmarla.' } };
-            return enCadena(estados.map(function (e) {
-              return function () {
-                return guardaReparto(sb, 'proyecto_cuentas', { proyecto_id: id, slug: e.slug }, e.antes, e.ahora);
-              };
-            })).then(function (r) {
+            var niveles = estados.map(function (e) {
+              return nivelReparto({ proyecto_id: id, slug: e.slug }, e.antes, e.ahora);
+            }).filter(Boolean);
+            if (!niveles.length) return null;
+            // todos los bloques en una transacción: o se guardan todos o ninguno
+            return Promise.resolve(sb.rpc('reparto_cuentas_guarda', { p_niveles: niveles })).then(function (r) {
               recarga();                     // en las dos ramas: ver la nota de «por contrato»
-              return (r && r.error) ? r : null;
+              return trasRpc(r);
             });
           });
         }, { sub: 'Excepción por proyecto', sinRecarga: true });
@@ -8953,6 +8932,20 @@
 
         modal(c.label || clave, [
           { k: 'label', label: 'Etiqueta (la que se ve en el desplegable)', valor: c.label, req: 1 },
+        ].concat(c.verificada_en ? [
+          /* LAW-342: activada alguna vez = sus datos bancarios ya no cambian (lo
+             impone el trigger de la base); aquí solo se enseñan */
+          { tipo: 'lectura', label: 'Titular', valor: c.titular, medio: 1 },
+          { tipo: 'lectura', label: 'Banco', valor: c.banco, medio: 1 },
+          { tipo: 'lectura', label: 'Número de cuenta', valor: c.cuenta, medio: 1 },
+          { tipo: 'lectura', label: 'Código Swift / Routing', valor: c.codigo, medio: 1 },
+          { tipo: 'lectura', label: 'Domicilio del banco', valor: c.direccion },
+          { tipo: 'lectura', label: 'Nota que se imprime — ES', valor: nota.es },
+          { tipo: 'lectura', label: 'Nota — EN', valor: nota.en, medio: 1 },
+          { tipo: 'lectura', label: 'Nota — ID', valor: nota.id, medio: 1 },
+          { tipo: 'lectura', label: 'Cuenta ESCROW (depósito en garantía)', valor: c.es_escrow ? 'Sí' : 'No' },
+          { tipo: 'nota', label: 'Esta cuenta ya se ha usado: lo que imprime el contrato (titular, banco, número, Swift, domicilio, nota y ESCROW) no se cambia, porque los contratos firmados la reimprimen. Para cambiar algo de eso, crea una cuenta nueva y cámbiala en el reparto.' }
+        ] : [
           { k: 'titular', label: 'Titular', valor: c.titular, medio: 1 },
           { k: 'banco', label: 'Banco', valor: c.banco, medio: 1 },
           { k: 'cuenta', label: 'Número de cuenta', valor: c.cuenta, medio: 1 },
@@ -8963,39 +8956,36 @@
           { k: 'nota_id', tipo: 'textarea', valor: nota.id, label: 'Nota — ID', medio: 1 },
           { tipo: 'nota', label: 'Si solo rellenas ES, se imprime ese texto en los tres idiomas. En cuanto pongas EN o ID, cada idioma imprime el suyo.' },
           { k: 'es_escrow', tipo: 'check', valor: c.es_escrow, label: 'Es una cuenta ESCROW (depósito en garantía)',
-            ayuda: 'Añade o quita sola en el contrato la fila «Naturaleza de la cuenta — depósito en garantía». Va en los DOS sentidos y alcanza a lo ya emitido: al reimprimir un contrato firmado con esta cuenta, marcarla le mete una cláusula que no pactó y desmarcarla le quita una que sí pactó. Tócala solo si está mal puesta.' },
+            ayuda: 'Añade sola en el contrato la fila «Naturaleza de la cuenta — depósito en garantía». En cuanto la cuenta se active ya no se puede cambiar.' }
+        ]).concat([
           { k: 'es_propia', tipo: 'select', valor: c.es_propia === true ? 'si' : c.es_propia === false ? 'no' : '', label: '¿De quién es esta cuenta?',
             opciones: [['', 'Sin marcar'], ['si', 'De la sociedad (caja propia)'], ['no', 'De un tercero (contratista, vendedor de suelo, notario)']],
             ayuda: 'Finanzas solo cuenta como caja de la sociedad lo que entra en las cuentas propias; lo que el cliente paga a un tercero sale aparte. Un gasto solo se puede pagar desde una cuenta propia. Una cuenta escrow es siempre de un tercero.' },
           { k: 'activa', tipo: 'check', valor: c.activa, label: 'Activa',
             ayuda: '⚠️ Desactivarla la retira de todos los desplegables, y además los contratos y facturas ya emitidos con ella salen SIN el bloque de datos bancarios al reabrirlos o reimprimirlos, sin ningún aviso (verificado el 18-sep: entities.js carga solo las activas y la tabla se omite entera si falta la clave). La fila no se borra y reactivarla lo devuelve todo. Si la cuenta está en documentos emitidos, déjala activa y quítala del reparto.' },
           { tipo: 'custom', render: function (host) { leeRep = montaRepartoPorCuenta(host, d, clave); } }
-        ], 'Guardar cambios', function (v) {
-          /* `clave` NO va en el update, a proposito. Y cada escritura pasa por
-             `verifica`: un UPDATE que la RLS deja en cero filas no devuelve error. */
-          var pasos = [function () {
-            return verifica(sb.from('cuentas_bancarias').update({
-              label: v.label, titular: v.titular, banco: v.banco, cuenta: v.cuenta,
-              codigo: v.codigo, direccion: v.direccion,
+        ]), 'Guardar cambios', function (v) {
+          /* La cuenta y su reparto en UNA llamada y una transacción
+             (`cuenta_bancaria_guarda`). `clave` no se cambia nunca: el servidor
+             la usa solo para encontrar la fila. */
+          var niveles = leeRep ? leeRep().map(function (cambio) {
+            return nivelReparto({ slug: cambio.slug }, cambio.antes, cambio.ahora);
+          }).filter(Boolean) : [];
+          return Promise.resolve(sb.rpc('cuenta_bancaria_guarda', {
+            p_clave: clave, p_nueva: false,
+            // LAW-342: lo que imprime el contrato solo viaja si la cuenta nunca se activó
+            p_datos: Object.assign(c.verificada_en ? {} : {
+              titular: v.titular, banco: v.banco, cuenta: v.cuenta, codigo: v.codigo, direccion: v.direccion,
               extra: lwNotaCuenta.aJson({ es: v.nota_es, en: v.nota_en, id: v.nota_id }),
-              es_escrow: !!v.es_escrow, activa: !!v.activa,
+              es_escrow: !!v.es_escrow
+            }, {
+              label: v.label, activa: !!v.activa,
               es_propia: v.es_propia === 'si' ? true : v.es_propia === 'no' ? false : null
-            }).eq('clave', clave).select('clave'), 'No se pudo guardar la cuenta');
-          }];
-          if (leeRep) {
-            leeRep().forEach(function (cambio) {
-              pasos.push(function () {
-                return guardaReparto(sb, 'plantilla_cuentas', { slug: cambio.slug }, cambio.antes, cambio.ahora);
-              });
-            });
-          }
-          /* `recarga()` va en las DOS ramas. Si solo fuera en la buena, tras un
-             fallo a media cadena el cajon seguiria diffeando contra los datos de
-             antes, y el segundo intento borraria una fila ya borrada — cero filas,
-             que se leeria como «no tienes permiso». */
-          return enCadena(pasos).then(function (r) {
-            recarga();
-            return (r && r.error) ? r : null;
+            }),
+            p_reparto: niveles.length ? niveles : null
+          })).then(function (r) {
+            recarga();                     // en las dos ramas: ver la nota de «por contrato»
+            return trasRpc(r);
           });
         }, { sub: 'Cuenta de cobro', encabezado: encabezado, sinRecarga: true });
       };
@@ -9006,13 +8996,12 @@
          que alguien haya comprobado el numero con el justificante delante. */
       var btn = ata(/^\+? ?Nueva cuenta$/i, function () {
         if (!superAdmin) return soloSuper();
-        // claves existentes + siguiente `orden`: hace falta antes de abrir el
-        // formulario para validar unicidad sin ir y volver a la base al guardar.
-        sb.from('cuentas_bancarias').select('clave,orden').then(function (r) {
+        // claves existentes: para avisar de una repetida antes de mandar (el
+        // servidor lo vuelve a comprobar; el `orden` lo pone él).
+        sb.from('cuentas_bancarias').select('clave').then(function (r) {
           var existentes = (r && r.data) || [];
           var claves = {};
           existentes.forEach(function (c) { claves[c.clave] = 1; });
-          var siguienteOrden = existentes.reduce(function (m, c) { return Math.max(m, c.orden || 0); }, 0) + 10;
           modal('Nueva cuenta de cobro', [
             { k: 'clave', label: 'Clave interna (no se puede cambiar después)', req: 1,
               ayuda: 'minúsculas, números y guión bajo — por ejemplo «notario_ayu_bali». Queda dentro de cada contrato y factura que se emitan con esta cuenta, así que no se renombra nunca.' },
@@ -9032,18 +9021,19 @@
               return { error: { message: 'La clave va en minúsculas, números y guión bajo, mínimo 3 caracteres. Sin espacios ni acentos.' } };
             }
             if (claves[clave]) return { error: { message: 'Ya existe una cuenta con la clave «' + clave + '».' } };
-            /* `.select().single()` detrás del insert a propósito, igual que en
-               /intranet/cuentas/: la policy de SELECT de cuentas_bancarias es
-               para cualquier sesión, así que no hay riesgo de que esto
-               confunda un insert bueno con uno rechazado por RLS. */
-            return sb.from('cuentas_bancarias').insert({
-              clave: clave, label: v.label.trim(),
-              titular: v.titular.trim(), banco: v.banco.trim(), cuenta: v.cuenta.trim(),
-              codigo: v.codigo.trim(), direccion: v.direccion.trim(), extra: '',
-              es_escrow: !!v.es_escrow, activa: false, orden: siguienteOrden,
-              es_propia: v.es_propia === 'si' ? true : v.es_propia === 'no' ? false : null
-            }).select('clave').single().then(function (rr) {
-              if (rr && rr.error) return rr;
+            /* Por el servidor (`cuenta_bancaria_guarda`): él vuelve a validar la
+               clave, la hace nacer DESACTIVADA y le pone el `orden` al final —
+               lo que diga esta pantalla de eso no cuenta. */
+            return Promise.resolve(sb.rpc('cuenta_bancaria_guarda', {
+              p_clave: clave, p_nueva: true,
+              p_datos: {
+                label: v.label.trim(), titular: v.titular.trim(), banco: v.banco.trim(), cuenta: v.cuenta.trim(),
+                codigo: v.codigo.trim(), direccion: v.direccion.trim(), extra: '',
+                es_escrow: !!v.es_escrow,
+                es_propia: v.es_propia === 'si' ? true : v.es_propia === 'no' ? false : null
+              }
+            })).then(function (rr) {
+              if (rr && rr.error) return trasRpc(rr);
               recarga();
               return null;
             });
@@ -9432,7 +9422,9 @@
           if (fila.error) return fila;
 
           function guarda() {
-            return sb.from('sociedades').update(fila).eq('clave', s.clave).select('clave').single();
+            // por el servidor (`sociedad_guarda`): la allowlist de columnas y el
+            // permiso de super_admin los comprueba él
+            return Promise.resolve(sb.rpc('sociedad_guarda', { p_clave: s.clave, p_datos: fila, p_nueva: false })).then(trasRpc);
           }
 
           // Desactivar una sociedad YA EXISTENTE (nunca aplica en el alta):
@@ -9519,8 +9511,8 @@
             { k: 'orden', label: 'Orden', tipo: 'number', medio: 1, valor: maxOrden + 1 }
           ], 'Dar de alta', function (v) {
             var clave = (v.clave || '').toLowerCase();
-            if (!/^[a-z0-9_]+$/.test(clave)) {
-              return { error: { message: 'La clave solo admite minúsculas, números y guion bajo, sin espacios — por ejemplo mi_empresa_sa. No se puede cambiar después.' } };
+            if (!/^[a-z][a-z0-9_]{2,}$/.test(clave)) {   // la misma regla que sociedad_guarda
+              return { error: { message: 'La clave solo admite minúsculas, números y guion bajo, empieza por letra y tiene al menos 3 caracteres — por ejemplo mi_empresa_sa. No se puede cambiar después.' } };
             }
             if (socs[clave]) return { error: { message: 'Ya existe una sociedad con esa clave.' } };
             if (v.es_indonesia && !(v.npwp || '').trim() && !v.npwp_pendiente) {
@@ -9531,9 +9523,8 @@
             }
             var fila = payloadDesdeForm(v);
             if (fila.error) return fila;
-            fila.clave = clave;
-            fila.activa = true;   // nace activa siempre; desactivarla es un paso aparte, ya existiendo
-            return sb.from('sociedades').insert(fila).select('clave').single();
+            // nace activa siempre (lo impone el servidor); desactivarla es un paso aparte, ya existiendo
+            return Promise.resolve(sb.rpc('sociedad_guarda', { p_clave: clave, p_datos: fila, p_nueva: true })).then(trasRpc);
           });
         });
       }

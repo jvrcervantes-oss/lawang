@@ -422,11 +422,13 @@ async function guardar(ev){
       return;
     }
     if(SOCS.some(s => s.clave === clave)){ toastMal(lwT('Ya existe una sociedad con esa clave.')); return; }
-    r = await sb.from('sociedades').insert({ ...fila, clave }).select('clave').single();
+    // por el servidor (`sociedad_guarda`, LAW-336 pieza 4): permiso, allowlist de
+    // columnas y clave los comprueba él; la sociedad nace activa
+    r = await sb.rpc('sociedad_guarda', { p_clave: clave, p_datos: fila, p_nueva: true });
     if(!r.error) SEL = clave;
   }else{
-    // `clave` NO viaja en el UPDATE: no está en el GRANT y un trigger lanza.
-    r = await sb.from('sociedades').update(fila).eq('clave', SEL).select('clave').single();
+    // `clave` no se cambia nunca: el servidor solo la usa para encontrar la fila
+    r = await sb.rpc('sociedad_guarda', { p_clave: SEL, p_datos: fila, p_nueva: false });
   }
 
   if(r.error){ toastMal(lwT('No se pudo guardar: ') + r.error.message); return; }

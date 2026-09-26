@@ -371,8 +371,10 @@ function abrir(id){
 }
 
 async function resolver(x, estado, extra){
-  const cambio = Object.assign({ estado }, extra || {});
-  const { error } = await SB.from('solicitudes_pago').update(cambio).eq('id', x.id);
+  // Por el servidor (26-sep-2026): la RPC exige el permiso y el trigger decide el paso.
+  const { error } = await SB.rpc('solicitud_pago_resuelve', { p_id: x.id, p_estado: estado,
+    p_motivo: (extra && (extra.motivo_rechazo || extra.motivo_ajuste)) || null,
+    p_referencia: (extra && extra.pago_referencia) || null });
   if(error){ toastMal(lwT('No se pudo: ') + error.message); return; }
   await cargar();
   /* Frases ENTERAS por estado, no «Solicitud » + la etiqueta en minuscula: eso
@@ -506,8 +508,8 @@ function formulario(existente){
     };
     const btn = $('#btnGuardar'); btn.disabled = true;
     const { error } = existente
-      ? await SB.from('solicitudes_pago').update(fila).eq('id', existente.id)
-      : await SB.from('solicitudes_pago').insert(fila);
+      ? await SB.rpc('solicitud_pago_guarda', { p_id: existente.id, p_datos: fila })
+      : await SB.rpc('solicitud_pago_guarda', { p_id: null, p_datos: fila });
     if(error){ toastMal(lwT('No se pudo guardar: ') + error.message); btn.disabled = false; return; }
     await cargar();
     toast(lwT(existente ? 'Solicitud actualizada' : 'Solicitud creada — Administración ya tiene el aviso'));
