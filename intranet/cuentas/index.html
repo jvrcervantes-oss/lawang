@@ -464,7 +464,7 @@ function pintarFichaProyecto(){
 
   if(PUEDO_ESCRIBIR){
     $('#ficha').querySelectorAll('[data-pslug]').forEach(el => {
-      el.addEventListener('change', () => cambiarExcepcion(el, p.id));
+      el.addEventListener('change', () => enCola(() => cambiarExcepcion(el, p.id)));
     });
   }
 }
@@ -485,6 +485,17 @@ async function guardaNivel(proyectoId, slug, cambia){
   const nivel = { slug: slug, claves: n.claves, def: n.def || null, antes: antes };
   if(proyectoId) nivel.proyecto_id = proyectoId;
   return SB.rpc('reparto_cuentas_guarda', { p_niveles: [nivel] });
+}
+/* Las casillas guardan al momento, y cada guardado manda el `antes` que leyó
+   el último `cargar()`. Dos clics seguidos sin cola mandarían el segundo con un
+   `antes` viejo y el servidor lo pararía culpando a «alguien» que no existe
+   (consulta de deploy de Desarrollo, 26-sep). En cola, cada cambio espera a que
+   el anterior haya guardado y recargado. */
+let COLA = Promise.resolve();
+function enCola(fn){
+  const p = COLA.then(fn, fn);
+  COLA = p.catch(() => {});
+  return p;
 }
 const conClave  = clave => (cl, def) => ({ claves: cl.includes(clave) ? cl : cl.concat([clave]), def: def });
 const sinClave  = clave => (cl, def) => ({ claves: cl.filter(x => x !== clave), def: def === clave ? null : def });
@@ -622,7 +633,7 @@ function pintarFichaContrato(){
 
   if(PUEDO_ESCRIBIR){
     $('#ficha').querySelectorAll('[data-que]').forEach(el => {
-      el.addEventListener('change', () => cambiarRepartoContrato(el, p.slug));
+      el.addEventListener('change', () => enCola(() => cambiarRepartoContrato(el, p.slug)));
     });
     const arch = $('#fArchivada');
     if(arch) arch.addEventListener('change', () => archivarPlantilla(p, arch));
@@ -694,7 +705,7 @@ function pintarFichaCuenta(){
     const g = $('#btnGuardar');
     if(g) g.addEventListener('click', () => guardarCuenta(c.clave));
     $('#ficha').querySelectorAll('[data-slug]').forEach(el => {
-      el.addEventListener('change', () => cambiarReparto(el, c.clave));
+      el.addEventListener('change', () => enCola(() => cambiarReparto(el, c.clave)));
     });
   }
 }
