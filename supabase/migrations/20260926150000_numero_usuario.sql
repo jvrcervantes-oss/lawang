@@ -9,9 +9,11 @@
 --   3. Cambiarlo no da error, se ignora (BEFORE UPDATE OF numero_usuario, new := old): el editor de permisos
 --      manda `update(patch)` genérico; un `raise` le haría fallar el guardado.
 --   4. La secuencia no es de nadie más (revoke), el trigger es SECURITY DEFINER.
---   5. ⚠️ `usuarios` NO tiene grants de tabla para authenticated: los tiene POR COLUMNA (12). Una columna nueva
---      nace sin permiso de lectura y pedirla en el select tumbaría el listado entero. Se da SOLO select:
---      insert/update no hacen falta (lo escribe la base).
+--   5. El `grant select` de abajo SOBRA y es inofensivo: se escribió creyendo que `usuarios` solo tenía grants por
+--      columna, pero information_schema.column_privileges también lista los de tabla expandidos. Verificado después
+--      en relacl: authenticated=arwdDxtm a nivel de TABLA (Seguridad, consulta de deploy 26-sep). Para saber si una
+--      tabla tiene grant de tabla se mira `pg_class.relacl`, no column_privileges. Que authenticated pueda hacer
+--      UPDATE de la columna no importa: el trigger del punto 3 conserva el valor.
 --   6. No choca con `usuarios_candado_rol_herramientas`: el relleno no toca rol ni herramientas.
 -- Avisos aceptados: un alta que falla gasta un número (huecos). El orden del relleno es el de alta en la suite
 -- (creado_en, desempate por user_id). Un usuario borrado y vuelto a dar de alta recibe número nuevo.
