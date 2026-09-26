@@ -645,12 +645,20 @@
       '.lwc-sec{counter-increment:lwc;display:grid;gap:16px;min-width:0;padding:24px}',
       '.lwc-sec > h4{display:flex;align-items:center;gap:10px;margin:0;padding-bottom:12px;border-bottom:1px solid #f5f5f4;font:700 15px/1.3 Jost,system-ui,sans-serif;letter-spacing:.025em;text-transform:uppercase;color:var(--las-lago)}',
       '.lwc-sec > h4::before{content:counter(lwc,decimal-leading-zero);width:24px;height:24px;flex:none;border-radius:6px;background:#EEF3F0;color:var(--las-lago);display:grid;place-items:center;font:700 12px ui-monospace,Consolas,monospace;letter-spacing:0}',
-      '.lwc-sec > div{display:grid;grid-template-columns:1fr 1fr;gap:16px 24px;min-width:0;align-content:start}',
+      /* Dos columnas SOLO si caben (26-sep-2026, owner: «el cajón no comprime bien
+         el texto cuando comprimo la resolución»). Con `1fr 1fr` fijo, al estrechar
+         la ventana cada columna bajaba de 200px y un email se partía a mitad de
+         palabra; ahora pasa a una sola columna cuando no caben dos de 210px. */
+      '.lwc-sec > div{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(210px,100%),1fr));gap:16px 24px;min-width:0;align-content:start}',
       '.lwc-sec > div > :not(.lwc-dato){grid-column:1/-1}',
       '.lwc-dato{min-width:0}',
       '.lwc-dos{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px 24px}',
       '.lwc-dato .las-etq{margin-bottom:4px;font-weight:600;color:#a8a29e}',
-      '.lwc-val{display:block;font-size:15px;font-weight:500;line-height:1.4;color:var(--las-tinta);overflow-wrap:anywhere}',
+      // break-word y no anywhere: parte una palabra solo si no cabe en la línea, y no deja que la columna se encoja hasta partirla
+      '.lwc-val{display:block;font-size:15px;font-weight:500;line-height:1.4;color:var(--las-tinta);overflow-wrap:break-word}',
+      '.lwc-sec > h4 .lwc-h4-accion{margin-left:auto;padding:6px 16px;border:1px solid var(--las-borde);background:#fff;color:var(--las-lago);font:500 13px Jost,system-ui,sans-serif;letter-spacing:0;text-transform:none;cursor:pointer}',
+      '.lwc-sec > h4 .lwc-h4-accion:hover{background:#F2F8F8}',
+      '.lwc-sec > h4 .lwc-h4-accion[aria-expanded="true"]{background:#F2F8F8;border-color:#CFE3E3}',
       '.lwc-val .lwc-apagado{color:#a8a29e}',
       '.lwc-tag{display:inline-block;white-space:nowrap;padding:2px 10px;border-radius:9999px;font-size:12px;font-weight:500;line-height:1.5}',
       '.lwc-tag::first-letter{text-transform:uppercase}',

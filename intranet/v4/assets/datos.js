@@ -2711,7 +2711,10 @@
               return '<option value="' + esc(u.email) + '"' + (String(c2.propietario || '').toLowerCase() === String(u.email).toLowerCase() ? ' selected' : '') + '>' + esc(u.nombre || u.email) + '</option>';
             }).join('');
             var idSel = 'lwtr-' + esc(c2.id);
-            var controles = '<div style="display:grid;gap:10px">' +
+            /* Plegado hasta pulsar «Traspasar» en la cabecera de la sección
+               (26-sep-2026, owner: «mientras tanto molesta»). Envoltorio SIN
+               estilo: el `display:grid` en línea de dentro anularía `hidden`. */
+            var controles = '<div data-tr-panel hidden><div style="display:grid;gap:10px">' +
               '<div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">' +
               '<div class="las-campo" style="flex:1;min-width:180px"><label class="las-etq" for="' + idSel + '">Pasar la ficha a</label>' +
               '<div class="las-rel"><select id="' + idSel + '" data-tr-sel class="las-in">' + opciones + '</select></div></div>' +
@@ -2725,7 +2728,7 @@
                 '<div data-tr-caja hidden><div class="las-campo"><label class="las-etq" for="' + idSel + '-m">Motivo</label>' +
                 '<input type="text" id="' + idSel + '-m" data-tr-motivo maxlength="180" class="las-in" placeholder="Ej. Ana deja el equipo, sus clientes pasan a Carmen"></div></div>';
             }
-            controles += '<p style="margin:0;font-size:11.5px;color:#a8a29e">Quien la reciba podrá editarla. Contratos y facturas no se mueven sin la casilla.</p></div>';
+            controles += '<p style="margin:0;font-size:11.5px;color:#a8a29e">Quien la reciba podrá editarla. Contratos y facturas no se mueven sin la casilla.</p></div></div>';
             return base + controles;
           }
           var contratos = vins.length
@@ -2743,7 +2746,7 @@
             : H.nota('Ninguno enlazado todavía. El enlace se crea solo al guardar un contrato con su pasaporte o su email.');
           var cuerpo =
             H.seccion('Identidad', identidad) +
-            H.seccion('Responsable de la ficha', seccionResponsable()) +
+            H.seccion('Responsable de la ficha', seccionResponsable(), 'responsable') +
             H.seccion('Contratos (' + vins.length + ')', contratos, 'contratos') +
             H.seccion('Estado de cuentas', seccionEstadoCuentas(vins, H), 'cuentas') +
             H.seccion('Facturas', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'facturas') +
@@ -2838,6 +2841,26 @@
           /* Traspaso: wiring de los controles que seccionResponsable() acaba de
              pintar (viven en el cuerpo del cajon ya montado). */
           var bTr = cj.cuerpo.querySelector('[data-tr-btn]');
+          /* Botón «Traspasar» a la derecha del título de la sección: solo existe
+             si seccionResponsable() pintó los controles, que es solo para admin y
+             super_admin (la puerta real es la RPC de traspaso en la base). */
+          var panelTr = cj.cuerpo.querySelector('[data-tr-panel]');
+          var h4Tr = cj.cuerpo.querySelector('[data-cajon-sec="responsable"] > h4');
+          if (panelTr && h4Tr) {
+            var abreTr = document.createElement('button');
+            abreTr.type = 'button';
+            abreTr.className = 'lwc-h4-accion';
+            abreTr.textContent = 'Traspasar';
+            abreTr.setAttribute('aria-expanded', 'false');
+            abreTr.addEventListener('click', function () {
+              var abrir = panelTr.hidden;
+              panelTr.hidden = !abrir;
+              abreTr.textContent = abrir ? 'Cancelar' : 'Traspasar';
+              abreTr.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+              if (abrir) { var s0 = panelTr.querySelector('[data-tr-sel]'); if (s0) s0.focus(); }
+            });
+            h4Tr.appendChild(abreTr);
+          }
           if (bTr) {
             var chkTodo = cj.cuerpo.querySelector('[data-tr-chk]');
             var cajaMotivo = cj.cuerpo.querySelector('[data-tr-caja]');
