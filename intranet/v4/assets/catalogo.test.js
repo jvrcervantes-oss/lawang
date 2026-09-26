@@ -43,6 +43,19 @@ HERR.forEach(t => {
   if (!fs.existsSync(path.join(V4, c, 'index.html'))) errores.push(`catálogo «${t.nombre}» (${t.href}): no hay intranet/v4/${c}/ — ni pantalla ni redirección`);
 });
 
+/* --- 1 bis) lo del núcleo del ERP, SOLO con la bandera (26-sep-2026) ---
+   Productos existe en las instancias del ERP (build.py enciende window.AXW_NUCLEO_OPERACION) y NO en Lawang,
+   cuya base no tiene la tabla. Sin la bandera el catálogo no puede traerla —ni tarjeta ni casilla de permiso—;
+   con ella, va tras Recibos y tiene su pantalla v4. */
+if (HERR.some(t => t.herr === 'productos')) errores.push('catálogo: «Productos» sale SIN window.AXW_NUCLEO_OPERACION (Lawang no tiene la tabla)');
+const ctxN = { window: { AXW_NUCLEO_OPERACION: true } };
+vm.createContext(ctxN);
+vm.runInContext(fs.readFileSync(path.join(RAIZ, 'contracts', 'assets', 'herramientas.js'), 'utf8') + '\n;this.__H = LW_HERRAMIENTAS; this.__P = LW_PERMISOS;', ctxN);
+const iRec = ctxN.__H.findIndex(t => t.herr === 'recibos');
+if (!ctxN.__H[iRec + 1] || ctxN.__H[iRec + 1].herr !== 'productos') errores.push('catálogo con la bandera: «Productos» no va justo detrás de Recibos');
+if (!ctxN.__P.some(p => p[0] === 'productos')) errores.push('catálogo con la bandera: no hay casilla de permiso «productos»');
+if (!fs.existsSync(path.join(V4, 'productos', 'index.html'))) errores.push('catálogo con la bandera: no hay intranet/v4/productos/');
+
 // --- 2) y 3) puertas de cada pantalla ---
 const nav = fs.readFileSync(path.join(__dirname, 'nav.js'), 'utf8');
 const pathsDe = nombre => {

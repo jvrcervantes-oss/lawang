@@ -1491,6 +1491,22 @@
     if (color) toastMal(msg); else toast(msg);
   }
 
+  /* Error de la base de un catálogo del ERP (impuestos, productos) → la CAUSA en palabras (26-sep-2026).
+     Se lee el nombre de la restricción, que es estable, no el texto de Postgres. `sinPermiso` es lo que se dice
+     cuando la RLS no deja: un UPDATE que la policy filtra no da error, devuelve 0 filas, y `.single()` lo
+     convierte en PGRST116 — por eso ese código también cuenta como «sin permiso». */
+  function errorCatalogo(e, sinPermiso) {
+    var m = [e && e.message, e && e.details, e && e.hint, e && e.code].join(' ');
+    if (/impuestos_un_defecto/.test(m)) return 'Ya hay otro impuesto por defecto activo para ese país y esa sociedad. Quítale la marca a ese (o desactívalo) y vuelve a guardar.';
+    if (/impuestos_motivo_si_no_suma|impuestos_motivo_si_suma_cero/.test(m)) return 'Falta el motivo legal: exenta, no sujeta, inversión del sujeto pasivo o un impuesto al 0 % tienen que decir en la factura por qué no llevan cuota.';
+    if (/impuestos_sin_porcentaje_si_exento/.test(m)) return 'Exenta, no sujeta e inversión del sujeto pasivo van al 0 %.';
+    if (/impuestos_recargo_suma/.test(m)) return 'Solo un impuesto que suma puede ser recargo de equivalencia de otro.';
+    if (/productos_referencia_unica/.test(m)) return 'Ya hay otro producto con esa referencia: cada referencia identifica un solo producto.';
+    if (/23503|foreign key/i.test(m)) return 'Lo que eliges ya no existe (otra persona lo ha cambiado). Recarga la pantalla y vuelve a probar.';
+    if (/PGRST116|42501|row-level security|permission denied/i.test(m)) return sinPermiso;
+    return (e && e.message) || String(e);
+  }
+
   /* Descarga de CSV en el navegador (11-sep-2026, exportes de Proyectos).
      `lwCsvAntiFormula` (contracts/assets/proyectos_csv.js) antepone una comilla
      a un valor que empieza por = + - @: mitigación estándar de CSV/formula
@@ -9058,6 +9074,278 @@
        ampliar antes el GRANT del .sql, mejor que lo rechace Postgres con
        42501 a la vista que enviar algo que la base iba a tirar de todas
        formas — el candado de abajo lo deja explicito. */
+    /* ═══ IMPUESTOS — formulario de Ajustes (AxisWorks ERP, 26-sep-2026) ═══════════════════════════════
+       La lista la pinta datos.js (impuestosAjustes), SOLO con window.AXW_NUCLEO_OPERACION; aquí solo se
+       definen el alta/edición y el desactivar. La bandera se mira otra vez: sin ella no se expone nada que
+       escriba en una tabla que la instancia no tiene. Escribir: super_admin (RLS es_super_admin()).
+       Las reglas del formulario son las CHECK de la tabla (erp/migraciones/20260926170000 + 181000), dichas
+       antes de mandar para que el error no llegue de la base; si llega igual, se traduce por su causa. */
+    ajustes: function (aut) {
+      if (!window.AXW_NUCLEO_OPERACION) return;
+      var sb = aut.sb;
+      var superAdmin = !!(aut.ficha && aut.ficha.rol === 'super_admin');
+      window.LW_V4 = window.LW_V4 || {};
+      var SIN_CUOTA = ['exenta', 'no_sujeta', 'isp'];
+      var num = function (v) { var n = parseFloat(String(v == null ? '' : v).replace(',', '.')); return isFinite(n) ? n : null; };
+      var repinta = function () { if (window.LW_V4.repintaImpuestos) window.LW_V4.repintaImpuestos(); };
+      var soloSuper = function () {
+        return aviso('Los impuestos solo los cambia un super_admin — tu sesión es de ' + ((aut.ficha && aut.ficha.rol) || 'agente') + '.', '#8A6A34');
+      };
+
+      window.LW_V4.abreImpuesto = function (btn) {
+        if (!superAdmin) return soloSuper();
+        var id = btn && btn.getAttribute ? btn.getAttribute('data-lw-imp-editar') : null;
+        var todos = window.LW_V4.impuestos || [];
+        var x = id ? (window.LW_V4.impuestosPorId || {})[id] : null;
+        if (id && !x) return aviso('No se ha podido leer este impuesto — recarga la pantalla.', '#9E2F26');
+        var nuevo = !x;
+        x = x || { pais: 'ES', clase: 'suma', porcentaje: '', coef_base: 1, activo: true, por_defecto: false,
+          orden: todos.reduce(function (m, i) { return Math.max(m, i.orden || 0); }, 0) + 1 };
+        var clases = window.LW_V4.CLASES_IMPUESTO || [];
+        var paisesN = window.LW_V4.PAISES_IMPUESTO || {};
+        var paises = Object.keys(paisesN);
+        todos.forEach(function (i) { if (paises.indexOf(i.pais) === -1) paises.push(i.pais); });
+        var socs = window.LW_V4.sociedadesImpuesto;
+        var campos = [];
+        if (!nuevo) campos.push({ tipo: 'lectura', label: 'Número', medio: 1, valor: x.numero_impuesto });
+        campos.push(
+          { k: 'nombre', label: 'Nombre', req: 1, valor: x.nombre, ayuda: 'Como sale en la factura: «IVA 21 %», «PPh 23 2 %».' },
+          { k: 'pais', label: 'País', tipo: 'select', req: 1, medio: 1, valor: x.pais,
+            opciones: paises.map(function (p) { return [p, (paisesN[p] || p) + ' (' + p + ')']; }) },
+          { k: 'clase', label: 'Clase', tipo: 'select', req: 1, medio: 1, valor: x.clase,
+            opciones: clases.map(function (c) { return [c[0], c[1]]; }) },
+          { k: 'porcentaje', label: 'Porcentaje (%)', tipo: 'number', paso: '0.0001', req: 1, medio: 1, valor: x.porcentaje },
+          { k: 'coef_base', label: 'Coeficiente de base', tipo: 'number', paso: '0.000001', medio: 1, valor: x.coef_base == null ? 1 : x.coef_base,
+            ayuda: '1 = sobre la base entera. El PPN al 12 % va sobre 11/12 de la base: 0,916667.' },
+          { k: 'motivo_legal', label: 'Motivo legal (se imprime en la factura)', tipo: 'textarea', valor: x.motivo_legal,
+            ayuda: 'Obligatorio en exenta, no sujeta, inversión del sujeto pasivo y en cualquier impuesto al 0 %.' },
+          { k: 'recargo_de', label: 'Es recargo de equivalencia de', tipo: 'select', valor: x.recargo_de || '',
+            // El enlace actual SIEMPRE se ofrece: si no estuviera en la lista, el select caería a «no es un recargo»
+            // y guardar por cambiar el orden borraría el enlace en silencio (code-review, 26-sep).
+            opciones: [['', '— no es un recargo —']].concat(todos.filter(function (i) { return i.id === x.recargo_de || (i.clase === 'suma' && i.id !== x.id && !i.recargo_de); })
+              .map(function (i) { return [i.id, i.numero_impuesto + ' · ' + i.nombre + ' (' + i.pais + ')']; })) }
+        );
+        if (socs) {
+          campos.push({ k: 'sociedad_clave', label: 'Sociedad', tipo: 'select', medio: 1, valor: x.sociedad_clave || '',
+            opciones: [['', 'Todas las del país']].concat(socs.filter(function (s) { return s.activa !== false || s.clave === x.sociedad_clave; })
+              .map(function (s) { return [s.clave, s.razon || s.label || s.clave]; }))
+              // la sociedad actual aunque ya no esté en el catálogo: vaciarla cambiaría el ámbito en silencio
+              .concat(x.sociedad_clave && !socs.some(function (s) { return s.clave === x.sociedad_clave; }) ? [[x.sociedad_clave, x.sociedad_clave]] : []),
+            ayuda: 'Vacío = vale para cualquier sociedad de ese país.' });
+        } else {
+          // Sin la lista no se ofrece el campo, y al guardar NO se toca: vaciarlo en silencio cambiaría el ámbito.
+          campos.push({ tipo: 'nota', label: 'No se ha podido leer la lista de sociedades: la sociedad de este impuesto no se cambia desde aquí. Recarga para poder elegirla.' });
+        }
+        campos.push({ k: 'orden', label: 'Orden en la lista', tipo: 'number', medio: 1, valor: x.orden == null ? 100 : x.orden });
+        campos.push({ k: 'por_defecto', label: 'Por defecto — la factura lo propone solo (uno por país y sociedad)', tipo: 'check', valor: !!x.por_defecto });
+        if (!nuevo) {
+          campos.push({ k: 'activo', label: 'Activo — se ofrece al facturar', tipo: 'check', valor: x.activo !== false });
+          campos.push({ tipo: 'nota', label: 'Cambiar un impuesto no altera las facturas ya emitidas: cada una guarda la copia con la que salió. Cuando las facturas por líneas lo usen, uno ya usado no se editará: se desactiva y se crea otro.' });
+        }
+
+        modal(nuevo ? 'Nuevo impuesto' : 'Editar impuesto — ' + x.nombre, campos, nuevo ? 'Dar de alta' : 'Guardar cambios', function (v) {
+          var pct = num(v.porcentaje), coef = num(v.coef_base == null || v.coef_base === '' ? 1 : v.coef_base);
+          var clase = v.clase, sinCuota = SIN_CUOTA.indexOf(clase) !== -1;
+          var motivo = (v.motivo_legal || '').trim();
+          if (!(v.nombre || '').trim()) return { error: { message: 'Falta el nombre.' } };
+          if (!/^[A-Z]{2}$/.test(v.pais || '')) return { error: { message: 'El país va en dos letras mayúsculas (ES, ID).' } };
+          if (pct == null || pct < 0 || pct > 100) return { error: { message: 'El porcentaje va de 0 a 100.' } };
+          if (sinCuota && pct !== 0) return { error: { message: 'Exenta, no sujeta e inversión del sujeto pasivo van al 0 %.' } };
+          if ((sinCuota || (clase === 'suma' && pct === 0)) && !motivo) {
+            return { error: { message: 'Falta el motivo legal: la factura tiene que decir por qué este impuesto no lleva cuota (p. ej. «Operación exenta de IVA, art. 20.Uno LIVA»).' } };
+          }
+          if (coef == null || coef <= 0 || coef > 1) return { error: { message: 'El coeficiente de base va entre 0 (sin incluir) y 1.' } };
+          var rec = clase === 'suma' ? (v.recargo_de || null) : null;
+          if (rec) {
+            var base = (window.LW_V4.impuestosPorId || {})[rec];
+            if (base && base.pais !== v.pais) return { error: { message: 'Un recargo de equivalencia va enlazado a un impuesto de su mismo país.' } };
+          }
+          var fila = {
+            nombre: v.nombre.trim(), pais: v.pais, clase: clase, porcentaje: pct, coef_base: coef,
+            // El motivo solo viaja donde la regla lo pide; en el resto, si se escribió, también (lo decide quien lo teclea).
+            motivo_legal: motivo || null, recargo_de: rec, por_defecto: !!v.por_defecto,
+            orden: Number(v.orden) || 0
+          };
+          if (socs) fila.sociedad_clave = v.sociedad_clave || null;
+          fila.activo = nuevo ? true : !!v.activo;   // explícito: nace activo (el default de la base, dicho aquí)
+          // Desactivado deja de ser el por defecto, igual que el botón «Desactivar»: si no, al reactivarlo
+          // chocaría con el que lo sustituya (impuestos_un_defecto cuenta solo los activos) — code-review, 26-sep.
+          if (!fila.activo) fila.por_defecto = false;
+          var p = nuevo ? sb.from('impuestos').insert(fila).select('id,numero_impuesto').single()
+                        : sb.from('impuestos').update(fila).eq('id', x.id).select('id').single();
+          return Promise.resolve(p).then(function (r) {
+            if (r && r.error) return { error: { message: errorCatalogo(r.error, 'No se ha guardado: cambiar impuestos exige super_admin, y lo comprueba la base.') } };
+            aviso(nuevo ? 'Impuesto dado de alta' + (r && r.data && r.data.numero_impuesto ? ': ' + r.data.numero_impuesto : '') + '.' : 'Impuesto guardado.');
+            setTimeout(repinta, 480);
+            return r;
+          });
+        }, { sub: 'Ajustes · Impuestos', sinRecarga: true });
+
+        /* Reglas que dependen de DOS campos (clase y porcentaje): `visibleSi` solo mira uno, así que se cablean
+           aquí sobre el formulario ya montado. El <select> «mejorado» sigue siendo el dato (value + change). */
+        var w = document.getElementById('lw-editor');
+        if (!w) return;
+        var el = function (k) { return w.querySelector('[data-k="' + k + '"]'); };
+        var tarjeta = function (k) { var e = el(k); return e && e.closest('.las-campo'); };
+        var sClase = el('clase'), iPct = el('porcentaje'), tMotivo = tarjeta('motivo_legal'), tRec = tarjeta('recargo_de'), sRec = el('recargo_de');
+        function aplica() {
+          var clase = sClase ? sClase.value : '', sinCuota = SIN_CUOTA.indexOf(clase) !== -1;
+          if (iPct) {
+            if (sinCuota) { iPct.value = '0'; iPct.readOnly = true; iPct.classList.add('las-lect'); }
+            else { iPct.readOnly = false; iPct.classList.remove('las-lect'); }
+          }
+          var pct = num(iPct && iPct.value);
+          var pideMotivo = sinCuota || (clase === 'suma' && pct === 0);
+          var motivo = el('motivo_legal');
+          // Se enseña si la regla lo pide o si ya trae texto (no se esconde un dato que existe).
+          if (tMotivo) tMotivo.classList.toggle('las-oculto', !pideMotivo && !(motivo && motivo.value.trim()));
+          if (tRec) {
+            tRec.classList.toggle('las-oculto', clase !== 'suma');
+            if (clase !== 'suma' && sRec && sRec.value) { sRec.value = ''; sRec.dispatchEvent(new Event('change', { bubbles: true })); }
+          }
+          if (w._recuenta) w._recuenta();
+        }
+        if (sClase) sClase.addEventListener('change', aplica);
+        if (iPct) iPct.addEventListener('input', aplica);
+        aplica();
+      };
+
+      window.LW_V4.conmutaImpuesto = function (btn) {
+        if (!superAdmin) return soloSuper();
+        var x = (window.LW_V4.impuestosPorId || {})[btn.getAttribute('data-lw-imp-activo')];
+        if (!x) return aviso('No se ha podido leer este impuesto — recarga la pantalla.', '#9E2F26');
+        if (typeof window.lwConfirmar !== 'function') return aviso('El diálogo aún no ha cargado — prueba de nuevo en un segundo.', '#8A6A34');
+        var activar = !x.activo;
+        window.lwConfirmar({
+          titulo: (activar ? 'Reactivar ' : 'Desactivar ') + x.nombre,
+          cuerpo: activar
+            ? 'Vuelve a ofrecerse al facturar.'
+            : 'Deja de ofrecerse al facturar. Las facturas ya emitidas no cambian: cada una guarda su copia.' +
+              (x.por_defecto ? ' <b>Era el impuesto por defecto</b>: deja de serlo, y ese país y sociedad se quedan sin uno hasta que marques otro.' : ''),
+          confirmar: activar ? 'Reactivar' : 'Desactivar', tono: activar ? undefined : 'peligro'
+        }).then(function (ok) {
+          if (!ok) return;
+          // Al desactivar se quita también «por defecto»: si no, al reactivarlo chocaría con el que lo sustituya.
+          var fila = activar ? { activo: true } : { activo: false, por_defecto: false };
+          return Promise.resolve(sb.from('impuestos').update(fila).eq('id', x.id).select('id').single()).then(function (r) {
+            if (r && r.error) return aviso(errorCatalogo(r.error, 'No se ha cambiado: exige super_admin, y lo comprueba la base.'), '#9E2F26');
+            aviso(activar ? 'Impuesto reactivado.' : 'Impuesto desactivado.');
+            repinta();
+          });
+        });
+      };
+    },
+
+    /* ═══ PRODUCTOS — formulario (AxisWorks ERP, 26-sep-2026) ═══════════════════════════════════════════
+       La lista la pinta datos.js (REG.productos). Sin la bandera no se define nada. Escribir: admin (RLS
+       es_admin()). El precio es el par (precio, moneda) y se lee con lwParseImporte, como cualquier importe
+       de la suite; admite los decimales de SU moneda (EUR 2, IDR 0), ni uno más. */
+    productos: function (aut) {
+      if (!window.AXW_NUCLEO_OPERACION) return;
+      var sb = aut.sb;
+      var puede = esAdmin(aut.ficha);
+      window.LW_V4 = window.LW_V4 || {};
+      var repinta = function () { if (window.LW_V4.repintaProductos) window.LW_V4.repintaProductos(); };
+      var soloAdmin = function () {
+        return aviso('El catálogo de productos lo cambia un admin — tu sesión es de ' + ((aut.ficha && aut.ficha.rol) || 'agente') + '.', '#8A6A34');
+      };
+      var DEC = (typeof LW_DECIMALES !== 'undefined') ? LW_DECIMALES : { EUR: 2, USD: 2, AUD: 2, IDR: 0 };
+
+      window.LW_V4.abreProducto = function (btn) {
+        if (!puede) return soloAdmin();
+        var id = btn && btn.getAttribute ? btn.getAttribute('data-lw-prd-editar') : null;
+        var p = id ? (window.LW_V4.productosPorId || {})[id] : null;
+        if (id && !p) return aviso('No se ha podido leer este producto — recarga la pantalla.', '#9E2F26');
+        var nuevo = !p;
+        p = p || { unidad: 'ud', moneda: 'EUR', activo: true };
+        var imps = window.LW_V4.impuestosProducto;   // null = no se pudieron leer
+        var monedas = Object.keys(DEC);
+        if (p.moneda && monedas.indexOf(p.moneda) === -1) monedas.push(p.moneda);
+        var campos = [];
+        if (!nuevo) campos.push({ tipo: 'lectura', label: 'Número', medio: 1, valor: p.numero_producto });
+        campos.push(
+          { k: 'nombre', label: 'Nombre', req: 1, valor: p.nombre, ayuda: 'Como sale en la línea de la factura.' },
+          { k: 'referencia', label: 'Referencia', medio: 1, valor: p.referencia, ayuda: 'Opcional. No se puede repetir en el catálogo.' },
+          { k: 'unidad', label: 'Unidad', req: 1, medio: 1, valor: p.unidad || 'ud', ayuda: 'ud, hora, mes, m²…' },
+          { k: 'precio', label: 'Precio por unidad', req: 1, medio: 1, valor: typeof lwImporteCanonico === 'function' ? lwImporteCanonico(p.precio) : (p.precio == null ? '' : p.precio),
+            ayuda: 'Sin impuestos: el impuesto se suma en la factura.' },
+          { k: 'moneda', label: 'Moneda', tipo: 'select', req: 1, medio: 1, valor: p.moneda || 'EUR', opciones: monedas }
+        );
+        if (imps) {
+          var opc = imps.filter(function (i) { return i.activo || i.id === p.impuesto_id; }).map(function (i) {
+            return [i.id, i.numero_impuesto + ' · ' + i.nombre + ' (' + i.pais + ')' + (i.activo ? '' : ' — desactivado')];
+          });
+          campos.push({ k: 'impuesto_id', label: 'Impuesto por defecto', tipo: 'select', valor: p.impuesto_id || '',
+            opciones: [['', '— sin impuesto por defecto —']].concat(opc),
+            ayuda: 'Lo que la línea de factura trae puesto; se puede cambiar en cada línea.' });
+        } else {
+          // Sin la lista no se ofrece el campo y NO se toca al guardar: vaciarlo en silencio le quitaría el impuesto.
+          campos.push({ tipo: 'nota', label: 'No se ha podido leer la lista de impuestos: el impuesto por defecto de este producto no se cambia desde aquí. Recarga para poder elegirlo.' });
+        }
+        campos.push({ k: 'descripcion', label: 'Descripción', tipo: 'textarea', valor: p.descripcion });
+        if (!nuevo) {
+          campos.push({ k: 'activo', label: 'Activo — se ofrece al facturar', tipo: 'check', valor: p.activo !== false });
+          campos.push({ tipo: 'nota', label: 'Cambiar el precio no altera las facturas ya emitidas: cada línea guarda el precio con el que salió.' });
+        }
+
+        modal(nuevo ? 'Nuevo producto' : 'Editar producto — ' + p.nombre, campos, nuevo ? 'Dar de alta' : 'Guardar cambios', function (v) {
+          var precio = typeof lwParseImporte === 'function' ? lwParseImporte(v.precio) : parseFloat(v.precio);
+          var moneda = v.moneda || 'EUR', dec = DEC[moneda] != null ? DEC[moneda] : 2;
+          if (!(v.nombre || '').trim()) return { error: { message: 'Falta el nombre.' } };
+          if (!(v.unidad || '').trim()) return { error: { message: 'Falta la unidad (ud, hora, mes…).' } };
+          if (precio == null || !isFinite(precio) || precio < 0) return { error: { message: 'El precio tiene que ser un número de 0 en adelante.' } };
+          var escala = Math.pow(10, dec);
+          if (Math.abs(Math.round(precio * escala) - precio * escala) > 1e-6) {
+            return { error: { message: moneda + ' admite ' + (dec ? 'como mucho ' + dec + ' decimales' : 'solo importes enteros, sin decimales') + '.' } };
+          }
+          if (!/^[A-Z]{3}$/.test(moneda)) return { error: { message: 'La moneda va en tres letras (EUR, IDR…).' } };
+          var fila = {
+            nombre: v.nombre.trim(), referencia: (v.referencia || '').trim() || null, unidad: v.unidad.trim(),
+            precio: precio, moneda: moneda, descripcion: (v.descripcion || '').trim() || null
+          };
+          if (imps) fila.impuesto_id = v.impuesto_id || null;
+          fila.activo = nuevo ? true : !!v.activo;   // explícito: nace activo (el default de la base, dicho aquí)
+          var q = nuevo ? sb.from('productos').insert(fila).select('id,numero_producto').single()
+                        : sb.from('productos').update(fila).eq('id', p.id).select('id').single();
+          return Promise.resolve(q).then(function (r) {
+            if (r && r.error) return { error: { message: errorCatalogo(r.error, 'No se ha guardado: el catálogo de productos lo cambia un admin, y lo comprueba la base.') } };
+            aviso(nuevo ? 'Producto dado de alta' + (r && r.data && r.data.numero_producto ? ': ' + r.data.numero_producto : '') + '.' : 'Producto guardado.');
+            setTimeout(repinta, 480);
+            return r;
+          });
+        }, { sub: 'Productos', sinRecarga: true });
+
+        // Lo que se ve es lo que se guarda: el precio se reescribe en forma canónica al salir del campo.
+        var w = document.getElementById('lw-editor');
+        var iPrecio = w && w.querySelector('[data-k="precio"]');
+        if (iPrecio && typeof lwParseImporte === 'function' && typeof lwImporteCanonico === 'function') {
+          iPrecio.setAttribute('inputmode', 'decimal');
+          iPrecio.addEventListener('blur', function () { var n = lwParseImporte(iPrecio.value); if (n != null) iPrecio.value = lwImporteCanonico(n); });
+        }
+      };
+
+      window.LW_V4.conmutaProducto = function (btn) {
+        if (!puede) return soloAdmin();
+        var p = (window.LW_V4.productosPorId || {})[btn.getAttribute('data-lw-prd-activo')];
+        if (!p) return aviso('No se ha podido leer este producto — recarga la pantalla.', '#9E2F26');
+        if (typeof window.lwConfirmar !== 'function') return aviso('El diálogo aún no ha cargado — prueba de nuevo en un segundo.', '#8A6A34');
+        var activar = !p.activo;
+        window.lwConfirmar({
+          titulo: (activar ? 'Reactivar ' : 'Desactivar ') + p.nombre,
+          cuerpo: activar ? 'Vuelve a ofrecerse al facturar.'
+            : 'Deja de ofrecerse al facturar. No se borra: las facturas que ya lo llevan siguen igual.',
+          confirmar: activar ? 'Reactivar' : 'Desactivar', tono: activar ? undefined : 'peligro'
+        }).then(function (ok) {
+          if (!ok) return;
+          return Promise.resolve(sb.from('productos').update({ activo: activar }).eq('id', p.id).select('id').single()).then(function (r) {
+            if (r && r.error) return aviso(errorCatalogo(r.error, 'No se ha cambiado: el catálogo lo cambia un admin, y lo comprueba la base.'), '#9E2F26');
+            aviso(activar ? 'Producto reactivado.' : 'Producto desactivado.');
+            repinta();
+          });
+        });
+      };
+    },
+
     'sociedades': function (aut) {
       var sb = aut.sb;
       var superAdmin = !!(aut.ficha && aut.ficha.rol === 'super_admin');

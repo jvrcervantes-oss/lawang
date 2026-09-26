@@ -46,6 +46,11 @@
     var lwFormatoImporteConDecimales = window.lwFormatoImporte;
     window.lwFormatoImporte = function (n, moneda, opts) {
       var o = {}; for (var k in (opts || {})) o[k] = opts[k];
+      /* Excepción EXPLÍCITA (26-sep-2026, AxisWorks ERP · Productos): un PRECIO UNITARIO de catálogo
+         (45,50 € la hora) no es un importe de resumen, y redondeado a 46 € mentiría. Solo quien pide
+         `opts.decimales` a propósito los recibe; sin opts sigue siendo 0, así que nada existente cambia
+         (los dos llamadores que ya pasaban opts piden 0). */
+      if (opts && opts.decimales > 0) return lwFormatoImporteConDecimales(n, moneda, o);
       o.decimales = 0;
       return lwFormatoImporteConDecimales(Math.round(Number(n) || 0), moneda, o);
     };
@@ -8723,7 +8728,114 @@
     }
     var aviso = document.getElementById('lw-ajustes-solo-lectura');
     if (aviso) aviso.hidden = !soloLee;
+    /* Impuestos (AxisWorks ERP): la BANDERA primero, antes de mirar ningún dato. En Lawang no existe la
+       tabla y esta pantalla tiene que quedar exactamente como estaba: ni sección, ni consulta. */
+    if (window.AXW_NUCLEO_OPERACION) impuestosAjustes(sb, soloLee);
   };
+
+  /* ═══ IMPUESTOS — Ajustes (AxisWorks ERP, 26-sep-2026) ═══════════════════════════════════════════════
+     encargos/20260926_estudio_erp_clientes_contratos_productos.md, subtarea 2 (revisión previa #110). Solo
+     con `window.AXW_NUCLEO_OPERACION` (ver la llamada en REG.ajustes): la tabla `public.impuestos` existe en
+     las instancias del ERP y NO en Lawang. Leer, cualquier sesión; escribir, super_admin — lo decide la RLS
+     (`es_super_admin()`), esta pantalla solo no ofrece lo que la base va a rechazar.
+     La sección se CREA aquí y no está en ajustes/index.html: así Lawang, sin bandera, recibe el mismo HTML de
+     siempre. El formulario vive en editores.js (ED.ajustes → LW_V4.abreImpuesto), como Sociedades. */
+  var CLASES_IMPUESTO = [
+    ['suma', 'Suma', 'curso'], ['retiene', 'Retención', 'espera'], ['exenta', 'Exenta', 'neutro'],
+    ['no_sujeta', 'No sujeta', 'neutro'], ['isp', 'Inversión del sujeto pasivo', 'neutro']
+  ];
+  var PAISES_IMPUESTO = { ES: 'España', ID: 'Indonesia' };
+  window.LW_V4 = window.LW_V4 || {};
+  // Fuente única de los rótulos: el formulario (editores.js) los lee de aquí, no los repite.
+  window.LW_V4.CLASES_IMPUESTO = CLASES_IMPUESTO;
+  window.LW_V4.PAISES_IMPUESTO = PAISES_IMPUESTO;
+  function claseImpuesto(k) { for (var i = 0; i < CLASES_IMPUESTO.length; i++) if (CLASES_IMPUESTO[i][0] === k) return CLASES_IMPUESTO[i]; return [k, k, 'neutro']; }
+  // Un porcentaje no es dinero (dinero.js no aplica): hasta 4 decimales, los que guarda la columna.
+  function pctImpuesto(p) { return new Intl.NumberFormat('es-ES', { maximumFractionDigits: 4 }).format(Number(p) || 0) + ' %'; }
+  window.LW_V4.pctImpuesto = pctImpuesto;
+  window.LW_V4.claseImpuesto = claseImpuesto;
+
+  function impuestosAjustes(sb, soloLee) {
+    var T = function (x) { return (typeof lwT === 'function') ? lwT(x) : x; };
+    var ancla = document.getElementById('lw-ajustes-lista');
+    var seccion = document.getElementById('lw-imp');
+    if (!seccion) {
+      var hermana = ancla && ancla.closest('section');
+      if (!hermana) return;
+      seccion = document.createElement('section');
+      seccion.id = 'lw-imp';
+      seccion.className = 'bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden';
+      seccion.innerHTML =
+        '<div class="px-8 pt-8 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-outline-variant/40">' +
+          '<div class="flex flex-col gap-1">' +
+            '<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">' + esc(T('Facturación')) + '</span>' +
+            '<h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight">' + esc(T('Impuestos')) + '</h2>' +
+            '<p class="font-body-sm text-body-sm text-outline max-w-3xl">' + esc(T('Los impuestos que se pueden poner en una factura, por país. Cada factura guarda una copia del impuesto con el que salió: cambiar uno aquí no altera lo ya emitido. Uno que ya no se usa se desactiva, no se borra.')) + '</p>' +
+          '</div>' +
+          (soloLee ? '' : '<button type="button" data-lw-imp-nuevo="1" class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md transition-colors shadow-sm shrink-0"><span class="material-symbols-outlined text-[18px]">add</span><span>' + esc(T('Nuevo impuesto')) + '</span></button>') +
+        '</div>' +
+        '<div id="lw-imp-lista"><p class="px-8 py-8 text-center font-body-md text-body-md text-on-surface-variant">' + esc(T('Trayendo los impuestos…')) + '</p></div>' +
+        '<p class="px-8 py-4 border-t border-outline-variant/40 font-body-sm text-body-sm text-outline">' + esc(T('Exenta, no sujeta, inversión del sujeto pasivo y cualquier impuesto al 0 % llevan el motivo legal que se imprime en la factura. Solo puede haber uno por defecto en cada país y sociedad.')) + '</p>';
+      hermana.insertAdjacentElement('afterend', seccion);
+      // Un solo oyente para toda la sección: sobrevive a los repintados de la lista.
+      delega(seccion, [['data-lw-imp-nuevo', 'abreImpuesto'], ['data-lw-imp-editar', 'abreImpuesto'], ['data-lw-imp-activo', 'conmutaImpuesto']]);
+    }
+    var lista = document.getElementById('lw-imp-lista');
+
+    function pinta() {
+      return Promise.all([
+        q(sb.from('impuestos').select('*').order('pais').order('orden').order('nombre'), 'impuestos', lista),
+        // Solo para el nombre de la sociedad: si falla, se enseña la clave (se ve distinto de «todas»).
+        vig(sb.from('sociedades').select('clave,razon,label,activa').order('orden')).then(function (r) { return r.error ? null : (r.data || []); })
+      ]).then(function (r) {
+        var filas = r[0], socs = r[1];
+        if (!filas) return;   // fallo() ya pintó el aviso en la lista
+        var socDe = {}; (socs || []).forEach(function (s) { socDe[s.clave] = s; });
+        window.LW_V4.impuestos = filas;
+        window.LW_V4.impuestosPorId = {};
+        filas.forEach(function (x) { window.LW_V4.impuestosPorId[x.id] = x; });
+        window.LW_V4.sociedadesImpuesto = socs;   // null = no se pudieron leer (el formulario lo dice)
+        if (!filas.length) {
+          lista.innerHTML = '<p class="px-8 py-8 text-center font-body-md text-body-md text-on-surface-variant">' + esc(T('No hay ningún impuesto dado de alta.')) + '</p>';
+          return;
+        }
+        var paises = [];
+        filas.forEach(function (x) { if (paises.indexOf(x.pais) === -1) paises.push(x.pais); });
+        paises.sort(function (a, b) { return (PAISES_IMPUESTO[a] ? 0 : 1) - (PAISES_IMPUESTO[b] ? 0 : 1) || a.localeCompare(b); });
+        var th = function (t, der) { return '<th class="px-5 py-3 font-label-md text-[11px] uppercase tracking-wider text-outline' + (der ? ' text-right' : '') + '">' + esc(T(t)) + '</th>'; };
+        lista.innerHTML = paises.map(function (p) {
+          var deP = filas.filter(function (x) { return x.pais === p; });
+          return '<div class="px-8 pt-6 pb-2 flex items-baseline gap-3"><h3 class="font-headline-sm text-[18px] text-on-surface">' + esc(T(PAISES_IMPUESTO[p] || p)) + '</h3>' +
+              '<span class="font-body-sm text-body-sm text-outline">' + esc(p) + ' · ' + deP.length + '</span></div>' +
+            '<div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead><tr class="border-b border-outline-variant/60 bg-surface-container-low">' +
+              th('Nº') + th('Nombre') + th('Clase') + th('Porcentaje') + th('Motivo legal') + th('Por defecto') + th('Estado') + (soloLee ? '' : th('Acción', 1)) +
+            '</tr></thead><tbody>' + deP.map(function (x) {
+              var cl = claseImpuesto(x.clase);
+              var soc = x.sociedad_clave ? (socDe[x.sociedad_clave] ? (socDe[x.sociedad_clave].razon || socDe[x.sociedad_clave].label) : x.sociedad_clave) : null;
+              var rec = x.recargo_de ? (window.LW_V4.impuestosPorId[x.recargo_de] || null) : null;
+              var coef = Number(x.coef_base);
+              return '<tr class="border-b border-outline-variant/30' + (x.activo ? '' : ' opacity-60') + '">' +
+                '<td class="px-5 py-4 font-label-md text-label-md text-deep-lagoon whitespace-nowrap">' + esc(x.numero_impuesto) + '</td>' +
+                '<td class="px-5 py-4"><div class="font-label-md text-label-md text-on-surface">' + esc(x.nombre) + '</div>' +
+                  '<div class="font-body-sm text-body-sm text-outline">' + esc(soc ? T('Solo') + ' ' + soc : T('Todas las sociedades')) +
+                  (x.recargo_de ? ' · ' + esc(T('recargo de')) + ' ' + esc(rec ? rec.nombre : T('otro impuesto')) : '') + '</div></td>' +
+                '<td class="px-5 py-4">' + pill(T(cl[1]), cl[2]) + '</td>' +
+                '<td class="px-5 py-4 font-body-md text-body-md text-on-surface whitespace-nowrap">' + esc(pctImpuesto(x.porcentaje)) +
+                  (isFinite(coef) && coef !== 1 ? '<div class="font-body-sm text-body-sm text-outline">' + esc(T('sobre base ×')) + esc(new Intl.NumberFormat('es-ES', { maximumFractionDigits: 6 }).format(coef)) + '</div>' : '') + '</td>' +
+                '<td class="px-5 py-4 font-body-sm text-body-sm text-on-surface-variant" style="max-width:280px">' + (x.motivo_legal ? esc(x.motivo_legal) : '<span class="text-outline">—</span>') + '</td>' +
+                '<td class="px-5 py-4">' + (x.por_defecto ? pill(T('Por defecto'), 'ok') : '') + '</td>' +
+                '<td class="px-5 py-4">' + pill(T(x.activo ? 'Activo' : 'Desactivado'), x.activo ? 'ok' : 'mal') + '</td>' +
+                (soloLee ? '' : '<td class="px-5 py-4 text-right whitespace-nowrap"><div class="flex flex-col items-end gap-1">' +
+                  '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" data-lw-imp-editar="' + esc(x.id) + '">' + esc(T('Editar')) + '</button>' +
+                  '<button type="button" class="px-3 py-1 rounded-full text-on-surface-variant hover:bg-surface-container-high font-label-md text-[12px]" data-lw-imp-activo="' + esc(x.id) + '">' + esc(T(x.activo ? 'Desactivar' : 'Reactivar')) + '</button></div></td>') +
+                '</tr>';
+            }).join('') + '</tbody></table></div>';
+        }).join('') + '<div class="h-4"></div>';
+      });
+    }
+    window.LW_V4.repintaImpuestos = pinta;
+    pinta();
+  }
 
   REG['sociedades'] = function (sb) {
     if (!(window.LW_V4 && window.LW_V4.esSuperAdmin)) { notaSoloAdmin(); return; }
@@ -8832,6 +8944,110 @@
       delega(cuerpoLista, [['data-lw-soc-editar', 'abreEditaSociedad']]);
     });
   };
+
+  /* ═══ PRODUCTOS (AxisWorks ERP, 26-sep-2026) ═══════════════════════════════════════════════════════
+     encargos/20260926_estudio_erp_clientes_contratos_productos.md, subtarea 3. Catálogo de lo que se factura
+     por líneas. LA BANDERA PRIMERO: sin `window.AXW_NUCLEO_OPERACION` (Lawang) la tabla no existe, y la
+     pantalla dice que el módulo no está en esta instancia SIN lanzar ninguna consulta. Leer, cualquier sesión;
+     dar de alta y editar, admin; borrar, super_admin — lo decide la RLS. Aquí no se borra: se desactiva (un
+     producto ya facturado no se puede borrar, y el catálogo tiene que seguir explicando las facturas viejas).
+     El formulario vive en editores.js (ED.productos → LW_V4.abreProducto). */
+  REG['productos'] = function (sb) {
+    if (!window.AXW_NUCLEO_OPERACION) { notaNoInstalado(); return; }
+    var T = function (x) { return (typeof lwT === 'function') ? lwT(x) : x; };
+    var cuerpo = document.getElementById('lw-prd-lista');
+    var buscar = document.getElementById('lw-prd-buscar');
+    var nuevo = document.getElementById('btn-nuevo-producto');
+    var puede = !!(window.LW_V4 && window.LW_V4.esAdmin);
+    if (!cuerpo) return;
+    if (nuevo) nuevo.hidden = !puede;
+    var thAccion = document.getElementById('lw-prd-th-accion');
+    if (thAccion) thAccion.hidden = !puede;
+    // Un precio de catálogo lleva sus decimales (45,50 € la hora): ver el envoltorio de lwFormatoImporte arriba.
+    function precio(p) {
+      if (p.precio == null) return '—';
+      var dec = (typeof LW_DECIMALES !== 'undefined' && LW_DECIMALES[p.moneda] != null) ? LW_DECIMALES[p.moneda] : 2;
+      return typeof lwFormatoImporte === 'function' ? lwFormatoImporte(p.precio, p.moneda, { decimales: dec }) : fmt(p.precio, p.moneda);
+    }
+
+    var filas = [], impDe = null;
+    function pinta() {
+      var t = (buscar && buscar.value || '').trim().toLowerCase();
+      var vis = filas.filter(function (p) {
+        return !t || [p.numero_producto, p.nombre, p.referencia, p.descripcion].join(' ').toLowerCase().indexOf(t) !== -1;
+      });
+      var cols = puede ? 7 : 6;
+      if (!filas.length) { cuerpo.innerHTML = '<tr><td colspan="' + cols + '" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">' + esc(T('Todavía no hay ningún producto en el catálogo.')) + '</td></tr>'; return; }
+      if (!vis.length) { cuerpo.innerHTML = '<tr><td colspan="' + cols + '" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">' + esc(T('Nada coincide con la búsqueda.')) + '</td></tr>'; return; }
+      cuerpo.innerHTML = vis.map(function (p) {
+        var imp;
+        if (!p.impuesto_id) imp = '<span class="text-outline">' + esc(T('Sin impuesto por defecto')) + '</span>';
+        // «No leído» y «sin impuesto» no pueden verse igual: si la lista de impuestos falló, se dice.
+        else if (!impDe) imp = pill(T('Impuesto: no leído'), 'neutro');
+        else if (!impDe[p.impuesto_id]) imp = '<span class="text-outline">' + esc(T('Impuesto no encontrado')) + '</span>';
+        else {
+          var i = impDe[p.impuesto_id];
+          imp = '<div class="font-body-md text-body-md text-on-surface">' + esc(i.nombre) + '</div><div class="font-body-sm text-body-sm text-outline whitespace-nowrap">' +
+            esc(i.numero_impuesto) + ' · ' + esc(i.pais) + (i.activo ? '' : ' · ' + esc(T('desactivado'))) + '</div>';
+        }
+        return '<tr class="border-b border-outline-variant/30' + (p.activo ? '' : ' opacity-60') + '">' +
+          '<td class="px-5 py-4 font-label-md text-label-md text-deep-lagoon whitespace-nowrap">' + esc(p.numero_producto) + '</td>' +
+          '<td class="px-5 py-4"><div class="font-label-md text-label-md text-on-surface">' + esc(p.nombre) + '</div>' +
+            (p.descripcion ? '<div class="font-body-sm text-body-sm text-outline" style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(p.descripcion) + '">' + esc(p.descripcion) + '</div>' : '') + '</td>' +
+          '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant whitespace-nowrap">' + (p.referencia ? esc(p.referencia) : '<span class="text-outline">—</span>') + '</td>' +
+          '<td class="px-5 py-4 font-body-md text-body-md text-on-surface whitespace-nowrap text-right">' + esc(precio(p)) +
+            '<div class="font-body-sm text-body-sm text-outline">' + esc(T('por')) + ' ' + esc(p.unidad || 'ud') + '</div></td>' +
+          '<td class="px-5 py-4" style="min-width:170px">' + imp + '</td>' +
+          '<td class="px-5 py-4">' + pill(T(p.activo ? 'Activo' : 'Desactivado'), p.activo ? 'ok' : 'mal') + '</td>' +
+          (puede ? '<td class="px-5 py-4 text-right whitespace-nowrap"><div class="flex flex-col items-end gap-1">' +
+            '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" data-lw-prd-editar="' + esc(p.id) + '">' + esc(T('Editar')) + '</button>' +
+            '<button type="button" class="px-3 py-1 rounded-full text-on-surface-variant hover:bg-surface-container-high font-label-md text-[12px]" data-lw-prd-activo="' + esc(p.id) + '">' + esc(T(p.activo ? 'Desactivar' : 'Reactivar')) + '</button></div></td>' : '') +
+          '</tr>';
+      }).join('');
+    }
+    function carga() {
+      return Promise.all([
+        q(sb.from('productos').select('*').order('nombre'), 'productos', cuerpo),
+        vig(sb.from('impuestos').select('id,numero_impuesto,nombre,pais,clase,porcentaje,activo').order('pais').order('orden'))
+          .then(function (r) { if (r.error) { fallo('impuestos', r.error); return null; } return r.data || []; })
+      ]).then(function (r) {
+        if (!r[0]) return;   // fallo() ya pintó el aviso en la tabla
+        // Activos primero; dentro, por nombre (la consulta ya los trae así).
+        filas = r[0].slice().sort(function (a, b) { return (b.activo ? 1 : 0) - (a.activo ? 1 : 0); });
+        impDe = null;
+        if (r[1]) { impDe = {}; r[1].forEach(function (i) { impDe[i.id] = i; }); }
+        window.LW_V4.productos = filas;
+        window.LW_V4.productosPorId = {};
+        filas.forEach(function (p) { window.LW_V4.productosPorId[p.id] = p; });
+        window.LW_V4.impuestosProducto = r[1];   // null = no se pudieron leer: el formulario lo dice
+        pinta();
+      });
+    }
+    window.LW_V4.repintaProductos = carga;
+    carga();
+    if (buscar && !buscar._lwOk) { buscar._lwOk = true; buscar.addEventListener('input', pinta); }
+    if (!cuerpo._lwOk) {
+      cuerpo._lwOk = true;
+      delega(cuerpo, [['data-lw-prd-editar', 'abreProducto'], ['data-lw-prd-activo', 'conmutaProducto']]);
+      if (nuevo) delega(nuevo.parentNode, [['data-lw-prd-nuevo', 'abreProducto']]);
+    }
+  };
+
+  /* Una pantalla de un módulo que esta instancia no tiene (hoy: Productos en Lawang). No se consulta nada: la
+     tabla no existe y la consulta sería un error rojo. Misma forma que notaSoloAdmin. */
+  function notaNoInstalado() {
+    quitaVelo();
+    var main = document.querySelector('main');
+    if (!main) return;
+    var T = function (x) { return (typeof lwT === 'function') ? lwT(x) : x; };
+    main.innerHTML = '<div style="max-width:32rem;margin:6rem auto 0;background:#fff;border-radius:12px;' +
+      'padding:2rem;box-shadow:0 1px 3px rgba(0,0,0,.08);display:flex;flex-direction:column;align-items:center;' +
+      'gap:10px;text-align:center;font-family:\'Neue Kabel\',sans-serif">' +
+      '<span class="material-symbols-outlined" style="font-size:32px;color:#42210B">extension_off</span>' +
+      '<h1 style="margin:0;font-size:22px;font-weight:700;color:#104C4F">' + esc(T('Módulo no disponible')) + '</h1>' +
+      '<p style="margin:0;font-size:14px;color:#44483f">' + esc(T('Este módulo no está instalado en esta intranet.')) + '</p>' +
+      '<a href="../home/" style="margin-top:6px;padding:10px 20px;border-radius:999px;background:#485b37;color:#fff;font-weight:600;font-size:13px;text-decoration:none">' + esc(T('Volver al inicio')) + '</a></div>';
+  }
 
   function arranca() {
     if (!window.LW_AUTH) { console.error('[v4 datos] sin guard: no se cablea nada'); quitaVelo(); return; }
