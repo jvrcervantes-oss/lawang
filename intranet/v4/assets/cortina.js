@@ -47,7 +47,7 @@
     '#lw-cortina button{padding:12px 16px;border-radius:999px;border:0;background:#104C4F;color:#fff;font:700 14px system-ui,sans-serif;cursor:pointer}' +
     '#lw-cortina button[disabled]{opacity:.55;cursor:default}' +
     '#lw-cortina .err{color:#93000A;font-weight:600;min-height:18px}' +
-    '#lw-cortina-chip{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:2147482999;display:flex;align-items:center;gap:8px;padding:8px 8px 8px 14px;border-radius:999px;background:#104C4F;color:#F5F0E6;font:600 12px system-ui,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.2)}' +
+    '#lw-cortina-chip{position:fixed;left:16px;top:12px;z-index:2147482999;display:flex;align-items:center;gap:8px;padding:8px 8px 8px 14px;border-radius:999px;background:#104C4F;color:#F5F0E6;font:600 12px system-ui,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.2)}' +
     '#lw-cortina-chip[hidden]{display:none}' +
     '#lw-cortina-chip b{font-variant-numeric:tabular-nums;min-width:2ch;text-align:right}' +
     '#lw-cortina-chip button{border:0;border-radius:999px;padding:6px 10px;background:#F5F0E6;color:#104C4F;font:700 11px system-ui,sans-serif;cursor:pointer}';
@@ -86,6 +86,12 @@
     }
     capa.style.left = izq + 'px';
     capa.style.top = arriba + 'px';
+    /* El contador va en la barra de arriba, pegado al menú (26-sep-2026, owner):
+       abajo a la derecha tapaba «Guardar» y «Cancelar» de los cajones, que se
+       abren justo ahí. En móvil, sin menú fijo, va centrado en la barra. */
+    if (izq) { chip.style.left = (izq + 24) + 'px'; chip.style.transform = ''; }
+    else { chip.style.left = '50%'; chip.style.transform = 'translateX(-50%)'; }
+    chip.style.top = Math.max(8, Math.round((arriba || 64) / 2 - 20)) + 'px';
   }
   window.addEventListener('resize', recoloca);
   function monta() {

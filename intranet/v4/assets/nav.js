@@ -78,8 +78,8 @@
      mismo instante, para que no se vea nada mientras llega cortina.js (que lo
      sustituye por la suya). Sube CORTINA_V al cambiar cortina.js: no la sella
      sella_assets, que solo recorre las etiquetas de los HTML. */
-  var CORTINA = { 'comision-admin': 15 };
-  var CORTINA_V = '20260923b';
+  var CORTINA = { 'comision-admin': 60 };   // 26-sep-2026, owner: de 15 s a 1 minuto
+  var CORTINA_V = '20260926a';
   /* mascota.js (el Asistente acoplado) tampoco lo sella sella_assets: sube MASCOTA_V al cambiarlo. */
   var MASCOTA_V = '20260925d';
   (function () {
