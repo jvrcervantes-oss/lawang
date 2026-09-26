@@ -579,9 +579,8 @@ function enganchar(m){
 }
 
 /* ---------- guardar ----------
-   Todo en una tanda y con `await` por tabla. Se guarda el modelo PRIMERO: si eso
-   falla no tiene sentido escribir sus hijos, y así no queda un techo actualizado
-   colgando de un modelo que no se guardó. */
+   Una sola llamada al servidor (modelo_ficha_guarda, 27-sep-2026): ficha, precio,
+   techos y extras en UNA transacción; si algo falla, no queda nada a medias. */
 async function guardar(m){
   const btn = document.getElementById('bGuardar'); btn.disabled = true;
   try{

@@ -7,8 +7,9 @@
    por proyecto, techos, extras y obra detrás de un botón.
 
    Quién pinta qué: datos.js carga los datos (una sola tanda) y llama a
-   `lwFichaModelo.pintar(modelo, ctx)`; este módulo pinta los bloques y hace sus
-   escrituras. Las filas de «Unidades» (#d-proyectos, con su «Previsión del
+   `lwFichaModelo.pintar(modelo, ctx)`; este módulo pinta los bloques y pide
+   sus escrituras al servidor (RPC con el permiso dentro, 27-sep-2026, LAW-336
+   bloque 3; el precio va entero en modelo_precios_guarda). Las filas de «Unidades» (#d-proyectos, con su «Previsión del
    deck») y de «Documentos» (#d-docs, abrir el fichero) conservan los ganchos
    que editores.js delega en esos contenedores — no se reescriben aquí.
 
@@ -18,17 +19,19 @@
      base sin mover los techos ABARATA el techo precargado en los proyectos con
      precio propio (Administración, ROJO). Por eso, en un modelo con techos,
      cambiar la base mueve todos los techos (ahora y 2027) la misma cantidad, y
-     el bloque lo enseña antes de guardar.
+     el bloque lo enseña antes de guardar. La diferencia la calcula el
+     SERVIDOR (base nueva − base de la fila bloqueada), no esta pantalla.
    - NULL en `modelos_villa.precio_construccion` = HEREDA la base (resolución
      única en contracts/assets/modelos_catalogo.js). Se distingue «hereda» de
      «fijado a mano, hoy igual a la base»: el segundo NO se mueve con la base.
      Normalizar uno en otro es una pregunta al owner, no algo que se hace solo.
    - Declarar un proyecto que ya tiene unidades del modelo crea la fila con
      NULL (misma forma que lwDeclaraModelosEnProyecto), salvo que la base sea
-     NULL: entonces hereda NADA y se exige precio. Insert simple, no upsert: un
-     upsert pisaría una fila creada en otra pestaña; el 23505 se traduce.
-   - La moneda no se cambia si el modelo ya tiene cifras (filas, techos,
-     extras): no se convierte nada, y un 48.000 EUR leído como IDR es un error
+     NULL: entonces hereda NADA y se exige precio. El servidor da de alta la
+     fila (nunca pisa una creada en otra pestaña: lo dice con su texto).
+   - La moneda no se cambia si el modelo ya tiene filas que cuelgan de él
+     (techos, extras, precios por proyecto, previsión del deck; lo decide la
+     base, revisión #126): no se convierte nada, y un 48.000 EUR leído como IDR es un error
      de tres órdenes de magnitud.
    - `renders_pendientes` NO es «le faltan fotos»: en la web es lo que permite
      publicar la página de un modelo sin fotos (modelo/lib.php). Se rotula así.

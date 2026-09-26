@@ -4,11 +4,14 @@
 -- Cada punto debe decir «ok»; un «FALLO» es un agujero abierto. Usuarios de prueba: un agente
 -- (dortegag@gmail.com) y un admin (p@pabloglobal.es); cámbialos si ya no están activos. Modelo de prueba: el
 -- que tenga más techos y precios por proyecto (Dream el 27-sep).
--- Tras el cierre (revoke + quitar policies) añade el bloque 6.
+-- Tras el cierre (revoke + quitar policies) añade el bloque 8.
 -- Ejecutada el 27-sep-2026 contra producción tras aplicar 20260927120000: bloques 1-5 todo «ok» (1: 14/14;
 -- 2: 19/19, techos 206000→214000 en 4 tramos al subir la base 2000, historial +5; 3: 8/8 y los 3 diseños
--- actuales pasan; 4: 19/19; 5: 10/10). Ensayo en seco del cierre (20260927123000): 0 privilegios y 0 policies
--- de escritura quedan.
+-- actuales pasan; 4: 19/19; 5: 10/10; 6: camino bueno — alcance/acabados normalizados, techo explícito con
+-- el 2027 intacto, extra alta+cambio en EUR, techo del documento, la clásica sube la base 48000→49000 y mueve el
+-- otro techo 48000→49000 y 52000→53000 mientras el tocado a mano queda en 88888, modelos_proyecto_fija con 1 alta,
+-- 2 bajas y 3 rechazadas en uso, foto retipada y movida sin órdenes repetidos; 7: 3/3 tras 121000). Ensayo en
+-- seco del cierre (20260927123000): 0 privilegios y 0 policies de escritura quedan.
 
 -- 1. Agente: no toca precios, fichas, deck ni diseños; sí retipa un documento que no es plano
 do $$
@@ -197,6 +200,78 @@ begin
   raise exception 'RES: %', r;
 end $$;
 
--- 6. (tras el cierre) Escritura directa cerrada: como agente y como admin, insert/update/delete sobre las 11
+-- 6. Camino bueno (admin): cada RPC GUARDA lo que dice, no solo rechaza lo malo
+do $$
+declare r text := ''; m record; py record; tt record; ot record; ex uuid; f1 uuid; o1 int; o2 int; dd record; rm jsonb; ml uuid;
+  ADM text := '{"sub":"24257595-aee2-4daa-8170-d268f46b9981","email":"p@pabloglobal.es","role":"authenticated"}';
+begin
+  select x.* into m from modelos x where exists (select 1 from modelo_techos t where t.modelo_id = x.id) order by x.nombre limit 1;
+  select * into tt from modelo_techos where modelo_id = m.id order by clave limit 1;
+  select * into ot from modelo_techos where modelo_id = m.id and id <> tt.id limit 1;
+  perform set_config('request.jwt.claims', ADM, true);
+  set local role authenticated;
+  perform modelo_guarda(m.id, '{"alcance":{"incluido":["  Cimentación ", ""],"no_incluido":[]},"acabados":[{"n":"Teca","d":"suelo"},{"n":""}],"dormitorios":3}');
+  r := r || '1 ficha: alcance=' || (select alcance::text from modelos where id = m.id) || ' acabados=' || (select acabados::text from modelos where id = m.id) || '; ';
+  perform modelo_techos_guarda(m.id, jsonb_build_array(jsonb_build_object('id', tt.id, 'precio_ahora', 77777)));
+  r := r || '2 techo=' || (select precio_ahora from modelo_techos where id = tt.id) || ' (2027 intacto=' || ((select precio_2027 from modelo_techos where id = tt.id) is not distinct from tt.precio_2027)::text || '); ';
+  select id into ex from extras e where not exists (select 1 from modelo_extras x where x.modelo_id = m.id and x.extra_id = e.id) limit 1;
+  if ex is null then select extra_id into ex from modelo_extras where modelo_id = m.id limit 1; end if;
+  perform modelo_extras_guarda(m.id, jsonb_build_array(jsonb_build_object('extra_id', ex, 'precio', 1234, 'disponible', false)));
+  perform modelo_extras_guarda(m.id, jsonb_build_array(jsonb_build_object('extra_id', ex, 'disponible', true)));
+  r := r || '3 extra=' || (select precio || ' ' || moneda || ' disp=' || disponible from modelo_extras where modelo_id = m.id and extra_id = ex) || '; ';
+  select * into dd from modelo_documentos where modelo_id = m.id and tipo <> 'plano' limit 1;
+  if dd.id is not null then
+    perform modelo_documento_cambia(dd.id, jsonb_build_object('techo_clave', tt.clave, 'tipo', 'ficha'));
+    r := r || '4 doc=' || (select tipo || '/' || techo_clave from modelo_documentos where id = dd.id) || '; ';
+  end if;
+  -- la clásica: ficha + base (+1000 mueve los techos) + un techo tocado a mano (manda) en UNA llamada
+  rm := modelo_ficha_guarda(m.id, '{"notas":"prueba b3"}', jsonb_build_object('base', m.precio_construccion + 1000),
+         jsonb_build_array(jsonb_build_object('id', tt.id, 'precio_ahora', 88888)), '[]');
+  r := r || '5 clásica: base ' || m.precio_construccion || '→' || (select precio_construccion from modelos where id = m.id)
+        || '; techo tocado=' || (select precio_ahora from modelo_techos where id = tt.id)
+        || '; otro techo ' || ot.precio_ahora || '→' || (select precio_ahora from modelo_techos where id = ot.id)
+        || ' y 2027 ' || coalesce(ot.precio_2027::text, 'null') || '→' || coalesce((select precio_2027 from modelo_techos where id = ot.id)::text, 'null') || '; ';
+  select p.id, p.nombre into py from proyectos p
+   where exists (select 1 from modelos_villa v where v.proyecto_id = p.id)
+     and exists (select 1 from unidades u where u.proyecto_id = p.id and u.modelo_id is not null) limit 1;
+  select id into ml from modelos x where not exists (select 1 from modelos_villa v where v.proyecto_id = py.id and v.modelo_id = x.id) limit 1;
+  rm := modelos_proyecto_fija(py.id, array[ml]);
+  r := r || '6 fija en ' || py.nombre || ': altas=' || (rm->>'altas') || ' bajas=' || (rm->>'bajas') || ' rechazadas (en uso)=' || jsonb_array_length(rm->'rechazadas') || '; ';
+  select id into f1 from deck_fotos f where exists (select 1 from deck_fotos g where g.id <> f.id and g.ambito = f.ambito and g.uso = f.uso
+     and g.proyecto_id is not distinct from f.proyecto_id and g.modelo_id is not distinct from f.modelo_id) order by orden limit 1;
+  if f1 is not null then
+    perform deck_foto_cambia(f1, '{"pie":{"en":"Pool","es":"Piscina"},"tipo":"render"}');
+    r := r || '7 foto=' || (select tipo || ' ' || pie::text from deck_fotos where id = f1) || '; ';
+    select orden into o1 from deck_fotos where id = f1;
+    perform deck_foto_mueve(f1, 1);
+    select orden into o2 from deck_fotos where id = f1;
+    r := r || '8 mueve ' || o1 || '→' || o2 || ', órdenes repetidos=' || (select count(*) - count(distinct g.orden) from deck_fotos g, deck_fotos f
+      where f.id = f1 and g.ambito = f.ambito and g.uso = f.uso and g.proyecto_id is not distinct from f.proyecto_id and g.modelo_id is not distinct from f.modelo_id) || '; ';
+    perform deck_foto_fijar_vista((select id from deck_fotos where ambito = 'modelo' limit 1), 'aerea');
+    r := r || '9 vista fijada ok; ';
+  end if;
+  raise exception 'RES: %', r;
+end $$;
+
+-- 7. Freno de Legal de las FAQ, término a término y contra lo PUBLICADO (20260927120500 / 121000)
+do $$
+declare r text := ''; py uuid; f uuid;
+  ADM text := '{"sub":"24257595-aee2-4daa-8170-d268f46b9981","email":"p@pabloglobal.es","role":"authenticated"}';
+begin
+  select id into py from proyectos limit 1;
+  perform set_config('request.jwt.claims', ADM, true);
+  set local role authenticated;
+  f := deck_faq_guarda(null, py, '{"pregunta":{"es":"¿Estructura?"},"respuesta":{"es":"Sin nominee"},"publicado":false}');
+  begin perform deck_faq_guarda(f, null, '{"publicado":true}'); r := r || '1 FALLO guardar sin publicar y publicar después se salta el freno; ';
+  exception when others then r := r || '1 ok; '; end;
+  perform deck_faq_guarda(f, null, '{"respuesta":{"es":"Estructura Hak Sewa"},"publicado":true}');
+  begin perform deck_faq_guarda(f, null, '{"respuesta":{"es":"Estructura Hak Sewa, sin Hak Milik"}}'); r := r || '2 FALLO añade Hak Milik a una publicada; ';
+  exception when others then r := r || '2 ok; '; end;
+  begin perform deck_faq_guarda(null, py, '{"pregunta":{"es":"x"},"respuesta":{"es":"y","id":"imbal hasil dijamin"},"publicado":true}'); r := r || '3 FALLO en indonesio; ';
+  exception when others then r := r || '3 ok; '; end;
+  raise exception 'RES: %', r;
+end $$;
+
+-- 8. (tras el cierre) Escritura directa cerrada: como agente y como admin, insert/update/delete sobre las 11
 -- tablas y subir/borrar en los buckets `modelos` y `deck` falla (privilegio o policy). Mirar también
 -- `relacl` de cada tabla: authenticated solo con SELECT (arwd → r).
