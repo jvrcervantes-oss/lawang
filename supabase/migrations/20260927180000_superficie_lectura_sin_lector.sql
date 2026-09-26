@@ -25,6 +25,31 @@ revoke select on
   public.proyectos_huerfanos, public._respaldo_resort_sandalwoods
 from authenticated, anon;
 
+-- Sus policies de LECTURA quedan como letra muerta: se quitan, para que un `grant select` futuro (o una vista creada con
+-- los privilegios por defecto de Supabase) no reabra la lectura sin que nadie lo vea (revisor de código, 27-sep).
+do $pol$
+declare r record;
+begin
+  for r in select p.tablename, p.policyname from pg_policies p
+            where p.schemaname = 'public' and p.cmd in ('SELECT', 'ALL')
+              and p.tablename in ('axisworks_cuentas','axisworks_facturas','axisworks_meta_campanas','axisworks_meta_campanas_conjuntos',
+                'axisworks_meta_exclusiones_segmento','axisworks_meta_insights_dia','axisworks_meta_targeting_historial','axisworks_meta_vigilancia',
+                'comision_admin_lineas_log','comision_admin_tarifas_log','comisiones_ajustes_log','condiciones_comision_log','cuentas_bancarias_log',
+                'equipos_log','lead_acceso_log','lead_dueno_log','lead_estado_log','unidades_log','unidades_borradas','proyectos_borrados',
+                'creatividad_descargas','avisos_almacenamiento','avisos_soporte_equipo','lead_accion','lead_closer','lead_contrato','lead_estado',
+                'lead_notas','fathom_call_insights','bancos_importaciones','contrato_roles_equipo',
+                'reclamaciones_venta_propia','obra_fase_orden_pago','investor_deck_config','investor_deck_verificaciones','preferencias_comprador',
+                'payments','reservations','_respaldo_resort_sandalwoods')
+              and p.roles && array['anon','authenticated','public']::name[] loop
+    execute format('drop policy %I on public.%I', r.policyname, r.tablename);
+  end loop;
+end $pol$;
+
+-- contrato_identificadores solo la necesitaba la vista lead_sugerencia (ahora sin lectores con sesión): fuera
+-- (Seguridad, superficie §6.3). service_role y las funciones DEFINER la siguen usando.
+revoke execute on function public.contrato_identificadores(jsonb) from public, anon, authenticated;
+grant execute on function public.contrato_identificadores(jsonb) to service_role;
+
 do $$
 declare malos text;
 begin
