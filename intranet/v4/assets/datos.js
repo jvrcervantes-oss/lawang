@@ -7891,7 +7891,7 @@
         : null),
       /* Sin `q()`: un fallo aqui deja la tabla de fees con su propio aviso, no
          tumba el libro. */
-      sb.from('comision_admin_fees').select('id,sociedad,importe,moneda,efectivo_desde,nota,creado_por,created_at')
+      sb.from('comision_admin_fees').select('id,serie_id,sociedad,concepto,beneficiario,importe,moneda,efectivo_desde,nota,creado_por,created_at')
         .order('efectivo_desde', { ascending: false }).order('created_at', { ascending: false })
         .then(function (x) { return x.error ? null : (x.data || []); }, function () { return null; }),
       devenga
@@ -7945,6 +7945,13 @@
          total que se lea como importe de una factura. */
       var sinCobrar = function (l) { return l.estado !== 'cobrada'; };
       var comMes = delMes.filter(sinCobrar), feeMes = delMesTodo.filter(esFee).filter(sinCobrar);
+      /* Varios fees a la vez (26-sep-2026, owner: «el mío y el de mi mujer»):
+         el pie los desglosa por concepto para saber de quién es cada uno. */
+      var feePorId = {}; (fees || []).forEach(function (f) { feePorId[f.id] = f; });
+      var etqFee = function (f) { return f ? f.concepto + (f.beneficiario ? ' (' + f.beneficiario + ')' : '') : 'Fee'; };
+      var desgloseFee = feeMes.filter(function (l) { return l.tipo_linea === 'fee'; }).map(function (l) {
+        return etqFee(feePorId[l.fee_id]) + ' ' + fmt(l.importe, l.moneda);
+      }).join(' · ');
       pon2('k-deben', 'Comisión ' + sumaPorMoneda(comMes) + '\nFee ' + sumaPorMoneda(feeMes));
       var yaCobrado = delMesTodo.filter(function (l) { return l.estado === 'cobrada'; });
       var atrasado = vivas.filter(function (l) {
@@ -7952,6 +7959,7 @@
       });
       pon2('k-deben-pie', (comMes.length || feeMes.length
           ? 'Lo devengado este mes que aún no se ha cobrado: ' + sumaPorMoneda(comMes.concat(feeMes)) + ' en total. Bruto, sin PPN ni retención.'
+            + (desgloseFee ? ' Fees: ' + desgloseFee + '.' : '')
           : 'Este mes no queda nada por cobrar.')
         + (yaCobrado.length ? ' Ya cobrado de este mes: ' + sumaPorMoneda(yaCobrado) + '.' : '')
         + (atrasado.length ? ' Además, sin cobrar de meses anteriores: ' + sumaPorMoneda(atrasado) + '.' : '')
@@ -7969,28 +7977,48 @@
         var p = mesActual.split('-'), d = new Date(Date.UTC(+p[0], +p[1], 0));
         return mesActual + '-' + String(d.getUTCDate()).padStart(2, '0');
       })();
+      /* Por SERIE (un fee = una serie; cambiarlo = fila nueva en la misma). La
+         última fila de cada serie es la que lleva el botón «Cambiar». */
+      var ultFee = {};
       if (fees) fees.forEach(function (f) {
         // vienen por efectivo_desde desc, created_at desc: el primero que rige a fin de mes manda
-        if (f.efectivo_desde <= finMes && !vigFee[f.sociedad]) vigFee[f.sociedad] = f;
+        if (f.efectivo_desde <= finMes && !vigFee[f.serie_id]) vigFee[f.serie_id] = f;
+        if (!ultFee[f.serie_id]) ultFee[f.serie_id] = f;
       });
       window.LW_V4.caFeesVigentes = vigFee;
+      window.LW_V4.caFeePorId = {};
+      if (fees) fees.forEach(function (f) { window.LW_V4.caFeePorId[f.id] = f; });
+      /* Agrupadas por serie (la vigente arriba de su historial), no mezcladas por fecha. */
+      if (fees) {
+        var ordenSerie = {};
+        fees.forEach(function (f, i) { if (!(f.serie_id in ordenSerie)) ordenSerie[f.serie_id] = i; });
+        fees = fees.slice().sort(function (a, b) {
+          return (ordenSerie[a.serie_id] - ordenSerie[b.serie_id]) || (fees.indexOf(a) - fees.indexOf(b));
+        });
+      }
       if (cuerpoFee) {
         cuerpoFee.innerHTML = !fees
-          ? '<tr><td colspan="6" class="px-5 py-8 text-center font-body-md text-body-md text-error">No se han podido leer los fees. Recarga la página.</td></tr>'
+          ? '<tr><td colspan="8" class="px-5 py-8 text-center font-body-md text-body-md text-error">No se han podido leer los fees. Recarga la página.</td></tr>'
           : fees.length ? fees.map(function (f) {
-              var vig = vigFee[f.sociedad] === f;
+              var vig = vigFee[f.serie_id] === f;
               var fut = f.efectivo_desde > finMes;
-              return '<tr class="border-b border-outline-variant/30">' +
-                '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(nombreSociedad(f.sociedad)) + '</td>' +
+              var ult = ultFee[f.serie_id] === f;
+              return '<tr class="border-b border-outline-variant/30' + (ult ? '' : ' opacity-60') + '">' +
+                '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(f.concepto) +
+                  (f.beneficiario ? '<br><span class="font-body-sm text-body-sm text-outline">' + esc(f.beneficiario) + '</span>' : '') + '</td>' +
+                '<td class="px-5 py-4 font-body-sm text-body-sm text-on-surface-variant">' + esc(nombreSociedad(f.sociedad)) + '</td>' +
                 '<td class="px-5 py-4 font-label-md text-label-md text-on-surface text-right">' + esc(fmt(f.importe, f.moneda)) + '</td>' +
                 '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(fFecha(f.efectivo_desde)) + '</td>' +
                 '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' +
                   (vig ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-surface-container-high text-on-surface-variant') + '">' +
                   (vig ? (Number(f.importe) > 0 ? 'Vigente' : 'Sin fee') : (fut ? 'Programado' : 'Histórico')) + '</span></td>' +
                 '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(f.creado_por || '—') + '</td>' +
-                '<td class="px-5 py-4 font-body-sm text-body-sm text-outline max-w-md">' + esc(f.nota || '—') + '</td></tr>';
+                '<td class="px-5 py-4 font-body-sm text-body-sm text-outline max-w-md">' + esc(f.nota || '—') + '</td>' +
+                '<td class="px-5 py-4 text-right">' + (ult
+                  ? '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" data-lw-ca-fee="' + esc(f.id) + '">Cambiar</button>'
+                  : '') + '</td></tr>';
             }).join('')
-          : '<tr><td colspan="6" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Ningún fee fijo dado de alta: pulsa «Fee fijo» arriba para añadirlo.</td></tr>';
+          : '<tr><td colspan="8" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Ningún fee fijo dado de alta: pulsa «Fee fijo» arriba para añadirlo.</td></tr>';
       }
 
       var pendientes = vivas.filter(function (l) { return l.estado === 'pendiente'; });
@@ -8226,8 +8254,10 @@
               else toastMal('El visor de documentos aún está cargando — prueba de nuevo en un segundo.');
             });
           }
+          var feeL = l.fee_id && window.LW_V4.caFeePorId && window.LW_V4.caFeePorId[l.fee_id];
           var recibi = l.fee_id
-            ? esc(l.recibi_numero)
+            ? esc(l.recibi_numero) + (feeL ? '<br><span class="font-body-sm text-body-sm text-on-surface-variant">' +
+                esc(feeL.concepto + (feeL.beneficiario ? ' · ' + feeL.beneficiario : '')) + '</span>' : '')
             : l.recibi_id
             ? '<a class="text-deep-lagoon hover:underline" href="#" data-lw-ver-recibi="' + esc(l.recibi_id) + '">' + esc(l.recibi_numero) + '</a>'
             : esc(l.recibi_numero) + ' <span class="text-error text-[11px] uppercase tracking-wider">borrado</span>';
@@ -8275,6 +8305,7 @@
                          ['data-lw-ca-anula',  'abreAnulaComisionAdmin'],
                          ['data-lw-ca-repone', 'abreReponeComisionAdmin']]);
       delega(cuerpoTar, [['data-lw-ca-tarifa', 'abreEditaTarifaComisionAdmin']]);
+      delega(cuerpoFee, [['data-lw-ca-fee', 'abreCambiaFeeComisionAdmin']]);
     });
   };
 
