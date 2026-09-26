@@ -2816,17 +2816,14 @@
                 confirmar: 'Borrar la ficha', tono: 'peligro'
               }).then(function (ok) {
                 if (!ok) return;
-                sb.rpc('borrar_comprador', { p_client_id: c2.id }).then(function (r) {
-                  if (r.error) { toastMal(lwErrorHumano(r.error)); return; }
-                  var rutas = (r.data && r.data.rutas_kyc) || [];
-                  var limpia = rutas.length ? sb.storage.from('kyc').remove(rutas) : Promise.resolve({});
-                  limpia.then(function (rs) {
-                    if (rs && rs.error) toastMal('Ficha borrada, pero ' + rutas.length + ' fichero(s) KYC no se pudieron quitar del bucket: ' + rs.error.message);
-                    toast('Ficha de ' + ((r.data && r.data.nombre) || 'cliente') + ' borrada' + (rutas.length ? ' · ' + rutas.length + ' documento(s) retirados' : ''));
-                    cj.cierra();
-                    location.reload();
-                  });
-                });
+                // la edge llama a borrar_comprador con tu sesión y borra los ficheros que devuelve la base,
+                // servidor a servidor (27-sep-2026, LAW-336 bloque 2)
+                window.lwKyc(sb, 'borra_comprador', { client_id: c2.id }).then(function (d) {
+                  if (d.ficheros_pendientes) toastMal('Ficha borrada, pero ' + d.ficheros_pendientes + ' fichero(s) KYC no se pudieron quitar del archivo: avisa a Datos.');
+                  toast('Ficha de ' + (d.nombre || 'cliente') + ' borrada' + (d.ficheros_quitados ? ' · ' + d.ficheros_quitados + ' documento(s) retirados' : ''));
+                  cj.cierra();
+                  location.reload();
+                }, function (e) { toastMal(e.message || String(e)); });
               });
             } });
           }
@@ -2925,11 +2922,11 @@
                    editores.js; hallazgo code-review 21-sep-2026). */
                 var p = conDocumentos
                   ? sb.rpc('traspasar_cliente_con_documentos', { p_client_id: c2.id, p_nuevo_propietario: nuevo, p_motivo: motivo })
-                  : sb.from('clients').update({ propietario: nuevo }).eq('id', c2.id).select('id');
+                  : sb.rpc('cliente_traspasa', { p_id: c2.id, p_nuevo: nuevo, p_motivo: motivo || null });
                 p.then(function (r) {
                   bTr.disabled = false;
                   if (r.error) { toastMal(lwErrorHumano(r.error, 'No se pudo traspasar')); return; }
-                  if (!conDocumentos && !(r.data && r.data.length)) {
+                  if (!conDocumentos && !r.data) {
                     toastMal('No se ha traspasado: la base no te ha dejado tocar esta ficha. Habla con un administrador — recargar no lo arregla.');
                     return;
                   }
@@ -3129,23 +3126,25 @@
                     var nombreDoc = DOC_TIPO[d.doc_type] || d.doc_type || 'documento';
                     lwConfirmar({
                       titulo: 'Retirar ' + nombreDoc,
-                      cuerpo: '<p>Se retira <b>' + esc(nombreDoc) + '</b>' + (d.uploaded_at ? ' (subido el ' + esc(fFecha(d.uploaded_at)) + ')' : '') + ' de la ficha, y su fichero del archivo privado.</p><p>No hay papelera: si el documento sigue haciendo falta habrá que volver a subirlo.</p>',
+                      cuerpo: '<p>Se retira <b>' + esc(nombreDoc) + '</b>' + (d.uploaded_at ? ' (subido el ' + esc(fFecha(d.uploaded_at)) + ')' : '') + ' de la ficha, y su fichero del archivo privado.</p><p>No hay papelera: si el documento sigue haciendo falta habrá que volver a subirlo.</p>' +
+                        '<p>Si el comprador tiene un contrato firmado, el fichero NO se destruye: queda archivado, lo retira solo un super admin y hay que escribir el motivo.</p>' +
+                        '<label for="kyc-retira-motivo">Motivo</label><input id="kyc-retira-motivo" type="text" maxlength="300" class="las-in">',
                       confirmar: 'Retirar el documento', tono: 'peligro'
                     }).then(function (ok) {
                       if (!ok) return;
+                      var mEl = document.getElementById('kyc-retira-motivo');
+                      var motivoDoc = ((mEl && mEl.value) || '').trim();
                       b.disabled = true; b.textContent = 'Retirando…';
-                      sb.from('documents').delete({ count: 'exact' }).eq('id', idDoc).then(function (r) {
-                        if (r.error || !r.count) {
-                          b.disabled = false; b.textContent = 'Borrar';
-                          toastMal(r.error ? 'No se pudo retirar: ' + r.error.message : 'No se ha retirado: tu usuario no tiene permiso para borrar documentos.');
-                          return;
-                        }
-                        var limpia = d.storage_path ? sb.storage.from('kyc').remove([d.storage_path]) : Promise.resolve({});
-                        limpia.then(function (rs) {
-                          if (rs && rs.error) toastMal('Documento retirado de la ficha, pero su fichero sigue en el archivo (' + d.storage_path + '): ' + rs.error.message);
-                          toast(nombreDoc + ' retirado');
-                          cargaDocs();
-                        });
+                      // por el servidor (27-sep-2026, LAW-336 bloque 2): la base decide si se puede y si el
+                      // fichero se borra o se conserva (contrato firmado, decisión del owner)
+                      window.lwKyc(sb, 'retira', { document_id: idDoc, motivo: motivoDoc || null }).then(function (r) {
+                        if (r.aviso) toastMal('Documento retirado de la ficha, pero su fichero sigue en el archivo: avisa a Datos.');
+                        toast(nombreDoc + (r.conservado ? ' retirado (el fichero queda archivado)' : ' retirado') +
+                              (r.kyc_vuelve_a_revision ? ' · el KYC vuelve a «En revisión»' : ''));
+                        cargaDocs();
+                      }, function (e) {
+                        b.disabled = false; b.textContent = 'Borrar';
+                        toastMal('No se pudo retirar: ' + (e.message || e));
                       });
                     });
                   });
@@ -3159,17 +3158,15 @@
                   bSub.disabled = true; bSub.textContent = 'Subiendo…';
                   var tipoDoc = cj.cuerpo.querySelector('[data-doc-tipo]').value;
                   var caduca = cj.cuerpo.querySelector('[data-doc-caduca]').value || null;
-                  var limpio = f.name.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w.-]/g, '_');
-                  var path = c2.id + '/' + Date.now() + '_' + limpio;
-                  sb.storage.from('kyc').upload(path, f, { upsert: false, contentType: f.type || 'application/octet-stream' }).then(function (up) {
-                    if (up.error) { bSub.disabled = false; bSub.textContent = 'Subir documento'; toastMal(lwErrorHumano(up.error, 'No se pudo subir')); return; }
-                    // el fichero ya subió: si el insert falla no se reintenta el upload, se avisa igual
-                    sb.from('documents').insert({ client_id: c2.id, doc_type: tipoDoc, storage_path: path, status: 'pending', caduca_el: caduca }).then(function (ins) {
-                      bSub.disabled = false; bSub.textContent = 'Subir documento';
-                      if (ins.error) { toastMal(lwErrorHumano(ins.error, 'El fichero se subió pero no se pudo registrar en la ficha')); return; }
-                      toast('Documento subido');
-                      cargaDocs();
-                    });
+                  // la ruta la decide el servidor, la subida va por URL firmada y al registrar el servidor mira
+                  // que el fichero sea lo que dice ser (27-sep-2026, LAW-336 bloque 2: guard.js lwKycSube)
+                  window.lwKycSube(sb, c2.id, f, tipoDoc, caduca).then(function () {
+                    bSub.disabled = false; bSub.textContent = 'Subir documento';
+                    toast('Documento subido');
+                    cargaDocs();
+                  }, function (e) {
+                    bSub.disabled = false; bSub.textContent = 'Subir documento';
+                    toastMal(lwErrorHumano(e, 'No se pudo subir'));
                   });
                 });
               });

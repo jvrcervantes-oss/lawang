@@ -26,7 +26,7 @@
 <script src="/contracts/assets/visor.js?v=28038adb" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=c5c926ae"></script><script src="/contracts/assets/guard.js?v=c0fd5a8b" data-herramienta="compradores"></script>
+<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=c5c926ae"></script><script src="/contracts/assets/guard.js?v=d6bcca17" data-herramienta="compradores"></script>
 <script src="/contracts/assets/suite.js?v=3cf4a63a"></script>
 <script src="/contracts/assets/geo.js?v=cc6b09b2"></script>
 <style>
@@ -743,7 +743,7 @@ function pintarFicha(){
           <input id="f-rep-cargo" ${dis} value="${esc(c.rep_cargo||'')}" placeholder="Administrador, Director…"></div>
       </div>
       <div class="sui-row">
-        <div><label for="f-kyc">${lwT('Estado KYC')}</label><select class="sui-sel" id="f-kyc" ${dis}>${KYC.map(([v,l])=>`<option value="${v}" ${(c.kyc_status||'pending')===v?'selected':''}>${l}</option>`).join('')}</select></div>
+        <div><label for="f-kyc">${lwT('Estado KYC')}</label><select class="sui-sel" id="f-kyc" ${dis}>${KYC.map(([v,l])=>`<option value="${v}" ${(c.kyc_status||'pending')===v?'selected':''} ${!ES_ADMIN && (v==='verified'||v==='rejected') && (c.kyc_status||'pending')!==v ? 'disabled' : ''}>${l}</option>`).join('')}</select></div>
       </div>
       <label for="f-notas">${lwT('Notas')}</label><textarea id="f-notas" ${dis}>${esc(c.notes||'')}</textarea>
     </fieldset>
@@ -1177,25 +1177,26 @@ async function borrarDocumento(id, btn){
     titulo: 'Retirar ' + nombre,
     cuerpo: '<p>' + lwT('Se retira') + ' <b>' + esc(nombre) + '</b>' + (d.uploaded_at ? ' (subido el ' + esc(fFecha(d.uploaded_at)) + ')' : '')
           + ' ' + lwT('de la ficha, y su fichero del archivo privado.') + '</p>'
-          + '<p>' + lwT('No hay papelera: si el documento sigue haciendo falta habrá que volver a subirlo.') + '</p>',
+          + '<p>' + lwT('No hay papelera: si el documento sigue haciendo falta habrá que volver a subirlo.') + '</p>'
+          + '<p>' + lwT('Si el comprador tiene un contrato firmado, el fichero NO se destruye: queda archivado, lo retira solo un super admin y hay que escribir el motivo.') + '</p>'
+          + '<label for="kyc-retira-motivo">' + lwT('Motivo') + '</label>'
+          + '<input id="kyc-retira-motivo" type="text" maxlength="300">',
     confirmar: lwT('Retirar el documento'), cancelar: lwT('Dejarlo') })) return;
+  const motivo = (($('#kyc-retira-motivo') && $('#kyc-retira-motivo').value) || '').trim();
 
   if(btn){ btn.disabled = true; btn.textContent = lwT('Retirando…'); }
-  const { error, count } = await SB.from('documents').delete({ count:'exact' }).eq('id', id);
-  if(error || !count){
+  /* Por el servidor (27-sep-2026, LAW-336 bloque 2): la base decide si se puede, si el fichero se
+     borra o se conserva (contrato firmado, decisión del owner) y la edge borra el fichero. */
+  let r;
+  try{ r = await window.lwKyc(SB, 'retira', { document_id: id, motivo: motivo || null }); }
+  catch(err){
     if(btn){ btn.disabled = false; btn.textContent = 'Borrar'; }
-    /* Cero filas sin error es la RLS diciendo que no, no un documento que ya no
-       estaba: si no estuviera, tampoco lo enseñaría esta tabla. Se distingue,
-       porque «no se ha borrado» y «no tienes permiso» se arreglan distinto. */
-    toastMal(error ? lwT('No se pudo retirar: ') + error.message
-                : lwT('No se ha retirado: tu usuario no tiene permiso para borrar documentos.'));
+    toastMal(lwT('No se pudo retirar: ') + err.message);
     return;
   }
-  if(d.storage_path){
-    const { error: eSt } = await SB.storage.from('kyc').remove([d.storage_path]);
-    if(eSt) toastMal(lwT('Documento retirado de la ficha, pero su fichero sigue en el archivo (') + d.storage_path + '): ' + eSt.message);
-  }
-  toast(nombre + ' retirado');
+  if(r.aviso) toastMal(lwT('Documento retirado de la ficha, pero su fichero sigue en el archivo: avisa a Datos.'));
+  toast(nombre + (r.conservado ? lwT(' retirado (el fichero queda archivado)') : ' retirado')
+        + (r.kyc_vuelve_a_revision ? lwT(' · el KYC vuelve a «En revisión»') : ''));
   /* Se recarga y se repinta la ficha ABIERTA, no se cierra el cajón: retirar un
      documento suele venir seguido de subir el correcto, y cerrar obligaría a
      buscar otra vez al comprador en la lista. */
@@ -1226,21 +1227,18 @@ async function borrarComprador(c){
   if(!ok) return;
 
   const btn = $('#btnBorrarComprador'); if(btn){ btn.disabled = true; btn.textContent = lwT('Borrando…'); }
-  const { data, error } = await SB.rpc('borrar_comprador', { p_client_id: c.id });
-  if(error){
-    toastMal(lwErrorHumano(error));
+  /* La edge ficheros-kyc llama a borrar_comprador con tu sesión y borra los ficheros que devuelve la
+     base, servidor a servidor (27-sep-2026, LAW-336 bloque 2). */
+  let data;
+  try{ data = await window.lwKyc(SB, 'borra_comprador', { client_id: c.id }); }
+  catch(err){
+    toastMal(err.message);
     if(btn){ btn.disabled = false; btn.textContent = lwT('Borrar cliente'); }
     return;
   }
-  // los ficheros del bucket, con la sesion del super_admin. Si fallara, la ficha
-  // ya no existe (lo importante) y las rutas quedan en el aviso para limpiarlas.
-  const rutas = (data && data.rutas_kyc) || [];
-  if(rutas.length){
-    const { error: eSt } = await SB.storage.from('kyc').remove(rutas);
-    if(eSt) toastMal(lwT('Ficha borrada, pero ') + rutas.length + ' fichero(s) KYC no se pudieron quitar del bucket: ' + eSt.message);
-  }
-  toast(lwT('Ficha de ') + ((data && data.nombre) || 'cliente') + ' borrada'
-    + (rutas.length ? ' · ' + rutas.length + ' documento(s) retirados' : ''));
+  if(data.ficheros_pendientes) toastMal(lwT('Ficha borrada, pero ') + data.ficheros_pendientes + lwT(' fichero(s) KYC no se pudieron quitar del archivo: avisa a Datos.'));
+  toast(lwT('Ficha de ') + (data.nombre || 'cliente') + ' borrada'
+    + (data.ficheros_quitados ? ' · ' + data.ficheros_quitados + ' documento(s) retirados' : ''));
   SEL = null;
   suiCerrarCajon();
   await cargar();
@@ -1310,7 +1308,7 @@ async function traspasar(c){
       cancelar: false,
     });
   } else {
-    const { error } = await SB.from('clients').update({ propietario: nuevo }).eq('id', c.id);
+    const { error } = await SB.rpc('cliente_traspasa', { p_id: c.id, p_nuevo: nuevo, p_motivo: motivo || null });
     if(b) b.disabled = false;
     if(error){ toastMal(lwErrorHumano(error, lwT('No se pudo traspasar: '))); return; }
   }
@@ -1428,11 +1426,11 @@ async function guardar(id){
   }
   const btn=$('#btnGuardar'); btn.disabled=true; btn.textContent=lwT('Guardando…');
   try{
-    const q = id ? SB.from('clients').update(fila).eq('id',id).select().single()
-                 : SB.from('clients').insert(fila).select().single();
-    const { data, error } = await q;
+    /* Por el servidor (27-sep-2026, LAW-336 bloque 2): `cliente_guarda` comprueba permiso, los datos
+       obligatorios del alta y quién puede aprobar el KYC; el dueño de la ficha lo pone él. Devuelve el id. */
+    const { data, error } = await SB.rpc('cliente_guarda', { p_id: id || null, p_datos: fila });
     if(error) throw error;
-    await cargar(); SEL = data.id;
+    await cargar(); SEL = data;
     pintarLista(); pintarFicha();
     toast(lwT(id ? 'Ficha actualizada' : 'Cliente creado'));
   }catch(err){
@@ -1489,20 +1487,10 @@ async function subir(clientId){
   if(!f){ toastMal(lwT('Elige un fichero')); return; }
   if(f.size > 20*1024*1024){ toastMal(lwT('El fichero supera los 20 MB')); return; }
   const btn=$('#btnSubir'); btn.disabled=true; btn.textContent=lwT('Subiendo…');
-  // ruta por comprador: agrupa y evita que dos ficheros con el mismo nombre choquen
-  const limpio = f.name.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w.-]/g,'_');
-  const path = `${clientId}/${Date.now()}_${limpio}`;
+  /* La ruta la decide el servidor, la subida va por URL firmada y al registrar el servidor mira que el
+     fichero sea lo que dice ser (27-sep-2026, LAW-336 bloque 2: edge ficheros-kyc, guard.js lwKycSube). */
   try{
-    const up = await SB.storage.from('kyc').upload(path, f, { upsert:false, contentType:f.type || 'application/octet-stream' });
-    if(up.error) throw up.error;
-    const ins = await SB.from('documents').insert({
-      client_id: clientId,
-      doc_type: $('#d-tipo').value,
-      storage_path: path,
-      status: 'pending',
-      caduca_el: $('#d-caduca').value || null,
-    });
-    if(ins.error) throw ins.error;   // el fichero ya subió; reintentar no duplica la fila
+    await window.lwKycSube(SB, clientId, f, $('#d-tipo').value, $('#d-caduca').value || null);
     await cargar(); pintarLista(); pintarFicha();
     toast(lwT('Documento subido'));
   }catch(err){

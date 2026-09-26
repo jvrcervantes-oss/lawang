@@ -84,6 +84,46 @@
       return d;
     });
   });
+  /* Documentos KYC de compradores por la edge ficheros-kyc (27-sep-2026, LAW-336 bloque 2): la ruta la
+     decide el servidor, la subida va por URL firmada y al registrar el servidor mira los primeros bytes;
+     retirar y borrar ficheros, también el servidor. Una sola copia para la clásica y la v4. Lanza un Error
+     con el texto para la persona (y `.code` = el de Postgres, si lo hubo). */
+  var KYC_ERR = {
+    comprador_no_visible: 'No encuentro ese comprador entre los tuyos',
+    tipo_de_fichero_no_admitido: 'Ese tipo de fichero no se admite: sube un PDF o una foto (JPG, PNG, WEBP, HEIC)',
+    el_fichero_no_ha_llegado: 'El fichero no ha llegado al archivo: vuelve a subirlo',
+    el_fichero_no_es_lo_que_dice_ser: 'El fichero no es lo que dice ser (su contenido no cuadra con la extensión): no se ha guardado',
+    solo_super_admin: 'Esto solo lo hace un super admin',
+    solo_equipo: 'Tu usuario no es del equipo',
+    sin_sesion: 'Tu sesión ha caducado: vuelve a entrar', sesion_invalida: 'Tu sesión ha caducado: vuelve a entrar'
+  };
+  fija('lwKyc', function (sb, accion, datos) {
+    return sb.auth.getSession().then(function (s) {
+      var t = s && s.data && s.data.session && s.data.session.access_token;
+      return fetch(URL_SB + '/functions/v1/ficheros-kyc', { method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (t || '') },
+        body: JSON.stringify(Object.assign({ accion: accion }, datos || {})) });
+    }).then(function (r) {
+      return r.json().catch(function () { return { ok: false, error: 'Respuesta inválida del servidor' }; });
+    }).then(function (d) {
+      if (!d.ok) { var e = new Error(KYC_ERR[d.error] || d.error || 'error del servidor'); e.code = d.code; throw e; }
+      return d;
+    });
+  });
+  // Subir un documento: pedir la ruta → subir con el content-type que dice el servidor → registrarlo.
+  fija('lwKycSube', function (sb, clientId, f, tipoDoc, caduca) {
+    var ext = (String(f.name).match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
+    return window.lwKyc(sb, 'subida_url', { client_id: clientId, ext: ext }).then(function (u) {
+      /* Con un File, supabase-js manda el tipo QUE TRAE EL FICHERO e ignora `contentType` (storage-js,
+         uploadToSignedUrl): un HEIC llega sin tipo y el bucket lo rechazaría. Se sube una copia con el
+         tipo que ha decidido el servidor por la extensión. */
+      var conTipo = new File([f], f.name, { type: u.content_type });
+      return sb.storage.from('kyc').uploadToSignedUrl(u.path, u.token, conTipo, { contentType: u.content_type }).then(function (up) {
+        if (up.error) throw up.error;
+        return window.lwKyc(sb, 'registra', { client_id: clientId, path: u.path, doc_type: tipoDoc, caduca_el: caduca || null });
+      });
+    });
+  });
   /* MODO QA (28-ago-2026) — revisión previa: Desarrollo + Datos + Seguridad,
      CEO/revisiones/estado.json. Único punto de entrada para las herramientas
      que cargan guard.js: nunca se copia este `if` en cada index.html (los

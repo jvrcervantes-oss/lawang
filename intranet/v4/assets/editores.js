@@ -7333,9 +7333,9 @@
         var telAlta = v.prefijo ? v.prefijo + ' ' + v.telefono : (v.telefono || null);
         return telefonoRepetidoSigue(telAlta, null).then(function (sigue) {
           if (sigue !== true) return sigue;
-          return sb.from('clients').insert({
-            // MAYÚSCULAS, igual que el UPDATE de editar: el contrato y la
-            // factura enlazan esta ficha y la imprimen tal cual.
+          // Por el servidor (27-sep-2026, LAW-336 bloque 2): cliente_guarda comprueba los datos del alta y
+          // pone el dueño de la ficha; nombre y pasaporte en MAYÚSCULAS los deja él.
+          return sb.rpc('cliente_guarda', { p_id: null, p_datos: {
             full_name: v.full_name.trim().toUpperCase(), email: v.email || null,
             phone: telAlta,
             nationality: v.nationality || null, passport_number: v.passport_number ? v.passport_number.toUpperCase() : null,
@@ -7344,7 +7344,7 @@
             registro_num: v.tipo === 'empresa' ? (v.registro_num || null) : null,
             rep_nombre: v.tipo === 'empresa' ? (v.rep_nombre || null) : null,
             rep_cargo: v.tipo === 'empresa' ? (v.rep_cargo || null) : null
-          }).then(errorClienteHumano);
+          } }).then(errorClienteHumano);
         });
       }
 
@@ -7671,7 +7671,8 @@
           { k: 'tipo', label: 'Tipo de cliente', tipo: 'select', medio: 1, valor: c.tipo || 'persona',
             opciones: [['persona', 'Persona física'], ['empresa', 'Empresa']] },
           { k: 'kyc_status', label: 'Estado KYC', tipo: 'select', medio: 1, valor: c.kyc_status || 'pending',
-            opciones: [['pending', 'Pendiente'], ['submitted', 'En revisión'], ['verified', 'Aprobado'], ['rejected', 'Rechazado']] },
+            opciones: [['pending', 'Pendiente'], ['submitted', 'En revisión'], ['verified', 'Aprobado'], ['rejected', 'Rechazado']]
+              .filter(function (o) { return (window.LW_V4 && window.LW_V4.esAdmin) || (o[0] !== 'verified' && o[0] !== 'rejected') || o[0] === (c.kyc_status || 'pending'); }) },
           { k: 'full_name', label: esEmpresa ? 'Razón social' : 'Nombre completo', req: 1, valor: c.full_name || '' },
           { k: 'email', label: 'Email', tipo: 'email', valor: c.email || '',
             ayuda: 'Solo de contacto: cambiarlo NO cambia con qué email entra al portal.' },
@@ -7713,6 +7714,9 @@
             rep_cargo: v.tipo === 'empresa' ? (v.rep_cargo.trim() || null) : null,
             notes: v.notes.trim() || null
           };
+          // La ficha abierta desde el directorio no trae `notes`: mandarla vacía las borraría sin que nadie
+          // lo haya querido. cliente_guarda solo toca las claves que llegan.
+          if (!('notes' in c)) delete patch.notes;
           // Solo se avisa si el teléfono CAMBIA: una ficha antigua que ya lo compartía se sigue pudiendo editar sin preguntar cada vez.
           var telCambia = typeof telefonoDigitos === 'function' && telefonoDigitos(patch.phone) !== telefonoDigitos(c.phone);
           return (telCambia ? telefonoRepetidoSigue(patch.phone, c.id) : Promise.resolve(true)).then(function (sigue) {
@@ -7731,7 +7735,7 @@
               if (!Object.keys(pedido).length) return { error: { message: 'No has cambiado nada respecto a la ficha.' } };
               return pideCambio(c, 'editar_comprador', pedido, v.motivo);
             }
-            return sb.from('clients').update(patch).eq('id', c.id).select('id').then(unaFila).then(errorClienteHumano);
+            return sb.rpc('cliente_guarda', { p_id: c.id, p_datos: patch }).then(errorClienteHumano);
           });
         }, pedir ? { sinRecarga: true } : undefined);
         if (window.lwPicker && typeof NACIONALIDADES !== 'undefined') {
