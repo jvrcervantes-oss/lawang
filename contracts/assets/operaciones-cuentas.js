@@ -58,7 +58,7 @@ function compradoresNombrados(o){
    entera para el ratón. */
 function resumenCompradores(o){
   const s = String(o.comprador_nombre || '').trim();
-  if(!s) return { texto:ocT('Sin comprador'), extra:'', titulo:'' };
+  if(!s) return { texto:ocT('Sin cliente'), extra:'', titulo:'' };
   const partes = s.split(' · ').filter(x => x.trim());
   return {
     texto: partes[0],
