@@ -7343,7 +7343,7 @@
            porque el editor de `editores.js` los rellena desde aqui, sin una
            segunda consulta. */
         q(sb.from('cuentas_bancarias')
-            .select('clave,label,titular,banco,cuenta,codigo,direccion,extra,orden,activa,es_escrow,es_propia,actualizado_en')
+            .select('clave,label,titular,banco,cuenta,codigo,direccion,extra,orden,activa,es_escrow,es_propia,actualizado_en,verificada_en')
             .order('orden'), 'cuentas bancarias', cajaCu),
         q(sb.from('plantillas_contrato').select('slug,nombre,orden,cobra,archivada').order('orden'), 'tipos de contrato', cajaRep),
         q(sb.from('plantilla_cuentas').select('slug,clave,es_default'), 'reparto por contrato'),

@@ -8932,10 +8932,20 @@
 
         modal(c.label || clave, [
           { k: 'label', label: 'Etiqueta (la que se ve en el desplegable)', valor: c.label, req: 1 },
+        ].concat(c.verificada_en ? [
+          /* LAW-342: activada alguna vez = sus datos bancarios ya no cambian (lo
+             impone el trigger de la base); aquí solo se enseñan */
+          { tipo: 'lectura', label: 'Titular', valor: c.titular, medio: 1 },
+          { tipo: 'lectura', label: 'Banco', valor: c.banco, medio: 1 },
+          { tipo: 'lectura', label: 'Número de cuenta', valor: c.cuenta, medio: 1 },
+          { tipo: 'lectura', label: 'Código Swift / Routing', valor: c.codigo, medio: 1 },
+          { tipo: 'nota', label: 'Esta cuenta ya se ha usado: su titular, banco, número y Swift no se cambian, porque los contratos firmados la reimprimen. Para otro número, crea una cuenta nueva y cámbiala en el reparto.' }
+        ] : [
           { k: 'titular', label: 'Titular', valor: c.titular, medio: 1 },
           { k: 'banco', label: 'Banco', valor: c.banco, medio: 1 },
           { k: 'cuenta', label: 'Número de cuenta', valor: c.cuenta, medio: 1 },
-          { k: 'codigo', label: 'Código Swift / Routing', valor: c.codigo, medio: 1 },
+          { k: 'codigo', label: 'Código Swift / Routing', valor: c.codigo, medio: 1 }
+        ]).concat([
           { k: 'direccion', label: 'Domicilio del banco', valor: c.direccion },
           { k: 'nota_es', tipo: 'textarea', valor: nota.es, label: 'Nota que se imprime en el contrato — ES' },
           { k: 'nota_en', tipo: 'textarea', valor: nota.en, label: 'Nota — EN', medio: 1 },
@@ -8949,7 +8959,7 @@
           { k: 'activa', tipo: 'check', valor: c.activa, label: 'Activa',
             ayuda: '⚠️ Desactivarla la retira de todos los desplegables, y además los contratos y facturas ya emitidos con ella salen SIN el bloque de datos bancarios al reabrirlos o reimprimirlos, sin ningún aviso (verificado el 18-sep: entities.js carga solo las activas y la tabla se omite entera si falta la clave). La fila no se borra y reactivarla lo devuelve todo. Si la cuenta está en documentos emitidos, déjala activa y quítala del reparto.' },
           { tipo: 'custom', render: function (host) { leeRep = montaRepartoPorCuenta(host, d, clave); } }
-        ], 'Guardar cambios', function (v) {
+        ]), 'Guardar cambios', function (v) {
           /* La cuenta y su reparto en UNA llamada y una transacción
              (`cuenta_bancaria_guarda`). `clave` no se cambia nunca: el servidor
              la usa solo para encontrar la fila. */
@@ -8958,13 +8968,14 @@
           }).filter(Boolean) : [];
           return Promise.resolve(sb.rpc('cuenta_bancaria_guarda', {
             p_clave: clave, p_nueva: false,
-            p_datos: {
-              label: v.label, titular: v.titular, banco: v.banco, cuenta: v.cuenta,
-              codigo: v.codigo, direccion: v.direccion,
+            p_datos: Object.assign(c.verificada_en ? {} : {
+              titular: v.titular, banco: v.banco, cuenta: v.cuenta, codigo: v.codigo
+            }, {
+              label: v.label, direccion: v.direccion,
               extra: lwNotaCuenta.aJson({ es: v.nota_es, en: v.nota_en, id: v.nota_id }),
               es_escrow: !!v.es_escrow, activa: !!v.activa,
               es_propia: v.es_propia === 'si' ? true : v.es_propia === 'no' ? false : null
-            },
+            }),
             p_reparto: niveles.length ? niveles : null
           })).then(function (r) {
             recarga();                     // en las dos ramas: ver la nota de «por contrato»

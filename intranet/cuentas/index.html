@@ -248,7 +248,7 @@ async function cargar(){
   // este panel es justo donde hay que ver —y poder reactivar— una desactivada.
   const [cu, pl, re, us, pr, pcu, pu] = await Promise.all([
     SB.from('cuentas_bancarias')
-      .select('clave,label,titular,banco,cuenta,codigo,direccion,extra,orden,activa,es_escrow,actualizado_en')
+      .select('clave,label,titular,banco,cuenta,codigo,direccion,extra,orden,activa,es_escrow,actualizado_en,verificada_en')
       .order('orden'),
     // el catalogo COMPLETO: las 20 plantillas, no solo las 8 que cobran. `cobra`
     // decide si su ficha pinta el reparto de cuentas; `archivada`, si se ofrece
@@ -658,6 +658,8 @@ function pintarFichaCuenta(){
   const c = CUENTAS.find(x => x.clave === SEL);
   if(!c){ $('#ficha').innerHTML = '<div class="vacio">' + lwT('Elige una cuenta') + '</div>'; return; }
   const ro = PUEDO_ESCRIBIR ? '' : ' disabled';
+  // LAW-342: una cuenta ya activada alguna vez no cambia sus datos bancarios (lo impone la base)
+  const roBanco = c.verificada_en ? ' disabled' : ro;
   const nota = lwNotaCuenta.lee(c.extra);
 
   const aviso = PUEDO_ESCRIBIR ? '' :
@@ -672,10 +674,11 @@ function pintarFichaCuenta(){
     + '<div class="caja"><h3>' + lwT('Datos de la cuenta') + '</h3>'
       + '<div class="par">'
         + campo('label',    lwT('Etiqueta (la que se ve en el desplegable)'), c.label, ro, true)
-        + campo('titular',  lwT('Titular'),  c.titular, ro)
-        + campo('banco',    lwT('Banco'),    c.banco,   ro)
-        + campo('cuenta',   lwT('Número de cuenta'), c.cuenta, ro)
-        + campo('codigo',   lwT('Código Swift / Routing'), c.codigo, ro)
+        + campo('titular',  lwT('Titular'),  c.titular, roBanco)
+        + campo('banco',    lwT('Banco'),    c.banco,   roBanco)
+        + campo('cuenta',   lwT('Número de cuenta'), c.cuenta, roBanco)
+        + campo('codigo',   lwT('Código Swift / Routing'), c.codigo, roBanco)
+        + (c.verificada_en ? '<p class="nota f-full">' + lwT('Esta cuenta ya se ha usado: su titular, banco, número y Swift no se cambian, porque los contratos firmados la reimprimen. Para otro número, crea una cuenta nueva y cámbiala en el reparto.') + '</p>' : '')
         + campo('direccion',lwT('Domicilio del banco'), c.direccion, ro, true)
         + '<div class="f-full"><label class="f">' + lwT('Nota que se imprime en el contrato (opcional)') + '</label>'
           + '<div class="par">'
@@ -878,15 +881,17 @@ async function guardarCuenta(clave){
   if(!label){ toastMal(lwT('La etiqueta no puede quedar vacía: es lo que se lee en el desplegable del contrato.')); return; }
   const cambios = {
     label:     label,
-    titular:   val('titular').trim(),
-    banco:     val('banco').trim(),
-    cuenta:    val('cuenta').trim(),
-    codigo:    val('codigo').trim(),
     direccion: val('direccion').trim(),
     extra:     lwNotaCuenta.aJson({ es: nota.es.trim(), en: nota.en.trim(), id: nota.id.trim() }),
     es_escrow: !!($('#f_escrow') || {}).checked,
     activa:    !!($('#f_activa') || {}).checked,
   };
+  // los datos bancarios solo viajan si la cuenta nunca se ha activado (LAW-342)
+  const c = CUENTAS.find(x => x.clave === clave);
+  if(!(c && c.verificada_en)){
+    cambios.titular = val('titular').trim(); cambios.banco  = val('banco').trim();
+    cambios.cuenta  = val('cuenta').trim();  cambios.codigo = val('codigo').trim();
+  }
   /* `clave` no se cambia nunca: va guardada dentro de cada contrato emitido; el
      servidor solo la usa para encontrar la fila. Por el servidor
      (`cuenta_bancaria_guarda`): quien no es super admin recibe un error, no un
