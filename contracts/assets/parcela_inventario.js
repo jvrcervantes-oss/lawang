@@ -441,18 +441,18 @@ async function syncPrecioObraVinculada(){
      tiene CC00030 (C1, 93.000) y CC00031 (C2, 95.000) —, y hasta hoy se
      precargaba la obra de TODAS en cada una. Sin parcela elegida no se precarga
      nada; al elegirla (selector de syncUnidadConstruccion) se vuelve a llamar. */
-  let unidadElegida = '';
-  if(codsPadre.length > 1){
-    if(!UNIDAD_ID_CONSTRUCCION) return;
+  const varias = codsPadre.length > 1;
+  if(varias && !UNIDAD_ID_CONSTRUCCION) return;
+  // la clave se decide ANTES de cualquier espera: esto corre en cada pasada del formulario
+  const clave = sel.value + '|' + (varias ? UNIDAD_ID_CONSTRUCCION : '');
+  if(clave === OBRA_VINCULO_HECHO) return;
+  OBRA_VINCULO_HECHO = clave;                        // se marca ANTES de esperar, o dos teclas seguidas lanzan dos avisos
+  if(varias){
     const { data:ue } = await sb.from('unidades').select('codigo,contrato_id')
       .eq('id', UNIDAD_ID_CONSTRUCCION).maybeSingle();
     if(!ue || ue.contrato_id !== padre.id) return;
     codsPadre = [ue.codigo];
-    unidadElegida = UNIDAD_ID_CONSTRUCCION;
   }
-  const clave = sel.value + '|' + unidadElegida;
-  if(clave === OBRA_VINCULO_HECHO) return;
-  OBRA_VINCULO_HECHO = clave;                        // se marca ANTES de esperar, o dos teclas seguidas lanzan dos avisos
   /* Si la parcela no está en el inventario o le faltan precios, mejor no tocar
      nada que precargar una obra a medias. */
   const { data:us, error } = await sb.from('unidades')
