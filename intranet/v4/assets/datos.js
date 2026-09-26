@@ -6045,7 +6045,9 @@
          inactivas. */
       var t = tablaPor([/NOMBRE|USUARIO/, /ROL|HERRAMIENTAS/]);
       Promise.all([
-        q(sb.from('usuarios').select('user_id,nombre,email,rol,activo,herramientas,proyectos,proyectos_supervisados,tipos_contrato,creado_en,creado_por').order('nombre'), 'usuarios', t),
+        /* numero_usuario (USR-00001, 26-sep-2026, owner): lo pone la base al dar de alta y no cambia nunca
+           (trg_usuarios_numero_usuario). Grant de lectura por columna: `usuarios` no tiene grant de tabla. */
+        q(sb.from('usuarios').select('user_id,numero_usuario,nombre,email,rol,activo,herramientas,proyectos,proyectos_supervisados,tipos_contrato,creado_en,creado_por').order('nombre'), 'usuarios', t),
         /* `enlace` es lo que hace que la auditoria sea navegable (owner: «que
            tenga enlaces vivos linkables»): la campana viva ya lo usa, aqui
            se leia solo el titulo. 30 y no 8: los que sobran de 6 se pliegan
@@ -6087,6 +6089,7 @@
           var soyAdmin = !!(window.LW_V4.esAdmin);
           var cuerpo =
             H.seccion('Cuenta',
+              H.dato('Nº de usuario', u.numero_usuario) +
               H.dato('Email', u.email) +
               H.dato('Rol', rolDe(u)) +
               H.dato('Estado', u.activo ? H.tag('Activo', 'ok') : H.tag('Inactivo', 'mal'), { html: 1 }) +
@@ -6121,7 +6124,7 @@
             cuerpo += H.nota('Editar permisos o contraseñas es de administración: aquí solo se consulta.');
           }
           acciones.push({ texto: 'Cerrar', cerrar: true });
-          window.lwCajon({ sub: 'Ficha de usuario', titulo: u.nombre || u.email || '—', bajoTitulo: u.nombre ? u.email : '',
+          window.lwCajon({ sub: 'Ficha de usuario', titulo: u.nombre || u.email || '—', bajoTitulo: [u.numero_usuario, u.nombre ? u.email : ''].filter(Boolean).join(' · '),
                            cuerpo: cuerpo, acciones: acciones, alCerrar: quitaU });
           var u2 = new URL(location.href);
           u2.searchParams.set('u', u.email || '');
@@ -6137,6 +6140,9 @@
               String((u.proyectos || []).length),
               u.activo ? 'ACTIVO' : 'INACTIVO', '']);
             var tr = pl.tbody.lastElementChild;
+            // el nº bajo el nombre, igual que CLI- en Compradores; el buscador lo encuentra (filtra por textContent)
+            var td0 = tr.querySelector('td');
+            if (td0 && u.numero_usuario) td0.insertAdjacentHTML('beforeend', '<div style="font-size:11px;color:#75786e;letter-spacing:.02em">' + esc(u.numero_usuario) + '</div>');
             tr.style.cursor = 'pointer';
             tr.setAttribute('data-email', u.email || '');
             tr.setAttribute('data-rol', u.rol || '');
