@@ -427,10 +427,18 @@ Deno.serve(async (req) => {
       // `usuarios` (un comprador del portal) no se toca desde aquí — antes `destino` nulo
       // pasaba. Y un admin solo con las de rango inferior: ni super_admin ni otro admin
       // (sí la suya propia). El super_admin puede con cualquiera del equipo.
-      const { data: destino } = await admin.from('usuarios').select('rol').eq('user_id', user_id).maybeSingle();
+      const { data: destino } = await admin.from('usuarios').select('rol, herramientas').eq('user_id', user_id).maybeSingle();
       if (!destino) return json({ error: 'no_es_cuenta_del_equipo' }, 403);
       if (!soySuper && user_id !== quien.user.id && ['super_admin', 'admin'].includes(destino.rol))
         return json({ error: 'no_autorizado' }, 403);
+      // LAW-343 (27-sep-2026, Seguridad): poner la contraseña de una cuenta con herramientas que tú no tienes
+      // es usarlas entrando con ella. Un admin no-super solo la cambia si todas las de esa cuenta son suyas.
+      if (!soySuper && user_id !== quien.user.id) {
+        const mias = new Set((ficha.herramientas ?? []).map(String));
+        const ajenas = ((destino.herramientas ?? []) as string[]).map(String).filter((h) => !mias.has(h));
+        if (ajenas.length) return json({ error: 'cuenta_con_herramientas_que_no_tienes', detalle: ajenas,
+                                         ayuda: 'Esta contraseña la cambia un super admin.' }, 403);
+      }
       const { error } = await admin.auth.admin.updateUserById(user_id, { password });
       if (error) return json({ error: error.message }, 400);
       return json({ ok: true });

@@ -195,11 +195,27 @@ Deno.serve(async (req) => {
     // lee como «quién lo tiene», y una fila que falta acaba en un reenvío duplicado.
     let registrado: boolean | undefined;
     if (contratoId || facturaId) {
+      // PRUEBA DE LO QUE SALIÓ (LAW-343, 27-sep-2026, Seguridad): el PDF lo manda el navegador, así que se
+      // guarda una copia en un bucket privado (solo service role), con su sha256 y el mensaje. Si la copia
+      // falla, el registro se escribe igual (el correo ya salió) y se anota en el log.
+      let pdf_path: string | null = null, pdf_sha256: string | null = null, pdf_bytes: number | null = null;
+      if (pdfB64) {
+        try {
+          const bytes = Uint8Array.from(atob(pdfB64), (c) => c.charCodeAt(0));
+          pdf_bytes = bytes.length;
+          const h = await crypto.subtle.digest('SHA-256', bytes);
+          pdf_sha256 = [...new Uint8Array(h)].map((x) => x.toString(16).padStart(2, '0')).join('');
+          const ruta = new Date().toISOString().slice(0, 7) + '/' + crypto.randomUUID() + '.pdf';
+          const { error: eCp } = await admin.storage.from('correos-enviados').upload(ruta, bytes, { contentType: 'application/pdf', upsert: false });
+          if (eCp) console.error('copia del PDF enviado: ' + eCp.message); else pdf_path = ruta;
+        } catch (e) { console.error('copia del PDF enviado: ' + String((e as Error)?.message ?? e)); }
+      }
       const { error: eLog } = await admin.from('correos_enviados').insert({
         contrato_id: contratoId, factura_id: facturaId,
         para: to, asunto: subject,
         via: facturaId ? 'factura' : (via ?? 'manual'),
         enviado_por: quien.user.email ?? null,
+        mensaje: message.slice(0, 20000), pdf_path, pdf_sha256, pdf_bytes,
       });
       registrado = !eLog;
       if (eLog) console.error('correos_enviados: ' + eLog.message);
