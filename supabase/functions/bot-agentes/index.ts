@@ -385,8 +385,8 @@ function compilaFrenos(lista: Bloqueo[]): { reglas: Regla[] } | { invalido: stri
 
 /* ── Administración de FAQ (super_admin): faq_guardar / faq_retirar ──────
    Mismo endpoint y misma sesión que la consulta, pero sin modelo ni contrato.
-   El candado es la RLS de bot_faq (insert/update solo super_admin) y los
-   triggers de la base (bot_faq_frena, bot_faq_inmutable): aquí se valida
+   El candado son las RPC bot_faq_aprobar / bot_faq_retirar (super_admin dentro,
+   27-sep-2026) y los triggers de la base (bot_faq_frena, bot_faq_inmutable): aquí se valida
    ANTES para devolver un error legible, y se repiten el freno de cifras y los
    patrones del bot para que no se apruebe como FAQ lo que el bot tiene
    prohibido decir. Sin console.log de textos. */
@@ -409,9 +409,11 @@ async function administraFaq(accion: string, body: Record<string, unknown>, emai
   // super_admin, y un {ok:true} ahí sería una alarma rota que se lee como
   // «todo bien». 0 filas = no existe o no es tuyo (la RLS no lo distingue).
   const retira = async (id: string): Promise<FalloFaq | null> => {
-    const r = await sb.from('bot_faq').update({ activo: false }).eq('id', id).select('id');
+    // Por RPC con el permiso dentro (27-sep-2026, cierre global de escrituras): la sesión del usuario ya no
+    // puede escribir bot_faq directamente. false = no existe o ya estaba retirada.
+    const r = await sb.rpc('bot_faq_retirar', { p_id: id });
     if (r.error) return errorPg(r.error, 'no_se_pudo_retirar_faq');
-    if (!r.data || r.data.length === 0) return { error: 'faq_no_encontrada', status: 404 };
+    if (r.data !== true) return { error: 'faq_no_encontrada', status: 404 };
     return null;
   };
 
@@ -464,14 +466,16 @@ async function administraFaq(accion: string, body: Record<string, unknown>, emai
   // (4) insert con el cliente del usuario: la RLS es el candado. aprobado_por
   //     y aprobado_en los pone el trigger desde la sesión, nunca el body. Sin
   //     .select() encadenado: el id se genera aquí y se devuelve.
+  // Por RPC (27-sep-2026): aprobar la nueva y retirar la que sustituye van en UNA transacción; los triggers
+  // bot_faq_frena / bot_faq_inmutable siguen mandando y aprobado_por sale de la sesión.
   const id = crypto.randomUUID();
-  const ins = await sb.from('bot_faq').insert({ id, tema_clave, proyecto_id, tipo_contrato, pregunta, respuesta, sustituye_a });
+  const ins = await sb.rpc('bot_faq_aprobar', { p_id: id, p_tema: tema_clave, p_proyecto: proyecto_id, p_tipo: tipo_contrato,
+                                                p_pregunta: pregunta, p_respuesta: respuesta, p_sustituye: sustituye_a });
   if (ins.error) return responde(errorPg(ins.error, 'no_se_pudo_guardar_faq'));
   if (sustituye_a) {
-    const fallo = await retira(sustituye_a);
-    // La nueva ya está guardada: se devuelve su id y se dice, no se calla, que
-    // la anterior sigue activa.
-    if (fallo) return json({ id, sustituye_a, anterior_retirada: false, aviso: 'no_se_pudo_retirar_anterior', detalle: fallo.error });
+    const retirada = (ins.data as { anterior_retirada?: boolean } | null)?.anterior_retirada === true;
+    // La anterior ya estaba retirada (o no existía): la nueva queda guardada y se dice.
+    if (!retirada) return json({ id, sustituye_a, anterior_retirada: false, aviso: 'anterior_ya_no_estaba_activa' });
     return json({ id, sustituye_a, anterior_retirada: true });
   }
   return json({ id });

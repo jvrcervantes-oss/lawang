@@ -69,7 +69,7 @@
   7. CTA "Solicitar Asignación": el mockup era un <form onsubmit="alert(...)">
      de mentira. Aquí escribe de verdad en la tabla `leads` ya existente
      (CRM de Lawang, Regla 0: no se crea tabla nueva) vía su policy
-     "anon can insert leads" ya revisada — sin Edge Function nueva.
+     "anon can insert leads" — DESFASADO (27-sep-2026): esta página ya no escribe en `leads` (solo llama a RPC investor_deck_*), y desde ese día anon no puede insertar en `leads`; el único alta pública es la RPC lead_publico_alta.
 
   Lo que SÍ es del mockup, calcado: tokens de color/tipografía/espaciado/
   radio (DESIGN.md), estructura de secciones, componentes visuales.

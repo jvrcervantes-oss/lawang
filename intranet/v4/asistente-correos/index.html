@@ -723,7 +723,7 @@
       der.className = 'flex items-center gap-2 shrink-0';
       der.appendChild(botonFila(lwT('Ver'), 'visibility', function () { verConsulta(c, ctx); }));
       der.appendChild(botonFila(lwT('Reutilizar pregunta'), 'replay', function () { reutilizar(c, ctx); }));
-      /* Solo super_admin: la RLS de bot_faq rechaza el insert a cualquier otro;
+      /* Solo super_admin: la RPC bot_faq_aprobar rechaza a cualquier otro;
          aquí solo se evita ofrecer lo que va a fallar. */
       if (ctx.super && c.respuesta) {
         der.appendChild(botonFila(lwT('Fijar como respuesta aprobada'), 'verified', function () {
@@ -1095,7 +1095,7 @@
     // guard.js resuelve {sb, session, ficha}: el email sale de la ficha o, si no, de la sesión.
     var email = (aut.ficha && aut.ficha.email) || (aut.session && aut.session.user && aut.session.user.email) || '';
     /* super_admin solo destapa la UI de administración; el candado real es
-       la RLS de bot_faq y los triggers de la base. */
+       la RPC de bot_faq (super_admin dentro) y los triggers de la base. */
     var esSuper = !!(aut.ficha && aut.ficha.rol === 'super_admin');
     var ctx = { sb: sb, email: email, etiquetaPorId: etiquetaPorId, super: esSuper };
 

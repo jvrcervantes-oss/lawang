@@ -96,8 +96,7 @@ do $$ begin insert into _arnes values ('F0 canario: rol y claims (super_admin)',
 exception when others then insert into _arnes values ('(reventó)', false, sqlstate || ' ' || sqlerrm); end $$;
 
 do $$ begin
-  insert into public.bot_faq (tema_clave, tipo_contrato, pregunta, respuesta)
-    values ('anexos_planos', 'construccion', '¿Dónde pago los planos?', 'Transfiere a la cuenta 12.345.678 y listo');
+  perform public.bot_faq_aprobar(gen_random_uuid(), 'anexos_planos', null, 'construccion', '¿Dónde pago los planos?', 'Transfiere a la cuenta 12.345.678 y listo');
   insert into _arnes values ('F2 bot_faq con cifra de 8 digitos DEBE parar', false, 'no paro');
 exception when others then
   insert into _arnes values ('F2 bot_faq con cifra de 8 digitos DEBE parar',
@@ -105,8 +104,7 @@ exception when others then
 end $$;
 
 do $$ begin
-  insert into public.bot_faq (tema_clave, tipo_contrato, pregunta, respuesta)
-    values ('quien_cobra', 'construccion', '¿A qué cuenta pago?', 'A la del promotor');
+  perform public.bot_faq_aprobar(gen_random_uuid(), 'quien_cobra', null, 'construccion', '¿A qué cuenta pago?', 'A la del promotor');
   insert into _arnes values ('F3 bot_faq sobre tema frenado (quien_cobra) DEBE parar', false, 'no paro');
 exception when others then
   insert into _arnes values ('F3 bot_faq sobre tema frenado (quien_cobra) DEBE parar',
@@ -117,7 +115,7 @@ do $$ declare ok1 boolean := false; ok2 boolean := false; ok3 boolean := false; 
 begin
   -- 4a plazo_entrega nulo/nulo: para (tema frenado, y ademas sin alcance)
   begin
-    insert into public.bot_faq (tema_clave, pregunta, respuesta) values ('plazo_entrega', '¿Cuándo?', 'Pronto');
+    perform public.bot_faq_aprobar(gen_random_uuid(), 'plazo_entrega', null, null, '¿Cuándo?', 'Pronto');
     d := d || '4a:no paro ';
   exception when others then
     ok1 := sqlerrm like '%frenado por el asistente%' or sqlerrm like '%necesita proyecto o tipo%';
@@ -125,7 +123,7 @@ begin
   end;
   -- 4b comunidad_gastos nulo/nulo (NO frenado): para SOLO por alcance
   begin
-    insert into public.bot_faq (tema_clave, pregunta, respuesta) values ('comunidad_gastos', '¿Normas?', 'Las de siempre');
+    perform public.bot_faq_aprobar(gen_random_uuid(), 'comunidad_gastos', null, null, '¿Normas?', 'Las de siempre');
     d := d || '4b:no paro ';
   exception when others then
     ok2 := sqlerrm like '%necesita proyecto o tipo%';
@@ -133,7 +131,7 @@ begin
   end;
   -- 4c documentos_expediente nulo/nulo (procedimiento): pasa
   begin
-    insert into public.bot_faq (tema_clave, pregunta, respuesta) values ('documentos_expediente', '¿Dónde está mi recibo?', 'En Documentación del contrato');
+    perform public.bot_faq_aprobar(gen_random_uuid(), 'documentos_expediente', null, null, '¿Dónde está mi recibo?', 'En Documentación del contrato');
     ok3 := true; d := d || '4c:ok';
   exception when others then d := d || '4c:' || sqlstate || ' ' || left(sqlerrm, 60);
   end;
@@ -143,16 +141,16 @@ exception when others then insert into _arnes values ('(reventó)', false, sqlst
 do $$ declare ok1 boolean := false; v_por text; v_en timestamptz; v_id uuid; d text := '';
 begin
   begin
-    insert into public.bot_faq (tema_clave, tipo_contrato, pregunta, respuesta)
-      values ('anexos_planos', 'ppjb_construccion', '¿Hay planos?', 'Sí, en el anexo');
+    perform public.bot_faq_aprobar(gen_random_uuid(), 'anexos_planos', null, 'ppjb_construccion', '¿Hay planos?', 'Sí, en el anexo');
     d := d || '5a:no paro ';
   exception when others then
     ok1 := sqlerrm like '%tipo de contrato desconocido%';
     d := d || '5a:' || sqlstate || ' ';
   end;
-  insert into public.bot_faq (tema_clave, tipo_contrato, pregunta, respuesta, aprobado_por, aprobado_en)
-    values ('anexos_planos', 'construccion', '¿Hay planos?', 'Sí, en el anexo de especificaciones', 'otro@example.invalid', '2000-01-01')
-    returning id, aprobado_por, aprobado_en into v_id, v_por, v_en;
+  -- desde el 27-sep por la RPC (la sesión ya no escribe bot_faq): aprobado_por/aprobado_en los sigue poniendo el trigger
+  v_id := gen_random_uuid();
+  perform public.bot_faq_aprobar(v_id, 'anexos_planos', null, 'construccion', '¿Hay planos?', 'Sí, en el anexo de especificaciones');
+  select f.aprobado_por, f.aprobado_en into v_por, v_en from public.bot_faq f where f.id = v_id;
   perform set_config('arnes.faq', v_id::text, true);
   insert into _arnes values ('F5 tipo_contrato: slug de plantilla para, contratos.tipo pasa y aprobado_por = sesion',
     ok1 and v_por = current_setting('arnes.admin_email') and v_en > now() - interval '1 minute',
@@ -164,15 +162,14 @@ begin
   begin
     update public.bot_faq set respuesta = 'otra' where id = current_setting('arnes.faq')::uuid;
     d := d || '6a:no paro ';
-  exception when others then ok1 := sqlerrm like '%no se edita%'; d := d || '6a:' || sqlstate || ' ';
+  exception when others then ok1 := sqlerrm like '%no se edita%' or sqlstate = '42501'; d := d || '6a:' || sqlstate || ' ';
   end;
-  update public.bot_faq set activo = false where id = current_setting('arnes.faq')::uuid;
-  get diagnostics n = row_count;
+  n := case when public.bot_faq_retirar(current_setting('arnes.faq')::uuid) then 1 else 0 end;
   d := d || '6b:retiradas=' || n || ' ';
   begin
     update public.bot_faq set activo = true where id = current_setting('arnes.faq')::uuid;
     d := d || '6c:no paro';
-  exception when others then ok3 := sqlerrm like '%no se edita%'; d := d || '6c:' || sqlstate;
+  exception when others then ok3 := sqlerrm like '%no se edita%' or sqlstate = '42501'; d := d || '6c:' || sqlstate;
   end;
   insert into _arnes values ('F6 bot_faq: editar para, retirar pasa, reactivar para', ok1 and n = 1 and ok3, d);
 exception when others then insert into _arnes values ('(reventó)', false, sqlstate || ' ' || sqlerrm); end $$;
@@ -187,7 +184,7 @@ set local role authenticated;
 
 do $$ begin
   -- tema de procedimiento y nulo/nulo: el trigger pasa entero, lo que para es la policy
-  insert into public.bot_faq (tema_clave, pregunta, respuesta) values ('documentos_expediente', '¿Recibo?', 'En Documentación');
+  perform public.bot_faq_aprobar(gen_random_uuid(), 'documentos_expediente', null, null, '¿Recibo?', 'En Documentación');
   insert into _arnes values ('F7 agente raso no aprueba FAQ', false, 'no paro');
 exception when others then
   insert into _arnes values ('F7 agente raso no aprueba FAQ', sqlstate = '42501', sqlstate || ' ' || left(sqlerrm, 90));
@@ -197,21 +194,18 @@ do $$ declare okc boolean := false; okb boolean := false; oka boolean := false; 
 begin
   -- 8c cifra que NO esta en el borrador
   begin
-    insert into public.bot_respuestas_copiadas (consulta_id, texto, copiado_por)
-      values (current_setting('arnes.qa')::uuid, 'Paga a la cuenta 98765432', current_setting('arnes.agente_email'));
+    perform public.bot_respuesta_copiada(current_setting('arnes.qa')::uuid, 'Paga a la cuenta 98765432');
     d := d || '8c:no paro ';
   exception when others then okc := sqlerrm like '%cifra que no está en el borrador%'; d := d || '8c:' || sqlstate || ' ';
   end;
   -- 8b consulta de otro
   begin
-    insert into public.bot_respuestas_copiadas (consulta_id, texto, copiado_por)
-      values (current_setting('arnes.qb')::uuid, 'Art. 6.', current_setting('arnes.agente_email'));
+    perform public.bot_respuesta_copiada(current_setting('arnes.qb')::uuid, 'Art. 6.');
     d := d || '8b:no paro ';
   exception when others then okb := sqlstate = '42501'; d := d || '8b:' || sqlstate || ' ';
   end;
   -- 8a consulta propia, con la cifra del borrador (1111-2222-33) reescrita sin guiones
-  insert into public.bot_respuestas_copiadas (consulta_id, texto, copiado_por)
-    values (current_setting('arnes.qa')::uuid, 'Art. 6: campo plazo_meses. Ref 1111 2222 33.', current_setting('arnes.agente_email'));
+  perform public.bot_respuesta_copiada(current_setting('arnes.qa')::uuid, 'Art. 6: campo plazo_meses. Ref 1111 2222 33.');
   select count(*) into n from public.bot_respuestas_copiadas where consulta_id = current_setting('arnes.qa')::uuid;
   oka := n = 1;
   d := d || '8a:guardadas_y_visibles=' || n;

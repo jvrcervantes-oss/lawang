@@ -385,8 +385,8 @@ function compilaFrenos(lista: Bloqueo[]): { reglas: Regla[] } | { invalido: stri
 
 /* ── Administración de FAQ (super_admin): faq_guardar / faq_retirar ──────
    Mismo endpoint y misma sesión que la consulta, pero sin modelo ni contrato.
-   El candado es la RLS de bot_faq (insert/update solo super_admin) y los
-   triggers de la base (bot_faq_frena, bot_faq_inmutable): aquí se valida
+   El candado son las RPC bot_faq_aprobar / bot_faq_retirar (super_admin dentro,
+   27-sep-2026) y los triggers de la base (bot_faq_frena, bot_faq_inmutable): aquí se valida
    ANTES para devolver un error legible, y se repiten el freno de cifras y los
    patrones del bot para que no se apruebe como FAQ lo que el bot tiene
    prohibido decir. Sin console.log de textos. */
