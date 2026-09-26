@@ -7972,7 +7972,9 @@
                el mensaje, no un fallo del editor */
             // `.select()` + unaFila: un UPDATE que la policy filtra devuelve 0
             // filas SIN error, y el editor diria «guardado» sobre nada.
-            return sb.from('usuarios').update(patch).eq('email', u.email).select('user_id').then(unaFila);
+            // por el servidor (LAW-336 pieza 7), siempre por user_id; sobre uno mismo solo el nombre (salvo super admin)
+            if (yoMismo && !soySuper) patch = { nombre: patch.nombre };
+            return sb.rpc('usuario_guarda_permisos', { p_user_id: u.user_id, p_cambios: patch });
           });
         });
       };
@@ -8034,9 +8036,8 @@
           { k: 'manager_email', label: 'Manager', tipo: 'select', req: 1, opciones: opsUsuarios('', '— elige un usuario —'),
             ayuda: 'la persona que gestiona el reparto del equipo; tiene que estar dada de alta en Usuarios' }
         ], 'Crear equipo', function (v) {
-          return sb.from('equipos_venta').insert({
-            nombre: v.nombre.trim(), manager_email: v.manager_email.trim().toLowerCase()
-          });
+          // por el servidor (LAW-336 pieza 7): el manager tiene que ser un usuario activo y no uno mismo
+          return sb.rpc('equipo_venta_guarda', { p_id: null, p_nombre: v.nombre.trim(), p_manager_email: v.manager_email.trim().toLowerCase() });
         });
       });
 
@@ -8050,11 +8051,10 @@
           { k: 'hasta', label: 'Hasta (opcional)', tipo: 'date', medio: 1, ayuda: 'vacío = sigue activo' }
         ], 'Añadir al equipo', function (v) {
           if (v.hasta && v.hasta < v.desde) return { error: { message: '«Hasta» no puede ser anterior a «Desde».' } };
-          return sb.from('equipo_miembros').insert({
-            equipo_id: equipoId, closer_email: v.closer_email.trim().toLowerCase(),
-            desde: v.desde, hasta: v.hasta || null,
-            added_by: (aut.session && aut.session.user && aut.session.user.email) || null
-          });
+          // por el servidor (LAW-336 pieza 7): congela antes las ventas afectadas (owner, 26-sep: el equipo
+          // de una venta no cambia después), impide estar en dos equipos a la vez, added_by de la sesión
+          return sb.rpc('equipo_miembro_guarda', { p_id: null, p_equipo: equipoId,
+            p_email: v.closer_email.trim().toLowerCase(), p_desde: v.desde, p_hasta: v.hasta || null });
         });
       };
 
@@ -8063,7 +8063,7 @@
         modal('Dar de baja — ' + (closerEmail || ''), [
           { k: 'hasta', label: 'Fecha de baja', tipo: 'date', req: 1, valor: new Date().toISOString().slice(0, 10) }
         ], 'Dar de baja', function (v) {
-          return sb.from('equipo_miembros').update({ hasta: v.hasta }).eq('id', miembroId).select('id').then(unaFila);
+          return sb.rpc('equipo_miembro_baja', { p_id: miembroId, p_hasta: v.hasta });   // por el servidor (LAW-336 pieza 7)
         });
       };
 
@@ -8081,9 +8081,9 @@
             opciones: opsUsuarios(b.getAttribute('data-lw-manager'), '— elige un usuario —'),
             ayuda: 'la persona que gestiona el reparto del equipo; cambiarlo cambia quién ve sus condiciones de nivel manager' }
         ], 'Guardar equipo', function (v) {
-          return sb.from('equipos_venta').update({
-            nombre: v.nombre.trim(), manager_email: v.manager_email.trim().toLowerCase()
-          }).eq('id', id).select('id').then(unaFila);
+          // por el servidor (LAW-336 pieza 7): cambiar el manager solo afecta a ventas nuevas — las de hoy
+          // se quedan con el suyo (congeladas antes del cambio, decisión del owner 26-sep)
+          return sb.rpc('equipo_venta_guarda', { p_id: id, p_nombre: v.nombre.trim(), p_manager_email: v.manager_email.trim().toLowerCase() });
         });
       };
 
@@ -8100,10 +8100,8 @@
           { k: 'hasta', label: 'Hasta (opcional)', tipo: 'date', medio: 1, valor: b.getAttribute('data-lw-hasta') || '', ayuda: 'vacío = sigue activo' }
         ], 'Guardar miembro', function (v) {
           if (v.hasta && v.hasta < v.desde) return { error: { message: '«Hasta» no puede ser anterior a «Desde».' } };
-          return sb.from('equipo_miembros').update({
-            equipo_id: v.equipo_id, closer_email: v.closer_email.trim().toLowerCase(),
-            desde: v.desde, hasta: v.hasta || null
-          }).eq('id', id).select('id').then(unaFila);
+          return sb.rpc('equipo_miembro_guarda', { p_id: id, p_equipo: v.equipo_id,   // por el servidor (LAW-336 pieza 7)
+            p_email: v.closer_email.trim().toLowerCase(), p_desde: v.desde, p_hasta: v.hasta || null });
         });
       };
 
@@ -8115,7 +8113,7 @@
               ? 'El equipo vuelve a estar disponible para nuevas condiciones de comisión.'
               : 'El equipo deja de ofrecerse para condiciones nuevas. Los miembros y el histórico de comisiones no se tocan.' }
         ], pasaA ? 'Reactivar' : 'Desactivar', function () {
-          return sb.from('equipos_venta').update({ activo: pasaA }).eq('id', equipoId).select('id').then(unaFila);
+          return sb.rpc('equipo_venta_activa', { p_id: equipoId, p_activo: pasaA });   // por el servidor (LAW-336 pieza 7)
         });
       };
     },
