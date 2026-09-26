@@ -8495,6 +8495,49 @@
         });
       }
 
+      // ── Fee fijo mensual (26-sep-2026, owner) ───────────────────────────────
+      /* Append-only, como manda la tabla: no hay «editar». Cambiar el fee = uno
+         nuevo con su fecha; dejar de cobrarlo = importe 0. La linea de cada mes
+         la crea la base (comision_admin_devenga_fees) al abrir el panel, asi que
+         tras guardar basta con recargar. La etiqueta del boton NO puede casar con
+         la regex de «Nueva tarifa». Las sociedades se leen de la base en el
+         momento: el importe se factura a una de ellas y no puede elegirse de una
+         lista que no ha cargado. */
+      ata(/^\+? ?Fee fijo$/i, function () {
+        if (!superAdmin) return soloSuper();
+        sb.from('sociedades').select('clave,label').eq('activa', true).order('label').then(function (r) {
+          if (r.error || !(r.data || []).length) {
+            return aviso('No se han podido leer las sociedades, y el fee se factura a una de ellas. Recarga la pantalla y prueba otra vez.', '#9E2F26');
+          }
+          var vig = (window.LW_V4 && window.LW_V4.caFeesVigentes) || {};
+          var ya = Object.keys(vig).filter(function (k) { return Number(vig[k].importe) > 0; });
+          var etq = {}; r.data.forEach(function (s) { etq[s.clave] = s.label; });
+          modal('Fee fijo mensual', [
+            { k: 'sociedad', label: 'Sociedad a la que se le cobra', tipo: 'select', req: 1, valor: '',
+              opciones: [['', '— elige —']].concat(r.data.map(function (s) { return [s.clave, s.label]; })) },
+            { k: 'importe', label: 'Importe al mes', tipo: 'number', paso: '0.01', req: 1, medio: 1,
+              ayuda: 'bruto: sin PPN ni retención. 0 = dejar de cobrarlo' },
+            { k: 'moneda', label: 'Moneda', tipo: 'select', req: 1, medio: 1, valor: 'EUR', opciones: ['EUR', 'USD', 'IDR'] },
+            { k: 'efectivo_desde', label: 'Rige desde', tipo: 'date', req: 1, medio: 1, valor: hoy },
+            { k: 'nota', label: 'Nota' },
+            { tipo: 'nota', label: (ya.length
+                ? 'Ahora mismo hay fee en ' + ya.map(function (k) { return vig[k].importe + ' ' + vig[k].moneda + ' a ' + (etq[k] || k); }).join(', ') + '. '
+                : 'Todavía no hay ningún fee. ') +
+              'Se cobra el mes ENTERO, sin prorratear: el fee de un mes es el que rige el último día de ese mes. ' +
+              'Una fecha hacia atrás crea también los meses pasados, como pendientes. Si un mes ya estaba facturado o cobrado, no se toca: se marca para revisar.' }
+          ], 'Guardar fee', function (v) {
+            var imp = Number(String(v.importe).replace(',', '.'));
+            if (!v.sociedad) return { error: { message: 'Elige la sociedad: cada una es un deudor distinto y se le factura por separado.' } };
+            if (!(imp >= 0)) return { error: { message: 'El importe tiene que ser un número igual o mayor que 0.' } };
+            return sb.from('comision_admin_fees').insert({
+              sociedad: v.sociedad, importe: imp, moneda: v.moneda || 'EUR',
+              efectivo_desde: v.efectivo_desde, nota: (v.nota || '').trim() || null,
+              creado_por: (aut.session && aut.session.user && aut.session.user.email) || null
+            }).select('id').single();
+          });
+        });
+      });
+
       // ── Editar una tarifa que ya existe ─────────────────────────────────────
       window.LW_V4.abreEditaTarifaComisionAdmin = function (btn) {
         if (!superAdmin) return soloSuper();

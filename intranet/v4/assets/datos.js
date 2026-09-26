@@ -7830,7 +7830,10 @@
        eso se decide el primer dia, no cuando molesta. Si no ha cargado, la
        tabla sale entera en vez de romperse. */
     var PAG = (typeof lwPaginador === 'function') ? lwPaginador('#lw-ca-pag') : null;
-    var hoy       = new Date().toISOString().slice(0, 10);
+    /* «Hoy» es el de BALI, igual que en la base (comision_admin_devenga_fees):
+       con toISOString() entre las 00:00 y las 08:00 de Bali seguia siendo ayer
+       en UTC, y el dia 1 el mes nuevo no aparecia (Datos, revision #108). */
+    var hoy       = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Makassar' });
     var mesActual = hoy.slice(0, 7);
 
     var ESTADOS = {
@@ -7839,7 +7842,7 @@
       cobrada:   ['Cobrada',   'bg-primary-fixed text-on-primary-fixed'],
       exenta:    ['Exenta',    'bg-surface-container text-outline']
     };
-    var TIPO_LINEA = { devengo: 'Devengo', ajuste: 'Ajuste', abono: 'Abono' };
+    var TIPO_LINEA = { devengo: 'Devengo', ajuste: 'Ajuste', abono: 'Abono', fee: 'Fee fijo' };
 
     /* Suma POR MONEDA y nunca entre monedas: 500 EUR + 500 IDR no son «1.000
        nada». Devuelve el texto ya formateado, o «—» si no hay nada que sumar --
@@ -7852,9 +7855,19 @@
       return claves.sort().map(function (m) { return fmt(porM[m], m); }).join(' · ');
     }
 
+    /* Fee fijo (26-sep-2026): la linea «fee» de cada sociedad y mes la crea la
+       base, y se le pide ANTES de leer el libro para que el mes en curso ya
+       salga. Idempotente. Si falla, el libro se lee igual (lo que haya) y se
+       avisa: un fee sin apuntar es dinero sin facturar, no puede callarse. */
+    var devenga = sb.rpc('comision_admin_devenga_fees')
+      .then(function (r) { return r.error ? { fallo: r.error.message } : (r.data || {}); },
+            function (e) { return { fallo: String((e && e.message) || e) }; });
+
     Promise.all([
       q(sb.from('comision_admin_tarifas').select('id,pct,efectivo_desde,nota,creado_por,created_at').order('efectivo_desde', { ascending: false }), 'tarifas de comisión', cuerpoTar),
-      q(sb.from('comision_admin_lineas').select('id,tipo_linea,linea_origen_id,recibi_id,recibi_numero,sociedad,contrato_id,proyecto_id,devengado_el,fecha_recibi,base_total,moneda,pct_aplicado,importe,anulada,revisar,estado,nota').order('devengado_el', { ascending: false }), 'libro de comisión', cuerpoLin),
+      devenga.then(function () {
+        return q(sb.from('comision_admin_lineas').select('id,tipo_linea,linea_origen_id,recibi_id,recibi_numero,sociedad,contrato_id,proyecto_id,devengado_el,fecha_recibi,base_total,moneda,pct_aplicado,importe,anulada,revisar,estado,nota,fee_id').order('devengado_el', { ascending: false }), 'libro de comisión', cuerpoLin);
+      }),
       q(sb.from('proyectos').select('id,nombre'), 'proyectos'),
       /* Sin `q()` a proposito: un fallo aqui NO puede tumbar la pantalla, solo
          deja el aviso de descuadres sin pintar. Con rama de rechazo propia --
@@ -7869,9 +7882,15 @@
          cae al nombre derivado de la clave, que es legible. */
       (typeof cargarSociedades === 'function'
         ? cargarSociedades(sb).catch(function (e) { console.error('sociedades:', e); return null; })
-        : null)
+        : null),
+      /* Sin `q()`: un fallo aqui deja la tabla de fees con su propio aviso, no
+         tumba el libro. */
+      sb.from('comision_admin_fees').select('id,sociedad,importe,moneda,efectivo_desde,nota,creado_por,created_at')
+        .order('efectivo_desde', { ascending: false }).order('created_at', { ascending: false })
+        .then(function (x) { return x.error ? null : (x.data || []); }, function () { return null; }),
+      devenga
     ]).then(function (r) {
-      var tarifas = r[0], lineas = r[1], proyectos = r[2], desc = r[3];
+      var tarifas = r[0], lineas = r[1], proyectos = r[2], desc = r[3], fees = r[5], dv = r[6] || {};
       /* `q()` ya ha pintado el cartel de fallo en el contenedor y ha devuelto
          null. Si siguieramos, `pinta()` lo sobrescribiria con «todavia no ha
          entrado dinero» y los KPI dirian «nada sin facturar»: una alarma rota
@@ -7901,11 +7920,61 @@
         : 'todavía no hay ninguna tarifa: no se está devengando nada');
 
       var vivas = lineas.filter(function (l) { return !l.anulada && l.estado !== 'exenta'; });
-      var delMes = vivas.filter(function (l) { return (l.devengado_el || '').slice(0, 7) === mesActual; });
+      var esFee = function (l) { return l.tipo_linea === 'fee' || (l.tipo_linea === 'abono' && l.fee_id); };
+      var delMesTodo = vivas.filter(function (l) { return (l.devengado_el || '').slice(0, 7) === mesActual; });
+      /* «Devengado este mes» sigue siendo SOLO la comision: el fee va en su
+         propia fila de «Te deben este mes». */
+      var delMes = delMesTodo.filter(function (l) { return !esFee(l); });
       pon2('k-mes', sumaPorMoneda(delMes));
       pon2('k-mes-pie', delMes.length
         ? (delMes.length + (delMes.length === 1 ? ' entrada de dinero' : ' entradas de dinero'))
         : 'ninguna entrada de dinero este mes');
+
+      /* Te deben este mes (26-sep-2026, owner): comision del mes + fee del mes,
+         por moneda, con los dos sumandos a la vista (Administracion, #108: un
+         solo numero se leeria como importe a facturar). Y aparte lo que sigue
+         sin cobrar de meses anteriores, que tambien se debe. */
+      var feeMes = delMesTodo.filter(esFee);
+      pon2('k-deben', sumaPorMoneda(delMesTodo));
+      var yaCobrado = delMesTodo.filter(function (l) { return l.estado === 'cobrada'; });
+      var atrasado = vivas.filter(function (l) {
+        return l.estado !== 'cobrada' && (l.devengado_el || '').slice(0, 7) < mesActual;
+      });
+      pon2('k-deben-pie', (delMesTodo.length
+          ? 'Comisión ' + sumaPorMoneda(delMes) + ' + fee ' + sumaPorMoneda(feeMes) + '. Bruto, sin PPN ni retención.'
+          : 'Este mes todavía no hay ni comisión ni fee.')
+        + (yaCobrado.length ? ' Ya cobrado: ' + sumaPorMoneda(yaCobrado) + '.' : '')
+        + (atrasado.length ? ' Además, sin cobrar de meses anteriores: ' + sumaPorMoneda(atrasado) + '.' : '')
+        + (fees && !fees.length ? ' No hay ningún fee fijo dado de alta: botón «Fee fijo» arriba.' : '')
+        + (dv.fallo ? ' No se ha podido apuntar el fee del mes (' + dv.fallo + '): recarga.' : ''));
+
+      // ── Fees ──────────────────────────────────────────────────────────────
+      var cuerpoFee = document.getElementById('lw-ca-fees');
+      window.LW_V4.caFeesVigentes = {};
+      var vigFee = {};
+      if (fees) fees.forEach(function (f) {
+        // vienen por efectivo_desde desc, created_at desc: el primero que rige hoy manda
+        if (f.efectivo_desde <= hoy && !vigFee[f.sociedad]) vigFee[f.sociedad] = f;
+      });
+      window.LW_V4.caFeesVigentes = vigFee;
+      if (cuerpoFee) {
+        cuerpoFee.innerHTML = !fees
+          ? '<tr><td colspan="6" class="px-5 py-8 text-center font-body-md text-body-md text-error">No se han podido leer los fees. Recarga la página.</td></tr>'
+          : fees.length ? fees.map(function (f) {
+              var vig = vigFee[f.sociedad] === f;
+              var fut = f.efectivo_desde > hoy;
+              return '<tr class="border-b border-outline-variant/30">' +
+                '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(nombreSociedad(f.sociedad)) + '</td>' +
+                '<td class="px-5 py-4 font-label-md text-label-md text-on-surface text-right">' + esc(fmt(f.importe, f.moneda)) + '</td>' +
+                '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + esc(fFecha(f.efectivo_desde)) + '</td>' +
+                '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' +
+                  (vig ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-surface-container-high text-on-surface-variant') + '">' +
+                  (vig ? (Number(f.importe) > 0 ? 'Vigente' : 'Sin fee') : (fut ? 'Programado' : 'Histórico')) + '</span></td>' +
+                '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(f.creado_por || '—') + '</td>' +
+                '<td class="px-5 py-4 font-body-sm text-body-sm text-outline max-w-md">' + esc(f.nota || '—') + '</td></tr>';
+            }).join('')
+          : '<tr><td colspan="6" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Ningún fee fijo dado de alta: pulsa «Fee fijo» arriba para añadirlo.</td></tr>';
+      }
 
       var pendientes = vivas.filter(function (l) { return l.estado === 'pendiente'; });
       pon2('k-pendiente', sumaPorMoneda(pendientes));
@@ -7948,10 +8017,57 @@
                 + fmt(Number(m.comision_firmados), m.moneda) + ' de comisión · ' + m.n_en_firma + ' en firma)';
             }).join(' · ')
           + '. No cuenta las Cartas de Reserva ni lo que ya se ha cobrado.');
+        pintaSimulador(d);
       }, function () {
         pon2('k-prevision', '—');
         pon2('k-prevision-pie', 'No se ha podido calcular la previsión. Recarga la página.');
       });
+
+      /* Simulador (26-sep-2026, owner): «previsión si cambio la tarifa, al %
+         que yo quiera». Multiplica el MISMO `pendiente` que ha devuelto la base
+         por el % tecleado — con el % vigente da exactamente la cifra de arriba,
+         que es la prueba de que no calcula otra cosa. No guarda nada: cambiar la
+         tarifa de verdad sigue siendo «Nueva tarifa» / «Editar». Solo sobre lo
+         lanzado y no sobre lo ya devengado: esas líneas llevan su % congelado y
+         los ajustes/abonos son diferencias, multiplicarlos por otro % no
+         significa nada. */
+      function pintaSimulador(d) {
+        var caja = document.getElementById('lw-ca-simula');
+        var inp = document.getElementById('lw-ca-simula-pct');
+        if (!caja || !inp) return;
+        var ms = d.monedas || [];
+        var pctVig = Number(d.pct);
+        caja.hidden = false;
+        if (inp.value === '') inp.value = String(pctVig);
+        function calcula() {
+          var raw = String(inp.value).replace(',', '.').trim();
+          var pct = Number(raw);
+          if (raw === '' || !(pct >= 0) || pct > 100) {
+            pon2('k-simula', '—');
+            pon2('k-simula-pie', 'Pon un porcentaje entre 0 y 100. Medio por ciento es 0,5 — no 50.');
+            return;
+          }
+          pon2('k-simula', ms.map(function (m) {
+            return fmt(Math.round(Number(m.pendiente) * pct) / 100, m.moneda);
+          }).join(' · '));
+          var pctTxt = function (x) { return String(x).replace('.', ',') + ' %'; };
+          pon2('k-simula-pie', pct === pctVig
+            ? 'Es la tarifa vigente: coincide con la previsión de arriba. Cambia el % para ver la diferencia.'
+            : ms.map(function (m) {
+                var sim = Math.round(Number(m.pendiente) * pct) / 100;
+                var dif = sim - Number(m.comision);
+                return 'Con el ' + pctTxt(pctVig) + ' vigente serían ' + fmt(Number(m.comision), m.moneda)
+                  + ': ' + (dif >= 0 ? '+' : '−') + fmt(Math.abs(dif), m.moneda) + ' con el ' + pctTxt(pct);
+              }).join(' · ')
+              + '.' + (pct > 5 ? ' Ojo: ' + pctTxt(pct) + ' (medio por ciento es 0,5, no 5).' : '')
+              + ' Solo simula: la tarifa no cambia.');
+        }
+        if (!inp.dataset.lwAtado) {
+          inp.dataset.lwAtado = '1';
+          inp.addEventListener('input', calcula);
+        }
+        calcula();
+      }
 
       /* El banco de pruebas del silencio: el disparador traga sus propios fallos
          a propósito (un error calculando la comisión no puede impedir que se
@@ -8089,7 +8205,9 @@
               else toastMal('El visor de documentos aún está cargando — prueba de nuevo en un segundo.');
             });
           }
-          var recibi = l.recibi_id
+          var recibi = l.fee_id
+            ? esc(l.recibi_numero)
+            : l.recibi_id
             ? '<a class="text-deep-lagoon hover:underline" href="#" data-lw-ver-recibi="' + esc(l.recibi_id) + '">' + esc(l.recibi_numero) + '</a>'
             : esc(l.recibi_numero) + ' <span class="text-error text-[11px] uppercase tracking-wider">borrado</span>';
 
@@ -8100,9 +8218,9 @@
               esc(!l.proyecto_id ? '(sin proyecto)'
                   : (proyectoDe[l.proyecto_id] || (proyectosRotos ? '(no se pudo leer)' : '(proyecto borrado)'))) + '</td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(nombreSociedad(l.sociedad)) + '</td>' +
-            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant text-right">' + esc(fmt(l.base_total, l.moneda)) + '</td>' +
+            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant text-right">' + (l.fee_id ? '—' : esc(fmt(l.base_total, l.moneda))) + '</td>' +
             '<td class="px-5 py-4 font-label-md text-label-md text-right ' + (negativa ? 'text-error' : 'text-on-surface') + '">' +
-              esc(fmt(l.importe, l.moneda)) + '<br><span class="text-outline text-[11px]">' + esc(Number(l.pct_aplicado)) + '%</span></td>' +
+              esc(fmt(l.importe, l.moneda)) + '<br><span class="text-outline text-[11px]">' + (l.fee_id ? 'fijo' : esc(Number(l.pct_aplicado)) + '%') + '</span></td>' +
             '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' +
               est[1] + '">' + esc(est[0]) + '</span>' + banderas + '</td>' +
             '<td class="px-5 py-4 text-right"><div class="flex justify-end gap-1">' + (l.anulada
@@ -8115,7 +8233,7 @@
                 /* Anular SOLO el devengo: sus ajustes y abonos van detras de el y
                    se anulan con el, asi que ofrecerlo por separado invitaria a
                    dejar media serie viva. */
-                (l.tipo_linea === 'devengo'
+                (l.tipo_linea === 'devengo' || l.tipo_linea === 'fee'
                  ? '<button type="button" class="px-3 py-1 rounded-full text-error hover:bg-error-container/40 font-label-md text-[12px]" ' +
                    'data-lw-ca-anula="' + esc(l.id) + '" data-lw-etq="' + esc(l.recibi_numero) + '" data-lw-estado="' + esc(l.estado) + '">Anular</button>'
                  : '')) +
