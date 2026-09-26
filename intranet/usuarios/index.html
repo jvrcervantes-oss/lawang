@@ -566,6 +566,9 @@ LW_AUTH.then(async ({ sb, session, ficha }) => {
      para decidir un permiso es frágil; preguntarlo cuesta una consulta. */
   YO = ficha || (await sb.from('usuarios').select('rol, herramientas, activo, nombre')
                    .eq('user_id', session.user.id).maybeSingle()).data;
+  /* user_id de la SESIÓN (26-sep-2026, consulta de deploy de Desarrollo): ninguna de las dos fichas lo trae,
+     así que `yoMismo` nunca era cierto y la propia ficha se enviaba entera — el servidor la rechaza. */
+  if(YO) YO = Object.assign({}, YO, { user_id: session.user.id });
 
   // Un agente con 'usuarios' en su lista pero sin rol de admin llegaría hasta
   // aquí y solo vería su propia fila (la RLS). Mejor decirlo que enseñar una
