@@ -2496,7 +2496,7 @@
            lo del negocio de cada uno sigue filtrado por autor. Se piden solo las
            columnas que el LISTADO enseña (minimización, Seguridad 18-sep). */
         q(sb.rpc('compradores_directorio').select('id,full_name,email,phone,nationality,tipo,kyc_status,propietario,created_at').order('created_at', { ascending: false }), 'compradores', t),
-        q(sb.rpc('contratos_equipo').select('id,numero,tipo,proyecto_nombre,parcela_codigo,fecha_firma,precio_total,moneda,bloqueado'), 'contratos'),
+        q(sb.rpc('contratos_equipo').select('id,numero,tipo,proyecto_nombre,parcela_codigo,fecha_firma,precio_total,moneda,bloqueado,contrato_padre_id,liberado_en,created_at'), 'contratos'),
         q(sb.from('contrato_compradores').select('contrato_id,client_id,rol'), 'vinculos'),
         vig(sb.rpc('contratos_cobrado_equipo')).then(function (r) { return r.error ? (fallo('cobrado', r.error), null) : (r.data || []); }),
         q(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado').eq('estado', 'pendiente'), 'firmas'),
@@ -2731,23 +2731,57 @@
             controles += '<p style="margin:0;font-size:11.5px;color:#a8a29e">Quien la reciba podrá editarla. Contratos y facturas no se mueven sin la casilla.</p></div></div>';
             return base + controles;
           }
-          var contratos = vins.length
-            ? H.tabla(['Contrato', 'Proyecto', 'Parcela', 'Estado'], vins.map(function (v) {
-                var k = porC[v.contrato_id];
+          /* Una fila por OPERACIÓN (26-sep-2026, owner: «¿hay forma de unificar
+             contratos de una operación? para hacerlo más legible»). Operación =
+             el contrato raíz y todo lo que cuelga de él por `contrato_padre_id`
+             (Carta de Reserva → Bloqueo → Construcción…), el mismo criterio que
+             la fila de /v4/operaciones/. Se sube por el padre solo mientras el
+             padre sea un contrato que esta ficha ve; si no, esa pieza es la raíz. */
+          var estadoPieza = function (k) {
+            return k.liberado_en ? H.tag('Liberado', 'neutro')
+              : k.bloqueado ? H.tag('Firmado', 'ok') : (firmaPend[k.id] ? H.tag('En firma', 'espera') : H.tag('Sin firmar', 'mal'));
+          };
+          var raizDe = function (k) {
+            var visto = {};
+            while (k.contrato_padre_id && porC[k.contrato_padre_id] && !visto[k.id]) { visto[k.id] = 1; k = porC[k.contrato_padre_id]; }
+            return k;
+          };
+          var ops = [], opDe = {};
+          vins.forEach(function (v) {
+            var k = porC[v.contrato_id], r = raizDe(k);
+            if (!opDe[r.id]) { opDe[r.id] = { raiz: r, piezas: [] }; ops.push(opDe[r.id]); }
+            if (opDe[r.id].piezas.indexOf(k) < 0) opDe[r.id].piezas.push(k);
+          });
+          // el padre puede no estar vinculado a ESTE comprador pero sí ser la raíz: entra como pieza
+          ops.forEach(function (o) {
+            if (o.piezas.indexOf(o.raiz) < 0) o.piezas.push(o.raiz);
+            o.piezas.sort(function (a, b) { return String(a.created_at || '').localeCompare(String(b.created_at || '')); });
+          });
+          var nPiezas = ops.reduce(function (n, o) { return n + o.piezas.length; }, 0);
+          var contratos = ops.length
+            ? H.tabla(['Operación', 'Contratos', 'Estado'], ops.map(function (o) {
+                var r = o.raiz;
+                var enlaceOp = r.numero ? H.enlace('/intranet/v4/operaciones/?contrato=' + encodeURIComponent(r.numero), 'Ver operación') : '';
                 return [
-                  (k.numero ? H.enlace('/intranet/v4/contratos/?contrato=' + encodeURIComponent(k.numero), k.numero) : 'sin nº') +
-                    '<div style="font-size:11px;color:#75786e">' + esc(tipoC(k.tipo)) + '</div>',
-                  esc(k.proyecto_nombre || '—'),
-                  // la(s) parcela(s) que dice el contrato (columna generada de datos.fields; «A4, A5» si son varias)
-                  esc(k.parcela_codigo || '—'),
-                  k.bloqueado ? H.tag('Firmado', 'ok') : (firmaPend[k.id] ? H.tag('En firma', 'espera') : H.tag('Sin firmar', 'mal'))
+                  '<div style="font-weight:600;color:#1b1c19">' + esc(r.proyecto_nombre || '—') + '</div>' +
+                    // la(s) parcela(s) que dice el contrato (columna generada de datos.fields; «A4, A5» si son varias)
+                    '<div style="font-size:12px;color:#75786e">' + esc(r.parcela_codigo ? 'Parcela ' + r.parcela_codigo : 'Sin parcela') + '</div>' +
+                    (enlaceOp ? '<div style="font-size:12px;margin-top:4px">' + enlaceOp + '</div>' : ''),
+                  o.piezas.map(function (k) {
+                    return '<div style="padding:3px 0' + (k.liberado_en ? ';opacity:.6' : '') + '">' +
+                      (k.numero ? H.enlace('/intranet/v4/contratos/?contrato=' + encodeURIComponent(k.numero), k.numero) : 'sin nº') +
+                      ' <span style="font-size:11px;color:#75786e">' + esc(tipoC(k.tipo)) + '</span></div>';
+                  }).join(''),
+                  o.piezas.map(function (k) { return '<div style="padding:3px 0">' + estadoPieza(k) + '</div>'; }).join('')
                 ];
               }))
             : H.nota('Ninguno enlazado todavía. El enlace se crea solo al guardar un contrato con su pasaporte o su email.');
           var cuerpo =
             H.seccion('Identidad', identidad) +
             H.seccion('Responsable de la ficha', seccionResponsable(), 'responsable') +
-            H.seccion('Contratos (' + vins.length + ')', contratos, 'contratos') +
+            H.seccion(ops.length === nPiezas
+              ? 'Contratos (' + nPiezas + ')'
+              : 'Operaciones (' + ops.length + ') · ' + nPiezas + ' contratos', contratos, 'contratos') +
             H.seccion('Estado de cuentas', seccionEstadoCuentas(vins, H), 'cuentas') +
             H.seccion('Facturas', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'facturas') +
             H.seccion('Documentación KYC', '<p style="margin:0;font-size:12.5px;color:#75786e">Cargando…</p>', 'docs') +
@@ -2990,19 +3024,30 @@
               var fs = rf.data || [];
               if (!fs.length) return pinta('facturas', H.nota('Ninguna factura emitida todavía en sus contratos.'));
               var vivas = fs.filter(function (x) { return !x.anulada; }), nulas = fs.filter(function (x) { return x.anulada; });
+              /* Etiqueta por tipo (26-sep-2026, owner: «dale diferencia entre facturas,
+                 recibís y proformas»): recibí = dinero que ENTRÓ (verde), factura =
+                 lo que se DEBE (lago), proforma = propuesta sin valor fiscal (gris). */
+              var TONO_DOC = { recibi: 'ok', factura: 'curso', proforma: 'neutro' };
+              var etiquetaDoc = function (t) { return H.tag(TIPO_DOC_FAC[t] || t || '—', TONO_DOC[t] || 'neutro'); };
+              var cuenta = {}; vivas.forEach(function (x) { cuenta[x.tipo] = (cuenta[x.tipo] || 0) + 1; });
+              var PLURAL = { factura: ['factura', 'facturas'], recibi: ['recibí', 'recibís'], proforma: ['proforma', 'proformas'] };
+              var resumen = ['factura', 'recibi', 'proforma'].filter(function (t) { return cuenta[t]; }).map(function (t) {
+                return H.tag(cuenta[t] + ' ' + PLURAL[t][cuenta[t] === 1 ? 0 : 1], TONO_DOC[t]);
+              }).join(' ');
               var tabla = function (lista) {
                 return H.tabla(['Nº', 'Tipo', 'Contrato · unidad', 'Fecha', 'Importe'], lista.map(function (x) {
                   return [
                     H.enlace(URL_FACTURA(x.id), x.numero || 'borrador', true),
-                    esc(TIPO_DOC_FAC[x.tipo] || x.tipo || '—'),
+                    etiquetaDoc(x.tipo),
                     esc([x.contrato_numero, x.proyecto_nombre].filter(Boolean).join(' · ') || '—'),
-                    esc(fFecha(x.fecha_emision)),
+                    '<span style="white-space:nowrap">' + esc(fFecha(x.fecha_emision)) + '</span>',
                     '<span style="white-space:nowrap">' + esc(x.total != null ? fmt(Number(x.total), x.moneda) : '—') + '</span>'
                   ];
                 }));
               };
               // las anuladas se APARTAN, no se esconden: un contador a la vista
-              pinta('facturas', (vivas.length ? tabla(vivas) : H.nota('Ninguna vigente: todas sus facturas están anuladas.')) +
+              pinta('facturas', (resumen ? '<div style="display:flex;flex-wrap:wrap;gap:6px">' + resumen + '</div>' : '') +
+                (vivas.length ? tabla(vivas) : H.nota('Ninguna vigente: todas sus facturas están anuladas.')) +
                 (nulas.length ? '<details style="font-size:12px;color:#75786e"><summary style="cursor:pointer">' + nulas.length + (nulas.length === 1 ? ' anulada' : ' anuladas') + ' · no cuentan</summary>' + tabla(nulas) + '</details>' : ''));
             });
 
