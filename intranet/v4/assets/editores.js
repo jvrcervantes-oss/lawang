@@ -8518,7 +8518,9 @@
             { k: 'importe', label: 'Importe al mes', tipo: 'number', paso: '0.01', req: 1, medio: 1,
               ayuda: 'bruto: sin PPN ni retención. 0 = dejar de cobrarlo' },
             { k: 'moneda', label: 'Moneda', tipo: 'select', req: 1, medio: 1, valor: 'EUR', opciones: ['EUR', 'USD', 'IDR'] },
-            { k: 'efectivo_desde', label: 'Rige desde', tipo: 'date', req: 1, medio: 1, valor: hoy },
+            // fecha de BALI, como la base: con la UTC, de 00:00 a 08:00 del día 1 salía el mes anterior
+            { k: 'efectivo_desde', label: 'Rige desde', tipo: 'date', req: 1, medio: 1,
+              valor: new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Makassar' }) },
             { k: 'nota', label: 'Nota' },
             { tipo: 'nota', label: (ya.length
                 ? 'Ahora mismo hay fee en ' + ya.map(function (k) { return vig[k].importe + ' ' + vig[k].moneda + ' a ' + (etq[k] || k); }).join(', ') + '. '
@@ -8529,10 +8531,10 @@
             var imp = Number(String(v.importe).replace(',', '.'));
             if (!v.sociedad) return { error: { message: 'Elige la sociedad: cada una es un deudor distinto y se le factura por separado.' } };
             if (!(imp >= 0)) return { error: { message: 'El importe tiene que ser un número igual o mayor que 0.' } };
+            // `creado_por` lo pone la base (default auth.email()): mandarlo null lo rompía
             return sb.from('comision_admin_fees').insert({
               sociedad: v.sociedad, importe: imp, moneda: v.moneda || 'EUR',
-              efectivo_desde: v.efectivo_desde, nota: (v.nota || '').trim() || null,
-              creado_por: (aut.session && aut.session.user && aut.session.user.email) || null
+              efectivo_desde: v.efectivo_desde, nota: (v.nota || '').trim() || null
             }).select('id').single();
           });
         });

@@ -7934,16 +7934,20 @@
          por moneda, con los dos sumandos a la vista (Administracion, #108: un
          solo numero se leeria como importe a facturar). Y aparte lo que sigue
          sin cobrar de meses anteriores, que tambien se debe. */
-      var feeMes = delMesTodo.filter(esFee);
-      pon2('k-deben', sumaPorMoneda(delMesTodo));
+      /* Consulta de deploy (Administración): la cifra grande es lo que SE DEBE
+         —sin lo ya cobrado— y en dos filas, comisión y fee, nunca un único
+         total que se lea como importe de una factura. */
+      var sinCobrar = function (l) { return l.estado !== 'cobrada'; };
+      var comMes = delMes.filter(sinCobrar), feeMes = delMesTodo.filter(esFee).filter(sinCobrar);
+      pon2('k-deben', 'Comisión ' + sumaPorMoneda(comMes) + '\nFee ' + sumaPorMoneda(feeMes));
       var yaCobrado = delMesTodo.filter(function (l) { return l.estado === 'cobrada'; });
       var atrasado = vivas.filter(function (l) {
         return l.estado !== 'cobrada' && (l.devengado_el || '').slice(0, 7) < mesActual;
       });
-      pon2('k-deben-pie', (delMesTodo.length
-          ? 'Comisión ' + sumaPorMoneda(delMes) + ' + fee ' + sumaPorMoneda(feeMes) + '. Bruto, sin PPN ni retención.'
-          : 'Este mes todavía no hay ni comisión ni fee.')
-        + (yaCobrado.length ? ' Ya cobrado: ' + sumaPorMoneda(yaCobrado) + '.' : '')
+      pon2('k-deben-pie', (comMes.length || feeMes.length
+          ? 'Lo devengado este mes que aún no se ha cobrado: ' + sumaPorMoneda(comMes.concat(feeMes)) + ' en total. Bruto, sin PPN ni retención.'
+          : 'Este mes no queda nada por cobrar.')
+        + (yaCobrado.length ? ' Ya cobrado de este mes: ' + sumaPorMoneda(yaCobrado) + '.' : '')
         + (atrasado.length ? ' Además, sin cobrar de meses anteriores: ' + sumaPorMoneda(atrasado) + '.' : '')
         + (fees && !fees.length ? ' No hay ningún fee fijo dado de alta: botón «Fee fijo» arriba.' : '')
         + (dv.fallo ? ' No se ha podido apuntar el fee del mes (' + dv.fallo + '): recarga.' : ''));
@@ -7952,9 +7956,16 @@
       var cuerpoFee = document.getElementById('lw-ca-fees');
       window.LW_V4.caFeesVigentes = {};
       var vigFee = {};
+      /* Mismo corte que la base (comision_admin_devenga_fees): el fee de un mes
+         es el que rige su ÚLTIMO día. Con `hoy`, uno fechado el 28 salía
+         «Programado» mientras la base ya lo cobraba este mes. */
+      var finMes = (function () {
+        var p = mesActual.split('-'), d = new Date(Date.UTC(+p[0], +p[1], 0));
+        return mesActual + '-' + String(d.getUTCDate()).padStart(2, '0');
+      })();
       if (fees) fees.forEach(function (f) {
-        // vienen por efectivo_desde desc, created_at desc: el primero que rige hoy manda
-        if (f.efectivo_desde <= hoy && !vigFee[f.sociedad]) vigFee[f.sociedad] = f;
+        // vienen por efectivo_desde desc, created_at desc: el primero que rige a fin de mes manda
+        if (f.efectivo_desde <= finMes && !vigFee[f.sociedad]) vigFee[f.sociedad] = f;
       });
       window.LW_V4.caFeesVigentes = vigFee;
       if (cuerpoFee) {
@@ -7962,7 +7973,7 @@
           ? '<tr><td colspan="6" class="px-5 py-8 text-center font-body-md text-body-md text-error">No se han podido leer los fees. Recarga la página.</td></tr>'
           : fees.length ? fees.map(function (f) {
               var vig = vigFee[f.sociedad] === f;
-              var fut = f.efectivo_desde > hoy;
+              var fut = f.efectivo_desde > finMes;
               return '<tr class="border-b border-outline-variant/30">' +
                 '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(nombreSociedad(f.sociedad)) + '</td>' +
                 '<td class="px-5 py-4 font-label-md text-label-md text-on-surface text-right">' + esc(fmt(f.importe, f.moneda)) + '</td>' +
@@ -8123,8 +8134,12 @@
           var k = l.sociedad || '';
           var e = porSoc[k] || (porSoc[k] = { n: 0, base: {}, com: {}, pend: {} });
           if (l.tipo_linea === 'devengo') e.n++;
-          e.base[l.moneda] = (e.base[l.moneda] || 0) + Number(l.base_total || 0);
-          e.com[l.moneda]  = (e.com[l.moneda]  || 0) + Number(l.importe || 0);
+          /* El fee (y su abono) no es dinero entrado ni comisión: solo entra en
+             «Pendiente de facturar», que es lo que se le factura a la sociedad. */
+          if (!l.fee_id) {
+            e.base[l.moneda] = (e.base[l.moneda] || 0) + Number(l.base_total || 0);
+            e.com[l.moneda]  = (e.com[l.moneda]  || 0) + Number(l.importe || 0);
+          }
           if (l.estado === 'pendiente') e.pend[l.moneda] = (e.pend[l.moneda] || 0) + Number(l.importe || 0);
         });
         var claves = Object.keys(porSoc).sort();

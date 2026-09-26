@@ -922,6 +922,16 @@
     'Un porcentaje sobre todo el dinero que entra por la intranet, sin excepciones. Se devenga solo, recibí a recibí, y cada línea guarda congelado el porcentaje que le tocó: editar la tarifa no reescribe lo ya devengado salvo que se pida. No tiene nada que ver con la comisión del equipo de ventas.':
       'A percentage of every euro that comes in through the intranet, no exceptions. It accrues on its own, receipt by receipt, and each line keeps the percentage that applied to it frozen: editing the rate does not rewrite what has already accrued unless asked to. It has nothing to do with the sales team commission.',
     'Nueva tarifa': 'New rate',
+    // 26-sep-2026: fee fijo y simulador de tarifa
+    'Fee fijo': 'Fixed fee',
+    'Te deben este mes': 'Owed to you this month',
+    'Previsión si cambio la tarifa': 'Forecast if I change the rate',
+    'Con un': 'At',
+    'Importe al mes': 'Amount per month',
+    'La cuota de cada mes, aparte del porcentaje': 'The monthly fee, on top of the percentage',
+    'Cada mes el panel apunta en el libro una línea «Fee» por sociedad, con su estado de cobro como cualquier otra. Para cambiar el fee se da de alta otro con su fecha; con importe 0 se deja de cobrar.':
+      'Every month the panel records a «Fee» line per company in the ledger, with its own payment status like any other. To change the fee, add a new one with its date; an amount of 0 stops charging it.',
+    'Trayendo los fees…': 'Loading the fees…',
     'Tarifa vigente': 'Current rate',
     'Devengado este mes': 'Accrued this month',
     'Pendiente de facturar': 'Pending invoicing',
