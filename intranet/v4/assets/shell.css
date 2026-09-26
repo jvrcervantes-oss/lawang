@@ -257,8 +257,14 @@ body.lw-listo main{animation:none;visibility:visible}
 /* Con movimiento (nav.js marca `html.lw-mov` antes de que vuelva ninguna
    consulta), `main` espera tras `lw-listo` a que motion.js lance la entrada y
    quite la marca, en el mismo frame. Si motion.js no llega, este rescate la
-   suelta a los 600 ms: el CSS no depende de que el JS siga vivo. */
-html.lw-mov body.lw-listo main{animation:lw-rescate .6s step-end forwards}
+   suelta a los 600 ms: el CSS no depende de que el JS siga vivo.
+   OJO, nombre PROPIO a proposito: con `lw-rescate` (la de 12 s que `main` ya
+   lleva corriendo desde que carga) el navegador no reinicia la animacion al
+   cambiarle la duracion, la continua; con una sesion real `lw-listo` llega
+   pasado 0,6 s, asi que «retener 600 ms» ya estaba vencido al empezar y
+   motion.js, al ver `main` visible, no animaba NUNCA (26-sep, lo vio el owner). */
+html.lw-mov body.lw-listo main{animation:lw-mov-rescate .6s step-end forwards}
+@keyframes lw-mov-rescate{from{visibility:hidden}to{visibility:visible}}
 /* La entrada empieza donde acababa el velo: con su fundido de 180 ms encima,
    la subida de los bloques pasaba debajo y solo se veía un fundido cruzado. */
 html.lw-mov-entra #lw-cargando{display:none}
