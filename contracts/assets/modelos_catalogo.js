@@ -95,57 +95,38 @@ async function lwCargarCatalogoModelos(sb){
   return { catalogo: c.data || [], villas: v.data || [] };
 }
 
-/* DECLARAR / RETIRAR modelos en un proyecto. La escritura vivía dentro de
-   `intranet/modelos/index.html`; se muda aquí porque desde hoy la hace también
-   Proyectos, y una copia pegada de otra herramienta es deuda, no reutilización.
+/* DECLARAR / RETIRAR modelos en un proyecto. Una sola copia para Proyectos
+   (clásica y v4) — una copia pegada de otra herramienta es deuda, no reutilización.
+
+   Desde el 27-sep-2026 (LAW-336 bloque 3) la escritura la hace el servidor:
+   `modelos_proyecto_fija(p_proyecto_id, p_modelos)` en UNA transacción, con
+   permiso de admin dentro. Aquí solo se calcula SI hay algo que cambiar (sin
+   cambios no se llama), y se le manda la lista entera de lo que debe quedar.
 
    `seleccion` = ids del catálogo que deben quedar declarados en ese proyecto.
-   `enUso` = nombres de modelo que YA usa alguna parcela de ese proyecto: esos no
-   se retiran aunque se desmarquen — quitar la declaración dejaría a la unidad
-   nombrando un modelo que su propio proyecto dice que no se construye, que es
-   justo la incoherencia que este encargo viene a cerrar. Se devuelven en
-   `rechazadas` para que la pantalla diga POR QUÉ, no solo que no se pudo.
-
-   El alta va por `upsert` con `onConflict: 'proyecto,modelo'` porque la unicidad
-   de la tabla es esa —`UNIQUE (proyecto, modelo)`, sobre el TEXTO y no sobre los
-   ids—, así que declarar dos veces lo mismo no revienta ni duplica.
-   ⚠️ Y todas las filas del lote llevan LAS MISMAS CLAVES a propósito: un upsert
-   en lote manda una sola sentencia con la unión de las claves de todo el array y
-   pone NULL donde a una fila le falte alguna. Mezclar formas aquí borraría el
-   precio propio de un proyecto en silencio (8-sep-2026, el fallo del import CSV
-   de unidades — ver `proyectos_csv.js`). */
+   Los modelos que YA usa alguna parcela del proyecto no se retiran aunque se
+   desmarquen —quitar la declaración dejaría a la unidad nombrando un modelo que
+   su propio proyecto dice que no se construye—: lo decide el SERVIDOR (por id o
+   por nombre, no la lista `enUso` de la pantalla) y los devuelve en
+   `rechazadas` para que la pantalla diga POR QUÉ. `ctx.enUso` solo se usa para
+   no llamar en balde. La moneda de cada alta es la del modelo (la pone la base). */
 async function lwDeclaraModelosEnProyecto(sb, proyecto, seleccion, ctx){
   const c = ctx || {};
-  const catalogo = c.catalogo || [];
   const villas = (c.villas || []).filter(v => v.proyecto === proyecto);
   const enUso = c.enUso || new Set();
   const quiere = new Set(seleccion || []);
 
-  const altas = [...quiere]
-    .filter(id => !villas.some(v => v.modelo_id === id))
-    .map(id => catalogo.find(x => x.id === id))
-    .filter(Boolean)
-    .map(m => ({
-      proyecto, proyecto_id: c.proyecto_id || null,
-      modelo: m.nombre, modelo_id: m.id,
-      precio_construccion: null, moneda: m.moneda || 'EUR',
-      notas: 'Declarado desde la ficha del proyecto el ' + new Date().toISOString().slice(0, 10)
-             + '. Hereda el precio de catálogo.',
-    }));
+  const altas = [...quiere].filter(id => !villas.some(v => v.modelo_id === id));
+  const bajas = villas.filter(v => v.modelo_id && !quiere.has(v.modelo_id) && !enUso.has(v.modelo));
+  const rechazadasLocal = villas.filter(v => v.modelo_id && !quiere.has(v.modelo_id) && enUso.has(v.modelo));
+  if(!altas.length && !bajas.length) return { ok: true, altas: 0, bajas: 0, rechazadas: rechazadasLocal };
+  if(!c.proyecto_id) return { ok: false, error: 'el proyecto no tiene ficha (falta su id)', altas: 0, bajas: 0, rechazadas: rechazadasLocal };
 
-  const bajasTodas = villas.filter(v => v.modelo_id && !quiere.has(v.modelo_id));
-  const rechazadas = bajasTodas.filter(v => enUso.has(v.modelo));
-  const bajas = bajasTodas.filter(v => !enUso.has(v.modelo));
-
-  if(altas.length){
-    const e = await sb.from('modelos_villa').upsert(altas, { onConflict: 'proyecto,modelo' });
-    if(e.error) return { ok: false, error: e.error.message, altas: 0, bajas: 0, rechazadas };
-  }
-  if(bajas.length){
-    const e = await sb.from('modelos_villa').delete().in('id', bajas.map(b => b.id));
-    if(e.error) return { ok: false, error: e.error.message, altas: altas.length, bajas: 0, rechazadas };
-  }
-  return { ok: true, altas: altas.length, bajas: bajas.length, rechazadas };
+  // Lo que debe quedar declarado: lo marcado (las filas antiguas sin modelo_id el servidor no las toca)
+  const r = await sb.rpc('modelos_proyecto_fija', { p_proyecto_id: c.proyecto_id, p_modelos: [...quiere] });
+  if(r.error) return { ok: false, error: r.error.message, altas: 0, bajas: 0, rechazadas: rechazadasLocal };
+  const d = r.data || {};
+  return { ok: true, altas: d.altas || 0, bajas: d.bajas || 0, rechazadas: d.rechazadas || [] };
 }
 
 if(typeof module !== 'undefined' && module.exports)

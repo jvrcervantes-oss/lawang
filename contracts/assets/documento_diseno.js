@@ -24,8 +24,9 @@ function deepMerge(base, over){ for(const k in over){ (over[k] && typeof over[k]
 function saveDesign(){ try{ localStorage.setItem('lawang_contract_design_'+CURRENT.slug, JSON.stringify(DESIGN)); }catch(_){} }
 
 /* Diseño COMPARTIDO por tipo de plantilla (tabla contratos_diseno, jul-2026).
-   "Guardar como diseño de esta plantilla" lo sube; cualquier agente que
-   abra ese tipo de contrato lo recibe como punto de partida. */
+   "Guardar como diseño de esta plantilla" lo sube (solo administración desde el
+   27-sep-2026); cualquier agente que abra ese tipo de contrato lo recibe como
+   punto de partida. */
 async function loadSharedDesign(slug){
   if(!sb) return null;
   const { data } = await sb.from('contratos_diseno').select('design').eq('slug', slug).maybeSingle();
@@ -36,8 +37,9 @@ async function saveSharedDesign(){
   const btn=$('#btnSaveDesign'); const t0=btn?btn.textContent:'';
   if(btn){ btn.disabled=true; btn.textContent='Guardando…'; }
   try{
-    const { error } = await sb.from('contratos_diseno')
-      .upsert({ slug:CURRENT.slug, design:DESIGN, updated_at:new Date().toISOString() });
+    // por el servidor (27-sep-2026, LAW-336 bloque 3): solo administración, y la base valida la forma
+    // entera del diseño (cada valor acaba sin escapar en el CSS del documento que ve el cliente)
+    const { error } = await sb.rpc('contratos_diseno_guarda', { p_slug:CURRENT.slug, p_design:DESIGN });
     if(error) throw error;
     toast('Diseño guardado como plantilla — ya lo ven todos los agentes');
   }catch(err){

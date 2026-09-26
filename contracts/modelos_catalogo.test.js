@@ -56,52 +56,59 @@ ok('🔴 sin ninguno declarado se ofrece el catálogo entero, avisando', () => {
 });
 
 /* Doble de `sb` que se queda con lo que se le manda, para mirar la FORMA exacta
-   de la escritura sin tocar la base. */
-function sbFalso(){
-  const visto = { upsert:null, onConflict:null, borrados:null };
-  return { visto, from(){ return {
-    upsert(filas, opts){ visto.upsert = filas; visto.onConflict = opts && opts.onConflict; return Promise.resolve({ error:null }); },
-    delete(){ return { in(_c, ids){ visto.borrados = ids; return Promise.resolve({ error:null }); } }; },
-  }; } };
+   de la escritura sin tocar la base. Desde el 27-sep-2026 (LAW-336 bloque 3) la
+   escritura es UNA llamada al servidor (`modelos_proyecto_fija`): el navegador no
+   hace upsert ni delete sobre `modelos_villa`. */
+function sbFalso(respuesta){
+  const visto = { rpc:null, args:null, from:0 };
+  return { visto,
+    from(){ visto.from++; throw new Error('el navegador no escribe en modelos_villa'); },
+    rpc(fn, args){ visto.rpc = fn; visto.args = args; return Promise.resolve({ data: respuesta || { altas:0, bajas:0, rechazadas:[] }, error:null }); },
+  };
 }
 
-ok('🔴 el lote del upsert lleva TODAS las filas con las mismas claves', async () => {
-  const sb = sbFalso();
-  await lwDeclaraModelosEnProyecto(sb, 'Bonian Village', ['m-dali', 'm-dune'],
+ok('🔴 declarar va por el servidor con la lista entera y el id del proyecto', async () => {
+  const sb = sbFalso({ altas:2, bajas:0, rechazadas:[] });
+  const r = await lwDeclaraModelosEnProyecto(sb, 'Bonian Village', ['m-dali', 'm-dune'],
     { catalogo:CATALOGO, villas:VILLAS, proyecto_id:'p-bonian' });
-  const firmas = new Set(sb.visto.upsert.map(f => Object.keys(f).sort().join('|')));
-  assert.strictEqual(firmas.size, 1,
-    'un upsert en lote manda UNA sentencia con la union de las claves: dos formas = NULL implicito');
-  assert.strictEqual(sb.visto.onConflict, 'proyecto,modelo', 'la unicidad de la tabla es sobre el TEXTO');
-  assert.deepStrictEqual(sb.visto.upsert.map(f => f.modelo), ['Dali', 'Dune']);
-  assert.strictEqual(sb.visto.upsert[0].precio_construccion, null, 'declarar no fija precio: hereda del catalogo');
+  assert.strictEqual(sb.visto.rpc, 'modelos_proyecto_fija');
+  assert.deepStrictEqual(sb.visto.args, { p_proyecto_id:'p-bonian', p_modelos:['m-dali', 'm-dune'] });
+  assert.strictEqual(sb.visto.from, 0, 'ni upsert ni delete desde el navegador');
+  assert.strictEqual(r.altas, 2);
 });
 
-ok('declarar lo que ya estaba declarado no duplica ni reescribe', async () => {
+ok('declarar lo que ya estaba declarado no llama al servidor', async () => {
   const sb = sbFalso();
   const r = await lwDeclaraModelosEnProyecto(sb, 'Palm Field W5', ['m-dali', 'm-dream'],
     { catalogo:CATALOGO, villas:VILLAS, proyecto_id:'p-palm' });
   assert.strictEqual(r.altas, 0);
   assert.strictEqual(r.bajas, 0);
-  assert.strictEqual(sb.visto.upsert, null, 'sin cambios no se escribe nada');
+  assert.strictEqual(sb.visto.rpc, null, 'sin cambios no se escribe nada');
 });
 
-ok('🔴 no se retira un modelo que alguna parcela YA usa', async () => {
+ok('🔴 un modelo que alguna parcela YA usa no se retira, y se dice por qué', async () => {
   const sb = sbFalso();
   const r = await lwDeclaraModelosEnProyecto(sb, 'Palm Field W5', ['m-dali'],
     { catalogo:CATALOGO, villas:VILLAS, proyecto_id:'p-palm', enUso:new Set(['Dream']) });
   assert.strictEqual(r.bajas, 0);
   assert.deepStrictEqual(r.rechazadas.map(x => x.modelo), ['Dream'],
     'se devuelve para poder decir POR QUE, no solo que no se pudo');
-  assert.strictEqual(sb.visto.borrados, null);
+  assert.strictEqual(sb.visto.rpc, null, 'solo quitaba algo en uso: no hay nada que mandar');
 });
 
-ok('un modelo que no usa nadie sí se retira', async () => {
-  const sb = sbFalso();
+ok('retirar uno que no usa nadie manda lo que debe QUEDAR y devuelve lo que dice el servidor', async () => {
+  const sb = sbFalso({ altas:0, bajas:1, rechazadas:[] });
   const r = await lwDeclaraModelosEnProyecto(sb, 'Palm Field W5', ['m-dali'],
     { catalogo:CATALOGO, villas:VILLAS, proyecto_id:'p-palm', enUso:new Set() });
+  assert.deepStrictEqual(sb.visto.args.p_modelos, ['m-dali']);
   assert.strictEqual(r.bajas, 1);
-  assert.deepStrictEqual(sb.visto.borrados, ['v2']);
+});
+
+ok('sin id de proyecto no se escribe (el servidor trabaja por id, no por nombre)', async () => {
+  const sb = sbFalso();
+  const r = await lwDeclaraModelosEnProyecto(sb, 'Bonian Village', ['m-dali'], { catalogo:CATALOGO, villas:VILLAS });
+  assert.strictEqual(r.ok, false);
+  assert.strictEqual(sb.visto.rpc, null);
 });
 
 setTimeout(() => {

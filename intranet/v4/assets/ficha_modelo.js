@@ -7,8 +7,9 @@
    por proyecto, techos, extras y obra detrás de un botón.
 
    Quién pinta qué: datos.js carga los datos (una sola tanda) y llama a
-   `lwFichaModelo.pintar(modelo, ctx)`; este módulo pinta los bloques y hace sus
-   escrituras. Las filas de «Unidades» (#d-proyectos, con su «Previsión del
+   `lwFichaModelo.pintar(modelo, ctx)`; este módulo pinta los bloques y pide
+   sus escrituras al servidor (RPC con el permiso dentro, 27-sep-2026, LAW-336
+   bloque 3; el precio va entero en modelo_precios_guarda). Las filas de «Unidades» (#d-proyectos, con su «Previsión del
    deck») y de «Documentos» (#d-docs, abrir el fichero) conservan los ganchos
    que editores.js delega en esos contenedores — no se reescriben aquí.
 
@@ -18,17 +19,19 @@
      base sin mover los techos ABARATA el techo precargado en los proyectos con
      precio propio (Administración, ROJO). Por eso, en un modelo con techos,
      cambiar la base mueve todos los techos (ahora y 2027) la misma cantidad, y
-     el bloque lo enseña antes de guardar.
+     el bloque lo enseña antes de guardar. La diferencia la calcula el
+     SERVIDOR (base nueva − base de la fila bloqueada), no esta pantalla.
    - NULL en `modelos_villa.precio_construccion` = HEREDA la base (resolución
      única en contracts/assets/modelos_catalogo.js). Se distingue «hereda» de
      «fijado a mano, hoy igual a la base»: el segundo NO se mueve con la base.
      Normalizar uno en otro es una pregunta al owner, no algo que se hace solo.
    - Declarar un proyecto que ya tiene unidades del modelo crea la fila con
      NULL (misma forma que lwDeclaraModelosEnProyecto), salvo que la base sea
-     NULL: entonces hereda NADA y se exige precio. Insert simple, no upsert: un
-     upsert pisaría una fila creada en otra pestaña; el 23505 se traduce.
-   - La moneda no se cambia si el modelo ya tiene cifras (filas, techos,
-     extras): no se convierte nada, y un 48.000 EUR leído como IDR es un error
+     NULL: entonces hereda NADA y se exige precio. El servidor da de alta la
+     fila (nunca pisa una creada en otra pestaña: lo dice con su texto).
+   - La moneda no se cambia si el modelo ya tiene filas que cuelgan de él
+     (techos, extras, precios por proyecto, previsión del deck; lo decide la
+     base, revisión #126): no se convierte nada, y un 48.000 EUR leído como IDR es un error
      de tres órdenes de magnitud.
    - `renders_pendientes` NO es «le faltan fotos»: en la web es lo que permite
      publicar la página de un modelo sin fotos (modelo/lib.php). Se rotula así.
@@ -47,16 +50,20 @@
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function num(s) { var t = String(s == null ? '' : s).trim().replace(/\./g, '').replace(',', '.'); return t === '' ? null : Number(t); }
   function numDec(s) { var t = String(s == null ? '' : s).trim().replace(',', '.'); return t === '' ? null : Number(t); }
+  // NaN viajaría como null en el JSON (y borraría el dato): se para aquí con su nombre
+  function chk(v, etq) { if (v != null && !isFinite(v)) throw new Error(etq + ' no es un número'); return v; }
   function norm(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim(); }
 
-  /* Una escritura con `.select('id')`: 0 filas es que la RLS la ha denegado
-     (o la fila ya no existe), NO un éxito — mismo criterio que verifica() de
-     editores.js. */
-  function unaFila(p, queNo) {
-    return p.then(function (r) {
+  /* Toda escritura va por el servidor (27-sep-2026, LAW-336 bloque 3): RPC
+     SECURITY DEFINER con el permiso y la validación dentro, que LANZA si no
+     guarda — ya no hay «0 filas = la RLS lo denegó» que vigilar aquí. El
+     precio base, los techos, los precios por proyecto y las altas van en UNA
+     transacción (modelo_precios_guarda): antes eran una cadena de escrituras
+     con «deshacer» a mano en el navegador. */
+  function rpc(sb, fn, args) {
+    return sb.rpc(fn, args).then(function (r) {
       if (r.error) throw r.error;
-      if (!r.data || !r.data.length) throw new Error(queNo + ' (sin permiso, o la fila ya no existe)');
-      return r;
+      return r.data;
     });
   }
   function mensaje(e) {
@@ -260,10 +267,10 @@
           v = campo(g, 'Villa (m²)', m.villa_m2, { num: 1 }), t = campo(g, 'Terraza (m²)', m.terraza_m2, { num: 1 });
       nota(host, 'Lo heredan todas las unidades que usan este modelo.');
       return function () {
-        return unaFila(ctx.sb.from('modelos').update({
-          dormitorios: numDec(d.value), banos: numDec(ba.value), villa_m2: numDec(v.value), terraza_m2: numDec(t.value),
-          actualizado_en: new Date().toISOString()
-        }).eq('id', m.id).select('id'), 'No se ha guardado la ficha técnica');
+        return rpc(ctx.sb, 'modelo_guarda', { p_id: m.id, p_cambios: {
+          dormitorios: chk(numDec(d.value), 'Dormitorios'), banos: chk(numDec(ba.value), 'Baños'),
+          villa_m2: chk(numDec(v.value), 'Villa (m²)'), terraza_m2: chk(numDec(t.value), 'Terraza (m²)')
+        } });
       };
     } });
     var g = document.createElement('div'); g.className = 'fm-4';
@@ -289,7 +296,10 @@
   function bPrecios(col, m, h, ctx) {
     var base = m.precio_construccion != null ? Number(m.precio_construccion) : null;
     var b = bloque(col, 'precios', 'Precio de construcción', { editar: function (host) {
-      var conCifras = h.filas.some(function (v) { return v.precio_construccion != null; }) || h.techos.length > 0 || h.mex.some(function (x) { return x.precio != null; });
+      // Mismo criterio que modelo_precios_guarda (revisión #126): cualquier fila que cuelgue del modelo
+      // (techos, extras, precio por proyecto, previsión del deck) fija la moneda.
+      var conCifras = h.filas.length > 0 || h.techos.length > 0 || h.mex.length > 0 ||
+        (ctx.FC || []).some(function (x) { return x.modelo_id === m.id; });
       var fila1 = document.createElement('div'); fila1.style.cssText = 'display:grid;grid-template-columns:170px 110px minmax(0,1fr);gap:10px;align-items:end';
       host.appendChild(fila1);
       var iBase = campo(fila1, 'Precio base', base, { num: 1, ph: 'sin precio' });
@@ -299,7 +309,7 @@
       if (conCifras) sel.disabled = true;
       lm.appendChild(sel); fila1.appendChild(lm);
       var ex = document.createElement('p'); ex.className = 'fm-nota'; ex.style.paddingBottom = '10px';
-      ex.textContent = conCifras ? 'La moneda no se cambia: ya hay cifras en ' + (m.moneda || 'EUR') + ' y no se convierten.' : 'La base la heredan los proyectos que no tienen precio propio.';
+      ex.textContent = conCifras ? 'La moneda no se cambia: el modelo ya tiene techos, extras, precios por proyecto o previsión en ' + (m.moneda || 'EUR') + ' y no se convierten.' : 'La base la heredan los proyectos que no tienen precio propio.';
       fila1.appendChild(ex);
 
       var prev = document.createElement('div'); host.appendChild(prev);
@@ -369,51 +379,30 @@
           if (num(altas[a].i.value) == null && nb == null) throw new Error('«' + altas[a].proyecto + '» necesita precio: el modelo no tiene precio base que heredar');
         }
         cambiosFila.forEach(function (x) { if (num(x.i.value) == null && nb == null) throw new Error('«' + x.v.proyecto + '» quedaría sin precio: no hay base que heredar'); });
-
-        var d = (base != null && nb != null) ? nb - base : 0;
-        var hechos = [];   // para deshacer si algo falla a medias
-        var cadena = Promise.resolve();
-        if (nb !== base || monedaNueva !== (m.moneda || 'EUR')) {
-          cadena = cadena.then(function () {
-            return unaFila(sb.from('modelos').update({ precio_construccion: nb, moneda: monedaNueva, actualizado_en: new Date().toISOString() }).eq('id', m.id).select('id'), 'No se ha guardado el precio base')
-              .then(function () { hechos.push(function () { return sb.from('modelos').update({ precio_construccion: base, moneda: m.moneda }).eq('id', m.id); }); });
-          });
-          if (d && h.techos.length) {
-            h.techos.forEach(function (t) {
-              cadena = cadena.then(function () {
-                var nuevo = { precio_ahora: Number(t.precio_ahora) + d };
-                if (t.precio_2027 != null) nuevo.precio_2027 = Number(t.precio_2027) + d;
-                return unaFila(sb.from('modelo_techos').update(nuevo).eq('id', t.id).select('id'), 'No se ha movido el techo «' + t.nombre + '»')
-                  .then(function () { hechos.push(function () { return sb.from('modelo_techos').update({ precio_ahora: t.precio_ahora, precio_2027: t.precio_2027 }).eq('id', t.id); }); });
-              });
-            });
-          }
-        }
-        cambiosFila.forEach(function (x) {
-          cadena = cadena.then(function () {
-            return unaFila(sb.from('modelos_villa').update({ precio_construccion: num(x.i.value) }).eq('id', x.v.id).select('id'), 'No se ha guardado el precio de ' + x.v.proyecto)
-              .then(function () { hechos.push(function () { return sb.from('modelos_villa').update({ precio_construccion: x.v.precio_construccion }).eq('id', x.v.id); }); });
-          });
-        });
+        chk(nb, 'El precio base');
+        cambiosFila.forEach(function (x) { chk(num(x.i.value), 'El precio de ' + x.v.proyecto); });
         altas.forEach(function (x) {
-          cadena = cadena.then(function () {
-            var p = num(x.i.value);
-            // Misma forma que lwDeclaraModelosEnProyecto (modelos_catalogo.js);
-            // insert simple a propósito, ver cabecera.
-            return unaFila(sb.from('modelos_villa').insert({
-              proyecto: x.proyecto, proyecto_id: h.idProy[x.proyecto] || null,
-              modelo: m.nombre, modelo_id: m.id, precio_construccion: p, moneda: m.moneda || 'EUR',
-              notas: 'Declarado desde la ficha del modelo el ' + new Date().toISOString().slice(0, 10) + (p == null ? '. Hereda el precio de catálogo.' : '.')
-            }).select('id'), 'No se ha declarado ' + x.proyecto)
-              .then(function (r) { var id = r.data[0].id; hechos.push(function () { return sb.from('modelos_villa').delete().eq('id', id); }); });
-          });
+          chk(num(x.i.value), 'El precio de ' + x.proyecto);
+          if (!h.idProy[x.proyecto]) throw new Error('«' + x.proyecto + '» no tiene ficha de proyecto enlazada: no se puede declarar desde aquí');
         });
-        return cadena.catch(function (e) {
-          // Deshacer lo ya escrito, en orden inverso: que la base y los techos
-          // no queden desacoplados por un fallo a medias.
-          var des = Promise.resolve();
-          hechos.reverse().forEach(function (f) { des = des.then(f, f); });
-          return des.then(function () { throw e; }, function () { throw e; });
+
+        /* UNA llamada, UNA transacción: la diferencia de los techos la calcula
+           el servidor (base nueva − base de la fila bloqueada), nunca aquí. */
+        var cambios = {};
+        if (nb !== base) cambios.base = nb;
+        if (monedaNueva !== (m.moneda || 'EUR')) cambios.moneda = monedaNueva;
+        if (cambiosFila.length) cambios.villas = cambiosFila.map(function (x) { return { id: x.v.id, precio: num(x.i.value) }; });
+        if (altas.length) cambios.altas = altas.map(function (x) { return { proyecto_id: h.idProy[x.proyecto], precio: num(x.i.value) }; });
+        if (!Object.keys(cambios).length) return Promise.resolve();
+        return rpc(sb, 'modelo_precios_guarda', { p_id: m.id, p_cambios: cambios }).then(function (res) {
+          // Los contratos NO firmados guardan el precio que se eligió en pantalla y no se recalculan solos
+          // (recalcular = cambiar un precio que el cliente vio): se dice cuántos hay, como mínimo.
+          var n = res && res.contratos_no_firmados_min;
+          if (!('base' in cambios) || !n) return;
+          var txt = n + (n === 1 ? ' contrato sin firmar usa' : ' contratos sin firmar usan') + ' este modelo (al menos): conservan el precio con el que se generaron. Si alguno debe llevar el precio nuevo, regenéralo desde el generador.';
+          if (typeof window.lwConfirmar === 'function') return window.lwConfirmar({ titulo: 'Precio guardado', cuerpo: '<p>' + esc(txt) + '</p>', confirmar: 'Entendido', cancelar: false })
+            .then(function () {}, function () { /* MUDO A PROPOSITO: el precio ya está guardado; si el aviso falla, se recarga igual */ });
+          window.alert(txt);
         });
       };
     } });
@@ -454,14 +443,15 @@
       });
       nota(host, 'Son precios completos de la villa con ese techo. El más barato debería coincidir con el precio base' + (base != null ? ' (' + ctx.fmt(base, m.moneda) + ')' : '') + '.');
       return function () {
-        var p = Promise.resolve();
+        var lista = [];
         ins.forEach(function (r) {
-          var na = num(r.a.value), nz = num(r.z.value);
+          var na = chk(num(r.a.value), 'El precio de «' + r.x.nombre + '»'), nz = chk(num(r.z.value), 'El precio 2027 de «' + r.x.nombre + '»');
           if (na === (r.x.precio_ahora == null ? null : Number(r.x.precio_ahora)) && nz === (r.x.precio_2027 == null ? null : Number(r.x.precio_2027))) return;
           if (na == null) throw new Error('«' + r.x.nombre + '» necesita precio ahora');
-          p = p.then(function () { return unaFila(ctx.sb.from('modelo_techos').update({ precio_ahora: na, precio_2027: nz }).eq('id', r.x.id).select('id'), 'No se ha guardado «' + r.x.nombre + '»'); });
+          lista.push({ id: r.x.id, precio_ahora: na, precio_2027: nz });
         });
-        return p;
+        if (!lista.length) return Promise.resolve();
+        return rpc(ctx.sb, 'modelo_techos_guarda', { p_id: m.id, p_techos: lista });
       };
     } : null });
     if (!h.techos.length) { vacio(b.cuerpo, 'Sin techos: el contrato de Construcción no ofrece elegir acabado de techo.'); return; }
@@ -489,18 +479,20 @@
         return { e: e, ex: ex, p: p, c: c };
       });
       return function () {
-        var sb = ctx.sb, pr = Promise.resolve();
+        var lista = [];
         ins.forEach(function (r) {
-          var np = num(r.p.value), disp = r.c.checked;
+          var np = chk(num(r.p.value), 'El precio de «' + r.e.nombre + '»'), disp = r.c.checked;
           if (r.ex) {
             if (np === (r.ex.precio == null ? null : Number(r.ex.precio)) && disp === (r.ex.disponible !== false)) return;
-            pr = pr.then(function () { return unaFila(sb.from('modelo_extras').update({ precio: np, moneda: m.moneda || 'EUR', disponible: disp }).eq('id', r.ex.id).select('id'), 'No se ha guardado «' + r.e.nombre + '»'); });
+            lista.push({ extra_id: r.e.id, precio: np, disponible: disp });
           } else if (np != null || !disp) {
             // sin fila = «se ofrece, sin precio propio»: solo se crea fila cuando hay algo que decir
-            pr = pr.then(function () { return unaFila(sb.from('modelo_extras').insert({ modelo_id: m.id, extra_id: r.e.id, precio: np, moneda: m.moneda || 'EUR', disponible: disp }).select('id'), 'No se ha guardado «' + r.e.nombre + '»'); });
+            lista.push({ extra_id: r.e.id, precio: np, disponible: disp });
           }
         });
-        return pr;
+        if (!lista.length) return Promise.resolve();
+        // la moneda del extra la pone el servidor: SIEMPRE la del modelo
+        return rpc(ctx.sb, 'modelo_extras_guarda', { p_id: m.id, p_extras: lista });
       };
     } : null });
     if (!D.extras.length) { vacio(b.cuerpo, 'No hay extras en el catálogo.'); return; }
@@ -538,7 +530,7 @@
       return function () {
         // Solo {n, d}: la web deriva n_en/d_en si faltan (modelo/catalogo.php).
         var out = filas.map(function (r) { return { n: r.a.value.trim(), d: r.z.value.trim() }; }).filter(function (x) { return x.n; });
-        return unaFila(ctx.sb.from('modelos').update({ acabados: out.length ? out : null, actualizado_en: new Date().toISOString() }).eq('id', m.id).select('id'), 'No se han guardado los acabados');
+        return rpc(ctx.sb, 'modelo_guarda', { p_id: m.id, p_cambios: { acabados: out.length ? out : null } });
       };
     } });
     if (!lista.length) { vacio(b.cuerpo, 'Sin acabados.'); return; }
@@ -559,7 +551,7 @@
       var r = casilla(host, 'Publicar su página aunque aún no tenga fotos', m.renders_pendientes, 'si no, un modelo sin fotos no tiene página en la web');
       nota(host, 'La web tarda hasta 5 minutos en reflejar el cambio.');
       return function () {
-        return unaFila(ctx.sb.from('modelos').update({ publicado: p.checked, renders_pendientes: r.checked, actualizado_en: new Date().toISOString() }).eq('id', m.id).select('id'), 'No se ha guardado la publicación');
+        return rpc(ctx.sb, 'modelo_guarda', { p_id: m.id, p_cambios: { publicado: p.checked, renders_pendientes: r.checked } });
       };
     } });
     var est = document.createElement('p'); est.style.cssText = 'margin:0;font-size:14px;font-weight:600;color:' + (seVe ? C.verde : C.gris);
@@ -585,7 +577,7 @@
   function bTexto(col, m, ctx) {
     var b = bloque(col, 'texto', 'Texto para la web', { editar: function (host) {
       var t = campo(host, 'Descripción', m.descripcion, { area: 1, filas: 5, ayuda: 'la publica la página del modelo' });
-      return function () { return unaFila(ctx.sb.from('modelos').update({ descripcion: t.value.trim() || null, actualizado_en: new Date().toISOString() }).eq('id', m.id).select('id'), 'No se ha guardado el texto'); };
+      return function () { return rpc(ctx.sb, 'modelo_guarda', { p_id: m.id, p_cambios: { descripcion: t.value.trim() || null } }); };
     } });
     if (m.descripcion && m.descripcion.trim()) { var p = document.createElement('p'); p.className = 'fm-txt'; p.textContent = m.descripcion; b.cuerpo.appendChild(p); }
     else vacio(b.cuerpo, 'Sin texto: la web no tiene qué contar de este modelo.');
@@ -599,7 +591,7 @@
       return function () {
         var l = function (s) { return String(s || '').split('\n').map(function (x) { return x.trim(); }).filter(Boolean); };
         var i = l(a.value), n = l(z.value);
-        return unaFila(ctx.sb.from('modelos').update({ alcance: (i.length || n.length) ? { incluido: i, no_incluido: n } : null, actualizado_en: new Date().toISOString() }).eq('id', m.id).select('id'), 'No se ha guardado la obra');
+        return rpc(ctx.sb, 'modelo_guarda', { p_id: m.id, p_cambios: { alcance: (i.length || n.length) ? { incluido: i, no_incluido: n } : null } });
       };
     } });
     if (!incl.length && !noi.length) { vacio(b.cuerpo, 'Sin definir.'); return; }
@@ -650,7 +642,8 @@
           if (r.s.value !== r.d.tipo) cambio.tipo = r.s.value;
           if (r.t && r.t.value !== (r.d.techo_clave || '')) cambio.techo_clave = r.t.value || null;
           if (!Object.keys(cambio).length) return;
-          p = p.then(function () { return unaFila(ctx.sb.from('modelo_documentos').update(cambio).eq('id', r.d.id).select('id'), 'No se ha cambiado «' + r.d.nombre + '»'); });
+          // el plano (Anexo Maestro) lo vuelve a comprobar el servidor: solo administración
+          p = p.then(function () { return rpc(ctx.sb, 'modelo_documento_cambia', { p_id: r.d.id, p_cambios: cambio }); });
         });
         return p;
       };
@@ -755,7 +748,7 @@
         }
         return paso.then(function (ok) {
           if (!ok) return false;
-          return unaFila(sb.from('modelos').update({ nombre: nombre, slug: slug, activo: a.checked, notas: no.value.trim() || null, actualizado_en: new Date().toISOString() }).eq('id', m.id).select('id'), 'No se ha guardado la identidad')
+          return rpc(sb, 'modelo_guarda', { p_id: m.id, p_cambios: { nombre: nombre, slug: slug, activo: a.checked, notas: no.value.trim() || null } })
             .then(function () {
               if (slug !== m.slug) { try { history.replaceState(null, '', '?modelo=' + encodeURIComponent(slug)); } catch (e) { /* MUDO A PROPOSITO: solo la URL; si falla, la recarga abre la ficha por defecto */ } }
             }, function (e) {

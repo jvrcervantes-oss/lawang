@@ -30,7 +30,7 @@
 <script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="/contracts/assets/topbar.js?v=8444fd68" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=c5c926ae"></script><script src="/contracts/assets/guard.js?v=68b35794" data-herramienta="unidades"></script>
+<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=c5c926ae"></script><script src="/contracts/assets/guard.js?v=fbb1cf54" data-herramienta="unidades"></script>
 <script src="/contracts/assets/suite.js?v=3cf4a63a"></script>
 <style>
   *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }
@@ -125,7 +125,7 @@
 <script src="/contracts/assets/proyectos_csv.js?v=1358ced5"></script>
 <!-- El catalogo de modelos y que se construye en cada proyecto (8-sep-2026),
      compartido con contracts/app.html e intranet/modelos/. -->
-<script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1"></script>
+<script src="/contracts/assets/modelos_catalogo.js?v=da02ce3b"></script>
 <script src="/contracts/assets/paginacion.js?v=2ac67b84"></script>
 <script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
 <script src="/contracts/assets/operaciones-cuentas.js?v=b11b12fc"></script>
@@ -214,7 +214,7 @@
 <!-- Fotos publicas del investor deck. Compartida con la otra herramienta que
      las gestiona (Regla 0 de la suite): nace en contracts/assets/, no dentro de
      una pantalla. Depende de suite-comun (esc/toast) y dialogo (lwConfirmar). -->
-<script src="/contracts/assets/deck_fotos.js?v=5795bb76"></script>
+<script src="/contracts/assets/deck_fotos.js?v=45d4eb93"></script>
 <script>
 /* ============================================================================
    Unidades — inventario y precios por parcela
@@ -954,12 +954,12 @@ function abrirInvestorDeck(nombre, proyectoId){
       const { error: eSlug } = await SB.rpc('proyecto_guarda', { p_id: proyectoId, p_cambios: { slug } });   // valida formato y que no lo use otro
       if(eSlug){ btn.disabled = false; toastMal(lwErrorHumano(eSlug, lwT('No se pudo guardar el slug (¿ya lo usa otro proyecto?): '))); return; }
     }
-    const { error: eCfg } = await SB.from('deck_config_proyecto').upsert({
-      proyecto_id: proyectoId,
+    // por el servidor (LAW-336 bloque 3): admin, lista blanca y el título se MEZCLA por idioma
+    const { error: eCfg } = await SB.rpc('deck_config_guarda', { p_proyecto_id: proyectoId, p_cambios: {
       titulo: { en: tituloEn },
       meta_desc: { en: metaEn },
       modelo_destacado_id: destacadoId,
-    }, { onConflict: 'proyecto_id' });
+    } });
     btn.disabled = false;
     if(eCfg){ toastMal(lwErrorHumano(eCfg, lwT('No se pudo guardar: '))); return; }
     toast(lwT('Guardado'));
