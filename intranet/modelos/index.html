@@ -661,8 +661,12 @@ async function guardar(m){
       const t = TECHOS.find(x => x.id === fila.dataset.techo) || {};
       const ahora = numOk(num(fila.querySelector('[data-campo=ahora]').value), t.nombre || lwT('Techo'));
       const y2027 = numOk(num(fila.querySelector('[data-campo=y2027]').value), t.nombre || lwT('Techo'));
-      if(ahora !== (t.precio_ahora == null ? null : Number(t.precio_ahora)) || y2027 !== (t.precio_2027 == null ? null : Number(t.precio_2027)))
-        techos.push({ id: fila.dataset.techo, precio_ahora: ahora, precio_2027: y2027 });
+      /* Solo la clave que se tocó (revisor de código, 27-sep-2026): mandar las dos devolvía a su valor VIEJO
+         el tramo no tocado después de que el servidor lo hubiera movido con la base. Clave ausente = no se toca. */
+      const cambio = { id: fila.dataset.techo };
+      if(ahora !== (t.precio_ahora == null ? null : Number(t.precio_ahora))) cambio.precio_ahora = ahora;
+      if(y2027 !== (t.precio_2027 == null ? null : Number(t.precio_2027))) cambio.precio_2027 = y2027;
+      if(Object.keys(cambio).length > 1) techos.push(cambio);
     }
 
     // Extras: sin fila = «se ofrece, sin precio propio»; solo se escribe lo que cambia o tiene algo que decir
@@ -676,6 +680,13 @@ async function guardar(m){
         extras.push({ extra_id: extraId, precio, disponible: disp });
     }
 
+    // Desde el 27-sep la clásica hace lo mismo que la ficha nueva: subir la base mueve los techos. Se avisa antes.
+    if('base' in precios && TECHOS.length && m.precio_construccion != null && precios.base != null){
+      const d = precios.base - Number(m.precio_construccion);
+      if(d && !await lwConfirmar({ titulo: lwT('Cambiar el precio base'),
+          cuerpo: '<p>' + lwT('Los techos de este modelo se mueven lo mismo que la base (%d), en los dos tramos. Un techo que cambies a mano en este mismo guardado se queda como lo pongas.', { d: (d > 0 ? '+' : '') + d }) + '</p>',
+          confirmar: lwT('Guardar') })){ btn.disabled = false; return; }
+    }
     const r = await SB.rpc('modelo_ficha_guarda', { p_id: m.id, p_cambios: ficha, p_precios: precios, p_techos: techos, p_extras: extras });
     if(r.error) throw r.error;
     // Los contratos NO firmados conservan el precio con el que se generaron (no se recalculan solos)
