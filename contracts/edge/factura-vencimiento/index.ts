@@ -225,21 +225,27 @@ Deno.serve(async (req) => {
       };
       const totales = C.calcTotales(lineas, moneda, { pct: '' });
 
-      const ins = await sb.from('facturas').insert({
-        tipo: 'factura', sociedad: campos.sociedad,
-        cliente_nombre: campos.cliente_nombre || null, proyecto_nombre: campos.proyecto_nombre || null,
-        contrato_numero: ct.numero || null, contrato_id: v.contrato_id,
-        total: totales.total, moneda, fecha_emision: hoy,
-        datos: { fields: { ...campos, lineas }, lineas, totales },
-      }).select('id, numero, datos').single();
-      if (ins.error || !ins.data) throw new Error('no se pudo crear la factura: ' + (ins.error?.message ?? 'sin fila'));
-
-      // El vencimiento queda marcado YA, con la factura recién creada: si el
-      // PDF o el correo fallan luego, la factura EXISTE y el equipo la manda
-      // desde /intranet/facturas/ — lo que no puede pasar es que mañana el cron emita
-      // OTRA para el mismo hito porque el marcado llegara tarde.
-      const marca = await sb.from('contrato_vencimientos').update({ factura_id: ins.data.id }).eq('id', v.id);
-      if (marca.error) console.error('venc', v.id, 'facturado pero SIN marcar factura_id:', marca.error.message);
+      // Factura + marca del vencimiento en UNA transacción (26-sep-2026, migración
+      // 20260926160000_factura_vencimiento_atomica): antes eran dos llamadas y, si
+      // la marca fallaba, solo se apuntaba en el log y mañana salía OTRA factura
+      // para el mismo hito. La RPC bloquea el vencimiento, comprueba que sigue sin
+      // factura y solo entonces inserta: dos ejecuciones a la vez no emiten dos.
+      // Si el PDF o el correo fallan luego, la factura EXISTE y ya está marcada:
+      // el equipo la manda desde /intranet/facturas/.
+      const rpc = await sb.rpc('factura_vencimiento_emite', {
+        p_venc_id: v.id,
+        p_fila: {
+          tipo: 'factura', sociedad: campos.sociedad,
+          cliente_nombre: campos.cliente_nombre || null, proyecto_nombre: campos.proyecto_nombre || null,
+          contrato_numero: ct.numero || null,
+          total: totales.total, moneda, fecha_emision: hoy,
+          datos: { fields: { ...campos, lineas }, lineas, totales },
+        },
+      });
+      if ((rpc.error as any)?.hint === 'ya_facturado') { saltadas.push(etiqueta + ': ya facturado por otra ejecución'); continue; }
+      const fila = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
+      if (rpc.error || !fila) throw new Error('no se pudo crear la factura: ' + (rpc.error?.message ?? 'sin fila'));
+      const ins = { data: fila as { id: string; numero: string; datos: any } };
 
       campos.numero_visible = ins.data.numero;
       const html = C.documentoPagina({ ...campos, lineas }, { numero: ins.data.numero, emisor: (ins.data as any)?.datos?.emisor ?? null, base: SITIO });
