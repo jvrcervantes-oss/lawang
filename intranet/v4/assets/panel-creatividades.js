@@ -55,9 +55,10 @@
                               : '/intranet/dossier/builder.html?id=' + encodeURIComponent(c.id);
   }
   function nombreFichero(c) {
-    var base = String(c.titulo || 'lawang').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-      .replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 60) || 'lawang';
-    return 'lawang_' + base + '_' + (c.formato || '') + '.png';
+    var marca = String(lwMarca('%marca')).toLowerCase().replace(/[^a-z0-9]+/g, '_');
+    var base = String(c.titulo || marca).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 60) || marca;
+    return marca + '_' + base + '_' + (c.formato || '') + '.png';
   }
   function tipoTxt(c) {
     if (c.tipo === 'dossier') return T('Dossier') + (c.origen === 'repo' ? ' · ' + T('del repositorio') : '');

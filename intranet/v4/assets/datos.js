@@ -480,7 +480,7 @@
     veloEl.setAttribute('role', 'status');
     veloEl.setAttribute('aria-live', 'polite');
     veloEl.innerHTML =
-      '<p class="lw-c-marca">LAWANG</p>' +
+      '<p class="lw-c-marca">' + esc((window.LW_INSTANCIA || {}).cabecera) + '</p>' +   // la ficha de la instancia (F3 2b)
       '<div class="lw-c-frases">' +
         '<p class="lw-c-dice">Trayendo los datos de la pantalla</p>' +
         '<p class="lw-c-tarda">Sigue viniendo — la consulta esta tardando mas de lo normal</p>' +
@@ -6655,7 +6655,7 @@
           return (x.beneficiario_email && x.beneficiario_email.toLowerCase() === yoMail) || (yoId && x.creado_por === yoId);
         });
         var subP = document.querySelector('main h1') && document.querySelector('main h1').parentNode.querySelector('p');
-        if (subP) subP.textContent = 'Tu comisión, venta a venta: lo que Lawang te debe y lo que ya te ha pagado. La aprueba y la paga Lawang.';
+        if (subP) subP.textContent = lwMarca('Tu comisión, venta a venta: lo que %marca te debe y lo que ya te ha pagado. La aprueba y la paga %marca.');
       }
       if (ss) pintaLawang(ss);
       if (cd) pintaEquipo(cd, eqs, miembros);
@@ -7082,7 +7082,7 @@
         };
         caja.innerHTML =
           '<p class="font-body-md text-body-md text-on-surface-variant">' +
-            (eqHoy ? 'Estás en el equipo <b class="text-on-surface">' + esc(eqHoy.nombre) + '</b>' + (manager ? '. Te paga <b class="text-on-surface">' + esc(manager) + '</b>, tu manager — no Lawang.' : '.')
+            (eqHoy ? 'Estás en el equipo <b class="text-on-surface">' + esc(eqHoy.nombre) + '</b>' + (manager ? '. Te paga <b class="text-on-surface">' + esc(manager) + '</b>, tu manager — no ' + lwMarca('%marca') + '.' : '.')
                    : 'Ahora mismo no estás en ningún equipo de venta.') + '</p>' +
           '<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">' +
             kpi('Pendiente de cobrar', sumaPorMoneda(pendientes), pendientes.length === 1 ? '1 comisión' : pendientes.length + ' comisiones') +
@@ -7671,7 +7671,7 @@
       pon2('k-cond-closer', String(conds.filter(function (c) { return c.nivel !== 'manager' && c.equipo_id; }).length));
 
       if (selEquipo) selEquipo.innerHTML = '<option value="">Todos los equipos</option>' +
-        (esAdmC ? '<option value="__estandar__">Estándar de Lawang (sin equipo)</option>' : '') +
+        (esAdmC ? '<option value="__estandar__">Estándar de ' + esc(lwMarca('%marca')) + ' (sin equipo)</option>' : '') +
         equipos.map(function (e) { return '<option value="' + esc(e.id) + '">' + esc(e.nombre) + '</option>'; }).join('');
       if (selProyecto) selProyecto.innerHTML = '<option value="">Todos los proyectos</option>' +
         proyectos.map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.nombre) + '</option>'; }).join('');
@@ -7694,7 +7694,7 @@
              quien cierra sin equipo, la paga Lawang; proyecto NULL = todos. */
           var estandar = !c.equipo_id;
           var quien = estandar
-            ? (c.closer_email ? esc(nombrePorEmail[c.closer_email.toLowerCase()] || c.closer_email) + ' (override)' : 'quien cierre sin equipo · paga Lawang')
+            ? (c.closer_email ? esc(nombrePorEmail[c.closer_email.toLowerCase()] || c.closer_email) + ' (override)' : 'quien cierre sin equipo · paga ' + esc(lwMarca('%marca')))
             : c.nivel !== 'manager'
               ? (c.closer_email ? esc(nombrePorEmail[c.closer_email.toLowerCase()] || c.closer_email) + ' (override) · ' + esc(ROL_EQ[c.nivel] || c.nivel)
                                : 'todo el equipo · ' + esc(ROL_EQ[c.nivel] || c.nivel))
@@ -7702,7 +7702,7 @@
           var importeOBase = c.base_calculo === 'importe_fijo' ? fmt(c.importe_fijo, 'EUR') : (c.pct_comision + '%');
           var vigencia = c.vigente_desde && c.vigente_desde > '1900-01-01' ? '<br><span class="text-outline text-[11px]">desde ' + esc(fFecha(c.vigente_desde)) + '</span>' : '';
           return '<tr class="border-b border-outline-variant/30">' +
-            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + (estandar ? 'Estándar de Lawang' : esc(equipoDe[c.equipo_id] || '—')) + vigencia + '</td>' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + (estandar ? 'Estándar de ' + esc(lwMarca('%marca')) : esc(equipoDe[c.equipo_id] || '—')) + vigencia + '</td>' +
             '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + (c.proyecto_id ? esc(proyectoDe[c.proyecto_id] || '—') : 'Todos los proyectos') + '</td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + quien + '</td>' +
             '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(importeOBase) +
@@ -7718,9 +7718,9 @@
                  no ha devengado— los tramos. Equipo, proyecto y nivel no: son la
                  identidad de la condición. */
               '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" ' +
-              'data-lw-edita-cond="' + esc(c.id) + '" data-lw-etq="' + esc((estandar ? 'Estándar de Lawang' : (equipoDe[c.equipo_id] || '')) + ' · ' + (c.proyecto_id ? (proyectoDe[c.proyecto_id] || '') : 'Todos los proyectos')) + '">Editar</button>' +
+              'data-lw-edita-cond="' + esc(c.id) + '" data-lw-etq="' + esc((estandar ? 'Estándar de ' + lwMarca('%marca') : (equipoDe[c.equipo_id] || '')) + ' · ' + (c.proyecto_id ? (proyectoDe[c.proyecto_id] || '') : 'Todos los proyectos')) + '">Editar</button>' +
               '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" ' +
-              'data-lw-toggle-cond="' + esc(c.id) + '" data-lw-etq="' + esc((estandar ? 'Estándar de Lawang' : (equipoDe[c.equipo_id] || '')) + ' · ' + (c.proyecto_id ? (proyectoDe[c.proyecto_id] || '') : 'Todos los proyectos')) + '" data-lw-activo="' + (c.activo ? '1' : '0') + '">' +
+              'data-lw-toggle-cond="' + esc(c.id) + '" data-lw-etq="' + esc((estandar ? 'Estándar de ' + lwMarca('%marca') : (equipoDe[c.equipo_id] || '')) + ' · ' + (c.proyecto_id ? (proyectoDe[c.proyecto_id] || '') : 'Todos los proyectos')) + '" data-lw-activo="' + (c.activo ? '1' : '0') + '">' +
               (c.activo ? 'Desactivar' : 'Reactivar') + '</button>' +
               /* Borrar solo la que ya esta desactivada (Seguridad, revision previa
                  18-sep): una activa puede estar aplicandose a contratos firmados
@@ -7728,7 +7728,7 @@
                  Primero se desactiva —que deja de aplicarse— y entonces se borra. */
               (c.activo ? '' :
               '<button type="button" class="px-3 py-1 rounded-full text-error hover:bg-error-container/40 font-label-md text-[12px]" ' +
-              'data-lw-borra-cond="' + esc(c.id) + '" data-lw-etq="' + esc((estandar ? 'Estándar de Lawang' : (equipoDe[c.equipo_id] || '')) + ' · ' + (c.proyecto_id ? (proyectoDe[c.proyecto_id] || '') : 'Todos los proyectos')) + '">Borrar</button>') +
+              'data-lw-borra-cond="' + esc(c.id) + '" data-lw-etq="' + esc((estandar ? 'Estándar de ' + lwMarca('%marca') : (equipoDe[c.equipo_id] || '')) + ' · ' + (c.proyecto_id ? (proyectoDe[c.proyecto_id] || '') : 'Todos los proyectos')) + '">Borrar</button>') +
               '</div></td></tr>');
         }).join('') : '<tr><td colspan="7" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">Ninguna condición para este filtro.</td></tr>';
       }

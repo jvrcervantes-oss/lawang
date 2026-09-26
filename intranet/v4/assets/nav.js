@@ -321,7 +321,7 @@
      equipo). Sustituye al panel «Mi equipo» del Sales Manager, que duró una
      tarde. `rotulo` cambia el nombre según el rol, no lo que enseña. */
   var PESTANAS_COMISIONES = [
-    { path: 'comisiones',    clave: 'comisiones',             texto: 'Pagos de Lawang' },
+    { path: 'comisiones',    clave: 'comisiones',             texto: 'Pagos de %marca' },
     { path: 'reparto',       clave: 'comisiones_reparto',     texto: 'Reparto a closers',
       rotulo: { agente: 'Mis comisiones', project_manager: 'Mis comisiones' } },
     { path: 'condiciones',   clave: 'comisiones_condiciones', texto: 'Condiciones' },

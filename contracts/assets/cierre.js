@@ -73,7 +73,7 @@
       'align-items:center;justify-content:center;padding:24px;background:#F5F0E6;font-family:' + FUENTE;
     c.innerHTML =
       '<div style="max-width:440px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px">' +
-        '<p style="margin:0;font:600 22px/1 ' + FUENTE + ';letter-spacing:.28em;color:#104C4F">LAWANG</p>' +
+        '<p style="margin:0;font:600 22px/1 ' + FUENTE + ';letter-spacing:.28em;color:#104C4F">' + esc((window.LW_INSTANCIA || {}).cabecera) + '</p>' +
         '<h1 id="lw-cierre-tit" style="margin:18px 0 0;font:700 24px/1.25 ' + FUENTE + ';color:#2E3437">' + esc(t('La intranet está en mantenimiento')) + '</h1>' +
         (motivo ? '<p style="margin:0;font-size:15px;line-height:1.5;color:#44483f">' + esc(motivo) + '</p>' : '') +
         '<p style="margin:0;font-size:13.5px;line-height:1.5;color:#75786e">' + esc(t('Vuelve a entrar en un rato. Si es urgente, habla con un administrador.')) + '</p>' +

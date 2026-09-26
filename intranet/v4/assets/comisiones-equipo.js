@@ -65,8 +65,8 @@
       sec.className = 'bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col gap-3';
       sec.style.marginBottom = '24px';
       var intro = gestiono
-        ? 'Quién hizo de Setter y de Team Lead en cada venta (lo pagas tú, como al closer: acuerdo privado, Lawang no retiene nada) y las reclamaciones de venta propia de tu equipo.'
-        : 'Tus ventas de equipo. Si el cliente es tuyo —no un lead del equipo— puedes reclamar la venta como propia: si tu manager la aprueba, cobras su comisión entera y la paga Lawang.';
+        ? lwMarca('Quién hizo de Setter y de Team Lead en cada venta (lo pagas tú, como al closer: acuerdo privado, %marca no retiene nada) y las reclamaciones de venta propia de tu equipo.')
+        : lwMarca('Tus ventas de equipo. Si el cliente es tuyo —no un lead del equipo— puedes reclamar la venta como propia: si tu manager la aprueba, cobras su comisión entera y la paga %marca.');
       sec.innerHTML =
         '<div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px">' +
           '<h2 class="font-headline-sm text-headline-sm text-on-surface" style="margin:0">Ventas del equipo</h2>' +
@@ -145,7 +145,7 @@
         cuerpo += H.seccion('Roles de la venta',
           '<label style="display:grid;gap:4px;font:600 12px \'Neue Kabel\',sans-serif">Setter<select data-ve-rol="setter" style="' + sel + '">' + opts(v.setter_email) + '</select></label>' +
           '<label style="display:grid;gap:4px;font:600 12px \'Neue Kabel\',sans-serif">Team Lead<select data-ve-rol="team_lead" style="' + sel + '">' + opts(v.team_lead_email) + '</select></label>' +
-          H.nota('Cobran según la condición de su rol en Condiciones, en cuanto la venta cumpla el tramo. Lo pagas tú, igual que al closer: Lawang no lo gestiona ni retiene nada.'));
+          H.nota(lwMarca('Cobran según la condición de su rol en Condiciones, en cuanto la venta cumpla el tramo. Lo pagas tú, igual que al closer: %marca no lo gestiona ni retiene nada.')));
         acciones.push({ texto: 'Guardar roles', tono: 'primario', onClick: function (ev, w) {
           var cambios = [];
           w.querySelectorAll('[data-ve-rol]').forEach(function (s) {
@@ -172,7 +172,7 @@
 
       if (gestiono && v.reclamacion_estado === 'pendiente') {
         cuerpo += H.seccion('Resolver la reclamación',
-          H.nota('Si la apruebas, ' + quien(v.closer_email) + ' cobra la comisión entera de manager de esta venta, la paga Lawang, y tú y el resto del equipo (closer, setter, team lead) no cobráis nada de ella. Lo ya generado y pendiente se anula con su motivo.') +
+          H.nota('Si la apruebas, ' + quien(v.closer_email) + ' cobra la comisión entera de manager de esta venta, la paga ' + lwMarca('%marca') + ', y tú y el resto del equipo (closer, setter, team lead) no cobráis nada de ella. Lo ya generado y pendiente se anula con su motivo.') +
           motivoCaja('Motivo (obligatorio para rechazar)'));
         acciones.push({ texto: 'Aprobar venta propia', tono: 'primario', onClick: function (ev, w) {
           var m = leeMotivo(w);
@@ -196,7 +196,7 @@
 
       if (soyCloser && !v.soy_manager && !viva) {
         cuerpo += H.seccion('Reclamar como venta propia',
-          H.nota('Úsalo solo si el cliente es tuyo (tu agenda, tus conocidos), no un lead del equipo. Si ' + quien(v.manager_email) + ' lo aprueba, cobras su comisión entera de esta venta, la paga Lawang y tu equipo no cobra nada de ella.') +
+          H.nota('Úsalo solo si el cliente es tuyo (tu agenda, tus conocidos), no un lead del equipo. Si ' + quien(v.manager_email) + ' lo aprueba, cobras su comisión entera de esta venta, la paga ' + lwMarca('%marca') + ' y tu equipo no cobra nada de ella.') +
           motivoCaja('De dónde viene el cliente'));
         acciones.push({ texto: 'Reclamar venta propia', tono: 'primario', onClick: function (ev, w) {
           var m = leeMotivo(w);

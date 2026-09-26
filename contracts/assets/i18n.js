@@ -438,7 +438,7 @@
     'Facturado sin cobrar': 'Invoiced, not collected',
     'Facturas emitidas que siguen abiertas': 'Issued invoices still open',
     'Falló el cálculo del panel. Avisa a Desarrollo.': 'The panel calculation failed. Tell Development.',
-    'Falta la casilla «Pagos de Lawang»: las solicitudes de pago no están sumadas.': 'The «Pagos de Lawang» permission is missing: payment requests are not included.',
+    'Falta la casilla «Pagos de %marca»: las solicitudes de pago no están sumadas.': 'The «Pagos de %marca» permission is missing: payment requests are not included.',
     'Falta la casilla «Reparto a closers»: las comisiones sin solicitud no están sumadas.': 'The «Reparto a closers» permission is missing: commissions without a request are not included.',
     'Finanzas': 'Finance',
     'Resumen': 'Overview',
@@ -530,7 +530,7 @@
     'descargar': 'download',
     'Dossier ': 'Dossier ',
     'Dossier montado desde la base ✓': 'Dossier built from the database ✓',
-    'El 70 % del feed de Lawang': '70% of Lawang\'s feed',
+    'El 70 % del feed de %marca': '70% of %marca\'s feed',
     'El dossier habla de la titularidad: añade la página «Cómo se compra» (menú Creatividades), que explica las dos rutas.': 'The dossier talks about ownership: add the «How to buy» page (Creative menu), which explains both routes.',
     'Elige la foto de la intranet': 'Pick the photo from the intranet',
     'Elige un proyecto.': 'Pick a project.',
@@ -676,7 +676,7 @@
     'Sin calendario firmado en': 'No signed schedule in',
     'Sin calendario que lo explique': 'Not covered by a schedule',
     'Sin cobros en el mismo tramo de': 'No collections in the same period of',
-    'Sin permiso para ver esta cifra: hace falta tener asignadas «Pagos de Lawang» y «Reparto a closers» en Usuarios. No es que no se deba nada: es que esta sesión no lo puede ver.': 'No permission to see this figure: it needs «Pagos de Lawang» and «Reparto a closers» assigned in Users. It does not mean nothing is owed: this session cannot see it.',
+    'Sin permiso para ver esta cifra: hace falta tener asignadas «Pagos de %marca» y «Reparto a closers» en Usuarios. No es que no se deba nada: es que esta sesión no lo puede ver.': 'No permission to see this figure: it needs «Pagos de %marca» and «Reparto a closers» assigned in Users. It does not mean nothing is owed: this session cannot see it.',
     'Sin sesión: no se carga nada.': 'No session: nothing is loaded.',
     'Solicitudes de pago vivas': 'Open payment requests',
     'Solicitudes de pago vivas y comisiones devengadas que aún no tienen solicitud. Una comisión con solicitud se cuenta una sola vez.': 'Open payment requests and accrued commissions that have no request yet. A commission with a request is counted only once.',
@@ -1068,8 +1068,8 @@
     'Anular la solicitud': 'Cancel the request',
     'SP-%n quedará anulada. No se borra: el registro se queda, sin efecto.':
       'SP-%n will be cancelled. It is not deleted: the record stays, with no effect.',
-    'Pide un pago a Lawang — una comisión, un pago acordado. Administración lo aprueba y lo paga.':
-      'Request a payment from Lawang — a commission, an agreed payment. Administration approves and pays it.',
+    'Pide un pago a %marca — una comisión, un pago acordado. Administración lo aprueba y lo paga.':
+      'Request a payment from %marca — a commission, an agreed payment. Administration approves and pays it.',
     'Concepto — qué pago estás pidiendo': 'Description — what payment you are requesting',
     'Comisión venta W3.1-D1 · pago acordado septiembre…':
       'Commission on sale W3.1-D1 · agreed payment September…',
@@ -1441,7 +1441,7 @@
     'Los números que el sistema aplica solo: cuántos días de gracia tiene una reserva al vencer, cuántas prórrogas puede dar un sales manager y de cuántos días, y qué propone el formulario. Cambiarlos aquí vale desde ese momento, sin tocar código.': 'The numbers the system applies on its own: how many grace days a reservation gets when it expires, how many extensions a sales manager may grant and for how many days, and what the form proposes. Changing them here takes effect immediately, with no code change.',
     'Tu sesión no es super admin: puedes mirar, no cambiar.': 'Your session is not super admin: you can look, not change.',
     'Comunicación': 'Communication',
-    'Escribe un comunicado para el equipo y mándalo por email a los usuarios de la intranet que elijas. Sale con la plantilla de marca de Lawang. Una vez enviado queda en el registro tal como salió: para cambiarlo, duplícalo.': 'Write an announcement for the team and email it to the intranet users you choose. It goes out with the Lawang brand template. Once sent it stays in the log exactly as it went out: to change it, duplicate it.',
+    'Escribe un comunicado para el equipo y mándalo por email a los usuarios de la intranet que elijas. Sale con la plantilla de marca de %marca. Una vez enviado queda en el registro tal como salió: para cambiarlo, duplícalo.': 'Write an announcement for the team and email it to the intranet users you choose. It goes out with the %marca brand template. Once sent it stays in the log exactly as it went out: to change it, duplicate it.',
     'Nuevo comunicado': 'New announcement',
     'Comunicado': 'Announcement',
     'Asunto del email': 'Email subject',
@@ -2480,8 +2480,8 @@
     'con el bot de WhatsApp': 'with the WhatsApp bot',
     'Los mensajes del bot con cada lead, tal y como los ve el cliente.':
       'The bot’s messages with each lead, exactly as the client sees them.',
-    'El bot de WhatsApp de Lawang, en vivo. Pausar detiene la IA para ese lead: a partir de ahí responde una persona.':
-      'Lawang’s WhatsApp bot, live. Pausing stops the AI for that lead: from then on a person replies.',
+    'El bot de WhatsApp de %marca, en vivo. Pausar detiene la IA para ese lead: a partir de ahí responde una persona.':
+      '%marca’s WhatsApp bot, live. Pausing stops the AI for that lead: from then on a person replies.',
     'Elige una conversación': 'Choose a conversation',
     'Sin conversaciones todavía.': 'No conversations yet.',
     'Sin mensajes.': 'No messages.',
@@ -2685,16 +2685,16 @@
     'Sincronizar ahora': "Sync now",
     'Cuentas GoHighLevel conectadas': "Connected GoHighLevel accounts",
     'Location ID': "Location ID",
-    'Etiqueta de contactos Lawang': "Tag for Lawang contacts",
+    'Etiqueta de contactos %marca': "Tag for %marca contacts",
     'Token (pit-…) con permiso solo de lectura de contactos': "Token (pit-…) with contacts read-only permission",
     'Conectar cuenta': "Connect account",
     'Una coincidencia es una señal para revisar, no un veredicto: que alguien esté en dos funnels no prueba que juegue a dos bandas. El descuento se decide con la política de siempre.': "A match is a signal to review, not a verdict: being in two funnels does not prove someone is playing both sides. Discounts follow the usual policy.",
     'La sincronización respondió %s': "Sync responded %s",
-    'Sin ficha en Lawang': "No Lawang record",
+    'Sin ficha en %marca': "No %marca record",
     'En más de un funnel': "In more than one funnel",
     'personas': "people",
     'Ya compradores': "Already buyers",
-    'con ficha de comprador en Lawang': "with a Lawang buyer record",
+    'con ficha de comprador en %marca': "with a %marca buyer record",
     'En dos sales managers': "With two sales managers",
     'en las cuentas de dos o más': "in the accounts of two or more",
     'Cuentas activas': "Active accounts",
@@ -2706,7 +2706,7 @@
     'Nadie aparece en más de un funnel.': "Nobody appears in more than one funnel.",
     'Sin cuentas activas todavía: no hay nada que cruzar.': "No active accounts yet: nothing to cross-check.",
     'Última pasada': "Last run",
-    '%c contactos · %m con Lawang': "%c contacts · %m with Lawang",
+    '%c contactos · %m con %marca': "%c contacts · %m with %marca",
     'falló': "failed",
     'Apagada': "Off",
     'Probar': "Test",
@@ -2716,7 +2716,7 @@
     'Ninguna cuenta conectada.': "No accounts connected.",
     'Leyendo la cuenta… puede tardar un minuto.': "Reading the account… this may take a minute.",
     'Prueba en seco': "Dry run",
-    '%c contactos leídos con la etiqueta. %m coinciden con leads o compradores de Lawang. No se ha guardado nada.': "%c contacts read with the tag. %m match Lawang leads or buyers. Nothing was saved.",
+    '%c contactos leídos con la etiqueta. %m coinciden con leads o compradores de %marca. No se ha guardado nada.': "%c contacts read with the tag. %m match %marca leads or buyers. Nothing was saved.",
     'Apagar la cuenta': "Switch off the account",
     'Se dejan de leer sus contactos y se borran sus coincidencias guardadas.': "Its contacts stop being read and its saved matches are deleted.",
     'Cuenta apagada.': "Account switched off.",
@@ -2734,8 +2734,8 @@
     'Sincronizado.': "Synced.",
     'Agendar': 'Schedule',
     'Parados +14d': 'Stalled +14d',
-    'Estos automatismos los ejecuta AxisWorks sobre las campañas de Lawang, cada 4 horas.':
-      'AxisWorks runs these automations on Lawang\'s campaigns, every 4 hours.',
+    'Estos automatismos los ejecuta AxisWorks sobre las campañas de %marca, cada 4 horas.':
+      'AxisWorks runs these automations on %marca\'s campaigns, every 4 hours.',
     'Aquí se ven': 'Here you see them',
     ': qué vigila cada regla y qué ha hecho de verdad.':
       ': what each rule watches and what it has actually done.',
@@ -2787,8 +2787,8 @@
       'spend will appear once the watchdog makes its first pass',
     'sin registro': 'no record',
     'Qué mira cada una y qué puede hacer.': 'What each one watches and what it can do.',
-    'Las %n últimas actuaciones sobre las campañas de Lawang.':
-      'The last %n actions on Lawang\'s campaigns.',
+    'Las %n últimas actuaciones sobre las campañas de %marca.':
+      'The last %n actions on %marca\'s campaigns.',
     'Todavía no consta ninguna actuación.': 'No action on record yet.',
     'Recogida de leads': 'Lead collection',
     'Baja a este CRM los leads de los formularios de Meta que estén en anuncios activos.':
@@ -3785,6 +3785,91 @@
     }
     return visible;
   };
+
+  /* ==========================================================================
+     LA MARCA DE LA INSTANCIA EN EL TEXTO (AxisWorks ERP, F3 lote 2b, 26-sep-2026)
+
+     El núcleo no escribe el nombre del cliente: escribe `%marca` (o
+     `%razon_social`, `%titulo`…) y el valor sale de la ficha de la instancia,
+     `window.LW_INSTANCIA` (`/contracts/assets/instancia.js`). Así la frase
+     «lo paga %marca» es la MISMA clave del diccionario en todas las
+     instancias, y cambiar de cliente es cambiar la ficha, no el código.
+
+     Se rellena en `lwT` DESPUÉS de buscar la traducción (la clave lleva
+     `%marca` literal; si se sustituyera antes, ya no casaría con el
+     diccionario y el inglés se caería en silencio) y ANTES de los huecos
+     del llamante, porque `%marca` empieza por `%m` y un hueco `m` del
+     llamante la partiría en dos.
+
+     Sin ficha, el hueco se queda escrito: «%marca» en pantalla es un fallo
+     que se ve; un nombre de cliente por defecto sería el de OTRO cliente.
+     ========================================================================== */
+  var CAMPOS_FICHA = ['razon_social', 'subcabecera', 'cabecera', 'titulo', 'marca'];
+  function conFicha(t) {
+    var f = window.LW_INSTANCIA;
+    if (!f || t.indexOf('%') === -1) return t;
+    for (var i = 0; i < CAMPOS_FICHA.length; i++) {
+      var c = CAMPOS_FICHA[i];
+      if (f[c] != null) t = t.split('%' + c).join(f[c]);
+    }
+    return t;
+  }
+  /* El relleno de la ficha va dentro del bucle de huecos de lwT (que corre
+     después del diccionario): se le pasan PRIMERO los campos de la ficha —el
+     orden de las claves de un objeto es el de inserción— y detrás los del
+     llamante. */
+  var lwTSolo = window.lwT;
+  window.lwT = function (s, huecos) {
+    var f = window.LW_INSTANCIA;
+    if (!f) return lwTSolo(s, huecos);
+    var todos = {};
+    CAMPOS_FICHA.forEach(function (c) { if (f[c] != null) todos[c] = f[c]; });
+    for (var k in huecos) if (Object.prototype.hasOwnProperty.call(huecos, k)) todos[k] = huecos[k];
+    return lwTSolo(s, todos);
+  };
+  window.lwMarca = conFicha;
+
+  /* lwFichaAplicar(raiz) — lo mismo sobre el HTML ya escrito, en ES y en EN:
+       <span data-lw-ficha="cabecera"></span>   ← el valor de ese campo
+       texto con %marca en cualquier nodo       ← se rellena en su sitio
+       <title data-lw-titulo>Facturas</title>   ← «Facturas — ⟨ficha.titulo⟩»
+     Recorre nodos de texto (no `textContent` del elemento), así una frase con
+     <b> dentro no se aplana. Si el nodo está dentro de un `[data-lwt]` sin
+     clave explícita, primero le fija la clave con `%marca` — si no, la
+     pasada al inglés buscaría la frase ya rellenada y no la encontraría. */
+  window.lwFichaAplicar = function (raiz) {
+    var f = window.LW_INSTANCIA;
+    if (!f) return;
+    var r = raiz || document;
+    r.querySelectorAll('[data-lw-ficha]').forEach(function (el) {
+      var v = f[el.getAttribute('data-lw-ficha')];
+      if (v != null && el.textContent !== v) el.textContent = v;
+    });
+    var base = r === document ? document.body : r;
+    if (base && document.createTreeWalker) {
+      var w = document.createTreeWalker(base, 4 /* SHOW_TEXT */, null), n, cambian = [];
+      while ((n = w.nextNode())) {
+        if (n.nodeValue.indexOf('%') !== -1 && conFicha(n.nodeValue) !== n.nodeValue) cambian.push(n);
+      }
+      cambian.forEach(function (n) {
+        var el = n.parentNode && n.parentNode.closest ? n.parentNode.closest('[data-lwt]') : null;
+        if (el && !el.dataset.lwt) el.dataset.lwt = el.textContent.trim();
+        n.nodeValue = conFicha(n.nodeValue);
+      });
+    }
+    var t = document.querySelector('title[data-lw-titulo]');
+    if (t && f.titulo) {
+      if (!t.hasAttribute('data-lw-base')) t.setAttribute('data-lw-base', t.textContent);
+      var nombre = t.getAttribute('data-lw-base');
+      document.title = nombre ? nombre + ' — ' + f.titulo : f.titulo;
+    }
+  };
+  if (typeof document === 'undefined') { /* node: el test del diccionario */ }
+  else if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { window.lwFichaAplicar(); });
+  } else {
+    window.lwFichaAplicar();
+  }
 
   /* ==========================================================================
      lwIdiomaAplicar(raiz) — traduce la HTML que ya está escrita en la página.

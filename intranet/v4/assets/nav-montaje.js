@@ -53,8 +53,8 @@
   aside.setAttribute('aria-hidden', 'true');
   aside.innerHTML =
     '<div class="lw4-sb-arriba">' +
-      '<div class="lw4-sb-marca"><div><span class="lw4-sb-logo">LAWANG</span>' +
-        '<span class="lw4-sb-sub">PROPERTIES &amp; SUITE</span></div>' +
+      '<div class="lw4-sb-marca"><div><span class="lw4-sb-logo" data-lw-ficha="cabecera"></span>' +
+        '<span class="lw4-sb-sub" data-lw-ficha="subcabecera"></span></div>' +
         '<button type="button" class="lw4-sb-cerrar" data-lw4-cerrar aria-label="Cerrar menú">' +
         '<span class="material-symbols-outlined">left_panel_close</span></button></div>' +
       '<nav class="lw4-sb-nav">' + GRUPOS.map(function (g) {
@@ -85,6 +85,12 @@
     document.body.insertBefore(aside, document.body.firstChild);
   }
   if (document.body) monta(); else document.addEventListener('DOMContentLoaded', monta);
+
+  // La marca de la barra sale de la ficha de la instancia (F3 2b, 26-sep-2026), no del código.
+  var ficha = window.LW_INSTANCIA || {};
+  aside.querySelectorAll('[data-lw-ficha]').forEach(function (el) {
+    el.textContent = ficha[el.getAttribute('data-lw-ficha')] || '';
+  });
 
   var volverA = null;
   function abre() {

@@ -401,7 +401,7 @@ const LW_ETIQUETA_PROPIA = {
   dossier:       'Dossier',
   creatividades: 'Creatividades',
   creatividades_ver: 'Creatividades · ver y descargar lo aprobado',
-  comisiones:    'Comisiones · Pagos de Lawang',   // la pestaña «Pagos de Lawang» (23-sep-2026)
+  comisiones:    'Comisiones · Pagos de %marca',   // la pestaña «Pagos de %marca» (23-sep-2026); %marca, de la ficha
   usuarios:      'Usuarios (admin)',     // el «(admin)» avisa de que además exige rol
 };
 
@@ -418,7 +418,14 @@ const LW_PERMISOS = (function () {
   return vistos.map(function (h) {
     const etiqueta = LW_ETIQUETA_PROPIA[h] || nombreDe[h];
     if (!etiqueta) console.warn('herramientas.js: el permiso «' + h + '» no tiene etiqueta — ponle una en LW_ETIQUETA_PROPIA');
-    return [h, etiqueta || h];
+    /* La etiqueta puede llevar %marca (F3 2b, 26-sep-2026). En las páginas clásicas este fichero carga
+       ANTES que la ficha de la instancia, así que se rellena al LEERLA, no aquí. */
+    const par = [h, null];
+    Object.defineProperty(par, 1, { enumerable: true, get: function () {
+      const e = etiqueta || h;
+      return typeof window !== 'undefined' && window.lwMarca ? window.lwMarca(e) : e;
+    } });
+    return par;
   });
 })();
 

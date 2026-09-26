@@ -582,7 +582,7 @@
       var s = pm.salidas;
       if (d.verSol && s) { filas.push(['#104C4F', T('Solicitudes de pago vivas'), s.solicitudes.importe, num(s.solicitudes.n)]); total += s.solicitudes.importe; }
       if (d.verCom && s) { filas.push(['#9AC0C2', T('Comisiones sin solicitud todavía'), s.comisiones.importe, num(s.comisiones.n)]); total += s.comisiones.importe; }
-      if (!d.verSol) faltan.push(T('Falta la casilla «Pagos de Lawang»: las solicitudes de pago no están sumadas.'));
+      if (!d.verSol) faltan.push(T('Falta la casilla «Pagos de %marca»: las solicitudes de pago no están sumadas.'));
       if (!d.verCom) faltan.push(T('Falta la casilla «Reparto a closers»: las comisiones sin solicitud no están sumadas.'));
     }
     if (d.fallos.gastos) faltan.push(T('No se pudieron leer los gastos.'));

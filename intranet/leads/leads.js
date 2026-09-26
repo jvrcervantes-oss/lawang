@@ -1635,7 +1635,7 @@ function pintarAutomatismos(){
     </div>`).join('');
 
   $('#subAcciones').textContent = ACCIONES.length
-    ? lwT('Las %n últimas actuaciones sobre las campañas de Lawang.', { n: ACCIONES.length })
+    ? lwT('Las %n últimas actuaciones sobre las campañas de %marca.', { n: ACCIONES.length })
     : lwT('Todavía no consta ninguna actuación.');
   $('#tAcciones').innerHTML = `
     <thead><tr><th>${lwT('Cuándo')}</th><th>${lwT('Campaña')}</th><th>${lwT('Qué hizo')}</th><th>${lwT('Por qué')}</th></tr></thead>
@@ -2261,8 +2261,8 @@ function trazaPersonas(filas){
   return [...grupos.values()].map(p => {
     const ap = [...p.ap.values()].sort((a, b) => String(a.alta || '').localeCompare(String(b.alta || '')));
     const propia = ap.find(a => a.origen !== 'ghl' && a.nombre);
-    const funnels = new Set(ap.map(a => a.origen === 'ghl' ? a.funnel : 'Lawang'));
-    return { nombre: propia ? propia.nombre : lwT('Sin ficha en Lawang'), tipos: [...p.tipos], ap,
+    const funnels = new Set(ap.map(a => a.origen === 'ghl' ? a.funnel : lwMarca('%marca')));
+    return { nombre: propia ? propia.nombre : lwT('Sin ficha en %marca'), tipos: [...p.tipos], ap,
              funnels: funnels.size, cuentasGhl: new Set(ap.filter(a => a.origen === 'ghl').map(a => a.funnel)).size,
              comprador: ap.some(a => a.origen === 'comprador') };
   }).sort((a, b) => String(b.ap[b.ap.length - 1].alta || '').localeCompare(String(a.ap[a.ap.length - 1].alta || '')));
@@ -2291,7 +2291,7 @@ function pintarTrazabilidad(){
     <div class="kpi fuerte"><div class="rot">${lwT('En más de un funnel')}<i class="ph ph-git-merge"></i></div>
       <p class="cifra">${TRAZA.length}</p><p class="pie">${lwT('personas')}</p></div>
     <div class="kpi"><div class="rot">${lwT('Ya compradores')}<i class="ph ph-handshake"></i></div>
-      <p class="cifra">${compradores}</p><p class="pie">${lwT('con ficha de comprador en Lawang')}</p></div>
+      <p class="cifra">${compradores}</p><p class="pie">${lwT('con ficha de comprador en %marca')}</p></div>
     <div class="kpi"><div class="rot">${lwT('En dos sales managers')}<i class="ph ph-users-three"></i></div>
       <p class="cifra oro">${dosGhl}</p><p class="pie">${lwT('en las cuentas de dos o más')}</p></div>
     <div class="kpi"><div class="rot">${lwT('Cuentas activas')}<i class="ph ph-plug"></i></div>
@@ -2317,7 +2317,7 @@ function pintarTrazabilidad(){
     (TRAZA_CUENTAS.map(x => {
       const r = x.ultimo_resultado || {};
       const estado = !x.ultima_sync ? '—' : r.ok
-        ? lwT('%c contactos · %m con Lawang', { c: r.contactos ?? '—', m: r.huellas_con_lawang ?? '—' })
+        ? lwT('%c contactos · %m con %marca', { c: r.contactos ?? '—', m: r.huellas_con_lawang ?? '—' })
         : `<span class="chip rojo">${esc(r.error || lwT('falló'))}</span>`;
       return `<tr data-id="${esc(x.id)}">
         <td><b>${esc(x.nombre || x.email)}</b><div class="sub">${esc(x.location_id)}</div>
@@ -2346,7 +2346,7 @@ async function trazaAccion(e){
       const res = (r.resultados || {})[id] || {};
       if(!res.ok) throw new Error(res.error || lwT('falló'));
       await lwConfirmar({ titulo: lwT('Prueba en seco'), confirmar: lwT('Entendido'), cancelar: false,
-        cuerpo: lwT('%c contactos leídos con la etiqueta. %m coinciden con leads o compradores de Lawang. No se ha guardado nada.',
+        cuerpo: lwT('%c contactos leídos con la etiqueta. %m coinciden con leads o compradores de %marca. No se ha guardado nada.',
                    { c: res.contactos, m: res.huellas_con_lawang }) });
     }
     if(accion === 'estado'){

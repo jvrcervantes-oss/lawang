@@ -64,11 +64,11 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=fea67e7e"></script>
-<script src="/contracts/assets/herramientas.js?v=898d23ca"></script>
+<script src="/contracts/assets/i18n.js?v=ce381df0"></script>
+<script src="/contracts/assets/herramientas.js?v=7c7f1b58"></script>
 <script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="/contracts/assets/topbar.js?v=8444fd68" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="/contracts/assets/cierre.js?v=911e89aa"></script><script src="/contracts/assets/instancia.js?v=0fddafcb"></script><script src="/contracts/assets/guard.js?v=935970cf" data-herramienta="leads"></script>
+<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=0fddafcb"></script><script src="/contracts/assets/guard.js?v=935970cf" data-herramienta="leads"></script>
 <script src="/contracts/assets/suite.js?v=3cf4a63a"></script>
 <link rel="stylesheet" href="/intranet/leads/leads.css?v=9">
 <style>
@@ -212,7 +212,7 @@
   <section class="crm-vista" id="v-automatismos" hidden>
     <div class="kpis" id="kpis-auto"></div>
     <div class="aviso gris">
-      <span data-lwt>Estos automatismos los ejecuta AxisWorks sobre las campañas de Lawang, cada 4 horas.</span>
+      <span data-lwt>Estos automatismos los ejecuta AxisWorks sobre las campañas de %marca, cada 4 horas.</span>
       <span data-lwt>Aquí se ven</span> <b data-lwt="en solo lectura">en solo lectura</b><span data-lwt>: qué vigila cada regla y qué ha hecho de verdad.</span>
       <span data-lwt>Para cambiar un umbral o un tope de gasto, habla con el estudio.</span>
     </div>
@@ -238,7 +238,7 @@
       <header>
         <div>
           <h2 data-lwt="Conversaciones del bot">Conversaciones del bot</h2>
-          <p id="subSetter" data-lwt="El bot de WhatsApp de Lawang, en vivo. Pausar detiene la IA para ese lead: a partir de ahí responde una persona.">El bot de WhatsApp de Lawang, en vivo. Pausar detiene la IA para ese lead: a partir de ahí responde una persona.</p>
+          <p id="subSetter" data-lwt="El bot de WhatsApp de %marca, en vivo. Pausar detiene la IA para ese lead: a partir de ahí responde una persona.">El bot de WhatsApp de %marca, en vivo. Pausar detiene la IA para ese lead: a partir de ahí responde una persona.</p>
         </div>
         <button type="button" class="btn" id="btnRefrescarSetter"><i class="ph ph-arrows-clockwise"></i><span data-lwt>Refrescar</span></button>
       </header>
@@ -370,7 +370,7 @@
                  apunta al usuario, y el nombre lo pone su ficha — nunca un texto escrito aquí. -->
             <div class="campo"><label for="tzManager" data-lwt="Sales manager">Sales manager</label><select id="tzManager"><option value="" data-lwt="Elige uno…">Elige uno…</option></select></div>
             <div class="campo"><label for="tzLocation" data-lwt="Location ID">Location ID</label><input type="text" id="tzLocation" autocomplete="off"></div>
-            <div class="campo"><label for="tzEtiqueta" data-lwt="Etiqueta de contactos Lawang">Etiqueta de contactos Lawang</label><input type="text" id="tzEtiqueta" autocomplete="off"></div>
+            <div class="campo"><label for="tzEtiqueta" data-lwt="Etiqueta de contactos %marca">Etiqueta de contactos %marca</label><input type="text" id="tzEtiqueta" autocomplete="off"></div>
           </div>
           <div class="campo"><label for="tzToken" data-lwt="Token (pit-…) con permiso solo de lectura de contactos">Token (pit-…) con permiso solo de lectura de contactos</label><input type="password" id="tzToken" autocomplete="off"></div>
           <button type="button" class="btn pri" id="btnTrazaAlta"><i class="ph ph-plug"></i><span data-lwt>Conectar cuenta</span></button>

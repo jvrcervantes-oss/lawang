@@ -105,5 +105,25 @@ assert.strictEqual(tipo('tipo_que_no_existe'), 'tipo_que_no_existe',
   'el fallback no adivina: un tipo nuevo sale con su clave cruda, fea pero cierta');
 assert.strictEqual(tipo(''), '—');
 
+/* ── 6. La marca de la instancia (AxisWorks ERP, F3 2b, 26-sep-2026) ───────
+   El núcleo escribe `%marca` y el valor sale de `window.LW_INSTANCIA`. Dos
+   cosas que se rompen sin avisar: (a) si se rellena ANTES de buscar la
+   traducción, la clave deja de casar y el inglés cae al español; (b) `%marca`
+   empieza por `%m`, y un hueco `m` del llamante la partiría en «Xarca». */
+win.LW_INSTANCIA = { marca: 'Acme', razon_social: 'Acme S.L.', titulo: 'Acme ERP' };
+win.LW_IDIOMA = 'es';
+assert.strictEqual(lwT('Sin ficha en %marca'), 'Sin ficha en Acme');
+assert.strictEqual(lwT('%c contactos · %m con %marca', { c: 4, m: 2 }), '4 contactos · 2 con Acme',
+  'el hueco %m del llamante no puede comerse %marca');
+assert.strictEqual(win.lwMarca('Un saludo, %razon_social'), 'Un saludo, Acme S.L.');
+win.LW_IDIOMA = 'en';
+assert.strictEqual(lwT('Sin ficha en %marca'), 'No Acme record',
+  'la clave con %marca tiene que seguir casando con el diccionario');
+assert.strictEqual(lwT('%c contactos · %m con %marca', { c: 4, m: 2 }), '4 contacts · 2 with Acme');
+delete win.LW_INSTANCIA;
+win.LW_IDIOMA = 'es';
+assert.strictEqual(lwT('Sin ficha en %marca'), 'Sin ficha en %marca',
+  'sin ficha el hueco se ve: un nombre por defecto sería el de otro cliente');
+
 console.log('OK i18n.test.js — ' + claves.length +
   ' frases · el español devuelve su entrada en todas · huecos y tipos de contrato cuadran');

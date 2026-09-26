@@ -3038,10 +3038,10 @@
     };
     var cuerpo = '<p style="margin:0 0 12px;font-size:12.5px;line-height:1.5;color:#8A6A34">Se adjunta ' + esc(saved.numero) + ' en PDF, tal y como se ve en la vista previa.</p>' +
       campo('lw-mail-para', 'Para', 'input', 'type="email" autocomplete="off" placeholder="cliente@email.com"', vals.cliente_email || '') +
-      campo('lw-mail-asunto', 'Asunto', 'input', 'type="text"', tipo + ' ' + saved.numero + ' — Lawang Tropical Properties') +
+      campo('lw-mail-asunto', 'Asunto', 'input', 'type="text"', tipo + ' ' + saved.numero + ' — ' + lwMarca('%razon_social')) +
       // Firmante del CORREO: siempre la marca, nunca la sociedad emisora (owner, 8-sep-2026)
       campo('lw-mail-msg', 'Mensaje', 'textarea', 'rows="6"', 'Buenos días' + (vals.cliente_nombre ? ' ' + vals.cliente_nombre : '') + ',\n\n' +
-        'Adjunto ' + tipo.toLowerCase() + ' ' + saved.numero + ' para su revisión.\n\nUn saludo,\nLawang Tropical Properties');
+        'Adjunto ' + tipo.toLowerCase() + ' ' + saved.numero + ' para su revisión.\n\nUn saludo,\n' + lwMarca('%razon_social'));
     lwConfirmar({ titulo: 'Enviar por email — ' + saved.numero, cuerpo: cuerpo, confirmar: 'Enviar' }).then(function (ok) {
       if (!ok) return;
       var v = function (id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; };
@@ -4922,7 +4922,7 @@
       window.LW_V4.marcarComisionPagada = function (id, etiqueta) {
         modal('Marcar pagada — ' + (etiqueta || 'closer'), [
           { tipo: 'nota', label: 'Confirmas que ya se le ha pagado a ' + (etiqueta || 'este closer') +
-            ' POR TU CUENTA, como manager del equipo — Lawang no interviene en este pago ni lo tramita. ' +
+            ' POR TU CUENTA, como manager del equipo — ' + esc(lwMarca('%marca')) + ' no interviene en este pago ni lo tramita. ' +
             'Quedará registrado como pagado, con tu email y la fecha de hoy.' }
         ], 'Confirmar: pagada', function () {
           return sb.from('comisiones_devengadas').update({
@@ -6656,7 +6656,7 @@
             var cob = cobP[p.nombre] || 0;
             return [p.nombre, p.resort || '', d.t, d.disp, d.cartera.toFixed(2), cob.toFixed(2), (d.cartera - cob).toFixed(2), d.estimado, d.fueraEur];
           });
-          descargaCsv('lawang-proyectos-' + new Date().toISOString().slice(0, 10) + '.csv',
+          descargaCsv(slugDe(lwMarca('%marca')) + '-proyectos-' + new Date().toISOString().slice(0, 10) + '.csv',
             ['Proyecto', 'Resort', 'Unidades', 'Disponibles', 'Cartera EUR (incl. estimado IDR, tasa del ' + tasaFecha + ')', 'Cobrado EUR', 'Pendiente EUR', 'Unidades convertidas (estimado IDR)', 'Unidades sin tasa de conversión'],
             filas);
         }, function (e) {
@@ -6683,7 +6683,7 @@
             var filas = (r.data || []).map(function (u) {
               return [u.codigo, u.modelo || '', u.estado || '', u.precio != null ? u.precio : '', u.moneda || '', u.contrato_numero || '', u.comprador_nombre || ''];
             });
-            descargaCsv('lawang-' + slugDe(p.nombre) + '-cuentas.csv',
+            descargaCsv(slugDe(lwMarca('%marca')) + '-' + slugDe(p.nombre) + '-cuentas.csv',
               ['Código', 'Modelo', 'Estado', 'Precio', 'Moneda', 'Contrato', 'Comprador'], filas);
           });
       });
@@ -8191,7 +8191,7 @@
              puede crear: por eso ya no se corta arriba. */
           modal(admin ? 'Nueva condición de comisión' : 'Nueva condición para tus closers', [
             { k: 'equipo_id', label: 'Equipo', tipo: 'select', medio: 1,
-              opciones: (admin ? [['', '— Estándar de Lawang (quien cierre sin equipo) —']] : []).concat(equipos.map(function (e) { return [e.id, e.nombre]; })) },
+              opciones: (admin ? [['', lwMarca('— Estándar de %marca (quien cierre sin equipo) —')]] : []).concat(equipos.map(function (e) { return [e.id, e.nombre]; })) },
             { k: 'proyecto_id', label: 'Proyecto', tipo: 'select', medio: 1,
               opciones: [['', '— Todos los proyectos —']].concat(proyectos.map(function (p) { return [p.id, p.nombre]; })),
               ayuda: 'una condición para un proyecto concreto manda sobre la de «todos los proyectos»' },
@@ -8318,7 +8318,7 @@
           var getTramos = null;
           var campos = [
             { tipo: 'lectura', label: 'Equipo · proyecto', valor: etq },
-            { tipo: 'lectura', label: 'Nivel', valor: !cond.equipo_id ? 'Estándar (quien cierra, paga Lawang)' : (NOMBRE_NIVEL[cond.nivel] || cond.nivel), medio: 1 }
+            { tipo: 'lectura', label: 'Nivel', valor: !cond.equipo_id ? lwMarca('Estándar (quien cierra, paga %marca)') : (NOMBRE_NIVEL[cond.nivel] || cond.nivel), medio: 1 }
           ];
           if (ROLES_EQUIPO_C.indexOf(cond.nivel) !== -1) {
             campos.push({ k: 'closer_email', label: 'Override individual', tipo: 'select', medio: 1,
