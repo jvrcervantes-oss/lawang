@@ -428,7 +428,7 @@
       '.lwp-foto-b{padding:3px 10px;border-radius:9999px;border:1px solid #E7E4DC;background:#fff;color:#44403c;font:500 11px Jost,system-ui,sans-serif;cursor:pointer}',
       '.lwp-foto-b:hover{background:#fafaf9}',
       '.lwp-caja{background:#FBF9F4;border:1px solid #E7E4DC;border-radius:12px;padding:16px 18px;font-family:Jost,system-ui,sans-serif}',
-      '#lw-editor,#lw-cajon{--las-crema:#FBF9F4;--las-borde:#E7E4DC;--las-apagado:#736B5E;--las-tinta:#1E2522;--las-lago:#104C4F;--las-lago2:#0B3638;--las-lado:#F7F4EC;--las-sale:cubic-bezier(.23,1,.32,1);--las-cajon:cubic-bezier(.32,.72,0,1)}',
+      '#lw-editor,#lw-cajon{--las-crema:#FBF9F4;--las-borde:#E7E4DC;--las-apagado:#736B5E;--las-tinta:#1E2522;--las-lago:#104C4F;--las-lago2:#0B3638;--las-lado:#F7F4EC;--las-sale:var(--lw-ease,cubic-bezier(.23,1,.32,1));--las-cajon:cubic-bezier(.32,.72,0,1)}',
       '.las-velo{position:fixed;inset:0;background:rgba(12,10,9,.45);backdrop-filter:blur(4px);z-index:calc(var(--z-modal,400) - 1);opacity:0;transition:opacity .3s ease}',
       '.las-marco{position:fixed;inset:0;z-index:var(--z-modal,400);display:flex;justify-content:flex-end;pointer-events:none}',
       '.las-panel{pointer-events:auto;position:relative;width:100%;max-width:1152px;height:100%;margin:0;background:var(--las-crema);border-left:1px solid var(--las-borde);box-shadow:0 25px 50px -12px rgba(0,0,0,.25);display:flex;flex-direction:column;overflow:hidden;font-family:Jost,"Neue Kabel",system-ui,sans-serif;color:var(--las-tinta);transform:translateX(100%);transition:transform .5s var(--las-cajon)}',

@@ -327,8 +327,12 @@ a.enlace{color:inherit;text-decoration:underline}
 .sec > .wrap{position:relative}
 /* Tope de 400px por tarjeta y centrado: con 1 o 2 modelos (Horizon S1 tiene uno) el 1fr
    de Palm Field estiraba la tarjeta a todo el ancho y a 3/4.4 salia de 1.700px de alto. */
-#modelos-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),400px));justify-content:center;gap:clamp(18px,2.2vw,32px);margin-top:clamp(2.5rem,5vh,3.5rem)}
-.villa{position:relative;display:block;aspect-ratio:3/4.4;border-radius:14px;overflow:hidden;background:var(--va);color:var(--rl);text-decoration:none;
+/* Catalog (owner 26-sep): tarjetas a tamano completo pero en 3 columnas (5 modelos = 3+2) en vez
+   de 2 (3 filas de 525px). En movil, una fila que se desliza con snap en vez de 5 tarjetas apiladas. */
+#modelos-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),340px));justify-content:center;gap:clamp(18px,2.2vw,32px);margin-top:clamp(2.5rem,5vh,3.5rem)}
+@media(max-width:640px){#modelos-grid{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:80vw;justify-content:start;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 2px 18px}
+  #modelos-grid > *{scroll-snap-align:center}}
+.villa{position:relative;display:block;aspect-ratio:3/4.2;border-radius:14px;overflow:hidden;background:var(--va);color:var(--rl);text-decoration:none;
   box-shadow:0 30px 60px -30px rgba(20,26,17,.55);transition:transform .5s var(--ease)}
 /* .villa pisa el `transition` de .reveal (misma especificidad, va despues): sin esta
    linea la tarjeta entraba de golpe, sin el fundido ni el desenfoque (code-review 24-sep). */
@@ -344,6 +348,7 @@ a.villa:hover [data-foto] img{transform:scale(1.05)}
 .villa-nombre{font-family:var(--sa);font-weight:500;font-size:clamp(24px,1.3vw + 12px,30px);letter-spacing:.06em;text-transform:uppercase;line-height:1}
 .villa-precio{font-family:var(--sa);font-weight:500;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--ss)}
 .villa-precio b{color:var(--rl);font-weight:500;letter-spacing:.14em}
+.villa-precio > span:last-child{white-space:nowrap}
 .villa-stats{display:grid;grid-template-columns:repeat(4,1fr);width:100%;border-top:1px solid rgba(245,240,230,.25);border-bottom:1px solid rgba(245,240,230,.25)}
 .villa-stats div{display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 2px}
 .villa-stats div + div{border-left:1px solid rgba(245,240,230,.18)}
@@ -376,17 +381,26 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
   background:transparent;color:rgba(245,240,230,.8);border:1px solid rgba(190,179,165,.45);transition:all .25s}
 .plan-pagina-btn:hover{border-color:var(--rl);color:var(--rl)}
 .plan-pagina-btn.on{background:var(--tg);border-color:var(--tg);color:var(--rl)}
-#plan-wrap{position:relative;width:100%;-webkit-user-select:none;user-select:none}
+#plan-wrap{position:relative;width:100%;-webkit-user-select:none;user-select:none;container-type:inline-size}
 #plan-hotspots{position:absolute;inset:0}
 #masterplan-img{width:100%;display:block;border-radius:8px;background:#1B1F18}
 .mp-nota{font-family:var(--sa);font-size:12px;line-height:1.6;color:rgba(245,240,230,.65);margin:14px 6px 4px}
 .hs{position:absolute;inset:0;cursor:pointer;transition:background .2s}
 .hs-libre:hover{background:rgba(72,91,55,.35)}
 .hs-ocupada{background:rgba(0,0,0,.45)} .hs-ocupada:hover{background:rgba(0,0,0,.3)}
+/* Tinte por estado (mismo color que la leyenda): el estado se lee aunque el sello no quepa */
+.hs-sello-res{background:rgba(245,158,11,.34)} .hs-sello-res:hover{background:rgba(245,158,11,.2)}
+.hs-sello-no{background:rgba(120,20,14,.5)} .hs-sello-no:hover{background:rgba(120,20,14,.32)}
 .hs.lw-plano-activo{background:rgba(16,76,79,.55)}
 .sello{position:absolute;pointer-events:none;transform:translate(-50%,-50%);color:#fff;font-family:var(--sa);font-weight:700;letter-spacing:.12em;
-  font-size:9px;padding:2px 6px;border-radius:2px;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+  font-size:9px;padding:2px 6px;border-radius:2px;box-shadow:0 1px 3px rgba(0,0,0,.3);white-space:nowrap;line-height:1.3}
 @media(min-width:640px){.sello{font-size:10px}}
+/* El sello escala con el plano, no con la pantalla: a 600px de plano, 29 parcelas no caben
+   con sellos de 10px. Por debajo de 520px de plano se quita y manda el tinte de la parcela. */
+@supports (container-type:inline-size){
+  .sello{font-size:clamp(6px,1.1cqw,10px);padding:.2em .45em;letter-spacing:.08em}
+  @container (max-width:520px){ .sello{display:none} }
+}
 .sello-res{background:rgba(245,158,11,.9)} .sello-no{background:rgba(179,38,30,.95)}
 .inv{overflow:hidden}
 .inv-cab{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px 24px;border-bottom:1px solid rgba(245,240,230,.14)}
@@ -982,9 +996,8 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
         '<div data-foto>' + fotoModelo(slug, m.nombre, porModelo[slug]) + '</div>' +
         '<div class="villa-cuerpo">' +
           '<span class="villa-nombre">' + esc(m.nombre) + '</span>' +
-          '<span class="villa-precio"><span>Construction from</span> ' + precioModelo(m.precio, m.moneda) + '</span>' +
+          '<span class="villa-precio"><span>Construction from</span> ' + precioModelo(m.precio, m.moneda) + ' <span>· excl. land</span></span>' +
           '<div class="villa-stats">' + statsHtml + '</div>' +
-          '<span class="villa-nota">+ land price, per plot chosen below</span>' +
           (enlaza ? '<span class="villa-btn"><span>View model</span><span class="material-symbols-outlined">arrow_outward</span></span>' : '') +
         '</div>';
       enganchaSinRender(card);
@@ -1102,9 +1115,19 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
   var ESTADO_PLANO = { disponible:'Available', reservada:'Reserved', bloqueada:'Sold', no_disponible:'Sold', vendida:'Sold', cobrada:'Sold' };
   var ESTADO_LISTA = { disponible:'Available', reservada:'Reserved', bloqueada:'Blocked', no_disponible:'Not available', vendida:'Sold', cobrada:'Sold' };
 
+  // Punto del sello: `centros` del manifiesto (punto interior mas alejado del borde,
+  // calculado al generar el plano) y, si no lo trae, el centroide por AREA. El promedio
+  // de vertices que habia antes caia fuera de las parcelas irregulares, a veces en la
+  // vecina (Bonian Village, 26-sep: 15 de 23 sellos fuera de su parcela).
+  var CENTROS = null;
   function centroide(pts){
-    var x=0,y=0; pts.forEach(function(p){ x+=p[0]; y+=p[1]; });
-    return [x/pts.length, y/pts.length];
+    var a=0,x=0,y=0;
+    for(var i=0,n=pts.length;i<n;i++){
+      var p=pts[i], q=pts[(i+1)%n], k=p[0]*q[1]-q[0]*p[1];
+      a+=k; x+=(p[0]+q[0])*k; y+=(p[1]+q[1])*k;
+    }
+    if(Math.abs(a) < 1e-9){ pts.forEach(function(p){ x+=p[0]; y+=p[1]; }); return [x/pts.length, y/pts.length]; }
+    return [x/(3*a), y/(3*a)];
   }
   // El codigo lo teclea el equipo: para un id o un href se queda solo con [A-Za-z0-9-].
   function idParcela(codigo){ return String(codigo == null ? '' : codigo).replace(/[^A-Za-z0-9-]/g, ''); }
@@ -1122,16 +1145,16 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
       var el = document.createElement('a');
       el.href = '#plot-' + id;
       el.setAttribute('data-plano', id);
-      el.className = 'hs ' + (row.estado === 'disponible' ? 'hs-libre' : 'hs-ocupada');
+      var sello = SELLO[row.estado];
+      el.className = 'hs ' + (row.estado === 'disponible' ? 'hs-libre' : 'hs-ocupada' + (sello ? ' hs-' + sello[1] : ''));
       el.style.clipPath = 'polygon(' + pts.map(function(p){ return Number(p[0])+'% '+Number(p[1])+'%'; }).join(',') + ')';
       var precio = row.precio != null ? ' · ' + fmtMoney(row.precio, row.moneda) : '';
       el.title = row.codigo + ' · ' + row.superficie_m2 + ' m2 (project measurement)' + precio + ' · ' + (ESTADO_PLANO[row.estado] || row.estado);
       el.setAttribute('aria-label', el.title);
       el.addEventListener('click', function(e){ e.preventDefault(); irAParcela(row.codigo); });
       wrap.appendChild(el);
-      var sello = SELLO[row.estado];
       if(sello){
-        var c = centroide(pts);
+        var c = (CENTROS && CENTROS[row.codigo]) || centroide(pts);
         var badge = document.createElement('span');
         badge.className = 'sello ' + sello[1];
         badge.style.left = c[0]+'%'; badge.style.top = c[1]+'%';
@@ -1169,6 +1192,7 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
     if(!pag) return;
     $('masterplan-img').src = pag.imagen;
     ZONAS = pag.zonas || null;
+    CENTROS = pag.centros || null;
     $('plan-hotspots').innerHTML = '';
     Array.prototype.forEach.call(document.querySelectorAll('.plan-pagina-btn'), function(b, idx){
       b.classList.toggle('on', idx === i);

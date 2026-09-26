@@ -135,6 +135,7 @@
     'Bedrooms': { es: 'Dormitorios', id: 'Kamar tidur' },
     'Bathrooms': { es: 'Baños', id: 'Kamar mandi' },
     'Construction from': { es: 'Construcción desde', id: 'Konstruksi mulai' },
+    '· excl. land': { es: '· sin suelo', id: '· belum termasuk tanah' },
     '+ land price, per plot chosen below': { es: '+ precio del suelo, según la parcela elegida abajo', id: '+ harga tanah, sesuai kavling yang dipilih di bawah' },
     'Most requested': { es: 'El más pedido', id: 'Paling diminati' },
 

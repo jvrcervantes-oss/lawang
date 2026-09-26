@@ -82,6 +82,26 @@
   var CORTINA_V = '20260926a';
   /* mascota.js (el Asistente acoplado) tampoco lo sella sella_assets: sube MASCOTA_V al cambiarlo. */
   var MASCOTA_V = '20260925d';
+  /* MOVIMIENTO (26-sep-2026, owner: mezcla A+B+D). La entrada de cada pantalla
+     vive en assets/motion.js; aquí solo se MARCA `html.lw-mov`, ya, antes de que
+     vuelva ninguna consulta, para que shell.css retenga el contenido hasta que
+     motion.js tome el control, llegue cuando llegue (revisión previa, 26-sep).
+     Si la pantalla ya está destapada no hay nada que retener: sin marca, y
+     motion.js anima el primer lote que pinte su script (modo tardío). Con
+     «reducir movimiento» en el sistema, ni marca ni motion.js. MOTION_V = 8 primeros del sha1 de
+     motion.js con fin de línea LF (lo desplegado): nav.test.js falla si no casan, porque sella_assets no lo sella. */
+  var MOTION_V = '80e9d418';
+  (function () {
+    try {
+      if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      if (!(document.body && document.body.classList.contains('lw-listo'))) document.documentElement.classList.add('lw-mov');
+      var sm = document.createElement('script');
+      sm.src = ROOT + 'assets/motion.js?v=' + MOTION_V;
+      sm.onerror = function () { document.documentElement.classList.remove('lw-mov'); };
+      document.head.appendChild(sm);
+    } catch (e) { document.documentElement.classList.remove('lw-mov'); }
+  })();
+
   (function () {
     var seg = location.pathname.replace(/\/(index\.html)?$/, '').split('/').pop();
     if (!CORTINA[seg]) return;
