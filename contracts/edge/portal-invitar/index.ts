@@ -77,6 +77,11 @@ Deno.serve(async (req) => {
       const { data, error } = await usuario.from('clients').select('id').in('id', unicos);
       return !error && (data ?? []).length === unicos.length;
     };
+    // Las fichas a las que YA da acceso ese email; null si no se han podido leer.
+    const fichasDe = async (em: string) => {
+      const { data, error } = await admin.from('portal_accesos').select('client_id').eq('email', em);
+      return error ? null : (data ?? []).map((a: { client_id: string }) => a.client_id);
+    };
 
     const body = await req.json().catch(() => ({}));
     const accion = String(body.accion ?? '');
@@ -90,6 +95,9 @@ Deno.serve(async (req) => {
 
     // ── revocar: apaga los accesos; la cuenta queda pero no ve nada ──────
     if (accion === 'revocar') {
+      const fichas = await fichasDe(email);
+      if (fichas === null) return json({ error: 'no_se_pudo_comprobar_permiso' }, 500);
+      if (!(await veTodas(fichas))) return json({ error: 'ficha_no_visible' }, 403);
       const { error } = await admin.from('portal_accesos').update({ activo: false }).eq('email', email);
       if (error) return json({ error: error.message }, 500);
       return json({ ok: true });
@@ -106,10 +114,14 @@ Deno.serve(async (req) => {
       const user = (lista?.users ?? []).find((u) => (u.email ?? '').toLowerCase() === email) ?? null;
       if (!user || !(user.app_metadata as Record<string, unknown> | null)?.portal)
         return json({ error: 'no_es_cuenta_de_portal' }, 400);
-      // Poner contraseña es quedarse con la cuenta: solo sobre un comprador cuyas fichas ves.
-      const { data: acc } = await admin.from('portal_accesos').select('client_id').eq('email', email);
-      if (!(await veTodas((acc ?? []).map((a: { client_id: string }) => a.client_id))))
-        return json({ error: 'ficha_no_visible' }, 403);
+      // Poner contraseña es quedarse con la cuenta: solo sobre un comprador que YA tiene
+      // fichas y todas las ves. Sin fichas no hay dueño todavía: ponerle clave a una cuenta
+      // vacía y esperar a que otro la invite era apoderarse de ella (consulta de deploy de
+      // Seguridad, 26-sep-2026). Si no se pueden leer sus fichas, no.
+      const fichas = await fichasDe(email);
+      if (fichas === null) return json({ error: 'no_se_pudo_comprobar_permiso' }, 500);
+      if (!fichas.length) return json({ error: 'sin_fichas' }, 403);
+      if (!(await veTodas(fichas))) return json({ error: 'ficha_no_visible' }, 403);
       const { error } = await admin.auth.admin.updateUserById(user.id, { password });
       if (error) return json({ error: error.message }, 400);
       return json({ ok: true });
@@ -117,6 +129,13 @@ Deno.serve(async (req) => {
 
     // ── invitar / reenviar ───────────────────────────────────────────────
     if (accion !== 'invitar' && accion !== 'reenviar') return json({ error: 'accion_desconocida' }, 400);
+    // Reenviar es para quien ya está invitado: sin fichas no crea ninguna cuenta de portal.
+    if (accion === 'reenviar') {
+      const fichas = await fichasDe(email);
+      if (fichas === null) return json({ error: 'no_se_pudo_comprobar_permiso' }, 500);
+      if (!fichas.length) return json({ error: 'sin_fichas' }, 403);
+      if (!(await veTodas(fichas))) return json({ error: 'ficha_no_visible' }, 403);
+    }
 
     // ¿existe ya el usuario de Auth?
     // ponytail: listUsers pagina de 1000 — sobra con los volúmenes de la
