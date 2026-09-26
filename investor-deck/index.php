@@ -997,7 +997,7 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
         '<div data-foto>' + fotoModelo(slug, m.nombre, porModelo[slug]) + '</div>' +
         '<div class="villa-cuerpo">' +
           '<span class="villa-nombre">' + esc(m.nombre) + '</span>' +
-          '<span class="villa-precio"><span>Construction from</span> ' + precioModelo(m.precio, m.moneda) + '</span>' +
+          '<span class="villa-precio"><span>Construction from</span> ' + precioModelo(m.precio, m.moneda) + ' <span>· excl. land</span></span>' +
           '<div class="villa-stats">' + statsHtml + '</div>' +
           (enlaza ? '<span class="villa-btn"><span>View model</span><span class="material-symbols-outlined">arrow_outward</span></span>' : '') +
         '</div>';
