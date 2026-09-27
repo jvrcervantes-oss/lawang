@@ -123,7 +123,10 @@
     ['Vencimientos', 'vencimientos/'],
     ['Contratos', 'contratos/'],
     ['Creatividades', 'creatividades/'],
-    ['Documentación', 'documentacion/'],
+    /* Documentación: ruta ABSOLUTA a la clásica, como el CRM (27-sep-2026, corte de
+       la clásica). Los documentos «general» de la empresa solo se ven y editan
+       allí; con la v4 como portada, esconderla dejaba al equipo sin entrada. */
+    ['Documentación', '/intranet/documentacion/'],
     ['Facturas', 'facturas/'],
     ['Recibos', 'recibos/'],
     ['Proyectos', 'proyectos/'],
@@ -378,8 +381,13 @@
     contratos: 'contratos', asistente: 'asistente', 'asistente-correos': 'asistente', creatividades: ['dossier', 'creatividades', 'creatividades_ver'],
     facturas: 'facturas', recibos: 'recibos', comisiones: ['comisiones', 'comisiones_reparto', 'comisiones_condiciones', 'comisiones_equipos'], reservas: 'reservas', reparto: 'comisiones_reparto', condiciones: 'comisiones_condiciones', 'equipos-venta': 'comisiones_equipos',
     proyectos: 'unidades', modelos: 'modelos', obra: 'obra', compradores: 'compradores',
-    usuarios: 'usuarios', cuentas: 'cuentas', gastos: 'gastos', bancos: 'bancos', productos: 'productos'
+    usuarios: 'usuarios', cuentas: 'cuentas', gastos: 'gastos', bancos: 'bancos', productos: 'productos',
+    documentacion: 'documentacion'
   };
+  /* Entradas del menú que salen de la v4 a su herramienta clásica (el CRM lo hace
+     por INJERTOS con `href`; Documentación ya está dibujada en las sidebars con
+     data-path, así que su destino se fija aquí). */
+  var FUERA_V4 = { documentacion: '/intranet/documentacion/' };
   function puedeVer(path, ficha) {
     var k = CLAVE_MENU[path];
     if (!k || !ficha || ficha.rol === 'super_admin') return true;
@@ -450,13 +458,10 @@
     });
   }
 
-  /* Documentacion se fusiono dentro de Proyectos (owner, 8-sep): la pestana
-     desaparece de la v4. Se oculta desde aqui — un solo fichero — en vez de
-     editar 22 sidebars; el fichero de la pantalla queda como redireccion. */
-  function retiraDocumentacion(aside) {
-    var a = aside.querySelector('[data-path="documentacion"]');
-    if (a) a.style.display = 'none';
-  }
+  /* `retiraDocumentacion` (8-sep, fusión en Proyectos) se retiró el 27-sep-2026 con el
+     corte de la clásica: la pantalla v4 de Documentación sigue siendo una redirección a
+     Proyectos, pero la entrada del menú lleva a /intranet/documentacion/ (FUERA_V4) y la
+     ve solo quien tiene la herramienta `documentacion` (CLAVE_MENU → podaMenu). */
 
   /* Un solo injertador para los tres casos. Clona el enlace vecino para
      heredar sus clases exactas: escribirlas a mano seria la misma lista de
@@ -592,7 +597,6 @@
   function recablea() {
     var aqui = location.pathname;
     document.querySelectorAll('aside').forEach(injertaNuevas);
-    document.querySelectorAll('aside').forEach(retiraDocumentacion);
     document.querySelectorAll('aside').forEach(ordenaFinanzas);
     document.querySelectorAll('aside').forEach(ordenaComunicacion);
     document.querySelectorAll('aside a[href="#"], nav a[href="#"]').forEach(function (a) {
@@ -600,7 +604,7 @@
       var dp = a.getAttribute('data-path');
       if (dp) {
         var ruta = dp === 'login' ? 'entrar/' : dp + '/';
-        a.href = ROOT + ruta;
+        a.href = FUERA_V4[dp] || (ROOT + ruta);
         if (dp === 'login') { cableaSalir(a); return; }
         if (aqui.indexOf('/' + ruta) !== -1) marcaActiva(a);
         return;

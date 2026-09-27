@@ -866,7 +866,6 @@
     'Recibos': 'Receipts',
     'Solicitudes': 'Payment requests',
     'Proyectos': 'Projects',
-    'Proyectos (nueva vista)': 'Projects (new view)',
     'Modelos': 'House models',
     'Obra': 'Construction',
     'Usuarios': 'Users',
