@@ -5,7 +5,7 @@
 -- un contrato ajeno y de una de sus facturas creaba un recibí a nombre del comprador de otro, lo aplicaba a la
 -- factura ajena (quedaba cobrada) y disparaba los triggers de avance y comisiones de ese contrato.
 --
--- Qué cambia (mismo patrón que factura_guarda: 42501 salvo super_admin):
+-- Qué cambia (mismo patrón que factura_guarda: 42501 salvo admin (es_suyo) y super_admin):
 --   1. El contrato del recibí tiene que ser visible (`contrato_visible`), también al EDITAR (cambiar el contrato
 --      de un recibí propio a uno ajeno era la misma puerta).
 --   2. Cada factura a la que se aplica tiene que ser un documento que quien emite ve (`documento_visible`, el
