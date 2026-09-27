@@ -126,7 +126,15 @@
      les llega intranet_cerrada = null y panelIntranet() lo dice en vez de pintar «Abierta». */
   function carga() {
     return window.lwDatos('mantenimiento_datos').then(function (r) {
-      if (r.error) { console.error('[mantenimiento]', r.error); return; }
+      if (r.error) {
+        console.error('[mantenimiento]', r.error);
+        // la franja no se puede pintar sin el dato; en Ajustes se DICE, no se deja el interruptor en blanco
+        ['lw-mant-panel', 'lw-mant-intranet'].forEach(function (id) {
+          var p = document.getElementById(id);
+          if (p) p.textContent = 'No se ha podido leer el estado de mantenimiento: ' + (r.error.message || 'sin respuesta') + '. Recarga la página.';
+        });
+        return;
+      }
       estado = r.data || { envios_pausados: false };
       franja(); panel(); panelIntranet();
     });

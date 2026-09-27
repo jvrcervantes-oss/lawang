@@ -147,6 +147,7 @@
       var ul = $('lw-com-lista');
       if (r.error) { ul.innerHTML = '<li class="px-6 py-6 font-body-sm text-body-sm text-error">No se pudieron traer los comunicados.</li>'; mal(r.error, 'Comunicados'); return []; }
       var filas = (r.data && r.data.comunicados) || [];
+      usuarios = (r.data && r.data.usuarios) || usuarios;   // los destinatarios vienen en la misma respuesta
       ul.innerHTML = filas.length ? filas.map(function (c) {
         var x = c.envios_total ? { ok: c.envios_ok, total: c.envios_total } : null;
         var chip = c.enviado_en
@@ -453,10 +454,9 @@
       if (rol !== 'admin' && rol !== 'super_admin') { soloAdmin(); return; }
       sb = aut.sb;
       cablea();
-      // destinatarios: activos con email (lo filtra el servidor)
-      window.lwDatos('comunicacion_datos', { p_limit: 1 }).then(function (r) {
-        if (r.error) { mal(r.error, 'Usuarios'); return; }
-        usuarios = (r.data && r.data.usuarios) || [];
+      // lista + destinatarios (activos con email, lo filtra el servidor) en una llamada; sin «Comunicación» la base
+      // contesta 42501 y cargaLista lo dice
+      cargaLista().then(function () {
         // ?id=<uuid> abre ese comunicado (enlace directo desde el registro)
         var id = new URLSearchParams(location.search).get('id');
         if (!id) return abre(null);
