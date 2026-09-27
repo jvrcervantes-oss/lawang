@@ -62,6 +62,15 @@
     return new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 }).format(Math.round(Number(n) || 0)) + (m ? ' ' + m : '');
   }
 
+  /* ===== Serie fiscal del ERP maestro (AXW-39, 27-sep-2026) =====
+     Con `facturacion_series`, «Anular» una factura emitida emite una RECTIFICATIVA
+     (fila nueva con `rectifica_id` y total en negativo); la original sale con
+     `anulada`. Las columnas `rectifica_id` y `emitida_en` solo existen en las
+     instancias del ERP: se piden SOLO con la bandera (en Lawang el select con
+     ellas daría 400). Quién suma lo decide `lwFacturaQueCuenta` (dinero.js), una
+     sola regla para todas las pantallas. Sin bandera todo queda como estaba. */
+  function colsSerie() { return window.AXW_NUCLEO_OPERACION ? ',rectifica_id,emitida_en' : ''; }
+
   /* ===== Closer (atribución de venta) — 21-sep-2026, encargo del owner.
      Compartido entre el Expediente de Operaciones (pintaExpediente) y la
      ficha de contrato en cajón (fichaContrato): un solo candado, una sola
@@ -949,7 +958,7 @@
         .eq('contratos.bloqueado', true).is('contratos.liberado_en', null).is('factura_id', null).eq('no_facturar', false)
         .lt('fecha', hoy).gte('fecha', '2026-08-18').order('fecha')),
       suave(sb.rpc('facturas_pendiente_equipo')),
-      suave(sb.rpc('facturas_equipo').select('id,numero,tipo,total,moneda,anulada,cliente_nombre,contrato_id,justificantes,justificante_path,fecha_emision,created_at').in('tipo', ['factura', 'recibi']))
+      suave(sb.rpc('facturas_equipo').select('id,numero,tipo,total,moneda,anulada,cliente_nombre,contrato_id,justificantes,justificante_path,fecha_emision,created_at' + colsSerie()).in('tipo', ['factura', 'recibi']))
     ]).then(function (r) {
       var FILAS = [];
       var fila = function (tono, icono, titulo, detalle, n, href, cta) { FILAS.push({ tono: tono, icono: icono, titulo: titulo, detalle: detalle, n: n, href: href, cta: cta }); };
@@ -987,7 +996,13 @@
          hito sin importe se da por cubierto con cualquier factura libre. */
       if (r[3] && r[3].length && r[5]) {
         var facPorC = {};
-        r[5].forEach(function (f) { if (f.tipo === 'factura' && !f.anulada && f.contrato_id) (facPorC[f.contrato_id] = facPorC[f.contrato_id] || []).push(Number(f.total) || 0); });
+        /* ERP maestro (AXW-39): una rectificativa no cubre ningún hito por sí misma; RESTA de
+           su original (lwFacturaQueCuenta: solo si la original cuenta). Una factura de 10.000
+           rebajada a 6.000 cubre como 6.000, igual que facturas_pendiente_equipo. Sin
+           rectifica_id (Lawang) `netoR` queda vacío y esto es lo de siempre. */
+        var cuentaH = lwFacturaQueCuenta(r[5]), netoR = {};
+        r[5].forEach(function (f) { if (f.tipo === 'factura' && f.rectifica_id && cuentaH(f)) netoR[f.rectifica_id] = (netoR[f.rectifica_id] || 0) + (Number(f.total) || 0); });
+        r[5].forEach(function (f) { if (f.tipo === 'factura' && !f.anulada && !f.rectifica_id && f.contrato_id) (facPorC[f.contrato_id] = facPorC[f.contrato_id] || []).push((Number(f.total) || 0) + (netoR[f.id] || 0)); });
         Object.keys(facPorC).forEach(function (k) { facPorC[k].sort(function (a, b) { return a - b; }); });
         var hitos = r[3].filter(function (h) {
           var libres = facPorC[h.contrato_id] || [], m = Number(h.monto) || 0;
@@ -1114,7 +1129,7 @@
     var familia = 'contrato_padre_id.eq.' + id + (c0.contrato_padre_id ? ',id.eq.' + c0.contrato_padre_id : '');
     Promise.all([
       sb.rpc('contratos_equipo').select(CAMPOS_CONTRATO).eq('id', id).maybeSingle(),
-      sb.rpc('facturas_equipo').select('id,numero,tipo,total,moneda,anulada,fecha_emision,created_at').eq('contrato_id', id).order('created_at'),
+      sb.rpc('facturas_equipo').select('id,numero,tipo,total,moneda,anulada,fecha_emision,created_at' + colsSerie()).eq('contrato_id', id).order('created_at'),
       sb.from('contrato_vencimientos').select('orden,descripcion,pct,monto,fecha,factura_id,no_facturar').eq('contrato_id', id).order('orden'),
       sb.rpc('contrato_firmas_equipo').select('firmante_nombre,firmante_rol,estado,creado_en,firmado_en,expira_en').eq('contrato_id', id).order('creado_en'),
       sb.from('contrato_compradores').select('client_id,rol').eq('contrato_id', id),
@@ -1382,7 +1397,7 @@
         (fs.length ? H.tabla(['Documento', 'Tipo', 'Importe', 'Fecha', 'Estado'], fs.map(function (f) {
           return [H.enlace(URL_FACTURA(f.id), f.numero), esc(tipoDoc(f.tipo)), esc(fmt(f.total, f.moneda)),
             esc(fFecha(f.fecha_emision || f.created_at)),
-            f.anulada ? H.tag('Anulada', 'mal') : (f.tipo === 'recibi' ? H.tag('Cobrado', 'ok') : H.tag('Emitida', 'neutro'))];
+            f.anulada ? H.tag('Anulada', 'mal') : (f.tipo === 'recibi' ? H.tag('Cobrado', 'ok') : H.tag(f.rectifica_id ? 'Rectificativa' : 'Emitida', 'neutro'))];
         })) : H.nota('Sin facturas ni recibís todavía.')));
 
       cuerpo += H.seccion('Calendario de pagos (' + vs.length + ')',
@@ -1701,8 +1716,13 @@
     // ya enviados de verdad — una proforma nunca sale del sistema así.
     var avisoEnviado = !!f0.enviada && (f0.tipo === 'factura' || f0.tipo === 'recibi');
     var avisoPeriodo = periodoFiscalTranscurrido(f0.fecha_emision);
-    var cuerpo = '<p>El número no se reutiliza y ya no se podrá editar. La factura queda en el registro marcada como anulada.</p>';
-    if (avisoEnviado) cuerpo += '<p><b>Este documento ya se envió</b> — recuerda avisar al cliente de que queda anulado.</p>';
+    /* ERP maestro con serie fiscal (AXW-39): una factura EMITIDA no se marca, se
+       anula con una rectificativa R que emite la base en la misma operación. */
+    var porRectificativa = !!(window.AXW_NUCLEO_OPERACION && f0.emitida_en && f0.tipo === 'factura');
+    var cuerpo = porRectificativa
+      ? '<p>Se emitirá una factura rectificativa que anula esta. Las dos quedan en el registro con su número, y la rectificativa es el documento que hay que enviar al cliente.</p>'
+      : '<p>El número no se reutiliza y ya no se podrá editar. La factura queda en el registro marcada como anulada.</p>';
+    if (avisoEnviado && !porRectificativa) cuerpo += '<p><b>Este documento ya se envió</b> — recuerda avisar al cliente de que queda anulado.</p>';
     if (avisoPeriodo) cuerpo += '<p>La fecha de emisión cae en un periodo fiscal ya transcurrido (PPN mensual / LKPM trimestral puede estar ya declarado): conviene avisarlo a Administración.</p>';
     lwConfirmar({ titulo: 'Anular ' + (f0.numero || 'el documento'), cuerpo: cuerpo, confirmar: 'Anular', tono: 'peligro' }).then(function (ok) {
       if (!ok) return;
@@ -1710,7 +1730,7 @@
       // permiso y da error si no anula nada — ya no hace falta contar filas aquí.
       sb.rpc('factura_anula', { p_id: f0.id }).then(function (u) {
         if (u.error) { toastMal(lwErrorHumano(u.error, 'No se pudo anular')); return; }
-        toast('Documento anulado');
+        toast(porRectificativa ? 'Rectificativa emitida: la factura queda anulada' : 'Documento anulado');
         if (window.lwCierraCajon) window.lwCierraCajon();
         location.reload();
       });
@@ -1781,7 +1801,8 @@
     // enviado, de otra persona), la misma pantalla sale bloqueada con el
     // motivo arriba. Un solo botón, un solo modelo.
     // UUID y tipo, no el número: ver la nota de fichaContrato (19-sep-2026)
-    if (f0.contrato_id && f0.tipo !== 'recibi') acciones.push({ texto: 'Emitir recibí', onClick: function () {
+    // Contra una rectificativa (ERP maestro) no se cobra: la base lo rechaza.
+    if (f0.contrato_id && f0.tipo !== 'recibi' && !f0.rectifica_id) acciones.push({ texto: 'Emitir recibí', onClick: function () {
       if (window.LW_V4 && window.LW_V4.abrirEditorRecibi) window.LW_V4.abrirEditorRecibi({ contrato_id: f0.contrato_id, factura_id: f0.id });
       else toastMal('El editor de recibís aún está cargando — prueba de nuevo en un segundo.');
     } });
@@ -1802,8 +1823,10 @@
     // Anular (S14): se ofrece a cualquiera que vea el documento — la RLS es la
     // que de verdad decide (autor o admin, con la herramienta 'facturas');
     // esto solo evita ofrecerlo sobre algo que ya no se puede tocar.
-    if (!f0.anulada) acciones.push({ texto: 'Anular', tono: 'peligro', onClick: function () { anularDocumento(sb, f0); } });
-    if (f0.anulada && !f0.enviada && !f0.fecha_envio && V4.esSuperAdmin) acciones.push({ texto: 'Reactivar', onClick: function () { reactivarDocumento(sb, f0); } });
+    // ERP maestro (AXW-39): una rectificativa no se anula (se emite otra factura), y
+    // lo EMITIDO en serie fiscal no se reactiva ni se borra — la base lo rechaza.
+    if (!f0.anulada && !f0.rectifica_id) acciones.push({ texto: 'Anular', tono: 'peligro', onClick: function () { anularDocumento(sb, f0); } });
+    if (f0.anulada && !f0.enviada && !f0.fecha_envio && !f0.emitida_en && V4.esSuperAdmin) acciones.push({ texto: 'Reactivar', onClick: function () { reactivarDocumento(sb, f0); } });
     // Borrar (S14): desde el 21-sep NI SIQUIERA super_admin borra un documento
     // ya enviado — coincide con la policy que Datos aplica en paralelo
     // (contracts/sql/facturas_enviada_no_se_borra.sql). super_admin lo ve
@@ -1812,7 +1835,7 @@
     // aplicado — eso exige preguntar a la base, así que se resuelve aparte
     // (más abajo) y se añade al pie SOLO si la respuesta lo permite. Nunca se
     // pinta un botón que la RLS vaya a rechazar con un 42501 genérico.
-    if (!f0.enviada && V4.esSuperAdmin) acciones.push({ texto: 'Borrar', tono: 'peligro', onClick: function () { borrarDocumento(sb, f0); } });
+    if (!f0.enviada && !f0.emitida_en && V4.esSuperAdmin) acciones.push({ texto: 'Borrar', tono: 'peligro', onClick: function () { borrarDocumento(sb, f0); } });
     acciones.push({ texto: 'Cerrar', cerrar: true });
     var caj = window.lwCajon({
       sub: tipoDoc(f0.tipo),
@@ -1826,7 +1849,7 @@
     // desde `recibi_aplicaciones`, exactamente el resto de la policy. Un
     // vistazo ligero (LIMIT 1, indexado) antes de ofrecer el botón — el que
     // llega tarde no rompe nada porque el pie ya tiene «Cerrar».
-    if (!f0.anulada && !f0.enviada && V4.esAdmin && !V4.esSuperAdmin) {
+    if (!f0.anulada && !f0.enviada && !f0.emitida_en && V4.esAdmin && !V4.esSuperAdmin) {
       sb.from('recibi_aplicaciones').select('id').or('factura_id.eq.' + f0.id + ',recibi_id.eq.' + f0.id).limit(1).then(function (r) {
         if (!document.getElementById('lw-cajon')) return;             // la cerraron antes de que llegara
         if (r.error || (r.data && r.data.length)) return;              // referenciado, o no se pudo comprobar: no se ofrece
@@ -1837,7 +1860,7 @@
       });
     }
     Promise.all([
-      sb.rpc('facturas_equipo').select(CAMPOS_FACTURA).eq('id', f0.id).maybeSingle(),
+      sb.rpc('facturas_equipo').select(CAMPOS_FACTURA + colsSerie()).eq('id', f0.id).maybeSingle(),
       f0.contrato_id ? sb.rpc('contratos_equipo').select(CAMPOS_CONTRATO).eq('id', f0.contrato_id).maybeSingle() : Promise.resolve({ data: null })
     ]).then(function (r) {
       if (!document.getElementById('lw-cajon')) return;
@@ -1978,7 +2001,7 @@
         pon2('k-encurso', String(cs.length - firmados));
         pon2('k-firmados-pie', firmados + ' firmados');
       });
-      q(sb.rpc('facturas_equipo').select('id,tipo,total,moneda,anulada,enviada,created_at,fecha_emision,numero,cliente_nombre,proyecto_nombre,contrato_numero,contrato_id'), 'facturas').then(function (fs) {
+      q(sb.rpc('facturas_equipo').select('id,tipo,total,moneda,anulada,enviada,created_at,fecha_emision,numero,cliente_nombre,proyecto_nombre,contrato_numero,contrato_id' + colsSerie()), 'facturas').then(function (fs) {
         if (!fs) return;
         var s = sumaMesEUR(fs.filter(function (f) { return f.tipo === 'recibi'; }));
         kpi(/COBRADO ESTE MES/i, fmt(s.eur, 'EUR'), s.otros ? '+' + s.otros + ' cobros en otra moneda' : 'recibís del mes en curso');
@@ -2177,7 +2200,7 @@
          sigue en la herramienta viva (numeración por secuencia de la base). */
       var t = tablaPor([/DOCUMENTO|N[ºU°]/, /CLIENTE/, /TIPO|ESTADO/]);
       Promise.all([
-        q(sb.rpc('facturas_equipo').select(CAMPOS_FACTURA + (window.AXW_NUCLEO_OPERACION ? ',operacion_id' : '')).neq('tipo', 'recibi').order('created_at', { ascending: false }).limit(2000), 'facturas', t),
+        q(sb.rpc('facturas_equipo').select(CAMPOS_FACTURA + colsSerie() + (window.AXW_NUCLEO_OPERACION ? ',operacion_id' : '')).neq('tipo', 'recibi').order('created_at', { ascending: false }).limit(2000), 'facturas', t),
         // Cuánto lleva cobrada cada factura (22-sep-2026, owner): la misma
         // función que usa el recibí para saber qué puede saldar — nunca una
         // segunda forma de restar recibís a facturas.
@@ -2199,23 +2222,27 @@
           if (!fs) return;
           // 'cobrada' | 'parcial' | 'pendiente' | 'na' (proforma, anulada o sin dato)
           function cobroDe(f) {
-            if (f.tipo !== 'factura' || f.anulada || !hayPend) return 'na';
+            // una rectificativa (ERP maestro) no se cobra: su efecto está en el pendiente de la original
+            if (f.tipo !== 'factura' || f.anulada || f.rectifica_id || !hayPend) return 'na';
             var p = pendPor[f.id]; if (p == null) p = Number(f.total) || 0;
             var tot = Number(f.total) || 0;
             return p <= 0.005 ? 'cobrada' : (tot - p <= 0.005 ? 'pendiente' : 'parcial');
           }
           var ini = new Date(); ini.setDate(1); ini.setHours(0, 0, 0, 0);
-          var mesEUR = 0, mesOtras = 0, nFac = 0, nFacAnu = 0, nPro = 0, nProAnu = 0;
+          var mesEUR = 0, mesOtras = 0, nFac = 0, nFacAnu = 0, nPro = 0, nProAnu = 0, nRect = 0;
           fs.forEach(function (f) {
-            if (f.tipo === 'proforma') { nPro++; if (f.anulada) nProAnu++; } else { nFac++; if (f.anulada) nFacAnu++; }
-            if (f.tipo !== 'proforma' && !f.anulada && new Date(f.fecha_emision || f.created_at) >= ini) {
+            if (f.tipo === 'proforma') { nPro++; if (f.anulada) nProAnu++; } else { nFac++; if (f.anulada) nFacAnu++; if (f.rectifica_id) nRect++; }
+            // por DEVENGO (lwFacturaCuentaEnSuFecha, dinero.js): la emitida suma en su mes aunque se anulara, la R resta en el suyo
+            if (f.tipo !== 'proforma' && lwFacturaCuentaEnSuFecha(f) && new Date(f.fecha_emision || f.created_at) >= ini) {
               if ((f.moneda || 'EUR') === 'EUR') mesEUR += Number(f.total) || 0; else mesOtras++;
             }
           });
           pon2('k-mes', fmt(mesEUR, 'EUR'));
-          pon2('k-mes-pie', 'facturas vigentes del mes en euros, impuestos incluidos' + (mesOtras ? ' · +' + mesOtras + ' en otra moneda' : ''));
-          pon2('k-facturas', String(nFac));
-          pon2('k-facturas-pie', nFacAnu + ' anulada' + (nFacAnu === 1 ? '' : 's') + ' · histórico completo');
+          pon2('k-mes-pie', (window.AXW_NUCLEO_OPERACION ? 'facturado del mes por fecha de emisión (las rectificativas restan), en euros, impuestos incluidos' : 'facturas vigentes del mes en euros, impuestos incluidos') + (mesOtras ? ' · +' + mesOtras + ' en otra moneda' : ''));
+          // las rectificativas (ERP maestro) se cuentan APARTE, no como facturas; en Lawang nRect = 0 y queda lo de siempre
+          pon2('k-facturas', String(nFac - nRect));
+          pon2('k-facturas-pie', (nRect ? (nFac - nRect) + ' factura' + (nFac - nRect === 1 ? '' : 's') + ' · ' + nRect + ' rectificativa' + (nRect === 1 ? '' : 's') + ' · ' : '') +
+            nFacAnu + ' anulada' + (nFacAnu === 1 ? '' : 's') + ' · histórico completo');
           // KPI «Pendiente de cobro» en el sitio de «Proformas» (22-sep-2026):
           // las proformas son automáticas y no facturan; lo pendiente es lo
           // que de verdad se mira aquí.
@@ -2429,7 +2456,7 @@
           var pedido = new URLSearchParams(location.search).get('id');
           if (pedido) {
             if (porId[pedido]) fichaFactura(sb, porId[pedido]);
-            else sb.rpc('facturas_equipo').select(CAMPOS_FACTURA).eq('id', pedido).maybeSingle().then(function (r) {
+            else sb.rpc('facturas_equipo').select(CAMPOS_FACTURA + colsSerie()).eq('id', pedido).maybeSingle().then(function (r) {
               if (r.data) fichaFactura(sb, r.data); else toast('Ese documento no está a tu alcance o no existe.');
             });
           }
@@ -2439,7 +2466,7 @@
     recibos: function (sb) {
       var t = tablaPor([/RECIBO|N[ºU°]/, /PAGADOR|TITULAR/, /IMPORTE/]);
       Promise.all([
-        q(sb.rpc('facturas_equipo').select(CAMPOS_FACTURA).eq('tipo', 'recibi').order('created_at', { ascending: false }).limit(2000), 'recibís', t),
+        q(sb.rpc('facturas_equipo').select(CAMPOS_FACTURA + colsSerie()).eq('tipo', 'recibi').order('created_at', { ascending: false }).limit(2000), 'recibís', t),
         // Qué factura(s) salda cada recibí (22-sep-2026, owner): es la razón de
         // ser del documento y no estaba en la tabla. La RLS de
         // recibi_aplicaciones deja ver las de los recibís que uno ve.
@@ -2996,7 +3023,9 @@
                     lwConfirmar({
                       titulo: 'Traspaso de ' + (c2.full_name || '—'),
                       cuerpo: '<p>Contratos: ' + (res.contratos_movidos || 0) + ' movidos · ' + (res.contratos_omitidos_firmados || 0) + ' firmados sin tocar · ' + (res.contratos_omitidos_otro_autor || 0) + ' de otro autor · ' + (res.contratos_omitidos_sin_autor || 0) + ' sin autor.</p>' +
-                        '<p>Facturas y recibís: ' + (res.facturas_movidas || 0) + ' movidas (' + (res.facturas_movidas_anuladas || 0) + ' anuladas incluidas) · ' + (res.facturas_omitidas_otro_autor || 0) + ' de otro autor · ' + (res.facturas_omitidas_sin_autor || 0) + ' sin autor.</p>',
+                        '<p>Facturas y recibís: ' + (res.facturas_movidas || 0) + ' movidas (' + (res.facturas_movidas_anuladas || 0) + ' anuladas incluidas) · ' + (res.facturas_omitidas_otro_autor || 0) + ' de otro autor · ' + (res.facturas_omitidas_sin_autor || 0) + ' sin autor' +
+                        // ERP maestro (AXW-39): las emitidas en serie fiscal no cambian de autor
+                        (res.facturas_omitidas_emitidas != null ? ' · ' + res.facturas_omitidas_emitidas + ' emitidas sin tocar (su autor no cambia)' : '') + '.</p>',
                       confirmar: 'Entendido', cancelar: false
                     }).then(function () { cj.cierra(); location.reload(); });
                   } else {
@@ -3550,7 +3579,8 @@
           // Solo una FACTURA cuenta (Administración, consulta de deploy 22-sep): un
           // recibí es dinero recibido, no factura emitida — justo el caso fiscal
           // que este chip existe para cazar (RP00025: 39.220 € por recibí y cero facturas).
-          return cadena(o).some(function (c) { return (c.facturas || []).some(function (f) { return !f.anulada && f.tipo === 'factura'; }); });
+          // una rectificativa (ERP maestro) no es una factura viva: anula o rebaja otra
+          return cadena(o).some(function (c) { return (c.facturas || []).some(function (f) { return !f.anulada && !f.rectifica_id && f.tipo === 'factura'; }); });
         }
         function firmadaAlguna(o) { return cadena(o).some(function (c) { return c.bloqueado && !c.liberado_en; }); }
         function faltaFicha(o) { return typeof fichasQueFaltan === 'function' && cadena(o).some(function (c) { return fichasQueFaltan(c) > 0; }); }
@@ -3769,7 +3799,7 @@
             vig(sb.rpc('contratos_cobrado_equipo')).then(function (r) { if (r.error) { fallo('cobrado', r.error); return null; } return r.data || []; }),
             q(sb.from('contrato_vencimientos').select('id,contrato_id,orden,descripcion,pct,monto,fecha,ajustado,nota,factura_id,no_facturar').limit(3000), 'vencimientos'),
             // Facturas con vencimiento propio (criterio S15): mismo `venc` calculado que la clásica (index.html:338).
-            q(sb.rpc('facturas_equipo').select('numero,tipo,sociedad,cliente_nombre,total,moneda,anulada,created_at,venc:datos->fields->>fecha_vencimiento').limit(1000), 'facturas de vencimiento propio')
+            q(sb.rpc('facturas_equipo').select('numero,tipo,sociedad,cliente_nombre,total,moneda,anulada,created_at,venc:datos->fields->>fecha_vencimiento' + colsSerie()).limit(1000), 'facturas de vencimiento propio')
           ]);
         })
         .then(function (r) {
@@ -3778,7 +3808,8 @@
           if (!cs || !vs) return;
           var cobradoPorId = {};
           (cb || []).forEach(function (x) { cobradoPorId[x.contrato_id] = Number(x.cobrado) || 0; });
-          FACTURAS = (fs || []).filter(function (f) { return !f.anulada && f.venc && f.tipo !== 'recibi'; });
+          // la rectificativa (ERP maestro) hereda la fecha de vencimiento de su original, pero no es algo que cobrar
+          FACTURAS = (fs || []).filter(function (f) { return !f.anulada && !f.rectifica_id && f.venc && f.tipo !== 'recibi'; });
           RAW = { hoyISO: hoy, contratos: cs, cobradoPorId: cobradoPorId, vencimientos: vs };
 
           recalcula();
@@ -5473,7 +5504,7 @@
            —menos filas, sin ningún error— y el cobrado de la cartera saldría
            bajo para todo el que no sea super admin. Está avisado en la cabecera
            de este fichero y aun así caí en ello al escribir esta pantalla. */
-        q(sb.rpc('facturas_equipo').select('proyecto_id,proyecto_nombre,tipo,total,moneda,anulada'), 'facturas'),
+        q(sb.rpc('facturas_equipo').select('proyecto_id,proyecto_nombre,tipo,total,moneda,anulada' + (window.AXW_NUCLEO_OPERACION ? ',id' : '') + colsSerie()), 'facturas'),
         // `path` (S11.2/S11.5, 22-sep-2026): sin ella no hay forma de distinguir
         // un documento SUBIDO (con fichero, sin `url`) de un enlace, ni de
         // abrirlo — el cajón los mezclaba indistinguibles y sin forma de
@@ -5575,8 +5606,9 @@
         });
         var cobrado = 0, facturado = 0;
         COB_P = {};
+        var cuentaF = lwFacturaQueCuenta(fs);
         fs.forEach(function (f) {
-          if (f.anulada || (f.moneda || 'EUR') !== 'EUR') return;
+          if (!cuentaF(f) || (f.moneda || 'EUR') !== 'EUR') return;
           if (f.tipo === 'recibi') { cobrado += Number(f.total || 0); var k = NOMBRE_POR_PROYECTO_ID[f.proyecto_id] || f.proyecto_nombre || ''; COB_P[k] = (COB_P[k] || 0) + Number(f.total || 0); }
           else if (f.tipo === 'factura') facturado += Number(f.total || 0);
         });

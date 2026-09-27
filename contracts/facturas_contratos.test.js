@@ -107,5 +107,41 @@ ok('el orden lo manda la actividad más reciente', () => {
   assert.deepStrictEqual(g.map(x => x.numero), ['B', 'A']);
 });
 
-console.log(fallos ? `\n${fallos} fallo(s)` : '\nOK facturas_contratos.test.js — 10 reglas de cobro, todas con su fallo real detrás');
+/* Serie fiscal del ERP maestro (AXW-39, 27-sep-2026): «Anular» una emitida crea una
+   rectificativa en negativo y la original sale con anulada=true. Antes el contrato
+   daba −1.210 facturado en vez de 0. */
+ok('🔴 anulación por rectificativa: el contrato queda a 0, no en negativo', () => {
+  const c = uno([doc({ id:'f1', total:1210, anulada:true }),
+                 doc({ id:'r1', total:-1210, rectifica_id:'f1' })]);
+  assert.strictEqual(c.facturado.EUR || 0, 0);
+});
+ok('rectificativa por diferencias: resta de su original viva', () => {
+  const c = uno([doc({ id:'f1', total:1210 }), doc({ id:'r1', total:-210, rectifica_id:'f1' })]);
+  assert.strictEqual(c.facturado.EUR, 1000);
+});
+ok('rectificativa sin su original en la lista: no suma sola', () => {
+  const c = uno([doc({ id:'r1', total:-1210, rectifica_id:'f-que-no-esta' })]);
+  assert.strictEqual(c.facturado.EUR || 0, 0);
+});
+ok('sin rectifica_id (Lawang) es «no anulada», como siempre', () => {
+  const cuenta = lwFacturaQueCuenta([]);
+  assert.strictEqual(cuenta({ anulada:false }), true);
+  assert.strictEqual(cuenta({ anulada:true }), false);
+});
+
+/* Devengo (Administración, 27-sep): en las sumas POR FECHA la emitida cuenta en su mes aunque
+   se anulara, y la R resta en el suyo. Factura de agosto anulada en septiembre. */
+ok('🔴 devengo: agosto +1.210, septiembre −1.210', () => {
+  const docs = [doc({ id:'f1', total:1210, anulada:true, emitida_en:'2026-08-10T10:00:00Z', fecha_emision:'2026-08-10' }),
+                doc({ id:'r1', total:-1210, rectifica_id:'f1', emitida_en:'2026-09-05T10:00:00Z', fecha_emision:'2026-09-05' })];
+  const mes = m => docs.filter(f => lwFacturaCuentaEnSuFecha(f) && f.fecha_emision.slice(0, 7) === m).reduce((a, f) => a + f.total, 0);
+  assert.strictEqual(mes('2026-08'), 1210);
+  assert.strictEqual(mes('2026-09'), -1210);
+});
+ok('devengo sin serie fiscal (Lawang): la anulada no suma, como siempre', () => {
+  assert.strictEqual(lwFacturaCuentaEnSuFecha({ anulada:true }), false);
+  assert.strictEqual(lwFacturaCuentaEnSuFecha({ anulada:false }), true);
+});
+
+console.log(fallos ? `\n${fallos} fallo(s)` : '\nOK facturas_contratos.test.js — 16 reglas de cobro, todas con su fallo real detrás');
 process.exit(fallos ? 1 : 0);
