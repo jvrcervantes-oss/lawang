@@ -122,8 +122,8 @@ RedirectMatch 404 (?i)/_diag_
   # SE QUEDAN en la clasica, a proposito: /intranet/ (es la PUERTA: el login; con
   # sesion manda a la v4 por `inicio` en contracts/assets/instancia.js), leads/ (CRM
   # no portado), obra/ (la ficha por unidad y sus fotos solo existen ahi: la v4
-  # enlaza a /intranet/obra/?id=), documentacion/ (los documentos «general» de la
-  # empresa solo se ven y editan ahi), creatividades/redes/, dossier/, contrasena/.
+  # enlaza a /intranet/obra/?id=), creatividades/redes/, dossier/, contrasena/.
+  # (documentacion/ salio de esta lista el 27-sep-2026: retirada, ver su 302 mas abajo.)
   #
   # Facturas se bifurca por la query (cada RewriteCond ata solo a la regla siguiente):
   #   ?vista=  -> se sirve la clasica (modo solo-documento del visor compartido)
