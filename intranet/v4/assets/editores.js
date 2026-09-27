@@ -2201,7 +2201,7 @@
     // vivo pedido por el owner) — nunca una segunda plantilla del documento.
     documento: { src: '/intranet/facturas/documento.js', listo: function () { return typeof documentoHTML === 'function'; } },
     // «Ficha ≠» (27-sep-2026): el texto del aviso, uno para toda la suite.
-    divergencia: { src: '/contracts/assets/ficha_divergencia.js', listo: function () { return typeof lwTextoDivergencia === 'function'; } },
+    divergencia: { src: '/contracts/assets/ficha_divergencia.js?v=00000000', listo: function () { return typeof lwTextoDivergencia === 'function'; } },
     // Reglas de dinero por contrato (facturado/cobrado/%), las mismas del
     // listado y del clásico — para «cuánto lleva cobrado» del recibí.
     facturasContratos: { src: '/contracts/assets/facturas_contratos.js', listo: function () { return typeof lwAgrupaPorContrato === 'function'; } },
@@ -3749,7 +3749,7 @@
              1180 sin que la hoja se recorte. El recibí sigue en su cajón. */
           }, { pielClasica: true, sinRecarga: true, sub: pre.soloLectura ? 'Documento' : (existente ? 'Editar documento' : 'Facturación'), ancho: '100vw', alCerrar: pre.alCerrar });
         if (pre.soloLectura) dejaSoloLecturaDoc();
-        else if (existente && existente.tipo === 'factura' && !existente.anulada && !existente.enviada && existente.client_id) ofreceTraerFichaDoc(sb, existente.id);
+        else if (existente && (existente.tipo === 'factura' || existente.tipo === 'proforma') && !existente.anulada && !existente.enviada && existente.client_id) ofreceTraerFichaDoc(sb, existente.id);
       }
     });
   }

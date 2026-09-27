@@ -2285,7 +2285,7 @@
               var texto = new Promise(function (ok) {
                 if (typeof window.lwTextoDivergencia === 'function') return ok(true);
                 var sc = document.createElement('script');
-                sc.src = '/contracts/assets/ficha_divergencia.js';
+                sc.src = '/contracts/assets/ficha_divergencia.js?v=00000000';
                 sc.onload = function () { ok(true); }; sc.onerror = function () { ok(false); };
                 document.head.appendChild(sc);
               });
