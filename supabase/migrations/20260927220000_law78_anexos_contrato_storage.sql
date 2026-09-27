@@ -1,3 +1,4 @@
+-- destructivo-ok: solo `drop policy/trigger if exists` de objetos que crea esta misma migracion (idempotencia); no borra datos.
 -- LAW-78 (27-sep-2026): los anexos SUBIDOS A MANO de un contrato salen de `contratos.datos.annexes` (JPEG en
 -- base64 dentro del jsonb) a un bucket privado, una fila por página. Revisión previa con Datos y Seguridad; su
 -- diseño combinado es el que se aplica aquí.
