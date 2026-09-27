@@ -114,5 +114,16 @@ PEST.forEach(([, p, clave]) => {
   if (!fs.existsSync(path.join(V4, p, 'index.html'))) errores.push(`${p}: está en el Panel de control de nav.js y no hay intranet/v4/${p}/`);
 });
 
+/* DOCUMENTACIÓN CLÁSICA RETIRADA (27-sep-2026): sus documentos viven en Proyectos v4 (los de
+   la empresa, en «Empresa (general)») y el .htaccess manda /intranet/documentacion/ allí. Si
+   la página o un enlace del catálogo vuelven, hay dos sitios otra vez. */
+if (fs.existsSync(path.join(RAIZ, 'intranet', 'documentacion', 'index.html'))) errores.push('intranet/documentacion/index.html ha vuelto: la clásica se retiró el 27-sep-2026 (302 a /intranet/v4/proyectos/)');
+HERR.forEach(t => { if (/^\/intranet\/documentacion/.test(t.href || '')) errores.push(`catálogo «${t.nombre}»: enlaza a la clásica retirada ${t.href}`); });
+{
+  const ht = fs.readFileSync(path.join(RAIZ, '.htaccess'), 'utf8');
+  const regla = 'RewriteRule ^(?:intranet/)?documentacion(?:/.*)?$ /intranet/v4/proyectos/?proyecto=%1 [NC,R=302,L,NE]';
+  if (ht.indexOf(regla) === -1) errores.push('.htaccess: falta el 302 de /intranet/documentacion/ a Proyectos v4 con la lista blanca `proyecto`');
+}
+
 assert.deepStrictEqual(errores, [], '\n  ' + errores.join('\n  '));
 console.log('catalogo.test.js OK (' + HERR.length + ' herramientas del catálogo con ruta v4)');

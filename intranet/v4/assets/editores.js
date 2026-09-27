@@ -29,6 +29,68 @@
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
     });
   }
+  /* Filas SIN casilla dentro de un `multicheck` (27-sep-2026, permisos de Usuarios por
+     secciones del menú): `{seccion}` es una cabecera y `{info, nota}` una herramienta que
+     se abre por ROL y no por casilla («solo super admin», «según rol»). Ninguna lleva
+     <input>, así que el colector (`input:checked`) no las ve. Devuelve null para una
+     opción normal. */
+  function filaSinCasilla(o, estiloFila) {
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
+    if (o.seccion) {
+      return '<div style="grid-column:1/-1;margin:10px 0 2px;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#75786e">' + esc(o.seccion) + '</div>';
+    }
+    return '<div style="' + (estiloFila || 'display:flex;gap:7px;align-items:center') + ';color:#75786e">' +
+      '<span aria-hidden="true" style="display:inline-block;width:13px">—</span>' + esc(o.info) +
+      (o.nota ? ' <small style="font-weight:500;color:#8A6A34">(' + esc(o.nota) + ')</small>' : '') + '</div>';
+  }
+
+  /* Las casillas de permiso agrupadas COMO EL MENÚ v4 y con su nombre (owner, 27-sep-2026).
+     La estructura sale de `window.LW_MENU_V4` (nav.js), la misma que dibuja el menú; qué
+     claves existen, de `LW_PERMISOS` (herramientas.js). Nada se escribe aquí a mano: una
+     clave del catálogo que el menú no sitúa sale al final, en «Otras», y lo dice en consola
+     (nav.test.js lo convierte en fallo antes de subir). `filtro(k)` deja fuera claves (el
+     CRM en el alta, lo que un admin no tiene). Devuelve opciones para `multicheck`. */
+  function permisosPorMenu(filtro) {
+    var T = window.lwT || function (x) { return x; };
+    var marca = window.lwMarca || function (x) { return x; };
+    var existe = {};
+    (typeof LW_PERMISOS !== 'undefined' ? LW_PERMISOS : []).forEach(function (p) { existe[p[0]] = true; });
+    var usadas = {}, out = [];
+    var ROL_TXT = { admin: 'admin', 'admin sales_manager': 'admin o sales manager', super_admin: 'solo super admin' };
+    var sufijo = function (rol) { return rol && ROL_TXT[rol] ? ' (' + T(ROL_TXT[rol]) + ')' : ''; };
+    (window.LW_MENU_V4 || []).forEach(function (sec) {
+      var filas = [];
+      var pon = function (k, texto, rol) {
+        if (!existe[k] || usadas[k] || (filtro && !filtro(k))) return;
+        usadas[k] = true;
+        filas.push([k, marca(texto) + sufijo(rol)]);
+      };
+      sec.entradas.forEach(function (e) {
+        var nom = T(e.texto);
+        if (e.pestanas) e.pestanas.forEach(function (t) { pon(t.clave, nom + ' · ' + T(t.texto), t.rol || e.rol); });
+        else if (e.claves) e.claves.forEach(function (c) { pon(c.clave, nom + ' · ' + T(c.texto), e.rol); });
+        else if (e.clave) pon(e.clave, nom, e.rol);
+        else if (e.path !== 'home') filas.push({ info: nom, nota: T(e.rol === 'super_admin' ? 'solo super admin' : 'según rol') });
+        (e.extra || []).forEach(function (c) { pon(c.clave, nom + ' · ' + T(c.texto), e.rol); });
+      });
+      if (filas.some(Array.isArray)) out.push({ seccion: T(sec.seccion) }), out = out.concat(filas);
+    });
+    var sueltas = (typeof LW_PERMISOS !== 'undefined' ? LW_PERMISOS : []).filter(function (p) {
+      return !usadas[p[0]] && (!filtro || filtro(p[0]));
+    });
+    if (sueltas.length) {
+      console.warn('permisos: claves sin sitio en el menú v4 (LW_MENU_V4):', sueltas.map(function (p) { return p[0]; }).join(', '));
+      out.push({ seccion: T('Otras') });
+      sueltas.forEach(function (p) { out.push([p[0], p[1]]); });
+    }
+    return out;
+  }
+  /* El nombre de una casilla tal como la pinta el formulario (lo usa la ficha de datos.js
+     para no enseñar la clave cruda de la base). */
+  window.lwEtiquetaPermiso = function (k) {
+    var o = permisosPorMenu(function (x) { return x === k; }).filter(Array.isArray)[0];
+    return o ? o[1] : k;
+  };
   function slugDe(n) {
     return String(n || '').toLowerCase()
       .normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -275,6 +337,8 @@
         // nombre). Proyectos lo necesita para modelos y managers.
         d.innerHTML = inner + '<div data-k="' + esc(c.k) + '" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-weight:500;font-size:13px;text-transform:none;letter-spacing:0;color:#2E3437">' +
           (c.opciones || []).map(function (o) {
+            var fs = filaSinCasilla(o, 'display:flex;gap:7px;align-items:center');
+            if (fs !== null) return fs;
             var vv = typeof o === 'string' ? [o, o] : o;
             return '<label style="display:flex;gap:7px;align-items:center"><input type="checkbox" value="' + esc(vv[0]) + '"' +
               ((c.valor || []).indexOf(vv[0]) !== -1 ? ' checked' : '') + '>' + esc(vv[1]) + '</label>';
@@ -856,6 +920,8 @@
         d.innerHTML = '<span class="las-etq">' + esc(c.label) + (c.req ? ' <span class="las-rojo">*</span>' : '') + '</span>' +
           '<div data-k="' + esc(c.k) + '" class="las-multi">' +
           (c.opciones || []).map(function (o) {
+            var fs = filaSinCasilla(o, '');
+            if (fs !== null) return fs;
             var vv = typeof o === 'string' ? [o, o] : o;
             return '<label class="las-check las-check-p"><input type="checkbox" value="' + esc(vv[0]) + '"' +
               ((c.valor || []).indexOf(vv[0]) !== -1 ? ' checked' : '') + '><span class="las-check-t">' + esc(vv[1]) + '</span></label>';
@@ -5073,6 +5139,40 @@
           });
         });
 
+        /* Nuevo enlace de la EMPRESA (27-sep-2026, apartado «Empresa (general)»): lo que la
+           clásica /intranet/documentacion/ dejaba hacer a administración eligiendo «Lawang
+           (general)» o «Sumba (general)» como proyecto. La base (documento_proyecto_guarda) solo
+           acepta esos dos nombres de un admin, y un alta ahí nace `general`: la VE TODO EL
+           EQUIPO con la casilla Documentación. No hay forma de crear uno nuevo solo para
+           administración — los 15 confidenciales que hay son históricos (27-sep-2026). Sin
+           subida de fichero (la edge `ficheros` exige proyecto) ni dosier de inversores. */
+        var bg = document.getElementById('btn-enlace-general');
+        if (bg && esAdminP && typeof LW_PROYECTOS_GENERALES !== 'undefined') {
+          bg.classList.remove('hidden');
+          bg.setAttribute('data-real', '');
+          bg.addEventListener('click', function (ev) {
+            ev.stopPropagation();
+            modal('Nuevo enlace · Empresa (general)', [
+              { k: 'proyecto', label: 'De', tipo: 'select', opciones: LW_PROYECTOS_GENERALES, valor: LW_PROYECTOS_GENERALES[0] },
+              { k: 'titulo', label: 'Título', req: 1 },
+              { k: 'url', label: 'URL', req: 1, ayuda: 'https://…' },
+              { k: 'categoria', label: 'Categoría', tipo: 'select', opciones: CATS_ENLACE, valor: CATS_ENLACE[0] },
+              { k: 'carpeta', label: 'Carpeta (opcional)' },
+              { k: 'descripcion', label: 'Descripción (opcional)', tipo: 'textarea' },
+              { k: 'confidencial', label: 'Confidencial (no compartir con clientes)', tipo: 'check', valor: 1 },
+              { tipo: 'nota', label: 'Lo verá todo el equipo que tenga la herramienta Documentación. Un documento de la empresa solo para administración no se puede crear desde aquí.' }
+            ], 'Guardar enlace', function (v) {
+              if (!/^https?:\/\//.test(v.url)) return { error: { message: 'la URL tiene que empezar por http:// o https://' } };
+              if (LW_PROYECTOS_GENERALES.indexOf(v.proyecto) === -1) return { error: { message: 'elige Lawang o Sumba (general)' } };
+              return guardaDoc(null, {
+                proyecto: v.proyecto, titulo: v.titulo, url: v.url, categoria: v.categoria,
+                carpeta: (v.carpeta || '').trim(), descripcion: (v.descripcion || '').trim() || null,
+                confidencial: v.confidencial, visible_portal: false
+              });
+            });
+          });
+        }
+
         /* Subir un documento como FICHERO (24-sep-2026, owner: «necesito poder
            subir documentación desde la v4»). La clásica pasó a solo-enlaces el
            31-jul por el cupo de 1 GB del plan Free; desde el 17-sep el owner
@@ -5152,7 +5252,13 @@
         }
         function documentoDe(fila) {
           var id = fila.getAttribute('data-doc-id');
-          return (window.LW_V4 && window.LW_V4.documentos && window.LW_V4.documentos[id]) || null;
+          var V = window.LW_V4 || {};
+          // los del cajón abierto, o los de «Empresa (general)» (datos.js, pintaGenerales)
+          return (V.documentos && V.documentos[id]) || (V.documentosGenerales && V.documentosGenerales[id]) || null;
+        }
+        // un documento de la EMPRESA se nombra por su «proyecto» general, no por el cajón que haya abierto
+        function proyectoDelDoc(d2) {
+          return (typeof lwEsDocGeneral === 'function' && lwEsDocGeneral(d2)) ? d2.proyecto : (proyecto() || d2.proyecto || '');
         }
 
         /* Confirmación de publicación en la EDICIÓN: solo se pregunta si una
@@ -5173,7 +5279,7 @@
         }
 
         function abreEditarEnlace(d2) {
-          var p = proyecto() || d2.proyecto || '';
+          var p = proyectoDelDoc(d2);
           // Trampa cazada en revisión previa #40: una fila con `categoria`
           // fuera de las 4 restringidas (p.ej. 'fotos', subida hoy solo desde
           // la clásica) en un <select> de 4 opciones saldría con la primera
@@ -5237,7 +5343,7 @@
            no se cambia; para otra versión se sube de nuevo y se borra el viejo.
            Mismas casillas y mismo candado de publicación que un enlace. */
         function abreEditarDocumento(d2) {
-          var p = proyecto() || d2.proyecto || '';
+          var p = proyectoDelDoc(d2);
           var catsAquí = CATS_FICHERO.indexOf(d2.categoria) !== -1 ? CATS_FICHERO : CATS_FICHERO.concat([d2.categoria]);
           modal('Editar documento', [
             { k: 'titulo', label: 'Título', req: 1, valor: d2.titulo || '' },
@@ -5259,7 +5365,7 @@
           });
         }
 
-        [document.getElementById('d-enlaces'), document.getElementById('d-faqs'), document.getElementById('d-documentos')].forEach(function (caja) {
+        [document.getElementById('d-enlaces'), document.getElementById('d-faqs'), document.getElementById('d-documentos'), document.getElementById('d-generales')].forEach(function (caja) {
           if (!caja) return;
           caja.addEventListener('click', function (ev) {
             var bEditar = ev.target.closest && ev.target.closest('[data-doc-editar]');
@@ -7421,7 +7527,8 @@
       var misHerrAlta = (aut.ficha && aut.ficha.rol === 'super_admin') ? null : ((aut.ficha && aut.ficha.herramientas) || []);
       var puedoDarAlta = function (h) { return !misHerrAlta || misHerrAlta.indexOf(h) !== -1; };
       herrCrmAlta = herrCrmAlta.filter(function (p) { return puedoDarAlta(p[0]); });
-      herrRestoAlta = herrRestoAlta.filter(function (p) { return puedoDarAlta(p[0]); });
+      /* Por secciones del menú v4 y con su nombre (27-sep-2026); el CRM va en su campo aparte. */
+      herrRestoAlta = permisosPorMenu(function (k) { return puedoDarAlta(k) && !esCrmAlta([k]); });
       var tiposCatAlta = (typeof LW_TIPO_CONTRATO === 'object' && LW_TIPO_CONTRATO)
         ? Object.keys(LW_TIPO_CONTRATO).map(function (k) { return [k, LW_TIPO_CONTRATO[k]]; }) : [];
 
@@ -7567,7 +7674,8 @@
         ]).then(function (rs) {
           var ops;
           if (typeof LW_PERMISOS !== 'undefined') {
-            ops = LW_PERMISOS.map(function (p) { return Array.isArray(p) ? [p[0], p[1]] : p; });
+            // agrupadas como el menú v4 y con su nombre (27-sep-2026, owner) — ver permisosPorMenu()
+            ops = permisosPorMenu();
           } else {
             var todas = {};
             ((rs[0].data) || []).forEach(function (x) { (x.herramientas || []).forEach(function (h) { todas[h] = 1; }); });

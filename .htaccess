@@ -164,12 +164,20 @@ RedirectMatch 404 (?i)/_diag_
   # Solicitudes se renombro Comisiones (14-sep): ?id=<solicitud> lo lee la v4 igual.
   RewriteCond %{REQUEST_METHOD} =GET
   RewriteRule ^intranet/solicitudes/?(?:index\.html)?$ /intranet/v4/comisiones/ [NC,R=302,L,QSA]
-  # /intranet/Documentacion/ (con mayuscula, sale en textos del deck) daba 404: a la
-  # clasica en minuscula, que se queda. La condicion es sensible a mayusculas a
-  # proposito — sin ella la ruta buena se redirigiria a si misma.
-  RewriteCond %{REQUEST_METHOD} =GET
-  RewriteCond %{REQUEST_URI} !^/intranet/documentacion(/|$)
-  RewriteRule ^intranet/documentacion(/.*)?$ /intranet/documentacion$1 [NC,R=302,L,QSA]
+  # Documentacion (27-sep-2026): la clasica se RETIRA. Sus documentos viven en Proyectos v4
+  # (los de cada proyecto, en su cajon; los de la empresa, en «Empresa (general)»). Todo lo
+  # que empiece por /intranet/documentacion o /documentacion —con o sin mayusculas, con
+  # index.html o con PATH_INFO detras— va a /intranet/v4/proyectos/. 302 y no 301: el
+  # destino puede volver a moverse con la v4 y un 301 lo cachea el navegador para siempre.
+  # LISTA BLANCA de query: solo `proyecto` pasa (es lo que traian los enlaces de la
+  # carpeta de cada proyecto); cualquier otro parametro se tira — la v4 no tiene por que
+  # recibir lo que alguien pegue en un enlace viejo. Va por mod_rewrite, que en .htaccess
+  # corre ANTES que el RedirectMatch de arriba (/documentacion -> /intranet/documentacion):
+  # por eso cubre las dos formas y gana a las dos reglas viejas sin encadenar saltos.
+  # Sin condicion de metodo: la pagina ya no existe, no hay formulario que proteger.
+  RewriteCond %{QUERY_STRING} (?:^|&)proyecto=([^&]*)
+  RewriteRule ^(?:intranet/)?documentacion(?:/.*)?$ /intranet/v4/proyectos/?proyecto=%1 [NC,R=302,L,NE]
+  RewriteRule ^(?:intranet/)?documentacion(?:/.*)?$ /intranet/v4/proyectos/? [NC,R=302,L]
 
   # Sitemap dinamico: la URL de siempre (/sitemap.xml, la que ya conoce robots.txt) pasa a
   # servir sitemap.php, generado desde data.json — antes era un XML estatico con 5 URLs fijas

@@ -207,3 +207,14 @@ if (typeof module !== 'undefined' && module.exports)
    suman precio) vive en assets/vocabulario.js, no aquí: contracts/app.html lo
    necesita y no puede cargar ESTE fichero, porque su `esc()` local chocaria con
    el de aqui y reventaria la pagina entera. */
+
+/* Los «proyectos» que no son proyectos: la EMPRESA (27-sep-2026, apartado «Empresa (general)»
+   de /intranet/v4/proyectos/). Un documento de la empresa se archiva con uno de estos nombres
+   en `documentos_proyecto.proyecto` y sin `proyecto_id`. La MISMA lista vive, a propósito, en
+   la base: `documento_proyecto_guarda` solo acepta estos dos nombres para un alta general
+   (migración 20260926200135). Si cambia una, cambia la otra. Y ninguno puede existir como fila
+   de `proyectos`: lo vigila tools/salud_lawang.py (agencia). Vive aquí y no en vocabulario.js
+   porque aquel va empaquetado dentro de dos edges (tools/empaqueta_edge.py) y esto no lo usa
+   ninguna. */
+const LW_PROYECTOS_GENERALES = ['Lawang (general)', 'Sumba (general)'];
+const lwEsDocGeneral = d => !!d && (d.general === true || LW_PROYECTOS_GENERALES.includes(d.proyecto));

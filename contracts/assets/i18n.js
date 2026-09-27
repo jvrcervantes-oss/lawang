@@ -869,6 +869,27 @@
     'Modelos': 'House models',
     'Obra': 'Construction',
     'Usuarios': 'Users',
+    /* Menú v4 por secciones y permisos de Usuarios (27-sep-2026): Finanzas en 5 entradas con
+       pestañas, casillas agrupadas como el menú, apartado «Empresa (general)» de Proyectos. */
+    'Cobros': 'Collections',
+    'Tesorería': 'Treasury',
+    'Cuentas bancarias': 'Bank accounts',
+    'Pagos de %marca': '%marca payouts',
+    'Reparto a closers': 'Closer split',
+    'Equipos': 'Teams',
+    'Home': 'Home',
+    'crear dossiers': 'create dossiers',
+    'crear piezas para redes': 'create social media pieces',
+    'solo ver y descargar lo aprobado': 'only view and download approved items',
+    'documentación (enlaces, FAQ y ficheros)': 'documents (links, FAQ and files)',
+    'solo super admin': 'super admin only',
+    'según rol': 'by role',
+    'admin': 'admin',
+    'admin o sales manager': 'admin or sales manager',
+    'Otras': 'Other',
+    'Empresa (general)': 'Company (general)',
+    'Documentos de la empresa que no son de un proyecto: escrituras, NPWP, anexos de las casas…': 'Company documents that do not belong to a project: deeds, NPWP, house annexes…',
+    '+ Nuevo enlace': '+ New link',
     /* Herramientas nacidas en la v4 (21-sep-2026, S20): «Comisiones» del
        equipo de ventas, y el grupo «Panel de control» (Cuentas, Equipos de
        venta, Condiciones, Comisión de administración) — nav.js las inyecta

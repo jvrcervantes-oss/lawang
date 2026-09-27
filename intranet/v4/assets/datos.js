@@ -4258,6 +4258,50 @@
         });
       }
 
+      /* «EMPRESA (GENERAL)» (27-sep-2026) — los documentos de la empresa, fuera de los
+         proyectos: los que la base marca `general` (los ve el equipo) y los archivados en
+         «Lawang (general)»/«Sumba (general)» sin marca (confidenciales: la RLS solo se los
+         da a administración). Apartado VIRTUAL, ver el comentario del HTML. Se pinta con el
+         mismo molde de fila que los enlaces del cajón y se edita con los mismos editores
+         (editores.js delega en #d-generales). Solo con la casilla `documentacion`, como la
+         clásica que sustituye: un admin sin ella no los veía allí y tampoco aquí. */
+      var DOCUMENTOS_GENERALES = {};
+      function pintaGenerales() {
+        var sec = document.getElementById('empresa-general');
+        var caja = document.getElementById('d-generales');
+        var fichaG = window.LW_V4 && window.LW_V4.ficha;
+        var puedeDoc = !!fichaG && (fichaG.rol === 'super_admin' || (fichaG.herramientas || []).indexOf('documentacion') !== -1);
+        if (!sec || !caja || !puedeDoc || typeof lwEsDocGeneral !== 'function') return;
+        var cajaE = document.getElementById('d-enlaces');
+        if (!MOLDE_ENLACE && cajaE && cajaE.firstElementChild) MOLDE_ENLACE = cajaE.firstElementChild.cloneNode(true);
+        if (!MOLDE_ENLACE) return;
+        var gen = DS_ACTUAL.filter(function (d2) { return lwEsDocGeneral(d2) && d2.categoria !== 'portada'; })
+          .sort(function (a, b) { return (a.proyecto || '').localeCompare(b.proyecto || '') || (a.titulo || '').localeCompare(b.titulo || ''); });
+        DOCUMENTOS_GENERALES = {};
+        window.LW_V4.documentosGenerales = DOCUMENTOS_GENERALES;
+        var puedeBorrar = !!window.LW_V4.esSuperAdmin;
+        caja.innerHTML = '';
+        if (!gen.length) caja.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Sin documentos de la empresa todavía.</p>';
+        gen.forEach(function (d2) {
+          DOCUMENTOS_GENERALES[d2.id] = d2;
+          var f = MOLDE_ENLACE.cloneNode(true);
+          f.setAttribute('data-doc-id', d2.id);
+          var p3 = function (k, v2) { var e = f.querySelector('[data-lw="' + k + '"]'); if (e) e.textContent = v2; };
+          p3('en-titulo', d2.titulo || 'Documento');
+          p3('en-meta', (d2.proyecto || '—') + ' · ' + (d2.categoria || '—') +
+            (d2.general ? ' · visible para el equipo' : ' · solo administración') + (d2.confidencial ? ' · confidencial' : ''));
+          var a2 = f.querySelector('a');
+          if (a2) { if (d2.url) a2.href = d2.url; else { a2.removeAttribute('href'); a2.style.cursor = 'default'; } }
+          var be = f.querySelector('[data-doc-editar]'), bb = f.querySelector('[data-doc-borrar]');
+          // editar un documento de la empresa es de administración (documento_proyecto_guarda:
+          // `general` → es_admin(); los otros cuelgan de un «proyecto» que no existe)
+          if (be) be.classList.toggle('hidden', !window.LW_V4.esAdmin);
+          if (bb) bb.classList.toggle('hidden', !puedeBorrar);
+          caja.appendChild(f);
+        });
+        sec.classList.remove('hidden');
+      }
+
       function proyectosFiltrados() {
         return PS.filter(function (p) {
           var d = POR_P[p.nombre] || { t: 0, disp: 0, porEstado: {} };
@@ -4520,7 +4564,8 @@
            NPWP, Akta…, 18-sep-2026) quedan fuera A PROPÓSITO: este cajón es la
            documentación DE ESTE proyecto; mostrarlos aquí los repetiría
            idénticos en cada proyecto de la cartera sin ningún dato que los
-           distinga. Siguen viéndose en /intranet/documentacion/, que no cambia. */
+           distinga. Se ven en el apartado «Empresa (general)» de esta misma
+           pantalla (pintaGenerales, 27-sep-2026; la clásica se retiró). */
         var noPortada = docsEl.filter(function (d2) { return d2.categoria !== 'portada'; });
         var enl = noPortada.filter(function (d2) { return d2.categoria !== 'faq' && !d2.path; });
         var docs = noPortada.filter(function (d2) { return d2.categoria !== 'faq' && !!d2.path; });
@@ -5648,6 +5693,7 @@
         wireFiltroUnidadesCajon();
         wireDocumentosAbrir(sb);
         renderizar();
+        pintaGenerales();
 
         /* Llegar con ?proyecto= en la URL abre ESE cajón — quien navega con un
            enlace concreto ya eligió, se le enseña. Una carga a secas se queda
@@ -5656,6 +5702,11 @@
         var pedido = new URLSearchParams(location.search).get('proyecto');
         if (pedido && ps.some(function (p) { return p.nombre === pedido; })) {
           abrirCajon(pedido, { mostrar: true, empujarUrl: false });
+        } else if (pedido && typeof LW_PROYECTOS_GENERALES !== 'undefined' && LW_PROYECTOS_GENERALES.indexOf(pedido) !== -1) {
+          /* Un enlace viejo de la clásica (/intranet/documentacion/?proyecto=Lawang (general),
+             redirigido aquí) lleva al apartado de la empresa, no a una pantalla que no dice nada. */
+          var secG = document.getElementById('empresa-general');
+          if (secG && !secG.classList.contains('hidden')) secG.scrollIntoView({ block: 'start' });
         }
       });
     },
@@ -6225,7 +6276,8 @@
              es no enseñarlo. */
           if (soyAdmin) cuerpo +=
             H.seccion('Herramientas (' + hs.length + ')',
-              hs.length ? H.chips(hs)
+              // nombre del catálogo en vez de la clave cruda de la base (27-sep-2026)
+              hs.length ? H.chips(hs.map(function (k) { return window.lwEtiquetaPermiso ? window.lwEtiquetaPermiso(k) : k; }))
                 : H.nota(u.rol === 'super_admin' ? 'Super admin: entra en todas las herramientas sin necesitar la lista.'
                                                   : 'Sin ninguna herramienta marcada: no puede abrir nada de la suite.')) +
             H.seccion('Proyectos en los que trabaja (' + pr.length + ')',
