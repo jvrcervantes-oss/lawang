@@ -19,7 +19,8 @@
  *     por encima con ☰ — la vista de trabajo a ancho completo que decidió el
  *     owner (23-sep): el editor no cabe junto a una barra fija de 288 px;
  *   - el CRM (/intranet/leads/, 27-sep-2026, owner: «que el menú y top bar sean
- *     los de la v4 y nada más»): `html.lw4-fijo`, menú FIJO de 288 px y
+ *     los de la v4 y nada más») y, el mismo día, Obra, el editor de piezas
+ *     (creatividades/redes/) y el de dossiers: `html.lw4-fijo`, menú FIJO de 288 px y
  *     CABECERA fija de 64 px (buscador, campana y usuario), como las pantallas
  *     nativas de la v4; por debajo de 1024 px el menú vuelve a ser el cajón y
  *     lo abre la hamburguesa de la cabecera. La cabecera la monta este fichero;

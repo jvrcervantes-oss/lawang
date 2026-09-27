@@ -2,11 +2,14 @@
    nav-montaje.css — el aspecto del cromo v4 que MONTA nav-montaje.js en una
    página que no lo trae dibujado (27-sep-2026)
    ═══════════════════════════════════════════════════════════════════════════
-   Dos páginas lo llevan, cada una con su modo:
+   Lo llevan las páginas vivas que no son de /intranet/v4/, cada una con su modo:
    · contracts/app.html (generador de contratos): solo el menú, PLEGADO, que se
      abre por encima con ☰. Es el comportamiento base de esta hoja.
-   · intranet/leads/ (CRM): menú FIJO de 288 px + cabecera fija de 64 px, como
-     las pantallas nativas de /intranet/v4/ (`html.lw4-fijo`, más abajo).
+   · el CRM (intranet/leads/) y, desde el 27-sep-2026, Obra (intranet/obra/), el
+     editor de piezas (intranet/creatividades/redes/) y el de dossiers
+     (intranet/dossier/builder.html): menú FIJO de 288 px + cabecera fija de 64 px,
+     como las pantallas nativas de /intranet/v4/ (`html.lw4-fijo`, más abajo).
+     nav.test.js exige el cromo en todas (PAGINAS_CROMO).
    Las reglas del menú vivían en contracts/assets/suite-v4-generador.css; se
    subieron aquí cuando el CRM las necesitó también (una copia en cada hoja
    sería la duplicación que prohíbe la Regla 0 de contexto/suite_lawang.md).
@@ -153,4 +156,12 @@ html.v4 .lw4-cab-ava .material-symbols-outlined{ font-size:18px; }
   html.v4.lw4-fijo .lw4-velo{ display:none; }
   /* «cerrar» solo tiene sentido en el cajón: en escritorio el menú no se pliega aquí */
   html.v4.lw4-fijo .lw4-sb-cerrar{ display:none; }
+}
+
+/* IMPRIMIR (27-sep-2026): el menú y la cabecera no salen en papel. El constructor
+   de dossiers exporta a PDF con window.print() y el generador imprime contratos;
+   un aside o una cabecera `position:fixed` se repetirían en cada hoja. */
+@media print{
+  html.v4 .lw4-sb, html.v4 .lw4-velo, html.v4 .lw4-cab{ display:none !important; }
+  html.v4.lw4-fijo body{ padding:0 !important; }
 }

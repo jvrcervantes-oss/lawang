@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="v4 lw4-fijo" data-lw4-herramienta="obra">
 <head>
-<meta name="lw-version" content="acfcae9cb2c5">
+<meta name="lw-version" content="989de6d1958b">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -28,7 +28,19 @@
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
 <script src="/contracts/assets/i18n.js?v=183427db"></script>
 <script src="/contracts/assets/herramientas.js?v=c95db503"></script>
-<script src="/contracts/assets/avisos.js?v=389df6b9" defer></script><script src="/contracts/assets/topbar.js?v=74e03361" defer></script>
+<script src="/contracts/assets/avisos.js?v=389df6b9" defer></script>
+<!-- Cromo v4 (27-sep-2026, owner: «archivar lo muerto + v4 en todo lo vivo»): el
+     menú lateral y la cabecera son los de /intranet/v4/*, igual que el CRM
+     (intranet/leads/index.html, donde está el porqué entero). La barra clásica
+     (topbar.js + header.lw-topbar) se fue; «Obra» sale marcada en el menú por
+     `data-lw4-herramienta` del <html>. El contenido y su piel no se tocan.
+     Fuentes v4, su hoja y los tres scripts EN ESTE ORDEN (nav.test.js lo exige). -->
+<link rel="stylesheet" href="/intranet/v4/assets/fonts/fonts.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0">
+<link rel="stylesheet" href="/intranet/v4/assets/nav-montaje.css?v=c1f031bd">
+<script src="/intranet/v4/assets/cabecera.js?v=98400ac8" defer></script>
+<script src="/intranet/v4/assets/nav-montaje.js?v=047b8a7d" defer></script>
+<script src="/intranet/v4/assets/nav.js?v=c675dae9" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=b283914a"></script><script src="/contracts/assets/version.js?v=19c524f3"></script><script src="/contracts/assets/guard.js?v=bf1874d6" data-herramienta="obra"></script>
 <script src="/contracts/assets/suite.js?v=3cf4a63a"></script>
@@ -43,6 +55,12 @@
      una barra que ya ocupa su hueco en el flujo. Solo Operaciones y el portal
      usan `class="topbar"` de verdad; ahí se queda.
      Una regla que no casa con nada no es inofensiva: la de al lado sí casa. */
+
+  /* Cromo v4 (27-sep-2026): la cabecera fija de 64 px ya la descuenta el
+     `padding-top` del body (nav-montaje.css); el `calc(100% - --tbh)` de
+     suite.css la restaba otra vez y dejaba una franja muerta abajo. El cajón
+     sigue en `top:var(--tbh)` = justo bajo la cabecera, como en el CRM. */
+  .sui-stage{ height:100%; }
 
   .dos{ display:grid; grid-template-columns:1fr 1fr; gap:var(--e3); }
 
@@ -97,7 +115,7 @@
 <script src="/contracts/assets/movimiento-v3.js?v=c88bae43"></script>
 </head>
 <body>
-  <header class="lw-topbar" data-titulo="Obra"></header>
+  <!-- Menú lateral y cabecera: los monta intranet/v4/assets/nav-montaje.js (cromo v4). -->
 
   <div class="sui-stage">
     <div class="sui-centro">
