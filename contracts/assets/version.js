@@ -175,6 +175,9 @@
       if (remota === undefined) { info('la comprobación de versión no contestó a tiempo'); return 'desconocido'; }
       if (!remota) return 'desconocido';
       if (remota === local) return 'igual';
+      // Ya se recargó para ir a esta huella y la página sigue siendo la vieja (caché intermedia):
+      // decir «recárgala» otra vez no lo arregla y taparía la causa real. Mensaje de siempre.
+      if (estado.recargue === remota) { info('ya se recargó para ir a ' + remota + ': no culpo a la versión'); return 'desconocido'; }
       if (!estado.mostrada && estado.recargue !== remota) {
         estado.pendiente = remota;   // la primera lectura ya está hecha: a los 30 s se confirma
         clearTimeout(segunda);

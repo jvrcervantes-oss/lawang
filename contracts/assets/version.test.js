@@ -177,6 +177,10 @@ const pag = (h) => [200, '<!doctype html><html><head>\n<meta name="lw-version" c
   assert.strictEqual(await s.win.lwVersion.comprueba(5000), 'igual', 'si cuadra, el permiso falta de verdad');
   s = monta({ local: 'aaaaaaaaaaaa', servidor: 'red' });
   assert.strictEqual(await s.win.lwVersion.comprueba(5000), 'desconocido');
+  s = monta({ local: 'aaaaaaaaaaaa', servidor: pag('bbbbbbbbbbbb'),
+    store: { lw_version_recargue: JSON.stringify({ ruta: '/contracts/app.html', h: 'bbbbbbbbbbbb' }) } });
+  assert.strictEqual(await s.win.lwVersion.comprueba(5000), 'desconocido',
+    'ya recargó hacia bbbb y sigue vieja: no se vuelve a decir «recárgala», sale el mensaje de siempre');
 
   // ── 3. el hecho contra todas las páginas ────────────────────────────────────
   const RAIZ = path.join(__dirname, '..', '..');
