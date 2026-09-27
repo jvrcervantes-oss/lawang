@@ -16,8 +16,44 @@
    lo que sí viaja es `on` (si se excluyó a propósito) y `sha` (qué versión del
    pack se anexó de verdad), que no se pueden reconstruir de ninguna otra parte. */
 const sinPaginas = a => a.auto ? {...a, pages:[]} : a;
-function saveAnnexes(){ try{ localStorage.setItem('lawang_contract_annexes', JSON.stringify(ANNEXES.map(sinPaginas))); }
-  catch(_){ toastMal('Anexos demasiado grandes para guardar; se mantienen solo en esta sesión'); } }
+
+/* CUÁNTO PUEDEN PESAR LOS ANEXOS SUBIDOS A MANO — 27-sep-2026, medido en producción.
+   ═══════════════════════════════════════════════════════════════════════════
+   Los manuales viajan CON sus páginas (JPEG en base64) dentro de `datos`, y
+   `contrato_guarda` tiene 8 s (statement_timeout del rol `authenticated`):
+     · 0,6 MB de cuerpo ...... se guardó en 1,2 s (el mayor que pasó, 26/27-sep)
+     · 6,5 MB de cuerpo ...... cortado DOS veces a los 10-11 s (PostgREST 57014,
+                               «canceling statement due to statement timeout»,
+                               27-sep 11:16 y 11:17 UTC). Nadie supo por qué.
+   El tope de 4 MB NO está medido: es la interpolación lineal de esos dos puntos
+   (~1,7 s/MB → 8 s ≈ 4,5 MB) con algo de margen. Si el servidor cambia (páginas
+   fuera de `datos`, a Storage), esto se revisa con otra medida, no a ojo.
+   Referencia de lo que ocupa: 10 páginas de plano ≈ 2,9 MB; el Anexo Maestro de
+   Dali Sirap entero serían 6,9 MB — el automático no viaja en `datos`, por eso
+   no cuenta aquí. Lo usan la subida (wireAnnexPanel) y guardarContrato (app.html). */
+const TOPE_DATOS_BYTES = 4 * 1024 * 1024;
+const mbAnexo = n => (n / 1048576).toLocaleString('es-ES', { maximumFractionDigits:1, minimumFractionDigits:1 }) + ' MB';
+const pesoPaginas = a => (a.pages || []).reduce((t, p) => t + String(p).length, 0);
+/* Solo los manuales: los automáticos se guardan sin páginas (sinPaginas). */
+function pesoAnexosManuales(){ return ANNEXES.filter(a => !a.auto).reduce((t, a) => t + pesoPaginas(a), 0); }
+
+/* El borrador local (localStorage, ~5 MB) no es donde vive el contrato: los anexos se
+   quedan de verdad al pulsar Guardar. Medido el 27-sep: 20 páginas de plano (5,1 MB)
+   ya no caben. Antes se avisaba «se mantienen solo en esta sesión» en CADA cambio del
+   panel, y además quedaba en el navegador el borrador ANTERIOR, que al recargar
+   resucitaba otra lista de anexos. Ahora se borra, y se avisa una vez por peso. */
+let AVISO_BORRADOR_LOCAL = 0;
+function saveAnnexes(){
+  try{ localStorage.setItem('lawang_contract_annexes', JSON.stringify(ANNEXES.map(sinPaginas))); AVISO_BORRADOR_LOCAL = 0; }
+  catch(_){
+    try{ localStorage.removeItem('lawang_contract_annexes'); }catch(_e){ /* MUDO A PROPOSITO: sin localStorage no hay borrador viejo que pueda resucitar */ }
+    const peso = pesoAnexosManuales();
+    if(Math.abs(peso - AVISO_BORRADOR_LOCAL) > 262144){
+      AVISO_BORRADOR_LOCAL = peso;
+      toastMal('Los anexos (' + mbAnexo(peso) + ') no caben en el borrador de este navegador: si recargas la página antes de Guardar, habrá que volver a subirlos. Al guardar el contrato se quedan con él.');
+    }
+  }
+}
 function escAttr(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
 /* Huella del PDF del anexo (el aviso «el pack ha cambiado desde que se guardó»).
@@ -123,20 +159,35 @@ async function pintarPagina(page, escala){
   return cv;
 }
 
-async function pdfToImages(file){
+/* `topeBytes` (27-sep-2026): con un tope, la conversión se corta en cuanto lo
+   acumulado lo pasa, en vez de convertir el PDF entero para descubrir al final que
+   no se puede guardar — y sin acumular páginas hasta tumbar la pestaña (un PDF
+   escaneado de 118 MB la cerró en la medición). El error dice cuánto llevaba. */
+async function pdfToImages(file, topeBytes){
   // acepta File/Blob o un ArrayBuffer ya leído (el anexo automático necesita el
   // buffer aparte para calcular su hash antes de que pdf.js se lo quede)
   const buf = file instanceof ArrayBuffer ? file : await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({data:buf}).promise;
   const out=[];
+  let peso = 0;
   for(let i=1;i<=pdf.numPages;i++){
     const page = await pdf.getPage(i);
     const base = page.getViewport({scale:1});
     let cv = await pintarPagina(page, Math.min(1400/base.width, 2));
     // Tope 4×: una página diminuta no se convierte en un lienzo gigante.
     if(fraccionClara(cv) >= CLARO_PLANO) cv = await pintarPagina(page, Math.min(ANCHO_PLANO/base.width, 4));
-    out.push(cv.toDataURL('image/jpeg', CALIDAD_ANEXO));
+    const img = cv.toDataURL('image/jpeg', CALIDAD_ANEXO);
+    cv.width = cv.height = 0;               // suelta la memoria del lienzo ya
+    page.cleanup();
+    peso += img.length;
+    out.push(img);
+    if(topeBytes && peso > topeBytes){
+      const total = pdf.numPages;
+      pdf.destroy();
+      throw Object.assign(new Error('pasa del tope'), { tope:{ paginas:i, total, bytes:peso } });
+    }
   }
+  pdf.destroy();
   return out;
 }
 function compressImage(file){
@@ -146,9 +197,9 @@ function compressImage(file){
       cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height); res([cv.toDataURL('image/jpeg', CALIDAD_ANEXO)]); };
     img.onerror=rej; img.src=url; });
 }
-async function fileToAnnexPages(file){
+async function fileToAnnexPages(file, topeBytes){
   if(file.type==='application/pdf' || /\.pdf$/i.test(file.name)){
-    if(!window.pdfjsLib) throw new Error('pdf.js no cargó'); return await pdfToImages(file);
+    if(!window.pdfjsLib) throw new Error('pdf.js no cargó'); return await pdfToImages(file, topeBytes);
   }
   return await compressImage(file);
 }
@@ -357,7 +408,7 @@ function buildAnnexPanel(){
     <div class="dz" data-anx="${a.id}">
       <div class="dz-row">
         <input class="anx-title" data-anxtitle="${a.id}" value="${escAttr(a.title)}" aria-label="Título del anexo" style="flex:1;font:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--line);border-radius:8px">
-        <span style="font-size:11px;color:var(--muted);white-space:nowrap">${a.pages.length} pág.</span>
+        <span style="font-size:11px;color:var(--muted);white-space:nowrap">${a.pages.length} pág. · ${mbAnexo(pesoPaginas(a))}</span>
         <button type="button" class="link-btn" data-anxdel="${a.id}">Quitar</button>
       </div>
       <div class="dz-row"><label class="switch"><input type="checkbox" data-anxon="${a.id}" ${a.on?'checked':''}><span class="slider"></span></label>
@@ -378,9 +429,27 @@ function wireAnnexPanel(){
   if(inp) inp.addEventListener('change', async e=>{
     const files=[...e.target.files]; if(!files.length) return;
     const lbl=$('#anxUpLabel'); const t0=lbl.textContent; lbl.textContent='Procesando…';
+    /* Tope de lo que se puede GUARDAR (TOPE_DATOS_BYTES, arriba): se comprueba al
+       subir, no al pulsar Guardar con el contrato ya relleno. Un fichero que no cabe
+       no entra, y se dice cuánto ocupa, cuánto hay ya y cuánto es el máximo. */
     for(const f of files){
-      try{ const pages=await fileToAnnexPages(f); ANNEXES.push({id:'ax'+(annexSeq++), title:f.name.replace(/\.[^.]+$/,''), pages, on:true}); }
-      catch(err){ toastMal('No se pudo procesar '+f.name+' ('+((err && err.message) || 'error')+')'); }
+      const libre = TOPE_DATOS_BYTES - pesoAnexosManuales();
+      try{
+        if(libre <= 0) throw Object.assign(new Error('sin sitio'), { tope:{ paginas:0, total:0, bytes:0 } });
+        const pages = await fileToAnnexPages(f, libre);
+        const peso = pages.reduce((t, x) => t + x.length, 0);
+        if(peso > libre) throw Object.assign(new Error('pasa del tope'), { tope:{ paginas:pages.length, total:pages.length, bytes:peso } });
+        ANNEXES.push({id:'ax'+(annexSeq++), title:f.name.replace(/\.[^.]+$/,''), pages, on:true});
+      }catch(err){
+        if(err && err.tope){
+          const t = err.tope, ya = pesoAnexosManuales();
+          toastMal('«' + f.name + '» no cabe en el contrato: '
+            + (t.total ? (t.paginas < t.total ? 'a la página ' + t.paginas + ' de ' + t.total + ' ya ocupaba ' : 'convertido ocupa ') + mbAnexo(t.bytes) + ', ' : '')
+            + (ya ? 'los anexos que ya hay ocupan ' + mbAnexo(ya) + ' ' : '')
+            + 'y un contrato no se guarda con más de ' + mbAnexo(TOPE_DATOS_BYTES) + ' de anexos subidos a mano. '
+            + 'Sube solo las páginas que hacen falta, o pártelo en contratos distintos.');
+        }else toastMal('No se pudo procesar '+f.name+' ('+((err && err.message) || 'error')+')');
+      }
     }
     lbl.textContent=t0; saveAnnexes(); rebuildAnnex(); render();
   });
