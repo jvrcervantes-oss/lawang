@@ -1,0 +1,3 @@
+# Codigo y configuracion de Supabase (Edge Functions, config.toml, migraciones). Solo corre
+# en Supabase; la web nunca lo pide. Nunca servible por web (27-sep-2026).
+Require all denied

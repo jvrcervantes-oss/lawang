@@ -24,8 +24,11 @@ function ok(cond, msg) {
 }
 
 // ── 1. paridad de la función con la edge ──────────────────────────────────
+// Sin \r: con core.autocrlf, git deja la edge en CRLF y un modulo reescrito en LF, y la
+// comparacion daba «difiere» con el mismo codigo (LAW-376, 27-sep-2026).
+const lee = (f) => fs.readFileSync(f, 'utf8').replace(/\r\n/g, '\n');
 function bloque(fichero) {
-  const txt = fs.readFileSync(fichero, 'utf8');
+  const txt = lee(fichero);
   const a = txt.indexOf('// >>> postCheck');
   const b = txt.indexOf('// <<< postCheck');
   if (a < 0 || b < 0 || b < a) return null;
@@ -43,7 +46,7 @@ ok(bJs && bEdge && bJs === bEdge, 'postCheck difiere entre postcheck.js y la edg
 // ── 2. copia de despliegue idéntica ───────────────────────────────────────
 ok(fs.existsSync(DEPLOY), 'falta la copia de despliegue supabase/functions/bot-agentes/index.ts');
 if (fs.existsSync(DEPLOY)) {
-  ok(fs.readFileSync(DEPLOY, 'utf8') === fs.readFileSync(EDGE, 'utf8'),
+  ok(lee(DEPLOY) === lee(EDGE),
     'supabase/functions/bot-agentes/index.ts no es idéntico a contracts/edge/bot-agentes/index.ts (LAW-238)');
 }
 

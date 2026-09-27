@@ -6,12 +6,11 @@
  * traspaso entre dos cuentas propias.
  *
  * Misma forma que panel-gastos.js: carga → cálculo (bancos.js, en
- * contracts/assets/, con test) → pintado. Aquí NO se escribe en las tablas:
- * todo pasa por las RPC de la migración 20260924101052_bancos_conciliacion.sql
- * (bancos_importar / conciliar / desconciliar / ignorar / designorar), que
- * validan los dos lados (signo, moneda, lo ya conciliado del movimiento y del
- * documento). La única escritura directa es el perfil de columnas de cada
- * cuenta (bancos_perfiles), que es solo el mapeo del CSV.
+ * contracts/assets/, con test) → pintado. Aquí NO se toca ninguna tabla:
+ * se lee por panel_bancos_datos (LAW-338 L1) y se escribe por las RPC de la
+ * migración 20260924101052_bancos_conciliacion.sql (bancos_importar / conciliar /
+ * desconciliar / ignorar / designorar) y banco_perfil_guarda, que validan los dos
+ * lados (signo, moneda, lo ya conciliado del movimiento y del documento).
  *
  * Reglas que se cumplen aquí, con su porqué:
  *  - El concepto bancario lo escribe QUIEN TRANSFIERE: es texto hostil. Todo
@@ -80,39 +79,37 @@
   var movPorId = {}, cuentaPorClave = {};
 
   /* ── CARGA ─────────────────────────────────────────────────────────────── */
-  var PAGINA = 1000;
-  function todas(hacer, que, col) {
-    var filas = [];
-    function pag(desde) {
-      return hacer().order(col || 'id', { ascending: true }).range(desde, desde + PAGINA - 1).then(function (r) {
-        if (r.error) { console.error('[bancos] ' + que + ':', r.error); throw new Error(que); }
-        filas = filas.concat(r.data || []);
-        return (r.data || []).length === PAGINA && desde < 50000 ? pag(desde + PAGINA) : filas;
-      });
-    }
-    return pag(0);
-  }
-  // Lo que explica un movimiento puede vivir en módulos que este usuario no ve
-  // (Gastos, Comisiones): se carga sin tumbar la pantalla y se dice qué falta.
-  function opcional(p, que) { return p.then(function (f) { return f; }, function () { D.leidos[que] = false; return []; }); }
+  /* LAW-338 L1 (27-sep-2026): todo lo que pinta la pantalla llega por UNA RPC del
+     servidor, panel_bancos_datos (migración 20260927210000_law338_l1_panel_bancos_datos):
+     el navegador ya no lee las tablas. La RLS la aplica la base (dueño lw_lector), así
+     que sin permiso llegan listas vacías y resumen null, igual que antes. Los
+     movimientos (y sus líneas) vienen por páginas de 1000 con cursor `siguiente`; el
+     resto solo en la primera. Si un listado toca el tope del servidor, `recortado` lo
+     nombra y se avisa: un recorte callado haría creer que no hay más. */
+  var TOPE_MOVS = 50000;
   function cargar() {
     D.leidos = { gastos: true, comisiones: true };
-    return Promise.all([
-      todas(function () { return sb.from('bancos_movimientos').select('id,cuenta_clave,fecha,fecha_valor,concepto,referencia,importe,moneda,saldo,orden,conciliado,estado,ignorado_motivo,ignorado_en,creado_en'); }, 'movimientos'),
-      todas(function () { return sb.from('bancos_conciliacion').select('id,movimiento_id,tipo,ref_id,importe_mov,importe_doc,moneda_doc,tipo_cambio,naturaleza,nota,creado_por,creado_en').is('anulado_en', null); }, 'conciliación'),
-      sb.from('cuentas_bancarias').select('clave,label,banco,titular,es_escrow,es_propia,activa,orden').order('orden').then(function (r) { if (r.error) throw new Error('cuentas'); return r.data || []; }),
-      sb.from('bancos_perfiles').select('cuenta_clave,mapeo').then(function (r) { return r.error ? [] : (r.data || []); }),
-      sb.rpc('bancos_resumen', { p_anio: Number(hoy.slice(0, 4)) }).then(function (r) { return r.error ? null : r.data; }),
-      todas(function () { return sb.rpc('facturas_equipo').select('id,numero,tipo,sociedad,total,moneda,anulada,fecha_emision,created_at,proyecto_nombre').eq('tipo', 'recibi'); }, 'recibís').catch(function () { return []; }),
-      opcional(todas(function () { return sb.from('gastos').select('id,concepto,referencia,total,pph_retenido,pph_ingresado_el,moneda,estado,pagado_el,cuenta_pago').neq('estado', 'anulado'); }, 'gastos'), 'gastos'),
-      opcional(todas(function () { return sb.from('comisiones_devengadas').select('id,estado,importe,importe_ajustado,moneda,pagado_en').eq('estado', 'pagada'); }, 'comisiones'), 'comisiones')
-    ]).then(function (r) {
-      D.movs = r[0].sort(function (a, b) { return a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : (b.orden || 0) - (a.orden || 0); });
-      D.lineas = r[1]; D.cuentas = r[2];
-      D.perfiles = {}; r[3].forEach(function (p) { D.perfiles[p.cuenta_clave] = p.mapeo; });
-      D.resumen = r[4];
-      D.recibis = r[5].filter(function (f) { return !f.anulada; });
-      D.gastos = r[6]; D.comisiones = r[7];
+    var movs = [], lineas = [], primera = null, cortado = false;
+    function pag(despues) {
+      return sb.rpc('panel_bancos_datos', { p_anio: Number(hoy.slice(0, 4)), p_despues: despues }).then(function (r) {
+        if (r.error) { console.error('[bancos] panel_bancos_datos:', r.error); throw new Error(T('lectura de los bancos')); }
+        var d = r.data || {};
+        if (!primera) primera = d;
+        movs = movs.concat(d.movimientos || []); lineas = lineas.concat(d.lineas || []);
+        if (d.siguiente && movs.length >= TOPE_MOVS) { cortado = true; return null; }
+        return d.siguiente ? pag(d.siguiente) : null;
+      });
+    }
+    return pag(null).then(function () {
+      var d = primera;
+      var rec = (d.recortado || []).concat(cortado ? ['movimientos'] : []);
+      if (rec.length) aviso(T('Hay más datos de los que caben en una carga') + ': ' + rec.join(', ') + '. ' + T('Avisa a Desarrollo.'), 'mal');
+      D.movs = movs.sort(function (a, b) { return a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : (b.orden || 0) - (a.orden || 0); });
+      D.lineas = lineas; D.cuentas = d.cuentas || [];
+      D.perfiles = {}; (d.perfiles || []).forEach(function (p) { D.perfiles[p.cuenta_clave] = p.mapeo; });
+      D.resumen = d.resumen == null ? null : d.resumen;
+      D.recibis = d.recibis || [];
+      D.gastos = d.gastos || []; D.comisiones = d.comisiones || [];
       movPorId = {}; D.movs.forEach(function (m) { movPorId[m.id] = m; });
       cuentaPorClave = {}; D.cuentas.forEach(function (c) { cuentaPorClave[c.clave] = c; });
     });
@@ -235,6 +232,7 @@
   }
   function pintaTodo() { llenaFiltros(); pintaCuentas(); pintaLista(); if (typeof lwIdiomaAplicar === 'function') { try { lwIdiomaAplicar(); } catch (_) { /* MUDO A PROPOSITO: traducir no tumba la pantalla */ } } }
   function refrescar() {
+    limpiaAvisos();   // el aviso de «recortado» lo vuelve a poner cargar() si sigue haciendo falta
     return cargar().then(pintaTodo, function (e) { aviso(T('No se pudieron volver a leer los bancos') + ' (' + e.message + '). ' + T('Recarga la página.'), 'mal'); });
   }
 

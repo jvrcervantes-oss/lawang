@@ -470,11 +470,20 @@
        emergencia es CSS (`animation: lw-rendirse`, en shell.css): sobrevive a
        un JS muerto porque no depende de el.
      · Una pantalla SIN handler (la puerta de `entrar/`) no se tapa: el velo
-       solo se pone si `REG[seg]` existe.
+       solo se pone si `REG[seg]` existe o si esta en PROPIAS (27-sep: las que
+       pintan con su propio script; ahi el destape lo decide LW_RED).
      · El contador puede tocar 0 entre dos tandas —una consulta que dispara
        otra dentro de su `.then` baja el contador antes de que la siguiente lo
        suba—, asi que el destape se confirma en el tick siguiente. */
   var enVuelo = 0, veloEl = null, veloMuerto = false;
+  /* Ademas de `vig()`, las peticiones en vuelo de TODO el cliente de Supabase
+     (guard.js → `LW_RED`, 27-sep-2026): una tanda sin `vig()` o una pantalla que
+     pinta con su propio script ya no destapan antes de tiempo. */
+  function ocupado() { return enVuelo > 0 || !!(window.LW_RED && window.LW_RED.n > 0); }
+  function intentaQuitar(ms) { setTimeout(function () { if (!ocupado()) quitaVelo(); }, ms); }
+  // solo tras arrancar la pantalla: antes, las peticiones de la sesion (guard.js) tocan cero sin que la pantalla haya pedido nada
+  var arrancado = false;
+  if (window.LW_RED) window.LW_RED.alCero.push(function () { if (veloEl && arrancado) intentaQuitar(80); });
 
   function ponVelo() {
     if (veloEl || veloMuerto) return;
@@ -520,7 +529,7 @@
     var baja = function () {
       enVuelo--;
       if (enVuelo > 0) return;
-      setTimeout(function () { if (enVuelo === 0) quitaVelo(); }, 80);
+      intentaQuitar(80);
     };
     p.then(baja, baja);
     return p;
@@ -9197,11 +9206,16 @@
 
       campanaV4(aut, rol);
       var fn = REG[seg];
+      arrancado = true;
       if (fn) {
         try { fn(aut.sb); } catch (e) { fallo('pantalla ' + seg, e); quitaVelo(); }
         /* Si el handler no llego a lanzar ni una consulta, no hay nada que
            esperar: el contador nunca subira y nadie lo bajaria. */
-        setTimeout(function () { if (enVuelo === 0) quitaVelo(); }, 400);
+        intentaQuitar(400);
+      } else if (PROPIAS[seg]) {
+        /* Su script esta enganchado al mismo LW_AUTH y lanza sus consultas en
+           este mismo turno: se espera a que el cliente se quede sin peticiones. */
+        intentaQuitar(400);
       }
     });
   }
@@ -9212,7 +9226,11 @@
      Aqui solo hace falta saber si esta pantalla tiene datos que traer, y eso
      se sabe ya: `REG[seg]` es sincrono. Si luego resulta que no hay sesion,
      `arranca()` lo quita — y si algo se tuerce antes, lo quita el CSS. */
-  if (REG[seg]) ponVelo();
+  /* Pantallas de la v4 que pintan con su PROPIO script (panel-*.js,
+     comunicacion.js, el asistente) y no tienen handler aqui: tambien nacian en
+     «—» y sin velo. Se tapan igual; el destape lo decide el contador de red. */
+  var PROPIAS = { finanzas: 1, gastos: 1, bancos: 1, comunicacion: 1, asistente: 1, 'asistente-correos': 1 };
+  if (REG[seg] || PROPIAS[seg]) ponVelo();
   /* Una pantalla de la v4 que cargue shell.css y NO tenga handler nace oculta
      por la regla de arriba y nadie la destaparia hasta el rescate de los 12 s.
      Aqui se sabe ya que no hay nada que esperar. */
