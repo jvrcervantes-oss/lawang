@@ -79,7 +79,7 @@ const LW_HERRAMIENTAS = [
     soloPermiso:true,
     para:'La agenda de llamadas de venta del closer, dentro del CRM.',
     claves:'closers agenda citas llamadas venta cierre meet closers calendar appointments calls sales closing meet' },
-  { grupo:'Seguimiento', nombre:'Operaciones', icon:'ph-chart-line-up', href:'/intranet/operaciones/', herr:'operaciones',
+  { grupo:'Seguimiento', nombre:'Operaciones', icon:'ph-chart-line-up', href:'/intranet/v4/operaciones/', herr:'operaciones',
     para:'Cómo va cada venta: estado de cuenta, documentos, firmas y vencimientos.',
     claves:'ventas seguimiento estado cuenta sales deals pipeline statement account tracking',
     estado:d => d.firmasPendientes == null ? null
@@ -159,7 +159,7 @@ const LW_HERRAMIENTAS = [
      (venía de Equipo). Todo lo que mueve dinero, junto. Vencimientos va la
      primera: es lo que toca cobrar. Mismo orden en la sidebar v4 (nav.js,
      ORDEN_FINANZAS). Cambiar de grupo no cambia quién la ve: eso es `herr`. */
-  { grupo:'Finanzas', nombre:'Vencimientos', icon:'ph-calendar-check', href:'/intranet/vencimientos/', herr:'vencimientos',
+  { grupo:'Finanzas', nombre:'Vencimientos', icon:'ph-calendar-check', href:'/intranet/v4/vencimientos/', herr:'vencimientos',
     para:'Qué dinero debe entrar, cuándo, y cuál se está retrasando: la caja de la empresa por fechas.',
     claves:'vencimientos pagos hitos caja cashflow finanzas dinero calendario vencido dashboard payments due milestones cash finance money schedule overdue',
     /* La cifra del hub es "sin fecha" y NO "vencidos", a propósito: saber si un
@@ -172,7 +172,7 @@ const LW_HERRAMIENTAS = [
     estado:d => d.vencSinFecha == null ? null
       : [d.vencSinFecha ? hT('%n sin fecha que vigilar', { n: d.vencSinFecha }) : hT('Calendario al día'),
          d.vencSinFecha > 0] },
-  { grupo:'Finanzas', nombre:'Facturas', icon:'ph-receipt', href:'/intranet/facturas/', herr:'facturas',
+  { grupo:'Finanzas', nombre:'Facturas', icon:'ph-receipt', href:'/intranet/v4/facturas/', herr:'facturas',
     para:'Facturas, proformas y recibís, cada tipo con su serie.',
     claves:'facturas proforma serie inv cobro impuesto invoices proforma series billing tax vat',
     estado:d => d.facturas == null ? null
@@ -181,7 +181,7 @@ const LW_HERRAMIENTAS = [
      desde usuarios como las demás» → «separa todo»). Clave propia de VISTA;
      guardar en la base sigue pidiendo el permiso de la herramienta madre.
      La migración 20260923180500_permisos_propios se la dio a quien ya tenía la madre. */
-  { grupo:'Finanzas', nombre:'Recibos', icon:'ph-hand-coins', href:'/intranet/facturas/?tipo=recibi', herr:'recibos',
+  { grupo:'Finanzas', nombre:'Recibos', icon:'ph-hand-coins', href:'/intranet/v4/recibos/', herr:'recibos',
     para:'Justificantes de pago y señales.',
     claves:'recibi recibos justificante señal pago receipts proof of payment deposit',
     estado:d => d.recibis == null ? null : [hT('%n emitidos', { n: d.recibis }), false] },
@@ -201,7 +201,7 @@ const LW_HERRAMIENTAS = [
   /* PERMISO PROPIO desde el 23-sep-2026 (owner: «comisiones no quiero que las
      vea nadie ahora mismo»). Compartir 'operaciones' hacía imposible quitarla
      sin quitar Operaciones. Nace concedida a NADIE: solo la ve un super_admin. */
-  { grupo:'Finanzas', nombre:'Solicitudes', icon:'ph-coins', href:'/intranet/solicitudes/', herr:'comisiones',
+  { grupo:'Finanzas', nombre:'Solicitudes', icon:'ph-coins', href:'/intranet/v4/comisiones/', herr:'comisiones',
     para:'Pagos que piden los comerciales — comisiones y acordados: quién pide qué, y en qué quedó cada uno.',
     claves:'solicitudes pago pagos comisiones comerciales agentes pedir comision payment requests commissions agents reps payout',
     estado:d => d.solicitudesVivas == null ? null
@@ -255,32 +255,22 @@ const LW_HERRAMIENTAS = [
      Soporte (tickets de compradores) sale de Seguimiento. Los comunicados al equipo
      son de la v4 y no tienen tarjeta aquí. Mismo orden en la sidebar v4 (nav.js,
      ORDEN_COMUNICACION). Lo que se ve lo sigue decidiendo `herr`. */
-  { grupo:'Comunicación', nombre:'Soporte', icon:'ph-headset', href:'/intranet/soporte/', herr:'soporte',
+  { grupo:'Comunicación', nombre:'Soporte', icon:'ph-headset', href:'/intranet/v4/soporte/', herr:'soporte',
     para:'Los tickets de los clientes desde su área de clientes, en una bandeja.',
     claves:'soporte mensajes tickets chat compradores atencion consultas support messages tickets chat buyers enquiries inbox',
     estado:d => d.hilosAbiertos == null ? null
       : [d.hilosAbiertos ? hT(d.hilosAbiertos === 1 ? '%n ticket abierto' : '%n tickets abiertos', { n: d.hilosAbiertos }) : hT('Sin tickets abiertos'),
          d.hilosAbiertos > 0] },
 
-  { grupo:'Base de datos', nombre:'Proyectos', icon:'ph-buildings', href:'/intranet/proyectos/', herr:'unidades',
+  { grupo:'Base de datos', nombre:'Proyectos', icon:'ph-buildings', href:'/intranet/v4/proyectos/', herr:'unidades',
     para:'Inventario de parcelas y villas con su estado de venta, por proyecto.',
     claves:'proyectos unidades parcelas villas inventario disponible carpetas projects units plots villas inventory available folders',
     estado:d => d.unidades == null ? null
       : d.unidades === 0 ? [hT('Sin inventario cargado'), true]
       : [hT('%u unidades · %l disponibles', { u: d.unidades, l: d.unidadesLibres }), false] },
-  /* Nueva 11-sep-2026 (encargo del owner: traer /v4/proyectos a la version
-     actual sin retirar la de siempre — "mantener los 2 enlaces desde el
-     menu"). Va PEGADA a Proyectos porque son la misma base de datos vista de
-     dos formas: tabla ancha editable de toda la vida vs. tarjetas por
-     proyecto + cajon de cuentas de la v4. Mismo `herr:'unidades'` que su
-     hermana, mismo motivo que Modelos de arriba: una clave nueva exige
-     redesplegar la edge admin-usuarios (LAW-70 sigue pendiente) y dejaria a
-     los usuarios nuevos sin la herramienta en silencio. Sin `estado`: son las
-     mismas cifras que ya cuenta la ficha de Proyectos, repetir el aviso ahi
-     seria ruido, no informacion nueva. */
-  { grupo:'Base de datos', nombre:'Proyectos (nueva vista)', icon:'ph-squares-four', href:'/intranet/v4/proyectos/', herr:'unidades',
-    para:'La misma base de parcelas y villas, en tarjetas por proyecto con el estado de cuentas. En pruebas junto a Proyectos.',
-    claves:'proyectos v4 tarjetas nueva vista cuentas beta prueba projects cards new view accounts' },
+  /* «Proyectos (nueva vista)» retirada el 27-sep-2026 (corte de la clasica): era la
+     v4 al lado de la tabla de siempre; con /intranet/proyectos/ redirigiendo a la v4,
+     «Proyectos» ya ES esa vista y dos entradas llevaban a la misma pantalla. */
   /* Nueva 7-sep-2026 (encargo del owner: dar de alta los tipos de vivienda igual
      que se dan de alta las parcelas). Va JUSTO detras de Proyectos porque es su
      otra mitad: alli esta el terreno, aqui la casa que se levanta encima, y el
@@ -295,7 +285,7 @@ const LW_HERRAMIENTAS = [
      desde usuarios como las demás» → «separa todo»). Clave propia de VISTA;
      guardar en la base sigue pidiendo el permiso de la herramienta madre.
      La migración 20260923180500_permisos_propios se la dio a quien ya tenía la madre. */
-  { grupo:'Base de datos', nombre:'Modelos', icon:'ph-house-line', href:'/intranet/modelos/', herr:'modelos',
+  { grupo:'Base de datos', nombre:'Modelos', icon:'ph-house-line', href:'/intranet/v4/modelos/', herr:'modelos',
     para:'Que se puede construir: habitaciones, metros, precio, techos, extras y planos de cada tipo de vivienda.',
     claves:'modelos tipologias villas tipos vivienda specs precio techos extras planos catalogo dormitorios metros house models types specs price roofs add-ons floor plans catalogue bedrooms sqm',
     /* El estado dice lo que hay que ARREGLAR, no cuantas filas hay: un modelo
@@ -309,12 +299,12 @@ const LW_HERRAMIENTAS = [
     estado:d => d.obraActivas == null ? null
       : d.obraActivas === 0 ? [hT('Sin unidades en obra'), true]
       : [hT('%n en obra', { n: d.obraActivas }), false] },
-  { grupo:'Base de datos', nombre:'Clientes', icon:'ph-identification-card', href:'/intranet/compradores/', herr:'compradores',
+  { grupo:'Base de datos', nombre:'Clientes', icon:'ph-identification-card', href:'/intranet/v4/compradores/', herr:'compradores',
     para:'Ficha del cliente y documentación KYC, con caducidades.',
     claves:'compradores kyc pasaporte fichas clientes caducidad buyers kyc passport records clients expiry',
     estado:d => d.compradores == null ? null : [hT('%n fichas', { n: d.compradores }), false] },
 
-  { grupo:'Equipo', nombre:'Usuarios', icon:'ph-users-three', href:'/intranet/usuarios/', herr:'usuarios', soloAdmin:true,
+  { grupo:'Equipo', nombre:'Usuarios', icon:'ph-users-three', href:'/intranet/v4/usuarios/', herr:'usuarios', soloAdmin:true,
     para:'Quién entra, con qué rol y qué herramientas ve cada uno.',
     claves:'usuarios permisos roles equipo acceso users permissions roles team access',
     estado:d => d.usuarios == null ? null
@@ -329,7 +319,7 @@ const LW_HERRAMIENTAS = [
      llegue por la URL puede MIRAR el reparto —le sirve para entender por qué un
      contrato ofrece las cuentas que ofrece— y no puede cambiar nada. Es el dato
      que decide adónde va el dinero de un comprador: ahí no hay delegación. */
-  { grupo:'Finanzas', nombre:'Cuentas bancarias', icon:'ph-bank', href:'/intranet/cuentas/', herr:'cuentas', soloAdmin:true,
+  { grupo:'Finanzas', nombre:'Cuentas bancarias', icon:'ph-bank', href:'/intranet/v4/cuentas/', herr:'cuentas', soloAdmin:true,
     para:'Las cuentas de cobro y qué cuenta se ofrece en cada tipo de contrato.',
     claves:'cuentas bancarias banco iban swift cobro pago escrow notario destino plantillas contratos bank accounts payment details escrow beneficiary',
     estado:d => d.cuentas == null ? null

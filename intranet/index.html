@@ -14,7 +14,7 @@
      sin avisar (mismo aviso que ya llevaba Cormorant Garamond antes). -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&family=Instrument+Sans:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/instancia.js?v=c5c926ae"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/instancia.js?v=b283914a"></script>
 <!-- MODO QA (28-ago-2026) — mismo gate que contracts/assets/guard.js, aquí
      duplicado porque este hub NO carga guard.js (control de sesión propio,
      ver contexto/suite_lawang.md). Solo localhost+?qa=1; fuera de eso, nunca
@@ -43,7 +43,7 @@
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/i18n.js?v=1c48d767"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script><script src="/contracts/assets/cierre.js?v=7471481b"></script>
-<script src="/contracts/assets/avisos.js?v=38fd8c40" defer></script><script src="/contracts/assets/topbar.js?v=8444fd68" defer></script>
+<script src="/contracts/assets/avisos.js?v=389df6b9" defer></script><script src="/contracts/assets/topbar.js?v=74e03361" defer></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════
    INTRANET LAWANG · rediseño 30-jul-2026 (v3)
@@ -388,7 +388,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
              talla pisada a mano (13px/10px 18px), que no era ni la del boton de
              barra ni la del primario. Ahora miden lo que mide la clase. -->
         <a class="lw-btn" href="/contracts/?nuevo=1"><i class="ph ph-plus"></i>Nuevo contrato</a>
-        <a class="lw-btn primary" href="/intranet/facturas/?nueva=1"><i class="ph ph-plus"></i>Nueva factura</a>
+        <a class="lw-btn primary" href="/intranet/v4/facturas/?nueva=1"><i class="ph ph-plus"></i>Nueva factura</a>
       </div>
     </div>
     <!-- Tarjetas de cifra y últimas operaciones (6-ago-2026, handoff de diseño).
@@ -427,7 +427,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
      pre-commit; el valor de aqui es solo el punto de partida. -->
 <script src="/contracts/assets/dinero.js?v=a442e362"></script>
 <script src="/intranet/facturas/totales.js?v=7d5789c6"></script>
-<script src="/contracts/assets/herramientas.js?v=a7d8d3cc"></script>
+<script src="/contracts/assets/herramientas.js?v=9159992d"></script>
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
 <script src="/contracts/assets/suite-comun.js?v=24701ad2"></script>
 <script>
@@ -646,16 +646,16 @@ function pintarKpis(d, ficha){
     /* `tono` colorea el pie por SIGNIFICADO, como el mockup: ámbar lo que espera,
        rojo lo que urge, verde lo que va bien, gris lo neutro. En la 1ª pasada todos
        los pies eran grises y la tarjeta no decía si el número era bueno o malo. */
-    { rot:lwT('Firmas esperando'), v:d.firmasPendientes, href:'/intranet/operaciones/?filtro=firma_viva', herr:'operaciones',
+    { rot:lwT('Firmas esperando'), v:d.firmasPendientes, href:'/intranet/v4/operaciones/?filtro=firma_viva', herr:'operaciones',
       pie:n => lwT(n ? 'pendientes de que el cliente firme' : 'ninguna pendiente'),
       tono:n => n ? 'mal' : 'bien', urge:n => n > 0 },
     { rot:'Contratos', v:d.contratos, href:'/contracts/', herr:'contratos',
       pie:() => d.contratosEditables == null ? '' : lwT('%n aún editables', { n: d.contratosEditables }),
       tono:() => d.contratosEditables ? 'espera' : '' },
-    { rot:lwT('Facturas emitidas'), v:d.facturas, href:'/intranet/facturas/', herr:'facturas',
+    { rot:lwT('Facturas emitidas'), v:d.facturas, href:'/intranet/v4/facturas/', herr:'facturas',
       pie:() => d.facturasAnuladas ? d.facturasAnuladas + ' anuladas' : 'ninguna anulada',
       tono:() => d.facturasAnuladas ? 'espera' : 'bien' },
-    { rot:lwT('Unidades libres'), v:d.unidadesLibres, href:'/intranet/proyectos/', herr:'unidades',
+    { rot:lwT('Unidades libres'), v:d.unidadesLibres, href:'/intranet/v4/proyectos/', herr:'unidades',
       pie:() => d.unidades == null ? '' : lwT('de %n en inventario', { n: d.unidades }) },
     { rot:'En obra', v:d.obraActivas, href:'/intranet/obra/', herr:'obra',
       pie:n => lwT(n ? 'con fase abierta' : 'sin unidades en obra'),
@@ -710,7 +710,7 @@ async function ultimasOperaciones(sb){
         que:lwT('Contrato'), href:'/contracts/?contrato=' + r.id, estado:r.bloqueado ? [lwT('Firmado'),'ok'] : [lwT('Editable'),'gris'] })),
     ...(f.data || []).map(r => ({ fecha:r.created_at, num:r.numero, quien:r.cliente_nombre,
         que:lwT(r.tipo === 'recibi' ? 'Recibí' : r.tipo === 'proforma' ? 'Proforma' : 'Factura'),
-        href:'/intranet/facturas/?id=' + r.id, importe:r.total, moneda:r.moneda,
+        href:'/intranet/v4/facturas/?id=' + r.id, importe:r.total, moneda:r.moneda,
         estado:r.anulada ? [lwT('Anulada'),'alerta'] : [lwT('Emitida'),'info'] })),
   ].filter(r => r.fecha).sort((a,b) => b.fecha.localeCompare(a.fecha)).slice(0, 8);
   if(!filas.length) return;

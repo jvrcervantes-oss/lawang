@@ -25,12 +25,12 @@ vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(path.join(RAIZ, 'contracts', 'assets', 'herramientas.js'), 'utf8') + '\n;this.__H = LW_HERRAMIENTAS;', ctx);
 const HERR = ctx.__H;
 assert.ok(Array.isArray(HERR) && HERR.length > 10, 'no se pudo leer LW_HERRAMIENTAS');
-/* Las tres cuyo href clásico no se llama como su carpeta v4. Cada una con su
+/* Las que tienen un href que no se llama como su carpeta v4. Cada una con su
    motivo — una fila nueva aquí es una decisión, no un atajo para callar el test. */
 const ALIAS = {
   '/contracts/': 'contratos',                     // el generador vive en /contracts/; la v4 lo llama Contratos
-  '/intranet/facturas/?tipo=recibi': 'recibos',   // Recibos es una vista de Facturas en la clásica
-  '/intranet/solicitudes/': 'comisiones',         // Solicitudes se renombró Comisiones (14-sep)
+  /* Recibos (?tipo=recibi) y Solicitudes (→ comisiones) salieron el 27-sep-2026: con el
+     corte de la clásica el catálogo apunta ya a /intranet/v4/recibos/ y /intranet/v4/comisiones/. */
 };
 function carpetaV4(href) {
   if (ALIAS[href]) return ALIAS[href];

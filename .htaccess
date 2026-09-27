@@ -86,8 +86,10 @@ RedirectMatch 404 (?i)/_diag_
 </FilesMatch>
 
 # URLs limpias en las paginas publicas: /thecollection, no /thecollection.html.
-# Solo raiz y solo GET a proposito: las subcarpetas (api/, contracts/, facturas/, intranet/)
-# son apps internas con logins y formularios, y un 301 convierte un POST en GET — ahi no se toca.
+# Solo raiz y solo GET a proposito: las subcarpetas (api/, contracts/, intranet/) son apps
+# internas con logins y formularios, y un 301 convierte un POST en GET — ahi no se toca.
+# UNICA excepcion (27-sep-2026): el corte de la intranet clasica a la v4, mas abajo — 302,
+# solo GET y solo la PAGINA de cada herramienta, nunca sus ficheros.
 <IfModule mod_rewrite.c>
   RewriteEngine On
 
@@ -100,6 +102,74 @@ RedirectMatch 404 (?i)/_diag_
   # cambia algún día, ningún navegador se queda con esta guardada para siempre.
   RewriteCond %{REQUEST_METHOD} =GET
   RewriteRule ^intranet/v4/?(index\.html)?$ /intranet/v4/home/ [R=302,L]
+
+  # ── CORTE DE LA INTRANET CLASICA (27-sep-2026, LAW-257 / S19, decision del owner) ──
+  # Cada herramienta clasica con paridad en la v4 (S1-S18) manda a su pantalla v4.
+  # Se corta ANTES de migrar las lecturas a RPC (LAW-338) para no migrar dos veces.
+  #   · 302 y no 301: reversible quitando este bloque, sin navegadores que se queden
+  #     la redireccion guardada.
+  #   · Solo GET, y SOLO la pagina (`carpeta/` o `carpeta/index.html`): la v4 carga
+  #     /intranet/facturas/{totales,documento}.js, documento.css y
+  #     /intranet/vencimientos/logica.js — un `(/.*)` aqui la dejaria sin motor.
+  #   · La query viaja entera (sin `?` en el destino + QSA): los correos ya enviados
+  #     llevan ?id=, ?contrato=, ?filtro=, ?nuevo= y la v4 los lee con el mismo nombre.
+  #   · [NC]: /intranet/Facturas/ tambien. El destino se escribe a mano en minuscula
+  #     (con NC, un $1 arrastraria la mayuscula a una carpeta que no existe).
+  #   · El prefijo `intranet/` es opcional solo en las que tienen alias viejo en la
+  #     linea 27 (/facturas/ -> /intranet/facturas/): corra antes mod_alias o
+  #     mod_rewrite, la cadena acaba en la v4 y nunca vuelve. Ninguna casa
+  #     `intranet/v4/...`: el segmento tras `intranet/` es el nombre de la herramienta.
+  # SE QUEDAN en la clasica, a proposito: /intranet/ (es la PUERTA: el login; con
+  # sesion manda a la v4 por `inicio` en contracts/assets/instancia.js), leads/ (CRM
+  # no portado), obra/ (la ficha por unidad y sus fotos solo existen ahi: la v4
+  # enlaza a /intranet/obra/?id=), documentacion/ (los documentos «general» de la
+  # empresa solo se ven y editan ahi), creatividades/redes/, dossier/, contrasena/.
+  #
+  # Facturas se bifurca por la query (cada RewriteCond ata solo a la regla siguiente):
+  #   ?vista=  -> se sirve la clasica (modo solo-documento del visor compartido)
+  #   ?id=     -> v4/facturas (abre el documento, recibis incluidos)
+  #   ?tipo=recibi -> v4/recibos (lee ?contrato= y ?nueva=/?nuevo=)
+  #   resto    -> v4/facturas (lee ?contrato= y ?nueva=/?nuevo=)
+  RewriteCond %{QUERY_STRING} (^|&)vista(=|&|$) [NC]
+  RewriteRule ^(?:intranet/)?facturas/?(?:index\.html)?$ - [NC,L]
+  RewriteCond %{REQUEST_METHOD} =GET
+  RewriteCond %{QUERY_STRING} (^|&)id= [NC]
+  RewriteRule ^(?:intranet/)?facturas/?(?:index\.html)?$ /intranet/v4/facturas/ [NC,R=302,L,QSA]
+  RewriteCond %{REQUEST_METHOD} =GET
+  RewriteCond %{QUERY_STRING} (^|&)tipo=recibi(&|$) [NC]
+  RewriteRule ^(?:intranet/)?facturas/?(?:index\.html)?$ /intranet/v4/recibos/ [NC,R=302,L,QSA]
+  RewriteCond %{REQUEST_METHOD} =GET
+  RewriteRule ^(?:intranet/)?facturas/?(?:index\.html)?$ /intranet/v4/facturas/ [NC,R=302,L,QSA]
+
+  RewriteCond %{REQUEST_METHOD} =GET
+  RewriteRule ^(?:intranet/)?operaciones/?(?:index\.html)?$ /intranet/v4/operaciones/ [NC,R=302,L,QSA]
+  RewriteCond %{REQUEST_METHOD} =GET
+  RewriteRule ^(?:intranet/)?compradores/?(?:index\.html)?$ /intranet/v4/compradores/ [NC,R=302,L,QSA]
+  RewriteCond %{REQUEST_METHOD} =GET
+  RewriteRule ^(?:intranet/)?proyectos/?(?:index\.html)?$ /intranet/v4/proyectos/ [NC,R=302,L,QSA]
+  RewriteCond %{REQUEST_METHOD} =GET
+  RewriteRule ^(?:intranet/)?usuarios/?(?:index\.html)?$ /intranet/v4/usuarios/ [NC,R=302,L,QSA]
+  RewriteCond %{REQUEST_METHOD} =GET
+  RewriteRule ^(?:intranet/)?vencimientos/?(?:index\.html)?$ /intranet/v4/vencimientos/ [NC,R=302,L,QSA]
+  RewriteCond %{REQUEST_METHOD} =GET
+  RewriteRule ^(?:intranet/)?creatividades/?(?:index\.html)?$ /intranet/v4/creatividades/ [NC,R=302,L,QSA]
+  RewriteCond %{REQUEST_METHOD} =GET
+  RewriteRule ^intranet/modelos/?(?:index\.html)?$ /intranet/v4/modelos/ [NC,R=302,L,QSA]
+  RewriteCond %{REQUEST_METHOD} =GET
+  RewriteRule ^intranet/cuentas/?(?:index\.html)?$ /intranet/v4/cuentas/ [NC,R=302,L,QSA]
+  RewriteCond %{REQUEST_METHOD} =GET
+  RewriteRule ^intranet/sociedades/?(?:index\.html)?$ /intranet/v4/sociedades/ [NC,R=302,L,QSA]
+  RewriteCond %{REQUEST_METHOD} =GET
+  RewriteRule ^intranet/soporte/?(?:index\.html)?$ /intranet/v4/soporte/ [NC,R=302,L,QSA]
+  # Solicitudes se renombro Comisiones (14-sep): ?id=<solicitud> lo lee la v4 igual.
+  RewriteCond %{REQUEST_METHOD} =GET
+  RewriteRule ^intranet/solicitudes/?(?:index\.html)?$ /intranet/v4/comisiones/ [NC,R=302,L,QSA]
+  # /intranet/Documentacion/ (con mayuscula, sale en textos del deck) daba 404: a la
+  # clasica en minuscula, que se queda. La condicion es sensible a mayusculas a
+  # proposito — sin ella la ruta buena se redirigiria a si misma.
+  RewriteCond %{REQUEST_METHOD} =GET
+  RewriteCond %{REQUEST_URI} !^/intranet/documentacion(/|$)
+  RewriteRule ^intranet/documentacion(/.*)?$ /intranet/documentacion$1 [NC,R=302,L,QSA]
 
   # Sitemap dinamico: la URL de siempre (/sitemap.xml, la que ya conoce robots.txt) pasa a
   # servir sitemap.php, generado desde data.json — antes era un XML estatico con 5 URLs fijas

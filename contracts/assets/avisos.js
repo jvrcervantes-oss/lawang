@@ -186,7 +186,7 @@ function lwAvisosArmar(r, opts) {
               : d === 0 ? ' vence hoy' : ' vence en ' + d + ' d'),
       // lo que QUEDA, no el total: con un pago a cuenta el total exageraba la deuda
       detalle: lwAvisoImporte(queda, f.moneda) + ' sin cobrar',
-      enlace: f.contrato_id ? '/intranet/operaciones/?contrato=' + encodeURIComponent(f.contrato_id) : '/intranet/facturas/',
+      enlace: f.contrato_id ? '/intranet/v4/operaciones/?contrato=' + encodeURIComponent(f.contrato_id) : '/intranet/v4/facturas/',
       cuando: f.venc, nuevo: d <= 5,
       clase: 'alerta', nivel: d < 0 ? 'mal' : 'atencion', etiqueta: d < 0 ? 'Vencida' : (d === 0 ? 'Vence hoy' : 'Por vencer'),
     });
@@ -200,7 +200,7 @@ function lwAvisosArmar(r, opts) {
       titulo: 'Enlace de firma de ' + (c.numero || 'un contrato') +
               (d < 0 ? ' caducado' : d === 0 ? ' caduca hoy' : ' caduca en ' + d + ' d'),
       detalle: s.firmante_nombre || '',
-      enlace: '/intranet/operaciones/?contrato=' + encodeURIComponent(s.contrato_id),
+      enlace: '/intranet/v4/operaciones/?contrato=' + encodeURIComponent(s.contrato_id),
       cuando: s.expira_en, nuevo: d <= 5,
       clase: 'alerta', nivel: d < 0 ? 'mal' : 'atencion', etiqueta: d < 0 ? 'Firma caducada' : 'Firma por caducar',
     });

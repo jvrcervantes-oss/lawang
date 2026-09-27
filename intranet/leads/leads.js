@@ -311,7 +311,7 @@ function pintarClosers(){
       <b>${lwT('%n ventas sin atribuir', { n: sinAtribuir.contratos })}</b>
       ${lwT('(%s firmados) que no cuentan para nadie.', { s: importeSinAtribuir })}
       ${lwT('Se asignan desde Comisiones → «A quién se atribuye cada venta», visible solo con el permiso de ranking.')}
-      <a href="/intranet/solicitudes/" target="_blank" rel="noopener">${lwT('Abrir Comisiones')}</a>`;
+      <a href="/intranet/v4/comisiones/" target="_blank" rel="noopener">${lwT('Abrir Comisiones')}</a>`;
   } else av.hidden = true;
 
   $('#subRanking').textContent = SOLO_RAICES
@@ -1079,7 +1079,7 @@ async function formularioAsignar(l){
   const equipo = await cargarEquipo();
   if(!equipo.length){
     caja.innerHTML = `<div class="aviso oro" style="margin:0">
-      <b>${lwT('No hay nadie más con acceso al CRM.')}</b> ${lwT('Un administrador tiene que marcar la casilla «Leads» en')} <a href="/intranet/usuarios/" target="_blank" rel="noopener">${lwT('Usuarios')}</a>
+      <b>${lwT('No hay nadie más con acceso al CRM.')}</b> ${lwT('Un administrador tiene que marcar la casilla «Leads» en')} <a href="/intranet/v4/usuarios/" target="_blank" rel="noopener">${lwT('Usuarios')}</a>
       ${lwT('antes de poder repartir leads.')}</div>
       <div style="margin-top:10px"><button class="btn" id="dfVolver">${lwT('Volver')}</button></div>`;
     caja.querySelector('#dfVolver').onclick = () => pintarDuenoFicha(l);
@@ -1233,7 +1233,7 @@ async function dialogoHaciaContrato(l){
      ${lwT('Puede que sea la misma persona duplicada.')}</div>`);
   if(!d.email) avisos.push(
     `<div class="aviso rojo" style="margin:0 0 10px"><b>${lwT('Este lead no dejó email.')}</b>
-     ${lwT('Una ficha de cliente necesita un identificador, así que hay que darla de alta a mano en')} <a href="/intranet/compradores/?nuevo=1" target="_blank" rel="noopener">${lwT('Clientes')}</a>.</div>`);
+     ${lwT('Una ficha de cliente necesita un identificador, así que hay que darla de alta a mano en')} <a href="/intranet/v4/compradores/?nuevo=1" target="_blank" rel="noopener">${lwT('Clientes')}</a>.</div>`);
 
   caja.innerHTML = avisos.join('') + `
     <div class="dato"><span>${lwT('Nombre')}</span><b>${esc(d.nombre || 'sin nombre')}</b></div>

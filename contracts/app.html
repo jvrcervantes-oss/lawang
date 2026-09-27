@@ -39,8 +39,8 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/i18n.js?v=1c48d767"></script>
-<script src="/contracts/assets/herramientas.js?v=a7d8d3cc"></script>
-<script src="assets/avisos.js?v=38fd8c40" defer></script><script src="assets/topbar.js?v=8444fd68" defer></script>
+<script src="/contracts/assets/herramientas.js?v=9159992d"></script>
+<script src="assets/avisos.js?v=389df6b9" defer></script><script src="assets/topbar.js?v=74e03361" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- Supabase (guardado + numeración automática de contratos, tabla `contratos` en el
@@ -54,7 +54,7 @@
      de Supabase publicado en `LW_SB`, que es lo que hacia falta para que la
      barra compartida funcione tambien aqui. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=c5c926ae"></script><script src="/contracts/assets/guard.js?v=a6e64190"></script>
+<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=b283914a"></script><script src="/contracts/assets/guard.js?v=a6e64190"></script>
 <!-- Identidad de las sociedades y cuentas de cobro: fuente única compartida con
      /facturas (define CUENTAS_BANCARIAS y SOCIEDADES). -->
 <!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
@@ -74,7 +74,7 @@
 <script src="assets/compradores.js?v=be8f79e8"></script>
 <!-- ¿el documento sigue diciendo lo que dice la ficha? Compara la vista
      `documentos_desactualizados`; esto solo la consulta (19-ago-2026). -->
-<script src="assets/ficha_divergencia.js?v=70b9307d"></script>
+<script src="assets/ficha_divergencia.js?v=08e41022"></script>
 
 <!-- Trozos que SALIERON de este fichero el 21-ago-2026 (tenia 5.831 lineas).
      Van aqui y no con `defer` a proposito: `defer` los ejecutaria DESPUES del
@@ -1477,7 +1477,7 @@ function bloqueElegirComprador(o){
         : L({es:'Ficha',en:'Client',id:'Klien'})}</span>
       <b>${esc(o.ficha.full_name || '—')}</b>
       <span class="cli-sub">${esc(fichaResumen(o.ficha))}${fichaDeQuien(o.ficha)}</span>
-      <a class="tb-link" href="/intranet/compradores/?id=${encodeURIComponent(o.ficha.id)}" target="_blank" rel="noopener">${L({es:'Ver en Compradores',en:'Open in Buyers',id:'Buka di Pembeli'})}</a>
+      <a class="tb-link" href="/intranet/v4/compradores/?id=${encodeURIComponent(o.ficha.id)}" target="_blank" rel="noopener">${L({es:'Ver en Compradores',en:'Open in Buyers',id:'Buka di Pembeli'})}</a>
       ${cambiar}
     </div>`;
   }
@@ -1498,7 +1498,7 @@ function bloqueElegirComprador(o){
       <div class="cli-resultados" id="${o.idResultados}" hidden></div>
     </div>
     <div class="cli-nuevo"><span>${L({es:'¿No está fichado? El alta se hace en Compradores, no aquí.',en:'Not registered yet? New clients are created in Buyers, not here.',id:'Belum terdaftar? Klien baru dibuat di Pembeli, bukan di sini.'})}</span>
-      <a class="tb-link"${o.idNuevo ? ` id="${o.idNuevo}"` : ''} href="/intranet/compradores/?nuevo=1" target="_blank" rel="noopener">${L({es:'Abrir Compradores',en:'Open Buyers',id:'Buka Pembeli'})}</a>
+      <a class="tb-link"${o.idNuevo ? ` id="${o.idNuevo}"` : ''} href="/intranet/v4/compradores/?nuevo=1" target="_blank" rel="noopener">${L({es:'Abrir Compradores',en:'Open Buyers',id:'Buka Pembeli'})}</a>
     </div>
   </div>`;
 }
@@ -4379,7 +4379,7 @@ function updateSaveButton(){
        facturar contratos sin bloquear. Queda escrito para que no se vuelva a
        "arreglar" dentro de tres meses. */
     if(SAVED_CONTRACT){
-      facBtn.href = '/intranet/facturas/?contrato=' + encodeURIComponent(SAVED_CONTRACT.id);
+      facBtn.href = '/intranet/v4/facturas/?contrato=' + encodeURIComponent(SAVED_CONTRACT.id);
       facBtn.dataset.href = facBtn.getAttribute('href');
     }
   }
@@ -4836,7 +4836,7 @@ async function guardarContrato(){
       cuerpo: '<p>' + lwT('El comprador de un contrato sale de su ficha de') + ' <b>' + lwT('Compradores') + '</b>, '
         + 'para que una errata al teclear no cree un cliente duplicado ni un email al que no llega nada.</p>'
         + '<p>' + lwT('Si ya está registrado,') + ' <b>' + lwT('búscalo') + '</b> en el bloque del comprador. Si es la primera vez, '
-        + 'se da de alta en <a href="/intranet/compradores/?nuevo=1" target="_blank" rel="noopener">' + lwT('Compradores') + '</a> '
+        + 'se da de alta en <a href="/intranet/v4/compradores/?nuevo=1" target="_blank" rel="noopener">' + lwT('Compradores') + '</a> '
         + 'y después se busca aquí — el alta no se hace desde el contrato.</p>'
         + (ES_SUPER ? '<p><b>' + lwT('Como super admin') + '</b> puedes guardarlo igualmente. El contrato quedará sin '
                     + 'comprador enlazado y eso se anota en su historial.</p>' : ''),
@@ -4862,7 +4862,7 @@ async function guardarContrato(){
       cuerpo: '<p>' + lwT('Estos compradores están escritos a mano y no salen de ninguna ficha:') + '</p><ul>'
         + extrasSinFicha.map(c => '<li><b>' + esc(String(c.nombre).trim()) + '</b></li>').join('')
         + '</ul><p>Búscalos en su bloque si ya están registrados, o dales de alta en '
-        + '<a href="/intranet/compradores/?nuevo=1" target="_blank" rel="noopener">' + lwT('Compradores') + '</a> y después búscalos aquí. '
+        + '<a href="/intranet/v4/compradores/?nuevo=1" target="_blank" rel="noopener">' + lwT('Compradores') + '</a> y después búscalos aquí. '
         + 'Si alguno sobra, quítalo con «Quitar».</p>',
       confirmar: 'Entendido',
       cancelar: false,

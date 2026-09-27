@@ -16,6 +16,10 @@
     cabecera: 'LAWANG',                                          // barra lateral, en grande
     subcabecera: 'PROPERTIES & SUITE',                           // barra lateral, debajo
     titulo: 'Lawang Intranet',                                   // pestaña del navegador: «Facturas — Lawang Intranet»
+    inicio: '/intranet/v4/home/',                                // portada tras entrar (27-sep-2026, corte de la clásica,
+                                                                 // LAW-257/S19): /intranet/ sigue siendo la PUERTA (login),
+                                                                 // pero con sesión manda aquí. El hub clásico solo se pinta
+                                                                 // ya para enseñar «?sin_permiso=» (guard.js rebota ahí)
     firma_correo: 'Lawang Tropical Properties'                   // firma de los correos: la MARCA, nunca la sociedad
                                                                  // emisora (owner, 8-sep-2026: cada factura la emite una distinta)
   });

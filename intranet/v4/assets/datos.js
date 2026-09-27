@@ -1750,7 +1750,7 @@
     // esta ficha. Si editores.js aún no ha cargado, el enlace clásico de siempre.
     var acciones = [{ texto: 'Abrir el documento', tono: 'primario', onClick: function () {
       if (window.LW_V4 && typeof window.LW_V4.verDocumento === 'function') window.LW_V4.verDocumento(f0.id, function () { fichaFactura(sb, f0); });
-      else location.href = '/intranet/facturas/?id=' + encodeURIComponent(f0.id);
+      else location.href = '/intranet/v4/facturas/?id=' + encodeURIComponent(f0.id);
     } }];
     // Editar (21-sep-2026): solo mientras el documento sigue vivo — un
     // congelado (anulado o ya enviado) no se toca, se reemite. El candado de
@@ -2256,11 +2256,53 @@
                   : '<span style="color:#BEB3A5">—</span>';
               }
               if (tds[8]) tds[8].innerHTML = htmlAutor(AUT, f.creado_por);
-              if (tds[9]) tds[9].innerHTML = pill(est[0], est[1]);
+              if (tds[9]) tds[9].innerHTML = pill(est[0], est[1]) + tagDiverge(f);
               if (tds[10]) tds[10].innerHTML = ABRIR;
               tr.style.cursor = 'pointer';
             }
             function pintaListado() { pl.tbody.innerHTML = ''; fs.forEach(function (f) { pintaFilaDoc(f); }); }
+            /* «Ficha ≠» (27-sep-2026, corte de la clásica): la marca de la lista de
+               /intranet/facturas/ —el documento dice algo distinto de la ficha de su
+               cliente— solo existía allí, y esa pantalla redirige ya aquí. La
+               comparación es de la base (vista `documentos_desactualizados`) y el
+               texto de la capa compartida (contracts/assets/ficha_divergencia.js):
+               aquí solo se pinta. Llega tarde a propósito (la vista es lenta): la
+               lista ya está usable. Si no se puede mirar, se DICE con un toast de
+               fallo — «ninguna marca» no puede leerse igual que «no he podido mirar»,
+               y `lwDivergencias()` de la capa compartida no distingue los dos casos
+               (devuelve vacío en error), así que la consulta va aquí. */
+            var DIVERGEN = null;
+            function tagDiverge(f) {
+              return DIVERGEN && DIVERGEN.has(f.id)
+                ? ' <button type="button" data-lw-diverge="' + esc(f.id) + '" title="Dice algo distinto de la ficha del cliente" style="margin-left:4px;padding:1px 8px;border-radius:999px;border:1px solid #C06C47;background:#FBEEE7;color:#8A3B1C;font-weight:600;font-size:11px;font-family:inherit;cursor:pointer">Ficha ≠</button>'
+                : '';
+            }
+            function cargaDivergencias() {
+              var falla = function (msg) {
+                console.error('[v4 datos] ficha≠', msg);
+                (window.toastMal || toast)('No se ha podido comprobar qué facturas dicen algo distinto de la ficha del cliente: la marca «Ficha ≠» no sale en esta carga.');
+              };
+              var texto = new Promise(function (ok) {
+                if (typeof window.lwTextoDivergencia === 'function') return ok(true);
+                var sc = document.createElement('script');
+                sc.src = '/contracts/assets/ficha_divergencia.js';
+                sc.onload = function () { ok(true); }; sc.onerror = function () { ok(false); };
+                document.head.appendChild(sc);
+              });
+              sb.from('documentos_desactualizados').select('id,numero,congelado,ficha,diferencias').eq('tipo', 'factura').then(function (r) {
+                if (r.error) return falla(r.error.message);
+                return texto.then(function (hay) {
+                  if (!hay) return falla('no cargó ficha_divergencia.js');
+                  var m = new Map();
+                  (r.data || []).forEach(function (d) { if (Array.isArray(d.diferencias) && d.diferencias.length) m.set(d.id, d); });
+                  DIVERGEN = m;
+                  Array.prototype.forEach.call(pl.tbody.querySelectorAll('tr[data-lw-id]'), function (tr) {
+                    var f = porId[tr.getAttribute('data-lw-id')], td = tr.querySelectorAll('td')[9];
+                    if (f && td && !td.querySelector('[data-lw-diverge]')) td.insertAdjacentHTML('beforeend', tagDiverge(f));
+                  });
+                });
+              }, function (e) { falla(e && e.message || String(e)); });
+            }
             /* Vista por contrato (S14, 21-sep-2026): agrupa lo que este
                listado YA tiene (facturas+proformas — los recibís viven en su
                propia pantalla), solo lectura. Calco simplificado de
@@ -2317,6 +2359,15 @@
             }
             pintaListado();
             pl.tbody.addEventListener('click', function (ev) {
+              var dv = ev.target.closest && ev.target.closest('[data-lw-diverge]');
+              if (dv) {
+                ev.stopPropagation();
+                var d = DIVERGEN && DIVERGEN.get(dv.getAttribute('data-lw-diverge'));
+                if (d && window.lwConfirmar) window.lwConfirmar({ titulo: 'La ficha del cliente dice otra cosa',
+                  cuerpo: window.lwTextoDivergencia(d) + (d.congelado ? '' : '<p>Ábrelo para traer los datos de la ficha.</p>'),
+                  confirmar: 'Entendido', cancelar: false });
+                return;
+              }
               var tr = ev.target.closest && ev.target.closest('tr[data-lw-id]'); if (!tr) return;
               ev.stopPropagation(); var f = porId[tr.getAttribute('data-lw-id')]; if (f) fichaFactura(sb, f);
             });
@@ -2346,6 +2397,7 @@
               { clave: 'anulada', texto: 'Anuladas', n: nFacAnu + nProAnu }], estado, aplicar);
             buscadorDe(aplicar, function (v) { texto = v; });
             aplicar();   // el chip inicial «Facturas» filtra desde el primer pintado
+            cargaDivergencias();
 
             var vistaBox = document.querySelector('[data-lw-vista]');
             if (vistaBox) vistaBox.addEventListener('click', function (ev) {

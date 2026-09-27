@@ -38,10 +38,17 @@ async function lwDivergencias(sb, tipo){
 /* El texto del aviso, uno para toda la suite. `congelado` cambia el consejo, no
    el diagnóstico: en los dos casos el documento dice algo distinto de la ficha,
    pero en uno se arregla y en el otro se reemite. */
+/* Los valores son texto de la base (nombre, pasaporte, email del cliente) y esto se
+   pinta como HTML en `lwConfirmar`: se escapan aquí, una vez, para las tres pantallas
+   que lo usan (27-sep-2026 — hasta hoy iban crudos). */
+function lwEscDivergencia(v){
+  return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c]);
+}
 function lwTextoDivergencia(d){
+  const e = lwEscDivergencia;
   const filas = (d.diferencias || []).map(x =>
-    '<li><b>' + x.campo + '</b>: aquí «' + x.documento + '», en la ficha «' + x.ficha + '»</li>').join('');
-  return '<p>Este documento dice algo distinto de la ficha de <b>' + (d.ficha || 'su cliente') + '</b>:</p>'
+    '<li><b>' + e(x.campo) + '</b>: aquí «' + e(x.documento) + '», en la ficha «' + e(x.ficha) + '»</li>').join('');
+  return '<p>Este documento dice algo distinto de la ficha de <b>' + e(d.ficha || 'su cliente') + '</b>:</p>'
     + '<ul style="margin:0 0 10px;padding-left:18px">' + filas + '</ul>'
     + (d.congelado
         ? '<p>Está <b>cerrado</b> (firmado, enviado o anulado), así que no se toca: si el dato importa, '

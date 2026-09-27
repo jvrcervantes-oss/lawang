@@ -2200,6 +2200,8 @@
     // que arma el PDF que se manda solo al firmar (22-sep-2026, split en
     // vivo pedido por el owner) — nunca una segunda plantilla del documento.
     documento: { src: '/intranet/facturas/documento.js', listo: function () { return typeof documentoHTML === 'function'; } },
+    // «Ficha ≠» (27-sep-2026): el texto del aviso, uno para toda la suite.
+    divergencia: { src: '/contracts/assets/ficha_divergencia.js', listo: function () { return typeof lwTextoDivergencia === 'function'; } },
     // Reglas de dinero por contrato (facturado/cobrado/%), las mismas del
     // listado y del clásico — para «cuánto lleva cobrado» del recibí.
     facturasContratos: { src: '/contracts/assets/facturas_contratos.js', listo: function () { return typeof lwAgrupaPorContrato === 'function'; } },
@@ -3747,8 +3749,38 @@
              1180 sin que la hoja se recorte. El recibí sigue en su cajón. */
           }, { pielClasica: true, sinRecarga: true, sub: pre.soloLectura ? 'Documento' : (existente ? 'Editar documento' : 'Facturación'), ancho: '100vw', alCerrar: pre.alCerrar });
         if (pre.soloLectura) dejaSoloLecturaDoc();
+        else if (existente && existente.tipo === 'factura' && !existente.anulada && !existente.enviada && existente.client_id) ofreceTraerFichaDoc(sb, existente.id);
       }
     });
+  }
+
+  /* «La ficha del cliente dice otra cosa» al ABRIR una factura viva (27-sep-2026,
+     corte de la clásica). Es el aviso de /intranet/facturas/ (19-ago-2026, owner),
+     que solo vivía allí y esa pantalla redirige ya aquí. Mismo contrato: solo un
+     documento vivo (ni enviado ni anulado), y traer los datos NO guarda — los deja
+     en el formulario para revisarlos y guardar. `domicilio` no se trae: salió de
+     la factura el 24-ago-2026. Si la consulta falla no se inventa un «al día»: se
+     dice con un toast y el editor sigue abierto. */
+  function ofreceTraerFichaDoc(sb, id) {
+    var ficha = { nombre: 'cliente_nombre', identidad: 'cliente_documento', email: 'cliente_email' };
+    sb.from('documentos_desactualizados').select('id,congelado,ficha,diferencias').eq('id', id).maybeSingle().then(function (r) {
+      if (r.error) { toastMal('No se ha podido comprobar si la ficha del cliente dice otra cosa: ' + r.error.message); return; }
+      var d = r.data;
+      if (!d || d.congelado || !Array.isArray(d.diferencias) || !d.diferencias.length) return;
+      return cargaModuloDoc('divergencia').then(function () {
+        return window.lwConfirmar({ titulo: 'La ficha del cliente dice otra cosa', cuerpo: lwTextoDivergencia(d),
+          confirmar: 'Traer los datos de la ficha', cancelar: 'Dejarlo como está' });
+      }).then(function (traer) {
+        if (!traer) return;
+        d.diferencias.forEach(function (x) {
+          var el = ficha[x.campo] && campoDeDoc(ficha[x.campo]);
+          if (!el) return;
+          el.value = x.ficha == null ? '' : x.ficha;
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        toast('Datos traídos de la ficha: revisa y guarda.');
+      });
+    }, function (e) { toastMal('No se ha podido comprobar si la ficha del cliente dice otra cosa: ' + (e && e.message || e)); });
   }
 
   /* ---------- Recibí de cobro: crear o editar ---------- */
@@ -4286,6 +4318,11 @@
      la ficha en cajón. Reescribirlo allí a mano es la reincidencia que esto
      existe para evitar (reference_supabase_grant_manda_antes_que_la_policy). */
   window.LW_V4.unaFila = unaFila;
+
+  /* ¿La URL pide abrir el alta? La clásica de Facturas usaba `?nueva=1`
+     (`par.has('nueva')`); el resto de la v4, `?nuevo=1`. Tras el corte
+     (27-sep-2026) los enlaces viejos llegan aquí tal cual: se aceptan los dos. */
+  function pideAlta(qs) { return qs.has('nueva') || qs.get('nuevo') === '1'; }
 
   /* ---------- editores por pantalla ---------- */
   var ED = {
@@ -6314,7 +6351,7 @@
       var bVerCon = document.getElementById('btn-ver-contratos');
       if (bVerCon) bVerCon.addEventListener('click', function (ev) {
         ev.stopPropagation();
-        location.href = '/intranet/operaciones/';
+        location.href = '/intranet/v4/operaciones/';
       });
 
       /* IMPORTAR CSV, NATIVO EN LA V4 (23-sep-2026, owner: «Importar CSV no
@@ -8028,7 +8065,10 @@
        activar/desactivar una cuenta ya creada— se queda en la herramienta
        viva a propósito: es un master-detail de 1000+ líneas que no encaja en
        la piel de tarjetas de la v4, y portarlo entero no es lo que se pidió.
-       El botón "Abrir la herramienta viva" sigue ahí para eso. */
+       El botón "Abrir la herramienta viva" sigue ahí para eso.
+       ⚠️ DESFASADO (27-sep-2026): edición, activar, nota y reparto se portaron
+       después (`cuenta_bancaria_guarda`, más abajo) y /intranet/cuentas/
+       redirige ya a esta pantalla; el botón se retiró con el corte. */
     /* Comision de administracion — SOLO super admin, y no por gusto: la RLS de
        las dos tablas exige `es_super_admin()`, y las cuatro acciones de aqui son
        RPC que vuelven a comprobarlo en la base. Lo de esta pantalla es UI.
@@ -9179,12 +9219,21 @@
       var qsContrato = new URLSearchParams(location.search);
       if (qsContrato.get('contrato') && qsContrato.get('tipo') !== 'proforma') {
         abrirEditorFacturaDoc({ contrato_id: qsContrato.get('contrato') });
+      } else if (pideAlta(qsContrato) && qsContrato.get('tipo') !== 'proforma') {
+        abrirEditorFacturaDoc({});
       }
     },
 
-    /* "+ Emitir recibí de cobro" (21-sep-2026): mismo bloque, camino RPC. */
+    /* "+ Emitir recibí de cobro" (21-sep-2026): mismo bloque, camino RPC.
+       Corte de la clásica (27-sep-2026): /intranet/facturas/?tipo=recibi
+       redirige aquí con su query, así que esta pantalla lee lo mismo que
+       leía aquella — ?contrato=<uuid> abre el recibí de ESE contrato y
+       ?nueva=1 el alta en blanco. Una sola vez, al cargar. */
     recibos: function () {
       ata(/emitir recib.*de cobro/i, function () { abrirEditorRecibiDoc({}); });
+      var qs = new URLSearchParams(location.search);
+      if (qs.get('contrato')) abrirEditorRecibiDoc({ contrato_id: qs.get('contrato') });
+      else if (pideAlta(qs)) abrirEditorRecibiDoc({});
     }
   };
 

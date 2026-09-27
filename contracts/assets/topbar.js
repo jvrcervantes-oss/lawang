@@ -99,7 +99,7 @@ function tbT(s, h) { return window.lwT ? window.lwT(s, h) : s; }
   if (barra && !barra.querySelector('.lw-home')) {
     var cab = document.createDocumentFragment();
     var casa = document.createElement('a');
-    casa.className = 'lw-home'; casa.href = '/intranet/'; casa.textContent = tb('volverIntranet');
+    casa.className = 'lw-home'; casa.href = '/intranet/v4/home/'; casa.textContent = tb('volverIntranet');
     var logo = document.createElement('img');
     logo.className = 'lw-brand'; logo.alt = 'Lawang';
     /* El logotipo de siempre es tinta oscura. Sobre la barra oscura del hub sería
@@ -459,7 +459,7 @@ function tbT(s, h) { return window.lwT ? window.lwT(s, h) : s; }
        herramienta le sigue escribiendo dentro. */
     var casa = document.querySelector('.lw-home');
     if (casa) casa.classList.add('lw-home-oculto');
-    permitidas.unshift({ nombre: tb('volverIntranet').replace(/^←\s*/, ''), icon: 'ph-house-line', href: '/intranet/', grupo: '' });
+    permitidas.unshift({ nombre: tb('volverIntranet').replace(/^←\s*/, ''), icon: 'ph-house-line', href: '/intranet/v4/home/', grupo: '' });
     /* SIN CABECERAS DE DEPARTAMENTO (16-ago-2026, owner: «el menú se hizo muy
        largo»). Se pusieron el 15-ago para que once entradas se leyeran como un
        mapa y no como una lista, y la idea era buena — pero no cabían.
