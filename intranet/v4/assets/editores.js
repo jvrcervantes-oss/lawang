@@ -97,6 +97,13 @@
       .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   }
   function esAdmin(f) { return !!f && (f.rol === 'admin' || f.rol === 'super_admin'); }
+  /* ¿Las unidades de este proyecto llevan fase/zona de masterplan? Lo dice la ficha de la
+     instancia (`proyectos_con_fases`, ERP F3 lote 3, 27-sep-2026); antes era el nombre de un
+     proyecto de Lawang escrito aquí. Sin ficha o sin entrada: no, nunca lo de otro cliente. */
+  function usaFasesMasterplan(nombre) {
+    var l = (window.LW_INSTANCIA && window.LW_INSTANCIA.proyectos_con_fases) || [];
+    return !!nombre && l.indexOf(nombre) !== -1;
+  }
   function puedeH(f, h) {
     if (!f) return false;
     if (f.rol === 'super_admin') return true;
@@ -3853,7 +3860,7 @@
           campoSimpleDoc(secCliente, { k: 'cliente_documento', label: 'Pasaporte / NPWP / NIF', valor: f0.cliente_documento || '' });
           if (regla.domicilio) campoSimpleDoc(secCliente, { k: 'cliente_domicilio', label: 'Domicilio', tipo: 'textarea', req: 1, valor: f0.cliente_domicilio || '' });
           campoSimpleDoc(secCliente, { k: 'cliente_email', label: 'Email', tipo: 'email', valor: f0.cliente_email || '' });
-          campoSimpleDoc(secCliente, { k: 'proyecto_nombre', label: 'Proyecto / unidad', valor: f0.proyecto_nombre || '', placeholder: 'Ej. Palm Field — Cabana 2BR S2' });
+          campoSimpleDoc(secCliente, { k: 'proyecto_nombre', label: 'Proyecto / unidad', valor: f0.proyecto_nombre || '', placeholder: 'Ej. Proyecto — Villa 2BR S2' });
 
           var secConceptos = seccionFijaDoc(host, 'Conceptos');
           getLineas = montaLineasDoc(secConceptos, lineas0, repintaPreview);
@@ -4368,7 +4375,7 @@
           campoSimpleDoc(secCliente, { k: 'cliente_nombre', label: 'Nombre o razón social', valor: estadoContrato.clienteNombre });
           campoSimpleDoc(secCliente, { k: 'cliente_documento', label: 'Pasaporte / NPWP / NIF', valor: estadoContrato.clienteDocumento });
           campoSimpleDoc(secCliente, { k: 'cliente_email', label: 'Email', tipo: 'email', valor: estadoContrato.clienteEmail });
-          campoSimpleDoc(secCliente, { k: 'proyecto_nombre', label: 'Proyecto / unidad', valor: estadoContrato.proyectoNombre, placeholder: 'Ej. Palm Field — Cabana 2BR S2' });
+          campoSimpleDoc(secCliente, { k: 'proyecto_nombre', label: 'Proyecto / unidad', valor: estadoContrato.proyectoNombre, placeholder: 'Ej. Proyecto — Villa 2BR S2' });
 
           var secAplic = seccionFijaDoc(host, 'Lo que se ha cobrado');
           /* Una TARJETA por factura y el total en una franja (22-sep-2026,
@@ -5960,8 +5967,8 @@
         var cuerpo =
           '<p style="margin:0 0 4px;font-size:13px;color:' + CAJ.apagado + ';line-height:1.5">Página pública de due diligence para inversores, sin login. Se sirve en <code>/investor-deck/' + esc(p.slug || '<slug>') + '/</code>.</p>' +
           (!esAdminP ? '<p style="margin:0 0 4px;font-size:12.5px;color:#8A6A34">Solo un administrador puede editar o activar el Investor Deck.</p>' : '') +
-          campoDeck('Slug de la URL', '<input id="id-slug" value="' + esc(p.slug || '') + '" placeholder="ej. sumba-hills" style="' + estiloDeck + '"' + (esAdminP ? '' : ' disabled') + '>', 'Se escribe una sola vez. Cambiarlo tras activar el deck rompe cualquier enlace ya compartido.') +
-          campoDeck('Título (inglés)', '<input id="id-titulo" value="' + esc(tituloEn) + '" placeholder="ej. Sumba Hills — Investor Deck" style="' + estiloDeck + '"' + (esAdminP ? '' : ' disabled') + '>') +
+          campoDeck('Slug de la URL', '<input id="id-slug" value="' + esc(p.slug || '') + '" placeholder="ej. mi-proyecto" style="' + estiloDeck + '"' + (esAdminP ? '' : ' disabled') + '>', 'Se escribe una sola vez. Cambiarlo tras activar el deck rompe cualquier enlace ya compartido.') +
+          campoDeck('Título (inglés)', '<input id="id-titulo" value="' + esc(tituloEn) + '" placeholder="ej. My Project — Investor Deck" style="' + estiloDeck + '"' + (esAdminP ? '' : ' disabled') + '>') +
           campoDeck('Meta description (inglés)', '<input id="id-meta" value="' + esc(metaEn) + '" style="' + estiloDeck + '"' + (esAdminP ? '' : ' disabled') + '>') +
           campoDeck('Modelo "Most requested" (opcional)',
             '<select id="id-destacado" style="' + estiloDeck + flechaSelect + '"' + (esAdminP ? '' : ' disabled') + '><option value="">— ninguno —</option>' +
@@ -6045,7 +6052,7 @@
         ev.stopPropagation();
         if (!esAdminP) return aviso('Dar de alta un proyecto es cosa de un administrador. Pídeselo a dirección.', '#8A6A34');
         modal('Nuevo proyecto', [
-          { k: 'nombre', label: 'Nombre', req: 1, ayuda: 'Con cuidado: un "Palm Field" y un "Palm Field " con espacio conviven como dos proyectos distintos.' }
+          { k: 'nombre', label: 'Nombre', req: 1, ayuda: 'Con cuidado: un "Proyecto A" y un "Proyecto A " con espacio conviven como dos proyectos distintos.' }
         ], 'Crear proyecto', function (v) {
           var nombre = v.nombre.trim();
           if (!nombre) return { error: { message: 'el nombre no puede quedar vacío' } };
@@ -6099,10 +6106,11 @@
           } else {
             camposU.push({ k: 'modelo', label: 'Modelo de villa', medio: 1, ayuda: 'Dune, Dream… (opcional)' });
           }
-          // fase/zona de masterplan solo existen para Sumba Hills — se ofrecen
-          // ya con el proyecto por defecto marcado; si al final se elige otro
-          // proyecto desde el desplegable, van vacías y no se mandan.
-          if (proyectoDefecto === 'Sumba Hills') {
+          // fase/zona de masterplan solo existen en los proyectos que la ficha
+          // de la instancia declara (usaFasesMasterplan) — se ofrecen ya con el
+          // proyecto por defecto marcado; si al final se elige otro proyecto
+          // desde el desplegable, van vacías y no se mandan.
+          if (usaFasesMasterplan(proyectoDefecto)) {
             camposU.push({ k: 'fase_masterplan', label: 'Fase (masterplan)', medio: 1, ayuda: 'I, II…' });
             camposU.push({ k: 'zona_masterplan', label: 'Zona', medio: 1, ayuda: '1, 2, 3…' });
           }
@@ -6177,8 +6185,8 @@
              corregirle el precio a una parcela reservada, la desvinculaba y la
              devolvia a «disponible»: esos dos campos tienen un dueño, y es el
              contrato (trigger sincroniza_unidad_contrato).
-           · fase/zona de masterplan solo existen para Sumba Hills, y solo se
-             mandan si el campo se pinto.
+           · fase/zona de masterplan solo existen en los proyectos que declara
+             la ficha (usaFasesMasterplan), y solo se mandan si el campo se pinto.
            · La RLS no da error al denegar: devuelve CERO filas. Por eso se pide
              .select('id') y se trata el vacio como falta de permiso.
 
@@ -6255,7 +6263,7 @@
             campos.push({ k: 'modelo', label: 'Modelo de villa', valor: n0(u.modelo), ayuda: 'Dune, Dream…' });
           }
           campos.push({ k: 'superficie_m2', label: 'Superficie (m²)', tipo: 'number', medio: 1, valor: n0(u.superficie_m2) });
-          if (u.proyecto === 'Sumba Hills') {
+          if (usaFasesMasterplan(u.proyecto)) {
             campos.push({ k: 'fase_masterplan', label: 'Fase (masterplan)', medio: 1, valor: n0(u.fase_masterplan), ayuda: 'I, II…' });
             campos.push({ k: 'zona_masterplan', label: 'Zona', medio: 1, valor: n0(u.zona_masterplan), ayuda: '1, 2, 3…' });
           }
