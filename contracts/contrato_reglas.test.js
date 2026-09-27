@@ -180,27 +180,23 @@ afirma('el panel nace escondido y lo abre el botón',
     /fraccionClara\(cv\) >= CLARO_PLANO\) cv = await pintarPagina\(page, Math\.min\(ANCHO_PLANO\/base\.width, 4\)\)/.test(anexos)
     && (anexos.match(/toDataURL\('image\/jpeg'/g) || []).length === 2);
 
-  /* 25-sep-2026, decisión del owner: en Construcción el Anexo Maestro (Modelos,
-     tipo plano) es el ÚNICO anexo. Revisión previa #86 (Legal): sin él no sale a
-     firma, y lo retirado se quita de los datos, no solo de la vista. */
+  /* El Anexo Maestro sale de Modelos, nunca del PDF viejo del repo (25-sep-2026). */
   afirma('el anexo automático ya no cae al PDF del repo (assets/anexos/)',
     !/fetch\(\s*'assets\/anexos\//.test(anexos),
     'Dali.pdf y Tropical.pdf son fichas comerciales de julio: volverían a entrar en contratos de Construcción');
-  afirma('en Construcción no se ofrece subir anexos a mano',
-    /const subir = esContratoConstruccion\(\)\s*\?[\s\S]{0,200}?único anexo es el Anexo Maestro/.test(anexos)
-    && /if\(inp\) inp\.addEventListener\('change'/.test(anexos),
-    'el botón «+ Añadir anexo» tiene que desaparecer solo en esta plantilla');
-  afirma('un anexo manual se retira de ANNEXES (los datos), y nunca en un contrato bloqueado o en firma',
-    /function retiraAnexosManualesConstruccion\(\)\{[\s\S]{0,400}?LOCKED[\s\S]{0,200}?EN_FIRMA[\s\S]{0,300}?ANNEXES = ANNEXES\.filter\(a => a\.auto\)/.test(anexos),
-    'filtrarlo solo al pintar haría que lo guardado y lo firmado dijeran cosas distintas');
+  /* 27-sep-2026, el owner revierte la regla del anexo único de Construcción: «debo poder
+     subir el PDF que quiera, como antes». La subida se ofrece en todas las plantillas y
+     nada retira los anexos subidos a mano. */
+  afirma('se pueden subir anexos a mano en cualquier contrato, también en Construcción',
+    /const subir = `<div class="dz"><label class="up" id="anxUpLabel">/.test(anexos)
+    && /if\(inp\) inp\.addEventListener\('change'/.test(anexos)
+    && !/retiraAnexosManuales|ANEXO_MANUAL_RETIRADO/.test(anexos + app),
+    'el owner quiere adjuntar el PDF que quiera; quitarlo otra vez es una decisión suya, no un refactor');
   /* 27-sep-2026, el owner revierte el bloqueo: «si no hay anexo, que deje mandar
      igual». Sin Anexo Maestro se avisa y se decide; no se bloquea. */
   afirma('sin Anexo Maestro el envío a firma avisa y deja seguir («Enviar igualmente»), no bloquea',
-    /if\(tipSel && !ANNEXES\.some\(a=>a\.auto && a\.on && a\.pages && a\.pages\.length\)\)\{\s*const seguir = await lwConfirmar\([\s\S]{0,600}?confirmar: lwT\('Enviar igualmente'\)[\s\S]{0,80}?if\(!seguir\) return;\s*\}/.test(app)
-    && /if\(tipSel && ANEXO_MANUAL_RETIRADO\)\{ toastMal\([^;]+\); return; \}/.test(app),
+    /if\(tipSel && !ANNEXES\.some\(a=>a\.auto && a\.on && a\.pages && a\.pages\.length\)\)\{\s*const seguir = await lwConfirmar\([\s\S]{0,600}?confirmar: lwT\('Enviar igualmente'\)[\s\S]{0,80}?if\(!seguir\) return;\s*\}/.test(app),
     'el owner quiere poder enviar sin anexo; el aviso es para que sea una decisión, no un descuido');
-  afirma('guardar limpia la marca de anexo retirado',
-    /SAVED_CONTRACT = \{ id:data\.id, numero:data\.numero \};\s*ANEXO_MANUAL_RETIRADO = false;/.test(app));
 
   const firmas = require('fs').readFileSync(path.join(__dirname, 'firmar.html'), 'utf8');
   afirma('la firma del comprador se guarda en PNG, nunca en JPEG',

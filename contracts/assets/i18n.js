@@ -3056,8 +3056,6 @@
     'Avisado': 'Notified',
     'Aviso:': 'Notice:',
     'Reabre el modal de firma': 'Reopen the signing dialog',
-    'Guarda el contrato antes de enviarlo a firma: se ha retirado un anexo subido a mano':
-      'Save the contract before sending it for signature: a manually uploaded annex has been removed',
     'Este contrato de Construcción sale sin el Anexo Maestro (planos y especificaciones), y la plantilla remite a él.':
       'This Construction contract goes out without the Master Annex (plans and specifications), and the template refers to it.',
     'Sin Anexo Maestro': 'No Master Annex',

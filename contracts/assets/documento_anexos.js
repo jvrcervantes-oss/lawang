@@ -227,32 +227,11 @@ async function bufferDelAnexo(tip, techo){
   throw new Error(techo ? 'sin Anexo Maestro para el techo ' + techo : 'sin Anexo Maestro en Modelos');
 }
 
-/* El contrato de Construcción es el que tiene Tipología. Solo ahí manda la
-   regla del anexo único; el resto de plantillas siguen admitiendo anexos a mano. */
-function esContratoConstruccion(){
-  return (typeof templateHTML === 'string' && templateHTML.includes('{{tipologia_construccion}}'))
-      || !!document.querySelector('[name="tipologia_construccion"]');
-}
-
-/* Un borrador de Construcción guardado antes del 25-sep puede traer un anexo
-   subido a mano (CC00024, CC00081, CC00097 y CC00098 lo traían). Se retira de
-   los DATOS, no solo de la vista: así el próximo guardado lo quita de la fila,
-   y mientras no se guarde el envío a firma se bloquea (Legal, revisión previa
-   #86: que lo guardado y lo firmado no diverjan). Un contrato bloqueado o con
-   firma en curso no se toca: se archiva lo que se firmó. */
-let ANEXO_MANUAL_RETIRADO = false;
-function retiraAnexosManualesConstruccion(){
-  if(!esContratoConstruccion()) return;
-  if(typeof LOCKED !== 'undefined' && LOCKED) return;
-  if(typeof EN_FIRMA !== 'undefined' && EN_FIRMA && (EN_FIRMA.vivas || EN_FIRMA.firmadas)) return;
-  const manuales = ANNEXES.filter(a => !a.auto);
-  if(!manuales.length) return;
-  ANNEXES = ANNEXES.filter(a => a.auto);
-  ANEXO_MANUAL_RETIRADO = true;
-  saveAnnexes();
-  toastMal('Se ha retirado ' + (manuales.length === 1 ? 'el anexo subido a mano' : 'los ' + manuales.length + ' anexos subidos a mano')
-    + ' («' + manuales.map(a => a.title).join('», «') + '»): en Construcción solo va el Anexo Maestro. Guarda el contrato para aplicarlo.');
-}
+/* Anexos subidos a mano (27-sep-2026, owner: «debo poder subir el PDF que quiera,
+   como antes»). Del 25-sep al 27-sep, en Construcción el Anexo Maestro era el ÚNICO
+   anexo: se ocultaba la subida y se retiraban los manuales de los borradores. El owner
+   lo revierte: en cualquier contrato se suben los PDF o imágenes que se quiera, y el
+   Anexo Maestro (automático, desde Modelos) va además, no en su lugar. */
 
 /* Techo que decide el anexo: el elegido en el contrato (techo_extras.js). El
    «sintético» —modelo sin variantes, la única opción calculada del precio
@@ -270,7 +249,6 @@ async function syncAutoAnnex(){
      del repo) para tirarlo un segundo después. cargarTechosYExtras() vuelve a
      llamar aquí al terminar. */
   if(tip && typeof TECHO_CARGANDO !== 'undefined' && TECHO_CARGANDO && !techoDelAnexo()) return;
-  retiraAnexosManualesConstruccion();
   const techo = tip ? techoDelAnexo() : '';
   const clave = tip ? tip + '§' + techo : '';
   if(clave === AUTO_ANX) return;
@@ -339,10 +317,7 @@ function buildAnnexPanel(){
       <div class="dz-row"><label class="switch"><input type="checkbox" data-anxon="${a.id}" ${a.on?'checked':''}><span class="slider"></span></label>
         <span>Incluir en el contrato</span></div>
     </div>`).join('') || `<div class="dz" style="color:var(--muted);font-size:12.5px">Aún no hay anexos. Sube un PDF o imágenes para definirlos.</div>`;
-  // Construcción: solo el Anexo Maestro (25-sep-2026). Sin botón de subida.
-  const subir = esContratoConstruccion()
-    ? `<div class="dz" style="color:var(--muted);font-size:12.5px">En el contrato de Construcción el único anexo es el Anexo Maestro del modelo y techo elegidos. Se carga solo desde Modelos.</div>`
-    : `<div class="dz"><label class="up" id="anxUpLabel">+ Añadir anexo (PDF o imágenes)<input type="file" id="anxFile" accept="application/pdf,image/*" multiple></label></div>`;
+  const subir = `<div class="dz"><label class="up" id="anxUpLabel">+ Añadir anexo (PDF o imágenes)<input type="file" id="anxFile" accept="application/pdf,image/*" multiple></label></div>`;
   return `<section class="section design collapsed" id="annexPanel">
     <header data-acc><span class="num">📎</span><h2>Anexos</h2><span class="chev">▾</span></header>
     <div class="body">
