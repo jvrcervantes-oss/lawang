@@ -385,6 +385,9 @@ RedirectMatch 404 (?i)/_diag_
   # (guard.js, consent.js, entities.js). Toda carpeta nueva de la suite entra
   # aqui EN LA MISMA TAREA que la crea, o su HTML se cachea 7 dias y el sellado
   # ?v= de dentro no sirve de nada.
+  # LAW-386 (27-sep-2026): de esto depende tambien contracts/assets/version.js, que vuelve a
+  # pedir la pagina para comparar su huella <meta name="lw-version">. Cubre leads y v4
+  # (/intranet/), generador y firma (/contracts/), /portal/ y /entrar/.
   SetEnvIf Request_URI "^/(intranet|operaciones|vencimientos|facturas|compradores|proyectos|documentacion|obra|usuarios|creatividades|dossier|contracts|entrar|portal)/" LW_SUITE
   Header set Cache-Control "no-cache, must-revalidate" env=LW_SUITE
   Header unset Expires env=LW_SUITE

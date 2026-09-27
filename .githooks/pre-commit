@@ -185,6 +185,25 @@ if [ -n "$suite" ]; then
   fi
 fi
 
+# ── Huella de version de la pagina (LAW-386, 27-sep-2026) ───────────────────────
+# `sella_assets.py` escribe en cada pagina de la suite `<meta name="lw-version">`, el hash
+# de la propia pagina: `contracts/assets/version.js` la compara con la del servidor para
+# avisar a una pestaña abierta con codigo viejo. Cambia tambien cuando se edita el JS
+# INLINE de una pagina, sin tocar ningun asset — y el bloque de arriba solo se dispara con
+# assets. Sin esto, editar app.html dejaba la huella vieja y el gate (`--check --head`)
+# paraba el push sin pista. Aqui solo el sellador: el paquete de CSS y css_muerto son del
+# caso de assets. Misma proteccion de lo ajeno: solo se stagea lo que aparece al sellar.
+paginas=$(git diff --cached --name-only | grep -E '\.(html|php)$' || true)
+if [ -z "$suite" ] && [ -n "$paginas" ] && [ -f "$herr/sella_assets.py" ]; then
+  py=$(command -v python || command -v python3)
+  antes=$(git diff --name-only -- '*.html' '*.php' | tr '\n' ' ')
+  "$py" "$herr/sella_assets.py" >/dev/null 2>&1 || true
+  for f in $(git diff --name-only -- '*.html' '*.php'); do
+    case " $antes " in *" $f "*) continue ;; esac
+    git add "$f"
+  done
+fi
+
 # ── El paquete que la edge de firma lleva dentro ────────────────────────────────
 # `firma-submit` pintaba la factura automatica bajandose cinco .js del sitio y
 # ejecutandolos con `new Function`, teniendo la service_role en memoria (auditoria

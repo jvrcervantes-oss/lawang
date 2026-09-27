@@ -62,6 +62,15 @@
      en el HTML no se puede llamar ni pisa estas propiedades. try: si la página cargara guard.js dos veces, la segunda
      no revienta (la primera ya fijó los mismos valores). */
   function fija(k, v) { try { Object.defineProperty(window, k, { value: v, writable: false, configurable: false, enumerable: true }); } catch (e) {} }
+  /* ¿Pantalla vieja? (LAW-386, 27-sep-2026): un 401/403/404 de Supabase puede ser un permiso que falta
+     o una pestaña con el código de antes de un despliegue. No se decide aquí: se avisa a version.js, que
+     compara la huella de la página con la del servidor. Un evento y no una llamada: guard.js no depende
+     de que version.js haya cargado. */
+  function sospechaVersion(st) {
+    if (st !== 401 && st !== 403 && st !== 404) return;
+    try { window.dispatchEvent(new CustomEvent('lw:version-vieja', { detail: { status: st } })); }
+    catch (e) { /* MUDO A PROPOSITO: sin CustomEvent (navegador viejo) solo se pierde el aviso de versión; la petición sigue su curso */ }
+  }
   fija('LW_SB_URL', URL_SB);
   fija('LW_SB_KEY', KEY_SB);
   fija('lwEdge', function (nombre) {
@@ -78,6 +87,7 @@
         headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (t || '') },
         body: JSON.stringify(Object.assign({ accion: accion }, datos || {})) });
     }).then(function (r) {
+      sospechaVersion(r.status);
       return r.json().catch(function () { return { ok: false, error: 'Respuesta inválida del servidor' }; });
     }).then(function (d) {
       if (!d.ok) throw new Error(d.error || 'error del servidor');
@@ -110,6 +120,7 @@
         headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (t || '') },
         body: JSON.stringify(Object.assign({ accion: accion }, datos || {})) });
     }).then(function (r) {
+      sospechaVersion(r.status);
       return r.json().catch(function () { return { ok: false, error: 'Respuesta inválida del servidor' }; });
     }).then(function (d) {
       if (!d.ok) { var e = new Error(KYC_ERR[d.error] || d.error || 'error del servidor'); e.code = d.code; throw e; }
@@ -167,6 +178,7 @@
         headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (t || '') },
         body: JSON.stringify(Object.assign({}, datos || {}, { accion: accion, clase: clase })) });
     }).then(function (r) {
+      sospechaVersion(r.status);
       return r.json().catch(function () { return { ok: false, error: 'Respuesta inválida del servidor' }; });
     }).then(function (d) {
       if (!d.ok) { var e = new Error(FICH_ERR[d.error] || d.error || 'error del servidor'); e.code = d.code; throw e; }
@@ -287,6 +299,7 @@
     var p;
     try { p = window.fetch(input, init); } catch (e) { baja(); throw e; }
     return p.then(function (res) {
+      sospechaVersion(res.status);
       // sin cuerpo que leer (los recuentos van por HEAD; 204/304): termina con las cabeceras
       var metodo = String((init && init.method) || (input && input.method) || 'GET').toUpperCase();
       if (metodo === 'HEAD' || res.status === 204 || res.status === 205 || res.status === 304) { baja(); return res; }

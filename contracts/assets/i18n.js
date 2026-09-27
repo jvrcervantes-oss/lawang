@@ -2986,6 +2986,8 @@
     'Contrato guardado, pero la proforma automática no se pudo crear: ':
       'Contract saved, but the automatic proforma could not be created: ',
     'Guardado, pero no se pudo enlazar con su lead: ': 'Saved, but it could not be linked to its lead: ',
+    'Esta pantalla es de una versión anterior: recárgala (Ctrl/Cmd+Shift+R). Antes, copia lo que tengas sin guardar.':
+      'This screen is from an earlier version: reload it (Ctrl/Cmd+Shift+R). First copy anything you have not saved.',
     'Guardado, pero no se pudo registrar el salto: ': 'Saved, but the override could not be logged: ',
     'Las facturas y las unidades': 'The invoices and the units',
     'se borran: se quedan sin el vínculo.': 'are not deleted: they are left without the link.',
