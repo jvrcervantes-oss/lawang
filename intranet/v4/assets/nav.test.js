@@ -148,24 +148,44 @@ for (const carpeta of fs.readdirSync(V4, { withFileTypes: true })) {
   const c = posScript(s, 'assets/cabecera.js');
   if (c === -1 || c > d) errores.push(`${carpeta.name}: carga datos.js sin cabecera.js delante`);
 }
-/* El CRM lleva el cromo v4 montado (27-sep-2026, owner): html.v4 + lw4-fijo (sin
-   ellos nav.js sale y nav-montaje no pinta nada), su hoja, y los tres scripts en
-   orden — cabecera.js antes de nav-montaje.js (que la llama) y este antes de
-   nav.js (que recablea el menú que monta). Sin topbar.js: serían dos menús. */
-{
-  const crm = fs.readFileSync(path.join(RAIZ, 'intranet', 'leads', 'index.html'), 'utf8');
-  const h = (crm.match(/<html[^>]*>/) || [''])[0];
-  if (!/class="[^"]*\bv4\b[^"]*\blw4-fijo\b/.test(h)) errores.push('CRM: el <html> no lleva class="v4 lw4-fijo"');
-  // Declarativo: la marca de activa del CRM la pone injerta() de nav.js por su href
-  // (nav-montaje no dibuja esa entrada). Se exige igual, como en app.html, para que
-  // la página diga qué herramienta es si algún día la entrada se dibuja en el montaje.
-  if (!/data-lw4-herramienta="leads"/.test(h)) errores.push('CRM: el <html> no declara data-lw4-herramienta="leads"');
-  if (!/<link[^>]+nav-montaje\.css/.test(crm)) errores.push('CRM: no carga intranet/v4/assets/nav-montaje.css');
-  const orden = ['contracts/assets/avisos.js', 'assets/cabecera.js', 'assets/nav-montaje.js', 'assets/nav.js'].map(x => posScript(crm, x));
-  if (orden.some(x => x === -1) || orden.some((x, i) => i && x < orden[i - 1])) errores.push('CRM: avisos.js, cabecera.js, nav-montaje.js y nav.js tienen que ir en ese orden');
-  if (posScript(crm, 'topbar.js') !== -1) errores.push('CRM: vuelve a cargar topbar.js (la barra clásica) junto al menú v4');
-  if (!/id="btnRefrescar"/.test(crm)) errores.push('CRM: falta #btnRefrescar (leads.js lo ata al cargar)');
+/* CROMO v4 EN LAS PÁGINAS VIVAS DE FUERA DE /intranet/v4/ (27-sep-2026, owner: el CRM
+   primero y después «archivar lo muerto + v4 en todo lo vivo»). Cada una lleva html.v4 +
+   lw4-fijo (sin ellos nav.js sale y nav-montaje no pinta nada), declara su herramienta
+   (la entrada que sale marcada; tiene que ser una entrada de MENU_V4, no una ruta nueva),
+   carga nav-montaje.css y los tres scripts en orden — avisos.js, cabecera.js antes de
+   nav-montaje.js (que la llama) y este antes de nav.js (que recablea el menú que monta).
+   Sin topbar.js: serían dos menús. Y los botones que vivían en su barra clásica siguen
+   ahí con el mismo id (su JS los ata al cargar). NO van aquí, a propósito: crear
+   contraseña (intranet/contrasena/, sin sesión) y facturas en modo ?vista= (documento
+   suelto que abren los correos). */
+const PAGINAS_CROMO = [
+  // [fichero, herramienta activa, ids que su JS ata al cargar, scripts extra delante de nav-montaje]
+  ['intranet/leads/index.html', 'leads', ['btnRefrescar'], []],
+  ['intranet/obra/index.html', 'obra', [], []],
+  ['intranet/creatividades/redes/index.html', 'creatividades', ['btnPng', 'btnGuardar', 'btnEnviar'], []],
+  ['intranet/dossier/builder.html', 'creatividades', ['topbar', 'btnGuardarD', 'btnEnviarD', 'sizesel', 'ptitle'], ['contracts/assets/desplegables.js']]
+];
+for (const [fich, herr, ids, extra] of PAGINAS_CROMO) {
+  const s = fs.readFileSync(path.join(RAIZ, fich), 'utf8');
+  const h = (s.match(/<html[^>]*>/) || [''])[0];
+  if (!/class="[^"]*\bv4\b[^"]*\blw4-fijo\b/.test(h)) errores.push(`${fich}: el <html> no lleva class="v4 lw4-fijo"`);
+  if (!new RegExp('data-lw4-herramienta="' + herr + '"').test(h)) errores.push(`${fich}: el <html> no declara data-lw4-herramienta="${herr}"`);
+  if (!entradaDe[herr]) errores.push(`${fich}: «${herr}» no es una entrada de MENU_V4 (la marca de activa sale de allí)`);
+  if (!/<link[^>]+nav-montaje\.css/.test(s)) errores.push(`${fich}: no carga intranet/v4/assets/nav-montaje.css`);
+  const orden = ['contracts/assets/avisos.js', 'assets/cabecera.js', 'assets/nav-montaje.js', 'assets/nav.js'].map(x => posScript(s, x));
+  if (orden.some(x => x === -1) || orden.some((x, i) => i && x < orden[i - 1])) errores.push(`${fich}: avisos.js, cabecera.js, nav-montaje.js y nav.js tienen que ir en ese orden`);
+  if (posScript(s, 'topbar.js') !== -1) errores.push(`${fich}: vuelve a cargar topbar.js (la barra clásica) junto al menú v4`);
+  if (/<header[^>]+class="[^"]*lw-topbar/.test(s)) errores.push(`${fich}: vuelve a llevar el header.lw-topbar de la barra clásica`);
+  ids.forEach(id => { if (!new RegExp('id="' + id + '"').test(s)) errores.push(`${fich}: falta #${id} (su JS lo ata al cargar)`); });
+  extra.forEach(x => { if (posScript(s, x) === -1) errores.push(`${fich}: no carga ${x}`); });
 }
+/* desplegables.js es la única copia del cierre de los <details> (salió de topbar.js):
+   quien tenga un details.lw-menu tiene que cargarlo. */
+for (const fich of ['intranet/dossier/builder.html', 'contracts/app.html', 'intranet/facturas/index.html', 'intranet/leads/index.html']) {
+  const s = fs.readFileSync(path.join(RAIZ, fich), 'utf8');
+  if (/<details[^>]+class="[^"]*\b(lw|pv)-menu\b/.test(s) && posScript(s, 'contracts/assets/desplegables.js') === -1) errores.push(`${fich}: tiene un details.lw-menu/.pv-menu y no carga desplegables.js`);
+}
+if (/details\.lw-menu/.test(fs.readFileSync(path.join(RAIZ, 'contracts', 'assets', 'topbar.js'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ''))) errores.push('topbar.js vuelve a llevar el cierre de los <details>: vive en desplegables.js');
 
 assert.deepStrictEqual(errores, [], '\n  ' + errores.join('\n  '));
 console.log('nav.test.js OK (' + enMenu.length + ' casillas situadas en el menú)');
