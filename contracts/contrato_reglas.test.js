@@ -188,7 +188,10 @@ afirma('el panel nace escondido y lo abre el botón',
      subir el PDF que quiera, como antes». La subida se ofrece en todas las plantillas y
      nada retira los anexos subidos a mano. */
   afirma('se pueden subir anexos a mano en cualquier contrato, también en Construcción',
-    /const subir = `<div class="dz"><label class="up" id="anxUpLabel">/.test(anexos)
+    // LAW-78 (27-sep-2026): la subida pide el contrato GUARDADO (las páginas van al archivo
+    // con su id) y no se ofrece con él bloqueado o en firma; sigue en todas las plantillas.
+    /<div class="dz"><label class="up" id="anxUpLabel">/.test(anexos)
+    && !/tipologia_construccion[^\n]*anxUpLabel|anxUpLabel[^\n]*tipologia_construccion/.test(anexos)
     && /if\(inp\) inp\.addEventListener\('change'/.test(anexos)
     && !/retiraAnexosManuales|ANEXO_MANUAL_RETIRADO/.test(anexos + app),
     'el owner quiere adjuntar el PDF que quiera; quitarlo otra vez es una decisión suya, no un refactor');

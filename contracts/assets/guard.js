@@ -169,7 +169,14 @@
     sin_permiso_dossier: 'No tienes permiso para hacer dossiers (te falta la herramienta «Dossier»): pídeselo a administración',
     creatividad_no_borrador: 'Esta creatividad ya no es un borrador: guárdala como copia para seguir cambiándola',
     rol_invalido: 'Ese fichero no va en este tipo de creatividad', falta_el_estado: 'Falta el contenido de la creatividad: vuelve a guardar',
-    estado_no_valido: 'El contenido de la creatividad no se ha podido leer: no se ha guardado, prueba otra vez'
+    estado_no_valido: 'El contenido de la creatividad no se ha podido leer: no se ha guardado, prueba otra vez',
+    // LAW-78 (27-sep-2026): páginas de anexos de contrato
+    contrato_invalido: 'Ese contrato no es válido: recarga la página',
+    contrato_no_guardado: 'No encuentro ese contrato: guárdalo primero (o no es de los tuyos)',
+    contrato_bloqueado: 'Este contrato está enviado a firma o bloqueado: no admite anexos nuevos',
+    sin_permiso_contrato: 'No tienes permiso para añadir anexos a este contrato',
+    anexo_invalido: 'Ese anexo no es válido: recarga la página', pagina_invalida: 'Página de anexo no válida: recarga la página',
+    pagina_demasiado_grande: 'Una página del anexo pesa más de 3 MB: súbelo con menos resolución'
   });
   fija('lwFichero', function (sb, clase, accion, datos) {
     return sb.auth.getSession().then(function (s) {

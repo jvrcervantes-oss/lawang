@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="66df4ee3dff0">
+<meta name="lw-version" content="960985de4730">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -56,7 +56,7 @@
      de Supabase publicado en `LW_SB`, que es lo que hacia falta para que la
      barra compartida funcione tambien aqui. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=b283914a"></script><script src="/contracts/assets/version.js?v=19c524f3" data-pierde-al-recargar></script><script src="/contracts/assets/guard.js?v=bf1874d6"></script>
+<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=b283914a"></script><script src="/contracts/assets/version.js?v=19c524f3" data-pierde-al-recargar></script><script src="/contracts/assets/guard.js?v=8fafcc58"></script>
 <!-- Identidad de las sociedades y cuentas de cobro: fuente única compartida con
      /facturas (define CUENTAS_BANCARIAS y SOCIEDADES). -->
 <!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
@@ -82,8 +82,8 @@
      Van aqui y no con `defer` a proposito: `defer` los ejecutaria DESPUES del
      bloque de abajo, y hay constantes que se calculan al cargar. El orden es
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
-<script src="assets/documento_diseno.js?v=a2cd3b48"></script>
-<script src="assets/documento_anexos.js?v=c71091de"></script>
+<script src="assets/documento_diseno.js?v=05c0978a"></script>
+<script src="assets/documento_anexos.js?v=5019ec41"></script>
 <script src="assets/parcela_inventario.js?v=f70c3cac"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
@@ -4510,7 +4510,10 @@ function contractPayload(){
        Al omitir la clave, el update de PostgREST deja la columna como estaba. */
     // "toda la información": campos del form + hitos + diseño/anexos/cláusulas +
     // ediciones de texto fijo de ESTA plantilla. Recargable 1:1 desde el panel.
-    datos: { fields: data, hitos: HITOS, design: DESIGN, annexes: ANNEXES.map(sinPaginas), clauses: CLAUSES,
+    // Anexos (LAW-78): del subido a mano, solo su ficha si sus páginas están en el archivo
+    // de ESTE contrato; los viejos siguen con sus páginas hasta que pasan (fichaDatos).
+    datos: { fields: data, hitos: HITOS, design: DESIGN,
+              annexes: ANNEXES.map(a => fichaDatos(a, SAVED_CONTRACT && SAVED_CONTRACT.id)), clauses: CLAUSES,
               compradores: COMPRADORES,
               /* Techo y extras CONGELADOS (16-sep-2026) — nunca FK viva a
                  modelo_techos/modelo_extras: precio_2027 cambia con el reloj
@@ -4863,8 +4866,45 @@ async function guardarContrato(){
     return;
   }
 
+  /* ANEXOS SUBIDOS A MANO (LAW-78, 27-sep-2026). Antes de guardar: ninguno a medias
+     (cargando, subiendo), sin páginas, con una página que falta o cuya huella no cuadra
+     con la de la tabla. Se para y se dice cuál y qué página: guardar encima de un anexo
+     roto es firmarlo roto después. Detalle en documento_anexos.js. */
+  const problemasAnx = problemasAnexos(ANNEXES);
+  if(problemasAnx.length){
+    avisoNoGuardado('No se guarda: ' + problemasAnx.join('; ') + '.');
+    return;
+  }
+
   const btn=$('#btnSave'); btn.disabled=true; btn.textContent='Guardando…';
   try{
+    /* MIGRACIÓN PEREZOSA (LAW-78): los anexos viejos —páginas en base64 dentro de
+       `datos`— pasan al archivo en este guardado. Primero se suben y registran TODAS
+       sus páginas y se compara la huella que calcula el servidor; SOLO los que llegan
+       enteros se guardan ya sin páginas (con id nuevo). El que falla se queda
+       exactamente como estaba, dentro de `datos`, y se avisa: el guardado sigue (con
+       el tope de peso de siempre) — un fallo del archivo no puede impedir guardar un
+       campo. Un contrato nuevo aún no tiene fila: pasan en el siguiente guardado. */
+    let avisoMigracion = '';
+    if(SAVED_CONTRACT && SAVED_CONTRACT.id){
+      const cid = SAVED_CONTRACT.id;
+      const migrar = anexosAMigrar(ANNEXES, cid);
+      const hechos = {}, fallidos = [];
+      for(const a of migrar){
+        const nuevoId = idAnexoNuevo();
+        btn.textContent = 'Pasando «' + a.title + '» al archivo…';
+        try{ hechos[a.id] = { id:nuevoId, filas: await subePaginasAnexo(cid, nuevoId, a.pages) }; }
+        catch(eM){ fallidos.push('«' + a.title + '» (página ' + (eM.pagina || '?') + ': ' + (eM.message || 'error') + ')'); }
+      }
+      if(migrar.length){
+        ANNEXES = aplicaMigracion(ANNEXES, hechos, cid);
+        rebuildAnnex();
+        btn.textContent = 'Guardando…';
+      }
+      // se dice con el aviso del guardado, no en otro toast: dos seguidos se pisan (ver populateForm)
+      if(fallidos.length)
+        avisoMigracion = ' · OJO: no se ha podido pasar al archivo ' + fallidos.join(', ') + '; se ha guardado como antes, dentro del contrato, y se reintentará al volver a guardar.';
+    }
     const payload = contractPayload();
     // `,datos` (17-sep-2026, no solo `id,numero`): el trigger de la base
     // (carta_cobrado_al_bloquear, BEFORE INSERT) puede estampar
@@ -4894,7 +4934,8 @@ async function guardarContrato(){
        Medida y tope: TOPE_DATOS_BYTES en documento_anexos.js — una sola cifra. */
     const pesoEnvio = JSON.stringify(envio).length;
     if(pesoEnvio > TOPE_DATOS_BYTES){
-      const lista = ANNEXES.filter(a => !a.auto && a.pages && a.pages.length)
+      // solo pesan los que aún viajan con páginas: los del archivo van como ficha (LAW-78)
+      const lista = ANNEXES.filter(a => !a.auto && fichaDatos(a, SAVED_CONTRACT && SAVED_CONTRACT.id).pages)
         .map(a => '«' + a.title + '» ' + mbAnexo(pesoPaginas(a))).join(', ');
       avisoNoGuardado((eraNuevo ? 'No se puede guardar: el contrato pesa ' : 'Este contrato ya no se puede volver a guardar tal cual: pesa ')
         + mbAnexo(pesoEnvio) + ' y el servidor no guarda más de ' + mbAnexo(TOPE_DATOS_BYTES) + '.'
@@ -4944,7 +4985,7 @@ async function guardarContrato(){
           + (collect().moneda || '') + ' ' + lwT('cobrados en la Carta que este Bloqueo no puede absorber');
       }
     }
-    toast((SAVED_CONTRACT ? 'Guardado como ' : '') + data.numero + avisoCobrado);
+    (avisoMigracion ? toastMal : toast)((SAVED_CONTRACT ? 'Guardado como ' : '') + data.numero + avisoCobrado + avisoMigracion);
     render();
     // LAW-71: el salto se registra DESPUÉS, que es cuando existe el contrato al
     // que colgarlo. La RPC comprueba `es_super_admin()` por su cuenta: que este
@@ -5009,7 +5050,7 @@ async function guardarContrato(){
       : pantallaVieja ? lwT('Esta pantalla es de una versión anterior: recárgala (Ctrl/Cmd+Shift+R). Antes, copia lo que tengas sin guardar.')
       : esRLS ? 'No tienes permiso para guardar este contrato.'
       : esTiempo ? 'El servidor no ha llegado a guardarlo a tiempo. Si lleva anexos subidos a mano ('
-          + mbAnexo(pesoAnexosManuales()) + '), es su peso: quita alguno o súbelo con menos páginas y vuelve a guardar.'
+          + mbAnexo(pesoAnexosEnDatos()) + '), es su peso: quita alguno o súbelo con menos páginas y vuelve a guardar.'
       : m;
     avisoNoGuardado(detalle);
   }
@@ -5535,7 +5576,9 @@ async function openSavedContract(id){
      Es la lección que este mismo bloque ya aprendió doce líneas más abajo, donde
      AUTO_ANX y AUTO_MASTER se ponen a cero SIN condición y el comentario explica
      por qué. No había llegado a sus vecinas. */
-  ANNEXES = (d.annexes || []).map(sinPaginas); saveAnnexes(); rebuildAnnex();
+  // LAW-78: los subidos a mano del archivo llegan como ficha y quedan «cargando» hasta que
+  // cargaAnexosAlmacen() baja sus páginas (se lanza abajo, con SAVED_CONTRACT ya puesto).
+  ANNEXES = normalizaAnexos(d.annexes); saveAnnexes(); rebuildAnnex();
   // 23-sep-2026: sin rebuildClause() el artículo añadido (CC00105 «Art. 17»)
   // salía en el documento pero no en el panel para editarlo; y sin resincronizar
   // clauseSeq, el siguiente «+ Añadir artículo» repetía id (cl1) y editaba los dos.
@@ -5632,6 +5675,7 @@ async function openSavedContract(id){
   UNIDAD_ID_CONSTRUCCION = data.unidad_id || null;
   await syncUnidadConstruccion();
   SAVED_CONTRACT = { id:data.id, numero:data.numero };
+  cargaAnexosAlmacen(data.id);   // sin await: el contrato se enseña ya; los anexos se pintan al llegar
   LOCKED = !!data.bloqueado; LOCKED_PDF_PATH = data.pdf_firmado_path || null;
   PDF_SALIO = false;   // lo relee cargarEstadoFirma(); nunca se hereda del contrato anterior
   // de cero: sin esto, abrir un contrato B justo después de uno A que estaba
@@ -6322,6 +6366,10 @@ $('#fmGen').addEventListener('click', async ()=>{
      dentro. Bloquea mientras carga; si la tipología no trajo pack, avisa y deja
      decidir (Dream/Dune/Trinity/Temple se suben a mano y eso es legítimo). */
   if(AUTO_CARGA){ toastMal(lwT('Espera: se está preparando el anexo de ')+AUTO_CARGA); return; }
+  /* Anexos subidos a mano (LAW-78): el documento firmado EMBEBE sus imágenes, así que una
+     página que falta o cuya huella no cuadra no puede salir a firma con un hueco. */
+  const anxMal = problemasAnexos(ANNEXES, { soloIncluidos:true });
+  if(anxMal.length){ toastMal('No se puede enviar a firma: ' + anxMal.join('; ')); return; }
   const tipSel = (document.querySelector('[name="tipologia_construccion"]')||{}).value;
   /* En Construcción el Anexo Maestro es el ÚNICO anexo y la plantilla remite a él
      («Anexo Especificaciones Técnicas»). El 25-sep-2026 (revisión previa #86) sin

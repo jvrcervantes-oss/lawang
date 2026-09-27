@@ -30,6 +30,15 @@
 //                        No hay `registra` por fichero: la acción `guarda` valida lo subido y guarda metadatos,
 //                        ficheros, fotos y modelos en UNA transacción (creatividad_guarda).
 //
+// LAW-78 (27-sep-2026; revisión previa con Datos y Seguridad):
+//   anexo_contrato     → bucket `contratos-anexos` (privado, solo JPEG, 3 MB). Una página de un anexo subido a mano
+//                        de un contrato. El contrato TIENE que estar guardado (la fila existe): el permiso lo decide
+//                        `contrato_anexo_puede` con el JWT del usuario, con las reglas de contrato_guarda (no bloqueado,
+//                        sin firma viva). Ruta `<contrato>/<uuid>/<n>.jpg`, la genera este servidor. `registra` lee la
+//                        página ENTERA (≤3 MB): magia JPEG, tamaño, sha256 y ancho/alto los calcula el servidor, no la
+//                        pantalla; si no es un JPEG se borra. Sin `borra`: lo que se queda sin usar lo recoge el barrido
+//                        (contracts/tools/anexos_barrido.py). Funciones puras en anexo.mjs (anexo.test.js).
+//
 // Acciones (POST JSON, `accion` + `clase`):
 //   subida_url {clase, ...ids, ext, tipo?}          → {path, token, content_type}   (creatividad: + creatividad_id)
 //   registra   {clase, ...ids, path, nombre, tipo?} → {id}
@@ -39,6 +48,7 @@
 // verify_jwt=false por el mismo motivo que ficheros-contrato (CORS del preflight); el JWT se valida a mano.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { TIPOS, bytesCuadran } from '../ficheros-kyc/firma.mjs';
+import { TOPE_PAGINA, anexoIdOk, dimsJpeg, esJpeg, hex, nPagina, rutaAnexo, rutaAnexoOk } from './anexo.mjs';
 
 const URL_SB = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -246,7 +256,69 @@ const CLASES: Record<string, Clase> = {
     filaDe: async (path) => !!(await admin.from('creatividades').select('id')
       .or(`path.eq."${path}",estado_path.eq."${path}",portada_path.eq."${path}"`).limit(1).maybeSingle()).data,
   },
+  anexo_contrato: {
+    bucket: 'contratos-anexos',
+    exts: ['.jpg'],
+    bytesOk: (_ext, b) => esJpeg(b),
+    carpeta: async () => ({ error: 'accion_desconocida', status: 400 }), // tiene su propio camino (abajo)
+    filaDe: async (path) => !!(await admin.from('contrato_anexo_paginas').select('id').eq('path', path).maybeSingle()).data,
+  },
 };
+
+// ── anexo_contrato: permiso sobre ESE contrato, con el JWT del usuario ───────────────────────────────────────────
+// La fila del contrato tiene que existir: un contrato nuevo se guarda antes de subirle anexos.
+const PUEDE_ANEXO: Record<string, { error: string; status: number }> = {
+  no_visible: { error: 'contrato_no_guardado', status: 404 },
+  bloqueado: { error: 'contrato_bloqueado', status: 409 },
+  sin_permiso: { error: 'sin_permiso_contrato', status: 403 },
+};
+async function permisoAnexo(u: Usuario, contrato: string): Promise<{ error: string; status: number } | null> {
+  if (!esUuid(contrato)) return { error: 'contrato_invalido', status: 400 };
+  const { data, error } = await u.rpc('contrato_anexo_puede', { p_contrato: contrato });
+  if (error) return { error: 'error_interno', status: 500 };
+  return data === 'ok' ? null : (PUEDE_ANEXO[String(data)] ?? PUEDE_ANEXO.sin_permiso);
+}
+
+async function subidaAnexo(u: Usuario, body: Record<string, unknown>) {
+  const contrato = String(body.contrato_id ?? '');
+  const p = await permisoAnexo(u, contrato);
+  if (p) return p;
+  const n = nPagina(body.n);
+  if (!n) return { error: 'pagina_invalida', status: 400 } as const;
+  const path = rutaAnexo(contrato, n, crypto.randomUUID());
+  if (!path) return { error: 'ruta_invalida', status: 400 } as const;
+  return { path };
+}
+
+// Registrar una página ya subida: el servidor la lee entera (≤3 MB) y decide él qué es, cuánto pesa y su huella.
+async function registraAnexo(u: Usuario, uid: string, body: Record<string, unknown>) {
+  const B = CLASES.anexo_contrato.bucket;
+  const contrato = String(body.contrato_id ?? '');
+  const p = await permisoAnexo(u, contrato);
+  if (p) return p;
+  const anexo = String(body.anexo_id ?? '');
+  if (!anexoIdOk(anexo)) return { error: 'anexo_invalido', status: 400 } as const;
+  const n = nPagina(body.n);
+  if (!n) return { error: 'pagina_invalida', status: 400 } as const;
+  const path = String(body.path ?? '');
+  if (!rutaAnexoOk(contrato, n, path)) return { error: 'ruta_invalida', status: 400 } as const;
+  const quita = async () => { if (!(await CLASES.anexo_contrato.filaDe(path))) await admin.storage.from(B).remove([path]); };
+  const cab = await cabecera(B, path);
+  if (!cab) return { error: 'el_fichero_no_ha_llegado', status: 409 } as const;
+  if (!esJpeg(cab)) { await quita(); return { error: 'el_fichero_no_es_lo_que_dice_ser', status: 400 } as const; }
+  const todo = await descargaEntera(B, path);
+  if (!todo) return { error: 'el_fichero_no_ha_llegado', status: 409 } as const;
+  if (todo.length > TOPE_PAGINA) { await quita(); return { error: 'pagina_demasiado_grande', status: 400 } as const; }
+  if (!esJpeg(todo)) { await quita(); return { error: 'el_fichero_no_es_lo_que_dice_ser', status: 400 } as const; }
+  const sha256 = hex(await crypto.subtle.digest('SHA-256', todo));
+  const dims = dimsJpeg(todo);
+  const { data, error } = await admin.rpc('contrato_anexo_registra', {
+    p_uid: uid, p_contrato: contrato, p_anexo_id: anexo, p_n: n, p_path: path, p_sha256: sha256,
+    p_bytes: todo.length, p_ancho: dims?.ancho ?? null, p_alto: dims?.alto ?? null,
+  });
+  if (error) { await quita(); return { rpcError: error }; }
+  return { id: data, sha256, bytes: todo.length, ancho: dims?.ancho ?? null, alto: dims?.alto ?? null };
+}
 
 // ── creatividad: preparar una subida (la ruta la compone el servidor por `rol`) ─────────────────────────────────
 async function subidaCreatividad(u: Usuario, body: Record<string, unknown>) {
@@ -316,11 +388,23 @@ async function cabecera(bucket: string, path: string): Promise<Uint8Array | null
   if (!r.ok) return null;
   return new Uint8Array(await r.arrayBuffer()).subarray(0, 16);
 }
+// El fichero entero, igual de sin caché. Solo para lo que tiene tope pequeño (páginas de anexo, 3 MB).
+async function descargaEntera(bucket: string, path: string): Promise<Uint8Array | null> {
+  const r = await fetch(`${URL_SB}/storage/v1/object/authenticated/${bucket}/${path}?v=${crypto.randomUUID()}`, {
+    headers: { Authorization: 'Bearer ' + SERVICE, apikey: SERVICE, 'cache-control': 'no-cache' },
+  });
+  if (!r.ok) return null;
+  return new Uint8Array(await r.arrayBuffer());
+}
 
 Deno.serve(async (req) => {
   const cors = corsFor(req);
   const json = (o: unknown, s = 200) => {
-    if (s !== 200) console.error('ficheros ' + s + ': ' + JSON.stringify(o));
+    // Al registro solo va el código de error, nunca el cuerpo entero: una respuesta puede llevar rutas o tokens.
+    if (s !== 200) {
+      const r = (o ?? {}) as { error?: unknown; code?: unknown };
+      console.error('ficheros ' + s + ': ' + String(r.error ?? '').slice(0, 120) + (r.code ? ' (' + String(r.code) + ')' : ''));
+    }
     return new Response(JSON.stringify(o), { status: s, headers: { ...cors, 'content-type': 'application/json' } });
   };
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
@@ -345,6 +429,24 @@ Deno.serve(async (req) => {
     if (!clase) return json({ ok: false, error: 'clase_desconocida' }, 400);
     const errRpc = (e: { message?: string; code?: string } | null) =>
       json({ ok: false, error: e?.message ?? 'error', code: e?.code }, e?.code === '42501' ? 403 : 400);
+
+    // ── anexo de contrato: su propio camino (ruta por página, sha y medidas del servidor) ──
+    if (clase === CLASES.anexo_contrato) {
+      if (accion === 'subida_url') {
+        const s = await subidaAnexo(usuario, body);
+        if ('error' in s) return json({ ok: false, error: s.error }, s.status);
+        const { data, error } = await admin.storage.from(clase.bucket).createSignedUploadUrl(s.path);
+        if (error || !data) return json({ ok: false, error: 'no_se_pudo_preparar_la_subida' }, 500);
+        return json({ ok: true, path: s.path, token: data.token, content_type: 'image/jpeg', bucket: clase.bucket });
+      }
+      if (accion === 'registra') {
+        const r = await registraAnexo(usuario, quien.user.id, body);
+        if ('rpcError' in r) return errRpc(r.rpcError as { message?: string; code?: string });
+        if ('error' in r) return json({ ok: false, error: r.error }, r.status);
+        return json({ ok: true, id: r.id, sha256: r.sha256, bytes: r.bytes, ancho: r.ancho, alto: r.alto });
+      }
+      return json({ ok: false, error: 'accion_desconocida' }, 400);
+    }
 
     // ── borrar: permiso y ruta de la base → objeto → fila ────────────────
     if (accion === 'borra') {

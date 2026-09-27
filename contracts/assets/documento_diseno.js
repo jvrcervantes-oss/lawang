@@ -324,6 +324,22 @@ function readImg(file, cb){ const r=new FileReader(); r.onload=()=>cb(r.result);
    ANEXOS — se definen (PDF o imágenes → imágenes de página), se marcan
    "incluir" y se añaden al final del contrato como páginas NO editables.
    ============================================================ */
+/* El borrador local solo trae las FICHAS de los anexos automáticos (LAW-78, 27-sep-2026):
+   un anexo subido a mano es del contrato guardado y sale de la base al abrirlo. Hasta ese
+   día la clave llevaba también las páginas en base64 (hasta 5 MB): si queda una así en
+   este navegador se reescribe UNA vez sin ellas, y los manuales se descartan — no hay
+   contrato al que pertenezcan. Ya no hay `annexSeq`: los ids nuevos son `ax-<uuid>`
+   (idAnexoNuevo en documento_anexos.js), porque un id recalculado desde el máximo se
+   reutilizaba al quitar el último anexo. */
 let ANNEXES = loadAnnexes();
-let annexSeq = 1 + ANNEXES.reduce((m,a)=>Math.max(m, parseInt(String(a.id||'').replace('ax',''))||0), 0);
-function loadAnnexes(){ try{ return JSON.parse(localStorage.getItem('lawang_contract_annexes'))||[]; }catch(_){ return []; } }
+function loadAnnexes(){
+  let lista;
+  try{ lista = JSON.parse(localStorage.getItem('lawang_contract_annexes')) || []; }catch(_){ return []; }
+  if(!Array.isArray(lista)) return [];
+  const autos = lista.filter(a => a && a.auto).map(a => ({ ...a, pages:[] }));
+  if(autos.length !== lista.length || lista.some(a => a && Array.isArray(a.pages) && a.pages.length)){
+    try{ localStorage.setItem('lawang_contract_annexes', JSON.stringify(autos)); }
+    catch(_){ try{ localStorage.removeItem('lawang_contract_annexes'); }catch(_e){ /* MUDO A PROPOSITO: sin localStorage no queda borrador viejo que limpiar */ } }
+  }
+  return autos;
+}

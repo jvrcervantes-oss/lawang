@@ -550,13 +550,22 @@ Deno.serve(async (req) => {
     // y sin llamar al modelo ni registrar nada.
     if (!contrato) return json({ error: 'no_autorizado' }, 403);
 
-    // Los anexos llegan con sus páginas como imágenes base64 (hasta 7 MB): al
-    // modelo solo le sirve qué anexos lleva el contrato. Antes iban enteros y
-    // reventaban TOPE_CONTEXTO, que entonces tiraba también clauses y extras.
+    // Los anexos: al modelo solo le sirve qué anexos lleva el contrato y cuántas páginas. Los viejos traen
+    // sus páginas en base64 dentro de `datos` (hasta 7 MB); los subidos a mano desde LAW-78 (27-sep-2026)
+    // son solo una ficha {id, title, on} y su recuento sale de `contrato_anexo_paginas` (fuente única),
+    // leída con la sesión del agente (RLS). Si esa lectura falla, `paginas` va a null —«no lo sé»—, nunca 0.
+    let paginasPorAnexo: Record<string, number> | null = {};
+    if (Array.isArray(contrato.annexes) && (contrato.annexes as Record<string, unknown>[]).some((a) => a && !a.auto && !Array.isArray(a.pages))) {
+      const { data: filas, error: eP } = await sb.from('contrato_anexo_paginas').select('anexo_id').eq('contrato_id', contrato.id);
+      if (eP) paginasPorAnexo = null;
+      else for (const f of (filas ?? []) as { anexo_id: string }[]) paginasPorAnexo[f.anexo_id] = (paginasPorAnexo[f.anexo_id] ?? 0) + 1;
+    }
     const annexes = Array.isArray(contrato.annexes)
       ? (contrato.annexes as Record<string, unknown>[]).map((a) => ({
           title: a?.title ?? null, on: a?.on ?? null,
-          paginas: Array.isArray(a?.pages) ? (a.pages as unknown[]).length : 0,
+          paginas: Array.isArray(a?.pages) && (a.pages as unknown[]).length ? (a.pages as unknown[]).length
+            : a?.auto ? 0
+            : paginasPorAnexo ? (paginasPorAnexo[String(a?.id ?? '')] ?? 0) : null,
         }))
       : null;
     const datos: Record<string, unknown> = {
