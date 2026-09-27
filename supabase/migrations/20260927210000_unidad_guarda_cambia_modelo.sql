@@ -8,7 +8,8 @@
 --
 -- Cambio: si el texto del modelo cambia, `modelo_id` se vacia y el trigger lo vuelve a
 -- resolver por nombre (sin match queda como texto fuera de catalogo, igual que antes).
--- Y el cambio de modelo queda en `unidades_log`: cambia lo que se vende.
+-- Y el cambio de modelo queda en `unidades_log` y, con contrato, pide admin + motivo como el
+-- precio (revisor-codigo): cambia lo que se vende y el generador de contratos lee `u.modelo`.
 -- Resto de la funcion identico a la version viva (20260927011500).
 
 CREATE OR REPLACE FUNCTION public.unidad_guarda(p_id uuid, p_datos jsonb, p_motivo text DEFAULT NULL::text)
@@ -72,10 +73,11 @@ begin
            or v_sup is distinct from v_old.superficie_m2
            or (p_datos ? 'precio_suelo' and v_suelo is distinct from v_old.precio_suelo)
            or v_obra is distinct from v_old.precio_construccion
-           or coalesce(v_mon, v_old.moneda) is distinct from v_old.moneda;
+           or coalesce(v_mon, v_old.moneda) is distinct from v_old.moneda
+           or public.modelo_norm(v_modelo) is distinct from public.modelo_norm(v_old.modelo);
   if (v_old.contrato_id is not null or v_old.estado in ('reservada', 'vendida', 'cobrada')) and v_dinero then
     if not v_admin then
-      raise exception 'Esta parcela tiene contrato: su precio, moneda, superficie, código y proyecto solo los cambia un admin' using errcode = '42501';
+      raise exception 'Esta parcela tiene contrato: su modelo, precio, moneda, superficie, código y proyecto solo los cambia un admin' using errcode = '42501';
     end if;
     if v_motivo is null or length(v_motivo) < 10 then
       raise exception 'Esta parcela tiene contrato: escribe por qué cambias sus datos (queda registrado)' using errcode = '22023';
