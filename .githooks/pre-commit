@@ -96,6 +96,24 @@ fi
 # siempre —la lista escrita a mano en dos sitios— con el sellador de un lado y su
 # disparador del otro. Si aparece un tercer `assets/`, va tambien aqui Y en ASSETS
 # de sella_assets.py: el dia que sean tres, el descubrimiento sube al script.
+# ── TAILWIND COMPILADO (ERP F3 lote 4a, 27-sep-2026) ─────────────────────────
+# La v4 y dos decks ya no pintan con el Play CDN: cargan un CSS que compila
+# `tools/empaqueta_css.py` desde `tailwind/tailwind.json` con el binario de
+# Tailwind v3.4.17 (verificado por SHA256). Una clase nueva en una pagina o en un
+# JS que no se recompila = boton sin estilo en produccion, y eso ninguna captura
+# lo ve. Por eso se recompila aqui, ANTES del sellado de abajo (que ve el CSS
+# nuevo en el indice y sella las paginas), y SI FALLA PARA el commit: sin `|| true`.
+# Si falta el binario, el mensaje dice como traerlo (sync_repos.py lo baja solo).
+tw=$(git diff --cached --name-only | grep -E '^(intranet/v4/|contracts/assets/.+\.js$|intranet/(facturas|vencimientos)/.+\.js$|investor-deck/|tailwind/)' || true)
+if [ -n "$tw" ]; then
+  py=$(command -v python || command -v python3)
+  "$py" "$herr/empaqueta_css.py" --tailwind || { echo "[pre-commit] ⛔ Tailwind no se pudo recompilar (ver arriba). Commit parado."; exit 1; }
+  salidas=$("$py" -c "import json;print(' '.join(s['css'] for s in json.load(open('tailwind/tailwind.json',encoding='utf-8'))['salidas']))")
+  for f in $salidas; do
+    [ -n "$(git status --porcelain -- "$f")" ] && git add -- "$f"
+  done
+fi
+
 suite=$(git diff --cached --name-only | grep -E '^(contracts|intranet/v4)/assets/.+\.(js|css)$' | grep -v '\.test\.js$' || true)
 if [ -n "$suite" ]; then
   raiz=$(git rev-parse --show-toplevel)
@@ -109,7 +127,7 @@ if [ -n "$suite" ]; then
   empcss="$herr/empaqueta_css.py"
   if [ -f "$empcss" ]; then
     py=$(command -v python || command -v python3)
-    "$py" "$empcss" >/dev/null 2>&1 || true
+    "$py" "$empcss" --sin-tailwind >/dev/null 2>&1 || true   # el Tailwind va en su bloque de arriba, que si para
     git add contracts/assets/lawang.css 2>/dev/null || true
   fi
 
