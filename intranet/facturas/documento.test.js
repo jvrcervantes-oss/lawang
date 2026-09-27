@@ -175,10 +175,13 @@ assert.ok(rect.includes('20 de septiembre de 2026'), 'con la fecha de la origina
 assert.ok(rect.includes('Motivo') && rect.includes('Anulación total de AXW-F2026-00007'), 'y el motivo');
 assert.ok(/-45\.000,00 EUR/.test(rect), 'importe en negativo');
 assert.ok(!html.includes('Rectifica a'), 'una factura normal (Lawang) no lleva nada de esto');
-/* etiqueta fiscal por defecto: NIF fuera de Indonesia, NPWP dentro (las de Lawang traen la suya) */
-caja.SOCIEDADES.soc_es = { razon: 'Estudio SL', domicilio: 'Valencia', npwp: 'B000', esIndonesia: false };
+/* etiqueta fiscal: la de la sociedad (el ERP guarda «NIF» explícito); sin etiqueta, NPWP como siempre — el papel de
+   Lawang no cambia aunque la sociedad no sea indonesa (revisor, 27-sep) */
+caja.SOCIEDADES.soc_es = { razon: 'Estudio SL', domicilio: 'Valencia', npwp: 'B000', esIndonesia: false, npwpLabel: 'NIF' };
+caja.SOCIEDADES.soc_nl = { razon: 'Ltd sin etiqueta', domicilio: 'Londres', npwp: 'C1', esIndonesia: false };
 caja.SOCIEDADES.soc_id = { razon: 'PT Demo', domicilio: 'Bali', npwp: '01.000', esIndonesia: true };
-assert.ok(caja.documentoHTML({ ...campos, sociedad: 'soc_es' }, {}).includes('NIF B000'), 'sociedad no indonesa sin etiqueta: NIF');
+assert.ok(caja.documentoHTML({ ...campos, sociedad: 'soc_es' }, {}).includes('NIF B000'), 'sociedad del ERP con etiqueta NIF: NIF');
+assert.ok(caja.documentoHTML({ ...campos, sociedad: 'soc_nl' }, {}).includes('NPWP C1'), 'no indonesa SIN etiqueta: NPWP como hoy');
 assert.ok(caja.documentoHTML({ ...campos, sociedad: 'soc_id' }, {}).includes('NPWP 01.000'), 'indonesa sin etiqueta: NPWP');
 
 /* la mención legal sale siempre que el impuesto la traiga, también un «suma» al 0 % (Administración) */

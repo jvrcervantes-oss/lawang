@@ -123,10 +123,10 @@ function documentoHTML(d, opts){
      nunca, así que su papel no cambia. */
   var esRect = d.tipo !== 'proforma' && d.tipo !== 'recibi' && !!d.rectifica_numero;
   if (esRect) tipo = TIPOS_DOC.rectificativa;
-  /* Etiqueta fiscal por defecto: NPWP en Indonesia, NIF fuera (Legal, 27-sep). Solo cuando la
-     sociedad no trae la suya: las de Lawang la traen todas (NPWP / CRN). */
-  var etiquetaFiscal = ident.npwpLabel || ident.npwp_label ||
-    ((ident.es_indonesia === false || ident.esIndonesia === false || soc.esIndonesia === false) ? 'NIF' : 'NPWP');
+  /* Etiqueta fiscal: la de la sociedad; sin etiqueta, NPWP como siempre. El «NIF» de una sociedad no indonesa del
+     ERP lo guardan explícito el editor (bandera) y `sociedad_guarda` del servidor: un respaldo NIF aquí cambiaba el
+     papel de Lawang sin la bandera, porque entities.js borra la etiqueta cuando vale exactamente 'NPWP' (revisor). */
+  var etiquetaFiscal = ident.npwpLabel || ident.npwp_label || 'NPWP';
   var linea = v => v ? escDoc(v) : '<span class="vacio">—</span>';
   var fecha = f => f
     ? new Date(f + 'T00:00:00').toLocaleDateString('es-ES', { day:'2-digit', month:'long', year:'numeric' })
