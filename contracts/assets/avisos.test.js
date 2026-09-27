@@ -1,7 +1,8 @@
 /* node avisos.test.js — la campana (23-sep-2026, S17).
    1) Lo que decide `lwAvisosArmar` (avisos.js), que comparten la campana de las
-      herramientas clásicas (topbar.js) y la de la intranet v4 (datos.js).
-   2) Que toda página que carga topbar.js cargue también avisos.js: sin él la
+      herramientas clásicas (topbar.js) y la de la intranet v4 (cabecera.js: las
+      pantallas v4 y el CRM, 27-sep-2026).
+   2) Que toda página que carga topbar.js o cabecera.js cargue también avisos.js: sin él la
       campana se queda muda sin ningún error visible. */
 const assert = require('assert');
 const fs = require('fs');
@@ -155,7 +156,7 @@ assert.strictEqual(lwAvisoEnlace('/\t/evil.example'), '#');
 assert.strictEqual(lwAvisoEnlace('/\n/evil.example'), '#');
 assert.strictEqual(lwAvisoEnlace('/intranet/ x'), '#');
 
-// --- toda página con topbar.js carga avisos.js ---
+// --- toda página con topbar.js o cabecera.js carga avisos.js ---
 const RAIZ = path.resolve(__dirname, '..', '..');
 const SALTA = /(^|[\\/])(Backups|node_modules|\.git|_archive)([\\/]|$)/;
 const faltan = [];
@@ -166,10 +167,10 @@ const faltan = [];
     if (e.isDirectory()) recorre(p);
     else if (/\.(html|php)$/.test(e.name)) {
       const s = fs.readFileSync(p, 'utf8');
-      if (/<script[^>]+src="[^"]*assets\/topbar\.js/.test(s) && !/<script[^>]+src="[^"]*assets\/avisos\.js/.test(s)) faltan.push(path.relative(RAIZ, p));
+      if (/<script[^>]+src="[^"]*assets\/(topbar|cabecera)\.js/.test(s) && !/<script[^>]+src="[^"]*assets\/avisos\.js/.test(s)) faltan.push(path.relative(RAIZ, p));
     }
   }
 })(RAIZ);
-assert.deepStrictEqual(faltan, [], 'páginas con topbar.js sin avisos.js (campana muda): ' + faltan.join(', '));
+assert.deepStrictEqual(faltan, [], 'páginas con topbar.js o cabecera.js sin avisos.js (campana muda): ' + faltan.join(', '));
 
 console.log('avisos.test.js OK');
