@@ -26,7 +26,12 @@ const ANON = Deno.env.get('SUPABASE_ANON_KEY')!;
 const admin = createClient(URL_SB, SERVICE);
 const BUCKET = 'kyc';
 
-const ORIGENES = [
+// Orígenes del navegador (27-sep-2026, ERP maestro B7): en una instancia del ERP el instalador pone el secreto SITIO_URL
+// (erp/nueva_instancia.py → `https://<dominio_erp>`) y solo ese origen pasa; sin SITIO_URL —Lawang no lo tiene— siguen sus
+// tres dominios. Mismo patrón que las edges que ya leen SITIO_URL con Lawang de respaldo (firma-submit, avisos-manager…).
+const origenDe = (u: string) => { try { return new URL(u).origin; } catch { return ''; } };
+const SITIO = origenDe((Deno.env.get('SITIO_URL') ?? '').trim());
+const ORIGENES = SITIO ? [SITIO] : [
   'https://lawangproperties.com',
   'https://www.lawangproperties.com',
   'https://sumbahills.lawangproperties.com',
