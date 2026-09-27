@@ -88,6 +88,18 @@ const SUPER = { rol: 'super_admin', activo: true, herramientas: [] };
   r = await puerta({ 'data-rol': 'admin', 'data-herramienta': 'cuentas' }, ADMIN);
   assert.ok(r.entra, 'admin con la herramienta entra');
 
+  // Ajustes y Comunicados (27-sep-2026): rol admin Y su casilla, como la exige la base
+  const ADMIN_SIN = { rol: 'admin', activo: true, herramientas: ['cuentas'] };
+  const ADMIN_CON = { rol: 'admin', activo: true, herramientas: ['ajustes', 'comunicacion'] };
+  for (const k of ['ajustes', 'comunicacion']) {
+    r = await puerta({ 'data-rol': 'admin', 'data-herramienta': k }, ADMIN_SIN);
+    assert.ok(!r.entra, 'un admin sin la casilla ' + k + ' no entra');
+    r = await puerta({ 'data-rol': 'admin', 'data-herramienta': k }, ADMIN_CON);
+    assert.ok(r.entra, 'un admin con la casilla ' + k + ' entra');
+    r = await puerta({ 'data-rol': 'admin', 'data-herramienta': k }, { rol: 'agente', activo: true, herramientas: [k] });
+    assert.ok(!r.entra, 'un agente con la casilla ' + k + ' no entra: falta el rol');
+  }
+
   // sin ficha legible: la regla general deja entrar (RLS protege); una de dirección, no
   r = await puerta({}, null, { fichaFalla: true });
   assert.ok(r.entra, 'sin data-rol, un fallo leyendo la ficha sigue dejando entrar (comportamiento de siempre)');

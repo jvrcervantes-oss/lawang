@@ -56,5 +56,83 @@ for (const k of Object.keys(CLAVE_MENU)) {
   if (!fs.existsSync(path.join(V4, k, 'index.html'))) errores.push(`${k}: está en CLAVE_MENU y no hay intranet/v4/${k}/`);
 }
 
+/* MENÚ DECLARADO (27-sep-2026): MENU_V4 es la fuente de las secciones y los nombres del
+   menú Y de las casillas de /v4/usuarios/. Se ejecuta el nav.js REAL fuera de la v4 (sale
+   temprano, pero antes deja `window.LW_MENU_V4`). */
+const vm = require('vm');
+const ctxM = { window: {}, location: { pathname: '/fuera/' }, document: { documentElement: { classList: { contains: () => false } } } };
+vm.createContext(ctxM);
+vm.runInContext(nav, ctxM);
+const MENU = ctxM.window.LW_MENU_V4;
+assert.ok(Array.isArray(MENU) && MENU.length >= 5, 'nav.js ya no expone window.LW_MENU_V4 antes de salir');
+const RAIZ = path.resolve(V4, '..', '..');
+const ctxP = { window: { AXW_NUCLEO_OPERACION: true } };
+vm.createContext(ctxP);
+vm.runInContext(fs.readFileSync(path.join(RAIZ, 'contracts', 'assets', 'herramientas.js'), 'utf8') + '\n;this.__P = LW_PERMISOS.map(p => p[0]);', ctxP);
+const PERMISOS = ctxP.__P;
+const enMenu = [];
+const puerta = carpeta => {
+  const f = path.join(V4, carpeta, 'index.html');
+  if (!fs.existsSync(f)) return null;
+  const g = fs.readFileSync(f, 'utf8').match(/<script[^>]+guard\.js[^>]*>/);
+  if (!g) return { herr: '', rol: '' };
+  return { herr: ((g[0].match(/data-herramienta="([^"]*)"/) || [])[1] || ''), rol: ((g[0].match(/data-rol="([^"]*)"/) || [])[1] || '') };
+};
+// leads y creatividades de la v4 son redirecciones (sin guard): su puerta vive en la herramienta viva
+const SIN_PUERTA_V4 = ['leads'];
+const casaPuerta = (p, clave, rol, donde) => {
+  const q = puerta(p);
+  if (!q) return errores.push(`MENU_V4 ${donde}: no hay intranet/v4/${p}/`);
+  if (SIN_PUERTA_V4.indexOf(p) !== -1 && !q.herr && !q.rol) return;
+  if (clave && norma(q.herr.split(',')) !== norma(clave.split(','))) errores.push(`MENU_V4 ${donde}: la puerta de ${p}/ pide «${q.herr || '—'}» y el menú «${clave}»`);
+  if (rol && q.rol !== rol) errores.push(`MENU_V4 ${donde}: la puerta de ${p}/ pide rol «${q.rol || '—'}» y el menú «${rol}»`);
+};
+MENU.forEach(s => s.entradas.forEach(e => {
+  const donde = `${s.seccion} › ${e.texto}`;
+  if (e.clave) enMenu.push(e.clave);
+  (e.claves || []).forEach(c => enMenu.push(c.clave));
+  (e.extra || []).forEach(c => enMenu.push(c.clave));
+  if (e.path) casaPuerta(e.path, e.clave || (e.claves || []).map(c => c.clave).join(','), e.rol, donde);
+  (e.pestanas || []).forEach(t => { enMenu.push(t.clave); casaPuerta(t.path, t.clave, t.rol, donde + ' › ' + t.texto); });
+}));
+const dup = enMenu.filter((k, i) => enMenu.indexOf(k) !== i);
+if (dup.length) errores.push('MENU_V4: casillas en dos sitios del menú: ' + dup.join(', '));
+PERMISOS.filter(k => enMenu.indexOf(k) === -1).forEach(k => errores.push(`«${k}» existe en LW_PERMISOS y MENU_V4 no la sitúa: en Usuarios saldría en «Otras»`));
+enMenu.filter(k => PERMISOS.indexOf(k) === -1).forEach(k => errores.push(`MENU_V4 ofrece la casilla «${k}» y LW_PERMISOS (ni la edge admin-usuarios) no la conoce`));
+
+// cada enlace de la sidebar (Stitch + INJERTOS + Panel de control) está en MENU_V4 con el MISMO texto,
+// salvo los que pasan a ser pestañas (su nombre manda en la barra de pestañas).
+const entradaDe = {}, pestanaDe = {};
+MENU.forEach(s => s.entradas.forEach(e => {
+  if (e.path) entradaDe[e.path] = e.texto;
+  if (e.grupo) entradaDe[e.grupo] = e.texto;
+  (e.pestanas || []).forEach(t => { pestanaDe[t.path] = t.texto; });
+}));
+const sidebar = fs.readFileSync(path.join(V4, 'usuarios', 'index.html'), 'utf8');
+const aside = sidebar.slice(sidebar.indexOf('<aside'), sidebar.indexOf('</aside>'));
+const vistos = [];
+for (const m of aside.matchAll(/data-path="([^"]+)"/g)) {
+  const p = m[1]; vistos.push(p);
+  if (p === 'login' || p === 'documentacion' || pestanaDe[p]) continue;
+  if (!entradaDe[p]) errores.push(`sidebar: «${p}» no está en MENU_V4`);
+}
+assert.ok(vistos.length > 8, 'no se leyó la sidebar de usuarios/index.html');
+const specs = nombre => [...((nav.match(new RegExp('var ' + nombre + ' = \\[([\\s\\S]*?)\\];')) || ['', ''])[1]
+  .matchAll(/path:\s*'([^']+)'[^}]*?texto:\s*'([^']+)'/g))];
+['INJERTOS', 'PANEL_CONTROL', 'PANEL_CONTROL_SUPER'].forEach(n => {
+  const lista = specs(n);
+  assert.ok(lista.length, 'nav.js ya no declara ' + n);
+  lista.forEach(([, p, t]) => {
+    if (pestanaDe[p]) return;
+    if (!entradaDe[p]) errores.push(`${n}: «${p}» no está en MENU_V4`);
+    else if (entradaDe[p] !== t) errores.push(`${n}: «${p}» se llama «${t}» en el menú y «${entradaDe[p]}» en MENU_V4`);
+  });
+});
+
+// Documentación NO vuelve al menú ni a la clásica (27-sep-2026)
+const navSinComentarios = nav.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+if (/FUERA_V4|\/intranet\/documentacion\//.test(navSinComentarios)) errores.push('nav.js vuelve a mandar a /intranet/documentacion/ (retirada el 27-sep-2026)');
+if (CLAVE_MENU.documentacion) errores.push('CLAVE_MENU vuelve a tener «documentacion»: la entrada del menú está retirada (vive en Proyectos)');
+
 assert.deepStrictEqual(errores, [], '\n  ' + errores.join('\n  '));
-console.log('nav.test.js OK');
+console.log('nav.test.js OK (' + enMenu.length + ' casillas situadas en el menú)');

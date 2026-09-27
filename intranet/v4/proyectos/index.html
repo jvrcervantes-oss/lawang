@@ -1,12 +1,12 @@
 <!DOCTYPE html><html lang="es" style=""><head>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=b283914a"></script><script src="/contracts/assets/guard.js?v=a6e64190" data-herramienta="unidades"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=b283914a"></script><script src="/contracts/assets/guard.js?v=f4db6ad5" data-herramienta="unidades"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=09e3b3f5" defer></script>
-<script src="/contracts/assets/dinero.js?v=a442e362" defer></script><script src="/intranet/facturas/totales.js?v=7d5789c6" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=b11b12fc" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=24701ad2" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=da02ce3b" defer></script><script src="/contracts/assets/proyectos_csv.js?v=1358ced5" defer></script><script src="/contracts/assets/avisos.js?v=389df6b9" defer></script><script src="../assets/datos.js?v=f75f6f0a" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/i18n.js?v=3d423954" defer></script>
+<script src="/contracts/assets/dinero.js?v=a442e362" defer></script><script src="/intranet/facturas/totales.js?v=7d5789c6" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=b11b12fc" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=17c1b0e9" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=da02ce3b" defer></script><script src="/contracts/assets/proyectos_csv.js?v=1358ced5" defer></script><script src="/contracts/assets/avisos.js?v=389df6b9" defer></script><script src="../assets/datos.js?v=9144d715" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
-<script src="../assets/nav.js?v=023c551b" defer></script>
+<script src="../assets/nav.js?v=993de78d" defer></script>
 <link href="../assets/shell.css?v=0d404d60" rel="stylesheet">
-<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/editores.js?v=1d3df68b" defer></script><script src="../assets/maqueta.js?v=6473c5d8" defer></script>
+<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/editores.js?v=d298886c" defer></script><script src="../assets/maqueta.js?v=6473c5d8" defer></script>
 <!-- Fotos del Investor Deck (S10.2, 22-sep-2026): pieza COMPARTIDA de la suite
      (Regla 0, contexto/suite_lawang.md) — la usan /proyectos/ y /modelos/
      clásicos, aquí solo se engancha, nunca se reescribe. Depende de
@@ -548,6 +548,27 @@
           </button>
 </div>
 </div>
+<!-- EMPRESA (GENERAL) — 27-sep-2026 (owner: «ha vuelto a aparecer Documentación pero la
+     integramos en /proyectos/; la tenemos duplicada»). Los documentos de la EMPRESA que no
+     son de ningún proyecto (escrituras, NPWP, anexos de las casas…) vivían solo en la
+     clásica /intranet/documentacion/, que se retira. Es un apartado VIRTUAL: no hay ni
+     habrá una fila «Lawang (general)» en `proyectos` (si la hubiera, puede_proyecto() abriría
+     los confidenciales a quien la tuviera asignada — salud_lawang.py lo vigila). La lista
+     sale de la misma lectura de `documentos_proyecto` de esta pantalla y la RLS decide qué
+     llega: el equipo ve los marcados «general»; administración, además, los confidenciales.
+     Se enseña con la casilla `documentacion`, igual que la clásica. Sin subidas: la edge
+     `ficheros` exige proyecto. Lo pinta datos.js (pintaGenerales); lo edita editores.js. -->
+<section class="hidden mt-2 mb-4 bg-surface-container-lowest rounded-xl border border-warm-border shadow-sm p-5" id="empresa-general" aria-labelledby="empresa-general-t">
+<div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-3">
+<div class="flex flex-col gap-1">
+<span class="font-body-sm text-[11px] text-soft-canopy uppercase tracking-widest font-semibold" data-lwt>Documentación</span>
+<h2 class="font-headline-lg text-[22px] text-deep-lagoon tracking-tight leading-tight" id="empresa-general-t" data-lwt>Empresa (general)</h2>
+<p class="font-body-md text-[13px] text-on-surface-variant max-w-3xl" data-lwt>Documentos de la empresa que no son de un proyecto: escrituras, NPWP, anexos de las casas…</p>
+</div>
+<button class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-[12px] transition-colors hidden shrink-0" id="btn-enlace-general" type="button" data-lwt>+ Nuevo enlace</button>
+</div>
+<div class="flex flex-col gap-1.5" id="d-generales"></div>
+</section>
 </main>
 </div>
 <!-- CAJÓN / PANEL LATERAL (.sui-cajon) SUPERPUESTO CON VELO TENUE -->

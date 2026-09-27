@@ -482,7 +482,9 @@ create or replace function public.comunicado_guarda(p_id uuid, p_datos jsonb) re
 language plpgsql security definer set search_path = '' as $$
 declare v public.comunicados%rowtype; k text;
 begin
-  if not public.es_admin() then raise exception 'Los comunicados son de administración' using errcode = '42501'; end if;
+  -- 27-sep-2026: + puede('comunicacion'), como la migración 20260927040933 (aplicada ANTES en producción
+  -- pero con versión anterior a este fichero: sin esto, reconstruir la base en orden la deshacía).
+  if not (public.es_admin() and public.puede('comunicacion')) then raise exception 'Los comunicados son de administración con la herramienta «Comunicación»' using errcode = '42501'; end if;
   if jsonb_typeof(p_datos) is distinct from 'object' then raise exception 'Datos del comunicado no válidos' using errcode = '22023'; end if;
   for k in select jsonb_object_keys(p_datos) loop
     if k not in ('asunto', 'encabezado', 'cuerpo', 'cta_url', 'cta_texto') then
@@ -516,7 +518,9 @@ grant execute on function public.comunicado_guarda(uuid, jsonb) to authenticated
 create or replace function public.comunicado_borra(p_id uuid) returns uuid
 language plpgsql security definer set search_path = '' as $$
 begin
-  if not public.es_admin() then raise exception 'Los comunicados son de administración' using errcode = '42501'; end if;
+  -- 27-sep-2026: + puede('comunicacion'), como la migración 20260927040933 (aplicada ANTES en producción
+  -- pero con versión anterior a este fichero: sin esto, reconstruir la base en orden la deshacía).
+  if not (public.es_admin() and public.puede('comunicacion')) then raise exception 'Los comunicados son de administración con la herramienta «Comunicación»' using errcode = '42501'; end if;
   delete from public.comunicados where id = p_id;   -- lo ya enviado lo frena el trigger _comunicados_congela
   if not found then raise exception 'Ese comunicado ya no existe: recarga' using errcode = '22023'; end if;
   return p_id;

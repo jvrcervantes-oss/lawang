@@ -147,7 +147,12 @@ const LW_HERRAMIENTAS = [
   { grupo:'Documentación', nombre:'Creatividades', icon:'ph-image-square', href:'/intranet/v4/creatividades/', herr:['dossier','creatividades','creatividades_ver'],
     para:'Piezas para redes y dossiers de cada proyecto, con las fotos de la intranet, su revisión y la biblioteca de lo aprobado.',
     claves:'creatividades dossier anuncios pauta instagram facebook meta ads imagen story feed pdf maqueta producto creative assets brochure ads artwork image story feed mockup product' },   // sin `estado`: ninguna de las dos vive en la base de datos
-  { grupo:'Documentación', nombre:'Documentación', icon:'ph-folders', href:'/intranet/documentacion/', herr:'documentacion',
+  /* Documentación vive dentro de Proyectos desde el 8-sep (y la de la EMPRESA, en su apartado
+     «Empresa (general)», desde el 27-sep-2026): la clásica /intranet/documentacion/ se retiró y
+     redirige allí. La casilla `documentacion` sigue: es la que deja escribir enlaces y FAQ
+     (documento_proyecto_guarda). En el menú v4 no tiene entrada propia: en Usuarios sale
+     como «Proyectos · documentación» (MENU_V4 de intranet/v4/assets/nav.js). */
+  { grupo:'Documentación', nombre:'Documentación', icon:'ph-folders', href:'/intranet/v4/proyectos/', herr:'documentacion',
     para:'Precios, planos y material de cada proyecto, en el almacén privado.',
     claves:'documentacion documentos precios planos parcelas material proyecto archivo documents files pricing floor plans plots material project archive',
     estado:d => d.documentos == null ? null
@@ -157,8 +162,8 @@ const LW_HERRAMIENTAS = [
   /* SECCIÓN «FINANZAS» (24-sep-2026, owner, opción A): lo que antes era
      «Administración», más Vencimientos (venía de Seguimiento) y Cuentas bancarias
      (venía de Equipo). Todo lo que mueve dinero, junto. Vencimientos va la
-     primera: es lo que toca cobrar. Mismo orden en la sidebar v4 (nav.js,
-     ORDEN_FINANZAS). Cambiar de grupo no cambia quién la ve: eso es `herr`. */
+     primera: es lo que toca cobrar. En la sidebar v4 (nav.js, MENU_V4) Finanzas va en 5
+     entradas con pestañas desde el 27-sep-2026. Cambiar de grupo no cambia quién la ve: eso es `herr`. */
   { grupo:'Finanzas', nombre:'Vencimientos', icon:'ph-calendar-check', href:'/intranet/v4/vencimientos/', herr:'vencimientos',
     para:'Qué dinero debe entrar, cuándo, y cuál se está retrasando: la caja de la empresa por fechas.',
     claves:'vencimientos pagos hitos caja cashflow finanzas dinero calendario vencido dashboard payments due milestones cash finance money schedule overdue',
@@ -255,6 +260,13 @@ const LW_HERRAMIENTAS = [
      Soporte (tickets de compradores) sale de Seguimiento. Los comunicados al equipo
      son de la v4 y no tienen tarjeta aquí. Mismo orden en la sidebar v4 (nav.js,
      ORDEN_COMUNICACION). Lo que se ve lo sigue decidiendo `herr`. */
+  /* Comunicados al equipo (23-sep-2026, v4). Casilla propia desde el 27-sep-2026: además
+     del rol admin, la exigen las RPC y la RLS de comunicados (migración 20260927040933).
+     `soloPermiso`: casilla sí, tarjeta en el hub no — es pantalla de la v4. */
+  { grupo:'Comunicación', nombre:'Comunicados', icon:'ph-megaphone', href:'/intranet/v4/comunicacion/', herr:'comunicacion',
+    soloAdmin:true, soloPermiso:true,
+    para:'Comunicados por email al equipo: redactar, probar y enviar.',
+    claves:'comunicados comunicacion email equipo avisos plantillas announcements team email' },
   { grupo:'Comunicación', nombre:'Soporte', icon:'ph-headset', href:'/intranet/v4/soporte/', herr:'soporte',
     para:'Los tickets de los clientes desde su área de clientes, en una bandeja.',
     claves:'soporte mensajes tickets chat compradores atencion consultas support messages tickets chat buyers enquiries inbox',
@@ -327,10 +339,10 @@ const LW_HERRAMIENTAS = [
 
   /* Ajustes (22-sep-2026): los números que gobiernan las reservas (días de
      gracia, prórrogas, techos) viven en la tabla `parametros` y el owner los
-     cambia aquí sin tocar código. Sin `herr` a propósito: no es un permiso
-     repartible — lo ve cualquier admin (soloAdmin) y escribe solo super admin
-     (parametro_set, en la base). Vive en la v4. */
-  { grupo:'Equipo', nombre:'Ajustes', icon:'ph-sliders-horizontal', href:'/intranet/v4/ajustes/', soloAdmin:true,
+     cambia aquí sin tocar código. Casilla propia `ajustes` desde el 27-sep-2026 (además de
+     admin): la exigen mantenimiento_intranet/_envios en la base. Escribir un parámetro sigue
+     siendo solo super admin (parametro_set). Vive en la v4. */
+  { grupo:'Equipo', nombre:'Ajustes', icon:'ph-sliders-horizontal', href:'/intranet/v4/ajustes/', herr:'ajustes', soloAdmin:true,
     para:'Días de gracia, prórrogas y techos de las reservas: lo que el sistema aplica solo.',
     claves:'ajustes parametros configuracion reservas gracia prorroga prorrogas topes settings parameters reservation grace extension limits' },
 
@@ -403,9 +415,10 @@ const lwPermitida = (t, ficha) =>
        contratos con jerga en pantalla.
    ═══════════════════════════════════════════════════════════════════════════ */
 const LW_ETIQUETA_PROPIA = {
-  dossier:       'Dossier',
-  creatividades: 'Creatividades',
-  creatividades_ver: 'Creatividades · ver y descargar lo aprobado',
+  // owner, 27-sep-2026: «tenemos 'Dossier' 'Creatividades' y 'Creatividades ver y descargar lo aprobado', ¿qué es esto?»
+  dossier:       'Creatividades · crear dossiers',
+  creatividades: 'Creatividades · crear piezas para redes',
+  creatividades_ver: 'Creatividades · solo ver y descargar lo aprobado',
   comisiones:    'Comisiones · Pagos de %marca',   // la pestaña «Pagos de %marca» (23-sep-2026); %marca, de la ficha
   usuarios:      'Usuarios (admin)',     // el «(admin)» avisa de que además exige rol
 };
@@ -467,8 +480,9 @@ const LW_HERR_POR_ROL = {
   agente:          ['contratos','compradores','documentacion','unidades','facturas','operaciones','asistente','recibos','modelos','reservas','comisiones_reparto','creatividades_ver'],
   project_manager: ['contratos','compradores','documentacion','unidades','facturas','obra','operaciones','asistente','recibos','modelos','reservas','comisiones_reparto','creatividades_ver'],
   sales_manager:   ['contratos','compradores','documentacion','unidades','facturas','operaciones','asistente','recibos','modelos','reservas','comisiones_reparto','comisiones_condiciones','comisiones_equipos','creatividades_ver'],
-  admin:           ['contratos','compradores','documentacion','unidades','facturas','operaciones','asistente','recibos','modelos','reservas','comisiones_condiciones','comisiones_equipos'],
-  super_admin:     ['contratos','compradores','documentacion','unidades','facturas','obra','operaciones','asistente','recibos','modelos','reservas','comisiones','comisiones_reparto','comisiones_condiciones','comisiones_equipos'],
+  // `comunicacion` y `ajustes` (27-sep-2026): todo admin los tenía por el rol; desde que son casilla, nacen con ella.
+  admin:           ['contratos','compradores','documentacion','unidades','facturas','operaciones','asistente','recibos','modelos','reservas','comisiones_condiciones','comisiones_equipos','comunicacion','ajustes'],
+  super_admin:     ['contratos','compradores','documentacion','unidades','facturas','obra','operaciones','asistente','recibos','modelos','reservas','comisiones','comisiones_reparto','comisiones_condiciones','comisiones_equipos','comunicacion','ajustes'],
 };
 const LW_TIPOS_POR_ROL = {
   agente:          ['carta_reserva','reserva_parcela','construccion'],

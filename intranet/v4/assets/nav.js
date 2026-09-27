@@ -9,6 +9,88 @@
  * mapa de rutas existe una sola vez, aquí. */
 (function () {
   'use strict';
+
+  /* COMISIONES: una entrada de menú y hasta cuatro pestañas (23-sep-2026, plan
+     aprobado por el owner). Cada pestaña es una página v4 con SU casilla en
+     Usuarios; la barra de pestañas se pinta aquí, igual en las cuatro, y solo
+     con las que la ficha tiene. La casilla decide si la pestaña aparece; lo que
+     se ve dentro lo decide el rol en la base (el closer lo suyo, el manager su
+     equipo). `rotulo` cambia el nombre según el rol, no lo que enseña.
+     `rol` (27-sep-2026): Condiciones y Equipos piden en la puerta rol admin o
+     sales manager además de la casilla (PUERTA_FIJA de catalogo.test.js); sin
+     él, la pestaña se ofrecía a un agente con la casilla y rebotaba. */
+  var PESTANAS_COMISIONES = [
+    { path: 'comisiones',    clave: 'comisiones',             texto: 'Pagos de %marca' },
+    { path: 'reparto',       clave: 'comisiones_reparto',     texto: 'Reparto a closers',
+      rotulo: { agente: 'Mis comisiones', project_manager: 'Mis comisiones' } },
+    { path: 'condiciones',   clave: 'comisiones_condiciones', texto: 'Condiciones', rol: 'admin sales_manager' },
+    { path: 'equipos-venta', clave: 'comisiones_equipos',     texto: 'Equipos', rol: 'admin sales_manager', rotulo: { sales_manager: 'Mi equipo' } }
+  ];
+
+  /* EL MENÚ DE LA v4, DECLARADO UNA VEZ (27-sep-2026, owner: «Separa las herramientas
+     con secciones como en el menú» + Finanzas en 5 entradas con pestañas). Es la
+     fuente de las SECCIONES y los NOMBRES que usan:
+       · este fichero: qué entradas llevan pestañas (Cobros, Comisiones, Tesorería),
+         en qué orden va Finanzas y Comunicación, y qué ofrece el buscador;
+       · /v4/usuarios/ (editores.js): las casillas de permiso, agrupadas por sección
+         y con el nombre de la entrada del menú — por eso se expone en
+         `window.LW_MENU_V4` ANTES de la salida de abajo.
+     Qué claves EXISTEN lo sigue diciendo `LW_PERMISOS` (contracts/assets/herramientas.js,
+     comparado con la edge admin-usuarios por listas.test.js); nav.test.js falla si una
+     clave de allí no tiene sitio aquí, si una de aquí no existe allí, o si una entrada
+     de la sidebar no está declarada aquí con el mismo texto.
+     Cada entrada: `path` (carpeta v4) o `grupo` (entrada con `pestanas`), `texto` (lo
+     que se lee en el menú), `clave` (la casilla que la abre), `rol` (el que exige la
+     puerta además de la casilla), `extra` (casillas que viven DENTRO de esa pantalla
+     y no tienen entrada propia), `claves` (una entrada que abre cualquiera de varias).
+     Sin `clave`: la abre el rol y en Usuarios sale como fila informativa. */
+  var MENU_V4 = [
+    { seccion: 'Seguimiento', entradas: [
+      { path: 'home', texto: 'Home' },
+      { path: 'leads', texto: 'CRM', clave: 'leads', extra: [
+        { clave: 'ranking', texto: 'Ranking de closers' },
+        { clave: 'reparto', texto: 'Reparto de leads' },
+        { clave: 'closers', texto: 'Agenda de cierre' }] },
+      { path: 'operaciones', texto: 'Operaciones', clave: 'operaciones' },
+      { path: 'reservas', texto: 'Reservas', clave: 'reservas' }] },
+    { seccion: 'Documentación', entradas: [
+      { path: 'contratos', texto: 'Contratos', clave: 'contratos' },
+      { path: 'asistente', texto: 'Asistente', clave: 'asistente' },
+      { path: 'creatividades', texto: 'Creatividades', claves: [
+        { clave: 'dossier', texto: 'crear dossiers' },
+        { clave: 'creatividades', texto: 'crear piezas para redes' },
+        { clave: 'creatividades_ver', texto: 'solo ver y descargar lo aprobado' }] }] },
+    { seccion: 'Finanzas', entradas: [
+      { path: 'finanzas', texto: 'Resumen', rol: 'admin' },
+      { grupo: 'cobros', texto: 'Cobros', icono: 'payments', pestanas: [
+        { path: 'vencimientos', clave: 'vencimientos', texto: 'Vencimientos' },
+        { path: 'facturas', clave: 'facturas', texto: 'Facturas' },
+        { path: 'recibos', clave: 'recibos', texto: 'Recibos' },
+        { path: 'productos', clave: 'productos', texto: 'Productos', nucleo: true }] },
+      { grupo: 'comisiones', texto: 'Comisiones', icono: 'request_quote', pestanas: PESTANAS_COMISIONES },
+      { path: 'gastos', texto: 'Gastos', clave: 'gastos', rol: 'admin' },
+      { grupo: 'tesoreria', texto: 'Tesorería', icono: 'account_balance', pestanas: [
+        { path: 'bancos', clave: 'bancos', texto: 'Bancos', rol: 'admin' },
+        { path: 'cuentas', clave: 'cuentas', texto: 'Cuentas bancarias', rol: 'admin' }] }] },
+    { seccion: 'Comunicación', entradas: [
+      { path: 'comunicacion', texto: 'Comunicados', clave: 'comunicacion', rol: 'admin' },
+      { path: 'soporte', texto: 'Soporte', clave: 'soporte' }] },
+    { seccion: 'Base de Datos', entradas: [
+      /* La documentación de cada proyecto (y la de la empresa, «Empresa (general)»)
+         vive dentro de Proyectos desde el 8-sep; su casilla escribe enlaces y FAQ. */
+      { path: 'proyectos', texto: 'Proyectos', clave: 'unidades', extra: [
+        { clave: 'documentacion', texto: 'documentación (enlaces, FAQ y ficheros)' }] },
+      { path: 'modelos', texto: 'Modelos', clave: 'modelos' },
+      { path: 'obra', texto: 'Obra', clave: 'obra' },
+      { path: 'compradores', texto: 'Clientes', clave: 'compradores' }] },
+    { seccion: 'Panel de control', entradas: [
+      { path: 'usuarios', texto: 'Usuarios', clave: 'usuarios', rol: 'admin' },
+      { path: 'ajustes', texto: 'Ajustes', clave: 'ajustes', rol: 'admin' },
+      { path: 'comision-admin', texto: 'Comisión de administración', rol: 'super_admin' },
+      { path: 'sociedades', texto: 'Sociedades emisoras', rol: 'super_admin' }] }
+  ];
+  if (typeof window !== 'undefined') window.LW_MENU_V4 = MENU_V4;
+
   /* Fuera de /intranet/v4/ solo corre si la página lleva la cara v4 puesta
      (`html.v4`, contracts/assets/piel.js). Hoy es el caso del generador de
      contratos, que carga este fichero y en su cara clásica no puede tocarle
@@ -90,7 +172,7 @@
      motion.js anima el primer lote que pinte su script (modo tardío). Con
      «reducir movimiento» en el sistema, ni marca ni motion.js. MOTION_V = 8 primeros del sha1 de
      motion.js con fin de línea LF (lo desplegado): nav.test.js falla si no casan, porque sella_assets no lo sella. */
-  var MOTION_V = '80e9d418';
+  var MOTION_V = '114a104b';
   (function () {
     try {
       if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -123,10 +205,11 @@
     ['Vencimientos', 'vencimientos/'],
     ['Contratos', 'contratos/'],
     ['Creatividades', 'creatividades/'],
-    /* Documentación: ruta ABSOLUTA a la clásica, como el CRM (27-sep-2026, corte de
-       la clásica). Los documentos «general» de la empresa solo se ven y editan
-       allí; con la v4 como portada, esconderla dejaba al equipo sin entrada. */
-    ['Documentación', '/intranet/documentacion/'],
+    /* Documentación vive dentro de Proyectos (8-sep); la entrada del menú se esconde
+       (retiraDocumentacion) y v4/documentacion/ es solo una redirección. La vuelta a
+       la clásica del corte (f1a3aeaa) se deshizo el 27-sep-2026: los documentos de la
+       empresa ya están en Proyectos, apartado «Empresa (general)». */
+    ['Documentación', 'documentacion/'],
     ['Facturas', 'facturas/'],
     ['Recibos', 'recibos/'],
     ['Proyectos', 'proyectos/'],
@@ -280,7 +363,7 @@
     { path: 'reservas',   tras: 'vencimientos', icono: 'event_upcoming', texto: 'Reservas' },
     /* Productos (AxisWorks ERP, 26-sep-2026): catálogo de lo que se factura por líneas. `nucleo`: SOLO con
        `window.AXW_NUCLEO_OPERACION` (la enciende el build de las instancias del ERP) — la base de Lawang no
-       tiene la tabla y el enlace llevaría a una pantalla vacía. Tras Recibos; ORDEN_FINANZAS la deja ahí. */
+       tiene la tabla y el enlace llevaría a una pantalla vacía. Tras Recibos; es pestaña de «Cobros» (MENU_V4). */
     { path: 'productos',  tras: 'recibos',  icono: 'inventory_2',    texto: 'Productos', nucleo: true }
   ];
 
@@ -306,9 +389,10 @@
        grupo porque es la que se mira, no la que se configura. Admin, como la
        puerta (`data-rol="admin"`); lo que ve cada cifra lo decide la RLS y el
        panel dice «sin permiso» donde la ficha no llega. Solo lectura. */
-    /* Finanzas, Gastos, Cuentas y Sociedades nacen aquí (misma puerta de rol)
-       pero se MUDAN a la sección «Finanzas» (ORDEN_FINANZAS, más abajo). La
-       cabecera ya dice «Finanzas», así que la entrada del panel es «Resumen». */
+    /* Finanzas, Gastos, Bancos y Cuentas nacen aquí (misma puerta de rol) pero se
+       MUDAN a la sección «Finanzas» (ordenaFinanzas, más abajo); Bancos y Cuentas,
+       como pestañas de «Tesorería». La cabecera ya dice «Finanzas», así que la
+       entrada del panel es «Resumen». Sociedades se queda en el Panel (27-sep). */
     { path: 'finanzas',      icono: 'monitoring',       texto: 'Resumen' },
     /* Gastos y proveedores (24-sep-2026): admin + casilla `gastos` (la poda la
        hace CLAVE_MENU; la puerta de verdad, la RLS). */
@@ -322,13 +406,15 @@
        de la entrada «Comisiones», ver PESTANAS_COMISIONES más abajo. */
     /* Ajustes (22-sep-2026, owner: «en el panel de control podemos controlar
        los días de gracia, las prórrogas, los techos, todo lo configurable»):
-       la tabla `parametros`. Lo ve cualquier admin; escribir exige super admin
-       en la base (parametro_set), como Cuentas. */
+       la tabla `parametros`. Admin + casilla `ajustes` desde el 27-sep-2026 (la
+       exige también mantenimiento_intranet/_envios); escribir un parámetro exige
+       super admin en la base (parametro_set), como Cuentas. */
     { path: 'ajustes',       icono: 'tune',             texto: 'Ajustes' },
     /* Comunicación (23-sep-2026, owner: «algo como "Comunicación" para
        escribir yo las plantillas y que se manden a los agentes»): comunicados
-       por email al equipo. Admin; la puerta real es es_admin() en
-       comunicados/comunicado_encolar. Nace aquí por la puerta de rol, pero se
+       por email al equipo. Admin + casilla `comunicacion` (27-sep-2026; la puerta
+       real es es_admin() y puede('comunicacion') en las RPC y la RLS de
+       comunicados). Nace aquí por la puerta de rol, pero se
        MUDA a su propia sección (owner, 24-sep: «Comunicación necesita su
        sección, no en panel de control que no pega nada») — ver
        ordenaComunicacion. La cabecera ya dice «Comunicación»: el enlace, «Comunicados». */
@@ -340,20 +426,8 @@
      abre lo que el estudio le cobra al cliente. Se configura aqui y no en
      «Comisiones» — aquella es la del equipo de ventas, y son dos cosas
      distintas que comparten palabra. */
-  /* COMISIONES: una entrada de menú y hasta cuatro pestañas (23-sep-2026, plan
-     aprobado por el owner). Cada pestaña es una página v4 con SU casilla en
-     Usuarios; la barra de pestañas se pinta aquí, igual en las cuatro, y solo
-     con las que la ficha tiene. La casilla decide si la pestaña aparece; lo que
-     se ve dentro lo decide el rol en la base (el closer lo suyo, el manager su
-     equipo). Sustituye al panel «Mi equipo» del Sales Manager, que duró una
-     tarde. `rotulo` cambia el nombre según el rol, no lo que enseña. */
-  var PESTANAS_COMISIONES = [
-    { path: 'comisiones',    clave: 'comisiones',             texto: 'Pagos de %marca' },
-    { path: 'reparto',       clave: 'comisiones_reparto',     texto: 'Reparto a closers',
-      rotulo: { agente: 'Mis comisiones', project_manager: 'Mis comisiones' } },
-    { path: 'condiciones',   clave: 'comisiones_condiciones', texto: 'Condiciones' },
-    { path: 'equipos-venta', clave: 'comisiones_equipos',     texto: 'Equipos', rotulo: { sales_manager: 'Mi equipo' } }
-  ];
+  /* COMISIONES y las demás entradas con pestañas: PESTANAS_COMISIONES y MENU_V4, arriba
+     del todo (27-sep-2026). */
 
   var PANEL_CONTROL_SUPER = [
     { path: 'comision-admin', icono: 'price_change',      texto: 'Comisión de administración' },
@@ -372,55 +446,87 @@
        (y, en las que son redirección — leads, creatividades —, la clave de la
        herramienta viva a la que llevan). `nav.test.js` falla si una página v4
        y este mapa dejan de coincidir: no se sincroniza a ojo.
-     · Sin clave = sin poda: Home, y las del Panel de control que ya gobierna
-       el rol (equipos-venta, condiciones, ajustes, comision-admin,
-       sociedades). Usuarios y Cuentas SÍ llevan clave: además de admin, hace
-       falta tenerlas asignadas, como en el hub vivo. */
+     · Sin clave = sin poda: Home, Resumen (finanzas) y las del super admin
+       (comision-admin, sociedades), que gobierna el rol. Usuarios, Cuentas,
+       Bancos, Gastos, Ajustes y Comunicados SÍ llevan clave: además de admin,
+       hace falta tenerlas asignadas. Las entradas con pestañas (Cobros,
+       Comisiones, Tesorería) se ven si la sesión abre alguna de sus pestañas. */
   var CLAVE_MENU = {
     leads: 'leads', operaciones: 'operaciones', soporte: 'soporte', vencimientos: 'vencimientos',
     contratos: 'contratos', asistente: 'asistente', 'asistente-correos': 'asistente', creatividades: ['dossier', 'creatividades', 'creatividades_ver'],
     facturas: 'facturas', recibos: 'recibos', comisiones: ['comisiones', 'comisiones_reparto', 'comisiones_condiciones', 'comisiones_equipos'], reservas: 'reservas', reparto: 'comisiones_reparto', condiciones: 'comisiones_condiciones', 'equipos-venta': 'comisiones_equipos',
     proyectos: 'unidades', modelos: 'modelos', obra: 'obra', compradores: 'compradores',
     usuarios: 'usuarios', cuentas: 'cuentas', gastos: 'gastos', bancos: 'bancos', productos: 'productos',
-    documentacion: 'documentacion'
+    /* Comunicados y Ajustes llevan clave desde el 27-sep-2026 (la exige también la base:
+       migración 20260927040933). Documentación ya NO: vive dentro de Proyectos. */
+    comunicacion: 'comunicacion', ajustes: 'ajustes'
   };
-  /* Entradas del menú que salen de la v4 a su herramienta clásica (el CRM lo hace
-     por INJERTOS con `href`; Documentación ya está dibujada en las sidebars con
-     data-path, así que su destino se fija aquí). */
-  var FUERA_V4 = { documentacion: '/intranet/documentacion/' };
+
+  /* ENTRADAS CON PESTAÑAS (Cobros, Comisiones, Tesorería — 27-sep-2026, owner). Salen de
+     MENU_V4: una entrada del menú y una barra de pestañas encima de cada pantalla. Cada
+     pestaña sigue siendo SU pantalla con SU puerta (guard.js) y SU casilla, y su URL no
+     cambia (enlaces de correos, `?id=`). La entrada lleva a la primera pestaña que la
+     sesión puede abrir; si no puede abrir ninguna, la entrada no sale. */
+  var GRUPOS = {};
+  var FICHA_SESION = null;   // la ficha de la sesión, cuando LW_AUTH resuelve (la usa el buscador)
+  MENU_V4.forEach(function (s) {
+    s.entradas.forEach(function (e) { if (e.grupo) GRUPOS[e.grupo] = e; });
+  });
+  function rolPasa(rol, ficha) {
+    if (!rol) return true;
+    if (!ficha) return true;                          // sin ficha no se poda (como puedeVer)
+    if (ficha.rol === 'super_admin') return true;
+    var lista = rol.split(/\s+/);
+    return lista.indexOf(ficha.rol) !== -1;
+  }
+  function pestanaVisible(t, ficha) {
+    if (t.nucleo && !window.AXW_NUCLEO_OPERACION) return false;
+    if (!ficha || ficha.rol === 'super_admin') return true;
+    return rolPasa(t.rol, ficha) && (ficha.herramientas || []).indexOf(t.clave) !== -1;
+  }
+  function pestanasDe(grupo, ficha) {
+    return (GRUPOS[grupo] ? GRUPOS[grupo].pestanas : []).filter(function (t) { return pestanaVisible(t, ficha); });
+  }
+  /* La entrada activa: la de la pestaña en la que se está. */
+  function grupoDeAqui() {
+    var aqui = location.pathname;
+    for (var g in GRUPOS) {
+      var t = GRUPOS[g].pestanas.filter(function (p) { return aqui.indexOf('/' + p.path + '/') !== -1; })[0];
+      if (t) return { grupo: g, pestana: t };
+    }
+    return null;
+  }
   function puedeVer(path, ficha) {
+    if (GRUPOS[path]) return !ficha || pestanasDe(path, ficha).length > 0;
     var k = CLAVE_MENU[path];
     if (!k || !ficha || ficha.rol === 'super_admin') return true;
     return [].concat(k).some(function (h) { return (ficha.herramientas || []).indexOf(h) !== -1; });
   }
-  function pestanasComisionesDe(ficha) {
-    return PESTANAS_COMISIONES.filter(function (t) {
-      return !ficha || ficha.rol === 'super_admin' || (ficha.herramientas || []).indexOf(t.clave) !== -1;
+  /* Cada entrada con pestañas lleva a la PRIMERA pestaña que la ficha tiene (un closer
+     solo tiene «Mis comisiones») y se marca activa en todas sus páginas. La barra se
+     pinta una vez, justo bajo la cabecera, solo con las pestañas que la ficha abre. */
+  function cableaPestanas(aside, ficha) {
+    var aquiG = grupoDeAqui();
+    Object.keys(GRUPOS).forEach(function (g) {
+      var entrada = aside.querySelector('a[data-path="' + g + '"]');
+      var mias = pestanasDe(g, ficha);
+      if (entrada && mias.length) entrada.href = ROOT + mias[0].path + '/';
+      if (entrada && aquiG && aquiG.grupo === g) marcaActiva(entrada);
     });
-  }
-  /* La entrada «Comisiones» del menú lleva a la PRIMERA pestaña que la ficha
-     tiene (un closer solo tiene «Mis comisiones») y se marca activa en las
-     cuatro páginas. La barra se pinta una vez, justo bajo la cabecera. */
-  function cableaComisiones(aside, ficha) {
-    var mias = pestanasComisionesDe(ficha);
-    var aqui = location.pathname;
-    var enUna = PESTANAS_COMISIONES.filter(function (t) { return aqui.indexOf('/' + t.path + '/') !== -1; })[0];
-    var entrada = aside.querySelector('a[data-path="comisiones"]');
-    if (entrada && mias.length) {
-      entrada.href = ROOT + mias[0].path + '/';
-      if (enUna) marcaActiva(entrada);
-    }
-    if (!enUna || document.getElementById('lw-pestanas-comisiones')) return;
+    if (!aquiG) return;
+    var idBarra = 'lw-pestanas-' + aquiG.grupo;
+    if (document.getElementById(idBarra)) return;
+    var mias = pestanasDe(aquiG.grupo, ficha);
     var main = document.querySelector('main');
     if (!main || !mias.length) return;
     var rol = (ficha && ficha.rol) || '';
     var barra = document.createElement('nav');
-    barra.id = 'lw-pestanas-comisiones';
-    barra.setAttribute('aria-label', 'Comisiones');
+    barra.id = idBarra;
+    barra.setAttribute('aria-label', T(GRUPOS[aquiG.grupo].texto));
     barra.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;padding:6px;background:#fff;border-radius:999px;box-shadow:0 1px 3px rgba(0,0,0,.06);width:fit-content;max-width:100%;margin:0 0 24px';
     mias.forEach(function (t) {
       var a = document.createElement('a');
-      var on = t === enUna;
+      var on = t === aquiG.pestana;
       a.href = ROOT + t.path + '/';
       a.textContent = T((t.rotulo && t.rotulo[rol]) || t.texto);
       a.style.cssText = 'padding:9px 18px;border-radius:999px;font:600 14px/1 "Neue Kabel",sans-serif;text-decoration:none;white-space:nowrap;' +
@@ -434,7 +540,7 @@
     /* Closer en «Mis comisiones»: es la misma pantalla que la del manager, solo
        con sus filas. Se esconde lo que es del manager (configurar el reparto,
        marcar pagada, ajustar, anular) — la base ya se lo impediría. */
-    if (enUna.path === 'reparto' && (rol === 'agente' || rol === 'project_manager')) {
+    if (aquiG.pestana.path === 'reparto' && (rol === 'agente' || rol === 'project_manager')) {
       var st = document.createElement('style');
       st.textContent = 'main a[href="../condiciones/"],[data-eq-pagar],[data-eq-ajustar],[data-eq-anular]{display:none!important}';
       document.head.appendChild(st);
@@ -458,10 +564,17 @@
     });
   }
 
-  /* `retiraDocumentacion` (8-sep, fusión en Proyectos) se retiró el 27-sep-2026 con el
-     corte de la clásica: la pantalla v4 de Documentación sigue siendo una redirección a
-     Proyectos, pero la entrada del menú lleva a /intranet/documentacion/ (FUERA_V4) y la
-     ve solo quien tiene la herramienta `documentacion` (CLAVE_MENU → podaMenu). */
+  /* Documentacion se fusiono dentro de Proyectos (owner, 8-sep): la pestana
+     desaparece de la v4. Se oculta desde aqui — un solo fichero — en vez de
+     editar 22 sidebars; el fichero de la pantalla queda como redireccion.
+     El corte de la clásica (f1a3aeaa) la había vuelto a sacar hacia
+     /intranet/documentacion/ porque los documentos de la EMPRESA solo se veían
+     allí; el 27-sep-2026 (owner: «la tenemos duplicada») esos documentos pasan a
+     Proyectos, apartado «Empresa (general)», y la clásica se retira. */
+  function retiraDocumentacion(aside) {
+    var a = aside.querySelector('[data-path="documentacion"]');
+    if (a) a.style.display = 'none';
+  }
 
   /* Un solo injertador para los tres casos. Clona el enlace vecino para
      heredar sus clases exactas: escribirlas a mano seria la misma lista de
@@ -492,13 +605,20 @@
      no está en la página (Resumen/Gastos/Cuentas sin rol admin, Sociedades sin
      super) simplemente no aparece. Quién ve cada una lo siguen decidiendo su
      casilla y la RLS: cambiar de grupo no cambia permisos.
-     Orden = cobros → pagos → tesorería. La sidebar tiene un solo nivel de
-     cabecera, así que esos tres bloques son solo orden, sin rótulo.
+     27-sep-2026 (owner): de 9 entradas a 5 — Resumen · Cobros [Vencimientos |
+     Facturas | Recibos] · Comisiones [sus 4 pestañas] · Gastos · Tesorería
+     [Bancos | Cuentas bancarias]; Sociedades vuelve al Panel de control. El orden
+     y las pestañas salen de MENU_V4. Una entrada con pestañas se CREA clonando su
+     primera pestaña (mismas clases) y los enlaces de las pestañas SALEN de la
+     sidebar: quedan en la barra de pestañas de su pantalla y en el buscador.
      Se llama en el pase síncrono DESPUÉS de injertaNuevas (Reservas se injerta
-     `tras: 'vencimientos'`: moverla antes la metería en Finanzas) y ANTES de
-     traduceSidebar (la cabecera nueva tiene que pasar por T). */
-  var ORDEN_FINANZAS = ['finanzas', 'vencimientos', 'facturas', 'recibos', 'productos', 'comisiones', 'gastos', 'bancos', 'cuentas', 'sociedades'];
-  function ordenaFinanzas(aside) {
+     `tras: 'vencimientos'`, Comisiones y Productos `tras: 'recibos'`: esos
+     enlaces tienen que existir todavía) y ANTES de traduceSidebar (la cabecera
+     y las entradas nuevas pasan por T allí). En el segundo pase (tras LW_AUTH)
+     se vuelve a llamar con `traducir`: Tesorería nace entonces, de los enlaces
+     de Bancos y Cuentas que injerta el Panel de control. */
+  var FINANZAS_V4 = MENU_V4.filter(function (s) { return s.seccion === 'Finanzas'; })[0].entradas;
+  function ordenaFinanzas(aside, traducir) {
     var g = aside.querySelector('[data-seccion="finanzas"]');
     if (!g) {
       var ancla = aside.querySelector('nav a[data-path="facturas"]');
@@ -508,8 +628,27 @@
       g.setAttribute('data-seccion', 'finanzas');
       cab.textContent = 'Finanzas';
     }
-    ORDEN_FINANZAS.forEach(function (p) {
-      var a = aside.querySelector('nav a[data-path="' + p + '"]');
+    var aquiG = grupoDeAqui();
+    FINANZAS_V4.forEach(function (e) {
+      var a;
+      if (e.path || e.grupo === 'comisiones') {
+        a = aside.querySelector('nav a[data-path="' + (e.path || e.grupo) + '"]');
+        if (a) g.appendChild(a);
+        return;
+      }
+      var tabs = e.pestanas.map(function (t) { return aside.querySelector('nav a[data-path="' + t.path + '"]'); }).filter(Boolean);
+      a = aside.querySelector('nav a[data-path="' + e.grupo + '"]');
+      if (!a && tabs.length) {
+        a = tabs[0].cloneNode(true);             // clon: hereda las clases exactas
+        a.setAttribute('data-path', e.grupo);
+        desmarca(a);
+        var spans = a.querySelectorAll('span');
+        if (spans.length >= 2) { spans[0].textContent = e.icono; spans[1].textContent = traducir ? T(e.texto) : e.texto; }
+        var primera = e.pestanas.filter(function (t) { return !t.nucleo || window.AXW_NUCLEO_OPERACION; })[0];
+        a.href = ROOT + primera.path + '/';      // href propio: recablea() ya no lo toca
+        if (aquiG && aquiG.grupo === e.grupo) marcaActiva(a);
+      }
+      tabs.forEach(function (t) { if (t.parentNode) t.parentNode.removeChild(t); });
       if (a) g.appendChild(a);
     });
   }
@@ -521,7 +660,8 @@
      que ordenaFinanzas: pase síncrono (Soporte ya está en la página) y
      segundo pase (Comunicados solo existe tras saber el rol). Sin ningún
      enlace se esconde entera: podaMenu no toca un grupo sin enlaces. */
-  var ORDEN_COMUNICACION = ['comunicacion', 'soporte'];
+  var ORDEN_COMUNICACION = MENU_V4.filter(function (s) { return s.seccion === 'Comunicación'; })[0]
+    .entradas.map(function (e) { return e.path; });
   function ordenaComunicacion(aside) {
     var g = aside.querySelector('[data-seccion="comunicacion"]');
     if (!g) {
@@ -597,14 +737,15 @@
   function recablea() {
     var aqui = location.pathname;
     document.querySelectorAll('aside').forEach(injertaNuevas);
-    document.querySelectorAll('aside').forEach(ordenaFinanzas);
+    document.querySelectorAll('aside').forEach(retiraDocumentacion);
+    document.querySelectorAll('aside').forEach(function (aside) { ordenaFinanzas(aside, false); });
     document.querySelectorAll('aside').forEach(ordenaComunicacion);
     document.querySelectorAll('aside a[href="#"], nav a[href="#"]').forEach(function (a) {
       // 1º por data-path (cáscara canónica); 2º por texto (páginas sin él)
       var dp = a.getAttribute('data-path');
       if (dp) {
         var ruta = dp === 'login' ? 'entrar/' : dp + '/';
-        a.href = FUERA_V4[dp] || (ROOT + ruta);
+        a.href = ROOT + ruta;
         if (dp === 'login') { cableaSalir(a); return; }
         if (aqui.indexOf('/' + ruta) !== -1) marcaActiva(a);
         return;
@@ -678,13 +819,27 @@
     lupa.setAttribute('data-real', '');
     lupa.setAttribute('aria-label', T('Buscar herramienta'));
     var caja = null;
+    /* Cada resultado es {nombre, href}. Una entrada con pestañas (Cobros, Comisiones,
+       Tesorería) se abre en sus pestañas: el buscador sigue encontrando «Facturas» o
+       «Bancos» por su nombre aunque ya no tengan enlace propio en la sidebar (27-sep). */
     function enlaces() {
       var aside = document.querySelector('aside');
       if (!aside) return [];
-      return Array.prototype.filter.call(aside.querySelectorAll('nav a[data-path]'), function (a) {
-        if (a.style.display === 'none') return false;
-        var g = a.parentElement; return !(g && g.style.display === 'none');
+      var out = [];
+      Array.prototype.forEach.call(aside.querySelectorAll('nav a[data-path]'), function (a) {
+        if (a.style.display === 'none') return;
+        var g = a.parentElement; if (g && g.style.display === 'none') return;
+        var dp = a.getAttribute('data-path');
+        if (GRUPOS[dp]) {
+          var rol = (FICHA_SESION && FICHA_SESION.rol) || '';
+          pestanasDe(dp, FICHA_SESION).forEach(function (t) {
+            out.push({ nombre: T((t.rotulo && t.rotulo[rol]) || t.texto), href: ROOT + t.path + '/' });
+          });
+          return;
+        }
+        out.push({ nombre: nombre(a), href: a.href });
       });
+      return out;
     }
     function nombre(a) { var s = a.querySelectorAll('span'); return normaliza((s[1] || a).textContent); }
     function sinTildes(t) { return t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
@@ -707,14 +862,14 @@
       function pinta() {
         var q = sinTildes(inp.value.trim());
         lista.innerHTML = '';
-        var hay = enlaces().filter(function (a) { return !q || sinTildes(nombre(a)).indexOf(q) !== -1; });
+        var hay = enlaces().filter(function (a) { return !q || sinTildes(a.nombre).indexOf(q) !== -1; });
         if (!hay.length) {
           var p = document.createElement('p'); p.textContent = T('Ninguna herramienta con ese nombre.');
           p.style.cssText = 'margin:6px 8px;font:400 13px Jost,system-ui,sans-serif;color:#a8a29e;font-style:italic'; lista.appendChild(p); return;
         }
         hay.forEach(function (a) {
           var o = document.createElement('a');
-          o.href = a.href; o.textContent = nombre(a);
+          o.href = a.href; o.textContent = a.nombre;
           o.style.cssText = 'display:block;padding:9px 12px;border-radius:8px;color:#292524;text-decoration:none;font:500 14px/1.35 Jost,system-ui,sans-serif';
           o.addEventListener('mouseenter', function () { o.style.background = '#F3F0E8'; });
           o.addEventListener('mouseleave', function () { o.style.background = ''; });
@@ -743,6 +898,7 @@
      cumple. */
   if (window.LW_AUTH && typeof window.LW_AUTH.then === 'function') {
     window.LW_AUTH.then(function (aut) {
+      FICHA_SESION = (aut && aut.ficha) || null;
       document.querySelectorAll('aside').forEach(function (aside) {
         // «Panel de control» nace DESPUES del primer traduceSidebar (este
         // pase espera a LW_AUTH) — sin traducir el grupo nuevo se queda en
@@ -758,9 +914,9 @@
           if (cabecera) cabecera.textContent = T(normaliza(cabecera.textContent));
           traduceEnlaces(nuevoGrupo);
         }
-        ordenaFinanzas(aside);
+        ordenaFinanzas(aside, true);
         ordenaComunicacion(aside);
-        cableaComisiones(aside, aut && aut.ficha);
+        cableaPestanas(aside, aut && aut.ficha);
         // DESPUÉS del Panel de control y de la mudanza: poda y grupos vacíos
         podaMenu(aside, aut && aut.ficha);
       });

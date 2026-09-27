@@ -16,7 +16,8 @@ function ok(cond, msg) { if (!cond) { fallos++; console.error('  FALLA  ' + msg)
 // ── 1. paridad con las dos copias de la edge ──────────────────────────────
 const aqui = path.dirname(__filename);
 function bloque(fichero) {
-  const txt = fs.readFileSync(fichero, 'utf8');
+  // Sin \r: con core.autocrlf la edge queda en CRLF y un modulo reescrito en LF (LAW-376).
+  const txt = fs.readFileSync(fichero, 'utf8').replace(/\r\n/g, '\n');
   const a = txt.indexOf('// >>> borradorComprador');
   const b = txt.indexOf('// <<< borradorComprador');
   if (a < 0 || b < 0 || b < a) return null;

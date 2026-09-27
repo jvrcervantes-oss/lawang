@@ -265,6 +265,41 @@
     location.replace(LOGIN + '?next=' + encodeURIComponent(location.pathname + location.search));
   }
 
+  /* PETICIONES EN VUELO DEL CLIENTE (27-sep-2026). El velo de la v4 (datos.js)
+     contaba solo las consultas que pasaban por su `vig()`: una segunda tanda
+     sin envolver, o una pantalla que pinta con su propio script (Finanzas,
+     Gastos, Bancos…), no contaba, el velo se iba y se veian los «—» hasta que
+     llegaba el dato (lo vio el owner). Todo lo que la pagina pide a Supabase
+     pasa por este cliente, asi que se cuenta aqui. Una peticion sigue contada
+     hasta que alguien termina de LEER su cuerpo, no solo hasta las cabeceras:
+     con 1000 contratos el cuerpo tarda, y el pintado va detras. Si nadie lo lee,
+     se descuenta a los 4 s para no dejar el contador colgado (el velo se rinde a los 12). */
+  var RED = window.LW_RED = window.LW_RED || { n: 0, alCero: [] };
+  function fetchContado(input, init) {
+    RED.n++;
+    var hecho = false;
+    var baja = function () {
+      if (hecho) return;
+      hecho = true;
+      RED.n--;
+      if (RED.n === 0) RED.alCero.slice().forEach(function (f) { try { f(); } catch (e) {} });
+    };
+    var p;
+    try { p = window.fetch(input, init); } catch (e) { baja(); throw e; }
+    return p.then(function (res) {
+      // sin cuerpo que leer (los recuentos van por HEAD; 204/304): termina con las cabeceras
+      var metodo = String((init && init.method) || (input && input.method) || 'GET').toUpperCase();
+      if (metodo === 'HEAD' || res.status === 204 || res.status === 205 || res.status === 304) { baja(); return res; }
+      ['text', 'json', 'blob', 'arrayBuffer'].forEach(function (k) {
+        var orig = res[k];
+        if (typeof orig !== 'function') return;
+        res[k] = function () { var c = orig.apply(res, arguments); c.then(baja, baja); return c; };
+      });
+      setTimeout(baja, 4000);
+      return res;
+    }, function (e) { baja(); throw e; });
+  }
+
   window.LW_AUTH = new Promise(function (resolve) {
     function comprobar() {
       if (!window.supabase || !window.supabase.createClient) { alLogin(); return; }
@@ -272,7 +307,7 @@
          el suyo además de este, y dos clientes de supabase-js sobre el mismo
          almacenamiento de sesión se pisan al refrescar el token. Se publica el de
          aquí y esas herramientas lo toman en vez de crear otro. */
-      var sb = window.LW_SB || window.supabase.createClient(URL_SB, KEY_SB);
+      var sb = window.LW_SB || window.supabase.createClient(URL_SB, KEY_SB, { global: { fetch: fetchContado } });
       window.LW_SB = sb;
       sb.auth.getSession().then(function (r) {
         var sesion = r && r.data && r.data.session;
