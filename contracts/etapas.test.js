@@ -1,4 +1,4 @@
-/* node operaciones/etapas.test.js
+/* node contracts/etapas.test.js
    La escalera de etapas del EMBUDO de Operaciones.
 
    POR QUÉ EXISTE. Los `FILTROS` de esa herramienta son predicados que se
@@ -29,18 +29,19 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 
-/* La herramienta vive bajo `/intranet/` desde el 26-ago-2026, así que la raíz
-   del proyecto está DOS niveles arriba, no uno. */
-const AQUI = path.join(__dirname);
-const RAIZ = path.join(__dirname, '..', '..');
-const pagina = fs.readFileSync(path.join(AQUI, 'index.html'), 'utf8');
+/* Vivía en `intranet/operaciones/` junto a la herramienta clásica. Esa página se
+   archivó el 27-sep-2026 (corte de la clásica: la ruta redirige 302 a la v4 y el
+   fichero salió del árbol), así que el test se muda aquí y la página que tiene
+   que seguir cargando el módulo es la de Operaciones v4. */
+const RAIZ = path.join(__dirname, '..');
+const pagina = fs.readFileSync(path.join(RAIZ, 'intranet', 'v4', 'operaciones', 'index.html'), 'utf8');
 
 /* las mismas piezas que carga la herramienta, no reimplementadas — y en el mismo
    ORDEN, que es parte de la dependencia: `totales.js` usa `dinero.js` y desde el
    26-ago-2026 ya no lleva una copia propia por si falta. Concatenarlos aquí es
    exactamente lo que hace el <head> de la página. */
-const fuentes = ['../../contracts/assets/dinero.js', '../facturas/totales.js']
-  .map(r => fs.readFileSync(path.join(AQUI, r), 'utf8')).join('\n;\n');
+const fuentes = [['contracts', 'assets', 'dinero.js'], ['intranet', 'facturas', 'totales.js']]
+  .map(r => fs.readFileSync(path.join(RAIZ, ...r), 'utf8')).join('\n;\n');
 const cajaTotales = {};
 new Function('caja', fuentes + '\n;Object.assign(caja,{parseImporte,redondear});')(cajaTotales);
 
@@ -56,7 +57,7 @@ const { ETAPAS, etapa } = new Function('parseImporte', 'redondear',
    fichero que la herramienta ya no enlaza sería verde sobre código muerto, que es
    el fallo que este mismo test acaba de pagar por el otro lado. */
 assert.ok(/operaciones-cuentas\.js/.test(pagina),
-  'operaciones/index.html ya no carga operaciones-cuentas.js: este test estaría probando un fichero huérfano');
+  'intranet/v4/operaciones/ ya no carga operaciones-cuentas.js: este test estaría probando un fichero huérfano');
 
 /* `cobrado` (11-ago-2026, reforma del modelo de facturación): cuenta() ya no
    suma `op.facturas` — lee `op.cobrado`, precalculado en Supabase por

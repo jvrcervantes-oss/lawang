@@ -140,6 +140,12 @@ RedirectMatch 404 (?i)/_diag_
   # no portado), obra/ (la ficha por unidad y sus fotos solo existen ahi: la v4
   # enlaza a /intranet/obra/?id=), creatividades/redes/, dossier/, contrasena/.
   # (documentacion/ salio de esta lista el 27-sep-2026: retirada, ver su 302 mas abajo.)
+  # ARCHIVADAS (27-sep-2026, tarde, decision del owner): los index.html de operaciones,
+  # compradores, proyectos, usuarios, vencimientos, creatividades, modelos, cuentas,
+  # sociedades, soporte y solicitudes SALIERON del arbol (git rm; el historial es el
+  # archivo). Estos 302 se quedan A PROPOSITO: los enlaces de correos ya enviados siguen
+  # llegando a la v4. Ninguna regla depende de que el fichero exista (no hay -f/-d).
+  # Lo que la v4 carga de esas carpetas (vencimientos/logica.js) sigue en su sitio.
   #
   # Facturas se bifurca por la query (cada RewriteCond ata solo a la regla siguiente):
   #   ?vista=  -> se sirve la clasica (modo solo-documento del visor compartido)

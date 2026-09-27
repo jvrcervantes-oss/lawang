@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
     const vence = c.vence_el ? String(c.vence_el).slice(0, 10) : null;
     if (!vence) { saltadas.push(etiqueta + ': sin fecha_pago_reserva o sin validez, no se inventa'); continue; }
     const liberaEl = masDias(vence, DIAS_GRACIA);
-    const enlace = '/intranet/operaciones/?contrato=' + c.contrato_id;
+    const enlace = '/intranet/v4/operaciones/?contrato=' + c.contrato_id;
     const prorrogas = c.n_prorrogas > 0 ? ' · ' + c.n_prorrogas + ' prórroga(s)' : '';
 
     if (diaAviso && vence === diaAviso) {
