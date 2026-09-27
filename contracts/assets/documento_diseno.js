@@ -29,8 +29,11 @@ function saveDesign(){ try{ localStorage.setItem('lawang_contract_design_'+CURRE
    punto de partida. */
 async function loadSharedDesign(slug){
   if(!sb) return null;
-  const { data } = await sb.from('contratos_diseno').select('design').eq('slug', slug).maybeSingle();
-  return data ? data.design : null;
+  // por el servidor (LAW-338 L2, 28-sep-2026). Si no contesta se DICE: sin aviso, el documento saldría con el
+  // diseño de este navegador creyendo que es el de la plantilla.
+  const { data, error } = await window.lwDatos('contrato_diseno_datos', { p_slug: slug });
+  if(error){ toast('No se pudo leer el diseño guardado de esta plantilla: se usa el de este navegador. Recarga antes de enviar el documento.'); return null; }
+  return data && data.design ? data.design : null;
 }
 async function saveSharedDesign(){
   if(!sb) return;

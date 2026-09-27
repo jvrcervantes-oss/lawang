@@ -27,24 +27,13 @@
 (function () {
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
 
-  let EQUIPO = null;   // [{email, nombre, activo}] — se pide una vez por sesión
-
-  async function equipo(sb) {
-    if (EQUIPO) return EQUIPO;
-    // solo activos: la base rechaza reasignar a una cuenta desactivada
-    const { data } = await sb.from('usuarios').select('email, nombre, activo').eq('activo', true).order('email');
-    EQUIPO = data || [];
-    return EQUIPO;
-  }
-
-  /* Último movimiento de este campo, para que el panel diga quién reasignó y
-     cuándo. Sin esto la reasignación es invisible en cuanto se cierra. */
-  async function ultimoCambio(sb, tabla, filaId) {
-    const { data } = await sb.from('correcciones_datos')
-      .select('valor_anterior, valor_nuevo, motivo, corregido_en, corregido_por')
-      .eq('tabla', tabla).eq('fila_id', filaId).eq('campo', 'creado_por')
-      .order('corregido_en', { ascending: false }).limit(1).maybeSingle();
-    return data || null;
+  /* Por el servidor (LAW-338 L2, 28-sep-2026): autoria_datos trae el equipo ACTIVO (la base rechaza reasignar a
+     una cuenta desactivada) y el último cambio de autor de esta fila, para que el panel diga quién reasignó y
+     cuándo. Si no contesta, lanza: el panel lo dice en vez de ofrecer una lista vacía como si no hubiera nadie. */
+  async function datos(tabla, filaId) {
+    const { data, error } = await window.lwDatos('autoria_datos', { p_tabla: tabla, p_fila: filaId });
+    if (error || !data) throw new Error((error && error.message) || 'sin respuesta');
+    return { lista: data.equipo || [], ultimo: data.ultimo || null };
   }
 
   async function reasignar(sb, { tabla, filaId, actual, nuevo, motivo }) {
@@ -72,8 +61,10 @@
       ev.stopPropagation();                       // las filas de las dos listas abren el documento al hacer clic
       if (slot.querySelector('.lw-autoria-caja')) { cerrar(); return; }
       abrir.disabled = true;
-      const [lista, ultimo] = await Promise.all([equipo(sb), ultimoCambio(sb, tabla, filaId)]);
-      abrir.disabled = false;
+      let lista, ultimo;
+      try { ({ lista, ultimo } = await datos(tabla, filaId)); }
+      catch (e) { abrir.disabled = false; abrir.title = 'No se pudo leer el equipo: ' + e.message; abrir.textContent = 'Reasignar autor (reintentar)'; return; }
+      abrir.disabled = false; abrir.title = ''; abrir.textContent = 'Reasignar autor';
 
       const opciones = lista.filter(u => u.email !== actual)
         .map(u => `<option value="${esc(u.email)}">${esc(u.nombre || u.email)}</option>`).join('');
@@ -151,6 +142,6 @@
   hoja.textContent = css;
   document.head.appendChild(hoja);
 
-  window.LW_AUTORIA = { montar, reasignar, equipo, ultimoCambio,
+  window.LW_AUTORIA = { montar, reasignar,
     puede: ficha => !!ficha && ficha.rol === 'super_admin' };
 })();
