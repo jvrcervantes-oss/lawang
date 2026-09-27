@@ -197,11 +197,12 @@ function documentoHTML(d, opts){
     (t.pct ? '<tr><td>' + escDoc(d.imp_etiqueta || 'Impuesto · Tax') + ' (' + escDoc(String(t.pct)) + '%)</td>' +
              '<td class="imp">' + fmtMoneda(t.impuesto, d.moneda) + '</td></tr>' : '') +
     /* Una fila por impuesto del catálogo (solo si el documento trae `impuestos_sel`):
-       la retención resta, y exenta / no sujeta / ISP imprimen su mención legal
-       (art. 6.1.j RD 1619/2012) en vez de una cuota. Sin selección no sale nada. */
+       la retención resta, exenta / no sujeta / ISP no llevan cuota, y la mención legal
+       (art. 6.1.j RD 1619/2012) sale siempre que el impuesto la traiga. Sin selección no sale nada. */
     (t.resumen || []).map(function (g) {
       var sinCuota = g.clase !== 'suma' && g.clase !== 'retiene';
-      return '<tr><td>' + escDoc(g.nombre) + (sinCuota && g.motivo_legal ? ' · ' + escDoc(g.motivo_legal) : '') + '</td>' +
+      // la mención legal SIEMPRE que venga (Administración, 27-sep): también un «suma» al 0 % (exportación)
+      return '<tr><td>' + escDoc(g.nombre) + (g.motivo_legal ? ' · ' + escDoc(g.motivo_legal) : '') + '</td>' +
         '<td class="imp">' + (sinCuota ? '—' : fmtMoneda(g.clase === 'retiene' ? -g.cuota : g.cuota, d.moneda)) + '</td></tr>';
     }).join('') +
     '<tr class="total"><td>Total</td><td class="imp">' + fmtMoneda(t.total, d.moneda) + '</td></tr>' +

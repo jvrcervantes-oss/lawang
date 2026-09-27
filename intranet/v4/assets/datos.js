@@ -2229,18 +2229,20 @@
             return p <= 0.005 ? 'cobrada' : (tot - p <= 0.005 ? 'pendiente' : 'parcial');
           }
           var ini = new Date(); ini.setDate(1); ini.setHours(0, 0, 0, 0);
-          var mesEUR = 0, mesOtras = 0, nFac = 0, nFacAnu = 0, nPro = 0, nProAnu = 0;
-          var cuentaF = lwFacturaQueCuenta(fs);
+          var mesEUR = 0, mesOtras = 0, nFac = 0, nFacAnu = 0, nPro = 0, nProAnu = 0, nRect = 0;
           fs.forEach(function (f) {
-            if (f.tipo === 'proforma') { nPro++; if (f.anulada) nProAnu++; } else { nFac++; if (f.anulada) nFacAnu++; }
-            if (f.tipo !== 'proforma' && cuentaF(f) && new Date(f.fecha_emision || f.created_at) >= ini) {
+            if (f.tipo === 'proforma') { nPro++; if (f.anulada) nProAnu++; } else { nFac++; if (f.anulada) nFacAnu++; if (f.rectifica_id) nRect++; }
+            // por DEVENGO (lwFacturaCuentaEnSuFecha, dinero.js): la emitida suma en su mes aunque se anulara, la R resta en el suyo
+            if (f.tipo !== 'proforma' && lwFacturaCuentaEnSuFecha(f) && new Date(f.fecha_emision || f.created_at) >= ini) {
               if ((f.moneda || 'EUR') === 'EUR') mesEUR += Number(f.total) || 0; else mesOtras++;
             }
           });
           pon2('k-mes', fmt(mesEUR, 'EUR'));
-          pon2('k-mes-pie', 'facturas vigentes del mes en euros, impuestos incluidos' + (mesOtras ? ' · +' + mesOtras + ' en otra moneda' : ''));
-          pon2('k-facturas', String(nFac));
-          pon2('k-facturas-pie', nFacAnu + ' anulada' + (nFacAnu === 1 ? '' : 's') + ' · histórico completo');
+          pon2('k-mes-pie', (window.AXW_NUCLEO_OPERACION ? 'facturado del mes por fecha de emisión (las rectificativas restan), en euros, impuestos incluidos' : 'facturas vigentes del mes en euros, impuestos incluidos') + (mesOtras ? ' · +' + mesOtras + ' en otra moneda' : ''));
+          // las rectificativas (ERP maestro) se cuentan APARTE, no como facturas; en Lawang nRect = 0 y queda lo de siempre
+          pon2('k-facturas', String(nFac - nRect));
+          pon2('k-facturas-pie', (nRect ? (nFac - nRect) + ' factura' + (nFac - nRect === 1 ? '' : 's') + ' · ' + nRect + ' rectificativa' + (nRect === 1 ? '' : 's') + ' · ' : '') +
+            nFacAnu + ' anulada' + (nFacAnu === 1 ? '' : 's') + ' · histórico completo');
           // KPI «Pendiente de cobro» en el sitio de «Proformas» (22-sep-2026):
           // las proformas son automáticas y no facturan; lo pendiente es lo
           // que de verdad se mira aquí.
@@ -2276,8 +2278,7 @@
               var tr = pl.tbody.lastElementChild;
               tr.setAttribute('data-lw-fila', ''); tr.setAttribute('data-lw-id', f.id);
               tr.setAttribute('data-lw-tipo', f.tipo === 'proforma' ? 'proforma' : 'factura');
-              // ERP maestro: la rectificativa tiene su propio estado (no cuenta como «Emitida»)
-              tr.setAttribute('data-lw-estado', f.anulada ? 'anulada' : (f.rectifica_id ? 'rectificativa' : (f.enviada ? 'enviada' : 'emitida')));
+              tr.setAttribute('data-lw-estado', f.anulada ? 'anulada' : (f.enviada ? 'enviada' : 'emitida'));
               var cobro = cobroDe(f); tr.setAttribute('data-lw-cobro', cobro);
               tr.setAttribute('data-lw-pajar', [op ? op.referencia : '', f.numero, f.cliente_nombre, f.contrato_numero, f.proyecto_nombre, f.creado_por, nombreAutor(AUT, f.creado_por)].join(' ').toLowerCase());
               if (grupo) tr.setAttribute('data-lw-grupo', grupo);
@@ -2427,11 +2428,9 @@
               { clave: 'cobrada', texto: 'Cobradas', n: cuenta(function (f) { return cobroDe(f) === 'cobrada'; }) }], estado, aplicar);
             chipsReales(document.querySelector('[data-lw-chips="estado"]'), 'estado', [
               { clave: '*', texto: 'Todas', n: fs.length },
-              { clave: 'emitida', texto: 'Emitidas', n: cuenta(function (f) { return !f.anulada && !f.rectifica_id && !f.enviada; }) },
-              { clave: 'enviada', texto: 'Enviadas', n: cuenta(function (f) { return !f.anulada && !f.rectifica_id && f.enviada; }) }]
-              // chip aparte solo si hay alguna (ERP maestro); en Lawang no sale nunca
-              .concat(cuenta(function (f) { return !f.anulada && f.rectifica_id; }) ? [{ clave: 'rectificativa', texto: 'Rectificativas', n: cuenta(function (f) { return !f.anulada && f.rectifica_id; }) }] : [])
-              .concat([{ clave: 'anulada', texto: 'Anuladas', n: nFacAnu + nProAnu }]), estado, aplicar);
+              { clave: 'emitida', texto: 'Emitidas', n: cuenta(function (f) { return !f.anulada && !f.enviada; }) },
+              { clave: 'enviada', texto: 'Enviadas', n: cuenta(function (f) { return !f.anulada && f.enviada; }) },
+              { clave: 'anulada', texto: 'Anuladas', n: nFacAnu + nProAnu }], estado, aplicar);
             buscadorDe(aplicar, function (v) { texto = v; });
             aplicar();   // el chip inicial «Facturas» filtra desde el primer pintado
             cargaDivergencias();

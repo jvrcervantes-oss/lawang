@@ -181,4 +181,9 @@ caja.SOCIEDADES.soc_id = { razon: 'PT Demo', domicilio: 'Bali', npwp: '01.000', 
 assert.ok(caja.documentoHTML({ ...campos, sociedad: 'soc_es' }, {}).includes('NIF B000'), 'sociedad no indonesa sin etiqueta: NIF');
 assert.ok(caja.documentoHTML({ ...campos, sociedad: 'soc_id' }, {}).includes('NPWP 01.000'), 'indonesa sin etiqueta: NPWP');
 
+/* la mención legal sale siempre que el impuesto la traiga, también un «suma» al 0 % (Administración) */
+const exp = caja.documentoHTML({ ...campos, sociedad: 'soc_es', impuestos_sel: [{ id: 'x0', nombre: 'IVA 0 % exportación', clase: 'suma', porcentaje: 0, coef_base: 1,
+  motivo_legal: 'Exenta por exportación, art. 21 LIVA' }] }, {});
+assert.ok(exp.includes('Exenta por exportación, art. 21 LIVA'), 'la mención de un 0 % se imprime');
+
 console.log('documento.test.js OK');

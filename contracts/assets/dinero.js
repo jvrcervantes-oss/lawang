@@ -226,6 +226,16 @@ function lwFacturaQueCuenta(docs){
   return function(f){ return !!f && !f.anulada && (!f.rectifica_id || !!viva[f.rectifica_id]); };
 }
 
+/* ¿Esta factura suma EN SU FECHA? (27-sep-2026, AXW-39, Administración: criterio de devengo).
+   Para las sumas POR FECHA (facturado del mes…): un documento EMITIDO en la serie fiscal
+   (`emitida_en`) suma en su mes aunque luego se anulara, y su rectificativa resta en el
+   suyo. Una factura de agosto anulada en septiembre: agosto +X, septiembre −X. Las sumas
+   SIN fecha (contrato, hitos, proyecto) siguen con `lwFacturaQueCuenta` (el neto).
+   Sin `emitida_en` (Lawang, o una factura sin serie) es `!f.anulada`, lo de siempre. */
+function lwFacturaCuentaEnSuFecha(f){
+  return !!f && (f.emitida_en ? true : !f.anulada);
+}
+
 /* Node lo necesita para el test; el navegador lo ignora. Sin `module.exports`
    las constantes quedan globales, que es como las usan las nueve herramientas.
 
@@ -239,4 +249,4 @@ function lwFacturaQueCuenta(docs){
 if(typeof module !== 'undefined' && module.exports)
   module.exports = { lwParseImporte, lwFormatoImporte, lwImporteCanonico, LW_DECIMALES,
                      lwSumaPorMoneda, lwSumaTexto, lwMonedaPrincipal, lwDescuentoCascada,
-                     lwFacturaQueCuenta };
+                     lwFacturaQueCuenta, lwFacturaCuentaEnSuFecha };

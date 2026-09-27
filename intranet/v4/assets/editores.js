@@ -3921,7 +3921,7 @@
                 return { error: { message: 'Una factura de una sociedad española dice siempre su IVA, o por qué no lo lleva (exenta, no sujeta, inversión del sujeto pasivo): márcalo en «Impuestos».' } };
               }
               var errReg = regimenImpuestoError(selI);
-              if (errReg) return { error: { message: errReg + '.' } };
+              if (errReg) return { error: { message: errReg } };
               d.impuestos_sel = selI; d.imp_pct = ''; d.imp_etiqueta = '';
               lineas = lineas.map(function (l) { return { descripcion: l.descripcion, importe: l.importe, impuestos: selI.map(function (i) { return i.id; }) }; });
               d.lineas = lineas;
