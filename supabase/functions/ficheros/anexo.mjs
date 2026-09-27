@@ -7,7 +7,7 @@
 export const TOPE_PAGINA = 3 * 1024 * 1024;   // = file_size_limit del bucket contratos-anexos
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 const RE_UUID = new RegExp('^' + UUID + '$');
-const RE_ANEXO = /^ax[-0-9A-Za-z]{1,60}$/;
+const RE_ANEXO = new RegExp('^ax-' + UUID + '$');   // siempre `ax-<uuid>`: el contenido de un id no cambia
 
 export const esUuid = (s) => RE_UUID.test(String(s ?? ''));
 export const anexoIdOk = (s) => RE_ANEXO.test(String(s ?? ''));

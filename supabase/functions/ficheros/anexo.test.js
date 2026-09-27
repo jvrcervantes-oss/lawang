@@ -26,7 +26,8 @@ const { pathToFileURL } = require('url');
 
   // ids y páginas
   assert.ok(m.anexoIdOk('ax-' + U));
-  assert.ok(m.anexoIdOk('ax12'));
+  assert.ok(!m.anexoIdOk('ax12'), 'los ids viejos ax<n> no son del archivo');
+  assert.ok(!m.anexoIdOk('axauto'), 'el automático nunca va al archivo');
   assert.ok(!m.anexoIdOk('ax/../x'));
   assert.ok(!m.anexoIdOk('otro'));
   assert.strictEqual(m.nPagina('7'), 7);

@@ -68,7 +68,7 @@ begin
     v_id := e->>'id';
     if v_id is null or not (p_mapa ? v_id) then v_nuevo := v_nuevo || jsonb_build_array(e); continue; end if;
     v_nid := p_mapa->v_id->>'id';
-    if v_nid is null or v_nid !~ '^ax[-0-9A-Za-z]{1,60}$' then raise exception 'Id nuevo no válido para %', v_id using errcode = '22023'; end if;
+    if v_nid is null or v_nid !~ '^ax-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then raise exception 'Id nuevo no válido para %', v_id using errcode = '22023'; end if;
     v_pags := jsonb_array_length(e->'pages');
     select count(*) into v_filas from public.contrato_anexo_paginas p where p.contrato_id = p_contrato and p.anexo_id = v_nid;
     if v_filas <> v_pags then

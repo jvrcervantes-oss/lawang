@@ -55,6 +55,7 @@ select set_config('t.c', c.id::text, true) from public.contratos c
 insert into storage.objects (bucket_id, name, metadata) values
   ('contratos-anexos', current_setting('t.a') || '/UUID1/1.jpg', '{"size": 1000}'),
   ('contratos-anexos', current_setting('t.a') || '/UUID1/2.jpg', '{"size": 1000}'),
+  ('contratos-anexos', current_setting('t.a') || '/UUID1/3.jpg', '{"size": 1000}'),
   ('contratos-anexos', current_setting('t.a') || '/UUID2/1.jpg', '{"size": 1000}'),
   ('contratos-anexos', current_setting('t.b') || '/UUID1/1.jpg', '{"size": 1000}'),
   ('contratos-anexos', current_setting('t.c') || '/UUID1/1.jpg', '{"size": 1000}');
@@ -73,40 +74,40 @@ select set_config('t.l', x.id::text, true), set_config('t.lid', x.aid, true)
          order by pg_column_size(c.datos) limit 1) x;
 insert into public.contrato_anexo_paginas (contrato_id, anexo_id, n, path, sha256, bytes)
 select current_setting('t.l')::uuid, v.aid, g.n, current_setting('t.l') || '/' || gen_random_uuid() || '/' || g.n || '.jpg',
-       case when v.aid = 'ax-malo' then repeat('b', 64) else encode(sha256(decode(split_part(g.pag, ',', 2), 'base64')), 'hex') end,
+       case when v.aid = 'ax-00000000-0000-4000-8000-000000000003' then repeat('b', 64) else encode(sha256(decode(split_part(g.pag, ',', 2), 'base64')), 'hex') end,
        octet_length(decode(split_part(g.pag, ',', 2), 'base64'))
   from public.contratos c
   cross join lateral jsonb_array_elements(c.datos->'annexes') a
   cross join lateral jsonb_array_elements_text(a->'pages') with ordinality g(pag, n)
-  cross join (values ('ax-migrado'), ('ax-malo')) v(aid)
+  cross join (values ('ax-00000000-0000-4000-8000-000000000002'), ('ax-00000000-0000-4000-8000-000000000003')) v(aid)
  where c.id = current_setting('t.l')::uuid and a->>'id' = current_setting('t.lid');
-update public.contrato_anexo_paginas set created_at = now() - interval '3 days' where anexo_id = 'ax-malo';
+update public.contrato_anexo_paginas set created_at = now() - interval '3 days' where anexo_id = 'ax-00000000-0000-4000-8000-000000000003';
 insert into storage.objects (bucket_id, name, created_at) values
   ('contratos-anexos', current_setting('t.l') || '/33333333-3333-4333-8333-333333333333/1.jpg', now() - interval '3 days'),
   ('contratos-anexos', current_setting('t.l') || '/44444444-4444-4444-8444-444444444444/1.jpg', now());
 set local role service_role;
 do $$ begin perform public.contrato_anexos_pasa_a_archivo(current_setting('t.l')::uuid,
-                     jsonb_build_object(current_setting('t.lid'), jsonb_build_object('id', 'ax-malo')));
+                     jsonb_build_object(current_setting('t.lid'), jsonb_build_object('id', 'ax-00000000-0000-4000-8000-000000000003')));
   insert into _t values ('M1 paso con una huella que no cuadra DEBE parar', false, 'no paro');
 exception when others then insert into _t values ('M1 paso con una huella que no cuadra DEBE parar', sqlstate = '22023', sqlstate || ' ' || left(sqlerrm, 90)); end $$;
-do $$ begin perform public.contrato_anexos_pasa_a_archivo(current_setting('t.b')::uuid, '{"ax1": {"id": "ax-x"}}');
+do $$ begin perform public.contrato_anexos_pasa_a_archivo(current_setting('t.b')::uuid, '{"ax1": {"id": "ax-00000000-0000-4000-8000-000000000012"}}');
   insert into _t values ('M2 paso en contrato bloqueado DEBE parar', false, 'no paro');
 exception when others then insert into _t values ('M2 paso en contrato bloqueado DEBE parar', sqlstate = '23514', sqlstate || ' ' || left(sqlerrm, 90)); end $$;
-do $$ begin perform public.contrato_anexos_pasa_a_archivo(current_setting('t.l')::uuid, '{"ax-no-existe": {"id": "ax-x"}}');
+do $$ begin perform public.contrato_anexos_pasa_a_archivo(current_setting('t.l')::uuid, '{"ax-00000000-0000-4000-8000-000000000001": {"id": "ax-00000000-0000-4000-8000-000000000012"}}');
   insert into _t values ('M3 paso de un anexo que no esta DEBE parar', false, 'no paro');
 exception when others then insert into _t values ('M3 paso de un anexo que no esta DEBE parar', sqlstate = '22023', sqlstate || ' ' || left(sqlerrm, 90)); end $$;
 do $$ declare k int; a jsonb; begin
   k := public.contrato_anexos_pasa_a_archivo(current_setting('t.l')::uuid,
-         jsonb_build_object(current_setting('t.lid'), jsonb_build_object('id', 'ax-migrado')));
+         jsonb_build_object(current_setting('t.lid'), jsonb_build_object('id', 'ax-00000000-0000-4000-8000-000000000002')));
   select e into a from public.contratos c, jsonb_array_elements(c.datos->'annexes') e
-   where c.id = current_setting('t.l')::uuid and e->>'id' = 'ax-migrado';
+   where c.id = current_setting('t.l')::uuid and e->>'id' = 'ax-00000000-0000-4000-8000-000000000002';
   insert into _t values ('M4 paso bueno: el anexo queda como ficha, sin paginas',
     k = 1 and a is not null and not (a ? 'pages') and a ? 'title'
       and not exists (select 1 from public.contratos c, jsonb_array_elements(c.datos->'annexes') e
                        where c.id = current_setting('t.l')::uuid and e->>'id' = current_setting('t.lid')),
     'k=' || k);
 exception when others then insert into _t values ('M4 paso bueno: el anexo queda como ficha, sin paginas', false, sqlstate || ' ' || left(sqlerrm, 90)); end $$;
-update public.contrato_anexo_paginas set created_at = now() - interval '3 days' where anexo_id = 'ax-migrado';
+update public.contrato_anexo_paginas set created_at = now() - interval '3 days' where anexo_id = 'ax-00000000-0000-4000-8000-000000000002';
 insert into _t
 select 'H1 barrido: objeto viejo sin fila, si', count(*) filter (where h.path like '%/33333333-%') = 1, count(*)::text
   from public.contrato_anexos_huerfanos(48) h where h.tipo = 'objeto';
@@ -115,10 +116,10 @@ select 'H2 barrido: objeto reciente sin fila, no', count(*) = 0, count(*)::text
   from public.contrato_anexos_huerfanos(48) h where h.path like '%/44444444-%';
 insert into _t
 select 'H3 barrido: filas de un anexo que nadie nombra, si', count(*) > 0, count(*)::text
-  from public.contrato_anexos_huerfanos(48) h join public.contrato_anexo_paginas p on p.id = h.fila_id where p.anexo_id = 'ax-malo';
+  from public.contrato_anexos_huerfanos(48) h join public.contrato_anexo_paginas p on p.id = h.fila_id where p.anexo_id = 'ax-00000000-0000-4000-8000-000000000003';
 insert into _t
 select 'H4 barrido: filas de un anexo en datos, no', count(*) = 0, count(*)::text
-  from public.contrato_anexos_huerfanos(48) h join public.contrato_anexo_paginas p on p.id = h.fila_id where p.anexo_id = 'ax-migrado';
+  from public.contrato_anexos_huerfanos(48) h join public.contrato_anexo_paginas p on p.id = h.fila_id where p.anexo_id = 'ax-00000000-0000-4000-8000-000000000002';
 reset role;
 set local role authenticated;
 do $$ begin perform public.contrato_anexos_huerfanos(48);
@@ -126,6 +127,17 @@ do $$ begin perform public.contrato_anexos_huerfanos(48);
 exception when others then insert into _t values ('M5 el navegador no llama al barrido ni al paso', sqlstate = '42501', sqlstate); end $$;
 reset role;
 '''
+
+PRUEBA = 'ax-00000000-0000-4000-8000-000000000004'
+FANTASMA = 'ax-99999999-9999-4999-8999-999999999999'
+# El autor vuelve a guardar SU contrato por contrato_guarda, con una ficha de anexo añadida a su `datos`.
+GUARDA = r'''do $$ declare d jsonb; t text; begin
+  select c.datos, c.tipo into d, t from public.contratos c where c.id = current_setting('t.a')::uuid;
+  d := jsonb_set(d, '{annexes}', coalesce(case when jsonb_typeof(d->'annexes') = 'array' then d->'annexes' end, '[]'::jsonb)
+         || jsonb_build_array(jsonb_build_object('id', '%(id)s', 'title', 'Prueba LAW-78', 'on', true)));
+  perform public.contrato_guarda(current_setting('t.a')::uuid, jsonb_build_object('tipo', t, 'datos', d));
+  insert into _t values ('%(caso)s', %(ok)s);
+exception when others then insert into _t values ('%(caso)s', %(mal)s); end $$;'''
 
 
 def claims(p):
@@ -136,7 +148,7 @@ def claims(p):
             "set local role authenticated;\n" % {'p': p})
 
 
-def caso_rpc(nombre, uid, contrato, path, espera, n=1, bytes_=1000, anexo='ax-prueba'):
+def caso_rpc(nombre, uid, contrato, path, espera, n=1, bytes_=1000, anexo='ax-00000000-0000-4000-8000-000000000004'):
     llamada = ("public.contrato_anexo_registra(current_setting('t.%s_sub')::uuid, %s::uuid, '%s', %d, %s, '%s', %d, 800, 1100)"
                % (uid, contrato, anexo, n, path, SHA, bytes_))
     if espera == 'ok':
@@ -173,17 +185,19 @@ def sql(con_migracion=False, selftest=False):
     # ── como service_role: la Edge registrando, con el usuario de la sesión en p_uid ──
     p.append('set local role service_role;')
     p.append(caso_rpc('R1 autor, ruta buena: registra', 'autor', A, ruta('a', UUID1, 1), 'ok'))
-    p.append(caso_rpc('R2 misma ruta otra vez: 23505', 'autor', A, ruta('a', UUID1, 1), '23505', anexo='ax-otro'))
+    p.append(caso_rpc('R2 misma ruta otra vez: 23505', 'autor', A, ruta('a', UUID1, 1), '23505', anexo='ax-00000000-0000-4000-8000-000000000005'))
     p.append(caso_rpc('R3 mismo anexo y pagina con otra ruta: 23505', 'autor', A, ruta('a', UUID2, 1), '23505'))
     p.append(caso_rpc('R4 agente ajeno: 42501', 'ajeno', A, ruta('a', UUID1, 2), '42501', n=2))
     p.append(caso_rpc('R5 contrato bloqueado (super admin tampoco): 23514', 'super', B, ruta('b', UUID1, 1), '23514'))
     p.append(caso_rpc('R6 contrato con firma viva (super admin tampoco): 23514', 'super', C, ruta('c', UUID1, 1), '23514'))
-    p.append(caso_rpc('R7 ruta de OTRO contrato: 22023', 'super', A, ruta('b', UUID1, 1), '22023', anexo='ax-r7'))
+    p.append(caso_rpc('R7 ruta de OTRO contrato: 22023', 'super', A, ruta('b', UUID1, 1), '22023', anexo='ax-00000000-0000-4000-8000-000000000008'))
     p.append(caso_rpc('R8 ruta con ..: 22023', 'autor', A,
-                      "current_setting('t.a') || '/%s/../%s/1.jpg'" % (UUID1, UUID2), '22023', anexo='ax-r8'))
-    p.append(caso_rpc('R9 n distinto del de la ruta: 22023', 'autor', A, ruta('a', UUID1, 2), '22023', n=3, anexo='ax-r9'))
-    p.append(caso_rpc('R10 objeto que no esta en el bucket: 22023', 'autor', A, ruta('a', UUID1, 9), '22023', n=9, anexo='ax-r10'))
-    p.append(caso_rpc('R11 tamano distinto del objeto: 22023', 'autor', A, ruta('a', UUID1, 2), '22023', n=2, bytes_=999, anexo='ax-r11'))
+                      "current_setting('t.a') || '/%s/../%s/1.jpg'" % (UUID1, UUID2), '22023', anexo='ax-00000000-0000-4000-8000-000000000009'))
+    p.append(caso_rpc('R9 n distinto del de la ruta: 22023', 'autor', A, ruta('a', UUID1, 2), '22023', n=3, anexo='ax-00000000-0000-4000-8000-000000000010'))
+    p.append(caso_rpc('R10 objeto que no esta en el bucket: 22023', 'autor', A, ruta('a', UUID1, 9), '22023', n=9, anexo='ax-00000000-0000-4000-8000-000000000006'))
+    p.append(caso_rpc('R11 tamano distinto del objeto: 22023', 'autor', A, ruta('a', UUID1, 2), '22023', n=2, bytes_=999, anexo='ax-00000000-0000-4000-8000-000000000007'))
+    p.append(caso_rpc('R16 anexo_id axauto (el automatico) no va al archivo: 22023', 'autor', A, ruta('a', UUID1, 2), '22023', n=2, anexo='axauto'))
+    p.append(caso_rpc('R17 anexo_id viejo ax<n> no va al archivo: 22023', 'autor', A, ruta('a', UUID1, 2), '22023', n=2, anexo='ax3'))
     p.append(caso_rpc('R12 anexo_id con inyeccion: 22023', 'autor', A, ruta('a', UUID1, 2), '22023', n=2, anexo="ax/../x"))
     p.append(caso_rpc('R13 contrato inexistente: 42501', 'autor', "'%s'" % UUID2, ruta('a', UUID1, 2), '42501', n=2))
     p.append(caso_rpc('R14 autor, pagina 2 del mismo anexo: registra', 'autor', A, ruta('a', UUID1, 2), 'ok', n=2))
@@ -201,10 +215,10 @@ def sql(con_migracion=False, selftest=False):
              "(select count(*) from storage.objects where bucket_id = 'contratos-anexos' and name like %s || '/%%') = 2, "
              "(select count(*) from storage.objects where bucket_id = 'contratos-anexos' and name like %s || '/%%')::text);" % (A, A))
     p.append("do $$ begin insert into public.contrato_anexo_paginas (contrato_id, anexo_id, n, path, sha256, bytes) "
-             "values (current_setting('t.a')::uuid, 'ax-dir', 1, 'x', '%s', 1);\n"
+             "values (current_setting('t.a')::uuid, 'ax-00000000-0000-4000-8000-000000000011', 1, 'x', '%s', 1);\n"
              "  insert into _t values ('A4 insert directo en la tabla DEBE parar', false, 'no paro');\n"
              "exception when others then insert into _t values ('A4 insert directo en la tabla DEBE parar', sqlstate = '42501', sqlstate); end $$;" % SHA)
-    p.append("do $$ begin perform public.contrato_anexo_registra(auth.uid(), current_setting('t.a')::uuid, 'ax-x', 1, 'x', '%s', 1, 1, 1);\n"
+    p.append("do $$ begin perform public.contrato_anexo_registra(auth.uid(), current_setting('t.a')::uuid, 'ax-00000000-0000-4000-8000-000000000012', 1, 'x', '%s', 1, 1, 1);\n"
              "  insert into _t values ('A5 la RPC de registro desde el navegador DEBE parar', false, 'no paro');\n"
              "exception when others then insert into _t values ('A5 la RPC de registro desde el navegador DEBE parar', sqlstate = '42501', sqlstate); end $$;" % SHA)
     p.append("do $$ begin delete from public.contrato_anexo_paginas where contrato_id = current_setting('t.a')::uuid;\n"
@@ -214,6 +228,11 @@ def sql(con_migracion=False, selftest=False):
     p.append("do $$ begin insert into storage.objects (bucket_id, name) values ('contratos-anexos', current_setting('t.a') || '/x/1.jpg');\n"
              "  insert into _t values ('A7 subir directo a storage.objects DEBE parar', false, 'no paro');\n"
              "exception when others then insert into _t values ('A7 subir directo a storage.objects DEBE parar', sqlstate = '42501', sqlstate); end $$;")
+    # contrato_guarda (via el trigger) no guarda una ficha de anexo sin paginas en el archivo, y si una con ellas
+    p.append(GUARDA % {'caso': 'G1 guardar una ficha de anexo SIN paginas en el archivo DEBE parar', 'id': FANTASMA,
+                       'ok': "false, 'no paro'", 'mal': "sqlstate = '23514' and sqlerrm like 'El anexo %%', sqlstate || ' ' || left(sqlerrm, 90)"})
+    p.append(GUARDA % {'caso': 'G2 guardar una ficha de anexo CON paginas en el archivo: guarda', 'id': PRUEBA,
+                       'ok': "true, 'guardado'", 'mal': "false, sqlstate || ' ' || left(sqlerrm, 90)"})
     if selftest:
         p.append("insert into _t values ('ZZ selftest: esto DEBE salir en rojo', 1 = 2, 'si sale verde el arnes esta roto');")
     p.append('reset role;')
@@ -231,6 +250,11 @@ def sql(con_migracion=False, selftest=False):
     p.append(claims('super'))
     p.append("insert into _t values ('S1 puede: bloqueado = bloqueado (tambien super admin)', public.contrato_anexo_puede(%s::uuid) = 'bloqueado', "
              "public.contrato_anexo_puede(%s::uuid));" % (B, B))
+    p.append('reset role;')
+
+    # un anexo ya guardado en datos esta cerrado: no se le anaden paginas
+    p.append('set local role service_role;')
+    p.append(caso_rpc('R15 pagina nueva para un anexo YA guardado en el contrato: 23514', 'autor', A, ruta('a', UUID1, 3), '23514', n=3, anexo=PRUEBA))
     p.append('reset role;')
 
     # ── barrido y paso al archivo (service_role: los scripts) ──

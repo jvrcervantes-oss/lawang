@@ -251,9 +251,19 @@ function montar(o) {
   const cuerpo = DISENO.match(/function loadAnnexes\(\)\{[\s\S]*?\n\}/);
   assert.ok(cuerpo, 'loadAnnexes sigue en documento_diseno.js');
   const almacen = { lawang_contract_annexes: JSON.stringify([{ id: 'axauto', auto: 'Dali', pages: ['data:AAA'] }, { id: 'ax1', title: 'viejo', pages: ['data:BBB'] }]) };
-  const ctxD = { JSON, Array, localStorage: { getItem: k => almacen[k] ?? null, setItem: (k, v) => { almacen[k] = v; }, removeItem: k => { delete almacen[k]; } } };
+  const avisosD = [], alCargar = [];
+  const ctxD = { JSON, Array, localStorage: { getItem: k => almacen[k] ?? null, setItem: (k, v) => { almacen[k] = v; }, removeItem: k => { delete almacen[k]; } },
+                 toastMal: t => avisosD.push(t) };
+  ctxD.window = { addEventListener: (ev, f) => { if (ev === 'load') alCargar.push(f); } };
   vm.createContext(ctxD);
   vm.runInContext(cuerpo[0] + '\nvar r = loadAnnexes();', ctxD);
+  alCargar.forEach(f => f());
+  assert.strictEqual(avisosD.length, 1, 'los anexos manuales de un borrador no desaparecen callados');
+  assert.match(avisosD[0], /un anexo subido a mano en un borrador sin guardar/);
+  alCargar.length = 0; avisosD.length = 0;
+  vm.runInContext('loadAnnexes();', ctxD);
+  alCargar.forEach(f => f());
+  assert.strictEqual(avisosD.length, 0, 'y el aviso sale UNA vez');
   assert.deepStrictEqual(JSON.parse(JSON.stringify(ctxD.r)), [{ id: 'axauto', auto: 'Dali', pages: [] }]);
   assert.ok(!/data:/.test(almacen.lawang_contract_annexes), 'en el navegador ya no quedan bytes: ' + almacen.lawang_contract_annexes);
 

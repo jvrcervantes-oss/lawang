@@ -337,6 +337,13 @@ function loadAnnexes(){
   try{ lista = JSON.parse(localStorage.getItem('lawang_contract_annexes')) || []; }catch(_){ return []; }
   if(!Array.isArray(lista)) return [];
   const autos = lista.filter(a => a && a.auto).map(a => ({ ...a, pages:[] }));
+  /* Una vez, al primer arranque tras el cambio: si el borrador sin guardar llevaba anexos subidos a mano,
+     se dice (no desaparecen callados). Tras reescribir la clave ya no vuelve a salir. Espera a `load`:
+     toastMal lo define app.html, que se carga después de este fichero. */
+  const manuales = lista.filter(a => a && !a.auto).length;
+  if(manuales && typeof window !== 'undefined' && window.addEventListener)
+    window.addEventListener('load', () => { if(typeof toastMal === 'function')
+      toastMal('Había ' + (manuales === 1 ? 'un anexo subido a mano' : manuales + ' anexos subidos a mano') + ' en un borrador sin guardar de este navegador: ya no se guardan en el borrador. Si los necesitas, guarda el contrato y vuelve a subirlos.'); }, { once:true });
   if(autos.length !== lista.length || lista.some(a => a && Array.isArray(a.pages) && a.pages.length)){
     try{ localStorage.setItem('lawang_contract_annexes', JSON.stringify(autos)); }
     catch(_){ try{ localStorage.removeItem('lawang_contract_annexes'); }catch(_e){ /* MUDO A PROPOSITO: sin localStorage no queda borrador viejo que limpiar */ } }

@@ -10,8 +10,13 @@
 --   · Las PÁGINAS (bytes) las tiene el bucket `contratos-anexos`; su lista, huella y tamaño, esta tabla. Es la
 --     única fuente del recuento: `datos.annexes` guarda del anexo manual solo {id, title, on} (la ficha).
 --   · El contenido de un `anexo_id` es INMUTABLE: cada subida (y cada paso de un anexo viejo a Storage) estrena
---     un id nuevo. Por eso `unique (contrato_id, anexo_id, n)` y ninguna escritura de update: cambiar un anexo es
+--     un id nuevo `ax-<uuid>` (los viejos `ax<n>` y el automático `axauto` no se admiten aquí). Lo sostienen tres
+--     cosas: `unique (contrato_id, anexo_id, n)`, ninguna escritura de update, y que contrato_anexo_registra NO
+--     acepta páginas para un anexo que ya figura en `datos.annexes` guardado del contrato. Cambiar un anexo es
 --     subir otro. Título y «Incluir» viven en la ficha y cambian sin tocar las páginas.
+--   · Y al revés: `datos` no puede nombrar un anexo del archivo que no tenga páginas (trigger
+--     trg_contrato_anexos_con_paginas, abajo). Sin él, una pestaña abierta más de 48 h —el barrido ya se llevó
+--     sus filas— guardaba en silencio una ficha vacía.
 --   · El DOCUMENTO FIRMADO no depende de esto: el snapshot de firma sigue EMBEBIENDO las imágenes (autocontenido).
 --     Esta tabla es la fuente del borrador editable, no del firmado.
 --   · Contratos viejos con `pages` en base64: se siguen leyendo; al volver a guardarlos la pantalla sube y registra
@@ -39,8 +44,8 @@ on conflict (id) do nothing;
 create table if not exists public.contrato_anexo_paginas (
   id          uuid primary key default gen_random_uuid(),
   contrato_id uuid not null references public.contratos (id) on delete cascade,
-  -- el id del anexo en datos.annexes[].id. Los nuevos son `ax-<uuid>`; los que pasan desde `pages` también estrenan uno.
-  anexo_id    text not null check (anexo_id ~ '^ax[-0-9A-Za-z]{1,60}$'),
+  -- el id del anexo en datos.annexes[].id: siempre `ax-<uuid>`, también los que pasan desde `pages` (estrenan uno).
+  anexo_id    text not null check (anexo_id ~ '^ax-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'),
   n           int  not null check (n between 1 and 500),
   path        text not null unique,
   sha256      text not null check (sha256 ~ '^[0-9a-f]{64}$'),
@@ -135,8 +140,16 @@ begin
     raise exception 'No tienes permiso para añadir anexos a este contrato' using errcode = '42501';
   end if;
   select c.id into v_cid from public.contratos c where c.id = p_contrato;
-  if p_anexo_id is null or p_anexo_id !~ '^ax[-0-9A-Za-z]{1,60}$' then
+  if p_anexo_id is null or p_anexo_id !~ '^ax-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
     raise exception 'Anexo no válido: recarga la página' using errcode = '22023';
+  end if;
+  -- Un anexo ya guardado en el contrato está cerrado: no se le añaden páginas (su contenido es inmutable).
+  -- Cuesta leer `datos` (medido: 112 ms con los 5,2 MB de RP00180; lo normal, tras pasar al archivo, <10 ms).
+  if exists (select 1 from public.contratos c
+              where c.id = v_cid
+                and jsonb_typeof(c.datos->'annexes') = 'array'
+                and c.datos->'annexes' @> jsonb_build_array(jsonb_build_object('id', p_anexo_id))) then
+    raise exception 'Ese anexo ya está guardado en el contrato: para cambiarlo, sube otro' using errcode = '23514';
   end if;
   if p_n is null or p_n < 1 or p_n > 500 then raise exception 'Página no válida' using errcode = '22023'; end if;
   -- dos pasos: SQL no garantiza el orden de un `or`, y el cast a int de una ruta mala reventaría con otro mensaje
@@ -169,3 +182,30 @@ begin
 end $$;
 revoke all on function public.contrato_anexo_registra(uuid, uuid, text, int, text, text, int, int, int) from public, anon, authenticated;
 grant execute on function public.contrato_anexo_registra(uuid, uuid, text, int, text, text, int, int, int) to service_role;
+
+-- ── `datos` no puede nombrar un anexo del archivo sin páginas ──────────────────────────────────────────────────────
+-- Un anexo manual SIN `pages` en `datos` es del archivo: tiene que tener al menos una fila en ESTE contrato. Vale para
+-- contrato_guarda y para cualquier otro que escriba `datos` (por eso trigger y no un `if` dentro de la función): un
+-- `update of datos`, así que los cambios de estado de firma, bloqueo, etc. (que no tocan `datos`) ni lo disparan.
+-- El texto empieza por «El anexo », que app.html enseña literal (esFrenoConocido).
+-- Medido el 27-sep: en producción ningún anexo manual va sin páginas (83 de 83 las llevan), así que no para a nadie hoy.
+create or replace function public._contrato_anexos_con_paginas() returns trigger
+language plpgsql security definer set search_path = '' as $$
+declare a jsonb;
+begin
+  if jsonb_typeof(new.datos->'annexes') is distinct from 'array' then return new; end if;
+  for a in select value from jsonb_array_elements(new.datos->'annexes') loop
+    continue when jsonb_typeof(a) <> 'object' or a->>'auto' is not null;
+    continue when jsonb_typeof(a->'pages') = 'array' and jsonb_array_length(a->'pages') > 0;
+    if not exists (select 1 from public.contrato_anexo_paginas p
+                    where p.contrato_id = new.id and p.anexo_id = a->>'id') then
+      raise exception 'El anexo «%» no tiene sus páginas en el archivo: vuelve a subirlo o quítalo (Anexos → Quitar).',
+        left(coalesce(a->>'title', a->>'id', '?'), 80) using errcode = '23514';
+    end if;
+  end loop;
+  return new;
+end $$;
+revoke all on function public._contrato_anexos_con_paginas() from public, anon, authenticated;
+drop trigger if exists trg_contrato_anexos_con_paginas on public.contratos;
+create trigger trg_contrato_anexos_con_paginas before insert or update of datos on public.contratos
+  for each row execute function public._contrato_anexos_con_paginas();

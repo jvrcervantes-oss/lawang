@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="d84a8faeee76">
+<meta name="lw-version" content="3008dc5fa837">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -82,7 +82,7 @@
      Van aqui y no con `defer` a proposito: `defer` los ejecutaria DESPUES del
      bloque de abajo, y hay constantes que se calculan al cargar. El orden es
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
-<script src="assets/documento_diseno.js?v=05c0978a"></script>
+<script src="assets/documento_diseno.js?v=f8448509"></script>
 <script src="assets/documento_anexos.js?v=e4f12a34"></script>
 <script src="assets/parcela_inventario.js?v=f70c3cac"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
@@ -5032,7 +5032,7 @@ async function guardarContrato(){
     // patrón: un freno nuevo que no empiece por una de estas frases cae en el
     // detalle genérico de abajo.
     const m = String(err.message || err);
-    const esFrenoConocido = /^(Rellena:|La parcela |El traspaso de la parcela |El poder |Un contrato no puede ser su propio|El documento |Falta el pasaporte|No tienes (ningún|permiso)|Contrato enviado a firma|Esta parcela no pertenece|solo un admin puede)/.test(m);
+    const esFrenoConocido = /^(Rellena:|La parcela |El traspaso de la parcela |El poder |Un contrato no puede ser su propio|El documento |Falta el pasaporte|No tienes (ningún|permiso)|Contrato enviado a firma|Esta parcela no pertenece|solo un admin puede|El anexo )/.test(m);
     // RLS cruda (policy sin su propio raise, p.ej. un rol sin permiso que
     // ningún trigger llegó a explicar): Postgres la manda en inglés y con
     // el nombre de la tabla — no se enseña así.
