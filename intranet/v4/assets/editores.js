@@ -2808,7 +2808,8 @@
     (iniciales || []).forEach(function (i) { if (i && i.id) elegidos[i.id] = true; });
     var caja = document.createElement('div'); caja.style.cssText = 'display:grid;gap:6px';
     host.appendChild(caja);
-    function socActual() { var el = campoDeDoc('sociedad'); return el ? el.value : ''; }
+    // dentro del propio formulario (cfg.raiz), no con document: al montarse aún no está en la página
+    function socActual() { var el = cfg.raiz.querySelector('[data-k="sociedad"]'); return el ? el.value : ''; }
     function paisDe(soc) {
       var s0 = (typeof SOCIEDADES !== 'undefined' && soc) ? SOCIEDADES[soc] : null;
       return s0 ? (s0.esIndonesia === false ? 'ES' : 'ID') : null;
@@ -3837,9 +3838,11 @@
           if (window.AXW_NUCLEO_OPERACION) {
             // ERP maestro (AXW-39): impuestos del catálogo en vez de «etiqueta + %» libres
             var secImpN = seccionPlegableDoc(host, 'Impuestos', true);
-            impSel = montaImpuestosDoc(secImpN, sb, f0.impuestos_sel || [], { esNuevo: !existente, soloLectura: !!pre.soloLectura, alCambiar: repintaPreview });
-            var selSocImp = campoDeDoc('sociedad');
-            if (selSocImp) selSocImp.addEventListener('change', function () { impSel.refresca(); repintaPreview(); });
+            impSel = montaImpuestosDoc(secImpN, sb, f0.impuestos_sel || [], { raiz: piezas.wrap, esNuevo: !existente, soloLectura: !!pre.soloLectura, alCambiar: repintaPreview });
+            // otra sociedad = otro país: se repinta la lista (y la previa, que ya corrió con la selección vieja)
+            piezas.wrap.addEventListener('change', function (ev) {
+              if (ev.target && ev.target.getAttribute && ev.target.getAttribute('data-k') === 'sociedad') { impSel.refresca(); repintaPreview(); }
+            });
           } else {
             var secImp = seccionPlegableDoc(host, 'Impuesto (opcional)', !!(f0.imp_etiqueta || f0.imp_pct));
             campoSimpleDoc(secImp, { k: 'imp_etiqueta', label: 'Impuesto — etiqueta', valor: f0.imp_etiqueta || '', ayuda: 'Ej. PPN' });
