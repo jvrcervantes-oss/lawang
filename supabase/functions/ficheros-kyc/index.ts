@@ -30,7 +30,7 @@ const BUCKET = 'kyc';
 // CORS_ORIGENES (erp/nueva_instancia.py → `https://<dominio_erp>`, lista separada por comas) y solo esos orígenes
 // pasan; sin CORS_ORIGENES —Lawang no lo tiene— siguen sus tres dominios. Secreto propio y no SITIO_URL: en Lawang
 // SITIO_URL es la base de los enlaces de firma-submit, y reutilizarlo cortaría las subidas desde www./sumbahills.
-const origenDe = (u: string) => { try { return new URL(u).origin; } catch { return ''; } };
+const origenDe = (u: string) => { try { const x = new URL(u); return x.protocol === 'https:' ? x.origin : ''; } catch { return ''; } };  // solo https: file:/data: darían «null»
 const CORS_INSTANCIA = (Deno.env.get('CORS_ORIGENES') ?? '').split(',').map((u) => origenDe(u.trim())).filter(Boolean);
 const ORIGENES = CORS_INSTANCIA.length ? CORS_INSTANCIA : [
   'https://lawangproperties.com',
