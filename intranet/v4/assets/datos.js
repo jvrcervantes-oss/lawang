@@ -2276,7 +2276,8 @@
               var tr = pl.tbody.lastElementChild;
               tr.setAttribute('data-lw-fila', ''); tr.setAttribute('data-lw-id', f.id);
               tr.setAttribute('data-lw-tipo', f.tipo === 'proforma' ? 'proforma' : 'factura');
-              tr.setAttribute('data-lw-estado', f.anulada ? 'anulada' : (f.enviada ? 'enviada' : 'emitida'));
+              // ERP maestro: la rectificativa tiene su propio estado (no cuenta como «Emitida»)
+              tr.setAttribute('data-lw-estado', f.anulada ? 'anulada' : (f.rectifica_id ? 'rectificativa' : (f.enviada ? 'enviada' : 'emitida')));
               var cobro = cobroDe(f); tr.setAttribute('data-lw-cobro', cobro);
               tr.setAttribute('data-lw-pajar', [op ? op.referencia : '', f.numero, f.cliente_nombre, f.contrato_numero, f.proyecto_nombre, f.creado_por, nombreAutor(AUT, f.creado_por)].join(' ').toLowerCase());
               if (grupo) tr.setAttribute('data-lw-grupo', grupo);
@@ -2426,9 +2427,11 @@
               { clave: 'cobrada', texto: 'Cobradas', n: cuenta(function (f) { return cobroDe(f) === 'cobrada'; }) }], estado, aplicar);
             chipsReales(document.querySelector('[data-lw-chips="estado"]'), 'estado', [
               { clave: '*', texto: 'Todas', n: fs.length },
-              { clave: 'emitida', texto: 'Emitidas', n: cuenta(function (f) { return !f.anulada && !f.enviada; }) },
-              { clave: 'enviada', texto: 'Enviadas', n: cuenta(function (f) { return !f.anulada && f.enviada; }) },
-              { clave: 'anulada', texto: 'Anuladas', n: nFacAnu + nProAnu }], estado, aplicar);
+              { clave: 'emitida', texto: 'Emitidas', n: cuenta(function (f) { return !f.anulada && !f.rectifica_id && !f.enviada; }) },
+              { clave: 'enviada', texto: 'Enviadas', n: cuenta(function (f) { return !f.anulada && !f.rectifica_id && f.enviada; }) }]
+              // chip aparte solo si hay alguna (ERP maestro); en Lawang no sale nunca
+              .concat(cuenta(function (f) { return !f.anulada && f.rectifica_id; }) ? [{ clave: 'rectificativa', texto: 'Rectificativas', n: cuenta(function (f) { return !f.anulada && f.rectifica_id; }) }] : [])
+              .concat([{ clave: 'anulada', texto: 'Anuladas', n: nFacAnu + nProAnu }]), estado, aplicar);
             buscadorDe(aplicar, function (v) { texto = v; });
             aplicar();   // el chip inicial «Facturas» filtra desde el primer pintado
             cargaDivergencias();

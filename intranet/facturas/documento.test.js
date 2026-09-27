@@ -162,4 +162,23 @@ const conAlta = caja.documentoHTML({ ...campos, cuenta: 'cuenta_de_prueba' }, {}
 assert.ok(conAlta.includes('9999888877') && conAlta.includes('Datos bancarios'),
   'una cuenta cargada desde la base tiene que imprimirse igual que cuando estaba en el .js');
 
+/* ---- RECTIFICATIVA (ERP maestro, art. 15 RD 1619/2012 — Legal, 27-sep-2026) ----
+   `factura_anula` deja en datos.fields `rectifica_numero` (y, pedido a B1, la fecha de la
+   original y el motivo). El papel se titula como rectificativa y dice a quién rectifica. */
+const rect = caja.documentoHTML({ ...campos, rectifica_numero: 'AXW-F2026-00007', rectifica_fecha: '2026-09-20',
+  rectificacion_motivo: 'Anulación total de AXW-F2026-00007',
+  lineas: [{ descripcion: 'Firma y movilización', importe: '-45000' }] }, { numero: 'AXW-R2026-00001' });
+assert.ok(rect.includes('Factura rectificativa') && rect.includes('Corrective invoice'), 'la R se titula como rectificativa');
+assert.ok(!/<h2>Factura<\/h2>/.test(rect), 'y no como una factura normal');
+assert.ok(rect.includes('Rectifica a') && rect.includes('AXW-F2026-00007'), 'dice a qué factura rectifica');
+assert.ok(rect.includes('20 de septiembre de 2026'), 'con la fecha de la original');
+assert.ok(rect.includes('Motivo') && rect.includes('Anulación total de AXW-F2026-00007'), 'y el motivo');
+assert.ok(/-45\.000,00 EUR/.test(rect), 'importe en negativo');
+assert.ok(!html.includes('Rectifica a'), 'una factura normal (Lawang) no lleva nada de esto');
+/* etiqueta fiscal por defecto: NIF fuera de Indonesia, NPWP dentro (las de Lawang traen la suya) */
+caja.SOCIEDADES.soc_es = { razon: 'Estudio SL', domicilio: 'Valencia', npwp: 'B000', esIndonesia: false };
+caja.SOCIEDADES.soc_id = { razon: 'PT Demo', domicilio: 'Bali', npwp: '01.000', esIndonesia: true };
+assert.ok(caja.documentoHTML({ ...campos, sociedad: 'soc_es' }, {}).includes('NIF B000'), 'sociedad no indonesa sin etiqueta: NIF');
+assert.ok(caja.documentoHTML({ ...campos, sociedad: 'soc_id' }, {}).includes('NPWP 01.000'), 'indonesa sin etiqueta: NPWP');
+
 console.log('documento.test.js OK');

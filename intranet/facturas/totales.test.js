@@ -76,4 +76,16 @@ assert.deepStrictEqual(impuestoDelDocumento({ impuestos_sel: [IVA21] }), { lista
 assert.strictEqual(fmtMoneda(1500, 'JPY'), '1.500 JPY');
 assert.strictEqual(fmtMoneda(1500, 'CLP'), '1.500 CLP');
 
+// un solo régimen de IVA (Legal, 27-sep): mismo texto que el servidor
+const { regimenImpuestoError, TEXTO_REGIMEN_IVA } = require('./totales.js');
+const RE52 = { id: 're52', nombre: 'Recargo 5,2 %', clase: 'suma', porcentaje: 5.2, recargo_de: 'i21' };
+const I21 = Object.assign({ id: 'i21' }, IVA21);
+assert.strictEqual(regimenImpuestoError([I21, IRPF15]), null, 'IVA + retención vale');
+assert.strictEqual(regimenImpuestoError([I21, RE52]), null, 'recargo con su IVA vale');
+assert.strictEqual(regimenImpuestoError([EXENTA]), null);
+assert.strictEqual(regimenImpuestoError([]), null);
+assert.strictEqual(regimenImpuestoError([I21, EXENTA]), TEXTO_REGIMEN_IVA, 'IVA y exenta a la vez no');
+assert.strictEqual(regimenImpuestoError([I21, Object.assign({ id: 'i10' }, IVA21, { nombre: 'IVA 10 %', porcentaje: 10 })]), TEXTO_REGIMEN_IVA, 'dos IVA no');
+assert.strictEqual(regimenImpuestoError([RE52]), TEXTO_REGIMEN_IVA, 'recargo sin su IVA no');
+
 console.log('OK totales de facturas');

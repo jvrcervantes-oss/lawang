@@ -2855,7 +2855,7 @@
         var ck = document.createElement('input'); ck.type = 'checkbox'; ck.checked = !!elegidos[i.id];
         // SIN data-k: recogeVals() lee los [data-k] como campos del documento
         ck.disabled = !!cfg.soloLectura;
-        ck.addEventListener('change', function () { if (ck.checked) elegidos[i.id] = true; else delete elegidos[i.id]; cfg.alCambiar(); });
+        ck.addEventListener('change', function () { if (ck.checked) elegidos[i.id] = true; else delete elegidos[i.id]; avisaRegimen(); cfg.alCambiar(); });
         var t = document.createElement('span'); t.textContent = i.nombre;
         var c = document.createElement('small'); c.style.color = CAJ.apagado;
         var cl = (window.LW_V4 && window.LW_V4.claseImpuesto) ? window.LW_V4.claseImpuesto(i.clase)[1] : i.clase;
@@ -2863,26 +2863,32 @@
         lbl.appendChild(ck); lbl.appendChild(t); lbl.appendChild(c); caja.appendChild(lbl);
       });
       if (sueltos.length) nota('Se ha quitado ' + sueltos.length + ' impuesto(s) que no valen para esta sociedad o ya no están activos: revisa la selección.', '#8A6A34');
+      avisoReg = document.createElement('p'); avisoReg.style.cssText = 'margin:0;font-size:12px;color:#9E2F26'; avisoReg.setAttribute('role', 'alert');
+      caja.appendChild(avisoReg); avisaRegimen();
     }
+    // Un solo régimen de IVA (regimenImpuestoError, totales.js): se dice al marcar, y emitir lo bloquea
+    var avisoReg = null;
+    function avisaRegimen() { if (avisoReg) avisoReg.textContent = regimenImpuestoError(lista()) || ''; }
     if (!cfg.soloLectura) sb.from('impuestos').select('*').eq('activo', true).order('orden').order('nombre').then(function (r) {
       if (r.error) { console.error('[facturas] catálogo de impuestos:', r.error); fallo = lwErrorHumano(r.error, 'error de lectura'); }
       else catalogo = r.data || [];
       pinta(); cfg.alCambiar();
     });
     pinta();
-    return {
-      estado: function () { return cfg.soloLectura ? 'ok' : (fallo ? 'error' : (catalogo ? 'ok' : 'cargando')); },
-      refresca: function () { pinta(); },
-      lista: function () {
+    function lista() {
         if (cfg.soloLectura) return (iniciales || []).slice();
         return candidatos().filter(function (i) { return elegidos[i.id]; }).map(function (i) {
-          return { id: i.id, nombre: i.nombre, clase: i.clase, porcentaje: Number(i.porcentaje) || 0,
+          return { id: i.id, nombre: i.nombre, clase: i.clase, porcentaje: Number(i.porcentaje) || 0, recargo_de: i.recargo_de || null,
                    coef_base: i.coef_base != null ? Number(i.coef_base) : 1,
                    coef_base_num: i.coef_base_num != null ? i.coef_base_num : null,
                    coef_base_den: i.coef_base_den != null ? i.coef_base_den : null,
                    motivo_legal: i.motivo_legal || null };
         });
-      }
+    }
+    return {
+      estado: function () { return cfg.soloLectura ? 'ok' : (fallo ? 'error' : (catalogo ? 'ok' : 'cargando')); },
+      refresca: function () { pinta(); },
+      lista: lista
     };
   }
 
@@ -3914,6 +3920,8 @@
                   !selI.some(function (i) { return ['suma', 'exenta', 'no_sujeta', 'isp'].indexOf(i.clase) !== -1; })) {
                 return { error: { message: 'Una factura de una sociedad española dice siempre su IVA, o por qué no lo lleva (exenta, no sujeta, inversión del sujeto pasivo): márcalo en «Impuestos».' } };
               }
+              var errReg = regimenImpuestoError(selI);
+              if (errReg) return { error: { message: errReg + '.' } };
               d.impuestos_sel = selI; d.imp_pct = ''; d.imp_etiqueta = '';
               lineas = lineas.map(function (l) { return { descripcion: l.descripcion, importe: l.importe, impuestos: selI.map(function (i) { return i.id; }) }; });
               d.lineas = lineas;
@@ -9285,7 +9293,9 @@
         var fila = {
           label: (v.label || '').trim() || (v.razon || '').trim(),
           razon: (v.razon || '').trim(), marca: (v.marca || '').trim(),
-          npwp: (v.npwp || '').trim() || null, npwp_label: (v.npwp_label || '').trim() || 'NPWP',
+          npwp: (v.npwp || '').trim() || null,
+          // ERP maestro (Legal, 27-sep): fuera de Indonesia la etiqueta fiscal por defecto es NIF
+          npwp_label: (v.npwp_label || '').trim() || ((NUCLEO_SOC && !v.es_indonesia) ? 'NIF' : 'NPWP'),
           nib: (v.nib || '').trim() || null, domicilio: (v.domicilio || '').trim(),
           rep: (v.rep || '').trim() || null, logo: (v.logo || '').trim() || null,
           logo_alto: (v.logo_alto || '').trim() || null, folio: (v.folio || '').trim() || null,
@@ -9318,7 +9328,7 @@
           { k: 'razon', label: 'Razón social', req: 1, valor: s.razon },
           { k: 'marca', label: 'Marca', medio: 1, valor: s.marca },
           { k: 'label', label: 'Nombre en el desplegable', medio: 1, valor: s.label },
-          { k: 'npwp_label', label: 'Etiqueta fiscal', medio: 1, valor: s.npwp_label || 'NPWP' },
+          { k: 'npwp_label', label: 'Etiqueta fiscal', medio: 1, valor: s.npwp_label || ((NUCLEO_SOC && s.es_indonesia === false) ? 'NIF' : 'NPWP') },
           { k: 'npwp', label: 'Identificación fiscal', medio: 1, valor: s.npwp },
           { k: 'nib', label: 'NIB', medio: 1, valor: s.nib },
           { k: 'rep', label: 'Representante', medio: 1, valor: s.rep },
@@ -9424,7 +9434,7 @@
             { k: 'domicilio', label: 'Domicilio', tipo: 'textarea', req: 1 },
             { k: 'marca', label: 'Marca', medio: 1 },
             { k: 'label', label: 'Nombre en el desplegable', medio: 1 },
-            { k: 'npwp_label', label: 'Etiqueta fiscal', medio: 1, valor: 'NPWP' },
+            { k: 'npwp_label', label: 'Etiqueta fiscal', medio: 1, valor: NUCLEO_SOC ? 'NIF' : 'NPWP' },
             { k: 'npwp', label: 'Identificación fiscal', medio: 1 },
             { k: 'nib', label: 'NIB', medio: 1 },
             { k: 'rep', label: 'Representante', medio: 1 },

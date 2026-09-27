@@ -29,6 +29,8 @@ var TIPOS_DOC = {
   factura:  { es:'Factura',          en:'Invoice',          serie:'INV' },
   proforma: { es:'Factura proforma', en:'Proforma invoice', serie:'PRO' },
   recibi:   { es:'Recibí',           en:'Receipt',          serie:'REC' },
+  // solo el papel (documentoHTML con `rectifica_numero`): no es un tipo de la base, la R es tipo 'factura'
+  rectificativa: { es:'Factura rectificativa', en:'Corrective invoice', serie:'R' },
 };
 
 function escDoc(s){
@@ -115,6 +117,16 @@ function documentoHTML(d, opts){
      siempre). */
   var t = calcTotales(d.lineas, d.moneda, impuestoDelDocumento(d));
   var tipo = TIPOS_DOC[d.tipo] || TIPOS_DOC.factura;
+  /* RECTIFICATIVA (ERP maestro, art. 15 RD 1619/2012 — Legal, 27-sep-2026): se titula como
+     tal y dice a qué factura rectifica y por qué. La marca es `rectifica_numero`, que el
+     servidor deja en `datos.fields` al emitir la R (`factura_anula`); Lawang no la tiene
+     nunca, así que su papel no cambia. */
+  var esRect = d.tipo !== 'proforma' && d.tipo !== 'recibi' && !!d.rectifica_numero;
+  if (esRect) tipo = TIPOS_DOC.rectificativa;
+  /* Etiqueta fiscal por defecto: NPWP en Indonesia, NIF fuera (Legal, 27-sep). Solo cuando la
+     sociedad no trae la suya: las de Lawang la traen todas (NPWP / CRN). */
+  var etiquetaFiscal = ident.npwpLabel || ident.npwp_label ||
+    ((ident.es_indonesia === false || ident.esIndonesia === false || soc.esIndonesia === false) ? 'NIF' : 'NPWP');
   var linea = v => v ? escDoc(v) : '<span class="vacio">—</span>';
   var fecha = f => f
     ? new Date(f + 'T00:00:00').toLocaleDateString('es-ES', { day:'2-digit', month:'long', year:'numeric' })
@@ -141,7 +153,7 @@ function documentoHTML(d, opts){
         '<b>' + escDoc(ident.razon) + '</b>' +
         (ident.marca ? '<span class="marca">' + escDoc(ident.marca) + '</span>' : '') +
         '<div>' + escDoc(ident.domicilio) + '</div>' +
-        '<div>' + escDoc(ident.npwpLabel || ident.npwp_label || 'NPWP') + ' ' + escDoc(ident.npwp) + '</div>' +
+        '<div>' + escDoc(etiquetaFiscal) + ' ' + escDoc(ident.npwp) + '</div>' +
       '</div>' +
     '</div>' +
     '<div class="titulo">' +
@@ -153,6 +165,9 @@ function documentoHTML(d, opts){
         (d.fecha_vencimiento ? 'Vencimiento · Due: ' + escDoc(fecha(d.fecha_vencimiento)) + '<br>' : '') +
         (d.contrato_numero ? 'Contrato · Contract: ' + escDoc(d.contrato_numero) : '') +
       '</div>' +
+      (esRect ? '<div class="meta rectifica">Rectifica a · Corrects: <b>' + escDoc(d.rectifica_numero) + '</b>' +
+        (d.rectifica_fecha ? ' (' + escDoc(fecha(d.rectifica_fecha)) + ')' : '') +
+        (d.rectificacion_motivo ? '<br>Motivo · Reason: ' + escDoc(d.rectificacion_motivo) : '') + '</div>' : '') +
     '</div>' +
   '</div>' +
 
@@ -196,7 +211,7 @@ function documentoHTML(d, opts){
   (d.notas ? '<h3>Notas · Notes</h3><div class="notas">' + escDoc(d.notas) + '</div>' : '') +
 
   '<div class="pie">' + escDoc(ident.razon) + (ident.marca ? ' · ' + escDoc(ident.marca) : '') +
-    ' · ' + escDoc(ident.npwpLabel || ident.npwp_label || 'NPWP') + ' ' + escDoc(ident.npwp) +
+    ' · ' + escDoc(etiquetaFiscal) + ' ' + escDoc(ident.npwp) +
     ' · ' + escDoc(ident.domicilio) + '</div>';
 }
 

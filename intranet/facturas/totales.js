@@ -173,6 +173,21 @@ function totalesConImpuestos(lineas, moneda, lista){
   });
   return { subtotal, pct: 0, impuesto: suma, retenido, total: redondear(subtotal + suma - retenido, moneda), resumen };
 }
+/* Un solo régimen de IVA por documento (Legal, 27-sep-2026, AXW-39): como mucho UNO entre
+   IVA (suma sin `recargo_de`), exenta, no sujeta e ISP; y un recargo de equivalencia solo con
+   el IVA del que cuelga (`recargo_de`). Las retenciones (IRPF, PPh) se suman aparte. El texto
+   es el MISMO que devuelve el servidor, para que el agente lea una sola frase. Devuelve el
+   mensaje o null. */
+var TEXTO_REGIMEN_IVA = 'Un documento lleva un solo régimen de IVA: IVA, exenta, no sujeta o inversión del sujeto pasivo; el recargo de equivalencia va con su IVA';
+function regimenImpuestoError(lista){
+  const l = lista || [];
+  const regimen = l.filter(i => (i.clase === 'suma' && !i.recargo_de) || i.clase === 'exenta' || i.clase === 'no_sujeta' || i.clase === 'isp');
+  if (regimen.length > 1) return TEXTO_REGIMEN_IVA;
+  const ids = {}; l.forEach(i => { if (i.id) ids[i.id] = true; });
+  if (l.some(i => i.clase === 'suma' && i.recargo_de && !ids[i.recargo_de])) return TEXTO_REGIMEN_IVA;
+  return null;
+}
+
 /* Qué impuesto lleva un documento, leído de sus campos: la selección del catálogo
    si la trae (ERP maestro), si no el porcentaje libre de siempre (Lawang). Una sola
    regla para la previa, el PDF y la factura que se guarda. */
@@ -185,4 +200,4 @@ function impuestoDelDocumento(d){
    ya no conserva es una segunda implementación detrás. */
 function fmtMoneda(n, moneda){ return _LW().lwFormatoImporte(n, moneda); }
 
-if(typeof module !== 'undefined') module.exports = { parseImporte, redondear, calcTotales, fmtMoneda, DECIMALES, impuestoDelDocumento };
+if(typeof module !== 'undefined') module.exports = { parseImporte, redondear, calcTotales, fmtMoneda, DECIMALES, impuestoDelDocumento, regimenImpuestoError, TEXTO_REGIMEN_IVA };
