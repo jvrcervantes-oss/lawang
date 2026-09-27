@@ -262,6 +262,7 @@ def sql(con_migracion=False, selftest=False):
     p.append(caso_rpc('R10 objeto que no esta en el bucket: 22023', 'autor', A, ruta('a', UUID1, 9), '22023', n=9, anexo='ax-00000000-0000-4000-8000-000000000006'))
     p.append(caso_rpc('R11 tamano distinto del objeto: 22023', 'autor', A, ruta('a', UUID1, 2), '22023', n=2, bytes_=999, anexo='ax-00000000-0000-4000-8000-000000000007'))
     p.append(caso_rpc('R16 anexo_id axauto (el automatico) no va al archivo: 22023', 'autor', A, ruta('a', UUID1, 2), '22023', n=2, anexo='axauto'))
+    p.append(caso_rpc('R16b anexo_id axauto-<uuid> (automatico por documento, 27-sep) no va al archivo: 22023', 'autor', A, ruta('a', UUID1, 2), '22023', n=2, anexo='axauto-' + UUID2))
     p.append(caso_rpc('R17 anexo_id viejo ax<n> no va al archivo: 22023', 'autor', A, ruta('a', UUID1, 2), '22023', n=2, anexo='ax3'))
     p.append(caso_rpc('R12 anexo_id con inyeccion: 22023', 'autor', A, ruta('a', UUID1, 2), '22023', n=2, anexo="ax/../x"))
     p.append(caso_rpc('R13 contrato inexistente: 42501', 'autor', "'%s'" % UUID2, ruta('a', UUID1, 2), '42501', n=2))
