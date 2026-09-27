@@ -8990,7 +8990,7 @@
     /* ═══ IMPUESTOS — formulario de Ajustes (AxisWorks ERP, 26-sep-2026) ═══════════════════════════════
        La lista la pinta datos.js (impuestosAjustes), SOLO con window.AXW_NUCLEO_OPERACION; aquí solo se
        definen el alta/edición y el desactivar. La bandera se mira otra vez: sin ella no se expone nada que
-       escriba en una tabla que la instancia no tiene. Escribir: super_admin (RLS es_super_admin()).
+       escriba en una tabla que la instancia no tiene. Escribir: super_admin, por la RPC impuesto_guarda (27-sep).
        Las reglas del formulario son las CHECK de la tabla (erp/migraciones/20260926170000 + 181000), dichas
        antes de mandar para que el error no llegue de la base; si llega igual, se traduce por su causa. */
     ajustes: function (aut) {
@@ -9084,8 +9084,14 @@
           // Desactivado deja de ser el por defecto, igual que el botón «Desactivar»: si no, al reactivarlo
           // chocaría con el que lo sustituya (impuestos_un_defecto cuenta solo los activos) — code-review, 26-sep.
           if (!fila.activo) fila.por_defecto = false;
-          var p = nuevo ? sb.from('impuestos').insert(fila).select('id,numero_impuesto').single()
-                        : sb.from('impuestos').update(fila).eq('id', x.id).select('id').single();
+          // Guarda el servidor (impuesto_guarda: super_admin, lista blanca y decimales en la base,
+          // migración erp/migraciones/20260928060000). Devuelve el id; el número del alta se LEE después.
+          var p = sb.rpc('impuesto_guarda', { p_id: nuevo ? null : x.id, p_datos: fila }).then(function (r) {
+            if (!r || r.error || !nuevo || !r.data) return r;
+            return sb.from('impuestos').select('numero_impuesto').eq('id', r.data).maybeSingle().then(function (s) {
+              return { data: { id: r.data, numero_impuesto: s && s.data ? s.data.numero_impuesto : null }, error: null };
+            });
+          });
           return Promise.resolve(p).then(function (r) {
             if (r && r.error) return { error: { message: errorCatalogo(r.error, 'No se ha guardado: cambiar impuestos exige super_admin, y lo comprueba la base.') } };
             aviso(nuevo ? 'Impuesto dado de alta' + (r && r.data && r.data.numero_impuesto ? ': ' + r.data.numero_impuesto : '') + '.' : 'Impuesto guardado.');
@@ -9140,7 +9146,7 @@
           if (!ok) return;
           // Al desactivar se quita también «por defecto»: si no, al reactivarlo chocaría con el que lo sustituya.
           var fila = activar ? { activo: true } : { activo: false, por_defecto: false };
-          return Promise.resolve(sb.from('impuestos').update(fila).eq('id', x.id).select('id').single()).then(function (r) {
+          return Promise.resolve(sb.rpc('impuesto_guarda', { p_id: x.id, p_datos: fila })).then(function (r) {
             if (r && r.error) return aviso(errorCatalogo(r.error, 'No se ha cambiado: exige super_admin, y lo comprueba la base.'), '#9E2F26');
             aviso(activar ? 'Impuesto reactivado.' : 'Impuesto desactivado.');
             repinta();
@@ -9150,8 +9156,8 @@
     },
 
     /* ═══ PRODUCTOS — formulario (AxisWorks ERP, 26-sep-2026) ═══════════════════════════════════════════
-       La lista la pinta datos.js (REG.productos). Sin la bandera no se define nada. Escribir: admin (RLS
-       es_admin()). El precio es el par (precio, moneda) y se lee con lwParseImporte, como cualquier importe
+       La lista la pinta datos.js (REG.productos). Sin la bandera no se define nada. Escribir: admin, por la
+       RPC producto_guarda (27-sep). El precio es el par (precio, moneda) y se lee con lwParseImporte, como cualquier importe
        de la suite; admite los decimales de SU moneda (EUR 2, IDR 0), ni uno más. */
     productos: function (aut) {
       if (!window.AXW_NUCLEO_OPERACION) return;
@@ -9218,8 +9224,14 @@
           };
           if (imps) fila.impuesto_id = v.impuesto_id || null;
           fila.activo = nuevo ? true : !!v.activo;   // explícito: nace activo (el default de la base, dicho aquí)
-          var q = nuevo ? sb.from('productos').insert(fila).select('id,numero_producto').single()
-                        : sb.from('productos').update(fila).eq('id', p.id).select('id').single();
+          // Guarda el servidor (producto_guarda: admin, lista blanca y decimales de la moneda en la base,
+          // migración erp/migraciones/20260928060000). Devuelve el id; el número del alta se LEE después.
+          var q = sb.rpc('producto_guarda', { p_id: nuevo ? null : p.id, p_datos: fila }).then(function (r) {
+            if (!r || r.error || !nuevo || !r.data) return r;
+            return sb.from('productos').select('numero_producto').eq('id', r.data).maybeSingle().then(function (s) {
+              return { data: { id: r.data, numero_producto: s && s.data ? s.data.numero_producto : null }, error: null };
+            });
+          });
           return Promise.resolve(q).then(function (r) {
             if (r && r.error) return { error: { message: errorCatalogo(r.error, 'No se ha guardado: el catálogo de productos lo cambia un admin, y lo comprueba la base.') } };
             aviso(nuevo ? 'Producto dado de alta' + (r && r.data && r.data.numero_producto ? ': ' + r.data.numero_producto : '') + '.' : 'Producto guardado.');
@@ -9250,7 +9262,7 @@
           confirmar: activar ? 'Reactivar' : 'Desactivar', tono: activar ? undefined : 'peligro'
         }).then(function (ok) {
           if (!ok) return;
-          return Promise.resolve(sb.from('productos').update({ activo: activar }).eq('id', p.id).select('id').single()).then(function (r) {
+          return Promise.resolve(sb.rpc('producto_guarda', { p_id: p.id, p_datos: { activo: activar } })).then(function (r) {
             if (r && r.error) return aviso(errorCatalogo(r.error, 'No se ha cambiado: el catálogo lo cambia un admin, y lo comprueba la base.'), '#9E2F26');
             aviso(activar ? 'Producto reactivado.' : 'Producto desactivado.');
             repinta();

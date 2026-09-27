@@ -358,7 +358,7 @@ async function repartirFirmado(o: {
         (o.proyecto ? '\nProyecto: ' + o.proyecto : '') +
         '\nFirmantes: ' + (nombresFirmantes || '—') +
         '\n\nCopia para archivo.' +
-        '\n\nVer en la intranet: ' + SITIO + '/intranet/operaciones/' + pie
+        '\n\nVer en la intranet: ' + SITIO + '/intranet/v4/operaciones/' + pie
       : 'Hola' + ((d as any).nombre ? ' ' + String((d as any).nombre).split(' ')[0] : '') + ',' +
         '\n\nHemos recibido tu firma. Aquí tienes tu copia del contrato ' + o.numero +
         (o.proyecto ? ' (' + o.proyecto + ')' : '') + ', ya firmado.' +

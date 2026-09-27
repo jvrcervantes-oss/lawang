@@ -6,10 +6,11 @@
 <link rel="icon" href="/favicon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Lawang · Generador de Contratos</title>
-<!-- Interruptor de la cara v4 (23-sep-2026). SÍNCRONO y antes de cualquier
-     hoja: pone `html.v4` antes del primer pintado. Sin `?v4=1` en la pestaña
-     no hace nada y esta página es la clásica de siempre. Ver assets/piel.js. -->
-<script src="/contracts/assets/piel.js?v=6c4fc591"></script>
+<!-- Cara v4 (23-sep-2026; INCONDICIONAL desde el 27-sep, la clásica se retiró).
+     SÍNCRONO y antes de cualquier hoja: pone `html.v4` antes del primer pintado
+     y, sin puerta de editor (?contrato= ?nuevo= ?cliente= ?lead=), manda al
+     listado de la v4. Ver assets/piel.js. -->
+<script src="/contracts/assets/piel.js?v=0a8da579"></script>
 <!-- preconnect: lo tenian las demas herramientas y esta no. Sin el, la
      primera peticion a la fuente abre conexion desde cero y el texto salta
      de la fuente del sistema a Jost a mitad de carga. -->
@@ -94,28 +95,17 @@
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
      — igual que contract.css, que tambien es especifico de contratos. -->
 
-<!-- v3 (exploración, 23-ago-2026). VA LA ÚLTIMA DE LA CABECERA A PROPÓSITO, y esto
-     no es cosmético: es una capa de override. Estaba arriba, junto a topbar.js,
-     y la pisaban las once herramientas — cada una trae su propio <style> (y esta,
-     además, `app.css` con 36 KB) que en el CSS van DESPUÉS y por tanto ganan a
-     igualdad de especificidad. Se desplegó así y el owner lo dijo en una línea:
-     «no veo ninguna diferencia con la versión live».
-     ⚠️ En la PRIMERA cabecera, no en la última: este fichero cierra cinco, y las
-     otras cuatro están dentro de plantillas JS que arman la ventana de impresión
-     del contrato. Meter ahí la capa v3 la habría colado en el PDF del cliente.
-     Sin `?v3=1` no hace nada: el CSS entero vive bajo `html.v3`. -->
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=18c17264">
-<link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
+<!-- La capa v3 (suite-v3*.css, saldos-v3.js, movimiento-v3.js) SALIÓ de aquí el
+     27-sep-2026 con la retirada de la cara clásica: el generador es siempre v4 y
+     dos capas de override apiladas eran el bug (la llave `lw3-on` de otra
+     herramienta de la pestaña la encendía encima). operaciones-cuentas.js se
+     queda: es la regla del dinero, no de la piel. -->
 <script src="/contracts/assets/operaciones-cuentas.js?v=b11b12fc"></script>
-<script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
-<script src="/contracts/assets/movimiento-v3.js?v=c88bae43"></script>
-<!-- CARA v4 (23-sep-2026, owner: el generador en la v4 sin dejar obsoleta la
-     clásica). Una sola página, dos caras: todo lo de aquí abajo pinta SOLO con
-     `html.v4` (assets/piel.js). Las fuentes de la v4 (Material Symbols y Neue
-     Kabel) NO van aquí: las cuelga piel.js solo con la v4 encendida, porque una
-     hoja de Google en la <head> bloquea el pintado de la clásica aunque no la
-     use (consulta de deploy, 23-sep). Va AL FINAL de la PRIMERA cabecera, por
-     lo mismo que la v3: las otras cuatro son plantillas del documento impreso. -->
+<!-- CARA v4 (23-sep-2026; la única desde el 27-sep). Todo lo de aquí abajo pinta
+     bajo `html.v4` (assets/piel.js), que también cuelga las fuentes de la v4.
+     Va AL FINAL de la PRIMERA cabecera a propósito: este fichero cierra cinco, y
+     las otras cuatro son plantillas JS que arman la ventana de impresión del
+     contrato — meter aquí la capa la habría colado en el PDF del cliente. -->
 <link rel="stylesheet" href="/intranet/v4/assets/nav-montaje.css?v=b2a64170">
 <link rel="stylesheet" href="/contracts/assets/suite-v4-generador.css?v=96849e79">
 <script src="/intranet/v4/assets/nav-montaje.js?v=152c5ab1" defer></script>
@@ -5385,10 +5375,10 @@ function pantallaC(cual, params){
   if(cual === 'listado') openContractsPanel();
 }
 $('#btnContracts').addEventListener('click', () => {
-  // Con la cara v4 el listado es el de la v4, no el de aquí: dos listados es
-  // la duplicación que prohíbe el stub v4/generador-contratos/ (assets/piel.js).
-  if(window.LW_PIEL === 'v4'){ location.href = '/intranet/v4/contratos/'; return; }
-  pantallaC('listado', '');
+  // El listado es el de la v4, no el de aquí: dos listados es la duplicación
+  // que prohíbe el stub v4/generador-contratos/ (assets/piel.js). Desde el
+  // 27-sep-2026 sin condición: la cara clásica se retiró.
+  location.href = '/intranet/v4/contratos/';
 });
 // "+ Nuevo contrato" solo cambiaba de pantalla, sin reconstruir nada: si antes
 // se había abierto otro contrato, su formulario (adquirientes, anexos,
@@ -6978,7 +6968,10 @@ async function init(){
       toast(lwT('Elige el tipo de contrato arriba y pulsa «Descargar borrador»'));
     }
   } else {
-    pantallaC('listado');
+    // Sin puerta de editor piel.js ya redirigió antes de pintar; esto es la red
+    // por si algún día se carga sin él. El listado clásico (#cpOverlay) ya no
+    // se abre desde ninguna parte (27-sep-2026): el de verdad es el de la v4.
+    location.replace('/intranet/v4/contratos/');
   }
   } finally {
     // recién decidido listado/editor arriba (o reventado a medio decidir):
