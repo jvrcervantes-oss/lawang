@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="4915f56c4c36">
+<meta name="lw-version" content="d84a8faeee76">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -83,7 +83,7 @@
      bloque de abajo, y hay constantes que se calculan al cargar. El orden es
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
 <script src="assets/documento_diseno.js?v=05c0978a"></script>
-<script src="assets/documento_anexos.js?v=f2e0b9c0"></script>
+<script src="assets/documento_anexos.js?v=e4f12a34"></script>
 <script src="assets/parcela_inventario.js?v=f70c3cac"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
@@ -5680,7 +5680,7 @@ async function openSavedContract(id){
   SAVED_CONTRACT = { id:data.id, numero:data.numero };
   // sin await: el contrato se enseña ya y los anexos se pintan al llegar. Lo que falle dentro
   // ya queda en el panel; esto es para lo imprevisto, que tampoco puede pasar callado.
-  cargaAnexosAlmacen(data.id).catch(e => toastMal('No se han podido cargar los anexos: ' + ((e && e.message) || 'error')));
+  CARGA_ANEXOS = cargaAnexosAlmacen(data.id).catch(e => toastMal('No se han podido cargar los anexos: ' + ((e && e.message) || 'error')));
   LOCKED = !!data.bloqueado; LOCKED_PDF_PATH = data.pdf_firmado_path || null;
   PDF_SALIO = false;   // lo relee cargarEstadoFirma(); nunca se hereda del contrato anterior
   // de cero: sin esto, abrir un contrato B justo después de uno A que estaba
@@ -6998,7 +6998,8 @@ async function init(){
     if(par.get('borrador') === '1'){
       par.delete('borrador');
       try{ history.replaceState(null, '', location.pathname + '?' + par.toString()); }catch(_){ /* MUDO A PROPOSITO: sin historial (iframe, file:) solo queda el parametro en la barra; el borrador sale igual */ }
-      if(SAVED_CONTRACT) imprimirBorrador();
+      // los anexos del archivo llegan después de abrir: sin esperar, el borrador salía con huecos (LAW-78)
+      if(SAVED_CONTRACT){ await CARGA_ANEXOS; imprimirBorrador(); }
     }
   } else if(par.has('nuevo') || par.has('cliente') || par.has('lead')){
     // recargar esta URL directamente (F5, o entrar por ella a pelo) es una

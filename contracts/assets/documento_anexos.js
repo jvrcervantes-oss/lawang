@@ -182,6 +182,12 @@ async function subePaginasAnexo(contratoId, anexoId, pages, alAvanzar){
    sitio. Carrera: si mientras tanto se abre otro contrato, lo bajado se tira.
    «No he podido mirar» (estado 'error') y «falta una página» ('falta') se pintan
    distinto: una consulta caída no puede parecer un anexo sin páginas. */
+/* La carga en curso, para quien tiene que esperarla antes de sacar el documento (el
+   «Descargar borrador» de la v4 imprime nada más abrir: code-review, 27-sep). */
+let CARGA_ANEXOS = Promise.resolve();
+/* Texto de la subida en curso: mientras hay una, el panel no ofrece otra (se repinta
+   entero y un input vivo dejaría arrancar una segunda en paralelo; code-review, 27-sep). */
+let SUBIDA_ANEXO = '';
 async function cargaAnexosAlmacen(contratoId){
   const actual = () => (typeof SAVED_CONTRACT !== 'undefined' && SAVED_CONTRACT && SAVED_CONTRACT.id) === contratoId;
   const pendientes = ANNEXES.filter(a => ES_ALMACEN(a) && a.estado === 'cargando');
@@ -664,7 +670,9 @@ function buildAnnexPanel(){
     </div>`;
   }).join('') || `<div class="dz" style="color:var(--muted);font-size:12.5px">Aún no hay anexos. Sube un PDF o imágenes para definirlos.</div>`;
   const c = contratoParaAnexos();
-  const subir = !c.id
+  const subir = SUBIDA_ANEXO
+    ? `<div class="dz" style="color:var(--muted);font-size:12.5px" id="anxUpLabel" role="status">${escAttr(SUBIDA_ANEXO)}</div>`
+    : !c.id
     ? `<div class="dz" style="color:var(--muted);font-size:12.5px">Guarda el contrato para poder añadirle anexos: las páginas se guardan con él.</div>`
     : c.bloqueado ? ''
     : `<div class="dz"><label class="up" id="anxUpLabel">+ Añadir anexo (PDF o imágenes)<input type="file" id="anxFile" accept="application/pdf,image/*" multiple></label></div>`;
@@ -688,7 +696,10 @@ function wireAnnexPanel(){
     const c = contratoParaAnexos();
     if(!c.id){ toastMal('Guarda el contrato antes de añadirle anexos: las páginas se guardan con él.'); return; }
     if(c.bloqueado){ toastMal('Este contrato está enviado a firma o bloqueado: no admite anexos nuevos.'); return; }
-    const lbl=$('#anxUpLabel'); const t0=lbl.textContent; lbl.textContent='Procesando…';
+    // El panel se repinta durante la subida: el progreso se escribe en SUBIDA_ANEXO y en el
+    // #anxUpLabel que haya EN ESE MOMENTO, nunca en una referencia vieja que ya no está en la página.
+    const avisa = t => { SUBIDA_ANEXO = t; const l = $('#anxUpLabel'); if(l) l.textContent = t; };
+    avisa('Procesando…'); rebuildAnnex();
     /* Cada fichero es un anexo: se convierte a páginas (tope de MEMORIA del navegador,
        no del servidor), se sube página a página por la edge y solo entra en la lista
        cuando TODAS han llegado y su huella cuadra. Uno que falla no entra, y se dice
@@ -702,7 +713,8 @@ function wireAnnexPanel(){
         if(pages.length > MAX_PAGINAS_FICHERO) throw new Error('tiene ' + pages.length + ' páginas y el máximo por fichero son ' + MAX_PAGINAS_FICHERO);
         nuevo = { id:idAnexoNuevo(), title:f.name.replace(/\.[^.]+$/,''), pages, on:true, estado:'subiendo' };
         ANNEXES.push(nuevo); rebuildAnnex();
-        const filas = await subePaginasAnexo(c.id, nuevo.id, pages, (k, n) => { lbl.textContent = 'Subiendo «' + nuevo.title + '»: ' + k + ' de ' + n + '…'; });
+        avisa('Subiendo «' + nuevo.title + '»…');
+        const filas = await subePaginasAnexo(c.id, nuevo.id, pages, (k, n) => avisa('Subiendo «' + nuevo.title + '»: ' + k + ' de ' + n + '…'));
         Object.assign(nuevo, { almacen:filas, contrato:c.id, estado:'ok', faltan:[] });
         toast('Anexo «' + nuevo.title + '» subido (' + filas.length + ' pág.). Guarda el contrato para que quede en él.');
       }catch(err){
@@ -717,7 +729,7 @@ function wireAnnexPanel(){
         }else toastMal('No se pudo procesar '+f.name+' ('+((err && err.message) || 'error')+')');
       }
     }
-    lbl.textContent=t0; saveAnnexes(); rebuildAnnex(); render();
+    SUBIDA_ANEXO = ''; saveAnnexes(); rebuildAnnex(); render();
   });
   p.addEventListener('change', e=>{
     const on=e.target.closest('[data-anxon]'); if(on){ const a=ANNEXES.find(x=>x.id===on.dataset.anxon); if(a){ a.on=on.checked; saveAnnexes(); render(); } return; }
