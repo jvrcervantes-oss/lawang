@@ -16,9 +16,62 @@
    lo que sí viaja es `on` (si se excluyó a propósito) y `sha` (qué versión del
    pack se anexó de verdad), que no se pueden reconstruir de ninguna otra parte. */
 const sinPaginas = a => a.auto ? {...a, pages:[]} : a;
-function saveAnnexes(){ try{ localStorage.setItem('lawang_contract_annexes', JSON.stringify(ANNEXES.map(sinPaginas))); }
-  catch(_){ toastMal('Anexos demasiado grandes para guardar; se mantienen solo en esta sesión'); } }
+
+/* CUÁNTO PUEDEN PESAR LOS ANEXOS SUBIDOS A MANO — 27-sep-2026, medido en producción.
+   ═══════════════════════════════════════════════════════════════════════════
+   Los manuales viajan CON sus páginas (JPEG en base64) dentro de `datos`, y
+   `contrato_guarda` tiene 8 s (statement_timeout del rol `authenticated`):
+     · 0,6 MB de cuerpo ...... se guardó en 1,2 s (el mayor que pasó, 26/27-sep)
+     · 6,5 MB de cuerpo ...... cortado DOS veces a los 10-11 s (PostgREST 57014,
+                               «canceling statement due to statement timeout»,
+                               27-sep 11:16 y 11:17 UTC). Nadie supo por qué.
+   El tope de 4 MB NO está medido: es la interpolación lineal de esos dos puntos
+   (~1,7 s/MB → 8 s ≈ 4,5 MB) con algo de margen. Si el servidor cambia (páginas
+   fuera de `datos`, a Storage), esto se revisa con otra medida, no a ojo.
+   Referencia de lo que ocupa: 10 páginas de plano ≈ 2,9 MB; el Anexo Maestro de
+   Dali Sirap entero serían 6,9 MB — el automático no viaja en `datos`, por eso
+   no cuenta aquí. Lo usan la subida (wireAnnexPanel) y guardarContrato (app.html). */
+const TOPE_DATOS_BYTES = 4 * 1024 * 1024;
+/* Lo que NO son anexos también viaja (campos, hitos, diseño, cláusulas): el mayor
+   guardado normal medido fueron 624 kB de cuerpo. Al subir se deja ese hueco, o el
+   panel aceptaría un anexo que luego Guardar rechaza (code-review, 27-sep). */
+const RESERVA_DATOS_BYTES = 768 * 1024;
+const mbAnexo = n => (n / 1048576).toLocaleString('es-ES', { maximumFractionDigits:1, minimumFractionDigits:1 }) + ' MB';
+const pesoPaginas = a => (a.pages || []).reduce((t, p) => t + String(p).length, 0);
+/* Solo los manuales: los automáticos se guardan sin páginas (sinPaginas). */
+function pesoAnexosManuales(){ return ANNEXES.filter(a => !a.auto).reduce((t, a) => t + pesoPaginas(a), 0); }
+
+/* El borrador local (localStorage, ~5 MB) no es donde vive el contrato: los anexos se
+   quedan de verdad al pulsar Guardar. Medido el 27-sep: 20 páginas de plano (5,1 MB)
+   ya no caben. Antes se avisaba «se mantienen solo en esta sesión» en CADA cambio del
+   panel, y además quedaba en el navegador el borrador ANTERIOR, que al recargar
+   resucitaba otra lista de anexos. Ahora se borra, y se avisa una vez por peso. */
+let AVISO_BORRADOR_LOCAL = 0;
+function saveAnnexes(){
+  try{ localStorage.setItem('lawang_contract_annexes', JSON.stringify(ANNEXES.map(sinPaginas))); AVISO_BORRADOR_LOCAL = 0; }
+  catch(_){
+    try{ localStorage.removeItem('lawang_contract_annexes'); }catch(_e){ /* MUDO A PROPOSITO: sin localStorage no hay borrador viejo que pueda resucitar */ }
+    const peso = pesoAnexosManuales();
+    // Primer fallo siempre avisa; después, solo si el peso cambia de verdad.
+    if(!AVISO_BORRADOR_LOCAL || Math.abs(peso - AVISO_BORRADOR_LOCAL) > 262144){
+      AVISO_BORRADOR_LOCAL = peso || 1;
+      toastMal('Los anexos (' + mbAnexo(peso) + ') no caben en el borrador de este navegador: si recargas la página antes de Guardar, habrá que volver a subirlos. Al guardar el contrato se quedan con él.');
+    }
+  }
+}
 function escAttr(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+/* Huella del PDF del anexo (el aviso «el pack ha cambiado desde que se guardó»).
+   VIVE AQUÍ, y no en app.html, desde el 27-sep-2026: estaba en app.html junto a
+   la firma remota, y cuando la firma pasó al servidor (c1db7ddc, 26-sep, LAW-336
+   pieza 5) se borró con ella. Este fichero era ya su único llamador: cada anexo
+   automático moría en un ReferenceError que el catch convertía en «no tiene Anexo
+   Maestro» — todos los modelos, todos los techos, un día entero. Quien la necesita
+   la define; no se hereda de otra pantalla. Lo vigila documento_anexos.test.js. */
+async function sha256hex(s){
+  const b = await crypto.subtle.digest('SHA-256', typeof s === 'string' ? new TextEncoder().encode(s) : s);
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
+}
 
 if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
@@ -111,20 +164,33 @@ async function pintarPagina(page, escala){
   return cv;
 }
 
-async function pdfToImages(file){
+/* `topeBytes` (27-sep-2026): con un tope, la conversión se corta en cuanto lo
+   acumulado lo pasa, en vez de convertir el PDF entero para descubrir al final que
+   no se puede guardar — y sin acumular páginas hasta tumbar la pestaña (un PDF
+   escaneado de 118 MB la cerró en la medición). El error dice cuánto llevaba. */
+async function pdfToImages(file, topeBytes){
   // acepta File/Blob o un ArrayBuffer ya leído (el anexo automático necesita el
   // buffer aparte para calcular su hash antes de que pdf.js se lo quede)
   const buf = file instanceof ArrayBuffer ? file : await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({data:buf}).promise;
   const out=[];
+  let peso = 0;
+  try{
   for(let i=1;i<=pdf.numPages;i++){
     const page = await pdf.getPage(i);
     const base = page.getViewport({scale:1});
     let cv = await pintarPagina(page, Math.min(1400/base.width, 2));
     // Tope 4×: una página diminuta no se convierte en un lienzo gigante.
     if(fraccionClara(cv) >= CLARO_PLANO) cv = await pintarPagina(page, Math.min(ANCHO_PLANO/base.width, 4));
-    out.push(cv.toDataURL('image/jpeg', CALIDAD_ANEXO));
+    const img = cv.toDataURL('image/jpeg', CALIDAD_ANEXO);
+    cv.width = cv.height = 0;               // suelta la memoria del lienzo ya
+    page.cleanup();
+    peso += img.length;
+    out.push(img);
+    if(topeBytes && peso > topeBytes)
+      throw Object.assign(new Error('pasa del tope'), { tope:{ paginas:i, total:pdf.numPages, bytes:peso } });
   }
+  }finally{ pdf.destroy(); }   // también si una página revienta: la memoria de pdf.js se suelta siempre
   return out;
 }
 function compressImage(file){
@@ -134,9 +200,9 @@ function compressImage(file){
       cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height); res([cv.toDataURL('image/jpeg', CALIDAD_ANEXO)]); };
     img.onerror=rej; img.src=url; });
 }
-async function fileToAnnexPages(file){
+async function fileToAnnexPages(file, topeBytes){
   if(file.type==='application/pdf' || /\.pdf$/i.test(file.name)){
-    if(!window.pdfjsLib) throw new Error('pdf.js no cargó'); return await pdfToImages(file);
+    if(!window.pdfjsLib) throw new Error('pdf.js no cargó'); return await pdfToImages(file, topeBytes);
   }
   return await compressImage(file);
 }
@@ -158,6 +224,8 @@ let AUTO_CARGA = '';  // tipología que se está convirtiendo AHORA. Estado prop
                       // inferido de ANNEXES: si el PDF no existe, "sin anexo" y "aún
                       // convirtiendo" son el mismo estado y el panel se quedaba
                       // diciendo "Preparando…" para siempre (visto el 30-jul-2026).
+let AUTO_AVISO = null; // {clave, mal, texto} del último intento sin anexo: se queda PINTADO en el panel.
+                      // Un toast se va en segundos; el panel es lo que se mira antes de enviar.
 /* DE DÓNDE SALE EL PDF DEL ANEXO — 8-sep-2026, encargo del owner.
    ═══════════════════════════════════════════════════════════════════════════
    Hasta hoy: un fichero por tipología en `assets/anexos/`, servido por
@@ -187,44 +255,48 @@ let AUTO_CARGA = '';  // tipología que se está convirtiendo AHORA. Estado prop
    usa, y con techo elegido tampoco el PDF del repo (no dice de qué techo es):
    mejor sin anexo automático, y avisado, que con los planos del tejado que no es.
    Devuelve { buf, techo } — `techo` es la clave del plano usado, o ''. */
+/* TRES SALIDAS DISTINTAS, Y SE TIENEN QUE VER DISTINTAS — 27-sep-2026.
+   Hasta hoy todo fallo acababa en el mismo «no tiene Anexo Maestro»: con el plano
+   de Dali Sirap en Modelos, legible por la comercial, el contrato decía que no
+   existía (el fallo era un ReferenceError, ver sha256hex arriba). Una alarma que
+   no ha podido mirar no puede decir «no hay nada». Por eso aquí se lanza un
+   error MARCADO y quien llama (syncAutoAnnex) elige el mensaje:
+     · `sinPlano`   — se miró y ese modelo/techo no tiene plano en Modelos (neutro);
+     · `plano`      — lo hay, con su nombre, pero no se ha podido bajar (rojo);
+     · ni lo uno ni lo otro — no se ha podido ni mirar (catálogo o consulta, rojo).
+   Aquí no se enseña ningún toast: antes este fichero sacaba el suyo y el de
+   syncAutoAnnex lo tapaba medio segundo después con el mensaje contrario.
+
+   SIN RED DEL REPO — 25-sep-2026, decisión del owner: «el Anexo Maestro es el
+   ÚNICO documento que debe cargarse en el contrato de Construcción». Sin plano en
+   Modelos ya no se cae a `assets/anexos/<Tipología>.pdf`: no hay anexo automático
+   y se avisa (Legal, revisión previa #86). */
+function errorAnexo(msg, extra){ return Object.assign(new Error(msg), extra || {}); }
 async function bufferDelAnexo(tip, techo){
+  if(typeof sb === 'undefined' || !sb) throw errorAnexo('sin conexión con la base');
+  // Sin catálogo no se sabe qué modelo es: eso es «no he podido mirar», no «no tiene».
+  if(typeof CATALOGO_MODELOS === 'undefined' || !CATALOGO_MODELOS) throw errorAnexo('el catálogo de Modelos no ha cargado');
   const ficha = (typeof fichaDelModelo === 'function') ? fichaDelModelo(tip) : null;
-  if(ficha && typeof sb !== 'undefined' && sb){
-    /* Si Modelos falla se sigue al PDF estático —mejor un anexo que ninguno—,
-       pero NO en silencio: que el modelo TENGA un plano subido y el contrato
-       acabe llevando el fichero viejo del repo es exactamente la divergencia que
-       este cambio venía a cerrar, y sin aviso nadie la nota hasta que el
-       documento está firmado. Se dice qué pasó y con qué se ha quedado. */
-    let doc = null;
-    try{
-      const { data, error } = await sb.from('modelo_documentos')
-        .select('path, nombre, tipo, techo_clave, subido_en').eq('modelo_id', ficha.id).eq('tipo', 'plano')
-        .order('subido_en', { ascending:false });
-      if(error) throw error;
-      const planos = data || [];
-      doc = (techo && planos.find(d => d.techo_clave === techo)) || planos.find(d => !d.techo_clave) || null;
-      if(doc && doc.path){
-        const { data:url, error:eUrl } = await sb.storage.from('modelos').createSignedUrl(doc.path, 3600);
-        if(eUrl || !url || !url.signedUrl) throw (eUrl || new Error('sin URL firmada'));
-        const r = await fetch(url.signedUrl);
-        if(!r.ok) throw new Error('HTTP ' + r.status);
-        return { buf: await r.arrayBuffer(), techo: doc.techo_clave || '' };
-      }
-    }catch(e){
-      // Solo se avisa si HABÍA algo que traerse. Que un modelo no tenga plano en
-      // Modelos es lo normal hoy (la tabla está vacía) y no es un fallo.
-      if(doc) toastMal('El Anexo Maestro de ' + tip + ' está en Modelos pero no se ha podido leer ('
-                    + ((e && e.message) || 'error') + '). Recarga la página antes de seguir.');
-    }
+  if(!ficha) throw errorAnexo(tip + ' no está en el catálogo de Modelos', { sinPlano:true });
+  const { data, error } = await sb.from('modelo_documentos')
+    .select('path, nombre, tipo, techo_clave, subido_en').eq('modelo_id', ficha.id).eq('tipo', 'plano')
+    .order('subido_en', { ascending:false });
+  if(error) throw errorAnexo('no se han podido consultar los documentos de Modelos: ' + (error.message || 'error'));
+  const planos = data || [];
+  // El del techo elegido y, si no hay, el genérico (NULL). Un plano de OTRO techo nunca.
+  const doc = (techo && planos.find(d => d.techo_clave === techo)) || planos.find(d => !d.techo_clave) || null;
+  if(!doc || !doc.path)
+    throw errorAnexo(techo ? 'sin Anexo Maestro para el techo ' + techo : 'sin Anexo Maestro en Modelos', { sinPlano:true });
+  const plano = doc.nombre || doc.path;
+  try{
+    const { data:url, error:eUrl } = await sb.storage.from('modelos').createSignedUrl(doc.path, 3600);
+    if(eUrl || !url || !url.signedUrl) throw (eUrl || new Error('sin URL firmada'));
+    const r = await fetch(url.signedUrl);
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    return { buf: await r.arrayBuffer(), techo: doc.techo_clave || '', plano };
+  }catch(e){
+    throw errorAnexo('no se ha podido descargar: ' + ((e && e.message) || 'error'), { plano });
   }
-  /* SIN RED DEL REPO — 25-sep-2026, decisión del owner: «el Anexo Maestro es
-     el ÚNICO documento que debe cargarse en el contrato de Construcción».
-     Hasta hoy, sin plano en Modelos se caía a `assets/anexos/<Tipología>.pdf`
-     (Dali.pdf y Tropical.pdf, fichas comerciales de julio). Ya no: sin Anexo
-     Maestro no hay anexo, se avisa, y el envío a firma se bloquea (Legal,
-     revisión previa #86: la plantilla remite al «Anexo Especificaciones
-     Técnicas»). Los PDF de `assets/anexos/` quedan sin lector. */
-  throw new Error(techo ? 'sin Anexo Maestro para el techo ' + techo : 'sin Anexo Maestro en Modelos');
 }
 
 /* Anexos subidos a mano (27-sep-2026, owner: «debo poder subir el PDF que quiera,
@@ -259,12 +331,20 @@ async function syncAutoAnnex(){
   // reabrir, al derivar un contrato hijo o al rearrancar la cadena de firma.
   const guardado = ANNEXES.find(a=>a.auto===tip);
   ANNEXES = ANNEXES.filter(a=>!a.auto);
-  if(!tip){ AUTO_CARGA=''; saveAnnexes(); rebuildAnnex(); render(); return; }
-  AUTO_CARGA = tip; rebuildAnnex();
+  if(!tip){ AUTO_CARGA=''; AUTO_AVISO=null; saveAnnexes(); rebuildAnnex(); render(); return; }
+  AUTO_CARGA = tip; AUTO_AVISO = null; rebuildAnnex();
+  let plano = '';
   try{
-    const { buf, techo:techoPlano } = await bufferDelAnexo(tip, techo);
-    const sha = await sha256hex(buf);           // antes de pdf.js: se queda el buffer
-    const pages = await pdfToImages(buf);
+    const { buf, techo:techoPlano, plano:nomPlano } = await bufferDelAnexo(tip, techo);
+    plano = nomPlano || '';
+    let sha, pages;
+    try{
+      sha = await sha256hex(buf);               // antes de pdf.js: se queda el buffer
+      pages = await pdfToImages(buf);
+      if(!pages.length) throw new Error('el PDF no tiene páginas');
+    }catch(e){
+      throw errorAnexo('no se ha podido convertir a páginas: ' + ((e && e.message) || 'error'), { plano });
+    }
     if(AUTO_ANX !== clave) return;             // cambió de tipología o de techo mientras se convertía
     // El nombre del techo solo va al título si el plano ES de ese techo.
     const nomTecho = techoPlano && TECHO_ELEGIDO && TECHO_ELEGIDO.nombre ? ' · ' + TECHO_ELEGIDO.nombre : '';
@@ -282,12 +362,28 @@ async function syncAutoAnnex(){
     if(guardado && guardado.sha && guardado.sha !== sha && !cambioDeTecho)
       toastMal('OJO: el pack de '+tip+' ha cambiado desde que se guardó este contrato');
     else toast('Anexo de '+tip+' adjuntado ('+pages.length+' pág.)');
-  }catch(_){
+  }catch(e){
     /* Desde el 27-sep-2026 (owner) sin Anexo Maestro SÍ se puede enviar a firma: al
-       enviar, app.html pide confirmarlo («Enviar igualmente»). Aquí solo se informa, en
-       neutro — el rojo y el «no se puede» decían lo contrario de lo que pasa. */
+       enviar, app.html pide confirmarlo («Enviar igualmente»). Si de verdad no hay
+       plano se informa en neutro. Si lo hay —o no se ha podido mirar— es un fallo, en
+       rojo y con su motivo: decir «no tiene» ahí manda a administración a subir un
+       documento que ya está subido, y el contrato sale sin él. Ver bufferDelAnexo. */
     if(AUTO_ANX === clave){
-      toast(tip+' no tiene Anexo Maestro'+(techo ? ' con el techo elegido' : '')+': el contrato irá sin él. Si debe llevarlo, pídeselo a administración (Modelos → Documentos, tipo Plano'+(techo ? ', con su techo' : '')+').');
+      const conTecho = techo ? ' con el techo elegido' : '';
+      const motivo = (e && e.message) || 'error';
+      if(e && e.sinPlano){
+        AUTO_AVISO = { clave, mal:false, texto: tip + ' no tiene Anexo Maestro' + conTecho + ' en Modelos: el contrato irá sin él.' };
+        toast(tip+' no tiene Anexo Maestro'+conTecho+': el contrato irá sin él. Si debe llevarlo, pídeselo a administración (Modelos → Documentos, tipo Plano'+(techo ? ', con su techo' : '')+').');
+      }else{
+        /* Fallo, no ausencia: la ficha guardada del anexo (sin páginas, no se imprime)
+           se conserva, para que guardar ahora no borre del contrato su `on` ni el `sha`
+           de lo que se anexó — lo único que no se puede re-derivar al reintentar. */
+        if(guardado) ANNEXES = [sinPaginas(guardado), ...ANNEXES.filter(a=>!a.auto)];
+        AUTO_AVISO = { clave, mal:true, texto: e && e.plano
+          ? 'El Anexo Maestro de ' + tip + ' («' + e.plano + '») está en Modelos pero ' + motivo + '. Recarga la página; si sigue, avisa.'
+          : 'No se ha podido comprobar si ' + tip + ' tiene Anexo Maestro (' + motivo + '). Recarga la página antes de seguir.' };
+        toastMal(AUTO_AVISO.texto);
+      }
     }
   }
   if(AUTO_CARGA === tip && AUTO_ANX === clave) AUTO_CARGA = '';
@@ -297,9 +393,13 @@ async function syncAutoAnnex(){
 function buildAnnexPanel(){
   const cargando = AUTO_CARGA
     ? `<div class="dz" style="color:var(--muted);font-size:12.5px">Preparando el anexo de ${escAttr(AUTO_CARGA)}…</div>` : '';
+  // `clave`: un aviso es de ESTE contrato y tipología/techo; al abrir otro (app.html pone
+  // AUTO_ANX a cero) no se arrastra.
+  const aviso = (!AUTO_CARGA && AUTO_AVISO && AUTO_AVISO.clave === AUTO_ANX)
+    ? `<div class="dz anx-aviso" role="status" style="font-size:12.5px;color:${AUTO_AVISO.mal ? 'var(--be)' : 'var(--muted)'}">${escAttr(AUTO_AVISO.texto)}</div>` : '';
   // un anexo sin páginas no se pinta: es la ficha guardada del automático, que
   // aún no ha rehidratado (si no, parpadea un "0 pág." al abrir un contrato)
-  const rows = cargando + ANNEXES.filter(a=>a.pages && a.pages.length).map((a,i)=> a.auto ? `
+  const rows = cargando + aviso + ANNEXES.filter(a=>a.pages && a.pages.length).map((a,i)=> a.auto ? `
     <div class="dz" data-anx="${a.id}">
       <div class="dz-row">
         <span style="flex:1;font-size:13px">${escAttr(a.title)}</span>
@@ -311,7 +411,7 @@ function buildAnnexPanel(){
     <div class="dz" data-anx="${a.id}">
       <div class="dz-row">
         <input class="anx-title" data-anxtitle="${a.id}" value="${escAttr(a.title)}" aria-label="Título del anexo" style="flex:1;font:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--line);border-radius:8px">
-        <span style="font-size:11px;color:var(--muted);white-space:nowrap">${a.pages.length} pág.</span>
+        <span style="font-size:11px;color:var(--muted);white-space:nowrap">${a.pages.length} pág. · ${mbAnexo(pesoPaginas(a))}</span>
         <button type="button" class="link-btn" data-anxdel="${a.id}">Quitar</button>
       </div>
       <div class="dz-row"><label class="switch"><input type="checkbox" data-anxon="${a.id}" ${a.on?'checked':''}><span class="slider"></span></label>
@@ -332,9 +432,27 @@ function wireAnnexPanel(){
   if(inp) inp.addEventListener('change', async e=>{
     const files=[...e.target.files]; if(!files.length) return;
     const lbl=$('#anxUpLabel'); const t0=lbl.textContent; lbl.textContent='Procesando…';
+    /* Tope de lo que se puede GUARDAR (TOPE_DATOS_BYTES, arriba): se comprueba al
+       subir, no al pulsar Guardar con el contrato ya relleno. Un fichero que no cabe
+       no entra, y se dice cuánto ocupa, cuánto hay ya y cuánto es el máximo. */
     for(const f of files){
-      try{ const pages=await fileToAnnexPages(f); ANNEXES.push({id:'ax'+(annexSeq++), title:f.name.replace(/\.[^.]+$/,''), pages, on:true}); }
-      catch(err){ toastMal('No se pudo procesar '+f.name); }
+      const libre = TOPE_DATOS_BYTES - RESERVA_DATOS_BYTES - pesoAnexosManuales();
+      try{
+        if(libre <= 0) throw Object.assign(new Error('sin sitio'), { tope:{ paginas:0, total:0, bytes:0 } });
+        const pages = await fileToAnnexPages(f, libre);
+        const peso = pages.reduce((t, x) => t + x.length, 0);
+        if(peso > libre) throw Object.assign(new Error('pasa del tope'), { tope:{ paginas:pages.length, total:pages.length, bytes:peso } });
+        ANNEXES.push({id:'ax'+(annexSeq++), title:f.name.replace(/\.[^.]+$/,''), pages, on:true});
+      }catch(err){
+        if(err && err.tope){
+          const t = err.tope, ya = pesoAnexosManuales();
+          toastMal('«' + f.name + '» no cabe en el contrato: '
+            + (t.total ? (t.paginas < t.total ? 'a la página ' + t.paginas + ' de ' + t.total + ' ya ocupaba ' : 'convertido ocupa ') + mbAnexo(t.bytes) + ', ' : '')
+            + (ya ? 'los anexos que ya hay ocupan ' + mbAnexo(ya) + ' ' : '')
+            + 'y en un contrato caben unos ' + mbAnexo(TOPE_DATOS_BYTES - RESERVA_DATOS_BYTES) + ' de anexos subidos a mano. '
+            + 'Sube solo las páginas que hacen falta, o pártelo en contratos distintos.');
+        }else toastMal('No se pudo procesar '+f.name+' ('+((err && err.message) || 'error')+')');
+      }
     }
     lbl.textContent=t0; saveAnnexes(); rebuildAnnex(); render();
   });
