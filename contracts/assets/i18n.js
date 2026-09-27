@@ -3059,6 +3059,8 @@
       'Save the contract before sending it for signature: a manually uploaded annex has been removed',
     'Este contrato de Construcción sale sin el Anexo Maestro (planos y especificaciones), y la plantilla remite a él.':
       'This Construction contract goes out without the Master Annex (plans and specifications), and the template refers to it.',
+    'Sin Anexo Maestro': 'No Master Annex',
+    'Enviar igualmente': 'Send anyway',
     'Si lo tienes, pídeselo a administración (Modelos → Documentos, tipo Plano) o actívalo en Anexos.':
       'If you have it, ask administration for it (Models → Documents, type Plan) or switch it on in Annexes.',
     'Este contrato está': 'This contract is',

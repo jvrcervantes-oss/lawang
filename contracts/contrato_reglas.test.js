@@ -196,7 +196,7 @@ afirma('el panel nace escondido y lo abre el botón',
   /* 27-sep-2026, el owner revierte el bloqueo: «si no hay anexo, que deje mandar
      igual». Sin Anexo Maestro se avisa y se decide; no se bloquea. */
   afirma('sin Anexo Maestro el envío a firma avisa y deja seguir («Enviar igualmente»), no bloquea',
-    /if\(tipSel && !ANNEXES\.some\(a=>a\.auto && a\.on && a\.pages && a\.pages\.length\)\)\{\s*const seguir = await lwConfirmar\([\s\S]{0,600}?confirmar: 'Enviar igualmente'[\s\S]{0,80}?if\(!seguir\) return;\s*\}/.test(app)
+    /if\(tipSel && !ANNEXES\.some\(a=>a\.auto && a\.on && a\.pages && a\.pages\.length\)\)\{\s*const seguir = await lwConfirmar\([\s\S]{0,600}?confirmar: lwT\('Enviar igualmente'\)[\s\S]{0,80}?if\(!seguir\) return;\s*\}/.test(app)
     && /if\(tipSel && ANEXO_MANUAL_RETIRADO\)\{ toastMal\([^;]+\); return; \}/.test(app),
     'el owner quiere poder enviar sin anexo; el aviso es para que sea una decisión, no un descuido');
   afirma('guardar limpia la marca de anexo retirado',
