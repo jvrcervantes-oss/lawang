@@ -4585,7 +4585,7 @@
               caja.innerHTML = '<p style="grid-column:1/-1;font:500 13px/1.5 sans-serif;color:#75786e;margin:0">' +
                 'Este proyecto no tiene unidades dadas de alta.</p>';
               // Sin filas no hay chips: vacía los del proyecto anterior.
-              if (REINICIA_FILTRO_UDS) REINICIA_FILTRO_UDS();
+              if (REINICIA_FILTRO_UDS) REINICIA_FILTRO_UDS(elegido.nombre);
               return;
             }
             // Barra de pago de UNA familia (suelo u obra) de UNA parcela.
@@ -4694,11 +4694,9 @@
             // S10.5: cambiar de proyecto reinicia el filtro/orden — si no, el
             // texto buscado en el proyecto anterior dejaría el nuevo con la
             // rejilla vacía en silencio, sin que nadie entienda por qué.
-            var buscadorUds = document.getElementById('d-unidades-buscar');
-            var ordenUds = document.getElementById('d-unidades-orden');
-            if (buscadorUds) buscadorUds.value = '';
-            if (ordenUds) ordenUds.value = 'codigo';
-            if (REINICIA_FILTRO_UDS) REINICIA_FILTRO_UDS();
+            // Repintar el MISMO proyecto (llegan las portadas firmadas y se
+            // reabre el cajón) conserva lo que el usuario ya había elegido.
+            if (REINICIA_FILTRO_UDS) REINICIA_FILTRO_UDS(elegido.nombre);
           });
 
         if (opts.mostrar) {
@@ -5182,9 +5180,22 @@
           pintaChipsEstado();
           aplicaFiltro();
         });
-        // abrirCajon() lo llama al repintar las parcelas: estado a «Todas» y
-        // recuentos del proyecto recién abierto.
-        REINICIA_FILTRO_UDS = function () { estadoSel = 'todas'; pintaChipsEstado(); aplicaFiltro(); };
+        // abrirCajon() lo llama cada vez que repinta las parcelas. Proyecto
+        // nuevo: buscador, orden y estado vuelven a cero. Mismo proyecto
+        // (repintado por las portadas): se conservan y se reaplican, porque
+        // las filas llegan otra vez en orden natural y sin ocultar.
+        var proyectoFiltrado = null;
+        REINICIA_FILTRO_UDS = function (nombre) {
+          if (nombre !== proyectoFiltrado) {
+            proyectoFiltrado = nombre;
+            buscador.value = '';
+            orden.value = 'codigo';
+            estadoSel = 'todas';
+          }
+          pintaChipsEstado();
+          aplicaOrden();
+          aplicaFiltro();
+        };
         var aplicaOrden = function () {
           var criterio = orden.value;
           var filas = Array.prototype.slice.call(caja.children).filter(function (f) { return f.hasAttribute && f.hasAttribute('data-orden-natural'); });
