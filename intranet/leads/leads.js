@@ -535,8 +535,9 @@ function kpisPipeline(){
       <p class="cifra">${f.length}</p><p class="pie">${
         /* Un filtro que deja el tablero vacío tiene que verse distinto de una base vacía
            (incidente 27-sep: un buscador relleno por el navegador se leía como «no hay leads»). */
-        f.length !== LEADS.length ? esc(lwT('de %n · hay un filtro puesto', { n: LEADS.length }))
-        : CANAL ? esc(canal(CANAL)) : lwT('todos los canales')}</p></div>
+        (BUSCA.trim() || FILTRO_DUENO !== 'todos') && f.length !== LEADS.length
+          ? (CANAL ? esc(canal(CANAL)) + ' · ' : '') + esc(lwT('de %n · hay un filtro puesto', { n: LEADS.length }))
+          : CANAL ? esc(canal(CANAL)) : lwT('todos los canales')}</p></div>
     <div class="kpi"><div class="rot">${lwT('Sin contactar')}<i class="ph ph-envelope-simple"></i></div>
       <p class="cifra">${sin}</p><p class="pie">${lwT('%n llevan más de %d días parados', { n: parados, d: DIAS_VIEJO })}</p></div>
     <div class="kpi"><div class="rot">${lwT('Reserva o contrato')}<i class="ph ph-signature"></i></div>
