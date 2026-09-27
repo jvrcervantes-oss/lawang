@@ -470,7 +470,8 @@
        emergencia es CSS (`animation: lw-rendirse`, en shell.css): sobrevive a
        un JS muerto porque no depende de el.
      · Una pantalla SIN handler (la puerta de `entrar/`) no se tapa: el velo
-       solo se pone si `REG[seg]` existe.
+       solo se pone si `REG[seg]` existe o si esta en PROPIAS (27-sep: las que
+       pintan con su propio script; ahi el destape lo decide LW_RED).
      · El contador puede tocar 0 entre dos tandas —una consulta que dispara
        otra dentro de su `.then` baja el contador antes de que la siguiente lo
        suba—, asi que el destape se confirma en el tick siguiente. */

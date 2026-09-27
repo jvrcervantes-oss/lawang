@@ -38,9 +38,10 @@
   var html = document.documentElement;
   function suelta() { html.classList.remove('lw-mov'); }
   if (!Element.prototype.animate) { R.estado = 'sin-waapi'; suelta(); return; }
-  /* Sin marca: la pantalla ya estaba destapada cuando corrió nav.js. Son las que
-     no esperan a datos.js y pintan con su propio script (Finanzas, Gastos,
-     Bancos, Comunicados, Asistente): se va al modo tardío, más abajo. */
+  /* Sin marca: la pantalla ya estaba destapada cuando corrió nav.js (hoy, las que
+     no cargan el velo de datos.js). Desde el 27-sep Finanzas, Gastos, Bancos,
+     Comunicados y Asistente también llevan velo y entran por el modo normal; el
+     tardío, más abajo, queda para lo que llegue ya destapado. */
   var tarde = !html.classList.contains('lw-mov');
 
   var seg = location.pathname.replace(/\/(index\.html)?$/, '').split('/').pop();
