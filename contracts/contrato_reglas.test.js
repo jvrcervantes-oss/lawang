@@ -193,11 +193,12 @@ afirma('el panel nace escondido y lo abre el botón',
   afirma('un anexo manual se retira de ANNEXES (los datos), y nunca en un contrato bloqueado o en firma',
     /function retiraAnexosManualesConstruccion\(\)\{[\s\S]{0,400}?LOCKED[\s\S]{0,200}?EN_FIRMA[\s\S]{0,300}?ANNEXES = ANNEXES\.filter\(a => a\.auto\)/.test(anexos),
     'filtrarlo solo al pintar haría que lo guardado y lo firmado dijeran cosas distintas');
-  afirma('sin Anexo Maestro el envío a firma se bloquea, sin «Generar el enlace igualmente»',
-    !/Generar el enlace igualmente/.test(app)
-    && /if\(tipSel && !ANNEXES\.some\(a=>a\.auto && a\.on && a\.pages && a\.pages\.length\)\)\{\s*toastMal\([\s\S]{0,300}?return;/.test(app)
+  /* 27-sep-2026, el owner revierte el bloqueo: «si no hay anexo, que deje mandar
+     igual». Sin Anexo Maestro se avisa y se decide; no se bloquea. */
+  afirma('sin Anexo Maestro el envío a firma avisa y deja seguir («Enviar igualmente»), no bloquea',
+    /if\(tipSel && !ANNEXES\.some\(a=>a\.auto && a\.on && a\.pages && a\.pages\.length\)\)\{\s*const seguir = await lwConfirmar\([\s\S]{0,600}?confirmar: 'Enviar igualmente'[\s\S]{0,80}?if\(!seguir\) return;\s*\}/.test(app)
     && /if\(tipSel && ANEXO_MANUAL_RETIRADO\)\{ toastMal\([^;]+\); return; \}/.test(app),
-    'la plantilla remite al «Anexo Especificaciones Técnicas»: firmarla sin él deja una cláusula colgando');
+    'el owner quiere poder enviar sin anexo; el aviso es para que sea una decisión, no un descuido');
   afirma('guardar limpia la marca de anexo retirado',
     /SAVED_CONTRACT = \{ id:data\.id, numero:data\.numero \};\s*ANEXO_MANUAL_RETIRADO = false;/.test(app));
 
