@@ -32,6 +32,10 @@ const sinPaginas = a => a.auto ? {...a, pages:[]} : a;
    Dali Sirap entero serían 6,9 MB — el automático no viaja en `datos`, por eso
    no cuenta aquí. Lo usan la subida (wireAnnexPanel) y guardarContrato (app.html). */
 const TOPE_DATOS_BYTES = 4 * 1024 * 1024;
+/* Lo que NO son anexos también viaja (campos, hitos, diseño, cláusulas): el mayor
+   guardado normal medido fueron 624 kB de cuerpo. Al subir se deja ese hueco, o el
+   panel aceptaría un anexo que luego Guardar rechaza (code-review, 27-sep). */
+const RESERVA_DATOS_BYTES = 768 * 1024;
 const mbAnexo = n => (n / 1048576).toLocaleString('es-ES', { maximumFractionDigits:1, minimumFractionDigits:1 }) + ' MB';
 const pesoPaginas = a => (a.pages || []).reduce((t, p) => t + String(p).length, 0);
 /* Solo los manuales: los automáticos se guardan sin páginas (sinPaginas). */
@@ -48,8 +52,9 @@ function saveAnnexes(){
   catch(_){
     try{ localStorage.removeItem('lawang_contract_annexes'); }catch(_e){ /* MUDO A PROPOSITO: sin localStorage no hay borrador viejo que pueda resucitar */ }
     const peso = pesoAnexosManuales();
-    if(Math.abs(peso - AVISO_BORRADOR_LOCAL) > 262144){
-      AVISO_BORRADOR_LOCAL = peso;
+    // Primer fallo siempre avisa; después, solo si el peso cambia de verdad.
+    if(!AVISO_BORRADOR_LOCAL || Math.abs(peso - AVISO_BORRADOR_LOCAL) > 262144){
+      AVISO_BORRADOR_LOCAL = peso || 1;
       toastMal('Los anexos (' + mbAnexo(peso) + ') no caben en el borrador de este navegador: si recargas la página antes de Guardar, habrá que volver a subirlos. Al guardar el contrato se quedan con él.');
     }
   }
@@ -170,6 +175,7 @@ async function pdfToImages(file, topeBytes){
   const pdf = await pdfjsLib.getDocument({data:buf}).promise;
   const out=[];
   let peso = 0;
+  try{
   for(let i=1;i<=pdf.numPages;i++){
     const page = await pdf.getPage(i);
     const base = page.getViewport({scale:1});
@@ -181,13 +187,10 @@ async function pdfToImages(file, topeBytes){
     page.cleanup();
     peso += img.length;
     out.push(img);
-    if(topeBytes && peso > topeBytes){
-      const total = pdf.numPages;
-      pdf.destroy();
-      throw Object.assign(new Error('pasa del tope'), { tope:{ paginas:i, total, bytes:peso } });
-    }
+    if(topeBytes && peso > topeBytes)
+      throw Object.assign(new Error('pasa del tope'), { tope:{ paginas:i, total:pdf.numPages, bytes:peso } });
   }
-  pdf.destroy();
+  }finally{ pdf.destroy(); }   // también si una página revienta: la memoria de pdf.js se suelta siempre
   return out;
 }
 function compressImage(file){
@@ -433,7 +436,7 @@ function wireAnnexPanel(){
        subir, no al pulsar Guardar con el contrato ya relleno. Un fichero que no cabe
        no entra, y se dice cuánto ocupa, cuánto hay ya y cuánto es el máximo. */
     for(const f of files){
-      const libre = TOPE_DATOS_BYTES - pesoAnexosManuales();
+      const libre = TOPE_DATOS_BYTES - RESERVA_DATOS_BYTES - pesoAnexosManuales();
       try{
         if(libre <= 0) throw Object.assign(new Error('sin sitio'), { tope:{ paginas:0, total:0, bytes:0 } });
         const pages = await fileToAnnexPages(f, libre);
@@ -446,7 +449,7 @@ function wireAnnexPanel(){
           toastMal('«' + f.name + '» no cabe en el contrato: '
             + (t.total ? (t.paginas < t.total ? 'a la página ' + t.paginas + ' de ' + t.total + ' ya ocupaba ' : 'convertido ocupa ') + mbAnexo(t.bytes) + ', ' : '')
             + (ya ? 'los anexos que ya hay ocupan ' + mbAnexo(ya) + ' ' : '')
-            + 'y un contrato no se guarda con más de ' + mbAnexo(TOPE_DATOS_BYTES) + ' de anexos subidos a mano. '
+            + 'y en un contrato caben unos ' + mbAnexo(TOPE_DATOS_BYTES - RESERVA_DATOS_BYTES) + ' de anexos subidos a mano. '
             + 'Sube solo las páginas que hacen falta, o pártelo en contratos distintos.');
         }else toastMal('No se pudo procesar '+f.name+' ('+((err && err.message) || 'error')+')');
       }
