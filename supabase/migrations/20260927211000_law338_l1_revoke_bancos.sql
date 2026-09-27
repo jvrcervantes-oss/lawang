@@ -1,5 +1,5 @@
 -- LAW-338 · bloque L1 — CIERRE de las tres tablas bancarias al navegador.
--- ⚠ SIN APLICAR al commitearse (27-sep-2026). Se aplica cuando PRODUCCIÓN sirva la /v4/bancos/ que lee por
+-- APLICADA el 27-sep-2026 (MCP, nombre law338_l1_revoke_bancos) con OK del owner, tras comprobar /v4/bancos/ con su sesion. Se aplica cuando PRODUCCIÓN sirva la /v4/bancos/ que lee por
 --   panel_bancos_datos (lección de B3-B5: revoke después de servir la pantalla nueva, en migración aparte).
 --   Hasta entonces el invariante 8 de tools/salud_lawang.py («cada migración del repo está aplicada») la
 --   marca: es el recordatorio, no un fallo.
