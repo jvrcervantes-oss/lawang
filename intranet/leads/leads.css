@@ -79,6 +79,17 @@
 .crm-nav-sep { flex: 0 0 auto; align-self: center; font: 600 10px/1 var(--text); letter-spacing: .06em;
   text-transform: uppercase; color: var(--mist); padding: 0 4px; border-left: 1px solid var(--line); margin-left: 4px; padding-left: 12px; }
 
+/* Fila de las pestañas + «Refrescar» (27-sep-2026): el botón vivía en la barra
+   clásica, que se fue con el cromo v4. La franja y su filete pasan de la nav a
+   la fila, para que el botón quede dentro de ella y no debajo. */
+.crm-nav-fila { display: flex; align-items: center; background: var(--panel); border-bottom: 1px solid var(--line); }
+.crm-nav-fila > .crm-nav { flex: 1 1 auto; min-width: 0; border-bottom: 0; }
+.crm-nav-fila > #btnRefrescar { flex: 0 0 auto; margin: 0 16px 0 8px; }
+@media (max-width: 600px) {
+  .crm-nav-fila > #btnRefrescar { margin: 0 8px 0 4px; }
+  .crm-nav-fila > #btnRefrescar span { display: none; }   /* solo el icono: la fila es de las pestañas */
+}
+
 .crm-vista { padding: 20px 16px 64px; max-width: 1560px; margin: 0 auto; }
 .crm-vista[hidden] { display: none; }
 
@@ -146,6 +157,10 @@
 .filtros input[type="search"] { flex: 1 1 220px; min-width: 0; font: 400 13px/1 var(--text);
   padding: 9px 11px; border: 1px solid var(--line); border-radius: var(--r-ctrl); background: var(--canvas); }
 .filtros input[type="search"]:focus { outline: 2px solid var(--primary-line); outline-offset: -1px; }
+/* Animación vacía: solo sirve para que buscador.js se entere (animationstart) de que el
+   navegador ha autorrellenado el buscador sin disparar `input` (incidente 27-sep-2026). */
+@keyframes lw-autorrelleno { from {} to {} }
+.filtros input[type="search"]:-webkit-autofill { animation-name: lw-autorrelleno; animation-duration: 1ms; }
 .filtros .seg { display: flex; background: var(--line-soft); border-radius: 9999px; padding: 3px; gap: 2px; }
 .filtros .seg button { border: 0; background: none; border-radius: 9999px; cursor: pointer;
   font: 500 12px/1 var(--text); padding: 6px 11px; color: var(--mist); display: flex; align-items: center; gap: 6px; }

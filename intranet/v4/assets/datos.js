@@ -590,26 +590,11 @@
      cobran la señal: fuera de volúmenes y de «cobro pendiente» (Administración, 19-sep;
      tercera vez que este patrón reincide — `lwEsPreliminar` es la fuente única). */
   function esPreliminar(c) { return typeof lwEsPreliminar === 'function' && lwEsPreliminar(c.tipo); }
-  /* PALETA ÚNICA DE ESTADOS DE LA V4 (23-sep-2026, owner: «¿usamos los mismos
-     colores en toda la suite? que facturas tenga el mismo color en todos
-     lados»). Había dos copias idénticas (pill() aquí y H.tag en editores.js)
-     y la campana estrenó un ámbar y un azul propios. Ahora hay UNA, global,
-     que leen los listados, las fichas y la campana. Un color = un significado:
-       ok (verde)     hecho: firmado, cobrado, facturado, saldado, activo
-       espera (ámbar) pendiente de alguien: en firma, sin cobrar, por vencer
-       mal (rojo)     vencido, caducado, rechazado, anulado, liberado
-       neutro (gris)  informativo: borrador, sin firmar, emitida, inventario
-     `borde` e `icono` los usa la campana; `fondo`/`tinta` son la etiqueta. */
-  var LW_TONOS = window.LW_TONOS = {
-    ok:     { fondo: '#E4F0DA', tinta: '#3F5230', borde: '#3F5230', suave: '#F6FAF2', icono: 'check_circle' },
-    espera: { fondo: '#FBF3E4', tinta: '#8A6A34', borde: '#C9892B', suave: '#FFFAF0', icono: 'schedule' },
-    mal:    { fondo: '#FFDAD6', tinta: '#93000A', borde: '#BA1A1A', suave: '#FFF4F2', icono: 'error' },
-    // en curso (lago): trámite en marcha que ya no espera a nadie más que al último paso
-    // — p. ej. una solicitud APROBADA que falta pagar (23-sep-2026, owner: «diferencia
-    // los estados por colores» en Comisiones; con solo ámbar, pendiente y aprobada eran iguales)
-    curso:  { fondo: '#D9ECEC', tinta: '#104C4F', borde: '#104C4F', suave: '#F2F8F8', icono: 'sync' },
-    neutro: { fondo: '#EAE8E2', tinta: '#2E3437', borde: '#B9B5A8', suave: '#FFFFFF', icono: 'info' }
-  };
+  /* PALETA ÚNICA DE ESTADOS DE LA V4 (23-sep-2026): vive en assets/cabecera.js desde el
+     27-sep-2026 (la necesita también la campana del CRM, que no carga este fichero).
+     cabecera.js carga ANTES que este en cada pantalla (nav.test.js). */
+  var LW_TONOS = window.LW_TONOS;
+  if (!LW_TONOS) console.error('[v4 datos] falta assets/cabecera.js: sin paleta de estados');
   function pill(texto, tono) {
     var t = LW_TONOS[tono] || LW_TONOS.neutro, c = [t.fondo, t.tinta];
     return '<span style="display:inline-block;padding:2px 9px;border-radius:999px;font:600 11px/1.5 \'Neue Kabel\',sans-serif;letter-spacing:.04em;text-transform:uppercase;background:' + c[0] + ';color:' + c[1] + '">' + esc(texto) + '</span>';
@@ -652,144 +637,9 @@
     });
     return _cargaDialogo;
   }
-  /* ══════════════ la campana (S17, 23-sep-2026) ══════════════
-     Marcaba «18» en las 18 pantallas (un número de Stitch) y luego solo contaba
-     `notificaciones`. Ahora sale de `lwAvisos` (contracts/assets/avisos.js), la
-     MISMA función que usa la campana de las herramientas clásicas: hechos +
-     facturas por vencer + enlaces de firma por caducar, con sus mismos filtros
-     y su misma idea de «nuevo». Aquí solo se pinta: contador en el botón y la
-     lista en el cajón compartido. Abrirla da los hechos por vistos, como la
-     viva (`marcar_notificaciones_leidas`, sin parámetros: usa auth.uid()).
-     Los enlaces de Operaciones se quedan dentro de la v4 (su `?contrato=`
-     acepta el id desde hoy); el resto van a la herramienta de siempre. */
-  /* COLORES DE LA CAMPANA (23-sep-2026, owner: «más claros con colores»).
-     El nivel y la etiqueta los decide avisos.js (fuente única); aquí solo se
-     pintan. Misma paleta que las etiquetas del cajón (H.tag): rojo = vencido o
-     caducado, ámbar = vence pronto, verde = buena noticia, lago = trámite en
-     marcha, gris = movimiento de inventario. Siempre con icono y palabra: el
-     color solo no basta. Lo que pide acción va arriba y aparte. */
-  // la paleta ÚNICA de la v4 (LW_TONOS, arriba): el nivel de avisos.js se traduce a ella
-  var NIVEL_A_TONO = { mal: 'mal', atencion: 'espera', ok: 'ok', neutro: 'neutro' };
-  function tonoAviso(nivel) { return LW_TONOS[NIVEL_A_TONO[nivel] || 'neutro']; }
-  /* VISTA DE FILAS (23-sep-2026, owner: «la información está concentrada y
-     muy vacía»). El cajón vuelve a su ancho de siempre y cada aviso es UNA
-     fila que reparte lo que dice por el ancho, como una tabla: estado ·
-     aviso · detalle · fecha. En móvil (menos de 720 px) la fila se apila en
-     dos líneas. Colores: los de la paleta única (LW_TONOS). */
-  function pintaAvisos(avisos, aV4) {
-    var alertas = avisos.filter(function (a) { return a.clase === 'alerta'; })
-      // lo más urgente primero: vencido antes que por vencer, y dentro, lo más antiguo
-      .sort(function (a, b) { return (a.nivel === 'mal' ? 0 : 1) - (b.nivel === 'mal' ? 0 : 1) || new Date(a.cuando) - new Date(b.cuando); });
-    var hechos = avisos.filter(function (a) { return a.clase !== 'alerta'; });
-    var nMal = alertas.filter(function (a) { return a.nivel === 'mal'; }).length;
-    var nAt = alertas.length - nMal;
-    var nNuevos = hechos.filter(function (a) { return a.nuevo; }).length;
-    var chip = function (n, texto, t) {
-      return n ? '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:' + t.fondo + ';color:' + t.tinta + ';font-size:12px;font-weight:700">' +
-        '<span class="material-symbols-outlined" style="font-size:15px">' + t.icono + '</span>' + n + ' ' + esc(texto) + '</span>' : '';
-    };
-    var resumen = (nMal || nAt || nNuevos)
-      ? '<div style="display:flex;flex-wrap:wrap;gap:6px">' +
-          chip(nMal, nMal === 1 ? 'vencido o caducado' : 'vencidos o caducados', LW_TONOS.mal) +
-          chip(nAt, 'por vencer', LW_TONOS.espera) +
-          chip(nNuevos, nNuevos === 1 ? 'novedad sin ver' : 'novedades sin ver', LW_TONOS.neutro) + '</div>'
-      : '';
-    var hoyAnio = new Date().getFullYear();
-    var fechaCorta = function (x) {
-      if (!x) return '';
-      var d = new Date(String(x).length === 10 ? x + 'T00:00:00' : x);
-      if (isNaN(d)) return String(x).slice(0, 10);
-      return d.toLocaleDateString('es-ES', d.getFullYear() === hoyAnio ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' });
-    };
-    var css = '<style>' +
-      '.lw-av{display:grid;grid-template-columns:22px 170px minmax(0,1.35fr) minmax(0,1fr) 78px;align-items:center;gap:12px;padding:9px 14px;border-radius:10px;border:1px solid #E4DCCB;color:#1b1c19;text-decoration:none;transition:filter .15s}' +
-      '.lw-av:hover{filter:brightness(.97)}' +
-      '.lw-av-cab{display:grid;grid-template-columns:22px 170px minmax(0,1.35fr) minmax(0,1fr) 78px;gap:12px;padding:0 15px 2px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#8A8474}' +
-      '.lw-av-t{font-size:13px;line-height:1.35;overflow-wrap:anywhere}' +
-      '.lw-av-d{font-size:12px;color:#44483f;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
-      '.lw-av-f{font-size:11.5px;color:#75786e;text-align:right;white-space:nowrap}' +
-      '@media (max-width:720px){.lw-av-cab{display:none}.lw-av{grid-template-columns:20px minmax(0,1fr) auto;gap:4px 10px}' +
-      '.lw-av .lw-av-e{grid-column:2;grid-row:2}.lw-av .lw-av-t{grid-column:2;grid-row:1}.lw-av .lw-av-d{grid-column:2 / 4;grid-row:3;white-space:normal}.lw-av .lw-av-f{grid-column:3;grid-row:1}}' +
-      '</style>';
-    var fila = function (a) {
-      var t = tonoAviso(a.nivel);
-      var fondo = (a.clase === 'alerta' || a.nuevo) ? t.suave : '#FFFFFF';
-      return '<a class="lw-av" href="' + esc(aV4(a.enlace)) + '" title="' + esc(a.titulo + (a.detalle ? ' — ' + a.detalle : '')) + '" style="border-left:4px solid ' + t.borde + ';background:' + fondo + '">' +
-        '<span class="material-symbols-outlined" style="font-size:19px;color:' + t.borde + '">' + t.icono + '</span>' +
-        '<span class="lw-av-e" style="display:flex;flex-wrap:wrap;gap:4px">' +
-          '<span style="padding:1px 8px;border-radius:999px;background:' + t.fondo + ';color:' + t.tinta + ';font-size:10.5px;line-height:18px;font-weight:700;letter-spacing:.04em;text-transform:uppercase">' + esc(a.etiqueta || 'Aviso') + '</span>' +
-          (a.nuevo && a.clase !== 'alerta' ? '<span style="padding:1px 8px;border-radius:999px;background:#2E3437;color:#fff;font-size:10.5px;line-height:18px;font-weight:700;letter-spacing:.04em;text-transform:uppercase">Nuevo</span>' : '') +
-        '</span>' +
-        '<span class="lw-av-t" style="font-weight:' + (a.nuevo || a.clase === 'alerta' ? '700' : '500') + '">' + esc(a.titulo) + '</span>' +
-        '<span class="lw-av-d">' + esc(a.detalle || '') + '</span>' +
-        '<span class="lw-av-f">' + esc(fechaCorta(a.cuando)) + '</span>' +
-      '</a>';
-    };
-    var bloque = function (titulo, lista) {
-      return lista.length ? '<section style="display:grid;gap:6px">' +
-        '<h4 style="margin:6px 0 2px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#75786e">' + esc(titulo) + ' (' + lista.length + ')</h4>' +
-        '<div class="lw-av-cab"><span></span><span>Estado</span><span>Aviso</span><span>Detalle</span><span style="text-align:right">Fecha</span></div>' +
-        lista.map(fila).join('') + '</section>' : '';
-    };
-    return css + resumen + bloque('Requiere atención', alertas) + bloque('Actividad reciente', hechos);
-  }
-
-  function campanaV4(aut, rol) {
-    var badges = document.querySelectorAll('[data-lw="k-avisos"]');
-    var boton = badges.length ? badges[0].closest('button') : null;
-    var ULTIMO = null;
-    function pintaContador(n, avisos) {
-      // el número toma el color de lo más grave que haya sin atender
-      var peor = (avisos || []).filter(function (a) { return a.nuevo; }).reduce(function (acc, a) {
-        return acc === 'mal' || a.nivel === 'mal' ? 'mal' : (acc === 'atencion' || a.nivel === 'atencion' ? 'atencion' : 'neutro');
-      }, null);
-      badges.forEach(function (e) {
-        e.textContent = n == null ? '—' : (n > 99 ? '99+' : String(n));
-        e.style.display = n === 0 ? 'none' : '';
-        e.style.backgroundColor = !peor ? '' : (peor === 'neutro' ? '#2E3437' : tonoAviso(peor).borde);
-        e.style.color = peor ? '#fff' : '';
-      });
-    }
-    function aV4(href) {
-      return href.indexOf('/intranet/operaciones/') === 0 ? '/intranet/v4/operaciones/' + href.slice('/intranet/operaciones/'.length) : href;
-    }
-    function carga() {
-      if (typeof lwAvisos !== 'function') { console.error('[v4 datos] falta contracts/assets/avisos.js'); pintaContador(null); return Promise.resolve(null); }
-      var ficha = aut.ficha || {};
-      var email = (aut.session && aut.session.user && aut.session.user.email) || '';
-      return lwAvisos(aut.sb, { esAdmin: rol === 'admin' || rol === 'super_admin', email: email, vistoHasta: ficha.notif_visto_hasta || null })
-        .then(function (out) { ULTIMO = out; pintaContador(out.sinLeer, out.avisos); return out; },
-              function (e) { console.error('[v4 datos] avisos:', e); pintaContador(null); return null; });
-    }
-    function abre() {
-      if (typeof window.lwCajon !== 'function') { toast('El panel aún no ha cargado — prueba de nuevo en un segundo.'); return; }
-      var H = window.lwCajonHtml;
-      var pinta = function (out) {
-        var cuerpo;
-        // una consulta caída no se lee como «nada nuevo»: la nota va antes que la lista, haya lista o no
-        var notaFallo = (out && out.fallos) ? H.nota(out.cobroSinComprobar ? 'No se pudo comprobar lo cobrado: las facturas por vencer no se muestran.' : 'Alguna de las consultas de avisos falló: la lista puede estar incompleta.') : '';
-        if (!out) cuerpo = H.nota('No se pudieron cargar los avisos. Prueba a recargar la página.');
-        else if (!out.avisos.length) cuerpo = notaFallo + '<p style="margin:0;font-size:13px;color:#8A8474">Nada nuevo.</p>';
-        else cuerpo = notaFallo + pintaAvisos(out.avisos, aV4);
-        // ancho de siempre (owner: «que fuese muy amplia nunca fue un problema»);
-        // `desde`: el cajón crece desde la campana y se recoge hacia ella
-        // el 60% de siempre en escritorio; en móvil, pantalla entera como todo
-        // cajón (regla común en shell.css, 24-sep-2026 — antes se parcheaba aquí)
-        window.lwCajon({ titulo: 'Avisos', bajoTitulo: 'Lo que ha pasado y lo que vence en los próximos 15 días.', cuerpo: cuerpo, desde: boton });
-      };
-      // abrir = dar los hechos por vistos (las alertas de ≤5 días siguen contando, como en la viva)
-      if (ULTIMO && ULTIMO.sinLeer) {
-        aut.sb.rpc('marcar_notificaciones_leidas').then(function (r) { if (r && r.error) console.error('[v4 datos] marcar avisos:', r.error); });
-        pintaContador(0);
-      }
-      if (ULTIMO) pinta(ULTIMO); else carga().then(pinta);
-    }
-    if (boton) {
-      boton.setAttribute('data-real', '');   // maqueta.js deja en paz lo cableado
-      boton.addEventListener('click', function (ev) { ev.stopPropagation(); abre(); });
-    }
-    carga();
-  }
+  /* La campana (S17, 23-sep-2026) y su vista de filas viven en assets/cabecera.js
+     desde el 27-sep-2026: la comparte el CRM, que lleva la cabecera v4 sin este
+     fichero. Aquí se llama con `{ cajon: true }` (la lista en el cajón compartido). */
 
   /* ══════════════ FAQ del Investor Deck en el cajón de Proyectos (23-sep-2026) ══════════════
      Decisión del owner («la pestaña de FAQ no se ve, replanteemos eso»): las
@@ -9201,14 +9051,9 @@
          nav.js (S17, 23-sep-2026): era un aviso de maqueta, y lo que queda
          en pantalla ya son datos reales. */
 
-      /* La topbar enseñaba un nombre REAL del equipo hardcodeado por Stitch
-         (venía copiado de las capturas). El usuario de sesión se pinta aquí,
-         nunca en el HTML: este repo es público. */
-      var quien = (aut.ficha && aut.ficha.nombre) ||
-                  ((aut.session && aut.session.user && aut.session.user.email || '').split('@')[0]) || 'Sesión activa';
+      /* Usuario de la sesión en la cabecera: assets/cabecera.js (27-sep-2026). */
       var rol = (aut.ficha && aut.ficha.rol) || '—';
-      document.querySelectorAll('[data-lw-user]').forEach(function (e) { e.textContent = quien; });
-      document.querySelectorAll('[data-lw-rol]').forEach(function (e) { e.textContent = rol; });
+      if (window.LW_CABECERA) window.LW_CABECERA.pintaUsuario(aut);
       /* Identidad de la sesión, para pantallas que deciden algo por email/rol
          (hoy: «Reparto de equipo» — es el manager del equipo, o admin). Se
          guarda aquí y no dentro de cada REG[seg], que solo recibe `sb`. */
@@ -9236,7 +9081,8 @@
       var hoy = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
       document.querySelectorAll('[data-lw-hoy]').forEach(function (e) { e.textContent = hoy; });
 
-      campanaV4(aut, rol);
+      if (window.LW_CABECERA) window.LW_CABECERA.campana(aut, rol, { cajon: true });
+      else console.error('[v4 datos] falta assets/cabecera.js: sin campana ni usuario');
       var fn = REG[seg];
       arrancado = true;
       if (fn) {

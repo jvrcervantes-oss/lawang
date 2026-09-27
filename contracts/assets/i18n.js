@@ -2372,7 +2372,8 @@
     'Lead': 'Lead',
     '%n lead': '%n lead',
     '%n leads': '%n leads',
-    'Buscar por nombre, email o teléfono…': 'Search by name, email or phone…',
+    'Buscar por nombre…': 'Search by name…',
+    'de %n · hay un filtro puesto': 'of %n · a filter is on',
     'Buscar en la bandeja…': 'Search the inbox…',
     'Ningún lead con ese filtro.': 'No lead matches that filter.',
     'Todavía no ha entrado ningún lead.': 'No lead has come in yet.',
@@ -3055,10 +3056,10 @@
     'Avisado': 'Notified',
     'Aviso:': 'Notice:',
     'Reabre el modal de firma': 'Reopen the signing dialog',
-    'Guarda el contrato antes de enviarlo a firma: se ha retirado un anexo subido a mano':
-      'Save the contract before sending it for signature: a manually uploaded annex has been removed',
     'Este contrato de Construcción sale sin el Anexo Maestro (planos y especificaciones), y la plantilla remite a él.':
       'This Construction contract goes out without the Master Annex (plans and specifications), and the template refers to it.',
+    'Sin Anexo Maestro': 'No Master Annex',
+    'Enviar igualmente': 'Send anyway',
     'Si lo tienes, pídeselo a administración (Modelos → Documentos, tipo Plano) o actívalo en Anexos.':
       'If you have it, ask administration for it (Models → Documents, type Plan) or switch it on in Annexes.',
     'Este contrato está': 'This contract is',

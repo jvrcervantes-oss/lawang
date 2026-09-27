@@ -134,5 +134,38 @@ const navSinComentarios = nav.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/
 if (/FUERA_V4|\/intranet\/documentacion\//.test(navSinComentarios)) errores.push('nav.js vuelve a mandar a /intranet/documentacion/ (retirada el 27-sep-2026)');
 if (CLAVE_MENU.documentacion) errores.push('CLAVE_MENU vuelve a tener «documentacion»: la entrada del menú está retirada (vive en Proyectos)');
 
+/* CABECERA COMPARTIDA (27-sep-2026). La paleta (window.LW_TONOS), la campana y el
+   usuario viven en cabecera.js, y datos.js los LEE al cargar: una pantalla que
+   cargue datos.js sin cabecera.js DELANTE se queda sin colores ni campana. */
+const posScript = (s, fich) => { const m = new RegExp('<script[^>]+src="[^"]*' + fich.replace('.', '\\.') + '[^"]*"').exec(s); return m ? m.index : -1; };
+for (const carpeta of fs.readdirSync(V4, { withFileTypes: true })) {
+  if (!carpeta.isDirectory() || carpeta.name === 'assets') continue;
+  const f = path.join(V4, carpeta.name, 'index.html');
+  if (!fs.existsSync(f)) continue;
+  const s = fs.readFileSync(f, 'utf8');
+  const d = posScript(s, 'assets/datos.js');
+  if (d === -1) continue;
+  const c = posScript(s, 'assets/cabecera.js');
+  if (c === -1 || c > d) errores.push(`${carpeta.name}: carga datos.js sin cabecera.js delante`);
+}
+/* El CRM lleva el cromo v4 montado (27-sep-2026, owner): html.v4 + lw4-fijo (sin
+   ellos nav.js sale y nav-montaje no pinta nada), su hoja, y los tres scripts en
+   orden — cabecera.js antes de nav-montaje.js (que la llama) y este antes de
+   nav.js (que recablea el menú que monta). Sin topbar.js: serían dos menús. */
+{
+  const crm = fs.readFileSync(path.join(RAIZ, 'intranet', 'leads', 'index.html'), 'utf8');
+  const h = (crm.match(/<html[^>]*>/) || [''])[0];
+  if (!/class="[^"]*\bv4\b[^"]*\blw4-fijo\b/.test(h)) errores.push('CRM: el <html> no lleva class="v4 lw4-fijo"');
+  // Declarativo: la marca de activa del CRM la pone injerta() de nav.js por su href
+  // (nav-montaje no dibuja esa entrada). Se exige igual, como en app.html, para que
+  // la página diga qué herramienta es si algún día la entrada se dibuja en el montaje.
+  if (!/data-lw4-herramienta="leads"/.test(h)) errores.push('CRM: el <html> no declara data-lw4-herramienta="leads"');
+  if (!/<link[^>]+nav-montaje\.css/.test(crm)) errores.push('CRM: no carga intranet/v4/assets/nav-montaje.css');
+  const orden = ['contracts/assets/avisos.js', 'assets/cabecera.js', 'assets/nav-montaje.js', 'assets/nav.js'].map(x => posScript(crm, x));
+  if (orden.some(x => x === -1) || orden.some((x, i) => i && x < orden[i - 1])) errores.push('CRM: avisos.js, cabecera.js, nav-montaje.js y nav.js tienen que ir en ese orden');
+  if (posScript(crm, 'topbar.js') !== -1) errores.push('CRM: vuelve a cargar topbar.js (la barra clásica) junto al menú v4');
+  if (!/id="btnRefrescar"/.test(crm)) errores.push('CRM: falta #btnRefrescar (leads.js lo ata al cargar)');
+}
+
 assert.deepStrictEqual(errores, [], '\n  ' + errores.join('\n  '));
 console.log('nav.test.js OK (' + enMenu.length + ' casillas situadas en el menú)');

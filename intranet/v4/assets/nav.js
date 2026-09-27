@@ -92,9 +92,11 @@
   if (typeof window !== 'undefined') window.LW_MENU_V4 = MENU_V4;
 
   /* Fuera de /intranet/v4/ solo corre si la página lleva la cara v4 puesta
-     (`html.v4`, contracts/assets/piel.js). Hoy es el caso del generador de
-     contratos, que carga este fichero y en su cara clásica no puede tocarle
-     nada: ni rutas, ni idioma, ni el `preventDefault` de los href="#" (23-sep). */
+     (`html.v4`). Hoy son dos: el generador de contratos (la pone
+     contracts/assets/piel.js; en su cara clásica no se le puede tocar nada: ni
+     rutas, ni idioma, ni el `preventDefault` de los href="#", 23-sep) y el CRM
+     (/intranet/leads/, la lleva escrita en su <html> desde el 27-sep-2026). A
+     las dos les monta el menú assets/nav-montaje.js. */
   if (location.pathname.indexOf('/intranet/v4/') === -1 && !document.documentElement.classList.contains('v4')) return;
 
   /* FALLOS QUE VE LA PERSONA (25-sep-2026, owner: «¿puede detectar si ha habido un
@@ -175,6 +177,12 @@
   var MOTION_V = '114a104b';
   (function () {
     try {
+      /* Solo en /intranet/v4/ (27-sep-2026): la entrada anima `main` cuando datos.js
+         marca `body.lw-listo`, y ni el generador ni el CRM (fuera de la v4, con el
+         menú montado) lo marcan nunca — el observer de motion.js se quedaba
+         esperando para nada. El CRM queda fuera también por decisión (cabecera
+         de motion.js: «es una vertical con diseño propio»). */
+      if (location.pathname.indexOf('/intranet/v4/') === -1) return;
       if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       if (!(document.body && document.body.classList.contains('lw-listo'))) document.documentElement.classList.add('lw-mov');
       var sm = document.createElement('script');
@@ -219,9 +227,10 @@
     ['Usuarios', 'usuarios/'],
     /* Las tres que Stitch no dibujo nunca: nacieron despues de la descarga.
        Se enlazan aqui igual que las demas y se INJERTAN abajo (INJERTOS).
-       CRM sale de la v4 a proposito: conserva su vista propia en /intranet/leads/
-       (owner, 14-sep). Ruta ABSOLUTA, no relativa a ROOT: lo que hay en
-       v4/leads/ es solo una redireccion para los enlaces viejos. */
+       CRM vive fuera de /intranet/v4/ a proposito: conserva su vista propia en
+       /intranet/leads/ (owner, 14-sep), con el menu y la cabecera de la v4 desde
+       el 27-sep-2026 (nav-montaje.js). Ruta ABSOLUTA, no relativa a ROOT: lo que
+       hay en v4/leads/ es solo una redireccion para los enlaces viejos. */
     ['CRM', '/intranet/leads/'],
     ['Comisiones', 'comisiones/'],
     ['Cuentas', 'cuentas/'],
@@ -341,7 +350,7 @@
      el propio catalogo la marca `soloAdmin:true`. */
   var INJERTOS = [
     { path: 'leads',      tras: 'home',     icono: 'person_search',  texto: 'CRM',
-      href: '/intranet/leads/' },   // vista propia: sale de la v4
+      href: '/intranet/leads/' },   // vista propia fuera de /intranet/v4/ (con el cromo v4)
     /* Asistente de respuestas (22-sep-2026, S5 de
        encargos/20260922_lawang_bot_apoyo_agentes.md): tras Contratos, en
        Documentación, como en herramientas.js. OJO: este fichero NO lee el
@@ -592,8 +601,12 @@
     spans[1].textContent = spec.texto;
     /* Con href propio deja de ser href="#", y recablea() ya no lo mira: solo
        recorre `a[href="#"]`. Es el enganche para una herramienta que vive
-       fuera de la v4, como el CRM. */
-    if (spec.href) a.href = spec.href;
+       fuera de la v4, como el CRM — y por eso la marca de activa va aquí: desde
+       el 27-sep-2026 el CRM lleva este menú y tiene que salir marcado en él. */
+    if (spec.href) {
+      a.href = spec.href;
+      if (location.pathname.indexOf(spec.href) === 0) marcaActiva(a);
+    }
     ancla.insertAdjacentElement('afterend', a);
   }
 
