@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="960985de4730">
+<meta name="lw-version" content="4915f56c4c36">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -83,7 +83,7 @@
      bloque de abajo, y hay constantes que se calculan al cargar. El orden es
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
 <script src="assets/documento_diseno.js?v=05c0978a"></script>
-<script src="assets/documento_anexos.js?v=5019ec41"></script>
+<script src="assets/documento_anexos.js?v=f2e0b9c0"></script>
 <script src="assets/parcela_inventario.js?v=f70c3cac"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
@@ -3741,6 +3741,9 @@ async function downloadPdf(){
   // `datos`, que no tiene la firma, y saldría un PDF sin firmar con aspecto de
   // definitivo. Se entrega el firmado real.
   if(sb && LOCKED && LOCKED_PDF_PATH){ return abrirPdfFirmado(); }
+  /* Anexos subidos a mano (LAW-78): el PDF que sale de aquí tiene aspecto de definitivo;
+     con una página que falta saldría con el hueco rojo dentro. El borrador sí lo enseña. */
+  if(!anexosListos('descargar el PDF')) return;
   /* SIN GUARDAR NO SE DESCARGA (9-sep-2026, misma orden del owner que cerró el
      mismo agujero en Facturas). Un contrato sin guardar imprimía un PDF con el
      membrete, las partes, el precio y la cuenta de cobro, sin número —la
@@ -5675,7 +5678,9 @@ async function openSavedContract(id){
   UNIDAD_ID_CONSTRUCCION = data.unidad_id || null;
   await syncUnidadConstruccion();
   SAVED_CONTRACT = { id:data.id, numero:data.numero };
-  cargaAnexosAlmacen(data.id);   // sin await: el contrato se enseña ya; los anexos se pintan al llegar
+  // sin await: el contrato se enseña ya y los anexos se pintan al llegar. Lo que falle dentro
+  // ya queda en el panel; esto es para lo imprevisto, que tampoco puede pasar callado.
+  cargaAnexosAlmacen(data.id).catch(e => toastMal('No se han podido cargar los anexos: ' + ((e && e.message) || 'error')));
   LOCKED = !!data.bloqueado; LOCKED_PDF_PATH = data.pdf_firmado_path || null;
   PDF_SALIO = false;   // lo relee cargarEstadoFirma(); nunca se hereda del contrato anterior
   // de cero: sin esto, abrir un contrato B justo después de uno A que estaba
@@ -6160,6 +6165,8 @@ $('#emClose').addEventListener('click', ()=> $('#emOverlay').classList.remove('o
 
 async function enviarEmail(){
   if(!SAVED_CONTRACT){ toastMal(lwT('Guarda el contrato antes de enviarlo')); return; }
+  // al comprador no sale un documento con una página de anexo que falta (LAW-78)
+  if(!anexosListos('enviarlo')) return;
   const to=$('#emTo').value.trim();
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)){ toastMal(lwT('Email de destinatario no válido')); return; }
   const file=$('#emFile').files[0];

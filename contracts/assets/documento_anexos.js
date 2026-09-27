@@ -109,6 +109,15 @@ function problemasAnexos(lista, opciones){
   return out;
 }
 
+/* Para lo que sale del estudio con aspecto de definitivo (PDF, correo al comprador): con un
+   anexo incluido a medias se para y se dice cuál. Devuelve true si se puede seguir. */
+function anexosListos(accion){
+  const p = problemasAnexos(ANNEXES, { soloIncluidos:true });
+  if(!p.length) return true;
+  toastMal('No se puede ' + accion + ': ' + p.join('; ') + '.');
+  return false;
+}
+
 /* Anexos que hay que pasar al archivo al guardar ESTE contrato: los viejos (páginas
    en `datos`) y los del archivo cuyas filas son de otro contrato. */
 function anexosAMigrar(lista, contratoId){
@@ -724,7 +733,7 @@ function rebuildAnnex(){ const old=$('#annexPanel'); if(old){ old.outerHTML=buil
    Una página que falta: en la vista previa se ve un hueco MARCADO; en el documento que se
    firma (SIGN_MODE) no puede haber hueco — se para con el anexo y la página. */
 function annexHTML(){
-  const on=ANNEXES.filter(a=>a.on && ((a.pages && a.pages.length) || (!a.auto && a.estado === 'cargando')));
+  const on=ANNEXES.filter(a=>a.on && ((a.pages && a.pages.length) || ES_ALMACEN(a)));
   if(!on.length) return '';
   const firmando = typeof SIGN_MODE !== 'undefined' && SIGN_MODE;
   if(firmando){
@@ -738,7 +747,11 @@ function annexHTML(){
   let h='<div class="annexes">';
   on.forEach((a,i)=>{
     h+=`<section class="annex-cover"><div class="annex-label">${lbl(i+1)}</div><div class="annex-name">${escAttr(a.title)}</div></section>`;
-    if(!a.auto && a.estado === 'cargando'){ h+=hueco('Cargando las páginas de este anexo…'); return; }
+    if(ES_ALMACEN(a) && !(a.pages && a.pages.length)){
+      h+=hueco(a.estado === 'cargando' ? 'Cargando las páginas de este anexo…'
+        : 'No se han podido cargar las páginas de este anexo. Este documento no se puede enviar a firma así.');
+      return;
+    }
     a.pages.forEach((src,k)=>{
       const n = ES_ALMACEN(a) && a.almacen[k] ? a.almacen[k].n : k + 1;
       h+= src ? `<section class="annex-page"><img src="${src}" alt=""></section>`
