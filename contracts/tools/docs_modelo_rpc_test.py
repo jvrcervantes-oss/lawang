@@ -81,12 +81,22 @@ def caso(nombre, llamada, espera, verifica='true'):
             % (llamada, nombre, nombre, espera))
 
 
+UUID_DOC = "a0000000-0000-4000-8000-00000000000%d"
+
+
+def guarda(*pares):
+    """Una llamada a modelo_documentos_guarda con [(doc, expr_jsonb), ...] (expr: una expresión SQL jsonb)."""
+    items = ', '.join("jsonb_build_object('id', '%s', 'cambios', %s)" % (UUID_DOC % d, e) for d, e in pares)
+    return "public.modelo_documentos_guarda(current_setting('t.m')::uuid, jsonb_build_array(%s))" % items
+
+
 def cambia(doc, cambios):
-    return "public.modelo_documento_cambia('a0000000-0000-4000-8000-00000000000%d'::uuid, '%s'::jsonb)" % (doc, cambios)
+    """Un solo documento, con el cambio como literal JSON."""
+    return guarda((doc, "'%s'::jsonb" % cambios))
 
 
 def doc(n, campo):
-    return "(select %s from public.modelo_documentos where id = 'a0000000-0000-4000-8000-00000000000%d')" % (campo, n)
+    return "(select %s from public.modelo_documentos where id = '%s')" % (campo, UUID_DOC % n)
 
 
 def registra(uid, obj, tipo, techo='null', en=None):
@@ -94,6 +104,26 @@ def registra(uid, obj, tipo, techo='null', en=None):
     return ("public.modelo_documento_registra(p_uid => current_setting('t.%s_sub')::uuid, p_modelo => current_setting('t.m')::uuid, "
             "p_path => current_setting('t.m') || '/b0000000-0000-4000-8000-00000000000%d.pdf', p_nombre => 'prueba', p_tipo => '%s', "
             "p_techo_clave => %s%s)" % (uid, obj, tipo, techo, extra))
+
+
+def precondicion():
+    """El bloque DO de la migración que aborta el backfill si no se cumple su condición previa, tal cual."""
+    with open(MIGRACION, encoding='utf-8') as f:
+        m = f.read()
+    i = m.index('do $$', m.index('-- Condición previa:'))
+    j = m.index('end $$;', i) + len('end $$;')
+    return m[i:j - 1]   # sin el ';' final: va dentro de un EXECUTE
+
+
+def caso_precondicion(nombre, espera):
+    bloque = precondicion()
+    if espera == 'ok':
+        return ("do $t$ begin execute $q$%s$q$;\n  insert into _t values ('%s', true, 'pasa');\n"
+                "exception when others then insert into _t values ('%s', false, sqlstate || ' ' || left(sqlerrm, 90)); end $t$;"
+                % (bloque, nombre, nombre))
+    return ("do $t$ begin execute $q$%s$q$;\n  insert into _t values ('%s', false, 'no aborto');\n"
+            "exception when others then insert into _t values ('%s', sqlstate = '%s' and sqlerrm like 'Backfill abortado%%', sqlstate || ' ' || left(sqlerrm, 90)); end $t$;"
+            % (bloque, nombre, nombre, espera))
 
 
 def sql(con_migracion=False, selftest=False):
@@ -116,7 +146,11 @@ select 'B1 backfill: por modelo y techo entra lo mismo que antes', count(*) = 0,
 insert into _t
 select 'B2 backfill: marcados = planos, y nada que no sea plano', bool_and(en_contrato = (tipo = 'plano')), count(*)::text || ' documentos'
   from public.modelo_documentos;""".strip())
+    # P1/P2: la condición previa del backfill ES código (aborta la migración), no un comentario.
+    p.append(caso_precondicion('P1 condicion previa del backfill con los datos reales: pasa', 'ok'))
     p.append(MONTAJE.strip())
+    # el montaje deja en el modelo de prueba un plano SIN techo junto a planos CON techo: la condición tiene que abortar
+    p.append(caso_precondicion('P2 condicion previa con plano sin techo Y con techo en un modelo: aborta', 'P0001'))
 
     # ── agente (no admin) ──
     p.append(claims('agente'))
@@ -129,9 +163,16 @@ select 'B2 backfill: marcados = planos, y nada que no sea plano', bool_and(en_co
     p.append(caso('C05 agente retipa uno NO marcado (otro -> dosier): ok', cambia(1, '{"tipo": "dosier"}'), 'ok',
                   "%s = 'dosier' and not %s" % (doc(1, 'tipo'), doc(1, 'en_contrato'))))
     p.append(caso('C06 agente convierte algo en plano (regla del 25-sep, se conserva): 42501', cambia(1, '{"tipo": "plano"}'), '42501'))
-    p.append(caso('C07 agente cambia el techo de uno NO marcado: ok',
-                  "public.modelo_documento_cambia('a0000000-0000-4000-8000-000000000004'::uuid, jsonb_build_object('techo_clave', current_setting('t.t1')))",
+    p.append(caso('C07 agente cambia el techo de uno NO marcado: ok', guarda((4, "jsonb_build_object('techo_clave', current_setting('t.t1'))")),
                   'ok', "%s = current_setting('t.t1')" % doc(4, 'techo_clave')))
+    p.append(caso('C08 documento de OTRO modelo: 22023',
+                  "public.modelo_documentos_guarda(current_setting('t.m')::uuid, jsonb_build_array(jsonb_build_object('id', "
+                  "(select d.id from public.modelo_documentos d where d.modelo_id <> current_setting('t.m')::uuid limit 1), 'cambios', '{\"tipo\": \"otro\"}'::jsonb)))",
+                  '22023'))
+    p.append(caso('C09 el mismo documento dos veces: 22023', guarda((1, "'{\"tipo\": \"otro\"}'::jsonb"), (1, "'{\"tipo\": \"ficha\"}'::jsonb")), '22023'))
+    p.append(caso('C0A forma que no es una lista: 22023', "public.modelo_documentos_guarda(current_setting('t.m')::uuid, '{}'::jsonb)", '22023'))
+    p.append(caso('C0B el navegador no llama a la funcion interna _modelo_documento_aplica: 42501',
+                  "public._modelo_documento_aplica('%s'::uuid, '{\"tipo\": \"otro\"}'::jsonb)" % (UUID_DOC % 1), '42501'))
     p.append(caso('R01 el navegador no llama a registra: 42501', registra('agente', 1, 'otro'), '42501'))
     p.append('reset role;')
 
@@ -142,11 +183,9 @@ select 'B2 backfill: marcados = planos, y nada que no sea plano', bool_and(en_co
                   "%s and %s = 3" % (doc(4, 'en_contrato'), doc(4, 'orden'))))
     p.append(caso('C11 admin reordena uno marcado', cambia(4, '{"orden": 0}'), 'ok', "%s = 0" % doc(4, 'orden')))
     p.append(caso('C12 admin marca un 2o plano del MISMO techo: 23505',
-                  "public.modelo_documento_cambia('a0000000-0000-4000-8000-000000000005'::uuid, jsonb_build_object('en_contrato', true, 'techo_clave', current_setting('t.t1')))",
-                  '23505'))
+                  guarda((5, "jsonb_build_object('en_contrato', true, 'techo_clave', current_setting('t.t1'))")), '23505'))
     p.append(caso('C13 admin pasa un plano marcado al techo del otro plano marcado: 23505',
-                  "public.modelo_documento_cambia('a0000000-0000-4000-8000-000000000003'::uuid, jsonb_build_object('techo_clave', current_setting('t.t1')))",
-                  '23505'))
+                  guarda((3, "jsonb_build_object('techo_clave', current_setting('t.t1'))")), '23505'))
     p.append(caso('C14 admin marca un plano SIN techo junto a los de techo: ok (entran los dos)', cambia(5, '{"en_contrato": true}'), 'ok',
                   "%s" % doc(5, 'en_contrato')))
     p.append(caso('C15 admin desmarca', cambia(5, '{"en_contrato": false}'), 'ok', "not %s" % doc(5, 'en_contrato')))
@@ -156,6 +195,29 @@ select 'B2 backfill: marcados = planos, y nada que no sea plano', bool_and(en_co
     p.append(caso('C19 orden decimal: 22023', cambia(1, '{"orden": 1.5}'), '22023'))
     p.append(caso('C20 dato que no se edita (path): 22023', cambia(1, '{"path": "x"}'), '22023'))
     p.append(caso('C21 techo de otro modelo: 22023', cambia(1, '{"techo_clave": "no-existe-zz"}'), '22023'))
+    # en UNA llamada, lo que con llamadas sueltas chocaba con el índice (hallazgo del code-review)
+    p.append(caso('C22 intercambio de techo entre los dos planos marcados, en una llamada: ok y conservan su orden',
+                  guarda((2, "jsonb_build_object('techo_clave', current_setting('t.t2'), 'orden', 1)"),
+                         (3, "jsonb_build_object('techo_clave', current_setting('t.t1'), 'orden', 2)")),
+                  'ok', "%s = current_setting('t.t2') and %s = current_setting('t.t1') and %s and %s and %s = 1 and %s = 2"
+                  % (doc(2, 'techo_clave'), doc(3, 'techo_clave'), doc(2, 'en_contrato'), doc(3, 'en_contrato'), doc(2, 'orden'), doc(3, 'orden'))))
+    p.append(caso('C23 desmarcar un plano y marcar otro del mismo techo, en una llamada: ok',
+                  guarda((2, "'{\"en_contrato\": false}'::jsonb"),
+                         (5, "jsonb_build_object('en_contrato', true, 'techo_clave', current_setting('t.t2'), 'orden', 1)")),
+                  'ok', "not %s and %s and %s = current_setting('t.t2')" % (doc(2, 'en_contrato'), doc(5, 'en_contrato'), doc(5, 'techo_clave'))))
+    p.append(caso('C24 reorden de varios en una llamada', guarda((5, "'{\"orden\": 3}'::jsonb"), (3, "'{\"orden\": 1}'::jsonb"), (4, "'{\"orden\": 2}'::jsonb")),
+                  'ok', "%s = 1 and %s = 2 and %s = 3" % (doc(3, 'orden'), doc(4, 'orden'), doc(5, 'orden'))))
+    # C25: un fallo en la ÚLTIMA fila deshace las anteriores (una transacción, no N)
+    p.append("do $$ begin perform %s;\n"
+             "  insert into _t values ('C25 fallo a mitad: no queda NADA aplicado', false, 'no paro');\n"
+             "exception when others then insert into _t values ('C25 fallo a mitad: no queda NADA aplicado', "
+             "sqlstate = '22023' and %s = 1 and %s = 2 and %s = 3, sqlstate || ' orden3=' || %s || ' orden4=' || %s); end $$;"
+             # las tres van en la MISMA fase (marcados que solo cambian de orden) y la última es inválida:
+             # las dos primeras ya se han aplicado cuando falla, y tienen que deshacerse
+             % (guarda((3, "'{\"orden\": 9}'::jsonb"), (4, "'{\"orden\": 8}'::jsonb"), (5, "'{\"orden\": -1}'::jsonb")),
+                doc(3, 'orden'), doc(4, 'orden'), doc(5, 'orden'), doc(3, 'orden'), doc(4, 'orden')))
+    p.append(caso('C26 retocar el techo de uno marcado SIN mandar orden: sigue marcado y conserva su orden',
+                  cambia(4, '{"techo_clave": ""}'), 'ok', "%s and %s = 2 and %s is null" % (doc(4, 'en_contrato'), doc(4, 'orden'), doc(4, 'techo_clave'))))
     if selftest:
         p.append("insert into _t values ('ZZ selftest: esto DEBE salir en rojo', 1 = 2, 'si sale verde el arnes esta roto');")
     p.append('reset role;')
@@ -181,10 +243,12 @@ select 'B2 backfill: marcados = planos, y nada que no sea plano', bool_and(en_co
     p.append(caso('R07 tipo que no existe: 22023', registra('admin', 5, 'folleto'), '22023'))
     p.append('reset role;')
 
-    # ── anónimo ──
+    # ── anónimo, y lo retirado ──
     p.append('set local role anon;')
-    p.append(caso('N1 anon no llama a cambia: 42501', cambia(1, '{"tipo": "otro"}'), '42501'))
+    p.append(caso('N1 anon no llama a guarda: 42501', cambia(1, '{"tipo": "otro"}'), '42501'))
     p.append('reset role;')
+    p.append("insert into _t values ('N2 modelo_documento_cambia ya no existe (reducir la exposicion)', "
+             "to_regprocedure('public.modelo_documento_cambia(uuid,jsonb)') is null, coalesce(to_regprocedure('public.modelo_documento_cambia(uuid,jsonb)')::text, 'retirada'));")
     p += ['select caso, ok, detalle from _t order by caso;', 'rollback;']
     return '\n'.join(p) + '\n'
 

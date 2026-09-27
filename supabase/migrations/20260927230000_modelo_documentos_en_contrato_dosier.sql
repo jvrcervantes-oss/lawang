@@ -1,4 +1,4 @@
--- destructivo-ok: sustituye el CHECK de tipo (drop+add, añade 'dosier') y la firma de modelo_documento_registra (drop de la de 6 argumentos + create con 7); no borra ni cambia ninguna fila salvo el backfill de en_contrato/orden descrito abajo.
+-- destructivo-ok: sustituye el CHECK de tipo (drop+add, añade 'dosier'), la firma de modelo_documento_registra (drop de la de 6 argumentos + create con 7) y retira modelo_documento_cambia (su único llamador, la ficha del modelo, pasa a modelo_documentos_guarda); no borra ni cambia ninguna fila salvo el backfill de en_contrato/orden descrito abajo.
 -- Documentos del modelo que van AUTOMÁTICAMENTE en el contrato de obra — casilla por documento (27-sep-2026).
 --
 -- QUÉ CAMBIA
@@ -16,6 +16,13 @@
 -- un agente no puede ni meter un documento en el contrato ni retocar (tipo, techo, orden) uno que ya entra.
 -- El resto de documentos los sigue subiendo y retipando cualquiera del equipo, como antes.
 --
+-- GUARDAR ES UNA TRANSACCIÓN (revisor de código, 28-sep-2026): la pantalla guarda TODOS los cambios de
+-- documentos de un modelo en UNA llamada, `modelo_documentos_guarda`. Antes eran N llamadas sueltas y un
+-- fallo a medias podía dejar un techo sin su plano marcado, o el orden de los anexos de un contrato a
+-- medias. La comprobación de cada documento vive UNA vez, en `_modelo_documento_aplica` (interna, sin
+-- permiso de ejecución para nadie de fuera), y la llaman guarda por cada fila. `modelo_documento_cambia`
+-- se retira: su único llamador era esa pantalla (reducir la exposición).
+--
 -- GARANTÍA QUE SE CONSERVA: hasta hoy el contrato llevaba como mucho UN plano por techo. Con la casilla se
 -- podrían marcar dos planos del mismo techo y el contrato llevaría los dos. Lo impide un índice único parcial
 -- (no una comprobación dentro de la RPC: el `for update` de la fila propia no bloquea a sus hermanas, el
@@ -25,9 +32,8 @@
 -- BACKFILL: los documentos de tipo 'plano' que existan pasan a en_contrato = true, con orden por subido_en
 -- dentro de su modelo. Con la regla vieja entraba el plano del techo o, si no había, el genérico; con la
 -- nueva entran el del techo Y el genérico. Solo es el mismo resultado si ningún modelo tiene a la vez plano
--- genérico y plano de techo: ANTES DE APLICAR, comprobarlo con la consulta de abajo (debe devolver 0 filas).
---   select modelo_id from public.modelo_documentos where tipo = 'plano'
---    group by modelo_id having bool_or(techo_clave is null) and bool_or(techo_clave is not null);
+-- genérico y plano de techo, ni dos planos del mismo techo: la migración lo COMPRUEBA antes del backfill y
+-- aborta entera si no se cumple (revisor de código, 28-sep-2026: un comentario no para nada).
 --
 -- EL DATO TIENE UN DUEÑO: `modelo_documentos` (en_contrato, orden, techo_clave) manda sobre qué se adjunta.
 -- El contrato guarda por cada documento adjuntado una FICHA congelada {id: 'axauto-<doc id>', auto, techo,
@@ -38,7 +44,7 @@
 alter table public.modelo_documentos add column if not exists en_contrato boolean not null default false;
 alter table public.modelo_documentos add column if not exists orden int not null default 0;
 comment on column public.modelo_documentos.en_contrato is
-  'Se adjunta automáticamente al contrato de obra del modelo (si su techo_clave es el del contrato o NULL). Solo lo cambia administración (modelo_documento_cambia / _registra).';
+  'Se adjunta automáticamente al contrato de obra del modelo (si su techo_clave es el del contrato o NULL). Solo lo cambia administración (modelo_documentos_guarda / modelo_documento_registra).';
 comment on column public.modelo_documentos.orden is
   'Orden en el que entran en el contrato los documentos con en_contrato = true. Desempate: subido_en, id. Sin significado para los no marcados.';
 
@@ -48,6 +54,25 @@ alter table public.modelo_documentos add constraint modelo_documentos_tipo_ck
   check (tipo in ('plano', 'calidades', 'ficha', 'render', 'dosier', 'otro'));
 
 -- ── backfill: lo que entra hoy sigue entrando ─────────────────────────────────────────────────────────────
+-- Condición previa: si no se cumple, el backfill cambiaría lo que adjuntan los contratos. Aborta TODO.
+do $$
+declare v_mezcla text; v_dobles text;
+begin
+  select string_agg(modelo_id::text, ', ') into v_mezcla from (
+    select modelo_id from public.modelo_documentos where tipo = 'plano'
+     group by modelo_id having bool_or(techo_clave is null) and bool_or(techo_clave is not null)) x;
+  if v_mezcla is not null then
+    raise exception 'Backfill abortado: modelos con plano sin techo Y plano con techo a la vez (%). Con la regla nueva entrarían los dos: decidir cuál se marca antes de aplicar.', v_mezcla
+      using errcode = 'P0001';
+  end if;
+  select string_agg(modelo_id::text || '/' || coalesce(techo_clave, '(todos)'), ', ') into v_dobles from (
+    select modelo_id, techo_clave from public.modelo_documentos where tipo = 'plano'
+     group by modelo_id, techo_clave having count(*) > 1) x;
+  if v_dobles is not null then
+    raise exception 'Backfill abortado: dos planos del mismo modelo y techo (%). Con la regla vieja entraba el más reciente; decidir cuál se marca antes de aplicar.', v_dobles
+      using errcode = 'P0001';
+  end if;
+end $$;
 update public.modelo_documentos d
    set en_contrato = true, orden = x.n
   from (select id, row_number() over (partition by modelo_id order by subido_en, id)::int as n
@@ -59,8 +84,9 @@ create unique index if not exists modelo_documentos_un_plano_en_contrato
   on public.modelo_documentos (modelo_id, coalesce(techo_clave, ''))
   where en_contrato and tipo = 'plano';
 
--- ── cambiar un documento: tipo, techo, casilla y orden ──────────────────────────────────────────────────
-create or replace function public.modelo_documento_cambia(p_id uuid, p_cambios jsonb) returns uuid
+-- ── aplicar el cambio de UN documento: la comprobación, una sola vez ─────────────────────────────────────
+-- Interna: no la llama nadie de fuera (sin grant). La usa modelo_documentos_guarda por cada fila.
+create or replace function public._modelo_documento_aplica(p_id uuid, p_cambios jsonb) returns uuid
 language plpgsql security definer set search_path = '' as $$
 declare v_d public.modelo_documentos%rowtype; k text; v_tipo text; v_techo text; v_en boolean; v_orden int;
 begin
@@ -100,8 +126,10 @@ begin
   if v_techo is not null and not exists (select 1 from public.modelo_techos t where t.modelo_id = v_d.modelo_id and t.clave = v_techo) then
     raise exception 'Ese techo no es de este modelo' using errcode = '22023';
   end if;
-  -- Marcar sin orden explícito: entra el último.
+  -- Marcar sin orden explícito: entra el último. Se bloquean las filas del modelo para que dos marcados a la
+  -- vez no saquen el mismo número.
   if v_en and not v_d.en_contrato and not (p_cambios ? 'orden') then
+    perform 1 from public.modelo_documentos d where d.modelo_id = v_d.modelo_id for update;
     select coalesce(max(d.orden), 0) + 1 into v_orden from public.modelo_documentos d
      where d.modelo_id = v_d.modelo_id and d.en_contrato and d.id <> p_id;
   end if;
@@ -113,8 +141,89 @@ begin
   end;
   return p_id;
 end $$;
-revoke all on function public.modelo_documento_cambia(uuid, jsonb) from public, anon;
-grant execute on function public.modelo_documento_cambia(uuid, jsonb) to authenticated;
+revoke all on function public._modelo_documento_aplica(uuid, jsonb) from public, anon, authenticated;
+
+-- ── guardar los cambios de documentos de UN modelo, en UNA transacción ──────────────────────────────────
+-- p_cambios: [{"id": uuid, "cambios": {tipo?, techo_clave?, en_contrato?, orden?}}, ...] — los valores
+-- FINALES de lo que cambia. El ORDEN lo decide el servidor, no la pantalla: el índice «un plano marcado por
+-- techo» se comprueba en cada fila, así que primero se desmarca todo lo que deja de estar marcado o se
+-- retoca estando marcado (tipo o techo), después se aplican los no marcados, luego los marcados que solo
+-- cambian de orden, y al final se marcan (con sus valores finales). Cualquier error deshace TODO.
+-- Devuelve cuántos documentos cambió.
+create or replace function public.modelo_documentos_guarda(p_modelo uuid, p_cambios jsonb) returns int
+language plpgsql security definer set search_path = '' as $$
+declare e jsonb; v_id uuid; c jsonb; v_d public.modelo_documentos%rowtype; v_en_final boolean; v_retoca boolean;
+        v_n int := 0; v_ids uuid[] := '{}'; v_hechos uuid[] := '{}'; v_fase int; v_antes jsonb := '{}'; v_orden_antes jsonb := '{}';
+begin
+  if not public.es_agente() then raise exception 'Solo el equipo cambia documentos' using errcode = '42501'; end if;
+  if jsonb_typeof(p_cambios) is distinct from 'array' then raise exception 'Datos de los documentos no válidos' using errcode = '22023'; end if;
+  if jsonb_array_length(p_cambios) > 200 then raise exception 'Demasiados documentos en un guardado' using errcode = '22023'; end if;
+  if not exists (select 1 from public.modelos m where m.id = p_modelo) then raise exception 'Ese modelo ya no existe' using errcode = '22023'; end if;
+  -- se bloquean las filas del modelo: dos guardados a la vez no se cruzan a mitad
+  perform 1 from public.modelo_documentos d where d.modelo_id = p_modelo for update;
+  -- validación de la forma, y que cada documento sea de ESTE modelo y aparezca una sola vez
+  for e in select * from jsonb_array_elements(p_cambios) loop
+    if jsonb_typeof(e) is distinct from 'object' or jsonb_typeof(e->'cambios') is distinct from 'object'
+       or coalesce(e->>'id', '') !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
+      raise exception 'Datos de los documentos no válidos' using errcode = '22023';
+    end if;
+    v_id := (e->>'id')::uuid;
+    if v_id = any(v_ids) then raise exception 'Un documento aparece dos veces en el guardado' using errcode = '22023'; end if;
+    v_ids := v_ids || v_id;
+    if not exists (select 1 from public.modelo_documentos d where d.id = v_id and d.modelo_id = p_modelo) then
+      raise exception 'Ese documento no es de este modelo o ya no existe: recarga la página' using errcode = '22023';
+    end if;
+    -- la casilla de ANTES del guardado: las fases la cambian por el camino y el «final» se decide con esta
+    v_antes := v_antes || jsonb_build_object(v_id::text, (select d.en_contrato from public.modelo_documentos d where d.id = v_id));
+    v_orden_antes := v_orden_antes || jsonb_build_object(v_id::text, (select d.orden from public.modelo_documentos d where d.id = v_id));
+  end loop;
+  -- cuatro fases, en este orden. `v_hechos`: los ya aplicados con su valor final.
+  for v_fase in 1..4 loop
+    for e in select * from jsonb_array_elements(p_cambios) loop
+      v_id := (e->>'id')::uuid; c := e->'cambios';
+      continue when v_id = any(v_hechos);
+      select * into v_d from public.modelo_documentos d where d.id = v_id;   -- como está AHORA (tras las fases anteriores)
+      v_en_final := case when c ? 'en_contrato' then (c->>'en_contrato') = 'true' else (v_antes->>v_id::text)::boolean end;
+      v_retoca := c ? 'tipo' or c ? 'techo_clave';
+      if v_fase = 1 then
+        -- 1) desmarcar: lo que deja de ir (ya con su valor final) y lo que sigue marcado pero cambia de tipo o techo
+        if v_d.en_contrato and not v_en_final then
+          perform public._modelo_documento_aplica(v_id, c || '{"en_contrato": false}'::jsonb);
+          v_hechos := v_hechos || v_id; v_n := v_n + 1;
+        elsif v_d.en_contrato and v_retoca then
+          perform public._modelo_documento_aplica(v_id, '{"en_contrato": false}'::jsonb);   -- se vuelve a marcar en la 4
+        end if;
+      elsif v_fase = 2 then
+        -- 2) los que no estaban marcados y siguen sin estarlo
+        if not v_en_final and not v_d.en_contrato then
+          perform public._modelo_documento_aplica(v_id, c);
+          v_hechos := v_hechos || v_id; v_n := v_n + 1;
+        end if;
+      elsif v_fase = 3 then
+        -- 3) los que siguen marcados sin cambiar de tipo ni de techo: el orden
+        if v_en_final and v_d.en_contrato then
+          perform public._modelo_documento_aplica(v_id, c);
+          v_hechos := v_hechos || v_id; v_n := v_n + 1;
+        end if;
+      else
+        -- 4) marcar: los nuevos y los desmarcados en la fase 1 para retocarlos, con sus valores finales
+        if v_en_final and not v_d.en_contrato then
+          -- uno que ya estaba marcado (desmarcado en la fase 1 para retocarlo) conserva su orden si no trae otro
+          perform public._modelo_documento_aplica(v_id, c || '{"en_contrato": true}'::jsonb
+            || case when (v_antes->>v_id::text)::boolean and not (c ? 'orden')
+                    then jsonb_build_object('orden', (v_orden_antes->>v_id::text)::int) else '{}'::jsonb end);
+          v_hechos := v_hechos || v_id; v_n := v_n + 1;
+        end if;
+      end if;
+    end loop;
+  end loop;
+  return v_n;
+end $$;
+revoke all on function public.modelo_documentos_guarda(uuid, jsonb) from public, anon;
+grant execute on function public.modelo_documentos_guarda(uuid, jsonb) to authenticated;
+
+-- ── se retira modelo_documento_cambia: su único llamador (la ficha del modelo) usa ahora _guarda ─────────
+drop function if exists public.modelo_documento_cambia(uuid, jsonb);
 
 -- ── registrar un documento subido (solo la edge `ficheros`) ──────────────────────────────────────────────
 -- Firma nueva con p_en_contrato (7º argumento, por defecto false): la edge vieja, que manda 6 argumentos por
@@ -145,6 +254,7 @@ begin
   if v_nombre = '' then v_nombre := 'Documento'; end if;
   -- marcado al subir: entra el último
   if v_en then
+    perform 1 from public.modelo_documentos d where d.modelo_id = p_modelo for update;
     select coalesce(max(d.orden), 0) + 1 into v_orden from public.modelo_documentos d where d.modelo_id = p_modelo and d.en_contrato;
   end if;
   begin
