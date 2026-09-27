@@ -525,6 +525,8 @@ function visibles(){
 
 function kpisPipeline(){
   const f = visibles();
+  // Total del canal elegido: el aviso de filtro compara contra esto, no contra todos los canales.
+  const delCanal = CANAL ? LEADS.filter(l => l.source === CANAL).length : LEADS.length;
   const sin = f.filter(l => l.estado === 'nuevo').length;
   const parados = f.filter(l => l.estado === 'nuevo' && dias(l.estado_desde) >= DIAS_VIEJO).length;
   const cerrados = f.filter(l => l.estado === 'reserva' || l.estado === 'contrato').length;
@@ -535,8 +537,8 @@ function kpisPipeline(){
       <p class="cifra">${f.length}</p><p class="pie">${
         /* Un filtro que deja el tablero vacío tiene que verse distinto de una base vacía
            (incidente 27-sep: un buscador relleno por el navegador se leía como «no hay leads»). */
-        (BUSCA.trim() || FILTRO_DUENO !== 'todos') && f.length !== LEADS.length
-          ? (CANAL ? esc(canal(CANAL)) + ' · ' : '') + esc(lwT('de %n · hay un filtro puesto', { n: LEADS.length }))
+        (BUSCA.trim() || FILTRO_DUENO !== 'todos') && f.length !== delCanal
+          ? (CANAL ? esc(canal(CANAL)) + ' · ' : '') + esc(lwT('de %n · hay un filtro puesto', { n: delCanal }))
           : CANAL ? esc(canal(CANAL)) : lwT('todos los canales')}</p></div>
     <div class="kpi"><div class="rot">${lwT('Sin contactar')}<i class="ph ph-envelope-simple"></i></div>
       <p class="cifra">${sin}</p><p class="pie">${lwT('%n llevan más de %d días parados', { n: parados, d: DIAS_VIEJO })}</p></div>
