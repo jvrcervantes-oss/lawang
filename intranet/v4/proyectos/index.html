@@ -2,12 +2,12 @@
 <meta name="lw-version" content="b892ddfbf858">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=b283914a"></script><script src="/contracts/assets/version.js?v=19c524f3"></script><script src="/contracts/assets/guard.js?v=8fafcc58" data-herramienta="unidades"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=183427db" defer></script>
+<script src="/contracts/assets/i18n.js?v=8640323c" defer></script>
 <script src="/contracts/assets/dinero.js?v=30e26c17" defer></script><script src="/intranet/facturas/totales.js?v=9cb91c37" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=b11b12fc" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=17c1b0e9" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=da02ce3b" defer></script><script src="/contracts/assets/proyectos_csv.js?v=1358ced5" defer></script><script src="/contracts/assets/avisos.js?v=389df6b9" defer></script><script src="../assets/cabecera.js?v=98400ac8" defer></script><script src="../assets/datos.js?v=0ba064f8" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=c675dae9" defer></script>
 <link href="../assets/shell.css?v=0d404d60" rel="stylesheet">
-<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/editores.js?v=f1063ceb" defer></script><script src="../assets/maqueta.js?v=6473c5d8" defer></script>
+<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/editores.js?v=86747679" defer></script><script src="../assets/maqueta.js?v=6473c5d8" defer></script>
 <!-- Fotos del Investor Deck (S10.2, 22-sep-2026): pieza COMPARTIDA de la suite
      (Regla 0, contexto/suite_lawang.md) — la usan /proyectos/ y /modelos/
      clásicos, aquí solo se engancha, nunca se reescribe. Depende de
@@ -972,13 +972,14 @@
    NO hace ninguna consulta: lee las tarjetas que datos.js ya ha pintado en #d-unidades
    (código, estado, color de la banda e id), así el plano nunca dice otra cosa que el
    parcelario — y respeta el buscador: lo que el buscador oculta, el plano lo atenúa.
-   Qué proyectos tienen plano: la lista de abajo, que apunta a los MISMOS ficheros que
-   usan los decks. Proyecto nuevo con masterplan = una línea aquí + su .json. */
+   Qué proyectos tienen plano: `masterplans` de la ficha de la instancia
+   — contracts/assets/instancia.js, ERP F3 lote 3 —, que apunta a los MISMOS ficheros que
+   usan los decks. Proyecto nuevo con masterplan = una línea en la ficha + su .json; sin
+   ficha o sin entrada, el botón «Plano» no sale (nunca el plano de otro cliente). */
 (function () {
-  var MASTERPLANES = {
-    'Palm Field W5': '/investor-deck/masterplan/palmfield.json',
-    'Sumba Hills': '/investor-deck/masterplan/sumbahills.json'
-  };
+  var MASTERPLANES = (window.LW_INSTANCIA && window.LW_INSTANCIA.masterplans) || {};
+  // hasOwnProperty: un proyecto llamado «constructor» no debe encontrar un plano en el prototipo
+  var planoDe = function (n) { return Object.prototype.hasOwnProperty.call(MASTERPLANES, n) ? MASTERPLANES[n] : null; };
   var CACHE = {}, lamina = 0, proyectoPintado = null, pintando = false;
   var btn = document.querySelector('[data-lw-vista="plano"]');
   var caja = document.getElementById('d-plano');
@@ -1002,7 +1003,7 @@
     return m;
   }
   function pinta() {
-    var url = MASTERPLANES[proyecto()];
+    var url = planoDe(proyecto());
     if (!url) return;
     var d = CACHE[url];
     if (!d) {
@@ -1092,7 +1093,7 @@
     else enfoca(null);
   }
   function sincroniza() {
-    var tiene = !!MASTERPLANES[proyecto()];
+    var tiene = !!planoDe(proyecto());
     btn.hidden = !tiene;
     // style y no `hidden`: la clase `flex` del grupo le ganaría al atributo.
     var grupo = document.getElementById('d-vistas'); if (grupo) grupo.style.display = tiene ? '' : 'none';

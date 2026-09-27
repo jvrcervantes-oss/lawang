@@ -2246,7 +2246,7 @@
     'Nombre o razón social': 'Name or registered name',
     'Pasaporte / NPWP / NIF': 'Passport / NPWP / tax ID',
     'Proyecto / unidad': 'Project / unit',
-    'Ej. Palm Field — Cabana 2BR S2': 'e.g. Palm Field — Cabana 2BR S2',
+    'Ej. Proyecto — Villa 2BR S2': 'e.g. Project — Villa 2BR S2',
     'Ábrelo para traer los datos de la ficha.': 'Open it to pull in the details from the record.',
     'Conceptos': 'Line items',
     '+ Añadir concepto': '+ Add line item',
