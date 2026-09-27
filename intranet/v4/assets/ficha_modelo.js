@@ -615,7 +615,7 @@
        · OTROS DOCUMENTOS — el resto sin marcar, agrupados por tipo.
      La regla de qué entra la da window.lwDocsContrato (contracts/assets/docs_contrato.js),
      LA MISMA que usa el generador: el resumen por techo es lo que el contrato adjunta.
-     Quién puede qué lo decide el servidor (modelo_documento_cambia): la casilla, el
+     Quién puede qué lo decide el servidor (modelo_documentos_guarda): la casilla, el
      orden y el tipo o el techo de lo marcado, solo administración; aquí solo se
      desactiva lo que el servidor va a rechazar, para no dejar pedirlo. */
   var SOLO_ADMIN = 'Solo administración decide qué va en el contrato';
@@ -713,12 +713,10 @@
 
   /* EDITAR. Cada fila: casilla, tipo, techo, ↑/↓ (solo en «Van en el contrato») y Borrar
      (solo admin). Al marcar o desmarcar, la fila cambia de sección EN VIVO y el resumen por
-     techo se recalcula antes de guardar. Guardar manda una llamada por documento que
-     cambia, en este orden: primero los que se desmarcan, luego los retipados sin marcar,
-     luego los marcados que se retocan o reordenan y al final los que se marcan — así un
-     intercambio (desmarcar un plano y marcar otro del mismo techo) no choca con la regla
-     del servidor de «un plano marcado por techo». Si se corta a mitad, lo guardado se ve
-     al recargar y se completa volviendo a guardar. */
+     techo se recalcula antes de guardar. Guardar manda TODOS los cambios en una llamada
+     (modelo_documentos_guarda): el servidor los aplica en una transacción y en el orden que
+     no choca con su regla de «un plano marcado por techo»; si algo falla, no queda nada
+     aplicado. */
   function editorDocs(host, m, h, ctx) {
     var R = reglaDocs();
     var filas = h.docs.map(function (d) {
@@ -864,7 +862,7 @@
       var dup = planosRepetidos(st);
       if (dup) throw new Error(dup);
       var porId = {}; st.forEach(function (x) { porId[x.id] = x; });
-      var tandas = [[], [], [], []];   // desmarcar · retipar sin marcar · retocar marcados · marcar
+      var cambios = [];
       filas.forEach(function (r) {
         var ahora = porId[r.d.id], antes = r.d, c = {};
         if (ahora.tipo !== antes.tipo) c.tipo = ahora.tipo;
@@ -873,29 +871,16 @@
         // —1, 3 tras desmarcar el 2— no puede colarse en su guardado como «cambio de orden»)
         if (EST.admin && ahora.en_contrato !== (antes.en_contrato === true)) c.en_contrato = ahora.en_contrato;
         if (EST.admin && ahora.en_contrato && ahora.orden !== antes.orden) c.orden = ahora.orden;
-        if (!Object.keys(c).length) return;
-        /* Un marcado que sigue marcado pero cambia de tipo o de techo (intercambiar el techo de dos
-           planos, o retipar uno a plano y otro a «otro»): el índice «un plano marcado por techo» se
-           mira en CADA llamada, así que en cualquier orden la primera choca aunque el final sea
-           válido (code-review, 27-sep). Se desmarca en la primera tanda y se vuelve a marcar, ya
-           con su tipo, techo y orden, en la última: entre medias no hay dos planos en el mismo techo. */
-        if (antes.en_contrato === true && ahora.en_contrato && (c.tipo !== undefined || c.techo_clave !== undefined)) {
-          tandas[0].push({ id: r.d.id, c: { en_contrato: false } });
-          c.en_contrato = true; c.orden = ahora.orden;
-          tandas[3].push({ id: r.d.id, c: c });
-          return;
-        }
-        var k =(antes.en_contrato === true && !ahora.en_contrato) ? 0 : !ahora.en_contrato ? 1 : antes.en_contrato === true ? 2 : 3;
-        tandas[k].push({ id: r.d.id, c: c });
+        // un marcado que se retoca (tipo o techo) el servidor lo desmarca y lo vuelve a marcar: lleva su
+        // orden explícito, o volvería el último
+        if (EST.admin && ahora.en_contrato && antes.en_contrato === true && (c.tipo !== undefined || c.techo_clave !== undefined)) c.orden = ahora.orden;
+        if (Object.keys(c).length) cambios.push({ id: r.d.id, cambios: c });
       });
-      var p = Promise.resolve();
-      tandas.forEach(function (t) {
-        t.forEach(function (x) {
-          // el servidor vuelve a comprobarlo todo: quién puede, el techo, un plano por techo
-          p = p.then(function () { return rpc(ctx.sb, 'modelo_documento_cambia', { p_id: x.id, p_cambios: x.c }); });
-        });
-      });
-      return p;
+      if (!cambios.length) return Promise.resolve();
+      /* UNA llamada, UNA transacción (revisor de código, 28-sep-2026): antes eran N llamadas sueltas y
+         un fallo a medias dejaba el modelo entre el estado viejo y el nuevo. El ORDEN de aplicación
+         (desmarcar, retipar, reordenar, marcar) lo decide el servidor, y cualquier error lo deshace todo. */
+      return rpc(ctx.sb, 'modelo_documentos_guarda', { p_modelo: m.id, p_cambios: cambios });
     };
   }
 
