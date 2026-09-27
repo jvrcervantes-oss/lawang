@@ -553,11 +553,15 @@ function fichaGuardadaDe(guardados, d, docs, techo){
 /* Título del anexo en la portada del contrato. El plano conserva el de siempre
    (los contratos que ya lo llevan no cambian de texto); el nombre del techo solo
    va si el documento ES de ese techo. */
-function tituloAuto(d, tip){
+/* LETRA Y TÍTULO (owner, 28-sep-2026): cada documento sale como «Apéndice <letra de su
+   tipo>» con su título en los tres idiomas (docs_contrato.js → apendices()). El nombre
+   del modelo y, si el documento es de un techo, el del techo, van detrás. `title` es la
+   versión en español, para el panel de Anexos y el bot; el documento imprime `nombres`. */
+function nombresAuto(ap, tip){
+  const d = ap.doc;
   const nomTecho = d.techo_clave && typeof TECHO_ELEGIDO !== 'undefined' && TECHO_ELEGIDO && TECHO_ELEGIDO.nombre ? ' · ' + TECHO_ELEGIDO.nombre : '';
-  if(d.tipo === 'plano') return 'Planos y Especificaciones · ' + tip + nomTecho;
-  const base = d.tipo === 'otro' ? String(d.nombre || 'Documento').replace(/\.[^.]+$/, '') : window.lwDocsContrato.etiqueta(d.tipo);
-  return base + ' · ' + tip + nomTecho;
+  const cola = ' · ' + tip + nomTecho;
+  return { es: ap.titulo.es + cola, en: ap.titulo.en + cola, id: ap.titulo.id + cola };
 }
 
 /* Qué documentos entran (sin bajarlos). TRES salidas, y se tienen que ver distintas
@@ -576,7 +580,8 @@ async function documentosDelContrato(tip, techo){
     .select('id, path, nombre, tipo, techo_clave, subido_en, en_contrato, orden').eq('modelo_id', ficha.id).eq('en_contrato', true);
   if(error) throw errorAnexo('no se han podido consultar los documentos de Modelos: ' + (error.message || 'error'));
   // La regla se aplica aquí también (además del filtro de la consulta): es la misma que enseña la ficha.
-  return window.lwDocsContrato.entran((data || []).filter(d => d && d.path), techo);
+  // apendices(): los que entran, ya con su letra (A, B, D…) y su rótulo trilingüe, ordenados por letra
+  return window.lwDocsContrato.apendices((data || []).filter(d => d && d.path), techo);
 }
 async function bajaDocumento(d){
   const { data:url, error:eUrl } = await sb.storage.from('modelos').createSignedUrl(d.path, 3600);
@@ -650,8 +655,10 @@ async function syncAutoAnnex(){
   if(docs && docs.length){
     const hechos = [], fallos = [], cambiados = [];
     let paginas = 0;
-    for(const d of docs){
-      const g = fichaGuardadaDe(guardados, d, docs, techo);
+    const soloDocs = docs.map(ap => ap.doc);
+    for(const ap of docs){
+      const d = ap.doc;
+      const g = fichaGuardadaDe(guardados, d, soloDocs, techo);
       const nombre = d.nombre || d.path;
       try{
         let buf;
@@ -661,7 +668,8 @@ async function syncAutoAnnex(){
         try{
           sha = await sha256hex(buf);               // antes de pdf.js: se queda el buffer
           /* Tope de MEMORIA del navegador, contando los manuales y los automáticos ya
-             convertidos: un dosier comercial pesa 17-50 MB en PDF (27-sep-2026). */
+             convertidos: un documento comercial grande pesa 10-17 MB en PDF (medido el 27-sep-2026 sobre
+             los de producción; la columna tamano_bytes de 5 dosieres estaba desfasada y decía 17-50 MB). */
           const libre = TOPE_MEMORIA_BYTES - pesoAnexosManuales() - hechos.reduce((t, a) => t + pesoPaginas(a), 0);
           pages = await pdfToImages(buf, Math.max(libre, 1));
           if(!pages.length) throw new Error('el PDF no tiene páginas');
@@ -671,7 +679,9 @@ async function syncAutoAnnex(){
           throw errorAnexo('no se ha podido convertir a páginas: ' + ((e && e.message) || 'error'));
         }
         if(AUTO_ANX !== clave) return;             // cambió de tipología o de techo mientras se convertía
-        const a = { id:idAuto(d), auto:tip, techo, sha, title:tituloAuto(d, tip), pages, on: g ? g.on !== false : true };
+        const nombres = nombresAuto(ap, tip);
+        const a = { id:idAuto(d), auto:tip, techo, sha, letra:ap.letra, tipo:d.tipo, nombres,
+                    title:'Apéndice ' + ap.letra + ' — ' + nombres.es, pages, on: g ? g.on !== false : true };
         hechos.push(a); paginas += pages.length;
         // El PDF del servidor es mutable: si cambió desde que se guardó el contrato, el anexo
         // que se ve ya NO es el que se firmó. Se avisa, no se oculta. Si lo que cambió es el
@@ -681,7 +691,7 @@ async function syncAutoAnnex(){
         if(g && g.sha && g.sha !== sha && !cambioDeTecho) cambiados.push(a.title);
       }catch(e){
         if(AUTO_ANX !== clave) return;
-        fallos.push('«' + nombre + '» ' + ((e && e.message) || 'error'));
+        fallos.push('Apéndice ' + ap.letra + ' «' + nombre + '» ' + ((e && e.message) || 'error'));
         // su ficha guardada sobrevive sin páginas (no se imprime, no se pierde su `on` ni su `sha`)
         if(g) hechos.push({ ...sinPaginas(g), id:idAuto(d) });
       }
@@ -689,7 +699,7 @@ async function syncAutoAnnex(){
     if(AUTO_ANX !== clave) return;
     ANNEXES = [...hechos, ...ANNEXES.filter(a=>!a.auto)];
     if(fallos.length){
-      AUTO_AVISO = { clave, mal:true, texto: (fallos.length === 1 ? 'Un documento marcado para el contrato no se ha podido adjuntar: ' : fallos.length + ' documentos marcados para el contrato no se han podido adjuntar: ')
+      AUTO_AVISO = { clave, mal:true, faltan: fallos.slice(), texto: (fallos.length === 1 ? 'Un documento marcado para el contrato no se ha podido adjuntar: ' : fallos.length + ' documentos marcados para el contrato no se han podido adjuntar: ')
         + fallos.join('; ') + '. Recarga la página; si sigue, avisa.' };
       toastMal(AUTO_AVISO.texto);
     }else if(cambiados.length){
@@ -848,10 +858,18 @@ function annexHTML(){
   // Trilingüe, no L(): el rótulo del anexo es parte del documento y el bahasa
   // tiene que salir siempre, igual que en el resto del contrato.
   const lbl=(n)=>`<span data-lang="es">Anexo ${n}</span><span data-lang="en">Annex ${n}</span><span data-lang="id">Lampiran ${n}</span>`;
+  /* Los automáticos salen con la LETRA DE APÉNDICE de su tipo y el título en los tres idiomas
+     (owner, 28-sep-2026: el Art. 3 remite a «Apéndice A – Planos», «B – Especificaciones»). El título
+     editable a mano no cambia la letra. Los subidos a mano siguen como «Anexo 1, 2…», numerados entre ellos. */
+  const lblAp=(l)=>`<span data-lang="es">Apéndice ${escAttr(l)}</span><span data-lang="en">Appendix ${escAttr(l)}</span><span data-lang="id">Lampiran ${escAttr(l)}</span>`;
+  const nomAp=(a)=>a.nombres ? `<span data-lang="es">${escAttr(a.nombres.es)}</span><span data-lang="en">${escAttr(a.nombres.en)}</span><span data-lang="id">${escAttr(a.nombres.id)}</span>` : escAttr(a.title);
+  let nManual = 0;
   const hueco=(t)=>`<section class="annex-page"><div style="border:2px dashed #b3261e;color:#b3261e;padding:40px;text-align:center;font:14px sans-serif">${escAttr(t)}</div></section>`;
   let h='<div class="annexes">';
-  on.forEach((a,i)=>{
-    h+=`<section class="annex-cover"><div class="annex-label">${lbl(i+1)}</div><div class="annex-name">${escAttr(a.title)}</div></section>`;
+  on.forEach((a)=>{
+    h+= (a.auto && a.letra)
+      ? `<section class="annex-cover"><div class="annex-label">${lblAp(a.letra)}</div><div class="annex-name">${nomAp(a)}</div></section>`
+      : `<section class="annex-cover"><div class="annex-label">${lbl(++nManual)}</div><div class="annex-name">${escAttr(a.title)}</div></section>`;
     if(ES_ALMACEN(a) && !(a.pages && a.pages.length)){
       h+=hueco(a.estado === 'cargando' ? 'Cargando las páginas de este anexo…'
         : 'No se han podido cargar las páginas de este anexo. Este documento no se puede enviar a firma así.');

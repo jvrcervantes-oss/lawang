@@ -199,7 +199,9 @@ afirma('el panel nace escondido y lo abre el botón',
      igual». Sin anexo del modelo se avisa y se decide; no se bloquea. Desde el 27-sep
      (varios documentos marcados) también avisa si uno marcado no se pudo adjuntar. */
   afirma('sin anexo del modelo (o con uno marcado que falla) el envío a firma avisa y deja seguir («Enviar igualmente»), no bloquea',
-    /if\(tipSel && \(autoMal \|\| !ANNEXES\.some\(a=>a\.auto && a\.on && a\.pages && a\.pages\.length\)\)\)\{\s*const seguir = await lwConfirmar\([\s\S]{0,600}?confirmar: lwT\('Enviar igualmente'\)[\s\S]{0,80}?if\(!seguir\) return;\s*\}/.test(app),
+    /if\(tipSel && \(autoMal \|\| !ANNEXES\.some\(a=>a\.auto && a\.on && a\.pages && a\.pages\.length\)\)\)\{\s*const seguir = await lwConfirmar\([\s\S]{0,600}?confirmar: lwT\('Enviar igualmente'\)[\s\S]{0,80}?if\(!seguir\) return;[\s\S]{0,240}?\}/.test(app)
+    // y deja constancia (owner, 28-sep): lo que confirmó viaja a la edge, que lo apunta antes de enviar
+    && /sin_anexo: sinAnexo/.test(app),
     'el owner quiere poder enviar sin anexo; el aviso es para que sea una decisión, no un descuido');
 
   const firmas = require('fs').readFileSync(path.join(__dirname, 'firmar.html'), 'utf8');

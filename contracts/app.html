@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="eb361d3b4830">
+<meta name="lw-version" content="ec4039f52422">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -56,7 +56,7 @@
      de Supabase publicado en `LW_SB`, que es lo que hacia falta para que la
      barra compartida funcione tambien aqui. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3" data-pierde-al-recargar></script><script src="/contracts/assets/guard.js?v=b0590b50"></script>
+<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3" data-pierde-al-recargar></script><script src="/contracts/assets/guard.js?v=f45d166d"></script>
 <!-- Identidad de las sociedades y cuentas de cobro: fuente única compartida con
      /facturas (define CUENTAS_BANCARIAS y SOCIEDADES). -->
 <!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
@@ -83,8 +83,8 @@
      bloque de abajo, y hay constantes que se calculan al cargar. El orden es
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
 <script src="assets/documento_diseno.js?v=f8448509"></script>
-<script src="assets/docs_contrato.js?v=eca220be"></script>
-<script src="assets/documento_anexos.js?v=75f4daf5"></script>
+<script src="assets/docs_contrato.js?v=c61b6bdd"></script>
+<script src="assets/documento_anexos.js?v=e23435d5"></script>
 <script src="assets/parcela_inventario.js?v=f70c3cac"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
@@ -6232,6 +6232,8 @@ async function ficheros(accion, datos){
     headers:{ 'content-type':'application/json', authorization:'Bearer ' + (token || '') },
     body: JSON.stringify(Object.assign({ accion }, datos || {})) });
   const d = await r.json().catch(()=>({ ok:false, error:'Respuesta inválida del servidor' }));
+  if(d.error === 'no_se_pudo_apuntar_el_envio_sin_anexo')
+    throw new Error('no se ha podido apuntar en el historial que sale sin anexo, así que no se ha enviado: prueba otra vez');
   if(!d.ok) throw new Error(d.error || 'error del servidor');
   return d;
 }
@@ -6390,6 +6392,9 @@ $('#fmGen').addEventListener('click', async ()=>{
      no sale ninguno, o uno marcado no se ha podido adjuntar (AUTO_AVISO rojo): con
      varios, que otro sí cargara no puede tapar el que falta. */
   const autoMal = AUTO_AVISO && AUTO_AVISO.mal && AUTO_AVISO.clave === AUTO_ANX;
+  /* «Enviar igualmente» deja CONSTANCIA (owner, 28-sep-2026): quién, cuándo y qué faltaba, en el historial
+     del contrato. La escribe el servidor (ficheros-contrato → contrato_envio_sin_anexo) antes de enviar. */
+  let sinAnexo = null;
   if(tipSel && (autoMal || !ANNEXES.some(a=>a.auto && a.on && a.pages && a.pages.length))){
     const seguir = await lwConfirmar({
       titulo: lwT(autoMal ? 'Falta un documento del contrato' : 'Sin anexo del modelo'),
@@ -6399,6 +6404,8 @@ $('#fmGen').addEventListener('click', async ()=>{
           + '<p class="em-note">' + lwT('Si debe llevarlos, pídeselo a administración (Modelos → Documentos → Editar, casilla «Se incluye automáticamente en el contrato») o actívalos en Anexos.') + '</p>',
       confirmar: lwT('Enviar igualmente'), cancelar: lwT('Cancelar') });
     if(!seguir) return;
+    sinAnexo = autoMal ? { motivo:'fallo', faltan:(AUTO_AVISO.faltan || [AUTO_AVISO.texto]).slice(0, 20) }
+                       : { motivo:'ninguno', faltan:[] };
   }
   const btn=$('#fmGen'); btn.disabled=true; btn.textContent='Generando…';
   const ROL = FIRMA_NEXT.rol;
@@ -6434,8 +6441,8 @@ $('#fmGen').addEventListener('click', async ()=>{
     /* enlace_firma (1-sep-2026, decisión del owner): se guarda el enlace CON
        el token en claro para que /portal/ lo enseñe al comprador — ahora lo
        guarda la base. portal_situacion() solo lo expone mientras estado='pendiente'. */
-    const env = await ficheros('envia_firma', { contrato_id: SAVED_CONTRACT.id,
-      nombre, email, rol: ROL, orden: FIRMA_NEXT.orden });
+    const env = await ficheros('envia_firma', Object.assign({ contrato_id: SAVED_CONTRACT.id,
+      nombre, email, rol: ROL, orden: FIRMA_NEXT.orden }, sinAnexo ? { sin_anexo: sinAnexo } : {}));
     const link = env.link;
     const anulados = env.anulados || 0;
     if(anulados) toast(anulados === 1 ? 'El enlace anterior queda anulado'
@@ -6512,7 +6519,8 @@ const REG_EVT = { creado:['Creado',''], editado:['Editado',''],
   firma_abierta:['Enlace abierto por el firmante','activo'], firma_recogida:['Firma recogida','firmado'],
   firma_anulada:['Firma anulada','malo'], firmado_del_todo:['Contrato cerrado (firmado)','firmado'],
   desbloqueado:['Contrato reabierto','malo'], traspaso:['Colgado de su Bloqueo',''],
-  pdf_descargado:['PDF descargado',''] };
+  pdf_descargado:['PDF descargado',''],
+  envio_sin_anexo_confirmado:['Enviado a firma sin un anexo del modelo (confirmado)','malo'] };
 function regDetalleEvt(d){
   d = d || {}; const t = [];
   if(Array.isArray(d.campos) && d.campos.length)
@@ -6522,6 +6530,8 @@ function regDetalleEvt(d){
   if(d.de) t.push(esc(d.de) + ' → ' + esc(d.a || ''));
   if(d.colgado_de) t.push('de ' + esc(d.colgado_de));
   if(d.via) t.push(esc(d.via));
+  if(d.motivo === 'ninguno') t.push('el modelo no tenía nada marcado para el contrato');
+  if(d.motivo === 'fallo') t.push('faltaba: ' + (Array.isArray(d.faltan) && d.faltan.length ? d.faltan.map(esc).join('; ') : '—'));
   return t.join(' · ');
 }
 const regFecha = iso => iso ? new Date(iso).toLocaleString('es-ES',

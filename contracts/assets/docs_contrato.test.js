@@ -49,7 +49,7 @@ const app = lee('contracts/app.html');
 assert.ok(app.indexOf('docs_contrato.js') < app.indexOf('documento_anexos.js'), 'en app.html, la regla antes que el generador');
 
 // 4. La regla.
-const D = (id, o) => Object.assign({ id, en_contrato: true, orden: 0, techo_clave: null, subido_en: '2026-09-01' }, o);
+const D = (id, o) => Object.assign({ id, tipo: 'calidades', en_contrato: true, orden: 0, techo_clave: null, subido_en: '2026-09-01' }, o);
 const docs = [
   D('b', { techo_clave: 'bambu', orden: 2 }), D('s', { techo_clave: 'sirap', orden: 1 }),
   D('g', { orden: 3 }), D('x', { en_contrato: false }), D('c', { orden: 1, subido_en: '2026-08-01' }),
@@ -63,5 +63,29 @@ assert.deepStrictEqual(ids(R.entran([D('z', { en_contrato: 'true' })], '')), [],
 assert.deepStrictEqual(ids(R.ordena([D('2', { orden: 1 }), D('1', { orden: 1 })])), ['1', '2'], 'empate total: por id, estable');
 assert.strictEqual(R.etiqueta('dosier'), 'Dosier');
 assert.strictEqual(R.etiqueta('plano'), 'Plano', 'ya no es «Plano · anexo del contrato»: lo que va al contrato lo dice la casilla');
+
+// 5. El dosier NUNCA entra (owner, 28-sep-2026), aunque llegue marcado.
+assert.deepStrictEqual(ids(R.entran([D('d', { tipo: 'dosier' }), D('p', { tipo: 'plano' })], '')), ['p']);
+
+// 6. Letra por TIPO (Art. 3 de la plantilla: A planos, B especificaciones; informativos de la D en adelante).
+assert.deepStrictEqual(J(R.LETRA), { plano: 'A', calidades: 'B', ficha: 'D', render: 'E', otro: 'F' });
+const plantilla = lee('contracts/templates/ppjb_construccion.html');
+assert.ok(/Apéndice A – Planos Arquitectónicos/.test(plantilla) && /Apéndice B – Especificaciones Técnicas/.test(plantilla),
+  'la plantilla sigue llamando A a los planos y B a las especificaciones: si cambia, cambian las letras aquí');
+assert.ok(/Apéndice B – Especificaciones Técnicas\. El CONSTRUCTOR/.test(plantilla) || /en el Apéndice B – Especificaciones Técnicas/.test(plantilla),
+  'Art. 6 remite al Apéndice B (Legal, 28-sep)');
+const ap = R.apendices([
+  D('f', { tipo: 'ficha', orden: -5 }), D('c1', { tipo: 'calidades', orden: 2 }), D('p', { tipo: 'plano', orden: 9, techo_clave: 'sirap' }),
+  D('c2', { tipo: 'calidades', orden: 1 }), D('o', { tipo: 'otro', nombre: 'Condiciones generales.pdf' }), D('x', { tipo: 'dosier' }),
+], 'sirap');
+assert.deepStrictEqual(J(ap.map((a) => [a.doc.id, a.letra])), [['p', 'A'], ['c2', 'B1'], ['c1', 'B2'], ['f', 'D'], ['o', 'F']],
+  'por letra; dentro de la letra, por el orden de Modelos (B1/B2); el orden nunca cambia la letra');
+assert.deepStrictEqual(J(ap[0].rotulo), { es: 'Apéndice A', en: 'Appendix A', id: 'Lampiran A' });
+assert.deepStrictEqual(J(ap[0].titulo), { es: 'Planos Arquitectónicos', en: 'Architectural Drawings', id: 'Gambar Arsitektur' });
+assert.deepStrictEqual(J(ap[1].titulo), { es: 'Especificaciones Técnicas', en: 'Technical Specifications', id: 'Spesifikasi Teknis' });
+assert.strictEqual(ap[3].informativo, true);
+assert.deepStrictEqual(J(ap[4].titulo), { es: 'Condiciones generales (informativo)', en: 'Condiciones generales (for information)', id: 'Condiciones generales (informatif)' },
+  'otro: el nombre del fichero + informativo en los tres idiomas');
+assert.ok(!ap.some((a) => a.doc.tipo === 'dosier'));
 
 console.log('docs_contrato.test.js OK');
