@@ -232,6 +232,7 @@
   }
   function pintaTodo() { llenaFiltros(); pintaCuentas(); pintaLista(); if (typeof lwIdiomaAplicar === 'function') { try { lwIdiomaAplicar(); } catch (_) { /* MUDO A PROPOSITO: traducir no tumba la pantalla */ } } }
   function refrescar() {
+    limpiaAvisos();   // el aviso de «recortado» lo vuelve a poner cargar() si sigue haciendo falta
     return cargar().then(pintaTodo, function (e) { aviso(T('No se pudieron volver a leer los bancos') + ' (' + e.message + '). ' + T('Recarga la página.'), 'mal'); });
   }
 
