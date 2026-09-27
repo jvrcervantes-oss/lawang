@@ -48,7 +48,11 @@ function escDoc(s){
    una que no está dada de alta en entities.js sin frenar la emisión. Se arma un
    objeto con la misma forma para que el resto no tenga que distinguir. */
 function bancoDocHTML(d){
-  var c = d.cuenta === 'otros'
+  /* `banco_de_servidor` (ERP maestro, 27-sep-2026, B1): el servidor escribe en el papel la
+     cuenta resuelta contra `cuentas_bancarias` al guardar, y ESA es la que se imprime aunque el
+     catálogo cambie después — una factura emitida no cambia de cuenta. Lawang nunca trae la
+     marca: sigue con el catálogo vivo, salvo «otros». */
+  var c = (d.cuenta === 'otros' || d.banco_de_servidor === true)
     ? { titular:d.banco_titular, banco:d.banco_nombre, cuenta:d.banco_cuenta,
         codigo:d.banco_codigo, direccion:d.banco_direccion, extra:d.banco_extra }
     : (typeof CUENTAS_BANCARIAS !== 'undefined' ? CUENTAS_BANCARIAS[d.cuenta] : null);
