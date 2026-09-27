@@ -46,12 +46,13 @@ const ANON = Deno.env.get('SUPABASE_ANON_KEY')!;
 const admin = createClient(URL_SB, SERVICE);
 const TIPOS_: Record<string, string> = TIPOS;
 
-// Orígenes del navegador (27-sep-2026, ERP maestro B7): en una instancia del ERP el instalador pone el secreto SITIO_URL
-// (erp/nueva_instancia.py → `https://<dominio_erp>`) y solo ese origen pasa; sin SITIO_URL —Lawang no lo tiene— siguen sus
-// tres dominios. Mismo patrón que las edges que ya leen SITIO_URL con Lawang de respaldo (firma-submit, avisos-manager…).
+// Orígenes del navegador (27-sep-2026, ERP maestro B7): en una instancia del ERP el instalador pone el secreto
+// CORS_ORIGENES (erp/nueva_instancia.py → `https://<dominio_erp>`, lista separada por comas) y solo esos orígenes
+// pasan; sin CORS_ORIGENES —Lawang no lo tiene— siguen sus tres dominios. Secreto propio y no SITIO_URL: en Lawang
+// SITIO_URL es la base de los enlaces de firma-submit, y reutilizarlo cortaría las subidas desde www./sumbahills.
 const origenDe = (u: string) => { try { return new URL(u).origin; } catch { return ''; } };
-const SITIO = origenDe((Deno.env.get('SITIO_URL') ?? '').trim());
-const ORIGENES = SITIO ? [SITIO] : [
+const CORS_INSTANCIA = (Deno.env.get('CORS_ORIGENES') ?? '').split(',').map((u) => origenDe(u.trim())).filter(Boolean);
+const ORIGENES = CORS_INSTANCIA.length ? CORS_INSTANCIA : [
   'https://lawangproperties.com',
   'https://www.lawangproperties.com',
   'https://sumbahills.lawangproperties.com',
