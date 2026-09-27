@@ -996,8 +996,13 @@
          hito sin importe se da por cubierto con cualquier factura libre. */
       if (r[3] && r[3].length && r[5]) {
         var facPorC = {};
-        // una rectificativa (ERP maestro) no cubre ningún hito: resta, no factura
-        r[5].forEach(function (f) { if (f.tipo === 'factura' && !f.anulada && !f.rectifica_id && f.contrato_id) (facPorC[f.contrato_id] = facPorC[f.contrato_id] || []).push(Number(f.total) || 0); });
+        /* ERP maestro (AXW-39): una rectificativa no cubre ningún hito por sí misma; RESTA de
+           su original (lwFacturaQueCuenta: solo si la original cuenta). Una factura de 10.000
+           rebajada a 6.000 cubre como 6.000, igual que facturas_pendiente_equipo. Sin
+           rectifica_id (Lawang) `netoR` queda vacío y esto es lo de siempre. */
+        var cuentaH = lwFacturaQueCuenta(r[5]), netoR = {};
+        r[5].forEach(function (f) { if (f.tipo === 'factura' && f.rectifica_id && cuentaH(f)) netoR[f.rectifica_id] = (netoR[f.rectifica_id] || 0) + (Number(f.total) || 0); });
+        r[5].forEach(function (f) { if (f.tipo === 'factura' && !f.anulada && !f.rectifica_id && f.contrato_id) (facPorC[f.contrato_id] = facPorC[f.contrato_id] || []).push((Number(f.total) || 0) + (netoR[f.id] || 0)); });
         Object.keys(facPorC).forEach(function (k) { facPorC[k].sort(function (a, b) { return a - b; }); });
         var hitos = r[3].filter(function (h) {
           var libres = facPorC[h.contrato_id] || [], m = Number(h.monto) || 0;

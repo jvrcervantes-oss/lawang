@@ -2825,6 +2825,21 @@
     }
     function pinta() {
       caja.innerHTML = '';
+      /* Documento en SOLO LECTURA (emitido, enviado, anulado…): se enseña y se imprime
+         la copia congelada TAL CUAL. Si se pasara por el catálogo vivo, un impuesto
+         desactivado después (lo que pide la base para cambiar uno en uso) o una
+         sociedad desactivada harían desaparecer su fila, y el PDF y el email saldrían
+         con otro total (code-review, 27-sep-2026). */
+      if (cfg.soloLectura) {
+        if (!(iniciales || []).length) { nota('Sin impuestos.'); return; }
+        (iniciales || []).forEach(function (i) {
+          var lbl = document.createElement('label'); lbl.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:13.5px;color:' + CAJ.tinta;
+          var ck = document.createElement('input'); ck.type = 'checkbox'; ck.checked = true; ck.disabled = true;
+          var t = document.createElement('span'); t.textContent = i.nombre;
+          lbl.appendChild(ck); lbl.appendChild(t); caja.appendChild(lbl);
+        });
+        return;
+      }
       if (fallo) { nota('No se ha podido leer el catálogo de impuestos (' + fallo + '): recarga antes de emitir.', '#9E2F26'); return; }
       if (!catalogo) { nota('Leyendo el catálogo de impuestos…'); return; }
       if (!paisDe(socActual())) { nota('Elige primero la sociedad que factura: los impuestos dependen de su país.'); return; }
@@ -2849,16 +2864,17 @@
       });
       if (sueltos.length) nota('Se ha quitado ' + sueltos.length + ' impuesto(s) que no valen para esta sociedad o ya no están activos: revisa la selección.', '#8A6A34');
     }
-    sb.from('impuestos').select('*').eq('activo', true).order('orden').order('nombre').then(function (r) {
+    if (!cfg.soloLectura) sb.from('impuestos').select('*').eq('activo', true).order('orden').order('nombre').then(function (r) {
       if (r.error) { console.error('[facturas] catálogo de impuestos:', r.error); fallo = lwErrorHumano(r.error, 'error de lectura'); }
       else catalogo = r.data || [];
       pinta(); cfg.alCambiar();
     });
     pinta();
     return {
-      estado: function () { return fallo ? 'error' : (catalogo ? 'ok' : 'cargando'); },
+      estado: function () { return cfg.soloLectura ? 'ok' : (fallo ? 'error' : (catalogo ? 'ok' : 'cargando')); },
       refresca: function () { pinta(); },
       lista: function () {
+        if (cfg.soloLectura) return (iniciales || []).slice();
         return candidatos().filter(function (i) { return elegidos[i.id]; }).map(function (i) {
           return { id: i.id, nombre: i.nombre, clase: i.clase, porcentaje: Number(i.porcentaje) || 0,
                    coef_base: i.coef_base != null ? Number(i.coef_base) : 1,
@@ -3648,7 +3664,12 @@
               vals[el.getAttribute('data-k')] = el.type === 'checkbox' ? el.checked : el.value;
             });
             vals.lineas = getLineas ? getLineas() : [];
-            if (impSel) { vals.impuestos_sel = impSel.lista(); vals.imp_pct = ''; vals.imp_etiqueta = ''; }
+            if (impSel) {
+              var selV = impSel.lista();
+              if (selV.length || !pre.soloLectura) { vals.impuestos_sel = selV; vals.imp_pct = ''; vals.imp_etiqueta = ''; }
+              // documento anterior al selector, abierto para consultar: se enseña con su «etiqueta + %» de entonces
+              else { vals.imp_pct = f0.imp_pct || ''; vals.imp_etiqueta = f0.imp_etiqueta || ''; }
+            }
             vals.tipo = tipoDocFijo;   // ya no hay selector: factura, salvo al reabrir otra cosa
             // El papel imprime «Contrato · Contract: N» desde d.contrato_numero
             // (documentoHTML). El clásico lo lleva en un input oculto; aquí no
@@ -9260,7 +9281,7 @@
       var CAMPO_PREFIJO = { k: 'prefijo_serie', label: 'Prefijo de la serie de facturas', medio: 1,
         ayuda: 'Mayúsculas y números, de 2 a 8 (AXW → AXW-F2026-00001). Vacío = la clave en mayúsculas. No se cambia después de emitir la primera factura.' };
 
-      function payloadDesdeForm(v) {
+      function payloadDesdeForm(v, previa) {
         var fila = {
           label: (v.label || '').trim() || (v.razon || '').trim(),
           razon: (v.razon || '').trim(), marca: (v.marca || '').trim(),
@@ -9272,9 +9293,14 @@
           orden: Number(v.orden) || 0
         };
         if (NUCLEO_SOC) {
+          /* Solo viaja si CAMBIA (`sociedad_guarda` conserva el guardado si la clave no llega):
+             un prefijo antiguo que no cumple la regla de hoy no impide editar el domicilio o el logo. */
           var pref = String(v.prefijo_serie || '').trim().toUpperCase();
-          if (pref && !/^[A-Z0-9]{2,8}$/.test(pref)) return { error: { message: 'El prefijo de la serie va en mayúsculas y números, de 2 a 8 caracteres (por ejemplo AXW).' } };
-          fila.prefijo_serie = pref || null;
+          var antes = previa ? String(previa.prefijo_serie || '').toUpperCase() : '';
+          if (!previa || pref !== antes) {
+            if (pref && !/^[A-Z0-9]{2,8}$/.test(pref)) return { error: { message: 'El prefijo de la serie va en mayúsculas y números, de 2 a 8 caracteres (por ejemplo AXW).' } };
+            fila.prefijo_serie = pref || null;
+          }
         }
         // Objeto o nada — nunca `{primary:'',deep:''}`: eso lo aplicaria
         // documentoVars como override en blanco, no como "hereda el de marca".
@@ -9325,7 +9351,7 @@
         if (!s) return aviso('No se ha podido leer esta sociedad — recarga la pantalla.', '#9E2F26');
 
         modal('Editar sociedad — ' + s.razon, camposEdicion(s), 'Guardar cambios', function (v) {
-          var fila = payloadDesdeForm(v);
+          var fila = payloadDesdeForm(v, s);
           if (fila.error) return fila;
 
           function guarda() {
