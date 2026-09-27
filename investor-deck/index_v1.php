@@ -79,7 +79,7 @@ if ($slug === '') { http_response_code(404); exit; }
   @keyframes lwFadeIn { from { opacity:0; transform:translateY(4px);} to { opacity:1; transform:none;} }
 </style>
 <script src="/investor-deck/i18n.js?v=20260915"></script>
-<link href="/assets/tw-deck.css?v=20260928002008" rel="stylesheet">
+<link href="/assets/tw-deck.css?v=46c98f99" rel="stylesheet">
 </head>
 <body class="bg-surface font-body-md text-body-md text-on-surface antialiased selection:bg-soft-canopy selection:text-surface-container-lowest">
 
