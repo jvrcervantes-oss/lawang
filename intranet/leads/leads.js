@@ -532,7 +532,11 @@ function kpisPipeline(){
   const sug = f.filter(l => l.sugerencia && l.sugerencia !== l.estado).length;
   $('#kpis-pipeline').innerHTML = `
     <div class="kpi"><div class="rot">${lwT('Leads')}<i class="ph ph-users"></i></div>
-      <p class="cifra">${f.length}</p><p class="pie">${CANAL ? esc(canal(CANAL)) : lwT('todos los canales')}</p></div>
+      <p class="cifra">${f.length}</p><p class="pie">${
+        /* Un filtro que deja el tablero vacío tiene que verse distinto de una base vacía
+           (incidente 27-sep: un buscador relleno por el navegador se leía como «no hay leads»). */
+        f.length !== LEADS.length ? esc(lwT('de %n · hay un filtro puesto', { n: LEADS.length }))
+        : CANAL ? esc(canal(CANAL)) : lwT('todos los canales')}</p></div>
     <div class="kpi"><div class="rot">${lwT('Sin contactar')}<i class="ph ph-envelope-simple"></i></div>
       <p class="cifra">${sin}</p><p class="pie">${lwT('%n llevan más de %d días parados', { n: parados, d: DIAS_VIEJO })}</p></div>
     <div class="kpi"><div class="rot">${lwT('Reserva o contrato')}<i class="ph ph-signature"></i></div>
@@ -2364,7 +2368,7 @@ async function trazaAccion(e){
       // del propio diálogo y se lee al cerrarse; se vacía después para no dejar el token en el DOM.
       const ok = await lwConfirmar({ titulo: lwT('Cambiar token de %n', { n: cuenta.nombre }), confirmar: lwT('Guardar'),
         cuerpo: esc(lwT('Pega el token nuevo (pit-…). Se comprueba contra GoHighLevel antes de guardarlo.')) +
-          '<div class="campo" style="margin:12px 0 0"><input type="password" id="tzTokenNuevo" autocomplete="off" aria-label="Token"></div>' });
+          '<div class="campo" style="margin:12px 0 0"><input type="password" id="tzTokenNuevo" autocomplete="new-password" aria-label="Token"></div>' });
       const campo = document.querySelector('#tzTokenNuevo');
       const nuevo = campo ? campo.value.trim() : ''; if(campo) campo.value = '';
       if(!ok || !nuevo) return;
@@ -2427,8 +2431,17 @@ $('#canales').addEventListener('click', e => {
   const b = e.target.closest('[data-c]'); if(!b) return;
   CANAL = b.dataset.c; pintarPipeline();
 });
-$('#q').addEventListener('input', e => { BUSCA = e.target.value; pintarPipeline(); });
-$('#qb').addEventListener('input', e => { BUSCA_B = e.target.value; pintarBandeja(); });
+/* Los dos buscadores van blindados contra el autocompletado del navegador (buscador.js):
+   el 27-sep el gestor de contraseñas de Chrome escribió el email de una comercial en #q y
+   su tablero salió vacío con 132 leads en la base. Solo se filtra por lo que se teclea. */
+const BUSCADORES = [
+  lwBlindarBuscador($('#q'), { email: yoSoy, alCambiar: v => {
+    if(v === BUSCA) return; BUSCA = v; pintarPipeline(); } }),
+  lwBlindarBuscador($('#qb'), { email: yoSoy, alCambiar: v => {
+    if(v === BUSCA_B) return; BUSCA_B = v; pintarBandeja(); } }),
+];
+// «Atrás» desde otra página puede devolver los campos con el valor que tenían.
+window.addEventListener('pageshow', () => BUSCADORES.forEach(b => b.barrer()));
 $('#filtroBandeja').addEventListener('click', e => {
   const b = e.target.closest('[data-fb]'); if(!b) return;
   FILTRO_B = b.dataset.fb;
@@ -2497,6 +2510,8 @@ window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   /* Trazabilidad: solo super_admin, ni por casilla (revisión previa #49). Candado de
      comodidad: el de verdad es es_super_admin() dentro de cada traza_* de la base. */
   $('#tabTrazabilidad').hidden = !PUEDE_ESTRUCTURA;
+  // Con la sesión ya conocida, fuera lo que el navegador haya dejado en los buscadores.
+  BUSCADORES.forEach(b => b.barrer());
   await pintarAlcance();
   await cargar();
   $('#c-pipeline').textContent = LEADS.length;
