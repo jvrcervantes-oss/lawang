@@ -5073,7 +5073,9 @@
          solo), mismo RPC `renombrar_proyecto` (SECURITY DEFINER, gate
          es_admin() dentro). Nunca un UPDATE directo a `proyectos.nombre`. */
       function confirmaYRenombraProyecto(p, nuevo) {
-        // unidades/modelos/documentos: proyecto_vinculos_datos (B10a, 28-sep), mismo criterio que el servidor
+        // unidades/modelos/documentos: proyecto_vinculos_datos (B10a, 28-sep). Cuenta con el criterio de borrar_proyecto
+        // (nombre O proyecto_id); renombrar_proyecto solo reescribe las filas que llevan el nombre, así que el texto
+        // dice «vinculado», no «se actualizará» (code-review 28-sep: una fila con solo el id contaría sin cambiarse).
         return Promise.all([
           window.lwDatos('proyecto_vinculos_datos', { p_nombre: p.nombre }),
           // contratos/facturas: RPC "equipo", NUNCA `.from()` a pelo (hallazgo
@@ -5104,7 +5106,7 @@
             fac ? fac + ' factura(s)' : '', doc ? doc + ' documento(s)' : '',
             mod ? mod + ' modelo(s) de villa' : ''
           ].filter(Boolean).join(', ');
-          var avisoRadio = radio ? 'Se actualizará en: ' + radio + '.' : 'No hay nada vinculado a este nombre todavía.';
+          var avisoRadio = radio ? 'Vinculado a este proyecto: ' + radio + '. El nombre se actualiza en todo lo que lo lleva escrito.' : 'No hay nada vinculado a este proyecto todavía.';
           return aseguraModulosDoc(['dialogo']).then(function () {
             return lwConfirmar({
               titulo: 'Renombrar «' + p.nombre + '» a «' + nuevo + '»',
