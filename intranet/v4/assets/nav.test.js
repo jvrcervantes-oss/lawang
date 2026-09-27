@@ -156,6 +156,9 @@ for (const carpeta of fs.readdirSync(V4, { withFileTypes: true })) {
   const crm = fs.readFileSync(path.join(RAIZ, 'intranet', 'leads', 'index.html'), 'utf8');
   const h = (crm.match(/<html[^>]*>/) || [''])[0];
   if (!/class="[^"]*\bv4\b[^"]*\blw4-fijo\b/.test(h)) errores.push('CRM: el <html> no lleva class="v4 lw4-fijo"');
+  // Declarativo: la marca de activa del CRM la pone injerta() de nav.js por su href
+  // (nav-montaje no dibuja esa entrada). Se exige igual, como en app.html, para que
+  // la página diga qué herramienta es si algún día la entrada se dibuja en el montaje.
   if (!/data-lw4-herramienta="leads"/.test(h)) errores.push('CRM: el <html> no declara data-lw4-herramienta="leads"');
   if (!/<link[^>]+nav-montaje\.css/.test(crm)) errores.push('CRM: no carga intranet/v4/assets/nav-montaje.css');
   const orden = ['contracts/assets/avisos.js', 'assets/cabecera.js', 'assets/nav-montaje.js', 'assets/nav.js'].map(x => posScript(crm, x));
