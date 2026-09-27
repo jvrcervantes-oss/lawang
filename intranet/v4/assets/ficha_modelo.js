@@ -619,6 +619,20 @@
      orden y el tipo o el techo de lo marcado, solo administración; aquí solo se
      desactiva lo que el servidor va a rechazar, para no dejar pedirlo. */
   var SOLO_ADMIN = 'Solo administración decide qué va en el contrato';
+  var DOSIER_NO = 'El dosier es comercial: no va en el contrato';
+  /* Letra por tipo (owner, 28-sep-2026, Art. 3 de la plantilla): la dice docs_contrato.js. */
+  var TXT_CONTRATO = 'Estos documentos se adjuntan al contrato de Construcción como apéndices. La letra la pone el tipo, '
+    + 'como en el Art. 3 del contrato: Plano → Apéndice A, Memoria de calidades → Apéndice B; ficha, render y otros van como '
+    + 'informativos (D en adelante). El orden de esta lista solo decide el orden dentro de una misma letra. Cada uno entra '
+    + 'solo si su techo coincide con el del contrato; los de «Todos los techos» entran siempre. El dosier nunca va en el contrato.';
+  function letraDe(tipo) { var R = reglaDocs(); return (R && R.LETRA[tipo]) || '?'; }
+  /* Marcados en el orden en que salen en el contrato: por letra y, dentro, por el orden de Modelos. */
+  function porLetra(lista, tipoDe) {
+    return lista.map(function (x, i) { return { x: x, i: i }; }).sort(function (a, b) {
+      var la = letraDe(tipoDe(a.x)), lb = letraDe(tipoDe(b.x));
+      return la < lb ? -1 : la > lb ? 1 : a.i - b.i;
+    }).map(function (o) { return o.x; });
+  }
   function reglaDocs() { return window.lwDocsContrato; }
   function tipoLbl(t) { var R = reglaDocs(); return R ? R.etiqueta(t) : t; }
   function nomTecho(h, clave) {
@@ -634,29 +648,29 @@
     var R = reglaDocs(); if (!R) return;
     var techos = h.techos.length ? h.techos.map(function (t) { return [t.clave, t.nombre]; }) : [['', '']];
     techos.forEach(function (t) {
-      var entran = R.entran(docs, t[0]);
+      var entran = R.apendices(docs, t[0]);
       var p = document.createElement('p'); p.className = 'fm-nota' + (entran.length ? '' : ' fm-ambar');
       var pre = t[1] ? t[1] + ': ' : '';
       p.textContent = entran.length
-        ? pre + entran.map(function (d, i) { return (i + 1) + '. ' + (d.nombre || 'Documento'); }).join(' · ')
+        ? pre + entran.map(function (ap) { return ap.letra + '. ' + (ap.doc.nombre || 'Documento'); }).join(' · ')
         : (t[1] ? pre + 'nada marcado. El contrato saldrá sin anexo.' : 'Nada marcado: el contrato saldrá sin anexo.');
       host.appendChild(p);
     });
   }
   /* Fila de un documento en la VISTA: dos líneas (nombre; tipo · techo · fecha · cliente),
      abre el fichero al pulsarla (lo delega editores.js en #d-docs). */
-  function filaDoc(h, d, ctx, n) {
+  function filaDoc(h, d, ctx, letra) {
     var f = document.createElement('div');
     f.style.cssText = 'display:flex;flex-direction:column;gap:2px;min-height:40px;box-sizing:border-box;justify-content:center;padding:7px 10px;border-radius:10px;background:' + C.crema + ';cursor:pointer;min-width:0';
     if (d.path) { f.setAttribute('data-doc-abrir', ''); f.setAttribute('data-doc-path', d.path); f.setAttribute('role', 'button'); f.tabIndex = 0; }
     var a = document.createElement('span'); a.setAttribute('data-lw', 'doc-titulo');
     a.style.cssText = 'font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
-    a.textContent = (n ? n + '. ' : '') + (d.nombre || 'Documento');
+    a.textContent = d.nombre || 'Documento';
     a.title = d.nombre || '';
     var z = document.createElement('span'); z.setAttribute('data-lw', 'doc-meta');
     z.style.cssText = 'font-size:12px;color:' + C.apagado;
     var partes = [];
-    if (n) partes.push(tipoLbl(d.tipo));
+    if (letra) partes.push('Apéndice ' + letra + ' · ' + tipoLbl(d.tipo));
     if (h.techos.length) partes.push('Techo: ' + nomTecho(h, d.techo_clave));
     partes.push('subido ' + ctx.fFecha(d.subido_en));
     if (d.visible_portal) partes.push('Lo ve el cliente');
@@ -688,11 +702,11 @@
     var s = reparte(h.docs);
 
     subtitulo(caja, 'Van en el contrato');
-    nota(caja, 'Estos documentos se adjuntan al contrato de Construcción, en este orden. Cada uno entra solo si su techo coincide con el del contrato; los de «Todos los techos» entran siempre.');
+    nota(caja, TXT_CONTRATO);
     if (!s.marcados.length) nota(caja, 'Este modelo no tiene nada marcado para el contrato: el contrato de Construcción saldrá sin anexo.', 'ambar');
     else {
       if (h.techos.length) resumenContrato(caja, h, h.docs);
-      s.marcados.forEach(function (d, i) { caja.appendChild(filaDoc(h, d, ctx, i + 1)); });
+      porLetra(s.marcados, function (d) { return d.tipo; }).forEach(function (d) { caja.appendChild(filaDoc(h, d, ctx, letraDe(d.tipo))); });
     }
 
     subtitulo(caja, 'Dosier');
@@ -727,8 +741,10 @@
     var marcadas = function () {
       return orden.map(function (id) { return filas.filter(function (r) { return r.d.id === id; })[0]; }).filter(function (r) { return r && r.en; });
     };
+    // en el orden en que salen en el contrato: por letra y, dentro, por el orden de la lista
+    var marcadasLetra = function () { return porLetra(marcadas(), function (r) { return r.tipo; }); };
     var estado = function () {
-      var pos = {}; marcadas().forEach(function (r, i) { pos[r.d.id] = i + 1; });
+      var pos = {}; marcadasLetra().forEach(function (r, i) { pos[r.d.id] = i + 1; });
       return filas.map(function (r) {
         return { id: r.d.id, nombre: r.d.nombre, tipo: r.tipo, techo_clave: r.techo || null, en_contrato: r.en, orden: pos[r.d.id] || 0, subido_en: r.d.subido_en };
       });
@@ -738,7 +754,7 @@
     var secC = document.createElement('div'), secD = document.createElement('div'), secO = document.createElement('div');
     [secC, secD, secO].forEach(function (s) { s.style.cssText = 'display:flex;flex-direction:column;gap:8px;min-width:0'; });
     subtitulo(host, 'Van en el contrato');
-    nota(host, 'Estos documentos se adjuntan al contrato de Construcción, en este orden. Cada uno entra solo si su techo coincide con el del contrato; los de «Todos los techos» entran siempre.');
+    nota(host, TXT_CONTRATO);
     host.appendChild(resumen); host.appendChild(secC);
     subtitulo(host, 'Dosier'); host.appendChild(secD);
     subtitulo(host, 'Otros documentos'); host.appendChild(secO);
@@ -796,22 +812,30 @@
         if (r.en) orden.push(r.d.id);          // al marcar, entra el último
         repinta();
       });
-      s.addEventListener('change', function () { r.tipo = s.value; repinta(); });
+      s.addEventListener('change', function () {
+        r.tipo = s.value;
+        // el dosier nunca va en el contrato: si se retipa a dosier, sale de «Van en el contrato»
+        if (r.tipo === 'dosier' && r.en) { r.en = false; cas.checked = false; orden = orden.filter(function (id) { return id !== r.d.id; }); }
+        repinta();
+      });
       if (t) t.addEventListener('change', function () { r.techo = t.value; repinta(); });
       sube.addEventListener('click', function (ev) { ev.stopPropagation(); mueve(r, -1); });
       baja.addEventListener('click', function (ev) { ev.stopPropagation(); mueve(r, 1); });
     }
+    // ↑/↓ solo dentro de la misma letra: el orden nunca cambia la letra
     function mueve(r, paso) {
-      var ms = marcadas().map(function (x) { return x.d.id; });
+      var ms = marcadasLetra().map(function (x) { return x.d.id; });
       var i = ms.indexOf(r.d.id), j = i + paso;
       if (i < 0 || j < 0 || j >= ms.length) return;
+      var vecino = filas.filter(function (x) { return x.d.id === ms[j]; })[0];
+      if (!vecino || letraDe(vecino.tipo) !== letraDe(r.tipo)) return;
       var tmp = ms[i]; ms[i] = ms[j]; ms[j] = tmp;
       orden = ms.concat(orden.filter(function (id) { return ms.indexOf(id) === -1; }));
       repinta();
       try { r.el.querySelector(paso < 0 ? '[aria-label^="Subir"]' : '[aria-label^="Bajar"]').focus(); } catch (e) {}
     }
     function repinta() {
-      var ms = marcadas();
+      var ms = marcadasLetra();
       [secC, secD, secO].forEach(function (s) { while (s.firstChild) s.removeChild(s.firstChild); });
       resumen.innerHTML = '';
       var st = estado();
@@ -820,18 +844,22 @@
       var dup = planosRepetidos(st);
       if (dup) nota(resumen, dup, 'rojo');
       ms.forEach(function (r, i) {
-        r.n.textContent = (i + 1) + '. ' + (r.d.nombre || 'Documento');
+        r.n.textContent = 'Apéndice ' + letraDe(r.tipo) + ' · ' + (r.d.nombre || 'Documento');
         secC.appendChild(r.el);
       });
       filas.forEach(function (r) {
         var bloqueada = !EST.admin && (r.d.en_contrato === true || r.d.tipo === 'plano');
-        r.cas.disabled = !EST.admin;
+        var esDosier = r.tipo === 'dosier';
+        r.cas.disabled = !EST.admin || esDosier;
         r.s.disabled = bloqueada; if (r.t) r.t.disabled = bloqueada;
-        [r.cas, r.s, r.t].forEach(function (x) { if (x) x.title = x.disabled ? SOLO_ADMIN : ''; });
+        [r.s, r.t].forEach(function (x) { if (x) x.title = x.disabled ? SOLO_ADMIN : ''; });
+        r.cas.title = esDosier ? DOSIER_NO : (r.cas.disabled ? SOLO_ADMIN : '');
+        r.cas.parentNode.title = r.cas.title;
         var i = ms.indexOf(r);
+        var mismaLetra = function (k) { return k >= 0 && k < ms.length && letraDe(ms[k].tipo) === letraDe(r.tipo); };
         r.sube.style.display = r.baja.style.display = r.en ? '' : 'none';
-        r.sube.disabled = !EST.admin || i <= 0;
-        r.baja.disabled = !EST.admin || i < 0 || i >= ms.length - 1;
+        r.sube.disabled = !EST.admin || !mismaLetra(i - 1);
+        r.baja.disabled = !EST.admin || i < 0 || !mismaLetra(i + 1);
         [r.sube, r.baja].forEach(function (x) { x.style.opacity = x.disabled ? '.45' : ''; x.title = !EST.admin ? SOLO_ADMIN : ''; });
         if (r.en) return;
         r.n.textContent = r.d.nombre || 'Documento';

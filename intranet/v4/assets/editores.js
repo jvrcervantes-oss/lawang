@@ -4597,8 +4597,10 @@
         if (techos.length) campos.push({ k: 'techo', label: 'Techo', tipo: 'select', valor: '',
           opciones: [['', 'Todos los techos']].concat(techos.map(function (t) { return [t.clave, t.nombre]; })),
           ayuda: 'Si va en el contrato, entra solo en los contratos con este techo; «Todos los techos» entra siempre.' });
+        // el dosier nunca va en el contrato (owner, 28-sep-2026): la casilla solo sale para «Otro documento»
         if (admin) campos.push({ k: 'en_contrato', label: 'Se incluye automáticamente en el contrato', tipo: 'check', valor: false,
-          ayuda: 'Entra el último; el orden se cambia en Documentos → Editar.' });
+          visibleSi: { k: 'seccion', valores: ['otro'] },
+          ayuda: 'Sale como el apéndice de su tipo (Plano → A, Memoria de calidades → B; el resto, informativo). Dentro de su letra entra el último; el orden se cambia en Documentos → Editar.' });
         campos.push({ k: 'file', label: 'Fichero', tipo: 'file', req: 1, accept: 'application/pdf,image/jpeg,image/png,image/webp',
           ayuda: 'PDF o imagen, hasta 50 MB. Nace privado.' + (admin ? '' : ' Qué documentos van en el contrato lo decide administración.') });
         modal('Añadir documento · ' + m.nombre, campos, 'Subir', function (v) {
@@ -4607,7 +4609,7 @@
           if (file.size > 52428800) return { error: { message: 'el fichero pasa de 50 MB' } };
           if (typeof window.lwFicheroSube !== 'function') return { error: { message: 'Falta guard.js actualizado: recarga la página' } };
           var datos = { modelo_id: m.id, tipo: v.seccion === 'dosier' ? 'dosier' : (v.tipo || 'otro'), techo_clave: v.techo || null };
-          if (admin && v.en_contrato === true) datos.en_contrato = true;
+          if (admin && v.en_contrato === true && datos.tipo !== 'dosier') datos.en_contrato = true;
           return window.lwFicheroSube(sb, 'modelo_documento', file, datos)
             .then(function () { return { error: null }; }, function (e) { return { error: { message: (e && e.message) || String(e) } }; });
         });
