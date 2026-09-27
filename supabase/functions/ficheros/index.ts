@@ -165,6 +165,8 @@ const CLASES: Record<string, Clase> = {
       // Marcarlo para el contrato al subir es de administración (27-sep-2026): se mira ANTES de subir, y la base
       // lo vuelve a mirar al registrar (modelo_documento_registra).
       if (body.en_contrato === true && !(await esAdmin(u))) return { error: 'en_contrato_solo_admin', status: 403 };
+      // el dosier es comercial: nunca va en el contrato (owner, 28-sep-2026; la base también lo rechaza)
+      if (body.en_contrato === true && tipo === 'dosier') return { error: 'dosier_no_va_en_el_contrato', status: 400 };
       const { data, error } = await u.from('modelos').select('id').eq('id', modelo).maybeSingle();
       if (error || !data) return { error: 'modelo_no_visible', status: 403 };
       return modelo + '/';

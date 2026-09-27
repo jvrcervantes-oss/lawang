@@ -1,4 +1,4 @@
--- destructivo-ok: sustituye el CHECK de tipo (drop+add, añade 'dosier'), la firma de modelo_documento_registra (drop de la de 6 argumentos + create con 7) y retira modelo_documento_cambia (su único llamador, la ficha del modelo, pasa a modelo_documentos_guarda); no borra ni cambia ninguna fila salvo el backfill de en_contrato/orden descrito abajo.
+-- destructivo-ok: sustituye el CHECK de tipo (drop+add, añade 'dosier'), la firma de modelo_documento_registra (drop de la de 6 argumentos + create con 7) y retira modelo_documento_cambia (su único llamador, la ficha del modelo, pasa a modelo_documentos_guarda) y amplía el CHECK de contrato_eventos.evento (drop+add, lista vigente en producción + 'envio_sin_anexo_confirmado'); no borra ni cambia ninguna fila salvo el backfill de en_contrato/orden descrito abajo.
 -- Documentos del modelo que van AUTOMÁTICAMENTE en el contrato de obra — casilla por documento (27-sep-2026).
 --
 -- QUÉ CAMBIA
@@ -8,7 +8,12 @@
 -- fuera. Desde hoy lo decide una CASILLA por documento, `en_contrato`, y el tipo vuelve a decir solo qué es.
 --   · Entran TODOS los marcados, en `orden` (desempate: subido_en, id).
 --   · Cada uno entra solo si su techo es el del contrato; los de techo NULL («todos los techos») entran siempre.
---   · Tipo nuevo 'dosier' (el PDF comercial del modelo), con su propia sección en la pantalla.
+--   · Tipo nuevo 'dosier' (el PDF comercial del modelo), con su propia sección en la pantalla. El dosier NUNCA
+--     va en el contrato (owner, 28-sep-2026): la casilla no se puede marcar en un dosier, y un documento marcado
+--     no se puede retipar a dosier. Lo rechazan _modelo_documento_aplica y modelo_documento_registra.
+--   · En el contrato cada documento sale con la LETRA DE APÉNDICE DE SU TIPO (plano A, calidades B; ficha,
+--     render y otro, informativos, D en adelante), no con un número: eso vive en el navegador
+--     (contracts/assets/docs_contrato.js). `orden` solo ordena dentro de una misma letra.
 --
 -- QUIÉN LO DECIDE: solo administración (es_admin()). La regla vive en las RPC SECURITY DEFINER, que son el
 -- único camino de escritura de la tabla (no hay policy de escritura: se quitó en 20260927123000). Se exige
@@ -126,6 +131,10 @@ begin
   if v_techo is not null and not exists (select 1 from public.modelo_techos t where t.modelo_id = v_d.modelo_id and t.clave = v_techo) then
     raise exception 'Ese techo no es de este modelo' using errcode = '22023';
   end if;
+  -- El dosier es comercial: nunca va en el contrato (owner, 28-sep-2026). Ni marcarlo, ni pasar a dosier uno marcado.
+  if v_en and v_tipo = 'dosier' then
+    raise exception 'El dosier es comercial: no va en el contrato' using errcode = '22023';
+  end if;
   -- Marcar sin orden explícito: entra el último. Se bloquean las filas del modelo para que dos marcados a la
   -- vez no saquen el mismo número.
   if v_en and not v_d.en_contrato and not (p_cambios ? 'orden') then
@@ -141,7 +150,7 @@ begin
   end;
   return p_id;
 end $$;
-revoke all on function public._modelo_documento_aplica(uuid, jsonb) from public, anon, authenticated;
+revoke all on function public._modelo_documento_aplica(uuid, jsonb) from public, anon, authenticated, service_role;
 
 -- ── guardar los cambios de documentos de UN modelo, en UNA transacción ──────────────────────────────────
 -- p_cambios: [{"id": uuid, "cambios": {tipo?, techo_clave?, en_contrato?, orden?}}, ...] — los valores
@@ -166,6 +175,10 @@ begin
     if jsonb_typeof(e) is distinct from 'object' or jsonb_typeof(e->'cambios') is distinct from 'object'
        or coalesce(e->>'id', '') !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
       raise exception 'Datos de los documentos no válidos' using errcode = '22023';
+    end if;
+    -- la casilla, si viene, es booleana: un null o un "false" de texto se leerían como «sin cambio» o al revés
+    if (e->'cambios') ? 'en_contrato' and jsonb_typeof(e->'cambios'->'en_contrato') is distinct from 'boolean' then
+      raise exception 'La casilla del contrato no es válida' using errcode = '22023';
     end if;
     v_id := (e->>'id')::uuid;
     if v_id = any(v_ids) then raise exception 'Un documento aparece dos veces en el guardado' using errcode = '22023'; end if;
@@ -240,6 +253,7 @@ begin
   if p_tipo is null or p_tipo not in ('plano', 'calidades', 'ficha', 'render', 'dosier', 'otro') then raise exception 'Tipo de documento no válido' using errcode = '22023'; end if;
   if p_tipo = 'plano' and not public.es_admin() then raise exception 'El plano solo lo sube administración' using errcode = '42501'; end if;
   if v_en and not public.es_admin() then raise exception 'Solo administración decide qué va en el contrato' using errcode = '42501'; end if;
+  if v_en and p_tipo = 'dosier' then raise exception 'El dosier es comercial: no va en el contrato' using errcode = '22023'; end if;
   if not exists (select 1 from public.modelos m where m.id = p_modelo) then raise exception 'Ese modelo ya no existe' using errcode = '22023'; end if;
   if p_path is null or p_path !~ ('^' || p_modelo::text || '/[0-9a-f-]{36}\.(pdf|jpg|jpeg|png|webp)$') then
     raise exception 'Ruta de documento no válida' using errcode = '22023';
@@ -271,3 +285,48 @@ begin
 end $$;
 revoke all on function public.modelo_documento_registra(uuid, uuid, text, text, text, text, boolean) from public, anon, authenticated;
 grant execute on function public.modelo_documento_registra(uuid, uuid, text, text, text, text, boolean) to service_role;
+
+-- ── constancia de «Enviar igualmente» sin un anexo del modelo (owner, 28-sep-2026) ──────────────────────
+-- Enviar a firma sin los documentos marcados del modelo (porque no hay ninguno, o porque uno marcado no se ha
+-- podido adjuntar) se permite con una confirmación, pero queda en el historial del contrato: quién, cuándo y
+-- qué faltaba. Lo escribe el SERVIDOR: la edge `ficheros-contrato` (acción envia_firma) llama a esta función
+-- con service_role ANTES de crear el enlace, con el actor sacado de la sesión; si no se puede apuntar, no se
+-- envía. El «qué faltaba» lo declara la pantalla (el servidor no reconstruye el documento): se guarda como
+-- declaración, acotado y sin HTML, junto a quién la hizo.
+-- Lista del CHECK copiada de la VIGENTE en producción el 28-sep-2026 (incluye 'anexos_al_archivo', LAW-78).
+alter table public.contrato_eventos drop constraint if exists contrato_eventos_evento_check;
+alter table public.contrato_eventos add constraint contrato_eventos_evento_check check (evento = any (array[
+  'creado', 'editado', 'tipo_cambiado', 'enviado_a_firma', 'firma_abierta', 'firma_recogida', 'firma_anulada',
+  'firmado_del_todo', 'desbloqueado', 'traspaso', 'editado_estando_firmado', 'desbloqueado_estando_firmado',
+  'factura_sin_bloquear', 'cobro_a_factura_huerfana', 'cobro_a_otro_comprador', 'comprador_sin_ficha',
+  'factura_borrada', 'contrato_borrado', 'reserva_liberada', 'reserva_prorrogada', 'reserva_liberacion_deshecha',
+  'pdf_descargado', 'factura_reactivada', 'anexos_al_archivo', 'envio_sin_anexo_confirmado']));
+
+create or replace function public.contrato_envio_sin_anexo(p_contrato uuid, p_actor text, p_detalle jsonb) returns uuid
+language plpgsql security definer set search_path = '' as $$
+declare v_id uuid; v_motivo text; v_faltan jsonb := '[]'; x jsonb;
+begin
+  if not exists (select 1 from public.contratos c where c.id = p_contrato) then
+    raise exception 'Ese contrato no existe' using errcode = '22023';
+  end if;
+  if jsonb_typeof(p_detalle) is distinct from 'object' then raise exception 'Detalle no válido' using errcode = '22023'; end if;
+  v_motivo := p_detalle->>'motivo';
+  if v_motivo is null or v_motivo not in ('ninguno', 'fallo') then raise exception 'Motivo no válido' using errcode = '22023'; end if;
+  if p_detalle ? 'faltan' then
+    if jsonb_typeof(p_detalle->'faltan') is distinct from 'array' or jsonb_array_length(p_detalle->'faltan') > 20 then
+      raise exception 'Lista de lo que falta no válida' using errcode = '22023';
+    end if;
+    for x in select * from jsonb_array_elements(p_detalle->'faltan') loop
+      if jsonb_typeof(x) is distinct from 'string' then raise exception 'Lista de lo que falta no válida' using errcode = '22023'; end if;
+      v_faltan := v_faltan || to_jsonb(left(regexp_replace(x #>> '{}', '[[:cntrl:]<>]', '', 'g'), 200));
+    end loop;
+  end if;
+  insert into public.contrato_eventos (contrato_id, evento, detalle, quien)
+  values (p_contrato, 'envio_sin_anexo_confirmado',
+          jsonb_build_object('motivo', v_motivo, 'faltan', v_faltan, 'declarado_por', 'pantalla'),
+          left(nullif(btrim(coalesce(p_actor, '')), ''), 200))
+  returning id into v_id;
+  return v_id;
+end $$;
+revoke all on function public.contrato_envio_sin_anexo(uuid, text, jsonb) from public, anon, authenticated;
+grant execute on function public.contrato_envio_sin_anexo(uuid, text, jsonb) to service_role;

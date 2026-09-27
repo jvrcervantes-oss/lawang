@@ -15,7 +15,10 @@
 // Acciones (POST JSON, `accion`):
 //   justificante_url {ext}            → {path, token}  subida de un justificante de cobro
 //   snapshot_url     {contrato_id}    → {path, token}  documento a firmar (solo si nadie firmó aún)
-//   envia_firma      {contrato_id, nombre, email, rol, orden} → {link, anulados}
+//   envia_firma      {contrato_id, nombre, email, rol, orden, sin_anexo?} → {link, anulados}
+//                    sin_anexo = {motivo: 'ninguno'|'fallo', faltan: [texto]}: el agente confirmó «Enviar
+//                    igualmente» sin un documento del modelo; se apunta en contrato_eventos ANTES de enviar
+//                    (28-sep-2026, owner) y, si no se puede apuntar, no se envía.
 //   pdf_manual_url   {contrato_id}    → {path, token}  PDF firmado a mano
 //   cierra_manual    {contrato_id}    → {path, hash, anulados}
 //   limpia_borradores {}              → {borrados}     borradores de firma de contratos que ya no existen
@@ -150,6 +153,16 @@ Deno.serve(async (req) => {
       const rDoc = await leeFresco(BUCKET_FIRMAS, path);
       if (!rDoc.ok) return json({ ok: false, error: 'falta_el_documento_a_firmar' }, 409);
       const hash = await sha256hex(await rDoc.text());
+      // «Enviar igualmente» sin un anexo del modelo: constancia en el historial, escrita por el servidor con
+      // el actor de la sesión (no un insert del navegador). Antes del envío: sin constancia no sale.
+      if (body.sin_anexo != null) {
+        const sa = (typeof body.sin_anexo === 'object' ? body.sin_anexo : {}) as Record<string, unknown>;
+        const { error: eSa } = await admin.rpc('contrato_envio_sin_anexo', {
+          p_contrato: contratoId, p_actor: quien.user.email ?? null,
+          p_detalle: { motivo: sa.motivo ?? null, faltan: Array.isArray(sa.faltan) ? sa.faltan : [] },
+        });
+        if (eSa) return json({ ok: false, error: 'no_se_pudo_apuntar_el_envio_sin_anexo' }, 500);
+      }
       const { data: r, error: eEnv } = await usuario.rpc('contrato_envia_firma', {
         p_contrato: contratoId,
         p_nombre: String(body.nombre ?? ''), p_email: String(body.email ?? ''),

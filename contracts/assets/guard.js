@@ -153,6 +153,7 @@
     tipo_de_documento_invalido: 'Tipo de documento no válido',
     plano_solo_admin: 'El plano solo lo sube administración',
     en_contrato_solo_admin: 'Solo administración decide qué va en el contrato: súbelo sin marcar',
+    dosier_no_va_en_el_contrato: 'El dosier es comercial: no va en el contrato',
     destino_invalido: 'Destino de la foto no válido: recarga la página', destino_no_visible: 'No encuentro ese proyecto o modelo: recarga la página',
     solo_admin: 'Esto solo lo hace un administrador',
     fila_no_borrada: 'El fichero se ha quitado, pero su ficha no: vuelve a pulsar «Borrar»',

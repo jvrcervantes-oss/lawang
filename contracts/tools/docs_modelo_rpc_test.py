@@ -49,7 +49,7 @@ insert into public.modelo_documentos (id, modelo_id, nombre, path, tipo, techo_c
   ('a0000000-0000-4000-8000-000000000001', current_setting('t.m')::uuid, 'otro', current_setting('t.m') || '/a0000000-0000-4000-8000-000000000001.pdf', 'otro', null, false, 0, now() - interval '5 days'),
   ('a0000000-0000-4000-8000-000000000002', current_setting('t.m')::uuid, 'plano t1', current_setting('t.m') || '/a0000000-0000-4000-8000-000000000002.pdf', 'plano', current_setting('t.t1'), true, 1, now() - interval '4 days'),
   ('a0000000-0000-4000-8000-000000000003', current_setting('t.m')::uuid, 'plano t2', current_setting('t.m') || '/a0000000-0000-4000-8000-000000000003.pdf', 'plano', current_setting('t.t2'), true, 2, now() - interval '3 days'),
-  ('a0000000-0000-4000-8000-000000000004', current_setting('t.m')::uuid, 'dosier', current_setting('t.m') || '/a0000000-0000-4000-8000-000000000004.pdf', 'dosier', null, false, 0, now() - interval '2 days'),
+  ('a0000000-0000-4000-8000-000000000004', current_setting('t.m')::uuid, 'calidades', current_setting('t.m') || '/a0000000-0000-4000-8000-000000000004.pdf', 'calidades', null, false, 0, now() - interval '2 days'),
   ('a0000000-0000-4000-8000-000000000005', current_setting('t.m')::uuid, 'plano libre', current_setting('t.m') || '/a0000000-0000-4000-8000-000000000005.pdf', 'plano', null, false, 0, now() - interval '1 days');
 insert into storage.objects (bucket_id, name, metadata) values
   ('modelos', current_setting('t.m') || '/b0000000-0000-4000-8000-000000000001.pdf', '{"size": 1000}'),
@@ -179,7 +179,7 @@ select 'B2 backfill: marcados = planos, y nada que no sea plano', bool_and(en_co
     # ── admin ──
     p.append(claims('admin'))
     p.append("insert into _t values ('A1 canario admin', current_user = 'authenticated' and public.es_admin(), 'current_user=' || current_user);")
-    p.append(caso('C10 admin marca el dosier sin orden: entra el ultimo (max+1 = 3)', cambia(4, '{"en_contrato": true}'), 'ok',
+    p.append(caso('C10 admin marca las calidades sin orden: entran las ultimas (max+1 = 3)', cambia(4, '{"en_contrato": true}'), 'ok',
                   "%s and %s = 3" % (doc(4, 'en_contrato'), doc(4, 'orden'))))
     p.append(caso('C11 admin reordena uno marcado', cambia(4, '{"orden": 0}'), 'ok', "%s = 0" % doc(4, 'orden')))
     p.append(caso('C12 admin marca un 2o plano del MISMO techo: 23505',
@@ -218,6 +218,13 @@ select 'B2 backfill: marcados = planos, y nada que no sea plano', bool_and(en_co
                 doc(3, 'orden'), doc(4, 'orden'), doc(5, 'orden'), doc(3, 'orden'), doc(4, 'orden')))
     p.append(caso('C26 retocar el techo de uno marcado SIN mandar orden: sigue marcado y conserva su orden',
                   cambia(4, '{"techo_clave": ""}'), 'ok', "%s and %s = 2 and %s is null" % (doc(4, 'en_contrato'), doc(4, 'orden'), doc(4, 'techo_clave'))))
+    # el dosier NUNCA va en el contrato (owner, 28-sep-2026), por ninguna vía
+    p.append(caso('C27 admin marca un dosier: 22023', cambia(1, '{"en_contrato": true}'), '22023'))
+    p.append(caso('C28 admin retipa a dosier uno marcado: 22023', cambia(4, '{"tipo": "dosier"}'), '22023'))
+    p.append(caso('C29 admin marca y retipa a dosier en la misma llamada: 22023', cambia(5, '{"tipo": "dosier", "en_contrato": true}'), '22023'))
+    # la casilla, si viene, es booleana (Seguridad, consulta de deploy 28-sep)
+    p.append(caso('C2A casilla null: 22023', cambia(4, '{"en_contrato": null}'), '22023'))
+    p.append(caso('C2B casilla "false" de texto: 22023', cambia(4, '{"en_contrato": "false"}'), '22023'))
     if selftest:
         p.append("insert into _t values ('ZZ selftest: esto DEBE salir en rojo', 1 = 2, 'si sale verde el arnes esta roto');")
     p.append('reset role;')
@@ -241,12 +248,30 @@ select 'B2 backfill: marcados = planos, y nada que no sea plano', bool_and(en_co
     p.append(caso('R06 admin sube un plano marcado de un techo ya cubierto: 23505',
                   registra('admin', 5, 'plano', "current_setting('t.t2')", en='true'), '23505'))
     p.append(caso('R07 tipo que no existe: 22023', registra('admin', 5, 'folleto'), '22023'))
+    p.append(caso('R09 admin sube un dosier marcado: 22023', registra('admin', 5, 'dosier', en='true'), '22023'))
+    # «Enviar igualmente» sin anexo: la constancia la escribe el servidor (la edge ficheros-contrato, service_role)
+    p.append("select set_config('t.c', (select id::text from public.contratos order by created_at desc limit 1), true);")
+    p.append(caso('E1 servidor apunta el envio sin anexo: evento con motivo y lo que faltaba, saneado',
+                  "public.contrato_envio_sin_anexo(current_setting('t.c')::uuid, 'agente@prueba', "
+                  "jsonb_build_object('motivo', 'fallo', 'faltan', jsonb_build_array('Apendice A <b>x</b>')))", 'ok',
+                  "exists (select 1 from public.contrato_eventos e where e.contrato_id = current_setting('t.c')::uuid "
+                  "and e.evento = 'envio_sin_anexo_confirmado' and e.quien = 'agente@prueba' and e.detalle->>'motivo' = 'fallo' "
+                  "and e.detalle->'faltan'->>0 = 'Apendice A bx/b')"))
+    p.append(caso('E2 motivo que no existe: 22023', "public.contrato_envio_sin_anexo(current_setting('t.c')::uuid, 'x', '{\"motivo\": \"otro\"}'::jsonb)", '22023'))
+    p.append(caso('E3 lista de lo que falta con algo que no es texto: 22023',
+                  "public.contrato_envio_sin_anexo(current_setting('t.c')::uuid, 'x', '{\"motivo\": \"fallo\", \"faltan\": [1]}'::jsonb)", '22023'))
     p.append('reset role;')
 
     # ── anónimo, y lo retirado ──
     p.append('set local role anon;')
     p.append(caso('N1 anon no llama a guarda: 42501', cambia(1, '{"tipo": "otro"}'), '42501'))
     p.append('reset role;')
+    p.append(claims('agente'))
+    p.append(caso('N3 el navegador no apunta el envio sin anexo (solo la edge): 42501',
+                  "public.contrato_envio_sin_anexo(current_setting('t.c')::uuid, 'x', '{\"motivo\": \"ninguno\"}'::jsonb)", '42501'))
+    p.append('reset role;')
+    p.append("insert into _t values ('N4 service_role no llama a la funcion interna _modelo_documento_aplica', "
+             "not has_function_privilege('service_role', 'public._modelo_documento_aplica(uuid,jsonb)', 'execute'), '');")
     p.append("insert into _t values ('N2 modelo_documento_cambia ya no existe (reducir la exposicion)', "
              "to_regprocedure('public.modelo_documento_cambia(uuid,jsonb)') is null, coalesce(to_regprocedure('public.modelo_documento_cambia(uuid,jsonb)')::text, 'retirada'));")
     p += ['select caso, ok, detalle from _t order by caso;', 'rollback;']
