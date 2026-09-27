@@ -77,6 +77,22 @@
     if (!/^[a-z0-9-]+$/.test(String(nombre))) throw new Error('lwEdge: nombre de edge no válido');
     return URL_SB + '/functions/v1/' + nombre;
   });
+  /* Lecturas por el servidor: window.lwDatos(nombre, args) (B10a, 28-sep-2026, revisión previa #136 Desarrollo 2;
+     encargos/20260927_erp_b10_lecturas_a_la_par.md). ÚNICO punto por el que una pantalla pide una RPC `*_datos`:
+     hoy va por PostgREST (`sb.rpc`), y en B10b la ficha (instancia.js) podrá mandarla por otro transporte (la puerta
+     del maestro) cambiando SOLO esta función. Por eso:
+       · solo nombres que acaben en `_datos` — un nombre que no, lanza ANTES de construir la petición, como lwEdge;
+       · devuelve `{data, error}` tal cual, nunca filtros PostgREST encadenados (la puerta no los sabría reproducir);
+       · el cliente es el único de la página (window.LW_SB); si aún no existe, espera a que la puerta lo cree. */
+  fija('lwDatos', function (nombre, args) {
+    if (!/^[a-z][a-z0-9_]*_datos$/.test(String(nombre))) throw new Error('lwDatos: solo RPC *_datos (' + nombre + ')');
+    var cli = window.LW_SB ? Promise.resolve(window.LW_SB)
+      : window.LW_AUTH ? window.LW_AUTH.then(function (a) { return a.sb; })
+      : Promise.reject(new Error('lwDatos: sin cliente de Supabase en esta página'));
+    return cli.then(function (sb) { return sb.rpc(nombre, args || {}); })
+      .then(function (r) { return { data: r.data, error: r.error }; },
+            function (e) { return { data: null, error: e }; });
+  });
   /* Ficheros de contratos y cobros por la edge ficheros-contrato (26-sep-2026, LAW-336 pieza 5): la ruta
      la decide el servidor y la subida va por URL firmada; borrar borradores de firma, también el servidor.
      Una sola copia para toda la suite (facturas, operaciones, v4). Devuelve la respuesta o lanza con el error. */

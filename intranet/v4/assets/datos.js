@@ -468,7 +468,7 @@
      COMO SABE QUE HA TERMINADO. No preguntando a cada handler —son dieciocho y
      habria que tocarlos todos, y el diecinueve naceria sin avisar— sino
      contando las consultas en vuelo por el unico sitio por donde pasan todas.
-     `vig()` es ese sitio; `q()` y `cnt()` lo usan, y las cuatro llamadas que
+     `vig()` es ese sitio; `q()` y `cifras()` lo usan, y las cuatro llamadas que
      tenian su propio `.then` se envuelven sin tocarles una coma.
 
      LO QUE NO PUEDE PASAR, y como se evita cada cosa:
@@ -550,13 +550,12 @@
       return r.data || [];
     }, function (e) { fallo(nombre, e, cont); return null; });
   }
-  function cnt(sb, tabla, mod, cols) {
-    var qq = sb.from(tabla).select(cols || '*', { count: 'exact', head: true });
-    if (mod) qq = mod(qq);
-    /* La rama de rechazo no existia: un fallo de red aqui no daba `r.error`,
-       lanzaba — y sin ella el contador del velo no bajaria nunca. */
-    return vig(qq).then(function (r) { return r.error ? (fallo('count ' + tabla, r.error), null) : (r.count || 0); },
-                        function (e) { fallo('count ' + tabla, e); return null; });
+  /* Cifras de una pantalla por el SERVIDOR (B10a, 28-sep-2026): `lwDatos` (guard.js) es el único transporte de las
+     RPC `*_datos`, y `q()` le pone el velo y el aviso de fallo. Sustituye a `cnt(sb, tabla)`, que contaba con la tabla
+     en una variable: tras cerrar la lectura directa de una tabla ese conteo daba 0 o 42501 sin que nada lo avisara.
+     null = la base no contestó (ya avisado): la pantalla pinta «—», nunca un cero. */
+  function cifras(nombre, args) {
+    return q(window.lwDatos(nombre, args), nombre);
   }
 
   var mesIni = new Date(); mesIni.setDate(1); mesIni.setHours(0, 0, 0, 0);
@@ -1888,18 +1887,19 @@
           });
         }
       });
-      var hoy = hoyLocal();   // fecha local, no UTC (revisión previa #57)
-      var en30 = hoyLocal(30);
-      cnt(sb, 'contrato_vencimientos', function (x) { return x.gte('fecha', hoy).lte('fecha', en30).eq('contratos.bloqueado', true); }, '*, contratos!inner(id)')
-        .then(function (n) {
-          if (n == null) return;
+      var hoy = hoyLocal();   // fecha local, no UTC (revisión previa #57); el servidor la acepta a ±1 día de la suya
+      /* Vencimientos a 30 y 7 días (contratos firmados) y unidades: UNA llamada, inicio_cifras_datos (B10a). */
+      var pCifras = cifras('inicio_cifras_datos', { p_hoy: hoy });
+      pCifras.then(function (c) {
+        var n = c ? c.vencimientos_30 : null;
+        if (n != null) {
           kpi(/VENCIMIENTOS/i, String(n), 'con fecha en los próximos 30 días');
           pon2('k-operaciones', String(n));   // la tarjeta es «Vencimientos (30 días)»
-        });
-      // «15 por conciliar esta semana» era del diseño: se cuentan los hitos con fecha en 7 días
-      var en7 = hoyLocal(7);
-      cnt(sb, 'contrato_vencimientos', function (x) { return x.gte('fecha', hoy).lte('fecha', en7).eq('contratos.bloqueado', true); }, '*, contratos!inner(id)')
-        .then(function (n7) { pon2('k-venc-semana', n7 == null ? '—' : (n7 + ' con fecha en los próximos 7 días')); });
+        }
+        // «15 por conciliar esta semana» era del diseño: se cuentan los hitos con fecha en 7 días
+        var n7 = c ? c.vencimientos_7 : null;
+        pon2('k-venc-semana', n7 == null ? '—' : (n7 + ' con fecha en los próximos 7 días'));
+      });
       // el buscador de Home busca en Contratos (Enter)
       var busca = document.querySelector('main input[placeholder^="Buscar"]');
       if (busca) busca.addEventListener('keydown', function (ev) {
@@ -1910,16 +1910,12 @@
          el KPI ensenaba «0 unidades libres» sobre un inventario lleno. Es la
          misma familia que la RLS que recorta sin avisar: la respuesta vacia se
          lee igual que la respuesta correcta. */
-      Promise.all([
-        cnt(sb, 'unidades'),
-        cnt(sb, 'unidades', function (x) { return x.eq('estado', 'disponible'); }),
-        cnt(sb, 'unidades', function (x) { return x.eq('estado', 'reservada'); })
-      ]).then(function (r) {
-        if (r[1] == null) return;
-        kpi(/UNIDADES LIBRES/i, String(r[1]), r[0] != null ? 'disponibles de ' + r[0] + ' en inventario' : null);
-        pon2('k-unidades', String(r[1]));
-        pon2('k-unidades-sub', r[0] != null ? 'de ' + r[0] + ' parcelas' : 'en inventario');
-        pon2('k-reservadas', r[2] != null ? String(r[2]) : '—');
+      pCifras.then(function (c) {
+        if (!c || c.unidades_libres == null) return;
+        kpi(/UNIDADES LIBRES/i, String(c.unidades_libres), c.unidades != null ? 'disponibles de ' + c.unidades + ' en inventario' : null);
+        pon2('k-unidades', String(c.unidades_libres));
+        pon2('k-unidades-sub', c.unidades != null ? 'de ' + c.unidades + ' parcelas' : 'en inventario');
+        pon2('k-reservadas', c.unidades_reservadas != null ? String(c.unidades_reservadas) : '—');
       });
       // módulos laterales: nunca dejar las tarjetas mock como "verdad"
       q(sb.from('contrato_vencimientos').select('descripcion,pct,monto,fecha,contratos!inner(numero,bloqueado)')
@@ -6085,18 +6081,19 @@
            son columnas que la viva enseña y aquí faltaban. */
         q(sb.from('unidades_estado').select('id,codigo,proyecto,modelo,estado,contrato_numero,obra_fase,obra_fecha_entrega,obra_actualizado,comprador_nombre').not('obra_fase', 'is', null).order('obra_actualizado', { ascending: false }), 'unidades en obra'),
         q(sb.from('proyectos').select('id,nombre,estado').order('nombre'), 'proyectos'),
-        cnt(sb, 'unidades_estado', function (qq) { return qq.not('obra_fecha_entrega', 'is', null); }),
-        cnt(sb, 'obra_partes_trabajo'),
+        // entregas con fecha y nº de partes: obra_cifras_datos (B10a; antes dos conteos con tabla dinámica)
+        cifras('obra_cifras_datos', {}),
         q(sb.from('obra_partes_trabajo').select('fase_masterplan,zona_masterplan,fase_anterior,fase_nueva,fecha,autor,nota,dias_offset,proyecto_id').order('creado_en', { ascending: false }).limit(6), 'últimos partes de trabajo'),
         q(sb.from('obra_fases').select('clave,es').order('orden'), 'fases de obra'),
         // solo la columna para contar: las fotos se ven y se gestionan en la viva
         q(sb.from('obra_fotos').select('unidad_id'), 'fotos de obra')
       ]).then(function (r) {
-        var us = r[0], proys = r[1] || [], nEntregas = r[2], nPartes = r[3], ultimosPartes = r[4], fases = r[5];
+        var us = r[0], proys = r[1] || [], cObra = r[2], ultimosPartes = r[3], fases = r[4];
+        var nEntregas = cObra ? cObra.entregas_con_fecha : null, nPartes = cObra ? cObra.partes : null;
         if (us == null) return;
         // null = la consulta de fotos falló (ya avisada por q()): «? fotos», nunca un 0 que miente
-        var nFotos = r[6] == null ? null : {};
-        (r[6] || []).forEach(function (f) { nFotos[f.unidad_id] = (nFotos[f.unidad_id] || 0) + 1; });
+        var nFotos = r[5] == null ? null : {};
+        (r[5] || []).forEach(function (f) { nFotos[f.unidad_id] = (nFotos[f.unidad_id] || 0) + 1; });
         var urlUnidad = function (u) { return '/intranet/obra/?id=' + encodeURIComponent(u.id); };
 
         var enConstruccion = proys.filter(function (p) { return p.estado === 'en_construccion'; });
@@ -6486,7 +6483,7 @@
             // respuesta — un throw de red/timeout) dejaba el "Cargando…"
             // inicial para siempre: exactamente la alarma-que-parece-viva
             // que este panel existe para evitar (hallazgo de code-review,
-            // 21-sep-2026). Mismo motivo por el que `q()`/`cnt()` de este
+            // 21-sep-2026). Mismo motivo por el que `q()`/`cifras()` de este
             // fichero siempre llevan los dos brazos del `.then` — esto no
             // pasaba por esos helpers, así que se le había quedado corto.
             console.error('[v4 datos] frenos saltados:', e);
