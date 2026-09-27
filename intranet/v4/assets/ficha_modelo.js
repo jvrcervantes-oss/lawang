@@ -874,7 +874,18 @@
         if (EST.admin && ahora.en_contrato !== (antes.en_contrato === true)) c.en_contrato = ahora.en_contrato;
         if (EST.admin && ahora.en_contrato && ahora.orden !== antes.orden) c.orden = ahora.orden;
         if (!Object.keys(c).length) return;
-        var k = (antes.en_contrato === true && !ahora.en_contrato) ? 0 : !ahora.en_contrato ? 1 : antes.en_contrato === true ? 2 : 3;
+        /* Un marcado que sigue marcado pero cambia de tipo o de techo (intercambiar el techo de dos
+           planos, o retipar uno a plano y otro a «otro»): el índice «un plano marcado por techo» se
+           mira en CADA llamada, así que en cualquier orden la primera choca aunque el final sea
+           válido (code-review, 27-sep). Se desmarca en la primera tanda y se vuelve a marcar, ya
+           con su tipo, techo y orden, en la última: entre medias no hay dos planos en el mismo techo. */
+        if (antes.en_contrato === true && ahora.en_contrato && (c.tipo !== undefined || c.techo_clave !== undefined)) {
+          tandas[0].push({ id: r.d.id, c: { en_contrato: false } });
+          c.en_contrato = true; c.orden = ahora.orden;
+          tandas[3].push({ id: r.d.id, c: c });
+          return;
+        }
+        var k =(antes.en_contrato === true && !ahora.en_contrato) ? 0 : !ahora.en_contrato ? 1 : antes.en_contrato === true ? 2 : 3;
         tandas[k].push({ id: r.d.id, c: c });
       });
       var p = Promise.resolve();
