@@ -75,6 +75,11 @@
   function panelIntranet() {
     var p = document.getElementById('lw-mant-intranet');
     if (!p) return;
+    if (estado && estado.intranet_cerrada == null) {
+      // sin «Ajustes» la base no dice si está cerrada: no se pinta un «Abierta» que podría ser falso
+      p.textContent = 'El acceso del equipo a la intranet lo cambia un admin con la herramienta «Ajustes».';
+      return;
+    }
     var cerrada = !!(estado && estado.intranet_cerrada);
     p.innerHTML =
       '<div class="flex flex-col gap-1">' +
@@ -116,8 +121,11 @@
     });
   }
 
+  /* Por el servidor (LAW-338 L2, 28-sep-2026): una RPC, no la tabla. La franja de envíos la ve todo el equipo;
+     el estado del interruptor de la intranet solo llega a quien lo maneja (admin con «Ajustes»): a los demás
+     les llega intranet_cerrada = null y panelIntranet() lo dice en vez de pintar «Abierta». */
   function carga() {
-    return sb.from('mantenimiento').select('envios_pausados,motivo,cambiado_en,intranet_cerrada,intranet_motivo,intranet_cambiado_en').eq('id', 1).maybeSingle().then(function (r) {
+    return window.lwDatos('mantenimiento_datos').then(function (r) {
       if (r.error) { console.error('[mantenimiento]', r.error); return; }
       estado = r.data || { envios_pausados: false };
       franja(); panel(); panelIntranet();
