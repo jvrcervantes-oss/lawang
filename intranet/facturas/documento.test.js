@@ -162,4 +162,31 @@ const conAlta = caja.documentoHTML({ ...campos, cuenta: 'cuenta_de_prueba' }, {}
 assert.ok(conAlta.includes('9999888877') && conAlta.includes('Datos bancarios'),
   'una cuenta cargada desde la base tiene que imprimirse igual que cuando estaba en el .js');
 
+/* ---- RECTIFICATIVA (ERP maestro, art. 15 RD 1619/2012 — Legal, 27-sep-2026) ----
+   `factura_anula` deja en datos.fields `rectifica_numero` (y, pedido a B1, la fecha de la
+   original y el motivo). El papel se titula como rectificativa y dice a quién rectifica. */
+const rect = caja.documentoHTML({ ...campos, rectifica_numero: 'AXW-F2026-00007', rectifica_fecha: '2026-09-20',
+  rectificacion_motivo: 'Anulación total de AXW-F2026-00007',
+  lineas: [{ descripcion: 'Firma y movilización', importe: '-45000' }] }, { numero: 'AXW-R2026-00001' });
+assert.ok(rect.includes('Factura rectificativa') && rect.includes('Corrective invoice'), 'la R se titula como rectificativa');
+assert.ok(!/<h2>Factura<\/h2>/.test(rect), 'y no como una factura normal');
+assert.ok(rect.includes('Rectifica a') && rect.includes('AXW-F2026-00007'), 'dice a qué factura rectifica');
+assert.ok(rect.includes('20 de septiembre de 2026'), 'con la fecha de la original');
+assert.ok(rect.includes('Motivo') && rect.includes('Anulación total de AXW-F2026-00007'), 'y el motivo');
+assert.ok(/-45\.000,00 EUR/.test(rect), 'importe en negativo');
+assert.ok(!html.includes('Rectifica a'), 'una factura normal (Lawang) no lleva nada de esto');
+/* etiqueta fiscal: la de la sociedad (el ERP guarda «NIF» explícito); sin etiqueta, NPWP como siempre — el papel de
+   Lawang no cambia aunque la sociedad no sea indonesa (revisor, 27-sep) */
+caja.SOCIEDADES.soc_es = { razon: 'Estudio SL', domicilio: 'Valencia', npwp: 'B000', esIndonesia: false, npwpLabel: 'NIF' };
+caja.SOCIEDADES.soc_nl = { razon: 'Ltd sin etiqueta', domicilio: 'Londres', npwp: 'C1', esIndonesia: false };
+caja.SOCIEDADES.soc_id = { razon: 'PT Demo', domicilio: 'Bali', npwp: '01.000', esIndonesia: true };
+assert.ok(caja.documentoHTML({ ...campos, sociedad: 'soc_es' }, {}).includes('NIF B000'), 'sociedad del ERP con etiqueta NIF: NIF');
+assert.ok(caja.documentoHTML({ ...campos, sociedad: 'soc_nl' }, {}).includes('NPWP C1'), 'no indonesa SIN etiqueta: NPWP como hoy');
+assert.ok(caja.documentoHTML({ ...campos, sociedad: 'soc_id' }, {}).includes('NPWP 01.000'), 'indonesa sin etiqueta: NPWP');
+
+/* la mención legal sale siempre que el impuesto la traiga, también un «suma» al 0 % (Administración) */
+const exp = caja.documentoHTML({ ...campos, sociedad: 'soc_es', impuestos_sel: [{ id: 'x0', nombre: 'IVA 0 % exportación', clase: 'suma', porcentaje: 0, coef_base: 1,
+  motivo_legal: 'Exenta por exportación, art. 21 LIVA' }] }, {});
+assert.ok(exp.includes('Exenta por exportación, art. 21 LIVA'), 'la mención de un 0 % se imprime');
+
 console.log('documento.test.js OK');

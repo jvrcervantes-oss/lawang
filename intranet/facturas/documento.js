@@ -29,6 +29,8 @@ var TIPOS_DOC = {
   factura:  { es:'Factura',          en:'Invoice',          serie:'INV' },
   proforma: { es:'Factura proforma', en:'Proforma invoice', serie:'PRO' },
   recibi:   { es:'Recibí',           en:'Receipt',          serie:'REC' },
+  // solo el papel (documentoHTML con `rectifica_numero`): no es un tipo de la base, la R es tipo 'factura'
+  rectificativa: { es:'Factura rectificativa', en:'Corrective invoice', serie:'R' },
 };
 
 function escDoc(s){
@@ -110,8 +112,21 @@ function documentoHTML(d, opts){
      vacio, que salta a la vista. */
   var soc   = (typeof SOCIEDADES !== 'undefined' && SOCIEDADES[d.sociedad]) || {};
   var ident = opts.emisor || soc;
-  var t = calcTotales(d.lineas, d.moneda, { pct: d.imp_pct });
+  /* `impuestoDelDocumento` (totales.js, AXW-39): la selección del catálogo si el
+     documento la trae (ERP maestro), si no el porcentaje libre (Lawang, igual que
+     siempre). */
+  var t = calcTotales(d.lineas, d.moneda, impuestoDelDocumento(d));
   var tipo = TIPOS_DOC[d.tipo] || TIPOS_DOC.factura;
+  /* RECTIFICATIVA (ERP maestro, art. 15 RD 1619/2012 — Legal, 27-sep-2026): se titula como
+     tal y dice a qué factura rectifica y por qué. La marca es `rectifica_numero`, que el
+     servidor deja en `datos.fields` al emitir la R (`factura_anula`); Lawang no la tiene
+     nunca, así que su papel no cambia. */
+  var esRect = d.tipo !== 'proforma' && d.tipo !== 'recibi' && !!d.rectifica_numero;
+  if (esRect) tipo = TIPOS_DOC.rectificativa;
+  /* Etiqueta fiscal: la de la sociedad; sin etiqueta, NPWP como siempre. El «NIF» de una sociedad no indonesa del
+     ERP lo guardan explícito el editor (bandera) y `sociedad_guarda` del servidor: un respaldo NIF aquí cambiaba el
+     papel de Lawang sin la bandera, porque entities.js borra la etiqueta cuando vale exactamente 'NPWP' (revisor). */
+  var etiquetaFiscal = ident.npwpLabel || ident.npwp_label || 'NPWP';
   var linea = v => v ? escDoc(v) : '<span class="vacio">—</span>';
   var fecha = f => f
     ? new Date(f + 'T00:00:00').toLocaleDateString('es-ES', { day:'2-digit', month:'long', year:'numeric' })
@@ -138,7 +153,7 @@ function documentoHTML(d, opts){
         '<b>' + escDoc(ident.razon) + '</b>' +
         (ident.marca ? '<span class="marca">' + escDoc(ident.marca) + '</span>' : '') +
         '<div>' + escDoc(ident.domicilio) + '</div>' +
-        '<div>' + escDoc(ident.npwpLabel || ident.npwp_label || 'NPWP') + ' ' + escDoc(ident.npwp) + '</div>' +
+        '<div>' + escDoc(etiquetaFiscal) + ' ' + escDoc(ident.npwp) + '</div>' +
       '</div>' +
     '</div>' +
     '<div class="titulo">' +
@@ -150,6 +165,9 @@ function documentoHTML(d, opts){
         (d.fecha_vencimiento ? 'Vencimiento · Due: ' + escDoc(fecha(d.fecha_vencimiento)) + '<br>' : '') +
         (d.contrato_numero ? 'Contrato · Contract: ' + escDoc(d.contrato_numero) : '') +
       '</div>' +
+      (esRect ? '<div class="meta rectifica">Rectifica a · Corrects: <b>' + escDoc(d.rectifica_numero) + '</b>' +
+        (d.rectifica_fecha ? ' (' + escDoc(fecha(d.rectifica_fecha)) + ')' : '') +
+        (d.rectificacion_motivo ? '<br>Motivo · Reason: ' + escDoc(d.rectificacion_motivo) : '') + '</div>' : '') +
     '</div>' +
   '</div>' +
 
@@ -178,6 +196,15 @@ function documentoHTML(d, opts){
     '<tr><td>Subtotal</td><td class="imp">' + fmtMoneda(t.subtotal, d.moneda) + '</td></tr>' +
     (t.pct ? '<tr><td>' + escDoc(d.imp_etiqueta || 'Impuesto · Tax') + ' (' + escDoc(String(t.pct)) + '%)</td>' +
              '<td class="imp">' + fmtMoneda(t.impuesto, d.moneda) + '</td></tr>' : '') +
+    /* Una fila por impuesto del catálogo (solo si el documento trae `impuestos_sel`):
+       la retención resta, exenta / no sujeta / ISP no llevan cuota, y la mención legal
+       (art. 6.1.j RD 1619/2012) sale siempre que el impuesto la traiga. Sin selección no sale nada. */
+    (t.resumen || []).map(function (g) {
+      var sinCuota = g.clase !== 'suma' && g.clase !== 'retiene';
+      // la mención legal SIEMPRE que venga (Administración, 27-sep): también un «suma» al 0 % (exportación)
+      return '<tr><td>' + escDoc(g.nombre) + (g.motivo_legal ? ' · ' + escDoc(g.motivo_legal) : '') + '</td>' +
+        '<td class="imp">' + (sinCuota ? '—' : fmtMoneda(g.clase === 'retiene' ? -g.cuota : g.cuota, d.moneda)) + '</td></tr>';
+    }).join('') +
     '<tr class="total"><td>Total</td><td class="imp">' + fmtMoneda(t.total, d.moneda) + '</td></tr>' +
   '</tbody></table>' +
 
@@ -185,7 +212,7 @@ function documentoHTML(d, opts){
   (d.notas ? '<h3>Notas · Notes</h3><div class="notas">' + escDoc(d.notas) + '</div>' : '') +
 
   '<div class="pie">' + escDoc(ident.razon) + (ident.marca ? ' · ' + escDoc(ident.marca) : '') +
-    ' · ' + escDoc(ident.npwpLabel || ident.npwp_label || 'NPWP') + ' ' + escDoc(ident.npwp) +
+    ' · ' + escDoc(etiquetaFiscal) + ' ' + escDoc(ident.npwp) +
     ' · ' + escDoc(ident.domicilio) + '</div>';
 }
 

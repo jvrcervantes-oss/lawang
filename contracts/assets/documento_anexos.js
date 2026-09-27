@@ -305,8 +305,11 @@ async function syncAutoAnnex(){
       toastMal('OJO: el pack de '+tip+' ha cambiado desde que se guardó este contrato');
     else toast('Anexo de '+tip+' adjuntado ('+pages.length+' pág.)');
   }catch(_){
+    /* Desde el 27-sep-2026 (owner) sin Anexo Maestro SÍ se puede enviar a firma: al
+       enviar, app.html pide confirmarlo («Enviar igualmente»). Aquí solo se informa, en
+       neutro — el rojo y el «no se puede» decían lo contrario de lo que pasa. */
     if(AUTO_ANX === clave){
-      toastMal('Sin Anexo Maestro de '+tip+(techo ? ' con el techo elegido' : '')+': sin él no se puede enviar a firma. Pídeselo a administración (Modelos → Documentos, tipo Plano'+(techo ? ', con su techo' : '')+').');
+      toast(tip+' no tiene Anexo Maestro'+(techo ? ' con el techo elegido' : '')+': el contrato irá sin él. Si debe llevarlo, pídeselo a administración (Modelos → Documentos, tipo Plano'+(techo ? ', con su techo' : '')+').');
     }
   }
   if(AUTO_CARGA === tip && AUTO_ANX === clave) AUTO_CARGA = '';

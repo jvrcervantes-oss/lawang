@@ -157,6 +157,10 @@
 .filtros input[type="search"] { flex: 1 1 220px; min-width: 0; font: 400 13px/1 var(--text);
   padding: 9px 11px; border: 1px solid var(--line); border-radius: var(--r-ctrl); background: var(--canvas); }
 .filtros input[type="search"]:focus { outline: 2px solid var(--primary-line); outline-offset: -1px; }
+/* Animación vacía: solo sirve para que buscador.js se entere (animationstart) de que el
+   navegador ha autorrellenado el buscador sin disparar `input` (incidente 27-sep-2026). */
+@keyframes lw-autorrelleno { from {} to {} }
+.filtros input[type="search"]:-webkit-autofill { animation-name: lw-autorrelleno; animation-duration: 1ms; }
 .filtros .seg { display: flex; background: var(--line-soft); border-radius: 9999px; padding: 3px; gap: 2px; }
 .filtros .seg button { border: 0; background: none; border-radius: 9999px; cursor: pointer;
   font: 500 12px/1 var(--text); padding: 6px 11px; color: var(--mist); display: flex; align-items: center; gap: 6px; }

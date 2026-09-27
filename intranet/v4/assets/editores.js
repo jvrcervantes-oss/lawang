@@ -2760,7 +2760,8 @@
           (C.nCompradores > 1 ? ' Contrato a <b>' + C.nCompradores + ' nombres</b>.' : '') + '</p>' +
         '<p class="arrastrado" data-cobrado>Calculando cuánto lleva cobrado este contrato…</p>';
       var caj = caja.querySelector('[data-cobrado]');
-      return ctx.sb.rpc('facturas_equipo').select('id,tipo,total,moneda,anulada,contrato_id,contrato_numero,cliente_nombre,proyecto_nombre,fecha_emision')
+      // rectifica_id: solo en el ERP maestro; lwAgrupaPorContrato la usa para no sumar la R de una anulada (AXW-39)
+      return ctx.sb.rpc('facturas_equipo').select('id,tipo,total,moneda,anulada,contrato_id,contrato_numero,cliente_nombre,proyecto_nombre,fecha_emision' + (window.AXW_NUCLEO_OPERACION ? ',rectifica_id' : ''))
         .eq('contrato_id', C.id).then(function (r) {
           if (r.error) { caj.textContent = 'No se pudo calcular lo cobrado: ' + r.error.message; return; }
           var docs = r.data || [];
@@ -2785,6 +2786,109 @@
       marca: function () { if (!ctx.esRecibi) marca(); },
       alCambiarTipo: function () { if (ctx.esRecibi) return; sueltaPrecarga(); if (C) pinta(); },
       limpia: function () { C = null; caja.innerHTML = ''; cajaV.innerHTML = ''; }
+    };
+  }
+
+  /* ═══ IMPUESTOS DEL CATÁLOGO en el editor (ERP maestro, 27-sep-2026, AXW-39) ═══
+     SOLO con `window.AXW_NUCLEO_OPERACION` (Lawang sigue con «etiqueta + %»). La RPC
+     `factura_guarda` del maestro acepta en cada línea `impuestos:[uuid]` (filas de
+     `public.impuestos`); sin eso solo se emite con un % que case con un IVA simple, y
+     exenta / no sujeta / ISP / retenciones / PPN 11/12 no caben.
+     MÍNIMO a propósito: una selección para TODO el documento (se aplica a cada línea),
+     de los impuestos ACTIVOS del país de la sociedad emisora (y los de esa sociedad).
+     Por línea distinta no hay caso todavía; si llega, esta selección pasa a cada fila.
+     Lo elegido se guarda en `datos.fields.impuestos_sel` como COPIA CONGELADA (id +
+     lo que imprime el papel), porque documento.js pinta el PDF sin tocar la base; el
+     servidor manda igualmente: congela el impuesto de la línea desde el catálogo.
+     «No he podido leer el catálogo» se ve distinto de «no hay impuestos», y bloquea
+     emitir (estado() !== 'ok'). */
+  function montaImpuestosDoc(host, sb, iniciales, cfg) {
+    var catalogo = null, fallo = null, esNuevo = !!cfg.esNuevo;
+    var elegidos = {};
+    (iniciales || []).forEach(function (i) { if (i && i.id) elegidos[i.id] = true; });
+    var caja = document.createElement('div'); caja.style.cssText = 'display:grid;gap:6px';
+    host.appendChild(caja);
+    // dentro del propio formulario (cfg.raiz), no con document: al montarse aún no está en la página
+    function socActual() { var el = cfg.raiz.querySelector('[data-k="sociedad"]'); return el ? el.value : ''; }
+    function paisDe(soc) {
+      var s0 = (typeof SOCIEDADES !== 'undefined' && soc) ? SOCIEDADES[soc] : null;
+      return s0 ? (s0.esIndonesia === false ? 'ES' : 'ID') : null;
+    }
+    function candidatos() {
+      var soc = socActual(), pais = paisDe(soc);
+      if (!catalogo || !pais) return [];
+      return catalogo.filter(function (i) { return i.pais === pais && (!i.sociedad_clave || i.sociedad_clave === soc); });
+    }
+    function nota(txt, color) {
+      var p0 = document.createElement('p'); p0.style.cssText = 'margin:0;font-size:12px;color:' + (color || CAJ.apagado);
+      p0.textContent = txt; caja.appendChild(p0);
+    }
+    function pinta() {
+      caja.innerHTML = '';
+      /* Documento en SOLO LECTURA (emitido, enviado, anulado…): se enseña y se imprime
+         la copia congelada TAL CUAL. Si se pasara por el catálogo vivo, un impuesto
+         desactivado después (lo que pide la base para cambiar uno en uso) o una
+         sociedad desactivada harían desaparecer su fila, y el PDF y el email saldrían
+         con otro total (code-review, 27-sep-2026). */
+      if (cfg.soloLectura) {
+        if (!(iniciales || []).length) { nota('Sin impuestos.'); return; }
+        (iniciales || []).forEach(function (i) {
+          var lbl = document.createElement('label'); lbl.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:13.5px;color:' + CAJ.tinta;
+          var ck = document.createElement('input'); ck.type = 'checkbox'; ck.checked = true; ck.disabled = true;
+          var t = document.createElement('span'); t.textContent = i.nombre;
+          lbl.appendChild(ck); lbl.appendChild(t); caja.appendChild(lbl);
+        });
+        return;
+      }
+      if (fallo) { nota('No se ha podido leer el catálogo de impuestos (' + fallo + '): recarga antes de emitir.', '#9E2F26'); return; }
+      if (!catalogo) { nota('Leyendo el catálogo de impuestos…'); return; }
+      if (!paisDe(socActual())) { nota('Elige primero la sociedad que factura: los impuestos dependen de su país.'); return; }
+      var cs = candidatos(), ids = {};
+      cs.forEach(function (i) { ids[i.id] = true; });
+      // lo elegido que ya no vale para esta sociedad (otro país, desactivado) se suelta, y se dice
+      var sueltos = Object.keys(elegidos).filter(function (id) { return !ids[id]; });
+      sueltos.forEach(function (id) { delete elegidos[id]; });
+      if (!Object.keys(elegidos).length && esNuevo) cs.forEach(function (i) { if (i.por_defecto) elegidos[i.id] = true; });
+      if (!cs.length) { nota('No hay ningún impuesto activo para el país de esta sociedad: dalo de alta en Ajustes → Impuestos.'); return; }
+      cs.forEach(function (i) {
+        var lbl = document.createElement('label'); lbl.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:13.5px;color:' + CAJ.tinta + ';cursor:pointer';
+        var ck = document.createElement('input'); ck.type = 'checkbox'; ck.checked = !!elegidos[i.id];
+        // SIN data-k: recogeVals() lee los [data-k] como campos del documento
+        ck.disabled = !!cfg.soloLectura;
+        ck.addEventListener('change', function () { if (ck.checked) elegidos[i.id] = true; else delete elegidos[i.id]; avisaRegimen(); cfg.alCambiar(); });
+        var t = document.createElement('span'); t.textContent = i.nombre;
+        var c = document.createElement('small'); c.style.color = CAJ.apagado;
+        var cl = (window.LW_V4 && window.LW_V4.claseImpuesto) ? window.LW_V4.claseImpuesto(i.clase)[1] : i.clase;
+        c.textContent = cl + (i.sociedad_clave ? ' · solo ' + i.sociedad_clave : '');
+        lbl.appendChild(ck); lbl.appendChild(t); lbl.appendChild(c); caja.appendChild(lbl);
+      });
+      if (sueltos.length) nota('Se ha quitado ' + sueltos.length + ' impuesto(s) que no valen para esta sociedad o ya no están activos: revisa la selección.', '#8A6A34');
+      avisoReg = document.createElement('p'); avisoReg.style.cssText = 'margin:0;font-size:12px;color:#9E2F26'; avisoReg.setAttribute('role', 'alert');
+      caja.appendChild(avisoReg); avisaRegimen();
+    }
+    // Un solo régimen de IVA (regimenImpuestoError, totales.js): se dice al marcar, y emitir lo bloquea
+    var avisoReg = null;
+    function avisaRegimen() { if (avisoReg) avisoReg.textContent = regimenImpuestoError(lista()) || ''; }
+    if (!cfg.soloLectura) sb.from('impuestos').select('*').eq('activo', true).order('orden').order('nombre').then(function (r) {
+      if (r.error) { console.error('[facturas] catálogo de impuestos:', r.error); fallo = lwErrorHumano(r.error, 'error de lectura'); }
+      else catalogo = r.data || [];
+      pinta(); cfg.alCambiar();
+    });
+    pinta();
+    function lista() {
+        if (cfg.soloLectura) return (iniciales || []).slice();
+        return candidatos().filter(function (i) { return elegidos[i.id]; }).map(function (i) {
+          return { id: i.id, nombre: i.nombre, clase: i.clase, porcentaje: Number(i.porcentaje) || 0, recargo_de: i.recargo_de || null,
+                   coef_base: i.coef_base != null ? Number(i.coef_base) : 1,
+                   coef_base_num: i.coef_base_num != null ? i.coef_base_num : null,
+                   coef_base_den: i.coef_base_den != null ? i.coef_base_den : null,
+                   motivo_legal: i.motivo_legal || null };
+        });
+    }
+    return {
+      estado: function () { return cfg.soloLectura ? 'ok' : (fallo ? 'error' : (catalogo ? 'ok' : 'cargando')); },
+      refresca: function () { pinta(); },
+      lista: lista
     };
   }
 
@@ -2939,7 +3043,7 @@
     return documentoPagina(vals, { numero: (saved && saved.numero) || '', emisor: (saved && saved.emisor) || null, base: location.origin });
   }
   function totalDoc(vals) {
-    try { return calcTotales(vals.lineas || [], vals.moneda, { pct: vals.imp_pct }).total || 0; } catch (e) { return 0; }
+    try { return calcTotales(vals.lineas || [], vals.moneda, impuestoDelDocumento(vals)).total || 0; } catch (e) { return 0; }
   }
   /* PDF: lo genera el navegador, igual que en el clásico (window.print), pero
      sobre un iframe oculto con la página del documento — la v4 no puede
@@ -3486,7 +3590,8 @@
           cargarCuentasBancarias(sb).then(function () { return true; }, function () { return false; }),
           listaContratosLigeraDoc(sb),
           esEdicion
-            ? sb.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,client_id,creado_por,anulada,enviada,datos').eq('id', pre.id).maybeSingle()
+            // emitida_en / rectifica_id: solo existen en el ERP maestro (serie fiscal, AXW-39)
+            ? sb.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,client_id,creado_por,anulada,enviada,datos' + (window.AXW_NUCLEO_OPERACION ? ',emitida_en,rectifica_id' : '')).eq('id', pre.id).maybeSingle()
             : pre.copia_de
               // la anulada pudo emitirla otro del equipo: facturas_equipo, rpc + eq, sin order
               ? sb.rpc('facturas_equipo').select('id,numero,tipo,contrato_id,contrato_numero,client_id,datos').eq('id', pre.copia_de).maybeSingle()
@@ -3511,6 +3616,10 @@
           var miEmail = ((aut.session && aut.session.user && aut.session.user.email) || '').toLowerCase();
           if (existente.tipo === 'proforma') motivoLectura = 'Proforma: la genera el contrato al guardarse y la actualiza la firma. Se consulta, no se edita.';
           else if (existente.anulada) motivoLectura = 'Documento anulado: no se edita. Desde su ficha se puede emitir una copia.';
+          // ERP maestro: lo emitido en la serie fiscal es inmutable (la base lo rechaza con 42501)
+          else if (existente.emitida_en) motivoLectura = existente.rectifica_id
+            ? 'Factura rectificativa emitida: no se edita.'
+            : 'Factura emitida en la serie fiscal: no se edita. Para corregirla, anúlala desde su ficha (emite una rectificativa) y emite otra.';
           else if (existente.enviada) motivoLectura = 'Ya enviado al cliente: no se edita. Anúlalo y emite otro si hace falta corregirlo.';
           else if (!esAdmin(aut.ficha) && (existente.creado_por || '').toLowerCase() !== miEmail) motivoLectura = 'Lo emitió otra persona: solo esa persona o un administrador puede editarlo.';
           if (motivoLectura) pre.soloLectura = true;
@@ -3536,6 +3645,7 @@
           sinContrato: !!(regla.sinContrato && origen && !origen.contrato_id)
         };
         var getLineas = null;
+        var impSel = null;   // ERP maestro: selector de impuestos del catálogo (montaImpuestosDoc)
 
         var campos = [];
         if (motivoLectura) campos.push({ tipo: 'nota', label: motivoLectura });
@@ -3560,6 +3670,12 @@
               vals[el.getAttribute('data-k')] = el.type === 'checkbox' ? el.checked : el.value;
             });
             vals.lineas = getLineas ? getLineas() : [];
+            if (impSel) {
+              var selV = impSel.lista();
+              if (selV.length || !pre.soloLectura) { vals.impuestos_sel = selV; vals.imp_pct = ''; vals.imp_etiqueta = ''; }
+              // documento anterior al selector, abierto para consultar: se enseña con su «etiqueta + %» de entonces
+              else { vals.imp_pct = f0.imp_pct || ''; vals.imp_etiqueta = f0.imp_etiqueta || ''; }
+            }
             vals.tipo = tipoDocFijo;   // ya no hay selector: factura, salvo al reabrir otra cosa
             // El papel imprime «Contrato · Contract: N» desde d.contrato_numero
             // (documentoHTML). El clásico lo lleva en un input oculto; aquí no
@@ -3746,9 +3862,19 @@
           // Plegados salvo que traigan algo (abrirLoQueTengaContenido del
           // clásico): un dato que está en el papel y no se ve en el
           // formulario es la forma más fácil de reemitir algo sin enterarse.
-          var secImp = seccionPlegableDoc(host, 'Impuesto (opcional)', !!(f0.imp_etiqueta || f0.imp_pct));
-          campoSimpleDoc(secImp, { k: 'imp_etiqueta', label: 'Impuesto — etiqueta', valor: f0.imp_etiqueta || '', ayuda: 'Ej. PPN' });
-          campoSimpleDoc(secImp, { k: 'imp_pct', label: 'Impuesto — porcentaje', valor: f0.imp_pct || '' });
+          if (window.AXW_NUCLEO_OPERACION) {
+            // ERP maestro (AXW-39): impuestos del catálogo en vez de «etiqueta + %» libres
+            var secImpN = seccionPlegableDoc(host, 'Impuestos', true);
+            impSel = montaImpuestosDoc(secImpN, sb, f0.impuestos_sel || [], { raiz: piezas.wrap, esNuevo: !existente, soloLectura: !!pre.soloLectura, alCambiar: repintaPreview });
+            // otra sociedad = otro país: se repinta la lista (y la previa, que ya corrió con la selección vieja)
+            piezas.wrap.addEventListener('change', function (ev) {
+              if (ev.target && ev.target.getAttribute && ev.target.getAttribute('data-k') === 'sociedad') { impSel.refresca(); repintaPreview(); }
+            });
+          } else {
+            var secImp = seccionPlegableDoc(host, 'Impuesto (opcional)', !!(f0.imp_etiqueta || f0.imp_pct));
+            campoSimpleDoc(secImp, { k: 'imp_etiqueta', label: 'Impuesto — etiqueta', valor: f0.imp_etiqueta || '', ayuda: 'Ej. PPN' });
+            campoSimpleDoc(secImp, { k: 'imp_pct', label: 'Impuesto — porcentaje', valor: f0.imp_pct || '' });
+          }
 
           var secNotas = seccionPlegableDoc(host, 'Notas (opcional)', !!f0.notas);
           campoSimpleDoc(secNotas, { k: 'notas', label: 'Notas', tipo: 'textarea', valor: f0.notas || '' });
@@ -3783,7 +3909,24 @@
             var lineas = getLineas ? getLineas() : [];
             var d = v; d.lineas = lineas;
             d.contrato_numero = estadoContrato.numero || '';   // lo que imprime el papel, como el input oculto del clásico
-            var t = calcTotales(lineas, d.moneda, { pct: d.imp_pct });
+            if (impSel) {
+              /* ERP maestro (AXW-39): cada línea lleva los impuestos elegidos; `imp_pct` va
+                 vacío porque el servidor lo resolvería ANTES que las líneas y exigiría un IVA
+                 simple con ese %. Las mismas comprobaciones que factura_guarda, dichas antes. */
+              if (impSel.estado() !== 'ok') return { error: { message: 'No se ha podido leer el catálogo de impuestos: recarga la página antes de emitir.' } };
+              var selI = impSel.lista();
+              var socI = (typeof SOCIEDADES !== 'undefined') ? SOCIEDADES[d.sociedad] : null;
+              if ((d.tipo || 'factura') === 'factura' && socI && socI.esIndonesia === false &&
+                  !selI.some(function (i) { return ['suma', 'exenta', 'no_sujeta', 'isp'].indexOf(i.clase) !== -1; })) {
+                return { error: { message: 'Una factura de una sociedad española dice siempre su IVA, o por qué no lo lleva (exenta, no sujeta, inversión del sujeto pasivo): márcalo en «Impuestos».' } };
+              }
+              var errReg = regimenImpuestoError(selI);
+              if (errReg) return { error: { message: errReg } };
+              d.impuestos_sel = selI; d.imp_pct = ''; d.imp_etiqueta = '';
+              lineas = lineas.map(function (l) { return { descripcion: l.descripcion, importe: l.importe, impuestos: selI.map(function (i) { return i.id; }) }; });
+              d.lineas = lineas;
+            }
+            var t = calcTotales(lineas, d.moneda, impuestoDelDocumento(d));
             if (!t.subtotal) return { error: { message: 'El documento no tiene importe.' } };
             var payload = {
               tipo: d.tipo || 'factura', sociedad: d.sociedad, cliente_nombre: d.cliente_nombre || null,
@@ -9138,18 +9281,37 @@
       // Los 16 campos del GRANT UPDATE, ni uno mas.
       var CAMPOS_UPDATE = ['label', 'razon', 'marca', 'npwp', 'npwp_label', 'nib', 'domicilio', 'rep',
         'logo', 'logo_alto', 'emisor_debajo', 'folio', 'tinta', 'activa', 'orden', 'es_indonesia'];
+      /* ERP maestro (AXW-39): `sociedad_guarda` acepta `prefijo_serie`, el del número fiscal
+         (AXW → AXW-F2026-00001). 2 a 8: la RPC admite 2-12 pero la columna (migración de
+         series) solo 1-8, así que aquí se pide lo que cabe en las dos. Lawang no lo tiene. */
+      var NUCLEO_SOC = !!window.AXW_NUCLEO_OPERACION;
+      if (NUCLEO_SOC) CAMPOS_UPDATE.push('prefijo_serie');
+      var CAMPO_PREFIJO = { k: 'prefijo_serie', label: 'Prefijo de la serie de facturas', medio: 1,
+        ayuda: 'Mayúsculas y números, de 2 a 8 (AXW → AXW-F2026-00001). Vacío = la clave en mayúsculas. No se cambia después de emitir la primera factura.' };
 
-      function payloadDesdeForm(v) {
+      function payloadDesdeForm(v, previa) {
         var fila = {
           label: (v.label || '').trim() || (v.razon || '').trim(),
           razon: (v.razon || '').trim(), marca: (v.marca || '').trim(),
-          npwp: (v.npwp || '').trim() || null, npwp_label: (v.npwp_label || '').trim() || 'NPWP',
+          npwp: (v.npwp || '').trim() || null,
+          // ERP maestro (Legal, 27-sep): fuera de Indonesia la etiqueta fiscal por defecto es NIF
+          npwp_label: (v.npwp_label || '').trim() || ((NUCLEO_SOC && !v.es_indonesia) ? 'NIF' : 'NPWP'),
           nib: (v.nib || '').trim() || null, domicilio: (v.domicilio || '').trim(),
           rep: (v.rep || '').trim() || null, logo: (v.logo || '').trim() || null,
           logo_alto: (v.logo_alto || '').trim() || null, folio: (v.folio || '').trim() || null,
           emisor_debajo: !!v.emisor_debajo, es_indonesia: !!v.es_indonesia, activa: !!v.activa,
           orden: Number(v.orden) || 0
         };
+        if (NUCLEO_SOC) {
+          /* Solo viaja si CAMBIA (`sociedad_guarda` conserva el guardado si la clave no llega):
+             un prefijo antiguo que no cumple la regla de hoy no impide editar el domicilio o el logo. */
+          var pref = String(v.prefijo_serie || '').trim().toUpperCase();
+          var antes = previa ? String(previa.prefijo_serie || '').toUpperCase() : '';
+          if (!previa || pref !== antes) {
+            if (pref && !/^[A-Z0-9]{2,8}$/.test(pref)) return { error: { message: 'El prefijo de la serie va en mayúsculas y números, de 2 a 8 caracteres (por ejemplo AXW).' } };
+            fila.prefijo_serie = pref || null;
+          }
+        }
         // Objeto o nada — nunca `{primary:'',deep:''}`: eso lo aplicaria
         // documentoVars como override en blanco, no como "hereda el de marca".
         var tp = (v.tinta_primary || '').trim(), td = (v.tinta_deep || '').trim();
@@ -9166,7 +9328,7 @@
           { k: 'razon', label: 'Razón social', req: 1, valor: s.razon },
           { k: 'marca', label: 'Marca', medio: 1, valor: s.marca },
           { k: 'label', label: 'Nombre en el desplegable', medio: 1, valor: s.label },
-          { k: 'npwp_label', label: 'Etiqueta fiscal', medio: 1, valor: s.npwp_label || 'NPWP' },
+          { k: 'npwp_label', label: 'Etiqueta fiscal', medio: 1, valor: s.npwp_label || ((NUCLEO_SOC && s.es_indonesia === false) ? 'NIF' : 'NPWP') },
           { k: 'npwp', label: 'Identificación fiscal', medio: 1, valor: s.npwp },
           { k: 'nib', label: 'NIB', medio: 1, valor: s.nib },
           { k: 'rep', label: 'Representante', medio: 1, valor: s.rep },
@@ -9174,6 +9336,7 @@
           { k: 'es_indonesia', label: 'Es una sociedad indonesa (las plantillas lo declaran así)', tipo: 'check', valor: s.es_indonesia !== false }
         ];
         if (s.es_indonesia === false) base.push({ tipo: 'nota', label: TEXTO_ES_INDONESIA });
+        if (NUCLEO_SOC) base.push(Object.assign({ valor: s.prefijo_serie || '' }, CAMPO_PREFIJO));
         return base.concat([
           { tipo: 'nota', label: 'Corregir esto NO cambia los documentos ya emitidos: cada factura guarda dentro la identidad con la que salió.' },
           { tipo: 'nota', label: 'Aspecto del documento — esto NO cambia lo que el documento dice.' },
@@ -9198,7 +9361,7 @@
         if (!s) return aviso('No se ha podido leer esta sociedad — recarga la pantalla.', '#9E2F26');
 
         modal('Editar sociedad — ' + s.razon, camposEdicion(s), 'Guardar cambios', function (v) {
-          var fila = payloadDesdeForm(v);
+          var fila = payloadDesdeForm(v, s);
           if (fila.error) return fila;
 
           function guarda() {
@@ -9263,7 +9426,7 @@
           var socs = window.LW_V4.sociedadesPorClave || {};
           var maxOrden = Object.keys(socs).reduce(function (m, k) { return Math.max(m, socs[k].orden || 0); }, 0);
 
-          modal('Nueva sociedad', [
+          var camposAlta = [
             { tipo: 'nota', label: 'Se dará de alta en el catálogo y aparecerá en el desplegable de sociedad firmante.' },
             { k: 'clave', label: 'Clave', req: 1,
               ayuda: 'minúsculas, números y guion bajo, sin espacios — por ejemplo mi_empresa_sa. No se puede cambiar después: nunca.' },
@@ -9271,11 +9434,12 @@
             { k: 'domicilio', label: 'Domicilio', tipo: 'textarea', req: 1 },
             { k: 'marca', label: 'Marca', medio: 1 },
             { k: 'label', label: 'Nombre en el desplegable', medio: 1 },
-            { k: 'npwp_label', label: 'Etiqueta fiscal', medio: 1, valor: 'NPWP' },
+            { k: 'npwp_label', label: 'Etiqueta fiscal', medio: 1, valor: NUCLEO_SOC ? 'NIF' : 'NPWP' },
             { k: 'npwp', label: 'Identificación fiscal', medio: 1 },
             { k: 'nib', label: 'NIB', medio: 1 },
             { k: 'rep', label: 'Representante', medio: 1 },
-            { k: 'es_indonesia', label: 'Es una sociedad indonesa (las plantillas lo declaran así)', tipo: 'check', valor: true },
+            // ERP maestro: desmarcado por defecto (la sociedad del estudio no es indonesa; marcada, el IVA español no casaría)
+            { k: 'es_indonesia', label: 'Es una sociedad indonesa (las plantillas lo declaran así)', tipo: 'check', valor: !NUCLEO_SOC },
             { k: 'npwp_pendiente', label: 'Sin NIF fiscal, pendiente — no apta para emitir documentos hasta completarse', tipo: 'check',
               ayuda: 'marca esto SOLO si de verdad todavía no se tiene el NPWP; la sociedad queda visible en el listado con este aviso hasta que se complete' },
             { k: 'cesion_dpa_firmado', label: 'Confirmo que el contrato de cesión y el DPA con esta sociedad ya están firmados', tipo: 'check',
@@ -9289,7 +9453,16 @@
             { k: 'tinta_deep', label: 'Tinta oscura', medio: 1, ayuda: '#42210B' },
             { k: 'emisor_debajo', label: 'El emisor va DEBAJO del logo (para logos apaisados)', tipo: 'check' },
             { k: 'orden', label: 'Orden', tipo: 'number', medio: 1, valor: maxOrden + 1 }
-          ], 'Dar de alta', function (v) {
+          ];
+          if (NUCLEO_SOC) {
+            /* ERP maestro (AXW-39): con serie fiscal cada sociedad numera aparte, así que la nota
+               de las series globales de Lawang (LAW-235) no es verdad aquí; y la confirmación de
+               cesión/DPA es de las sociedades de terceros de Lawang, no de la propia del negocio. */
+            camposAlta = camposAlta.filter(function (c) { return c.label !== TEXTO_LAW_235 && c.k !== 'cesion_dpa_firmado'; });
+            var iRep = camposAlta.map(function (c) { return c.k; }).indexOf('rep');
+            camposAlta.splice(iRep + 1, 0, Object.assign({}, CAMPO_PREFIJO));
+          }
+          modal('Nueva sociedad', camposAlta, 'Dar de alta', function (v) {
             var clave = (v.clave || '').toLowerCase();
             if (!/^[a-z][a-z0-9_]{2,}$/.test(clave)) {   // la misma regla que sociedad_guarda
               return { error: { message: 'La clave solo admite minúsculas, números y guion bajo, empieza por letra y tiene al menos 3 caracteres — por ejemplo mi_empresa_sa. No se puede cambiar después.' } };
@@ -9298,7 +9471,7 @@
             if (v.es_indonesia && !(v.npwp || '').trim() && !v.npwp_pendiente) {
               return { error: { message: 'Falta la identificación fiscal (NPWP). Si de verdad todavía no se tiene, marca la casilla «Sin NIF fiscal, pendiente».' } };
             }
-            if (!v.es_indonesia && !v.cesion_dpa_firmado) {
+            if (!NUCLEO_SOC && !v.es_indonesia && !v.cesion_dpa_firmado) {
               return { error: { message: 'Para una sociedad que no es indonesa hay que confirmar antes que el contrato de cesión y el DPA ya están firmados.' } };
             }
             var fila = payloadDesdeForm(v);

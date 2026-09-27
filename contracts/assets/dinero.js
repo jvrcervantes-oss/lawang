@@ -79,7 +79,12 @@ function lwParseImporte(v){
 
 /* Decimales por moneda. La rupia no usa céntimos. Si aparece una moneda nueva,
    se añade AQUÍ y no en la herramienta que la necesite primero. */
-const LW_DECIMALES = { EUR:2, USD:2, AUD:2, IDR:0 };
+/* JPY, KRW, VND y CLP (27-sep-2026, AXW-39): los mismos 0 decimales que
+   `public.moneda_decimales` del ERP maestro, que es quien recalcula el total y
+   rechaza la factura si no casa con esta pantalla. Invisible en Lawang: ninguna
+   pantalla suya ofrece esas monedas (EUR/USD/AUD/IDR), así que ninguna cifra de
+   Lawang cambia. Si se añade una moneda, se añade también en esa función SQL. */
+const LW_DECIMALES = { EUR:2, USD:2, AUD:2, IDR:0, JPY:0, KRW:0, VND:0, CLP:0 };
 
 /* Importe a texto para enseñarlo. Devuelve SIEMPRE con su moneda detrás: un
    número suelto en esta suite no significa nada, porque se opera en cuatro. */
@@ -202,6 +207,35 @@ function lwMonedaPrincipal(mapa){
   return claves.sort(function(a,b){ return mapa[b] - mapa[a]; })[0];
 }
 
+/* ¿Esta factura suma? (27-sep-2026, AXW-39 — serie fiscal del ERP maestro).
+   En una instancia con `facturacion_series`, «Anular» una factura emitida NO la
+   marca: emite una RECTIFICATIVA (fila nueva, `rectifica_id` = la original, total
+   en negativo) y `facturas_equipo` devuelve la original con `anulada = true`
+   cuando la R la deja a cero. Sumar «todo lo no anulado» daba entonces −X en vez
+   de 0: la original fuera y su R dentro.
+   Regla: una rectificativa cuenta SI Y SOLO SI su original cuenta. Así la anulación
+   total da 0 (fuera las dos) y una rectificativa por diferencias (la original
+   sigue viva) resta lo suyo, que es lo que dice `facturas_pendiente_equipo` en la
+   base. Una R cuya original no está en la lista tampoco suma: sin la original,
+   sumarla sola daría un negativo que no se explica.
+   En Lawang no existe `rectifica_id` (undefined): queda `!f.anulada`, lo de siempre.
+   Uso: `var cuenta = lwFacturaQueCuenta(docs); docs.filter(cuenta)`. */
+function lwFacturaQueCuenta(docs){
+  const viva = {};
+  (docs || []).forEach(function(f){ if(f && !f.rectifica_id && !f.anulada) viva[f.id] = true; });
+  return function(f){ return !!f && !f.anulada && (!f.rectifica_id || !!viva[f.rectifica_id]); };
+}
+
+/* ¿Esta factura suma EN SU FECHA? (27-sep-2026, AXW-39, Administración: criterio de devengo).
+   Para las sumas POR FECHA (facturado del mes…): un documento EMITIDO en la serie fiscal
+   (`emitida_en`) suma en su mes aunque luego se anulara, y su rectificativa resta en el
+   suyo. Una factura de agosto anulada en septiembre: agosto +X, septiembre −X. Las sumas
+   SIN fecha (contrato, hitos, proyecto) siguen con `lwFacturaQueCuenta` (el neto).
+   Sin `emitida_en` (Lawang, o una factura sin serie) es `!f.anulada`, lo de siempre. */
+function lwFacturaCuentaEnSuFecha(f){
+  return !!f && (f.emitida_en ? true : !f.anulada);
+}
+
 /* Node lo necesita para el test; el navegador lo ignora. Sin `module.exports`
    las constantes quedan globales, que es como las usan las nueve herramientas.
 
@@ -214,4 +248,5 @@ function lwMonedaPrincipal(mapa){
    que no falte ninguna. */
 if(typeof module !== 'undefined' && module.exports)
   module.exports = { lwParseImporte, lwFormatoImporte, lwImporteCanonico, LW_DECIMALES,
-                     lwSumaPorMoneda, lwSumaTexto, lwMonedaPrincipal, lwDescuentoCascada };
+                     lwSumaPorMoneda, lwSumaTexto, lwMonedaPrincipal, lwDescuentoCascada,
+                     lwFacturaQueCuenta, lwFacturaCuentaEnSuFecha };
