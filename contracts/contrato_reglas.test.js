@@ -210,5 +210,27 @@ afirma('el panel nace escondido y lo abre el botón',
     /pad\.cv\.toDataURL\('image\/png'\)/.test(app));
 }
 
+/* UNA SOLA CARA: la v4 (27-sep-2026, owner: «Archivar lo muerto + v4 en todo
+   lo vivo»). El generador tuvo dos caras y piel.js decidía cuál; la clásica se
+   retiró. Lo que no puede volver sin que nadie lo decida: la salida `?v4=0`, la
+   piel que depende de por dónde se llegó (referrer / sessionStorage), el
+   listado clásico alcanzable, y la capa v3 apilada encima de la v4. */
+{
+  const piel = fs.readFileSync(path.join(__dirname, 'assets', 'piel.js'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+  const html = fs.readFileSync(path.join(__dirname, 'app.html'), 'utf8');
+  afirma('piel.js enciende la v4 sin condición',
+    /window\.LW_PIEL = 'v4';/.test(piel) && /classList\.add\('v4'\)/.test(piel)
+    && !/v4=0|get\('v4'\)|document\.referrer|sessionStorage/.test(piel),
+    'la cara v4 volvió a depender de un parámetro, del referrer o de la pestaña');
+  afirma('sin puerta de editor, piel.js manda al listado de la v4',
+    /location\.replace\('\/intranet\/v4\/contratos\/'\)/.test(piel));
+  afirma('app.html ya no abre el listado clásico',
+    !/pantallaC\('listado'/.test(html) && !/LW_PIEL !== 'v4'/.test(html),
+    'el listado de contratos es /intranet/v4/contratos/: dos listados es la duplicación prohibida');
+  afirma('app.html no carga la capa v3 encima de la v4',
+    !/(src|href)=\"[^\"]*(movimiento-v3\.js|saldos-v3\.js|suite-v3(-herramientas)?\.css)/.test(html));
+}
+
 console.log(fallos ? '\n' + fallos + ' fallo(s)' : '\nLas reglas de la pantalla de contratos se sostienen.');
 process.exit(fallos ? 1 : 0);
