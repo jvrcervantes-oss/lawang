@@ -3058,12 +3058,13 @@
     'Avisado': 'Notified',
     'Aviso:': 'Notice:',
     'Reabre el modal de firma': 'Reopen the signing dialog',
-    'Este contrato de Construcción sale sin el Anexo Maestro (planos y especificaciones), y la plantilla remite a él.':
-      'This Construction contract goes out without the Master Annex (plans and specifications), and the template refers to it.',
-    'Sin Anexo Maestro': 'No Master Annex',
     'Enviar igualmente': 'Send anyway',
-    'Si lo tienes, pídeselo a administración (Modelos → Documentos, tipo Plano) o actívalo en Anexos.':
-      'If you have it, ask administration for it (Models → Documents, type Plan) or switch it on in Annexes.',
+    'Este contrato de Construcción sale sin ningún documento del modelo como anexo (planos, especificaciones), y la plantilla remite a ellos.':
+      'This Construction contract goes out without any of the model’s documents as annexes (plans, specifications), and the template refers to them.',
+    'Sin anexo del modelo': 'No model annex',
+    'Falta un documento del contrato': 'A contract document is missing',
+    'Si debe llevarlos, pídeselo a administración (Modelos → Documentos → Editar, casilla «Se incluye automáticamente en el contrato») o actívalos en Anexos.':
+      'If it should have them, ask administration (Models → Documents → Edit, “Included automatically in the contract” box) or switch them on in Annexes.',
     'Este contrato está': 'This contract is',
     'firmado y cerrado': 'signed and closed',
     'Queda registrado en el historial del contrato:': 'It is recorded in the contract’s history:',

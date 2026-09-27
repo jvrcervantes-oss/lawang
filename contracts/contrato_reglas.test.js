@@ -196,9 +196,10 @@ afirma('el panel nace escondido y lo abre el botón',
     && !/retiraAnexosManuales|ANEXO_MANUAL_RETIRADO/.test(anexos + app),
     'el owner quiere adjuntar el PDF que quiera; quitarlo otra vez es una decisión suya, no un refactor');
   /* 27-sep-2026, el owner revierte el bloqueo: «si no hay anexo, que deje mandar
-     igual». Sin Anexo Maestro se avisa y se decide; no se bloquea. */
-  afirma('sin Anexo Maestro el envío a firma avisa y deja seguir («Enviar igualmente»), no bloquea',
-    /if\(tipSel && !ANNEXES\.some\(a=>a\.auto && a\.on && a\.pages && a\.pages\.length\)\)\{\s*const seguir = await lwConfirmar\([\s\S]{0,600}?confirmar: lwT\('Enviar igualmente'\)[\s\S]{0,80}?if\(!seguir\) return;\s*\}/.test(app),
+     igual». Sin anexo del modelo se avisa y se decide; no se bloquea. Desde el 27-sep
+     (varios documentos marcados) también avisa si uno marcado no se pudo adjuntar. */
+  afirma('sin anexo del modelo (o con uno marcado que falla) el envío a firma avisa y deja seguir («Enviar igualmente»), no bloquea',
+    /if\(tipSel && \(autoMal \|\| !ANNEXES\.some\(a=>a\.auto && a\.on && a\.pages && a\.pages\.length\)\)\)\{\s*const seguir = await lwConfirmar\([\s\S]{0,600}?confirmar: lwT\('Enviar igualmente'\)[\s\S]{0,80}?if\(!seguir\) return;\s*\}/.test(app),
     'el owner quiere poder enviar sin anexo; el aviso es para que sea una decisión, no un descuido');
 
   const firmas = require('fs').readFileSync(path.join(__dirname, 'firmar.html'), 'utf8');
