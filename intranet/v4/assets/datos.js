@@ -4584,6 +4584,8 @@
               // quedaria encogido en la primera columna como si fuera una tarjeta.
               caja.innerHTML = '<p style="grid-column:1/-1;font:500 13px/1.5 sans-serif;color:#75786e;margin:0">' +
                 'Este proyecto no tiene unidades dadas de alta.</p>';
+              // Sin filas no hay chips: vacía los del proyecto anterior.
+              if (REINICIA_FILTRO_UDS) REINICIA_FILTRO_UDS();
               return;
             }
             // Barra de pago de UNA familia (suelo u obra) de UNA parcela.
@@ -4696,6 +4698,7 @@
             var ordenUds = document.getElementById('d-unidades-orden');
             if (buscadorUds) buscadorUds.value = '';
             if (ordenUds) ordenUds.value = 'codigo';
+            if (REINICIA_FILTRO_UDS) REINICIA_FILTRO_UDS();
           });
 
         if (opts.mostrar) {
@@ -5112,6 +5115,7 @@
          qué proyecto esté abierto), así que se cablean UNA vez, igual que
          wireTabsDoc/wireControles; cada disparo relee `#d-unidades` en el
          momento, así que siempre actúa sobre lo que esté pintado entonces. */
+      var REINICIA_FILTRO_UDS = null;
       function wireFiltroUnidadesCajon() {
         var caja = document.getElementById('d-unidades');
         var buscador = document.getElementById('d-unidades-buscar');
@@ -5121,13 +5125,66 @@
           var t = function (k) { var e = f.querySelector('[data-lw="' + k + '"]'); return e ? e.textContent : ''; };
           return (t('u-codigo') + ' ' + t('u-tipo') + ' ' + t('u-comprador-link') + ' ' + t('u-contrato-link') + ' ' + t('u-agente')).toLowerCase();
         };
+        /* Chips de estado del cajón (27-sep-2026, owner: ver las disponibles o
+           reservadas DENTRO del proyecto). Se cuentan de las filas pintadas —
+           las mismas que ve quien mira, ya filtradas por la RLS—, un chip por
+           estado presente y en el orden lógico de ESTADO_ETIQUETA. */
+        var chipsEst = document.getElementById('d-unidades-estados');
+        var estadoSel = 'todas';
+        var CHIP_ON = 'px-3 py-1 rounded-full bg-deep-lagoon text-surface-bright font-label-md text-[12px] font-semibold shrink-0 flex items-center gap-1.5';
+        var CHIP_OFF = 'px-3 py-1 rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface-variant border border-warm-border font-label-md text-[12px] font-medium transition-colors shrink-0 flex items-center gap-1.5';
+        var filasUds = function () {
+          return Array.prototype.filter.call(caja.children, function (f) { return f.hasAttribute && f.hasAttribute('data-orden-natural'); });
+        };
+        var pintaChipsEstado = function () {
+          if (!chipsEst) return;
+          var n = {}, total = 0;
+          filasUds().forEach(function (f) { var k = claveEstado(f.getAttribute('data-estado')); n[k] = (n[k] || 0) + 1; total++; });
+          if (estadoSel !== 'todas' && !n[estadoSel]) estadoSel = 'todas';
+          chipsEst.innerHTML = '';
+          if (!total) return;
+          var claves = ['todas'].concat(Object.keys(ESTADO_ETIQUETA).filter(function (k) { return n[k]; }));
+          // Un estado que no esté en ESTADO_ETIQUETA también sale: si no, esas
+          // parcelas solo se verían con «Todas» y nadie sabría que existen.
+          Object.keys(n).forEach(function (k) { if (claves.indexOf(k) === -1) claves.push(k); });
+          claves.forEach(function (k) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.setAttribute('data-chip-cajon', k);
+            b.setAttribute('aria-pressed', k === estadoSel ? 'true' : 'false');
+            b.className = k === estadoSel ? CHIP_ON : CHIP_OFF;
+            if (k !== 'todas') {
+              var punto = document.createElement('span');
+              punto.style.cssText = 'width:8px;height:8px;border-radius:999px;flex:0 0 auto;background:' + colorEstado(k);
+              b.appendChild(punto);
+            }
+            var et = document.createElement('span');
+            et.textContent = k === 'todas' ? 'Todas' : etiquetaEstado(k);
+            var cu = document.createElement('span');
+            cu.className = 'text-[11px] font-kpi-number opacity-70';
+            cu.textContent = k === 'todas' ? total : n[k];
+            b.appendChild(et); b.appendChild(cu);
+            chipsEst.appendChild(b);
+          });
+        };
         var aplicaFiltro = function () {
           var q2 = buscador.value.toLowerCase().trim();
           Array.prototype.forEach.call(caja.children, function (f) {
             if (!f.querySelector) return;
-            f.classList.toggle('hidden', !!q2 && textoDeFila(f).indexOf(q2) === -1);
+            var fueraEstado = estadoSel !== 'todas' && claveEstado(f.getAttribute('data-estado')) !== estadoSel;
+            f.classList.toggle('hidden', fueraEstado || (!!q2 && textoDeFila(f).indexOf(q2) === -1));
           });
         };
+        if (chipsEst) chipsEst.addEventListener('click', function (ev) {
+          var b = ev.target.closest && ev.target.closest('button[data-chip-cajon]');
+          if (!b) return;
+          estadoSel = b.getAttribute('data-chip-cajon');
+          pintaChipsEstado();
+          aplicaFiltro();
+        });
+        // abrirCajon() lo llama al repintar las parcelas: estado a «Todas» y
+        // recuentos del proyecto recién abierto.
+        REINICIA_FILTRO_UDS = function () { estadoSel = 'todas'; pintaChipsEstado(); aplicaFiltro(); };
         var aplicaOrden = function () {
           var criterio = orden.value;
           var filas = Array.prototype.slice.call(caja.children).filter(function (f) { return f.hasAttribute && f.hasAttribute('data-orden-natural'); });
