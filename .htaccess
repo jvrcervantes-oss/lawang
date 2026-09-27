@@ -60,9 +60,16 @@ RedirectMatch 404 (?i)\.sql$
 # las 17 Edge Functions y `config.toml`; los `*.test.js` (38) cuentan como funciona cada freno.
 # Ninguna pagina los carga (solo aparecen en comentarios). Reducir la exposicion: sin llamador,
 # fuera. Por EXTENSION ademas de por carpeta, igual que .sql: el proximo nace cubierto.
-RedirectMatch 404 (?i)^/(supabase|contracts/edge)/
+# El cierre de verdad es el <FilesMatch> de abajo (casa el fichero ya resuelto, PATH_INFO y
+# doble barra incluidos) y el `Require all denied` de supabase/.htaccess y contracts/edge/.htaccess;
+# estos RedirectMatch solo dan el 404 limpio en la ruta normal (revisor de codigo, 27-sep).
+RedirectMatch 404 (?i)/(supabase|contracts/edge)/
 RedirectMatch 404 (?i)\.(ts|mjs|toml)$
 RedirectMatch 404 (?i)\.test\.js$
+<FilesMatch "(?i)(\.(ts|mjs|toml)|\.test\.js)$">
+  Order allow,deny
+  Deny from all
+</FilesMatch>
 
 # Piezas internas de las landings: datos y funciones, nunca una pagina.
 # lib.php y modelos.php respondian 200 con cuerpo vacio. modelo/datos.php entra el 4-sep:
