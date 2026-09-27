@@ -55,6 +55,15 @@ RedirectMatch 404 (?i)\.py$
 # .zip, .bak, .log»); esta era la mitad que faltaba.
 RedirectMatch 404 (?i)\.sql$
 
+# Lo que solo corre en Supabase o en node, nunca en el navegador (27-sep-2026, verificado en
+# produccion: los cuatro respondian 200). `contracts/edge/` y `supabase/` llevan el codigo de
+# las 17 Edge Functions y `config.toml`; los `*.test.js` (38) cuentan como funciona cada freno.
+# Ninguna pagina los carga (solo aparecen en comentarios). Reducir la exposicion: sin llamador,
+# fuera. Por EXTENSION ademas de por carpeta, igual que .sql: el proximo nace cubierto.
+RedirectMatch 404 (?i)^/(supabase|contracts/edge)/
+RedirectMatch 404 (?i)\.(ts|mjs|toml)$
+RedirectMatch 404 (?i)\.test\.js$
+
 # Piezas internas de las landings: datos y funciones, nunca una pagina.
 # lib.php y modelos.php respondian 200 con cuerpo vacio. modelo/datos.php entra el 4-sep:
 # expone precios resueltos y el tipo de cambio EUR/AUD, y lo comparten /dali y /palmfield.
