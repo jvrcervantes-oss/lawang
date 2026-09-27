@@ -38,7 +38,11 @@ function lwAgrupaPorContrato(docs){
     if(gr.sinContrato && gr.cliente && f.cliente_nombre !== gr.cliente) gr.variosClientes = true;
     g.get(k).docs.push(f);
   });
-  const suma = (l, t) => lwSumaPorMoneda(l.filter(f => f.tipo === t && !f.anulada),
+  /* `lwFacturaQueCuenta` (dinero.js, AXW-39): en el ERP maestro la anulación de una
+     emitida es una rectificativa en negativo; cuenta solo si cuenta su original.
+     Sin `rectifica_id` (Lawang) equivale a `!f.anulada`, lo de siempre. */
+  const cuenta = lwFacturaQueCuenta(docs);
+  const suma = (l, t) => lwSumaPorMoneda(l.filter(f => f.tipo === t && cuenta(f)),
                                           f => Number(f.total) || 0, f => f.moneda || 'EUR');
   return [...g.values()].map(c => {
     c.facturado = suma(c.docs, 'factura');

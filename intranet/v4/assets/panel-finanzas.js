@@ -101,7 +101,7 @@
       contratos: todas(function () { return sb.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,bloqueado,contrato_padre_id,created_at,liberado_en'); }, 'contratos'),
       cobrado: todas(function () { return sb.rpc('contratos_cobrado_equipo').select('contrato_id,cobrado'); }, 'cobrado por contrato', 'contrato_id'),
       vencimientos: todas(function () { return sb.from('contrato_vencimientos').select('id,contrato_id,orden,descripcion,pct,monto,fecha,no_facturar'); }, 'calendario de pagos'),
-      facturas: todas(function () { return sb.rpc('facturas_equipo').select('id,numero,tipo,sociedad,total,moneda,anulada,fecha_emision,created_at,contrato_id,proyecto_nombre,cuenta:datos->fields->>cuenta,venc:datos->fields->>fecha_vencimiento'); }, 'facturas'),
+      facturas: todas(function () { return sb.rpc('facturas_equipo').select('id,numero,tipo,sociedad,total,moneda,anulada,fecha_emision,created_at,contrato_id,proyecto_nombre,cuenta:datos->fields->>cuenta,venc:datos->fields->>fecha_vencimiento' + (window.AXW_NUCLEO_OPERACION ? ',rectifica_id' : '')); }, 'facturas'),
       /* De quién es cada cuenta (LAW-305): la lee cualquier sesión. Si falla,
          todo recibí queda «sin clasificar» y se dice. */
       cuentas: todas(function () { return sb.from('cuentas_bancarias').select('clave,es_propia,es_escrow'); }, 'cuentas bancarias', 'clave'),
@@ -158,7 +158,9 @@
       /* Sin la RPC de pendiente no se inventa: una factura sin su pendiente
          calculado NO entra (se diría que se debe el total de facturas ya
          cobradas). El bloque avisa del fallo. */
-      facturas: d.fallos.pendiente ? [] : facturas.filter(function (f) { return f.tipo === 'factura'; }).map(function (f) {
+      /* ERP maestro (AXW-39): la rectificativa no es algo que cobrar (su efecto ya está en el
+         pendiente de la original, facturas_pendiente_equipo) y no tiene fila de pendiente propia. */
+      facturas: d.fallos.pendiente ? [] : facturas.filter(function (f) { return f.tipo === 'factura' && !f.rectifica_id; }).map(function (f) {
         var c = f.contrato_id && firmado.hasOwnProperty(f.contrato_id) ? firmado[f.contrato_id] : null;
         return { tipo: f.tipo, sociedad: f.sociedad, moneda: f.moneda, anulada: f.anulada, venc: f.venc, fecha_emision: f.fecha_emision, pendiente: f.id in pend ? pend[f.id] : null, contrato_firmado: c };
       }),

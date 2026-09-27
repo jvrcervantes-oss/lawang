@@ -107,5 +107,27 @@ ok('el orden lo manda la actividad más reciente', () => {
   assert.deepStrictEqual(g.map(x => x.numero), ['B', 'A']);
 });
 
-console.log(fallos ? `\n${fallos} fallo(s)` : '\nOK facturas_contratos.test.js — 10 reglas de cobro, todas con su fallo real detrás');
+/* Serie fiscal del ERP maestro (AXW-39, 27-sep-2026): «Anular» una emitida crea una
+   rectificativa en negativo y la original sale con anulada=true. Antes el contrato
+   daba −1.210 facturado en vez de 0. */
+ok('🔴 anulación por rectificativa: el contrato queda a 0, no en negativo', () => {
+  const c = uno([doc({ id:'f1', total:1210, anulada:true }),
+                 doc({ id:'r1', total:-1210, rectifica_id:'f1' })]);
+  assert.strictEqual(c.facturado.EUR || 0, 0);
+});
+ok('rectificativa por diferencias: resta de su original viva', () => {
+  const c = uno([doc({ id:'f1', total:1210 }), doc({ id:'r1', total:-210, rectifica_id:'f1' })]);
+  assert.strictEqual(c.facturado.EUR, 1000);
+});
+ok('rectificativa sin su original en la lista: no suma sola', () => {
+  const c = uno([doc({ id:'r1', total:-1210, rectifica_id:'f-que-no-esta' })]);
+  assert.strictEqual(c.facturado.EUR || 0, 0);
+});
+ok('sin rectifica_id (Lawang) es «no anulada», como siempre', () => {
+  const cuenta = lwFacturaQueCuenta([]);
+  assert.strictEqual(cuenta({ anulada:false }), true);
+  assert.strictEqual(cuenta({ anulada:true }), false);
+});
+
+console.log(fallos ? `\n${fallos} fallo(s)` : '\nOK facturas_contratos.test.js — 14 reglas de cobro, todas con su fallo real detrás');
 process.exit(fallos ? 1 : 0);

@@ -110,7 +110,10 @@ function documentoHTML(d, opts){
      vacio, que salta a la vista. */
   var soc   = (typeof SOCIEDADES !== 'undefined' && SOCIEDADES[d.sociedad]) || {};
   var ident = opts.emisor || soc;
-  var t = calcTotales(d.lineas, d.moneda, { pct: d.imp_pct });
+  /* `impuestoDelDocumento` (totales.js, AXW-39): la selección del catálogo si el
+     documento la trae (ERP maestro), si no el porcentaje libre (Lawang, igual que
+     siempre). */
+  var t = calcTotales(d.lineas, d.moneda, impuestoDelDocumento(d));
   var tipo = TIPOS_DOC[d.tipo] || TIPOS_DOC.factura;
   var linea = v => v ? escDoc(v) : '<span class="vacio">—</span>';
   var fecha = f => f
@@ -178,6 +181,14 @@ function documentoHTML(d, opts){
     '<tr><td>Subtotal</td><td class="imp">' + fmtMoneda(t.subtotal, d.moneda) + '</td></tr>' +
     (t.pct ? '<tr><td>' + escDoc(d.imp_etiqueta || 'Impuesto · Tax') + ' (' + escDoc(String(t.pct)) + '%)</td>' +
              '<td class="imp">' + fmtMoneda(t.impuesto, d.moneda) + '</td></tr>' : '') +
+    /* Una fila por impuesto del catálogo (solo si el documento trae `impuestos_sel`):
+       la retención resta, y exenta / no sujeta / ISP imprimen su mención legal
+       (art. 6.1.j RD 1619/2012) en vez de una cuota. Sin selección no sale nada. */
+    (t.resumen || []).map(function (g) {
+      var sinCuota = g.clase !== 'suma' && g.clase !== 'retiene';
+      return '<tr><td>' + escDoc(g.nombre) + (sinCuota && g.motivo_legal ? ' · ' + escDoc(g.motivo_legal) : '') + '</td>' +
+        '<td class="imp">' + (sinCuota ? '—' : fmtMoneda(g.clase === 'retiene' ? -g.cuota : g.cuota, d.moneda)) + '</td></tr>';
+    }).join('') +
     '<tr class="total"><td>Total</td><td class="imp">' + fmtMoneda(t.total, d.moneda) + '</td></tr>' +
   '</tbody></table>' +
 

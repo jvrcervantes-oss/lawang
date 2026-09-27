@@ -96,6 +96,7 @@ function redondear(n, moneda){
    {etiqueta, pct} y sin pct (o 0) no hay fila de impuesto: el tipo que aplica
    en Indonesia lo confirma el cliente, aquí no se inventa ninguno. */
 function calcTotales(lineas, moneda, impuesto){
+  if (impuesto && Array.isArray(impuesto.lista)) return totalesConImpuestos(lineas, moneda, impuesto.lista);
   const subtotal = redondear((lineas || []).reduce((a, l) => a + parseImporte(l.importe), 0), moneda);
   const pct = impuesto ? parseImporte(impuesto.pct) : 0;
   const imp = pct ? impuestoExacto(subtotal, pct, moneda) : 0;
@@ -118,9 +119,70 @@ function impuestoExacto(subtotal, pct, moneda){
   return signo * Number(u.toString() + 'e-' + d);
 }
 
+/* ═══ IMPUESTOS DEL CATÁLOGO (ERP maestro, 27-sep-2026, AXW-39) ═══════════════
+   Solo en las instancias del ERP: el editor de facturas, con la bandera
+   `window.AXW_NUCLEO_OPERACION`, deja elegir filas de `public.impuestos` y las
+   guarda en `datos.fields.impuestos_sel` (copia congelada: id + lo que imprime).
+   Lawang nunca tiene esa clave, así que por ahí sigue `{pct}` como siempre.
+
+   ⚠️ ES UNA SEGUNDA COPIA DE LA REGLA DEL SERVIDOR, por necesidad: la previa se
+   pinta en vivo y no puede esperar a la base. Manda `public.factura_totales`
+   (erp/migraciones/20260928000000_b1_dinero.sql): `factura_guarda` recalcula y
+   RECHAZA si el total de esta pantalla difiere en más de una unidad mínima, así
+   que un desvío aquí no guarda nada mal — impide guardar. Réplica exacta:
+     · base del grupo = suma de líneas redondeadas (todas las líneas llevan la
+       MISMA selección, así que base de cada grupo = subtotal);
+     · base imponible = round(base × num/den) con fracción (PPN 11/12), si no
+       round(base × coef_base);
+     · cuota = round(base imponible × % / 100) si la clase es suma o retiene; 0 en
+       exenta / no sujeta / ISP (esas solo aportan la mención legal);
+     · total = base + Σ suma − Σ retiene. Redondeo half-up alejándose de cero, en
+       enteros (BigInt), como `round(numeric)` de Postgres. */
+function _fraccionDec(v){
+  // 0.916667 → [916667n, 1000000n]; 21 → [21n, 1n]. toFixed(8) basta: la base guarda 6 (coef) y 4 (%) decimales.
+  const s = Math.abs(Number(v) || 0).toFixed(8).replace(/0+$/, '').replace(/\.$/, '');
+  const dec = (s.split('.')[1] || '').length;
+  return [BigInt(s.replace('.', '')), 10n ** BigInt(dec)];
+}
+function _porFraccion(x, num, den, moneda){
+  // round(x × num / den) a los decimales de la moneda, en unidades mínimas enteras.
+  const d = DECIMALES[moneda] != null ? DECIMALES[moneda] : 2;
+  const n = Number(x) || 0;
+  const X = BigInt(Math.round(Number(Math.abs(n) + 'e' + d)));
+  const p = X * num;
+  let u = p / den;
+  if ((p % den) * 2n >= den) u += 1n;
+  return (n < 0 ? -1 : 1) * Number(u.toString() + 'e-' + d);
+}
+function totalesConImpuestos(lineas, moneda, lista){
+  const subtotal = redondear((lineas || []).reduce((a, l) => a + parseImporte(l.importe), 0), moneda);
+  let suma = 0, retenido = 0;
+  const resumen = (lista || []).map(i => {
+    const bi = (i.coef_base_num != null && i.coef_base_den != null)
+      ? _porFraccion(subtotal, BigInt(i.coef_base_num), BigInt(i.coef_base_den), moneda)
+      : _porFraccion(subtotal, ..._fraccionDec(i.coef_base != null ? i.coef_base : 1), moneda);
+    let cuota = 0;
+    if (i.clase === 'suma' || i.clase === 'retiene') {
+      const [pn, pd] = _fraccionDec(i.porcentaje);
+      cuota = _porFraccion(bi, pn, pd * 100n, moneda);
+    }
+    if (i.clase === 'suma') suma = redondear(suma + cuota, moneda);
+    else if (i.clase === 'retiene') retenido = redondear(retenido + cuota, moneda);
+    return { nombre: i.nombre, clase: i.clase, porcentaje: Number(i.porcentaje) || 0, motivo_legal: i.motivo_legal || null,
+             base_imponible: bi, cuota };
+  });
+  return { subtotal, pct: 0, impuesto: suma, retenido, total: redondear(subtotal + suma - retenido, moneda), resumen };
+}
+/* Qué impuesto lleva un documento, leído de sus campos: la selección del catálogo
+   si la trae (ERP maestro), si no el porcentaje libre de siempre (Lawang). Una sola
+   regla para la previa, el PDF y la factura que se guarda. */
+function impuestoDelDocumento(d){
+  return (d && Array.isArray(d.impuestos_sel) && d.impuestos_sel.length) ? { lista: d.impuestos_sel } : { pct: d ? d.imp_pct : '' };
+}
+
 /* Alias de `lwFormatoImporte`. Se conserva el nombre porque lo llaman
    `documento.js`, `operaciones-cuentas.js` y las pantallas de facturas; lo que
    ya no conserva es una segunda implementación detrás. */
 function fmtMoneda(n, moneda){ return _LW().lwFormatoImporte(n, moneda); }
 
-if(typeof module !== 'undefined') module.exports = { parseImporte, redondear, calcTotales, fmtMoneda, DECIMALES };
+if(typeof module !== 'undefined') module.exports = { parseImporte, redondear, calcTotales, fmtMoneda, DECIMALES, impuestoDelDocumento };
