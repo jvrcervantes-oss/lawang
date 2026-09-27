@@ -4575,26 +4575,40 @@
       });
       /* Subir documento (27-sep-2026, LAW-336 bloque 3): por la edge `ficheros`
          (clase modelo_documento) — la ruta la decide el servidor, el plano
-         (Anexo Maestro) se comprueba de admin ANTES de subir, se leen los
-         primeros bytes al registrar y, si el registro falla, el servidor
-         retira el fichero (antes un agente no podía limpiar su huérfano). */
+         y la casilla del contrato se comprueban de admin ANTES de subir, se leen
+         los primeros bytes al registrar y, si el registro falla, el servidor
+         retira el fichero (antes un agente no podía limpiar su huérfano).
+         Desde el 27-sep-2026 (owner, «sección Dosier» + casilla): Sección
+         (Dosier / Otro documento) → Tipo (si es otro) → Techo → «Se incluye
+         automáticamente en el contrato» (solo admin, desmarcada) → Fichero.
+         Los tipos salen de window.lwDocsContrato (docs_contrato.js): una lista. */
       ata(/^Añadir documento$/i, function () {
         var m = window.LW_V4 && window.LW_V4.modelo;
         if (!m) return aviso('La ficha del modelo aún no ha cargado.', '#8A6A34');
-        modal('Añadir documento · ' + m.nombre, [
-          // «Plano» = el Anexo Maestro, que entra solo en el contrato de Construcción (además de los que se suban a mano, desde el 27-sep-2026):
-          // solo lo sube administración (policy `modelo_docs: escribir`, 25-sep-2026).
-          { k: 'tipo', label: 'Tipo', tipo: 'select', opciones: (admin ? [['plano', 'Plano · anexo del contrato']] : []).concat([
-              ['calidades', 'Memoria de calidades'], ['ficha', 'Ficha'], ['render', 'Render'], ['otro', 'Otro']
-            ]), valor: 'otro' },
-          { k: 'file', label: 'Fichero', tipo: 'file', req: 1, accept: 'application/pdf,image/jpeg,image/png,image/webp',
-            ayuda: 'PDF o imagen, hasta 50 MB. Nace privado. El de tipo «plano» es el Anexo Maestro: se adjunta solo al contrato de Construcción de este modelo' + (admin ? '.' : ', y solo lo sube administración.') }
-        ], 'Subir', function (v) {
+        var R = window.lwDocsContrato;
+        if (!R) return aviso('No se ha podido cargar la lista de tipos de documento: recarga la página.', '#ba1a1a');
+        var techos = (window.LW_V4.modeloTechos || []).filter(function (t) { return t.modelo_id === m.id; });
+        var campos = [
+          { k: 'seccion', label: 'Sección', tipo: 'select', opciones: [['dosier', 'Dosier'], ['otro', 'Otro documento']], valor: 'otro' },
+          // el plano sigue siendo de administración (el servidor lo vuelve a mirar)
+          { k: 'tipo', label: 'Tipo', tipo: 'select', visibleSi: { k: 'seccion', valores: ['otro'] },
+            opciones: R.TIPOS.filter(function (t) { return t[0] !== 'dosier' && (admin || t[0] !== 'plano'); }), valor: 'otro' }
+        ];
+        if (techos.length) campos.push({ k: 'techo', label: 'Techo', tipo: 'select', valor: '',
+          opciones: [['', 'Todos los techos']].concat(techos.map(function (t) { return [t.clave, t.nombre]; })),
+          ayuda: 'Si va en el contrato, entra solo en los contratos con este techo; «Todos los techos» entra siempre.' });
+        if (admin) campos.push({ k: 'en_contrato', label: 'Se incluye automáticamente en el contrato', tipo: 'check', valor: false,
+          ayuda: 'Entra el último; el orden se cambia en Documentos → Editar.' });
+        campos.push({ k: 'file', label: 'Fichero', tipo: 'file', req: 1, accept: 'application/pdf,image/jpeg,image/png,image/webp',
+          ayuda: 'PDF o imagen, hasta 50 MB. Nace privado.' + (admin ? '' : ' Qué documentos van en el contrato lo decide administración.') });
+        modal('Añadir documento · ' + m.nombre, campos, 'Subir', function (v) {
           var file = v.file;
           if (!file) return { error: { message: 'elige un fichero' } };
           if (file.size > 52428800) return { error: { message: 'el fichero pasa de 50 MB' } };
           if (typeof window.lwFicheroSube !== 'function') return { error: { message: 'Falta guard.js actualizado: recarga la página' } };
-          return window.lwFicheroSube(sb, 'modelo_documento', file, { modelo_id: m.id, tipo: v.tipo || 'otro' })
+          var datos = { modelo_id: m.id, tipo: v.seccion === 'dosier' ? 'dosier' : (v.tipo || 'otro'), techo_clave: v.techo || null };
+          if (admin && v.en_contrato === true) datos.en_contrato = true;
+          return window.lwFicheroSube(sb, 'modelo_documento', file, datos)
             .then(function () { return { error: null }; }, function (e) { return { error: { message: (e && e.message) || String(e) } }; });
         });
       });
@@ -4624,6 +4638,13 @@
       (function wireDocumentosAbrirModelo() {
         var caja = document.getElementById('d-docs');
         if (!caja) return;
+        // Las filas son role=button (27-sep-2026): Intro y Espacio abren igual que el clic.
+        caja.addEventListener('keydown', function (ev) {
+          if (ev.key !== 'Enter' && ev.key !== ' ') return;
+          var f = ev.target.closest && ev.target.closest('[data-doc-abrir]');
+          if (!f || f !== ev.target) return;
+          ev.preventDefault(); f.click();
+        });
         caja.addEventListener('click', function (ev) {
           var bBorrar = ev.target.closest && ev.target.closest('[data-doc-borrar]');
           if (bBorrar) { ev.preventDefault(); ev.stopPropagation(); return borraDocModelo(bBorrar.getAttribute('data-doc-id')); }
@@ -4644,16 +4665,17 @@
         /* Borrar (25-sep-2026, SC-21): la fila se relee de la base (nombre y
            tipo no se fían del DOM) para el aviso. Borra la edge `ficheros`
            (27-sep-2026, LAW-336 bloque 3): permiso de admin en la base, luego
-           el objeto y después la fila, en el mismo flujo. El
-           anexo lo trae documento_anexos.js al abrir el contrato en el
-           generador: borrar el plano cambia el anexo de lo que se genere o reabra
-           desde ahora (cae al genérico o al PDF del repo; con techo, a
-           ninguno), no el de los PDF ya emitidos — Legal, consulta de deploy
-           25-sep-2026. */
+           el objeto y después la fila, en el mismo flujo. Los documentos
+           del contrato los trae documento_anexos.js al abrir el contrato en el
+           generador: borrar uno marcado «Se incluye automáticamente en el
+           contrato» lo quita de lo que se genere o reabra desde ahora, no de
+           los PDF ya emitidos — Legal, consulta de deploy 25-sep-2026.
+           Desde el 27-sep-2026 el botón vive en Documentos → Editar
+           (ficha_modelo.js), que lo llama por window.lwBorraDocModelo. */
         function borraDocModelo(id) {
           if (!id) return;
           var doc = null;
-          sb.from('modelo_documentos').select('id,nombre,tipo,path').eq('id', id).maybeSingle().then(function (r) {
+          sb.from('modelo_documentos').select('id,nombre,tipo,path,en_contrato').eq('id', id).maybeSingle().then(function (r) {
             if (r.error || !r.data) throw new Error((r.error && r.error.message) || 'el documento ya no existe — recarga la página');
             doc = r.data;
             return aseguraModulosDoc(['dialogo']);
@@ -4661,8 +4683,9 @@
             return lwConfirmar({
               titulo: 'Borrar documento',
               cuerpo: '<p>«' + esc(doc.nombre || 'Documento') + '» se borra del modelo. No se puede deshacer.</p>' +
-                (doc.tipo === 'plano' ? '<p>Es el <b>plano</b>: los contratos de Construcción que se generen o se reabran a partir de ahora llevarán otro anexo (el plano general del modelo o el PDF de siempre), o ninguno si tienen techo elegido. Los PDF ya emitidos no cambian.</p>' +
-                 '<p>Revisa el anexo de los contratos en curso antes de enviarlos a firma.</p>' : ''),
+                (doc.en_contrato === true ? '<p>Está marcado <b>«Se incluye automáticamente en el contrato»</b>: los contratos de Construcción que se generen o se reabran a partir de ahora ya no lo llevarán. Los PDF ya emitidos no cambian.</p>' +
+                 '<p>Revisa el anexo de los contratos en curso antes de enviarlos a firma.</p>' : '') +
+                '<p>Si estás editando otros documentos, lo que no hayas guardado se pierde al borrar.</p>',
               confirmar: 'Borrar', tono: 'peligro'
             });
           }).then(function (ok) {
@@ -4672,6 +4695,7 @@
             });
           }).catch(function (e) { aviso('No se pudo borrar: ' + (e && e.message || e), '#ba1a1a'); });
         }
+        window.lwBorraDocModelo = borraDocModelo;
       })();
 
       /* Previsión del deck (S12, 22-sep-2026): editor de `deck_forecast`
