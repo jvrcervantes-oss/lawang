@@ -226,7 +226,7 @@ afirma('el panel nace escondido y lo abre el botón',
   afirma('sin puerta de editor, piel.js manda al listado de la v4',
     /location\.replace\('\/intranet\/v4\/contratos\/'\)/.test(piel));
   afirma('app.html ya no abre el listado clásico',
-    !/pantallaC\('listado'/.test(html) && !/LW_PIEL !== 'v4'/.test(html),
+    !/pantallaC\('listado'/.test(html) && !/LW_PIEL/.test(html),
     'el listado de contratos es /intranet/v4/contratos/: dos listados es la duplicación prohibida');
   afirma('app.html no carga la capa v3 encima de la v4',
     !/(src|href)=\"[^\"]*(movimiento-v3\.js|saldos-v3\.js|suite-v3(-herramientas)?\.css)/.test(html));
