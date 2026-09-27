@@ -20,7 +20,8 @@ import os
 import sys
 
 RAIZ = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
-MIGRACION = os.path.join(RAIZ, 'supabase', 'migrations', '20260927220000_law78_anexos_contrato_storage.sql')
+MIGRACIONES = [os.path.join(RAIZ, 'supabase', 'migrations', f) for f in (
+    '20260927220000_law78_anexos_contrato_storage.sql', '20260927220500_law78_anexos_barrido_y_paso.sql')]
 
 UUID1 = '11111111-1111-4111-8111-111111111111'
 UUID2 = '22222222-2222-4222-8222-222222222222'
@@ -59,6 +60,73 @@ insert into storage.objects (bucket_id, name, metadata) values
   ('contratos-anexos', current_setting('t.c') || '/UUID1/1.jpg', '{"size": 1000}');
 """.replace('UUID1', UUID1).replace('UUID2', UUID2)
 
+# Contrato L: el anexo viejo MÁS PEQUEÑO de un contrato sin bloquear y sin firma viva (se resuelve en la base).
+# Sus páginas se «pasan al archivo» con filas cuyo sha se calcula EN SQL de la página vieja, como hará el script.
+BARRIDO_Y_PASO = r'''
+select set_config('t.l', x.id::text, true), set_config('t.lid', x.aid, true)
+  from (select c.id, a->>'id' as aid
+          from public.contratos c
+          cross join lateral jsonb_array_elements(case when jsonb_typeof(c.datos->'annexes') = 'array'
+                                                  then c.datos->'annexes' else '[]'::jsonb end) a
+         where not coalesce(c.bloqueado, false) and not public.contrato_firma_viva(c.id)
+           and a->>'auto' is null and jsonb_typeof(a->'pages') = 'array' and jsonb_array_length(a->'pages') > 0
+         order by pg_column_size(c.datos) limit 1) x;
+insert into public.contrato_anexo_paginas (contrato_id, anexo_id, n, path, sha256, bytes)
+select current_setting('t.l')::uuid, v.aid, g.n, current_setting('t.l') || '/' || gen_random_uuid() || '/' || g.n || '.jpg',
+       case when v.aid = 'ax-malo' then repeat('b', 64) else encode(sha256(decode(split_part(g.pag, ',', 2), 'base64')), 'hex') end,
+       octet_length(decode(split_part(g.pag, ',', 2), 'base64'))
+  from public.contratos c
+  cross join lateral jsonb_array_elements(c.datos->'annexes') a
+  cross join lateral jsonb_array_elements_text(a->'pages') with ordinality g(pag, n)
+  cross join (values ('ax-migrado'), ('ax-malo')) v(aid)
+ where c.id = current_setting('t.l')::uuid and a->>'id' = current_setting('t.lid');
+update public.contrato_anexo_paginas set created_at = now() - interval '3 days' where anexo_id = 'ax-malo';
+insert into storage.objects (bucket_id, name, created_at) values
+  ('contratos-anexos', current_setting('t.l') || '/33333333-3333-4333-8333-333333333333/1.jpg', now() - interval '3 days'),
+  ('contratos-anexos', current_setting('t.l') || '/44444444-4444-4444-8444-444444444444/1.jpg', now());
+set local role service_role;
+do $$ begin perform public.contrato_anexos_pasa_a_archivo(current_setting('t.l')::uuid,
+                     jsonb_build_object(current_setting('t.lid'), jsonb_build_object('id', 'ax-malo')));
+  insert into _t values ('M1 paso con una huella que no cuadra DEBE parar', false, 'no paro');
+exception when others then insert into _t values ('M1 paso con una huella que no cuadra DEBE parar', sqlstate = '22023', sqlstate || ' ' || left(sqlerrm, 90)); end $$;
+do $$ begin perform public.contrato_anexos_pasa_a_archivo(current_setting('t.b')::uuid, '{"ax1": {"id": "ax-x"}}');
+  insert into _t values ('M2 paso en contrato bloqueado DEBE parar', false, 'no paro');
+exception when others then insert into _t values ('M2 paso en contrato bloqueado DEBE parar', sqlstate = '23514', sqlstate || ' ' || left(sqlerrm, 90)); end $$;
+do $$ begin perform public.contrato_anexos_pasa_a_archivo(current_setting('t.l')::uuid, '{"ax-no-existe": {"id": "ax-x"}}');
+  insert into _t values ('M3 paso de un anexo que no esta DEBE parar', false, 'no paro');
+exception when others then insert into _t values ('M3 paso de un anexo que no esta DEBE parar', sqlstate = '22023', sqlstate || ' ' || left(sqlerrm, 90)); end $$;
+do $$ declare k int; a jsonb; begin
+  k := public.contrato_anexos_pasa_a_archivo(current_setting('t.l')::uuid,
+         jsonb_build_object(current_setting('t.lid'), jsonb_build_object('id', 'ax-migrado')));
+  select e into a from public.contratos c, jsonb_array_elements(c.datos->'annexes') e
+   where c.id = current_setting('t.l')::uuid and e->>'id' = 'ax-migrado';
+  insert into _t values ('M4 paso bueno: el anexo queda como ficha, sin paginas',
+    k = 1 and a is not null and not (a ? 'pages') and a ? 'title'
+      and not exists (select 1 from public.contratos c, jsonb_array_elements(c.datos->'annexes') e
+                       where c.id = current_setting('t.l')::uuid and e->>'id' = current_setting('t.lid')),
+    'k=' || k);
+exception when others then insert into _t values ('M4 paso bueno: el anexo queda como ficha, sin paginas', false, sqlstate || ' ' || left(sqlerrm, 90)); end $$;
+update public.contrato_anexo_paginas set created_at = now() - interval '3 days' where anexo_id = 'ax-migrado';
+insert into _t
+select 'H1 barrido: objeto viejo sin fila, si', count(*) filter (where h.path like '%/33333333-%') = 1, count(*)::text
+  from public.contrato_anexos_huerfanos(48) h where h.tipo = 'objeto';
+insert into _t
+select 'H2 barrido: objeto reciente sin fila, no', count(*) = 0, count(*)::text
+  from public.contrato_anexos_huerfanos(48) h where h.path like '%/44444444-%';
+insert into _t
+select 'H3 barrido: filas de un anexo que nadie nombra, si', count(*) > 0, count(*)::text
+  from public.contrato_anexos_huerfanos(48) h join public.contrato_anexo_paginas p on p.id = h.fila_id where p.anexo_id = 'ax-malo';
+insert into _t
+select 'H4 barrido: filas de un anexo en datos, no', count(*) = 0, count(*)::text
+  from public.contrato_anexos_huerfanos(48) h join public.contrato_anexo_paginas p on p.id = h.fila_id where p.anexo_id = 'ax-migrado';
+reset role;
+set local role authenticated;
+do $$ begin perform public.contrato_anexos_huerfanos(48);
+  insert into _t values ('M5 el navegador no llama al barrido ni al paso', false, 'no paro');
+exception when others then insert into _t values ('M5 el navegador no llama al barrido ni al paso', sqlstate = '42501', sqlstate); end $$;
+reset role;
+'''
+
 
 def claims(p):
     return ("select set_config('request.jwt.claim.sub', current_setting('t.%(p)s_sub'), true),\n"
@@ -95,8 +163,9 @@ def sql(con_migracion=False, selftest=False):
     p = ['begin;',
          '-- destructivo-ok: pruebas de LAW-78 (contracts/tools/anexos_rpc_test.py); TODO acaba en ROLLBACK']
     if con_migracion:
-        with open(MIGRACION, encoding='utf-8') as f:
-            p.append(f.read())
+        for m in MIGRACIONES:
+            with open(m, encoding='utf-8') as f:
+                p.append(f.read())
     p += ['create temporary table _t(caso text, ok boolean, detalle text) on commit drop;',
           'grant all on _t to authenticated, anon, service_role;',
           MONTAJE.strip()]
@@ -163,6 +232,9 @@ def sql(con_migracion=False, selftest=False):
     p.append("insert into _t values ('S1 puede: bloqueado = bloqueado (tambien super admin)', public.contrato_anexo_puede(%s::uuid) = 'bloqueado', "
              "public.contrato_anexo_puede(%s::uuid));" % (B, B))
     p.append('reset role;')
+
+    # ── barrido y paso al archivo (service_role: los scripts) ──
+    p.append(BARRIDO_Y_PASO.strip())
 
     # ── anónimo ──
     p.append('set local role anon;')
