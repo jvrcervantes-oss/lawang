@@ -139,6 +139,71 @@ GUARDA = r'''do $$ declare d jsonb; t text; begin
   insert into _t values ('%(caso)s', %(ok)s);
 exception when others then insert into _t values ('%(caso)s', %(mal)s); end $$;'''
 
+EXTRA = r'''
+insert into _t
+select 'M6 el paso al archivo deja el evento anexos_al_archivo', count(*) = 1, count(*)::text
+  from public.contrato_eventos e
+ where e.contrato_id = current_setting('t.l')::uuid and e.evento = 'anexos_al_archivo' and e.quien = 'migracion LAW-78'
+   and (e.detalle->>'anexos')::int = 1;
+set local role service_role;
+do $$ declare r text[]; begin
+  select array_agg(b.path) into r from public.contrato_anexos_barre_filas(48) b;
+  insert into _t values ('H5 barre_filas borra las filas sobrantes y devuelve sus rutas',
+    coalesce(array_length(r, 1), 0) >= 2
+      and not exists (select 1 from public.contrato_anexo_paginas where anexo_id = 'ax-00000000-0000-4000-8000-000000000003')
+      and exists (select 1 from public.contrato_anexo_paginas where anexo_id = 'ax-00000000-0000-4000-8000-000000000002'),
+    coalesce(array_length(r, 1), 0)::text);
+exception when others then insert into _t values ('H5 barre_filas borra las filas sobrantes y devuelve sus rutas', false, sqlstate || ' ' || left(sqlerrm, 90)); end $$;
+reset role;
+set local role authenticated;
+do $$ begin perform public.contrato_anexos_barre_filas(48);
+  insert into _t values ('H6 el navegador no llama a barre_filas', false, 'no paro');
+exception when others then insert into _t values ('H6 el navegador no llama a barre_filas', sqlstate = '42501', sqlstate); end $$;
+reset role;
+-- el trigger solo juzga a quien cambia la lista de anexos: se fuerza un estado roto (ficha sin filas) saltándose
+-- los triggers, y un update de `datos` que NO toca annexes tiene que pasar; uno que SÍ, parar
+set local session_replication_role = replica;
+update public.contratos c set datos = jsonb_set(c.datos, '{annexes}', coalesce(case when jsonb_typeof(c.datos->'annexes') = 'array' then c.datos->'annexes' end, '[]'::jsonb)
+         || jsonb_build_array(jsonb_build_object('id', 'ax-88888888-8888-4888-8888-888888888888', 'title', 'Roto', 'on', true)))
+ where c.id = current_setting('t.a')::uuid;
+set local session_replication_role = origin;
+do $$ begin
+  update public.contratos c set datos = jsonb_set(c.datos, '{fields,zz_prueba_law78}', '"x"') where c.id = current_setting('t.a')::uuid;
+  insert into _t values ('T1 update de datos que no toca los anexos pasa aunque haya uno roto', true, 'paso');
+exception when others then insert into _t values ('T1 update de datos que no toca los anexos pasa aunque haya uno roto', false, sqlstate || ' ' || left(sqlerrm, 90)); end $$;
+do $$ begin
+  update public.contratos c set datos = jsonb_set(c.datos, '{annexes}', c.datos->'annexes' || '[{"id": "axauto", "auto": "X", "pages": []}]'::jsonb)
+   where c.id = current_setting('t.a')::uuid;
+  insert into _t values ('T2 update que SI cambia los anexos y deja uno roto DEBE parar', false, 'no paro');
+exception when others then insert into _t values ('T2 update que SI cambia los anexos y deja uno roto DEBE parar', sqlstate = '23514', sqlstate || ' ' || left(sqlerrm, 90)); end $$;
+-- Seguridad: super admin ve y lee; un comprador del portal (sesión, no agente) no
+select set_config('request.jwt.claim.sub', current_setting('t.super_sub'), true),
+       set_config('request.jwt.claim.email', current_setting('t.super_email'), true),
+       set_config('request.jwt.claims', json_build_object('sub', current_setting('t.super_sub'),
+         'email', current_setting('t.super_email'), 'role', 'authenticated')::text, true);
+set local role authenticated;
+insert into _t values ('S2 super admin ve las filas y lee el objeto del contrato A',
+  (select count(*) from public.contrato_anexo_paginas where contrato_id = current_setting('t.a')::uuid) = 2
+  and (select count(*) from storage.objects where bucket_id = 'contratos-anexos' and name like current_setting('t.a') || '/%') = 2,
+  (select count(*) from public.contrato_anexo_paginas where contrato_id = current_setting('t.a')::uuid)::text);
+reset role;
+select set_config('t.portal_sub', u.id::text, true), set_config('t.portal_email', lower(u.email), true)
+  from auth.users u
+ where u.email is not null and not exists (select 1 from public.usuarios x where x.user_id = u.id)
+ order by u.created_at limit 1;
+select set_config('request.jwt.claim.sub', current_setting('t.portal_sub'), true),
+       set_config('request.jwt.claim.email', current_setting('t.portal_email'), true),
+       set_config('request.jwt.claims', json_build_object('sub', current_setting('t.portal_sub'),
+         'email', current_setting('t.portal_email'), 'role', 'authenticated')::text, true);
+set local role authenticated;
+insert into _t values ('P1 comprador del portal: 0 filas y 0 objetos',
+  current_setting('t.portal_sub', true) is not null and not public.es_agente()
+  and (select count(*) from public.contrato_anexo_paginas) = 0
+  and (select count(*) from storage.objects where bucket_id = 'contratos-anexos') = 0,
+  'agente=' || public.es_agente()::text);
+reset role;
+'''
+
 
 def claims(p):
     return ("select set_config('request.jwt.claim.sub', current_setting('t.%(p)s_sub'), true),\n"
@@ -259,6 +324,8 @@ def sql(con_migracion=False, selftest=False):
 
     # ── barrido y paso al archivo (service_role: los scripts) ──
     p.append(BARRIDO_Y_PASO.strip())
+    # evento del paso, borrado de filas por la base, atajo del trigger, super admin y comprador del portal
+    p.append(EXTRA.strip())
 
     # ── anónimo ──
     p.append('set local role anon;')

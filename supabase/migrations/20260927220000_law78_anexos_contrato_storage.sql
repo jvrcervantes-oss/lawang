@@ -38,7 +38,10 @@
 -- ── bucket ───────────────────────────────────────────────────────────────────────────────────────────────────────
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('contratos-anexos', 'contratos-anexos', false, 3145728, array['image/jpeg'])
-on conflict (id) do nothing;
+-- do update y no do nothing (Datos, consulta de deploy): esta migración irá al ERP maestro, y en una instancia donde
+-- el bucket ya exista con otra configuración (público, sin tope) tiene que quedar como aquí, no como estaba.
+on conflict (id) do update set public = false, file_size_limit = excluded.file_size_limit,
+                               allowed_mime_types = excluded.allowed_mime_types;
 
 -- ── tabla ────────────────────────────────────────────────────────────────────────────────────────────────────────
 create table if not exists public.contrato_anexo_paginas (
@@ -193,6 +196,10 @@ create or replace function public._contrato_anexos_con_paginas() returns trigger
 language plpgsql security definer set search_path = '' as $$
 declare a jsonb;
 begin
+  -- Solo juzga a quien CAMBIA la lista de anexos (Datos, consulta de deploy): un update de `datos` que no la toca
+  -- —renombrar_proyecto, trg_cliente_actualizado, carta_cobrado_recalcula sobre un contrato ajeno— no se aborta
+  -- por el estado de unos anexos que nadie está guardando ahora.
+  if tg_op = 'UPDATE' and new.datos->'annexes' is not distinct from old.datos->'annexes' then return new; end if;
   if jsonb_typeof(new.datos->'annexes') is distinct from 'array' then return new; end if;
   for a in select value from jsonb_array_elements(new.datos->'annexes') loop
     continue when jsonb_typeof(a) <> 'object' or a->>'auto' is not null;

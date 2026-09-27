@@ -9,9 +9,12 @@ QUÉ RECOGE. Lo que lista `contrato_anexos_huerfanos(p_horas)` (migración 20260
 POR QUÉ ASÍ. El borrado en caliente se descartó en la revisión previa (Datos + Seguridad): un anexo
 recién subido aún no está en `datos` hasta que el comercial pulsa Guardar, y borrar «lo que no está en
 datos» en el momento se llevaría por delante una subida válida. 48 h después, lo que no se guardó sobra.
-ORDEN. Primero el objeto (API de Storage; SQL no puede borrar ficheros) y después la fila. Al revés, un
-fallo dejaría un fichero con datos de un contrato sin nada que diga que está ahí. Justo antes de borrar
-filas se vuelve a pedir la lista y solo se borra lo que sigue sobrando (alguien pudo guardar mientras).
+ORDEN (consulta de deploy de Datos, 27-sep):
+  1. objetos sin fila → se borran por la API de Storage (SQL no puede borrar ficheros);
+  2. filas sobrantes → las borra la BASE (`contrato_anexos_barre_filas`), con los contratos bloqueados
+     `for update` para no cruzarse con un contrato_guarda, y devuelve sus rutas;
+  3. esos objetos → por la API de Storage. Si este paso falla, quedan objetos sin fila, que el paso 1 de la
+     siguiente pasada recoge. Nunca queda una fila apuntando a un objeto borrado.
 
     python contracts/tools/anexos_barrido.py              # por defecto: SOLO cuenta, no borra nada
     python contracts/tools/anexos_barrido.py --aplicar    # borra
@@ -46,14 +49,13 @@ def main():
     if objetos:
         print('Objetos sin fila borrados: %d' % s.borra_objetos(objetos))
     if filas:
-        # se vuelve a mirar: solo lo que SIGUE sobrando
-        siguen = {x['fila_id'] for x in lista(horas) if x['tipo'] == 'fila'}
-        filas = [x for x in filas if x['fila_id'] in siguen]
-        s.borra_objetos([x['path'] for x in filas])
-        for i in range(0, len(filas), 100):
-            ids = ','.join(x['fila_id'] for x in filas[i:i + 100])
-            s.rest('DELETE', 'contrato_anexo_paginas?id=in.(%s)' % ids)
-        print('Filas sobrantes borradas (objeto y fila): %d' % len(filas))
+        # la base decide otra vez, con los contratos bloqueados: solo lo que SIGUE sobrando
+        rutas = [x['path'] for x in (s.rpc('contrato_anexos_barre_filas', {'p_horas': horas}) or [])]
+        print('Filas sobrantes borradas: %d' % len(rutas))
+        try:
+            print('Sus objetos borrados: %d' % s.borra_objetos(rutas))
+        except s.ErrorSupabase as e:
+            print('Los objetos de esas filas no se han podido borrar (%s): la siguiente pasada los recoge como objetos sin fila.' % str(e)[:120])
     return 0
 
 

@@ -25,7 +25,10 @@ hace falta un camino aparte para los grandes (HS00003, 7,3 MB, está bloqueado y
 
     python contracts/tools/anexos_a_storage.py                   # POR DEFECTO --dry: solo cuenta
     python contracts/tools/anexos_a_storage.py --solo RP00159    # uno solo (también en --dry)
-    python contracts/tools/anexos_a_storage.py --aplicar --respaldo-hecho <fichero de backup_lawang>
+    # PRIMERA ejecución real: UN contrato, y se mira el resultado antes de seguir (Datos, consulta de deploy)
+    python contracts/tools/anexos_a_storage.py --aplicar --solo RP00159 --respaldo-hecho <fichero de backup_lawang>
+    python contracts/tools/anexos_a_storage.py --aplicar --respaldo-hecho <fichero de backup_lawang>   # el resto
+Cada contrato pasado deja un evento `anexos_al_archivo` en contrato_eventos (quien = 'migracion LAW-78').
 
 Entorno: SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY. No imprime rutas, títulos ni base64: número de
 contrato, cuántos anexos, páginas y MB.
@@ -98,6 +101,9 @@ def main():
             continue
         tot['con_viejos'] += 1
         pags = sum(len(x['pages']) for x in vs)
+        # páginas guardadas sin el prefijo `data:…,` (el 27-sep: ninguna de 340). Se pasan igual —bytes_de y la base
+        # las decodifican igual—, pero se dice, por si una no fuera base64 de verdad.
+        sin_prefijo = sum(1 for x in vs for p in x['pages'] if not str(p).startswith('data:'))
         peso = sum(len(bytes_de(p)) for x in vs for p in x['pages'])
         if c.get('bloqueado') or firma_viva(c['id']):
             tot['saltados'] += 1
@@ -106,7 +112,8 @@ def main():
         tot['paginas'] += pags
         tot['bytes'] += peso
         if not aplicar:
-            print('%-10s pasaría %d anexo(s), %d pág., %.1f MB' % (c['numero'], len(vs), pags, peso / 1048576))
+            print('%-10s pasaría %d anexo(s), %d pág., %.1f MB%s' % (c['numero'], len(vs), pags, peso / 1048576,
+                  (' · %d pág. sin prefijo data:' % sin_prefijo) if sin_prefijo else ''))
             continue
         with open(os.path.join(dir_resp, '%s_%s.json' % (c['numero'], c['id'])), 'w', encoding='utf-8') as fh:
             json.dump({'id': c['id'], 'numero': c['numero'], 'annexes': annexes}, fh, ensure_ascii=False)
