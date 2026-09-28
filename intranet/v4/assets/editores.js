@@ -6007,7 +6007,13 @@
          URL pública si la foto está en `deck` y firmada si está en `deck-privado`. Deck activo con alguna firmada, o
          inactivo con alguna pública = «a medias» (un cambio que no terminó): se ve al abrir, también tras recargar.
          Si no se puede mirar, se dice — nunca se pinta como «todo en su sitio». */
+      /* INTERRUPTOR — encender en S5, AXW-66 (decisión del CEO, 28-sep-2026). Hasta que S5 mueva al privado las
+         fotos de los proyectos cerrados (tras S3e y el respaldo previo), TODO proyecto cerrado tiene sus fotos aún en
+         `deck`: avisar «a medias» ahí marcaría ~27 proyectos y su «Reintentar» adelantaría S5 sin respaldo. Mientras
+         esté en false solo se avisa del caso que rompe el deck público: ACTIVO con fotos privadas. */
+      var DECK_AVISA_CERRADO_CON_PUBLICAS = false;   // encender en S5, AXW-66
       function fotosDelDeck(p, activo) {
+        if (!activo && !DECK_AVISA_CERRADO_CON_PUBLICAS) return Promise.resolve(null);   // no se mira: ver interruptor
         if (typeof window.lwFotoUrls !== 'function') return Promise.resolve({ error: 'falta guard.js actualizado: recarga la página' });
         return sb.from('deck_fotos').select('id').eq('proyecto_id', p.id).then(function (r) {
           if (r.error) throw r.error;
