@@ -81,6 +81,13 @@ begin
   set local role service_role;
   perform documento_proyecto_borra('da378aad-9477-42ce-b349-c2d7ced8f65a', v);
   r := r || (case when exists (select 1 from documentos_proyecto where id = v) then '21 FALLO admin con Documentación no borra; ' else '21 ok; ' end);
+  -- 22: el borrado deja traza (una fila, con quién); la comprobación del caso 19 no deja ninguna
+  r := r || (case when (select count(*) from documentos_proyecto_borrados_log l where l.documento_id = v
+                          and l.quien_uid = 'da378aad-9477-42ce-b349-c2d7ced8f65a' and l.ficha->>'path' = pth) = 1
+                   and (select count(*) from documentos_proyecto_borrados_log l where l.documento_id = v) = 1
+              then '22 ok; ' else '22 FALLO traza del borrado; ' end);
+  r := r || '23 anon/authenticated sin acceso al log=' || (case when not has_table_privilege('authenticated', 'public.documentos_proyecto_borrados_log', 'select')
+        and not has_table_privilege('anon', 'public.documentos_proyecto_borrados_log', 'select') then 'ok; ' else 'FALLO; ' end);
   raise exception 'RES: %', r;
 end $$;
 
