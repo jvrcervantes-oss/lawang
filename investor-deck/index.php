@@ -339,7 +339,12 @@ a.enlace{color:inherit;text-decoration:underline}
 .villa.reveal{transition:transform .5s var(--ease),opacity .85s var(--ease),filter .85s var(--ease)}
 a.villa:hover{transform:translateY(-6px)}
 .villa [data-foto]{position:absolute;inset:0}
-.villa [data-foto] img{width:100%;height:100%;object-fit:cover;transition:transform 1.2s var(--ease)}
+/* Foto alejada un 30% (owner 28-sep): la tarjeta es vertical y la foto horizontal, asi que a
+   alto completo con cover solo se veia una franja central de la villa. Al 70% de alto se ve
+   ~43% mas de ancho; el pie se funde con el fondo, que ya queda bajo el degradado y el texto. */
+.villa [data-foto] img{position:absolute;top:0;left:0;width:100%;height:70%;object-fit:cover;transform-origin:50% 0;
+  -webkit-mask-image:linear-gradient(to bottom,#000 72%,transparent);mask-image:linear-gradient(to bottom,#000 72%,transparent);
+  transition:transform 1.2s var(--ease)}
 a.villa:hover [data-foto] img{transform:scale(1.05)}
 .villa::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
   background:linear-gradient(to top,rgba(14,17,12,.92) 0%,rgba(14,17,12,.55) 36%,rgba(14,17,12,0) 60%)}
