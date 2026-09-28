@@ -175,15 +175,27 @@ function cargarProyectoCuentas(sb){
    (SELECT solo `authenticated`). tokens.json se queda solo con los NOMBRES
    (las opciones del <select>), que hacen falta para pintar el formulario. */
 const APODERADOS_HAK_SEWA = {};
+/* Lectura por el servidor (window.lwDatos, guard.js). Este fichero también viaja DENTRO de las edges de firma y de
+   vencimientos (empaqueta_edge.py), que no llaman a estos cargadores; si una página sin guard.js los llamara, falla en
+   voz alta en vez de quedarse con el catálogo vacío. `recortado` no vacío = el servidor cortó la lista: también se dice. */
+async function lwDatosEntidades(nombre){
+  if(typeof window === 'undefined' || typeof window.lwDatos !== 'function')
+    return { data:null, error:new Error('Falta guard.js actualizado: recarga la página (' + nombre + ')') };
+  const r = await window.lwDatos(nombre);
+  if(r.error) return r;
+  if(!r.data) return { data:null, error:new Error('Respuesta vacía de ' + nombre) };
+  if(r.data.recortado && r.data.recortado.length) return { data:null, error:new Error(nombre + ': lista recortada por el servidor') };
+  return r;
+}
 let APODERADOS_PROMESA = null;
 function cargarApoderadosHakSewa(sb){
   if(APODERADOS_PROMESA) return APODERADOS_PROMESA;
   APODERADOS_PROMESA = (async () => {
-    const { data, error } = await sb.from('apoderados_hak_sewa')
-      .select('clave,edad,ocupacion,direccion,nik,ktp')
-      .eq('activo', true).order('orden');
+    /* Por el servidor (LAW-338 L2, 28-sep-2026): `apoderados_datos` (dueño lector, misma regla es_agente()).
+       `sb` se conserva en la firma por compatibilidad con quien la llama; la lectura va por window.lwDatos. */
+    const { data, error } = await lwDatosEntidades('apoderados_datos');
     if(error){ APODERADOS_PROMESA = null; throw error; }
-    (data || []).forEach(r => {
+    (data.apoderados || []).forEach(r => {
       APODERADOS_HAK_SEWA[r.clave] = { edad:r.edad, ocupacion:r.ocupacion,
         direccion:r.direccion, nik:r.nik, ktp:r.ktp };
     });
@@ -316,10 +328,10 @@ function cargarFirmantesCred(sb){
        ninguna sociedad y las credenciales se quedarian sin enganchar EN
        SILENCIO — el contrato saldria sin el documento del representante. */
     await cargarSociedades(sb);
-    const { data, error } = await sb.from('firmantes_cred')
-      .select('nombre,rep_npwp,cred_es,cred_en,cred_id');
+    // Por el servidor (LAW-338 L2, 28-sep-2026): `firmantes_datos`, misma regla que la tabla (es_agente()).
+    const { data, error } = await lwDatosEntidades('firmantes_datos');
     if(error){ FIRMANTES_PROMESA = null; throw error; }
-    (data || []).forEach(r => {
+    (data.firmantes || []).forEach(r => {
       FIRMANTES_CRED[r.nombre] = { rep_npwp: r.rep_npwp,
         cred: { es: r.cred_es, en: r.cred_en, id: r.cred_id } };
     });

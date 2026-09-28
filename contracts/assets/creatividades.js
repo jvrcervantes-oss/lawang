@@ -33,6 +33,16 @@
     return window.LW_AUTH.then(function (a) { return a.sb; });
   }
   function falla(r) { if (r && r.error) throw r.error; return r ? r.data : null; }
+  // Atajo al diccionario (i18n.js), como los paneles de la v4: sin él los avisos salían en español con la intranet en inglés
+  var T = function (s) { return (typeof lwT === 'function') ? lwT(s) : s; };
+  /* Lecturas por el servidor (LAW-338 L2, 28-sep-2026): window.lwDatos (guard.js) → RPC `*_datos` con dueño lector,
+     la misma policy de siempre decide qué se ve. Sin guard.js no hay lectura: se dice, no se devuelve vacío. */
+  async function datos(nombre, args) {
+    if (typeof window.lwDatos !== 'function') throw new Error(T('Falta guard.js actualizado: recarga la página'));
+    var d = falla(await window.lwDatos(nombre, args));
+    if (!d) throw new Error('Respuesta vacía de ' + nombre);
+    return d;
+  }
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -79,7 +89,7 @@
     });
   }
   async function guardar(o) {
-    if (typeof window.lwFichero !== 'function') throw new Error('Falta guard.js actualizado: recarga la página');
+    if (typeof window.lwFichero !== 'function') throw new Error(T('Falta guard.js actualizado: recarga la página'));
     var c = await sb();
     var datos = {
       titulo: String(o.titulo || '').trim().slice(0, 200) || 'Sin título',
@@ -108,7 +118,9 @@
   /* Abre una creatividad: su fila y su estado de editor, YA limpio. */
   async function abrir(id) {
     var c = await sb();
-    var fila = falla(await c.from('creatividades').select('*').eq('id', id).single());
+    var fila = (await datos('creatividad_datos', { p_id: id })).creatividad;
+    // null = no existe o no te la deja ver (antes `.single()` daba el mismo error para los dos casos)
+    if (!fila) throw new Error(T('Esa creatividad no existe o no tienes acceso a ella.'));
     if (!fila.estado_path) return { fila: fila, estado: null };
     var blob = falla(await c.storage.from(BUCKET).download(fila.estado_path));
     var txt = await blob.text();
@@ -118,15 +130,15 @@
     return { fila: fila, estado: limpiaEstado(estado) };
   }
 
+  /* Las 500 más recientes, como antes; filtros al servidor. Si hay más, la biblioteca no las enseñaba y nadie lo
+     sabía: ahora `recortada` lo dice en el propio array (panel-creatividades.js puede avisar). */
   async function listar(filtro) {
-    var c = await sb();
-    var q = c.from('creatividades')
-      .select('id, tipo, titulo, proyecto_id, formato, arquetipo, estado, path, estado_path, portada_path, lleva_render, precios_a, origen, creado_por, creado_en, actualizado_en, enviada_por, enviada_en, aprobada_en, publicada_en, archivada_en')
-      .order('creado_en', { ascending: false }).limit(500);
-    if (filtro && filtro.tipo) q = q.eq('tipo', filtro.tipo);
-    if (filtro && filtro.estado) q = q.eq('estado', filtro.estado);
-    if (filtro && filtro.proyecto_id) q = q.eq('proyecto_id', filtro.proyecto_id);
-    return falla(await q) || [];
+    var f = filtro || {};
+    var d = await datos('creatividades_datos', { p_tipo: f.tipo || null, p_estado: f.estado || null,
+      p_proyecto_id: f.proyecto_id || null, p_limit: 500, p_despues: null });
+    var filas = d.creatividades || [];
+    filas.recortada = !!d.siguiente;
+    return filas;
   }
 
   async function cambiarEstado(id, estado) {
@@ -183,11 +195,7 @@
   }
 
   async function bloqueLegal(clave, idioma) {
-    var c = await sb();
-    var r = falla(await c.from('bloques_legales').select('texto, version, estado')
-      .eq('clave', clave).eq('idioma', idioma === 'es' ? 'es' : 'en')
-      .order('version', { ascending: false }).limit(1));
-    return (r && r[0]) || null;
+    return (await datos('bloque_legal_datos', { p_clave: clave, p_idioma: idioma === 'es' ? 'es' : 'en' })).bloque || null;
   }
 
   /* `pendiente` = «para aprobar» (rediseño A, 24-sep): quien hace la pieza la envía

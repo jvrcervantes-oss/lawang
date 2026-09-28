@@ -61,7 +61,7 @@
      /facturas (define CUENTAS_BANCARIAS y SOCIEDADES). -->
 <!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
      hasta que expire su TTL. Quitable pasado el 3-ago-2026. -->
-<script src="assets/entities.js?v=e015c66a"></script>
+<script src="assets/entities.js?v=1cde0d66"></script>
 <script src="assets/geo.js?v=cc6b09b2"></script>
 <script src="assets/huella.js?v=b511ff5e"></script>
 <script src="assets/vocabulario.js?v=fd814f9b"></script>
@@ -81,13 +81,13 @@
 <script src="assets/documento_diseno.js?v=a6230c91"></script>
 <script src="assets/docs_contrato.js?v=73e7152b"></script>
 <script src="assets/documento_anexos.js?v=1b5f427e"></script>
-<script src="assets/parcela_inventario.js?v=f70c3cac"></script>
+<script src="assets/parcela_inventario.js?v=d29cc2a0"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
 <script src="assets/modelos_catalogo.js?v=da02ce3b"></script>
 <!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
 <script src="assets/techo_extras.js?v=d93ea66c"></script>
-<script src="assets/hitos_fechas.js?v=83507a5f"></script>
+<script src="assets/hitos_fechas.js?v=4f188947"></script>
 <script src="assets/entidades_pago.js?v=72c8d06a"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
@@ -562,6 +562,9 @@ let CURRENT = TEMPLATES[0];       // Carta de Reserva por defecto: es el primer 
 let templateHTML = '';
 let COVER_HTML = '';
 let HITOS = [];        // tabla de pagos dinámica [{pct,es,en,id},…] — se inicializa por plantilla
+/* Forma de pago del Contrato de Construcción (28-sep-2026): estandar | unico_firma | unico_obra, o heredado
+   manual | libre — ver CALENDARIO DE PAGOS ELEGIBLE en assets/hitos_fechas.js. null fuera de Construcción. */
+let CALENDARIO = null;
 const FIELDTYPE = {};  // marcador → tipo (money/number/date/select/text) para dimensionar el hueco
 const pads = {};
 
@@ -1775,6 +1778,7 @@ function resetBorrador(slug){
     [{pct:'25',monto:'',timing:'',es:'',en:'',id:''},{pct:'25',monto:'',timing:'',es:'',en:'',id:''},
      {pct:'25',monto:'',timing:'',es:'',en:'',id:''},{pct:'25',monto:'',timing:'',es:'',en:'',id:''}])
     .map(h=>({...h, fecha: h.fecha || fechaVencimiento(new Date(), h)}));
+  CALENDARIO = CONTRACT_TIPO[slug] === 'construccion' ? 'estandar' : null;   // misma familia que HITOS: no se hereda del contrato abierto
   ADQ1_CLIENT = null; CAMPOS_HEREDADOS = {}; UNIDADES_RESERVA_VINCULADA = null; UNIDAD_ID_CONSTRUCCION = null;
   /* LEAD_ID se limpia AQUÍ, con ADQ1_CLIENT y por el mismo motivo (11-sep-2026). Si se
      quedara fuera de esta lista sobreviviría a «+ Nuevo contrato» y sellaría el lead del
@@ -2807,6 +2811,12 @@ function collect(){
   // reabrir un contrato el input readonly se recrea vacío → tomarlo de aquí para
   // que el documento imprima el número en vez de un hueco en blanco.
   if(SAVED_CONTRACT && SAVED_CONTRACT.numero) data.contrato_num = SAVED_CONTRACT.numero;
+  // Cláusula de pago del Art. 5 según la forma de pago (28-sep-2026). Vacía = la de hitos de siempre. El
+  // servidor la reescribe al guardar desde el calendario que valida: esto es solo la vista previa. Se pone
+  // SIEMPRE en Construcción, también vacía: si faltara la clave, el merge de CAMPOS_HEREDADOS de abajo traería
+  // la del contrato tal como se abrió, y cambiar de pago único a hitos seguiría imprimiendo el pago único.
+  if(CONTRACT_TIPO[CURRENT.slug] === 'construccion')
+    data.clausula_pago = (CALENDARIO === 'unico_firma' || CALENDARIO === 'unico_obra') ? CALENDARIO : '';
 
   /* La parcela de ESTA Construcción (28-ago-2026, aviso del owner: no se
      imprimía en el documento). No es un campo de formulario — nunca se
@@ -3160,7 +3170,11 @@ function buildDoc(){
   // bloque que solo imprime si un campo vale EXACTAMENTE X (a diferencia de
   // opt:, que solo mira si el campo está relleno) — usado para el régimen
   // de tenencia según nacionalidad del comprador (ver regimen_tenencia).
-  html=html.replace(/<!--if:([a-z0-9_]+)=([a-z0-9_]+)-->[\s\S]*?<!--\/if:\1-->/g,(m,k,v)=> (data[k]===v) ? m : '');
+  // `<!--if:k=-->` (valor vacío, 28-sep-2026) = el campo no está o está vacío: es el «si no» del motor, que no
+  // tiene else. Lo usa el Art. 5 de Construcción: el texto de hitos de siempre sale cuando no hay
+  // `clausula_pago`, así que un contrato viejo o la plantilla en blanco imprimen exactamente lo de antes. El
+  // motor del bot (bot/plantilla_texto.js) ya lo entendía así.
+  html=html.replace(/<!--if:([a-z0-9_]+)=([a-z0-9_]*)-->[\s\S]*?<!--\/if:\1-->/g,(m,k,v)=> (v === '' ? (data[k] == null || data[k] === '') : data[k]===v) ? m : '');
   // Cada campo con valor va envuelto en .campo-fijo: contenteditable="false" es
   // lo que, dentro de un párrafo editable (ver applyEditsAndTag), impide tocar
   // el dato aunque se reescriba el texto de alrededor — y data-campo es lo que
@@ -3391,6 +3405,7 @@ function deriveSections(){
      adq1_tipo justo arriba: sin este delete caería en el cajón automático
      de "Otros campos" con su nombre en crudo. */
   inDoc.delete('descuento_comercial_aplica');
+  inDoc.delete('clausula_pago');   // derivado (collect(), de la forma de pago) y reescrito por la base — nunca un campo del form (28-sep-2026)
   inDoc.delete('precio_lista_construccion');   // idem: lo calcula collect() (22-sep-2026)
   inDoc.delete('precio_lista_suelo');          // idem, su gemelo del Bloqueo de Parcela (25-sep-2026)
   SECTIONS = src.map(s=>({ ...s, fields: s.fields.filter(f=>inDoc.has(f[0])) }))
@@ -3490,6 +3505,7 @@ function deriveSections(){
       [{pct:'25',monto:'',timing:'',es:'',en:'',id:''},{pct:'25',monto:'',timing:'',es:'',en:'',id:''},
        {pct:'25',monto:'',timing:'',es:'',en:'',id:''},{pct:'25',monto:'',timing:'',es:'',en:'',id:''}])
       .map(h=>({...h, fecha: h.fecha || fechaVencimiento(new Date(), h)}));
+    CALENDARIO = CONTRACT_TIPO[CURRENT.slug] === 'construccion' ? 'estandar' : null;
   }
   // cuenta bancaria de destino: si la plantilla trae <!--datos-bancarios-->, un
   // único select (mismo patrón [valor,etiqueta] que regimen_tenencia) justo
@@ -4311,6 +4327,8 @@ function updateSaveButton(){
     document.querySelectorAll('[data-hito-admin]').forEach(el=>{
       el.style.display = abreHitos ? '' : 'none';
     });
+    // Forma de pago de un calendario a medida: solo la cambia un admin (28-sep-2026)
+    document.querySelectorAll('#calendarioSel[data-cal-manual]').forEach(el=>{ el.disabled = !abreHitos; });
     // El aviso es lo INVERSO de los botones: se ve cuando NO se puede tocar
     // el candado, para explicar por qué no está — hallazgo MEDIA de Legal.
     document.querySelectorAll('[data-hito-admin-aviso]').forEach(el=>{
@@ -4508,6 +4526,7 @@ function contractPayload(){
     // Anexos (LAW-78): del subido a mano, solo su ficha si sus páginas están en el archivo
     // de ESTE contrato; los viejos siguen con sus páginas hasta que pasan (fichaDatos).
     datos: { fields: data, hitos: HITOS, design: DESIGN,
+              ...(CALENDARIO ? { calendario: CALENDARIO } : {}),
               annexes: ANNEXES.map(a => fichaDatos(a, SAVED_CONTRACT && SAVED_CONTRACT.id)), clauses: CLAUSES,
               compradores: COMPRADORES,
               /* Techo y extras CONGELADOS (16-sep-2026) — nunca FK viva a
@@ -4673,6 +4692,24 @@ async function guardarContrato(){
       avisoNoGuardado(lwT('Los porcentajes del calendario de pagos no suman 100% — corrígelo.'));
       const el = document.querySelector('[data-sec="pagos"]');
       if(el) el.scrollIntoView({behavior:'smooth', block:'center'});
+      return;
+    }
+  }
+  /* Pago único a la firma (28-sep-2026): sin fecha la cláusula remitiría a un vencimiento que no existe, y
+     fuera de [firma, firma + 90] el servidor lo rechaza. Se dice aquí, con el campo delante, en vez de dejar que
+     vuelva como error de la base. El tope lo aplica la base (admin pasa); esto solo avisa. */
+  if(tipo === 'construccion' && CALENDARIO === 'unico_firma'){
+    const f = (HITOS[0] && HITOS[0].fecha) || '';
+    const base = fechaFirmaISO();
+    const tope = sumaDiasISO(base, PLAZO_PAGO_UNICO_DIAS);
+    const msg = !f ? lwT('Pon la fecha de vencimiento del pago único.')
+      : f < base ? lwT('El pago único no puede vencer antes de la fecha de firma.')
+      : (f > tope && !puedeHitosFijos()) ? lwT('El pago único vence como muy tarde') + ' ' + PLAZO_PAGO_UNICO_DIAS + ' ' + lwT('días después de la firma. Más allá lo decide un admin.')
+      : '';
+    if(msg){
+      avisoNoGuardado(msg);
+      const el = document.getElementById(hid(0,'fecha'));
+      if(el){ el.focus(); el.scrollIntoView({behavior:'smooth', block:'center'}); }
       return;
     }
   }
@@ -4950,6 +4987,13 @@ async function guardarContrato(){
     if(fila.moneda) payload.moneda = fila.moneda;
     const data = { id:fila.id, numero:fila.numero, datos:{ fields:fila.fields, hitos:fila.hitos } };
     SAVED_CONTRACT = { id:data.id, numero:data.numero };
+    /* Construcción (28-sep-2026): el calendario lo monta el servidor —importes incluidos— y puede diferir de lo
+       que había en pantalla (una pestaña vieja, un % tocado). Se enseña lo que quedó guardado, no lo que se mandó. */
+    if(tipo === 'construccion' && Array.isArray(fila.hitos)){
+      HITOS = fila.hitos.map(h=>({...h}));
+      if(fila.calendario) CALENDARIO = fila.calendario;
+      refreshHitos();
+    }
     if(eraNuevo) PDF_SALIO = false;   // un contrato recién creado no ha salido nunca
     const numEl = document.querySelector('[name="contrato_num"]');
     if(numEl){ numEl.value = data.numero; }
@@ -5386,6 +5430,8 @@ async function openSavedContract(id){
      es lo correcto para una fila antigua sin la clave. */
   const plantillaConHitos = SECTIONS.some(s => s.special === 'hitos');
   HITOS = Array.isArray(d.hitos) ? d.hitos.map(h=>({...h})) : (plantillaConHitos ? HITOS : []);
+  // Forma de pago: la guardada, o —contratos de antes del 28-sep— la que dicen sus hitos, con la misma regla que la base
+  CALENDARIO = CONTRACT_TIPO[CURRENT.slug] === 'construccion' ? (d.calendario || calendarioDeduce(HITOS)) : null;
   // Techo/extras: mismo caso que HITOS, SIN `if` delante (17-ago, ver arriba) —
   // una fila vieja sin la clave no se queda con la elección del contrato
   // anterior. `TECHO_MODELO_HECHO = null` fuerza a refrescar TECHOS_OPCIONES/
@@ -5763,6 +5809,14 @@ async function derivarContrato(slug){
      explícitamente). Encontrado al verificar en producción, 24-ago-2026. */
   await syncUnidadConstruccion();
   if(hitos) HITOS = hitos;   // mismo tipo: su calendario, con fechas de hoy. Distinto: el plan del tipo destino, que loadTemplate ya puso.
+  /* Construcción derivada (28-sep-2026): la forma de pago viaja, pero un contrato nuevo no puede nacer «a mano»
+     (libre) ni —si no eres admin— «a medida»: esos arrancan con el estándar. El pago único a la firma arranca
+     otra vez a firma + 14: su fecha era de la operación vieja. */
+  if(hitos && CONTRACT_TIPO[slug] === 'construccion'){
+    CALENDARIO = calendarioDeduce(HITOS);
+    if(CALENDARIO === 'libre' || (CALENDARIO === 'manual' && !puedeHitosFijos())){ CALENDARIO = 'estandar'; HITOS = presetCalendario('estandar'); }
+    if(CALENDARIO === 'unico_firma' && HITOS[0]) HITOS[0].fecha = sumaDiasISO(fechaFirmaISO(), 14);
+  }
   // Cuentas del proyecto, parcela máster, resort, ubicación, apoderado
   // Hak Sewa/POA, moneda-vs-techo… todo lo que openSavedContract() ya
   // reaplica al reabrir un contrato guardado y que aquí no corría desde

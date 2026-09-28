@@ -774,6 +774,8 @@ function buildForm(){
   if(!form._hitosWired){ form._hitosWired = true;
     form.addEventListener('input', e=>{ const el=e.target.closest('[data-hkey]'); if(!el) return;
       const h=HITOS[+el.dataset.hi]; if(h){ h[el.dataset.hkey]=el.value;
+        // Un % o concepto de fábrica tocado por un admin saca el contrato de su calendario de fábrica (28-sep)
+        if(el.hasAttribute('data-fijo-hito') && typeof calendarioPasaAManual === 'function') calendarioPasaAManual();
         // Un % de fábrica editado a mano (admin/super_admin) recalcula su
         // propia Cantidad al momento, sin esperar a que cambie precio_total.
         if(typeof recalcularMontosHitos === 'function') recalcularMontosHitos();
@@ -788,6 +790,10 @@ function buildForm(){
       el.style.outline = mala ? '2px solid var(--be, #b3261e)' : '';
       el.setAttribute('aria-invalid', String(mala));
       if(mala) toastMal(lwT('Esa fecha no existe (¿31 de un mes de 30 días?): el hito se queda sin vencimiento hasta que la corrijas') + ' · ' + (+el.dataset.hi + 1));
+    });
+    // Forma de pago del Contrato de Construcción (28-sep-2026): sustituye la tabla por el preset elegido
+    form.addEventListener('change', e=>{
+      if(e.target && e.target.id === 'calendarioSel' && typeof cambiaCalendario === 'function') cambiaCalendario(e.target.value);
     });
     form.addEventListener('click', e=>{
       // ▸ EN·ID (17-sep-2026): abre/cierra la fila hermana con el concepto en
@@ -816,8 +822,10 @@ function buildForm(){
       // ambos botones y a bloquear % y concepto hasta que tocara, por
       // casualidad, algún campo con `name` (el único wiring que ya llama a
       // updateSaveButton()).
-      if(del){ HITOS.splice(+del.dataset.hdel,1); refreshHitos(); updateSaveButton(); render(); return; }
+      if(del){ if(typeof calendarioPasaAManual === 'function') calendarioPasaAManual();
+        HITOS.splice(+del.dataset.hdel,1); refreshHitos(); updateSaveButton(); render(); return; }
       if(e.target.closest('#hitoAdd')){
+        if(typeof calendarioPasaAManual === 'function') calendarioPasaAManual();
         // Hereda `calculado` si ESTE contrato ya usa un calendario de
         // importes calculados — no por tipo de contrato (misma corrección
         // MEDIA de Administración que el candado de los botones,
