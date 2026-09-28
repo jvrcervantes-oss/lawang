@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="3759b2fa7c09">
+<meta name="lw-version" content="c9aea576b48a">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -6188,17 +6188,23 @@ $('#fmGen').addEventListener('click', async ()=>{
        y crea el nuevo en UNA transacción, con el token generado allí (antes lo generaba esta
        pantalla y eran dos llamadas sueltas). firma-submit se niega a firmar si el documento ya
        no es el que se envió. */
+    /* LAW-411 (28-sep-2026): la subida va a una ruta de ESPERA con su propio nonce, y la edge la pasa a la
+       fija solo si el enlace se crea; aquí se le devuelve esa ruta (`subida`) para que firme ESTE documento y
+       no el de otro agente que esté enviando el mismo contrato a la vez. */
+    let subida = null;
     if(FIRMA_NEXT.firmados===0){
       const u = await ficheros('snapshot_url', { contrato_id: SAVED_CONTRACT.id });
       const up = await sb.storage.from('contratos-firmados').uploadToSignedUrl(u.path, u.token,
         new Blob([buildSnapshot()],{type:'text/html'}), { contentType:'text/html' });
       if(up.error) throw up.error;
+      subida = u.path;
     }
     /* enlace_firma (1-sep-2026, decisión del owner): se guarda el enlace CON
        el token en claro para que /portal/ lo enseñe al comprador — ahora lo
        guarda la base. portal_situacion() solo lo expone mientras estado='pendiente'. */
     const env = await ficheros('envia_firma', Object.assign({ contrato_id: SAVED_CONTRACT.id,
-      nombre, email, rol: ROL, orden: FIRMA_NEXT.orden }, sinAnexo ? { sin_anexo: sinAnexo } : {}));
+      nombre, email, rol: ROL, orden: FIRMA_NEXT.orden }, sinAnexo ? { sin_anexo: sinAnexo } : {},
+      subida ? { subida } : {}));
     const link = env.link;
     const anulados = env.anulados || 0;
     if(anulados) toast(anulados === 1 ? 'El enlace anterior queda anulado'

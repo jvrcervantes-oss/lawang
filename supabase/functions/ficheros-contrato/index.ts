@@ -15,7 +15,7 @@
 // Acciones (POST JSON, `accion`):
 //   justificante_url {ext}            → {path, token}  subida de un justificante de cobro
 //   snapshot_url     {contrato_id}    → {path, token}  documento a firmar (solo si nadie firmó aún), a la ruta de
-//                    ESPERA `pendientes/<id>.subida.html`; envia_firma lo pasa a la fija `pendientes/<id>.html` solo
+//                    ESPERA `pendientes/<id>.subida.<nonce>.html`; envia_firma {…, subida} lo pasa a la fija `pendientes/<id>.html` solo
 //                    si la RPC crea el enlace (LAW-411, 28-sep-2026). La pantalla usa el `path` que se le da.
 //   envia_firma      {contrato_id, nombre, email, rol, orden, sin_anexo?} → {link, anulados}
 //                    sin_anexo = {motivo: 'ninguno'|'sin_apendice_a'|'fallo', faltan: [texto]}: el agente confirmó «Enviar
@@ -113,15 +113,15 @@ Deno.serve(async (req) => {
 
     // ── borradores de firma huérfanos ────────────────────────────────────
     // Tras borrar una operación sus contratos ya no existen: se borran SOLO los
-    // `pendientes/<id>.html` (y `<id>.subida.html`) cuyo contrato no existe. No recibe rutas de la pantalla, así
+    // `pendientes/<id>.html` (y `<id>.subida.<nonce>.html`) cuyo contrato no existe. No recibe rutas de la pantalla, así
     // que no puede borrar nada vivo. El PDF firmado no vive en `pendientes/`: nunca se toca.
     if (accion === 'limpia_borradores') {
       const nombres: [string, string][] = [];   // [id del contrato, nombre del fichero]
       for (let off = 0; ; off += 1000) {
         const { data, error } = await admin.storage.from(BUCKET_FIRMAS).list('pendientes', { limit: 1000, offset: off });
         if (error) return json({ ok: false, error: 'no_se_pudo_listar' }, 500);
-        // también el documento en espera `<id>.subida.html` (LAW-411) de un contrato que ya no existe
-        (data ?? []).forEach((o) => { const m = /^([0-9a-f-]{36})(\.subida)?\.html$/i.exec(o.name); if (m) nombres.push([m[1], o.name]); });
+        // también los documentos en espera `<id>.subida.<nonce>.html` (LAW-411) de un contrato que ya no existe
+        (data ?? []).forEach((o) => { const m = /^([0-9a-f-]{36})(\.subida\.[0-9a-f]{32})?\.html$/i.exec(o.name); if (m) nombres.push([m[1], o.name]); });
         if (!data || data.length < 1000) break;
       }
       if (!nombres.length) return json({ ok: true, borrados: 0 });
@@ -152,30 +152,50 @@ Deno.serve(async (req) => {
       // (la que leen firma-submit, el trigger _firma_solo_servidor y las policies de Storage) DESPUÉS de que
       // contrato_envia_firma haya creado el enlace. Antes se subía directo a la fija: si la RPC fallaba (validación,
       // permiso, red) el enlace anterior seguía vivo con un hash que ya no casaba y firma-submit lo rechazaba.
-      const espera = `pendientes/${contratoId}.subida.html`;
+      // La ruta de espera lleva un NONCE por subida (code-review 28-sep): con una sola ruta por contrato, dos agentes
+      // enviando a la vez podían firmar cada uno el documento del otro.
+      const prefijoEspera = `${contratoId}.subida.`;
+      const reEspera = new RegExp('^pendientes/' + contratoId + '\\.subida\\.[0-9a-f]{32}\\.html$', 'i');
       const firmados = (est as { firmados: number }).firmados;
       if (accion === 'snapshot_url') {
         // una vez que alguien firmó, el documento lo reescribe solo firma-submit (lleva sus firmas)
         if (firmados > 0) return json({ ok: false, error: 'ya_hay_firmas' }, 409);
-        const { data, error } = await admin.storage.from(BUCKET_FIRMAS).createSignedUploadUrl(espera, { upsert: true });
+        const espera = `pendientes/${prefijoEspera}${crypto.randomUUID().replace(/-/g, '')}.html`;
+        const { data, error } = await admin.storage.from(BUCKET_FIRMAS).createSignedUploadUrl(espera);
         if (error || !data) return json({ ok: false, error: 'no_se_pudo_preparar_la_subida' }, 500);
         return json({ ok: true, path: espera, token: data.token });
       }
       // envia_firma: el hash del documento lo calcula el servidor sobre lo que hay en el bucket.
-      // Sin firmas aún y con un documento en espera → se firma ESE (y se promueve tras el ok). Con firmas, nunca: el
-      // documento fijo lleva las firmas ya estampadas y lo reescribe solo firma-submit. Sin documento en espera (una
-      // pantalla que pidió snapshot_url a la edge anterior, que subía directo a la fija) → el fijo, como antes.
-      let rDoc: Response | null = null;
-      let promover = false;
+      //   · `subida` (la ruta que devolvió snapshot_url) → se firma ESE documento y se promueve tras el ok. Tiene que
+      //     ser una ruta de espera de ESTE contrato y existir: si no, se para (nunca se cae al fijo a ciegas).
+      //   · Con firmas ya estampadas, nunca: el fijo las lleva y lo reescribe solo firma-submit.
+      //   · Sin `subida` (pestaña abierta con la pantalla de antes): si hay UNA sola ruta de espera de este contrato,
+      //     esa; si hay varias, se pide recargar; si no hay ninguna, el fijo, como antes.
+      let espera = '';
       if (firmados === 0) {
-        const r = await leeFresco(BUCKET_FIRMAS, espera);
-        if (r.ok) { rDoc = r; promover = true; }
-        else if (r.status !== 400 && r.status !== 404) return json({ ok: false, error: 'no_se_pudo_leer_el_documento' }, 500);
+        if (body.subida != null) {
+          espera = String(body.subida);
+          if (!reEspera.test(espera)) return json({ ok: false, error: 'subida_invalida' }, 400);
+        } else {
+          const { data: lista, error: eL } = await admin.storage.from(BUCKET_FIRMAS)
+            .list('pendientes', { limit: 20, search: prefijoEspera });
+          if (eL) return json({ ok: false, error: 'no_se_pudo_leer_el_documento' }, 500);
+          const mias = (lista ?? []).map((o) => 'pendientes/' + o.name).filter((n) => reEspera.test(n));
+          if (mias.length > 1) return json({ ok: false, error: 'recarga_la_pagina_y_vuelve_a_generar' }, 409);
+          if (mias.length === 1) espera = mias[0];
+        }
+      } else if (body.subida != null) {
+        return json({ ok: false, error: 'ya_hay_firmas' }, 409);
       }
-      if (!rDoc) {
+      let rDoc: Response;
+      if (espera) {
+        rDoc = await leeFresco(BUCKET_FIRMAS, espera);
+        if (!rDoc.ok) return json({ ok: false, error: 'falta_el_documento_a_firmar' }, 409);
+      } else {
         rDoc = await leeFresco(BUCKET_FIRMAS, path);
         if (!rDoc.ok) return json({ ok: false, error: 'falta_el_documento_a_firmar' }, 409);
       }
+      const promover = !!espera;
       const html = await rDoc.text();
       const hash = await sha256hex(html);
       // «Enviar igualmente» sin un anexo del modelo (LAW-406, 28-sep-2026): la constancia la valida y la apunta
@@ -190,7 +210,8 @@ Deno.serve(async (req) => {
         p_snapshot_hash: hash,
         ...(body.sin_anexo != null ? { p_sin_anexo: body.sin_anexo } : {}),
       });
-      // Si la RPC falla, la ruta fija no se ha tocado: el enlace anterior sigue casando con su documento.
+      // Si la RPC falla, la ruta fija no se ha tocado: el enlace anterior sigue casando con su documento. El
+      // documento en espera se queda: la pantalla vuelve a subir uno nuevo en el siguiente intento.
       if (eEnv) return errRpc(eEnv);
       if (promover) {
         // Los MISMOS bytes que se han hasheado, a la ruta fija. Si esto falla, el enlace nuevo ya existe con el hash
@@ -200,8 +221,9 @@ Deno.serve(async (req) => {
           .upload(path, new Blob([html], { type: 'text/html' }), { contentType: 'text/html', upsert: true });
         if (eUp) return json({ ok: false, error: 'enlace_creado_sin_documento: vuelve a generar el enlace' }, 500);
         const { error: eRm } = await admin.storage.from(BUCKET_FIRMAS).remove([espera]);
-        // MUDO A PROPOSITO: el documento en espera que no se pudo borrar lo pisa la próxima subida (upsert) y lo
-        // barre limpia_borradores si el contrato desaparece; el envío ya está bien hecho.
+        // MUDO A PROPOSITO: un documento en espera que no se pudo borrar no se vuelve a firmar (cada subida lleva su
+        // nonce y la pantalla manda el suyo) y lo barre limpia_borradores si el contrato desaparece; el envío ya está
+        // bien hecho.
         if (eRm) console.error('ficheros-contrato: no se pudo borrar ' + espera + ': ' + eRm.message);
       }
       return json({ ok: true, ...(r as Record<string, unknown>) });
