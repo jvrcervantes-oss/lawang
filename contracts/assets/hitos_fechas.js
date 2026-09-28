@@ -88,6 +88,125 @@ function fechaHitoImpresa(iso, lang){
      `total - repartido` podía salir negativo en un documento firmable.
    Vencimiento no cambia para nadie: sigue siendo el desfase de fábrica
    (vence_dias) convertido a fecha editable, "por ahora como está" (owner). */
+
+/* CALENDARIO DE PAGOS ELEGIBLE — 28-sep-2026 (owner; revisión previa #148,
+   Legal + Seguridad + Administración). El agente elige UNO de tres
+   calendarios cerrados en el Contrato de Construcción; los % no se tocan:
+   · estandar     los 5 de fábrica. A la firma NO hay vencimientos: cada uno lo
+                  fija el parte de obra de su fase (+14 días, Art. 5).
+   · unico_firma  1 × 100 %, vence en la fecha que pone el agente
+                  (≥ firma, ≤ firma + 90 días; admin pasa del tope).
+   · unico_obra   1 × 100 %, lo fija el parte de preparación. La fecha que
+                  escriba el agente es ESTIMADA y va en `fecha_estimada`, nunca
+                  en `fecha`: `fecha` crea el vencimiento y la factura
+                  automática lo cobraría antes de empezar la obra.
+   Y dos que no se eligen, se heredan: `manual` (lo montó un admin: el resto
+   solo mueve fechas) y `libre` (contratos de antes del 16-sep, a mano como
+   siempre). QUIEN MANDA ES EL SERVIDOR: contrato_guarda rehace la tabla
+   entera —importes incluidos— desde el preset y el precio total, y devuelve
+   la que guardó; lo de aquí es solo lo que el agente ve mientras edita. */
+const CALENDARIOS_ELEGIBLES = ['estandar', 'unico_firma', 'unico_obra'];
+const PLAZO_PAGO_UNICO_DIAS = 90;   // espejo de parametros.construccion.pago_unico_max_dias — el servidor es quien lo aplica
+function presetCalendario(cal){
+  const t = (typeof TOKENS !== 'undefined' && TOKENS) || {};
+  const lista = cal === 'estandar'
+    ? ((t.hitosDefaults || {}).ppjb_construccion)
+    : ((t.hitosCalendarios || {})[cal]);
+  return Array.isArray(lista) ? lista.map(h => ({...h})) : null;
+}
+/* Qué calendario es una tabla YA GUARDADA sin la marca `calendario` (todo lo
+   anterior al 28-sep). Misma regla que contrato_calendario_deduce en la base:
+   % y concepto en los tres idiomas, en orden, y todos de fábrica. */
+function calendarioDeduce(hitos){
+  if(!Array.isArray(hitos) || !hitos.length || !hitos.some(h => h && h.fijo)) return 'libre';
+  for(const cal of CALENDARIOS_ELEGIBLES){
+    const pre = presetCalendario(cal);
+    if(pre && pre.length === hitos.length && pre.every((p,i) => {
+      const h = hitos[i] || {};
+      return parseFloat(h.pct) === parseFloat(p.pct) && (h.es||'') === p.es && (h.en||'') === p.en
+          && (h.id||'') === p.id && !!h.fijo;
+    })) return cal;
+  }
+  return 'manual';
+}
+function fechaFirmaISO(){
+  const v = ((document.querySelector('[name="fecha_firma"]') || {}).value || '').trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : hoyLocalISO();
+}
+function sumaDiasISO(iso, dias){
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso); if(!m) return '';
+  return fechaVencimiento(new Date(+m[1], +m[2]-1, +m[3]), { vence_dias: dias });
+}
+/* Cambiar de calendario sustituye la tabla entera por el preset. El pago
+   único a la firma arranca a firma + 14 días, el mismo plazo que el Art. 5 da
+   a los hitos: el agente lo mueve si pactó otra cosa. */
+function cambiaCalendario(cal){
+  if(!CALENDARIOS_ELEGIBLES.includes(cal) || cal === CALENDARIO) return;
+  const pre = presetCalendario(cal); if(!pre) return;
+  if(cal === 'unico_firma') pre[0].fecha = sumaDiasISO(fechaFirmaISO(), 14);
+  HITOS = pre; CALENDARIO = cal;
+  refreshHitos();
+  if(typeof recalcularMontosHitos === 'function') recalcularMontosHitos();
+  if(typeof updateSaveButton === 'function') updateSaveButton();
+  if(typeof render === 'function') render();
+}
+/* Un admin que toca un % o un concepto de fábrica, o añade/quita un hito,
+   deja de estar en un calendario de fábrica: pasa a «a medida», y el
+   documento deja de imprimir la cláusula de pago único si la tenía. */
+function calendarioPasaAManual(){
+  if(!CALENDARIOS_ELEGIBLES.includes(CALENDARIO)) return;
+  CALENDARIO = 'manual';
+  const sel = document.getElementById('calendarioSel');
+  if(sel){
+    if(![...sel.options].some(o => o.value === 'manual')) sel.add(new Option(L({es:'A medida (admin)',en:'Custom (admin)',id:'Khusus (admin)'}), 'manual'));
+    sel.value = 'manual';
+  }
+}
+function calendarioSelectorHTML(){
+  const cal = CALENDARIO || 'estandar';
+  const cerrado = (typeof LOCKED !== 'undefined' && LOCKED)
+    || (typeof EN_FIRMA !== 'undefined' && (EN_FIRMA.vivas + EN_FIRMA.firmadas) > 0);
+  const opts = [
+    ['estandar',    L({es:'Por hitos, al iniciar cada fase de obra',en:'By milestones, as each construction phase starts',id:'Per tahap, saat setiap fase konstruksi dimulai'})],
+    ['unico_firma', L({es:'Pago único a la firma',en:'Single payment upon signing',id:'Pembayaran tunggal saat penandatanganan'})],
+    ['unico_obra',  L({es:'Pago único al inicio de obra',en:'Single payment when works start',id:'Pembayaran tunggal saat pekerjaan dimulai'})]
+  ];
+  if(cal === 'manual') opts.push(['manual', L({es:'A medida (admin)',en:'Custom (admin)',id:'Khusus (admin)'})]);
+  if(cal === 'libre')  opts.push(['libre',  L({es:'Calendario anterior, a mano',en:'Earlier schedule, by hand',id:'Jadwal lama, manual'})]);
+  const nota = {
+    estandar:    L({es:'A la firma no vence nada. Cada pago vence 14 días después de que la obra entre en su fase: lo fija el parte de trabajo.',en:'Nothing falls due at signing. Each payment falls due 14 days after the works enter its phase — set by the work report.',id:'Tidak ada yang jatuh tempo saat penandatanganan. Setiap pembayaran jatuh tempo 14 hari setelah pekerjaan memasuki fasenya — ditetapkan oleh laporan kerja.'}),
+    unico_firma: L({es:`Vence en la fecha que pongas: como muy tarde ${PLAZO_PAGO_UNICO_DIAS} días después de la firma. Si hay descuento por pago al contado, va en «Descuento comercial».`,en:`Falls due on the date you set: at most ${PLAZO_PAGO_UNICO_DIAS} days after signing. A cash discount goes in «Commercial discount».`,id:`Jatuh tempo pada tanggal yang Anda tetapkan: paling lambat ${PLAZO_PAGO_UNICO_DIAS} hari setelah penandatanganan. Diskon tunai masuk di «Diskon komersial».`}),
+    unico_obra:  L({es:'Vence 14 días después de que empiece la obra (parte de preparación). La fecha que pongas es solo una estimación: sale como «Estimada» y no genera ningún cobro.',en:'Falls due 14 days after works start (preparation report). Any date you set is only an estimate: it prints as «Estimated» and triggers no charge.',id:'Jatuh tempo 14 hari setelah pekerjaan dimulai (laporan persiapan). Tanggal yang Anda isi hanya perkiraan: tercetak sebagai «Perkiraan» dan tidak memicu penagihan.'}),
+    manual:      L({es:'Calendario montado por administración: solo se mueven las fechas.',en:'Schedule set up by admin: only dates can be moved.',id:'Jadwal disusun oleh admin: hanya tanggal yang dapat diubah.'}),
+    libre:       L({es:'Contrato anterior al calendario de fábrica: se sigue editando a mano. Si eliges una forma de pago, la tabla se sustituye.',en:'Contract predating the standard schedule: still edited by hand. Choosing a payment method replaces the table.',id:'Kontrak sebelum jadwal standar: tetap diedit manual. Memilih cara pembayaran akan mengganti tabel.'})
+  }[cal] || '';
+  return `<div class="field" style="margin-bottom:10px"><label for="calendarioSel">${L({es:'Forma de pago',en:'Payment method',id:'Cara pembayaran'})}</label>
+    <select id="calendarioSel"${cerrado ? ' disabled' : ''}>${opts.map(([v,t]) =>
+      `<option value="${v}"${v === cal ? ' selected' : ''}${(v === 'libre' || v === 'manual') ? ' disabled' : ''}>${esc(t)}</option>`).join('')}</select>
+    <p class="mini" style="margin-top:4px">${esc(nota)}</p></div>`;
+}
+
+/* La celda de vencimiento de cada hito, según el calendario (28-sep-2026):
+   en el estándar no hay fecha que poner —la pone la obra—, en el pago único
+   al inicio de obra la fecha es una estimación con su propia clave, y en el
+   pago único a la firma es la fecha real, acotada. El resto, como siempre. */
+function celdaFecha(h, i, esConstruccion, notaTiming){
+  const etiqueta = escAttr(L({es:'Vencimiento, hito',en:'Due date, milestone',id:'Jatuh tempo, tahap'})) + ' ' + (i+1);
+  if(esConstruccion && CALENDARIO === 'estandar'){
+    return `<span class="mini">${esc(L({es:'Al iniciar su fase de obra (+14 días)',en:'When its construction phase starts (+14 days)',id:'Saat fase konstruksinya dimulai (+14 hari)'}))}</span>`;
+  }
+  if(esConstruccion && CALENDARIO === 'unico_obra'){
+    return `<div class="field"><input id="${hid(i,'fecha_estimada')}" type="date" data-hi="${i}" data-hkey="fecha_estimada" value="${escAttr(h.fecha_estimada||'')}"
+        min="${escAttr(fechaFirmaISO())}" aria-label="${escAttr(L({es:'Fecha estimada, hito',en:'Estimated date, milestone',id:'Tanggal perkiraan, tahap'}))} ${i+1}"></div>
+      <span class="hito-nota">${esc(L({es:'Estimada — la real la fija el inicio de obra',en:'Estimated — the real one is set when works start',id:'Perkiraan — tanggal sebenarnya ditetapkan saat pekerjaan dimulai'}))}</span>`;
+  }
+  const acota = esConstruccion && CALENDARIO === 'unico_firma';
+  const topes = acota
+    ? ` min="${escAttr(fechaFirmaISO())}"` + ((typeof puedeHitosFijos === 'function' && puedeHitosFijos()) ? '' : ` max="${escAttr(sumaDiasISO(fechaFirmaISO(), PLAZO_PAGO_UNICO_DIAS))}"`)
+    : '';
+  return `<div class="field"><input id="${hid(i,'fecha')}" type="date" data-hi="${i}" data-hkey="fecha" value="${escAttr(h.fecha||'')}"${topes}
+        aria-label="${etiqueta}"></div>${notaTiming}`;
+}
 function hitosBodyHTML(){
   const esConstruccion = typeof CONTRACT_TIPO !== 'undefined' && CONTRACT_TIPO[CURRENT.slug] === 'construccion';
   // Moneda del documento junto a la Cantidad de cada hito (17-sep-2026,
@@ -150,8 +269,7 @@ function hitosBodyHTML(){
         aria-label="% ${L({es:'del hito',en:'of milestone',id:'tahap'})} ${i+1}"></div></td>
       <td class="monto"><div class="field hito-monto-grupo"><input id="${hid(i,'monto')}" data-hi="${i}" data-hkey="monto" value="${escAttr(h.monto)}"${lockMonto}
         aria-label="${escAttr(L({es:'Cantidad, hito',en:'Amount, milestone',id:'Jumlah, tahap'}))} ${i+1}"><span class="hito-moneda">${esc(monedaDoc)}</span></div></td>
-      <td class="fecha"><div class="field"><input id="${hid(i,'fecha')}" type="date" data-hi="${i}" data-hkey="fecha" value="${escAttr(h.fecha||'')}"
-        aria-label="${escAttr(L({es:'Vencimiento, hito',en:'Due date, milestone',id:'Jatuh tempo, tahap'}))} ${i+1}"></div>${notaTiming}</td>
+      <td class="fecha">${celdaFecha(h, i, esConstruccion, notaTiming)}</td>
       <td class="acciones">${btnDel}</td>
     </tr>
     <tr class="hito-mas" id="hito-mas-${i}" data-hito-mas="${i}" hidden>
@@ -201,7 +319,7 @@ function hitosBodyHTML(){
         id:`Sisa ${cc.carta_cobrado_sobrante} yang dibayarkan pada Surat tidak dapat diserap oleh Perjanjian ini (harganya lebih rendah) — tentukan secara manual apa yang harus dilakukan dengan sisa tersebut.`
       })) : ''}
   </p>` : '';
-  return `<div class="hitos-tabla-wrap"><table class="hitos-tabla"><thead><tr>
+  return `${esConstruccion ? calendarioSelectorHTML() : ''}<div class="hitos-tabla-wrap"><table class="hitos-tabla"><thead><tr>
       <th>%</th>
       <th>${L({es:'Cantidad',en:'Amount',id:'Jumlah'})}</th>
       <th>${L({es:'Vencimiento',en:'Due date',id:'Jatuh tempo'})}</th>
@@ -327,8 +445,14 @@ function hitosRowsHTML(){
        mes/día: allí va "9 Mar 2026". Los contratos de ANTES del cambio no llevan
        fecha y conservan su texto de timing tal cual — reabrirlos no les cambia ni
        una letra del documento. */
+    /* Pago único al inicio de obra (28-sep-2026): su fecha es una ESTIMACIÓN
+       y sale como tal — la cláusula del Art. 5 dice que no determina cuándo
+       se debe el pago; imprimirla a secas daría dos vencimientos distintos en
+       el mismo documento (Legal, revisión previa #148). */
     const cuando = h.fecha
       ? `<span data-lang="es">${esc(fechaHitoImpresa(h.fecha,'es'))}</span><span data-lang="en">${esc(fechaHitoImpresa(h.fecha,'en'))}</span><span data-lang="id">${esc(fechaHitoImpresa(h.fecha,'id'))}</span>`
+      : h.fecha_estimada
+      ? `<span data-lang="es">Estimada: ${esc(fechaHitoImpresa(h.fecha_estimada,'es'))}</span><span data-lang="en">Estimated: ${esc(fechaHitoImpresa(h.fecha_estimada,'en'))}</span><span data-lang="id">Perkiraan: ${esc(fechaHitoImpresa(h.fecha_estimada,'id'))}</span>`
       : esc(String(h.timing||''));
     return `<tr><td class="n">${i+1}</td><td>`
     + `<span data-lang="es">${esc(String(h.es||''))}</span><span data-lang="en">${esc(String(h.en||''))}</span><span data-lang="id">${esc(String(h.id||''))}</span>`

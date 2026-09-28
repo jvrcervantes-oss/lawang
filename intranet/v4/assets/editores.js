@@ -7165,7 +7165,10 @@
           var elegibles = filas.filter(function (f) { return f.elegible; });
           var fuera = filas.filter(function (f) { return !f.elegible; });
           var ordenPago = filas.length ? filas[0].orden_pago : null;
-          var diasPorDefecto = ordenPago != null && plazos[ordenPago] != null ? plazos[ordenPago] : '';
+          // Sin plazo configurado en el proyecto, los 14 días del Art. 5 del contrato (28-sep-2026): no es un
+          // plazo inventado, es el que firmó el comprador. La base aplica la misma regla si no le llega ninguno.
+          var configurado = ordenPago != null && plazos[ordenPago] != null;
+          var diasPorDefecto = configurado ? plazos[ordenPago] : 14;
 
           var diasCalc = diasPorDefecto === '' ? 0 : Number(diasPorDefecto);
           var fechaNueva = new Date(Date.now() + diasCalc * 864e5).toISOString().slice(0, 10);
@@ -7179,6 +7182,8 @@
             var MOTIVO = {
               anterior_al_mecanismo: 'contrato anterior a este mecanismo — se cobra a mano, como hasta ahora',
               calendario_manual: 'calendario a medida, no el de fábrica',
+              pago_unico_firma: 'pago único a la firma — su vencimiento lo fija el contrato, no la obra',
+              pago_unico_ya_al_inicio: 'pago único — ya se cobró al empezar la obra',
               ajustado_a_mano: 'su fecha ya se tocó a mano',
               ya_facturado: 'ese pago ya está facturado',
               sin_vencimiento_en_ese_orden: 'no tiene ese pago en su calendario'
@@ -7267,8 +7272,8 @@
                 } },
               { k: 'dias', tipo: 'number', paso: '1', req: 1, valor: diasPorDefecto,
                 label: 'Días hasta que venza el cobro',
-                ayuda: diasPorDefecto === ''
-                  ? 'Este proyecto no tiene plazo configurado para este pago. Escríbelo aquí, o configúralo en Proyectos → Estado y obra. Si lo cambias, las fechas e importes de arriba se recalculan al confirmar.'
+                ayuda: !configurado
+                  ? 'Los 14 días que da el contrato (Art. 5) desde el aviso de inicio de fase. Este proyecto no tiene otro plazo configurado para este pago (Proyectos → Estado y obra). Si lo cambias, las fechas de arriba se recalculan al confirmar.'
                   : 'Viene del plazo configurado en la ficha del proyecto. Puedes cambiarlo solo para este avance; si lo haces, la fecha de arriba cambia igual.' },
               { k: 'nota', tipo: 'textarea', label: 'Qué se ha hecho (queda en el histórico del parte)' }
             ];

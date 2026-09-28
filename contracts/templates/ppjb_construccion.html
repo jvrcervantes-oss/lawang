@@ -193,20 +193,75 @@
       </tbody>
     </table>
 <!--/seccion-hitos-->
+<!-- Art. 5 por forma de pago (28-sep-2026, owner; textos de Legal, revisión previa #148). `clausula_pago` la
+     escribe el servidor (contrato_guarda) desde el calendario: vacía = hitos por fase (el texto de siempre, byte a
+     byte), unico_obra = el primer punto de siempre + exigibilidad al inicio de la preparación, unico_firma = pago en
+     la fecha de la tabla y la obra no arranca hasta cobrar. Sin cláusula de restitución: decisión del owner. -->
     <ul data-lang="es">
+<!--if:clausula_pago=-->
       <li>Los pagos deberán realizarse en la etapa establecida para garantizar la continuidad de la obra. Si el ADQUIRIENTE incumple sus obligaciones de pago, el CONSTRUCTOR se reserva el derecho de suspender el proyecto y evaluar los posibles incrementos de coste derivados de la reanudación.</li>
+<!--/if:clausula_pago-->
+<!--if:clausula_pago=unico_obra-->
+      <li>Los pagos deberán realizarse en la etapa establecida para garantizar la continuidad de la obra. Si el ADQUIRIENTE incumple sus obligaciones de pago, el CONSTRUCTOR se reserva el derecho de suspender el proyecto y evaluar los posibles incrementos de coste derivados de la reanudación.</li>
+<!--/if:clausula_pago-->
+<!--if:clausula_pago=unico_firma-->
+      <li>El Precio del Contrato se abonará en un único pago, por su importe íntegro, en la fecha indicada en la tabla anterior. El CONSTRUCTOR no estará obligado a iniciar los trabajos, y podrá suspenderlos si ya se hubieran iniciado, hasta haber recibido dicho pago, y el Plazo de Ejecución del Artículo 6 no comenzará a correr antes de su recepción.</li>
+<!--/if:clausula_pago-->
       <li>El CONSTRUCTOR deberá facilitar regularmente reportes y fotografías de los avances, así como un informe a la finalización de cada etapa.</li>
+<!--if:clausula_pago=-->
       <li>Cada hito será exigible al inicio de la fase de obra que designa y, en el caso del último hito, a la solicitud de inspección prevista en el Artículo 11. El CONSTRUCTOR lo notificará por escrito al ADQUIRIENTE acompañando el informe de avance previsto en este Artículo, y el pago deberá realizarse dentro de los catorce (14) días naturales siguientes a la recepción de dicha notificación. Transcurrido dicho plazo sin pago, el ADQUIRIENTE incurrirá en mora sin necesidad de requerimiento adicional.</li>
+<!--/if:clausula_pago-->
+<!--if:clausula_pago=unico_obra-->
+      <li>El Precio del Contrato se abonará en un único pago, por su importe íntegro, exigible al inicio de la fase de preparación del terreno. El CONSTRUCTOR notificará por escrito dicho inicio al ADQUIRIENTE acompañando el informe de avance previsto en este Artículo, y el pago deberá realizarse dentro de los catorce (14) días naturales siguientes a la recepción de dicha notificación. La fecha que, en su caso, figure en la tabla anterior es meramente estimativa y no determina la exigibilidad del pago. Transcurrido dicho plazo sin pago, el ADQUIRIENTE incurrirá en mora sin necesidad de requerimiento adicional.</li>
+<!--/if:clausula_pago-->
+<!--if:clausula_pago=unico_firma-->
+      <li>El pago único será exigible en la fecha indicada en la tabla, sin necesidad de notificación previa del CONSTRUCTOR. Transcurrida dicha fecha sin pago, el ADQUIRIENTE incurrirá en mora sin necesidad de requerimiento adicional, sin perjuicio de la facultad de resolución prevista en el Artículo 13.</li>
+<!--/if:clausula_pago-->
     </ul>
     <ul data-lang="en">
+<!--if:clausula_pago=-->
       <li>Payments must be made at the established stage to ensure continuity of the works. If the BUYER fails to meet its payment obligations, the BUILDER reserves the right to suspend the project and assess possible cost increases arising from resumption.</li>
+<!--/if:clausula_pago-->
+<!--if:clausula_pago=unico_obra-->
+      <li>Payments must be made at the established stage to ensure continuity of the works. If the BUYER fails to meet its payment obligations, the BUILDER reserves the right to suspend the project and assess possible cost increases arising from resumption.</li>
+<!--/if:clausula_pago-->
+<!--if:clausula_pago=unico_firma-->
+      <li>The Contract Price shall be paid in a single payment, for its full amount, on the date stated in the table above. The BUILDER shall not be obliged to commence the works, and may suspend them if already commenced, until it has received such payment, and the Execution Term under Article 6 shall not begin to run before its receipt.</li>
+<!--/if:clausula_pago-->
       <li>The BUILDER shall regularly provide progress reports and photographs, as well as a report upon completion of each stage.</li>
+<!--if:clausula_pago=-->
       <li>Each milestone shall fall due upon commencement of the construction phase it designates and, in the case of the final milestone, upon the request for inspection provided for in Article 11. The BUILDER shall notify the BUYER in writing, attaching the progress report provided for in this Article, and payment shall be made within fourteen (14) calendar days of receipt of such notice. Upon expiry of that period without payment, the BUYER shall be in default without need of any further demand.</li>
+<!--/if:clausula_pago-->
+<!--if:clausula_pago=unico_obra-->
+      <li>The Contract Price shall be paid in a single payment, for its full amount, falling due upon commencement of the site preparation phase. The BUILDER shall notify the BUYER of such commencement in writing, attaching the progress report provided for in this Article, and payment shall be made within fourteen (14) calendar days of receipt of such notice. Any date shown in the table above is merely an estimate and does not determine when payment falls due. Upon expiry of that period without payment, the BUYER shall be in default without need of any further demand.</li>
+<!--/if:clausula_pago-->
+<!--if:clausula_pago=unico_firma-->
+      <li>The single payment shall fall due on the date stated in the table, without the need for any prior notice from the BUILDER. Upon that date passing without payment, the BUYER shall be in default without need of any further demand, without prejudice to the right of termination provided for in Article 13.</li>
+<!--/if:clausula_pago-->
     </ul>
     <ul data-lang="id">
+<!--if:clausula_pago=-->
       <li>Pembayaran harus dilakukan pada tahap yang ditetapkan untuk menjamin kelangsungan pekerjaan. Jika PEMBELI tidak memenuhi kewajiban pembayaran, KONTRAKTOR berhak menangguhkan proyek dan menilai kemungkinan kenaikan biaya akibat pengaktifan kembali.</li>
+<!--/if:clausula_pago-->
+<!--if:clausula_pago=unico_obra-->
+      <li>Pembayaran harus dilakukan pada tahap yang ditetapkan untuk menjamin kelangsungan pekerjaan. Jika PEMBELI tidak memenuhi kewajiban pembayaran, KONTRAKTOR berhak menangguhkan proyek dan menilai kemungkinan kenaikan biaya akibat pengaktifan kembali.</li>
+<!--/if:clausula_pago-->
+<!--if:clausula_pago=unico_firma-->
+      <!-- ID pendiente de traductor (28-sep-2026) -->
+      <li>Harga Kontrak dibayar dalam satu kali pembayaran sebesar jumlah penuhnya pada tanggal yang tercantum dalam tabel di atas. KONTRAKTOR tidak berkewajiban memulai pekerjaan, dan dapat menangguhkannya apabila telah dimulai, sampai pembayaran tersebut diterima, dan Jangka Waktu Pelaksanaan sebagaimana dimaksud dalam Pasal 6 tidak mulai berjalan sebelum pembayaran tersebut diterima.</li>
+<!--/if:clausula_pago-->
       <li>KONTRAKTOR wajib secara berkala menyediakan laporan dan foto kemajuan, serta laporan pada penyelesaian setiap tahap.</li>
+<!--if:clausula_pago=-->
       <li>Setiap tahapan menjadi jatuh tempo pada saat dimulainya fase konstruksi yang ditunjuknya dan, untuk tahapan terakhir, pada saat permintaan inspeksi sebagaimana diatur dalam Pasal 11. KONTRAKTOR memberitahukannya secara tertulis kepada PEMBELI dengan melampirkan laporan kemajuan sebagaimana diatur dalam Pasal ini, dan pembayaran wajib dilakukan dalam empat belas (14) hari kalender sejak diterimanya pemberitahuan tersebut. Setelah jangka waktu tersebut terlampaui tanpa pembayaran, PEMBELI dinyatakan lalai (wanprestasi) tanpa memerlukan teguran lebih lanjut.</li>
+<!--/if:clausula_pago-->
+<!--if:clausula_pago=unico_obra-->
+      <!-- ID pendiente de traductor (28-sep-2026) -->
+      <li>Harga Kontrak dibayar dalam satu kali pembayaran sebesar jumlah penuhnya, yang menjadi jatuh tempo pada saat dimulainya fase persiapan lahan. KONTRAKTOR memberitahukan dimulainya fase tersebut secara tertulis kepada PEMBELI dengan melampirkan laporan kemajuan sebagaimana diatur dalam Pasal ini, dan pembayaran wajib dilakukan dalam empat belas (14) hari kalender sejak diterimanya pemberitahuan tersebut. Tanggal yang tercantum dalam tabel di atas, apabila ada, hanya bersifat perkiraan dan tidak menentukan saat jatuh tempo pembayaran. Setelah jangka waktu tersebut terlampaui tanpa pembayaran, PEMBELI dinyatakan lalai (wanprestasi) tanpa memerlukan teguran lebih lanjut.</li>
+<!--/if:clausula_pago-->
+<!--if:clausula_pago=unico_firma-->
+      <!-- ID pendiente de traductor (28-sep-2026) -->
+      <li>Pembayaran tunggal menjadi jatuh tempo pada tanggal yang tercantum dalam tabel, tanpa memerlukan pemberitahuan terlebih dahulu dari KONTRAKTOR. Setelah tanggal tersebut terlampaui tanpa pembayaran, PEMBELI dinyatakan lalai (wanprestasi) tanpa memerlukan teguran lebih lanjut, tanpa mengesampingkan hak pengakhiran sebagaimana diatur dalam Pasal 13.</li>
+<!--/if:clausula_pago-->
     </ul>
 
     <!--datos-bancarios-->
