@@ -1,4 +1,4 @@
--- PRUEBA POR ROL — calendario de pagos del Contrato de Construcción (28-sep-2026, migraciones 20260928052131 + 052357 + 054712 + 055624 + 060334).
+-- PRUEBA POR ROL — calendario de pagos del Contrato de Construcción (28-sep-2026, migraciones 20260928052131 + 052357 + 054712 + 055624 + 060334 + 061023).
 -- Se ejecuta con execute_sql (MCP) o psql como postgres, UN BLOQUE POR LLAMADA: cada uno acaba en
 -- `raise exception 'RES: …'`, que revierte la transacción entera — NO ESCRIBE NADA. Cada punto debe decir «ok».
 -- Para probar ANTES de aplicar: `begin;` + el texto de la migración + un bloque, en la misma llamada.
@@ -268,5 +268,25 @@ begin
   exception when others then r := r || '2 ok; '; end;
   reset role;
   r := r || case when contrato_calendario_preset('unico_firma')->0->>'es' = 'Pago único' then '3 ok; ' else '3 FALLO; ' end;
+  raise exception 'RES: %', r;
+end $$;
+
+-- 8. Tras 20260928061023: adelantar la fecha de firma no deja un pago único más allá del tope. 2/2 ok el 28-sep.
+do $$
+declare r text := ''; j jsonb; c record; ant jsonb; nue jsonb; ff date;
+  A text := '{"sub":"1cd031f2-c7da-455e-975f-c4e8708e36fb","email":"dortegag@gmail.com","role":"authenticated"}';
+begin
+  select * into c from contratos where numero = 'CC00106';
+  ff := date '2026-11-01';
+  perform set_config('request.jwt.claims', A, true);
+  ant := jsonb_set(c.datos, '{fields,fecha_firma}', to_jsonb(to_char(ff, 'YYYY-MM-DD'))) || jsonb_build_object('calendario', 'unico_firma', 'hitos',
+           contrato_calendario_monta('unico_firma', 67000, jsonb_build_array(jsonb_build_object('fecha', to_char(ff + 90, 'YYYY-MM-DD'))), ff, false));
+  nue := jsonb_set(ant, '{fields,fecha_firma}', to_jsonb(to_char(ff - 30, 'YYYY-MM-DD')));
+  begin
+    perform contrato_calendario_aplica(nue, ant, 67000, ff - 30, c.id);
+    r := r || '1 FALLO se salta el tope moviendo la firma; ';
+  exception when others then r := r || '1 ok; '; end;
+  j := contrato_calendario_aplica(ant, ant, 67000, ff, c.id);
+  r := r || case when j->'hitos'->0->>'fecha' = to_char(ff + 90, 'YYYY-MM-DD') then '2 ok; ' else '2 FALLO; ' end;
   raise exception 'RES: %', r;
 end $$;
