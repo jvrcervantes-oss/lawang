@@ -85,7 +85,7 @@
     var toggle = $('langToggle');
     (toggle || top.lastChild).insertAdjacentElement('afterend', estado);
     var der = document.createElement('div'); der.className = 'lw4-cab-der';
-    ['btnDownloadSigned', 'btnSave', 'btnNuevoC'].forEach(function (id) { var b = $(id); if (b) der.appendChild(b); });
+    ['btnDownloadSigned', 'btnSave'].forEach(function (id) { var b = $(id); if (b) der.appendChild(b); });
     top.appendChild(der);
 
     /* ── barra de herramientas: sale del panel de la vista previa y ocupa el
