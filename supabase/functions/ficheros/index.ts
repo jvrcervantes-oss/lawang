@@ -44,6 +44,13 @@
 //   registra   {clase, ...ids, path, nombre, tipo?} → {id}
 //   borra      {clase, id}                          → {ok}
 //   guarda     {clase:'creatividad', creatividad_id, tipo, datos, estado_path, path?, portada_path?, foto_ids?, modelo_ids?} → {fila}
+//   AXW-66 (28-sep), solo clase deck_foto:
+//   urls        {clase:'deck_foto', foto_ids[≤200]}     → {urls:{id:url|null}, caduca_seg}   (equipo; firmada si privada)
+//   deck_activa {clase:'deck_foto', proyecto_id, activo} → {aplicado, unidades, activo, aviso?} (admin). `aplicado` dice si el flag
+//               cambió: false en 409 cambio_en_curso / 500 fotos_sin_mover; true en 500 deck_a_medias y en 200 con
+//               aviso aplicado_con_duplicadas (mismo nombre en los dos buckets, lo decide una persona)
+//   sincroniza  {clase:'deck_foto'}                      → {movidas, fallidas, quedan, en_ambos}                 (admin)
+//               apagada (409) hasta el secreto DECK_SINCRONIZA=on, que se pone cuando S4 está servido
 //
 // verify_jwt=false por el mismo motivo que ficheros-contrato (CORS del preflight); el JWT se valida a mano.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
@@ -386,6 +393,153 @@ async function guardaCreatividad(u: Usuario, uid: string, body: Record<string, u
   return { fila: data };
 }
 
+// ── Deck: fotos públicas solo de decks abiertos (AXW-66, 28-sep-2026; encargo 20260928_lawang_deck_fotos_privadas,
+// revisión previa #139). Las fotos de proyectos sin deck abierto (y los ficheros sin fila) viven en `deck-privado`.
+// Qué bucket DEBE tener cada objeto lo decide la base (deck_fotos_desajustes, lista cerrada de prefijos); aquí solo se
+// mueve por Storage API conservando el nombre. Nunca se acepta del cliente una ruta ni un bucket: solo ids.
+const DECK_PRIVADO = 'deck-privado';
+const MAX_PASADAS = 40;         // tope de pasadas de reconcilia (una pasada = lo que la base diga que está mal puesto)
+const FIRMA_SEG = 3600;         // URL firmada de 1 h: se pide al pintar y otra vez antes de imprimir; nunca se guarda
+type RespDeck = { cuerpo: Record<string, unknown>; status?: number } | { rpcError: unknown };
+type Desajuste = { name: string; bucket_real: string; bucket_debido: string; proyecto_id: string | null; motivo: string };
+
+// ¿`deck` es público en ESTA instancia? En Lawang sí; en el ERP maestro nació privado (20260927230000). Si no lo es,
+// también se firma: la acción `urls` sirve igual en las dos.
+// Caché de 60 s: si alguien cambia el bucket, la edge caliente no sigue repartiendo URLs públicas de un bucket ya
+// privado más de un minuto.
+let deckPublico: { v: boolean; hasta: number } | null = null;
+async function esDeckPublico(): Promise<boolean> {
+  if (!deckPublico || deckPublico.hasta < Date.now()) {
+    const { data } = await admin.storage.getBucket('deck');
+    deckPublico = { v: data?.public === true, hasta: Date.now() + 60_000 };
+  }
+  return deckPublico.v;
+}
+
+// `sincroniza` mueve TODAS las fotos mal puestas de golpe. Mientras las pantallas pinten fotos de proyectos cerrados con
+// URL pública («Fotos del deck», creatividades, dossier), sacarlas de `deck` las rompe. Por eso no corre hasta que el
+// front de S4 esté aterrizado y servido: se enciende con el secreto DECK_SINCRONIZA=on (supabase secrets set), a mano,
+// al confirmarlo. Secreto y no fila: no hace falta DDL y nadie lo cambia desde el navegador (AXW-66, revisor 28-sep).
+const sincronizaEncendida = () => (Deno.env.get('DECK_SINCRONIZA') ?? '') === 'on';
+
+// Mover conservando el nombre (rutas planas, revisión #139 DAT3). Por REST: el `move` con destinationBucket se probó
+// así el 28-sep (S1: ida y vuelta de un objeto, mismo tamaño y sha256).
+async function mueveObjeto(name: string, desde: string, hacia: string): Promise<boolean> {
+  const r = await fetch(`${URL_SB}/storage/v1/object/move`, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + SERVICE, apikey: SERVICE, 'content-type': 'application/json' },
+    body: JSON.stringify({ bucketId: desde, sourceKey: name, destinationKey: name, destinationBucket: hacia }),
+  });
+  await r.body?.cancel();
+  return r.ok;
+}
+
+// Pone en su bucket lo que la base dice que está mal puesto, por pasadas hasta que no quede nada o una pasada no
+// consiga mover nada (entonces lo que queda son fallos de Storage y se devuelven como `quedan`, nunca en silencio).
+// `en_ambos` NO se toca (borrar una de las dos copias es decisión de una persona): se cuenta y se devuelve.
+async function reconcilia(proyecto: string | null): Promise<{ movidas: number; fallidas: number; quedan: number; en_ambos: number } | { rpcError: unknown }> {
+  let movidas = 0, fallidas = 0;
+  for (let pasada = 0; ; pasada++) {
+    const { data, error } = await admin.rpc('deck_fotos_desajustes', { p_proyecto_id: proyecto });
+    if (error) return { rpcError: error };
+    const todas = (data ?? []) as Desajuste[];
+    const filas = todas.filter((d) => d.motivo !== 'en_ambos');
+    const en_ambos = todas.length - filas.length;
+    if (!filas.length || pasada >= MAX_PASADAS) return { movidas, fallidas, quedan: filas.length, en_ambos };
+    let estaPasada = 0;
+    for (let i = 0; i < filas.length; i += 8) {
+      const lote = await Promise.all(filas.slice(i, i + 8).map((d) => mueveObjeto(d.name, d.bucket_real, d.bucket_debido)));
+      lote.forEach((ok) => ok ? (movidas++, estaPasada++) : fallidas++);
+    }
+    if (!estaPasada) return { movidas, fallidas, quedan: filas.length, en_ambos };   // sin progreso: no insistir
+  }
+}
+
+const ACCIONES_DECK: Record<string, (u: Usuario, uid: string, body: Record<string, unknown>) => Promise<RespDeck>> = {
+  // URL de cada foto por id: pública si está en un `deck` público, firmada (1 h) si no. La ruta sale de deck_fotos y el
+  // bucket de storage.objects (deck_fotos_ubicacion, que exige es_agente con el usuario del JWT).
+  urls: async (_u, uid, body) => {
+    const ids = [...new Set((Array.isArray(body.foto_ids) ? body.foto_ids : []).map(String))];
+    if (!ids.length || ids.length > 200 || !ids.every(esUuid)) return { cuerpo: { ok: false, error: 'foto_ids_invalidos' }, status: 400 };
+    const { data, error } = await admin.rpc('deck_fotos_ubicacion', { p_uid: uid, p_ids: ids });
+    if (error) return { rpcError: error };
+    const filas = (data ?? []) as { id: string; path: string; bucket: string | null }[];
+    const urls: Record<string, string | null> = Object.fromEntries(ids.map((i) => [i, null]));
+    const publico = await esDeckPublico();
+    const aFirmar: Record<string, { id: string; path: string }[]> = {};
+    for (const f of filas) {
+      if (!f.bucket) continue;                                     // sin objeto: null (la pantalla lo dice)
+      if (f.bucket === 'deck' && publico) urls[f.id] = admin.storage.from('deck').getPublicUrl(f.path).data.publicUrl;
+      else (aFirmar[f.bucket] ??= []).push(f);
+    }
+    for (const [bucket, lista] of Object.entries(aFirmar)) {
+      const { data: firmadas, error: eF } = await admin.storage.from(bucket).createSignedUrls(lista.map((f) => f.path), FIRMA_SEG);
+      if (eF) return { cuerpo: { ok: false, error: 'no_se_pudieron_firmar' }, status: 500 };
+      const porRuta = new Map<string, string>((firmadas ?? []).filter((x) => x.path && x.signedUrl).map((x) => [String(x.path), String(x.signedUrl)]));
+      for (const f of lista) urls[f.id] = porRuta.get(f.path) ?? null;
+    }
+    return { cuerpo: { ok: true, urls, caduca_seg: FIRMA_SEG } };
+  },
+
+  // Abrir o cerrar el deck de un proyecto, UN solo camino y en orden (revisión #139 SEG2/SEG4):
+  //   abrir  = marca → fotos a `deck` → flag;   cerrar = marca → flag → fotos a `deck-privado`;   quitar marca.
+  // Si algo falla ANTES del flag, se quita la marca y se devuelven las fotos a donde estaban. Termina reconciliando el
+  // proyecto: si queda algo mal puesto, es un error visible (deck_a_medias), nunca un «ok» silencioso.
+  deck_activa: async (_u, uid, body) => {
+    const proyecto = String(body.proyecto_id ?? '');
+    if (!esUuid(proyecto) || typeof body.activo !== 'boolean') return { cuerpo: { ok: false, error: 'peticion_invalida' }, status: 400 };
+    const abrir = body.activo;
+    const { error: eM } = await admin.rpc('deck_transicion_empieza', { p_uid: uid, p_proyecto_id: proyecto, p_abrir: abrir });
+    if (eM) return eM.code === '55P03' ? { cuerpo: { ok: false, aplicado: false, error: 'cambio_en_curso', code: eM.code }, status: 409 } : { rpcError: eM };
+    let unidades: number | null = null;
+    let fase = abrir ? 'mover_a_publico' : 'flag';
+    try {
+      if (abrir) {
+        const m = await reconcilia(proyecto);
+        if ('rpcError' in m || m.quedan > 0) {
+          await admin.rpc('deck_transicion_termina', { p_proyecto_id: proyecto });
+          await reconcilia(proyecto);                                // vuelven a privado: el deck sigue cerrado
+          return { cuerpo: { ok: false, aplicado: false, error: 'fotos_sin_mover', fase, detalle: 'rpcError' in m ? null : m }, status: 500 };
+        }
+        fase = 'flag';
+      }
+      const { data: n, error: eF } = await admin.rpc('investor_deck_activa_como', { p_uid: uid, p_proyecto_id: proyecto, p_activo: abrir });
+      if (eF) {
+        await admin.rpc('deck_transicion_termina', { p_proyecto_id: proyecto });
+        await reconcilia(proyecto);                                  // lo movido vuelve a donde manda el flag de verdad
+        return { rpcError: eF };
+      }
+      unidades = Number(n);
+      fase = 'final';
+      await reconcilia(proyecto);                                    // cerrar: ahora sí salen de `deck`
+    } finally {
+      await admin.rpc('deck_transicion_termina', { p_proyecto_id: proyecto });
+    }
+    // Desde aquí el flag YA cambió: toda respuesta lleva `aplicado: true` para que la pantalla no lo trate como
+    // «no se abrió/cerró». Lo que falte es otra cosa y lleva su propio código.
+    const fin = await reconcilia(proyecto);                          // ya sin marca: lo que manda es el flag
+    if ('rpcError' in fin) return { cuerpo: { ok: false, aplicado: true, error: 'deck_a_medias', unidades, fase }, status: 500 };
+    if (fin.quedan > 0) {
+      return { cuerpo: { ok: false, aplicado: true, error: 'deck_a_medias', unidades, quedan: fin.quedan, en_ambos: fin.en_ambos }, status: 500 };
+    }
+    if (fin.en_ambos > 0) {
+      // aplicado entero; quedan copias con el mismo nombre en los dos buckets, que decide una persona (no es un fallo
+      // del cambio: se avisa con su código, 200)
+      return { cuerpo: { ok: true, aplicado: true, aviso: 'aplicado_con_duplicadas', unidades, activo: abrir, en_ambos: fin.en_ambos } };
+    }
+    return { cuerpo: { ok: true, aplicado: true, unidades, activo: abrir } };
+  },
+
+  // Barrido: todo lo mal puesto, saltando los proyectos en plena transición. Solo administración.
+  sincroniza: async (u) => {
+    if (!(await esAdmin(u))) return { cuerpo: { ok: false, error: 'solo_admin' }, status: 403 };
+    if (!sincronizaEncendida()) return { cuerpo: { ok: false, error: 'sincroniza_apagada_hasta_s4' }, status: 409 };
+    const r = await reconcilia(null);
+    if ('rpcError' in r) return { rpcError: r.rpcError };
+    return { cuerpo: { ok: r.fallidas === 0, ...r }, status: r.fallidas === 0 ? 200 : 500 };
+  },
+};
+
 // Solo los primeros bytes, sin caché (la CDN de Storage puede servir una versión vieja ~60 s).
 async function cabecera(bucket: string, path: string): Promise<Uint8Array | null> {
   const r = await fetch(`${URL_SB}/storage/v1/object/authenticated/${bucket}/${path}?v=${crypto.randomUUID()}`, {
@@ -435,6 +589,14 @@ Deno.serve(async (req) => {
     if (!clase) return json({ ok: false, error: 'clase_desconocida' }, 400);
     const errRpc = (e: { message?: string; code?: string } | null) =>
       json({ ok: false, error: e?.message ?? 'error', code: e?.code }, e?.code === '42501' ? 403 : 400);
+
+    // ── deck (AXW-66): URLs por id, abrir/cerrar moviendo las fotos, barrido. Acciones NUEVAS de la clase deck_foto:
+    //    no tocan subida_url/registra/borra de esa clase (cambian en S4, con el front). ──
+    if (clase === CLASES.deck_foto && Object.hasOwn(ACCIONES_DECK, accion)) {
+      const r = await ACCIONES_DECK[accion](usuario, quien.user.id, body);
+      if ('rpcError' in r) return errRpc(r.rpcError as { message?: string; code?: string });
+      return json(r.cuerpo, r.status ?? 200);
+    }
 
     // ── anexo de contrato: su propio camino (ruta por página, sha y medidas del servidor) ──
     if (clase === CLASES.anexo_contrato) {
