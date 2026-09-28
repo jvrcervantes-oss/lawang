@@ -19,9 +19,10 @@
 --     contrato_envio_sin_anexo NO se retira aquí.
 --
 -- ORDEN DE DESPLIEGUE (revisión de código, 28-sep): 1) esta migración; 2) la edge ficheros-contrato; 3) la
--- migración supabase/migrations/20260928024744_law406_retira_envio_sin_anexo (aplicada 28-sep) (FUERA de migrations/ para que
--- no se aplique en lote por accidente; reducir la exposición: su único llamador era la
--- segunda llamada de la edge vieja). Retirarla aquí dejaba, entre 1 y 2, envíos «sin anexo» sin constancia.
+-- retirada de contrato_envio_sin_anexo (reducir la exposición: su único llamador era la segunda llamada de la
+-- edge vieja). Esperó en supabase/migrations_diferidas/ hasta que la edge v6 estuvo desplegada y se aplicó el
+-- 28-sep-2026; hoy vive en supabase/migrations/20260928024744_law406_retira_envio_sin_anexo.sql, con el nombre
+-- con el que la registró la base. Retirarla aquí dejaba, entre 1 y 2, envíos «sin anexo» sin constancia.
 -- La edge nueva NO puede ir antes que esta migración: con p_sin_anexo la llamada no encuentra la función.
 --
 -- PERMISOS: solo authenticated (nada para public/anon/service_role). El único llamador es la edge con el JWT
