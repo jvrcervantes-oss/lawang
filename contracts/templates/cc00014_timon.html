@@ -17,14 +17,16 @@
        nunca se le presento al comprador.
        pii-ok: los datos personales YA NO van escritos aqui (28-sep-2026). Este
        fichero lo pide el navegador con fetch() y Apache lo sirve SIN sesion, y el
-       repo era publico: pasaporte, domicilio, telefono y email del comprador y el
+       repo es publico: pasaporte, domicilio, telefono y email del comprador y el
        KTP del firmante del BUILDER estaban a la vista de cualquiera. Ahora salen
        de la base al abrir el contrato con sesion: los adq1_* de los datos
        guardados del contrato (CC00088) y cc00014_ktp de firmantes_cred
        (RLS authenticated) en buildDoc. La nacionalidad se queda escrita
        ("Netherlands"): la base la guarda en espanol. El texto sigue siendo el
        firmado; lo que no cambia es el documento, solo de donde sale el dato.
-       Queda el nombre del comprador en la etiqueta de app.html (LAW-135). -->
+       El nombre del comprador sigue en app.html, assets/i18n.js,
+       assets/vocabulario.js y contracts/sql/*.sql (LAW-135), y todo lo de antes
+       en el historial git (LAW-404). -->
   <div class="doc">
     <img class="doc-watermark" src="assets/brand/tiki-totem.png" alt="">
 
