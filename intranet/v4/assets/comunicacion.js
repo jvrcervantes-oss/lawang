@@ -261,11 +261,12 @@
   }
 
   // ── abrir / nuevo ─────────────────────────────────────────────────────────
-  function abre(c) {
+  // yaHayLista: el arranque acaba de pedir la lista (con los destinatarios); no se vuelve a pedir
+  function abre(c, yaHayLista) {
     if (sondeo) { clearInterval(sondeo); sondeo = null; }
     actual = c; envios = [];
     pintaForm();
-    return cargaEnvios().then(function () { marcaPorDefecto(); pintaPersonas(); cargaLista(); });
+    return cargaEnvios().then(function () { marcaPorDefecto(); pintaPersonas(); if (!yaHayLista) cargaLista(); });
   }
   function puedeSoltar() {
     if (!sucio) return Promise.resolve(true);
@@ -459,7 +460,8 @@
       cargaLista().then(function () {
         // ?id=<uuid> abre ese comunicado (enlace directo desde el registro)
         var id = new URLSearchParams(location.search).get('id');
-        if (!id) return abre(null);
+        if (!id) return abre(null, true);
+        // con ?id= la lista se repinta para marcar el abierto
         return window.lwDatos('comunicado_datos', { p_id: id }).then(function (rr) { abre(rr.error || !rr.data ? null : rr.data.comunicado); });
       });
     });

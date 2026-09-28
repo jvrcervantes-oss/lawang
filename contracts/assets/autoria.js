@@ -61,10 +61,20 @@
       ev.stopPropagation();                       // las filas de las dos listas abren el documento al hacer clic
       if (slot.querySelector('.lw-autoria-caja')) { cerrar(); return; }
       abrir.disabled = true;
+      const avisoPrevio = slot.querySelector('.lw-autoria-fallo');
+      if (avisoPrevio) avisoPrevio.remove();
       let lista, ultimo;
       try { ({ lista, ultimo } = await datos(tabla, filaId)); }
-      catch (e) { abrir.disabled = false; abrir.title = 'No se pudo leer el equipo: ' + e.message; abrir.textContent = 'Reasignar autor (reintentar)'; return; }
-      abrir.disabled = false; abrir.title = ''; abrir.textContent = 'Reasignar autor';
+      catch (e) {
+        abrir.disabled = false; abrir.textContent = 'Reasignar autor (reintentar)';
+        // el motivo, a la vista (no solo en el title): sin él no se sabe si es la red, el permiso o la versión
+        const fallo = document.createElement('p');
+        fallo.className = 'lw-autoria-aviso lw-autoria-fallo';
+        fallo.textContent = 'No se pudo leer el equipo: ' + e.message;
+        slot.appendChild(fallo);
+        return;
+      }
+      abrir.disabled = false; abrir.textContent = 'Reasignar autor';
 
       const opciones = lista.filter(u => u.email !== actual)
         .map(u => `<option value="${esc(u.email)}">${esc(u.nombre || u.email)}</option>`).join('');
