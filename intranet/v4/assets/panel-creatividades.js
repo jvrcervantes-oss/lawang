@@ -213,6 +213,7 @@
     }
     filas.forEach(function (c) { caja.appendChild(tarjeta(c)); });
   }
+  var recortadaAvisada = false;
   async function recarga() {
     try {
       TODAS = await lwCreatividades.listar({});
@@ -222,6 +223,8 @@
       return;
     }
     pintaCola(); pintaSegmentos(); pintaLista();
+    // Solo se traen las 500 más recientes: si hay más, se dice (antes se cortaba en silencio)
+    if (TODAS.recortada && !recortadaAvisada) { recortadaAvisada = true; aviso(T('Se muestran las 500 piezas más recientes; hay más en la biblioteca.'), 'info'); }
   }
 
   // Material por proyecto: se siembra de `proyectos` (un proyecto sin fotos también sale: es lo que falta).

@@ -5008,6 +5008,26 @@
           return sb.rpc('comision_devengo_anular', { p_id: id, p_motivo: v.motivo.trim() });
         });
       };
+      /* Diferencias por cambio de contrato (28-sep-2026, owner: «si hay cambio en el
+         contrato hay cambio en las comisiones»). Las crea la base sola
+         (comisiones_reconciliar); aquí solo se resuelven. El gate real es la RPC
+         comision_diferencia_resolver: quién (admin para lo de Lawang, manager o admin
+         para lo del equipo), nunca a tu nombre ni si el cambio lo provocaste tú. */
+      var DIF_ACCION = {
+        aplicar: { titulo: 'Aplicar diferencia', nota: 'Pasa a pendiente con este importe. Si la paga Lawang y es a favor, se crea su solicitud de pago.', boton: 'Aplicar' },
+        pagada: { titulo: 'Marcar pagada la diferencia', nota: 'Registra que ya se ha pagado esta diferencia al closer.', boton: 'Confirmar: pagada' },
+        compensada: { titulo: 'Marcar compensada', nota: 'Registra que esta diferencia a descontar ya se ha descontado de un pago (anota de cuál en el motivo). Se descuenta del BRUTO, antes de la retención.', boton: 'Confirmar: compensada' },
+        anular: { titulo: 'Anular diferencia', nota: 'Queda sin efecto. Si tenía una solicitud de pago pendiente, se anula también.', boton: 'Anular' }
+      };
+      window.LW_V4.resolverDiferencia = function (id, numero, accion) {
+        var a = DIF_ACCION[accion]; if (!a) return;
+        modal(a.titulo + ' — ' + (numero || ''), [
+          { tipo: 'nota', label: a.nota },
+          { k: 'motivo', label: 'Motivo — queda registrado', tipo: 'textarea', req: 1 }
+        ], a.boton, function (v) {
+          return sb.rpc('comision_diferencia_resolver', { p_id: id, p_accion: accion, p_motivo: v.motivo.trim() });
+        });
+      };
       window.LW_V4.pagarSolicitud = function (x) {
         modal('Marcar pagada SP-' + x.numero, [
           // opcional en la base (`solicitud_pagada_con_sello` solo exige
