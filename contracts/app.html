@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="3e3d413359fb">
+<meta name="lw-version" content="0e855dbaa757">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -2621,6 +2621,33 @@ let AUTO_APODERADO = {};
    async aparte, re-render cuando llega. Vacío hasta que resuelva = sin imagen
    todavía, igual que una firma sin firmar. */
 const APODERADO_KTP_URL = {};
+/* Bonian C2 (C200003, texto fijo) — 28-sep-2026. La plantilla se sirve sin
+   sesion, asi que el pasaporte, domicilio, telefono y email de sus dos
+   compradores ya no van escritos en ella: viven en su ficha (clients, via
+   contrato_compradores) y se piden aqui SOLO cuando se abre esta plantilla, no en
+   cada sesion del generador. Mismo patron que APODERADO_KTP_URL: buildDoc() es
+   sincrono, lee lo ya resuelto y render() repinta cuando llega. */
+let BONIAN_C2_FICHAS = null;
+let _bonianC2Pedido = false;
+async function cargarFichasBonianC2(){
+  if(_bonianC2Pedido) return;
+  _bonianC2Pedido = true;
+  try{
+    const { data: c, error: e1 } = await sb.from('contratos').select('id').eq('numero', 'C200003').maybeSingle();
+    if(e1) throw e1;
+    if(!c) throw new Error('C200003 no es visible con tu sesion');
+    const { data, error } = await sb.from('contrato_compradores')
+      .select('rol,clients(email,phone,passport_number,address)').eq('contrato_id', c.id);
+    if(error) throw error;
+    const m = {};
+    (data || []).forEach(r => { m[r.rol] = r.clients || {}; });
+    BONIAN_C2_FICHAS = m;
+  }catch(e){
+    BONIAN_C2_FICHAS = {};
+    toastMal('No se han podido cargar las fichas de los compradores de C200003: ' + (e.message || e) + ' — el documento sale con esos huecos en blanco');
+  }
+  render();
+}
 /* Dos desplegables comparten el mismo catálogo APODERADOS_HAK_SEWA (11-ago,
    movido de tokens.json a Supabase el 12-ago — ver entities.js):
    hsn_apoderado_nombre (apoderado del propietario, Primera Parte) y
@@ -3127,7 +3154,20 @@ function buildDoc(){
     const c = FIRMANTES_CRED['I Made Monjong Adhi Nugruah'];
     if(!c && !BORRADOR_BLANCO) toastMal('No se ha podido cargar el KTP del firmante de CC00014 (firmantes_cred): el documento saldria con ese hueco en blanco.');
     data.cc00014_ktp = BORRADOR_BLANCO ? '' : ((((c && c.cred.en) || '').match(/ID (\d+)/) || [])[1] || '');
+  }  if(CURRENT && CURRENT.slug === 'ppjb_bonian_c2'){
+    if(BONIAN_C2_FICHAS === null) cargarFichasBonianC2();   // async: repinta al llegar
+    const f = BORRADOR_BLANCO ? {} : (BONIAN_C2_FICHAS || {});
+    [1, 2].forEach(n => {
+      const c = f['adquiriente_' + n] || {};
+      data['c2_adq' + n + '_pasaporte'] = c.passport_number || '';
+      data['c2_adq' + n + '_domicilio'] = c.address || '';
+      data['c2_adq' + n + '_telefono']  = c.phone || '';
+      data['c2_adq' + n + '_email']     = c.email || '';
+    });
+    const fc = FIRMANTES_CRED['Pablo Cantero Gambín'];
+    data.c2_rep_npwp = BORRADOR_BLANCO ? '' : ((fc && fc.rep_npwp) || '');
   }
+
   applyApoderado(data);   // rellena hsn_apoderado_ktp con la signed URL ya resuelta (POA)
   applyRepresentanteComprador(data);   // adq2_firmante_nombre: apoderado del comprador si lo hay, si no el propio comprador
   /* En blanco circula sin contrato detrás (Legal, capa 1, 25-sep-2026): fuera
@@ -3369,6 +3409,7 @@ function deriveSections(){
   inDoc.delete('unidad_construccion_codigo');   // derivado (collect(), arriba): lo fija el selector de parcela, nunca se teclea
   inDoc.delete('techo_nombre');   // derivado (collect(), arriba): lo fija el selector de la sección "Techo y extras", nunca se teclea
   inDoc.delete('cc00014_ktp');   // derivado (buildDoc, de firmantes_cred): nunca un campo del form — se escribiria y se pisaria en silencio
+  [...inDoc].forEach(k=>{ if(k.startsWith('c2_')) inDoc.delete(k); });   // Bonian C2: derivados de las fichas (buildDoc), nunca campos del form
   /* carta_cobrado_importe/numeros (17-sep-2026): los escribe SOLO el trigger
      de la base (carta_cobrado_al_bloquear, BEFORE INSERT) — regla 2 del
      encargo, "el cliente nunca manda este cálculo". Sin este delete caían en
