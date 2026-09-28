@@ -445,7 +445,8 @@
     try { var pend = sessionStorage.getItem('lw_gas_aviso'); if (pend) { sessionStorage.removeItem('lw_gas_aviso'); aviso(pend, 'mal'); } } catch (_) { /* MUDO: sin sessionStorage */ }
     cargar().then(function () {
       pintaTodo();
-      if (!D.categorias.length) aviso(T('Tu usuario no ve el catálogo de categorías: hace falta ser admin y tener «Gastos y proveedores» marcado en Usuarios. La base no enseña nada sin ese permiso.'), 'mal');
+      // Sin permiso, gastos_panel_datos ya contesta 42501 (cae en el aviso de error): aquí vacío = no hay categorías dadas de alta
+      if (!D.categorias.length) aviso(T('No hay categorías de gasto dadas de alta: sin ellas no se puede registrar un gasto. Pídelo a administración.'), 'mal');
     }, function (e) {
       aviso(T('No se pudieron leer los gastos') + ' (' + e.message + '). ' + T('Si eres admin, pide que te marquen «Gastos y proveedores» en Usuarios.'), 'mal');
       $('lw-gas-lista').innerHTML = '';

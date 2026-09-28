@@ -17,6 +17,8 @@
 --     TO lw_lector. Storage «creatividades: leer ficheros» va por privado.creatividad_ve_fichero (DEFINER de postgres).
 --   · Las policies de creatividad_fotos/creatividad_modelos consultan creatividades: se cierran JUNTAS (hijas antes).
 --   · `_creatividad_sin_permiso` (INVOKER) nombra «creatividades» solo en un texto de error: no lee ninguna tabla.
+-- Funciones: se miran en TODOS los esquemas (no solo public; revisor 28-sep: existe `privado`). Medido: fuera de public
+--   solo privado.creatividad_ve_fichero las nombra, y es DEFINER de postgres.
 -- Riesgo que la comprobación textual NO ve: SQL dinámico (`execute format('… %I …', tabla)`). Medido el 28-sep (tanda 1):
 --   todas las de public con execute + format(%I) son DEFINER de postgres. Volver a mirarlo al aplicar.
 
@@ -38,13 +40,13 @@ begin
 
   select count(*), string_agg(p.proname, ', ') into v_n, v_lista
     from pg_proc p
-   where p.pronamespace = 'public'::regnamespace and not p.prosecdef and p.prosrc ~ ('\m' || re || '\M')
+   where p.pronamespace not in ('pg_catalog'::regnamespace, 'information_schema'::regnamespace) and not p.prosecdef and p.prosrc ~ ('\m' || re || '\M')
      and p.proname <> '_creatividad_sin_permiso';
   if v_n > 0 then raise exception 'L2t2 revoke: funciones INVOKER que leen estas tablas (se romperían): %', v_lista; end if;
 
   select count(*), string_agg(p.proname || ' (' || pg_get_userbyid(p.proowner) || ')', ', ') into v_n, v_lista
     from pg_proc p
-   where p.pronamespace = 'public'::regnamespace and p.prosecdef
+   where p.pronamespace not in ('pg_catalog'::regnamespace, 'information_schema'::regnamespace) and p.prosecdef
      and pg_get_userbyid(p.proowner) not in ('postgres', 'supabase_admin', 'lw_lector')
      and p.prosrc ~ ('\m' || re || '\M');
   if v_n > 0 then raise exception 'L2t2 revoke: funciones DEFINER de otro dueño que leen estas tablas: %', v_lista; end if;
