@@ -5478,7 +5478,7 @@
         // `general` (18-sep-2026): documentos de la EMPRESA sin proyecto real
         // detrás (NPWP, Akta…) — sin este campo `d2.proyecto === elegido.nombre`
         // los deja fuera siempre, invisibles en TODOS los proyectos.
-        q(sb.from('documentos_proyecto').select('id,proyecto,categoria,titulo,descripcion,url,path,mime,bytes,carpeta,visible_portal,confidencial,publicado_investor_deck,general,creado_en'), 'documentación'),
+        q(sb.from('documentos_proyecto').select('id,proyecto,categoria,titulo,titulo_i18n,descripcion,url,path,mime,bytes,carpeta,visible_portal,confidencial,publicado_investor_deck,general,creado_en'), 'documentación'),
         /* Managers de cada proyecto (11-sep-2026, encargo del owner: sincronizar
            v4 con lo nuevo de Proyectos). Sin permiso esto vuelve vacío por RLS
            ("el equipo se ve entre sí" ya deja leer la fila; quien no es admin

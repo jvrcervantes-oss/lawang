@@ -761,6 +761,14 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
     var lang = window.lwLang ? lwLang() : 'en';
     return String(campo[lang] || campo.en || '');
   }
+  // Titulo de un documento publicado: `titulo` es el espanol (referencia) y `titulo_i18n` trae en/id.
+  // Cae al ingles y, si tampoco lo hay, al espanol (28-sep-2026).
+  function tituloDoc(d){
+    var lang = window.lwLang ? lwLang() : 'en';
+    if(lang === 'es') return String(d.titulo || '');
+    var t = d.titulo_i18n || {};
+    return String(t[lang] || t.en || d.titulo || '');
+  }
   // Frase fija en ingles → idioma del visitante via el diccionario/patrones de i18n.js
   // (para textos que se arman en JS con un dato dentro, p.ej. el mensaje de WhatsApp).
   function traduceFrase(txt){
@@ -916,7 +924,7 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
       var cab = document.createElement('div'); cab.className = 'doc-cab';
       var ico = document.createElement('span'); ico.className = 'material-symbols-outlined'; ico.textContent = DOC_ICONO[d.categoria] || DOC_ICONO.otros;
       var texto = document.createElement('div'); texto.className = 'doc-txt';
-      var tit = document.createElement('span'); tit.className = 'doc-tit'; tit.setAttribute('data-no-i18n', ''); tit.textContent = d.titulo || '';
+      var tit = document.createElement('span'); tit.className = 'doc-tit'; tit.setAttribute('data-no-i18n', ''); tit.textContent = tituloDoc(d);
       var sub = document.createElement('span'); sub.className = 'doc-sub'; sub.textContent = DOC_ETIQUETA[d.categoria] || DOC_ETIQUETA.otros;
       texto.appendChild(tit); texto.appendChild(sub);
       if(d.descripcion){
@@ -1428,7 +1436,7 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
           if(!d) return;
           var cta = $('cta-dosier');
           cta.href = urlSegura(d.url);
-          if(d.titulo) cta.setAttribute('title', d.titulo);
+          if(tituloDoc(d)) cta.setAttribute('title', tituloDoc(d));
           cta.hidden = false;
         })
         .catch(function(){ /* MUDO A PROPOSITO: el estado de reposo de las dos piezas ya es

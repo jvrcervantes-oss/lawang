@@ -5312,7 +5312,8 @@
           ev.stopPropagation();
           var p = proyecto(); if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
           modal('Nuevo enlace · ' + p, [
-            { k: 'titulo', label: 'Título', req: 1 },
+            { k: 'titulo', label: 'Título', req: 1 }
+          ].concat(camposTituloDeck(null), [
             { k: 'url', label: 'URL', req: 1, ayuda: 'https://…' },
             { k: 'categoria', label: 'Categoría', tipo: 'select', opciones: CATS_ENLACE, valor: 'comercial' },
             // S11.3 (22-sep-2026): la columna ya existía (la consulta de
@@ -5321,12 +5322,12 @@
             { k: 'descripcion', label: 'Descripción (opcional)', tipo: 'textarea' },
             { k: 'visible_portal', label: 'Visible para el cliente', tipo: 'check', ayuda: 'lo verán TODOS los clientes de ' + p + ' en su portal' },
             { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check', valor: 1 }  // nace MARCADA: la tabla se diseño con default true y el formulario mandaba false explicito, asi que todo documento nuevo nacia no-confidencial y el 'cinturon y tirantes' del RPC no protegia nada
-          ].concat(campoDeck(false)), 'Guardar enlace', function (v) {
+          ]).concat(campoDeck(false)), 'Guardar enlace', function (v) {
             if (!/^https?:\/\//.test(v.url)) return { error: { message: 'la URL tiene que empezar por http:// o https://' } };
             return confirmaPublicacionDoc(v, p).then(function (c) {
               if (!c.ok) return { error: { message: c.msg } };
               return guardaDoc(null, conDeck({
-                proyecto: p, titulo: v.titulo, url: v.url, categoria: v.categoria,
+                proyecto: p, titulo: v.titulo, titulo_i18n: tituloI18n(v), url: v.url, categoria: v.categoria,
                 carpeta: v.carpeta.trim(), descripcion: v.descripcion.trim() || null,
                 visible_portal: v.visible_portal, confidencial: v.confidencial
               }, v));
@@ -5454,6 +5455,20 @@
            `documento_proyecto_guarda` (herramienta, proyecto de origen y de destino, y el dosier de inversores
            solo lo cambia administración); borrar por la edge `ficheros`. La casilla del dosier solo se le
            enseña a un admin: a los demás la base se la rechazaría, así que no se la ofrecemos. */
+        /* Título traducido para el investor deck (28-sep-2026, owner: «el título se pueda traducir para que se
+           visualice en el idioma correspondiente dentro del investor deck»). El español es `titulo` (referencia);
+           inglés e indonesio van en `titulo_i18n`. Vacío = el deck cae al inglés y luego al español. El servidor
+           rehace el objeto (solo en/id, recortado), así que aquí solo se recoge. */
+        function camposTituloDeck(d2) {
+          var t = (d2 && d2.titulo_i18n) || {};
+          return [
+            { k: 'titulo_en', label: 'Título en inglés (investor deck)', medio: 1, valor: t.en || '', ayuda: 'En blanco = sale el español' },
+            { k: 'titulo_id', label: 'Título en indonesio (investor deck)', medio: 1, valor: t.id || '', ayuda: 'En blanco = sale el inglés' }
+          ];
+        }
+        function tituloI18n(v) {
+          return { en: String(v.titulo_en || '').trim(), id: String(v.titulo_id || '').trim() };
+        }
         function campoDeck(valor) {
           return esAdminP ? [{ k: 'publicado_investor_deck', label: 'Publicar en el dosier de inversores', tipo: 'check', valor: !!valor, ayuda: 'PÚBLICO: lo ve cualquiera que abra el enlace del deck, sin contraseña y sin contrato. Con la categoría «comercial» es el botón «Download dossier» del deck. Un fichero subido sale si es PDF, imagen, Word, Excel o PowerPoint (docx/xlsx/pptx); los demás, como enlace' }] : [];
         }
@@ -5504,20 +5519,21 @@
           // opción extra ya seleccionada, en vez de forzar una de las 4.
           var catsAquí = CATS_ENLACE.indexOf(d2.categoria) !== -1 ? CATS_ENLACE : CATS_ENLACE.concat([d2.categoria]);
           modal('Editar enlace', [
-            { k: 'titulo', label: 'Título', req: 1, valor: d2.titulo || '' },
+            { k: 'titulo', label: 'Título', req: 1, valor: d2.titulo || '' }
+          ].concat(camposTituloDeck(d2), [
             { k: 'url', label: 'URL', req: 1, valor: d2.url || '', ayuda: 'https://…' },
             { k: 'categoria', label: 'Categoría', tipo: 'select', opciones: catsAquí, valor: d2.categoria || CATS_ENLACE[0] },
             { k: 'carpeta', label: 'Carpeta (opcional)', valor: d2.carpeta || '' },
             { k: 'descripcion', label: 'Descripción (opcional)', tipo: 'textarea', valor: d2.descripcion || '' },
             { k: 'visible_portal', label: 'Visible para el cliente', tipo: 'check', valor: !!d2.visible_portal, ayuda: 'lo verán TODOS los clientes de ' + p + ' en su portal' },
             { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check', valor: !!d2.confidencial }
-          ].concat(campoDeck(d2.publicado_investor_deck)), 'Guardar cambios', function (v) {
+          ]).concat(campoDeck(d2.publicado_investor_deck)), 'Guardar cambios', function (v) {
             if (!/^https?:\/\//.test(v.url)) return { error: { message: 'la URL tiene que empezar por http:// o https://' } };
             if (!esAdminP) v.publicado_investor_deck = !!d2.publicado_investor_deck;   // sin casilla: lo que había
             return confirmaPublicacionDocEdicion(v, d2, p).then(function (c) {
               if (!c.ok) return { error: { message: c.msg } };
               return guardaDoc(d2.id, conDeck({
-                titulo: v.titulo, url: v.url, categoria: v.categoria,
+                titulo: v.titulo, titulo_i18n: tituloI18n(v), url: v.url, categoria: v.categoria,
                 carpeta: v.carpeta.trim(), descripcion: v.descripcion.trim() || null,
                 visible_portal: v.visible_portal, confidencial: v.confidencial
               }, v));
@@ -5562,18 +5578,19 @@
           var p = proyectoDelDoc(d2);
           var catsAquí = CATS_FICHERO.indexOf(d2.categoria) !== -1 ? CATS_FICHERO : CATS_FICHERO.concat([d2.categoria]);
           modal('Editar documento', [
-            { k: 'titulo', label: 'Título', req: 1, valor: d2.titulo || '' },
+            { k: 'titulo', label: 'Título', req: 1, valor: d2.titulo || '' }
+          ].concat(camposTituloDeck(d2), [
             { k: 'categoria', label: 'Categoría', tipo: 'select', opciones: catsAquí, valor: d2.categoria || 'otros' },
             { k: 'carpeta', label: 'Carpeta (opcional)', valor: d2.carpeta || '' },
             { k: 'descripcion', label: 'Descripción (opcional)', tipo: 'textarea', valor: d2.descripcion || '' },
             { k: 'visible_portal', label: 'Visible para el cliente', tipo: 'check', valor: !!d2.visible_portal, ayuda: 'lo verán TODOS los clientes de ' + p + ' en su portal' },
             { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check', valor: !!d2.confidencial }
-          ].concat(campoDeck(d2.publicado_investor_deck)), 'Guardar cambios', function (v) {
+          ]).concat(campoDeck(d2.publicado_investor_deck)), 'Guardar cambios', function (v) {
             if (!esAdminP) v.publicado_investor_deck = !!d2.publicado_investor_deck;   // sin casilla: lo que había
             return confirmaPublicacionDocEdicion(v, d2, p).then(function (c) {
               if (!c.ok) return { error: { message: c.msg } };
               return guardaDoc(d2.id, conDeck({
-                titulo: v.titulo, categoria: v.categoria,
+                titulo: v.titulo, titulo_i18n: tituloI18n(v), categoria: v.categoria,
                 carpeta: v.carpeta.trim(), descripcion: v.descripcion.trim() || null,
                 visible_portal: v.visible_portal, confidencial: v.confidencial
               }, v));
