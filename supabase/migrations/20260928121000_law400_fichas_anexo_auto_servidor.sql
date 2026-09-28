@@ -16,7 +16,13 @@
 --   · Su id tiene que ser `axauto-<uuid>` de un documento que HOY esté marcado en_contrato, sea del modelo del
 --     contrato (datos.fields.tipologia_construccion, por nombre, como fichaDelModelo() de app.html) y tenga
 --     techo NULL o el techo del contrato (datos.techo.clave; ninguno si el techo es «sintético», como
---     techoDelAnexo() de documento_anexos.js). La misma regla que docs_contrato.js → entran().
+--     techoDelAnexo() de documento_anexos.js). La misma regla que docs_contrato.js → entran(), incluido su
+--     `grupo(tipo) < 99`: los tipos de ORDEN_TIPOS (plano, calidades, ficha, render, otro) se escriben aquí tal
+--     cual, así que el dosier (el único tipo del CHECK que no está) queda fuera, y un tipo nuevo que se añada al
+--     CHECK sin añadirlo a ORDEN_TIPOS tampoco entraría en ninguno de los dos lados.
+--   · LO QUE NO SE COMPRUEBA (revisión de código, 28-sep): `sha`, `on` y `techo` de la ficha siguen siendo lo que
+--     declara el navegador. Lo único que prueba el servidor es que el documento nombrado sea del modelo y techo
+--     del contrato y esté marcado; no qué versión del PDF se vio ni si se imprimió.
 --   · Compatibilidad: la ficha vieja `axauto` (una sola, sin id de documento; 36 contratos el 28-sep-2026) se
 --     acepta SOLO si ya estaba en la lista guardada del contrato (update) y una sola vez: la pantalla actual
 --     nunca la escribe (la traduce a `axauto-<doc>` al abrir), así que una `axauto` NUEVA solo puede venir de
@@ -90,7 +96,8 @@ begin
       end if;
       if v_modelo is null or not exists (
            select 1 from public.modelo_documentos d
-            where d.id = v_doc and d.modelo_id = v_modelo and d.en_contrato and d.tipo <> 'dosier'
+            where d.id = v_doc and d.modelo_id = v_modelo and d.en_contrato
+              and d.tipo in ('plano', 'calidades', 'ficha', 'render', 'otro')
               and (d.techo_clave is null or d.techo_clave = v_techo)) then
         raise exception 'El anexo «%» no es un documento marcado para el contrato de este modelo y techo (Modelos → Documentos): recarga la página para que se vuelva a calcular.',
           left(coalesce(a->>'title', v_id), 80) using errcode = '23514';

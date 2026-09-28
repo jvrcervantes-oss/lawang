@@ -215,7 +215,7 @@ afirma('el panel nace escondido y lo abre el botón',
     && !/no_se_pudo_apuntar_el_envio_sin_anexo/.test(app)
     && /insert into public\.contrato_firmas[\s\S]*insert into public\.contrato_eventos[\s\S]*'envio_sin_anexo_confirmado'/.test(cuerpoEnvia)
     && !/drop function if exists public\.contrato_envio_sin_anexo\(/.test(migEnvio)   // se retira en el paso 3, tras la edge
-    && /drop function if exists public\.contrato_envio_sin_anexo\(/.test(require('fs').readFileSync(path.join(__dirname, '..', 'supabase', 'migrations', '20260928122000_law406_retira_envio_sin_anexo.sql'), 'utf8')),
+    && /drop function if exists public\.contrato_envio_sin_anexo\(/.test(require('fs').readFileSync(path.join(__dirname, '..', 'supabase', 'migrations_diferidas', '20260928122000_law406_retira_envio_sin_anexo.sql'), 'utf8')),
     'dos llamadas sueltas vuelven a permitir un envío a firma sin su constancia');
 
   const firmas = require('fs').readFileSync(path.join(__dirname, 'firmar.html'), 'utf8');

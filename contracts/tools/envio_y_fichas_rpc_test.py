@@ -4,9 +4,16 @@ comprueba las fichas de anexo automático `axauto-<doc>` de un contrato) contra 
 transacción que termina SIEMPRE en ROLLBACK. Mismo patrón que contracts/tools/anexos_rpc_test.py: este script
 no se conecta; imprime un bloque SQL que se pega en `mcp__supabase-lawang__execute_sql` (o en el SQL Editor).
 
-    python contracts/tools/envio_y_fichas_rpc_test.py                 # con las migraciones ya aplicadas
-    python contracts/tools/envio_y_fichas_rpc_test.py --con-migracion # las antepone (probar ANTES de aplicarlas)
-    python contracts/tools/envio_y_fichas_rpc_test.py --selftest      # añade un caso que DEBE salir en rojo
+    python contracts/tools/envio_y_fichas_rpc_test.py A                 # bloque A (LAW-406), migraciones ya aplicadas
+    python contracts/tools/envio_y_fichas_rpc_test.py B                 # bloque B (LAW-400)
+    python contracts/tools/envio_y_fichas_rpc_test.py A --con-migracion # las antepone (probar ANTES de aplicarlas)
+    python contracts/tools/envio_y_fichas_rpc_test.py B --selftest      # añade un caso que DEBE salir en rojo
+
+DOS BLOQUES independientes, cada uno con su begin/rollback y `statement_timeout` de 50 s (28-sep-2026: en un solo
+bloque se pasó del tiempo del MCP con la base cargada y hubo que cancelarlo). A = migraciones de LAW-406 (la de
+envío y la diferida de retirada) + P1-P3 + F1-FB + F9. B = trigger de LAW-400 + L1-LF. Si uno se pasa del tiempo:
+mirar pg_stat_activity y cancelar el pid; nunca dejar colgada una transacción con el drop de contrato_envia_firma
+o el ALTER de contrato_eventos.
 
 LAW-406 corre con el ROL REAL (`set local role authenticated` + claims del autor del contrato): el MCP corre como
 `postgres` y contrato_firma_estado mira la sesión. El canario A0 comprueba que el cambio de rol surtió efecto.
@@ -22,17 +29,26 @@ import os
 import sys
 
 RAIZ = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
-MIGRACIONES = [os.path.join(RAIZ, 'supabase', 'migrations', f) for f in (
-    '20260928120000_law406_envia_firma_con_constancia.sql', '20260928121000_law400_fichas_anexo_auto_servidor.sql',
-    '20260928122000_law406_retira_envio_sin_anexo.sql')]
+MIGRACIONES = {
+    'A': [os.path.join(RAIZ, 'supabase', 'migrations', '20260928120000_law406_envia_firma_con_constancia.sql'),
+          # diferida: se aplica tras redesplegar ficheros-contrato (supabase/migrations_diferidas/LEEME.md)
+          os.path.join(RAIZ, 'supabase', 'migrations_diferidas', '20260928122000_law406_retira_envio_sin_anexo.sql')],
+    'B': [os.path.join(RAIZ, 'supabase', 'migrations', '20260928121000_law400_fichas_anexo_auto_servidor.sql')],
+}
 
-MONTAJE = r"""
+# Los montajes se ACOTAN antes de mirar `datos` o llamar a funciones por fila: primero los 60 contratos sin bloquear
+# más recientes (columnas baratas), y solo sobre esos lo caro (28-sep, revisor: ordenar todos por pg_column_size y
+# un jsonb_path_exists sobre toda la tabla detoastaban `datos` entero).
+RECIENTES = ("(select c0.id from public.contratos c0 where not coalesce(c0.bloqueado, false) "
+             "order by c0.created_at desc limit 60)")
+
+MONTAJE_A = r"""
 -- LAW-406: un agente con la herramienta de contratos y un contrato suyo, sin bloquear, sin firma viva ni firmada
 select set_config('t.a', x.id::text, true), set_config('t.autor_email', x.email, true), set_config('t.autor_sub', x.user_id::text, true)
   from (select c.id, lower(u.email) as email, u.user_id
           from public.contratos c join public.usuarios u on lower(u.email) = lower(c.creado_por)
-         where u.activo and u.rol = 'agente' and 'contratos' = any(u.herramientas)
-           and not coalesce(c.bloqueado, false) and not public.contrato_firma_viva(c.id)
+         where c.id in RECIENTES and u.activo and u.rol = 'agente' and 'contratos' = any(u.herramientas)
+           and not public.contrato_firma_viva(c.id)
            and not exists (select 1 from public.contrato_firmas f where f.contrato_id = c.id and f.estado = 'firmado')
          order by c.created_at desc limit 1) x;
 select set_config('t.ajeno_email', lower(u.email), true), set_config('t.ajeno_sub', u.user_id::text, true)
@@ -40,13 +56,15 @@ select set_config('t.ajeno_email', lower(u.email), true), set_config('t.ajeno_su
  where u.activo and u.rol = 'agente' and 'contratos' = any(u.herramientas)
    and coalesce(array_length(u.proyectos_supervisados, 1), 0) = 0 and lower(u.email) <> current_setting('t.autor_email')
  order by u.creado_en limit 1;
+""".replace('RECIENTES', RECIENTES)
+
+MONTAJE_B = r"""
 -- LAW-400: el contrato de obra sin bloquear más pequeño con techo (no sintético) de un modelo con dos techos o más
 select set_config('t.k', x.id::text, true), set_config('t.m', x.mid::text, true), set_config('t.t1', x.techo, true),
        set_config('t.t2', (select min(t.clave) from public.modelo_techos t where t.modelo_id = x.mid and t.clave <> x.techo), true)
   from (select c.id, m.id as mid, c.datos->'techo'->>'clave' as techo
           from public.contratos c join public.modelos m on lower(btrim(m.nombre)) = lower(btrim(c.datos->'fields'->>'tipologia_construccion'))
-         where not coalesce(c.bloqueado, false) and not public.contrato_firma_viva(c.id)
-           and c.id <> current_setting('t.a')::uuid   -- el de LAW-406 queda con firma viva: no se podría editar
+         where c.id in RECIENTES and not public.contrato_firma_viva(c.id)
            and (c.datos->'techo'->>'sintetico') is distinct from 'true'
            and exists (select 1 from public.modelo_techos t where t.modelo_id = m.id and t.clave = c.datos->'techo'->>'clave')
            and (select count(*) from public.modelo_techos t where t.modelo_id = m.id) >= 2
@@ -59,7 +77,7 @@ insert into public.modelo_documentos (id, modelo_id, nombre, path, tipo, techo_c
   ('c0000000-0000-4000-8000-000000000003', current_setting('t.m')::uuid, 'otro techo', current_setting('t.m') || '/c0000000-0000-4000-8000-000000000003.pdf', 'ficha', current_setting('t.t2'), true, 903),
   ('c0000000-0000-4000-8000-000000000004', current_setting('t.m')::uuid, 'sin marcar', current_setting('t.m') || '/c0000000-0000-4000-8000-000000000004.pdf', 'render', null, false, 0),
   ('c0000000-0000-4000-8000-000000000005', current_setting('t.otro_m')::uuid, 'otro modelo', current_setting('t.otro_m') || '/c0000000-0000-4000-8000-000000000005.pdf', 'calidades', null, true, 905);
-"""
+""".replace('RECIENTES', RECIENTES)
 
 DOC = "c0000000-0000-4000-8000-00000000000%d"
 HASH = "repeat('a', 64)"
@@ -135,18 +153,32 @@ def caso_update(nombre, sentencia, espera):
             "sqlstate || ' ' || left(sqlerrm, 110)); end $$;" % (sentencia, nombre, nombre, espera))
 
 
-def sql(con_migracion=False, selftest=False):
-    p = ['begin;', '-- destructivo-ok: pruebas de LAW-406/LAW-400 (contracts/tools/envio_y_fichas_rpc_test.py); TODO acaba en ROLLBACK']
+def sql(bloque, con_migracion=False, selftest=False):
+    p = ['-- destructivo-ok: pruebas de LAW-406/LAW-400 (contracts/tools/envio_y_fichas_rpc_test.py, bloque %s); TODO acaba en ROLLBACK' % bloque,
+         'begin;', "set local statement_timeout = '50s';"]
     if con_migracion:
-        for m in MIGRACIONES:
+        for m in MIGRACIONES[bloque]:
             with open(m, encoding='utf-8') as f:
                 p.append(f.read())
     p += ['create temporary table _t(caso text, ok boolean, detalle text) on commit drop;',
-          'grant all on _t to authenticated, anon, service_role;',
-          LECTORES.strip(),
-          MONTAJE.strip(),
-          "insert into _t values ('A1 montaje: contratos y modelo resueltos', current_setting('t.a', true) <> '' and "
-          "current_setting('t.k', true) <> '' and current_setting('t.t2', true) <> '' and current_setting('t.ajeno_sub', true) <> '', '');"]
+          'grant all on _t to authenticated, anon, service_role;']
+    if bloque == 'A':
+        p += [LECTORES.strip(), MONTAJE_A.strip(),
+              "insert into _t values ('A1 montaje: contrato y agentes resueltos', current_setting('t.a', true) <> '' "
+              "and current_setting('t.ajeno_sub', true) <> '', '');"]
+        bloque_a(p)
+    else:
+        p += [MONTAJE_B.strip(),
+              "insert into _t values ('B1 montaje: contrato de obra y modelo resueltos', current_setting('t.k', true) <> '' "
+              "and current_setting('t.t2', true) <> '', '');"]
+        bloque_b(p)
+    if selftest:
+        p.append("insert into _t values ('ZZ selftest: esto DEBE salir en rojo', 1 = 2, 'si sale verde el arnes esta roto');")
+    p += ['select caso, ok, detalle from _t order by caso;', 'rollback;']
+    return '\n'.join(p) + '\n'
+
+
+def bloque_a(p):
 
     # ── LAW-406: lo que queda expuesto ──
     p.append("insert into _t values ('P1 una sola contrato_envia_firma (sin sobrecarga vieja)', "
@@ -185,6 +217,19 @@ def sql(con_migracion=False, selftest=False):
     p.append(caso('FB anon no llama a contrato_envia_firma: 42501', envia(), '42501'))
     p.append('reset role;')
 
+    # ── LAW-406: atomicidad — si la constancia no se puede apuntar, NO sale el envío ──
+    # (el último: el cambio del CHECK bloquea contrato_eventos hasta el rollback)
+    p.append("alter table public.contrato_eventos drop constraint contrato_eventos_evento_check;")
+    p.append("alter table public.contrato_eventos add constraint contrato_eventos_evento_check check (evento <> 'envio_sin_anexo_confirmado') not valid;")
+    p.append(claims('autor'))
+    p.append("select set_config('t.f8', %s::text, true);" % PENDIENTE)
+    p.append(caso('F9 atomicidad: la constancia falla -> el envio se deshace (el enlace anterior sigue vivo, ninguno nuevo)',
+                  envia("'{\"motivo\": \"ninguno\"}'::jsonb"), '23514',
+                  "%s = current_setting('t.f8')::uuid and pg_temp.t_pendientes() = 1 and %s = 2" % (PENDIENTE, EVENTOS)))
+    p.append('reset role;')
+
+
+def bloque_b(p):
     # ── LAW-400: el trigger de contratos juzga las fichas automáticas ──
     p.append(caso_update('L1 fichas de un doc sin techo y otro del techo del contrato: ok', guarda(ficha(1), ficha(2)), 'ok'))
     p.append(caso_update('L2 ficha de un doc de OTRO techo: 23514', guarda(ficha(1), ficha(3)), '23514'))
@@ -193,8 +238,8 @@ def sql(con_migracion=False, selftest=False):
     VIEJA = "jsonb_build_object('id', 'axauto', 'auto', 'Prueba', 'title', 'vieja', 'on', %s)"
     p.append(caso_update('L5 ficha vieja axauto NUEVA (no estaba guardada): 23514', guarda(VIEJA % 'true'), '23514'))
     # compatibilidad: un contrato real sin bloquear que ya guarda la ficha vieja `axauto`
-    p.append("select set_config('t.v', (select c.id::text from public.contratos c where not coalesce(c.bloqueado, false) "
-             "and not public.contrato_firma_viva(c.id) and c.id <> current_setting('t.a')::uuid "
+    p.append("select set_config('t.v', (select c.id::text from public.contratos c where c.id in " + RECIENTES + " "
+             "and not public.contrato_firma_viva(c.id) and c.id <> current_setting('t.k')::uuid "
              "and jsonb_path_exists(c.datos->'annexes', '$[*] ? (@.id == \"axauto\")') order by pg_column_size(c.datos) limit 1), true);")
     GUARDA_V = "update public.contratos set datos = jsonb_set(datos, '{annexes}', jsonb_build_array(%s)) where id = current_setting('t.v')::uuid"
     p.append(caso_update('L5b la ficha vieja que YA estaba guardada (compatibilidad): ok', GUARDA_V % (VIEJA % 'false'), 'ok'))
@@ -217,23 +262,11 @@ def sql(con_migracion=False, selftest=False):
     # dos modelos con el mismo nombre: no se elige uno a ciegas (modelos.nombre no es único)
     p.append("insert into public.modelos (slug, nombre) values ('zz-prueba-duplicado', (select nombre from public.modelos where id = current_setting('t.m')::uuid));")
     p.append(caso_update('LF dos modelos con el nombre del contrato: 23514', guarda(ficha(2), ficha(1)), '23514'))
-    if selftest:
-        p.append("insert into _t values ('ZZ selftest: esto DEBE salir en rojo', 1 = 2, 'si sale verde el arnes esta roto');")
-
-    # ── LAW-406: atomicidad — si la constancia no se puede apuntar, NO sale el envío ──
-    # (el último: el cambio del CHECK bloquea contrato_eventos hasta el rollback)
-    p.append("alter table public.contrato_eventos drop constraint contrato_eventos_evento_check;")
-    p.append("alter table public.contrato_eventos add constraint contrato_eventos_evento_check check (evento <> 'envio_sin_anexo_confirmado') not valid;")
-    p.append(claims('autor'))
-    p.append("select set_config('t.f8', %s::text, true);" % PENDIENTE)
-    p.append(caso('F9 atomicidad: la constancia falla -> el envio se deshace (el enlace anterior sigue vivo, ninguno nuevo)',
-                  envia("'{\"motivo\": \"ninguno\"}'::jsonb"), '23514',
-                  "%s = current_setting('t.f8')::uuid and pg_temp.t_pendientes() = 1 and %s = 2" % (PENDIENTE, EVENTOS)))
-    p.append('reset role;')
-    p += ['select caso, ok, detalle from _t order by caso;', 'rollback;']
-    return '\n'.join(p) + '\n'
 
 
 if __name__ == '__main__':
     sys.stdout.reconfigure(encoding='utf-8')
-    print(sql('--con-migracion' in sys.argv, '--selftest' in sys.argv))
+    bloques = [a for a in sys.argv[1:] if a in ('A', 'B')]
+    if len(bloques) != 1:
+        sys.exit('uso: envio_y_fichas_rpc_test.py A|B [--con-migracion] [--selftest]')
+    print(sql(bloques[0], '--con-migracion' in sys.argv, '--selftest' in sys.argv))
