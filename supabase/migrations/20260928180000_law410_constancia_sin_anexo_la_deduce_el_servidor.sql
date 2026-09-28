@@ -33,9 +33,13 @@
 --     no hay forma de ocultar una falta desde el navegador;
 --   · `declarado_por` = servidor | pantalla | ambos.
 --
--- LO QUE NO PRUEBA. Se juzga el contrato guardado, no el HTML que se sube a firmar: si el agente cambió los anexos
--- en pantalla sin guardar, la constancia describe lo guardado. Tampoco qué versión del PDF se imprimió (eso es
--- el `sha` de la ficha, que sigue siendo lo que declara el navegador: ver 20260928121000).
+-- LO QUE NO PRUEBA. Se juzga el contrato guardado, no el HTML que se sube a firmar. Para que no se separen,
+-- «Generar enlace de firma» (contracts/app.html) GUARDA el contrato antes de enviarlo cuando arranca la cadena
+-- (nadie ha firmado, ningún enlace vivo) y no envía si el guardado no sale; con un enlace vivo el contrato está en
+-- solo lectura y la base rechaza cambiar `datos` (contrato_no_editable_en_firma). Queda fuera: una pantalla
+-- manipulada que no guarde y monte otro documento — el hash ata el enlace a ESE documento, no a lo guardado.
+-- Tampoco se prueba qué versión del PDF se imprimió (eso es el `sha` de la ficha, que sigue siendo lo que declara
+-- el navegador: ver 20260928121000).
 --
 -- PERMISOS: solo authenticated, explícitos aunque create or replace conserve la ACL (P2 del test lo mide).
 -- ERP maestro: contrato_envia_firma es del núcleo (erp/modulos.json); queda como deuda del maestro

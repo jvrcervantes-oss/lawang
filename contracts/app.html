@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="c9aea576b48a">
+<meta name="lw-version" content="e2737b91444c">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -4871,6 +4871,10 @@ async function guardarContrato(){
     return;
   }
 
+  /* true solo si el contrato quedó guardado de verdad (LAW-410, 28-sep-2026): «Enviar a firma»
+     guarda primero y no envía si esto no es true. Cualquier `return` de arriba (un freno) da
+     undefined, que para quien pregunta es «no se guardó». */
+  let guardadoOk = false;
   const btn=$('#btnSave'); btn.disabled=true; btn.textContent='Guardando…';
   try{
     /* MIGRACIÓN PEREZOSA (LAW-78): los anexos viejos —páginas en base64 dentro de
@@ -5014,6 +5018,7 @@ async function guardarContrato(){
     informarCompradores(data.id);   // el alta ya la hizo el disparador: esto solo la cuenta
     if(esNuevo) crearProformaAutomatica(data.id, data.numero, payload);
     if(tipo === 'poa') cubrirConEstePoder(data.id, data.numero);
+    guardadoOk = true;
   }catch(err){
     // Los triggers de guardado (sincroniza_unidad_contrato, valida_poder_id,
     // contrato_no_editable_en_firma, contratos_tipo_permitido,
@@ -5050,6 +5055,7 @@ async function guardarContrato(){
     avisoNoGuardado(detalle);
   }
   btn.disabled=false; updateSaveButton();
+  return guardadoOk;
 }
 
 /* ---------- alta automática del comprador ----------
@@ -6127,6 +6133,21 @@ $('#fmGen').addEventListener('click', async ()=>{
      página que falta o cuya huella no cuadra no puede salir a firma con un hueco. */
   const anxMal = problemasAnexos(ANNEXES, { soloIncluidos:true });
   if(anxMal.length){ toastMal('No se puede enviar a firma: ' + anxMal.join('; ')); return; }
+  /* SE GUARDA ANTES DE ENVIAR (LAW-410, revisión de código 28-sep-2026). El documento que se firma lo monta
+     esta pantalla, pero la constancia «sin anexo» la deduce la base del contrato GUARDADO: con cambios sin
+     guardar (un anexo apagado, otro techo) las dos dirían cosas distintas. Al ARRANCAR la cadena (nadie ha
+     firmado y no hay enlace vivo) se guarda por el camino normal —con todos sus frenos— y si no queda
+     guardado, no se envía. Con un enlace vivo el contrato está en solo lectura (semibloqueo) y guardar lo
+     rechazaría; con firmas ya recogidas el documento es el de firma-submit: en los dos casos no hay nada que
+     guardar. El estado se relee del servidor, no se decide con lo que creía la pantalla. */
+  if(FIRMA_NEXT.firmados===0){
+    await cargarEstadoFirma();
+    if(EN_FIRMA.vivas + EN_FIRMA.firmadas === 0){
+      const guardado = await guardarContrato();
+      // sin toast propio: guardarContrato() ya ha dicho por qué no guarda, y un segundo toast lo pisaría
+      if(guardado !== true) return;
+    }
+  }
   const tipSel = (document.querySelector('[name="tipologia_construccion"]')||{}).value;
   /* HISTORIA: en Construcción el Anexo Maestro era el ÚNICO anexo y la plantilla remite a él
      («Anexo Especificaciones Técnicas»). El 25-sep-2026 (revisión previa #86) sin
