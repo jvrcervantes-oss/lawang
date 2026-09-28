@@ -306,6 +306,13 @@
     'No se pudieron leer las solicitudes y comisiones.': 'Could not read the requests and commissions.',
     'No se pudieron leer los gastos': 'Could not read the expenses',
     'No se pudieron leer los gastos.': 'Could not read the expenses.',
+    /* LAW-338 L2 tanda 2 (28-sep-2026, LAW-422): avisos nuevos de Gastos y Creatividades */
+    'No hay categorías de gasto dadas de alta: sin ellas no se puede registrar un gasto. Pídelo a administración.': 'There are no expense categories set up: without them no expense can be recorded. Ask administration.',
+    'Alguna lista de apoyo viene recortada por el servidor: ': 'Some supporting lists were cut short by the server: ',
+    'Demasiados gastos para cargarlos de una vez': 'Too many expenses to load at once',
+    'Se muestran las 500 piezas más recientes; hay más en la biblioteca.': 'Showing the 500 most recent pieces; there are more in the library.',
+    'Esa creatividad no existe o no tienes acceso a ella.': 'That creative does not exist or you do not have access to it.',
+    'Dossier': 'Dossier',
     'No se pudo abrir el justificante': 'Could not open the receipt',
     'No se pudo anotar el justificante': 'Could not record the receipt',
     'No se pudo anular': 'Could not void',
