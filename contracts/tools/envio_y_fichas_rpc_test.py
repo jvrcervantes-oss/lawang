@@ -13,7 +13,9 @@ no se conecta; imprime un bloque SQL que se pega en `mcp__supabase-lawang__execu
 DOS BLOQUES independientes, cada uno con su begin/rollback y `statement_timeout` de 50 s (28-sep-2026: en un solo
 bloque se pasó del tiempo del MCP con la base cargada y hubo que cancelarlo). A = migraciones de LAW-406 (la de
 envío y la diferida de retirada) + P1-P3 + F1-FB + F9. B = trigger de LAW-400 + L1-LF. C = LAW-410 (la constancia
-«sin anexo» la deduce el servidor en un contrato de OBRA; la pantalla solo suma) + S0-SB. Si uno se pasa del tiempo:
+«sin anexo» la deduce el servidor en un contrato de OBRA; la pantalla solo suma) + S0-SE. OJO: SD/SE desactivan
+el trigger trg_contrato_anexos_con_paginas DENTRO de la transaccion (ACCESS EXCLUSIVE sobre `contratos` hasta el
+ROLLBACK, milisegundos: van al final). Si uno se pasa del tiempo:
 mirar pg_stat_activity y cancelar el pid; nunca dejar colgada una transacción con el drop de contrato_envia_firma
 o el ALTER de contrato_eventos.
 
@@ -343,6 +345,21 @@ def bloque_c(p):
     prepara_c(p, [ficha_c(1), ficha_c(2)])
     p.append(caso('SC un modelo retirado con el mismo nombre: se resuelve el activo, todo va, SIN constancia', envia_c(), 'ok',
                   '%s is null' % DET, SIN))
+    # FICHA VIEJA `axauto` (36 contratos de antes del 27-sep): cuenta como el plano del techo o el generico.
+    # El trigger de LAW-400 no deja ESCRIBIRLA nueva, asi que para montar el caso se desactiva SOLO ese trigger
+    # dentro de esta transaccion (el rollback lo deja como estaba). OJO: el ALTER TABLE toma un bloqueo
+    # ACCESS EXCLUSIVE sobre `contratos` hasta el ROLLBACK: nadie lee ni escribe contratos mientras tanto. Por
+    # eso va al FINAL del bloque (lo que queda dura milisegundos) y el statement_timeout de 50 s es el tope.
+    VIEJA_C = "jsonb_build_object('id', 'axauto', 'auto', 'zz', 'title', 'vieja', 'on', %s)"
+    p.append('reset role;')
+    p.append('alter table public.contratos disable trigger trg_contrato_anexos_con_paginas;')
+    prepara_c(p, [VIEJA_C % 'true', ficha_c(2)])
+    p.append(caso('SD ficha vieja axauto encendida: cuenta como el plano, todo va, SIN constancia', envia_c(), 'ok',
+                  '%s is null' % DET, SIN))
+    p.append('reset role;')
+    prepara_c(p, [VIEJA_C % 'false', ficha_c(2)])
+    p.append(caso('SE ficha vieja axauto APAGADA: sin_apendice_a con el plano nombrado', envia_c(), 'ok',
+                  "%(d)s->>'motivo' = 'sin_apendice_a' and %(d)s->'faltan' = jsonb_build_array(%(pl)s)" % {'d': DET, 'pl': PLANO}, SIN))
     # el modelo sin nada marcado para el contrato
     p.append('reset role;')
     p.append("update public.modelo_documentos set en_contrato = false where modelo_id = current_setting('t.m')::uuid;")
@@ -358,7 +375,7 @@ def bloque_c(p):
     prepara_c(p, [], "jsonb_set(%s, '{fields,tipologia_construccion}', '\"\"'::jsonb)")
     p.append(caso('SA contrato que NO es de obra (tipologia vacia): sin constancia', envia_c(), 'ok', '%s is null' % DET, SIN))
     p.append(caso('SB declaracion mal formada: 22023 y ninguna constancia nueva', envia_c("'{\"motivo\": \"otro\"}'::jsonb"), '22023',
-                  "pg_temp.t_eventos_c() = 7"))
+                  "pg_temp.t_eventos_c() = 8"))
     p.append('reset role;')
 
 
