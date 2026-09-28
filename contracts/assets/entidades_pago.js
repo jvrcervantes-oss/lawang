@@ -274,6 +274,9 @@ function datosBancariosHTML(opts){ return tablaCuentaHTML(collect().cuenta_banca
    Se salta lo que no identifica —firmas, ficheros— y se recorta: es una pista
    para reconocer la sección, no su contenido. */
 function resumenSeccion(sec){
+  // Forma de pago (paso 1, 28-sep-2026): sus radios no son un valor tecleado; plegada dice cuál está elegida
+  const fp = sec.querySelector('input[name="formaPago"]:checked');
+  if(fp){ const t = fp.closest('.fp-op') && fp.closest('.fp-op').querySelector('.fp-tit'); if(t) return t.textContent.trim(); }
   const vals = [...sec.querySelectorAll('.body input, .body select, .body textarea')]
     .filter(el => el.type !== 'checkbox' && el.type !== 'radio' && el.type !== 'file'
                   && !el.closest('[hidden]') && !el.classList.contains('dato-fijo'))
@@ -330,7 +333,9 @@ function applyLang(){
       if(lab) lab.textContent = L(f[1]);
     });
   });
+  // el paso 1 (forma de pago) no está en SECTIONS: su título aparte; el cuerpo lo repinta refreshHitos()
+  const fpH = $('[data-sec="forma_pago"] h2'); if(fpH) fpH.textContent = L({es:'Forma de pago',en:'Payment method',id:'Cara pembayaran'});
   document.querySelectorAll('#langToggle button').forEach(b=> b.classList.toggle('on', b.dataset.l===LANG));
-  refreshHitos();   // re-etiqueta la UI de hitos (los valores viven en HITOS, no se pierden)
+  refreshHitos();   // re-etiqueta la UI de hitos y el paso 1 (los valores viven en HITOS, no se pierden)
   render();
 }
