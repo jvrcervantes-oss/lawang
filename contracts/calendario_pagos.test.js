@@ -22,10 +22,13 @@ function ok(cond, que){ if(!cond){ fallos++; console.error('  FALLA  ' + que); }
 
 const AQUI = __dirname;
 const tokens = JSON.parse(fs.readFileSync(path.join(AQUI, 'tokens.json'), 'utf8'));
-const migs = fs.readdirSync(path.join(AQUI, '..', 'supabase', 'migrations'))
-  .filter(f => /_calendario_pagos_construccion\.sql$/.test(f)).sort();
-ok(migs.length === 1, 'hay UNA migración *_calendario_pagos_construccion.sql (hay ' + migs.length + ')');
-const sql = fs.readFileSync(path.join(AQUI, '..', 'supabase', 'migrations', migs[migs.length - 1]), 'utf8');
+// La definición VIGENTE de contrato_calendario_preset es la de la última migración que la trae (28-sep: la de
+// 052131 y, tras la consulta de Legal, la que quita «a la firma» del concepto del pago único).
+const DIR_MIG = path.join(AQUI, '..', 'supabase', 'migrations');
+const migs = fs.readdirSync(DIR_MIG).filter(f => f.endsWith('.sql')).sort()
+  .filter(f => fs.readFileSync(path.join(DIR_MIG, f), 'utf8').includes('-- >>> presets'));
+ok(migs.length >= 1, 'hay al menos una migración con los presets entre -- >>> presets / -- <<< presets');
+const sql = migs.length ? fs.readFileSync(path.join(DIR_MIG, migs[migs.length - 1]), 'utf8') : '';
 
 // ── 1. Paridad de presets: tokens.json ↔ base ──────────────────────────────
 const m = /-- >>> presets\n'([\s\S]*?)'\n-- <<< presets/.exec(sql);

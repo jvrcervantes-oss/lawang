@@ -1,4 +1,4 @@
--- PRUEBA POR ROL — calendario de pagos del Contrato de Construcción (28-sep-2026, migraciones 20260928052131 + 052357 + 054712 + 055624).
+-- PRUEBA POR ROL — calendario de pagos del Contrato de Construcción (28-sep-2026, migraciones 20260928052131 + 052357 + 054712 + 055624 + 060334).
 -- Se ejecuta con execute_sql (MCP) o psql como postgres, UN BLOQUE POR LLAMADA: cada uno acaba en
 -- `raise exception 'RES: …'`, que revierte la transacción entera — NO ESCRIBE NADA. Cada punto debe decir «ok».
 -- Para probar ANTES de aplicar: `begin;` + el texto de la migración + un bloque, en la misma llamada.
@@ -243,5 +243,30 @@ begin
     perform contrato_calendario_aplica(jsonb_set(ant, '{hitos,0,fecha}', to_jsonb(to_char(ff + 201, 'YYYY-MM-DD'))), ant, 67000, ff, c.id);
     r := r || '4 FALLO; ';
   exception when others then r := r || '4 ok; '; end;
+  raise exception 'RES: %', r;
+end $$;
+
+-- 7. Tras 20260928060334 (consultas de Legal y Datos): un pago «no facturar» conserva su marca y su nota cuando se
+--    reescriben los hitos, y bloquea el cambio de calendario; el pago único se llama «Pago único». 3/3 ok el 28-sep.
+do $$
+declare r text := ''; j jsonb; c record; ff date;
+  A text := '{"sub":"1cd031f2-c7da-455e-975f-c4e8708e36fb","email":"dortegag@gmail.com","role":"authenticated"}';
+begin
+  select * into c from contratos where numero = 'CC00106';
+  ff := coalesce(nullif(c.datos->'fields'->>'fecha_firma', '')::date, current_date);
+  update contrato_vencimientos set no_facturar = true, nota = 'pactado aparte' where contrato_id = c.id and orden = 1;
+  perform set_config('request.jwt.claims', A, true);
+  set local role authenticated;
+  j := contrato_guarda(c.id, jsonb_build_object('tipo', 'construccion', 'datos', jsonb_set(c.datos, '{hitos,0,monto}', '"1"')));
+  reset role;
+  r := r || case when (select no_facturar and nota = 'pactado aparte' and monto = 16750 from contrato_vencimientos where contrato_id = c.id and orden = 1) then '1 ok; ' else '1 FALLO; ' end;
+  set local role authenticated;
+  begin
+    perform contrato_guarda(c.id, jsonb_build_object('tipo', 'construccion', 'datos', c.datos || jsonb_build_object('calendario', 'unico_firma',
+         'hitos', jsonb_build_array(jsonb_build_object('fecha', to_char(ff + 30, 'YYYY-MM-DD'))))));
+    r := r || '2 FALLO cambia calendario con un pago no facturar; ';
+  exception when others then r := r || '2 ok; '; end;
+  reset role;
+  r := r || case when contrato_calendario_preset('unico_firma')->0->>'es' = 'Pago único' then '3 ok; ' else '3 FALLO; ' end;
   raise exception 'RES: %', r;
 end $$;

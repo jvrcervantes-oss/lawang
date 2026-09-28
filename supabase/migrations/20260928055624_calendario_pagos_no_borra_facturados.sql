@@ -1,7 +1,7 @@
 -- destructivo-ok: reemplaza sincroniza_vencimientos y contrato_calendario_aplica con la misma firma; no toca datos.
 -- Segunda pasada del revisor de código sobre el calendario de pagos (28-sep-2026):
 -- 1) [MEDIA] sincroniza_vencimientos borraba y recreaba TODO vencimiento no `ajustado` cada vez que cambiaba
---    datos.hitos — también uno YA FACTURADO, porque factura_vencimiento_atomica pone `factura_id` sin marcar
+--    datos.hitos — también uno YA FACTURADO, porque factura_vencimiento_emite (migración 20260926160000_factura_vencimiento_atomica) pone `factura_id` sin marcar
 --    `ajustado`: volvía a nacer con factura_id null y el robot lo podía facturar otra vez. Latente desde el 19-ago,
 --    pero desde 20260928052131 el servidor reescribe los hitos en cada guardado de Construcción, así que dejaba de
 --    ser raro. Arreglo de raíz: un vencimiento facturado no se borra nunca por aquí (el insert ya salta su `orden`).
