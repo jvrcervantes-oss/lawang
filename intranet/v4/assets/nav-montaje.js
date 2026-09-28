@@ -37,7 +37,9 @@
   var fijo = html.classList.contains('lw4-fijo');
   // mismo corte que maqueta.js + shell.css en las pantallas nativas
   var ancho = window.matchMedia ? window.matchMedia('(min-width:1024px)') : { matches: false };
-  function aLaVista() { return fijo && ancho.matches; }
+  // Plegada en escritorio (28-sep-2026): mismo gesto que las pantallas nativas (maqueta.js).
+  function plegada() { return html.classList.contains('lw4-sb-plegado'); }
+  function aLaVista() { return fijo && ancho.matches && !plegada(); }
 
   // Lo que Stitch dibujó en las 22 sidebars (grupos, iconos y data-path). El
   // resto (Modelos, CRM, Asistente, Comisiones, Reservas, Panel de control) lo
@@ -132,13 +134,25 @@
   var volverA = null;
   function abre() {
     if (aLaVista()) return;                                  // ya está a la vista
+    if (fijo && ancho.matches) {                             // escritorio plegado: se despliega en su sitio
+      html.classList.remove('lw4-sb-plegado');
+      aside.setAttribute('aria-hidden', 'false');
+      return;
+    }
     volverA = document.activeElement;
     html.classList.add('lw4-sb-abierto');
     aside.setAttribute('aria-hidden', 'false');
     var primero = aside.querySelector('a[href]:not([href="#"]), button');
     if (primero) primero.focus();
   }
-  function cierra() {
+  function cierra(pliega) {
+    if (pliega && aLaVista()) {                              // botón de la barra en escritorio: pliega
+      html.classList.add('lw4-sb-plegado');
+      aside.setAttribute('aria-hidden', 'true');
+      var menu = document.querySelector('[data-lw4-menu]');
+      if (menu) menu.focus();
+      return;
+    }
     if (!html.classList.contains('lw4-sb-abierto')) return;
     html.classList.remove('lw4-sb-abierto');
     aside.setAttribute('aria-hidden', 'true');
@@ -150,6 +164,7 @@
     var t = e.target.closest ? e.target : e.target.parentElement;
     if (!t) return;
     if (t.closest('[data-lw4-menu]')) { e.preventDefault(); abre(); }
+    else if (t.closest('.lw4-sb-cerrar')) { e.preventDefault(); cierra(true); }
     else if (t.closest('[data-lw4-cerrar]')) { e.preventDefault(); cierra(); }
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cierra(); });

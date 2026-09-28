@@ -194,7 +194,16 @@
     contrato_bloqueado: 'Este contrato está enviado a firma o bloqueado: no admite anexos nuevos',
     sin_permiso_contrato: 'No tienes permiso para añadir anexos a este contrato',
     anexo_invalido: 'Ese anexo no es válido: recarga la página', pagina_invalida: 'Página de anexo no válida: recarga la página',
-    pagina_demasiado_grande: 'Una página del anexo pesa más de 3 MB: súbelo con menos resolución'
+    pagina_demasiado_grande: 'Una página del anexo pesa más de 3 MB: súbelo con menos resolución',
+    // AXW-66 (28-sep-2026): fotos del deck en bucket público solo si el deck está abierto
+    foto_ids_invalidos: 'Petición de fotos no válida: recarga la página',
+    no_se_pudieron_firmar: 'El servidor no ha podido dar las direcciones de las fotos: prueba otra vez',
+    peticion_invalida: 'Petición no válida: recarga la página',
+    cambio_en_curso: 'Ya hay un cambio en curso en el deck de este proyecto: espera un minuto y vuelve a mirar',
+    fotos_sin_mover: 'No se han podido pasar las fotos al público: el deck sigue cerrado. Prueba otra vez',
+    deck_a_medias: 'El cambio del deck ha quedado A MEDIAS (alguna foto no está donde toca). Vuelve a pulsar el botón: repetirlo es seguro',
+    el_deck_cambio_durante_la_subida: 'El deck de este proyecto se ha abierto o cerrado mientras subías: vuelve a subir la foto',
+    sincroniza_apagada_hasta_s4: 'El barrido de fotos del deck todavía no está encendido'
   });
   fija('lwFichero', function (sb, clase, accion, datos) {
     return sb.auth.getSession().then(function (s) {
@@ -206,8 +215,44 @@
       sospechaVersion(r.status);
       return r.json().catch(function () { return { ok: false, error: 'Respuesta inválida del servidor' }; });
     }).then(function (d) {
-      if (!d.ok) { var e = new Error(FICH_ERR[d.error] || d.error || 'error del servidor'); e.code = d.code; throw e; }
+      // `.clave` = el código crudo del servidor: la pantalla decide por él, nunca por el texto traducido
+      if (!d.ok) { var e = new Error(FICH_ERR[d.error] || d.error || 'error del servidor'); e.code = d.code; e.clave = d.error; e.aplicado = d.aplicado; e.quedan = d.quedan; throw e; }
       return d;
+    });
+  });
+  /* URL de cada foto del deck, por id (AXW-66, 28-sep-2026; revisión previa #139, DES1/DES2/SEG3). Desde AXW-66 las
+     fotos de proyectos SIN deck abierto viven en el bucket privado `deck-privado`: su URL es firmada (1 h) y la da el
+     servidor (edge `ficheros`, acción `urls`), que saca la ruta de `deck_fotos` y el bucket de `storage.objects` —
+     aquí solo viajan ids. La URL firmada NO se guarda nunca (ni en un estado, ni en localStorage): se pide al pintar.
+     `fotos`: ids, o filas {id, ambito, path}. Una fila de MODELO sigue siendo pública (bucket `deck`) y se resuelve
+     aquí mismo, sin ir al servidor. Lotes de 200 (el tope de la edge) en paralelo.
+     Resuelve {urls: {id: url|null}, caduca_seg}; `null` = la fila existe pero su fichero no. Si el servidor falla,
+     RECHAZA con `.clave = 'urls_fallan'`: la pantalla tiene que decir «no he podido pedirlas», que no es lo mismo
+     que «no hay fotos». */
+  fija('lwFotoUrls', function (sb, fotos) {
+    var urls = {}, pedir = [];
+    (fotos || []).forEach(function (f) {
+      var id = typeof f === 'string' ? f : f && f.id;
+      if (!id || Object.prototype.hasOwnProperty.call(urls, id)) return;
+      if (f && f.ambito === 'modelo' && f.path) { urls[id] = sb.storage.from('deck').getPublicUrl(f.path).data.publicUrl; return; }
+      urls[id] = null;
+      pedir.push(id);
+    });
+    var lotes = [];
+    for (var i = 0; i < pedir.length; i += 200) lotes.push(pedir.slice(i, i + 200));
+    return Promise.all(lotes.map(function (l) {
+      return window.lwFichero(sb, 'deck_foto', 'urls', { foto_ids: l });
+    })).then(function (rs) {
+      var caduca = 3600;
+      rs.forEach(function (r) {
+        Object.keys(r.urls || {}).forEach(function (k) { urls[k] = r.urls[k] || null; });
+        if (r.caduca_seg) caduca = Math.min(caduca, Number(r.caduca_seg) || caduca);
+      });
+      return { urls: urls, caduca_seg: caduca };
+    }, function (e) {
+      var err = new Error('No se han podido pedir las direcciones de las fotos: ' + ((e && e.message) || e));
+      err.clave = 'urls_fallan'; err.causa = e && e.clave;
+      throw err;
     });
   });
   /* Subir un fichero de una clase: pedir la ruta → subir con el content-type que dice el servidor → registrarlo.

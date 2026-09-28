@@ -3849,6 +3849,26 @@
     'Enlace de firma de %contrato caduca hoy': 'Signing link for %contrato expires today',
     'Enlace de firma de %contrato caduca en %dias d': 'Signing link for %contrato expires in %dias d',
     'un contrato': 'a contract',
+    // AXW-66 (28-sep-2026): fotos del deck por id (dossier y redes)
+    'Sin imagen': 'No image',
+    'Imagen no disponible': 'Image unavailable',
+    'No se han podido cargar las imágenes.': 'The images could not be loaded.',
+    'Las fotos siguen ahí: esto no significa que no haya ninguna.': 'The photos are still there: this does not mean there are none.',
+    'Si el deck de este proyecto está abierto, la foto es pública al instante; si está cerrado, queda privada hasta que se active.': 'If this project\'s deck is open, the photo is public immediately; if it is closed, it stays private until the deck is activated.',
+    'No subas aquí nada que no pueda ver cualquiera.': 'Do not upload anything here that anyone could not see.',
+    'foto(s) añadida(s)': 'photo(s) added',
+    ' foto(s) del dossier no tienen fichero en el archivo: sustitúyelas.': ' dossier photo(s) have no file in storage: replace them.',
+    ' foto(s) no han cargado y saldrían en blanco en el PDF. ¿Imprimir igualmente?': ' photo(s) did not load and would print blank in the PDF. Print anyway?',
+    ' imagen(es) del dossier ya no están en las fotos del deck: se han quitado.': ' dossier image(s) are no longer among the deck photos: they have been removed.',
+    'Falta guard.js actualizado: recarga la página': 'guard.js is out of date: reload the page',
+    'Faltan fotos': 'Photos missing',
+    'Imprimir igualmente': 'Print anyway',
+    'No se han podido actualizar las fotos de este dossier antiguo: ': 'Could not update the photos of this older dossier: ',
+    'No se imprime: no se han podido pedir las fotos. ': 'Not printed: the photos could not be requested. ',
+    'Preparando las fotos para imprimir…': 'Preparing the photos for printing…',
+    'Esa foto no tiene fichero: súbela otra vez desde Proyectos.': 'That photo has no file: upload it again from Projects.',
+    'Falta el fichero': 'File missing',
+    'No se pudo leer la foto (': 'Could not read the photo (',
 
   };
 
