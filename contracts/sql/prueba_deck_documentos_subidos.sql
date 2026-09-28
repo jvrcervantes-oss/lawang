@@ -56,12 +56,18 @@ begin
   exception when others then r := r || '10 más de 50 MB=' || sqlerrm || (case when sqlerrm = '0' then ' ok; ' else ' FALLO; ' end); end;
   begin update public.documentos_proyecto set path = 'proyectos/x/../../otro.pdf' where id = d.id;
     select count(*) into v_n from public.investor_deck_documento_ruta(d.id); raise exception '%', v_n;
-  exception when others then r := r || '11 ruta rara=' || left(sqlerrm, 40) || (case when sqlerrm = '0' then ' ok; ' else ' (FALLO si no es un check de la tabla); ' end); end;
+  exception
+    when check_violation then r := r || '11 ruta rara: ok (lo impide el check de la tabla); ';
+    when others then r := r || '11 ruta rara=' || left(sqlerrm, 40) || (case when sqlerrm = '0' then ' ok; ' else ' FALLO; ' end); end;
   begin update public.documentos_proyecto set url = 'https://drive.google.com/prueba' where id = d.id;
     select count(*) into v_n from public.investor_deck_documento_ruta(d.id);
     select count(*) into v_old from public.investor_deck_documentos(d.proyecto) l where l.url = 'https://drive.google.com/prueba';
     raise exception '%/%', v_n, v_old;
-  exception when others then r := r || '12 con url: ruta/lista=' || sqlerrm || (case when sqlerrm = '0/1' then ' ok; ' else ' FALLO; ' end); end;
+  -- La tabla impide fichero Y enlace a la vez (check documentos_proyecto_fichero_o_enlace, 28-sep). Si algún día se
+  -- quita, la ruta tiene que seguir dando 0 y la lista el enlace.
+  exception
+    when check_violation then r := r || '12 con url: ok (lo impide el check de la tabla); ';
+    when others then r := r || '12 con url: ruta/lista=' || left(sqlerrm, 40) || (case when sqlerrm = '0/1' then ' ok; ' else ' FALLO; ' end); end;
 
   -- Los enlaces de Drive: salen los mismos que con la regla de antes (todo el catálogo, no solo este proyecto).
   select count(*) into v_old from public.documentos_proyecto x
