@@ -2049,7 +2049,7 @@ input.lw-elegible:disabled{ cursor:default; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   app.css   sha256:d12a33ded042
+   app.css   sha256:58d06f73ed49
    ───────────────────────────────────────────────────────────────────── */
 /* Estilos propios del Generador de Contratos — sacados de app.html el 17-ago-2026.
    ============================================================================
@@ -2081,9 +2081,9 @@ input.lw-elegible:disabled{ cursor:default; }
   body{ font-family:var(--font-body,'Jost',sans-serif); color:var(--va); background:var(--rl); font-size:16px; line-height:1.5; -webkit-font-smoothing:antialiased; }
   ::selection{ background:rgba(72,91,55,.16); }
   /* scrollbar discreta y de marca en los paneles con overflow */
-  .pane-form, .pv-scroll, .cp-list{ scrollbar-width:thin; scrollbar-color:var(--ss) transparent; }
-  .pane-form::-webkit-scrollbar, .pv-scroll::-webkit-scrollbar, .cp-list::-webkit-scrollbar{ width:9px; height:9px; }
-  .pane-form::-webkit-scrollbar-thumb, .pv-scroll::-webkit-scrollbar-thumb, .cp-list::-webkit-scrollbar-thumb{ background:var(--ss); border-radius:20px; border:2px solid transparent; background-clip:content-box; }
+  .pane-form, .pv-scroll{ scrollbar-width:thin; scrollbar-color:var(--ss) transparent; }
+  .pane-form::-webkit-scrollbar, .pv-scroll::-webkit-scrollbar{ width:9px; height:9px; }
+  .pane-form::-webkit-scrollbar-thumb, .pv-scroll::-webkit-scrollbar-thumb{ background:var(--ss); border-radius:20px; border:2px solid transparent; background-clip:content-box; }
 
   /* ---------- topbar · barra de vidrio esmerilado, fija ---------- */
   /* Solo posicionamiento: el aspecto vive en assets/topbar.css, compartido con
@@ -2580,27 +2580,10 @@ input.lw-elegible:disabled{ cursor:default; }
     .tb-link{ padding:6px 8px; font-size:12px; }
   }
 
-  /* ---------- panel "Contratos guardados" ---------- */
-  /* ── MODO LISTADO (2a, 6-ago-2026) ─────────────────────────────────────
-     Contratos abria directo al EDITOR y lo emitido vivia en este modal. Peticion
-     de la revision: como Facturas — primero la lista, «+ Nuevo» abre el editor.
-     Se promueve el MISMO panel (misma carga, filtros, autoria y borrado, cero
-     logica nueva) a pantalla: en `body.modo-listado` deja de ser un modal
-     flotante y ocupa el cuerpo de la pagina con los valores del mockup. */
-  body.modo-listado .stage, body.modo-listado .fab{ display:none !important; }
-  body.modo-listado #tplPick, body.modo-listado .lang-hint,
-  body.modo-listado #langToggle, body.modo-listado .lw-sep,
-  body.modo-listado #btnReset{ display:none !important; }
-  body.modo-listado #cpOverlay{ display:block; position:static; background:none;
-    backdrop-filter:none; -webkit-backdrop-filter:none;
-    padding:calc(var(--tbh) + 22px) 26px 30px; }
-    /* Sin tope, como el resto de la suite (27-ago-2026). */
-  body.modo-listado #cpOverlay .cp-modal{ width:100%; margin:0 auto;
-    max-height:none; border:1px solid var(--line); border-radius:12px;
-    box-shadow:0 1px 2px rgba(34,40,42,.06); animation:none; }
-  body.modo-listado #cpClose{ display:none; }
-  body.modo-listado .cp-list{ max-height:calc(100vh - 340px); }
-
+  /* ---------- ventanas (.cp-overlay/.cp-modal) ----------
+     Nacieron con el panel «Contratos guardados» y las comparten todos los modales
+     del generador (firma, email, registro, derivar) y Facturas. El listado se
+     retiró el 28-sep-2026 (LAW-391): es /intranet/v4/contratos/. */
   .cp-overlay{ display:none; position:fixed; inset:0; z-index:80; background:rgba(46,52,55,.42);
     backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
     align-items:center; justify-content:center; padding:24px; }
@@ -2612,52 +2595,6 @@ input.lw-elegible:disabled{ cursor:default; }
   @keyframes cpRise{ from{ opacity:0; transform:translateY(12px) scale(.985); } to{ opacity:1; transform:none; } }
   .cp-head{ display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid var(--line); }
   .cp-head b{ font-size:14px; letter-spacing:.06em; text-transform:uppercase; color:var(--dl); }
-  /* El ASPECTO lo pone `.sui-buscar` (suite.css), igual que en las otras siete.
-     Aquí solo queda dónde va: el modal es un bloque, no una fila flexible, así
-     que el `flex:1 1 240px` de la clase no lo estira y hay que darle el ancho.
-     Los 18px de margen son la sangría del panel, la misma que `.cp-filtros`. */
-  /* ⚠️ `flex:none` NO es decorativo: `.cp-modal` es una COLUMNA flexible (para
-     que la lista de abajo sea lo que se desplaza), y el `flex:1 1 240px` de la
-     clase compartida —pensado para una fila, donde 240px es un ancho mínimo— se
-     lee aquí como 240px de ALTO, y ademas crece. El buscador salia convertido en
-     un ovalo de media pantalla. Visto en captura al desplegar. */
-  #cpSearch{ display:block; flex:none; width:calc(100% - 36px); margin:12px 18px 0; }
-  /* filtros del panel: mismos chips que Unidades y Operaciones */
-  .cp-filtros{ display:flex; gap:5px; flex-wrap:wrap; padding:10px 18px 0; align-items:center; }
-  /* El eje de cada fila de filtros es `.sui-eje`, en suite.css: el mismo
-     problema lo tenia Documentacion y la clase es una, no una por herramienta. */
-  .cp-f{ font:inherit; font-size:12px; letter-spacing:.03em; background:#fff; border:1px solid var(--line);
-         border-radius:999px; padding:7px 14px; cursor:pointer; color:var(--texto-2,#4A5052); }
-  .cp-f:hover{ border-color:var(--dl); }
-  .cp-f.on{ background:#21272A; border-color:#21272A; color:#fff; }
-  .cp-f.vacio{ opacity:.45; }
-  /* «Mas/Menos» es un control, no un filtro: sin borde solido y en tinta de
-     marca, para que no se lea como un tipo mas de contrato. */
-  .cp-f.cp-mas{ border-style:dashed; color:var(--dl,#104C4F); }
-  .cp-f.cp-mas:hover{ background:#F7F3E9; }
-  .cp-cols{ display:grid; grid-template-columns:.9fr .7fr 1.2fr 1fr .9fr .8fr 1.2fr; gap:8px; padding:14px 18px 6px;
-    font-size:9.5px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--sc); }
-  .cp-list{ overflow-y:auto; padding:0 18px 16px; flex:1; }
-  /* Mismos colores que la lista de Facturas guardadas (petición del owner,
-     4-ago-2026): cada fila es una tarjeta sobre `--card` con su filete
-     `--line`, y al pasar por encima lo que cambia es el BORDE, no el fondo.
-     Antes eran filas pegadas separadas por una raya, y el hover teñía el fondo
-     de verde. Las columnas y los campos NO se tocan: son los de Contratos y
-     estaban bien. Los dos tokens ya existían aquí con el mismo valor que en
-     Facturas, así que esto no añade ningún color nuevo al sistema. */
-  .cp-row{ display:grid; grid-template-columns:.9fr .7fr 1.2fr 1fr .9fr .8fr 1.2fr 34px; gap:8px;
-    padding:11px 12px; margin-bottom:8px; font-size:13px; cursor:pointer;
-    border:1px solid var(--line); border-radius:11px; background:var(--card);
-    transition:border-color .15s var(--ease); }
-  .cp-row:hover{ border-color:var(--dl); }
-  .cp-del{ font:inherit; font-size:13px; line-height:1; color:#a3342b; background:none;
-    border:1px solid #e0c6c2; border-radius:7px; padding:4px 7px; cursor:pointer; }
-  .cp-del:hover{ background:rgba(163,52,43,.09); }
-  /* el nº en Deep Lagoon y con cifras de ancho fijo, como en Facturas: así dos
-     números seguidos casan por columna y se comparan sin leerlos */
-  .cp-row .cp-num{ font-weight:600; color:var(--dl); font-variant-numeric:tabular-nums; }
-  .cp-empty{ padding:24px 0; text-align:center; color:var(--muted); font-size:13px; }
-
   /* ---------- modal "Enviar por email" ---------- */
   /* `overflow-y:auto` + `min-height:0`: el .cp-modal es flex en columna con
      max-height y overflow:hidden, así que un cuerpo que crece se RECORTA sin
@@ -2759,11 +2696,6 @@ input.lw-elegible:disabled{ cursor:default; }
   /* Fila de accion del Registro (24-ago-2026): el boton de repartir las copias
      del firmado, con su estado al lado. Va pegado a su tabla, no al margen. */
   .reg-acc{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:8px 0 2px; }
-  @media screen and (max-width:640px){
-    .cp-cols{ display:none; }
-    .cp-row{ grid-template-columns:1fr; gap:2px; }
-    .cp-row span::before{ content:attr(data-l) ": "; color:var(--muted); }
-  }
 
   /* ── EL REGISTRO EN PANTALLA ESTRECHA — 14-sep-2026 ──────────────────────
      Corrección del mismo día, y el fallo era mío: al ensanchar las celdas di
@@ -2778,14 +2710,15 @@ input.lw-elegible:disabled{ cursor:default; }
      Una tabla de cinco columnas no cabe en un móvil y no hay CSS que lo
      arregle: lo que se hace es dejar de pintarla como tabla. Cada fila pasa a
      ser una tarjeta y cada dato lleva delante el nombre de su columna, que es
-     EXACTAMENTE el mecanismo que ya usa el listado de contratos aquí arriba
-     (`.cp-row span::before` con `data-l`). Se copia ese, no se inventa otro.
+     EXACTAMENTE el mecanismo que usaba el listado de contratos (`.cp-row
+     span::before` con `data-l`, retirado con él el 28-sep-2026). Se copió ese,
+     no se inventó otro.
 
      EL CORTE ESTÁ MEDIDO, no elegido: con el banco de pruebas, el scroll
      horizontal de la tabla de correos aparece cuando la ventana baja de 815px
      (a 820 el contenido cabe justo; a 800 ya sobresalen 11px). 840 deja el
      margen de la barra de scroll del sistema y del zoom del navegador. No se
-     hereda el 640 de `.cp-row` ni el 760 de `.sui-row` a propósito: los dos
+     hereda el 640 del antiguo `.cp-row` ni el 760 de `.sui-row` a propósito: los dos
      dejarían un tramo de anchos con scroll escondido, que es el fallo. */
   @media screen and (max-width:840px){
     /* La caja ya no recorta nada, así que no necesita scroll propio. */

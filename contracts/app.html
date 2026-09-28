@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="ce1700f555f2">
+<meta name="lw-version" content="5ab24f9e71e9">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -26,7 +26,7 @@
      uno, para que ninguna herramienta pueda cargar media suite: antes
      Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
      salieron los desplegables con cuatro aspectos. -->
-<link rel="stylesheet" href="assets/lawang.css?v=3a0d1366">
+<link rel="stylesheet" href="assets/lawang.css?v=86b07abf">
 <!-- Iconos Phosphor: los usa el menu lateral de topbar.js (15-ago-2026). Ya
      los cargaban intranet/, compradores/ y creatividades/; se igualan las demas
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
@@ -64,10 +64,6 @@
 <script src="assets/entities.js?v=e015c66a"></script>
 <script src="assets/geo.js?v=cc6b09b2"></script>
 <script src="assets/huella.js?v=b511ff5e"></script>
-<!-- reasignar el autor de un documento (solo super_admin) — compartido con
-     /facturas. `creado_por` no es un adorno: es con lo que la RLS decide quién
-     puede editar su propio documento. -->
-<script src="assets/autoria.js?v=3b88aaeb"></script>
 <script src="assets/vocabulario.js?v=fd814f9b"></script>
 <script src="assets/dinero.js?v=30e26c17"></script>
 <script src="assets/dialogo.js?v=cefc9e4e"></script>
@@ -109,9 +105,9 @@
      las otras cuatro son plantillas JS que arman la ventana de impresión del
      contrato — meter aquí la capa la habría colado en el PDF del cliente. -->
 <link rel="stylesheet" href="/intranet/v4/assets/nav-montaje.css?v=c1f031bd">
-<link rel="stylesheet" href="/contracts/assets/suite-v4-generador.css?v=96849e79">
+<link rel="stylesheet" href="/contracts/assets/suite-v4-generador.css?v=74d3438e">
 <script src="/intranet/v4/assets/nav-montaje.js?v=047b8a7d" defer></script>
-<script src="/contracts/assets/generador-v4.js?v=55abc3f7" defer></script>
+<script src="/contracts/assets/generador-v4.js?v=78e32fd1" defer></script>
 <script src="/intranet/v4/assets/nav.js?v=c675dae9" defer></script>
 </head>
 <body>
@@ -137,9 +133,6 @@
     <div class="lw-spacer"></div>
     <button type="button" class="lw-btn" id="btnContracts">← Listado</button>
     <button type="button" class="lw-btn" id="btnReset">↺ Limpiar</button>
-    <!-- ACCION PRINCIPAL: ultima de la barra. La convencion, con su porque,
-         esta en assets/topbar.css junto a `.lw-btn.primary`. -->
-    <button type="button" class="lw-btn primary" id="btnNuevoC" hidden><i class="ph ph-plus"></i>Nuevo contrato</button>
   </div>
 
   <!-- Datalists globales de nacionalidad/prefijo (12-ago): ÚNICOS en la página,
@@ -259,24 +252,6 @@
 
   <button type="button" class="fab" id="fab">Vista previa ⤢</button>
   <div class="toast" id="toast"></div>
-
-  <!-- Panel "Contratos guardados" — lista lo que hay en Supabase (solo Parcela/Construcción,
-       que son los 2 tipos con numeración). Click en una fila reabre ese contrato en el form. -->
-  <div class="cp-overlay" id="cpOverlay">
-    <div class="cp-modal">
-      <div class="cp-head">
-        <b data-lwt="Contratos guardados">Contratos guardados</b>
-        <button type="button" class="tb-link" id="cpClose" data-lwt="Cerrar">Cerrar</button>
-      </div>
-      <input type="search" class="sui-buscar" id="cpSearch" data-lwt-ph placeholder="Buscar por número, comprador, proyecto o autor…">
-      <div class="cp-filtros" id="cpFiltrosTipo"></div>
-      <div class="cp-filtros" id="cpFiltrosEstado"></div>
-      <div class="cp-cols">
-        <span>Nº</span><span data-lwt="Tipo">Tipo</span><span data-lwt="Comprador">Comprador</span><span data-lwt="Proyecto">Proyecto</span><span data-lwt="Precio">Precio</span><span data-lwt="Fecha">Fecha</span><span data-lwt="Creado por">Creado por</span>
-      </div>
-      <div class="cp-list" id="cpList"></div>
-    </div>
-  </div>
 
   <!-- Modal "Enviar a firma" — genera un enlace único (firmar.html?t=…) para que
        el comprador firme a distancia. Al firmar, la Edge Function firma-submit
@@ -685,7 +660,6 @@ let SAVED_CONTRACT = null;   // {id, numero} una vez guardado — null = borrado
    el CRM al servidor por `crm_lead_*`, que además dejan rastro de quién los consultó.
    Se limpia en resetBorrador(): ver la nota de allí. */
 let LEAD_ID = null;
-let CP_ROWS = [];            // caché de filas del panel "Contratos guardados"
 
 /* Contratos a los que una Construcción puede vincularse: el campo
    num_reserva_vinculada deja de ser texto libre y pasa a desplegable con los
@@ -709,7 +683,10 @@ async function cargarVinculables(){
   // la OBRA (villa - suelo) cuando la Construccion se vincula. Ver
   // syncPrecioObraVinculada.
   const { data, error } = await sb.from('contratos')
-    // columnas, no ramas del jsonb: mismo motivo que en openContractsPanel
+    /* Columnas, no ramas del jsonb: `datos` pesa decenas de MB por los anexos en
+       base64 (TOAST) y Postgres lo descomprime entero aunque solo se pidan unos
+       bytes de dentro — medido el 24-ago-2026: 4.249 ms leyendo del jsonb frente a
+       0,31 ms de la columna. Ver contracts/sql/columnas_baratas_de_contratos.sql. */
     .select('id,numero,tipo,comprador_nombre,proyecto_nombre,nombre_contrato,parcela_codigo')
     .in('tipo', TIPOS_VINCULABLES).order('created_at',{ascending:false}).limit(300);
   if(!error) VINCULABLES = data || [];
@@ -740,7 +717,7 @@ async function cargarVinculablesPoa(){
   if(VINCULABLES_POA || !sb) return;
   const { data, error } = await sb.from('contratos')
     /* Ni `adq1_nombre` ni `adq1_pasaporte`: los dos salían de `datos` y
-       costaban ~4 s (ver openContractsPanel). El pasaporte además NO se usaba en
+       costaban ~4 s (ver cargarVinculables). El pasaporte además NO se usaba en
        ninguna parte de este selector — se pedía y se tiraba. Y para el rótulo,
        `comprador_nombre` dice más que `adq1_nombre`: trae a TODOS los
        compradores, que es lo que hay que ver al enganchar un poder. */
@@ -4466,7 +4443,7 @@ function contractPayload(){
     // listado hacía que ese nombre saliera como título de la operación y como
     // cliente facturado en TODAS las demás herramientas — justo lo que reportó
     // el cliente. `nombre_contrato` sigue viajando en `datos.fields` (más abajo)
-    // y el listado de ESTA app lo antepone solo (ver renderCpList/cargarVinculables),
+    // y el selector de ESTA app lo antepone solo (ver cargarVinculables),
     // sin tocar la identidad compartida.
     /* TODOS los que compran, no solo el primero — 19-ago-2026, encargo del owner:
        «en facturas si hay más de un adquiriente sale como cliente pero en
@@ -5188,121 +5165,10 @@ async function informarCompradores(contratoId){
 }
 $('#btnSave').addEventListener('click', guardarContrato);
 
-/* ---------- panel "Contratos guardados" ---------- */
-async function openContractsPanel(){
-  $('#cpOverlay').classList.add('open');
-  $('#cpSearch').value = '';
-  const list=$('#cpList'); list.innerHTML = 'Cargando…';
-  if(!sb){ list.innerHTML='Supabase no disponible.'; return; }
-  await cargarEquipo();   // para mostrar el nombre del autor en vez del email
-  const { data, error } = await sb.from('contratos')
-    /* `nombre_contrato` es COLUMNA (reflejo generado), no `datos->fields->>…`.
-       Medido el 24-ago-2026: leerlo del jsonb dejaba este panel en 4.249 ms y
-       leerlo de la columna lo deja en 0,31 ms. La causa es TOAST — `datos` pesa
-       70 MB repartidos en 112 filas por los anexos en base64, y Postgres
-       descomprime ese valor entero aunque solo se pidan 30 bytes de dentro.
-       Remate del caso: el campo está vacío en los 112 contratos, así que se
-       pagaban cuatro segundos por leer algo que nadie ha rellenado nunca.
-       Ver contracts/sql/columnas_baratas_de_contratos.sql. */
-    .select('id,tipo,numero,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,created_at,bloqueado,creado_por,nombre_contrato')
-    .in('tipo', Object.values(CONTRACT_TIPO)).order('created_at', { ascending:false }).limit(300);
-  if(error){ list.innerHTML='No se pudo cargar la lista.'; return; }
-  CP_ROWS = data || [];
-  // cuáles contradicen a la ficha de su comprador (19-ago): una consulta para
-  // todo el panel, y si falla la lista se pinta igual
-  CP_TIPO = ''; CP_ESTADO = '';
-  pintarCpFiltros(); aplicarCpFiltros();
-    /* Cuáles dicen algo distinto de la ficha de su cliente (19-ago-2026). Se
-       pide UNA vez con el listado, no una consulta por fila.
-
-       Y NO SE ESPERA (24-ago-2026). La vista `documentos_desactualizados`
-       compara seis campos que viven dentro de `datos`, así que descomprime el
-       jsonb de cada documento: **2.565 ms** medidos contra la base real. Bloquear
-       el listado por un DISTINTIVO es pagar dos segundos y medio de pantalla en
-       blanco por una insignia. Ahora la lista se pinta al momento y las insignias
-       aparecen cuando llegan.
-
-       Se descartó la alternativa —reflejar esos seis campos en columnas
-       generadas, como se hizo con `nombre_contrato`— a propósito: son nombre,
-       pasaporte, email, teléfono, domicilio y nacionalidad, y esparcir datos de
-       identidad por columnas nuevas para ahorrar dos segundos no compensa.
-       Si falla, la lista se queda sin insignias: es un aviso, no un requisito. */
-  lwDivergencias(sb, 'contrato').then(m => { DIVERGEN_CONTRATOS = m; aplicarCpFiltros(); });
-}
-function cpTipoLabel(t){ return TIPO_LABEL[t] || t; }
-
-/* ---------- filtros del panel ----------
-   Dos ejes, porque son las dos preguntas que se hacen de verdad delante de esta
-   lista: "¿de qué tipo?" y "¿en qué estado está?". Se combinan entre sí y con
-   el buscador. Los contadores salen de las filas cargadas, así que un filtro
-   sin nada se atenúa en vez de desaparecer: que no haya ninguno HOY no
-   significa que ese tipo no exista. */
-let CP_TIPO = '', CP_ESTADO = '', MI_EMAIL = '', MI_FICHA = null;   // los fija init() con la sesión
-const CP_ESTADOS = [
-  ['',         'Todos',      () => true],
-  ['abierto',  'Editables',  r => !r.bloqueado],
-  ['firmado',  'Firmados',   r => !!r.bloqueado],
-  ['mios',     'Míos',       r => r.creado_por && r.creado_por === (MI_EMAIL || '')],
-];
-/* Cuántos tipos se enseñan sueltos antes de plegar el resto. Cuatro, medido:
-   Bloqueo (20), Carta (19) y Construcción (16) son el 82% de los contratos, y los
-   otros siete vivos suman 12. Antes salían los TRECE en dos filas, tres de ellos
-   permanentemente a cero — ocupando sitio para no filtrar nada. */
-const CP_TIPOS_VISIBLES = 4;
-let CP_MAS_ABIERTO = false;
-function pintarCpFiltros(){
-  const nT = t => CP_ROWS.filter(r => r.tipo === t).length;
-  /* Se ordenan por CANTIDAD, no por el orden de CONTRACT_TIPO. El tipo que más
-     usas queda el primero, que es donde va la mano. Contrapartida asumida: si la
-     cartera cambia mucho, un chip puede moverse de sitio — pero los tres de
-     cabeza son el flujo de una venta (se reserva, se bloquea, se construye) y no
-     se reordenan solos de un día para otro.
-     Los que están a cero van SIEMPRE dentro de «Más», tengan el orden que tengan:
-     un filtro que no filtra nada no merece un hueco en la primera fila. */
-  const ordenados = Object.values(CONTRACT_TIPO)
-    .map(t => ({ t, n: nT(t) }))
-    .sort((a, b) => b.n - a.n || cpTipoLabel(a.t).localeCompare(cpTipoLabel(b.t)));
-  const conUso = ordenados.filter(x => x.n > 0);
-  const fuera  = ordenados.filter(x => x.n === 0);
-  const arriba = conUso.slice(0, CP_TIPOS_VISIBLES);
-  const dentro = conUso.slice(CP_TIPOS_VISIBLES).concat(fuera);
-  // Si el tipo elegido está plegado, el desplegable se abre solo: si no, el
-  // agente ve la lista filtrada y ningún chip encendido, y parece un fallo.
-  if(CP_TIPO && dentro.some(x => x.t === CP_TIPO)) CP_MAS_ABIERTO = true;
-  const chip = x => `<button class="cp-f ${CP_TIPO===x.t?'on':''} ${x.n?'':'vacio'}" data-t="${x.t}">${cpTipoLabel(x.t)} ${x.n}</button>`;
-  $('#cpFiltrosTipo').innerHTML =
-    `<span class="sui-eje">${lwT('Tipo')}</span>` +
-    `<button class="cp-f ${CP_TIPO===''?'on':''}" data-t="">Todos ${CP_ROWS.length}</button>` +
-    arriba.map(chip).join('') +
-    (dentro.length
-      ? `<button class="cp-f cp-mas" data-mas="1" aria-expanded="${CP_MAS_ABIERTO}">${
-           CP_MAS_ABIERTO ? 'Menos ▴' : 'Más ' + dentro.length + ' ▾'}</button>`
-        + (CP_MAS_ABIERTO ? dentro.map(chip).join('') : '')
-      : '');
-  $('#cpFiltrosEstado').innerHTML = `<span class="sui-eje">${lwT('Estado')}</span>` + CP_ESTADOS.map(([k,l,prueba]) => {
-    const n = CP_ROWS.filter(prueba).length;
-    return `<button class="cp-f ${CP_ESTADO===k?'on':''} ${n?'':'vacio'}" data-e="${k}">${l} ${n}</button>`;
-  }).join('');
-}
-function aplicarCpFiltros(){
-  const q = $('#cpSearch').value.trim().toLowerCase();
-  const pruebaEstado = (CP_ESTADOS.find(e => e[0] === CP_ESTADO) || CP_ESTADOS[0])[2];
-  renderCpList(CP_ROWS
-    .filter(r => !CP_TIPO || r.tipo === CP_TIPO)
-    .filter(pruebaEstado)
-    .filter(r => lwBuscaEn([r.numero,r.nombre_contrato,r.comprador_nombre,r.proyecto_nombre,r.creado_por,autorVisible(r.creado_por)], q)));
-}
-$('#cpFiltrosTipo').addEventListener('click', e => {
-  // «Más/Menos» solo despliega: no cambia el filtro ni la lista de abajo.
-  const mas = e.target.closest('[data-mas]');
-  if(mas){ CP_MAS_ABIERTO = !CP_MAS_ABIERTO; pintarCpFiltros(); return; }
-  const b = e.target.closest('[data-t]'); if(!b) return;
-  CP_TIPO = b.dataset.t; pintarCpFiltros(); aplicarCpFiltros();
-});
-$('#cpFiltrosEstado').addEventListener('click', e => {
-  const b = e.target.closest('[data-e]'); if(!b) return;
-  CP_ESTADO = b.dataset.e; pintarCpFiltros(); aplicarCpFiltros();
-});
+/* Quién está trabajando: lo fija init() con la sesión y lo usan el editor y sus
+   avisos. Vivía junto al listado clásico «Contratos guardados», retirado el
+   28-sep-2026 (LAW-391): el listado es /intranet/v4/contratos/. */
+let MI_EMAIL = '', MI_FICHA = null, MI_ROL = null;
 
 /* `contratos.creado_por` guarda el EMAIL, y así se queda: es la identidad con
    la que la RLS decide quién puede editar su propio documento (`es_suyo()`
@@ -5317,129 +5183,18 @@ async function cargarEquipo(){
   (data || []).forEach(u => { if(u.nombre) EQUIPO[u.email] = u.nombre; });
 }
 const autorVisible = e => (EQUIPO && EQUIPO[e]) || e || '—';
-/* Qué contratos contradicen a la ficha de su comprador. Se pide UNA vez al
-   cargar el panel, no una consulta por fila, y si falla la lista se pinta igual:
-   es un aviso, no un requisito (19-ago-2026). */
-let DIVERGEN_CONTRATOS = new Map();
-function renderCpList(rows){
-  const list=$('#cpList');
-  if(!rows.length){
-    // distinguir "no hay nada guardado" de "los filtros lo esconden todo": lo
-    // segundo con el mensaje de lo primero manda a buscar un dato que sí existe
-    const filtrando = CP_TIPO || CP_ESTADO || $('#cpSearch').value.trim();
-    list.innerHTML = '<p class="cp-empty">' + (filtrando
-      ? 'Ningún contrato coincide con el filtro.' : 'Sin contratos guardados.') + '</p>';
-    return;
-  }
-  list.innerHTML = rows.map(r=>`
-    <div class="cp-row" data-id="${r.id}">
-      <span class="cp-num" data-l="Nº" title="${r.bloqueado?'Bloqueado — PDF firmado ya subido':''}">${r.bloqueado?'🔒 Bloqueado · ':''}${r.numero||'—'}</span>
-      <span data-l="Tipo">${cpTipoLabel(r.tipo)}</span>
-      <span data-l="Comprador">${escAttr(r.nombre_contrato||r.comprador_nombre||'—')}${
-        DIVERGEN_CONTRATOS.has(r.id)
-          ? ' <span class="sui-tag alerta" title="Dice algo distinto de la ficha de su comprador — ábrelo para traer los datos">Ficha ≠</span>'
-          : ''}</span>
-      <span data-l="Proyecto">${escAttr(r.proyecto_nombre||'—')}</span>
-      <span data-l="Precio">${r.precio_total ? esc(lwFormatoImporte(Number(r.precio_total), r.moneda)) : '—'}</span>
-      <span data-l="Fecha">${r.fecha_firma||''}</span>
-      <span data-l="Creado por" title="${escAttr(r.creado_por||'')}">${escAttr(autorVisible(r.creado_por))}<span class="cp-autoria"></span></span>
-      <span>${puedeBorrar(r) ? `<button type="button" class="cp-del" data-del="${r.id}" title="Borrar contrato">✕</button>` : ''}</span>
-    </div>`).join('');
-  montarAutoria(rows);
-}
 
-/* Reasignar autor: solo lo ve el super_admin (assets/autoria.js decide). Un
-   contrato bloqueado no se puede reatribuir porque la policy de UPDATE exige
-   `bloqueado = false`; se dice ahí mismo en vez de fallar al pulsar. */
-function montarAutoria(rows){
-  if(!window.LW_AUTORIA || !LW_AUTORIA.puede(MI_FICHA)) return;
-  rows.forEach(r => {
-    const slot = $('#cpList').querySelector(`.cp-row[data-id="${r.id}"] .cp-autoria`);
-    LW_AUTORIA.montar(slot, { sb, ficha:MI_FICHA, tabla:'contratos', filaId:r.id,
-      actual:r.creado_por, editable:!r.bloqueado,
-      motivoNoEditable:'Contrato bloqueado: el PDF firmado ya está subido y la base de datos no admite cambios sobre él.',
-      onCambio:(nuevo) => { r.creado_por = nuevo; aplicarCpFiltros(); toast(lwT('Autor reasignado a ') + autorVisible(nuevo)); } });
-  });
-}
-/* ---------- borrar un contrato (31-jul-2026) ----------
-   Regla del owner: el super admin borra cualquiera; cada operador, LOS SUYOS y
-   solo si no están bloqueados. Bloqueado = firmado y sellado, y ahí ya no es un
-   borrador que alguien se equivocó al crear: es un documento con un PDF firmado
-   y su registro de firma.
-   Esto decide qué botón se PINTA. Quien manda de verdad es la policy de DELETE
-   de la RLS (contracts/sql/borrado_y_enlaces.sql), que repite la misma condición
-   en la base — esconder un botón no impide nada a quien abra la consola. */
-let MI_ROL = null;   // MI_EMAIL ya lo declara el panel de guardados (línea ~2410)
-function puedeBorrar(r){
-  if(MI_ROL === 'super_admin') return true;
-  return !r.bloqueado && !!r.creado_por && r.creado_por === MI_EMAIL;
-}
-/* 23-sep-2026: el DELETE a pelo rompía en cuanto el contrato tenía una factura
-   viva posterior al 12-ago (el SET NULL de la FK choca con el CHECK
-   facturas_contrato_obligatorio), dejaba huérfanos sus anexos y fallaba con
-   comisiones devengadas (FK sin ON DELETE). Se borra por borrar_operacion(), la
-   misma RPC de /intranet/operaciones/: anula las facturas antes de soltarlas,
-   se lleva los anexos, purga comisiones y repite en la base la regla de quién
-   puede borrar. */
-async function borrarContrato(id){
-  const r = (CP_ROWS || []).find(x => x.id === id) || {};
-  const [anx, fac] = await Promise.all([
-    sb.from('contratos').select('id', { count:'exact', head:true }).eq('contrato_padre_id', id),
-    sb.from('facturas').select('id', { count:'exact', head:true }).eq('contrato_id', id).eq('anulada', false),
-  ]);
-  const nAnx = anx.count || 0, nFac = fac.count || 0;
-  const ok = await lwConfirmar({
-    titulo: 'Borrar el contrato ' + (r.numero || 'sin nº'),
-    cuerpo: '<p>' + lwT('Se van con él') + ' <b>' + lwT('sus firmas y sus compradores enlazados') + '</b>'
-          + (nAnx ? ', ' + lwT('y sus anexos') + ' (<b>' + nAnx + '</b>)' : '') + '.</p>'
-          + (nFac ? '<p>' + lwT('Sus facturas') + ' (<b>' + nFac + '</b>) ' + lwT('no se borran: quedan') + ' <b>' + lwT('anuladas') + '</b>, ' + lwT('para no dejar huecos en la serie.') + '</p>' : '')
-          + '<p>' + lwT('Las unidades') + ' <b>no</b> ' + lwT('se borran: se quedan sin el vínculo.') + '</p>'
-          + '<p>' + lwT('No hay papelera.') + '</p>',
-    confirmar: 'Borrar ' + (r.numero || 'el contrato'),
-    tono: 'peligro',
-  });
-  if(!ok) return;
-  try{
-    const { data, error } = await sb.rpc('borrar_operacion', { p_contrato_id: id });
-    if(error) throw error;
-    if(!data || !data.contratos_borrados) throw new Error('no tienes permiso para borrar este contrato');
-    if(SAVED_CONTRACT && SAVED_CONTRACT.id === id){ SAVED_CONTRACT = null; PDF_SALIO = false; updateSaveButton(); }
-    toast(lwT('Contrato ') + (r.numero || '') + ' borrado');
-    await openContractsPanel();
-  }catch(e){ toastMal(lwT('No se pudo borrar: ') + (e.message || e)); }
-}
-
-// el buscador se combina con los chips (no los pisa): ver aplicarCpFiltros
-$('#cpSearch').addEventListener('input', aplicarCpFiltros);
-$('#cpList').addEventListener('click', async e=>{
-  const del = e.target.closest('[data-del]');
-  if(del){ e.stopPropagation(); await borrarContrato(del.dataset.del); return; }
-  const row=e.target.closest('.cp-row'); if(!row) return;
-  $('#cpOverlay').classList.remove('open');
-  pantallaC('editor', 'contrato=' + encodeURIComponent(row.dataset.id));
-  await openSavedContract(row.dataset.id);
-});
-
-/* ── pantalla: listado o editor (2a, 6-ago-2026) ─────────────────────────
+/* ── pantalla: el editor (2a, 6-ago-2026; sin listado desde el 28-sep-2026) ──
    Cada vista con su URL, la norma del estudio:
-     /contracts/            el listado (la entrada)
-     /contracts/?nuevo=1    el editor en blanco (lo que era la entrada)
-     /contracts/?contrato=<uuid>  ese contrato abierto (el nombre ya
-                                    existia: lo usa el enlace de Operaciones)
-   `replaceState`: dentro de la herramienta se salta mucho entre lista y editor,
-   y llenar el historial dejaria el boton atras inutil. */
+     /contracts/?nuevo=1    el editor en blanco
+     /contracts/?contrato=<uuid>  ese contrato abierto (lo usa Operaciones)
+   El listado ya no vive aquí: es /intranet/v4/contratos/ (LAW-391). `cual` solo
+   puede ser 'editor'; se deja el parámetro para no tocar a quien llama.
+   `replaceState`: llenar el historial dejaria el boton atras inutil. */
 function pantallaC(cual, params){
-  document.body.classList.toggle('modo-listado', cual === 'listado');
-  // el modal viejo de "Contratos guardados" se abre via openContractsPanel() y
-  // solo se cerraba con #cpClose: si no se sincroniza aqui, se queda .open al
-  // saltar a "+ Nuevo contrato" y tapa el editor entero (bug 6-ago).
-  $('#cpOverlay').classList.toggle('open', cual === 'listado');
-  $('#btnContracts').hidden = cual !== 'editor';
-  $('#btnNuevoC').hidden = cual !== 'listado';
   if(params !== undefined){
     try{ history.replaceState(null, '', location.pathname + (params ? '?' + params : '')); }catch(_){}
   }
-  if(cual === 'listado') openContractsPanel();
 }
 $('#btnContracts').addEventListener('click', () => {
   // El listado es el de la v4, no el de aquí: dos listados es la duplicación
@@ -5447,18 +5202,6 @@ $('#btnContracts').addEventListener('click', () => {
   // 27-sep-2026 sin condición: la cara clásica se retiró.
   location.href = '/intranet/v4/contratos/';
 });
-// "+ Nuevo contrato" solo cambiaba de pantalla, sin reconstruir nada: si antes
-// se había abierto otro contrato, su formulario (adquirientes, anexos,
-// cláusulas, campos ya rellenados) se quedaba tal cual en pantalla, solo que
-// ahora parecía un borrador en blanco. resetBorrador() + buildForm() lo dejan
-// realmente en blanco — mismo tipo de plantilla que hubiera puesto (CURRENT
-// no cambia), pero sin nada del contrato anterior.
-$('#btnNuevoC').addEventListener('click', () => {
-  resetBorrador(CURRENT.slug);
-  buildForm();
-  pantallaC('editor', 'nuevo=1');
-});
-$('#cpClose').addEventListener('click', ()=> $('#cpOverlay').classList.remove('open'));
 
 /* Marca visual persistente en un campo (hallazgo Legal, 12-ago): borde/fondo
    de aviso + una nota debajo, que sobrevive aunque el toast ya se haya
@@ -6927,7 +6670,7 @@ async function init(){
   if(MI_FICHA && MI_FICHA.rol === 'agente' && !plantillasOfrecidas().some(t => CONTRACT_TIPO[t.slug])){
     toastMal(lwT('No tienes ningún tipo de contrato asignado. Pídeselo a un administrador antes de empezar.'));
   }
-  MI_EMAIL = session.user.email || '';   // lo usa el filtro "Míos" del panel de guardados
+  MI_EMAIL = session.user.email || '';
   // El rol sale de la ficha que se acaba de leer tres líneas arriba: no hace
   // falta una segunda consulta para lo mismo. Decide si se PINTA el botón de
   // borrar; quien manda es la policy de DELETE de la RLS.
@@ -7074,8 +6817,8 @@ async function init(){
     }
   } else {
     // Sin puerta de editor piel.js ya redirigió antes de pintar; esto es la red
-    // por si algún día se carga sin él. El listado clásico (#cpOverlay) ya no
-    // se abre desde ninguna parte (27-sep-2026): el de verdad es el de la v4.
+    // por si algún día se carga sin él. El listado es el de la v4 (el clásico
+    // se retiró el 28-sep-2026, LAW-391).
     location.replace('/intranet/v4/contratos/');
   }
   } finally {
