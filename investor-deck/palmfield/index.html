@@ -1065,6 +1065,14 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
     return a;
   }
 
+  // Titulo de un documento publicado: `titulo` es el espanol y `titulo_i18n` trae en/id; cae al ingles y
+  // luego al espanol (28-sep-2026, misma regla que investor-deck/index.php).
+  function tituloDoc(d){
+    var lang = window.lwLang ? lwLang() : 'en';
+    if(lang === 'es') return String(d.titulo || '');
+    var t = d.titulo_i18n || {};
+    return String(t[lang] || t.en || d.titulo || '');
+  }
   function pintaDocs(docs){
     var bloque = document.getElementById('docs-bloque');
     var cont   = document.getElementById('docs-lista');
@@ -1094,7 +1102,7 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
       // documento oficial a mitad es peor que dejarlo envolver en dos lineas.
       tit.className = 'font-body-md text-body-sm font-bold text-deep-lagoon break-words';
       tit.setAttribute('data-no-i18n', '');
-      tit.textContent = d.titulo || '';
+      tit.textContent = tituloDoc(d);
       texto.appendChild(tit);
       var sub = document.createElement('span');
       sub.className = 'font-body-sm text-[11px] uppercase tracking-wider text-[#5F6257]';
@@ -1142,7 +1150,7 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
       cta.href = urlSegura(d.url);
       cta.classList.remove('hidden');
       cta.classList.add('inline-flex');
-      if(d.titulo) cta.setAttribute('title', d.titulo);
+      if(tituloDoc(d)) cta.setAttribute('title', tituloDoc(d));
     })
     .catch(function(){ /* MUDO A PROPOSITO: el estado de reposo de las dos piezas ya es
          'oculto', asi que un fallo aqui deja exactamente lo mismo que el caso normal de
