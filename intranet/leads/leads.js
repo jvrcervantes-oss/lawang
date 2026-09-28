@@ -1799,6 +1799,10 @@ async function verConversacion(phone){
   CHAT_ABIERTO = phone;
   const lead = CONVERSACIONES.find(x => x.phone === phone) || { phone };
   $('#wa').dataset.abierto = '1';
+  /* En móvil (un panel cada vez, ver leads.css ≤760) el hilo mide la pantalla menos
+     la cabecera: se sube hasta quedar justo debajo de ella, o el pie con la caja de
+     respuesta se queda bajo el borde (LAW-389, 28-sep-2026). */
+  if(matchMedia('(max-width: 760px)').matches) $('#wa').scrollIntoView({ block: 'start' });
   $('#tSetter').querySelectorAll('.wa-fila').forEach(f =>
     f.setAttribute('aria-current', String(f.dataset.phone === phone)));
 

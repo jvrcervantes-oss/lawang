@@ -474,7 +474,14 @@
 
 @media (max-width: 760px) {
   /* Un panel cada vez: la lista ocupa todo hasta que se abre un hilo. */
-  .wa { grid-template-columns: 1fr; height: calc(100vh - 15rem); }
+  /* Alto = la pantalla menos la cabecera v4 fija (64 px), y NO `100vh - 15rem`, que
+     venía de la barra clásica (LAW-389, 28-sep-2026). `dvh` y no `vh`: en el móvil
+     `100vh` incluye la franja que tapa la barra de direcciones y el pie del chat
+     quedaba debajo. `vh` queda delante como red para un navegador sin `dvh`. Al
+     abrir un hilo, leads.js lo sube justo bajo la cabecera (scroll-margin-top):
+     el chat ocupa la pantalla entera, como en el móvil. */
+  .wa { grid-template-columns: 1fr; height: calc(100vh - 64px); height: calc(100dvh - 64px);
+        scroll-margin-top: 64px; }
   .wa-lista { border-right: 0; }
   /* `:not([data-abierto="1"])` y no un simple `.wa-chat { display:none }`: la regla
      global `.wa-chat[data-vacio="1"] { display:grid }` tiene más especificidad y ganaba
