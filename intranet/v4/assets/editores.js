@@ -5110,6 +5110,8 @@
               return lwConfirmar({
                 titulo: 'Publicar en el dosier de inversores',
                 cuerpo: '<p>«' + esc(v.titulo) + '» quedará descargable por CUALQUIERA que abra el dosier público de ' + esc(nombreProyecto) + ', sin contraseña y sin contrato.</p>' +
+                  // las traducciones también salen al público: se leen antes de publicar (Seguridad, 28-sep)
+                  ((v.titulo_en || v.titulo_id) ? '<p>En inglés: «' + esc(v.titulo_en || '—') + '» · En indonesio: «' + esc(v.titulo_id || '—') + '»</p>' : '') +
                   '<p>Si el enlace es de Drive, ábrelo antes en una ventana de incógnito: si no está compartido en abierto, el inversor se choca con una pantalla de permisos.</p>',
                 confirmar: 'Publicar', tono: 'peligro'
               });
@@ -5513,7 +5515,7 @@
           var nuevoPortal = v.visible_portal && !anterior.visible_portal;
           var nuevoDeck = v.publicado_investor_deck && !anterior.publicado_investor_deck;
           if (!nuevoPortal && !nuevoDeck) return Promise.resolve({ ok: true });
-          return confirmaPublicacionDoc({ titulo: v.titulo, confidencial: v.confidencial, visible_portal: nuevoPortal, publicado_investor_deck: nuevoDeck }, nombreProyecto);
+          return confirmaPublicacionDoc({ titulo: v.titulo, titulo_en: v.titulo_en, titulo_id: v.titulo_id, confidencial: v.confidencial, visible_portal: nuevoPortal, publicado_investor_deck: nuevoDeck }, nombreProyecto);
         }
 
         function abreEditarEnlace(d2) {
