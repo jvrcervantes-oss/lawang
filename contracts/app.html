@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="86cd7faed6fd">
+<meta name="lw-version" content="3759b2fa7c09">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -6141,7 +6141,10 @@ $('#fmGen').addEventListener('click', async ()=>{
   const autoMal = AUTO_AVISO && AUTO_AVISO.mal && AUTO_AVISO.clave === AUTO_ANX;
   /* «Enviar igualmente» deja CONSTANCIA (owner, 28-sep-2026): quién, cuándo y qué faltaba, en el historial
      del contrato. La apunta la base en la MISMA transacción que el envío (ficheros-contrato →
-     contrato_envia_firma, LAW-406): si no se puede apuntar, no sale el enlace y llega el error. */
+     contrato_envia_firma, LAW-406): si no se puede apuntar, no sale el enlace y llega el error.
+     Desde LAW-410 la base DEDUCE ella qué falta en un contrato de obra (con el contrato guardado) y apunta la
+     constancia aunque esta pantalla no mande nada: lo de aquí solo SUMA lo que ella no ve (un PDF marcado que el
+     navegador no pudo descargar o convertir). */
   let sinAnexo = null;
   /* El contrato de Construcción CITA el Apéndice A – Planos (Legal, 28-sep-2026: es el único apéndice
      vinculante). Sin él se puede enviar igualmente (owner, 28-sep), pero se dice en llano y queda constancia. */
@@ -6289,9 +6292,16 @@ function regDetalleEvt(d){
   if(d.de) t.push(esc(d.de) + ' → ' + esc(d.a || ''));
   if(d.colgado_de) t.push('de ' + esc(d.colgado_de));
   if(d.via) t.push(esc(d.via));
-  if(d.motivo === 'ninguno') t.push('el modelo no tenía nada marcado para el contrato');
+  /* Constancia «sin anexo» (LAW-406/LAW-410): desde el 28-sep la deduce la base con el contrato guardado
+     (`declarado_por`: servidor | pantalla | ambos) y `faltan` es la lista real con cualquier motivo, así que se
+     pinta siempre que venga; `nota` dice cuándo el modelo ni se pudo resolver (no es «no tenía nada»). */
+  if(d.motivo === 'ninguno') t.push(d.nota === 'modelo_no_encontrado' ? 'el modelo del contrato no está en el catálogo de Modelos'
+    : d.nota === 'modelo_repetido' ? 'hay varios modelos con ese nombre y no se pudo comprobar'
+    : 'el modelo no tenía nada marcado para el contrato');
   if(d.motivo === 'sin_apendice_a') t.push('salió sin el Apéndice A (planos), que el contrato cita');
-  if(d.motivo === 'fallo') t.push('faltaba: ' + (Array.isArray(d.faltan) && d.faltan.length ? d.faltan.map(esc).join('; ') : '—'));
+  const faltan = Array.isArray(d.faltan) && d.faltan.length ? d.faltan : null;
+  if(d.motivo === 'fallo' || (d.motivo && faltan)) t.push('faltaba: ' + (faltan ? faltan.map(esc).join('; ') : '—'));
+  if(d.motivo && d.declarado_por === 'servidor') t.push('lo detectó el sistema');
   return t.join(' · ');
 }
 const regFecha = iso => iso ? new Date(iso).toLocaleString('es-ES',

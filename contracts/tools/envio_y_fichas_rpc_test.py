@@ -6,12 +6,14 @@ no se conecta; imprime un bloque SQL que se pega en `mcp__supabase-lawang__execu
 
     python contracts/tools/envio_y_fichas_rpc_test.py A                 # bloque A (LAW-406), migraciones ya aplicadas
     python contracts/tools/envio_y_fichas_rpc_test.py B                 # bloque B (LAW-400)
+    python contracts/tools/envio_y_fichas_rpc_test.py C                 # bloque C (LAW-410)
     python contracts/tools/envio_y_fichas_rpc_test.py A --con-migracion # las antepone (probar ANTES de aplicarlas)
     python contracts/tools/envio_y_fichas_rpc_test.py B --selftest      # añade un caso que DEBE salir en rojo
 
 DOS BLOQUES independientes, cada uno con su begin/rollback y `statement_timeout` de 50 s (28-sep-2026: en un solo
 bloque se pasó del tiempo del MCP con la base cargada y hubo que cancelarlo). A = migraciones de LAW-406 (la de
-envío y la diferida de retirada) + P1-P3 + F1-FB + F9. B = trigger de LAW-400 + L1-LF. Si uno se pasa del tiempo:
+envío y la diferida de retirada) + P1-P3 + F1-FB + F9. B = trigger de LAW-400 + L1-LF. C = LAW-410 (la constancia
+«sin anexo» la deduce el servidor en un contrato de OBRA; la pantalla solo suma) + S0-SB. Si uno se pasa del tiempo:
 mirar pg_stat_activity y cancelar el pid; nunca dejar colgada una transacción con el drop de contrato_envia_firma
 o el ALTER de contrato_eventos.
 
@@ -29,11 +31,14 @@ import os
 import sys
 
 RAIZ = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
+LAW410 = '20260928180000_law410_constancia_sin_anexo_la_deduce_el_servidor.sql'
 MIGRACIONES = {
     'A': [os.path.join(RAIZ, 'supabase', 'migrations', '20260928120000_law406_envia_firma_con_constancia.sql'),
           # paso 3, aplicado el 28-sep tras redesplegar ficheros-contrato (v6)
-          os.path.join(RAIZ, 'supabase', 'migrations', '20260928024744_law406_retira_envio_sin_anexo.sql')],
+          os.path.join(RAIZ, 'supabase', 'migrations', '20260928024744_law406_retira_envio_sin_anexo.sql'),
+          os.path.join(RAIZ, 'supabase', 'migrations', LAW410)],
     'B': [os.path.join(RAIZ, 'supabase', 'migrations', '20260928121000_law400_fichas_anexo_auto_servidor.sql')],
+    'C': [os.path.join(RAIZ, 'supabase', 'migrations', LAW410)],
 }
 
 # Los montajes se ACOTAN antes de mirar `datos` o llamar a funciones por fila: primero los 60 contratos sin bloquear
@@ -50,6 +55,9 @@ select set_config('t.a', x.id::text, true), set_config('t.autor_email', x.email,
          where c.id in RECIENTES and u.activo and u.rol = 'agente' and 'contratos' = any(u.herramientas)
            and not public.contrato_firma_viva(c.id)
            and not exists (select 1 from public.contrato_firmas f where f.contrato_id = c.id and f.estado = 'firmado')
+           -- NO de obra (LAW-410): en uno de obra el servidor deduce su propia constancia y F1/F2 dejarian de medir
+           -- lo que declara la pantalla. La obra se prueba en el bloque C.
+           and nullif(btrim(coalesce(c.datos->'fields'->>'tipologia_construccion', '')), '') is null
          order by c.created_at desc limit 1) x;
 select set_config('t.ajeno_email', lower(u.email), true), set_config('t.ajeno_sub', u.user_id::text, true)
   from public.usuarios u
@@ -78,6 +86,46 @@ insert into public.modelo_documentos (id, modelo_id, nombre, path, tipo, techo_c
   ('c0000000-0000-4000-8000-000000000004', current_setting('t.m')::uuid, 'sin marcar', current_setting('t.m') || '/c0000000-0000-4000-8000-000000000004.pdf', 'render', null, false, 0),
   ('c0000000-0000-4000-8000-000000000005', current_setting('t.otro_m')::uuid, 'otro modelo', current_setting('t.otro_m') || '/c0000000-0000-4000-8000-000000000005.pdf', 'calidades', null, true, 905);
 """.replace('RECIENTES', RECIENTES)
+
+MONTAJE_C = r"""
+-- LAW-410: un contrato de OBRA de un agente con la herramienta de contratos, sin bloquear, sin firma viva ni firmada,
+-- cuyo modelo se resuelve a UNO por nombre. Acotado: los 60 de obra sin bloquear mas recientes (columnas baratas).
+select set_config('t.c', x.id::text, true), set_config('t.m', x.mid::text, true),
+       set_config('t.autor_email', x.email, true), set_config('t.autor_sub', x.user_id::text, true)
+  from (select c.id, m.id as mid, lower(u.email) as email, u.user_id
+          from public.contratos c
+          join public.usuarios u on lower(u.email) = lower(c.creado_por)
+          join public.modelos m on lower(btrim(m.nombre)) = lower(btrim(c.datos->'fields'->>'tipologia_construccion'))
+         where c.id in (select c0.id from public.contratos c0 where c0.tipo = 'construccion' and not coalesce(c0.bloqueado, false)
+                         order by c0.created_at desc limit 60)
+           and u.activo and u.rol = 'agente' and 'contratos' = any(u.herramientas)
+           and not public.contrato_firma_viva(c.id)
+           and not exists (select 1 from public.contrato_firmas f where f.contrato_id = c.id and f.estado = 'firmado')
+           and (select count(*) from public.modelos m2 where lower(btrim(m2.nombre)) = lower(btrim(m.nombre))) = 1
+         order by c.created_at desc limit 1) x;
+-- el modelo, SOLO con los documentos de prueba (mueren en el rollback): se desmarcan los reales, y asi cabe un
+-- plano marcado sin techo (indice modelo_documentos_un_plano_en_contrato)
+update public.modelo_documentos set en_contrato = false where modelo_id = current_setting('t.m')::uuid and en_contrato;
+insert into public.modelo_documentos (id, modelo_id, nombre, path, tipo, techo_clave, en_contrato, orden) values
+  ('c1000000-0000-4000-8000-000000000001', current_setting('t.m')::uuid, 'zz plano', current_setting('t.m') || '/c1000000-0000-4000-8000-000000000001.pdf', 'plano', null, true, 901),
+  ('c1000000-0000-4000-8000-000000000002', current_setting('t.m')::uuid, 'zz calidades', current_setting('t.m') || '/c1000000-0000-4000-8000-000000000002.pdf', 'calidades', null, true, 902),
+  ('c1000000-0000-4000-8000-000000000003', current_setting('t.m')::uuid, 'zz otro techo', current_setting('t.m') || '/c1000000-0000-4000-8000-000000000003.pdf', 'render', 'zz-techo-que-no-es', true, 903),
+  ('c1000000-0000-4000-8000-000000000004', current_setting('t.m')::uuid, 'zz sin marcar', current_setting('t.m') || '/c1000000-0000-4000-8000-000000000004.pdf', 'ficha', null, false, 904);
+"""
+
+# Lee como postgres el detalle de la constancia del enlace VIVO del contrato C (null = no se apunto ninguna).
+LECTORES_C = r"""
+create function pg_temp.t_det() returns jsonb language sql security definer as $f$
+  select e.detalle from public.contrato_eventos e
+   where e.contrato_id = current_setting('t.c')::uuid and e.evento = 'envio_sin_anexo_confirmado'
+     and (e.detalle->>'firma_id')::uuid = (select f.id from public.contrato_firmas f
+                                             where f.contrato_id = current_setting('t.c')::uuid and f.estado = 'pendiente')
+   limit 1 $f$;
+create function pg_temp.t_eventos_c() returns bigint language sql security definer as $f$
+  select count(*) from public.contrato_eventos e where e.contrato_id = current_setting('t.c')::uuid
+     and e.evento = 'envio_sin_anexo_confirmado' and e.creado_en >= now() $f$;
+"""
+DOC_C = "c1000000-0000-4000-8000-00000000000%d"
 
 DOC = "c0000000-0000-4000-8000-00000000000%d"
 HASH = "repeat('a', 64)"
@@ -133,6 +181,28 @@ EVENTOS = "pg_temp.t_eventos()"
 PENDIENTE = "pg_temp.t_pendiente()"
 
 
+def envia_c(sin_anexo=None):
+    extra = '' if sin_anexo is None else ', p_sin_anexo => %s' % sin_anexo
+    return ("public.contrato_envia_firma(p_contrato => current_setting('t.c')::uuid, p_nombre => 'Prueba', "
+            "p_email => 'prueba@example.com', p_rol => 'adquiriente_1', p_orden => 1, p_snapshot_hash => %s%s)" % (HASH, extra))
+
+
+def ficha_c(n, on='true'):
+    return "jsonb_build_object('id', 'axauto-%s', 'auto', 'zz', 'title', 'doc %d', 'on', %s)" % (DOC_C % n, n, on)
+
+
+def prepara_c(p, annexes, datos_extra=None):
+    """Como postgres: anula el enlace vivo (un contrato en firma no se deja editar), guarda la lista de anexos
+    (y otro cambio de `datos` si hace falta) y vuelve al rol del autor."""
+    p.append('reset role;')
+    p.append("update public.contrato_firmas set estado = 'anulado' where contrato_id = current_setting('t.c')::uuid and estado = 'pendiente';")
+    expr = "jsonb_set(datos, '{annexes}', %s)" % (("jsonb_build_array(%s)" % ', '.join(annexes)) if annexes else "'[]'::jsonb")
+    if datos_extra:
+        expr = datos_extra % expr
+    p.append("update public.contratos set datos = %s where id = current_setting('t.c')::uuid;" % expr)
+    p.append(claims('autor'))
+
+
 def ficha(n, auto="'Prueba'"):
     return "jsonb_build_object('id', 'axauto-%s', 'auto', %s, 'title', 'doc %d', 'on', true, 'pages', '[]'::jsonb)" % (DOC % n, auto, n)
 
@@ -167,6 +237,11 @@ def sql(bloque, con_migracion=False, selftest=False):
               "insert into _t values ('A1 montaje: contrato y agentes resueltos', current_setting('t.a', true) <> '' "
               "and current_setting('t.ajeno_sub', true) <> '', '');"]
         bloque_a(p)
+    elif bloque == 'C':
+        p += [LECTORES_C.strip(), MONTAJE_C.strip(),
+              "insert into _t values ('S0 montaje: contrato de obra, modelo unico y agente resueltos', "
+              "current_setting('t.c', true) <> '' and current_setting('t.autor_sub', true) <> '', '');"]
+        bloque_c(p)
     else:
         p += [MONTAJE_B.strip(),
               "insert into _t values ('B1 montaje: contrato de obra y modelo resueltos', current_setting('t.k', true) <> '' "
@@ -229,6 +304,57 @@ def bloque_a(p):
     p.append('reset role;')
 
 
+def bloque_c(p):
+    # ── LAW-410: en un contrato de OBRA la constancia la deduce el servidor; la pantalla solo suma ──
+    DET = 'pg_temp.t_det()'
+    SIN = "coalesce(%s::text, 'sin constancia')" % DET
+    PLANO = "'Apéndice A – Planos Arquitectónicos «zz plano»'"
+    CALID = "'Memoria de calidades «zz calidades»'"
+    prepara_c(p, [ficha_c(1), ficha_c(2)])
+    p.append("insert into _t values ('S1 canario: rol y claims del autor', current_user = 'authenticated' and auth.uid() is not null "
+             "and public.es_agente(), 'current_user=' || current_user);")
+    p.append(caso('S2 todo lo marcado va (plano + calidades), sin declaracion: ok y SIN constancia', envia_c(), 'ok',
+                  '%s is null' % DET, SIN))
+    prepara_c(p, [ficha_c(1), ficha_c(2, 'false')])
+    p.append(caso('S3 calidades APAGADA y la pantalla no declara nada: el servidor apunta fallo con la lista real', envia_c(), 'ok',
+                  "%(d)s->>'motivo' = 'fallo' and %(d)s->'faltan' = jsonb_build_array(%(c)s) and %(d)s->>'declarado_por' = 'servidor'"
+                  % {'d': DET, 'c': CALID}, SIN))
+    prepara_c(p, [ficha_c(2)])
+    p.append(caso('S4 sin el plano (ficha ausente): sin_apendice_a y el Apendice A nombrado', envia_c(), 'ok',
+                  "%(d)s->>'motivo' = 'sin_apendice_a' and %(d)s->'faltan' = jsonb_build_array(%(pl)s)" % {'d': DET, 'pl': PLANO}, SIN))
+    prepara_c(p, [])
+    p.append(caso('S5 la pantalla intenta TAPARLO (declara un fallo menor): manda lo deducido, su lista se suma',
+                  envia_c("jsonb_build_object('motivo', 'fallo', 'faltan', jsonb_build_array('render roto'))"), 'ok',
+                  "%(d)s->>'motivo' = 'sin_apendice_a' and %(d)s->>'motivo_pantalla' = 'fallo' and %(d)s->>'declarado_por' = 'ambos' "
+                  "and %(d)s->'faltan' = jsonb_build_array(%(pl)s, %(c)s, 'render roto')" % {'d': DET, 'pl': PLANO, 'c': CALID}, SIN))
+    prepara_c(p, [ficha_c(1), ficha_c(2)])
+    p.append(caso('S6 todo va pero la pantalla no pudo convertir un PDF: su declaracion se apunta (el servidor no ve paginas)',
+                  envia_c("jsonb_build_object('motivo', 'fallo', 'faltan', jsonb_build_array('zz calidades no se pudo convertir'))"), 'ok',
+                  "%(d)s->>'motivo' = 'fallo' and %(d)s->>'declarado_por' = 'pantalla' "
+                  "and %(d)s->'faltan' = jsonb_build_array('zz calidades no se pudo convertir')" % {'d': DET}, SIN))
+    prepara_c(p, [ficha_c(1), ficha_c(2)])
+    p.append(caso('S7 lista repetida en la declaracion: sin duplicados',
+                  envia_c("jsonb_build_object('motivo', 'fallo', 'faltan', jsonb_build_array('x', 'x'))"), 'ok',
+                  "%(d)s->'faltan' = jsonb_build_array('x')" % {'d': DET}, SIN))
+    # el modelo sin nada marcado para el contrato
+    p.append('reset role;')
+    p.append("update public.modelo_documentos set en_contrato = false where modelo_id = current_setting('t.m')::uuid;")
+    prepara_c(p, [])
+    p.append(caso('S8 el modelo no tiene nada marcado: ninguno, y el Apendice A nombrado', envia_c(), 'ok',
+                  "%(d)s->>'motivo' = 'ninguno' and %(d)s->'faltan' = jsonb_build_array('Apéndice A – Planos Arquitectónicos') "
+                  "and %(d)s->'nota' is null" % {'d': DET}, SIN))
+    # modelo que no se resuelve: NO se lee como «no habia nada»
+    prepara_c(p, [], "jsonb_set(%s, '{fields,tipologia_construccion}', '\"zz modelo que no existe\"'::jsonb)")
+    p.append(caso('S9 modelo que no esta en el catalogo: constancia con nota modelo_no_encontrado', envia_c(), 'ok',
+                  "%(d)s->>'motivo' = 'ninguno' and %(d)s->>'nota' = 'modelo_no_encontrado'" % {'d': DET}, SIN))
+    # un contrato que no es de obra: no se deduce nada
+    prepara_c(p, [], "jsonb_set(%s, '{fields,tipologia_construccion}', '\"\"'::jsonb)")
+    p.append(caso('SA contrato que NO es de obra (tipologia vacia): sin constancia', envia_c(), 'ok', '%s is null' % DET, SIN))
+    p.append(caso('SB declaracion mal formada: 22023 y ninguna constancia nueva', envia_c("'{\"motivo\": \"otro\"}'::jsonb"), '22023',
+                  "pg_temp.t_eventos_c() = 7"))
+    p.append('reset role;')
+
+
 def bloque_b(p):
     # ── LAW-400: el trigger de contratos juzga las fichas automáticas ──
     p.append(caso_update('L1 fichas de un doc sin techo y otro del techo del contrato: ok', guarda(ficha(1), ficha(2)), 'ok'))
@@ -266,7 +392,7 @@ def bloque_b(p):
 
 if __name__ == '__main__':
     sys.stdout.reconfigure(encoding='utf-8')
-    bloques = [a for a in sys.argv[1:] if a in ('A', 'B')]
+    bloques = [a for a in sys.argv[1:] if a in ('A', 'B', 'C')]
     if len(bloques) != 1:
-        sys.exit('uso: envio_y_fichas_rpc_test.py A|B [--con-migracion] [--selftest]')
+        sys.exit('uso: envio_y_fichas_rpc_test.py A|B|C [--con-migracion] [--selftest]')
     print(sql(bloques[0], '--con-migracion' in sys.argv, '--selftest' in sys.argv))
