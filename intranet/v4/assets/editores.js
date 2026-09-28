@@ -5560,8 +5560,8 @@
         }
 
         /* Borrar (S11.1): lo decide `documento_proyecto_borra` — admin o super
-           admin (hasta el 28-sep-2026 solo super admin), más estricto que editar
-           (`puede('documentacion')` a secas). datos.js ya esconde el botón para quien no lo es
+           admin CON la herramienta Documentación (hasta el 28-sep-2026 solo super
+           admin): la llave de editar más el rol. datos.js ya esconde el botón para quien no lo es
            (pintaAccionesDoc); este chequeo es el cinturón, no el gate real —
            si RLS deniega, `unaFila` lo dice, nunca un "borrado" mentiroso. */
         function borraDocumento(d2, etiquetaTipo) {

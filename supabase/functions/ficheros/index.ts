@@ -22,7 +22,7 @@
 // Bloque 4 (27-sep-2026, LAW-336; revisión previa #127 en encargos/20260927_lawang_frontera_b4_b5_resto.md):
 //   documento_proyecto → bucket `documentacion` (privado). Agente con la herramienta «documentacion» y el proyecto
 //                        entre los suyos. PDF, imagen, Office, CSV, CAD (dwg/dxf) o ZIP; ruta
-//                        `proyectos/<proyecto_id>/<uuid>.<ext>` (la que ya usaban las pantallas). Borrar: super admin.
+//                        `proyectos/<proyecto_id>/<uuid>.<ext>` (la que ya usaban las pantallas). Borrar: admin con Documentación (28-sep).
 //   obra_foto          → bucket `obra` (privado). Herramienta «obra» y la parcela en un proyecto suyo. Imagen.
 //   gasto_justificante → bucket `gastos` (privado). Admin + herramienta «gastos», gasto no anulado. PDF o imagen.
 //                        Sin borrado (no lo había).
