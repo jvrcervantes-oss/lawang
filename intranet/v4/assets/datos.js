@@ -6814,6 +6814,17 @@
      rojo se confundía con rechazada. */
   var TONO_SP = { pendiente: 'espera', aprobada: 'curso', pagada: 'ok', rechazada: 'mal', anulada: 'neutro' };
   var TONO_EQ = { pendiente: 'espera', pagada: 'ok', en_disputa: 'mal', anulada: 'neutro' };
+  // diferencias por cambio de contrato (28-sep-2026) — estados de comisiones_diferencias
+  var ETIQUETA_DIF = { pendiente: 'Pendiente', pagada: 'Pagada', compensada: 'Compensada', anulada: 'Anulada', revisar: 'Por revisar' };
+  var TONO_DIF = { pendiente: 'espera', pagada: 'ok', compensada: 'ok', anulada: 'neutro', revisar: 'curso' };
+  var ACCION_LOG = {
+    recalculo_auto: 'Recalculada por cambio de contrato', editar_importe: 'Importe ajustado a mano', anular: 'Anulada',
+    recalcular: 'Recalculada a mano', diferencia: 'Diferencia generada', resolver_diferencia: 'Diferencia resuelta'
+  };
+  var DISPARADOR = {
+    pct_cobrado_suelo: 'cobrado del suelo', pct_cobrado_obra: 'cobrado de la obra', pct_cobrado_total: 'cobrado del total',
+    obra_firmada: 'al firmar la obra', contrato_firmado: 'al firmar el contrato'
+  };
   // roles de equipo que cobran del manager (24-sep-2026: Setter y Team Lead se suman al Closer)
   var ROL_EQ = { closer: 'Closer', setter: 'Setter', team_lead: 'Team Lead' };
 
@@ -6834,7 +6845,8 @@
          salía con data-id="" y el clic no abría nada — no se podía editar ninguna
          (23-sep-2026). */
       opts.soloEquipo ? Promise.resolve(null) : q(sb.from('solicitudes_pago').select('id,numero,concepto,importe,moneda,vence_el,nota,estado,motivo_rechazo,pago_referencia,creado_en,creado_por,resuelto_por,resuelto_en,pagado_por,pagado_en,beneficiario_email,origen,contrato_id,importe_editado_por,motivo_ajuste').order('creado_en', { ascending: false }), 'solicitudes de pago', caja),
-      q(sb.from('contratos').select('id,numero,tipo,proyecto_nombre,contrato_padre_id'), 'contratos'),
+      // bloqueado/liberado_en: la fila enseña qué contratos forman la operación y si cuentan (28-sep-2026)
+      q(sb.from('contratos').select('id,numero,tipo,proyecto_nombre,contrato_padre_id,bloqueado,liberado_en,created_at'), 'contratos'),
       /* Si la RLS de `usuarios` solo deja leer la propia ficha, el mapa se queda
          corto y el fallback pinta «—»: no es un fallo, es lo que esa sesion ve. */
       q(sb.from('usuarios').select('user_id,nombre,email'), 'usuarios'),
@@ -6843,9 +6855,18 @@
       q(sb.from('equipo_miembros').select('equipo_id,closer_email,desde,hasta'), 'miembros de equipo'),
       /* De qué parcela sale cada comisión (23-sep-2026, owner): las unidades cuelgan
          de la RAÍZ de la venta (`unidades.contrato_id`), igual que las lee el motor. */
-      q(sb.from('unidades').select('codigo,codigo_orden,contrato_id').not('contrato_id', 'is', null), 'parcelas')
+      q(sb.from('unidades').select('codigo,codigo_orden,contrato_id').not('contrato_id', 'is', null), 'parcelas'),
+      /* Diferencias por cambio de contrato (28-sep-2026): las crea la base
+         (comisiones_reconciliar) cuando cambia un contrato de una comisión ya
+         aprobada o pagada. La RLS enseña las de las comisiones que ves. */
+      q(sb.from('comisiones_diferencias').select('id,numero,devengo_id,importe,estado,motivo,created_at,comisiones_devengadas(nivel,beneficiario_email,contrato_raiz_id,moneda)').order('created_at', { ascending: false }), 'diferencias')
     ]).then(function (r) {
-      var ss = r[0], contratosRows = r[1] || [], usuariosRows = r[2] || [], cd = r[3], eqs = r[4] || [], miembros = r[5] || [], unidadesRows = r[6] || [];
+      var ss = r[0], contratosRows = r[1] || [], usuariosRows = r[2] || [], cd = r[3], eqs = r[4] || [], miembros = r[5] || [], unidadesRows = r[6] || [], difRows = r[7] || [];
+      var difsDe = {}; difRows.forEach(function (x) { (difsDe[x.devengo_id] = difsDe[x.devengo_id] || []).push(x); });
+      // contratos de cada venta (raíz + hijos), para enseñar la operación entera
+      var hijosDe = {};
+      contratosRows.forEach(function (c) { if (c.contrato_padre_id) (hijosDe[c.contrato_padre_id] = hijosDe[c.contrato_padre_id] || []).push(c); });
+      Object.keys(hijosDe).forEach(function (k) { hijosDe[k].sort(function (a, b) { return String(a.created_at || '').localeCompare(String(b.created_at || '')); }); });
       var ct = {}; contratosRows.forEach(function (c) { ct[c.id] = c; });
       var parcelasDe = {};
       unidadesRows.slice().sort(function (a, b) { return String(a.codigo_orden || a.codigo || '').localeCompare(String(b.codigo_orden || b.codigo || '')); })
@@ -6874,6 +6895,53 @@
       }
       if (ss) pintaLawang(ss);
       if (cd) pintaEquipo(cd, eqs, miembros);
+      if (!opts.soloEquipo && caja) pintaDifLawang();
+
+      /* Diferencias de lo que paga LAWANG (manager / estándar / venta propia) por cambio
+         de contrato (28-sep-2026). Las positivas ya traen su solicitud en la tabla de
+         abajo; lo que no se ve en ningún otro sitio son las «a descontar» y las «por
+         revisar» — por eso van en un bloque propio encima, y solo mientras estén vivas. */
+      function pintaDifLawang() {
+        var vivas = difRows.filter(function (d) {
+          var dv = d.comisiones_devengadas || {};
+          return ['manager', 'estandar', 'propia'].indexOf(dv.nivel) !== -1 && (d.estado === 'revisar' || (d.estado === 'pendiente' && !(Number(d.importe) > 0)));
+        });
+        if (!vivas.length || document.getElementById('lw-dif-lawang')) return;
+        var esAdm = !!(window.LW_V4 && window.LW_V4.esAdmin);
+        var yo = ((window.LW_V4 && window.LW_V4.miEmail) || '').toLowerCase();
+        var bD = 'padding:5px 12px;border-radius:999px;font:600 11.5px \'Neue Kabel\',sans-serif;cursor:pointer;';
+        var sec = document.createElement('section');
+        sec.id = 'lw-dif-lawang';
+        sec.className = 'bg-surface-container-lowest rounded-xl shadow-sm p-5 flex flex-col gap-2';
+        sec.style.borderLeft = '4px solid #C9892B';
+        sec.innerHTML = '<div style="font:700 11px \'Neue Kabel\',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#8A5A00">Diferencias por cambio de contrato</div>' +
+          '<p style="margin:0;font:400 13px \'Neue Kabel\',sans-serif;color:#5C5A52">Un contrato cambió después de aprobar o pagar su comisión. Las negativas se descuentan del bruto del siguiente pago a esa persona (antes de la retención); las «por revisar» las decide un administrador.</p>' +
+          vivas.map(function (d) {
+            var dv = d.comisiones_devengadas || {};
+            var cV = ct[dv.contrato_raiz_id];
+            var quien = (porEmail[(dv.beneficiario_email || '').toLowerCase()] || {}).nombre || dv.beneficiario_email || '—';
+            var puede = esAdm && (dv.beneficiario_email || '').toLowerCase() !== yo;
+            var b = function (acc, txt, estilo) { return '<button type="button" data-dif-accion="' + acc + '" data-dif-id="' + esc(d.id) + '" data-dif-numero="' + esc(d.numero) + '" style="' + bD + estilo + '">' + txt + '</button>'; };
+            var btns = !puede ? [] : d.estado === 'revisar'
+              ? [d.importe != null ? b('aplicar', 'Aplicar', 'border:0;background:#104C4F;color:#fff') : '', b('anular', 'Anular', 'border:1px solid #ba1a1a;background:transparent;color:#ba1a1a')]
+              : [b('compensada', 'Compensada', 'border:0;background:#104C4F;color:#fff'), b('anular', 'Anular', 'border:1px solid #ba1a1a;background:transparent;color:#ba1a1a')];
+            return '<div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px dashed #E6E1D6">' +
+              '<div style="font:400 13px \'Neue Kabel\',sans-serif;color:#5C5A52"><b style="color:#1b1c19">' + esc(d.numero) + '</b> ' + pill(ETIQUETA_DIF[d.estado] || d.estado, TONO_DIF[d.estado]) +
+                ' <b style="color:' + (d.importe == null ? '#8A5A00' : Number(d.importe) < 0 ? '#ba1a1a' : '#3F5230') + '">' + (d.importe == null ? 'sin importe' : (Number(d.importe) > 0 ? '+' : '') + esc(fmt(d.importe, dv.moneda || 'EUR'))) + '</b>' +
+                ' · ' + esc(quien) + ' · ' + esc(cV ? cV.numero : '—') + (parcelas(dv.contrato_raiz_id) ? ' · parcela <b style="color:#104C4F">' + esc(parcelas(dv.contrato_raiz_id)) + '</b>' : '') +
+                '<div style="font-size:12px">' + esc(d.motivo || '') + '</div></div>' +
+              '<div style="display:flex;gap:6px">' + btns.join('') + '</div></div>';
+          }).join('');
+        caja.parentNode.insertBefore(sec, caja);
+        sec.addEventListener('click', function (ev) {
+          var bDif = ev.target.closest && ev.target.closest('[data-dif-accion]');
+          if (!bDif) return;
+          ev.preventDefault(); ev.stopPropagation();
+          if (typeof window.LW_V4.resolverDiferencia === 'function') {
+            window.LW_V4.resolverDiferencia(bDif.getAttribute('data-dif-id'), bDif.getAttribute('data-dif-numero'), bDif.getAttribute('data-dif-accion'));
+          } else toast('El editor de comisiones aún no ha cargado — prueba de nuevo en un segundo.');
+        });
+      }
 
       function pintaLawang(ss) {
         var pend = ss.filter(function (x) { return x.estado === 'pendiente'; });
@@ -7232,6 +7300,9 @@
           window.LW_V4.comisionesPorId[x.id].base = snap.base_valor != null ? Number(snap.base_valor) : null;
           window.LW_V4.comisionesPorId[x.id].pctTramo = snap.pct_tramo != null ? Number(snap.pct_tramo) : 100;
           window.LW_V4.comisionesPorId[x.id].pct = snap.pct_comision != null ? Number(snap.pct_comision) : null;
+          window.LW_V4.comisionesPorId[x.id].fila = x;
+          // resolver diferencias: el manager que la paga o un admin, nunca el closer (la RPC lo exige igual)
+          window.LW_V4.comisionesPorId[x.id].puedeResolver = !soyElCloser && (esAdminSesion || !!misCloserEmails[email.toLowerCase()]);
           var bEst = 'padding:7px 14px;border-radius:999px;font:600 12px \'Neue Kabel\',sans-serif;cursor:pointer;';
           var botones = [];
           if (puedeMarcar) botones.push('<button type="button" data-eq-pagar="' + esc(x.id) + '" style="' + bEst + 'border:0;background:#104C4F;color:#fff">Marcar pagada</button>');
@@ -7239,19 +7310,48 @@
             botones.push('<button type="button" data-eq-ajustar="' + esc(x.id) + '" style="' + bEst + 'border:1px solid #8A8474;background:transparent;color:#1b1c19">Ajustar</button>');
             botones.push('<button type="button" data-eq-anular="' + esc(x.id) + '" style="' + bEst + 'border:1px solid #ba1a1a;background:transparent;color:#ba1a1a">Anular</button>');
           }
-          var accion = botones.length
-            ? '<span style="display:inline-flex;gap:6px;flex-wrap:nowrap;justify-content:flex-end;white-space:nowrap">' + botones.join('') + '</span>'
-            : '<span style="font:500 12px \'Neue Kabel\',sans-serif;color:#8A8474">—</span>';
+          // trazabilidad (28-sep-2026, owner): de dónde sale esta comisión y qué le ha pasado
+          botones.push('<button type="button" data-eq-traza="' + esc(x.id) + '" style="' + bEst + 'border:1px solid #104C4F;background:transparent;color:#104C4F">Trazabilidad</button>');
+          var accion = '<span style="display:inline-flex;gap:6px;flex-wrap:nowrap;justify-content:flex-end;white-space:nowrap">' + botones.join('') + '</span>';
           var notaFila = x.estado === 'anulada' && x.anulado_motivo ? x.anulado_motivo
             : x.importe_ajustado != null ? 'Motor: ' + fmt(x.importe, x.moneda || 'EUR') + (x.ajuste_motivo ? ' · ' + x.ajuste_motivo : '') : '';
-          return '<tr class="border-b border-outline-variant/30" data-eq-estado="' + esc(x.estado) + '" data-eq-equipo="' + esc(equipoNombre) + '">' +
+          if (x.disparado_por_snapshot && x.disparado_por_snapshot.recalculado_en && !notaFila) {
+            notaFila = 'Recalculada ' + fFecha(x.disparado_por_snapshot.recalculado_en) + ' por cambio de contrato';
+          }
+          // diferencias vivas de esta comisión, bajo el importe
+          var difsVivas = (difsDe[x.id] || []).filter(function (d) { return d.estado === 'pendiente' || d.estado === 'revisar'; });
+          var notaDif = difsVivas.map(function (d) {
+            return '<div style="font:600 11px \'Neue Kabel\',sans-serif;color:' + (d.estado === 'revisar' ? '#8A5A00' : (Number(d.importe) < 0 ? '#ba1a1a' : '#3F5230')) + ';white-space:nowrap">' +
+              esc(d.numero) + ' · ' + (d.importe == null ? 'sin importe' : (Number(d.importe) > 0 ? '+' : '') + esc(fmt(d.importe, x.moneda || 'EUR'))) +
+              ' · ' + esc(ETIQUETA_DIF[d.estado] || d.estado) + '</div>';
+          }).join('');
+          // la operación: la raíz y los contratos que cuelgan de ella, con su firma
+          var hijos = (hijosDe[x.contrato_raiz_id] || []);
+          var operacion = hijos.length
+            ? '<div style="margin-top:4px;display:flex;flex-direction:column;gap:2px">' + hijos.map(function (h) {
+                var estadoH = h.liberado_en ? 'liberado' : (h.bloqueado ? 'firmado' : 'sin firmar');
+                var colorH = h.liberado_en ? '#8A8474' : (h.bloqueado ? '#3F5230' : '#C9892B');
+                return '<span style="font:500 11.5px \'Neue Kabel\',sans-serif;color:#5C5A52;white-space:nowrap">↳ ' + esc(h.numero) + ' · ' + esc(tipoC(h.tipo)) +
+                  ' · <b style="color:' + colorH + ';font-weight:600">' + estadoH + '</b></span>';
+              }).join('') + '</div>'
+            : '';
+          var parcelaTxt = parcelas(x.contrato_raiz_id);
+          var parcelaHtml = parcelaTxt
+            ? parcelaTxt.split(', ').map(function (p) {
+                return '<span style="display:inline-block;padding:4px 12px;border-radius:999px;background:#104C4F;color:#fff;font:700 15px \'Neue Kabel\',sans-serif;letter-spacing:.02em;white-space:nowrap;margin:2px 4px 2px 0">' + esc(p) + '</span>';
+              }).join('')
+            : '<span style="color:#8A8474">—</span>';
+          return '<tr class="border-b border-outline-variant/30" data-eq-estado="' + esc(x.estado) + '" data-eq-equipo="' + esc(equipoNombre) + '" data-eq-fila="' + esc(x.id) + '">' +
             '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant whitespace-nowrap">' + esc(etiqueta) +
               '<div style="font:600 10.5px \'Neue Kabel\',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#8A8474">' + esc(ROL_EQ[x.nivel] || x.nivel) + '</div></td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline whitespace-nowrap">' + esc(equipoNombre) + '</td>' +
             '<td class="px-5 py-4 font-label-md text-label-md text-on-surface whitespace-nowrap">' + esc(fmt(efectivo, x.moneda || 'EUR')) +
-              (notaFila ? '<div style="font:500 11px \'Neue Kabel\',sans-serif;color:#8A8474;white-space:normal;max-width:220px">' + esc(notaFila) + '</div>' : '') + '</td>' +
-            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(c ? [c.numero, tipoC(c.tipo), c.proyecto_nombre].filter(Boolean).join(' · ') : '—') + '</td>' +
-            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(parcelas(x.contrato_raiz_id) || '—') + '</td>' +
+              (notaFila ? '<div style="font:500 11px \'Neue Kabel\',sans-serif;color:#8A8474;white-space:normal;max-width:220px">' + esc(notaFila) + '</div>' : '') + notaDif + '</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' +
+              '<span style="font:600 13px \'Neue Kabel\',sans-serif;color:#1b1c19">' + esc(c ? c.numero : '—') + '</span>' +
+              (c ? '<span> · ' + esc([tipoC(c.tipo), c.proyecto_nombre].filter(Boolean).join(' · ')) + '</span>' : '') +
+              operacion + '</td>' +
+            '<td class="px-5 py-4">' + parcelaHtml + '</td>' +
             '<td class="px-5 py-4 whitespace-nowrap">' + pill(ETIQUETA_EQ[x.estado] || x.estado, TONO_EQ[x.estado]) + '</td>' +
             '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + fFecha(x.disparado_en) + '</td>' +
             '<td class="px-5 py-4 text-right">' + accion + '</td>' +
@@ -7313,7 +7413,8 @@
         // columnas «Closer» y «Equipo» y el selector de equipos: sobran
         var st = document.createElement('style');
         st.textContent = '#lw-eq-equipo{display:none!important}' +
-          'table:has(#lw-filas-equipo) th:nth-child(-n+2),#lw-filas-equipo td:nth-child(-n+2){display:none}';
+          // solo filas de datos: la trazabilidad desplegada es una única celda (colspan) y se ocultaba
+          'table:has(#lw-filas-equipo) th:nth-child(-n+2),#lw-filas-equipo tr[data-eq-fila] td:nth-child(-n+2){display:none}';
         document.head.appendChild(st);
 
         // su condición: la base solo le deja leer las que le aplican
@@ -7343,6 +7444,109 @@
          Puramente cliente: las filas ya están todas pintadas (la RLS ya decidió
          cuáles llegan), esto solo enseña/oculta. Se cablea una vez por carga de
          página — no hay repintado de esta tabla salvo recarga completa. */
+      /* TRAZABILIDAD de una comisión (28-sep-2026, owner: «añade trazabilidad, qué otro
+         contrato tiene vinculado si es una operación»). Se despliega bajo la fila y lo
+         trae TODO de una RPC de lectura, comision_trazabilidad(), que aplica el mismo
+         criterio que la RLS de comisiones_devengadas: la operación (qué contratos cuentan
+         en la base y cuáles no, y por qué), el cálculo con el que nació, el historial
+         (recálculos, ajustes, anulaciones) y las diferencias por cambio de contrato. */
+      function abreTraza(id) {
+        var tr = tablaEq.querySelector('tr[data-eq-fila="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
+        if (!tr) return;
+        var sig = tr.nextElementSibling;
+        if (sig && sig.getAttribute('data-eq-traza-de') === id) { sig.remove(); return; }
+        var info = (window.LW_V4.comisionesPorId && window.LW_V4.comisionesPorId[id]) || {};
+        var x = info.fila || {};
+        var mon = x.moneda || 'EUR';
+        var det = document.createElement('tr');
+        det.setAttribute('data-eq-traza-de', id);
+        det.innerHTML = '<td colspan="8" style="padding:0 20px 20px;background:#F7F5EF"><div data-traza style="padding:16px 0;font:400 13px \'Neue Kabel\',sans-serif;color:#5C5A52">Trayendo la trazabilidad…</div></td>';
+        tr.after(det);
+        var caja = det.querySelector('[data-traza]');
+        var tit = function (t) { return '<div style="font:700 10.5px \'Neue Kabel\',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#104C4F;margin:0 0 8px">' + esc(t) + '</div>'; };
+        var bloque = function (t, html) { return '<div style="background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.05)">' + tit(t) + html + '</div>'; };
+        var linea = function (a, b) { return '<div style="display:flex;justify-content:space-between;gap:16px;padding:3px 0;border-bottom:1px dashed #E6E1D6"><span>' + a + '</span><span style="text-align:right;color:#1b1c19">' + b + '</span></div>'; };
+
+        sb.rpc('comision_trazabilidad', { p_devengo: id }).then(function (res) {
+          if (res.error) { caja.innerHTML = '<span style="color:#ba1a1a">' + esc(typeof lwErrorHumano === 'function' ? lwErrorHumano(res.error, 'No se pudo traer la trazabilidad') : res.error.message) + '</span>'; return; }
+          var t = res.data || {};
+          var snap = x.disparado_por_snapshot || {};
+
+          // 1 · la operación
+          var ops = (t.operacion || []).map(function (c) {
+            var estado = c.liberado ? 'liberado' : (c.firmado ? 'firmado' + (c.fecha_firma ? ' ' + fFecha(c.fecha_firma) : '') : 'sin firmar');
+            var cuenta = c.cuenta_en_base ? '<b style="color:#3F5230">cuenta</b>'
+              : '<span style="color:#8A8474">no cuenta' + (c.liberado ? ' (liberado)' : !c.firmado ? ' (hasta que se firme)' : !c.es_raiz && /^carta_reserva/.test(c.tipo || '') ? ' (la carta ya vale suelo + obra)' : '') + '</span>';
+            return linea('<b style="color:#1b1c19">' + esc(c.numero) + '</b> · ' + esc(tipoC(c.tipo)) + (c.es_raiz ? ' <span style="color:#8A8474">(contrato principal)</span>' : '') +
+                         '<br><span style="font-size:12px">' + esc(estado) + '</span>',
+                         esc(fmt(c.precio_total, c.moneda || mon)) + '<br><span style="font-size:12px">' + cuenta + '</span>');
+          }).join('');
+          var parcelasT = (t.parcelas || []).map(function (p) {
+            return '<span style="display:inline-block;padding:3px 10px;border-radius:999px;background:#104C4F;color:#fff;font:700 13px \'Neue Kabel\',sans-serif;margin-right:4px">' + esc(p.codigo) + '</span>';
+          }).join('') || '—';
+          var hOperacion = bloque('La operación',
+            '<div style="margin-bottom:8px">Parcela ' + parcelasT + '</div>' + ops +
+            linea('<b>Base de la comisión hoy</b> <span style="font-size:12px">(solo contratos firmados)</span>', '<b>' + esc(fmt(t.base_hoy, mon)) + '</b>'));
+
+          // 2 · cómo se calculó
+          var hCalculo = bloque('Cómo se calculó',
+            linea('Se generó', esc(fFecha(x.disparado_en))) +
+            linea('Condición', esc((snap.pct_comision != null ? String(snap.pct_comision).replace('.', ',') + ' %' : '—') + ' sobre ' + String(snap.base_calculo || 'precio total').replace(/_/g, ' '))) +
+            linea('Tramo', esc((snap.pct_tramo != null ? snap.pct_tramo + ' % de la comisión' : '—') + (snap.disparador_tipo ? ' · ' + (snap.umbral != null ? snap.umbral + ' % ' : '') + (DISPARADOR[snap.disparador_tipo] || snap.disparador_tipo) : ''))) +
+            linea('Base al generarse', esc(fmt(snap.base_original != null ? snap.base_original : snap.base_valor, mon))) +
+            (snap.importe_motor_original != null ? linea('Importe original', esc(fmt(snap.importe_motor_original, mon))) + linea('Base actual (recalculada ' + esc(fFecha(snap.recalculado_en)) + ')', esc(fmt(snap.base_valor, mon))) : '') +
+            linea('Cobrado al generarse', esc(fmt(snap.cobrado_total, mon)) + (snap.cobrado_suelo != null ? ' <span style="font-size:12px">(suelo ' + esc(fmt(snap.cobrado_suelo, mon)) + ')</span>' : '')) +
+            (t.solicitud ? linea('Solicitud de pago', 'SP-' + esc(t.solicitud.numero) + ' · ' + esc(t.solicitud.estado) + ' · ' + esc(fmt(t.solicitud.importe, t.solicitud.moneda || mon))) : ''));
+
+          // 3 · diferencias por cambio de contrato
+          var difs = t.diferencias || [];
+          var bD = 'padding:5px 12px;border-radius:999px;font:600 11.5px \'Neue Kabel\',sans-serif;cursor:pointer;';
+          var hDif = difs.length ? bloque('Diferencias por cambio de contrato', difs.map(function (d) {
+            var btns = [];
+            if (info.puedeResolver) {
+              var b = function (acc, txt, estilo) { return '<button type="button" data-dif-accion="' + acc + '" data-dif-id="' + esc(d.id) + '" data-dif-numero="' + esc(d.numero) + '" style="' + bD + estilo + '">' + txt + '</button>'; };
+              if (d.estado === 'revisar') { if (d.importe != null) btns.push(b('aplicar', 'Aplicar', 'border:0;background:#104C4F;color:#fff')); btns.push(b('anular', 'Anular', 'border:1px solid #ba1a1a;background:transparent;color:#ba1a1a')); }
+              if (d.estado === 'pendiente') {
+                if (Number(d.importe) > 0 && !d.solicitud) btns.push(b('pagada', 'Marcar pagada', 'border:0;background:#104C4F;color:#fff'));
+                if (Number(d.importe) < 0) btns.push(b('compensada', 'Compensada', 'border:0;background:#104C4F;color:#fff'));
+                btns.push(b('anular', 'Anular', 'border:1px solid #ba1a1a;background:transparent;color:#ba1a1a'));
+              }
+            }
+            var o = d.origen || {};
+            var queCambio = o.numero ? esc(o.numero) + ': ' + [
+              o.precio_total && o.precio_total.antes != null && o.precio_total.antes !== o.precio_total.despues ? 'precio ' + fmt(o.precio_total.antes, mon) + ' → ' + fmt(o.precio_total.despues, mon) : '',
+              o.firmado && o.firmado.antes !== o.firmado.despues ? (o.firmado.despues ? 'se firmó' : 'dejó de estar firmado') : '',
+              o.liberado && o.liberado.antes !== o.liberado.despues ? (o.liberado.despues ? 'se liberó' : 'se recuperó') : '',
+              o.padre && o.padre.antes !== o.padre.despues ? 'cambió de operación' : '',
+              o.tipo && o.tipo.antes !== o.tipo.despues ? 'cambió de tipo' : ''
+            ].filter(Boolean).map(esc).join(', ') + (o.quien ? ' · ' + esc(o.quien) : '') : '';
+            return '<div style="padding:8px 0;border-bottom:1px dashed #E6E1D6;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between">' +
+              '<div style="min-width:0;flex:1"><b style="color:#1b1c19">' + esc(d.numero) + '</b> ' + pill(ETIQUETA_DIF[d.estado] || d.estado, TONO_DIF[d.estado]) +
+                ' <b style="color:' + (d.importe == null ? '#8A5A00' : Number(d.importe) < 0 ? '#ba1a1a' : '#3F5230') + '">' +
+                (d.importe == null ? 'sin importe' : (Number(d.importe) > 0 ? '+' : '') + esc(fmt(d.importe, mon))) + '</b>' +
+                '<div style="font-size:12px">' + esc(d.motivo || '') +
+                  (d.base_antes != null || d.base_despues != null ? ' · base ' + esc(fmt(d.base_antes, mon)) + ' → ' + esc(fmt(d.base_despues, mon)) : '') + '</div>' +
+                (queCambio ? '<div style="font-size:12px;color:#8A8474">Cambio: ' + queCambio + '</div>' : '') +
+                (d.solicitud ? '<div style="font-size:12px;color:#8A8474">Solicitud SP-' + esc(d.solicitud.numero) + ' · ' + esc(d.solicitud.estado) + '</div>' : '') +
+                (d.resuelto_en ? '<div style="font-size:12px;color:#8A8474">' + esc(fFecha(d.resuelto_en)) + ' · ' + esc(d.resuelto_por || '') + (d.resolucion_motivo ? ' · ' + esc(d.resolucion_motivo) : '') + '</div>' : '') +
+              '</div>' + (btns.length ? '<div style="display:flex;gap:6px;flex-wrap:wrap">' + btns.join('') + '</div>' : '') + '</div>';
+          }).join('')) : '';
+
+          // 4 · historial
+          var hist = t.historial || [];
+          var hHist = bloque('Historial',
+            linea(esc(fFecha(x.disparado_en)) + ' · Se generó la comisión', esc(fmt(snap.importe_motor_original != null ? snap.importe_motor_original : x.importe, mon))) +
+            hist.map(function (h) {
+              var imp = h.antes != null && h.despues != null && Number(h.antes) !== Number(h.despues) ? esc(fmt(h.antes, mon)) + ' → ' + esc(fmt(h.despues, mon)) : (h.estado_despues ? esc(h.estado_despues) : '');
+              return linea(esc(fFecha(h.en)) + ' · ' + esc(ACCION_LOG[h.accion] || h.accion) +
+                           '<br><span style="font-size:12px">' + esc(h.motivo || '') + (h.quien ? ' · ' + esc(h.quien) : '') + '</span>', imp);
+            }).join('') +
+            (x.estado === 'pagada' ? linea(esc(fFecha(x.pagado_en)) + ' · Marcada pagada' + (x.pagado_por ? ' <span style="font-size:12px">· ' + esc(x.pagado_por) + '</span>' : ''), '') : ''));
+
+          caja.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px">' + hOperacion + hCalculo + hDif + hHist + '</div>';
+        });
+      }
+
       function cablearFiltrosEquipo() {
         var buscar = document.getElementById('lw-eq-buscar');
         var selEq = document.getElementById('lw-eq-equipo');
@@ -7358,6 +7562,9 @@
             var okEquipo = !eq || tr.getAttribute('data-eq-equipo') === eq;
             var okTexto = !q || tr.textContent.toLowerCase().indexOf(q) !== -1;
             tr.style.display = (okEstado && okEquipo && okTexto) ? '' : 'none';
+            // la trazabilidad abierta sigue a su fila
+            var sig = tr.nextElementSibling;
+            if (sig && sig.hasAttribute('data-eq-traza-de') && tr.style.display === 'none') sig.style.display = 'none';
           });
         }
         if (buscar) buscar.addEventListener('input', aplica);
@@ -7379,6 +7586,20 @@
         // clic en «Marcar pagada»: delega en editores.js (ED.comisiones), que es
         // quien tiene la sesión/policy para escribir. Aquí solo se localiza el id.
         tablaEq.addEventListener('click', function (ev) {
+          var bDif = ev.target.closest && ev.target.closest('[data-dif-accion]');
+          if (bDif) {
+            ev.preventDefault(); ev.stopPropagation();
+            if (typeof window.LW_V4.resolverDiferencia === 'function') {
+              window.LW_V4.resolverDiferencia(bDif.getAttribute('data-dif-id'), bDif.getAttribute('data-dif-numero'), bDif.getAttribute('data-dif-accion'));
+            } else toast('El editor de comisiones aún no ha cargado — prueba de nuevo en un segundo.');
+            return;
+          }
+          var bTr = ev.target.closest && ev.target.closest('[data-eq-traza]');
+          if (bTr) {
+            ev.preventDefault(); ev.stopPropagation();
+            abreTraza(bTr.getAttribute('data-eq-traza'));
+            return;
+          }
           var bAj = ev.target.closest && ev.target.closest('[data-eq-ajustar],[data-eq-anular]');
           if (bAj) {
             ev.preventDefault(); ev.stopPropagation();
