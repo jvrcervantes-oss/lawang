@@ -741,7 +741,7 @@ function buildForm(){
     idx++;
     html += `<section class="section forma-pago" data-sec="forma_pago">
       <header data-acc><span class="num">${idx}</span><h2>${L({es:'Forma de pago',en:'Payment method',id:'Cara pembayaran'})}</h2><span class="chev">▾</span></header>
-      <div class="body" id="formaPagoBox">${formaPagoBodyHTML()}</div></section>`;
+      <div class="body" id="formaPagoBox" data-firma="${escAttr(firmaFormaPago())}">${formaPagoBodyHTML()}</div></section>`;
   }
   SECTIONS.forEach(s=>{
     idx++;

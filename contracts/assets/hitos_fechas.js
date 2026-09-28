@@ -219,19 +219,35 @@ function formaPagoBodyHTML(){
       <span class="fp-cuando">${esc(L(f.cuando()))}</span>
     </label>`;
   }).join('');
-  const aviso = cal === 'manual'
+  const aviso = cerrado
+    ? L({es:'El contrato está enviado a firma o firmado: la forma de pago ya no se cambia.',en:'The contract has been sent for signature or signed: the payment method can no longer change.',id:'Kontrak sudah dikirim untuk ditandatangani atau sudah ditandatangani: cara pembayaran tidak bisa diubah.'})
+    : cal === 'manual'
     ? L({es:'Este contrato tiene un calendario a medida, montado por administración. Solo un administrador puede cambiar la forma de pago.',en:'This contract has a custom schedule set up by admin. Only an admin can change the payment method.',id:'Kontrak ini memakai jadwal khusus dari admin. Hanya admin yang dapat mengubah cara pembayaran.'})
     : cal === 'libre'
     ? L({es:'Este contrato es anterior a las formas de pago y su calendario se editó a mano. Si eliges una, la tabla de pagos se sustituye.',en:'This contract predates payment methods and its schedule was edited by hand. Choosing one replaces the payment table.',id:'Kontrak ini dibuat sebelum ada cara pembayaran dan jadwalnya diedit manual. Memilih salah satu akan mengganti tabel pembayaran.'})
-    : cerrado
-    ? L({es:'El contrato está enviado a firma o firmado: la forma de pago ya no se cambia.',en:'The contract has been sent for signature or signed: the payment method can no longer change.',id:'Kontrak sudah dikirim untuk ditandatangani atau sudah ditandatangani: cara pembayaran tidak bisa diubah.'})
     : '';
   return `<p class="fp-intro">${esc(L({es:'Elige primero cómo pagará el comprador la obra. Decide la tabla de pagos y lo que dice el Art. 5 del contrato.',en:'First choose how the buyer will pay for the works. It sets the payment table and what Article 5 of the contract says.',id:'Pilih dulu bagaimana pembeli membayar pekerjaan. Ini menentukan tabel pembayaran dan isi Pasal 5 kontrak.'}))}</p>
     <div class="fp-opciones" role="radiogroup" aria-label="${escAttr(L({es:'Forma de pago',en:'Payment method',id:'Cara pembayaran'}))}">${tarjetas}</div>
     ${aviso ? `<p class="fp-aviso">${esc(aviso)}</p>` : ''}
     ${cal === 'unico_firma' || cal === 'estandar' || cal === 'unico_obra' ? `<p class="fp-descuento">${esc(L({es:'¿Hay descuento por pagar al contado? Va en «Descuento comercial».',en:'Cash discount? It goes in «Commercial discount».',id:'Ada diskon tunai? Masukkan di «Diskon komersial».'}))}</p>` : ''}`;
 }
-function refreshFormaPago(){ const b = document.getElementById('formaPagoBox'); if(b) b.innerHTML = formaPagoBodyHTML(); }
+/* Solo repinta si cambia algo de lo que enseña. No es una optimización: se llama desde aplicarEstadoFirma(),
+   que corre en cada `input` del formulario vía updateSaveButton(), y el `input` de un radio llega ANTES que su
+   `change`. Repintar ahí destruía el radio recién pulsado, el `change` salía de un nodo suelto y la forma de pago
+   no cambiaba nunca (revisor de código, 28-sep, reproducido en Edge). Con la firma, repintar solo cuando algo
+   cambia es seguro desde cualquier sitio. */
+function firmaFormaPago(){
+  return [CALENDARIO || 'estandar', formaPagoCerrada() ? 1 : 0,
+          (typeof puedeHitosFijos === 'function' && puedeHitosFijos()) ? 1 : 0,
+          (typeof LANG !== 'undefined' ? LANG : ''), PLAZO_PAGO_UNICO_DIAS].join('|');
+}
+function refreshFormaPago(){
+  const b = document.getElementById('formaPagoBox'); if(!b) return;
+  const f = firmaFormaPago();
+  if(b.getAttribute('data-firma') === f) return;
+  b.innerHTML = formaPagoBodyHTML();
+  b.setAttribute('data-firma', f);
+}
 
 /* Dentro de «Calendario de pagos» ya no se elige: se recuerda qué forma de pago
    hay y se lleva de vuelta al paso 1 para cambiarla. */
