@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" class="v4 lw4-fijo" data-lw4-herramienta="creatividades">
 <head>
-<meta name="lw-version" content="dbb8d56e4df9">
+<meta name="lw-version" content="91182f111c26">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
@@ -1574,8 +1574,8 @@ async function montarDesdeBase(){
       confirmar: lwT('Sustituir'), tono: 'peligro' }))) return;
   const btn = document.getElementById('bmIr'); btn.disabled = true;
   try {
-    const { sb } = await window.LW_AUTH;
-    const r = await sb.rpc('dossier_datos', { p_proyecto: proy, p_modelos: mods });
+    // por el transporte de lecturas (LAW-338 L2, 28-sep-2026); dossier_datos ya es de lw_lector: mismas filas que la RLS
+    const r = await window.lwDatos('dossier_datos', { p_proyecto: proy, p_modelos: mods });
     if (r.error) throw r.error;
     const D = r.data, ES = idi === 'es';
     const fechaTxt = new Date(D.precios_a + 'T00:00:00').toLocaleDateString(ES ? 'es-ES' : 'en-GB', { day:'numeric', month:'long', year:'numeric' });

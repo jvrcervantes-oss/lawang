@@ -55,8 +55,7 @@
     cont.appendChild(sec2);
     var proyectos = [];
     var errProy = '';
-    sb.from('proyectos').select('id,nombre').eq('activo', true).order('nombre').then(function (r) {
-      proyectos = r.data || []; errProy = r.error ? r.error.message : ''; pintaSolicitudes(); });
+    pintaSolicitudes();
     pintaReferidos();
 
     function cabecera(host, titulo, sub) {
@@ -65,12 +64,18 @@
       host.appendChild(el('p', 'font-body-sm text-body-sm text-on-surface-variant mt-1 mb-4', sub));
     }
 
+    /* Lecturas por el servidor (LAW-338 L2, 28-sep-2026): solicitudes_alta_datos trae las 60 más recientes y los
+       proyectos activos para activarlas; referidos_datos, los 100 contactos más recientes. */
     function pintaSolicitudes() {
-      sb.from('solicitudes_colaborador').select('*').order('creado_at', { ascending: false }).limit(60).then(function (r) {
+      window.lwDatos('solicitudes_alta_datos', { p_limit: 60 }).then(function (r) {
         cabecera(sec, 'Solicitudes de alta de comerciales',
           'Llegan desde la guía de formación con el email verificado. Nadie entra en la intranet hasta que pulsas «Activar»: entonces se crea su usuario y le llega un correo para crear su contraseña.');
-        if (r.error) { sec.appendChild(el('p', 'text-error', 'No se han podido cargar: ' + r.error.message)); return; }
-        var filas = r.data || [];
+        if (r.error) {
+          proyectos = []; errProy = r.error.message || 'sin respuesta';
+          sec.appendChild(el('p', 'text-error', 'No se han podido cargar: ' + errProy)); return;
+        }
+        proyectos = r.data.proyectos || []; errProy = '';
+        var filas = r.data.solicitudes || [];
         var pend = filas.filter(function (s) { return s.estado === 'pendiente'; });
         if (!pend.length) sec.appendChild(el('p', 'font-body-md text-on-surface-variant', 'No hay solicitudes pendientes.'));
         pend.forEach(function (s) { sec.appendChild(tarjeta(s)); });
@@ -98,6 +103,7 @@
           });
           sec.appendChild(det);
         }
+        if (r.data.siguiente) sec.appendChild(el('p', 'font-body-sm text-body-sm text-outline mt-3', 'Se enseñan las 60 más recientes.'));
       });
     }
 
@@ -168,11 +174,12 @@
     }
 
     function pintaReferidos() {
-      sb.from('referidos_contactos').select('*').order('creado_at', { ascending: false }).limit(100).then(function (r) {
+      window.lwDatos('referidos_datos', { p_limit: 100 }).then(function (r) {
         cabecera(sec2, 'Contactos de referidos',
           'Clientes que te pasan los referidos (1 %) desde la guía, sin cuenta en la intranet. El referido queda anotado como quien lo trajo: dalo de alta en el CRM y márcalo aquí.');
-        if (r.error) { sec2.appendChild(el('p', 'text-error', 'No se han podido cargar: ' + r.error.message)); return; }
-        var filas = r.data || [];
+        if (r.error) { sec2.appendChild(el('p', 'text-error', 'No se han podido cargar: ' + (r.error.message || 'sin respuesta'))); return; }
+        var filas = r.data.referidos || [];
+        if (r.data.siguiente) sec2.appendChild(el('p', 'font-body-sm text-body-sm text-outline mb-3', 'Se enseñan los 100 más recientes.'));
         if (!filas.length) { sec2.appendChild(el('p', 'font-body-md text-on-surface-variant', 'Todavía no hay contactos de referidos.')); return; }
         filas.forEach(function (x) {
           var c = el('div', 'border border-outline/20 rounded-xl p-4 mb-3 bg-surface grid gap-2 md:grid-cols-[1fr_1fr_auto] items-start');
