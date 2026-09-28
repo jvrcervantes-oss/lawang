@@ -9526,7 +9526,11 @@
       var sinDatos = function () { return aviso('No se han podido leer las plantillas: recarga la pantalla.', '#9E2F26'); };
       var hayPuras = function () { return typeof window.lwPlantillaVistaPrevia === 'function' && typeof window.lwPlantillaDiff === 'function'; };
       var RE_CLAVE = /^[a-z][a-z0-9_]{1,47}$/, RE_CAMPO = /^[a-z][a-z0-9_]{0,47}$/;
-      var DESCARGO = 'Un responsable ha revisado este texto. AxisWorks no redacta ni revisa contratos: la plantilla es vuestra.';
+      /* Textos de Legal (consulta del revisor, 28-sep-2026), anclados a los Términos SaaS 9.1, 9.3 y 13
+         (legal/erp/terminos_saas_axisworks_erp.md): la casilla va en PRIMERA persona —quien activa asume la revisión—,
+         y el aviso de IA sale solo si el texto viene del Asistente. No se reescriben sin Legal. */
+      var DESCARGO = 'He revisado el texto completo y asumo su contenido. AxisWorks no revisa ni valida las plantillas que se dan de alta aquí.';
+      var AVISO_IA = 'Texto transcrito por IA: puede no coincidir con tu original. Revisa las diferencias antes de activar.';
       var TIPOS_CAMPO = window.LW_PLANTILLA_TIPOS_CAMPO || [['texto', 'Texto corto']];
 
       /* Error de la base → la causa en palabras. Se lee el `hint` (estable) antes que el código; el mensaje de
@@ -9719,7 +9723,7 @@
           campos.push({ k: 'tipo_contrato', label: 'Tipo de contrato', tipo: 'select', req: 1, medio: 1, valor: p ? p.tipo_contrato || '' : '',
             opciones: [['', '— elige el tipo —']].concat(opc), ayuda: 'Se puede cambiar mientras no se haya activado ninguna versión.' });
         }
-        if (borr && borr.generado_ia) campos.push({ tipo: 'nota', label: 'Generado por IA: este borrador lo ha preparado el asistente a partir de vuestro modelo. Revísalo entero, y compáralo con el original, antes de activarlo.' });
+        if (borr && borr.generado_ia) campos.push({ tipo: 'nota', label: edT('Generado por IA') + ' · ' + edT(AVISO_IA) });
         else if (!borr && act && act.generado_ia) campos.push({ tipo: 'nota', label: 'La versión activa se generó por IA. Lo que guardes aquí será un borrador nuevo hecho a partir de ella.' });
 
         // Cuerpo, campos y vista previa: piezas a mano (custom); se recogen en onGuardar, no por data-k.
@@ -9910,15 +9914,29 @@
               var b = ev.currentTarget;
               if (enviando || !chk || !chk.checked) return;
               enviando = true; b.disabled = true;
-              Promise.resolve(sb.rpc('plantilla_version_activa', { p_version_id: borr.id, p_acepto: chk.checked === true })).then(function (rr) {
+              /* Lo que se activa tiene que ser lo que se ha revisado: si el borrador ha cambiado desde que se abrió
+                 este cajón (otro admin, otra pestaña), no se activa. Reduce la ventana a milisegundos; cerrarla del
+                 todo exige que la RPC reciba la huella esperada (pendiente de la base, ver informe 6b). */
+              leeVersion(borr.id).then(function (rv) {
+                if (rv.error || !rv.data) throw rv.error || new Error('Ese borrador ya no existe: recarga la pantalla.');
+                if (rv.data.estado !== 'borrador' || rv.data.hash !== borr.hash) {
+                  var e = new Error('El borrador ha cambiado desde que abriste esta revisión (lo ha guardado alguien, o tú en otra pestaña). Vuelve a abrir «Revisar y activar» para ver el texto actual.');
+                  e.recarga = true; throw e;
+                }
+                return sb.rpc('plantilla_version_activa', { p_version_id: borr.id, p_acepto: chk.checked === true });
+              }).then(function (rr) {
                 enviando = false;
                 if (rr && rr.error) { b.disabled = !chk.checked; return aviso(errorPlantillas(rr.error), '#9E2F26'); }
                 aviso('Plantilla activada: v' + borr.version + ' de «' + p.nombre + '».');
                 c.cierra();
                 repinta();
-              }, function (e) { enviando = false; b.disabled = !chk.checked; aviso(errorPlantillas(e), '#9E2F26'); });
+              }, function (e) {
+                enviando = false; b.disabled = !chk.checked;
+                aviso(e && e.recarga ? e.message : errorPlantillas(e), '#9E2F26');
+                if (e && e.recarga) { c.cierra(); repinta(); }
+              });
             } }] });
-          if (borr.generado_ia) marcaIA(c.cuerpo, 'Generado por IA: este texto lo ha preparado el asistente a partir de vuestro modelo. Compáralo con el original entero antes de activarlo.');
+          if (borr.generado_ia) marcaIA(c.cuerpo, edT('Generado por IA') + ' · ' + edT(AVISO_IA));
           var sD = seccionCajon(act ? 'Qué cambia frente a la activa (v' + act.version + ')' : 'Qué cambia');
           if (act) {
             var rc = resumenCampos(act.campos, borr.campos);
@@ -9933,7 +9951,7 @@
           var sR = seccionCajon('Revisión');
           var lab = nodo('label', 'las-check');
           chk = nodo('input'); chk.type = 'checkbox'; chk.checked = false;   // DESMARCADA siempre: la base también lo exige
-          var txt = nodo('span'); txt.appendChild(nodo('span', 'las-check-t', DESCARGO));
+          var txt = nodo('span'); txt.appendChild(nodo('span', 'las-check-t', edT(DESCARGO)));
           lab.appendChild(chk); lab.appendChild(txt);
           sR.appendChild(lab);
           c.cuerpo.appendChild(sR.parentNode);
