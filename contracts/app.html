@@ -3346,6 +3346,10 @@ function deriveSections(){
   inDoc.delete('unidad_construccion_codigo');   // derivado (collect(), arriba): lo fija el selector de parcela, nunca se teclea
   inDoc.delete('techo_nombre');   // derivado (collect(), arriba): lo fija el selector de la sección "Techo y extras", nunca se teclea
   inDoc.delete('cc00014_ktp');   // derivado (buildDoc, de firmantes_cred): nunca un campo del form — se escribiria y se pisaria en silencio
+  /* Bonian C2 (C200003), owner 28-sep-2026: sus datos personales salieron de la plantilla
+     publica y NO se rellenan al reabrir (el contrato esta firmado y bloqueado; lo que vale es el
+     PDF firmado). Los c2_* quedan en blanco a proposito — nunca campos del form. */
+  [...inDoc].forEach(k=>{ if(k.startsWith('c2_')) inDoc.delete(k); });
   /* carta_cobrado_importe/numeros (17-sep-2026): los escribe SOLO el trigger
      de la base (carta_cobrado_al_bloquear, BEFORE INSERT) — regla 2 del
      encargo, "el cliente nunca manda este cálculo". Sin este delete caían en
