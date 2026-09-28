@@ -494,6 +494,11 @@
       '.lwp-mas:hover{background:#fafaf9}.lwp-mas:active{transform:scale(.97)}',
       '.lwp-tramo{display:grid;grid-template-columns:minmax(0,1fr) 100px 92px 26px;gap:8px;align-items:center}',
       '@media (max-width:640px){.lwp-tramo{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 26px}.lwp-tramo > select{grid-column:1/-1}}',
+      /* Fila de un campo de plantilla (Plantillas, 28-sep-2026): clave · etiqueta · tipo · obligatorio · quitar.
+         En móvil, la etiqueta ocupa su línea y la cabecera de columnas se esconde (a 390 px las cinco columnas
+         dejaban la clave y la etiqueta sin ancho). */
+      '.lwp-cfila{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.3fr) 130px auto 26px;gap:8px;align-items:center}',
+      '@media (max-width:640px){.lwp-cfila{grid-template-columns:minmax(0,1fr) auto 26px;padding-bottom:8px;border-bottom:1px solid #E7E4DC}.lwp-cfila > :nth-child(2){grid-column:1/-1;order:-1}.lwp-cfila > :nth-child(1){grid-column:1/-1}.lwp-cfila-cab{display:none}}',
       '.lwp-quita{border:0;background:none;color:#9E2F26;font-size:20px;line-height:1;cursor:pointer;border-radius:9999px;width:26px;height:26px;display:grid;place-items:center}',
       '.lwp-quita:hover{background:#FFF4F2}',
       '.lwp-subir{padding:14px 12px;border:1px dashed #d6cfc2;border-radius:12px;background:rgba(250,250,249,.5);color:#104C4F;font:500 13px Jost,system-ui,sans-serif;cursor:pointer;text-align:center;transition:border-color .16s,background-color .16s}',
@@ -9619,7 +9624,7 @@
       window.LW_V4.abreTipoContrato = function (btn) {
         if (!puede()) return datos() ? sinPermiso() : sinDatos();
         var clave = btn && btn.getAttribute ? btn.getAttribute('data-lw-tpc-editar') : null;
-        var tipos = datos().tipos || [];
+        var tipos = (datos() || {}).tipos || [];
         var t = clave ? tipos.filter(function (x) { return x.clave === clave; })[0] : null;
         if (clave && !t) return aviso('No se ha podido leer este tipo — recarga la pantalla.', '#9E2F26');
         var nuevo = !t;
@@ -9686,7 +9691,7 @@
       function abreEditor(p, borr, act) {
         var nuevo = !p;
         var base = borr || act || { cuerpo: '', campos: [], notas: '' };
-        var tipos = (datos().tipos || []);
+        var tipos = ((datos() || {}).tipos || []);
         var tipoFijo = !!(p && p.activa);
         var hecho = false;   // ya se ha guardado (el editor se cierra)
         var campos = [];
@@ -9725,8 +9730,7 @@
         }
         function nuevaFila(c) {
           c = c || {};
-          var el = nodo('div');
-          el.style.cssText = 'display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.3fr) 130px auto 26px;gap:8px;align-items:center';
+          var el = nodo('div', 'lwp-cfila');
           var iK = nodo('input', 'lwp-in lwp-comp'); iK.placeholder = 'clave'; iK.value = c.clave || ''; iK.setAttribute('aria-label', 'Clave del campo');
           iK.style.fontFamily = 'ui-monospace,SFMono-Regular,Consolas,monospace';
           var iE = nodo('input', 'lwp-in lwp-comp'); iE.placeholder = 'Etiqueta: lo que se pregunta'; iE.value = c.etiqueta || ''; iE.setAttribute('aria-label', 'Etiqueta del campo');
@@ -9780,7 +9784,7 @@
           var bD = nodo('button', 'lwp-mas', 'Detectar campos del texto'); bD.type = 'button';
           cab.appendChild(bD);
           d.appendChild(cab);
-          var enc = nodo('div'); enc.style.cssText = 'display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.3fr) 130px auto 26px;gap:8px';
+          var enc = nodo('div', 'lwp-cfila lwp-cfila-cab');
           ['Clave', 'Etiqueta', 'Tipo', '', ''].forEach(function (t) { enc.appendChild(nodo('span', 'lwp-col', t)); });
           d.appendChild(enc);
           lista = nodo('div'); lista.style.cssText = 'display:grid;gap:6px';
