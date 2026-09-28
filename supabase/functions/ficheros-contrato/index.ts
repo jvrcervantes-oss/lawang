@@ -157,7 +157,8 @@ Deno.serve(async (req) => {
       // «Enviar igualmente» sin un anexo del modelo (LAW-406, 28-sep-2026): la constancia la valida y la apunta
       // contrato_envia_firma en la MISMA transacción que el envío, con el actor de la sesión. Antes eran dos
       // llamadas y un fallo de la segunda dejaba el envío hecho sin constancia. `p_sin_anexo` solo viaja si lo
-      // hay: sin él, la llamada sigue resolviendo también la firma de 6 argumentos (despliegue en cualquier orden).
+      // hay. ORDEN: esta edge va DESPUÉS de la migración 20260928120000 (con p_sin_anexo, la firma vieja de 6
+      // argumentos no casa y el envío falla); los envíos sin constancia sí resolverían cualquiera de las dos.
       const { data: r, error: eEnv } = await usuario.rpc('contrato_envia_firma', {
         p_contrato: contratoId,
         p_nombre: String(body.nombre ?? ''), p_email: String(body.email ?? ''),

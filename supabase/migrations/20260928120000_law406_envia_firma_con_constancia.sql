@@ -1,4 +1,4 @@
--- destructivo-ok: sustituye la firma de contrato_envia_firma (drop de la de 6 argumentos + create con 7, para no dejar dos sobrecargas) y retira contrato_envio_sin_anexo, cuyo único llamador (la edge ficheros-contrato) pasa a mandar la constancia dentro del envío; no borra ni cambia ninguna fila.
+-- destructivo-ok: sustituye la firma de contrato_envia_firma (drop de la de 6 argumentos + create con 7, para no dejar dos sobrecargas); no borra ni cambia ninguna fila.
 -- LAW-406 (28-sep-2026): el envío a firma y su constancia «sin anexo» van en UNA transacción.
 --
 -- QUÉ PASABA. «Enviar igualmente» sin un documento del modelo (owner, 28-sep-2026) deja constancia en el
@@ -15,16 +15,18 @@
 --     parámetro: la edge llama con el JWT del usuario.
 --   · El evento lleva el id de la firma creada: la constancia apunta al envío concreto.
 --   · Firma nueva con el 7º argumento por defecto: una edge VIEJA (6 argumentos por nombre) sigue resolviendo
---     esta función mientras se despliega la nueva; lo único que pierde es su segunda llamada (ver abajo).
+--     esta función mientras se despliega la nueva, y su segunda llamada sigue funcionando porque
+--     contrato_envio_sin_anexo NO se retira aquí.
 --
--- REDUCIR LA EXPOSICIÓN. contrato_envio_sin_anexo se retira: su único llamador era esa segunda llamada.
--- Durante el hueco entre esta migración y el redespliegue de la edge, la edge vieja que intente apuntar la
--- constancia recibe «no existe la función» y responde ok + aviso (el envío ya salió); la pantalla lo enseña.
--- Orden de despliegue: esta migración, y a continuación la edge ficheros-contrato.
+-- ORDEN DE DESPLIEGUE (revisión de código, 28-sep): 1) esta migración; 2) la edge ficheros-contrato; 3) la
+-- migración 20260928122000_law406_retira_envio_sin_anexo (reducir la exposición: su único llamador era la
+-- segunda llamada de la edge vieja). Retirarla aquí dejaba, entre 1 y 2, envíos «sin anexo» sin constancia.
+-- La edge nueva NO puede ir antes que esta migración: con p_sin_anexo la llamada no encuentra la función.
 --
--- PERMISOS: los mismos que tenía en producción el 28-sep-2026 (authenticated + service_role, nada para
--- public/anon). El llamador real es la edge con el JWT del usuario; el permiso sobre el contrato lo decide
--- contrato_firma_estado. El create de una firma nueva no hereda la ACL de la vieja: se pone explícita.
+-- PERMISOS: solo authenticated (nada para public/anon/service_role). El único llamador es la edge con el JWT
+-- del usuario; el permiso sobre el contrato lo decide contrato_firma_estado. En producción tenía también
+-- service_role, sin llamador (con service_role auth.email() es null: anulado_por y quien saldrían vacíos), así
+-- que la firma nueva nace sin él. El create de una firma nueva no hereda la ACL de la vieja: se pone explícita.
 --
 -- ERP maestro: contrato_envia_firma es del núcleo (erp/modulos.json); este cambio queda como deuda del maestro
 -- (erp/pendiente_maestro.jsonl) hasta que se porte a erp/migraciones/.
@@ -105,8 +107,5 @@ begin
 
   return jsonb_build_object('link', v_link, 'anulados', v_anul);
 end $$;
-revoke all on function public.contrato_envia_firma(uuid, text, text, text, integer, text, jsonb) from public, anon;
-grant execute on function public.contrato_envia_firma(uuid, text, text, text, integer, text, jsonb) to authenticated, service_role;
-
--- ── se retira: su único llamador (la segunda llamada de la edge) ya no existe ─────────────────────────────
-drop function if exists public.contrato_envio_sin_anexo(uuid, text, jsonb);
+revoke all on function public.contrato_envia_firma(uuid, text, text, text, integer, text, jsonb) from public, anon, service_role;
+grant execute on function public.contrato_envia_firma(uuid, text, text, text, integer, text, jsonb) to authenticated;
