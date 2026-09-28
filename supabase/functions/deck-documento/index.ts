@@ -29,7 +29,7 @@ const noEncontrado = () => new Response('Document not available.', {
 
 // Nombre de descarga por lista blanca: sin acentos, solo [A-Za-z0-9 ._-], 80 caracteres. La extensión, de la ruta.
 function nombreDescarga(titulo: unknown, ext: string): string {
-  const base = String(titulo ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+  const base = String(titulo ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .replace(/[^A-Za-z0-9 ._-]+/g, ' ').replace(/\s+/g, ' ').trim().replace(/^[.\s]+|[.\s]+$/g, '').slice(0, 80);
   return (base || 'document') + '.' + ext;
 }
