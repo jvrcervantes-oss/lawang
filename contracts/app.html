@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="2bd1948002ba">
+<meta name="lw-version" content="038a40b5949a">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -3118,6 +3118,14 @@ function buildDoc(){
     if(String(data[nuevo] || '').trim()) data[viejo] = '';
   });
   applyPromotor(data);   // rellena prom_* según la sociedad firmante elegida (default Tepi Sun Gai)
+  /* CC00014 (texto fijo, 28-sep-2026): el KTP del firmante del BUILDER no va
+     escrito en la plantilla, que se sirve sin sesion. Sale de firmantes_cred
+     (RLS authenticated). Es el de esta persona y no el de {{prom_rep}} porque
+     asi esta en el documento firmado: no se «corrige» aqui (ver pendientes). */
+  if(CURRENT && CURRENT.slug === 'cc00014_timon'){
+    const c = FIRMANTES_CRED['I Made Monjong Adhi Nugruah'];
+    data.cc00014_ktp = BORRADOR_BLANCO ? '' : ((((c && c.cred.en) || '').match(/ID (\d+)/) || [])[1] || '');
+  }
   applyApoderado(data);   // rellena hsn_apoderado_ktp con la signed URL ya resuelta (POA)
   applyRepresentanteComprador(data);   // adq2_firmante_nombre: apoderado del comprador si lo hay, si no el propio comprador
   /* En blanco circula sin contrato detrás (Legal, capa 1, 25-sep-2026): fuera
