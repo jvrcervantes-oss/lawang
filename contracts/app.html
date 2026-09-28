@@ -105,7 +105,7 @@
      las otras cuatro son plantillas JS que arman la ventana de impresión del
      contrato — meter aquí la capa la habría colado en el PDF del cliente. -->
 <link rel="stylesheet" href="/intranet/v4/assets/nav-montaje.css?v=032139e5">
-<link rel="stylesheet" href="/contracts/assets/suite-v4-generador.css?v=ed7dea35">
+<link rel="stylesheet" href="/contracts/assets/suite-v4-generador.css?v=30b034d6">
 <script src="/intranet/v4/assets/nav-montaje.js?v=2c463182" defer></script>
 <script src="/contracts/assets/generador-v4.js?v=78e32fd1" defer></script>
 <script src="/intranet/v4/assets/nav.js?v=c675dae9" defer></script>
@@ -276,7 +276,7 @@
           <!-- Editable: el mensaje se genera con un texto por defecto, pero cada
                comprador tiene su tono y su idioma. Email usa lo que haya AQUÍ en
                el momento del clic, no el texto original. -->
-          <label>Mensaje<textarea id="fmMsg" rows="5"></textarea></label>
+          <label>Mensaje<textarea id="fmMsg" rows="4"></textarea></label>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
             <button class="btn ghost" id="fmCopy" type="button" data-lwt="Copiar enlace">Copiar enlace</button>
             <!-- Era un <a href="mailto:">: en un equipo sin cliente de correo de
@@ -6241,6 +6241,10 @@ $('#fmGen').addEventListener('click', async ()=>{
       +'\n\nEl enlace caduca en 30 días.\n\nLawang Tropical Properties';
     FIRMA_ENVIO = { to:email, link:link };   // lo consumen WhatsApp y "Enviar por email"
     $('#fmResult').style.display='';
+    // owner 28-sep: tras generar había que hacer scroll para llegar a «Enviar por email»; el
+    // modal ya crece hasta casi la pantalla (suite-v4-generador.css) y, si aun así no cabe,
+    // se baja solo hasta los botones.
+    try{ $('#fmMail').scrollIntoView({block:'nearest'}); }catch(e){}
     // generar el enlace deja el contrato en solo lectura EN EL ACTO: a partir de
     // aquí el comprador puede firmar en cualquier momento, así que editar sin
     // anular sería la carrera que este semibloqueo existe para cerrar

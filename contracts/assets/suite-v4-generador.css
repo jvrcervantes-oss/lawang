@@ -244,6 +244,11 @@ html.v4 .cp-head b::before{ content:""; position:absolute; left:0; top:50%; widt
 html.v4 .cp-head .tb-link{ padding:8px 18px; border-radius:9999px; border:1px solid #E7E4DC; background:#fff; color:#44403c; font:500 13px Jost,system-ui,sans-serif; text-decoration:none; box-shadow:0 1px 2px rgba(0,0,0,.05); }
 html.v4 .cp-head .tb-link:hover{ background:#fafaf9; }
 html.v4 .em-body{ padding:20px 24px 24px; gap:16px; }
+/* La base (app.css) topa el modal en 600 px: con la piel v4 (más aire), «Enviar a firma» ya generado
+   —enlace, mensaje y botones— pasaba de 600 y había que hacer scroll para llegar a «Enviar por email»
+   (owner, 28-sep-2026). El modal crece hasta la pantalla menos el margen del velo (24 px por lado). */
+html.v4 .cp-modal{ max-height:calc(100vh - 48px); max-height:calc(100dvh - 48px); }
+html.v4 #fmOverlay .em-body{ gap:10px; padding:16px 24px 20px; }
 html.v4 .em-note{ font:400 13.5px/1.55 Jost,system-ui,sans-serif; color:#57534e; }
 html.v4 .em-body label{ font:700 12px/1.4 Jost,system-ui,sans-serif; letter-spacing:.05em; color:#44403c; gap:6px; }
 html.v4 .em-body input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
