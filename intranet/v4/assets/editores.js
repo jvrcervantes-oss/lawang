@@ -7876,6 +7876,9 @@
       var tiposErp = function () {
         return window.lwDatos('plantillas_contrato_datos').then(function (r) {
           if (r.error || !r.data || !Array.isArray(r.data.tipos)) { console.error('[v4 usuarios] tipos de contrato no leídos', r.error); return null; }
+          /* Sin ningún tipo ACTIVO la lista de casillas sale vacía, y vacío = TODOS: se trata como no leído
+             (code-review 28-sep-2026). */
+          if (!r.data.tipos.some(function (t) { return t.activo; })) { console.error('[v4 usuarios] el catálogo no tiene ningún tipo de contrato activo'); return null; }
           return r.data.tipos;
         });
       };
@@ -7997,7 +8000,7 @@
         /* ERP: si el catálogo no se lee, el alta NO se abre. «Contratos que puede hacer» vacío significa TODOS:
            un formulario sin opciones daría acceso a todo sin que nadie lo decidiera. */
         tiposErp().then(function (t) {
-          if (!t) return aviso('No se ha podido leer el catálogo de tipos de contrato: recarga la pantalla antes de dar de alta a nadie.', '#9E2F26');
+          if (!t) return aviso('No se ha podido leer el catálogo de tipos de contrato, o no tiene ninguno activo: recarga la pantalla (o activa un tipo en Plantillas) antes de dar de alta a nadie.', '#9E2F26');
           abreAlta(opcionesTipos(t));
         });
       });
@@ -8092,7 +8095,7 @@
           } else {
             campos.push({ tipo: 'nota', label: 'No se pudo cargar el catálogo de proyectos: los suyos se conservan tal cual (no se tocan desde aquí hasta que cargue).' });
           }
-          if (!tiposOk) campos.push({ tipo: 'nota', label: 'No se pudo leer el catálogo de tipos de contrato: los que tiene se conservan tal cual (no se tocan desde aquí hasta que cargue).' });
+          if (!tiposOk) campos.push({ tipo: 'nota', label: 'No se pudo leer el catálogo de tipos de contrato, o no tiene ninguno activo: los que tiene se conservan tal cual (no se tocan desde aquí hasta que cargue).' });
           else campos.push(
             { k: 'tipos_contrato', label: 'Contratos que puede hacer', tipo: 'multicheck',
               opciones: tiposCat, valor: u.tipos_contrato || [],
