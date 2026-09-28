@@ -23,7 +23,8 @@ import sys
 
 RAIZ = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 MIGRACIONES = [os.path.join(RAIZ, 'supabase', 'migrations', f) for f in (
-    '20260928120000_law406_envia_firma_con_constancia.sql', '20260928121000_law400_fichas_anexo_auto_servidor.sql')]
+    '20260928120000_law406_envia_firma_con_constancia.sql', '20260928121000_law400_fichas_anexo_auto_servidor.sql',
+    '20260928122000_law406_retira_envio_sin_anexo.sql')]
 
 MONTAJE = r"""
 -- LAW-406: un agente con la herramienta de contratos y un contrato suyo, sin bloquear, sin firma viva ni firmada
@@ -150,9 +151,9 @@ def sql(con_migracion=False, selftest=False):
     # ── LAW-406: lo que queda expuesto ──
     p.append("insert into _t values ('P1 una sola contrato_envia_firma (sin sobrecarga vieja)', "
              "(select count(*) from pg_proc where proname = 'contrato_envia_firma' and pronamespace = 'public'::regnamespace) = 1, '');")
-    p.append("insert into _t values ('P2 permisos: authenticated y service_role si, anon no', "
+    p.append("insert into _t values ('P2 permisos: solo authenticated (ni anon ni service_role, sin llamador)', "
              "has_function_privilege('authenticated', 'public.contrato_envia_firma(uuid,text,text,text,integer,text,jsonb)', 'execute') "
-             "and has_function_privilege('service_role', 'public.contrato_envia_firma(uuid,text,text,text,integer,text,jsonb)', 'execute') "
+             "and not has_function_privilege('service_role', 'public.contrato_envia_firma(uuid,text,text,text,integer,text,jsonb)', 'execute') "
              "and not has_function_privilege('anon', 'public.contrato_envia_firma(uuid,text,text,text,integer,text,jsonb)', 'execute'), '');")
     p.append("insert into _t values ('P3 contrato_envio_sin_anexo retirada (reducir la exposicion)', "
              "to_regprocedure('public.contrato_envio_sin_anexo(uuid,text,jsonb)') is null, '');")
@@ -189,8 +190,15 @@ def sql(con_migracion=False, selftest=False):
     p.append(caso_update('L2 ficha de un doc de OTRO techo: 23514', guarda(ficha(1), ficha(3)), '23514'))
     p.append(caso_update('L3 ficha de un doc NO marcado: 23514', guarda(ficha(4)), '23514'))
     p.append(caso_update('L4 ficha de un doc de OTRO modelo: 23514', guarda(ficha(5)), '23514'))
-    p.append(caso_update('L5 ficha vieja axauto (compatibilidad): ok',
-                         guarda("jsonb_build_object('id', 'axauto', 'auto', 'Prueba', 'title', 'vieja', 'on', true)"), 'ok'))
+    VIEJA = "jsonb_build_object('id', 'axauto', 'auto', 'Prueba', 'title', 'vieja', 'on', %s)"
+    p.append(caso_update('L5 ficha vieja axauto NUEVA (no estaba guardada): 23514', guarda(VIEJA % 'true'), '23514'))
+    # compatibilidad: un contrato real sin bloquear que ya guarda la ficha vieja `axauto`
+    p.append("select set_config('t.v', (select c.id::text from public.contratos c where not coalesce(c.bloqueado, false) "
+             "and not public.contrato_firma_viva(c.id) and c.id <> current_setting('t.a')::uuid "
+             "and jsonb_path_exists(c.datos->'annexes', '$[*] ? (@.id == \"axauto\")') order by pg_column_size(c.datos) limit 1), true);")
+    GUARDA_V = "update public.contratos set datos = jsonb_set(datos, '{annexes}', jsonb_build_array(%s)) where id = current_setting('t.v')::uuid"
+    p.append(caso_update('L5b la ficha vieja que YA estaba guardada (compatibilidad): ok', GUARDA_V % (VIEJA % 'false'), 'ok'))
+    p.append(caso_update('L5c dos fichas viejas: 23514', GUARDA_V % ((VIEJA % 'true') + ', ' + (VIEJA % 'false')), '23514'))
     p.append(caso_update('L6 automatica con un id que no es axauto-<uuid>: 23514',
                          guarda("jsonb_build_object('id', 'axauto-no-es-uuid', 'auto', 'Prueba', 'title', 'x', 'on', true)"), '23514'))
     p.append(caso_update('L7 el mismo documento dos veces: 23514', guarda(ficha(1), ficha(1)), '23514'))
@@ -206,6 +214,9 @@ def sql(con_migracion=False, selftest=False):
     p.append(caso_update('LC guardar la MISMA lista: no cambia, no se juzga, ok', guarda(ficha(1)), 'ok'))
     p.append(caso_update('LD cambiar la lista con la ficha envejecida dentro: 23514', guarda(ficha(1), ficha(2)), '23514'))
     p.append(caso_update('LE la lista re-derivada (sin el desmarcado): ok', guarda(ficha(2)), 'ok'))
+    # dos modelos con el mismo nombre: no se elige uno a ciegas (modelos.nombre no es único)
+    p.append("insert into public.modelos (slug, nombre) values ('zz-prueba-duplicado', (select nombre from public.modelos where id = current_setting('t.m')::uuid));")
+    p.append(caso_update('LF dos modelos con el nombre del contrato: 23514', guarda(ficha(2), ficha(1)), '23514'))
     if selftest:
         p.append("insert into _t values ('ZZ selftest: esto DEBE salir en rojo', 1 = 2, 'si sale verde el arnes esta roto');")
 

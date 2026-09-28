@@ -18,7 +18,12 @@
 --     techo NULL o el techo del contrato (datos.techo.clave; ninguno si el techo es «sintético», como
 --     techoDelAnexo() de documento_anexos.js). La misma regla que docs_contrato.js → entran().
 --   · Compatibilidad: la ficha vieja `axauto` (una sola, sin id de documento; 36 contratos el 28-sep-2026) se
---     acepta tal cual: la pantalla la traduce al abrir y no se puede re-derivar aquí.
+--     acepta SOLO si ya estaba en la lista guardada del contrato (update) y una sola vez: la pantalla actual
+--     nunca la escribe (la traduce a `axauto-<doc>` al abrir), así que una `axauto` NUEVA solo puede venir de
+--     un navegador manipulado y se saltaría las dos comprobaciones (revisión de código, 28-sep).
+--   · El modelo se resuelve por nombre y tiene que ser UNO: `modelos.nombre` no es único (solo el slug) y con
+--     dos modelos del mismo nombre un documento del otro pasaría (revisión de código, 28-sep). Hoy no hay
+--     nombres repetidos; si llega a haberlos, el guardado lo dice en vez de elegir uno a ciegas.
 --   · Un mismo documento no puede aparecer dos veces.
 --   · Se lee `datos->'fields'` y no la columna datos_fields: esa la rellena zz_contrato_datos_fields, que corre
 --     después por orden de nombre, y no se depende del orden de disparo entre triggers (contexto/suite_lawang.md).
@@ -36,8 +41,8 @@
 create or replace function public._contrato_anexos_con_paginas() returns trigger
 language plpgsql security definer set search_path = '' as $$
 declare
-  a jsonb; v_id text; v_doc uuid; v_vistos uuid[] := '{}';
-  v_ctx boolean := false; v_tip text; v_techo text;
+  a jsonb; v_id text; v_doc uuid; v_vistos uuid[] := '{}'; v_vieja boolean := false;
+  v_ctx boolean := false; v_tip text; v_techo text; v_modelo uuid; v_n int;
 begin
   -- Solo juzga a quien CAMBIA la lista de anexos (Datos, consulta de deploy): un update de `datos` que no la toca
   -- —renombrar_proyecto, trg_cliente_actualizado, carta_cobrado_recalcula sobre un contrato ajeno— no se aborta
@@ -50,7 +55,17 @@ begin
     -- ── automática: un documento de Modelos (LAW-400) ──
     if jsonb_typeof(a->'auto') = 'string' and btrim(a->>'auto') <> '' then
       v_id := coalesce(a->>'id', '');
-      continue when v_id = 'axauto';   -- ficha de antes del 27-sep: compatibilidad
+      -- ficha de antes del 27-sep: solo la que ya estaba guardada, y una vez
+      if v_id = 'axauto' then
+        if v_vieja or tg_op <> 'UPDATE' or jsonb_typeof(old.datos->'annexes') is distinct from 'array'
+           or not exists (select 1 from jsonb_array_elements(old.datos->'annexes') o
+                           where jsonb_typeof(o) = 'object' and o->>'id' = 'axauto') then
+          raise exception 'El anexo «%» es de un formato antiguo que ya no se guarda: recarga la página para que se vuelva a calcular.',
+            left(coalesce(a->>'title', v_id), 80) using errcode = '23514';
+        end if;
+        v_vieja := true;
+        continue;
+      end if;
       if v_id !~ '^axauto-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
         raise exception 'El anexo «%» no es un documento de Modelos: recarga la página para que se vuelva a calcular.',
           left(coalesce(a->>'title', v_id, '?'), 80) using errcode = '23514';
@@ -66,12 +81,16 @@ begin
         v_techo := case when jsonb_typeof(new.datos->'techo') = 'object'
                              and (new.datos->'techo'->>'sintetico') is distinct from 'true'
                         then nullif(btrim(coalesce(new.datos->'techo'->>'clave', '')), '') end;
+        select min(m.id::text)::uuid, count(*) into v_modelo, v_n from public.modelos m where lower(btrim(m.nombre)) = v_tip;
         v_ctx := true;
       end if;
-      if v_tip = '' or not exists (
-           select 1 from public.modelo_documentos d join public.modelos m on m.id = d.modelo_id
-            where d.id = v_doc and d.en_contrato and d.tipo <> 'dosier'
-              and lower(btrim(m.nombre)) = v_tip
+      if v_n > 1 then
+        raise exception 'El anexo «%» no se puede comprobar: hay % modelos llamados «%». Avisa a administración.',
+          left(coalesce(a->>'title', v_id), 80), v_n, v_tip using errcode = '23514';
+      end if;
+      if v_modelo is null or not exists (
+           select 1 from public.modelo_documentos d
+            where d.id = v_doc and d.modelo_id = v_modelo and d.en_contrato and d.tipo <> 'dosier'
               and (d.techo_clave is null or d.techo_clave = v_techo)) then
         raise exception 'El anexo «%» no es un documento marcado para el contrato de este modelo y techo (Modelos → Documentos): recarga la página para que se vuelva a calcular.',
           left(coalesce(a->>'title', v_id), 80) using errcode = '23514';
