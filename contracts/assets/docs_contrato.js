@@ -18,16 +18,21 @@
    El servidor guarda la casilla y el orden (supabase/migrations/
    20260927230000_modelo_documentos_en_contrato_dosier.sql); aquí solo se lee.
 
-   LETRA DE APÉNDICE POR TIPO (owner, 28-sep-2026, tras la consulta de Legal): el
-   Art. 3 de la plantilla de Construcción (contracts/templates/ppjb_construccion.html)
-   nombra «Apéndice A – Planos Arquitectónicos», «B – Especificaciones Técnicas»,
-   «C – Brochure». Un contrato que remite al Apéndice B tiene que llevar en la B
-   las especificaciones, no lo que haya quedado segundo en una lista. Por eso la
-   letra la pone el TIPO, nunca el orden de Modelos (que solo ordena dentro de una
-   misma letra) ni el título: plano → A, calidades → B; ficha, render y otro van
-   como INFORMATIVOS, de la D en adelante (ficha D, render E, otro F; la C, brochure,
-   queda para cuando exista ese tipo). Dos documentos con la misma letra en un
-   contrato salen A1, A2…
+   LETRAS DE APÉNDICE (owner y Legal, 28-sep-2026). El contrato de Construcción
+   (contracts/templates/ppjb_construccion.html, Arts. 1, 2, 3, 8 y 15.1) tiene UN solo
+   apéndice vinculante: el A – Planos Arquitectónicos. La prelación es Contrato →
+   Apéndice A; cualquier otro adjunto (memorias de calidades, fichas, renders…) es
+   INFORMATIVO con independencia de su rótulo, y el material comercial queda fuera.
+   Por eso:
+     · plano → Apéndice A (vinculante). Varios planos en un contrato: A1, A2… en el
+       orden de Modelos.
+     · el resto, en este orden de TIPO: calidades → ficha → render → otro, y dentro de
+       cada tipo en el orden de Modelos, con letras CONSECUTIVAS desde la B, sin huecos
+       (B, C, D…), todos marcados «(informativo)». La letra de uno informativo depende
+       de cuántos van delante en ESE contrato; lo que no cambia es el orden por tipo.
+     · el dosier, nunca.
+   El orden de Modelos nunca cambia el tipo de un documento ni lo pasa por delante de
+   otro tipo: solo ordena dentro del mismo tipo. El título editable, tampoco.
 
    Los TIPOS van aquí también: son los del CHECK de la tabla, y
    docs_contrato.test.js compara esta lista con la migración, la edge
@@ -36,14 +41,15 @@
   var TIPOS = [['plano', 'Plano'], ['calidades', 'Memoria de calidades'], ['ficha', 'Ficha'],
                ['render', 'Render'], ['dosier', 'Dosier'], ['otro', 'Otro']];
 
-  var LETRA = { plano: 'A', calidades: 'B', ficha: 'D', render: 'E', otro: 'F' };
-  var INFORMATIVO = { ficha: 1, render: 1, otro: 1 };
-  /* Títulos trilingües del apéndice (Legal, 28-sep-2026). A y B, los de la plantilla
-     tal cual. ID de ficha y render: PENDIENTE DE REVISIÓN DE TRADUCTOR (marcadas
-     con `revisar`); las de A y B son las mismas palabras que ya firma la plantilla. */
+  // Orden de los tipos en el contrato. Solo el plano es vinculante (Apéndice A).
+  var ORDEN_TIPOS = ['plano', 'calidades', 'ficha', 'render', 'otro'];
+  var INFORMATIVO = { calidades: 1, ficha: 1, render: 1, otro: 1 };
+  function grupo(tipo) { var i = ORDEN_TIPOS.indexOf(tipo); return i < 0 ? 99 : i; }
+  /* Títulos trilingües (Legal, 28-sep-2026). El del plano, el de la plantilla tal cual.
+     ID de calidades, ficha y render: PENDIENTE DE REVISIÓN DE TRADUCTOR (`revisar`). */
   var TITULO = {
     plano: { es: 'Planos Arquitectónicos', en: 'Architectural Drawings', id: 'Gambar Arsitektur' },
-    calidades: { es: 'Especificaciones Técnicas', en: 'Technical Specifications', id: 'Spesifikasi Teknis' },
+    calidades: { es: 'Memoria de calidades', en: 'Quality Specifications', id: 'Spesifikasi Mutu', revisar: 'id' },
     ficha: { es: 'Ficha de la vivienda', en: 'Home Fact Sheet', id: 'Lembar Data Rumah', revisar: 'id' },
     render: { es: 'Renders', en: 'Renderings', id: 'Gambar Render', revisar: 'id' }
   };
@@ -66,7 +72,7 @@
   function entran(docs, techo) {
     techo = techo || '';
     return ordena((docs || []).filter(function (d) {
-      return d && d.en_contrato === true && d.tipo !== 'dosier' && LETRA[d.tipo]
+      return d && d.en_contrato === true && d.tipo !== 'dosier' && grupo(d.tipo) < 99
         && (!d.techo_clave || d.techo_clave === techo);
     }));
   }
@@ -78,21 +84,22 @@
     if (INFORMATIVO[d.tipo]) { base.es += MARCA_INFORMATIVO.es; base.en += MARCA_INFORMATIVO.en; base.id += MARCA_INFORMATIVO.id; }
     return base;
   }
-  /* Los apéndices de un contrato con ese techo: ordenados por LETRA y, dentro, por el
-     orden de Modelos. Cada uno con su letra final (A, o A1/A2 si comparten) y su
-     rótulo trilingüe. */
+  /* Los apéndices de un contrato con ese techo, ya con su letra y su rótulo trilingüe:
+     los planos, A (A1, A2… si hay varios); el resto, B, C, D… consecutivas, por tipo
+     (calidades, ficha, render, otro) y, dentro de cada tipo, por el orden de Modelos. */
   function apendices(docs, techo) {
-    var l = entran(docs, techo).map(function (d, i) { return { d: d, i: i, base: LETRA[d.tipo] }; });
-    l.sort(function (a, b) { return a.base < b.base ? -1 : a.base > b.base ? 1 : a.i - b.i; });
-    var cuenta = {}; l.forEach(function (x) { cuenta[x.base] = (cuenta[x.base] || 0) + 1; });
-    var visto = {};
+    var l = entran(docs, techo).map(function (d, i) { return { d: d, i: i, g: grupo(d.tipo) }; });
+    l.sort(function (a, b) { return (a.g - b.g) || (a.i - b.i); });
+    var planos = l.filter(function (x) { return x.d.tipo === 'plano'; }).length;
+    var np = 0, siguiente = 'B'.charCodeAt(0);
     return l.map(function (x) {
-      visto[x.base] = (visto[x.base] || 0) + 1;
-      var letra = x.base + (cuenta[x.base] > 1 ? String(visto[x.base]) : '');
+      var letra;
+      if (x.d.tipo === 'plano') letra = 'A' + (planos > 1 ? String(++np) : '');
+      else letra = String.fromCharCode(siguiente++);
       return { doc: x.d, letra: letra, informativo: !!INFORMATIVO[x.d.tipo], titulo: titulo(x.d),
                rotulo: { es: PALABRA.es + ' ' + letra, en: PALABRA.en + ' ' + letra, id: PALABRA.id + ' ' + letra } };
     });
   }
-  g.lwDocsContrato = { TIPOS: TIPOS, LETRA: LETRA, etiqueta: etiqueta, ordena: ordena, entran: entran,
+  g.lwDocsContrato = { TIPOS: TIPOS, ORDEN_TIPOS: ORDEN_TIPOS, grupo: grupo, etiqueta: etiqueta, ordena: ordena, entran: entran,
                        titulo: titulo, apendices: apendices };
 })(typeof window !== 'undefined' ? window : globalThis);

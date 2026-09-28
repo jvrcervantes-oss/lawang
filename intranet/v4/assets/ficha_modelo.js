@@ -620,13 +620,17 @@
      desactiva lo que el servidor va a rechazar, para no dejar pedirlo. */
   var SOLO_ADMIN = 'Solo administración decide qué va en el contrato';
   var DOSIER_NO = 'El dosier es comercial: no va en el contrato';
-  /* Letra por tipo (owner, 28-sep-2026, Art. 3 de la plantilla): la dice docs_contrato.js. */
-  var TXT_CONTRATO = 'Estos documentos se adjuntan al contrato de Construcción como apéndices. La letra la pone el tipo, '
-    + 'como en el Art. 3 del contrato: Plano → Apéndice A, Memoria de calidades → Apéndice B; ficha, render y otros van como '
-    + 'informativos (D en adelante). El orden de esta lista solo decide el orden dentro de una misma letra. Cada uno entra '
-    + 'solo si su techo coincide con el del contrato; los de «Todos los techos» entran siempre. El dosier nunca va en el contrato.';
-  function letraDe(tipo) { var R = reglaDocs(); return (R && R.LETRA[tipo]) || '?'; }
-  /* Marcados en el orden en que salen en el contrato: por letra y, dentro, por el orden de Modelos. */
+  /* Letras (owner y Legal, 28-sep-2026; las calcula docs_contrato.js): el plano es el único apéndice que el
+     contrato cita y obliga (Apéndice A); lo demás va detrás, B, C, D… por tipo, como informativo. */
+  var TXT_CONTRATO = 'Estos documentos se adjuntan al contrato de Construcción. El plano es el Apéndice A: el único que el '
+    + 'contrato cita y que obliga. Todo lo demás va detrás como informativo (Apéndice B, C, D…), en este orden de tipo: '
+    + 'memoria de calidades, ficha, render, otros. El orden de esta lista solo decide el orden dentro de un mismo tipo. '
+    + 'Cada uno entra solo si su techo coincide con el del contrato; los de «Todos los techos» entran siempre. '
+    + 'El dosier nunca va en el contrato.';
+  // clave de grupo (ordenable): el tipo en el orden del contrato. Las flechas solo mueven dentro del mismo.
+  function letraDe(tipo) { var R = reglaDocs(); return R ? ('0' + R.grupo(tipo)).slice(-2) : '99'; }
+  function rotuloDe(tipo) { return tipo === 'plano' ? 'Apéndice A' : 'Informativo'; }
+  /* Marcados en el orden en que salen en el contrato: por tipo y, dentro, por el orden de Modelos. */
   function porLetra(lista, tipoDe) {
     return lista.map(function (x, i) { return { x: x, i: i }; }).sort(function (a, b) {
       var la = letraDe(tipoDe(a.x)), lb = letraDe(tipoDe(b.x));
@@ -670,7 +674,7 @@
     var z = document.createElement('span'); z.setAttribute('data-lw', 'doc-meta');
     z.style.cssText = 'font-size:12px;color:' + C.apagado;
     var partes = [];
-    if (letra) partes.push('Apéndice ' + letra + ' · ' + tipoLbl(d.tipo));
+    if (letra) partes.push(letra + ' · ' + tipoLbl(d.tipo));
     if (h.techos.length) partes.push('Techo: ' + nomTecho(h, d.techo_clave));
     partes.push('subido ' + ctx.fFecha(d.subido_en));
     if (d.visible_portal) partes.push('Lo ve el cliente');
@@ -706,7 +710,7 @@
     if (!s.marcados.length) nota(caja, 'Este modelo no tiene nada marcado para el contrato: el contrato de Construcción saldrá sin anexo.', 'ambar');
     else {
       if (h.techos.length) resumenContrato(caja, h, h.docs);
-      porLetra(s.marcados, function (d) { return d.tipo; }).forEach(function (d) { caja.appendChild(filaDoc(h, d, ctx, letraDe(d.tipo))); });
+      porLetra(s.marcados, function (d) { return d.tipo; }).forEach(function (d) { caja.appendChild(filaDoc(h, d, ctx, rotuloDe(d.tipo))); });
     }
 
     subtitulo(caja, 'Dosier');
@@ -844,7 +848,7 @@
       var dup = planosRepetidos(st);
       if (dup) nota(resumen, dup, 'rojo');
       ms.forEach(function (r, i) {
-        r.n.textContent = 'Apéndice ' + letraDe(r.tipo) + ' · ' + (r.d.nombre || 'Documento');
+        r.n.textContent = rotuloDe(r.tipo) + ' · ' + (r.d.nombre || 'Documento');
         secC.appendChild(r.el);
       });
       filas.forEach(function (r) {

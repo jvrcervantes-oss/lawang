@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="ec4039f52422">
+<meta name="lw-version" content="51d599dc7941">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -40,7 +40,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=62435855"></script>
+<script src="/contracts/assets/i18n.js?v=2293b3ac"></script>
 <script src="/contracts/assets/herramientas.js?v=c95db503"></script>
 <script src="assets/avisos.js?v=389df6b9" defer></script><script src="assets/topbar.js?v=705d408d" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -83,8 +83,8 @@
      bloque de abajo, y hay constantes que se calculan al cargar. El orden es
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
 <script src="assets/documento_diseno.js?v=f8448509"></script>
-<script src="assets/docs_contrato.js?v=c61b6bdd"></script>
-<script src="assets/documento_anexos.js?v=e23435d5"></script>
+<script src="assets/docs_contrato.js?v=73e7152b"></script>
+<script src="assets/documento_anexos.js?v=9d313b54"></script>
 <script src="assets/parcela_inventario.js?v=f70c3cac"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
@@ -6395,17 +6395,22 @@ $('#fmGen').addEventListener('click', async ()=>{
   /* «Enviar igualmente» deja CONSTANCIA (owner, 28-sep-2026): quién, cuándo y qué faltaba, en el historial
      del contrato. La escribe el servidor (ficheros-contrato → contrato_envio_sin_anexo) antes de enviar. */
   let sinAnexo = null;
-  if(tipSel && (autoMal || !ANNEXES.some(a=>a.auto && a.on && a.pages && a.pages.length))){
+  /* El contrato de Construcción CITA el Apéndice A – Planos (Legal, 28-sep-2026: es el único apéndice
+     vinculante). Sin él se puede enviar igualmente (owner, 28-sep), pero se dice en llano y queda constancia. */
+  const conAutos = ANNEXES.some(a=>a.auto && a.on && a.pages && a.pages.length);
+  const sinApendiceA = !ANNEXES.some(a=>a.auto && a.on && a.tipo === 'plano' && a.pages && a.pages.length);
+  if(tipSel && (autoMal || sinApendiceA)){
     const seguir = await lwConfirmar({
-      titulo: lwT(autoMal ? 'Falta un documento del contrato' : 'Sin anexo del modelo'),
+      titulo: lwT(autoMal ? 'Falta un documento del contrato' : 'Sin Apéndice A (planos)'),
       cuerpo: autoMal
         ? '<p>' + escAttr(AUTO_AVISO.texto) + '</p>'
-        : '<p>' + lwT('Este contrato de Construcción sale sin ningún documento del modelo como anexo (planos, especificaciones), y la plantilla remite a ellos.') + '</p>'
-          + '<p class="em-note">' + lwT('Si debe llevarlos, pídeselo a administración (Modelos → Documentos → Editar, casilla «Se incluye automáticamente en el contrato») o actívalos en Anexos.') + '</p>',
+        : '<p>' + lwT('Este contrato cita el Apéndice A – Planos Arquitectónicos y no lo lleva.') + '</p>'
+          + '<p class="em-note">' + lwT('Si el modelo tiene plano, pídele a administración que lo marque (Modelos → Documentos → Editar, casilla «Se incluye automáticamente en el contrato», con su techo), o actívalo en Anexos si está apagado.') + '</p>',
       confirmar: lwT('Enviar igualmente'), cancelar: lwT('Cancelar') });
     if(!seguir) return;
     sinAnexo = autoMal ? { motivo:'fallo', faltan:(AUTO_AVISO.faltan || [AUTO_AVISO.texto]).slice(0, 20) }
-                       : { motivo:'ninguno', faltan:[] };
+             : conAutos ? { motivo:'sin_apendice_a', faltan:['Apéndice A – Planos Arquitectónicos'] }
+             : { motivo:'ninguno', faltan:[] };
   }
   const btn=$('#fmGen'); btn.disabled=true; btn.textContent='Generando…';
   const ROL = FIRMA_NEXT.rol;
@@ -6531,6 +6536,7 @@ function regDetalleEvt(d){
   if(d.colgado_de) t.push('de ' + esc(d.colgado_de));
   if(d.via) t.push(esc(d.via));
   if(d.motivo === 'ninguno') t.push('el modelo no tenía nada marcado para el contrato');
+  if(d.motivo === 'sin_apendice_a') t.push('salió sin el Apéndice A (planos), que el contrato cita');
   if(d.motivo === 'fallo') t.push('faltaba: ' + (Array.isArray(d.faltan) && d.faltan.length ? d.faltan.map(esc).join('; ') : '—'));
   return t.join(' · ');
 }

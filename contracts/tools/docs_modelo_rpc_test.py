@@ -257,6 +257,8 @@ select 'B2 backfill: marcados = planos, y nada que no sea plano', bool_and(en_co
                   "exists (select 1 from public.contrato_eventos e where e.contrato_id = current_setting('t.c')::uuid "
                   "and e.evento = 'envio_sin_anexo_confirmado' and e.quien = 'agente@prueba' and e.detalle->>'motivo' = 'fallo' "
                   "and e.detalle->'faltan'->>0 = 'Apendice A bx/b')"))
+    p.append(caso('E4 motivo sin_apendice_a (salieron informativos pero no el plano que el contrato cita): ok',
+                  "public.contrato_envio_sin_anexo(current_setting('t.c')::uuid, 'x', '{\"motivo\": \"sin_apendice_a\"}'::jsonb)", 'ok'))
     p.append(caso('E2 motivo que no existe: 22023', "public.contrato_envio_sin_anexo(current_setting('t.c')::uuid, 'x', '{\"motivo\": \"otro\"}'::jsonb)", '22023'))
     p.append(caso('E3 lista de lo que falta con algo que no es texto: 22023',
                   "public.contrato_envio_sin_anexo(current_setting('t.c')::uuid, 'x', '{\"motivo\": \"fallo\", \"faltan\": [1]}'::jsonb)", '22023'))

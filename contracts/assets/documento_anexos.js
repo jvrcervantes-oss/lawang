@@ -553,8 +553,9 @@ function fichaGuardadaDe(guardados, d, docs, techo){
 /* Título del anexo en la portada del contrato. El plano conserva el de siempre
    (los contratos que ya lo llevan no cambian de texto); el nombre del techo solo
    va si el documento ES de ese techo. */
-/* LETRA Y TÍTULO (owner, 28-sep-2026): cada documento sale como «Apéndice <letra de su
-   tipo>» con su título en los tres idiomas (docs_contrato.js → apendices()). El nombre
+/* LETRA Y TÍTULO (owner y Legal, 28-sep-2026): cada documento sale como «Apéndice <letra>»
+   (el plano A; el resto B, C… informativos, por tipo) con su título en los tres idiomas
+   (docs_contrato.js → apendices()). El nombre
    del modelo y, si el documento es de un techo, el del techo, van detrás. `title` es la
    versión en español, para el panel de Anexos y el bot; el documento imprime `nombres`. */
 function nombresAuto(ap, tip){
@@ -858,9 +859,9 @@ function annexHTML(){
   // Trilingüe, no L(): el rótulo del anexo es parte del documento y el bahasa
   // tiene que salir siempre, igual que en el resto del contrato.
   const lbl=(n)=>`<span data-lang="es">Anexo ${n}</span><span data-lang="en">Annex ${n}</span><span data-lang="id">Lampiran ${n}</span>`;
-  /* Los automáticos salen con la LETRA DE APÉNDICE de su tipo y el título en los tres idiomas
-     (owner, 28-sep-2026: el Art. 3 remite a «Apéndice A – Planos», «B – Especificaciones»). El título
-     editable a mano no cambia la letra. Los subidos a mano siguen como «Anexo 1, 2…», numerados entre ellos. */
+  /* Los automáticos salen como «Apéndice <letra>» con el título en los tres idiomas (owner y Legal,
+     28-sep-2026): el plano es el Apéndice A, el único que el contrato cita; el resto, B, C… informativos,
+     por tipo (docs_contrato.js). El título editable a mano no cambia la letra. Los subidos a mano siguen como «Anexo 1, 2…», numerados entre ellos. */
   const lblAp=(l)=>`<span data-lang="es">Apéndice ${escAttr(l)}</span><span data-lang="en">Appendix ${escAttr(l)}</span><span data-lang="id">Lampiran ${escAttr(l)}</span>`;
   const nomAp=(a)=>a.nombres ? `<span data-lang="es">${escAttr(a.nombres.es)}</span><span data-lang="en">${escAttr(a.nombres.en)}</span><span data-lang="id">${escAttr(a.nombres.id)}</span>` : escAttr(a.title);
   let nManual = 0;

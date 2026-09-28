@@ -11,9 +11,9 @@
 --   · Tipo nuevo 'dosier' (el PDF comercial del modelo), con su propia sección en la pantalla. El dosier NUNCA
 --     va en el contrato (owner, 28-sep-2026): la casilla no se puede marcar en un dosier, y un documento marcado
 --     no se puede retipar a dosier. Lo rechazan _modelo_documento_aplica y modelo_documento_registra.
---   · En el contrato cada documento sale con la LETRA DE APÉNDICE DE SU TIPO (plano A, calidades B; ficha,
---     render y otro, informativos, D en adelante), no con un número: eso vive en el navegador
---     (contracts/assets/docs_contrato.js). `orden` solo ordena dentro de una misma letra.
+--   · En el contrato el plano sale como Apéndice A (el único vinculante, Legal 28-sep-2026) y el resto como
+--     apéndices informativos B, C, D… por tipo (calidades, ficha, render, otro): eso vive en el navegador
+--     (contracts/assets/docs_contrato.js). `orden` solo ordena dentro de un mismo tipo.
 --
 -- QUIÉN LO DECIDE: solo administración (es_admin()). La regla vive en las RPC SECURITY DEFINER, que son el
 -- único camino de escritura de la tabla (no hay policy de escritura: se quitó en 20260927123000). Se exige
@@ -311,7 +311,9 @@ begin
   end if;
   if jsonb_typeof(p_detalle) is distinct from 'object' then raise exception 'Detalle no válido' using errcode = '22023'; end if;
   v_motivo := p_detalle->>'motivo';
-  if v_motivo is null or v_motivo not in ('ninguno', 'fallo') then raise exception 'Motivo no válido' using errcode = '22023'; end if;
+  -- ninguno: no salió ningún documento del modelo; sin_apendice_a: salieron informativos pero no el plano que el contrato
+  -- cita (el único apéndice vinculante, Legal 28-sep); fallo: uno marcado no se pudo adjuntar
+  if v_motivo is null or v_motivo not in ('ninguno', 'sin_apendice_a', 'fallo') then raise exception 'Motivo no válido' using errcode = '22023'; end if;
   if p_detalle ? 'faltan' then
     if jsonb_typeof(p_detalle->'faltan') is distinct from 'array' or jsonb_array_length(p_detalle->'faltan') > 20 then
       raise exception 'Lista de lo que falta no válida' using errcode = '22023';

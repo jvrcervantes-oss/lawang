@@ -4600,7 +4600,7 @@
         // el dosier nunca va en el contrato (owner, 28-sep-2026): la casilla solo sale para «Otro documento»
         if (admin) campos.push({ k: 'en_contrato', label: 'Se incluye automáticamente en el contrato', tipo: 'check', valor: false,
           visibleSi: { k: 'seccion', valores: ['otro'] },
-          ayuda: 'Sale como el apéndice de su tipo (Plano → A, Memoria de calidades → B; el resto, informativo). Dentro de su letra entra el último; el orden se cambia en Documentos → Editar.' });
+          ayuda: 'El plano sale como Apéndice A (el que cita el contrato); el resto, como apéndice informativo detrás. Dentro de su tipo entra el último; el orden se cambia en Documentos → Editar.' });
         campos.push({ k: 'file', label: 'Fichero', tipo: 'file', req: 1, accept: 'application/pdf,image/jpeg,image/png,image/webp',
           ayuda: 'PDF o imagen, hasta 50 MB. Nace privado.' + (admin ? '' : ' Qué documentos van en el contrato lo decide administración.') });
         modal('Añadir documento · ' + m.nombre, campos, 'Subir', function (v) {

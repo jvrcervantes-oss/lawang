@@ -165,22 +165,22 @@ function montar(o) {
   m = montar({ planos: [...PLANOS, FICHA, CALIDADES, SIN_MARCAR, DOSIER], techo: 'sirap' });
   await m.lee('syncAutoAnnex()');
   assert.deepStrictEqual(ids(), ['axauto-d-sirap', 'axauto-d-cal', 'axauto-d-ficha'],
-    'por LETRA (A plano, B calidades, D ficha) aunque calidades tenga orden 0; bambú, el no marcado y el dosier fuera');
+    'por tipo (A plano, B calidades, C ficha) aunque calidades tenga orden 0; bambú, el no marcado y el dosier fuera');
   assert.deepStrictEqual(m.pedidos, ['dali-id/sirap.pdf', 'dali-id/cal.pdf', 'dali-id/ficha.pdf']);
   const titulos = JSON.parse(JSON.stringify(m.ctx.ANNEXES.filter(a => a.auto).map(a => a.title)));
-  assert.deepStrictEqual(titulos, ['Apéndice A — Planos Arquitectónicos · Dali · Sirap Ulin', 'Apéndice B — Especificaciones Técnicas · Dali',
-    'Apéndice D — Ficha de la vivienda (informativo) · Dali'], 'la letra la pone el tipo; el techo solo en el documento que ES de ese techo');
+  assert.deepStrictEqual(titulos, ['Apéndice A — Planos Arquitectónicos · Dali · Sirap Ulin', 'Apéndice B — Memoria de calidades (informativo) · Dali',
+    'Apéndice C — Ficha de la vivienda (informativo) · Dali'], 'A el plano; el resto consecutivo e informativo; el techo solo en el documento que ES de ese techo');
   assert.deepStrictEqual(JJ(m.ctx.ANNEXES.find(a => a.id === 'axauto-d-cal').nombres),
-    { es: 'Especificaciones Técnicas · Dali', en: 'Technical Specifications · Dali', id: 'Spesifikasi Teknis · Dali' }, 'títulos trilingües');
+    { es: 'Memoria de calidades (informativo) · Dali', en: 'Quality Specifications (for information) · Dali', id: 'Spesifikasi Mutu (informatif) · Dali' }, 'títulos trilingües');
   assert.ok(m.toasts.some(t => /Anexos de Dali adjuntados: 3 documentos \(6 pág\.\)/.test(t)), JSON.stringify(m.toasts));
   const shas = m.ctx.ANNEXES.filter(a => a.auto).map(a => a.sha);
   assert.strictEqual(new Set(shas).size, 3, 'cada documento con SU huella');
 
-  // 14b. Dos de la misma letra: B1/B2 en el orden de Modelos; empate de orden → subido_en, después id.
+  // 14b. Dos del mismo tipo: B y C en el orden de Modelos; empate de orden → subido_en, después id.
   m = montar({ planos: [{ ...CALIDADES, orden: 1 }, { ...CALIDADES, id: 'd-cal2', path: 'dali-id/cal2.pdf', orden: 1, subido_en: '2026-08-01' }], techo: 'sirap' });
   await m.lee('syncAutoAnnex()');
   assert.deepStrictEqual(ids(), ['axauto-d-cal2', 'axauto-d-cal']);
-  assert.deepStrictEqual(JJ(m.ctx.ANNEXES.filter(a => a.auto).map(a => a.letra)), ['B1', 'B2']);
+  assert.deepStrictEqual(JJ(m.ctx.ANNEXES.filter(a => a.auto).map(a => a.letra)), ['B', 'C']);
 
   // 14c. Sin techo elegido: solo los de «todos los techos».
   m = montar({ planos: [...PLANOS, FICHA], techo: null });
@@ -201,7 +201,7 @@ function montar(o) {
   const caido = m.ctx.ANNEXES.find(a => a.id === 'axauto-d-ficha');
   assert.ok(caido.pages.length === 0 && caido.on === false && caido.sha === 'viejo', 'la ficha del que falla sobrevive sin páginas: ' + JSON.stringify(caido));
   assert.strictEqual(m.lee('AUTO_AVISO.mal'), true);
-  assert.match(m.lee('AUTO_AVISO.texto'), /Un documento marcado para el contrato no se ha podido adjuntar: Apéndice D «DALI FICHA\.pdf»/);
+  assert.match(m.lee('AUTO_AVISO.texto'), /Un documento marcado para el contrato no se ha podido adjuntar: Apéndice C «DALI FICHA\.pdf»/);
   assert.strictEqual(m.lee('AUTO_AVISO.faltan.length'), 1, 'lo que falta viaja aparte: es lo que se apunta en el historial al «Enviar igualmente»');
 
   // 16. COMPATIBILIDAD: un contrato de antes guarda UNA ficha `axauto` (el plano del techo). Se traduce a la del
@@ -248,7 +248,8 @@ function montar(o) {
   assert.ok(m.toasts.some(t => /no tiene documentos marcados/.test(t)));
   m = montar({ planos: [{ ...PLANOS[1], orden: 9 }, { ...CALIDADES, orden: 0 }, { ...FICHA, orden: -1 }], techo: 'sirap' });
   await m.lee('syncAutoAnnex()');
-  assert.deepStrictEqual(JJ(m.ctx.ANNEXES.filter(a => a.auto).map(a => a.letra)), ['A', 'B', 'D'], 'el orden solo ordena dentro de una letra');
+  assert.deepStrictEqual(JJ(m.ctx.ANNEXES.filter(a => a.auto).map(a => [a.tipo, a.letra])), [['plano', 'A'], ['calidades', 'B'], ['ficha', 'C']],
+    'el orden de Modelos (ficha -1, calidades 0, plano 9) nunca adelanta a otro tipo: solo ordena dentro del mismo');
   //     plano del techo + plano de «Todos los techos»: los dos son A → A1, A2 (en su orden de Modelos)
   m = montar({ planos: [PLANOS[1], { ...PLANOS[0], id: 'd-gen', techo_clave: null, orden: 0 }], techo: 'sirap' });
   await m.lee('syncAutoAnnex()');
@@ -261,7 +262,7 @@ function montar(o) {
   const html = m.lee('annexHTML()');
   assert.match(html, /<span data-lang="es">Apéndice A<\/span><span data-lang="en">Appendix A<\/span><span data-lang="id">Lampiran A<\/span>/);
   assert.match(html, /<span data-lang="es">Planos Arquitectónicos · Dali · Sirap Ulin<\/span><span data-lang="en">Architectural Drawings · Dali · Sirap Ulin<\/span><span data-lang="id">Gambar Arsitektur · Dali · Sirap Ulin<\/span>/);
-  assert.match(html, /Apéndice B<\/span>[\s\S]*Especificaciones Técnicas · Dali/);
+  assert.match(html, /Apéndice B<\/span>[\s\S]*Memoria de calidades \(informativo\) · Dali/);
   assert.match(html, /<span data-lang="es">Anexo 1<\/span>[\s\S]*Plano firmado por el cliente/, 'el subido a mano sigue numerado, y es el 1 (no el 3)');
   assert.ok(html.indexOf('Apéndice A') < html.indexOf('Apéndice B'));
   //     el título editado a mano no cambia la letra

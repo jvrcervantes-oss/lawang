@@ -67,25 +67,32 @@ assert.strictEqual(R.etiqueta('plano'), 'Plano', 'ya no es «Plano · anexo del 
 // 5. El dosier NUNCA entra (owner, 28-sep-2026), aunque llegue marcado.
 assert.deepStrictEqual(ids(R.entran([D('d', { tipo: 'dosier' }), D('p', { tipo: 'plano' })], '')), ['p']);
 
-// 6. Letra por TIPO (Art. 3 de la plantilla: A planos, B especificaciones; informativos de la D en adelante).
-assert.deepStrictEqual(J(R.LETRA), { plano: 'A', calidades: 'B', ficha: 'D', render: 'E', otro: 'F' });
+// 6. Letras de apéndice (owner y Legal, 28-sep-2026): el plano es el ÚNICO vinculante (Apéndice A); el resto,
+//    consecutivo B, C, D… por tipo (calidades → ficha → render → otro), todo informativo.
+assert.deepStrictEqual(J(R.ORDEN_TIPOS), ['plano', 'calidades', 'ficha', 'render', 'otro']);
 const plantilla = lee('contracts/templates/ppjb_construccion.html');
-assert.ok(/Apéndice A – Planos Arquitectónicos/.test(plantilla) && /Apéndice B – Especificaciones Técnicas/.test(plantilla),
-  'la plantilla sigue llamando A a los planos y B a las especificaciones: si cambia, cambian las letras aquí');
-assert.ok(/Apéndice B – Especificaciones Técnicas\. El CONSTRUCTOR/.test(plantilla) || /en el Apéndice B – Especificaciones Técnicas/.test(plantilla),
-  'Art. 6 remite al Apéndice B (Legal, 28-sep)');
+assert.ok(/Apéndice A – Planos Arquitectónicos/.test(plantilla) && /Appendix A – Architectural Drawings/.test(plantilla),
+  'la plantilla sigue llamando A a los planos: si cambia, cambian las letras aquí');
+assert.ok(!/Apéndice B|Appendix B|Lampiran B/.test(plantilla),
+  'la plantilla ya no tiene Apéndice B (owner, 28-sep): si vuelve, la B deja de ser informativa y esto hay que revisarlo');
 const ap = R.apendices([
   D('f', { tipo: 'ficha', orden: -5 }), D('c1', { tipo: 'calidades', orden: 2 }), D('p', { tipo: 'plano', orden: 9, techo_clave: 'sirap' }),
   D('c2', { tipo: 'calidades', orden: 1 }), D('o', { tipo: 'otro', nombre: 'Condiciones generales.pdf' }), D('x', { tipo: 'dosier' }),
+  D('r', { tipo: 'render', orden: 0 }),
 ], 'sirap');
-assert.deepStrictEqual(J(ap.map((a) => [a.doc.id, a.letra])), [['p', 'A'], ['c2', 'B1'], ['c1', 'B2'], ['f', 'D'], ['o', 'F']],
-  'por letra; dentro de la letra, por el orden de Modelos (B1/B2); el orden nunca cambia la letra');
+assert.deepStrictEqual(J(ap.map((a) => [a.doc.id, a.letra])), [['p', 'A'], ['c2', 'B'], ['c1', 'C'], ['f', 'D'], ['r', 'E'], ['o', 'F']],
+  'A el plano; luego consecutivas por tipo y, dentro del tipo, por el orden de Modelos (el orden nunca adelanta a otro tipo)');
+assert.deepStrictEqual(J(ap.map((a) => a.informativo)), [false, true, true, true, true, true], 'todo lo que no es plano es informativo');
 assert.deepStrictEqual(J(ap[0].rotulo), { es: 'Apéndice A', en: 'Appendix A', id: 'Lampiran A' });
 assert.deepStrictEqual(J(ap[0].titulo), { es: 'Planos Arquitectónicos', en: 'Architectural Drawings', id: 'Gambar Arsitektur' });
-assert.deepStrictEqual(J(ap[1].titulo), { es: 'Especificaciones Técnicas', en: 'Technical Specifications', id: 'Spesifikasi Teknis' });
-assert.strictEqual(ap[3].informativo, true);
-assert.deepStrictEqual(J(ap[4].titulo), { es: 'Condiciones generales (informativo)', en: 'Condiciones generales (for information)', id: 'Condiciones generales (informatif)' },
+assert.deepStrictEqual(J(ap[1].titulo), { es: 'Memoria de calidades (informativo)', en: 'Quality Specifications (for information)', id: 'Spesifikasi Mutu (informatif)' });
+assert.deepStrictEqual(J(ap[5].titulo), { es: 'Condiciones generales (informativo)', en: 'Condiciones generales (for information)', id: 'Condiciones generales (informatif)' },
   'otro: el nombre del fichero + informativo en los tres idiomas');
 assert.ok(!ap.some((a) => a.doc.tipo === 'dosier'));
+// sin huecos: sin calidades, la ficha es la B
+assert.deepStrictEqual(J(R.apendices([D('f', { tipo: 'ficha' }), D('p', { tipo: 'plano' })], '').map((a) => a.letra)), ['A', 'B']);
+// varios planos: A1, A2 por orden de Modelos, y lo informativo sigue en B
+assert.deepStrictEqual(J(R.apendices([D('p2', { tipo: 'plano', orden: 2 }), D('p1', { tipo: 'plano', orden: 1 }), D('c', { tipo: 'calidades' })], '')
+  .map((a) => [a.doc.id, a.letra])), [['p1', 'A1'], ['p2', 'A2'], ['c', 'B']]);
 
 console.log('docs_contrato.test.js OK');

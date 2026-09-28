@@ -16,7 +16,7 @@
 //   justificante_url {ext}            → {path, token}  subida de un justificante de cobro
 //   snapshot_url     {contrato_id}    → {path, token}  documento a firmar (solo si nadie firmó aún)
 //   envia_firma      {contrato_id, nombre, email, rol, orden, sin_anexo?} → {link, anulados}
-//                    sin_anexo = {motivo: 'ninguno'|'fallo', faltan: [texto]}: el agente confirmó «Enviar
+//                    sin_anexo = {motivo: 'ninguno'|'sin_apendice_a'|'fallo', faltan: [texto]}: el agente confirmó «Enviar
 //                    igualmente» sin un documento del modelo; se apunta en contrato_eventos ANTES de enviar
 //                    (28-sep-2026, owner) y, si no se puede apuntar, no se envía.
 //   pdf_manual_url   {contrato_id}    → {path, token}  PDF firmado a mano
