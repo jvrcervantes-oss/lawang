@@ -4479,14 +4479,15 @@
         window.LW_V4.documentos = DOCUMENTOS_CAJON;
         /* Quién ve editar/borrar en cada fila (S11.1): editar pide
            puede('documentacion') (misma llave que el alta), borrar pide
-           es_super_admin() — la policy DELETE de `documentos_proyecto` es más
-           estricta que la de UPDATE. Pintarlo mal no abre un agujero (RLS
+           es_admin() en `documento_proyecto_borra` (antes super admin; owner
+           28-sep-2026). Pintarlo mal no abre un agujero (RLS
            sigue mandando), pero un botón que va a fallar SIEMPRE por permiso
            es peor que no pintarlo: parece un fallo del sistema, no un límite
            de rol. */
         var fichaDoc = window.LW_V4.ficha;
         var puedeEditarDoc = !!fichaDoc && (fichaDoc.rol === 'super_admin' || (fichaDoc.herramientas || []).indexOf('documentacion') !== -1);
-        var puedeBorrarDoc = !!window.LW_V4.esSuperAdmin;
+        // borrar: admin o super admin (owner 28-sep-2026); lo decide documento_proyecto_borra en la base
+        var puedeBorrarDoc = !!window.LW_V4.esSuperAdmin || (!!fichaDoc && fichaDoc.rol === 'admin');
         var pintaAccionesDoc = function (f) {
           var be = f.querySelector('[data-doc-editar]'), bb = f.querySelector('[data-doc-borrar]');
           if (be) be.classList.toggle('hidden', !puedeEditarDoc);

@@ -5559,9 +5559,9 @@
           });
         }
 
-        /* Borrar (S11.1): la policy DELETE de `documentos_proyecto` exige
-           `es_super_admin()` — más estricta que editar (`puede('documentacion')`
-           a secas). datos.js ya esconde el botón para quien no lo es
+        /* Borrar (S11.1): lo decide `documento_proyecto_borra` — admin o super
+           admin (hasta el 28-sep-2026 solo super admin), más estricto que editar
+           (`puede('documentacion')` a secas). datos.js ya esconde el botón para quien no lo es
            (pintaAccionesDoc); este chequeo es el cinturón, no el gate real —
            si RLS deniega, `unaFila` lo dice, nunca un "borrado" mentiroso. */
         function borraDocumento(d2, etiquetaTipo) {
@@ -5573,7 +5573,7 @@
             });
           }).then(function (ok) {
             if (!ok) return;
-            // Por el servidor (27-sep): la edge comprueba el permiso (super admin) y quita fichero y ficha juntos.
+            // Por el servidor (27-sep): la edge comprueba el permiso (admin, desde el 28-sep) y quita fichero y ficha juntos.
             window.lwFichero(sb, 'documento_proyecto', 'borra', { id: d2.id }).then(function () {
               aviso('Borrado'); location.reload();
             }, function (e) { aviso('No se pudo borrar: ' + ((e && e.message) || e), '#ba1a1a'); });
