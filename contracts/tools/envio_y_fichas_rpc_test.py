@@ -101,7 +101,7 @@ select set_config('t.c', x.id::text, true), set_config('t.m', x.mid::text, true)
            and u.activo and u.rol = 'agente' and 'contratos' = any(u.herramientas)
            and not public.contrato_firma_viva(c.id)
            and not exists (select 1 from public.contrato_firmas f where f.contrato_id = c.id and f.estado = 'firmado')
-           and (select count(*) from public.modelos m2 where lower(btrim(m2.nombre)) = lower(btrim(m.nombre))) = 1
+           and m.activo and (select count(*) from public.modelos m2 where lower(btrim(m2.nombre)) = lower(btrim(m.nombre)) and m2.activo) = 1
          order by c.created_at desc limit 1) x;
 -- el modelo, SOLO con los documentos de prueba (mueren en el rollback): se desmarcan los reales, y asi cabe un
 -- plano marcado sin techo (indice modelo_documentos_un_plano_en_contrato)
@@ -336,6 +336,13 @@ def bloque_c(p):
     p.append(caso('S7 lista repetida en la declaracion: sin duplicados',
                   envia_c("jsonb_build_object('motivo', 'fallo', 'faltan', jsonb_build_array('x', 'x'))"), 'ok',
                   "%(d)s->'faltan' = jsonb_build_array('x')" % {'d': DET}, SIN))
+    # un modelo RETIRADO con el mismo nombre no cuenta (el catalogo de la pantalla solo mira los activos)
+    p.append('reset role;')
+    p.append("insert into public.modelos (slug, nombre, activo) values ('zz-prueba-retirado', "
+             "(select nombre from public.modelos where id = current_setting('t.m')::uuid), false);")
+    prepara_c(p, [ficha_c(1), ficha_c(2)])
+    p.append(caso('SC un modelo retirado con el mismo nombre: se resuelve el activo, todo va, SIN constancia', envia_c(), 'ok',
+                  '%s is null' % DET, SIN))
     # el modelo sin nada marcado para el contrato
     p.append('reset role;')
     p.append("update public.modelo_documentos set en_contrato = false where modelo_id = current_setting('t.m')::uuid;")

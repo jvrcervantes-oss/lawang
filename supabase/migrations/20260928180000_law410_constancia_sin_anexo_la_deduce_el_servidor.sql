@@ -11,7 +11,7 @@
 --     que el trigger _contrato_anexos_con_paginas (hoy: tipo construccion y cc00014_timon). Los demás contratos
 --     no llevan documentos del modelo: no se deduce nada.
 --   · Esperados = la regla de docs_contrato.js → entran() y del trigger de LAW-400 (20260928121000): documentos
---     del modelo (resuelto por nombre, UNO) con en_contrato, tipo en plano|calidades|ficha|render|otro (nunca el
+--     del modelo (resuelto por nombre entre los ACTIVOS, UNO) con en_contrato, tipo en plano|calidades|ficha|render|otro (nunca el
 --     dosier), path no vacío (el `d.path` de documentosDelContrato) y techo NULL o el del contrato (ninguno si el
 --     techo es «sintético»).
 --   · Presentes = los esperados con ficha `axauto-<id>` en datos.annexes y `on` distinto de false (ausente =
@@ -116,7 +116,9 @@ begin
   if v_tip is not null then
     v_techo := case when jsonb_typeof(v_techo_j) = 'object' and (v_techo_j->>'sintetico') is distinct from 'true'
                     then nullif(btrim(coalesce(v_techo_j->>'clave', '')), '') end;
-    select min(m.id::text)::uuid, count(*) into v_modelo, v_n from public.modelos m where lower(btrim(m.nombre)) = v_tip;
+    -- solo modelos ACTIVOS, como el catálogo de la pantalla (modelos_catalogo.js, `.eq('activo', true)`): un modelo
+    -- retirado con el mismo nombre no puede convertir cada envío en un «modelo repetido» (code-review 28-sep).
+    select min(m.id::text)::uuid, count(*) into v_modelo, v_n from public.modelos m where lower(btrim(m.nombre)) = v_tip and m.activo;
     if v_n <> 1 then
       v_smotivo := 'ninguno';
       v_nota := case when v_n = 0 then 'modelo_no_encontrado' else 'modelo_repetido' end;
