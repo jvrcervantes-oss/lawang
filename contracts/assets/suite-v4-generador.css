@@ -261,12 +261,12 @@ html.v4 .cp-modal .btn{ justify-content:center; text-align:center; border-radius
 html.v4 .cp-modal .btn.primary{ background:#104C4F; border-color:#104C4F; color:#fff; letter-spacing:.025em; }
 html.v4 .cp-modal .btn.primary:hover:not(:disabled){ background:#0B3638; }
 
-/* ── FORMA DE PAGO: paso 1 del Contrato de Construcción — 28-sep-2026, owner ──
-   «Que sea el primer paso, que quede claro que está ahí.» Tres tarjetas en vez
-   de un desplegable perdido en «Calendario de pagos». Radios de verdad, escondidos
-   pero enfocables: el teclado y el lector de pantalla siguen funcionando.
-   Un solo acento (laguna) para lo elegido, sin sombras, como el resto de la v4. */
-html.v4 .section.forma-pago{ border-color:var(--v4-lagoon); }
+/* ── FORMA DE PAGO del Contrato de Construcción — 28-sep-2026, owner ─────────
+   Lo primero del bloque «Calendario de pagos», encima de la tabla que decide:
+   tres tarjetas en vez de un desplegable. Radios de verdad, escondidos pero
+   enfocables: el teclado y el lector de pantalla siguen funcionando. Un solo
+   acento (laguna) para lo elegido, sin sombras, como el resto de la v4. */
+html.v4 .fp-bloque{ margin:0 0 18px; padding-bottom:18px; border-bottom:1px solid var(--v4-borde); }
 html.v4 .fp-intro{ margin:0 0 12px; font-size:14px; line-height:1.5; color:var(--v4-ink-2); }
 html.v4 .fp-opciones{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; }
 html.v4 .fp-op{
@@ -301,13 +301,6 @@ html.v4 .fp-aviso{
   color:var(--v4-ambar); background:var(--v4-ambar-bg);
 }
 html.v4 .fp-descuento{ margin:10px 0 0; font-size:12px; color:var(--v4-outline); }
-/* en «Calendario de pagos»: solo el recordatorio de lo elegido */
-html.v4 .fp-resumen{
-  display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin:0 0 12px; padding:10px 12px;
-  border-radius:8px; background:var(--v4-surface-low); font-size:13px; color:var(--v4-ink-2);
-}
-html.v4 .fp-resumen b{ color:var(--v4-ink); font-weight:600; }
-html.v4 .fp-resumen .link-btn{ margin-left:auto; }
 @media screen and (max-width:720px){
   html.v4 .fp-opciones{ grid-template-columns:1fr; }
   html.v4 .fp-op{ padding:12px 14px 14px; }

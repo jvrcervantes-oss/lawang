@@ -160,7 +160,7 @@ function cambiaCalendario(cal){
   HITOS = pre; CALENDARIO = cal;
   // Quien cambia con las flechas sigue en el grupo: el repintado rehace los radios y se llevaba el foco
   const conFoco = document.activeElement && document.activeElement.name === 'formaPago';
-  refreshHitos();   // repinta también el paso 1
+  refreshHitos();   // repinta también las tarjetas
   if(conFoco){ const r = document.querySelector('input[name="formaPago"]:checked'); if(r) r.focus(); }
   if(typeof recalcularMontosHitos === 'function') recalcularMontosHitos();
   if(typeof updateSaveButton === 'function') updateSaveButton();
@@ -175,21 +175,19 @@ function calendarioPasaAManual(){
   refreshFormaPago();
 }
 
-/* FORMA DE PAGO = PASO 1 DEL CONTRATO DE CONSTRUCCIÓN (28-sep-2026, owner: «que
-   sea el primer paso, que quede claro que está ahí»). Hasta hoy era un
-   desplegable dentro de «Calendario de pagos», a media página: se podía
-   redactar el contrato entero sin verlo. Ahora es la primera sección del
-   formulario, con tres tarjetas que dicen cómo se reparte el pago y cuándo
-   vence cada uno — la decisión que cambia la tabla de pagos y la cláusula del
-   Art. 5, a la vista antes que nada. Radios de verdad (teclado y lector de
-   pantalla), pintados como tarjetas. */
+/* FORMA DE PAGO: LO PRIMERO DEL BLOQUE «CALENDARIO DE PAGOS» (28-sep-2026, owner:
+   «que quede claro que está ahí»; esa misma tarde, «es lo primero en su bloque,
+   antes de los hitos, pero no arriba»). Tres tarjetas que dicen cómo se reparte
+   el pago y cuándo vence cada uno, justo encima de la tabla que deciden, en vez
+   de un desplegable. Radios de verdad (teclado y lector de pantalla), pintados
+   como tarjetas. */
 function formaPagoCerrada(){
   return (typeof LOCKED !== 'undefined' && LOCKED)
     || (typeof EN_FIRMA !== 'undefined' && (EN_FIRMA.vivas + EN_FIRMA.firmadas) > 0);
 }
 const FORMAS_PAGO = [
   { cal:'estandar', ico:'stacked_bar_chart',
-    tit:{es:'Por hitos',en:'By milestones',id:'Per tahap'},
+    tit:{es:'Estándar',en:'Standard',id:'Standar'},
     rep:{es:'5 pagos · 25/25/25/20/5 %',en:'5 payments · 25/25/25/20/5 %',id:'5 pembayaran · 25/25/25/20/5 %'},
     cuando:()=>({es:'Cada pago vence 14 días después de que la obra entre en su fase.',en:'Each payment falls due 14 days after the works enter its phase.',id:'Setiap pembayaran jatuh tempo 14 hari setelah pekerjaan memasuki fasenya.'}) },
   { cal:'unico_firma', ico:'event',
@@ -247,17 +245,6 @@ function refreshFormaPago(){
   if(b.getAttribute('data-firma') === f) return;
   b.innerHTML = formaPagoBodyHTML();
   b.setAttribute('data-firma', f);
-}
-
-/* Dentro de «Calendario de pagos» ya no se elige: se recuerda qué forma de pago
-   hay y se lleva de vuelta al paso 1 para cambiarla. */
-function calendarioResumenHTML(){
-  const f = FORMAS_PAGO.find(x => x.cal === CALENDARIO);
-  const nombre = f ? L(f.tit)
-    : CALENDARIO === 'manual' ? L({es:'A medida (administración)',en:'Custom (admin)',id:'Khusus (admin)'})
-    : L({es:'Calendario anterior, a mano',en:'Earlier schedule, by hand',id:'Jadwal lama, manual'});
-  return `<p class="fp-resumen"><span>${esc(L({es:'Forma de pago',en:'Payment method',id:'Cara pembayaran'}))}:</span> <b>${esc(nombre)}</b>
-    <button type="button" class="link-btn" data-ir-forma-pago>${esc(L({es:'Cambiar en el paso 1',en:'Change in step 1',id:'Ubah di langkah 1'}))}</button></p>`;
 }
 
 /* La celda de vencimiento de cada hito, según el calendario (28-sep-2026):
@@ -365,7 +352,7 @@ function hitosBodyHTML(){
   // asumen lo contrario) y updateSaveButton() lo esconde en cuanto el rol
   // resulta ser admin/super_admin.
   const avisoAdmin = haiFijo
-    ? `<p class="mini" data-hito-admin-aviso>${L({es:'Añadir o quitar pagos, o cambiar su % o su concepto, es cosa de administración (admin o super administrador). Para otro reparto, elige otra forma de pago en el paso 1.',en:'Adding or removing payments, or changing their % or wording, is an admin/super-admin action. For a different split, choose another payment method in step 1.',id:'Menambah/menghapus pembayaran atau mengubah % dan teksnya hanya untuk admin/super admin. Untuk pembagian lain, pilih cara pembayaran lain di langkah 1.'})}</p>`
+    ? `<p class="mini" data-hito-admin-aviso>${L({es:'Añadir o quitar pagos, o cambiar su % o su concepto, es cosa de administración (admin o super administrador). Para otro reparto, elige otra forma de pago arriba.',en:'Adding or removing payments, or changing their % or wording, is an admin/super-admin action. For a different split, choose another payment method above.',id:'Menambah/menghapus pembayaran atau mengubah % dan teksnya hanya untuk admin/super admin. Untuk pembagian lain, pilih cara pembayaran lain di atas.'})}</p>`
     : '';
   /* Abono de la Carta de Reserva — se enseña aquí, y no solo en el toast del
      guardado, porque un toast se desvanece en segundos y esto tiene que
@@ -393,7 +380,7 @@ function hitosBodyHTML(){
         id:`Sisa ${cc.carta_cobrado_sobrante} yang dibayarkan pada Surat tidak dapat diserap oleh Perjanjian ini (harganya lebih rendah) — tentukan secara manual apa yang harus dilakukan dengan sisa tersebut.`
       })) : ''}
   </p>` : '';
-  return `${esConstruccion ? calendarioResumenHTML() : ''}<div class="hitos-tabla-wrap"><table class="hitos-tabla"><thead><tr>
+  return `<div class="hitos-tabla-wrap"><table class="hitos-tabla"><thead><tr>
       <th>%</th>
       <th>${L({es:'Cantidad',en:'Amount',id:'Jumlah'})}</th>
       <th>${L({es:'Vencimiento',en:'Due date',id:'Jatuh tempo'})}</th>
@@ -405,10 +392,10 @@ function hitosBodyHTML(){
     <span style="font-size:12px;color:${Math.round(total)===100?'var(--muted)':'var(--be)'}">Σ ${total}%</span>
   </div>${avisoAdmin}${avisoCartaCobrado}`;
 }
-/* Repinta también el paso 1 (forma de pago): abrir un contrato guardado, derivarlo, guardarlo o cambiar de
+/* Repinta también las tarjetas de forma de pago (solo si cambia lo que enseñan): abrir un contrato guardado, derivarlo, guardarlo o cambiar de
    idioma cambian CALENDARIO/LOCKED y todos pasan por aquí. Sin esto las tarjetas se quedaban con la forma de
    pago del borrador por defecto (revisor de código, 28-sep). */
-function refreshHitos(){ const b=$('[data-sec="pagos"] .body'); if(b) b.innerHTML=hitosBodyHTML(); refreshFormaPago(); }
+function refreshHitos(){ const b=$('[data-sec="pagos"] .hitos-body'); if(b) b.innerHTML=hitosBodyHTML(); refreshFormaPago(); }
 
 /* Cantidad de cada hito "calculado" — ver la nota grande de arriba. Se
    recalcula en dos momentos: cuando `precio_total` cambia (enganchado en

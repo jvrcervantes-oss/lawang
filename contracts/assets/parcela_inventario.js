@@ -734,22 +734,19 @@ function buildForm(){
   // un rótulo por tier la PRIMERA vez que aparece: con FORM_ORDER los tiers ya
   // no son contiguos y comparar solo con el anterior repetía el mismo rótulo.
   const seenTiers = new Set(); let idx=0;
-  /* Paso 1 del Contrato de Construcción (28-sep-2026, owner): la forma de pago va la PRIMERA, antes que
-     cualquier dato, porque decide la tabla de pagos y la cláusula del Art. 5 (hitos_fechas.js →
-     formaPagoBodyHTML). Solo si la plantilla trae calendario de pagos. */
-  if(CONTRACT_TIPO[CURRENT.slug] === 'construccion' && SECTIONS.some(s => s.special === 'hitos')){
-    idx++;
-    html += `<section class="section forma-pago" data-sec="forma_pago">
-      <header data-acc><span class="num">${idx}</span><h2>${L({es:'Forma de pago',en:'Payment method',id:'Cara pembayaran'})}</h2><span class="chev">▾</span></header>
-      <div class="body" id="formaPagoBox" data-firma="${escAttr(firmaFormaPago())}">${formaPagoBodyHTML()}</div></section>`;
-  }
   SECTIONS.forEach(s=>{
     idx++;
     if(!seenTiers.has(s.tier)){ html += `<div class="tier-label ${seenTiers.size?'':'first'}">${L(TIERS[s.tier]||{es:s.tier})}</div>`; seenTiers.add(s.tier); }
     if(s.special==='hitos'){
+      /* Forma de pago (28-sep-2026, owner): lo PRIMERO del bloque «Calendario de pagos», antes de la tabla —
+         decide la tabla y la cláusula del Art. 5 (hitos_fechas.js → formaPagoBodyHTML). Va en su propio
+         contenedor, hermano del de la tabla: refreshHitos() repinta solo `.hitos-body`, y las tarjetas se
+         repintan aparte y solo si cambia lo que enseñan (refreshFormaPago). */
+      const formaPago = CONTRACT_TIPO[CURRENT.slug] === 'construccion'
+        ? `<div class="fp-bloque" id="formaPagoBox" data-firma="${escAttr(firmaFormaPago())}">${formaPagoBodyHTML()}</div>` : '';
       html += `<section class="section" data-sec="pagos" data-tier="${s.tier}">
         <header data-acc><span class="num">${idx}</span><h2>${L(s.title)}</h2><span class="chev">▾</span></header>
-        <div class="body">${hitosBodyHTML()}</div></section>`;
+        <div class="body">${formaPago}<div class="hitos-body">${hitosBodyHTML()}</div></div></section>`;
       return;
     }
     const optional = s.optional ? `<div class="opt-toggle">${L({es:'añadir',en:'add',id:'tambah'})}<label class="switch"><input type="checkbox" data-opt="${s.id}"><span class="slider"></span></label></div>` : '';
@@ -810,13 +807,6 @@ function buildForm(){
       // refreshHitos() la vuelve a pintar cerrada la próxima vez que repinte
       // la sección entera (al añadir/quitar un hito), que es aceptable: no es
       // un dato, es solo qué se ve en este instante.
-      // «Cambiar en el paso 1» (28-sep-2026): de la tabla de pagos a las tarjetas de forma de pago
-      if(e.target.closest('[data-ir-forma-pago]')){
-        const sec = document.querySelector('[data-sec="forma_pago"]');
-        if(sec){ sec.classList.remove('collapsed'); sec.scrollIntoView({behavior:'smooth', block:'start'});
-          const r = sec.querySelector('input[name="formaPago"]:checked') || sec.querySelector('input[name="formaPago"]'); if(r) r.focus({preventScroll:true}); }
-        return;
-      }
       const masBtn = e.target.closest('[data-hmas]');
       if(masBtn){
         const fila = document.getElementById('hito-mas-' + masBtn.dataset.hmas);
