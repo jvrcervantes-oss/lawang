@@ -216,7 +216,7 @@
       return r.json().catch(function () { return { ok: false, error: 'Respuesta inválida del servidor' }; });
     }).then(function (d) {
       // `.clave` = el código crudo del servidor: la pantalla decide por él, nunca por el texto traducido
-      if (!d.ok) { var e = new Error(FICH_ERR[d.error] || d.error || 'error del servidor'); e.code = d.code; e.clave = d.error; e.aplicado = d.aplicado; throw e; }
+      if (!d.ok) { var e = new Error(FICH_ERR[d.error] || d.error || 'error del servidor'); e.code = d.code; e.clave = d.error; e.aplicado = d.aplicado; e.quedan = d.quedan; throw e; }
       return d;
     });
   });

@@ -137,7 +137,7 @@
                    'style="width:104px;height:78px;object-fit:cover;border-radius:var(--r-p);border:1px solid var(--linea);flex:none">'
               : '<div class="mini" role="img" aria-label="' + T('Sin imagen') + '" ' +
                    'style="width:104px;height:78px;display:flex;align-items:center;justify-content:center;text-align:center;border-radius:var(--r-p);border:1px dashed var(--linea);flex:none">' +
-                   (FALLO_URLS ? T('Sin dirección') : T('Falta el fichero')) + '</div>') +
+                   (FALLO_URLS ? T('Imagen no disponible') : T('Falta el fichero')) + '</div>') +
             '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">' +
               '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
                 (esModelo

@@ -196,7 +196,9 @@ const CLASES: Record<string, Clase> = {
   },
   deck_foto: {
     bucket: 'deck',
-    todos: ['deck', 'deck-privado'],
+    // orden de borrado: PRIMERO el privado y después el público — si el deck se abre justo mientras se borra, lo
+    // último que se quita es la copia pública (revisión de Seguridad, 28-sep: nunca un objeto público sin fila)
+    todos: ['deck-privado', 'deck'],
     // El MISMO cálculo que hace deck_foto_registra (y el reconciliador): nunca una copia de la regla aquí.
     bucketDe: async (body) => {
       const { data, error } = await admin.rpc('deck_bucket_debido', { p_ambito: String(body.ambito ?? ''), p_ref: String(body.ref_id ?? '') });

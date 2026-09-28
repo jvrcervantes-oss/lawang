@@ -5997,11 +5997,34 @@
           var cfg = (rs[0] && rs[0].data) || {};
           var activo = !!((rs[1] && rs[1].count) || 0);
           var modelosDelProyecto = (rs[2] && rs[2].data) || [];
-          pintaInvestorDeck(p, cfg, activo, modelosDelProyecto);
+          return fotosDelDeck(p, activo).then(function (fotos) {
+            pintaInvestorDeck(p, cfg, activo, modelosDelProyecto, fotos);
+          });
         }, function (e) { aviso('No se pudo abrir el Investor Deck: ' + (e && e.message || e), '#ba1a1a'); });
       });
 
-      function pintaInvestorDeck(p, cfg, activo, modelosDelProyecto) {
+      /* ¿Están las fotos donde manda el flag? (AXW-66, 28-sep-2026). Lo mide el SERVIDOR: la acción `urls` devuelve
+         URL pública si la foto está en `deck` y firmada si está en `deck-privado`. Deck activo con alguna firmada, o
+         inactivo con alguna pública = «a medias» (un cambio que no terminó): se ve al abrir, también tras recargar.
+         Si no se puede mirar, se dice — nunca se pinta como «todo en su sitio». */
+      function fotosDelDeck(p, activo) {
+        if (typeof window.lwFotoUrls !== 'function') return Promise.resolve({ error: 'falta guard.js actualizado: recarga la página' });
+        return sb.from('deck_fotos').select('id').eq('proyecto_id', p.id).then(function (r) {
+          if (r.error) throw r.error;
+          var ids = (r.data || []).map(function (f) { return f.id; });
+          if (!ids.length) return { mal: 0, total: 0 };
+          return window.lwFotoUrls(sb, ids).then(function (u) {
+            var mal = ids.filter(function (id) {
+              var url = u.urls[id];
+              if (!url) return false;                              // sin fichero: es otro problema, no de bucket
+              return /\/object\/public\//.test(url) !== activo;
+            }).length;
+            return { mal: mal, total: ids.length };
+          });
+        }).then(null, function (e) { return { error: (e && e.message) || String(e) }; });
+      }
+
+      function pintaInvestorDeck(p, cfg, activo, modelosDelProyecto, fotos) {
         var tituloEn = (cfg.titulo && cfg.titulo.en) || '';
         var metaEn = (cfg.meta_desc && cfg.meta_desc.en) || '';
         var destacadoId = cfg.modelo_destacado_id || '';
@@ -6021,12 +6044,11 @@
             modelosDelProyecto.map(function (m) { return '<option value="' + esc(m.modelo_id) + '"' + (destacadoId === m.modelo_id ? ' selected' : '') + '>' + esc(m.modelo) + '</option>'; }).join('') +
             '</select>') +
           '<p style="margin:0;font-size:12px;color:' + CAJ.apagado + '">KPIs de cabecera y plano interactivo de parcelas no se editan aquí todavía — sin ellos, esas secciones simplemente no aparecen en la página pública (nunca placeholders).</p>' +
-          '<div style="background:' + CAJ.banda + ';border:1px solid ' + CAJ.borde + ';border-radius:12px;padding:12px 14px;font-size:13px;color:' + CAJ.tinta + '">' +
-            '<b>Estado: </b>' + (activo
-              ? 'el deck está <b style="color:#3F5230">ACTIVO</b> — todas las unidades de este proyecto son visibles en la página pública.'
-              : 'el deck está <b style="color:#9E2F26">INACTIVO</b> — nada de este proyecto es visible en la página pública.') +
+          '<div id="id-estado-deck" style="background:' + CAJ.banda + ';border:1px solid ' + CAJ.borde + ';border-radius:12px;padding:12px 14px;font-size:13px;color:' + CAJ.tinta + '">' +
+            estadoDeckHtml(activo, fotos) +
           '</div>';
 
+        var enMedias = !!(fotos && fotos.mal > 0);
         var puedeActivar = esAdminP && (activo || !!tituloEn);
 
         var c = cajon({
@@ -6034,7 +6056,8 @@
           cuerpo: cuerpo,
           acciones: [
             { texto: 'Guardar', tono: 'primario', disabled: !esAdminP, onClick: guardarDeckConfig },
-            { texto: activo ? 'Desactivar deck' : 'Activar deck', tono: activo ? '' : 'primario',
+            { texto: enMedias ? textoReintento(activo) : (activo ? 'Desactivar deck' : 'Activar deck'),
+              tono: enMedias ? 'peligro' : (activo ? '' : 'primario'),
               disabled: !puedeActivar, title: (!activo && !tituloEn) ? 'Guarda un título primero' : '',
               onClick: toggleInvestorDeck },
             { texto: 'Cerrar', cerrar: true }
@@ -6073,7 +6096,8 @@
            pero alguna foto quedó mal puesta (deck_a_medias), pulsar otra vez
            NO debe invertirlo: el botón pasa a «Reintentar» y repite el MISMO
            sentido (la acción es idempotente). Sin `aplicado` = no aplicado. */
-        var reintento = null;
+        // Si al abrir ya está a medias, el botón repite el sentido del flag actual (no lo invierte).
+        var reintento = enMedias ? activo : null;
         function toggleInvestorDeck(ev) {
           var nuevoEstado = reintento !== null ? reintento : !activo;
           var btn = ev && ev.currentTarget;
@@ -6108,8 +6132,11 @@
               if (btn) { btn.disabled = false; btn.removeAttribute('aria-busy'); }
               var clave = e && e.clave;
               if (e && e.aplicado === true) {
-                reintento = nuevoEstado;
-                if (btn) btn.textContent = 'Reintentar';
+                // el flag YA cambió: el recuadro y el botón pasan a «a medias», no al estado de antes
+                reintento = nuevoEstado; activo = nuevoEstado;
+                var est = document.getElementById('id-estado-deck');
+                if (est) est.innerHTML = estadoDeckHtml(nuevoEstado, { mal: e.quedan || null });
+                if (btn) { btn.className = 'las-btn2 lwc-peligro'; btn.textContent = textoReintento(nuevoEstado); }
                 return aviso('El deck YA está ' + (nuevoEstado ? 'activado' : 'desactivado') + ', pero el cambio ha quedado A MEDIAS: alguna foto no está donde toca. Pulsa «Reintentar»: repite lo mismo y es seguro.', '#ba1a1a');
               }
               if (clave === 'cambio_en_curso') return aviso('Ya hay un cambio en curso en el deck de este proyecto: espera un minuto y vuelve a abrirlo.', '#8A6A34');
@@ -6117,6 +6144,23 @@
             });
           });
         }
+      }
+
+      function textoReintento(activo) { return activo ? 'Reintentar: activar deck' : 'Reintentar: desactivar deck'; }
+      // Recuadro de estado del Investor Deck: el flag y, aparte, si sus fotos están donde el flag manda.
+      function estadoDeckHtml(activo, fotos) {
+        var base = '<b>Estado: </b>' + (activo
+          ? 'el deck está <b style="color:#3F5230">ACTIVO</b> — todas las unidades de este proyecto son visibles en la página pública.'
+          : 'el deck está <b style="color:#9E2F26">INACTIVO</b> — nada de este proyecto es visible en la página pública.');
+        if (fotos && fotos.error) {
+          return base + '<br><span style="color:#8A6A34">No he podido comprobar dónde están sus fotos (' + esc(fotos.error) + ').</span>';
+        }
+        if (fotos && fotos.mal !== 0) {
+          return base + '<br><b style="color:#ba1a1a">A MEDIAS:</b> ' + (fotos.mal ? fotos.mal + ' foto(s)' : 'alguna foto') +
+            (activo ? ' siguen en el archivo privado y no se ven en el deck.' : ' siguen siendo públicas.') +
+            ' Pulsa «' + textoReintento(activo) + '»: repite el cambio y es seguro.';
+        }
+        return base;
       }
 
       /* Nuevo proyecto (11-sep-2026): mismo alcance que altaProyecto() en
