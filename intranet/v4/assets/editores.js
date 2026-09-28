@@ -6450,6 +6450,28 @@
               { tipo: 'custom', render: function (d) { d.style.cssText = 'display:none;grid-column:1/-1'; d.id = 'aviso-estado-u'; } }
             );
           }
+          /* Socio de la parcela (28-sep-2026, owner): solo admin y solo si el cajón ya trajo los socios de ESTE
+             proyecto (datos.js, socios_parcelas). Es otro dato con otro dueño: no viaja en unidad_guarda, va
+             por unidad_socio_asigna al guardar y solo si cambió. La base lo exige admin igual. */
+          var SOC = window.LW_V4 && window.LW_V4.socios;
+          var socioInicial = '';
+          if (SOC && window.LW_V4.esAdmin && window.LW_V4.proyecto && SOC.proyectoId === window.LW_V4.proyecto.id &&
+              u.proyecto === window.LW_V4.proyecto.nombre) {
+            socioInicial = (SOC.porUnidad[u.id] && SOC.porUnidad[u.id].socio_id) || '';
+            campos.push({ k: 'socio_id', label: 'Socio', tipo: 'select', valor: socioInicial,
+              /* Un socio de baja solo se ofrece si ES el de esta parcela: sin su opción, el <select> caería en
+                 «— sin socio —» y guardar cualquier otro campo borraría la asignación (revisor, 28-sep). Asignarlo
+                 a otra parcela no se puede: unidad_socio_asigna exige socio activo. */
+              opciones: [['', '— sin socio —']].concat(SOC.lista.filter(function (s) {
+                return s.activo !== false || s.id === socioInicial;
+              }).map(function (s) {
+                return [s.id, s.nombre + (s.tipo === 'arquitecto' ? ' · arquitecto' : '') + ' · ' + s.numero +
+                  (s.activo === false ? ' · de baja' : '')];
+              })),
+              ayuda: 'A qué socio corresponde esta parcela en el reparto interno. Solo lo ven los administradores; no es el propietario legal del suelo.' });
+          } else {
+            SOC = null;
+          }
           campos.push({ k: 'notas', label: 'Notas', tipo: 'textarea', valor: n0(u.notas) });
 
           /* El bloque de SOLO LECTURA que corona el panel. Es de solo lectura a
@@ -6539,6 +6561,14 @@
               }
               if (!r.data || !r.data.length) {
                 return { error: { message: 'tu usuario no puede guardar esta parcela. La policy de unidades pide la herramienta «unidades» y que el proyecto esté entre los tuyos.' } };
+              }
+              // Socio: después de guardar la parcela y solo si cambió. Si falla, la parcela ya está guardada: se dice.
+              if (SOC && 'socio_id' in v && (v.socio_id || '') !== socioInicial) {
+                return sb.rpc('unidad_socio_asigna', { p_unidad: u.id, p_socio: v.socio_id || null, p_nota: null }).then(function (r2) {
+                  return r2.error
+                    ? { error: { message: 'la parcela se guardó, pero el socio no: ' + (r2.error.message || r2.error) } }
+                    : r;
+                });
               }
               return r;
             });

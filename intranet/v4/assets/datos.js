@@ -4700,8 +4700,37 @@
               // de un vistazo qué agente hizo el contrato de cada unidad). Sin
               // ficha en `usuarios` (cuentas legacy) se enseña el email a secas.
               pon('u-agente', u.contrato_creado_por ? (EQUIPO_NOMBRE[u.contrato_creado_por] || u.contrato_creado_por) : '—', f);
+              f.setAttribute('data-unidad-id', u.id);
               caja.appendChild(f);
             });
+            /* Socio de cada parcela (28-sep-2026, owner: «identificar al dueño de cada parcela»). SOLO admin: el
+               reparto entre socios es interno y la base lo cierra a todo lo demás (socios_parcelas da 42501 a
+               quien no es admin; tablas sin grants — migración 20260928013142). Por eso ni se pide si la ficha
+               no es admin: sería un aviso de fallo seguro. Un proyecto sin socios dados de alta no pinta nada.
+               «Sin socio» es un dato (la parcela no está en el reparto), no un hueco: se dice. */
+            window.LW_V4.socios = null;
+            if (window.LW_V4.esAdmin && elegido.id) {
+              q(sb.rpc('socios_parcelas', { p_proyecto_id: elegido.id }), 'socios de ' + elegido.nombre).then(function (s) {
+                if (!s || !(s.socios || []).length) return;
+                // Se abrió otro proyecto mientras llegaba la respuesta: no pintar socios ajenos.
+                if (!window.LW_V4.proyecto || window.LW_V4.proyecto.id !== elegido.id) return;
+                var porId = {}, porUnidad = {};
+                s.socios.forEach(function (x) { porId[x.id] = x; });
+                (s.asignaciones || []).forEach(function (a) { porUnidad[a.unidad_id] = a; });
+                window.LW_V4.socios = { lista: s.socios, porId: porId, porUnidad: porUnidad, proyectoId: elegido.id };
+                Array.prototype.forEach.call(caja.children, function (f) {
+                  var el = f.querySelector && f.querySelector('[data-lw="u-socio"]');
+                  if (!el) return;
+                  var a = porUnidad[f.getAttribute('data-unidad-id')], so = a && porId[a.socio_id];
+                  // Un socio dado de baja con parcelas sigue siendo su socio: se dice «de baja», nunca «Sin socio».
+                  el.textContent = so ? (so.tipo === 'arquitecto' ? 'Arquitecto: ' : 'Socio: ') + so.nombre +
+                    (so.activo === false ? ' (de baja)' : '') : 'Sin socio';
+                  el.style.color = so ? '#104C4F' : '#8A8474';
+                  el.style.fontWeight = so ? '600' : '500';
+                  el.classList.remove('hidden');
+                });
+              });
+            }
             // S10.5: cambiar de proyecto reinicia el filtro/orden — si no, el
             // texto buscado en el proyecto anterior dejaría el nuevo con la
             // rejilla vacía en silencio, sin que nadie entienda por qué.
@@ -5132,7 +5161,7 @@
         if (!caja || !buscador || !orden) return;
         var textoDeFila = function (f) {
           var t = function (k) { var e = f.querySelector('[data-lw="' + k + '"]'); return e ? e.textContent : ''; };
-          return (t('u-codigo') + ' ' + t('u-tipo') + ' ' + t('u-comprador-link') + ' ' + t('u-contrato-link') + ' ' + t('u-agente')).toLowerCase();
+          return (t('u-codigo') + ' ' + t('u-tipo') + ' ' + t('u-comprador-link') + ' ' + t('u-contrato-link') + ' ' + t('u-agente') + ' ' + t('u-socio')).toLowerCase();
         };
         /* Chips de estado del cajón (27-sep-2026, owner: ver las disponibles o
            reservadas DENTRO del proyecto). Se cuentan de las filas pintadas —
