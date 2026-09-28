@@ -29,6 +29,9 @@
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
     });
   }
+  /* Puente al diccionario (28-sep-2026, LAW-407): el marco del cajón («Cerrar») pasa por lwT.
+     Dentro del IIFE: un `lwT` propio pisaría el global de i18n.js. */
+  function edT(s, h) { return window.lwT ? window.lwT(s, h) : s; }
   /* Filas SIN casilla dentro de un `multicheck` (27-sep-2026, permisos de Usuarios por
      secciones del menú): `{seccion}` es una cabecera y `{info, nota}` una herramienta que
      se abre por ROL y no por casilla («solo super admin», «según rol»). Ninguna lleva
@@ -1316,7 +1319,7 @@
         (tEst ? (o.sub ? '<span class="las-sep">/</span>' : '') + '<span class="las-estado" style="background:' + tEst.fondo + ';color:' + tEst.tinta + '">' + esc(o.estado[0]) + '</span>' : '') + '</div>' : '') +
       '<h1 class="las-h1">' + esc(o.titulo || '') + '</h1>' +
       (o.bajoTitulo ? '<p class="lwc-bajo">' + esc(o.bajoTitulo) + '</p>' : '') +
-      '</div></div><button type="button" data-c="cerrar" class="las-cerrar" title="Cerrar" aria-label="Cerrar">' + icoBase(ICO_BASE.x) + '</button></header>' +
+      '</div></div><button type="button" data-c="cerrar" class="las-cerrar" title="' + esc(edT('Cerrar')) + '" aria-label="' + esc(edT('Cerrar')) + '">' + icoBase(ICO_BASE.x) + '</button></header>' +
       '<div data-c="cuerpo" class="lwc-cuerpo' + (o.lado ? ' lwc-split' : '') + '">' + (o.cuerpo || '') + '</div>' +
       '<footer data-c="pie" class="las-pie"></footer></aside>';
     /* `lado` (lista de ids de `seccion()`): esas secciones pasan a la columna
@@ -1362,7 +1365,7 @@
     // en movil, donde el pulgar vive abajo. `pieExtra` (HTML crudo, para el
     // shim de suiAbrirCajon/deck_fotos.js) ya trae el suyo — no se duplica.
     if (!o.pieExtra && !(o.acciones || []).some(function (a) { return a.cerrar; })) {
-      var bc = document.createElement('button'); bc.type = 'button'; bc.textContent = 'Cerrar';
+      var bc = document.createElement('button'); bc.type = 'button'; bc.textContent = edT('Cerrar');
       bc.className = 'las-btn2 lwc-cerrar'; bc.addEventListener('click', cierraCajon); pie.appendChild(bc);
     }
     /* `pieExtra` — puente para código que compone su PROPIO pie como HTML

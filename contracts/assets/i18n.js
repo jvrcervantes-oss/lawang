@@ -3816,8 +3816,9 @@
     'sobre base ×': 'on base ×',
 
     /* ── Campana de avisos de la cabecera v4 (intranet/v4/assets/cabecera.js, LAW-388, 28-sep-2026) ──
-       Las etiquetas vienen de contracts/assets/avisos.js; los títulos y detalles
-       de cada aviso son datos y no se traducen. */
+       Las etiquetas vienen de contracts/assets/avisos.js. Los títulos y detalles
+       de `notificaciones` son datos y no se traducen; los que compone avisos.js
+       (facturas por vencer, firmas por caducar) sí, con su puente avT (LAW-407). */
     'Avisos': 'Notifications',
     'Lo que ha pasado y lo que vence en los próximos 15 días.': 'What has happened and what falls due in the next 15 days.',
     'Nada nuevo.': 'Nothing new.',
@@ -3840,6 +3841,14 @@
     'Inventario': 'Inventory',
     'Saldado': 'Settled',
     'Solicitud': 'Request',
+    'Factura %factura vencida hace %dias d': 'Invoice %factura overdue by %dias d',
+    'Factura %factura vence hoy': 'Invoice %factura due today',
+    'Factura %factura vence en %dias d': 'Invoice %factura due in %dias d',
+    '%importe sin cobrar': '%importe outstanding',
+    'Enlace de firma de %contrato caducado': 'Signing link for %contrato expired',
+    'Enlace de firma de %contrato caduca hoy': 'Signing link for %contrato expires today',
+    'Enlace de firma de %contrato caduca en %dias d': 'Signing link for %contrato expires in %dias d',
+    'un contrato': 'a contract',
 
   };
 
