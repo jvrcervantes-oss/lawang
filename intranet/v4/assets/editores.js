@@ -6372,8 +6372,14 @@
               u.proyecto === window.LW_V4.proyecto.nombre) {
             socioInicial = (SOC.porUnidad[u.id] && SOC.porUnidad[u.id].socio_id) || '';
             campos.push({ k: 'socio_id', label: 'Socio', tipo: 'select', valor: socioInicial,
-              opciones: [['', '— sin socio —']].concat(SOC.lista.map(function (s) {
-                return [s.id, s.nombre + (s.tipo === 'arquitecto' ? ' · arquitecto' : '') + ' · ' + s.numero];
+              /* Un socio de baja solo se ofrece si ES el de esta parcela: sin su opción, el <select> caería en
+                 «— sin socio —» y guardar cualquier otro campo borraría la asignación (revisor, 28-sep). Asignarlo
+                 a otra parcela no se puede: unidad_socio_asigna exige socio activo. */
+              opciones: [['', '— sin socio —']].concat(SOC.lista.filter(function (s) {
+                return s.activo !== false || s.id === socioInicial;
+              }).map(function (s) {
+                return [s.id, s.nombre + (s.tipo === 'arquitecto' ? ' · arquitecto' : '') + ' · ' + s.numero +
+                  (s.activo === false ? ' · de baja' : '')];
               })),
               ayuda: 'A qué socio corresponde esta parcela en el reparto interno. Solo lo ven los administradores; no es el propietario legal del suelo.' });
           } else {

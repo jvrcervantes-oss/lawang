@@ -4707,7 +4707,9 @@
                   var el = f.querySelector && f.querySelector('[data-lw="u-socio"]');
                   if (!el) return;
                   var a = porUnidad[f.getAttribute('data-unidad-id')], so = a && porId[a.socio_id];
-                  el.textContent = so ? (so.tipo === 'arquitecto' ? 'Arquitecto: ' : 'Socio: ') + so.nombre : 'Sin socio';
+                  // Un socio dado de baja con parcelas sigue siendo su socio: se dice «de baja», nunca «Sin socio».
+                  el.textContent = so ? (so.tipo === 'arquitecto' ? 'Arquitecto: ' : 'Socio: ') + so.nombre +
+                    (so.activo === false ? ' (de baja)' : '') : 'Sin socio';
                   el.style.color = so ? '#104C4F' : '#8A8474';
                   el.style.fontWeight = so ? '600' : '500';
                   el.classList.remove('hidden');
