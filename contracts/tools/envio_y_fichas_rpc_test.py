@@ -31,8 +31,8 @@ import sys
 RAIZ = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 MIGRACIONES = {
     'A': [os.path.join(RAIZ, 'supabase', 'migrations', '20260928120000_law406_envia_firma_con_constancia.sql'),
-          # diferida: se aplica tras redesplegar ficheros-contrato (supabase/migrations_diferidas/LEEME.md)
-          os.path.join(RAIZ, 'supabase', 'migrations_diferidas', '20260928122000_law406_retira_envio_sin_anexo.sql')],
+          # paso 3, aplicado el 28-sep tras redesplegar ficheros-contrato (v6)
+          os.path.join(RAIZ, 'supabase', 'migrations', '20260928024744_law406_retira_envio_sin_anexo.sql')],
     'B': [os.path.join(RAIZ, 'supabase', 'migrations', '20260928121000_law400_fichas_anexo_auto_servidor.sql')],
 }
 

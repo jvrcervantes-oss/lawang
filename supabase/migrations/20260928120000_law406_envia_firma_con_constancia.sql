@@ -19,7 +19,7 @@
 --     contrato_envio_sin_anexo NO se retira aquí.
 --
 -- ORDEN DE DESPLIEGUE (revisión de código, 28-sep): 1) esta migración; 2) la edge ficheros-contrato; 3) la
--- migración supabase/migrations_diferidas/20260928122000_law406_retira_envio_sin_anexo (FUERA de migrations/ para que
+-- migración supabase/migrations/20260928024744_law406_retira_envio_sin_anexo (aplicada 28-sep) (FUERA de migrations/ para que
 -- no se aplique en lote por accidente; reducir la exposición: su único llamador era la
 -- segunda llamada de la edge vieja). Retirarla aquí dejaba, entre 1 y 2, envíos «sin anexo» sin constancia.
 -- La edge nueva NO puede ir antes que esta migración: con p_sin_anexo la llamada no encuentra la función.
