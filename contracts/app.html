@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="994408ada467">
+<meta name="lw-version" content="37103c01d9c9">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -81,14 +81,14 @@
 <script src="assets/documento_diseno.js?v=a6230c91"></script>
 <script src="assets/docs_contrato.js?v=73e7152b"></script>
 <script src="assets/documento_anexos.js?v=1b5f427e"></script>
-<script src="assets/parcela_inventario.js?v=d29cc2a0"></script>
+<script src="assets/parcela_inventario.js?v=ae87c4fe"></script>
 <!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
 <script src="assets/modelos_catalogo.js?v=da02ce3b"></script>
 <!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
 <script src="assets/techo_extras.js?v=d93ea66c"></script>
-<script src="assets/hitos_fechas.js?v=4f188947"></script>
-<script src="assets/entidades_pago.js?v=72c8d06a"></script>
+<script src="assets/hitos_fechas.js?v=dba5812e"></script>
+<script src="assets/entidades_pago.js?v=ef4334c5"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
      — igual que contract.css, que tambien es especifico de contratos. -->
@@ -105,7 +105,7 @@
      las otras cuatro son plantillas JS que arman la ventana de impresión del
      contrato — meter aquí la capa la habría colado en el PDF del cliente. -->
 <link rel="stylesheet" href="/intranet/v4/assets/nav-montaje.css?v=032139e5">
-<link rel="stylesheet" href="/contracts/assets/suite-v4-generador.css?v=30b034d6">
+<link rel="stylesheet" href="/contracts/assets/suite-v4-generador.css?v=5ce211b1">
 <script src="/intranet/v4/assets/nav-montaje.js?v=2c463182" defer></script>
 <script src="/contracts/assets/generador-v4.js?v=78e32fd1" defer></script>
 <script src="/intranet/v4/assets/nav.js?v=30f6f2cc" defer></script>
@@ -4328,7 +4328,7 @@ function updateSaveButton(){
       el.style.display = abreHitos ? '' : 'none';
     });
     // Forma de pago de un calendario a medida: solo la cambia un admin (28-sep-2026)
-    document.querySelectorAll('#calendarioSel[data-cal-manual]').forEach(el=>{ el.disabled = !abreHitos; });
+    document.querySelectorAll('input[name="formaPago"][data-cal-manual]').forEach(el=>{ el.disabled = !abreHitos; });
     // El aviso es lo INVERSO de los botones: se ve cuando NO se puede tocar
     // el candado, para explicar por qué no está — hallazgo MEDIA de Legal.
     document.querySelectorAll('[data-hito-admin-aviso]').forEach(el=>{

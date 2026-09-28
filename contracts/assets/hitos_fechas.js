@@ -158,6 +158,7 @@ function cambiaCalendario(cal){
   const pre = presetCalendario(cal); if(!pre) return;
   if(cal === 'unico_firma') pre[0].fecha = sumaDiasISO(fechaFirmaISO(), 14);
   HITOS = pre; CALENDARIO = cal;
+  refreshFormaPago();
   refreshHitos();
   if(typeof recalcularMontosHitos === 'function') recalcularMontosHitos();
   if(typeof updateSaveButton === 'function') updateSaveButton();
@@ -169,38 +170,75 @@ function cambiaCalendario(cal){
 function calendarioPasaAManual(){
   if(!CALENDARIOS_ELEGIBLES.includes(CALENDARIO)) return;
   CALENDARIO = 'manual';
-  const sel = document.getElementById('calendarioSel');
-  if(sel){
-    if(![...sel.options].some(o => o.value === 'manual')) sel.add(new Option(L({es:'A medida (admin)',en:'Custom (admin)',id:'Khusus (admin)'}), 'manual'));
-    sel.value = 'manual';
-  }
+  refreshFormaPago();
 }
-function calendarioSelectorHTML(){
-  const cal = CALENDARIO || 'estandar';
-  leePlazoPagoUnico();
-  const cerrado = (typeof LOCKED !== 'undefined' && LOCKED)
+
+/* FORMA DE PAGO = PASO 1 DEL CONTRATO DE CONSTRUCCIÓN (28-sep-2026, owner: «que
+   sea el primer paso, que quede claro que está ahí»). Hasta hoy era un
+   desplegable dentro de «Calendario de pagos», a media página: se podía
+   redactar el contrato entero sin verlo. Ahora es la primera sección del
+   formulario, con tres tarjetas que dicen cómo se reparte el pago y cuándo
+   vence cada uno — la decisión que cambia la tabla de pagos y la cláusula del
+   Art. 5, a la vista antes que nada. Radios de verdad (teclado y lector de
+   pantalla), pintados como tarjetas. */
+function formaPagoCerrada(){
+  return (typeof LOCKED !== 'undefined' && LOCKED)
     || (typeof EN_FIRMA !== 'undefined' && (EN_FIRMA.vivas + EN_FIRMA.firmadas) > 0);
-  // Un calendario a medida lo cambia solo un admin (la base lo rechaza a los demás). Se pinta cerrado y
-  // updateSaveButton() lo abre cuando el rol resulta ser admin — mismo patrón que los hitos de fábrica.
+}
+const FORMAS_PAGO = [
+  { cal:'estandar', ico:'stacked_bar_chart',
+    tit:{es:'Por hitos',en:'By milestones',id:'Per tahap'},
+    rep:{es:'5 pagos · 25/25/25/20/5 %',en:'5 payments · 25/25/25/20/5 %',id:'5 pembayaran · 25/25/25/20/5 %'},
+    cuando:()=>({es:'Cada pago vence 14 días después de que la obra entre en su fase.',en:'Each payment falls due 14 days after the works enter its phase.',id:'Setiap pembayaran jatuh tempo 14 hari setelah pekerjaan memasuki fasenya.'}) },
+  { cal:'unico_firma', ico:'event',
+    tit:{es:'Pago único a la firma',en:'Single payment on signing',id:'Pembayaran tunggal saat tanda tangan'},
+    rep:{es:'1 pago · 100 %',en:'1 payment · 100 %',id:'1 pembayaran · 100 %'},
+    cuando:()=>({es:`Vence en la fecha que pongas, como muy tarde ${PLAZO_PAGO_UNICO_DIAS} días después de la firma.`,en:`Falls due on the date you set, at most ${PLAZO_PAGO_UNICO_DIAS} days after signing.`,id:`Jatuh tempo pada tanggal yang Anda tetapkan, paling lambat ${PLAZO_PAGO_UNICO_DIAS} hari setelah penandatanganan.`}) },
+  { cal:'unico_obra', ico:'construction',
+    tit:{es:'Pago único al inicio de obra',en:'Single payment when works start',id:'Pembayaran tunggal saat pekerjaan dimulai'},
+    rep:{es:'1 pago · 100 %',en:'1 payment · 100 %',id:'1 pembayaran · 100 %'},
+    cuando:()=>({es:'Vence 14 días después de que empiece la obra. La fecha que pongas es solo estimada.',en:'Falls due 14 days after works start. Any date you set is only an estimate.',id:'Jatuh tempo 14 hari setelah pekerjaan dimulai. Tanggal yang Anda isi hanya perkiraan.'}) }
+];
+function formaPagoBodyHTML(){
+  leePlazoPagoUnico();
+  const cal = CALENDARIO || 'estandar';
+  const cerrado = formaPagoCerrada();
+  // Un calendario a medida lo cambia solo un admin (la base lo rechaza a los demás): las tarjetas se pintan
+  // cerradas y updateSaveButton() las abre si el rol resulta ser admin — mismo patrón que los hitos de fábrica.
   const soloAdmin = !cerrado && cal === 'manual';
-  const opts = [
-    ['estandar',    L({es:'Por hitos, al iniciar cada fase de obra',en:'By milestones, as each construction phase starts',id:'Per tahap, saat setiap fase konstruksi dimulai'})],
-    ['unico_firma', L({es:'Pago único a la firma',en:'Single payment upon signing',id:'Pembayaran tunggal saat penandatanganan'})],
-    ['unico_obra',  L({es:'Pago único al inicio de obra',en:'Single payment when works start',id:'Pembayaran tunggal saat pekerjaan dimulai'})]
-  ];
-  if(cal === 'manual') opts.push(['manual', L({es:'A medida (admin)',en:'Custom (admin)',id:'Khusus (admin)'})]);
-  if(cal === 'libre')  opts.push(['libre',  L({es:'Calendario anterior, a mano',en:'Earlier schedule, by hand',id:'Jadwal lama, manual'})]);
-  const nota = {
-    estandar:    L({es:'A la firma no vence nada. Cada pago vence 14 días después de que la obra entre en su fase: lo fija el parte de trabajo.',en:'Nothing falls due at signing. Each payment falls due 14 days after the works enter its phase — set by the work report.',id:'Tidak ada yang jatuh tempo saat penandatanganan. Setiap pembayaran jatuh tempo 14 hari setelah pekerjaan memasuki fasenya — ditetapkan oleh laporan kerja.'}),
-    unico_firma: L({es:`Vence en la fecha que pongas: como muy tarde ${PLAZO_PAGO_UNICO_DIAS} días después de la firma. Si hay descuento por pago al contado, va en «Descuento comercial».`,en:`Falls due on the date you set: at most ${PLAZO_PAGO_UNICO_DIAS} days after signing. A cash discount goes in «Commercial discount».`,id:`Jatuh tempo pada tanggal yang Anda tetapkan: paling lambat ${PLAZO_PAGO_UNICO_DIAS} hari setelah penandatanganan. Diskon tunai masuk di «Diskon komersial».`}),
-    unico_obra:  L({es:'Vence 14 días después de que empiece la obra (parte de preparación). La fecha que pongas es solo una estimación: sale como «Estimada» y no genera ningún cobro.',en:'Falls due 14 days after works start (preparation report). Any date you set is only an estimate: it prints as «Estimated» and triggers no charge.',id:'Jatuh tempo 14 hari setelah pekerjaan dimulai (laporan persiapan). Tanggal yang Anda isi hanya perkiraan: tercetak sebagai «Perkiraan» dan tidak memicu penagihan.'}),
-    manual:      L({es:'Calendario montado por administración: solo se mueven las fechas.',en:'Schedule set up by admin: only dates can be moved.',id:'Jadwal disusun oleh admin: hanya tanggal yang dapat diubah.'}),
-    libre:       L({es:'Contrato anterior al calendario de fábrica: se sigue editando a mano. Si eliges una forma de pago, la tabla se sustituye.',en:'Contract predating the standard schedule: still edited by hand. Choosing a payment method replaces the table.',id:'Kontrak sebelum jadwal standar: tetap diedit manual. Memilih cara pembayaran akan mengganti tabel.'})
-  }[cal] || '';
-  return `<div class="field" style="margin-bottom:10px"><label for="calendarioSel">${L({es:'Forma de pago',en:'Payment method',id:'Cara pembayaran'})}</label>
-    <select id="calendarioSel"${(cerrado || soloAdmin) ? ' disabled' : ''}${soloAdmin ? ' data-cal-manual' : ''}>${opts.map(([v,t]) =>
-      `<option value="${v}"${v === cal ? ' selected' : ''}${(v === 'libre' || v === 'manual') ? ' disabled' : ''}>${esc(t)}</option>`).join('')}</select>
-    <p class="mini" style="margin-top:4px">${esc(nota)}</p></div>`;
+  const tarjetas = FORMAS_PAGO.map(f => {
+    const sel = f.cal === cal;
+    return `<label class="fp-op${sel ? ' sel' : ''}">
+      <input type="radio" name="formaPago" value="${f.cal}"${sel ? ' checked' : ''}${(cerrado || soloAdmin) ? ' disabled' : ''}${soloAdmin ? ' data-cal-manual' : ''}>
+      <span class="fp-ico" data-ico="${f.ico}" aria-hidden="true"></span>
+      <span class="fp-tit">${esc(L(f.tit))}</span>
+      <span class="fp-rep">${esc(L(f.rep))}</span>
+      <span class="fp-cuando">${esc(L(f.cuando()))}</span>
+    </label>`;
+  }).join('');
+  const aviso = cal === 'manual'
+    ? L({es:'Este contrato tiene un calendario a medida, montado por administración. Solo un administrador puede cambiar la forma de pago.',en:'This contract has a custom schedule set up by admin. Only an admin can change the payment method.',id:'Kontrak ini memakai jadwal khusus dari admin. Hanya admin yang dapat mengubah cara pembayaran.'})
+    : cal === 'libre'
+    ? L({es:'Este contrato es anterior a las formas de pago y su calendario se editó a mano. Si eliges una, la tabla de pagos se sustituye.',en:'This contract predates payment methods and its schedule was edited by hand. Choosing one replaces the payment table.',id:'Kontrak ini dibuat sebelum ada cara pembayaran dan jadwalnya diedit manual. Memilih salah satu akan mengganti tabel pembayaran.'})
+    : cerrado
+    ? L({es:'El contrato está enviado a firma o firmado: la forma de pago ya no se cambia.',en:'The contract has been sent for signature or signed: the payment method can no longer change.',id:'Kontrak sudah dikirim untuk ditandatangani atau sudah ditandatangani: cara pembayaran tidak bisa diubah.'})
+    : '';
+  return `<p class="fp-intro">${esc(L({es:'Elige primero cómo pagará el comprador la obra. Decide la tabla de pagos y lo que dice el Art. 5 del contrato.',en:'First choose how the buyer will pay for the works. It sets the payment table and what Article 5 of the contract says.',id:'Pilih dulu bagaimana pembeli membayar pekerjaan. Ini menentukan tabel pembayaran dan isi Pasal 5 kontrak.'}))}</p>
+    <div class="fp-opciones" role="radiogroup" aria-label="${escAttr(L({es:'Forma de pago',en:'Payment method',id:'Cara pembayaran'}))}">${tarjetas}</div>
+    ${aviso ? `<p class="fp-aviso">${esc(aviso)}</p>` : ''}
+    ${cal === 'unico_firma' || cal === 'estandar' || cal === 'unico_obra' ? `<p class="fp-descuento">${esc(L({es:'¿Hay descuento por pagar al contado? Va en «Descuento comercial».',en:'Cash discount? It goes in «Commercial discount».',id:'Ada diskon tunai? Masukkan di «Diskon komersial».'}))}</p>` : ''}`;
+}
+function refreshFormaPago(){ const b = document.getElementById('formaPagoBox'); if(b) b.innerHTML = formaPagoBodyHTML(); }
+
+/* Dentro de «Calendario de pagos» ya no se elige: se recuerda qué forma de pago
+   hay y se lleva de vuelta al paso 1 para cambiarla. */
+function calendarioResumenHTML(){
+  const f = FORMAS_PAGO.find(x => x.cal === CALENDARIO);
+  const nombre = f ? L(f.tit)
+    : CALENDARIO === 'manual' ? L({es:'A medida (administración)',en:'Custom (admin)',id:'Khusus (admin)'})
+    : L({es:'Calendario anterior, a mano',en:'Earlier schedule, by hand',id:'Jadwal lama, manual'});
+  return `<p class="fp-resumen"><span>${esc(L({es:'Forma de pago',en:'Payment method',id:'Cara pembayaran'}))}:</span> <b>${esc(nombre)}</b>
+    <button type="button" class="link-btn" data-ir-forma-pago>${esc(L({es:'Cambiar en el paso 1',en:'Change in step 1',id:'Ubah di langkah 1'}))}</button></p>`;
 }
 
 /* La celda de vencimiento de cada hito, según el calendario (28-sep-2026):
@@ -308,7 +346,7 @@ function hitosBodyHTML(){
   // asumen lo contrario) y updateSaveButton() lo esconde en cuanto el rol
   // resulta ser admin/super_admin.
   const avisoAdmin = haiFijo
-    ? `<p class="mini" data-hito-admin-aviso>${L({es:'Añadir o quitar hitos, y editar el % y el concepto de los cinco de fábrica, es de administración (admin o super administrador) desde el 16-sep-2026.',en:'Adding or removing milestones, and editing the % and wording of the five factory ones, has been an admin/super-admin action since 16-Sep-2026.',id:'Menambah/menghapus tahap serta mengubah % dan teks lima tahap standar, sejak 16-Sep-2026 hanya untuk admin/super admin.'})}</p>`
+    ? `<p class="mini" data-hito-admin-aviso>${L({es:'Añadir o quitar pagos, o cambiar su % o su concepto, es cosa de administración (admin o super administrador). Para otro reparto, elige otra forma de pago en el paso 1.',en:'Adding or removing payments, or changing their % or wording, is an admin/super-admin action. For a different split, choose another payment method in step 1.',id:'Menambah/menghapus pembayaran atau mengubah % dan teksnya hanya untuk admin/super admin. Untuk pembagian lain, pilih cara pembayaran lain di langkah 1.'})}</p>`
     : '';
   /* Abono de la Carta de Reserva — se enseña aquí, y no solo en el toast del
      guardado, porque un toast se desvanece en segundos y esto tiene que
@@ -336,7 +374,7 @@ function hitosBodyHTML(){
         id:`Sisa ${cc.carta_cobrado_sobrante} yang dibayarkan pada Surat tidak dapat diserap oleh Perjanjian ini (harganya lebih rendah) — tentukan secara manual apa yang harus dilakukan dengan sisa tersebut.`
       })) : ''}
   </p>` : '';
-  return `${esConstruccion ? calendarioSelectorHTML() : ''}<div class="hitos-tabla-wrap"><table class="hitos-tabla"><thead><tr>
+  return `${esConstruccion ? calendarioResumenHTML() : ''}<div class="hitos-tabla-wrap"><table class="hitos-tabla"><thead><tr>
       <th>%</th>
       <th>${L({es:'Cantidad',en:'Amount',id:'Jumlah'})}</th>
       <th>${L({es:'Vencimiento',en:'Due date',id:'Jatuh tempo'})}</th>

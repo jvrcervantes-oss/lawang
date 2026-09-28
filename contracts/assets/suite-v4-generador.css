@@ -260,3 +260,60 @@ html.v4 .cp-modal .sui-buscar:focus{ outline:none; background:#fff; border-color
 html.v4 .cp-modal .btn{ justify-content:center; text-align:center; border-radius:9999px; font:500 14px Jost,system-ui,sans-serif; padding:10px 24px; box-shadow:0 1px 2px rgba(0,0,0,.05); }
 html.v4 .cp-modal .btn.primary{ background:#104C4F; border-color:#104C4F; color:#fff; letter-spacing:.025em; }
 html.v4 .cp-modal .btn.primary:hover:not(:disabled){ background:#0B3638; }
+
+/* ── FORMA DE PAGO: paso 1 del Contrato de Construcción — 28-sep-2026, owner ──
+   «Que sea el primer paso, que quede claro que está ahí.» Tres tarjetas en vez
+   de un desplegable perdido en «Calendario de pagos». Radios de verdad, escondidos
+   pero enfocables: el teclado y el lector de pantalla siguen funcionando.
+   Un solo acento (laguna) para lo elegido, sin sombras, como el resto de la v4. */
+html.v4 .section.forma-pago{ border-color:var(--v4-lagoon); }
+html.v4 .fp-intro{ margin:0 0 12px; font-size:14px; line-height:1.5; color:var(--v4-ink-2); }
+html.v4 .fp-opciones{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; }
+html.v4 .fp-op{
+  position:relative; display:flex; flex-direction:column; gap:4px; min-width:0;
+  padding:14px 14px 16px; border:1px solid var(--v4-borde); border-radius:12px; background:#fff;
+  cursor:pointer; transition:border-color .15s ease, background-color .15s ease;
+}
+html.v4 .fp-op input{ position:absolute; opacity:0; width:1px; height:1px; pointer-events:none; }
+html.v4 .fp-op:hover{ border-color:#c9c1ad; }
+html.v4 .fp-op.sel{ border-color:var(--v4-lagoon); box-shadow:inset 0 0 0 1px var(--v4-lagoon); background:var(--v4-laguna-bg); }
+html.v4 .fp-op:has(input:focus-visible){ outline:2px solid var(--v4-lagoon); outline-offset:2px; }
+html.v4 .fp-op:has(input:disabled){ cursor:not-allowed; }
+html.v4 .fp-op:has(input:disabled):not(.sel){ opacity:.55; }
+html.v4 .fp-op:has(input:disabled):hover{ border-color:var(--v4-borde); }
+html.v4 .fp-op.sel:has(input:disabled):hover{ border-color:var(--v4-lagoon); }
+/* marca de elegida, arriba a la derecha */
+html.v4 .fp-op::after{
+  content:""; position:absolute; top:12px; right:12px; width:18px; height:18px; box-sizing:border-box;
+  border:1.5px solid #c9c1ad; border-radius:999px; background:#fff;
+}
+html.v4 .fp-op.sel::after{
+  content:"check"; font-family:'Material Symbols Outlined'; font-size:14px; line-height:15px; text-align:center;
+  font-feature-settings:'liga'; color:#fff; border-color:var(--v4-lagoon); background:var(--v4-lagoon);
+}
+html.v4 .fp-ico::before{ content:attr(data-ico); font-size:24px; line-height:1; color:var(--v4-lagoon); }
+html.v4 .fp-ico{ display:block; height:24px; margin-bottom:6px; }
+html.v4 .fp-tit{ font-size:15px; font-weight:600; line-height:1.3; color:var(--v4-ink); padding-right:22px; }
+html.v4 .fp-rep{ font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--v4-eyebrow); font-variant-numeric:tabular-nums; }
+html.v4 .fp-cuando{ margin-top:4px; font-size:13px; line-height:1.45; color:var(--v4-ink-2); }
+html.v4 .fp-aviso{
+  margin:12px 0 0; padding:10px 12px; border-radius:8px; font-size:13px; line-height:1.45;
+  color:var(--v4-ambar); background:var(--v4-ambar-bg);
+}
+html.v4 .fp-descuento{ margin:10px 0 0; font-size:12px; color:var(--v4-outline); }
+/* en «Calendario de pagos»: solo el recordatorio de lo elegido */
+html.v4 .fp-resumen{
+  display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin:0 0 12px; padding:10px 12px;
+  border-radius:8px; background:var(--v4-surface-low); font-size:13px; color:var(--v4-ink-2);
+}
+html.v4 .fp-resumen b{ color:var(--v4-ink); font-weight:600; }
+html.v4 .fp-resumen .link-btn{ margin-left:auto; }
+@media screen and (max-width:720px){
+  html.v4 .fp-opciones{ grid-template-columns:1fr; }
+  html.v4 .fp-op{ padding:12px 14px 14px; }
+  html.v4 .fp-ico{ margin-bottom:2px; }
+}
+/* El formulario ocupa el 40 % de la pantalla en escritorio: lo que manda es el ancho del BLOQUE, no el de la
+   ventana. Por debajo de 520 px las tres tarjetas no caben con su texto y pasan a una columna. */
+html.v4 #formaPagoBox{ container-type:inline-size; }
+@container (max-width:520px){ html.v4 .fp-opciones{ grid-template-columns:1fr; } }
