@@ -1,4 +1,4 @@
--- PRUEBA POR ROL — calendario de pagos del Contrato de Construcción (28-sep-2026, migraciones 20260928052131 + 052357 + 054712).
+-- PRUEBA POR ROL — calendario de pagos del Contrato de Construcción (28-sep-2026, migraciones 20260928052131 + 052357 + 054712 + 055624).
 -- Se ejecuta con execute_sql (MCP) o psql como postgres, UN BLOQUE POR LLAMADA: cada uno acaba en
 -- `raise exception 'RES: …'`, que revierte la transacción entera — NO ESCRIBE NADA. Cada punto debe decir «ok».
 -- Para probar ANTES de aplicar: `begin;` + el texto de la migración + un bloque, en la misma llamada.
@@ -211,5 +211,37 @@ begin
   r := r || case when j->0->>'monto' = '16.750' and j->4->>'monto' = '3350' then '3 ok; ' else '3 FALLO ' || j::text || '; ' end;
   j := contrato_calendario_monta('estandar', 100000.01, '[]', current_date, false);
   r := r || case when (select sum(public.lw_importe(h->>'monto')) from jsonb_array_elements(j) h) = 100000.01 then '4 ok; ' else '4 FALLO ' || j::text || '; ' end;
+  raise exception 'RES: %', r;
+end $$;
+
+-- 6. Tras 20260928055624: un vencimiento facturado sobrevive a un guardado que reescribe los hitos; el tope del pago
+--    único se aplica en un alta; la fecha ya guardada (puesta por un admin) no bloquea al agente, pero cambiarla sí.
+--    Ejecutada el 28-sep contra producción: 4/4 ok.
+do $$
+declare r text := ''; j jsonb; c record; ant jsonb; fid uuid; ff date;
+  A text := '{"sub":"1cd031f2-c7da-455e-975f-c4e8708e36fb","email":"dortegag@gmail.com","role":"authenticated"}';
+begin
+  select * into c from contratos where numero = 'CC00106';
+  ff := coalesce(nullif(c.datos->'fields'->>'fecha_firma', '')::date, current_date);
+  select id into fid from facturas limit 1;
+  update contrato_vencimientos set factura_id = fid where contrato_id = c.id and orden = 2;
+  perform set_config('request.jwt.claims', A, true);
+  set local role authenticated;
+  j := contrato_guarda(c.id, jsonb_build_object('tipo', 'construccion', 'datos', jsonb_set(c.datos, '{hitos,0,monto}', '"1"')));
+  reset role;
+  r := r || case when (select factura_id from contrato_vencimientos where contrato_id = c.id and orden = 2) = fid then '1 ok; ' else '1 FALLO se perdió la factura; ' end;
+  begin
+    perform contrato_calendario_aplica(jsonb_build_object('fields', c.datos->'fields', 'calendario', 'unico_firma',
+      'hitos', jsonb_build_array(jsonb_build_object('fecha', to_char(ff + 120, 'YYYY-MM-DD')))), null, 67000, ff, null);
+    r := r || '2 FALLO alta salta el tope; ';
+  exception when others then r := r || '2 ok; '; end;
+  ant := c.datos || jsonb_build_object('calendario', 'unico_firma', 'hitos',
+           contrato_calendario_monta('unico_firma', 67000, jsonb_build_array(jsonb_build_object('fecha', to_char(ff + 200, 'YYYY-MM-DD'))), ff, true));
+  j := contrato_calendario_aplica(ant, ant, 67000, ff, c.id);
+  r := r || case when j->'hitos'->0->>'fecha' = to_char(ff + 200, 'YYYY-MM-DD') then '3 ok; ' else '3 FALLO; ' end;
+  begin
+    perform contrato_calendario_aplica(jsonb_set(ant, '{hitos,0,fecha}', to_jsonb(to_char(ff + 201, 'YYYY-MM-DD'))), ant, 67000, ff, c.id);
+    r := r || '4 FALLO; ';
+  exception when others then r := r || '4 ok; '; end;
   raise exception 'RES: %', r;
 end $$;
