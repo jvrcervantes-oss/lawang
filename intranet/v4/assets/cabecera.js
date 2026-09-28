@@ -16,6 +16,12 @@
 (function () {
   'use strict';
   function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML.replace(/"/g, '&quot;'); }
+  /* Textos del marco por lwT (i18n.js, LAW-388, 28-sep-2026): la campana salía en
+     español con la intranet en inglés. Se traduce al PINTAR, no al cargar: i18n.js
+     llega con `defer` en algunas pantallas. Los títulos y detalles de cada aviso
+     son datos (nombres, números de contrato) y vienen hechos de avisos.js. */
+  function T(s) { return typeof window.lwT === 'function' ? window.lwT(s) : s; }
+  function locale() { return typeof window.lwLocale === 'function' ? window.lwLocale() : 'es-ES'; }
 
   /* PALETA ÚNICA DE ESTADOS DE LA V4 (23-sep-2026, owner: «¿usamos los mismos
      colores en toda la suite? que facturas tenga el mismo color en todos
@@ -72,7 +78,7 @@
     var nNuevos = hechos.filter(function (a) { return a.nuevo; }).length;
     var chip = function (n, texto, t) {
       return n ? '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:' + t.fondo + ';color:' + t.tinta + ';font-size:12px;font-weight:700">' +
-        '<span class="material-symbols-outlined" style="font-size:15px">' + t.icono + '</span>' + n + ' ' + esc(texto) + '</span>' : '';
+        '<span class="material-symbols-outlined" style="font-size:15px">' + t.icono + '</span>' + n + ' ' + esc(T(texto)) + '</span>' : '';
     };
     var resumen = (nMal || nAt || nNuevos)
       ? '<div style="display:flex;flex-wrap:wrap;gap:6px">' +
@@ -85,7 +91,7 @@
       if (!x) return '';
       var d = new Date(String(x).length === 10 ? x + 'T00:00:00' : x);
       if (isNaN(d)) return String(x).slice(0, 10);
-      return d.toLocaleDateString('es-ES', d.getFullYear() === hoyAnio ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' });
+      return d.toLocaleDateString(locale(), d.getFullYear() === hoyAnio ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' });
     };
     var css = '<style>' +
       '.lw-av{display:grid;grid-template-columns:22px 170px minmax(0,1.35fr) minmax(0,1fr) 78px;align-items:center;gap:12px;padding:9px 14px;border-radius:10px;border:1px solid #E4DCCB;color:#1b1c19;text-decoration:none;transition:filter .15s}' +
@@ -103,8 +109,8 @@
       return '<a class="lw-av" href="' + esc(aV4(a.enlace)) + '" title="' + esc(a.titulo + (a.detalle ? ' — ' + a.detalle : '')) + '" style="border-left:4px solid ' + t.borde + ';background:' + fondo + '">' +
         '<span class="material-symbols-outlined" style="font-size:19px;color:' + t.borde + '">' + t.icono + '</span>' +
         '<span class="lw-av-e" style="display:flex;flex-wrap:wrap;gap:4px">' +
-          '<span style="padding:1px 8px;border-radius:999px;background:' + t.fondo + ';color:' + t.tinta + ';font-size:10.5px;line-height:18px;font-weight:700;letter-spacing:.04em;text-transform:uppercase">' + esc(a.etiqueta || 'Aviso') + '</span>' +
-          (a.nuevo && a.clase !== 'alerta' ? '<span style="padding:1px 8px;border-radius:999px;background:#2E3437;color:#fff;font-size:10.5px;line-height:18px;font-weight:700;letter-spacing:.04em;text-transform:uppercase">Nuevo</span>' : '') +
+          '<span style="padding:1px 8px;border-radius:999px;background:' + t.fondo + ';color:' + t.tinta + ';font-size:10.5px;line-height:18px;font-weight:700;letter-spacing:.04em;text-transform:uppercase">' + esc(T(a.etiqueta || 'Aviso')) + '</span>' +
+          (a.nuevo && a.clase !== 'alerta' ? '<span style="padding:1px 8px;border-radius:999px;background:#2E3437;color:#fff;font-size:10.5px;line-height:18px;font-weight:700;letter-spacing:.04em;text-transform:uppercase">' + esc(T('Nuevo')) + '</span>' : '') +
         '</span>' +
         '<span class="lw-av-t" style="font-weight:' + (a.nuevo || a.clase === 'alerta' ? '700' : '500') + '">' + esc(a.titulo) + '</span>' +
         '<span class="lw-av-d">' + esc(a.detalle || '') + '</span>' +
@@ -113,8 +119,8 @@
     };
     var bloque = function (titulo, lista) {
       return lista.length ? '<section style="display:grid;gap:6px">' +
-        '<h4 style="margin:6px 0 2px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#75786e">' + esc(titulo) + ' (' + lista.length + ')</h4>' +
-        '<div class="lw-av-cab"><span></span><span>Estado</span><span>Aviso</span><span>Detalle</span><span style="text-align:right">Fecha</span></div>' +
+        '<h4 style="margin:6px 0 2px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#75786e">' + esc(T(titulo)) + ' (' + lista.length + ')</h4>' +
+        '<div class="lw-av-cab"><span></span><span>' + esc(T('Estado')) + '</span><span>' + esc(T('Aviso')) + '</span><span>' + esc(T('Detalle')) + '</span><span style="text-align:right">' + esc(T('Fecha')) + '</span></div>' +
         lista.map(fila).join('') + '</section>' : '';
     };
     return css + resumen + bloque('Requiere atención', alertas) + bloque('Actividad reciente', hechos);
@@ -157,7 +163,7 @@
     var TITULO = 'Avisos', BAJO = 'Lo que ha pasado y lo que vence en los próximos 15 días.';
     function abre() {
       if (conCajon && typeof window.lwCajon !== 'function') {
-        if (typeof toast === 'function') toast('El panel aún no ha cargado — prueba de nuevo en un segundo.');
+        if (typeof toast === 'function') toast(T('El panel aún no ha cargado — prueba de nuevo en un segundo.'));
         return;
       }
       if (!conCajon && cierraDesplegable()) return;          // segundo clic en la campana: cierra
@@ -165,15 +171,15 @@
       var pinta = function (out) {
         var cuerpo;
         // una consulta caída no se lee como «nada nuevo»: la nota va antes que la lista, haya lista o no
-        var notaFallo = (out && out.fallos) ? nota(out.cobroSinComprobar ? 'No se pudo comprobar lo cobrado: las facturas por vencer no se muestran.' : 'Alguna de las consultas de avisos falló: la lista puede estar incompleta.') : '';
-        if (!out) cuerpo = nota('No se pudieron cargar los avisos. Prueba a recargar la página.');
-        else if (!out.avisos.length) cuerpo = notaFallo + '<p style="margin:0;font-size:13px;color:#8A8474">Nada nuevo.</p>';
+        var notaFallo = (out && out.fallos) ? nota(T(out.cobroSinComprobar ? 'No se pudo comprobar lo cobrado: las facturas por vencer no se muestran.' : 'Alguna de las consultas de avisos falló: la lista puede estar incompleta.')) : '';
+        if (!out) cuerpo = nota(T('No se pudieron cargar los avisos. Prueba a recargar la página.'));
+        else if (!out.avisos.length) cuerpo = notaFallo + '<p style="margin:0;font-size:13px;color:#8A8474">' + esc(T('Nada nuevo.')) + '</p>';
         else cuerpo = notaFallo + pintaAvisos(out.avisos, aV4);
         // ancho de siempre (owner: «que fuese muy amplia nunca fue un problema»);
         // `desde`: el cajón crece desde la campana y se recoge hacia ella
         // el 60% de siempre en escritorio; en móvil, pantalla entera como todo
         // cajón (regla común en shell.css, 24-sep-2026 — antes se parcheaba aquí)
-        if (conCajon) window.lwCajon({ titulo: TITULO, bajoTitulo: BAJO, cuerpo: cuerpo, desde: boton });
+        if (conCajon) window.lwCajon({ titulo: T(TITULO), bajoTitulo: T(BAJO), cuerpo: cuerpo, desde: boton });
         else abreDesplegable(cuerpo);
       };
       // abrir = dar los hechos por vistos (las alertas de ≤5 días siguen contando, como en la viva)
@@ -206,13 +212,13 @@
       cierraDesplegable();
       caja = document.createElement('div');
       caja.setAttribute('role', 'dialog');
-      caja.setAttribute('aria-label', TITULO);
+      caja.setAttribute('aria-label', T(TITULO));
       caja.style.cssText = 'position:fixed;top:60px;right:16px;z-index:58;width:640px;max-width:calc(100vw - 32px);box-sizing:border-box;' +
         'max-height:calc(100vh - 80px);overflow-y:auto;background:#fff;border:1px solid #E7E4DC;border-radius:12px;' +
         'box-shadow:0 18px 40px -12px rgba(30,37,34,.22),0 2px 6px rgba(30,37,34,.06);padding:16px;display:grid;gap:12px;' +
         "font-family:'Neue Kabel','Jost',sans-serif;color:#1b1c19";
-      caja.innerHTML = '<div><div style="font-size:18px;font-weight:600;color:#104C4F">' + esc(TITULO) + '</div>' +
-        '<div style="font-size:13px;color:#75786e">' + esc(BAJO) + '</div></div>' + cuerpo;
+      caja.innerHTML = '<div><div style="font-size:18px;font-weight:600;color:#104C4F">' + esc(T(TITULO)) + '</div>' +
+        '<div style="font-size:13px;color:#75786e">' + esc(T(BAJO)) + '</div></div>' + cuerpo;
       document.body.appendChild(caja);
       document.addEventListener('click', fuera, true);
       document.addEventListener('keydown', tecla);
@@ -232,7 +238,7 @@
      nunca en el HTML: este repo es público. */
   function pintaUsuario(aut) {
     var quien = (aut.ficha && aut.ficha.nombre) ||
-                ((aut.session && aut.session.user && aut.session.user.email || '').split('@')[0]) || 'Sesión activa';
+                ((aut.session && aut.session.user && aut.session.user.email || '').split('@')[0]) || T('Sesión activa');
     var rol = (aut.ficha && aut.ficha.rol) || '—';
     document.querySelectorAll('[data-lw-user]').forEach(function (e) { e.textContent = quien; });
     document.querySelectorAll('[data-lw-rol]').forEach(function (e) { e.textContent = rol; });
