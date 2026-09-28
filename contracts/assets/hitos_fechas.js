@@ -158,8 +158,7 @@ function cambiaCalendario(cal){
   const pre = presetCalendario(cal); if(!pre) return;
   if(cal === 'unico_firma') pre[0].fecha = sumaDiasISO(fechaFirmaISO(), 14);
   HITOS = pre; CALENDARIO = cal;
-  refreshFormaPago();
-  refreshHitos();
+  refreshHitos();   // repinta también el paso 1
   if(typeof recalcularMontosHitos === 'function') recalcularMontosHitos();
   if(typeof updateSaveButton === 'function') updateSaveButton();
   if(typeof render === 'function') render();
@@ -206,10 +205,11 @@ function formaPagoBodyHTML(){
   // Un calendario a medida lo cambia solo un admin (la base lo rechaza a los demás): las tarjetas se pintan
   // cerradas y updateSaveButton() las abre si el rol resulta ser admin — mismo patrón que los hitos de fábrica.
   const soloAdmin = !cerrado && cal === 'manual';
+  const abreAdmin = soloAdmin && typeof puedeHitosFijos === 'function' && puedeHitosFijos();
   const tarjetas = FORMAS_PAGO.map(f => {
     const sel = f.cal === cal;
     return `<label class="fp-op${sel ? ' sel' : ''}">
-      <input type="radio" name="formaPago" value="${f.cal}"${sel ? ' checked' : ''}${(cerrado || soloAdmin) ? ' disabled' : ''}${soloAdmin ? ' data-cal-manual' : ''}>
+      <input type="radio" name="formaPago" value="${f.cal}"${sel ? ' checked' : ''}${(cerrado || (soloAdmin && !abreAdmin)) ? ' disabled' : ''}${soloAdmin ? ' data-cal-manual' : ''}>
       <span class="fp-ico" data-ico="${f.ico}" aria-hidden="true"></span>
       <span class="fp-tit">${esc(L(f.tit))}</span>
       <span class="fp-rep">${esc(L(f.rep))}</span>
@@ -386,7 +386,10 @@ function hitosBodyHTML(){
     <span style="font-size:12px;color:${Math.round(total)===100?'var(--muted)':'var(--be)'}">Σ ${total}%</span>
   </div>${avisoAdmin}${avisoCartaCobrado}`;
 }
-function refreshHitos(){ const b=$('[data-sec="pagos"] .body'); if(b) b.innerHTML=hitosBodyHTML(); }
+/* Repinta también el paso 1 (forma de pago): abrir un contrato guardado, derivarlo, guardarlo o cambiar de
+   idioma cambian CALENDARIO/LOCKED y todos pasan por aquí. Sin esto las tarjetas se quedaban con la forma de
+   pago del borrador por defecto (revisor de código, 28-sep). */
+function refreshHitos(){ const b=$('[data-sec="pagos"] .body'); if(b) b.innerHTML=hitosBodyHTML(); refreshFormaPago(); }
 
 /* Cantidad de cada hito "calculado" — ver la nota grande de arriba. Se
    recalcula en dos momentos: cuando `precio_total` cambia (enganchado en

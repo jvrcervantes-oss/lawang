@@ -333,7 +333,9 @@ function applyLang(){
       if(lab) lab.textContent = L(f[1]);
     });
   });
+  // el paso 1 (forma de pago) no está en SECTIONS: su título aparte; el cuerpo lo repinta refreshHitos()
+  const fpH = $('[data-sec="forma_pago"] h2'); if(fpH) fpH.textContent = L({es:'Forma de pago',en:'Payment method',id:'Cara pembayaran'});
   document.querySelectorAll('#langToggle button').forEach(b=> b.classList.toggle('on', b.dataset.l===LANG));
-  refreshHitos();   // re-etiqueta la UI de hitos (los valores viven en HITOS, no se pierden)
+  refreshHitos();   // re-etiqueta la UI de hitos y el paso 1 (los valores viven en HITOS, no se pierden)
   render();
 }

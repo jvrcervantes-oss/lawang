@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="37103c01d9c9">
+<meta name="lw-version" content="f3676bd06077">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -87,8 +87,8 @@
 <script src="assets/modelos_catalogo.js?v=da02ce3b"></script>
 <!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
 <script src="assets/techo_extras.js?v=d93ea66c"></script>
-<script src="assets/hitos_fechas.js?v=dba5812e"></script>
-<script src="assets/entidades_pago.js?v=ef4334c5"></script>
+<script src="assets/hitos_fechas.js?v=d1e6a0ce"></script>
+<script src="assets/entidades_pago.js?v=930ee56e"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
      — igual que contract.css, que tambien es especifico de contratos. -->
@@ -4327,8 +4327,12 @@ function updateSaveButton(){
     document.querySelectorAll('[data-hito-admin]').forEach(el=>{
       el.style.display = abreHitos ? '' : 'none';
     });
-    // Forma de pago de un calendario a medida: solo la cambia un admin (28-sep-2026)
-    document.querySelectorAll('input[name="formaPago"][data-cal-manual]').forEach(el=>{ el.disabled = !abreHitos; });
+    // Forma de pago (paso 1, 28-sep-2026): cerrada si el contrato está en firma o firmado —el estado de firma
+    // llega después de pintar— y, en un calendario a medida, abierta solo a admin
+    const fpCerrada = typeof formaPagoCerrada === 'function' && formaPagoCerrada();
+    document.querySelectorAll('input[name="formaPago"]').forEach(el=>{
+      el.disabled = fpCerrada || (el.hasAttribute('data-cal-manual') && !abreHitos);
+    });
     // El aviso es lo INVERSO de los botones: se ve cuando NO se puede tocar
     // el candado, para explicar por qué no está — hallazgo MEDIA de Legal.
     document.querySelectorAll('[data-hito-admin-aviso]').forEach(el=>{
