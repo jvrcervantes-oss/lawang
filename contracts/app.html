@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="5ab24f9e71e9">
+<meta name="lw-version" content="16bee337c3f9">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -5184,18 +5184,10 @@ async function cargarEquipo(){
 }
 const autorVisible = e => (EQUIPO && EQUIPO[e]) || e || '—';
 
-/* ── pantalla: el editor (2a, 6-ago-2026; sin listado desde el 28-sep-2026) ──
-   Cada vista con su URL, la norma del estudio:
-     /contracts/?nuevo=1    el editor en blanco
-     /contracts/?contrato=<uuid>  ese contrato abierto (lo usa Operaciones)
-   El listado ya no vive aquí: es /intranet/v4/contratos/ (LAW-391). `cual` solo
-   puede ser 'editor'; se deja el parámetro para no tocar a quien llama.
-   `replaceState`: llenar el historial dejaria el boton atras inutil. */
-function pantallaC(cual, params){
-  if(params !== undefined){
-    try{ history.replaceState(null, '', location.pathname + (params ? '?' + params : '')); }catch(_){}
-  }
-}
+/* Cada vista con su URL, la norma del estudio: /contracts/?nuevo=1 es el editor en
+   blanco y /contracts/?contrato=<uuid> ese contrato abierto (lo usa Operaciones).
+   El listado no vive aquí: es /intranet/v4/contratos/ (el clásico se retiró el
+   28-sep-2026 con su cambio de pantalla, LAW-391). */
 $('#btnContracts').addEventListener('click', () => {
   // El listado es el de la v4, no el de aquí: dos listados es la duplicación
   // que prohíbe el stub v4/generador-contratos/ (assets/piel.js). Desde el
@@ -6770,7 +6762,6 @@ async function init(){
   const par = new URLSearchParams(location.search);
   const pedido = par.get('contrato');
   if(pedido){
-    pantallaC('editor');
     await openSavedContract(pedido);
     /* ?borrador=1 — «Descargar borrador» de la ficha de la v4 (25-sep-2026):
        abre el contrato y saca el diálogo de impresión del borrador. Se quita
@@ -6809,7 +6800,6 @@ async function init(){
        CRM resuelve antes la ficha del comprador (sin ella este editor no deja guardar).
        Si alguien llega aquí con `?lead=` a pelo, esto solo apunta el origen. */
     LEAD_ID = par.get('lead') || null;
-    pantallaC('editor');
     // «Borrador en blanco» de /v4/contratos/ (25-sep-2026): se elige el tipo y se descarga
     if(par.get('borrador') === 'blanco'){
       const bb = $('#btnBorrador'); if(bb) bb.classList.add('primary');
