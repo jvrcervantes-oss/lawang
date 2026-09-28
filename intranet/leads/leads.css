@@ -161,8 +161,14 @@
    navegador ha autorrellenado el buscador sin disparar `input` (incidente 27-sep-2026). */
 @keyframes lw-autorrelleno { from {} to {} }
 .filtros input[type="search"]:-webkit-autofill { animation-name: lw-autorrelleno; animation-duration: 1ms; }
-.filtros .seg { display: flex; background: var(--line-soft); border-radius: 9999px; padding: 3px; gap: 2px; }
-.filtros .seg button { border: 0; background: none; border-radius: 9999px; cursor: pointer;
+/* Un segmentado nunca ensancha la página (LAW-387, 28-sep-2026): con los cinco canales
+   de hoy `#canales` pide 485 px y a 390 empujaba el documento a 510 de ancho. Se
+   desplaza DENTRO de su fila (como las pestañas del CRM) en vez de envolver: un
+   segmentado partido en dos líneas deja de leerse como un solo control. */
+.filtros .seg { display: flex; background: var(--line-soft); border-radius: 9999px; padding: 3px; gap: 2px;
+  max-width: 100%; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.filtros .seg::-webkit-scrollbar { display: none; }
+.filtros .seg button { flex: 0 0 auto; white-space: nowrap; border: 0; background: none; border-radius: 9999px; cursor: pointer;
   font: 500 12px/1 var(--text); padding: 6px 11px; color: var(--mist); display: flex; align-items: center; gap: 6px; }
 .filtros .seg button[aria-pressed="true"] { background: var(--panel); color: var(--slate);
   font-weight: 600; box-shadow: var(--e1); }
