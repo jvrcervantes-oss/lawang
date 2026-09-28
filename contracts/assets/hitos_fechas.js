@@ -158,7 +158,10 @@ function cambiaCalendario(cal){
   const pre = presetCalendario(cal); if(!pre) return;
   if(cal === 'unico_firma') pre[0].fecha = sumaDiasISO(fechaFirmaISO(), 14);
   HITOS = pre; CALENDARIO = cal;
+  // Quien cambia con las flechas sigue en el grupo: el repintado rehace los radios y se llevaba el foco
+  const conFoco = document.activeElement && document.activeElement.name === 'formaPago';
   refreshHitos();   // repinta también el paso 1
+  if(conFoco){ const r = document.querySelector('input[name="formaPago"]:checked'); if(r) r.focus(); }
   if(typeof recalcularMontosHitos === 'function') recalcularMontosHitos();
   if(typeof updateSaveButton === 'function') updateSaveButton();
   if(typeof render === 'function') render();
