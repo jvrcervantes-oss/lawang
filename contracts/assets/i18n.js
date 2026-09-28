@@ -3815,6 +3815,32 @@
     'recargo de': 'surcharge on',
     'sobre base ×': 'on base ×',
 
+    /* ── Campana de avisos de la cabecera v4 (intranet/v4/assets/cabecera.js, LAW-388, 28-sep-2026) ──
+       Las etiquetas vienen de contracts/assets/avisos.js; los títulos y detalles
+       de cada aviso son datos y no se traducen. */
+    'Avisos': 'Notifications',
+    'Lo que ha pasado y lo que vence en los próximos 15 días.': 'What has happened and what falls due in the next 15 days.',
+    'Nada nuevo.': 'Nothing new.',
+    'Requiere atención': 'Needs attention',
+    'Actividad reciente': 'Recent activity',
+    'vencido o caducado': 'overdue or expired',
+    'vencidos o caducados': 'overdue or expired',
+    'por vencer': 'due soon',
+    'novedad sin ver': 'unseen update',
+    'novedades sin ver': 'unseen updates',
+    'El panel aún no ha cargado — prueba de nuevo en un segundo.': 'The panel has not loaded yet — try again in a second.',
+    'No se pudo comprobar lo cobrado: las facturas por vencer no se muestran.': 'Payments received could not be checked: invoices falling due are not shown.',
+    'Alguna de las consultas de avisos falló: la lista puede estar incompleta.': 'One of the notification queries failed: the list may be incomplete.',
+    'No se pudieron cargar los avisos. Prueba a recargar la página.': 'Notifications could not be loaded. Try reloading the page.',
+    'Sesión activa': 'Signed in',
+    'Vence hoy': 'Due today',
+    'Por vencer': 'Due soon',
+    'Firma caducada': 'Signature expired',
+    'Firma por caducar': 'Signature expiring',
+    'Inventario': 'Inventory',
+    'Saldado': 'Settled',
+    'Solicitud': 'Request',
+
   };
 
   window.LW_EN = EN;
