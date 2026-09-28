@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html lang="es" class="v4 lw4-fijo" data-lw4-herramienta="creatividades">
+<html lang="es" class="v4 lw4-fijo lw4-sb-plegado" data-lw4-herramienta="creatividades">
 <head>
-<meta name="lw-version" content="2f594bf58956">
+<meta name="lw-version" content="3dad97ab8a89">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
@@ -82,10 +82,22 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
   html.lw4-fijo #topbar{ top:64px; height:64px; }   /* su alto es var(--tbh) en topbar.css */
   html.lw4-fijo #stage{ margin-top:64px; }
 }
+/* Menú PLEGADO por defecto (LAW-392, owner 28-sep-2026: «menú plegable ahí»): el mismo
+   gesto que el generador de contratos — la mesa de trabajo a lo ancho y el menú a un ☰ de
+   distancia. Lo pone la clase `lw4-sb-plegado` del <html>, que nav-montaje.js quita al
+   abrirlo (en su sitio) y vuelve a poner con su botón de plegar. Los paneles fijos del editor
+   solo se apartan 288 px mientras el menú está a la vista. */
 @media screen and (min-width:1024px){
-  html.lw4-fijo #topbar, html.lw4-fijo #sidebar{ left:288px; }
-  html.lw4-fijo #seltools{ left:calc(288px + 250px); }
+  html.lw4-fijo:not(.lw4-sb-plegado) #topbar, html.lw4-fijo:not(.lw4-sb-plegado) #sidebar{ left:288px; }
+  html.lw4-fijo:not(.lw4-sb-plegado) #seltools{ left:calc(288px + 250px); }
+  html.lw4-fijo #topbar, html.lw4-fijo #sidebar, html.lw4-fijo #seltools{ transition:left .25s; }
 }
+/* La barra del editor no se puede partir en dos filas (--tbh) ni desplazar (recortaría los
+   desplegables de Insertar/Página/Archivo): para que «Exportar PDF» no se salga por la
+   derecha (LAW-392: a 1366 con el menú abierto le faltaban ~50 px), menos hueco entre
+   botones y el nombre del dossier cede ancho antes que nada. */
+html.lw4-fijo #topbar{ gap:10px; }
+html.lw4-fijo #topbar #ptitle{ flex:0 1 180px; min-width:90px; width:auto; }
 /* Con el menú fijo, la hoja tiene 288 px menos. El --zoom de arranque ya no es una
    cifra por tramo de ancho: lo calcula ajustaZoom() (abajo) con el ancho REAL de la
    mesa (LAW-392, 28-sep-2026). */
@@ -838,6 +850,14 @@ function ajustaZoom(){
 }
 let ZOOM_T=0;
 addEventListener('resize',()=>{ clearTimeout(ZOOM_T); ZOOM_T=setTimeout(ajustaZoom,120); });
+/* Plegar o desplegar el menú cambia el ancho de la mesa sin cambiar la ventana (LAW-392):
+   se recalcula cuando #stage cambia de ANCHO (el alto cambia con el propio zoom). */
+if(window.ResizeObserver){
+  let anchoMesa=0;
+  new ResizeObserver(es=>{ const w=Math.round(es[0].contentRect.width);
+    if(w===anchoMesa) return; anchoMesa=w; clearTimeout(ZOOM_T); ZOOM_T=setTimeout(ajustaZoom,120); })
+    .observe(document.getElementById('stage'));
+}
 function pickSize(key){
   if(key==='custom'){
     const w=parseFloat(prompt('Ancho en mm:',state.size.w));
