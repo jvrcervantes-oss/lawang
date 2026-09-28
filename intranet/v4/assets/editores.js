@@ -7864,8 +7864,21 @@
       herrRestoAlta = permisosPorMenu(function (k) { return puedoDarAlta(k) && !esCrmAlta([k]); });
       var tiposCatAlta = (typeof LW_TIPO_CONTRATO === 'object' && LW_TIPO_CONTRATO)
         ? Object.keys(LW_TIPO_CONTRATO).map(function (k) { return [k, LW_TIPO_CONTRATO[k]]; }) : [];
+      /* AxisWorks ERP (28-sep-2026, subtarea 6b): con `window.AXW_NUCLEO_OPERACION` los tipos de contrato ya no son la
+         lista fija de Lawang (LW_TIPO_CONTRATO) sino el catálogo `tipos_contrato` de la base, que el admin amplía en
+         /v4/plantillas/. Se leen por el servidor cada vez que se abre un formulario (un tipo recién dado de alta sale
+         sin recargar). null = no se pudieron leer. Sin la bandera no se llama: Lawang sigue con su lista. */
+      var tiposErp = function () {
+        return window.lwDatos('plantillas_contrato_datos').then(function (r) {
+          if (r.error || !r.data || !Array.isArray(r.data.tipos)) { console.error('[v4 usuarios] tipos de contrato no leídos', r.error); return null; }
+          return r.data.tipos;
+        });
+      };
+      var opcionesTipos = function (tipos) {
+        return tipos.filter(function (t) { return t.activo; }).map(function (t) { return [t.clave, t.nombre]; });
+      };
 
-      var btnAlta = ata(/Invitar miembro/i, function () {
+      var abreAlta = function (tiposCatAlta) {
         if (!(esAdmin(aut.ficha) && puedeH(aut.ficha, 'usuarios'))) {
           return aviso('Dar de alta exige administración con la herramienta Usuarios.', '#8A6A34');
         }
@@ -7973,6 +7986,15 @@
           var cajaTipos = document.querySelector('#lw-editor [data-k="tipos_contrato"]');
           if (cajaTipos) cajaTipos.querySelectorAll('input').forEach(function (i) { i.checked = tipos.indexOf(i.value) !== -1; });
         });
+      };
+      var btnAlta = ata(/Invitar miembro/i, function () {
+        if (!window.AXW_NUCLEO_OPERACION) return abreAlta(tiposCatAlta);
+        /* ERP: si el catálogo no se lee, el alta NO se abre. «Contratos que puede hacer» vacío significa TODOS:
+           un formulario sin opciones daría acceso a todo sin que nadie lo decidiera. */
+        tiposErp().then(function (t) {
+          if (!t) return aviso('No se ha podido leer el catálogo de tipos de contrato: recarga la pantalla antes de dar de alta a nadie.', '#9E2F26');
+          abreAlta(opcionesTipos(t));
+        });
       });
       /* `?nuevo=1` abre el alta sola (paridad 21-sep-2026, mismo patrón que
          Compradores/Facturas/Proyectos): quien llega desde otro sitio de la
@@ -8003,7 +8025,8 @@
            Si la página no cargó herramientas.js se cae a la unión, y se nota. */
         Promise.all([
           (typeof LW_PERMISOS !== 'undefined') ? Promise.resolve({ data: null }) : sb.from('usuarios').select('herramientas'),
-          sb.from('proyectos').select('id,nombre').eq('activo', true).order('nombre')
+          sb.from('proyectos').select('id,nombre').eq('activo', true).order('nombre'),
+          window.AXW_NUCLEO_OPERACION ? tiposErp() : Promise.resolve(undefined)
         ]).then(function (rs) {
           var ops;
           if (typeof LW_PERMISOS !== 'undefined') {
@@ -8023,6 +8046,21 @@
           var proyectos = (rs[1].data) || [];
           var tiposCat = (typeof LW_TIPO_CONTRATO === 'object' && LW_TIPO_CONTRATO)
             ? Object.keys(LW_TIPO_CONTRATO).map(function (k) { return [k, LW_TIPO_CONTRATO[k]]; }) : [];
+          /* ERP (6b): del catálogo de la base. Si no se pudo leer, el campo no se ofrece y NO viaja (vacío = todos:
+             mandarlo le abriría todo). Lo que la persona ya tiene y hoy está desactivado se sigue enseñando marcado:
+             si no, guardar se lo quitaría en silencio (la base solo valida lo que se AÑADE). */
+          var tiposOk = true;
+          if (window.AXW_NUCLEO_OPERACION) {
+            tiposOk = !!rs[2];
+            if (tiposOk) {
+              tiposCat = opcionesTipos(rs[2]);
+              (u.tipos_contrato || []).forEach(function (k) {
+                if (tiposCat.some(function (o) { return o[0] === k; })) return;
+                var t = rs[2].filter(function (x) { return x.clave === k; })[0];
+                tiposCat.push([k, (t ? t.nombre : k) + ' — desactivado']);
+              });
+            }
+          }
           /* El ROL solo lo cambia un super_admin (viva: `fRol` disabled salvo
              soySuper). Un admin lo ve, no lo toca — y no viaja en el patch. */
           var rolEditable = soySuper && !yoMismo;
@@ -8049,7 +8087,8 @@
           } else {
             campos.push({ tipo: 'nota', label: 'No se pudo cargar el catálogo de proyectos: los suyos se conservan tal cual (no se tocan desde aquí hasta que cargue).' });
           }
-          campos.push(
+          if (!tiposOk) campos.push({ tipo: 'nota', label: 'No se pudo leer el catálogo de tipos de contrato: los que tiene se conservan tal cual (no se tocan desde aquí hasta que cargue).' });
+          else campos.push(
             { k: 'tipos_contrato', label: 'Contratos que puede hacer', tipo: 'multicheck',
               opciones: tiposCat, valor: u.tipos_contrato || [],
               /* SIN "Ninguno" aquí, a propósito (revisión previa Seguridad,
@@ -8068,6 +8107,7 @@
               tipos_contrato: v.tipos_contrato
             };
             if (proyectosOk) patch.proyectos = v.proyectos;
+            if (!tiposOk) delete patch.tipos_contrato;
             if (!yoMismo) { patch.activo = v.activo; }
             if (rolEditable) { patch.rol = v.rol; }
             /* la proteccion real vive en la policy (super_admin intocable salvo
@@ -9455,6 +9495,462 @@
           return Promise.resolve(sb.rpc('producto_guarda', { p_id: p.id, p_datos: { activo: activar } })).then(function (r) {
             if (r && r.error) return aviso(errorCatalogo(r.error, 'No se ha cambiado: el catálogo lo cambia un admin, y lo comprueba la base.'), '#9E2F26');
             aviso(activar ? 'Producto reactivado.' : 'Producto desactivado.');
+            repinta();
+          });
+        });
+      };
+    },
+
+    /* ═══ PLANTILLAS — formularios (AxisWorks ERP, 28-sep-2026, subtarea 6b) ════════════════════════════
+       La lista la pinta datos.js (REG.plantillas). Sin la bandera no se define nada. TODO lo que escribe va por
+       las RPC de la base (erp/migraciones/20260928190000), que comprueban admin + permiso «plantillas» en su
+       primera línea y validan el cuerpo contra su lista blanca: esta pantalla no decide nada que la base no
+       vuelva a comprobar. Lo que se lee, por lwDatos (plantillas_contrato_datos / plantilla_version_datos).
+       Pintar, comparar y detectar campos: contracts/assets/plantilla-html.js (lo reutiliza el generador, 6c). */
+    plantillas: function (aut) {
+      if (!window.AXW_NUCLEO_OPERACION) return;
+      var sb = aut.sb;
+      window.LW_V4 = window.LW_V4 || {};
+      var repinta = function () { if (window.LW_V4.repintaPlantillas) window.LW_V4.repintaPlantillas(); };
+      var datos = function () { return window.LW_V4.plantillasDatos || null; };
+      var puede = function () { var d = datos(); return !!(d && d.puede_editar); };
+      var sinPermiso = function () { return aviso('Las plantillas las cambia un admin con el permiso «Plantillas».', '#8A6A34'); };
+      var sinDatos = function () { return aviso('No se han podido leer las plantillas: recarga la pantalla.', '#9E2F26'); };
+      var hayPuras = function () { return typeof window.lwPlantillaVistaPrevia === 'function' && typeof window.lwPlantillaDiff === 'function'; };
+      var RE_CLAVE = /^[a-z][a-z0-9_]{1,47}$/, RE_CAMPO = /^[a-z][a-z0-9_]{0,47}$/;
+      var DESCARGO = 'Un responsable ha revisado este texto. AxisWorks no redacta ni revisa contratos: la plantilla es vuestra.';
+      var TIPOS_CAMPO = window.LW_PLANTILLA_TIPOS_CAMPO || [['texto', 'Texto corto']];
+
+      /* Error de la base → la causa en palabras. Se lee el `hint` (estable) antes que el código; el mensaje de
+         `plantilla_no_valida` se ENSEÑA entero: es la lista de lo que la base no admite del texto. */
+      function errorPlantillas(e, ctx) {
+        var h = (e && e.hint) || '', c = (e && e.code) || '', m = (e && e.message) || String(e || '');
+        if (h === 'plantilla_no_valida') return 'La base no acepta el texto. Corrige esto y vuelve a guardar: ' + m.replace(/^La plantilla no se puede guardar:\s*/, '');
+        if (h === 'campo_no_admitido') return 'La pantalla ha mandado un dato que la base no admite (' + m + '). Recarga la pantalla; si vuelve a pasar, avisa al estudio.';
+        if (h === 'prefijo_usado') return 'Ese prefijo ya lo usa otra serie de contratos, o empieza igual que uno que ya existe (CC y CC1 se confundirían al leer el número). Elige otro.';
+        if (h === 'prefijo_fijo') return 'El prefijo de un tipo no se cambia una vez puesto: partiría la numeración de sus contratos.';
+        if (h === 'tipo_fijo') return 'El tipo de contrato de una plantilla ya activada no se cambia: da de alta otra plantilla con el tipo nuevo.';
+        if (h === 'falta_descargo') return 'Para activar hay que marcar la casilla que confirma que un responsable ha revisado el texto.';
+        if (h === 'plantilla_de_fichero') return ctx && ctx.alta ? 'Ese identificador ya lo usa una plantilla que viene con la intranet: elige otro.'
+          : 'Esa plantilla viene con la intranet (vive en el código) y no se edita desde aquí.';
+        if (h === 'tipo_desconocido') return 'Ese tipo de contrato no existe o está desactivado. Recarga la pantalla y elige otro.';
+        if (h === 'no_es_borrador') return 'Esa versión ya no es un borrador: otra persona la ha activado o descartado. Recarga la pantalla.';
+        if (h === 'sin_tipo') return 'La plantilla no tiene tipo de contrato: ponle uno en el borrador antes de activarla.';
+        if (h === 'version_inmutable') return 'Una versión activa no se cambia: los cambios van a un borrador nuevo.';
+        if (c === '42501') return /sesi[oó]n/i.test(m) ? 'Tu sesión ha caducado: vuelve a entrar.'
+          : 'No tienes permiso: las plantillas las cambia un admin con el permiso «Plantillas», y lo comprueba la base.';
+        if (c === 'P0002') return m || 'Eso ya no existe: otra persona lo ha cambiado. Recarga la pantalla.';
+        return m;   // 22023 / 23514 sin hint: la base ya lo dice en palabras («Falta el nombre», «La clave va en minúsculas…»)
+      }
+      var leeVersion = function (id) { return window.lwDatos('plantilla_version_datos', { p_id: id }); };
+      /* Una o dos versiones a la vez; si alguna falla, el error de la primera que falle. */
+      function leeVersiones(ids) {
+        return Promise.all(ids.map(function (id) { return id ? leeVersion(id) : Promise.resolve({ data: null, error: null }); }))
+          .then(function (rs) {
+            var mal = rs.filter(function (r) { return r.error; })[0];
+            return mal ? { error: mal.error } : { data: rs.map(function (r) { return r.data; }) };
+          });
+      }
+      function nodo(tag, clase, texto) {
+        var n = document.createElement(tag);
+        if (clase) n.className = clase;
+        if (texto != null) n.textContent = texto;
+        return n;
+      }
+      /* Vista previa: iframe sin permisos (`sandbox=""`: ni scripts, ni formularios, ni mismo origen) y con CSP
+         `default-src 'none'` dentro del documento. Segunda barrera: la primera es la lista blanca de la base. */
+      function iframePrevia(alto) {
+        var f = document.createElement('iframe');
+        f.setAttribute('sandbox', '');
+        f.setAttribute('referrerpolicy', 'no-referrer');
+        f.title = 'Vista previa de la plantilla';
+        f.style.cssText = 'width:100%;height:' + (alto || 460) + 'px;border:1px solid #E7E4DC;border-radius:12px;background:#fff';
+        return f;
+      }
+      function pintaPrevia(f, cuerpo, campos) { f.srcdoc = window.lwPlantillaVistaPrevia(cuerpo || '', campos || []); }
+      /* Diff por líneas: quitado en rojo, añadido en verde, cada línea con textContent (nunca HTML). */
+      function pintaDiff(host, antes, ahora) {
+        host.textContent = '';
+        var d = window.lwPlantillaDiff(antes || '', ahora || '');
+        if (d.iguales) { host.appendChild(nodo('p', 'lwp-nota', 'El texto es igual que el de la versión activa.')); return d; }
+        if (d.aproximado) host.appendChild(nodo('p', 'lwp-nota', 'El cambio es muy grande: se enseña lo de en medio entero, quitado y añadido, sin emparejar línea a línea.'));
+        var caja = nodo('div');
+        caja.style.cssText = 'max-height:420px;overflow:auto;border:1px solid #E7E4DC;border-radius:12px;background:#fff;font:12.5px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace';
+        var TOPE = 3000;
+        d.lineas.slice(0, TOPE).forEach(function (l) {
+          var r = nodo('div', null, (l.op === ' ' ? '  ' : l.op + ' ') + l.t);
+          r.style.cssText = 'padding:1px 10px;white-space:pre-wrap;overflow-wrap:anywhere;' +
+            (l.op === '-' ? 'background:#FFF1EF;color:#93000a' : l.op === '+' ? 'background:#ECF6EF;color:#1F5130' : 'color:#57534e');
+          caja.appendChild(r);
+        });
+        host.appendChild(caja);
+        if (d.lineas.length > TOPE) host.appendChild(nodo('p', 'lwp-nota', 'Se enseñan las primeras ' + TOPE + ' líneas de ' + d.lineas.length + '.'));
+        return d;
+      }
+      /* Qué cambia en los campos (por clave): añadidos, quitados y los que cambian de etiqueta, tipo u obligatorio. */
+      function resumenCampos(antes, ahora) {
+        var a = {}, b = {}, out = [];
+        (antes || []).forEach(function (c) { a[c.clave] = c; });
+        (ahora || []).forEach(function (c) { b[c.clave] = c; });
+        var nuevos = Object.keys(b).filter(function (k) { return !a[k]; });
+        var fuera = Object.keys(a).filter(function (k) { return !b[k]; });
+        var cambian = Object.keys(b).filter(function (k) {
+          return a[k] && (a[k].etiqueta !== b[k].etiqueta || a[k].tipo !== b[k].tipo || !!a[k].obligatorio !== !!b[k].obligatorio);
+        });
+        if (nuevos.length) out.push('Campos nuevos: ' + nuevos.join(', '));
+        if (fuera.length) out.push('Campos que se quitan: ' + fuera.join(', '));
+        if (cambian.length) out.push('Campos que cambian: ' + cambian.join(', '));
+        return out;
+      }
+      function seccionCajon(titulo) {
+        var s = nodo('section', 'lwc-sec las-card');
+        s.appendChild(nodo('h4', null, titulo));
+        var d = nodo('div');
+        s.appendChild(d);
+        return d;
+      }
+      function marcaIA(host, texto) {
+        var a = nodo('div', 'las-aviso');
+        a.appendChild(nodo('div', 'las-min0', texto));
+        host.appendChild(a);
+      }
+
+      /* ── Tipos de contrato ───────────────────────────────────────────────────────────────────────── */
+      window.LW_V4.abreTipoContrato = function (btn) {
+        if (!puede()) return datos() ? sinPermiso() : sinDatos();
+        var clave = btn && btn.getAttribute ? btn.getAttribute('data-lw-tpc-editar') : null;
+        var tipos = datos().tipos || [];
+        var t = clave ? tipos.filter(function (x) { return x.clave === clave; })[0] : null;
+        if (clave && !t) return aviso('No se ha podido leer este tipo — recarga la pantalla.', '#9E2F26');
+        var nuevo = !t;
+        var campos = [];
+        if (nuevo) campos.push({ k: 'clave', label: 'Clave', req: 1, medio: 1, ayuda: 'En minúsculas y sin espacios ni tildes: arrendamiento_local. No se cambia después.' });
+        else campos.push({ tipo: 'lectura', label: 'Clave', medio: 1, valor: t.clave });
+        campos.push({ k: 'nombre', label: 'Nombre', req: 1, medio: 1, valor: t ? t.nombre : '', ayuda: 'Como se lee en las listas y en los contratos.' });
+        var prefijoEditable = nuevo || !t.prefijo;
+        if (prefijoEditable) {
+          campos.push({ k: 'prefijo', label: 'Prefijo de numeración', req: nuevo ? 1 : 0, medio: 1,
+            ayuda: 'De 2 a 4 mayúsculas o cifras, empezando por letra: AL numera AL00001, AL00002… Se pone una vez y NO se cambia: partiría la serie.' });
+        } else {
+          campos.push({ tipo: 'lectura', label: 'Prefijo de numeración', medio: 1, valor: t.prefijo, ayuda: 'No se cambia: partiría la numeración de sus contratos.' });
+        }
+        campos.push({ k: 'orden', label: 'Orden', tipo: 'number', medio: 1, paso: '1', valor: t ? t.orden : 100, ayuda: 'Posición en las listas: el número más bajo sale primero.' });
+        if (!nuevo) campos.push({ k: 'activo', label: 'Activo — se ofrece para contratos nuevos', tipo: 'check', valor: t.activo !== false,
+          ayuda: 'Desactivarlo no toca los contratos que ya existen: solo deja de ofrecerse.' });
+        if (!nuevo && !t.prefijo) campos.push({ tipo: 'nota', label: 'Este tipo no tiene prefijo: hasta que lo tenga, sus contratos no se pueden numerar. Una vez puesto, no se cambia.' });
+
+        modal(nuevo ? 'Nuevo tipo de contrato' : 'Editar tipo — ' + t.nombre, campos, nuevo ? 'Dar de alta' : 'Guardar cambios', function (v) {
+          var k = nuevo ? (v.clave || '').trim() : t.clave;
+          if (nuevo && !RE_CLAVE.test(k)) return { error: { message: 'La clave va en minúsculas, sin espacios ni tildes, y empieza por letra (p. ej. arrendamiento_local).' } };
+          if (nuevo && tipos.some(function (x) { return x.clave === k; })) return { error: { message: 'Ya hay un tipo con esa clave: edítalo desde la lista.' } };
+          if (!(v.nombre || '').trim()) return { error: { message: 'Falta el nombre.' } };
+          var orden = Number(v.orden);
+          if (v.orden === '' || !isFinite(orden) || Math.floor(orden) !== orden || Math.abs(orden) > 100000) return { error: { message: 'El orden va en número entero (10, 20, 100…).' } };
+          var d = { nombre: v.nombre.trim(), orden: orden };
+          if (!nuevo) d.activo = !!v.activo;
+          if (prefijoEditable) {
+            var pfx = (v.prefijo || '').trim().toUpperCase();
+            if (pfx) {
+              if (!/^[A-Z][A-Z0-9]{1,3}$/.test(pfx)) return { error: { message: 'El prefijo va en 2 a 4 mayúsculas o cifras, empezando por letra (p. ej. AL).' } };
+              d.prefijo = pfx;
+            } else if (nuevo) return { error: { message: 'Falta el prefijo de numeración.' } };
+          }
+          return Promise.resolve(sb.rpc('tipo_contrato_guarda', { p_clave: k, p_datos: d })).then(function (r) {
+            if (r && r.error) return { error: { message: errorPlantillas(r.error) } };
+            aviso(nuevo ? 'Tipo de contrato dado de alta' + (d.prefijo ? ' (numera ' + d.prefijo + '00001…).' : '.') : 'Tipo de contrato guardado.');
+            setTimeout(repinta, 480);
+            return r;
+          });
+        }, { sub: 'Plantillas', sinRecarga: true });
+        var iPfx = document.querySelector('#lw-editor [data-k="prefijo"]');
+        if (iPfx) {
+          iPfx.setAttribute('maxlength', '4'); iPfx.setAttribute('autocapitalize', 'characters');
+          iPfx.addEventListener('input', function () { var p = iPfx.selectionStart; iPfx.value = iPfx.value.toUpperCase(); try { iPfx.setSelectionRange(p, p); } catch (e) { /* MUDO A PROPOSITO: un input que no admite selección (tipo raro) solo pierde la posición del cursor, no el dato */ } });
+        }
+      };
+
+      /* ── Editor de plantilla (alta o borrador) ───────────────────────────────────────────────────── */
+      window.LW_V4.abrePlantilla = function (btn) {
+        if (!puede()) return datos() ? sinPermiso() : sinDatos();
+        if (!hayPuras()) return aviso('Falta una pieza de la pantalla (plantilla-html.js): recarga la página.', '#9E2F26');
+        var slug = btn && btn.getAttribute ? btn.getAttribute('data-lw-plt-editar') : null;
+        var p = slug ? (window.LW_V4.plantillasPorSlug || {})[slug] : null;
+        if (slug && !p) return aviso('No se ha podido leer esta plantilla — recarga la pantalla.', '#9E2F26');
+        leeVersiones(p ? [p.borrador && p.borrador.id, p.activa && p.activa.id] : []).then(function (r) {
+          if (r.error) return aviso('No se ha podido leer el texto de la plantilla: ' + errorPlantillas(r.error), '#9E2F26');
+          var borr = (r.data || [])[0] || null, act = (r.data || [])[1] || null;
+          abreEditor(p, borr, act);
+        });
+      };
+
+      function abreEditor(p, borr, act) {
+        var nuevo = !p;
+        var base = borr || act || { cuerpo: '', campos: [], notas: '' };
+        var tipos = (datos().tipos || []);
+        var tipoFijo = !!(p && p.activa);
+        var hecho = false;   // ya se ha guardado (el editor se cierra)
+        var campos = [];
+        if (nuevo) {
+          campos.push({ k: 'slug', label: 'Identificador', req: 1, medio: 1,
+            ayuda: 'En minúsculas y sin espacios ni tildes: arrendamiento_local. No se cambia después.' });
+        } else {
+          campos.push({ tipo: 'lectura', label: 'Número', medio: 1, valor: p.numero });
+          campos.push({ tipo: 'lectura', label: 'Identificador', medio: 1, valor: p.slug });
+        }
+        campos.push({ k: 'nombre', label: 'Nombre', req: 1, medio: 1, valor: p ? p.nombre : '', ayuda: 'Como se ve al elegir plantilla para un contrato.' });
+        if (tipoFijo) {
+          var tAct = tipos.filter(function (x) { return x.clave === p.tipo_contrato; })[0];
+          campos.push({ tipo: 'lectura', label: 'Tipo de contrato', medio: 1, valor: tAct ? tAct.nombre : p.tipo_contrato,
+            ayuda: 'Ya tiene una versión activada: el tipo no se cambia. Para otro tipo, da de alta otra plantilla.' });
+        } else {
+          var opc = tipos.filter(function (x) { return x.activo; }).map(function (x) { return [x.clave, x.nombre]; });
+          if (p && p.tipo_contrato && !opc.some(function (o) { return o[0] === p.tipo_contrato; })) {
+            var tv = tipos.filter(function (x) { return x.clave === p.tipo_contrato; })[0];
+            opc.push([p.tipo_contrato, (tv ? tv.nombre : p.tipo_contrato) + ' — desactivado']);
+          }
+          campos.push({ k: 'tipo_contrato', label: 'Tipo de contrato', tipo: 'select', req: 1, medio: 1, valor: p ? p.tipo_contrato || '' : '',
+            opciones: [['', '— elige el tipo —']].concat(opc), ayuda: 'Se puede cambiar mientras no se haya activado ninguna versión.' });
+        }
+        if (borr && borr.generado_ia) campos.push({ tipo: 'nota', label: 'Generado por IA: este borrador lo ha preparado el asistente a partir de vuestro modelo. Revísalo entero, y compáralo con el original, antes de activarlo.' });
+        else if (!borr && act && act.generado_ia) campos.push({ tipo: 'nota', label: 'La versión activa se generó por IA. Lo que guardes aquí será un borrador nuevo hecho a partir de ella.' });
+
+        // Cuerpo, campos y vista previa: piezas a mano (custom); se recogen en onGuardar, no por data-k.
+        var ta, lista, notaCampos, filas = [], previa, diffHost, pestPrev, pestDiff, temporizador;
+        function refresca() {
+          clearTimeout(temporizador);
+          temporizador = setTimeout(function () {
+            if (previa && previa.style.display !== 'none') pintaPrevia(previa, ta.value, leeCampos().campos);
+            if (diffHost && diffHost.style.display !== 'none') pintaDiff(diffHost, act && act.cuerpo, ta.value);
+          }, 350);
+        }
+        function nuevaFila(c) {
+          c = c || {};
+          var el = nodo('div');
+          el.style.cssText = 'display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.3fr) 130px auto 26px;gap:8px;align-items:center';
+          var iK = nodo('input', 'lwp-in lwp-comp'); iK.placeholder = 'clave'; iK.value = c.clave || ''; iK.setAttribute('aria-label', 'Clave del campo');
+          iK.style.fontFamily = 'ui-monospace,SFMono-Regular,Consolas,monospace';
+          var iE = nodo('input', 'lwp-in lwp-comp'); iE.placeholder = 'Etiqueta: lo que se pregunta'; iE.value = c.etiqueta || ''; iE.setAttribute('aria-label', 'Etiqueta del campo');
+          var sT = nodo('select', 'lwp-in lwp-comp'); sT.setAttribute('aria-label', 'Tipo de dato');
+          TIPOS_CAMPO.forEach(function (o) { var op = nodo('option', null, o[1]); op.value = o[0]; sT.appendChild(op); });
+          sT.value = c.tipo || 'texto';
+          if (sT.value !== (c.tipo || 'texto')) { var raro = nodo('option', null, c.tipo); raro.value = c.tipo; sT.appendChild(raro); sT.value = c.tipo; }
+          var lO = nodo('label'); lO.style.cssText = 'display:flex;align-items:center;gap:6px;font:500 12.5px Jost,system-ui,sans-serif;color:#44403c;white-space:nowrap';
+          var cO = nodo('input'); cO.type = 'checkbox'; cO.checked = c.obligatorio !== false;
+          lO.appendChild(cO); lO.appendChild(document.createTextNode('Obligatorio'));
+          var bQ = nodo('button', 'lwp-quita', '×'); bQ.type = 'button'; bQ.title = 'Quitar campo'; bQ.setAttribute('aria-label', 'Quitar campo');
+          var f = { el: el, k: iK, e: iE, t: sT, o: cO };
+          bQ.addEventListener('click', function () { lista.removeChild(el); filas = filas.filter(function (x) { return x !== f; }); refresca(); });
+          [iK, iE].forEach(function (i) { i.addEventListener('input', refresca); });
+          el.appendChild(iK); el.appendChild(iE); el.appendChild(sT); el.appendChild(lO); el.appendChild(bQ);
+          lista.appendChild(el);
+          filas.push(f);
+          return f;
+        }
+        /* Lo que viaja: EXACTAMENTE {clave, etiqueta, tipo, obligatorio} — la base rechaza cualquier otra clave. */
+        function leeCampos() {
+          var out = [], problemas = [], vistos = {};
+          filas.forEach(function (f, i) {
+            var k = f.k.value.trim(), e = f.e.value.trim();
+            if (!k && !e) return;   // fila vacía: no cuenta
+            if (!RE_CAMPO.test(k)) problemas.push('Campo ' + (i + 1) + ': la clave va en minúsculas, sin espacios ni tildes (' + (k || 'vacía') + ').');
+            else if (vistos[k]) problemas.push('El campo «' + k + '» está repetido.');
+            vistos[k] = 1;
+            if (!e) problemas.push('Falta la etiqueta del campo «' + k + '».');
+            else if (e.length > 200) problemas.push('La etiqueta del campo «' + k + '» pasa de 200 caracteres.');
+            out.push({ clave: k, etiqueta: e, tipo: f.t.value, obligatorio: !!f.o.checked });
+          });
+          return { campos: out, problemas: problemas };
+        }
+        campos.push({ tipo: 'custom', render: function (d) {
+          var id = 'lw-plt-cuerpo';
+          var etq = nodo('label', 'lwp-etq', 'Texto de la plantilla (HTML) *'); etq.htmlFor = id;
+          ta = nodo('textarea', 'lwp-in'); ta.id = id; ta.rows = 18; ta.value = base.cuerpo || '';
+          ta.spellcheck = false;
+          ta.style.cssText = 'font:12.5px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;resize:vertical;min-height:260px';
+          ta.addEventListener('input', refresca);
+          var ayuda = nodo('p', 'lwp-nota', 'Solo texto y tablas: ' + (window.LW_PLANTILLA_ETIQUETAS || []).map(function (x) { return '<' + x + '>'; }).join(' ') +
+            '. Atributos: class, colspan y rowspan. Un dato que se rellena en cada contrato va como {{nombre_en_minusculas}}, y tiene que estar en la lista de campos de abajo. La base rechaza el resto al guardar y te dice qué.');
+          d.appendChild(etq); d.appendChild(ta); d.appendChild(ayuda);
+          d.style.cssText = 'display:grid;gap:8px';
+        } });
+        campos.push({ tipo: 'custom', render: function (d) {
+          d.style.cssText = 'display:grid;gap:8px';
+          var cab = nodo('div'); cab.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap';
+          cab.appendChild(nodo('span', 'lwp-etq', 'Campos que se rellenan en cada contrato'));
+          var bD = nodo('button', 'lwp-mas', 'Detectar campos del texto'); bD.type = 'button';
+          cab.appendChild(bD);
+          d.appendChild(cab);
+          var enc = nodo('div'); enc.style.cssText = 'display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.3fr) 130px auto 26px;gap:8px';
+          ['Clave', 'Etiqueta', 'Tipo', '', ''].forEach(function (t) { enc.appendChild(nodo('span', 'lwp-col', t)); });
+          d.appendChild(enc);
+          lista = nodo('div'); lista.style.cssText = 'display:grid;gap:6px';
+          d.appendChild(lista);
+          notaCampos = nodo('p', 'lwp-nota', 'La clave es la que va entre llaves en el texto; la etiqueta, lo que se le pregunta a quien hace el contrato.');
+          d.appendChild(notaCampos);
+          var bA = nodo('button', 'lwp-mas', '+ Añadir campo'); bA.type = 'button';
+          bA.addEventListener('click', function () { nuevaFila().k.focus(); });
+          d.appendChild(bA);
+          (Array.isArray(base.campos) ? base.campos : []).forEach(function (c) { nuevaFila(c); });
+          bD.addEventListener('click', function () {
+            var ya = {};
+            filas.forEach(function (f) { ya[f.k.value.trim()] = 1; });
+            var usados = window.lwPlantillaCamposUsados(ta.value);
+            var nuevos = usados.filter(function (k) { return !ya[k]; });
+            nuevos.forEach(function (k) { nuevaFila({ clave: k, etiqueta: window.lwPlantillaEtiquetaDe(k), tipo: 'texto', obligatorio: true }); });
+            var sobran = Object.keys(ya).filter(function (k) { return k && usados.indexOf(k) === -1; });
+            notaCampos.textContent = (nuevos.length ? 'Añadidos ' + nuevos.length + ': ' + nuevos.join(', ') + '. Revisa su etiqueta y su tipo.' : 'No hay campos nuevos en el texto.') +
+              (sobran.length ? ' En la lista pero no en el texto: ' + sobran.join(', ') + '.' : '');
+            refresca();
+          });
+        } });
+        campos.push({ tipo: 'custom', render: function (d) {
+          d.style.cssText = 'display:grid;gap:8px';
+          var cab = nodo('div'); cab.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;align-items:center';
+          pestPrev = nodo('button', 'lwp-mas', 'Vista previa'); pestPrev.type = 'button';
+          cab.appendChild(pestPrev);
+          if (act) { pestDiff = nodo('button', 'lwp-mas', 'Cambios frente a la activa (v' + act.version + ')'); pestDiff.type = 'button'; cab.appendChild(pestDiff); }
+          d.appendChild(cab);
+          previa = iframePrevia(460);
+          d.appendChild(previa);
+          diffHost = nodo('div'); diffHost.style.display = 'none';
+          d.appendChild(diffHost);
+          var marca = function (b, on) { if (b) { b.style.background = on ? '#104C4F' : '#fff'; b.style.color = on ? '#fff' : '#104C4F'; b.setAttribute('aria-pressed', String(on)); } };
+          var ver = function (cual) {
+            previa.style.display = cual === 'previa' ? '' : 'none';
+            diffHost.style.display = cual === 'diff' ? '' : 'none';
+            marca(pestPrev, cual === 'previa'); marca(pestDiff, cual === 'diff');
+            if (cual === 'previa') pintaPrevia(previa, ta.value, leeCampos().campos);
+            else pintaDiff(diffHost, act && act.cuerpo, ta.value);
+          };
+          pestPrev.addEventListener('click', function () { ver('previa'); });
+          if (pestDiff) pestDiff.addEventListener('click', function () { ver('diff'); });
+          setTimeout(function () { ver('previa'); }, 0);   // cuando ya existen el texto y los campos
+        } });
+        campos.push({ k: 'notas', label: 'Notas internas', tipo: 'textarea', valor: base === borr ? (borr.notas || '') : '',
+          ayuda: 'Para el equipo: qué cambia en esta versión. No sale en el contrato.' });
+
+        var enc = borr ? 'Borrador v' + borr.version + ': al guardar se sobrescribe este borrador.'
+          : act ? 'Nueva versión a partir de la activa (v' + act.version + '). La activa no cambia hasta que actives esta.'
+          : nuevo ? 'Se guarda como borrador. No se usa en ningún contrato hasta que un responsable lo active.'
+          : 'Esta plantilla no tiene texto guardado: lo que guardes será su primer borrador.';
+        modal(nuevo ? 'Nueva plantilla' : 'Editar plantilla — ' + p.nombre, campos, 'Guardar borrador', function (v) {
+          if (hecho) return {};
+          var s = nuevo ? (v.slug || '').trim() : p.slug;
+          if (nuevo && !RE_CLAVE.test(s)) return { error: { message: 'El identificador va en minúsculas, sin espacios ni tildes, y empieza por letra (p. ej. arrendamiento_local).' } };
+          // La base NO distingue alta de edición (plantilla_borrador_guarda con un slug que ya existe edita ESA
+          // plantilla): el alta se para aquí si el identificador ya está en la lista.
+          if (nuevo && (window.LW_V4.plantillasPorSlug || {})[s]) return { error: { message: 'Ya hay una plantilla con ese identificador: edítala desde la lista, o elige otro.' } };
+          if (!(v.nombre || '').trim()) return { error: { message: 'Falta el nombre.' } };
+          if (!tipoFijo && !v.tipo_contrato) return { error: { message: 'Falta el tipo de contrato.' } };
+          if (!ta.value.trim()) return { error: { message: 'Falta el texto de la plantilla.' } };
+          var lc = leeCampos();
+          if (lc.problemas.length) return { error: { message: lc.problemas.join(' ') } };
+          var d = { cuerpo: ta.value, campos: lc.campos, notas: (v.notas || '').trim() || null };
+          if (nuevo || v.nombre.trim() !== p.nombre) d.nombre = v.nombre.trim();
+          // El tipo solo viaja si CAMBIA: la base exige que el que llegue esté activo, y reenviar uno ya
+          // desactivado bloquearía guardar el texto.
+          if (!tipoFijo && (nuevo || v.tipo_contrato !== p.tipo_contrato)) d.tipo_contrato = v.tipo_contrato;
+          return Promise.resolve(sb.rpc('plantilla_borrador_guarda', { p_slug: s, p_datos: d })).then(function (r) {
+            if (r && r.error) return { error: { message: errorPlantillas(r.error, { alta: nuevo }) } };
+            hecho = true;
+            aviso(nuevo ? 'Plantilla dada de alta como borrador. Para que se use, revísala y actívala.' : 'Borrador guardado. Para que se use, revísalo y actívalo.');
+            setTimeout(repinta, 480);
+            return r;
+          });
+        }, { sub: 'Plantillas', sinRecarga: true, ancho: '1040px',
+          encabezado: '<p class="lwp-nota" style="margin:0 0 12px">' + esc(enc) + '</p>' });
+      }
+
+      /* ── Ver la versión activa (solo lectura) ─────────────────────────────────────────────────────── */
+      window.LW_V4.verPlantilla = function (btn) {
+        var p = (window.LW_V4.plantillasPorSlug || {})[btn.getAttribute('data-lw-plt-ver')];
+        if (!p || !p.activa) return aviso('No se ha podido leer esta plantilla — recarga la pantalla.', '#9E2F26');
+        if (!hayPuras()) return aviso('Falta una pieza de la pantalla (plantilla-html.js): recarga la página.', '#9E2F26');
+        leeVersion(p.activa.id).then(function (r) {
+          if (r.error || !r.data) return aviso('No se ha podido leer el texto: ' + errorPlantillas(r.error || {}), '#9E2F26');
+          var v = r.data;
+          var c = cajon({ titulo: p.nombre, sub: 'Plantillas', estado: ['Activa v' + v.version, 'ok'], ancho: 'min(900px,96vw)',
+            bajoTitulo: p.numero + ' · activada ' + (v.activada_en ? new Date(v.activada_en).toLocaleString('es-ES') : '—') + (v.activada_por ? ' por ' + v.activada_por : '') });
+          if (v.generado_ia) marcaIA(c.cuerpo, 'Generado por IA: el texto lo preparó el asistente a partir de vuestro modelo.');
+          var sP = seccionCajon('Cómo se ve');
+          var f = iframePrevia(520); sP.appendChild(f); pintaPrevia(f, v.cuerpo, v.campos);
+          c.cuerpo.appendChild(sP.parentNode);
+          var sC = seccionCajon('Campos');
+          var cs = Array.isArray(v.campos) ? v.campos : [];
+          if (!cs.length) sC.appendChild(nodo('p', 'lwp-nota', 'No tiene campos: el texto es fijo.'));
+          cs.forEach(function (x) {
+            sC.appendChild(nodo('p', 'lwp-nom', '{{' + x.clave + '}} · ' + x.etiqueta + ' · ' +
+              ((TIPOS_CAMPO.filter(function (o) { return o[0] === x.tipo; })[0] || [0, x.tipo])[1]) + (x.obligatorio ? ' · obligatorio' : '')));
+          });
+          c.cuerpo.appendChild(sC.parentNode);
+          if (v.notas) { var sN = seccionCajon('Notas'); sN.appendChild(nodo('p', 'lwp-nom', v.notas)); c.cuerpo.appendChild(sN.parentNode); }
+        });
+      };
+
+      /* ── Revisar y activar un borrador ───────────────────────────────────────────────────────────── */
+      window.LW_V4.activaPlantilla = function (btn) {
+        if (!puede()) return datos() ? sinPermiso() : sinDatos();
+        if (!hayPuras()) return aviso('Falta una pieza de la pantalla (plantilla-html.js): recarga la página.', '#9E2F26');
+        var p = (window.LW_V4.plantillasPorSlug || {})[btn.getAttribute('data-lw-plt-activar')];
+        if (!p || !p.borrador) return aviso('No hay borrador que activar — recarga la pantalla.', '#9E2F26');
+        leeVersiones([p.borrador.id, p.activa && p.activa.id]).then(function (r) {
+          if (r.error) return aviso('No se ha podido leer el texto: ' + errorPlantillas(r.error), '#9E2F26');
+          var borr = r.data[0], act = r.data[1];
+          var chk, enviando = false;
+          var c = cajon({ titulo: 'Activar — ' + p.nombre, sub: 'Plantillas', estado: ['Borrador v' + borr.version, 'espera'], ancho: 'min(960px,96vw)',
+            bajoTitulo: act ? 'Sustituye a la activa v' + act.version + ': los contratos ya hechos siguen con la suya.' : 'Es su primera versión.',
+            acciones: [{ texto: 'Activar esta versión', tono: 'primario', disabled: true, title: 'Marca antes la casilla de revisión', onClick: function (ev) {
+              var b = ev.currentTarget;
+              if (enviando || !chk || !chk.checked) return;
+              enviando = true; b.disabled = true;
+              Promise.resolve(sb.rpc('plantilla_version_activa', { p_version_id: borr.id, p_acepto: chk.checked === true })).then(function (rr) {
+                enviando = false;
+                if (rr && rr.error) { b.disabled = !chk.checked; return aviso(errorPlantillas(rr.error), '#9E2F26'); }
+                aviso('Plantilla activada: v' + borr.version + ' de «' + p.nombre + '».');
+                c.cierra();
+                repinta();
+              }, function (e) { enviando = false; b.disabled = !chk.checked; aviso(errorPlantillas(e), '#9E2F26'); });
+            } }] });
+          if (borr.generado_ia) marcaIA(c.cuerpo, 'Generado por IA: este texto lo ha preparado el asistente a partir de vuestro modelo. Compáralo con el original entero antes de activarlo.');
+          var sD = seccionCajon(act ? 'Qué cambia frente a la activa (v' + act.version + ')' : 'Qué cambia');
+          if (act) {
+            var rc = resumenCampos(act.campos, borr.campos);
+            rc.forEach(function (t) { sD.appendChild(nodo('p', 'lwp-nom', t)); });
+            var hd = nodo('div'); sD.appendChild(hd);
+            pintaDiff(hd, act.cuerpo, borr.cuerpo);
+          } else sD.appendChild(nodo('p', 'lwp-nota', 'No hay versión activa con la que comparar: esta será la primera.'));
+          c.cuerpo.appendChild(sD.parentNode);
+          var sP = seccionCajon('Cómo se ve');
+          var f = iframePrevia(480); sP.appendChild(f); pintaPrevia(f, borr.cuerpo, borr.campos);
+          c.cuerpo.appendChild(sP.parentNode);
+          var sR = seccionCajon('Revisión');
+          var lab = nodo('label', 'las-check');
+          chk = nodo('input'); chk.type = 'checkbox'; chk.checked = false;   // DESMARCADA siempre: la base también lo exige
+          var txt = nodo('span'); txt.appendChild(nodo('span', 'las-check-t', DESCARGO));
+          lab.appendChild(chk); lab.appendChild(txt);
+          sR.appendChild(lab);
+          c.cuerpo.appendChild(sR.parentNode);
+          var bAct = c.pie.querySelector('.las-btn1');
+          chk.addEventListener('change', function () { if (bAct && !enviando) { bAct.disabled = !chk.checked; bAct.title = chk.checked ? '' : 'Marca antes la casilla de revisión'; } });
+        });
+      };
+
+      /* ── Descartar un borrador ───────────────────────────────────────────────────────────────────── */
+      window.LW_V4.descartaPlantilla = function (btn) {
+        if (!puede()) return datos() ? sinPermiso() : sinDatos();
+        var p = (window.LW_V4.plantillasPorSlug || {})[btn.getAttribute('data-lw-plt-descartar')];
+        if (!p || !p.borrador) return aviso('No hay borrador que descartar — recarga la pantalla.', '#9E2F26');
+        if (typeof window.lwConfirmar !== 'function') return aviso('El diálogo aún no ha cargado — prueba de nuevo en un segundo.', '#8A6A34');
+        window.lwConfirmar({
+          titulo: 'Descartar el borrador de ' + p.nombre,
+          cuerpo: 'Se borra el borrador v' + p.borrador.version + ' con todos sus cambios. ' +
+            (p.activa ? 'La versión activa (v' + p.activa.version + ') sigue igual.' : 'La plantilla se queda sin texto hasta que guardes otro borrador.'),
+          confirmar: 'Descartar', tono: 'peligro'
+        }).then(function (ok) {
+          if (!ok) return;
+          return Promise.resolve(sb.rpc('plantilla_borrador_descarta', { p_version_id: p.borrador.id })).then(function (r) {
+            if (r && r.error) return aviso(errorPlantillas(r.error), '#9E2F26');
+            aviso('Borrador descartado.');
             repinta();
           });
         });

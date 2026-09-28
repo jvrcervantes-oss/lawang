@@ -9367,7 +9367,116 @@
     }
   };
 
-  /* Una pantalla de un módulo que esta instancia no tiene (hoy: Productos en Lawang). No se consulta nada: la
+  /* ═══ PLANTILLAS (AxisWorks ERP, 28-sep-2026) ══════════════════════════════════════════════════════
+     encargos/20260926_estudio_erp_clientes_contratos_productos.md, subtarea 6b. Las plantillas de contrato que el
+     admin da de alta (origen 'base'; las de contracts/templates no salen) y el catálogo de tipos de contrato. Misma
+     BANDERA PRIMERO que Productos: sin `window.AXW_NUCLEO_OPERACION` (Lawang) las tablas no existen y no se lanza
+     ninguna consulta. UNA lectura, por el servidor: `plantillas_contrato_datos` (dice también si esta sesión puede
+     editar: admin + permiso «plantillas», lo decide la base). Los formularios viven en editores.js (ED.plantillas). */
+  REG['plantillas'] = function (sb) {
+    if (!window.AXW_NUCLEO_OPERACION) { notaNoInstalado(); return; }
+    var T = function (x) { return (typeof lwT === 'function') ? lwT(x) : x; };
+    var cuerpo = document.getElementById('lw-plt-lista');
+    var cuerpoT = document.getElementById('lw-tpc-lista');
+    var nueva = document.getElementById('btn-nueva-plantilla');
+    var nuevoT = document.getElementById('btn-nuevo-tipo');
+    if (!cuerpo || !cuerpoT) return;
+    var fila = function (cols, texto, rojo) {
+      return '<tr><td colspan="' + cols + '" class="px-5 py-8 text-center font-body-md text-body-md ' +
+        (rojo ? 'text-error' : 'text-on-surface-variant') + '">' + esc(texto) + '</td></tr>';
+    };
+    var btn = function (attr, val, texto, tono) {
+      return '<button type="button" class="px-3 py-1 rounded-full ' + (tono || 'text-deep-lagoon') + ' hover:bg-surface-container-high font-label-md text-[12px]" ' +
+        attr + '="' + esc(val) + '">' + esc(T(texto)) + '</button>';
+    };
+    var ia = function (v) { return v && v.generado_ia ? ' ' + pill(T('Generado por IA'), 'espera') : ''; };
+
+    function pinta(d) {
+      var puede = !!d.puede_editar;
+      if (nueva) nueva.hidden = !puede;
+      if (nuevoT) nuevoT.hidden = !puede;
+      ['lw-plt-th-accion', 'lw-tpc-th-accion'].forEach(function (id) { var th = document.getElementById(id); if (th) th.hidden = false; });
+      var tipoDe = {};
+      (d.tipos || []).forEach(function (t) { tipoDe[t.clave] = t; });
+      var plantillas = d.plantillas || [];
+
+      cuerpo.innerHTML = !plantillas.length
+        ? fila(6, T(puede ? 'Todavía no hay ninguna plantilla: da de alta la primera con «Nueva plantilla».' : 'Todavía no hay ninguna plantilla dada de alta.'))
+        : plantillas.map(function (p) {
+          var t = tipoDe[p.tipo_contrato];
+          var tipo = !p.tipo_contrato ? '<span class="text-outline">' + esc(T('Sin tipo')) + '</span>'
+            : esc(t ? t.nombre : p.tipo_contrato) + (t && !t.activo ? ' ' + pill(T('desactivado'), 'mal') : '');
+          var act = p.activa
+            ? '<div class="font-label-md text-label-md text-on-surface">v' + esc(p.activa.version) + ia(p.activa) + '</div>' +
+              '<div class="font-body-sm text-body-sm text-outline whitespace-nowrap">' + esc(fFecha(p.activa.activada_en)) +
+              (p.activa.activada_por ? ' · ' + esc(p.activa.activada_por) : '') + '</div>'
+            : pill(T('Sin activar'), 'neutro');
+          var bor = p.borrador
+            ? '<div class="font-label-md text-label-md text-on-surface">v' + esc(p.borrador.version) + ia(p.borrador) + '</div>' +
+              '<div class="font-body-sm text-body-sm text-outline whitespace-nowrap">' + esc(T('cambiado')) + ' ' + esc(fFechaHoraCorta(p.borrador.actualizado_en)) + '</div>'
+            : '<span class="text-outline">—</span>';
+          var acciones = [];
+          if (p.activa) acciones.push(btn('data-lw-plt-ver', p.slug, 'Ver activa'));
+          if (puede) {
+            acciones.push(btn('data-lw-plt-editar', p.slug, p.borrador ? 'Editar borrador' : (p.activa ? 'Nueva versión' : 'Editar')));
+            if (p.borrador) {
+              acciones.push(btn('data-lw-plt-activar', p.slug, 'Revisar y activar'));
+              acciones.push(btn('data-lw-plt-descartar', p.slug, 'Descartar borrador', 'text-error'));
+            }
+          }
+          return '<tr class="border-b border-outline-variant/30' + (p.archivada ? ' opacity-60' : '') + '">' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-deep-lagoon whitespace-nowrap">' + esc(p.numero) + '</td>' +
+            '<td class="px-5 py-4"><div class="font-label-md text-label-md text-on-surface">' + esc(p.nombre) +
+              (p.archivada ? ' ' + pill(T('Archivada'), 'neutro') : '') + '</div>' +
+              '<div class="font-body-sm text-body-sm text-outline">' + esc(p.slug) + '</div></td>' +
+            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant">' + tipo + '</td>' +
+            '<td class="px-5 py-4">' + act + '</td>' +
+            '<td class="px-5 py-4">' + bor + '</td>' +
+            '<td class="px-5 py-4 text-right"><div class="flex flex-col items-end gap-1">' + acciones.join('') + '</div></td></tr>';
+        }).join('');
+
+      var tipos = d.tipos || [];
+      cuerpoT.innerHTML = !tipos.length ? fila(6, T('No hay ningún tipo de contrato activo.'))
+        : tipos.map(function (t) {
+          return '<tr class="border-b border-outline-variant/30' + (t.activo ? '' : ' opacity-60') + '">' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-on-surface">' + esc(t.nombre) + '</td>' +
+            '<td class="px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(t.clave) + '</td>' +
+            '<td class="px-5 py-4 font-label-md text-label-md text-deep-lagoon whitespace-nowrap">' +
+              (t.prefijo ? esc(t.prefijo) : '<span class="text-outline" title="' + esc(T('Sin prefijo no se pueden numerar contratos de este tipo')) + '">' + esc(T('sin prefijo')) + '</span>') + '</td>' +
+            '<td class="px-5 py-4 font-body-md text-body-md text-on-surface-variant text-right">' + esc(t.orden) + '</td>' +
+            '<td class="px-5 py-4">' + pill(T(t.activo ? 'Activo' : 'Desactivado'), t.activo ? 'ok' : 'mal') + '</td>' +
+            '<td class="px-5 py-4 text-right">' + (puede ? btn('data-lw-tpc-editar', t.clave, 'Editar') : '') + '</td></tr>';
+        }).join('');
+    }
+
+    function carga() {
+      return q(window.lwDatos('plantillas_contrato_datos'), 'plantillas_contrato_datos', cuerpo).then(function (d) {
+        // «No se ha podido leer» no puede verse igual que «no hay ninguno»: el fallo se dice en las dos tablas.
+        if (!d || Array.isArray(d)) {
+          if (Array.isArray(d)) cuerpo.innerHTML = fila(6, T('La base no ha devuelto las plantillas: recarga la pantalla.'), true);
+          cuerpoT.innerHTML = fila(6, T('No se han podido leer los tipos de contrato: recarga la pantalla.'), true);
+          window.LW_V4.plantillasDatos = null;
+          return;
+        }
+        window.LW_V4.plantillasDatos = d;
+        window.LW_V4.plantillasPorSlug = {};
+        (d.plantillas || []).forEach(function (p) { window.LW_V4.plantillasPorSlug[p.slug] = p; });
+        pinta(d);
+      });
+    }
+    window.LW_V4.repintaPlantillas = carga;
+    carga();
+    if (!cuerpo._lwOk) {
+      cuerpo._lwOk = true;
+      delega(cuerpo, [['data-lw-plt-ver', 'verPlantilla'], ['data-lw-plt-editar', 'abrePlantilla'],
+        ['data-lw-plt-activar', 'activaPlantilla'], ['data-lw-plt-descartar', 'descartaPlantilla']]);
+      delega(cuerpoT, [['data-lw-tpc-editar', 'abreTipoContrato']]);
+      if (nueva) delega(nueva.parentNode, [['data-lw-plt-nueva', 'abrePlantilla']]);
+      if (nuevoT) delega(nuevoT.parentNode, [['data-lw-tpc-nuevo', 'abreTipoContrato']]);
+    }
+  };
+
+  /* Una pantalla de un módulo que esta instancia no tiene (hoy: Productos y Plantillas en Lawang). No se consulta nada: la
      tabla no existe y la consulta sería un error rojo. Misma forma que notaSoloAdmin. */
   function notaNoInstalado() {
     quitaVelo();

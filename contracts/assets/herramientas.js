@@ -361,6 +361,14 @@ if (typeof window !== 'undefined' && window.AXW_NUCLEO_OPERACION) {
     { grupo:'Finanzas', nombre:'Productos', icon:'ph-package', href:'/intranet/v4/productos/', herr:'productos',
       para:'El catálogo de productos y servicios que se facturan por líneas, con su precio y su impuesto por defecto.',
       claves:'productos servicios catalogo articulos precio tarifa referencia unidad impuesto products services catalogue items price rate reference unit tax' });
+  /* PLANTILLAS (28-sep-2026, subtarea 6b del mismo encargo): el admin da de alta SUS plantillas de contrato y
+     sus tipos de contrato, sin código ni migración. Misma bandera y por lo mismo: la base de Lawang no tiene
+     `tipos_contrato` ni las versiones de plantilla (sus plantillas viven en contracts/templates). Va detrás de
+     Contratos, que es quien las usa. Permiso propio `plantillas`: escribir exige además admin, en la base. */
+  LW_HERRAMIENTAS.splice(LW_HERRAMIENTAS.findIndex(t => t.herr === 'contratos') + 1, 0,
+    { grupo:'Documentación', nombre:'Plantillas', icon:'ph-files', href:'/intranet/v4/plantillas/', herr:'plantillas',
+      para:'Las plantillas de contrato y los tipos de contrato: alta, borrador, comparación y activación.',
+      claves:'plantillas plantilla modelos contrato tipos de contrato prefijo numeracion campos borrador activar templates template contract types prefix fields draft activate' });
 }
 
 /* Quién ve qué. `soloAdmin` es la puerta dura; si no, basta con tener la

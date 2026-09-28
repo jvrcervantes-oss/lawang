@@ -55,6 +55,10 @@
       { path: 'reservas', texto: 'Reservas', clave: 'reservas' }] },
     { seccion: 'Documentación', entradas: [
       { path: 'contratos', texto: 'Contratos', clave: 'contratos' },
+      /* Plantillas (AxisWorks ERP, 28-sep-2026, subtarea 6b): solo con AXW_NUCLEO_OPERACION, como Productos.
+         Junto a Contratos y no en el Panel de control: la usa quien hace contratos (es su materia prima), no
+         es un ajuste de la intranet. Escribir exige además admin, y lo decide la base. */
+      { path: 'plantillas', texto: 'Plantillas', clave: 'plantillas', nucleo: true },
       { path: 'asistente', texto: 'Asistente', clave: 'asistente' },
       { path: 'creatividades', texto: 'Creatividades', claves: [
         { clave: 'dossier', texto: 'crear dossiers' },
@@ -373,7 +377,10 @@
     /* Productos (AxisWorks ERP, 26-sep-2026): catálogo de lo que se factura por líneas. `nucleo`: SOLO con
        `window.AXW_NUCLEO_OPERACION` (la enciende el build de las instancias del ERP) — la base de Lawang no
        tiene la tabla y el enlace llevaría a una pantalla vacía. Tras Recibos; es pestaña de «Cobros» (MENU_V4). */
-    { path: 'productos',  tras: 'recibos',  icono: 'inventory_2',    texto: 'Productos', nucleo: true }
+    { path: 'productos',  tras: 'recibos',  icono: 'inventory_2',    texto: 'Productos', nucleo: true },
+    /* Plantillas (AxisWorks ERP, 28-sep-2026): tras Contratos. Va DESPUÉS del Asistente en esta lista a
+       propósito: los dos se cuelgan tras Contratos, y el último en colgarse queda pegado a él. */
+    { path: 'plantillas', tras: 'contratos', icono: 'description',   texto: 'Plantillas', nucleo: true }
   ];
 
   /* "Panel de control" (15-sep-2026, encargo del owner): seccion nueva del
@@ -465,7 +472,7 @@
     contratos: 'contratos', asistente: 'asistente', 'asistente-correos': 'asistente', creatividades: ['dossier', 'creatividades', 'creatividades_ver'],
     facturas: 'facturas', recibos: 'recibos', comisiones: ['comisiones', 'comisiones_reparto', 'comisiones_condiciones', 'comisiones_equipos'], reservas: 'reservas', reparto: 'comisiones_reparto', condiciones: 'comisiones_condiciones', 'equipos-venta': 'comisiones_equipos',
     proyectos: 'unidades', modelos: 'modelos', obra: 'obra', compradores: 'compradores',
-    usuarios: 'usuarios', cuentas: 'cuentas', gastos: 'gastos', bancos: 'bancos', productos: 'productos',
+    usuarios: 'usuarios', cuentas: 'cuentas', gastos: 'gastos', bancos: 'bancos', productos: 'productos', plantillas: 'plantillas',
     /* Comunicados y Ajustes llevan clave desde el 27-sep-2026 (la exige también la base:
        migración 20260927040933). Documentación ya NO: vive dentro de Proyectos. */
     comunicacion: 'comunicacion', ajustes: 'ajustes'

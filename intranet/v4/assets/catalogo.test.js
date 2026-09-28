@@ -56,6 +56,49 @@ if (!ctxN.__H[iRec + 1] || ctxN.__H[iRec + 1].herr !== 'productos') errores.push
 if (!ctxN.__P.some(p => p[0] === 'productos')) errores.push('catálogo con la bandera: no hay casilla de permiso «productos»');
 if (!fs.existsSync(path.join(V4, 'productos', 'index.html'))) errores.push('catálogo con la bandera: no hay intranet/v4/productos/');
 
+/* --- 1 ter) Plantillas de contrato del ERP (28-sep-2026, subtarea 6b) ---
+   Igual que Productos: la base de Lawang no tiene `tipos_contrato` ni las versiones de plantilla. Sin la bandera
+   no puede salir NADA (ni tarjeta, ni casilla, ni entrada de menú, ni consulta); con ella, va tras Contratos, con
+   su casilla y su pantalla, y la pantalla lee por el servidor y escribe solo por RPC. */
+if (HERR.some(t => t.herr === 'plantillas')) errores.push('catálogo: «Plantillas» sale SIN window.AXW_NUCLEO_OPERACION (Lawang no tiene las tablas)');
+{
+  const ctxL = { window: {} };
+  vm.createContext(ctxL);
+  vm.runInContext(fs.readFileSync(path.join(RAIZ, 'contracts', 'assets', 'herramientas.js'), 'utf8') + '\n;this.__P = LW_PERMISOS;', ctxL);
+  if (ctxL.__P.some(p => p[0] === 'plantillas')) errores.push('permisos: la casilla «plantillas» sale SIN la bandera');
+}
+const iCon = ctxN.__H.findIndex(t => t.herr === 'contratos');
+if (!ctxN.__H[iCon + 1] || ctxN.__H[iCon + 1].herr !== 'plantillas') errores.push('catálogo con la bandera: «Plantillas» no va justo detrás de Contratos');
+if (!ctxN.__P.some(p => p[0] === 'plantillas')) errores.push('catálogo con la bandera: no hay casilla de permiso «plantillas»');
+{
+  const f = path.join(V4, 'plantillas', 'index.html');
+  if (!fs.existsSync(f)) errores.push('catálogo con la bandera: no hay intranet/v4/plantillas/');
+  else {
+    const h = fs.readFileSync(f, 'utf8');
+    if (!/<script[^>]+guard\.js[^>]*data-herramienta="plantillas"/.test(h)) errores.push('plantillas/: la puerta no pide la casilla «plantillas»');
+    if (!/<script src="\/contracts\/assets\/plantilla-html\.js[^"]*"/.test(h)) errores.push('plantillas/: no carga contracts/assets/plantilla-html.js (vista previa, diff y detección de campos)');
+  }
+  const navTxt = fs.readFileSync(path.join(__dirname, 'nav.js'), 'utf8');
+  if (!/\{ path: 'plantillas', texto: 'Plantillas', clave: 'plantillas', nucleo: true \}/.test(navTxt)) errores.push('nav.js: la entrada «Plantillas» de MENU_V4 no lleva `nucleo: true`');
+  if (!/\{ path: 'plantillas',[^}]*nucleo: true \}/.test((navTxt.match(/var INJERTOS = \[([\s\S]*?)\];/) || ['', ''])[1])) errores.push('nav.js: el injerto «Plantillas» no lleva `nucleo: true` (saldría en el menú de Lawang)');
+  const bloque = (txt, ini, fin) => { const i = txt.indexOf(ini); return i === -1 ? '' : txt.slice(i, fin ? txt.indexOf(fin, i) : undefined); };
+  const dj = bloque(fs.readFileSync(path.join(__dirname, 'datos.js'), 'utf8'), "REG['plantillas'] = function", 'function notaNoInstalado');
+  if (!/^REG\['plantillas'\] = function \(sb\) \{\s*if \(!window\.AXW_NUCLEO_OPERACION\) \{ notaNoInstalado\(\); return; \}/.test(dj))
+    errores.push('datos.js: REG.plantillas no empieza por la bandera (sin ella consultaría una tabla que Lawang no tiene)');
+  const ej = bloque(fs.readFileSync(path.join(__dirname, 'editores.js'), 'utf8'), '    plantillas: function (aut) {', "    'sociedades': function (aut) {");
+  if (!/^ {4}plantillas: function \(aut\) \{\s*if \(!window\.AXW_NUCLEO_OPERACION\) return;/.test(ej)) errores.push('editores.js: ED.plantillas no empieza por la bandera');
+  // Frontera (contexto/patrones_tecnicos.md): lee por lwDatos y escribe solo por las RPC de la base.
+  [dj, ej].forEach((b, i) => {
+    if (/\bsb\.from\(|\/rest\/v1\//.test(b)) errores.push((i ? 'editores' : 'datos') + '.js (plantillas): toca tablas directamente; lee por lwDatos y escribe por RPC');
+  });
+  const rpcs = [...ej.matchAll(/sb\.rpc\('([a-z_]+)'/g)].map(m => m[1]).sort();
+  const LLAMADAS = ['plantilla_borrador_descarta', 'plantilla_borrador_guarda', 'plantilla_version_activa', 'tipo_contrato_guarda'];
+  if (JSON.stringify([...new Set(rpcs)].sort()) !== JSON.stringify(LLAMADAS)) errores.push('editores.js (plantillas): RPC distintas de las cuatro de la base: ' + rpcs.join(', '));
+  // La casilla del descargo nace DESMARCADA y el botón deshabilitado: lo exige también la base (falta_descargo).
+  if (!/chk\.checked = false/.test(ej) || !/texto: 'Activar esta versión', tono: 'primario', disabled: true/.test(ej)) errores.push('editores.js (plantillas): activar no nace con la casilla desmarcada y el botón deshabilitado');
+  if (!/setAttribute\('sandbox', ''\)/.test(ej)) errores.push('editores.js (plantillas): la vista previa no va en un iframe sandbox=""');
+}
+
 // --- 2) y 3) puertas de cada pantalla ---
 const nav = fs.readFileSync(path.join(__dirname, 'nav.js'), 'utf8');
 const pathsDe = nombre => {
