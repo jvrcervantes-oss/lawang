@@ -550,12 +550,10 @@ function fichaGuardadaDe(guardados, d, docs, techo){
   const equivalente = (techo && planos.find(x => x.techo_clave === techo)) || planos.find(x => !x.techo_clave) || null;
   return equivalente && equivalente.id === d.id ? vieja : null;
 }
-/* Título del anexo en la portada del contrato. El plano conserva el de siempre
-   (los contratos que ya lo llevan no cambian de texto); el nombre del techo solo
-   va si el documento ES de ese techo. */
-/* LETRA Y TÍTULO (owner y Legal, 28-sep-2026): cada documento sale como «Apéndice <letra>»
-   (el plano A; el resto B, C… informativos, por tipo) con su título en los tres idiomas
-   (docs_contrato.js → apendices()). El nombre
+/* Título del anexo en la portada del contrato — LETRA Y TÍTULO (owner y Legal, 28-sep-2026):
+   cada documento sale como «Apéndice <letra>» con su título en los tres idiomas
+   (docs_contrato.js → apendices()); el plano ya no conserva su título de antes, sale
+   «Apéndice A — Planos Arquitectónicos», y el resto B, C… informativos, por tipo. El nombre
    del modelo y, si el documento es de un techo, el del techo, van detrás. `title` es la
    versión en español, para el panel de Anexos y el bot; el documento imprime `nombres`. */
 function nombresAuto(ap, tip){

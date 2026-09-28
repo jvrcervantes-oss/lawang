@@ -3063,6 +3063,8 @@
       'This Construction contract goes out without any of the model’s documents as annexes (plans, specifications), and the template refers to them.',
     'Sin anexo del modelo': 'No model annex',
     'Sin Apéndice A (planos)': 'No Appendix A (drawings)',
+    'Enlace generado, pero no se ha podido apuntar en el historial que sale sin anexo: avisa a administración':
+      'Link generated, but it could not be recorded in the history that it goes out without an annex: tell administration',
     'Este contrato cita el Apéndice A – Planos Arquitectónicos y no lo lleva.':
       'This agreement cites Appendix A – Architectural Drawings and does not include it.',
     'Si el modelo tiene plano, pídele a administración que lo marque (Modelos → Documentos → Editar, casilla «Se incluye automáticamente en el contrato», con su techo), o actívalo en Anexos si está apagado.':
