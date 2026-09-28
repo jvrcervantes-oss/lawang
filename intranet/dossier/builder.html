@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" class="v4 lw4-fijo" data-lw4-herramienta="creatividades">
 <head>
-<meta name="lw-version" content="936c8d1b4750">
+<meta name="lw-version" content="9f6905eec55c">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
@@ -86,11 +86,9 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
   html.lw4-fijo #topbar, html.lw4-fijo #sidebar{ left:288px; }
   html.lw4-fijo #seltools{ left:calc(288px + 250px); }
 }
-/* Con el menú fijo, la hoja tiene 288 px menos. A 1440 la A4 apaisada a --zoom .55
-   (617 px) ya no cabía entre los paneles (562 px útiles) y se metía 25 px bajo la
-   columna de revisión. .5 = 561 px: cabe justo a 1440. El −/+ de «Página» sigue
-   mandando (escribe --zoom en el <html>, que gana a esto). */
-@media screen and (min-width:1024px) and (max-width:1500px){ html.lw4-fijo{ --zoom:.5; } }
+/* Con el menú fijo, la hoja tiene 288 px menos. El --zoom de arranque ya no es una
+   cifra por tramo de ancho: lo calcula ajustaZoom() (abajo) con el ancho REAL de la
+   mesa (LAW-392, 28-sep-2026). */
 #sizesel{font:600 12.5px var(--sans);background:#ffffff14;color:#fff;border:1px solid #ffffff33;border-radius:999px;padding:6px 10px;cursor:pointer;max-width:170px}
 #sizesel option{color:#222}
 #zoomctl{display:flex;align-items:center;gap:4px;font-size:11px;color:#ffffffaa;margin-left:auto}
@@ -730,7 +728,28 @@ function applySize(){
   document.documentElement.style.setProperty('--pw',w+'mm');
   document.documentElement.style.setProperty('--ph',h+'mm');
   document.getElementById('pagesize').textContent=`@page{size:${w}mm ${h}mm;margin:0}`;
+  ajustaZoom();
 }
+/* Zoom de arranque = el que hace caber la hoja en la mesa (LAW-392, 28-sep-2026).
+   Con el menú v4 fijo la mesa pierde 288 px y un --zoom fijo por tramo de ancho
+   metía la A4 apaisada bajo la columna «Revisión» a 1366 (a 1440 cabía justo).
+   Se mide #stage de verdad —menú, paneles y padding incluidos— y se recalcula al
+   cambiar el tamaño de página, al girarla y al redimensionar la ventana. Tope .55,
+   el de siempre: donde ya cabía, nada cambia. Suelo .25, el mismo del −/+.
+   En cuanto alguien toca el −/+ de «Página», manda su zoom y esto deja de moverlo. */
+let ZOOM_A_MANO=false;
+function ajustaZoom(){
+  if(ZOOM_A_MANO) return;
+  const st=document.getElementById('stage'); if(!st) return;
+  const cs=getComputedStyle(st);
+  const util=st.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);
+  const hoja=state.size.w*96/25.4;                    // ancho de la hoja en px CSS, sin zoom
+  if(!(util>0) || !(hoja>0)) return;
+  const z=Math.min(.55,Math.max(.25,Math.floor(util/hoja*100)/100));
+  document.documentElement.style.setProperty('--zoom',z.toFixed(2));
+}
+let ZOOM_T=0;
+addEventListener('resize',()=>{ clearTimeout(ZOOM_T); ZOOM_T=setTimeout(ajustaZoom,120); });
 function pickSize(key){
   if(key==='custom'){
     const w=parseFloat(prompt('Ancho en mm:',state.size.w));
@@ -1457,6 +1476,7 @@ async function cargarBibliotecas(){
   }
 }
 function setZoom(dz){
+  ZOOM_A_MANO=true;
   const z=Math.min(1.2,Math.max(.25,parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--zoom'))+dz));
   document.documentElement.style.setProperty('--zoom',z.toFixed(2));
 }
