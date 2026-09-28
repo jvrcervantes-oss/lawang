@@ -1,4 +1,4 @@
--- PRUEBA POR ROL — calendario de pagos del Contrato de Construcción (28-sep-2026, migración 20260928052131 + 20260928052357).
+-- PRUEBA POR ROL — calendario de pagos del Contrato de Construcción (28-sep-2026, migraciones 20260928052131 + 052357 + 054712).
 -- Se ejecuta con execute_sql (MCP) o psql como postgres, UN BLOQUE POR LLAMADA: cada uno acaba en
 -- `raise exception 'RES: …'`, que revierte la transacción entera — NO ESCRIBE NADA. Cada punto debe decir «ok».
 -- Para probar ANTES de aplicar: `begin;` + el texto de la migración + un bloque, en la misma llamada.
@@ -185,5 +185,31 @@ begin
   set local role authenticated;
   select * into x from obra_contratos_afectados(py, 'I', 'Hotelera 2', 'preparacion') a where a.contrato_id = c.id;
   r := r || case when not x.elegible and x.motivo = 'pago_unico_firma' then '4 ok; ' else '4 FALLO ' || coalesce(x.motivo, 'null') || '; ' end;
+  raise exception 'RES: %', r;
+end $$;
+
+-- 5. Tras 20260928054712: los importes de un calendario a medida siguen al precio, y un agente no le cambia la forma de
+--    pago. El precio de la prueba 1 entra por contrato_calendario_aplica: por contrato_guarda, el trigger
+--    descuento_comercial_construccion_valido no deja un precio que no cuadre con techo + extras − descuento.
+do $$
+declare r text := ''; j jsonb; c record; ant jsonb;
+  A text := '{"sub":"1cd031f2-c7da-455e-975f-c4e8708e36fb","email":"dortegag@gmail.com","role":"authenticated"}';
+begin
+  select * into c from contratos where numero = 'CC00106';
+  ant := c.datos || '{"calendario":"manual","hitos":[{"pct":"60","monto":"40.200","es":"A","fijo":true,"calculado":true},{"pct":"40","monto":"26.800","es":"B","fijo":true,"calculado":true,"resto":true}]}';
+  update contratos set datos = ant where id = c.id;
+  perform set_config('request.jwt.claims', A, true);
+  j := contrato_calendario_aplica(ant, ant, 70000, current_date, c.id);
+  r := r || case when j->'hitos'->0->>'monto' = '42.000' and j->'hitos'->1->>'monto' = '28.000' then '1 ok; ' else '1 FALLO ' || (j->'hitos')::text || '; ' end;
+  set local role authenticated;
+  begin
+    perform contrato_guarda(c.id, jsonb_build_object('tipo', 'construccion', 'datos', ant || '{"calendario":"estandar"}'));
+    r := r || '2 FALLO agente pisa el calendario del admin; ';
+  exception when others then r := r || '2 ok; '; end;
+  reset role;
+  j := contrato_calendario_monta('estandar', 67000, '[]', current_date, false);
+  r := r || case when j->0->>'monto' = '16.750' and j->4->>'monto' = '3350' then '3 ok; ' else '3 FALLO ' || j::text || '; ' end;
+  j := contrato_calendario_monta('estandar', 100000.01, '[]', current_date, false);
+  r := r || case when (select sum(public.lw_importe(h->>'monto')) from jsonb_array_elements(j) h) = 100000.01 then '4 ok; ' else '4 FALLO ' || j::text || '; ' end;
   raise exception 'RES: %', r;
 end $$;

@@ -106,7 +106,20 @@ function fechaHitoImpresa(iso, lang){
    entera —importes incluidos— desde el preset y el precio total, y devuelve
    la que guardó; lo de aquí es solo lo que el agente ve mientras edita. */
 const CALENDARIOS_ELEGIBLES = ['estandar', 'unico_firma', 'unico_obra'];
-const PLAZO_PAGO_UNICO_DIAS = 90;   // espejo de parametros.construccion.pago_unico_max_dias — el servidor es quien lo aplica
+/* Tope del pago único a la firma, en días. Manda parametros.construccion.pago_unico_max_dias (Ajustes), que es lo
+   que aplica el servidor; 90 es solo el valor mientras llega la lectura, para que pantalla y base no digan cosas
+   distintas si un admin lo cambia (revisor de código, 28-sep). */
+let PLAZO_PAGO_UNICO_DIAS = 90;
+let PLAZO_PAGO_UNICO_LEIDO = false;
+function leePlazoPagoUnico(){
+  if(PLAZO_PAGO_UNICO_LEIDO || typeof sb === 'undefined' || !sb) return;
+  PLAZO_PAGO_UNICO_LEIDO = true;
+  Promise.resolve(sb.from('parametros').select('valor').eq('clave', 'construccion.pago_unico_max_dias').maybeSingle())
+    .then(r => {
+      const v = r && r.data ? Number(r.data.valor) : NaN;
+      if(isFinite(v) && v >= 0 && v !== PLAZO_PAGO_UNICO_DIAS){ PLAZO_PAGO_UNICO_DIAS = v; if(typeof refreshHitos === 'function') refreshHitos(); if(typeof updateSaveButton === 'function') updateSaveButton(); }
+    }).catch(() => { PLAZO_PAGO_UNICO_LEIDO = false; });
+}
 function presetCalendario(cal){
   const t = (typeof TOKENS !== 'undefined' && TOKENS) || {};
   const lista = cal === 'estandar'
@@ -164,8 +177,12 @@ function calendarioPasaAManual(){
 }
 function calendarioSelectorHTML(){
   const cal = CALENDARIO || 'estandar';
+  leePlazoPagoUnico();
   const cerrado = (typeof LOCKED !== 'undefined' && LOCKED)
     || (typeof EN_FIRMA !== 'undefined' && (EN_FIRMA.vivas + EN_FIRMA.firmadas) > 0);
+  // Un calendario a medida lo cambia solo un admin (la base lo rechaza a los demás). Se pinta cerrado y
+  // updateSaveButton() lo abre cuando el rol resulta ser admin — mismo patrón que los hitos de fábrica.
+  const soloAdmin = !cerrado && cal === 'manual';
   const opts = [
     ['estandar',    L({es:'Por hitos, al iniciar cada fase de obra',en:'By milestones, as each construction phase starts',id:'Per tahap, saat setiap fase konstruksi dimulai'})],
     ['unico_firma', L({es:'Pago único a la firma',en:'Single payment upon signing',id:'Pembayaran tunggal saat penandatanganan'})],
@@ -181,7 +198,7 @@ function calendarioSelectorHTML(){
     libre:       L({es:'Contrato anterior al calendario de fábrica: se sigue editando a mano. Si eliges una forma de pago, la tabla se sustituye.',en:'Contract predating the standard schedule: still edited by hand. Choosing a payment method replaces the table.',id:'Kontrak sebelum jadwal standar: tetap diedit manual. Memilih cara pembayaran akan mengganti tabel.'})
   }[cal] || '';
   return `<div class="field" style="margin-bottom:10px"><label for="calendarioSel">${L({es:'Forma de pago',en:'Payment method',id:'Cara pembayaran'})}</label>
-    <select id="calendarioSel"${cerrado ? ' disabled' : ''}>${opts.map(([v,t]) =>
+    <select id="calendarioSel"${(cerrado || soloAdmin) ? ' disabled' : ''}${soloAdmin ? ' data-cal-manual' : ''}>${opts.map(([v,t]) =>
       `<option value="${v}"${v === cal ? ' selected' : ''}${(v === 'libre' || v === 'manual') ? ' disabled' : ''}>${esc(t)}</option>`).join('')}</select>
     <p class="mini" style="margin-top:4px">${esc(nota)}</p></div>`;
 }

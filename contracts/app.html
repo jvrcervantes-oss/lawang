@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="4bfce7a5d330">
+<meta name="lw-version" content="8551391ed668">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -87,7 +87,7 @@
 <script src="assets/modelos_catalogo.js?v=da02ce3b"></script>
 <!-- Techo y extras del modelo elegido, solo Construcción (16-sep-2026). -->
 <script src="assets/techo_extras.js?v=d93ea66c"></script>
-<script src="assets/hitos_fechas.js?v=3bcbf16e"></script>
+<script src="assets/hitos_fechas.js?v=4f188947"></script>
 <script src="assets/entidades_pago.js?v=72c8d06a"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
@@ -4327,6 +4327,8 @@ function updateSaveButton(){
     document.querySelectorAll('[data-hito-admin]').forEach(el=>{
       el.style.display = abreHitos ? '' : 'none';
     });
+    // Forma de pago de un calendario a medida: solo la cambia un admin (28-sep-2026)
+    document.querySelectorAll('#calendarioSel[data-cal-manual]').forEach(el=>{ el.disabled = !abreHitos; });
     // El aviso es lo INVERSO de los botones: se ve cuando NO se puede tocar
     // el candado, para explicar por qué no está — hallazgo MEDIA de Legal.
     document.querySelectorAll('[data-hito-admin-aviso]').forEach(el=>{
@@ -4702,7 +4704,7 @@ async function guardarContrato(){
     const tope = sumaDiasISO(base, PLAZO_PAGO_UNICO_DIAS);
     const msg = !f ? lwT('Pon la fecha de vencimiento del pago único.')
       : f < base ? lwT('El pago único no puede vencer antes de la fecha de firma.')
-      : (f > tope && !puedeHitosFijos()) ? lwT('El pago único vence como muy tarde 90 días después de la firma. Más allá lo decide un admin.')
+      : (f > tope && !puedeHitosFijos()) ? lwT('El pago único vence como muy tarde') + ' ' + PLAZO_PAGO_UNICO_DIAS + ' ' + lwT('días después de la firma. Más allá lo decide un admin.')
       : '';
     if(msg){
       avisoNoGuardado(msg);
