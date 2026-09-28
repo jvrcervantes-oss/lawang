@@ -42,3 +42,30 @@ begin
        and not has_function_privilege('authenticated', 'public.investor_deck_documentos(text)', 'execute') then 'ok' else 'FALLO' end);
   raise exception 'RES: %', r;
 end $$;
+
+-- Casos 7-8: un AGENTE no-admin con Documentación en ese proyecto no cambia la traducción de un documento publicado
+-- (regla B4), pero sí puede guardar sin cambiarla (su formulario manda los campos tal cual). Todo en rollback.
+do $$
+declare r text := ''; d record; u record; v_ok boolean; v_sub text; v_e text;
+begin
+  select x.id, x.proyecto, x.proyecto_id, x.titulo into d from public.documentos_proyecto x
+   where coalesce(x.url, '') <> '' and x.publicado_investor_deck and not x.confidencial and x.categoria <> 'faq'
+     and public.deck_proyecto_abierto(x.proyecto) order by x.creado_en desc limit 1;
+  update public.documentos_proyecto set titulo_i18n = '{"en":"Brochure EN"}' where id = d.id;
+  for u in select a.id::text sub, a.email from public.usuarios us join auth.users a on lower(a.email) = lower(us.email)
+            where us.rol not in ('admin', 'super_admin') and us.activo is not false loop
+    perform set_config('request.jwt.claims', json_build_object('sub', u.sub, 'email', u.email, 'role', 'authenticated')::text, true);
+    begin
+      v_ok := public.es_agente() and public.puede('documentacion') and public.puede_proyecto(d.proyecto, d.proyecto_id) and not public.es_admin();
+    exception when others then v_ok := false; end;
+    if v_ok then v_sub := u.sub; exit; end if;
+  end loop;
+  if v_sub is null then raise exception 'RES: sin agente no-admin con Documentación en ese proyecto'; end if;
+  set local role authenticated;
+  begin perform public.documento_proyecto_guarda(d.id, '{"titulo_i18n":{"en":"Otro"}}'); r := r || '7 FALLO no-admin cambia traduccion publicada; ';
+  exception when others then v_e := sqlstate; r := r || '7 no-admin cambia=' || v_e || (case when v_e = '42501' then ' ok; ' else ' FALLO; ' end); end;
+  begin perform public.documento_proyecto_guarda(d.id, '{"titulo_i18n":{"en":"Brochure EN","id":""}}'); r := r || '8 no-admin guarda sin cambiar ok; ';
+  exception when others then r := r || '8 FALLO no-admin guarda sin cambiar: ' || sqlerrm || '; '; end;
+  reset role;
+  raise exception 'RES: %', r;
+end $$;

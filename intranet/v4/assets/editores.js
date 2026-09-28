@@ -5326,11 +5326,11 @@
             if (!/^https?:\/\//.test(v.url)) return { error: { message: 'la URL tiene que empezar por http:// o https://' } };
             return confirmaPublicacionDoc(v, p).then(function (c) {
               if (!c.ok) return { error: { message: c.msg } };
-              return guardaDoc(null, conDeck({
-                proyecto: p, titulo: v.titulo, titulo_i18n: tituloI18n(v), url: v.url, categoria: v.categoria,
+              return guardaDoc(null, conDeck(conTitulos({
+                proyecto: p, titulo: v.titulo, url: v.url, categoria: v.categoria,
                 carpeta: v.carpeta.trim(), descripcion: v.descripcion.trim() || null,
                 visible_portal: v.visible_portal, confidencial: v.confidencial
-              }, v));
+              }, v), v));
             });
           });
         });
@@ -5460,6 +5460,8 @@
            inglés e indonesio van en `titulo_i18n`. Vacío = el deck cae al inglés y luego al español. El servidor
            rehace el objeto (solo en/id, recortado), así que aquí solo se recoge. */
         function camposTituloDeck(d2) {
+          // un documento de la EMPRESA (general) nunca sale en el deck: sin campos que confundan
+          if (d2 && typeof lwEsDocGeneral === 'function' && lwEsDocGeneral(d2)) return [];
           var t = (d2 && d2.titulo_i18n) || {};
           return [
             { k: 'titulo_en', label: 'Título en inglés (investor deck)', medio: 1, valor: t.en || '', ayuda: 'En blanco = sale el español' },
@@ -5468,6 +5470,11 @@
         }
         function tituloI18n(v) {
           return { en: String(v.titulo_en || '').trim(), id: String(v.titulo_id || '').trim() };
+        }
+        // sin campos (documento general), la clave no viaja: el servidor conserva lo que hubiera
+        function conTitulos(fila, v) {
+          if ('titulo_en' in v || 'titulo_id' in v) fila.titulo_i18n = tituloI18n(v);
+          return fila;
         }
         function campoDeck(valor) {
           return esAdminP ? [{ k: 'publicado_investor_deck', label: 'Publicar en el dosier de inversores', tipo: 'check', valor: !!valor, ayuda: 'PÚBLICO: lo ve cualquiera que abra el enlace del deck, sin contraseña y sin contrato. Con la categoría «comercial» es el botón «Download dossier» del deck. Un fichero subido sale si es PDF, imagen, Word, Excel o PowerPoint (docx/xlsx/pptx); los demás, como enlace' }] : [];
@@ -5532,11 +5539,11 @@
             if (!esAdminP) v.publicado_investor_deck = !!d2.publicado_investor_deck;   // sin casilla: lo que había
             return confirmaPublicacionDocEdicion(v, d2, p).then(function (c) {
               if (!c.ok) return { error: { message: c.msg } };
-              return guardaDoc(d2.id, conDeck({
-                titulo: v.titulo, titulo_i18n: tituloI18n(v), url: v.url, categoria: v.categoria,
+              return guardaDoc(d2.id, conDeck(conTitulos({
+                titulo: v.titulo, url: v.url, categoria: v.categoria,
                 carpeta: v.carpeta.trim(), descripcion: v.descripcion.trim() || null,
                 visible_portal: v.visible_portal, confidencial: v.confidencial
-              }, v));
+              }, v), v));
             });
           });
         }
@@ -5589,11 +5596,11 @@
             if (!esAdminP) v.publicado_investor_deck = !!d2.publicado_investor_deck;   // sin casilla: lo que había
             return confirmaPublicacionDocEdicion(v, d2, p).then(function (c) {
               if (!c.ok) return { error: { message: c.msg } };
-              return guardaDoc(d2.id, conDeck({
-                titulo: v.titulo, titulo_i18n: tituloI18n(v), categoria: v.categoria,
+              return guardaDoc(d2.id, conDeck(conTitulos({
+                titulo: v.titulo, categoria: v.categoria,
                 carpeta: v.carpeta.trim(), descripcion: v.descripcion.trim() || null,
                 visible_portal: v.visible_portal, confidencial: v.confidencial
-              }, v));
+              }, v), v));
             });
           });
         }
