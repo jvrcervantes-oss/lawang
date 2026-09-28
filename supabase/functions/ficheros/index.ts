@@ -12,9 +12,12 @@
 // Clases de hoy:
 //   modelo_documento → bucket `modelos` (privado). Planos y marcar «va en el contrato» (en_contrato) solo admin;
 //                      el resto, cualquiera del equipo. PDF o imagen. Tipos: plano, calidades, ficha, render, dosier, otro.
-//   deck_foto        → bucket `deck` (PÚBLICO: subir es publicar). Solo admin. Solo WebP (la pantalla recodifica
-//                      para quitar el EXIF/GPS antes de subir). Al borrar: PRIMERO el objeto y después la fila — al
-//                      revés, un fallo dejaría una imagen pública sin ninguna fila que diga que está ahí.
+//   deck_foto        → bucket `deck` (PÚBLICO) o `deck-privado`, según el BUCKET DEBIDO (AXW-66, 28-sep-2026): modelo
+//                      y proyecto con deck abierto → `deck`; proyecto cerrado → `deck-privado` (lo decide la base,
+//                      deck_bucket_debido, también en `registra`, que exige el objeto en ese bucket exacto). Solo admin.
+//                      Solo WebP (la pantalla recodifica para quitar el EXIF/GPS antes de subir). Al borrar: PRIMERO el
+//                      objeto (de los DOS buckets: pudo moverse entre medias) y después la fila — al revés, un fallo
+//                      dejaría una imagen pública sin ninguna fila que diga que está ahí.
 //
 // Bloque 4 (27-sep-2026, LAW-336; revisión previa #127 en encargos/20260927_lawang_frontera_b4_b5_resto.md):
 //   documento_proyecto → bucket `documentacion` (privado). Agente con la herramienta «documentacion» y el proyecto
@@ -100,6 +103,10 @@ type Clase = {
   registra?: (uid: string, body: Record<string, unknown>, path: string) => Promise<{ data: unknown; error: { message?: string; code?: string } | null }>;
   filaDe: (path: string) => Promise<boolean>;  // ¿alguien registró ya esta ruta? (entonces no se borra desde aquí)
   borraRpc?: string;                           // (p_uid, p_id, p_solo_comprobar) → path. Sin él, la clase no borra.
+  // Bucket que depende del destino (deck_foto, AXW-66). Sin él, `bucket`. Se llama DESPUÉS de `carpeta` (permiso ya visto).
+  bucketDe?: (body: Record<string, unknown>) => Promise<string | null>;
+  // Buckets donde puede estar un objeto de la clase, para quitarlo (subida no registrada o borrar). Sin él, [bucket].
+  todos?: string[];
 };
 
 const esAdmin = async (u: Usuario) => (await u.rpc('es_admin')).data === true;
@@ -189,6 +196,12 @@ const CLASES: Record<string, Clase> = {
   },
   deck_foto: {
     bucket: 'deck',
+    todos: ['deck', 'deck-privado'],
+    // El MISMO cálculo que hace deck_foto_registra (y el reconciliador): nunca una copia de la regla aquí.
+    bucketDe: async (body) => {
+      const { data, error } = await admin.rpc('deck_bucket_debido', { p_ambito: String(body.ambito ?? ''), p_ref: String(body.ref_id ?? '') });
+      return error || (data !== 'deck' && data !== 'deck-privado') ? null : String(data);
+    },
     exts: ['.webp'],
     bytesOk: (ext, b) => ext === '.webp' && bytesCuadran('.webp', b),
     carpeta: async (u, body) => {
@@ -590,8 +603,8 @@ Deno.serve(async (req) => {
     const errRpc = (e: { message?: string; code?: string } | null) =>
       json({ ok: false, error: e?.message ?? 'error', code: e?.code }, e?.code === '42501' ? 403 : 400);
 
-    // ── deck (AXW-66): URLs por id, abrir/cerrar moviendo las fotos, barrido. Acciones NUEVAS de la clase deck_foto:
-    //    no tocan subida_url/registra/borra de esa clase (cambian en S4, con el front). ──
+    // ── deck (AXW-66): URLs por id, abrir/cerrar moviendo las fotos, barrido. subida_url/registra/borra de la clase
+    //    deck_foto van por el camino común de abajo, con su bucket debido (bucketDe) y sus dos buckets (todos). ──
     if (clase === CLASES.deck_foto && Object.hasOwn(ACCIONES_DECK, accion)) {
       const r = await ACCIONES_DECK[accion](usuario, quien.user.id, body);
       if ('rpcError' in r) return errRpc(r.rpcError as { message?: string; code?: string });
@@ -624,8 +637,10 @@ Deno.serve(async (req) => {
       const { data: path, error: e1 } = await admin.rpc(clase.borraRpc!, { p_uid: quien.user.id, p_id: id, p_solo_comprobar: true });
       if (e1) return errRpc(e1);
       if (typeof path === 'string' && path) {
-        const { error: eRm } = await admin.storage.from(clase.bucket).remove([path]);
-        if (eRm) return json({ ok: false, error: 'fichero_no_borrado' }, 500);
+        for (const b of clase.todos ?? [clase.bucket]) {
+          const { error: eRm } = await admin.storage.from(b).remove([path]);
+          if (eRm) return json({ ok: false, error: 'fichero_no_borrado' }, 500);
+        }
       }
       const { error: e2 } = await admin.rpc(clase.borraRpc!, { p_uid: quien.user.id, p_id: id, p_solo_comprobar: false });
       if (e2) return json({ ok: false, error: 'fila_no_borrada', code: e2.code }, 500);
@@ -647,9 +662,11 @@ Deno.serve(async (req) => {
       const carpeta = await clase.carpeta(usuario, body);
       if (typeof carpeta !== 'string') return json({ ok: false, error: carpeta.error }, carpeta.status);
       const path = `${carpeta}${crypto.randomUUID()}${ext}`;
-      const { data, error } = await admin.storage.from(clase.bucket).createSignedUploadUrl(path);
+      const bucket = clase.bucketDe ? await clase.bucketDe(body) : clase.bucket;
+      if (!bucket) return json({ ok: false, error: 'no_se_pudo_preparar_la_subida' }, 500);
+      const { data, error } = await admin.storage.from(bucket).createSignedUploadUrl(path);
       if (error || !data) return json({ ok: false, error: 'no_se_pudo_preparar_la_subida' }, 500);
-      return json({ ok: true, path, token: data.token, content_type: tipoDe(ext), bucket: clase.bucket });
+      return json({ ok: true, path, token: data.token, content_type: tipoDe(ext), bucket });
     }
 
     // ── registrar lo subido ──────────────────────────────────────────────
@@ -660,8 +677,15 @@ Deno.serve(async (req) => {
       const path = String(body.path ?? '');
       const m = new RegExp('^' + carpeta.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[0-9a-f-]{36}(\\.[a-z]+)$').exec(path);
       if (!m || !clase.exts.includes(m[1])) return json({ ok: false, error: 'ruta_invalida' }, 400);
-      const quita = async () => { if (!(await clase.filaDe(path))) await admin.storage.from(clase.bucket).remove([path]); };
-      const cab = await cabecera(clase.bucket, path);
+      // sin fila, lo subido se quita de TODOS los buckets de la clase: un deck que se abre o cierra entre la subida y
+      // el registro deja el objeto en el que ya no toca, y ahí quedaría suelto
+      const quita = async () => {
+        if (await clase.filaDe(path)) return;
+        for (const b of clase.todos ?? [clase.bucket]) await admin.storage.from(b).remove([path]);
+      };
+      const bucket = clase.bucketDe ? await clase.bucketDe(body) : clase.bucket;
+      if (!bucket) return json({ ok: false, error: 'error_interno' }, 500);
+      const cab = await cabecera(bucket, path);
       if (!cab) return json({ ok: false, error: 'el_fichero_no_ha_llegado' }, 409);
       if (!clase.bytesOk(m[1], cab)) {
         await quita();

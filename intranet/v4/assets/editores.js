@@ -2281,7 +2281,7 @@
     // Fotos del Investor Deck (S10.2, 22-sep-2026) — pieza compartida de la
     // suite (Regla 0), usada hoy por Proyectos aquí y previsiblemente por
     // Modelos v4 más adelante; se carga bajo demanda igual que el resto.
-    deckFotos: { src: '/contracts/assets/deck_fotos.js?v=45d4eb93', listo: function () { return !!window.lwDeckFotos; } }
+    deckFotos: { src: '/contracts/assets/deck_fotos.js?v=0deaf654', listo: function () { return !!window.lwDeckFotos; } }
   };
   var modPromesasDoc = {};
   function cargaModuloDoc(nombre) {
@@ -5972,9 +5972,13 @@
 
       /* Investor Deck (S10.3, 22-sep-2026, revisión previa #40 Seguridad+
          Legal+Datos): porta `abrirInvestorDeck()` de
-         /intranet/proyectos/index.html:904-983 TAL CUAL — mismo RPC
-         (`investor_deck_activar`, SECURITY DEFINER con `es_admin()` propio,
-         nunca un UPDATE en bloque a `unidades` desde aquí), misma
+         /intranet/proyectos/index.html:904-983. Activar/desactivar va desde
+         AXW-66 (28-sep-2026, revisión previa #139) por la edge `ficheros`
+         (clase deck_foto, acción `deck_activa`): un solo camino que mueve las
+         fotos del proyecto entre `deck-privado` y el `deck` público EN ORDEN
+         con el flag (abrir: fotos y después flag; cerrar: flag y después
+         fotos), serializado por proyecto; la vieja RPC `investor_deck_activar`
+         ya no se llama desde el navegador. Misma
          confirmación "Incluidas las vendidas y reservadas", mismo botón
          "Activar" deshabilitado sin título guardado. El mecanismo YA EXISTE
          en producción (Palm Field, 15-sep) — esto solo lo engancha a la v4,
@@ -6060,23 +6064,56 @@
           });
         }
 
-        function toggleInvestorDeck() {
-          var nuevoEstado = !activo;
+        /* El botón se desactiva mientras trabaja (mover las fotos lleva unos
+           segundos) y NO se da por hecho nada que el servidor no confirme: si
+           el cambio queda a medias se dice con esas palabras (repetir es
+           seguro: todo el camino es idempotente) y la página no se recarga
+           como si hubiera salido bien. */
+        /* `aplicado` (edge v6): dice si el flag del deck YA cambió. Si cambió
+           pero alguna foto quedó mal puesta (deck_a_medias), pulsar otra vez
+           NO debe invertirlo: el botón pasa a «Reintentar» y repite el MISMO
+           sentido (la acción es idempotente). Sin `aplicado` = no aplicado. */
+        var reintento = null;
+        function toggleInvestorDeck(ev) {
+          var nuevoEstado = reintento !== null ? reintento : !activo;
+          var btn = ev && ev.currentTarget;
+          if (btn && btn.disabled) return;
           aseguraModulosDoc(['dialogo']).then(function () {
             return lwConfirmar({
               titulo: nuevoEstado ? 'Activar el Investor Deck' : 'Desactivar el Investor Deck',
               cuerpo: nuevoEstado
-                ? '<p>Todas las unidades de ' + esc(p.nombre) + ' pasarán a ser visibles, sin login, en /investor-deck/. <b>Incluidas las vendidas y reservadas.</b></p>'
-                : '<p>' + esc(p.nombre) + ' deja de ser visible en el Investor Deck público.</p>',
-              confirmar: nuevoEstado ? 'Activar' : 'Desactivar'
+                ? '<p>Todas las unidades de ' + esc(p.nombre) + ' pasarán a ser visibles, sin login, en /investor-deck/. <b>Incluidas las vendidas y reservadas.</b></p>' +
+                  '<p><b>Sus fotos del deck pasan a ser públicas:</b> cualquiera con la dirección podrá verlas.</p>'
+                : '<p>' + esc(p.nombre) + ' deja de ser visible en el Investor Deck público.</p>' +
+                  '<p>Sus fotos del deck dejan de ser públicas y pasan al archivo privado. Quien ya las descargó conserva su copia.</p>',
+              confirmar: reintento !== null ? 'Reintentar' : (nuevoEstado ? 'Activar' : 'Desactivar')
             });
           }).then(function (ok) {
             if (!ok) return;
-            return sb.rpc('investor_deck_activar', { p_proyecto: p.nombre, p_activo: nuevoEstado }).then(function (r) {
-              if (r.error) return aviso('No se pudo cambiar el estado: ' + r.error.message, '#ba1a1a');
+            if (typeof window.lwFichero !== 'function') return aviso('Falta guard.js actualizado: recarga la página.', '#ba1a1a');
+            if (btn) { btn.disabled = true; btn.setAttribute('aria-busy', 'true'); }
+            aviso(nuevoEstado ? 'Activando el deck y pasando sus fotos al público…' : 'Desactivando el deck y retirando sus fotos del público…');
+            return window.lwFichero(sb, 'deck_foto', 'deck_activa', { proyecto_id: p.id, activo: nuevoEstado }).then(function (d) {
+              var n = d && d.en_ambos;
+              if (d && d.aviso === 'aplicado_con_duplicadas') {
+                // hecho entero; quedan copias repetidas en los dos archivos, y eso lo decide una persona
+                aviso((nuevoEstado ? 'Deck activado' : 'Deck desactivado') + '. Ojo: ' + (n || 'algunas') + ' foto(s) tienen copia en el archivo público y en el privado; avisa a administración.', '#8A6A34');
+                setTimeout(function () { c.cierra(); location.reload(); }, 5000);
+                return;
+              }
               aviso(nuevoEstado ? 'Deck activado' : 'Deck desactivado');
               c.cierra();
               location.reload();
+            }, function (e) {
+              if (btn) { btn.disabled = false; btn.removeAttribute('aria-busy'); }
+              var clave = e && e.clave;
+              if (e && e.aplicado === true) {
+                reintento = nuevoEstado;
+                if (btn) btn.textContent = 'Reintentar';
+                return aviso('El deck YA está ' + (nuevoEstado ? 'activado' : 'desactivado') + ', pero el cambio ha quedado A MEDIAS: alguna foto no está donde toca. Pulsa «Reintentar»: repite lo mismo y es seguro.', '#ba1a1a');
+              }
+              if (clave === 'cambio_en_curso') return aviso('Ya hay un cambio en curso en el deck de este proyecto: espera un minuto y vuelve a abrirlo.', '#8A6A34');
+              aviso('No se ha cambiado nada: ' + ((e && e.message) || e), '#ba1a1a');
             });
           });
         }

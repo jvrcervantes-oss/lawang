@@ -150,19 +150,32 @@
     return r.signedUrl;
   }
 
-  /* Fotos de la intranet (`deck_fotos`, bucket público `deck`). La foto viaja
-     por ID; la URL se compone aquí y nunca se acepta una URL libre de un estado
-     guardado (Seguridad #4). */
-  async function fotos(filtro) {
-    var c = await sb();
+  /* Fotos de la intranet (`deck_fotos`). La foto viaja por ID y nunca se acepta
+     una URL libre de un estado guardado (Seguridad #4). Desde AXW-66 (28-sep-2026)
+     las de proyectos sin deck abierto viven en el bucket PRIVADO `deck-privado`:
+     la URL la da el servidor por id (`lwFotoUrls`, guard.js; firmada 1 h si es
+     privada) y NO se guarda en ningún estado. Dos pasos separados a propósito:
+     leer las filas (`filasFotos`, pasará a lwDatos en L4) y resolver sus URL.
+     Si el servidor no da las URL, RECHAZA (`.clave = 'urls_fallan'`): la pantalla
+     no puede confundirlo con «este proyecto no tiene fotos». */
+  async function filasFotos(c, filtro) {
     var q = c.from('deck_fotos').select('id, ambito, proyecto_id, modelo_id, tipo, uso, path, pie, orden')
       .order('orden', { ascending: true }).limit(1000);
     if (filtro && filtro.proyecto_id) q = q.eq('proyecto_id', filtro.proyecto_id);
     if (filtro && filtro.modelo_id) q = q.eq('modelo_id', filtro.modelo_id);
     if (filtro && filtro.ambito) q = q.eq('ambito', filtro.ambito);
-    var filas = falla(await q) || [];
+    return falla(await q) || [];
+  }
+  function urlsDe(c, filas) {
+    if (typeof window.lwFotoUrls !== 'function') return Promise.reject(Object.assign(new Error('Falta guard.js actualizado: recarga la página'), { clave: 'urls_fallan' }));
+    return window.lwFotoUrls(c, filas).then(function (r) { return r.urls; });
+  }
+  async function fotos(filtro) {
+    var c = await sb();
+    var filas = await filasFotos(c, filtro);
+    var urls = await urlsDe(c, filas);
     return filas.map(function (f) {
-      f.url = c.storage.from('deck').getPublicUrl(f.path).data.publicUrl;
+      f.url = urls[f.id] || null;               // null: la fila existe pero su fichero no
       f.esRender = f.tipo !== 'foto';            // 'render' e 'ia' (Datos #1)
       f.rotulo = (f.pie && (f.pie.es || f.pie.en)) || '';
       return f;
@@ -170,8 +183,8 @@
   }
   async function urlFoto(fotoId) {
     var c = await sb();
-    var f = falla(await c.from('deck_fotos').select('path').eq('id', fotoId).maybeSingle());
-    return f ? c.storage.from('deck').getPublicUrl(f.path).data.publicUrl : null;
+    var urls = await urlsDe(c, [String(fotoId)]);
+    return urls[fotoId] || null;
   }
 
   async function bloqueLegal(clave, idioma) {
