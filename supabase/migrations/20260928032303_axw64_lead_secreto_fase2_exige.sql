@@ -1,17 +1,7 @@
--- AXW-64 FASE 2 — APLICADA el 28-sep-2026 03:23 UTC como supabase/migrations/20260928032303_axw64_lead_secreto_fase2_exige.sql
--- (tras el alta real «PRUEBA ESTUDIO» con «secreto valido» en el log). Lo de abajo es el relato original de cuando estaba
--- preparada; la migración aplicada es la del directorio de migraciones. Texto original:
--- AXW-64 FASE 2 — PREPARADO, NO APLICADO (28-sep-2026). NO es una migración todavía: se aplica con
--- apply_migration (nombre axw64_lead_secreto_fase2_exige) y entonces se copia a supabase/migrations/ con la
--- versión que devuelva, SOLO cuando:
---   1. SumbaHills/api/lead.php con la cabecera x-lead-secreto está publicado (push + webhook), y
---   2. public_html/sumbahills/private/lead-secreto.php está subido al hosting, y
---   3. un alta REAL del formulario deja en el log de Postgres «lead_publico_alta: secreto valido»
---      (MCP get_logs service=postgres, o query_logs buscando ese texto).
--- Aplicarla antes deja el CRM sin leads de Sumba Hills (siguen llegando al CSV del servidor y al correo).
--- Prueba sin rastro después: contracts/sql/prueba_lead_publico_alta.sql fijando request.headers con un secreto
--- incorrecto -> 42501.
-
+-- AXW-64 FASE 2 (28-sep-2026): lead_publico_alta EXIGE el secreto x-lead-secreto que manda SumbaHills/api/lead.php.
+-- Aplicada tras el alta real «PRUEBA ESTUDIO» (28-sep 03:21 UTC) que dejó «lead_publico_alta: secreto valido» en el
+-- log de Postgres. Sin el secreto: 42501 «No autorizado» (no dice qué faltó ni lleva el valor). En la base solo vive
+-- su SHA-256 (Vault, lead_publico_alta_secreto_sha256); el valor, solo en private/lead-secreto.php del hosting.
 create or replace function public.lead_publico_alta(p_email text, p_name text DEFAULT NULL::text, p_whatsapp text DEFAULT NULL::text, p_source text DEFAULT NULL::text, p_project text DEFAULT NULL::text, p_ip text DEFAULT NULL::text)
  returns boolean
  language plpgsql
@@ -48,3 +38,15 @@ begin
   return true;
 end $function$;
 
+do $$
+begin
+  if not has_function_privilege('anon', 'public.lead_publico_alta(text, text, text, text, text, text)', 'EXECUTE') then
+    raise exception 'AXW-64: el formulario público perdería su puerta';
+  end if;
+  if has_function_privilege('authenticated', 'public.lead_publico_alta(text, text, text, text, text, text)', 'EXECUTE') then
+    raise exception 'AXW-64: authenticated no debe ejecutarla';
+  end if;
+  if not exists (select 1 from vault.secrets where name = 'lead_publico_alta_secreto_sha256') then
+    raise exception 'AXW-64: falta el hash en Vault';
+  end if;
+end $$;;

@@ -5430,7 +5430,7 @@
            solo lo cambia administración); borrar por la edge `ficheros`. La casilla del dosier solo se le
            enseña a un admin: a los demás la base se la rechazaría, así que no se la ofrecemos. */
         function campoDeck(valor) {
-          return esAdminP ? [{ k: 'publicado_investor_deck', label: 'Publicar en el dosier de inversores', tipo: 'check', valor: !!valor, ayuda: 'PÚBLICO: lo ve cualquiera que abra el enlace del deck, sin contraseña y sin contrato' }] : [];
+          return esAdminP ? [{ k: 'publicado_investor_deck', label: 'Publicar en el dosier de inversores', tipo: 'check', valor: !!valor, ayuda: 'PÚBLICO: lo ve cualquiera que abra el enlace del deck, sin contraseña y sin contrato. Con la categoría «comercial» es el botón «Download dossier» del deck. Un fichero subido sale si es PDF, imagen, Word, Excel o PowerPoint (docx/xlsx/pptx); los demás, como enlace' }] : [];
         }
         // Confidencial MANDA sobre publicado (también en la RPC y en `investor_deck_documentos`): una casilla del
         // navegador no es un permiso. Sin casilla (no admin) la clave no viaja: el servidor deja el valor que había.
