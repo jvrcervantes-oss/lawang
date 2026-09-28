@@ -240,8 +240,11 @@ afirma('el panel nace escondido y lo abre el botón',
     'la cara v4 volvió a depender de un parámetro, del referrer o de la pestaña');
   afirma('sin puerta de editor, piel.js manda al listado de la v4',
     /location\.replace\('\/intranet\/v4\/contratos\/'\)/.test(piel));
-  afirma('app.html ya no abre el listado clásico',
-    !/pantallaC\('listado'/.test(html) && !/LW_PIEL/.test(html),
+  /* El listado clásico era el panel #cpOverlay a pantalla completa (openContractsPanel, body.modo-listado).
+     Se retiró el 27-sep; lo que no puede volver es un listado PROPIO de app.html, se llame como se llame
+     su función de entrada (28-sep-2026: la regla anterior vigilaba `pantallaC('listado'`, que ya no existía). */
+  afirma('app.html no tiene listado propio de contratos',
+    !/id="cpOverlay"|openContractsPanel|modo-listado/.test(html) && !/LW_PIEL/.test(html),
     'el listado de contratos es /intranet/v4/contratos/: dos listados es la duplicación prohibida');
   afirma('app.html no carga la capa v3 encima de la v4',
     !/(src|href)=\"[^\"]*(movimiento-v3\.js|saldos-v3\.js|suite-v3(-herramientas)?\.css)/.test(html));
