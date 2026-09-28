@@ -5099,9 +5099,11 @@
          solo), mismo RPC `renombrar_proyecto` (SECURITY DEFINER, gate
          es_admin() dentro). Nunca un UPDATE directo a `proyectos.nombre`. */
       function confirmaYRenombraProyecto(p, nuevo) {
-        var cuenta = function (tabla, columna) { return sb.from(tabla).select('id', { count: 'exact', head: true }).eq(columna, p.nombre); };
+        // unidades/modelos/documentos: proyecto_vinculos_datos (B10a, 28-sep). Cuenta con el criterio de borrar_proyecto
+        // (nombre O proyecto_id); renombrar_proyecto solo reescribe las filas que llevan el nombre, así que el texto
+        // dice «vinculado», no «se actualizará» (code-review 28-sep: una fila con solo el id contaría sin cambiarse).
         return Promise.all([
-          cuenta('unidades', 'proyecto'),
+          window.lwDatos('proyecto_vinculos_datos', { p_nombre: p.nombre }),
           // contratos/facturas: RPC "equipo", NUNCA `.from()` a pelo (hallazgo
           // de code-review, 22-sep-2026) — la RLS de esas dos tablas escala
           // por `es_suyo()` (ver la cabecera de este fichero, líneas 5-7: "aun
@@ -5111,20 +5113,26 @@
           // — mismo patrón que ya usa el resto de esta pantalla más abajo
           // (`facturas_equipo` en el `Promise.all` principal).
           sb.rpc('contratos_equipo').select('id,proyecto_nombre'),
-          sb.rpc('facturas_equipo').select('id,proyecto_nombre'),
-          cuenta('documentos_proyecto', 'proyecto'),
-          cuenta('modelos_villa', 'proyecto')
+          sb.rpc('facturas_equipo').select('id,proyecto_nombre')
         ]).then(function (rs) {
-          var uds = (rs[0] && rs[0].count) || 0;
-          var con = ((rs[1] && rs[1].data) || []).filter(function (c) { return c.proyecto_nombre === p.nombre; }).length;
-          var fac = ((rs[2] && rs[2].data) || []).filter(function (f) { return f.proyecto_nombre === p.nombre; }).length;
-          var doc = (rs[3] && rs[3].count) || 0, mod = (rs[4] && rs[4].count) || 0;
+          /* Sin el radio de impacto NO se pide confirmar (B10a): antes un conteo que fallaba daba 0 y el diálogo
+             decía «No hay nada vinculado» sobre un proyecto lleno. Falla en voz alta y no renombra. */
+          var malo = [rs[0], rs[1], rs[2]].filter(function (x) { return !x || x.error; })[0];
+          if (malo) {
+            var e = new Error('No se ha podido calcular qué se actualizaría (' + ((malo && malo.error && malo.error.message) || 'sin respuesta') + '): no se renombra. Recarga y prueba otra vez.');
+            e.sinRadio = true; throw e;
+          }
+          var v = rs[0].data || {};
+          var uds = v.unidades || 0;
+          var con = (rs[1].data || []).filter(function (c) { return c.proyecto_nombre === p.nombre; }).length;
+          var fac = (rs[2].data || []).filter(function (f) { return f.proyecto_nombre === p.nombre; }).length;
+          var doc = v.documentos || 0, mod = v.modelos_villa || 0;
           var radio = [
             uds ? uds + ' unidad(es)' : '', con ? con + ' contrato(s)' : '',
             fac ? fac + ' factura(s)' : '', doc ? doc + ' documento(s)' : '',
             mod ? mod + ' modelo(s) de villa' : ''
           ].filter(Boolean).join(', ');
-          var avisoRadio = radio ? 'Se actualizará en: ' + radio + '.' : 'No hay nada vinculado a este nombre todavía.';
+          var avisoRadio = radio ? 'Vinculado a este proyecto: ' + radio + '. El nombre se actualiza en todo lo que lo lleva escrito.' : 'No hay nada vinculado a este proyecto todavía.';
           return aseguraModulosDoc(['dialogo']).then(function () {
             return lwConfirmar({
               titulo: 'Renombrar «' + p.nombre + '» a «' + nuevo + '»',
@@ -5135,6 +5143,10 @@
         }).then(function (ok) {
           if (!ok) return { error: { message: 'Cancelado: el proyecto conserva su nombre.' } };
           return sb.rpc('renombrar_proyecto', { p_antiguo: p.nombre, p_nuevo: nuevo });
+        }, function (e) {
+          // sin radio de impacto: el guardado se para con el motivo a la vista (el que llama pinta `error.message`)
+          if (e && e.sinRadio) return { error: { message: e.message } };
+          throw e;
         });
       }
 
@@ -5907,11 +5919,15 @@
         var p = proyectoObj();
         if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
         if (!esSuper) return aviso('Borrar un proyecto es solo para super_admin.', '#8A6A34');
-        var cuenta = function (tabla, columna) { return sb.from(tabla).select('id', { count: 'exact', head: true }).eq(columna, p.nombre); };
-        Promise.all([
-          cuenta('unidades', 'proyecto'), cuenta('modelos_villa', 'proyecto'), cuenta('documentos_proyecto', 'proyecto')
-        ]).then(function (rs) {
-          var uds = (rs[0] && rs[0].count) || 0, mods = (rs[1] && rs[1].count) || 0, docs = (rs[2] && rs[2].count) || 0;
+        /* Recuento previo por proyecto_vinculos_datos (B10a, 28-sep): mismo criterio que borrar_proyecto (nombre O id).
+           Si NO contesta, se para y se dice: antes un conteo fallido daba 0 y el diálogo invitaba a borrar «sin nada
+           colgando» (el RPC lo habría rechazado igual, pero la pantalla mentía). */
+        window.lwDatos('proyecto_vinculos_datos', { p_nombre: p.nombre }).then(function (rv) {
+          if (!rv || rv.error || !rv.data) {
+            aviso('No se ha podido comprobar qué cuelga del proyecto (' + ((rv && rv.error && rv.error.message) || 'sin respuesta') + '): no se borra. Recarga y prueba otra vez.', '#ba1a1a');
+            return false;
+          }
+          var uds = rv.data.unidades || 0, mods = rv.data.modelos_villa || 0, docs = rv.data.documentos || 0;
           var bloquea = [
             uds ? uds + ' unidad(es)' : '', mods ? mods + ' modelo(s) de villa' : '', docs ? docs + ' documento(s)' : ''
           ].filter(Boolean).join(', ');

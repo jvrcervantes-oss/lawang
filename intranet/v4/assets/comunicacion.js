@@ -139,22 +139,17 @@
   function cuenta() { $('lw-com-cuenta').textContent = '(' + $('lw-com-cuerpo').value.length + ' / 5000)'; }
 
   // ── lista de comunicados ──────────────────────────────────────────────────
+  /* Lecturas por el servidor (LAW-338 L2, 28-sep-2026): comunicacion_datos trae la lista (100 más recientes)
+     con el recuento de envíos ya hecho, y los destinatarios; comunicado_datos, uno abierto y su registro.
+     Las dos exigen admin con «Comunicación» y lo dicen con un error, no con una lista vacía. */
   function cargaLista() {
-    return Promise.all([
-      sb.from('comunicados').select('id,asunto,encabezado,cuerpo,cta_url,cta_texto,creado_en,actualizado_en,enviado_en')
-        .order('actualizado_en', { ascending: false }).limit(100),
-      sb.from('comunicado_envios').select('comunicado_id,estado').eq('es_prueba', false)
-    ]).then(function (r) {
+    return window.lwDatos('comunicacion_datos', { p_limit: 100 }).then(function (r) {
       var ul = $('lw-com-lista');
-      if (r[0].error) { ul.innerHTML = '<li class="px-6 py-6 font-body-sm text-body-sm text-error">No se pudieron traer los comunicados.</li>'; mal(r[0].error, 'Comunicados'); return []; }
-      var n = {};
-      (r[1].data || []).forEach(function (e) {
-        var x = n[e.comunicado_id] = n[e.comunicado_id] || { ok: 0, total: 0 };
-        x.total++; if (e.estado === 'ok') x.ok++;
-      });
-      var filas = r[0].data || [];
+      if (r.error) { ul.innerHTML = '<li class="px-6 py-6 font-body-sm text-body-sm text-error">No se pudieron traer los comunicados.</li>'; mal(r.error, 'Comunicados'); return []; }
+      var filas = (r.data && r.data.comunicados) || [];
+      usuarios = (r.data && r.data.usuarios) || usuarios;   // los destinatarios vienen en la misma respuesta
       ul.innerHTML = filas.length ? filas.map(function (c) {
-        var x = n[c.id];
+        var x = c.envios_total ? { ok: c.envios_ok, total: c.envios_total } : null;
         var chip = c.enviado_en
           ? '<span class="inline-flex px-2 py-0.5 rounded-full text-[11px] font-label-md uppercase tracking-wider bg-primary-fixed text-on-primary-fixed">Enviado ' + (x ? x.ok + '/' + x.total : '') + '</span>'
           : '<span class="inline-flex px-2 py-0.5 rounded-full text-[11px] font-label-md uppercase tracking-wider bg-surface-container-high text-on-surface-variant">Borrador</span>';
@@ -163,6 +158,7 @@
           '<div class="font-label-md text-label-md text-on-surface">' + esc(c.asunto) + '</div>' +
           '<div class="mt-1 flex items-center gap-2 font-body-sm text-body-sm text-outline">' + chip + '<span>' + esc(fecha(c.enviado_en || c.actualizado_en)) + '</span></div></button></li>';
       }).join('') : '<li class="px-6 py-6 font-body-sm text-body-sm text-outline">Aún no hay comunicados. Escribe el primero a la izquierda.</li>';
+      if (r.data && r.data.siguiente) ul.insertAdjacentHTML('beforeend', '<li class="px-6 py-4 font-body-sm text-body-sm text-outline">Se enseñan los 100 más recientes.</li>');
       return filas;
     });
   }
@@ -217,11 +213,10 @@
   function cargaEnvios() {
     if (!actual || !actual.id) { envios = []; pintaRegistro(); return Promise.resolve(); }
     var id = actual.id;
-    return sb.from('comunicado_envios').select('id,user_id,email,nombre,es_prueba,estado,intentos,error,encolado_en,enviado_en')
-      .eq('comunicado_id', id).order('encolado_en', { ascending: false }).then(function (r) {
+    return window.lwDatos('comunicado_datos', { p_id: id }).then(function (r) {
         if (!actual || actual.id !== id) return;
         if (r.error) { mal(r.error, 'Registro de envíos'); return; }
-        envios = r.data || [];
+        envios = (r.data && r.data.envios) || [];
         pintaRegistro();
       });
   }
@@ -266,11 +261,12 @@
   }
 
   // ── abrir / nuevo ─────────────────────────────────────────────────────────
-  function abre(c) {
+  // yaHayLista: el arranque acaba de pedir la lista (con los destinatarios); no se vuelve a pedir
+  function abre(c, yaHayLista) {
     if (sondeo) { clearInterval(sondeo); sondeo = null; }
     actual = c; envios = [];
     pintaForm();
-    return cargaEnvios().then(function () { marcaPorDefecto(); pintaPersonas(); cargaLista(); });
+    return cargaEnvios().then(function () { marcaPorDefecto(); pintaPersonas(); if (!yaHayLista) cargaLista(); });
   }
   function puedeSoltar() {
     if (!sucio) return Promise.resolve(true);
@@ -361,8 +357,8 @@
         return sb.rpc('comunicado_encolar', { p_comunicado: c.id, p_user_ids: lista.map(function (u) { return u.user_id; }) }).then(function (r) {
           if (r.error) { mal(r.error, 'No se envió'); pintaBotonEnviar(); return; }
           bien(r.data ? r.data + ' email(s) en camino. El registro de abajo se actualiza solo.' : 'Nada que enviar: esas personas ya lo tenían.');
-          return sb.from('comunicados').select('*').eq('id', c.id).single().then(function (rr) {
-            if (!rr.error) actual = rr.data;
+          return window.lwDatos('comunicado_datos', { p_id: c.id }).then(function (rr) {
+            if (!rr.error && rr.data && rr.data.comunicado) actual = rr.data.comunicado;
             pintaForm(); cargaLista();
             return cargaEnvios();
           });
@@ -426,9 +422,10 @@
       var id = b.getAttribute('data-com');
       puedeSoltar().then(function (ok) {
         if (!ok) return;
-        sb.from('comunicados').select('*').eq('id', id).single().then(function (r) {
+        window.lwDatos('comunicado_datos', { p_id: id }).then(function (r) {
           if (r.error) { mal(r.error, 'No se abrió'); return; }
-          abre(r.data);
+          if (!r.data || !r.data.comunicado) { mal(new Error('ese comunicado ya no existe'), 'No se abrió'); cargaLista(); return; }
+          abre(r.data.comunicado);
         });
       });
     });
@@ -458,13 +455,14 @@
       if (rol !== 'admin' && rol !== 'super_admin') { soloAdmin(); return; }
       sb = aut.sb;
       cablea();
-      sb.from('usuarios').select('user_id,nombre,email,rol').eq('activo', true).order('nombre').then(function (r) {
-        if (r.error) { mal(r.error, 'Usuarios'); return; }
-        usuarios = (r.data || []).filter(function (u) { return u.email; });
+      // lista + destinatarios (activos con email, lo filtra el servidor) en una llamada; sin «Comunicación» la base
+      // contesta 42501 y cargaLista lo dice
+      cargaLista().then(function () {
         // ?id=<uuid> abre ese comunicado (enlace directo desde el registro)
         var id = new URLSearchParams(location.search).get('id');
-        if (!id) return abre(null);
-        return sb.from('comunicados').select('*').eq('id', id).single().then(function (rr) { abre(rr.error ? null : rr.data); });
+        if (!id) return abre(null, true);
+        // con ?id= la lista se repinta para marcar el abierto
+        return window.lwDatos('comunicado_datos', { p_id: id }).then(function (rr) { abre(rr.error || !rr.data ? null : rr.data.comunicado); });
       });
     });
   }

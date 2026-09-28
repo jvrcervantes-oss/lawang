@@ -2,33 +2,41 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Master Construction Agreement · CC00014 Timon — LAWANG</title>
+<title>Master Construction Agreement · CC00014 — LAWANG</title>
 <style>@page{ size:A4; margin:0; } body{ margin:0; }</style>
 </head>
 <body>
   <!-- Texto fijo, un solo ejemplar (28-ago-2026, peticion del owner: "configurarlo
        como una nueva plantilla, sin inyectar datos, debe ir asi"). Contrato de
        construccion YA NEGOCIADO y firmado a mano con clausulas propias (CC00014,
-       Timon Taeke van den Bosch, Tamarind Rise / Dali) -- reproducido tal cual del
+       el comprador, Tamarind Rise / Dali) -- reproducido tal cual del
        documento .docx entregado, sin pasar por el sistema generico de campos.
        Mismo patron que ppjb_bonian_c2.html (serie C2: "un solo ejemplar, texto
        fijo") -- ver CONTRACT_TIPO en app.html. SOLO EN/ID: el documento original
        no tiene version en espanol, y anadir una se inventaria una traduccion que
        nunca se le presento al comprador.
-       pii-ok: ejemplar de un contrato de construccion YA FIRMADO (CC00014/CC00088)
-       con Timon Taeke van den Bosch -- el nombre, pasaporte y datos del BUILDER
-       (Pablo Cantero) SON el dato del documento; anonimizarlos lo invalida. Caso
-       de LAW-135, decidido: se queda. -->
+       pii-ok: los datos personales YA NO van escritos aqui (28-sep-2026). Este
+       fichero lo pide el navegador con fetch() y Apache lo sirve SIN sesion, y el
+       repo es publico: pasaporte, domicilio, telefono y email del comprador y el
+       KTP del firmante del BUILDER estaban a la vista de cualquiera. Ahora salen
+       de la base al abrir el contrato con sesion: los adq1_* de los datos
+       guardados del contrato (CC00088) y cc00014_ktp de firmantes_cred
+       (RLS authenticated) en buildDoc. La nacionalidad se queda escrita
+       ("Netherlands"): la base la guarda en espanol. El texto sigue siendo el
+       firmado; lo que no cambia es el documento, solo de donde sale el dato.
+       El nombre del comprador sigue en app.html, assets/i18n.js,
+       assets/vocabulario.js y contracts/sql/*.sql (LAW-135), y todo lo de antes
+       en el historial git (LAW-404). -->
   <div class="doc">
     <img class="doc-watermark" src="assets/brand/tiki-totem.png" alt="">
 
     <div class="doc-title"><span data-lang="en">MASTER CONSTRUCTION AGREEMENT</span><span data-lang="id">KONTRAK INDUK KONSTRUKSI — CC00014</span></div>
     <div class="doc-date"><span data-lang="en">IN INDONESIA, DATED 1 October 2026 · CONTRACT NO.: CC00014</span><span data-lang="id">DI INDONESIA, TERTANGGAL 1 Oktober 2026 · NO. KONTRAK: CC00014</span></div>
     <h2><span data-lang="en">PARTIES</span><span data-lang="id">PARA PIHAK</span></h2>
-    <p data-lang="en">BUILDER: Pablo Cantero, of legal age, acting as director, Indonesian nationality, holder of Indonesian identity document ID 5171021704720002, in the name and on behalf of PT TEPI SUN GAI, owner of the trademark registered in Indonesia LAWANG TROPICAL PROPERTIES, an Indonesian company with registered office at Jalan Gunung Tangkuban Perahu, Gg. Dewi Sri Dusun Tegal Buah RT. 000 RW. 000, Padangsambian Kelod, Denpasar Barat, Kota Denpasar, Bali 80117 Indonesia, and Company Registration Number NPWP 1000.0000.0619.8026, identified in this document as &quot;BUILDER&quot;.</p>
-    <p data-lang="id">KONTRAKTOR: Pablo Cantero, dewasa, dalam kapasitasnya sebagai direktur, berkewarganegaraan Indonesia, dengan dokumen identitas Indonesia ID 5171021704720002, atas nama dan mewakili PT TEPI SUN GAI, pemilik merek dagang terdaftar di Indonesia LAWANG TROPICAL PROPERTIES, perusahaan berbadan hukum Indonesia yang berkedudukan di Jalan Gunung Tangkuban Perahu, Gg. Dewi Sri Dusun Tegal Buah RT. 000 RW. 000, Padangsambian Kelod, Denpasar Barat, Kota Denpasar, Bali 80117 Indonesia, dengan Nomor Identitas Perusahaan NPWP 1000.0000.0619.8026, disebut dalam dokumen ini sebagai &quot;KONTRAKTOR&quot;.</p>
-    <p data-lang="en">BUYER I: Mr. Timon Taeke van den Bosch, national of Netherlands, with Passport/Tax ID no. NSR1HKDC7 and address at Warmoltsstrjitte 3 Harkema. Telephone +31623507567 and notification email: Timonv00@gmail.com.</p>
-    <p data-lang="id">PEMBELI I: Tn. Timon Taeke van den Bosch, warga negara Netherlands, dengan Paspor/Nomor Identifikasi Pajak no. NSR1HKDC7 dan beralamat di Warmoltsstrjitte 3 Harkema. Telepon +31623507567 dan email pemberitahuan: Timonv00@gmail.com.</p>
+    <p data-lang="en">BUILDER: Pablo Cantero, of legal age, acting as director, Indonesian nationality, holder of Indonesian identity document ID {{cc00014_ktp}}, in the name and on behalf of PT TEPI SUN GAI, owner of the trademark registered in Indonesia LAWANG TROPICAL PROPERTIES, an Indonesian company with registered office at Jalan Gunung Tangkuban Perahu, Gg. Dewi Sri Dusun Tegal Buah RT. 000 RW. 000, Padangsambian Kelod, Denpasar Barat, Kota Denpasar, Bali 80117 Indonesia, and Company Registration Number NPWP 1000.0000.0619.8026, identified in this document as &quot;BUILDER&quot;.</p>
+    <p data-lang="id">KONTRAKTOR: Pablo Cantero, dewasa, dalam kapasitasnya sebagai direktur, berkewarganegaraan Indonesia, dengan dokumen identitas Indonesia ID {{cc00014_ktp}}, atas nama dan mewakili PT TEPI SUN GAI, pemilik merek dagang terdaftar di Indonesia LAWANG TROPICAL PROPERTIES, perusahaan berbadan hukum Indonesia yang berkedudukan di Jalan Gunung Tangkuban Perahu, Gg. Dewi Sri Dusun Tegal Buah RT. 000 RW. 000, Padangsambian Kelod, Denpasar Barat, Kota Denpasar, Bali 80117 Indonesia, dengan Nomor Identitas Perusahaan NPWP 1000.0000.0619.8026, disebut dalam dokumen ini sebagai &quot;KONTRAKTOR&quot;.</p>
+    <p data-lang="en">BUYER I: Mr. {{adq1_nombre}}, national of Netherlands, with Passport/Tax ID no. {{adq1_pasaporte}} and address at {{adq1_domicilio}}. Telephone {{adq1_telefono}} and notification email: {{adq1_email}}.</p>
+    <p data-lang="id">PEMBELI I: Tn. {{adq1_nombre}}, warga negara Netherlands, dengan Paspor/Nomor Identifikasi Pajak no. {{adq1_pasaporte}} dan beralamat di {{adq1_domicilio}}. Telepon {{adq1_telefono}} dan email pemberitahuan: {{adq1_email}}.</p>
     <h2><span data-lang="en">PROJECT IDENTIFICATION</span><span data-lang="id">IDENTIFIKASI PROYEK</span></h2>
     <p data-lang="en">Project Name: TAMARIND RISE · Housing Typology: Dali · Location: BALIAN HILLS</p>
     <p data-lang="id">Nama Proyek: TAMARIND RISE · Tipologi Hunian: Dali · Lokasi: BALIAN HILLS</p>
@@ -211,7 +219,7 @@
           <td>
             <div class="role">The BUYER / PEMBELI</div>
             <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5);display:flex;align-items:flex-end"><img src="{{firma_adquiriente}}" alt="" style="max-height:22mm;max-width:100%"></div>
-            <p style="margin-top:4px;font-size:9pt">Timon Taeke van den Bosch</p>
+            <p style="margin-top:4px;font-size:9pt">{{adq1_nombre}}</p>
           </td>
         </tr>
       </tbody>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="lw-version" content="18388631fdf0">
+<meta name="lw-version" content="b75995227adf">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -533,74 +533,31 @@ document.addEventListener('mousemove', e => {
   if(f) marcar(+f.dataset.i);
 }, { passive:true });
 
-/* ── cifras: una ronda de `count` en paralelo ──────────────────────
-   `head:true` no trae filas, solo el número: son ocho contadores, no ocho
-   listados. Cada uno se resuelve por separado a propósito — si la RLS tapa
-   una tabla para este usuario, esa fila se queda sin cifra y las demás
-   siguen. Un `Promise.all` que revienta dejaría el panel entero sin datos. */
+/* ── cifras: UNA llamada al servidor (B10a, 28-sep-2026) ──────────────
+   Antes eran ~18 `count` en paralelo con la tabla en una variable (`n(tabla)`):
+   tras cerrar la lectura directa de una tabla, ese conteo daba 0 o 42501 sin
+   que nada lo avisara. Ahora las cuenta hub_cifras_datos() con la RLS de quien
+   mira (dueño lector). Cambio asumido: si la llamada falla, TODAS las cifras
+   quedan en null («—», «la base no contestó»), nunca en cero.
+   Este hub NO carga guard.js (control de sesión propio), así que no tiene
+   `lwDatos`: llama a la RPC directamente y sin filtros encadenados. Pasa a
+   `lwDatos` en su bloque de LAW-338, junto con su createClient propio. */
 async function contar(sb){
-  // `select('*')` con head:true sirve igual en `usuarios`, cuya clave no se llama
-  // `id` — pero NO sale gratis: PostgREST mete `contratos.*` en la subconsulta y
-  // descomprime `datos` (anexos en base64, 156 MB). En contratos eran 3,2 s por
-  // conteo (pg_stat_statements, 25-sep-2026): ahí se cuenta por `id`.
-  // `cols` opcional (18-ago-2026): el conteo de vencimientos necesita un embed
-  // `contratos!inner(id)` para filtrar por firmados, y eso va en las COLUMNAS
-  // del select — no en el filtro. Un `.select()` dentro del filtro pisaría el
-  // `count:'exact'` de este (la 2ª llamada no admite opciones) y devolvería
-  // filas en vez de un número: por eso las columnas entran por parámetro.
-  const n = async (tabla, filtro, cols) => {
-    let q = sb.from(tabla).select(cols || '*', { count:'exact', head:true });
-    if(filtro) q = filtro(q);
-    const { count, error } = await q;
-    return error ? null : (count || 0);
-  };
-  const [contratos, contratosEditables, facturas, facturasAnuladas,
-         recibis, unidades, unidadesLibres, obraActivas, compradores, usuarios, usuariosInactivos,
-         documentos, vencSinFecha, hilosAbiertos,
-         modelos, modelosPublicados, modelosSinPrecio, solicitudesVivas] = await Promise.all([
-    n('contratos', null, 'id'),
-    n('contratos', q => q.eq('bloqueado', false), 'id'),
-    n('facturas', q => q.eq('anulada', false)),
-    n('facturas', q => q.eq('anulada', true)),
-    n('facturas', q => q.eq('tipo', 'recibi').eq('anulada', false)),
-    n('unidades'),
-    n('unidades', q => q.eq('estado', 'disponible')),
-    n('unidades', q => q.not('obra_fase', 'is', null).neq('obra_fase', 'entregada')),
-    n('clients'),
-    n('usuarios', q => q.eq('activo', true)),
-    n('usuarios', q => q.eq('activo', false)),
-    n('documentos_proyecto'),
-    // Vencimientos sin fecha: la cifra de la tarjeta de /intranet/vencimientos/. Se
-    // cuenta "sin fecha" y no "vencidos" a propósito — el porqué está junto a
-    // la tarjeta, en assets/herramientas.js. RLS de equipo (es_agente), así
-    // que el count vale para cualquiera que vea la tarjeta.
-    // `contratos!inner` + eq sobre la tabla embebida: solo contratos FIRMADOS
-    // (cliente, 18-ago — un borrador no marca dinero como esperado, y su
-    // calendario a medio poner inflaría esta cifra con trabajo que no toca aún).
-    n('contrato_vencimientos', q => q.is('fecha', null).eq('contratos.bloqueado', true),
-      '*, contratos!inner(id)'),
-    n('hilo_soporte', q => q.eq('estado', 'abierto')),
-    // Catálogo de modelos (7-sep-2026). El tercero es el que importa: un modelo
-    // ACTIVO sin precio de catálogo hace que cada proyecto que lo ofrezca herede
-    // un hueco, y ese hueco solo se ve al abrir el desplegable de una parcela.
-    // Los no activos no cuentan: retirar un modelo es una decisión, no una deuda.
-    n('modelos'),
-    n('modelos', q => q.eq('publicado', true)),
-    n('modelos', q => q.eq('activo', true).is('precio_construccion', null)),
-    // Solicitudes de pago (9-sep-2026): pendientes + aprobadas sin pagar —
-    // las dos esperan acción del admin (resolver la una, pagar la otra). El
-    // count hereda la RLS a propósito: el admin las cuenta todas (su
-    // bandeja), cada agente las suyas (lo que él tiene en vuelo).
-    n('solicitudes_pago', q => q.in('estado', ['pendiente','aprobada'])),
-  ]);
-  // Cuántos PROYECTOS tienen documentación, no solo cuántas filas: "12
-  // documentos" no dice si son de un proyecto o de seis. Va aparte porque es un
-  // distinct y el contador de arriba solo sabe contar filas.
-  let proyectosConDocs = null;
-  if(documentos){
-    const { data, error } = await sb.from('documentos_proyecto').select('proyecto');
-    proyectosConDocs = error ? null : new Set((data || []).map(x => x.proyecto)).size;
-  }
+  const { data: c, error } = await sb.rpc('hub_cifras_datos');
+  if(error) console.error('[hub] cifras no cargaron:', error.code || '', error.message);
+  const k = x => (error || !c || c[x] == null) ? null : Number(c[x]);
+  const contratos = k('contratos'), contratosEditables = k('contratos_editables'),
+        facturas = k('facturas'), facturasAnuladas = k('facturas_anuladas'), recibis = k('recibis'),
+        unidades = k('unidades'), unidadesLibres = k('unidades_libres'), obraActivas = k('obra_activas'),
+        compradores = k('compradores'), usuarios = k('usuarios'), usuariosInactivos = k('usuarios_inactivos'),
+        documentos = k('documentos'), proyectosConDocs = k('proyectos_con_docs'),
+        // Vencimientos sin fecha (solo contratos FIRMADOS): la cifra de la tarjeta de /intranet/vencimientos/.
+        // Se cuenta "sin fecha" y no "vencidos" a propósito — el porqué está junto a la tarjeta, en assets/herramientas.js.
+        vencSinFecha = k('venc_sin_fecha'), hilosAbiertos = k('hilos_abiertos'),
+        // Catálogo de modelos (7-sep-2026): un modelo ACTIVO sin precio hace que cada proyecto que lo ofrezca herede un hueco.
+        modelos = k('modelos'), modelosPublicados = k('modelos_publicados'), modelosSinPrecio = k('modelos_sin_precio'),
+        // Solicitudes de pago: pendientes + aprobadas sin pagar (el admin las cuenta todas; cada agente, las suyas: RLS)
+        solicitudesVivas = k('solicitudes_vivas');
   // 11-ago: "Firmas esperando" NO puede salir de `sb.from('contrato_firmas')`
   // — esa tabla tiene RLS por agente ("lo mío") desde el 7-ago, así que ese
   // conteo solo veía las firmas de ESTE agente, no las del equipo, y encima

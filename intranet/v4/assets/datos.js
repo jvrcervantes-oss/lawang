@@ -468,7 +468,7 @@
      COMO SABE QUE HA TERMINADO. No preguntando a cada handler —son dieciocho y
      habria que tocarlos todos, y el diecinueve naceria sin avisar— sino
      contando las consultas en vuelo por el unico sitio por donde pasan todas.
-     `vig()` es ese sitio; `q()` y `cnt()` lo usan, y las cuatro llamadas que
+     `vig()` es ese sitio; `q()` y `cifras()` lo usan, y las cuatro llamadas que
      tenian su propio `.then` se envuelven sin tocarles una coma.
 
      LO QUE NO PUEDE PASAR, y como se evita cada cosa:
@@ -550,13 +550,12 @@
       return r.data || [];
     }, function (e) { fallo(nombre, e, cont); return null; });
   }
-  function cnt(sb, tabla, mod, cols) {
-    var qq = sb.from(tabla).select(cols || '*', { count: 'exact', head: true });
-    if (mod) qq = mod(qq);
-    /* La rama de rechazo no existia: un fallo de red aqui no daba `r.error`,
-       lanzaba — y sin ella el contador del velo no bajaria nunca. */
-    return vig(qq).then(function (r) { return r.error ? (fallo('count ' + tabla, r.error), null) : (r.count || 0); },
-                        function (e) { fallo('count ' + tabla, e); return null; });
+  /* Cifras de una pantalla por el SERVIDOR (B10a, 28-sep-2026): `lwDatos` (guard.js) es el único transporte de las
+     RPC `*_datos`, y `q()` le pone el velo y el aviso de fallo. Sustituye a `cnt(sb, tabla)`, que contaba con la tabla
+     en una variable: tras cerrar la lectura directa de una tabla ese conteo daba 0 o 42501 sin que nada lo avisara.
+     null = la base no contestó (ya avisado): la pantalla pinta «—», nunca un cero. */
+  function cifras(nombre, args) {
+    return q(window.lwDatos(nombre, args), nombre);
   }
 
   var mesIni = new Date(); mesIni.setDate(1); mesIni.setHours(0, 0, 0, 0);
@@ -1888,18 +1887,19 @@
           });
         }
       });
-      var hoy = hoyLocal();   // fecha local, no UTC (revisión previa #57)
-      var en30 = hoyLocal(30);
-      cnt(sb, 'contrato_vencimientos', function (x) { return x.gte('fecha', hoy).lte('fecha', en30).eq('contratos.bloqueado', true); }, '*, contratos!inner(id)')
-        .then(function (n) {
-          if (n == null) return;
+      var hoy = hoyLocal();   // fecha local, no UTC (revisión previa #57); el servidor la acepta a ±1 día de la suya
+      /* Vencimientos a 30 y 7 días (contratos firmados) y unidades: UNA llamada, inicio_cifras_datos (B10a). */
+      var pCifras = cifras('inicio_cifras_datos', { p_hoy: hoy });
+      pCifras.then(function (c) {
+        var n = c ? c.vencimientos_30 : null;
+        if (n != null) {
           kpi(/VENCIMIENTOS/i, String(n), 'con fecha en los próximos 30 días');
           pon2('k-operaciones', String(n));   // la tarjeta es «Vencimientos (30 días)»
-        });
-      // «15 por conciliar esta semana» era del diseño: se cuentan los hitos con fecha en 7 días
-      var en7 = hoyLocal(7);
-      cnt(sb, 'contrato_vencimientos', function (x) { return x.gte('fecha', hoy).lte('fecha', en7).eq('contratos.bloqueado', true); }, '*, contratos!inner(id)')
-        .then(function (n7) { pon2('k-venc-semana', n7 == null ? '—' : (n7 + ' con fecha en los próximos 7 días')); });
+        }
+        // «15 por conciliar esta semana» era del diseño: se cuentan los hitos con fecha en 7 días
+        var n7 = c ? c.vencimientos_7 : null;
+        pon2('k-venc-semana', n7 == null ? '—' : (n7 + ' con fecha en los próximos 7 días'));
+      });
       // el buscador de Home busca en Contratos (Enter)
       var busca = document.querySelector('main input[placeholder^="Buscar"]');
       if (busca) busca.addEventListener('keydown', function (ev) {
@@ -1910,16 +1910,12 @@
          el KPI ensenaba «0 unidades libres» sobre un inventario lleno. Es la
          misma familia que la RLS que recorta sin avisar: la respuesta vacia se
          lee igual que la respuesta correcta. */
-      Promise.all([
-        cnt(sb, 'unidades'),
-        cnt(sb, 'unidades', function (x) { return x.eq('estado', 'disponible'); }),
-        cnt(sb, 'unidades', function (x) { return x.eq('estado', 'reservada'); })
-      ]).then(function (r) {
-        if (r[1] == null) return;
-        kpi(/UNIDADES LIBRES/i, String(r[1]), r[0] != null ? 'disponibles de ' + r[0] + ' en inventario' : null);
-        pon2('k-unidades', String(r[1]));
-        pon2('k-unidades-sub', r[0] != null ? 'de ' + r[0] + ' parcelas' : 'en inventario');
-        pon2('k-reservadas', r[2] != null ? String(r[2]) : '—');
+      pCifras.then(function (c) {
+        if (!c || c.unidades_libres == null) return;
+        kpi(/UNIDADES LIBRES/i, String(c.unidades_libres), c.unidades != null ? 'disponibles de ' + c.unidades + ' en inventario' : null);
+        pon2('k-unidades', String(c.unidades_libres));
+        pon2('k-unidades-sub', c.unidades != null ? 'de ' + c.unidades + ' parcelas' : 'en inventario');
+        pon2('k-reservadas', c.unidades_reservadas != null ? String(c.unidades_reservadas) : '—');
       });
       // módulos laterales: nunca dejar las tarjetas mock como "verdad"
       q(sb.from('contrato_vencimientos').select('descripcion,pct,monto,fecha,contratos!inner(numero,bloqueado)')
@@ -4584,6 +4580,8 @@
               // quedaria encogido en la primera columna como si fuera una tarjeta.
               caja.innerHTML = '<p style="grid-column:1/-1;font:500 13px/1.5 sans-serif;color:#75786e;margin:0">' +
                 'Este proyecto no tiene unidades dadas de alta.</p>';
+              // Sin filas no hay chips: vacía los del proyecto anterior.
+              if (REINICIA_FILTRO_UDS) REINICIA_FILTRO_UDS(elegido.nombre);
               return;
             }
             // Barra de pago de UNA familia (suelo u obra) de UNA parcela.
@@ -4692,10 +4690,9 @@
             // S10.5: cambiar de proyecto reinicia el filtro/orden — si no, el
             // texto buscado en el proyecto anterior dejaría el nuevo con la
             // rejilla vacía en silencio, sin que nadie entienda por qué.
-            var buscadorUds = document.getElementById('d-unidades-buscar');
-            var ordenUds = document.getElementById('d-unidades-orden');
-            if (buscadorUds) buscadorUds.value = '';
-            if (ordenUds) ordenUds.value = 'codigo';
+            // Repintar el MISMO proyecto (llegan las portadas firmadas y se
+            // reabre el cajón) conserva lo que el usuario ya había elegido.
+            if (REINICIA_FILTRO_UDS) REINICIA_FILTRO_UDS(elegido.nombre);
           });
 
         if (opts.mostrar) {
@@ -5112,6 +5109,7 @@
          qué proyecto esté abierto), así que se cablean UNA vez, igual que
          wireTabsDoc/wireControles; cada disparo relee `#d-unidades` en el
          momento, así que siempre actúa sobre lo que esté pintado entonces. */
+      var REINICIA_FILTRO_UDS = null;
       function wireFiltroUnidadesCajon() {
         var caja = document.getElementById('d-unidades');
         var buscador = document.getElementById('d-unidades-buscar');
@@ -5121,12 +5119,78 @@
           var t = function (k) { var e = f.querySelector('[data-lw="' + k + '"]'); return e ? e.textContent : ''; };
           return (t('u-codigo') + ' ' + t('u-tipo') + ' ' + t('u-comprador-link') + ' ' + t('u-contrato-link') + ' ' + t('u-agente')).toLowerCase();
         };
+        /* Chips de estado del cajón (27-sep-2026, owner: ver las disponibles o
+           reservadas DENTRO del proyecto). Se cuentan de las filas pintadas —
+           las mismas que ve quien mira, ya filtradas por la RLS—, un chip por
+           estado presente y en el orden lógico de ESTADO_ETIQUETA. */
+        var chipsEst = document.getElementById('d-unidades-estados');
+        var estadoSel = 'todas';
+        var CHIP_ON = 'px-3 py-1 rounded-full bg-deep-lagoon text-surface-bright font-label-md text-[12px] font-semibold shrink-0 flex items-center gap-1.5';
+        var CHIP_OFF = 'px-3 py-1 rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface-variant border border-warm-border font-label-md text-[12px] font-medium transition-colors shrink-0 flex items-center gap-1.5';
+        var filasUds = function () {
+          return Array.prototype.filter.call(caja.children, function (f) { return f.hasAttribute && f.hasAttribute('data-orden-natural'); });
+        };
+        var pintaChipsEstado = function () {
+          if (!chipsEst) return;
+          var n = {}, total = 0;
+          filasUds().forEach(function (f) { var k = claveEstado(f.getAttribute('data-estado')); n[k] = (n[k] || 0) + 1; total++; });
+          if (estadoSel !== 'todas' && !n[estadoSel]) estadoSel = 'todas';
+          chipsEst.innerHTML = '';
+          if (!total) return;
+          var claves = ['todas'].concat(Object.keys(ESTADO_ETIQUETA).filter(function (k) { return n[k]; }));
+          // Un estado que no esté en ESTADO_ETIQUETA también sale: si no, esas
+          // parcelas solo se verían con «Todas» y nadie sabría que existen.
+          Object.keys(n).forEach(function (k) { if (claves.indexOf(k) === -1) claves.push(k); });
+          claves.forEach(function (k) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.setAttribute('data-chip-cajon', k);
+            b.setAttribute('aria-pressed', k === estadoSel ? 'true' : 'false');
+            b.className = k === estadoSel ? CHIP_ON : CHIP_OFF;
+            if (k !== 'todas') {
+              var punto = document.createElement('span');
+              punto.style.cssText = 'width:8px;height:8px;border-radius:999px;flex:0 0 auto;background:' + colorEstado(k);
+              b.appendChild(punto);
+            }
+            var et = document.createElement('span');
+            et.textContent = k === 'todas' ? 'Todas' : etiquetaEstado(k);
+            var cu = document.createElement('span');
+            cu.className = 'text-[11px] font-kpi-number opacity-70';
+            cu.textContent = k === 'todas' ? total : n[k];
+            b.appendChild(et); b.appendChild(cu);
+            chipsEst.appendChild(b);
+          });
+        };
         var aplicaFiltro = function () {
           var q2 = buscador.value.toLowerCase().trim();
           Array.prototype.forEach.call(caja.children, function (f) {
             if (!f.querySelector) return;
-            f.classList.toggle('hidden', !!q2 && textoDeFila(f).indexOf(q2) === -1);
+            var fueraEstado = estadoSel !== 'todas' && claveEstado(f.getAttribute('data-estado')) !== estadoSel;
+            f.classList.toggle('hidden', fueraEstado || (!!q2 && textoDeFila(f).indexOf(q2) === -1));
           });
+        };
+        if (chipsEst) chipsEst.addEventListener('click', function (ev) {
+          var b = ev.target.closest && ev.target.closest('button[data-chip-cajon]');
+          if (!b) return;
+          estadoSel = b.getAttribute('data-chip-cajon');
+          pintaChipsEstado();
+          aplicaFiltro();
+        });
+        // abrirCajon() lo llama cada vez que repinta las parcelas. Proyecto
+        // nuevo: buscador, orden y estado vuelven a cero. Mismo proyecto
+        // (repintado por las portadas): se conservan y se reaplican, porque
+        // las filas llegan otra vez en orden natural y sin ocultar.
+        var proyectoFiltrado = null;
+        REINICIA_FILTRO_UDS = function (nombre) {
+          if (nombre !== proyectoFiltrado) {
+            proyectoFiltrado = nombre;
+            buscador.value = '';
+            orden.value = 'codigo';
+            estadoSel = 'todas';
+          }
+          pintaChipsEstado();
+          aplicaOrden();
+          aplicaFiltro();
         };
         var aplicaOrden = function () {
           var criterio = orden.value;
@@ -6027,18 +6091,19 @@
            son columnas que la viva enseña y aquí faltaban. */
         q(sb.from('unidades_estado').select('id,codigo,proyecto,modelo,estado,contrato_numero,obra_fase,obra_fecha_entrega,obra_actualizado,comprador_nombre').not('obra_fase', 'is', null).order('obra_actualizado', { ascending: false }), 'unidades en obra'),
         q(sb.from('proyectos').select('id,nombre,estado').order('nombre'), 'proyectos'),
-        cnt(sb, 'unidades_estado', function (qq) { return qq.not('obra_fecha_entrega', 'is', null); }),
-        cnt(sb, 'obra_partes_trabajo'),
+        // entregas con fecha y nº de partes: obra_cifras_datos (B10a; antes dos conteos con tabla dinámica)
+        cifras('obra_cifras_datos', {}),
         q(sb.from('obra_partes_trabajo').select('fase_masterplan,zona_masterplan,fase_anterior,fase_nueva,fecha,autor,nota,dias_offset,proyecto_id').order('creado_en', { ascending: false }).limit(6), 'últimos partes de trabajo'),
         q(sb.from('obra_fases').select('clave,es').order('orden'), 'fases de obra'),
         // solo la columna para contar: las fotos se ven y se gestionan en la viva
         q(sb.from('obra_fotos').select('unidad_id'), 'fotos de obra')
       ]).then(function (r) {
-        var us = r[0], proys = r[1] || [], nEntregas = r[2], nPartes = r[3], ultimosPartes = r[4], fases = r[5];
+        var us = r[0], proys = r[1] || [], cObra = r[2], ultimosPartes = r[3], fases = r[4];
+        var nEntregas = cObra ? cObra.entregas_con_fecha : null, nPartes = cObra ? cObra.partes : null;
         if (us == null) return;
         // null = la consulta de fotos falló (ya avisada por q()): «? fotos», nunca un 0 que miente
-        var nFotos = r[6] == null ? null : {};
-        (r[6] || []).forEach(function (f) { nFotos[f.unidad_id] = (nFotos[f.unidad_id] || 0) + 1; });
+        var nFotos = r[5] == null ? null : {};
+        (r[5] || []).forEach(function (f) { nFotos[f.unidad_id] = (nFotos[f.unidad_id] || 0) + 1; });
         var urlUnidad = function (u) { return '/intranet/obra/?id=' + encodeURIComponent(u.id); };
 
         var enConstruccion = proys.filter(function (p) { return p.estado === 'en_construccion'; });
@@ -6428,7 +6493,7 @@
             // respuesta — un throw de red/timeout) dejaba el "Cargando…"
             // inicial para siempre: exactamente la alarma-que-parece-viva
             // que este panel existe para evitar (hallazgo de code-review,
-            // 21-sep-2026). Mismo motivo por el que `q()`/`cnt()` de este
+            // 21-sep-2026). Mismo motivo por el que `q()`/`cifras()` de este
             // fichero siempre llevan los dos brazos del `.then` — esto no
             // pasaba por esos helpers, así que se le había quedado corto.
             console.error('[v4 datos] frenos saltados:', e);

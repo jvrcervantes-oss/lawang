@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="51d599dc7941">
+<meta name="lw-version" content="6c51c1ed6ef8">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -56,7 +56,7 @@
      de Supabase publicado en `LW_SB`, que es lo que hacia falta para que la
      barra compartida funcione tambien aqui. -->
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3" data-pierde-al-recargar></script><script src="/contracts/assets/guard.js?v=f45d166d"></script>
+<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3" data-pierde-al-recargar></script><script src="/contracts/assets/guard.js?v=8f799850"></script>
 <!-- Identidad de las sociedades y cuentas de cobro: fuente única compartida con
      /facturas (define CUENTAS_BANCARIAS y SOCIEDADES). -->
 <!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
@@ -67,7 +67,7 @@
 <!-- reasignar el autor de un documento (solo super_admin) — compartido con
      /facturas. `creado_por` no es un adorno: es con lo que la RLS decide quién
      puede editar su propio documento. -->
-<script src="assets/autoria.js?v=62b3ec41"></script>
+<script src="assets/autoria.js?v=3b88aaeb"></script>
 <script src="assets/vocabulario.js?v=fd814f9b"></script>
 <script src="assets/dinero.js?v=30e26c17"></script>
 <script src="assets/dialogo.js?v=cefc9e4e"></script>
@@ -82,7 +82,7 @@
      Van aqui y no con `defer` a proposito: `defer` los ejecutaria DESPUES del
      bloque de abajo, y hay constantes que se calculan al cargar. El orden es
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
-<script src="assets/documento_diseno.js?v=f8448509"></script>
+<script src="assets/documento_diseno.js?v=a6230c91"></script>
 <script src="assets/docs_contrato.js?v=73e7152b"></script>
 <script src="assets/documento_anexos.js?v=9d313b54"></script>
 <script src="assets/parcela_inventario.js?v=f70c3cac"></script>
@@ -3119,6 +3119,15 @@ function buildDoc(){
     if(String(data[nuevo] || '').trim()) data[viejo] = '';
   });
   applyPromotor(data);   // rellena prom_* según la sociedad firmante elegida (default Tepi Sun Gai)
+  /* CC00014 (texto fijo, 28-sep-2026): el KTP del firmante del BUILDER no va
+     escrito en la plantilla, que se sirve sin sesion. Sale de firmantes_cred
+     (RLS authenticated). Es el de esta persona y no el de {{prom_rep}} porque
+     asi esta en el documento firmado: no se «corrige» aqui (ver pendientes). */
+  if(CURRENT && CURRENT.slug === 'cc00014_timon'){
+    const c = FIRMANTES_CRED['I Made Monjong Adhi Nugruah'];
+    if(!c && !BORRADOR_BLANCO) toastMal('No se ha podido cargar el KTP del firmante de CC00014 (firmantes_cred): el documento saldria con ese hueco en blanco.');
+    data.cc00014_ktp = BORRADOR_BLANCO ? '' : ((((c && c.cred.en) || '').match(/ID (\d+)/) || [])[1] || '');
+  }
   applyApoderado(data);   // rellena hsn_apoderado_ktp con la signed URL ya resuelta (POA)
   applyRepresentanteComprador(data);   // adq2_firmante_nombre: apoderado del comprador si lo hay, si no el propio comprador
   /* En blanco circula sin contrato detrás (Legal, capa 1, 25-sep-2026): fuera
@@ -3359,6 +3368,7 @@ function deriveSections(){
   inDoc.delete('adq_representacion');   // derivado: nombre+fecha del poder a la vez, no un campo del form
   inDoc.delete('unidad_construccion_codigo');   // derivado (collect(), arriba): lo fija el selector de parcela, nunca se teclea
   inDoc.delete('techo_nombre');   // derivado (collect(), arriba): lo fija el selector de la sección "Techo y extras", nunca se teclea
+  inDoc.delete('cc00014_ktp');   // derivado (buildDoc, de firmantes_cred): nunca un campo del form — se escribiria y se pisaria en silencio
   /* carta_cobrado_importe/numeros (17-sep-2026): los escribe SOLO el trigger
      de la base (carta_cobrado_al_bloquear, BEFORE INSERT) — regla 2 del
      encargo, "el cliente nunca manda este cálculo". Sin este delete caían en

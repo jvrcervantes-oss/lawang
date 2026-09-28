@@ -27,13 +27,20 @@ function saveDesign(){ try{ localStorage.setItem('lawang_contract_design_'+CURRE
    "Guardar como diseño de esta plantilla" lo sube (solo administración desde el
    27-sep-2026); cualquier agente que abra ese tipo de contrato lo recibe como
    punto de partida. */
+const DISENO_SIN_LEER = {};
 async function loadSharedDesign(slug){
   if(!sb) return null;
-  const { data } = await sb.from('contratos_diseno').select('design').eq('slug', slug).maybeSingle();
-  return data ? data.design : null;
+  // por el servidor (LAW-338 L2, 28-sep-2026). Si no contesta se DICE: sin aviso, el documento saldría con el
+  // diseño de este navegador creyendo que es el de la plantilla.
+  const { data, error } = await window.lwDatos('contrato_diseno_datos', { p_slug: slug });
+  // se recuerda por plantilla: guardar como diseño de la plantilla un diseño que no se pudo leer PISARÍA el bueno
+  DISENO_SIN_LEER[slug] = !!error;
+  if(error){ toastMal('No se pudo leer el diseño guardado de esta plantilla: se usa el de este navegador. Recarga antes de enviar el documento.'); return null; }
+  return data && data.design ? data.design : null;
 }
 async function saveSharedDesign(){
   if(!sb) return;
+  if(DISENO_SIN_LEER[CURRENT.slug]){ toastMal('No se guarda: el diseño de esta plantilla no se pudo leer al abrirla y se pisaría. Recarga la página y vuelve a intentarlo.'); return; }
   const btn=$('#btnSaveDesign'); const t0=btn?btn.textContent:'';
   if(btn){ btn.disabled=true; btn.textContent='Guardando…'; }
   try{
