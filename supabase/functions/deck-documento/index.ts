@@ -44,15 +44,22 @@ Deno.serve(async (req) => {
   if (!UUID.test(id)) return noEncontrado();
   try {
     const { data, error } = await admin.rpc('investor_deck_documento_ruta', { p_id: id });
+    // Al servidor sí se le dice qué pasó (revisor, 28-sep): un 404 que nadie ve en los logs lo acabaría descubriendo
+    // el inversor. Al cliente, el mismo 404 de siempre.
+    if (error) console.error('deck-documento: la RPC de ruta falló', id, error.message);
     const fila = !error && Array.isArray(data) ? data[0] : null;
     const ruta = fila ? String(fila.path ?? '') : '';
     const m = RUTA.exec(ruta);
     if (!m) return noEncontrado();
     const { data: firma, error: eF } = await admin.storage.from('documentacion')
       .createSignedUrl(ruta, FIRMA_SEG, { download: nombreDescarga(fila.titulo, m[1]) });
-    if (eF || !firma?.signedUrl) return noEncontrado();
+    if (eF || !firma?.signedUrl) {
+      console.error('deck-documento: no se pudo firmar', id, eF?.message ?? 'sin url');
+      return noEncontrado();
+    }
     return new Response(null, { status: 302, headers: { ...CABECERAS, 'Location': firma.signedUrl } });
-  } catch {
+  } catch (e) {
+    console.error('deck-documento: excepción', id, e instanceof Error ? e.message : String(e));
     return noEncontrado();
   }
 });

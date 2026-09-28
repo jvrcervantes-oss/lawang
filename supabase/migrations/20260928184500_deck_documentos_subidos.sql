@@ -21,7 +21,9 @@
 -- siguen pudiendo salir como enlace de Drive, como hoy.
 --
 -- ⚠️ El ref del proyecto va escrito en la url (como otras 4 migraciones con functions/v1): no es portable a otra
--- instancia; ahí se reescribe con su ref.
+-- instancia; ahí se reescribe con su ref. Por eso la edge va `solo_lawang` en erp/modulos.py.
+--
+-- Prueba: contracts/sql/prueba_deck_documentos_subidos.sql (no escribe nada: todo acaba en rollback).
 
 create or replace function public.investor_deck_documento_mime(p_path text) returns text
 language sql immutable set search_path = '' as $$
@@ -79,8 +81,9 @@ language sql stable security definer set search_path = '' as $$
      and public.investor_deck_documento_visible(d);
 $$;
 
-revoke all on function public.investor_deck_documento_mime(text) from public, anon, authenticated;
-revoke all on function public.investor_deck_documento_visible(public.documentos_proyecto) from public, anon, authenticated;
+-- mime y visible no tienen llamador directo (las usan dos security definer): nacen cerradas, también a service_role
+revoke all on function public.investor_deck_documento_mime(text) from public, anon, authenticated, service_role;
+revoke all on function public.investor_deck_documento_visible(public.documentos_proyecto) from public, anon, authenticated, service_role;
 revoke all on function public.investor_deck_documento_ruta(uuid) from public, anon, authenticated;
 grant execute on function public.investor_deck_documento_ruta(uuid) to service_role;
 -- la lista sigue como la dejó 20260927140000_superficie_funciones_sin_llamador: anon + service_role
