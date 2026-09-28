@@ -4452,7 +4452,7 @@
            hoy 6 FAQ y 10 enlaces, todos con proyecto — una pestana propia no
            se sostenia. La lectura es de equipo (es_agente); el alta seguira
            exigiendo puede('documentacion'), la misma llave de siempre. */
-        var docsEl = DS_ACTUAL.filter(function (d2) { return d2.proyecto === elegido.nombre; });
+        var docsEl = DS_ACTUAL.filter(function (d2) { return d2.proyecto === elegido.nombre && !d2.general; });
         /* S11.5 (22-sep-2026): 'portada' (la foto de fondo de la tarjeta, ya se
            ve en el Expediente de arriba y en la propia rejilla) queda fuera de
            las tres listas — antes colaba como si fuera un enlace de
