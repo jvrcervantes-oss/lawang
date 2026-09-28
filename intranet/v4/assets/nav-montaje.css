@@ -154,8 +154,14 @@ html.v4 .lw4-cab-ava .material-symbols-outlined{ font-size:18px; }
     max-width:none; box-shadow:0 1px 8px rgba(0,0,0,.04);
   }
   html.v4.lw4-fijo .lw4-velo{ display:none; }
-  /* «cerrar» solo tiene sentido en el cajón: en escritorio el menú no se pliega aquí */
-  html.v4.lw4-fijo .lw4-sb-cerrar{ display:none; }
+  /* PLEGADO (28-sep-2026): el botón de la barra la pliega, como en las pantallas nativas
+     (maqueta.js + shell.css, `body.v4-nav-plegada`), y el ☰ de la cabecera la vuelve a sacar.
+     Antes el botón se ocultaba aquí y el CRM era la única pantalla que no se plegaba. */
+  html.v4.lw4-fijo .lw4-sb, html.v4.lw4-fijo body, html.v4.lw4-fijo .lw4-cab{ transition:transform .25s, padding-left .25s, left .25s; }
+  html.v4.lw4-fijo.lw4-sb-plegado .lw4-sb{ transform:translateX(-100%); visibility:hidden; transition:transform .25s, visibility 0s .25s; }
+  html.v4.lw4-fijo.lw4-sb-plegado body{ padding-left:0; }
+  html.v4.lw4-fijo.lw4-sb-plegado .lw4-cab{ left:0; }
+  html.v4.lw4-fijo.lw4-sb-plegado .lw4-cab-menu{ display:inline-flex; }
 }
 
 /* IMPRIMIR (27-sep-2026): el menú y la cabecera no salen en papel. El constructor
