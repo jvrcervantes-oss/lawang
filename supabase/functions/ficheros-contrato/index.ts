@@ -17,9 +17,9 @@
 //   snapshot_url     {contrato_id}    → {path, token}  documento a firmar (solo si nadie firmó aún)
 //   envia_firma      {contrato_id, nombre, email, rol, orden, sin_anexo?} → {link, anulados}
 //                    sin_anexo = {motivo: 'ninguno'|'sin_apendice_a'|'fallo', faltan: [texto]}: el agente confirmó «Enviar
-//                    igualmente» sin un documento del modelo (28-sep-2026, owner). Se valida antes de enviar
-//                    (400 sin_anexo_invalido) y se apunta en contrato_eventos DESPUÉS de que el envío salga; si
-//                    apuntarlo falla, el envío se queda y la respuesta lleva aviso: 'constancia_sin_anexo_no_apuntada'.
+//                    igualmente» sin un documento del modelo (28-sep-2026, owner). Va a contrato_envia_firma, que lo
+//                    valida y apunta la constancia en contrato_eventos en la MISMA transacción que el envío (LAW-406):
+//                    o salen el enlace y su constancia, o no sale nada.
 //   pdf_manual_url   {contrato_id}    → {path, token}  PDF firmado a mano
 //   cierra_manual    {contrato_id}    → {path, hash, anulados}
 //   limpia_borradores {}              → {borrados}     borradores de firma de contratos que ya no existen
@@ -154,39 +154,18 @@ Deno.serve(async (req) => {
       const rDoc = await leeFresco(BUCKET_FIRMAS, path);
       if (!rDoc.ok) return json({ ok: false, error: 'falta_el_documento_a_firmar' }, 409);
       const hash = await sha256hex(await rDoc.text());
-      // «Enviar igualmente» sin un anexo del modelo: constancia en el historial, escrita por el servidor con
-      // el actor de la sesión (no un insert del navegador). Se valida AQUÍ, antes de enviar (lo mismo que
-      // comprueba contrato_envio_sin_anexo), para que lo único que pueda fallar después del envío sea la base.
-      let sinAnexo: { motivo: string; faltan: unknown[] } | null = null;
-      if (body.sin_anexo != null) {
-        const sa = body.sin_anexo as Record<string, unknown>;
-        const faltan = sa && typeof sa === 'object' ? (sa.faltan ?? []) : null;
-        if (!sa || typeof sa !== 'object' || Array.isArray(sa)
-            || !['ninguno', 'sin_apendice_a', 'fallo'].includes(String(sa.motivo))
-            || !Array.isArray(faltan) || faltan.length > 20 || faltan.some((x) => typeof x !== 'string'))
-          return json({ ok: false, error: 'sin_anexo_invalido' }, 400);
-        sinAnexo = { motivo: String(sa.motivo), faltan };
-      }
+      // «Enviar igualmente» sin un anexo del modelo (LAW-406, 28-sep-2026): la constancia la valida y la apunta
+      // contrato_envia_firma en la MISMA transacción que el envío, con el actor de la sesión. Antes eran dos
+      // llamadas y un fallo de la segunda dejaba el envío hecho sin constancia. `p_sin_anexo` solo viaja si lo
+      // hay: sin él, la llamada sigue resolviendo también la firma de 6 argumentos (despliegue en cualquier orden).
       const { data: r, error: eEnv } = await usuario.rpc('contrato_envia_firma', {
         p_contrato: contratoId,
         p_nombre: String(body.nombre ?? ''), p_email: String(body.email ?? ''),
         p_rol: String(body.rol ?? ''), p_orden: Number(body.orden ?? 1),
         p_snapshot_hash: hash,
+        ...(body.sin_anexo != null ? { p_sin_anexo: body.sin_anexo } : {}),
       });
       if (eEnv) return errRpc(eEnv);
-      // La constancia va DESPUÉS del envío (revisor-codigo, 28-sep-2026): apuntada antes, un envío que fallaba
-      // dejaba en el historial «Enviado a firma sin un anexo» de algo que no salió. Si ahora falla apuntarla,
-      // el envío NO se deshace (el enlace ya existe y el anterior ya está anulado: deshacerlo dejaría el contrato
-      // sin enlace vivo); se devuelve ok con aviso para que la pantalla lo diga, y queda en el log con su código.
-      if (sinAnexo) {
-        const { error: eSa } = await admin.rpc('contrato_envio_sin_anexo', {
-          p_contrato: contratoId, p_actor: quien.user.email ?? null, p_detalle: sinAnexo,
-        });
-        if (eSa) {
-          console.error('ficheros-contrato: constancia sin anexo no apuntada', eSa.code ?? 'sin_codigo');
-          return json({ ok: true, ...(r as Record<string, unknown>), aviso: 'constancia_sin_anexo_no_apuntada' });
-        }
-      }
       return json({ ok: true, ...(r as Record<string, unknown>) });
     }
 

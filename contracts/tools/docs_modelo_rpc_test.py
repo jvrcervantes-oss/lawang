@@ -249,28 +249,13 @@ select 'B2 backfill: marcados = planos, y nada que no sea plano', bool_and(en_co
                   registra('admin', 5, 'plano', "current_setting('t.t2')", en='true'), '23505'))
     p.append(caso('R07 tipo que no existe: 22023', registra('admin', 5, 'folleto'), '22023'))
     p.append(caso('R09 admin sube un dosier marcado: 22023', registra('admin', 5, 'dosier', en='true'), '22023'))
-    # «Enviar igualmente» sin anexo: la constancia la escribe el servidor (la edge ficheros-contrato, service_role)
-    p.append("select set_config('t.c', (select id::text from public.contratos order by created_at desc limit 1), true);")
-    p.append(caso('E1 servidor apunta el envio sin anexo: evento con motivo y lo que faltaba, saneado',
-                  "public.contrato_envio_sin_anexo(current_setting('t.c')::uuid, 'agente@prueba', "
-                  "jsonb_build_object('motivo', 'fallo', 'faltan', jsonb_build_array('Apendice A <b>x</b>')))", 'ok',
-                  "exists (select 1 from public.contrato_eventos e where e.contrato_id = current_setting('t.c')::uuid "
-                  "and e.evento = 'envio_sin_anexo_confirmado' and e.quien = 'agente@prueba' and e.detalle->>'motivo' = 'fallo' "
-                  "and e.detalle->'faltan'->>0 = 'Apendice A bx/b')"))
-    p.append(caso('E4 motivo sin_apendice_a (salieron informativos pero no el plano que el contrato cita): ok',
-                  "public.contrato_envio_sin_anexo(current_setting('t.c')::uuid, 'x', '{\"motivo\": \"sin_apendice_a\"}'::jsonb)", 'ok'))
-    p.append(caso('E2 motivo que no existe: 22023', "public.contrato_envio_sin_anexo(current_setting('t.c')::uuid, 'x', '{\"motivo\": \"otro\"}'::jsonb)", '22023'))
-    p.append(caso('E3 lista de lo que falta con algo que no es texto: 22023',
-                  "public.contrato_envio_sin_anexo(current_setting('t.c')::uuid, 'x', '{\"motivo\": \"fallo\", \"faltan\": [1]}'::jsonb)", '22023'))
+    # «Enviar igualmente» sin anexo (E1-E4, N3): desde LAW-406 la constancia va dentro de contrato_envia_firma y
+    # contrato_envio_sin_anexo se retiró; sus casos viven en contracts/tools/envio_y_fichas_rpc_test.py.
     p.append('reset role;')
 
     # ── anónimo, y lo retirado ──
     p.append('set local role anon;')
     p.append(caso('N1 anon no llama a guarda: 42501', cambia(1, '{"tipo": "otro"}'), '42501'))
-    p.append('reset role;')
-    p.append(claims('agente'))
-    p.append(caso('N3 el navegador no apunta el envio sin anexo (solo la edge): 42501',
-                  "public.contrato_envio_sin_anexo(current_setting('t.c')::uuid, 'x', '{\"motivo\": \"ninguno\"}'::jsonb)", '42501'))
     p.append('reset role;')
     p.append("insert into _t values ('N4 service_role no llama a la funcion interna _modelo_documento_aplica', "
              "not has_function_privilege('service_role', 'public._modelo_documento_aplica(uuid,jsonb)', 'execute'), '');")

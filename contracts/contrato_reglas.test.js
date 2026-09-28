@@ -200,19 +200,22 @@ afirma('el panel nace escondido y lo abre el botón',
      (varios documentos marcados) también avisa si uno marcado no se pudo adjuntar. */
   afirma('sin anexo del modelo (o con uno marcado que falla) el envío a firma avisa y deja seguir («Enviar igualmente»), no bloquea',
     /if\(tipSel && \(autoMal \|\| sinApendiceA\)\)\{\s*const seguir = await lwConfirmar\([\s\S]{0,600}?confirmar: lwT\('Enviar igualmente'\)[\s\S]{0,80}?if\(!seguir\) return;[\s\S]{0,240}?\}/.test(app)
-    // y deja constancia (owner, 28-sep): lo que confirmó viaja a la edge, que lo apunta antes de enviar
+    // y deja constancia (owner, 28-sep): lo que confirmó viaja a la edge y la base lo apunta con el envío (LAW-406)
     && /sin_anexo: sinAnexo/.test(app),
     'el owner quiere poder enviar sin anexo; el aviso es para que sea una decisión, no un descuido');
-  /* 28-sep-2026 (revisor-codigo): la constancia se apunta DESPUÉS de que el envío salga. Apuntada
-     antes, un envío que fallaba dejaba «Enviado a firma sin un anexo (confirmado)» de algo que no ocurrió. */
+  /* LAW-406 (28-sep-2026): la constancia de «sin anexo» va en la MISMA transacción que el envío. Eran dos
+     llamadas (envío y luego constancia) y un fallo de la segunda dejaba un envío sin constancia. Lo que no
+     puede volver: la segunda llamada, su aviso de «no apuntada», o una constancia fuera de contrato_envia_firma. */
   const edgeFich = require('fs').readFileSync(path.join(__dirname, '..', 'supabase', 'functions', 'ficheros-contrato', 'index.ts'), 'utf8');
-  const iEnvia = edgeFich.indexOf("usuario.rpc('contrato_envia_firma'");
-  const iConst = edgeFich.indexOf("admin.rpc('contrato_envio_sin_anexo'");
-  afirma('la constancia de «sin anexo» se apunta después del envío a firma, y la pantalla dice si no se pudo',
-    iEnvia > 0 && iConst > iEnvia
-    && /aviso: 'constancia_sin_anexo_no_apuntada'/.test(edgeFich)
-    && /env\.aviso === 'constancia_sin_anexo_no_apuntada'/.test(app),
-    'el historial no puede contar un envío que no salió, ni callarse que la constancia faltó');
+  const migEnvio = require('fs').readFileSync(path.join(__dirname, '..', 'supabase', 'migrations', '20260928120000_law406_envia_firma_con_constancia.sql'), 'utf8');
+  const cuerpoEnvia = (migEnvio.split('create or replace function public.contrato_envia_firma(')[1] || '').split('end $$;')[0];
+  afirma('la constancia de «sin anexo» se apunta dentro de contrato_envia_firma, en la misma transacción que el envío',
+    /usuario\.rpc\('contrato_envia_firma', \{[\s\S]{0,400}?p_sin_anexo: body\.sin_anexo/.test(edgeFich)
+    && !/contrato_envio_sin_anexo|constancia_sin_anexo_no_apuntada/.test(edgeFich)
+    && !/no_se_pudo_apuntar_el_envio_sin_anexo/.test(app)
+    && /insert into public\.contrato_firmas[\s\S]*insert into public\.contrato_eventos[\s\S]*'envio_sin_anexo_confirmado'/.test(cuerpoEnvia)
+    && /drop function if exists public\.contrato_envio_sin_anexo\(/.test(migEnvio),
+    'dos llamadas sueltas vuelven a permitir un envío a firma sin su constancia');
 
   const firmas = require('fs').readFileSync(path.join(__dirname, 'firmar.html'), 'utf8');
   afirma('la firma del comprador se guarda en PNG, nunca en JPEG',

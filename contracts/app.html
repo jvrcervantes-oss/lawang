@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="8286ab651c3c">
+<meta name="lw-version" content="63e13b42c2c9">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -5981,8 +5981,6 @@ async function ficheros(accion, datos){
     headers:{ 'content-type':'application/json', authorization:'Bearer ' + (token || '') },
     body: JSON.stringify(Object.assign({ accion }, datos || {})) });
   const d = await r.json().catch(()=>({ ok:false, error:'Respuesta inválida del servidor' }));
-  if(d.error === 'no_se_pudo_apuntar_el_envio_sin_anexo')
-    throw new Error('no se ha podido apuntar en el historial que sale sin anexo, así que no se ha enviado: prueba otra vez');
   if(!d.ok) throw new Error(d.error || 'error del servidor');
   return d;
 }
@@ -6142,8 +6140,8 @@ $('#fmGen').addEventListener('click', async ()=>{
      varios, que otro sí cargara no puede tapar el que falta. */
   const autoMal = AUTO_AVISO && AUTO_AVISO.mal && AUTO_AVISO.clave === AUTO_ANX;
   /* «Enviar igualmente» deja CONSTANCIA (owner, 28-sep-2026): quién, cuándo y qué faltaba, en el historial
-     del contrato. La escribe el servidor (ficheros-contrato → contrato_envio_sin_anexo) cuando el envío
-     ya ha salido; si no pudo apuntarla, el envío se queda y la respuesta trae `aviso` (se dice abajo). */
+     del contrato. La apunta la base en la MISMA transacción que el envío (ficheros-contrato →
+     contrato_envia_firma, LAW-406): si no se puede apuntar, no sale el enlace y llega el error. */
   let sinAnexo = null;
   /* El contrato de Construcción CITA el Apéndice A – Planos (Legal, 28-sep-2026: es el único apéndice
      vinculante). Sin él se puede enviar igualmente (owner, 28-sep), pero se dice en llano y queda constancia. */
@@ -6202,7 +6200,9 @@ $('#fmGen').addEventListener('click', async ()=>{
     const anulados = env.anulados || 0;
     if(anulados) toast(anulados === 1 ? 'El enlace anterior queda anulado'
                                       : anulados + ' enlaces anteriores quedan anulados');
-    if(env.aviso === 'constancia_sin_anexo_no_apuntada')
+    /* Tolerancia de despliegue (LAW-406): una edge anterior a la constancia atómica aún puede responder ok
+       con `aviso` si no pudo apuntarla. La actual nunca lo manda; cualquier aviso se dice, no se calla. */
+    if(env.aviso)
       toastMal(lwT('Enlace generado, pero no se ha podido apuntar en el historial que sale sin anexo: avisa a administración'));
     $('#fmLink').value=link;
     $('#fmMsg').value='Hola'+(nombre?' '+nombre:'')+', aquí tienes el enlace para firmar el documento de Lawang Tropical Properties: '+link
