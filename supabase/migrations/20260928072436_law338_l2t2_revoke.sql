@@ -1,9 +1,11 @@
 -- LAW-338 L2, tanda 2 — CIERRE al navegador de 9 tablas que ya no lee ninguna pantalla.
 -- Pareja del maestro: erp/por_aplicar/b10a_l2t2_revoke.sql (solo las 4 que existen allí; espera a republicar el ERP del
 --   estudio, AXW-67). Lawang es independiente del maestro desde el 28-sep: esto se aplica por su lado.
--- SIN APLICAR. Orden seguro (lección B3-B5): la migración aditiva 20260928045443_law338_l2_tanda2 → aterriza el front →
---   curl a lawangproperties.com: entities.js, creatividades.js, panel-gastos.js y panel-creatividades.js servidos con
---   lwDatos y 0 .from() de estas tablas → esto.
+-- APLICADA el 28-sep-2026 con OK del owner («Cerrar ya en Lawang», vía CEO), después del orden seguro (lección B3-B5):
+--   migración aditiva 20260928045443_law338_l2_tanda2 → front aterrizado (Lawang 799daffc, LAW-422 5db56032) → curl a
+--   lawangproperties.com: entities.js?v=1cde0d66, creatividades.js?v=519c7942, panel-gastos.js?v=29564e98 y
+--   panel-creatividades.js?v=c3255c35 servidos con lwDatos y 0 .from() de estas tablas → esto.
+--   Vistas: la comprobación previa mira TODOS los esquemas (no solo public), igual que las funciones.
 -- Con ella: las 9 tablas a _CERRADAS_LAW338 de tools/salud_lawang.py y ataque 42501 por usuario × tabla.
 --
 -- Quién las lee hoy (medido el 28-sep-2026, grep del repo entero: servido + contracts/edge + supabase/functions):
@@ -20,7 +22,8 @@
 -- Funciones: se miran en TODOS los esquemas (no solo public; revisor 28-sep: existe `privado`). Medido: fuera de public
 --   solo privado.creatividad_ve_fichero las nombra, y es DEFINER de postgres.
 -- Riesgo que la comprobación textual NO ve: SQL dinámico (`execute format('… %I …', tabla)`). Medido el 28-sep (tanda 1):
---   todas las de public con execute + format(%I) son DEFINER de postgres. Volver a mirarlo al aplicar.
+--   todas las de public con execute + format(%I) son DEFINER de postgres. Remedido por Datos el 28-sep antes de aplicar:
+--   0 funciones INVOKER o DEFINER de otro dueño con SQL dinámico en los esquemas propios.
 
 do $$
 declare v_n int; v_lista text;
@@ -34,8 +37,8 @@ begin
      and not (schemaname = 'public' and tablename = any(tablas));
   if v_n > 0 then raise exception 'L2t2 revoke: % policies de otras tablas o de storage consultan estas tablas: %', v_n, v_lista; end if;
 
-  select count(*), string_agg(viewname, ', ') into v_n, v_lista
-    from pg_views where schemaname = 'public' and definition ~ ('\m' || re || '\M');
+  select count(*), string_agg(schemaname || '.' || viewname, ', ') into v_n, v_lista
+    from pg_views where schemaname not in ('pg_catalog', 'information_schema') and definition ~ ('\m' || re || '\M');
   if v_n > 0 then raise exception 'L2t2 revoke: vistas que leen estas tablas: %', v_lista; end if;
 
   select count(*), string_agg(p.proname, ', ') into v_n, v_lista
