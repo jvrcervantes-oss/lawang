@@ -80,7 +80,7 @@ begin
   update usuarios set herramientas = array_append(herramientas, 'documentacion') where user_id = 'da378aad-9477-42ce-b349-c2d7ced8f65a' and not ('documentacion' = any(herramientas));
   set local role service_role;
   perform documento_proyecto_borra('da378aad-9477-42ce-b349-c2d7ced8f65a', v);
-  r := r || '21 admin con Documentación borra: fila sigue=' || exists (select 1 from documentos_proyecto where id = v)::text || '; ';
+  r := r || (case when exists (select 1 from documentos_proyecto where id = v) then '21 FALLO admin con Documentación no borra; ' else '21 ok; ' end);
   raise exception 'RES: %', r;
 end $$;
 
