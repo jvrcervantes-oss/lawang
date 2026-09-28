@@ -27,7 +27,7 @@ const es = (que, dio, esperado) => {
   if(!ok){ fallos++; console.error(`  FALLA  ${que}\n         dio ${JSON.stringify(dio)} · esperaba ${JSON.stringify(esperado)}`); }
 };
 
-/* ── dprabante@gmail.com — el caso que destapó el fallo ──────────────────── */
+/* ── comprador A — el caso que destapó el fallo ──────────────────── */
 const prabante = [
   {numero:'CR00035', tipo:'carta_reserva',    precio:163500, precio_reserva:'1000', moneda:'EUR', cobrado:0},
   {numero:'RP00122', tipo:'reserva_parcela',  precio:64565,  precio_reserva:'1000', moneda:'EUR', cobrado:0},
@@ -40,7 +40,7 @@ es('…y no las 327.065 € que el portal le enseñaba', rp.total === 327065, fa
 es('la Carta queda fuera del precio y se puede nombrar', rp.excluidos.map(x=>x.numero), ['CR00035']);
 es('un contrato sin precio (Hak Sewa) no aporta ni estorba', rp.pendiente, 163565);
 
-/* ── ptnusalifeventures@gmail.com — el cobrado de la Carta SÍ descuenta ──── */
+/* ── comprador C — el cobrado de la Carta SÍ descuenta ──── */
 const nusa = [
   {numero:'CR00020', tipo:'carta_reserva',   precio:107200, precio_reserva:'1.000', moneda:'EUR', cobrado:1000},
   {numero:'RP00140', tipo:'reserva_parcela', precio:41200,  precio_reserva:'1.000', moneda:'EUR', cobrado:19596.41},
@@ -50,7 +50,7 @@ es('precio: solo el Bloqueo firmado', rn.total, 41200);
 es('cobrado: lo pagado con la Carta cuenta igual que lo del Bloqueo', rn.cobrado, 20596.41);
 es('pendiente = precio real − todo lo entregado', Math.round(rn.pendiente*100)/100, 20603.59);
 
-/* ── ruben.carrasco@nettaro.com — la variante hak_sewa también es preliminar
+/* ── comprador D — la variante hak_sewa también es preliminar
    (la copia de 12-ago se la dejaba fuera y por eso se centralizó la lista) ── */
 const ruben = [
   {numero:'CH00001', tipo:'carta_reserva_hak_sewa', precio:18000, precio_reserva:'5000', moneda:'EUR', cobrado:0},
@@ -60,7 +60,7 @@ const ruben = [
 es('la Carta hak_sewa no duplica los 18.000 €', R.resumenPortal(ruben).total, 18000);
 es('los 5.000 € entregados siguen contando como pagados', R.resumenPortal(ruben).cobrado, 5000);
 
-/* ── malogus84@gmail.com — SOLO Carta: entonces manda la CUOTA ────────────
+/* ── comprador E — SOLO Carta: entonces manda la CUOTA ────────────
    Dejar el resumen en blanco aquí se leería como «no debes nada», y la cuota es
    exigible de verdad (hallazgo Legal ALTA, 12-ago-2026). Enseñar en cambio los
    109.000 € de la villa sería prometerle un precio que aún no ha firmado. */

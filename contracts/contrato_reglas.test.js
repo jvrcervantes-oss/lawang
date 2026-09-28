@@ -196,10 +196,23 @@ afirma('el panel nace escondido y lo abre el botón',
     && !/retiraAnexosManuales|ANEXO_MANUAL_RETIRADO/.test(anexos + app),
     'el owner quiere adjuntar el PDF que quiera; quitarlo otra vez es una decisión suya, no un refactor');
   /* 27-sep-2026, el owner revierte el bloqueo: «si no hay anexo, que deje mandar
-     igual». Sin Anexo Maestro se avisa y se decide; no se bloquea. */
-  afirma('sin Anexo Maestro el envío a firma avisa y deja seguir («Enviar igualmente»), no bloquea',
-    /if\(tipSel && !ANNEXES\.some\(a=>a\.auto && a\.on && a\.pages && a\.pages\.length\)\)\{\s*const seguir = await lwConfirmar\([\s\S]{0,600}?confirmar: lwT\('Enviar igualmente'\)[\s\S]{0,80}?if\(!seguir\) return;\s*\}/.test(app),
+     igual». Sin anexo del modelo se avisa y se decide; no se bloquea. Desde el 27-sep
+     (varios documentos marcados) también avisa si uno marcado no se pudo adjuntar. */
+  afirma('sin anexo del modelo (o con uno marcado que falla) el envío a firma avisa y deja seguir («Enviar igualmente»), no bloquea',
+    /if\(tipSel && \(autoMal \|\| sinApendiceA\)\)\{\s*const seguir = await lwConfirmar\([\s\S]{0,600}?confirmar: lwT\('Enviar igualmente'\)[\s\S]{0,80}?if\(!seguir\) return;[\s\S]{0,240}?\}/.test(app)
+    // y deja constancia (owner, 28-sep): lo que confirmó viaja a la edge, que lo apunta antes de enviar
+    && /sin_anexo: sinAnexo/.test(app),
     'el owner quiere poder enviar sin anexo; el aviso es para que sea una decisión, no un descuido');
+  /* 28-sep-2026 (revisor-codigo): la constancia se apunta DESPUÉS de que el envío salga. Apuntada
+     antes, un envío que fallaba dejaba «Enviado a firma sin un anexo (confirmado)» de algo que no ocurrió. */
+  const edgeFich = require('fs').readFileSync(path.join(__dirname, '..', 'supabase', 'functions', 'ficheros-contrato', 'index.ts'), 'utf8');
+  const iEnvia = edgeFich.indexOf("usuario.rpc('contrato_envia_firma'");
+  const iConst = edgeFich.indexOf("admin.rpc('contrato_envio_sin_anexo'");
+  afirma('la constancia de «sin anexo» se apunta después del envío a firma, y la pantalla dice si no se pudo',
+    iEnvia > 0 && iConst > iEnvia
+    && /aviso: 'constancia_sin_anexo_no_apuntada'/.test(edgeFich)
+    && /env\.aviso === 'constancia_sin_anexo_no_apuntada'/.test(app),
+    'el historial no puede contar un envío que no salió, ni callarse que la constancia faltó');
 
   const firmas = require('fs').readFileSync(path.join(__dirname, 'firmar.html'), 'utf8');
   afirma('la firma del comprador se guarda en PNG, nunca en JPEG',

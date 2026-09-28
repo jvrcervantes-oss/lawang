@@ -5231,11 +5231,14 @@
          contenedor ESTÁTICO (`#d-documentos`): datos.js reemplaza sus filas
          en cada apertura del cajón, así que un listener por fila se perdería
          al abrir el siguiente proyecto. */
-      /* Anexos Maestros del proyecto (25-sep-2026, encargo del owner: «añádelo
-         como documentación»). Los de los modelos que se construyen AQUÍ
+      /* Documentos del contrato del proyecto (25-sep-2026, encargo del owner:
+         «añádelo como documentación»). Los de los modelos que se construyen AQUÍ
          (`modelos_villa`), leídos de Modelos en cada apertura: ni copia de
-         fichero ni fila nueva en `documentos_proyecto` — el Anexo Maestro tiene
+         fichero ni fila nueva en `documentos_proyecto` — el documento tiene
          un solo dueño, y dos copias acabarían diciendo cosas distintas.
+         Desde el 27-sep-2026 son los marcados «Se incluye automáticamente en el
+         contrato» (`en_contrato`), no los de tipo plano, en su orden (la regla
+         de docs_contrato.js, la misma que usa el generador).
          Abrir = URL firmada del bucket privado `modelos` (TTL 5 min), el mismo
          camino que usa el contrato. `turno` descarta la respuesta de un cajón
          que ya se cerró para abrir otro proyecto. */
@@ -5256,12 +5259,14 @@
           });
           if (!ids.length) return nota('Este proyecto no tiene modelos declarados. Se declaran en Modelos.');
           return Promise.all([
-            sb.from('modelo_documentos').select('id,modelo_id,nombre,path,techo_clave,tamano_bytes').eq('tipo', 'plano').in('modelo_id', ids),
+            sb.from('modelo_documentos').select('id,modelo_id,nombre,path,tipo,techo_clave,tamano_bytes,en_contrato,orden,subido_en').eq('en_contrato', true).in('modelo_id', ids),
             sb.from('modelos').select('id,nombre,orden').in('id', ids),
             sb.from('modelo_techos').select('modelo_id,clave,nombre,orden').in('modelo_id', ids)
           ]).then(function (r) {
             if (turno !== TURNO_ANEXOS) return;
-            if (r[0].error || r[1].error) return nota('No se han podido leer los Anexos Maestros.');
+            if (r[0].error || r[1].error) return nota('No se han podido leer los documentos del contrato de los modelos.');
+            var R = window.lwDocsContrato;
+            if (!R) return nota('No se ha podido cargar qué documentos van en el contrato (docs_contrato.js). Recarga la página.');
             var mods = r[1].data || [], techos = r[2].data || [];
             var nombreModelo = {}, ordenModelo = {};
             mods.forEach(function (m) { nombreModelo[m.id] = m.nombre; ordenModelo[m.id] = m.orden == null ? 999 : m.orden; });
@@ -5270,10 +5275,13 @@
               var t = techos.filter(function (x) { return x.modelo_id === d.modelo_id && x.clave === d.techo_clave; })[0];
               return t ? t.nombre : d.techo_clave;
             };
-            var docs = (r[0].data || []).slice().sort(function (a, b) {
+            // por modelo y, dentro de cada uno, en el orden en que entran en el contrato
+            var enOrden = R.ordena((r[0].data || []).filter(function (d) { return d.en_contrato === true; }));
+            var pos = {}; enOrden.forEach(function (d, i) { pos[d.id] = i; });
+            var docs = enOrden.slice().sort(function (a, b) {
               return (ordenModelo[a.modelo_id] - ordenModelo[b.modelo_id])
                 || String(nombreModelo[a.modelo_id] || '').localeCompare(String(nombreModelo[b.modelo_id] || ''))
-                || nombreTecho(a).localeCompare(nombreTecho(b));
+                || (pos[a.id] - pos[b.id]);
             });
             var sinAnexo = ids.filter(function (id) { return !docs.some(function (d) { return d.modelo_id === id; }); });
             caja.innerHTML = '';
@@ -5284,7 +5292,7 @@
               var ic = document.createElement('span'); ic.className = 'material-symbols-outlined text-[16px] text-outline shrink-0'; ic.textContent = 'architecture';
               var cuerpo = document.createElement('div'); cuerpo.className = 'flex-1 min-w-0 flex items-center justify-between gap-3';
               var tit = document.createElement('span'); tit.className = 'font-body-sm text-body-sm text-on-surface truncate';
-              tit.textContent = (nombreModelo[d.modelo_id] || 'Modelo') + ' · ' + nombreTecho(d);
+              tit.textContent = (nombreModelo[d.modelo_id] || 'Modelo') + ' · ' + R.etiqueta(d.tipo) + ' · ' + nombreTecho(d);
               tit.title = d.nombre || '';
               var meta = document.createElement('span'); meta.className = 'font-body-sm text-[11px] text-outline shrink-0';
               var mb = (typeof d.tamano_bytes === 'number' && d.tamano_bytes > 0) ? ' · ' + (d.tamano_bytes / 1048576).toFixed(1).replace('.', ',') + ' MB' : '';
@@ -5305,8 +5313,8 @@
             });
             if (sinAnexo.length) {
               var p = document.createElement('p'); p.style.cssText = 'font:500 12px/1.5 sans-serif;color:#8A6A34;margin:' + (docs.length ? '4px 0 0' : '0');
-              p.textContent = 'Sin Anexo Maestro en Modelos: ' + sinAnexo.map(function (id) { return nombreModelo[id] || 'modelo'; }).join(', ')
-                + '. Sus contratos de Construcción no se podrán enviar a firma hasta que administración lo suba.';
+              p.textContent = 'Sin documentos marcados para el contrato: ' + sinAnexo.map(function (id) { return nombreModelo[id] || 'modelo'; }).join(', ')
+                + '. Sus contratos de Construcción saldrán sin anexo hasta que administración marque alguno en Modelos → Documentos.';
               caja.appendChild(p);
             }
           });
@@ -5678,7 +5686,7 @@
         // `modelo` (texto): para avisar de las unidades que NOMBRAN un modelo sin estar
         // enlazadas a él (revisión previa #56: 81 «Dream» de Sumba Hills).
         q(sb.from('unidades').select('modelo_id,modelo,proyecto,proyecto_id'), 'unidades por modelo'),
-        q(sb.from('modelo_documentos').select('id,modelo_id,nombre,path,tipo,tamano_bytes,subido_en,visible_portal,techo_clave'), 'documentos de modelo'),
+        q(sb.from('modelo_documentos').select('id,modelo_id,nombre,path,tipo,tamano_bytes,subido_en,visible_portal,techo_clave,en_contrato,orden'), 'documentos de modelo'),
         // «Sin catalogar» (S12, 22-sep-2026): view ya existente (migración
         // 20260907053801) que agrupa unidades cuyo texto libre `modelo` no
         // enlaza a ningún modelo_id — se enseña, no se «arregla» sola.
@@ -5994,6 +6002,8 @@
         }
         function pintaFicha(el) {
           window.LW_V4 = window.LW_V4 || {}; window.LW_V4.modelo = el;
+          // los techos del modelo: los necesita «Añadir documento» (editores.js) para su selector
+          window.LW_V4.modeloTechos = TECHOS.filter(function (t) { return t.modelo_id === el.id; });
           pintaGaleria(el);
           pon('d-nombre', el.nombre || '—');
           pon('d-slug', el.slug ? '/modelo/' + el.slug : 'sin dirección web');

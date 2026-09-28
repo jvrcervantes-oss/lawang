@@ -10,8 +10,8 @@
 //     (`_actua_como`): el permiso lo sigue decidiendo la base con es_admin/es_agente.
 //
 // Clases de hoy:
-//   modelo_documento → bucket `modelos` (privado). Planos (Anexo Maestro del contrato de Construcción) solo admin;
-//                      el resto, cualquiera del equipo. PDF o imagen.
+//   modelo_documento → bucket `modelos` (privado). Planos y marcar «va en el contrato» (en_contrato) solo admin;
+//                      el resto, cualquiera del equipo. PDF o imagen. Tipos: plano, calidades, ficha, render, dosier, otro.
 //   deck_foto        → bucket `deck` (PÚBLICO: subir es publicar). Solo admin. Solo WebP (la pantalla recodifica
 //                      para quitar el EXIF/GPS antes de subir). Al borrar: PRIMERO el objeto y después la fila — al
 //                      revés, un fallo dejaría una imagen pública sin ninguna fila que diga que está ahí.
@@ -160,8 +160,13 @@ const CLASES: Record<string, Clase> = {
       const modelo = String(body.modelo_id ?? '');
       if (!esUuid(modelo)) return { error: 'modelo_invalido', status: 400 };
       const tipo = String(body.tipo ?? 'otro');
-      if (!['plano', 'calidades', 'ficha', 'render', 'otro'].includes(tipo)) return { error: 'tipo_de_documento_invalido', status: 400 };
+      if (!['plano', 'calidades', 'ficha', 'render', 'dosier', 'otro'].includes(tipo)) return { error: 'tipo_de_documento_invalido', status: 400 };
       if (tipo === 'plano' && !(await esAdmin(u))) return { error: 'plano_solo_admin', status: 403 };
+      // Marcarlo para el contrato al subir es de administración (27-sep-2026): se mira ANTES de subir, y la base
+      // lo vuelve a mirar al registrar (modelo_documento_registra).
+      if (body.en_contrato === true && !(await esAdmin(u))) return { error: 'en_contrato_solo_admin', status: 403 };
+      // el dosier es comercial: nunca va en el contrato (owner, 28-sep-2026; la base también lo rechaza)
+      if (body.en_contrato === true && tipo === 'dosier') return { error: 'dosier_no_va_en_el_contrato', status: 400 };
       const { data, error } = await u.from('modelos').select('id').eq('id', modelo).maybeSingle();
       if (error || !data) return { error: 'modelo_no_visible', status: 403 };
       return modelo + '/';
@@ -170,6 +175,7 @@ const CLASES: Record<string, Clase> = {
       p_uid: uid, p_modelo: String(body.modelo_id ?? ''), p_path: path,
       p_nombre: String(body.nombre ?? '').slice(0, 300), p_tipo: String(body.tipo ?? 'otro'),
       p_techo_clave: body.techo_clave == null ? null : String(body.techo_clave),
+      p_en_contrato: body.en_contrato === true,
     }),
     filaDe: async (path) => !!(await admin.from('modelo_documentos').select('id').eq('path', path).maybeSingle()).data,
     borraRpc: 'modelo_documento_borra',

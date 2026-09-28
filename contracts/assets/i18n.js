@@ -3058,12 +3058,20 @@
     'Avisado': 'Notified',
     'Aviso:': 'Notice:',
     'Reabre el modal de firma': 'Reopen the signing dialog',
-    'Este contrato de Construcción sale sin el Anexo Maestro (planos y especificaciones), y la plantilla remite a él.':
-      'This Construction contract goes out without the Master Annex (plans and specifications), and the template refers to it.',
-    'Sin Anexo Maestro': 'No Master Annex',
     'Enviar igualmente': 'Send anyway',
-    'Si lo tienes, pídeselo a administración (Modelos → Documentos, tipo Plano) o actívalo en Anexos.':
-      'If you have it, ask administration for it (Models → Documents, type Plan) or switch it on in Annexes.',
+    'Este contrato de Construcción sale sin ningún documento del modelo como anexo (planos, especificaciones), y la plantilla remite a ellos.':
+      'This Construction contract goes out without any of the model’s documents as annexes (plans, specifications), and the template refers to them.',
+    'Sin anexo del modelo': 'No model annex',
+    'Sin Apéndice A (planos)': 'No Appendix A (drawings)',
+    'Enlace generado, pero no se ha podido apuntar en el historial que sale sin anexo: avisa a administración':
+      'Link generated, but it could not be recorded in the history that it goes out without an annex: tell administration',
+    'Este contrato cita el Apéndice A – Planos Arquitectónicos y no lo lleva.':
+      'This agreement cites Appendix A – Architectural Drawings and does not include it.',
+    'Si el modelo tiene plano, pídele a administración que lo marque (Modelos → Documentos → Editar, casilla «Se incluye automáticamente en el contrato», con su techo), o actívalo en Anexos si está apagado.':
+      'If the model has drawings, ask administration to mark them (Models → Documents → Edit, “Included automatically in the contract” box, with its roof), or switch them on in Annexes if they are off.',
+    'Falta un documento del contrato': 'A contract document is missing',
+    'Si debe llevarlos, pídeselo a administración (Modelos → Documentos → Editar, casilla «Se incluye automáticamente en el contrato») o actívalos en Anexos.':
+      'If it should have them, ask administration (Models → Documents → Edit, “Included automatically in the contract” box) or switch them on in Annexes.',
     'Este contrato está': 'This contract is',
     'firmado y cerrado': 'signed and closed',
     'Queda registrado en el historial del contrato:': 'It is recorded in the contract’s history:',

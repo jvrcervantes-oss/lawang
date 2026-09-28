@@ -28,6 +28,8 @@ const { pathToFileURL } = require('url');
   assert.ok(m.anexoIdOk('ax-' + U));
   assert.ok(!m.anexoIdOk('ax12'), 'los ids viejos ax<n> no son del archivo');
   assert.ok(!m.anexoIdOk('axauto'), 'el automático nunca va al archivo');
+  // desde el 27-sep-2026 hay un automático por documento del modelo, con id axauto-<uuid del documento>: tampoco va
+  assert.ok(!m.anexoIdOk('axauto-' + U), 'los automáticos por documento (axauto-<uuid>) tampoco van al archivo');
   assert.ok(!m.anexoIdOk('ax/../x'));
   assert.ok(!m.anexoIdOk('otro'));
   assert.strictEqual(m.nPagina('7'), 7);
