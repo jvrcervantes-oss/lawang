@@ -202,6 +202,7 @@
     cambio_en_curso: 'Ya hay un cambio en curso en el deck de este proyecto: espera un minuto y vuelve a mirar',
     fotos_sin_mover: 'No se han podido pasar las fotos al público: el deck sigue cerrado. Prueba otra vez',
     deck_a_medias: 'El cambio del deck ha quedado A MEDIAS (alguna foto no está donde toca). Vuelve a pulsar el botón: repetirlo es seguro',
+    el_deck_cambio_durante_la_subida: 'El deck de este proyecto se ha abierto o cerrado mientras subías: vuelve a subir la foto',
     sincroniza_apagada_hasta_s4: 'El barrido de fotos del deck todavía no está encendido'
   });
   fija('lwFichero', function (sb, clase, accion, datos) {

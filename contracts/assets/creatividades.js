@@ -181,11 +181,6 @@
       return f;
     });
   }
-  async function urlFoto(fotoId) {
-    var c = await sb();
-    var urls = await urlsDe(c, [String(fotoId)]);
-    return urls[fotoId] || null;
-  }
 
   async function bloqueLegal(clave, idioma) {
     var c = await sb();
@@ -202,7 +197,7 @@
 
   window.lwCreatividades = {
     guardar: guardar, abrir: abrir, listar: listar, cambiarEstado: cambiarEstado,
-    urlDescarga: urlDescarga, urlVer: urlVer, fotos: fotos, urlFoto: urlFoto,
+    urlDescarga: urlDescarga, urlVer: urlVer, fotos: fotos,
     bloqueLegal: bloqueLegal, limpia: limpia, limpiaEstado: limpiaEstado, ESTADOS: ESTADOS
   };
 })();

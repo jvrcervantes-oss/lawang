@@ -524,13 +524,17 @@ const ACCIONES_DECK: Record<string, (u: Usuario, uid: string, body: Record<strin
       }
       unidades = Number(n);
       fase = 'final';
-      await reconcilia(proyecto);                                    // cerrar: ahora sí salen de `deck`
+      // el flag YA cambió: si mover lanza (red, Storage), no puede salir por el catch global sin `aplicado`
+      try { await reconcilia(proyecto); }                            // cerrar: ahora sí salen de `deck`
+      catch (_e) { /* MUDO A PROPOSITO: lo recoge la reconciliación final de abajo, que responde deck_a_medias con aplicado:true */ }
     } finally {
       await admin.rpc('deck_transicion_termina', { p_proyecto_id: proyecto });
     }
     // Desde aquí el flag YA cambió: toda respuesta lleva `aplicado: true` para que la pantalla no lo trate como
     // «no se abrió/cerró». Lo que falte es otra cosa y lleva su propio código.
-    const fin = await reconcilia(proyecto);                          // ya sin marca: lo que manda es el flag
+    let fin: Awaited<ReturnType<typeof reconcilia>>;
+    try { fin = await reconcilia(proyecto); }                        // ya sin marca: lo que manda es el flag
+    catch (_e) { return { cuerpo: { ok: false, aplicado: true, error: 'deck_a_medias', unidades, fase }, status: 500 }; }
     if ('rpcError' in fin) return { cuerpo: { ok: false, aplicado: true, error: 'deck_a_medias', unidades, fase }, status: 500 };
     if (fin.quedan > 0) {
       return { cuerpo: { ok: false, aplicado: true, error: 'deck_a_medias', unidades, quedan: fin.quedan, en_ambos: fin.en_ambos }, status: 500 };
@@ -686,7 +690,15 @@ Deno.serve(async (req) => {
       const bucket = clase.bucketDe ? await clase.bucketDe(body) : clase.bucket;
       if (!bucket) return json({ ok: false, error: 'error_interno' }, 500);
       const cab = await cabecera(bucket, path);
-      if (!cab) return json({ ok: false, error: 'el_fichero_no_ha_llegado' }, 409);
+      if (!cab) {
+        // ¿está en OTRO bucket de la clase? (deck abierto o cerrado entre subida_url y registra): se quita, no se
+        // queda suelto — y en `deck` sería público sin fila que lo diga
+        const otros = (clase.todos ?? []).filter((b) => b !== bucket);
+        for (const b of otros) {
+          if (await cabecera(b, path)) { await quita(); return json({ ok: false, error: 'el_deck_cambio_durante_la_subida' }, 409); }
+        }
+        return json({ ok: false, error: 'el_fichero_no_ha_llegado' }, 409);
+      }
       if (!clase.bytesOk(m[1], cab)) {
         await quita();
         return json({ ok: false, error: 'el_fichero_no_es_lo_que_dice_ser' }, 400);

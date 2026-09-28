@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" class="v4 lw4-fijo" data-lw4-herramienta="creatividades">
 <head>
-<meta name="lw-version" content="385cfcc91c84">
+<meta name="lw-version" content="834939386a6e">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -35,12 +35,12 @@
 <script src="/intranet/v4/assets/nav-montaje.js?v=047b8a7d" defer></script>
 <script src="/intranet/v4/assets/nav.js?v=c675dae9" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script><script src="/contracts/assets/guard.js?v=1e13a749" data-herramienta="creatividades"></script>
+<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script><script src="/contracts/assets/guard.js?v=e133693f" data-herramienta="creatividades"></script>
 <script src="/contracts/assets/suite-comun.js?v=17c1b0e9"></script>
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
 <!-- Creatividades v4 (24-sep-2026): la lista de Legal y la biblioteca, compartidas con el dossier. -->
 <script src="/contracts/assets/frases_vetadas.js?v=7dbfcf0a"></script>
-<script src="/contracts/assets/creatividades.js?v=b564573a"></script>
+<script src="/contracts/assets/creatividades.js?v=152bf3e5"></script>
 
 <!-- ═══════════════════════════════════════════════════════════════════════════════
      CREATIVIDADES — editor visual de piezas de pauta (Instagram/Facebook).
@@ -963,13 +963,14 @@ arrastrable($('#bAbajo'), 'abajo');
 const cacheB64 = {};
 /* Las fotos del deck llegan con URL pública o FIRMADA (AXW-66): se leen con fetch y entran como data:, así el
    lienzo nunca queda «tainted» (no hace falta crossOrigin). El mensaje no lleva la URL: una firmada no se enseña. */
-async function aB64(url){
+async function aB64(url, clave){
   if (!url) throw new Error(lwT('Esa foto no tiene fichero: súbela otra vez desde Proyectos.'));
-  if (cacheB64[url]) return cacheB64[url];
+  clave = clave || url;   // las fotos del deck, por id: su URL firmada cambia en cada carga
+  if (cacheB64[clave]) return cacheB64[clave];
   const r = await fetch(url);
   if (!r.ok) throw new Error(lwT('No se pudo leer la foto (') + r.status + ')');
   const b = await r.blob();
-  return cacheB64[url] = await new Promise(res => {
+  return cacheB64[clave] = await new Promise(res => {
     const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(b);
   });
 }
@@ -1148,6 +1149,7 @@ function pintaEstado(){
 
 // ── Fotos de la intranet ──────────────────────────────────────────────────────
 let FOTOS = [];
+let FOTOS_EN = 0;   // cuándo se pidieron sus URL (firmadas 1 h)
 async function cargaProyectos(){
   try {
     const { sb } = await window.LW_AUTH;
@@ -1163,6 +1165,7 @@ async function cargaFotos(proyectoId){
   const g = $('#fotosGrid'); g.innerHTML = '';
   if (!proyectoId) { FOTOS = []; return; }
   FOTOS = await lwCreatividades.fotos({ proyecto_id: proyectoId, ambito:'proyecto' });
+  FOTOS_EN = Date.now();
   if (!FOTOS.length){ g.innerHTML = '<p class="aviso">' + esc(lwT('Este proyecto no tiene fotos dadas de alta. Súbelas desde Proyectos.')) + '</p>'; return; }
   FOTOS.forEach(f => {
     const b = document.createElement('button'); b.type = 'button';
@@ -1179,8 +1182,16 @@ async function cargaFotos(proyectoId){
 }
 /* La imagen entra como data: URL: el PNG se monta dentro de un SVG, que no pide
    nada a la red, y el lienzo del guardrail necesita píxeles legibles. */
+/* Las URL firmadas duran 1 h (AXW-66): si la lista tiene más de 50 min, se vuelven a pedir antes de leer una foto. */
+async function frescas(f){
+  if (!f || !f.proyecto_id || Date.now() - FOTOS_EN < 50 * 60 * 1000) return f;
+  const nuevas = await lwCreatividades.fotos({ proyecto_id: f.proyecto_id, ambito:'proyecto' });
+  if (FOTOS.length && FOTOS[0].proyecto_id === f.proyecto_id){ FOTOS = nuevas; FOTOS_EN = Date.now(); }
+  return nuevas.find(x => x.id === f.id) || f;
+}
 async function eligeFoto(f, sinPintar){
-  E.src = await aB64(f.url);
+  f = await frescas(f);
+  E.src = await aB64(f.url, 'deck:' + f.id);
   E.fotoId = f.id; E.fotoTipo = f.tipo; E.fotoProyecto = f.proyecto_id; E.fotoPie = f.rotulo;
   $('#archivo').value = '';
   await buscaRender();
@@ -1198,7 +1209,8 @@ async function buscaRender(preferido){
     : await lwCreatividades.fotos({ proyecto_id: E.fotoProyecto, ambito:'proyecto' });
   const r = del.find(x => x.id === preferido && x.esRender) || del.find(x => x.esRender && x.uso === 'hero') || del.find(x => x.esRender);
   if (!r) return;
-  E.src2 = await aB64(r.url); E.foto2Id = r.id;
+  const r2 = await frescas(r);
+  E.src2 = await aB64(r2.url, 'deck:' + r2.id); E.foto2Id = r2.id;
   const im2 = $('#fotoImg2'); im2.onload = () => { pinta(); im2.onload = null; };
 }
 

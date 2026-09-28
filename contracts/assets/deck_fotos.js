@@ -42,7 +42,6 @@
 (function () {
   'use strict';
 
-  var BUCKET = 'deck';
   var LADO_MAX = 2000;       // px del lado mayor
   var CALIDAD = 0.86;
   var IDIOMAS = [['en', 'Inglés'], ['es', 'Español'], ['id', 'Bahasa']];
@@ -94,7 +93,6 @@
     var FOTOS = [];
     var URLS = {};           // id → url (null = la fila existe pero el fichero no)
     var FALLO_URLS = null;   // texto si el servidor no ha dado las URL: NO es «sin fotos»
-    var PUBLICAS = null;     // true/false según dónde están hoy; null = no se sabe (sin fotos o sin URL)
 
     function url(f) { return URLS[f.id] || ''; }
 
@@ -120,10 +118,8 @@
       }
       return window.lwFotoUrls(SB, FOTOS).then(function (r) {
         URLS = r.urls;
-        var alguna = FOTOS.filter(function (f) { return URLS[f.id]; });
-        PUBLICAS = alguna.length ? alguna.every(function (f) { return /\/object\/public\//.test(URLS[f.id]); }) : null;
       }, function (e) {
-        URLS = {}; PUBLICAS = null;
+        URLS = {};
         FALLO_URLS = (e && e.message) || String(e);
       });
     }
@@ -175,17 +171,14 @@
           '</div>';
       }).join('');
 
-      /* Dónde va lo que se sube: MODELO → siempre público. PROYECTO → público si su deck está
-         abierto; si está cerrado, privado hasta que se active. Se deduce de dónde están HOY sus
-         fotos (lo decide el servidor); sin fotos no se sabe, y se dice la regla entera. */
-      var avisoPublico = esModelo || PUBLICAS === true
+      /* Dónde va lo que se sube: MODELO → siempre público. PROYECTO → lo decide el servidor en el
+         momento de subir (público si su deck está abierto, privado si está cerrado). Esta pantalla no
+         lo adivina por dónde están hoy las fotos (una foto a medias de mover lo falsearía): dice la regla. */
+      var avisoPublico = esModelo
         ? '<b>' + T('Al subir, la foto es pública al instante.') + '</b> ' +
           T('Queda accesible por su dirección web aunque todavía no salga en el deck, igual que una foto colgada en la web. No subas aquí nada que no pueda ver cualquiera.')
-        : PUBLICAS === false
-          ? '<b>' + T('El deck de este proyecto está cerrado: lo que subas queda privado.') + '</b> ' +
-            T('Pasa a ser público, con dirección web abierta, en cuanto se active su Investor Deck. No subas aquí nada que no pueda ver cualquiera.')
-          : '<b>' + T('Si el deck de este proyecto está abierto, la foto es pública al instante; si está cerrado, queda privada hasta que se active.') + '</b> ' +
-            T('No subas aquí nada que no pueda ver cualquiera.');
+        : '<b>' + T('Si el deck de este proyecto está abierto, la foto es pública al instante; si está cerrado, queda privada hasta que se active.') + '</b> ' +
+          T('No subas aquí nada que no pueda ver cualquiera.');
       return '' +
         (FALLO_URLS
           ? '<div class="sui-aviso" role="alert"><b>' + T('No se han podido cargar las imágenes.') + '</b> ' +
@@ -333,7 +326,7 @@
         if (i >= files.length) {
           if (estado) estado.textContent = '';
           if (fallos.length) aviso(T('No han entrado: ') + fallos.join(', '));
-          if (hechas) aviso(hechas + ' ' + (esModelo || PUBLICAS === true ? T('foto(s) añadida(s) y ya públicas') : T('foto(s) añadida(s)')));
+          if (hechas) aviso(hechas + ' ' + (esModelo ? T('foto(s) añadida(s) y ya públicas') : T('foto(s) añadida(s)')));
           return cargar().then(repinta);
         }
         if (estado) estado.textContent = T('Preparando ') + (i + 1) + '/' + files.length + '…';

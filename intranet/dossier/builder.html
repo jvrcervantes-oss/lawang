@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" class="v4 lw4-fijo" data-lw4-herramienta="creatividades">
 <head>
-<meta name="lw-version" content="25600c2b3d08">
+<meta name="lw-version" content="f2cff4327ca0">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
@@ -29,12 +29,12 @@
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/i18n.js?v=0a8889a3"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script><script src="/contracts/assets/guard.js?v=1e13a749" data-herramienta="dossier,creatividades_ver"></script>
+<script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script><script src="/contracts/assets/guard.js?v=e133693f" data-herramienta="dossier,creatividades_ver"></script>
 <!-- Creatividades v4 (24-sep-2026): DOMPurify limpia TODO dossier que no hizo esta
      pestaña (biblioteca, fichero) antes de pintarlo — revisión previa #68, Seguridad #3. -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.6/purify.min.js" integrity="sha384-JEyTNhjM6R1ElGoJns4U2Ln4ofPcqzSsynQkmEc/KGy6336qAZl70tDLufbkla+3" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/frases_vetadas.js?v=7dbfcf0a"></script>
-<script src="/contracts/assets/creatividades.js?v=b564573a"></script>
+<script src="/contracts/assets/creatividades.js?v=152bf3e5"></script>
 <script src="/contracts/assets/dialogo.js?v=cefc9e4e"></script>
 <script src="/contracts/assets/herramientas.js?v=c95db503"></script>
 <script src="/contracts/assets/avisos.js?v=389df6b9" defer></script>
@@ -730,9 +730,11 @@ function cadaImg(s,fn){
     (p.free||[]).forEach(f=>{ if(f.src)fn(f.src,v=>{f.src=v;}); });
   });
 }
+// Solo `proyecto/` y `modelo/` (lo que vive en deck_fotos y puede pasar a privado); `formacion/` y demás siguen
+// siendo públicos fijos y se pintan como siempre.
 function rutaDeckVieja(v){
   if(typeof v!=='string'||v.indexOf(DECK_PUBLICO)!==0)return null;
-  try{ return decodeURIComponent(v.slice(DECK_PUBLICO.length).split(/[?#]/)[0]); }
+  try{ const r=decodeURIComponent(v.slice(DECK_PUBLICO.length).split(/[?#]/)[0]); return /^(proyecto|modelo)\//.test(r)?r:null; }
   catch(_){ return null; /* MUDO A PROPOSITO: una ruta mal codificada no es de deck_fotos; imgSegura/traduceDeck la tratan como imagen desconocida */ }
 }
 function rutasDeckViejas(s){ const o=[]; cadaImg(s,v=>{ const r=rutaDeckVieja(v); if(r&&o.indexOf(r)<0)o.push(r); }); return o; }
@@ -774,20 +776,25 @@ function pintaImg(el,src){
 function pintaFotos(){
   document.querySelectorAll('[data-deck]').forEach(el=>{ const u=urlDeck(el.dataset.deck); el.style.backgroundImage=u?'url("'+u+'")':''; });
 }
+let _idsEnVuelo=[];
 function resuelveFotos(forzar){
-  if(_fotosEnVuelo&&!forzar)return _fotosEnVuelo;
   const ids=idsDeck().filter(id=>forzar||!FOTO_URL[id]||FOTO_URL[id].hasta<=Date.now());
+  if(_fotosEnVuelo&&!forzar){
+    // lo que está en vuelo no trae las que se han añadido desde entonces: se piden al terminar
+    if(ids.every(id=>_idsEnVuelo.indexOf(id)>=0))return _fotosEnVuelo;
+    return _fotosEnVuelo.catch(()=>{}).then(()=>resuelveFotos(true));
+  }
   if(!ids.length)return Promise.resolve();
   if(!forzar&&Date.now()-_fotosFalloEn<30000)return Promise.resolve();   // tras un fallo, no reintentar en cada render
   if(!window.LW_AUTH||typeof window.lwFotoUrls!=='function')return Promise.reject(new Error(lwT('Falta guard.js actualizado: recarga la página')));
   const vuelo=window.LW_AUTH.then(a=>window.lwFotoUrls(a.sb,ids)).then(r=>{
     const hasta=Date.now()+Math.max(60,(r.caduca_seg||3600)-300)*1000;   // 5 min de margen antes de que caduque
-    ids.forEach(id=>{ FOTO_URL[id]={u:r.urls[id]||null, hasta:r.urls[id]?hasta:Date.now()+60000}; });
+    ids.forEach(id=>{ FOTO_URL[id]={u:r.urls[id]||null, hasta:hasta}; });
     pintaFotos();
     const faltan=ids.filter(id=>!r.urls[id]).length;
     if(faltan)toastMal(faltan+lwT(' foto(s) del dossier no tienen fichero en el archivo: sustitúyelas.'));
   },e=>{ _fotosFalloEn=Date.now(); throw e; }).finally(()=>{ if(_fotosEnVuelo===vuelo)_fotosEnVuelo=null; });
-  _fotosEnVuelo=vuelo;
+  _fotosEnVuelo=vuelo; _idsEnVuelo=ids;
   return vuelo;
 }
 // Tras render(): lo que falte, sin bloquear. Un fallo se dice (no es lo mismo que «no hay fotos»).
@@ -1474,12 +1481,13 @@ async function doPrint(){
   }
   closePrint();
   const ids=idsDeck();
-  if(ids.length){
+  const viejas=rutasDeckViejas(state).length;   // formato de antes sin traducir: saldrían en blanco
+  if(ids.length||viejas){
     toast(lwT('Preparando las fotos para imprimir…'));
     try{ await resuelveFotos(true); }
     catch(e){ toastMal(lwT('No se imprime: no se han podido pedir las fotos. ')+((e&&e.message)||e)); return; }
     const oks=await Promise.all(ids.map(id=>{ const u=urlDeck(id); return u?cargaUna(u):Promise.resolve(false); }));
-    const mal=oks.filter(x=>!x).length;
+    const mal=oks.filter(x=>!x).length+viejas;
     if(mal&&!(await lwConfirmar({titulo:lwT('Faltan fotos'),
         cuerpo:'<p>'+mal+lwT(' foto(s) no han cargado y saldrían en blanco en el PDF. ¿Imprimir igualmente?')+'</p>',
         confirmar:lwT('Imprimir igualmente'),tono:'peligro'})))return;
@@ -1822,7 +1830,7 @@ async function portadaDossier(){
     if (!p) return null;
     let src = p.img.bg;
     const m = RE_DECK.exec(src);
-    if (m){ await resuelveFotos(); src = urlDeck(m[1]); if (!src) return null; }
+    if (m){ await resuelveFotos(true); src = urlDeck(m[1]); if (!src) return null; }
     else if (rutaDeckVieja(src)) return null;
     const r = await fetch(src); if (!r.ok) return null;
     const bmp = await createImageBitmap(await r.blob());
