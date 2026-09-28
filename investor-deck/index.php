@@ -1094,7 +1094,7 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
     filas.forEach(function(q, i){
       var d = document.createElement('details');
       d.className = 'faq-item';
-      if(i === 0) d.open = true;
+      // todas cerradas al entrar (owner, 28-sep-2026): antes se abria la primera
       var sum = document.createElement('summary');
       var txt = document.createElement('span'); txt.textContent = lwTxt(q.pregunta);
       var ico = document.createElement('span'); ico.className = 'mi'; ico.setAttribute('aria-hidden', 'true');

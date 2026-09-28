@@ -639,7 +639,7 @@ if ($slug === '') { http_response_code(404); exit; }
     filas.forEach(function(q, i){
       var d = document.createElement('details');
       d.className = 'group bg-surface-container-low/60 px-4 py-3 rounded-xl border border-[#D8D2C5] transition-all open:bg-surface-container-lowest';
-      if(i === 0) d.open = true;
+      // todas cerradas al entrar (owner, 28-sep-2026): antes se abria la primera
       var sum = document.createElement('summary');
       sum.className = 'flex items-start gap-3 justify-between cursor-pointer list-none text-deep-lagoon font-body-md text-body-md font-semibold';
       var txt = document.createElement('span'); txt.textContent = lwTxt(q.pregunta);
