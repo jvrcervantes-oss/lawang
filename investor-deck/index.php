@@ -114,10 +114,16 @@ a.enlace{color:inherit;text-decoration:underline}
 /* ── Estado "deck no disponible" (decision 4): nace OCULTO y el JS solo lo enciende si no
    hay config. Mientras la RPC responde se ve #deck-cargando (29-sep-2026: nacia visible y
    cada deck activo enseñaba "no disponible" 1-2 s antes de pintarse). ── */
-#deck-cargando{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--ob)}
-#deck-cargando img{height:30px;width:auto;opacity:.55;animation:deck-late 1.6s ease-in-out infinite}
-@keyframes deck-late{50%{opacity:.2}}
-@media (prefers-reduced-motion:reduce){#deck-cargando img{animation:none}}
+#deck-cargando{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:var(--ob);
+  transition:opacity .8s cubic-bezier(.22,1,.36,1),visibility 0s linear .8s}
+/* Salida: el deck ya esta pintado debajo y la carga se funde encima de el (29-sep-2026, owner:
+   que el cambio se vea natural). El logo entra con fundido y respira despacio mientras espera. */
+#deck-cargando.fuera{opacity:0;visibility:hidden;pointer-events:none}
+#deck-cargando img{height:30px;width:auto;opacity:.7;animation:deck-entra .9s ease-out both,deck-late 2.4s ease-in-out .9s infinite}
+#deck-cargando.fuera img{transform:scale(1.04);transition:transform .8s cubic-bezier(.22,1,.36,1)}
+@keyframes deck-entra{from{opacity:0}to{opacity:.7}}
+@keyframes deck-late{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){#deck-cargando img{animation:none}#deck-cargando,#deck-cargando.fuera img{transition:none}}
 #deck-no-disponible{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;background:var(--ob);color:var(--rl)}
 #deck-no-disponible > div{max-width:28rem;display:flex;flex-direction:column;align-items:center;gap:16px}
 #deck-no-disponible img{height:30px;width:auto}
@@ -757,11 +763,20 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
   var SLUG = <?= json_encode($slug) ?>;
   // Red colgada o error antes de la RPC: la carga no se queda eterna. A los 15 s sin
   // desenlace se cae al aviso, que al menos da el contacto de ventas.
+  // La carga no se apaga de golpe: se funde (.fuera) sobre lo que ya esta pintado debajo
+  // y se retira del arbol al acabar el fundido.
+  function quitaCarga(){
+    var c = document.getElementById('deck-cargando');
+    if(!c || c.classList.contains('fuera')) return;
+    c.classList.add('fuera');
+    c.removeAttribute('aria-busy');
+    setTimeout(function(){ c.hidden = true; }, 850);
+  }
   setTimeout(function(){
     var c = document.getElementById('deck-cargando');
-    if(c && !c.hidden){ c.hidden = true; document.getElementById('deck-no-disponible').hidden = false; }
+    if(c && !c.classList.contains('fuera')){ document.getElementById('deck-no-disponible').hidden = false; quitaCarga(); }
   }, 15000);
-  if(!/^[a-z0-9-]+$/i.test(SLUG)){ document.getElementById('deck-cargando').hidden = true; document.getElementById('deck-no-disponible').hidden = false; return; }
+  if(!/^[a-z0-9-]+$/i.test(SLUG)){ document.getElementById('deck-no-disponible').hidden = false; quitaCarga(); return; }
 
   var PROYECTO = null;   // se fija tras resolver deck_config_publico
   var WA_NUM = '6281138319862';
@@ -1331,9 +1346,9 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
       PROYECTO = cfg.proyecto;
       DESTACADO = cfg.modelo_destacado_slug || null;
 
-      $('deck-cargando').hidden = true;
       $('deck-no-disponible').hidden = true;
       $('deck-contenido').hidden = false;
+      quitaCarga();
 
       var titulo = lwTxt(cfg.titulo);
       document.title = titulo + ' | Lawang Properties';
@@ -1510,9 +1525,9 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
       if(window.lwRepintaDinero) lwRepintaDinero();
     })
     .catch(function(){
-      $('deck-cargando').hidden = true;
       $('deck-contenido').hidden = true;
       $('deck-no-disponible').hidden = false;
+      quitaCarga();
       traduce($('deck-no-disponible'));
     });
 })();
