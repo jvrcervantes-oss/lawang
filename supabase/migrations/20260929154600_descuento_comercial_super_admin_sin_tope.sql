@@ -11,12 +11,15 @@
 -- es el default. contrato_guarda es SECURITY DEFINER pero auth.uid() sale del
 -- JWT, así que llega aquí con el usuario real.
 --
--- TOPE SOLO CUANDO CAMBIA EL DESCUENTO (INSERT o descuento nuevo ≠ viejo).
+-- TOPE SOLO CUANDO CAMBIA EL DESCUENTO O SU BASE (INSERT, descuento, techo/
+-- extras en Construcción, precio_lista_suelo en el Bloqueo). La base cuenta
+-- (revisor-codigo, mismo día): si no, bajar el techo o la lista dejaba un 15%
+-- legal convertido en un 25% real sin que nadie con permiso lo decidiera.
 -- Antes, en Construcción, corría en CUALQUIER update con descuento > 0: con un
 -- 30% puesto por el super admin, un sales manager que arreglase un email del
 -- contrato habría reventado con "supera el 15%". Misma familia que el fix del
 -- 21-sep (un cinturón incondicional rompe ediciones que no tienen nada que
--- ver). El descuento que ya está guardado no se vuelve a medir.
+-- ver). Editar otra cosa del contrato no vuelve a medir el descuento.
 --
 -- NUEVO SUELO en el Bloqueo: sin techo, descuento > lista cuadraría con un
 -- precio_total negativo. Se para para todos los roles (Construcción ya lo
@@ -52,7 +55,9 @@ begin
   end if;
   if v_descuento > 0 then
     v_dc_cambia := tg_op = 'INSERT'
-      or (new.datos->'fields'->>'descuento_comercial') is distinct from (old.datos->'fields'->>'descuento_comercial');
+      or (new.datos->'fields'->>'descuento_comercial') is distinct from (old.datos->'fields'->>'descuento_comercial')
+      or new.datos->'techo' is distinct from old.datos->'techo'
+      or new.datos->'extras' is distinct from old.datos->'extras';
     if v_dc_cambia and v_base > 0 and v_descuento > round(v_base * 0.15, 2) then
       select exists (select 1 from public.usuarios u
                       where u.user_id = (select auth.uid()) and u.activo and u.rol = 'super_admin')
@@ -85,7 +90,7 @@ end;
 $$;
 
 comment on function public.descuento_comercial_construccion_valido() is
-  'BEFORE INSERT OR UPDATE en contratos, solo tipo=construccion: bloquea descuento_comercial negativo; tope 15% de techo+extras solo al poner/cambiar el descuento y nunca para super_admin (29-sep-2026, owner); con descuento, precio_total > 0; con techo, precio_total = techo+extras − descuento. El rol de quien pone descuento lo frena descuento_comercial_rol.';
+  'BEFORE INSERT OR UPDATE en contratos, solo tipo=construccion: bloquea descuento_comercial negativo; tope 15% de techo+extras solo al poner/cambiar el descuento o techo/extras y nunca para super_admin (29-sep-2026, owner); con descuento, precio_total > 0; con techo, precio_total = techo+extras − descuento. El rol de quien pone descuento lo frena descuento_comercial_rol.';
 
 create or replace function public.descuento_comercial_suelo_valido()
 returns trigger
@@ -120,7 +125,8 @@ begin
     return new;
   end if;
   v_dc_cambia := tg_op = 'INSERT'
-    or (new.datos->'fields'->>'descuento_comercial') is distinct from (old.datos->'fields'->>'descuento_comercial');
+    or (new.datos->'fields'->>'descuento_comercial') is distinct from (old.datos->'fields'->>'descuento_comercial')
+    or (new.datos->'fields'->>'precio_lista_suelo') is distinct from (old.datos->'fields'->>'precio_lista_suelo');
   v_lista := public.lw_importe(new.datos->'fields'->>'precio_lista_suelo');
   if v_lista is null or v_lista <= 0 then
     raise exception 'Un descuento comercial en el Bloqueo de Parcela necesita el precio de lista del suelo (precio_lista_suelo).';
@@ -149,4 +155,4 @@ end;
 $$;
 
 comment on function public.descuento_comercial_suelo_valido() is
-  'BEFORE INSERT OR UPDATE en contratos, solo tipo=reserva_parcela: bloquea descuento_comercial negativo y, con descuento>0 (en INSERT o si cambia precio/descuento/motivo/lista), exige precio_lista_suelo, descuento < lista, motivo y precio_total = lista − descuento; tope 15% solo al poner/cambiar el descuento y nunca para super_admin (29-sep-2026, owner).';
+  'BEFORE INSERT OR UPDATE en contratos, solo tipo=reserva_parcela: bloquea descuento_comercial negativo y, con descuento>0 (en INSERT o si cambia precio/descuento/motivo/lista), exige precio_lista_suelo, descuento < lista, motivo y precio_total = lista − descuento; tope 15% solo al poner/cambiar el descuento o la lista y nunca para super_admin (29-sep-2026, owner).';
