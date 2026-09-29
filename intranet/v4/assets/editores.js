@@ -1609,24 +1609,21 @@
     setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
   }
 
-  /* ---------- captura de botones por texto, en directo ---------- */
-  function textoDe(btn) {
-    var c = btn.cloneNode(true);
-    c.querySelectorAll('.material-symbols-outlined').forEach(function (x) { x.remove(); });
-    return (c.textContent || '').replace(/\s+/g, ' ').trim();
-  }
-  function ata(rx, fn) {
-    var botones = document.querySelectorAll('button, a');
-    for (var i = 0; i < botones.length; i++) {
-      var b = botones[i];
-      if (b.getAttribute('data-e-nativo')) continue;
-      if (rx.test(textoDe(b))) {
-        b.setAttribute('data-e-nativo', '1');
-        b.addEventListener('click', function (ev) { ev.preventDefault(); ev.stopPropagation(); fn(this); });
-        return b;
-      }
-    }
-    return null;
+  /* ---------- captura de botones por IDENTIFICADOR, nunca por texto ----------
+     Norma del estudio (owner, 29-sep-2026): el código engancha por un atributo
+     que no cambia (`data-accion="alta-cliente"`), nunca por el rótulo visible.
+     Porqué: esto buscaba el botón por su texto, el 26-sep el rótulo pasó de
+     «Alta de comprador» a «Alta de cliente» (a8bb55b4) y el alta de clientes
+     estuvo tres días muerta sin un solo error; además en inglés el rótulo
+     traducido tampoco casaba. Si falta el botón se dice en consola: el gate
+     (tools/enganche_estable.py) ya exige que cada acción exista en el HTML. */
+  function ata(accion, fn) {
+    var b = document.querySelector('[data-accion="' + accion + '"]');
+    if (!b) { console.error('[v4] no hay botón data-accion="' + accion + '" en ' + location.pathname); return null; }
+    if (b.getAttribute('data-e-nativo')) return b;
+    b.setAttribute('data-e-nativo', '1');
+    b.addEventListener('click', function (ev) { ev.preventDefault(); ev.stopPropagation(); fn(this); });
+    return b;
   }
 
   /* ---------- Tramos de pago (Condiciones de comisión, 14-sep-2026) ----------
@@ -4555,7 +4552,7 @@
       var sb = aut.sb, admin = esAdmin(aut.ficha);
       var soloAdmin = function () { aviso('La familia de modelos la escribe solo administración (policy es_admin) — tu sesión es de ' + ((aut.ficha && aut.ficha.rol) || 'agente') + '.', '#8A6A34'); };
       var SLUG_VALIDO = /^[a-z0-9-]+$/;
-      ata(/^\+? ?Nuevo modelo$/i, function () {
+      ata('nuevo-modelo', function () {
         if (!admin) return soloAdmin();
         modal('Nuevo modelo', [
           { k: 'nombre', label: 'Nombre', req: 1 },
@@ -4590,7 +4587,7 @@
          (Dosier / Otro documento) → Tipo (si es otro) → Techo → «Se incluye
          automáticamente en el contrato» (solo admin, desmarcada) → Fichero.
          Los tipos salen de window.lwDocsContrato (docs_contrato.js): una lista. */
-      ata(/^Añadir documento$/i, function () {
+      ata('anadir-documento', function () {
         var m = window.LW_V4 && window.LW_V4.modelo;
         if (!m) return aviso('La ficha del modelo aún no ha cargado.', '#8A6A34');
         var R = window.lwDocsContrato;
@@ -4627,7 +4624,7 @@
          suite (contracts/assets/deck_fotos.js, Regla 0) — ya la usan
          /proyectos/ y /modelos/ clásicos, y v4/proyectos/ desde S10.2; se
          engancha TAL CUAL para v4/modelos/, nunca se reescribe. */
-      ata(/^Fotos del deck$/i, function () {
+      ata('fotos-deck', function () {
         var m = window.LW_V4 && window.LW_V4.modelo;
         if (!m) return aviso('La ficha del modelo aún no ha cargado.', '#8A6A34');
         aseguraModulosDoc(['dialogo', 'deckFotos']).then(function () {
@@ -5045,7 +5042,7 @@
 
       /* «+ Nueva solicitud» de la cabecera: mismo patron `ata()` que el resto
          de altas nativas de la v4 — reclama el boton por TEXTO, en directo. */
-      ata(/^\+? ?Nueva solicitud$/i, function () { window.LW_V4.abreAltaSolicitud(null); });
+      ata('nueva-solicitud', function () { window.LW_V4.abreAltaSolicitud(null); });
     },
 
     proyectos: function (aut) {
@@ -5634,7 +5631,7 @@
          exige motivo escrito para saltárselo y deja rastro en `proyecto_eventos`.
          Meterlo en el formulario general lo convertiría en un campo cualquiera y
          se perdería todo eso. Mismo criterio que el avance de obra por RPC. */
-      ata(/^Estado y obra$/i, function () {
+      ata('estado-obra', function () {
         var p = proyectoObj();
         if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
         if (!esAdminP)
@@ -5754,7 +5751,7 @@
          única del original. Tres escrituras independientes al guardar
          (proyectos, modelos_villa, un RPC por manager que cambió); que falle
          una no deshace las otras, mismo criterio que allí. */
-      ata(/^Editar proyecto$/i, function () {
+      ata('editar-proyecto', function () {
         var p = proyectoObj();
         if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
         Promise.all([
@@ -5969,7 +5966,7 @@
          consulta en vivo). El recuento de aquí es solo UX, para no pedir
          confirmar a ciegas: NUNCA sustituye la llamada al RPC, aunque dé
          cero — puede desincronizarse entre el cálculo y el clic. */
-      ata(/^Borrar proyecto$/i, function () {
+      ata('borrar-proyecto', function () {
         var p = proyectoObj();
         if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
         if (!esSuper) return aviso('Borrar un proyecto es solo para super_admin.', '#8A6A34');
@@ -6012,7 +6009,7 @@
          sin estado intermedio "sin publicar": el propio deck_fotos.js lo
          avisa en pantalla antes de dejar subir nada. dialogo.js hace falta
          para que su confirmación de "Quitar esta foto" no se salte sola. */
-      ata(/^Fotos del deck$/i, function () {
+      ata('fotos-deck', function () {
         var p = proyectoObj();
         if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
         aseguraModulosDoc(['dialogo', 'deckFotos']).then(function () {
@@ -6039,7 +6036,7 @@
          con el cajón NATIVO de este fichero (`cajon()`) en vez de
          `suiAbrirCajon`: Guardar y Activar/Desactivar son SIEMPRE dos clics
          distintos, nunca el mismo, igual que la clásica. */
-      ata(/^Investor Deck$/i, function () {
+      ata('investor-deck', function () {
         var p = proyectoObj();
         if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
         Promise.all([
@@ -6984,7 +6981,7 @@
 
     vencimientos: function (aut) {
       var sb = aut.sb;
-      ata(/Registrar hito/i, function () {
+      ata('registrar-hito', function () {
         if (!puedeH(aut.ficha, 'vencimientos')) return aviso('Ajustar hitos exige la herramienta Vencimientos (policy puede(\'vencimientos\')).', '#8A6A34');
         /* Un hito NUEVO no se crea aqui a proposito: nacen del calendario del
            contrato (sincroniza_vencimientos) y la tabla no tiene policy de
@@ -7029,7 +7026,7 @@
       var sb = aut.sb;
       // por el servidor (27-sep-2026, frontera bloque 5), igual que toggleEstado() en /intranet/soporte/: estado
       // de una lista cerrada y solo quien ve a ese comprador
-      ata(/^(Marcar resuelto|Reabrir)$/i, function () {
+      ata('estado-hilo', function () {
         var hilo = window.LW_V4 && window.LW_V4.hilo;
         if (!hilo) return aviso('El hilo aún no ha cargado.', '#8A6A34');
         var nuevo = hilo.estado === 'abierto' ? 'resuelto' : 'abierto';
@@ -7038,7 +7035,7 @@
           location.reload();
         });
       });
-      ata(/^Enviar respuesta$/i, function (btn) {
+      ata('enviar-respuesta', function (btn) {
         var ta = document.querySelector('textarea');
         var hilo = window.LW_V4 && window.LW_V4.hilo;
         var quien = window.LW_V4 && window.LW_V4.hiloCliente;
@@ -7067,7 +7064,7 @@
 
     obra: function (aut) {
       var sb = aut.sb;
-      ata(/Registrar avance/i, function () {
+      ata('registrar-avance', function () {
         // hallazgo de Desarrollo (deploy 15-sep): el gate de la UI decía
         // 'unidades', pero obra_actualizar y las policies de obra_fotos/bucket
         // obra exigen puede('obra') — con el gate viejo, un agente con
@@ -7105,7 +7102,7 @@
          obra_contratos_afectados() para la previa → obra_confirmar_avance() con
          los MISMOS ids que se enseñaron (candado optimista: si la lista cambió
          mientras tanto, la base rechaza en vez de escribir sobre datos viejos). */
-      ata(/Nuevo parte de trabajo/i, function () {
+      ata('nuevo-parte', function () {
         if (!puedeH(aut.ficha, 'obra'))
           return aviso('Los partes de trabajo exigen la herramienta Obra (policy puede(\'obra\')).', '#8A6A34');
 
@@ -7432,9 +7429,9 @@
       /* `btnAlta` se guarda para poder disparar el alta sola con `?nuevo=1`
          (paridad 21-sep-2026): la pantalla llega desde otro sitio de la suite
          que ya sabe que quiere dar de alta, sin obligar a buscar el botón.
-         Acepta «cliente» y «comprador»: el 26-sep el rótulo pasó a «Alta de
-         cliente» y el botón se quedó sin acción hasta el 29-sep (a8bb55b4). */
-      var btnAlta = ata(/Alta de (cliente|comprador)/i, function () { abreAltaComprador(); });
+         Va por `data-accion`: cuando iba por el rótulo, el paso a «Alta de
+         cliente» (a8bb55b4, 26-sep) lo dejó sin acción hasta el 29-sep. */
+      var btnAlta = ata('alta-cliente', function () { abreAltaComprador(); });
 
       /* GUARDAR EL ALTA — la lógica de siempre, sacada a su función para que la
          use el cajón nuevo (24-sep-2026). Los SEIS datos que exige un alta
@@ -8028,7 +8025,7 @@
           if (cajaTipos) cajaTipos.querySelectorAll('input').forEach(function (i) { i.checked = tipos.indexOf(i.value) !== -1; });
         });
       };
-      var btnAlta = ata(/Invitar miembro/i, function () {
+      var btnAlta = ata('invitar-miembro', function () {
         if (!window.AXW_NUCLEO_OPERACION) return abreAlta(tiposCatAlta);
         /* ERP: si el catálogo no se lee, el alta NO se abre. «Contratos que puede hacer» vacío significa TODOS:
            un formulario sin opciones daría acceso a todo sin que nadie lo decidiera. */
@@ -8212,7 +8209,7 @@
           ((aut.ficha && aut.ficha.rol) || 'agente') + '.', '#8A6A34');
       };
 
-      ata(/^\+? ?Nuevo equipo$/i, function () {
+      ata('nuevo-equipo', function () {
         if (!admin) return soloAdmin();
         if (!(window.LW_V4.usuariosLista || []).length) return aviso('La lista de usuarios aún no ha cargado — espera un momento y vuelve a pulsar.', '#8A6A34');
         modal('Nuevo equipo de venta', [
@@ -8379,7 +8376,7 @@
         });
       }
 
-      ata(/^\+? ?Nueva condici[oó]n$/i, function () {
+      ata('nueva-condicion', function () {
         cargaMisEquipos.then(function () {
         if (!admin && !misEquipos.length) return soloAdmin();
         Promise.all([
@@ -8630,7 +8627,7 @@
       };
 
       // ── Nueva tarifa ────────────────────────────────────────────────────────
-      ata(/^\+? ?Nueva tarifa$/i, function () {
+      ata('nueva-tarifa', function () {
         if (!superAdmin) return soloSuper();
         var cache = window.LW_V4 && window.LW_V4.tarifas;
         if (cache) return abreNuevaTarifa(cache);
@@ -8702,7 +8699,7 @@
          la regex de «Nueva tarifa». Las sociedades se leen de la base en el
          momento: el importe se factura a una de ellas y no puede elegirse de una
          lista que no ha cargado. */
-      ata(/^\+? ?Fee fijo$/i, function () {
+      ata('fee-fijo', function () {
         if (!superAdmin) return soloSuper();
         sb.from('sociedades').select('clave,label').eq('activa', true).order('label').then(function (r) {
           if (r.error || !(r.data || []).length) {
@@ -9188,7 +9185,7 @@
          jamas; la cuenta nace DESACTIVADA y sin ningun contrato asignado, a
          proposito: no puede aparecer en el desplegable de un contrato antes de
          que alguien haya comprobado el numero con el justificante delante. */
-      var btn = ata(/^\+? ?Nueva cuenta$/i, function () {
+      var btn = ata('nueva-cuenta', function () {
         if (!superAdmin) return soloSuper();
         // claves existentes: para avisar de una repetida antes de mandar (el
         // servidor lo vuelve a comprobar; el `orden` lo pone él).
@@ -10243,7 +10240,7 @@
        proforma — ver el bloque «EMISIÓN DE FACTURAS…» más arriba. Nunca
        navega a /intranet/facturas/. */
     facturas: function () {
-      ata(/^\+? ?Nuevo documento$/i, function () { abrirEditorFacturaDoc({}); });
+      ata('nuevo-documento', function () { abrirEditorFacturaDoc({}); });
       /* Proforma desde contrato (S14, 21-sep-2026, revisión previa #34): la
          ficha de contrato v4 enlaza aquí con ?contrato=<uuid>&tipo=proforma en
          vez de abrir el editor ella misma -- cargar editores.js en
@@ -10267,7 +10264,7 @@
        leía aquella — ?contrato=<uuid> abre el recibí de ESE contrato y
        ?nueva=1 el alta en blanco. Una sola vez, al cargar. */
     recibos: function () {
-      ata(/emitir recib.*de cobro/i, function () { abrirEditorRecibiDoc({}); });
+      ata('emitir-recibi', function () { abrirEditorRecibiDoc({}); });
       var qs = new URLSearchParams(location.search);
       if (qs.get('contrato')) abrirEditorRecibiDoc({ contrato_id: qs.get('contrato') });
       else if (pideAlta(qs)) abrirEditorRecibiDoc({});

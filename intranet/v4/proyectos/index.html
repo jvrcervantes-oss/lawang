@@ -1,13 +1,13 @@
 <!DOCTYPE html><html lang="es" style=""><head>
-<meta name="lw-version" content="d06c428ca657">
+<meta name="lw-version" content="7875a33e4701">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script><script src="/contracts/assets/guard.js?v=f7b084b6" data-herramienta="unidades"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
 <script src="/contracts/assets/i18n.js?v=d69987f5" defer></script>
-<script src="/contracts/assets/dinero.js?v=30e26c17" defer></script><script src="/intranet/facturas/totales.js?v=9cb91c37" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=b11b12fc" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=17c1b0e9" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=da02ce3b" defer></script><script src="/contracts/assets/proyectos_csv.js?v=1358ced5" defer></script><script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script><script src="../assets/cabecera.js?v=b12fc856" defer></script><script src="/contracts/assets/docs_contrato.js?v=73e7152b" defer></script><script src="../assets/datos.js?v=f2fd07e3" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/dinero.js?v=30e26c17" defer></script><script src="/intranet/facturas/totales.js?v=9cb91c37" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=b11b12fc" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=17c1b0e9" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=da02ce3b" defer></script><script src="/contracts/assets/proyectos_csv.js?v=1358ced5" defer></script><script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script><script src="../assets/cabecera.js?v=b12fc856" defer></script><script src="/contracts/assets/docs_contrato.js?v=73e7152b" defer></script><script src="../assets/datos.js?v=d93c8da8" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=30f6f2cc" defer></script>
 <link href="../assets/shell.css?v=0d404d60" rel="stylesheet">
-<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/editores.js?v=bd3b42da" defer></script><script src="../assets/maqueta.js?v=6473c5d8" defer></script>
+<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/editores.js?v=b0077641" defer></script><script src="../assets/maqueta.js?v=02c5ffdd" defer></script>
 <!-- Fotos del Investor Deck (S10.2, 22-sep-2026): pieza COMPARTIDA de la suite
      (Regla 0, contexto/suite_lawang.md) — la usan /proyectos/ y /modelos/
      clásicos, aquí solo se engancha, nunca se reescribe. Depende de
@@ -775,7 +775,7 @@
 <div class="flex items-center gap-2 flex-wrap">
 <div class="relative flex-1 min-w-[180px]">
 <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-outline text-[16px]">search</span>
-<input class="w-full pl-8 pr-3 py-1.5 bg-surface-container-low rounded-lg text-on-surface font-body-md text-[12px] placeholder:text-outline border border-warm-border/60 focus:outline-none focus:ring-1 focus:ring-territorial-green" id="d-unidades-buscar" placeholder="Buscar código, modelo, cliente o contrato…" type="text">
+<input data-lw="buscador" class="w-full pl-8 pr-3 py-1.5 bg-surface-container-low rounded-lg text-on-surface font-body-md text-[12px] placeholder:text-outline border border-warm-border/60 focus:outline-none focus:ring-1 focus:ring-territorial-green" id="d-unidades-buscar" placeholder="Buscar código, modelo, cliente o contrato…" type="text">
 </div>
 <select class="pl-2.5 pr-8 py-1.5 bg-surface-container-low rounded-lg text-on-surface font-body-md text-[12px] border border-warm-border/60 focus:outline-none" id="d-unidades-orden">
 <option value="codigo">Orden: código</option>
@@ -1092,11 +1092,11 @@
 <span class="material-symbols-outlined text-[16px]">description</span>
 <span class="">Ver contratos</span>
 </button>
-<button class="py-2 px-3 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-warm-border transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" type="button">
+<button data-accion="editar-proyecto" class="py-2 px-3 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-warm-border transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" type="button">
 <span class="material-symbols-outlined text-[16px]">settings</span>
 <span class="">Editar proyecto</span>
 </button>
-<button class="py-2 px-3 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-warm-border transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" id="btn-estado-obra" data-real="1" type="button">
+<button data-accion="estado-obra" class="py-2 px-3 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-warm-border transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" id="btn-estado-obra" data-real="1" type="button">
 <span class="material-symbols-outlined text-[16px]">construction</span>
 <span class="">Estado y obra</span>
 </button>
@@ -1104,15 +1104,15 @@
      y activar/desactivar el Investor Deck (edge ficheros, acción deck_activa
      desde AXW-66, 28-sep: mueve sus fotos entre deck-privado y deck) — cableados en editores.js por
      texto, mismo patrón `ata()` que el resto de botones de este pie. -->
-<button class="py-2 px-3 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-warm-border transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" type="button">
+<button data-accion="fotos-deck" class="py-2 px-3 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-warm-border transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" type="button">
 <span class="material-symbols-outlined text-[16px]">photo_library</span>
 <span class="">Fotos del deck</span>
 </button>
-<button class="py-2 px-3 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-warm-border transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" type="button">
+<button data-accion="investor-deck" class="py-2 px-3 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-warm-border transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" type="button">
 <span class="material-symbols-outlined text-[16px]">public</span>
 <span class="">Investor Deck</span>
 </button>
-<button class="py-2 px-3 rounded-lg bg-surface-container-lowest hover:bg-error-container text-error border border-warm-border transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" type="button" title="Solo super admin, y solo si el proyecto no tiene unidades, modelos ni documentos">
+<button data-accion="borrar-proyecto" class="py-2 px-3 rounded-lg bg-surface-container-lowest hover:bg-error-container text-error border border-warm-border transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" type="button" title="Solo super admin, y solo si el proyecto no tiene unidades, modelos ni documentos">
 <span class="material-symbols-outlined text-[16px]">delete</span>
 <span class="">Borrar proyecto</span>
 </button>

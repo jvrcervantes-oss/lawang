@@ -99,11 +99,13 @@
   /* ---------- tabla de rutas para CTAs de navegación ---------- */
   var aqui = location.pathname;
   function en(carpeta) { return aqui.indexOf('/' + carpeta + '/') !== -1; }
+  /* Por `data-accion`, nunca por el rótulo (norma del estudio, 29-sep-2026:
+     un cambio de texto no puede cambiar a dónde lleva un botón). */
   var NAVEGAN = [
-    [/nuevo contrato/i, 'generador-contratos'],
-    [/emitir factura|nueva factura/i, 'facturas'],
-    [/calendario de tesorer/i, 'vencimientos'],
-    [/registro de firmas/i, 'contratos']
+    ['nuevo-contrato', 'generador-contratos'],
+    ['emitir-factura', 'facturas'],
+    ['calendario-tesoreria', 'vencimientos'],
+    ['registro-firmas', 'contratos']
     /* «Registro de auditoría» tenía aquí un resto de Stitch que la llevaba a
        Operaciones (que no habla de auditoría en absoluto). Desde el 21-sep
        el botón vive solo en usuarios/ y hace scroll a su propio panel «Auditoría
@@ -119,9 +121,10 @@
     /* 19-sep-2026: sin `?nuevo=1` / `?nueva=1` las tres herramientas abren el
        LISTADO (app.html: `par.has('nuevo')`; facturas: `par.has('nueva')`) y el
        agente tenía que volver a pulsar «Nueva». Ahora aterrizan en el formulario. */
-    [/nuevo contrato|nueva operaci/i, '/contracts/app.html?nuevo=1'],
+    ['nuevo-contrato', '/contracts/app.html?nuevo=1'],
+    ['nueva-operacion', '/contracts/app.html?nuevo=1'],
     // «Borrador en blanco» (25-sep-2026): el generador con el tipo por elegir y el borrador a un clic
-    [/borrador en blanco/i, '/contracts/app.html?nuevo=1&borrador=blanco'],
+    ['borrador-blanco', '/contracts/app.html?nuevo=1&borrador=blanco'],
     /* «Nuevo documento» (/v4/facturas/) y «+ Emitir recibí de cobro»
        (/v4/recibos/) YA NO redirigen a /intranet/facturas/ (21-sep-2026):
        editores.js los cablea con `ata()` — se ata en directo al botón con
@@ -147,6 +150,7 @@
   /* ---------- clasificación de la acción de un botón ---------- */
   function maneja(btn) {
     var t = texto(btn); var ico = iconos(btn); var tl = t.toLowerCase();
+    var acc = btn.getAttribute('data-accion');
     if (!t) t = btn.getAttribute('title') || btn.getAttribute('aria-label') || '';
 
     // 1) plegar sidebar (en móvil, el mismo botón cierra el cajón)
@@ -158,12 +162,12 @@
     // 2) con datos reales: crear/editar abre el formulario de la herramienta VIVA
     if (conDatosReales()) {
       for (var k = 0; k < FORM_REAL.length; k++) {
-        if (FORM_REAL[k][0].test(tl)) { location.href = FORM_REAL[k][1]; return true; }
+        if (FORM_REAL[k][0] === acc) { location.href = FORM_REAL[k][1]; return true; }
       }
     }
     // 2b) navegación interna de la maqueta
     for (var i = 0; i < NAVEGAN.length; i++) {
-      if (NAVEGAN[i][0].test(tl) && !en(NAVEGAN[i][1])) { location.href = ROOT + NAVEGAN[i][1] + '/'; return true; }
+      if (NAVEGAN[i][0] === acc && !en(NAVEGAN[i][1])) { location.href = ROOT + NAVEGAN[i][1] + '/'; return true; }
     }
     /* Con datos reales, de aquí abajo todo es maqueta: formularios que no
        guardan, «Generando…» que no genera y avisos de «fase de cableado». Sobre

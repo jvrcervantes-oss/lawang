@@ -1,13 +1,13 @@
 <!DOCTYPE html><html lang="es"><head>
-<meta name="lw-version" content="734e6f9c842f"><title data-lw-titulo>Modelos &amp; Catálogo de Vivienda</title>
+<meta name="lw-version" content="cc6fbeb2f474"><title data-lw-titulo>Modelos &amp; Catálogo de Vivienda</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script><script src="/contracts/assets/guard.js?v=f7b084b6" data-herramienta="modelos"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
 <script src="/contracts/assets/i18n.js?v=d69987f5" defer></script>
-<script src="/contracts/assets/dinero.js?v=30e26c17" defer></script><script src="/intranet/facturas/totales.js?v=9cb91c37" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=b11b12fc" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=17c1b0e9" defer></script><script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script><script src="/contracts/assets/docs_contrato.js?v=73e7152b" defer></script><script src="../assets/ficha_modelo.js?v=3cf053af" defer></script><script src="../assets/cabecera.js?v=b12fc856" defer></script><script src="../assets/datos.js?v=f2fd07e3" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/dinero.js?v=30e26c17" defer></script><script src="/intranet/facturas/totales.js?v=9cb91c37" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=b11b12fc" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b" defer></script><script src="/contracts/assets/suite-comun.js?v=17c1b0e9" defer></script><script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script><script src="/contracts/assets/docs_contrato.js?v=73e7152b" defer></script><script src="../assets/ficha_modelo.js?v=3cf053af" defer></script><script src="../assets/cabecera.js?v=b12fc856" defer></script><script src="../assets/datos.js?v=d93c8da8" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=30f6f2cc" defer></script>
 <link href="../assets/shell.css?v=0d404d60" rel="stylesheet">
-<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/editores.js?v=bd3b42da" defer></script><script src="../assets/maqueta.js?v=6473c5d8" defer></script>
+<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/editores.js?v=b0077641" defer></script><script src="../assets/maqueta.js?v=02c5ffdd" defer></script>
 <!-- Fotos del Investor Deck (S12, 22-sep-2026): pieza COMPARTIDA de la suite
      (Regla 0, contexto/suite_lawang.md) — la usan /proyectos/ y /modelos/
      clásicos, y desde S10.2 v4/proyectos/; aquí se engancha para v4/modelos/,
@@ -27,8 +27,8 @@
 <p class="font-body-md text-body-md text-on-surface-variant">El tipo de vivienda con dueño: de aquí salen la ficha técnica y el precio de construcción que heredan las unidades y que publica la web.</p>
 </div>
 <div class="flex flex-wrap items-center gap-3">
-<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-label-md transition-colors shadow-sm" type="button"><span class="material-symbols-outlined text-[18px]">file_download</span>Exportar catálogo</button>
-<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md transition-colors shadow-sm" type="button"><span class="material-symbols-outlined text-[18px]">add</span>Nuevo modelo</button>
+<button data-accion="exportar-catalogo" class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-label-md transition-colors shadow-sm" type="button"><span class="material-symbols-outlined text-[18px]">file_download</span>Exportar catálogo</button>
+<button data-accion="nuevo-modelo" class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md transition-colors shadow-sm" type="button"><span class="material-symbols-outlined text-[18px]">add</span>Nuevo modelo</button>
 </div>
 </div>
 <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -80,7 +80,7 @@
 <div class="bg-surface-container-lowest rounded-xl p-4 shadow-sm flex flex-col lg:flex-row lg:items-center gap-4">
 <div class="relative flex-1 min-w-0">
 <span class="material-symbols-outlined text-[20px] text-outline absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">search</span>
-<input class="w-full pl-10 pr-4 py-2.5 rounded-full bg-surface-container-low border border-control-border/40 font-body-md text-body-md text-on-surface placeholder:text-outline focus:border-primary-container focus:ring-0" placeholder="Buscar por nombre o slug…" type="search"/>
+<input data-lw="buscador" class="w-full pl-10 pr-4 py-2.5 rounded-full bg-surface-container-low border border-control-border/40 font-body-md text-body-md text-on-surface placeholder:text-outline focus:border-primary-container focus:ring-0" placeholder="Buscar por nombre o slug…" type="search"/>
 </div>
 <div class="flex flex-wrap items-center gap-2">
 <button class="px-4 py-2 rounded-full bg-primary-container text-on-primary font-label-md text-[13px] font-medium shrink-0 flex items-center gap-1.5 transition-colors" type="button"><span class="">Todos</span><span class="text-on-primary/70" data-lw="c-todos">—</span></button>
@@ -153,8 +153,8 @@
 <div id="fm-bloques"><div id="d-proyectos"></div><div id="d-docs"></div></div>
 </div>
 <div class="px-6 py-3 bg-surface-container-low border-t border-outline-variant/40 flex flex-wrap items-center justify-end gap-2 shrink-0">
-<button class="py-2 px-4 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-outline-variant/60 transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" type="button"><span class="material-symbols-outlined text-[16px]">photo_library</span>Fotos del deck</button>
-<button class="py-2 px-4 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-outline-variant/60 transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" type="button"><span class="material-symbols-outlined text-[16px]">attach_file</span>Añadir documento</button>
+<button data-accion="fotos-deck" class="py-2 px-4 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-outline-variant/60 transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" type="button"><span class="material-symbols-outlined text-[16px]">photo_library</span>Fotos del deck</button>
+<button data-accion="anadir-documento" class="py-2 px-4 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-outline-variant/60 transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" type="button"><span class="material-symbols-outlined text-[16px]">attach_file</span>Añadir documento</button>
 </div>
 </aside>
 

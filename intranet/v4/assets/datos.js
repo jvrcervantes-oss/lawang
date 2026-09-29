@@ -184,19 +184,12 @@
     return f ? f[1] : (valor || '—');
   }
 
-  /* ---- localizar por TEXTO en el marcado minificado de Stitch ---- */
-  function hojaConTexto(rx, raiz) {
-    var all = (raiz || document.body).querySelectorAll('span,p,h1,h2,h3,h4,div,th,button');
-    for (var i = 0; i < all.length; i++) {
-      var el = all[i];
-      if (el.children.length > 2) continue;
-      // nunca anclar en la cáscara: la sidebar tiene "Vencimientos", "Recibos"…
-      // y el primer intento le escribió el pie de un KPI al subtítulo del logo
-      if (el.closest('aside,nav,header,#lw-editor,#lw-cargando,#lw-maqueta')) continue;
-      if (rx.test(el.textContent.replace(/\s+/g, ' ').trim()) && el.textContent.length < 90) return el;
-    }
-    return null;
-  }
+  /* ---- localizar por IDENTIFICADOR estable, nunca por texto ----
+     Norma del estudio (owner, 29-sep-2026): el código ancla por `data-lw` /
+     `data-accion`, no por el rótulo visible. Antes esto buscaba por texto
+     («CONTRATOS ACTIVOS», cabeceras de tabla…): un cambio de rótulo o el
+     idioma inglés dejaban el dato sin pintar sin ningún error. */
+  function anclaLw(clave) { return document.querySelector('[data-lw="' + clave + '"]'); }
   function tarjetaDe(el) { var t = el; for (var i = 0; i < 6 && t.parentElement; i++) { t = t.parentElement; if (/rounded|card|bg-/.test(t.className) && t.querySelectorAll('*').length > 3) break; } return t; }
   function numeroGrande(card) {
     var mejor = null, tam = 0;
@@ -209,8 +202,8 @@
     });
     return mejor;
   }
-  function kpi(labelRx, valor, pie) {
-    var lab = hojaConTexto(labelRx); if (!lab) { console.info('[v4] KPI sin ancla:', labelRx); return; }
+  function kpi(clave, valor, pie) {
+    var lab = anclaLw(clave); if (!lab) { console.error('[v4] KPI sin ancla data-lw="' + clave + '"'); return; }
     var card = tarjetaDe(lab); var num = numeroGrande(card);
     if (num) {
       num.textContent = valor;
@@ -235,21 +228,15 @@
       if (pieEl) pieEl.textContent = pie;
     }
   }
-  /* Anclaje por `data-lw`: deterministico, para las pantallas cuyo fichero ya es
-     nuestro. El anclaje por TEXTO (kpi/hojaConTexto) sigue siendo lo correcto
-     donde el marcado de Stitch no se toca. */
+  /* Anclaje por `data-lw`: el único que se usa (ver anclaLw()). */
   function pon2(k, v) { var e = document.querySelector('[data-lw="' + k + '"]'); if (e) e.textContent = v; }
 
-  function vaciaKpis(labels) { labels.forEach(function (rx) { kpi(rx, '—'); }); }
+  function vaciaKpis(claves) { claves.forEach(function (k) { kpi(k, '—'); }); }
 
-  function tablaPor(headRxs) {
-    var tablas = document.querySelectorAll('table');
-    for (var i = 0; i < tablas.length; i++) {
-      var txt = (tablas[i].tHead ? tablas[i].tHead.textContent : tablas[i].textContent).toUpperCase();
-      var hits = headRxs.filter(function (r) { return r.test(txt); }).length;
-      if (hits >= Math.min(2, headRxs.length)) return tablas[i];
-    }
-    return null;
+  function tablaPor(clave) {
+    var t = document.querySelector('table[data-lw="' + clave + '"]');
+    if (!t) console.error('[v4] no hay tabla data-lw="' + clave + '" en ' + location.pathname);
+    return t;
   }
   /* Plantilla de fila NORMALIZADA (Desarrollo, 4-sep): la 1ª fila de Stitch suele
      ser la "seleccionada"; se toma la 2ª si existe, se quita su onclick falso y
@@ -1884,13 +1871,9 @@
     a.download = nombre; document.body.appendChild(a); a.click();
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
   }
-  function botonConTexto(rx) {
-    var bs = document.querySelectorAll('main button');
-    for (var i = 0; i < bs.length; i++) if (rx.test((bs[i].textContent || '').replace(/\s+/g, ' ').trim())) return bs[i];
-    return null;
-  }
+  function boton(accion) { return document.querySelector('main [data-accion="' + accion + '"]'); }
   function buscadorDe(aplicar, alCambiar) {
-    var inp = document.querySelector('main input[placeholder^="Buscar"]');
+    var inp = document.querySelector('[data-lw="buscador"]');
     if (!inp) return;
     inp.addEventListener('input', function () { alCambiar(inp.value.trim().toLowerCase()); aplicar(); });
     var q0 = new URLSearchParams(location.search).get('q');
@@ -1900,11 +1883,11 @@
   var REG = {
 
     home: function (sb) {
-      vaciaKpis([/CONTRATOS ACTIVOS/i, /COBRADO ESTE MES/i, /VENCIMIENTOS/i, /UNIDADES LIBRES/i]);
+      vaciaKpis(['kpi-contratos-activos', 'kpi-cobrado-mes', 'kpi-vencimientos', 'kpi-unidades-libres']);
       q(sb.rpc('contratos_equipo').select('id,bloqueado'), 'contratos').then(function (cs) {
         if (!cs) return;
         var firmados = cs.filter(function (c) { return c.bloqueado; }).length;
-        kpi(/CONTRATOS ACTIVOS/i, String(cs.length), firmados + ' firmados · ' + (cs.length - firmados) + ' editables');
+        kpi('kpi-contratos-activos', String(cs.length), firmados + ' firmados · ' + (cs.length - firmados) + ' editables');
         pon2('k-contratos', String(cs.length));
         pon2('k-encurso', String(cs.length - firmados));
         pon2('k-firmados-pie', firmados + ' firmados');
@@ -1912,7 +1895,7 @@
       q(sb.rpc('facturas_equipo').select('id,tipo,total,moneda,anulada,enviada,created_at,fecha_emision,numero,cliente_nombre,proyecto_nombre,contrato_numero,contrato_id' + colsSerie()), 'facturas').then(function (fs) {
         if (!fs) return;
         var s = sumaMesEUR(fs.filter(function (f) { return f.tipo === 'recibi'; }));
-        kpi(/COBRADO ESTE MES/i, fmt(s.eur, 'EUR'), s.otros ? '+' + s.otros + ' cobros en otra moneda' : 'recibís del mes en curso');
+        kpi('kpi-cobrado-mes', fmt(s.eur, 'EUR'), s.otros ? '+' + s.otros + ' cobros en otra moneda' : 'recibís del mes en curso');
         pon2('k-cobrado', fmt(s.eur, 'EUR'));
         /* «+18,4% vs mes anterior» era del diseno. Se calcula de verdad, y si no
            hay con que comparar se dice, en vez de ensenar una flecha verde. */
@@ -1926,7 +1909,7 @@
         });
         // el «vs mes anterior» lo pone la propia tarjeta: aqui solo va la cifra
         pon2('k-cobrado-tend', prev ? ((s.eur >= prev ? '+' : '') + Math.round((s.eur - prev) / prev * 1000) / 10 + '%') : '—');
-        var t = tablaPor([/TIPO/, /DOC/, /COMPRADOR|CLIENTE/, /IMPORTE/]);
+        var t = tablaPor('tabla-documentos');
         if (t) {
           var pl = plantillaFilas(t);
           var porIdF = {};
@@ -1952,7 +1935,7 @@
       pCifras.then(function (c) {
         var n = c ? c.vencimientos_30 : null;
         if (n != null) {
-          kpi(/VENCIMIENTOS/i, String(n), 'con fecha en los próximos 30 días');
+          kpi('kpi-vencimientos', String(n), 'con fecha en los próximos 30 días');
           pon2('k-operaciones', String(n));   // la tarjeta es «Vencimientos (30 días)»
         }
         // «15 por conciliar esta semana» era del diseño: se cuentan los hitos con fecha en 7 días
@@ -1960,7 +1943,7 @@
         pon2('k-venc-semana', n7 == null ? '—' : (n7 + ' con fecha en los próximos 7 días'));
       });
       // el buscador de Home busca en Contratos (Enter)
-      var busca = document.querySelector('main input[placeholder^="Buscar"]');
+      var busca = document.querySelector('[data-lw="buscador"]');
       if (busca) busca.addEventListener('keydown', function (ev) {
         if (ev.key === 'Enter' && busca.value.trim()) location.href = '/intranet/v4/contratos/?q=' + encodeURIComponent(busca.value.trim());
       });
@@ -1971,7 +1954,7 @@
          lee igual que la respuesta correcta. */
       pCifras.then(function (c) {
         if (!c || c.unidades_libres == null) return;
-        kpi(/UNIDADES LIBRES/i, String(c.unidades_libres), c.unidades != null ? 'disponibles de ' + c.unidades + ' en inventario' : null);
+        kpi('kpi-unidades-libres', String(c.unidades_libres), c.unidades != null ? 'disponibles de ' + c.unidades + ' en inventario' : null);
         pon2('k-unidades', String(c.unidades_libres));
         pon2('k-unidades-sub', c.unidades != null ? 'de ' + c.unidades + ' parcelas' : 'en inventario');
         pon2('k-reservadas', c.unidades_reservadas != null ? String(c.unidades_reservadas) : '—');
@@ -1981,7 +1964,7 @@
           .eq('contratos.bloqueado', true).gte('fecha', hoy).order('fecha').limit(3), 'vencimientos críticos')
         .then(function (vs) {
           if (vs == null) return;
-          var anc = hojaConTexto(/Cr[ií]ticos/i);
+          var anc = anclaLw('ancla-criticos');
           if (!anc) { console.info('[v4] home: sin ancla de críticos'); return; }
           var card = tarjetaDe(anc);
           for (var i = 0; i < 3 && card.parentElement && card.querySelectorAll('*').length < 12; i++) card = card.parentElement;
@@ -1995,7 +1978,7 @@
     },
 
     contratos: function (sb) {
-      var t = tablaPor([/CONTRATO|N[ºU°]/, /COMPRADOR/, /TIPO|ESTADO/]);
+      var t = tablaPor('tabla-contratos');
       var miEmail = (window.LW_V4 && window.LW_V4.miEmail) || '';
       Promise.all([
         q(sb.rpc('contratos_equipo').select(CAMPOS_CONTRATO).order('created_at', { ascending: false }).limit(1000), 'contratos', t),
@@ -2035,7 +2018,7 @@
           cs.forEach(function (c) { window.LW_V4.contratosLista[c.id] = c; porNum[c.numero] = c; });
 
           // «Registro de firmas» (cabecera): cajón con las últimas solicitudes de firma del equipo
-          var bReg = botonConTexto(/Registro de firmas/i);
+          var bReg = boton('registro-firmas');
           if (bReg) {
             bReg.setAttribute('data-real', '');
             bReg.addEventListener('click', function (ev) { ev.stopPropagation(); registroFirmas(sb, cs); });
@@ -2107,7 +2090,7 @@
       /* Listado REAL de facturas y proformas (los recibís tienen su pantalla).
          La pantalla de Stitch era un editor de emisión dibujado; la emisión
          sigue en la herramienta viva (numeración por secuencia de la base). */
-      var t = tablaPor([/DOCUMENTO|N[ºU°]/, /CLIENTE/, /TIPO|ESTADO/]);
+      var t = tablaPor('tabla-facturas');
       Promise.all([
         q(sb.rpc('facturas_equipo').select(CAMPOS_FACTURA + colsSerie() + (window.AXW_NUCLEO_OPERACION ? ',operacion_id' : '')).neq('tipo', 'recibi').order('created_at', { ascending: false }).limit(2000), 'facturas', t),
         // Cuánto lleva cobrada cada factura (22-sep-2026, owner): la misma
@@ -2325,7 +2308,7 @@
     },
 
     recibos: function (sb) {
-      var t = tablaPor([/RECIBO|N[ºU°]/, /PAGADOR|TITULAR/, /IMPORTE/]);
+      var t = tablaPor('tabla-recibos');
       Promise.all([
         q(sb.rpc('facturas_equipo').select(CAMPOS_FACTURA + colsSerie()).eq('tipo', 'recibi').order('created_at', { ascending: false }).limit(2000), 'recibís', t),
         // Qué factura(s) salda cada recibí (22-sep-2026, owner): es la razón de
@@ -2430,7 +2413,7 @@
          Ahora la vista se pide DESPUES de pintar, fuera del contador del velo,
          y su aviso «Ficha ≠» aparece cuando llega. La vista en si no se toca
          aqui: queda como pendiente de Datos (una columna materializada). */
-      var t = tablaPor([/INVERSOR|TITULAR/, /CONTACTO|PA[IÍ]S/]);
+      var t = tablaPor('tabla-clientes');
       Promise.all([
         /* Solo lo que el LISTADO enseña. Pasaporte, registro, representante,
            notas y propietario se piden al abrir UNA ficha (abreFicha): traer
@@ -3580,7 +3563,7 @@
           sel.setAttribute('data-real', '');
           sel.addEventListener('change', function () { estado.proyecto = { attr: 'proyecto', valor: sel.value }; aplicar(); });
         }
-        var bAct = botonConTexto(/Actualizar$/i);
+        var bAct = boton('actualizar');
         if (bAct) { bAct.setAttribute('data-real', ''); bAct.addEventListener('click', function (ev) { ev.stopPropagation(); location.reload(); }); }
         pintaTotales();
 
@@ -3611,7 +3594,7 @@
          debe», facturas con vencimiento propio. Todo sobre `logica.js`
          (compartido, sin duplicar) y `entities.js` (empresa) — sin RPC ni
          escritura nueva: el editor de fecha por hito sigue siendo el de
-         editores.js (`ata(/Registrar hito/i, ...)`), no se toca aquí. */
+         editores.js (`ata('registrar-hito', ...)`), no se toca aquí. */
       if (typeof modeloFinanciero !== 'function') {
         fallo('vencimientos', 'logica.js no cargada: el cuerpo se queda en maqueta');
         return;
@@ -3682,7 +3665,7 @@
           // EN EL MOMENTO DEL CLIC (no una `m` capturada al cargar): tras cambiar
           // un chip, el CSV tiene que exportar lo que se está viendo, no lo de la
           // carga inicial.
-          var bExp = botonConTexto(/Exportar previsi/i);
+          var bExp = boton('exportar-prevision');
           if (bExp) {
             bExp.setAttribute('data-real', '');
             bExp.addEventListener('click', function (ev) {
@@ -5844,7 +5827,7 @@
         pon('k-sinficha-pie', faltan ? 'sin dormitorios, banos ni superficie: no pueden heredar nada' : 'todos con ficha completa');
         pon('k-sinrender', String(sinRender));
         pon('k-sinrender-pie', sinRender ? 'sin ninguna foto en el deck' : 'todos tienen fotos');
-        var bExp = botonConTexto(/Exportar cat[aá]logo/i);
+        var bExp = boton('exportar-catalogo');
         if (bExp) {
           bExp.setAttribute('data-real', '');
           bExp.addEventListener('click', function (ev) {
@@ -6083,33 +6066,6 @@
       });
     },
 
-    'proyectos-cuentas': function (sb) {
-      var pedido = new URLSearchParams(location.search).get('proyecto');
-      Promise.all([
-        q(sb.from('proyectos').select('nombre').order('nombre'), 'proyectos'),
-        q(sb.from('unidades_estado').select('proyecto'), 'unidades para elegir proyecto')
-      ]).then(function (rr) {
-        var ps = rr[0], uu = rr[1] || [];
-        if (!ps || !ps.length) return;
-        var conteo = {}; uu.forEach(function (u) { conteo[u.proyecto] = (conteo[u.proyecto] || 0) + 1; });
-        var mayor = ps.slice().sort(function (x, y) { return (conteo[y.nombre] || 0) - (conteo[x.nombre] || 0); })[0];
-        var nombre = pedido || mayor.nombre;
-        var h2 = hojaConTexto(/Master Plan|Horizon S1/i); if (h2) h2.textContent = nombre + ' · Master Plan & Cuentas';
-        q(sb.from('unidades_estado').select('codigo,modelo,estado,contrato_numero,comprador_nombre').eq('proyecto', nombre).order('codigo_orden').limit(500), 'unidades de ' + nombre)
-          .then(function (us) {
-            if (us == null) return;
-            panelReal('Unidades de ' + nombre + (pedido ? '' : ' (primer proyecto por orden — abre otro con ?proyecto=)'),
-              us.map(function (u) {
-                return itemPanel(esc(u.codigo) + ' · ' + esc(u.modelo || '—'),
-                  (u.contrato_numero ? esc(u.contrato_numero) + ' · ' : '') + esc(u.comprador_nombre || 'sin cliente'),
-                  (u.estado || '—').toUpperCase());
-              }),
-              us.map(function () { return '/intranet/v4/proyectos/?proyecto=' + encodeURIComponent(nombre); }),
-              'Este proyecto no tiene unidades dadas de alta.', '/intranet/v4/proyectos/?proyecto=' + encodeURIComponent(nombre));
-          });
-      });
-    },
-
     obra: function (sb) {
       /* Reescrito 18-sep-2026 (encargo del owner: "limpia lo que no sea un
          dato real, cablea hasta el final"). El HTML de Stitch traia dron,
@@ -6229,7 +6185,7 @@
          que se quedaban en «—» (notarial, 2FA) con una banda excusandolos se
          cambian por dos que la base SI sabe: administradores y cuentas
          inactivas. */
-      var t = tablaPor([/NOMBRE|USUARIO/, /ROL|HERRAMIENTAS/]);
+      var t = tablaPor('tabla-usuarios');
       Promise.all([
         /* numero_usuario (USR-00001, 26-sep-2026, owner): lo pone la base al dar de alta y no cambia nunca
            (trg_usuarios_numero_usuario). */
@@ -6665,7 +6621,7 @@
            había escondido (salían resueltos estando en «Abiertos»). El orden
            es el de la viva (comprador, categoría, estado, cuándo), con «más
            recientes» de arranque y de desempate. */
-        var inpS = document.querySelector('main input[placeholder^="Buscar"]');
+        var inpS = document.querySelector('[data-lw="buscador"]');
         var selOrden = document.querySelector('[data-lw="orden-hilos"]');
         if (inpS && buscaCli) inpS.value = buscaCli;
         function aplicarSoporte() {
@@ -7903,9 +7859,7 @@
     var rolEq = (window.LW_V4 && window.LW_V4.ficha && window.LW_V4.ficha.rol) || '';
     var miEmailEq = ((window.LW_V4 && window.LW_V4.miEmail) || '').toLowerCase();
     if (!esAdmEq && rolEq !== 'sales_manager') { notaSoloAdmin(); return; }
-    if (!esAdmEq) document.querySelectorAll('main button').forEach(function (b) {
-      if (/Nuevo equipo/i.test(b.textContent || '')) b.style.display = 'none';
-    });
+    if (!esAdmEq) { var bNuevoEq = boton('nuevo-equipo'); if (bNuevoEq) bNuevoEq.style.display = 'none'; }
     var cuerpoEq = document.getElementById('lw-equipos-filas');
     var cuerpoMi = document.getElementById('lw-miembros-filas');
     var selEq = document.getElementById('lw-mi-equipo');
