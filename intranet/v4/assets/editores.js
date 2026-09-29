@@ -1616,7 +1616,7 @@
      «Alta de comprador» a «Alta de cliente» (a8bb55b4) y el alta de clientes
      estuvo tres días muerta sin un solo error; además en inglés el rótulo
      traducido tampoco casaba. Si falta el botón se dice en consola: el gate
-     (tools/enganche_estable.py) ya exige que cada acción exista en el HTML. */
+     (tools/escrituras_front.py --gate, en la agencia) ya exige que cada acción exista en el repo. */
   function ata(accion, fn) {
     var b = document.querySelector('[data-accion="' + accion + '"]');
     if (!b) { console.error('[v4] no hay botón data-accion="' + accion + '" en ' + location.pathname); return null; }
