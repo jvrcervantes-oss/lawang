@@ -5756,8 +5756,8 @@
         if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
         Promise.all([
           sb.from('modelos').select('id,nombre,precio_construccion,moneda').eq('activo', true),
-          sb.from('modelos_villa').select('id,proyecto,modelo,modelo_id').eq('proyecto', p.nombre),
-          sb.from('unidades').select('modelo').eq('proyecto', p.nombre),
+          sb.from('modelos_villa').select('id,proyecto,modelo,modelo_id').eq('proyecto_id', p.id),
+          sb.from('unidades').select('modelo').eq('proyecto_id', p.id),
           puedeUsuarios
             ? sb.from('usuarios').select('user_id,email,nombre,rol,proyectos_supervisados,activo')
                 .in('rol', ['sales_manager', 'project_manager']).order('nombre')
@@ -6041,8 +6041,8 @@
         if (!p) return aviso('El proyecto aún no ha cargado.', '#8A6A34');
         Promise.all([
           sb.from('deck_config_proyecto').select('titulo,meta_desc,modelo_destacado_id').eq('proyecto_id', p.id).maybeSingle(),
-          sb.from('unidades').select('id', { count: 'exact', head: true }).eq('proyecto', p.nombre).eq('publicado_investor_deck', true),
-          sb.from('modelos_villa').select('modelo_id,modelo').eq('proyecto', p.nombre).not('modelo_id', 'is', null)
+          sb.from('unidades').select('id', { count: 'exact', head: true }).eq('proyecto_id', p.id).eq('publicado_investor_deck', true),
+          sb.from('modelos_villa').select('modelo_id,modelo').eq('proyecto_id', p.id).not('modelo_id', 'is', null)
         ]).then(function (rs) {
           if (rs[0].error) return aviso('No se pudo abrir el Investor Deck: ' + rs[0].error.message, '#ba1a1a');
           var cfg = (rs[0] && rs[0].data) || {};
@@ -6093,7 +6093,7 @@
         var cuerpo =
           '<p style="margin:0 0 4px;font-size:13px;color:' + CAJ.apagado + ';line-height:1.5">Página pública de due diligence para inversores, sin login. Se sirve en <code>/investor-deck/' + esc(p.slug || '<slug>') + '/</code>.</p>' +
           (!esAdminP ? '<p style="margin:0 0 4px;font-size:12.5px;color:#8A6A34">Solo un administrador puede editar o activar el Investor Deck.</p>' : '') +
-          campoDeck('Slug de la URL', '<input id="id-slug" value="' + esc(p.slug || '') + '" placeholder="ej. mi-proyecto" style="' + estiloDeck + '"' + (esAdminP ? '' : ' disabled') + '>', 'Se escribe una sola vez. Cambiarlo tras activar el deck rompe cualquier enlace ya compartido.') +
+          campoDeck('Slug de la URL', '<input id="id-slug" value="' + esc(p.slug || '') + '" placeholder="ej. mi-proyecto" style="' + estiloDeck + '"' + (esAdminP && !p.slug ? '' : ' disabled') + '>', 'Es la dirección pública del proyecto y no se cambia: la base lo impide desde el 29-sep (cambiarlo rompería los enlaces ya compartidos).') +
           campoDeck('Título (inglés)', '<input id="id-titulo" value="' + esc(tituloEn) + '" placeholder="ej. My Project — Investor Deck" style="' + estiloDeck + '"' + (esAdminP ? '' : ' disabled') + '>') +
           campoDeck('Meta description (inglés)', '<input id="id-meta" value="' + esc(metaEn) + '" style="' + estiloDeck + '"' + (esAdminP ? '' : ' disabled') + '>') +
           campoDeck('Modelo "Most requested" (opcional)',
@@ -6802,7 +6802,7 @@
         // en EUR e IDR a la vez (Riverfront) exportaba un "Precio" desnudo,
         // que Excel puede sumar como si fuera una sola divisa.
         sb.from('unidades_estado').select('codigo,modelo,estado,precio,moneda,contrato_numero,comprador_nombre')
-          .eq('proyecto', p.nombre).order('codigo_orden').then(function (r) {
+          .eq('proyecto_id', p.id).order('codigo_orden').then(function (r) {
             if (r.error) return aviso('No se pudo exportar: ' + r.error.message, '#ba1a1a');
             var filas = (r.data || []).map(function (u) {
               return [u.codigo, u.modelo || '', u.estado || '', u.precio != null ? u.precio : '', u.moneda || '', u.contrato_numero || '', u.comprador_nombre || ''];

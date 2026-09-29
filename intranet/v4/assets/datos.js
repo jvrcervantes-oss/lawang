@@ -4564,7 +4564,7 @@
             // que SH-2— y con `.limit(60)` sobre 228 parcelas Postgres devolvía las 60
             // primeras EN ESE orden: la SH-2 no llegaba y el cajón decía «60 unidades».
             // El límite es una red (el mayor proyecto tiene 228), no un tamaño de página.
-            .eq('proyecto', elegido.nombre).order('codigo_orden').limit(500), 'unidades de ' + elegido.nombre)
+            .eq('proyecto_id', elegido.id).order('codigo_orden').limit(500), 'unidades de ' + elegido.nombre)
           .then(function (uu) {
             var caja = document.getElementById('d-unidades');
             if (!caja || uu == null) return;
