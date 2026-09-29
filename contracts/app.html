@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="5f5ee15827ca">
+<meta name="lw-version" content="2407483aabf1">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -2874,7 +2874,11 @@ function collect(){
      `precio_lista_construccion`: la cifra antes del descuento, congelada en
      datos.fields para que el contrato guardado la siga imprimiendo aunque el
      inventario cambie, y la que usa el trigger de la base para comprobar el
-     15% y que el precio cuadre. */
+     15% y que el precio cuadre.
+     29-sep-2026 (LAW-437): lo que se manda aquí es solo para la vista previa
+     y el aviso de pantalla. El valor guardado lo pone el servidor
+     (trigger trg_contrato_lista_suelo: inventario, congelado mientras no
+     cambie la parcela) y pisa este. */
   if(CONTRACT_TIPO[CURRENT.slug] === 'reserva_parcela' && typeof listaSueloVigente === 'function'){
     const lista = listaSueloVigente();
     data.descuento_comercial_aplica = (lista && (parseImporte(data.descuento_comercial) || 0) > 0) ? 'si' : 'no';
