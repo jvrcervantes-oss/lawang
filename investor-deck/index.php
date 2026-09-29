@@ -111,7 +111,13 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
 .wrap{max-width:var(--cmx);margin:0 auto;padding-inline:var(--cpd);width:100%;box-sizing:border-box}
 a.enlace{color:inherit;text-decoration:underline}
 
-/* ── Estado "deck no disponible" (decision 4): nace visible, el JS lo apaga ── */
+/* ── Estado "deck no disponible" (decision 4): nace OCULTO y el JS solo lo enciende si no
+   hay config. Mientras la RPC responde se ve #deck-cargando (29-sep-2026: nacia visible y
+   cada deck activo enseñaba "no disponible" 1-2 s antes de pintarse). ── */
+#deck-cargando{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--ob)}
+#deck-cargando img{height:30px;width:auto;opacity:.55;animation:deck-late 1.6s ease-in-out infinite}
+@keyframes deck-late{50%{opacity:.2}}
+@media (prefers-reduced-motion:reduce){#deck-cargando img{animation:none}}
 #deck-no-disponible{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;background:var(--ob);color:var(--rl)}
 #deck-no-disponible > div{max-width:28rem;display:flex;flex-direction:column;align-items:center;gap:16px}
 #deck-no-disponible img{height:30px;width:auto}
@@ -502,8 +508,14 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
 </head>
 <body>
 
-<!-- Estado "deck no disponible": nace visible, el JS lo apaga si hay config. -->
-<div id="deck-no-disponible">
+<!-- Carga: lo unico visible hasta que deck_config_publico responde; el JS lo apaga
+     en los dos desenlaces (deck o "no disponible"). -->
+<div id="deck-cargando" aria-busy="true"><img src="/assets/img/lawang-logo-v3.webp" alt="Loading"></div>
+<!-- Sin JS el deck no puede pintarse: se cae al aviso en vez de a la carga eterna. -->
+<noscript><style>#deck-cargando{display:none!important}#deck-no-disponible[hidden]{display:flex!important}</style></noscript>
+
+<!-- Estado "deck no disponible": nace oculto, el JS lo enciende solo si NO hay config. -->
+<div id="deck-no-disponible" hidden>
   <div>
     <img src="/assets/img/lawang-logo-v3.webp" alt="Lawang">
     <p class="grande">This project does not have its Investor Deck available yet.</p>
@@ -743,7 +755,7 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
   // Saneado en PHP (preg_replace [^A-Za-z0-9-]) y de nuevo aqui: defensa en
   // profundidad, aunque el .htaccess ya restringe el patron de la URL.
   var SLUG = <?= json_encode($slug) ?>;
-  if(!/^[a-z0-9-]+$/i.test(SLUG)) return;   // #deck-no-disponible ya esta visible
+  if(!/^[a-z0-9-]+$/i.test(SLUG)){ document.getElementById('deck-cargando').hidden = true; document.getElementById('deck-no-disponible').hidden = false; return; }
 
   var PROYECTO = null;   // se fija tras resolver deck_config_publico
   var WA_NUM = '6281138319862';
@@ -1313,6 +1325,7 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
       PROYECTO = cfg.proyecto;
       DESTACADO = cfg.modelo_destacado_slug || null;
 
+      $('deck-cargando').hidden = true;
       $('deck-no-disponible').hidden = true;
       $('deck-contenido').hidden = false;
 
@@ -1491,6 +1504,7 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
       if(window.lwRepintaDinero) lwRepintaDinero();
     })
     .catch(function(){
+      $('deck-cargando').hidden = true;
       $('deck-contenido').hidden = true;
       $('deck-no-disponible').hidden = false;
       traduce($('deck-no-disponible'));
