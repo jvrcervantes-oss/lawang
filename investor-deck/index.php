@@ -755,6 +755,12 @@ a.villa:hover .villa-btn{background:var(--rl);color:var(--ci)}
   // Saneado en PHP (preg_replace [^A-Za-z0-9-]) y de nuevo aqui: defensa en
   // profundidad, aunque el .htaccess ya restringe el patron de la URL.
   var SLUG = <?= json_encode($slug) ?>;
+  // Red colgada o error antes de la RPC: la carga no se queda eterna. A los 15 s sin
+  // desenlace se cae al aviso, que al menos da el contacto de ventas.
+  setTimeout(function(){
+    var c = document.getElementById('deck-cargando');
+    if(c && !c.hidden){ c.hidden = true; document.getElementById('deck-no-disponible').hidden = false; }
+  }, 15000);
   if(!/^[a-z0-9-]+$/i.test(SLUG)){ document.getElementById('deck-cargando').hidden = true; document.getElementById('deck-no-disponible').hidden = false; return; }
 
   var PROYECTO = null;   // se fija tras resolver deck_config_publico
