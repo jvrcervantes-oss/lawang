@@ -40,7 +40,7 @@ assert.deepStrictEqual(lista(/\[('plano'[^\]]*)\]\.includes\(tipo\)/.exec(bloque
 const ficha = lee('intranet/v4/assets/ficha_modelo.js');
 assert.ok(/lwDocsContrato\.TIPOS/.test(ficha) && !/\['calidades', 'Memoria de calidades'\]/.test(ficha), 'ficha_modelo.js usa lwDocsContrato.TIPOS');
 const editores = lee('intranet/v4/assets/editores.js');
-const modal = /ata\(\/\^Añadir documento\$\/i[\s\S]*?\n      \}\);\n/.exec(editores);
+const modal = /ata\('anadir-documento'[\s\S]*?\n      \}\);\n/.exec(editores);  // por data-accion desde el 29-sep
 assert.ok(modal && /lwDocsContrato/.test(modal[0]) && !/\['calidades', 'Memoria de calidades'\]/.test(modal[0]), 'el modal «Añadir documento» usa lwDocsContrato');
 // y las dos pantallas cargan el fichero de la regla antes de usarlo
 assert.ok(/docs_contrato\.js\?v=/.test(lee('contracts/app.html')), 'app.html carga docs_contrato.js');
