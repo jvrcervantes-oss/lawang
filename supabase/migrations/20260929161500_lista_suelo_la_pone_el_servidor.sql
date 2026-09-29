@@ -28,6 +28,9 @@
 -- trg_espejo_proyecto, así que en un INSERT el proyecto se resuelve aquí por
 -- nombre, con la misma regla que ese trigger.
 --
+-- Prueba ejecutable: erp/pruebas/lista_suelo_servidor.sql del maestro (mismo cuerpo de función; Lawang no
+-- tiene arnés SQL). Casos probados aquí a mano con rollback el 29-sep.
+--
 -- Datos existentes: las 13 reservas con lista guardada casan con el
 -- inventario (comprobado el 29-sep); no hace falta corregir nada.
 
@@ -98,6 +101,11 @@ $$;
 comment on function public.contrato_lista_suelo_servidor() is
   'LAW-437, 29-sep-2026. BEFORE INSERT OR UPDATE en contratos, solo tipo=reserva_parcela y solo si cambia datos: único dueño de datos.fields.precio_lista_suelo. Nuevo o cambio de parcelas/proyecto → suma de unidades.precio_suelo (o se quita si falta alguna); mismas parcelas con lista guardada → se conserva la guardada. Lo que mande el navegador se ignora.';
 
+revoke all on function public.contrato_lista_suelo_servidor() from public, anon, authenticated;
+
+-- destructivo-ok: DROP defensivo para que la migración se pueda reaplicar (al aplicarla en producción el trigger
+-- aún no existía y se omitió); no borra datos.
+drop trigger if exists trg_contrato_lista_suelo on public.contratos;
 create trigger trg_contrato_lista_suelo
   before insert or update on public.contratos
   for each row execute function public.contrato_lista_suelo_servidor();
