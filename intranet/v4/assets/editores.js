@@ -7431,8 +7431,10 @@
       var sb = aut.sb;
       /* `btnAlta` se guarda para poder disparar el alta sola con `?nuevo=1`
          (paridad 21-sep-2026): la pantalla llega desde otro sitio de la suite
-         que ya sabe que quiere dar de alta, sin obligar a buscar el botón. */
-      var btnAlta = ata(/Alta de comprador/i, function () { abreAltaComprador(); });
+         que ya sabe que quiere dar de alta, sin obligar a buscar el botón.
+         Acepta «cliente» y «comprador»: el 26-sep el rótulo pasó a «Alta de
+         cliente» y el botón se quedó sin acción hasta el 29-sep (a8bb55b4). */
+      var btnAlta = ata(/Alta de (cliente|comprador)/i, function () { abreAltaComprador(); });
 
       /* GUARDAR EL ALTA — la lógica de siempre, sacada a su función para que la
          use el cajón nuevo (24-sep-2026). Los SEIS datos que exige un alta
