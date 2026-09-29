@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="865c37f1802d">
+<meta name="lw-version" content="5f5ee15827ca">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -2249,7 +2249,9 @@ const puedeHitosFijos = () => ROLES_HITOS_FIJOS.includes(MI_ROL);
    de arriba (quien negocia puede rebajar su precio): lo acotan el tope del
    15%, el motivo obligatorio y el trigger `descuento_comercial_rol` de la
    base, que rechaza el cambio a cualquier otro rol. precio_total y los hitos
-   de fábrica siguen en admin/super_admin. */
+   de fábrica siguen en admin/super_admin.
+   29-sep-2026, owner: el super_admin no tiene tope del 15% (pantalla y
+   triggers *_valido); para admin y sales_manager el tope sigue. */
 const CAMPOS_DESCUENTO_COMERCIAL = ['descuento_comercial', 'descuento_comercial_motivo'];
 /* Mínimo pactado por el estudio para la reserva (11-sep-2026). Va junto a lo
    anterior para que nadie cambie el default sin ver el mínimo. */
@@ -4313,8 +4315,8 @@ function updateSaveButton(){
       el.readOnly = !abreDescuento;
       el.classList.toggle('dato-fijo', !abreDescuento);
       el.title = abreDescuento
-        ? (esBloqueo ? 'Descuento comercial sobre el precio del suelo — máx. 15%. Necesita motivo.'
-                     : 'Descuento comercial sobre el precio de techo+extras — máx. 15%. Necesita motivo.')
+        ? (esBloqueo ? 'Descuento comercial sobre el precio del suelo' + (ES_SUPER ? '' : ' — máx. 15%') + '. Necesita motivo.'
+                     : 'Descuento comercial sobre el precio de techo+extras' + (ES_SUPER ? '' : ' — máx. 15%') + '. Necesita motivo.')
         : 'Solo lo cambian dirección y los sales managers.';
     });
   }
@@ -4779,7 +4781,8 @@ async function guardarContrato(){
       if(elDC){ elDC.focus(); elDC.scrollIntoView({behavior:'smooth', block:'center'}); }
       return;
     }
-    if(base > 0 && dc > base * 0.15){
+    // Super admin sin tope (29-sep-2026, owner); el trigger repite la regla.
+    if(!ES_SUPER && base > 0 && dc > base * 0.15){
       avisoNoGuardado(lwT('El descuento comercial no puede superar el 15% del precio de techo + extras.'));
       if(elDC){ elDC.focus(); elDC.scrollIntoView({behavior:'smooth', block:'center'}); }
       return;
@@ -4817,7 +4820,9 @@ async function guardarContrato(){
     const elPT = document.querySelector('[name="precio_total"]');
     const foco = el => { if(el){ el.focus(); el.scrollIntoView({behavior:'smooth', block:'center'}); } };
     if(dc < 0){ avisoNoGuardado(lwT('El descuento comercial no puede ser negativo.')); foco(elDC); return; }
-    if(dc > base * 0.15){ avisoNoGuardado(lwT('El descuento comercial no puede superar el 15% del precio del suelo.')); foco(elDC); return; }
+    if(dc > 0 && dc >= base){ avisoNoGuardado(lwT('El descuento comercial no puede igualar ni superar el precio del suelo.')); foco(elDC); return; }
+    // Super admin sin tope (29-sep-2026, owner); el trigger repite la regla.
+    if(!ES_SUPER && dc > base * 0.15){ avisoNoGuardado(lwT('El descuento comercial no puede superar el 15% del precio del suelo.')); foco(elDC); return; }
     if(dc > 0 && !motivo){ avisoNoGuardado(lwT('Un descuento comercial necesita su motivo.')); foco(elDCMotivo); return; }
     if(dc > 0 && elPT && Math.abs((parseImporte(elPT.value) || 0) - (base - dc)) > 0.01){
       avisoNoGuardado(lwT('Con descuento comercial, el precio total tiene que ser el precio del suelo menos el descuento.'));

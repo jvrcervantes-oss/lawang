@@ -1,3 +1,5 @@
+-- ⚠️ 29-sep-2026: VERSIÓN VIGENTE en supabase/migrations/20260929154600_descuento_comercial_super_admin_sin_tope.sql
+-- (super_admin sin tope del 15%, tope solo al cambiar el descuento, descuento < lista). Lo de abajo es la del 25-sep.
 -- Descuento comercial del Bloqueo de Parcela, en el SERVIDOR — 25-sep-2026.
 -- Owner: "en el contrato de bloqueo de parcela añade la opción de descuento
 -- comercial y motivo, opcional, como hacemos en construcción".
