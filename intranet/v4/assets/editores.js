@@ -6093,7 +6093,7 @@
         var cuerpo =
           '<p style="margin:0 0 4px;font-size:13px;color:' + CAJ.apagado + ';line-height:1.5">Página pública de due diligence para inversores, sin login. Se sirve en <code>/investor-deck/' + esc(p.slug || '<slug>') + '/</code>.</p>' +
           (!esAdminP ? '<p style="margin:0 0 4px;font-size:12.5px;color:#8A6A34">Solo un administrador puede editar o activar el Investor Deck.</p>' : '') +
-          campoDeck('Slug de la URL', '<input id="id-slug" value="' + esc(p.slug || '') + '" placeholder="ej. mi-proyecto" style="' + estiloDeck + '"' + (esAdminP && !p.slug ? '' : ' disabled') + '>', 'Es la dirección pública del proyecto y no se cambia: la base lo impide desde el 29-sep (cambiarlo rompería los enlaces ya compartidos).') +
+          campoDeck('Slug de la URL', '<input id="id-slug" value="' + esc(p.slug || '') + '" style="' + estiloDeck + '" disabled>', 'Es la dirección pública del proyecto y no se cambia: la base lo impide desde el 29-sep (cambiarlo rompería los enlaces ya compartidos).') +
           campoDeck('Título (inglés)', '<input id="id-titulo" value="' + esc(tituloEn) + '" placeholder="ej. My Project — Investor Deck" style="' + estiloDeck + '"' + (esAdminP ? '' : ' disabled') + '>') +
           campoDeck('Meta description (inglés)', '<input id="id-meta" value="' + esc(metaEn) + '" style="' + estiloDeck + '"' + (esAdminP ? '' : ' disabled') + '>') +
           campoDeck('Modelo "Most requested" (opcional)',
@@ -6122,15 +6122,13 @@
         });
 
         function guardarDeckConfig() {
-          var slug = document.getElementById('id-slug').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
           var tEn = document.getElementById('id-titulo').value.trim();
           var mEn = document.getElementById('id-meta').value.trim();
           if (!tEn || !mEn) return aviso('Título y meta description son obligatorios.', '#8A6A34');
           var destId = document.getElementById('id-destacado').value || null;
           var tareas = [];
-          if (slug && slug !== (p.slug || '')) {
-            tareas.push(sb.rpc('proyecto_guarda', { p_id: p.id, p_cambios: { slug: slug } }));   // valida formato y unicidad (LAW-336 pieza 8)
-          }
+          // El slug ya no se guarda desde aquí: lo genera la base al dar de alta el proyecto y no cambia nunca
+          // (trg_proyecto_slug, LAW-428, 29-sep-2026). El campo de arriba solo lo enseña.
           // por el servidor (LAW-336 bloque 3): deck_config_guarda exige admin, LANZA si no guarda y
           // MEZCLA el título por idioma (el upsert de antes pisaba el español y el indonesio)
           tareas.push(sb.rpc('deck_config_guarda', { p_proyecto_id: p.id, p_cambios: {

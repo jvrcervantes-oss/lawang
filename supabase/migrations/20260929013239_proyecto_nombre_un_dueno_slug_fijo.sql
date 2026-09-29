@@ -1,13 +1,13 @@
 -- erp-ok: Lawang independiente del maestro (owner 28-sep, AXW-68); pareja IDÉNTICA de erp/migraciones/20260929100000
 -- LAW-428 fase 1 — el nombre de un proyecto tiene UN dueño que lo propaga, y su slug es fijo (29-sep-2026).
--- Pareja: Lawang supabase/migrations/20260929100000_proyecto_nombre_un_dueno_slug_fijo.sql. Cuerpos IDÉNTICOS.
+-- Pareja: erp/migraciones/20260929100000_proyecto_nombre_un_dueno_slug_fijo.sql (agencia). Cuerpos IDÉNTICOS.
 -- Norma del owner (29-sep): «cambiar lo que se ve no rompe lo que funciona» — contexto/patrones_tecnicos.md →
 -- «Enganche por identificador estable». Revisión previa #152 (Datos, Seguridad, Desarrollo).
 --
 -- 1) Renombrar un proyecto lo propagaban DOS triggers (propaga_nombre_proyecto y trg_proyecto_renombrado, los dos
 --    reescribían unidades) y NINGUNO tocaba modelos_villa.proyecto: tras un renombrado la ficha del proyecto, que
 --    busca sus modelos por ese texto, salía sin modelos y sin un error. Queda un solo dueño, que cubre también
---    modelos_villa y documentos_proyecto (el viejo se borra en 20260929100100, con el OK del owner). `unidades_borradas.proyecto` es un CONGELADO histórico (cómo se llamaba el
+--    modelos_villa y documentos_proyecto (el viejo se borra en 20260929235900 del maestro (LAW-432), con el OK del owner). `unidades_borradas.proyecto` es un CONGELADO histórico (cómo se llamaba el
 --    proyecto cuando se borró la unidad): no se propaga a propósito.
 -- 2) El slug es el identificador PÚBLICO del proyecto (URL del Investor Deck): se genera al dar de alta si no llega,
 --    es obligatorio, tiene formato, y una vez puesto NO se cambia — con error, no en silencio, para que un admin no
@@ -49,7 +49,7 @@ begin
   return new;
 end $function$;
 
--- El trigger viejo (proyectos_propaga_nombre → propaga_nombre_proyecto) se BORRA en 20260929100100, aparte: el
+-- El trigger viejo (proyectos_propaga_nombre → propaga_nombre_proyecto) se BORRA en 20260929235900 del maestro (LAW-432), aparte: el
 -- abanico lo trata como destructivo y espera el OK del owner. Hasta entonces los dos corren; el viejo solo repite
 -- sobre unidades y documentos_proyecto lo mismo que escribe este, así que no hay nada que se contradiga.
 

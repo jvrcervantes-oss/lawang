@@ -1,6 +1,6 @@
 -- erp-ok: Lawang independiente del maestro (owner 28-sep, AXW-68); pareja IDÉNTICA de erp/migraciones/20260929101000
 -- LAW-428 fase 1 — la vista unidades_estado expone proyecto_id (29-sep-2026).
--- Pareja: Lawang supabase/migrations/<versión>_unidades_estado_proyecto_id.sql. Cuerpos IDÉNTICOS (hash de la vista
+-- Pareja: erp/migraciones/20260929101000_unidades_estado_proyecto_id.sql (agencia). Cuerpos IDÉNTICOS (hash de la vista
 -- 12b334b3fac6b82e0ce1eff7b3983cbb en las dos bases antes de esto).
 -- El front filtraba esta vista por el NOMBRE del proyecto (`.eq('proyecto', nombre)`, datos.js y editores.js) porque
 -- no tenía el id. Norma del 29-sep (contexto/patrones_tecnicos.md → «Enganche por identificador estable»): se filtra
