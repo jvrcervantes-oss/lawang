@@ -814,7 +814,7 @@
          llega, el selector está desactivado y se ve «Todas». Si falla, el
          filtro se queda desactivado y lo dice; el resto del panel no cambia. */
       if (selSoc && !d.fallos.contratos) {
-        todas(function () { return sb.rpc('contratos_equipo').select('id,soc:datos->fields->>sociedad_firmante'); }, 'sociedad de los contratos')
+        todas(function () { return sb.rpc('contratos_equipo').select('id,soc:datos_fields->>sociedad_firmante'); }, 'sociedad de los contratos')
           .then(function (filas) {
             var soc = {}; filas.forEach(function (x) { soc[x.id] = x.soc; });
             RAW.contratos.forEach(function (c) { c.soc = soc[c.id] || null; });
