@@ -44,7 +44,31 @@ declare(strict_types=1);
 // escritorio no pintan imagenes data: y la cabecera salia como el alt «LAWANG».
 // PNG y no WebP a proposito: Outlook escritorio no pinta WebP. Mismo fichero que
 // iba en base64 (480x67), extraido byte a byte a assets/img/lawang-logo-correo.png.
-const LW_CORREO_LOGO_URL = 'https://lawangproperties.com/assets/img/lawang-logo-correo.png';
+//
+// MODO OSCURO (30-sep-2026, el owner: «en el móvil con modo oscuro la letra se ve
+// blanca y no se distingue del fondo»). Gmail en el móvil (y Outlook) invierten
+// los COLORES del correo — texto oscuro → claro, fondo claro → oscuro — pero
+// NUNCA las imágenes. La tarjeta tenía como superficie un JPG claro y opaco: el
+// texto pasaba a blanco y el grano seguía claro debajo. Tres piezas, ninguna
+// cambia cómo se ve en modo claro:
+//  · el grano es ahora una CAPA (correo-grano.png, con transparencia) sobre un
+//    color base LW_CORREO_GRANO_BASE: compuesto sobre esa base da el mismo JPG
+//    de antes (±1,2 niveles, medido), y cuando el cliente oscurece la base, la
+//    capa apenas se nota (alfa ≤ 10 %) y el texto claro se lee;
+//  · el logo (gris oscuro sobre transparente) desaparecía sobre la tarjeta
+//    oscurecida: ahora lleva un halo claro difuminado alrededor de las letras
+//    (lawang-logo-correo-halo.png, 504×91 → 210×38) y sigue siendo transparente
+//    fuera de él. En claro el halo tiene el color del grano y no se distingue; en
+//    oscuro separa las letras del fondo. Se probó antes una placa opaca: en el
+//    móvil tapaba con un corte recto la marca de agua, que comparte celda con el
+//    logo (revisor de código, 30-sep);
+//  · <meta name="color-scheme" content="light only">: Apple Mail y Outlook.com
+//    lo respetan y pintan el correo tal cual; Gmail lo ignora (para Gmail están
+//    las dos anteriores).
+// El JPG y el logo antiguos NO se borran: los correos ya enviados apuntan a ellos.
+const LW_CORREO_LOGO_URL = 'https://lawangproperties.com/assets/img/lawang-logo-correo-halo.png';
+const LW_CORREO_GRANO_URL = 'https://lawangproperties.com/assets/img/correo-grano.png';
+const LW_CORREO_GRANO_BASE = '#FFFFF3';   // el máximo de cada canal del grano: la capa solo oscurece
 
 /**
  * Envuelve un mensaje de TEXTO PLANO en la tarjeta de marca.
@@ -76,6 +100,8 @@ const LW_CORREO_LOGO_URL = 'https://lawangproperties.com/assets/img/lawang-logo-
  *    desviación), no un recorte: el owner la quería en todo el correo sin el
  *    isotipo, y un recorte en espejo dibujaba un caleidoscopio al repetirse.
  *    Outlook de escritorio no pinta fondos: queda el Raw Linen liso de bgcolor.
+ *    Desde el 30-sep va como capa con transparencia (correo-grano.png) sobre
+ *    LW_CORREO_GRANO_BASE, por el modo oscuro: ver LW_CORREO_LOGO_URL.
  *  · MARCA DE AGUA: assets/img/correo-moanito.png — la mitad izquierda del
  *    moanito (Moanito_6.png del owner), teñida de Stone Sand al 15 % y anclada
  *    al borde derecho, así que se ve «cortado al 50 %» como pidió el owner.
@@ -237,18 +263,34 @@ BTN;
   if ($contacto !== 'sales') { $contacto = 'admin'; }
   $mail = $contacto . '@lawangproperties.com';
   $logo = LW_CORREO_LOGO_URL;
+  $grano = LW_CORREO_GRANO_URL;
+  $granoBase = LW_CORREO_GRANO_BASE;
 
+  // Documento completo (30-sep-2026): el <meta name="color-scheme"> solo lo leen
+  // los clientes cuando va en el <head>. La vista previa de Comunicación lo pinta
+  // en un iframe srcdoc, donde un documento completo es lo normal.
   return <<<HTML
+<!DOCTYPE html>
+<html lang="es">
+<head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light only">
+<meta name="supported-color-schemes" content="light only">
 <style>
+:root{color-scheme:light only;supported-color-schemes:light only;}
 @font-face{font-family:'Neue Kabel';src:url('https://lawangproperties.com/assets/fonts/correo/NeueKabel-Regular.woff') format('woff');font-weight:400;font-style:normal;}
 @font-face{font-family:'Neue Kabel';src:url('https://lawangproperties.com/assets/fonts/correo/NeueKabel-Medium.woff') format('woff');font-weight:500;font-style:normal;}
 @font-face{font-family:'Neue Kabel';src:url('https://lawangproperties.com/assets/fonts/correo/NeueKabel-Bold.woff') format('woff');font-weight:600 700;font-style:normal;}
 </style>
+</head>
+<body>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{$C['fondo']};margin:0;padding:32px 12px;">
   <tr>
     <td align="center">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="{$C['tarjeta']}" background="https://lawangproperties.com/assets/img/correo-grano.jpg" style="max-width:760px;background-color:{$C['tarjeta']};background-image:url('https://lawangproperties.com/assets/img/correo-grano.jpg');background-repeat:repeat;background-position:0 0;background-size:256px 256px;border:1px solid {$C['linea']};border-radius:16px;overflow:hidden;">
+      <!-- bgcolor (lino) es lo que pinta Outlook de escritorio, que no carga fondos;
+           el resto usa la base del grano + la capa, que juntas dan el grano de siempre -->
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="{$C['tarjeta']}" background="{$grano}" style="max-width:760px;background-color:{$granoBase};background-image:url('{$grano}');background-repeat:repeat;background-position:0 0;background-size:256px 256px;border:1px solid {$C['linea']};border-radius:16px;overflow:hidden;">
 
         <!-- barra superior -->
         <tr>
@@ -268,10 +310,12 @@ BTN;
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
         <!-- marca -->
         <tr>
-          <td align="center" style="padding:32px 40px 8px;">
-            <img src="{$logo}" width="200" height="28" alt="LAWANG"
-                 style="display:block;width:200px;height:28px;border:0;margin:0 auto;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:360px;margin:18px auto 0;"><tr>
+          <td align="center" style="padding:27px 40px 8px;">
+            <!-- 210×38 = el logo de 200×28 con 5 px de halo alrededor: el relleno de la
+                 celda (32→27) y el margen del filete (18→13) lo descuentan -->
+            <img src="{$logo}" width="210" height="38" alt="LAWANG"
+                 style="display:block;width:210px;height:38px;border:0;margin:0 auto;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:360px;margin:13px auto 0;"><tr>
               <td valign="middle"><div style="height:1px;background:{$C['linea']};font-size:0;line-height:0;">&nbsp;</div></td>
               <td valign="middle" style="width:1%;white-space:nowrap;padding:0 14px;font-family:{$serif};font-size:11px;letter-spacing:3px;text-transform:uppercase;color:{$C['rotulo_logo']};">Properties</td>
               <td valign="middle"><div style="height:1px;background:{$C['linea']};font-size:0;line-height:0;">&nbsp;</div></td>
@@ -311,6 +355,8 @@ BTN;
     </td>
   </tr>
 </table>
+</body>
+</html>
 HTML;
 }
 
