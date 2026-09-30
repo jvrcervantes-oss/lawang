@@ -1,6 +1,6 @@
 -- destructivo-ok: prueba F3 entera dentro de begin … rollback (la migración rehace policies); no escribe nada
 -- =====================================================================================
--- PRUEBA POR PERFIL — F3 · visibilidad por equipo (supabase/migrations/PENDIENTE_f3_visibilidad_por_equipo.sql)
+-- PRUEBA POR PERFIL — F3 · visibilidad por equipo (supabase/migrations/20260930065223_f3_visibilidad_por_equipo.sql)
 -- Encargo 20260930_lawang_equipos_venta_asistente. Escrita el 30-sep-2026.
 --
 -- CÓMO SE LANZA: TRES llamadas a execute_sql (MCP), una por TRAMO (la línea `select set_config(
@@ -11,7 +11,7 @@
 -- En cada llamada, la línea-marca MIGRACION_F3 (la que va sola entre dos líneas de «=») se
 -- sustituye por el texto ÍNTEGRO de la migración (no una copia a mano: así prueba y migración
 -- no se separan). Desde la raíz del repo de Lawang:
---   python -c "import re, sys, pathlib as p; sys.stdout.reconfigure(encoding='utf-8'); t=p.Path('contracts/sql/prueba_f3_visibilidad.sql').read_text(encoding='utf-8'); m=p.Path('supabase/migrations/PENDIENTE_f3_visibilidad_por_equipo.sql').read_text(encoding='utf-8'); print(re.sub(r'(?m)^-- @@MIGRACION_F3@@$', lambda _: m, t))"
+--   python -c "import re, sys, pathlib as p; sys.stdout.reconfigure(encoding='utf-8'); t=p.Path('contracts/sql/prueba_f3_visibilidad.sql').read_text(encoding='utf-8'); m=p.Path('supabase/migrations/20260930065223_f3_visibilidad_por_equipo.sql').read_text(encoding='utf-8'); print(re.sub(r'(?m)^-- @@MIGRACION_F3@@$', lambda _: m, t))"
 -- Tras aplicar la migración, la misma prueba sin sustituir la marca comprueba el estado vivo
 -- (la foto «antes» ya será la de después: los casos que comparan antes/después darán igual).
 --
@@ -37,6 +37,13 @@
 --   después y se probó aparte, en su propio rollback: 1 / 0 / 1.
 --   Coste medido con la puerta final (count(*) con RLS, un agente): contratos ~170 → ~240 ms;
 --   facturas no se volvió a medir tras poner en línea documento_visible (antes de eso, ~510 → ~740).
+-- RESULTADO 30-sep-2026 (tarde, contra la base con F2 y F4 ya aplicadas, ANTES de aplicar F3; ROLLBACK):
+--   gestores: casos 0-12 en verde. G: 52 ventas de su equipo en 7 proyectos (26 fuera de sus
+--   supervisados), las ve todas con PDF (antes 25), 17 compradores, 71 documentos; ventas de otro
+--   equipo en sus proyectos 51 → 0; facturas sin contrato 3 → 0; 4 no-SM iguales; 3 PM iguales;
+--   cambio de equipo verde; paridad 90/90; huella de dinero igual; avisos 1/0/1. resto:0 (11) y
+--   resto:1 (15) sin cambios (helpers + policy de contratos). F3 aplicada después como
+--   20260930065223 por orden del owner.
 -- =====================================================================================
 begin;
 select set_config('f3.perfiles', 'gestores', true);   -- TRAMO: 'gestores' | 'resto:0' | 'resto:1'

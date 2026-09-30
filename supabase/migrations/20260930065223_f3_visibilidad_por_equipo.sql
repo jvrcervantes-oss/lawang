@@ -1,9 +1,11 @@
+-- destructivo-ok: solo drop+create de 10 policies de SELECT (se rehacen sobre la puerta); no borra datos. Orden del owner 30-sep-2026
 -- =====================================================================================
--- NO APLICAR hasta que el owner decida LAW-439 (los 5 managers que hoy ven por proyecto
--- sin tener equipo). Si se aplica antes, pierden lo que ven hoy por proyectos_supervisados.
--- Al aplicarlo: renombrar con versión (YYYYMMDDHHMMSS_f3_visibilidad_por_equipo.sql),
--- aplicarlo con apply_migration y volver a pasar contracts/sql/prueba_f3_visibilidad.sql,
--- tools/salud_lawang.py --sql y check_seguridad.py --live.
+-- APLICADA el 30-sep-2026 por orden explícita del owner («Aplica F3 ya», 30-sep-2026),
+-- sabiendo que balianhills pasaba de 106 contratos a 8 si seguía de sales_manager (al aplicar
+-- ya era project_manager, igual que juanjortega81: no pierden nada). Antes de aplicar se
+-- comprobaron los 28 marcadores contra el catálogo vivo tras F2 y F4 (todos con el recuento
+-- previsto: F4 no tocó ninguna pieza de F3) y se pasó contracts/sql/prueba_f3_visibilidad.sql
+-- en sus tres tramos dentro de ROLLBACK, todo en verde.
 -- =====================================================================================
 --
 -- F3 del encargo 20260930_lawang_equipos_venta_asistente · Puerta única de visibilidad.
