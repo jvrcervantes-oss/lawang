@@ -518,6 +518,75 @@
     if (!k || !ficha || ficha.rol === 'super_admin') return true;
     return [].concat(k).some(function (h) { return (ficha.herramientas || []).indexOf(h) !== -1; });
   }
+  /* SUBMENÚ (30-sep-2026, owner: «al clicar en Cobros que se abra Vencimientos, Facturas y
+     Recibos; si no, es un coñazo»). Bajo cada entrada con pestañas cuelgan SUS pestañas —
+     las mismas `mias` que la barra, ya filtradas por casilla y rol—, así que no nace ningún
+     permiso nuevo. Pulsar la entrada abre/cierra; no navega (su href sigue apuntando a la
+     primera pestaña para clic central o sin JS). Abierta de salida en la que se está, con la
+     pestaña actual en píldora. Los hijos se enganchan por `data-lw-pestana` (el path), no
+     por el rótulo, y NO llevan `data-path`: la poda de podaMenu es solo de la entrada. */
+  var SUBS = 0;
+  function submenu(entrada, g, mias, aquiG, ficha) {
+    var previo = entrada.parentNode && entrada.parentNode.querySelector('[data-lw-sub="' + g + '"]');
+    if (previo) previo.parentNode.removeChild(previo);
+    var rol = (ficha && ficha.rol) || '';
+    var aqui = aquiG && aquiG.grupo === g;
+    var sub = document.createElement('div');
+    sub.setAttribute('data-lw-sub', g);
+    sub.id = 'lw-sub-' + g + '-' + (++SUBS);   // puede haber más de un aside en la página
+    sub.style.cssText = 'display:flex;flex-direction:column;gap:2px;margin:2px 0 4px';
+    mias.forEach(function (t) {
+      var a = entrada.cloneNode(true);          // clon: mismas clases que el resto del menú
+      a.removeAttribute('data-path');
+      a.removeAttribute('aria-expanded');
+      a.removeAttribute('aria-controls');
+      a.setAttribute('data-lw-pestana', t.path);
+      desmarca(a);
+      a.href = ROOT + t.path + '/';
+      a.style.paddingLeft = '44px';
+      var spans = a.querySelectorAll('span');
+      for (var i = spans.length - 1; i >= 0; i--) {
+        if (spans[i].hasAttribute('data-lw-flecha') || i === 0) spans[i].parentNode.removeChild(spans[i]);
+      }
+      var txt = a.querySelector('span');
+      if (txt) txt.textContent = T((t.rotulo && t.rotulo[rol]) || t.texto);
+      if (aqui && t === aquiG.pestana) marcaActiva(a);
+      sub.appendChild(a);
+    });
+    entrada.insertAdjacentElement('afterend', sub);
+
+    desmarca(entrada);                          // la píldora la lleva la pestaña, no el grupo
+    entrada.setAttribute('aria-controls', sub.id);
+    var flecha = entrada.querySelector('[data-lw-flecha]');
+    if (!flecha) {
+      flecha = document.createElement('span');
+      flecha.className = 'material-symbols-outlined text-[18px] nav-text-item';
+      flecha.setAttribute('data-lw-flecha', '');
+      flecha.setAttribute('aria-hidden', 'true');
+      flecha.style.cssText = 'margin-left:auto;transition:transform .2s';
+      flecha.textContent = 'expand_more';
+      entrada.appendChild(flecha);
+    }
+    function pon(abierto) {
+      sub.style.display = abierto ? 'flex' : 'none';
+      entrada.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+      flecha.style.transform = abierto ? 'rotate(180deg)' : '';
+      if (aqui) entrada.classList.toggle('font-bold', !abierto);   // cerrada, que se sepa dónde se está
+    }
+    pon(aqui);
+    entrada._lwSub = { sub: sub, pon: pon };   // si se rehace, el clic usa el submenú nuevo
+    if (!entrada.hasAttribute('data-lw-plegable')) {
+      entrada.setAttribute('data-lw-plegable', '');
+      entrada.addEventListener('click', function (ev) {
+        if (ev.button !== 0 || ev.ctrlKey || ev.metaKey || ev.shiftKey) return;   // abrir en pestaña nueva sigue valiendo
+        var s = entrada._lwSub;
+        if (!s) return;
+        ev.preventDefault();
+        s.pon(s.sub.style.display === 'none');
+      });
+    }
+  }
+
   /* Cada entrada con pestañas lleva a la PRIMERA pestaña que la ficha tiene (un closer
      solo tiene «Mis comisiones») y se marca activa en todas sus páginas. La barra se
      pinta una vez, justo bajo la cabecera, solo con las pestañas que la ficha abre. */
@@ -527,7 +596,8 @@
       var entrada = aside.querySelector('a[data-path="' + g + '"]');
       var mias = pestanasDe(g, ficha);
       if (entrada && mias.length) entrada.href = ROOT + mias[0].path + '/';
-      if (entrada && aquiG && aquiG.grupo === g) marcaActiva(entrada);
+      if (entrada && mias.length) submenu(entrada, g, mias, aquiG, ficha);
+      else if (entrada && aquiG && aquiG.grupo === g) marcaActiva(entrada);
     });
     if (!aquiG) return;
     var idBarra = 'lw-pestanas-' + aquiG.grupo;
