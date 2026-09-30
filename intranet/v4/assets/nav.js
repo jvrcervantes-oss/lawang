@@ -579,7 +579,6 @@
       entrada.setAttribute('data-lw-plegable', '');
       entrada.addEventListener('click', function (ev) {
         if (ev.button !== 0 || ev.ctrlKey || ev.metaKey || ev.shiftKey) return;   // abrir en pestaña nueva sigue valiendo
-        if (entrada.closest('.sidebar-collapsed')) return;                          // plegada: sin hijos a la vista, navega
         var s = entrada._lwSub;
         if (!s) return;
         ev.preventDefault();

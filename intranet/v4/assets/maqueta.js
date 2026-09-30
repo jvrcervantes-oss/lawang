@@ -286,8 +286,9 @@
     var velo = document.createElement('div'); velo.className = 'lw-velo';
     velo.addEventListener('click', function () { document.body.classList.remove('v4-nav-abierta'); });
     document.body.appendChild(velo);
-    // navegar desde el cajón móvil lo cierra
+    // navegar desde el cajón móvil lo cierra; abrir un submenú (nav.js hace preventDefault) no navega, así que no
     document.addEventListener('click', function (ev) {
+      if (ev.defaultPrevented) return;
       if (ev.target.closest && ev.target.closest('.lw-aside a')) document.body.classList.remove('v4-nav-abierta');
     });
   }
