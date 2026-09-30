@@ -7,6 +7,7 @@
 -- Las condiciones se prueban en un alcance SINTÉTICO (equipo real + nivel team_lead + closer x@prueba.invalid), sin
 -- ventas ni devengos; solo el caso del recuento retroactivo usa un alcance real (condición de manager de un equipo).
 -- La base se busca, no se inventa: si falta un perfil, la prueba lo dice en vez de dar un falso «ok».
+-- Los booleanos que pasan por format() salen como t/f; los que se concatenan con ||, como true/false.
 do $$
 declare
   r text := ''; v_t text; v_h text; v_n int; v_id uuid; v_a uuid; v_b uuid; v_c uuid; v_x record;
@@ -58,7 +59,7 @@ begin
     v_id := public.equipo_miembro_guarda(null, v_eq, v_libre.e, v_hoy - 10, null);
     select format('%s', m.desde = v_hoy) into v_t from public.equipo_miembros m where m.id = v_id;
     raise exception '%', v_t;
-  exception when others then r := r || 'M2 fecha forzada a hoy=' || sqlerrm || case when sqlerrm = 'true' then ' ok; ' else ' FALLO; ' end; end;
+  exception when others then r := r || 'M2 fecha forzada a hoy=' || sqlerrm || case when sqlerrm = 't' then ' ok; ' else ' FALLO; ' end; end;
   begin
     perform set_config('request.jwt.claims', json_build_object('sub', v_sm.user_id, 'email', v_sm.e, 'role', 'authenticated')::text, true);
     select format('%s/%s/%s/%s',
@@ -72,7 +73,7 @@ begin
     v_id := public.equipo_miembro_anade(v_eq, v_libre.user_id);
     select v_t || '/' || (m.desde = v_hoy and lower(m.closer_email) = v_libre.e) into v_t from public.equipo_miembros m where m.id = v_id;
     raise exception '%', v_t;
-  exception when others then r := r || 'M3 candidatos y alta por id=' || sqlerrm || case when sqlerrm = 'true/true/true/false/true' then ' ok; ' else ' FALLO; ' end; end;
+  exception when others then r := r || 'M3 candidatos y alta por id=' || sqlerrm || case when sqlerrm = 't/t/t/f/true' then ' ok; ' else ' FALLO; ' end; end;
 
   -- M4 · admin retroactiva: sin confirmar → rechazo; con recuento distinto → rechazo; con el de la vista previa → ok
   begin
@@ -124,7 +125,7 @@ begin
     v_c := public.condicion_comision_guarda(null, v_sin || jsonb_build_object('vigente_desde', v_hoy + 1), v_tr);
     begin perform public.condicion_comision_borra(v_a); v_t := v_t || '/pasa'; exception when others then v_t := v_t || '/no'; end;
     raise exception '%', v_t;
-  exception when others then r := r || 'C1 cerrar/borrar futura/borrar vigente=' || sqlerrm || case when sqlerrm = 'true/true/no' then ' ok; ' else ' FALLO; ' end; end;
+  exception when others then r := r || 'C1 cerrar/borrar futura/borrar vigente=' || sqlerrm || case when sqlerrm = 't/true/no' then ' ok; ' else ' FALLO; ' end; end;
 
   -- C2 · caso a: se editan las cifras de la predecesora (log con motivo nulo) y luego se borra la sustituta:
   --      la predecesora vuelve a estar en vigor (antes se perdía la pista del log)
@@ -139,7 +140,7 @@ begin
     set constraints all immediate;
     select v_t || '/' || (c.activo and c.vigente_hasta is null and c.pct_comision = 3) into v_t from public.condiciones_comision c where c.id = v_a;
     raise exception '%', v_t;
-  exception when others then r := r || 'C2 editar predecesora y borrar sustituta=' || sqlerrm || case when sqlerrm = 'true/true/true' then ' ok; ' else ' FALLO; ' end; end;
+  exception when others then r := r || 'C2 editar predecesora y borrar sustituta=' || sqlerrm || case when sqlerrm = 't/t/true' then ' ok; ' else ' FALLO; ' end; end;
 
   -- C3 · caso b: una sustituta que empezó HOY sin devengos se retrasa y luego se adelanta: nunca queda hueco
   begin
@@ -151,7 +152,7 @@ begin
     perform public.condicion_comision_guarda(v_b, v_sin || jsonb_build_object('vigente_desde', v_hoy - 2), v_tr);
     select v_t || '/' || ((select vigente_hasta from public.condiciones_comision where id = v_a) = v_hoy - 3) into v_t;
     raise exception '%', v_t;
-  exception when others then r := r || 'C3 mover sustituta sin hueco=' || sqlerrm || case when sqlerrm = 'true/true' then ' ok; ' else ' FALLO; ' end; end;
+  exception when others then r := r || 'C3 mover sustituta sin hueco=' || sqlerrm || case when sqlerrm = 't/true' then ' ok; ' else ' FALLO; ' end; end;
 
   -- C4 · cadena A→B→C: borrar B deja A cerrada el día antes de C y C sustituyendo a A; borrar C reabre A
   begin
@@ -170,7 +171,7 @@ begin
     set constraints all immediate;
     select v_t || '/' || (c.activo and c.vigente_hasta is null) into v_t from public.condiciones_comision c where c.id = v_a;
     raise exception '%', v_t;
-  exception when others then r := r || 'C4 cadena A-B-C=' || sqlerrm || case when sqlerrm = 'true/true/true/true' then ' ok; ' else ' FALLO; ' end; end;
+  exception when others then r := r || 'C4 cadena A-B-C=' || sqlerrm || case when sqlerrm = 't/t/true/true' then ' ok; ' else ' FALLO; ' end; end;
 
   -- C5 · las cifras de una condición CERRADA no se editan (sintética cerrada a mano, y la estándar 2,5 % real)
   begin
