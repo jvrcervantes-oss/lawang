@@ -174,7 +174,9 @@
   var CORTINA = { 'comision-admin': 60 };   // 26-sep-2026, owner: de 15 s a 1 minuto
   var CORTINA_V = '20260926a';
   /* mascota.js (el Asistente acoplado) tampoco lo sella sella_assets: sube MASCOTA_V al cambiarlo. */
-  var MASCOTA_V = '20260925d';
+  var MASCOTA_V = '20260930a';
+  /* novedades.js (el pop-up de novedades, 30-sep-2026) tampoco lo sella sella_assets: sube NOVEDADES_V al cambiarlo. */
+  var NOVEDADES_V = '20260930a';
   /* MOVIMIENTO (26-sep-2026, owner: mezcla A+B+D). La entrada de cada pantalla
      vive en assets/motion.js; aquí solo se MARCA `html.lw-mov`, ya, antes de que
      vuelva ninguna consulta, para que shell.css retenga el contenido hasta que
@@ -1028,6 +1030,13 @@
         var sm = document.createElement('script');
         sm.src = ROOT + 'assets/mascota.js?v=' + MASCOTA_V;
         document.head.appendChild(sm);
+      }
+      /* El pop-up de novedades: una vez por persona y versión; decide dentro qué noticias
+         le tocan según sus herramientas. Solo con ficha (sin ficha guard.js rebota). */
+      if (aut && aut.ficha && location.pathname.indexOf('/intranet/v4/') !== -1) {
+        var sn = document.createElement('script');
+        sn.src = ROOT + 'assets/novedades.js?v=' + NOVEDADES_V;
+        document.head.appendChild(sn);
       }
     });
   }

@@ -141,10 +141,13 @@
     '#lw-masc .lwm-punto{position:absolute;top:5px;right:5px;width:12px;height:12px;border-radius:999px;background:#9E2F26;border:2px solid #fbf9f4;pointer-events:none}' +
     '#lw-masc .lwm-err{margin:8px 20px 0 35px;font-size:13px;color:#9E2F26}' +
     '#lw-masc .lwm-err[hidden]{display:none}' +
+    '#lw-masc .lwm-lista{margin:8px 20px 0 35px;padding:0;list-style:none;display:grid;gap:4px;font-size:13.5px;font-variant-numeric:tabular-nums}' +
+    '#lw-masc .lwm-lista li{display:flex;justify-content:space-between;gap:10px}' +
+    '#lw-masc .lwm-lista b{font-weight:600;color:#9E2F26;white-space:nowrap}' +
     '#lw-masc .lwm-extra{display:flex;gap:14px;flex-wrap:wrap;padding:0 20px 16px 35px;margin-top:-6px}' +
     /* se esconde con cualquier cajón/diálogo/menú móvil (mismos selectores que el bloqueo de scroll de shell.css) */
     'html:has(#lw-cajon) #lw-masc,html:has(#lw-editor) #lw-masc,html:has(#cajon-detalle:not(.translate-x-full)) #lw-masc,' +
-    'html:has(#lw-com-previa-caja:not([hidden])) #lw-masc,html:has(.lw-dlg-fondo.abierto) #lw-masc,html:has(body.v4-nav-abierta) #lw-masc{visibility:hidden}' +
+    'html:has(#lw-com-previa-caja:not([hidden])) #lw-masc,html:has(.lw-dlg-fondo.abierto) #lw-masc,html:has(#lw-novedades) #lw-masc,html:has(body.v4-nav-abierta) #lw-masc{visibility:hidden}' +
     '@media (max-width:767px){#lw-masc{right:14px;bottom:14px}#lw-masc .lwm-bur{right:-2px}}' +
     '@media print{#lw-masc{display:none}}';
 
@@ -259,7 +262,7 @@
       { t: nombre ? T('Hola, %nombre. Soy el Asistente.', { nombre: nombre }) : T('Hola. Soy el Asistente.'),
         x: T('Desde hoy te acompaño por toda la intranet, aquí abajo en la esquina. Cuando necesites algo, tócame.') },
       { t: T('Lo que ya sé hacer'),
-        x: T('Pídeme lo que la intranet no te deja hacer: cambiar un dato de un cliente, anular o borrar una factura o un recibí, borrar una operación. Dirección lo aprueba y se hace solo.') },
+        x: T('Pídeme lo que la intranet no te deja hacer: cambiar un dato de un cliente, anular o borrar una factura o un recibí, borrar una operación. Dirección lo aprueba y se hace solo.') + ' ' + T('Y te aviso si una reserva tuya está a punto de liberarse.') },
       { t: T('Y lo que viene'),
         x: T('Voy a ir aprendiendo a hacer más cosas por ti. Si me pides algo que aún no sé hacer, también le llega a dirección.') }
     ];
@@ -323,6 +326,8 @@
     var K_FALLOS = 'lw-mascota:fallos:' + email;
     var MAX_FALLOS_DIA = 5;
     var punto = null, ofrecido = false, vistoHasta = 0, apagaPunto = null;
+    var RESU = null;   // reservas urgentes ({vencidas, pronto}) mientras haya alguna: el punto rojo NO se apaga solo
+    function hayRes() { return !!RESU && (RESU.vencidas.length + RESU.pronto.length) > 0; }
     function pendientes() { return (window.__lwFallos || []).filter(function (f) { return f.t > vistoHasta; }); }
     function usados() { var v = (lee(K_FALLOS) || '').split('|'); return v[0] === hoy() ? (+v[1] || 0) : 0; }
     function marca(on) {
@@ -330,7 +335,7 @@
         punto = el('span', 'lwm-punto');
         yo.appendChild(punto);
         yo.setAttribute('aria-label', T('Abrir el Asistente: ha notado un fallo'));
-      } else if (!on && punto) {
+      } else if (!on && punto && !hayRes()) {
         punto.remove(); punto = null;
         yo.setAttribute('aria-label', T('Abrir el Asistente'));
       }
@@ -447,10 +452,61 @@
     // lo apuntado antes de que llegara la mascota: punto, sin bocadillo (la persona ya siguió)
     if (pendientes().length) alFallo(pendientes()[pendientes().length - 1], true);
 
+    /* ── Avisar de lo GRAVE: reservas a punto de liberarse (30-sep-2026, owner) ──
+       La cuenta es la de «Hoy toca» (window.lwReservasUrgentes, datos.js): vencidas
+       pendientes de liberar + las que vencen en 1-2 días. Cada sesión ve solo las
+       suyas (RLS). Los RP sin firmar no cuentan: nunca caducan. El punto rojo sigue en
+       cada página mientras haya alguna; el bocadillo sale solo UNA vez al día y nunca
+       encima de la presentación, de una ventana abierta ni de la propia pantalla de
+       Reservas. Solo LEE: no prorroga ni libera nada. */
+    function lineaRes(x) {
+      var li = el('li');
+      li.appendChild(el('span', '', x.num + (x.comp ? ' · ' + x.comp : '')));
+      li.appendChild(el('b', '', x.d <= 0 ? T('vencida') : x.d === 1 ? T('mañana') : T('pasado mañana')));
+      return li;
+    }
+    function avisaReservas() {
+      if (!hayRes()) return;
+      var v = RESU.vencidas, p = RESU.pronto, n = v.length + p.length;
+      var texto = [];
+      if (v.length) texto.push(v.length === 1 ? T('1 ya ha vencido y espera a liberarse.') : T('%n ya han vencido y esperan a liberarse.', { n: v.length }));
+      if (p.length) texto.push(p.length === 1 ? T('1 vence en 1-2 días.') : T('%n vencen en 1-2 días.', { n: p.length }));
+      var lista = el('ul', 'lwm-lista');
+      v.concat(p).slice(0, 4).forEach(function (x) { lista.appendChild(lineaRes(x)); });
+      var pie = el('div', 'lwm-pie');
+      pie.appendChild(el('span', 'lwm-puntos'));
+      pie.appendChild(boton(T('Ahora no'), false, function () { cierra(); }));
+      var ver = boton(T('Ver reservas'), true, function () { location.href = ROOT + 'reservas/'; });
+      pie.appendChild(ver);
+      abre([cabecera(n === 1 ? T('Una reserva tuya se va a liberar') : T('Tienes %n reservas a punto de liberarse', { n: n }),
+        texto.join(' ') + ' ' + T('Si vence sin prórroga ni Bloqueo firmado, el cliente pierde la reserva. Revísalas hoy.')), lista, pie], ver);
+    }
+    var K_RES = 'lw-mascota:reservas:' + email;
+    function cuentaReservas() {
+      if (typeof window.lwReservasUrgentes !== 'function' || !aut.sb) { console.warn('[mascota] sin lwReservasUrgentes: no se avisa de reservas'); return; }
+      Promise.resolve(aut.sb.rpc('reservas_vencimiento')).then(function (r) {
+        if (!r || r.error) { console.warn('[mascota] reservas_vencimiento:', r && r.error); return; }
+        RESU = window.lwReservasUrgentes(r.data || [], hoy());
+        if (!hayRes()) { RESU = null; return; }
+        marca(true);
+        /* aparte de la pantalla de Reservas (ya está mirándolo): punto sí, bocadillo no */
+        var yaLoVe = location.pathname.indexOf('/intranet/v4/reservas') !== -1;
+        var intentosRes = 0;
+        function ofrece() {
+          if (lee(K_RES) === hoy() || yaLoVe || ++intentosRes > 40) return;   // ~3 min esperando hueco; el punto rojo se queda
+          if (!bur.hidden || hayVentana() || raiz.style.visibility === 'hidden' || !lee(K_VISTO)) { setTimeout(ofrece, 4000); return; }
+          guarda(K_RES, hoy());
+          avisaReservas();
+        }
+        setTimeout(ofrece, 2500);
+      }).catch(function (e) { console.warn('[mascota] reservas:', e); });
+    }
+    cuentaReservas();
+
     yo.addEventListener('click', function (ev) {
       ev.stopPropagation();
       if (!bur.hidden) { cierra(); return; }
-      if (punto) { avisaFallo(false); return; }
+      if (punto) { if (pendientes().length || !hayRes()) avisaFallo(false); else avisaReservas(); return; }
       if (EN_ASISTENTE) { presenta(1, false); return; }
       pideAlgo();
     });

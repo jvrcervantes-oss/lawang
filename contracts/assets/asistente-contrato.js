@@ -15,9 +15,10 @@
 
    CONVIVE. `?nuevo=1` a pelo es el formulario clásico, exactamente como hoy:
    este fichero no hace nada sin `?asistente=1` (lo llama init() de app.html).
-   Mientras no exista F5 la entrada está detrás de una bandera: el botón de
-   /intranet/v4/contratos/ solo manda aquí a admin y super admin (o con
-   `?asistente=1` en esa página) — ver `contratos` en intranet/v4/assets/editores.js.
+   Desde el 30-sep-2026 (noche, owner: «muéstralo ya a todo el mundo, quiero que
+   lo testeen») el botón de /intranet/v4/contratos/ manda aquí a TODOS los roles,
+   sin bandera — ver `contratos` en intranet/v4/assets/editores.js. Lo que la
+   bandera tapaba sigue sin hacer: el servidor aún no guarda el modo (F5b).
 
    «CON MI EQUIPO / POR MI CUENTA». Se pregunta y se guarda en el estado del
    asistente, pero NO se envía a la base ni entra en `datos` (nunca un campo con
