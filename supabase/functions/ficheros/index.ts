@@ -42,6 +42,14 @@
 //                        pantalla; si no es un JPEG se borra. Sin `borra`: lo que se queda sin usar lo recoge el barrido
 //                        (contracts/tools/anexos_barrido.py). Funciones puras en anexo.mjs (anexo.test.js).
 //
+// Ajustes del ERP, S3 (30-sep-2026; revisión previa en encargos/20260930_erp_ajustes_pantalla.md):
+//   sociedad_logo      → bucket `sociedades` (PÚBLICO: el renderizador de PDF carga el HTML desde fuera y el logo ya va impreso en cada
+//                        documento). Solo super admin (es_super_admin con el JWT del usuario). Acción `sube`: llega el fichero ENTERO en
+//                        base64 (≤512 KB), el servidor mira sus primeros bytes (PNG, JPEG o WebP; nunca SVG), sus dimensiones y su
+//                        sha256, y lo sube a `<clave>/<sha256>.<ext>` sin upsert: la ruta la decide el servidor. Devuelve la URL
+//                        pública; guardarla en la sociedad es cosa de `sociedad_guarda`, que vuelve a comprobar que es de ESTE bucket
+//                        y de ESA clave. Funciones puras en logo.mjs (logo.test.js). Lo subido y no asignado queda huérfano (pesa KB).
+//
 // Acciones (POST JSON, `accion` + `clase`):
 //   subida_url {clase, ...ids, ext, tipo?}          → {path, token, content_type}   (creatividad: + creatividad_id)
 //   registra   {clase, ...ids, path, nombre, tipo?} → {id}
@@ -59,6 +67,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { TIPOS, bytesCuadran } from '../ficheros-kyc/firma.mjs';
 import { TOPE_PAGINA, anexoIdOk, dimsJpeg, esJpeg, hex, nPagina, rutaAnexo, rutaAnexoOk } from './anexo.mjs';
+import { claveOk, decodificaB64, juzgaLogo, rutaLogo } from './logo.mjs';
 
 const URL_SB = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -291,7 +300,37 @@ const CLASES: Record<string, Clase> = {
     carpeta: async () => ({ error: 'accion_desconocida', status: 400 }), // tiene su propio camino (abajo)
     filaDe: async (path) => !!(await admin.from('contrato_anexo_paginas').select('id').eq('path', path).maybeSingle()).data,
   },
+  sociedad_logo: {
+    bucket: 'sociedades',
+    exts: ['.png', '.jpg', '.webp'],
+    bytesOk: () => false,                                                    // no usa el camino común (subida firmada): lo valida subeLogo
+    carpeta: async () => ({ error: 'accion_desconocida', status: 400 }),     // tiene su propio camino (abajo)
+    filaDe: async (path) => !!(await admin.from('sociedades').select('clave').eq('logo', admin.storage.from('sociedades').getPublicUrl(path).data.publicUrl).limit(1).maybeSingle()).data,
+  },
 };
+
+// ── sociedad_logo: solo super admin; el servidor valida los bytes y decide la ruta ─────────────────────────────────
+async function subeLogo(u: Usuario, body: Record<string, unknown>) {
+  const { data: esSuper, error: eS } = await u.rpc('es_super_admin');
+  if (eS || esSuper !== true) return { error: 'solo_super_admin', status: 403 } as const;
+  const clave = String(body.clave ?? '');
+  if (!claveOk(clave)) return { error: 'sociedad_invalida', status: 400 } as const;
+  const { data: fila, error: eF } = await admin.from('sociedades').select('clave').eq('clave', clave).maybeSingle();
+  if (eF) return { error: 'error_interno', status: 500 } as const;
+  if (!fila) return { error: 'sociedad_inexistente', status: 404 } as const;   // primero se da de alta la sociedad, después su logo
+  const bytes = decodificaB64(body.datos_b64);
+  if (!bytes) return { error: 'logo_invalido', status: 400 } as const;
+  const j = juzgaLogo(bytes);
+  if ('error' in j) return { error: j.error, status: 400 } as const;
+  const sha = hex(await crypto.subtle.digest('SHA-256', bytes));
+  const path = rutaLogo(clave, sha, j.ext);
+  if (!path) return { error: 'error_interno', status: 500 } as const;
+  const { error: eUp } = await admin.storage.from(CLASES.sociedad_logo.bucket).upload(path, bytes, { contentType: j.mime, upsert: false, cacheControl: '31536000' });
+  // el mismo contenido ya estaba (mismo sha256 = mismo nombre): no es un fallo
+  if (eUp && !/already exists|duplicate/i.test(String(eUp.message ?? ''))) return { error: 'no_se_pudo_subir', status: 500 } as const;
+  const url = admin.storage.from(CLASES.sociedad_logo.bucket).getPublicUrl(path).data.publicUrl;
+  return { url, path, ext: j.ext, ancho: j.ancho, alto: j.alto, bytes: bytes.length, sha256: sha } as const;
+}
 
 // ── anexo_contrato: permiso sobre ESE contrato, con el JWT del usuario ───────────────────────────────────────────
 // La fila del contrato tiene que existir: un contrato nuevo se guarda antes de subirle anexos.
@@ -633,6 +672,14 @@ Deno.serve(async (req) => {
         return json({ ok: true, id: r.id, sha256: r.sha256, bytes: r.bytes, ancho: r.ancho, alto: r.alto });
       }
       return json({ ok: false, error: 'accion_desconocida' }, 400);
+    }
+
+    // ── logo de una sociedad emisora: llega el fichero entero, lo valida y lo sube ESTE servidor ──
+    if (clase === CLASES.sociedad_logo) {
+      if (accion !== 'sube') return json({ ok: false, error: 'accion_desconocida' }, 400);
+      const r = await subeLogo(usuario, body);
+      if ('error' in r) return json({ ok: false, error: r.error }, r.status);
+      return json({ ok: true, ...r });
     }
 
     // ── borrar: permiso y ruta de la base → objeto → fila ────────────────

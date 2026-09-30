@@ -1538,6 +1538,77 @@
     'No se guardó': 'Not saved',
     'No se ha podido leer el registro': 'The log could not be read',
     'No se han podido leer los ajustes': 'The settings could not be read',
+    // Ajustes del ERP, S2/S3 (30-sep-2026): marca y sociedades emisoras
+    'Marca del ERP: nombre, zona horaria y logo de los correos': 'ERP brand: name, time zone and email logo',
+    'El nombre con el que se presenta este sistema, la hora en la que trabaja y el logo que llevarán los correos. Cada casilla se guarda por separado.': 'The name this system goes by, the time zone it works in and the logo the emails will carry. Each box is saved on its own.',
+    'Trayendo las sociedades…': 'Fetching the companies…',
+    'Aspecto del documento': 'Document look',
+    'Así sale una factura de esta sociedad': 'This is how an invoice from this company looks',
+    'Cada sociedad, con su identidad y el diseño de su factura': 'Each company, with its identity and invoice design',
+    'Ciérralos o anúlalos antes.': 'Close or cancel them first.',
+    'Clave interna': 'Internal key',
+    'Cliente de ejemplo': 'Sample client',
+    'Concepto de ejemplo': 'Sample item',
+    'Otro concepto de ejemplo': 'Another sample item',
+    'Proyecto de ejemplo': 'Sample project',
+    'Contratos y facturas se emiten a nombre de una sociedad. El documento sale con la identidad, el logo y la tinta de quien emite. Las series de numeración de las facturas son compartidas por todas las sociedades.': 'Contracts and invoices are issued in the name of a company. The document carries the identity, logo and ink of whoever issues it. Invoice numbering series are shared by all companies.',
+    'Dar de alta': 'Create',
+    'Esta sociedad ya tiene documentos emitidos a su nombre': 'This company already has documents issued in its name',
+    'Falta el identificador fiscal. Si es una sociedad indonesa, sin él no debería emitir documentos.': 'The tax identifier is missing. For an Indonesian company, it should not issue documents without it.',
+    'Guarda la sociedad primero; después podrás subirle el logo.': 'Save the company first; then you can upload its logo.',
+    'La clave va en minúsculas, números y guion bajo, empieza por letra y tiene entre 3 y 40 caracteres.': 'The key uses lowercase letters, numbers and underscores, starts with a letter and is 3 to 40 characters long.',
+    'La razón social y el domicilio son obligatorios: los imprime cada documento.': 'The legal name and the address are required: every document prints them.',
+    'Las nueve plantillas de contrato declaran al Promotor «sociedad de nacionalidad Indonesia». Para una sociedad que no lo es, esa cláusula hay que corregirla a mano antes de imprimir el contrato final.': 'All nine contract templates declare the Promoter an “Indonesian-nationality company”. For a company that is not, that clause must be corrected by hand before printing the final contract.',
+    'Las sociedades emisoras son de administración: tu sesión no tiene acceso.': 'Issuing companies are for administration: your session has no access.',
+    'Logo': 'Logo',
+    'Logo subido': 'Logo uploaded',
+    'No se ha podido cargar la vista previa': 'The preview could not be loaded',
+    'No se han podido leer las sociedades': 'The companies could not be read',
+    'No se pudo subir el logo': 'The logo could not be uploaded',
+    'No se puede desactivar ahora: tiene documentos abiertos o en curso': 'It cannot be deactivated now: it has open or in-progress documents',
+    'Nueva sociedad': 'New company',
+    'Nueva sociedad. Se da de alta activa. La clave interna se fija ahora y no se puede cambiar nunca: va dentro de cada contrato y factura que emita.': 'New company. It is created active. The internal key is set now and can never be changed: it goes inside every contract and invoice it issues.',
+    'PNG, JPEG o WebP, hasta 512 KB y 2000 px por lado. Nunca SVG. Se sube al pulsar «Guardar cambios».': 'PNG, JPEG or WebP, up to 512 KB and 2000 px per side. Never SVG. It is applied when you press “Save changes”.',
+    'Para una sociedad que no es indonesa, confirma que el contrato de cesión y el DPA con ella ya están firmados.': 'For a company that is not Indonesian, confirm that the assignment contract and the DPA with it are already signed.',
+    'Preparando la vista previa…': 'Preparing the preview…',
+    'Pulsa «Guardar cambios» para usarlo en los documentos.': 'Press “Save changes” to use it in documents.',
+    'Quitar logo': 'Remove logo',
+    'Se quitará el logo al pulsar «Guardar cambios».': 'The logo will be removed when you press “Save changes”.',
+    'Sin cambios: no hay nada distinto que guardar.': 'No changes: there is nothing different to save.',
+    'Sin logo': 'No logo',
+    'Sociedad dada de alta': 'Company created',
+    'Solo el super admin puede cambiar las sociedades.': 'Only the super admin can change the companies.',
+    'Solo lectura: cambiar las sociedades exige super admin.': 'Read-only: changing companies requires super admin.',
+    'Su identidad fiscal —razón social, identificación fiscal, NIB, domicilio, representante y marca— no se puede cambiar desde aquí: reescribiría lo ya firmado y emitido. Para cambiarla, pídeselo al estudio.': 'Its tax identity —legal name, tax identifier, NIB, address, representative and brand— cannot be changed from here: it would rewrite what has already been signed and issued. To change it, ask the studio.',
+    'Subiendo el logo…': 'Uploading the logo…',
+    'Subir logo': 'Upload logo',
+    'Una sociedad no se borra: se desactiva. Sus documentos emitidos siguen apuntando a ella. La cuenta bancaria de cada sociedad se gestionará en su propia acción, con contraseña otra vez, en una fase posterior.': 'A company is never deleted: it is deactivated. Its issued documents keep pointing to it. Each company’s bank account will be managed through its own action, asking for the password again, in a later phase.',
+    'Ya existe una sociedad con esa clave.': 'A company with that key already exists.',
+    'esto no cambia lo que el documento dice': 'this does not change what the document says',
+    'inactiva': 'inactive',
+    'no se cambia nunca.': 'never changes.',
+    'Razón social inscrita': 'Registered legal name',
+    'Es lo que se imprime en contratos y facturas.': 'This is what is printed on contracts and invoices.',
+    'Marca comercial': 'Trade name',
+    'Opcional. Sale bajo la razón social.': 'Optional. Printed under the legal name.',
+    'Nombre en los desplegables': 'Name in the drop-downs',
+    'Cómo se elige esta sociedad al redactar un contrato o una factura.': 'How this company is picked when drafting a contract or an invoice.',
+    'Tipo de identificador fiscal': 'Tax identifier type',
+    'NPWP en Indonesia, CRN en Hong Kong, NIF en España…': 'NPWP in Indonesia, CRN in Hong Kong, NIF in Spain…',
+    'Opcional.': 'Optional.',
+    'Representante': 'Representative',
+    'Solo el nombre.': 'Name only.',
+    'Es una sociedad indonesa (las plantillas de contrato lo declaran así)': 'It is an Indonesian company (the contract templates declare it so)',
+    'Alto del logo': 'Logo height',
+    'En milímetros, por ejemplo 24mm.': 'In millimetres, for example 24mm.',
+    'Color del papel (folio)': 'Paper colour',
+    'Tinta principal': 'Main ink',
+    'Tinta oscura': 'Dark ink',
+    'Los datos del emisor van DEBAJO del logo (para logos apaisados)': 'The issuer’s details go BELOW the logo (for wide logos)',
+    'Orden en los desplegables': 'Order in the drop-downs',
+    'Activa: se ofrece al redactar contratos y facturas': 'Active: offered when drafting contracts and invoices',
+    'Se propone desde la razón social. Minúsculas, números y guion bajo.': 'Suggested from the legal name. Lowercase letters, numbers and underscores.',
+    'Marca del ERP': 'ERP brand',
     'Queda en el registro de cambios': 'Kept in the change log',
     'Se muestran los 200 últimos cambios.': 'Showing the latest 200 changes.',
     'Sin cambios': 'No changes',
@@ -1550,6 +1621,8 @@
     'vacío': 'empty',
     'Nombre del ERP': 'ERP name',
     'El nombre de la instalación: acabará en el título del navegador, el menú y el asunto de los correos.': 'The installation name: it will end up in the browser title, the menu and the email subjects.',
+    'El nombre de la instalación: sale en el título del navegador, el menú lateral y las frases que nombran a la empresa. Vacío no se admite: si nunca se ha guardado, manda el nombre de origen.': 'The installation name: it shows in the browser title, the side menu and the sentences that name the company. It cannot be empty: if never saved, the original name applies.',
+    'Ya lo leen el título del navegador, el menú lateral y las frases que nombran a la empresa. Los correos lo leerán en la fase siguiente.': 'The browser title, the side menu and the sentences that name the company already read it. Emails will read it in the next phase.',
     'Zona horaria': 'Time zone',
     'Formato Región/Ciudad. Fija las horas de los avisos y resúmenes programados.': 'Region/City format. Sets the times of scheduled alerts and summaries.',
     'Remitente de los correos': 'Email sender',
@@ -4286,8 +4359,35 @@
      que se ve; un nombre de cliente por defecto sería el de OTRO cliente.
      ========================================================================== */
   var CAMPOS_FICHA = ['firma_correo', 'subcabecera', 'cabecera', 'titulo', 'marca'];
-  function conFicha(t) {
+
+  /* EL NOMBRE DEL ERP EDITABLE (Ajustes del ERP, S2, 30-sep-2026). La ficha `instancia.js` es de solo lectura y sale con el código;
+     el nombre que el super admin cambia en Ajustes → Empresa y marca vive en `config_instancia.marca` y lo lee cualquier sesión
+     por `instancia_marca()`. Cuando llega, se PONE ENCIMA de la ficha en tres campos y solo en estos: `marca` (las frases con
+     %marca), `cabecera` (el menú lateral, en mayúsculas) y `titulo` (la pestaña del navegador). `subcabecera` y `firma_correo` no
+     se tocan: la firma de los correos se unifica con el resto del correo en S5.0.
+     Límite honesto: el texto que ya se pintó con `%marca` antes de que responda la base conserva la ficha hasta el siguiente
+     repintado; el menú y el título se corrigen al llegar. Sin valor guardado o con error, manda la ficha, como siempre. */
+  var VIVA = null;
+  function fichaViva() {
     var f = window.LW_INSTANCIA;
+    if (!f || !VIVA) return f;
+    var g = {};
+    for (var k in f) if (Object.prototype.hasOwnProperty.call(f, k)) g[k] = f[k];
+    for (var v in VIVA) g[v] = VIVA[v];
+    return g;
+  }
+  function pideMarcaViva(sb) {
+    if (!sb || typeof sb.rpc !== 'function') return;
+    Promise.resolve(sb.rpc('instancia_marca')).then(function (r) {
+      if (!r || r.error) return;                                   // no se pudo leer: se queda lo que hay en pantalla
+      var m = (typeof r.data === 'string') ? r.data.trim() : '';
+      // nada guardado, o igual al de origen: manda la ficha (y si antes había uno vivo distinto, se suelta)
+      VIVA = (m && m !== (window.LW_INSTANCIA || {}).marca) ? { marca: m, cabecera: m.toUpperCase(), titulo: m } : null;
+      window.lwFichaAplicar();
+    }).catch(function () { /* MUDO A PROPOSITO: el nombre editable es cosmético; si la base no responde se queda el de la ficha, que ya está en pantalla */ });
+  }
+  function conFicha(t) {
+    var f = fichaViva();
     if (!f || t.indexOf('%') === -1) return t;
     for (var i = 0; i < CAMPOS_FICHA.length; i++) {
       var c = CAMPOS_FICHA[i];
@@ -4301,7 +4401,7 @@
      llamante. */
   var lwTSolo = window.lwT;
   window.lwT = function (s, huecos) {
-    var f = window.LW_INSTANCIA;
+    var f = fichaViva();
     if (!f) return lwTSolo(s, huecos);
     var todos = {};
     CAMPOS_FICHA.forEach(function (c) { if (f[c] != null) todos[c] = f[c]; });
@@ -4319,7 +4419,7 @@
      clave explícita, primero le fija la clave con `%marca` — si no, la
      pasada al inglés buscaría la frase ya rellenada y no la encontraría. */
   window.lwFichaAplicar = function (raiz) {
-    var f = window.LW_INSTANCIA;
+    var f = fichaViva();
     if (!f) return;
     var r = raiz || document;
     r.querySelectorAll('[data-lw-ficha]').forEach(function (el) {
@@ -4350,6 +4450,12 @@
     document.addEventListener('DOMContentLoaded', function () { window.lwFichaAplicar(); });
   } else {
     window.lwFichaAplicar();
+  }
+  // Ajustes lo llama tras guardar «marca», para que el menú y el título cambien sin recargar.
+  window.lwMarcaRefresca = pideMarcaViva;
+  // El nombre editable: en cuanto la sesión esté lista (LW_AUTH lo pone guard.js; las páginas públicas sin sesión no lo tienen).
+  if (typeof document !== 'undefined' && window.LW_AUTH && typeof window.LW_AUTH.then === 'function') {
+    window.LW_AUTH.then(function (aut) { if (aut && aut.sb) pideMarcaViva(aut.sb); });
   }
 
   /* ==========================================================================
