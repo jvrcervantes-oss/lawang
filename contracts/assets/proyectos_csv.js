@@ -85,16 +85,30 @@ const lwCsvAntiFormula = s => {
 /* Parser propio (RFC4180: comillas, comas y saltos dentro de un campo
    entrecomillado, "" como comilla escapada). Ninguna herramienta de la suite
    carga una librería para esto y el caso cabe en quince líneas. */
+/* Separador: coma, punto y coma o tabulador, según lo que más se repita en la
+   PRIMERA línea (la cabecera, que no lleva separadores dentro de un campo).
+   30-sep-2026: Excel con configuración regional española guarda «CSV» con `;`,
+   y el importador solo partía por comas — la cabecera entera era UNA columna y
+   decía «necesita codigo y proyecto» sobre un fichero que los traía. Ninguno
+   o empate: coma. */
+function lwCsvSeparador(t){
+  const cab = t.split('\n', 1)[0].replace(/"[^"]*"/g, '');
+  const n = c => cab.split(c).length - 1;
+  const coma = n(','), pyc = n(';'), tab = n('\t');
+  return (pyc > coma && pyc >= tab) ? ';' : (tab > coma && tab > pyc) ? '\t' : ',';
+}
+
 function lwCsvParse(texto){
   const filas = []; let fila = []; let campo = ''; let enComillas = false;
-  const t = String(texto).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const t = String(texto).replace(/^﻿/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const sep = lwCsvSeparador(t);
   for(let i = 0; i < t.length; i++){
     const c = t[i];
     if(enComillas){
       if(c === '"'){ if(t[i+1] === '"'){ campo += '"'; i++; } else enComillas = false; }
       else campo += c;
     }else if(c === '"'){ enComillas = true; }
-    else if(c === ','){ fila.push(campo); campo = ''; }
+    else if(c === sep){ fila.push(campo); campo = ''; }
     else if(c === '\n'){ fila.push(campo); filas.push(fila); fila = []; campo = ''; }
     else campo += c;
   }
@@ -263,6 +277,6 @@ function lwCsvLotesParaGuardar(validas, camposPresentes){
 }
 
 if(typeof module !== 'undefined' && module.exports)
-  module.exports = { lwCsvParse, lwCsvNormCab, lwCsvAntiFormula, lwCsvAnaliza,
+  module.exports = { lwCsvParse, lwCsvSeparador, lwCsvNormCab, lwCsvAntiFormula, lwCsvAnaliza,
                      lwCsvLotesParaGuardar, LW_CSV_COLUMNAS, LW_CSV_ESCRIBIBLES,
                      LW_CSV_MAX_BYTES, LW_CSV_MAX_FILAS };
