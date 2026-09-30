@@ -14,7 +14,7 @@
  *    no deja nada a medias.
  *  · Si se puede cambiar: al encolar se congela en la base. Aquí solo se
  *    deshabilitan los campos para no ofrecer lo que la base va a rechazar.
- *  · La vista previa la pinta send_email.php (preview:true) con la plantilla
+ *  · La vista previa la pinta la edge envia-correo (preview:true; antes send_email.php) con la plantilla
  *    de verdad; no hay una copia de la plantilla en JS que pueda divergir. */
 (function () {
   'use strict';
@@ -303,7 +303,7 @@
     var b = $('lw-com-previa'); b.disabled = true;
     sb.auth.getSession().then(function (s) {
       var t = s && s.data && s.data.session && s.data.session.access_token;
-      return fetch('/contracts/api/send_email.php', {
+      return fetch(sb.supabaseUrl + '/functions/v1/envia-correo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Suite-Token': t || '' },
         body: JSON.stringify({
