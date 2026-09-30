@@ -537,7 +537,7 @@ begin
         update public.contrato_closer set closer_email = M.e where contrato_id = v_rp;
         v_t := 'cambio-sin-error';
       exception when others then get stacked diagnostics v_state = returned_sqlstate;
-        v_t := v_state || case when sqlerrm like 'El closer anterior tiene comisiones pendientes%comision\_devengo\_anular;%comision\_devengo\_anular\_lawang%' then '' else '(' || sqlerrm || ')' end; end;
+        v_t := v_state || case when sqlerrm like 'El closer anterior tiene comisiones pendientes%Comisiones → Reparto a closers%Comisiones → Pagos de Lawang%' and sqlerrm not like '%comision\_devengo%' then '' else '(' || sqlerrm || ')' end; end;
       perform set_config('request.jwt.claims', json_build_object('sub', A.user_id, 'email', A.e, 'role', 'authenticated')::text, true);
       perform public.comision_devengo_anular(v_d.id, 'prueba LAW-474 (f): cambia el closer');
       update public.contrato_closer set closer_email = M.e where contrato_id = v_rp;
@@ -564,7 +564,7 @@ begin
         perform public.crm_contrato_closer_set(v_rp, null, kk.closer_email);
         v_t := 'quitar-sin-error';
       exception when others then get stacked diagnostics v_state = returned_sqlstate;
-        v_t := v_state || case when sqlerrm like 'El closer anterior tiene comisiones pendientes%comision\_devengo\_anular;%comision\_devengo\_anular\_lawang%' then '' else '(' || sqlerrm || ')' end; end;
+        v_t := v_state || case when sqlerrm like 'El closer anterior tiene comisiones pendientes%Comisiones → Reparto a closers%Comisiones → Pagos de Lawang%' and sqlerrm not like '%comision\_devengo%' then '' else '(' || sqlerrm || ')' end; end;
       perform public.crm_contrato_closer_set(v_otro, null, kk.closer_email);
       raise exception '%', v_n || '/' || v_t || '/' || (select count(*) from public.contrato_closer where contrato_id = v_rp)
         || '/' || (select count(*) from public.contrato_closer where contrato_id = v_otro);
@@ -815,18 +815,18 @@ begin
           update public.contrato_closer set closer_email = M.e where contrato_id = v_rp;
           v_t := 'cambio-sin-error';
         exception when others then get stacked diagnostics v_state = returned_sqlstate;
-          v_t := v_state || case when sqlerrm like 'El closer anterior ya tiene comisiones de esta venta pagadas%Lo regulariza Administración' then '' else '(' || sqlerrm || ')' end; end;
+          v_t := v_state || case when sqlerrm = 'Esta venta tiene comisión ya pagada, aprobada o en disputa al closer anterior: el cambio de closer lo regulariza administración' then '' else '(' || sqlerrm || ')' end; end;
         perform set_config('request.jwt.claims', json_build_object('sub', A.user_id, 'email', A.e, 'role', 'authenticated')::text, true);
         begin
           perform public.crm_contrato_closer_set(v_rp, null, kk.closer_email);
           v_t := v_t || '/quitar-sin-error';
         exception when others then get stacked diagnostics v_state = returned_sqlstate;
-          v_t := v_t || '/' || v_state || case when sqlerrm like 'El closer anterior ya tiene comisiones de esta venta pagadas%Lo regulariza Administración' then '' else '(' || sqlerrm || ')' end; end;
+          v_t := v_t || '/' || v_state || case when sqlerrm = 'Esta venta tiene comisión ya pagada, aprobada o en disputa al closer anterior: el cambio de closer lo regulariza administración' then '' else '(' || sqlerrm || ')' end; end;
         raise exception '%', v_t || '/' || (lower((select closer_email from public.contrato_closer where contrato_id = v_rp)) = T.e);
       exception when others then r := r || 'P17 (2) closer anterior pagado=' || sqlerrm
         || case when sqlerrm = '22023/22023/true' then ' ok; ' else ' FALLO; ' end; end;
 
-      -- P18 · (2) vía nueva comision_devengo_anular_lawang: comisión «por su cuenta» del closer anterior PENDIENTE con su
+      -- P18 · (2) vía nueva comision_devengo_anular_lawang (solo admin por SQL / servicio desde 20260930133921; aquí corre como postgres): comisión «por su cuenta» del closer anterior PENDIENTE con su
       --       solicitud pendiente (número de prueba 999999007) → cambiar el closer se bloquea; el SM no puede usar la vía
       --       (42501); el admin la anula con motivo: solicitud y devengo anulados con UN rastro (el del trigger de la
       --       solicitud), y el cambio de closer pasa
@@ -866,9 +866,11 @@ begin
           (select sp.estado from public.solicitudes_pago sp where sp.id = v_spx),
           (select d.estado || ':' || d.anulado_por_modo from public.comisiones_devengadas d where d.id = v_d.id),
           (select count(*) from public.comisiones_ajustes_log l where l.fila_id in (v_spx, v_d.id) and l.accion = 'anular'),
-          lower((select closer_email from public.contrato_closer where contrato_id = v_rp)) = M.e);
+          lower((select closer_email from public.contrato_closer where contrato_id = v_rp)) = M.e)
+          -- 20260930133921: sin llamador en la intranet, authenticated ya no la ejecuta (queda para admin por SQL / servicio)
+          || '/auth-exec:' || has_function_privilege('authenticated', 'public.comision_devengo_anular_lawang(uuid,text)', 'execute');
       exception when others then r := r || 'P18 (2) anular por su cuenta y cambiar closer=' || sqlerrm
-        || case when sqlerrm = '22023/42501/cambio-ok/anulada/anulada:false/1/t' then ' ok; ' else ' FALLO; ' end; end;
+        || case when sqlerrm = '22023/42501/cambio-ok/anulada/anulada:false/1/t/auth-exec:false' then ' ok; ' else ' FALLO; ' end; end;
     end;
   end;
 
@@ -889,3 +891,8 @@ end $$;
 -- y después; 0 diferencias. Series SP 85, DIF 110, RP 253, CLI 234 intactas (solo avanza el id interno de
 -- comisiones_ajustes_log, 220→238, que no es numeración de negocio). El DROP/CREATE de los triggers sigue en
 -- supabase/pendientes/ (lo frenó no_destruir): los triggers vivos ya llaman a la función nueva.
+-- 30-sep ~13:45 UTC, bloque 2 tras 20260930133921_law474_mensajes_closer_y_revoke (mensajes del trigger de closer sin
+-- nombres de función + revoke de comision_devengo_anular_lawang a authenticated): P9, P10, P17 y P18 ok con los textos
+-- nuevos y auth-exec:false. P4 (2ª mitad), P6, P7, P11, P13 y P15 FALLAN con «Solo se puede pasar una venta al equipo»:
+-- lo provoca 20260930133217_f5b_modo_admin_cierra (otra sesión: venta_modo_admin ya no pasa a «propia»), no este ajuste;
+-- esos casos hay que rehacerlos simulando el paso a «propia» a mano. Series SP 85, DIF 110 intactas; 12 devengos, 11 SP, 0 DIF.
