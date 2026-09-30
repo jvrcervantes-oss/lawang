@@ -4614,7 +4614,11 @@ function contractPayload(){
    CC00020, 76.500 € contados dos veces). Corte gemelo al de firma-submit
    (enviarProformaTotal), que hace lo mismo al FIRMAR. */
 const TIPOS_CON_PROFORMA_AUTO = ['reserva_parcela', 'construccion'];
+/* PARADA (30-sep-2026, owner; pendiente LAW-471): el comentario de arriba describe el flujo activo. No descuenta el descuento comercial. Gemelo de
+   PROFORMA_AUTO_PARADA en firma-submit; reactivar solo cuando reste el neto. */
+const PROFORMA_AUTO_PARADA = true;
 async function crearProformaAutomatica(contratoId, numero, payload){
+  if(PROFORMA_AUTO_PARADA) return;
   if(!TIPOS_CON_PROFORMA_AUTO.includes(payload.tipo)) return;
   const precio = payload.precio_total;
   if(!precio || precio <= 0) return;
