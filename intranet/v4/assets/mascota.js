@@ -485,7 +485,7 @@
     function cuentaReservas() {
       if (typeof window.lwReservasUrgentes !== 'function' || !aut.sb) { console.warn('[mascota] sin lwReservasUrgentes: no se avisa de reservas'); return; }
       Promise.resolve(aut.sb.rpc('reservas_vencimiento')).then(function (r) {
-        if (!r || r.error) { console.warn('[mascota] reservas_vencimiento:', r && r.error); return; }
+        if (!r || r.error) throw new Error('reservas_vencimiento: ' + ((r && r.error && r.error.message) || 'sin respuesta'));
         RESU = window.lwReservasUrgentes(r.data || [], hoy());
         if (!hayRes()) { RESU = null; return; }
         marca(true);
@@ -499,7 +499,12 @@
           avisaReservas();
         }
         setTimeout(ofrece, 2500);
-      }).catch(function (e) { console.warn('[mascota] reservas:', e); });
+      }).catch(function (e) {
+        /* Que el aviso de reservas no pueda comprobarse NO se calla: se relanza fuera de la promesa
+           para que el detector de fallos de nav.js lo apunte y el Asistente ofrezca avisar al estudio. */
+        console.warn('[mascota] reservas:', e);
+        setTimeout(function () { throw e; }, 0);
+      });
     }
     cuentaReservas();
 
