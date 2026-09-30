@@ -1,4 +1,4 @@
--- PRUEBA — F6 «Mi equipo» y condiciones (30-sep-2026): migraciones 20260930070138, 071319, 075711, 082130, 085658 y 091729.
+-- PRUEBA — F6 «Mi equipo» y condiciones (30-sep-2026): migraciones 20260930070138, 071319, 075711, 082130, 085658, 091729 y 093652.
 -- Se ejecuta ENTERA en una llamada con execute_sql (MCP) o psql como postgres. NO ESCRIBE NADA: cada caso va en un
 -- sub-bloque que acaba en excepción (Postgres deshace lo que hizo, claims incluidos) y el bloque entero termina en
 -- `raise exception 'RES: …'`. Cada caso debe decir «ok»; un «FALLO» es una regla de equipo o de dinero que no se cumple.
@@ -6,6 +6,10 @@
 -- No llama a contrato_guarda ni a nada que numere (series): solo equipo_miembros, plantilla, interruptor y condiciones.
 -- Las condiciones se prueban en un alcance SINTÉTICO (equipo real + nivel team_lead + closer x@prueba.invalid), sin
 -- ventas ni devengos; solo el caso del recuento retroactivo usa un alcance real (condición de manager de un equipo).
+-- C10 («hoy cuenta como pasado») necesita una venta DE HOY: dentro de su sub-bloque (que se deshace) pone
+-- created_at = now() a una raíz real sin fecha_venta, sin devengo de closer, sin parcela y de un tipo sin etapa de
+-- reserva (así sincroniza_unidad no toca unidades, contrato_evento_log no escribe y el recálculo no salta: su WHEN no
+-- mira created_at). La huella de secuencias del final prueba que nada hizo nextval.
 -- La base se busca, no se inventa: si falta un perfil, la prueba lo dice en vez de dar un falso «ok».
 -- Los booleanos que pasan por format() salen como t/f; los que se concatenan con ||, como true/false.
 do $$
@@ -17,6 +21,7 @@ declare
   v_sin jsonb; v_sin2 jsonb; v_ret record; v_d date; v_esperado int;
   v_dev0 text := (select count(*) || ':' || md5(coalesce(string_agg(to_jsonb(d)::text, '|' order by d.id), '')) from public.comisiones_devengadas d);
   v_sp0 text := (select count(*) || ':' || md5(coalesce(string_agg(to_jsonb(s)::text, '|' order by s.id), '')) from public.solicitudes_pago s);
+  v_seq0 text := (select md5(coalesce(string_agg(schemaname || '.' || sequencename || '=' || coalesce(last_value::text, '-'), ',' order by schemaname, sequencename), '')) from pg_sequences);
 begin
   -- perfiles
   select ev.id, u.user_id, lower(u.email) e into v_x from public.equipos_venta ev
@@ -317,12 +322,105 @@ begin
     raise exception '%', v_t;
   exception when others then r := r || 'C9 a quien se aplica=' || sqlerrm || case when sqlerrm = 'no/no/no/no/true' then ' ok; ' else ' FALLO; ' end; end;
 
+  -- C10 · HOY CUENTA COMO PASADO (093652). Alcance real: override de closer (equipo del closer, nivel closer, su email)
+  --      de una raíz real sin fecha_venta, sin devengo de closer, sin parcela, de un tipo sin etapa de reserva, cuyo
+  --      closer está hoy en un equipo de un SM activo, y sin condición de ese alcance que empiece hoy o después.
+  --   C10a · SIN ventas de hoy (antes de fabricar la venta): el SM da de alta desde hoy y cambia sus cifras, y admin
+  --          también cambia cifras, todo sin confirmar → pasa.
+  begin
+    select k.contrato_id, k.equipo_id, lower(k.closer_email) ce, sm.user_id smu, lower(sm.email) sme into v_ret
+      from public.contrato_closer k join public.contratos c on c.id = k.contrato_id
+      join public.equipos_venta ev on ev.id = k.equipo_id and ev.activo
+      join public.usuarios sm on lower(sm.email) = lower(ev.manager_email) and sm.activo and sm.rol = 'sales_manager'
+     where c.contrato_padre_id is null and not coalesce(c.bloqueado, false) and c.liberado_en is null and k.fecha_venta is null
+       and k.modo is distinct from 'propia' and coalesce(btrim(c.datos->'fields'->>'parcela_codigo'), '') = ''
+       and not exists (select 1 from public.contrato_tipo_etapa e where e.tipo = c.tipo and e.etapa = 'reserva')
+       and not exists (select 1 from public.comisiones_devengadas d where d.contrato_raiz_id = c.id and d.estado <> 'anulada' and d.nivel = 'closer')
+       and public._closer_del_equipo(k.equipo_id, k.closer_email)
+       and not exists (select 1 from public.condiciones_comision cc where cc.equipo_id = k.equipo_id and cc.proyecto_id is null
+                          and cc.nivel = 'closer' and lower(cc.closer_email) = lower(k.closer_email) and cc.vigente_desde >= v_hoy)
+     order by c.numero limit 1;
+    if v_ret.contrato_id is null then raise exception 'sin fixture'; end if;
+    v_sin := jsonb_build_object('equipo_id', v_ret.equipo_id, 'nivel', 'closer', 'closer_email', v_ret.ce, 'pct_comision', 2,
+                                'base_calculo', 'precio_total', 'vigente_desde', v_hoy);
+    v_t := public._condicion_ventas_afectadas(v_ret.equipo_id, null, 'closer', v_ret.ce, v_hoy, v_hoy) || '/';
+    perform set_config('request.jwt.claims', json_build_object('sub', v_ret.smu, 'email', v_ret.sme, 'role', 'authenticated')::text, true);
+    begin v_a := public.condicion_comision_guarda(null, v_sin, v_tr); v_t := v_t || 'alta/';
+    exception when others then v_t := v_t || 'alta-no:' || sqlstate || ':' || sqlerrm || '/'; end;
+    begin perform public.condicion_comision_guarda(v_a, v_sin || jsonb_build_object('pct_comision', 3), v_tr); v_t := v_t || 'cifras/';
+    exception when others then v_t := v_t || 'cifras-no:' || sqlstate || ':' || sqlerrm || '/'; end;
+    perform set_config('request.jwt.claims', json_build_object('sub', v_adm.user_id, 'email', v_adm.e, 'role', 'authenticated')::text, true);
+    begin perform public.condicion_comision_guarda(v_a, v_sin || jsonb_build_object('pct_comision', 4), v_tr); v_t := v_t || 'admin';
+    exception when others then v_t := v_t || 'admin-no:' || sqlstate || ':' || sqlerrm; end;
+    raise exception '%', v_t;
+  exception when others then r := r || 'C10a hoy sin ventas=' || sqlerrm || case when sqlerrm = '0/alta/cifras/admin' then ' ok; ' else ' FALLO; ' end; end;
+
+  --   C10b · CON una venta de hoy (fabricada en el sub-bloque): SM alta desde hoy, sin confirmar y confirmando el número
+  --          → 42501 sin hint; admin alta sin confirmar → 22023 con el hint del recuento, con él → ok; admin cambia las
+  --          cifras de esa condición que empezó hoy → igual; el SM cambia esas cifras, sin y con el número → 42501 sin hint.
+  begin
+    select k.contrato_id, k.equipo_id, lower(k.closer_email) ce, sm.user_id smu, lower(sm.email) sme into v_ret
+      from public.contrato_closer k join public.contratos c on c.id = k.contrato_id
+      join public.equipos_venta ev on ev.id = k.equipo_id and ev.activo
+      join public.usuarios sm on lower(sm.email) = lower(ev.manager_email) and sm.activo and sm.rol = 'sales_manager'
+     where c.contrato_padre_id is null and not coalesce(c.bloqueado, false) and c.liberado_en is null and k.fecha_venta is null
+       and k.modo is distinct from 'propia' and coalesce(btrim(c.datos->'fields'->>'parcela_codigo'), '') = ''
+       and not exists (select 1 from public.contrato_tipo_etapa e where e.tipo = c.tipo and e.etapa = 'reserva')
+       and not exists (select 1 from public.comisiones_devengadas d where d.contrato_raiz_id = c.id and d.estado <> 'anulada' and d.nivel = 'closer')
+       and public._closer_del_equipo(k.equipo_id, k.closer_email)
+       and not exists (select 1 from public.condiciones_comision cc where cc.equipo_id = k.equipo_id and cc.proyecto_id is null
+                          and cc.nivel = 'closer' and lower(cc.closer_email) = lower(k.closer_email) and cc.vigente_desde >= v_hoy)
+     order by c.numero limit 1;
+    if v_ret.contrato_id is null then raise exception 'sin fixture'; end if;
+    v_sin := jsonb_build_object('equipo_id', v_ret.equipo_id, 'nivel', 'closer', 'closer_email', v_ret.ce, 'pct_comision', 2,
+                                'base_calculo', 'precio_total', 'vigente_desde', v_hoy);
+    update public.contratos set created_at = now() where id = v_ret.contrato_id;
+    v_esperado := public._condicion_ventas_afectadas(v_ret.equipo_id, null, 'closer', v_ret.ce, v_hoy, v_hoy);
+    if v_esperado < 1 then raise exception 'sin fixture: la venta de hoy no cuenta'; end if;
+    v_t := '';
+    perform set_config('request.jwt.claims', json_build_object('sub', v_ret.smu, 'email', v_ret.sme, 'role', 'authenticated')::text, true);
+    for v_x in select x from unnest(array[v_sin, v_sin || jsonb_build_object('confirmar_ventas', v_esperado)]) x loop
+      begin perform public.condicion_comision_guarda(null, v_x.x, v_tr); v_t := v_t || 'pasa/';
+      exception when others then get stacked diagnostics v_h = pg_exception_hint;
+        v_t := v_t || (sqlstate = '42501' and coalesce(v_h, '') = '' and sqlerrm like '%empieza mañana o pide a administración%') || '/'; end;
+    end loop;
+    perform set_config('request.jwt.claims', json_build_object('sub', v_adm.user_id, 'email', v_adm.e, 'role', 'authenticated')::text, true);
+    begin perform public.condicion_comision_guarda(null, v_sin, v_tr); v_t := v_t || 'pasa/';
+    exception when others then get stacked diagnostics v_h = pg_exception_hint;
+      v_t := v_t || (sqlstate = '22023' and v_h = 'lw-confirmar-ventas:' || v_esperado) || '/'; end;
+    begin v_a := public.condicion_comision_guarda(null, v_sin || jsonb_build_object('confirmar_ventas', v_esperado), v_tr);
+          v_t := v_t || (select c.vigente_desde = v_hoy from public.condiciones_comision c where c.id = v_a) || '/';
+    exception when others then v_t := v_t || 'alta-no:' || sqlstate || ':' || sqlerrm || '/'; end;
+    v_sin2 := v_sin || jsonb_build_object('pct_comision', 3);
+    begin perform public.condicion_comision_guarda(v_a, v_sin2, v_tr); v_t := v_t || 'pasa/';
+    exception when others then get stacked diagnostics v_h = pg_exception_hint;
+      v_t := v_t || (sqlstate = '22023' and v_h = 'lw-confirmar-ventas:' || v_esperado) || '/'; end;
+    begin perform public.condicion_comision_guarda(v_a, v_sin2 || jsonb_build_object('confirmar_ventas', v_esperado), v_tr);
+          v_t := v_t || (select c.pct_comision = 3 from public.condiciones_comision c where c.id = v_a) || '/';
+    exception when others then v_t := v_t || 'cifras-no:' || sqlstate || ':' || sqlerrm || '/'; end;
+    perform set_config('request.jwt.claims', json_build_object('sub', v_ret.smu, 'email', v_ret.sme, 'role', 'authenticated')::text, true);
+    for v_x in select x from unnest(array[v_sin || jsonb_build_object('pct_comision', 5),
+                                          v_sin || jsonb_build_object('pct_comision', 5, 'confirmar_ventas', v_esperado)]) x loop
+      begin perform public.condicion_comision_guarda(v_a, v_x.x, v_tr); v_t := v_t || 'pasa/';
+      exception when others then get stacked diagnostics v_h = pg_exception_hint;
+        v_t := v_t || (sqlstate = '42501' and coalesce(v_h, '') = '' and sqlerrm like '%pide a administración%') || '/'; end;
+    end loop;
+    raise exception '%', v_t;
+  exception when others then r := r || 'C10b hoy con venta de hoy=' || sqlerrm
+    || case when sqlerrm = 'true/true/true/true/true/true/true/true/' then ' ok; ' else ' FALLO; ' end; end;
+
   -- dinero intacto: ninguna comisión ni solicitud nueva o cambiada al acabar (todo lo de arriba se deshizo)
   if (select count(*) || ':' || md5(coalesce(string_agg(to_jsonb(d)::text, '|' order by d.id), '')) from public.comisiones_devengadas d) <> v_dev0
      or (select count(*) || ':' || md5(coalesce(string_agg(to_jsonb(s)::text, '|' order by s.id), '')) from public.solicitudes_pago s) <> v_sp0 then
     r := r || 'DINERO cambió FALLO; ';
   else
     r := r || 'dinero intacto ok; ';
+  end if;
+  -- series intactas: ninguna secuencia avanzó (un nextval no se deshace con el rollback)
+  if (select md5(coalesce(string_agg(schemaname || '.' || sequencename || '=' || coalesce(last_value::text, '-'), ',' order by schemaname, sequencename), '')) from pg_sequences) <> v_seq0 then
+    r := r || 'SECUENCIAS avanzaron FALLO; ';
+  else
+    r := r || 'secuencias intactas ok; ';
   end if;
   raise exception 'RES: %', r;
 end $$;
