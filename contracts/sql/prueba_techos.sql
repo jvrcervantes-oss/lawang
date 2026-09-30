@@ -1,5 +1,5 @@
 -- destructivo-ok: ENSAYO que termina en raise y se deshace entero (prueba un delete de modelos_villa y DDL temporal).
--- Prueba de los techos y extras (30-sep-2026, modelo de SUPLEMENTO, migración 20260930120000): fórmula 2026/2027,
+-- Prueba de los techos y extras (30-sep-2026, modelo de SUPLEMENTO, migración 20260930044032): fórmula 2026/2027,
 -- alta de techo, cambio de techo base, alcance, lote todo-o-nada, invariantes, candado del trigger de Construcción,
 -- alta/retirada de extras y permisos. Se pega en mcp__supabase-lawang__execute_sql (o el SQL Editor). NO deja rastro.
 -- Resultado: la excepción final lista cada caso con «ok» o «FALLO». Cualquier «FALLO» = no se publica.

@@ -1,3 +1,7 @@
+-- ⚠️ DESFASADA EN LA PARTE DE TECHOS desde el 30-sep-2026 (migraciones 20260930044032/044332): los techos son un
+-- SUPLEMENTO sobre la casa (suplemento_ahora/suplemento_2027) y precio_ahora/precio_2027 se renombraron a *_antiguo;
+-- la base ya no «mueve los techos». Los casos de techos de este fichero fallarán: la prueba vigente de techos es
+-- contracts/sql/prueba_techos.sql. Pendiente de rehacer (fila en contexto/pendientes.md).
 -- PRUEBA POR ROL, COMO ATAQUE — frontera bloque 3: modelos, precios y deck (27-sep-2026, LAW-336 / LAW-331).
 -- Se ejecuta con execute_sql (MCP) o psql como postgres, UN BLOQUE POR LLAMADA (cada uno acaba en
 -- `raise exception 'RES: …'`, que revierte la transacción entera y enseña el resultado: NO ESCRIBE NADA).
