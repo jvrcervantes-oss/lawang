@@ -1,58 +1,114 @@
 <!DOCTYPE html><html lang="es"><head>
-<meta name="lw-version" content="bcf7ee534a29"><title data-lw-titulo>Reservas por vencer</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script><script src="/contracts/assets/guard.js?v=f7b084b6" data-herramienta="reservas"></script>
+<meta name="lw-version" content="c825ca1f82c5"><title data-lw-titulo>Emitir contrato</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="/contracts/assets/cierre.js?v=7471481b"></script><script src="/contracts/assets/instancia.js?v=f4c6dd5d"></script><script src="/contracts/assets/version.js?v=19c524f3"></script><script src="/contracts/assets/guard.js?v=f7b084b6" data-herramienta="contratos"></script>
 <script src="/contracts/assets/idioma.js?v=78ab8eba"></script>
-<script src="/contracts/assets/i18n.js?v=d69987f5" defer></script>
-<!-- 23-sep-2026: la fila abre la ficha del contrato en el cajón (fichaContrato), que necesita las mismas piezas que en /v4/contratos/. -->
-<script src="/contracts/assets/dinero.js?v=30e26c17" defer></script><script src="/intranet/facturas/totales.js?v=9cb91c37" defer></script><script src="/contracts/assets/operaciones-cuentas.js?v=b11b12fc" defer></script><script src="/contracts/assets/vocabulario.js?v=fd814f9b"></script>
-<script src="/contracts/assets/suite-comun.js?v=17c1b0e9" defer></script><script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script><script src="../assets/cabecera.js?v=b12fc856" defer></script><script src="../assets/datos.js?v=68f50a59" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/i18n.js?v=d69987f5" defer></script><script src="/contracts/assets/dinero.js?v=30e26c17" defer></script><script src="/contracts/assets/suite-comun.js?v=17c1b0e9" defer></script><script src="/contracts/assets/avisos.js?v=0ec2eaff" defer></script><script src="../assets/cabecera.js?v=b12fc856" defer></script><script src="../assets/datos.js?v=68f50a59" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=c613fdc5" defer></script>
 <link href="../assets/shell.css?v=0d404d60" rel="stylesheet">
-<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/editores.js?v=992b157b" defer></script><script src="../assets/maqueta.js?v=b40702f8" defer></script><script src="../assets/mantenimiento.js?v=a40d074a" defer></script><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<script src="/contracts/assets/dialogo.js?v=cefc9e4e" defer></script><script src="../assets/emitir.js?v=d0d38350" defer></script><script src="../assets/maqueta.js?v=b40702f8" defer></script><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><link href="../assets/tw.css?v=41f00750" rel="stylesheet"></head><body class="bg-raw-linen font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-low z-50 flex flex-col justify-between py-6 px-4 shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex flex-col gap-6"><div class="flex items-center justify-between px-2"><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-deep-lagoon tracking-wider font-semibold leading-none" data-lw-ficha="cabecera"></span><span class="font-body-sm text-body-sm text-outline tracking-widest uppercase leading-none mt-1" data-lw-ficha="subcabecera"></span></div><button class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[20px]">left_panel_close</span></button></div><nav class="flex flex-col gap-5 overflow-y-auto max-h-[calc(100vh-220px)] pr-1" data-active-classes="bg-primary-container text-on-primary font-bold rounded-xl"><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Seguimiento</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="home" href="#"><span class="material-symbols-outlined text-[20px]">dashboard</span><span class="">Home</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="operaciones" href="#"><span class="material-symbols-outlined text-[20px]">sync_alt</span><span class="">Operaciones</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="soporte" href="#"><span class="material-symbols-outlined text-[20px]">support_agent</span><span class="">Soporte</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="vencimientos" href="#"><span class="material-symbols-outlined text-[20px]">event_busy</span><span class="">Vencimientos</span></a></div><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Documentación</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="contratos" href="#"><span class="material-symbols-outlined text-[20px]">history_edu</span><span class="">Contratos</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="creatividades" href="#"><span class="material-symbols-outlined text-[20px]">palette</span><span class="">Creatividades</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="documentacion" href="#"><span class="material-symbols-outlined text-[20px]">folder</span><span class="">Documentación</span></a></div><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Administración</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="facturas" href="#"><span class="material-symbols-outlined text-[20px]">receipt_long</span><span class="">Facturas</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="recibos" href="#"><span class="material-symbols-outlined text-[20px]">payments</span><span class="">Recibos</span></a></div><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Base de Datos</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="proyectos" href="#"><span class="material-symbols-outlined text-[20px]">apartment</span><span class="">Proyectos</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="obra" href="#"><span class="material-symbols-outlined text-[20px]">foundation</span><span class="">Obra</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="compradores" href="#"><span class="material-symbols-outlined text-[20px]">badge</span><span class="">Clientes</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="usuarios" href="#"><span class="material-symbols-outlined text-[20px]">group</span><span class="">Usuarios</span></a></div></nav></div><div class="flex flex-col gap-3 pt-4 border-t border-outline/20"><div class="flex items-center justify-between px-3"><span class="font-body-sm text-body-sm text-outline uppercase tracking-wider">Idioma</span><div class="flex items-center bg-surface-container p-1 rounded-full"><button class="px-3 py-0.5 rounded-full font-label-md text-label-md bg-deep-lagoon text-on-primary" type="button">ES</button><button class="px-3 py-0.5 rounded-full font-label-md text-label-md text-on-surface-variant hover:text-on-surface" type="button">EN</button></div></div><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="login" href="#"><span class="material-symbols-outlined text-[20px]">logout</span><span class="">Cerrar Sesión</span></a></div></aside><div class="pl-72 min-h-screen flex flex-col"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-low/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-gutter flex items-center justify-between"><div class="flex items-center gap-4"></div><div class="flex items-center gap-4"><button class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" title="Buscar" type="button"><span class="material-symbols-outlined text-[20px]">search</span></button><button class="relative w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" title="Notificaciones" type="button"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-1 right-1 w-4 h-4 bg-error text-on-error font-body-sm text-[10px] rounded-full flex items-center justify-center font-bold whitespace-nowrap" data-lw="k-avisos">—</span></button><div class="flex items-center gap-3 pl-3 border-l border-outline/20"><div class="flex flex-col text-right"><span class="font-label-md text-label-md text-on-surface leading-tight" data-lw-user>Usuario del equipo</span><span class="font-body-sm text-body-sm text-outline leading-tight" data-lw-rol>—</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-16 px-margin-desktop py-8 flex-1 bg-raw-linen">
-<!-- RESERVAS POR VENCER (23-sep-2026, owner: «necesito una sección exclusiva
-     para reservas por vencer, alta prio»). Las Cartas de Reserva vivas sin
-     Bloqueo de Parcela detrás y cuándo vencen — la MISMA lista que usa el
-     automatismo que las libera (`reservas_vencimiento()`), así que lo que se
-     ve aquí es lo que el sistema va a hacer. Prorrogar y liberar NO se duplican:
-     desde el 23-sep la fila abre la ficha del contrato en el cajón (la misma de
-     Contratos, con sus candados). Cableado en datos.js → REG.reservas. -->
+<style>
+/* Emitir contrato (30-sep-2026): lo que tw.css (compilado) no trae. La impresión: fuera la cáscara (menú,
+   cabecera y su hueco) y todo lo que no es el documento — tools/imprime_limpio.py. */
+.lw-emi-rejilla{display:grid;grid-template-columns:1fr;gap:16px}
+@media screen and (min-width:900px){.lw-emi-rejilla{grid-template-columns:1fr 1fr}}
+.lw-emi-campo{display:flex;flex-direction:column;gap:6px}
+.lw-emi-ayuda{font-size:12px;color:#6b6b6b;margin:0}
+.lw-emi-ctrl{width:100%;border-radius:8px;border:1px solid rgba(120,120,110,.45);background:#fff;padding:10px 12px;font:inherit}
+.lw-emi-botones{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.lw-emi-btn{padding:10px 20px;border-radius:999px;font:inherit;cursor:pointer;border:1px solid rgba(120,120,110,.5);background:#fff}
+.lw-emi-btn.primario{background:#1F4E4A;border-color:transparent;color:#fff}
+.lw-emi-btn:disabled{opacity:.45;cursor:not-allowed}
+.lw-emi-lista{margin:0;padding-left:20px}
+.lw-emi-lista.mal li{color:#9E2F26}
+.lw-emi-tabla{width:100%;border-collapse:collapse;font-size:14px}
+.lw-emi-tabla th,.lw-emi-tabla td{padding:8px 12px;border-bottom:1px solid rgba(120,120,110,.25);text-align:left}
+.lw-emi-tabla td.num{text-align:right;white-space:nowrap}
+.lw-emi-doc{background:#fff;border:1px solid #E7E4DC;border-radius:12px;padding:32px;max-height:640px;overflow:auto}
+.lw-emi-marca{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#9E2F26;margin:0 0 16px}
+.lw-emi-texto{white-space:pre-wrap;overflow-wrap:anywhere;font:15px/1.6 Georgia,serif;color:#1c1c1c;margin:0}
+.lw-emi-caduca{color:#8A6A34}
+@media print{
+  body>:not(.pl-72),aside,header,[data-lw-emi-pantalla]{display:none!important}
+  .pl-72{padding-left:0!important}
+  main{padding:0!important;background:#fff!important}
+  body{background:#fff!important}
+  [data-lw-emi-seccion-doc]{box-shadow:none!important;padding:0!important;border:0!important}
+  [data-lw-emi-seccion-doc]>:not([data-lw="emitir-documento"]){display:none!important}
+  .lw-emi-doc{border:0;padding:0;max-height:none;overflow:visible}
+}
+</style>
 <div class="flex flex-col w-full gap-8">
 
-<div class="lw-cabecera flex flex-col lg:flex-row lg:items-end justify-between gap-6 bg-surface-container-lowest p-8 rounded-xl shadow-sm">
+<div class="lw-cabecera flex flex-col justify-between gap-6 bg-surface-container-lowest p-8 rounded-xl shadow-sm" data-lw-emi-pantalla>
 <div class="flex flex-col gap-2 max-w-3xl">
-<h1 class="font-headline-lg text-headline-lg text-deep-lagoon tracking-tight" data-lwt>Reservas por vencer</h1>
-<p class="font-body-md text-body-md text-on-surface-variant" data-lwt>Cartas de Reserva que aún no tienen su Bloqueo de Parcela. Si vence sin prórroga ni Bloqueo firmado, el cliente pierde el derecho de reserva ese mismo día; el sistema libera la parcela tras unos días de margen interno, que no son un plazo del cliente ni se le comunican.</p>
+<h1 class="font-headline-lg text-headline-lg text-deep-lagoon tracking-tight" data-lwt>Emitir contrato</h1>
+<p class="font-body-md text-body-md text-on-surface-variant" data-lwt>Elige una plantilla activa, rellena sus datos y previsualízala. El texto, el calendario de pagos y sus fechas los calcula la base; esta pantalla solo los enseña. Emitir crea el contrato con lo que se ha previsualizado.</p>
+<p class="font-body-md text-body-md text-on-surface-variant" data-lw="emitir-sin-nucleo" hidden data-lwt>Esta pantalla solo existe en las instancias del ERP con el motor de plantillas.</p>
 </div>
 </div>
 
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="lw-res-kpis">
-<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm"><div class="font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Vencidas, pendientes de liberar</div><div class="font-kpi-number text-[34px] text-volcanic-ash" data-lw="rk-gracia">—</div></div>
-<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm"><div class="font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Vencen en 2 días</div><div class="font-kpi-number text-[34px] text-volcanic-ash" data-lw="rk-2d">—</div></div>
-<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm"><div class="font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Vencen esta semana</div><div class="font-kpi-number text-[34px] text-volcanic-ash" data-lw="rk-7d">—</div></div>
-<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm"><div class="font-label-md text-[11px] uppercase tracking-wider text-outline" data-lwt>Reservas vivas</div><div class="font-kpi-number text-[34px] text-volcanic-ash" data-lw="rk-total">—</div></div>
-</div>
-
-<section class="bg-surface-container-lowest rounded-xl shadow-sm px-8 py-5 flex flex-col gap-3" id="lw-res-cal-caja" hidden>
-<h2 class="font-label-md text-label-md text-volcanic-ash" data-lwt>Próximos 30 días</h2>
-<div id="lw-res-cal"></div>
-</section>
-
-<section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
-<div class="px-8 pt-6 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-outline-variant/40">
-<p class="font-body-sm text-body-sm text-outline" data-lw="rk-gracia-nota">—</p>
-<input data-lw="buscador" class="w-full md:w-72 px-3 py-2 bg-surface-container-low rounded-lg font-body-sm text-body-sm focus:outline-none" id="lw-res-buscar" placeholder="Buscar reserva, cliente o proyecto…" type="search">
-</div>
-<div class="px-4 md:px-8 pt-4 flex flex-wrap items-center gap-2" id="lw-res-agentes" hidden></div>
-<div class="px-4 md:px-8 py-6 flex flex-col gap-6" id="lw-res-lista">
-<p class="font-body-md text-body-md text-on-surface-variant" data-lwt>Trayendo las reservas…</p>
+<section class="bg-surface-container-lowest rounded-xl shadow-sm p-8 flex flex-col gap-4" data-lw-emi-pantalla data-lw="emitir-paso-plantilla">
+<h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight" data-lwt>1. Plantilla</h2>
+<div class="lw-emi-campo">
+<label for="lw-emi-plantilla" class="font-label-md text-label-md text-on-surface" data-lwt>Plantilla activa</label>
+<select id="lw-emi-plantilla" class="lw-emi-ctrl" data-lw="emitir-plantilla"><option value="" data-lwt>Trayendo las plantillas…</option></select>
+<p class="lw-emi-ayuda" data-lw="emitir-plantilla-info"></p>
 </div>
 </section>
 
-<section class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden" id="lw-res-act-caja" hidden>
-<div class="px-8 pt-6 pb-3 border-b border-outline-variant/40"><h2 class="font-label-md text-label-md text-volcanic-ash" data-lwt>Actividad de los últimos 14 días</h2><p class="font-body-sm text-body-sm text-outline" data-lwt>Prórrogas dadas y Cartas liberadas, para que nadie se entere por el cliente.</p></div>
-<div class="px-4 md:px-8 py-3" id="lw-res-act"></div>
+<section class="bg-surface-container-lowest rounded-xl shadow-sm p-8 flex flex-col gap-4" data-lw-emi-pantalla data-lw="emitir-formulario" hidden>
+<h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight" data-lwt>2. Datos del contrato</h2>
+<div class="lw-emi-rejilla">
+<div class="lw-emi-campo">
+<label for="lw-emi-nombre" class="font-label-md text-label-md text-on-surface" data-lwt>Nombre del contrato</label>
+<input id="lw-emi-nombre" class="lw-emi-ctrl" maxlength="200" autocomplete="off" data-lw="emitir-nombre">
+</div>
+<div class="lw-emi-campo">
+<label for="lw-emi-precio" class="font-label-md text-label-md text-on-surface" data-lwt>Precio total</label>
+<input id="lw-emi-precio" class="lw-emi-ctrl" inputmode="decimal" autocomplete="off" data-lw="emitir-precio">
+<p class="lw-emi-ayuda" data-lwt>Con punto decimal y sin separador de miles: 120000 o 1250.50. La moneda es la de la parcela.</p>
+</div>
+<div class="lw-emi-campo">
+<label for="lw-emi-proyecto" class="font-label-md text-label-md text-on-surface" data-lwt>Proyecto</label>
+<select id="lw-emi-proyecto" class="lw-emi-ctrl" data-lw="emitir-proyecto"><option value="" data-lwt>Trayendo los proyectos…</option></select>
+</div>
+<div class="lw-emi-campo">
+<label for="lw-emi-unidad" class="font-label-md text-label-md text-on-surface" data-lwt>Parcela</label>
+<select id="lw-emi-unidad" class="lw-emi-ctrl" data-lw="emitir-unidad" disabled><option value="" data-lwt>Elige antes el proyecto</option></select>
+<p class="lw-emi-ayuda" data-lwt>Emitir ocupa la parcela: queda reservada a este contrato, sea del tipo que sea.</p>
+</div>
+</div>
+
+<h3 class="font-label-md text-label-md text-on-surface" data-lwt>Datos de la plantilla</h3>
+<div class="lw-emi-rejilla" data-lw="emitir-campos"></div>
+
+<h3 class="font-label-md text-label-md text-on-surface" data-lwt>Firmantes</h3>
+<p class="lw-emi-ayuda" data-lwt>Solo salen los clientes que puedes ver. Sus datos (nombre, pasaporte, email…) los pone la base desde su ficha.</p>
+<div class="lw-emi-rejilla" data-lw="emitir-firmantes"></div>
+
+<h3 class="font-label-md text-label-md text-on-surface" data-lwt>Calendario de pagos de la plantilla</h3>
+<div data-lw="emitir-hitos-plantilla"></div>
+
+<div class="lw-emi-botones">
+<button type="button" class="lw-emi-btn" data-real data-accion="emitir-previsualizar" data-lwt>Previsualizar</button>
+<button type="button" class="lw-emi-btn primario" data-real data-accion="emitir-confirmar" disabled data-lwt>Emitir contrato</button>
+<button type="button" class="lw-emi-btn" data-real data-accion="emitir-imprimir" disabled data-lwt>Imprimir vista previa</button>
+<p class="lw-emi-ayuda" data-lw="emitir-estado" role="status"></p>
+</div>
+</section>
+
+<section class="bg-surface-container-lowest rounded-xl shadow-sm p-8 flex flex-col gap-4" data-lw-emi-pantalla data-lw="emitir-resultado" hidden>
+<h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight" data-lwt>Contrato emitido</h2>
+<div data-lw="emitir-resultado-cuerpo"></div>
+</section>
+
+<section class="bg-surface-container-lowest rounded-xl shadow-sm p-8 flex flex-col gap-4" data-lw-emi-seccion-doc data-lw="emitir-previa" hidden>
+<h2 class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight" data-lwt>3. Vista previa</h2>
+<div data-lw="emitir-avisos"></div>
+<div data-lw="emitir-hitos-simulados"></div>
+<article class="lw-emi-doc" data-lw="emitir-documento" aria-label="Vista previa del contrato"></article>
 </section>
 
 </div>

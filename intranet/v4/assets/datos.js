@@ -9342,6 +9342,9 @@
       var puede = !!d.puede_editar;
       if (nueva) nueva.hidden = !puede;
       if (nuevoT) nuevoT.hidden = !puede;
+      // «Crear desde PDF» (MVP esquema 1, 30-sep-2026): mismo permiso que «Nueva plantilla»; el formulario vive en editores.js.
+      var desdePdf = document.querySelector('main [data-accion="crear-desde-pdf"]');
+      if (desdePdf) desdePdf.hidden = !puede;
       ['lw-plt-th-accion', 'lw-tpc-th-accion'].forEach(function (id) { var th = document.getElementById(id); if (th) th.hidden = false; });
       var tipoDe = {};
       (d.tipos || []).forEach(function (t) { tipoDe[t.clave] = t; });
@@ -9418,7 +9421,7 @@
       delega(cuerpo, [['data-lw-plt-ver', 'verPlantilla'], ['data-lw-plt-editar', 'abrePlantilla'],
         ['data-lw-plt-activar', 'activaPlantilla'], ['data-lw-plt-descartar', 'descartaPlantilla']]);
       delega(cuerpoT, [['data-lw-tpc-editar', 'abreTipoContrato']]);
-      if (nueva) delega(nueva.parentNode, [['data-lw-plt-nueva', 'abrePlantilla']]);
+      if (nueva) delega(nueva.parentNode, [['data-lw-plt-nueva', 'abrePlantilla'], ['data-accion="crear-desde-pdf"', 'creaDesdePdf']]);
       if (nuevoT) delega(nuevoT.parentNode, [['data-lw-tpc-nuevo', 'abreTipoContrato']]);
     }
   };
