@@ -24,9 +24,11 @@
   var CAMPOS = {
     empresa: [
       { clave: 'marca', etiqueta: 'Nombre del ERP', tipo: 'text', max: 60,
-        ayuda: 'El nombre de la instalación: acabará en el título del navegador, el menú y el asunto de los correos.' },
+        ayuda: 'El nombre de la instalación: sale en el título del navegador, el menú lateral y las frases que nombran a la empresa. Vacío no se admite: si nunca se ha guardado, manda el nombre de origen.' },
       { clave: 'zona_horaria', etiqueta: 'Zona horaria', tipo: 'text', max: 64, ejemplo: 'Asia/Makassar',
-        ayuda: 'Formato Región/Ciudad. Fija las horas de los avisos y resúmenes programados.' }
+        ayuda: 'Formato Región/Ciudad. Fija las horas de los avisos y resúmenes programados.' },
+      { clave: 'logo_correo_url', etiqueta: 'Logo de los correos', tipo: 'url', max: 500, opcional: true, ejemplo: 'https://…',
+        ayuda: 'Dirección https:// de una imagen. Vacío = sin logo.' }
     ],
     correo: [
       { clave: 'email_from', etiqueta: 'Remitente de los correos', tipo: 'email', max: 254,
@@ -36,13 +38,16 @@
       { clave: 'email_avisos_reservas', etiqueta: 'Buzón de avisos de reservas', tipo: 'email', max: 254,
         ayuda: 'Recibe los avisos de reservas. Un solo correo.' },
       { clave: 'email_avisos_crm', etiqueta: 'Buzón de avisos del CRM', tipo: 'email', max: 254, opcional: true,
-        ayuda: 'Recibe los avisos de leads nuevos. Un solo correo, o vacío.' },
-      { clave: 'logo_correo_url', etiqueta: 'Logo de los correos', tipo: 'url', max: 500, opcional: true, ejemplo: 'https://…',
-        ayuda: 'Dirección https:// de una imagen. Vacío = sin logo.' }
+        ayuda: 'Recibe los avisos de leads nuevos. Un solo correo, o vacío.' }
     ]
   };
   // Qué lee hoy cada valor, sin inventar: una casilla que guarda pero no cambia nada se dice en la propia casilla.
   var LO_LEE_EL_MAESTRO = { marca: 1, zona_horaria: 1, email_avisos_reservas: 1, logo_correo_url: 1 };
+  // Lawang (S2, 30-sep-2026): el nombre del ERP ya lo lee la pantalla (título del navegador y menú, por i18n.js → instancia_marca).
+  // Idioma por defecto, moneda base y color de acento NO se ofrecen: hoy no los lee nada (cada documento lleva su moneda y el idioma
+  // lo elige cada persona), y una casilla que guarda pero no cambia nada es una promesa falsa.
+  var LO_LEE_LAWANG = { marca: 1 };
+  var TEXTO_LEE_LAWANG = 'Ya lo leen el título del navegador, el menú lateral y las frases que nombran a la empresa. Los correos lo leerán en la fase siguiente.';
   var TEXTO_LEE = 'Ya lo leen funciones de la base de este ERP. La pantalla, el menú y los demás correos lo leerán en la fase siguiente.';
   var TEXTO_NO_LEE = 'Se guarda y queda en el registro, pero todavía no lo lee ninguna pantalla ni correo de esta instalación: llegará con la fase siguiente.';
 
@@ -50,7 +55,10 @@
   function T(x) { return (typeof lwT === 'function') ? lwT(x) : x; }
   function fecha(x) { if (!x) return '—'; var d = new Date(x); return isNaN(d) ? String(x).slice(0, 16) : d.toLocaleString('es-ES'); }
   function aviso(t) { if (typeof toast === 'function') toast(t); }
-  function lee(clave) { return (ES_MAESTRO && LO_LEE_EL_MAESTRO[clave]) ? T(TEXTO_LEE) : T(TEXTO_NO_LEE); }
+  function lee(clave) {
+    if (ES_MAESTRO) return LO_LEE_EL_MAESTRO[clave] ? T(TEXTO_LEE) : T(TEXTO_NO_LEE);
+    return LO_LEE_LAWANG[clave] ? T(TEXTO_LEE_LAWANG) : T(TEXTO_NO_LEE);
+  }
 
   var sb = null, datos = null, registroCargado = false;
 
@@ -191,6 +199,7 @@
       }
       aviso(r.data && r.data.cambiado ? T('Guardado') + ': ' + clave : T('Sin cambios') + ': ' + clave);
       registroCargado = false;
+      if (clave === 'marca' && typeof window.lwMarcaRefresca === 'function') window.lwMarcaRefresca(sb);   // el menú y el título cambian al momento
       carga(clave).then(function () {
         var e2 = document.querySelector('[data-ajuste-estado="' + clave + '"]');
         if (e2) { e2.className = 'font-body-sm text-body-sm text-on-surface'; e2.textContent = r.data && r.data.cambiado ? T('Guardado. Queda en el registro de cambios.') : T('Sin cambios: ya valía eso.'); }
