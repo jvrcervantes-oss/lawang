@@ -1,5 +1,5 @@
 -- PRUEBA POR ROL — F4 «comisión oculta» (30-sep-2026): migraciones 20260930041708, 042130, 043522, 044643, 044759,
--- 050714 (recorte de comision_trazabilidad), 050821 y 050946.
+-- 050714 (recorte de comision_trazabilidad), 050821, 050946 y 052657 (bote no tocable por el closer; equipo borrado = oculta).
 -- Se ejecuta ENTERA en una llamada con execute_sql (MCP) o psql como postgres. NO ESCRIBE NADA: cada caso va en un
 -- sub-bloque que acaba en excepción (Postgres deshace lo que hizo, rol y claims incluidos) y el bloque entero termina en
 -- `raise exception 'RES: …'`. Los booleanos salen como t/f (format) y los de jsonb como true/false. Cada caso debe decir «ok»; un «FALLO» es una cifra de comisión a la vista de quien no debe.
@@ -13,6 +13,7 @@ declare
   v_eq uuid; v_dev_closer uuid; v_dev_sm uuid; v_dev_ag uuid; v_sp_bote uuid; v_dif uuid;
   v_closer record; v_sm record; v_ag record; v_adm record;
   v_total int := (select count(*) from public.comisiones_devengadas); v_mias int;
+  v_s public.solicitudes_pago; v_vis boolean;
 begin
   -- base
   select d.id, coalesce(k.equipo_id, c.equipo_id) into v_dev_closer, v_eq
@@ -155,6 +156,34 @@ begin
     perform count(id) from public.comisiones_diferencias;   -- la lista del navegador sigue leyendo
     raise exception '%', v_t;
   exception when others then r := r || '8 columnas denegadas=' || sqlerrm || case when sqlerrm = 'nnnnnn' then ' ok; ' else ' FALLO; ' end; end;
+
+  -- 9 · bote: _solicitud_puede_tocar de una AUTOMÁTICA con creado_por = el closer → false; una manual suya pendiente → true
+  begin
+    insert into public.solicitudes_pago (concepto, importe, moneda, estado, creado_por, beneficiario_email, origen)
+    values ('prueba F4 bote tocar', 123, 'EUR', 'pendiente', v_closer.user_id, v_sm.e, 'comision_automatica')
+    returning id into v_sp_bote;
+    perform set_config('request.jwt.claims', json_build_object('sub', v_closer.user_id, 'email', v_closer.e, 'role', 'authenticated')::text, true);
+    select * into v_s from public.solicitudes_pago where id = v_sp_bote;
+    v_t := format('%s', public._solicitud_puede_tocar(v_s));
+    v_s.origen := null;   -- la misma fila como manual: el creador sí la toca (no se ha cerrado de más)
+    v_t := v_t || format('/%s', public._solicitud_puede_tocar(v_s));
+    raise exception '%', v_t;
+  exception when others then r := r || '9 bote no tocable=' || sqlerrm || case when sqlerrm = 'f/t' then ' ok; ' else ' FALLO; ' end; end;
+
+  -- 10 · equipo_id congelado que ya no existe (contrato_closer.equipo_id no tiene FK) → la comisión del closer NO se ve
+  begin
+    update public.equipos_venta set closers_ven_comision = true where id = v_eq;   -- encendido: solo el equipo borrado la oculta
+    update public.contrato_closer set equipo_id = gen_random_uuid()
+     where contrato_id = (select contrato_raiz_id from public.comisiones_devengadas where id = v_dev_closer);
+    if not found then raise exception 'sin contrato_closer para la base'; end if;
+    perform set_config('request.jwt.claims', json_build_object('sub', v_closer.user_id, 'email', v_closer.e, 'role', 'authenticated')::text, true);
+    -- la función se evalúa con la fila leída como postgres (si no, la RLS la escondería y el «no visible» sería gratis)
+    select public.comision_visible(d.nivel, d.beneficiario_email, d.condicion_id, d.contrato_raiz_id) into v_vis
+      from public.comisiones_devengadas d where d.id = v_dev_closer;
+    set local role authenticated;
+    select format('%s/%s', v_vis, (select count(*) from public.comisiones_devengadas where id = v_dev_closer)) into v_t;
+    raise exception '%', v_t;
+  exception when others then r := r || '10 equipo inexistente=' || sqlerrm || case when sqlerrm = 'f/0' then ' ok; ' else ' FALLO; ' end; end;
 
   raise exception 'RES: %', r;
 end $$;
