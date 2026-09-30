@@ -33,6 +33,27 @@ const RENDER_URL = Deno.env.get('RENDER_URL') || 'https://contracts-pdf-service-
 const RENDER_SECRET = Deno.env.get('RENDER_SECRET') || '';
 const SITIO = (Deno.env.get('SITIO_URL') || 'https://lawangproperties.com').replace(/\/$/, '');
 
+// AXW-124 (S5.0 F4, 30-sep-2026): a dónde se manda el correo lo decide config_instancia.url_envio_correo (interruptor único:
+// la edge envia-correo o, de vuelta atrás, el PHP). Solo se aceptan esas dos URL: una clave manipulada no puede sacar
+// el secreto a otro host. Si la clave falta, no es texto o no es una de las dos, cae al PHP (comportamiento de siempre).
+// La edge exige su secreto de entrada propio (ENVIO_CORREO_SECRET); el PHP solo conoce RENDER_SECRET.
+// EXCEPCIÓN de tamaño: la edge rechaza un PDF de más de 34 MB de base64 (no se puede subir: el runtime tiene 256 MB) y
+// hay contratos firmados de hasta 33 MB reales. Esos siguen por el PHP mientras exista; retirarlo pide antes una política
+// para ellos (enlace en vez de adjunto). Es un rechazo previo al SMTP en la edge, así que nunca habría duplicado.
+const ENVIO_PHP = 'https://lawangproperties.com/contracts/api/send_email.php';
+const ENVIO_EDGE = URL_SB + '/functions/v1/envia-correo';
+const TOPE_PDF_EDGE = 34 * 1024 * 1024;
+async function destinoEnvio(pdfLen: number): Promise<{ url: string; secreto: string }> {
+  try {
+    if (pdfLen <= TOPE_PDF_EDGE) {
+      const { data } = await admin.from('config_instancia').select('valor').eq('clave', 'url_envio_correo').maybeSingle();
+      const u = typeof data?.valor === 'string' ? data.valor.trim() : '';
+      if (u === ENVIO_EDGE) return { url: u, secreto: Deno.env.get('ENVIO_CORREO_SECRET') || RENDER_SECRET };
+    }
+  } catch (_) { /* cae al PHP */ }
+  return { url: ENVIO_PHP, secreto: RENDER_SECRET };
+}
+
 const ORIGENES = [
   'https://lawangproperties.com',
   'https://www.lawangproperties.com',
@@ -197,9 +218,10 @@ Deno.serve(async (req) => {
       } catch (e) { console.error('copia del PDF enviado: ' + String((e as Error)?.message ?? e)); }
     }
 
-    const r = await fetch(SITIO + '/contracts/api/send_email.php', {
+    const dest = await destinoEnvio(pdfB64.length);
+    const r = await fetch(dest.url, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'X-Render-Secret': RENDER_SECRET },
+      headers: { 'content-type': 'application/json', 'X-Render-Secret': dest.secreto, 'X-Llamante': 'send-contract-email' },
       body: JSON.stringify(soloTexto ? { to, subject, message, attach: false }
                                      : { to, subject, message, filename, pdf_base64: pdfB64 }),
     });
