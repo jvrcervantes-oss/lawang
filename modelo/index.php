@@ -268,7 +268,7 @@ $deckEtiqueta = $deckEj['proyecto'] ?? '';
 <head>
 <meta charset="utf-8">
 <script src="/assets/idioma-web.js?v=20260908113407"></script>
-<script src="/assets/i18n-landing.js?v=20260930110400" defer></script>
+<script src="/assets/i18n-landing.js?v=20260930150229" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= lw_e($villa . $TITULO_SUFIJO) ?></title>
 <meta name="description" content="<?= lw_e($villa) ?>: a new-build <?= lw_e($dormTxt) ?> villa, built on the plot you choose. Finishes, scope of works and price, configured live.">
@@ -1103,7 +1103,7 @@ foreach ($incluido as $it) {
 <!-- Motor del configurador ANTES del script inline que lo invoca (window.lwAuCfgInit
      tiene que existir cuando se llama más abajo) — sin defer a propósito, o el inline
      que sigue se ejecutaría primero y fallaría "lwAuCfgInit is not a function". -->
-<script src="/assets/au-landing-cfg.js?v=20260930110400"></script>
+<script src="/assets/au-landing-cfg.js?v=20260930150229"></script>
 <script>
 (function () {
   'use strict';

@@ -55,6 +55,15 @@ function baseTechoExtras(){
   return Number(TECHO_ELEGIDO.precio) + EXTRAS_ELEGIDOS.reduce((t,e)=>t+(Number(e.precio)||0), 0);
 }
 
+/* Las variantes de techo de un modelo en un proyecto, tal cual las resuelve la
+   base (tramo + delta). Sola, sin tocar el formulario (30-sep-2026, F7): la
+   usan cargarTechosYExtras (aquí debajo) y el asistente de Nuevo contrato, que
+   deja elegir el techo antes de montar el editor — la misma llamada para los
+   dos, o el asistente ofrecería precios que el editor no reconoce. */
+function leerTechosModelo(modeloId, proyectoId){
+  return sb.rpc('modelo_techos_opciones', { p_modelo_id: modeloId, p_proyecto_id: proyectoId || null });
+}
+
 /* Trae las opciones del modelo elegido. Nunca lanza (quien llama está pintando
    un formulario): sin red se queda con listas vacías, igual que
    `lwCargarCatalogoModelos`. */
@@ -67,7 +76,7 @@ async function cargarTechosYExtras(modeloId, proyectoId){
   let t, e;
   try{
     [t, e] = await Promise.all([
-      sb.rpc('modelo_techos_opciones', { p_modelo_id: modeloId, p_proyecto_id: proyectoId || null }),
+      leerTechosModelo(modeloId, proyectoId),
       sb.rpc('modelo_extras_opciones', { p_modelo_id: modeloId }),
     ]);
   }catch(err){

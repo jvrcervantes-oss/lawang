@@ -1209,10 +1209,11 @@
       // es de comisiones, no del día a día del contrato) — ver justo antes de pintar.
 
       /* Botón «Liberar reserva (comprador desiste)» (21-sep-2026). Solo UX: el
-         candado real es el propio RPC (rol + es_manager_de del proyecto de la
-         unidad) — un sales_manager de otro proyecto ve el botón igual y recibe
-         el 42501 del servidor tal cual, sin disfrazarlo (decisión del owner,
-         ver la cabecera de la migración). */
+         candado real es el propio RPC (rol sales_manager + SM DE LA VENTA, es decir,
+         manager activo del equipo de esa venta — _sm_ve_venta, desde F3 30-sep-2026) —
+         un sales_manager de otro equipo ve el botón igual y recibe el 42501 del
+         servidor tal cual, sin disfrazarlo (decisión del owner, ver la cabecera de
+         la migración). */
       var tiposReserva = (r[7].data || []).map(function (x) { return x.tipo; });
       var unidadesLigadas = r[8].data || [];
       var unidadesReservadas = unidadesLigadas.filter(function (u) { return u.estado === 'reservada'; });
@@ -4417,8 +4418,8 @@
             ? supervisan.map(function (m) {
                 return '<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;' +
                   'background:#efeee8;border:1px solid #E4DCCB;font:600 11px sans-serif;color:#1b1c19' + (m.activo ? '' : ';opacity:.55') + '">' +
-                  esc(m.nombre || m.email) + '<span style="font-weight:500;color:#75786e">· ' +
-                  (m.rol === 'sales_manager' ? 'Sales manager' : 'Project manager') + (m.activo ? '' : ' · desactivado') + '</span></span>';
+                  esc(m.nombre || m.email) + '<span style="font-weight:500;color:#75786e">· Project manager' +
+                  (m.activo ? '' : ' · desactivado') + '</span></span>';
               }).join('')
             : '<span style="font:500 13px sans-serif;color:#75786e">Sin encargado asignado.</span>';
         }
@@ -5460,8 +5461,10 @@
            ("el equipo se ve entre sí" ya deja leer la fila; quien no es admin
            simplemente no tiene el botón de asignar, en editores.js), nunca un
            error — igual que ya hace el resto de esta pantalla con documentación. */
+        // Solo project_manager (F3, 30-sep-2026, LAW-468): la supervisión por proyecto
+        // solo cuenta para PM; el sales_manager ve por su equipo, no por proyecto.
         q(sb.from('usuarios').select('user_id,email,nombre,rol,proyectos_supervisados,activo')
-            .in('rol', ['sales_manager', 'project_manager']).order('nombre'), 'managers'),
+            .eq('rol', 'project_manager').order('nombre'), 'managers'),
         // Email→nombre del equipo, para enseñar «Agente» en vez del email crudo
         // en la lista de unidades del cajón (mismo dato que ya resuelve /proyectos/).
         q(sb.from('usuarios').select('email,nombre'), 'equipo'),
@@ -9512,6 +9515,9 @@
       var puede = !!d.puede_editar;
       if (nueva) nueva.hidden = !puede;
       if (nuevoT) nuevoT.hidden = !puede;
+      // «Crear desde PDF» (MVP esquema 1, 30-sep-2026): mismo permiso que «Nueva plantilla»; el formulario vive en editores.js.
+      var desdePdf = document.querySelector('main [data-accion="crear-desde-pdf"]');
+      if (desdePdf) desdePdf.hidden = !puede;
       ['lw-plt-th-accion', 'lw-tpc-th-accion'].forEach(function (id) { var th = document.getElementById(id); if (th) th.hidden = false; });
       var tipoDe = {};
       (d.tipos || []).forEach(function (t) { tipoDe[t.clave] = t; });
@@ -9588,7 +9594,7 @@
       delega(cuerpo, [['data-lw-plt-ver', 'verPlantilla'], ['data-lw-plt-editar', 'abrePlantilla'],
         ['data-lw-plt-activar', 'activaPlantilla'], ['data-lw-plt-descartar', 'descartaPlantilla']]);
       delega(cuerpoT, [['data-lw-tpc-editar', 'abreTipoContrato']]);
-      if (nueva) delega(nueva.parentNode, [['data-lw-plt-nueva', 'abrePlantilla']]);
+      if (nueva) delega(nueva.parentNode, [['data-lw-plt-nueva', 'abrePlantilla'], ['data-accion="crear-desde-pdf"', 'creaDesdePdf']]);
       if (nuevoT) delega(nuevoT.parentNode, [['data-lw-tpc-nuevo', 'abreTipoContrato']]);
     }
   };
