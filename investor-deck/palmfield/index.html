@@ -1503,6 +1503,7 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
   // rectangulos medidos a mano, recalibrados el mismo dia por desalineacion
   // frente al PDF original del dosier.
   var ZONAS = null;
+  var CHAPAS = {};   // posicion a mano [x%,y%] de la chapa de estado en las parcelas donde la esquina choca con el texto del plano
 
   // El cartel que se estampa encima. 'reservada' NO se marca SOLD: la leyenda y
   // la lista de al lado las distinguen, y decir SOLD de una reservada
@@ -1565,6 +1566,8 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
         var holgado = function(x, y){ return dentro(x, y) && dentro(x - 1.3, y) && dentro(x + 1.3, y) && dentro(x, y - 1) && dentro(x, y + 1); };
         var bx = maxX - ((maxX - minX) < 14 ? 2.2 : 2.7), by = minY + 2.4;
         for(var n = 0; n < 60 && !holgado(bx, by); n++){ bx -= 0.5; by += 0.4; }
+        var mano = CHAPAS[row.codigo];
+        if(mano && mano.length === 2){ bx = mano[0]; by = mano[1]; }
         if(bx < minX) bx = (minX + maxX) / 2;
         var badge = document.createElement('span');
         badge.className = 'absolute pointer-events-none ' + sello[1] + ' text-white font-label-md font-bold rounded-full shadow flex items-center justify-center';
@@ -1622,6 +1625,7 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
       if(!pag) throw new Error('manifiesto_vacio');
       document.getElementById('masterplan-img').src = pag.imagen;
       ZONAS = pag.zonas || null;
+      CHAPAS = pag.chapas || {};
       if(ULTIMAS_FILAS) pintaPlano(ULTIMAS_FILAS);
     })
     .catch(function(){ ZONAS = null; });
