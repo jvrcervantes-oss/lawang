@@ -8712,7 +8712,7 @@
           var n = Number(m[1]);
           modal('Confirmar ventas que cambian de condición', [
             { tipo: 'nota', label: r.error.message },
-            { tipo: 'nota', label: 'Ninguna de esas ventas tiene comisión devengada todavía: cuando devenguen, lo harán con la condición nueva. Las que ya devengaron no cambian nunca.' }
+            { tipo: 'nota', label: 'Son ventas que todavía no han cobrado toda su comisión: lo que les quede por cobrar se calculará con lo que confirmes ahora. Lo que ya se generó no cambia.' }
           ], 'Confirmar (' + n + (n === 1 ? ' venta)' : ' ventas)'), function () {
             return sb.rpc('condicion_comision_guarda', Object.assign({}, params, {
               p_cond: Object.assign({}, params.p_cond, { confirmar_ventas: n })
