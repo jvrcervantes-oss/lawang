@@ -21,6 +21,20 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 const URL_SB = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const admin = createClient(URL_SB, SERVICE);
+
+// AXW-124 (S5.0 F4, 30-sep-2026): a dónde se manda el correo lo decide config_instancia.url_envio_correo (interruptor único:
+// la edge envia-correo o, de vuelta atrás, el PHP). Solo se aceptan esas dos URL: una clave manipulada no puede sacar
+// credenciales ni sesiones a otro host. Si la clave falta, no es texto o no es una de las dos, cae al PHP (comportamiento de siempre).
+const ENVIO_PHP = 'https://lawangproperties.com/contracts/api/send_email.php';
+const ENVIO_EDGE = URL_SB + '/functions/v1/envia-correo';
+async function urlEnvio(): Promise<string> {
+  try {
+    const { data } = await admin.from('config_instancia').select('valor').eq('clave', 'url_envio_correo').maybeSingle();
+    const u = typeof data?.valor === 'string' ? data.valor.trim() : '';
+    if (u === ENVIO_EDGE || u === ENVIO_PHP) return u;
+  } catch (_) { /* cae al PHP */ }
+  return ENVIO_PHP;
+}
 const RENDER_SECRET = Deno.env.get('RENDER_SECRET') || '';
 const SITIO = (Deno.env.get('SITIO_URL') || 'https://lawangproperties.com').replace(/\/$/, '');
 const OWNER = Deno.env.get('ESTUDIO_EMAIL') || 'jcervantes@lawangproperties.com';
@@ -54,14 +68,17 @@ function txt(v: unknown, max: number) {
 function hace(min: number) { return new Date(Date.now() - min * 60_000).toISOString(); }
 
 async function enviar(to: string, subject: string, message: string, ctaUrl: string, ctaTexto: string) {
-  if (!RENDER_SECRET) { console.error('alta-colaborador: RENDER_SECRET no configurado, no se envía a <' + to + '>'); return false; }
+  const url = await urlEnvio();
+  // La edge exige su secreto de entrada propio (ENVIO_CORREO_SECRET); el PHP solo conoce RENDER_SECRET.
+  const secreto = url === ENVIO_EDGE ? (Deno.env.get('ENVIO_CORREO_SECRET') || RENDER_SECRET) : RENDER_SECRET;
+  if (!secreto) { console.error('alta-colaborador: secreto de envío no configurado, no se envía a <' + to + '>'); return false; }
   try {
     const ac = new AbortController();
     const t = setTimeout(() => ac.abort(), 8000);
     try {
-      const r = await fetch(SITIO + '/contracts/api/send_email.php', {
+      const r = await fetch(url, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', 'X-Render-Secret': RENDER_SECRET },
+        headers: { 'content-type': 'application/json', 'X-Render-Secret': secreto, 'X-Llamante': 'alta-colaborador' },
         body: JSON.stringify({ to, subject, message, contacto: 'sales', attach: false, cta_url: ctaUrl, cta_texto: ctaTexto }),   // sin attach:false, send_email.php exige PDF y da 400
         signal: ac.signal,
       });
