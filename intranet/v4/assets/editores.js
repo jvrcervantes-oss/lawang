@@ -10647,7 +10647,8 @@
            cotitular_no_soportado. Se simula con el primero; los demás declarados salen vacíos en el texto. */
         var eFirm = [];
         var firmDecl = Array.isArray(borr.firmantes) ? borr.firmantes : [];
-        firmDecl.slice(0, 1).forEach(function (f, i) {
+        // el titular es SIEMPRE adquiriente_1, no el primero de la lista (un borrador de IA puede venir desordenado)
+        firmDecl.filter(function (f) { return f && f.rol === 'adquiriente_1'; }).slice(0, 1).forEach(function (f, i) {
           eFirm.push({ rol: f.rol, i: entrada('{{' + f.rol + '_nombre}} · ' + (f.etiqueta || ''), 'Firmante de ejemplo ' + (i + 1)) });
         });
         if (firmDecl.length > 1) sE.appendChild(nodo('p', 'lwp-nota', 'Por ahora un contrato de plantilla admite un solo firmante; los cotitulares llegarán más adelante. La simulación usa solo el primero y deja vacíos los datos de los demás.'));

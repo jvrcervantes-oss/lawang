@@ -268,7 +268,8 @@
       av.setAttribute('data-lw', 'emitir-aviso-cotitular');
       caja.appendChild(av);
     }
-    firmantes.slice(0, 1).forEach(function (f) {
+    // el titular es SIEMPRE adquiriente_1, no el primero de la lista (un borrador de IA puede venir desordenado)
+    firmantes.filter(function (f) { return f && f.rol === 'adquiriente_1'; }).slice(0, 1).forEach(function (f) {
       var id = 'lw-emi-f-' + f.rol;
       var bloque = nodo('div', 'lw-emi-campo');
       var lab = nodo('label', 'font-label-md text-label-md text-on-surface', (f.etiqueta || f.rol) + (f.obligatorio ? ' *' : ''));
