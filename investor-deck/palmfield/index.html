@@ -244,7 +244,10 @@ h1,h2{text-wrap:balance} p{text-wrap:pretty}
 .leyenda{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin-top:6px;font-family:var(--sa);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ci2)}
 .leyenda i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px;vertical-align:1px}
 .mp-grid{display:grid;grid-template-columns:1fr;gap:clamp(20px,2.4vw,36px);margin-top:clamp(2rem,4.5vh,3rem);align-items:start}
-@media(min-width:1024px){.mp-grid{grid-template-columns:7fr 5fr}}
+/* 30-sep-2026 (owner: «es muy pequeño, apenas se ve»): el plano w5 es APAISADO (3000x1875);
+   en la columna de 7fr salía a ~600px y los m² no se leían. Ahora el plano va a todo el
+   ancho y debajo, lado a lado, el inventario en vivo y el protocolo. */
+@media(min-width:1024px){.mp-grid > div:last-child{display:grid;grid-template-columns:7fr 5fr;gap:clamp(20px,2.4vw,36px);align-items:start}.mp-grid > div:last-child .protocolo{margin-top:0}}
 .marco{position:relative;border-radius:14px;overflow:hidden;background:var(--cbr);box-shadow:0 30px 60px -34px rgba(20,26,17,.5)}
 .marco-pad{padding:14px}
 #masterplan-img{width:100%;display:block;border-radius:8px}
