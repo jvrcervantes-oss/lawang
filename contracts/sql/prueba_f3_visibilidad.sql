@@ -31,8 +31,12 @@
 --   supervisados), las ve todas con PDF, 17 compradores y 71 documentos; de 51 ventas de otro
 --   equipo/sin equipo en sus proyectos veía 51 y ahora 0; facturas sin contrato 3 → 0. Cambio de
 --   equipo: el SM viejo ve la venta, el nuevo no. Paridad 91/91 con _venta_congela_equipo.
---   Huella de dinero idéntica. resto:0 11 usuarios y resto:1 15 usuarios: ninguno cambia.
---   Coste medido (count(*) con RLS, un agente): contratos 170 → ~240 ms, facturas ~510 → ~740 ms.
+--   Huella de dinero idéntica. resto:0 11 usuarios y resto:1 15 usuarios: ninguno cambia (el
+--   tramo resto:1 se pasó con los helpers y la policy de contratos, no con el fichero entero:
+--   vale para contratos/clients/facturas, que es lo que compara). El caso 12 (avisos) se añadió
+--   después y se probó aparte, en su propio rollback: 1 / 0 / 1.
+--   Coste medido con la puerta final (count(*) con RLS, un agente): contratos ~170 → ~240 ms;
+--   facturas no se volvió a medir tras poner en línea documento_visible (antes de eso, ~510 → ~740).
 -- =====================================================================================
 begin;
 select set_config('f3.perfiles', 'gestores', true);   -- TRAMO: 'gestores' | 'resto:0' | 'resto:1'
@@ -298,6 +302,26 @@ begin
     from _pre p join public.contrato_closer k on k.contrato_id = p.contrato_id;
   insert into _f3 values (11, 'Paridad: equipo de la visibilidad (sin congelar) = el que congelaría _venta_congela_equipo',
     malos = 0, format('%s ventas sin congelar comparadas · distintas %s', n, malos));
+end $$;
+
+-- ── avisos (_avisar_managers): el SM recibe los de SU equipo, no los de otro; sin contrato, por proyecto ──
+reset role;
+do $$
+declare g record; c_mio uuid; c_ajeno record; n1 int; n2 int; n3 int;
+begin
+  if current_setting('f3.perfiles') <> 'gestores' then return; end if;
+  select u.email, u.proyectos into g from public.usuarios u where u.user_id = current_setting('f3.g_sub')::uuid;
+  select c.id into c_mio from public.contratos c
+   where public._venta_equipo(c.id) = current_setting('f3.g_eq')::uuid and c.proyecto_id is not null limit 1;
+  select c.id, c.proyecto_id into c_ajeno from public.contratos c
+   where c.proyecto_id = any(g.proyectos) and public._venta_equipo(c.id) is distinct from current_setting('f3.g_eq')::uuid limit 1;
+  perform public._avisar_managers((select proyecto_id from public.contratos where id = c_mio), 'prueba_f3', 'x', 'x', '/', c_mio);
+  perform public._avisar_managers(c_ajeno.proyecto_id, 'prueba_f3', 'y', 'y', '/', c_ajeno.id);
+  perform public._avisar_managers(c_ajeno.proyecto_id, 'prueba_f3', 'z', 'z', '/', null);
+  select count(*) filter (where titulo = 'x'), count(*) filter (where titulo = 'y'), count(*) filter (where titulo = 'z')
+    into n1, n2, n3 from public.notificaciones where tipo = 'prueba_f3' and lower(destinatario) = lower(g.email);
+  insert into _f3 values (12, 'Avisos: G recibe el de una venta de su equipo, no el de otro equipo en su proyecto; el de unidad (sin contrato) sí',
+    n1 = 1 and n2 = 0 and n3 = 1, format('su equipo %s · otro equipo %s · sin contrato %s', n1, n2, n3));
 end $$;
 
 -- ── LAW-439: managers sin equipo, hoy vs tras F3 ──

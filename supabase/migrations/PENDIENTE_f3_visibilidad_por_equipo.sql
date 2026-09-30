@@ -29,7 +29,7 @@
 --  2. es_manager_de pasa a ser SOLO project_manager (y admin). puede_proyecto(text) igual.
 --  3. _puede_ver_contrato delega; cliente_visible y documento_visible usan la puerta;
 --     contrato_visible se queda sin llamadores y se le quita EXECUTE a los roles de sesión.
---  4. Se parchean 19 funciones DEFINER con reemplazo literal y recuento exacto (patrón de
+--  4. Se parchean 22 funciones DEFINER (28 parches) con reemplazo literal y recuento exacto (patrón de
 --     Lawang: la definición viva NO es la del repo; si la marca no está exactamente las
 --     veces previstas, la migración aborta sin tocar nada).
 --  5. Se rehacen 10 policies de SELECT (9 en public + 1 en storage.objects) sobre la puerta.
@@ -61,6 +61,9 @@
 --    que un manager de equipo vea a los compradores de las ventas de su equipo sea cual sea su
 --    rol; sigue cortando barato para el agente raso, que NO gana compradores (no se usa la
 --    puerta completa, que incluye «autor del contrato»).
+--  Avisos (_avisar_managers, no estaba en el inventario de F1): el SM recibe los avisos de una
+--    venta (contrato firmado/bloqueado, solicitud de pago) solo si la venta es de su equipo;
+--    los avisos sin contrato (estado de una unidad) siguen por los proyectos de su lista.
 --  Fuera de F3 (no se tocan): funciones con es_manager_de_equipo y comisiones (F4).
 -- =====================================================================================
 
@@ -282,7 +285,20 @@ begin
            $q$and public._sm_ve_venta(c.id);$q$, 1),
       (27, 'public.puede_proyecto(text)',
            $q$u.rol in ('sales_manager', 'project_manager') and p.id = any (u.proyectos_supervisados)$q$,
-           $q$u.rol = 'project_manager' and p.id = any (u.proyectos_supervisados)$q$, 1)
+           $q$u.rol = 'project_manager' and p.id = any (u.proyectos_supervisados)$q$, 1),
+      -- Avisos: el SM recibe los de una VENTA solo si es de su equipo (antes: todos los de los
+      -- proyectos de su lista, con el nombre del comprador de ventas de otros equipos). Los
+      -- avisos sin contrato (estado de una unidad) siguen por proyecto, como proyecto_visible.
+      (28, 'public._avisar_managers(uuid,text,text,text,text,uuid)',
+           $q$   where u.activo and u.rol in ('sales_manager','project_manager')
+     and p_proyecto_id = any(u.proyectos);$q$,
+           $q$   where u.activo
+     and ((u.rol = 'project_manager' and p_proyecto_id = any(u.proyectos))
+          or (u.rol = 'sales_manager' and p_contrato_id is null and p_proyecto_id = any(u.proyectos))
+          or (u.rol = 'sales_manager' and p_contrato_id is not null
+              and exists (select 1 from public.equipos_venta ev
+                           where ev.activo and lower(ev.manager_email) = lower(u.email)
+                             and ev.id = public._venta_equipo(p_contrato_id))));$q$, 1)
     ) t(orden, fn, viejo, nuevo, veces)
     order by orden
   loop
