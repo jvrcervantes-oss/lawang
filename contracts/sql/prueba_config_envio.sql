@@ -20,7 +20,7 @@ begin
   select count(*) into n from public.config_instancia where clave = any (claves) and jsonb_typeof(valor) = 'string' and btrim(valor #>> '{}') <> '';
   r := r || format(E'\nA1 las 6 claves existen, son texto y no están vacías: %s de 6 → %s', n, case when n = 6 then 'ok' else 'FALLA' end);
   select valor #>> '{}' into got from public.config_instancia where clave = 'url_envio_correo';
-  r := r || format(E'\nA2 url_envio_correo es el PHP de hoy → %s', case when got = literal then 'ok' else 'FALLA' end);
+  r := r || format(E'\nA2 url_envio_correo es la edge envia-correo o el PHP de vuelta atrás → %s', case when got = literal or got = 'https://vtulllundrfennhjddhc.supabase.co/functions/v1/envia-correo' then 'ok' else 'FALLA' end);
   select count(*) into n from public.config_instancia where clave in ('dominio_web','url_intranet') and (valor #>> '{}') in ('lawangproperties.com','https://lawangproperties.com');
   r := r || format(E'\nA3 dominio_web y url_intranet (la edge exige https en url_intranet): %s de 2 → %s', n, case when n = 2 then 'ok' else 'FALLA' end);
   select count(*) into n from public.config_instancia where clave in ('email_avisos_soporte','email_avisos_sistema')
