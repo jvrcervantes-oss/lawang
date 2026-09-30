@@ -6847,6 +6847,35 @@
           if (f) importaCsv(f);
         });
       }
+      /* PLANTILLA CSV del parcelario (30-sep-2026, owner: «necesito una plantilla»).
+         Por proyecto: si ya tiene unidades, salen con sus datos para editar y
+         volver a importar; si no, cabecera y una fila de ejemplo. La cabecera
+         son las claves de LW_CSV_COLUMNAS (proyectos_csv.js), no una lista
+         aparte: si el importador aprende una columna, la plantilla no se queda
+         atrás. `estado` y `contrato_id` no van, el importador los ignora. */
+      var bPlantilla = document.getElementById('btn-plantilla-csv');
+      if (bPlantilla) bPlantilla.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        var p = proyectoObj();
+        if (!p) return aviso('Abre primero un proyecto: la plantilla es de un proyecto.', '#8A6A34');
+        aviso('Preparando la plantilla de ' + p.nombre + '…');
+        var cols = ['codigo', 'proyecto', 'tipo', 'modelo', 'superficie_m2', 'precio_suelo', 'precio_construccion', 'precio', 'moneda', 'notas', 'fase', 'zona'];
+        sb.from('unidades').select('codigo,tipo,modelo,superficie_m2,precio_suelo,precio_construccion,precio,moneda,notas,fase_masterplan,zona_masterplan')
+          .eq('proyecto_id', p.id).order('codigo_orden').range(0, 999).then(function (r) {
+            if (r.error) return aviso('No se pudo preparar la plantilla: ' + r.error.message, '#ba1a1a');
+            var us = r.data || [];
+            var v = function (x) { return x == null ? '' : x; };
+            var filas = us.length
+              ? us.map(function (u) {
+                  return [u.codigo, p.nombre, v(u.tipo), v(u.modelo), v(u.superficie_m2), v(u.precio_suelo), v(u.precio_construccion), v(u.precio), v(u.moneda), v(u.notas), v(u.fase_masterplan), v(u.zona_masterplan)];
+                })
+              : [['P-01', p.nombre, 'parcela', '', '', '', '', '', 'EUR', '', '', '']];
+            descargaCsv(slugDe(lwMarca('%marca')) + '-' + slugDe(p.nombre) + '-plantilla-parcelario.csv', cols, filas);
+            aviso(us.length
+              ? 'Plantilla con las ' + us.length + ' unidades actuales' + (us.length >= 1000 ? ' (tope de 1.000: si hay más, no salen todas)' : '') + '. Edita y vuelve a importarla.'
+              : 'Este proyecto aún no tiene unidades: plantilla en blanco con una fila de ejemplo (bórrala o cámbiala).');
+          });
+      });
       function importaCsv(file) {
         if (file.size > LW_CSV_MAX_BYTES) {
           return aviso('El fichero pesa ' + (file.size / 1024 / 1024).toFixed(1) + ' MB — el máximo son 5 MB. Pártelo en varios.', '#ba1a1a');
