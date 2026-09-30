@@ -598,7 +598,7 @@ Deno.serve(async (req) => {
           .then(async (r) => (r.ok ? { html: await r.text(), lastModified: r.headers.get('last-modified') } : null))
           .catch(() => null)
       : Promise.resolve(null);
-    const [padre, unidad, proyecto, cuenta, sociedad, docsC, docsP, plantilla, fuente, bloqueosDb, pendientes, faqDb, web] = await Promise.all([
+    const [padre, unidad, proyecto, cuenta, sociedad, docsP, plantilla, fuente, bloqueosDb, pendientes, faqDb, web] = await Promise.all([
       contrato.contrato_padre_id ? sb.from('contratos').select('id, numero, tipo').eq('id', contrato.contrato_padre_id).maybeSingle() : vacio,
       contrato.unidad_id ? sb.from('unidades').select('id, codigo, tipo, superficie_m2, precio, moneda, estado, modelo, modelo_id, obra_fase, obra_fecha_entrega, fase_masterplan, zona_masterplan').eq('id', contrato.unidad_id).maybeSingle() : vacio,
       contrato.proyecto_id ? sb.from('proyectos').select('id, nombre, resort, slug, estado, fecha_entrega_estimada_proyecto').eq('id', contrato.proyecto_id).maybeSingle() : vacio,
@@ -607,7 +607,6 @@ Deno.serve(async (req) => {
       // Identidad del promotor tal como la imprime el documento (prom_*): sin
       // ella los marcadores del promotor saldrían como «(en blanco)».
       claveSociedad ? sb.from('sociedades').select('clave, razon, marca, npwp, nib, domicilio, rep').eq('clave', claveSociedad).maybeSingle() : vacio,
-      sb.from('contrato_documentos').select('id, doc_type, uploaded_at').eq('contrato_id', contrato.id),
       contrato.proyecto_id ? sb.from('documentos_proyecto').select('id, titulo, categoria, carpeta').eq('proyecto_id', contrato.proyecto_id).or('confidencial.is.null,confidencial.eq.false') : vacio,
       slugPlantilla ? sb.from('plantillas_contrato').select('slug, nombre, creado_en, archivada').eq('slug', slugPlantilla).maybeSingle() : vacio,
       sb.from('bot_fuentes').select('texto, version').eq('clave', 'prompt_sistema').maybeSingle(),
@@ -625,7 +624,7 @@ Deno.serve(async (req) => {
     clearTimeout(temporizador);
     const fallos = [
       ['contrato_padre', padre.error], ['unidades', unidad.error], ['proyectos', proyecto.error],
-      ['cuentas_bancarias', cuenta.error], ['sociedades', sociedad.error], ['contrato_documentos', docsC.error],
+      ['cuentas_bancarias', cuenta.error], ['sociedades', sociedad.error],
       ['documentos_proyecto', docsP.error], ['plantillas_contrato', plantilla.error], ['bot_fuentes', fuente.error],
       ['bot_bloqueos', bloqueosDb.error], ['bot_pendientes', pendientes.error], ['bot_faq', faqDb.error],
     ].filter(([, e]) => e).map(([t]) => t);
@@ -709,7 +708,7 @@ Deno.serve(async (req) => {
       sociedad_firmante: soc ? { razon: soc.razon ?? null, marca: soc.marca ?? null } : null,
       cuenta_asignada: cuenta.data ? (({ label, titular, banco, es_escrow }) => ({ label, titular, banco, es_escrow }))(cuenta.data as Record<string, unknown>) : null,
       documentos: {
-        contrato: ((docsC.data ?? []) as { doc_type: string }[]).map((d) => d.doc_type),
+        contrato: [] as string[], // contrato_documentos se retiro el 30-sep-2026 (voz-app muerta); la clave se queda por la forma del contexto
         proyecto: ((docsP.data ?? []) as { titulo: string; categoria: string }[]).map((d) => ({ titulo: d.titulo, categoria: d.categoria })),
         modelo: ((docsM.data ?? []) as { nombre: string; tipo: string }[]).map((d) => ({ nombre: d.nombre, tipo: d.tipo })),
       },
@@ -741,7 +740,6 @@ Deno.serve(async (req) => {
     if (proyecto.data) fuentes.push({ tabla: 'proyectos', id: (proyecto.data as { id: string }).id });
     if (cuenta.data) fuentes.push({ tabla: 'cuentas_bancarias', id: (cuenta.data as { clave: string }).clave, campo: 'titular,banco' });
     if (soc) fuentes.push({ tabla: 'sociedades', id: claveSociedad, campo: 'razon,marca,npwp,nib,domicilio,rep' });
-    for (const d of (docsC.data ?? []) as { id: string }[]) fuentes.push({ tabla: 'contrato_documentos', id: d.id });
     for (const d of (docsP.data ?? []) as { id: string }[]) fuentes.push({ tabla: 'documentos_proyecto', id: d.id });
     for (const d of (docsM.data ?? []) as { id: string }[]) fuentes.push({ tabla: 'modelo_documentos', id: d.id });
     if (textoPlantilla) fuentes.push({ tabla: 'plantilla_web', id: slugPlantilla + '.html', campo: 'texto ' + lang });
