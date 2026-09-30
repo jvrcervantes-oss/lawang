@@ -109,6 +109,8 @@ begin
   for c in select e->>'c' as clave, e->'v' as valor from jsonb_array_elements($j$[
       {"c":"marca","v":"<b>x</b>"}, {"c":"marca","v":""}, {"c":"marca","v":123}, {"c":"marca","v":"a\nb"},
       {"c":"email_from","v":"no-es-un-correo"}, {"c":"email_from","v":""}, {"c":"email_from","v":"a@b.com\nBcc: x@y.com"},
+      {"c":"email_from","v":".a@x.com"}, {"c":"email_from","v":"a.@x.com"}, {"c":"email_from","v":"a..b@x.com"},
+      {"c":"email_from","v":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@x.com"},
       {"c":"email_reply_to","v":"x"}, {"c":"email_avisos_reservas","v":["a@b.com"]}, {"c":"email_avisos_reservas","v":""},
       {"c":"email_avisos_crm","v":"x@"}, {"c":"logo_correo_url","v":"http://x.com/a.png"},
       {"c":"logo_correo_url","v":"https://x.com/a b.png"}, {"c":"logo_correo_url","v":"https://x.com/a.png\"onerror=\"x"},
@@ -125,7 +127,8 @@ begin
       {"c":"email_reply_to","v":"","esperado":""}, {"c":"email_avisos_crm","v":"","esperado":""}, {"c":"logo_correo_url","v":"","esperado":""},
       {"c":"logo_correo_url","v":"https://cdn.ejemplo.com/logo.png?v=2","esperado":"https://cdn.ejemplo.com/logo.png?v=2"},
       {"c":"zona_horaria","v":"Asia/Makassar","esperado":"Asia/Makassar"}, {"c":"email_from","v":"  Hola@Pruebas.Test ","esperado":"Hola@Pruebas.Test"},
-      {"c":"email_avisos_reservas","v":"reservas@pruebas.test","esperado":"reservas@pruebas.test"}]$j$::jsonb) e loop
+      {"c":"email_avisos_reservas","v":"reservas@pruebas.test","esperado":"reservas@pruebas.test"},
+      {"c":"email_reply_to","v":"a.b+c_d%e@x.co.id","esperado":"a.b+c_d%e@x.co.id"}]$j$::jsonb) e loop
     begin
       v := public.ajustes_config_guardar(c.clave, c.valor);
       r := r || format(E'\nD+ «%s» = %s entra como %s → %s', c.clave, left(c.valor::text, 40), v->>'valor', case when v->'valor' = c.esperado then 'ok' else 'FALLA' end);
@@ -265,6 +268,9 @@ begin
   select count(*) into n from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname in ('ajustes_config_datos', 'ajustes_log_datos')
      and pg_get_userbyid(p.proowner) in ('lw_lector', 'erp_lector') and p.prosecdef and p.proconfig = array['search_path=""'];
   r := r || format(E'\nI5 las 2 lecturas son DEFINER con dueño lector y search_path vacío: %s → %s', n, case when n = 2 then 'ok' else 'FALLA' end);
+
+  r := r || format(E'\nI6 service_role no puede vaciar config_instancia (rastro): %s → %s', has_table_privilege('service_role', 'public.config_instancia', 'TRUNCATE'),
+        case when not has_table_privilege('service_role', 'public.config_instancia', 'TRUNCATE') then 'ok' else 'FALLA' end);
 
   perform set_config('request.jwt.claims', '', true);
   raise exception 'FIN DE PRUEBAS AJUSTES S1 (se deshace):%', r;

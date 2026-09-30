@@ -115,9 +115,13 @@
     '</div>';
   }
 
-  function pintaFormulario(nombre, contenedorId) {
+  // `ant` = lo que había antes de repintar: lo que el usuario ha tecleado y aún no ha guardado en OTRA casilla no se pierde
+  // al guardar esta (revisión de código 30-sep). `guardada` = la que acaba de guardarse: esa muestra lo que dejó el servidor.
+  function pintaFormulario(nombre, contenedorId, ant, guardada) {
     var cont = document.getElementById(contenedorId);
     if (!cont || !datos) return;
+    var previo = {};
+    cont.querySelectorAll('[data-ajuste]').forEach(function (i) { previo[i.getAttribute('data-ajuste')] = i.value; });
     var puede = !!datos.puede_escribir;
     cont.innerHTML = CAMPOS[nombre].map(function (c) {
       return filaCampo(c, (datos.valores || {})[c.clave], (datos.actualizado || {})[c.clave], puede);
@@ -133,6 +137,8 @@
     CAMPOS[nombre].forEach(function (c) {
       var inp = cont.querySelector('[data-ajuste="' + c.clave + '"]');
       if (inp) inp.value = (datos.valores || {})[c.clave] == null ? '' : String((datos.valores || {})[c.clave]);
+      var antes = ant && (ant.valores || {})[c.clave];
+      if (inp && c.clave !== guardada && c.clave in previo && previo[c.clave] !== (antes == null ? '' : String(antes))) inp.value = previo[c.clave];
     });
   }
 
@@ -147,7 +153,7 @@
       '</div>';
   }
 
-  function carga() {
+  function carga(guardada) {
     return window.lwDatos('ajustes_config_datos').then(function (r) {
       if (r.error || !r.data) {
         console.error('[ajustes]', r.error);
@@ -155,9 +161,10 @@
         datos = null;
         return;
       }
+      var ant = datos;
       datos = r.data;
-      pintaFormulario('empresa', 'lw-aj-empresa');
-      pintaFormulario('correo', 'lw-aj-correo');
+      pintaFormulario('empresa', 'lw-aj-empresa', ant, guardada);
+      pintaFormulario('correo', 'lw-aj-correo', ant, guardada);
       var soloLee = document.getElementById('lw-ajustes-solo-lectura');
       if (soloLee) soloLee.hidden = !!datos.puede_escribir;
     });
@@ -184,7 +191,7 @@
       }
       aviso(r.data && r.data.cambiado ? T('Guardado') + ': ' + clave : T('Sin cambios') + ': ' + clave);
       registroCargado = false;
-      carga().then(function () {
+      carga(clave).then(function () {
         var e2 = document.querySelector('[data-ajuste-estado="' + clave + '"]');
         if (e2) { e2.className = 'font-body-sm text-body-sm text-on-surface'; e2.textContent = r.data && r.data.cambiado ? T('Guardado. Queda en el registro de cambios.') : T('Sin cambios: ya valía eso.'); }
       });
