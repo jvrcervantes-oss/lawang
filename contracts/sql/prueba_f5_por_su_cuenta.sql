@@ -539,10 +539,35 @@ begin
       raise exception '%', v_n || '/' || v_t || format('/%s/%s', lower((select closer_email from public.contrato_closer where contrato_id = v_rp)) = M.e,
         (select d.anulado_por_modo from public.comisiones_devengadas d where d.id = v_d.id));
     exception when others then r := r || 'P9 cambio closer con devengos=' || sqlerrm || case when sqlerrm = '1/22023/t/f' then ' ok; ' else ' FALLO; ' end; end;
+
+    -- P10 · (f) hueco del borrado (20260930121500): quitar el closer con crm_contrato_closer_set(raíz, NULL) —borra la
+    --       fila y luego se podría asignar otro por INSERT— con devengo vivo → 22023; en una venta sin devengos sí se quita
+    declare v_otro uuid;
+    begin
+      select k2.contrato_id into v_otro from public.contrato_closer k2 join public.contratos c2 on c2.id = k2.contrato_id
+       where c2.contrato_padre_id is null and not exists (select 1 from public.comisiones_devengadas d where d.contrato_raiz_id = c2.id)
+         and lower(k2.closer_email) = T.e and k2.contrato_id <> v_rp limit 1;
+      update public.condiciones_comision set activo = false, vigente_hasta = null
+       where equipo_id = kk.equipo_id and nivel in ('manager', 'closer', 'setter', 'team_lead');
+      insert into public.condiciones_comision (equipo_id, proyecto_id, nivel, closer_email, pct_comision, base_calculo, activo, vigente_desde)
+      select kk.equipo_id, cc.proyecto_id, 'closer', null, 5, 'precio_total', true, v_f - 30 from public.contratos cc where cc.id = v_rp
+      returning id into v_c;
+      insert into public.condicion_tramos (condicion_id, orden, disparador_tipo, umbral, pct_tramo) values (v_c, 1, 'pct_cobrado_total', 0, 100);
+      v_n := public.comisiones_evaluar_contrato(v_rp);
+      perform set_config('request.jwt.claims', json_build_object('sub', A.user_id, 'email', A.e, 'role', 'authenticated')::text, true);
+      begin
+        perform public.crm_contrato_closer_set(v_rp, null, kk.closer_email);
+        v_t := 'quitar-sin-error';
+      exception when others then get stacked diagnostics v_state = returned_sqlstate;
+        v_t := v_state || case when sqlerrm like 'Esta venta ya tiene comisiones vivas%' then '' else '(' || sqlerrm || ')' end; end;
+      perform public.crm_contrato_closer_set(v_otro, null, kk.closer_email);
+      raise exception '%', v_n || '/' || v_t || '/' || (select count(*) from public.contrato_closer where contrato_id = v_rp)
+        || '/' || (select count(*) from public.contrato_closer where contrato_id = v_otro);
+    exception when others then r := r || 'P10 quitar closer con devengos=' || sqlerrm || case when sqlerrm = '1/22023/1/0' then ' ok; ' else ' FALLO; ' end; end;
   end;
 
   raise exception 'RES2: %', r;
 end $$;
--- 30-sep 12:0x UTC tras 20260930120030: P1-P9 ok (9/9). Secuencias SP 84, DIF 110, RP 253 sin cambios por la prueba.
+-- 30-sep 12:0x UTC tras 20260930120030: P1-P9 ok (9/9); P10 ok tras 20260930121500 (pasado aparte). Secuencias SP 84, DIF 110, RP 253 sin cambios por la prueba.
 -- La reposición de LAW-474 (a) y (b) no están aplicadas (supabase/pendientes/PENDIENTE_law474_a_b_reposicion_y_roles.sql):
 -- sus casos se escriben y se pasan al aplicarla.

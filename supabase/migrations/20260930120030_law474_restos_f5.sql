@@ -4,13 +4,13 @@
 --
 -- (a) Una venta que pasa de «propia» a «equipo» y vuelve (o al revés) no volvía a devengar el mismo tramo: la fila
 --     anulada por el cambio de modo seguía ocupando (venta, tramo, perceptor) y el motor la saltaba → al closer se le
---     pagaba de menos y nadie se enteraba. Ahora el cambio de modo marca sus anulaciones (anulado_por_modo) y, si la
+--     pagaba de menos y nadie se enteraba. AQUÍ solo se marca (anulado_por_modo); la reposición va en el PENDIENTE: si la
 --     venta vuelve a un modo que toca ese tramo, el motor REPONE la misma fila (_comision_devengo_reponer):
 --       · no se había pagado → vuelve a pendiente con el importe de hoy y, si paga Lawang, solicitud nueva;
 --       · ya pagada → nunca se reescribe lo pagado ni se paga dos veces: la diferencia negativa del cambio de modo, si
 --         sigue pendiente, se anula; si ya se descontó, diferencia positiva al MISMO perceptor por lo descontado.
 --     Una anulación hecha por un administrador (comision_devengo_anular) no se repone nunca.
--- (b) comision_rol_asignar rechaza setter/team lead en ventas «por su cuenta» (no cobran; solo confundía).
+-- (b) [PENDIENTE, no aplicado aquí] comision_rol_asignar rechaza setter/team lead en ventas «por su cuenta» (no cobran; solo confundía).
 -- (c) El cron de fin de espera recorre TODA la cola vencida (ventas «propia» con la ventana acabada, sin objeción viva y
 --     sin devengo vivo de «propia»/«estandar»), no solo las que vencieron en los últimos 3 días.
 -- (d) venta_modo_admin a «propia» (dentro de un equipo) abre la ventana de 7 días, anota los cruces y avisa al SM, igual
@@ -24,7 +24,7 @@
 --     (pago doble). Para cambiarlo, un administrador anula antes esos devengos con motivo (anulación explícita) y el
 --     motor devenga al nuevo desde cero; lo ya pagado se regulariza por comision_devengo_anular / diferencias.
 --
--- APLICADO AQUÍ: columna anulado_por_modo + marca en _venta_modo_aplica, (c), (d), (e) y (f).
+-- APLICADO AQUÍ: columna anulado_por_modo + marca en _venta_modo_aplica, (c), (d), (e) y (f) (el borrado lo cierra 20260930121500).
 -- NO APLICADO (lo frena tools/no_destruir.py, espera decisión del owner): la reposición de (a) — necesita ampliar el
 -- CHECK de comisiones_ajustes_log.accion con «reponer» (DROP + ADD CONSTRAINT) — y (b) — re-crear comision_rol_asignar
 -- lleva su «delete from contrato_roles_equipo» de siempre dentro del cuerpo. Listo en
