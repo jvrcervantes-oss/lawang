@@ -73,6 +73,9 @@ begin
     raise exception '%', format('%s/%s/%s', k.contrato_id is not null, k.modo is null, v_res->'venta'->>'modo' is null);
   exception when others then r := r || '2 apagado sin modo=' || sqlerrm || case when sqlerrm = 't/t/t' then ' ok; ' else ' FALLO; ' end; end;
 
+  -- Desde 20260930080806 la clave `venta` solo existe con el interruptor ENCENDIDO: los casos 3-11 lo encienden aqui
+  -- (se deshace con el resto al final). El caso 2 ya probo el apagado.
+  update public.comisiones_interruptor set modo_obligatorio = true where id;
   -- 3 · BLOQUEO: el cliente es un lead que su SM le asignó (email en mayúsculas, teléfono en formato local)
   begin
     insert into public.leads (email, whatsapp, source, name) values ('prueba.f5.cliente@prueba.invalid', '0811 0000 5555', 'meta-lawang-bali', 'Prueba F5')
@@ -115,7 +118,7 @@ begin
     -- el closer no objeta su propia venta
     begin
       perform set_config('request.jwt.claims', json_build_object('sub', T.user_id, 'email', T.e, 'role', 'authenticated')::text, true);
-      set local role authenticated;
+      -- sin «set local role authenticated»: RPC revocada a authenticated (20260930080806), se llama con claims
       perform public.venta_objecion_crear(v_root, 'prueba');
       v_t := v_t || '/objeta-closer-sin-error';
     exception when others then get stacked diagnostics v_state = returned_sqlstate; v_t := v_t || '/' || v_state; end;
@@ -184,20 +187,20 @@ begin
     perform set_config('app.via_modo_admin', 'off', true);
     v_t := public.comisiones_evaluar_contrato(v_rp)::text;                                   -- (a)
     perform set_config('request.jwt.claims', json_build_object('sub', S.user_id, 'email', S.e, 'role', 'authenticated')::text, true);
-    set local role authenticated;
+    -- sin «set local role authenticated»: RPC revocada a authenticated (20260930080806), se llama con claims
     v_obj := public.venta_objecion_crear(v_rp, 'El cliente vino por una campaña del equipo');
     reset role;
     update public.contrato_closer set modo_espera_hasta = now() - interval '1 minute' where contrato_id = v_rp;
     v_t := v_t || '/' || public.comisiones_evaluar_contrato(v_rp)::text;                    -- (b)
     begin
       perform set_config('request.jwt.claims', json_build_object('sub', S.user_id, 'email', S.e, 'role', 'authenticated')::text, true);
-      set local role authenticated;
+      -- sin «set local role authenticated»: RPC revocada a authenticated (20260930080806), se llama con claims
       perform public.venta_objecion_crear(v_rp, 'otra');
       v_t := v_t || '/fuera-de-plazo-sin-error';
     exception when others then get stacked diagnostics v_state = returned_sqlstate; v_t := v_t || '/' || v_state; end;
     -- (c)
     perform set_config('request.jwt.claims', json_build_object('sub', A.user_id, 'email', A.e, 'role', 'authenticated')::text, true);
-    set local role authenticated;
+    -- sin «set local role authenticated»: RPC revocada a authenticated (20260930080806), se llama con claims
     v_n := public.venta_objecion_resolver(v_obj, 'mantener_propia', 'prueba F5: el cliente es del closer');
     reset role;
     select c.* into v_cond from public.condiciones_comision c
@@ -221,7 +224,7 @@ begin
     perform set_config('request.jwt.claims', json_build_object('sub', A.user_id, 'email', A.e, 'role', 'authenticated')::text, true);
     update public.solicitudes_pago set estado = 'aprobada' where id = v_sp.id;
     update public.solicitudes_pago set estado = 'pagada' where id = v_sp.id;
-    set local role authenticated;
+    -- sin «set local role authenticated»: RPC revocada a authenticated (20260930080806), se llama con claims
     perform public.venta_modo_admin(v_rp, 'equipo', 'prueba F5: la venta era del equipo');
     reset role;
     select * into v_dif from public.comisiones_diferencias x where x.devengo_id = v_dev.id;
@@ -243,7 +246,7 @@ begin
            modo_espera_hasta = now() + interval '7 days' where contrato_id = v_rp;
     perform set_config('app.via_modo_admin', 'off', true);
     perform set_config('request.jwt.claims', json_build_object('sub', S.user_id, 'email', S.e, 'role', 'authenticated')::text, true);
-    set local role authenticated;
+    -- sin «set local role authenticated»: RPC revocada a authenticated (20260930080806), se llama con claims
     v_obj := public.venta_objecion_crear(v_rp, 'Lead del equipo');
     begin
       perform public.venta_propia_resolver(v_obj, true, 'x');
@@ -301,3 +304,167 @@ end $$;
 --  (select count(*) from (select r.* from (select distinct contrato_raiz_id from comisiones_devengadas) d,
 --          lateral comisiones_reconciliar(d.contrato_raiz_id, true, '{}'::jsonb) r) x) reconciliar_filas;
 -- Antes (30-sep 07:18 UTC): devengos 10:873cb219e4cd746a8144573b763fc2fd · sps 9:e7a0153471ad74d2a6afbe7ebedb455d · difs 0 · reconciliar 0.
+
+-- ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+-- BLOQUE 2 · arreglos del revisor (20260930080806 + 20260930082215). Independiente del bloque de arriba y SIN
+-- secuencias: no da de alta contratos (contrato_guarda solo sobre una raíz existente), la solicitud de pago lleva un
+-- número de prueba escrito a mano, 999999005, lejos de la serie (numero es identity: OVERRIDING SYSTEM VALUE no gasta la serie) y la raíz no tiene cobros,
+-- así que el motor no crea solicitudes nuevas. Se puede pasar cuantas veces haga falta. Todo acaba en excepción.
+-- Raíz: la raíz más reciente de T sin firmar, sin devengos y congelada al equipo de S.
+do $$
+declare
+  r text := ''; v_t text; v_state text;
+  T record; S record; M record; A record;
+  v_root uuid; c public.contratos; k public.contrato_closer; v_obj uuid; v_sp uuid; v_dev uuid; v_cond uuid; v_tramo uuid; v_n int;
+begin
+  select u.user_id, lower(u.email) e into T from public.usuarios u where lower(u.email) = 'dortegag@gmail.com' and u.activo;
+  select u.user_id, lower(u.email) e into S from public.usuarios u where lower(u.email) = 'gusabellan@gmail.com' and u.activo;
+  select u.user_id, lower(u.email) e into M from public.usuarios u where lower(u.email) = 'santidavidse@gmail.com' and u.activo;
+  select u.user_id, lower(u.email) e into A from public.usuarios u
+   where u.rol = 'super_admin' and u.activo
+     and lower(u.email) not in (select lower(beneficiario_email) from public.comisiones_devengadas)
+   order by u.email limit 1;
+  select kk.contrato_id into v_root from public.contrato_closer kk join public.contratos cc on cc.id = kk.contrato_id
+   where lower(kk.closer_email) = T.e and lower(kk.manager_email) = S.e and kk.equipo_congelado_en is not null
+     and cc.contrato_padre_id is null and not coalesce(cc.bloqueado, false)
+     and not exists (select 1 from public.contrato_firmas f where f.contrato_id = cc.id)
+     and not exists (select 1 from public.comisiones_devengadas d where d.contrato_raiz_id = cc.id)
+   order by cc.created_at desc limit 1;
+  if T.user_id is null or S.user_id is null or M.user_id is null or A.user_id is null or v_root is null then
+    raise exception 'RES2: falta un perfil o la raíz de prueba';
+  end if;
+  select * into c from public.contratos where id = v_root;
+  select cc.id, tr.id into v_cond, v_tramo from public.condiciones_comision cc join public.condicion_tramos tr on tr.condicion_id = cc.id
+   where cc.nivel = 'manager' order by cc.vigente_desde desc limit 1;
+
+  -- P1 · PUERTA: interruptor APAGADO → «propia» por contrato_guarda y por el camino del alta no escribe nada
+  begin
+    perform set_config('request.jwt.claims', json_build_object('sub', T.user_id, 'email', T.e, 'role', 'authenticated')::text, true);
+    perform public._venta_modo_declara(v_root, '{"modo":"propia","origen":"contacto_personal"}'::jsonb, true);
+    v_t := coalesce((select modo from public.contrato_closer where contrato_id = v_root), 'NULL');
+    perform set_config('app.via_modo_admin', 'on', true);
+    update public.contrato_closer set modo = 'equipo' where contrato_id = v_root;
+    perform set_config('app.via_modo_admin', 'off', true);
+    set local role authenticated;
+    perform public.contrato_guarda(v_root, jsonb_build_object('tipo', c.tipo, 'datos', c.datos,
+      'venta', '{"modo":"propia","origen":"contacto_personal"}'::jsonb));
+    reset role;
+    select * into k from public.contrato_closer where contrato_id = v_root;
+    raise exception '%', format('%s/%s/%s/%s', v_t, k.modo, k.modo_cruces is null,
+      (select count(*) from public.notificaciones n where n.contrato_id = v_root and n.tipo = 'venta_por_su_cuenta'));
+  exception when others then r := r || 'P1 puerta apagada=' || sqlerrm || case when sqlerrm = 'NULL/equipo/t/0' then ' ok; ' else ' FALLO; ' end; end;
+
+  -- P2 · RPC sin pantalla revocadas a authenticated
+  begin
+    perform set_config('request.jwt.claims', json_build_object('sub', S.user_id, 'email', S.e, 'role', 'authenticated')::text, true);
+    set local role authenticated;
+    begin perform public.venta_objecion_crear(v_root, 'x'); v_t := 'crear-sin-error';
+    exception when others then get stacked diagnostics v_state = returned_sqlstate; v_t := v_state; end;
+    begin perform public.venta_objecion_resolver(gen_random_uuid(), 'pasar_equipo', 'x'); v_t := v_t || '/resolver-sin-error';
+    exception when others then get stacked diagnostics v_state = returned_sqlstate; v_t := v_t || '/' || v_state; end;
+    begin perform public.venta_modo_admin(v_root, 'equipo', 'x'); v_t := v_t || '/admin-sin-error';
+    exception when others then get stacked diagnostics v_state = returned_sqlstate; v_t := v_t || '/' || v_state; end;
+    begin perform public.ventas_por_su_cuenta_equipo(); v_t := v_t || '/lista-sin-error';
+    exception when others then get stacked diagnostics v_state = returned_sqlstate; v_t := v_t || '/' || v_state; end;
+    reset role;
+    raise exception '%', v_t;
+  exception when others then r := r || 'P2 revocadas=' || sqlerrm || case when sqlerrm = '42501/42501/42501/42501' then ' ok; ' else ' FALLO; ' end; end;
+
+  -- P3 · (2) modo FIJADO por un admin: el closer no lo cambia al re-guardar; re-guardar lo mismo sí pasa
+  begin
+    update public.comisiones_interruptor set modo_obligatorio = true where id;
+    perform set_config('app.via_modo_admin', 'on', true);
+    update public.contrato_closer set modo = 'equipo', modo_fijado_admin = true where contrato_id = v_root;
+    perform set_config('app.via_modo_admin', 'off', true);
+    perform set_config('request.jwt.claims', json_build_object('sub', T.user_id, 'email', T.e, 'role', 'authenticated')::text, true);
+    set local role authenticated;
+    perform public.contrato_guarda(v_root, jsonb_build_object('tipo', c.tipo, 'datos', c.datos, 'venta', '{"modo":"equipo"}'::jsonb));
+    begin
+      perform public.contrato_guarda(v_root, jsonb_build_object('tipo', c.tipo, 'datos', c.datos,
+        'venta', '{"modo":"propia","origen":"contacto_personal"}'::jsonb));
+      v_t := 'sin-error';
+    exception when others then get stacked diagnostics v_state = returned_sqlstate;
+      v_t := v_state || case when sqlerrm like '%lo fijó un administrador%' then '' else '(' || sqlerrm || ')' end; end;
+    reset role;
+    raise exception '%', v_t || '/' || (select modo from public.contrato_closer where contrato_id = v_root);
+  exception when others then r := r || 'P3 fijado admin=' || sqlerrm || case when sqlerrm = '42501/equipo' then ' ok; ' else ' FALLO; ' end; end;
+
+  -- P4 · (3) el manager del equipo no declara «propia»: congelado (contrato_guarda) y actual (venta_modo_admin)
+  begin
+    update public.comisiones_interruptor set modo_obligatorio = true where id;
+    perform set_config('app.via_modo_admin', 'on', true);
+    update public.contrato_closer set modo = 'equipo', manager_email = T.e where contrato_id = v_root;
+    perform set_config('app.via_modo_admin', 'off', true);
+    perform set_config('request.jwt.claims', json_build_object('sub', T.user_id, 'email', T.e, 'role', 'authenticated')::text, true);
+    set local role authenticated;
+    begin
+      perform public.contrato_guarda(v_root, jsonb_build_object('tipo', c.tipo, 'datos', c.datos,
+        'venta', '{"modo":"propia","origen":"contacto_personal"}'::jsonb));
+      v_t := 'congelado-sin-error';
+    exception when others then get stacked diagnostics v_state = returned_sqlstate;
+      v_t := v_state || case when sqlerrm like 'Eres el manager%' then '' else '(' || sqlerrm || ')' end; end;
+    reset role;
+    update public.contrato_closer set manager_email = S.e where contrato_id = v_root;
+    select * into k from public.contrato_closer where contrato_id = v_root;
+    update public.equipos_venta set manager_email = T.e where id = k.equipo_id;
+    perform set_config('request.jwt.claims', json_build_object('sub', A.user_id, 'email', A.e, 'role', 'authenticated')::text, true);
+    begin
+      perform public.venta_modo_admin(v_root, 'propia', 'prueba: manager actual');
+      v_t := v_t || '/actual-sin-error';
+    exception when others then get stacked diagnostics v_state = returned_sqlstate;
+      v_t := v_t || '/' || v_state || case when sqlerrm like '%es el manager de este equipo%' then '' else '(' || sqlerrm || ')' end; end;
+    raise exception '%', v_t;
+  exception when others then r := r || 'P4 manager propia=' || sqlerrm || case when sqlerrm = '22023/22023' then ' ok; ' else ' FALLO; ' end; end;
+
+  -- P5 · (6) cambio de closer: modo, origen, cruces, ventana y marca de admin a NULL; objeción retirada; se declara de nuevo
+  begin
+    update public.comisiones_interruptor set modo_obligatorio = true where id;
+    perform set_config('app.via_modo_admin', 'on', true);
+    update public.contrato_closer set modo = 'propia', modo_origen = 'contacto_personal', modo_cruces = '{"bloqueo":false}',
+           modo_espera_hasta = now() + interval '7 days', modo_fijado_admin = true, modo_declarado_por = T.e
+     where contrato_id = v_root;
+    perform set_config('app.via_modo_admin', 'off', true);
+    insert into public.reclamaciones_venta_propia (contrato_raiz_id, solicitante_email, equipo_id, manager_email, motivo, tipo)
+    select v_root, S.e, kk.equipo_id, S.e, 'prueba objeción', 'objecion' from public.contrato_closer kk where kk.contrato_id = v_root
+    returning id into v_obj;
+    update public.contrato_closer set closer_email = M.e where contrato_id = v_root;
+    select * into k from public.contrato_closer where contrato_id = v_root;
+    v_t := format('%s/%s/%s/%s', k.modo is null and k.modo_origen is null and k.modo_cruces is null and k.modo_espera_hasta is null,
+      not k.modo_fijado_admin and k.modo_declarado_por = 'sistema:cambio_closer',
+      (select estado from public.reclamaciones_venta_propia where id = v_obj),
+      lower(k.closer_email) = M.e);
+    perform set_config('request.jwt.claims', json_build_object('sub', M.user_id, 'email', M.e, 'role', 'authenticated')::text, true);
+    perform public._venta_modo_declara(v_root, '{"modo":"equipo"}'::jsonb, false);
+    raise exception '%', v_t || '/' || coalesce((select modo from public.contrato_closer where contrato_id = v_root), 'NULL');
+  exception when others then r := r || 'P5 cambio closer=' || sqlerrm || case when sqlerrm = 't/t/retirada/t/equipo' then ' ok; ' else ' FALLO; ' end; end;
+
+  -- P6 · (4) rama «sin pagar» de _venta_modo_aplica: fee de manager pendiente con su solicitud pendiente; el admin pasa la
+  --      venta de equipo a propia → la solicitud se anula por app.via_venta_propia, el devengo con ella, un solo rastro de
+  --      anulación, nada activo en la raíz y el reconciliar en seco no ve nada que pagar (sin pago doble)
+  begin
+    perform set_config('app.via_modo_admin', 'on', true);
+    update public.contrato_closer set modo = 'equipo' where contrato_id = v_root;
+    perform set_config('app.via_modo_admin', 'off', true);
+    insert into public.solicitudes_pago (numero, concepto, importe, moneda, origen, beneficiario_email, creado_por, contrato_id)
+    overriding system value
+    values (999999005, 'Prueba F5 fee de manager', 100, 'EUR', 'comision_automatica', S.e, A.user_id, v_root)
+    returning id into v_sp;
+    insert into public.comisiones_devengadas (contrato_raiz_id, tramo_id, condicion_id, beneficiario_email, nivel, importe, moneda, solicitud_id)
+    values (v_root, v_tramo, v_cond, S.e, 'manager', 100, 'EUR', v_sp)
+    returning id into v_dev;
+    perform set_config('request.jwt.claims', json_build_object('sub', A.user_id, 'email', A.e, 'role', 'authenticated')::text, true);
+    v_n := public.venta_modo_admin(v_root, 'propia', 'prueba F5: rama sin pagar');
+    select * into k from public.contrato_closer where contrato_id = v_root;
+    raise exception '%', format('%s/%s/%s/%s/%s/%s/%s',
+      (select estado from public.solicitudes_pago where id = v_sp),
+      (select estado from public.comisiones_devengadas where id = v_dev),
+      (select count(*) from public.comisiones_ajustes_log l where l.fila_id in (v_sp, v_dev) and l.accion = 'anular'),
+      (select count(*) from public.comisiones_devengadas d where d.contrato_raiz_id = v_root and d.estado <> 'anulada')
+        + (select count(*) from public.solicitudes_pago sp where sp.contrato_id = v_root and sp.estado not in ('anulada', 'rechazada')),
+      not exists (select 1 from public.comisiones_reconciliar(v_root, true, '{}'::jsonb)),
+      k.modo = 'propia' and k.modo_fijado_admin,
+      v_n);
+  exception when others then r := r || 'P6 sin pagar=' || sqlerrm || case when sqlerrm = 'anulada/anulada/1/0/t/t/0' then ' ok; ' else ' FALLO; ' end; end;
+
+  raise exception 'RES2: %', r;
+end $$;
