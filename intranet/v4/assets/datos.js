@@ -8012,12 +8012,9 @@
     var ficha = (window.LW_V4 && window.LW_V4.ficha) || {};
     var puedeResolver = ctx.esAdm && (ficha.rol === 'super_admin' || (ficha.herramientas || []).indexOf('comisiones_reparto') !== -1);
     var motivoAdm = ctx.esAdm && !puedeResolver ? T('Hace falta la casilla «Reparto a closers» en tus permisos') : '';
-    // filtro de equipo: la cuota trae su equipo; las filas, por quién estuvo en ese equipo alguna vez
+    // filtro de equipo: cuota y filas traen el equipo CONGELADO de la venta (equipo_id, 20260930131454)
     var eqId = ctx.filtroId;
-    var delEquipo = {};
-    if (eqId) ctx.miembros.forEach(function (m) { if (m.equipo_id === eqId) delEquipo[String(m.closer_email || '').toLowerCase()] = 1; });
-    // con equipo_id (PENDIENTE_f5b) se filtra por el equipo CONGELADO de la venta; sin él, por quien estuvo en el equipo
-    var filas = VPC.filas.filter(function (f) { return !eqId || ('equipo_id' in f ? f.equipo_id === eqId : delEquipo[String(f.closer_email || '').toLowerCase()]); });
+    var filas = VPC.filas.filter(function (f) { return !eqId || f.equipo_id === eqId; });
     var dirijo = {};
     ctx.equipos.forEach(function (e) { if (e.activo && String(e.manager_email || '').toLowerCase() === ctx.miEmail) dirijo[e.id] = 1; });
     var cuota = VPC.cuota.filter(function (c) { return !eqId || c.equipo_id === eqId; });
@@ -8077,7 +8074,7 @@
       var origen = T(VPC_ORIGEN[f.origen] || f.origen || '—') + (f.origen_texto ? ' · «' + f.origen_texto + '»' : '');
       var plazo = f.espera_hasta ? (abierta ? T('hasta %f', { f: fBali(f.espera_hasta) }) : T('cerrado el %f', { f: fBali(f.espera_hasta) })) : '—';
       var btns = '';
-      // Objetar: el SM de ESE equipo (también si es admin); la base lo vuelve a comprobar con el SM congelado de la venta
+      // Objetar: el SM de HOY de ese equipo (también si es admin); la base lo vuelve a comprobar con _sm_ve_venta
       var soySMFila = !ctx.esAdm || !!(f.equipo_id && dirijo[f.equipo_id]);
       if (soySMFila) {
         var motivoObj = yo ? T('Es tu propia venta') : pend ? T('Ya hay una objeción abierta') : f.objecion_decision ? T('Administración ya lo decidió') : !abierta ? T('El plazo de 7 días ya terminó') : '';
