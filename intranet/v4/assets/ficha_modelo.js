@@ -14,13 +14,9 @@
    que editores.js delega en esos contenedores — no se reescriben aquí.
 
    Revisión previa #56 (Datos + Administración), plegada:
-   - PRECIO BASE Y TECHOS VAN JUNTOS. `modelo_techos_opciones()` resuelve el
-     techo de un proyecto como precio_techo + (precio_proyecto − base). Subir la
-     base sin mover los techos ABARATA el techo precargado en los proyectos con
-     precio propio (Administración, ROJO). Por eso, en un modelo con techos,
-     cambiar la base mueve todos los techos (ahora y 2027) la misma cantidad, y
-     el bloque lo enseña antes de guardar. La diferencia la calcula el
-     SERVIDOR (base nueva − base de la fila bloqueada), no esta pantalla.
+   - TECHOS = SUPLEMENTO (30-sep-2026, owner): la base del modelo (ahora y 2027) es la casa CON su techo base;
+     los demás techos suman un suplemento. Cambiar la base ya no mueve los techos. Fórmula única en el servidor
+     (`_modelo_techos_opciones`); con precio propio del proyecto no hay doble subida en 2027.
    - NULL en `modelos_villa.precio_construccion` = HEREDA la base (resolución
      única en contracts/assets/modelos_catalogo.js). Se distingue «hereda» de
      «fijado a mano, hoy igual a la base»: el segundo NO se mueve con la base.
@@ -289,12 +285,15 @@
 
   function estadoFila(v, m, ctx) {
     var base = m.precio_construccion != null ? Number(m.precio_construccion) : null;
+    var b27 = m.precio_construccion_2027 != null ? Number(m.precio_construccion_2027) : null;
     if (v.precio_construccion == null) {
-      return base != null ? { cls: '', txt: 'hereda la base · ' + ctx.fmt(base, m.moneda) } : { cls: 'fm-mal', txt: 'sin precio: hereda la base y no hay base' };
+      return base != null ? { cls: '', txt: 'hereda la base · ' + ctx.fmt(base, m.moneda) + (b27 != null ? ' (2027: ' + ctx.fmt(b27, m.moneda) + ')' : '') }
+                          : { cls: 'fm-mal', txt: 'sin precio: hereda la base y no hay base' };
     }
     var p = Number(v.precio_construccion);
-    if (base != null && p === base && (v.moneda || m.moneda) === m.moneda) return { cls: '', txt: 'fijado a mano · ' + ctx.fmt(p, v.moneda || m.moneda) + ' (igual a la base, no la sigue)' };
-    return { cls: '', txt: 'precio propio · ' + ctx.fmt(p, v.moneda || m.moneda) };
+    // Con precio propio no hay doble subida en 2027 (owner, 30-sep-2026): el mismo precio los dos años.
+    if (base != null && p === base && (v.moneda || m.moneda) === m.moneda) return { cls: '', txt: 'fijado a mano · ' + ctx.fmt(p, v.moneda || m.moneda) + ' (igual a la base, no la sigue; también en 2027)' };
+    return { cls: '', txt: 'precio propio · ' + ctx.fmt(p, v.moneda || m.moneda) + ' (también en 2027)' };
   }
 
   function bPrecios(col, m, h, ctx) {
@@ -304,9 +303,11 @@
       // (techos, extras, precio por proyecto, previsión del deck) fija la moneda.
       var conCifras = h.filas.length > 0 || h.techos.length > 0 || h.mex.length > 0 ||
         (ctx.FC || []).some(function (x) { return x.modelo_id === m.id; });
-      var fila1 = document.createElement('div'); fila1.style.cssText = 'display:grid;grid-template-columns:170px 110px minmax(0,1fr);gap:10px;align-items:end';
+      var fila1 = document.createElement('div'); fila1.style.cssText = 'display:grid;grid-template-columns:150px 150px 100px minmax(0,1fr);gap:10px;align-items:end';
       host.appendChild(fila1);
       var iBase = campo(fila1, 'Precio base', base, { num: 1, ph: 'sin precio' });
+      // 30-sep-2026: la base es la casa CON su techo base; los demás techos suman un suplemento (bloque Techos).
+      var iBase27 = campo(fila1, 'Base 2027', m.precio_construccion_2027, { num: 1, ph: 'sin precio' });
       var lm = document.createElement('label'); lm.className = 'fm-campo'; lm.appendChild(document.createTextNode('Moneda'));
       var sel = document.createElement('select'); sel.className = 'fm-in';
       ['EUR', 'IDR'].forEach(function (x) { var o = document.createElement('option'); o.value = x; o.textContent = x; if ((m.moneda || 'EUR') === x) o.selected = true; sel.appendChild(o); });
@@ -316,28 +317,10 @@
       ex.textContent = conCifras ? 'La moneda no se cambia: el modelo ya tiene techos, extras, precios por proyecto o previsión en ' + (m.moneda || 'EUR') + ' y no se convierten.' : 'La base la heredan los proyectos que no tienen precio propio.';
       fila1.appendChild(ex);
 
-      var prev = document.createElement('div'); host.appendChild(prev);
-      function pintaPrevia() {
-        prev.innerHTML = '';
-        var nb = num(iBase.value);
-        if (!h.techos.length) return;
-        if (base == null || nb == null) {
-          if (nb !== base) nota(prev, 'Este modelo tiene techos y la base estaba vacía: los techos no se mueven solos. Revisa el bloque Techos después.', 'ambar');
-          return;
-        }
-        var d = nb - base;
-        if (!d) return;
-        nota(prev, 'Los techos se mueven con la base (' + (d > 0 ? '+' : '') + ctx.fmt(d, m.moneda) + '), si no el techo precargado en los proyectos con precio propio cambiaría al revés:', 'ambar');
-        var ul = document.createElement('ul'); ul.className = 'fm-lista';
-        h.techos.forEach(function (t) {
-          var li = document.createElement('li');
-          li.textContent = t.nombre + ': ' + ctx.fmt(t.precio_ahora, m.moneda) + ' → ' + ctx.fmt(Number(t.precio_ahora) + d, m.moneda) +
-            (t.precio_2027 != null ? ' · 2027: ' + ctx.fmt(t.precio_2027, m.moneda) + ' → ' + ctx.fmt(Number(t.precio_2027) + d, m.moneda) : '');
-          ul.appendChild(li);
-        });
-        prev.appendChild(ul);
-      }
-      iBase.addEventListener('input', pintaPrevia);
+      // Ya no hay que «mover los techos» con la base (30-sep-2026): son suplementos sobre ella.
+      if (h.techos.length) nota(host, 'La base es el precio de la casa con su techo base. Los otros techos suman su suplemento encima (bloque Techos).');
+      // Administración (consulta 30-sep): son dos cifras independientes; subir la de ahora no arrastra la de 2027.
+      nota(host, 'La base de ahora y la de 2027 son independientes: si cambias una, revisa la otra.');
 
       var ins = [];
       if (h.filas.length) {
@@ -371,7 +354,7 @@
 
       return function () {
         var sb = ctx.sb;
-        var nb = num(iBase.value);
+        var nb = num(iBase.value), nb27 = chk(num(iBase27.value), 'El precio base 2027');
         var monedaNueva = sel.value || m.moneda || 'EUR';
         if (nb != null && !(nb >= 0)) throw new Error('el precio base no es un número');
         var cambiosFila = ins.filter(function (x) {
@@ -390,10 +373,10 @@
           if (!h.idProy[x.proyecto]) throw new Error('«' + x.proyecto + '» no tiene ficha de proyecto enlazada: no se puede declarar desde aquí');
         });
 
-        /* UNA llamada, UNA transacción: la diferencia de los techos la calcula
-           el servidor (base nueva − base de la fila bloqueada), nunca aquí. */
+        /* UNA llamada, UNA transacción (modelo_precios_guarda). */
         var cambios = {};
         if (nb !== base) cambios.base = nb;
+        if (nb27 !== (m.precio_construccion_2027 == null ? null : Number(m.precio_construccion_2027))) cambios.base_2027 = nb27;
         if (monedaNueva !== (m.moneda || 'EUR')) cambios.moneda = monedaNueva;
         if (cambiosFila.length) cambios.villas = cambiosFila.map(function (x) { return { id: x.v.id, precio: num(x.i.value) }; });
         if (altas.length) cambios.altas = altas.map(function (x) { return { proyecto_id: h.idProy[x.proyecto], precio: num(x.i.value) }; });
@@ -413,7 +396,8 @@
 
     var cab = document.createElement('div'); cab.style.cssText = 'display:flex;align-items:baseline;gap:10px;flex-wrap:wrap';
     cab.innerHTML = base != null
-      ? '<span class="fm-lbl">Base</span><span style="font-size:22px;font-weight:600">' + esc(ctx.fmt(base, m.moneda)) + '</span>'
+      ? '<span class="fm-lbl">Base</span><span style="font-size:22px;font-weight:600">' + esc(ctx.fmt(base, m.moneda)) + '</span>' +
+        (m.precio_construccion_2027 != null ? '<span class="fm-lbl" style="margin-left:8px">2027</span><span style="font-size:16px;font-weight:600">' + esc(ctx.fmt(m.precio_construccion_2027, m.moneda)) + '</span>' : '')
       : '<span class="fm-lbl">Base</span><span style="font-size:16px;font-weight:600;color:' + C.rojo + '">sin precio de catálogo</span>';
     b.cuerpo.appendChild(cab);
     if (!h.filas.length && !h.sinFila.length) { vacio(b.cuerpo, 'No está declarado en ningún proyecto.'); return; }
@@ -434,19 +418,16 @@
     if (mano) nota(b.cuerpo, mano + (mano === 1 ? ' proyecto tiene' : ' proyectos tienen') + ' la base escrita a mano: si cambias la base, esos no se mueven.');
   }
 
-  /* TECHOS (30-sep-2026, owner: «poder añadir nuevos techos, que salgan solos en el contrato y en todo;
-     decidir qué casa + techo va en cada proyecto — si no digo nada, en todos»). Revisión previa #163
-     (Datos + Seguridad + Administración). Esta pantalla solo recoge: valida y escribe el servidor
-     (modelo_techo_crea y modelo_techos_guarda_lote — migraciones 20260930023239 y 20260930031223).
-     - Un techo nunca se borra: se RETIRA. Su clave vive en contratos congelados, en el techo de cada
-       documento (bloque Documentos) y en las fotos de la web. Retirado = no se ofrece en contratos nuevos
-       ni en la web; los contratos que ya lo llevan conservan su precio.
-     - Alcance: «Todos los proyectos» (por defecto, decisión del owner) o solo los marcados, entre los
-       proyectos donde se vende esta casa. Nunca «sin marcar = todos»: son dos estados distintos.
-     - Precio COMPLETO de la villa con ese techo, nunca un recargo; ninguno por debajo de la base (owner):
-       un techo más barato = primero se baja la base. Sin base no se dan de alta techos.
-     - Lo que NO es automático al añadir uno: su Anexo Maestro (bloque Documentos, tipo plano, con este
-       techo) y su foto en la web. */
+  /* TECHOS = SUPLEMENTO SOBRE LA CASA (30-sep-2026, owner: «el modelo tiene un precio base con un techo base;
+     la diferencia de los demás techos se suma, casi como un extra»). Migración 20260930120000; antes, esa misma
+     mañana, los techos llevaban el precio completo (20260930023239).
+     - La casa (bloque «Precio de construcción», base ahora y 2027) incluye su TECHO BASE (suplemento 0). Cada
+       otro techo suma «+X ahora / +Y desde 2027» sobre la base, o sobre el precio propio del proyecto.
+     - Esta pantalla solo recoge: valida, calcula y escribe el servidor (modelo_techo_crea, modelo_techos_guarda_lote).
+     - Un techo nunca se borra: se RETIRA (su clave vive en contratos congelados, documentos y fotos de la web).
+       El techo base no se retira ni se limita: para cambiarlo, se marca otro como base (con suplemento 0).
+     - Alcance: «Todos los proyectos» (por defecto) o solo los marcados, entre los que venden la casa.
+     - No es automático al añadir uno: su Anexo Maestro (Documentos, tipo plano) y su foto en la web. */
   function proyectosDeLaCasa(h) {
     return h.filas.filter(function (v) { return v.proyecto_id; })
       .map(function (v) { return { id: v.proyecto_id, nombre: v.proyecto }; });
@@ -486,9 +467,13 @@
     if (a.length !== b.length) return false;
     return a.every(function (x) { return b.indexOf(x) !== -1; });
   }
-  /* Precios + ediciones van en UNA transacción (modelo_techos_guarda_lote, revisor-codigo 30-sep: la cadena
-     de llamadas dejaba el catálogo a medias si una fallaba). Si el cambio deja fuera contratos sin firmar, el
-     servidor lo deshace todo y responde LW409: se pregunta una vez y se repite confirmado. */
+  function textoSuplemento(x, m, ctx) {
+    if (x.es_base) return 'techo base · incluido';
+    var a = Number(x.suplemento_ahora) || 0, z = Number(x.suplemento_2027) || 0;
+    return '+' + ctx.fmt(a, m.moneda) + (z !== a ? ' · 2027: +' + ctx.fmt(z, m.moneda) : '');
+  }
+  /* Todo en UNA transacción (modelo_techos_guarda_lote). Si el cambio deja fuera contratos sin firmar, el servidor
+     lo deshace todo y responde LW409: se pregunta una vez y se repite confirmado. */
   function guardaLote(ctx, m, precios, edits, confirmado) {
     return rpc(ctx.sb, 'modelo_techos_guarda_lote', { p_id: m.id, p_precios: precios, p_ediciones: edits, p_confirmado: !!confirmado })
       .catch(function (err) {
@@ -506,33 +491,46 @@
 
   function bTechos(col, m, h, ctx) {
     var base = m.precio_construccion != null ? Number(m.precio_construccion) : null;
+    var base27 = m.precio_construccion_2027 != null ? Number(m.precio_construccion_2027) : null;
+    var sinBase = base == null || base27 == null;
     var b = bloque(col, 'techos', 'Techos', { editar: h.techos.length ? function (host) {
-      nota(host, 'Precios completos de la villa con ese techo. Ninguno puede quedar por debajo de la base' + (base != null ? ' (' + ctx.fmt(base, m.moneda) + ')' : '') + '.');
-      // Administración (consulta 30-sep): el más barato es el ancla del precio en los proyectos con precio propio.
-      nota(host, 'Ojo: retirar el techo más barato cambia el precio de los demás en los proyectos con precio propio (el más barato que quede pasa a costar ese precio).');
+      nota(host, 'El techo base va incluido en el precio de la casa. Los demás suman su suplemento: ahora y desde 2027.');
+      var grupo = 'fm-base-' + m.id;
       var ins = h.techos.map(function (x) {
         var tarjeta = document.createElement('div');
         tarjeta.style.cssText = 'display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:10px;background:' + C.crema;
         host.appendChild(tarjeta);
-        var fila = document.createElement('div'); fila.className = 'fm-tabla'; fila.style.gridTemplateColumns = 'minmax(0,1fr) 130px 130px';
+        var fila = document.createElement('div'); fila.className = 'fm-tabla'; fila.style.cssText = 'grid-template-columns:minmax(0,1fr) 130px 130px;align-items:start';
         tarjeta.appendChild(fila);
         var n = campo(fila, 'Nombre', x.nombre);
-        var a = campo(fila, 'Ahora', x.precio_ahora, { num: 1 });
-        var z = campo(fila, '2027', x.precio_2027, { num: 1 });
+        var a = campo(fila, '+ Ahora', x.es_base ? 0 : x.suplemento_ahora, { num: 1 });
+        var z = campo(fila, '+ 2027', x.es_base ? 0 : x.suplemento_2027, { num: 1 });
+        var lb = document.createElement('label'); lb.className = 'fm-check';
+        var rb = document.createElement('input'); rb.type = 'radio'; rb.name = grupo; rb.checked = !!x.es_base;
+        var tb = document.createElement('span'); tb.textContent = 'Techo base (incluido en el precio de la casa)';
+        lb.appendChild(rb); lb.appendChild(tb); tarjeta.appendChild(lb);
         var act = casilla(tarjeta, 'Se ofrece', x.activo !== false, 'Desmárcalo para retirarlo: deja de salir en contratos nuevos y en la web. Nunca se borra.');
         var al = campoAlcance(tarjeta, h, ctx, x);
-        return { x: x, n: n, a: a, z: z, act: act, al: al };
+        function sync() {
+          // el base no lleva suplemento, no se retira ni se limita
+          a.disabled = z.disabled = rb.checked;
+          if (rb.checked) { a.value = 0; z.value = 0; act.checked = true; al.todos.checked = true; al.todos.dispatchEvent(new Event('change')); }
+          act.disabled = al.todos.disabled = rb.checked;
+        }
+        rb.addEventListener('change', function () { ins.forEach(function (r) { r.sync(); }); });
+        return { x: x, n: n, a: a, z: z, rb: rb, act: act, al: al, sync: sync };
       });
+      ins.forEach(function (r) { r.sync(); });
       return function () {
         var precios = [], edits = [];
         ins.forEach(function (r) {
           var nombre = r.n.value.trim() || r.x.nombre;
-          var na = chk(num(r.a.value), 'El precio de «' + nombre + '»'), nz = chk(num(r.z.value), 'El precio 2027 de «' + nombre + '»');
-          if (na !== (r.x.precio_ahora == null ? null : Number(r.x.precio_ahora)) || nz !== (r.x.precio_2027 == null ? null : Number(r.x.precio_2027))) {
-            if (na == null) throw new Error('«' + nombre + '» necesita precio ahora');
-            precios.push({ id: r.x.id, precio_ahora: na, precio_2027: nz });
-          }
+          var na = chk(num(r.a.value), 'El suplemento de «' + nombre + '»'), nz = chk(num(r.z.value), 'El suplemento 2027 de «' + nombre + '»');
+          if (na == null || nz == null) throw new Error('«' + nombre + '» necesita sus dos suplementos (0 si no suma nada)');
+          if (na < 0 || nz < 0) throw new Error('El suplemento de «' + nombre + '» no puede ser negativo: si quieres un techo más barato, hazlo base y ajusta el precio de la casa');
+          if (na !== Number(r.x.suplemento_ahora) || nz !== Number(r.x.suplemento_2027)) precios.push({ id: r.x.id, suplemento_ahora: na, suplemento_2027: nz });
           var c = {};
+          if (r.rb.checked && !r.x.es_base) c.es_base = true;
           if (r.n.value.trim() !== r.x.nombre) c.nombre = r.n.value.trim();
           if (r.act.checked !== (r.x.activo !== false)) c.activo = r.act.checked;
           if (r.al.todos.checked) {
@@ -555,20 +553,28 @@
       bA.addEventListener('click', function (ev) {
         ev.stopPropagation();
         abreEdicion(b, function (host) {
-          if (base == null) nota(host, 'Este modelo no tiene precio base: ponlo antes en «Precio de construcción». Sin base no se puede calcular el techo en los proyectos con precio propio.', 'rojo');
+          var primero = !h.techos.length;
+          if (sinBase) nota(host, 'Pon antes el precio de la casa, ahora y 2027, en «Precio de construcción»: es el precio con el techo base.', 'rojo');
+          if (primero) nota(host, 'Es el primer techo de este modelo: será su techo base, incluido en el precio de la casa (sin suplemento).');
           var n = campo(host, 'Nombre del techo', '', { ph: 'p. ej. Alang-alang' });
           var d = campo(host, 'Descripción (web y ficha)', '', { area: 1, filas: 3 });
-          var g = document.createElement('div'); g.className = 'fm-tabla'; g.style.cssText = 'grid-template-columns:1fr 1fr;align-items:start'; host.appendChild(g);
-          var a = campo(g, 'Precio ahora', '', { num: 1, ayuda: 'Villa completa con este techo' + (base != null ? ' · mínimo ' + ctx.fmt(base, m.moneda) : '') });
-          var z = campo(g, 'Precio 2027', '', { num: 1, ayuda: 'Se cobra desde el 1-ene-2027' });
+          var a = null, z = null;
+          if (!primero) {
+            var g = document.createElement('div'); g.className = 'fm-tabla'; g.style.cssText = 'grid-template-columns:1fr 1fr;align-items:start'; host.appendChild(g);
+            a = campo(g, 'Suplemento ahora', '', { num: 1, ayuda: 'Lo que suma sobre la casa con el techo base' });
+            z = campo(g, 'Suplemento 2027', '', { num: 1, ayuda: 'Lo que suma desde el 1-ene-2027' });
+          }
           var al = campoAlcance(host, h, ctx, null);
           nota(host, 'Después: sube su Anexo Maestro en «Documentos» (tipo plano, con este techo). Mientras no esté, el contrato avisa y deja enviar igualmente. La foto de este techo en la web tampoco es automática.');
           return function () {
             var nombre = n.value.trim();
             if (!nombre) throw new Error('Pon el nombre del techo');
-            var datos = { nombre: nombre, descripcion: d.value.trim(),
-              precio_ahora: chk(num(a.value), 'El precio ahora'), precio_2027: chk(num(z.value), 'El precio 2027'),
-              alcance: al.todos.checked ? 'todos' : 'lista' };
+            var datos = { nombre: nombre, descripcion: d.value.trim(), alcance: al.todos.checked ? 'todos' : 'lista' };
+            if (a) {
+              datos.suplemento_ahora = chk(num(a.value), 'El suplemento de ahora');
+              datos.suplemento_2027 = chk(num(z.value), 'El suplemento de 2027');
+              if (datos.suplemento_ahora == null || datos.suplemento_2027 == null) throw new Error('Pon los dos suplementos (0 si no suma nada)');
+            }
             if (!al.todos.checked) {
               datos.proyectos = al.sel();
               if (!datos.proyectos.length) throw new Error('Marca al menos un proyecto, o deja «Todos los proyectos».');
@@ -582,34 +588,52 @@
     }
 
     if (!h.techos.length) { vacio(b.cuerpo, 'Sin techos: el contrato de Construcción ofrece solo «Ulin» al precio de la casa.'); return; }
-    // Tres columnas como antes (cabe a 390 px); «dónde se ofrece» va debajo del nombre.
-    var t = document.createElement('div'); t.className = 'fm-tabla'; t.style.gridTemplateColumns = 'minmax(0,1fr) auto auto';
-    t.innerHTML = '<span class="fm-lbl">Acabado</span><span class="fm-lbl">Ahora</span><span class="fm-lbl">2027</span>';
-    h.techos.forEach(function (x) {
+    // Dos columnas (cabe a 390 px): el techo con «suplemento · dónde» debajo, y su precio de catálogo.
+    var t = document.createElement('div'); t.className = 'fm-tabla'; t.style.gridTemplateColumns = 'minmax(0,1fr) auto';
+    t.innerHTML = '<span class="fm-lbl">Acabado</span><span class="fm-lbl">Precio catálogo</span>';
+    h.techos.slice().sort(function (p, q) { return (q.es_base ? 1 : 0) - (p.es_base ? 1 : 0) || (p.orden || 0) - (q.orden || 0); }).forEach(function (x) {
       var retirado = x.activo === false, donde = dondeTecho(x, h, ctx);
       var tachado = retirado ? 'color:' + C.apagado + ';text-decoration:line-through;' : '';
+      var total = base != null ? base + (Number(x.suplemento_ahora) || 0) : null;
       t.insertAdjacentHTML('beforeend',
-        '<span style="min-width:0"><span style="' + tachado + '">' + esc(x.nombre) + '</span>' +
+        '<span style="min-width:0"><span style="' + tachado + 'font-weight:600">' + esc(x.nombre) + '</span>' +
+          '<small style="display:block;font-size:12px;color:' + (x.es_base && !retirado ? C.verde : C.apagado) + '">' + esc(textoSuplemento(x, m, ctx)) + '</small>' +
           '<small style="display:block;font-size:12px;color:' + (retirado ? C.apagado : donde.mal ? C.rojo : C.apagado) + '">' +
           esc(retirado ? 'Retirado' : donde.txt) + '</small></span>' +
-        '<span style="' + tachado + 'font-weight:600;white-space:nowrap">' + esc(ctx.fmt(x.precio_ahora, m.moneda)) + '</span>' +
-        '<span style="' + tachado + 'white-space:nowrap">' + esc(x.precio_2027 != null ? ctx.fmt(x.precio_2027, m.moneda) : '—') + '</span>');
+        '<span style="' + tachado + 'font-weight:600;white-space:nowrap">' + esc(total != null ? ctx.fmt(total, m.moneda) : '—') + '</span>');
     });
     b.cuerpo.appendChild(t);
-    var activos = h.techos.filter(function (x) { return x.activo !== false; });
-    var min = activos.length ? Math.min.apply(null, activos.map(function (x) { return Number(x.precio_ahora); })) : null;
-    if (base != null && min != null && min !== base) nota(b.cuerpo, 'El techo más barato (' + ctx.fmt(min, m.moneda) + ') no coincide con la base (' + ctx.fmt(base, m.moneda) + '): el precio de techo en cada proyecto sale desplazado.', 'ambar');
-    var sin27 = activos.filter(function (x) { return x.precio_2027 == null; });
-    if (sin27.length) nota(b.cuerpo, 'Sin precio 2027: ' + sin27.map(function (x) { return x.nombre; }).join(', ') + '. Desde el 1-ene-2027 no se ofrecerán en el contrato.', 'ambar');
+    nota(b.cuerpo, 'En los proyectos con precio propio, el techo base cuesta ese precio y los demás le suman su suplemento.');
+    if (sinBase) nota(b.cuerpo, 'Falta el precio de la casa (ahora o 2027) en «Precio de construcción»: sin él no se puede ofrecer ningún techo.', 'rojo');
+  }
+
+  /* EXTRAS (30-sep-2026, owner: «necesito poder añadir o retirar extras»). Tres acciones, cada una UNA llamada:
+     - «Editar»: precio y «se ofrece» de cada extra ACTIVO en este modelo (modelo_extras_guarda, como antes).
+     - «Añadir extra»: alta en el catálogo con su precio en este modelo; en los demás modelos queda «no se ofrece»
+       hasta que se le ponga precio allí (extra_crea).
+     - «Catálogo»: retirar o reactivar extras para TODOS los modelos (extras_catalogo_guarda, una transacción).
+       Retirado = no sale en contratos nuevos ni en la web; nunca se borra (los contratos congelan el extra). */
+  function guardaCatalogoExtras(ctx, cambios, confirmado) {
+    return rpc(ctx.sb, 'extras_catalogo_guarda', { p_cambios: cambios, p_confirmado: !!confirmado })
+      .catch(function (err) {
+        if (!err || err.code !== 'LW409' || confirmado) throw err;
+        var sigue = typeof window.lwConfirmar === 'function'
+          ? window.lwConfirmar({ titulo: 'Retirar extras del catálogo', confirmar: 'Retirar igualmente',
+              cuerpo: '<p>' + esc(err.message) + '</p><p>No se ha guardado nada todavía.</p>' })
+          : Promise.resolve(window.confirm(err.message));
+        return Promise.resolve(sigue).then(function (ok) { return ok ? guardaCatalogoExtras(ctx, cambios, true) : false; });
+      });
   }
 
   function bExtras(col, m, h, ctx) {
     var D = ctx.D;
+    var activos = D.extras.filter(function (e) { return e.activo !== false; });
+    var retirados = D.extras.filter(function (e) { return e.activo === false; });
     var porExtra = {}; h.mex.forEach(function (x) { porExtra[x.extra_id] = x; });
-    var b = bloque(col, 'extras', 'Extras', { editar: D.extras.length ? function (host) {
+    var b = bloque(col, 'extras', 'Extras', { editar: activos.length ? function (host) {
       var t = document.createElement('div'); t.className = 'fm-tabla'; t.style.gridTemplateColumns = 'minmax(0,1fr) 140px auto'; host.appendChild(t);
       t.innerHTML = '<span class="fm-lbl">Extra</span><span class="fm-lbl">Precio (' + esc(m.moneda || 'EUR') + ')</span><span class="fm-lbl">Se ofrece</span>';
-      var ins = D.extras.map(function (e) {
+      var ins = activos.map(function (e) {
         var ex = porExtra[e.id] || null;
         var n = document.createElement('span'); n.textContent = e.nombre; n.style.fontWeight = '600'; t.appendChild(n);
         var p = document.createElement('input'); p.className = 'fm-in'; p.type = 'text'; p.inputMode = 'decimal'; p.value = ex && ex.precio != null ? ex.precio : ''; p.placeholder = 'sin precio'; t.appendChild(p);
@@ -635,15 +659,61 @@
         return rpc(ctx.sb, 'modelo_extras_guarda', { p_id: m.id, p_extras: lista });
       };
     } : null });
+
+    if (EST.admin) {
+      var bA = document.createElement('button'); bA.type = 'button'; bA.className = 'fm-ed'; bA.textContent = 'Añadir extra';
+      bA.setAttribute('data-real', ''); bA.setAttribute('data-accion', 'anadir-extra');
+      bA.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        abreEdicion(b, function (host) {
+          var n = campo(host, 'Nombre del extra', '', { ph: 'p. ej. Piscina infinita' });
+          var d = campo(host, 'Descripción (web y contrato)', '', { area: 1, filas: 3 });
+          var p = campo(host, 'Precio en ' + m.nombre + ' (' + (m.moneda || 'EUR') + ')', '', { num: 1 });
+          nota(host, 'Se ofrece solo en ' + m.nombre + '. En los demás modelos aparece como «no se ofrece» hasta que le pongas precio en su ficha.');
+          return function () {
+            var nombre = n.value.trim();
+            if (!nombre) throw new Error('Pon el nombre del extra');
+            var precio = chk(num(p.value), 'El precio');
+            if (precio == null) throw new Error('Pon el precio del extra en este modelo');
+            return rpc(ctx.sb, 'extra_crea', { p_modelo_id: m.id, p_datos: { nombre: nombre, descripcion: d.value.trim(), precio: precio } });
+          };
+        });
+      });
+      b.cab.appendChild(bA);
+
+      if (D.extras.length) {
+        var bC = document.createElement('button'); bC.type = 'button'; bC.className = 'fm-ed'; bC.textContent = 'Catálogo';
+        bC.setAttribute('data-real', ''); bC.setAttribute('data-accion', 'catalogo-extras');
+        bC.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          abreEdicion(b, function (host) {
+            nota(host, 'Retirar un extra lo quita de TODOS los modelos: deja de salir en contratos nuevos y en la web. Nunca se borra y se puede reactivar.');
+            var ins = D.extras.map(function (e) {
+              return { e: e, c: casilla(host, e.nombre, e.activo !== false, e.activo === false ? 'Retirado del catálogo' : 'En el catálogo') };
+            });
+            return function () {
+              var cambios = ins.filter(function (r) { return r.c.checked !== (r.e.activo !== false); })
+                .map(function (r) { return { id: r.e.id, cambios: { activo: r.c.checked } }; });
+              if (!cambios.length) return Promise.resolve();
+              return guardaCatalogoExtras(ctx, cambios, false);
+            };
+          });
+        });
+        b.cab.appendChild(bC);
+      }
+      b.h.style.flex = '1';
+    }
+
     if (!D.extras.length) { vacio(b.cuerpo, 'No hay extras en el catálogo.'); return; }
-    var ofrecidos = D.extras.filter(function (e) { var x = porExtra[e.id]; return !x || x.disponible !== false; }).length;
-    b.h.textContent = b.titulo = 'Extras · ' + ofrecidos + ' de ' + D.extras.length + ' se ofrecen';
+    var ofrecidos = activos.filter(function (e) { var x = porExtra[e.id]; return !x || x.disponible !== false; }).length;
+    b.h.textContent = b.titulo = 'Extras · ' + ofrecidos + ' de ' + activos.length + ' se ofrecen';
     var ch = document.createElement('div'); ch.className = 'fm-chips';
-    ch.innerHTML = D.extras.map(function (e) {
+    ch.innerHTML = activos.map(function (e) {
       var x = porExtra[e.id]; var no = x && x.disponible === false;
       return '<span class="fm-chip' + (no ? ' fm-no' : '') + '">' + esc(e.nombre) + (x && x.precio != null ? ' · ' + esc(ctx.fmt(x.precio, x.moneda || m.moneda)) : '') + '</span>';
     }).join('');
     b.cuerpo.appendChild(ch);
+    if (retirados.length) nota(b.cuerpo, 'Retirados del catálogo: ' + retirados.map(function (e) { return e.nombre; }).join(', ') + '.');
   }
 
   function bAcabados(col, m, ctx) {

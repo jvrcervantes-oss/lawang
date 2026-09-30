@@ -5702,7 +5702,7 @@
       var pon = function (k, v, raiz) { var e = $(k, raiz); if (e) e.textContent = v; };
 
       Promise.all([
-        q(sb.from('modelos').select('id,slug,nombre,dormitorios,banos,villa_m2,terraza_m2,descripcion,precio_construccion,moneda,publicado,activo,renders_pendientes,alcance,acabados,notas,orden').order('orden', { ascending: true, nullsFirst: false }), 'modelos'),
+        q(sb.from('modelos').select('id,slug,nombre,dormitorios,banos,villa_m2,terraza_m2,descripcion,precio_construccion,precio_construccion_2027,moneda,publicado,activo,renders_pendientes,alcance,acabados,notas,orden').order('orden', { ascending: true, nullsFirst: false }), 'modelos'),
         // `modelo` (texto): para avisar de las unidades que NOMBRAN un modelo sin estar
         // enlazadas a él (revisión previa #56: 81 «Dream» de Sumba Hills).
         q(sb.from('unidades').select('modelo_id,modelo,proyecto,proyecto_id'), 'unidades por modelo'),
@@ -5731,8 +5731,9 @@
         // 30-sep-2026: `activo` y `alcance` (+ la lista de proyectos del alcance) para que la ficha
         // dé de alta, retire y limite techos. Aquí llegan TAMBIÉN los retirados: la ficha los enseña
         // apagados para poder reactivarlos. Lo que se ofrece en el contrato lo decide el servidor.
-        q(sb.from('modelo_techos').select('id,modelo_id,clave,nombre,descripcion,precio_ahora,precio_2027,orden,activo,alcance'), 'techos'),
-        q(sb.from('extras').select('id,nombre,orden').eq('activo', true).order('orden', { ascending: true, nullsFirst: false }), 'extras'),
+        q(sb.from('modelo_techos').select('id,modelo_id,clave,nombre,descripcion,suplemento_ahora,suplemento_2027,es_base,orden,activo,alcance'), 'techos'),
+        // 30-sep-2026: TODOS los extras (también los retirados), para poder reactivarlos desde la ficha.
+        q(sb.from('extras').select('id,clave,nombre,descripcion,orden,activo').order('orden', { ascending: true, nullsFirst: false }), 'extras'),
         q(sb.from('modelo_extras').select('id,modelo_id,extra_id,precio,moneda,disponible'), 'extras por modelo'),
         q(sb.from('modelo_techo_proyectos').select('techo_id,proyecto_id'), 'proyectos de cada techo')
       ]).then(function (r) {
