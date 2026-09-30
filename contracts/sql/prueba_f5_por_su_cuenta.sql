@@ -884,3 +884,8 @@ end $$;
 -- diferencia positiva toma numero = nextval de comisiones_diferencias_seq. Secuencias DIF 110, RP 253, CLI 234 intactas.
 -- SP pasó de 84 a 85 y hay 12 devengos / 11 solicitudes: es un devengo REAL del recálculo (estándar de RP00161, 12:24:40
 -- UTC, solicitud 85), ajeno a la prueba; los 11 devengos y 10 solicitudes de antes dan las mismas huellas (c910c5b5…, c4889d99…).
+-- 30-sep 13:31 UTC, bloque 2 tal cual ef12d849 tras 20260930132132_law474_arreglos_revisor (y con 20260930131454_f5b ya
+-- aplicada): P1-P18 ok (19/19, con P12b). Huellas devengos 12:9cab39cb… y solicitudes 11:180ec74b… iguales antes (13:18)
+-- y después; 0 diferencias. Series SP 85, DIF 110, RP 253, CLI 234 intactas (solo avanza el id interno de
+-- comisiones_ajustes_log, 220→238, que no es numeración de negocio). El DROP/CREATE de los triggers sigue en
+-- supabase/pendientes/ (lo frenó no_destruir): los triggers vivos ya llaman a la función nueva.
