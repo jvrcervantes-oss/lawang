@@ -89,7 +89,9 @@ const casaPuerta = (p, clave, rol, donde) => {
 };
 MENU.forEach(s => s.entradas.forEach(e => {
   const donde = `${s.seccion} › ${e.texto}`;
-  if (e.clave) enMenu.push(e.clave);
+  // `mismaCasilla` (30-sep-2026, Emitir contrato): la entrada abre con la casilla de OTRA entrada a propósito;
+  // no cuenta como casilla repetida, pero su puerta sí se casa abajo (casaPuerta) como la de cualquiera.
+  if (e.clave && !e.mismaCasilla) enMenu.push(e.clave);
   (e.claves || []).forEach(c => enMenu.push(c.clave));
   (e.extra || []).forEach(c => enMenu.push(c.clave));
   if (e.path) casaPuerta(e.path, e.clave || (e.claves || []).map(c => c.clave).join(','), e.rol, donde);

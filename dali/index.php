@@ -121,7 +121,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
      posible: fija el idioma y la tipografia antes del primer pintado. El
      diccionario de landings sí puede diferirse: traduce sobre el DOM ya montado. -->
 <script src="/assets/idioma-web.js?v=20260908113407"></script>
-<script src="/assets/i18n-landing.js?v=20260930110400" defer></script>
+<script src="/assets/i18n-landing.js?v=20260930150229" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>100% Freehold Architectural Villas in Bali &amp; Sumba — Lawang Tropical Properties</title>
 <meta name="description" content="Turnkey architectural villas in Bali &amp; Sumba. Fixed-price written EPC contract, land ready with power, water and permits. From <?= lw_e(lw_aud_fmt($DALI['desde_eur'])) ?>.">
@@ -514,7 +514,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 <!-- Sin `defer`: la llama el script inline de abajo en el mismo pase de parseo, y un
      `defer` aqui la dejaria definida DESPUES de que el inline intente llamarla (los
      `defer` se ejecutan al final del parseo, los inline no). -->
-<script src="/assets/au-landing-cfg.js?v=20260930110400"></script>
+<script src="/assets/au-landing-cfg.js?v=20260930150229"></script>
 <script>
 (function () {
   'use strict';

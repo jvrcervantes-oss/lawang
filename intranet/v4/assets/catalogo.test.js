@@ -92,8 +92,10 @@ if (!ctxN.__P.some(p => p[0] === 'plantillas')) errores.push('catálogo con la b
     if (/\bsb\.from\(|\/rest\/v1\//.test(b)) errores.push((i ? 'editores' : 'datos') + '.js (plantillas): toca tablas directamente; lee por lwDatos y escribe por RPC');
   });
   const rpcs = [...ej.matchAll(/sb\.rpc\('([a-z_]+)'/g)].map(m => m[1]).sort();
-  const LLAMADAS = ['plantilla_borrador_descarta', 'plantilla_borrador_guarda', 'plantilla_version_activa', 'tipo_contrato_guarda'];
-  if (JSON.stringify([...new Set(rpcs)].sort()) !== JSON.stringify(LLAMADAS)) errores.push('editores.js (plantillas): RPC distintas de las cuatro de la base: ' + rpcs.join(', '));
+  // plantilla_simula (30-sep-2026, MVP de tipos de contrato): la revisión obligatoria antes de activar una versión de
+  // texto plano simula en el servidor; sigue siendo lectura, no escritura.
+  const LLAMADAS = ['plantilla_borrador_descarta', 'plantilla_borrador_guarda', 'plantilla_simula', 'plantilla_version_activa', 'tipo_contrato_guarda'];
+  if (JSON.stringify([...new Set(rpcs)].sort()) !== JSON.stringify(LLAMADAS)) errores.push('editores.js (plantillas): RPC distintas de las cinco de la base: ' + rpcs.join(', '));
   // La casilla del descargo nace DESMARCADA y el botón deshabilitado: lo exige también la base (falta_descargo).
   if (!/chk\.checked = false/.test(ej) || !/texto: 'Activar esta versión', tono: 'primario', disabled: true/.test(ej)) errores.push('editores.js (plantillas): activar no nace con la casilla desmarcada y el botón deshabilitado');
   if (!/setAttribute\('sandbox', ''\)/.test(ej)) errores.push('editores.js (plantillas): la vista previa no va en un iframe sandbox=""');
