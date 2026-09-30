@@ -1005,8 +1005,6 @@ function abrirFicha(l){
       <textarea id="nota" placeholder="${lwT('Qué ha pasado con este lead…')}"></textarea>
       <div style="margin-top:8px"><button class="btn" id="guardarNota"><i class="ph ph-plus"></i>${lwT('Añadir nota')}</button></div>
       <div id="hilo" style="margin-top:16px"><p class="vacio">${lwT('Cargando actividad…')}</p></div>
-      ${FICHA && (FICHA.rol === 'super_admin' || (FICHA.herramientas || []).includes('closers'))
-        ? '<p class="lb">' + lwT('Llamada de venta (Fathom.ai)') + '</p><div id="fathom"><p class="vacio">' + lwT('Cargando…') + '</p></div>' : ''}
     </div>`;
   document.body.append(velo, c);
   c.querySelector('.cerrar').onclick = cerrarFicha;
@@ -1018,7 +1016,6 @@ function abrirFicha(l){
   pintarProximoPaso(l);
   pintarHaciaContrato(l);
   pintarHilo(l);
-  if(c.querySelector('#fathom')) pintarFathom(l);
 }
 
 /* ---------- quién lleva el lead ----------
@@ -1267,24 +1264,6 @@ async function dialogoHaciaContrato(l){
     location.href = '/contracts/app.html?cliente=' + encodeURIComponent(ficha.client_id)
       + '&lead=' + encodeURIComponent(l.id);
   };
-}
-
-/* El owner todavía no tiene cuenta de Fathom.ai (10-sep-2026): esto siempre
-   enseña "sin llamadas registradas todavía" en producción hasta que exista el
-   primer webhook real — nunca se inventa una fila de ejemplo aquí. */
-async function pintarFathom(l){
-  const caja = document.querySelector('#fathom'); if(!caja) return;
-  const { data, error } = await SB.rpc('crm_lead_fathom', { p_lead: l.id });
-  if(error){ caja.innerHTML = '<p class="vacio">' + lwT('No se pudo leer.') + '</p>'; return; }
-  if(!data || !data.length){ caja.innerHTML = '<p class="vacio">' + lwT('Sin llamadas registradas todavía.') + '</p>'; return; }
-  caja.innerHTML = data.map(f => `
-    <div class="dato" style="display:block;padding:10px 0">
-      <div style="font-size:11.5px;color:var(--mist);margin-bottom:4px">${esc(fechaHora(f.procesado_en))}</div>
-      ${f.resumen ? `<p style="margin:0 0 6px">${esc(f.resumen)}</p>` : ''}
-      ${(f.objeciones || []).length ? '<p class="lb" style="margin:10px 0 4px">' + lwT('Objeciones') + '</p>' +
-        f.objeciones.map(o => `<span class="chip rojo" style="margin:2px">${esc(typeof o === 'string' ? o : (o.text || JSON.stringify(o)))}</span>`).join('') : ''}
-      ${f.recording_url ? `<div style="margin-top:8px"><a class="btn mini" target="_blank" rel="noopener" href="${esc(f.recording_url)}"><i class="ph ph-play"></i>${lwT('Ver grabación')}</a></div>` : ''}
-    </div>`).join('');
 }
 
 /* El contacto se pide de uno en uno y la petición queda registrada en la base
