@@ -6850,16 +6850,18 @@
       /* PLANTILLA CSV del parcelario (30-sep-2026, owner: «necesito una plantilla»).
          Por proyecto: si ya tiene unidades, salen con sus datos para editar y
          volver a importar; si no, cabecera y una fila de ejemplo. La cabecera
-         son las claves de LW_CSV_COLUMNAS (proyectos_csv.js), no una lista
-         aparte: si el importador aprende una columna, la plantilla no se queda
-         atrás. `estado` y `contrato_id` no van, el importador los ignora. */
+         es LW_CSV_PLANTILLA_COLS (proyectos_csv.js, con un test que exige que
+         todas sean columnas que el importador reconoce). El select y el orden
+         de las filas de abajo van a mano y deben seguir ese orden.
+         `estado` y `contrato_id` no van, el importador los ignora. */
       var bPlantilla = document.getElementById('btn-plantilla-csv');
       if (bPlantilla) bPlantilla.addEventListener('click', function (ev) {
         ev.stopPropagation();
         var p = proyectoObj();
         if (!p) return aviso('Abre primero un proyecto: la plantilla es de un proyecto.', '#8A6A34');
         aviso('Preparando la plantilla de ' + p.nombre + '…');
-        var cols = ['codigo', 'proyecto', 'tipo', 'modelo', 'superficie_m2', 'precio_suelo', 'precio_construccion', 'precio', 'moneda', 'notas', 'fase', 'zona'];
+        if (typeof LW_CSV_PLANTILLA_COLS === 'undefined') return aviso('El importador no ha cargado (proyectos_csv.js). Recarga la página.', '#ba1a1a');
+        var cols = LW_CSV_PLANTILLA_COLS;
         sb.from('unidades').select('codigo,tipo,modelo,superficie_m2,precio_suelo,precio_construccion,precio,moneda,notas,fase_masterplan,zona_masterplan')
           .eq('proyecto_id', p.id).order('codigo_orden').range(0, 999).then(function (r) {
             if (r.error) return aviso('No se pudo preparar la plantilla: ' + r.error.message, '#ba1a1a');
