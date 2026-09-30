@@ -1,3 +1,7 @@
+-- PENDIENTE DE APLICAR (30-sep-2026): escrita en F5b, el apply por MCP lo denegó el clasificador de permisos.
+-- NO aterrizar la pantalla F5b sin aplicarla antes: sin ella el campo Venta dice «no he podido comprobar» y la
+-- bandeja del SM enseña dos errores de lectura. Al aplicarla: apply_migration + tools/supabase_fetch_seguro.py
+-- (baja el fichero con su versión real a migrations/) y borrar este.
 -- F5b · pantallas de «por su cuenta» (30-sep-2026, encargo 20260930_lawang_equipos_venta_asistente).
 -- Solo exposición y lectura: NO toca contrato_guarda, el motor ni el interruptor (sigue APAGADO; se enciende
 -- después con la consulta de Administración). Reducir la exposición: cada pieza lleva su llamador con nombre.
