@@ -770,14 +770,15 @@ function buildAnnexPanel(){
       <div class="dz-row"><label class="switch"><input type="checkbox" data-anxon="${id}" ${a.on?'checked':''}><span class="slider"></span></label>
         <span>Incluir en el contrato</span></div>
     </div>`;
-  }).join('') || `<div class="dz" style="color:var(--muted);font-size:12.5px">Aún no hay anexos. Sube un PDF o imágenes para definirlos.</div>`;
+  }).join('') || `<div class="dz" style="color:var(--muted);font-size:12.5px">Aún no hay anexos. Sube un PDF o imágenes desde el ordenador, o elige uno ya subido a la intranet.</div>`;
   const c = contratoParaAnexos();
   const subir = SUBIDA_ANEXO
     ? `<div class="dz" style="color:var(--muted);font-size:12.5px" id="anxUpLabel" role="status">${escAttr(SUBIDA_ANEXO)}</div>`
     : !c.id
     ? `<div class="dz" style="color:var(--muted);font-size:12.5px">Guarda el contrato para poder añadirle anexos: las páginas se guardan con él.</div>`
     : c.bloqueado ? ''
-    : `<div class="dz"><label class="up" id="anxUpLabel">+ Añadir anexo (PDF o imágenes)<input type="file" id="anxFile" accept="application/pdf,image/*" multiple></label></div>`;
+    : `<div class="dz" style="display:flex;flex-wrap:wrap;gap:8px"><label class="up" id="anxUpLabel">+ Subir desde el ordenador (PDF o imágenes)<input type="file" id="anxFile" accept="application/pdf,image/*" multiple></label>`
+      + `<button type="button" class="up" data-accion="anexo-intranet">+ Elegir de la intranet</button></div>`;
   // Seguridad (revisión previa LAW-78): un pasaporte subido aquí acaba impreso en el
   // contrato y en cada copia que se manda. La identidad va a la ficha del comprador.
   const kyc = `<div class="dz" style="color:var(--muted);font-size:12px">Los documentos de identidad (pasaporte, KTP, NPWP) van a la ficha del comprador (KYC), no aquí.</div>`;
@@ -793,27 +794,46 @@ function buildAnnexPanel(){
 function wireAnnexPanel(){
   const p=$('#annexPanel'); if(!p) return;
   const inp=$('#anxFile');
-  if(inp) inp.addEventListener('change', async e=>{
+  if(inp) inp.addEventListener('change', e=>{
     const files=[...e.target.files]; if(!files.length) return;
-    const c = contratoParaAnexos();
-    if(!c.id){ toastMal('Guarda el contrato antes de añadirle anexos: las páginas se guardan con él.'); return; }
-    if(c.bloqueado){ toastMal('Este contrato está enviado a firma o bloqueado: no admite anexos nuevos.'); return; }
-    // El panel se repinta durante la subida: el progreso se escribe en SUBIDA_ANEXO y en el
-    // #anxUpLabel que haya EN ESE MOMENTO, nunca en una referencia vieja que ya no está en la página.
-    const avisa = t => { SUBIDA_ANEXO = t; const l = $('#anxUpLabel'); if(l) l.textContent = t; };
-    avisa('Procesando…'); rebuildAnnex();
-    /* Cada fichero es un anexo: se convierte a páginas (tope de MEMORIA del navegador,
-       no del servidor), se sube página a página por la edge y solo entra en la lista
-       cuando TODAS han llegado y su huella cuadra. Uno que falla no entra, y se dice
-       en qué página; lo que llegó a subirse lo recoge el barrido. */
-    for(const f of files){
+    anadeAnexosDeFicheros(files.map(f => ({ file:f, titulo:f.name.replace(/\.[^.]+$/,'') })));
+  });
+  p.addEventListener('change', e=>{
+    const on=e.target.closest('[data-anxon]'); if(on){ const a=ANNEXES.find(x=>x.id===on.dataset.anxon); if(a){ a.on=on.checked; saveAnnexes(); render(); } return; }
+    const t=e.target.closest('[data-anxtitle]'); if(t){ const a=ANNEXES.find(x=>x.id===t.dataset.anxtitle); if(a){ a.title=t.value; saveAnnexes(); render(); } }
+  });
+  p.addEventListener('click', e=>{
+    if(e.target.closest('[data-accion="anexo-intranet"]')){ eligeAnexoDeIntranet(); return; }
+    const d=e.target.closest('[data-anxdel]'); if(d){ ANNEXES=ANNEXES.filter(x=>x.id!==d.dataset.anxdel); saveAnnexes(); rebuildAnnex(); render(); }
+  });
+}
+
+/* EL MISMO CAMINO PARA LO QUE SE SUBE Y LO QUE SE ELIGE — 30-sep-2026, owner («que te deje
+   seleccionar desde los archivos que hay en la intranet ya subidos»). Un fichero del
+   ordenador y uno de la intranet pasan por aquí igual: se convierten a páginas, se suben
+   por la edge y entran solo si TODAS llegaron con su huella. Un documento de la intranet
+   se COPIA al anexo (sus páginas quedan en el contrato): si luego cambia en Proyectos o en
+   Modelos, lo que se firmó no cambia con él. `items` = [{file, titulo}]. */
+async function anadeAnexosDeFicheros(items){
+  const c = contratoParaAnexos();
+  if(!c.id){ toastMal('Guarda el contrato antes de añadirle anexos: las páginas se guardan con él.'); return; }
+  if(c.bloqueado){ toastMal('Este contrato está enviado a firma o bloqueado: no admite anexos nuevos.'); return; }
+  // El panel se repinta durante la subida: el progreso se escribe en SUBIDA_ANEXO y en el
+  // #anxUpLabel que haya EN ESE MOMENTO, nunca en una referencia vieja que ya no está en la página.
+  const avisa = t => { SUBIDA_ANEXO = t; const l = $('#anxUpLabel'); if(l) l.textContent = t; };
+  avisa('Procesando…'); rebuildAnnex();
+  /* Cada fichero es un anexo: se convierte a páginas (tope de MEMORIA del navegador,
+     no del servidor), se sube página a página por la edge y solo entra en la lista
+     cuando TODAS han llegado y su huella cuadra. Uno que falla no entra, y se dice
+     en qué página; lo que llegó a subirse lo recoge el barrido. */
+  for(const { file:f, titulo } of items){
       const libre = TOPE_MEMORIA_BYTES - pesoAnexosEnMemoria();
       let nuevo = null;
       try{
         if(libre <= 0) throw Object.assign(new Error('sin sitio'), { tope:{ paginas:0, total:0, bytes:0 } });
         const pages = await fileToAnnexPages(f, libre);
         if(pages.length > MAX_PAGINAS_FICHERO) throw new Error('tiene ' + pages.length + ' páginas y el máximo por fichero son ' + MAX_PAGINAS_FICHERO);
-        nuevo = { id:idAnexoNuevo(), title:f.name.replace(/\.[^.]+$/,''), pages, on:true, estado:'subiendo' };
+        nuevo = { id:idAnexoNuevo(), title:titulo || f.name.replace(/\.[^.]+$/,''), pages, on:true, estado:'subiendo' };
         ANNEXES.push(nuevo); rebuildAnnex();
         avisa('Subiendo «' + nuevo.title + '»…');
         const filas = await subePaginasAnexo(c.id, nuevo.id, pages, (k, n) => avisa('Subiendo «' + nuevo.title + '»: ' + k + ' de ' + n + '…'));
@@ -830,16 +850,115 @@ function wireAnnexPanel(){
           toastMal('«' + f.name + '» no se ha subido: falló la página ' + err.pagina + ' (' + err.message + '). No se ha añadido; prueba otra vez.');
         }else toastMal('No se pudo procesar '+f.name+' ('+((err && err.message) || 'error')+')');
       }
-    }
-    SUBIDA_ANEXO = ''; saveAnnexes(); rebuildAnnex(); render();
+  }
+  SUBIDA_ANEXO = ''; saveAnnexes(); rebuildAnnex(); render();
+}
+
+/* ELEGIR UN ANEXO DE LO QUE YA ESTÁ SUBIDO A LA INTRANET — 30-sep-2026, owner.
+   ═══════════════════════════════════════════════════════════════════════════
+   Dos fuentes, las dos con la sesión del usuario (la RLS decide qué ve cada uno; aquí
+   no se abre nada nuevo ni se pasa por ningún endpoint):
+     · Documentación de proyectos (`documentos_proyecto`, bucket `documentacion`): solo
+       las filas con fichero (`path`; las de `url` son enlaces) y que sean PDF o imagen.
+       La policy del bucket (`agente_ve_documento_proyecto`) usa el MISMO criterio que la
+       de la tabla (general o puede_proyecto), así que lo que se lista se puede bajar.
+     · Documentos de Modelos (`modelo_documentos`, bucket `modelos`): no tienen `mime`,
+       se deduce de la extensión (fileToAnnexPages decide PDF/imagen por tipo o nombre).
+   FUERA A PROPÓSITO: KYC, justificantes de pago y contratos firmados. Son de una persona
+   concreta y un anexo acaba impreso en el contrato y en cada copia que se manda (misma
+   regla que el aviso de identidad del panel, revisión previa LAW-78).
+   `confidencial` es «no compartir con clientes» (Proyectos; el bot de agentes los
+   excluye). Se listan igual —el campo nace marcado por defecto y la mayoría lo llevan—
+   pero MARCADOS, y elegir uno pide confirmación de peligro: el anexo lo recibe el comprador. */
+const EXT_ANEXO = { pdf:'application/pdf', jpg:'image/jpeg', jpeg:'image/jpeg', png:'image/png', webp:'image/webp', gif:'image/gif' };
+function mimeAnexo(mime, path){
+  const m = String(mime || '').toLowerCase();
+  if(m === 'application/pdf' || m.startsWith('image/')) return m;
+  const ext = (String(path || '').toLowerCase().match(/\.([a-z0-9]+)$/) || [])[1];
+  return EXT_ANEXO[ext] || '';
+}
+const mbCorto = n => n ? ' · ' + (n / 1048576).toLocaleString('es-ES', { maximumFractionDigits:1 }) + ' MB' : '';
+
+/* Lista del selector. Función pura (la recorre documento_anexos.test.js). Primero lo del
+   proyecto de ESTE contrato y lo general, después los documentos del modelo elegido, y al
+   final el resto. `ctx` = { proyecto, tipologia, modelos:[{id,nombre}], autoIds:Set }. */
+function opcionesAnexoIntranet(docs, mods, ctx){
+  ctx = ctx || {};
+  const proy = String(ctx.proyecto || '').trim().toLowerCase();
+  const tip = String(ctx.tipologia || '').trim().toLowerCase();
+  const nomModelo = {}; (ctx.modelos || []).forEach(m => { if(m && m.id) nomModelo[m.id] = m.nombre; });
+  const auto = ctx.autoIds || new Set();
+  const out = [];
+  (docs || []).forEach(d => {
+    if(!d || !d.path) return;
+    const mime = mimeAnexo(d.mime, d.path); if(!mime) return;
+    const deAqui = proy && String(d.proyecto || '').trim().toLowerCase() === proy;
+    const donde = d.general ? 'General' : (d.proyecto || 'Sin proyecto');
+    out.push({ valor:'doc:' + d.id, texto:d.titulo || d.path.split('/').pop(),
+      nota:'Documentación · ' + donde + (d.categoria ? ' · ' + d.categoria : '') + mbCorto(d.bytes) + (d.confidencial ? ' · CONFIDENCIAL' : ''),
+      rango: deAqui ? 0 : (d.general ? 1 : 3), bucket:'documentacion', path:d.path, mime, titulo:d.titulo || '', confidencial:!!d.confidencial });
   });
-  p.addEventListener('change', e=>{
-    const on=e.target.closest('[data-anxon]'); if(on){ const a=ANNEXES.find(x=>x.id===on.dataset.anxon); if(a){ a.on=on.checked; saveAnnexes(); render(); } return; }
-    const t=e.target.closest('[data-anxtitle]'); if(t){ const a=ANNEXES.find(x=>x.id===t.dataset.anxtitle); if(a){ a.title=t.value; saveAnnexes(); render(); } }
+  (mods || []).forEach(d => {
+    if(!d || !d.path) return;
+    const mime = mimeAnexo('', d.path); if(!mime) return;
+    const modelo = nomModelo[d.modelo_id] || 'Modelo';
+    const yaVa = auto.has('axauto-' + d.id);
+    out.push({ valor:'mod:' + d.id, texto:d.nombre || d.path.split('/').pop(),
+      nota:'Modelos · ' + modelo + (d.tipo ? ' · ' + d.tipo : '') + mbCorto(d.tamano_bytes) + (yaVa ? ' · YA VA en el contrato (automático)' : ''),
+      rango: tip && String(modelo).trim().toLowerCase() === tip ? 2 : 4, bucket:'modelos', path:d.path, mime, titulo:d.nombre || '', yaVa });
   });
-  p.addEventListener('click', e=>{
-    const d=e.target.closest('[data-anxdel]'); if(d){ ANNEXES=ANNEXES.filter(x=>x.id!==d.dataset.anxdel); saveAnnexes(); rebuildAnnex(); render(); }
-  });
+  return out.sort((a, b) => a.rango - b.rango || a.texto.localeCompare(b.texto, 'es'));
+}
+
+async function eligeAnexoDeIntranet(){
+  if(SUBIDA_ANEXO) return;                       // una a la vez: el panel ya lo dice
+  const c = contratoParaAnexos();
+  if(!c.id){ toastMal('Guarda el contrato antes de añadirle anexos: las páginas se guardan con él.'); return; }
+  if(c.bloqueado){ toastMal('Este contrato está enviado a firma o bloqueado: no admite anexos nuevos.'); return; }
+  if(typeof window.lwElegir !== 'function'){ toastMal('No ha cargado el selector (dialogo.js): recarga la página.'); return; }
+  const campo = n => { const el = document.querySelector('[name="' + n + '"]'); return el ? String(el.value || '').trim() : ''; };
+  let ops;
+  try{
+    const [rd, rm] = await Promise.all([
+      sb.from('documentos_proyecto').select('id, proyecto, categoria, titulo, path, mime, bytes, confidencial, general').not('path', 'is', null),
+      sb.from('modelo_documentos').select('id, modelo_id, nombre, path, tipo, tamano_bytes'),
+    ]);
+    if(rd.error) throw rd.error;
+    if(rm.error) throw rm.error;
+    ops = opcionesAnexoIntranet(rd.data, rm.data, {
+      proyecto: campo('proyecto_nombre'), tipologia: campo('tipologia_construccion'),
+      modelos: (typeof CATALOGO_MODELOS !== 'undefined' && CATALOGO_MODELOS && CATALOGO_MODELOS.catalogo) || [],
+      autoIds: new Set(ANNEXES.filter(a => a.auto).map(a => a.id)) });
+  }catch(e){
+    toastMal('No se ha podido consultar los documentos de la intranet: ' + ((e && e.message) || 'error'));
+    return;
+  }
+  if(!ops.length){ toast('No hay documentos en la intranet que puedas adjuntar (PDF o imagen).'); return; }
+  const v = await window.lwElegir({ titulo:'Elegir anexo de la intranet', buscarPh:'Busca por nombre, proyecto o modelo…', opciones:ops });
+  if(v === null || v === undefined) return;
+  const op = ops.find(o => o.valor === v); if(!op) return;
+  if(op.yaVa && !(await lwConfirmar({ titulo:'Ese documento ya va en el contrato',
+      cuerpo:'«' + escAttr(op.texto) + '» se adjunta automáticamente desde Modelos. Si lo añades también a mano, saldrá dos veces.',
+      confirmar:'Añadirlo otra vez' }))) return;
+  if(op.confidencial && !(await lwConfirmar({ titulo:'Documento confidencial', tono:'peligro',
+      cuerpo:'«' + escAttr(op.texto) + '» está marcado como <b>confidencial (no compartir con clientes)</b>. Un anexo lo recibe el comprador con el contrato y en cada copia.',
+      confirmar:'Adjuntarlo igualmente' }))) return;
+  SUBIDA_ANEXO = 'Descargando «' + op.texto + '»…'; rebuildAnnex();
+  let file;
+  try{
+    const { data:url, error } = await sb.storage.from(op.bucket).createSignedUrl(op.path, 300);
+    if(error || !url || !url.signedUrl) throw (error || new Error('sin acceso al fichero'));
+    const r = await fetch(url.signedUrl);
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const blob = await r.blob();
+    const nombre = op.path.split('/').pop();
+    file = new File([blob], nombre, { type: blob.type && blob.type !== 'application/octet-stream' ? blob.type : op.mime });
+  }catch(e){
+    SUBIDA_ANEXO = ''; rebuildAnnex();
+    toastMal('No se ha podido descargar «' + op.texto + '»: ' + ((e && e.message) || 'error') + '. No se ha añadido.');
+    return;
+  }
+  await anadeAnexosDeFicheros([{ file, titulo: op.titulo || op.texto }]);
 }
 function rebuildAnnex(){ const old=$('#annexPanel'); if(old){ old.outerHTML=buildAnnexPanel(); wireAnnexPanel(); wireAccordions(); } }
 

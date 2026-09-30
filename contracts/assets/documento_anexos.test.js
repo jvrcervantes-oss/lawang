@@ -398,5 +398,66 @@ function montar(o) {
   assert.deepStrictEqual(JSON.parse(JSON.stringify(ctxD.r)), [{ id: 'axauto', auto: 'Dali', pages: [] }]);
   assert.ok(!/data:/.test(almacen.lawang_contract_annexes), 'en el navegador ya no quedan bytes: ' + almacen.lawang_contract_annexes);
 
+  // 14. Elegir anexo de la intranet (30-sep-2026): la lista. Solo ficheros PDF/imagen, lo
+  //     del proyecto del contrato primero, lo confidencial y lo que ya va automático, marcados.
+  m = montar({});
+  m.ctx.DOCS14 = [
+    { id: 'd1', proyecto: 'Bonian Village', titulo: 'Masterplan', path: 'proyectos/b/m.pdf', mime: 'application/pdf', bytes: 2097152, confidencial: true },
+    { id: 'd2', proyecto: 'Mejan Village S7', titulo: 'Alzado', path: 'proyectos/m/a.webp', mime: 'image/webp' },
+    { id: 'd3', proyecto: 'Bonian Village', titulo: 'Enlace', path: null, url: 'https://x' },
+    { id: 'd4', proyecto: 'Bonian Village', titulo: 'Hoja', path: 'proyectos/b/h.xlsx', mime: 'application/vnd.ms-excel' },
+    { id: 'd5', proyecto: null, general: true, titulo: 'Condiciones generales', path: 'proyectos/g/c.pdf', mime: 'application/pdf' },
+  ];
+  m.ctx.MODS14 = [
+    { id: 'd-sirap', modelo_id: 'dali-id', nombre: 'Dali Sirap Anexo', path: 'dali-id/sirap.pdf', tipo: 'plano' },
+    { id: 'o1', modelo_id: 'otro', nombre: 'Folleto', path: 'otro/f.PDF', tipo: 'comercial' },
+  ];
+  const ops = m.lee(`opcionesAnexoIntranet(DOCS14, MODS14, { proyecto: 'Bonian Village', tipologia: 'Dali',
+    modelos: [{ id: 'dali-id', nombre: 'Dali' }], autoIds: new Set(['axauto-d-sirap']) })`);
+  assert.deepStrictEqual([...ops.map(o => o.valor)], ['doc:d1', 'doc:d5', 'mod:d-sirap', 'doc:d2', 'mod:o1'],
+    'orden: su proyecto, lo general, su modelo, el resto; sin enlaces ni formatos que no se convierten');
+  assert.ok(/CONFIDENCIAL/.test(ops[0].nota) && ops[0].confidencial, 'lo confidencial se ve en la lista');
+  assert.ok(ops[2].yaVa && /YA VA/.test(ops[2].nota), 'el documento que ya entra automático se marca');
+  assert.strictEqual(ops[4].mime, 'application/pdf', 'Modelos no tiene mime: sale de la extensión');
+  assert.strictEqual(ops[0].bucket, 'documentacion'); assert.strictEqual(ops[2].bucket, 'modelos');
+
+  // 15. El flujo: consulta cada tabla, elige, pide confirmación si es confidencial, baja
+  //     el fichero y lo pasa al MISMO camino que la subida desde el ordenador.
+  const flujo = async (o2) => {
+    const mm = montar({ contrato: C1 });
+    const pedidas = [], confirmaciones = [];
+    mm.ctx.sb = {
+      from: (t) => { pedidas.push(t); const resp = { data: t === 'documentos_proyecto' ? m.ctx.DOCS14 : m.ctx.MODS14, error: null };
+        const q = { select: () => q, not: () => q, eq: () => q, then: (f, r) => Promise.resolve(resp).then(f, r) }; return q; },
+      storage: { from: (b) => ({ createSignedUrl: (p) => Promise.resolve({ data: { signedUrl: 'https://f/' + b + '/' + p }, error: null }) }) },
+    };
+    mm.ctx.fetch = (u) => Promise.resolve(o2.bajaFalla ? { ok: false, status: 403 } : { ok: true, blob: () => Promise.resolve({ type: '', u }) });
+    mm.ctx.File = class { constructor(p, n, op) { this.p = p; this.name = n; this.type = op.type; } };
+    mm.ctx.lwElegir = () => Promise.resolve(o2.elige);
+    mm.ctx.lwConfirmar = (c) => { confirmaciones.push(c.titulo); return Promise.resolve(!!o2.acepta); };
+    mm.ctx.document = { querySelector: s => (s === '[name="proyecto_nombre"]' ? { value: 'Bonian Village' } : null) };
+    mm.lee('var CAPT = null; anadeAnexosDeFicheros = async (items) => { CAPT = items; }');
+    await mm.lee('eligeAnexoDeIntranet()');
+    return { mm, pedidas, confirmaciones, capt: mm.lee('CAPT') };
+  };
+  let f = await flujo({ elige: 'doc:d5' });
+  assert.deepStrictEqual([...f.pedidas].sort(), ['documentos_proyecto', 'modelo_documentos']);
+  assert.strictEqual(f.confirmaciones.length, 0, 'un documento normal no pide confirmación');
+  assert.ok(f.capt && f.capt.length === 1, 'pasa al camino de la subida');
+  assert.strictEqual(f.capt[0].titulo, 'Condiciones generales');
+  assert.strictEqual(f.capt[0].file.type, 'application/pdf', 'sin tipo en la descarga, se usa el deducido');
+  assert.strictEqual(f.capt[0].file.name, 'c.pdf');
+  f = await flujo({ elige: 'doc:d1', acepta: false });
+  assert.deepStrictEqual(f.confirmaciones, ['Documento confidencial']);
+  assert.strictEqual(f.capt, null, 'confidencial sin confirmar: no se adjunta');
+  f = await flujo({ elige: 'doc:d1', acepta: true });
+  assert.ok(f.capt && f.capt.length === 1, 'confidencial confirmado: se adjunta');
+  f = await flujo({ elige: 'doc:d2', bajaFalla: true });
+  assert.strictEqual(f.capt, null);
+  assert.ok(f.mm.males.some(t => /No se ha podido descargar «Alzado»: HTTP 403/.test(t)), JSON.stringify(f.mm.males));
+  assert.strictEqual(f.mm.lee('SUBIDA_ANEXO'), '', 'un fallo de descarga no deja el panel bloqueado');
+  f = await flujo({ elige: null });
+  assert.strictEqual(f.capt, null, 'cancelar no hace nada');
+
   console.log('documento_anexos.test.js OK');
 })().catch(e => { console.error(e); process.exit(1); });
