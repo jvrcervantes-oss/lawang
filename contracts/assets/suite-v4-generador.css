@@ -315,7 +315,8 @@ html.v4 #formaPagoBox{ container-type:inline-size; }
 /* ═══════════════════════════════════════════════════════════════════════════
    ASISTENTE DE NUEVO CONTRATO (F7, 30-sep-2026) — assets/asistente-contrato.js
    Capa encima del editor: pasos a la izquierda, una pregunta a la derecha.
-   Tokens de la v4 (nav-montaje.css + arriba); una sola primaria, laguna.
+   Tokens de la v4 (nav-montaje.css + arriba); una sola primaria, laguna. Rótulos
+   pequeños en --v4-outline y no en --v4-eyebrow: este da 2,9:1 sobre blanco (gate impeccable).
    Altura: por encima de .cp-overlay (80) y del menú (95), por debajo del
    toast (200), que tiene que seguir viéndose con el asistente abierto.
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -332,7 +333,7 @@ html.v4 .asi-caja{
 html.v4 .asi-cargando{ grid-template-columns:1fr; place-items:center; height:auto; padding:40px; color:var(--v4-outline); }
 html.v4 .asi-velo [data-ico]::before, html.v4 .asi-banda [data-ico]::before{ content:attr(data-ico); font-size:20px; line-height:1; }
 html.v4 .asi-pasos{ background:var(--v4-surface-low); padding:22px 14px; display:flex; flex-direction:column; gap:2px; min-height:0; }
-html.v4 .asi-pasos h4{ margin:0 10px 14px; font-size:13px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--v4-eyebrow); }
+html.v4 .asi-pasos h4{ margin:0 10px 14px; font-size:13px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--v4-outline); }
 html.v4 .asi-paso{
   display:flex; align-items:center; gap:10px; width:100%; padding:9px 10px; border:0; border-radius:999px;
   background:transparent; font:inherit; font-size:14px; color:var(--v4-outline); text-align:left; cursor:default;
@@ -347,18 +348,18 @@ html.v4 .asi-d{
 html.v4 .asi-paso.on .asi-d{ background:var(--v4-lagoon); color:#fff; }
 html.v4 .asi-paso.hecho .asi-d{ background:var(--v4-laguna-bg); color:var(--v4-lagoon); }
 html.v4 .asi-d [data-ico]::before{ font-size:15px; }
-html.v4 .asi-pie-lado{ margin-top:auto; padding:12px 10px 0; display:flex; flex-direction:column; gap:8px; font-size:12px; line-height:1.4; color:var(--v4-outline); }
+html.v4 .asi-pie-lado{ margin-top:auto; padding:12px 10px 0; display:flex; flex-direction:column; gap:8px; font-size:12px; line-height:1.4; color:var(--v4-ink-2); }
 html.v4 .asi-link{ border:0; background:none; padding:0; font:inherit; font-size:13px; color:var(--v4-lagoon); text-decoration:underline; text-underline-offset:3px; cursor:pointer; text-align:left; }
 html.v4 .asi-main{ display:flex; flex-direction:column; min-width:0; min-height:0; }
 html.v4 .asi-top{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px 0 28px; }
-html.v4 .asi-ctx{ font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--v4-eyebrow); }
-html.v4 .asi-x{ width:36px; height:36px; border:0; border-radius:999px; background:transparent; color:var(--v4-ink-2); display:grid; place-items:center; cursor:pointer; }
+html.v4 .asi-ctx{ font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--v4-outline); }
+html.v4 .asi-x{ width:40px; height:40px; border:0; border-radius:999px; background:transparent; color:var(--v4-ink-2); display:grid; place-items:center; cursor:pointer; }
 html.v4 .asi-x:hover{ background:var(--v4-surface-high); }
 html.v4 .asi-cuerpo{ flex:1; min-height:0; overflow:auto; padding:8px 28px 20px; }
 html.v4 .asi-cuerpo h2{ margin:4px 0 6px; font-size:24px; line-height:1.2; font-weight:600; color:var(--v4-lagoon); outline:none; }
 html.v4 .asi-q{ margin:0 0 16px; font-size:14px; line-height:1.5; color:var(--v4-ink-2); }
 html.v4 .asi-nota{ margin:14px 0 0; font-size:13px; color:var(--v4-outline); }
-html.v4 .asi-grp{ margin:20px 0 8px; font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--v4-eyebrow); }
+html.v4 .asi-grp{ margin:20px 0 8px; font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--v4-outline); }
 html.v4 .asi-ops{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px; }
 html.v4 .asi-ops-3{ grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); }
 html.v4 .asi-op{
@@ -384,7 +385,7 @@ html.v4 .asi-apagados{ display:flex; gap:10px; align-items:flex-start; margin:14
 html.v4 .asi-apagados b{ font-weight:600; color:var(--v4-ink-2); }
 html.v4 .asi-apagados > [data-ico]::before{ font-size:18px; color:var(--v4-apagado); }
 html.v4 .asi-fld{ display:flex; flex-direction:column; gap:6px; margin:14px 0 0; }
-html.v4 .asi-fld label{ font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--v4-eyebrow); }
+html.v4 .asi-fld label{ font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--v4-outline); }
 html.v4 .asi-fld label i{ font-style:normal; text-transform:none; letter-spacing:0; font-weight:400; color:var(--v4-outline); }
 html.v4 .asi-fld input, html.v4 .asi-fld select, html.v4 .asi-buscar input{
   width:100%; min-height:42px; padding:9px 12px; border:1px solid rgba(228,220,203,.6); border-radius:8px;
@@ -433,7 +434,7 @@ html.v4 .asi-aviso.info{ background:var(--v4-surface-low); color:var(--v4-ink-2)
 html.v4 .asi-aviso.aviso{ background:var(--v4-ambar-bg); color:var(--v4-ambar); }
 html.v4 .asi-aviso.mal{ background:#F6E3DF; color:var(--v4-peligro); }
 html.v4 .asi-sum{ display:grid; grid-template-columns:140px 1fr; gap:10px 16px; margin:8px 0 0; padding:16px 18px; border-radius:12px; background:var(--v4-surface-low); }
-html.v4 .asi-sum dt{ font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--v4-eyebrow); padding-top:2px; }
+html.v4 .asi-sum dt{ font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--v4-outline); padding-top:2px; }
 html.v4 .asi-sum dd{ margin:0; font-size:14.5px; color:var(--v4-ink); overflow-wrap:anywhere; }
 html.v4 .asi-pie{ display:flex; align-items:center; gap:12px; padding:14px 28px; border-top:1px solid var(--v4-borde); }
 html.v4 .asi-hint{ flex:1; text-align:right; font-size:13px; color:var(--v4-outline); }
@@ -459,7 +460,9 @@ html.v4 .asi-chip{ padding:2px 10px; border-radius:999px; background:#fff; font-
   html.v4 .asi-velo{ padding:0; place-items:stretch; }
   html.v4 .asi-caja{ grid-template-columns:1fr; height:100%; border-radius:0; }
   html.v4 .asi-pasos{ display:none; }
-  html.v4 .asi-top{ padding:12px 12px 0 16px; }
+  html.v4 .asi-top{ padding:12px 8px 0 16px; }
+  html.v4 .asi-x{ width:44px; height:44px; }
+  html.v4 .asi-btn{ min-height:44px; }
   html.v4 .asi-cuerpo{ padding:6px 16px 16px; }
   html.v4 .asi-cuerpo h2{ font-size:21px; }
   html.v4 .asi-pie{ padding:12px 16px; }

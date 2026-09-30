@@ -295,9 +295,9 @@
       if (otros.length) h += '<div class="asi-grp">' + e(T('Otros')) + '</div><div class="asi-ops asi-ops-3">' + otros.map(card).join('') + '</div>';
       /* Apagados CON su motivo, en una línea cada grupo: lo que sigue a una venta existente
          (se hace por el otro camino) y lo que su permiso no incluye. */
-      if (siguen.length) h += '<p class="asi-apagados"><span data-ico="link" aria-hidden="true"></span><span><b>' + e(siguen.map(function (t) { return L(t.name); }).join(' · ')) + '</b> — ' +
+      if (siguen.length) h += '<p class="asi-apagados"><span data-ico="link" aria-hidden="true"></span><span><b>' + e(siguen.map(function (t) { return L(t.name); }).join(' · ')) + '</b>: ' +
         e(T('siguen a una venta que ya existe: vuelve al primer paso y elige «Seguir una venta».')) + '</span></p>';
-      if (vetadas.length) h += '<p class="asi-apagados"><span data-ico="lock" aria-hidden="true"></span><span><b>' + e(vetadas.map(function (t) { return L(t.name); }).join(' · ')) + '</b> — ' +
+      if (vetadas.length) h += '<p class="asi-apagados"><span data-ico="lock" aria-hidden="true"></span><span><b>' + e(vetadas.map(function (t) { return L(t.name); }).join(' · ')) + '</b>: ' +
         e(T('no los tienes permitidos. Pídeselos a un administrador.')) + '</span></p>';
       if (!ofre.length) h += aviso('mal', 'block', e(T('No tienes ningún tipo de contrato asignado. Pídeselo a un administrador antes de empezar.')));
       return h;
