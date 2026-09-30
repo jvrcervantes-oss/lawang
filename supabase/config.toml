@@ -385,6 +385,12 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# envia-correo (S5.0 de Ajustes, 30-sep-2026): sin JWT del gateway, porque dos de sus vias no lo llevan (pg_net desde la base y las
+# edges con X-Render-Secret/X-Aviso-Secret). La autorizacion se hace dentro (ver supabase/functions/envia-correo/README.md).
+# Es la UNICA funcion con entrada aqui: las demas conservan lo que ya tienen desplegado hasta que se fije su verify_jwt (S5.0 punto 7).
+[functions.envia-correo]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
