@@ -14,6 +14,9 @@ Backups/
 Marketing and Design/
 Marketing/
 *.md
+# README de la edge de envio de correo (S5.0, 30-sep-2026): documenta el canon compartido con el maestro. supabase/ no se sirve por web
+# (RedirectMatch 404 + supabase/.htaccess), asi que un .md ahi no se expone. Solo ESTE fichero; el resto de *.md sigue ignorado.
+!supabase/functions/envia-correo/README.md
 brand_identity.md
 inventario_assets.md
 PRODUCT.md
