@@ -8245,7 +8245,8 @@
           /* Acciones por estado (reglas de Administración, F6): la vigente se CIERRA (nunca se «desactiva»
              sin fecha de fin), la cerrada no se reabre ni se borra (sigue pagando las ventas de su periodo),
              la futura se borra. Lo decide la base; esto solo no ofrece lo que rechazaría. */
-          var bCerrar = est === 'vigente' || est === 'inactiva'
+          // una inactiva vieja solo se puede reactivar si no empezó (la base rechaza aplicarla a ventas pasadas)
+          var bCerrar = est === 'vigente' || (est === 'inactiva' && c.vigente_desde >= hoyC)
             ? '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px]" ' +
               'data-lw-toggle-cond="' + esc(c.id) + '" data-lw-etq="' + esc(etq) + '" data-lw-activo="' + (c.activo ? '1' : '0') + '">' +
               esc(c.activo ? T('Cerrar') : T('Reactivar')) + '</button>' : '';
