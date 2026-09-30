@@ -8786,10 +8786,23 @@
             { tipo: 'lectura', label: 'Equipo · proyecto', valor: etq },
             { tipo: 'lectura', label: 'Nivel', valor: !cond.equipo_id ? lwMarca('Estándar (quien cierra, paga %marca)') : (NOMBRE_NIVEL[cond.nivel] || cond.nivel), medio: 1 }
           ];
-          if (ROLES_EQUIPO_C.indexOf(cond.nivel) !== -1) {
+          /* A quién se aplica (todo el equipo o una persona) es la identidad de la condición, como equipo,
+             proyecto y nivel (30-sep-2026, f6_f): cambiarlo en una empezada o cerrada movería ventas ya hechas
+             sin recuento. Solo se cambia en una FUTURA sin devengos que no sustituye ni es sustituida; la regla
+             la aplica condicion_comision_guarda, aquí solo se enseña apagado con el motivo. */
+          var hoyB = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
+          var lista = window.LW_V4.condicionesLista || {};
+          var esSustituida = Object.keys(lista).some(function (k) { return lista[k] && lista[k].sustituye_a === id; });
+          var alcanceLibre = !n && cond.vigente_desde > hoyB && !cond.sustituye_a && !cond.vigente_hasta && !esSustituida;
+          var esPersonal = ROLES_EQUIPO_C.indexOf(cond.nivel) !== -1;
+          if (esPersonal && alcanceLibre) {
             campos.push({ k: 'closer_email', label: 'Override individual', tipo: 'select', medio: 1,
               valor: cond.closer_email || '', opciones: opsUsuarios(cond.closer_email || '', '— todo el equipo —'),
-              ayuda: '«todo el equipo» aplica a cualquier closer del equipo; una persona concreta manda sobre eso' });
+              ayuda: '«todo el equipo» aplica a cualquier closer del equipo; una persona concreta manda sobre eso. Solo se cambia mientras la condición no ha empezado' });
+          } else if (esPersonal) {
+            campos.push({ tipo: 'lectura', label: 'Override individual', medio: 1,
+              valor: cond.closer_email || '— todo el equipo —',
+              ayuda: 'Para cambiar a quién se aplica, crea una condición nueva desde hoy' });
           }
           campos.push(
             { k: 'vigente_desde', label: 'Vigente desde', tipo: 'date', req: 1, medio: 1,
@@ -8834,7 +8847,7 @@
                 pct_comision: Number(v.pct_comision), base_calculo: v.base_calculo,
                 importe_fijo: v.base_calculo === 'importe_fijo' ? Number(v.importe_fijo) : null,
                 vigente_desde: v.vigente_desde,
-                closer_email: ROLES_EQUIPO_C.indexOf(cond.nivel) !== -1 ? (v.closer_email ? v.closer_email.trim().toLowerCase() : null) : cond.closer_email
+                closer_email: esPersonal && alcanceLibre ? (v.closer_email ? v.closer_email.trim().toLowerCase() : null) : cond.closer_email
               },
               p_tramos: tramosParaServidor(tramos),
               p_motivo: (v.motivo || '').trim() || null

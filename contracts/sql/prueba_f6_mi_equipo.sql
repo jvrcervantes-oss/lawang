@@ -1,4 +1,4 @@
--- PRUEBA — F6 «Mi equipo» y condiciones (30-sep-2026): migraciones 20260930070138, 071319, 075711, 082130 y 085658.
+-- PRUEBA — F6 «Mi equipo» y condiciones (30-sep-2026): migraciones 20260930070138, 071319, 075711, 082130, 085658 y 091729.
 -- Se ejecuta ENTERA en una llamada con execute_sql (MCP) o psql como postgres. NO ESCRIBE NADA: cada caso va en un
 -- sub-bloque que acaba en excepción (Postgres deshace lo que hizo, claims incluidos) y el bloque entero termina en
 -- `raise exception 'RES: …'`. Cada caso debe decir «ok»; un «FALLO» es una regla de equipo o de dinero que no se cumple.
@@ -275,6 +275,47 @@ begin
     exception when others then v_t := v_t || 'no:' || sqlerrm; end;
     raise exception '%', v_t;
   exception when others then r := r || 'C8 admin cifras en vigor con recuento=' || sqlerrm || case when sqlerrm = 'igual/true/no/true' then ' ok; ' else ' FALLO; ' end; end;
+
+  -- C9 · a quién se aplica (closer_email) es identidad: cambiarlo en una condición en vigor (SM y admin), cerrada o
+  --      sustituta futura → 22023 «Para cambiar a quién se aplica…»; en una futura normal sin devengos → ok y cambia.
+  --      Alcance sintético (team_lead de un equipo real), sin ventas.
+  begin
+    v_sin := jsonb_build_object('equipo_id', v_eq, 'nivel', 'team_lead', 'closer_email', 'x@prueba.invalid', 'pct_comision', 2, 'base_calculo', 'precio_total');
+    v_t := '';
+    -- en vigor desde hace 5 días: el SM la pasa a «todo el equipo», admin a otra persona
+    perform set_config('request.jwt.claims', json_build_object('sub', v_adm.user_id, 'email', v_adm.e, 'role', 'authenticated')::text, true);
+    v_a := public.condicion_comision_guarda(null, v_sin || jsonb_build_object('vigente_desde', v_hoy - 5), v_tr);
+    perform set_config('request.jwt.claims', json_build_object('sub', v_sm.user_id, 'email', v_sm.e, 'role', 'authenticated')::text, true);
+    begin perform public.condicion_comision_guarda(v_a, v_sin || jsonb_build_object('vigente_desde', v_hoy - 5, 'closer_email', null), v_tr);
+          v_t := v_t || 'pasa/';
+    exception when others then
+      v_t := v_t || case when sqlstate = '22023' and sqlerrm = 'Para cambiar a quién se aplica, crea una condición nueva desde hoy' then 'no/' else sqlstate || ':' || sqlerrm || '/' end; end;
+    perform set_config('request.jwt.claims', json_build_object('sub', v_adm.user_id, 'email', v_adm.e, 'role', 'authenticated')::text, true);
+    begin perform public.condicion_comision_guarda(v_a, v_sin || jsonb_build_object('vigente_desde', v_hoy - 5, 'closer_email', 'y@prueba.invalid'), v_tr);
+          v_t := v_t || 'pasa/';
+    exception when others then
+      v_t := v_t || case when sqlstate = '22023' and sqlerrm = 'Para cambiar a quién se aplica, crea una condición nueva desde hoy' then 'no/' else sqlstate || ':' || sqlerrm || '/' end; end;
+    -- cerrada (a mano, hoy) → rechazo
+    perform public.condicion_comision_activa(v_a, false);
+    begin perform public.condicion_comision_guarda(v_a, v_sin || jsonb_build_object('vigente_desde', v_hoy - 5, 'closer_email', null), v_tr);
+          v_t := v_t || 'pasa/';
+    exception when others then
+      v_t := v_t || case when sqlstate = '22023' and sqlerrm = 'Para cambiar a quién se aplica, crea una condición nueva desde hoy' then 'no/' else sqlstate || ':' || sqlerrm || '/' end; end;
+    -- sustituta futura: A en vigor (otra persona) y B desde dentro de 10 días que la sustituye → cambiar B, rechazo
+    v_sin2 := v_sin || jsonb_build_object('closer_email', 'z@prueba.invalid');
+    v_b := public.condicion_comision_guarda(null, v_sin2 || jsonb_build_object('vigente_desde', v_hoy - 5), v_tr);
+    v_c := public.condicion_comision_guarda(null, v_sin2 || jsonb_build_object('vigente_desde', v_hoy + 10), v_tr);
+    begin perform public.condicion_comision_guarda(v_c, v_sin2 || jsonb_build_object('vigente_desde', v_hoy + 10, 'closer_email', null), v_tr);
+          v_t := v_t || 'pasa/';
+    exception when others then
+      v_t := v_t || case when sqlstate = '22023' and sqlerrm = 'Para cambiar a quién se aplica, crea una condición nueva desde hoy' then 'no/' else sqlstate || ':' || sqlerrm || '/' end; end;
+    -- futura normal sin devengos ni sustitución → ok, y la persona cambia de verdad
+    v_id := public.condicion_comision_guarda(null, v_sin || jsonb_build_object('closer_email', 'w@prueba.invalid', 'vigente_desde', v_hoy + 10), v_tr);
+    begin perform public.condicion_comision_guarda(v_id, v_sin || jsonb_build_object('closer_email', 'v@prueba.invalid', 'vigente_desde', v_hoy + 10), v_tr);
+          v_t := v_t || (select c.closer_email = 'v@prueba.invalid' and c.sustituye_a is null from public.condiciones_comision c where c.id = v_id);
+    exception when others then v_t := v_t || 'no:' || sqlstate || ':' || sqlerrm; end;
+    raise exception '%', v_t;
+  exception when others then r := r || 'C9 a quien se aplica=' || sqlerrm || case when sqlerrm = 'no/no/no/no/true' then ' ok; ' else ' FALLO; ' end; end;
 
   -- dinero intacto: ninguna comisión ni solicitud nueva o cambiada al acabar (todo lo de arriba se deshizo)
   if (select count(*) || ':' || md5(coalesce(string_agg(to_jsonb(d)::text, '|' order by d.id), '')) from public.comisiones_devengadas d) <> v_dev0
