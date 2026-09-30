@@ -585,8 +585,9 @@ begin
         v_n := public.comisiones_evaluar_contrato(v_rp);
         select * into v_d from public.comisiones_devengadas d where d.contrato_raiz_id = v_rp;
         perform set_config('request.jwt.claims', json_build_object('sub', A.user_id, 'email', A.e, 'role', 'authenticated')::text, true);
-        v_t := v_n || '/' || public.venta_modo_admin(v_rp, 'propia', 'prueba LAW-474 (a1) ida')
-          || '/' || (select d.estado || ':' || d.anulado_por_modo from public.comisiones_devengadas d where d.id = v_d.id);
+        v_t := v_n || '/' || public.venta_modo_admin(v_rp, 'propia', 'prueba LAW-474 (a1) ida');
+        -- en sentencia aparte: una subconsulta en la misma expresión ve la foto de ANTES de venta_modo_admin
+        v_t := v_t || '/' || (select d.estado || ':' || d.anulado_por_modo from public.comisiones_devengadas d where d.id = v_d.id);
         update public.condiciones_comision set pct_comision = 6 where id = v_c;
         v_t := v_t || '/' || public.venta_modo_admin(v_rp, 'equipo', 'prueba LAW-474 (a1) vuelta');
         raise exception '%', v_t || format('/%s/%s/%s/%s/%s/%s',
