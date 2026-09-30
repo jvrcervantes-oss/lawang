@@ -59,6 +59,11 @@
          Junto a Contratos y no en el Panel de control: la usa quien hace contratos (es su materia prima), no
          es un ajuste de la intranet. Escribir exige además admin, y lo decide la base. */
       { path: 'plantillas', texto: 'Plantillas', clave: 'plantillas', nucleo: true },
+      /* Emitir contrato (AxisWorks ERP, 30-sep-2026, plantillas MVP subtarea M5): emitir desde una versión
+         ACTIVA. Solo con AXW_NUCLEO_OPERACION. Abre con la MISMA casilla que Contratos (la base exige
+         es_agente() y puede('contratos') en contrato_desde_plantilla): `mismaCasilla` le dice a nav.test.js
+         que no es una casilla repetida, y permisosPorMenu (editores.js) ya no pinta dos veces una clave. */
+      { path: 'emitir', texto: 'Emitir contrato', clave: 'contratos', nucleo: true, mismaCasilla: true },
       { path: 'asistente', texto: 'Asistente', clave: 'asistente' },
       { path: 'creatividades', texto: 'Creatividades', claves: [
         { clave: 'dossier', texto: 'crear dossiers' },
@@ -380,7 +385,10 @@
     { path: 'productos',  tras: 'recibos',  icono: 'inventory_2',    texto: 'Productos', nucleo: true },
     /* Plantillas (AxisWorks ERP, 28-sep-2026): tras Contratos. Va DESPUÉS del Asistente en esta lista a
        propósito: los dos se cuelgan tras Contratos, y el último en colgarse queda pegado a él. */
-    { path: 'plantillas', tras: 'contratos', icono: 'description',   texto: 'Plantillas', nucleo: true }
+    { path: 'plantillas', tras: 'contratos', icono: 'description',   texto: 'Plantillas', nucleo: true },
+    /* Emitir contrato (30-sep-2026): último de la lista para quedar pegado a Contratos (Contratos · Emitir ·
+       Plantillas · Asistente). Misma bandera que Plantillas: sin núcleo no hay motor de plantillas en la base. */
+    { path: 'emitir',     tras: 'contratos', icono: 'edit_document', texto: 'Emitir contrato', nucleo: true }
   ];
 
   /* "Panel de control" (15-sep-2026, encargo del owner): seccion nueva del
@@ -472,7 +480,7 @@
     contratos: 'contratos', asistente: 'asistente', 'asistente-correos': 'asistente', creatividades: ['dossier', 'creatividades', 'creatividades_ver'],
     facturas: 'facturas', recibos: 'recibos', comisiones: ['comisiones', 'comisiones_reparto', 'comisiones_condiciones', 'comisiones_equipos'], reservas: 'reservas', reparto: 'comisiones_reparto', condiciones: 'comisiones_condiciones', 'equipos-venta': 'comisiones_equipos',
     proyectos: 'unidades', modelos: 'modelos', obra: 'obra', compradores: 'compradores',
-    usuarios: 'usuarios', cuentas: 'cuentas', gastos: 'gastos', bancos: 'bancos', productos: 'productos', plantillas: 'plantillas',
+    usuarios: 'usuarios', cuentas: 'cuentas', gastos: 'gastos', bancos: 'bancos', productos: 'productos', plantillas: 'plantillas', emitir: 'contratos',
     /* Comunicados y Ajustes llevan clave desde el 27-sep-2026 (la exige también la base:
        migración 20260927040933). Documentación ya NO: vive dentro de Proyectos. */
     comunicacion: 'comunicacion', ajustes: 'ajustes'

@@ -9646,6 +9646,11 @@
         if (h === 'no_es_borrador') return 'Esa versión ya no es un borrador: otra persona la ha activado o descartado. Recarga la pantalla.';
         if (h === 'sin_tipo') return 'La plantilla no tiene tipo de contrato: ponle uno en el borrador antes de activarla.';
         if (h === 'version_inmutable') return 'Una versión activa no se cambia: los cambios van a un borrador nuevo.';
+        /* Activar esquema 1 con huella (contrato M0 §7.6, 20260930170000). */
+        if (h === 'huella_distinta') return 'La versión cambió desde que la simulaste: vuelve a simular.';
+        if (h === 'usa_huella') return 'Esta versión se activa con la huella de su simulación y la pantalla no la ha mandado. Recarga la pantalla y vuelve a simular; si vuelve a pasar, avisa al estudio.';
+        /* Freno de cotitulares (M0 §3.3): simular y emitir admiten un solo firmante. */
+        if (h === 'cotitular_no_soportado') return 'Por ahora un contrato de plantilla admite un solo firmante; los cotitulares llegarán más adelante.';
         if (c === '42501') return /sesi[oó]n/i.test(m) ? 'Tu sesión ha caducado: vuelve a entrar.'
           : 'No tienes permiso: las plantillas las cambia un admin con el permiso «Plantillas», y lo comprueba la base.';
         if (c === 'P0002') return m || 'Eso ya no existe: otra persona lo ha cambiado. Recarga la pantalla.';
@@ -9788,6 +9793,8 @@
         leeVersiones(p ? [p.borrador && p.borrador.id, p.activa && p.activa.id] : []).then(function (r) {
           if (r.error) return aviso('No se ha podido leer el texto de la plantilla: ' + errorPlantillas(r.error), '#9E2F26');
           var borr = (r.data || [])[0] || null, act = (r.data || [])[1] || null;
+          // Esquema 1 (texto plano, MVP 30-sep): su propio editor. Esquema 0 (HTML de 6a) sigue igual que antes.
+          if ((borr || act) && (borr || act).esquema === 1) return abreEditor1(p, borr, act);
           abreEditor(p, borr, act);
         });
       };
@@ -9977,6 +9984,7 @@
         leeVersion(p.activa.id).then(function (r) {
           if (r.error || !r.data) return aviso('No se ha podido leer el texto: ' + errorPlantillas(r.error || {}), '#9E2F26');
           var v = r.data;
+          if (v.esquema === 1) return verVersion1(p, v);   // texto plano: nunca por la vista previa HTML
           var c = cajon({ titulo: p.nombre, sub: 'Plantillas', estado: ['Activa v' + v.version, 'ok'], ancho: 'min(900px,96vw)',
             bajoTitulo: p.numero + ' · activada ' + (v.activada_en ? new Date(v.activada_en).toLocaleString('es-ES') : '—') + (v.activada_por ? ' por ' + v.activada_por : '') });
           if (v.generado_ia) marcaIA(c.cuerpo, 'Generado por IA: el texto lo preparó el asistente a partir de vuestro modelo.');
@@ -10004,6 +10012,8 @@
         leeVersiones([p.borrador.id, p.activa && p.activa.id]).then(function (r) {
           if (r.error) return aviso('No se ha podido leer el texto: ' + errorPlantillas(r.error), '#9E2F26');
           var borr = r.data[0], act = r.data[1];
+          // Esquema 1: simular es obligatorio antes de activar (activaVersion1). Esquema 0: como antes.
+          if (borr && borr.esquema === 1) return activaVersion1(p, borr, act);
           var chk, enviando = false;
           var c = cajon({ titulo: 'Activar — ' + p.nombre, sub: 'Plantillas', estado: ['Borrador v' + borr.version, 'espera'], ancho: 'min(960px,96vw)',
             bajoTitulo: act ? 'Sustituye a la activa v' + act.version + ': los contratos ya hechos siguen con la suya.' : 'Es su primera versión.',
@@ -10056,6 +10066,742 @@
           chk.addEventListener('change', function () { if (bAct && !enviando) { bAct.disabled = !chk.checked; bAct.title = chk.checked ? '' : 'Marca antes la casilla de revisión'; } });
         });
       };
+
+      /* ═══ MVP esquema 1 — texto plano (30-sep-2026, encargos/20260930_estudio_contratos_tipos_mvp.md) ═════════════
+         Contrato: erp/plantillas_mvp_interfaz.md (M0). Una versión `esquema = 1` es TEXTO PLANO con {{campos}}, hitos y
+         firmantes; la valida la base (trigger de M1) y la calcula el servidor (plantilla_simula, M2). Esta pantalla:
+           · edita el cuerpo en un <textarea>, y TODO lo que viene del cuerpo, de los valores o del texto simulado se pinta
+             con textContent: ni iframe ni vista previa HTML (el saneador de 6a interpretaría <p>/<b> de un texto plano);
+           · solo crea el botón Activar tras una simulación correcta de ESA versión (id + huella que devuelve el servidor;
+             la huella de esquema 1 cubre esquema, idioma, cuerpo, campos, hitos y firmantes, M1), y con la casilla marcada;
+             antes de activar relee la versión y no activa si la huella ha cambiado;
+           · «Crear desde PDF» sube el PDF a la edge plantilla-desde-pdf con el JWT de la sesión (la edge no usa service
+             role: el permiso y la cuota los decide la base). Si la edge no responde, se dice y la pantalla sigue.
+         Nada de esto escribe tablas: guardar y activar van por las RPC de siempre. Enganche por data-accion (norma del
+         owner, 29-sep-2026): crear-desde-pdf (index.html), subir-pdf, simular, revisar, activar. */
+      var MARCA_IA1 = 'Propuesta del asistente: revísala';
+      var AVISO_PDF = 'Sube el modelo EN BLANCO, sin datos de clientes. El texto del PDF se envía al asistente de IA para preparar un borrador, y el PDF no se guarda.';
+      var CONFIRMA_PDF = 'Confirmo que el PDF es el modelo en blanco: no lleva nombres, documentos ni datos de ningún cliente.';
+      var TOPE_PDF = 10485760;   // 10 MB, el mismo tope que aplica la edge (M0 §7.3)
+      var IDIOMAS1 = [['es', 'Español'], ['en', 'Inglés'], ['id', 'Indonesio']];
+      var RESERVADOS1 = ['nombre_contrato', 'parcela_codigo', 'precio_total', 'moneda', 'calendario_pagos'];
+      var DATOS_FIRM1 = ['nombre', 'pasaporte', 'email', 'telefono', 'nacionalidad', 'domicilio'];
+      var RE_PCT1 = /^[0-9]{1,3}(\.[0-9]{1,2})?$/, RE_MONTO1 = /^[0-9]{1,12}(\.[0-9]{1,2})?$/, RE_NUM1 = /^-?[0-9]{1,12}(\.[0-9]{1,6})?$/;
+      var ERR_PDF = {
+        sin_sesion: 'Tu sesión ha caducado: vuelve a entrar.',
+        sin_permiso: 'No tienes permiso: crear plantillas lo hace un admin con el permiso «Plantillas».',
+        origen_no_permitido: 'El servidor no acepta peticiones desde esta dirección. Avisa al estudio.',
+        no_pdf: 'Eso no es un PDF.',
+        pdf_grande: 'El PDF pasa de 10 MB.',
+        pdf_paginas: 'El PDF pasa de 30 páginas.',
+        pdf_cifrado: 'El PDF está protegido o cifrado: súbelo sin contraseña ni protección.',
+        pdf_ilegible: 'El PDF no se puede leer (¿está dañado?).',
+        pdf_sin_texto: 'El PDF es escaneado (una imagen): súbelo con texto seleccionable.',
+        cuota: 'Has llegado al tope de borradores con el asistente por hoy. Prueba mañana, o crea la plantilla a mano.',
+        modelo_error: 'El asistente no ha respondido. Prueba de nuevo en unos minutos (el intento cuenta para el tope diario).',
+        salida_invalida: 'El asistente ha devuelto un borrador que la base no acepta: no se ha guardado nada. Prueba de nuevo o crea la plantilla a mano.',
+        tipo_desconocido: 'Ese tipo de contrato no existe o está desactivado. Recarga la pantalla y elige otro.'
+      };
+      /* Un control con su acción estable. Se engancha con addEventListener sobre la referencia, nunca buscándolo. */
+      function btnAccion(accion, texto, clase) {
+        var b = nodo('button', clase || 'lwp-mas', texto);
+        b.type = 'button';
+        b.setAttribute('data-accion', accion);
+        return b;
+      }
+      function pre1(texto) {
+        var x = nodo('pre', null, texto == null ? '' : String(texto));
+        x.style.cssText = 'margin:0;max-height:520px;overflow:auto;padding:14px 16px;border:1px solid #E7E4DC;border-radius:12px;background:#fff;' +
+          'white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.6 Georgia,\'Times New Roman\',serif;color:#1c1b17';
+        return x;
+      }
+      function marcaIA1(host, v) { if (v && v.generado_ia) marcaIA(host, edT(MARCA_IA1) + ' · ' + edT(AVISO_IA)); }
+      function tipoCampoNombre(t) { return (TIPOS_CAMPO.filter(function (o) { return o[0] === t; })[0] || [0, t])[1]; }
+      function hitoLinea(h, modo, i) {
+        var val = modo === 'monto' ? (h.monto || '—') : (h.pct != null ? h.pct + ' %' : '—');
+        return (i + 1) + '. ' + (h.es || '—') + ' · ' + val +
+          (h.dias != null ? ' · ' + h.dias + ' días desde ' + (h.desde === 'emision' ? 'la emisión' : '{{' + h.desde + '}}') : ' · sin fecha');
+      }
+      function firmanteLinea(f) { return f.rol + ' · ' + (f.etiqueta || '—') + (f.obligatorio ? ' · obligatorio' : ' · opcional'); }
+
+      /* ── Crear desde PDF ─────────────────────────────────────────────────────────────────────────── */
+      function subePdf(file, slug, nombre, tipo) {
+        return sb.auth.getSession().then(function (s) {
+          var t = s && s.data && s.data.session && s.data.session.access_token;
+          if (!t) throw new Error(ERR_PDF.sin_sesion);
+          var fd = new FormData();
+          fd.append('pdf', file, file.name || 'modelo.pdf');
+          fd.append('slug', slug); fd.append('nombre', nombre); fd.append('tipo_contrato', tipo);
+          // Sin content-type a mano: el navegador pone el multipart con su frontera.
+          return fetch(window.lwEdge('plantilla-desde-pdf'), { method: 'POST', headers: { authorization: 'Bearer ' + t }, body: fd })
+            .then(null, function () { throw new Error('No se ha podido llegar a la función que lee el PDF (red, o aún no está instalada en esta instancia). No se ha creado nada.'); });
+        }).then(function (r) {
+          return r.text().then(function (txt) {
+            var j = null;
+            try { j = JSON.parse(txt); } catch (e) { /* MUDO A PROPOSITO: una respuesta que no es JSON se dice justo debajo, con su código HTTP */ }
+            // 404 del gateway (función aún sin desplegar) llega a menudo CON cuerpo JSON: se dice antes de mirar `ok`.
+            if (r.status === 404 && !(j && j.codigo)) throw new Error('La función que lee el PDF aún no está instalada en esta instancia. No se ha creado nada.');
+            if (r.status === 401 && !(j && j.codigo)) throw new Error(ERR_PDF.sin_sesion);
+            if (!j || typeof j !== 'object') {
+              throw new Error('La función que lee el PDF no ha contestado bien (HTTP ' + r.status + '). ' +
+                (r.status === 404 ? 'Aún no está instalada en esta instancia.' : 'Prueba de nuevo; si sigue, avisa al estudio.') + ' No se ha creado nada.');
+            }
+            if (j.ok !== true) throw new Error(ERR_PDF[j.codigo] || (typeof j.mensaje === 'string' && j.mensaje) || ('Error ' + r.status + ' al leer el PDF.'));
+            if (!j.version_id) throw new Error('La función que lee el PDF no ha devuelto el borrador. Recarga la pantalla por si se ha creado.');
+            return j;
+          });
+        });
+      }
+      window.LW_V4.creaDesdePdf = function () {
+        if (!puede()) return datos() ? sinPermiso() : sinDatos();
+        if (typeof window.lwEdge !== 'function' || typeof FormData !== 'function') return aviso('Falta una pieza de la pantalla (guard.js): recarga la página.', '#9E2F26');
+        var tipos = ((datos() || {}).tipos || []).filter(function (x) { return x.activo; });
+        if (!tipos.length) return aviso('No hay ningún tipo de contrato activo: da de alta o activa uno antes.', '#8A6A34');
+        var fich, chk, enviando = false, hecho = false;
+        var campos = [
+          { tipo: 'custom', render: function (d) {
+            var a = nodo('div', 'las-aviso');
+            var t = nodo('div', 'las-min0', edT(AVISO_PDF)); t.style.fontWeight = '600';
+            a.appendChild(t); d.appendChild(a);
+          } },
+          { k: 'slug', label: 'Identificador', req: 1, medio: 1, ayuda: 'En minúsculas y sin espacios ni tildes: arrendamiento_local. No se cambia después.' },
+          { k: 'nombre', label: 'Nombre', req: 1, medio: 1, ayuda: 'Como se ve al elegir plantilla para un contrato.' },
+          { k: 'tipo_contrato', label: 'Tipo de contrato', tipo: 'select', req: 1, medio: 1, valor: '',
+            opciones: [['', '— elige el tipo —']].concat(tipos.map(function (x) { return [x.clave, x.nombre]; })) },
+          { tipo: 'custom', render: function (d) {
+            d.style.cssText = 'display:grid;gap:10px';
+            var etq = nodo('label', 'lwp-etq', 'Modelo en PDF *'); etq.htmlFor = 'lw-plt-pdf';
+            fich = nodo('input', 'lwp-in'); fich.type = 'file'; fich.id = 'lw-plt-pdf'; fich.accept = 'application/pdf,.pdf';
+            d.appendChild(etq); d.appendChild(fich);
+            d.appendChild(nodo('p', 'lwp-nota', 'PDF con texto seleccionable (no escaneado), sin contraseña, hasta 10 MB y 30 páginas. Sale un BORRADOR: nada se usa hasta que lo revises, lo simules y lo actives.'));
+            var lab = nodo('label', 'las-check');
+            chk = nodo('input'); chk.type = 'checkbox'; chk.checked = false;
+            var tx = nodo('span'); tx.appendChild(nodo('span', 'las-check-t', edT(CONFIRMA_PDF)));
+            lab.appendChild(chk); lab.appendChild(tx);
+            d.appendChild(lab);
+          } }
+        ];
+        modal('Nueva plantilla desde PDF', campos, 'Subir y crear borrador', function (v) {
+          if (hecho) return {};
+          if (enviando) return { error: { message: 'Ya se está subiendo: espera a que termine.' } };
+          if (!chk || chk.checked !== true) return { error: { message: 'Marca antes la casilla: el PDF tiene que ser el modelo en blanco.' } };
+          var s = (v.slug || '').trim(), nom = (v.nombre || '').trim(), tp = v.tipo_contrato || '';
+          if (!RE_CLAVE.test(s)) return { error: { message: 'El identificador va en minúsculas, sin espacios ni tildes, y empieza por letra (p. ej. arrendamiento_local).' } };
+          // La edge guarda el borrador de ESE identificador: uno que ya existe se editaría, así que se para aquí.
+          if ((window.LW_V4.plantillasPorSlug || {})[s]) return { error: { message: 'Ya hay una plantilla con ese identificador: elige otro.' } };
+          if (!nom || nom.length > 120) return { error: { message: 'El nombre va de 1 a 120 caracteres.' } };
+          if (!tp) return { error: { message: 'Falta el tipo de contrato.' } };
+          var f = fich && fich.files && fich.files[0];
+          if (!f) return { error: { message: 'Falta el PDF.' } };
+          if (!/\.pdf$/i.test(f.name || '') && f.type !== 'application/pdf') return { error: { message: 'Eso no es un PDF.' } };
+          if (f.size > TOPE_PDF) return { error: { message: ERR_PDF.pdf_grande } };
+          enviando = true;
+          return subePdf(f, s, nom, tp).then(function (j) {
+            enviando = false; hecho = true;
+            aviso('Borrador creado a partir del PDF' + (j.paginas ? ' (' + j.paginas + ' páginas)' : '') + '. Revísalo, simúlalo y actívalo.' +
+              (Array.isArray(j.avisos) && j.avisos.length ? ' Avisos: ' + j.avisos.filter(function (x) { return typeof x === 'string'; }).join(' · ') : ''));
+            setTimeout(function () {
+              Promise.resolve(window.LW_V4.repintaPlantillas && window.LW_V4.repintaPlantillas()).then(function () {
+                var p = (window.LW_V4.plantillasPorSlug || {})[s];
+                if (!p) return aviso('El borrador se ha creado, pero la lista no lo trae aún: recarga la pantalla.', '#8A6A34');
+                leeVersion(j.version_id).then(function (rv) {
+                  if (rv.error || !rv.data) return aviso('No se ha podido abrir el borrador: ' + errorPlantillas(rv.error || {}), '#9E2F26');
+                  if (rv.data.esquema !== 1) return aviso('El borrador no es de texto plano: ábrelo desde la lista.', '#8A6A34');
+                  abreEditor1(p, rv.data, null);
+                });
+              });
+            }, 520);
+            return {};
+          }, function (e) {
+            enviando = false;
+            return { error: { message: (e && e.message) || String(e) } };
+          });
+        }, { sub: 'Plantillas', sinRecarga: true, ancho: '760px' });
+        // La casilla antes de subir: el botón no se puede pulsar sin ella (y onGuardar lo vuelve a mirar).
+        var ed = document.getElementById('lw-editor');
+        var bG = ed && ed.querySelector('[data-e="guardar"]');
+        if (bG && chk) {
+          bG.setAttribute('data-accion', 'subir-pdf');
+          var sinc = function () { if (!enviando) bG.disabled = !chk.checked; };
+          chk.addEventListener('change', sinc);
+          sinc();
+        }
+      };
+
+      /* ── Editor de una versión esquema 1 ─────────────────────────────────────────────────────────── */
+      function abreEditor1(p, borr, act) {
+        var base = borr || act;
+        var tipos = ((datos() || {}).tipos || []);
+        var tipoFijo = !!(p && p.activa);
+        var hecho = false;
+        var campos = [];
+        campos.push({ tipo: 'lectura', label: 'Número', medio: 1, valor: p.numero });
+        campos.push({ tipo: 'lectura', label: 'Identificador', medio: 1, valor: p.slug });
+        campos.push({ k: 'nombre', label: 'Nombre', req: 1, medio: 1, valor: p.nombre, ayuda: 'Como se ve al elegir plantilla para un contrato.' });
+        if (tipoFijo) {
+          var tAct = tipos.filter(function (x) { return x.clave === p.tipo_contrato; })[0];
+          campos.push({ tipo: 'lectura', label: 'Tipo de contrato', medio: 1, valor: tAct ? tAct.nombre : p.tipo_contrato,
+            ayuda: 'Ya tiene una versión activada: el tipo no se cambia. Para otro tipo, da de alta otra plantilla.' });
+        } else {
+          var opc = tipos.filter(function (x) { return x.activo; }).map(function (x) { return [x.clave, x.nombre]; });
+          if (p.tipo_contrato && !opc.some(function (o) { return o[0] === p.tipo_contrato; })) {
+            var tv = tipos.filter(function (x) { return x.clave === p.tipo_contrato; })[0];
+            opc.push([p.tipo_contrato, (tv ? tv.nombre : p.tipo_contrato) + ' — desactivado']);
+          }
+          campos.push({ k: 'tipo_contrato', label: 'Tipo de contrato', tipo: 'select', req: 1, medio: 1, valor: p.tipo_contrato || '',
+            opciones: [['', '— elige el tipo —']].concat(opc), ayuda: 'Se puede cambiar mientras no se haya activado ninguna versión.' });
+        }
+        campos.push({ k: 'idioma', label: 'Idioma del contrato', tipo: 'select', req: 1, medio: 1, valor: base.idioma || 'es', opciones: IDIOMAS1,
+          ayuda: 'Cómo se escriben importes y fechas (36.000,50 · 1 de octubre de 2026).' });
+        if (base.generado_ia) campos.push({ tipo: 'nota', label: edT(MARCA_IA1) + ' · ' + edT(AVISO_IA) });
+
+        var ta, listaC, filasC = [], notaC, hOn, hModo, listaH, filasH = [], sumaH, listaF, filasF = [], bMasF;
+        /* ── Cuerpo ── */
+        campos.push({ tipo: 'custom', render: function (d) {
+          d.style.cssText = 'display:grid;gap:8px';
+          var etq = nodo('label', 'lwp-etq', 'Texto del contrato (texto plano) *'); etq.htmlFor = 'lw-plt-cuerpo1';
+          ta = nodo('textarea', 'lwp-in'); ta.id = 'lw-plt-cuerpo1'; ta.rows = 20; ta.value = base.cuerpo || ''; ta.spellcheck = false;
+          ta.style.cssText = 'font:13px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;resize:vertical;min-height:300px;white-space:pre-wrap';
+          d.appendChild(etq); d.appendChild(ta);
+          d.appendChild(nodo('p', 'lwp-nota', 'Texto plano: no lleva HTML (un «<» se queda como «<»). Un dato que se rellena en cada contrato va como {{clave}} y tiene que estar en la lista de campos. ' +
+            'Existen siempre, sin declararlos: {{nombre_contrato}}, {{parcela_codigo}}, {{precio_total}}, {{moneda}}, {{calendario_pagos}} y, por cada firmante, ' +
+            '{{adquiriente_1_nombre}}, _pasaporte, _email, _telefono, _nacionalidad y _domicilio. La base rechaza al guardar un {{…}} que no exista y te dice cuál.'));
+        } });
+        /* ── Campos ── */
+        function extrasDe(f) {
+          var t = f.t.value;
+          f.iLen.style.display = (t === 'texto' || t === 'texto_largo' || t === 'email') ? '' : 'none';
+          f.iMin.style.display = f.iMax.style.display = (t === 'numero' || t === 'importe') ? '' : 'none';
+          f.iOpc.style.display = t === 'texto' ? '' : 'none';
+        }
+        function nuevaFilaC(c) {
+          c = c || {};
+          var caja = nodo('div'); caja.style.cssText = 'display:grid;gap:6px;padding-bottom:8px;border-bottom:1px solid #F0EEE9';
+          var el = nodo('div', 'lwp-cfila');
+          var iK = nodo('input', 'lwp-in lwp-comp'); iK.placeholder = 'clave'; iK.value = c.clave || ''; iK.setAttribute('aria-label', 'Clave del campo');
+          iK.style.fontFamily = 'ui-monospace,SFMono-Regular,Consolas,monospace';
+          var iE = nodo('input', 'lwp-in lwp-comp'); iE.placeholder = 'Etiqueta: lo que se pregunta'; iE.value = c.etiqueta || ''; iE.setAttribute('aria-label', 'Etiqueta del campo');
+          var sT = nodo('select', 'lwp-in lwp-comp'); sT.setAttribute('aria-label', 'Tipo de dato');
+          TIPOS_CAMPO.forEach(function (o) { var op = nodo('option', null, o[1]); op.value = o[0]; sT.appendChild(op); });
+          sT.value = c.tipo || 'texto';
+          if (sT.value !== (c.tipo || 'texto')) { var raro = nodo('option', null, c.tipo); raro.value = c.tipo; sT.appendChild(raro); sT.value = c.tipo; }
+          var lO = nodo('label'); lO.style.cssText = 'display:flex;align-items:center;gap:6px;font:500 12.5px Jost,system-ui,sans-serif;color:#44403c;white-space:nowrap';
+          var cO = nodo('input'); cO.type = 'checkbox'; cO.checked = c.obligatorio === true;
+          lO.appendChild(cO); lO.appendChild(document.createTextNode('Obligatorio'));
+          var bQ = nodo('button', 'lwp-quita', '×'); bQ.type = 'button'; bQ.title = 'Quitar campo'; bQ.setAttribute('aria-label', 'Quitar campo');
+          el.appendChild(iK); el.appendChild(iE); el.appendChild(sT); el.appendChild(lO); el.appendChild(bQ);
+          var ex = nodo('div'); ex.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px';
+          var mk = function (ph, val, w) { var i = nodo('input', 'lwp-in lwp-comp'); i.placeholder = ph; i.setAttribute('aria-label', ph); i.value = val == null ? '' : String(val); i.style.maxWidth = w; ex.appendChild(i); return i; };
+          var f = { caja: caja, k: iK, e: iE, t: sT, o: cO,
+            iLen: mk('Máx. caracteres (opcional)', c.max_len, '200px'),
+            iMin: mk('Mínimo (opcional)', c.min, '170px'),
+            iMax: mk('Máximo (opcional)', c.max, '170px'),
+            iOpc: mk('Opciones fijas separadas por | (opcional)', Array.isArray(c.opciones) ? c.opciones.join(' | ') : '', '420px') };
+          sT.addEventListener('change', function () { extrasDe(f); });
+          bQ.addEventListener('click', function () { listaC.removeChild(caja); filasC = filasC.filter(function (x) { return x !== f; }); });
+          caja.appendChild(el); caja.appendChild(ex);
+          listaC.appendChild(caja);
+          filasC.push(f);
+          extrasDe(f);
+          return f;
+        }
+        /* Lo que viaja: {clave, etiqueta, tipo, obligatorio} y SOLO los extras que admite su tipo (la base rechaza los
+           demás, no los ignora: M0 §1 regla 7). Los extras de otro tipo que queden escritos no se mandan. */
+        function leeCampos1() {
+          var out = [], problemas = [], vistos = {};
+          filasC.forEach(function (f, i) {
+            var k = f.k.value.trim(), e = f.e.value.trim(), t = f.t.value;
+            if (!k && !e) return;
+            if (!RE_CAMPO.test(k)) problemas.push('Campo ' + (i + 1) + ': la clave va en minúsculas, sin espacios ni tildes (' + (k || 'vacía') + ').');
+            else if (vistos[k]) problemas.push('El campo «' + k + '» está repetido.');
+            else if (RESERVADOS1.indexOf(k) !== -1 || /^adq(uiriente_|[0-9]+_)/.test(k)) problemas.push('«' + k + '» ya existe siempre (o es de un firmante): no se declara como campo.');
+            vistos[k] = 1;
+            if (!e) problemas.push('Falta la etiqueta del campo «' + k + '».');
+            else if (e.length > 200) problemas.push('La etiqueta del campo «' + k + '» pasa de 200 caracteres.');
+            var c = { clave: k, etiqueta: e, tipo: t, obligatorio: !!f.o.checked };
+            var len = f.iLen.value.trim(), mn = f.iMin.value.trim(), mx = f.iMax.value.trim(), op = f.iOpc.value.trim();
+            if ((t === 'texto' || t === 'texto_largo' || t === 'email') && len) {
+              if (!/^[0-9]{1,5}$/.test(len) || Number(len) < 1) problemas.push('Campo «' + k + '»: el máximo de caracteres va en número entero.');
+              else c.max_len = Number(len);
+            }
+            if (t === 'numero' || t === 'importe') {
+              if (mn) { if (!RE_NUM1.test(mn)) problemas.push('Campo «' + k + '»: el mínimo va con punto decimal y sin separador de miles.'); else c.min = mn; }
+              if (mx) { if (!RE_NUM1.test(mx)) problemas.push('Campo «' + k + '»: el máximo va con punto decimal y sin separador de miles.'); else c.max = mx; }
+            }
+            if (t === 'texto' && op) {
+              var ops = op.split('|').map(function (x) { return x.trim(); }).filter(Boolean);
+              if (ops.length < 2) problemas.push('Campo «' + k + '»: con opciones fijas hacen falta al menos dos.');
+              else c.opciones = ops;
+            }
+            out.push(c);
+          });
+          return { campos: out, problemas: problemas };
+        }
+        campos.push({ tipo: 'custom', render: function (d) {
+          d.style.cssText = 'display:grid;gap:8px';
+          var cab = nodo('div'); cab.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap';
+          cab.appendChild(nodo('span', 'lwp-etq', 'Campos que se rellenan en cada contrato'));
+          var bD = nodo('button', 'lwp-mas', 'Detectar campos del texto'); bD.type = 'button';
+          cab.appendChild(bD); d.appendChild(cab);
+          listaC = nodo('div'); listaC.style.cssText = 'display:grid;gap:8px';
+          d.appendChild(listaC);
+          notaC = nodo('p', 'lwp-nota', 'La clave es la que va entre llaves en el texto; la etiqueta, lo que se le pregunta a quien hace el contrato.');
+          d.appendChild(notaC);
+          var bA = nodo('button', 'lwp-mas', '+ Añadir campo'); bA.type = 'button';
+          bA.addEventListener('click', function () { nuevaFilaC().k.focus(); });
+          d.appendChild(bA);
+          (Array.isArray(base.campos) ? base.campos : []).forEach(function (c) { nuevaFilaC(c); });
+          bD.addEventListener('click', function () {
+            var ya = {};
+            filasC.forEach(function (f) { ya[f.k.value.trim()] = 1; });
+            var usados = window.lwPlantillaCamposUsados(ta.value).filter(function (k) { return RESERVADOS1.indexOf(k) === -1 && !/^adquiriente_[0-9]+_/.test(k); });
+            var nuevos = usados.filter(function (k) { return !ya[k]; });
+            nuevos.forEach(function (k) { nuevaFilaC({ clave: k, etiqueta: window.lwPlantillaEtiquetaDe(k), tipo: 'texto', obligatorio: true }); });
+            var sobran = Object.keys(ya).filter(function (k) { return k && usados.indexOf(k) === -1; });
+            notaC.textContent = (nuevos.length ? 'Añadidos ' + nuevos.length + ': ' + nuevos.join(', ') + '. Revisa su etiqueta y su tipo.' : 'No hay campos nuevos en el texto.') +
+              (sobran.length ? ' En la lista pero no en el texto: ' + sobran.join(', ') + '.' : '');
+          });
+        } });
+        /* ── Hitos (calendario de pagos) ── */
+        function opcionesDesde(sel, actual) {
+          var ops = [['emision', 'la emisión del contrato']];
+          leeCampos1().campos.forEach(function (c) { if (c.tipo === 'fecha' && c.obligatorio) ops.push([c.clave, '{{' + c.clave + '}} · ' + c.etiqueta]); });
+          if (actual && !ops.some(function (o) { return o[0] === actual; })) ops.push([actual, '{{' + actual + '}} · no es un campo fecha obligatorio']);
+          sel.textContent = '';
+          ops.forEach(function (o) { var op = nodo('option', null, o[1]); op.value = o[0]; sel.appendChild(op); });
+          sel.value = actual || 'emision';
+        }
+        function recuentaH() {
+          if (!sumaH) return;
+          if (!hOn.checked) { sumaH.textContent = 'Sin calendario de pagos: el contrato no lleva hitos.'; return; }
+          var cent = 0, malos = 0;
+          filasH.forEach(function (f) {
+            var x = f.val.value.trim();
+            if (!(hModo.value === 'pct' ? RE_PCT1 : RE_MONTO1).test(x)) { malos++; return; }
+            var ps = x.split('.'); cent += Number(ps[0]) * 100 + Number(((ps[1] || '') + '00').slice(0, 2));
+          });
+          var s = Math.floor(cent / 100) + '.' + ('0' + (cent % 100)).slice(-2);
+          sumaH.textContent = hModo.value === 'pct'
+            ? 'Suma de porcentajes: ' + s + ' % (tiene que ser 100).' + (malos ? ' Hay ' + malos + ' sin valor válido.' : '')
+            : 'Suma de importes: ' + s + ' (tiene que ser el precio total del contrato; se comprueba al simular).' + (malos ? ' Hay ' + malos + ' sin valor válido.' : '');
+        }
+        function nuevaFilaH(h) {
+          h = h || {};
+          var caja = nodo('div'); caja.style.cssText = 'display:grid;gap:6px;padding-bottom:8px;border-bottom:1px solid #F0EEE9';
+          var l1 = nodo('div'); l1.style.cssText = 'display:grid;grid-template-columns:minmax(0,1.6fr) 120px 110px minmax(0,1.2fr) 26px;gap:8px;align-items:center';
+          var mk = function (host, ph, val) { var i = nodo('input', 'lwp-in lwp-comp'); i.placeholder = ph; i.setAttribute('aria-label', ph); i.value = val == null ? '' : String(val); host.appendChild(i); return i; };
+          var f = { caja: caja };
+          f.es = mk(l1, 'Descripción (es) *', h.es);
+          f.val = mk(l1, hModo.value === 'pct' ? '% (p. ej. 30)' : 'Importe', hModo.value === 'pct' ? h.pct : h.monto);
+          f.dias = mk(l1, 'Días (opc.)', h.dias);
+          f.desde = nodo('select', 'lwp-in lwp-comp'); f.desde.setAttribute('aria-label', 'Plazo contado desde');
+          l1.appendChild(f.desde);
+          opcionesDesde(f.desde, h.desde);
+          f.desde.addEventListener('focus', function () { opcionesDesde(f.desde, f.desde.value); });
+          var bQ = nodo('button', 'lwp-quita', '×'); bQ.type = 'button'; bQ.title = 'Quitar hito'; bQ.setAttribute('aria-label', 'Quitar hito');
+          l1.appendChild(bQ);
+          var l2 = nodo('div'); l2.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px';
+          f.en = mk(l2, 'Descripción en inglés (opcional)', h.en);
+          f.id = mk(l2, 'Descripción en indonesio (opcional)', h.id);
+          f.val.addEventListener('input', recuentaH);
+          bQ.addEventListener('click', function () { listaH.removeChild(caja); filasH = filasH.filter(function (x) { return x !== f; }); recuentaH(); });
+          caja.appendChild(l1); caja.appendChild(l2);
+          listaH.appendChild(caja);
+          filasH.push(f);
+          recuentaH();
+          return f;
+        }
+        /* Lo que viaja: null (sin calendario) o {modo, lista}; cada hito lleva `pct` O `monto` (nunca los dos, M0 §1.2
+           caso C), en CADENA; `dias` entero y `desde` solo con `dias`. El orden es la posición en la lista. */
+        function leeHitos() {
+          if (!hOn.checked) return { hitos: null, problemas: [] };
+          var modo = hModo.value === 'monto' ? 'monto' : 'pct', lista = [], problemas = [];
+          filasH.forEach(function (f, i) {
+            var n = i + 1, es = f.es.value.trim(), val = f.val.value.trim(), dias = f.dias.value.trim();
+            var h = { es: es };
+            if (!es) problemas.push('Hito ' + n + ': falta la descripción.');
+            else if (es.length > 200) problemas.push('Hito ' + n + ': la descripción pasa de 200 caracteres.');
+            if (f.en.value.trim()) h.en = f.en.value.trim();
+            if (f.id.value.trim()) h.id = f.id.value.trim();
+            if (modo === 'pct') { if (!RE_PCT1.test(val) || Number(val) <= 0 || Number(val) > 100) problemas.push('Hito ' + n + ': el porcentaje va de 0,01 a 100, con punto y hasta 2 decimales.'); else h.pct = val; }
+            else { if (!RE_MONTO1.test(val) || Number(val) <= 0) problemas.push('Hito ' + n + ': el importe va con punto decimal (hasta 2), sin separador de miles, y mayor que 0.'); else h.monto = val; }
+            if (dias) {
+              if (!/^[0-9]{1,4}$/.test(dias) || Number(dias) > 3650) problemas.push('Hito ' + n + ': los días van en número entero de 0 a 3650.');
+              else { h.dias = Number(dias); h.desde = f.desde.value || 'emision'; }
+            }
+            lista.push(h);
+          });
+          if (!lista.length) problemas.push('El calendario está activado pero no tiene hitos: añade uno o desactívalo.');
+          if (lista.length > 24) problemas.push('Como mucho 24 hitos.');
+          return { hitos: { modo: modo, lista: lista }, problemas: problemas };
+        }
+        campos.push({ tipo: 'custom', render: function (d) {
+          d.style.cssText = 'display:grid;gap:8px';
+          d.appendChild(nodo('span', 'lwp-etq', 'Calendario de pagos (hitos)'));
+          var h0 = base.hitos && typeof base.hitos === 'object' ? base.hitos : null;
+          var fila = nodo('div'); fila.style.cssText = 'display:flex;gap:14px;align-items:center;flex-wrap:wrap';
+          var lOn = nodo('label'); lOn.style.cssText = 'display:flex;align-items:center;gap:6px;font:500 13px Jost,system-ui,sans-serif;color:#44403c';
+          hOn = nodo('input'); hOn.type = 'checkbox'; hOn.checked = !!h0;
+          lOn.appendChild(hOn); lOn.appendChild(document.createTextNode('Lleva calendario de pagos'));
+          hModo = nodo('select', 'lwp-in lwp-comp'); hModo.setAttribute('aria-label', 'Cómo se reparte'); hModo.style.maxWidth = '260px';
+          [['pct', 'En porcentajes del precio'], ['monto', 'En importes fijos']].forEach(function (o) { var op = nodo('option', null, o[1]); op.value = o[0]; hModo.appendChild(op); });
+          hModo.value = h0 && h0.modo === 'monto' ? 'monto' : 'pct';
+          fila.appendChild(lOn); fila.appendChild(hModo);
+          d.appendChild(fila);
+          var cuerpoH = nodo('div'); cuerpoH.style.cssText = 'display:grid;gap:8px';
+          var enc = nodo('div'); enc.style.cssText = 'display:grid;grid-template-columns:minmax(0,1.6fr) 120px 110px minmax(0,1.2fr) 26px;gap:8px';
+          ['Descripción', 'Valor', 'Días', 'Contados desde', ''].forEach(function (t) { enc.appendChild(nodo('span', 'lwp-col', t)); });
+          cuerpoH.appendChild(enc);
+          listaH = nodo('div'); listaH.style.cssText = 'display:grid;gap:8px';
+          cuerpoH.appendChild(listaH);
+          var bA = nodo('button', 'lwp-mas', '+ Añadir hito'); bA.type = 'button';
+          bA.addEventListener('click', function () { nuevaFilaH().es.focus(); });
+          cuerpoH.appendChild(bA);
+          d.appendChild(cuerpoH);
+          sumaH = nodo('p', 'lwp-nota'); d.appendChild(sumaH);
+          d.appendChild(nodo('p', 'lwp-nota', 'El orden de la lista es el orden de pago. Sin días, el hito no lleva fecha. En porcentajes, el último hito absorbe el redondeo para que la suma sea el precio exacto.'));
+          var vis = function () { cuerpoH.style.display = hModo.style.display = hOn.checked ? '' : 'none'; recuentaH(); };
+          hOn.addEventListener('change', vis);
+          hModo.addEventListener('change', function () {
+            filasH.forEach(function (f) { f.val.value = ''; f.val.placeholder = hModo.value === 'pct' ? '% (p. ej. 30)' : 'Importe'; });
+            recuentaH();
+          });
+          (h0 && Array.isArray(h0.lista) ? h0.lista : []).forEach(function (h) { nuevaFilaH(h); });
+          vis();
+        } });
+        /* ── Firmantes ── */
+        function renumeraF() {
+          filasF.forEach(function (f, i) {
+            f.rol.textContent = 'adquiriente_' + (i + 1);
+            if (i === 0) { f.o.checked = true; f.o.disabled = true; f.bQ.style.visibility = 'hidden'; }
+            else { f.o.disabled = false; f.bQ.style.visibility = ''; }
+          });
+          if (bMasF) bMasF.disabled = filasF.length >= 9;
+        }
+        function nuevaFilaF(fm) {
+          fm = fm || {};
+          var el = nodo('div'); el.style.cssText = 'display:grid;grid-template-columns:140px minmax(0,1fr) auto 26px;gap:8px;align-items:center';
+          var rol = nodo('span', 'lwp-nom'); rol.style.fontFamily = 'ui-monospace,SFMono-Regular,Consolas,monospace';
+          var iE = nodo('input', 'lwp-in lwp-comp'); iE.placeholder = 'Cómo se le llama: Cliente, Cotitular…'; iE.setAttribute('aria-label', 'Etiqueta del firmante'); iE.value = fm.etiqueta || '';
+          var lO = nodo('label'); lO.style.cssText = 'display:flex;align-items:center;gap:6px;font:500 12.5px Jost,system-ui,sans-serif;color:#44403c;white-space:nowrap';
+          var cO = nodo('input'); cO.type = 'checkbox'; cO.checked = fm.obligatorio === true;
+          lO.appendChild(cO); lO.appendChild(document.createTextNode('Obligatorio'));
+          var bQ = nodo('button', 'lwp-quita', '×'); bQ.type = 'button'; bQ.title = 'Quitar firmante'; bQ.setAttribute('aria-label', 'Quitar firmante');
+          var f = { el: el, rol: rol, e: iE, o: cO, bQ: bQ };
+          bQ.addEventListener('click', function () { listaF.removeChild(el); filasF = filasF.filter(function (x) { return x !== f; }); renumeraF(); });
+          el.appendChild(rol); el.appendChild(iE); el.appendChild(lO); el.appendChild(bQ);
+          listaF.appendChild(el);
+          filasF.push(f);
+          renumeraF();
+          return f;
+        }
+        /* Lo que viaja: el ROL sale de la posición (adquiriente_1..N seguidos, M0 §1 regla 5); el 1 siempre obligatorio. */
+        function leeFirmantes() {
+          var out = [], problemas = [];
+          filasF.forEach(function (f, i) {
+            var e = f.e.value.trim();
+            if (!e) problemas.push('Firmante ' + (i + 1) + ': falta cómo se le llama.');
+            else if (e.length > 200) problemas.push('Firmante ' + (i + 1) + ': la etiqueta pasa de 200 caracteres.');
+            out.push({ rol: 'adquiriente_' + (i + 1), etiqueta: e, obligatorio: i === 0 ? true : !!f.o.checked });
+          });
+          if (!out.length) problemas.push('Hace falta al menos un firmante (adquiriente_1).');
+          if (out.length > 9) problemas.push('Como mucho 9 firmantes.');
+          return { firmantes: out, problemas: problemas };
+        }
+        campos.push({ tipo: 'custom', render: function (d) {
+          d.style.cssText = 'display:grid;gap:8px';
+          d.appendChild(nodo('span', 'lwp-etq', 'Firmantes'));
+          listaF = nodo('div'); listaF.style.cssText = 'display:grid;gap:6px';
+          d.appendChild(listaF);
+          bMasF = nodo('button', 'lwp-mas', '+ Añadir firmante'); bMasF.type = 'button';
+          bMasF.addEventListener('click', function () { if (filasF.length < 9) nuevaFilaF().e.focus(); });
+          d.appendChild(bMasF);
+          d.appendChild(nodo('p', 'lwp-nota', 'Van seguidos: adquiriente_1, adquiriente_2… (hasta 9). El primero es siempre obligatorio: es el cliente al que queda unido el contrato. Sus datos salen de la ficha del cliente al hacer el contrato, no de aquí.'));
+          var fs = Array.isArray(base.firmantes) && base.firmantes.length ? base.firmantes : [{ rol: 'adquiriente_1', etiqueta: 'Cliente', obligatorio: true }];
+          fs.slice().sort(function (a, b) { return Number(String(a.rol).slice(12)) - Number(String(b.rol).slice(12)); }).forEach(function (x) { nuevaFilaF(x); });
+        } });
+        campos.push({ k: 'notas', label: 'Notas internas', tipo: 'textarea', valor: base === borr ? (borr.notas || '') : '',
+          ayuda: 'Para el equipo: qué cambia en esta versión. No sale en el contrato.' });
+
+        var enc = borr ? 'Borrador v' + borr.version + ' (texto plano): al guardar se sobrescribe este borrador. Después, «Revisar y activar» para simularlo y activarlo.'
+          : 'Nueva versión a partir de la activa (v' + act.version + '). La activa no cambia hasta que actives esta.';
+        modal('Editar plantilla — ' + p.nombre, campos, 'Guardar borrador', function (v) {
+          if (hecho) return {};
+          if (!(v.nombre || '').trim()) return { error: { message: 'Falta el nombre.' } };
+          if (!tipoFijo && !v.tipo_contrato) return { error: { message: 'Falta el tipo de contrato.' } };
+          if (!ta.value.trim()) return { error: { message: 'Falta el texto del contrato.' } };
+          var lc = leeCampos1(), lh = leeHitos(), lf = leeFirmantes();
+          var probs = lc.problemas.concat(lh.problemas, lf.problemas);
+          if (probs.length) return { error: { message: probs.join(' ') } };
+          // `esquema: 1` SIEMPRE (número): sin él, una versión nueva hecha desde la activa nacería esquema 0 y la base
+          // rechazaría idioma/hitos/firmantes. En un borrador que ya es 1 no cambia nada (la base solo impide cambiarlo).
+          var d = { esquema: 1, idioma: IDIOMAS1.some(function (o) { return o[0] === v.idioma; }) ? v.idioma : 'es',
+            cuerpo: ta.value, campos: lc.campos, hitos: lh.hitos, firmantes: lf.firmantes, notas: (v.notas || '').trim() || null };
+          if (v.nombre.trim() !== p.nombre) d.nombre = v.nombre.trim();
+          if (!tipoFijo && v.tipo_contrato !== p.tipo_contrato) d.tipo_contrato = v.tipo_contrato;
+          return Promise.resolve(sb.rpc('plantilla_borrador_guarda', { p_slug: p.slug, p_datos: d })).then(function (r) {
+            if (r && r.error) return { error: { message: errorPlantillas(r.error) } };
+            hecho = true;
+            aviso('Borrador guardado. Para que se use: «Revisar y activar», simularlo y activarlo.');
+            setTimeout(repinta, 480);
+            return r;
+          });
+        }, { sub: 'Plantillas', sinRecarga: true, ancho: '1040px',
+          encabezado: '<p class="lwp-nota" style="margin:0 0 12px">' + esc(enc) + '</p>' });
+      }
+
+      /* ── Ver una versión esquema 1 (solo lectura) ────────────────────────────────────────────────── */
+      function verVersion1(p, v) {
+        var c = cajon({ titulo: p.nombre, sub: 'Plantillas', estado: ['Activa v' + v.version, 'ok'], ancho: 'min(900px,96vw)',
+          bajoTitulo: p.numero + ' · texto plano · ' + (v.idioma || 'es') + ' · activada ' + (v.activada_en ? new Date(v.activada_en).toLocaleString('es-ES') : '—') + (v.activada_por ? ' por ' + v.activada_por : '') });
+        marcaIA1(c.cuerpo, v);
+        var sT = seccionCajon('Texto'); sT.appendChild(pre1(v.cuerpo)); c.cuerpo.appendChild(sT.parentNode);
+        pintaEstructura1(c.cuerpo, v);
+        if (v.notas) { var sN = seccionCajon('Notas'); sN.appendChild(nodo('p', 'lwp-nom', v.notas)); c.cuerpo.appendChild(sN.parentNode); }
+      }
+      function pintaEstructura1(host, v) {
+        var sC = seccionCajon('Campos');
+        var cs = Array.isArray(v.campos) ? v.campos : [];
+        if (!cs.length) sC.appendChild(nodo('p', 'lwp-nota', 'No tiene campos propios: solo los que existen siempre.'));
+        cs.forEach(function (x) {
+          sC.appendChild(nodo('p', 'lwp-nom', '{{' + x.clave + '}} · ' + x.etiqueta + ' · ' + tipoCampoNombre(x.tipo) + (x.obligatorio ? ' · obligatorio' : '') +
+            (Array.isArray(x.opciones) ? ' · opciones: ' + x.opciones.join(' | ') : '')));
+        });
+        host.appendChild(sC.parentNode);
+        var sH = seccionCajon('Calendario de pagos');
+        var h = v.hitos && typeof v.hitos === 'object' ? v.hitos : null;
+        if (!h || !Array.isArray(h.lista) || !h.lista.length) sH.appendChild(nodo('p', 'lwp-nota', 'Sin calendario de pagos.'));
+        else {
+          sH.appendChild(nodo('p', 'lwp-nota', h.modo === 'monto' ? 'En importes fijos.' : 'En porcentajes del precio.'));
+          h.lista.forEach(function (x, i) { sH.appendChild(nodo('p', 'lwp-nom', hitoLinea(x, h.modo, i))); });
+        }
+        host.appendChild(sH.parentNode);
+        var sF = seccionCajon('Firmantes');
+        (Array.isArray(v.firmantes) ? v.firmantes : []).forEach(function (f) { sF.appendChild(nodo('p', 'lwp-nom', firmanteLinea(f))); });
+        host.appendChild(sF.parentNode);
+      }
+
+      /* ── Revisar, simular y activar un borrador esquema 1 ────────────────────────────────────────── */
+      /* Caso de ejemplo VÁLIDO por construcción (todo cadenas, M0 §3.1): no se guarda en ningún sitio. */
+      function hoyISO() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+      function ejemploCampo(c) {
+        var t = c.tipo;
+        if (t === 'fecha') return hoyISO();
+        if (t === 'email') return 'ejemplo@ejemplo.com';
+        if (t === 'numero' || t === 'importe') {
+          var def = t === 'importe' ? 1000 : 1;
+          if (c.min != null && c.min !== '') return String(c.min);
+          if (c.max != null && c.max !== '' && Number(c.max) < def) return String(c.max);
+          return String(def);
+        }
+        if (t === 'texto' && Array.isArray(c.opciones) && c.opciones.length) return String(c.opciones[0]);
+        var s = 'Ejemplo de ' + (c.etiqueta || c.clave);
+        var lim = Number(c.max_len) || (t === 'texto_largo' ? 4000 : 200);
+        return s.slice(0, Math.max(1, lim));
+      }
+      function precioEjemplo(v) {
+        var h = v.hitos && typeof v.hitos === 'object' ? v.hitos : null;
+        if (!h || h.modo !== 'monto' || !Array.isArray(h.lista)) return '120000';
+        var cent = 0;
+        h.lista.forEach(function (x) {
+          var m = String(x.monto || '0'); if (!RE_MONTO1.test(m)) return;
+          var ps = m.split('.'); cent += Number(ps[0]) * 100 + Number(((ps[1] || '') + '00').slice(0, 2));
+        });
+        return cent > 0 ? Math.floor(cent / 100) + (cent % 100 ? '.' + ('0' + (cent % 100)).slice(-2) : '') : '120000';
+      }
+      function activaVersion1(p, borr, act) {
+        var simOk = null;       // {id, hash} de la última simulación CORRECTA de este borrador
+        var enviando = false, simulando = false;
+        var c = cajon({ titulo: 'Revisar y activar — ' + p.nombre, sub: 'Plantillas', estado: ['Borrador v' + borr.version, 'espera'], ancho: 'min(980px,96vw)',
+          bajoTitulo: (act ? 'Sustituye a la activa v' + act.version + ': los contratos ya hechos siguen con la suya.' : 'Es su primera versión.') +
+            ' Para activarla: simúlala con un caso de ejemplo, revisa hitos y firmantes, y confirma.' });
+        marcaIA1(c.cuerpo, borr);
+        /* 1. Qué cambia */
+        var sD = seccionCajon(act ? 'Qué cambia frente a la activa (v' + act.version + ')' : 'Texto de esta versión');
+        if (act) {
+          resumenCampos(act.campos, borr.campos).forEach(function (t) { sD.appendChild(nodo('p', 'lwp-nom', t)); });
+          var hd = nodo('div'); sD.appendChild(hd);
+          pintaDiff(hd, act.cuerpo, borr.cuerpo);
+        } else sD.appendChild(pre1(borr.cuerpo));
+        c.cuerpo.appendChild(sD.parentNode);
+        pintaEstructura1(c.cuerpo, borr);
+        /* 2. Caso de ejemplo */
+        var sE = seccionCajon('Simular con un caso de ejemplo');
+        sE.appendChild(nodo('p', 'lwp-nota', 'Datos de ejemplo: no se guardan en ningún sitio y no crean ningún contrato. Cámbialos si quieres ver otro caso. El texto, el calendario y los totales los calcula el servidor, igual que al hacer el contrato.'));
+        var rejilla = nodo('div'); rejilla.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px';
+        sE.appendChild(rejilla);
+        var entrada = function (etq, val, largo) {
+          var w = nodo('label'); w.style.cssText = 'display:grid;gap:4px';
+          w.appendChild(nodo('span', 'lwp-col', etq));
+          var i = nodo(largo ? 'textarea' : 'input', 'lwp-in lwp-comp'); i.value = val; if (largo) i.rows = 2;
+          w.appendChild(i); rejilla.appendChild(w);
+          return i;
+        };
+        var eRes = {
+          nombre_contrato: entrada('{{nombre_contrato}}', 'Contrato de ejemplo'),
+          precio_total: entrada('{{precio_total}} (punto decimal)', precioEjemplo(borr)),
+          moneda: entrada('{{moneda}}', 'EUR'),
+          parcela_codigo: entrada('{{parcela_codigo}}', 'EJ-01')
+        };
+        var eCampos = {};
+        (Array.isArray(borr.campos) ? borr.campos : []).forEach(function (x) {
+          eCampos[x.clave] = entrada('{{' + x.clave + '}} · ' + x.etiqueta, ejemploCampo(x), x.tipo === 'texto_largo');
+        });
+        /* Freno de cotitulares (M0 §3.3, 20260930170000): simular admite UN firmante; con dos o más la base responde
+           cotitular_no_soportado. Se simula con el primero; los demás declarados salen vacíos en el texto. */
+        var eFirm = [];
+        var firmDecl = Array.isArray(borr.firmantes) ? borr.firmantes : [];
+        // el titular es SIEMPRE adquiriente_1, no el primero de la lista (un borrador de IA puede venir desordenado)
+        firmDecl.filter(function (f) { return f && f.rol === 'adquiriente_1'; }).slice(0, 1).forEach(function (f, i) {
+          eFirm.push({ rol: f.rol, i: entrada('{{' + f.rol + '_nombre}} · ' + (f.etiqueta || ''), 'Firmante de ejemplo ' + (i + 1)) });
+        });
+        if (firmDecl.length > 1) sE.appendChild(nodo('p', 'lwp-nota', 'Por ahora un contrato de plantilla admite un solo firmante; los cotitulares llegarán más adelante. La simulación usa solo el primero y deja vacíos los datos de los demás.'));
+        var bSim = btnAccion('simular', 'Simular', 'las-btn1');   // data-accion="simular"
+        bSim.style.justifySelf = 'start';
+        sE.appendChild(bSim);
+        var resHost = nodo('div'); resHost.style.cssText = 'display:grid;gap:10px';
+        sE.appendChild(resHost);
+        c.cuerpo.appendChild(sE.parentNode);
+        /* 3. Revisión (solo existe tras una simulación correcta) */
+        var revHost = nodo('div');
+        c.cuerpo.appendChild(revHost);
+
+        function quitaRevision() { simOk = null; revHost.textContent = ''; }
+        function valores() {
+          var r = {}, cm = {}, fm = [];
+          Object.keys(eRes).forEach(function (k) { r[k] = eRes[k].value.trim(); });
+          Object.keys(eCampos).forEach(function (k) { var x = eCampos[k].value; if (x.trim() !== '') cm[k] = x; });
+          eFirm.forEach(function (f) { var n = f.i.value.trim(); if (n) fm.push({ rol: f.rol, nombre: n }); });
+          return { reservados: r, campos: cm, firmantes: fm };
+        }
+        function pintaResultado(d) {
+          resHost.textContent = '';
+          var errores = Array.isArray(d.errores) ? d.errores : [];
+          if (d.ok !== true) {
+            var caja = nodo('div'); caja.style.cssText = 'padding:12px 14px;border-radius:12px;background:#FFF1EF;color:#93000a;display:grid;gap:4px';
+            caja.appendChild(nodo('strong', null, 'La simulación no sale: corrige esto (en el caso de ejemplo o en el borrador) y vuelve a simular.'));
+            if (!errores.length) caja.appendChild(nodo('span', null, 'El servidor no ha dicho por qué.'));
+            errores.forEach(function (e) { caja.appendChild(nodo('span', null, '· ' + (e.campo ? e.campo + ': ' : '') + (e.mensaje || e.codigo || ''))); });
+            resHost.appendChild(caja);
+            return;
+          }
+          (Array.isArray(d.advertencias) ? d.advertencias : []).forEach(function (a) { resHost.appendChild(nodo('p', 'lwp-nota', 'Aviso: ' + a)); });
+          resHost.appendChild(nodo('span', 'lwp-etq', 'Así queda el texto'));
+          resHost.appendChild(pre1(d.texto));
+          var hs = Array.isArray(d.hitos) ? d.hitos : [];
+          resHost.appendChild(nodo('span', 'lwp-etq', 'Calendario de pagos'));
+          if (!hs.length) resHost.appendChild(nodo('p', 'lwp-nota', 'Sin calendario de pagos.'));
+          else {
+            var tb = nodo('table'); tb.style.cssText = 'width:100%;border-collapse:collapse;font:13.5px/1.45 Jost,system-ui,sans-serif';
+            var trh = nodo('tr');
+            ['Nº', 'Hito', '%', 'Importe', 'Fecha'].forEach(function (t) { var th = nodo('th', null, t); th.style.cssText = 'text-align:left;padding:6px 8px;border-bottom:1px solid #E7E4DC;color:#736B5E'; trh.appendChild(th); });
+            tb.appendChild(trh);
+            hs.forEach(function (h) {
+              var tr = nodo('tr');
+              [h.orden, h.descripcion, h.pct != null ? h.pct + ' %' : '—', h.monto, h.fecha || 'sin fecha'].forEach(function (x) {
+                var td = nodo('td', null, x == null ? '—' : String(x)); td.style.cssText = 'padding:6px 8px;border-bottom:1px solid #F0EEE9'; tr.appendChild(td);
+              });
+              tb.appendChild(tr);
+            });
+            resHost.appendChild(tb);
+          }
+          var t = d.totales || {};
+          resHost.appendChild(nodo('p', 'lwp-nom', 'Precio total: ' + (t.precio_total || '—') + ' ' + (t.moneda || '') +
+            (t.suma_monto != null ? ' · suma de hitos: ' + t.suma_monto : '') + (t.suma_pct != null ? ' · suma de porcentajes: ' + t.suma_pct + ' %' : '')));
+        }
+        function pintaRevision(d) {
+          revHost.textContent = '';
+          var bRev = btnAccion('revisar', 'Revisar hitos y firmantes para activar', 'las-btn1');   // data-accion="revisar"
+          bRev.style.justifySelf = 'start';
+          var sR = seccionCajon('Revisión antes de activar');
+          sR.appendChild(bRev);
+          revHost.appendChild(sR.parentNode);
+          bRev.addEventListener('click', function () {
+            if (!simOk || simOk.id !== borr.id) return aviso('Simula antes esta versión.', '#8A6A34');
+            sR.textContent = '';
+            marcaIA1(sR, borr);
+            sR.appendChild(nodo('p', 'lwp-nota', 'Comprueba uno a uno. Los importes son los del caso de ejemplo; en cada contrato se calculan con su precio.'));
+            sR.appendChild(nodo('span', 'lwp-etq', 'Hitos'));
+            var hs = Array.isArray(d.hitos) ? d.hitos : [];
+            if (!hs.length) sR.appendChild(nodo('p', 'lwp-nom', 'Sin calendario de pagos: el contrato no lleva hitos.'));
+            hs.forEach(function (h) {
+              sR.appendChild(nodo('p', 'lwp-nom', h.orden + '. ' + h.descripcion + ' — ' + (h.pct != null ? h.pct + ' % — ' : '') +
+                h.monto + ' ' + ((d.totales || {}).moneda || '') + ' (ejemplo) — ' + (h.fecha || 'sin fecha')));
+            });
+            sR.appendChild(nodo('span', 'lwp-etq', 'Firmantes'));
+            (Array.isArray(borr.firmantes) ? borr.firmantes : []).forEach(function (f) { sR.appendChild(nodo('p', 'lwp-nom', firmanteLinea(f))); });
+            var lab = nodo('label', 'las-check');
+            var chk = nodo('input'); chk.type = 'checkbox'; chk.checked = false;   // DESMARCADA siempre: la base también exige p_acepto
+            var tx = nodo('span'); tx.appendChild(nodo('span', 'las-check-t', edT(DESCARGO)));
+            lab.appendChild(chk); lab.appendChild(tx);
+            sR.appendChild(lab);
+            var bAct = btnAccion('activar', 'Activar esta versión', 'las-btn1');   // data-accion="activar"
+            bAct.style.justifySelf = 'start';
+            bAct.disabled = true; bAct.title = 'Marca antes la casilla de revisión';
+            sR.appendChild(bAct);
+            chk.addEventListener('change', function () { if (!enviando) { bAct.disabled = !chk.checked; bAct.title = chk.checked ? '' : 'Marca antes la casilla de revisión'; } });
+            bAct.addEventListener('click', function () {
+              if (enviando || chk.checked !== true) return;
+              if (!simOk || simOk.id !== borr.id || simOk.hash !== borr.hash) return aviso('Simula antes esta versión.', '#8A6A34');
+              var huella = simOk.hash;
+              enviando = true; bAct.disabled = true;
+              /* Lo que se activa es lo que se ha simulado y revisado: se relee y, si la huella (que en esquema 1 cubre
+                 cuerpo, campos, hitos, firmantes e idioma) no es la simulada, no se activa. */
+              leeVersion(borr.id).then(function (rv) {
+                if (rv.error || !rv.data) throw rv.error || new Error('Ese borrador ya no existe: recarga la pantalla.');
+                if (rv.data.estado !== 'borrador' || rv.data.hash !== huella) {
+                  var e = new Error('El borrador ha cambiado desde que lo simulaste (lo ha guardado alguien, o tú en otra pestaña). Vuelve a abrir «Revisar y activar».');
+                  e.recarga = true; throw e;
+                }
+                /* Esquema 1: la base compara la huella (M0 §7.6) bajo bloqueo de fila; la relectura de arriba solo da un
+                   aviso temprano. Quien decide es `p_hash` → 23514 huella_distinta; sin él, 22023 usa_huella. */
+                return sb.rpc('plantilla_version_activa', { p_version_id: borr.id, p_acepto: chk.checked === true, p_hash: huella });
+              }).then(function (rr) {
+                enviando = false;
+                if (rr && rr.error) {
+                  aviso(errorPlantillas(rr.error), '#9E2F26');
+                  // Huella distinta: lo revisado ya no es lo guardado. Se cierra para volver a abrir y simular lo actual.
+                  if (rr.error.hint === 'huella_distinta') { quitaRevision(); c.cierra(); repinta(); return; }
+                  bAct.disabled = !chk.checked; return;
+                }
+                aviso('Plantilla activada: v' + borr.version + ' de «' + p.nombre + '».');
+                c.cierra();
+                repinta();
+              }, function (e) {
+                enviando = false; bAct.disabled = !chk.checked;
+                aviso(e && e.recarga ? e.message : errorPlantillas(e), '#9E2F26');
+                if (e && e.recarga) { c.cierra(); repinta(); }
+              });
+            });
+            chk.focus();
+          });
+        }
+        bSim.addEventListener('click', function () {
+          if (simulando || enviando) return;
+          simulando = true; bSim.disabled = true;
+          quitaRevision();
+          resHost.textContent = '';
+          resHost.appendChild(nodo('p', 'lwp-nota', 'Simulando…'));
+          Promise.resolve(sb.rpc('plantilla_simula', { p_version_id: borr.id, p_valores: valores() })).then(function (r) {
+            simulando = false; bSim.disabled = false;
+            if (r && r.error) { resHost.textContent = ''; resHost.appendChild(nodo('p', 'lwp-nota', 'No se ha podido simular: ' + errorPlantillas(r.error))); return; }
+            var d = (r && r.data) || {};
+            pintaResultado(d);
+            if (d.ok !== true) return;
+            // Correcta Y de ESTA versión: la huella que devuelve el servidor tiene que ser la del borrador que se revisa.
+            if (!d.hash_version || d.hash_version !== borr.hash) {
+              resHost.appendChild(nodo('p', 'lwp-nota', 'El borrador ha cambiado desde que abriste esta revisión: vuelve a abrir «Revisar y activar» para simular el texto actual.'));
+              return;
+            }
+            simOk = { id: borr.id, hash: d.hash_version };
+            pintaRevision(d);
+          }, function (e) {
+            simulando = false; bSim.disabled = false;
+            resHost.textContent = '';
+            resHost.appendChild(nodo('p', 'lwp-nota', 'No se ha podido simular: ' + errorPlantillas(e)));
+          });
+        });
+      }
 
       /* ── Descartar un borrador ───────────────────────────────────────────────────────────────────── */
       window.LW_V4.descartaPlantilla = function (btn) {
