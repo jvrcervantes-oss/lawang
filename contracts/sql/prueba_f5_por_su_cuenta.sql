@@ -311,6 +311,9 @@ end $$;
 -- número de prueba escrito a mano, 999999005, lejos de la serie (numero es identity: OVERRIDING SYSTEM VALUE no gasta la serie) y la raíz no tiene cobros,
 -- así que el motor no crea solicitudes nuevas. Se puede pasar cuantas veces haga falta. Todo acaba en excepción.
 -- Raíz: la raíz más reciente de T sin firmar, sin devengos y congelada al equipo de S.
+-- Desde 20260930133217_f5b_modo_admin_cierra, venta_modo_admin solo pasa a «equipo»: el paso a «propia» de P4, P6, P7,
+-- P11, P13 y P15 se simula con _venta_modo_aplica como postgres (mismo motor, mismos frenos); la vuelta sigue por
+-- venta_modo_admin. P19 prueba el cierre; P12b, el freno de 20260930134629 (LAW-480).
 do $$
 declare
   r text := ''; v_t text; v_state text;
@@ -394,7 +397,8 @@ begin
     raise exception '%', v_t || '/' || (select modo from public.contrato_closer where contrato_id = v_root);
   exception when others then r := r || 'P3 fijado admin=' || sqlerrm || case when sqlerrm = '42501/equipo' then ' ok; ' else ' FALLO; ' end; end;
 
-  -- P4 · (3) el manager del equipo no declara «propia»: congelado (contrato_guarda) y actual (venta_modo_admin)
+  -- P4 · (3) el manager del equipo no declara «propia»: congelado (contrato_guarda) y actual (_venta_modo_aplica: desde
+  --      20260930133217_f5b_modo_admin_cierra venta_modo_admin ya no pasa a «propia»; el freno vive en el ayudante)
   begin
     update public.comisiones_interruptor set modo_obligatorio = true where id;
     perform set_config('app.via_modo_admin', 'on', true);
@@ -414,7 +418,7 @@ begin
     update public.equipos_venta set manager_email = T.e where id = k.equipo_id;
     perform set_config('request.jwt.claims', json_build_object('sub', A.user_id, 'email', A.e, 'role', 'authenticated')::text, true);
     begin
-      perform public.venta_modo_admin(v_root, 'propia', 'prueba: manager actual');
+      perform public._venta_modo_aplica(v_root, 'propia', 'prueba: manager actual');
       v_t := v_t || '/actual-sin-error';
     exception when others then get stacked diagnostics v_state = returned_sqlstate;
       v_t := v_t || '/' || v_state || case when sqlerrm like '%es el manager de este equipo%' then '' else '(' || sqlerrm || ')' end; end;
@@ -458,7 +462,7 @@ begin
     values (v_root, v_tramo, v_cond, S.e, 'manager', 100, 'EUR', v_sp)
     returning id into v_dev;
     perform set_config('request.jwt.claims', json_build_object('sub', A.user_id, 'email', A.e, 'role', 'authenticated')::text, true);
-    v_n := public.venta_modo_admin(v_root, 'propia', 'prueba F5: rama sin pagar');
+    v_n := public._venta_modo_aplica(v_root, 'propia', 'prueba F5: rama sin pagar');   -- paso a «propia» simulado (20260930133217)
     select * into k from public.contrato_closer where contrato_id = v_root;
     raise exception '%', format('%s/%s/%s/%s/%s/%s/%s',
       (select estado from public.solicitudes_pago where id = v_sp),
@@ -470,6 +474,24 @@ begin
       k.modo = 'propia' and k.modo_fijado_admin,
       v_n);
   exception when others then r := r || 'P6 sin pagar=' || sqlerrm || case when sqlerrm = 'anulada/anulada/1/0/t/t/0' then ' ok; ' else ' FALLO; ' end; end;
+
+  -- P19 · 20260930133217_f5b_modo_admin_cierra: el admin (a) no pasa una venta a «propia» → 22023; (b) con el interruptor
+  --       APAGADO no toca una venta sin modo declarado, ni hacia «equipo» → 22023. La raíz sigue sin modo.
+  begin
+    update public.comisiones_interruptor set modo_obligatorio = false where id;
+    perform set_config('request.jwt.claims', json_build_object('sub', A.user_id, 'email', A.e, 'role', 'authenticated')::text, true);
+    begin
+      perform public.venta_modo_admin(v_root, 'propia', 'prueba F5b P19 propia');
+      v_t := 'propia-sin-error';
+    exception when others then get stacked diagnostics v_state = returned_sqlstate;
+      v_t := v_state || case when sqlerrm = 'Solo se puede pasar una venta al equipo' then '' else '(' || sqlerrm || ')' end; end;
+    begin
+      perform public.venta_modo_admin(v_root, 'equipo', 'prueba F5b P19 sin modo');
+      v_t := v_t || '/sin-modo-sin-error';
+    exception when others then get stacked diagnostics v_state = returned_sqlstate;
+      v_t := v_t || '/' || v_state || case when sqlerrm = 'Todavía no se declara el modo de las ventas' then '' else '(' || sqlerrm || ')' end; end;
+    raise exception '%', v_t || '/' || coalesce((select modo from public.contrato_closer where contrato_id = v_root), 'NULL');
+  exception when others then r := r || 'P19 admin cerrado=' || sqlerrm || case when sqlerrm = '22023/22023/NULL' then ' ok; ' else ' FALLO; ' end; end;
 
   -- ── LAW-474 (migración 20260930120030_law474_restos_f5). Base con cobros: RP00141 (closer T en el equipo de S, firmada,
   --    cobrada en parte, 0 devengos). Sin secuencias: el devengo se crea en el nivel `closer` (lo paga el SM, sin solicitud)
@@ -497,7 +519,7 @@ begin
       v_n := public.comisiones_evaluar_contrato(v_rp);
       select * into v_d from public.comisiones_devengadas d where d.contrato_raiz_id = v_rp;
       perform set_config('request.jwt.claims', json_build_object('sub', A.user_id, 'email', A.e, 'role', 'authenticated')::text, true);
-      v_t := v_n || '/' || public.venta_modo_admin(v_rp, 'propia', 'prueba LAW-474 (d)');
+      v_t := v_n || '/' || public._venta_modo_aplica(v_rp, 'propia', 'prueba LAW-474 (d)');   -- simulado (20260930133217)
       select * into k from public.contrato_closer where contrato_id = v_rp;
       raise exception '%', v_t || format('/%s/%s/%s/%s/%s',
         (select d.estado || ':' || d.anulado_por_modo from public.comisiones_devengadas d where d.id = v_d.id),
@@ -590,7 +612,7 @@ begin
         v_n := public.comisiones_evaluar_contrato(v_rp);
         select * into v_d from public.comisiones_devengadas d where d.contrato_raiz_id = v_rp;
         perform set_config('request.jwt.claims', json_build_object('sub', A.user_id, 'email', A.e, 'role', 'authenticated')::text, true);
-        v_t := v_n || '/' || public.venta_modo_admin(v_rp, 'propia', 'prueba LAW-474 (a1) ida');
+        v_t := v_n || '/' || public._venta_modo_aplica(v_rp, 'propia', 'prueba LAW-474 (a1) ida');   -- ida simulada; la vuelta sí por venta_modo_admin
         -- en sentencia aparte: una subconsulta en la misma expresión ve la foto de ANTES de venta_modo_admin
         v_t := v_t || '/' || (select d.estado || ':' || d.anulado_por_modo from public.comisiones_devengadas d where d.id = v_d.id);
         update public.condiciones_comision set pct_comision = 6 where id = v_c;
@@ -646,10 +668,10 @@ begin
       exception when others then r := r || 'P12 (a2) reponer pagada=' || sqlerrm
         || case when sqlerrm = '1/t/anulada/1/t/1' then ' ok; ' else ' FALLO; ' end; end;
 
-      -- P12b · (a2) igual pero la negativa YA se descontó (compensada): la reposición debe devolver lo descontado con una
-      --        diferencia POSITIVA al mismo perceptor. Esa inserción gasta la serie DIF (numero = nextval por defecto), así
-      --        que NO se ejecuta: se comprueba que las entradas que lee _comision_devengo_reponer dan esa rama (lo que valía
-      --        antes del cambio − lo vigente = lo descontado) y que _comision_diferencia_solicitud la mandaría al mismo perceptor.
+      -- P12b · (a2) igual pero la negativa YA se descontó (compensada). Desde 20260930134629 (LAW-480) esa rama no crea la
+      --        diferencia positiva: lanza 22023 («la regulariza administración a mano»). Se llama a _comision_devengo_reponer
+      --        directamente (el raise va antes del INSERT, así que no gasta la serie DIF) y se comprueba: 22023 con ese texto,
+      --        ninguna diferencia nueva, ninguna solicitud nueva, el devengo sigue anulado y la compensada intacta.
       begin
         update public.condiciones_comision set activo = false, vigente_hasta = null
          where equipo_id = kk.equipo_id and nivel in ('manager', 'closer', 'setter', 'team_lead');
@@ -666,20 +688,21 @@ begin
         returning * into v_d;
         insert into public.comisiones_diferencias (numero, devengo_id, importe, importe_vigente, importe_nuevo, motivo, estado, origen)
         values ('DIF-P474-2', v_d.id, -v_imp, v_imp, 0, 'prueba LAW-474 (a2b): ya descontada', 'compensada',
-                jsonb_build_object('op', 'cambio_modo', 'modo', 'propia'));
-        -- mismas consultas que el cuerpo de _comision_devengo_reponer (rama «ya pagada», v_sp nulo)
-        select x.importe_vigente into v_objt from public.comisiones_diferencias x
-         where x.devengo_id = v_d.id and x.importe < 0 and x.origen->>'op' = 'cambio_modo' order by x.created_at desc limit 1;
-        v_vig := coalesce(v_d.importe_ajustado, v_d.importe)
-               + coalesce((select sum(x.importe) from public.comisiones_diferencias x
-                            where x.devengo_id = v_d.id and x.estado in ('pendiente', 'pagada', 'compensada')), 0);
-        raise exception '%', format('%s/%s/%s/%s',
-          round(v_objt - v_vig, 2) = v_imp,                                  -- entra en la rama y el importe es lo descontado
-          v_d.pagado_en is not null,                                         -- rama «ya pagada»: no vuelve a pendiente
-          v_d.nivel in ('manager', 'estandar', 'propia'),                    -- _comision_diferencia_solicitud sí la paga
-          lower(v_d.beneficiario_email) = lower(kk.manager_email));          -- al MISMO perceptor (la solicitud usa d.beneficiario_email)
-      exception when others then r := r || 'P12b (a2) descontada, lógica sin crear=' || sqlerrm
-        || case when sqlerrm = 't/t/t/t' then ' ok; ' else ' FALLO; ' end; end;
+                jsonb_build_object('op', 'cambio_modo', 'modo', 'propia'))
+        returning id into v_dx;
+        perform set_config('request.jwt.claims', json_build_object('sub', A.user_id, 'email', A.e, 'role', 'authenticated')::text, true);
+        begin
+          perform public._comision_devengo_reponer(v_d.id, v_imp, '{}'::jsonb, 'prueba LAW-480');
+          v_t := 'reponer-sin-error';
+        exception when others then get stacked diagnostics v_state = returned_sqlstate;
+          v_t := v_state || case when sqlerrm like '%la regulariza administración a mano' then '' else '(' || sqlerrm || ')' end; end;
+        raise exception '%', v_t || format('/%s/%s/%s/%s',
+          (select count(*) from public.comisiones_diferencias x where x.devengo_id = v_d.id),
+          (select count(*) from public.solicitudes_pago sp where sp.contrato_id = v_rp) = v_sp0,
+          (select d.estado || ':' || d.anulado_por_modo from public.comisiones_devengadas d where d.id = v_d.id),
+          (select x.estado from public.comisiones_diferencias x where x.id = v_dx));
+      exception when others then r := r || 'P12b (a2) descontada frena 22023=' || sqlerrm
+        || case when sqlerrm = '22023/1/t/anulada:true/compensada' then ' ok; ' else ' FALLO; ' end; end;
 
       -- P13 · (a3) devengo anulado por OTRO motivo (comision_devengo_anular) → ida y vuelta de modo: NO se repone; y la función
       --       de reposición llamada a mano lo rechaza (22023)
@@ -694,7 +717,7 @@ begin
         select * into v_d from public.comisiones_devengadas d where d.contrato_raiz_id = v_rp;
         perform set_config('request.jwt.claims', json_build_object('sub', A.user_id, 'email', A.e, 'role', 'authenticated')::text, true);
         perform public.comision_devengo_anular(v_d.id, 'prueba LAW-474 (a3): anulada a mano');
-        v_t := v_n || '/' || public.venta_modo_admin(v_rp, 'propia', 'prueba LAW-474 (a3) ida')
+        v_t := v_n || '/' || public._venta_modo_aplica(v_rp, 'propia', 'prueba LAW-474 (a3) ida')
           || '/' || public.venta_modo_admin(v_rp, 'equipo', 'prueba LAW-474 (a3) vuelta');
         begin
           perform public._comision_devengo_reponer(v_d.id, 1, '{}'::jsonb, 'prueba');
@@ -753,7 +776,7 @@ begin
         returning * into v_d;
         perform set_config('request.jwt.claims', json_build_object('sub', A.user_id, 'email', A.e, 'role', 'authenticated')::text, true);
         update public.solicitudes_pago set estado = 'rechazada', motivo_rechazo = 'prueba LAW-474 P15' where id = v_spx;
-        v_t := public.venta_modo_admin(v_rp, 'propia', 'prueba LAW-474 P15 ida')::text;
+        v_t := public._venta_modo_aplica(v_rp, 'propia', 'prueba LAW-474 P15 ida')::text;   -- ida simulada (20260930133217)
         v_e := (select d.estado || ':' || d.anulado_por_modo from public.comisiones_devengadas d where d.id = v_d.id);
         if v_e is distinct from 'anulada:false' then
           raise exception 'ida %: se para antes de la vuelta', v_e;
@@ -896,3 +919,8 @@ end $$;
 -- nuevos y auth-exec:false. P4 (2ª mitad), P6, P7, P11, P13 y P15 FALLAN con «Solo se puede pasar una venta al equipo»:
 -- lo provoca 20260930133217_f5b_modo_admin_cierra (otra sesión: venta_modo_admin ya no pasa a «propia»), no este ajuste;
 -- esos casos hay que rehacerlos simulando el paso a «propia» a mano. Series SP 85, DIF 110 intactas; 12 devengos, 11 SP, 0 DIF.
+-- 30-sep tarde, bloque 2 rehecho tras 20260930133217_f5b_modo_admin_cierra y 20260930134629_law480_476_freno_reponer_y_lower:
+-- el paso a «propia» de P4, P6, P7, P11, P13 y P15 va por _venta_modo_aplica (como postgres); la vuelta, por venta_modo_admin.
+-- P12b prueba el freno 22023 de LAW-480 (sin diferencia ni solicitud); P19, el cierre de venta_modo_admin. Resultado:
+-- P1-P19 ok (20/20, con P12b). Huellas devengos 12:9cab39cb… y solicitudes 11:180ec74b… iguales antes y después; 0 DIF.
+-- Series SP 85, DIF 110, RP 253, CLI 234 intactas.

@@ -1,5 +1,7 @@
--- PENDIENTE (30-sep-2026): NO APLICADA. El sistema de permisos denegó escribirla como migración
--- (clasificador «Modify Shared Resources»); queda aquí para que la sesión principal / el owner la revise y la aplique.
+-- Migración 20260930134629_law480_476_freno_reponer_y_lower (30-sep-2026). APLICADA en la base por la sesión principal
+-- (estaba en supabase/pendientes/PENDIENTE_law480_476_freno_reponer_y_lower.sql; se movió aquí sin cambiar el cuerpo).
+-- Verificado 30-sep: la rama «ya pagada y descontada» de _comision_devengo_reponer lanza 22023 y comisiones_evaluar_contrato
+-- compara con lower() en la condición fijada. Idempotente: si la marca nueva ya está, no hace nada.
 --
 -- LAW-480 + LAW-476 (visto bueno condicionado de Administración a F5b/LAW-474).
 -- Parche sobre el cuerpo VIVO con marca (la definición viva no es la del .sql del repo): si la marca no está, para.
