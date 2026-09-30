@@ -24,7 +24,7 @@
 --     (pago doble). Para cambiarlo, un administrador anula antes esos devengos con motivo (anulación explícita) y el
 --     motor devenga al nuevo desde cero; lo ya pagado se regulariza por comision_devengo_anular / diferencias.
 --
--- APLICADO AQUÍ: columna anulado_por_modo + marca en _venta_modo_aplica, (c), (d), (e) y (f) (el borrado lo cierra 20260930121500).
+-- APLICADO AQUÍ: columna anulado_por_modo + marca en _venta_modo_aplica, (c), (d), (e) y (f) (el borrado lo cierra 20260930120750).
 -- NO APLICADO (lo frena tools/no_destruir.py, espera decisión del owner): la reposición de (a) — necesita ampliar el
 -- CHECK de comisiones_ajustes_log.accion con «reponer» (DROP + ADD CONSTRAINT) — y (b) — re-crear comision_rol_asignar
 -- lleva su «delete from contrato_roles_equipo» de siempre dentro del cuerpo. Listo en

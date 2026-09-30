@@ -540,7 +540,7 @@ begin
         (select d.anulado_por_modo from public.comisiones_devengadas d where d.id = v_d.id));
     exception when others then r := r || 'P9 cambio closer con devengos=' || sqlerrm || case when sqlerrm = '1/22023/t/f' then ' ok; ' else ' FALLO; ' end; end;
 
-    -- P10 · (f) hueco del borrado (20260930121500): quitar el closer con crm_contrato_closer_set(raíz, NULL) —borra la
+    -- P10 · (f) hueco del borrado (20260930120750): quitar el closer con crm_contrato_closer_set(raíz, NULL) —borra la
     --       fila y luego se podría asignar otro por INSERT— con devengo vivo → 22023; en una venta sin devengos sí se quita
     declare v_otro uuid;
     begin
@@ -568,6 +568,6 @@ begin
 
   raise exception 'RES2: %', r;
 end $$;
--- 30-sep 12:0x UTC tras 20260930120030: P1-P9 ok (9/9); P10 ok tras 20260930121500 (pasado aparte). Secuencias SP 84, DIF 110, RP 253 sin cambios por la prueba.
+-- 30-sep 12:0x UTC tras 20260930120030: P1-P9 ok (9/9); P10 ok tras 20260930120750 (pasado aparte). Secuencias SP 84, DIF 110, RP 253 sin cambios por la prueba.
 -- La reposición de LAW-474 (a) y (b) no están aplicadas (supabase/pendientes/PENDIENTE_law474_a_b_reposicion_y_roles.sql):
 -- sus casos se escriben y se pasan al aplicarla.
