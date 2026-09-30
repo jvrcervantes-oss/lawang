@@ -569,5 +569,7 @@ begin
   raise exception 'RES2: %', r;
 end $$;
 -- 30-sep 12:0x UTC tras 20260930120030: P1-P9 ok (9/9); P10 ok tras 20260930120750 (pasado aparte). Secuencias SP 84, DIF 110, RP 253 sin cambios por la prueba.
--- La reposición de LAW-474 (a) y (b) no están aplicadas (supabase/pendientes/PENDIENTE_law474_a_b_reposicion_y_roles.sql):
--- sus casos se escriben y se pasan al aplicarla.
+-- 30-sep 12:18 UTC tras 20260930121342_law474_a_b_reposicion_y_roles (aplicada por la sesión principal con OK del owner):
+-- P1-P10 ok (10/10). Secuencias SP 84, DIF 110, RP 253 sin cambios; huellas devengos 11:c910c5b5… y solicitudes 10:c4889d99…
+-- iguales antes y después. OJO: este bloque NO tiene casos propios de la reposición (a) ni de «sin roles» (b): P7-P9 son
+-- (d), (c) y (f). Pendiente escribirlos (sin secuencias, nivel closer) antes de dar (a)/(b) por probados.

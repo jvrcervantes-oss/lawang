@@ -1,10 +1,11 @@
--- PENDIENTE (NO está en migrations/: la CLI de Supabase lo aplicaría sin mirar). LAW-474 (a) reposición tras cambio
--- de modo y (b) sin roles en ventas «por su cuenta». Parte de los cuerpos vivos del 30-sep-2026 (evaluador ya con
--- LAW-476, 20260930115040; comision_rol_asignar md5 f31a5a37…). Requiere la migración law474_restos_f5 (columna
--- anulado_por_modo). Lo frena tools/no_destruir.py por dos cosas que NO borran datos: ampliar un CHECK exige
--- DROP CONSTRAINT + ADD, y el cuerpo de comision_rol_asignar contiene su «delete from contrato_roles_equipo» de
--- siempre. Aplicar solo con OK del owner (válvula «destructivo-ok» + motivo) y después pasar
--- contracts/sql/prueba_f5_por_su_cuenta.sql bloque 2 (P7-P9) y prueba_law476_condicion_fija.sql.
+-- LAW-474 (a) reposición tras cambio de modo y (b) sin roles en ventas «por su cuenta». APLICADO por la sesión
+-- principal el 30-sep-2026 como migración 20260930121342_law474_a_b_reposicion_y_roles, con OK expreso del owner
+-- («Sí, las dos»). Mismo SQL que supabase/pendientes/PENDIENTE_law474_a_b_reposicion_y_roles.sql (retirado de ahí).
+-- destructivo-ok: OK del owner 30-sep-2026; no borra datos: ampliar un CHECK exige DROP CONSTRAINT + ADD, y el
+-- cuerpo de comision_rol_asignar conserva su «delete from contrato_roles_equipo» de siempre.
+-- Parte de los cuerpos vivos del 30-sep-2026 (evaluador ya con LAW-476, 20260930115040). Requiere
+-- 20260930120030_law474_restos_f5 (columna anulado_por_modo). Pruebas: contracts/sql/prueba_f5_por_su_cuenta.sql
+-- bloque 2 (P7-P9) y contracts/sql/prueba_law476_condicion_fija.sql.
 
 alter table public.comisiones_ajustes_log drop constraint if exists comisiones_ajustes_log_accion_check;
 alter table public.comisiones_ajustes_log add constraint comisiones_ajustes_log_accion_check

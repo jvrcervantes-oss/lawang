@@ -110,4 +110,5 @@ end $$;
 -- ANTES de aplicar (30-sep, reproduce el fallo): «1 …=1/0/1/0/0 FALLO; 2 …=1/0/1 FALLO; 3 …=1/1/0 ok; 4 …=0 ok».
 -- DESPUÉS (20260930115040): «1 …=1/1/2/0/1 ok; 2 …=1/1/2 ok; 3 …=1/1/0 ok; 4 …=0 ok». Secuencias SP 83, DIF 110 y RP 253
 -- iguales antes y después; huellas de devengos (10:873cb219…) y solicitudes (9:e7a01534…) sin cambios.
--- La reposición de LAW-474 (a) (supabase/pendientes/, sin aplicar) vuelve a sustituir el motor: repetir esta prueba al aplicarla.
+-- Repetida tras 20260930121342_law474_a_b_reposicion_y_roles (30-sep 12:18 UTC, motor sustituido de nuevo): candidatos 0,
+-- anulados por modo 0; «1 …=1/1/2/0/1 ok; 2 …=1/1/2 ok; 3 …=1/1/0 ok; 4 …=0 ok» (4/4). SP 84, DIF 110, RP 253 iguales.
