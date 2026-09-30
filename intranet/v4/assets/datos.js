@@ -3827,7 +3827,7 @@
           : '';
       }
 
-      /* ── KPIs (5: 90 días, críticos 7d, vencido, cobrado, cartera) ──────── */
+      /* ── KPIs (3: 90 días, críticos 7d, vencido) ─────────────────────────── */
       function pintarKpis(m) {
         pon2('k-prevision', fmt(m.proximos90, MONEDA));
         pon2('k-prevision-chip', 'previsto en el trimestre');
