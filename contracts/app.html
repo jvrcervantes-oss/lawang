@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="bf82811faca9">
+<meta name="lw-version" content="972c0b7a84bb">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -4614,7 +4614,7 @@ function contractPayload(){
    CC00020, 76.500 € contados dos veces). Corte gemelo al de firma-submit
    (enviarProformaTotal), que hace lo mismo al FIRMAR. */
 const TIPOS_CON_PROFORMA_AUTO = ['reserva_parcela', 'construccion'];
-/* PARADA (30-sep-2026, owner; pendiente LAW-469): el comentario de arriba describe el flujo activo. No descuenta el descuento comercial. Gemelo de
+/* PARADA (30-sep-2026, owner; pendiente LAW-471): el comentario de arriba describe el flujo activo. No descuenta el descuento comercial. Gemelo de
    PROFORMA_AUTO_PARADA en firma-submit; reactivar solo cuando reste el neto. */
 const PROFORMA_AUTO_PARADA = true;
 async function crearProformaAutomatica(contratoId, numero, payload){
