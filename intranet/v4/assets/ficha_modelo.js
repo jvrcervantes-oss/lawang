@@ -419,7 +419,7 @@
   }
 
   /* TECHOS = SUPLEMENTO SOBRE LA CASA (30-sep-2026, owner: «el modelo tiene un precio base con un techo base;
-     la diferencia de los demás techos se suma, casi como un extra»). Migración 20260930120000; antes, esa misma
+     la diferencia de los demás techos se suma, casi como un extra»). Migración 20260930044032; antes, esa misma
      mañana, los techos llevaban el precio completo (20260930023239).
      - La casa (bloque «Precio de construcción», base ahora y 2027) incluye su TECHO BASE (suplemento 0). Cada
        otro techo suma «+X ahora / +Y desde 2027» sobre la base, o sobre el precio propio del proyecto.
