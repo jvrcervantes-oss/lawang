@@ -174,7 +174,7 @@
   var CORTINA = { 'comision-admin': 60 };   // 26-sep-2026, owner: de 15 s a 1 minuto
   var CORTINA_V = '20260926a';
   /* mascota.js (el Asistente acoplado) tampoco lo sella sella_assets: sube MASCOTA_V al cambiarlo. */
-  var MASCOTA_V = '20260930a';
+  var MASCOTA_V = '20260930b';
   /* novedades.js (el pop-up de novedades, 30-sep-2026) tampoco lo sella sella_assets: sube NOVEDADES_V al cambiarlo. */
   var NOVEDADES_V = '20260930b';
   /* MOVIMIENTO (26-sep-2026, owner: mezcla A+B+D). La entrada de cada pantalla

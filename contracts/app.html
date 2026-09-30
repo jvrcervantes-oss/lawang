@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="dd35d1644ce1">
+<meta name="lw-version" content="05d924b0ee6d">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -40,7 +40,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=e12f3922"></script>
+<script src="/contracts/assets/i18n.js?v=d9fcf678"></script>
 <script src="/contracts/assets/herramientas.js?v=a51ace01"></script>
 <script src="assets/avisos.js?v=0ec2eaff" defer></script><script src="assets/topbar.js?v=705d408d" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -105,14 +105,14 @@
      las otras cuatro son plantillas JS que arman la ventana de impresión del
      contrato — meter aquí la capa la habría colado en el PDF del cliente. -->
 <link rel="stylesheet" href="/intranet/v4/assets/nav-montaje.css?v=032139e5">
-<link rel="stylesheet" href="/contracts/assets/suite-v4-generador.css?v=aa7b9fcb">
+<link rel="stylesheet" href="/contracts/assets/suite-v4-generador.css?v=a193406e">
 <script src="/intranet/v4/assets/nav-montaje.js?v=2c463182" defer></script>
 <script src="/contracts/assets/generador-v4.js?v=78e32fd1" defer></script>
 <!-- Asistente de Nuevo contrato (F7, 30-sep-2026): capa sobre este mismo motor,
      inerte sin `?asistente=1`. SIN defer: init() lo llama en cuanto decide la
      puerta ?nuevo=1, y con defer podría no estar definido todavía. -->
-<script src="/contracts/assets/asistente-contrato.js?v=65cd5ad5"></script>
-<script src="/intranet/v4/assets/nav.js?v=75a067ad" defer></script>
+<script src="/contracts/assets/asistente-contrato.js?v=d3aee13f"></script>
+<script src="/intranet/v4/assets/nav.js?v=c76dd0b9" defer></script>
 </head>
 <body>
   <!-- Barra unificada de la suite: mismo orden y mismos componentes en
@@ -4286,6 +4286,8 @@ function ocultarGruposVacios(){
 function updateSaveButton(){
   // «Cambiar tipo» de la banda del asistente: se apaga al guardar (corre tras cada guardado)
   if(window.lwAsistente) window.lwAsistente.refrescaBanda();
+  // campo «Venta» (F5b): se apaga al guardar y se vuelve a mirar al cambiar de plantilla o de borrador
+  if(window.lwVenta) window.lwVenta.pinta();
   /* Abre los campos fijados si el rol de quien mira los puede tocar. Va aquí
      porque esta función es la que ya corre cada vez que cambian el rol, la
      plantilla o el bloqueo — ver la nota junto a FIJOS_ESTUDIO. */
@@ -5026,13 +5028,23 @@ async function guardarContrato(){
       btn.disabled=false; updateSaveButton();
       return;
     }
-    /* F5 · PUNTO DE ENGANCHE ÚNICO de «venta con mi equipo / por mi cuenta»
-       (encargo 20260930_lawang_equipos_venta_asistente). El asistente ya lo
-       pregunta y lo tiene en `window.lwAsistente.ventaDeclarada()` →
-       { modo:'equipo'|'propia', origen, frase } o null. HOY NO SE ENVÍA, ni aquí
-       ni dentro de `datos`: su dueño será `contrato_closer.modo`, que valida
-       contrato_guarda en F5. Cuando exista, este es el único sitio donde se añade
-       (un parámetro nuevo de la RPC, solo en contratos raíz). */
+    /* F5b · PUNTO DE ENGANCHE ÚNICO de «venta con mi equipo / por mi cuenta»
+       (encargo 20260930_lawang_equipos_venta_asistente). El campo «Venta» de
+       encima del formulario (assets/asistente-contrato.js → lwVenta; el asistente
+       lo siembra al montar) da la clave `venta` = {modo, origen, origen_texto},
+       SOLO en el alta de un contrato raíz (el mismo contrato_padre_id de este
+       payload) y solo si quien guarda está en un equipo. Nunca dentro de `datos`:
+       su dueño es contrato_closer.modo y lo valida contrato_guarda (con el
+       interruptor modo_obligatorio apagado, el servidor la ignora). */
+    const ventaDecl = window.lwVenta ? window.lwVenta.paraGuardar(eraNuevo, payload.contrato_padre_id) : {};
+    if(ventaDecl.error){
+      avisoNoGuardado(ventaDecl.error);
+      const bloque = document.querySelector('[data-venta-bloque]');
+      if(bloque) bloque.scrollIntoView({behavior:'smooth', block:'center'});
+      btn.disabled=false; updateSaveButton();
+      return;
+    }
+    if(ventaDecl.venta) envio.venta = ventaDecl.venta;
     const { data: fila, error } = await sb.rpc('contrato_guarda',
       { p_id: eraNuevo ? null : SAVED_CONTRACT.id, p_contrato: envio });
     if(error) throw error;
@@ -5082,7 +5094,8 @@ async function guardarContrato(){
           + (collect().moneda || '') + ' ' + lwT('cobrados en la Carta que este Bloqueo no puede absorber');
       }
     }
-    (avisoMigracion ? toastMal : toast)((SAVED_CONTRACT ? 'Guardado como ' : '') + data.numero + avisoCobrado + avisoMigracion);
+    const avisoVenta = window.lwVenta ? window.lwVenta.trasGuardar(ventaDecl.venta) : '';
+    (avisoMigracion ? toastMal : toast)((SAVED_CONTRACT ? 'Guardado como ' : '') + data.numero + avisoCobrado + avisoVenta + avisoMigracion);
     render();
     // LAW-71: el salto se registra DESPUÉS, que es cuando existe el contrato al
     // que colgarlo. La RPC comprueba `es_super_admin()` por su cuenta: que este
@@ -5127,7 +5140,7 @@ async function guardarContrato(){
     // patrón: un freno nuevo que no empiece por una de estas frases cae en el
     // detalle genérico de abajo.
     const m = String(err.message || err);
-    const esFrenoConocido = /^(Rellena:|La parcela |El traspaso de la parcela |El poder |Un contrato no puede ser su propio|El documento |Falta el pasaporte|No tienes (ningún|permiso)|Contrato enviado a firma|Esta parcela no pertenece|solo un admin puede|El anexo )/.test(m);
+    const esFrenoConocido = /^(Rellena:|La parcela |El traspaso de la parcela |El poder |Un contrato no puede ser su propio|El documento |Falta el pasaporte|No tienes (ningún|permiso)|Contrato enviado a firma|Esta parcela no pertenece|solo un admin puede|El anexo |La venta |El modo de esta venta|Indica si la venta|Por tu cuenta:|No estás en ningún equipo|Eres el manager|Este cliente es un lead|Venta: |Origen no válido|El origen admite)/.test(m);
     // RLS cruda (policy sin su propio raise, p.ej. un rol sin permiso que
     // ningún trigger llegó a explicar): Postgres la manda en inglés y con
     // el nombre de la tabla — no se enseña así.

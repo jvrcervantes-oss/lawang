@@ -8478,6 +8478,48 @@
         });
       });
 
+      /* ---- «Ventas por su cuenta» (F5b, 30-sep-2026) ----
+         Tres acciones, todas por RPC y con la regla en la base: objetar (el SM de ESE equipo, dentro de los 7 días,
+         nunca su propia venta), resolver la objeción y cambiar el modo (administración con «Reparto a closers»).
+         Resolver o cambiar el modo reevalúa la comisión de la venta: el diálogo lo dice y pide el motivo. */
+      var cuerpoVpc = document.getElementById('lw-vpc-filas');
+      if (cuerpoVpc) cuerpoVpc.addEventListener('click', function (ev) {
+        var b = ev.target.closest && ev.target.closest('[data-accion="vpc-objetar"], [data-accion="vpc-resolver"], [data-accion="vpc-modo"]');
+        if (!b || b.disabled) return;
+        ev.preventDefault(); ev.stopPropagation();
+        var acc = b.getAttribute('data-accion'), id = b.getAttribute('data-id');
+        var filas = window.LW_V4.vpcFilas || [];
+        var f = filas.filter(function (x) { return acc === 'vpc-resolver' ? x.objecion_id === id : x.raiz_id === id; })[0];
+        if (!f) return aviso(T6('No encuentro esa venta: recarga la página.'), '#8A6A34');
+        var quien = f.numero + ' · ' + f.closer_email;
+        if (acc === 'vpc-objetar') {
+          return modal(T6('Objetar — %e', { e: quien }), [
+            { tipo: 'nota', label: T6('Dices que esta venta es del equipo, no por su cuenta. La comisión queda en espera hasta que administración lo decida; el closer y administración reciben el aviso.') },
+            { k: 'motivo', label: T6('Por qué es del equipo'), tipo: 'textarea', req: 1,
+              ayuda: T6('p. ej. «el lead se lo pasé yo el 12-sep» — lo lee administración para decidir') }
+          ], T6('Objetar'), function (v) {
+            return sb.rpc('venta_objecion_crear', { p_raiz: f.raiz_id, p_motivo: String(v.motivo || '').trim() });
+          });
+        }
+        if (acc === 'vpc-resolver') {
+          return modal(T6('Resolver la objeción — %e', { e: quien }), [
+            { tipo: 'nota', label: T6('Objeción del Sales Manager: «%m»', { m: f.objecion_motivo || '—' }) },
+            { k: 'decision', label: T6('Decisión'), tipo: 'select', req: 1, valor: '',
+              opciones: [['', T6('— elige —')], ['mantener_propia', T6('Se queda por su cuenta')], ['pasar_equipo', T6('Pasa a ser del equipo')]],
+              ayuda: T6('cualquiera de las dos reevalúa la comisión de la venta en ese momento') },
+            { k: 'motivo', label: T6('Motivo'), tipo: 'textarea', req: 1, ayuda: T6('queda escrito y lo reciben el Sales Manager y el closer') }
+          ], T6('Resolver'), function (v) {
+            return sb.rpc('venta_objecion_resolver', { p_id: f.objecion_id, p_decision: v.decision, p_motivo: String(v.motivo || '').trim() });
+          });
+        }
+        modal(T6('Pasar al equipo — %e', { e: quien }), [
+          { tipo: 'nota', label: T6('La venta deja de ser por su cuenta y pasa a ser del equipo, y el closer ya no puede cambiarlo. Las comisiones de «por su cuenta» sin pagar se anulan; las ya pagadas se descuentan de un pago siguiente con una diferencia negativa; y se reevalúa con las condiciones del equipo. Si alguna está aprobada sin pagar o en disputa, la base lo para y lo dice.') },
+          { k: 'motivo', label: T6('Motivo'), tipo: 'textarea', req: 1, ayuda: T6('queda en el registro de la venta') }
+        ], T6('Pasar al equipo'), function (v) {
+          return sb.rpc('venta_modo_admin', { p_raiz: f.raiz_id, p_modo: 'equipo', p_motivo: String(v.motivo || '').trim() });
+        });
+      });
+
       /* Plantilla de reparto: filas editables; la suma se ve en vivo y se valida aquí solo como ayuda
          (manda plantilla_reparto_guarda, que ya existe en la base: sin llamada de sondeo). */
       var cajaPl = document.getElementById('lw-me-plantilla');
