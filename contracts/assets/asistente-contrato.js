@@ -19,6 +19,10 @@
    lo testeen») el botón de /intranet/v4/contratos/ manda aquí a TODOS los roles,
    sin bandera — ver `contratos` en intranet/v4/assets/editores.js. Lo que la
    bandera tapaba sigue sin hacer: el servidor aún no guarda el modo (F5b).
+   «Saltar el asistente» también sale para todos (owner, 30-sep: «Encender y
+   abrir a todos»): lleva al mismo formulario clásico que ya está debajo.
+   `?asistente=1` ya no es una bandera de acceso, es solo la ruta que distingue
+   las dos entradas; quien lo tenga guardado en un enlace entra al asistente.
 
    «CON MI EQUIPO / POR MI CUENTA». Se pregunta aquí y, al montar el borrador,
    pasa al campo «Venta» del editor (siembraVenta, F5b 30-sep-2026), que es lo
@@ -132,7 +136,6 @@
   function plantilla(slug) { return TEMPLATES.find(function (t) { return t.slug === slug; }) || null; }
   function nombre(slug) { var t = plantilla(slug); return t ? L(t.name) : ''; }
   function esCarta(slug) { return !!slug && lwEsPreliminar(tipoDe(slug)); }
-  function esAdmin() { return MI_ROL === 'admin' || MI_ROL === 'super_admin'; }
   function ofrecida(slug) { return plantillasOfrecidas().some(function (t) { return t.slug === slug; }); }
   function slugDeTipo(tipo) { return TIPO_SLUG[tipo]; }
 
@@ -592,7 +595,7 @@
           (hecho ? ' data-asi="salta" data-v="' + n + '"' : ' disabled') + (n === S.paso ? ' aria-current="step"' : '') +
           '><span class="asi-d">' + (hecho ? '<span data-ico="check" aria-hidden="true"></span>' : (n + 1)) + '</span>' + e(p[1]) + '</button>';
       }).join('') +
-      '<div class="asi-pie-lado">' + (esAdmin() && !S.montado ? '<button type="button" class="asi-link" data-asi="saltar">' + e(T('Saltar el asistente')) + '</button>' : '') +
+      '<div class="asi-pie-lado">' + (!S.montado ? '<button type="button" class="asi-link" data-asi="saltar">' + e(T('Saltar el asistente')) + '</button>' : '') +
       '<span>' + e(T('Lo que contestes se guarda si cierras y vuelves.')) + '</span></div></nav>' +
       '<div class="asi-main"><div class="asi-top"><span class="asi-ctx">' + e(T('Paso')) + ' ' + (S.paso + 1) + ' ' + e(T('de')) + ' ' + ps.length +
       (S.paso > 0 && modoTxt() ? ' · ' + e(modoTxt()) : '') + '</span>' +
@@ -852,7 +855,7 @@
     if (S && S.montado) { quitaCapa(); return; }
     location.href = '/intranet/v4/contratos/';
   }
-  function saltar() {   // solo admin: el formulario clásico, en blanco, ya está debajo
+  function saltar() {   // cualquier rol: el formulario clásico, en blanco, ya está debajo
     olvida(); S = null; quitaCapa(); quitaParametro();
   }
   function altaCliente() {
