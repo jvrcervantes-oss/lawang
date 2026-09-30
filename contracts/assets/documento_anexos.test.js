@@ -398,7 +398,7 @@ function montar(o) {
   assert.deepStrictEqual(JSON.parse(JSON.stringify(ctxD.r)), [{ id: 'axauto', auto: 'Dali', pages: [] }]);
   assert.ok(!/data:/.test(almacen.lawang_contract_annexes), 'en el navegador ya no quedan bytes: ' + almacen.lawang_contract_annexes);
 
-  // 14. Elegir anexo de la intranet (30-sep-2026): la lista. Solo ficheros PDF/imagen, lo
+  // 20. Elegir anexo de la intranet (30-sep-2026): la lista. Solo ficheros PDF/imagen, lo
   //     del proyecto del contrato primero, lo confidencial y lo que ya va automático, marcados.
   m = montar({});
   m.ctx.DOCS14 = [
@@ -421,7 +421,7 @@ function montar(o) {
   assert.strictEqual(ops[4].mime, 'application/pdf', 'Modelos no tiene mime: sale de la extensión');
   assert.strictEqual(ops[0].bucket, 'documentacion'); assert.strictEqual(ops[2].bucket, 'modelos');
 
-  // 15. El flujo: consulta cada tabla, elige, pide confirmación si es confidencial, baja
+  // 21. El flujo: consulta cada tabla, elige, pide confirmación si es confidencial, baja
   //     el fichero y lo pasa al MISMO camino que la subida desde el ordenador.
   const flujo = async (o2) => {
     const mm = montar({ contrato: C1 });
@@ -436,7 +436,7 @@ function montar(o) {
     mm.ctx.lwElegir = () => Promise.resolve(o2.elige);
     mm.ctx.lwConfirmar = (c) => { confirmaciones.push(c.titulo); return Promise.resolve(!!o2.acepta); };
     mm.ctx.document = { querySelector: s => (s === '[name="proyecto_nombre"]' ? { value: 'Bonian Village' } : null) };
-    mm.lee('var CAPT = null; anadeAnexosDeFicheros = async (items) => { CAPT = items; }');
+    mm.lee('var CAPT = null, CAPT_ID = null; anadeAnexosDeFicheros = async (items, id) => { CAPT = items; CAPT_ID = id; }');
     await mm.lee('eligeAnexoDeIntranet()');
     return { mm, pedidas, confirmaciones, capt: mm.lee('CAPT') };
   };
@@ -447,6 +447,7 @@ function montar(o) {
   assert.strictEqual(f.capt[0].titulo, 'Condiciones generales');
   assert.strictEqual(f.capt[0].file.type, 'application/pdf', 'sin tipo en la descarga, se usa el deducido');
   assert.strictEqual(f.capt[0].file.name, 'c.pdf');
+  assert.strictEqual(f.mm.lee('CAPT_ID'), C1, 'el anexo va al contrato donde se hizo clic');
   f = await flujo({ elige: 'doc:d1', acepta: false });
   assert.deepStrictEqual(f.confirmaciones, ['Documento confidencial']);
   assert.strictEqual(f.capt, null, 'confidencial sin confirmar: no se adjunta');
@@ -458,6 +459,14 @@ function montar(o) {
   assert.strictEqual(f.mm.lee('SUBIDA_ANEXO'), '', 'un fallo de descarga no deja el panel bloqueado');
   f = await flujo({ elige: null });
   assert.strictEqual(f.capt, null, 'cancelar no hace nada');
+
+  // 22. Cambió de contrato mientras bajaba: no se añade y el panel no se queda en «Descargando…».
+  m = montar({ contrato: C2 });
+  m.lee("SUBIDA_ANEXO = 'Descargando «x»…'");
+  await m.lee(`anadeAnexosDeFicheros([{ file: { name: 'x.pdf', type: 'application/pdf' }, titulo: 'x' }], '${C1}')`);
+  assert.strictEqual(m.lee('SUBIDA_ANEXO'), '');
+  assert.ok(m.males.some(t => /cambiado de contrato/.test(t)), JSON.stringify(m.males));
+  assert.strictEqual(m.lee('ANNEXES.length'), 0);
 
   console.log('documento_anexos.test.js OK');
 })().catch(e => { console.error(e); process.exit(1); });

@@ -814,10 +814,15 @@ function wireAnnexPanel(){
    por la edge y entran solo si TODAS llegaron con su huella. Un documento de la intranet
    se COPIA al anexo (sus páginas quedan en el contrato): si luego cambia en Proyectos o en
    Modelos, lo que se firmó no cambia con él. `items` = [{file, titulo}]. */
-async function anadeAnexosDeFicheros(items){
+async function anadeAnexosDeFicheros(items, contratoEsperado){
   const c = contratoParaAnexos();
-  if(!c.id){ toastMal('Guarda el contrato antes de añadirle anexos: las páginas se guardan con él.'); return; }
-  if(c.bloqueado){ toastMal('Este contrato está enviado a firma o bloqueado: no admite anexos nuevos.'); return; }
+  /* Las salidas tempranas limpian SUBIDA_ANEXO: quien viene de «Elegir de la intranet» ya lo
+     puso en «Descargando…» y sin esto el panel se quedaba así hasta recargar (revisor, 30-sep). */
+  const corta = m => { SUBIDA_ANEXO = ''; rebuildAnnex(); toastMal(m); };
+  if(!c.id){ corta('Guarda el contrato antes de añadirle anexos: las páginas se guardan con él.'); return; }
+  if(c.bloqueado){ corta('Este contrato está enviado a firma o bloqueado: no admite anexos nuevos.'); return; }
+  // Se eligió en un contrato y mientras bajaba se abrió otro: el anexo no se cuelga del que no era.
+  if(contratoEsperado && c.id !== contratoEsperado){ corta('Se ha cambiado de contrato mientras se descargaba el documento: no se ha añadido. Vuelve a elegirlo.'); return; }
   // El panel se repinta durante la subida: el progreso se escribe en SUBIDA_ANEXO y en el
   // #anxUpLabel que haya EN ESE MOMENTO, nunca en una referencia vieja que ya no está en la página.
   const avisa = t => { SUBIDA_ANEXO = t; const l = $('#anxUpLabel'); if(l) l.textContent = t; };
@@ -958,7 +963,7 @@ async function eligeAnexoDeIntranet(){
     toastMal('No se ha podido descargar «' + op.texto + '»: ' + ((e && e.message) || 'error') + '. No se ha añadido.');
     return;
   }
-  await anadeAnexosDeFicheros([{ file, titulo: op.titulo || op.texto }]);
+  await anadeAnexosDeFicheros([{ file, titulo: op.titulo || op.texto }], c.id);
 }
 function rebuildAnnex(){ const old=$('#annexPanel'); if(old){ old.outerHTML=buildAnnexPanel(); wireAnnexPanel(); wireAccordions(); } }
 
