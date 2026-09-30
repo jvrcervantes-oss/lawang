@@ -6804,9 +6804,7 @@
          corto y el fallback pinta «—»: no es un fallo, es lo que esa sesion ve. */
       q(sb.from('usuarios').select('user_id,nombre,email'), 'usuarios'),
       q(sb.from('comisiones_devengadas').select('id,contrato_raiz_id,beneficiario_email,nivel,importe,importe_ajustado,ajuste_motivo,anulado_motivo,moneda,estado,disparado_en,pagado_por,pagado_en,disparado_por_snapshot').in('nivel', ['closer', 'setter', 'team_lead']).order('disparado_en', { ascending: false }), 'reparto de equipo', cajaEq),
-      // closers_ven_comision (F4, 30-sep-2026): si su SM no comparte las comisiones, la base ya no da
-      // sus filas de equipo; la pantalla solo lo explica en vez de decir «nada que repartir»
-      q(sb.from('equipos_venta').select('id,nombre,manager_email,activo,closers_ven_comision'), 'equipos de venta'),
+      q(sb.from('equipos_venta').select('id,nombre,manager_email,activo'), 'equipos de venta'),
       q(sb.from('equipo_miembros').select('equipo_id,closer_email,desde,hasta'), 'miembros de equipo'),
       /* De qué parcela sale cada comisión (23-sep-2026, owner): las unidades cuelgan
          de la RAÍZ de la venta (`unidades.contrato_id`), igual que las lee el motor. */
@@ -7343,73 +7341,82 @@
         });
         var manager = eqHoy && eqHoy.manager_email ? (porEmail[eqHoy.manager_email.toLowerCase()] || {}).nombre || eqHoy.manager_email : '';
 
-        var caja = document.createElement('section');
-        caja.id = 'lw-mis-comisiones';
-        caja.className = 'flex flex-col gap-4';
-        var barraM = document.getElementById('lw-eq-buscar');
-        var anclaM = barraM && barraM.closest('[data-lw-panel] > div');
-        /* COMISIÓN OCULTA (F4, 30-sep-2026, owner): su Sales Manager ha apagado «mis closers ven su
-           comisión». La base (comision_visible) ya no le da ninguna cifra de su parte de equipo, ni su
-           condición de equipo; aquí no se piden y se dice por qué, en vez de enseñar ceros. Lo que
-           vende por su cuenta se lo paga Lawang y lo sigue viendo en «A Lawang»/solicitudes. */
-        if (eqHoy && eqHoy.closers_ven_comision === false) {
-          caja.innerHTML = '<p class="font-body-md text-body-md text-on-surface-variant">Estás en el equipo <b class="text-on-surface">' +
-            esc(eqHoy.nombre) + '</b>. Tu Sales Manager' + (manager ? ' (' + esc(manager) + ')' : '') +
-            ' no comparte las comisiones del equipo: habla con él para saber lo que te corresponde. Lo que vendas por tu cuenta sí lo ves, porque te lo paga ' +
-            lwMarca('%marca') + '.</p>';
-          if (anclaM && anclaM.parentNode) anclaM.parentNode.insertBefore(caja, anclaM); else if (tablaEq) tablaEq.closest('section, div').before(caja);
-          if (tablaEq) tablaEq.innerHTML = '<tr><td colspan="8" style="padding:18px;text-align:center;font:400 13px \'Neue Kabel\',sans-serif;color:#8A8474">Tu Sales Manager no comparte las comisiones del equipo.</td></tr>';
-          return;
-        }
-        var kpi = function (t, v, pie) {
-          return '<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col gap-1">' +
-            '<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold">' + esc(t) + '</span>' +
-            '<span class="font-kpi-number text-[26px] text-volcanic-ash">' + esc(v) + '</span>' +
-            '<span class="font-body-sm text-body-sm text-outline" data-lw-mio-pie>' + esc(pie) + '</span></div>';
-        };
-        caja.innerHTML =
-          '<p class="font-body-md text-body-md text-on-surface-variant">' +
-            (eqHoy ? 'Estás en el equipo <b class="text-on-surface">' + esc(eqHoy.nombre) + '</b>' + (manager ? '. Te paga <b class="text-on-surface">' + esc(manager) + '</b>, tu manager — no ' + lwMarca('%marca') + '.' : '.')
-                   : 'Ahora mismo no estás en ningún equipo de venta.') + '</p>' +
-          '<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">' +
-            kpi('Pendiente de cobrar', sumaPorMoneda(pendientes), pendientes.length === 1 ? '1 comisión' : pendientes.length + ' comisiones') +
-            kpi('Cobrado este año', sumaPorMoneda(cobradas), cobradas.length === 1 ? '1 pago' : cobradas.length + ' pagos') +
-            '<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col gap-1" id="lw-mi-condicion">' +
-              '<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold">Tu condición</span>' +
-              '<span class="font-body-md text-body-md text-outline">Trayendo…</span></div>' +
-          '</div>';
-        var barra = document.getElementById('lw-eq-buscar');
-        var ancla = barra && barra.closest('[data-lw-panel] > div');
-        if (ancla && ancla.parentNode) ancla.parentNode.insertBefore(caja, ancla); else if (tablaEq) tablaEq.closest('section, div').before(caja);
-
-        // columnas «Closer» y «Equipo» y el selector de equipos: sobran
-        var st = document.createElement('style');
-        st.textContent = '#lw-eq-equipo{display:none!important}' +
-          // solo filas de datos: la trazabilidad desplegada es una única celda (colspan) y se ocultaba
-          'table:has(#lw-filas-equipo) th:nth-child(-n+2),#lw-filas-equipo tr[data-eq-fila] td:nth-child(-n+2){display:none}';
-        document.head.appendChild(st);
-
-        // su condición: la base solo le deja leer las que le aplican
+        /* «TU CONDICIÓN» Y COMISIÓN OCULTA (F4 + LAW-461, 30-sep-2026): las dos las decide el SERVIDOR.
+           mi_condicion_comision() devuelve la condición que el motor le aplicaría hoy (misma selección que
+           comisiones_evaluar_contrato: la personal manda, si no la genérica del equipo; sin equipo, la
+           estándar) o `oculta` si su Sales Manager apagó «mis closers ven su comisión». El navegador ya no
+           lee condiciones_comision: tras F4 la RLS no le da la genérica de su equipo y salía «Sin condición». */
+        if (window.LW_V4 && window.LW_V4._mioEnCurso) return;
+        window.LW_V4 = window.LW_V4 || {}; window.LW_V4._mioEnCurso = true;
         Promise.all([
-          sb.from('condiciones_comision').select('proyecto_id,closer_email,pct_comision,importe_fijo,base_calculo,activo,equipo_id,nivel').eq('activo', true).in('nivel', ['closer', 'setter', 'team_lead']),
+          sb.rpc('mi_condicion_comision'),
           sb.from('proyectos').select('id,nombre')
         ]).then(function (rr) {
+          var errCond = rr[0] && rr[0].error;
           var conds = (rr[0] && rr[0].data) || [];
           var nomP = {}; ((rr[1] && rr[1].data) || []).forEach(function (x) { nomP[x.id] = x.nombre; });
-          var el = document.getElementById('lw-mi-condicion');
-          if (!el) return;
-          if (rr[0] && rr[0].error) { el.lastChild.textContent = 'No se ha podido leer tu condición.'; return; }
-          if (!conds.length) { el.lastChild.textContent = 'Sin condición activa: pregunta a tu manager.'; return; }
+          var oculta = conds.some(function (c) { return c.oculta; });
+          var nombreEq = (conds[0] && conds[0].equipo_nombre) || (eqHoy && eqHoy.nombre) || '';
+          pinta(oculta, nombreEq, conds.filter(function (c) { return !c.oculta; }), errCond, nomP);
+        }, function () { pinta(false, eqHoy && eqHoy.nombre, [], true, {}); });
+
+        function pinta(oculta, nombreEq, conds, errCond, nomP) {
+          if (document.getElementById('lw-mis-comisiones')) return;
+          var caja = document.createElement('section');
+          caja.id = 'lw-mis-comisiones';
+          caja.className = 'flex flex-col gap-4';
+          var barra = document.getElementById('lw-eq-buscar');
+          var ancla = barra && barra.closest('[data-lw-panel] > div');
+          function coloca() {
+            if (ancla && ancla.parentNode) ancla.parentNode.insertBefore(caja, ancla); else if (tablaEq) tablaEq.closest('section, div').before(caja);
+          }
+          /* Oculta: la base (comision_visible) no le da ninguna cifra de su parte de equipo; se dice por qué
+             en vez de enseñar ceros. Lo que vende por su cuenta se lo paga Lawang y lo sigue viendo. */
+          if (oculta) {
+            caja.innerHTML = '<p class="font-body-md text-body-md text-on-surface-variant">' +
+              (nombreEq ? 'Estás en el equipo <b class="text-on-surface">' + esc(nombreEq) + '</b>. ' : '') +
+              'Tu Sales Manager' + (manager ? ' (' + esc(manager) + ')' : '') +
+              ' no comparte las comisiones del equipo: habla con él para saber lo que te corresponde. Lo que vendas por tu cuenta sí lo ves, porque te lo paga ' +
+              lwMarca('%marca') + '.</p>';
+            coloca();
+            if (tablaEq) tablaEq.innerHTML = '<tr><td colspan="8" style="padding:18px;text-align:center;font:400 13px \'Neue Kabel\',sans-serif;color:#8A8474">Tu Sales Manager no comparte las comisiones del equipo.</td></tr>';
+            return;
+          }
+          var kpi = function (t, v, pie) {
+            return '<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col gap-1">' +
+              '<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold">' + esc(t) + '</span>' +
+              '<span class="font-kpi-number text-[26px] text-volcanic-ash">' + esc(v) + '</span>' +
+              '<span class="font-body-sm text-body-sm text-outline" data-lw-mio-pie>' + esc(pie) + '</span></div>';
+          };
           var BASES = { precio_total: 'precio total', precio_suelo: 'precio de suelo', precio_construccion: 'precio de construcción' };
           var txt = function (c) {
             var v = c.importe_fijo != null ? fmt(c.importe_fijo, 'EUR') + ' fijos' : String(c.pct_comision).replace('.', ',') + ' % del ' + (BASES[c.base_calculo] || 'precio');
-            return v + (c.proyecto_id ? ' en ' + (nomP[c.proyecto_id] || 'un proyecto') : ' en todos los proyectos') + (c.closer_email ? ' (solo para ti)' : '');
+            return v + (c.proyecto_id ? ' en ' + (nomP[c.proyecto_id] || 'un proyecto') : ' en todos los proyectos') + (c.personal ? ' (solo para ti)' : '');
           };
-          // primero las personales y las de todos los proyectos
-          conds.sort(function (a, b) { return (b.closer_email ? 1 : 0) - (a.closer_email ? 1 : 0) || (a.proyecto_id ? 1 : 0) - (b.proyecto_id ? 1 : 0); });
-          el.lastChild.outerHTML = '<ul class="font-body-md text-body-md text-on-surface" style="margin:0;padding-left:18px">' +
-            conds.slice(0, 6).map(function (c) { return '<li>' + esc(txt(c)) + '</li>'; }).join('') + '</ul>';
-        });
+          var condHtml = errCond ? '<span class="font-body-md text-body-md text-outline">No se ha podido leer tu condición.</span>'
+            : !conds.length ? '<span class="font-body-md text-body-md text-outline">Sin condición activa: pregunta a tu manager.</span>'
+            : '<ul class="font-body-md text-body-md text-on-surface" style="margin:0;padding-left:18px">' +
+                conds.slice(0, 6).map(function (c) { return '<li>' + esc(txt(c)) + '</li>'; }).join('') + '</ul>';
+          caja.innerHTML =
+            '<p class="font-body-md text-body-md text-on-surface-variant">' +
+              (eqHoy ? 'Estás en el equipo <b class="text-on-surface">' + esc(eqHoy.nombre) + '</b>' + (manager ? '. Te paga <b class="text-on-surface">' + esc(manager) + '</b>, tu manager — no ' + lwMarca('%marca') + '.' : '.')
+                     : 'Ahora mismo no estás en ningún equipo de venta.') + '</p>' +
+            '<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">' +
+              kpi('Pendiente de cobrar', sumaPorMoneda(pendientes), pendientes.length === 1 ? '1 comisión' : pendientes.length + ' comisiones') +
+              kpi('Cobrado este año', sumaPorMoneda(cobradas), cobradas.length === 1 ? '1 pago' : cobradas.length + ' pagos') +
+              '<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col gap-1" id="lw-mi-condicion">' +
+                '<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold">Tu condición</span>' +
+                condHtml + '</div>' +
+            '</div>';
+          coloca();
+
+          // columnas «Closer» y «Equipo» y el selector de equipos: sobran
+          var st = document.createElement('style');
+          st.textContent = '#lw-eq-equipo{display:none!important}' +
+            // solo filas de datos: la trazabilidad desplegada es una única celda (colspan) y se ocultaba
+            'table:has(#lw-filas-equipo) th:nth-child(-n+2),#lw-filas-equipo tr[data-eq-fila] td:nth-child(-n+2){display:none}';
+          document.head.appendChild(st);
+        }
       }
 
       /* ---------- filtro de la pestaña «Reparto de equipo» ----------
