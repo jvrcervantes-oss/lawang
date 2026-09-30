@@ -1,4 +1,4 @@
--- APLICAR POR LA SESIÓN PRINCIPAL; OK del owner 30-sep: "Sí, aplícala".
+-- APLICADA el 30-sep-2026 por la sesión principal como 20260930131454_f5b_venta_pantallas; OK del owner: "Sí, aplícala".
 -- Cómo: apply_migration con este contenido + tools/supabase_fetch_seguro.py (baja el fichero con su versión real a
 -- migrations/) y borrar este. NO aterrizar la pantalla F5b sin aplicarla antes: sin ella el campo Venta dice «no he
 -- podido comprobar» y la bandeja del SM enseña dos errores de lectura.
