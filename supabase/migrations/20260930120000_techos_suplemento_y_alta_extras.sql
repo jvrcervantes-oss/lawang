@@ -576,6 +576,7 @@ begin
   select * into v_m from public.modelos m where m.id = p_modelo_id for update;
   if not found then raise exception 'Ese modelo ya no existe: recarga la página' using errcode = '22023'; end if;
   v_mon := coalesce(v_m.moneda, 'EUR');
+  perform 1 from public.extras for update;   -- serializa altas ANTES de mirar duplicados (Datos, consulta de deploy)
   v_nombre := btrim(coalesce(p_datos->>'nombre', ''));
   if v_nombre = '' or length(v_nombre) > 60 then raise exception 'El nombre del extra es obligatorio (máximo 60 caracteres)' using errcode = '22023'; end if;
   if exists (select 1 from public.extras e where lower(e.nombre) = lower(v_nombre)) then
@@ -585,7 +586,6 @@ begin
   if length(v_desc) > 500 then raise exception 'La descripción es demasiado larga (máximo 500)' using errcode = '22023'; end if;
   v_p := public._lw_num(p_datos->'precio', 'El precio del extra');
   if not public._lw_importe_ok(v_p, v_mon) then raise exception 'El extra necesita un precio mayor que cero en este modelo (y razonable en %)', v_mon using errcode = '22023'; end if;
-  perform 1 from public.extras for update;   -- serializa altas: la clave y el orden no se pisan entre pestañas
   v_base := coalesce(public._slug_techo(v_nombre), 'extra');
   v_clave := v_base;
   while exists (select 1 from public.extras e where e.clave = v_clave) loop
@@ -648,7 +648,7 @@ begin
     update public.extras set activo = v_act where id = p_id;
   end if;
   if v_uso > 0 and not coalesce(p_confirmado, false) then
-    raise exception '% contrato(s) de Construcción sin firmar llevan este extra: se quedan con él, pero para volver a guardarlos habrá que quitarlo.', v_uso
+    raise exception '% contrato(s) de Construcción sin firmar llevan este extra: lo conservan con su precio congelado; si en alguno se cambia el techo, los extras o el proyecto, habrá que quitarlo.', v_uso
       using errcode = 'LW409', hint = v_uso::text;
   end if;
   return jsonb_build_object('ok', true, 'contratos_sin_firmar', v_uso);
@@ -663,19 +663,29 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
-declare e jsonb; r jsonb; v_uso int := 0;
+declare e jsonb; v_retirados uuid[] := '{}'; v_id uuid; v_uso int := 0;
 begin
   if not public.es_admin() then raise exception 'Los extras los cambia administración' using errcode = '42501'; end if;
   if jsonb_typeof(p_cambios) is distinct from 'array' then raise exception 'Cambios no válidos' using errcode = '22023'; end if;
   for e in select * from jsonb_array_elements(p_cambios) loop
     begin
-      r := public.extra_edita((e->>'id')::uuid, e->'cambios', true);
-    exception when invalid_text_representation then raise exception 'Extra no válido' using errcode = '22023';
+      v_id := (e->>'id')::uuid;
+    exception when others then raise exception 'Extra no válido' using errcode = '22023';
     end;
-    v_uso := v_uso + coalesce((r->>'contratos_sin_firmar')::int, 0);
+    if (select x.activo from public.extras x where x.id = v_id) and public._lw_bool(e->'cambios'->'activo', 'Activo') is false then
+      v_retirados := v_retirados || v_id;
+    end if;
+    perform public.extra_edita(v_id, e->'cambios', true);
   end loop;
+  -- contratos DISTINTOS (Administración: uno con dos extras retirados contaba dos veces)
+  if cardinality(v_retirados) > 0 then
+    select count(*) into v_uso from public.contratos c
+     where c.tipo = 'construccion' and not coalesce(c.bloqueado, false)
+       and exists (select 1 from jsonb_array_elements(coalesce(c.datos->'extras', '[]'::jsonb)) z
+                    where z->>'extra_id' = any (select u::text from unnest(v_retirados) u));
+  end if;
   if v_uso > 0 and not coalesce(p_confirmado, false) then
-    raise exception '% contrato(s) de Construcción sin firmar llevan extras que retiras: se quedan con ellos, pero para volver a guardarlos habrá que quitarlos.', v_uso
+    raise exception '% contrato(s) de Construcción sin firmar llevan extras que retiras: los conservan con su precio congelado; si en alguno se cambia el techo, los extras o el proyecto, habrá que quitarlos.', v_uso
       using errcode = 'LW409', hint = v_uso::text;
   end if;
   return jsonb_build_object('ok', true, 'contratos_sin_firmar', v_uso);

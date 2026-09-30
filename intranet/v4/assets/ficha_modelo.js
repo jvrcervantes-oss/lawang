@@ -319,6 +319,8 @@
 
       // Ya no hay que «mover los techos» con la base (30-sep-2026): son suplementos sobre ella.
       if (h.techos.length) nota(host, 'La base es el precio de la casa con su techo base. Los otros techos suman su suplemento encima (bloque Techos).');
+      // Administración (consulta 30-sep): son dos cifras independientes; subir la de ahora no arrastra la de 2027.
+      nota(host, 'La base de ahora y la de 2027 son independientes: si cambias una, revisa la otra.');
 
       var ins = [];
       if (h.filas.length) {
