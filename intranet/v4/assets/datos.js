@@ -6804,7 +6804,9 @@
          corto y el fallback pinta «—»: no es un fallo, es lo que esa sesion ve. */
       q(sb.from('usuarios').select('user_id,nombre,email'), 'usuarios'),
       q(sb.from('comisiones_devengadas').select('id,contrato_raiz_id,beneficiario_email,nivel,importe,importe_ajustado,ajuste_motivo,anulado_motivo,moneda,estado,disparado_en,pagado_por,pagado_en,disparado_por_snapshot').in('nivel', ['closer', 'setter', 'team_lead']).order('disparado_en', { ascending: false }), 'reparto de equipo', cajaEq),
-      q(sb.from('equipos_venta').select('id,nombre,manager_email,activo'), 'equipos de venta'),
+      // closers_ven_comision (F4, 30-sep-2026): si su SM no comparte las comisiones, la base ya no da
+      // sus filas de equipo; la pantalla solo lo explica en vez de decir «nada que repartir»
+      q(sb.from('equipos_venta').select('id,nombre,manager_email,activo,closers_ven_comision'), 'equipos de venta'),
       q(sb.from('equipo_miembros').select('equipo_id,closer_email,desde,hasta'), 'miembros de equipo'),
       /* De qué parcela sale cada comisión (23-sep-2026, owner): las unidades cuelgan
          de la RAÍZ de la venta (`unidades.contrato_id`), igual que las lee el motor. */
@@ -7219,6 +7221,8 @@
         if (!tablaEq) return;
         if (!cd.length) {
           tablaEq.innerHTML = '<tr><td colspan="8" style="padding:18px;text-align:center;font:400 13px \'Neue Kabel\',sans-serif;color:#8A8474">Nada que repartir todavía — aquí aparecerá cada comisión de closer en cuanto se devengue una.</td></tr>';
+          // F4: con la comisión oculta la base no da filas; «Mis comisiones» explica por qué en vez de este vacío
+          if (opts.soloEquipo && !esAdminSesion && !miEquipoIds.length) pintaMio(cd, eqs, miembros);
           return;
         }
         /* El registro va por ID, nunca por nombre (esc() no basta contra comillas
@@ -7342,6 +7346,21 @@
         var caja = document.createElement('section');
         caja.id = 'lw-mis-comisiones';
         caja.className = 'flex flex-col gap-4';
+        var barraM = document.getElementById('lw-eq-buscar');
+        var anclaM = barraM && barraM.closest('[data-lw-panel] > div');
+        /* COMISIÓN OCULTA (F4, 30-sep-2026, owner): su Sales Manager ha apagado «mis closers ven su
+           comisión». La base (comision_visible) ya no le da ninguna cifra de su parte de equipo, ni su
+           condición de equipo; aquí no se piden y se dice por qué, en vez de enseñar ceros. Lo que
+           vende por su cuenta se lo paga Lawang y lo sigue viendo en «A Lawang»/solicitudes. */
+        if (eqHoy && eqHoy.closers_ven_comision === false) {
+          caja.innerHTML = '<p class="font-body-md text-body-md text-on-surface-variant">Estás en el equipo <b class="text-on-surface">' +
+            esc(eqHoy.nombre) + '</b>. Tu Sales Manager' + (manager ? ' (' + esc(manager) + ')' : '') +
+            ' no comparte las comisiones del equipo: habla con él para saber lo que te corresponde. Lo que vendas por tu cuenta sí lo ves, porque te lo paga ' +
+            lwMarca('%marca') + '.</p>';
+          if (anclaM && anclaM.parentNode) anclaM.parentNode.insertBefore(caja, anclaM); else if (tablaEq) tablaEq.closest('section, div').before(caja);
+          if (tablaEq) tablaEq.innerHTML = '<tr><td colspan="8" style="padding:18px;text-align:center;font:400 13px \'Neue Kabel\',sans-serif;color:#8A8474">Tu Sales Manager no comparte las comisiones del equipo.</td></tr>';
+          return;
+        }
         var kpi = function (t, v, pie) {
           return '<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col gap-1">' +
             '<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-on-surface-variant font-bold">' + esc(t) + '</span>' +
