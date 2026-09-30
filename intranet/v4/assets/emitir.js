@@ -8,26 +8,38 @@
  * LO QUE ESTA PANTALLA NO DECIDE (contrato: erp/plantillas_mvp_interfaz.md §7.1 y §7.2, del repo de la agencia):
  *  · El texto, el calendario, sus importes y sus fechas: los calcula la base (`plantilla_simula` para ver,
  *    `contrato_desde_plantilla` para emitir, el mismo motor). Aquí solo se PINTA lo que devuelve.
- *  · La emisión manda SOLO el id de la versión y los valores tecleados: {reservados{nombre_contrato, precio_total,
- *    proyecto_id, unidad_id}, campos, firmantes[{rol, client_id}]}. `precio_total` es el valor reservado que teclea
- *    quien emite (M0 §2 y D2), va tal cual se escribe (sin parsear ni redondear). Moneda y código de parcela los pone
- *    la base desde la unidad; la identidad de los firmantes, desde `clients`. Cualquier otra clave la base la rechaza.
+ *  · La emisión manda SOLO el id de la versión y los valores tecleados: {reservados{nombre_contrato, precio_total?,
+ *    proyecto_id, unidad_id}, campos, firmantes[{rol, client_id}]}. Moneda y código de parcela los pone la base desde
+ *    la unidad; la identidad de los firmantes, desde `clients` (D4: de un firmante la pantalla solo manda rol y
+ *    client_id). Cualquier otra clave la base la rechaza.
+ *  · PRECIO (owner, 30-sep-2026; contrato §7.2 «regla de precio»): si la parcela tiene precio de lista
+ *    (`unidades.precio` > 0), el campo lo enseña en solo lectura y la pantalla NO manda `precio_total`: lo pone la
+ *    base desde la lista. Un administrador puede desbloquearlo (data-accion emitir-precio-excepcion) y entonces se
+ *    manda lo tecleado, tal cual (sin parsear ni redondear); la base lo acepta solo si es_admin() y lo registra en
+ *    datos.plantilla.precio_excepcion. A un agente la base le responde `precio_distinto_lista`. Sin lista, el precio
+ *    es libre. El botón solo evita ofrecer lo que la base rechazaría: quien decide es la base.
  *  · Permisos: la base (agente con «Contratos», proyecto que puede ver, cliente que puede ver, versión activa).
  *    El menú y guard.js solo evitan ofrecer lo que la base rechazaría.
  *  · Validación: la base es la única validadora (M0 §1). La pantalla no repite sus reglas: enseña sus errores.
  *
- * Lecturas: plantillas y versión por lwDatos (`plantillas_contrato_datos`, `plantilla_version_datos`, dueño
- * erp_lector; las versiones activas las ve cualquier sesión). Proyectos, parcelas y clientes con la lectura que ya
- * usa la suite (tablas con RLS, filtradas por id). El navegador no escribe ninguna tabla: solo llama a las dos RPC.
+ * Lecturas: plantillas, versión y texto emitido por lwDatos (`plantillas_contrato_datos`, `plantilla_version_datos`,
+ * `contrato_plantilla_texto_datos`). Proyectos, parcelas y clientes con la lectura que ya usa la suite (tablas con
+ * RLS, filtradas por id). El navegador no escribe ninguna tabla: solo llama a las dos RPC.
+ *
+ * SIMULACIÓN: `plantilla_simula` sobre la unidad real (reservados.unidad_id), así aplica la misma regla de precio que
+ * la emisión y devuelve el aviso D1. Firmantes igual que al emitir: solo {rol, client_id} (D4, §7.1); la base lee
+ * la ficha de `clients` con la visibilidad de quien llama. El navegador no manda nunca la identidad de un cliente,
+ * ni para ver ni para emitir; de `clients` solo lee id y nombre para pintar los desplegables.
  *
  * DOCUMENTO E IMPRESIÓN: el texto que devuelve el servidor es TEXTO PLANO sin escapar (M2 punto 4). Se compone en
  * UN solo sitio, `componDocumento`, con nodos de texto (textContent): ni el cuerpo ni ningún valor pasa nunca por
- * un sumidero de HTML (inner/outer HTML) en este fichero. Lo que se imprime es la SIMULACIÓN y lo dice arriba: la emisión no devuelve el texto
- * del contrato emitido y no hay aún una lectura que lo re-componga desde la versión y sus datos (falta una RPC
- * `*_datos`; ver el informe de M5).
+ * un sumidero de HTML en este fichero. Lo que se IMPRIME es el texto GUARDADO al emitir, leído con
+ * `contrato_plantilla_texto_datos(p_contrato_id)` (§7.5), con su huella `texto_sha256` al pie; nunca se recompone con
+ * datos de hoy. La simulación se enseña, pero no se imprime.
  *
  * Enganche por identificador estable: botones por data-accion (emitir-previsualizar, emitir-confirmar,
- * emitir-imprimir), bloques por data-lw, campos por data-lw-campo (la clave) y firmantes por data-lw-rol. */
+ * emitir-imprimir, emitir-precio-excepcion), bloques por data-lw, campos por data-lw-campo (la clave) y firmantes por
+ * data-lw-rol. */
 (function () {
   'use strict';
 
@@ -69,7 +81,15 @@
   var clientesP = null;         // promesa: lista de clientes que la sesión ve (o error)
   var ultimaSim = null;         // { huella, sim } de la última simulación correcta y al día
   var emitido = false;          // tras emitir, no se vuelve a emitir hasta otra vista previa válida
-  var NO_DISPONIBLE = { vendida: 1, cobrada: 1, no_disponible: 1, bloqueada: 1 };
+  var emitidoId = null;         // contrato_id del último emitido: lo único que se imprime (su texto guardado)
+  var esAdmin = false;          // solo para OFRECER el botón de excepción de precio; lo decide es_admin() en la base
+  var precioLibre = false;      // un admin ha desbloqueado el precio de lista de la parcela elegida
+  var precioAuto = false;       // el valor del campo precio lo ha puesto la pantalla desde la lista
+  /* Parcelas que no se ofrecen: estas y cualquiera con contrato_id (owner, 30-sep). Es más estricto que la base, que
+     da por libre una parcela cuyo contrato está liberado; esa se libera primero en su ficha. */
+  var NO_DISPONIBLE = { reservada: 1, vendida: 1, cobrada: 1, no_disponible: 1, bloqueada: 1 };
+  /* Mismo criterio que esAdminSesion de nav.js y que es_admin() en la base (rol admin o super_admin). */
+  function esAdminFicha(ficha) { return !!ficha && (ficha.rol === 'admin' || ficha.rol === 'super_admin'); }
 
   /* ── Errores de la base → palabras. Se lee el `hint` (código estable de M0 §7.4) antes que el código. ─────── */
   var POR_HINT = {
@@ -85,8 +105,12 @@
     campo_no_admitido: 'La pantalla ha mandado un dato que la base no admite. Recarga la pantalla; si vuelve a pasar, avisa al estudio.',
     unidad_no_enlazada: 'La base no ha podido ligar el contrato a la parcela y no ha guardado nada. Avisa al estudio.',
     hitos_suma: 'El calendario de pagos no cuadra con el precio total: revisa el precio.',
-    plantilla_no_valida: 'Esta versión de la plantilla no se puede emitir desde aquí.'
+    plantilla_no_valida: 'Esta versión de la plantilla no se puede emitir desde aquí.',
+    precio_distinto_lista: 'Esta parcela tiene precio de lista y solo un administrador puede poner otro precio. Deja el precio de lista, o pide a un administrador que emita el contrato: quedará registrado quién cambió el precio y cuándo.'
   };
+  /* Códigos de la lista de errores (simulación y `detail` de la emisión) que se enseñan con palabras propias en vez
+     del mensaje de la base. Solo los que no dicen nada de un campo concreto: el resto lleva su desglose. */
+  var POR_CODIGO = { precio_distinto_lista: POR_HINT.precio_distinto_lista };
   function errorTexto(e) {
     var h = (e && e.hint) || '', c = (e && e.code) || '', m = (e && e.message) || String(e || '');
     if (POR_HINT[h]) return T(POR_HINT[h]);
@@ -145,6 +169,7 @@
     var form = $('emitir-formulario');
     invalida();
     version = null;
+    emitidoId = null;   // otra plantilla: el documento emitido deja de estar a la vista y no se imprime desde aquí
     plantilla = plantillas.filter(function (p) { return p.slug === slug; })[0] || null;
     form.hidden = true;
     $('emitir-previa').hidden = true;
@@ -317,9 +342,10 @@
     unidades = {};
     vacia(sel);
     sel.disabled = true;
+    eligeUnidad();   // sin parcela: el precio vuelve a ser libre y se quita el de la lista anterior
     if (!pid) { sel.appendChild(opcion('', T('Elige antes el proyecto'))); return; }
     sel.appendChild(opcion('', T('Trayendo las parcelas…')));
-    Promise.resolve(sb.from('unidades').select('id,codigo,estado,moneda,contrato_id').eq('proyecto_id', pid).order('codigo_orden').limit(2000)).then(function (r) {
+    Promise.resolve(sb.from('unidades').select('id,codigo,estado,moneda,precio,contrato_id').eq('proyecto_id', pid).order('codigo_orden').limit(2000)).then(function (r) {
       if (yo !== tokenUnidades) return;
       if (r.error) throw r.error;
       vacia(sel);
@@ -328,8 +354,12 @@
       sel.appendChild(opcion('', T('Elige una parcela…')));
       lista.forEach(function (u) {
         unidades[u.id] = u;
-        var fuera = !!NO_DISPONIBLE[u.estado] || !u.moneda;
-        sel.appendChild(opcion(u.id, u.codigo + ' · ' + (u.estado || '—') + (u.moneda ? ' · ' + u.moneda : ' · ' + T('sin moneda')), fuera));
+        var conContrato = u.contrato_id != null;
+        var fuera = !!NO_DISPONIBLE[u.estado] || conContrato || !u.moneda;
+        sel.appendChild(opcion(u.id, u.codigo + ' · ' + (u.estado || '—') +
+          (conContrato ? ' · ' + T('con contrato') : '') +
+          (u.moneda ? ' · ' + u.moneda : ' · ' + T('sin moneda')) +
+          (fuera ? ' · ' + T('no disponible') : ''), fuera));
       });
       sel.disabled = false;
     }).catch(function (e) {
@@ -338,6 +368,50 @@
       vacia(sel);
       sel.appendChild(opcion('', T('No se han podido leer las parcelas: recarga la pantalla.')));
     });
+  }
+
+  /* ── Precio: el de lista de la parcela, en solo lectura; otro, solo un administrador (lo decide la base). ── */
+  function unidadElegida() { var uid = $('emitir-unidad').value; return uid ? unidades[uid] || null : null; }
+  /* Precio de lista de la unidad tal como viene de la base (sin redondear ni formatear), o null si no tiene. */
+  function precioLista(u) {
+    if (!u || u.precio == null || u.precio === '') return null;
+    var n = Number(u.precio);
+    return isFinite(n) && n > 0 ? String(u.precio) : null;
+  }
+  function eligeUnidad() {
+    var inp = $('emitir-precio');
+    precioLibre = false;
+    /* El precio que puso la pantalla desde otra parcela no se queda: sería el de lista de la parcela equivocada. */
+    if (precioAuto) inp.value = '';
+    precioAuto = false;
+    var lista = precioLista(unidadElegida());
+    if (lista) { inp.value = lista; precioAuto = true; }
+    pintaPrecio();
+  }
+  function pintaPrecio() {
+    var inp = $('emitir-precio'), nota = $('emitir-precio-nota'), b = boton('emitir-precio-excepcion');
+    var u = unidadElegida(), lista = precioLista(u);
+    inp.readOnly = !!(lista && !precioLibre);
+    if (lista && !precioLibre) {
+      nota.textContent = T('Precio de lista de la parcela') + ' ' + u.codigo + ': ' + lista + ' ' + (u.moneda || '') +
+        '. ' + T('Lo pone la base desde la parcela; no se cambia aquí.');
+    } else if (lista) {
+      nota.textContent = T('Estás poniendo un precio distinto del de lista') + ' (' + lista + ' ' + (u.moneda || '') + '). ' +
+        T('Solo lo acepta la base si eres administrador, y quedará registrado en el contrato quién lo cambió y cuándo. Para volver al de lista, vuelve a elegir la parcela.');
+    } else if (u) {
+      nota.textContent = T('Esta parcela no tiene precio de lista: escribe el precio.');
+    } else {
+      nota.textContent = '';
+    }
+    b.hidden = !(esAdmin && lista && !precioLibre);
+  }
+  function excepcionPrecio() {
+    if (!esAdmin || !precioLista(unidadElegida())) return;
+    precioLibre = true;
+    precioAuto = false;
+    pintaPrecio();
+    invalida();
+    $('emitir-precio').focus();
   }
 
   /* ── Leer el formulario. Todo cadenas, sin transformar: la base valida el formato (M0 §3.1). ───────────── */
@@ -352,11 +426,14 @@
       if (el.value) firmantes.push({ rol: el.getAttribute('data-lw-rol'), client_id: el.value });
     });
     var uid = $('emitir-unidad').value;
+    var u = uid ? unidades[uid] || null : null;
+    /* Con precio de lista y sin excepción no se manda precio: lo pone la base (regla de precio, §7.2). */
+    var mandaPrecio = !precioLista(u) || precioLibre;
     return {
       nombre: $('emitir-nombre').value.trim(),
-      precio: $('emitir-precio').value.trim(),
+      precio: mandaPrecio ? $('emitir-precio').value.trim() : '',
       proyecto_id: $('emitir-proyecto').value,
-      unidad: uid ? unidades[uid] || null : null,
+      unidad: u,
       campos: campos,
       firmantes: firmantes
     };
@@ -375,7 +452,7 @@
   function refrescaBotones() {
     var alDia = !!ultimaSim;
     boton('emitir-confirmar').disabled = !(alDia && !emitido && version);
-    boton('emitir-imprimir').disabled = !alDia;
+    boton('emitir-imprimir').disabled = !emitidoId;
     boton('emitir-previsualizar').disabled = !version;
   }
   /* Cualquier cambio en el formulario deja la vista previa vieja: se dice y no se puede emitir ni imprimir. */
@@ -389,38 +466,24 @@
     refrescaBotones();
   }
 
-  /* ── Previsualizar: plantilla_simula con datos de ejemplo tomados de la parcela y de la ficha del cliente. ─ */
+  /* ── Previsualizar: plantilla_simula sobre la parcela real (unidad_id), con los firmantes por client_id. ───── */
   function previsualizar() {
     if (!version) return;
     var f = leeFormulario();
     if (!f.unidad) { mal(T('Elige el proyecto y la parcela antes de previsualizar: la moneda y el código salen de la parcela.')); return; }
     var huella = huellaDe(f);
-    var ids = f.firmantes.map(function (x) { return x.client_id; });
     var b = boton('emitir-previsualizar');
     b.disabled = true;
     estado(T('Calculando la vista previa en la base…'));
-    /* La simulación no lee `clients` (M0 §7.1): se le pasan los datos de la ficha que esta sesión ya ve. La
-       emisión NO los manda: allí la base los lee ella misma por client_id. */
-    var fichasP = ids.length
-      ? Promise.resolve(sb.from('clients').select('id,full_name,passport_number,email,phone,nationality,address').in('id', ids))
-      : Promise.resolve({ data: [] });
-    fichasP.then(function (r) {
-      if (r.error) throw r.error;
-      var fichas = {};
-      (r.data || []).forEach(function (k) { fichas[k.id] = k; });
-      var firmantes = f.firmantes.map(function (x) {
-        var k = fichas[x.client_id] || {};
-        return sinVacios({ rol: x.rol, nombre: k.full_name, pasaporte: k.passport_number, email: k.email,
-                           telefono: k.phone, nacionalidad: k.nationality, domicilio: k.address });
-      });
-      var valores = {
-        reservados: sinVacios({ nombre_contrato: f.nombre, precio_total: f.precio,
-                                moneda: f.unidad.moneda, parcela_codigo: f.unidad.codigo }),
-        campos: f.campos,
-        firmantes: firmantes
-      };
-      return sb.rpc('plantilla_simula', { p_version_id: version.id, p_valores: valores });
-    }).then(function (r) {
+    /* Mismo payload que la emisión (sin proyecto_id, que simula no admite): firmantes solo {rol, client_id} (D4,
+       §7.1). La ficha la lee la base con la visibilidad de quien llama; un cliente que no ve = firmante_desconocido. */
+    var valores = {
+      /* Sobre la unidad real: moneda, parcela y precio de lista los pone la base (mandarlos = campo_no_admitido). */
+      reservados: sinVacios({ nombre_contrato: f.nombre, precio_total: f.precio, unidad_id: f.unidad.id }),
+      campos: f.campos,
+      firmantes: f.firmantes.map(function (x) { return { rol: x.rol, client_id: x.client_id }; })
+    };
+    Promise.resolve(sb.rpc('plantilla_simula', { p_version_id: version.id, p_valores: valores })).then(function (r) {
       if (r.error) throw r.error;
       /* Si mientras la base respondía se cambió algo, esta respuesta ya no describe el formulario. */
       if (huellaDe(leeFormulario()) !== huella) { estado(T('Has cambiado datos mientras se calculaba: vuelve a previsualizar.')); return; }
@@ -436,7 +499,8 @@
     var ul = nodo('ul', 'lw-emi-lista');
     if (clase) ul.classList.add(clase);
     lista.forEach(function (x) {
-      ul.appendChild(nodo('li', null, (x.mensaje || x.codigo || String(x)) + (x.campo ? ' (' + x.campo + ')' : '')));
+      var propio = x && x.codigo && POR_CODIGO[x.codigo];
+      ul.appendChild(nodo('li', null, propio ? T(propio) : (x.mensaje || x.codigo || String(x)) + (x.campo ? ' (' + x.campo + ')' : '')));
     });
     return ul;
   }
@@ -462,6 +526,7 @@
     sec.hidden = false;
     vacia(avisos);
     vacia(hit);
+    emitidoId = null;   // la vista previa nueva sustituye al documento emitido: ya no hay nada que imprimir aquí
     if (!sim.ok) {
       ultimaSim = null;
       avisos.appendChild(nodo('p', 'font-label-md text-label-md text-on-surface', T('La base no lo acepta todavía. Corrige esto y vuelve a previsualizar:')));
@@ -491,23 +556,83 @@
 
   /* ÚNICO PUNTO DE COMPOSICIÓN DEL DOCUMENTO. El texto del servidor es texto plano sin escapar: va entero a un
      nodo de texto (textContent), nunca como HTML, así que «<», «&» o un {{token}} de un valor salen literales.
-     Los caracteres de control y bidi ya los rechaza la base (M0 §5). */
-  function componDocumento(texto) {
+     Los caracteres de control y bidi ya los rechaza la base (M0 §5).
+     `emi` (opcional) = el contrato emitido: { numero, sha, verificada: true|false|null, motivo }. Sin `emi` es la
+     simulación; con `emi` es el texto GUARDADO al emitir (contrato_plantilla_texto_datos) y lleva su huella al pie. */
+  function componDocumento(texto, emi) {
     var doc = $('emitir-documento');
     vacia(doc);
     if (texto == null) {
-      doc.appendChild(nodo('p', 'lw-emi-marca', T('Sin vista previa: la base no ha podido componer el texto.')));
+      var sinTexto = !emi ? T('Sin vista previa: la base no ha podido componer el texto.')
+        : emi.motivo === 'sin_texto' ? T('El contrato') + ' ' + (emi.numero || '') + ' ' + T('no tiene texto guardado de plantilla: no se imprime desde aquí.')
+        : T('Contrato emitido, pero no se ha podido leer su texto guardado: no se imprime. Ábrelo desde su ficha o recarga la pantalla.');
+      doc.appendChild(nodo('p', 'lw-emi-marca', sinTexto));
       return;
     }
-    var rotulo = T('Simulación · sin valor contractual') + ' · ' + (plantilla ? plantilla.nombre : '') +
-      (version ? ' · v' + version.version : '') + (version && version.hash ? ' · ' + String(version.hash).slice(0, 12) : '');
+    var rotulo = emi
+      ? T('Contrato') + ' ' + (emi.numero || '—') + ' · ' + T('texto guardado al emitir')
+      : T('Simulación · sin valor contractual') + ' · ' + (plantilla ? plantilla.nombre : '') +
+        (version ? ' · v' + version.version : '') + (version && version.hash ? ' · ' + String(version.hash).slice(0, 12) : '');
     doc.appendChild(nodo('p', 'lw-emi-marca', rotulo));
     doc.appendChild(nodo('div', 'lw-emi-texto', texto));
+    if (emi) {
+      var comprobada = !emi.sha ? T('la base no ha devuelto huella: sin comprobar')
+        : emi.verificada === true ? T('comprobada en este navegador')
+        : emi.verificada === false ? T('NO COINCIDE con el texto recibido: no lo imprimas y avisa al estudio')
+        : T('sin comprobar en este navegador');
+      doc.appendChild(nodo('p', 'lw-emi-huella', T('Huella del texto (SHA-256)') + ': ' + (emi.sha || '—') + ' · ' + comprobada));
+    }
+  }
+
+  /* sha256 (hex) del texto en UTF-8, para cotejarlo con `texto_sha256` de la base. null = este navegador no puede
+     calcularlo (sin crypto.subtle): se dice «sin comprobar», no se da por bueno ni por malo. */
+  function huellaLocal(texto) {
+    var sub = window.crypto && window.crypto.subtle;
+    if (!sub || typeof TextEncoder !== 'function') return Promise.resolve(null);
+    return Promise.resolve(sub.digest('SHA-256', new TextEncoder().encode(texto))).then(function (buf) {
+      return Array.prototype.map.call(new Uint8Array(buf), function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
+    });
+  }
+
+  /* Trae el texto GUARDADO al emitir (§7.5) y lo compone. Resuelve true si se puede imprimir: hay texto y su huella
+     no contradice la de la base. Los errores de lectura se propagan: quien llama los enseña. */
+  function cargaEmitido(id) {
+    return Promise.resolve(window.lwDatos('contrato_plantilla_texto_datos', { p_contrato_id: id })).then(function (r) {
+      if (r.error) throw r.error;
+      var d = r.data || {};
+      $('emitir-previa').hidden = false;
+      vacia($('emitir-avisos'));
+      vacia($('emitir-hitos-simulados'));
+      if (d.texto == null) { componDocumento(null, { numero: d.numero, motivo: 'sin_texto' }); return false; }
+      return huellaLocal(d.texto).then(function (h) {
+        var sha = d.texto_sha256 ? String(d.texto_sha256).toLowerCase() : '';
+        /* Sin huella de la base no hay con qué comparar: se dice («sin huella»), no se da por mala. */
+        var ok = (h == null || sha === '') ? null : h === sha;
+        componDocumento(d.texto, { numero: d.numero, sha: d.texto_sha256, verificada: ok });
+        return ok !== false;
+      });
+    });
   }
 
   function imprimir() {
-    if (!ultimaSim) { mal(T('Previsualiza antes de imprimir: se imprime la vista previa que ha compuesto la base.')); return; }
-    window.print();
+    if (!emitidoId) { mal(T('Emite el contrato antes de imprimir: se imprime el texto que la base guardó al emitir.')); return; }
+    var b = boton('emitir-imprimir');
+    b.disabled = true;
+    estado(T('Trayendo el texto emitido…'));
+    cargaEmitido(emitidoId).then(function (ok) {
+      if (!ok) {
+        estado(T('No se imprime: el texto guardado falta o su huella no coincide.'));
+        mal(T('No se imprime: el texto guardado falta o su huella no coincide. Avisa al estudio.'));
+        return;
+      }
+      estado('');
+      window.print();
+    }).catch(function (e) {
+      console.error('[emitir] texto emitido', e);
+      componDocumento(null, { motivo: 'error' });
+      estado(T('No se ha podido leer el texto emitido: no se imprime.'));
+      mal(errorTexto(e));
+    }).then(function () { refrescaBotones(); });
   }
 
   /* ── Emitir: contrato_desde_plantilla con el id de la versión y los valores tecleados. Nada más. ────────── */
@@ -516,32 +641,58 @@
     var f = leeFormulario();
     if (huellaDe(f) !== ultimaSim.huella) { invalida(); mal(T('Has cambiado datos desde la vista previa: vuelve a previsualizar antes de emitir.')); return; }
     if (typeof window.lwConfirmar !== 'function') { mal(T('El diálogo aún no ha cargado: espera un segundo y vuelve a pulsar.')); return; }
-    window.lwConfirmar({
-      titulo: T('¿Emitir el contrato?'),
-      /* Texto fijo, sin ningún valor: `cuerpo` de lwConfirmar se pinta como HTML. */
-      cuerpo: T('Se creará el contrato con los datos de la vista previa y la parcela quedará reservada a él. La base vuelve a comprobarlo todo antes de guardar.'),
-      confirmar: T('Emitir')
-    }).then(function (ok) {
+    /* D1 (owner, 30-sep): emitir deja la parcela «reservada» salvo en los contratos de construcción (misma condición
+       que la advertencia de plantilla_simula). `cuerpo` de lwConfirmar se pinta como HTML: aquí solo va texto FIJO,
+       con un hueco vacío; el código de la parcela se mete después en ese hueco con textContent, nunca como HTML. */
+    var ocupa = !!(f.unidad && plantilla && plantilla.tipo_contrato !== 'construccion');
+    var cuerpo = '<p>' + T('Se creará el contrato con los datos de la vista previa. La base vuelve a comprobarlo todo antes de guardar.') + '</p>' +
+      (ocupa ? '<p>' + T('La parcela') + ' <strong data-lw="emitir-dlg-unidad"></strong> ' +
+        T('pasará a «reservada» y quedará ligada a este contrato: no se podrá vender ni usar en otro contrato mientras tanto.') + '</p>' : '');
+    var confirmado = window.lwConfirmar({ titulo: T('¿Emitir el contrato?'), cuerpo: cuerpo, confirmar: T('Emitir') });
+    if (ocupa) {
+      var hueco = document.querySelector('#lw-dlg-c [data-lw="emitir-dlg-unidad"]');
+      if (hueco) hueco.textContent = f.unidad.codigo;
+      else console.error('[emitir] diálogo sin hueco para el código de parcela');
+    }
+    confirmado.then(function (ok) {
       if (!ok) return;
       if (huellaDe(leeFormulario()) !== ultimaSim.huella) { invalida(); return; }
       var b = boton('emitir-confirmar');
       b.disabled = true;
       estado(T('Emitiendo…'));
+      /* Firmantes: solo {rol, client_id} (D4); precio_total solo si no hay lista o un admin la ha desbloqueado. */
       var valores = {
         reservados: sinVacios({ nombre_contrato: f.nombre, precio_total: f.precio,
                                 proyecto_id: f.proyecto_id, unidad_id: f.unidad && f.unidad.id }),
         campos: f.campos,
-        firmantes: f.firmantes
+        firmantes: f.firmantes.map(function (x) { return { rol: x.rol, client_id: x.client_id }; })
       };
       return Promise.resolve(sb.rpc('contrato_desde_plantilla', { p_version_id: version.id, p_valores: valores })).then(function (r) {
         if (r.error) throw r.error;
+        var d = r.data || {};
         emitido = true;
-        pintaEmitido(r.data || {});
+        ultimaSim = null;              // la vista previa ya se ha usado: la siguiente emisión pide otra
+        emitidoId = d.contrato_id || null;
+        pintaEmitido(d);
         eligeProyecto();   // relee las parcelas: la emitida ya no está libre (se vuelve a elegir para el siguiente)
-        estado(T('Contrato emitido.'));
-        bien(T('Contrato emitido') + ': ' + ((r.data && r.data.numero) || ''));
+        bien(T('Contrato emitido') + ': ' + (d.numero || ''));
         refrescaBotones();
-      }).catch(function (e) {
+        if (!emitidoId) {
+          componDocumento(null, { motivo: 'error' });
+          estado(T('Contrato emitido, pero la base no ha devuelto su id: ábrelo desde su ficha para imprimirlo.'));
+          return;
+        }
+        estado(T('Contrato emitido. Trayendo el texto guardado…'));
+        return cargaEmitido(emitidoId).then(function (okTexto) {
+          estado(okTexto ? T('Contrato emitido. Abajo, el texto guardado al emitir: es lo que se imprime.')
+                         : T('Contrato emitido, pero su texto guardado falta o su huella no coincide: no se imprime. Avisa al estudio.'));
+        }, function (e) {
+          console.error('[emitir] texto emitido', e);
+          componDocumento(null, { motivo: 'error' });
+          estado(T('Contrato emitido, pero no se ha podido leer su texto guardado.'));
+          mal(errorTexto(e));
+        });
+      }, function (e) {
         console.error('[emitir] emisión', e);
         var lista = erroresDe(e);
         if (lista.length) {
@@ -554,6 +705,9 @@
         mal(errorTexto(e));
         refrescaBotones();
       });
+    }).catch(function (e) {
+      console.error('[emitir] tras emitir', e);
+      mal(T('Algo ha fallado en la pantalla al emitir: recarga y comprueba el contrato en Contratos antes de volver a emitir.'));
     });
   }
 
@@ -563,19 +717,25 @@
     vacia(caja);
     caja.appendChild(nodo('p', 'font-body-md text-body-md text-on-surface',
       T('Número') + ': ' + (d.numero || '—') + ' · ' + T('Precio total') + ': ' + importe(d.precio_total, d.moneda)));
+    if (d.precio_excepcion) {
+      caja.appendChild(nodo('p', 'lw-emi-ayuda', T('Precio distinto del de lista') + ' (' + (d.precio_lista || '—') + '): ' +
+        T('queda registrado en el contrato quién lo puso y cuándo.')));
+    }
     if ((d.hitos || []).length) caja.appendChild(tablaHitos(d.hitos, d.moneda));
     if (d.numero) {
       var a = nodo('a', 'font-label-md text-label-md text-deep-lagoon', T('Abrir la ficha del contrato'));
       a.setAttribute('href', '../contratos/?contrato=' + encodeURIComponent(d.numero));
       caja.appendChild(a);
     }
-    caja.appendChild(nodo('p', 'lw-emi-ayuda', T('La vista previa de abajo es la simulación con la que se emitió; no es el documento oficial del contrato.')));
+    caja.appendChild(nodo('p', 'lw-emi-ayuda', T('El documento de abajo es el texto que la base guardó al emitir, con su huella: es el que se imprime.')));
     sec.hidden = false;
   }
 
   function cablea() {
     $('emitir-plantilla').addEventListener('change', eligePlantilla);
     $('emitir-proyecto').addEventListener('change', eligeProyecto);
+    $('emitir-unidad').addEventListener('change', eligeUnidad);
+    boton('emitir-precio-excepcion').addEventListener('click', function (ev) { ev.stopPropagation(); excepcionPrecio(); });
     var form = $('emitir-formulario');
     form.addEventListener('input', invalida);
     form.addEventListener('change', invalida);
@@ -594,6 +754,7 @@
     window.LW_AUTH.then(function (aut) {
       sb = aut && aut.sb;
       if (!sb) { mal(T('No hay sesión: vuelve a entrar.')); return; }
+      esAdmin = esAdminFicha(aut.ficha);
       cablea();
       cargaClientes();
       cargaProyectos();
