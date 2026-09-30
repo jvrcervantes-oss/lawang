@@ -2,6 +2,8 @@
 -- Se ejecuta ENTERA en una llamada con execute_sql (MCP) o psql como postgres. NO ESCRIBE NADA: cada caso va en un
 -- sub-bloque que acaba en excepción (Postgres deshace lo que hizo, rol, claims e interruptor incluidos) y el bloque
 -- entero termina en `raise exception 'RES: …'`. Cada caso debe decir «ok».
+-- OJO: el ROLLBACK no devuelve las secuencias. Cada pasada gasta números reales: ~6 de contrato RP, 1 de solicitud de
+-- pago (SP), 1 de diferencia y 1 de cliente (CLI). No pasarla en bucle; el hueco de numeración lo decide el owner.
 -- Los triggers de recálculo (zz_comisiones_reconcilia_*) son DEFERRED y no llegan a disparar dentro de la prueba: el
 -- motor se llama a mano (comisiones_evaluar_contrato) donde el caso lo necesita.
 -- Perfiles (se buscan, no se inventan): closer T = dortegag (equipo de Gus desde 1-abr), SM S = gusabellan, otro miembro
