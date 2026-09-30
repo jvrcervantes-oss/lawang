@@ -19,11 +19,11 @@
    /intranet/v4/contratos/ solo manda aquí a admin y super admin (o con
    `?asistente=1` en esa página) — ver `contratos` en intranet/v4/assets/editores.js.
 
-   «CON MI EQUIPO / POR MI CUENTA». Se pregunta y se guarda en el estado del
-   asistente, pero NO se envía a la base ni entra en `datos` (nunca un campo con
-   `name=` en #form: collect() lo serializaría). Su dueño será
-   `contrato_closer.modo` en F5; el único punto de enganche es `ventaDeclarada()`
-   (y su comentario junto a `contrato_guarda` en app.html).
+   «CON MI EQUIPO / POR MI CUENTA». Se pregunta aquí y, al montar el borrador,
+   pasa al campo «Venta» del editor (siembraVenta, F5b 30-sep-2026), que es lo
+   único que viaja a `contrato_guarda` como la clave `venta` (nunca en `datos`:
+   ningún campo con `name=` en #form). Su dueño es `contrato_closer.modo`.
+   Ese campo vive también en este fichero: ver «CAMPO VENTA» más abajo.
 
    ESTADO. En `sessionStorage` (por pestaña) solo como comodidad: si cierras y
    vuelves, o vas al alta de cliente y vuelves, sigues donde estabas. No es la
@@ -168,11 +168,30 @@
         return String(m.closer_email || '').toLowerCase() === yo && (!m.desde || m.desde <= hoy) && (!m.hasta || m.hasta >= hoy)
           && eqs.some(function (x) { return x.id === m.equipo_id; });
       });
-      var eq = mia ? eqs.find(function (x) { return x.id === mia.equipo_id; })
-                   : eqs.find(function (x) { return String(x.manager_email || '').toLowerCase() === yo; });
-      return (RT.equipo = eq ? { en: true, nombre: eq.nombre, sm: eq.manager_email } : { en: false });
+      /* Solo cuenta ser MIEMBRO (F5b, 30-sep): es lo que mira el servidor (contrato_closer.equipo_id sale de
+         equipo_miembros a la fecha de la venta). Un SM que dirige un equipo sin ser miembro vende «sin equipo»
+         para el servidor: antes se le preguntaba igual y «Con mi equipo» acababa en «No estás en ningún equipo».
+         Si es miembro Y manager de su equipo, «por su cuenta» sale apagado: cobra la fee de manager. */
+      var eq = mia ? eqs.find(function (x) { return x.id === mia.equipo_id; }) : null;
+      return (RT.equipo = eq ? { en: true, nombre: eq.nombre, sm: eq.manager_email,
+        soySM: String(eq.manager_email || '').toLowerCase() === yo } : { en: false });
     }, function () { return (RT.equipo = { fallo: true }); });
   }
+  /* ¿Exige ya el servidor declarar la venta? (interruptor comisiones_interruptor.modo_obligatorio, solo el
+     booleano por modo_obligatorio_activo). true / false, o null si no se ha podido mirar: entonces se dice
+     que no se sabe y decide el servidor al guardar. Se pregunta solo a quien está en un equipo. */
+  function obligatorio() {
+    if (RT.oblig !== undefined) return Promise.resolve(RT.oblig);
+    return Promise.resolve(sb.rpc('modo_obligatorio_activo')).then(function (r) {
+      return (RT.oblig = r.error ? null : r.data === true);
+    }, function () { return (RT.oblig = null); });
+  }
+  function avisoPrueba() {
+    if (RT.oblig === true) return '';
+    if (RT.oblig === null) return aviso('aviso', 'help', e(T('No he podido comprobar si esta respuesta ya es obligatoria: al guardar lo decide el servidor.')));
+    return aviso('info', 'info', e(T('Prueba: esta respuesta todavía no se guarda en el contrato. Se activará cuando el servidor la compruebe.')));
+  }
+  var MOTIVO_SM = 'Eres el Sales Manager de este equipo: tu venta cobra la fee de manager, no es por tu cuenta.';
   function smVisible() { return RT.equipo && RT.equipo.sm ? autorVisible(RT.equipo.sm) : ''; }
 
   /* ── los pasos ─────────────────────────────────────────────────────────── */
@@ -211,7 +230,7 @@
   function descuentoFueraDeTope(pct) { return !ES_SUPER && pct > TOPE_DESCUENTO_PCT; }
   function listo(k) {
     if (k === 'inicio') return !!S.camino;
-    if (k === 'modo') return !!S.modo && !(S.modo === 'propia' && (!S.origen || (S.origen === 'otro' && !S.frase.trim())));
+    if (k === 'modo') return !!S.modo && !(S.modo === 'propia' && (RT.equipo.soySM || !S.origen || (S.origen === 'otro' && !S.frase.trim())));
     if (k === 'venta') return !!(S.venta && !S.venta.liberado_en);
     if (k === 'tipo') return !!S.slug && (S.camino === 'existente'
       ? !!opcionExistente(S.slug) && !opcionExistente(S.slug).off
@@ -311,7 +330,8 @@
         (smVisible() ? ' · ' + e(T('Sales Manager')) + ': <b>' + e(smVisible()) + '</b>' : '') + '.</p>';
       h += '<div class="asi-ops">' +
         opcion('modo', 'equipo', S.modo === 'equipo', 'groups', T('Con mi equipo'), T('Entra el equipo entero del día de la venta. El reparto lo lleva tu Sales Manager.')) +
-        opcion('modo', 'propia', S.modo === 'propia', 'person', T('Por mi cuenta'), T('Cliente tuyo, sin el equipo. Tu Sales Manager tiene 7 días para objetar.')) + '</div>';
+        opcion('modo', 'propia', S.modo === 'propia', 'person', T('Por mi cuenta'), T('Cliente tuyo, sin el equipo. Tu Sales Manager tiene 7 días para objetar.'),
+          { off: RT.equipo.soySM ? T(MOTIVO_SM) : '' }) + '</div>';
       if (S.modo === 'propia') {
         h += '<div class="asi-dos"><div class="asi-fld"><label for="asi-origen">' + e(T('¿De dónde sale este cliente?')) + '</label>' +
           '<select id="asi-origen" data-asi-campo="origen"><option value="">' + e(T('Elige una opción')) + '</option>' +
@@ -319,7 +339,7 @@
           '</select></div><div class="asi-fld"><label for="asi-frase">' + e(T('En una frase')) + (S.origen === 'otro' ? '' : ' <i>(' + e(T('opcional')) + ')</i>') + '</label>' +
           '<input id="asi-frase" data-asi-campo="frase" maxlength="200" value="' + e(S.frase) + '"></div></div>';
       }
-      h += aviso('info', 'info', e(T('Prueba: esta respuesta todavía no se guarda en el contrato. Se activará cuando el servidor la compruebe.')));
+      h += avisoPrueba();
       return h;
     },
     tipo: function () {
@@ -373,6 +393,10 @@
           '<div class="asi-buscar cli-buscar"><span data-ico="search" aria-hidden="true"></span><input type="search" id="asi-buscar-cliente" autocomplete="off" aria-label="' + e(T('Buscar cliente')) + '" placeholder="' + e(T('Nombre, email o pasaporte…')) + '">' +
           '<div class="cli-resultados" id="asi-res-cliente" hidden></div></div>';
       }
+      /* F5b: los cruces por identidad (tel., email, pasaporte) los hace el servidor AL GUARDAR; no hay
+         previsualización. Se avisa aquí de lo que puede pasar, y el resultado llega al guardar. */
+      if (S.camino === 'nueva' && S.modo === 'propia' && RT.equipo && RT.equipo.en)
+        h += aviso('info', 'info', e(T('Por tu cuenta: al guardar se comprueba este cliente contra los leads de tu equipo. Si es un lead que te asignó tu Sales Manager, la venta no podrá ser por tu cuenta; si vino de campañas o lo llevaba otra persona del equipo, tu Sales Manager recibe el aviso.')));
       h += '<div class="asi-alta"><button type="button" class="asi-btn fantasma" data-asi="alta-cliente"><span data-ico="person_add" aria-hidden="true"></span>' + e(T('Dar de alta un cliente nuevo')) + '</button>' +
         '<span>' + e(T('Al guardarlo vuelves aquí con él elegido.')) + '</span></div>';
       return h;
@@ -488,7 +512,7 @@
       var h = '<h2 id="asi-h">' + e(T('Revisa y crea el borrador')) + '</h2><dl class="asi-sum">' +
         filas.map(function (f) { return '<dt>' + e(f[0]) + '</dt><dd>' + e(f[1]) + '</dd>'; }).join('') + '</dl>' +
         '<p class="asi-q asi-nota">' + e(T('Se abre el editor de siempre con el documento montado. Nada se guarda, se envía ni se firma todavía.')) + '</p>' +
-        (prueba ? aviso('info', 'info', e(T('Prueba: esta respuesta todavía no se guarda en el contrato. Se activará cuando el servidor la compruebe.'))) : '');
+        (prueba ? avisoPrueba() : '');
       if (S.camino === 'existente' && tipoDe(S.slug) === 'construccion') {
         var n = String(S.venta.parcela_codigo || '').split(',').filter(function (x) { return x.trim(); }).length;
         if (n > 1) h += aviso('info', 'info', e(T('Este Bloqueo tiene varias parcelas: en el editor eliges cuál es esta Construcción (una por parcela).')));
@@ -956,6 +980,9 @@
     montando = false;
     if (!ok) { vaciaCola(true); pintaPie(); return; }   // la capa sigue: lo que explicó el fallo, ahora
     S.montado = true;
+    // F5b: lo que contestó en «¿con tu equipo o por tu cuenta?» pasa al campo «Venta» del editor, que es lo
+    // único que viaja a contrato_guarda (una sola fuente al guardar; la persona lo ve y lo puede corregir).
+    if (S.camino === 'nueva') siembraVenta(window.lwAsistente.ventaDeclarada());
     olvida();          // creado: lo que queda es el editor, no un asistente a medias
     COLA.push(['ok', T('Borrador montado. Complétalo viendo el documento y guárdalo.')]);   // sale al final, con lo retenido
     quitaCapa();
@@ -971,8 +998,8 @@
     d.className = 'asi-banda';
     d.setAttribute('data-asi-banda', '1');
     d.innerHTML = '<span data-ico="auto_awesome" aria-hidden="true"></span><span class="asi-banda-t">' + e(T('Montado con el asistente.')) + '</span>' +
-      (modoTxt() ? '<span class="asi-chip" title="' + e(T('Prueba: esta respuesta todavía no se guarda en el contrato. Se activará cuando el servidor la compruebe.')) + '">' +
-        e(modoTxt()) + (S.camino === 'nueva' && S.modo ? ' · ' + e(T('prueba')) : '') + '</span>' : '') +
+      (modoTxt() ? '<span class="asi-chip"' + (RT.oblig === true ? '' : ' title="' + e(T('Prueba: esta respuesta todavía no se guarda en el contrato. Se activará cuando el servidor la compruebe.')) + '"') + '>' +
+        e(modoTxt()) + (S.camino === 'nueva' && S.modo && RT.oblig !== true ? ' · ' + e(T('prueba')) : '') + '</span>' : '') +
       '<button type="button" class="asi-btn fantasma" data-accion="asistente-cambiar-tipo"><span data-ico="swap_horiz" aria-hidden="true"></span>' + e(T('Cambiar tipo')) + '</button>' +
       '<small class="asi-motivo" data-asi-banda-motivo hidden></small>';
     inner.insertBefore(d, inner.firstChild);
@@ -1002,6 +1029,137 @@
     pinta();
   }
 
+  /* ═══ CAMPO «VENTA» DEL FORMULARIO CLÁSICO (F5b, 30-sep-2026) ══════════════
+     «Venta: con mi equipo / por mi cuenta» encima del formulario, con o sin
+     asistente (el asistente solo lo siembra al montar: siembraVenta). Vive aquí
+     y no en app.html porque comparte con el asistente la lectura del equipo
+     (equipoDelUsuario), el interruptor (obligatorio) y la lista de orígenes: una
+     sola definición de cada cosa.
+     · Sin equipo activo: NO se pinta nada ni se envía nada — el clásico queda
+       exactamente como hoy (el servidor lo toma por «por su cuenta» implícito).
+     · Solo el ALTA de un contrato RAÍZ lo declara: guardado, o colgado de otra
+       venta (el mismo contrato_padre_id que resuelve contractPayload, que es lo
+       que mira contrato_guarda), sale apagado con el motivo.
+     · Fuera de #form y sin `name=`: collect() no lo serializa en `datos`. Su
+       dueño es contrato_closer.modo; viaja SOLO como la clave `venta` de
+       contrato_guarda (paraGuardar, llamado desde guardarContrato).
+     · Obligatorio en pantalla solo con el interruptor encendido; apagado se
+       envía igual y el servidor lo ignora (se dice: «prueba»). */
+  var V = { modo: null, origen: '', frase: '', visto: null, atado: false, pedido: false };
+  function siembraVenta(d) {
+    if (!d) return;
+    V.modo = d.modo; V.origen = d.origen || ''; V.frase = d.frase || '';
+    pintaVenta();
+  }
+  function padreDelBorrador() {
+    try { return contractPayload().contrato_padre_id || null; }
+    catch (_) { return null; /* MUDO A PROPOSITO: sin plantilla cargada no hay vínculo que leer; se trata como raíz y el servidor decide */ }
+  }
+  function ventaAplica() { return !!(RT.equipo && (RT.equipo.en || RT.equipo.fallo)); }
+  /* por qué no se puede tocar ahora mismo ('' = se puede) */
+  function motivoVenta() {
+    if (SAVED_CONTRACT && SAVED_CONTRACT.id) return T('Ya está guardado: lo declarado queda en la venta y solo lo cambia un administrador.');
+    if (padreDelBorrador()) return T('Este contrato sigue a otra venta: hereda de ella si es con el equipo o por tu cuenta.');
+    return '';
+  }
+  function pintaVenta() {
+    var inner = document.querySelector('.pane-form .inner');
+    if (!inner || typeof sb === 'undefined' || !sb) return;
+    if (!V.pedido) {
+      V.pedido = true;
+      equipoDelUsuario().then(function () { return ventaAplica() ? obligatorio() : null; }).then(pintaVenta, pintaVenta);
+      return;
+    }
+    var viejo = inner.querySelector('[data-venta-bloque]');
+    if (!RT.equipo || !ventaAplica()) { if (viejo) viejo.remove(); return; }
+    // de guardado a borrador nuevo («Limpiar», «Nuevo»): se empieza sin declarar
+    var idAhora = SAVED_CONTRACT && SAVED_CONTRACT.id ? SAVED_CONTRACT.id : null;
+    if (V.visto && !idAhora) { V.modo = null; V.origen = ''; V.frase = ''; }
+    V.visto = idAhora;
+    var off = motivoVenta(), sm = !!RT.equipo.soySM;
+    if (sm && V.modo === 'propia') V.modo = null;
+    var chip = off ? '' : RT.oblig === true ? T('Obligatorio') : RT.oblig === false ? T('Prueba') : '';
+    var opVenta = function (v, ico, tit, desc, motivo) {
+      var apag = off || motivo, sel = V.modo === v && !off;
+      return '<button type="button" class="asi-op' + (sel ? ' sel' : '') + (apag ? ' off' : '') + '" data-accion="venta-modo" data-v="' + v + '"' +
+        (apag ? ' disabled aria-disabled="true" title="' + e(apag) + '"' : '') + ' aria-pressed="' + (sel ? 'true' : 'false') + '">' +
+        '<span class="asi-ico" data-ico="' + ico + '" aria-hidden="true"></span><b>' + e(tit) + '</b><small>' + e(desc) + '</small>' +
+        (motivo && !off ? '<small class="asi-motivo">' + e(motivo) + '</small>' : '') + '</button>';
+    };
+    var h = '<div class="asi-venta-cab"><span data-ico="groups" aria-hidden="true"></span><b id="venta-h">' + e(T('Venta')) + '</b>' +
+      (RT.equipo.en && RT.equipo.nombre ? '<span class="asi-venta-eq">' + e(RT.equipo.nombre) + '</span>' : '') +
+      (chip ? '<span class="asi-chip">' + e(chip) + '</span>' : '') + '</div>' +
+      '<div class="asi-ops asi-venta-ops" role="group" aria-labelledby="venta-h">' +
+      opVenta('equipo', 'groups', T('Con mi equipo'), T('Entra el equipo entero del día de la venta.'), '') +
+      opVenta('propia', 'person', T('Por mi cuenta'), T('Cliente tuyo, sin el equipo. Tu Sales Manager tiene 7 días para objetar.'), sm ? T(MOTIVO_SM) : '') +
+      '</div>';
+    if (!off && V.modo === 'propia') {
+      h += '<div class="asi-dos"><div class="asi-fld"><label for="venta-origen">' + e(T('¿De dónde sale este cliente?')) + '</label>' +
+        '<select id="venta-origen" data-venta-campo="origen"><option value="">' + e(T('Elige una opción')) + '</option>' +
+        ORIGENES.map(function (o) { return '<option value="' + o[0] + '"' + (V.origen === o[0] ? ' selected' : '') + '>' + e(T(o[1])) + '</option>'; }).join('') +
+        '</select></div><div class="asi-fld"><label for="venta-frase">' + e(T('En una frase')) + (V.origen === 'otro' ? '' : ' <i>(' + e(T('opcional')) + ')</i>') + '</label>' +
+        '<input id="venta-frase" data-venta-campo="frase" maxlength="200" value="' + e(V.frase) + '"></div></div>';
+    }
+    if (off) h += '<p class="asi-venta-motivo">' + e(off) + '</p>';
+    else if (RT.equipo.fallo) h += aviso('mal', 'error', e(T('No se ha podido comprobar si estás en un equipo de venta. Elige igualmente: si no lo estás, no cambia nada.')));
+    if (!off) h += avisoPrueba();
+    var caja = viejo;
+    if (!caja) {
+      caja = document.createElement('section');
+      caja.className = 'asi-venta';
+      caja.setAttribute('data-venta-bloque', '1');
+      var banda = inner.querySelector('[data-asi-banda]');
+      inner.insertBefore(caja, banda ? banda.nextSibling : inner.firstChild);
+    }
+    caja.innerHTML = h;
+    if (!V.atado) atarVenta();
+  }
+  function atarVenta() {
+    V.atado = true;
+    var inner = document.querySelector('.pane-form .inner');
+    inner.addEventListener('click', function (ev) {
+      var b = ev.target.closest && ev.target.closest('[data-accion="venta-modo"]');
+      if (!b || b.disabled) return;
+      V.modo = b.getAttribute('data-v');
+      if (V.modo !== 'propia') { V.origen = ''; V.frase = ''; }
+      pintaVenta();
+      var f = document.querySelector('[data-accion="venta-modo"][data-v="' + V.modo + '"]'); if (f) f.focus();
+    });
+    inner.addEventListener('input', function (ev) {
+      var c = ev.target.getAttribute && ev.target.getAttribute('data-venta-campo');
+      if (c === 'frase') V.frase = ev.target.value;
+    });
+    inner.addEventListener('change', function (ev) {
+      var c = ev.target.getAttribute && ev.target.getAttribute('data-venta-campo');
+      if (c === 'origen') { V.origen = ev.target.value; pintaVenta(); var s = document.getElementById('venta-origen'); if (s) s.focus(); return; }
+      // un cambio del formulario puede colgarlo de otra venta (o soltarlo): se vuelve a mirar
+      if (!c && ev.target.closest && ev.target.closest('#form')) pintaVenta();
+    });
+  }
+  /* Lo que añade guardarContrato a contrato_guarda. { venta } o { error } (no se guarda y se dice por qué),
+     o {} si no hay nada que enviar. padreId = el contrato_padre_id del mismo payload que se envía. */
+  function ventaParaGuardar(eraNuevo, padreId) {
+    if (!eraNuevo || padreId || !ventaAplica()) return {};
+    if (!V.modo) return RT.oblig === true ? { error: T('Indica arriba del formulario si la venta es con tu equipo o por tu cuenta.') } : {};
+    if (V.modo === 'propia') {
+      if (RT.equipo.soySM) return { error: T(MOTIVO_SM) };
+      if (!V.origen) return { error: T('Por tu cuenta: indica de dónde viene el cliente.') };
+      if (V.origen === 'otro' && V.frase.trim().length < 3) return { error: T('Por tu cuenta: explica en una frase de dónde viene el cliente.') };
+    }
+    return { venta: { modo: V.modo, origen: V.modo === 'propia' ? V.origen : null,
+                      origen_texto: V.modo === 'propia' ? (V.frase.trim() || null) : null } };
+  }
+  /* Tras un alta con `venta`: lo que se añade al aviso de guardado. Sin lectura extra: los cruces van al SM
+     (sin datos del cliente); el bloqueo ya habría llegado como error. Con el interruptor apagado no se dice
+     nada, porque el servidor no lo ha guardado. */
+  function ventaTrasGuardar(v) {
+    if (!v || RT.oblig !== true) return '';
+    return v.modo === 'propia'
+      ? ' · ' + T('Venta por tu cuenta: tu Sales Manager tiene 7 días para objetar.')
+      : ' · ' + T('Venta con tu equipo.');
+  }
+  window.lwVenta = { pinta: pintaVenta, paraGuardar: ventaParaGuardar, trasGuardar: ventaTrasGuardar };
+
   /* ── API ─────────────────────────────────────────────────────────────────── */
   window.lwAsistente = {
     abrir: async function (o) {
@@ -1012,6 +1170,7 @@
       montaCapa();
       raiz.innerHTML = '<div class="asi-caja asi-cargando"><p>' + e(T('Cargando…')) + '</p></div>';
       await equipoDelUsuario();
+      if (RT.equipo.en || RT.equipo.fallo) await obligatorio();
       if (S.slug) await marcas(S.slug);
       if (o.clienteNuevo && UUID.test(o.clienteNuevo)) {
         var r = await sb.rpc('compradores_directorio').eq('id', o.clienteNuevo).maybeSingle();
@@ -1042,8 +1201,8 @@
     },
     refrescaBanda: refrescaBanda,
     retiene: retiene,
-    /* F5 · punto de enganche único (ver el comentario junto a contrato_guarda).
-       Hoy nadie lo envía a la base. */
+    /* F5 · lo contestado en el paso «modo». Lo lee siembraVenta al montar el borrador; al servidor solo
+       llega a través del campo «Venta» (lwVenta.paraGuardar, junto a contrato_guarda en app.html). */
     ventaDeclarada: function () {
       if (!S || S.camino !== 'nueva' || !S.modo) return null;
       return { modo: S.modo, origen: S.modo === 'propia' ? S.origen : null, frase: S.modo === 'propia' ? (S.frase.trim() || null) : null };

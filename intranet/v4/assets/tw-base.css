@@ -2736,6 +2736,10 @@ video {
     display: table-cell;
   }
 
+  .sm\:hidden {
+    display: none;
+  }
+
   .sm\:w-64 {
     width: 16rem;
   }

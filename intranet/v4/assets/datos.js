@@ -7972,6 +7972,137 @@
     });
   }
 
+  /* ---------- «Ventas por su cuenta» (F5b, 30-sep-2026) ----------
+     La bandeja del SM (y de administración) debajo de «Mi equipo». Se lee UNA vez
+     (ventas_por_su_cuenta_equipo + ventas_por_su_cuenta_cuota + el interruptor) y
+     se repinta al cambiar el filtro de equipo. Sin cifras de dinero: la base no las
+     da. Cada botón lleva data-accion y lo atiende editores.js; aquí no se escribe.
+     Lo que no se puede hacer sale apagado con su motivo. «No he podido mirar» y
+     «no hay nada» se ven distintos. El origen en texto libre lo escribe el closer:
+     todo va por esc(). */
+  var VPC = null;   // { filas, cuota, oblig, errF, errC } cuando llega
+  var VPC_ORIGEN = { contacto_personal: 'Contacto personal', referido_cliente: 'Referido de un cliente', redes_propias: 'Redes propias', otro: 'Otro' };
+  var VPC_CRUCE = { campana: 'El cliente ya estaba en los leads de campañas de Lawang',
+                    lead_otro_miembro: 'El lead lo llevaba otra persona del equipo',
+                    ficha_otro_miembro: 'La ficha del cliente la creó otra persona del equipo' };
+  function fBali(x) {
+    if (!x) return '—';
+    var d = new Date(x);
+    if (isNaN(d)) return String(x);
+    return d.toLocaleString('es-ES', { timeZone: 'Asia/Makassar', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  }
+  function pintaVentasPorSuCuenta(sb, ctx) {
+    var T = function (x, h) { return (typeof lwT === 'function') ? lwT(x, h) : x; };
+    var panel = document.querySelector('[data-lw-vpc]');
+    if (!panel) return;
+    var cuerpo = document.getElementById('lw-vpc-filas');
+    var cajaC = document.getElementById('lw-vpc-cuota');
+    if (!VPC) {
+      VPC = 'cargando';
+      Promise.all([sb.rpc('ventas_por_su_cuenta_equipo'), sb.rpc('ventas_por_su_cuenta_cuota'), sb.rpc('modo_obligatorio_activo')]).then(function (r) {
+        VPC = { filas: r[0].data || [], errF: r[0].error, cuota: r[1].data || [], errC: r[1].error, oblig: r[2].error ? null : r[2].data === true };
+        pintaVentasPorSuCuenta(sb, ctx);
+      }, function (err) {
+        VPC = { filas: [], errF: err, cuota: [], errC: err, oblig: null };
+        pintaVentasPorSuCuenta(sb, ctx);
+      });
+      return;
+    }
+    if (VPC === 'cargando') return;
+    var ficha = (window.LW_V4 && window.LW_V4.ficha) || {};
+    var puedeResolver = ctx.esAdm && (ficha.rol === 'super_admin' || (ficha.herramientas || []).indexOf('comisiones_reparto') !== -1);
+    var motivoAdm = ctx.esAdm && !puedeResolver ? T('Hace falta la casilla «Reparto a closers» en tus permisos') : '';
+    // filtro de equipo: la cuota trae su equipo; las filas, por quién estuvo en ese equipo alguna vez
+    var eqId = ctx.filtroId;
+    var delEquipo = {};
+    if (eqId) ctx.miembros.forEach(function (m) { if (m.equipo_id === eqId) delEquipo[String(m.closer_email || '').toLowerCase()] = 1; });
+    var filas = VPC.filas.filter(function (f) { return !eqId || delEquipo[String(f.closer_email || '').toLowerCase()]; });
+    var cuota = VPC.cuota.filter(function (c) { return !eqId || c.equipo_id === eqId; });
+
+    pon2('vpc-sub', VPC.oblig === true
+      ? (ctx.esAdm
+          ? T('Ventas que un closer ha marcado «por mi cuenta» dentro de un equipo. La comisión espera 7 días; si el Sales Manager objeta, la decides tú.')
+          : T('Cuando un closer de tu equipo marca una venta «por mi cuenta», tienes 7 días para objetar. Si objetas, la comisión espera a que administración lo decida.'))
+      : VPC.oblig === false
+        ? T('Todavía apagado: los closers aún no declaran si una venta es con el equipo o por su cuenta. Esta bandeja se llenará cuando administración lo active.')
+        : T('No he podido comprobar si la declaración de ventas está activa. Lo que haya, sale abajo.'));
+
+    // cuota por closer
+    if (cajaC) {
+      if (VPC.errC) {
+        cajaC.innerHTML = '<span class="font-body-sm text-body-sm text-error">' + esc(T('No he podido leer la cuota: %e', { e: VPC.errC.message || String(VPC.errC) })) + '</span>';
+      } else if (!cuota.length) {
+        cajaC.innerHTML = '<span class="font-body-sm text-body-sm text-outline">' + esc(T('Todavía no hay ventas con el modo declarado.')) + '</span>';
+      } else {
+        cajaC.innerHTML = cuota.map(function (c) {
+          var pct = c.declaradas ? Math.round(c.por_su_cuenta * 100 / c.declaradas) : 0;
+          var alto = pct > 50;
+          return '<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full font-label-md text-[12px] ' +
+            (alto ? 'bg-error-container text-on-error-container' : 'bg-surface-container-high text-on-surface-variant') + '"' +
+            (alto ? ' title="' + esc(T('Más de la mitad de sus ventas son por su cuenta')) + '"' : '') + '>' +
+            (alto ? '<span class="material-symbols-outlined text-[16px]" aria-hidden="true">warning</span>' : '') +
+            '<b class="font-semibold">' + esc(ctx.nombreDe(c.closer_email)) + '</b>' +
+            '<span>' + esc(T('%a de %b · %p %', { a: c.por_su_cuenta, b: c.declaradas, p: pct })) + '</span>' +
+            (alto ? '<span class="sr-only">' + esc(T('Más de la mitad de sus ventas son por su cuenta')) + '</span>' : '') + '</span>';
+        }).join('');
+      }
+    }
+
+    if (!cuerpo) return;
+    if (VPC.errF) {
+      cuerpo.innerHTML = '<tr><td colspan="5" class="px-5 py-8 text-center font-body-md text-body-md text-error">' +
+        esc(T('No he podido leer las ventas por su cuenta: %e', { e: VPC.errF.message || String(VPC.errF) })) + '</td></tr>';
+      return;
+    }
+    if (!filas.length) {
+      cuerpo.innerHTML = '<tr><td colspan="5" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">' +
+        esc(eqId ? T('Ninguna venta por su cuenta en este equipo.') : T('Ninguna venta por su cuenta.')) + '</td></tr>';
+      return;
+    }
+    var ahora = Date.now();
+    cuerpo.innerHTML = filas.map(function (f) {
+      var abierta = f.espera_hasta && new Date(f.espera_hasta).getTime() > ahora;
+      var pend = f.objecion_estado === 'pendiente';
+      var yo = String(f.closer_email || '').toLowerCase() === ctx.miEmail;
+      var est, tono;
+      if (pend) { est = T('Objetada: la decide administración'); tono = 'bg-error-container text-on-error-container'; }
+      else if (f.objecion_decision === 'mantener_propia') { est = T('Por su cuenta · confirmado por administración'); tono = 'bg-primary-fixed text-on-primary-fixed'; }
+      else if (abierta) { est = T('En espera'); tono = 'bg-surface-container-high text-on-surface-variant'; }
+      else { est = T('Por su cuenta'); tono = 'bg-primary-fixed text-on-primary-fixed'; }
+      var avisos = ((f.cruces && f.cruces.avisos) || []).map(function (a) { return a && VPC_CRUCE[a.tipo] ? T(VPC_CRUCE[a.tipo]) : null; })
+        .filter(function (x, i, l) { return x && l.indexOf(x) === i; });
+      var origen = T(VPC_ORIGEN[f.origen] || f.origen || '—') + (f.origen_texto ? ' · «' + f.origen_texto + '»' : '');
+      var plazo = f.espera_hasta ? (abierta ? T('hasta %f', { f: fBali(f.espera_hasta) }) : T('cerrado el %f', { f: fBali(f.espera_hasta) })) : '—';
+      var btns = '';
+      if (ctx.esAdm) {
+        if (pend) btns = botonFila('data-accion="vpc-resolver"', f.objecion_id, T('Resolver'), motivoAdm);
+        else btns = botonFila('data-accion="vpc-modo"', f.raiz_id, T('Pasar al equipo'), motivoAdm);
+      } else {
+        var motivoObj = yo ? T('Es tu propia venta') : pend ? T('Ya hay una objeción abierta') : f.objecion_decision ? T('Administración ya lo decidió') : !abierta ? T('El plazo de 7 días ya terminó') : '';
+        btns = botonFila('data-accion="vpc-objetar"', f.raiz_id, T('Objetar'), motivoObj);
+      }
+      return '<tr class="border-b border-outline-variant/30 align-top">' +
+        '<td class="px-5 py-4"><div class="flex flex-col gap-1"><span class="font-label-md text-label-md text-on-surface">' + esc(f.numero || '—') + '</span>' +
+          '<span class="font-body-sm text-body-sm text-on-surface-variant">' + esc(ctx.nombreDe(f.closer_email)) + '</span>' +
+          '<span class="sm:hidden font-body-sm text-body-sm text-outline">' + esc(origen) + ' · ' + esc(plazo) + '</span></div></td>' +
+        '<td class="hidden sm:table-cell px-5 py-4"><div class="flex flex-col gap-1"><span class="font-body-sm text-body-sm text-on-surface">' + esc(origen) + '</span>' +
+          avisos.map(function (a) { return '<span class="font-body-sm text-body-sm text-burnt-earth">' + esc(a) + '</span>'; }).join('') + '</div></td>' +
+        '<td class="hidden sm:table-cell px-5 py-4 font-body-sm text-body-sm text-outline">' + esc(plazo) + '</td>' +
+        '<td class="px-5 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-[11px] uppercase tracking-wider ' + tono + '">' + esc(est) + '</span>' +
+          (f.objecion_motivo ? '<p class="mt-1 font-body-sm text-body-sm text-on-surface-variant">' + esc(T('Objeción: %m', { m: f.objecion_motivo })) + '</p>' : '') +
+          (f.objecion_resolucion ? '<p class="mt-1 font-body-sm text-body-sm text-outline">' + esc(T('Resolución: %m', { m: f.objecion_resolucion })) + '</p>' : '') +
+          (avisos.length ? '<p class="sm:hidden mt-1 font-body-sm text-body-sm text-burnt-earth">' + esc(avisos.join(' · ')) + '</p>' : '') + '</td>' +
+        '<td class="px-5 py-4 text-right">' + btns + '</td></tr>';
+    }).join('');
+    window.LW_V4.vpcFilas = VPC.filas;   // editores.js lee de aquí el número y el closer para el diálogo
+  }
+  // `accion` llega como el atributo literal (data-accion="..."): así el gate de enganches lo encuentra escrito
+  function botonFila(accion, id, texto, motivo) {
+    return '<button type="button" class="px-3 py-1 rounded-full text-deep-lagoon hover:bg-surface-container-high font-label-md text-[12px] disabled:opacity-40 disabled:cursor-not-allowed" ' + accion + ' data-id="' + esc(id || '') + '"' +
+      (motivo ? ' disabled title="' + esc(motivo) + '"' : '') + '>' + esc(texto) + '</button>' +
+      (motivo ? '<span class="block mt-1 font-body-sm text-body-sm text-outline">' + esc(motivo) + '</span>' : '');
+  }
+
   REG['equipos-venta'] = function (sb) {
     /* Sales manager (23-sep-2026, owner: «el Sales Manager entra a su panel y
        configura cuánto van a cobrar sus closers… no todos ven lo de todos,
@@ -8086,6 +8217,9 @@
         // el SM, su equipo (o el del filtro si dirige varios); admin, el del filtro
         ctxMe.equipoId = (selEq && selEq.value) || (!esAdmEq && equipos[0] ? equipos[0].id : null);
         pintaMiEquipo(sb, ctxMe);
+        // bandeja «Ventas por su cuenta» (F5b): solo el filtro explícito; sin él, todo lo que la base deja ver
+        ctxMe.filtroId = (selEq && selEq.value) || null;
+        pintaVentasPorSuCuenta(sb, ctxMe);
       };
       repintaMe();
       if (selEq) selEq.addEventListener('change', function () { pintaMiembros(); repintaMe(); });
