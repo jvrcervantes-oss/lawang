@@ -63,6 +63,9 @@
       obra: { modelo: '', techoId: '', fpago: 'estandar' }, venta: null, montado: false };
   }
   function guarda() {
+    /* Con el borrador ya montado no se guarda nada más: el siguiente «Nuevo contrato» no puede
+       arrancar con el cliente y la parcela de este (revisión de código, 30-sep). */
+    if (S && S.montado) return;
     try { sessionStorage.setItem(LLAVE, JSON.stringify(S)); } catch (_) { /* MUDO A PROPOSITO: sin sessionStorage (privado, bloqueado) el asistente funciona igual; solo no recuerda al volver */ }
   }
   function lee() {
@@ -167,7 +170,15 @@
     if (k === 'cliente') return !!S.cliente;
     if (k === 'parcela') {
       var m = RT.marcas[S.slug] || {};
-      return !!S.proyecto && (!m.parcela || S.parcelas.length > 0);
+      if (!S.proyecto) return false;
+      if (!m.parcela) return true;
+      if (!S.parcelas.length) return false;
+      // Con el inventario a la vista, cada elegida tiene que poder cogerse con el tipo de AHORA
+      // (una parcela de Carta vale para un Bloqueo y no para otra Carta).
+      if (RT.inv && RT.inv.proyecto === S.proyecto && RT.inv.lista) {
+        return S.parcelas.every(function (c) { var u = RT.inv.lista.find(function (x) { return x.codigo === c; }); return u && estadoParcela(u).ok; });
+      }
+      return false;
     }
     if (k === 'cond') {
       var t = tipoDe(S.slug), mm = RT.marcas[S.slug] || {};
@@ -330,10 +341,14 @@
       if (!inv || inv.proyecto !== S.proyecto) return h + '<p class="asi-q">' + e(T('Cargando el inventario…')) + '</p>';
       if (inv.fallo) return h + aviso('mal', 'error', e(T('No se ha podido leer el inventario de este proyecto. La parcela no se puede elegir hasta que cargue: recarga la página.')));
       if (!inv.lista.length) return h + aviso('aviso', 'warning', e(T('Este proyecto no tiene parcelas en el inventario. Cárgalas en Proyectos y vuelve: la parcela no se escribe a mano.')));
+      var malas = S.parcelas.filter(function (c) { var u = inv.lista.find(function (x) { return x.codigo === c; }); return !u || !estadoParcela(u).ok; });
+      if (malas.length) h += aviso('mal', 'block', e(T('Con este tipo de contrato no se puede coger:')) + ' <b>' + e(malas.join(', ')) + '</b>. ' + e(T('Quítala para seguir.')));
       h += '<p class="asi-q">' + e(T('Puedes elegir varias.')) + '</p><div class="asi-plots">' + inv.lista.map(function (u) {
         var st = estadoParcela(u), sel = S.parcelas.indexOf(u.codigo) !== -1;
+        // elegida y ya no válida (se cambió de tipo): apagada pero pulsable, para poder QUITARLA
+        var pulsable = st.ok || sel;
         return '<button type="button" class="asi-plot' + (sel ? ' sel' : '') + (st.ok ? '' : ' off') + '"' +
-          (st.ok ? ' data-asi="parcela" data-v="' + e(u.codigo) + '"' : ' disabled title="' + e(st.nota) + '"') +
+          (pulsable ? ' data-asi="parcela" data-v="' + e(u.codigo) + '"' + (st.ok ? '' : ' title="' + e(st.nota) + '"') : ' disabled title="' + e(st.nota) + '"') +
           ' aria-pressed="' + (sel ? 'true' : 'false') + '"><b>' + e(u.codigo) + '</b><small>' + e(st.nota) + '</small></button>';
       }).join('') + '</div>';
       return h;
@@ -563,18 +578,21 @@
       var caja = q('#asi-res-venta'); if (caja) caja.innerHTML = resultadosVenta(); else pinta();
     }, function () { RT.ventas = { fallo: true }; var caja = q('#asi-res-venta'); if (caja) caja.innerHTML = resultadosVenta(); });
   }
+  function cuentaConstrucciones(v, alLlegar) {
+    Promise.resolve(sb.rpc('contratos_equipo').select('id').eq('contrato_padre_id', v.id).eq('tipo', 'construccion')).then(function (r) {
+      if (!S.venta || S.venta.id !== v.id) return;
+      RT.construcciones = r.error ? 'fallo' : (r.data || []).length;
+      if (alLlegar) alLlegar();
+      pinta();
+    }, function () { RT.construcciones = 'fallo'; pinta(); });
+  }
   function eligeVenta(v) {
     S.venta = { id: v.id, numero: v.numero, tipo: v.tipo, comprador_nombre: v.comprador_nombre, proyecto_nombre: v.proyecto_nombre,
       parcela_codigo: v.parcela_codigo, bloqueado: !!v.bloqueado, fecha_firma: v.fecha_firma, liberado_en: v.liberado_en };
     S.slug = null; RT.construcciones = null; RT.modelos = null; RT.techos = null;
     S.obra = { modelo: '', techoId: '', fpago: 'estandar' };
-    if (v.tipo === 'reserva_parcela') {
-      Promise.resolve(sb.rpc('contratos_equipo').select('id').eq('contrato_padre_id', v.id).eq('tipo', 'construccion')).then(function (r) {
-        if (!S.venta || S.venta.id !== v.id) return;
-        RT.construcciones = r.error ? 'fallo' : (r.data || []).length;
-        preseleccionaExistente(); pinta();
-      }, function () { RT.construcciones = 'fallo'; pinta(); });
-    } else preseleccionaExistente();
+    if (v.tipo === 'reserva_parcela') cuentaConstrucciones(v, preseleccionaExistente);
+    else preseleccionaExistente();
   }
   function preseleccionaExistente() {
     var toca = opcionesExistente().find(function (o) { return o.toca && !o.off; });
@@ -594,7 +612,12 @@
   function siguiente() {
     var k = pasoActual();
     if (!listo(k) || montando) return;
-    if (k === 'rev') { monta(); return; }
+    if (k === 'rev') {
+      var ps = pasos(), falta = -1;
+      for (var n = 0; n < ps.length - 1; n++) if (!listo(ps[n][0])) { falta = n; break; }
+      if (falta !== -1) { S.paso = falta; guarda(); pinta(); preparaPaso(); toastMal(T('Falta completar este paso antes de crear el borrador.')); return; }
+      monta(); return;
+    }
     var paso = function () { S.paso++; guarda(); pinta(); preparaPaso(); };
     if (k === 'tipo' && S.slug) { marcas(S.slug).then(paso); return; }
     paso();
@@ -843,14 +866,17 @@
         if (r.data) {
           S.cliente = { id: r.data.id, full_name: r.data.full_name, email: r.data.email, passport_number: r.data.passport_number, tipo: r.data.tipo };
           if (!S.camino) S.camino = 'nueva';
-          var ps = pasos(), i = ps.map(function (p) { return p[0]; }).indexOf('cliente');
-          if (i !== -1) S.paso = Math.min(i + 1, ps.length - 1);
+          var ps = pasos(), ks = ps.map(function (p) { return p[0]; });
+          // Sin estado guardado (sessionStorage vacío o bloqueado) no se sabe el tipo: se vuelve a él.
+          var i = S.slug ? ks.indexOf('cliente') + 1 : ks.indexOf('tipo');
+          if (i > 0) S.paso = Math.min(i, ps.length - 1);
           toast(T('Cliente dado de alta y elegido: ') + (r.data.full_name || ''));
         } else toastMal(T('No se ha podido leer la ficha recién creada: búscala en el paso del cliente.'));
         try { var par = new URLSearchParams(location.search); par.delete('asistente_cliente'); history.replaceState(null, '', location.pathname + '?' + par.toString()); }
         catch (_) { /* MUDO A PROPOSITO: ver quitaParametro() */ }
       }
-      if (S.camino === 'existente' && S.venta && S.venta.tipo === 'reserva_parcela') eligeVenta(S.venta);
+      // Solo se vuelve a contar: lo que ya había elegido (tipo, modelo, techo) se conserva.
+      if (S.camino === 'existente' && S.venta && S.venta.tipo === 'reserva_parcela') cuentaConstrucciones(S.venta, null);
       guarda(); pinta(); preparaPaso();
     },
     /* El #tplPick del editor montado por el asistente: vuelve al paso «tipo»
