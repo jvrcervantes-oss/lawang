@@ -7352,13 +7352,14 @@
           sb.rpc('mi_condicion_comision'),
           sb.from('proyectos').select('id,nombre')
         ]).then(function (rr) {
+          window.LW_V4._mioEnCurso = false;   /* terminada: una recarga de la pestaña vuelve a pedirla */
           var errCond = rr[0] && rr[0].error;
           var conds = (rr[0] && rr[0].data) || [];
           var nomP = {}; ((rr[1] && rr[1].data) || []).forEach(function (x) { nomP[x.id] = x.nombre; });
           var oculta = conds.some(function (c) { return c.oculta; });
           var nombreEq = (conds[0] && conds[0].equipo_nombre) || (eqHoy && eqHoy.nombre) || '';
           pinta(oculta, nombreEq, conds.filter(function (c) { return !c.oculta; }), errCond, nomP);
-        }, function () { pinta(false, eqHoy && eqHoy.nombre, [], true, {}); });
+        }, function () { window.LW_V4._mioEnCurso = false; pinta(false, eqHoy && eqHoy.nombre, [], true, {}); });
 
         function pinta(oculta, nombreEq, conds, errCond, nomP) {
           if (document.getElementById('lw-mis-comisiones')) return;
@@ -7498,7 +7499,11 @@
               o.liberado && o.liberado.antes !== o.liberado.despues ? (o.liberado.despues ? 'se liberó' : 'se recuperó') : '',
               o.padre && o.padre.antes !== o.padre.despues ? 'cambió de operación' : '',
               o.tipo && o.tipo.antes !== o.tipo.despues ? 'cambió de tipo' : ''
-            ].filter(Boolean).map(esc).join(', ') + (o.quien ? ' · ' + esc(o.quien) : '') : '';
+            ].filter(Boolean).map(esc).join(', ') + (o.quien ? ' · ' + esc(o.quien) : '')
+              /* F4: al beneficiario el servidor le da solo QUÉ campo cambió (origen.cambio), sin contrato ni quién */
+              : (o.cambio && o.cambio.length ? 'Cambió: ' + o.cambio.map(function (k) {
+                  return esc(({ precio_total: 'precio', firmado: 'firma', liberado: 'liberación', padre: 'operación', tipo: 'tipo', moneda: 'moneda' })[k] || k);
+                }).join(', ') : '');
             return '<div style="padding:8px 0;border-bottom:1px dashed #E6E1D6;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between">' +
               '<div style="min-width:0;flex:1"><b style="color:#1b1c19">' + esc(d.numero) + '</b> ' + pill(ETIQUETA_DIF[d.estado] || d.estado, TONO_DIF[d.estado]) +
                 ' <b style="color:' + (d.importe == null ? '#8A5A00' : Number(d.importe) < 0 ? '#ba1a1a' : '#3F5230') + '">' +
