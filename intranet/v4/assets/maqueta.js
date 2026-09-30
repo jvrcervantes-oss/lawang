@@ -121,7 +121,8 @@
     /* 19-sep-2026: sin `?nuevo=1` / `?nueva=1` las tres herramientas abren el
        LISTADO (app.html: `par.has('nuevo')`; facturas: `par.has('nueva')`) y el
        agente tenía que volver a pulsar «Nueva». Ahora aterrizan en el formulario. */
-    ['nuevo-contrato', '/contracts/app.html?nuevo=1'],
+    /* 30-sep-2026 (owner): «Nuevo contrato» de la portada va al ASISTENTE, como en Contratos. */
+    ['nuevo-contrato', '/contracts/app.html?nuevo=1&asistente=1'],
     ['nueva-operacion', '/contracts/app.html?nuevo=1'],
     // «Borrador en blanco» (25-sep-2026): el generador con el tipo por elegir y el borrador a un clic
     ['borrador-blanco', '/contracts/app.html?nuevo=1&borrador=blanco'],

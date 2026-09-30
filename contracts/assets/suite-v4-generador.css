@@ -331,7 +331,7 @@ html.v4 .asi-caja{
   background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,.18);
 }
 html.v4 .asi-cargando{ grid-template-columns:1fr; place-items:center; height:auto; padding:40px; color:var(--v4-outline); }
-html.v4 .asi-velo [data-ico]::before, html.v4 .asi-banda [data-ico]::before{ content:attr(data-ico); font-size:20px; line-height:1; }
+html.v4 .asi-velo [data-ico]::before, html.v4 .asi-banda [data-ico]::before, html.v4 .asi-venta [data-ico]::before{ content:attr(data-ico); font-size:20px; line-height:1; }
 html.v4 .asi-pasos{ background:var(--v4-surface-low); padding:22px 14px; display:flex; flex-direction:column; gap:2px; min-height:0; }
 html.v4 .asi-pasos h4{ margin:0 10px 14px; font-size:13px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--v4-outline); }
 html.v4 .asi-paso{
@@ -456,6 +456,23 @@ html.v4 .asi-banda{
 html.v4 .asi-banda > [data-ico]::before{ font-size:18px; }
 html.v4 .asi-banda .asi-btn{ margin-left:auto; min-height:34px; padding:0 14px; font-size:13px; }
 html.v4 .asi-chip{ padding:2px 10px; border-radius:999px; background:#fff; font-size:12px; font-weight:600; }
+/* campo «Venta» del formulario clásico (F5b, 30-sep-2026): con mi equipo / por mi cuenta, encima del formulario */
+html.v4 .asi-venta{
+  margin:0 0 14px; padding:14px 14px 16px; border:1px solid var(--v4-borde); border-radius:12px; background:#fff;
+  font-family:var(--v4-font); color:var(--v4-ink);
+}
+html.v4 .asi-venta-cab{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; margin:0 0 10px; color:var(--v4-lagoon); }
+html.v4 .asi-venta-cab > [data-ico]::before{ font-size:18px; }
+html.v4 .asi-venta-cab b{ font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--v4-outline); }
+html.v4 .asi-venta-eq{ font-size:13px; color:var(--v4-ink-2); }
+html.v4 .asi-venta .asi-chip{ margin-left:auto; background:var(--v4-surface-low); color:var(--v4-ink-2); }
+html.v4 .asi-venta-ops{ grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); }
+html.v4 .asi-venta .asi-op{ min-height:0; padding:12px 14px; }
+html.v4 .asi-venta .asi-op b{ padding-right:0; }
+html.v4 .asi-venta .asi-dos{ margin-top:2px; }
+html.v4 .asi-venta-motivo{ margin:10px 0 0; font-size:13px; line-height:1.45; color:var(--v4-ambar); }
+html.v4 .asi-venta .asi-op:focus-visible{ outline:2px solid var(--v4-lagoon); outline-offset:2px; }
+@media print{ html.v4 .asi-venta{ display:none; } }
 @media screen and (max-width:720px){
   html.v4 .asi-velo{ padding:0; place-items:stretch; }
   html.v4 .asi-caja{ grid-template-columns:1fr; height:100%; border-radius:0; }

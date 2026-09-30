@@ -2524,6 +2524,10 @@ select {
     display: table-cell;
   }
 
+  .sm\:hidden {
+    display: none;
+  }
+
   .sm\:w-72 {
     width: 18rem;
   }

@@ -4549,21 +4549,20 @@
   var ED = {
     /* CONTRATOS · la entrada al ASISTENTE de Nuevo contrato (F7, 30-sep-2026,
        encargo 20260930_lawang_equipos_venta_asistente). El asistente CONVIVE
-       con el formulario de siempre (owner: «no podemos quitar lo que hay»), y
-       mientras el servidor no guarde «equipo / por mi cuenta» (F5) sale detrás
-       de una bandera: solo admin y super admin, o quien abra esta página con
-       `?asistente=1`. Para los demás esta función no toca nada y «+ Nuevo
-       contrato» sigue yendo a /contracts/app.html?nuevo=1 por maqueta.js,
-       exactamente como hoy. Con la bandera hay dos entradas: «Nuevo contrato»
-       (el asistente) y «Formulario clásico» (?nuevo=1 tal cual). Por
+       con el formulario de siempre (owner: «no podemos quitar lo que hay»).
+       Desde el 30-sep-2026 (noche, owner: «muéstralo ya a todo el mundo, quiero
+       que lo testeen») SALE PARA TODOS los roles, sin bandera: la bandera de
+       admin / `?asistente=1` se retiró. OJO, sigue abierto lo que la bandera
+       tapaba: el servidor aún no guarda «equipo / por mi cuenta» (F5b:
+       `comisiones_interruptor.modo_obligatorio` apagado, `contrato_guarda`
+       ignora `venta`) — la pregunta del paso 1 se hace pero no se guarda hasta
+       encenderlo (fila LAW-479 en pendientes). Hay dos entradas: «Nuevo
+       contrato» (el asistente) y «Formulario clásico» (?nuevo=1 tal cual). Por
        `data-accion`, nunca por el rótulo (norma 29-sep-2026). */
     contratos: function (aut) {
-      var rol = aut.ficha && aut.ficha.rol;
-      var bandera = new URLSearchParams(location.search).get('asistente') === '1';
-      if (!(rol === 'admin' || rol === 'super_admin' || bandera)) return;
       var nuevo = document.querySelector('[data-accion="nuevo-contrato"]');
       if (!nuevo) { console.error('[v4] no hay botón data-accion="nuevo-contrato" en ' + location.pathname); return; }
-      // El botón vive en el HTML (oculto): con la bandera se enseña. Ocultar por ROL sí vale (regla 23-sep).
+      // El botón vive en el HTML (oculto): se enseña a todos. Ocultar por ROL sí vale (regla 23-sep).
       var clasico = document.querySelector('[data-accion="formulario-clasico"]');
       if (clasico) clasico.style.display = '';
       ata('formulario-clasico', function () { location.href = '/contracts/app.html?nuevo=1'; });
@@ -8476,6 +8475,48 @@
               : T6('Desde ya, los closers de %e no ven ninguna cifra de su parte del equipo: ni en «Mis comisiones», ni en avisos, correos, exportaciones o el asistente. Lo que venden por su cuenta lo siguen viendo.', { e: eq.nombre }) }
         ], pasaA ? T6('Encender') : T6('Apagar'), function () {
           return sb.rpc('equipo_closers_ven_comision', { p_equipo: eq.id, p_valor: pasaA });
+        });
+      });
+
+      /* ---- «Ventas por su cuenta» (F5b, 30-sep-2026) ----
+         Tres acciones, todas por RPC y con la regla en la base: objetar (el SM de ESE equipo, dentro de los 7 días,
+         nunca su propia venta), resolver la objeción y cambiar el modo (administración con «Reparto a closers»).
+         Resolver o cambiar el modo reevalúa la comisión de la venta: el diálogo lo dice y pide el motivo. */
+      var cuerpoVpc = document.getElementById('lw-vpc-filas');
+      if (cuerpoVpc) cuerpoVpc.addEventListener('click', function (ev) {
+        var b = ev.target.closest && ev.target.closest('[data-accion="vpc-objetar"], [data-accion="vpc-resolver"], [data-accion="vpc-modo"]');
+        if (!b || b.disabled) return;
+        ev.preventDefault(); ev.stopPropagation();
+        var acc = b.getAttribute('data-accion'), id = b.getAttribute('data-id');
+        var filas = window.LW_V4.vpcFilas || [];
+        var f = filas.filter(function (x) { return acc === 'vpc-resolver' ? x.objecion_id === id : x.raiz_id === id; })[0];
+        if (!f) return aviso(T6('No encuentro esa venta: recarga la página.'), '#8A6A34');
+        var quien = f.numero + ' · ' + f.closer_email;
+        if (acc === 'vpc-objetar') {
+          return modal(T6('Objetar — %e', { e: quien }), [
+            { tipo: 'nota', label: T6('Dices que esta venta es del equipo, no por su cuenta. La comisión queda en espera hasta que administración lo decida; el closer y administración reciben el aviso.') },
+            { k: 'motivo', label: T6('Por qué es del equipo'), tipo: 'textarea', req: 1,
+              ayuda: T6('p. ej. «el lead se lo pasé yo el 12-sep» — lo lee administración para decidir') }
+          ], T6('Objetar'), function (v) {
+            return sb.rpc('venta_objecion_crear', { p_raiz: f.raiz_id, p_motivo: String(v.motivo || '').trim() });
+          });
+        }
+        if (acc === 'vpc-resolver') {
+          return modal(T6('Resolver la objeción — %e', { e: quien }), [
+            { tipo: 'nota', label: T6('Objeción del Sales Manager: «%m»', { m: f.objecion_motivo || '—' }) },
+            { k: 'decision', label: T6('Decisión'), tipo: 'select', req: 1, valor: '',
+              opciones: [['', T6('— elige —')], ['mantener_propia', T6('Se queda por su cuenta')], ['pasar_equipo', T6('Pasa a ser del equipo')]],
+              ayuda: T6('cualquiera de las dos reevalúa la comisión de la venta en ese momento') },
+            { k: 'motivo', label: T6('Motivo'), tipo: 'textarea', req: 1, ayuda: T6('queda escrito y lo reciben el Sales Manager y el closer') }
+          ], T6('Resolver'), function (v) {
+            return sb.rpc('venta_objecion_resolver', { p_id: f.objecion_id, p_decision: v.decision, p_motivo: String(v.motivo || '').trim() });
+          });
+        }
+        modal(T6('Pasar al equipo — %e', { e: quien }), [
+          { tipo: 'nota', label: T6('La venta deja de ser por su cuenta y pasa a ser del equipo, y el closer ya no puede cambiarlo. Las comisiones de «por su cuenta» sin pagar se anulan; las ya pagadas se descuentan de un pago siguiente con una diferencia negativa; y se reevalúa con las condiciones del equipo. Si alguna está aprobada sin pagar o en disputa, la base lo para y lo dice.') },
+          { k: 'motivo', label: T6('Motivo'), tipo: 'textarea', req: 1, ayuda: T6('queda en el registro de la venta') }
+        ], T6('Pasar al equipo'), function (v) {
+          return sb.rpc('venta_modo_admin', { p_raiz: f.raiz_id, p_modo: 'equipo', p_motivo: String(v.motivo || '').trim() });
         });
       });
 
