@@ -22,6 +22,21 @@ const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SE
 const SITIO = (Deno.env.get('SITIO_URL') || 'https://lawangproperties.com').replace(/\/$/, '');
 const RENDER_SECRET = Deno.env.get('RENDER_SECRET') || '';
 
+// AXW-124 (S5.0 F4, 30-sep-2026): a dónde se manda el correo lo decide config_instancia.url_envio_correo (interruptor único:
+// la edge envia-correo o, de vuelta atrás, el PHP). Solo se aceptan esas dos URL: una clave manipulada no puede sacar
+// el secreto a otro host. Si la clave falta, no es texto o no es una de las dos, cae al PHP (comportamiento de siempre).
+// La edge exige su secreto de entrada propio (ENVIO_CORREO_SECRET); el PHP solo conoce RENDER_SECRET.
+const ENVIO_PHP = 'https://lawangproperties.com/contracts/api/send_email.php';
+const ENVIO_EDGE = Deno.env.get('SUPABASE_URL')! + '/functions/v1/envia-correo';
+async function destinoEnvio(): Promise<{ url: string; secreto: string }> {
+  try {
+    const { data } = await sb.from('config_instancia').select('valor').eq('clave', 'url_envio_correo').maybeSingle();
+    const u = typeof data?.valor === 'string' ? data.valor.trim() : '';
+    if (u === ENVIO_EDGE) return { url: u, secreto: Deno.env.get('ENVIO_CORREO_SECRET') || RENDER_SECRET };
+  } catch (_) { /* cae al PHP */ }
+  return { url: ENVIO_PHP, secreto: RENDER_SECRET };
+}
+
 // 25 por pasada: send_email.php abre una conexión SMTP por correo y Hostinger
 // ya nos dio 502 por ráfagas. 25 cada 10 min cubre al equipo entero (~30) en
 // dos pasadas como mucho, y el despertador adelanta la primera.
@@ -65,9 +80,10 @@ function asuntoPara(asunto: string, nombre: string | null, prueba: boolean): str
 }
 
 async function enviarEmail(to: string, nombre: string | null, c: Comunicado, prueba: boolean) {
-  const r = await fetch(SITIO + '/contracts/api/send_email.php', {
+  const dest = await destinoEnvio();
+  const r = await fetch(dest.url, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'X-Render-Secret': RENDER_SECRET },
+    headers: { 'content-type': 'application/json', 'X-Render-Secret': dest.secreto, 'X-Llamante': 'comunicados-envio' },
     body: JSON.stringify({
       to,
       subject: asuntoPara(c.asunto, nombre, prueba),
