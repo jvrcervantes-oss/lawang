@@ -4549,21 +4549,20 @@
   var ED = {
     /* CONTRATOS · la entrada al ASISTENTE de Nuevo contrato (F7, 30-sep-2026,
        encargo 20260930_lawang_equipos_venta_asistente). El asistente CONVIVE
-       con el formulario de siempre (owner: «no podemos quitar lo que hay»), y
-       mientras el servidor no guarde «equipo / por mi cuenta» (F5) sale detrás
-       de una bandera: solo admin y super admin, o quien abra esta página con
-       `?asistente=1`. Para los demás esta función no toca nada y «+ Nuevo
-       contrato» sigue yendo a /contracts/app.html?nuevo=1 por maqueta.js,
-       exactamente como hoy. Con la bandera hay dos entradas: «Nuevo contrato»
-       (el asistente) y «Formulario clásico» (?nuevo=1 tal cual). Por
+       con el formulario de siempre (owner: «no podemos quitar lo que hay»).
+       Desde el 30-sep-2026 (noche, owner: «muéstralo ya a todo el mundo, quiero
+       que lo testeen») SALE PARA TODOS los roles, sin bandera: la bandera de
+       admin / `?asistente=1` se retiró. OJO, sigue abierto lo que la bandera
+       tapaba: el servidor aún no guarda «equipo / por mi cuenta» (F5b:
+       `comisiones_interruptor.modo_obligatorio` apagado, `contrato_guarda`
+       ignora `venta`) — la pregunta del paso 1 se hace pero no se guarda hasta
+       encenderlo (fila LAW-479 en pendientes). Hay dos entradas: «Nuevo
+       contrato» (el asistente) y «Formulario clásico» (?nuevo=1 tal cual). Por
        `data-accion`, nunca por el rótulo (norma 29-sep-2026). */
     contratos: function (aut) {
-      var rol = aut.ficha && aut.ficha.rol;
-      var bandera = new URLSearchParams(location.search).get('asistente') === '1';
-      if (!(rol === 'admin' || rol === 'super_admin' || bandera)) return;
       var nuevo = document.querySelector('[data-accion="nuevo-contrato"]');
       if (!nuevo) { console.error('[v4] no hay botón data-accion="nuevo-contrato" en ' + location.pathname); return; }
-      // El botón vive en el HTML (oculto): con la bandera se enseña. Ocultar por ROL sí vale (regla 23-sep).
+      // El botón vive en el HTML (oculto): se enseña a todos. Ocultar por ROL sí vale (regla 23-sep).
       var clasico = document.querySelector('[data-accion="formulario-clasico"]');
       if (clasico) clasico.style.display = '';
       ata('formulario-clasico', function () { location.href = '/contracts/app.html?nuevo=1'; });
