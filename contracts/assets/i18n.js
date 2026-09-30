@@ -3695,6 +3695,7 @@
     '%n de %t': '%n of %t',
     'Noticia %n de %t': 'News item %n of %t',
     'Anterior': 'Previous',
+    'Repasa lo último que ha llegado a la intranet.': 'Catch up on the latest additions to the intranet.',
     'Nuevo contrato, paso a paso': 'New contract, step by step',
     'El asistente te va preguntando lo justo: si la venta es de tu equipo o por tu cuenta, el tipo de contrato, el cliente y las condiciones. Antes de guardar, revisas el resumen. El formulario de siempre sigue ahí.':
       "The assistant asks you just what it needs: whether the sale is your team's or your own, the contract type, the client and the terms. Before saving, you review the summary. The usual form is still there.",

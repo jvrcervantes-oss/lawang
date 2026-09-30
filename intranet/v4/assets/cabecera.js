@@ -160,6 +160,23 @@
         .then(function (out) { ULTIMO = out; pintaContador(out.sinLeer, out.avisos); return out; },
               function (e) { console.error('[v4 cabecera] avisos:', e); pintaContador(null); return null; });
     }
+    /* NOVEDADES (30-sep-2026, owner): el pop-up de novedades sale una vez al entrar y aquí se
+       vuelve a ver cuando se quiera. La fila solo existe si novedades.js ya cargó y a esta
+       persona le toca alguna noticia (window.lwNovedades). Por `data-accion`, no por el rótulo. */
+    function filaNovedades() {
+      if (!window.lwNovedades || typeof window.lwNovedades.abre !== 'function') return '';
+      return '<button type="button" data-accion="ver-novedades" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;border-radius:10px;border:1px solid #DCEAE7;background:#F1F7F5;color:#104C4F;cursor:pointer;font:inherit">' +
+        '<span class="material-symbols-outlined" style="font-size:22px">auto_awesome</span>' +
+        '<span style="display:grid;gap:1px"><span style="font-size:14px;font-weight:700">' + esc(T('Novedades')) + '</span>' +
+        '<span style="font-size:12.5px;color:#44483f">' + esc(T('Repasa lo último que ha llegado a la intranet.')) + '</span></span></button>';
+    }
+    document.addEventListener('click', function (ev) {
+      var b = ev.target && ev.target.closest && ev.target.closest('[data-accion="ver-novedades"]');
+      if (!b || !window.lwNovedades) return;
+      if (typeof window.lwCierraCajon === 'function') window.lwCierraCajon();
+      cierraDesplegable();
+      setTimeout(function () { window.lwNovedades.abre(); }, 360);   // deja recogerse al cajón y sale de la campana
+    }, true);   // en captura: el cajón corta la propagación de los clics de dentro
     var TITULO = 'Avisos', BAJO = 'Lo que ha pasado y lo que vence en los próximos 15 días.';
     function abre() {
       if (conCajon && typeof window.lwCajon !== 'function') {
@@ -175,6 +192,7 @@
         if (!out) cuerpo = nota(T('No se pudieron cargar los avisos. Prueba a recargar la página.'));
         else if (!out.avisos.length) cuerpo = notaFallo + '<p style="margin:0;font-size:13px;color:#8A8474">' + esc(T('Nada nuevo.')) + '</p>';
         else cuerpo = notaFallo + pintaAvisos(out.avisos, aV4);
+        cuerpo = filaNovedades() + cuerpo;
         // ancho de siempre (owner: «que fuese muy amplia nunca fue un problema»);
         // `desde`: el cajón crece desde la campana y se recoge hacia ella
         // el 60% de siempre en escritorio; en móvil, pantalla entera como todo

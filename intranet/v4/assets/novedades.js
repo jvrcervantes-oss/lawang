@@ -135,10 +135,10 @@
     var email = (aut && aut.session && aut.session.user && aut.session.user.email) || '';
     if (!email || !aut.ficha) return;            // sin usuario o sin ficha no hay a quién recordar ni qué herramientas tiene
     var K = Q + email;
-    if (lee(K) === NOV_ID) return;
     var herr = ficha.herramientas || [];
     var lista = NOTICIAS.filter(function (n) { return ficha.rol === 'super_admin' || herr.indexOf(n.herr) !== -1; });
     if (!lista.length) return;
+    var yaVisto = lee(K) === NOV_ID;
 
     function hayVentana() {
       return !!document.querySelector('#lw-cajon,#lw-editor,.lw-dlg-fondo.abierto,body.v4-nav-abierta,#lw-cargando');
@@ -154,6 +154,7 @@
     }
 
     function abre() {
+      if (document.getElementById('lw-novedades')) return;   // ya está abierto
       var st = document.createElement('style');
       st.id = 'lw-novedades-css';
       st.textContent = CSS;
@@ -235,12 +236,39 @@
         if (c) { cta.textContent = c.texto; cta.href = c.href; cta.setAttribute('data-accion', 'novedades-cta'); }
         sig.textContent = i === lista.length - 1 ? T('Entendido') : T('Siguiente');
       }
+      var cerrando = false;
       function cierra() {
+        if (cerrando) return;
+        cerrando = true;
         guarda(K, NOV_ID);
         document.removeEventListener('keydown', teclas, true);
-        velo.remove();
-        st.remove();
-        if (previo && previo.focus) { try { previo.focus(); } catch (e) { /* MUDO A PROPÓSITO: el foco previo pudo desaparecer del DOM */ } }
+        function fin() {
+          velo.remove();
+          st.remove();
+          if (previo && previo.focus) { try { previo.focus(); } catch (e) { /* MUDO A PROPÓSITO: el foco previo pudo desaparecer del DOM */ } }
+        }
+        var v = haciaCampana();
+        if (!v || !pop.animate) { fin(); return; }
+        velo.style.pointerEvents = 'none';
+        velo.animate([{ background: 'rgba(27,28,25,.5)' }, { background: 'rgba(27,28,25,0)' }], { duration: 380, fill: 'forwards' });
+        var a = pop.animate([{ transform: 'none', opacity: 1 }, { transform: v, opacity: 0 }], { duration: 380, easing: 'cubic-bezier(.5,0,.75,.3)', fill: 'forwards' });
+        a.onfinish = function () { sacude(); fin(); };
+      }
+      /* La campana es de donde sale y adonde vuelve: traslación + escala hacia su centro.
+         Sin campana en pantalla (o con «reducir movimiento») no se anima: aparece y se va. */
+      function campana() { var b = document.querySelector('[data-lw="k-avisos"]'); return b ? b.closest('button') : null; }
+      function haciaCampana() {
+        if (QUIETO) return null;
+        var c = campana();
+        if (!c) return null;
+        var r = c.getBoundingClientRect(), p = pop.getBoundingClientRect();
+        if (!r.width || !p.width) return null;
+        var dx = (r.left + r.width / 2) - (p.left + p.width / 2), dy = (r.top + r.height / 2) - (p.top + p.height / 2);
+        return 'translate(' + Math.round(dx) + 'px,' + Math.round(dy) + 'px) scale(.06)';
+      }
+      function sacude() {
+        var c = campana();
+        if (c && c.animate && !QUIETO) c.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(-16deg)' }, { transform: 'rotate(13deg)' }, { transform: 'rotate(-8deg)' }, { transform: 'rotate(0)' }], { duration: 550, easing: 'ease-in-out' });
       }
       function teclas(ev) {
         if (ev.key === 'Escape') { ev.stopPropagation(); cierra(); }
@@ -262,8 +290,16 @@
       document.addEventListener('keydown', teclas, true);
       ir(0);
       sig.focus();
+      var d = haciaCampana();
+      if (d && pop.animate) {                       // sale de la campana
+        sacude();
+        velo.animate([{ background: 'rgba(27,28,25,0)' }, { background: 'rgba(27,28,25,.5)' }], { duration: 420 });
+        pop.animate([{ transform: d, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 520, delay: 120, easing: 'cubic-bezier(.2,.9,.3,1)', fill: 'backwards' });
+      }
     }
-    setTimeout(cuandoToque, 1200);
+    /* Volver a verlo cuando se quiera: la fila «Novedades» del panel de la campana lo llama. */
+    window.lwNovedades = { abre: abre };
+    if (!yaVisto) setTimeout(cuandoToque, 1200);
   }
 
   function arranca() {
