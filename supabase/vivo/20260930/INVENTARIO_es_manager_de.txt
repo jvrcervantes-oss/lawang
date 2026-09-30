@@ -177,6 +177,16 @@ no coincide, alguien tocó la función desde este volcado.
    AFTER `_trg_equipo_miembros_recongela` (las vuelve a congelar ya en el equipo nuevo). Como
    `fecha_venta` es NULL en 175 filas y cuenta como hoy, **cualquier alta con `desde <= hoy`
    se lleva al equipo nuevo todas las ventas «sin equipo» sin devengo de ese closer, sea cual sea su
-   fecha real**. Las ventas ya congeladas en OTRO equipo no se tocan. Con la regla D6 (el SM añade solo
-   con fecha de hoy) el riesgo se reduce, pero la re-atribución sigue ocurriendo: F2/F6 tienen que
-   decidirlo.
+   fecha real**. Las ventas ya congeladas en OTRO equipo no se tocan. **La regla D6 (el SM añade solo
+   con fecha de hoy) NO lo evita**: con `desde = hoy` y `fecha_venta` NULL la comparación es
+   `hoy >= hoy`, que es cierta, así que el alta del SM es justo el caso que re-atribuye. También
+   arrastra las ventas del closer que aún no estaban congeladas: `equipo_miembro_guarda` las congela
+   primero «sin equipo» y el trigger BEFORE las descongela. Solo se salvan las filas con una
+   `fecha_venta` real anterior a `desde`. **Exposición medida el 30-sep:** 126 filas de
+   `contrato_closer` sin congelar o congeladas sin equipo, con `fecha_venta` NULL y sin ningún devengo
+   (134 sin congelar en total, 3 congeladas sin equipo). F2 tiene que cerrarlo antes de F6 (propuesta:
+   usar `coalesce(fecha_venta, contratos.created_at::date)`, nunca `current_date`, en
+   `_venta_congela_equipo` y `_equipo_recongela_sin_equipo`).
+4. **`activo` se mira el día de la evaluación, no el de la venta.** Desactivar una condición vieja la
+   quita también de los tramos todavía no devengados de las ventas antiguas: es retroactivo, y es
+   justo el motivo por el que D-Datos pide `vigente_hasta` y no desactivar.
