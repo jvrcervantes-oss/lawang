@@ -8016,7 +8016,10 @@
     var eqId = ctx.filtroId;
     var delEquipo = {};
     if (eqId) ctx.miembros.forEach(function (m) { if (m.equipo_id === eqId) delEquipo[String(m.closer_email || '').toLowerCase()] = 1; });
-    var filas = VPC.filas.filter(function (f) { return !eqId || delEquipo[String(f.closer_email || '').toLowerCase()]; });
+    // con equipo_id (PENDIENTE_f5b) se filtra por el equipo CONGELADO de la venta; sin él, por quien estuvo en el equipo
+    var filas = VPC.filas.filter(function (f) { return !eqId || ('equipo_id' in f ? f.equipo_id === eqId : delEquipo[String(f.closer_email || '').toLowerCase()]); });
+    var dirijo = {};
+    ctx.equipos.forEach(function (e) { if (e.activo && String(e.manager_email || '').toLowerCase() === ctx.miEmail) dirijo[e.id] = 1; });
     var cuota = VPC.cuota.filter(function (c) { return !eqId || c.equipo_id === eqId; });
 
     pon2('vpc-sub', VPC.oblig === true
@@ -8074,12 +8077,15 @@
       var origen = T(VPC_ORIGEN[f.origen] || f.origen || '—') + (f.origen_texto ? ' · «' + f.origen_texto + '»' : '');
       var plazo = f.espera_hasta ? (abierta ? T('hasta %f', { f: fBali(f.espera_hasta) }) : T('cerrado el %f', { f: fBali(f.espera_hasta) })) : '—';
       var btns = '';
-      if (ctx.esAdm) {
-        if (pend) btns = botonFila('data-accion="vpc-resolver"', f.objecion_id, T('Resolver'), motivoAdm);
-        else btns = botonFila('data-accion="vpc-modo"', f.raiz_id, T('Pasar al equipo'), motivoAdm);
-      } else {
+      // Objetar: el SM de ESE equipo (también si es admin); la base lo vuelve a comprobar con el SM congelado de la venta
+      var soySMFila = !ctx.esAdm || !!(f.equipo_id && dirijo[f.equipo_id]);
+      if (soySMFila) {
         var motivoObj = yo ? T('Es tu propia venta') : pend ? T('Ya hay una objeción abierta') : f.objecion_decision ? T('Administración ya lo decidió') : !abierta ? T('El plazo de 7 días ya terminó') : '';
-        btns = botonFila('data-accion="vpc-objetar"', f.raiz_id, T('Objetar'), motivoObj);
+        btns += botonFila('data-accion="vpc-objetar"', f.raiz_id, T('Objetar'), motivoObj);
+      }
+      if (ctx.esAdm) {
+        if (pend) btns += botonFila('data-accion="vpc-resolver"', f.objecion_id, T('Resolver'), motivoAdm);
+        else btns += botonFila('data-accion="vpc-modo"', f.raiz_id, T('Pasar al equipo'), motivoAdm);
       }
       return '<tr class="border-b border-outline-variant/30 align-top">' +
         '<td class="px-5 py-4"><div class="flex flex-col gap-1"><span class="font-label-md text-label-md text-on-surface">' + esc(f.numero || '—') + '</span>' +

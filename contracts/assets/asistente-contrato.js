@@ -325,7 +325,7 @@
     },
     modo: function () {
       var h = '<h2 id="asi-h">' + e(T('¿Esta venta es con tu equipo o por tu cuenta?')) + '</h2>';
-      if (RT.equipo.fallo) h += aviso('mal', 'error', e(T('No se ha podido comprobar si estás en un equipo de venta. Elige igualmente: si no lo estás, no cambia nada.')));
+      if (RT.equipo.fallo) h += aviso('mal', 'error', e(T(RT.oblig === true ? 'No se ha podido comprobar si estás en un equipo de venta. Elige igualmente; si no lo estás, elige «Por mi cuenta»: el servidor rechaza «Con mi equipo».' : 'No se ha podido comprobar si estás en un equipo de venta. Elige igualmente: si no lo estás, no cambia nada.')));
       else h += '<p class="asi-q">' + e(T('Estás en el equipo')) + ' <b>' + e(RT.equipo.nombre || '') + '</b>' +
         (smVisible() ? ' · ' + e(T('Sales Manager')) + ': <b>' + e(smVisible()) + '</b>' : '') + '.</p>';
       h += '<div class="asi-ops">' +
@@ -1101,7 +1101,7 @@
         '<input id="venta-frase" data-venta-campo="frase" maxlength="200" value="' + e(V.frase) + '"></div></div>';
     }
     if (off) h += '<p class="asi-venta-motivo">' + e(off) + '</p>';
-    else if (RT.equipo.fallo) h += aviso('mal', 'error', e(T('No se ha podido comprobar si estás en un equipo de venta. Elige igualmente: si no lo estás, no cambia nada.')));
+    else if (RT.equipo.fallo) h += aviso('mal', 'error', e(T(RT.oblig === true ? 'No se ha podido comprobar si estás en un equipo de venta. Elige igualmente; si no lo estás, elige «Por mi cuenta»: el servidor rechaza «Con mi equipo».' : 'No se ha podido comprobar si estás en un equipo de venta. Elige igualmente: si no lo estás, no cambia nada.')));
     if (!off) h += avisoPrueba();
     var caja = viejo;
     if (!caja) {
@@ -1120,7 +1120,8 @@
     inner.addEventListener('click', function (ev) {
       var b = ev.target.closest && ev.target.closest('[data-accion="venta-modo"]');
       if (!b || b.disabled) return;
-      V.modo = b.getAttribute('data-v');
+      // pulsar la opción ya elegida la quita: se puede volver a «sin declarar»
+      V.modo = V.modo === b.getAttribute('data-v') ? null : b.getAttribute('data-v');
       if (V.modo !== 'propia') { V.origen = ''; V.frase = ''; }
       pintaVenta();
       var f = document.querySelector('[data-accion="venta-modo"][data-v="' + V.modo + '"]'); if (f) f.focus();
@@ -1142,9 +1143,12 @@
     if (!eraNuevo || padreId || !ventaAplica()) return {};
     if (!V.modo) return RT.oblig === true ? { error: T('Indica arriba del formulario si la venta es con tu equipo o por tu cuenta.') } : {};
     if (V.modo === 'propia') {
-      if (RT.equipo.soySM) return { error: T(MOTIVO_SM) };
-      if (!V.origen) return { error: T('Por tu cuenta: indica de dónde viene el cliente.') };
-      if (V.origen === 'otro' && V.frase.trim().length < 3) return { error: T('Por tu cuenta: explica en una frase de dónde viene el cliente.') };
+      /* Solo se frena el guardado con el interruptor ENCENDIDO. Apagado (o sin poder leerlo) el campo es
+         «prueba»: una declaración a medias no se envía y no para un contrato real (revisión, 30-sep). */
+      var falta = RT.equipo.soySM ? T(MOTIVO_SM)
+        : !V.origen ? T('Por tu cuenta: indica de dónde viene el cliente.')
+        : (V.origen === 'otro' && V.frase.trim().length < 3) ? T('Por tu cuenta: explica en una frase de dónde viene el cliente.') : '';
+      if (falta) return RT.oblig === true ? { error: falta } : {};
     }
     return { venta: { modo: V.modo, origen: V.modo === 'propia' ? V.origen : null,
                       origen_texto: V.modo === 'propia' ? (V.frase.trim() || null) : null } };

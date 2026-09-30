@@ -64,6 +64,31 @@ comment on function public.ventas_por_su_cuenta_cuota() is
 revoke all on function public.modo_obligatorio_activo(), public.ventas_por_su_cuenta_cuota() from public, anon;
 grant execute on function public.modo_obligatorio_activo(), public.ventas_por_su_cuenta_cuota() to authenticated;
 
+-- 4) ventas_por_su_cuenta_equipo() gana equipo_id al FINAL (revisión de código F5b, 30-sep): sin él, el filtro de
+--    equipo de la bandeja casaba por «quién estuvo alguna vez en ese equipo» y enseñaba ventas de otro equipo de un
+--    closer trasladado; y la pantalla no sabía qué filas son del equipo que dirige quien mira (admin que también es
+--    SM). Mismo cuerpo que 20260930074916 + k.equipo_id. Cambia el tipo devuelto → drop + create (sin datos).
+drop function if exists public.ventas_por_su_cuenta_equipo();
+create function public.ventas_por_su_cuenta_equipo()
+ returns table(raiz_id uuid, numero text, closer_email text, origen text, origen_texto text, declarado_en timestamptz,
+               espera_hasta timestamptz, cruces jsonb, objecion_id uuid, objecion_estado text, objecion_decision text,
+               objecion_motivo text, objecion_resolucion text, equipo_id uuid)
+ language sql stable security definer set search_path to ''
+as $$
+  select k.contrato_id, c.numero, lower(k.closer_email), k.modo_origen, k.modo_origen_texto, k.modo_declarado_en,
+         k.modo_espera_hasta, k.modo_cruces, o.id, o.estado, o.resolucion, o.motivo, o.motivo_resolucion, k.equipo_id
+    from public.contrato_closer k
+    join public.contratos c on c.id = k.contrato_id
+    left join lateral (select r.* from public.reclamaciones_venta_propia r
+                        where r.contrato_raiz_id = k.contrato_id and r.tipo = 'objecion'
+                        order by (r.estado = 'pendiente') desc, r.creado_en desc limit 1) o on true
+   where k.modo = 'propia' and k.equipo_id is not null
+     and coalesce(auth.email(), '') <> ''
+     and (lower(coalesce(k.manager_email, '')) = lower(auth.email())
+          or (public.es_admin() and public.puede('comisiones_reparto')))
+   order by k.modo_declarado_en desc nulls last
+$$;
+revoke all on function public.ventas_por_su_cuenta_equipo() from public, anon;
 grant execute on function public.ventas_por_su_cuenta_equipo() to authenticated;
 grant execute on function public.venta_objecion_crear(uuid, text) to authenticated;
 grant execute on function public.venta_objecion_resolver(uuid, text, text) to authenticated;

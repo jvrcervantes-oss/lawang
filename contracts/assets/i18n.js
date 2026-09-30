@@ -4086,6 +4086,7 @@
     'Mi equipo': 'My team',
     'Mis closers ven su comisión': 'My closers see their commission',
     // F5b «por su cuenta» (30-sep-2026): campo Venta del clásico, asistente y bandeja del SM
+    'No se ha podido comprobar si estás en un equipo de venta. Elige igualmente; si no lo estás, elige «Por mi cuenta»: el servidor rechaza «Con mi equipo».': 'Could not check whether you are in a sales team. Choose anyway; if you are not, choose «On my own»: the server rejects «With my team».',
     '%a de %b · %p %': '%a of %b · %p %',
     'Administración ya lo decidió': 'Management has already decided',
     'Cuando un closer de tu equipo marca una venta «por mi cuenta», tienes 7 días para objetar. Si objetas, la comisión espera a que administración lo decida.': 'When a closer on your team marks a sale «on my own», you have 7 days to object. If you object, the commission waits until management decides.',
