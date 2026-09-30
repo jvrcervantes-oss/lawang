@@ -493,6 +493,11 @@ async function facturarPrimerHito(o: { contratoId: string; numero: string; ct: a
    que `crearProformaAutomatica` en contracts/app.html, que hace este mismo
    corte al GUARDAR; este es el corte gemelo al FIRMAR). */
 const TIPOS_CON_PROFORMA_AUTO = ['reserva_parcela', 'construccion'];
+/* PARADA (30-sep-2026, owner): la proforma automática no descuenta el descuento
+   comercial y sale con importe equivocado. Se corta aquí (al firmar) y en
+   contracts/app.html (al guardar) hasta que use el precio NETO. Para reactivarla:
+   poner a false, y comprobar antes que la proforma resta `descuento_comercial`. */
+const PROFORMA_AUTO_PARADA = true;
 async function enviarProformaTotal(o: { contratoId: string; numero: string; ct: any })
     : Promise<{ emitida: boolean; mensaje: string }> {
   if (!TIPOS_CON_PROFORMA_AUTO.includes(o.ct.tipo)) {
@@ -933,7 +938,7 @@ Deno.serve(async (req) => {
     // no calificar aquí (en vez de dejar que enviarProformaTotal() lo rechace
     // por dentro) evita que su "no toca" salga como si fuera un fallo en
     // `avisos` — no generar la proforma es lo correcto, no una incidencia.
-    if (TIPOS_CON_PROFORMA_AUTO.includes((ct as any).tipo)) {
+    if (!PROFORMA_AUTO_PARADA && TIPOS_CON_PROFORMA_AUTO.includes((ct as any).tipo)) {
       try {
         const r = await enviarProformaTotal({ contratoId: claimed.contrato_id, numero, ct });
         console.log('firma', claimed.id, '·', r.mensaje);
