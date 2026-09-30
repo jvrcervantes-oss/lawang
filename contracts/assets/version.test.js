@@ -208,7 +208,7 @@ const pag = (h) => [200, '<!doctype html><html><head>\n<meta name="lw-version" c
     assert.ok(!/version\.js\?v=[^"]*"[^>]*\b(defer|async)\b/.test(t), rel + ': version.js sin defer');
     assert.ok(extrae(t), rel + ': sin huella lw-version (python tools/sella_assets.py)');
   }
-  assert.ok(n >= 45, 'páginas con instancia.js: ' + n);
+  assert.ok(n >= 44, 'páginas con instancia.js: ' + n); // suelo antivacio: 46 hasta que el 30-sep se retiraron las 2 pantallas moviles (contratos, seguimiento)
   const app = fs.readFileSync(path.join(RAIZ, 'contracts', 'app.html'), 'utf8');
   assert.ok(/version\.js\?v=[^"]+" data-pierde-al-recargar/.test(app), 'el generador pierde lo no guardado al recargar: la banda lo tiene que decir');
   const firmar = fs.readFileSync(path.join(RAIZ, 'contracts', 'firmar.html'), 'utf8');
