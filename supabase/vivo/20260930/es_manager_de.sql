@@ -1,6 +1,6 @@
 -- VOLCADO DE PRODUCCION (Supabase Lawang) del 2026-09-30: pg_get_functiondef(public.es_manager_de).
 -- NO es una migracion: no se aplica. Referencia para construir sobre el cuerpo VIVO (encargo 20260930_lawang_equipos_venta_asistente, F1).
--- Extra (no pedido en el encargo): el predicado que inventaria INVENTARIO_es_manager_de.md.
+-- Extra (no pedido en el encargo): el predicado que inventaria INVENTARIO_es_manager_de.txt.
 -- ---- fin cabecera ----
 CREATE OR REPLACE FUNCTION public.es_manager_de(p_proyecto_id uuid)
  RETURNS boolean

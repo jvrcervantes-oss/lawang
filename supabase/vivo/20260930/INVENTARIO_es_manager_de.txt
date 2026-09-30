@@ -1,0 +1,182 @@
+# Inventario de `es_manager_de` y `contrato_visible` (producción, 30-sep-2026)
+
+(Formato Markdown. Va en .txt porque el .gitignore de Lawang deja *.md fuera del repo.)
+
+Volcado de solo lectura de Supabase Lawang (`pg_policies` + `pg_proc`, esquema `public`, más `storage`).
+**No es una migración.** Sirve a F3 del encargo `encargos/20260930_lawang_equipos_venta_asistente.md`.
+
+**Criterio (D1, owner 30-sep):** el Sales Manager ve por EQUIPO todo lo de las ventas de su equipo, en
+cualquier proyecto. La supervisión por proyecto (`usuarios.proyectos_supervisados`) queda solo para
+`project_manager`.
+
+**Hoy:** `es_manager_de(p_proyecto)` devuelve true para admin, y para `sales_manager` **o**
+`project_manager` con el proyecto en `proyectos_supervisados` (ver `es_manager_de.sql`). Es decir, el SM
+ve hoy por PROYECTO, no por equipo.
+
+Decisiones:
+- **delega** = pasa a `puede_ver_contrato(p_contrato)` (la puerta única de F3). En las piezas que
+  **escriben**, el predicado de permiso es el mismo más sus condiciones propias (no firmado, `puede(...)`),
+  que se conservan.
+- **solo PM** = se queda por proyecto, y `es_manager_de` deja de dar true al `sales_manager`.
+- **revisar** = no encaja limpio en ninguna de las dos; decisión en F3 con el porqué anotado.
+- **por equipo (F4)** = ya usa `es_manager_de_equipo`; no toca F3, pero entra en `comision_visible` (F4).
+
+## 1. Policies (RLS)
+
+| Tabla / policy | Cmd | Predicado hoy | Qué protege | Decisión |
+|---|---|---|---|---|
+| `contratos` / «agentes leen sus contratos» | SELECT | `contrato_visible(creado_por, proyecto_id)` | el contrato | **delega** (`puede_ver_contrato(id)`) |
+| `contrato_firmas` / «agentes leen firmas de sus contratos» | SELECT | `es_suyo OR es_manager_de(c.proyecto_id)` | firmas del contrato | **delega** |
+| `contrato_prorrogas` / `prorrogas_select` | SELECT | `es_suyo OR es_manager_de` | prórrogas de reserva | **delega** |
+| `contrato_vencimientos` / `vencimientos_select` | SELECT | `es_suyo OR es_manager_de` | hitos de pago | **delega** |
+| `contrato_eventos` / «super_admin ve todo, el resto solo eventos normales…» | SELECT | eventos no sensibles `AND (es_suyo OR es_manager_de)` | log de eventos | **delega** (mantener el filtro de eventos sensibles) |
+| `contrato_anexo_paginas` / «anexos: el equipo lee las paginas…» | SELECT | `contrato_visible(...)` | páginas de anexos | **delega** |
+| `correos_enviados` / «correos: leer lo propio o del contrato visible» | SELECT | admin OR enviado_por OR `contrato_visible` | correos del contrato | **delega** |
+| `bot_consultas` / «quien ve el contrato ve sus consultas» | SELECT | `es_suyo OR es_manager_de` | consultas al bot de apoyo | **delega** |
+| `bot_respuestas_copiadas` / «quien ve la consulta ve la copia» | SELECT | `es_suyo OR es_manager_de` vía consulta | respuestas copiadas | **delega** |
+| `storage.objects` / «contratos-anexos: el equipo lee las paginas…» | SELECT | `contrato_visible(...)` vía `contrato_anexo_paginas` | ficheros de anexos | **delega** |
+| `comisiones_devengadas` / «leer» | SELECT | admin+reparto OR beneficiario OR (closer/setter/team_lead AND `es_manager_de_equipo`) | importes de comisión | **por equipo (F4)** — aquí es donde la comisión oculta tiene que cortar |
+| `condiciones_comision` / «el manager lee las de su equipo» | SELECT | `es_manager_de_equipo(equipo_id)` | % y condiciones | **por equipo (F4)** |
+| `condicion_tramos` / «el manager lee los de su equipo» | SELECT | `es_manager_de_equipo` vía condición | tramos | **por equipo (F4)** |
+| `equipo_miembros` / «leer» | SELECT | admin OR yo OR `es_manager_de_equipo` | composición del equipo | **por equipo** (ya correcto; sin cambio en F3) |
+
+**Heredan sin tocarse** (usan un helper que pasará a delegar):
+
+| Tabla / policy | Helper | Decisión |
+|---|---|---|
+| `clients` / «cada uno lo suyo, el manager lo de su proyecto, admin todo» | `cliente_visible` | sigue al helper (delega) |
+| `documents` / «agentes leen documentos de sus compradores» | `cliente_visible` | sigue al helper (delega) |
+| `facturas` / «agentes leen sus facturas» | `documento_visible` | sigue al helper (delega) |
+| `recibi_aplicaciones` / «agentes leen aplicaciones de sus documentos» | `documento_visible` | sigue al helper (delega) |
+| `proyectos` / «agentes leen proyectos» | `proyecto_visible` | sigue al helper (solo PM) |
+
+## 2. Funciones helper (las que F3 reescribe)
+
+Todas SECURITY DEFINER, `search_path = ''`.
+
+| Función | Qué decide | Decisión |
+|---|---|---|
+| `contrato_visible(p_autor, p_proyecto_id)` | `es_suyo OR es_manager_de(proyecto)`. **No recibe el id del contrato**: no puede mirar el equipo de la venta | **delega**: firma nueva con `p_contrato`; la vieja queda como envoltorio mientras haya llamadores (11 funciones + 4 policies, contando la de `storage`) |
+| `_puede_ver_contrato(p_contrato)` | super_admin OR (agente AND (suyo OR `es_manager_de`)) | **delega** (es casi la puerta única ya; unificar en `puede_ver_contrato`) |
+| `cliente_visible(p_propietario, p_client_id)` | admin OR propietario OR (gestor AND algún contrato del cliente con `es_manager_de`) | **delega**: «existe un contrato del cliente con `puede_ver_contrato`» |
+| `documento_visible(p_autor, p_proyecto_id, p_contrato_id)` | suyo OR `es_manager_de(proyecto)` OR `contrato_visible` del contrato | **delega**. Ojo: el `es_manager_de(p_proyecto_id)` suelto da al SM las facturas **sin contrato** del proyecto: con D1 eso es **solo PM** |
+| `proyecto_visible(p_proyecto_id)` | admin OR `es_manager_de` OR proyecto en `usuarios.proyectos` | **solo PM**: el SM sigue viendo los proyectos de su `usuarios.proyectos` como cualquier agente |
+| `es_manager_de(p_proyecto_id)` | admin OR (SM o PM supervisor del proyecto) | **solo PM**: quitar `sales_manager` del `rol in (...)` cuando todas las piezas de «delega» estén migradas, nunca antes |
+
+## 3. Funciones que llaman a `es_manager_de(` directamente
+
+Todas SECURITY DEFINER (deciden por su cuenta, sin RLS).
+
+| Función | Tipo | Qué protege | Decisión |
+|---|---|---|---|
+| `contrato_guarda(p_id, p_contrato)`, rama UPDATE | DEFINER, escribe | editar un contrato (USING/WITH CHECK copiados de la policy) | **delega** |
+| `contrato_guarda`, rama INSERT | DEFINER, escribe | alta en un proyecto: `puede_proyecto_de OR es_manager_de` | **revisar**: el SM da de alta por proyecto de su lista (`puede_proyecto_de`); `es_manager_de` solo da acceso a proyectos supervisados. Probable **solo PM** |
+| `_contrato_anexo_check(p_contrato)` | DEFINER | subir o editar anexos | **delega** |
+| `contrato_poder_vincula(p_poder)` | DEFINER, escribe | vincular un Poder a su contrato | **delega** |
+| `contrato_firma_estado(p_contrato)` | DEFINER, escribe | mandar a firma | **delega** |
+| `contrato_firmas_anula(...)` | DEFINER, escribe | anular firmas | **delega** |
+| `agente_escribe_fichero_contrato(p_name)` | DEFINER (storage) | subir el PDF del contrato | **delega** |
+| `agente_reescribe_pdf_manual(p_name)` | DEFINER (storage) | reescribir el PDF manual | **delega** |
+| `agente_ve_contrato_pdf(p_name)` | DEFINER (storage) | leer el PDF | **delega** |
+| `vencimiento_ajusta_fecha(p_id, p_fecha)` | DEFINER, escribe | mover un hito de pago | **delega** |
+| `prorroga_reserva(...)` | DEFINER, escribe | prórroga (exige rol `sales_manager` AND `es_manager_de`) | **delega**: el SM prorroga las reservas de su equipo |
+| `factura_guarda(p_id, p_factura)` | DEFINER, escribe | emitir o editar una factura (suyo OR `es_manager_de`, más `contrato_visible`) | **delega** si la factura tiene contrato; sin contrato, **solo PM** |
+| `_factura_puede_editar(f)` | DEFINER | editar factura: `es_suyo(f.creado_por) OR es_manager_de(f.proyecto_id)` | **revisar**: decide por el proyecto de la factura, no por su contrato. Con contrato, delega; sin contrato, solo PM |
+| `unidad_parte_cobrada_split(p_unidad)` | DEFINER | reparto cobrado suelo/obra de una parcela | **delega** (sobre el contrato de la unidad; unidad libre = sin cambio) |
+| `libera_reserva(...)` | DEFINER, escribe | liberar una parcela reservada (`es_manager_de(u2.proyecto_id)` sobre las unidades) | **revisar**: cambia el estado del inventario del proyecto. Propuesta: **solo PM**, y el SM libera solo si `puede_ver_contrato` del contrato que la reserva |
+| `parcela_traspaso_estado(p_proyecto, p_codigo, p_ids)` | DEFINER, escribe | cambiar el estado de una parcela en un traspaso | **solo PM** (opera sobre el proyecto, no sobre una venta) |
+
+## 4. Funciones que llaman a `contrato_visible(` (sin `es_manager_de` propio)
+
+Heredan la decisión cuando `contrato_visible` pase a la puerta única, **pero** llaman con
+`(creado_por, proyecto_id)` y tendrán que pasar a `puede_ver_contrato(c.id)`: si no, se quedan en la
+lógica vieja.
+
+| Función | Tipo | Qué protege | Decisión |
+|---|---|---|---|
+| `comprador_contratos_resumen(p_client_id)` | DEFINER | resumen de contratos de un cliente | **delega** |
+| `contratos_del_mismo_comprador(p_contrato_id)` | DEFINER | contratos hermanos del comprador | **delega** |
+| `contratos_cobrado_equipo()` | DEFINER | cobrado por contrato visible | **delega** (no expone comisiones) |
+| `guardar_recibi(...)` | DEFINER, escribe | emitir un recibí | **delega** |
+| `solicitud_cambio_pide(...)` | DEFINER, escribe | pedir un cambio sobre una fila | **delega** |
+| `solicitud_pago_guarda(p_id, p_datos)` | DEFINER, escribe | solicitud de pago ligada a un contrato | **delega**. Si la solicitud es una comisión, además `comision_visible` (F4) |
+
+## 5. Funciones con `es_manager_de_equipo` (ya van por equipo): entran en F4, no en F3
+
+| Función | Tipo | Qué protege | Decisión |
+|---|---|---|---|
+| `comision_trazabilidad(p_devengo)` | DEFINER | detalle de una comisión (importes, base, solicitud) | **por equipo (F4)**: hoy el SM ve el detalle de las comisiones closer/setter/team_lead de su equipo, y el closer las suyas: tiene que pasar por `comision_visible` |
+| `_comision_devengo_admin_puede(p_id)` | DEFINER | acción de admin sobre un devengo | **por equipo (F4)** |
+| `_condicion_es_mia(p_nivel, p_equipo)` | DEFINER | editar condiciones del equipo | **por equipo (F4)** |
+| `comision_diferencia_resolver(...)` | DEFINER, escribe | resolver una diferencia | **por equipo (F4)** |
+| `comision_marca_pagada(p_id)` | DEFINER, escribe | marcar pagada | **por equipo (F4)** |
+| `comision_rol_asignar(p_raiz, p_rol, p_email)` | DEFINER, escribe | asignar setter/team_lead a una venta | **por equipo (F4)** |
+
+## 6. Funciones que usan los helpers de forma indirecta (siguen al helper, sin tocarse)
+
+`_trg_solicitud_cambio_alta`, `agente_ve_justificante`, `agente_ve_kyc`, `cliente_guarda`,
+`contrato_pdf_descargado`, `contrato_pdf_salio`, `documento_kyc_registra`, `factura_guarda`,
+`guardar_recibi`, `hilo_soporte_estado`, `investor_deck_documento_ruta`, `investor_deck_documentos`,
+`puede_proyecto_id`, `solicitud_cambio_pide`, `unidad_visible`: todas SECURITY DEFINER; llaman a
+`_puede_ver_contrato` / `documento_visible` / `cliente_visible` / `proyecto_visible`. En F3 hay que
+comprobar cuál usa `proyecto_visible` como sustituto de «ve la venta» (`unidad_visible`,
+`puede_proyecto_id`): esas **se revisan**, porque con «solo PM» el SM dejaría de ver unidades de
+proyectos que solo supervisaba.
+
+## Recuento
+
+- Policies: 13 en `public` + 1 en `storage` con predicado directo; 5 más heredan por helper.
+- Funciones: 20 con `es_manager_de(` directo (incluidos 5 helpers), más el propio `es_manager_de`;
+  6 más solo con `contrato_visible(`, 6 con `es_manager_de_equipo`, 15 indirectas.
+
+## Huellas de los volcados (md5 del cuerpo sin `\r`, comprobadas contra producción el 30-sep-2026)
+
+Sirven para detectar deriva antes de F2/F3: si `md5(replace(pg_get_functiondef(oid), E'\r',''))` ya
+no coincide, alguien tocó la función desde este volcado.
+
+| Función | md5 |
+|---|---|
+| `_equipo_congela_ventas` | bb1f459b6f30bf9e01b08e57d71952a5 |
+| `_equipo_recongela_sin_equipo` | bbf1b2ac64cc0c3d688bd61cad90f21d |
+| `_puede_ver_contrato` | d3f914b4541bd7d973f1d0165cb91c94 |
+| `_trg_contrato_closer_congela` | 438417efc8760167aea07430040bb06d |
+| `_trg_equipo_miembros_congela` | e6524d56422dd61355a8c68eecedcfe1 |
+| `_trg_equipo_miembros_recongela` | 3eb4f3d33fa9810cd4696f84086af1c8 |
+| `_trg_equipos_venta_congela` | accc90d75c718d996d83426657410cbc |
+| `_venta_congela_equipo` | 9a64e4e0df5d037ccf447e5776cc7a02 |
+| `cliente_visible` | e28ec5558cb0df043f3f2b021f696c77 |
+| `comision_trazabilidad` | 59756ae7319e003cd081309d6fe3c8f7 |
+| `comisiones_evaluar_contrato` | 1e0c897e64b2a547a90239f32cd4f212 |
+| `comisiones_ventas_equipo` | 35c3c2ca098dae9ffc6e92ad2f8bea4e |
+| `contrato_guarda` | 2f5ec4e65041f4cee5f9671e9f22b931 |
+| `contrato_visible` | 9cb928638f86619acd44863f9dcc40d3 |
+| `contratos_cobrado_equipo` | ac9245546a3ac6de8552777afbdfd1ea |
+| `crm_contrato_closer_semilla` | ffb3bfd35f568cee00482d43de4de141 |
+| `documento_visible` | 369c38ce6bd2fbefdf951fda52921f60 |
+| `equipo_miembro_guarda` | c1b913c2783fda79b36048d8a71af21c |
+| `es_manager_de` | f6132043c08e2929c8f2e7b36f75d89e |
+| `proyecto_visible` | ea3734d2115a0fa13d7ad664de1c0918 |
+
+## Hallazgos del cuerpo vivo (para F2/F5/F8)
+
+1. **Elección de la condición en el motor** (`comisiones_evaluar_contrato`): filtra `activo AND
+   vigente_desde <= v_raiz_creada`, con `v_raiz_creada = coalesce(contrato_closer.fecha_venta,
+   contratos.created_at::date)` de la raíz. No existe `vigente_hasta`. El orden solo desempata
+   por closer concreto > genérico y por proyecto concreto > NULL: **no ordena por `vigente_desde`**, así
+   que con dos condiciones activas del mismo nivel, equipo y proyecto, el `limit 1` elige una al azar.
+   Además, «la primera condición que devenga manda»: una condición nueva no re-devenga lo ya devengado.
+   F2 (`vigente_hasta`) tiene que añadir `order by vigente_desde desc` y el filtro `vigente_hasta`.
+2. **Fechas distintas para equipo y condición**: el equipo se busca a `coalesce(fecha_venta,
+   current_date)` y la condición a `coalesce(fecha_venta, created_at)`. Solo 13 de 188 filas de
+   `contrato_closer` tienen `fecha_venta` (conteo del 30-sep): en las otras 175, equipo = el de HOY y
+   condición = la del día de alta del contrato.
+3. **Un alta con `desde` en el pasado SÍ re-atribuye ventas viejas**, en contra de D7, por la cadena
+   `equipo_miembro_guarda` → trigger BEFORE `_trg_equipo_miembros_congela` →
+   `_equipo_recongela_sin_equipo` (descongela las ventas del closer congeladas **sin equipo**, sin
+   ningún devengo y con `coalesce(fecha_venta, current_date)` dentro de `[desde, hasta]`) → trigger
+   AFTER `_trg_equipo_miembros_recongela` (las vuelve a congelar ya en el equipo nuevo). Como
+   `fecha_venta` es NULL en 175 filas y cuenta como hoy, **cualquier alta con `desde <= hoy`
+   se lleva al equipo nuevo todas las ventas «sin equipo» sin devengo de ese closer, sea cual sea su
+   fecha real**. Las ventas ya congeladas en OTRO equipo no se tocan. Con la regla D6 (el SM añade solo
+   con fecha de hoy) el riesgo se reduce, pero la re-atribución sigue ocurriendo: F2/F6 tienen que
+   decidirlo.
