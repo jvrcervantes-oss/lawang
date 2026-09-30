@@ -5736,13 +5736,17 @@
         q(sb.from('deck_fotos').select('modelo_id,path,uso,orden').eq('ambito', 'modelo').order('uso').order('orden'), 'fotos del deck'),
         // Ficha por bloques (23-sep-2026): techos y extras se VEN en la ficha,
         // no solo dentro del editor. Tablas pequeñas: se cargan enteras.
-        q(sb.from('modelo_techos').select('id,modelo_id,clave,nombre,precio_ahora,precio_2027,orden'), 'techos'),
+        // 30-sep-2026: `activo` y `alcance` (+ la lista de proyectos del alcance) para que la ficha
+        // dé de alta, retire y limite techos. Aquí llegan TAMBIÉN los retirados: la ficha los enseña
+        // apagados para poder reactivarlos. Lo que se ofrece en el contrato lo decide el servidor.
+        q(sb.from('modelo_techos').select('id,modelo_id,clave,nombre,descripcion,precio_ahora,precio_2027,orden,activo,alcance'), 'techos'),
         q(sb.from('extras').select('id,nombre,orden').eq('activo', true).order('orden', { ascending: true, nullsFirst: false }), 'extras'),
-        q(sb.from('modelo_extras').select('id,modelo_id,extra_id,precio,moneda,disponible'), 'extras por modelo')
+        q(sb.from('modelo_extras').select('id,modelo_id,extra_id,precio,moneda,disponible'), 'extras por modelo'),
+        q(sb.from('modelo_techo_proyectos').select('techo_id,proyecto_id'), 'proyectos de cada techo')
       ]).then(function (r) {
         var ms = r[0], us = r[1] || [], ds = r[2] || [], sinCat = r[3] || [];
         var FC = r[4] || [], MV = r[5] || [], SUELO = r[6] || [], FOTOS = r[7] || [];
-        var TECHOS = r[8] || [], EXTRAS = r[9] || [], MEX = r[10] || [];
+        var TECHOS = r[8] || [], EXTRAS = r[9] || [], MEX = r[10] || [], TECHO_PROY = r[11] || [];
         var fotosModelo = {};
         FOTOS.forEach(function (f) { if (f.modelo_id && f.path) (fotosModelo[f.modelo_id] = fotosModelo[f.modelo_id] || []).push(f); });
         var urlFoto = function (path) { return sb.storage.from('deck').getPublicUrl(path).data.publicUrl; };
@@ -6025,7 +6029,7 @@
           return {
             sb: sb, fmt: fmt, fFecha: fFecha, FC: FC, sinFicha: sinFicha,
             baseDeberia: window.LW_V4.baseDeberia,
-            D: { villas: MV, techos: TECHOS, extras: EXTRAS, modeloExtras: MEX, docs: ds, fotos: fotosModelo, unidades: us }
+            D: { villas: MV, techos: TECHOS, techoProy: TECHO_PROY, extras: EXTRAS, modeloExtras: MEX, docs: ds, fotos: fotosModelo, unidades: us }
           };
         }
         function pintaFicha(el) {

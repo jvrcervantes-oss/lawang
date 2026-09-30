@@ -198,7 +198,9 @@
     while (api.cuerpo.firstChild) vista.appendChild(api.cuerpo.firstChild);
     api.s.classList.add('fm-edit');
     api.h.textContent = api.titulo + ' · editando';
-    if (api.btn) api.btn.style.display = 'none';
+    // Un bloque puede tener más de un botón (Techos: «Editar» y «Añadir techo», 30-sep-2026): se ocultan todos.
+    var botones = Array.prototype.slice.call(api.cab.querySelectorAll('.fm-ed'));
+    botones.forEach(function (x) { x.style.display = 'none'; });
     var host = document.createElement('div'); host.style.cssText = 'display:flex;flex-direction:column;gap:10px;min-width:0';
     api.cuerpo.appendChild(host);
     var guardar = editar(host);
@@ -213,7 +215,7 @@
       api.cuerpo.innerHTML = '';
       while (vista.firstChild) api.cuerpo.appendChild(vista.firstChild);
       api.s.classList.remove('fm-edit'); api.h.textContent = api.titulo;
-      if (api.btn) api.btn.style.display = '';
+      botones.forEach(function (x) { x.style.display = ''; });
     });
     bG.addEventListener('click', function (ev) {
       ev.stopPropagation();
@@ -432,37 +434,172 @@
     if (mano) nota(b.cuerpo, mano + (mano === 1 ? ' proyecto tiene' : ' proyectos tienen') + ' la base escrita a mano: si cambias la base, esos no se mueven.');
   }
 
+  /* TECHOS (30-sep-2026, owner: «poder añadir nuevos techos, que salgan solos en el contrato y en todo;
+     decidir qué casa + techo va en cada proyecto — si no digo nada, en todos»). Revisión previa #163
+     (Datos + Seguridad + Administración). Esta pantalla solo recoge: valida y escribe el servidor
+     (modelo_techo_crea, modelo_techo_edita, modelo_techos_guarda — migración 20260930023239).
+     - Un techo nunca se borra: se RETIRA. Su clave vive en contratos congelados, en el techo de cada
+       documento (bloque Documentos) y en las fotos de la web. Retirado = no se ofrece en contratos nuevos
+       ni en la web; los contratos que ya lo llevan conservan su precio.
+     - Alcance: «Todos los proyectos» (por defecto, decisión del owner) o solo los marcados, entre los
+       proyectos donde se vende esta casa. Nunca «sin marcar = todos»: son dos estados distintos.
+     - Precio COMPLETO de la villa con ese techo, nunca un recargo; ninguno por debajo de la base (owner):
+       un techo más barato = primero se baja la base. Sin base no se dan de alta techos.
+     - Lo que NO es automático al añadir uno: su Anexo Maestro (bloque Documentos, tipo plano, con este
+       techo) y su foto en la web. */
+  function proyectosDeLaCasa(h) {
+    return h.filas.filter(function (v) { return v.proyecto_id; })
+      .map(function (v) { return { id: v.proyecto_id, nombre: v.proyecto }; });
+  }
+  function proyectosDelTecho(t, ctx) {
+    return (ctx.D.techoProy || []).filter(function (x) { return x.techo_id === t.id; })
+      .map(function (x) { return x.proyecto_id; });
+  }
+  function dondeTecho(t, h, ctx) {
+    if (t.alcance !== 'lista') return { txt: 'Todos los proyectos', mal: false };
+    var ids = proyectosDelTecho(t, ctx);
+    var nombres = proyectosDeLaCasa(h).filter(function (p) { return ids.indexOf(p.id) !== -1; })
+      .map(function (p) { return p.nombre; });
+    return nombres.length ? { txt: nombres.join(' · '), mal: false }
+                          : { txt: 'En ningún proyecto (la casa ya no está en los marcados)', mal: true };
+  }
+  /* «Todos los proyectos» + una casilla por proyecto donde se vende la casa. */
+  function campoAlcance(host, h, ctx, t) {
+    var proys = proyectosDeLaCasa(h);
+    var antes = t ? proyectosDelTecho(t, ctx) : [];
+    var todos = casilla(host, 'Todos los proyectos', !t || t.alcance !== 'lista',
+      'Por defecto. Desmárcalo para elegir en qué proyectos se ofrece.');
+    var caja = document.createElement('div'); caja.className = 'fm-chips'; caja.style.paddingLeft = '26px';
+    host.appendChild(caja);
+    var cs = proys.map(function (p) {
+      return { id: p.id, i: casilla(caja, p.nombre, antes.indexOf(p.id) !== -1) };
+    });
+    if (!proys.length) nota(caja, 'Esta casa todavía no está en ningún proyecto: se añade en «Precio de construcción».');
+    function sync() { caja.style.display = todos.checked ? 'none' : ''; }
+    todos.addEventListener('change', sync); sync();
+    return {
+      todos: todos, antes: antes,
+      sel: function () { return cs.filter(function (c) { return c.i.checked; }).map(function (c) { return c.id; }); }
+    };
+  }
+  function mismoConjunto(a, b) {
+    if (a.length !== b.length) return false;
+    return a.every(function (x) { return b.indexOf(x) !== -1; });
+  }
+  /* modelo_techo_edita falla con LW409 si el cambio deja fuera contratos sin firmar que llevan ese techo:
+     se pregunta y se repite con p_confirmado. */
+  function editaTecho(ctx, e, confirmado) {
+    return rpc(ctx.sb, 'modelo_techo_edita', { p_id: e.id, p_cambios: e.c, p_confirmado: !!confirmado })
+      .catch(function (err) {
+        if (!err || err.code !== 'LW409' || confirmado) throw err;
+        var sigue = typeof window.lwConfirmar === 'function'
+          ? window.lwConfirmar({ titulo: 'Cambiar «' + e.nombre + '»', confirmar: 'Cambiar igualmente',
+              cuerpo: '<p>' + esc(err.message) + '</p><p>Si lo cambias, esos contratos ya no podrán volver a elegir este techo; el que tienen se queda como está.</p>' })
+          : Promise.resolve(window.confirm(err.message));
+        return Promise.resolve(sigue).then(function (ok) {
+          if (!ok) throw new Error('«' + e.nombre + '» no se ha cambiado. Lo anterior de la lista sí se guardó.');
+          return editaTecho(ctx, e, true);
+        });
+      });
+  }
+
   function bTechos(col, m, h, ctx) {
     var base = m.precio_construccion != null ? Number(m.precio_construccion) : null;
     var b = bloque(col, 'techos', 'Techos', { editar: h.techos.length ? function (host) {
-      var t = document.createElement('div'); t.className = 'fm-tabla'; t.style.gridTemplateColumns = 'minmax(0,1fr) 140px 140px'; host.appendChild(t);
-      t.innerHTML = '<span class="fm-lbl">Acabado</span><span class="fm-lbl">Ahora</span><span class="fm-lbl">2027</span>';
+      nota(host, 'Precios completos de la villa con ese techo. Ninguno puede quedar por debajo de la base' + (base != null ? ' (' + ctx.fmt(base, m.moneda) + ')' : '') + '.');
       var ins = h.techos.map(function (x) {
-        var n = document.createElement('span'); n.textContent = x.nombre; n.style.fontWeight = '600'; t.appendChild(n);
-        var a = document.createElement('input'); a.className = 'fm-in'; a.type = 'text'; a.inputMode = 'decimal'; a.value = x.precio_ahora == null ? '' : x.precio_ahora; t.appendChild(a);
-        var z = document.createElement('input'); z.className = 'fm-in'; z.type = 'text'; z.inputMode = 'decimal'; z.value = x.precio_2027 == null ? '' : x.precio_2027; t.appendChild(z);
-        return { x: x, a: a, z: z };
+        var tarjeta = document.createElement('div');
+        tarjeta.style.cssText = 'display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:10px;background:' + C.crema;
+        host.appendChild(tarjeta);
+        var fila = document.createElement('div'); fila.className = 'fm-tabla'; fila.style.gridTemplateColumns = 'minmax(0,1fr) 130px 130px';
+        tarjeta.appendChild(fila);
+        var n = campo(fila, 'Nombre', x.nombre);
+        var a = campo(fila, 'Ahora', x.precio_ahora, { num: 1 });
+        var z = campo(fila, '2027', x.precio_2027, { num: 1 });
+        var act = casilla(tarjeta, 'Se ofrece', x.activo !== false, 'Desmárcalo para retirarlo: deja de salir en contratos nuevos y en la web. Nunca se borra.');
+        var al = campoAlcance(tarjeta, h, ctx, x);
+        return { x: x, n: n, a: a, z: z, act: act, al: al };
       });
-      nota(host, 'Son precios completos de la villa con ese techo. El más barato debería coincidir con el precio base' + (base != null ? ' (' + ctx.fmt(base, m.moneda) + ')' : '') + '.');
       return function () {
-        var lista = [];
+        var precios = [], edits = [];
         ins.forEach(function (r) {
-          var na = chk(num(r.a.value), 'El precio de «' + r.x.nombre + '»'), nz = chk(num(r.z.value), 'El precio 2027 de «' + r.x.nombre + '»');
-          if (na === (r.x.precio_ahora == null ? null : Number(r.x.precio_ahora)) && nz === (r.x.precio_2027 == null ? null : Number(r.x.precio_2027))) return;
-          if (na == null) throw new Error('«' + r.x.nombre + '» necesita precio ahora');
-          lista.push({ id: r.x.id, precio_ahora: na, precio_2027: nz });
+          var nombre = r.n.value.trim() || r.x.nombre;
+          var na = chk(num(r.a.value), 'El precio de «' + nombre + '»'), nz = chk(num(r.z.value), 'El precio 2027 de «' + nombre + '»');
+          if (na !== (r.x.precio_ahora == null ? null : Number(r.x.precio_ahora)) || nz !== (r.x.precio_2027 == null ? null : Number(r.x.precio_2027))) {
+            if (na == null) throw new Error('«' + nombre + '» necesita precio ahora');
+            precios.push({ id: r.x.id, precio_ahora: na, precio_2027: nz });
+          }
+          var c = {};
+          if (r.n.value.trim() !== r.x.nombre) c.nombre = r.n.value.trim();
+          if (r.act.checked !== (r.x.activo !== false)) c.activo = r.act.checked;
+          if (r.al.todos.checked) {
+            if (r.x.alcance === 'lista') c.alcance = 'todos';
+          } else {
+            var sel = r.al.sel();
+            if (!sel.length) throw new Error('«' + nombre + '»: marca al menos un proyecto, o deja «Todos los proyectos».');
+            if (r.x.alcance !== 'lista' || !mismoConjunto(sel, r.al.antes)) { c.alcance = 'lista'; c.proyectos = sel; }
+          }
+          if (Object.keys(c).length) edits.push({ id: r.x.id, nombre: nombre, c: c });
         });
-        if (!lista.length) return Promise.resolve();
-        return rpc(ctx.sb, 'modelo_techos_guarda', { p_id: m.id, p_techos: lista });
+        // Precios primero (una transacción): reactivar un techo mira el precio ya guardado contra la base.
+        var p = precios.length ? rpc(ctx.sb, 'modelo_techos_guarda', { p_id: m.id, p_techos: precios }) : Promise.resolve();
+        edits.forEach(function (e) { p = p.then(function () { return editaTecho(ctx, e, false); }); });
+        return p;
       };
     } : null });
-    if (!h.techos.length) { vacio(b.cuerpo, 'Sin techos: el contrato de Construcción no ofrece elegir acabado de techo.'); return; }
-    var t = document.createElement('div'); t.className = 'fm-tabla'; t.style.gridTemplateColumns = 'minmax(0,1fr) 120px 120px';
-    t.innerHTML = '<span class="fm-lbl">Acabado</span><span class="fm-lbl">Ahora</span><span class="fm-lbl">2027</span>' +
-      h.techos.map(function (x) { return '<span>' + esc(x.nombre) + '</span><span style="font-weight:600">' + esc(ctx.fmt(x.precio_ahora, m.moneda)) + '</span><span>' + esc(x.precio_2027 != null ? ctx.fmt(x.precio_2027, m.moneda) : '—') + '</span>'; }).join('');
+
+    if (EST.admin) {
+      var bA = document.createElement('button'); bA.type = 'button'; bA.className = 'fm-ed'; bA.textContent = 'Añadir techo';
+      bA.setAttribute('data-real', ''); bA.setAttribute('data-accion', 'anadir-techo');
+      bA.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        abreEdicion(b, function (host) {
+          if (base == null) nota(host, 'Este modelo no tiene precio base: ponlo antes en «Precio de construcción». Sin base no se puede calcular el techo en los proyectos con precio propio.', 'rojo');
+          var n = campo(host, 'Nombre del techo', '', { ph: 'p. ej. Alang-alang' });
+          var d = campo(host, 'Descripción (web y ficha)', '', { area: 1, filas: 3 });
+          var g = document.createElement('div'); g.className = 'fm-tabla'; g.style.cssText = 'grid-template-columns:1fr 1fr;align-items:start'; host.appendChild(g);
+          var a = campo(g, 'Precio ahora', '', { num: 1, ayuda: 'Villa completa con este techo' + (base != null ? ' · mínimo ' + ctx.fmt(base, m.moneda) : '') });
+          var z = campo(g, 'Precio 2027', '', { num: 1, ayuda: 'Se cobra desde el 1-ene-2027' });
+          var al = campoAlcance(host, h, ctx, null);
+          nota(host, 'Después: sube su Anexo Maestro en «Documentos» (tipo plano, con este techo). Mientras no esté, el contrato avisa y deja enviar igualmente. La foto de este techo en la web tampoco es automática.');
+          return function () {
+            var nombre = n.value.trim();
+            if (!nombre) throw new Error('Pon el nombre del techo');
+            var datos = { nombre: nombre, descripcion: d.value.trim(),
+              precio_ahora: chk(num(a.value), 'El precio ahora'), precio_2027: chk(num(z.value), 'El precio 2027'),
+              alcance: al.todos.checked ? 'todos' : 'lista' };
+            if (!al.todos.checked) {
+              datos.proyectos = al.sel();
+              if (!datos.proyectos.length) throw new Error('Marca al menos un proyecto, o deja «Todos los proyectos».');
+            }
+            return rpc(ctx.sb, 'modelo_techo_crea', { p_modelo_id: m.id, p_datos: datos });
+          };
+        });
+      });
+      b.cab.appendChild(bA);
+      b.h.style.flex = '1';   // dos botones: juntos a la derecha, no uno en medio
+    }
+
+    if (!h.techos.length) { vacio(b.cuerpo, 'Sin techos: el contrato de Construcción ofrece solo «Ulin» al precio de la casa.'); return; }
+    // Tres columnas como antes (cabe a 390 px); «dónde se ofrece» va debajo del nombre.
+    var t = document.createElement('div'); t.className = 'fm-tabla'; t.style.gridTemplateColumns = 'minmax(0,1fr) auto auto';
+    t.innerHTML = '<span class="fm-lbl">Acabado</span><span class="fm-lbl">Ahora</span><span class="fm-lbl">2027</span>';
+    h.techos.forEach(function (x) {
+      var retirado = x.activo === false, donde = dondeTecho(x, h, ctx);
+      var tachado = retirado ? 'color:' + C.apagado + ';text-decoration:line-through;' : '';
+      t.insertAdjacentHTML('beforeend',
+        '<span style="min-width:0"><span style="' + tachado + '">' + esc(x.nombre) + '</span>' +
+          '<small style="display:block;font-size:12px;color:' + (retirado ? C.apagado : donde.mal ? C.rojo : C.apagado) + '">' +
+          esc(retirado ? 'Retirado' : donde.txt) + '</small></span>' +
+        '<span style="' + tachado + 'font-weight:600;white-space:nowrap">' + esc(ctx.fmt(x.precio_ahora, m.moneda)) + '</span>' +
+        '<span style="' + tachado + 'white-space:nowrap">' + esc(x.precio_2027 != null ? ctx.fmt(x.precio_2027, m.moneda) : '—') + '</span>');
+    });
     b.cuerpo.appendChild(t);
-    var min = Math.min.apply(null, h.techos.map(function (x) { return Number(x.precio_ahora); }));
-    if (base != null && min !== base) nota(b.cuerpo, 'El techo más barato (' + ctx.fmt(min, m.moneda) + ') no coincide con la base (' + ctx.fmt(base, m.moneda) + '): el precio de techo en cada proyecto sale desplazado.', 'ambar');
+    var activos = h.techos.filter(function (x) { return x.activo !== false; });
+    var min = activos.length ? Math.min.apply(null, activos.map(function (x) { return Number(x.precio_ahora); })) : null;
+    if (base != null && min != null && min !== base) nota(b.cuerpo, 'El techo más barato (' + ctx.fmt(min, m.moneda) + ') no coincide con la base (' + ctx.fmt(base, m.moneda) + '): el precio de techo en cada proyecto sale desplazado.', 'ambar');
+    var sin27 = activos.filter(function (x) { return x.precio_2027 == null; });
+    if (sin27.length) nota(b.cuerpo, 'Sin precio 2027: ' + sin27.map(function (x) { return x.nombre; }).join(', ') + '. Desde el 1-ene-2027 no se ofrecerán en el contrato.', 'ambar');
   }
 
   function bExtras(col, m, h, ctx) {
@@ -650,7 +787,9 @@
      el que se está editando). Devuelve true si algún techo (o el modelo) sale sin anexo. */
   function resumenContrato(host, h, docs) {
     var R = reglaDocs(); if (!R) return;
-    var techos = h.techos.length ? h.techos.map(function (t) { return [t.clave, t.nombre]; }) : [['', '']];
+    // Solo los techos que se ofrecen (30-sep-2026): un retirado no sale en contratos nuevos, no le falta anexo.
+    var vivos = h.techos.filter(function (t) { return t.activo !== false; });
+    var techos = vivos.length ? vivos.map(function (t) { return [t.clave, t.nombre]; }) : [['', '']];
     techos.forEach(function (t) {
       var entran = R.apendices(docs, t[0]);
       var p = document.createElement('p'); p.className = 'fm-nota' + (entran.length ? '' : ' fm-ambar');

@@ -99,8 +99,9 @@ $portada = $g[0] ?? null;
 // 24-sep-2026: manda la VISTA marcada en la intranet (Fotos del deck → «Vista en la ficha»,
 // columna deck_fotos.vista). El pie es solo el respaldo de las fotos sin marcar: es texto
 // libre y en Dune cruzó la planta con la aérea.
-$heroDay      = lw_foto_por_vista($m['id'], 'techo_sirap') ?? lw_foto_por_pie($m['id'], ['sirap', 'ulin exterior']) ?? $g[0] ?? null;
-$heroTechoAlt = lw_foto_por_vista($m['id'], 'techo_bambu') ?? lw_foto_por_pie($m['id'], ['bamboo exterior', 'bambu exterior', 'roof bamboo', 'bamboo', 'bambu'], null, ['aerea', 'floor plan', 'top view']) ?? $g[2] ?? $g[1] ?? $g[0] ?? null;
+// 30-sep-2026: misma cadena que antes, ahora en lw_techo_foto() (lib.php), compartida con index.php.
+$heroDay      = lw_techo_foto($m['id'], 'sirap', $g);
+$heroTechoAlt = lw_techo_foto($m['id'], 'bambu', $g);
 $heroInterior = lw_foto_por_vista($m['id'], 'interior') ?? lw_foto_por_pie($m['id'], ['living room', 'bedroom', 'interior']) ?? $g[6] ?? $g[1] ?? $g[0] ?? null;
 $heroKitchen  = lw_foto_por_vista($m['id'], 'cocina') ?? lw_foto_por_pie($m['id'], ['kitchen']);
 $heroToilet   = lw_foto_por_vista($m['id'], 'bano') ?? lw_foto_por_pie($m['id'], ['toilet']);
@@ -126,16 +127,22 @@ foreach ($CAT as $cmId => $v) {
         'villa'  => $v['villa'],
         'specs'  => $v['specs'],
         'thumb'  => $v['thumb'],
-        'techos' => [
-            'sirap' => ['nombre' => $v['techos']['sirap']['nombre'], 'eur' => $v['techos']['sirap']['eur']],
-            'bambu' => ['nombre' => $v['techos']['bambu']['nombre'], 'eur' => $v['techos']['bambu']['eur']],
-        ],
+        'techos' => lw_techos_cfg($v['techos']),
         'extras' => $v['extras'],
     ];
 }
 
-// ── Comparativa de cubiertas: solo si ESTE modelo tiene los dos techos resueltos ─────
-$techosComp = (!empty($m['techos']['sirap']) && !empty($m['techos']['bambu'])) ? $m['techos'] : null;
+// ── Comparativa de cubiertas (30-sep-2026): mismo criterio que modelo/index.php — una
+//    tarjeta por techo no limitado a un proyecto, en su orden; con menos de 2 no se pinta.
+$techosComp = lw_techos_para($m['techos'] ?? [], null);
+if (count($techosComp) < 2) $techosComp = null;
+$techoFoto = []; $vistaTecho = [];
+foreach (lw_techos_para($m['techos'] ?? [], null) as $tk => $tt) {
+    $tk = (string) $tk;
+    $techoFoto[$tk] = lw_techo_foto($m['id'], $tk, $g);
+    $vistaTecho[$tk] = ($techoFoto[$tk] !== null && $techoFoto[$tk] === $heroTechoAlt && $heroTechoAlt !== $heroDay) ? 'roof' : 'day';
+}
+$cfgJs['vistaTecho'] = (object) $vistaTecho;
 
 // ── Snapshot financiero ───────────────────────────────────────────────────────────
 // 22-sep-2026: Dali, Dune (1 dormitorio) y Dream (2 dormitorios) pasan del ejemplo de
@@ -239,7 +246,7 @@ $deckEtiqueta = $deckEj['proyecto'] ?? '';
 <head>
 <meta charset="utf-8">
 <script src="/assets/idioma-web.js?v=20260908113407"></script>
-<script src="/assets/i18n-landing.js?v=20260923093252" defer></script>
+<script src="/assets/i18n-landing.js?v=20260930110400" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= lw_e($villa . $TITULO_SUFIJO) ?></title>
 <meta name="description" content="<?= lw_e($villa) ?>: a new-build <?= lw_e($dormTxt) ?> villa, built on the plot you choose. Finishes, scope of works and price, configured live.">
@@ -750,7 +757,7 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 <div class="cfg__step space-y-2" data-paso="2" hidden>
 <div class="flex flex-col mb-1">
 <span class="font-headline-sm text-headline-sm text-primary font-semibold"><?= lw_i18n('¿Qué techo?', 'Which roof?') ?></span>
-<p class="font-body-sm text-body-sm text-on-surface-variant">Two complete villa prices, not an add-on — the roof you choose is the price of the villa.</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant"><?= lw_e(lw_techos_frase(count($vistaTecho))) ?></p>
 </div>
 <div id="lw-techos" class="space-y-2"></div>
 </div>
@@ -921,47 +928,30 @@ foreach ($incluido as $it):
 <span><?= lw_i18n('Materialidad', 'Craft & materiality') ?></span>
 </div>
 <h2 class="font-headline-lg text-3xl md:text-[44px] text-primary font-bold leading-tight">Roof finishes</h2>
-<p class="font-body-lg text-on-surface-variant leading-relaxed">Two complete villa prices, not an add-on — the roof you choose is the price of the villa.</p>
+<p class="font-body-lg text-on-surface-variant leading-relaxed"><?= lw_e(lw_techos_frase(count($techosComp))) ?></p>
 </div>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10">
-<div class="bg-surface rounded-3xl overflow-hidden border border-surface-container-highest/90 shadow-xl flex flex-col group hover:-translate-y-1.5 transition-all duration-300">
+<?php $ti = 0; foreach ($techosComp as $tk => $tc): $tFoto = $techoFoto[(string) $tk] ?? null; $primero = $ti++ === 0; ?>
+<div class="bg-surface rounded-3xl overflow-hidden <?= $primero ? 'border border-surface-container-highest/90' : 'border-2 border-primary/40' ?> shadow-xl flex flex-col group hover:-translate-y-1.5 transition-all duration-300<?= $primero ? '' : ' relative' ?>">
 <div class="relative h-72 lg:h-80 overflow-hidden bg-volcanic-ash">
-<?php if ($heroDay): ?><img alt="<?= lw_e($techosComp['sirap']['nombre']) ?>" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" src="<?= lw_e($heroDay) ?>" loading="lazy"><?php endif; ?>
+<?php if ($tFoto): ?><img alt="<?= lw_e($tc['nombre']) ?>" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" src="<?= lw_e($tFoto) ?>" loading="lazy"><?php endif; ?>
 <div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/70 via-transparent to-transparent"></div>
 <div class="absolute bottom-4 left-4 right-4 flex items-end justify-between">
-<span class="font-headline-md text-2xl text-white font-bold"><?= lw_e($techosComp['sirap']['nombre']) ?></span>
-<span class="font-kpi-number text-lg text-surface font-bold bg-primary/80 px-3 py-1 rounded-lg backdrop-blur-sm"><?= lw_e(lw_precio_fmt($techosComp['sirap']['now'] ?? null)) ?></span>
+<span class="font-headline-md text-2xl text-white font-bold"><?= lw_e($tc['nombre']) ?></span>
+<span class="font-kpi-number text-lg <?= $primero ? 'text-surface' : 'text-white' ?> font-bold <?= $primero ? 'bg-primary/80' : 'bg-deep-lagoon/90' ?> px-3 py-1 rounded-lg backdrop-blur-sm"><?= lw_e(lw_precio_fmt(lw_techo_precio_activo($tc))) ?></span>
 </div>
 </div>
 <div class="p-6 md:p-8 flex flex-col justify-between flex-1 space-y-6">
 <div class="space-y-3">
-<h3 class="font-headline-sm text-2xl text-primary font-bold"><?= lw_e($techosComp['sirap']['nombre']) ?></h3>
-<p class="font-body-md text-on-surface-variant leading-relaxed"><?= lw_e($techosComp['sirap']['desc'] ?? '') ?></p>
-<?php if ($antes2027 && !empty($techosComp['sirap']['y2027'])): ?>
-<p class="text-[11px] text-on-surface-variant">2026 price shown. From 2027: <?= lw_e(lw_precio_fmt($techosComp['sirap']['y2027'])) ?>.</p>
+<h3 class="font-headline-sm text-2xl text-primary font-bold"><?= lw_e($tc['nombre']) ?></h3>
+<p class="font-body-md text-on-surface-variant leading-relaxed"><?= lw_e($tc['desc'] ?? '') ?></p>
+<?php if ($antes2027 && !empty($tc['y2027'])): ?>
+<p class="text-[11px] text-on-surface-variant">2026 price shown. From 2027: <?= lw_e(lw_precio_fmt($tc['y2027'])) ?>.</p>
 <?php endif; ?>
 </div>
 </div>
 </div>
-<div class="bg-surface rounded-3xl overflow-hidden border-2 border-primary/40 shadow-xl flex flex-col group hover:-translate-y-1.5 transition-all duration-300 relative">
-<div class="relative h-72 lg:h-80 overflow-hidden bg-volcanic-ash">
-<?php if ($heroTechoAlt): ?><img alt="<?= lw_e($techosComp['bambu']['nombre']) ?>" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" src="<?= lw_e($heroTechoAlt) ?>" loading="lazy"><?php endif; ?>
-<div class="absolute inset-0 bg-gradient-to-t from-volcanic-ash/70 via-transparent to-transparent"></div>
-<div class="absolute bottom-4 left-4 right-4 flex items-end justify-between">
-<span class="font-headline-md text-2xl text-white font-bold"><?= lw_e($techosComp['bambu']['nombre']) ?></span>
-<span class="font-kpi-number text-lg text-white font-bold bg-deep-lagoon/90 px-3 py-1 rounded-lg backdrop-blur-sm"><?= lw_e(lw_precio_fmt($techosComp['bambu']['now'] ?? null)) ?></span>
-</div>
-</div>
-<div class="p-6 md:p-8 flex flex-col justify-between flex-1 space-y-6">
-<div class="space-y-3">
-<h3 class="font-headline-sm text-2xl text-primary font-bold"><?= lw_e($techosComp['bambu']['nombre']) ?></h3>
-<p class="font-body-md text-on-surface-variant leading-relaxed"><?= lw_e($techosComp['bambu']['desc'] ?? '') ?></p>
-<?php if ($antes2027 && !empty($techosComp['bambu']['y2027'])): ?>
-<p class="text-[11px] text-on-surface-variant">2026 price shown. From 2027: <?= lw_e(lw_precio_fmt($techosComp['bambu']['y2027'])) ?>.</p>
-<?php endif; ?>
-</div>
-</div>
-</div>
+<?php endforeach; ?>
 </div>
 </div>
 </section>
@@ -1119,7 +1109,7 @@ foreach ($incluido as $it):
 <!-- Motor del configurador ANTES del script inline que lo invoca (window.lwAuCfgInit
      tiene que existir cuando se llama más abajo) — sin defer a propósito, o el inline
      que sigue se ejecutaría primero y fallaría "lwAuCfgInit is not a function". -->
-<script src="/assets/au-landing-cfg.js?v=20260922203350"></script>
+<script src="/assets/au-landing-cfg.js?v=20260930110400"></script>
 <script>
 (function () {
   'use strict';
