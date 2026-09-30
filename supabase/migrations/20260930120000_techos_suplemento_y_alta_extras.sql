@@ -1,4 +1,4 @@
--- destructivo-ok: no borra filas. Renombra modelo_techos.precio_ahora/precio_2027 a *_antiguo (se conservan), pasa a
+-- destructivo-ok: no borra filas. Deja sin uso modelo_techos.precio_ahora/precio_2027 (se renombran después), pasa a
 -- «hereda la base» (null) el precio por proyecto de 13 pares que lo tenían escrito a mano IGUAL a la base (decisión
 -- del owner 30-sep, con log en modelos_precios_log), cambia la FK modelo_extras→extras de CASCADE a RESTRICT y
 -- recrea el constraint trigger de invariantes. Aborta sola si alguna cifra cambia sin estar decidido.
@@ -20,7 +20,7 @@
 
 -- ── 0. foto ANTES (tramo 2026 y 2027) ───────────────────────────────────────────────────────────────────
 create temp table _antes (tramo_prueba text, modelo_id uuid, proyecto_id uuid, techo_id uuid, clave text, precio numeric) on commit drop;
-do $$
+do $d$
 declare t text;
 begin
   foreach t in array array['2026', '2027'] loop
@@ -31,7 +31,7 @@ begin
               union select m.id, null::uuid from public.modelos m) x
         cross join lateral public._modelo_techos_opciones(x.modelo_id, x.proyecto_id) o;
   end loop;
-end $$;
+end $d$;
 create or replace function public.catalogo_tramo_activo()
 returns text language sql stable set search_path = '' as $$
   select case when (now() at time zone 'Asia/Makassar') < timestamp '2027-01-01 00:00:00' then '2026' else '2027' end
@@ -73,6 +73,10 @@ update public.modelo_techos t
        suplemento_2027 = t.precio_2027 - b.precio_2027
   from _base b where b.modelo_id = t.modelo_id;
 update public.modelos m set precio_construccion_2027 = b.precio_2027 from _base b where b.modelo_id = m.id;
+-- el UPDATE deja eventos del constraint trigger diferido pendientes, y con eventos pendientes no se puede hacer
+-- ALTER TABLE: se disparan aquí (los datos aún cumplen las reglas de antes) y se vuelve a diferir.
+set constraints all immediate;
+set constraints all deferred;
 alter table public.modelo_techos alter column suplemento_ahora set not null;
 alter table public.modelo_techos alter column suplemento_2027 set not null;
 alter table public.modelo_techos alter column suplemento_ahora set default 0;
@@ -83,10 +87,11 @@ do $$ begin
   end if;
 end $$;
 create unique index if not exists modelo_techos_un_base on public.modelo_techos (modelo_id) where es_base;
-alter table public.modelo_techos rename column precio_ahora to precio_ahora_antiguo;
-alter table public.modelo_techos rename column precio_2027 to precio_2027_antiguo;
-comment on column public.modelo_techos.precio_ahora_antiguo is 'SIN USO desde el 30-sep-2026: el techo es un suplemento (suplemento_ahora). Se conserva hasta que el owner autorice borrarla.';
-comment on column public.modelo_techos.precio_2027_antiguo is 'SIN USO desde el 30-sep-2026: el techo es un suplemento (suplemento_2027). Se conserva hasta que el owner autorice borrarla.';
+-- precio_ahora/precio_2027 dejan de ser fuente, pero NO se renombran aquí (revisor-codigo): el JS que hay en
+-- producción las lee al cargar la ficha, y renombrarlas antes de publicar el JS nuevo deja /v4/modelos sin cargar.
+-- Se renombran a *_antiguo en una migración aparte, justo después de aterrizar. Ninguna función las lee (se comprueba abajo).
+comment on column public.modelo_techos.precio_ahora is 'SIN USO desde el 30-sep-2026: el techo es un suplemento (suplemento_ahora). Se renombra a precio_ahora_antiguo.';
+comment on column public.modelo_techos.precio_2027 is 'SIN USO desde el 30-sep-2026: el techo es un suplemento (suplemento_2027). Se renombra a precio_2027_antiguo.';
 comment on column public.modelo_techos.suplemento_ahora is 'Lo que suma este techo sobre la casa con su techo base (precio base del modelo o precio propio del proyecto), tramo 2026. El techo base lleva 0. 30-sep-2026.';
 comment on column public.modelos.precio_construccion_2027 is 'Precio de la casa con su techo base desde el 1-ene-2027 (catálogo y proyectos que heredan). 30-sep-2026.';
 
@@ -130,7 +135,11 @@ as $$
     select m.moneda as m_moneda,
            mv.precio_construccion as propio,
            case when p_tramo = '2026' then m.precio_construccion else m.precio_construccion_2027 end as catalogo,
-           coalesce(mv.precio_construccion, m.precio_construccion) as efectivo_ulin,
+           -- rama «Ulin» (modelo sin techos): la base del tramo, la misma que anuncia la web (revisor-codigo);
+           -- hoy ningún modelo sin techos tiene base 2027, así que no cambia nada.
+           coalesce(mv.precio_construccion,
+                    case when p_tramo = '2026' then m.precio_construccion
+                         else coalesce(m.precio_construccion_2027, m.precio_construccion) end) as efectivo_ulin,
            case when mv.precio_construccion is not null then coalesce(mv.moneda, m.moneda) else m.moneda end as moneda
       from public.modelos m
       left join public.modelos_villa mv
@@ -225,7 +234,7 @@ declare v numeric;
 begin
   v := public._lw_num(p_v, p_campo);
   if v is null then raise exception '% es obligatorio (0 si no suma nada)', p_campo using errcode = '22023'; end if;
-  if v < 0 or v >= case p_moneda when 'IDR' then 500000000000::numeric else 50000000::numeric end then
+  if v < 0 or v >= (case p_moneda when 'IDR' then 500000000000::numeric else 50000000::numeric end) then
     raise exception '% tiene que ser 0 o más (y razonable en %)', p_campo, p_moneda using errcode = '22023';
   end if;
   return v;
@@ -587,7 +596,9 @@ begin
   insert into public.modelo_extras (modelo_id, extra_id, precio, moneda, disponible)
     select m.id, v_id, case when m.id = p_modelo_id then v_p end, coalesce(m.moneda, 'EUR'), m.id = p_modelo_id
       from public.modelos m;
-  perform public._precio_log(p_modelo_id, null, 'modelo_extras', v_id, 'precio', null, v_p, v_mon, 'extra_crea', 'alta del extra «' || v_nombre || '»');
+  perform public._precio_log(p_modelo_id, null, 'modelo_extras',
+    (select me.id from public.modelo_extras me where me.modelo_id = p_modelo_id and me.extra_id = v_id),
+    'precio', null, v_p, v_mon, 'extra_crea', 'alta del extra «' || v_nombre || '»');
   return v_id;
 end $$;
 revoke all on function public.extra_crea(uuid, jsonb) from public, anon;
