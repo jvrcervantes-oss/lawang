@@ -72,22 +72,51 @@ function identificadoresDelFormulario(){
 /* Cuatro respuestas y no un sí/no: el desplegable tiene que poder decir POR QUÉ
    una parcela no se puede coger. 'otro' y 'sin_datos' salían antes como
    traspasables y reventaban al guardar, que es justo lo que este selector
-   existe para evitar (LAW-51, 14-ago-2026). */
-function estadoTraspaso(u){
-  if(CONTRACT_TIPO[CURRENT.slug] !== 'reserva_parcela') return 'no';
+   existe para evitar (LAW-51, 14-ago-2026).
+   `ctx` (30-sep-2026, F7) — { tipo, ids } — es para quien pregunta ANTES de que
+   exista el formulario: el asistente de Nuevo contrato elige la parcela con el
+   tipo y el cliente que ha contestado, mientras detrás sigue la plantilla por
+   defecto. Sin `ctx` es exactamente lo de siempre (tipo y compradores del
+   formulario). Es la MISMA regla: el asistente no lleva copia propia (revisión
+   de código, 30-sep: la suya daba por buenas Cartas de otro comprador). */
+function estadoTraspaso(u, ctx){
+  const tipo = ctx ? ctx.tipo : CONTRACT_TIPO[CURRENT.slug];
+  if(tipo !== 'reserva_parcela') return 'no';
+  const idsMios = () => ctx ? unicos((ctx.ids || []).map(normId)) : identificadoresDelFormulario();
   /* Ocupante que este usuario NO puede leer (la Carta la hizo otro agente,
      25-sep-2026): lo que dijo la base al elegirla, si fue con los mismos
      compradores que hay ahora en el formulario; si no, aún no se sabe. */
   if(u.ocupanteOculto){
     const r = u.traspasoRemoto;
-    return (r && r.clave === identificadoresDelFormulario().join('|')) ? r.estado : 'por_comprobar';
+    return (r && r.clave === idsMios().join('|')) ? r.estado : 'por_comprobar';
   }
   if(!u.ocupante || !TIPOS_CEDEN_PARCELA.includes(u.ocupante.tipo)) return 'no';
-  const mios = identificadoresDelFormulario(), suyos = identificadoresOcupante(u.ocupante);
+  const mios = idsMios(), suyos = identificadoresOcupante(u.ocupante);
   if(!mios.length || !suyos.length) return 'sin_datos';
   return mios.some(v => suyos.includes(v)) ? 'ok' : 'otro';
 }
 function puedeTraspasarParcela(u){ return estadoTraspaso(u) === 'ok'; }
+/* Los identificadores de una FICHA de `clients` (el asistente elige la ficha
+   antes de que exista el formulario): pasaporte y email, en el orden y con la
+   misma limpieza con que enlazarFicha() los vuelca en adq1_pasaporte/adq1_email
+   (CAMPOS_FICHA), así que la clave es la misma que la del editor. */
+function identificadoresDeFicha(f){
+  return unicos([normId(f && f.passport_number), normId(f && f.email)]);
+}
+/* ¿Se puede elegir esta unidad para el contrato? Una sola respuesta para el
+   selector del editor (pintarSelectorParcela) y el asistente (F7, 30-sep-2026).
+   `tomada`: la tiene otro contrato. `modo`: estadoTraspaso. `bloqueada`: no se
+   ofrece. 'por_comprobar' NO bloquea: se pregunta a la base al elegirla.
+   Una parcela marcada a mano como no disponible sin contrato detrás también se
+   bloquea (24-ago, aviso del cliente — ver la nota en pintarSelectorParcela). */
+function eleccionParcela(u, ctx){
+  // Con `ctx` (el asistente) el contrato aún no existe: ninguna unidad es «suya».
+  const mio = ctx ? null : (SAVED_CONTRACT && SAVED_CONTRACT.id);
+  const tomada = !!u.contrato_id && u.contrato_id !== mio;
+  const modo = tomada ? estadoTraspaso(u, ctx) : 'no';
+  const bloqueada = tomada ? !(modo === 'ok' || modo === 'por_comprobar') : u.estado !== 'disponible';
+  return { tomada, modo, bloqueada };
+}
 /* LA LECTURA del inventario de un proyecto, sin tocar el formulario (30-sep-2026,
    F7). La usan el selector de parcela del editor (cargarUnidadesDelProyecto, aquí
    debajo) y el asistente de Nuevo contrato (asistente-contrato.js), que elige la
@@ -234,8 +263,7 @@ function pintarSelectorParcela(){
   }
   const mio = SAVED_CONTRACT && SAVED_CONTRACT.id;
   const ops = libres.filter(u => !elegidas.includes(u.codigo)).map(u => {
-    const tomada = u.contrato_id && u.contrato_id !== mio;
-    const modo = tomada ? estadoTraspaso(u) : 'no';
+    const { tomada, modo, bloqueada: bloqueadaOpcion } = eleccionParcela(u);
     const traspaso = modo === 'ok';
     const suNum = (u.ocupante && u.ocupante.numero)
       || (u.traspasoRemoto && u.traspasoRemoto.numero) || 'una Carta de Reserva';
@@ -252,7 +280,6 @@ function pintarSelectorParcela(){
        Proyectos como bloqueada/no disponible sin contrato detrás se ofrecía
        igual, con la nota puesta pero seleccionable — la nota se veía, el freno
        no estaba. */
-    const bloqueadaOpcion = tomada ? !(traspaso || modo === 'por_comprobar') : u.estado !== 'disponible';
     return `<option value="${escAttr(u.codigo)}" ${bloqueadaOpcion?'disabled':''}>${
       escAttr(partes.filter(Boolean).join(' · '))}</option>`;
   }).join('');
@@ -308,26 +335,39 @@ function pintarSelectorParcela(){
    de la Carta. Responde número + estado, ningún dato personal, y usa la misma
    regla que el trigger al guardar (traspaso_carta_estado): lo que aquí se deja
    elegir es lo que la base va a aceptar. Devuelve true si se puede traspasar. */
+/* El núcleo, sin avisos (30-sep-2026, F7): pregunta a la base y deja la
+   respuesta EN la unidad, que es donde la lee estadoTraspaso(). Lo usan
+   comprobarTraspasoRemoto (el editor, que avisa con toasts) y el asistente de
+   Nuevo contrato, que pinta el motivo en la propia parcela. Lanza si la base no
+   contesta: «no se ha podido comprobar» no es «de otro comprador».
+   Devuelve el estado ('ok' | 'otro' | 'sin_datos') o 'no' si no la ocupa una Carta. */
+async function consultarTraspasoRemoto(u, proyecto, ids){
+  const clave = ids.join('|');
+  const { data: d, error } = await sb.rpc('parcela_traspaso_estado',
+    { p_proyecto: proyecto, p_codigo: u.codigo, p_ids: ids });
+  if(error) throw error;
+  if(!d){
+    // No la ocupa una Carta: es de otro Bloqueo/Construcción — no se traspasa.
+    u.ocupanteOculto = false; u.ocupante = null;
+    return 'no';
+  }
+  u.traspasoRemoto = { numero: d.numero, estado: d.estado, clave };
+  return d.estado;
+}
 async function comprobarTraspasoRemoto(u){
   const ids = identificadoresDelFormulario();
-  const clave = ids.join('|');
-  let d = null;
+  let estado;
   try{
-    const { data, error } = await sb.rpc('parcela_traspaso_estado',
-      { p_proyecto: UNIDADES_PROY.proyecto, p_codigo: u.codigo, p_ids: ids });
-    if(error) throw error;
-    d = data;
+    estado = await consultarTraspasoRemoto(u, UNIDADES_PROY.proyecto, ids);
   }catch(err){
     toastMal(lwT('No se ha podido comprobar la parcela: ') + ((err && err.message) || ''));
     return false;
   }
-  if(!d){
-    // No la ocupa una Carta: es de otro Bloqueo/Construcción — no se traspasa.
-    u.ocupanteOculto = false; u.ocupante = null;
+  if(estado === 'no'){
     toastMal(lwT('La parcela ') + u.codigo + lwT(' ya está asignada a otro contrato.'));
     return false;
   }
-  u.traspasoRemoto = { numero: d.numero, estado: d.estado, clave };
+  const d = u.traspasoRemoto;
   if(d.estado === 'ok'){
     toast(lwT('Reservada en ') + d.numero + lwT(' para este comprador: se traspasa a este Bloqueo al guardar.'));
     return true;

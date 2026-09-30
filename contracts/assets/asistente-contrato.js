@@ -56,6 +56,48 @@
   var raiz = null;       // el nodo del asistente, mientras está abierto
   var montando = false;
 
+  /* ── los avisos del editor no tapan el asistente (30-sep-2026, visto por el CEO en la captura B1) ──
+     Con la capa abierta, el editor de debajo sigue trabajando: al cargar la plantilla por defecto
+     lanzaba «Esta plantilla no tiene ninguna cuenta de cobro…» ENCIMA del asistente, y hablaba de
+     una plantilla que la persona ni ha elegido. toast()/toastMal() de app.html preguntan a
+     `retiene()` y, mientras la capa está abierta, sus avisos esperan en COLA:
+       · al montar el borrador se descartan SOLO los avisos que hablan de la plantilla por defecto
+         (DE_PLANTILLA: la plantilla montada los repite si le tocan); un fallo de carga de init()
+         —campos sin leer, cuenta del proyecto, credenciales de firmantes— NO se tira nunca
+         (revisión de código, 30-sep: descartarlo todo callaba justo esos);
+       · todo lo demás se enseña al cerrar la capa, junto: los rojos en un aviso, los de
+         confirmación en otro, con «Borrador montado» al final (un toast pisaba al anterior);
+       · «Saltar el asistente» sí enseña lo retenido: esa plantilla es la que se queda delante.
+     Empieza a retener al evaluarse este fichero —va sin defer, antes de init()—, porque init()
+     construye el formulario por defecto ANTES de abrir el asistente. Los avisos del propio
+     asistente (avisa/avisaMal) no se retienen salvo durante el montaje. Sin `?asistente=1` no se
+     retiene nada: el camino clásico no cambia. */
+  var COLA = [], propio = false;
+  var reteniendo = (function () {
+    try { var p = new URLSearchParams(location.search); return p.get('asistente') === '1' && p.has('nuevo') && !p.get('contrato'); }
+    catch (_) { return false; /* MUDO A PROPOSITO: sin URLSearchParams no hay asistente que abrir; no se retiene nada */ }
+  })();
+  function retiene(tipo, msg) {
+    if (!reteniendo || (propio && !montando)) return false;
+    COLA.push([tipo, msg]); return true;
+  }
+  function vaciaCola(mostrar) {
+    var c = COLA; COLA = [];
+    if (!mostrar || !c.length) return;
+    var malos = [], buenos = [];
+    c.forEach(function (x) { var l = x[0] === 'mal' ? malos : buenos; if (l.indexOf(x[1]) === -1) l.push(x[1]); });
+    var antes = reteniendo; reteniendo = false;
+    try { if (buenos.length) toast(buenos.join(' · ')); if (malos.length) toastMal(malos.join('\n')); } finally { reteniendo = antes; }
+  }
+  // Avisos que solo hablan de la plantilla cargada: al montar otra, los de la de por defecto sobran.
+  var DE_PLANTILLA = ['Esta plantilla no tiene ninguna cuenta de cobro habilitada. Un super admin las marca en Cuentas bancarias (Intranet).'];
+  function sueltaAvisosDePlantilla() {
+    var fuera = DE_PLANTILLA.map(T);
+    COLA = COLA.filter(function (x) { return fuera.indexOf(x[1]) === -1; });
+  }
+  function avisa(m) { propio = true; try { toast(m); } finally { propio = false; } }
+  function avisaMal(m) { propio = true; try { toastMal(m); } finally { propio = false; } }
+
   function nuevoEstado() {
     return { v: 1, quien: (typeof MI_EMAIL !== 'undefined' ? MI_EMAIL : ''), camino: null, paso: 0,
       modo: null, origen: '', frase: '', slug: null, cliente: null, proyecto: '', parcelas: [],
@@ -160,6 +202,13 @@
   function pasoActual() { var ps = pasos(); if (S.paso > ps.length - 1) S.paso = ps.length - 1; return ps[S.paso][0]; }
 
   function num(v) { return (typeof parseImporte === 'function') ? (parseImporte(v) || 0) : (parseFloat(v) || 0); }
+  /* El % de descuento se lee con el MISMO parseo que el importe del editor (parseImporte →
+     lwParseImporte: «7,5» y «7.5» valen 7,5). app.html no tiene función de tope en %: lo
+     comprueba en guardarContrato() contra el importe (dc > base × 0,15, sin tope para super
+     admin) y el trigger lo repite. Esto solo evita llegar al editor con algo que va a rechazar. */
+  var TOPE_DESCUENTO_PCT = 15;
+  function pctDescuento() { return num(S.bloqueo.pct); }
+  function descuentoFueraDeTope(pct) { return !ES_SUPER && pct > TOPE_DESCUENTO_PCT; }
   function listo(k) {
     if (k === 'inicio') return !!S.camino;
     if (k === 'modo') return !!S.modo && !(S.modo === 'propia' && (!S.origen || (S.origen === 'otro' && !S.frase.trim())));
@@ -189,8 +238,8 @@
         return true;
       }
       if (t === 'reserva_parcela') {
-        var pct = parseFloat(String(S.bloqueo.pct).replace(',', '.')) || 0;
-        if (pct < 0 || (!ES_SUPER && pct > 15) || pct >= 100) return false;
+        var pct = pctDescuento();
+        if (pct < 0 || descuentoFueraDeTope(pct) || pct >= 100) return false;
         return !(pct > 0 && !S.bloqueo.motivo.trim());
       }
       if (t === 'construccion') {
@@ -345,9 +394,10 @@
       if (malas.length) h += aviso('mal', 'block', e(T('Con este tipo de contrato no se puede coger:')) + ' <b>' + e(malas.join(', ')) + '</b>. ' + e(T('Quítala para seguir.')));
       h += '<p class="asi-q">' + e(T('Puedes elegir varias.')) + '</p><div class="asi-plots">' + inv.lista.map(function (u) {
         var st = estadoParcela(u), sel = S.parcelas.indexOf(u.codigo) !== -1;
-        // elegida y ya no válida (se cambió de tipo): apagada pero pulsable, para poder QUITARLA
-        var pulsable = st.ok || sel;
-        return '<button type="button" class="asi-plot' + (sel ? ' sel' : '') + (st.ok ? '' : ' off') + '"' +
+        // elegida y ya no válida (se cambió de tipo o de cliente): apagada pero pulsable, para poder
+        // QUITARLA; y la de otro agente, pulsable para preguntar a la base
+        var pulsable = st.ok || sel || st.pulsable;
+        return '<button type="button" class="asi-plot' + (sel ? ' sel' : '') + (st.ok || st.pulsable ? '' : ' off') + '"' +
           (pulsable ? ' data-asi="parcela" data-v="' + e(u.codigo) + '"' + (st.ok ? '' : ' title="' + e(st.nota) + '"') : ' disabled title="' + e(st.nota) + '"') +
           ' aria-pressed="' + (sel ? 'true' : 'false') + '"><b>' + e(u.codigo) + '</b><small>' + e(st.nota) + '</small></button>';
       }).join('') + '</div>';
@@ -368,14 +418,14 @@
         if (S.camino === 'existente') h2 += aviso('ok', 'check_circle', e(T('Lo ya cobrado con la Carta se descontará solo al guardar el Bloqueo.')));
         h2 += '<p class="asi-q">' + e(T('El precio es el del suelo en el inventario. Un descuento comercial resta de él.')) + '</p>';
         var puede = typeof puedeFijosEstudio === 'function' && puedeFijosEstudio();
-        var tope = ES_SUPER ? '' : ' · ' + T('máximo 15');
+        var tope = ES_SUPER ? '' : ' · ' + T('máximo') + ' ' + TOPE_DESCUENTO_PCT;
         h2 += '<div class="asi-dos"><div class="asi-fld"><label for="asi-pct">' + e(T('Descuento (%)')) + e(tope) + '</label><input id="asi-pct" inputmode="decimal" data-asi-campo="pct" value="' + e(S.bloqueo.pct) + '"' +
           (puede ? '' : ' disabled title="' + e(T('El descuento comercial solo lo ponen un Sales Manager o administración.')) + '"') + ' placeholder="0"></div>';
-        var pct = parseFloat(String(S.bloqueo.pct).replace(',', '.')) || 0;
+        var pct = pctDescuento();
         if (pct > 0) h2 += '<div class="asi-fld"><label for="asi-motivo">' + e(T('Motivo del descuento')) + '</label><input id="asi-motivo" data-asi-campo="motivo" maxlength="200" value="' + e(S.bloqueo.motivo) + '"></div>';
         h2 += '</div>';
         if (!puede) h2 += aviso('info', 'info', e(T('El descuento comercial solo lo ponen un Sales Manager o administración.')));
-        if (!ES_SUPER && pct > 15) h2 += aviso('mal', 'block', e(T('El descuento comercial no puede superar el 15% del precio del suelo.')));
+        if (descuentoFueraDeTope(pct)) h2 += aviso('mal', 'block', e(T('El descuento comercial no puede superar el 15% del precio del suelo.')));
         return h2;
       }
       if (t === 'construccion') {
@@ -421,7 +471,7 @@
       var cond = '—';
       if (esCarta(S.slug)) cond = [m.reserva ? fmtImporte(num(S.carta.importe)) : '', m.fecha ? T('pago') + ' ' + S.carta.fecha : '',
         m.validez ? (S.carta.validez || VALIDEZ_DIAS_MINIMO) + ' ' + T('días') : ''].filter(Boolean).join(' · ');
-      else if (t === 'reserva_parcela') cond = (parseFloat(String(S.bloqueo.pct).replace(',', '.')) || 0) > 0 ? T('Descuento') + ' ' + S.bloqueo.pct + ' % · ' + S.bloqueo.motivo : T('Sin descuento');
+      else if (t === 'reserva_parcela') cond = (pctDescuento()) > 0 ? T('Descuento') + ' ' + S.bloqueo.pct + ' % · ' + S.bloqueo.motivo : T('Sin descuento');
       else if (t === 'construccion') {
         var tc = RT.techos && (RT.techos.lista || []).find(function (x) { return String(x.techo_id) === String(S.obra.techoId); });
         var fp = FORMAS_PAGO.find(function (f) { return f.cal === S.obra.fpago; });
@@ -448,18 +498,44 @@
   };
   function iniciales(n) { return String(n || '?').trim().split(/\s+/).slice(0, 2).map(function (x) { return x.charAt(0); }).join('').toUpperCase(); }
 
+  /* ¿Se puede coger esta parcela con el tipo y el cliente contestados? La regla es la del
+     editor (eleccionParcela → estadoTraspaso, parcela_inventario.js) con el contexto del
+     asistente; aquí solo se pone en palabras. Nada se oculta: lo que no se puede coger sale
+     apagado con su motivo real (revisión de código, 30-sep: la copia propia que había aquí
+     daba por buenas las Cartas de otro comprador y el agente se enteraba al guardar). */
+  function ctxParcela() { return { tipo: tipoDe(S.slug), ids: identificadoresDeFicha(S.cliente) }; }
+  function claveCliente() { return identificadoresDeFicha(S.cliente).join('|'); }
   function estadoParcela(u) {
     var destino = tipoDe(S.slug);
     var precio = destino === 'reserva_parcela' ? u.precio_suelo : u.precio;
     var dato = [u.superficie_m2 ? u.superficie_m2 + ' m²' : '', precio != null ? fmtImporte(Number(precio)) + ' ' + (u.moneda || 'EUR') : ''].filter(Boolean).join(' · ');
-    if (!u.contrato_id && u.estado === 'disponible') return { ok: true, nota: dato || T('libre') };
-    var suNum = (u.ocupante && u.ocupante.numero) || '';
-    if (u.contrato_id && destino === 'reserva_parcela') {
-      if (u.ocupanteOculto) return { ok: true, nota: T('ocupada por un contrato de otro agente · se comprueba en el editor') };
-      if (u.ocupante && TIPOS_CEDEN_PARCELA.indexOf(u.ocupante.tipo) !== -1)
-        return { ok: true, nota: T('reservada en') + ' ' + suNum + ' · ' + T('pasa a este Bloqueo si es el mismo cliente') };
+    var el = eleccionParcela(u, ctxParcela());
+    if (!el.tomada) return el.bloqueada ? { ok: false, nota: u.estado || T('no disponible') } : { ok: true, nota: dato || T('libre') };
+    var suNum = (u.ocupante && u.ocupante.numero) || (u.traspasoRemoto && u.traspasoRemoto.numero) || T('una Carta de Reserva');
+    if (el.modo === 'ok') return { ok: true, nota: T('reservada en') + ' ' + suNum + ' · ' + T('es de este cliente: pasa a este Bloqueo') };
+    if (el.modo === 'otro') return { ok: false, nota: T('reservada en') + ' ' + suNum + ' · ' + T('de otro comprador') };
+    if (el.modo === 'sin_datos') return { ok: false, nota: T('reservada en') + ' ' + suNum + ' · ' + T('falta el pasaporte o el email del cliente para traspasarla') };
+    if (el.modo === 'por_comprobar') {
+      // De otro agente: se pregunta a la base al pulsarla. Si la pregunta falló, se dice (no es «de otro comprador»).
+      if (RT.comprobando === u.codigo) return { ok: false, pulsable: false, nota: T('comprobando con la base…') };
+      if (u.traspasoFallo === claveCliente()) return { ok: false, pulsable: true, nota: T('no se ha podido comprobar · pulsa para reintentar') };
+      return { ok: false, pulsable: true, nota: T('ocupada por un contrato de otro agente · se comprueba al elegirla') };
     }
-    return { ok: false, nota: u.contrato_id ? T('ya asignada') + (suNum ? ' · ' + suNum : '') : (u.estado || T('no disponible')) };
+    return { ok: false, nota: T('ya asignada') + (u.ocupante && u.ocupante.numero ? ' · ' + u.ocupante.numero : '') };
+  }
+  /* Parcela de otro agente: la base dice si la Carta es de ESTE cliente (parcela_traspaso_estado,
+     el mismo núcleo que usa el editor). El código se fija antes del await y la parcela se congela
+     mientras contesta, como en wireCampoParcela. */
+  function compruebaYElige(u) {
+    var codigo = u.codigo, proyecto = S.proyecto, clave = claveCliente();
+    RT.comprobando = codigo; u.traspasoFallo = null; pinta();
+    consultarTraspasoRemoto(u, proyecto, identificadoresDeFicha(S.cliente)).then(function () {
+      if (S.proyecto !== proyecto || claveCliente() !== clave) return;
+      if (estadoParcela(u).ok && S.parcelas.indexOf(codigo) === -1) S.parcelas.push(codigo);
+    }, function () { u.traspasoFallo = clave; }).then(function () {
+      if (RT.comprobando === codigo) RT.comprobando = null;
+      guarda(); pinta();
+    });
   }
 
   function resultadosVenta() {
@@ -526,7 +602,10 @@
         pinta(); preparaPaso();
       });
     }
-    if (k === 'parcela' && S.proyecto && (RT.marcas[S.slug] || {}).parcela && (!RT.inv || RT.inv.proyecto !== S.proyecto)) cargaInventario();
+    if (k === 'parcela' && S.proyecto && (RT.marcas[S.slug] || {}).parcela) {
+      if (!RT.inv || RT.inv.proyecto !== S.proyecto) cargaInventario();
+      else if (RT.inv.lista && S.parcelas.length) revalidaElegidas(false);   // el cliente pudo cambiar: se vuelve a preguntar por las de otro agente
+    }
     if (k === 'venta' && !RT.ventas) buscaVentas('');
     if (k === 'cond' && tipoDe(S.slug) === 'construccion' && !RT.modelos) cargaModelos();
   }
@@ -536,9 +615,36 @@
     leerInventarioProyecto(p).then(function (r) {
       if (S.proyecto !== p) return;
       RT.inv = { proyecto: p, lista: r.lista, fallo: r.fallo };
-      // lo elegido antes que ya no se pueda coger (otro lo ha tomado entretanto) se suelta
-      S.parcelas = S.parcelas.filter(function (c) { var u = r.lista.find(function (x) { return x.codigo === c; }); return u && estadoParcela(u).ok; });
-      guarda(); pinta();
+      revalidaElegidas(true);
+    });
+  }
+  /* Lo elegido antes, contra el inventario de ahora y el cliente de ahora. La de otro agente
+     se vuelve a preguntar a la base (lo comprobado vive en la fila leída, que se acaba de
+     releer). Con `soltar` (inventario recién leído) lo que ya no se puede coger —otro lo tomó
+     entretanto— se suelta y SE DICE: soltarlo callado era el mismo fallo que ofrecerlo. Sin
+     `soltar` (volver al paso) se queda elegida y apagada con su motivo, para quitarla a mano. */
+  function revalidaElegidas(soltar) {
+    var inv = RT.inv; if (!inv || !inv.lista || inv.proyecto !== S.proyecto) return;
+    var fuera = [], pendientes = [];
+    S.parcelas = S.parcelas.filter(function (c) {
+      var u = inv.lista.find(function (x) { return x.codigo === c; });
+      var st = u ? estadoParcela(u) : null;
+      if (st && st.ok) return true;
+      if (st && st.pulsable && u.traspasoFallo !== claveCliente()) { pendientes.push(u); return true; }
+      if (!soltar) return true;
+      fuera.push(c); return false;
+    });
+    if (fuera.length) avisaMal(T('Ya no se puede coger con este contrato y este cliente:') + ' ' + fuera.join(', ') + '. ' + T('La he quitado.'));
+    guarda(); pinta();
+    pendientes.forEach(function (u) {
+      var proyecto = S.proyecto, clave = claveCliente();
+      consultarTraspasoRemoto(u, proyecto, identificadoresDeFicha(S.cliente)).then(function () {
+        if (S.proyecto !== proyecto || claveCliente() !== clave) return;
+        if (soltar && !estadoParcela(u).ok) {
+          S.parcelas = S.parcelas.filter(function (c) { return c !== u.codigo; });
+          avisaMal(T('Ya no se puede coger con este contrato y este cliente:') + ' ' + u.codigo + ' · ' + estadoParcela(u).nota);
+        }
+      }, function () { u.traspasoFallo = clave; }).then(function () { guarda(); pinta(); });
     });
   }
   function proyectoDeObra() { return S.camino === 'existente' ? (S.venta.proyecto_nombre || '') : S.proyecto; }
@@ -602,7 +708,7 @@
   function cableaBuscadorCliente() {
     var input = q('#asi-buscar-cliente'), res = q('#asi-res-cliente');
     wireClienteBuscadorEn(input, res, function (datos, fila) {
-      if (!fila || !fila.id) { toastMal(T('Ese resultado no tiene ficha: elige un cliente registrado')); return; }
+      if (!fila || !fila.id) { avisaMal(T('Ese resultado no tiene ficha: elige un cliente registrado')); return; }
       S.cliente = { id: fila.id, full_name: fila.full_name, email: fila.email, passport_number: fila.passport_number, tipo: fila.tipo };
       guarda(); pinta();
     });
@@ -615,7 +721,7 @@
     if (k === 'rev') {
       var ps = pasos(), falta = -1;
       for (var n = 0; n < ps.length - 1; n++) if (!listo(ps[n][0])) { falta = n; break; }
-      if (falta !== -1) { S.paso = falta; guarda(); pinta(); preparaPaso(); toastMal(T('Falta completar este paso antes de crear el borrador.')); return; }
+      if (falta !== -1) { S.paso = falta; guarda(); pinta(); preparaPaso(); avisaMal(T('Falta completar este paso antes de crear el borrador.')); return; }
       monta(); return;
     }
     var paso = function () { S.paso++; guarda(); pinta(); preparaPaso(); };
@@ -636,7 +742,18 @@
     else if (a === 'venta') { var r = RT.ventas && RT.ventas.lista && RT.ventas.lista[+v]; if (r) eligeVenta(r); }
     else if (a === 'cambia-cliente') { S.cliente = null; }
     else if (a === 'alta-cliente') return altaCliente();
-    else if (a === 'parcela') { var i = S.parcelas.indexOf(v); if (i === -1) S.parcelas.push(v); else S.parcelas.splice(i, 1); }
+    else if (a === 'parcela') {
+      var i = S.parcelas.indexOf(v);
+      if (i !== -1) S.parcelas.splice(i, 1);
+      else {
+        var u = RT.inv && RT.inv.lista && RT.inv.lista.find(function (x) { return x.codigo === v; });
+        if (!u || RT.comprobando) return;
+        var st = estadoParcela(u);
+        if (st.ok) S.parcelas.push(v);
+        else if (st.pulsable) return compruebaYElige(u);
+        else return;
+      }
+    }
     else if (a === 'techo') { S.obra.techoId = v; }
     else if (a === 'fpago') { S.obra.fpago = v; }
     else return;
@@ -687,12 +804,14 @@
     document.addEventListener('keydown', alTecla);
     document.body.appendChild(raiz);
     document.documentElement.classList.add('asi-abierto');
+    reteniendo = true;
   }
   function quitaCapa() {
     if (!raiz) return;
     document.removeEventListener('keydown', alTecla);
     raiz.remove(); raiz = null;
     document.documentElement.classList.remove('asi-abierto');
+    reteniendo = false; vaciaCola(true);   // el editor ya se ve: lo retenido sale ahora
   }
   function quitaParametro() {
     try {
@@ -733,12 +852,13 @@
       populateForm(f);
     }
     if (t === 'reserva_parcela') {
-      var pct = parseFloat(String(S.bloqueo.pct).replace(',', '.')) || 0;
+      var pct = pctDescuento();
       if (pct > 0 && typeof puedeFijosEstudio === 'function' && puedeFijosEstudio()) {
         var lista = listaSueloVigente();
-        if (lista == null) toastMal(T('No se ha podido aplicar el descuento: falta el precio del suelo de la parcela en el inventario. Ponlo en el editor.'));
+        if (lista == null) avisaMal(T('No se ha podido aplicar el descuento: falta el precio del suelo de la parcela en el inventario. Ponlo en el editor.'));
         else {
-          populateForm({ descuento_comercial: fmtImporte(Math.round(lista * pct) / 100), descuento_comercial_motivo: S.bloqueo.motivo.trim() });
+          // hacia abajo al céntimo: redondear podía dejar un 15 % un céntimo por ENCIMA del tope y el editor lo rechazaba al guardar
+          populateForm({ descuento_comercial: fmtImporte(Math.floor(lista * pct) / 100), descuento_comercial_motivo: S.bloqueo.motivo.trim() });
           aplicarDescuentoSuelo();
         }
       }
@@ -757,7 +877,7 @@
           ts.value = String(S.obra.techoId);
           // por el oyente del motor: él quita `por_defecto` (lo eligió una persona, no el software)
           ts.dispatchEvent(new Event('change', { bubbles: true }));
-        } else if (S.obra.techoId) toastMal(T('No se ha podido poner el techo elegido: elígelo en el editor.'));
+        } else if (S.obra.techoId) avisaMal(T('No se ha podido poner el techo elegido: elígelo en el editor.'));
       }
     }
     if (t === 'construccion' && S.obra.fpago) cambiaCalendario(S.obra.fpago);
@@ -771,7 +891,7 @@
     if (S.cliente) {
       var r = await sb.rpc('compradores_directorio').eq('id', S.cliente.id).maybeSingle();
       if (r.data) enlazarFicha(r.data);
-      else toastMal(T('No se ha podido leer la ficha del cliente: búscalo en el editor.'));
+      else avisaMal(T('No se ha podido leer la ficha del cliente: búscalo en el editor.'));
     }
     var proyEl = document.querySelector('[name="proyecto_nombre"]');
     if (proyEl && S.proyecto) {
@@ -779,8 +899,22 @@
       await cargarUnidadesDelProyecto(S.proyecto);
     }
     var parEl = document.querySelector('[name="parcela_codigo"]');
-    if (parEl && S.parcelas.length) {
-      parEl.value = S.parcelas.join(', ');
+    /* Cierre con la regla del EDITOR, que ya tiene el tipo y el comprador reales del formulario:
+       lo que el asistente eligió se vuelve a mirar aquí (la de otro agente, preguntando a la base
+       con comprobarTraspasoRemoto) antes de escribirlo en el campo. Lo que no pase no se escribe
+       y se dice; el guardado y el trigger siguen siendo la autoridad. */
+    var validas = [], caidas = [];
+    for (var i = 0; parEl && i < S.parcelas.length; i++) {
+      var cod = S.parcelas[i];
+      var u = (UNIDADES_PROY.lista || []).find(function (x) { return x.codigo === cod; });
+      var el = u ? eleccionParcela(u) : null;
+      var vale = !!el && !el.bloqueada && el.modo !== 'por_comprobar';
+      if (el && el.modo === 'por_comprobar') vale = await comprobarTraspasoRemoto(u);
+      (vale ? validas : caidas).push(cod);
+    }
+    if (caidas.length) avisaMal(T('No se ha puesto la parcela, no se puede coger con este contrato:') + ' ' + caidas.join(', ') + '. ' + T('Elígela en el editor.'));
+    if (parEl && validas.length) {
+      parEl.value = validas.join(', ');
       pintarSelectorParcela();
       syncDatosDeUnidad();
     }
@@ -791,22 +925,23 @@
     var v = S.venta, slug = S.slug;
     await openSavedContract(v.id);
     // Si no se pudo abrir, derivarContrato copiaría «el borrador actual» (la Carta en blanco de debajo)
-    if (!SAVED_CONTRACT || SAVED_CONTRACT.id !== v.id) { toastMal(T('No se ha podido abrir la venta elegida. No se ha creado nada.')); return false; }
+    if (!SAVED_CONTRACT || SAVED_CONTRACT.id !== v.id) { avisaMal(T('No se ha podido abrir la venta elegida. No se ha creado nada.')); return false; }
     await derivarContrato(slug);
     var t = tipoDe(slug);
     if (t === 'poa') {
       populateForm({ poa_hs_vinculado: v.numero });
       if (!(VINCULABLES_POA || []).some(function (c) { return c.numero === v.numero; }))
-        toastMal(T('Ese contrato no está en la lista de vinculables: comprueba el vínculo del poder en el editor.'));
+        avisaMal(T('Ese contrato no está en la lista de vinculables: comprueba el vínculo del poder en el editor.'));
       aplicarReglasCampos();
     }
     if (t === 'adenda') populateForm({ adenda_contrato: v.numero, adenda_contrato_fecha: v.fecha_firma || '' });
-    if (t === 'reserva_parcela' && lwEsPreliminar(v.tipo)) toast(T('Bloqueo de Parcela con los datos de') + ' ' + v.numero + ' · ' + T('el abono ya pagado en la Carta se descontará al guardar.'));
+    if (t === 'reserva_parcela' && lwEsPreliminar(v.tipo)) avisa(T('Bloqueo de Parcela con los datos de') + ' ' + v.numero + ' · ' + T('el abono ya pagado en la Carta se descontará al guardar.'));
     await montaCondiciones();
     return true;
   }
   async function monta() {
     montando = true; pintaPie();
+    sueltaAvisosDePlantilla();   // hablaban de la plantilla por defecto, que se va a sustituir; los fallos de carga se quedan
     var ok = false;
     try {
       ok = S.camino === 'existente' ? await montaExistente() : await montaNueva();
@@ -815,17 +950,17 @@
         refreshHitos(); updateSaveButton(); editBtnIdle(); render();
       }
     } catch (err) {
-      toastMal(T('No se ha podido montar el borrador: ') + ((err && err.message) || err));
+      avisaMal(T('No se ha podido montar el borrador: ') + ((err && err.message) || err));
       ok = false;
     }
     montando = false;
-    if (!ok) { pintaPie(); return; }
+    if (!ok) { vaciaCola(true); pintaPie(); return; }   // la capa sigue: lo que explicó el fallo, ahora
     S.montado = true;
     olvida();          // creado: lo que queda es el editor, no un asistente a medias
+    COLA.push(['ok', T('Borrador montado. Complétalo viendo el documento y guárdalo.')]);   // sale al final, con lo retenido
     quitaCapa();
     quitaParametro();
     pintaBanda();
-    toast(T('Borrador montado. Complétalo viendo el documento y guárdalo.'));
   }
 
   /* La banda del editor montado con el asistente: qué venta es y «Cambiar tipo». */
@@ -838,9 +973,26 @@
     d.innerHTML = '<span data-ico="auto_awesome" aria-hidden="true"></span><span class="asi-banda-t">' + e(T('Montado con el asistente.')) + '</span>' +
       (modoTxt() ? '<span class="asi-chip" title="' + e(T('Prueba: esta respuesta todavía no se guarda en el contrato. Se activará cuando el servidor la compruebe.')) + '">' +
         e(modoTxt()) + (S.camino === 'nueva' && S.modo ? ' · ' + e(T('prueba')) : '') + '</span>' : '') +
-      '<button type="button" class="asi-btn fantasma" data-accion="asistente-cambiar-tipo"><span data-ico="swap_horiz" aria-hidden="true"></span>' + e(T('Cambiar tipo')) + '</button>';
+      '<button type="button" class="asi-btn fantasma" data-accion="asistente-cambiar-tipo"><span data-ico="swap_horiz" aria-hidden="true"></span>' + e(T('Cambiar tipo')) + '</button>' +
+      '<small class="asi-motivo" data-asi-banda-motivo hidden></small>';
     inner.insertBefore(d, inner.firstChild);
-    d.querySelector('[data-accion="asistente-cambiar-tipo"]').addEventListener('click', function () { reabreEnTipo(null); });
+    d.querySelector('[data-accion="asistente-cambiar-tipo"]').addEventListener('click', function () {
+      if (guardado()) { refrescaBanda(); return; }
+      reabreEnTipo(null);
+    });
+    refrescaBanda();
+  }
+  /* Guardado, el tipo ya no se cambia desde el asistente (misma regla que interceptaCambioTipo):
+     el botón queda apagado CON el motivo a la vista. Lo llama updateSaveButton() de app.html,
+     que es lo que corre tras cada guardado. */
+  function guardado() { return !!(SAVED_CONTRACT && SAVED_CONTRACT.id); }
+  function refrescaBanda() {
+    var b = document.querySelector('[data-accion="asistente-cambiar-tipo"]'); if (!b) return;
+    var m = document.querySelector('[data-asi-banda-motivo]');
+    var off = guardado(), motivo = T('Ya está guardado: el tipo se cambia desde el selector de plantilla, como siempre.');
+    b.disabled = off;
+    if (off) { b.setAttribute('aria-disabled', 'true'); b.title = motivo; } else { b.removeAttribute('aria-disabled'); b.removeAttribute('title'); }
+    if (m) { m.textContent = off ? motivo : ''; m.hidden = !off; }
   }
   function reabreEnTipo(slug) {
     if (slug) S.slug = slug;
@@ -854,7 +1006,7 @@
   window.lwAsistente = {
     abrir: async function (o) {
       o = o || {};
-      if (!sb) return;
+      if (!sb) { reteniendo = false; vaciaCola(true); return; }
       S = lee() || nuevoEstado();
       S.montado = false;
       montaCapa();
@@ -870,8 +1022,8 @@
           // Sin estado guardado (sessionStorage vacío o bloqueado) no se sabe el tipo: se vuelve a él.
           var i = S.slug ? ks.indexOf('cliente') + 1 : ks.indexOf('tipo');
           if (i > 0) S.paso = Math.min(i, ps.length - 1);
-          toast(T('Cliente dado de alta y elegido: ') + (r.data.full_name || ''));
-        } else toastMal(T('No se ha podido leer la ficha recién creada: búscala en el paso del cliente.'));
+          avisa(T('Cliente dado de alta y elegido: ') + (r.data.full_name || ''));
+        } else avisaMal(T('No se ha podido leer la ficha recién creada: búscala en el paso del cliente.'));
         try { var par = new URLSearchParams(location.search); par.delete('asistente_cliente'); history.replaceState(null, '', location.pathname + '?' + par.toString()); }
         catch (_) { /* MUDO A PROPOSITO: ver quitaParametro() */ }
       }
@@ -888,6 +1040,8 @@
       reabreEnTipo(slug);
       return true;
     },
+    refrescaBanda: refrescaBanda,
+    retiene: retiene,
     /* F5 · punto de enganche único (ver el comentario junto a contrato_guarda).
        Hoy nadie lo envía a la base. */
     ventaDeclarada: function () {
