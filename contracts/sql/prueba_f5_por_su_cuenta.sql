@@ -564,6 +564,164 @@ begin
       raise exception '%', v_n || '/' || v_t || '/' || (select count(*) from public.contrato_closer where contrato_id = v_rp)
         || '/' || (select count(*) from public.contrato_closer where contrato_id = v_otro);
     exception when others then r := r || 'P10 quitar closer con devengos=' || sqlerrm || case when sqlerrm = '1/22023/1/0' then ' ok; ' else ' FALLO; ' end; end;
+
+    -- ── LAW-474 (a) reposición y (b) sin roles (migración 20260930121342). Sin secuencias: el devengo que se repone SIN
+    --    pagar es de nivel `closer` (lo paga el SM: el motor no crea solicitud); el PAGADO es de `manager` metido a mano
+    --    (sin solicitud) y su diferencia negativa lleva un número escrito a mano ('DIF-P474-…', no gasta la serie).
+    declare v_sp0 int; v_imp numeric; v_dx uuid; v_vig numeric; v_objt numeric;
+    begin
+      v_sp0 := (select count(*) from public.solicitudes_pago sp where sp.contrato_id = v_rp);
+
+      -- P11 · (a1) devengo de equipo SIN pagar → admin a «propia» (anulado_por_modo) → admin a «equipo»: la MISMA fila vuelve
+      --       a 'pendiente' con el importe de HOY (la condición sube del 5 al 6 % entre medias), log 'reponer', sin fila
+      --       duplicada, sin solicitud ni diferencia (no hay pago doble)
+      begin
+        update public.condiciones_comision set activo = false, vigente_hasta = null
+         where equipo_id = kk.equipo_id and nivel in ('manager', 'closer', 'setter', 'team_lead');
+        insert into public.condiciones_comision (equipo_id, proyecto_id, nivel, closer_email, pct_comision, base_calculo, activo, vigente_desde)
+        select kk.equipo_id, cc.proyecto_id, 'closer', T.e, 5, 'precio_total', true, v_f - 30 from public.contratos cc where cc.id = v_rp
+        returning id into v_c;
+        insert into public.condicion_tramos (condicion_id, orden, disparador_tipo, umbral, pct_tramo) values (v_c, 1, 'pct_cobrado_total', 0, 100);
+        v_n := public.comisiones_evaluar_contrato(v_rp);
+        select * into v_d from public.comisiones_devengadas d where d.contrato_raiz_id = v_rp;
+        perform set_config('request.jwt.claims', json_build_object('sub', A.user_id, 'email', A.e, 'role', 'authenticated')::text, true);
+        v_t := v_n || '/' || public.venta_modo_admin(v_rp, 'propia', 'prueba LAW-474 (a1) ida')
+          || '/' || (select d.estado || ':' || d.anulado_por_modo from public.comisiones_devengadas d where d.id = v_d.id);
+        update public.condiciones_comision set pct_comision = 6 where id = v_c;
+        v_t := v_t || '/' || public.venta_modo_admin(v_rp, 'equipo', 'prueba LAW-474 (a1) vuelta');
+        raise exception '%', v_t || format('/%s/%s/%s/%s/%s/%s',
+          (select d.estado = 'pendiente' and not d.anulado_por_modo and d.anulado_en is null and d.solicitud_id is null
+                  and d.importe = round(0.06 * public._comisiones_precio_total(v_rp), 2) and d.importe <> v_d.importe
+             from public.comisiones_devengadas d where d.id = v_d.id),
+          (select count(*) from public.comisiones_devengadas d where d.contrato_raiz_id = v_rp),
+          (select count(*) from public.comisiones_ajustes_log l where l.fila_id = v_d.id and l.accion = 'reponer'
+              and l.estado_antes = 'anulada' and l.estado_despues = 'pendiente'),
+          (select count(*) from public.solicitudes_pago sp where sp.contrato_id = v_rp) = v_sp0,
+          (select count(*) from public.comisiones_diferencias x where x.devengo_id = v_d.id),
+          not exists (select 1 from public.comisiones_reconciliar(v_rp, true, '{}'::jsonb)));
+      exception when others then r := r || 'P11 (a1) reponer sin pagar=' || sqlerrm
+        || case when sqlerrm = '1/0/anulada:true/1/t/1/1/t/0/t' then ' ok; ' else ' FALLO; ' end; end;
+
+      -- P12 · (a2) devengo de Lawang (manager) YA pagado, anulado por el cambio a «propia» con su diferencia negativa AÚN
+      --       sin descontar → admin a «equipo»: vuelve a 'pagada' (pagado_en intacto), la negativa se anula, ninguna
+      --       diferencia ni solicitud nueva. El paso a «propia» se simula a mano (el real crea la negativa con nextval de DIF).
+      begin
+        update public.condiciones_comision set activo = false, vigente_hasta = null
+         where equipo_id = kk.equipo_id and nivel in ('manager', 'closer', 'setter', 'team_lead');
+        insert into public.condiciones_comision (equipo_id, proyecto_id, nivel, closer_email, pct_comision, base_calculo, activo, vigente_desde)
+        select kk.equipo_id, cc.proyecto_id, 'manager', null, 2, 'precio_total', true, v_f - 30 from public.contratos cc where cc.id = v_rp
+        returning id into v_c;
+        insert into public.condicion_tramos (condicion_id, orden, disparador_tipo, umbral, pct_tramo) values (v_c, 1, 'pct_cobrado_total', 0, 100)
+        returning id into v_tramo;
+        v_imp := 1234.56;
+        insert into public.comisiones_devengadas (contrato_raiz_id, tramo_id, condicion_id, beneficiario_email, nivel, importe, moneda,
+                                                  estado, pagado_en, disparado_por_snapshot)
+        select v_rp, v_tramo, v_c, kk.manager_email, 'manager', v_imp, cc.moneda, 'pagada', now() - interval '1 day', '{"base_valor": 1}'::jsonb
+          from public.contratos cc where cc.id = v_rp
+        returning * into v_d;
+        insert into public.comisiones_diferencias (numero, devengo_id, importe, importe_vigente, importe_nuevo, motivo, estado, origen)
+        values ('DIF-P474-1', v_d.id, -v_imp, v_imp, 0, 'prueba LAW-474 (a2): cambio a propia ya pagada', 'pendiente',
+                jsonb_build_object('op', 'cambio_modo', 'modo', 'propia'))
+        returning id into v_dx;
+        update public.comisiones_devengadas set estado = 'anulada', anulado_motivo = 'prueba (a2)', anulado_en = now(), anulado_por_modo = true
+         where id = v_d.id;
+        perform set_config('app.via_modo_admin', 'on', true);
+        update public.contrato_closer set modo = 'propia', modo_espera_hasta = now() + interval '7 days' where contrato_id = v_rp;
+        perform set_config('app.via_modo_admin', 'off', true);
+        perform set_config('request.jwt.claims', json_build_object('sub', A.user_id, 'email', A.e, 'role', 'authenticated')::text, true);
+        v_t := public.venta_modo_admin(v_rp, 'equipo', 'prueba LAW-474 (a2) vuelta')::text;
+        raise exception '%', v_t || format('/%s/%s/%s/%s/%s',
+          (select d.estado = 'pagada' and not d.anulado_por_modo and d.pagado_en = v_d.pagado_en and d.importe = v_imp and d.solicitud_id is null
+             from public.comisiones_devengadas d where d.id = v_d.id),
+          (select x.estado from public.comisiones_diferencias x where x.id = v_dx),
+          (select count(*) from public.comisiones_diferencias x where x.devengo_id = v_d.id),
+          (select count(*) from public.solicitudes_pago sp where sp.contrato_id = v_rp) = v_sp0,
+          (select count(*) from public.comisiones_ajustes_log l where l.fila_id = v_d.id and l.accion = 'reponer' and l.estado_despues = 'pagada'));
+      exception when others then r := r || 'P12 (a2) reponer pagada=' || sqlerrm
+        || case when sqlerrm = '1/t/anulada/1/t/1' then ' ok; ' else ' FALLO; ' end; end;
+
+      -- P12b · (a2) igual pero la negativa YA se descontó (compensada): la reposición debe devolver lo descontado con una
+      --        diferencia POSITIVA al mismo perceptor. Esa inserción gasta la serie DIF (numero = nextval por defecto), así
+      --        que NO se ejecuta: se comprueba que las entradas que lee _comision_devengo_reponer dan esa rama (lo que valía
+      --        antes del cambio − lo vigente = lo descontado) y que _comision_diferencia_solicitud la mandaría al mismo perceptor.
+      begin
+        update public.condiciones_comision set activo = false, vigente_hasta = null
+         where equipo_id = kk.equipo_id and nivel in ('manager', 'closer', 'setter', 'team_lead');
+        insert into public.condiciones_comision (equipo_id, proyecto_id, nivel, closer_email, pct_comision, base_calculo, activo, vigente_desde)
+        select kk.equipo_id, cc.proyecto_id, 'manager', null, 2, 'precio_total', true, v_f - 30 from public.contratos cc where cc.id = v_rp
+        returning id into v_c;
+        insert into public.condicion_tramos (condicion_id, orden, disparador_tipo, umbral, pct_tramo) values (v_c, 1, 'pct_cobrado_total', 0, 100)
+        returning id into v_tramo;
+        v_imp := 1234.56;
+        insert into public.comisiones_devengadas (contrato_raiz_id, tramo_id, condicion_id, beneficiario_email, nivel, importe, moneda,
+                                                  estado, pagado_en, anulado_por_modo, anulado_en, anulado_motivo)
+        select v_rp, v_tramo, v_c, kk.manager_email, 'manager', v_imp, cc.moneda, 'anulada', now() - interval '1 day', true, now(), 'prueba (a2b)'
+          from public.contratos cc where cc.id = v_rp
+        returning * into v_d;
+        insert into public.comisiones_diferencias (numero, devengo_id, importe, importe_vigente, importe_nuevo, motivo, estado, origen)
+        values ('DIF-P474-2', v_d.id, -v_imp, v_imp, 0, 'prueba LAW-474 (a2b): ya descontada', 'compensada',
+                jsonb_build_object('op', 'cambio_modo', 'modo', 'propia'));
+        -- mismas consultas que el cuerpo de _comision_devengo_reponer (rama «ya pagada», v_sp nulo)
+        select x.importe_vigente into v_objt from public.comisiones_diferencias x
+         where x.devengo_id = v_d.id and x.importe < 0 and x.origen->>'op' = 'cambio_modo' order by x.created_at desc limit 1;
+        v_vig := coalesce(v_d.importe_ajustado, v_d.importe)
+               + coalesce((select sum(x.importe) from public.comisiones_diferencias x
+                            where x.devengo_id = v_d.id and x.estado in ('pendiente', 'pagada', 'compensada')), 0);
+        raise exception '%', format('%s/%s/%s/%s',
+          round(v_objt - v_vig, 2) = v_imp,                                  -- entra en la rama y el importe es lo descontado
+          v_d.pagado_en is not null,                                         -- rama «ya pagada»: no vuelve a pendiente
+          v_d.nivel in ('manager', 'estandar', 'propia'),                    -- _comision_diferencia_solicitud sí la paga
+          lower(v_d.beneficiario_email) = lower(kk.manager_email));          -- al MISMO perceptor (la solicitud usa d.beneficiario_email)
+      exception when others then r := r || 'P12b (a2) descontada, lógica sin crear=' || sqlerrm
+        || case when sqlerrm = 't/t/t/t' then ' ok; ' else ' FALLO; ' end; end;
+
+      -- P13 · (a3) devengo anulado por OTRO motivo (comision_devengo_anular) → ida y vuelta de modo: NO se repone; y la función
+      --       de reposición llamada a mano lo rechaza (22023)
+      begin
+        update public.condiciones_comision set activo = false, vigente_hasta = null
+         where equipo_id = kk.equipo_id and nivel in ('manager', 'closer', 'setter', 'team_lead');
+        insert into public.condiciones_comision (equipo_id, proyecto_id, nivel, closer_email, pct_comision, base_calculo, activo, vigente_desde)
+        select kk.equipo_id, cc.proyecto_id, 'closer', T.e, 5, 'precio_total', true, v_f - 30 from public.contratos cc where cc.id = v_rp
+        returning id into v_c;
+        insert into public.condicion_tramos (condicion_id, orden, disparador_tipo, umbral, pct_tramo) values (v_c, 1, 'pct_cobrado_total', 0, 100);
+        v_n := public.comisiones_evaluar_contrato(v_rp);
+        select * into v_d from public.comisiones_devengadas d where d.contrato_raiz_id = v_rp;
+        perform set_config('request.jwt.claims', json_build_object('sub', A.user_id, 'email', A.e, 'role', 'authenticated')::text, true);
+        perform public.comision_devengo_anular(v_d.id, 'prueba LAW-474 (a3): anulada a mano');
+        v_t := v_n || '/' || public.venta_modo_admin(v_rp, 'propia', 'prueba LAW-474 (a3) ida')
+          || '/' || public.venta_modo_admin(v_rp, 'equipo', 'prueba LAW-474 (a3) vuelta');
+        begin
+          perform public._comision_devengo_reponer(v_d.id, 1, '{}'::jsonb, 'prueba');
+          v_t := v_t || '/reponer-sin-error';
+        exception when others then get stacked diagnostics v_state = returned_sqlstate; v_t := v_t || '/' || v_state; end;
+        raise exception '%', v_t || format('/%s/%s/%s',
+          (select d.estado || ':' || d.anulado_por_modo from public.comisiones_devengadas d where d.id = v_d.id),
+          (select count(*) from public.comisiones_devengadas d where d.contrato_raiz_id = v_rp),
+          (select count(*) from public.comisiones_ajustes_log l where l.fila_id = v_d.id and l.accion = 'reponer'));
+      exception when others then r := r || 'P13 (a3) anulada por otro motivo=' || sqlerrm
+        || case when sqlerrm = '1/0/0/22023/anulada:false/1/0' then ' ok; ' else ' FALLO; ' end; end;
+
+      -- P14 · (b1) el SM asigna un setter en una venta «por su cuenta» → 22023; (b2) quitar un rol (email NULL) sí se deja
+      begin
+        perform set_config('app.via_modo_admin', 'on', true);
+        update public.contrato_closer set modo = 'propia', modo_espera_hasta = now() + interval '7 days' where contrato_id = v_rp;
+        perform set_config('app.via_modo_admin', 'off', true);
+        perform set_config('request.jwt.claims', json_build_object('sub', S.user_id, 'email', S.e, 'role', 'authenticated')::text, true);
+        begin
+          perform public.comision_rol_asignar(v_rp, 'setter', M.e);
+          v_t := 'asignar-sin-error';
+        exception when others then get stacked diagnostics v_state = returned_sqlstate;
+          v_t := v_state || case when sqlerrm like '%«por su cuenta»: no lleva setter%' then '' else '(' || sqlerrm || ')' end; end;
+        insert into public.contrato_roles_equipo (contrato_raiz_id, rol, email, equipo_id, asignado_por)
+        values (v_rp, 'team_lead', M.e, kk.equipo_id, S.e);
+        begin
+          perform public.comision_rol_asignar(v_rp, 'team_lead', null);
+          v_t := v_t || '/quitar-ok';
+        exception when others then get stacked diagnostics v_state = returned_sqlstate; v_t := v_t || '/' || v_state || '(' || sqlerrm || ')'; end;
+        raise exception '%', v_t || '/' || (select count(*) from public.contrato_roles_equipo re where re.contrato_raiz_id = v_rp);
+      exception when others then r := r || 'P14 (b) roles en propia=' || sqlerrm
+        || case when sqlerrm = '22023/quitar-ok/0' then ' ok; ' else ' FALLO; ' end; end;
+    end;
   end;
 
   raise exception 'RES2: %', r;
