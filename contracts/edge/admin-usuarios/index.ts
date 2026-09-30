@@ -16,6 +16,20 @@ const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const ANON = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 const admin = createClient(URL_SB, SERVICE);
 
+// AXW-124 (S5.0 F4, 30-sep-2026): a dónde se manda el correo lo decide config_instancia.url_envio_correo (interruptor único:
+// la edge envia-correo o, de vuelta atrás, el PHP). Solo se aceptan esas dos URL: una clave manipulada no puede sacar
+// credenciales ni sesiones a otro host. Si la clave falta, no es texto o no es una de las dos, cae al PHP (comportamiento de siempre).
+const ENVIO_PHP = 'https://lawangproperties.com/contracts/api/send_email.php';
+const ENVIO_EDGE = URL_SB + '/functions/v1/envia-correo';
+async function urlEnvio(): Promise<string> {
+  try {
+    const { data } = await admin.from('config_instancia').select('valor').eq('clave', 'url_envio_correo').maybeSingle();
+    const u = typeof data?.valor === 'string' ? data.valor.trim() : '';
+    if (u === ENVIO_EDGE || u === ENVIO_PHP) return u;
+  } catch (_) { /* cae al PHP */ }
+  return ENVIO_PHP;
+}
+
 const ORIGENES = [
   'https://lawangproperties.com',
   'https://www.lawangproperties.com',
@@ -240,9 +254,9 @@ Deno.serve(async (req) => {
         const to_ = setTimeout(() => ac.abort(), 8000);
         let rEmail: Response;
         try {
-          rEmail = await fetch('https://lawangproperties.com/contracts/api/send_email.php', {
+          rEmail = await fetch(await urlEnvio(), {
             method: 'POST',
-            headers: { 'content-type': 'application/json', 'X-Suite-Token': jwt },
+            headers: { 'content-type': 'application/json', 'X-Suite-Token': jwt, 'X-Llamante': 'admin-usuarios' },
             body: JSON.stringify({
               to: email, subject: 'Tu acceso a la intranet — Lawang Tropical Properties',
               message: mensaje, attach: false,
@@ -347,9 +361,9 @@ Deno.serve(async (req) => {
         const ac = new AbortController();
         const to_ = setTimeout(() => ac.abort(), 8000);
         try {
-          const r = await fetch('https://lawangproperties.com/contracts/api/send_email.php', {
+          const r = await fetch(await urlEnvio(), {
             method: 'POST',
-            headers: { 'content-type': 'application/json', 'X-Suite-Token': jwt },
+            headers: { 'content-type': 'application/json', 'X-Suite-Token': jwt, 'X-Llamante': 'admin-usuarios' },
             body: JSON.stringify({
               to: email, subject: 'Ya eres comercial de Lawang: crea tu contraseña',
               message: `Hola ${saludo},\n\nHemos activado tu acceso a la intranet de Lawang.\n\n`
@@ -404,9 +418,9 @@ Deno.serve(async (req) => {
       const url = 'https://lawangproperties.com/intranet/contrasena/?th=' + encodeURIComponent(th);
       const acR = new AbortController();
       const toR = setTimeout(() => acR.abort(), 8000);
-      const r = await fetch('https://lawangproperties.com/contracts/api/send_email.php', {
+      const r = await fetch(await urlEnvio(), {
         method: 'POST',
-        headers: { 'content-type': 'application/json', 'X-Suite-Token': jwt },
+        headers: { 'content-type': 'application/json', 'X-Suite-Token': jwt, 'X-Llamante': 'admin-usuarios' },
         signal: acR.signal,
         body: JSON.stringify({
           to: sol.email, subject: 'Crea tu contraseña — Lawang',
