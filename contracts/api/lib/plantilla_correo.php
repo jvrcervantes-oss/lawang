@@ -56,14 +56,17 @@ declare(strict_types=1);
 //    de antes (±1,2 niveles, medido), y cuando el cliente oscurece la base, la
 //    capa apenas se nota (alfa ≤ 10 %) y el texto claro se lee;
 //  · el logo (gris oscuro sobre transparente) desaparecía sobre la tarjeta
-//    oscurecida: ahora lleva su propia loseta de grano con esquinas redondeadas
-//    (lawang-logo-correo-fondo.png, 552×120 → 230×50). En claro no se distingue;
-//    en oscuro es una placa clara con el logo;
+//    oscurecida: ahora lleva un halo claro difuminado alrededor de las letras
+//    (lawang-logo-correo-halo.png, 504×91 → 210×38) y sigue siendo transparente
+//    fuera de él. En claro el halo tiene el color del grano y no se distingue; en
+//    oscuro separa las letras del fondo. Se probó antes una placa opaca: en el
+//    móvil tapaba con un corte recto la marca de agua, que comparte celda con el
+//    logo (revisor de código, 30-sep);
 //  · <meta name="color-scheme" content="light only">: Apple Mail y Outlook.com
 //    lo respetan y pintan el correo tal cual; Gmail lo ignora (para Gmail están
 //    las dos anteriores).
 // El JPG y el logo antiguos NO se borran: los correos ya enviados apuntan a ellos.
-const LW_CORREO_LOGO_URL = 'https://lawangproperties.com/assets/img/lawang-logo-correo-fondo.png';
+const LW_CORREO_LOGO_URL = 'https://lawangproperties.com/assets/img/lawang-logo-correo-halo.png';
 const LW_CORREO_GRANO_URL = 'https://lawangproperties.com/assets/img/correo-grano.png';
 const LW_CORREO_GRANO_BASE = '#FFFFF3';   // el máximo de cada canal del grano: la capa solo oscurece
 
@@ -307,12 +310,12 @@ BTN;
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
         <!-- marca -->
         <tr>
-          <td align="center" style="padding:21px 40px 8px;">
-            <!-- 230×50 = el logo de 200×28 con 15 px de loseta a los lados y ~11 arriba y abajo:
-                 el relleno de la celda (32→21) y el margen del filete (18→7) lo descuentan -->
-            <img src="{$logo}" width="230" height="50" alt="LAWANG"
-                 style="display:block;width:230px;height:50px;border:0;margin:0 auto;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:360px;margin:7px auto 0;"><tr>
+          <td align="center" style="padding:27px 40px 8px;">
+            <!-- 210×38 = el logo de 200×28 con 5 px de halo alrededor: el relleno de la
+                 celda (32→27) y el margen del filete (18→13) lo descuentan -->
+            <img src="{$logo}" width="210" height="38" alt="LAWANG"
+                 style="display:block;width:210px;height:38px;border:0;margin:0 auto;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:360px;margin:13px auto 0;"><tr>
               <td valign="middle"><div style="height:1px;background:{$C['linea']};font-size:0;line-height:0;">&nbsp;</div></td>
               <td valign="middle" style="width:1%;white-space:nowrap;padding:0 14px;font-family:{$serif};font-size:11px;letter-spacing:3px;text-transform:uppercase;color:{$C['rotulo_logo']};">Properties</td>
               <td valign="middle"><div style="height:1px;background:{$C['linea']};font-size:0;line-height:0;">&nbsp;</div></td>
