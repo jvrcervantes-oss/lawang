@@ -306,7 +306,7 @@ end $$;
 -- Antes (30-sep 07:18 UTC): devengos 10:873cb219e4cd746a8144573b763fc2fd · sps 9:e7a0153471ad74d2a6afbe7ebedb455d · difs 0 · reconciliar 0.
 
 -- ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
--- BLOQUE 2 · arreglos del revisor (20260930080806 + 20260930082215). Independiente del bloque de arriba y SIN
+-- BLOQUE 2 · arreglos del revisor (20260930080806 + 20260930082215; P15-P18: 20260930132132). Independiente del bloque de arriba y SIN
 -- secuencias: no da de alta contratos (contrato_guarda solo sobre una raíz existente), la solicitud de pago lleva un
 -- número de prueba escrito a mano, 999999005, lejos de la serie (numero es identity: OVERRIDING SYSTEM VALUE no gasta la serie) y la raíz no tiene cobros,
 -- así que el motor no crea solicitudes nuevas. Se puede pasar cuantas veces haga falta. Todo acaba en excepción.
@@ -354,21 +354,26 @@ begin
       (select count(*) from public.notificaciones n where n.contrato_id = v_root and n.tipo = 'venta_por_su_cuenta'));
   exception when others then r := r || 'P1 puerta apagada=' || sqlerrm || case when sqlerrm = 'NULL/equipo/t/0' then ' ok; ' else ' FALLO; ' end; end;
 
-  -- P2 · RPC sin pantalla revocadas a authenticated
+  -- P2 · pantallas de F5b (20260930131454_f5b_venta_pantallas): las cuatro RPC vuelven a estar concedidas a
+  --      authenticated y cada una se protege por dentro. Con la raíz «por su cuenta» y la ventana abierta, el SM de hoy
+  --      (S) crea la objeción; resolverla y cambiar el modo son solo de admin (42501); la lista le funciona.
   begin
+    perform set_config('app.via_modo_admin', 'on', true);
+    update public.contrato_closer set modo = 'propia', modo_espera_hasta = now() + interval '7 days' where contrato_id = v_root;
+    perform set_config('app.via_modo_admin', 'off', true);
     perform set_config('request.jwt.claims', json_build_object('sub', S.user_id, 'email', S.e, 'role', 'authenticated')::text, true);
     set local role authenticated;
-    begin perform public.venta_objecion_crear(v_root, 'x'); v_t := 'crear-sin-error';
-    exception when others then get stacked diagnostics v_state = returned_sqlstate; v_t := v_state; end;
+    begin perform public.venta_objecion_crear(v_root, 'prueba F5 P2'); v_t := 'crear-ok';
+    exception when others then get stacked diagnostics v_state = returned_sqlstate; v_t := v_state || '(' || sqlerrm || ')'; end;
     begin perform public.venta_objecion_resolver(gen_random_uuid(), 'pasar_equipo', 'x'); v_t := v_t || '/resolver-sin-error';
     exception when others then get stacked diagnostics v_state = returned_sqlstate; v_t := v_t || '/' || v_state; end;
     begin perform public.venta_modo_admin(v_root, 'equipo', 'x'); v_t := v_t || '/admin-sin-error';
     exception when others then get stacked diagnostics v_state = returned_sqlstate; v_t := v_t || '/' || v_state; end;
-    begin perform public.ventas_por_su_cuenta_equipo(); v_t := v_t || '/lista-sin-error';
+    begin perform count(*) from public.ventas_por_su_cuenta_equipo(); v_t := v_t || '/lista-ok';
     exception when others then get stacked diagnostics v_state = returned_sqlstate; v_t := v_t || '/' || v_state; end;
     reset role;
     raise exception '%', v_t;
-  exception when others then r := r || 'P2 revocadas=' || sqlerrm || case when sqlerrm = '42501/42501/42501/42501' then ' ok; ' else ' FALLO; ' end; end;
+  exception when others then r := r || 'P2 pantallas F5b=' || sqlerrm || case when sqlerrm = 'crear-ok/42501/42501/lista-ok' then ' ok; ' else ' FALLO; ' end; end;
 
   -- P3 · (2) modo FIJADO por un admin: el closer no lo cambia al re-guardar; re-guardar lo mismo sí pasa
   begin
@@ -532,7 +537,7 @@ begin
         update public.contrato_closer set closer_email = M.e where contrato_id = v_rp;
         v_t := 'cambio-sin-error';
       exception when others then get stacked diagnostics v_state = returned_sqlstate;
-        v_t := v_state || case when sqlerrm like 'Esta venta ya tiene comisiones vivas%' then '' else '(' || sqlerrm || ')' end; end;
+        v_t := v_state || case when sqlerrm like 'El closer anterior tiene comisiones pendientes%comision\_devengo\_anular;%comision\_devengo\_anular\_lawang%' then '' else '(' || sqlerrm || ')' end; end;
       perform set_config('request.jwt.claims', json_build_object('sub', A.user_id, 'email', A.e, 'role', 'authenticated')::text, true);
       perform public.comision_devengo_anular(v_d.id, 'prueba LAW-474 (f): cambia el closer');
       update public.contrato_closer set closer_email = M.e where contrato_id = v_rp;
@@ -559,7 +564,7 @@ begin
         perform public.crm_contrato_closer_set(v_rp, null, kk.closer_email);
         v_t := 'quitar-sin-error';
       exception when others then get stacked diagnostics v_state = returned_sqlstate;
-        v_t := v_state || case when sqlerrm like 'Esta venta ya tiene comisiones vivas%' then '' else '(' || sqlerrm || ')' end; end;
+        v_t := v_state || case when sqlerrm like 'El closer anterior tiene comisiones pendientes%comision\_devengo\_anular;%comision\_devengo\_anular\_lawang%' then '' else '(' || sqlerrm || ')' end; end;
       perform public.crm_contrato_closer_set(v_otro, null, kk.closer_email);
       raise exception '%', v_n || '/' || v_t || '/' || (select count(*) from public.contrato_closer where contrato_id = v_rp)
         || '/' || (select count(*) from public.contrato_closer where contrato_id = v_otro);
@@ -568,7 +573,7 @@ begin
     -- ── LAW-474 (a) reposición y (b) sin roles (migración 20260930121342). Sin secuencias: el devengo que se repone SIN
     --    pagar es de nivel `closer` (lo paga el SM: el motor no crea solicitud); el PAGADO es de `manager` metido a mano
     --    (sin solicitud) y su diferencia negativa lleva un número escrito a mano ('DIF-P474-…', no gasta la serie).
-    declare v_sp0 int; v_imp numeric; v_dx uuid; v_vig numeric; v_objt numeric;
+    declare v_sp0 int; v_imp numeric; v_dx uuid; v_vig numeric; v_objt numeric; v_spx uuid; v_e text;
     begin
       v_sp0 := (select count(*) from public.solicitudes_pago sp where sp.contrato_id = v_rp);
 
@@ -722,6 +727,148 @@ begin
         raise exception '%', v_t || '/' || (select count(*) from public.contrato_roles_equipo re where re.contrato_raiz_id = v_rp);
       exception when others then r := r || 'P14 (b) roles en propia=' || sqlerrm
         || case when sqlerrm = '22023/quitar-ok/0' then ' ok; ' else ' FALLO; ' end; end;
+
+      -- ── Arreglos del revisor (migración 20260930132132_law474_arreglos_revisor). Sin secuencias: las solicitudes llevan
+      --    número de prueba escrito a mano (999999006, 999999007) y los devengos se meten a mano o salen del nivel closer.
+
+      -- P15 · (1) solicitud RECHAZADA no renace: fee de manager pendiente cuya solicitud rechazó un admin → admin a «propia»:
+      --       anulada SIN anulado_por_modo. Si la marca saliera true, la prueba para ANTES de la vuelta (la vuelta crearía
+      --       una solicitud real con la serie SP). Vuelta a «equipo»: sigue anulada, sin fila ni solicitud nueva; y
+      --       _comision_devengo_reponer, aun marcándola a mano, se niega (22023)
+      begin
+        update public.condiciones_comision set activo = false, vigente_hasta = null
+         where equipo_id = kk.equipo_id and nivel in ('manager', 'closer', 'setter', 'team_lead');
+        insert into public.condiciones_comision (equipo_id, proyecto_id, nivel, closer_email, pct_comision, base_calculo, activo, vigente_desde)
+        select kk.equipo_id, cc.proyecto_id, 'manager', null, 2, 'precio_total', true, v_f - 30 from public.contratos cc where cc.id = v_rp
+        returning id into v_c;
+        insert into public.condicion_tramos (condicion_id, orden, disparador_tipo, umbral, pct_tramo) values (v_c, 1, 'pct_cobrado_total', 0, 100)
+        returning id into v_tramo;
+        insert into public.solicitudes_pago (numero, concepto, importe, moneda, origen, beneficiario_email, creado_por, contrato_id)
+        overriding system value
+        select 999999006, 'Prueba LAW-474 P15 fee de manager', 100, cc.moneda, 'comision_automatica', kk.manager_email, A.user_id, v_rp
+          from public.contratos cc where cc.id = v_rp
+        returning id into v_spx;
+        insert into public.comisiones_devengadas (contrato_raiz_id, tramo_id, condicion_id, beneficiario_email, nivel, importe, moneda, solicitud_id)
+        select v_rp, v_tramo, v_c, kk.manager_email, 'manager', 100, cc.moneda, v_spx from public.contratos cc where cc.id = v_rp
+        returning * into v_d;
+        perform set_config('request.jwt.claims', json_build_object('sub', A.user_id, 'email', A.e, 'role', 'authenticated')::text, true);
+        update public.solicitudes_pago set estado = 'rechazada', motivo_rechazo = 'prueba LAW-474 P15' where id = v_spx;
+        v_t := public.venta_modo_admin(v_rp, 'propia', 'prueba LAW-474 P15 ida')::text;
+        v_e := (select d.estado || ':' || d.anulado_por_modo from public.comisiones_devengadas d where d.id = v_d.id);
+        if v_e is distinct from 'anulada:false' then
+          raise exception 'ida %: se para antes de la vuelta', v_e;
+        end if;
+        v_t := v_t || '/' || v_e || '/' || public.venta_modo_admin(v_rp, 'equipo', 'prueba LAW-474 P15 vuelta');
+        update public.comisiones_devengadas set anulado_por_modo = true where id = v_d.id;
+        begin
+          perform public._comision_devengo_reponer(v_d.id, 1, '{}'::jsonb, 'prueba');
+          v_t := v_t || '/reponer-sin-error';
+        exception when others then get stacked diagnostics v_state = returned_sqlstate;
+          v_t := v_t || '/' || v_state || case when sqlerrm like 'La solicitud de pago de esta comisión se rechazó%' then '' else '(' || sqlerrm || ')' end; end;
+        raise exception '%', v_t || format('/%s/%s/%s/%s',
+          (select d.estado from public.comisiones_devengadas d where d.id = v_d.id),
+          (select count(*) from public.comisiones_devengadas d where d.contrato_raiz_id = v_rp),
+          (select count(*) from public.solicitudes_pago sp where sp.contrato_id = v_rp) = v_sp0 + 1,
+          (select sp.estado from public.solicitudes_pago sp where sp.id = v_spx));
+      exception when others then r := r || 'P15 (1) rechazada no renace=' || sqlerrm
+        || case when sqlerrm = '0/anulada:false/0/22023/anulada/1/t/rechazada' then ' ok; ' else ' FALLO; ' end; end;
+
+      -- P16 · (2) cambio de closer con la fee del MANAGER viva (no es del closer anterior) → se permite, y esa fila sigue
+      --       pendiente e intacta (antes había que anularla para cambiar el closer y el manager ya no volvía a cobrar)
+      begin
+        update public.condiciones_comision set activo = false, vigente_hasta = null
+         where equipo_id = kk.equipo_id and nivel in ('manager', 'closer', 'setter', 'team_lead');
+        insert into public.condiciones_comision (equipo_id, proyecto_id, nivel, closer_email, pct_comision, base_calculo, activo, vigente_desde)
+        select kk.equipo_id, cc.proyecto_id, 'manager', null, 2, 'precio_total', true, v_f - 30 from public.contratos cc where cc.id = v_rp
+        returning id into v_c;
+        insert into public.condicion_tramos (condicion_id, orden, disparador_tipo, umbral, pct_tramo) values (v_c, 1, 'pct_cobrado_total', 0, 100)
+        returning id into v_tramo;
+        insert into public.comisiones_devengadas (contrato_raiz_id, tramo_id, condicion_id, beneficiario_email, nivel, importe, moneda)
+        select v_rp, v_tramo, v_c, kk.manager_email, 'manager', 100, cc.moneda from public.contratos cc where cc.id = v_rp
+        returning * into v_d;
+        begin
+          update public.contrato_closer set closer_email = M.e where contrato_id = v_rp;
+          v_t := 'cambio-ok';
+        exception when others then get stacked diagnostics v_state = returned_sqlstate; v_t := v_state || '(' || sqlerrm || ')'; end;
+        raise exception '%', v_t || format('/%s/%s', lower((select closer_email from public.contrato_closer where contrato_id = v_rp)) = M.e,
+          (select d.estado = 'pendiente' and d.importe = 100 and d.anulado_en is null and not d.anulado_por_modo
+             from public.comisiones_devengadas d where d.id = v_d.id));
+      exception when others then r := r || 'P16 (2) cambio closer con fee de manager viva=' || sqlerrm
+        || case when sqlerrm = 'cambio-ok/t/t' then ' ok; ' else ' FALLO; ' end; end;
+
+      -- (el caso «devengo del closer anterior PENDIENTE → bloqueado con el mensaje; tras anularlo con motivo → permitido»
+      --  es P9, y el del borrado P10, ya con el mensaje nuevo)
+
+      -- P17 · (2) devengo del closer anterior PAGADO → cambiar el closer (update) y quitarlo (crm_contrato_closer_set a NULL)
+      --       se bloquean con el mensaje de Administración, y el closer sigue siendo T
+      begin
+        update public.condiciones_comision set activo = false, vigente_hasta = null
+         where equipo_id = kk.equipo_id and nivel in ('manager', 'closer', 'setter', 'team_lead');
+        insert into public.condiciones_comision (equipo_id, proyecto_id, nivel, closer_email, pct_comision, base_calculo, activo, vigente_desde)
+        select kk.equipo_id, cc.proyecto_id, 'closer', T.e, 5, 'precio_total', true, v_f - 30 from public.contratos cc where cc.id = v_rp
+        returning id into v_c;
+        insert into public.condicion_tramos (condicion_id, orden, disparador_tipo, umbral, pct_tramo) values (v_c, 1, 'pct_cobrado_total', 0, 100)
+        returning id into v_tramo;
+        insert into public.comisiones_devengadas (contrato_raiz_id, tramo_id, condicion_id, beneficiario_email, nivel, importe, moneda, estado, pagado_en)
+        select v_rp, v_tramo, v_c, T.e, 'closer', 100, cc.moneda, 'pagada', now() - interval '1 day' from public.contratos cc where cc.id = v_rp;
+        begin
+          update public.contrato_closer set closer_email = M.e where contrato_id = v_rp;
+          v_t := 'cambio-sin-error';
+        exception when others then get stacked diagnostics v_state = returned_sqlstate;
+          v_t := v_state || case when sqlerrm like 'El closer anterior ya tiene comisiones de esta venta pagadas%Lo regulariza Administración' then '' else '(' || sqlerrm || ')' end; end;
+        perform set_config('request.jwt.claims', json_build_object('sub', A.user_id, 'email', A.e, 'role', 'authenticated')::text, true);
+        begin
+          perform public.crm_contrato_closer_set(v_rp, null, kk.closer_email);
+          v_t := v_t || '/quitar-sin-error';
+        exception when others then get stacked diagnostics v_state = returned_sqlstate;
+          v_t := v_t || '/' || v_state || case when sqlerrm like 'El closer anterior ya tiene comisiones de esta venta pagadas%Lo regulariza Administración' then '' else '(' || sqlerrm || ')' end; end;
+        raise exception '%', v_t || '/' || (lower((select closer_email from public.contrato_closer where contrato_id = v_rp)) = T.e);
+      exception when others then r := r || 'P17 (2) closer anterior pagado=' || sqlerrm
+        || case when sqlerrm = '22023/22023/t' then ' ok; ' else ' FALLO; ' end; end;
+
+      -- P18 · (2) vía nueva comision_devengo_anular_lawang: comisión «por su cuenta» del closer anterior PENDIENTE con su
+      --       solicitud pendiente (número de prueba 999999007) → cambiar el closer se bloquea; el SM no puede usar la vía
+      --       (42501); el admin la anula con motivo: solicitud y devengo anulados con UN rastro (el del trigger de la
+      --       solicitud), y el cambio de closer pasa
+      begin
+        update public.condiciones_comision set activo = false, vigente_hasta = null
+         where equipo_id = kk.equipo_id and nivel in ('manager', 'closer', 'setter', 'team_lead');
+        insert into public.condiciones_comision (equipo_id, proyecto_id, nivel, closer_email, pct_comision, base_calculo, activo, vigente_desde)
+        select kk.equipo_id, cc.proyecto_id, 'closer', T.e, 5, 'precio_total', true, v_f - 30 from public.contratos cc where cc.id = v_rp
+        returning id into v_c;
+        insert into public.condicion_tramos (condicion_id, orden, disparador_tipo, umbral, pct_tramo) values (v_c, 1, 'pct_cobrado_total', 0, 100)
+        returning id into v_tramo;
+        insert into public.solicitudes_pago (numero, concepto, importe, moneda, origen, beneficiario_email, creado_por, contrato_id)
+        overriding system value
+        select 999999007, 'Prueba LAW-474 P18 por su cuenta', 100, cc.moneda, 'comision_automatica', T.e, A.user_id, v_rp
+          from public.contratos cc where cc.id = v_rp
+        returning id into v_spx;
+        insert into public.comisiones_devengadas (contrato_raiz_id, tramo_id, condicion_id, beneficiario_email, nivel, importe, moneda, solicitud_id)
+        select v_rp, v_tramo, v_c, T.e, 'propia', 100, cc.moneda, v_spx from public.contratos cc where cc.id = v_rp
+        returning * into v_d;
+        begin
+          update public.contrato_closer set closer_email = M.e where contrato_id = v_rp;
+          v_t := 'cambio-sin-error';
+        exception when others then get stacked diagnostics v_state = returned_sqlstate;
+          v_t := v_state || case when sqlerrm like 'El closer anterior tiene comisiones pendientes%' then '' else '(' || sqlerrm || ')' end; end;
+        perform set_config('request.jwt.claims', json_build_object('sub', S.user_id, 'email', S.e, 'role', 'authenticated')::text, true);
+        begin
+          perform public.comision_devengo_anular_lawang(v_d.id, 'prueba LAW-474 P18 SM');
+          v_t := v_t || '/sm-sin-error';
+        exception when others then get stacked diagnostics v_state = returned_sqlstate; v_t := v_t || '/' || v_state; end;
+        perform set_config('request.jwt.claims', json_build_object('sub', A.user_id, 'email', A.e, 'role', 'authenticated')::text, true);
+        perform public.comision_devengo_anular_lawang(v_d.id, 'prueba LAW-474 P18: cambia el closer');
+        begin
+          update public.contrato_closer set closer_email = M.e where contrato_id = v_rp;
+          v_t := v_t || '/cambio-ok';
+        exception when others then get stacked diagnostics v_state = returned_sqlstate; v_t := v_t || '/' || v_state || '(' || sqlerrm || ')'; end;
+        raise exception '%', v_t || format('/%s/%s/%s/%s',
+          (select sp.estado from public.solicitudes_pago sp where sp.id = v_spx),
+          (select d.estado || ':' || d.anulado_por_modo from public.comisiones_devengadas d where d.id = v_d.id),
+          (select count(*) from public.comisiones_ajustes_log l where l.fila_id in (v_spx, v_d.id) and l.accion = 'anular'),
+          lower((select closer_email from public.contrato_closer where contrato_id = v_rp)) = M.e);
+      exception when others then r := r || 'P18 (2) anular por su cuenta y cambiar closer=' || sqlerrm
+        || case when sqlerrm = '22023/42501/cambio-ok/anulada/anulada:false/1/t' then ' ok; ' else ' FALLO; ' end; end;
     end;
   end;
 
