@@ -232,18 +232,21 @@ begin
   for c in select * from (values
       ('ruta heredada .png', '/contracts/assets/brand/sandalwoods-lockup.png', true),
       ('ruta heredada .webp en mayúsculas', '/contracts/assets/brand/Logo-1.WEBP', true),
-      ('URL del bucket para esta clave', 'https://abcdefghijklmnopqrst.supabase.co/storage/v1/object/public/sociedades/' || soc || '/' || hex64 || '.png', true),
-      ('URL del bucket .jpg', 'https://abcdefghijklmnopqrst.supabase.co/storage/v1/object/public/sociedades/' || soc || '/' || hex64 || '.jpg', true),
+      ('URL del bucket para esta clave', 'https://vtulllundrfennhjddhc.supabase.co/storage/v1/object/public/sociedades/' || soc || '/' || hex64 || '.png', true),
+      ('URL del bucket .jpg', 'https://vtulllundrfennhjddhc.supabase.co/storage/v1/object/public/sociedades/' || soc || '/' || hex64 || '.jpg', true),
       ('un SVG heredado', '/contracts/assets/brand/logo.svg', false),
       ('una ruta con subcarpeta y ..', '/contracts/assets/brand/../../../etc/x.png', false),
       ('una dirección ajena', 'https://evil.example/logo.png', false),
       ('javascript:', 'javascript:alert(1)', false),
       ('data:', 'data:image/png;base64,AAAA', false),
-      ('URL del bucket de OTRA clave', 'https://abcdefghijklmnopqrst.supabase.co/storage/v1/object/public/sociedades/tepi_sungai/' || hex64 || '.png', false),
-      ('URL del bucket con .svg', 'https://abcdefghijklmnopqrst.supabase.co/storage/v1/object/public/sociedades/' || soc || '/' || hex64 || '.svg', false),
-      ('URL del bucket con hash corto', 'https://abcdefghijklmnopqrst.supabase.co/storage/v1/object/public/sociedades/' || soc || '/abc.png', false),
-      ('URL http (sin s)', 'http://abcdefghijklmnopqrst.supabase.co/storage/v1/object/public/sociedades/' || soc || '/' || hex64 || '.png', false),
-      ('URL de otro bucket', 'https://abcdefghijklmnopqrst.supabase.co/storage/v1/object/public/deck/' || soc || '/' || hex64 || '.png', false)
+      ('URL del bucket de OTRA clave', 'https://vtulllundrfennhjddhc.supabase.co/storage/v1/object/public/sociedades/tepi_sungai/' || hex64 || '.png', false),
+      ('URL del bucket con .svg', 'https://vtulllundrfennhjddhc.supabase.co/storage/v1/object/public/sociedades/' || soc || '/' || hex64 || '.svg', false),
+      ('URL del bucket con hash corto', 'https://vtulllundrfennhjddhc.supabase.co/storage/v1/object/public/sociedades/' || soc || '/abc.png', false),
+      ('URL http (sin s)', 'http://vtulllundrfennhjddhc.supabase.co/storage/v1/object/public/sociedades/' || soc || '/' || hex64 || '.png', false),
+      ('URL de OTRO proyecto Supabase (ref ajeno, 20 caracteres)', 'https://abcdefghijklmnopqrst.supabase.co/storage/v1/object/public/sociedades/' || soc || '/' || hex64 || '.png', false),
+      ('ref propio como subdominio de otro dominio', 'https://vtulllundrfennhjddhc.supabase.co.evil.example/storage/v1/object/public/sociedades/' || soc || '/' || hex64 || '.png', false),
+      ('ref propio precedido de otro prefijo', 'https://xvtulllundrfennhjddhc.supabase.co/storage/v1/object/public/sociedades/' || soc || '/' || hex64 || '.png', false),
+      ('URL de otro bucket', 'https://vtulllundrfennhjddhc.supabase.co/storage/v1/object/public/deck/' || soc || '/' || hex64 || '.png', false)
     ) x(que, logo, debe) loop
     res := public._zz_intenta(format($q$ select public.sociedad_guarda(%L, jsonb_build_object('logo', %L::text), false) $q$, soc, c.logo));
     r := r || format(E'\nG %s: %s → %s', c.que, split_part(res, '|', 1) || '|' || split_part(res, '|', 2),
