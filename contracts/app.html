@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-lw4-herramienta="contratos">
 <head>
-<meta name="lw-version" content="abc65e5d3e11">
+<meta name="lw-version" content="0946872ace2a">
 <meta charset="UTF-8">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
@@ -40,7 +40,7 @@
      no le mueve lo que tenia. -->
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=b4c1ea88"></script>
+<script src="/contracts/assets/i18n.js?v=6adfc149"></script>
 <script src="/contracts/assets/herramientas.js?v=a51ace01"></script>
 <script src="assets/avisos.js?v=0ec2eaff" defer></script><script src="assets/topbar.js?v=705d408d" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -4614,7 +4614,11 @@ function contractPayload(){
    CC00020, 76.500 € contados dos veces). Corte gemelo al de firma-submit
    (enviarProformaTotal), que hace lo mismo al FIRMAR. */
 const TIPOS_CON_PROFORMA_AUTO = ['reserva_parcela', 'construccion'];
+/* PARADA (30-sep-2026, owner; pendiente LAW-471): el comentario de arriba describe el flujo activo. No descuenta el descuento comercial. Gemelo de
+   PROFORMA_AUTO_PARADA en firma-submit; reactivar solo cuando reste el neto. */
+const PROFORMA_AUTO_PARADA = true;
 async function crearProformaAutomatica(contratoId, numero, payload){
+  if(PROFORMA_AUTO_PARADA) return;
   if(!TIPOS_CON_PROFORMA_AUTO.includes(payload.tipo)) return;
   const precio = payload.precio_total;
   if(!precio || precio <= 0) return;
