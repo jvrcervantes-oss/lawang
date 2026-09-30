@@ -106,11 +106,12 @@
     unidad_no_enlazada: 'La base no ha podido ligar el contrato a la parcela y no ha guardado nada. Avisa al estudio.',
     hitos_suma: 'El calendario de pagos no cuadra con el precio total: revisa el precio.',
     plantilla_no_valida: 'Esta versión de la plantilla no se puede emitir desde aquí.',
+    cotitular_no_soportado: 'Por ahora un contrato de plantilla admite un solo firmante; los cotitulares llegarán más adelante.',
     precio_distinto_lista: 'Esta parcela tiene precio de lista y solo un administrador puede poner otro precio. Deja el precio de lista, o pide a un administrador que emita el contrato: quedará registrado quién cambió el precio y cuándo.'
   };
   /* Códigos de la lista de errores (simulación y `detail` de la emisión) que se enseñan con palabras propias en vez
      del mensaje de la base. Solo los que no dicen nada de un campo concreto: el resto lleva su desglose. */
-  var POR_CODIGO = { precio_distinto_lista: POR_HINT.precio_distinto_lista };
+  var POR_CODIGO = { precio_distinto_lista: POR_HINT.precio_distinto_lista, cotitular_no_soportado: POR_HINT.cotitular_no_soportado };
   function errorTexto(e) {
     var h = (e && e.hint) || '', c = (e && e.code) || '', m = (e && e.message) || String(e || '');
     if (POR_HINT[h]) return T(POR_HINT[h]);
@@ -256,10 +257,18 @@
       return { error: e };
     });
   }
+  /* Freno de cotitulares (owner, 30-sep; M0 §3.3 y §7.2, 20260930170000): simular y emitir admiten UN firmante, y
+     con dos o más la base responde cotitular_no_soportado. La plantilla puede declarar varios: solo se ofrece el
+     primero (adquiriente_1, siempre obligatorio) y un aviso fijo dice por qué faltan los demás. */
   function pintaFirmantes(firmantes) {
     var caja = $('emitir-firmantes');
     vacia(caja);
-    firmantes.forEach(function (f) {
+    if (firmantes.length > 1) {
+      var av = nodo('p', 'lw-emi-ayuda', T('Por ahora un contrato de plantilla admite un solo firmante; los cotitulares llegarán más adelante.'));
+      av.setAttribute('data-lw', 'emitir-aviso-cotitular');
+      caja.appendChild(av);
+    }
+    firmantes.slice(0, 1).forEach(function (f) {
       var id = 'lw-emi-f-' + f.rol;
       var bloque = nodo('div', 'lw-emi-campo');
       var lab = nodo('label', 'font-label-md text-label-md text-on-surface', (f.etiqueta || f.rol) + (f.obligatorio ? ' *' : ''));

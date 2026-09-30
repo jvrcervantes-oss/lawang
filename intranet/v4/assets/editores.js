@@ -9642,6 +9642,11 @@
         if (h === 'no_es_borrador') return 'Esa versión ya no es un borrador: otra persona la ha activado o descartado. Recarga la pantalla.';
         if (h === 'sin_tipo') return 'La plantilla no tiene tipo de contrato: ponle uno en el borrador antes de activarla.';
         if (h === 'version_inmutable') return 'Una versión activa no se cambia: los cambios van a un borrador nuevo.';
+        /* Activar esquema 1 con huella (contrato M0 §7.6, 20260930170000). */
+        if (h === 'huella_distinta') return 'La versión cambió desde que la simulaste: vuelve a simular.';
+        if (h === 'usa_huella') return 'Esta versión se activa con la huella de su simulación y la pantalla no la ha mandado. Recarga la pantalla y vuelve a simular; si vuelve a pasar, avisa al estudio.';
+        /* Freno de cotitulares (M0 §3.3): simular y emitir admiten un solo firmante. */
+        if (h === 'cotitular_no_soportado') return 'Por ahora un contrato de plantilla admite un solo firmante; los cotitulares llegarán más adelante.';
         if (c === '42501') return /sesi[oó]n/i.test(m) ? 'Tu sesión ha caducado: vuelve a entrar.'
           : 'No tienes permiso: las plantillas las cambia un admin con el permiso «Plantillas», y lo comprueba la base.';
         if (c === 'P0002') return m || 'Eso ya no existe: otra persona lo ha cambiado. Recarga la pantalla.';
@@ -10638,10 +10643,14 @@
         (Array.isArray(borr.campos) ? borr.campos : []).forEach(function (x) {
           eCampos[x.clave] = entrada('{{' + x.clave + '}} · ' + x.etiqueta, ejemploCampo(x), x.tipo === 'texto_largo');
         });
+        /* Freno de cotitulares (M0 §3.3, 20260930170000): simular admite UN firmante; con dos o más la base responde
+           cotitular_no_soportado. Se simula con el primero; los demás declarados salen vacíos en el texto. */
         var eFirm = [];
-        (Array.isArray(borr.firmantes) ? borr.firmantes : []).forEach(function (f, i) {
+        var firmDecl = Array.isArray(borr.firmantes) ? borr.firmantes : [];
+        firmDecl.slice(0, 1).forEach(function (f, i) {
           eFirm.push({ rol: f.rol, i: entrada('{{' + f.rol + '_nombre}} · ' + (f.etiqueta || ''), 'Firmante de ejemplo ' + (i + 1)) });
         });
+        if (firmDecl.length > 1) sE.appendChild(nodo('p', 'lwp-nota', 'Por ahora un contrato de plantilla admite un solo firmante; los cotitulares llegarán más adelante. La simulación usa solo el primero y deja vacíos los datos de los demás.'));
         var bSim = btnAccion('simular', 'Simular', 'las-btn1');   // data-accion="simular"
         bSim.style.justifySelf = 'start';
         sE.appendChild(bSim);
@@ -10739,10 +10748,17 @@
                   var e = new Error('El borrador ha cambiado desde que lo simulaste (lo ha guardado alguien, o tú en otra pestaña). Vuelve a abrir «Revisar y activar».');
                   e.recarga = true; throw e;
                 }
-                return sb.rpc('plantilla_version_activa', { p_version_id: borr.id, p_acepto: chk.checked === true });
+                /* Esquema 1: la base compara la huella (M0 §7.6) bajo bloqueo de fila; la relectura de arriba solo da un
+                   aviso temprano. Quien decide es `p_hash` → 23514 huella_distinta; sin él, 22023 usa_huella. */
+                return sb.rpc('plantilla_version_activa', { p_version_id: borr.id, p_acepto: chk.checked === true, p_hash: huella });
               }).then(function (rr) {
                 enviando = false;
-                if (rr && rr.error) { bAct.disabled = !chk.checked; return aviso(errorPlantillas(rr.error), '#9E2F26'); }
+                if (rr && rr.error) {
+                  aviso(errorPlantillas(rr.error), '#9E2F26');
+                  // Huella distinta: lo revisado ya no es lo guardado. Se cierra para volver a abrir y simular lo actual.
+                  if (rr.error.hint === 'huella_distinta') { quitaRevision(); c.cierra(); repinta(); return; }
+                  bAct.disabled = !chk.checked; return;
+                }
                 aviso('Plantilla activada: v' + borr.version + ' de «' + p.nombre + '».');
                 c.cierra();
                 repinta();
