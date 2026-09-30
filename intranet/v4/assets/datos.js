@@ -169,6 +169,20 @@
     var d = new Date(); if (n) d.setDate(d.getDate() + n);
     return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
   }
+  /* RESERVAS URGENTES · UNA sola fuente de la cuenta (30-sep-2026). Lo que sale
+     de `reservas_vencimiento()` (una fila por PARCELA; ya excluye los RP sin firmar,
+     que nunca caducan, owner 23-sep) se agrupa por contrato y se parte en «vencidas
+     pendientes de liberar» (d <= 0) y «vencen en 1-2 días». La usan «Hoy toca» y el
+     Asistente acoplado (mascota.js) — el umbral no se copia. Cada sesión ve solo lo
+     suyo (SECURITY INVOKER + su RLS): un agente, sus reservas; un manager, las de su
+     equipo. `hoyISO` es la fecha LOCAL (hoyLocal), nunca UTC. */
+  window.lwReservasUrgentes = function (filas, hoyISO) {
+    var diasA = function (iso) { return Math.round((new Date(iso + 'T00:00:00') - new Date(hoyISO + 'T00:00:00')) / 864e5); };
+    var porC = {};
+    (filas || []).forEach(function (x) { if (!porC[x.contrato_id] && x.vence_el) porC[x.contrato_id] = { num: x.numero, comp: x.comprador_nombre, d: diasA(String(x.vence_el).slice(0, 10)) }; });
+    var rs = Object.keys(porC).map(function (k) { return porC[k]; }).sort(function (a, b) { return a.d - b.d; });
+    return { vencidas: rs.filter(function (x) { return x.d <= 0; }), pronto: rs.filter(function (x) { return x.d >= 1 && x.d <= 2; }) };
+  };
   // fecha + hora (hh:mm) en una línea: el registro de envíos (26-sep-2026, owner)
   function fFechaHoraCorta(x) { if (!x) return '—'; var d = new Date(x); return isNaN(d) ? String(x) : fFecha(x) + ' · ' + d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }); }
   function fFecha(x) { if (!x) return '—'; var d = new Date(x); return isNaN(d) ? String(x).slice(0, 10) : d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }); }
@@ -860,12 +874,9 @@
       var diasA = function (iso) { return Math.round((new Date(iso + 'T00:00:00') - new Date(hoy + 'T00:00:00')) / 864e5); };
       var lista3 = function (xs) { return xs.slice(0, 3).join(' · ') + (xs.length > 3 ? ' · +' + (xs.length - 3) : ''); };
 
-      // 1 y 2 · reservas (una fila por PARCELA en la función: se agrupa por contrato)
+      // 1 y 2 · reservas (la cuenta vive en window.lwReservasUrgentes, la comparte el Asistente)
       if (r[0]) {
-        var porC = {};
-        r[0].forEach(function (x) { if (!porC[x.contrato_id] && x.vence_el) porC[x.contrato_id] = { num: x.numero, comp: x.comprador_nombre, d: diasA(String(x.vence_el).slice(0, 10)) }; });
-        var rs = Object.keys(porC).map(function (k) { return porC[k]; }).sort(function (a, b) { return a.d - b.d; });
-        var venc = rs.filter(function (x) { return x.d <= 0; }), pronto = rs.filter(function (x) { return x.d >= 1 && x.d <= 2; });
+        var ur = window.lwReservasUrgentes(r[0], hoy), venc = ur.vencidas, pronto = ur.pronto;
         if (venc.length) fila('mal', 'event_busy', T('Reservas vencidas pendientes de liberar'), lista3(venc.map(function (x) { return x.num + ' (' + (x.comp || '—') + ')'; })), venc.length, '/intranet/v4/reservas/', T('Decidir'));
         if (pronto.length) fila('mal', 'schedule', T('Reservas que vencen en 1–2 días'), lista3(pronto.map(function (x) { return x.num + ' · ' + (x.d === 1 ? T('mañana') : T('pasado mañana')); })), pronto.length, '/intranet/v4/reservas/', T('Prorrogar o pasar a Bloqueo'));
       }
